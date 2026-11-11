@@ -126,6 +126,10 @@
   // Cada botão chama a MESMA função da estação na tela de módulos. "Módulos" mostra
   // as estações completas (nada some); "Hoje" é o painel do dia guiado pelo VYBES.
   const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  // Favoritos do dock (Paulo, 11/11/2026: "favoritar os módulos que mais usa pra não ficar procurando toda vez nas abas").
+  // Favorita-se o que abre uma tela: item solto do dock ou item de dentro de um setor. O setor em si só abre a lista.
+  const favoritavel = (t) => Boolean(t && typeof t === 'object' && !Array.isArray(t.sub) && !t.acao && t.id !== 'hoje');
+  const estrela = (id) => `<i class="vv-fav" data-fav="${id}" title="Pôr nos favoritos">${svg('<path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/>')}</i>`;
   // Setores com submódulos (Paulo, 07/11/2026, olhando o AgencyFlow: "módulos nesse esquema com os submódulos").
   // O setor é um ícone do trilho; clicar abre ao lado a lista dos submódulos. Submódulo com `mod` só aparece
   // quando o módulo dele está carregado (window[mod[0]]), assim um setor nunca mostra botão que não abre nada.
@@ -153,6 +157,8 @@
       // Reuniões (Paulo, 09/11/2026: "cadê o botão de reunião?"): abre uma reunião com qualquer cliente, com pauta, ata e gravação.
       { id: 'reunioes', nome: 'Reuniões', dica: 'Abrir uma reunião com um cliente: pauta, ata e gravação do áudio', mod: ['VybeReunioes', 'nova'] },
     ] },
+    // VybeHub (Paulo, 11/11/2026: "o VybeHub vai virar um botão ali no dock lateral"): o sistema irmão dos clientes abre daqui.
+    { id: 'vybehub', grupo: 'Operação', nome: 'VybeHub', dica: 'Abrir o VybeHub: portal e resultados dos clientes', url: 'https://vybehub.vercel.app/', ic: svg('<path d="M4 5v14h16"/><path d="M8 15l3-4 3 2 4-6"/>') },
     // Contratos e Churn (Paulo, 09/11/2026: "churn e contratos não faria mais sentido no comercial?"): renovação e saída
     // são receita, do Comercial. A tela continua a da Carteira (VybeCarteira), só o lugar no dock mudou.
     { id: 'setor:comercial', grupo: 'Negócio', nome: 'Comercial', dica: 'Comercial: CRM, conversas, produtos, orçamentos, contratos e churn', ic: svg('<path d="M3 11l18-7-7 18-2-8z"/>'), sub: [
@@ -442,6 +448,8 @@
     // aba Minhas tarefas. O Modo Foco antigo continua a um clique ("Abrir o dia completo").
     if (id === 'tarefas') { visaoHoje = 'tarefas'; try { localStorage.setItem('vybe.mundo.visaoHoje', 'tarefas'); } catch { /* fica nesta tela */ } usarTrilho.tarefas = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
     if (TRANCADOS.has(id) && !souDono()) { const b = hud.querySelector(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`); if (b) avisarTrancado(b); else chamar('showToast', 'Só os donos veem esta área.', 'info', 3500); return; }
+    const fora = TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.url);
+    if (fora) { window.open(fora.url, '_blank', 'noopener'); return; } // sistema irmão (VybeHub): abre ao lado, sem mexer na tela
     if (String(id).startsWith('setor:')) {
       // Visão geral com cadeado (a do RH para quem não é dono): o setor só abre a lista dos itens.
       if (dockLargo() && !souDono() && TRANCADOS.has('visao:' + id)) { expandirSetor(id); return; }
@@ -626,9 +634,10 @@
     aplicarCadeados(); marcarVerComo(); pintarHoje();
     if (!gestao.hidden && !souDono()) fecharGestao();
   }
-  // Negócio e Time com cadeado para quem não é dono (Paulo, 09/11/2026: "devem aparecer borrados ou com um cadeadinho"):
-  // continuam à vista, apagados e com o cadeado. Ficam abertos os itens do Time que são de todos: Produtividade (o
-  // próprio mês), Pedidos e calendário, Equipe online e Academy.
+  // Negócio e parte do Time são só dos donos. Paulo, 11/11/2026: "os módulos que não é pra todos ter acesso, ao invés de
+  // ficar turvo e com cadeado, eles nem vão aparecer pra quem não tem acesso" (antes, em 09/11, apareciam borrados).
+  // O item some do dock (CSS, classe trancado) e o título do grupo que ficou vazio some junto. Ficam para todos os
+  // itens do Time que são de todos: Produtividade (o próprio mês), Pedidos e calendário, Equipe online e Academy.
   const TRANCADOS = new Set(['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas']);
   function aplicarCadeados() {
     const fechado = !souDono();
@@ -651,6 +660,56 @@
         }
       }
     });
+    // Setor escondido não deixa a lista dele aberta; grupo sem nenhum item à vista perde o título. Só mexe quando muda.
+    hud.querySelectorAll?.('.vv-trilho-sub[data-sub-de]').forEach((s) => { if (!s.hidden && hud.querySelector(`.vv-trilho [data-trilho="${s.dataset.subDe}"]`)?.classList.contains('trancado')) s.hidden = true; });
+    hud.querySelectorAll?.('.vv-trilho-grupo[data-grupo]').forEach((g) => {
+      const itens = [...hud.querySelectorAll(`.vv-trilho > .vv-trilho-btn[data-grupo="${g.dataset.grupo}"]`)];
+      const vazio = itens.length > 0 && itens.every((b) => b.classList.contains('trancado'));
+      if (g.hidden !== vazio) g.hidden = vazio;
+    });
+    pintarFavoritos();
+  }
+  // ---------- Favoritos do dock: cada pessoa guarda os seus, neste navegador ----------
+  const FAV_MAX = 12;
+  const chaveFav = () => 'vybe.mundo.favoritos.' + (String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || '') || 'anon');
+  function lerFavoritos() {
+    try { const v = JSON.parse(localStorage.getItem(chaveFav()) || '[]'); return Array.isArray(v) ? [...new Set(v.filter((x) => typeof x === 'string'))].slice(0, FAV_MAX) : []; }
+    catch { return []; }
+  }
+  function itemDoDock(id) {
+    const topo = TRILHO.find((t) => favoritavel(t) && t.id === id);
+    if (topo) return { id, nome: topo.nome, ic: topo.ic, de: '', setor: '', url: topo.url || '' };
+    const sub = SUBMODULOS.find((x) => x.id === id); if (!sub) return null;
+    const setor = TRILHO.find((t) => t && typeof t === 'object' && t.id === sub.setor);
+    return { id, nome: sub.nome, ic: setor?.ic || '', de: setor?.nome || '', setor: sub.setor, url: sub.url || '', sub };
+  }
+  // Favorito de área que a pessoa não abre (ou de módulo que não carregou) não aparece.
+  const favVisivel = (x) => Boolean(x) && (souDono() || !(TRANCADOS.has(x.id) || TRANCADOS.has(x.setor))) && (!x.sub || subVisivel(x.sub));
+  function alternarFavorito(id) {
+    if (!itemDoDock(id)) return;
+    const l = lerFavoritos(), i = l.indexOf(id);
+    if (i >= 0) l.splice(i, 1);
+    else if (l.length >= FAV_MAX) { chamar('showToast', `Cabem ${FAV_MAX} favoritos. Tire um para pôr outro.`, 'info', 3500); return; }
+    else l.push(id);
+    try { localStorage.setItem(chaveFav(), JSON.stringify(l)); } catch { chamar('showToast', 'Este navegador não deixou guardar o favorito.', 'info', 3500); return; }
+    pintarFavoritos();
+  }
+  let favPintado = '';
+  function pintarFavoritos() {
+    const el = hud.querySelector?.('.vv-trilho-fav'); if (!el) return;
+    const ids = lerFavoritos(), itens = ids.map(itemDoDock).filter(favVisivel);
+    // Só repinta quando muda (pessoa, lista ou acesso): mexer no dock dispara os observadores do HUD.
+    const marca = () => [chaveFav(), ids.join(','), itens.map((x) => x.id).join(','), el.childElementCount].join('|');
+    if (marca() === favPintado) return;
+    el.innerHTML = itens.length ? '<span class="vv-trilho-grupo">Favoritos</span>' + itens.map((x) => `<button type="button" class="vv-trilho-fav-item" data-fav-ir="${esc(x.id)}" title="${esc(x.de ? x.de + ': ' + x.nome : x.nome)}">${x.ic}<span>${esc(x.nome)}</span>${x.de ? `<small>${esc(x.de)}</small>` : ''}${x.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${estrela(x.id)}</button>`).join('') : '';
+    el.hidden = !itens.length;
+    hud.querySelectorAll('.vv-trilho [data-fav]').forEach((s) => { const on = ids.includes(s.dataset.fav); if (s.classList.contains('on') !== on) { s.classList.toggle('on', on); s.setAttribute('title', on ? 'Tirar dos favoritos' : 'Pôr nos favoritos'); } });
+    favPintado = marca();
+  }
+  function irAoFavorito(id) {
+    const x = itemDoDock(id); if (!favVisivel(x)) return;
+    if (x.setor && dockLargo()) expandirSetor(x.setor);
+    usarTrilho(id); if (!x.url) marcarTrilho(id);
   }
   function avisarTrancado(b) {
     chamar('showToast', verComo ? `${pessoaVista()?.name || 'Esta pessoa'} não abre isto: só os donos veem.` : 'Só os donos veem esta área.', 'info', 3500);
@@ -1563,9 +1622,9 @@
         if (t === '-') return '<span class="vv-trilho-espaco"></span>';
         const cab = t.grupo && t.grupo !== grupo ? `<span class="vv-trilho-grupo" data-grupo="${t.grupo}">${t.grupo}</span>` : ''; grupo = t.grupo || grupo;
         const setor = Array.isArray(t.sub);
-        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}</button>`;
-        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}</button>`).join('')}</div>` : '';
-        return cab + botao + subs;
+        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}${t.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${favoritavel(t) ? estrela(t.id) : ''}</button>`;
+        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}${estrela(x.id)}</button>`).join('')}</div>` : '';
+        return cab + botao + subs + (t.id === 'criar' ? '<div class="vv-trilho-fav" hidden></div>' : '');
       }).join('') + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="conversas" title="Conversas: o WhatsApp da Vybe" aria-label="Conversas">${svg('<path d="M4 5h16v11H8l-4 4z"/>')}<span>Conversas</span></button>`
         // Celular (quadro 28): um dock só. A voz vira um lugar da barra de baixo; fora de uma chamada, o cartão das salas
         // (Salas e Entrar) abre por cima dela só quando se toca em Voz. Na chamada o dock das salas fica à vista (o
@@ -3066,13 +3125,15 @@
     if (dock.length) partes.push(`<h3>Salas e voz</h3>${grade(dock.map((b) => item(b, b.dataset.nome || b.title)))}`);
     const vistas = [...hud.querySelectorAll('.vv-vistas [data-vista]')];
     if (vistas.length) partes.push(`<h3>Vista do mundo</h3>${grade(vistas.map((b) => item(b, b.textContent.trim())))}`);
+    const favs = [...hud.querySelectorAll('.vv-trilho-fav [data-fav-ir]')];
+    if (favs.length) partes.push(`<h3>Favoritos</h3>${grade(favs.map((b) => item(b, b.querySelector('span')?.textContent.trim() || b.title)))}`);
     let grupo = '', bloco = [];
     const fechaGrupo = () => { if (bloco.length) partes.push(`<h3>${esc(grupo || 'Módulos')}</h3>${bloco.join('')}`); bloco = []; };
     for (const b of hud.querySelectorAll('.vv-trilho > [data-trilho]')) {
-      const id = b.dataset.trilho; if (NA_BARRA_CEL.includes(id) || b.hidden) continue;
+      const id = b.dataset.trilho; if (NA_BARRA_CEL.includes(id) || b.hidden || b.classList.contains('trancado')) continue;
       const g = b.dataset.grupo || grupo; if (g !== grupo) { fechaGrupo(); grupo = g; }
       const nome = b.querySelector('span')?.textContent.trim() || b.getAttribute('aria-label') || id;
-      const subs = id.startsWith('setor:') ? [...(hud.querySelector(`.vv-trilho-sub[data-sub-de="${id}"]`)?.children || [])].filter((x) => x.matches('button') && !x.hidden) : [];
+      const subs = id.startsWith('setor:') ? [...(hud.querySelector(`.vv-trilho-sub[data-sub-de="${id}"]`)?.children || [])].filter((x) => x.matches('button') && !x.hidden && !x.classList.contains('trancado')) : [];
       if (subs.length && !b.classList.contains('trancado')) bloco.push(`<div class="vv-cel-setor"><b>${iconeDe(b)}${esc(nome)}</b>${grade(subs.map((x) => item(x, x.textContent.replace('↗', '').trim())))}</div>`);
       else bloco.push(grade([item(b, nome)]));
     }
@@ -3205,6 +3266,9 @@
   function fecharPlaca() { placa().hidden = true; ajustarAreaLivre(); }
 
   hud.addEventListener('click', (e) => {
+    // Estrela do dock: favorita sem abrir o item em que ela está.
+    const fav = e.target.closest?.('.vv-trilho [data-fav]'); if (fav) { e.preventDefault(); alternarFavorito(fav.dataset.fav); return; }
+    const favIr = e.target.closest?.('[data-fav-ir]'); if (favIr) { irAoFavorito(favIr.dataset.favIr); return; }
     const b = e.target.closest('button, tr[data-agente]'); if (!b) return;
     // Andar aberto por baixo dos HUDs: outro andar no elevador entra nele; trocar de vista, voltar à lista
     // de andares, fechar o painel ou ir a outro lugar do trilho sai do andar (decorando, a edição decide).
