@@ -825,7 +825,11 @@ async function conectarEscritorio({ reconexao = false } = {}) {
     const base = await escritorioApi("entrada");
     // Saiu (ou tentou de novo) enquanto a resposta não chegava: esta tentativa morre aqui.
     if (geracao !== escritorio.geracao) return;
+    // Primeira base desta aba (celular, Minha sala aberta direto): a chegada monta o perfil, as salas e o quarto,
+    // como na abertura do Escritório; sem ela o Decorar via "Sala livre" e "Monte o seu quarto primeiro".
+    const primeira = !escritorio.base;
     escritorio.base = base;
+    if (primeira) { try { escritorioChegar(); } catch (e) { console.error("[escritorio] chegada", e); } }
     if (!base.worker || !base.token)
       throw new Error(base.aviso || "Conexão indisponível.");
     if (!reconexao) escritorioEtapaEntrada("conexao");
@@ -1430,6 +1434,17 @@ function escritorioAplicarSalas() {
 function escritorioPlanosDoPerfil(perfil, dim) {
   const piso = /^plano:piso:\d+$/.test(perfil?.sala_piso_plano || "") ? perfil.sala_piso_plano : "";
   return { texturas: piso ? [{ x0: 0, y0: 0, x1: dim.w, y1: dim.h, textura: piso }] : [], texturaParede: /^plano:parede:\d+$/.test(perfil?.sala_parede_plano || "") ? perfil.sala_parede_plano : "" };
+}
+// Base do Escritório sem abrir o mapa nem conectar a voz (celular; Loja e Decorar abertos direto do dock): a mesma
+// entrada e a mesma chegada da abertura. Um pedido por vez; quem chegar depois espera o mesmo.
+let escritorioBasePedida = null;
+function garantirBaseEscritorio() {
+  if (escritorio.base) return Promise.resolve(escritorio.base);
+  escritorioBasePedida ||= escritorioApi("entrada").then((base) => {
+    if (!escritorio.base && base) { escritorio.base = base; escritorioChegar(); }
+    return escritorio.base;
+  }).finally(() => { escritorioBasePedida = null; });
+  return escritorioBasePedida;
 }
 function escritorioChegar() {
   const base = escritorio.base;

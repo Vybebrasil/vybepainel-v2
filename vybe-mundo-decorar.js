@@ -108,14 +108,24 @@
       })
       .sort((a, b) => (Number(b.voxel) - Number(a.voxel)) || a.nome.localeCompare(b.nome, 'pt-BR'));
   }
-  // Ícone de cada móvel: a arte do próprio móvel (a mesma que a Minha sala desenha pixel a pixel), não o cubo genérico
-  // do catálogo. Chega quando a arte carrega; até lá, o quadrado vazio. Sem a arte, a peça voxel do catálogo.
+  // Ícone de cada móvel: o retrato voxel do próprio móvel (retratoDoMovel, o mesmo da Loja e do inventário, montado
+  // como a Minha sala o monta). Até chegar, o quadrado vazio. Antes a lista desenhava a arte do Habbo direto num
+  // canvas (data:), que a troca de imagens do mundo (trocarAvatar, só para endereços do Habbo) nunca via: os ícones
+  // ficavam na arte antiga para sempre (re-auditoria, WebKit). A imagem pendurada pela pessoa (vybeimg_*) segue a
+  // dela; só a peça que nem o quarto monta em voxel cai na arte do móvel e, sem ela, no cubo do catálogo.
   function iconeDe(classe) {
     if (icones.has(classe)) return icones.get(classe);
     icones.set(classe, '');
     (async () => {
       let url = '';
-      try {
+      if (!IMAGEM.test(String(classe))) {
+        try {
+          if (!estado.modulo) estado.modulo = await import(MUNDO_JS);
+          url = (await estado.modulo?.retratoDoMovel?.(classe, 96, () => Boolean(estado.raiz))) || '';
+        } catch { url = ''; }
+        if (!url && !estado.raiz) { icones.delete(classe); return; } // pulado porque o painel fechou: pede de novo ao reabrir
+      }
+      if (!url) try {
         if (typeof mapaCarregarMovel === 'function' && typeof mapaDesenharMovel === 'function') {
           const m = await mapaCarregarMovel(classe), dir = (m?.dados?.visualizations?.find?.((v) => v.size === 64)?.directions || {})[2] ? 2 : 4;
           url = mapaDesenharMovel(m, dir, 0, 0)?.canvas?.toDataURL?.() || '';
@@ -352,7 +362,11 @@
 
   // Abre a cena para a edição: inventário fresco (como abrirEditorEscritorio), catálogo, móveis e acabamento salvos.
   async function preparar() {
+    // Sem o Escritório carregado (celular): pede a base e a chegada, que dizem de quem é a sala e o quarto montado.
+    if (!base() && typeof garantirBaseEscritorio === 'function') { estado.carregando = true; pintar(); try { await garantirBaseEscritorio(); } catch { /* o erro abaixo avisa */ } }
     const b = base(), id = estado.sala;
+    if (!b) { estado.carregando = false; estado.erroAbrir = 'O Escritório não respondeu. Confira a conexão e tente de novo.'; pintar(); return false; }
+    estado.nome = chamar(typeof escritorioNomeCamada === 'function' ? escritorioNomeCamada : null, id) || estado.nome;
     estado.carregando = true; estado.erroAbrir = ''; pintar();
     try {
       if (!b.demo && typeof escritorioApi === 'function') b.economia = (await escritorioApi('economia')).economia;

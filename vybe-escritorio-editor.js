@@ -1090,6 +1090,11 @@ function abrirCatalogoEscritorio(aba) {
   if (!d.open) d.showModal();
   redesenharCatalogoJanelaEscritorio();
   d.querySelector(".ofc-catj-busca")?.focus();
+  // Sem o Escritório carregado (celular, Loja aberta direto do dock): a Loja pede a base sozinha e se redesenha.
+  if (!escritorio.base && typeof garantirBaseEscritorio === "function") garantirBaseEscritorio().then(() => redesenharCatalogoJanelaEscritorio(), () => {
+    const g = document.querySelector("#office-catalogo #office-catj-grade");
+    if (g) g.innerHTML = '<p class="ofc-nota" role="alert">Não deu para abrir a loja agora. Confira a conexão e abra de novo.</p>';
+  });
 }
 // Árvore, faixas e grade (a busca não é refeita: o cursor fica onde está).
 function redesenharCatalogoJanelaEscritorio() {

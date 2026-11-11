@@ -121,7 +121,14 @@ Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110�
   responde por partes (Range/206), que o player do iPhone exige.
 - 27 Prévia: a ficha é só leitura (aprovar por ela abriria os portões de conferência por baixo).
 - 23: "Nova etiqueta" e "Ordem" continuam no menu de status; responsável em lote ainda sem busca.
-- 34 Minha sala: peças de parede e móveis sem receita ainda com cara do Habbo (precisa receita nova em `mundo/moveis-voxel.mjs`).
+- 34 Minha sala: feito na frente `codex/r2-moveis` (10/11, noite): objetos pequenos, peças de parede e o que não tem receita
+  saem do motor (`mundo/moveis-voxel.mjs`: receitas novas, `generico` e `montarDeParede`). Só a imagem que a pessoa pendura
+  (`vybeimg_*`) continua ponto a ponto, porque é a imagem dela. Rodada 4 (`codex/r4-moveis`, 11/11): famílias novas
+  (`mundo/moveis-familias.mjs`) tiram 3.185 peças do volume liso (4.252 → 1.067 das 8.887 de chão); a lista do Decorar
+  passou ao retrato voxel. Segunda passada: substantivo principal do nome manda (amostra de 15 por família: 88 falsos
+  em 613 antes, 20 depois, a maioria corrigida em seguida); famílias de parede (painel liso 337 → 29 de 710);
+  `VERSAO_RETRATO` r5. No celular a Loja e o Decorar pedem a base do Escritório sozinhos (antes: "Carregando a loja…"
+  e "Sala livre" até o Escritório carregar).
 - 02: o cartão da semana manteve a caixa de marcar e o formato (são do lote).
 - 03: escolher outras colunas não existe; "+ Nova aqui" ficou "+ Nova demanda".
 - Celular: o X da janela cobre o começo do título no Painel e nas Demandas.
