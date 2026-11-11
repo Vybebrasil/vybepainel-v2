@@ -8,6 +8,7 @@
 // Tudo na grade de 1/16 de ladrilho (o grão do padrão): medidas e posições caem nela.
 import { Obra } from './voxel.mjs';
 import { biblioteca } from './moveis-biblioteca.mjs';
+import { familias, TIPOS_FAMILIAS } from './moveis-familias.mjs';
 
 const G = 1 / 16;
 // Encaixe fino (1/64): o grão do desenho é G, mas detalhe de meia grade (fresta, puxador, botão) existe de verdade.
@@ -77,6 +78,8 @@ export function tipoModelado(classe, ficha = null, info = null) {
   if (BLOCOS.has(info?.categoria)) return 'bloco';
   let t = (TIPOS.find(([, r]) => r.test(c)) || [null])[0];
   if (!t && info?.categoria) t = POR_CATEGORIA[info.categoria] || null;
+  // Famílias que antes caíam no volume liso (redesign r4): só para quem nenhuma regra acima reconheceu.
+  if (!t) t = (TIPOS_FAMILIAS.find(([, r]) => r.test(c)) || [null])[0];
   if (ficha?.deita) return 'cama';
   if (ficha?.senta && !['sofa', 'poltrona', 'cadeira', 'cama'].includes(t)) return t === 'mesa' || t === 'estante' || t === 'armario' ? t : 'cadeira';
   return t;
@@ -615,6 +618,9 @@ function esfera(o, x, y, z, raio, cor) {
     for (const [a, b] of [[rr * 2, rr * 1.2], [rr * 1.2, rr * 2]]) C(o, x, y + raio + yc - G / 2, z, a, G, b, cor);
   }
 }
+
+// As famílias novas (moveis-familias.mjs) entram como receitas do motor, com as mesmas ferramentas.
+Object.assign(RECEITAS, familias({ C, L, G, tom, lum, sat, hexRgb, esfera, octogono, pernas, LIVROS, METAL }));
 
 // Móveis modelados um a um (moveis-biblioteca.mjs), com as ferramentas deste motor.
 let BIBLIOTECA = null;

@@ -248,6 +248,15 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   (receita `generico`) e peça de parede tem as receitas dela (`montarDeParede`, por `paredeEmVoxel`); a escultura da
   arte só fica se a medida não chegar, e a imagem pendurada pela pessoa (`vybeimg_*`) segue ponto a ponto. Isto
   substitui o "copiar pixel a pixel" dos móveis fiéis. Tipo novo vira receita no motor, não exceção na cena.
+  Famílias (redesign r4, 11/11/2026, quadros 34 e 35): 4.252 das 8.887 peças de chão do catálogo caíam no `generico`
+  e a Loja virava uma grade de blocos parecidos. `mundo/moveis-familias.mjs` (`TIPOS_FAMILIAS` + receitas: estátua,
+  boneco, bicho/pelúcia, arco/portão, cabine, casinha, barraca, balão, bolo, comida, ovo, abóbora, vaso, cristal,
+  pedra, barril, cortina, janela, bandeira, bandeirola, cavalete/placa, aquário, bola, dado, boneco de neve, sacola,
+  cesta, palco/pódio, escada, coluna, cerca/muro, fogueira, veículo, banheira/piscina, guarda-sol, cogumelo, relógio,
+  instrumento, disco, espelho, cadeado, telhado, lápide) só vale para quem nenhuma regra antiga reconhece
+  (`tipoModelado` olha por último), pelo nome do catálogo sem renomear nada; sobram 1.067 no `generico`. Mudou
+  receita, suba `VERSAO_RETRATO` (quarto.mjs) para refazer o cache dos ícones. O ícone da lista do Decorar também é o
+  `retratoDoMovel` (antes desenhava a arte do Habbo num canvas e a troca do mundo nunca o via).
   Loja, Ranking e Conquistas ficam no dock (grupo Vybe), com as mesmas funções do Escritório.
   Vitrine do jogador (09/11/2026): com o mundo ligado, toda `.vb-vitrine` (ficha, criador, entrada) é um pedaço 3 × 3
   do quarto voxel da pessoa (`vitrineVoxel` em `vybe-mundo.js`, `abrirQuarto` com `vitrine: true`): piso e parede

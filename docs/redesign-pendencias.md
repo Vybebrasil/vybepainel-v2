@@ -118,7 +118,10 @@ Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110�
 - 23: "Nova etiqueta" e "Ordem" continuam no menu de status; responsável em lote ainda sem busca.
 - 34 Minha sala: feito na frente `codex/r2-moveis` (10/11, noite): objetos pequenos, peças de parede e o que não tem receita
   saem do motor (`mundo/moveis-voxel.mjs`: receitas novas, `generico` e `montarDeParede`). Só a imagem que a pessoa pendura
-  (`vybeimg_*`) continua ponto a ponto, porque é a imagem dela. Os ícones da lista do Decorar ainda mostram a arte antiga.
+  (`vybeimg_*`) continua ponto a ponto, porque é a imagem dela. Rodada 4 (`codex/r4-moveis`, 11/11): famílias novas
+  (`mundo/moveis-familias.mjs`) tiram 3.185 peças do volume liso (4.252 → 1.067 das 8.887 de chão); a lista do Decorar
+  passou ao retrato voxel; `VERSAO_RETRATO` r4. No celular a Loja fica em "Carregando a loja…" e o Decorar em "Sala livre"
+  até o Escritório carregar (já era assim antes desta rodada).
 - 02: o cartão da semana manteve a caixa de marcar e o formato (são do lote).
 - 03: escolher outras colunas não existe; "+ Nova aqui" ficou "+ Nova demanda".
 - Celular: o X da janela cobre o começo do título no Painel e nas Demandas.

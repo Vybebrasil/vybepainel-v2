@@ -59,7 +59,8 @@ test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro d
   assert.equal(m.tipoModelado('bling15_pooltable'), 'sinuca');
   assert.equal(m.tipoModelado('hygge_c18_shelf'), 'estante');
   assert.equal(m.tipoModelado('qualquer_coisa', { deita: true }), 'cama');
-  assert.equal(m.tipoModelado('thai_c21_woodenstatue'), null, 'estátua fica esculpida');
+  assert.equal(m.tipoModelado('thai_c21_woodenstatue'), 'estatua', 'estátua tem receita (redesign r4)');
+  assert.equal(m.tipoModelado('qualquer_coisa_sem_nome'), null, 'o que nenhuma regra reconhece fica no volume liso');
   const cores = m.coresDaPaleta(['#1f1d1a', '#3a8fd0', '#f2c230', '#e5484d']);
   assert.equal(cores.principal, '#3a8fd0', 'contorno escuro não vira a cor principal');
   for (const t of m.TIPOS_MODELADOS) for (const [w, d] of [[1, 1], [2, 1], [2, 3]]) {

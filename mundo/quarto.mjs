@@ -92,16 +92,22 @@ function prepararFotografo() {
 }
 // O retrato pronto fica guardado no navegador (o mesmo IndexedDB das peças esculpidas, chave própria): a Loja e as
 // Conquistas abrem com os ícones voxel na hora a partir da segunda vez. A versão muda quando o desenho do retrato muda.
-const VERSAO_RETRATO = 'r3';
+const VERSAO_RETRATO = 'r4';
 // `vivo` (opcional): diz se quem pediu ainda está à vista. Na vez da foto, se ninguém mais quer (a janela fechou, a
 // Loja trocou de prateleira), a foto é pulada sem travar a fila: as Conquistas abertas depois não esperam a Loja.
 const interessados = new Map();
+// A arte do móvel (json + png) chega pela rede: pedida já, em paralelo, enquanto a fila só monta e fotografa uma
+// peça por vez. Antes os dois arquivos de cada peça eram pedidos dentro da vez dela, um móvel depois do outro.
+function adiantarArte(classe) {
+  try { const p = globalThis.mapaCarregarMovel?.(classe); p?.catch?.(() => {}); } catch { /* sem a arte: a vez da peça resolve */ }
+  try { globalThis.mapaCarregarFisica?.()?.catch?.(() => {}); carregarCatalogo(); } catch { /* idem */ }
+}
 export function retratoDoMovel(classe, lado = 96, vivo = null) {
   const chave = classe + '|' + lado;
   if (vivo) { if (!interessados.has(chave)) interessados.set(chave, new Set()); interessados.get(chave).add(vivo); }
   if (!retratos.has(chave)) {
     const chaveGuardada = `retrato|${VERSAO_RETRATO}|${chave}`, antes = filaDeFotos; // a vez na fila é marcada agora
-    const vez = guardado.ler(chaveGuardada).then((salvo) => (typeof salvo === 'string' && salvo.startsWith('data:image/') ? salvo : antes.then(async () => {
+    const vez = guardado.ler(chaveGuardada).then((salvo) => (typeof salvo === 'string' && salvo.startsWith('data:image/') ? salvo : (adiantarArte(classe), antes).then(async () => {
       const quem = interessados.get(chave);
       if (quem?.size && ![...quem].some((f) => { try { return f(); } catch { return false; } })) { retratos.delete(chave); interessados.delete(chave); return ''; }
       interessados.delete(chave);
