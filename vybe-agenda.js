@@ -1242,7 +1242,18 @@ function pintarFiltrosDaAgenda() {
   if (pendentes) pendentes.setAttribute('aria-pressed', String(filtro === 'status:pending_all'));
   const critico = document.getElementById('sort-critico-btn');
   if (critico) critico.setAttribute('aria-pressed', String(typeof sortCritico !== 'undefined' && sortCritico));
-  acomodarBarraDoPainel();
+  pedirAcomodarBarraDoPainel();
+}
+
+// A medida da barra fica para o próximo quadro, uma vez só. Medir aqui forçava o navegador a montar a página inteira
+// a cada semana desenhada (renderWeek passa por aqui uma vez por semana): abrir o Painel de trabalho pelo dock gastava
+// meio segundo só nisso (quarta rodada, 11/11/2026). No quadro seguinte, antes de pintar, a barra já sai acomodada.
+let barraDoPainelPedida = false;
+function pedirAcomodarBarraDoPainel() {
+  if (barraDoPainelPedida) return;
+  if (typeof requestAnimationFrame !== 'function') { acomodarBarraDoPainel(); return; }
+  barraDoPainelPedida = true;
+  requestAnimationFrame(() => { barraDoPainelPedida = false; acomodarBarraDoPainel(); });
 }
 
 // A barra do Painel numa linha (re-auditoria de 10/11/2026). No mundo ela cabe inteira a 1440; quando passa de uma

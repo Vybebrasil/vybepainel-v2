@@ -205,3 +205,36 @@ Conferido no Chromium e no WebKit em 1440×900, 1110×650 e 390×844, com a demo
 - Conta: divisória do menu até o fim da janela e dados em rótulo | valor.
 - Sinapses: as fontes no português de quem usa ("Fichas dos clientes", "o VYBES só lê"); o caminho fica no `origem`.
 - Plurais: "1 aberta", "0 de 1 feita", "0 de 1 prevista pronta" vistos na tela; "1 cliente ativo" na Performance.
+
+## Quarta rodada: abertura das telas antigas (branch `codex/r4-abertura`, 11/11/2026)
+Paulo: "quando eu clico em Projetos pontuais abre instantaneamente; quando eu clico em Painel de trabalho (que veio do
+legado) parece que demora um pouquinho e tá abrindo de outra tela". Medido no WebKit e no Chromium (demo cheia, 1440×900),
+do clique no dock até a tela parada, três rodadas alternando a main e este branch.
+- Causa do tempo: abrir uma tela antiga pelo dock chamava `chooseManagerMode` (vybe-perfis.js), que desenhava as semanas do
+  Painel duas vezes (`applyPanelMode` e `renderIntegratedOperationalViews`); cada `renderWeek` passava por
+  `acomodarBarraDoPainel` (vybe-agenda.js), que media a barra e obrigava o navegador a montar a página inteira na hora (até
+  90 ms por vez). Demandas, Diário, IA, Automações e Conta ainda abriam o Painel antes e trocavam 300 ms depois
+  (`usarTrilho`, vybe-mundo.js): o Painel piscava. Sair de uma antiga para uma nova (ou para o Hoje, o Centro, Minha sala, a
+  visão de um setor) esperava 350 ms. E `sincronizar` escrevia `body.scrollTop` logo depois de trocar as classes do body:
+  mais um recálculo de estilo da página inteira (~100 ms) antes da primeira pintura.
+- Causa do "outra tela": atrás da moldura aparecia o céu azul do mapa (o palco das janelas novas é bege) e o quadro entrava
+  com `vybe-quadro-entra` (do zero de opacidade, 340 ms), separado da moldura.
+- O que mudou: a barra do Painel é medida uma vez, no quadro seguinte (`pedirAcomodarBarraDoPainel`);
+  `chooseManagerMode(quadro)` abre direto no quadro pedido (sem argumento é o de sempre); `applyPanelMode` não desenha as
+  semanas quando `renderIntegratedOperationalViews` vai desenhá-las logo abaixo; `sairDaTelaAntiga` (voltarAoMenu +
+  sincronizar) no lugar das esperas de 350 ms; a volta ao topo vai para o próximo quadro. CSS no bloco "Quarta rodada ·
+  abertura", no fim de `vybe-mundo.css`: o palco bege atrás da moldura e moldura, cabeçalho e quadro entrando juntos, com
+  `--vv-mola` e `--vv-t-janela`; `vybe-quadro-entra` ficou em `:where(body:not(.mundo))`.
+- Tempos (mediana de 3 rodadas, do clique até a tela parada, demo cheia 1440×900), main → este branch: WebKit, Painel de
+  trabalho 844 → 388 ms, Demandas 716 → 169, Agenda 463 → 265, Clientes 363 → 296, Diário 1058 → 171, IA 1152 → 137,
+  Automações 1120 → 230, Conta 1149 → 138 (Projetos pontuais 138, Agentes 142, Carteira 116). Chromium: Painel 2302 → 310,
+  Demandas 1651 → 85, Agenda 1109 → 128, Clientes 545 → 143, Diário 2048 → 84, IA 2056 → 102, Automações 2221 → 130,
+  Conta 2390 → 115 (Projetos 142, Agentes 140, Carteira 94).
+- Esc fecha só o que está por cima: a gaveta da peça não entrava em `POR_CIMA` (vybe-mundo.js procurava
+  `#workspace-drawer.open`, classe que a gaveta nunca tem) e o mesmo Esc fechava a gaveta e a tela antiga. O link
+  `?atividade=` abre a gaveta como na main, mais cedo (≈3 s contra 5 a 9 s na demo). O que abre a peça no Painel é o
+  título dela (`.item-workspace-link`); a linha em si só arrasta.
+- Ainda diferente das janelas novas: a tela antiga continua sendo a própria página (rola o body; o cabeçalho é o do legado),
+  não um elemento de janela; a entrada é só o deslize (a escala de .982 descolaria a moldura do conteúdo); a primeira
+  pintura recalcula o estilo da página inteira, porque troca a classe do body; e o `pintarChamada` de 1,5 s em 1,5 s ainda
+  força recálculos quando cai no meio da entrada (vale para as janelas novas também).
