@@ -30,7 +30,7 @@ body.vybe-desktop {
   accent-color: var(--workspace-accent);
 }
 .vybe-desktop :is(button, input, select, textarea) { font-family: var(--mac-ui); }
-.vybe-desktop :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+:where(body:not(.mundo)).vybe-desktop :is(button, a, input, select, textarea, [tabindex]):focus-visible {
   outline: 3px solid #ffb678 !important; outline-offset: 3px;
 }
 .vybe-desktop button { -webkit-tap-highlight-color: transparent; }

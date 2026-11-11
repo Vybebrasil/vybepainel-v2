@@ -97,13 +97,50 @@ test('peças: rodapé técnico fora do mundo, texto clicável como botão, foco 
 });
 
 test('vbResumoHtml: zero vira texto discreto, sem a cor de estado', () => {
-  const src = ler('vybe-core.js').replace(/\r\n/g, '\n');
+  // O corte da função vale em qualquer fim de linha (checkout do Windows traz CRLF): fecha no primeiro "}" sozinho na linha.
+  const src = ler('vybe-core.js');
   const ini = src.indexOf('function vbResumoHtml');
-  const fim = src.indexOf('\n}\n', ini) + 2;
+  const fecho = /\r?\n\}\r?\n/.exec(src.slice(ini));
+  assert.ok(ini >= 0 && fecho, 'vbResumoHtml não foi achada no vybe-core.js');
+  const fim = ini + fecho.index + fecho[0].length;
   const ctx = { safeText: (v) => String(v ?? '') };
   vm.createContext(ctx);
   vm.runInContext(src.slice(ini, fim) + ';this.f = vbResumoHtml;', ctx);
   const html = ctx.f([{ valor: 0, rotulo: ' atrasadas', tom: 'alerta' }, { valor: 3, rotulo: ' atrasadas', tom: 'alerta' }]);
   assert.match(html, /class="vb-resumo-item zero"><b>0<\/b>/);
   assert.match(html, /class="vb-resumo-item alerta"><b>3<\/b>/);
+});
+
+// ----- Segunda rodada (acabamento, 10/11/2026): regras gerais dos quadros 00 Main, 00 Sistema, 29, 30 e 32 -----
+test('um cabeçalho de janela: vbCabecalhoHtml com o X único, sem rótulo de setor', () => {
+  const core = ler('vybe-core.js');
+  assert.match(core, /function vbCabecalhoHtml\(\{ titulo, texto = '', acoes = '', id = '' \}\)/);
+  assert.match(core, /function vbFecharHtml\(attr = '', classe = ''\)/);
+  for (const [arq, topo] of [['vybe-mundo-pessoas.js', 'vp-topo'], ['vybe-mundo-impressoes.js', 'vi-topo'], ['vybe-mundo-ferramentas.js', 'vf-topo'], ['vybe-mundo-agentes.js', 'vga-topo'], ['vybe-mundo-planejamentos.js', 'vv-plj-cabeca']]) {
+    const src = ler(arq);
+    assert.ok(src.includes(`class="${topo} vb-janela-topo">\${cabecalho({`), `${arq}: o topo usa o cabeçalho único`);
+    assert.match(src, /botaoX\('data-/, `${arq}: o X é o do padrão`);
+  }
+  assert.doesNotMatch(ler('vybe-mundo-pessoas.js'), /class="vp-kicker">\$\{esc\(estado\.rotulo/);
+  assert.doesNotMatch(ler('vybe-mundo-planejamentos.js'), /vv-plj-kicker/);
+  const css = ler('vybe-mundo.css');
+  // Um tamanho de título e a mesma caixa para o X e o ⛶ das telas antigas; o 28 px ficou no painel antigo.
+  assert.match(css, /\.vv-canto-modulo \.vv-botao\{[^}]*background:#FFFFFF!important;border:1px solid #E6E0D6!important/);
+  assert.match(css, /body\.mundo :is\(\.pv-cabeca \.pv-etiqueta,\.vv-g-topo \.vv-cb-kicker,#vv-carteira \.vc-topo \.vc-kicker\)\{display:none\}/);
+  assert.match(ler('vybe-padrao.css'), /:where\(body:not\(\.mundo\)\) \.pv-cabeca h2\{/);
+});
+
+test('zeros em linha discreta, plural certo, mês no seletor e agenda no Hoje da Cidade', () => {
+  const mundo = ler('vybe-mundo.js'), pessoas = ler('vybe-mundo-pessoas.js');
+  assert.match(mundo, /function radarHtml\(V, itens\)/);
+  assert.match(mundo, /zero: 'atrasadas', icone: 'alerta', titulo: 'Atrasadas'/);
+  assert.match(mundo, /'peças em aberto', 'peça em aberto'\]/);
+  assert.match(ler('vybe-mundo-agentes.js'), /x\.n === 1 \? 'Ver o achado' : `Ver os \$\{x\.n\}`/);
+  assert.match(mundo, /<div class="vv-hoje-agenda-3d">\$\{agendaDeHojeHtml\(\)\}<\/div>/);
+  assert.match(mundo, /class="vc-sec vv-semana-abrir" data-abrir-gestao="semana">Abrir a semana<\/button>/);
+  assert.match(pessoas, /mesHtml\(ref, 'data-vp-ref-ir', estado\.periodo === 'anual'\)/);
+  assert.match(pessoas, /kpisHtml\(\[\['Vagas abertas', ind\.abertas\]/);
+  // O anel da dica e o foco: laranja do padrão; o contorno grosso da aparência antiga não vale no mundo.
+  assert.doesNotMatch(ler('vybe-mundo-tutorial.css'), /139,125,255,\.(9|18|22)\)|0 0 0 2px #8B7DFF/);
+  assert.match(ler('vybe-appearance.css'), /:where\(body:not\(\.mundo\)\)\.vybe-desktop :is\(button, a, input, select, textarea, \[tabindex\]\):focus-visible/);
 });

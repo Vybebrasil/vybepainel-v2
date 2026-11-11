@@ -386,11 +386,12 @@
     const porId = new Map(todasAsPecas().map((d) => [String(d?.id), d]));
     // Atrasada aqui é a do mundo inteiro (veiculação ou prazo vencidos), a mesma da barra vermelha da linha.
     const atrasadas = r.pecas.filter((p) => !p.entregue && porId.has(p.id) && atrasada(porId.get(p.id), hoje)).length;
-    const kpis = `<div class="vv-cli-kpis">
-      <div><b>${r.total}</b><small>no mês</small></div>
-      <div><b>${r.entregues}</b><small>entregues</small></div>
-      <div><b${atrasadas ? ' class="u1"' : ''}>${atrasadas}</b><small>atrasadas</small></div>
-      <div><b>${r.noPrazoPct == null ? '–' : r.noPrazoPct + '%'}</b><small>no prazo</small></div></div>`;
+    // Número grande só no que tem número (Padrão Vybe): o zero e o "sem medida" viram a linha discreta (vbResumoHtml).
+    const quadros = [[r.total, 'no mês', ''], [r.entregues, 'entregues', ''], [atrasadas, 'atrasadas', 'u1'], [r.noPrazoPct == null ? null : r.noPrazoPct + '%', 'no prazo', '']];
+    const ladrilhos = (l) => (l.length ? `<div class="vv-cli-kpis">${l.map(([v, t, cls]) => `<div><b${cls && v ? ` class="${cls}"` : ''}>${v == null ? '–' : v}</b><small>${t}</small></div>`).join('')}</div>` : '');
+    const semNumero = ([v]) => v == null || v === 0;
+    const kpis = typeof window.vbResumoHtml !== 'function' ? ladrilhos(quadros)
+      : ladrilhos(quadros.filter((q) => !semNumero(q))) + (quadros.some(semNumero) ? `<div class="vs-resumo vv-radar-zeros">${window.vbResumoHtml(quadros.filter(semNumero).map(([v, t]) => (v == null ? { rotulo: 'no prazo: sem entrega para medir', tom: 'zero' } : { valor: 0, rotulo: t })))}</div>` : '');
     // Primeiro o que ainda não saiu (atrasadas antes), depois as entregues; dentro, pela data.
     const ordem = [...r.pecas].sort((a, b) => (a.entregue - b.entregue) || (b.atrasada - a.atrasada) || a.data.localeCompare(b.data));
     const linhas = ordem.slice(0, MAX_MES).map((p) => {

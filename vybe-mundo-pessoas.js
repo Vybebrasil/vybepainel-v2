@@ -19,6 +19,15 @@
 (function () {
   'use strict';
   const ABAS = [['produtividade', 'Produtividade'], ['rh', 'Pedidos e calendário'], ['projetos', 'Projetos pontuais'], ['academy', 'Academy'], ['recrutamento', 'Recrutamento'], ['documentos', 'Documentos']];
+  // A frase do cabeçalho de cada aba (Padrão Vybe: título, uma frase do que a tela faz e a ação à direita).
+  const FRASE = {
+    produtividade: 'Entregas no prazo, volume e ritmo de cada pessoa, direto das demandas do painel.',
+    rh: 'Pedidos ao RH com prazo de resposta, o calendário do time e a pesquisa de clima.',
+    projetos: 'Projetos fora do mensal, com etapas, responsáveis e datas.',
+    academy: 'Trilhas de treinamento para quem entra na Vybe.',
+    recrutamento: 'Vagas abertas e os candidatos em cada etapa.',
+    documentos: 'Contratos e documentos de cada colaborador, com o aviso de renovação.',
+  };
   const SO_GESTAO = new Set(['recrutamento', 'documentos']);
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate, .vv-espiar';
   const URL_API = '/api/painel?area=setor_pessoas';
@@ -43,6 +52,9 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
   const br = (iso) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '—');
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  // Cabeçalho único da janela (vbCabecalhoHtml e vbFecharHtml, vybe-core.js). Sem o vybe-core (testes), só o título e as ações.
+  const cabecalho = (o) => (typeof window !== 'undefined' && typeof window.vbCabecalhoHtml === 'function' ? window.vbCabecalhoHtml(o) : `<h2${o.id ? ` id="${o.id}"` : ''}>${esc(o.titulo)}</h2>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}${o.acoes || ''}`);
+  const botaoX = (attr, classe = '') => (typeof window !== 'undefined' && typeof window.vbFecharHtml === 'function' ? window.vbFecharHtml(attr, classe) : `<button type="button" class="vb-janela-x ${classe}" ${attr} aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`);
   const opcoes = (mapa, atual) => Object.entries(mapa).map(([v, r]) => `<option value="${esc(v)}"${String(v) === String(atual ?? '') ? ' selected' : ''}>${esc(r)}</option>`).join('');
   const pessoasOpcoes = (lista, atual, vazio = 'Sem responsável') => `<option value="">${esc(vazio)}</option>` + (lista || []).map((p) => `<option value="${esc(p.id)}"${String(p.id) === String(atual ?? '') ? ' selected' : ''}>${esc(p.nome)}</option>`).join('');
   const chip = ([texto, cls]) => `<span class="vp-chip ${cls}">${esc(texto)}</span>`;
@@ -128,12 +140,24 @@
     return `<small class="vp-vs ${bom ? 'bom' : 'ruim'}">${v.delta > 0 ? '▲' : '▼'} ${esc(Math.abs(v.delta))}${unidade} vs ${estado.periodo === 'anual' ? 'ano' : 'mês'} anterior</small>`;
   }
   const kpi = (rotulo, valor, extra = '') => `<div class="vp-kpi"><span>${esc(rotulo)}</span><b>${esc(valor ?? '—')}</b>${extra}</div>`;
+  // Mês no seletor de período do padrão (vbMesHtml, vybe-core.js): ‹ novembro de 2026 ›, não um campo de texto
+  // (quadro 30 do moodboard). Sem o vybe-core (testes) devolve vazio e quem chama mantém o campo.
+  const mesHtml = (mes, attr, ano = false) => (typeof window !== 'undefined' && typeof window.vbMesHtml === 'function' ? window.vbMesHtml({ mes, max: hoje().slice(0, 7), attr, ano }) : '');
+  // Número grande só quando há número (Padrão Vybe, quadro 00): o cartão vazio ("—" ou zero) vira uma linha discreta.
+  // itens: [rótulo do cartão, valor, extra do cartão, texto da linha quando não há número].
+  function kpisHtml(itens) {
+    const vazioDe = ([, v]) => v == null || v === '—' || v === 0 || v === '0';
+    if (typeof window === 'undefined' || typeof window.vbResumoHtml !== 'function') return `<div class="vp-kpis">${itens.map(([r, v, x]) => kpi(r, v, x)).join('')}</div>`;
+    const cheios = itens.filter((i) => !vazioDe(i)), vazios = itens.filter(vazioDe);
+    return (cheios.length ? `<div class="vp-kpis">${cheios.map(([r, v, x]) => kpi(r, v, x)).join('')}</div>` : '')
+      + (vazios.length ? `<div class="vs-resumo vv-radar-zeros">${window.vbResumoHtml(vazios.map(([r, v, , semNumero]) => (v === 0 || v === '0' ? { valor: 0, rotulo: r.charAt(0).toLowerCase() + r.slice(1) } : { rotulo: semNumero || `${r}: sem número ainda`, tom: 'zero' })))}</div>` : '');
+  }
   function seletorPeriodo() {
     const ref = estado.ref || hoje().slice(0, 7);
     return `<div class="vp-periodo"><div class="vp-seg" role="group" aria-label="Período">
         <button type="button" data-vp-periodo="mensal" aria-pressed="${estado.periodo !== 'anual'}">Mensal</button>
         <button type="button" data-vp-periodo="anual" aria-pressed="${estado.periodo === 'anual'}">Anual</button></div>
-      <label class="vp-campo-inline"><span class="vp-sr">Mês de referência</span><input type="month" data-vp-ref value="${esc(ref)}" max="${esc(hoje().slice(0, 7))}"></label></div>`;
+      ${mesHtml(ref, 'data-vp-ref-ir', estado.periodo === 'anual') || `<label class="vp-campo-inline"><span class="vp-sr">Mês de referência</span><input type="month" data-vp-ref value="${esc(ref)}" max="${esc(hoje().slice(0, 7))}"></label>`}</div>`;
   }
 
   // ---------- Produtividade ----------
@@ -155,7 +179,7 @@
   function htmlProdutividade(d) {
     const mes = estado.mes || d.mes || hoje().slice(0, 7);
     const propria = !estado.pessoa || estado.pessoa === d.eu?.id;
-    let html = `<div class="vp-linha-topo"><label class="vp-campo-inline"><span>Mês</span><input type="month" data-vp-mes value="${esc(mes)}" max="${esc(hoje().slice(0, 7))}"></label>
+    let html = `<div class="vp-linha-topo">${mesHtml(mes, 'data-vp-mes-ir') || `<label class="vp-campo-inline"><span>Mês</span><input type="month" data-vp-mes value="${esc(mes)}" max="${esc(hoje().slice(0, 7))}"></label>`}
       ${!propria ? sec('Voltar para o meu', 'data-vp-pessoa=""') : ''}</div>`;
     html += cartaoPessoa(d.detalhe, d.componentes || [], propria);
     html += `<p class="vp-nota">${d.fonte?.ajustes ? esc(d.fonte.ajustes) + '. ' : ''}Nada para preencher: tudo vem das demandas do painel.</p>`;
@@ -613,8 +637,8 @@
     const ind = d.indicadores || {}, etapas = d.etapas || [];
     const cands = (d.candidatos || []).filter((c) => !estado.vaga || c.vaga_id === estado.vaga);
     const nomeVaga = Object.fromEntries((d.vagas || []).map((v) => [v.id, v.titulo]));
-    let html = semMigracao(d) + seletorPeriodo() + `<div class="vp-kpis">${kpi('Vagas abertas', ind.abertas)}${kpi('Candidatos', ind.candidatos)}
-      ${kpi('Tempo médio de contratação', ind.tempoMedio?.dias == null ? '—' : plural(ind.tempoMedio.dias, 'dia', 'dias'), versus(ind.vs, { menorMelhor: true, unidade: ' dias' }))}</div>`;
+    let html = semMigracao(d) + seletorPeriodo() + kpisHtml([['Vagas abertas', ind.abertas], ['Candidatos', ind.candidatos],
+      ['Tempo médio de contratação', ind.tempoMedio?.dias == null ? '—' : plural(ind.tempoMedio.dias, 'dia', 'dias'), versus(ind.vs, { menorMelhor: true, unidade: ' dias' }), 'Tempo médio de contratação: ninguém contratado no período']]);
     const nCand = (id) => (d.candidatos || []).filter((c) => c.vaga_id === id).length;
     html += `<div class="vp-linha-topo">${(d.vagas || []).length ? escolha({ rotulo: 'Vaga', valor: estado.vaga || '', vazio: 'Todas', campo: 'data-vp-vaga', opcoes: d.vagas.map((v) => ({ valor: v.id, nome: v.titulo + (v.status !== 'aberta' ? ` (${v.status})` : ''), n: nCand(v.id) })) }) : '<span></span>'}
       <div class="vp-botoes">${sec('Etapas', 'data-vp-abrir-form="etapas"')}${(d.vagas || []).length ? sec('Novo candidato', 'data-vp-abrir-form="candidato"') : ''}</div></div>`;
@@ -681,9 +705,9 @@
   function htmlPainel() {
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const g = gestao(), abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
-    return `<div class="vp-topo"><div><span class="vp-kicker">${esc(estado.rotulo || 'Pessoas')}</span><h2 id="vp-titulo">${esc((ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1])}</h2></div>
-        <div class="vp-topo-botoes">${acaoDoTopo(estado.dados[estado.aba])}<button type="button" class="vp-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
-        <button type="button" class="vp-x" data-vp-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
+    const botoes = `<div class="vp-topo-botoes">${acaoDoTopo(estado.dados[estado.aba])}<button type="button" class="vp-x vb-janela-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
+        ${botaoX('data-vp-fechar', 'vp-x')}</div>`;
+    return `<div class="vp-topo vb-janela-topo">${cabecalho({ id: 'vp-titulo', titulo: (ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1], texto: FRASE[estado.aba] || '', acoes: botoes })}</div>
       ${estado.ajuda ? `<p class="vp-ajuda" role="note">${esc(AJUDA[estado.aba])}</p>` : ''}
       <div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === estado.aba}" data-vp-aba="${k}">${esc(r)}</button>`).join('')}</div>
       <p class="vp-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
@@ -769,6 +793,8 @@
     else if (perto('[data-vp-fechar-form]')) { estado.form = ''; estado.editar = null; pintar(); }
     else if ((b = perto('[data-vp-pessoa]'))) { estado.pessoa = b.dataset.vpPessoa; carregar(); }
     else if ((b = perto('[data-vp-periodo]'))) { estado.periodo = b.dataset.vpPeriodo; carregar(); }
+    else if ((b = perto('[data-vp-ref-ir]'))) { estado.ref = b.dataset.vpRefIr; carregar(); }
+    else if ((b = perto('[data-vp-mes-ir]'))) { estado.mes = b.dataset.vpMesIr; carregar(); }
     else if ((b = perto('[data-vp-carga-semana]'))) { const n = Number(b.dataset.vpCargaSemana), base = d.cargaSemana?.semana || hoje(); estado.semanaCarga = n ? somarDias(base, n) : ''; d.cargaSemana = null; pintar(); carregarCarga(); }
     else if ((b = perto('[data-vp-semana]'))) { const n = Number(b.dataset.vpSemana); estado.semana = n ? somarDias(d.semana || hoje(), n) : ''; carregar(); }
     else if ((b = perto('[data-vp-pedido]'))) gravar({ acao: 'pedido_status', id: b.dataset.vpPedido, status: b.dataset.status }, 'Pedido atualizado.');

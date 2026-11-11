@@ -22,6 +22,9 @@
   const NIVEIS = [['M', 'Padrão'], ['Q', 'Reforçado'], ['H', 'Máximo (com logo por cima)']];
   const st = { raiz: null, janela: null, antes: null, aba: 'inicio', qr: { texto: '', ecc: 'M', cor: '#1F1D1A' }, wa: { numero: '', mensagem: '' }, roi: { investimento: '', ticket: '', margem: '', vendas: '' }, aviso: '' };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  // Cabeçalho único da janela (vbCabecalhoHtml e vbFecharHtml, vybe-core.js). Sem o vybe-core (testes), só o título e as ações.
+  const cabecalho = (o) => (typeof window !== 'undefined' && typeof window.vbCabecalhoHtml === 'function' ? window.vbCabecalhoHtml(o) : `<h2${o.id ? ` id="${o.id}"` : ''}>${esc(o.titulo)}</h2>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}${o.acoes || ''}`);
+  const botaoX = (attr, classe = '') => (typeof window !== 'undefined' && typeof window.vbFecharHtml === 'function' ? window.vbFecharHtml(attr, classe) : `<button type="button" class="vb-janela-x ${classe}" ${attr} aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`);
   const icone = (d, t = 16) => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" aria-hidden="true">${d}</svg>`;
   const numero = (v) => Number(String(v ?? '').replace(/\./g, '').replace(',', '.')) || null;
 
@@ -153,8 +156,7 @@
   }
   function corpoDaAba() { return st.aba === 'inicio' ? abaInicio() : st.aba === 'whatsapp' ? abaWhatsapp() : st.aba === 'roi' ? abaRoi() : abaQR(); }
   function html() {
-    return `<div class="vf-topo"><div><small>Vybe</small><h2 id="vf-titulo">Toolkit</h2></div>
-        <button type="button" class="vf-x" data-vf="fechar" aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    return `<div class="vf-topo vb-janela-topo">${cabecalho({ id: 'vf-titulo', titulo: 'Toolkit', texto: 'QR Code, link do WhatsApp e calculadora de ROI para o dia a dia com o cliente.', acoes: botaoX('data-vf="fechar"', 'vf-x') })}</div>
       <div class="vf-abas" role="tablist" aria-label="Ferramentas do Toolkit">${ABAS.map(([k, n]) => `<button type="button" role="tab" aria-selected="${st.aba === k}" data-vf-aba="${k}">${n}</button>`).join('')}</div>
       <p class="vf-aviso" role="status" aria-live="polite">${esc(st.aviso)}</p>
       <div class="vf-corpo">${corpoDaAba()}</div>`;

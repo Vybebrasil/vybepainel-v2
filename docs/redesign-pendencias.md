@@ -43,6 +43,21 @@ Comece por aqui, depois leia `AGENTS.md` e `docs/redesign-auditoria-2026-11-10.m
   botões da gaveta; janelas translúcidas na busca, no Criar e na gaveta do celular; Loja por cima do dock lateral; contorno
   lilás no WebKit em menu da conta, Camadas e painel do cliente; plurais "1 peças"/"Ver os 1"; chips cortados nas Conquistas).
 
+## Segunda rodada: frente Acabamento (branch `codex/r2-acabamento`, 10/11/2026, noite)
+Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32), conferidos no Chromium e no WebKit em
+1440×900, 1110×650 e 390×844.
+- Aviso curto: some sozinho (Música 6 s, WhatsApp 7 s; só o mouse que se mexe em cima ou o foco do teclado seguram) e
+  sai de cima dos controles da janela (`ajustarAvisosCurtos`, vybe-core.js): com painel à direita fica ao lado dele;
+  sem vaga, desce até uma faixa livre. Em tela estreita (1110) com a gaveta aberta ele fica por cima do dock lateral.
+- Busca, Criar e gaveta com fundo sólido; Loja à direita do dock lateral; Equipe online com o mesmo fim das outras
+  janelas; período do Ranking em laranja; chips das Conquistas quebram em linhas.
+- Foco: o contorno grosso da aparência antiga ficou em `:where(body:not(.mundo))`; o anel da dica é laranja.
+- Um cabeçalho (`vbCabecalhoHtml` + `vbFecharHtml`): Pessoas, Impressões, Toolkit, Agentes e Planejamentos pelo JS; as
+  telas antigas, a Gestão, Fornecedores/Creators e as janelas `vc-topo` pelo CSS (título de 22 px, sem rótulo de setor,
+  X e ⛶ na mesma caixa). O HTML das telas da frente Negócio não foi tocado.
+- Zeros em linha discreta (Hoje, painel do cliente na Cidade, Recrutamento), plurais, mês no seletor de período em
+  Pessoas, "Abrir a semana" como botão e a agenda do dia no Hoje da Cidade.
+
 ## Como continuar
 1. Para cada frente da tabela: entre na pasta, veja `git status` e `git diff`. Se o trabalho estiver pela metade, termine
    os itens que faltam do quadro (pela auditoria), verifique e faça o commit no branch dela. Se a pasta não existir mais,

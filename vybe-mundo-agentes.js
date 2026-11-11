@@ -12,6 +12,9 @@
 (() => {
   const G = window;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Cabeçalho único da janela (vbCabecalhoHtml e vbFecharHtml, vybe-core.js). Sem o vybe-core (testes), só o título e as ações.
+  const cabecalho = (o) => (typeof window !== 'undefined' && typeof window.vbCabecalhoHtml === 'function' ? window.vbCabecalhoHtml(o) : `<h2${o.id ? ` id="${o.id}"` : ''}>${esc(o.titulo)}</h2>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}${o.acoes || ''}`);
+  const botaoX = (attr, classe = '') => (typeof window !== 'undefined' && typeof window.vbFecharHtml === 'function' ? window.vbFecharHtml(attr, classe) : `<button type="button" class="vb-janela-x ${classe}" ${attr} aria-label="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`);
   // Dono pela informação do servidor (sessão, server/donos.js), não pelo primeiro nome. A central confere de novo.
   const souDono = () => { try { return typeof G.souDonoDaSessao === 'function' && G.souDonoDaSessao(); } catch { return false; } };
   const ESTADO_SETOR = { ativo: ['Ativo', 'Já trabalha hoje.', '#18A957'], sombra: ['Sombra', 'Só propõe; um dono aprova.', '#0D74CE'], planejado: ['Planejado', 'Falta ligar as ferramentas: hoje não roda.', '#7A8B82'] };
@@ -309,7 +312,7 @@
     const decidir = F.decidir.length ? `<ul class="vga-fila">${F.decidir.map((it) => itemFilaHtml(it, dono)).join('')}</ul>`
       : `<p class="vga-vazio">${lendo ? 'Procurando…' : 'Nada esperando você agora. Quando um agente pedir o seu OK, achar algo urgente, falhar ou quiser guardar uma lição, aparece aqui.'}</p>`;
     const acomp = F.acompanhar.length ? `<section class="vga-bloco"><h4>Achados para acompanhar<span class="vga-pilula">${F.acompanhar.reduce((t, x) => t + x.n, 0)}</span></h4>
-      <p class="vga-vazio">Não são urgentes: o agente segue vigiando e avisa se piorar.</p><ul class="vga-fila vga-fila-curta">${F.acompanhar.map((x) => `<li><span class="vga-fila-meio"><small><b>${esc(x.agente)}</b> · ${esc(x.nome)}</small><b>${x.n} achado${x.n > 1 ? 's' : ''} em aberto</b><small>O mais antigo: ${esc(x.mais.fato)}</small></span><span class="vga-acoes"><button type="button" data-vga-setor="${esc(x.setor)}">Ver os ${x.n}</button></span></li>`).join('')}</ul></section>` : '';
+      <p class="vga-vazio">Não são urgentes: o agente segue vigiando e avisa se piorar.</p><ul class="vga-fila vga-fila-curta">${F.acompanhar.map((x) => `<li><span class="vga-fila-meio"><small><b>${esc(x.agente)}</b> · ${esc(x.nome)}</small><b>${x.n} achado${x.n === 1 ? '' : 's'} em aberto</b><small>O mais antigo: ${esc(x.mais.fato)}</small></span><span class="vga-acoes"><button type="button" data-vga-setor="${esc(x.setor)}">${x.n === 1 ? 'Ver o achado' : `Ver os ${x.n}`}</button></span></li>`).join('')}</ul></section>` : '';
     const esp = F.esperando.length ? `<section class="vga-bloco"><h4>Esperando confirmação<span class="vga-pilula">${F.esperando.length}</span></h4><ul class="vga-fila">${F.esperando.map((it) => itemFilaHtml(it, dono)).join('')}</ul></section>` : '';
     return `${cab}${aviso}<section class="vga-bloco"><h4>Para decidir<span class="vga-pilula">${F.decidir.length}</span></h4>${decidir}</section>${acomp}${esp}${st.msg ? `<p class="vga-msg" role="status">${esc(st.msg)}</p>` : ''}`;
   }
@@ -440,8 +443,8 @@
     const mesmo = raiz.dataset.setor === st.setor, rolagem = mesmo && det0 ? det0.scrollTop : 0, rolagemLista = lista0 ? lista0.scrollTop : 0;
     const abertos = mesmo ? [...raiz.querySelectorAll('.vga-detalhe details[open]:not(.vga-mais) > summary')].map((s) => s.textContent) : [];
     raiz.dataset.setor = st.setor;
-    raiz.innerHTML = `<div class="vga-topo"><span><small>Prédio da Vybe</small><h2>Agentes</h2><p>${f.dados ? `Central do VYBES · leitura às ${new Date(f.atualizadoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : f.erro ? 'Sem sinal da central do VYBES agora' : 'Consultando a central do VYBES…'}</p></span>
-      <button type="button" class="vga-fechar" data-vga-fechar aria-label="Fechar">×</button></div>
+    raiz.innerHTML = `<div class="vga-topo vb-janela-topo">${cabecalho({ titulo: 'Agentes', texto: f.dados ? `Central do VYBES · leitura às ${new Date(f.atualizadoEm || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : f.erro ? 'Sem sinal da central do VYBES agora' : 'Consultando a central do VYBES…',
+      acoes: botaoX('data-vga-fechar', 'vga-fechar') })}</div>
       <div class="vga-corpo"><nav class="vga-lista" aria-label="Agentes por andar">${listaHtml()}</nav><div class="vga-detalhe">${detalheHtml()}</div></div>`;
     raiz.hidden = false;
     if (abertos.length) raiz.querySelectorAll('.vga-detalhe details:not(.vga-mais) > summary').forEach((s) => { if (abertos.includes(s.textContent)) s.parentElement.open = true; });
