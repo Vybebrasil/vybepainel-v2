@@ -429,9 +429,9 @@ body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) 
 body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) td{border-color:#EFEAE1!important}
 /* Agenda (Captações) no jeito do Google Agenda: grade clara, horas discretas, evento na cor do tipo. */
 body.mundo.mundo-modulo :is(.ag-semana,.ag-cabeca){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important}
-body.mundo.mundo-modulo .ag-ev{background:color-mix(in srgb,var(--ag-cor) 16%,#FFFFFF)!important;color:#1F1D1A!important;box-shadow:inset 3px 0 0 var(--ag-cor)!important;border-radius:8px!important}
-body.mundo.mundo-modulo .ag-ev:hover{background:color-mix(in srgb,var(--ag-cor) 26%,#FFFFFF)!important}
-body.mundo.mundo-modulo .ag-ev.sel{background:color-mix(in srgb,var(--ag-cor) 30%,#FFFFFF)!important;box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px var(--vv-laranja)!important}
+body.mundo.mundo-modulo .ag-ev{background:#FFFFFF!important;color:#1F1D1A!important;box-shadow:inset 3px 0 0 var(--ag-cor),inset 0 0 0 1px #E6E0D6!important;border-radius:8px!important}
+body.mundo.mundo-modulo .ag-ev:hover{background:#FBF8F4!important}
+body.mundo.mundo-modulo .ag-ev.sel{background:#FFFFFF!important;box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px var(--vv-laranja)!important}
 body.mundo.mundo-modulo .ag-ev :is(b,span,small){color:#1F1D1A!important}
 /* Logo do cabeçalho no vidro claro */
 body.mundo.mundo-modulo .app-header .logo img{filter:invert(1) brightness(.25)}
@@ -6234,9 +6234,14 @@ body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-col
 @media (max-width:760px){.ia-duas{grid-template-columns:1fr}}
 /* ===== Menus da tabela (quadro 23 do redesign, 10/11/2026) =====
    Menu de responsável: a busca no topo, no papel claro dos outros campos; o pé "+ N fora da disciplina" é um link. */
-body.mundo .dono-editor .dono-busca{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
-body.mundo .dono-editor .dono-busca::placeholder{color:#8A847A}
-body.mundo .dono-editor .dono-busca:focus{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo :is(.dono-editor,.lote-dono) .dono-busca{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
+body.mundo :is(.dono-editor,.lote-dono) .dono-busca::placeholder{color:#8A847A}
+body.mundo :is(.dono-editor,.lote-dono) .dono-busca:focus{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+/* A busca do responsável em lote (quadro 23) ocupa a largura do menu, acima das fichas. */
+.lote-dono .dono-busca{width:100%;margin:0 0 10px}
+/* Fora de um módulo antigo (o lote segue marcado ao ir para o Hoje) o nome da ficha saía quase branco no menu claro. */
+body.mundo .lote-dono .dono-ficha b{color:#1F1D1A}
+body.mundo .lote-dono .dono-ficha .owner-avatar-fallback{display:inline-grid;place-items:center}
 body.mundo .dono-editor .dono-ver-todos{margin:4px 8px 2px;font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif}
 
 /* ===== Prévia da peça (quadro 27 do redesign, 10/11/2026) =====
@@ -6354,22 +6359,35 @@ body.mundo .pv-kpi-linha-item b{font:700 13.5px var(--vv-texto);color:#1F1D1A;ma
 body.mundo button.pv-kpi-linha-item{cursor:pointer;text-decoration:underline;text-decoration-color:#E6E0D6;text-underline-offset:3px}
 body.mundo button.pv-kpi-linha-item:hover{color:var(--vv-acao,#C2490C)}
 body.mundo .ops-command-bar{display:block;margin:6px 0 12px;padding:0;border:0;background:none;box-shadow:none}
-body.mundo .ops-command-bar .ops-botoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;overflow:visible;padding:0}
+body.mundo .ops-command-bar .ops-botoes{display:flex;flex-wrap:wrap;align-items:center;gap:6px;overflow:visible;padding:0}
 body.mundo .ops-command-bar :is(.toolbar-label,.ops-vao),body.mundo #agenda-filtros .agenda-filtros-rotulo{display:none}
 body.mundo .ops-command-bar .ops-segmentos{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:2px;margin:0;padding:3px;border:1px solid #E6E0D6;border-radius:10px;background:#F4EFE8;overflow-x:auto;scrollbar-width:none;max-width:100%}
-body.mundo .ops-command-bar .ops-segmentos button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;font:600 12.5px var(--vv-texto);white-space:nowrap}
-body.mundo .ops-command-bar .ops-segmentos button svg{width:15px;height:15px;flex:none}
-body.mundo .ops-command-bar .ops-attention{display:inline-flex;align-items:center;gap:8px}
-body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn){display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;font:600 12.5px var(--vv-texto)}
-body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn) .ops-action-count{min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font:800 11px var(--vv-texto)}
+/* A barra cabe numa linha a 1440 (re-auditoria de 10/11/2026): o alternador sem os ícones e com a contagem como texto,
+   as peças mais justas (a cor do botão e do escolhido segue a do padrão) e o "Sem filtros" só aparece quando há filtro
+   para limpar. Se ainda assim passar de uma linha (contagens grandes, filtro ligado), Veiculação/Prazo vai para dentro
+   de "Mais filtros" quando isso basta para a barra caber (acomodarBarraDoPainel, vybe-agenda.js). */
+body.mundo .ops-command-bar .ops-segmentos button{display:inline-flex;align-items:center;gap:5px;height:30px;margin:0;padding:0 7px;border-radius:7px;font:600 12.5px var(--vv-texto);white-space:nowrap;cursor:pointer}
+body.mundo .ops-command-bar .ops-segmentos button:focus-visible{outline:2px solid var(--vv-laranja);outline-offset:1px}
+body.mundo .ops-command-bar .ops-segmentos button svg{display:none}
+body.mundo .ops-command-bar .ops-action-count{min-width:0;height:auto;margin:0;padding:0;border-radius:0;background:none;font:700 11.5px var(--vv-texto);opacity:.8}
+body.mundo .ops-command-bar .ops-clear-btn.is-idle{display:none}
+body.mundo .ops-command-bar .ops-attention{display:inline-flex;align-items:center;gap:6px}
+body.mundo .ops-command-bar :is(.ops-action-btn,.ops-today-btn){display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:999px;font:600 12px var(--vv-texto)}
 body.mundo .ops-command-bar #agenda-filtros{display:contents}
-body.mundo .ops-command-bar #agenda-filtros summary{height:32px;min-height:32px;border-radius:999px;background:#FFFFFF;border:1px solid #E6E0D6;color:#1F1D1A}
+body.mundo .ops-command-bar #agenda-filtros summary{height:32px;min-height:32px;padding:0 10px;border-radius:999px;background:#FFFFFF;border:1px solid #E6E0D6;color:#1F1D1A}
+body.mundo .ops-command-bar #agenda-filtros .agenda-filtro-escolha{margin-left:5px}
+/* A seta dos chips de filtro (Painel e Demandas) é desenhada, a mesma do menu "Modos": o "⌄" de texto ficava abaixo
+   da linha das letras (re-auditoria de 10/11/2026). */
+body.mundo :is(#agenda-filtros,#painel-demandas) summary::after{content:"";flex:none;width:6px;height:6px;margin-left:7px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;rotate:45deg;translate:0 -2px;transition:rotate .2s var(--curva,ease),translate .2s var(--curva,ease)}
+body.mundo :is(#agenda-filtros,#painel-demandas) details[open]>summary::after{rotate:-135deg;translate:0 2px}
 body.mundo .ops-command-bar #agenda-filtros summary:hover,body.mundo .ops-command-bar #agenda-filtros details[open]>summary{border-color:#F26B1D;background:#FFF8F2}
 body.mundo .ops-command-bar #agenda-filtros summary.tem-escolha{border-color:#F7C9A6;background:#FFF4EB}
 body.mundo .ops-command-bar #filter-bar{display:inline-flex;align-items:center;margin:0}
 body.mundo .ops-command-bar #date-mode-bar{margin:0}
+body.mundo .ops-command-bar #date-mode-bar > button{padding:7px 8px;border-radius:6px;font:650 12.5px/1 var(--vv-texto);letter-spacing:0;text-transform:none;white-space:nowrap;cursor:pointer}
 body.mundo .ops-command-bar .agenda-mais .dem-filtro-popover{left:auto;right:0;display:grid;gap:8px}
 body.mundo .ops-command-bar .agenda-mais-rotulo{font:650 11.5px var(--vv-texto);color:#6B675F}
+body.mundo .ops-command-bar .agenda-mais-data:not([hidden]){display:grid;gap:8px;justify-items:start}
 body.mundo .ops-command-bar .agenda-mais-linha,body.mundo .ops-command-bar .agenda-mais-linha .agenda-filtros-semana{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu{display:grid;gap:4px;width:240px}
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button{appearance:none;display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#1F1D1A;font:600 13px var(--vv-texto);text-align:left;cursor:pointer}
@@ -6717,8 +6735,17 @@ body.mundo .capt-cal .capt-tb-dir{flex:0 1 auto;margin-left:auto;flex-wrap:wrap}
 /* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
 body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
 body.mundo .capt-cal .capt-tb-esq{flex-wrap:wrap;row-gap:8px}
-/* Palavra mais larga que o bloco ("demonstração" no dia todo) quebra com hífen em vez de virar reticências no meio. */
-body.mundo .ag-ev b{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+/* Quadro 04, o que a re-auditoria de 10/11/2026 achou cortado ("Alinhamento da…", "09:00–11:00 · 2 pe…"): o bloco com
+   hora usa a letra do quadro (título 11/13, horário 10,5/12) e as linhas que o agendaSemanaHtml calcula para ela
+   (--linhas-mundo, --linhas-hora): título em até duas ou três linhas e a linha do horário quebra em duas quando há
+   altura. O fundo é branco com contorno; a cor do tipo fica só no traço da esquerda (regra do .ag-ev lá em cima). */
+body.mundo .ag-col .ag-ev{gap:0;padding:4px 7px 4px 9px}
+body.mundo .ag-col .ag-ev b{font:600 11px/13px var(--vv-texto);-webkit-line-clamp:var(--linhas-mundo,2)}
+body.mundo .ag-col .ag-ev:not(.mini) small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--linhas-hora,1);font:500 10.5px/12px var(--vv-texto);white-space:normal;overflow-wrap:break-word}
+@container (max-width:72px){
+  body.mundo .ag-col .ag-ev b{font-size:10.5px;-webkit-line-clamp:var(--linhas-estreito,2)}
+  body.mundo .ag-col .ag-ev:not(.mini) small{display:none}
+}
 /* 65 Cartão da captação: "Trocar cliente" é botão ao lado das peças esperando, e as peças aparecem no cartão. */
 .capt-linha-pecas{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 8px}
 .capt-linha-pecas .capt-progresso{margin:0}
@@ -6765,11 +6792,16 @@ body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds
   body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-dock-alto:0px}
   body.mundo .prod-v2-head.com-acao{flex-wrap:wrap;gap:10px}
   body.mundo .prod-v2-head.com-acao .p-head-acoes{width:100%}
-  body.mundo #workspace-drawer.workspace-drawer{inset:0 0 calc(var(--vv-dock-alto,0px) + 64px + 2 * var(--vv-m,12px)) 0;width:100%;max-width:none;border-radius:0 0 14px 14px;border-left:0}
-  /* Fora de uma chamada o cartão das salas está guardado no Voz: a gaveta vai até a barra de baixo. */
-  body.mundo.dock-cartao:not(.cel-voz-aberta) #workspace-drawer.workspace-drawer{bottom:calc(64px + 2 * var(--vv-m,12px))}
+  /* A gaveta é a tela inteira (re-auditoria de 10/11/2026: ela acabava em ~760 px, o Hoje aparecia embaixo e a barra
+     de baixo sumia atrás do fundo escuro). Ela vai até o fim da tela e a faixa de baixo, da altura da barra (e do
+     cartão das salas quando o Voz está aberto; fora dele --vv-dock-alto é 0), é um respiro da própria gaveta: comentar
+     e passar bastão ficam acima dela. A barra de baixo é desenhada por cima dessa faixa; o resto do HUD (o Hoje e o
+     topo) some enquanto a gaveta está aberta, e tocar na barra fecha a gaveta antes (vybe-gaveta.js). */
+  body.mundo #workspace-drawer.workspace-drawer{inset:0;width:100%;max-width:none}
+  body.mundo:has(> #workspace-drawer) #mundo-hud{z-index:622}
+  body.mundo:has(> #workspace-drawer) #mundo-hud > :not(.vv-trilho){visibility:hidden}
   /* Sem o desfoque atrás: no celular a gaveta é a tela (e o WebKit deixava o painel de baixo aparecer através dela). */
-  body.mundo #workspace-drawer.workspace-drawer{--vv-desfoque:none;padding:0}
+  body.mundo #workspace-drawer.workspace-drawer{--vv-desfoque:none;padding:0 0 calc(var(--vv-dock-alto,0px) + 64px + 2 * var(--vv-m,12px))}
   body.mundo #workspace-drawer .workspace-rolagem{padding:0 14px}
   body.mundo #workspace-drawer .workspace-barra{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:6px;margin:0 -14px;padding:8px 10px;background:#FFFFFF;border-bottom:1px solid #EFEAE2}
   body.mundo #workspace-drawer .workspace-voltar{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;padding:0;border-radius:8px}

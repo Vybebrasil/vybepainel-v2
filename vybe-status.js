@@ -116,9 +116,9 @@ function openStatusEditor(event, itemId) {
   // O menu de status e uma lista de etiquetas como as outras, e por muito tempo
   // foi a unica sem as ferramentas delas: dava para renomear, recolorir, apagar
   // e reordenar uma etiqueta de Formato, e nada disso em Status. Agora chama as
-  // mesmas funcoes — nao uma copia parecida.
+  // mesmas funcoes — nao uma copia parecida. "Nova etiqueta" e "Ordem" do status ficam no menu do grupo (quadro 23
+  // do redesign, vybe-grupos.js); aqui ficam as escolhas e as ferramentas de cada etiqueta.
   const colunaDoStatus = `status:${isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID}`;
-  const nomeDoCampo = isRequestItem(item) ? 'Status da solicitação' : 'Status do conteúdo';
   const comFerramentas = typeof ferramentasDaEtiquetaHtml === 'function';
   menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => {
     const atual = mesmoStatus(o.label, item.status);
@@ -126,7 +126,7 @@ function openStatusEditor(event, itemId) {
     if (!comFerramentas || !o.chave) return linha;
     const etiqueta = { chave: o.chave, rotulo: o.label, cor: o.color, ativa: o.ativa !== false };
     return `<div class="etiqueta-linha ${o.ativa === false ? 'desligada' : ''}">${linha}${ferramentasDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}${chaveDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}</div>`;
-  }).join('')}${juntarAprovacaoNoSeletorHtml(item)}${comFerramentas ? rodapeDeEtiquetasHtml(colunaDoStatus, 'status', nomeDoCampo) : ''}`;
+  }).join('')}${juntarAprovacaoNoSeletorHtml(item)}`;
   document.body.append(backdrop, menu);
   ancorarPopover(menu, rect);
 }
