@@ -99,7 +99,7 @@
     const px = (P.projecao?.proximas || []).slice(0, 8), h = Object.entries(P.historico || {}).sort();
     const max = Math.max(1, ...h.map(([, v]) => v.concluidas + v.falhas));
     return `<section class="vga-bloco"><h4>Próximas execuções</h4>${px.length ? `<ul class="vga-rotina vga-proximas">${px.map((x) => `<li><time>${esc(horaCurta(x.em))}</time><span>${esc(x.texto)}</span><em>${x.tipo === 'atribuicao' ? 'atribuição' : 'rotina'}</em></li>`).join('')}</ul>` : '<p class="vga-vazio">Nada marcado até amanhã.</p>'}
-      <h4 class="vga-h4-sep">Histórico (14 dias)</h4>${h.length ? `<div class="vga-barras" role="img" aria-label="Execuções por dia">${h.map(([dia, v]) => `<span title="${esc(dia.slice(8, 10) + '/' + dia.slice(5, 7))}: ${v.concluidas} concluídas, ${v.falhas} falhas, ${v.aguardando} aguardando"><i style="height:${Math.round(v.concluidas / max * 100)}%"></i>${v.falhas ? `<i class="f" style="height:${Math.max(4, Math.round(v.falhas / max * 100))}%"></i>` : ''}<small>${esc(dia.slice(8, 10))}</small></span>`).join('')}</div>` : '<p class="vga-vazio">Sem execução registrada nos últimos 14 dias.</p>'}</section>`;
+      <h4 class="vga-h4-sep">Histórico (14 dias)</h4>${h.length ? `<div class="vga-barras" role="img" aria-label="Execuções por dia">${h.map(([dia, v]) => `<span title="${esc(dia.slice(8, 10) + '/' + dia.slice(5, 7))}: ${v.concluidas} concluída${v.concluidas === 1 ? '' : 's'}, ${v.falhas} falha${v.falhas === 1 ? '' : 's'}, ${v.aguardando} aguardando"><i style="height:${Math.round(v.concluidas / max * 100)}%"></i>${v.falhas ? `<i class="f" style="height:${Math.max(4, Math.round(v.falhas / max * 100))}%"></i>` : ''}<small>${esc(dia.slice(8, 10))}</small></span>`).join('')}</div>` : '<p class="vga-vazio">Sem execução registrada nos últimos 14 dias.</p>'}</section>`;
   }
   function licoesHtml(P, dono) {
     const ls = P.licoes || []; if (!ls.length) return '';
@@ -479,7 +479,7 @@
     }
     const feito = { ignorar: 'ignorado', errado: 'anotado como errado', resolvido: 'resolvido' }[acao] || 'resolvido';
     st.msg = falhou ? `${feitos} de ${chaves.length} fechados. Parou: ${falhou}`
-      : vistos ? `Achado ${feito} para os ${setores.length} agentes que o viram.` : `${feitos} achado${feitos > 1 ? 's' : ''} ${feito}${feitos > 1 && acao !== 'errado' ? 's' : ''}.`;
+      : vistos ? (setores.length === 1 ? `Achado ${feito} para o agente que o viu.` : `Achado ${feito} para os ${setores.length} agentes que o viram.`) : `${feitos} achado${feitos > 1 ? 's' : ''} ${feito}${feitos > 1 && acao !== 'errado' ? 's' : ''}.`;
     try { await Promise.all([mv().fonteAgentes?.()?.atualizar?.(true), ...setores.map((x) => lerPerfil(x, true))]); } catch { /* a fila relê na próxima */ }
     pintarContagem(); st.enviando = false; pintar();
   }
@@ -494,7 +494,7 @@
         if (r.ok) feitas++; else { falhou = d.error || 'Não foi possível salvar agora.'; break; }
       } catch { falhou = 'Sem conexão com o servidor.'; break; }
     }
-    st.msg = falhou ? `${feitas} de ${lista.length} lições atualizadas. Parou: ${falhou}` : `Lição atualizada para os ${lista.length} agentes que a viram.`;
+    st.msg = falhou ? `${feitas} de ${lista.length} ${lista.length === 1 ? 'lição atualizada' : 'lições atualizadas'}. Parou: ${falhou}` : lista.length === 1 ? 'Lição atualizada para o agente que a viu.' : `Lição atualizada para os ${lista.length} agentes que a viram.`;
     try { await Promise.all([...new Set(lista.map((x) => x.setor))].map((s) => lerPerfil(s, true))); } catch { /* a fila relê na próxima */ }
     pintarContagem(); st.enviando = false; pintar();
   }

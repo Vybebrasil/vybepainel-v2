@@ -58,6 +58,29 @@ Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32),
 - Zeros em linha discreta (Hoje, painel do cliente na Cidade, Recrutamento), plurais, mês no seletor de período em
   Pessoas, "Abrir a semana" como botão e a agenda do dia no Hoje da Cidade.
 
+## Terceira rodada: frente Telas (branch `codex/r3-telas`, 11/11/2026)
+Quadros 04, 18 e 00 Main, conferidos no Chromium e no WebKit em 1440×900, 1110×650 e 390×844, com a agenda cheia.
+- Agenda › Mês: no computador o compromisso é branco com o traço na cor do tipo (saiu o fundo tingido de "gravada" e
+  "falta fechar"). No celular fica a faixa cheia na cor do tipo, do jeito do Google Agenda (pedido do Paulo, 09/11),
+  agora com o texto escuro (branco dava 3,3:1 sobre o azul; escuro dá 5:1 ou mais nas três cores) e sem apagar o que
+  já passou. Nos dois, o nome quebra em até 3 linhas (4 no celular) e o "+N" abre o dia.
+- Agenda › Semana: o bloco estreito (dois lado a lado) mostra o título e o começo do horário ("09:00"); o intervalo
+  inteiro fica no rótulo, na prévia e no cartão. Quando a coluna não dá 60 px para cada um (2 abaixo de 120 px, 3
+  abaixo de 180, 4 ou mais abaixo de 240), os que se cruzam viram uma pilha na faixa de horas do grupo, cada um com
+  "09:00 Título" na largura inteira; o que não cabe fica no "+N", que abre o dia (`agendaSemanaHtml`, `acoes.verDia`).
+  A hora da grade continua em 66 px.
+- Dica de primeira vez: `evitar` na dica (vybe-mundo-tutorial.js) lista o que o balão não pode cobrir; a "Tela de
+  trabalho" não abre mais em cima de "Marcar captação" nem da ação do cabeçalho das outras telas.
+- Nova reunião: o calendário já era o do painel (vybe-calendario.js); o ícone do navegador no campo some desde o
+  começo no mundo e o campo ganhou o ícone desenhado.
+- Churn: sem nenhuma saída, Mensal/Anual não aparece; sem saída, sem entrada com data e sem retenção, um estado vazio
+  só (`vbEstadoHtml`); a explicação da conta foi para o ⓘ do título. Saúde da carteira: título igual ao do dock, frase
+  no cabeçalho (as quatro telas da Carteira ganharam a frase) e os quatro cartões viraram a linha de números
+  (`vbResumoHtml`), cada risco abrindo o mesmo painel de antes.
+- Ficou como estava: o rótulo "Vybe OS · Reunião" em cima do título da Nova reunião; no bloco de meia hora da Semana
+  não cabe o horário (só o título, como já era); nome com mais linhas do que o bloco comporta termina em reticências
+  na última linha (o nome inteiro está na prévia e no cartão).
+
 ## Como continuar
 1. Para cada frente da tabela: entre na pasta, veja `git status` e `git diff`. Se o trabalho estiver pela metade, termine
    os itens que faltam do quadro (pela auditoria), verifique e faça o commit no branch dela. Se a pasta não existir mais,
@@ -116,3 +139,38 @@ Regras gerais e defeitos do conjunto (quadros 00 Main, 00 Sistema, 29, 30 e 32),
   rolagem atrás da barra no QR Code (Baixar PNG/SVG), Agentes e Conversas.
 - Decisões que esperam o Paulo: posição do aviso quando há janela aberta; menção do WhatsApp 12 s; "Como o VYBES pensa" só
   para donos (página Agentes); "Nova etiqueta" e "Ordem" só no menu do grupo; hora da grade da agenda em 66 px.
+
+## Terceira rodada: frente Moldura (branch `codex/r3-moldura`, 11/11/2026)
+O que é da moldura de toda janela (quadros 00 Main, 00 Sistema e 29), conferido no Chromium e no WebKit em 1440×900,
+1110×650 e 390×844, com a demo cheia (`DEMO_VOLUME=1`). O CSS está no bloco "Terceira rodada · moldura", no fim de
+`vybe-mundo.css`.
+- Caixa de tela cheia/fechar num lugar só: X de 34 px a 17 px do canto de cima à direita da janela (12 px no celular), ⛶ a
+  8 px dele, nas 46 janelas do dock. Nas telas antigas o cabeçalho termina `--vv-caixa-vao` (58 px) antes da borda, para a
+  ação ("+ Novo conteúdo", "Novo colaborador") não entrar na caixa. O vão flutuante da rodada anterior nunca valeu (o
+  `body:before` do tema antigo é `position:fixed`) e saiu; um float de verdade estreitaria a Agenda e a Conta inteiras.
+- Gaveta da demanda aberta: a caixa da tela de trás some (`body.mundo:has(> #workspace-drawer)`), fica só o X da gaveta.
+- Aviso curto (`ajustarAvisosCurtos`, vybe-core.js): nunca sobre controle (botão, campo, linha clicável, dock lateral,
+  barra de baixo). Ordem: canto de cima à direita; ao lado do painel da direita, sem entrar no dock; a vaga livre mais
+  perto do canto; encolhido (`#vv-wa-avisos.compacto`); só então onde cobre menos. No celular (pós-auditoria): sempre
+  encolhido logo acima da barra de baixo, na largura da tela, com o texto em até duas linhas; ali ele fica por cima do
+  fim da janela por alguns segundos. A pilha só sobe se não cobrir botão ou linha clicável; senão o mais novo espera o
+  primeiro sair. O foco do teclado segura no máximo 8 s (`AVISO_CURTO_TETO_FOCO`).
+- Dica "Tela de trabalho" (`evitar` em `vybe-mundo-tutorial.js`): nunca sobre a ação do cabeçalho, "Completar" dos
+  Clientes, o menu da Conta, o dock lateral e a barra de baixo; dos demais controles, fica onde cobre menos. O balão tem
+  320×245 px e em tela cheia de botões (Clientes e Agenda no celular) não há vaga sem nenhum: falta um balão menor.
+- Título de 22 px na Agenda e na Conta; Gestão, Performance e visões de setor com fundo sólido.
+- Celular: com a barra de baixo à vista, toda janela e o Hoje terminam acima dela (`--vv-pe-barra` entra na conta do
+  `bottom`). Antes iam até o pé da tela; o Hoje ficava por cima da barra.
+- Plurais: "1 dia de atraso", "1 entregue", "1 falha", "1 cliente", "1 peça" e parecidos em Agentes, Boletim, Comercial,
+  Finanças, Pessoas, Performance, visões de setor, Hoje e Cérebro.
+- Ficou de fora: o título das telas antigas ainda começa mais baixo (34 a 48 px) que o das janelas novas (17 px); a
+  página rola por trás das janelas novas no WebKit com barra clássica (já era assim).
+
+## Terceira rodada (11/11/2026): fechamento
+- Juntas em `codex/redesign-rodada3`: `codex/r3-telas` (Agenda Mês/Semana, dica, Nova reunião, Churn, Saúde) e
+  `codex/r3-moldura` (caixa de tela cheia/fechar, um X com a gaveta, aviso curto, títulos, fundos, celular acima da barra,
+  plurais). Re-auditoria independente em `docs/redesign-reauditoria-2026-11-11-rodada3.md`: 63 FEITO, 3 PELA METADE, 2 FORA,
+  sem regressão; depois dela entraram o X da Carteira, três plurais e o aviso do celular acima da barra.
+- Continua pela metade: a dica "Tela de trabalho" ainda cobre controles em telas cheias (precisa de balão menor ou lugar
+  fixo); no celular o aviso curto cobre por ~6 s o fim da janela e, com a gaveta aberta, 39% de "Arquivo" e "Link";
+  reticências depois da 3ª linha no Mês a 1110. Móveis e Loja seguem fora (decisão do Paulo, branch `codex/r2-moveis`).

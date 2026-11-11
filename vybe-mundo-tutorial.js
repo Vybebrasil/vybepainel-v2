@@ -115,7 +115,15 @@
         texto: 'Essa é a ficha do cliente: onde ele fica, o que está em aberto e o que está atrasado. Em Abrir o cliente você vê tudo dele.' },
       'cerebro-cliente': { grupo: 'Telas', titulo: 'Cérebro do cliente', alvo: null,
         texto: 'Esse é o cérebro do cliente: tudo o que eu sei dele, em nove áreas, cada uma com o agente que cuida dela. Clique numa área para ver de onde veio cada informação.' },
+      // evitar: a ação principal do cabeçalho da tela ("Marcar captação" na Agenda, "+ Nova demanda" nas Demandas, "Novo
+      // cliente" nos Clientes) fica logo à esquerda do alvo; o balão não pode abrir em cima dela (re-auditoria de 10/11/2026).
+      // Terceira rodada: nem em cima de nenhum outro controle da tela ("Completar" nos Clientes, o menu da Conta no
+      // celular), do dock lateral ou da barra de baixo; sem lado livre, o balão vai para a vaga livre mais perto do alvo.
+      // O seletor que começa com "body.mundo-modulo" é o dos controles comuns da tela: sem vaga nenhuma (tela cheia de
+      // botões), o balão fica onde cobre menos deles, e nunca sobre os demais (ação do cabeçalho, docks).
       modulo: { grupo: 'Telas', titulo: 'Tela de trabalho', alvo: '.vv-canto-modulo', lado: 'esquerda',
+        evitar: ['.p-head-acoes', '.vb-cabecalho-acoes', '.client-module-actions', '.quadro-novo', '.vb-botao.principal', '.workspace-heading :is(button, summary, a)', '.prod-v2-head :is(button, summary, a)', '.cli-aviso-acao', '.conta-barra :is(button, a)',
+          'body.mundo-modulo :is(.container, [id^="painel-"]) :is(button, a[href], summary, input, select, textarea, [role="button"])', '.vv-trilho', '.vv-dock-salas'],
         texto: 'Você abriu uma tela de trabalho: ela ocupa a tela toda. Esc ou o × voltam para o seu dia.' },
     },
   };
@@ -222,8 +230,27 @@
     const dir = Math.min(W - 4, (r.right ?? r.left + r.width) + FOLGA), baixo = Math.min(H - 4, (r.bottom ?? r.top + r.height) + FOLGA);
     return { left: l, top: t, width: Math.max(0, dir - l), height: Math.max(0, baixo - t) };
   }
+  // O que o balão não pode cobrir (`evitar` da dica: seletores): só o que está visível na tela agora.
+  function caixasAEvitar(seletores) {
+    const fora = [];
+    for (const sel of [].concat(seletores || [])) {
+      let lista = [];
+      try { lista = [...doc.querySelectorAll(sel)]; } catch { lista = []; }
+      for (const el of lista) {
+        if (el.closest?.('.vv-tour-raiz') || !visivel(el)) continue;
+        const r = el.getBoundingClientRect();
+        // fora da tela não atrapalha; do tamanho da tela é região, não botão
+        const W = G.innerWidth || 0, H = G.innerHeight || 0;
+        if (W && H && (r.top >= H || r.left >= W || (r.bottom ?? r.top + r.height) <= 0 || r.width * r.height > W * H * 0.35) && !el.matches?.('.vv-trilho')) continue;
+        fora.push({ left: r.left, top: r.top, right: r.right ?? r.left + r.width, bottom: r.bottom ?? r.top + r.height, peso: String(sel).startsWith('body.mundo-modulo') ? 1 : 1000 });
+      }
+    }
+    return fora;
+  }
   // Balão ao lado do alvo: o lado pedido, senão direita, baixo, esquerda, cima; nada cabendo, dentro do recorte.
-  function colocarBalao(b, c, preferido) {
+  // `evitar` (caixas): um lado que cobriria uma delas perde a vez; se todo lado que cabe cobre, o balão desce até
+  // passar da caixa, embaixo do alvo.
+  function colocarBalao(b, c, preferido, evitar = []) {
     const W = G.innerWidth || 0, H = G.innerHeight || 0;
     const bw = b.offsetWidth || 320, bh = b.offsetHeight || 180;
     let x, y, lado = 'centro', bico = 0;
@@ -237,9 +264,30 @@
         baixo: [xLado, c.top + c.height + VAO, c.top + c.height + VAO + bh <= H - MARGEM],
         cima: [xLado, c.top - VAO - bh, c.top - VAO - bh >= MARGEM],
       };
-      lado = [preferido, 'direita', 'baixo', 'esquerda', 'cima'].find((l) => lugares[l]?.[2]) || 'dentro';
+      const sobre = (o, bx, by) => bx < o.right + 4 && bx + bw > o.left - 4 && by < o.bottom + 4 && by + bh > o.top - 4;
+      const cobre = (bx, by) => evitar.some((o) => sobre(o, bx, by));
+      const ordem = [preferido, 'direita', 'baixo', 'esquerda', 'cima'];
+      lado = ordem.find((l) => lugares[l]?.[2] && !cobre(lugares[l][0], lugares[l][1])) || ordem.find((l) => lugares[l]?.[2]) || 'dentro';
       if (lado === 'dentro') { x = xLado; y = lim(c.top + c.height - bh - 16, MARGEM, H - bh - MARGEM); }
-      else [x, y] = lugares[lado];
+      else {
+        [x, y] = lugares[lado];
+        if (cobre(x, y)) {
+          const livre = Math.max(c.top + c.height, ...evitar.filter((o) => sobre(o, xLado, o.top)).map((o) => o.bottom)) + VAO;
+          if (livre + bh <= H - MARGEM) { lado = 'baixo'; x = xLado; y = livre; }
+        }
+        // Ainda em cima de algum controle: a vaga livre mais perto do alvo, na tela toda; sem vaga, onde cobre menos.
+        if (cobre(x, y)) {
+          const quantos = (bx, by) => evitar.reduce((n, o) => n + (sobre(o, bx, by) ? o.peso || 1 : 0), 0);
+          let melhor = { x, y, n: quantos(x, y), d: 0 };
+          for (let by = MARGEM; by <= H - bh - MARGEM; by += 12) for (let bx = MARGEM; bx <= W - bw - MARGEM; bx += 12) {
+            const d = Math.abs(bx + bw / 2 - cx) + Math.abs(by + bh / 2 - cy);
+            if (!melhor.n && d >= melhor.d && melhor.d) continue;
+            const n = quantos(bx, by);
+            if (n < melhor.n || (n === melhor.n && melhor.d && d < melhor.d) || (n === melhor.n && !melhor.d && n === 0)) melhor = { x: bx, y: by, n, d };
+          }
+          if (melhor.d) { x = melhor.x; y = melhor.y; lado = y >= c.top + c.height ? 'baixo' : x + bw <= c.left ? 'esquerda' : y + bh <= c.top ? 'cima' : 'dentro'; }
+        }
+      }
       bico = lado === 'direita' || lado === 'esquerda' ? lim(cy - y, 22, bh - 22) : lim(cx - x, 22, bw - 22);
     }
     estilo(b, { left: px(x), top: px(y) });
@@ -455,7 +503,7 @@
     if (d.temAlvo && !alvo) { fecharDica('depois'); return; } // o que ela explicava fechou: volta outro dia
     const c = alvo ? caixaDe(alvo) : null;
     if (d.anel && c) estilo(d.anel, { left: px(c.left), top: px(c.top), width: px(c.width), height: px(c.height) });
-    colocarBalao(d.balao, c, def?.lado);
+    colocarBalao(d.balao, c, def?.lado, c && def?.evitar ? caixasAEvitar(def.evitar) : []);
   }
   // motivo: 'entendi' marca como vista; 'depois' guarda para a próxima abertura; null só fecha.
   // seguir: chama a próxima da fila (não quando outra dica já vai tomar o lugar).

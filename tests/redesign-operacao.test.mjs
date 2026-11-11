@@ -93,3 +93,64 @@ test('frente operação sem forçar nada: nenhum !important nem html body.mundo 
   assert.doesNotMatch(bloco, /!important/);
   assert.doesNotMatch(bloco, /html body\.mundo/);
 });
+
+// ---- 3ª rodada (11/11/2026, quadro 04): bloco estreito com o horário, pilha na coluna apertada e o Mês sem fundo ----
+const bloco3 = css.split('/* ==== Terceira rodada · Telas')[1] || '';
+const reuniao = (id, inicio, fim, titulo) => ({ id, titulo, dia: '2026-11-11', inicio, fim, tipo: 'reuniao' });
+
+test('04 (3ª rodada): no bloco estreito fica o começo do horário; o intervalo inteiro segue no rótulo', () => {
+  const c = contextoCaptacoes();
+  const html = c.agendaSemanaHtml({ inicio: '2026-11-09', eventos: [reuniao('a', '09:00', '10:00', 'Pauta'), reuniao('b', '13:00', '14:00', 'Alinhamento')] });
+  assert.match(html, /data-ev="a"[^>]*aria-label="Reunião: Pauta, [^"]*09:00–10:00"/, 'o intervalo completo no rótulo');
+  assert.match(html, /<b data-hora="09:00">Pauta<\/b><small><span class="ag-h"><span class="ag-h-ini">09:00<\/span><span class="ag-h-resto">–10:00<\/span><\/span><\/small>/);
+  assert.doesNotMatch(html, /data-ev="a" class="ag-ev[^"]*junto/, 'sozinho na hora não entra em pilha');
+  assert.ok(css.includes('body.mundo .ag-col .ag-ev .ag-h-resto{display:none}'), 'estreito: só o começo');
+  assert.doesNotMatch(css, /body\.mundo \.ag-col \.ag-ev:not\(\.mini\) small\{display:none\}/, 'o horário não some mais no bloco estreito');
+});
+
+test('04 (3ª rodada): dois na mesma hora levam as medidas da pilha; o "+N" abre o dia e só existe onde há a vista Dia', () => {
+  const c = contextoCaptacoes();
+  const semana = (eventos, acoes = {}) => c.agendaSemanaHtml({ inicio: '2026-11-09', eventos, acoes });
+  let html = semana([reuniao('a', '09:00', '10:00', 'Pauta'), reuniao('b', '09:00', '10:00', 'Alinhamento')]);
+  assert.match(html, /data-ev="a" class="ag-ev junto n2 t-reuniao[^"]*" style="--e-top:[\d.]+px;--e-alt:30px;--linhas-emp:2;top:var\(--emp-top,[\d.]+px\);height:var\(--emp-alt,64px\);left:var\(--emp-esq,calc\(0% \+ 2px\)\);width:var\(--emp-larg,calc\(50% - 4px\)\);/);
+  assert.match(html, /data-ev="b" class="ag-ev junto n2 /);
+  assert.doesNotMatch(html, /ag-junto-mais|junto-fora/, 'dois cabem na hora: ninguém fica de fora');
+  // Quatro na mesma hora: um fica à vista e o "+3" abre o dia.
+  html = semana(['a', 'b', 'c', 'd'].map((id) => reuniao(id, '09:00', '10:00', 'Reunião ' + id)), { verDia: 'captVerDia' });
+  assert.equal((html.match(/ junto-fora/g) || []).length, 3);
+  assert.match(html, /<button type="button" hidden class="ag-junto-mais n4" style="top:[\d.]+px;height:16px" onclick="event\.stopPropagation\(\);agPreviaSair\(true\);captVerDia\('2026-11-11'\)" aria-label="Mais 3 às 09:00: abrir o dia" title="Abrir o dia">\+3<\/button>/);
+  // Sem a vista Dia (agenda do Escritório) não há "+N": todos seguem na pilha.
+  assert.doesNotMatch(semana(['a', 'b', 'c', 'd'].map((id) => reuniao(id, '09:00', '10:00', 'Reunião ' + id))), /ag-junto-mais|junto-fora/);
+  // Dois de meia hora: não cabe nem um com o horário; um botão diz quantos são e abre o dia.
+  html = semana([reuniao('a', '09:00', '09:30', 'Pauta'), reuniao('b', '09:00', '09:30', 'Alinhamento')], { verDia: 'captVerDia' });
+  assert.match(html, /class="ag-junto-mais n2 gm"[^>]*aria-label="2 compromissos às 09:00: abrir o dia"[^>]*>2 às 09:00<\/button>/);
+  assert.match(html, /data-ev="a" class="ag-ev mini junto n2 gm junto-fora /);
+  assert.ok(captJs.includes('previa: "captPreviaHtml", verDia: "captVerDia" } });'), 'a semana das Captações sabe abrir o dia');
+  // A pilha só liga quando a coluna aperta: quem decide é a largura da coluna, no CSS.
+  assert.match(bloco3, /body\.mundo \.ag-col\{container:agcol \/ inline-size\}/);
+  assert.match(bloco3, /@container agcol \(max-width:119px\)\{\s*body\.mundo \.ag-col \.ag-ev\.junto\{--emp-top:var\(--e-top\);--emp-alt:var\(--e-alt\);--emp-esq:2px;--emp-larg:calc\(100% - 4px\)/);
+  assert.match(bloco3, /@container agcol \(min-width:120px\) and \(max-width:179px\)\{\s*body\.mundo \.ag-col \.ag-ev\.junto:is\(:not\(\.n2\),\.gm\)\{/);
+  assert.match(bloco3, /body\.mundo \.ag-col \.ag-ev\.junto b::before\{content:attr\(data-hora\)/, 'na pilha, "09:00 Título"');
+  assert.equal(vm.runInContext('AG_HORA_PX', c), 66, 'a hora da grade não cresceu');
+});
+
+test('04 (3ª rodada): no Mês o nome quebra em linhas; branco com o traço no computador, faixa cheia com texto escuro no celular', () => {
+  assert.match(bloco3, /body\.mundo \.capt-cal \.capt-mes \.ag-chip\{[^}]*background:#FFFFFF;box-shadow:inset 3px 0 0 var\(--ag-cor\),inset 0 0 0 1px/);
+  assert.match(bloco3, /body\.mundo \.capt-cal \.capt-mes \.ag-chip span\{[^}]*-webkit-line-clamp:3;[^}]*white-space:normal;text-overflow:clip/);
+  assert.match(bloco3, /body\.mundo \.capt-cal \.capt-mes \.ag-chip i\{display:none\}/, 'a cor fica só no traço');
+  // Celular: a faixa cheia na cor do tipo fica (Paulo, 09/11/2026: "igual ao Google Agenda"), com texto que se lê.
+  const celular = bloco3.slice(bloco3.indexOf('@media (max-width:700px){'));
+  assert.match(celular, /body\.mundo \.capt-cal \.capt-mes \.ag-chip,body\.mundo \.capt-cal \.capt-mes \.ag-chip:hover\{[^}]*background:var\(--ag-cor\);box-shadow:none/);
+  assert.match(celular, /body\.mundo \.capt-cal\.vista-mes \.capt-mes \.ag-chip\.passou\{opacity:1\}/, 'o que passou não apaga: apagado não se lia sobre a cor');
+  assert.match(css, /\.capt-cal\.vista-mes \.capt-mes \.ag-chip\.ag-chip\{color:#1F1D1A!important\}/, 'texto escuro: 5:1 ou mais no azul, no amarelo e no cinza');
+  assert.doesNotMatch(css, /\.capt-mes \.ag-chip\.ag-chip\{color:#FFFFFF/, 'branco sobre o azul dava 3,3:1');
+  assert.ok(captJs.includes('onclick="event.stopPropagation();captVerDia(\'${dia}\')">+${lista.length - max}'), 'o "+N" abre o dia');
+});
+
+test('3ª rodada · Telas sem forçar nada: nenhum !important nem html body.mundo no bloco novo; a data do formulário com ícone desenhado', () => {
+  assert.ok(bloco3.length > 1500);
+  assert.doesNotMatch(bloco3, /!important/);
+  assert.doesNotMatch(bloco3, /html body\.mundo/);
+  assert.match(bloco3, /body\.mundo input\[type="date"\]::-webkit-calendar-picker-indicator\{display:none\}/, 'o ícone do navegador some desde o começo');
+  assert.match(ler('vybe-clientes-reunioes.js'), /<label class="cad-campo cad-data"><span>Data<\/span><input id="reu-data" type="date"[^>]*><svg class="cad-data-ico" viewBox="0 0 24 24" aria-hidden="true">/);
+});

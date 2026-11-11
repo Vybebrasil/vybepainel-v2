@@ -243,11 +243,14 @@ function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = ''
   const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const lista = (Array.isArray(acoes) ? acoes : []).filter((a) => a && a.rotulo && typeof a.fazer === 'function').slice(0, 2);
   el.innerHTML = `<span class="vv-aviso-curto-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16">${AVISO_CURTO_ICONES[erro ? 'erro' : icone] || AVISO_CURTO_ICONES.info}</svg></span>
-    <div class="vv-aviso-curto-txt"><b>${esc(titulo)}</b>${frase ? `<small>${esc(frase)}</small>` : ''}${lista.length ? `<div class="vv-aviso-curto-acoes">${lista.map((a, i) => `<button type="button" class="${a.principal ? 'vc-acao' : 'vc-sec'}" data-aviso-curto="${i}">${esc(a.rotulo)}</button>`).join('')}</div>` : ''}</div>
+    <div class="vv-aviso-curto-txt" title="${esc(frase ? `${titulo} · ${frase}` : titulo)}"><b>${esc(titulo)}</b>${frase ? `<small>${esc(frase)}</small>` : ''}${lista.length ? `<div class="vv-aviso-curto-acoes">${lista.map((a, i) => `<button type="button" class="${a.principal ? 'vc-acao' : 'vc-sec'}" data-aviso-curto="${i}">${esc(a.rotulo)}</button>`).join('')}</div>` : ''}</div>
     <button type="button" class="vc-ico vv-aviso-curto-x" aria-label="Fechar o aviso" title="Fechar"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
   let relogio = null;
   const sair = () => { clearTimeout(relogio); el.remove(); ajustarAvisosCurtos(); };
   const contar = () => { clearTimeout(relogio); if (tempo > 0) relogio = setTimeout(sair, tempo); };
+  // No celular, o aviso que espera a vez na pilha (ajustarAvisosCurtos) não gasta o tempo dele escondido.
+  el.vvPausar = () => clearTimeout(relogio);
+  el.vvContar = contar;
   el.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     sair();
@@ -257,8 +260,12 @@ function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = ''
   let comMouse = false;
   el.addEventListener('pointermove', (e) => { if (!comMouse && e.pointerType !== 'touch') { comMouse = true; clearTimeout(relogio); } });
   el.addEventListener('pointerleave', () => { comMouse = false; contar(); });
-  el.addEventListener('focusin', () => { if (AVISO_CURTO_PELO_TECLADO) clearTimeout(relogio); });
-  el.addEventListener('focusout', (e) => { if (!el.contains(e.relatedTarget)) contar(); });
+  // O foco do teclado segura o aviso, mas com teto: no máximo AVISO_CURTO_TETO_FOCO desde que ele apareceu (ou o tempo
+  // dele, se for maior). Antes ficava enquanto o foco não saísse (medido: 13,5 s com o aviso da Música).
+  const nasceu = Date.now(), teto = Math.max(tempo, AVISO_CURTO_TETO_FOCO);
+  const restante = () => Math.max(0, nasceu + teto - Date.now());
+  el.addEventListener('focusin', () => { if (AVISO_CURTO_PELO_TECLADO && tempo > 0 && !comMouse) { clearTimeout(relogio); relogio = setTimeout(sair, restante()); } });
+  el.addEventListener('focusout', (e) => { if (el.contains(e.relatedTarget) || comMouse || !(tempo > 0)) return; clearTimeout(relogio); relogio = setTimeout(sair, Math.min(tempo, restante())); });
   caixa.append(el);
   while (caixa.children.length > 3) caixa.firstElementChild.remove();
   contar();
@@ -266,23 +273,29 @@ function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = ''
   if (!AVISO_CURTO_VIGIA) AVISO_CURTO_VIGIA = setInterval(ajustarAvisosCurtos, 500);
   return el;
 }
-// De onde veio o último gesto: só o foco que chega pelo teclado segura o aviso na tela.
+// De onde veio o último gesto: só o foco que chega pelo teclado segura o aviso na tela, e por no máximo ~8 s.
 let AVISO_CURTO_PELO_TECLADO = false;
 let AVISO_CURTO_VIGIA = null;
+const AVISO_CURTO_TETO_FOCO = 8000;
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   document.addEventListener('keydown', () => { AVISO_CURTO_PELO_TECLADO = true; }, true);
   document.addEventListener('pointerdown', () => { AVISO_CURTO_PELO_TECLADO = false; }, true);
 }
-// O aviso não cobre botão de janela (quadro 29, regra 6; re-auditoria de 10/11/2026). O lugar continua o canto de cima
-// à direita (decisão do Paulo). Se ali houver um controle da tela (Copiar link, Log e Fechar da gaveta, o X de um
-// painel, um campo), a caixa sai de cima dele: com um painel encostado à direita e espaço ao lado, fica à esquerda do
-// painel, na mesma altura; sem espaço (celular, janela larga), desce até a primeira faixa sem controle embaixo.
+// O aviso nunca fica sobre um controle clicável: botão de janela, campo, botão da tela, dock lateral, barra de baixo
+// (quadro 29, regra 6; re-auditorias de 10/11/2026). O lugar continua o canto de cima à direita (decisão do Paulo) e vale
+// quando não há nada embaixo. Havendo, nesta ordem: (1) com um painel encostado à direita e vaga entre o dock e ele, fica
+// ao lado do painel, na mesma altura; (2) vai para a vaga sem controle mais perto do canto; (3) sem vaga, encolhe (uma
+// linha, mais estreito) e procura de novo, primeiro no alto e depois na tela toda; (4) só então fica onde cobre menos.
+// No celular, com uma janela ou o Hoje aberto, ele encolhe e fica logo acima da barra de baixo, na largura da tela; não
+// usa a faixa do título nem o meio da tela.
 // Roda quando um aviso entra e enquanto houver aviso na tela (uma janela pode abrir depois dele).
-const AVISO_CURTO_CONTROLES = 'button,a[href],input,select,textarea,summary,[role="button"],[role="tab"],[role="switch"],[tabindex]:not([tabindex="-1"])';
+const AVISO_CURTO_CONTROLES = 'button,a[href],input,select,textarea,summary,[role="button"],[role="tab"],[role="switch"],[onclick],[tabindex]:not([tabindex="-1"])';
+// Faixas que são só controle: contam inteiras, com os vãos entre os botões.
+const AVISO_CURTO_BARRAS = '.vv-trilho,.vv-dock-salas,.vv-canto-modulo';
 function ajustarAvisosCurtos() {
   const caixa = document.getElementById('vv-wa-avisos');
   if (!caixa || !caixa.children.length) {
-    if (caixa?.style) { caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; }
+    if (caixa?.style) { caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; caixa.classList?.remove('compacto', 'minimo'); }
     clearInterval(AVISO_CURTO_VIGIA); AVISO_CURTO_VIGIA = null;
     return;
   }
@@ -290,27 +303,73 @@ function ajustarAvisosCurtos() {
   // Com o mouse ou o foco em cima, a caixa não sai do lugar (não foge de quem vai clicar nela).
   if (caixa.matches(':hover') || (AVISO_CURTO_PELO_TECLADO && caixa.contains(document.activeElement))) return;
   const W = window.innerWidth, H = window.innerHeight;
-  // Os controles que estão de fato à vista (por cima de tudo, sem contar a caixa) na coluna da caixa.
-  const naColuna = (esq, dir) => [...document.querySelectorAll(AVISO_CURTO_CONTROLES)].map((c) => {
-    if (caixa.contains(c) || c.disabled) return null;
-    const q = c.getBoundingClientRect(); if (q.width < 3 || q.height < 3) return null;
-    const x = q.left + q.width / 2, y = q.top + q.height / 2;
-    if (x < esq || x > dir || y < 0 || y > H) return null;
+  // Os controles que estão de fato à vista (por cima de tudo, sem contar a caixa). Um "controle" do tamanho da tela é
+  // uma região que rola, não um botão: não conta.
+  const obstaculos = [];
+  for (const c of document.querySelectorAll(AVISO_CURTO_CONTROLES)) {
+    if (caixa.contains(c) || c.disabled) continue;
+    const q = c.getBoundingClientRect();
+    if (q.width < 3 || q.height < 3 || q.bottom <= 0 || q.top >= H || q.right <= 0 || q.left >= W || q.width * q.height > W * H * 0.35) continue;
+    const x = Math.min(W - 1, Math.max(0, q.left + q.width / 2)), y = Math.min(H - 1, Math.max(0, q.top + q.height / 2));
     const visto = document.elementsFromPoint(x, y).find((e) => !caixa.contains(e));
-    return visto && (visto === c || c.contains(visto)) ? { el: c, y } : null;
-  }).filter(Boolean);
-  const embaixo = (lista, topo, alto) => lista.filter((c) => c.y >= topo && c.y <= topo + alto);
-  let r = caixa.getBoundingClientRect();
-  if (!embaixo(naColuna(r.left, r.right), r.top, r.height).length) return;
-  // Volta ao lugar de sempre e mede de novo.
-  caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = '';
-  r = caixa.getBoundingClientRect();
-  const lista = naColuna(r.left, r.right), cobertos = embaixo(lista, r.top, r.height);
-  if (!cobertos.length) return;
-  const margem = Math.max(8, W - r.right), trilho = document.querySelector('.vv-trilho')?.getBoundingClientRect();
-  const limite = trilho && trilho.width > 0 && trilho.right < W / 2 ? trilho.right : 0;
-  let painelSemVaga = null;
-  for (const c of cobertos) {
+    if (visto && (visto === c || c.contains(visto))) obstaculos.push({ el: c, l: q.left, t: q.top, r: q.right, b: q.bottom });
+  }
+  const barras = [...document.querySelectorAll(AVISO_CURTO_BARRAS)].map((b) => b.getBoundingClientRect()).filter((q) => q.width > 2 && q.height > 2);
+  for (const q of barras) obstaculos.push({ el: null, l: q.left, t: q.top, r: q.right, b: q.bottom });
+  const cobertos = (l, t, w, h) => obstaculos.filter((o) => o.r > l + 1 && o.l < l + w - 1 && o.b > t + 1 && o.t < t + h - 1);
+  const quantos = (l, t, w, h, teto) => { let n = 0; for (const o of obstaculos) if (o.r > l + 1 && o.l < l + w - 1 && o.b > t + 1 && o.t < t + h - 1 && ++n > teto) break; return n; };
+  // Volta ao lugar e ao tamanho de sempre (quem esperava a vez reaparece e o tempo dele começa) e mede de novo.
+  caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = ''; caixa.classList.remove('compacto', 'minimo');
+  const esperando = [...caixa.children].filter((x) => x.hidden);
+  for (const x of esperando) x.hidden = false;
+  const acordar = () => { for (const x of esperando) if (!x.hidden) x.vvContar?.(); };
+  const r = caixa.getBoundingClientRect(), embaixo = cobertos(r.left, r.top, r.width, r.height);
+  if (W > 600) acordar();
+  if (!embaixo.length && W > 600) return;
+  const margem = Math.max(8, W - r.right);
+  const por = (l, t, w) => { caixa.style.right = `${Math.round(W - l - w)}px`; caixa.style.top = `${Math.round(t)}px`; caixa.style.width = `${Math.round(w)}px`; };
+  // A vaga mais perto do alvo dentro da área, de passo em passo; sem vaga, a posição que cobre menos controles.
+  const procurar = (w, h, area, alvo) => {
+    let melhor = null;
+    const passo = 12, xs = [], ys = [];
+    for (let x = Math.min(alvo.x, area.r - w); x >= area.l; x -= passo) xs.push(x);
+    for (let x = alvo.x + passo; x <= area.r - w; x += passo) xs.push(x);
+    for (let y = Math.min(alvo.y, area.b - h); y >= area.t; y -= passo) ys.push(y);
+    for (let y = alvo.y + passo; y <= area.b - h; y += passo) ys.push(y);
+    for (const y of ys) for (const x of xs) {
+      const custo = Math.abs(x - alvo.x) + Math.abs(y - alvo.y);
+      if (melhor && !melhor.n && custo >= melhor.custo) continue;
+      const n = quantos(x - 4, y - 4, w + 8, h + 8, melhor ? melhor.n : Infinity);
+      if (!melhor || n < melhor.n || (n === melhor.n && custo < melhor.custo)) melhor = { x, y, n, custo };
+    }
+    return melhor;
+  };
+  // O que fecha a área por baixo e pela esquerda: a barra de baixo ou o dock das salas, e o dock lateral.
+  const pe = Math.min(H, ...barras.filter((q) => q.top > H / 2 && q.width > W / 3).map((q) => q.top));
+  const lateral = barras.find((q) => q.left < W / 2 && q.right < W / 2 && q.height > H / 2);
+  const esquerda = (lateral ? lateral.right : 0) + margem;
+  if (W <= 600) {
+    // Celular: encolhido, na largura da tela, sempre logo acima da barra de baixo (título e frase em até duas linhas);
+    // a faixa do título e o meio da tela não entram. Dois ou três avisos empilham para cima; se o que sobe cobriria um
+    // botão ou uma linha clicável, os mais novos esperam o primeiro sair (o tempo deles só conta quando aparecem).
+    caixa.classList.add('compacto');
+    const larga = W - 2 * margem; caixa.style.width = `${Math.round(larga)}px`;
+    const filhos = [...caixa.children];
+    for (let i = filhos.length - 1; i > 0; i--) {
+      const alto = caixa.getBoundingClientRect().height, primeiro = filhos[0].getBoundingClientRect().height;
+      if (!quantos(margem - 4, pe - 8 - alto - 4, larga + 8, alto - primeiro, 0)) break;
+      filhos[i].hidden = true; filhos[i].vvPausar?.();
+    }
+    const alto = caixa.getBoundingClientRect().height, base = pe - 8 - alto;
+    // Com a gaveta da demanda aberta (tela inteira, com o campo e os botões no pé), sobe até onde cobre menos.
+    const naGaveta = document.getElementById('workspace-drawer') ? procurar(larga, alto, { l: margem, r: W - margem, t: Math.max(margem, base - H * 0.2), b: pe - 8 }, { x: margem, y: base }) : null;
+    por(margem, naGaveta ? naGaveta.y : base, larga);
+    acordar();
+    return;
+  }
+  // (1) Painel encostado à direita (gaveta, ficha): ao lado dele, sem entrar no dock lateral.
+  for (const c of embaixo) {
+    if (!c.el) continue;
     let p = c.el.parentElement, q = null;
     for (; p && p !== document.body; p = p.parentElement) {
       const pos = getComputedStyle(p).position; if (pos !== 'fixed' && pos !== 'absolute') continue;
@@ -318,19 +377,34 @@ function ajustarAvisosCurtos() {
       q = null;
     }
     if (!q || q.right < W - 80) continue;
-    const aoLado = (vaga) => { caixa.style.right = `${Math.round(W - q.left + margem)}px`; caixa.style.width = `${Math.round(Math.min(r.width, vaga))}px`; };
-    if (q.left - limite - 2 * margem >= 240) { aoLado(q.left - limite - 2 * margem); return; }
-    // Tela estreita: sem vaga entre o dock lateral e o painel. Se também não houver faixa livre mais abaixo, o aviso
-    // fica ao lado do painel mesmo assim (por cima do dock, por poucos segundos) em vez de cobrir um campo da janela.
-    if (q.left - 2 * margem >= 240) { painelSemVaga = () => aoLado(q.left - 2 * margem); break; }
+    const vaga = q.left - esquerda - margem;
+    if (vaga < 240) break;
+    const w = Math.min(r.width, vaga), l = q.left - margem - w;
+    caixa.style.width = `${Math.round(w)}px`;
+    const h = caixa.getBoundingClientRect().height;
+    if (!cobertos(l - 4, r.top - 4, w + 8, h + 8).length) { por(l, r.top, w); return; }
+    caixa.style.width = '';
+    break;
   }
-  let melhor = { n: cobertos.length, topo: r.top };
-  for (let topo = r.top + 8; melhor.n && topo + r.height <= H * 0.8; topo += 8) {
-    const n = embaixo(lista, topo, r.height).length;
-    if (n < melhor.n) melhor = { n, topo };
+  // (2) A vaga sem controle mais perto do canto, da metade da tela para cima.
+  const area = { l: esquerda, r: W - margem, t: margem, b: Math.min(pe - margem, Math.max(r.bottom, H * 0.62)) };
+  let v = procurar(r.width, r.height, area, { x: r.left, y: r.top });
+  if (v && !v.n) { por(v.x, v.y, r.width); return; }
+  // (3) Encolhido e mais estreito, no alto e depois na tela toda; por fim só o título e a ação (a frase fica na dica e
+  // no sino); (4) sem vaga nem assim, onde cobre menos.
+  caixa.classList.add('compacto');
+  let menor = null;
+  for (const minimo of [false, true]) {
+    caixa.classList.toggle('minimo', minimo);
+    for (const onde of [area, { ...area, b: pe - margem }]) for (const w of [Math.min(r.width, 340), 300, 260]) {
+      caixa.style.width = `${w}px`;
+      const h = caixa.getBoundingClientRect().height;
+      v = procurar(w, h, onde, { x: r.right - w, y: r.top });
+      if (v && !v.n) { por(v.x, v.y, w); return; }
+      if (v && (!menor || v.n < menor.n)) menor = { ...v, w, minimo };
+    }
   }
-  if (melhor.n && painelSemVaga) { painelSemVaga(); return; }
-  if (melhor.topo !== r.top) caixa.style.top = `${Math.round(melhor.topo)}px`;
+  if (menor) { caixa.classList.toggle('minimo', menor.minimo); por(menor.x, menor.y, menor.w); }
 }
 
 // ─── GraphQL Query ────────────────────────────────────────────────────────────

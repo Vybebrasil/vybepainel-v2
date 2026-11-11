@@ -30,6 +30,10 @@
   function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   'use strict';
   const ABAS = [['saude', 'Saúde'], ['onboarding', 'Onboarding'], ['churn', 'Churn'], ['contratos', 'Contratos']];
+  // O cabeçalho da página (Padrão Vybe): o título igual ao do dock e uma frase do que a tela faz.
+  const TITULO_DA_ABA = { saude: 'Saúde da carteira', onboarding: 'Onboarding', churn: 'Churn', contratos: 'Contratos' };
+  const FRASE_DA_ABA = { saude: 'A nota de cada cliente ativo, de 0 a 100, e quem precisa de atenção primeiro.', onboarding: 'A entrada de cada cliente novo ou contrato novo, etapa por etapa.',
+    churn: 'Quem saiu, por quê e quanto de receita foi junto.', contratos: 'Valor mensal, início e renovação de cada cliente ativo.', carteira: 'Saúde, onboarding, churn e contratos dos clientes.' };
   const ACIMA = '#cartao-rapido, #workflow-modal, #workspace-drawer, .brief-overlay, .etq-overlay, dialog[open], #login-gate';
   const PAGINA = 10;
   const API = '/api/painel?area=carteira';
@@ -196,18 +200,6 @@
     return { valor: texto, rotulo: rotulo + mudou, tom: tom || (Number(n) ? '' : 'zero'), espiar: ab, dica };
   }
   const comparacao = () => (estado.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior');
-  // comparar:false = número que não tem "vs" (contagem do momento): só o número.
-  function kpi(rotulo, valor, v, { formato = (x) => x, contra = comparacao(), nivel = '', comparar = true, espiar = '' } = {}) {
-    let linha = comparar ? `<small class="vc-var neutro">sem ${esc(contra.replace('vs ', ''))} para comparar</small>` : '';
-    if (v) {
-      const seta = v.direcao === 'sobe' ? '↑' : v.direcao === 'desce' ? '↓' : '=';
-      const tom = v.bom == null ? 'neutro' : v.bom ? 'bom' : 'ruim';
-      const delta = v.direcao === 'igual' ? 'igual' : `${seta} ${formato(Math.abs(v.delta))}`;
-      linha = `<small class="vc-var ${tom}" title="${esc(`${contra}: ${formato(v.anterior)}`)}"><span aria-hidden="true">${esc(delta)}</span><span class="vc-sr">${esc(v.direcao === 'igual' ? 'igual' : v.direcao === 'sobe' ? 'subiu' : 'caiu')} ${esc(v.direcao === 'igual' ? '' : formato(Math.abs(v.delta)))}</span> ${esc(contra)}</small>`;
-    }
-    const ab = espiar ? ` data-espiar="${espiar.startsWith('financas:') ? '' : 'carteira:'}${esc(espiar)}" role="button" tabindex="0"` : '';
-    return `<div class="vc-kpi${espiar ? ' espiavel' : ''}"${ab}><span>${esc(rotulo)}</span><b class="${nivel}">${esc(valor)}</b>${linha}</div>`;
-  }
   function ordemHtml(lista, opcoes) {
     return `<label class="vc-ordem"><span>Ordem</span><select data-vc-ordem="${lista}">${opcoes.map(([v, r]) => `<option value="${v}"${estado.ordem[lista] === v ? ' selected' : ''}>${esc(r)}</option>`).join('')}</select></label>`;
   }
@@ -319,12 +311,15 @@
     const contas = S().contasPorHead({ clientes: r.clientes, base: estado.servidor?.clientes || [], contratos: listaContratos() });
     espiarCarteira.heads = contas;
     const fonte = r.fonte.sinais === 'servidor' ? 'Alteração e aprovação pelo histórico de status (30 e 60 dias).' : 'Alteração e aprovação pelo que está na tela agora (o histórico do servidor não respondeu).';
-    return `<div class="vc-kpis">
-        ${kpi('Média da carteira', r.resumo.media ?? '—', h.variacao.media, { contra: 'vs mês anterior', nivel: NIVEL_RISCO[S().riscoDaNota(r.resumo.media ?? 0)] })}
-        ${kpi('Risco alto', r.resumo.alto, h.variacao.alto, { contra: 'vs mês anterior', nivel: r.resumo.alto ? 'u1' : '', espiar: 'risco:alto' })}
-        ${kpi('Risco médio', r.resumo.medio, null, { comparar: false, espiar: 'risco:medio' })}
-        ${kpi('Risco baixo', r.resumo.baixo, null, { comparar: false, espiar: 'risco:baixo' })}
-      </div>
+    // Terceira rodada (quadro 00 Main): os quatro cartões viram a linha de números do padrão; "0 em risco alto" é texto
+    // discreto, não um cartão com um zero grande. Cada risco continua abrindo quem está nele (o mesmo data-espiar).
+    const mesAntes = { contra: 'vs mês anterior' }, tomDaMedia = { alto: 'alerta', medio: 'atencao', baixo: 'ok' }[S().riscoDaNota(r.resumo.media ?? 0)] || '';
+    return `${resumo([
+        numero(r.resumo.media, String(r.resumo.media), ' de média da carteira', { ...mesAntes, v: h.variacao.media, tom: tomDaMedia, semDado: 'média da carteira: sem nota ainda' }),
+        numero(r.resumo.alto, String(r.resumo.alto), ' em risco alto', { ...mesAntes, v: h.variacao.alto, tom: r.resumo.alto ? 'alerta' : '', espiar: 'risco:alto' }),
+        numero(r.resumo.medio, String(r.resumo.medio), ' em risco médio', { tom: r.resumo.medio ? 'atencao' : '', espiar: 'risco:medio' }),
+        numero(r.resumo.baixo, String(r.resumo.baixo), ' em risco baixo', { tom: r.resumo.baixo ? 'ok' : '', espiar: 'risco:baixo' }),
+      ])}
       <section class="vc-secao"><h3>Média da carteira mês a mês</h3>${serieHtml(h)}</section>
       <section class="vc-secao"><div class="vc-secao-topo"><h3>Clientes prioritários</h3><span class="vc-conta">${lista.length}</span></div>
         <div class="vc-filtros">
@@ -471,8 +466,10 @@
       ${pode && !(estado.form?.tipo === 'churn' && estado.form.id === s.id) ? `<div class="vc-linha-acoes">${secundario(s.classificado ? 'Editar motivo' : 'Classificar', `data-vc-form-abrir="churn" data-vc-cli="${esc(s.id)}"`)}</div>` : ''}
       ${formChurn(s)}</li>`;
   }
+  // O vazio do padrão (vbEstadoHtml); sem a peça na página, a caixa simples de sempre.
+  const estadoVazio = (titulo, texto = '', botao = '') => (typeof vbEstadoHtml === 'function' ? vbEstadoHtml({ titulo, texto, acao: botao }) : vazio([titulo, texto].filter(Boolean).join('. '), botao));
   function cohortHtml(c) {
-    if (!c.linhas.length) return vazio('Ainda não há data de entrada dos clientes para montar o cohort.', estado.servidor?.pode?.contratos ? secundario('Registrar início nos contratos', 'data-vc-aba="contratos"') : '');
+    if (!c.linhas.length) return estadoVazio('Ainda sem data de entrada dos clientes', 'A retenção por mês de entrada aparece quando houver início de contrato ou data de cadastro.', estado.servidor?.pode?.contratos ? secundario('Registrar início nos contratos', 'data-vc-aba="contratos"') : '');
     const cor = (p) => (p == null ? '' : p >= 90 ? 'u6' : p >= 70 ? 'u4' : p >= 50 ? 'u2' : 'u3a');
     return `<div class="vc-tabela-rola"><table class="vc-cohort"><thead><tr><th scope="col">Entrada</th><th scope="col">Clientes</th>${c.colunas.map((n) => `<th scope="col">${n}º mês</th>`).join('')}</tr></thead>
       <tbody>${c.linhas.map((l) => `<tr><th scope="row">${esc(l.mes.slice(5, 7))}/${esc(l.mes.slice(2, 4))}</th><td>${l.entraram}</td>${l.colunas.map((x) => `<td class="${cor(x.pct)}" title="${x.pct == null ? 'ainda não chegou' : `${x.ficaram} de ${l.entraram}`}">${x.pct == null ? '' : `${x.pct}%`}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -489,6 +486,18 @@
     else if (estado.ordem.churn === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     const max = Math.max(1, ...r.porMotivo.map((m) => m.vezes));
     const um = (x) => String(x).replace('.', ',');
+    // Terceira rodada (quadro 18, o mesmo tratamento dos Contratos): sem nenhuma saída, nenhuma entrada com data e sem
+    // retenção para montar, um estado vazio só no lugar de três caixas de "nenhum"; a conta fica no ⓘ do título.
+    const temSaida = churnTemSaida(), serie = serieDosMeses();
+    const semNada = !temSaida && !c.linhas.length && !(serie && serie.meses.some((p) => Number(p.saidas) > 0 || Number(p.novos) > 0));
+    const corpo = semNada ? `<section class="vc-secao"><h3>Saídas e retenção ${dicaHtml(COMO_CONTA_CHURN)}</h3>${estadoVazio('Nenhum cliente saiu até agora', 'Quem sair aparece aqui com o tipo, o motivo e a receita perdida. As saídas por mês e a retenção por mês de entrada aparecem quando houver cliente com data de entrada ou de saída.')}</section>`
+      : `<section class="vc-secao"><div class="vc-secao-topo"><h3>Quem saiu em ${esc(r.periodo.rotulo)}</h3><span class="vc-conta">${r.saidas}</span></div>
+        ${lista.length ? `<div class="vc-filtros">${ordemHtml('churn', [['recente', 'Mais recente → antiga'], ['receita', 'Maior receita → menor'], ['nome', 'Nome A–Z']])}</div>
+          <ol class="vc-lista">${cortar(lista, 'churn').map(linhaSaida).join('')}</ol>${verMais('churn', lista.length)}`
+          : estadoVazio(`Nenhum cliente saiu em ${r.periodo.rotulo}`, '', estado.tipo === 'mensal' && temSaida ? secundario('Ver o ano inteiro', 'data-vc-tipo="anual"') : '')}
+      </section>
+      ${saidasPorMesHtml()}
+      <section class="vc-secao"><h3>Retenção por mês de entrada</h3>${cohortHtml(c)}</section>`;
     return `${sv.churn?.disponivel ? '' : aguardando('A classificação das saídas ainda não foi ligada', 'As saídas já aparecem pela desativação do cliente; o motivo de cada uma passa a ser guardado quando estiver ligada.')}
       ${resumo([
         numero(r.taxa, `${um(r.taxa)}%`, ' de churn', { v: r.variacao.taxa, formato: (x) => `${um(x)} p.p.`, tom: r.taxa ? 'atencao' : '', semDado: 'taxa de churn: sem base no período' }),
@@ -496,16 +505,15 @@
         numero(r.receitaPerdida, reais(r.receitaPerdida), ' de receita perdida por mês', { v: r.variacao.receitaPerdida, formato: reais, semDado: 'receita perdida: sem valor' }),
         numero(r.tempoMedioMeses, `${um(r.tempoMedioMeses)} meses`, ' de casa até sair, em média', { v: r.variacao.tempoMedioMeses, formato: (x) => `${um(x)} meses`, semDado: 'tempo até sair: sem saída no período' }),
       ])}
-      <p class="vc-destaque">Principal motivo em ${esc(r.periodo.rotulo)}: <b>${esc(r.principalMotivo ? `${r.principalMotivo.rotulo} (${r.principalMotivo.vezes})` : r.saidas ? 'ainda sem classificação' : 'nenhuma saída')}</b>${r.semClassificar ? ` · ${plural(r.semClassificar, 'saída sem motivo', 'saídas sem motivo')}` : ''}${r.semReceita ? ` · ${plural(r.semReceita, 'sem valor', 'sem valor')} na receita` : ''}</p>
-      ${r.saidas ? `<div class="vc-motivos-barras">${r.porMotivo.map((m) => `<div><span>${esc(m.rotulo)}</span><i style="width:${(m.vezes / max) * 100}%"></i><b>${m.vezes}</b></div>`).join('')}</div>` : ''}
-      <section class="vc-secao"><div class="vc-secao-topo"><h3>Quem saiu em ${esc(r.periodo.rotulo)}</h3><span class="vc-conta">${r.saidas}</span></div>
-        ${lista.length ? `<div class="vc-filtros">${ordemHtml('churn', [['recente', 'Mais recente → antiga'], ['receita', 'Maior receita → menor'], ['nome', 'Nome A–Z']])}</div>
-          <ol class="vc-lista">${cortar(lista, 'churn').map(linhaSaida).join('')}</ol>${verMais('churn', lista.length)}`
-          : vazio(`Nenhum cliente saiu em ${r.periodo.rotulo}.`, estado.tipo === 'mensal' ? secundario('Ver o ano inteiro', 'data-vc-tipo="anual"') : '')}
-      </section>
-      ${saidasPorMesHtml()}
-      <section class="vc-secao"><h3>Retenção por mês de entrada</h3>${cohortHtml(c)}</section>`;
+      ${r.saidas ? `<p class="vc-destaque">Principal motivo em ${esc(r.periodo.rotulo)}: <b>${esc(r.principalMotivo ? `${r.principalMotivo.rotulo} (${r.principalMotivo.vezes})` : 'ainda sem classificação')}</b>${r.semClassificar ? ` · ${plural(r.semClassificar, 'saída sem motivo', 'saídas sem motivo')}` : ''}${r.semReceita ? ` · ${plural(r.semReceita, 'sem valor', 'sem valor')} na receita` : ''}</p>
+      <div class="vc-motivos-barras">${r.porMotivo.map((m) => `<div><span>${esc(m.rotulo)}</span><i style="width:${(m.vezes / max) * 100}%"></i><b>${m.vezes}</b></div>`).join('')}</div>` : ''}
+      ${corpo}`;
   }
+  // Como o churn é contado: vai para o ⓘ do título (terceira rodada, quadro 18: o parágrafo técnico sai do rodapé).
+  const COMO_CONTA_CHURN = 'Saída = desativação no cadastro (a data do registro de churn, quando houver). Entrada = início do contrato; sem ele, a data do cadastro.';
+  const churnTemSaida = () => (estado.servidor?.clientes || []).some((c) => c && c.id != null && c.saida);
+  // Mensal/Anual só muda a conta quando existe alguma saída; o mês anda a janela dos gráficos, que pede entrada ou saída com data.
+  const churnTemHistorico = () => churnTemSaida() || (estado.servidor?.clientes || []).some((c) => c && c.id != null && c.entrada);
   function guardarBase() {
     espiarCarteira.base = estado.servidor?.clientes || [];
     espiarCarteira.listaContratos = listaContratos();
@@ -514,10 +522,11 @@
     const s = serieDosMeses();
     if (!s) return '';
     guardarBase();
-    return `<section class="vc-secao"><h3>Saídas por mês</h3><div class="vc-grafs">
+    // Nenhuma saída nem entrada nos meses da janela: uma frase, não dois gráficos vazios.
+    if (!s.meses.some((p) => Number(p.saidas) > 0 || Number(p.novos) > 0)) return `<section class="vc-secao"><h3>Saídas por mês ${dicaHtml(COMO_CONTA_CHURN)}</h3>${estadoVazio('Ninguém saiu nem entrou nestes meses', 'As barras de quem saiu e de quem entrou em cada mês aparecem quando houver cliente com data de entrada ou de saída no período.')}</section>`;
+    return `<section class="vc-secao"><h3>Saídas por mês ${dicaHtml(`${COMO_CONTA_CHURN} Toque numa barra para ver quem.`)}</h3><div class="vc-grafs">
       ${barrasMes(s.meses, 'saidas', { titulo: 'Clientes que saíram', cor: '#D93D42', fraca: '#F2C4C6', formato: String, espiar: (p) => `mes:saidas:${p.mes}`, zero: 'Ninguém saiu nestes meses.' })}
-      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes que entraram', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}`, zero: 'Ninguém entrou nestes meses.' })}</div>
-      ${nota('Saída = desativação no cadastro (a data do registro de churn, quando houver). Entrada = início do contrato; sem ele, a data do cadastro. Toque numa barra para ver quem.')}</section>`;
+      ${barrasMes(s.meses, 'novos', { titulo: 'Clientes que entraram', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}`, zero: 'Ninguém entrou nestes meses.' })}</div></section>`;
   }
 
   // ---------- Contratos ----------
@@ -543,7 +552,7 @@
   }
   // Redesign (quadro 18): Mensal/Anual e o mês só onde mudam algo. Nos Contratos sem nenhum cliente ativo, nada muda.
   function periodoMudaAlgo() {
-    if (estado.aba === 'churn') return true;
+    if (estado.aba === 'churn') return churnTemHistorico();
     if (estado.aba !== 'contratos') return false;
     try { return Boolean(contratosAgora()?.linhas?.length); } catch { return false; }
   }
@@ -631,12 +640,12 @@
       : ({ saude: abaSaude, onboarding: abaOnboarding, churn: abaChurn, contratos: abaContratos }[estado.aba] || abaSaude)();
     const erro = estado.erro && !estado.carregando ? `<p class="vc-erro" role="alert">${esc(estado.erro)} ${secundario('Tentar de novo', 'data-vc-recarregar')}</p>` : '';
     return `<div class="vc-topo">
-        <div class="vc-titulo"><span class="vc-kicker">${esc(estado.rotulo || 'Clientes')}</span><h2 id="vc-titulo">${esc(estado.soAbas?.size === 1 ? (ABAS.find(([k]) => k === estado.aba) || ['', 'Carteira'])[1] : 'Carteira')}</h2></div>
+        <div class="vc-titulo"><span class="vc-kicker">${esc(estado.rotulo || 'Clientes')}</span><h2 id="vc-titulo">${esc(estado.soAbas?.size === 1 ? TITULO_DA_ABA[estado.aba] || 'Carteira' : 'Carteira')}</h2><p class="vc-frase">${esc(estado.soAbas?.size === 1 ? FRASE_DA_ABA[estado.aba] || FRASE_DA_ABA.carteira : FRASE_DA_ABA.carteira)}</p></div>
         <button type="button" class="vc-ico" data-vc-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é a Carteira" title="O que é a Carteira">?</button>
         <button type="button" class="vc-ico" data-vc-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <div class="vc-controles"${periodoMudaAlgo() ? '' : ' hidden'}>
-        <div class="vc-segmento" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, r]) => `<button type="button" data-vc-tipo="${k}" aria-pressed="${estado.tipo === k}">${r}</button>`).join('')}</div>
+        <div class="vc-segmento" role="group" aria-label="Período"${estado.aba === 'churn' && !churnTemSaida() ? ' hidden' : ''}>${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, r]) => `<button type="button" data-vc-tipo="${k}" aria-pressed="${estado.tipo === k}">${r}</button>`).join('')}</div>
         ${typeof vbMesHtml === 'function' ? vbMesHtml({ mes: estado.mes, max: hoje().slice(0, 7), attr: 'data-vc-mes-ir', ano: estado.tipo === 'anual' }) : ''}
       </div>
       <div class="vc-abas" role="tablist" aria-label="Partes da Carteira"${abasVisiveis().length > 1 ? '' : ' hidden'}>${abasVisiveis().map(([k, r]) => `<button type="button" role="tab" id="vc-aba-${k}" aria-controls="vc-corpo" aria-selected="${estado.aba === k}" tabindex="${estado.aba === k ? 0 : -1}" data-vc-aba="${k}">${r}</button>`).join('')}</div>

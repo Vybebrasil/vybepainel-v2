@@ -97,7 +97,7 @@
       return { titulo: def[0], cls: def[2], itens, vazio: 'Nenhum cliente.', rodape: 'Clique para filtrar a lista', clicar: ir };
     }
     if (aba === 'inadimplencia' && filtro === 'criticos') {
-      const itens = d.clientes.filter((c) => c.severidade?.nivel === 'u1').map((c) => ({ nome: c.cliente_nome, sub: `${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · ${num(c.atraso_mais_antigo)} dias de atraso`, dir: din(c.valor), cls: 'u1' }));
+      const itens = d.clientes.filter((c) => c.severidade?.nivel === 'u1').map((c) => ({ nome: c.cliente_nome, sub: `${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · ${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} de atraso`, dir: din(c.valor), cls: 'u1' }));
       return { titulo: 'Críticos (mais de 30 dias)', cls: 'u1', itens, vazio: 'Ninguém com mais de 30 dias.' };
     }
     return null;
@@ -570,7 +570,7 @@
       <div class="vc-lista">${d.recebiveis.map((x) => { const [n, u] = STATUS_REC[x.status] || [x.status]; return `<article class="vc-cartao">
         <div class="vc-cartao-topo"><b>${esc(x.tipo === 'recorrente' ? x.cliente_nome || 'Cliente' : x.descricao)}</b>${pill(n, u)}</div>
         <p class="vc-grande">${din(x.valor)}${x.valor_recebido && x.status !== 'recebido' ? `<small> · recebido ${din(x.valor_recebido)}</small>` : ''}</p>
-        <small>${x.tipo === 'recorrente' ? 'Recorrente ' + esc(x.ciclo) : 'Pontual'}${x.categoria ? ' · ' + esc(x.categoria) : ''}${x.tipo === 'recorrente' && x.descricao ? ' · ' + esc(x.descricao) : ''} · vence ${data(x.vencimento)}${x.atraso ? ` · ${num(x.atraso)} dias de atraso` : ''}${x.recebido_em ? ' · recebido em ' + data(x.recebido_em) : ''}</small>
+        <small>${x.tipo === 'recorrente' ? 'Recorrente ' + esc(x.ciclo) : 'Pontual'}${x.categoria ? ' · ' + esc(x.categoria) : ''}${x.tipo === 'recorrente' && x.descricao ? ' · ' + esc(x.descricao) : ''} · vence ${data(x.vencimento)}${x.atraso ? ` · ${num(x.atraso)} dia${Number(x.atraso) === 1 ? '' : 's'} de atraso` : ''}${x.recebido_em ? ' · recebido em ' + data(x.recebido_em) : ''}</small>
         ${x.cancelado ? '' : doFinancas(x.id) ? soNoFinancas : `<div class="vc-linha-acoes">${x.status !== 'recebido' ? `<button type="button" class="vc-sec" data-vc="receber" data-id="${esc(x.id)}">Receber</button>` : ''}
           ${x.tipo === 'recorrente' ? `<button type="button" class="vc-sec" data-vc="proximo" data-id="${esc(x.id)}">Próximo ciclo</button>` : ''}
           <button type="button" class="vc-sec" data-vc="recebivel" data-id="${esc(x.id)}">Editar</button><button type="button" class="vc-perigo" data-vc="cancelar-rec" data-id="${esc(x.id)}">Cancelar</button></div>`}</article>`; }).join('')
@@ -624,7 +624,7 @@
     const doVybe = `<div class="vc-kpis">${kpi('Em atraso', din(d.total), { u: d.total ? 'u1' : '' })}${kpi('Clientes', num(d.clientes.length))}${kpi('Críticos (+30 dias)', num(d.criticos), { u: d.criticos ? 'u1' : '', espiar: 'inadimplencia:criticos' })}${kpi('Faturas', num(d.faturas.length))}</div>
       <div class="vc-secao"><h3>Clientes em atraso</h3></div>
       <div class="vc-lista">${d.clientes.map((c) => `<article class="vc-cartao barra-${c.severidade.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(c.severidade.nome, c.severidade.nivel)}</div>
-        <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dias (venceu ${data(c.vencimento_mais_antigo)})</small></article>`).join('')
+        <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} fatura${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} (venceu ${data(c.vencimento_mais_antigo)})</small></article>`).join('')
         || vazio('Ninguém em atraso. As faturas vencidas e não recebidas aparecem aqui.', 'Ver recebimentos', 'ir-recebimentos')}</div>`;
     let doFin = '';
     if (f) {
@@ -633,7 +633,7 @@
         <div class="vc-kpis">${kpi('Em atraso', din(i.total), { u: i.total ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Clientes', num(i.clientes.length), { espiar: 'financas:comercial:inad' })}
           ${kpi('Críticos (+30 dias)', num(i.criticos), { u: i.criticos ? 'u1' : '', espiar: 'financas:comercial:inad' })}${kpi('Lançamentos', num(i.faturas))}</div>
         <div class="vc-lista">${i.clientes.map((c) => { const s = C().severidade(c.atraso_mais_antigo); return `<article class="vc-cartao barra-${s.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(s.nome, s.nivel)}${c.no_vybe || !c.cliente_id && c.cliente_nome === 'Sem cliente' ? '' : pill('Sem par no Vybe OS', 'u5')}</div>
-          <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} lançamento${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dias (venceu ${data(c.vencimento_mais_antigo)})${c.descricao ? ' · ' + esc(c.descricao) : ''}</small></article>`; }).join('')
+          <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} lançamento${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} (venceu ${data(c.vencimento_mais_antigo)})${c.descricao ? ' · ' + esc(c.descricao) : ''}</small></article>`; }).join('')
           || vazio('Ninguém em atraso no Vybe Finanças.')}</div>`;
     }
     return `${f ? doFin : avisoFin(false) + doVybe}

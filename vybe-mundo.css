@@ -388,7 +388,7 @@ body.mundo.mundo-modulo #mundo-hud > :not(.vv-trilho){display:none!important}
 /* Moldura única (Paulo, 10/11/2026: "não parece que tá integrado"): a tela antiga ocupa a MESMA caixa das janelas novas
    (Comercial, Pessoas, Carteira…): ao lado do dock lateral, do topo até acima do dock das salas. Sem o dock, a conta
    cai em var(--vv-m) (o -6px desfaz o vão). */
-#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px);right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));border-radius:var(--vv-r-placa);
+#mundo-moldura{display:none;position:fixed;z-index:-1;top:var(--vv-m);bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px + var(--vv-pe-barra,0px));right:var(--vv-m);left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px));border-radius:var(--vv-r-placa);
   background:rgba(14,16,20,.88);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border:1px solid rgba(255,255,255,.08);box-shadow:var(--vv-sombra)}
 body.mundo.mundo-modulo #mundo-moldura{display:block}
 body.mundo.mundo-modulo{--bg:transparent;--vybe-ink:transparent;--vybe-ink-soft:transparent}
@@ -396,7 +396,7 @@ body.mundo.mundo-modulo .app-header{background:transparent;border-bottom:1px sol
 body.mundo.mundo-modulo .btn-voltar-menu{display:none!important}
 @media (max-width:900px){
   body.mundo.mundo-modulo{padding-left:0!important;padding-right:0!important;padding-bottom:calc(64px + 3 * var(--vv-m))!important}
-  #mundo-moldura{left:0;right:0;top:0;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px);border-radius:0}
+  #mundo-moldura{left:0;right:0;top:0;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px + var(--vv-pe-barra,0px));border-radius:0}
 }
 
 /* ---------- Pele clara dos módulos (camada 2 da roupagem nova) ----------
@@ -3100,9 +3100,9 @@ html body.mundo.mundo-modulo .board-switch-btn{transition:background .2s ease,co
 html:has(> body.mundo.mundo-modulo){overflow:hidden!important;height:100%}
 /* Com o dock das salas embaixo, a área que rola termina onde a moldura termina (Paulo, 09/11/2026: a tabela de Clientes
    passava da moldura e aparecia por cima do mapa, atrás do dock). --vv-dock-alto só existe com o dock. */
-html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;margin:0!important;
+html body.mundo.mundo-modulo{position:fixed!important;top:var(--vv-m)!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px + var(--vv-pe-barra,0px))!important;right:var(--vv-m)!important;left:calc(var(--vv-m) * 2 + var(--vv-trilho-w,76px))!important;margin:0!important;
   padding:0 18px 28px!important;overflow-x:hidden!important;overflow-y:auto!important;border-radius:var(--vv-r-placa);overscroll-behavior:contain;scrollbar-gutter:stable;scroll-behavior:smooth}
-@media (max-width:900px){html body.mundo.mundo-modulo{top:0!important;left:0!important;right:0!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px)!important;border-radius:0;padding:0 10px 20px!important}}
+@media (max-width:900px){html body.mundo.mundo-modulo{top:0!important;left:0!important;right:0!important;bottom:calc(var(--vv-m) + var(--vv-dock-alto, -6px) + 6px + var(--vv-pe-barra,0px))!important;border-radius:0;padding:0 10px 20px!important}}
 html body.mundo.mundo-modulo::-webkit-scrollbar{width:10px}
 html body.mundo.mundo-modulo::-webkit-scrollbar-thumb{background:rgba(31,29,26,.18);border-radius:6px;border:3px solid transparent;background-clip:padding-box}
 html body.mundo.mundo-modulo::-webkit-scrollbar-track{background:transparent}
@@ -3221,13 +3221,13 @@ html body.mundo .vb-resumo-item:is(.info,.neutro):not(#vv-x){background:#EEF4FC!
 html body.mundo .vb-resumo-item b{color:inherit!important}
 
 /* ===== Módulo: tela cheia e fechar no canto ===== */
-.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 12px);right:calc(var(--vv-m) + 16px);z-index:640;gap:8px}
+.vv-canto-modulo{display:none;position:fixed;top:calc(var(--vv-m) + 17px);right:calc(var(--vv-m) + 17px);z-index:640;gap:8px}
 /* Uma janela de módulo aberta por cima de uma tela antiga (palco-modulo) tem o próprio cabeçalho: o topo do mundo e o canto
    da tela antiga saem, para não cobrir o fechar, a ajuda e a ação dela (fase 3d, achado no Comercial). */
 body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}
-/* O canto é do cabeçalho da janela: um vão flutuando no alto à direita faz o cabeçalho da tela antiga (título, ações)
-   terminar antes do ⛶ e do X, sem mexer em cada tela; o que gruda no topo ao rolar já deixa o canto livre (abaixo). */
-body.mundo.mundo-modulo::before{content:"";float:right;width:84px;height:48px}
+/* O canto é do cabeçalho da janela: o cabeçalho da tela antiga (título, ações) termina antes do ⛶ e do X pelo vão
+   --vv-caixa-vao, no bloco "Terceira rodada · moldura" (fim do arquivo). O vão flutuante que havia aqui nunca valeu: o
+   body:before do tema antigo é position:fixed, e um float de verdade estreitaria a Agenda e a Conta inteiras. */
 .vv-canto-modulo .vv-botao{width:34px;height:34px;padding:0;justify-content:center;border-radius:8px;background:#FFFFFF!important;border:1px solid #E6E0D6!important;box-shadow:none}
 .vv-canto-modulo .vv-botao:hover{background:#FFFFFF!important;border-color:var(--ds-acao,#FF7A2F)!important}
 .vv-canto-modulo svg{width:16px;height:16px;fill:none;stroke:#1F1D1A;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -3235,10 +3235,9 @@ body.mundo.mundo-modulo::before{content:"";float:right;width:84px;height:48px}
 html body.mundo.mundo-modulo.mundo-tela-cheia{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
 body.mundo.mundo-modulo.mundo-tela-cheia #mundo-moldura{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
 body.mundo.mundo-modulo.mundo-tela-cheia #mundo-hud .vv-trilho{display:none!important}
-body.mundo.mundo-modulo.mundo-tela-cheia .vv-canto-modulo{top:10px;right:14px}
-@media (max-width:900px){.vv-canto-modulo{top:8px;right:8px}}
-/* No celular não cabe o cabeçalho ao lado do canto: o vão vira uma faixa no alto, como a barra das janelas novas. */
-@media (max-width:900px){body.mundo.mundo-modulo::before{float:none;display:block;width:auto;height:44px}}
+body.mundo.mundo-modulo.mundo-tela-cheia .vv-canto-modulo{top:17px;right:17px}
+@media (max-width:900px){.vv-canto-modulo{top:17px;right:17px}}
+@media (max-width:600px){.vv-canto-modulo{top:12px;right:12px}}
 
 /* ===== Aparência: a janela segue a pele clara (vinha escura do layout antigo) ===== */
 html body.mundo dialog.appearance-dialog:not(#vv-x){background:rgba(255,255,255,.97)!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;backdrop-filter:blur(18px)}
@@ -5185,9 +5184,11 @@ html.vb-sem-movimento .vq-dock .vq-item:hover{transform:none}
 .vc-dia b{font:600 12px var(--vv-texto);font-variant-numeric:tabular-nums}
 .vc-dia small{font:500 10.5px var(--vv-texto);color:#6B675F}
 /* Agenda da Produção no celular (vybe-styles.css, "jeito do Google Agenda"): no mundo, a faixa da captação fica com o texto
-   branco (o bloco gerado escurece o texto de todo .ag-chip) e o + fica acima do dock das salas e do menu de baixo. */
+   escuro (o bloco gerado deixaria cinza, vermelho ou verde, que não se leem sobre a cor) e o + fica acima do dock das
+   salas e do menu de baixo. Terceira rodada (11/11/2026): o texto era branco; sobre o azul da captação e o cinza do
+   compromisso dava 3,3:1. Escuro dá 5:1 ou mais nas três cores. */
 @media (max-width:700px){
-  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.ag-chip{color:#FFFFFF!important}
+  html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.ag-chip{color:#1F1D1A!important}
   html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes .ag-chip.t-reuniao{color:#1F1D1A!important}
   html body.mundo.mundo-modulo .capt-cal.vista-mes .capt-mes-dia.hoje .capt-mes-num.capt-mes-num{color:#FFFFFF!important}
   body.mundo .capt-fab{bottom:calc(64px + 4 * var(--vv-m,12px) + var(--vv-dock-alto,0px))}
@@ -5250,11 +5251,11 @@ html body.mundo.com-dock-salas.musica-aberta:not(.vv-x) #office-musica.vv-musica
   .vv-dock-salas-faixa > .vq-dock .vq-item{scroll-snap-align:start}
 }
 /* O Hoje termina acima do dock (antes passava por baixo dele ao rolar): o espaço de rolagem acaba onde o dock começa. */
-html body.mundo.com-dock-salas:not(.mundo-quarto):not(.mundo-modulo) #vv-hoje.vv-hoje{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}
+html body.mundo.com-dock-salas:not(.mundo-quarto):not(.mundo-modulo) #vv-hoje.vv-hoje{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px + var(--vv-pe-barra,0px))!important}
 html body.mundo.com-dock-salas #vv-hoje{padding-bottom:18px}
 /* As janelas dos módulos do mundo (Gestão e visões de setor, camadas do Comercial, Finanças, Impressões, Pessoas, Missões,
    Agentes, Ferramentas, Carteira, Relatório, Planejamentos e WhatsApp) também terminam acima do dock, sem nada por baixo. */
-html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa,#vv-comercial,#vv-pessoas,#vv-conteudo,#vv-impressoes){bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)!important}
+html body.mundo.com-dock-salas :is(.vv-gestao,.vc-camada,.vp-camada,.vv-missoes-camada,#vv-agentes,#vv-ferramentas,#vv-carteira,#vv-rel,.vv-plj,.vv-wa,#vv-comercial,#vv-pessoas,#vv-conteudo,#vv-impressoes){bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px + var(--vv-pe-barra,0px))!important}
 /* Semana da agência em painel estreito (Paulo, 09/11/2026, foto do gráfico com os números se encavalando): cada dia fica
    com a barra do total e os números menores; as cores por status seguem na legenda e no espiar de cada dia. */
 @container hoje (max-width:620px){
@@ -6748,8 +6749,9 @@ body.mundo .ag-col .ag-ev{gap:0;padding:4px 7px 4px 9px}
 body.mundo .ag-col .ag-ev b{font:600 11px/13px var(--vv-texto);-webkit-line-clamp:var(--linhas-mundo,2)}
 body.mundo .ag-col .ag-ev:not(.mini) small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--linhas-hora,1);font:500 10.5px/12px var(--vv-texto);white-space:normal;overflow-wrap:break-word}
 @container (max-width:72px){
-  body.mundo .ag-col .ag-ev b{font-size:10.5px;-webkit-line-clamp:var(--linhas-estreito,2)}
-  body.mundo .ag-col .ag-ev:not(.mini) small{display:none}
+  body.mundo .ag-col .ag-ev b{font-size:10.5px;margin-left:-2px;-webkit-line-clamp:var(--linhas-estreito,2)}
+  body.mundo .ag-col .ag-ev:not(.mini) small{display:block;margin:0 -5px 0 -2px;font-size:10px;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev .ag-h-resto{display:none}
 }
 /* 65 Cartão da captação: "Trocar cliente" é botão ao lado das peças esperando, e as peças aparecem no cartão. */
 .capt-linha-pecas{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 8px}
@@ -6857,8 +6859,6 @@ body.mundo :is(.pv-cabeca .pv-etiqueta,.vv-g-topo .vv-cb-kicker,#vv-carteira .vc
 /* O mesmo X em toda janela: caixa de 34 px com borda fina (a regra dos botões de ícone, acima, dá o resto). */
 body.mundo .vb-janela-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 body.mundo :is(#vv-conteudo,#vv-comercial,#vv-carteira) .vc-topo{background:transparent;border-bottom:1px solid #ECE6DC;padding:16px 16px 14px 22px}
-/* Telas antigas: as ações do cabeçalho param antes do ⛶ e do X do canto (o "Registrar agora" do Diário encostava neles). */
-body.mundo.mundo-modulo:not(.palco-modulo) :is(#diario-root,#ai-usage-root,#automacoes-root,.container) > .vb-cabecalho{padding-right:88px}
 body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-icone,
 body.mundo:not(.mundo-centro) .vv-placa .vv-jogo-cab ~ .vv-fechar,
 body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar{width:34px;height:34px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;box-shadow:none}
@@ -6885,3 +6885,155 @@ body.mundo.mundo-centro #vv-hoje .vv-hoje-agenda-lado{display:none}
 #vv-hoje .vv-dono-radar + .vv-radar-zeros{margin-top:-4px}
 /* 30 · "Semana" do Hoje é um botão do padrão (era texto laranja clicável). */
 body.mundo .vv-semana-abrir{min-height:var(--pc-h-p,28px);padding:0 10px}
+/* ==== Terceira rodada · Telas (quadros 04, 18 e 00 Main; 11/11/2026) ==== */
+/* 04 · Semana com a coluna apertada. Dois compromissos na mesma hora dividiam a coluna e, a 1110, ficavam com 40 px
+   cada: nem o nome cabia. A coluna mede a própria largura; quando não dá 60 px para cada um (2 abaixo de 120 px, 3
+   abaixo de 180, 4 ou mais abaixo de 240; grupo com bloco de meia hora, ".gm", sempre abaixo de 240), os que se
+   cruzam viram uma pilha na faixa de horas do grupo, com a largura inteira e "09:00 Título" em cada um (as medidas
+   vêm do agendaSemanaHtml em --e-top/--e-alt/--linhas-emp; aqui só se liga o --emp-* que o estilo do bloco lê). O
+   que não cabe na pilha fica atrás do "+N", que abre o dia. O intervalo inteiro continua no rótulo, na prévia e no
+   cartão. */
+body.mundo .ag-col{container:agcol / inline-size}
+.ag-junto-mais{position:absolute;left:2px;width:calc(100% - 4px);z-index:3;align-items:center;justify-content:center;padding:0 4px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:8px;background:#FFFFFF;color:var(--ds-sel-texto,#C2490C);font:600 10.5px/1 var(--vv-texto,system-ui);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer}
+.ag-junto-mais:hover{border-color:var(--ds-acao,#FF7A2F)}
+.ag-junto-mais:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+@container agcol (max-width:119px){
+  body.mundo .ag-col .ag-ev.junto{--emp-top:var(--e-top);--emp-alt:var(--e-alt);--emp-esq:2px;--emp-larg:calc(100% - 4px);padding:2px 4px 2px 7px}
+  body.mundo .ag-col .ag-ev.junto b{margin:0;font:600 10px/12px var(--vv-texto);-webkit-line-clamp:var(--linhas-emp,1)}
+  body.mundo .ag-col .ag-ev.junto b::before{content:attr(data-hora) "\00a0";font-weight:500;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev.junto small,body.mundo .ag-col .ag-ev.junto-fora{display:none}
+  body.mundo .ag-col .ag-junto-mais{display:flex}
+}
+@container agcol (min-width:120px) and (max-width:179px){
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm){--emp-top:var(--e-top);--emp-alt:var(--e-alt);--emp-esq:2px;--emp-larg:calc(100% - 4px);padding:2px 4px 2px 7px}
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm) b{margin:0;font:600 10px/12px var(--vv-texto);-webkit-line-clamp:var(--linhas-emp,1)}
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm) b::before{content:attr(data-hora) "\00a0";font-weight:500;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev.junto:is(:not(.n2),.gm) small,body.mundo .ag-col .ag-ev.junto-fora:is(:not(.n2),.gm){display:none}
+  body.mundo .ag-col .ag-junto-mais:is(:not(.n2),.gm){display:flex}
+}
+@container agcol (min-width:180px) and (max-width:239px){
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm){--emp-top:var(--e-top);--emp-alt:var(--e-alt);--emp-esq:2px;--emp-larg:calc(100% - 4px);padding:2px 4px 2px 7px}
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm) b{margin:0;font:600 10px/12px var(--vv-texto);-webkit-line-clamp:var(--linhas-emp,1)}
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm) b::before{content:attr(data-hora) "\00a0";font-weight:500;font-variant-numeric:tabular-nums}
+  body.mundo .ag-col .ag-ev.junto:is(.n4,.gm) small,body.mundo .ag-col .ag-ev.junto-fora:is(.n4,.gm){display:none}
+  body.mundo .ag-col .ag-junto-mais:is(.n4,.gm){display:flex}
+}
+/* 04 · Mês. No computador o compromisso é branco com o traço na cor do tipo, como na Semana e no Dia (sai o fundo
+   tingido de "gravada" e "falta fechar"), e o estado segue na cor do texto. No celular fica a faixa cheia na cor do
+   tipo, do jeito do Google Agenda (pedido do Paulo, 09/11/2026), com o texto escuro (regra lá em cima, junto do +) e
+   sem apagar o que já passou (apagado, o texto não se lia sobre a cor). Nos dois, o nome quebra em linhas (até três;
+   quatro no celular, onde o dia tem 50 px) em vez de terminar em reticências na primeira, e o que passa do limite do
+   dia fica no "+N", que abre o dia; o nome inteiro está no rótulo, na prévia e no cartão. A data comemorativa quebra
+   igual. */
+body.mundo .capt-cal .capt-mes .ag-chip{display:block;padding:3px 4px 3px 8px;border-radius:6px;background:#FFFFFF;box-shadow:inset 3px 0 0 var(--ag-cor),inset 0 0 0 1px var(--pc-linha,#E6E0D6);font:600 11px/13.5px var(--vv-texto);white-space:normal}
+body.mundo .capt-cal .capt-mes .ag-chip em{font-weight:500;font-size:10.5px}
+body.mundo .capt-cal .capt-mes .ag-chip:hover{background:#FBF8F4}
+body.mundo .capt-cal .capt-mes .ag-chip.sel{box-shadow:inset 3px 0 0 var(--ag-cor),0 0 0 2px var(--vv-laranja)}
+body.mundo .capt-cal .capt-mes .ag-chip i{display:none}
+body.mundo .capt-cal .capt-mes .ag-chip span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;white-space:normal;text-overflow:clip;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
+body.mundo .capt-cal .capt-mes .vd-chips{flex-wrap:wrap}
+body.mundo .capt-cal .capt-mes .vd-chip{align-items:flex-start}
+body.mundo .capt-cal .capt-mes .vd-chip span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;white-space:normal;text-overflow:clip;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
+@media (max-width:700px){
+  body.mundo .capt-cal .capt-mes .ag-chip,body.mundo .capt-cal .capt-mes .ag-chip:hover{padding:2px 3px;border-radius:4px;background:var(--ag-cor);box-shadow:none;font:600 10px/12px var(--vv-texto)}
+  body.mundo .capt-cal .capt-mes .ag-chip.sel{box-shadow:0 0 0 2px var(--vv-laranja)}
+  body.mundo .capt-cal.vista-mes .capt-mes .ag-chip.passou{opacity:1}
+  body.mundo .capt-cal .capt-mes .ag-chip span{-webkit-line-clamp:4}
+}
+/* 30 · Campo de data (Nova reunião). O calendário que abre já é o do painel (vybe-calendario.js segura o do navegador em
+   todo input de data); o que ainda era do navegador era o ícone do campo, que só sumia depois de o primeiro calendário
+   abrir (o estilo entrava nessa hora). No mundo ele some desde o começo, e o campo do formulário ganha o ícone
+   desenhado do padrão; clicar no ícone abre o mesmo calendário (o ícone não recebe o clique). */
+body.mundo input[type="date"]::-webkit-calendar-picker-indicator{display:none}
+.cad-campo.cad-data{position:relative}
+.cad-campo.cad-data input[type="date"]{padding-right:38px;cursor:pointer}
+.cad-data-ico{position:absolute;right:12px;bottom:11px;width:16px;height:16px;fill:none;stroke:#6B675F;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+
+/* ==== Terceira rodada · moldura (11/11/2026; quadros 00 Main, 00 Sistema e 29) ====
+   O que é da moldura de toda janela do mundo, num lugar só:
+   1. A caixa de tela cheia/fechar (⛶/X) fica a 17 px do canto de cima à direita da janela (12 px no celular), em toda
+      janela: telas antigas (.vv-canto-modulo, acima), cabeçalho único (.vb-janela-topo), .vc-topo, Gestão e visões de
+      setor, Planejamentos, Conversas e as placas (Equipe, Jogos). Botão de 34 px, ⛶ a 8 px do X.
+      O cabeçalho reserva o lugar dela: nas janelas novas o X é a última ação da linha; nas telas antigas o cabeçalho
+      termina --vv-caixa-vao antes da borda (o "+ Novo conteúdo" e o "Novo colaborador" entravam na caixa).
+   2. Com a gaveta da demanda aberta, a caixa da tela de trás sai: só o X da gaveta aparece.
+   3. O aviso curto encolhido, para quando não há vaga sem controle (ajustarAvisosCurtos, vybe-core.js).
+   4. Um título só: Agenda e Conta em 22 px (o de 28 px ficou em :where(body:not(.mundo)), vybe-padrao.css).
+   5. Gestão, Performance e visões de setor com fundo sólido, como as demais janelas.
+   6. No celular, toda janela e o Hoje terminam acima da barra de baixo (--vv-pe-barra entra na conta do "bottom"). ==== */
+body.mundo{--vv-caixa-vao:58px}
+
+/* 1 · telas antigas: o cabeçalho para antes da caixa (no celular a caixa fica acima do cabeçalho, sem vão) */
+@media (min-width:601px){
+  body.mundo.mundo-modulo :is(.workspace-heading,.client-module-hero,.prod-v2-head,.conta-secao-topo,.pv-cabeca,.container > .vb-cabecalho){margin-right:var(--vv-caixa-vao);max-width:calc(100% - var(--vv-caixa-vao))}
+}
+/* 1 · cabeçalho único (Pessoas, Impressões, Toolkit, Agentes, Planejamentos): as ações sobem para a linha de cima */
+body.mundo .vb-janela-topo > .vb-cabecalho{align-items:flex-start}
+body.mundo .vb-janela-topo .vb-cabecalho-texto{padding-top:3px}
+body.mundo :is(#vv-impressoes,#vv-ferramentas) .vb-janela-topo{padding-top:17px;padding-right:17px}
+/* Planejamentos: o cabeçalho vai de borda a borda da janela, como nas outras */
+body.mundo .vv-plj{padding-top:0}
+body.mundo .vv-plj > .vv-plj-cabeca{margin:0 -24px}
+/* 1 · .vc-topo (Conteúdo, Comercial, Finanças, Fornecedores, Creators e as quatro telas da Carteira) */
+body.mundo :is(#vv-conteudo,#vv-comercial,#vv-carteira) .vc-topo{align-items:flex-start}
+body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-titulo{padding-top:3px}
+/* 1 · Gestão, Performance e visões de setor */
+body.mundo .vv-g-topo{padding:16px 16px 12px 22px}
+body.mundo .vv-g-acoes{gap:8px}
+body.mundo .vv-g-acoes .vv-botao{width:34px;height:34px}
+/* 1 · Conversas e placas (Equipe online, Jogos) */
+body.mundo .vv-wa-topo{padding:16px 16px 12px 16px}
+body.mundo:not(.mundo-centro) .vv-placa .vv-jogo-cab ~ .vv-fechar,
+body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar{top:16px;right:16px}
+@media (max-width:900px){
+  body.mundo .vv-plj > .vv-plj-cabeca{margin:0 -16px}
+}
+@media (max-width:600px){
+  body.mundo .vb-janela-topo .vb-cabecalho-texto,body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-titulo{padding-top:0}
+  body.mundo :is(#vv-impressoes,#vv-ferramentas) .vb-janela-topo{padding-top:12px;padding-right:12px}
+  /* com borda de 1 px no celular: um a menos, para a caixa cair nos mesmos 12 px */
+  body.mundo :is(#vv-agentes,.vv-plj) .vb-janela-topo{padding-top:11px;padding-right:11px}
+  body.mundo :is(#vv-conteudo,#vv-comercial,#vv-carteira) .vc-topo{padding:12px 12px 10px 14px}
+  body.mundo #vv-conteudo .vc-topo{padding-top:11px;padding-right:11px}
+  body.mundo .vv-g-topo{padding:11px 11px 10px 12px}
+  body.mundo .vv-wa-topo{padding:11px 11px 11px 14px}
+  body.mundo:not(.mundo-centro) .vv-placa .vv-jogo-cab ~ .vv-fechar,
+  body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar{top:11px;right:11px}
+}
+
+/* 1 · o X das Conversas na mesma caixa com borda das outras janelas */
+body.mundo .vv-wa-fechar{border:1px solid #E6E0D6;background:#FFFFFF}
+
+/* 2 · gaveta da demanda aberta: a caixa da tela de trás não fica por cima dela */
+body.mundo:has(> #workspace-drawer) .vv-canto-modulo{display:none}
+
+/* 3 · aviso curto encolhido: ícone menor, o título inteiro (até duas linhas), a frase numa linha (o texto inteiro fica
+   na dica) e as ações ao lado, em vez de embaixo */
+#vv-wa-avisos.compacto .vv-aviso-curto{grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 6px 6px 10px}
+#vv-wa-avisos.compacto .vv-aviso-curto-ic{width:24px;height:24px;border-radius:6px}
+#vv-wa-avisos.compacto .vv-aviso-curto-txt{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1px 8px;padding-top:0}
+#vv-wa-avisos.compacto .vv-aviso-curto-txt b{grid-column:1;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#vv-wa-avisos.compacto .vv-aviso-curto-txt small{grid-column:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-wa-avisos.compacto .vv-aviso-curto-acoes{grid-column:2;grid-row:1 / span 2;flex-wrap:nowrap;margin:0}
+#vv-wa-avisos.compacto.minimo .vv-aviso-curto-txt small{display:none}
+/* no celular a frase também pode ter duas linhas; quem espera a vez (pilha que cobriria uma linha clicável) não aparece */
+@media (max-width:600px){#vv-wa-avisos.compacto .vv-aviso-curto-txt small{display:-webkit-box;white-space:normal;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
+#vv-wa-avisos .vv-aviso-curto[hidden]{display:none}
+
+/* 4 · um título só: Agenda e Conta no tamanho das outras janelas */
+body.mundo .prod-v2-head .pv-cabeca h3,
+body.mundo .conta-secao-topo h2{margin:0;font:700 22px/1.15 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;text-wrap:balance}
+@media (max-width:600px){
+  body.mundo .prod-v2-head .pv-cabeca h3,body.mundo .conta-secao-topo h2,
+  body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-titulo b,body.mundo #vv-carteira .vc-topo h2,
+  body.mundo:not(.mundo-centro) .vv-placa .vv-jogo-cab h3{font-size:19px}
+}
+
+/* 5 · Gestão, Performance e visões de setor: fundo sólido, sem desfoque */
+body.mundo .vv-gestao{background:#F6F3EE;backdrop-filter:none;-webkit-backdrop-filter:none}
+
+/* 6 · celular: com a barra de baixo à vista (o dock das salas recolhido no "Voz"), --vv-dock-alto é zero e as janelas
+   iam até o pé da tela, por trás da barra. A folga de baixo é a altura da barra (64 px) mais as margens. */
+@media (max-width:600px){
+  body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-pe-barra:calc(58px + var(--vv-m,8px))}
+}

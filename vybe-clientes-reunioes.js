@@ -126,7 +126,7 @@
       <p class="workflow-copy">${r ? 'Escreva a ata durante ou depois da reunião.' : 'Salve e grave: o áudio vai para a pasta Reuniões do cliente no Drive, e o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha.'}</p>
       <div class="cad-grade">${escolha}
         <label class="cad-campo"><span>Tipo</span><select id="reu-tipo">${Object.entries(tipos).map(([k, v]) => `<option value="${k}" ${tipo === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
-        <label class="cad-campo"><span>Data</span><input id="reu-data" type="date" value="${esc(r?.data || hojeIso())}"></label>
+        <label class="cad-campo cad-data"><span>Data</span><input id="reu-data" type="date" value="${esc(r?.data || hojeIso())}"><svg class="cad-data-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></label>
         <label class="cad-campo largo"><span>Título</span><input id="reu-titulo" maxlength="160" value="${esc(r?.titulo || opcoes.titulo || '')}" placeholder="Ex.: Entrada da Lil"></label>
         <label class="cad-campo largo"><span>Participantes</span><input id="reu-participantes" maxlength="600" value="${esc(r?.participantes || '')}" placeholder="Quem estava"></label>
         <label class="cad-campo largo"><span>Pauta</span><textarea id="reu-pauta" rows="5">${esc(pautaPadrao || '')}</textarea><small>Sugerida com o que o sistema sabe do cliente. Edite à vontade.</small></label>
