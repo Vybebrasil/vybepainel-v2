@@ -21,7 +21,7 @@ test('35 · peça sem arte não pede a arte: o voxel sai pelo nome, a categoria 
   const quarto = ler('mundo/quarto.mjs');
   assert.match(quarto, /import ARTES_LOCAIS from '\.\/artes-locais\.json' with \{ type: 'json' \};/);
   assert.match(quarto, /if \(!temArteLocal\(classe\)\) return semArte\(\);/);
-  assert.match(quarto, /function adiantarArte\(classe\) \{\n {2}if \(!temArteLocal\(classe\)\)/);
+  assert.match(quarto, /function adiantarArte\(classe\) \{\r?\n {2}if \(!temArteLocal\(classe\)\)/);
   assert.match(quarto, /const VERSAO_RETRATO = 'r6';/);
   // Medidas e revestimentos da sala também só pedem a arte de quem a tem.
   assert.match(ler('vybe-mundo.js'), /!m\?\.temArteLocal \|\| m\.temArteLocal\(c\)/);
