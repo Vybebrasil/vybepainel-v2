@@ -268,3 +268,8 @@
 #vv-carteira .vc-secao>h3{position:relative}
 #vv-carteira .vc-secao>h3>.ar-dica{position:static;vertical-align:middle}
 #vv-carteira .vc-secao>h3>.ar-dica.vb-jogo-dica[data-dica]::after{left:0;right:auto;width:min(340px,100%)}
+/* === Terceira rodada (quadros 18 e 00 Main, 11/11/2026): o cabeçalho ganha a frase do que a tela faz; no Churn sem
+   nenhuma saída, Mensal/Anual não aparece (não muda nada) e o vazio é a peça do padrão, com a conta no ⓘ do título. */
+#vv-carteira .vc-frase{margin:3px 0 0;max-width:78ch;font:500 13px/1.45 var(--vv-texto,Inter),sans-serif;color:#6B675F}
+#vv-carteira .vc-segmento[hidden]{display:none}
+#vv-carteira .vb-estado .vc-sec{margin-top:4px}

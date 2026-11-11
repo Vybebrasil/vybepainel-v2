@@ -59,17 +59,37 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   // O que já passou recua, como no calendário; o que pede ação não.
   const agoraHm = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Bahia", hour: "2-digit", minute: "2-digit" });
   const passou = (e) => e.dia < hoje || (e.dia === hoje && (agMin(e.fim) ?? agMin(e.inicio) ?? 24 * 60) <= agMin(agoraHm));
-  const bloco = (e, estilo = "", curto = false, recuado = false, mini = false) => { const p = agPartesDoTitulo(e); return `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""}${mini ? " mini" : ""} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${passou(e) ? " passou" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}"${estilo}${clicar(e)}${passar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
-      <b>${safeText(p.nome)}</b><small>${safeText([e.inicio ? agHorario(e) : "", e.estado?.chave === "fechar" ? "falta fechar" : e.estado?.chave === "gravada" ? "gravada" : curto ? "" : p.resto].filter(Boolean).join(" · "))}</small>${e.estado ? `<span class="ag-selo tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}</button>`; };
+  // O horário vai em dois pedaços: o começo ("09:00") e o resto ("–10:00 · falta fechar"). No bloco estreito (dois lado a
+  // lado) fica só o começo embaixo do título; o intervalo inteiro segue no rótulo, na prévia e no cartão. `data-hora` é o
+  // começo para o bloco empilhado (coluna apertada), que escreve "09:00 Título" numa linha só.
+  const horario = (e, curto, p) => { const t = [e.inicio ? agHorario(e) : "", e.estado?.chave === "fechar" ? "falta fechar" : e.estado?.chave === "gravada" ? "gravada" : curto ? "" : p.resto].filter(Boolean).join(" · ");
+    return e.inicio && t.startsWith(e.inicio) ? `<span class="ag-h"><span class="ag-h-ini">${safeText(e.inicio)}</span><span class="ag-h-resto">${safeText(t.slice(e.inicio.length))}</span></span>` : safeText(t); };
+  const bloco = (e, estilo = "", curto = false, recuado = false, mini = false, extra = "") => { const p = agPartesDoTitulo(e); return `<button type="button" data-ev="${safeText(e.id)}" class="ag-ev${recuado ? " recuado" : ""}${mini ? " mini" : ""}${extra} t-${safeText(e.tipo || "outro")}${e.id === sel ? " sel" : ""}${curto ? " curto" : ""}${passou(e) ? " passou" : ""}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}"${estilo}${clicar(e)}${passar(e)} aria-label="${safeText(rotulo(e))}" aria-pressed="${e.id === sel}">
+      <b${e.inicio ? ` data-hora="${safeText(e.inicio)}"` : ""}>${safeText(p.nome)}</b><small>${horario(e, curto, p)}</small>${e.estado ? `<span class="ag-selo tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}</button>`; };
   // Eventos que se cruzam dividem a coluna (faixas).
   const posicionar = (lista) => {
-    const ordem = [...lista].sort((a, b) => agMin(a.inicio) - agMin(b.inicio)), faixas = [], grupo = [];
+    const ordem = [...lista].sort((a, b) => agMin(a.inicio) - agMin(b.inicio)), faixas = [], grupo = [], pilulas = [];
     let fimGrupo = -1;
     // Quem começa junto divide a coluna; quem começa depois fica por cima, um
     // pouco recuado (como no calendário), para o título continuar legível.
     // Na semana a coluna é estreita: quem se cruza sempre divide a coluna (o recuado cobria o de baixo; Paulo, 08/11/2026).
     const fechar = () => { const n = Math.max(1, ...grupo.map((g) => g.faixa + 1)), juntos = dias.length > 1 || Math.max(...grupo.map((g) => g.a)) - Math.min(...grupo.map((g) => g.a)) <= 20;
-      grupo.forEach((g) => { g.n = n; g.lado = juntos; }); grupo.length = 0; faixas.length = 0; };
+      grupo.forEach((g) => { g.n = n; g.lado = juntos; });
+      // Coluna apertada (terceira rodada, quadro 04): dois lado a lado ficavam com 40 px cada e nem o nome cabia. Quando
+      // a coluna não dá 60 px para cada um (o CSS decide, pela largura da coluna), os que se cruzam viram uma pilha na
+      // faixa de horas do grupo: largura inteira, "09:00 Título" em cada um, na ordem em que começam. Cada um precisa de
+      // 30 px (duas linhas); os que não cabem ficam atrás de um "+N" que abre o dia (só onde existe a vista Dia).
+      if (juntos && n > 1) {
+        const a = Math.min(...grupo.map((g) => g.a)), alto = px(Math.max(...grupo.map((g) => g.b))) - px(a) - 2, topo = px(a);
+        const fila = [...grupo].sort((x, y) => x.a - y.a || x.faixa - y.faixa), sobra = Boolean(acoes.verDia) && fila.length > Math.floor(alto / 30);
+        const vis = sobra ? (alto >= 46 ? Math.max(1, Math.floor((alto - 18) / 30)) : 0) : fila.length;
+        const area = sobra ? (vis ? alto - 18 : 0) : alto, passo = vis ? area / vis : 0;
+        // Grupo com bloco de meia hora ou menos ("mini"): lado a lado só cabia um pedaço do nome, sem horário; empilha mais cedo.
+        const baixo = grupo.some((g) => px(g.b) - px(g.a) - 2 < 40);
+        fila.forEach((g, i) => { g.gm = baixo; g.emp = i < vis ? { top: topo + i * passo, alt: Math.max(14, passo - 2), linhas: Math.max(1, Math.min(4, Math.floor((passo - 6) / 12))) } : { fora: true }; });
+        if (sobra) pilulas.push({ dia: grupo[0].e.dia, top: vis ? topo + area + 1 : topo, alt: vis ? 16 : alto, hora: agHora(a), total: fila.length, resto: fila.length - vis, n, gm: baixo });
+      }
+      grupo.length = 0; faixas.length = 0; };
     const fora = ordem.map((e) => {
       const a = agMin(e.inicio), b = Math.max(a + 20, agMin(e.fim) ?? a + 60);
       if (a >= fimGrupo && grupo.length) fechar();
@@ -77,6 +97,7 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
       const item = { e, a, b, faixa: f, n: 1 }; grupo.push(item); fimGrupo = Math.max(fimGrupo, b); return item;
     });
     if (grupo.length) fechar();
+    fora.pilulas = pilulas;
     return fora;
   };
   const agora = new Date(), agoraMin = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Bahia", hour: "2-digit", hourCycle: "h23" }).format(agora)) * 60 + agora.getMinutes();
@@ -91,19 +112,25 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
       ${dias.map((d) => `<div class="ag-col${d === hoje ? " hoje" : ""}${d < hoje ? " passou" : ""}" data-dia="${d}" style="height:${px(fim) + AG_TOPO}px"${vazio(d)}${largado}>
         ${horas.map((m) => `<i class="ag-linha" style="top:${px(m)}px"></i>`).join("")}
         ${d === hoje && agoraMin >= ini && agoraMin <= fim ? `<i class="ag-agora" style="top:${px(agoraMin)}px" aria-hidden="true"></i>` : ""}
-        ${posicionar(comHora.filter((e) => e.dia === d)).map(({ e, a, b, faixa, n, lado }) => { const h = Math.max(26, px(b) - px(a) - 2);
+        ${((postos) => postos.map(({ e, a, b, faixa, n, lado, emp, gm }) => { const h = Math.max(26, px(b) - px(a) - 2);
           // Quantas linhas de título cabem no bloco com o horário embaixo (quadro 04: título em até duas linhas, palavra
           // inteira, e o horário sempre inteiro). Bloco baixo demais para os dois ("mini") fica só com o título. No bloco
-          // estreito (dois na mesma hora) o horário sai e o título usa a altura toda, em letra menor (--linhas-estreito).
+          // estreito (dois na mesma hora) o título vai em letra menor (--linhas-estreito) e, embaixo, fica só o começo
+          // do horário (12 px).
           const mini = h < 40, linhas = mini ? 1 : Math.max(1, Math.min(3, Math.floor((h - 27) / 15)));
-          const estreito = Math.max(1, Math.min(4, Math.floor((h - 10) / 13)));
+          const estreito = Math.max(1, Math.min(4, Math.floor((h - 8 - (mini ? 0 : 12)) / 13)));
           // No mundo (re-auditoria de 10/11/2026) a letra do bloco é a do quadro 04 (título 11/13, horário 10,5/12, 4 px
           // de respiro): 45 min já levam o título em duas linhas e o horário; com altura sobrando, a linha do horário
           // ("14:00–16:00 · falta fechar") quebra em duas em vez de cortar. O tema antigo segue com --linhas.
           const linhasHora = mini ? 0 : h - 34 >= 24 ? 2 : 1;
           const linhasMundo = Math.max(1, Math.min(3, Math.floor((h - 8 - linhasHora * 12) / 13)));
-          const pos = lado || n === 1 ? `left:calc(${(faixa / n) * 100}% + 2px);width:calc(${100 / n}% - 4px)` : `left:calc(${faixa * 16}% + 2px);width:calc(${100 - faixa * 16}% - 4px);z-index:${2 + faixa}`;
-          return bloco(e, ` style="top:${px(a)}px;height:${h}px;${pos};--linhas:${linhas};--linhas-estreito:${estreito};--linhas-mundo:${linhasMundo};--linhas-hora:${linhasHora || 1}"`, h < 60 || (lado && n > 1), !lado && faixa > 0, mini); }).join("")}
+          const esq = lado || n === 1 ? `calc(${(faixa / n) * 100}% + 2px)` : `calc(${faixa * 16}% + 2px)`, larg = lado || n === 1 ? `calc(${100 / n}% - 4px)` : `calc(${100 - faixa * 16}% - 4px)`;
+          const camada = lado || n === 1 ? "" : `;z-index:${2 + faixa}`, um = (v) => Math.round(v * 10) / 10;
+          // Quem divide a coluna leva as medidas da pilha (--e-*); o CSS só as liga (--emp-*) quando a coluna aperta.
+          const pos = emp && !emp.fora ? `--e-top:${um(emp.top)}px;--e-alt:${um(emp.alt)}px;--linhas-emp:${emp.linhas};top:var(--emp-top,${px(a)}px);height:var(--emp-alt,${h}px);left:var(--emp-esq,${esq});width:var(--emp-larg,${larg})`
+            : `top:${px(a)}px;height:${h}px;left:${esq};width:${larg}${camada}`;
+          return bloco(e, ` style="${pos};--linhas:${linhas};--linhas-estreito:${estreito};--linhas-mundo:${linhasMundo};--linhas-hora:${linhasHora || 1}"`, h < 60 || (lado && n > 1), !lado && faixa > 0, mini, emp ? ` junto n${Math.min(n, 4)}${gm ? " gm" : ""}${emp.fora ? " junto-fora" : ""}` : ""); }).join("")
+          + postos.pilulas.map((p) => `<button type="button" hidden class="ag-junto-mais n${Math.min(p.n, 4)}${p.gm ? " gm" : ""}" style="top:${Math.round(p.top * 10) / 10}px;height:${Math.round(p.alt * 10) / 10}px" onclick="event.stopPropagation();agPreviaSair(true);${acoes.verDia}('${p.dia}')" aria-label="${p.resto < p.total ? `Mais ${p.resto} às ${p.hora}` : `${p.total} compromissos às ${p.hora}`}: abrir o dia" title="Abrir o dia">${p.resto < p.total ? `+${p.resto}` : `${p.total} às ${p.hora}`}</button>`).join(""))(posicionar(comHora.filter((e) => e.dia === d)))}
       </div>`).join("")}
     </div></div>`;
   // Celular: faixa de dias e a lista do dia.
@@ -783,7 +810,7 @@ function captacoesHtml() {
   const corpo = CAPT.vista === "lista" ? captListaHtml(eventos)
     : CAPT.vista === "mes" ? captMesHtml(eventos)
     : CAPT.vista === "dia" ? captDiaHtml(eventos)
-    : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel", previa: "captPreviaHtml" } });
+    : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel", previa: "captPreviaHtml", verDia: "captVerDia" } });
   // Redesenhar troca os blocos embaixo do mouse: a prévia do bloco antigo sai junto.
   setTimeout(() => { agPreviaSair(true); if (CAPT.vista === "semana" || CAPT.vista === "dia") agRolar(); captCartaoAtualizar(); }, 0);
   return `<div class="capt capt-cal vista-${CAPT.vista}${CAPT.inspetor ? " com-inspetor" : ""}">
