@@ -3,7 +3,7 @@
    laranja cheio só na ação principal (Ativar avisos) e na contagem de não lidas; vermelho não aparece (nada aqui é atraso).
    Modo escuro: o tema escuro do Irecity inverte as janelas soltas no body (html.tema-escuro body.mundo > …); aqui só se
    desfaz a inversão no laranja, para a marca continuar laranja. */
-.vv-wa{--wa-linha:var(--ds-linha,#E6E0D6);--wa-acao:var(--ds-acao,#C2490C);--wa-sel:var(--ds-on-fundo,#FFEBDF);--wa-sel-t:var(--ds-on-texto,#C2490C);--wa-foco:var(--ds-foco,0 0 0 3px rgba(194,73,12,.22));
+.vv-wa{--wa-linha:var(--ds-linha,#E6E0D6);--wa-acao:var(--ds-acao,#C2490C);--wa-sel:var(--ds-sel-fundo,#FFEBDF);--wa-sel-t:var(--ds-sel-texto,#C2490C);--wa-foco:var(--ds-foco,0 0 0 3px rgba(194,73,12,.22));
   /* Largura: até 900px, sem cobrir o "Seu dia" (--vv-livre-esq, medido pelo HUD). Estreito (menos de 620px), vira uma
      coluna só — lista ou conversa, como no celular — em vez de passar por cima do Seu dia. */
   position:fixed;z-index:640;top:calc(var(--vv-m,14px) + 64px);right:var(--vv-m,14px);container:wa / inline-size;

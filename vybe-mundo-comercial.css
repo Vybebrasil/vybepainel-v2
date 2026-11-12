@@ -4,7 +4,7 @@
    Laranja cheio só na ação principal; selecionado em laranja 13% com texto #C2490C; urgência pela escala 1–6
    (vermelho cheio só no nível 1). Modo escuro: o tema do Irecity inverte as janelas do body; aqui só se desfaz no laranja e
    no vermelho cheio. */
-#vv-comercial.vc{--vc-linha:var(--ds-linha,#E6E0D6);--vc-acao:var(--ds-acao,#C2490C);--vc-sel:var(--ds-on-fundo,#FFEBDF);--vc-sel-t:var(--ds-on-texto,#C2490C);--vc-foco:0 0 0 3px rgba(194,73,12,.22);
+#vv-comercial.vc{--vc-linha:var(--ds-linha,#E6E0D6);--vc-acao:var(--ds-acao,#C2490C);--vc-sel:var(--ds-sel-fundo,#FFEBDF);--vc-sel-t:var(--ds-sel-texto,#C2490C);--vc-foco:0 0 0 3px rgba(194,73,12,.22);
   --vc-apagado:var(--vv-apagado,#6B675F);--vc-tinta:var(--vv-tinta,#1F1D1A);
   position:fixed;z-index:645;inset:0;display:flex;flex-direction:column;overflow:hidden;background:var(--vv-papel,#F3F1EC);
   font:500 13px var(--vv-texto,system-ui,sans-serif);color:var(--vc-tinta);color-scheme:light;
