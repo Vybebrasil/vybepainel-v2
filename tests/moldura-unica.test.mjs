@@ -46,5 +46,5 @@ test('mesmo material e mesma entrada: sombra de janela e a mola do padrão, sem 
   assert.match(css, /#vv-whatsapp,#mundo-moldura\):not\(\[hidden\]\)\{\n    animation:vv-janela var\(--vv-t-janela\) var\(--vv-mola\) both\}/);
   assert.ok(css.includes('html body.mundo.mundo-modulo .container{animation:vv-janela var(--vv-t-janela) var(--vv-mola) both}'));
   assert.ok(!css.includes('.container>*:not(script):not(style){animation:vv-entra'));
-  assert.ok(css.includes('body.mundo.mundo-modulo #mundo-moldura{background:#F6F3EE;'), 'papel sólido, como o Comercial');
+  assert.ok(css.includes('body.mundo.mundo-modulo #mundo-moldura{background:#F3F1EC;'), 'papel sólido, como o Comercial');
 });

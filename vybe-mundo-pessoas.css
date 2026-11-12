@@ -4,7 +4,7 @@
    flutua (raio 24) e as grades abrem em colunas. Todas as regras ficam dentro de #vv-pessoas. */
 
 .vp-camada{position:fixed;inset:0;z-index:650;display:grid;place-items:stretch;background:rgba(31,29,26,.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color-scheme:light}
-#vv-pessoas{box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;max-height:100dvh;overflow:hidden;background:#F6F3EE;color:#1F1D1A;font:500 13px/1.45 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vp-entra .2s cubic-bezier(.22,1,.36,1) both;padding-bottom:env(safe-area-inset-bottom)}
+#vv-pessoas{box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;max-height:100dvh;overflow:hidden;background:#F3F1EC;color:#1F1D1A;font:500 13px/1.45 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vp-entra .2s cubic-bezier(.22,1,.36,1) both;padding-bottom:env(safe-area-inset-bottom)}
 #vv-pessoas *,#vv-pessoas *::before,#vv-pessoas *::after{box-sizing:border-box}
 @keyframes vp-entra{from{scale:.97}to{scale:1}}
 @media (prefers-reduced-motion:reduce){#vv-pessoas{animation:none}}
@@ -28,7 +28,7 @@
 #vv-pessoas .vp-abas [role="tab"]{flex:none;height:34px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:#5B574F;font:600 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer;white-space:nowrap;scroll-snap-align:start}
 #vv-pessoas .vp-abas [role="tab"]:hover{color:#1F1D1A}
 /* Selecionado = laranja 13% e texto #C2490C (vence a regra geral de módulo aberto com ids extras, como em vybe-mundo-missoes.css). */
-#vv-pessoas .vp-abas [role="tab"][aria-selected="true"]:not(#vp-a):not(#vp-b):not(#vp-c){background:rgba(255,122,47,.13)!important;color:#C2490C!important;box-shadow:none!important;border-color:transparent!important}
+#vv-pessoas .vp-abas [role="tab"][aria-selected="true"]:not(#vp-a):not(#vp-b):not(#vp-c){background:rgba(194,73,12,.13)!important;color:#C2490C!important;box-shadow:none!important;border-color:transparent!important}
 
 #vv-pessoas .vp-aviso{flex:none;margin:8px 12px 0;padding:8px 12px;border-radius:8px;background:#FFF1CC;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-pessoas .vp-aviso:empty{display:none}
@@ -36,7 +36,7 @@
 @media (min-width:720px){#vv-pessoas .vp-corpo{padding:16px 22px 28px}}
 
 /* foco de teclado igual em tudo */
-#vv-pessoas :is(button,[role="tab"],a,input,select,textarea,summary):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-pessoas :is(button,[role="tab"],a,input,select,textarea,summary):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 
 /* botões */
 #vv-pessoas .vp-link{padding:4px 0;border:0;background:none;color:#C2490C;font:700 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer;text-decoration:none}
@@ -88,7 +88,7 @@
 #vv-pessoas .vp-campo-inline{grid-auto-flow:column;align-items:center;gap:8px}
 #vv-pessoas :is(input:not([type=checkbox]):not([type=radio]),select,textarea){width:100%;min-height:38px;padding:0 10px;border:1px solid #E6E0D6;border-radius:8px;background-color:#FFFFFF;color:#1F1D1A;font:500 14px var(--vv-texto,system-ui),sans-serif;color-scheme:light}
 #vv-pessoas textarea{padding:8px 10px;resize:vertical}
-#vv-pessoas :is(input,select,textarea):focus{border-color:#FF7A2F}
+#vv-pessoas :is(input,select,textarea):focus{border-color:#C2490C}
 #vv-pessoas .vp-grade{display:grid;gap:10px}
 @media (min-width:560px){#vv-pessoas .vp-grade{grid-template-columns:repeat(2,minmax(0,1fr))}#vv-pessoas .vp-grade .vp-botoes,#vv-pessoas .vp-grade .vp-nota{grid-column:1/-1}}
 #vv-pessoas .vp-inline{display:flex;flex-wrap:wrap;align-items:end;gap:8px;margin-top:8px}
@@ -100,8 +100,8 @@
 #vv-pessoas .vp-escala label{display:block}
 #vv-pessoas .vp-escala input{position:absolute;opacity:0;pointer-events:none}
 #vv-pessoas .vp-escala span{display:grid;place-items:center;min-width:40px;height:40px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;font:700 13px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
-#vv-pessoas .vp-escala input:checked+span{background:rgba(255,122,47,.13);color:#C2490C;border-color:transparent}
-#vv-pessoas .vp-escala input:focus-visible+span{box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-pessoas .vp-escala input:checked+span{background:rgba(194,73,12,.13);color:#C2490C;border-color:transparent}
+#vv-pessoas .vp-escala input:focus-visible+span{box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 #vv-pessoas .vp-det>summary{cursor:pointer;font-weight:700;min-height:28px;list-style-position:inside}
 #vv-pessoas .vp-det[open]>summary{margin-bottom:10px}
 #vv-pessoas .vp-etapas{display:grid;gap:10px}
@@ -112,14 +112,14 @@
 #vv-pessoas .vp-score-topo{display:flex;gap:14px;align-items:center}
 #vv-pessoas .vp-score-topo p{margin:4px 0 0;color:#6B675F;font-size:12.5px}
 #vv-pessoas .vp-pos{color:#C2490C!important;font-weight:700}
-#vv-pessoas .vp-anel{flex:none;display:grid;place-content:center;justify-items:center;width:92px;height:92px;border-radius:50%;background:radial-gradient(closest-side,#FFFFFF 78%,transparent 80% 100%),conic-gradient(#FF7A2F calc(var(--p)*1%),#EFEAE2 0)}
+#vv-pessoas .vp-anel{flex:none;display:grid;place-content:center;justify-items:center;width:92px;height:92px;border-radius:50%;background:radial-gradient(closest-side,#FFFFFF 78%,transparent 80% 100%),conic-gradient(#C2490C calc(var(--p)*1%),#EFEAE2 0)}
 #vv-pessoas .vp-anel b{font:800 26px/1 var(--vv-texto,system-ui),sans-serif;font-variant-numeric:tabular-nums}
 #vv-pessoas .vp-anel small{color:#6B675F;font-size:10.5px}
 #vv-pessoas .vp-comps{display:grid;gap:8px;margin:14px 0 0;padding:0;list-style:none}
 #vv-pessoas .vp-comps li{display:grid;grid-template-columns:minmax(0,1fr) 2fr auto;gap:10px;align-items:center;font-size:12.5px}
 #vv-pessoas .vp-comps b{min-width:56px;text-align:right;font-variant-numeric:tabular-nums}
 #vv-pessoas .vp-barra{display:block;height:8px;border-radius:8px;background:#EFEAE2;overflow:hidden}
-#vv-pessoas .vp-barra i{display:block;height:100%;border-radius:8px;background:#FF7A2F}
+#vv-pessoas .vp-barra i{display:block;height:100%;border-radius:8px;background:#C2490C}
 #vv-pessoas .vp-barra.larga{margin-top:6px}
 #vv-pessoas .vp-barra.u2 i{background:#E0A321}
 #vv-pessoas .vp-barra.u4 i{background:#3B6FD1}
@@ -129,7 +129,7 @@
 #vv-pessoas .vp-conquista{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:8px;background:#F1EAFD;color:#6E3DB8;font:700 11.5px var(--vv-texto,system-ui),sans-serif}
 #vv-pessoas .vp-ranking,#vv-pessoas .vp-lista,#vv-pessoas .vp-simples,#vv-pessoas .vp-aulas,#vv-pessoas .vp-comentarios{margin:0;padding:0;list-style:none;display:grid;gap:6px}
 #vv-pessoas .vp-linha{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,translate .15s}
-#vv-pessoas .vp-linha:hover{border-color:#FF7A2F;translate:0 -1px}
+#vv-pessoas .vp-linha:hover{border-color:#C2490C;translate:0 -1px}
 #vv-pessoas .vp-pos-n{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#F1F2F3;color:#5B6268;font-weight:800}
 #vv-pessoas .vp-meio{flex:1;min-width:0;display:grid;gap:2px}
 #vv-pessoas .vp-meio small{color:#6B675F;font-size:11.5px}
@@ -157,7 +157,7 @@
 #vv-pessoas .vp-gantt-semanas{position:relative;height:20px;margin-left:var(--rot);border-bottom:1px solid #F0EBE3}
 #vv-pessoas .vp-gantt-semanas span{position:absolute;top:0;color:#6B675F;font:700 10px var(--vv-texto,system-ui),sans-serif;letter-spacing:.04em;padding-left:3px;border-left:1px solid #F0EBE3}
 #vv-pessoas .vp-gantt-agora{position:absolute;top:0;bottom:0;left:var(--rot);right:0;pointer-events:none;z-index:1}
-#vv-pessoas .vp-gantt-agora i{position:absolute;top:0;bottom:0;width:2px;background:#FF7A2F;opacity:.6}
+#vv-pessoas .vp-gantt-agora i{position:absolute;top:0;bottom:0;width:2px;background:#C2490C;opacity:.6}
 #vv-pessoas .vp-gantt-proj{padding:10px 0;border-bottom:1px solid #F0EBE3}
 #vv-pessoas .vp-gantt-nome{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:6px}
 #vv-pessoas .vp-gantt-nome small{color:#6B675F;font-size:11.5px}
@@ -167,10 +167,10 @@
 #vv-pessoas .vp-gantt-rotulo small{display:block;color:#6B675F;font-size:10.5px}
 #vv-pessoas .vp-gantt-trilho{position:relative;height:14px;border-radius:8px;background:#FAF8F4}
 #vv-pessoas .vp-gantt-barra{position:absolute;top:2px;height:10px;border-radius:8px;background:#8B7DFF}
-#vv-pessoas .vp-gantt-barra.proj{top:0;height:14px;background:rgba(255,122,47,.35)}
+#vv-pessoas .vp-gantt-barra.proj{top:0;height:14px;background:rgba(194,73,12,.35)}
 #vv-pessoas .vp-gantt-barra.feita{background:#2E9E62}
 #vv-pessoas .vp-gantt-barra.atrasada{background:#D93D42}
-#vv-pessoas input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:#FF7A2F;flex:none}
+#vv-pessoas input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:#C2490C;flex:none}
 
 /* academy */
 #vv-pessoas .vp-trilha p{margin:4px 0 0;color:#6B675F;font-size:12.5px}
@@ -195,14 +195,14 @@
 #vv-pessoas .vp-kpis-3{grid-template-columns:repeat(1,minmax(0,1fr))}
 @media (min-width:520px){#vv-pessoas .vp-kpis-3{grid-template-columns:repeat(3,minmax(0,1fr))}}
 #vv-pessoas .vp-kpi.espiavel{cursor:pointer;transition:border-color .15s}
-#vv-pessoas .vp-kpi.espiavel:hover{border-color:#FF7A2F}
-#vv-pessoas .vp-kpi.espiavel:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-pessoas .vp-kpi.espiavel:hover{border-color:#C2490C}
+#vv-pessoas .vp-kpi.espiavel:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 #vv-pessoas .vp-kpi.u1{border-color:#F2B8B5;box-shadow:inset 3px 0 0 #D93D42}
 #vv-pessoas .vp-kpi.u1 b{color:#B42318}
 #vv-pessoas .vp-desc{color:#4A4740;white-space:pre-line;overflow-wrap:anywhere}
 #vv-pessoas .vp-responder{flex-basis:100%}
 #vv-pessoas .vp-responder>summary{color:#C2490C;font-size:12.5px}
-#vv-pessoas .vp-linha.ativo{border-color:#FF7A2F;box-shadow:inset 3px 0 0 #FF7A2F}
+#vv-pessoas .vp-linha.ativo{border-color:#C2490C;box-shadow:inset 3px 0 0 #C2490C}
 /* Etapa que virou demanda na esteira: o status da demanda, clicável. */
 #vv-pessoas .vp-etapa-demanda{appearance:none;border:0;background:none;padding:0 4px;cursor:pointer;align-self:center;flex:none}
 #vv-pessoas .vp-etapa-demanda:focus-visible{outline:2px solid #F26B1D;outline-offset:2px;border-radius:6px}

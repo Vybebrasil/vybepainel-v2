@@ -5,9 +5,9 @@
 
 .vv-tour-raiz{position:fixed;inset:0;z-index:2000;pointer-events:none;color-scheme:light;
   --tour-papel:#FFFFFF;--tour-tinta:#1F1D1A;--tour-apagado:#6B675F;--tour-linha:#E6E0D6;--tour-divisoria:#F0EBE3;
-  --tour-acao:#FF7A2F;--tour-acao-hover:#E8602E;--tour-sel:#C2490C;--tour-kicker:#A84E00;--tour-lilas:#5B4BD6;
+  --tour-acao:#C2490C;--tour-acao-hover:#A83D08;--tour-sel:#C2490C;--tour-kicker:#A84E00;--tour-lilas:#5B4BD6;
   --tour-sec:#FFFFFF;--tour-sec-hover:#FAF5EE;--tour-vista-f:#F1F2F3;--tour-vista-t:#5B6268;--tour-nova-f:#ECE9FF;--tour-nova-t:#5B4BD6;
-  --tour-veu:rgba(31,29,26,.45);--tour-veu-janela:rgba(31,29,26,.3);--tour-foco:0 0 0 3px rgba(255,122,47,.22);
+  --tour-veu:rgba(31,29,26,.45);--tour-veu-janela:rgba(31,29,26,.3);--tour-foco:0 0 0 3px rgba(194,73,12,.22);
   --tour-curva:cubic-bezier(.2,.8,.2,1);
   font-family:var(--vv-texto,system-ui),sans-serif;color:var(--tour-tinta)}
 .vv-tour-raiz [hidden]{display:none!important}
@@ -18,7 +18,7 @@
 /* ---------- Passeio: o fundo segura os cliques; a luz escurece tudo menos o recorte do alvo ---------- */
 .vv-tour-fundo{position:fixed;inset:0;pointer-events:auto;background:transparent}
 .vv-tour-luz{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:10px;pointer-events:none;
-  box-shadow:0 0 0 2px var(--tour-acao),0 0 0 6px rgba(255,122,47,.2),0 0 0 9999px var(--tour-veu)}
+  box-shadow:0 0 0 2px var(--tour-acao),0 0 0 6px rgba(194,73,12,.2),0 0 0 9999px var(--tour-veu)}
 .vv-tour-luz.vazia{box-shadow:0 0 0 9999px var(--tour-veu)}
 .vv-tour-anda .vv-tour-luz{transition:left .25s var(--tour-curva),top .25s var(--tour-curva),width .25s var(--tour-curva),height .25s var(--tour-curva),box-shadow .25s}
 .vv-tour-anda .vv-tour-balao{transition:left .25s var(--tour-curva),top .25s var(--tour-curva)}
@@ -69,7 +69,7 @@
 
 /* ---------- Dica: sem escurecer a tela; um anel em volta do que ela explica, na cor de destaque do padrão (laranja;
    o lilás parecia um foco de outro sistema, re-auditoria de 10/11/2026) ---------- */
-.vv-tour-anel{position:fixed;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px var(--tour-acao),0 0 0 6px rgba(255,122,47,.2);animation:vv-tour-surge .2s var(--tour-curva) both}
+.vv-tour-anel{position:fixed;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px var(--tour-acao),0 0 0 6px rgba(194,73,12,.2);animation:vv-tour-surge .2s var(--tour-curva) both}
 
 /* ---------- Ajuda do VYBES: painel no canto direito, acima do dock (quadro 66, 10/11/2026), sem véu nem blur ---------- */
 .vv-tour-ajuda{display:flex;justify-content:flex-end;align-items:flex-end;box-sizing:border-box;padding:var(--vv-m,14px);padding-bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px));pointer-events:none}

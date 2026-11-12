@@ -9,7 +9,7 @@
 #vv-impressoes .vi-aviso:not(:empty){padding:8px 18px 0}
 #vv-impressoes .vi-aviso.erro{color:#C2262E}
 #vv-impressoes .vi-corpo{flex:1 1 auto;min-height:0;overflow:auto;padding:14px 18px 22px;display:grid;gap:14px;align-content:start}
-#vv-impressoes :is(button,a,input,select,textarea):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-impressoes :is(button,a,input,select,textarea):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 #vv-impressoes .vi-link{appearance:none;border:0;background:none;padding:0;color:#C2490C;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 #vv-impressoes .vi-mudo{color:#8A847A;font:500 12px Inter,system-ui,sans-serif;font-style:normal;margin:0}
 #vv-impressoes .vi-nota{margin:0;font:500 12px/1.45 Inter,system-ui,sans-serif;color:#6B665E}
@@ -23,7 +23,7 @@
 #vv-impressoes .vi-chip em{font-style:normal;color:#6B665E}
 #vv-impressoes .vi-chip.ruim em{color:#B4232F}
 #vv-impressoes .vi-chip.atencao em{color:#9E5C00}
-#vv-impressoes .vi-chip[aria-pressed="true"]{border-color:var(--ds-sel-borda);background:var(--ds-sel-fundo);color:var(--ds-sel-texto)}
+#vv-impressoes .vi-chip[aria-pressed="true"]{border-color:var(--ds-on-borda);background:var(--ds-on-fundo);color:var(--ds-on-texto)}
 /* Quadro por etapa e a ficha ao lado */
 #vv-impressoes .vi-meio{display:grid;gap:14px;align-items:start}
 #vv-impressoes .vi-meio.com-ficha{grid-template-columns:minmax(0,1fr) minmax(300px,360px)}

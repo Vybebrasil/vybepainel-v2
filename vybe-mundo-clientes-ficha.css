@@ -8,7 +8,7 @@
 .cad-passos button{appearance:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--vv-linha);background:var(--vv-branco);color:var(--vv-tinta);font:600 12.5px var(--vv-texto);cursor:pointer;position:relative}
 .cad-passos button b{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:#F1F2F3;color:#5B6268;font-size:11px}
 .cad-passos button:hover{border-color:var(--vv-laranja);color:#C2490C}
-.cad-passos button.ativo{background:rgba(255,122,47,.13);border-color:transparent;color:#C2490C}
+.cad-passos button.ativo{background:rgba(194,73,12,.13);border-color:transparent;color:#C2490C}
 .cad-passos button.ativo b{background:#C2490C;color:#fff}
 .cad-passos button.falta::after{content:"";position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#C2490C}
 .cad-corpo{margin-top:8px}
@@ -21,8 +21,8 @@
 .cad-campo small{font:500 11.5px var(--vv-texto);color:var(--vv-apagado)}
 .cad-campo :is(input,select,textarea){color-scheme:light;width:100%;box-sizing:border-box;min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid var(--vv-linha);background-color:var(--vv-branco);color:var(--vv-tinta);font:500 13.5px var(--vv-texto)}
 .cad-campo textarea{resize:vertical;min-height:88px;line-height:1.45}
-.cad-campo :is(input,select,textarea):focus{outline:none;border-color:var(--vv-laranja);box-shadow:0 0 0 3px rgba(255,122,47,.18)}
-.cad-campo input:disabled{background:#F6F3EE;color:var(--vv-apagado)}
+.cad-campo :is(input,select,textarea):focus{outline:none;border-color:var(--vv-laranja);box-shadow:0 0 0 3px rgba(194,73,12,.18)}
+.cad-campo input:disabled{background:#F3F1EC;color:var(--vv-apagado)}
 .cad-acoes{flex-wrap:wrap;gap:8px}
 .cad-acoes [hidden]{display:none}
 @media (max-width:640px){.cad-grade{grid-template-columns:1fr}.cad-passos button{height:32px;font-size:12px}}
@@ -32,7 +32,7 @@
 .eco-resumo{margin:6px 0 8px;color:var(--vv-apagado);font:500 13px var(--vv-texto)}
 .eco-resumo b{color:var(--vv-tinta)}
 .eco-progresso{height:8px;margin:0 0 14px;border-radius:999px;background:#EFEAE2;overflow:hidden}
-.eco-progresso i{display:block;height:100%;border-radius:inherit;background:var(--ds-acao,#FF7A2F)}
+.eco-progresso i{display:block;height:100%;border-radius:inherit;background:var(--ds-acao,#C2490C)}
 .eco-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .eco-item{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--vv-linha);border-radius:10px;background:var(--vv-branco)}
 .eco-item b{font:600 13.5px var(--vv-texto);color:var(--vv-tinta)}
@@ -140,8 +140,8 @@
 .cli-chip.tom-alerta b{color:#B42318}
 .cli-chip.tom-atencao b{color:#8A5A00}
 .cli-chip svg{color:var(--vv-apagado,#6B675F)}
-.cli-chip:hover:not(:disabled){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
-.cli-chip[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFE9DC);border-color:var(--ds-sel-borda,transparent);color:var(--ds-sel-texto,#C2490C)}
+.cli-chip:hover:not(:disabled){border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
+.cli-chip[aria-pressed="true"]{background:var(--ds-on-fundo,#FFE9DC);border-color:var(--ds-on-borda,transparent);color:var(--ds-on-texto,#C2490C)}
 .cli-chip[aria-pressed="true"] :is(b,svg){color:inherit}
 .cli-chip:disabled{color:var(--vv-apagado,#6B675F);background:#FFFFFF;cursor:default}
 .cli-chip:disabled b{color:inherit;font-weight:600}
@@ -154,7 +154,7 @@
 .cli-busca input{width:220px;min-width:0;height:var(--pc-h,34px);padding:0 10px 0 31px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:var(--vv-tinta,#1F1D1A);font:500 12.5px var(--vv-texto,"Inter"),sans-serif;color-scheme:light}
 .cli-busca input[type="search"]{appearance:none;-webkit-appearance:none}
 .cli-busca input::-webkit-search-decoration{-webkit-appearance:none}
-.cli-busca input:focus-visible{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+.cli-busca input:focus-visible{outline:0;border-color:var(--ds-acao,#C2490C);box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 .cli-busca input::placeholder{color:var(--vv-apagado,#6B675F)}
 /* Células novas da tabela */
 .cli-head{display:inline-flex;align-items:center;gap:8px;min-width:0;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-tinta,#1F1D1A);white-space:nowrap}
@@ -177,7 +177,7 @@
 .cli-abertos i{font-style:normal;color:var(--vv-apagado,#6B675F)}
 .cli-completo{display:inline-grid;gap:4px;min-width:84px}
 .cli-completo-barra{display:block;width:84px;height:6px;border-radius:999px;background:#EFEAE2;overflow:hidden}
-.cli-completo-barra i{display:block;height:100%;border-radius:inherit;background:var(--ds-acao,#FF7A2F)}
+.cli-completo-barra i{display:block;height:100%;border-radius:inherit;background:var(--ds-acao,#C2490C)}
 .cli-completo.cheio .cli-completo-barra i{background:#1F9D55}
 .cli-completo small{font:500 11px var(--vv-texto,"Inter"),sans-serif;color:var(--vv-apagado,#6B675F);font-variant-numeric:tabular-nums}
 @media (max-width:760px){.cli-busca{margin-left:0;flex:1 1 100%}.cli-busca input{width:100%}}
@@ -196,7 +196,7 @@
 .cli-col-marca{display:inline-grid;place-items:center;width:16px;height:16px;border:1.5px solid var(--pc-linha,#CFC7BA);border-radius:4px;background:#FFFFFF;color:#FFFFFF}
 /* Sem largura para tudo numa linha, a busca fica na linha do alternador e os chips descem juntos (a busca não cai sozinha). */
 @media (max-width:1360px) and (min-width:761px){.cli-barra .cli-busca{order:1}.cli-barra .cli-filtros{order:2;flex:1 1 100%}}
-.cli-col-marca.on{border-color:var(--ds-acao,#FF7A2F);background:var(--ds-acao,#FF7A2F)}
+.cli-col-marca.on{border-color:var(--ds-acao,#C2490C);background:var(--ds-acao,#C2490C)}
 
 /* ── ficha do cliente (quadro 51): cabeçalho, três números e Dados e acessos ── */
 /* Com uma ficha aberta, o cabeçalho "Clientes" da lista sai: o da ficha toma o lugar (numerosDaListaDeClientes). */

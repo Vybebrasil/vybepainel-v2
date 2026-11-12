@@ -18,7 +18,7 @@ test('Criar (08/64): "Etapa N de 5" na trilha, calendário sazonal junto das op�
   assert.ok(cad.indexOf('function fcCorpo(p)') < cad.indexOf('Começar pelo calendário sazonal'));
   assert.match(css, /body\.mundo #fc-overlay\{[^}]*backdrop-filter:none!important\}/);
   assert.doesNotMatch(css, /#fc-overlay[^{]*\{[^}]*backdrop-filter:blur/);
-  assert.match(css, /body\.mundo #fc-overlay \.fc-side-col\{[^}]*background:#F6F3EE\}/);
+  assert.match(css, /body\.mundo #fc-overlay \.fc-side-col\{[^}]*background:#F3F1EC\}/);
   assert.doesNotMatch(css, /body\.mundo #fc-overlay \.fc-modal :is\([^)]*\.fc-preview-card/, 'a prévia não tem sombra de cartão flutuando');
   assert.match(cad, /Como vai chegar na equipe/);
 });

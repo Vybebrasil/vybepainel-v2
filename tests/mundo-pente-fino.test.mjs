@@ -42,7 +42,7 @@ test('janelas de módulo com as cores claras, acima do dock; lote claro; planeja
   assert.ok(legado.includes(':where(body:not(.mundo)) .grupos-lote{bottom:24px!important;'), 'a barra escura do lote só no tema antigo');
   assert.match(css, /html body\.mundo \.grupos-lote\{bottom:calc\(var\(--vv-m,14px\) \+ var\(--vv-dock-alto,0px\) \+ 24px\);background:rgba\(255,255,255,\.96\)/);
   assert.match(css, /html body\.mundo \.plj-ed-cab h3\{color:#1F1D1A\}/);
-  assert.match(css, /html body\.mundo \.plj-ed-lista\{background:#F6F3EE;/);
+  assert.match(css, /html body\.mundo \.plj-ed-lista\{background:#F3F1EC;/);
   assert.match(css, /html body\.mundo \.plj-flut\{background:rgba\(255,255,255,\.96\)/);
   const novo = css.slice(css.indexOf('Pente-fino de 09/11/2026 (quadro 14'));
   assert.doesNotMatch(novo, /!important/, 'o bloco novo não usa !important');

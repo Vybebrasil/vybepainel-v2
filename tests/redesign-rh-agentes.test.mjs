@@ -73,7 +73,7 @@ test('63: retrato voxel do agente (o boneco do Prédio) e o histórico na cor do
   assert.match(js, /modRetrato\?\.avatarDoAgente\?\.\(nome, cor, \{ cabeca: true \}\)/, 'mesmo boneco, cor do andar');
   assert.match(js, /<div class="vga-cab">\$\{retratoHtml\(s, \{ grande: true \}\)\}/, 'no cabeçalho, no lugar das iniciais');
   const fim = css.slice(css.indexOf('RH, AGENTES, CRIAR, AJUDA E BOLETIM'));
-  assert.match(fim, /\.vga-barras i\{background:var\(--ds-acao,#FF7A2F\)\}/);
+  assert.match(fim, /\.vga-barras i\{background:var\(--ds-acao,#C2490C\)\}/);
   assert.match(fim, /\.vga-fila li\{border-left-width:1px;border-left-color:#ECE6DC\}/);
   assert.doesNotMatch(fim, /!important|html body\.mundo/, 'código novo sem !important nem html body.mundo');
 });
@@ -104,7 +104,7 @@ test('64, 66: Criar com a cor de cada cliente; Ajuda e Boletim como painel no ca
   assert.match(cad, /class="fc-escolha fc-cli \$\{marcado \? 'marcada' : ''\}"/);
   assert.match(cad, /cliCor\(c\)\.replace\(/, 'o nome do cliente com a cor da carteira');
   const fim = css.slice(css.indexOf('RH, AGENTES, CRIAR, AJUDA E BOLETIM'));
-  assert.match(fim, /\.fc-escolha\.fc-cli\.marcada\{box-shadow:0 0 0 2px var\(--ds-acao,#FF7A2F\)\}/, 'escolhido com contorno laranja');
+  assert.match(fim, /\.fc-escolha\.fc-cli\.marcada\{box-shadow:0 0 0 2px var\(--ds-acao,#C2490C\)\}/, 'escolhido com contorno laranja');
   assert.match(fim, /#fc-overlay \.fc-modal\{max-height:var\(--vv-janela-alto\)\}/, 'cabe acima do dock');
   assert.match(fim, /body\.mundo \.vcal\{background:#FFFFFF/, 'o calendário do painel claro no mundo');
   assert.match(css, /:is\(\.fc-escolha,\.fc-mais\):not\(\.marcada\):not\(\.fc-cli\)/, 'a regra antiga não pinta o botão de cliente');

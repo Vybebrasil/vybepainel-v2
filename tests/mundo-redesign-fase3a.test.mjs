@@ -8,12 +8,12 @@ const css = ler('vybe-mundo.css');
 const bloco = css.slice(css.indexOf('PEÇAS DO SISTEMA (redesign fase 3a'));
 
 test('um botão em quatro jeitos e três alturas; os módulos não pintam mais o próprio botão', () => {
-  assert.match(bloco, /body\.mundo\{--pc-h:34px;--pc-h-p:28px;--pc-h-g:40px;--pc-r:8px;/);
+  assert.match(bloco, /body\.mundo\{--pc-h:34px;--pc-h-p:28px;--pc-h-g:40px;--pc-r:999px;/);
   assert.match(bloco, /body\.mundo :is\(\.vc-acao,\.vp-acao,\.vf-botao\.principal,\.vi-botao\.principal,\.conta-botao\.primario,\.auto-novo,\.quadro-novo/, 'principal');
   assert.match(bloco, /:is\(:disabled,\.desligado\)\{background:var\(--pc-desligado-fundo\)/, 'desligado é cinza');
   assert.doesNotMatch(bloco, /!important/);
   assert.doesNotMatch(bloco, /html body\.mundo/);
-  assert.match(css, /--ds-r-botao:8px;/, 'um raio para todo controle');
+  assert.match(css, /--ds-r-botao:999px;/, 'um raio para todo controle');
   // Nenhum módulo redefine o botão (o segundo laranja #F76808 e as alturas 38/40/44 saíram).
   for (const [f, sel] of [['vybe-mundo-ferramentas.css', '#vv-ferramentas .vf-botao.principal{'], ['vybe-mundo-impressoes.css', '#vv-impressoes .vi-botao.principal{'], ['vybe-mundo-pessoas.css', '#vv-pessoas .vp-acao{'], ['vybe-mundo-comercial.css', '#vv-comercial .vc-acao{'], ['vybe-mundo-carteira.css', '#vv-carteira .vc-acao{'], ['vybe-mundo-conteudo.css', '#vv-conteudo .vc-acao{']]) {
     assert.ok(!ler(f).includes(sel), `${f} sem ${sel}`);

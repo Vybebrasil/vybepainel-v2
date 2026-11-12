@@ -44,22 +44,22 @@
 .vv-cli-meta.ok{background:#E7F6EE;color:#11613A}
 .vv-cli-meta.falta{background:#FFF1CC;color:#8A5A00;border-color:#F3D48B}
 
-/* Calendário: 4 semanas × 7 dias, um ponto #FF7A2F por peça; hoje com anel laranja. */
+/* Calendário: 4 semanas × 7 dias, um ponto #C2490C por peça; hoje com anel laranja. */
 .vv-cli-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:8px;margin-bottom:8px;border-radius:8px;border:1px solid #EFEAE2;background:#FFFFFF}
 .vv-cli-cal-sem{padding-bottom:2px;text-align:center;font:700 9.5px var(--vv-texto,system-ui);letter-spacing:0;text-transform:none;color:#6B675F}
 .vv-cli-dia{appearance:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;min-width:0;min-height:34px;padding:4px 0 3px;border:0;border-radius:8px;background:transparent;
   font:600 11.5px/1.2 var(--vv-texto,system-ui);color:#1F1D1A;font-variant-numeric:tabular-nums;cursor:default}
 .vv-cli-dia span{display:grid;place-items:center;min-width:20px;height:18px;padding:0 3px;border-radius:8px}
 .vv-cli-dia em{display:flex;align-items:center;gap:2px;height:6px}
-.vv-cli-dia em i{width:5px;height:5px;border-radius:50%;background:#FF7A2F}
+.vv-cli-dia em i{width:5px;height:5px;border-radius:50%;background:#C2490C}
 .vv-cli-dia em i.feita{opacity:.4}
 .vv-cli-dia em b{font:800 8.5px var(--vv-texto,system-ui);color:#C2490C}
 .vv-cli-dia.passado{color:#A9A39A}
 .vv-cli-dia.passado em i{opacity:.55}
 .vv-cli-dia.tem{cursor:pointer}
 .vv-cli-dia.tem:hover{background:#FAF5EE}
-.vv-cli-dia.hoje span{box-shadow:inset 0 0 0 1.5px #FF7A2F;color:#C2490C;font-weight:800}
-.vv-cli-dia[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);color:#C2490C}
+.vv-cli-dia.hoje span{box-shadow:inset 0 0 0 1.5px #C2490C;color:#C2490C;font-weight:800}
+.vv-cli-dia[aria-pressed="true"]{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);color:#C2490C}
 .vv-cli-dia:disabled{opacity:1}
 .vv-cli-dia-lista{margin:0 0 6px}
 .vv-cli-dia-lista[hidden]{display:none}
@@ -96,7 +96,7 @@
 .vv-cli-equilibrio p i{width:7px;height:7px;border-radius:50%}
 .vv-cli-equilibrio p b{color:#1F1D1A;font-variant-numeric:tabular-nums}
 .vv-cli-obj{display:inline-block;margin-right:5px;padding:0 6px;border-radius:8px;font:700 10px/1.6 var(--vv-texto,system-ui);background:#F3EFE8;color:#6B675F;box-shadow:inset 3px 0 0 #6B675F}
-.vv-cli-obj.atracao{box-shadow:inset 3px 0 0 #FF7A2F}
+.vv-cli-obj.atracao{box-shadow:inset 3px 0 0 #C2490C}
 .vv-cli-obj.educacao{box-shadow:inset 3px 0 0 #1F4FA8}
 .vv-cli-obj.conversao{box-shadow:inset 3px 0 0 #11613A}
 .vv-cli-paleta{display:flex;gap:4px;margin:0 0 6px}
@@ -104,8 +104,8 @@
 .vv-cli-botoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 /* Secundário (docs/padrao-visual.md §6): branco, borda, hover laranja; a ação principal da placa é "Abrir o cliente". */
 .vv-cli-secundario{appearance:none;height:34px;padding:0 13px;border-radius:8px;border:1px solid #E6E0D6;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui);cursor:pointer;transition:border-color .15s,color .15s}
-.vv-cli-secundario:hover{border-color:#FF7A2F;color:#C2490C}
+.vv-cli-secundario:hover{border-color:#C2490C;color:#C2490C}
 @media (max-width:380px){.vv-cli-kpis b{font-size:16px}.vv-cli-grade{grid-template-columns:minmax(0,1fr)}}
 
-.vv-cli :is(button,a):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+.vv-cli :is(button,a):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 @media (prefers-reduced-motion:reduce){.vv-cli-linha,.vv-cli-perigo,.vv-cli-secundario{transition:none}.vv-cli-linha:hover{transform:none}}

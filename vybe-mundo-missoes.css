@@ -16,7 +16,7 @@
 #vv-missoes h2{margin:0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em}
 #vv-missoes .vv-missoes-topo p{margin:3px 0 0;color:#6B675F;font-size:12px}
 #vv-missoes .vv-missoes-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;transition:border-color .15s,color .15s}
-#vv-missoes .vv-missoes-x:hover{border-color:#FF7A2F;color:#C2490C}
+#vv-missoes .vv-missoes-x:hover{border-color:#C2490C;color:#C2490C}
 #vv-missoes .vv-missoes-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 
 /* abas segmentadas */
@@ -28,14 +28,14 @@
    (a que leva :not(#ds-a):not(#ds-b):not(#ds-c)) pintaria a aba de laranja 13%. A aba deste
    painel é o segmentado branco do padrão, então vence com um id a mais, só aqui dentro. */
 #vv-missoes .vv-missoes-abas [role="tab"][aria-selected="true"]:not(#vm-a):not(#vm-b):not(#vm-c){background:#FFFFFF!important;color:#C2490C!important;border-color:transparent!important;box-shadow:0 1px 2px rgba(31,29,26,.08),0 0 0 1px #E6E0D6!important}
-#vv-missoes .vv-missoes-abas [role="tab"][aria-selected="true"]:focus-visible:not(#vm-a):not(#vm-b):not(#vm-c){box-shadow:0 0 0 3px rgba(255,122,47,.22),0 0 0 1px #E6E0D6!important}
+#vv-missoes .vv-missoes-abas [role="tab"][aria-selected="true"]:focus-visible:not(#vm-a):not(#vm-b):not(#vm-c){box-shadow:0 0 0 3px rgba(194,73,12,.22),0 0 0 1px #E6E0D6!important}
 
 /* contadores (abas e filtros); o nome leva "badge" para a regra geral não trocar a cor */
 #vv-missoes .vv-missoes-badge{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:8px;background:#F1F2F3!important;color:#5B6268!important;border:0!important;font:700 11px var(--vv-texto,system-ui),sans-serif;font-variant-numeric:tabular-nums}
 #vv-missoes .vv-missoes-badge.alerta,#vv-missoes .alerta>.vv-missoes-badge{background:#D93D42!important;color:#FFFFFF!important}
 
 /* foco de teclado igual em tudo */
-#vv-missoes :is(button,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-missoes :is(button,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 
 #vv-missoes .vv-missoes-aviso{flex:none;margin:0 22px 8px;padding:8px 12px;border-radius:8px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-missoes .vv-missoes-aviso:empty{display:none}
@@ -57,15 +57,15 @@
 #vv-missoes .vv-missoes-total{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;color:#3A3F44;font-size:12.5px;font-weight:600}
 
 /* ação principal: o laranja do Criar (um por área) */
-#vv-missoes .vv-missoes-acao{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border:0;border-radius:8px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;transition:background .15s}
-#vv-missoes .vv-missoes-acao:hover:not(:disabled){background:#E8602E}
+#vv-missoes .vv-missoes-acao{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border:0;border-radius:8px;background:#C2490C;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #A83D08;cursor:pointer;transition:background .15s}
+#vv-missoes .vv-missoes-acao:hover:not(:disabled){background:#A83D08}
 #vv-missoes .vv-missoes-acao:disabled{opacity:.6;cursor:default}
 
 /* filtros: pílulas; a escolhida é o "selecionado" do padrão (laranja 13%) */
 #vv-missoes .vv-missoes-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
 #vv-missoes .vv-missoes-filtros button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 6px 0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12px var(--vv-texto,system-ui),sans-serif;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-#vv-missoes .vv-missoes-filtros button:hover{border-color:#FF7A2F;color:#C2490C}
-#vv-missoes .vv-missoes-filtros button[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF);color:#C2490C}
+#vv-missoes .vv-missoes-filtros button:hover{border-color:#C2490C;color:#C2490C}
+#vv-missoes .vv-missoes-filtros button[aria-pressed="true"]{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);border-color:color-mix(in srgb,#C2490C 28%,#FFFFFF);color:#C2490C}
 
 /* lista de missões: cartão por linha, barra na cor da urgência */
 #vv-missoes .vv-missoes-lista,#vv-missoes .vv-missoes-clientes,#vv-missoes .vv-missoes-cobrancas{list-style:none;margin:0;padding:0;display:grid;gap:8px}
@@ -115,27 +115,27 @@
 /* datas de cada cobrança: o botão do calendário e os campos do Escritório, no claro */
 #vv-missoes .ofc-cobranca-datas-abrir{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#6B675F;cursor:pointer}
 #vv-missoes .ofc-cobranca-datas-abrir svg{width:15px;height:15px}
-#vv-missoes .ofc-cobranca-datas-abrir:hover,#vv-missoes .ofc-cobranca-datas-abrir[aria-expanded="true"]{border-color:#FF7A2F;color:#C2490C;background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF)}
+#vv-missoes .ofc-cobranca-datas-abrir:hover,#vv-missoes .ofc-cobranca-datas-abrir[aria-expanded="true"]{border-color:#C2490C;color:#C2490C;background:color-mix(in srgb,#C2490C 13%,#FFFFFF)}
 #vv-missoes .ofc-cobranca-datas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;align-items:end;gap:10px;margin-top:6px;padding:12px;border-radius:8px;border:1px solid #E6E0D6;background:#FAF8F4}
 #vv-missoes .ofc-datas-campo{display:grid;gap:4px;min-width:0}
 #vv-missoes .ofc-cobranca-datas small{color:#A84E00;font:700 10.5px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-missoes .ofc-datas-valor{height:38px;padding:0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 13px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
-#vv-missoes .ofc-datas-valor[aria-expanded="true"]{border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-missoes .ofc-datas-valor[aria-expanded="true"]{border-color:#C2490C;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 #vv-missoes .ofc-datas-valor.mudou{color:#C2490C}
-#vv-missoes .ofc-p-entrar{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:8px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;filter:none;transform:none}
-#vv-missoes .ofc-p-entrar:hover:not(:disabled){background:#E8602E}
+#vv-missoes .ofc-p-entrar{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:8px;background:#C2490C;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #A83D08;cursor:pointer;filter:none;transform:none}
+#vv-missoes .ofc-p-entrar:hover:not(:disabled){background:#A83D08}
 #vv-missoes .ofc-p-entrar:disabled{background:#FFE6D6;box-shadow:none;color:#A84E00!important;cursor:default}
 #vv-missoes .ofc-datas-calendario{grid-column:1 / -1;display:grid;gap:6px;padding:10px;border-radius:8px;border:1px solid #E6E0D6;background:#FFFFFF}
 #vv-missoes .ofc-datas-mes{display:flex;align-items:center;justify-content:space-between}
 #vv-missoes .ofc-datas-mes b{color:#1F1D1A;font:700 14px var(--vv-titulo,"Space Grotesk",system-ui),sans-serif}
 #vv-missoes .ofc-datas-mes button{width:32px;height:32px;border:1px solid #E6E0D6;border-radius:6px;background:#FFFFFF;color:#1F1D1A;font:700 16px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
-#vv-missoes .ofc-datas-mes button:hover{border-color:#FF7A2F;color:#C2490C}
+#vv-missoes .ofc-datas-mes button:hover{border-color:#C2490C;color:#C2490C}
 #vv-missoes .ofc-datas-semana,#vv-missoes .ofc-datas-dias{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 #vv-missoes .ofc-datas-semana i{color:#6B675F;font:700 10.5px var(--vv-texto,system-ui),sans-serif;font-style:normal;text-align:center}
 #vv-missoes .ofc-datas-dias button{height:30px;border:0;border-radius:8px;background:transparent;color:#1F1D1A;font:500 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
 #vv-missoes .ofc-datas-dias button:hover{background:#FAF5EE}
-#vv-missoes .ofc-datas-dias button.hoje{box-shadow:inset 0 0 0 1px #FF7A2F}
-#vv-missoes .ofc-datas-dias button.escolhido{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);color:#C2490C;font-weight:700}
+#vv-missoes .ofc-datas-dias button.hoje{box-shadow:inset 0 0 0 1px #C2490C}
+#vv-missoes .ofc-datas-dias button.escolhido{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);color:#C2490C;font-weight:700}
 
 /* telas estreitas */
 @media (max-width:560px){
