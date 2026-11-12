@@ -349,7 +349,10 @@ function sinucaConquistasHtml() {
   const leg = (t) => `tabindex="0" onclick="sinucaFichaLegenda(this,'${safeText(String(t.nome).replace(/'/g, "’"))}','${safeText(String(t.texto).replace(/'/g, "’"))}')" onmouseenter="this.onclick()" onfocus="this.onclick()"`;
   const medalhas = [...boas].sort((a, b) => (b.tem - a.tem) || ((RAR[b.raridade] || 1) - (RAR[a.raridade] || 1))).map((t) => `<li class="${t.tem ? "tem" : "falta"} ${safeText(t.raridade)}" ${leg(t)}><i>${t.tem ? t.icone : "?"}</i>${t.vezes > 1 ? `<em>×${t.vezes}</em>` : ""}<b>${safeText(t.nome)}</b></li>`).join("");
   const mural = zoeiras.map((t, i) => `<li class="${t.tem ? "" : "vazio"}" style="--g:${(i % 3 - 1) * 3}deg" ${leg(t)}><i>${t.tem ? t.icone : "📌"}</i><b>${t.tem ? safeText(t.nome) : "???"}</b><small>${safeText(t.texto)}</small></li>`).join("");
-  return `${topo}<div class="snc-cf snc-estante-aba"><p class="snc-cf-legenda" aria-live="polite"><b>Toque ou passe o mouse</b> numa medalha para ver o que ela é.</p>
+  // "Mais perto de sair" (Paulo, 11/11/2026): as que faltam, das mais fáceis (comuns) para as raras; tocar diz como pegar.
+  const prox = boas.filter((t) => !t.tem).sort((a, b) => (RAR[a.raridade] || 1) - (RAR[b.raridade] || 1)).slice(0, 3);
+  const legenda = prox.length ? `<b>Mais perto de sair</b>${prox.map((t) => `<button type="button" class="snc-prox ${safeText(t.raridade)}" ${leg(t)}><i aria-hidden="true">${t.icone}</i>${safeText(t.nome)}</button>`).join("")}` : "<b>Estante cheia!</b> Você tem todas as medalhas do bar.";
+  return `${topo}<div class="snc-cf snc-estante-aba"><p class="snc-cf-legenda" aria-live="polite">${legenda}</p>
 <section class="snc-cf-medalhas"><h3>ESTANTE DE CONQUISTAS <small>${boas.filter((t) => t.tem).length}/${boas.length}</small></h3><ul>${medalhas}</ul></section>
 <section class="snc-cf-mural"><h3>MURAL DA ZOEIRA <small>${zoeiras.filter((t) => t.tem).length}/${zoeiras.length}</small></h3><ul>${mural}</ul></section></div>`;
 }

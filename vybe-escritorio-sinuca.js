@@ -198,12 +198,14 @@ function sinucaMomentoAnuncio(t) {
   return t.falta === "errada" && toque ? toque.ms + 450 : Infinity;
 }
 // O grito do boteco: balão de quadrinho que estoura no meio da mesa e some sozinho.
-function sinucaGrito(canvas) {
+function sinucaGrito(canvas, quem = "") {
   document.querySelector(".bt-grito")?.remove();
   const r = canvas.getBoundingClientRect(), el = document.createElement("div");
   el.className = "bt-grito"; el.setAttribute("role", "status");
   el.style.left = `${r.left + r.width / 2}px`; el.style.top = `${r.top + r.height * 0.38}px`;
-  el.innerHTML = '<span class="bt-grito-estouro" aria-hidden="true"></span><b>EITAAA</b><b>DESGRAÇAAAA!!</b>';
+  // Com o nome de quem matou (Paulo, 11/11/2026).
+  const nome = String(quem || "").toUpperCase(), quemFoi = nome ? `<small>${nome === "VOCÊ" ? "VOCÊ MATOU NA PANCADA" : `${safeText(nome)} MATOU NA PANCADA`}</small>` : "";
+  el.innerHTML = `<span class="bt-grito-estouro" aria-hidden="true"></span><b>EITAAA</b><b>DESGRAÇAAAA!!</b>${quemFoi}`;
   document.body.appendChild(el);
   sinucaSom?.("taco", 1);
   setTimeout(() => el.classList.add("sai"), 1500); setTimeout(() => el.remove(), 1900);
@@ -227,7 +229,7 @@ function sinucaAnuncio(j, u) {
   if (!cartoes.length && (u.falta === "nenhuma" || u.falta === "errada")) cartoes.push({ tipo: "ruim", bolas: [], titulo: u.falta === "nenhuma" ? (bar ? "Cegou!" : "Não tocou") : "Bola errada", texto: u.falta === "nenhuma" ? "Não tocou em nenhuma bola" : u.primeiro === 1 ? "Bateu primeiro no ás" : "Bateu primeiro na bola do outro" });
   // Bola matada na pancada (Paulo, 09/11/2026: "quando alguém matar uma bola forte vai aparecer a animação na tela
   // Eitaaa Desgraçaaaa!!"): tacada de 65% ou mais que mata bola sem falta.
-  if (caiu.length && !u.falta && Number(u.forca) >= 0.65) sinucaGrito(canvas);
+  if (caiu.length && !u.falta && Number(u.forca) >= 0.65) sinucaGrito(canvas, quem);
   if (!cartoes.length) return;
   document.querySelector(".snc-anuncio")?.remove();
   const r = canvas.getBoundingClientRect(), el = document.createElement("div");
@@ -382,6 +384,11 @@ function desenharSinuca(j, s) {
   // A lousa do RANKING DO SALÃO na parede do bar 3D (Paulo, 09/11/2026: "a placa de giz com o rank seria massa").
   const rkLousa = q?.ranking?.lista || (typeof escritorioXadrez === "function" ? escritorioXadrez().extras?.bots?.salao?.ranking?.lista : null);
   if (rkLousa && sinuca3dAtivo()) SINUCA_3D.api.lousa?.(rkLousa.slice(0, 5).map((r) => [String(r.nome || "").split(" ")[0].toUpperCase(), r.vitorias]));
+  // Boteco vivo (Paulo, 11/11/2026): a torcida senta no balcão e quem ganha vai para o alto da lousa.
+  if (sinuca3dAtivo()) {
+    SINUCA_3D.api.torcida?.((j.torcida?.assistindo || []).map((p) => String(p.nome || "").split(" ")[0]).slice(0, 3));
+    SINUCA_3D.api.vencedor?.(j.estado === "fim" && j.resultado && j.resultado !== "empate" && j[j.resultado] ? xadrezPrimeiroNome(j[j.resultado]).toUpperCase() : "");
+  }
   // Pinta logo que o canvas entra na tela (rAF não roda com a aba escondida).
   setTimeout(() => sinucaPintar());
   return {
@@ -1204,7 +1211,9 @@ function sinucaAnimQuadro(s, j, agora, R) {
   if (ar) for (let w = 0; w < ar.length; w += 2) z[ar[w]] = ar[w + 1] / 10;
   const acabou = e >= d.taco + d.bolas;
   if (acabou && a.anunciado !== t.n) { a.anunciado = t.n; sinucaAnuncio(j, t); }
-  return { bolas, caindo, z, faixa: acabou ? sinucaUltimoTexto(j, t) : t.lado === j.eu ? "" : `${quem} tacou`, ruim: acabou && Boolean(t.falta) };
+  // No replay (câmera lenta) a branca deixa o rastro a giz por onde passou.
+  const rastro = a.lento ? quadros.slice(0, i + 1).filter((qq) => qq[0] >= 0).map((qq) => [qq[0] / 10, qq[1] / 10]) : null;
+  return { bolas, caindo, z, rastro, faixa: acabou ? sinucaUltimoTexto(j, t) : t.lado === j.eu ? "" : `${quem} tacou`, ruim: acabou && Boolean(t.falta) };
 }
 // O taco da tacada que está saindo, a mira do outro e a faixa de cima.
 function sinucaCenaPintar(g, W, cena, R, P) {
@@ -1509,7 +1518,7 @@ function sinucaPintar3d(agora) {
   if (SINUCA_3D.modo !== modo) { SINUCA_3D.modo = modo; api.trocarVisual((n) => sinucaVisual(modo, n)); }
   let bolas = j.mesa.bolas, cena = null;
   if (s.anim) { cena = sinucaAnimQuadro(s, j, agora || performance.now(), R); if (cena) bolas = cena.bolas; }
-  const d = { bolas, z: cena?.z || {}, caindo: cena?.caindo || [], tacos: [], mira: null, fantasma: null, suave: true,
+  const d = { bolas, z: cena?.z || {}, caindo: cena?.caindo || [], rastro: cena?.rastro || null, tacos: [], mira: null, fantasma: null, suave: true,
     animando: Boolean(s.anim && cena && !cena.taco), forcarCima: sinucaPondo(j, s) };
   if (s.anim) {
     if (cena?.taco) { const t = cena.taco, tac = s.anim?.fila?.[s.anim.k]; d.tacos.push({ b: t.b, ang: t.ang, recuo: 0.4 + 10 * t.recuo, elev: tac?.elevacao || 0, modelo: t.modelo, efeito: tac?.efeito || 0, giro: tac?.giro || 0 }); d.camera = { b: t.b, ang: t.ang }; d.forca = t.forca * 0.6; }
