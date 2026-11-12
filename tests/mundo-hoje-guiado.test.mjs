@@ -39,16 +39,18 @@ test('fila de várias pessoas: só para os donos, sem "ver como", e a peça de d
 test('ordem do guia: atrasada furando a data do cliente, atrasada, vai ao ar hoje, ajuste, aprovação; a contagem é a mesma do bloco Atrasadas', () => {
   assert.ok(js.includes("if (x.sit === 'atrasada' && v && v < hoje) return 0; if (x.sit === 'atrasada' && !prazoDesatualizado(x, hoje)) return 1; if (v === hoje) return 2;"));
   assert.ok(js.includes('urgentes: ordem.filter((x) => pesoNoGuia(x, hoje) <= 1).length'));
-  assert.ok(js.includes('const { urgentes, passos: passosGuia } = passosDoGuia(abertas, hoje, varios);'), 'Minhas tarefas usa a ordem compartilhada');
+  assert.ok(js.includes('const { passos: passosGuia } = passosDoGuia(abertas, hoje, varios);'), 'Minhas tarefas usa a ordem compartilhada');
   assert.ok(js.includes('const veic = veicDe, desatualizada = (x) => prazoDesatualizado(x, hoje), chaveFila = (x) => chaveDaFila(x, hoje);'), 'sem cópia das regras da fila');
-  assert.ok(js.includes("${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}"), 'o guia vem antes das colunas; entre os dois, as aprovações paradas');
+  // Quadro B2 do moodboard (12/11/2026): a fala do guia fica ao lado dos números, antes dos filtros e da lista.
+  assert.ok(js.includes('<div class="v2t-alto">${fala}${numeros}</div>'), 'a fala do guia abre a tela, ao lado dos números');
 });
 
 test('Agência: o VYBES guia (alerta mais grave, cliente esperando no WhatsApp, os outros alertas) antes dos números', () => {
   assert.ok(js.includes("const passosAg = [\n      ...alertas.filter((a) => a.nivel === 1).map(passoAlerta),"));
   assert.ok(js.includes('filter((x) => (x.minutos || 0) >= 120)'), 'cliente esperando há 2 h ou mais');
-  assert.ok(js.includes('      ${guiaAgencia}\n      ${radar}'), 'o guia vem antes dos números');
-  assert.ok(js.includes('<details class="vg-resto"><summary>Mais'), 'o resto fica recolhido');
+  // Quadro B1 do moodboard (12/11/2026): os três números abrem a tela e a fala do VYBES, com até três passos, vem logo abaixo.
+  assert.ok(js.includes('<div class="v2a-esq">${numeros}\n        ${guiaAgencia}'), 'números e, em seguida, o guia');
+  assert.ok(js.includes("].slice(0, 3);\n    const QUANDO = [['Agora', 'ruim'], ['Depois', 'atencao'], ['Em seguida', '']];"), 'até três passos: Agora, Depois, Em seguida');
 });
 
 test('Criação: o time do Deivid (design e edição), guiado pelo Danilo, com as pessoas, as filas e a semana; o dock abre ela', () => {

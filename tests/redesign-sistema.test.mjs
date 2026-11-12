@@ -139,8 +139,8 @@ test('zeros em linha discreta, plural certo, mês no seletor e agenda no Hoje da
   assert.match(mundo, /Também de olho:/);
   assert.match(mundo, /'peças em aberto', 'peça em aberto'\]/);
   assert.match(ler('vybe-mundo-agentes.js'), /x\.n === 1 \? 'Ver o achado' : `Ver os \$\{x\.n\}`/);
-  assert.match(mundo, /<div class="vv-hoje-agenda-3d">\$\{agendaDeHojeHtml\(\)\}<\/div>/);
-  assert.match(mundo, /class="vc-sec vv-semana-abrir" data-abrir-gestao="semana">Abrir a semana<\/button>/);
+  assert.match(mundo, /<section class="v2a-cartao v2a-agenda">\$\{agendaDeHojeHtml\(\)\}/);
+  assert.match(mundo, /class="v2t-btn" data-abrir-gestao="semana">Abrir a semana<\/button>/);
   assert.match(pessoas, /mesHtml\(ref, 'data-vp-ref-ir', estado\.periodo === 'anual'\)/);
   assert.match(pessoas, /kpisHtml\(\[\['Vagas abertas', ind\.abertas\]/);
   // O anel da dica e o foco: laranja do padrão; o contorno grosso da aparência antiga não vale no mundo.

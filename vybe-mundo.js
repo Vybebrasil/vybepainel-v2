@@ -826,12 +826,76 @@
   function tresNumerosHtml(itens) {
     return `<div class="v2-tres" role="group" aria-label="Os números do dia">${itens.filter(Boolean).map((x) => {
       const tag = x.attrs ? 'button' : 'div';
-      return `<${tag}${x.attrs ? ' type="button" ' + x.attrs : ''} class="v2-tres-c${x.quieto ? ' quieto' : x.tom ? ' ' + x.tom : ''}"><small>${esc(x.titulo)}</small><b class="v2-num">${x.valor}</b>${x.barra != null ? `<span class="v2-barra" style="--v:${Math.max(0, Math.min(100, Math.round(x.barra)))}%"><i></i></span>` : ''}<em>${x.sub}</em></${tag}>`;
+      return `<${tag}${x.attrs ? ' type="button" ' + x.attrs : ''} class="v2-tres-c${x.quieto ? ' quieto' : x.tom ? ' ' + x.tom : ''}"><small>${esc(x.titulo)}</small><b><span class="v2-num">${x.valor}</span>${x.junto ? ` <i>${x.junto}</i>` : ''}</b>${x.barra != null ? `<span class="v2-barra" style="--v:${Math.max(0, Math.min(100, Math.round(x.barra)))}%${x.cor ? `;--c:${x.cor}` : ''}"><i></i></span>` : ''}${x.sub ? `<em>${x.sub}</em>` : ''}</${tag}>`;
     }).join('')}</div>`;
   }
+  // "Para você decidir" (quadro B1): as peças em aprovação interna como baralho, na ordem da data do cliente. A lista é a
+  // de VybeAprovacoes (a mesma do módulo Conteúdo); decidir abre os portões de sempre, nada grava direto daqui.
+  let decidirEm = 0;
+  const previasDecidir = {};
+  function filaDecidir() {
+    const d = window.VybeAprovacoes?.estado?.().dados; if (!d) return null;
+    const painel = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
+    return (d.pecas || []).filter((i) => i.etapa === 'interna').map((i) => ({ ...i, item: i.quadro === 'demandas' ? null : painel.find((x) => String(x.id) === String(i.ref)) || null }))
+      .filter((i) => !i.item || /aprova/i.test(String(i.item.status || '')))
+      .sort((a, b) => String(a.veiculacao || a.prazo || '9').localeCompare(String(b.veiculacao || b.prazo || '9')) || (b.horas ?? -1) - (a.horas ?? -1));
+  }
+  function previaDecidir(ref) {
+    if (ref in previasDecidir) return previasDecidir[ref];
+    previasDecidir[ref] = undefined;
+    if (String(ref).startsWith('vybe:')) { previasDecidir[ref] = null; return null; }
+    fetch(`/api/painel?area=arquivos&itens=${encodeURIComponent(ref)}`, { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+      .then((j) => { previasDecidir[ref] = j?.itens?.[ref]?.thumb || null; }).catch(() => { previasDecidir[ref] = null; }).finally(() => { if (visaoHoje === 'agencia') pintarHoje(); });
+    return undefined;
+  }
+  const posDecidir = (k) => (k < decidirEm ? 'fora' : k - decidirEm <= 2 ? String(k - decidirEm) : '');
+  function quandoVeiculaTxt(i) {
+    const v = String(i.veiculacao || '').slice(0, 10), h = hojeIso();
+    if (!v) return i.prazo ? `prazo ${i.prazo.slice(8, 10)}/${i.prazo.slice(5, 7)}` : 'sem data do cliente';
+    if (v < h) return `ia ao ar ${v.slice(8)}/${v.slice(5, 7)}`;
+    return v === h ? 'veicula hoje' : v === somar(h, 1) ? 'veicula amanhã' : `veicula ${v.slice(8)}/${v.slice(5, 7)}`;
+  }
+  function decidirHtml() {
+    const fila = filaDecidir();
+    const topo = (sub) => `<div class="v2d-topo"><h3>Para você decidir</h3><small>${sub}</small></div>`;
+    if (!fila) return `<aside class="v2d" aria-label="Para você decidir">${topo('lendo as aprovações')}</aside>`;
+    if (!fila.length) return `<aside class="v2d" aria-label="Para você decidir">${topo('nada em Para aprovação')}<p class="v2d-vazio">Nenhuma peça espera a sua aprovação agora.</p></aside>`;
+    decidirEm = Math.max(0, Math.min(decidirEm, fila.length - 1));
+    const carta = (i, k) => { const pos = posDecidir(k), t = pos && pos !== 'fora' ? previaDecidir(String(i.ref)) : previasDecidir[String(i.ref)];
+      return `<article class="v2-carta v2d-carta"${pos ? ` data-pos="${pos}"` : ''} data-carta="${k}" aria-hidden="${pos !== '0'}"><div class="v2d-arte">${t ? `<img src="${esc(t)}" alt="Prévia de ${esc(i.titulo)}" loading="lazy">` : `<span>${t === null ? esc(i.formato || 'Peça') + ' · sem arquivo anexado' : 'buscando a prévia'}</span>`}</div>
+        <p><b>${esc(i.titulo)}</b><small>${i.cliente ? cliCor(i.cliente) + ' · ' : ''}${esc(quandoVeiculaTxt(i))}${i.heads?.length ? ' · head ' + esc(i.heads.map((h) => h.nome).join(', ')) : ''}</small></p></article>`; };
+    const porCli = new Map(); for (const i of fila) porCli.set(i.cliente || 'Sem cliente', (porCli.get(i.cliente || 'Sem cliente') || 0) + 1);
+    const antiga = Math.max(...fila.map((i) => i.horas ?? 0));
+    return `<aside class="v2d" aria-label="Para você decidir">${topo(`${n0(fila.length)} ${rotuloDe(fila.length, 'peça', 'peças')} em Para aprovação`)}
+      <div class="v2-baralho v2d-baralho" tabindex="0" aria-label="Peças para decidir: as setas do teclado passam">${fila.map(carta).join('')}</div>
+      <div class="v2d-acoes"><button type="button" class="v2t-btn g" data-hoje-acao="decidir" data-valor="alterar">Pedir alteração</button><button type="button" class="v2t-btn g k" data-hoje-acao="decidir" data-valor="aprovar">Aprovar</button></div>
+      <div class="v2d-conta"><span class="v2-pontos" aria-hidden="true">${fila.length <= 10 ? fila.map((_, k) => `<i${k === decidirEm ? ' class="on"' : ''}></i>`).join('') : ''}</span><small><span data-decidir-conta>${decidirEm + 1} de ${fila.length}</span> · seta para os lados passa · <button type="button" class="vg-link" data-hoje-acao="decidir-lista">ver em lista</button></small></div>
+      <div class="v2d-fila"><small>Na fila, por cliente</small><p>${[...porCli.entries()].slice(0, 4).map(([c, n]) => `<span>${cliCor(c)} · ${n}</span>`).join('')}</p>
+        <small>${antiga >= 1 ? `A mais antiga espera há ${antiga < 48 ? antiga + ' h' : Math.round(antiga / 24) + ' dias'}. ` : ''}Aprovada, a peça segue para agendar.</small></div></aside>`;
+  }
+  function passarDecidir(para) {
+    const fila = filaDecidir() || [], novo = Math.max(0, Math.min(para, fila.length - 1));
+    if (!fila.length || novo === decidirEm) return;
+    decidirEm = novo;
+    if (fila.slice(novo, novo + 3).some((i) => !(String(i.ref) in previasDecidir))) { pintarHoje(); return; }
+    const raiz = hud.querySelector('#vv-hoje .v2d'); if (!raiz) return;
+    raiz.querySelectorAll('[data-carta]').forEach((c) => { const pos = posDecidir(Number(c.dataset.carta)); if (pos) c.dataset.pos = pos; else delete c.dataset.pos; c.setAttribute('aria-hidden', String(pos !== '0')); });
+    raiz.querySelectorAll('.v2-pontos > i').forEach((x, k) => x.classList.toggle('on', k === novo));
+    const conta = raiz.querySelector('[data-decidir-conta]'); if (conta) conta.textContent = `${novo + 1} de ${fila.length}`;
+  }
+  function decidirPeca(acao) {
+    const i = (filaDecidir() || [])[decidirEm]; if (!i) return;
+    const alvo = acao === 'aprovar' ? 'para agendar' : 'alteração';
+    const opcoes = i.item && typeof operationalStatusOptions === 'function' ? operationalStatusOptions(i.item) : [];
+    const opcao = opcoes.find((o) => String(o.label || '').trim().toLowerCase() === alvo);
+    const portao = acao === 'aprovar' ? globalThis.openQualityGate : globalThis.openStatusContextGate;
+    if (!i.item || !opcao || typeof portao !== 'function') { chamar('showToast', 'Abri a peça: a decisão dela é por lá.', 'info'); chamar(i.quadro === 'demandas' ? 'openDemandaWorkspace' : 'openItemWorkspace', String(i.ref)); return; }
+    portao(i.item, opcao);
+  }
+  document.addEventListener('vybe:aprovacoes', () => { if (visaoHoje === 'agencia') pintarHoje(); });
   function olhoHtml(itens) {
     const l = itens.filter((x) => Number(x.n) > 0);
-    return l.length ? `<p class="v2-olho"><span>Também de olho:</span>${l.map((x) => `<button type="button" data-espiar="${esc(x.espiar)}"><b>${n0(x.n)}</b> ${esc(x.rotulo)}</button>`).join('')}</p>` : '';
+    return l.length ? `<p class="v2-olho"><span>Também de olho:</span>${l.map((x) => `<button type="button" ${x.attrs || `data-espiar="${esc(x.espiar)}"`}><b>${n0(x.n)}</b> ${esc(x.rotulo)}</button>`).join('')}</p>` : '';
   }
   const SAUDE = { critico: ['Crítico', 'u1'], atencao: ['Atenção', 'u2'], ok: ['Em dia', 'u6'] };
   const dataCompleta = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : 'Não definido';
@@ -999,64 +1063,50 @@
     // semana em gráfico e clientes, gargalos e cobranças lado a lado; à direita VYBES, atendimento, compromissos e atalhos.
     const V = window.VybeSetor?.pecas;
     const emAtencao = (N.clientes || []).filter((c) => c.saude !== 'ok').length;
-    const radar = tresNumerosHtml([
+    // ===== Hoje · Agência pelo quadro B1 do moodboard (Paulo, 12/11/2026: "eu aprovei o DEPOIS") =====
+    // A tela é o quadro, nesta ordem: saudação com quem está online e as abas; os três números; a fala do VYBES com os
+    // passos do dia; a semana da agência e a agenda de hoje; à direita, "Para você decidir" em baralho; embaixo, a
+    // linha "Também de olho". Saíram da tela, porque o quadro não tem: o anel, os blocos Clientes em atenção, Onde
+    // trava e O que cobrar hoje, a fala lateral, o Boletim, o atendimento, os compromissos e a fileira de atalhos.
+    const numeros = tresNumerosHtml([
       { titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: H.atrasadas ? `${n0(H.furos)} furando a data do cliente` : 'nada atrasado', tom: 'ruim', quieto: !H.atrasadas, attrs: 'data-espiar="atrasadas"' },
-      { titulo: 'Vão ao ar hoje', valor: n0(feitasHoje), sub: prevHoje ? `de ${n0(prevHoje)} ${rotuloDe(prevHoje, 'pronta', 'prontas')}` : 'nada previsto para hoje', barra: prevHoje ? feitasHoje / prevHoje * 100 : null, tom: H.faltam ? 'atencao' : '', quieto: !prevHoje, attrs: 'data-espiar="faltam"' },
-      { titulo: 'Semana', valor: n0(S.entregues), sub: S.previstas ? `de ${n0(S.previstas)} ${rotuloDe(S.previstas, 'entregue', 'entregues')}` : 'nada previsto nesta semana', barra: S.previstas ? (S.entregues || 0) / S.previstas * 100 : null, quieto: !S.previstas, attrs: 'data-abrir-gestao="semana"' },
-    ]);
-    const olho = olhoHtml([
-      { n: H.emRisco, rotulo: 'com risco de furo nos próximos 2 dias', espiar: 'emRisco' },
-      { n: emAtencao, rotulo: `${rotuloDe(emAtencao, 'cliente', 'clientes')} em atenção`, espiar: 'atencao' },
-      { n: sem3.length, rotulo: `${rotuloDe(sem3.length, 'cliente', 'clientes')} sem 3 posts na semana`, espiar: 'sem3' },
+      { titulo: 'Vão ao ar hoje', valor: n0(feitasHoje), junto: prevHoje ? `de ${n0(prevHoje)} ${rotuloDe(prevHoje, 'pronta', 'prontas')}` : '', sub: prevHoje ? '' : 'nada previsto para hoje', barra: prevHoje ? feitasHoje / prevHoje * 100 : null, cor: '#11613A', quieto: !prevHoje, attrs: 'data-espiar="faltam"' },
+      { titulo: 'Semana', valor: n0(S.entregues), junto: S.previstas ? `de ${n0(S.previstas)} ${rotuloDe(S.previstas, 'entregue', 'entregues')}` : '', sub: S.previstas ? 'fecha no domingo' : 'nada previsto nesta semana', quieto: !S.previstas, attrs: 'data-abrir-gestao="semana"' },
     ]);
     const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
-    const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
-    // Paulo, 09/11/2026: "muita informação na tela sem ser de forma guiada... me guie: o que eu tenho que resolver primeiro".
-    // O VYBES põe em ordem: o que fura a data do cliente, o cliente esperando no WhatsApp há mais tempo, e os outros
-    // alertas, do mais grave ao menos grave. Cada passo abre a lista do que resolver; os demais ficam recolhidos.
+    // O VYBES põe em ordem (Paulo, 09/11/2026: "me guie: o que eu tenho que resolver primeiro"): o que fura a data do
+    // cliente, o cliente esperando no WhatsApp há mais tempo, e os outros alertas, do mais grave ao menos grave.
     const esperando = (window.VybePendencias?.estado?.().dados?.atendimento?.clientesEsperando || []).filter((x) => (x.minutos || 0) >= 120).sort((a, b) => (b.minutos || 0) - (a.minutos || 0));
     const horas = (min) => (min < 1440 ? Math.round(min / 60) + ' h' : Math.round(min / 1440) + ' d');
-    const passoAlerta = (a) => { const i = (N.alertas || []).indexOf(a), txt = String(a.texto || ''), p = txt.indexOf(':');
-      return { attrs: `data-espiar="alerta:${i}"`, titulo: esc(p > 0 ? txt.slice(0, p) : txt), motivo: esc(p > 0 ? txt.slice(p + 1).trim() : (a.nivel === 1 ? 'o mais grave agora' : 'pede atenção')) }; };
+    const passoAlerta = (a) => { const k = (N.alertas || []).indexOf(a), txt = String(a.texto || ''), c = txt.indexOf(':');
+      return { attrs: `data-espiar="alerta:${k}"`, titulo: esc(c > 0 ? txt.slice(0, c) : txt), motivo: esc(c > 0 ? txt.slice(c + 1).trim() : (a.nivel === 1 ? 'o mais grave agora' : 'pede atenção')), botao: 'Abrir' }; };
     const passosAg = [
       ...alertas.filter((a) => a.nivel === 1).map(passoAlerta),
-      ...(esperando[0] ? [{ attrs: `data-pend-cliente="${esc(esperando[0].cliente)}"`, titulo: `Responder ${cliCor(esperando[0].cliente)} no WhatsApp`, motivo: esc(`esperando há ${horas(esperando[0].minutos)}${esperando.length > 1 ? ' · mais ' + (esperando.length - 1) + ' clientes esperando' : ''}`) }] : []),
+      ...(esperando[0] ? [{ attrs: `data-pend-cliente="${esc(esperando[0].cliente)}"`, titulo: `Responder ${cliCor(esperando[0].cliente)} no WhatsApp`, motivo: esc(`esperando há ${horas(esperando[0].minutos)}${esperando.length > 1 ? ' · mais ' + (esperando.length - 1) + ' clientes esperando' : ''}`), botao: 'Responder' }] : []),
       ...alertas.filter((a) => a.nivel !== 1).map(passoAlerta),
-    ];
-    const restoAg = alertas.filter((a) => !passosAg.slice(0, 3).some((p) => p.attrs === `data-espiar="alerta:${(N.alertas || []).indexOf(a)}"`));
-    const guiaAgencia = guiaHtml({ agente: { nome: 'VYBES', papel: 'Orquestrador · guia da agência', setor: 'orquestrador' },
-      intro: passosAg.length ? `O dia tem <b>${['uma coisa', 'duas coisas', 'três coisas'][Math.min(passosAg.length, 3) - 1]}</b>${passosAg.length > 1 ? ', nesta ordem' : ' agora'}.${restoAg.length ? '' : ' O resto está andando.'}` : 'Nada urgente agora. Bom momento para olhar a semana e os clientes.',
-      passos: passosAg.slice(0, 3),
-      depois: restoAg.length ? `<details class="vg-resto"><summary>Mais ${restoAg.length} ponto${restoAg.length > 1 ? 's' : ''} de atenção</summary><ul class="vs-alertas">${restoAg.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul></details>` : '' });
-    const bloco = (titulo, sub, corpo, extra = '') => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}</div>${corpo}</section>`;
-    const clientesHtml = clientesRuins.length ? clientesRuins.map((c) => `<button type="button" class="vv-dono-linha" data-atencao-cliente="${esc(c.cliente)}"><span class="saude ${SAUDE[c.saude]?.[1] || ''}"></span><span class="meio"><b>${cliCor(c.cliente)}</b><small>${esc((c.motivos || []).slice(0, 2).join(' · '))}</small></span></button>`).join('') : '<p class="vv-vazio">Todos em dia.</p>';
-    const gargalosHtml = gargalos.length ? gargalos.map((g) => `<button type="button" class="vv-dono-linha" data-gargalo="${esc(g.status)}"><span class="saude" style="background:${esc(corDaPendencia(g.lista[0]))}"></span><span class="meio"><b>${statusCor({ status: g.status, status_color: g.lista[0]?.status_color })}</b><small>${plural(g.qtd, 'peça · parada', 'peças · paradas')} há ${plural(g.idadeMedianaDias, 'dia', 'dias')} (mediana)</small></span></button>`).join('') : '<p class="vv-vazio">Nada parado.</p>';
-    const cobrarHtml = time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')
-      + bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')
-      + (!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : '') + (!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : '');
-    const html = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span></div>
-      ${guiaAgencia}
-      ${radar}
-      ${olho}
-      <div class="vv-hoje-agenda-3d">${agendaDeHojeHtml()}</div>
-      ${window.VybeAprovacoes?.blocoHtml?.('agencia') || ''}
-      <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
-        ${bloco('Semana da agência', `o que vai ao ar em cada dia (por ${semanaAgencia.campo === 'prazo' ? 'prazo' : 'veiculação'}), no status de agora`, `${controlesSemana(N.graficoSemana)}${semanaPorStatusHtml(N.graficoSemana)}`, '<button type="button" class="vc-sec vv-semana-abrir" data-abrir-gestao="semana">Abrir a semana</button>')}
-        <div class="vv-dono-tres">
-          ${bloco('Clientes em atenção', '', clientesHtml, `<button type="button" class="vv-pilula" data-espiar="atencao">${(N.clientes || []).filter((c) => c.saude !== 'ok').length}</button>`)}
-          ${bloco('Onde trava', '', gargalosHtml)}
-          ${bloco('O que cobrar hoje', 'time e bots', cobrarHtml)}
-        </div>
-      </div>
-      <aside class="vv-hoje-lado" aria-label="VYBES, atendimento, compromissos e atalhos">
-        <button type="button" class="vv-fala" data-abrir-gestao><span class="vv-ser" aria-hidden="true"><i></i></span><span>${frase}</span><b aria-hidden="true">→</b></button>
-        ${window.VybeBoletim?.botaoHtml?.() || ''}
-        ${window.VybePendencias?.atendimentoHtml?.() || ''}
-        ${compromissosHtml()}
-        <div class="vv-hoje-agenda-lado">${agendaDeHojeHtml()}</div>
-        <button type="button" class="vv-botao acao vv-dono-abrir" data-abrir-gestao>Abrir a Gestão completa →</button>
-        <div class="vv-chips"><button type="button" data-visao-hoje="tarefas">Minhas tarefas</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
-      </aside></div>`;
+    ].slice(0, 3);
+    const QUANDO = [['Agora', 'ruim'], ['Depois', 'atencao'], ['Em seguida', '']];
+    const guiaAgencia = `<section class="v2a-guia" aria-label="Guia do VYBES"><div class="v2a-fala"><span class="vv-ser vg-av-ser" aria-hidden="true"><i></i></span><p><span class="v2t-quem">VYBES · guia da agência</span>${passosAg.length
+        ? `O dia tem <b>${['uma coisa', 'duas coisas', 'três coisas'][passosAg.length - 1]}</b>${passosAg.length > 1 ? ', nesta ordem' : ' agora'}. O resto está andando.` : 'Nada urgente agora. Bom momento para olhar a semana e os clientes.'}</p></div>
+      ${passosAg.map((x, k) => `<div class="v2a-passo"><span class="v2t-q ${QUANDO[k][1]}">${QUANDO[k][0]}</span><p><b>${x.titulo}</b><small>${x.motivo}</small></p><button type="button" class="v2t-btn" ${x.attrs}>${x.botao}</button></div>`).join('')}</section>`;
+    const online = presencaDoEscritorio();
+    const quemOnline = online.length ? `<span class="v2a-online" title="${esc(online.map((g) => g.nome).filter(Boolean).join(', '))}"><span class="v2a-avs" aria-hidden="true">${online.slice(0, 4).map((g) => `<i class="v2-pop">${esc(String(g.nome || '?').trim().slice(0, 2).toUpperCase())}</i>`).join('')}</span><small>${n0(online.length)} online</small></span>` : '';
+    const ag = window.VybeAgentes?.resumoParaHoje?.(3), agTotal = ag?.pode ? (ag.total || 0) : 0;
+    const semana = `<section class="v2a-cartao v2a-semana"><div class="v2a-cab"><h3>Semana da agência</h3><button type="button" class="v2t-btn" data-abrir-gestao="semana">Abrir a semana</button></div>${semanaPorStatusHtml(N.graficoSemana)}</section>`;
+    const agenda = `<section class="v2a-cartao v2a-agenda">${agendaDeHojeHtml()}${agTotal ? `<p class="v2t-pe">Os agentes viram ${n0(agTotal)} ${rotuloDe(agTotal, 'coisa', 'coisas')} para você decidir · <button type="button" class="vg-link" data-hoje-acao="agentes">abrir</button></p>` : ''}</section>`;
+    const apr = window.VybeAprovacoes?.estado?.().dados, limite = { interna: 24, cliente: 48, cadastrar: 24 };
+    const paradas = apr ? [...(apr.planejamentos || []), ...(apr.pecas || [])].filter((x) => x.horas != null && x.horas >= (limite[x.etapa] ?? 24)).length : 0;
+    const olho = olhoHtml([
+      { n: emAtencao, rotulo: `${rotuloDe(emAtencao, 'cliente', 'clientes')} em atenção`, espiar: 'atencao' },
+      { n: sem3.length, rotulo: `${rotuloDe(sem3.length, 'cliente', 'clientes')} com menos de 3 posts na semana`, espiar: 'sem3' },
+      { n: paradas, rotulo: `${rotuloDe(paradas, 'aprovação parada', 'aprovações paradas')} além do prazo`, attrs: 'data-hoje-acao="decidir-lista"' },
+    ]);
+    const html = `<div class="v2t v2a"><div class="v2t-topo"><span class="v2t-ola"><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>${quemOnline}${seg}</div>
+      <div class="v2a-corpo"><div class="v2a-esq">${numeros}
+        ${guiaAgencia}
+        <div class="v2a-dois">${semana}${agenda}</div></div>
+        ${decidirHtml()}</div>
+      ${olho}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
 
@@ -1333,7 +1383,7 @@
   let diaEscolhido = '';
   // Padrão v2 (moodboard B2): Minhas tarefas é uma lista só, na ordem do guia. O filtro e a linha aberta ficam fora do
   // HTML pintado (aplicarLinhaAberta põe o aria-expanded depois), para a linha abrir com o movimento, sem redesenhar.
-  let filtroTarefas = 'ordem', linhaAberta = '';
+  let filtroTarefas = 'hoje', linhaAberta = '', buscaTarefas = '', listaInteira = false, soListaAgora = false;
   function aplicarLinhaAberta(raiz = hud) {
     raiz.querySelectorAll?.('#vv-hoje .v2-linha').forEach((l) => { const a = l.dataset.linha === linhaAberta;
       l.setAttribute('aria-expanded', String(a)); l.querySelector('.v2-linha-seta')?.setAttribute('aria-expanded', String(a)); });
@@ -1552,79 +1602,130 @@
         <select class="vv-pessoa-add" data-pessoa-add aria-label="Adicionar pessoa ao dia"><option value="">+ Adicionar</option>${time.filter((u) => !selIds.includes(String(u.id))).map((u) => `<option value="${esc(u.id)}">${esc(u.name || u.nome)}</option>`).join('')}</select>
         <button type="button" class="vv-pessoas-atalho" data-pessoas-atalho="criacao">Time de criação</button>${selIds.length > 1 || selIds[0] !== euId ? '<button type="button" class="vv-pessoas-atalho" data-pessoas-atalho="eu">Só eu</button>' : ''}</div>` : '';
     const varios = fila.users.length > 1;
-    // Padrão v2 (moodboard B2): Para hoje, Atrasadas e Feitas da semana no lugar do anel. "Feitas" conta as peças
-    // concluídas da pessoa cuja data (veiculação, ou o prazo sem ela) cai nesta semana, de segunda a domingo.
-    const iniSem = window.VybeDono?.util?.inicioDaSemana?.(hoje) || '', fimSem = iniSem ? somar(iniSem, 6) : '';
-    const feitasSem = iniSem && typeof unifiedOperationalItems === 'function' && typeof isFinishedItem === 'function'
+    // ===== Minhas tarefas pelo quadro B2 do moodboard (Paulo, 12/11/2026: "a gente fez o moodboard pra quê?") =====
+    // A tela é o quadro, nesta ordem: saudação com as abas, "Dia de" e Criar na mesma linha; a fala do guia ao lado dos
+    // três números; os filtros (Hoje, Semana, Atrasadas, Feitas), a busca e Filtros; a lista "na ordem" com a bolinha
+    // que conclui, o status que troca na linha e a linha que abre no lugar; à direita, a agenda e o que os agentes viram.
+    // Saíram da tela, porque o quadro não tem: a faixa de dias, o guia em três passos, o anel, a pergunta e os atalhos.
+    const iniSem = window.VybeDono?.util?.inicioDaSemana?.(hoje) || hoje, fimSem = somar(iniSem, 6);
+    const dataDe = (x) => veic(x) || x.ref || '';
+    const feitas = typeof unifiedOperationalItems === 'function' && typeof isFinishedItem === 'function'
       ? unifiedOperationalItems().filter((d) => { const r = String(d.veiculacao_iso || d.prazo_iso || '').slice(0, 10);
-        return r >= iniSem && r <= fimSem && isFinishedItem(d) && [...(d.responsavel_ids || []), d.responsavel_id].some((id) => id != null && selIds.includes(String(id))); }).length : null;
-    const amanha = abertas.filter((x) => x.sit !== 'atrasada' && (veic(x) || x.ref) === somar(hoje, 1)).length;
-    const maisAntiga = atrasadas.map((x) => veic(x) || x.ref).filter(Boolean).sort()[0] || '';
-    const diasAtraso = maisAntiga ? Math.max(1, Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(maisAntiga + 'T12:00:00Z')) / 864e5)) : 0;
+        return r >= iniSem && r <= fimSem && isFinishedItem(d) && [...(d.responsavel_ids || []), d.responsavel_id].some((id) => id != null && selIds.includes(String(id))); })
+        .map((d) => ({ d, ref: String(d.veiculacao_iso || d.prazo_iso || '').slice(0, 10), sit: 'concluida', quem: [] })) : [];
+    const atrasadasP = naFila.filter((x) => x.sit === 'atrasada' && !desatualizada(x));
+    const deHojeP = naFila.filter((x) => !atrasadasP.includes(x) && dataDe(x) === hoje);
+    const hojeP = naFila.filter((x) => atrasadasP.includes(x) || deHojeP.includes(x));
+    const semanaP = naFila.filter((x) => hojeP.includes(x) || (dataDe(x) && dataDe(x) <= fimSem));
+    const amanha = abertas.filter((x) => x.sit !== 'atrasada' && dataDe(x) === somar(hoje, 1)).length;
+    const maisAntiga = atrasadasP.map(dataDe).filter(Boolean).sort()[0] || '';
+    const diasDe = (iso) => Math.max(1, Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(iso + 'T12:00:00Z')) / 864e5));
+    const daSemana = feitas.length + semanaP.length;
     const numeros = tresNumerosHtml([
-      { titulo: 'Para hoje', valor: n0(deHoje.length), sub: amanha ? `${n0(amanha)} ${rotuloDe(amanha, 'veicula', 'veiculam')} amanhã` : deHoje.length ? 'pela data do cliente' : 'nada vence hoje', tom: 'atencao', quieto: !deHoje.length },
-      { titulo: 'Atrasadas', valor: n0(atrasadas.length), sub: atrasadas.length ? (diasAtraso ? `a mais antiga, ${plural(diasAtraso, 'dia', 'dias')}` : 'sem data do cliente') : 'nada atrasado', tom: 'ruim', quieto: !atrasadas.length },
-      feitasSem == null ? null : { titulo: 'Feitas da semana', valor: n0(feitasSem), sub: 'com data nesta semana', quieto: !feitasSem },
+      { titulo: 'Para hoje', valor: n0(deHojeP.length), sub: amanha ? `${n0(amanha)} ${rotuloDe(amanha, 'veicula', 'veiculam')} amanhã` : deHojeP.length ? 'pela data do cliente' : 'nada vence hoje', quieto: !deHojeP.length },
+      { titulo: 'Atrasadas', valor: n0(atrasadasP.length), sub: atrasadasP.length ? (maisAntiga ? `a mais antiga, ${plural(diasDe(maisAntiga), 'dia', 'dias')}` : 'sem data do cliente') : 'nada atrasado', tom: 'ruim', quieto: !atrasadasP.length },
+      { titulo: 'Feitas na semana', valor: n0(feitas.length), sub: '', barra: daSemana ? feitas.length / daSemana * 100 : 0, cor: '#11613A', quieto: !feitas.length },
     ]);
-    // O guia do dia: a mesma ordem da fila (a data do cliente manda), com o porquê de cada passo.
-    const { urgentes, passos: passosGuia } = passosDoGuia(abertas, hoje, varios);
-    const guia = !diaEscolhido ? guiaHtml({ agente: guiaDe(fila.users),
-      intro: !abertas.length ? 'Fila limpa. Bom momento para adiantar o que vem ou ajudar alguém do time.'
-        : urgentes ? `${varios ? 'O time tem' : 'Você tem'} <b>${urgentes} atrasada${urgentes > 1 ? 's' : ''}</b>. Faça nesta ordem:` : 'Faça nesta ordem:',
-      passos: passosGuia, comecar: true,
-      depois: abertas.length > 3 ? `Depois disso, mais ${abertas.length - 3} na fila. <button type="button" class="vg-link" data-hoje-acao="foco">Abrir o dia completo</button>` : '' }) : '';
-    // Prioridades do dia (Paulo, 08/11/2026: atrasados, hoje e próximos dias, pela veiculação, a data do cliente).
-    // Padrão v2 (12/11/2026): os três grupos viram os filtros de UMA lista, na ordem do guia. A linha fica enxuta
-    // (peça, cliente, status e data) e abre no lugar com as ações: trocar o status, briefing, material, entrega e roteiro.
-    function listaUnica() {
-      const atrasadasP = naFila.filter((x) => x.sit === 'atrasada' && !desatualizada(x));
-      const deHojeP = naFila.filter((x) => !atrasadasP.includes(x) && (veic(x) || x.ref) === hoje);
-      const depoisP = naFila.filter((x) => !atrasadasP.includes(x) && !deHojeP.includes(x));
-      const GRUPOS = { ordem: ['Na ordem', naFila, 'Fila limpa. Bom momento para adiantar o que vem.'], atrasadas: ['Atrasadas', atrasadasP, 'Nada atrasado.'], hoje: ['Para hoje', deHojeP, 'Nada vence hoje.'], depois: ['Próximos dias', depoisP, 'Nada nos próximos dias.'] };
-      if (!GRUPOS[filtroTarefas]) filtroTarefas = 'ordem';
-      const [, lista, vazio] = GRUPOS[filtroTarefas], MAX = POR_GRUPO * 3 + 2;
-      const seg = `<div class="vv-seg v2-lista-seg" role="tablist" aria-label="Filtrar a lista">${Object.entries(GRUPOS).map(([k, [rot, l]]) => `<button type="button" role="tab" aria-selected="${k === filtroTarefas}" data-hoje-acao="filtro" data-valor="${k}">${rot} <i>${l.length}</i></button>`).join('')}</div>`;
-      const linha = (x) => { const id = esc(String(x.d.id)), mais = acoesDaPeca(x.d);
-        return `<div class="v2-abre v2-linha" data-linha="${id}" aria-expanded="false"><div class="v2-linha-cab">${linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '', quem: fila.users.length > 1 ? x.quem : null })}
-          <button type="button" class="v2-linha-seta" data-hoje-acao="linha" data-valor="${id}" aria-expanded="false" aria-label="Mostrar as ações de ${esc(titulo(x))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
-          <div class="v2-mais"><div><div class="v2-linha-mais"><small>${esc(motivoNoGuia(x, hoje))}</small>${mais}<button type="button" class="v2-linha-abrir" data-hoje-acao="peca" data-valor="${id}">Abrir a peça</button></div></div></div></div>`; };
-      return `<section class="vv-bloco v2-lista" aria-label="Minha fila"><div class="v2-lista-topo"><span><b>${filtroTarefas === 'ordem' ? 'Na ordem' : GRUPOS[filtroTarefas][0]}</b><small>abra a linha para trocar o status e pegar o briefing</small></span>${seg}</div>
-        ${lista.length ? lista.slice(0, MAX).map(linha).join('') + (lista.length > MAX ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${lista.length - MAX} na fila · abrir o dia completo</button>` : '') : `<p class="vv-vazio">${vazio}</p>`}</section>`;
+    // A fala do guia: uma frase, com o primeiro passo e o que vem depois. "Começar" abre a primeira peça.
+    const { passos: passosGuia } = passosDoGuia(abertas, hoje, varios);
+    const agente = guiaDe(fila.users), primeira = naFila[0], segunda = naFila[1];
+    const nomeCli = (x) => (cliente(x) ? ` (${esc(cliente(x))})` : '');
+    const frase = !primeira ? 'Fila limpa. Bom momento para adiantar o que vem ou ajudar alguém do time.'
+      : `Comece por <b>${esc(semGrito(titulo(primeira)))}</b>${nomeCli(primeira)}: ${esc(motivoNoGuia(primeira, hoje).replace(/^./, (c) => c.toLowerCase()))}.${amanha ? ` Depois, ${amanha === 1 ? 'a que veicula' : `as ${n0(amanha)} que veiculam`} amanhã.` : segunda ? ` Depois, <b>${esc(semGrito(titulo(segunda)))}</b>${nomeCli(segunda)}.` : ''}`;
+    const avGuia = agente.nome === 'VYBES' ? '<span class="vv-ser vg-av-ser" aria-hidden="true"><i></i></span>' : `<span class="vg-av" aria-hidden="true">${esc(agente.nome.slice(0, 1))}</span>`;
+    const fala = `<section class="v2t-fala" aria-label="Guia de ${esc(agente.nome)}">${avGuia}<p><span class="v2t-quem">${esc(agente.nome)} · guia do dia</span>${frase}</p>${passosGuia[0] ? `<button type="button" class="v2t-btn" ${passosGuia[0].attrs}>Começar</button>` : ''}</section>`;
+    // Filtros: quatro fichas, a busca e "Filtros" (agrupa por status).
+    const GRUPOS = { hoje: ['Hoje', hojeP, 'Hoje, na ordem', 'Nada para hoje.'], semana: ['Semana', semanaP, 'Semana, na ordem', 'Nada nesta semana.'], atrasadas: ['Atrasadas', atrasadasP, 'Atrasadas, da mais antiga', 'Nada atrasado.'], feitas: ['Feitas', feitas, 'Feitas na semana', 'Nada concluído nesta semana.'] };
+    if (!GRUPOS[filtroTarefas]) filtroTarefas = 'hoje';
+    const termo = buscaTarefas.trim().toLowerCase(), bate = (x) => !termo || `${titulo(x)} ${cliente(x)} ${x.d.status || ''}`.toLowerCase().includes(termo);
+    const filtros = `<div class="v2t-filtros"><span class="v2t-fichas" role="tablist" aria-label="Filtrar a lista">${Object.entries(GRUPOS).map(([k, [rot, l]]) => `<button type="button" role="tab" class="v2t-ficha" aria-selected="${k === filtroTarefas}" data-hoje-acao="filtro" data-valor="${k}">${rot} <b>${n0(l.length)}</b></button>`).join('')}</span>
+        <input type="search" class="v2t-busca" data-busca-tarefas placeholder="Buscar nas minhas tarefas" aria-label="Buscar nas minhas tarefas" value="${esc(buscaTarefas)}">
+        <button type="button" class="v2t-btn" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}" aria-pressed="${hojeVerTodas}">Filtros</button></div>`;
+    // A linha: bolinha, cliente e peça, status (troca ali mesmo), quando, e a seta que abre no lugar.
+    const NOME_DIA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    const quandoHtml = (x) => { const v = dataDe(x);
+      if (x.sit === 'concluida') return '<span class="v2t-q ok">feita</span>';
+      if (!v) return '<span class="v2t-q">sem data</span>';
+      if (v < hoje && !desatualizada(x)) return `<span class="v2t-q ruim">${plural(diasDe(v), 'dia', 'dias')}</span>`;
+      if (v === hoje) return '<span class="v2t-q ok">hoje</span>';
+      if (v === somar(hoje, 1)) return '<span class="v2t-q atencao">amanhã</span>';
+      return `<span class="v2t-q">${v <= somar(hoje, 6) && v > hoje ? NOME_DIA[new Date(v + 'T12:00:00Z').getUTCDay()] : v.slice(8) + '/' + v.slice(5, 7)}</span>`; };
+    // Etapas da peça, lidas do status (o painel não guarda etapa por etapa): o que já passou fica marcado.
+    const etapasHtml = (d) => { const st = String(d.status || '').toLowerCase(), fim = typeof isFinishedItem === 'function' && isFinishedItem(d);
+      const n = fim ? 5 : /agend|aprovad|pronta/.test(st) ? 4 : /aprova/.test(st) ? 3 : /andamento|produ|altera|ajuste|corre/.test(st) ? 2 : d.tem_briefing === false || /briefing|info/.test(st) ? 0 : 1;
+      return `<div class="v2t-etapas" title="Pelo status da peça">${['Briefing', 'Texto', 'Arte', 'Aprovação', 'Publicar'].map((e, k) => `<span class="v2t-etapa${k < n ? ' ok' : ''}"><i aria-hidden="true">${k < n ? '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>' : ''}</i>${e}</span>`).join('')}</div>`; };
+    const linha = (x) => { const id = esc(String(x.d.id)), feita = x.sit === 'concluida', cli = cliente(x), rot = roteiroDaPeca(x.d);
+      const extras = [typeof botaoDeBriefingHtml === 'function' ? botaoDeBriefingHtml(x.d) : '', typeof botaoDeMaterialBrutoHtml === 'function' ? botaoDeMaterialBrutoHtml(x.d) : '', typeof botaoDeEntregaHtml === 'function' ? botaoDeEntregaHtml(x.d) : '',
+        rot ? `<a class="focus-brief-btn roteiro" href="${esc(rot.link)}" target="_blank" rel="noopener" title="${esc(rot.titulo || 'Roteiro')}">${typeof vbIcone === 'function' ? vbIcone('documento') : ''}<span>Roteiro</span></a>` : ''].filter(Boolean).join('');
+      const olho = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(x.d, 'linha-previa vv-olho') : '';
+      return `<div class="v2-abre v2-linha${feita ? ' feita' : ''}" data-linha="${id}" aria-expanded="false"><div class="v2t-lin">
+          <button type="button" class="v2t-cx${feita ? ' ok' : ''}" data-hoje-acao="concluir" data-valor="${id}" aria-label="${feita ? 'Concluída' : 'Concluir'}: ${esc(titulo(x))}"${feita ? ' disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></button>
+          <button type="button" class="v2t-nome" data-hoje-acao="linha" data-valor="${id}" title="${esc(titulo(x) + (cli ? ' · ' + cli : ''))}"><span class="v2-risca${feita ? ' feita' : ''}">${cli ? `${cliCor(cli)} · ` : ''}${esc(semGrito(titulo(x)))}</span>${varios && x.quem?.length ? `<small>${esc(x.quem.join(', '))}</small>` : ''}</button>
+          <span class="v2t-st">${x.d.status ? (feita ? statusCor(x.d) : `<button type="button" class="vv-demanda-status" onclick="openStatusEditor(event,'${id}')" title="Trocar o status" aria-label="Trocar o status: ${esc(x.d.status)}">${statusCor(x.d)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`) : ''}</span>
+          <span class="v2t-quando">${olho}${quandoHtml(x)}</span>
+          <button type="button" class="v2-linha-seta" data-hoje-acao="linha" data-valor="${id}" aria-expanded="false" aria-label="Abrir a linha de ${esc(titulo(x))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
+        <div class="v2-mais"><div><div class="v2t-det">${etapasHtml(x.d)}
+          <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${extras}
+            ${feita ? '' : `<button type="button" class="v2t-btn" onclick="openStatusEditor(event,'${id}')">Passar bastão</button>`}<button type="button" class="v2t-btn k" data-hoje-acao="peca" data-valor="${id}">Abrir</button></div></div></div></div></div>`; };
+    function listaHtml() {
+      const [, base, tituloLista, vazio] = GRUPOS[filtroTarefas], lista = base.filter(bate), MAX = POR_GRUPO * 3 + 2;
+      const cabe = listaInteira || termo ? lista : lista.slice(0, MAX), resto = lista.length - cabe.length;
+      let corpo;
+      if (!lista.length) corpo = `<p class="vv-vazio">${termo ? 'Nada com esse texto neste filtro.' : vazio}</p>`;
+      else if (hojeVerTodas && filtroTarefas !== 'feitas') { // "Filtros": a mesma lista, agrupada por status
+        const g = new Map(); for (const x of cabe) { const st = String(x.d.status || 'Sem status').trim() || 'Sem status'; if (!g.has(st)) g.set(st, []); g.get(st).push(x); }
+        corpo = [...g.entries()].sort((a, b) => rankStatus(a[0]) - rankStatus(b[0])).map(([st, l]) => `<div class="v2t-grupo"><span>${esc(st)}</span><b>${l.length}</b></div>${l.map(linha).join('')}`).join('');
+      } else corpo = cabe.map(linha).join('');
+      const naSemana = semanaP.length - hojeP.length;
+      const pe = [resto > 0 ? `+ ${n0(resto)} neste filtro · <button type="button" class="vg-link" data-hoje-acao="lista-inteira">mostrar</button>` : filtroTarefas === 'hoje' && naSemana > 0 ? `+ ${n0(naSemana)} na semana · <button type="button" class="vg-link" data-hoje-acao="filtro" data-valor="semana">mostrar</button>` : '',
+        '<button type="button" class="vg-link" data-hoje-acao="demandas">ver todas as demandas</button>'].filter(Boolean).join(' · ');
+      return `<section class="v2-lista" aria-label="Minha fila"><div class="v2-lista-topo"><h3>${tituloLista}${hojeVerTodas && filtroTarefas !== 'feitas' ? ' · por status' : ''}</h3><small>toque no status para trocar</small></div>${corpo}<p class="v2t-pe">${pe}</p></section>`;
     }
-    // Layout do Hoje (Paulo, 08/11/2026: "datas em linha mais no topo, avisos e agendas num box à direita, prioridade
-    // a ATRASADOS, HOJE e PRÓXIMOS DIAS"): saudação e faixa de dias no topo; no meio as três colunas de prioridade (ou
-    // os grupos por status, com "Ver todas" ou um dia escolhido); à direita a fala do VYBES, avisos, compromissos,
-    // a pergunta e os atalhos.
-    const diaCurto = (iso, i) => (i === 0 ? 'Amanhã' : DIAS[new Date(iso + 'T12:00:00Z').getUTCDay()]);
-    const faixa = `<nav class="vv-hoje-dias" aria-label="Escolher o dia">
-      <button type="button" class="vv-dia hoje${!diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="" aria-pressed="${!diaEscolhido}"><small>Hoje</small><b>${Number(hoje.slice(8))}</b><span>${deHoje.length + atrasadas.length || '–'}</span></button>
-      ${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}" aria-pressed="${p.dia === diaEscolhido}"><small>${diaCurto(p.dia, i)}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}
-      <button type="button" class="vv-mais vv-ver-todas" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}">${hojeVerTodas ? 'Ver prioridades' : `Ver todas por status (${abertas.length})`}</button></nav>`;
-    const blocosHtml = !diaEscolhido && !hojeVerTodas ? listaUnica()
-      : `<div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
-      <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
-      ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
-      </section>`).join('') : `<section class="vv-bloco"><p class="vv-vazio">${diaEscolhido ? 'Nada veicula neste dia.' : 'Fila limpa. Bom momento para adiantar o que vem.'}</p></section>`}</div>`;
-    const lado = `<aside class="vv-hoje-lado" aria-label="Avisos, compromissos e atalhos">
-      ${desatualizadas.length && !diaEscolhido ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo. Quem acompanha: Alex (BI).</span></button>` : ''}
-      ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
+    // "Dia de …": para os donos, a ficha abre quem está no dia (tirar, adicionar, time de criação, só eu).
+    const iniciais = (u) => String(u.name || u.nome || '?').trim().slice(0, 2).toUpperCase();
+    const diaDeRot = `Dia de ${esc(fila.users.map((u) => (String(u.id) === euId && varios ? 'você' : nomeCurto(u))).join(', '))}`;
+    const diaDe = filtroPessoas ? `<details class="v2t-dia"><summary class="v2t-chip"><i aria-hidden="true">${esc(iniciais(fila.users[0]))}</i>${diaDeRot}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="v2t-dia-pop">${filtroPessoas}</div></details>`
+      : !dono && !euId ? `<button type="button" class="v2t-chip" data-pessoas-atalho="trocar"><i aria-hidden="true">${esc(iniciais(fila.user))}</i>${diaDeRot}</button>` : '';
+    // Coluna direita: a agenda de hoje e o que os agentes viram, como no quadro. Abaixo deles só entra o que tem
+    // pendência de verdade e não tem outro lugar na tela: WhatsApp esperando a pessoa, aprovações paradas e o aviso de prazo.
+    const lado = `<aside class="v2t-lado" aria-label="Agenda e agentes">
       ${compromissosHtml() || agendaDeHojeHtml()}
-      ${agentesViramHtml()}
-      <form class="vv-pergunta" data-pergunta><span class="vv-ser" aria-hidden="true"><i></i></span><input type="text" placeholder="Pergunte ao VYBES…" aria-label="Pergunte ao VYBES"><button type="submit" aria-label="Perguntar">→</button></form>
-      <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
+      <div class="v2t-agentes">${agentesViramHtml()}<p class="v2t-pe"><button type="button" class="vg-link" data-hoje-acao="agentes">Como o VYBES montou esta ordem</button></p></div>
+      ${!verComo ? (window.VybePendencias?.paraVoceHtml?.() || '') : ''}
+      ${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}
+      ${desatualizadas.length ? `<button type="button" class="vv-alerta-prazo" data-hoje-acao="foco"><b>${desatualizadas.length} peça${desatualizadas.length > 1 ? 's' : ''} com prazo desatualizado</b><span>O prazo interno já passou, mas a veiculação ainda vem. A fila segue a veiculação; atualize o prazo.</span></button>` : ''}
     </aside>`;
-    const html = `${segDono}${filtroPessoas}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>${varios ? `<small class="vv-dia-de">O dia de ${esc(fila.users.map((u) => (String(u.id) === euId ? 'você' : nomeCurto(u))).join(', '))}</small>` : !dono && !euId ? `<small class="vv-dia-de">O dia de ${esc(nomeCurto(fila.user))} · <button type="button" class="vg-link" data-pessoas-atalho="trocar">Trocar</button></small>` : ''}</span>
-        <span class="vv-hoje-topo-acoes">${criarHtml}</span></div>
-      ${!diaEscolhido ? numeros : ''}
-      ${body.classList.contains('mundo-quarto') ? `<p class="vv-hoje-contas">${[[atrasadas.length, 'atrasada', 'atrasadas', 'ruim'], [deHoje.length, 'vence hoje', 'vencem hoje', 'atencao'], [abertas.length, 'na fila', 'na fila', '']].map(([n, um, varios, cls]) => `<span class="${n ? cls : ''}">${n} ${n === 1 ? um : varios}</span>`).join('')}</p>` : ''}
-      ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}</div>${lado}</div>`;
-    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
+    const html = `<div class="v2t"><div class="v2t-topo"><span class="v2t-ola"><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>${segDono}${diaDe}${criarHtml}</div>
+      <div class="v2t-alto">${fala}${numeros}</div>
+      ${filtros}
+      <div class="v2t-grade">${listaHtml()}${lado}</div></div>`;
+    if (el.vvHtml !== html) {
+      const atual = soListaAgora ? el.querySelector('.v2-lista') : null;
+      if (atual) { const t = document.createElement('template'); t.innerHTML = html; const nova = t.content.querySelector('.v2-lista'); if (nova) atual.replaceWith(nova); else el.innerHTML = html; }
+      else el.innerHTML = html;
+      el.vvHtml = html;
+    }
     aplicarLinhaAberta(el);
   }
   function acaoDoHoje(acao, valor) {
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
     if (acao === 'dia') { diaEscolhido = diaEscolhido === valor ? '' : valor; pintarHoje(); return; }
-    if (acao === 'filtro') { filtroTarefas = String(valor || 'ordem'); linhaAberta = ''; pintarHoje(); return; }
+    if (acao === 'filtro') { filtroTarefas = String(valor || 'hoje'); linhaAberta = ''; listaInteira = false; pintarHoje(); return; }
+    if (acao === 'decidir') { decidirPeca(String(valor)); return; }
+    if (acao === 'decidir-lista') { if (window.VybeConteudo?.abrir) window.VybeConteudo.abrir({ aba: 'aprovar' }); else usarTrilho('conteudo'); return; }
+    if (acao === 'lista-inteira') { listaInteira = true; soListaAgora = true; pintarHoje(); soListaAgora = false; return; }
+    // A bolinha conclui (quadro B2): risca na hora e grava pelo caminho de sempre (updateFocusStatus, com os portões e o
+    // Desfazer). Se o status final não existir no quadro da peça, ou o portão for cancelado, a linha volta ao que era.
+    if (acao === 'concluir') {
+      const item = typeof findOperationalItem === 'function' ? findOperationalItem(String(valor)) : null;
+      const opcoes = item && typeof operationalStatusOptions === 'function' ? operationalStatusOptions(item) : [];
+      const fim = opcoes.find((o) => /^finalizad/i.test(String(o.label || '').trim())) || opcoes.find((o) => /^(feito|conclu)/i.test(String(o.label || '').trim()));
+      if (!item || !fim || typeof updateFocusStatus !== 'function') { if (typeof showToast === 'function') showToast('Não achei o status de concluída no quadro desta peça. Troque pelo status da linha.', 'info'); return; }
+      const l = [...hud.querySelectorAll('#vv-hoje .v2-linha')].find((x) => x.dataset.linha === String(valor));
+      l?.classList.add('feita'); l?.querySelector('.v2t-cx')?.classList.add('ok'); l?.querySelector('.v2-risca')?.classList.add('feita');
+      Promise.resolve(updateFocusStatus(String(valor), fim.label)).catch(() => {}).finally(() => setTimeout(() => { const h = hud.querySelector('#vv-hoje'); if (h) h.vvHtml = ''; pintarHoje(); }, 700));
+      return;
+    }
     if (acao === 'linha') { linhaAberta = linhaAberta === String(valor) ? '' : String(valor); aplicarLinhaAberta(); return; }
     if (acao === 'todas' || acao === 'prioridades') { hojeVerTodas = acao === 'todas'; try { localStorage.setItem('vybe.hoje.todas', hojeVerTodas ? '1' : ''); } catch { /* sem guardar */ } pintarHoje(); return; }
     if (acao === 'peca') { chamar('openItemWorkspace', String(valor)); return; }
@@ -1641,6 +1742,19 @@
   }
   // "Pergunte ao VYBES": abre o VYBES de verdade (a central) com o pedido, que ela atende ao abrir
   // (chooseVybesMode({ pedido })). Não cria outro chat.
+  hud.addEventListener('keydown', (e) => {
+    if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !e.target.closest?.('#vv-hoje .v2d')) return;
+    e.preventDefault(); passarDecidir(decidirEm + (e.key === 'ArrowRight' ? 1 : -1));
+  });
+  hud.addEventListener('click', (e) => {
+    const c = e.target.closest?.('#vv-hoje .v2d-carta, #vv-hoje .v2d .v2-pontos > i'); if (!c) return;
+    if (c.dataset.carta !== undefined) { if (Number(c.dataset.carta) !== decidirEm) passarDecidir(Number(c.dataset.carta)); return; }
+    passarDecidir([...c.parentNode.children].indexOf(c));
+  });
+  hud.addEventListener('input', (e) => {
+    if (!e.target.matches?.('[data-busca-tarefas]')) return;
+    buscaTarefas = e.target.value; linhaAberta = ''; soListaAgora = true; pintarHoje(); soListaAgora = false;
+  });
   hud.addEventListener('change', (e) => {
     const add = e.target.closest('[data-pessoa-add]');
     if (add) { if (add.value) { const base = pessoasHoje.length ? pessoasHoje : [String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || '')].filter(Boolean); definirPessoasHoje([...base, add.value]); } return; }
