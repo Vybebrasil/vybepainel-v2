@@ -133,7 +133,10 @@ test('um cabeçalho de janela: vbCabecalhoHtml com o X único, sem rótulo de se
 test('zeros em linha discreta, plural certo, mês no seletor e agenda no Hoje da Cidade', () => {
   const mundo = ler('vybe-mundo.js'), pessoas = ler('vybe-mundo-pessoas.js');
   assert.match(mundo, /function radarHtml\(V, itens\)/);
-  assert.match(mundo, /zero: 'atrasadas', icone: 'alerta', titulo: 'Atrasadas'/);
+  // Padrão v2 (12/11/2026): a Agência abre com três números (o zerado fica no lugar, apagado) e a linha Também de olho.
+  assert.match(mundo, /function tresNumerosHtml\(itens\)/);
+  assert.match(mundo, /titulo: 'Atrasadas', valor: n0\(H\.atrasadas\), sub: .{0,90}quieto: !H\.atrasadas, attrs: 'data-espiar="atrasadas"'/);
+  assert.match(mundo, /Também de olho:/);
   assert.match(mundo, /'peças em aberto', 'peça em aberto'\]/);
   assert.match(ler('vybe-mundo-agentes.js'), /x\.n === 1 \? 'Ver o achado' : `Ver os \$\{x\.n\}`/);
   assert.match(mundo, /<div class="vv-hoje-agenda-3d">\$\{agendaDeHojeHtml\(\)\}<\/div>/);
