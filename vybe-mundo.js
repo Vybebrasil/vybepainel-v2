@@ -845,7 +845,7 @@
     previasDecidir[ref] = undefined;
     if (String(ref).startsWith('vybe:')) { previasDecidir[ref] = null; return null; }
     fetch(`/api/painel?area=arquivos&itens=${encodeURIComponent(ref)}`, { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
-      .then((j) => { previasDecidir[ref] = j?.itens?.[ref]?.thumb || null; }).catch(() => { previasDecidir[ref] = null; }).finally(() => { if (visaoHoje === 'agencia') pintarHoje(); });
+      .then((j) => { previasDecidir[ref] = j?.itens?.[ref]?.thumb || null; }).catch(() => { previasDecidir[ref] = null; }).finally(() => { if (visaoHoje !== 'tarefas') pintarHoje(); });
     return undefined;
   }
   const posDecidir = (k) => (k < decidirEm ? 'fora' : k - decidirEm <= 2 ? String(k - decidirEm) : '');
@@ -855,9 +855,9 @@
     if (v < h) return `ia ao ar ${v.slice(8)}/${v.slice(5, 7)}`;
     return v === h ? 'veicula hoje' : v === somar(h, 1) ? 'veicula amanhã' : `veicula ${v.slice(8)}/${v.slice(5, 7)}`;
   }
-  function decidirHtml() {
+  function decidirHtml({ titulo = 'Para você decidir', artes = false } = {}) {
     const fila = filaDecidir();
-    const topo = (sub) => `<div class="v2d-topo"><h3>Para você decidir</h3><small>${sub}</small></div>`;
+    const topo = (sub) => `<div class="v2d-topo"><h3>${titulo}</h3><small>${sub}</small></div>`;
     if (!fila) return `<aside class="v2d" aria-label="Para você decidir">${topo('lendo as aprovações')}</aside>`;
     if (!fila.length) return `<aside class="v2d" aria-label="Para você decidir">${topo('nada em Para aprovação')}<p class="v2d-vazio">Nenhuma peça espera a sua aprovação agora.</p></aside>`;
     decidirEm = Math.max(0, Math.min(decidirEm, fila.length - 1));
@@ -866,12 +866,12 @@
         <p><b>${esc(i.titulo)}</b><small>${i.cliente ? cliCor(i.cliente) + ' · ' : ''}${esc(quandoVeiculaTxt(i))}${i.heads?.length ? ' · head ' + esc(i.heads.map((h) => h.nome).join(', ')) : ''}</small></p></article>`; };
     const porCli = new Map(); for (const i of fila) porCli.set(i.cliente || 'Sem cliente', (porCli.get(i.cliente || 'Sem cliente') || 0) + 1);
     const antiga = Math.max(...fila.map((i) => i.horas ?? 0));
-    return `<aside class="v2d" aria-label="Para você decidir">${topo(`${n0(fila.length)} ${rotuloDe(fila.length, 'peça', 'peças')} em Para aprovação`)}
+    return `<aside class="v2d" aria-label="Para você decidir">${topo(artes ? `${n0(fila.length)} ${rotuloDe(fila.length, 'arte', 'artes')}` : `${n0(fila.length)} ${rotuloDe(fila.length, 'peça', 'peças')} em Para aprovação`)}
       <div class="v2-baralho v2d-baralho" tabindex="0" aria-label="Peças para decidir: as setas do teclado passam">${fila.map(carta).join('')}</div>
       <div class="v2d-acoes"><button type="button" class="v2t-btn g" data-hoje-acao="decidir" data-valor="alterar">Pedir alteração</button><button type="button" class="v2t-btn g k" data-hoje-acao="decidir" data-valor="aprovar">Aprovar</button></div>
       <div class="v2d-conta"><span class="v2-pontos" aria-hidden="true">${fila.length <= 10 ? fila.map((_, k) => `<i${k === decidirEm ? ' class="on"' : ''}></i>`).join('') : ''}</span><small><span data-decidir-conta>${decidirEm + 1} de ${fila.length}</span> · seta para os lados passa · <button type="button" class="vg-link" data-hoje-acao="decidir-lista">ver em lista</button></small></div>
-      <div class="v2d-fila"><small>Na fila, por cliente</small><p>${[...porCli.entries()].slice(0, 4).map(([c, n]) => `<span>${cliCor(c)} · ${n}</span>`).join('')}</p>
-        <small>${antiga >= 1 ? `A mais antiga espera há ${antiga < 48 ? antiga + ' h' : Math.round(antiga / 24) + ' dias'}. ` : ''}Aprovada, a peça segue para agendar.</small></div></aside>`;
+      ${artes ? '' : `<div class="v2d-fila"><small>Na fila, por cliente</small><p>${[...porCli.entries()].slice(0, 4).map(([c, n]) => `<span>${cliCor(c)} · ${n}</span>`).join('')}</p>
+        <small>${antiga >= 1 ? `A mais antiga espera há ${antiga < 48 ? antiga + ' h' : Math.round(antiga / 24) + ' dias'}. ` : ''}Aprovada, a peça segue para agendar.</small></div>`}</aside>`;
   }
   function passarDecidir(para) {
     const fila = filaDecidir() || [], novo = Math.max(0, Math.min(para, fila.length - 1));
@@ -892,7 +892,7 @@
     if (!i.item || !opcao || typeof portao !== 'function') { chamar('showToast', 'Abri a peça: a decisão dela é por lá.', 'info'); chamar(i.quadro === 'demandas' ? 'openDemandaWorkspace' : 'openItemWorkspace', String(i.ref)); return; }
     portao(i.item, opcao);
   }
-  document.addEventListener('vybe:aprovacoes', () => { if (visaoHoje === 'agencia') pintarHoje(); });
+  document.addEventListener('vybe:aprovacoes', () => { if (visaoHoje !== 'tarefas') pintarHoje(); });
   function olhoHtml(itens) {
     const l = itens.filter((x) => Number(x.n) > 0);
     return l.length ? `<p class="v2-olho"><span>Também de olho:</span>${l.map((x) => `<button type="button" ${x.attrs || `data-espiar="${esc(x.espiar)}"`}><b>${n0(x.n)}</b> ${esc(x.rotulo)}</button>`).join('')}</p>` : '';
@@ -1138,13 +1138,13 @@
     let corpo = '';
     if (gestaoAba === 'agencia' && window.VybeSetor?.pintarEm) {
       // Dinheiro, comercial, clientes, produção e time num painel só (vybe-mundo-setor.js, mesmas leituras dos setores).
-      gestao.innerHTML = topo + '<div class="vv-g-corpo vs-agencia"></div>';
+      gestao.innerHTML = '<div class="vv-g-corpo vs-agencia"></div>'; // quadro da Gestão: o cabeçalho vem no próprio painel (vybe-mundo-setor.js)
       window.VybeSetor.pintarEm(gestao.querySelector('.vs-agencia'), 'setor:agencia', { nome: 'Gestão', subs: SUBMODULOS.filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
         abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor) });
       return;
     }
     if (gestaoAba === 'performance' && window.VybePerformance?.html) {
-      gestao.innerHTML = topo + '<div class="vv-g-corpo vs-corpo vs-gestao-aba vv-perf"></div>';
+      gestao.innerHTML = '<div class="vv-g-corpo vs-corpo vs-gestao-aba vv-perf"></div>'; // quadro da Performance: idem (vybe-mundo-performance.js)
       window.VybePerformance.html(gestao.querySelector('.vv-perf'));
       return;
     }
@@ -1470,46 +1470,37 @@
         peso: (d, u) => (typeof daEffortWeight === 'function' ? daEffortWeight(d, u) : 1), limite: (u) => (typeof daCapacitySignal === 'function' ? daCapacitySignal(u, []).threshold : 14) }) || null;
     } catch (e) { console.error('[mundo] assistente da Criação', e); }
     const cargaDe = (u) => A?.perfis?.find((p) => p.id === String(u.id));
-    const V = window.VybeSetor?.pecas;
-    const radar = V ? radarHtml(V, [
-      { n: atrasadas.length, zero: 'atrasadas no time de criação', icone: 'alerta', titulo: 'Atrasadas', valor: n0(atrasadas.length), sub: 'do time de criação', cls: atrasadas.length ? 'ruim' : '' },
-      { n: deHoje.length, zero: 'vão ao ar hoje, sem contar as atrasadas', icone: 'calendario', titulo: 'Vão ao ar hoje', valor: n0(deHoje.length), sub: 'sem contar as atrasadas', cls: deHoje.length ? 'atencao' : '' },
-      { n: aprovar.length, zero: 'esperando aprovação do Deivid ou dos heads', icone: 'aperto', titulo: 'Esperando aprovação', valor: n0(aprovar.length), sub: 'do Deivid ou dos heads', cls: aprovar.length ? 'atencao' : '' },
-      { n: ajuste.length, zero: 'pediram ajuste', icone: 'relogio', titulo: 'Pediram ajuste', valor: n0(ajuste.length), sub: 'voltaram para o time', cls: ajuste.length ? 'atencao' : '' },
-      { n: itens.length, zero: `em aberto, com ${plural(membros.length, 'pessoa', 'pessoas')}`, icone: 'doc', titulo: 'Em aberto', valor: n0(itens.length), sub: `com ${plural(membros.length, 'pessoa', 'pessoas')}` },
-    ]) : '';
-    // Cada pessoa do time: o que tem, o que atrasou, o que sai hoje e a carga comparada com a de quem tem mais.
-    const porPessoa = membros.map((u) => { const l = itens.filter((x) => x.ids.includes(String(u.id))); return { u, l, atr: l.filter((x) => atrasadas.includes(x)).length, hj: l.filter((x) => deHoje.includes(x)).length, prox: l.map(veicDe).filter((v) => v && v >= hoje).sort()[0] || '' }; });
-    const maxCarga = Math.max(1, ...porPessoa.map((p) => p.l.length));
-    const pessoasHtml = `<div class="vc-time">${porPessoa.map((p) => `<button type="button" class="vc-pessoa${p.atr ? ' ruim' : ''}" data-criacao-pessoa="${esc(p.u.id)}" title="Ver o dia de ${esc(curto(p.u))}">
-        <span class="vc-pessoa-cab"><span class="vc-av" style="--c:${esc(p.u.color || '#8A847A')}">${esc(curto(p.u).slice(0, 2).toUpperCase())}</span><span><b>${esc(curto(p.u))}</b><small>${esc(papel(p.u))}</small></span></span>
-        <span class="vc-nums"><span><b>${n0(p.l.length)}</b><small>em aberto</small></span><span class="${p.atr ? 'ruim' : ''}"><b>${n0(p.atr)}</b><small>atrasadas</small></span><span><b>${n0(p.hj)}</b><small>hoje</small></span></span>
-        <span class="vc-carga" aria-label="Carga: ${n0(p.l.length)} de ${n0(maxCarga)}"><i style="width:${Math.round(p.l.length / maxCarga * 100)}%"></i></span>
-        ${cargaDe(p.u) ? `<small class="vc-prox">Carga: ${cargaDe(p.u).carga} de ${cargaDe(p.u).limite} pontos${cargaDe(p.u).carga > cargaDe(p.u).limite ? ' · acima do limite' : ''}</small>` : ''}
-        <small class="vc-prox">${p.prox ? 'Próxima no ar: ' + (p.prox === hoje ? 'hoje' : diaMes(p.prox)) : 'Nada marcado para ir ao ar'}</small></button>`).join('')}</div>`;
-    const lista = (l, vazio, max = 5) => l.length ? l.slice(0, max).map((x) => linhaDemanda(x.d, { ref: veicDe(x) || x.d.prazo_iso || '', sit: x.sit, quem: x.quem })).join('') + (l.length > max ? `<p class="vv-dica">e mais ${l.length - max}.</p>` : '') : `<p class="vv-vazio">${vazio}</p>`;
-    const bloco = (titulo, sub, corpo) => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span></div>${corpo}</section>`;
-    const ordenar = (l) => l.slice().sort((a, b) => chaveDaFila(a, hoje).localeCompare(chaveDaFila(b, hoje)));
-    const semanaHtml = `<div class="vc-semana">${dias.map((x, i) => `<span class="vc-dia${i === 0 ? ' hoje' : ''}" title="${x.n} peça${x.n === 1 ? '' : 's'} do time vão ao ar"><i style="height:${Math.round(x.n / maxDia * 100)}%"></i><b>${x.n}</b><small>${i === 0 ? 'Hoje' : ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(x.dia + 'T12:00:00Z').getUTCDay()]}</small></span>`).join('')}</div>`;
-    const guia = guiaHtml({ agente: { nome: 'Danilo', papel: 'Direção de Arte · guia da Criação', setor: 'design' },
-      intro: !itens.length ? 'O time está sem peças em aberto.' : urgentes ? `O time tem <b>${urgentes} atrasada${urgentes > 1 ? 's' : ''}</b>. Destrave nesta ordem:` : 'O time está em dia. Nesta ordem:',
-      passos, conversa: A?.conversa || '', depois: ordem.length > 3 ? `Depois disso, mais ${plural(ordem.length - 3, 'peça', 'peças')} do time em aberto.` : '' });
-    const html = `${dono && !verComo ? segHoje('criacao') : ''}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>Criação</h2><small class="vv-dia-de">O time: ${esc(membros.map(curto).join(', '))}</small></span>
-        <span class="vv-anel" style="--p:${itens.length ? Math.round((1 - atrasadas.length / itens.length) * 100) : 100}" title="Peças do time em dia"><b>${n0(itens.length - atrasadas.length)}</b><small>/${n0(itens.length)}</small></span></div>
-      ${guia}${A?.mudouHtml || ''}${A?.sugestoes || ''}${radar}${pessoasHtml}
-      ${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('criacao') || '') : ''}
-      <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
-        <div class="vv-dono-tres vc-filas">
-          ${bloco('Atrasadas', 'pela data do cliente', lista(ordenar(atrasadas), 'Nada atrasado no time.'))}
-          ${bloco('Esperando aprovação', 'o que trava a próxima etapa', lista(ordenar(aprovar), 'Nada esperando aprovação.'))}
-          ${bloco('Pediram ajuste', 'voltou do cliente ou da revisão', lista(ordenar(ajuste), 'Nenhum ajuste pendente.'))}
-        </div>
-        ${A?.clientesHtml || ''}
-      </div>
-      <aside class="vv-hoje-lado" aria-label="Semana e atalhos da Criação">
-        ${bloco('Semana do time', 'peças que vão ao ar em cada dia', semanaHtml)}
-        <div class="vv-chips"><button type="button" data-criacao-atalho="dia-time">Ver o dia do time</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-criacao-atalho="planejamentos">Planejamentos</button><button type="button" data-criacao-atalho="antigo">Painel antigo de direção de arte</button></div>
-      </aside></div>`;
+    // ===== Hoje · Criação pelo quadro "Direção de arte" do moodboard (Paulo, 12/11/2026: "eu aprovei o DEPOIS") =====
+    // A tela é o quadro: "Criação" com o time e as abas; a fala do Danilo com Perguntar e Ver o agente; os três números;
+    // a Fila do Danilo (delegar e cobrar, de vybe-mundo-criacao.js); "Esperando o seu parecer" em baralho; e o Time, com
+    // a carga de cada pessoa. Saíram, porque o quadro não tem: o anel, as três listas, a semana do time e os atalhos.
+    const porPessoa = membros.map((u) => { const l = itens.filter((x) => x.ids.includes(String(u.id))); return { u, l, atr: l.filter((x) => atrasadas.includes(x)).length, hj: l.filter((x) => deHoje.includes(x)).length }; });
+    const maisAtrasada = porPessoa.slice().sort((a, b) => b.atr - a.atr)[0];
+    const acima = porPessoa.filter((x) => { const c = cargaDe(x.u); return c && c.carga > c.limite; }).map((x) => curto(x.u));
+    const frase = !itens.length ? 'O time está sem peças em aberto.'
+      : `<b>${plural(deHoje.length, 'peça vai', 'peças vão')} ao ar hoje</b>. ${atrasadas.length ? `<b>${plural(atrasadas.length, 'atrasada', 'atrasadas')}</b>${maisAtrasada?.atr ? `, ${maisAtrasada.atr === atrasadas.length ? 'todas' : n0(maisAtrasada.atr)} com ${esc(curto(maisAtrasada.u))}` : ''}.` : 'Nada atrasado.'}${acima.length ? ` ${esc(acima.join(' e '))} ${acima.length > 1 ? 'passaram' : 'passou'} do limite de carga.` : ''}`;
+    const fala = `<section class="v2t-fala" aria-label="Guia do Danilo"><span class="vg-av" aria-hidden="true">D</span><p><span class="v2t-quem">Danilo · Direção de arte · o que temos para hoje</span>${frase}</p>
+        ${A?.conversa ? '<button type="button" class="v2t-btn" data-criacao-atalho="perguntar" aria-expanded="false">Perguntar ao Danilo</button>' : ''}${dono ? '<button type="button" class="v2t-btn" data-pend-agente="design">Ver o agente</button>' : ''}</section>
+      ${A?.conversa ? `<div class="v2c-conversa" hidden>${A.conversa}</div>` : ''}`;
+    const numeros = `<div class="v2c-nums"><p class="${atrasadas.length ? 'ruim' : 'quieto'}"><b><span class="v2-num">${n0(atrasadas.length)}</span></b><small>${rotuloDe(atrasadas.length, 'atrasada', 'atrasadas')} no time</small></p>
+        <p class="${deHoje.length ? '' : 'quieto'}"><b><span class="v2-num">${n0(deHoje.length)}</span></b><small>${rotuloDe(deHoje.length, 'vai', 'vão')} ao ar hoje</small></p>
+        <p class="${aprovar.length ? '' : 'quieto'}"><b><span class="v2-num">${n0(aprovar.length)}</span></b><small>esperando aprovação</small></p></div>`;
+    const totalAberto = itens.length;
+    const time = `<section class="v2c-time" aria-label="Time"><div class="v2a-cab"><h3>Time</h3><small>${n0(totalAberto)} em aberto</small></div>
+        ${porPessoa.map((x) => { const c = cargaDe(x.u), pct = c ? Math.min(100, Math.round(c.carga / Math.max(1, c.limite) * 100)) : Math.round(x.l.length / Math.max(1, ...porPessoa.map((y) => y.l.length)) * 100), passou = c && c.carga > c.limite;
+          return `<button type="button" class="v2c-pes" data-criacao-pessoa="${esc(x.u.id)}" title="Ver o dia de ${esc(curto(x.u))}"><i aria-hidden="true">${esc(curto(x.u).slice(0, 2).toUpperCase())}</i><span><span><b>${esc(curto(x.u))}</b> · ${esc(papel(x.u))}</span>
+            <span class="v2-barra" style="--v:${pct}%;--c:${passou ? '#B42318' : '#11613A'}"><i></i></span><small>${n0(x.l.length)} em aberto · ${x.atr ? `<b class="ruim">${plural(x.atr, 'atrasada', 'atrasadas')}</b>` : '0 atrasadas'} · ${n0(x.hj)} hoje${c ? ` · ${n0(c.carga)} de ${n0(c.limite)} pontos` : ''}</small></span></button>`; }).join('')}</section>
+      <button type="button" class="v2c-ajuste" data-criacao-atalho="ajustes"><span>Pediram ajuste</span><b>${n0(ajuste.length)}</b></button>
+      <p class="v2t-pe">Nada muda sem o seu OK.</p>`;
+    const corpo = !itens.length
+      ? `${A?.clientesHtml ? `<p class="v2c-vazio"><button type="button" class="v2t-btn" data-criacao-atalho="sugestoes" aria-expanded="false">Ver sugestões dos clientes</button></p><div class="v2c-sugestoes" hidden>${A.clientesHtml}</div>` : ''}`
+      : `<div class="v2c-corpo"><div class="v2c-esq">${numeros}${A?.sugestoes || '<section class="v2a-cartao"><div class="v2a-cab"><h3>Fila do Danilo</h3><small>nada para delegar ou cobrar</small></div></section>'}${A?.mudouHtml || ''}</div>
+          ${!verComo ? decidirHtml({ titulo: 'Esperando o seu parecer', artes: true }) : ''}
+          <div class="v2c-dir">${time}</div></div>`;
+    const html = `<div class="v2t v2c"><div class="v2t-topo"><span class="v2t-ola"><small class="vv-data">${esc(data)}</small><h2>Criação</h2></span>
+        <span class="v2a-online"><span class="v2a-avs" aria-hidden="true">${membros.slice(0, 5).map((u) => `<i>${esc(curto(u).slice(0, 2).toUpperCase())}</i>`).join('')}</span><small>${esc(membros.map(curto).join(', '))}</small></span>${dono && !verComo ? segHoje('criacao') : ''}</div>
+      ${fala}
+      ${corpo}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
   // Minha sala (quadro 34 do redesign, 10/11/2026: "o Hoje continua à vista na sala, mais estreito... a gaveta da Agenda
@@ -2254,10 +2245,12 @@
     const sep = '<span class="vq-sep" aria-hidden="true"></span>';
     const partes = [];
     if (zonaAberta) partes.push(botao({ acao: 'voltar', cls: 'vq-voltar', icone: svg('<path d="M15 6l-6 6 6 6"/>'), rot: 'Voltar', titulo: 'Sair da sala e voltar ao painel' }) + sep);
-    // A voz: o microfone com o estado escrito, ou o laranja de entrar.
-    partes.push(naChamada ? botao({ acao: 'mic', cls: mic ? 'vq-mic on' : 'vq-mic mudo', icone: mic ? IC.mic : IC.micOff, rot: mic ? 'Ligado' : 'Mudo', titulo: mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: ninguém te ouve. Clique para falar', extra: `aria-pressed="${mic}"` })
-      : e.conectando ? botao({ acao: '', cls: 'vq-espera', icone: IC.mic, rot: 'Conectando…', titulo: 'Conectando às salas de voz', extra: 'disabled' })
-      : botao({ acao: 'entrar', cls: 'vq-entrar', icone: IC.mic, rot: 'Entrar', titulo: 'Entrar na chamada da sala (você entra mudo)' }));
+    // Quadro da barra de baixo (moodboard, 12/11/2026): a peça da voz diz a sala, quantos estão na voz e traz o Entrar;
+    // o microfone fica sempre no lugar (apagado fora da chamada).
+    const aqui = por.get(e.zona) || [], naVoz = aqui.length;
+    const rostosVoz = aqui.slice(0, 3).map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}">${esc(String(o.id) === eu ? 'Eu' : ini(o.nome))}</i>`).join('');
+    partes.push(`<span class="vq-voz"><span class="vq-rostos" aria-hidden="true">${rostosVoz}</span><span>${esc(e.zona ? nome(e.zona) : 'Fora das salas')}${e.zona ? ` · ${naVoz ? n0(naVoz) + ' na voz' : 'vazia'}` : ''}</span>${naChamada ? '<button type="button" class="dentro" disabled>Dentro</button>' : e.conectando ? '<button type="button" disabled>Conectando…</button>' : '<button type="button" data-dock="entrar" title="Entrar na chamada da sala (você entra mudo)">Entrar</button>'}</span>` + sep);
+    partes.push(botao({ acao: 'mic', cls: mic ? 'vq-mic on' : naChamada ? 'vq-mic mudo' : 'vq-mic', icone: mic ? IC.mic : IC.micOff, rot: naChamada && !mic ? 'Mudo' : 'Microfone', titulo: naChamada ? (mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: ninguém te ouve. Clique para falar') : 'Liga dentro de uma sala', extra: `aria-pressed="${mic}" ${naChamada ? '' : 'disabled'}` }));
     // Os controles da chamada, todos no dock: ouvir (silenciar todas as vozes só para você), câmera, tela e os ajustes de áudio.
     const cam = Boolean(e.chamada?.self?.videoEnabled), telaOn = Boolean(e.chamada?.self?.screenShareEnabled);
     partes.push(botao({ acao: 'ouvir', cls: surdo ? 'vq-surdo' : '', icone: surdo ? IC.semSom : IC.som, rot: surdo ? 'Sem som' : 'Ouvir', titulo: surdo ? 'Você não está ouvindo ninguém: clique para voltar a ouvir' : 'Silenciar as vozes só para você', extra: `aria-pressed="${surdo}"` }));
@@ -2290,9 +2283,9 @@
         <span class="vq-rotulo">${esc(curto(z))}</span><i class="vq-ponto" aria-hidden="true"></i></button>`;
     };
     const vistas = zonas.slice(0, Math.max(0, cabem)), fora = zonas.length - vistas.length;
-    if (vistas.length) partes.push(sep + vistas.map(item).join(''));
-    partes.push(sep + botao({ acao: 'salas', cls: 'vq-todas', icone: svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>') + `<b class="vq-conta on">${(e.online || []).length}</b>`, rot: fora ? '+' + fora + (fora === 1 ? ' sala' : ' salas') : 'Salas', titulo: 'Todas as salas de voz: quem está em cada uma, entrar, ir até alguém ou chamar' }));
-    partes.push(botao({ acao: 'chat', icone: svg('<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/>'), rot: 'Chat', titulo: 'Conversa da equipe e recados' }));
+    // As salas com gente saíram do dock (quadro): trocar de sala é no painel Salas, que mostra todas.
+    partes.push(sep + botao({ acao: 'salas', cls: 'vq-todas' + (body.classList.contains('ver-voz') ? ' aberta' : ''), icone: svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>') + `<b class="vq-conta on">${(e.online || []).length}</b>`, rot: 'Salas', titulo: 'Todas as salas de voz: quem está em cada uma, entrar, ir até alguém ou chamar' }));
+    partes.push(botao({ acao: 'chat', cls: window.VybeConversa?.aberto?.() ? 'aberta' : '', icone: svg('<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/>'), rot: 'Chat', titulo: 'Conversa da equipe e recados' }));
     const temSom = Boolean(fn('escritorioNaPista')?.());
     partes.push(botao({ acao: 'musica', cls: body.classList.contains('musica-aberta') ? 'aberta' : '', icone: IC.musica, rot: 'Música', titulo: temSom ? 'Música da sala (todos ouvem junto)' : 'Música da sala: só nas salas com aparelho de som (o Lounge tem)' }));
     partes.push(botao({ acao: 'tv', icone: IC.tv, rot: 'TV', titulo: 'TV da sala: passar um vídeo do YouTube para quem está nela', extra: e.zona ? '' : 'disabled' }));
@@ -2371,8 +2364,8 @@
     if (a === 'ouvir') { alternarSurdo(); return; }
     if (a === 'camera') { fn('alternarMidiaEscritorio')?.('video')?.finally?.(pintarChamada); return; }
     if (a === 'tela') { fn('alternarMidiaEscritorio')?.('screen')?.finally?.(() => { pintarChamada(); trazerProPalco(); }); return; }
-    if (a === 'audio') { abrirAjustesAudio(); return; }
-    if (a === 'tv') { fn('abrirTvEscritorio')?.(e?.tvAtual || null); return; }
+    if (a === 'audio') { if (fn('alternarPainelSomEscritorio')) fn('alternarPainelSomEscritorio')('audio'); else abrirAjustesAudio(); return; }
+    if (a === 'tv') { if (fn('alternarPainelSomEscritorio')) fn('alternarPainelSomEscritorio')('tv'); else fn('abrirTvEscritorio')?.(e?.tvAtual || null); return; }
     if (a === 'ver-minha') { const m = minhaSalaDaConta(); if (m) abrirMinhaSala(m); return; }
     if (a === 'decorar') { alternarDecorar(); return; }
     if (a === 'ver-atual') { if (e?.zona) abrirMinhaSala(e.zona); return; }
@@ -3474,6 +3467,8 @@
     if (b.dataset.visaoHoje) { trocarVisaoHoje(b.dataset.visaoHoje); return; }
     if (b.dataset.criacaoPessoa) { if (souDono()) { definirPessoasHoje([b.dataset.criacaoPessoa]); trocarVisaoHoje('tarefas'); } else chamar('chooseFocusUser', String(b.dataset.criacaoPessoa)); return; }
     if (b.dataset.criacaoAtalho === 'dia-time') { if (souDono()) { definirPessoasHoje(timeDeCriacao()); trocarVisaoHoje('tarefas'); } return; }
+    if (b.dataset.criacaoAtalho === 'perguntar' || b.dataset.criacaoAtalho === 'sugestoes') { const alvo = hud.querySelector(b.dataset.criacaoAtalho === 'perguntar' ? '#vv-hoje .v2c-conversa' : '#vv-hoje .v2c-sugestoes'); if (alvo) { alvo.hidden = !alvo.hidden; b.setAttribute('aria-expanded', String(!alvo.hidden)); } return; }
+    if (b.dataset.criacaoAtalho === 'ajustes') { chamar('chooseManagerMode', 'demandas'); return; }
     if (b.dataset.criacaoAtalho === 'antigo') { chamar('chooseDaControllerMode'); return; }
     if (b.dataset.criacaoAtalho === 'planejamentos') { usarTrilho('planejamentos'); return; }
     if (b.dataset.abrirGestao !== undefined) { abrirGestao(b.dataset.abrirGestao || ''); return; }
