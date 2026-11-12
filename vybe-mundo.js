@@ -155,7 +155,7 @@
       { id: 'carteira', nome: 'Saúde da carteira', dica: 'Nota de saúde, risco e clientes prioritários', mod: ['VybeCarteira', 'saude'] },
       { id: 'onboarding', nome: 'Onboarding', dica: 'Cliente novo ou contrato novo: cadastro, questionário, kickoff e checklist', mod: ['VybeCarteira', 'onboarding'] },
       // Reuniões (Paulo, 09/11/2026: "cadê o botão de reunião?"): abre uma reunião com qualquer cliente, com pauta, ata e gravação.
-      { id: 'reunioes', nome: 'Reuniões', dica: 'Abrir uma reunião com um cliente: pauta, ata e gravação do áudio', mod: ['VybeReunioes', 'nova'] },
+      { id: 'reunioes', nome: 'Reuniões', dica: 'Reuniões da semana, atas e a gravação do áudio', mod: ['VybeReunioes', 'nova'] },
     ] },
     // VybeHub (Paulo, 11/11/2026: "o VybeHub vai virar um botão ali no dock lateral"): o sistema irmão dos clientes abre daqui.
     { id: 'vybehub', grupo: 'Operação', nome: 'VybeHub', dica: 'Abrir o VybeHub: portal e resultados dos clientes', url: 'https://vybehub.vercel.app/', ic: svg('<path d="M4 5v14h16"/><path d="M8 15l3-4 3 2 4-6"/>') },
@@ -257,7 +257,7 @@
     if (dockLargo() && String(alvo).startsWith('setor:')) expandirSetor(alvo);
   }
   // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
-  const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas', 'VybeImpressoes'];
+  const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas', 'VybeImpressoes', 'VybeReunioes'];
   // Dock aceso só no que está na tela (auditoria 09/11, D10): ao fechar a janela de um módulo (X, Esc ou o próprio
   // módulo), o item dela apaga e volta a acender o que ficou à vista. As janelas somem do body ou ganham hidden.
   const IDS_DE_JANELA = new Set(['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas', 'vv-agentes', 'vv-impressoes']);
@@ -1818,6 +1818,7 @@
       </div>
     </div>
     <div class="vv-ilha vv-controles" role="group" aria-label="Controles do mapa">
+      <span class="v2m-dica">arraste para girar · clique na loja para abrir</span>
       <button type="button" class="vv-botao" data-ctl="mais" aria-label="Aproximar">${ic.mais}</button>
       <button type="button" class="vv-botao" data-ctl="menos" aria-label="Afastar">${ic.menos}</button>
       <button type="button" class="vv-botao" data-ctl="girar" aria-label="Girar 90 graus">${ic.girar}</button>
@@ -2418,10 +2419,14 @@
     const rostos = gente.slice(0, 4).map((o) => `<i class="${o.id === eu ? 'eu' : ''}${falando.has(o.id) ? ' fala' : ''}" title="${esc(o.id === eu ? 'Você' : o.nome)}${falando.has(o.id) ? ' (falando)' : ''}">${esc(o.id === eu ? 'Eu' : ini(o.nome))}</i>`).join('') + (gente.length > 4 ? `<i class="mais">+${gente.length - 4}</i>` : '');
     const D = window.VybeDecorar, decorar = Boolean(D?.podeDecorar?.(zona)), decorando = decorar && Boolean(D.aberto?.());
     const convidar = zona && zona === minha && typeof window.convidarParaMinhaSalaEscritorio === 'function';
+    // Quadro "Minha sala" (moodboard, 12/11/2026): título, de quem é a sala e a voz numa linha, os rostos, Convidar,
+    // Usar/Decorar em pílula e "Salvar a sala" (acende quando a decoração tem mudança sem salvar).
+    const ed = decorando ? D.estado?.() || {} : {}, podeSalvar = decorando && ed.mudou && !ed.salvando;
     const html = `<span class="quarto-cab-nome"><small>${zona && zona === minha ? 'Minha sala' : 'Visitando'}</small><b>${esc(nomeDe(zona))}</b></span>
-      ${rostos ? `<span class="quarto-rostos" aria-hidden="true">${rostos}</span>` : ''}
       <span class="quarto-quem" title="${esc(nomes.length ? gente.map((o) => (o.id === eu ? 'Você' : o.nome)).join(', ') : 'Ninguém na sala agora')} · ${esc(voz)}"><b>${esc(quem.charAt(0).toUpperCase() + quem.slice(1))}</b><small>${esc(voz.charAt(0).toUpperCase() + voz.slice(1))}</small></span>
-      ${convidar || decorar ? `<span class="quarto-acoes">${convidar ? `<button type="button" class="vv-botao" data-quarto-acao="convidar" title="Mande um link para alguém de fora entrar na sua sala (vale 12 horas)">${svg('<path d="M16 21v-2a4 4 0 0 0-8 0v2"/><circle cx="12" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>')}<span>Convidar</span></button>` : ''}${decorar ? `<button type="button" class="vv-botao acao" data-quarto-acao="decorar" aria-pressed="${decorando}" title="${decorando ? 'Fechar o modo decorar' : 'Decorar: mudar móveis de lugar, girar, guardar, pôr do inventário e comprar na Loja'}">${svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>')}<span>${decorando ? 'Fechar decorar' : 'Decorar'}</span></button>` : ''}</span>` : ''}`;
+      ${rostos ? `<span class="quarto-rostos" aria-hidden="true">${rostos}</span>` : ''}
+      ${convidar || decorar ? `<span class="quarto-acoes">${convidar ? `<button type="button" class="v2n-btn" data-quarto-acao="convidar" title="Mande um link para alguém de fora entrar na sua sala (vale 12 horas)"><span>Convidar</span></button>` : ''}${decorar ? `<span class="v2n-seg" role="group" aria-label="Usar ou decorar a sala"><button type="button" data-quarto-acao="usar" aria-pressed="${!decorando}">Usar</button><button type="button" data-quarto-acao="decorar" aria-pressed="${decorando}" title="Decorar: mudar móveis de lugar, girar, guardar, pôr do inventário e comprar na Loja">Decorar</button></span>
+        <button type="button" class="v2n-btn p" data-quarto-acao="salvar"${podeSalvar ? '' : ' disabled'} title="${decorando ? (ed.salvando ? 'Salvando…' : ed.mudou ? 'Salvar a decoração' : 'Nada para salvar') : 'Entre em Decorar para mudar a sala'}">${ed.salvando ? 'Salvando…' : 'Salvar a sala'}</button>` : ''}</span>` : ''}`;
     if (cab.vvHtml !== html) { cab.innerHTML = html; cab.vvHtml = html; }
   }
   async function abrirMinhaSala(zona = minhaSalaDaConta()) {
@@ -2439,7 +2444,10 @@
     pintarHoje(); // a Agenda entra no Hoje enquanto a sala está aberta
     el.querySelector('.quarto-cab').addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-quarto-acao]'); if (!b || b.disabled) return;
-      if (b.dataset.quartoAcao === 'decorar') alternarDecorar();
+      const D = window.VybeDecorar, decorando = Boolean(D?.aberto?.());
+      if (b.dataset.quartoAcao === 'decorar') { if (!decorando) alternarDecorar(); }
+      else if (b.dataset.quartoAcao === 'usar') { if (decorando) alternarDecorar(); }
+      else if (b.dataset.quartoAcao === 'salvar') Promise.resolve(D?.salvar?.()).finally(() => pintarCabDaSala(el, zona, null));
       else if (b.dataset.quartoAcao === 'convidar') fn('convidarParaMinhaSalaEscritorio')?.();
     });
     pintarCabDaSala(el, zona, null);
@@ -2877,38 +2885,127 @@
     const h = Math.floor(min / 60); if (h < 24) return `visto há ${h} h`;
     const d = Math.floor(h / 24); return d === 1 ? 'visto ontem' : `visto há ${d} dias`;
   }
-  // Equipe online (redesign fase 3c, quadro 38: "mostra pessoas, não links"): quem está em qual sala, com Ir até e
-  // Chamar, e o time inteiro para abrir o perfil. Ranking, Conquistas e Loja moram no dock; ficam aqui só as portas do
-  // Escritório que não têm outro lugar (conversa, recados, missões e o personagem).
-  const EQUIPE_NO_DOCK = new Set(['ranking', 'conquistas', 'inventario', 'catalogo']);
-  // Uma pessoa online: o rosto voxel (o mesmo boneco do mundo), a sala e as ações. Usado também nos Jogos.
+  // ===== Equipe online pelo quadro "Equipe online" do moodboard (Paulo, 12/11/2026: "eu aprovei o DEPOIS") =====
+  // A tela é o quadro, nesta ordem: título, VybeCoins e "Conversa da equipe"; a fala do VYBES; três números (online,
+  // recados sem ler, missões do dia); "Pede ação" e "Missões do dia" à esquerda; "No prédio agora" à direita, com busca,
+  // três fichas e uma linha por sala que abre no lugar (Chamar, Perfil, Entrar na sala); no pé, as portas do Escritório.
+  // Conquistas, Inventário e Catálogo moram no menu (Prédio, Jogos, Loja…); o resto do Escritório fica aqui.
+  const EQUIPE_NO_DOCK = new Set(['conquistas', 'inventario', 'catalogo']);
+  // Uma pessoa online: o rosto voxel (o mesmo boneco do mundo), a sala e as ações. Usado nos Jogos.
   function pessoaOnlineHtml(g, Z, { jogos = false } = {}) {
     const z = Z[g.zona], eu = typeof escritorio !== 'undefined' && String(escritorio?.base?.eu || '') === g.id;
     const rosto = typeof escritorioCabecaUrl === 'function' ? escritorioCabecaUrl(g.id) : '';
     return `<div class="vv-online"><span class="vv-online-rosto">${rosto ? `<img src="${esc(rosto)}" alt="" width="32" height="32" loading="lazy">` : `<i>${esc(iniciais(g.nome))}</i>`}</span>
-      <span class="vv-online-txt"><b>${esc(eu ? 'Você' : g.nome)}</b><small>${z ? (/^sala/i.test(z.nome) ? `na ${esc(z.nome)}` : `na sala ${esc(z.nome)}`) : 'fora das salas'}</small></span>
+      <span class="vv-online-txt"><b>${esc(eu ? 'Você' : g.nome)}</b><small>${z ? (/^sala/i.test(z.nome) ? `na ${esc(z.nome)}` : `na sala ${esc(z.nome)}`) : 'fora das salas'}</small></span>
       ${eu ? '' : `${z && !jogos ? `<button type="button" class="vc-sec" data-entrar-zona="${esc(g.zona)}">Ir até</button>` : ''}<button type="button" class="vc-sec" data-chamar-online="${esc(g.id)}">Chamar</button>`}</div>`;
   }
-  function mostrarEquipe() {
-    const p = placa(), gente = presencaDoEscritorio(), Z = zonas3d();
-    const saldo = (typeof escritorio !== 'undefined' && escritorio?.base?.economia?.saldo) ?? null;
-    const time = (typeof escritorio !== 'undefined' && escritorio?.base?.equipe) || [];
-    const onlineIds = new Set(gente.map((g) => g.id));
-    marcarVistos(gente);
-    const vistos = lerVistos();
+  let equipeFiltro = 'todos', equipeBusca = '', equipeForaAberto = false;
+  const equipeAbertas = new Set();
+  const IC_MIC_SALA = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+  const IC_SETA_BAIXO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  const juntarNomes = (l) => (l.length <= 1 ? l.join('') : l.slice(0, -1).join(', ') + ' e ' + l[l.length - 1]);
+  // O que a tela lê: presença e time do Escritório, recados sem ler por pessoa e as missões (tarefas com recompensa).
+  function dadosDaEquipe() {
+    const e = typeof escritorio !== 'undefined' ? escritorio : null, euId = String(e?.base?.eu || '');
+    const gente = presencaDoEscritorio(), Z = zonas3d(), time = e?.base?.equipe || [];
+    const onlineIds = new Set(gente.map((g) => g.id)), vistos = lerVistos();
     // Quem saiu há menos tempo primeiro.
     const fora = time.filter((t) => !onlineIds.has(String(t.id))).sort((a, b) => (Number(vistos[b.id]) || 0) - (Number(vistos[a.id]) || 0));
-    const acoes = EQUIPE_ACOES.filter(([id, , f]) => !EQUIPE_NO_DOCK.has(id) && typeof window[f.split('(')[0]] === 'function');
-    p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <div class="vv-jogo-cab"><div><h3>Equipe online</h3><p class="vv-sub">Quem está em qual sala do prédio agora. Vá até a pessoa ou chame para a sua sala.</p></div>
-      <span class="vv-equipe-selos"><span class="vv-online-conta"><i aria-hidden="true"></i>${gente.length} de ${Math.max(time.length, gente.length)} online agora</span>
-      ${saldo !== null ? `<span class="vv-moedas-selo" title="Seu saldo de VybeCoins"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3"/></svg>${Number(saldo).toLocaleString('pt-BR')} VybeCoins</span>` : ''}</span></div>
-      <div class="vv-online-lista">${gente.length ? gente.map((g) => pessoaOnlineHtml(g, Z)).join('') : '<p class="vv-dica">Ninguém online agora. Quem entrar aparece aqui, com a sala onde está.</p>'}</div>
-      ${fora.length ? `<div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Fora agora<span class="vv-pilula">${fora.length}</span></div>
-      <div class="vv-online-lista vv-online-fora">${fora.map((t) => { const rosto = typeof escritorioCabecaUrl === 'function' ? escritorioCabecaUrl(String(t.id)) : ''; return `<div class="vv-online"><span class="vv-online-rosto">${rosto ? `<img src="${esc(rosto)}" alt="" width="32" height="32" loading="lazy">` : `<i>${esc(iniciais(t.nome))}</i>`}</span><span class="vv-online-txt"><b>${esc(t.nome || 'Pessoa')}</b><small>${esc(vistos[t.id] ? vistoHa(vistos[t.id]) : 'fora agora')}</small></span><button type="button" class="vc-sec" data-perfil="${esc(t.id)}">Perfil</button></div>`; }).join('')}</div>` : ''}
-      ${acoes.length ? `<div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>Do Escritório</div><div class="vv-equipe-acoes">${acoes.map(([id, nome, , icone]) => `<button type="button" class="vv-atalho" data-equipe="${id}"><i aria-hidden="true"><svg viewBox="0 0 24 24">${icone}</svg></i><span>${esc(nome)}</span></button>`).join('')}</div>` : ''}`;
+    const salas = new Map(); for (const g of gente) { const k = g.zona && Z[g.zona] ? g.zona : ''; if (!salas.has(k)) salas.set(k, []); salas.get(k).push(g); }
+    const recados = Object.entries(e?.recadosResumo || {}).map(([id, n]) => ({ id: String(id), n: Number(n) || 0, nome: time.find((t) => String(t.id) === String(id))?.nome || 'Alguém' })).filter((r) => r.n > 0);
+    const missoes = (e?.missoes?.missoes || []).filter((m) => m.hoje || m.atrasada);
+    const trancas = e?.trancas instanceof Map ? e.trancas : new Map();
+    return { e, euId, gente, Z, time, fora, vistos, salas, recados, nRecados: recados.reduce((s, r) => s + r.n, 0), missoes, trancas, total: Math.max(time.length, gente.length), saldo: e?.base?.economia?.saldo ?? null };
+  }
+  const avEquipe = (nome, on = false, extra = '') => `<span class="v2n-av${on ? ' vd' : ''}${extra}" aria-hidden="true">${esc(iniciais(nome))}</span>`;
+  // "No prédio agora": uma linha por sala com gente (abre no lugar), a linha de quem está fora e a frase do vazio.
+  function predioAgoraHtml(D) {
+    const plano = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const termo = plano(equipeBusca).trim(), bate = (...t) => !termo || t.some((x) => plano(x).includes(termo));
+    const nomeDe = (g) => (g.id === D.euId ? 'Você' : g.nome || 'Pessoa');
+    const acoes = (g, zona, irAte) => (g.id === D.euId ? '<span class="v2n-sub">é você</span>'
+      : `${irAte && zona && D.e?.zona !== zona ? `<button type="button" class="v2n-btn s" data-entrar-zona="${esc(zona)}">Ir até lá</button>` : ''}<button type="button" class="v2n-btn s" data-chamar-online="${esc(g.id)}" aria-label="Chamar ${esc(primeiro(g.nome))} para a minha sala">Chamar</button><button type="button" class="v2n-btn s" data-perfil="${esc(g.id)}">Perfil</button>`);
+    const linhas = [];
+    if (equipeFiltro !== 'fora') for (const [zona, l] of D.salas) {
+      const nomeSala = zona ? D.Z[zona].nome : 'Fora das salas';
+      const quem = l.filter((g) => bate(nomeDe(g), g.nome, nomeSala)); if (!quem.length) continue;
+      const selo = `<span class="v2n-pill ${zona ? 'g' : 'n'}">${zona ? IC_MIC_SALA : ''}${esc(nomeSala)}</span>`;
+      const estado = !zona ? 'na recepção' : D.trancas.has(zona) ? 'sala trancada' : 'sala de voz aberta';
+      if (quem.length === 1) { const g = quem[0];
+        linhas.push(`<div class="v2n-lin v2e-sala">${selo}${avEquipe(nomeDe(g), true)}<p><b>${esc(nomeDe(g))}</b> <span class="v2n-sub">· ${estado}</span></p><span class="v2e-acoes">${acoes(g, zona, true)}</span></div>`);
+        continue; }
+      const aberta = equipeAbertas.has(zona) || Boolean(termo);
+      linhas.push(`<div class="v2-abre v2e-sala" aria-expanded="${aberta}"><button type="button" class="v2n-lin v2e-sala-cab" data-eq-sala="${esc(zona)}" aria-expanded="${aberta}">${selo}<span class="v2n-avs" aria-hidden="true">${quem.slice(0, 4).map((g) => avEquipe(nomeDe(g), true)).join('')}</span><p><b>${esc(juntarNomes(quem.map((g) => primeiro(nomeDe(g)))))}</b> <span class="v2n-sub">· ${estado}</span></p><span class="v2e-seta">${IC_SETA_BAIXO}</span></button>
+        <div class="v2-mais"><div><div class="v2e-det"><div class="v2e-det-gente">${quem.map((g) => `<div class="v2e-pes">${avEquipe(nomeDe(g), true)}<p><b>${esc(nomeDe(g))}</b></p>${acoes(g, zona, false)}</div>`).join('')}</div>
+          ${zona && D.e?.zona !== zona ? `<button type="button" class="v2n-btn k" data-entrar-zona="${esc(zona)}">Entrar na sala</button>` : zona ? '<span class="v2n-pill g">Você está aqui</span>' : ''}</div></div></div></div>`);
+    }
+    if (equipeFiltro !== 'online') { const fora = D.fora.filter((t) => bate(t.nome));
+      if (fora.length) { const aberto = equipeForaAberto || Boolean(termo) || equipeFiltro === 'fora';
+        linhas.push(`<div class="v2-abre v2e-sala" aria-expanded="${aberto}"><div class="v2n-lin"><span class="v2n-pill n">Fora agora ${n0(fora.length)}</span><p class="v2e-fora">${fora.slice(0, 5).map((t) => `<span>${avEquipe(t.nome)}<b>${esc(primeiro(t.nome))}</b></span>`).join('')}${fora.length > 5 ? `<span class="v2n-sub">+ ${n0(fora.length - 5)}</span>` : ''}</p><button type="button" class="v2n-btn s" data-eq-fora aria-expanded="${aberto}">${aberto ? 'Recolher' : 'Ver perfis'}</button></div>
+          <div class="v2-mais"><div><div class="v2e-det v2e-det-fora"><div class="v2e-det-gente">${fora.map((t) => `<div class="v2e-pes">${avEquipe(t.nome)}<p><b>${esc(t.nome || 'Pessoa')}</b> <span class="v2n-sub">· ${esc(D.vistos[t.id] ? vistoHa(D.vistos[t.id]) : 'fora agora')}</span></p><button type="button" class="v2n-btn s" data-eq-recado="${esc(t.id)}">Recado</button><button type="button" class="v2n-btn s" data-perfil="${esc(t.id)}">Perfil</button></div>`).join('')}</div></div></div></div></div>`); } }
+    if (!D.gente.length && equipeFiltro !== 'fora' && !termo) linhas.push('<div class="v2n-lin v2e-vazio"><span class="v2n-pill n">Ninguém online</span><p class="v2n-sub"><b>Ninguém online agora.</b> Quem entrar aparece aqui, com a sala onde está.</p><button type="button" class="v2n-btn s" data-equipe="recados">Deixar recado</button></div>');
+    else if (!linhas.length) linhas.push(`<p class="v2n-sub v2e-nada">${termo ? 'Ninguém com esse nome ou sala.' : 'Ninguém neste filtro.'}</p>`);
+    return linhas.join('');
+  }
+  function mostrarEquipe() {
+    const p = placa(), D = dadosDaEquipe();
+    marcarVistos(D.gente);
+    if (D.e?.base && !D.e.missoes && !mostrarEquipe.pediu) { mostrarEquipe.pediu = true; Promise.resolve(fn('carregarMissoesEscritorio')?.()).catch(() => {}).finally(() => { if (naEquipe()) mostrarEquipe(); }); }
+    const acoes = EQUIPE_ACOES.filter(([id, , f]) => id !== 'conversa' && !EQUIPE_NO_DOCK.has(id) && typeof window[f.split('(')[0]] === 'function');
+    const temConversa = typeof window.alternarAbaEscritorio === 'function';
+    const nSalas = [...D.salas.keys()].filter(Boolean).length, on = D.gente.length;
+    // A fala: quantos estão online e onde está a maior roda; depois, os recados que esperam.
+    const maior = [...D.salas.entries()].filter(([z]) => z).sort((a, b) => b[1].length - a[1].length)[0];
+    const onde = !maior ? '' : maior[1].length === on ? `, ${on === 1 ? 'na' : 'todos na'} ${esc(D.Z[maior[0]].nome)}` : `, ${n0(maior[1].length)} ${maior[1].length === 1 ? 'na' : 'deles na'} ${esc(D.Z[maior[0]].nome)}`;
+    const fala = (on ? `<b>${n0(on)} de ${n0(D.total)} online agora</b>${onde}.` : '<b>Ninguém online agora.</b>')
+      + (D.nRecados ? ` <b>${plural(D.nRecados, 'recado', 'recados')}</b> ${D.nRecados === 1 ? 'espera' : 'esperam'} a sua resposta.` : ' Nenhum recado esperando você.');
+    const moedas = D.missoes.reduce((s, m) => s + (Number(m.recompensa?.moedas) || 0), 0);
+    const kpi = (rot, valor, sub, extra = '', quieto = false) => `<div class="v2n-card v2n-kpi${quieto ? ' quieto' : ''}"><small>${rot}</small><b><span class="v2-num">${valor}</span>${extra}</b><small>${sub}</small></div>`;
+    const pede = D.recados.map((r) => `<div class="v2n-lin"><span class="v2n-pill a">${n0(r.n)} sem ler</span><p><b>Recado de ${esc(primeiro(r.nome))}</b></p><button type="button" class="v2n-btn s" data-eq-recado="${esc(r.id)}">Responder</button></div>`).join('');
+    const missoes = D.missoes.slice(0, 4).map((m) => `<button type="button" class="v2n-lin v2e-missao" data-eq-missao="${esc(m.ref)}|${esc(m.quadro || '')}" title="Abrir a demanda"><i class="v2e-cx" aria-hidden="true"></i><p>${esc(m.titulo)}${m.cliente ? ` <span class="v2n-sub">· ${esc(m.cliente)}</span>` : ''}</p>${m.atrasada ? '<span class="v2n-pill r">Atrasada</span>' : ''}${m.recompensa?.moedas ? `<span class="v2n-pill n">${n0(m.recompensa.moedas)} VybeCoins</span>` : ''}</button>`).join('');
+    const rostos = on ? `<span class="v2n-avs" aria-hidden="true">${D.gente.slice(0, 3).map((g, i, l) => avEquipe(g.id === D.euId ? 'Você' : g.nome, true, i === l.length - 1 ? ' v2-pop' : '')).join('')}</span>` : '';
+    const html = `<div class="v2e">
+      <div class="v2e-topo"><h1>Equipe online</h1>
+        ${D.saldo !== null ? `<span class="v2n-chip vv-moedas-selo" title="Seu saldo de VybeCoins"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg><b>${n0(D.saldo)}</b> VybeCoins</span>` : ''}
+        ${temConversa ? '<button type="button" class="v2n-btn p" data-equipe="conversa">Conversa da equipe</button>' : ''}</div>
+      <section class="v2n-card v2n-fala" aria-label="VYBES sobre a equipe"><span class="v2n-ag" aria-hidden="true">V</span><p><span class="v2n-quem">VYBES · Escritório</span>${fala}</p>${D.nRecados ? '<button type="button" class="v2n-btn s" data-equipe="recados">Ler os recados</button>' : ''}</section>
+      <div class="v2e-nums">
+        ${kpi('Online agora', `${n0(on)} de ${n0(D.total)}`, on ? `em ${plural(nSalas, 'sala', 'salas')} do prédio` : 'ninguém nas salas', rostos, !on)}
+        ${kpi('Recados sem ler', n0(D.nRecados), D.nRecados ? `de ${plural(D.recados.length, 'pessoa', 'pessoas')}` : 'nada esperando', '', !D.nRecados)}
+        ${kpi('Missões do dia', n0(D.missoes.length), D.missoes.length ? (moedas ? `valem ${n0(moedas)} VybeCoins` : 'para hoje ou atrasadas') : 'nada para hoje', '', !D.missoes.length)}
+      </div>
+      <div class="v2e-grade">
+        <div class="v2e-esq">
+          <section class="v2n-card"><div class="v2n-cab"><h2>Pede ação</h2><span class="v2n-sub">${D.recados.length ? `${plural(D.recados.length, 'coisa', 'coisas')} esperando você` : 'nada esperando você'}</span></div>${pede || '<p class="v2n-sub v2e-nada">Nenhum recado sem resposta.</p>'}</section>
+          <section class="v2n-card v2e-missoes"><div class="v2n-cab"><h2>Missões do dia</h2><span class="v2n-sub">${D.missoes.length ? `${n0(D.missoes.length)} em aberto` : 'nenhuma para hoje'}</span></div>
+            ${missoes || '<p class="v2n-sub v2e-nada">Nada para hoje. Quando uma tarefa chegar, ela aparece aqui com o que vale.</p>'}
+            <p class="v2n-sub v2e-pe">${D.missoes.length > 4 ? `+ ${n0(D.missoes.length - 4)} · ` : ''}<button type="button" class="vg-link" data-equipe="missoes">ver todas as missões</button> · as VybeCoins entram quando a tarefa é concluída.</p></section>
+        </div>
+        <section class="v2n-card v2e-predio"><div class="v2n-cab"><h2>No prédio agora</h2><span class="v2n-sub">${on ? `${n0(on)} online em ${plural(nSalas, 'sala', 'salas')} · ` : ''}“Chamar” traz a pessoa para a sua sala</span></div>
+          <div class="v2e-filtros"><input type="search" class="v2n-busca" data-eq-busca placeholder="Buscar pessoa ou sala" aria-label="Buscar pessoa ou sala" value="${esc(equipeBusca)}">
+            ${[['todos', 'Todos', D.total], ['online', 'Online', on], ['fora', 'Fora agora', D.fora.length]].map(([k, r, n]) => `<button type="button" class="v2n-chip" data-eq-filtro="${k}" aria-pressed="${equipeFiltro === k}">${r} <b>${n0(n)}</b></button>`).join('')}</div>
+          <div class="v2e-lista">${predioAgoraHtml(D)}</div></section>
+      </div>
+      ${acoes.length ? `<div class="v2e-portas"><span class="v2n-sub">Do Escritório:</span>${acoes.map(([id, nome]) => `<button type="button" class="v2n-chip" data-equipe="${id}">${esc(nome)}${id === 'recados' && D.nRecados ? ` <b>${n0(D.nRecados)}</b>` : ''}</button>`).join('')}</div>` : ''}
+    </div>`;
+    if (p.vvEquipe !== html || !p.querySelector('.v2e')) { p.innerHTML = html; p.vvEquipe = html; }
     p.hidden = false; ajustarAreaLivre();
   }
+  const naEquipe = () => !placa().hidden && Boolean(placa().querySelector('.v2e'));
+  // A lista acompanha a presença (quem entrou, quem mudou de sala) sem tirar o foco de quem está digitando na busca.
+  if (typeof setInterval === 'function') setInterval(() => { if (naEquipe() && !placa().contains(document.activeElement)) mostrarEquipe(); }, 4000);
+  hud.addEventListener('input', (e) => {
+    if (!e.target.matches?.('[data-eq-busca]')) return;
+    equipeBusca = e.target.value; const l = placa().querySelector('.v2e-lista'); if (l) l.innerHTML = predioAgoraHtml(dadosDaEquipe()); placa().vvEquipe = '';
+  });
+  hud.addEventListener('click', (e) => {
+    const b = e.target.closest?.('#vv-placa .v2e button'); if (!b) return;
+    if (b.dataset.eqSala !== undefined) { const z = b.dataset.eqSala; if (equipeAbertas.has(z)) equipeAbertas.delete(z); else equipeAbertas.add(z); mostrarEquipe(); }
+    else if (b.dataset.eqFiltro) { equipeFiltro = b.dataset.eqFiltro; mostrarEquipe(); }
+    else if (b.hasAttribute('data-eq-fora')) { equipeForaAberto = !equipeForaAberto; mostrarEquipe(); }
+    else if (b.dataset.eqRecado) { if (window.VybeConversa?.abrir) window.VybeConversa.abrir('recados', b.dataset.eqRecado); else fn('abrirRecadosEscritorio')?.(b.dataset.eqRecado); }
+    else if (b.dataset.eqMissao) { const [ref, quadro] = b.dataset.eqMissao.split('|'); fn('abrirMissaoEscritorio')?.(ref, quadro, e); }
+  });
   // Perfil = a ficha completa que o Escritório já tinha (resumo, meta da semana, ganhos, como ganhar,
   // conquistas, inventário e a aba Trabalho com os números). Mesmos dados e regras de quem vê o quê.
   // Com "Ver como" escolhido, abre o perfil daquela pessoa.
@@ -2998,15 +3095,19 @@
   // Loja) e o botão de jogar; embaixo, quem está online para chamar, sem ir a outro lugar.
   function mostrarJogos() {
     const p = placa(), gente = presencaDoEscritorio(), Z = zonas3d();
-    p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <div class="vv-jogo-cab"><div><h3>Jogos</h3><p class="vv-sub">As mesas ficam no terraço do prédio. Escolha o jogo e chame quem está online.</p></div>
-      <span class="vv-online-conta"><i aria-hidden="true"></i>${gente.length} online agora</span></div>
-      <div class="vv-jogos">${JOGOS.map(([id, nome, txt, , , classe, rotulo]) => `<article class="vv-jogo">
-        <img class="vv-jogo-arte" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" loading="lazy">
-        <div class="vv-jogo-txt"><b>${esc(nome)}</b><small>${esc(txt)}</small><button type="button" class="vc-acao" data-jogo="${id}">${esc(rotulo)}</button></div></article>`).join('')}</div>
-      <div class="vv-rotulo-secao" style="--c:var(--sit-pronta)"><i></i>Quem pode jogar agora<span class="vv-pilula">${gente.length}</span></div>
-      <div class="vv-online-lista">${gente.length ? gente.map((g) => pessoaOnlineHtml(g, Z, { jogos: true })).join('') : '<p class="vv-dica">Ninguém online agora. Dá para abrir a mesa e esperar alguém chegar.</p>'}</div>
-      <p class="vv-dica">Ranking, Loja e Conquistas ficam no dock, no grupo Vybe.</p>`;
+    const eu = typeof escritorio !== 'undefined' ? String(escritorio?.base?.eu || '') : '';
+    // Padrão v2 (moodboard, 12/11/2026): título e quantos online; um cartão por mesa, com a arte, a regra e Jogar;
+    // embaixo, quem está online para chamar, na linha do quadro.
+    const pessoa = (g) => `<div class="v2n-lin"><span class="v2n-av vd" aria-hidden="true">${esc(iniciais(g.id === eu ? 'Você' : g.nome))}</span><p><b>${esc(g.id === eu ? 'Você' : g.nome)}</b> <span class="v2n-sub">· ${Z[g.zona] ? esc(Z[g.zona].nome) : 'fora das salas'}</span></p>${g.id === eu ? '' : `<button type="button" class="v2n-btn s" data-chamar-online="${esc(g.id)}">Chamar</button>`}</div>`;
+    p.innerHTML = `<div class="v2j"><div class="v2e-topo"><h1>Jogos</h1><span class="v2n-chip"><i class="v2j-ponto" aria-hidden="true"></i>${n0(gente.length)} online agora</span>
+        <button type="button" class="v2n-x" data-fechar aria-label="Fechar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
+      <p class="v2n-sub">As mesas ficam no terraço do prédio. Escolha o jogo e chame quem está online.</p>
+      <div class="v2j-mesas">${JOGOS.map(([id, nome, txt, , , classe, rotulo]) => `<article class="v2n-card v2j-mesa">
+        <img class="v2j-arte" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" loading="lazy">
+        <div><h2>${esc(nome)}</h2><p class="v2n-sub">${esc(txt)}</p></div><button type="button" class="v2n-btn k" data-jogo="${id}">${esc(rotulo)}</button></article>`).join('')}</div>
+      <section class="v2n-card"><div class="v2n-cab"><h2>Quem pode jogar agora</h2><span class="v2n-sub">${plural(gente.length, 'pessoa online', 'pessoas online')}</span></div>
+        ${gente.length ? gente.map(pessoa).join('') : '<p class="v2n-sub v2e-nada">Ninguém online agora. Dá para abrir a mesa e esperar alguém chegar.</p>'}</section>
+      <p class="v2n-sub">Ranking, Loja e Conquistas ficam no menu, em Prédio, Jogos, Loja…</p></div>`;
     p.hidden = false; ajustarAreaLivre();
   }
   let jogandoAgora = false;
@@ -3065,11 +3166,11 @@
     const temaAgora = temaEscolhido();
     const temaBt = (t, rot) => `<button type="button" role="menuitemradio" data-tema-linha="${t}" aria-checked="${temaAgora === t}">${rot}</button>`;
     // Diário e IA ficam só na Gestão (uma porta por tela, auditoria 09/11).
-    m.innerHTML = (nomeEu ? `<div class="vv-menu-quem"><span class="vv-menu-av" aria-hidden="true">${esc(nomeEu.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</span><span><b>${esc(nomeEu)}</b><small>${esc(papelEu)} · ${saldoEu !== null ? Number(saldoEu).toLocaleString('pt-BR') + ' VybeCoins' : 'saldo ao entrar no escritório'}</small></span></div><hr>` : '')
-      + item('conta', 'Minha conta', 'senha, acessos e equipe')
-      + item('perfil', 'Meu perfil', 'nível, VybeCoins e conquistas')
-      + item('atualizar', 'Atualizar dados', 'busca de novo a produção e os clientes')
-      + (podeVerComo() ? item('vercomo', verComo ? 'Ver como outra pessoa' : 'Ver como…', verComo ? `agora: ${esc(pessoaVista()?.name || '')}` : 'conferir a tela de qualquer pessoa da equipe') : '')
+    m.innerHTML = `<div class="vv-menu-cab"><h2>Conta</h2><button type="button" class="vc-ico" data-conta-fechar aria-label="Fechar">${svg('<path d="M6 6l12 12M18 6 6 18"/>')}</button></div>` + (nomeEu ? `<div class="vv-menu-quem"><span class="vv-menu-av" aria-hidden="true">${esc(nomeEu.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase())}</span><span><b>${esc(nomeEu)}</b><small>${esc(papelEu)} · ${saldoEu !== null ? Number(saldoEu).toLocaleString('pt-BR') + ' VybeCoins' : 'saldo ao entrar no escritório'}</small></span></div><hr>` : '')
+      + '<p class="vv-menu-grupo">Você</p>' + item('conta', 'Minha conta', 'senha e acessos')
+      + item('perfil', 'Meu perfil', 'nível e conquistas')
+      + '<p class="vv-menu-grupo">Gestão</p>' + item('atualizar', 'Atualizar dados', '')
+      + (podeVerComo() ? item('vercomo', verComo ? 'Ver como outra pessoa' : 'Ver como…', verComo ? `agora: ${esc(pessoaVista()?.name || '')}` : 'a tela de outra pessoa') : '')
       + (dono ? item('recado', 'Recado para todos', 'aparece na tela de toda a equipe') : '')
       + `<div class="vv-menu-tema-linha" role="group" aria-label="Aparência"><span>Aparência</span><span class="vb-alternar">${temaBt('claro', 'Claro')}${temaBt('escuro', 'Escuro')}${temaBt('auto', 'Auto')}</span></div>`
       + item('ajustes', 'Mais ajustes de aparência', 'vidro, movimento e o mundo nos módulos')
@@ -3078,6 +3179,7 @@
     m.addEventListener?.('click', (e) => {
       const tl = e.target.closest('[data-tema-linha]');
       if (tl) { trocarTema(tl.dataset.temaLinha); m.querySelectorAll('[data-tema-linha]').forEach((x) => x.setAttribute('aria-checked', String(x === tl))); return; }
+      if (e.target.closest('[data-conta-fechar]')) { m.remove(); return; }
       const b = e.target.closest('[data-conta-acao]'); if (!b) return;
       const a = b.dataset.contaAcao;
       // Ver como: a lista da equipe no próprio menu; escolher troca a tela inteira (Hoje, dock e números de dono).
@@ -3163,7 +3265,7 @@
     const linha = ({ ic, titulo, sub = '', acao = '', novo = false, cls = '' }) => `<li class="vv-aviso-linha${novo ? ' nao-lido' : ''}${cls ? ' ' + cls : ''}">
       <span class="vv-aviso-ic" aria-hidden="true">${ic}</span><div class="vv-aviso-txt"><b>${novo ? '<em class="vv-aviso-novo">Novo</em>' : ''}${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</div>${acao}</li>`;
     const partes = [];
-    if (pend.length) partes.push(`<h3>Esperando você</h3><ul>${pend.map((p) => linha({ ic: IC_AVISO.plano,
+    if (pend.length) partes.push(`<h3>Pede ação</h3><ul>${pend.map((p) => linha({ ic: IC_AVISO.plano,
       titulo: esc(`Planejamento de ${mes(p.mes)}`), sub: esc([p.cliente, p.titulo, estados[p.estado]?.rotulo || p.estado].filter(Boolean).join(' · ')),
       acao: `<button type="button" class="vc-sec vv-aviso-acao" data-aviso-plano="${esc(p.id)}">Abrir</button>` })).join('')}</ul>`);
     const tipos = [['atrasadas', 'status', 'muito atrasada', 'muito atrasadas', IC_AVISO.atraso], ['aprovar', 'status', 'para aprovar', 'para aprovar', IC_AVISO.aprovar], ['sem_info', 'motivo', 'sem informação', 'sem informação', IC_AVISO.falta]];
@@ -3190,7 +3292,7 @@
     if (ultimo) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${notifLinha(ultimo)}</ul>`);
     else if (!novas && curtoLinha && partes.length) partes.unshift(`<div class="vv-aviso-vazio vv-aviso-ultimo"><b>Nada novo</b><p>O último aviso foi este:</p></div><ul>${curtoLinha}</ul>`);
     if (anteriores.length) partes.push(`<h3>${ultimo ? 'Anteriores' : 'Notificações'}</h3><ul>${anteriores.map(notifLinha).join('')}</ul>`);
-    const resumo = novas ? `${novas} ${novas === 1 ? 'notificação nova' : 'notificações novas'}` : pend.length || doCliente.length ? 'Nada novo nas notificações' : 'Nada novo';
+    const resumo = pend.length ? `${pend.length} ${pend.length === 1 ? 'pede ação' : 'pedem ação'}` : novas ? `${novas} ${novas === 1 ? 'notificação nova' : 'notificações novas'}` : 'Nada novo';
     const vazio = partes.length ? '' : `<div class="vv-aviso-vazio"><b>Nada novo</b><p>Quando uma entrega sua estiver perto do prazo, um planejamento esperar você ou alguém mencionar você, o aviso aparece aqui.</p></div>`
       + (curtoLinha ? `<h3>Último aviso</h3><ul>${curtoLinha}</ul>` : '');
     const centro = typeof irParaSalaEscritorio === 'function' && (pend.length || doCliente.length);
@@ -3198,7 +3300,7 @@
         ${partes.length ? `<button type="button" class="vc-sec vv-aviso-lidos" data-aviso-lidos${novas ? '' : ' disabled title="Tudo já foi lido"'}>Marcar como lidos</button>` : ''}
         <button type="button" class="vc-ico vv-aviso-x" data-aviso-fechar aria-label="Fechar os avisos" title="Fechar (Esc)">${IC_AVISO.fechar}</button></div>
       <div class="vv-avisos-corpo">${partes.join('') || vazio}</div>
-      ${centro ? '<div class="vv-avisos-pe"><button type="button" class="vc-sec" data-aviso-centro>Ir ao Centro de Operação</button></div>' : ''}`;
+      ${centro ? '<div class="vv-avisos-pe"><button type="button" class="vc-sec" data-aviso-centro>Centro de Operação</button></div>' : ''}`;
   }
   function posicionarAvisos(p) {
     const b = hud.querySelector('[data-ferr="avisos"]'), r = b?.getBoundingClientRect?.();
@@ -3278,28 +3380,26 @@
       return `<button type="button" class="vv-cel-item${trancado ? ' trancado' : ''}" data-cel-orig="${i}"${orig.getAttribute('aria-pressed') === 'true' ? ' aria-pressed="true"' : ''}${orig.disabled ? ' disabled' : ''}>${iconeDe(orig)}<span>${esc(nome)}</span>${trancado ? '<i class="vv-cel-cadeado" aria-label="só os donos">' + svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') + '</i>' : ''}</button>`;
     };
     const grade = (lista) => `<div class="vv-cel-grade">${lista.join('')}</div>`;
+    // Quadro "No celular" (moodboard, 12/11/2026): a folha que sobe com "Ferramentas e sala" numa grade de quatro, a vista
+    // do mundo em pílula, os favoritos em fichas e os setores, um ícone cada (o setor abre a visão geral com os módulos dele).
     const partes = [];
     const ferr = [...hud.querySelectorAll('.vv-ferramentas [data-ferr], .vv-ferramentas [data-boletim]')]
       .filter((b) => !FERR_NO_TOPO_CEL.includes(b.dataset.ferr) && !b.hidden && (b.dataset.ferr !== 'camadas' || body.classList.contains('mundo-centro')));
-    if (ferr.length) partes.push(`<h3>Ferramentas</h3>${grade(ferr.map((b) => item(b, (b.getAttribute('aria-label') || b.textContent).trim())))}`);
     // A voz fora de uma sala: o cartão do dock só tem Salas e Entrar; o resto do dock vem para cá.
     const dock = faixaDock.querySelector('.vq-cartao') ? [...faixaDock.querySelectorAll('[data-dock-extra]')] : [];
-    if (dock.length) partes.push(`<h3>Salas e voz</h3>${grade(dock.map((b) => item(b, b.dataset.nome || b.title)))}`);
+    const curto = (b) => (b.querySelector('.vv-ferr-nome, .vv-mais-nome')?.textContent || b.getAttribute('aria-label') || b.textContent).trim().replace(/ da Vybe$| dos agentes$| do VYBES$| da equipe$/, '');
+    const curtoDock = { audio: 'Áudio', ouvir: 'Silenciar', musica: 'Música', tv: 'TV' };
+    if (ferr.length || dock.length) partes.push(`<h3>Ferramentas e sala</h3>${grade([...ferr.map((b) => item(b, curto(b))), ...dock.map((b) => item(b, curtoDock[b.dataset.dock] || b.dataset.nome || b.title))])}`);
     const vistas = [...hud.querySelectorAll('.vv-vistas [data-vista]')];
-    if (vistas.length) partes.push(`<h3>Vista do mundo</h3>${grade(vistas.map((b) => item(b, b.textContent.trim())))}`);
+    if (vistas.length) partes.push(`<div class="vv-cel-linha"><h3>Vista do mundo</h3><span class="v2n-seg">${vistas.map((b) => { const i = origem.push(b) - 1; return `<button type="button" data-cel-orig="${i}" aria-pressed="${b.getAttribute('aria-pressed') === 'true'}">${b.dataset.vista === 'predio' ? 'Prédio' : 'Cidade'}</button>`; }).join('')}</span></div>`);
     const favs = [...hud.querySelectorAll('.vv-trilho-fav [data-fav-ir]')];
-    if (favs.length) partes.push(`<h3>Favoritos</h3>${grade(favs.map((b) => item(b, b.querySelector('span')?.textContent.trim() || b.title)))}`);
-    let grupo = '', bloco = [];
-    const fechaGrupo = () => { if (bloco.length) partes.push(`<h3>${esc(grupo || 'Módulos')}</h3>${bloco.join('')}`); bloco = []; };
+    if (favs.length) partes.push(`<div class="vv-cel-linha"><h3>Favoritos</h3><span class="vv-cel-fichas">${favs.map((b) => { const i = origem.push(b) - 1; return `<button type="button" class="v2n-chip" data-cel-orig="${i}">${esc(b.querySelector('span')?.textContent.trim() || b.title)}</button>`; }).join('')}</span></div>`);
+    const setores = [];
     for (const b of hud.querySelectorAll('.vv-trilho > [data-trilho]')) {
       const id = b.dataset.trilho; if (NA_BARRA_CEL.includes(id) || b.hidden || b.classList.contains('trancado')) continue;
-      const g = b.dataset.grupo || grupo; if (g !== grupo) { fechaGrupo(); grupo = g; }
-      const nome = b.querySelector('span')?.textContent.trim() || b.getAttribute('aria-label') || id;
-      const subs = id.startsWith('setor:') ? [...(hud.querySelector(`.vv-trilho-sub[data-sub-de="${id}"]`)?.children || [])].filter((x) => x.matches('button') && !x.hidden && !x.classList.contains('trancado')) : [];
-      if (subs.length && !b.classList.contains('trancado')) bloco.push(`<div class="vv-cel-setor"><b>${iconeDe(b)}${esc(nome)}</b>${grade(subs.map((x) => item(x, x.textContent.replace('↗', '').trim())))}</div>`);
-      else bloco.push(grade([item(b, nome)]));
+      setores.push(item(b, b.querySelector('span')?.textContent.trim() || b.getAttribute('aria-label') || id));
     }
-    fechaGrupo();
+    if (setores.length) partes.push(`<h3>Setores</h3>${grade(setores)}`);
     return `<div class="vv-cel-mais-cab"><h2 id="vv-cel-mais-titulo">Mais</h2><button type="button" class="vc-ico" data-cel-fechar aria-label="Fechar" title="Fechar (Esc)">${svg('<path d="M6 6l12 12M18 6 6 18"/>')}</button></div>
       <div class="vv-cel-mais-corpo">${partes.join('')}</div>`;
   }
@@ -3378,7 +3478,6 @@
   function mostrarCliente(nome) {
     const c = naTela.find((x) => x.nome === nome) || clientesDoMundo().find((x) => x.nome === nome); if (!c) return;
     const p = placa();
-    const quadros = [['atrasada', 'atrasadas'], ['hoje', 'saem hoje'], ['aprovar', 'p/ aprovar'], ['fazer', 'a fazer']];
     const base = mundo?.acharNaBase?.(c.nome);
     const chave = norm(c.nome).toLowerCase();
     const pecas = (typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [])
@@ -3386,22 +3485,26 @@
       .map((d) => ({ d, sit: situacaoDaPeca(d), ref: d.veiculacao_iso || d.prazo_iso || '' }))
       .sort((a, b) => (a.sit === 'atrasada' ? 0 : 1) - (b.sit === 'atrasada' ? 0 : 1) || (a.ref || '9').localeCompare(b.ref || '9'));
     const cnpj = base?.cnpj ? base.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '';
-    p.innerHTML = `<button type="button" class="vv-botao vv-fechar" data-fechar aria-label="Fechar">${ic.fechar}</button>
-      <h3>${typeof tagClienteHtml === 'function' ? tagClienteHtml(c.nome, { dentroDeBotao: true }) : esc(c.nome)}</h3>
-      <p class="vv-sub">${esc(c.segmento || 'Cliente ativo')} · ${c.total} peça${c.total === 1 ? '' : 's'} em aberto</p>
-      ${base ? `<div class="vv-cb-fato"><small>Endereço (base de CNPJ)</small><b>${esc(base.endereco || '')}${base.bairro ? ' · ' + esc(base.bairro) : ''}</b><small style="text-transform:none;letter-spacing:0;margin-top:3px">${esc(base.razao || '')}${cnpj ? ' · CNPJ ' + esc(cnpj) : ''}${!['rua', 'numero'].includes(base.onde) ? ' · posição aproximada' : ''}</small></div>`
-        : '<div class="vv-cb-fato"><small>Endereço</small><b>Não achei na base de CNPJ pelo nome. Ficou num lote perto da agência.</b></div>'}
-      ${(() => { // Número grande só no que pede ação: a situação com zero vira a linha discreta (nenhuma some).
-        const cheios = quadros.filter(([k]) => c.por[k] > 0), zeros = quadros.filter(([k]) => !(c.por[k] > 0));
-        const ladrilhos = (l) => (l.length ? `<div class="vv-contagens">${l.map(([k, r]) => `<div style="--f:var(--sit-${k}-f);--t:var(--sit-${k}-t)"><b>${c.por[k] || 0}</b><small>${r}</small></div>`).join('')}</div>` : '');
-        if (typeof vbResumoHtml !== 'function') return ladrilhos(quadros);
-        return ladrilhos(cheios) + (zeros.length ? `<div class="vs-resumo vv-radar-zeros">${vbResumoHtml(zeros.map(([, r]) => ({ valor: 0, rotulo: r })))}</div>` : '');
-      })()}
-      ${pecas.length ? `<div class="vv-rotulo-secao" style="--c:${c.cor}"><i></i>Em aberto<span class="vv-pilula">${pecas.length}</span></div>${pecas.slice(0, 8).map((x) => linhaDemanda(x.d, { ref: x.ref, sit: x.sit })).join('')}` : ''}
-      <div class="vv-acoes-cliente"><button type="button" class="vv-botao acao" data-abrir-cliente="${esc(c.nome)}">Abrir o cliente →</button>
-      ${typeof abrirModalCerebroCliente === 'function' ? `<button type="button" class="vv-botao" data-cerebro-cliente="${esc(c.nome)}">Sinapses do cérebro</button>` : ''}</div>${window.VybeClientePlaca?.html(c.nome) || ''}`;
+    // ===== Cartão da loja pelo quadro "Centro" do moodboard (Paulo, 12/11/2026: "eu aprovei o DEPOIS") =====
+    // Cabeçalho na cor do cliente (nome, ramo e endereço), três números (atrasadas, para aprovar, a fazer), a linha
+    // "N em aberto" que abre no lugar com as peças, e embaixo quem cuida, o cérebro e "Abrir o cliente".
+    const endereco = base ? `${base.endereco || ''}${base.bairro ? ' · ' + base.bairro : ''}${!['rua', 'numero'].includes(base.onde) ? ' · posição aproximada' : ''}` : 'sem endereço na base';
+    const num = (k, rot, ruim, atraso = 0) => `<p class="${!(c.por[k] > 0) ? 'quieto' : ruim ? 'ruim' : ''}"><b><span class="v2-num" style="animation-delay:${atraso}s">${n0(c.por[k] || 0)}</span></b><small>${rot}</small></p>`;
+    const extras = [c.por.hoje ? `${n0(c.por.hoje)} ${c.por.hoje === 1 ? 'sai' : 'saem'} hoje` : '', c.por.ajuste ? `${n0(c.por.ajuste)} em ajuste` : '', c.por.briefing ? `${n0(c.por.briefing)} sem briefing` : ''].filter(Boolean).join(' · ');
+    const quem = [...new Map(pecas.flatMap((x) => [...(x.d.responsavel_nomes || []), x.d.responsavel_nome, x.d.responsavel].filter((n) => typeof n === 'string' && n.trim()).map((n) => [n, n]))).values()].slice(0, 3);
+    const aberto = mostrarCliente.aberto === c.nome;
+    p.innerHTML = `<div class="v2m-loja" style="--c:${esc(c.cor || '#3B5BA9')}">
+      <div class="v2m-loja-cab"><p><b>${esc(c.nome)}</b><span>${esc(c.segmento || 'Cliente ativo')} · ${esc(endereco)}</span></p><button type="button" class="v2n-x" data-fechar aria-label="Fechar a loja">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
+      ${base ? `<p class="v2n-sub v2m-cnpj">${esc(base.razao || '')}${cnpj ? ' · CNPJ ' + esc(cnpj) : ''}</p>` : ''}
+      <div class="v2m-n3">${num('atrasada', 'atrasadas', true)}${num('aprovar', 'para aprovar', false, .12)}${num('fazer', 'a fazer', false, .24)}</div>
+      <div class="v2-abre v2m-abertas" aria-expanded="${aberto}"><div class="v2n-lin"><button type="button" class="v2m-abre-btn" data-loja-abre="${esc(c.nome)}" aria-expanded="${aberto}"${pecas.length ? '' : ' disabled'}><b>${plural(c.total, 'em aberto', 'em aberto')}</b>${extras ? `<span class="v2n-sub">${esc(extras)}</span>` : ''}</button><button type="button" class="v2n-btn s" data-trilho="criar">Nova demanda</button></div>
+        <div class="v2-mais"><div><div class="v2m-pecas">${pecas.slice(0, 8).map((x) => linhaDemanda(x.d, { ref: x.ref, sit: x.sit })).join('')}${pecas.length > 8 ? `<p class="v2n-sub">+ ${n0(pecas.length - 8)} no cliente</p>` : ''}${window.VybeClientePlaca?.html(c.nome) || ''}</div></div></div></div>
+      <div class="v2m-loja-pe">${quem.length ? `<span class="v2n-avs" title="${esc(quem.join(', '))}">${quem.map((n, i) => `<span class="v2n-av${i === quem.length - 1 ? ' v2-pop' : ''}">${esc(iniciais(n))}</span>`).join('')}</span>` : '<span></span>'}
+        ${typeof abrirModalCerebroCliente === 'function' ? `<button type="button" class="v2n-btn" data-cerebro-cliente="${esc(c.nome)}" title="Sinapses do cérebro do cliente">Cérebro</button>` : ''}<button type="button" class="v2n-btn k" data-abrir-cliente="${esc(c.nome)}">Abrir o cliente</button></div>
+    </div>`;
     p.hidden = false; ajustarAreaLivre(); window.VybeClientePlaca?.ligar(p); window.VybeTutorial?.dica?.('cliente');
     mundo?.focarCliente(nome);
+    pintarLegendaCidade(naTela, c.nome);
   }
   // ---------- Hora do mundo: automático (hora real da Bahia), dia, noite ou uma hora escolhida ----------
   // A escolha é de cada pessoa e fica no navegador dela (conveniência; sem servidor).
@@ -3477,6 +3580,7 @@
       window.VybeTutorial?.dica?.('vista:' + b.dataset.vista);
       hud.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       body.classList.toggle('mundo-predio', b.dataset.vista === 'predio');
+      if (hud.querySelector('.v2m-barra')) pintarLegendaCidade(naTela);
       if (b.dataset.vista === 'predio') { mundo.verPredio(); mostrarAndares(); }
       else { mundo.verCidade(); fecharPlaca(); }
     } else if (b.dataset.ctl) {
@@ -3537,24 +3641,68 @@
   // Legenda da Cidade (fase 3b, quadro 32): conta os clientes do mapa pela situação, nas mesmas cores dos pinos.
   // Atraso = alguma peça atrasada; atenção = sai hoje, espera aprovação, pediu ajuste ou falta briefing; o resto (inclusive
   // quem não tem peça em aberto, o pino com ✓) está em dia.
-  function pintarLegendaCidade(lista) {
+  // ===== Barra "Vybelândia" pelo quadro "Centro" do moodboard (Paulo, 12/11/2026) =====
+  // No alto do mapa: o nome com Centro/Prédio, a busca de cliente, as três contagens (filtro: clicar acende só aquela
+  // situação no mapa) e "Ir à mais apertada". Embaixo à esquerda, a fala do VYBES com "Seu dia" (o Hoje recolhido).
+  let filtroCidade = '';
+  const grupoDaCidade = (c) => (c.situacao === 'atrasada' ? 'atraso' : ['aprovar', 'ajuste', 'hoje', 'briefing'].includes(c.situacao) ? 'atencao' : 'dia');
+  const maisApertada = (lista) => [...(lista || [])].filter((c) => c.por?.atrasada > 0).sort((a, b) => b.por.atrasada - a.por.atrasada || b.total - a.total)[0] || null;
+  function pintarLegendaCidade(lista, sel = '') {
     let el = hud.querySelector('.vv-legenda-cidade');
-    if (!el) { el = document.createElement('div'); el.className = 'vv-ilha vv-legenda-cidade'; el.setAttribute('role', 'status'); el.setAttribute('aria-label', 'Situação dos clientes no mapa'); hud.append(el); }
-    const n = { atraso: 0, atencao: 0, dia: 0 };
-    for (const c of lista || []) {
-
-      if (c.situacao === 'atrasada') n.atraso++; else if (['aprovar', 'ajuste', 'hoje', 'briefing'].includes(c.situacao)) n.atencao++; else n.dia++;
+    if (!el) {
+      el = document.createElement('div'); el.className = 'vv-legenda-cidade v2m-barra'; el.setAttribute('role', 'group'); el.setAttribute('aria-label', 'Vybelândia: vista, busca e situação dos clientes no mapa');
+      el.innerHTML = `<div class="v2m-nome"><h1>Vybelândia</h1><span class="v2n-seg"><button type="button" data-vista="cidade" aria-pressed="true">Centro</button><button type="button" data-vista="predio" aria-pressed="false">Prédio</button></span></div>
+        <input type="search" class="v2n-busca" data-busca-loja placeholder="Buscar cliente no mapa" aria-label="Buscar cliente no mapa" list="v2m-lojas"><datalist id="v2m-lojas"></datalist>
+        <span class="v2m-conta"></span><button type="button" class="v2n-btn p" data-loja-apertada>Ir à mais apertada</button>`;
+      hud.append(el);
+      const fala = document.createElement('section'); fala.className = 'v2n-card v2n-fala v2m-fala'; fala.setAttribute('aria-label', 'VYBES sobre os clientes'); hud.append(fala);
     }
-    const item = (k, rot, cor) => `<span class="vv-legenda-item${n[k] ? '' : ' zero'}"><i style="--e:${cor}"></i><b>${n[k]}</b> ${rot}</span>`;
-    el.innerHTML = item('dia', 'em dia', COR.pronta) + item('atencao', 'em atenção', COR.hoje) + item('atraso', 'com atraso', COR.atrasada);
+    const n = { atraso: 0, atencao: 0, dia: 0 };
+    for (const c of lista || []) n[grupoDaCidade(c)]++;
+    const item = (k, rot) => `<button type="button" class="v2n-chip" data-filtro-cidade="${k}" aria-pressed="${filtroCidade === k}"${n[k] ? '' : ' disabled'}>${n0(n[k])} ${rot}</button>`;
+    const conta = item('dia', 'em dia') + item('atencao', 'em atenção') + item('atraso', 'com atraso');
+    const caixa = el.querySelector('.v2m-conta'); if (caixa.vvHtml !== conta) { caixa.innerHTML = conta; caixa.vvHtml = conta; }
+    const opcoes = (lista || []).map((c) => `<option value="${esc(c.nome)}"></option>`).join(''), dl = el.querySelector('datalist'); if (dl.vvHtml !== opcoes) { dl.innerHTML = opcoes; dl.vvHtml = opcoes; }
+    const top = maisApertada(lista), bt = el.querySelector('[data-loja-apertada]'); bt.disabled = !top; bt.title = top ? `${top.nome}: ${plural(top.por.atrasada, 'peça atrasada', 'peças atrasadas')}` : 'Nenhuma loja com atraso';
+    const fala = hud.querySelector('.v2m-fala');
+    const frase = !lista?.length ? 'Os clientes aparecem no mapa assim que a produção carregar.'
+      : n.atraso ? `${n.atraso === lista.length ? `As <b>${n0(n.atraso)} lojas têm atraso</b>` : `<b>${plural(n.atraso, 'loja tem', 'lojas têm')} atraso</b>`}. A mais apertada é a do <b>${esc(top.nome)}</b>, com ${plural(top.por.atrasada, 'peça', 'peças')}.`
+      : n.atencao ? `Nenhuma loja com atraso. <b>${plural(n.atencao, 'pede', 'pedem')} atenção</b> hoje.` : 'Todas as lojas em dia.';
+    const falaHtml = `<span class="v2n-ag" aria-hidden="true">V</span><p><span class="v2n-quem">VYBES · Agência inteira</span>${frase}</p><button type="button" class="v2n-btn s" data-seu-dia aria-pressed="${body.classList.contains('v2m-dia')}">Seu dia</button>`;
+    if (fala.vvHtml !== falaHtml) { fala.innerHTML = falaHtml; fala.vvHtml = falaHtml; }
+    if (sel !== undefined) el.dataset.sel = sel;
+    const predio = body.classList.contains('mundo-predio');
+    el.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.vista === 'predio') === predio)));
   }
+  function filtrarCidade(k) {
+    filtroCidade = filtroCidade === k ? '' : k;
+    // O filtro só escolhe quais lojas o mapa desenha; as contagens continuam as da cidade inteira.
+    const todas = clientesDoMundo(), vistas = filtroCidade ? todas.filter((c) => grupoDaCidade(c) === filtroCidade) : todas;
+    naTela = todas; ultimaAssinatura = 'filtro:' + filtroCidade;
+    mundo?.definirClientes(vistas, { aoClicar: (alvo) => mostrarCliente(alvo.nome) });
+    pintarLegendaCidade(todas);
+  }
+  hud.addEventListener('click', (e) => {
+    const b = e.target.closest?.('[data-filtro-cidade],[data-loja-apertada],[data-seu-dia],[data-loja-abre]'); if (!b || b.disabled) return;
+    if (b.dataset.filtroCidade) filtrarCidade(b.dataset.filtroCidade);
+    else if (b.hasAttribute('data-loja-apertada')) { const t = maisApertada(naTela); if (t) mostrarCliente(t.nome); }
+    else if (b.hasAttribute('data-seu-dia')) { body.classList.toggle('v2m-dia'); pintarLegendaCidade(naTela); ajustarAreaLivre(); }
+    else if (b.dataset.lojaAbre) { const a = b.closest('.v2-abre'), sim = a.getAttribute('aria-expanded') !== 'true'; a.setAttribute('aria-expanded', String(sim)); b.setAttribute('aria-expanded', String(sim)); mostrarCliente.aberto = sim ? b.dataset.lojaAbre : ''; }
+  });
+  hud.addEventListener('change', (e) => {
+    if (!e.target.matches?.('[data-busca-loja]')) return;
+    const t = e.target.value.trim().toLowerCase(); if (!t) return;
+    const c = naTela.find((x) => x.nome.toLowerCase() === t) || naTela.find((x) => x.nome.toLowerCase().includes(t));
+    if (c) { mostrarCliente(c.nome); e.target.value = ''; }
+  });
+  hud.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches?.('[data-busca-loja]')) e.target.dispatchEvent(new Event('change', { bubbles: true })); });
   function pintarClientes(forcar = false) {
     if (!mundo) return;
     const lista = clientesDoMundo();
     const assinatura = lista.map((c) => `${c.nome}:${c.total}:${c.situacao}:${(c.status || []).map((s) => s.nome + s.n).join(',')}`).join('|');
     if (!forcar && assinatura === ultimaAssinatura) return;
     ultimaAssinatura = assinatura; naTela = lista;
-    mundo.definirClientes(lista, { aoClicar: (alvo) => mostrarCliente(alvo.nome) });
+    mundo.definirClientes(filtroCidade ? lista.filter((c) => grupoDaCidade(c) === filtroCidade) : lista, { aoClicar: (alvo) => mostrarCliente(alvo.nome) });
     pintarLegendaCidade(lista);
     mundo.alertaVybes(lista.some((c) => c.situacao === 'atrasada'));
   }
@@ -3925,10 +4073,12 @@
     const linha = ([id, z]) => {
       const aqui = outros.filter((o) => o.zona === id), minha = e.zona === id, tranc = trancas.has(id);
       const gente = [...(minha ? [eu] : []), ...aqui];
-      return `<button type="button" class="vz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está aqui' : 'Entrar nesta sala e na conversa dela'}">
+      // Quadro "Barra de baixo" (moodboard, 12/11/2026): nome, quem está, os rostos e Entrar; na sala atual, "Dentro".
+      const rostos = gente.length ? `<span class="vz-avs" aria-hidden="true">${gente.slice(0, 3).map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}">${esc(o.id === eu.id ? 'Eu' : iniciais(o.nome))}</i>`).join('')}</span>` : '';
+      return `<button type="button" class="vz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está nesta sala' : 'Entrar nesta sala e na conversa dela'}">
         <span class="ic" aria-hidden="true">${tranc ? IC.cadeado : IC.salas}</span>
         <span class="meio"><b>${esc(z.nome || nomeZona(id))}${tranc ? ' <small>trancada</small>' : ''}</b>${gente.length ? `<span class="gente">${gente.map((o) => { const mudo = mics.get(String(o.id)) === false; return `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}${mudo ? ' mudo' : ''}" title="${esc(o.nome)}${mudo ? ' (mudo)' : ''}">${esc(o.id === eu.id ? 'Você' : primeiro(o.nome))}${mudo ? ' · mudo' : ''}</i>`; }).join('')}</span>` : `<small>${esc(nomeAndar(z.andar || 'outros'))}</small>`}</span>
-        <em>${minha ? 'Você está aqui' : 'Entrar'}</em></button>`;
+        ${rostos}<em>${minha ? 'Dentro' : 'Entrar'}</em></button>`;
     };
     const fora = outros.filter((o) => !o.zona || !Z[o.zona]);
     const temGente = ([id]) => e.zona === id || outros.some((o) => o.zona === id);
@@ -3937,13 +4087,15 @@
     const nVazias = vazias.reduce((n, [, l]) => n + l.length, 0);
     const longe = outros.filter((o) => o.zona !== e.zona);
     return `<div class="vz-salas">
-      <div class="vz-salas-topo"><span><b>Salas de voz</b><small>${estadoVoz ? esc(estadoVoz) + ' · ' : ''}${outros.length + 1} online · clique numa sala para entrar</small></span>
-        ${minhaSala && minhaSala !== e.zona ? `<button type="button" class="vz-botao" data-chamada="minha-sala" title="Entrar na minha sala">${IC.casa}Minha sala</button>` : ''}</div>
+      <div class="vz-salas-topo"><span><b>Salas</b>${estadoVoz ? `<small>${esc(estadoVoz)}</small>` : ''}</span><span class="v2k-pill">${n0(outros.length + 1)} ${outros.length ? 'pessoas' : 'pessoa'} ao vivo</span>
+        <button type="button" class="vz-botao v2k-x" data-chamada="fechar" aria-label="Fechar" title="Fechar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
       ${ocupadas.length ? ocupadas.map(linha).join('') : '<p class="vz-dica">Ninguém nas salas agora.</p>'}
       ${nVazias ? `<div class="vz-rotulo">Vazias agora · ${nVazias}</div>${vazias.map(([, l]) => l.map(linha).join('')).join('')}` : ''}
       ${longe.length ? `<details class="vz-recolhe" data-k="chamar"><summary>Chamar alguém <span>${longe.length}</span></summary>${longe.map((o) => `<div class="vz-online"><span data-voz-pessoa="${esc(o.id)}" class="av${falando.has(String(o.id)) ? ' fala' : ''}">${esc(iniciais(o.nome))}</span><span class="meio"><b>${esc(o.nome)}</b><small>${esc(o.zona && Z[o.zona] ? Z[o.zona].nome : nomeZona(o.zona))}</small></span>
         ${o.zona ? `<button type="button" class="vz-botao" data-ir-sala="${esc(o.zona)}">Ir até</button>` : ''}<button type="button" class="vz-botao" data-chamar-pessoa="${esc(o.id)}">Chamar</button></div>`).join('')}</details>` : ''}
       ${fora.length ? `<p class="vz-dica">${fora.length} na recepção ou fora das salas.</p>` : ''}
+      <p class="vz-dica vz-frase">Entrou, o microfone, a câmera e a tela ligam na barra.</p>
+      ${minhaSala ? '<div class="v2k-pe"><button type="button" class="vz-botao" data-chamada="decorar-minha">Decorar minha sala</button><span class="v2k-vao"></span></div>' : ''}
     </div>`;
   }
   barra.addEventListener?.('click', (ev) => {
@@ -3966,6 +4118,8 @@
     else if (c === 'sair') { fn('sairChamadaEscritorio')?.({ manual: true })?.finally?.(() => { pintarChamada(); trazerProPalco(); }); chamarAberto = false; pintarChamada(); }
     else if (c === 'entrar-voz') { const e = typeof escritorio !== 'undefined' ? escritorio : null; if (e) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); pintarChamada(); } }
     else if (c === 'minha-sala') { const sala = minhaSalaDaConta(); if (sala) irParaSala(sala); }
+    else if (c === 'fechar') abrirDaDireita('');
+    else if (c === 'decorar-minha') { const sala = minhaSalaDaConta(); abrirDaDireita(''); if (sala) Promise.resolve(abrirMinhaSala(sala)).then(() => { if (!window.VybeDecorar?.aberto?.()) alternarDecorar(); }); }
     else if (b.dataset.pessoa) {
       pessoaAberta = pessoaAberta === b.dataset.pessoa ? null : b.dataset.pessoa; chamarAberto = false;
       pintarChamada();

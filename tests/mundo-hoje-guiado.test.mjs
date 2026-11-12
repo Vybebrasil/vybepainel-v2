@@ -55,10 +55,12 @@ test('Agência: o VYBES guia (alerta mais grave, cliente esperando no WhatsApp, 
 
 test('Criação: o time do Deivid (design e edição), guiado pelo Danilo, com as pessoas, as filas e a semana; o dock abre ela', () => {
   assert.ok(js.includes("const timeDeCriacao = () => (typeof EQUIPES !== 'undefined' ? [...EQUIPES.design, ...EQUIPES.audiovisual] : []).map(String);"));
-  assert.ok(js.includes("{ agente: { nome: 'Danilo', papel: 'Direção de Arte · guia da Criação', setor: 'design' }"));
+  assert.ok(js.includes('<span class="v2t-quem">Danilo · Direção de arte · o que temos para hoje</span>'), 'a fala do Danilo (quadro da Direção de arte)');
   assert.ok(js.includes("aba('criacao', 'Criação')"), 'aba dos donos');
   assert.ok(js.includes("if (visaoHoje === 'criacao' && ((dono && !verComo) || criacaoPeloDock)) { pintarCriacao(el, { data }); return; }"));
   assert.ok(js.includes("if (id === 'direcao') { visaoHoje = 'criacao'; criacaoPeloDock = true;"), 'Direção de arte do dock abre a Criação');
-  assert.ok(js.includes("bloco('Esperando aprovação', 'o que trava a próxima etapa'") && js.includes("bloco('Pediram ajuste'"));
-  assert.ok(js.includes('data-criacao-atalho="antigo">Painel antigo de direção de arte'), 'o painel antigo fica a um clique durante a troca');
+  // Quadro "Direção de arte" do moodboard (12/11/2026): três números, Fila do Danilo, baralho "Esperando o seu parecer" e o Time.
+  assert.ok(js.includes("decidirHtml({ titulo: 'Esperando o seu parecer', artes: true })"), 'o baralho do parecer');
+  assert.ok(js.includes('<section class="v2c-time" aria-label="Time">') && js.includes('data-criacao-atalho="ajustes"><span>Pediram ajuste</span>'));
+  assert.ok(js.includes("if (b.dataset.criacaoAtalho === 'antigo') { chamar('chooseDaControllerMode'); return; }"), 'o painel antigo continua atendido');
 });

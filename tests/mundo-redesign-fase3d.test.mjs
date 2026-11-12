@@ -82,7 +82,7 @@ test('sino: aviso novo vira aviso curto com "Abrir a peça"; a primeira leitura 
 test('avisos do sino: painel preso no sino, tipo num ícone neutro, frase inteira, ação em cada linha e "Novo" escrito', () => {
   assert.ok(js.includes("p.className = 'vv-avisos-painel'; p.setAttribute('role', 'dialog')"), 'painel, não a janela no meio da tela');
   assert.ok(!js.includes("m.className = 'vv-avisos-menu'"), 'sem o menu de escolha antigo');
-  for (const t of ['<h3>Esperando você</h3>', '<h3>Nos seus clientes</h3>', "'Anteriores' : 'Notificações'}</h3>", "' disabled title=\"Tudo já foi lido\"'}>Marcar como lidos", 'data-aviso-centro>Ir ao Centro de Operação'])
+  for (const t of ['<h3>Pede ação</h3>', '<h3>Nos seus clientes</h3>', "'Anteriores' : 'Notificações'}</h3>", "' disabled title=\"Tudo já foi lido\"'}>Marcar como lidos", 'data-aviso-centro>Centro de Operação'])
     assert.ok(js.includes(t), t);
   assert.ok(js.includes('<em class="vv-aviso-novo">Novo</em>'), 'não lido com a palavra, não só a cor');
   assert.ok(js.includes(">Abrir a peça</button>` : ''"), 'a notificação abre a peça');

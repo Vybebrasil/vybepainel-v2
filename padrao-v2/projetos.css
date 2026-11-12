@@ -1,0 +1,118 @@
+/* ======================================================================================
+   PADRÃO V2 · PROJETOS (moodboard, quadro DEPOIS de Projetos, Produção › Projetos pontuais; 12/11/2026).
+   Usa as peças v2p-* de padrao-v2/pessoas.css (janela, cartão, fala, ficha, pílula, botão, avatar, caixinha) e os
+   movimentos do bloco PADRÃO V2 · BASE de vybe-mundo.css (v2-barra, v2-num, v2-risca, v2-estado, v2-pop, v2-chegou).
+   Aqui fica só o que é deste quadro: a grade 350px + o resto, o cartão do projeto e a página do projeto aberto.
+   ====================================================================================== */
+
+/* ---------- a grade: cartões à esquerda, o projeto aberto à direita ---------- */
+#vv-pessoas .v2pj-grade{flex:1 0 auto;display:grid;grid-template-columns:350px minmax(0,1fr);gap:14px;align-items:stretch;min-width:0}
+#vv-pessoas .v2pj-grade.so-lista{grid-template-columns:minmax(0,1fr)}
+#vv-pessoas .v2pj-lista{display:flex;flex-direction:column;gap:14px;min-width:0}
+#vv-pessoas .v2pj-grade.so-lista > .v2pj-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));align-content:start}
+#vv-pessoas .v2pj-grade.so-lista .v2pj-resto{grid-column:1 / -1}
+#vv-pessoas .v2p .v2pj-resto{padding:0 2px}
+
+/* o cliente com a bolinha da cor dele */
+#vv-pessoas .v2pj-cli{display:inline-flex;align-items:center;gap:6px;min-width:0;font:600 13px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-pessoas .v2pj-cli::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,#6B665E)}
+
+/* ---------- o cartão do projeto ---------- */
+#vv-pessoas .v2p-card.v2pj-card{appearance:none;display:flex;flex-direction:column;gap:10px;width:100%;box-sizing:border-box;padding:16px;color:#1F1D1A;font:400 13.5px/1.4 var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer;transition:box-shadow .2s,transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1))}
+#vv-pessoas .v2p-card.v2pj-card:hover{box-shadow:0 0 0 1px #E6E0D6,0 12px 24px -18px rgba(31,29,26,.22)}
+#vv-pessoas .v2p-card.v2pj-card:active{transform:scale(.985)}
+#vv-pessoas .v2p-card.v2pj-card[aria-pressed="true"]{box-shadow:0 0 0 2px var(--c,#3B5BA9),0 12px 24px -18px rgba(31,29,26,.22)}
+#vv-pessoas .v2p-card.v2pj-card:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+#vv-pessoas .v2pj-topo{display:flex;align-items:center;gap:8px;min-width:0}
+#vv-pessoas .v2pj-topo > .v2pj-cli{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-pessoas .v2p .v2pj-tit{display:block;font:600 15px/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A;overflow-wrap:anywhere}
+#vv-pessoas .v2pj-prog{display:flex;align-items:center;gap:10px;min-width:0}
+#vv-pessoas .v2pj-prog > .v2-barra{flex:1;display:block;min-width:40px;background:#EAE6DE;border-radius:3px}
+#vv-pessoas .v2pj-prog > .v2p-sub{flex:none;white-space:nowrap}
+#vv-pessoas .v2pj-pe{display:flex;align-items:center;gap:8px;min-width:0;min-height:28px}
+#vv-pessoas .v2p .v2pj-prox{flex:1;min-width:0;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-pessoas .v2p .v2pj-prox.ruim,#vv-pessoas .v2p .v2pj-quando.ruim,#vv-pessoas .v2p .v2pj-ruim{color:#B42318;font-weight:600}
+
+/* ---------- a página do projeto aberto ---------- */
+#vv-pessoas .v2p-card.v2pj-pag{display:flex;flex-direction:column;min-width:0;padding:22px}
+#vv-pessoas .v2pj-vira{transform-origin:0 12%;animation:v2pj-vira .45s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+@keyframes v2pj-vira{from{opacity:0;transform:scale(.6,.4)}to{opacity:1;transform:none}}
+#vv-pessoas .v2pj-pag-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+#vv-pessoas .v2pj-pag-topo > .v2pj-cli{font-size:13.5px}
+#vv-pessoas .v2pj-esp{flex:1}
+#vv-pessoas .v2pj-pag-topo svg{display:block}
+#vv-pessoas .v2pj-mais{position:relative;display:inline-flex}
+#vv-pessoas .v2pj-menu{position:absolute;top:36px;right:0;z-index:5;display:flex;flex-direction:column;min-width:200px;padding:6px;border-radius:14px;background:#FFFFFF;box-shadow:0 0 0 1px #E6E0D6,0 18px 32px -18px rgba(31,29,26,.4)}
+#vv-pessoas .v2pj-menu > button{appearance:none;margin:0;padding:9px 12px;border:0;border-radius:10px;background:none;color:#1F1D1A;font:500 13px var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
+#vv-pessoas .v2pj-menu > button:hover,#vv-pessoas .v2pj-menu > button:focus-visible{background:#F3F1EC;outline:none}
+#vv-pessoas .v2p .v2pj-pag-tit{margin:12px 0 0;font:700 22px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A;overflow-wrap:anywhere}
+#vv-pessoas .v2p .v2pj-quem{margin-top:4px}
+#vv-pessoas .v2p .v2pj-desc{margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#vv-pessoas .v2pj-prog-g{gap:12px;margin-top:14px}
+#vv-pessoas .v2pj-prog-g > .v2-barra{height:8px;border-radius:4px}
+#vv-pessoas .v2pj-prog-g > b{flex:none;font-size:13.5px}
+#vv-pessoas .v2pj-etapas{margin-top:10px}
+#vv-pessoas .v2pj-etapas > .v2p-lin:first-child{border-top:0}
+#vv-pessoas .v2pj-etapa > p{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+#vv-pessoas .v2pj-etapa > p > b{font-weight:700}
+#vv-pessoas .v2pj-etapa .v2-risca.feita{color:#6B665E}
+#vv-pessoas .v2pj-quando{flex:none;white-space:nowrap}
+#vv-pessoas .v2pj-rodape{margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #F1EDE6}
+#vv-pessoas .v2pj-etapas + .v2pj-rodape{margin-top:auto}
+#vv-pessoas .v2p-card.v2pj-pag > .v2pj-etapas{margin-bottom:12px}
+#vv-pessoas .v2pj-rodape > p{flex:1;min-width:120px}
+#vv-pessoas .v2p .v2pj-rodape .v2p-btn.v2-estado{position:relative}
+
+/* ---------- o formulário no lugar da página ---------- */
+#vv-pessoas .v2p .vp-cartao.v2pj-form{min-width:0;margin:0;padding:22px}
+#vv-pessoas .v2p .v2pj-form > .vp-titulo{margin:0 0 6px;font:700 22px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+#vv-pessoas .v2pj-form .vp-etapa-form{border:0;border-radius:14px;background:#F6F3EE}
+#vv-pessoas .v2pj-form .vp-etapa-form label{min-width:0}
+#vv-pessoas .v2pj-form .vp-etapa-form label > :is(input,select){width:100%;min-width:0;box-sizing:border-box}
+#vv-pessoas .v2pj-form .vp-etapa-form .vp-link.perigo{height:30px;margin:0;padding:0 10px;border:0;border-radius:999px;background:none;box-shadow:none;color:#B42318}
+#vv-pessoas .v2pj-form .vp-etapa-form .vp-link.perigo:hover{background:#FDECEE}
+@media (min-width:720px){#vv-pessoas .v2pj-form .vp-etapa-form{grid-template-columns:minmax(0,1.6fr) minmax(0,1.3fr) minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,.9fr) auto}}
+
+/* ---------- Linha do tempo ---------- */
+#vv-pessoas .v2p-card.v2pj-tempo{display:flex;flex-direction:column;gap:12px;min-width:0}
+#vv-pessoas .v2pj-cab{flex-wrap:wrap;align-items:center;margin:0}
+#vv-pessoas .v2pj-cab > h3{flex:0 1 auto}
+#vv-pessoas .v2pj-cab > small{flex:1;text-align:left}
+#vv-pessoas .v2pj-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-left:auto}
+#vv-pessoas .v2p .v2pj-ctl .v2pj-sel{height:30px;min-height:0;max-width:220px;box-sizing:border-box;margin:0;padding:0 28px 0 12px;border:0;border-radius:999px;background-color:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter),sans-serif}
+#vv-pessoas .v2pj-seg{display:inline-flex;padding:4px;border-radius:999px;background:#EAE6DE}
+#vv-pessoas .v2pj-seg > button{appearance:none;height:26px;margin:0;padding:0 12px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#vv-pessoas .v2pj-seg > button[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+#vv-pessoas .v2pj-seg > button:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+#vv-pessoas .v2pj-ctl .vp-nav{display:flex;gap:6px}
+#vv-pessoas .v2p .v2pj-ctl .vp-nav .vp-sec{height:30px;min-height:30px;padding:0 12px;font-size:12.5px}
+#vv-pessoas .v2pj-tempo .vp-gantt{padding:0;border:0;border-radius:0;background:transparent}
+#vv-pessoas .v2pj-tempo .vp-gantt-proj{border-bottom-color:#F1EDE6}
+#vv-pessoas .v2pj-tempo .vp-gantt-trilho{background:#F3F1EC}
+#vv-pessoas .v2pj-tempo .vp-gantt-barra{background:#3B5BA9}
+#vv-pessoas .v2pj-tempo .vp-gantt-barra.proj{background:#EAE6DE}
+#vv-pessoas .v2pj-tempo .vp-gantt-barra.feita{background:#11613A}
+#vv-pessoas .v2pj-tempo .vp-gantt-barra.atrasada{background:#B42318}
+#vv-pessoas .v2pj-tempo .vp-dia{border:0;border-radius:14px;background:#F6F3EE}
+#vv-pessoas .v2pj-tempo .vp-dia.hoje{background:#FFF1E6;box-shadow:inset 0 0 0 1.5px #FF7A2F}
+#vv-pessoas .v2pj-tempo .vp-etapa-dia{border-radius:10px;border-left-color:#3B5BA9}
+#vv-pessoas .v2pj-tempo .vp-etapa-dia.feita{border-left-color:#11613A}
+#vv-pessoas .v2pj-tempo .vp-etapa-dia.atrasada{border-left-color:#B42318}
+
+@media (prefers-reduced-motion:reduce){
+  #vv-pessoas .v2pj-vira{animation:none}
+  #vv-pessoas .v2p-card.v2pj-card{transition:none}
+}
+
+/* ---------- larguras menores: uma coluna, nada vaza ---------- */
+@container v2p (max-width:900px){
+  #vv-pessoas .v2pj-grade{grid-template-columns:minmax(0,1fr)}
+}
+@container v2p (max-width:620px){
+  #vv-pessoas .v2p-card.v2pj-pag{padding:16px}
+  #vv-pessoas .v2p .v2pj-pag-tit{font-size:20px}
+  #vv-pessoas .v2pj-grade.so-lista > .v2pj-lista{grid-template-columns:minmax(0,1fr)}
+  #vv-pessoas .v2p-lin.v2pj-etapa{flex-wrap:nowrap}
+  #vv-pessoas .v2p-lin.v2pj-etapa > p{flex:1 1 auto}
+  #vv-pessoas .v2pj-ctl{margin-left:0}
+}

@@ -58,7 +58,7 @@ function workspaceDeliveryInfo(detail={}){ const updates=detail?.updates||[]; co
 function workspaceCopyFallback(text){ const input=document.createElement('textarea'); input.value=text; input.setAttribute('readonly',''); input.style.cssText='position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(input); input.select(); const copied=document.execCommand('copy'); input.remove(); if(!copied) throw new Error('Cópia manual indisponível'); }
 function showWorkspaceDeliveryCopySheet(text){ document.getElementById('workspace-delivery-copy-sheet')?.remove(); const sheet=document.createElement('section'); sheet.id='workspace-delivery-copy-sheet'; sheet.className='workspace-delivery-copy-sheet'; sheet.innerHTML=`<b>Link pronto para copiar</b><small>Seu navegador bloqueou a cópia automática. O endereço abaixo já está selecionado: use Ctrl/Cmd + C.</small><input id="workspace-delivery-copy-value" readonly value="${safeText(text)}"><button type="button" onclick="document.getElementById('workspace-delivery-copy-sheet')?.remove()">Fechar</button>`; document.body.appendChild(sheet); const input=sheet.querySelector('input'); input?.focus(); input?.select(); }
 async function copyWorkspaceDeliveryLink(url){ const text=String(url||'').trim(); if(!text) return showToast('Nenhum material disponível para copiar.','info'); try{ if(navigator.clipboard?.writeText){ await Promise.race([navigator.clipboard.writeText(text),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tempo de cópia excedido')),1200))]); } else workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(error){ try{ workspaceCopyFallback(text); showToast('✓ Link de entrega copiado para a Tainara','ok'); }catch(fallbackError){ showWorkspaceDeliveryCopySheet(text); showToast('Link aberto para cópia manual.','info',7000); } } }
-function focusWorkspaceDeliveryInput(){ escolherCaminhoDeEntrega('link'); const input=document.getElementById('workspace-link-input'); if(!input) return; input.scrollIntoView({behavior:'smooth',block:'center'}); input.focus(); showToast('Cole aqui o link final para liberar a postagem.','info'); }
+function focusWorkspaceDeliveryInput(){ gavetaAba('arquivos'); const input=document.getElementById('workspace-link-input'); if(!input) return; input.scrollIntoView({behavior:'smooth',block:'center'}); input.focus(); showToast('Cole aqui o link final para liberar a postagem.','info'); }
 function workspaceDeliveryDock(detail,item){ const delivery=workspaceDeliveryInfo(detail); // Sem material, a faixa só avisava e levava para a caixa de link logo abaixo.
   // A entrega passou a ser uma seção só: o estado vira a primeira linha dela.
   if(!delivery) return `<div class="entrega-estado faltando"><b>Material ainda não enviado</b><small>Quem publica precisa do arquivo final ou do link antes de a peça ir para publicação.</small></div>`; const when=delivery.created_at?new Date(delivery.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'sem horário disponível'; return `<section class="workspace-delivery-dock"><div class="workspace-delivery-copy"><span class="workspace-delivery-kicker">Entrega pronta para postar</span><b>${safeText(delivery.name)}</b><small>${safeText(delivery.source)} · enviado por ${safeText(delivery.creator)} · ${safeText(when)}</small></div><div class="workspace-delivery-actions"><a class="workspace-delivery-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a><button type="button" class="workspace-delivery-copy-btn" onclick="copyWorkspaceDeliveryLink('${safeText(delivery.url)}')">Copiar link</button></div></section>`; }
@@ -104,7 +104,7 @@ function menuDeAcoesDaPecaHtml(item, { mover = true, linkELog = false } = {}) {
     <summary aria-label="Mais ações" title="Mais ações">${ICONE_LINHA.mais}</summary>
     <div class="workspace-mais-menu" role="menu">
       ${linkELog ? `<button type="button" role="menuitem" class="workspace-mais-cel" onclick="fecharMenusDaGaveta();copiarLinkDaAtividade('${id}')">Copiar link</button>
-      <button type="button" role="menuitem" class="workspace-mais-cel" onclick="fecharMenusDaGaveta();abrirLogDaPeca('${id}')">Log de atividade</button><hr class="workspace-mais-cel">` : ''}
+      <button type="button" role="menuitem" onclick="fecharMenusDaGaveta();abrirLogDaPeca('${id}')">Log de atividade</button><hr>` : ''}
       ${monday && mover ? `<button type="button" role="menuitem" onclick="fecharMenusDaGaveta();moverPecaDeBoard('${id}')">Mover para Demandas</button>` : ''}
       ${monday && item.url ? `<a role="menuitem" data-external-monday="true" href="${safeText(item.url)}" target="_blank" rel="noopener" onclick="fecharMenusDaGaveta()">Abrir no Monday ↗</a>` : ''}
       ${monday ? '<hr>' : ''}
@@ -122,6 +122,113 @@ document.addEventListener('click', (e) => { if (!e.target.closest?.('details.wor
 // A gaveta aberta agora. O botao de conteudo abre a leitura sem ir a rede de
 // novo: o briefing ja veio junto com o resto do contexto.
 let DETALHE_DA_GAVETA = null;
+// A GAVETA PELO QUADRO DO PADRÃO V2 (moodboard, "Gaveta da demanda").
+//
+// De cima para baixo, como no quadro: a linha "Conteúdo · nº" com três ícones (copiar link, mais ações, fechar),
+// o título, a linha do cliente com o status em pílula e o objetivo, o bloco das duas datas e do responsável,
+// quatro abas (Resumo, Arquivos, Conversa, Histórico) e o pé fixo com a atualização rápida e o próximo passo.
+// Nada do que a gaveta antiga fazia saiu: o que não está no Resumo mora numa das outras abas.
+const GAVETA_ICONE = {
+  fechar: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  seta: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+  sobe: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5M7 10l5-5 5 5M5 19h14"/></svg>',
+  visto: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+};
+const GAVETA_ABAS = ['resumo', 'arquivos', 'conversa', 'historico'];
+const GAVETA_OBJETIVOS = { atracao: 'Atração', educacao: 'Educação', conversao: 'Conversão' };
+let ABA_DA_GAVETA = 'resumo';
+function gavetaAba(qual) {
+  if (!GAVETA_ABAS.includes(qual)) return;
+  ABA_DA_GAVETA = qual;
+  const caixa = document.querySelector('#workspace-drawer .gv2');
+  if (!caixa) return;
+  caixa.querySelectorAll('[data-gv-aba]').forEach((b) => { const on = b.dataset.gvAba === qual; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; });
+  caixa.querySelectorAll('[data-gv-painel]').forEach((p) => { p.hidden = p.dataset.gvPainel !== qual; });
+  const corpo = caixa.querySelector('.gv2-corpo');
+  if (corpo) corpo.scrollTop = 0;
+}
+function gavetaTeclaNaAba(evento) {
+  const passo = evento.key === 'ArrowRight' ? 1 : evento.key === 'ArrowLeft' ? -1 : 0;
+  if (!passo) return;
+  evento.preventDefault();
+  const n = (GAVETA_ABAS.indexOf(ABA_DA_GAVETA) + passo + GAVETA_ABAS.length) % GAVETA_ABAS.length;
+  gavetaAba(GAVETA_ABAS[n]);
+  document.querySelector(`#workspace-drawer [data-gv-aba="${GAVETA_ABAS[n]}"]`)?.focus();
+}
+// O próximo passo é o status seguinte na ordem do quadro da peça (a mesma ordem do seletor de status).
+// Sem seguinte (último status, ou status fora do catálogo), o botão abre o seletor.
+function proximoStatusDaPeca(item) {
+  const opcoes = (typeof operationalStatusOptions === 'function' ? operationalStatusOptions(item) : []).filter((o) => o && o.ativa !== false);
+  const igual = (a, b) => (typeof mesmoStatus === 'function' ? mesmoStatus(a, b) : String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase());
+  const atual = opcoes.findIndex((o) => igual(o.label, item?.status));
+  return atual >= 0 && atual < opcoes.length - 1 ? opcoes[atual + 1] : null;
+}
+// O status na pílula do padrão: fundo claro e texto escuro tirados da cor que o status tem no quadro.
+function gavetaPilulaHtml(status, cor, seta = '') {
+  const doCatalogo = cor ? null : (typeof corDeStatus === 'function' ? corDeStatus(status) : null);
+  const c = /^#[0-9a-f]{3,8}$/i.test(String(cor || doCatalogo?.cor || '')) ? (cor || doCatalogo.cor) : '#8A847A';
+  return `<span class="gv2-st" style="--c:${c}">${safeText(status || 'Sem status')}${seta}</span>`;
+}
+function gavetaObjetivoHtml(item) {
+  const vc = typeof window !== 'undefined' ? window.VybeConteudo : null;
+  if (!vc?.campoObjetivoHtml || (typeof isRequestItem === 'function' && isRequestItem(item))) return '';
+  const atual = typeof vc.objetivoDe === 'function' ? vc.objetivoDe(item.id) : '';
+  return `<span class="gv2-obj-grupo"><details class="gv2-obj"><summary class="gv2-pill ${atual ? 'b' : 'n'}" title="Objetivo da peça · clique para trocar"><span data-gv-objetivo>${safeText(GAVETA_OBJETIVOS[atual] || 'Definir')}</span></summary>
+      <div class="gv2-obj-menu">${vc.campoObjetivoHtml(item)}</div></details><span class="gv2-sub">objetivo</span></span>`;
+}
+if (typeof document !== 'undefined') document.addEventListener('click', (evento) => {
+  const alvo = evento.target?.closest ? evento.target : null;
+  if (!alvo) return;
+  const aberto = document.querySelector('#workspace-drawer details.gv2-obj[open]');
+  if (aberto && !alvo.closest('details.gv2-obj')) aberto.open = false;
+  if (!alvo.closest('#workspace-drawer [data-vc-objetivo]')) return;
+  // O campo de objetivo se redesenha sozinho; a pílula acompanha logo depois.
+  setTimeout(() => {
+    const caixa = document.querySelector('#workspace-drawer details.gv2-obj');
+    const rotulo = caixa?.querySelector('[data-gv-objetivo]');
+    if (!rotulo) return;
+    const atual = window.VybeConteudo?.objetivoDe?.(activeWorkspaceItemId) || '';
+    rotulo.textContent = GAVETA_OBJETIVOS[atual] || 'Definir';
+    caixa.querySelector('summary').className = `gv2-pill ${atual ? 'b' : 'n'}`;
+    caixa.open = false;
+  }, 0);
+});
+// O botão preto do pé conta o estado: gira enquanto grava e fica verde quando a peça chegou no status novo.
+// A gravação é a de sempre (updateFocusStatus, com os portões); portão cancelado devolve o botão ao que era.
+let GAVETA_AVANCANDO = false;
+async function gavetaAvancar(itemId, botao) {
+  if (GAVETA_AVANCANDO) return;
+  const item = findOperationalItem(itemId);
+  const proximo = item ? proximoStatusDaPeca(item) : null;
+  if (!item || !proximo || typeof updateFocusStatus !== 'function') return;
+  GAVETA_AVANCANDO = true;
+  if (botao) botao.dataset.estado = 'indo';
+  try { await updateFocusStatus(String(itemId), proximo.label); }
+  catch (e) { showToast(`Não foi possível trocar o status: ${e.message}`, 'err', 7000); }
+  finally { GAVETA_AVANCANDO = false; }
+  const depois = findOperationalItem(itemId);
+  const chegou = depois && (typeof mesmoStatus === 'function' ? mesmoStatus(depois.status, proximo.label) : depois.status === proximo.label);
+  if (!botao?.isConnected) return;
+  if (!chegou) { delete botao.dataset.estado; return; }
+  botao.dataset.estado = 'feito';
+  const texto = botao.querySelector('.gv2-avancar-texto');
+  if (texto) texto.innerHTML = `${GAVETA_ICONE.visto}Agora em ${safeText(proximo.label)}`;
+  setTimeout(() => {
+    if (String(activeWorkspaceItemId) !== String(itemId) || !DETALHE_DA_GAVETA || !document.getElementById('workspace-drawer')) return;
+    renderWorkspaceDrawer(DETALHE_DA_GAVETA, findOperationalItem(itemId) || depois);
+  }, 1400);
+}
+function gavetaEsqueletoHtml(rotulo) {
+  const l = (w, h = 12, r = 6) => `<i class="gv2-sk" style="width:${w};height:${h}px;border-radius:${r}px"></i>`;
+  return `<div class="gv2 gv2-carregando" aria-busy="true" aria-label="${rotulo}">
+    <div class="gv2-topo"><p class="gv2-sub gv2-onde">${rotulo}</p><button type="button" class="gv2-ic gv2-fechar" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${GAVETA_ICONE.fechar}</button></div>
+    ${l('72%', 26, 8)}${l('46%', 22, 999)}${l('100%', 66, 14)}${l('64%', 38, 999)}${l('100%', 12)}${l('88%', 12)}${l('70%', 12)}${l('100%', 46, 14)}</div>`;
+}
+function gavetaLinkHtml() {
+  return `<div class="entrega-link gv2-link"><label class="gv2-fora" for="workspace-link-input">Link do material</label><input id="workspace-link-input" class="workspace-input gv2-campo" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWorkspaceLink()}">
+      <button type="button" class="gv2-btn" onclick="saveWorkspaceLink()">Registrar link</button></div>
+    <p class="gv2-sub">Para vídeo ou arquivo grande. Fica no histórico, com quem registrou e quando.</p>`;
+}
   function renderWorkspaceDrawer(detail, item) {
   const drawer = document.getElementById('workspace-drawer');
   if (!drawer || !detail) return;
@@ -130,58 +237,75 @@ let DETALHE_DA_GAVETA = null;
   activeWorkspaceAssets = assets;
   const updates = detail.updates || [];
   ATUALIZACOES_DA_GAVETA = updates;
-  // O resumo do topo repetia a ficha logo abaixo (formato, prazo e status) e
-  // mostrava o prazo como "2026-09-17". Fica o status e as duas datas, no formato
-  // do resto do painel; o formato já está no nome e na ficha.
-  const dataDoTopo = (v) => (v && v !== '—' ? v : '');
-  const datasDoTopo = [dataDoTopo(item.prazo) && `Prazo ${item.prazo}`,
-    dataDoTopo(item.veiculacao) && `Veiculação ${item.veiculacao}`].filter(Boolean).join(' · ') || 'Sem datas definidas';
-  drawer.innerHTML = `
-      <div class="workspace-rolagem">
-      <div class="workspace-kicker workspace-barra"><button type="button" class="workspace-voltar" onclick="closeItemWorkspace()" aria-label="Voltar" title="Voltar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><span class="workspace-barra-nome">Conteúdo</span><div class="workspace-barra-acoes">${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { icone: true })}${menuDeAcoesDaPecaHtml(item, { linkELog: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">×</button></div></div>
-    <div class="workspace-client">${(typeof clientesDoItem === 'function' ? clientesDoItem(item) : [item.cliente]).filter(Boolean).map(cliCor).join(' ') || 'Cliente não informado'}
-      <button type="button" class="workspace-id" onclick="copiarId('${safeText(item.id)}')"
-              title="ID da atividade · clique para copiar">#${safeText(item.id)}</button></div>
-    <h2 class="workspace-title" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
-    <div class="workspace-meta">${pillHtml(item.status,item.status_color,item.status_border)}<small class="workspace-meta-datas">${safeText(datasDoTopo)}</small></div>
-    <dl class="workspace-faixa">
-      <div><dt>Status</dt><dd>${pillHtml(item.status,item.status_color,item.status_border)}</dd></div>
-      <div><dt>Prazo</dt><dd>${safeText(dataDoTopo(item.prazo) || '—')}</dd></div>
-      <div><dt>Veiculação</dt><dd>${safeText(dataDoTopo(item.veiculacao) || '—')}</dd></div>
-      <div><dt>Responsável</dt><dd>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'workspace-faixa-dono', { comNome: true }) : ''}</dd></div>
-      ${window.VybeConteudo?.campoObjetivoHtml ? `<div class="workspace-faixa-objetivo"><dt>Objetivo</dt><dd>${window.VybeConteudo.campoObjetivoHtml(item)}</dd></div>` : ''}
-    </dl>
-    ${blocoDoBriefingHtml(detail, item)}
-    ${faixaDeMaterialBrutoHtml(detail, item)}
-    ${workspaceFichaHtml(detail, item.id)}
-    ${subitensHtml(detail, item)}
-    ${latestStatusContext({updates}) ? `<section class="workspace-section workspace-handoff"><div class="workspace-section-head">Contexto da etapa atual</div><div class="workspace-section-body"><div class="workspace-update-meta">${safeText(latestStatusContext({updates}).creator || 'Equipe Vybe')} · ${safeText(quandoNaBahia(latestStatusContext({updates}).created_at) || (latestStatusContext({updates}).created_at || '').replace('T',' ').slice(0,16))}</div><div class="workspace-update-body">${safeText(latestStatusContext({updates}).reason || latestStatusContext({updates}).text)}</div>${latestStatusContext({updates}).next ? `<p class="workspace-note"><b>Próximo passo:</b> ${safeText(latestStatusContext({updates}).next)}</p>` : ''}</div></section>` : ''}
-    <section class="workspace-section workspace-entrega"><div class="workspace-section-head">Entrega</div><div class="workspace-section-body">
-      ${workspaceDeliveryDock(detail,item)}
+  const id = safeText(String(item.id));
+  const ehPedido = typeof isRequestItem === 'function' ? isRequestItem(item) : false;
+  const data = (v) => (v && v !== '—' ? v : '');
+  const clientes = (typeof clientesDoItem === 'function' ? clientesDoItem(item) : [item.cliente]).filter(Boolean);
+  const briefing = typeof briefingDaPeca === 'function' ? briefingDaPeca(detail) : null;
+  const contexto = latestStatusContext({ updates });
+  const entrega = workspaceDeliveryInfo(detail);
+  const proximo = proximoStatusDaPeca(item);
+  const etapas = workspaceHistoryHtml(detail, item);
+  const aba = (qual, rotulo, n) => `<span role="radio" class="gv2-aba" data-gv-aba="${qual}" aria-checked="${ABA_DA_GAVETA === qual}" tabindex="${ABA_DA_GAVETA === qual ? 0 : -1}"
+      onclick="gavetaAba('${qual}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gavetaAba('${qual}')}else gavetaTeclaNaAba(event)">${rotulo}${n ? ` · ${n}` : ''}</span>`;
+  const painel = (qual, html) => `<div class="gv2-painel" data-gv-painel="${qual}"${ABA_DA_GAVETA === qual ? '' : ' hidden'}>${html}</div>`;
+  const lk = (rotulo, acao) => `<span class="gv2-lk" role="button" tabindex="0" onclick="${acao}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${acao}}">${rotulo}</span>`;
+  const chamada = briefing ? briefing.texto.replace(/\s*\n+\s*/g, ' ').trim() : '';
+  const resumo = `
+      <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Briefing</h3>${briefing
+        ? `${lk('abrir', `abrirBriefing('${id}')`)}${lk('editar', `editarBriefing('${id}')`)}`
+        : lk('+ adicionar', `editarBriefing('${id}')`)}</div>
+        ${briefing ? `<p class="gv2-texto">${safeText(chamada.slice(0, 260))}${chamada.length > 260 ? '…' : ''}</p>`
+          : '<p class="gv2-texto vazio">Sem briefing. Quem produz precisa dele para começar.</p>'}</section>
+      ${faixaDeMaterialBrutoHtml(detail, item)}
+      ${subitensHtml(detail, item)}
+      ${contexto ? `<section class="gv2-sec gv2-contexto"><div class="gv2-sec-topo"><h3>Contexto da etapa atual</h3><span class="gv2-sub">${safeText(contexto.creator || 'Equipe Vybe')} · ${safeText(quandoNaBahia(contexto.created_at) || (contexto.created_at || '').replace('T', ' ').slice(0, 16))}</span></div>
+        <p class="gv2-texto">${safeText(contexto.reason || contexto.text)}</p>${contexto.next ? `<p class="gv2-texto"><b>Próximo passo:</b> ${safeText(contexto.next)}</p>` : ''}</section>` : ''}
+      <div class="gv2-solta" role="button" tabindex="0" aria-label="Entregar: adicionar arquivo" onclick="document.getElementById('workspace-file-input').click()"
+        onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();document.getElementById('workspace-file-input').click()}"
+        ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="this.classList.remove('dragover');handleWorkspaceDrop(event)">
+        ${GAVETA_ICONE.sobe}<p><b>Entrega:</b> ${entrega ? `${safeText(entrega.name)} · ` : ''}arraste o arquivo ou <span class="gv2-lk" role="button" tabindex="0" onclick="event.stopPropagation();focusWorkspaceDeliveryInput()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();focusWorkspaceDeliveryInput()}">cole o link</span> · vai para o Drive do cliente</p>
+        ${entrega ? `<a class="gv2-lk" href="${safeText(entrega.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir</a>` : ''}</div>
+      <details class="gv2-rec"><summary>Ficha da peça<small>grupo, formato, captação, prioridade</small></summary>${workspaceFichaHtml(detail, item.id)}</details>`;
+  const arquivos = `
+      ${workspaceDeliveryDock(detail, item)}
       ${workspaceRegistrosPendentesHtml()}
-      <div class="entrega-caminhos">
-        <div class="entrega-escolha" role="tablist" aria-label="Como entregar">
-          <button type="button" role="tab" data-entrega="arquivo" aria-selected="${caminhoInicialDeEntrega(item) === 'arquivo'}" onclick="escolherCaminhoDeEntrega('arquivo')">Arquivo</button>
-          <button type="button" role="tab" data-entrega="link" aria-selected="${caminhoInicialDeEntrega(item) === 'link'}" onclick="escolherCaminhoDeEntrega('link')">Link</button>
-        </div>
-        <div class="entrega-caminho" data-painel="arquivo"${caminhoInicialDeEntrega(item) === 'arquivo' ? '' : ' hidden'}>
-          ${workspaceUploadHtml(false)}
-        </div>
-        <div class="entrega-caminho" data-painel="link"${caminhoInicialDeEntrega(item) === 'link' ? '' : ' hidden'}>
-          <div class="entrega-link"><input id="workspace-link-input" class="workspace-input" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva" aria-label="Link do material">
-          <button type="button" class="workspace-action primary" onclick="saveWorkspaceLink()">Registrar link</button></div>
-          <p class="workspace-note">Para vídeo ou arquivo grande. Fica no histórico, com quem registrou e quando.</p>
-        </div>
+      <div class="workspace-dropzone gv2-solta alta" role="button" tabindex="0" aria-label="Adicionar arquivos" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('workspace-file-input').click()}" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)">${GAVETA_ICONE.sobe}<div><strong>Arraste o arquivo aqui ou clique</strong>Card, arte ou PDF · PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
+      <p class="gv2-sub">Vai para a pasta do cliente no Drive da Vybe.</p>
+      ${gavetaLinkHtml()}
+      ${assets.length ? `<div class="workspace-assets">${assets.map(workspaceAssetCard).join('')}</div>` : '<p class="gv2-vazio">Nenhum arquivo anexado ainda.</p>'}`;
+  const conversa = `${workspaceExecutiveHistoryHtml(updates)}
+      <div class="gv2-conversa">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<p class="gv2-vazio">Sem atualizações ainda. Escreva a primeira no campo aqui embaixo.</p>'}</div>`;
+  const historico = `${etapas || '<p class="gv2-vazio">Ainda não há troca de etapa registrada.</p>'}
+      <div class="gv2-log">${botaoDoLogHtml(item.id)}<span class="gv2-sub">quem fez o quê nesta peça, com dia e hora</span></div>`;
+  drawer.innerHTML = `<div class="gv2">
+      <input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
+      <div class="gv2-topo"><button type="button" class="workspace-voltar" onclick="closeItemWorkspace()" aria-label="Voltar" title="Voltar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <p class="gv2-sub gv2-onde">${ehPedido ? 'Solicitação' : 'Conteúdo'} · <span class="gv2-id" role="button" tabindex="0" onclick="copiarId('${id}')" onkeydown="if(event.key==='Enter')copiarId('${id}')" title="ID da atividade · clique para copiar">nº ${safeText(String(item.id).replace(/^vybe:/, ''))}</span></p>
+        ${botaoDeLinkHtml(item, { icone: true })}${menuDeAcoesDaPecaHtml(item, { linkELog: true })}<button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${GAVETA_ICONE.fechar}</button></div>
+      <div class="gv2-cab">
+        <h2 class="gv2-titulo" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
+        <div class="gv2-linha"><span class="gv2-clientes">${clientes.map(cliCor).join(' ') || 'Cliente não informado'}</span>
+          <span class="gv2-status" role="button" tabindex="0" title="Trocar status" aria-label="Status: ${safeText(item.status)}. Trocar" onclick="openStatusEditor(event,'${id}')"
+            onkeydown="if(event.key==='Enter'||event.key===' ')openStatusEditor(event,'${id}')">${gavetaPilulaHtml(item.status, item.status_color, GAVETA_ICONE.seta)}</span>
+          ${gavetaObjetivoHtml(item)}</div>
       </div>
-      <div class="entrega-depois"><span>Entregou? A próxima etapa precisa saber.</span><button type="button" class="workspace-action" onclick="openManualHandoff('${item.id}')">Passar bastão →</button></div>
-    </div></section>
-    ${assets.length
-      ? `<section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body">${workspaceUploadHtml()}<div class="workspace-assets">${assets.map(workspaceAssetCard).join('')}</div></div></section>`
-      : `<details class="workspace-section workspace-recolhida"><summary>Arquivos<small>nenhum</small></summary><div class="workspace-section-body"><div class="workspace-empty">Nenhum arquivo anexado ainda.</div></div></details>`}
-    ${workspaceHistoryHtml(detail, item)}
-    ${workspaceExecutiveHistoryHtml(updates)}
-    <details class="workspace-section workspace-recolhida"><summary>Todo o histórico<small>${updates.length} registro${updates.length===1?'':'s'}</small></summary><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem eventos registrados ainda.</div>'}</div></details>
-    <div class="workspace-rodape"><textarea id="workspace-comment-input" class="workspace-textarea" rows="2" placeholder="Atualização rápida: ex. Card finalizado e enviado para aprovação." aria-label="Atualização rápida"></textarea><button type="button" class="workspace-action workspace-comentar" onclick="saveWorkspaceComment()">Comentar</button><button type="button" class="workspace-action primary workspace-bastao" onclick="openManualHandoff('${item.id}')">Passar bastão →</button></div></div>`;
+      <div class="gv2-bloco">
+        <div class="gv2-cmp"><small>Prazo interno</small><span class="gv2-dado" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.prazo) || '—')}</span></div>
+        <div class="gv2-cmp"><small>${ehPedido ? 'Conclusão' : 'Veiculação'}</small><span class="gv2-dado" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.veiculacao) || '—')}</span></div>
+        <div class="gv2-cmp"><small>Responsável</small>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'gv2-dono', { comNome: true }) : ''}</div>
+      </div>
+      <div class="gv2-seg" role="radiogroup" aria-label="Partes da peça">${aba('resumo', 'Resumo')}${aba('arquivos', 'Arquivos', assets.length)}${aba('conversa', 'Conversa', updates.length)}${aba('historico', 'Histórico')}</div>
+      <div class="gv2-corpo">${painel('resumo', resumo)}${painel('arquivos', arquivos)}${painel('conversa', conversa)}${painel('historico', historico)}</div>
+      <div class="gv2-pe">
+        <div class="gv2-pe-linha"><label class="gv2-fora" for="workspace-comment-input">Atualização rápida</label>
+          <input id="workspace-comment-input" class="gv2-campo" type="text" placeholder="Atualização rápida para a equipe" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWorkspaceComment()}">
+          <button type="button" class="gv2-btn" onclick="saveWorkspaceComment()">Comentar</button>
+          <button type="button" class="gv2-btn" onclick="openManualHandoff('${item.id}')">Passar bastão</button></div>
+        ${proximo
+          ? `<button type="button" class="gv2-avancar principal v2-estado" onclick="gavetaAvancar('${id}',this)"><span class="gv2-avancar-texto">${safeText(/^para\s/i.test(proximo.label) ? `Enviar ${proximo.label.charAt(0).toLowerCase()}${proximo.label.slice(1)}` : `Enviar para ${proximo.label}`)}</span></button>`
+          : `<button type="button" class="gv2-avancar principal" onclick="openStatusEditor(event,'${id}')"><span class="gv2-avancar-texto">Trocar status</span></button>`}
+      </div></div>`;
 }
 async function openItemWorkspace(itemId) {
   closeItemWorkspace();
@@ -198,7 +322,8 @@ async function openItemWorkspace(itemId) {
   const backdrop = document.createElement('div');
   backdrop.id = 'workspace-backdrop'; backdrop.className = 'workspace-backdrop'; backdrop.onclick = closeItemWorkspace;
   const drawer = document.createElement('aside');
-  drawer.id = 'workspace-drawer'; drawer.className = 'workspace-drawer'; drawer.innerHTML = '<div class="workspace-loading">Carregando contexto da demanda...</div>';
+  drawer.id = 'workspace-drawer'; drawer.className = 'gv2-gaveta'; drawer.innerHTML = gavetaEsqueletoHtml('Carregando a peça');
+  ABA_DA_GAVETA = 'resumo';
   document.body.append(backdrop, drawer);
   try {
     const detail = await fetchWorkspaceItem(itemId);
@@ -206,7 +331,7 @@ async function openItemWorkspace(itemId) {
     if (!detail) throw new Error('A atividade não foi encontrada no banco Vybe.');
     if (!item) item = { id:String(itemId), nome:detail.name || 'Demanda', cliente:'Cliente não informado', status:'—', status_color:'#8f8f8f', status_border:'#8f8f8f', prazo_iso:'', veiculacao_iso:'', formato:'Conteúdo', url:'' };
     renderWorkspaceDrawer(detail, item);
-  } catch (e) { drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Workspace</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-empty">Não foi possível carregar o contexto da demanda. ${safeText(e.message)}</div>`; }
+  } catch (e) { drawer.innerHTML = `<div class="gv2"><div class="gv2-topo"><p class="gv2-sub gv2-onde">Conteúdo</p><button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${GAVETA_ICONE.fechar}</button></div><p class="gv2-texto"><b>Não foi possível carregar a peça.</b> ${safeText(e.message)}</p><button type="button" class="gv2-btn" style="align-self:flex-start" onclick="openItemWorkspace('${safeText(String(itemId))}')">Tentar de novo</button></div>`; }
 }
 
 // Workspace interno de Solicitações: leitura e contexto sem aplicar as automações do board de Produção.
@@ -227,15 +352,15 @@ async function openDemandaWorkspace(itemId) {
   const backdrop = document.createElement('div');
   backdrop.id = 'workspace-backdrop'; backdrop.className = 'workspace-backdrop'; backdrop.onclick = closeItemWorkspace;
   const drawer = document.createElement('aside');
-  drawer.id = 'workspace-drawer'; drawer.className = 'workspace-drawer';
-  drawer.innerHTML = '<div class="workspace-loading">Carregando contexto da solicitação...</div>';
+  drawer.id = 'workspace-drawer'; drawer.className = 'gv2-gaveta';
+  drawer.innerHTML = gavetaEsqueletoHtml('Carregando a solicitação');
   document.body.append(backdrop, drawer);
   try {
     const detail = await fetchWorkspaceItem(itemId);
     if(document.getElementById('workspace-drawer') !== drawer) return;
     renderDemandaWorkspace(detail, item);
   } catch (e) {
-    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Solicitação</span><button class="workspace-close" type="button" onclick="closeItemWorkspace()">×</button></div><div class="workspace-empty">Não foi possível carregar o contexto. ${safeText(e.message)}</div>`;
+    drawer.innerHTML = `<div class="gv2"><div class="gv2-topo"><p class="gv2-sub gv2-onde">Solicitação</p><button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${GAVETA_ICONE.fechar}</button></div><p class="gv2-texto"><b>Não foi possível carregar a solicitação.</b> ${safeText(e.message)}</p></div>`;
   }
 }
 
@@ -248,7 +373,24 @@ function renderDemandaWorkspace(detail, item) {
     activeWorkspaceItemId = String(item.id);
     const updates = detail?.updates || [];
     ATUALIZACOES_DA_GAVETA = updates;
-    drawer.innerHTML = `<div class="workspace-kicker"><span>Vybe OS · Contexto da solicitação</span><div class="workspace-barra-acoes">${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { demanda: true, icone: true })}<button class="workspace-close" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">×</button></div></div><div class="workspace-client">${safeText(item.cliente || 'Cliente não informado')}</div><h2 class="workspace-title">${safeText(item.nome)}</h2><div class="workspace-meta"><span>${safeText(item.tipo || 'Solicitação')}</span><span>Prazo: ${safeText(item.prazo || 'não definido')}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}</div>${blocoDoBriefingHtml(detail, item)}<section class="workspace-section"><div class="workspace-section-head">Contexto operacional</div><div class="workspace-section-body"><p class="workspace-note">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p><p class="workspace-note"><b>Conclusão:</b> ${safeText(item.conclusao || 'não definida')} · <b>Responsável:</b> ${safeText(item.responsavel || 'não definido')}</p></div></section><section class="workspace-section"><div class="workspace-section-head">Arquivos</div><div class="workspace-section-body">${workspaceUploadHtml()}<div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<div class="workspace-empty">Nenhum arquivo anexado ainda.</div>'}</div></div></section><section class="workspace-section"><div class="workspace-section-head">Histórico recente</div><div class="workspace-section-body">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<div class="workspace-empty">Sem atualizações registradas ainda.</div>'}</div></section><div class="workspace-actions">${podeVerMonday() ? `<a class="workspace-action" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">↗ Abrir no Monday</a>` : ''}</div></div>`;
+    const fechar = typeof GAVETA_ICONE !== 'undefined' ? GAVETA_ICONE.fechar : '×';
+    const cliente = item.cliente ? (typeof cliCor === 'function' ? cliCor(item.cliente) : safeText(item.cliente)) : 'Cliente não informado';
+    drawer.innerHTML = `<div class="gv2 gv2-sol">
+      <div class="gv2-topo"><p class="gv2-sub gv2-onde">Solicitação · nº ${safeText(String(item.id).replace(/^vybe:/, ''))}</p>${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { demanda: true, icone: true })}<button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${fechar}</button></div>
+      <div class="gv2-cab"><h2 class="gv2-titulo">${safeText(item.nome)}</h2>
+        <div class="gv2-linha"><span class="gv2-clientes">${cliente}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}<span class="gv2-sub">${safeText(item.tipo || 'Solicitação')}</span></div></div>
+      <div class="gv2-bloco">
+        <div class="gv2-cmp"><small>Prazo</small><b>${safeText(item.prazo || 'não definido')}</b></div>
+        <div class="gv2-cmp"><small>Conclusão</small><b>${safeText(item.conclusao || 'não definida')}</b></div>
+        <div class="gv2-cmp"><small>Responsável</small><b>${safeText(item.responsavel || 'não definido')}</b></div>
+      </div>
+      <div class="gv2-corpo"><div class="gv2-painel">
+        ${blocoDoBriefingHtml(detail, item)}
+        <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Contexto da solicitação</h3></div><p class="gv2-texto">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p></section>
+        <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Arquivos</h3></div>${workspaceUploadHtml()}<div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<p class="gv2-vazio">Nenhum arquivo anexado ainda.</p>'}</div></section>
+        <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Histórico recente</h3></div><div class="gv2-conversa">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<p class="gv2-vazio">Sem atualizações registradas ainda.</p>'}</div></section>
+        ${podeVerMonday() ? `<a class="gv2-lk" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">Abrir no Monday</a>` : ''}
+      </div></div></div>`;
 }
 
 // Regra Vybe OS: clique em atividade abre contexto interno; Monday é um atalho deliberado dentro do workspace.

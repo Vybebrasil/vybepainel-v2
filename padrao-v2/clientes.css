@@ -1,0 +1,301 @@
+/* PADRÃO V2 · CLIENTES (12/11/2026): Saúde da carteira, Onboarding e Conversas iguais aos quadros DEPOIS do moodboard.
+   As medidas são as do quadro: janela #F9F8F5 com 26/30 de respiro e 16 entre blocos, cartão branco de raio 20 sem
+   borda, botão em pílula de 38 (cabeçalho) e 30 (linha), ficha de 30 (ligada em preto), número de 34, linha de 13,5.
+   Tudo ganha pelo id da janela; nada aqui força regra antiga. */
+
+/* ===== Saúde da carteira e Onboarding (#vv-carteira, vybe-mundo-carteira.js) ===== */
+#vv-carteira:has(> .v2c){background:#F9F8F5}
+@media (min-width:721px){#vv-carteira:has(> .v2c){border-radius:28px}}
+#vv-carteira .v2c{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:26px 30px 0;container:v2c / inline-size;font:400 13.5px/1.4 var(--vv-texto,Inter),system-ui,sans-serif;color:#1F1D1A}
+#vv-carteira .v2c p,#vv-carteira .v2c h2{margin:0}
+#vv-carteira .v2c-topo{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+#vv-carteira .v2c-topo > h2{flex:1 1 200px;min-width:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+#vv-carteira .v2c .v2c-corpo.vc-corpo{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px;margin:0 -30px;padding:0 30px 26px;overflow:auto;overscroll-behavior:contain}
+#vv-carteira .v2c > .vc-aviso{margin:0}
+#vv-carteira .v2c > .vc-abas{margin:0;padding:0}
+#vv-carteira .v2c-corpo > *{flex:none}
+#vv-carteira .v2c-card{min-width:0;padding:18px;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+#vv-carteira .v2c-card-topo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-bottom:2px}
+#vv-carteira .v2c-card-topo > h2{flex:1 1 auto;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#vv-carteira .v2c-card-topo > small,#vv-carteira .v2c-sub,#vv-carteira .v2c-pe{font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#vv-carteira .v2c-lista + .v2c-card-topo{margin-top:14px}
+/* botões, fichas, visão */
+#vv-carteira .v2c-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),box-shadow .15s}
+#vv-carteira .v2c-btn:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+#vv-carteira .v2c-btn:active{transform:scale(.96)}
+#vv-carteira .v2c-btn:disabled{opacity:.45;cursor:default;box-shadow:inset 0 0 0 1px #E6E0D6}
+#vv-carteira .v2c-btn:is(.g,.p){height:38px;padding:0 16px;font-size:13.5px}
+#vv-carteira .v2c-btn.p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+#vv-carteira .v2c-btn.p:hover{background:#A83D08;box-shadow:0 8px 16px -10px #C2490C}
+#vv-carteira .v2c-btn.p:disabled{background:#C2490C;box-shadow:none}
+#vv-carteira .v2c-btn.k,#vv-carteira .v2c-btn[aria-expanded="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#vv-carteira .v2c-x{appearance:none;flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border:0;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;cursor:pointer}
+#vv-carteira .v2c-x:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+#vv-carteira .v2c-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+#vv-carteira .v2c-link{appearance:none;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+#vv-carteira .v2c-link:hover{color:#8A3207}
+#vv-carteira .v2c :is(.v2c-btn,.v2c-x,.v2c-link,.v2c-chip,.v2c-abrir,.v2c-busca,.v2c-seg > button):focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
+#vv-carteira .v2c-seg{flex:none;display:inline-flex;padding:4px;border-radius:999px;background:#EAE6DE}
+#vv-carteira .v2c-seg > button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#vv-carteira .v2c-seg > button[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+#vv-carteira .v2c-chips{display:flex;flex-wrap:wrap;gap:8px}
+#vv-carteira .v2c-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#vv-carteira .v2c-chip b{font-weight:700;font-variant-numeric:tabular-nums}
+#vv-carteira .v2c-chip:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+#vv-carteira .v2c-chip[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#vv-carteira .v2c-chip .v2c-av{width:20px;height:20px;margin-left:-6px;font-size:8.5px;box-shadow:none}
+#vv-carteira .v2c-pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif;letter-spacing:0;white-space:nowrap;vertical-align:middle}
+#vv-carteira .v2c-pill.r{background:#FDECEE;color:#B42318}
+#vv-carteira .v2c-pill.a{background:#FFF4D6;color:#7A4A00}
+#vv-carteira .v2c-pill.g{background:#E8F5EC;color:#11613A}
+#vv-carteira .v2c-av{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
+#vv-carteira .v2c-av.vago{background:none;box-shadow:inset 0 0 0 1.5px #D9D3C8}
+/* a fala do agente */
+#vv-carteira .v2c-fala{display:flex;align-items:center;gap:14px}
+#vv-carteira .v2c-fala > p{flex:1;min-width:0;font:400 15px/1.45 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-carteira .v2c-fala b{font-weight:700}
+#vv-carteira .v2c-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#4B36A8}
+#vv-carteira .v2c-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter),sans-serif}
+#vv-carteira .v2c-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2c-pulso 3.6s ease-out infinite}
+@keyframes v2c-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
+/* os três números */
+#vv-carteira .v2c-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#vv-carteira .v2c-kpi > small,#vv-carteira .v2c-kpi > p{display:block;font:400 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#vv-carteira .v2c-kpi > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1F1D1A}
+#vv-carteira .v2c-kpi.ruim > b{color:#B42318}
+#vv-carteira .v2c-kpi.quieto > b{color:#B5AFA5}
+#vv-carteira .v2c-kpi > .v2-barra{margin-bottom:8px;background:#EAE6DE}
+#vv-carteira .v2c-kpi > .v2c-minis{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+/* a barra de filtro */
+#vv-carteira .v2c-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#vv-carteira .v2c-espaco{flex:1}
+#vv-carteira .v2c-busca{flex:1 1 160px;min-width:140px;height:36px;margin:0;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;padding:0 16px;font:400 13.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-carteira .v2c-busca::placeholder{color:#6B665E}
+#vv-carteira .v2c-painel{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:14px 18px}
+#vv-carteira .v2c-painel > .vc-ordem{flex:1 1 200px}
+#vv-carteira .v2c-painel > .vc-onb-caminhos{flex:1 1 100%}
+#vv-carteira .v2c-painel > .vc-iniciar{flex:1 1 100%;margin:0;padding:0;border:0}
+#vv-carteira .v2c-painel-linha{align-items:center}
+#vv-carteira .v2c-painel :is(select,input){border-radius:999px;padding-left:14px}
+/* a lista: a linha abre no lugar */
+#vv-carteira .v2c-quadro{display:flex;flex-direction:column}
+#vv-carteira .v2c-lista{list-style:none;margin:0;padding:0}
+#vv-carteira .v2c-linha{border-top:1px solid #F1EDE6}
+#vv-carteira .v2c-linha:first-child{border-top:0}
+#vv-carteira .v2c-lin{display:flex;align-items:center;gap:12px;padding:12px 0}
+#vv-carteira .v2c-abrir{appearance:none;flex:1;min-width:0;display:flex;align-items:center;gap:12px;margin:0;padding:0;border:0;border-radius:12px;background:none;color:#1F1D1A;font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
+#vv-carteira .v2c-seta{flex:none;width:14px;height:14px;fill:none;stroke:#6B665E;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:transform .28s var(--vv-suave,cubic-bezier(.22,1,.36,1))}
+#vv-carteira .v2c-abrir[aria-expanded="true"] .v2c-seta{transform:rotate(90deg)}
+/* Os quadros da Saúde e do Onboarding não têm a seta: a linha inteira abre. */
+#vv-carteira .v2c-lin .v2c-seta{display:none}
+#vv-carteira .v2c-linha[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1)),visibility 0s .28s}
+#vv-carteira .v2c-ac{flex:none;width:140px;display:flex;justify-content:flex-end}
+#vv-carteira .v2c-onb .v2c-ac{width:160px}
+#vv-carteira .v2c-nota{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#FFF4D6;color:#7A4A00;font:700 16px var(--vv-titulo,"Inter Tight"),Inter,sans-serif;font-variant-numeric:tabular-nums}
+#vv-carteira .v2c-nota.r{background:#FDECEE;color:#B42318}
+#vv-carteira .v2c-nota.g{background:#E8F5EC;color:#11613A}
+#vv-carteira .v2c-nota.mini{width:26px;height:26px;font-size:11px}
+#vv-carteira .v2c-quemc{flex:none;width:210px;min-width:0;display:flex;flex-direction:column;gap:1px}
+#vv-carteira .v2c-quemc > b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-carteira .v2c-quemc > small{font:400 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B665E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-carteira .v2c .cliente-carteira{display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:inherit;font:inherit;font-weight:600}
+#vv-carteira .v2c .cliente-carteira::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--carteira-texto,#C2490C)}
+#vv-carteira .v2c-porque{flex:1;min-width:0;display:flex;flex-direction:column}
+#vv-carteira .v2c-perde{display:flex;height:8px;border-radius:4px;background:#DDEFE3;overflow:hidden}
+#vv-carteira .v2c-perde > i{flex:none;display:block;height:100%;width:var(--v,0%);background:var(--c,#6B665E);transform-origin:left;animation:v2-barra .9s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+#vv-carteira .v2c-leg{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:6px;font:400 11.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-carteira .v2c-leg > span,#vv-carteira .v2c-mot{display:flex;align-items:center;gap:6px;min-width:0}
+#vv-carteira .v2c-leg > span::before,#vv-carteira .v2c-mot::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,#6B665E)}
+#vv-carteira .v2c-det{padding:0 0 12px 54px}
+#vv-carteira .v2c-mot{padding:0 0 8px;font:400 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-carteira .v2c-mot > b{flex:none;min-width:30px;color:#1F1D1A;font-weight:700}
+#vv-carteira .v2c-mot-nota{padding-bottom:0;color:#6B665E}
+#vv-carteira .v2c-mot-nota::before{display:none}
+#vv-carteira .v2c-pe{margin-top:auto;padding-top:8px}
+#vv-carteira .v2c-lista + .v2c-pe{border-top:1px solid #F1EDE6}
+#vv-carteira .v2c-vazio{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 0 4px;font:400 13.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-carteira .v2c-vazio > p{flex:1 1 200px}
+/* ajuda e "Mês a mês" */
+#vv-carteira .v2c-ajuda > .vc-ajuda{margin:0;padding:0;border:0;background:none}
+#vv-carteira .v2c-ajuda > .vc-esteira{padding:8px 0 0}
+#vv-carteira .v2c-card > .vc-serie{margin-top:10px;border:0;padding:10px 0 0}
+#vv-carteira .v2c-contas > .vc-secao{margin:0}
+#vv-carteira .v2c-contas .vc-contas td,#vv-carteira .v2c-contas .vc-contas .vc-num-espiar{color:#1F1D1A}
+/* Onboarding: situação, cliente, etapas em bolinhas, etapa de agora, checklist e ação */
+#vv-carteira .v2c-st{flex:none;width:132px;display:flex}
+#vv-carteira .v2c-nm{flex:none;width:120px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+#vv-carteira .v2c-tri{flex:none;display:inline-flex;align-items:center;gap:10px}
+#vv-carteira .v2c-cx{position:relative;flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF;font-style:normal}
+#vv-carteira .v2c-cx.ok{background:#FF7A2F;box-shadow:none}
+#vv-carteira .v2c-cx.at{box-shadow:inset 0 0 0 2px #FF7A2F}
+#vv-carteira .v2c-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+#vv-carteira .v2c-tri .v2c-cx + .v2c-cx::before{content:"";position:absolute;right:100%;top:50%;width:10px;height:2px;margin-top:-1px;background:#D9D3C8}
+#vv-carteira .v2c-agora{flex:1;min-width:0}
+#vv-carteira .v2c-agora b{font-weight:600}
+#vv-carteira .v2c-pg{flex:none;width:122px;display:flex;flex-direction:column}
+#vv-carteira .v2c-pg > .v2-barra{background:#EAE6DE}
+#vv-carteira .v2c-pg > small{margin-top:5px;font:400 12px/1.2 var(--vv-texto,Inter),sans-serif;color:#4A463F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-carteira .v2c-onb .v2c-det{display:flex;flex-direction:column;gap:10px;padding-left:144px}
+#vv-carteira .v2c-etapa{margin:0;padding:10px 14px 12px;border:0;border-radius:14px;background:#F9F8F5}
+#vv-carteira .v2c-etapa > legend{float:left;width:100%;display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:0;font:600 12.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-carteira .v2c-etapa > legend + *{clear:both}
+#vv-carteira .v2c-etapa > legend .feita{text-decoration:line-through;color:#6B665E;font-weight:400}
+#vv-carteira .v2c-etapa > legend small{color:#6B665E;font-weight:400}
+#vv-carteira .v2c-etapa select{border-radius:999px;padding-left:14px}
+#vv-carteira .v2c-atalhos{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#vv-carteira .v2c-rodape{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+#vv-carteira .v2c-rodape > p{flex:1 1 320px}
+#vv-carteira .v2c-rodape b{color:#1F1D1A}
+#vv-carteira .v2c-rodape .vc-ativacao-tec{display:block;margin-top:4px}
+@media (prefers-reduced-motion:reduce){
+  #vv-carteira .v2c-ag::after,#vv-carteira .v2c-perde > i{animation:none}
+  #vv-carteira .v2c-seta,#vv-carteira .v2c-linha[aria-expanded="false"] > .v2-mais,#vv-carteira .v2c-btn{transition:none}
+}
+@container v2c (max-width:980px){
+  #vv-carteira .v2c-quemc{width:170px}
+  #vv-carteira .v2c-onb .v2c-abrir{flex-wrap:wrap;gap:8px 12px}
+  #vv-carteira .v2c-agora{flex:1 1 100%;order:5}
+  #vv-carteira .v2c-pg{flex:1;order:6}
+  #vv-carteira .v2c-onb .v2c-abrir > .v2c-av{order:7}
+  #vv-carteira .v2c-onb .v2c-det{padding-left:0}
+}
+@container v2c (max-width:680px){
+  #vv-carteira .v2c-topo > h2{flex:1 1 calc(100% - 60px);font-size:24px}
+  #vv-carteira .v2c-topo > .v2c-x{order:1}
+  #vv-carteira .v2c-topo > :is(.v2c-seg,.v2c-btn){order:2}
+  #vv-carteira .v2c-fala{flex-wrap:wrap}
+  #vv-carteira .v2c-fala > p{flex:1 1 calc(100% - 60px)}
+  #vv-carteira .v2c-tres{gap:8px}
+  #vv-carteira .v2c-kpi{padding:12px}
+  #vv-carteira .v2c-kpi > b{font-size:26px}
+  #vv-carteira .v2c-kpi > small,#vv-carteira .v2c-kpi > p{font-size:11.5px}
+  #vv-carteira .v2c-espaco{display:none}
+  #vv-carteira .v2c-lin{flex-wrap:wrap;gap:8px}
+  #vv-carteira .v2c-abrir{flex:1 1 100%;flex-wrap:wrap;gap:8px 12px}
+  #vv-carteira .v2c-quemc{flex:1;width:auto}
+  #vv-carteira .v2c-porque{flex:1 1 100%;order:5}
+  #vv-carteira .v2c-ac,#vv-carteira .v2c-onb .v2c-ac{width:auto;margin-left:auto}
+  #vv-carteira .v2c-det,#vv-carteira .v2c-onb .v2c-det{padding-left:0}
+  #vv-carteira .v2c-st{width:auto}
+  #vv-carteira .v2c-nm{flex:1;width:auto}
+}
+@media (max-width:720px){
+  #vv-carteira .v2c{padding:16px 16px 0;gap:12px}
+  #vv-carteira .v2c .v2c-corpo.vc-corpo{margin:0 -16px;padding:0 16px 20px;gap:12px}
+  #vv-carteira .v2c-card{padding:14px}
+}
+
+/* ===== Conversas (#vv-whatsapp, vybe-mundo-whatsapp.js) ===== */
+/* O raio da janela vem de --vv-r-placa (regra antiga com prioridade): aqui só o valor muda, para os 28 do quadro. */
+#vv-whatsapp.vv-wa:has(> .v2w){--vv-r-placa:28px;background:#F9F8F5;border:0}
+#vv-whatsapp .v2w{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:26px 30px;font:400 13.5px/1.4 var(--vv-texto,Inter),system-ui,sans-serif;color:#1F1D1A}
+#vv-whatsapp .v2w *{box-sizing:border-box}
+#vv-whatsapp .v2w p,#vv-whatsapp .v2w h2,#vv-whatsapp .v2w h3{margin:0}
+#vv-whatsapp .v2w-topo{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+#vv-whatsapp .v2w-topo > h2{font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+#vv-whatsapp .v2w-topo > .v2w-sub{flex:1 1 200px;min-width:0}
+#vv-whatsapp .v2w-sub,#vv-whatsapp .v2w-pe{font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#vv-whatsapp .v2w-seg{flex:none;display:inline-flex;padding:4px;border-radius:999px;background:#EAE6DE}
+#vv-whatsapp .v2w-seg > button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#vv-whatsapp .v2w-seg > button[aria-selected="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+#vv-whatsapp .v2w-q{margin-left:6px;padding:0 6px;height:18px;border-radius:9px;background:#C2490C;color:#FFFFFF;font:700 11px/18px var(--vv-texto,Inter),sans-serif}
+#vv-whatsapp .v2w-x{appearance:none;flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border:0;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;cursor:pointer}
+#vv-whatsapp .v2w-x:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+#vv-whatsapp .v2w-x svg{width:16px;height:16px}
+#vv-whatsapp .v2w :is(button,input):focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px;box-shadow:none}
+#vv-whatsapp .v2w-grade{flex:1;min-height:0;display:grid;grid-template-columns:380px minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:14px}
+#vv-whatsapp .v2w-card{min-width:0;min-height:0;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+/* a lista */
+#vv-whatsapp .v2w-lista{display:flex;flex-direction:column;gap:10px;padding:16px}
+#vv-whatsapp .v2w-busca{flex:none;width:100%;height:36px;margin:0;border:0;border-radius:999px;background:#F9F8F5;box-shadow:inset 0 0 0 1px #E6E0D6;padding:0 16px;font:400 13.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-whatsapp .v2w-busca::placeholder{color:#6B665E}
+#vv-whatsapp .v2w-chips{flex:none;display:flex;flex-wrap:wrap;gap:6px}
+#vv-whatsapp .v2w-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#vv-whatsapp .v2w-chip b{font-weight:700}
+#vv-whatsapp .v2w-chip[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#vv-whatsapp .v2w-itens{flex:1;min-height:0;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px;overflow-y:auto;overscroll-behavior:contain}
+#vv-whatsapp .v2w-rot{flex:none;padding:10px 10px 4px;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#vv-whatsapp .v2w-rot:first-child{padding-top:2px}
+#vv-whatsapp .v2w-cv{appearance:none;flex:none;display:flex;align-items:center;gap:10px;width:100%;margin:0;padding:8px 10px;border:0;border-radius:14px;background:none;color:#1F1D1A;font:inherit;text-align:left;cursor:pointer}
+#vv-whatsapp .v2w-cv:hover{background:#F9F8F5}
+#vv-whatsapp .v2w-cv.on{background:#F3F1EC}
+#vv-whatsapp .v2w-tx{flex:1;min-width:0}
+#vv-whatsapp .v2w-tx > b{display:block;font:600 13.5px/1.35 var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-whatsapp .v2w-tx > span{display:block;font:400 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B665E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-whatsapp .v2w-cv.nao-lida .v2w-tx > span{color:#4A463F}
+#vv-whatsapp .v2w-dir{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font:400 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#vv-whatsapp .v2w-marcas{display:inline-flex;align-items:center;gap:4px}
+#vv-whatsapp .v2w-nl{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#C2490C;color:#FFFFFF;font:700 11px/18px var(--vv-texto,Inter),sans-serif;text-align:center}
+#vv-whatsapp .v2w-arroba{font:700 12px var(--vv-texto,Inter),sans-serif;font-style:normal;color:#4B36A8}
+#vv-whatsapp .v2w-av{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
+#vv-whatsapp .v2w-av.gr{width:36px;height:36px;font-size:11.5px;box-shadow:none}
+#vv-whatsapp .v2w-av.cliente{background:color-mix(in srgb,var(--c,#C2490C) 14%,#FFFFFF);color:var(--c,#C2490C)}
+#vv-whatsapp .v2w-av.mencao{background:#EEEAFB;color:#4B36A8}
+#vv-whatsapp .v2w-avs{flex:none;display:inline-flex;padding-left:8px}
+#vv-whatsapp .v2w-avs > .v2w-av{margin-left:-8px}
+#vv-whatsapp .v2w-avs > .v2w-av:last-child{animation:v2-pop .45s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)) both}
+#vv-whatsapp .v2w .cliente-carteira{display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:inherit;font:inherit;font-weight:600}
+#vv-whatsapp .v2w .cliente-carteira::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--carteira-texto,#C2490C)}
+#vv-whatsapp .v2w-pe{flex:none;margin-top:auto;padding:8px 10px 0;border-top:1px solid #F1EDE6}
+#vv-whatsapp .v2w-lista > .v2w-pe{margin-top:0;padding:8px 4px 0}
+#vv-whatsapp .v2w-link{appearance:none;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+#vv-whatsapp .v2w-link:hover{color:#8A3207}
+#vv-whatsapp .v2w-vazio{margin:auto;display:flex;flex-direction:column;align-items:center;gap:4px;padding:24px 16px;text-align:center;color:#6B665E;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif}
+#vv-whatsapp .v2w-vazio > b{font:600 13.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-whatsapp .v2w-vazio.grande > svg{width:36px;height:36px;margin-bottom:6px;color:#C9C2B6}
+/* a conversa */
+#vv-whatsapp .v2w-conversa{display:flex;flex-direction:column;overflow:hidden}
+#vv-whatsapp .v2w-cab{flex:none;display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #F1EDE6}
+#vv-whatsapp .v2w-quem{flex:1;min-width:0}
+#vv-whatsapp .v2w-quem > h3{font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-whatsapp .v2w-quem > .v2w-sub{margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-whatsapp .v2w-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#vv-whatsapp .v2w-btn:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+#vv-whatsapp .v2w-btn[aria-expanded="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#vv-whatsapp .v2w-voltar{appearance:none;flex:none;display:none;place-items:center;width:30px;height:30px;margin:0 -4px 0 -8px;padding:0;border:0;border-radius:50%;background:none;color:#1F1D1A;cursor:pointer}
+#vv-whatsapp .v2w-procura{flex:none;display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid #F1EDE6}
+#vv-whatsapp .v2w-procura > .v2w-busca{flex:1;width:auto}
+#vv-whatsapp .v2w-msgs{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:18px 20px;overflow-y:auto;overscroll-behavior:contain}
+#vv-whatsapp .v2w-msgs > :first-child{margin-top:auto}
+#vv-whatsapp .v2w-dia{flex:none;align-self:center}
+#vv-whatsapp .v2w-dia > span{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif}
+#vv-whatsapp .v2w-sep{flex:none;align-self:center;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#C2490C}
+#vv-whatsapp .v2w-bl{flex:none;max-width:72%;align-self:flex-start;padding:9px 14px;border-radius:18px 18px 18px 6px;background:#F3F1EC;font:400 13.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A;overflow-wrap:anywhere}
+#vv-whatsapp .v2w-bl > small{display:flex;flex-wrap:wrap;gap:0 8px;margin-bottom:2px;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-whatsapp .v2w-bl > small > i{font-style:normal;font-weight:400;color:#6B665E}
+#vv-whatsapp .v2w-bl > small > em{font-style:normal;color:#C2490C}
+#vv-whatsapp .v2w-bl > span{display:block;white-space:pre-wrap}
+#vv-whatsapp .v2w-bl.eu{align-self:flex-end;background:#FFE9DB;border-radius:18px 18px 6px 18px}
+#vv-whatsapp .v2w-bl.agt{background:#EEEAFB}
+#vv-whatsapp .v2w-bl.agt > small{color:#4B36A8}
+#vv-whatsapp .v2w-bl.para-voce{box-shadow:inset 0 0 0 1.5px #C2490C}
+#vv-whatsapp .v2w-bl.piscar{animation:v2w-pisca 1.4s ease-out 1}
+#vv-whatsapp .v2w-bl.novo{transform-origin:0 100%;animation:v2w-chega .5s cubic-bezier(.34,1.4,.64,1) both}
+#vv-whatsapp .v2w-citada{margin-bottom:4px;padding:4px 8px;border-left:2px solid #C9C2B6;border-radius:4px;background:rgba(31,29,26,.05);font-size:12.5px;color:#4A463F}
+#vv-whatsapp .v2w-midia{color:#4A463F}
+#vv-whatsapp .v2w-bl > .v2w-apagada{display:inline-flex;align-items:center;gap:6px;color:#6B665E;font-style:italic}
+#vv-whatsapp .v2w-apagada > svg{width:13px;height:13px}
+#vv-whatsapp .v2w-rodape{flex:none;display:flex;align-items:center;gap:8px;padding:12px 20px 14px;border-top:1px solid #F1EDE6;color:#6B665E}
+#vv-whatsapp .v2w-rodape > svg{width:14px;height:14px}
+@keyframes v2w-chega{from{transform:scale(.4) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes v2w-pisca{0%,60%{box-shadow:0 0 0 3px rgba(194,73,12,.35)}100%{box-shadow:0 0 0 3px rgba(194,73,12,0)}}
+@media (prefers-reduced-motion:reduce){#vv-whatsapp .v2w-bl.novo,#vv-whatsapp .v2w-bl.piscar,#vv-whatsapp .v2w-avs > .v2w-av:last-child{animation:none}}
+@container wa (max-width:980px){
+  #vv-whatsapp .v2w-grade{grid-template-columns:320px minmax(0,1fr)}
+  #vv-whatsapp .v2w-avs{display:none}
+}
+@container wa (max-width:720px){
+  #vv-whatsapp .v2w{padding:16px;gap:12px}
+  #vv-whatsapp .v2w-topo > h2{flex:1;font-size:24px}
+  #vv-whatsapp .v2w-topo > .v2w-sub{order:4;flex:1 1 100%}
+  #vv-whatsapp .v2w-topo > .v2w-seg{order:5}
+  #vv-whatsapp .v2w-grade{grid-template-columns:minmax(0,1fr)}
+  #vv-whatsapp .v2w-conversa{display:none}
+  #vv-whatsapp.com-conversa .v2w-lista{display:none}
+  #vv-whatsapp.com-conversa .v2w-conversa{display:flex}
+  #vv-whatsapp .v2w-voltar{display:grid}
+  #vv-whatsapp .v2w-cab{padding:12px 14px;gap:10px}
+  #vv-whatsapp .v2w-msgs{padding:14px}
+  #vv-whatsapp .v2w-bl{max-width:86%}
+  #vv-whatsapp .v2w-rodape,#vv-whatsapp .v2w-procura{padding-left:14px;padding-right:14px}
+}

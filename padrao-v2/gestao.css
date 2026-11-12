@@ -1,0 +1,172 @@
+/* ======================================================================================
+   PADRÃO V2 · GESTÃO, PERFORMANCE E VISÃO DO SETOR (quadros "Gestão", "Performance" e "Visão do setor" do moodboard
+   aprovado em 12/11/2026). As medidas são as dos quadros: janela #F9F8F5 de raio 28, cartão branco de raio 20 sem
+   borda, pílula 999, botão de 38 (30 na linha), ficha escolhida preta #1F1D1A, ação #C2490C, texto #1F1D1A e #6B665E.
+   O HTML vem de vybe-mundo-setor.js (molde .g2) e de vybe-mundo-performance.js; os movimentos são as peças .v2-* de
+   vybe-mundo.css. Nada aqui força regra antiga.
+   ====================================================================================== */
+/* A janela: o cabeçalho antigo da Gestão (título, abas em cima) dá lugar ao cabeçalho do quadro, que vem no painel. */
+.vv-gestao.vv-gestao:has(> .g2-topo),.vv-gestao.vv-gestao:has(> .vv-g-corpo > .g2-topo){padding:26px 30px 30px;border-radius:28px;background:#F9F8F5}
+.vv-gestao:has(> .vv-g-corpo > .g2-topo) > :is(.vv-g-topo,.vv-g-abas){display:none}
+.vv-gestao .g2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 16px;padding:0;border:0;background:none;position:static}
+.vv-gestao .g2-topo > h2{flex:1 1 auto;min-width:0;margin:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+.vv-gestao .g2-topo .g2-topo-sub{font:400 12.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+.vv-gestao .g2-topo .g2-vaga{display:contents}
+.vv-gestao .g2-topo .g2-fechar{display:none;width:38px;padding:0}
+.vv-gestao .g2-topo .g2-fechar svg{width:14px;height:14px}
+/* Botões: branco de 38, pequeno de 30 (.s), o cheio da tela (.p). */
+.vv-gestao .g2-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 13.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),box-shadow .2s}
+.vv-gestao .g2-btn:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+.vv-gestao .g2-btn:active{transform:scale(.96)}
+.vv-gestao .g2-btn.s{height:30px;padding:0 12px;font-size:12.5px}
+.vv-gestao .g2-btn.p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+.vv-gestao .g2-btn.p:hover{background:#A83E0A;box-shadow:0 8px 16px -10px #C2490C}
+.vv-gestao .g2-btn > svg{flex:none;width:14px;height:14px}
+.vv-gestao :is(.g2-btn,.g2-link,.g2-chip,.g2-mod,.g2-lin-txt,.g2-kpi-n,.g2-fx-n,.g2-fx-at):focus-visible,.vv-gestao .g2-seg > button:focus-visible,.vv-gestao .g2-mais > summary:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
+/* Visão escolhida: trilho cinza, a ativa branca. Vale para os setores, para o período da Performance e para Mensal/Anual. */
+.vv-gestao .g2-topo :is(.g2-seg,.vs-alternar){flex:none;display:inline-flex;max-width:100%;padding:4px;border-radius:999px;background:#EAE6DE;overflow-x:auto;scrollbar-width:none}
+.vv-gestao .g2-topo :is(.g2-seg,.vs-alternar) > button{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+.vv-gestao .g2-topo :is(.g2-seg,.vs-alternar) > button[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+.vv-gestao .g2-topo .vs-periodo{display:inline-flex;align-items:center;gap:12px;margin:0}
+.vv-gestao .g2-topo .vs-periodo select[data-vs-mes]{height:30px;padding:0 30px 0 12px;border:0;border-radius:999px;background-color:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter),sans-serif}
+/* O corpo: blocos empilhados com 16 de respiro, cartões com 14 entre si. */
+.vv-gestao .g2{display:flex;flex-direction:column;gap:16px;min-width:0;color:#1F1D1A;font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif}
+.vv-gestao .g2 :is(p,h3,ul){margin:0}
+.vv-gestao .g2-card{min-width:0;box-sizing:border-box;padding:18px;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+.vv-gestao .g2-card-topo{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+.vv-gestao .g2-card-topo > h3{flex:1;min-width:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+.vv-gestao .g2-card-topo > small{font:400 12.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E;text-align:right}
+.vv-gestao .g2-card-topo > .g2-btn{align-self:center}
+/* A frase do agente dono. */
+.vv-gestao .g2-fala-lin{display:flex;align-items:center;gap:14px}
+.vv-gestao .g2-fala-lin > p{flex:1;min-width:0;font:400 15px/1.45 var(--vv-texto,Inter),sans-serif}
+.vv-gestao .g2-fala b{font-weight:700}
+.vv-gestao .g2-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#4B36A8}
+.vv-gestao .g2-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter),sans-serif}
+.vv-gestao .g2-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:g2-pulso 3.6s ease-out infinite}
+@keyframes g2-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
+.vv-gestao .g2-conta{display:flex;flex-direction:column;gap:6px;margin:14px 0 0 54px;padding:12px 14px;border-radius:14px;background:#F9F8F5;list-style:none;font-size:12.5px;line-height:1.45;color:#4A463F}
+.vv-gestao .g2-conta b{color:#1F1D1A}
+/* Os três números. */
+.vv-gestao .g2-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.vv-gestao .g2-kpi{display:flex;flex-direction:column;align-items:stretch}
+.vv-gestao .g2-kpi > small{display:block;font:400 12.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+.vv-gestao .g2-kpi-v{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;color:#1F1D1A;font-variant-numeric:tabular-nums}
+.vv-gestao .g2-kpi-v > em{font:600 15px var(--vv-texto,Inter),sans-serif;font-style:normal;letter-spacing:0;color:#6B665E}
+.vv-gestao .g2-kpi-v.ruim{color:#B42318}
+.vv-gestao .g2-kpi-v.atencao{color:#7A4A00}
+.vv-gestao .g2-kpi-v.frase{font-size:22px;line-height:1.6;color:#6B665E}
+.vv-gestao .g2-kpi-n{appearance:none;align-self:flex-start;margin:0;padding:0;border:0;border-radius:8px;background:none;color:inherit;text-align:left;cursor:pointer}
+.vv-gestao .g2-kpi-sub{margin-top:8px}
+.vv-gestao .g2-kpi > .g2-kpi-v + .g2-kpi-sub,.vv-gestao .g2-kpi > .g2-kpi-n + .g2-kpi-sub{margin-top:0}
+.vv-gestao .g2 .g2-barra{height:6px;border-radius:3px;background:#EAE6DE}
+/* Link de texto (ver quais, mostrar, abrir a carteira). */
+.vv-gestao .g2-link{appearance:none;display:inline;margin:0;padding:0;border:0;border-radius:4px;background:none;color:#C2490C;font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.vv-gestao .g2-link:hover{color:#8A3207}
+.vv-gestao .g2-link.forte{display:block;margin:2px 0;font:600 14px var(--vv-texto,Inter),sans-serif}
+/* Duas colunas: o que pede ação e o vizinho (a semana, os módulos, a fila). */
+.vv-gestao .g2-duas{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.vv-gestao .g2-duas.mods{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+.vv-gestao .g2-duas.iguais{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.vv-gestao .g2-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.vv-gestao .g2-col > .g2-entregas{flex:1}
+.vv-gestao .g2-duas > .g2-card,.vv-gestao .g2-entregas{display:flex;flex-direction:column}
+/* Linhas de "Pede ação": pílula, texto e o botão na linha; o detalhe abre no lugar. */
+.vv-gestao .g2-linha{border-top:1px solid #F1EDE6}
+.vv-gestao .g2-card-topo + .g2-linha{border-top:0}
+.vv-gestao .g2-lin{display:flex;align-items:center;gap:12px;padding:12px 0;font-size:13.5px}
+.vv-gestao .g2-lin-txt{appearance:none;flex:1;min-width:0;margin:0;padding:0;border:0;background:none;color:#1F1D1A;font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif;text-align:left;overflow-wrap:anywhere}
+.vv-gestao button.g2-lin-txt{cursor:pointer;border-radius:6px}
+.vv-gestao .g2-lin-txt b{font-weight:700}
+.vv-gestao .g2-lin-solta{margin-top:4px;border-top:1px solid #F1EDE6}
+.vv-gestao .g2-pill{flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+.vv-gestao .g2-pill.r{background:#FDECEE;color:#B42318}
+.vv-gestao .g2-pill.a{background:#FFF4D6;color:#7A4A00}
+.vv-gestao .g2-pill.g{background:#E8F5EC;color:#11613A}
+.vv-gestao .g2 .v2-abre[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1)),visibility 0s .28s}
+.vv-gestao .g2-hists{padding:0 0 10px 104px}
+.vv-gestao .g2-hists.fx{padding-left:122px}
+.vv-gestao .g2-hist{display:flex;gap:8px;align-items:center;padding:0 0 10px;font-size:12.5px;line-height:1.35;color:#4A463F}
+.vv-gestao .g2-hist:last-child{padding-bottom:0}
+.vv-gestao .g2-hist::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#C9C2B6}
+.vv-gestao .g2-pe{font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E;padding-top:8px}
+.vv-gestao .g2-resto > .g2-pe{border-top:1px solid #F1EDE6}
+.vv-gestao .g2-resto,.vv-gestao .g2-pe-fim{margin-top:auto}
+.vv-gestao .g2-pe-topo{padding-top:6px}
+.vv-gestao .g2-vazio{padding:14px 0 4px;font-size:13.5px;color:#6B665E}
+/* Cliente: a bolinha na cor da carteira e o nome em negrito. */
+.vv-gestao .g2 :is(.g2-lin-txt,.g2-hist,.g2-fx-st) .cliente-carteira{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;border-radius:0;background:none;font:inherit;font-weight:600}
+.vv-gestao .g2 :is(.g2-lin-txt,.g2-hist) .cliente-carteira::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--carteira-texto,#8A847A)}
+/* Esta semana, dia a dia. */
+.vv-gestao .g2-dia{display:grid;grid-template-columns:78px minmax(0,1fr) 70px;align-items:center;gap:12px;padding:12px 0;font-size:13.5px}
+.vv-gestao .g2-dia .g2-barra{height:8px;border-radius:4px}
+.vv-gestao .g2-dia-qt{text-align:right;font-size:12.5px;color:#4A463F;font-variant-numeric:tabular-nums}
+.vv-gestao .g2-dia-qt.ruim{color:#B42318;font-weight:600}
+/* Módulos do setor: um número em cada. */
+.vv-gestao .g2-mods{display:flex;flex-direction:column;gap:10px;min-width:0}
+.vv-gestao .g2-mods > .g2-card-topo{min-height:22px;margin:0}
+.vv-gestao .g2-mods-grade{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(84px,1fr);gap:10px}
+.vv-gestao .g2-mod{appearance:none;display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-width:0;margin:0;padding:11px 14px;border:0;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 10px 20px -16px rgba(31,29,26,.22);color:#1F1D1A;text-align:left;cursor:pointer;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),box-shadow .2s}
+.vv-gestao .g2-mod:hover{box-shadow:0 1px 2px rgba(31,29,26,.05),0 14px 24px -14px rgba(31,29,26,.34)}
+.vv-gestao .g2-mod:active{transform:scale(.98)}
+.vv-gestao .g2-mod > small{font:600 12.5px/1.2 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+.vv-gestao .g2-mod > span{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;font:400 11.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+.vv-gestao .g2-mod > span > b{font:700 22px/1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A;font-variant-numeric:tabular-nums}
+/* Performance: a fila por etapa e os três números das entregas. */
+.vv-gestao .g2-fx{display:grid;grid-template-columns:112px minmax(0,1fr) 34px 92px;align-items:center;gap:10px;padding:10px 0;font-size:13.5px}
+.vv-gestao .g2-fx-st{min-width:0;display:flex;overflow:hidden}
+.vv-gestao .g2-fx-st > *{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vv-gestao .g2-fx-n{appearance:none;margin:0;padding:0;border:0;border-radius:6px;background:none;color:#1F1D1A;font:700 15px var(--vv-titulo,"Inter Tight"),Inter,sans-serif;text-align:right;font-variant-numeric:tabular-nums;cursor:pointer}
+.vv-gestao .g2-fx-at{appearance:none;margin:0;padding:0;border:0;border-radius:6px;background:none;color:#B42318;font:400 12.5px var(--vv-texto,Inter),sans-serif;text-align:left;white-space:nowrap}
+.vv-gestao button.g2-fx-at{cursor:pointer}
+.vv-gestao .g2-fx-at.calmo{color:#6B665E}
+.vv-gestao .g2-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:auto;padding-top:14px}
+.vv-gestao .g2-mini > span{display:block;font-size:12px;color:#6B665E}
+.vv-gestao .g2-mini > b{display:block;margin:2px 0;font:600 14px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+.vv-gestao .g2-entregas .vs-grafico{margin:8px 0 0}
+/* "Abrir:" no pé: as outras abas viram fichas. */
+.vv-gestao .g2-abrir{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+.vv-gestao .g2-abrir > span:first-child{margin-right:2px}
+.vv-gestao .g2-abrir-fim{margin-left:auto}
+.vv-gestao .g2-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+.vv-gestao .g2-chip:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+/* O que a tela antiga mostrava a mais: fechado, a um clique. */
+.vv-gestao .g2-mais > summary{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;width:fit-content;max-width:100%;list-style:none;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E;cursor:pointer;border-radius:4px}
+.vv-gestao .g2-mais > summary::-webkit-details-marker{display:none}
+.vv-gestao .g2-mais > summary > u{color:#C2490C;text-underline-offset:2px}
+.vv-gestao .g2-mais[open] > summary > u{display:none}
+.vv-gestao .g2-mais-corpo{margin-top:14px}
+/* Redesenho de minuto em minuto (a Gestão se repinta): o que já estava na tela não entra de novo. */
+.vv-gestao .g2-quieta :is(.v2-num,.v2-barra > i){animation:none}
+@media (prefers-reduced-motion:reduce){
+  .vv-gestao .g2-ag::after{animation:none}
+  .vv-gestao .g2-btn,.vv-gestao .g2-mod,.vv-gestao .g2 .v2-abre[aria-expanded="false"] > .v2-mais{transition:none}
+}
+@media (max-width:1100px){
+  .vv-gestao .g2-duas,.vv-gestao .g2-duas.mods,.vv-gestao .g2-duas.iguais{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:900px){
+  .vv-gestao.vv-gestao:has(> .g2-topo),.vv-gestao.vv-gestao:has(> .vv-g-corpo > .g2-topo){padding:16px 16px 20px;border-radius:0 0 14px 14px}
+  .vv-gestao .g2-topo .g2-fechar{display:inline-flex}
+  .vv-gestao .g2-topo > h2{font-size:24px}
+}
+@media (max-width:640px){
+  .vv-gestao .g2-topo > h2{flex:1 1 100%}
+  .vv-gestao .g2-topo .vs-periodo{flex-wrap:wrap;gap:8px}
+  .vv-gestao .g2-tres{grid-template-columns:minmax(0,1fr)}
+  .vv-gestao .g2-card{padding:14px}
+  .vv-gestao .g2-kpi-v{font-size:28px}
+  .vv-gestao .g2-fala-lin{flex-wrap:wrap}
+  .vv-gestao .g2-fala-lin > p{flex:1 1 calc(100% - 54px)}
+  .vv-gestao .g2-conta{margin-left:0}
+  .vv-gestao .g2-lin{flex-wrap:wrap;gap:8px}
+  .vv-gestao .g2-lin-txt{flex:1 1 calc(100% - 120px)}
+  .vv-gestao .g2-lin > .g2-btn{margin-left:auto}
+  .vv-gestao .g2-hists,.vv-gestao .g2-hists.fx{padding-left:0}
+  .vv-gestao .g2-mods-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vv-gestao .g2-fx{grid-template-columns:96px minmax(0,1fr) 30px 84px;gap:8px}
+  .vv-gestao .g2-dia{grid-template-columns:72px minmax(0,1fr) 62px;gap:8px}
+  .vv-gestao .g2-minis{grid-template-columns:minmax(0,1fr)}
+  .vv-gestao .g2-abrir-fim{margin-left:0;flex:1 1 100%}
+  .vv-gestao .g2-card-topo{flex-wrap:wrap}
+}

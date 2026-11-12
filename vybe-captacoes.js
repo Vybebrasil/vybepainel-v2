@@ -824,6 +824,8 @@ function captacoesHtml() {
     : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel", previa: "captPreviaHtml", verDia: "captVerDia" } });
   // Redesenhar troca os blocos embaixo do mouse: a prévia do bloco antigo sai junto.
   setTimeout(() => { agPreviaSair(true); if (CAPT.vista === "semana" || CAPT.vista === "dia") { agRolar(); captCabecaFixa(); } captCartaoAtualizar(); }, 0);
+  // No mundo, a tela é a do quadro do padrão v2 (pv2aHtml, no fim deste arquivo).
+  if (typeof pv2Ligado === "function" && pv2Ligado()) return pv2aHtml({ todos, pend, nPend });
   return `<div class="capt capt-cal vista-${CAPT.vista}${CAPT.inspetor ? " com-inspetor" : ""}">
     <div class="capt-toolbar" role="toolbar" aria-label="Captações">
       <div class="capt-tb-esq">
@@ -1285,4 +1287,131 @@ async function captFechar(form) {
     if (typeof refreshData === "function") refreshData();
     CAPT.sel = e.id; captRecarregar();
   } catch (x) { mostrar(x.message); botao.disabled = false; botao.textContent = rotulo; }
+}
+
+// ─── Padrão v2 · Agenda e captações pelo quadro DEPOIS do moodboard (12/11/2026) ─────────────
+// A tela é o quadro, nesta ordem: título com as abas e Marcar captação (cabeçalho, em production_governed_v2.js); a
+// fala do Lucas; a busca, Dia, Semana, Mês e Filtros; à esquerda "Pede ação" (gravações para fechar, com a linha que
+// abre no lugar, captações sem peças e peças sem roteiro); à direita a semana em lista por dia, em que hora e dia
+// vazios não ocupam tela. A grade por hora continua em Dia, e a da semana em Filtros ("Semana em grade por hora").
+// Só vale no mundo; no tema antigo fica a barra de sempre.
+const pv2aAbertas = new Set();
+function pv2aAlternar(id, el) {
+  const linha = el.closest(".pv2-linha"); if (!linha) return;
+  const abrir = linha.getAttribute("aria-expanded") !== "true";
+  if (abrir) pv2aAbertas.add(id); else pv2aAbertas.delete(id);
+  linha.setAttribute("aria-expanded", String(abrir)); el.setAttribute("aria-expanded", String(abrir));
+}
+function pv2aBuscar(valor) { CAPT.busca = valor; const el = document.getElementById("pv2a-corpo"); if (el) el.innerHTML = pv2aCorpoHtml(); }
+function pv2aGrade() { CAPT.grade = !CAPT.grade; CAPT.sel = ""; agCartaoFechar(); captRender(); }
+function pv2aVazios() { CAPT.vazios = !CAPT.vazios; pv2aBuscar(CAPT.busca); }
+function pv2aCorDoEvento(e) {
+  if (e.tipo === "reuniao") return "#E0A21B";
+  if (e.tipo !== "captacao") return "#6B665E";
+  const carteira = e.cliente && typeof carteiraDoCliente === "function" ? carteiraDoCliente(e.cliente) : "";
+  return carteira === "vinicius" ? "#C2490C" : carteira === "ewerton" ? "#3B5BA9" : "#11613A";
+}
+function pv2aSemanaEmLista() { return (CAPT.vista === "semana" || CAPT.vista === "lista") && !CAPT.grade; }
+// "Pede ação": o que já foi gravado e falta fechar, depois a captação sem peças e as peças sem roteiro.
+function pv2aPedeAcaoHtml(pend, bate) {
+  const fechar = pend.fechar.filter(bate), semPecas = [...pend.ligar, ...pend.cadastrar].filter(bate).sort((a, b) => (a.dia + (a.inicio || "")).localeCompare(b.dia + (b.inicio || "")));
+  const linhaFechar = (e) => {
+    const k = e.nossa, dias = -captDiasAte(e.dia), aberta = pv2aAbertas.has(e.id), id = safeText(e.id);
+    const gravadas = k ? k.pecas.filter((p) => p.gravado).length : 0;
+    const quando = `${agDiaSemana(e.dia, "long")}, ${Number(e.dia.slice(8))}/${e.dia.slice(5, 7)}${e.inicio ? ` · ${agHorario(e)}` : ""}`;
+    const sub = k ? (k.pecas.length ? `gravada, ${gravadas} de ${captPlural(k.pecas.length, "peça marcada", "peças marcadas")}` : "gravada, sem peças ligadas") : "gravada, ainda sem nada no sistema";
+    return `<div class="pv2-linha v2-abre" aria-expanded="${aberta}"><div class="pv2-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2aAlternar('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2aAlternar('${id}',this)}">
+        ${pv2Pill(dias <= 0 ? "Hoje" : `Há ${captPlural(dias, "dia", "dias")}`, dias >= 6 ? "r" : "a")}<p>${e.cliente ? pv2Cli(e.cliente) : `<b>${safeText(e.titulo || "Captação")}</b>`} · ${safeText(quando)}<br><span class="pv2-sub">${safeText(sub)}</span></p>
+        <button type="button" class="pv2-btn s" onclick="event.stopPropagation();captAbrirFechar('${id}')">Fechar gravação</button></div>
+      <div class="v2-mais"><div><div class="pv2-det">
+        <span class="pv2-etp ok"><i class="pv2-cx ok" aria-hidden="true">${PV2_IC.ok}</i>Gravada ${safeText(agDiaSemana(e.dia, "long"))}${e.inicio ? `, ${safeText(agHorario(e))}` : ""}</span>
+        <span class="pv2-etp vez"><i class="pv2-cx" aria-hidden="true"></i>Marcar o que foi gravado${k?.pecas.length ? ` (${gravadas} de ${k.pecas.length})` : ""}</span>
+        <span class="pv2-etp"><i class="pv2-cx" aria-hidden="true"></i>Colar a pasta do material bruto</span>
+        ${k?.pecas.length ? `<p>Peças ligadas: ${k.pecas.slice(0, 4).map((p) => `<b>${safeText(p.titulo)}</b>`).join(", ")}${k.pecas.length > 4 ? ` e mais ${k.pecas.length - 4}` : ""}</p>` : "<p>Nenhuma peça ligada a esta captação ainda.</p>"}
+        <div class="pv2-det-acoes"><button type="button" class="pv2-btn s" onclick="captSelecionar('${id}')" data-ev="${id}">Ver a captação</button></div>
+      </div></div></div></div>`;
+  };
+  const linhaSemPecas = (e) => { const id = safeText(e.id), temPecas = e.cliente_id && captPendentesDo(e.cliente_id, e).length;
+    const acao = temPecas ? `<button type="button" class="pv2-btn s" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${id}'})">Escolher peças</button>`
+      : e.cliente ? `<button type="button" class="pv2-btn s" onclick="captCadastrar('${safeText(e.cliente)}')">Cadastrar peça</button>` : `<button type="button" class="pv2-btn s" data-ev="${id}" onclick="captSelecionar('${id}')">Ver</button>`;
+    return `<div class="pv2-linha"><div class="pv2-lin">${pv2Pill("Sem peças", "b")}<p>${e.cliente ? pv2Cli(e.cliente) : `<b>${safeText(e.titulo || "Captação")}</b>`} · ${safeText(captQuando(e).toLowerCase())}<br><span class="pv2-sub">${safeText(e.estado?.texto || "nada ligado no sistema")}</span></p>${acao}</div></div>`; };
+  const MAX = 3, semPecasVista = semPecas.slice(0, MAX);
+  const roteiro = pend.roteiro.length ? `<div class="pv2-linha"><div class="pv2-lin">${pv2Pill("Sem roteiro", "a")}<p><b>${captPlural(pend.roteiro.length, "peça", "peças")}</b> ${pend.roteiro.length === 1 ? "vai" : "vão"} ser ${pend.roteiro.length === 1 ? "gravada" : "gravadas"} sem roteiro</p><button type="button" class="pv2-btn s" onclick="captGrupo('roteiro')">Ver</button></div></div>` : "";
+  const conta = [fechar.length ? captPlural(fechar.length, "gravação para fechar", "gravações para fechar") : "", semPecas.length ? captPlural(semPecas.length, "captação sem peças", "captações sem peças") : ""].filter(Boolean).join(" · ");
+  const nada = !fechar.length && !semPecas.length && !roteiro;
+  return `<section class="pv2-card pv2a-acao" aria-label="Pede ação"><div class="pv2a-cab"><h3>Pede ação</h3><span class="pv2-sub">${conta || (roteiro ? "roteiros" : "nada agora")}</span></div>
+    ${fechar.map(linhaFechar).join("")}${semPecasVista.map(linhaSemPecas).join("")}${roteiro}
+    ${nada ? `<p class="pv2-sub pv2-nada">${CAPT.busca.trim() ? "Nada com esse texto pede ação." : "Toda gravação está fechada e toda captação tem peças."}</p>` : ""}
+    <p class="pv2-sub pv2a-pe">${semPecas.length > MAX ? `+ ${semPecas.length - MAX} sem peças · ` : ""}<button type="button" class="pv2-link" onclick="captAlternarInspetor()">${CAPT.inspetor ? "esconder" : "mostrar"} a fila de clientes esperando captação</button></p></section>`;
+}
+// A semana em lista por dia: dia sem nada fica recolhido no rodapé.
+function pv2aSemanaHtml(eventos, bate) {
+  const hoje = captHoje(), dias = Array.from({ length: 7 }, (_, i) => agSomar(CAPT.semana, i));
+  const daSemana = eventos.filter((e) => e.dia >= dias[0] && e.dia <= dias[6]), lista = daSemana.filter(bate);
+  const tomDoEstado = (est) => (est.chave === "gravada" || est.tom === "ok" ? "g" : est.tom === "alerta" ? "r" : "a");
+  const ev = (e) => { const id = safeText(e.id), n = e.nossa?.pecas?.length || 0;
+    const texto = `${e.cliente || e.titulo || "Sem título"}${e.tipo === "captacao" ? " · captação" : e.tipo === "reuniao" ? " · reunião" : ""}${n ? ` · ${captPlural(n, "peça", "peças")}` : ""}`;
+    return `<button type="button" class="pv2a-ev${e.id === CAPT.sel ? " sel" : ""}" data-ev="${id}" style="--c:${pv2aCorDoEvento(e)}" onclick="captSelecionar('${id}')" title="${safeText(e.titulo || "")}${e.local ? " · " + safeText(e.local) : ""}"><time>${safeText(e.inicio ? agHorario(e) : "Dia todo")}</time>${safeText(texto)}</button>${e.estado ? pv2Pill(e.estado.texto.toLowerCase(), tomDoEstado(e.estado)) : ""}`; };
+  let feriados = 0; const vazios = [];
+  const linhas = dias.map((d) => {
+    const doDia = lista.filter((e) => e.dia === d).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
+    const datas = (window.VybeDatas?.doDia?.(d) || []).filter((x) => x.feriado || window.VybeDatas?.relevante?.(x) !== false).slice(0, 1);
+    feriados += datas.filter((x) => x.feriado).length;
+    const rotulo = `${agDiaSemana(d)} ${Number(d.slice(8))}`;
+    if (!doDia.length && !datas.length && d !== hoje) { vazios.push(rotulo); if (!CAPT.vazios) return ""; }
+    const chips = datas.map((x) => `<button type="button" class="pv2-pill ${x.feriado ? "r" : "n"} pv2a-data" data-comemorativa="${safeText(x.iso)}|${safeText(x.nome)}">${x.feriado ? "Feriado · " : ""}${safeText(x.nome)}</button>`).join("");
+    return `<div class="pv2a-dia${d === hoje ? " hj" : ""}"><button type="button" class="pv2a-d" onclick="captVerDia('${d}')" title="Abrir o dia na grade por hora">${d === hoje ? "hoje" : safeText(agDiaSemana(d))} <b>${Number(d.slice(8))}</b></button>
+      <div class="pv2a-evs">${chips}${doDia.map(ev).join("")}${!doDia.length && !chips ? '<span class="pv2-sub">nada marcado</span>' : ""}</div></div>`;
+  }).join("");
+  const nCapt = lista.filter((e) => e.tipo === "captacao").length, nReu = lista.filter((e) => e.tipo === "reuniao").length, nOutros = lista.length - nCapt - nReu;
+  const pe = [captPlural(nCapt, "captação", "captações"), nReu ? captPlural(nReu, "reunião", "reuniões") : "", nOutros ? captPlural(nOutros, "compromisso", "compromissos") : "", feriados ? captPlural(feriados, "feriado", "feriados") : "",
+    vazios.length ? `${vazios.slice(0, 2).join(" e ")}${vazios.length > 2 ? ` e mais ${vazios.length - 2}` : ""} sem nada, ${vazios.length === 1 ? "recolhido" : "recolhidos"} · <button type="button" class="pv2-link" onclick="pv2aVazios()">${CAPT.vazios ? "recolher" : "mostrar"}</button>` : ""].filter(Boolean).join(" · ");
+  return `${linhas || `<p class="pv2-sub pv2-nada">${CAPT.busca.trim() ? "Nada com esse texto nesta semana." : "Nada na agenda nesta semana."} <button type="button" class="pv2-link" onclick="captMarcarCaptacao()">Marcar captação</button></p>`}<p class="pv2-sub pv2a-pe">${pe}</p>`;
+}
+function pv2aCorpoHtml() {
+  const hoje = captHoje(), faixa = CAPT.vista === "mes" ? captFaixa() : { inicio: CAPT.semana, dias: 7 };
+  const eventos = captComNossas(CAPT.agenda || [], { de: faixa.inicio, ate: agSomar(faixa.inicio, faixa.dias - 1) }).filter((e) => CAPT.tipos.has(e.tipo));
+  const termo = CAPT.busca.trim().toLocaleLowerCase("pt-BR"), bate = (e) => !termo || `${e.cliente || ""} ${e.titulo || ""} ${e.local || ""}`.toLocaleLowerCase("pt-BR").includes(termo);
+  const { titulo } = captTituloDaVista(), emLista = pv2aSemanaEmLista();
+  const passo = CAPT.vista === "dia" ? "dia" : CAPT.vista === "mes" ? "mês" : "semana";
+  const fim = agSomar(CAPT.semana, 6), periodo = CAPT.vista === "dia" || CAPT.vista === "mes" ? "" : ` · ${Number(CAPT.semana.slice(8))} a ${Number(fim.slice(8))}`;
+  const d = CAPT.dia || hoje, ehHoje = CAPT.vista === "dia" ? d === hoje : CAPT.vista === "mes" ? d.slice(0, 7) === hoje.slice(0, 7) : CAPT.semana === agSegunda(hoje);
+  const corpo = emLista ? pv2aSemanaHtml(eventos, bate)
+    : `<div class="capt capt-cal vista-${CAPT.vista === "lista" ? "semana" : CAPT.vista}"><div class="capt-colunas"><section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">${CAPT.vista === "mes" ? captMesHtml(eventos) : CAPT.vista === "dia" ? captDiaHtml(eventos)
+      : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel", previa: "captPreviaHtml", verDia: "captVerDia" } })}</section></div></div>`;
+  const agenda = `<section class="pv2-card pv2a-semana${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}"><div class="pv2a-cab"><h3>${safeText(titulo)}${periodo}</h3>
+      <button type="button" class="pv2-btn s" onclick="captNavegar(0)" title="Hoje (T)"${ehHoje ? ' aria-current="date"' : ""}>Hoje</button>
+      <button type="button" class="pv2-btn s ic" onclick="captNavegar(-1)" aria-label="${passo === "mês" ? "Mês" : passo === "dia" ? "Dia" : "Semana"} anterior" title="Anterior (←)">${PV2_IC.antes}</button>
+      <button type="button" class="pv2-btn s ic" onclick="captNavegar(1)" aria-label="${passo === "semana" ? "Próxima semana" : `Próximo ${passo}`}" title="Próximo (→)">${PV2_IC.depois}</button></div>${corpo}</section>`;
+  const acao = pv2aPedeAcaoHtml(captPendencias(), bate);
+  return emLista ? acao + agenda : agenda + acao;
+}
+function pv2aHtml({ todos, pend, nPend }) {
+  const hoje = captHoje(), daSemana = captEventos().filter((e) => CAPT.tipos.has(e.tipo));
+  const nCapt = daSemana.filter((e) => e.tipo === "captacao").length, nFechar = pend.fechar.length;
+  const deHoje = daSemana.filter((e) => e.tipo === "captacao" && e.dia === hoje).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1))[0];
+  const feriado = Array.from({ length: 7 }, (_, i) => agSomar(CAPT.semana, i)).map((d) => ({ d, f: (window.VybeDatas?.doDia?.(d) || []).find((x) => x.feriado) })).find((x) => x.f && x.d >= hoje);
+  const naSemanaAtual = CAPT.semana === agSegunda(hoje);
+  const frase = `${nCapt ? `<b>${captPlural(nCapt, "captação", "captações")}</b>` : "Nenhuma captação"} ${naSemanaAtual ? "nesta semana" : "na semana aberta"}${nFechar ? ` e <b>${captPlural(nFechar, "gravação para fechar", "gravações para fechar")}</b>` : ""}.${naSemanaAtual && deHoje ? ` Hoje tem ${safeText(deHoje.cliente || deHoje.titulo || "captação")}${deHoje.inicio ? ` às ${safeText(deHoje.inicio)}` : ""}.` : ""}${feriado ? ` ${agDiaSemana(feriado.d, "long").replace(/^./, (c) => c.toUpperCase())} é feriado (${safeText(feriado.f.nome)}).` : ""}`;
+  const botao = nFechar ? `<button type="button" class="pv2-btn s" onclick="captAbrirFechar('${safeText(pend.fechar[0].id)}')" title="Abre o fechamento da gravação mais antiga">Fechar ${nFechar === 1 ? "a gravação" : "as " + nFechar}</button>`
+    : nPend ? `<button type="button" class="pv2-btn s" onclick="captAlternarInspetor()">${captPlural(nPend, "pendência", "pendências")}</button>` : "";
+  const vistas = CAPT_VISTAS.map(([v, n, tecla]) => `<button type="button" class="pv2-chip" aria-pressed="${CAPT.vista === v || (v === "semana" && CAPT.vista === "lista")}" onclick="captVista('${v}')" title="${n} (${tecla})">${n}</button>`).join("");
+  const tipos = Object.entries(AG_TIPOS).map(([t, n]) => `<label class="pv2-lote"><input type="checkbox" ${CAPT.tipos.has(t) ? "checked" : ""} onchange="captTipo('${t}')">${n} <b>${todos.filter((e) => e.tipo === t).length}</b></label>`).join("");
+  const filtrado = CAPT.tipos.size < Object.keys(AG_TIPOS).length || CAPT.grade;
+  return `<div id="pv2-agenda" class="pv2 pv2-agenda"><span class="capt-cal" hidden></span>
+    <section class="pv2-card pv2-fala" aria-label="Fala do Lucas"><span class="pv2-ag" aria-hidden="true">L</span><p><span class="pv2-quem">Lucas · Audiovisual e captação</span>${frase}</p>${botao}</section>
+    <div class="pv2-filtros" role="toolbar" aria-label="Captações">
+      <label class="pv2-oculto" for="pv2a-busca">Buscar cliente ou captação</label>
+      <input id="pv2a-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar cliente ou captação" value="${safeText(CAPT.busca)}" oninput="pv2aBuscar(this.value)">
+      ${vistas}
+      <details class="pv2-menu"><summary class="pv2-btn s${filtrado ? " tem" : ""}" aria-label="Filtros: escolher o que exibir na agenda">Filtros</summary><div class="pv2-pop pv2a-pop">
+        <span class="pv2-pop-rot">Na agenda</span>${tipos}
+        ${CAPT.vista === "semana" || CAPT.vista === "lista" ? `<button type="button" onclick="this.closest('details').open=false;pv2aGrade()">${CAPT.grade ? "Semana em lista por dia" : "Semana em grade por hora"}</button>` : ""}
+        <button type="button" onclick="this.closest('details').open=false;captAlternarInspetor()">${CAPT.inspetor ? "Esconder" : "Mostrar"} o que precisa de você${nPend ? ` (${nPend})` : ""}</button>
+        <span class="pv2-pop-rot">Atalhos</span><p class="pv2-sub">T hoje · ← → navega · D S M visão · N marca · P pendências</p></div></details>
+    </div>
+    ${CAPT.avisoAgenda ? `<p class="pv2-sub pv2a-aviso" role="status">${safeText(CAPT.avisoAgenda)}</p>` : ""}
+    <div id="pv2a-corpo" class="pv2a-duas${pv2aSemanaEmLista() ? "" : " larga"}">${pv2aCorpoHtml()}</div>
+    ${CAPT.inspetor ? `<aside class="pv2-card capt-lado pv2a-inspetor" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>` : ""}
+  </div>`;
 }

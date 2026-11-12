@@ -10,12 +10,15 @@ const css = ler('vybe-mundo.css'), mundo = ler('vybe-mundo.js'), cad = ler('cada
 const spot = ler('vybe-spotlight.js'), core = ler('vybe-core.js'), esc = ler('vybe-escritorio.js'), notas = ler('vybe-notas.js');
 
 test('Criar (08/64): "Etapa N de 5" na trilha, calendário sazonal junto das opções, sem "Cadastro rápido" nem fundo desfocado', () => {
-  assert.match(cad, /<span class="fc-trilha-texto">Etapa \$\{fcPasso \+ 1\} de \$\{FC_PASSOS\.length\} · \$\{esc\(fcRotulo\(p\)\)\}<\/span>/);
-  assert.match(cad, /onclick="fcIrPara\(\$\{i\}\)"/, 'as etapas feitas continuam clicáveis');
+  // Padrão v2 (quadro "Nova demanda em etapas"): três etapas na tela, as cinco conferências continuam por baixo.
+  assert.match(cad, /<span class="nd-sub fc-trilha-texto">Etapa \$\{fcEtapa \+ 1\} de \$\{FC_ETAPAS\.length\}<\/span>/);
+  assert.match(cad, /const FC_ETAPAS = \['O quê', 'Para quem', 'Quando'\];/);
+  assert.match(cad, /const FC_PASSOS = \['board', 'client', 'format', 'itens', 'destino'\];/, 'o que é conferido antes de criar não mudou');
+  assert.match(cad, /onclick="fcIrPara\(\$\{i\}\)"/, 'as etapas continuam clicáveis');
   assert.doesNotMatch(cad, /aria-label="Cadastro rápido"|>Cadastro rápido</);
   assert.doesNotMatch(cad, /class="fc-kicker"/);
-  assert.match(cad, /Começar pelo calendário sazonal<\/button>`;/, 'o atalho mora no corpo do primeiro passo');
-  assert.ok(cad.indexOf('function fcCorpo(p)') < cad.indexOf('Começar pelo calendário sazonal'));
+  assert.match(cad, /onclick="abrirCalendarioSazonal\(\)">Começar pelo calendário sazonal<\/button><\/p>`;/, 'o atalho mora no cartão da primeira etapa');
+  assert.ok(cad.indexOf('function fcCartaoOQueHtml(') < cad.indexOf('Começar pelo calendário sazonal'));
   assert.match(css, /body\.mundo #fc-overlay\{[^}]*backdrop-filter:none!important\}/);
   assert.doesNotMatch(css, /#fc-overlay[^{]*\{[^}]*backdrop-filter:blur/);
   assert.match(css, /body\.mundo #fc-overlay \.fc-side-col\{[^}]*background:#F3F1EC\}/);
@@ -59,10 +62,13 @@ test('Busca (09/66): vazia mostra o que você abriu por último e os atalhos; gu
 
 test('Busca (09/66): só "Esc" para fechar, sem rodapé técnico, cliente e status nas cores; uma janela por vez', () => {
   assert.doesNotMatch(spot, /<kbd class="spotlight-tecla">esc<\/kbd>/);
-  assert.match(spot, /<span class="spotlight-fechar-esc">Esc<\/span><span class="spotlight-fechar-x" aria-hidden="true">×<\/span>/);
+  // Padrão v2 (quadro "Janelas do topo"): "Esc" numa etiqueta do cabeçalho e o X redondo ao lado.
+  assert.match(spot, /<h2 id="spotlight-titulo">Busca<\/h2><span class="v2j-pill">Esc<\/span>/);
+  assert.match(spot, /class="spotlight-fechar v2j-x" aria-label="Fechar busca"/);
   assert.doesNotMatch(spot, /finalizadas e antigas`/);
-  assert.match(spot, /clientes\.map\(\(c\) => cliCor\(c\)\)/);
-  assert.match(spot, /statusCor\(item\)/);
+  // Padrão v2: a linha é o nome e uma palavra à direita; o cliente na cor dele fica na linha do cliente, e o status no título da linha.
+  assert.match(spot, /const nomeCliente = \(nome\) => \(typeof cliCor === 'function' \? cliCor\(nome\)/);
+  assert.match(spot, /item\.status \|\| 'Sem status'/);
   assert.match(spot, /dispatchEvent\(new CustomEvent\('vybe:janela-topo', \{ detail: \{ qual: 'busca' \} \}\)\)/);
   assert.match(mundo, /document\.addEventListener\?\.\('vybe:janela-topo', \(e\) => fecharJanelasDoTopo\(e\.detail\?\.qual\)\);/);
   assert.match(mundo, /if \(\['busca', 'avisos', 'conta'\]\.includes\(id\)\) fecharJanelasDoTopo\(id\);/);
@@ -88,7 +94,8 @@ test('Notas (42): Renomear e Apagar no menu de três pontos do caderno e da nota
 });
 
 test('TV (44): em cima do dock, sem fundo desfocado, fonte num alternador e sem o play vermelho; o player continua', () => {
-  assert.match(esc, /document\.getElementById\("workflow-backdrop"\)\?\.remove\(\);\s*const janela = document\.getElementById\("workflow-modal"\);\s*janela\?\.classList\.add\("ofc-tv-janela"\);/);
+  // Padrão v2 (quadro "Barra de baixo", 12/11/2026): no mundo a TV virou aba do painel Som, em cima do dock; a janela fica para o Escritório antigo.
+  assert.match(esc, /if \(escritorioPainelSomNoMundo\(\)\) return alternarPainelSomEscritorio\("tv"\);/);
   assert.match(esc, /<div class="ofc-tv-opcoes vb-alternar" role="group" aria-label="O que passar na TV">/);
   assert.ok(esc.includes('const idPassando = '), 'o clipe que está passando continua no alto');
   assert.match(css, /body\.mundo \.workflow-modal\.ofc-tv-janela\{top:auto;bottom:calc\(var\(--vv-dock-alto,0px\)/);

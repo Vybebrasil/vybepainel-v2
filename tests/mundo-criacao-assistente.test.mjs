@@ -134,7 +134,8 @@ test('cobrar pelo WhatsApp: Confirmar pede o envio com os ids de quem responde p
   const clicar = (attrs) => { for (const f of ouvintes.click) f({ target: { closest: () => ({ dataset: attrs, hasAttribute: (n) => n in attrs }) } }); };
   let html = pintar(); await esperar();
   assert.match(html, /data-vcr-aprovar="cobrar:20:2026-11-10">Cobrar<\/button>/);
-  assert.match(html, /Cobrar manda a mensagem no WhatsApp da pessoa/);
+  assert.match(html, /Cobrar manda no WhatsApp da pessoa e fica no histórico da peça\./);
+  assert.match(html, /<b>Fila do Danilo<\/b>/, 'padrão v2: a fila com o nome do quadro');
   clicar({ vcrAprovar: 'cobrar:20:2026-11-10' });
   assert.match(pintar(), /Mandar a cobrança no WhatsApp de Bia e deixar no histórico da peça\?/, 'o primeiro clique só pergunta; o Deivid não cobra a si mesmo');
   assert.ok(!chamadas.some((c) => c[1] === 'POST'));

@@ -62,43 +62,52 @@ function carteira({ resposta, admin = false } = {}) {
 const semTabelas = { status: 200, corpo: { ok: true, clientes: [{ id: '1', nome: 'Antonov', ativo: true, entrada: '2025-03-01' }], contratos: { disponivel: false }, churn: { disponivel: false },
   onboarding: { disponivel: false }, etapas: [], etapas_padrao: [{ id: 'boas_vindas', nome: 'Boas-vindas', itens: [{ id: 'a', texto: 'Mensagem enviada' }] }, { id: 'kickoff', nome: 'Kickoff', itens: [] }], pode: {} } };
 
-test('Contratos: os oito números numa linha, o LTV no ⓘ, o mês no seletor e a etiqueta do setor do dock', async () => {
+test('Contratos (quadro do padrão v2): título com as ações, fala do Vorcaro, três números, fichas; o período em Filtros', async () => {
   const { ctx, janela, clicar } = carteira({ resposta: semTabelas });
   await ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'], rotulo: 'Comercial' });
   await esperar();
   let html = janela().innerHTML;
-  assert.match(html, /<span class="vc-kicker">Comercial<\/span>/, 'sem a etiqueta "Clientes" no Contratos');
-  assert.doesNotMatch(html, /class="vc-kpi/, 'sem cartões de número');
-  assert.match(html, /class="vc-resumo"><div class="vb-resumo"/);
-  assert.match(html, /vb-resumo-item atencao espiavel" data-espiar="carteira:contratos:sem"[^>]*><b>1<\/b> sem contrato/);
-  assert.match(html, /ticket médio: sem valor/);
-  assert.match(html, /data-dica="LTV = meses desde o início do contrato/, 'a explicação do LTV vira dica');
-  assert.doesNotMatch(html, /<p class="vc-nota">LTV =/, 'sem o parágrafo do LTV no corpo');
-  assert.doesNotMatch(html, /type="month"/);
-  assert.match(html, /class="vb-mes"[\s\S]*novembro de 2026/);
+  assert.match(html, /<div class="v2c" data-tela="contratos"><div class="v2c-topo"><h2 id="vc-titulo">Contratos<\/h2>/);
+  assert.doesNotMatch(html, /class="vc-kicker"|class="vc-resumo"|class="vc-controles"/, 'sem o cabeçalho antigo nem a linha de números');
+  assert.match(html, /data-vc-ajuda aria-expanded="false"[^>]*>Como funciona<\/button>[\s\S]*>Registrar contrato<\/button>/);
+  assert.match(html, /Vorcaro · Financeiro e contratos/);
+  assert.match(html, /<small>Em contratos ativos<\/small>[\s\S]*<small>Renovam em 30 dias<\/small>[\s\S]*<small>Tempo de casa \(LTV\)<\/small>/);
+  assert.match(html, /data-vc-filtro-ct="sem">Sem contrato · 1<\/button>/);
+  assert.match(html, /<span class="v2c-pill r">Sem contrato<\/span><p><b>Antonov<\/b> · ativo, sem valor mensal nem início/);
+  assert.doesNotMatch(html, /class="vb-mes"/, 'o mês saiu do alto');
+  clicar({ vcFiltros: '' });
+  assert.match(janela().innerHTML, /class="vb-mes"[\s\S]*novembro de 2026/);
   clicar({ vcMesIr: '2026-10' });
   assert.match(janela().innerHTML, /outubro de 2026/);
-  // o aviso de ativação: sem arquivo, sem "Tentar de novo", e só quem administra vê "Ver o que falta"
-  assert.match(html, /Os contratos ainda não foram ligados/);
-  assert.doesNotMatch(html, /\.sql|Tentar de novo|Ver o que falta/);
+  // o rodapé de ativação: sem arquivo e, para quem não administra, sem "ver o que falta"
+  assert.match(html, /<div class="v2k-vz" role="note"><p><b>Os contratos ainda não foram ligados\.<\/b>/);
+  assert.doesNotMatch(html, /\.sql|Tentar de novo|ver o que falta/);
+  // a conta do LTV mora em "Como funciona"
+  assert.doesNotMatch(html, /LTV = meses desde o início/);
+  clicar({ vcAjuda: '' });
+  assert.match(janela().innerHTML, /LTV = meses desde o início do contrato/);
 });
 
-test('Ativação: quem administra vê "Ver o que falta" e, aberto, o nome da migração', async () => {
+test('Ativação: quem administra vê "ver o que falta" no rodapé e, aberto, o nome da migração', async () => {
   const { ctx, janela, clicar } = carteira({ resposta: semTabelas, admin: true });
   await ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'] });
   await esperar();
-  assert.match(janela().innerHTML, /Para quem administra: <button[^>]*data-vc-falta aria-expanded="false">Ver o que falta/);
+  assert.match(janela().innerHTML, /<button type="button" class="v2c-btn" data-vc-falta aria-expanded="false">Para quem administra: ver o que falta<\/button>/);
   assert.doesNotMatch(janela().innerHTML, /2026-11-07-carteira\.sql/);
   clicar({ vcFalta: '' });
   assert.match(janela().innerHTML, /migração <code>2026-11-07-carteira\.sql<\/code>/);
 });
 
-test('Onboarding sem ativação: a esteira aparece numerada (do padrão do servidor, ou o caminho em 3 passos)', async () => {
+test('Onboarding sem ativação (quadro do padrão v2): a tela do quadro vazia, e a esteira numerada em "Como funciona"', async () => {
   const a = carteira({ resposta: semTabelas });
   await a.ctx.VybeCarteira.abrir('onboarding', { abas: ['onboarding'], rotulo: 'Clientes' });
   await esperar();
   let html = a.janela().innerHTML;
   assert.match(html, /O onboarding ainda não foi ligado/);
+  assert.match(html, /<h2>Pede ação<\/h2><\/div><div class="v2c-vazio"><p>Nenhum cliente em entrada\.<\/p>/);
+  assert.doesNotMatch(html, /vc-esteira-previa|ver o que falta/, 'a esteira saiu do alto; quem não administra não vê o botão');
+  a.clicar({ vcAjuda: '' });
+  html = a.janela().innerHTML;
   assert.match(html, /<ol class="vc-esteira vc-esteira-previa"[^>]*><li title="Mensagem enviada"><i aria-hidden="true">1<\/i><span>Boas-vindas<\/span><small>1 item<\/small>/);
   assert.match(html, /<i aria-hidden="true">2<\/i><span>Kickoff<\/span><small>0 itens<\/small>/);
   assert.doesNotMatch(html, /Tentar de novo/);
@@ -108,6 +117,9 @@ test('Onboarding sem ativação: a esteira aparece numerada (do padrão do servi
   await esperar();
   html = b.janela().innerHTML;
   assert.doesNotMatch(html, /\.sql|Tentar de novo|role="alert"/);
+  assert.match(html, /data-vc-etapa-onb="cadastro">Cadastro <b>0<\/b>/, 'sem etapas do servidor, as fichas mostram o caminho em três passos');
+  b.clicar({ vcAjuda: '' });
+  html = b.janela().innerHTML;
   assert.match(html, /<span>Cadastro<\/span>[\s\S]*<span>Questionário e kickoff<\/span>[\s\S]*<span>Checklist<\/span>/);
 });
 
@@ -126,9 +138,9 @@ test('Funil: título "CRM e funil", números numa linha, sem arquivo de migraç�
   const time = comercial(resp);
   time.ctx.VybeComercial.abrir('funil', { abas: ['funil'], rotulo: 'Comercial' }); await esperar();
   let html = time.janela().innerHTML;
-  assert.match(topoDe(html), /<b>CRM e funil<\/b>/);
+  assert.match(topoDe(html), /<h2>CRM e funil<\/h2>/);
   assert.doesNotMatch(html, /class="vc-kpi/);
-  assert.match(html, /taxa de ganho: sem negócio fechado ainda/);
+  assert.match(html, /<small>Taxa de ganho<\/small>[\s\S]*sem negócio fechado ainda/);
   assert.match(html, /O valor da negociação ainda não foi ligado/);
   assert.doesNotMatch(html, /\.sql|Ver o que falta|Novo lead/);
   const dono = comercial(resp, { souAdmin: () => true });
@@ -146,9 +158,9 @@ test('Pacotes: título do dock e vazio com o botão de começar (uma vez); com p
   const { ctx, janela } = comercial((url) => (url.includes('aba=pacotes') ? { status: 200, corpo: { ok: true, pode: { editar_pacotes: true }, pacotes } } : { status: 200, corpo: { ok: true } }));
   ctx.VybeComercial.abrir('pacotes', { abas: ['pacotes'] }); await esperar();
   let html = janela().innerHTML;
-  assert.match(topoDe(html), /<b>Produtos e pacotes<\/b>/);
+  assert.match(topoDe(html), /<h2>Produtos e pacotes<\/h2>/);
   assert.equal((html.match(/data-vc="pacote"/g) || []).length, 1);
-  assert.match(html, /class="vc-vazio"[\s\S]*Cadastrar o primeiro pacote/);
+  assert.match(html, /class="v2c-vz"[\s\S]*Cadastrar o primeiro pacote/);
   pacotes = [{ id: '1', nome: 'Social', tipo: 'recorrente', preco: 2000, ativo: true, entregas: [], carga: {} }];
   ctx.VybeComercial.abrir('pacotes', { abas: ['pacotes'] }); await esperar();
   html = janela().innerHTML;
@@ -181,38 +193,41 @@ test('Contas a pagar: números numa linha, para onde vai o dinheiro com %, "Nova
   assert.match(html, /<i style="background:#1D4ED8"><\/i>Fixas 66,7%/, 'a porcentagem escrita, não só a cor');
 });
 
-test('Finanças por cliente: os números do topo entram na tabela (total no rodapé de cada coluna)', async () => {
+test('Finanças por cliente (padrão v2): três números, fichas e a lista com o cliente por linha, mesmo sem contrato', async () => {
   const { ctx, janela } = comercial((url) => (url.includes('aba=financas') ? { status: 200, corpo: { ok: true, pode: { ver_dinheiro: true }, clientes: [], resumo: { receita: 0, custo: 0, margem_percentual: null, criticas: 1, pagamento: { atrasado: 0, inadimplente: 0 } } } } : { status: 200, corpo: { ok: true } }), {
     souDonoDaSessao: () => true, CADASTRO_CLIENTES: [{ id: '1', nome: 'Antonov' }] });
   ctx.VybeComercial.abrir('financas', { abas: ['financas'] }); await esperar();
   const html = janela().innerHTML;
-  assert.match(topoDe(html), /<b>Finanças por cliente<\/b>/);
+  assert.match(topoDe(html), /<p class="v2c-sub">Finanças › Por cliente<\/p><h2>Finanças por cliente<\/h2>/);
   assert.doesNotMatch(html, /class="vc-kpi/);
   // 2ª rodada (quadro 59): sem chips acima e sem cartões; uma tabela com o cliente por linha e os totais no rodapé.
-  assert.doesNotMatch(html, /class="vb-resumo"|class="vc-cartao/);
-  assert.match(html, /<table class="vc-tabela vc-tab-financas">\s*<thead><tr><th scope="col">Cliente<\/th><th scope="col">Contrato<\/th><th scope="col">Custo estimado<\/th><th scope="col">Margem<\/th><th scope="col">Pagamento<\/th>/);
-  assert.equal((html.match(/<tr[^>]*>\s*<th scope="row" data-rot="Cliente">/g) || []).length, 1, 'o cliente ativo do cadastro aparece mesmo sem contrato');
-  const rodape = html.slice(html.indexOf('<tfoot>'), html.indexOf('</tfoot>'));
-  assert.match(rodape, /1 cliente ativo/);
-  assert.match(rodape, /nenhum contrato informado[\s\S]*sem pacote[\s\S]*sem contrato e pacote/, 'sem dado fica escrito, não vira zero');
-  assert.match(rodape, /class="vc-tab-conta alerta" data-espiar="comercial:financas:critica"[^>]*><b>1<\/b> em zona crítica/);
-  assert.match(rodape, /data-espiar="comercial:financas:atrasado"[^>]*>0 atrasados[\s\S]*data-espiar="comercial:financas:inadimplente"[^>]*>0 inadimplentes/);
+  assert.doesNotMatch(html, /class="vb-resumo"|class="vc-cartao|<table/);
+  assert.match(html, /<small>Contratado no mês<\/small>[\s\S]*<small>Custo da carteira<\/small>[\s\S]*<small>Margem<\/small>[\s\S]*sem contrato e pacote informados/, 'sem dado fica escrito, não vira número inventado');
+  assert.match(html, /aria-pressed="true">Todos · 1<\/button>[\s\S]*>Em atraso · 0<\/button>[\s\S]*>Margem baixa · 0<\/button>[\s\S]*>Em dia · 0<\/button>/);
+  assert.match(html, /<div class="v2c-tb v2c-tb-cab"><span>Cliente<\/span><span class="v2c-num">Contrato<\/span><span>Margem<\/span><span>Pagamento<\/span>/);
+  assert.equal((html.match(/data-v2-linha="fc:/g) || []).length, 1, 'o cliente ativo do cadastro aparece mesmo sem contrato');
+  assert.match(html, /<h3>Clientes · 1<\/h3>[\s\S]*sem valor[\s\S]*sem pacote[\s\S]*<span class="v2c-pill n">sem contrato<\/span>/);
   assert.doesNotMatch(html, /Vybe Finanças/, 'o aviso fala do efeito, sem nome de sistema');
 });
 
-test('Conta: o WhatsApp é uma linha com "Conectar" (não um bloco); código só depois de pedir', () => {
+test('Conta: o WhatsApp é uma linha com a situação numa etiqueta; quem resolve é o "Pede ação"; código só depois de pedir', () => {
   const ctx = vm.createContext({ console, Date, safeText, vbEstadoHtml: () => '<div class="vb-estado"></div>', document: { querySelector: () => null, getElementById: () => null } });
   vm.runInContext(ler('vybe-conta.js'), ctx);
   const html = (estado) => { ctx.__e = estado; return vm.runInContext('CONTA_AI = globalThis.__e; blocoContaAI()', ctx); };
   const livre = html({ disponivel: true, vinculado: false, pode_gerar: true });
-  assert.match(livre, /<div class="conta-ai-linha"><span class="conta-ai-rotulo">WhatsApp<\/span>[\s\S]*<b>Não conectado<\/b>[\s\S]*>Conectar<\/button>/);
+  assert.match(livre, /conta-ai-linha"><span class="conta-ai-rotulo">WhatsApp<\/span>[\s\S]*<b class="v2c-pill a"[^>]*>Não conectado<\/b>/);
+  assert.doesNotMatch(livre, />Conectar<\/button>/, 'padrão v2: o Conectar fica no Pede ação');
+  ctx.__eu = { nome: 'Pessoa', email: 'p@x', foto_url: 'f.png' };
+  assert.match(vm.runInContext('pedeAcaoDaConta(globalThis.__eu)', ctx), /Não conectado[\s\S]*onclick="acaoContaAI\('vinculacao_iniciar'\)">Conectar<\/button>/);
   assert.doesNotMatch(livre, /vb-estado|<h3|Gerar código temporário/);
-  assert.match(html({ disponivel: true, vinculado: true, pode_gerar: true }), /<b>Conectado<\/b>[\s\S]*>Desconectar</);
+  assert.match(html({ disponivel: true, vinculado: true, pode_gerar: true }), /<b class="v2c-pill g"[^>]*>Conectado<\/b>[\s\S]*>Desconectar</);
   const erro = html({ erro: 'Sem resposta.' });
-  assert.match(erro, /conta-ai-linha erro[\s\S]*Não deu para conferir agora[\s\S]*Sem resposta\.[\s\S]*Tentar de novo/);
+  assert.match(erro, /conta-ai-linha erro[\s\S]*Não deu para conferir agora[\s\S]*Sem resposta\./);
+  assert.match(vm.runInContext('pedeAcaoDaConta(globalThis.__eu)', ctx), /Não conferido[\s\S]*onclick="carregarContaAI\(\)">Tentar de novo<\/button>/);
   assert.doesNotMatch(erro, /vb-estado/, 'erro numa linha, sem o bloco com ícone vermelho');
   const comCodigo = html({ disponivel: true, vinculado: false, pode_gerar: true, codigo: 'a'.repeat(20), expiraEm: new Date(Date.now() + 6e5).toISOString() });
-  assert.match(comCodigo, /Já enviei o código[\s\S]*conta-ai-codigo/);
+  assert.match(comCodigo, /Cancelar o código[\s\S]*conta-ai-codigo/);
+  assert.match(vm.runInContext('pedeAcaoDaConta(globalThis.__eu)', ctx), />Já enviei o código<\/button>/);
 });
 
 test('CSS do redesign Negócio: no fim, sem !important nem html body.mundo', () => {
@@ -225,23 +240,21 @@ test('CSS do redesign Negócio: no fim, sem !important nem html body.mundo', () 
 });
 
 // ---- 2ª rodada (10/11/2026, re-auditoria): 13 e 60, 18, 30 e 54 ----
-test('Contratos: o mês a mês explica a conta no ⓘ do título, não no rodapé; sem dado, uma frase no lugar dos gráficos', async () => {
+test('Contratos: o mês a mês é um cartão com uma série por vez; a conta fica em "Como funciona"; sem dado, uma frase', async () => {
   const comDado = carteira({ resposta: semTabelas });
   await comDado.ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'], rotulo: 'Comercial' }); await esperar();
   let html = comDado.janela().innerHTML;
-  assert.match(html, /<h3>Mês a mês <span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="Cada mês na data do último dia[^"]*Ticket = receita mensal ativa ÷ clientes ativos com valor[^"]*"/);
-  assert.doesNotMatch(html, /<p class="vc-nota">Cada mês na data/, 'o parágrafo técnico saiu do rodapé');
-  assert.match(html, /<figcaption>Clientes ativos<\/figcaption>\s*<svg/, 'com cliente ativo o gráfico aparece');
-  assert.match(html, /<figcaption>Clientes novos<\/figcaption><p class="vc-nota">Ninguém entrou nestes meses\.<\/p>/, 'gráfico só de zero vira uma linha');
+  assert.match(html, /<h2>Mês a mês<\/h2><span class="v2c-chips" role="group" aria-label="Série"><button type="button" class="v2c-chip" aria-pressed="true" data-vc-serie-ct="ativos">Ativos<\/button>/);
+  assert.match(html, /class="v2k-col agora"/, 'com cliente ativo as colunas aparecem, o mês de agora marcado');
+  comDado.clicar({ vcSerieCt: 'novos' });
+  assert.match(comDado.janela().innerHTML, /aria-pressed="true" data-vc-serie-ct="novos"/);
+  comDado.clicar({ vcAjuda: '' });
+  assert.match(comDado.janela().innerHTML, /Cada mês na data do último dia[\s\S]*Ticket = receita mensal ativa ÷ clientes ativos com valor/);
   const vazio = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [] } } });
   await vazio.ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'], rotulo: 'Comercial' }); await esperar();
   html = vazio.janela().innerHTML;
-  const mes = html.slice(html.indexOf('<h3>Mês a mês'));
-  assert.match(mes, /^<h3>Mês a mês <span class="ar-dica vb-jogo-dica"[^>]*data-dica="Cada mês na data do último dia/, 'a explicação continua acessível sem dado');
-  assert.match(mes, /Os gráficos de ativos, novos, LTV e ticket aparecem quando houver cliente ativo com data de entrada\./);
-  assert.doesNotMatch(mes, /<svg|vc-graf/, 'nada de gráficos de seis meses só com zero');
-  assert.match(html, /class="vc-controles" hidden/, 'Mensal/Anual e o mês só onde mudam algo');
-  assert.match(ler('vybe-mundo-carteira.js'), /vbEstadoHtml\(\{ titulo: 'Ainda sem histórico para mostrar'/, 'o vazio é a peça do padrão');
+  assert.match(html, /O gráfico aparece com a primeira data de entrada de um cliente ativo\./);
+  assert.doesNotMatch(html, /class="v2k-col(?: agora)?"|<figure|vc-graf/, 'nada de colunas só com zero');
 });
 
 test('"Ver o que falta" e "Atualizar" são botões do padrão, não texto clicável (quadro 30)', () => {
@@ -282,50 +295,50 @@ test('Sinapses: "Como o VYBES pensa" e o detalhe por agente moram na página Age
 });
 
 // ---- 3ª rodada (11/11/2026): Churn com o tratamento dos Contratos (18) e Saúde sem cartão de zero (00 Main) ----
-test('Churn: sem nenhuma saída, Mensal/Anual some, um vazio só e a conta no ⓘ do título, não no rodapé', async () => {
+test('Churn (quadro do padrão v2): fala, três números, fichas, Pede ação com quem saiu e "Saídas e retenção" em três vistas', async () => {
   const vazio = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [] } } });
   await vazio.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
   let html = vazio.janela().innerHTML;
-  assert.match(html, /class="vc-controles" hidden/, 'sem saída nem entrada, o período não muda nada');
-  assert.match(html, /<h3>Saídas e retenção <span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="Saída = desativação no cadastro[^"]*Entrada = início do contrato/);
-  assert.match(html, /Nenhum cliente saiu até agora/);
-  assert.doesNotMatch(html, /<p class="vc-nota">Saída = desativação/, 'o parágrafo técnico saiu do rodapé');
-  assert.doesNotMatch(html, /cohort|Principal motivo|Ver o ano inteiro|<h3>Retenção por mês de entrada/, 'sem jargão nem três caixas de "nenhum"');
-  assert.match(html, /0<\/b> saídas/, 'os números continuam na linha, discretos');
-  // Com cliente ativo que tem data de entrada: o mês anda os gráficos (fica), Mensal/Anual não muda nada (sai).
+  assert.match(html, /<div class="v2c" data-tela="churn"><div class="v2c-topo"><h2 id="vc-titulo">Churn<\/h2><span class="v2c-sub">novembro de 2026<\/span>/);
+  assert.doesNotMatch(html, /class="vc-controles"|class="vc-resumo"/);
+  assert.match(html, /VYBES · Comercial<\/span><b>Nenhum cliente saiu<\/b> até agora/);
+  assert.match(html, /<small>Taxa de churn<\/small>[\s\S]*<small>Saídas<\/small>[\s\S]*<small>Receita perdida<\/small>/);
+  assert.match(html, /data-vc-filtro-ch="todas">Todas · 0<\/button>/);
+  assert.match(html, /<h2>Saídas e retenção<\/h2>[\s\S]*data-vc-vista-ch="motivos" aria-pressed="true">Motivos/);
+  assert.match(html, /<b>A classificação das saídas ainda não foi ligada\.<\/b>/);
+  assert.doesNotMatch(html, /Saída = desativação/, 'a conta mora em "Como funciona"');
+  vazio.clicar({ vcAjuda: '' });
+  assert.match(vazio.janela().innerHTML, /Saída = desativação no cadastro[^<]*Entrada = início do contrato/);
+  // Com cliente que tem data de entrada: a retenção aparece na vista dela.
   const ativo = carteira({ resposta: semTabelas });
   await ativo.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
-  html = ativo.janela().innerHTML;
-  assert.match(html, /<div class="vc-controles">\s*<div class="vc-segmento" role="group" aria-label="Período" hidden>/);
-  assert.match(html, /class="vb-mes"/);
-  assert.match(html, /Nenhum cliente saiu em novembro de 2026/);
-  assert.doesNotMatch(html, /Ver o ano inteiro/, 'sem saída na base, o ano inteiro também não tem');
-  assert.match(html, /<h3>Saídas por mês <span class="ar-dica vb-jogo-dica"[^>]*data-dica="Saída = desativação/);
-  assert.match(html, /<h3>Retenção por mês de entrada<\/h3><div class="vc-tabela-rola">/, 'a retenção de quem tem data de entrada aparece');
-  // Com saída: tudo de volta, e a explicação continua no ⓘ.
+  ativo.clicar({ vcVistaCh: 'retencao' });
+  assert.match(ativo.janela().innerHTML, /<div class="vc-tabela-rola"><table class="vc-cohort">/);
+  // Com saída: a fala conta, Pede ação pede o motivo e quem saiu entra na lista; os gráficos por mês na vista deles.
   const saiu = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [{ id: '1', nome: 'Antonov', ativo: false, entrada: '2025-03-01', saida: '2026-11-05' }] } } });
   await saiu.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
   html = saiu.janela().innerHTML;
-  assert.match(html, /<div class="vc-segmento" role="group" aria-label="Período">/);
-  assert.match(html, /Principal motivo em novembro de 2026/);
-  assert.match(html, /<figcaption>Clientes que saíram<\/figcaption>\s*<svg/);
-  assert.doesNotMatch(html, /<p class="vc-nota">Saída = desativação/);
+  assert.match(html, /<b>1 cliente saiu<\/b> em novembro de 2026/);
+  assert.match(html, /<span class="v2c-pill r">Sem motivo<\/span><p><span class="v2k-cli">Antonov<\/span> · desativado em 05\/11/);
+  assert.match(html, /<h2>Quem saiu · 1<\/h2>/);
+  saiu.clicar({ vcVistaCh: 'meses' });
+  assert.match(saiu.janela().innerHTML, /<figcaption>Clientes que saíram<\/figcaption>\s*<svg/);
   const js = ler('vybe-mundo-carteira.js');
   assert.match(js, /const estadoVazio = \(titulo, texto = '', botao = ''\) => \(typeof vbEstadoHtml === 'function' \? vbEstadoHtml\(\{ titulo, texto, acao: botao \}\)/, 'o vazio é a peça do padrão');
-  assert.match(js, /estadoVazio\('Nenhum cliente saiu até agora'/);
 });
 
-test('Saúde da carteira: título igual ao do dock, a frase do cabeçalho e os números na linha (zero discreto), abrindo o mesmo painel', async () => {
+test('Saúde da carteira: título igual ao do dock (a tela é o quadro do padrão v2); o Churn também é o quadro', async () => {
   const { ctx, janela } = carteira({ resposta: semTabelas });
   await ctx.VybeCarteira.abrir('saude', { abas: ['saude'], rotulo: 'Clientes' }); await esperar();
-  assert.match(janela().innerHTML, /<h2 id="vc-titulo">Saúde da carteira<\/h2><p class="vc-frase">A nota de cada cliente ativo, de 0 a 100, e quem precisa de atenção primeiro\.<\/p>/);
+  assert.match(janela().innerHTML, /<div class="v2c" data-tela="saude"><div class="v2c-topo"><h2 id="vc-titulo">Saúde da carteira<\/h2>/);
+  assert.doesNotMatch(janela().innerHTML, /class="vc-frase"|class="vc-resumo"/, 'o quadro não tem a frase nem a linha de números antiga');
   await ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
-  assert.match(janela().innerHTML, /<h2 id="vc-titulo">Churn<\/h2><p class="vc-frase">Quem saiu, por quê e quanto de receita foi junto\.<\/p>/);
+  assert.match(janela().innerHTML, /<div class="v2c" data-tela="churn"><div class="v2c-topo"><h2 id="vc-titulo">Churn<\/h2>/, 'o Churn também é o quadro do padrão v2');
   const js = ler('vybe-mundo-carteira.js');
   assert.doesNotMatch(js, /class="vc-kpi|function kpi\(/, 'sem cartão de número grande em nenhuma aba');
-  assert.match(js, /numero\(r\.resumo\.alto, String\(r\.resumo\.alto\), ' em risco alto', \{[^}]*tom: r\.resumo\.alto \? 'alerta' : '', espiar: 'risco:alto' \}\)/);
-  assert.match(js, /numero\(r\.resumo\.medio, String\(r\.resumo\.medio\), ' em risco médio', \{[^}]*espiar: 'risco:medio' \}\)/);
-  assert.match(js, /numero\(r\.resumo\.baixo, String\(r\.resumo\.baixo\), ' em risco baixo', \{[^}]*espiar: 'risco:baixo' \}\)/);
+  // Na Saúde os riscos viraram fichas de filtro (quadro); o painel de quem está em cada risco continua existindo.
+  assert.match(js, /\['precisam', 'Precisam de você'\], \['todos', 'Todos'\], \['alto', 'Risco alto'\], \['medio', 'Risco médio'\], \['baixo', 'Risco baixo'\]/);
+  assert.match(js, /if \(tipo === 'risco' && espiarCarteira\.saude\)/);
   // A peça de verdade: zero vira texto discreto e continua clicável (o mesmo data-espiar dos cartões).
   const linha = ctx.vbResumoHtml([{ valor: '0', rotulo: ' em risco alto', tom: 'zero', espiar: 'carteira:risco:alto' }, { valor: '15', rotulo: ' em risco baixo', tom: 'ok', espiar: 'carteira:risco:baixo' }]);
   assert.match(linha, /class="vb-resumo-item zero espiavel" data-espiar="carteira:risco:alto" role="button" tabindex="0"><b>0<\/b> em risco alto/);
@@ -364,7 +377,7 @@ test('Recebimentos, Inadimplência e Orçamentos (quadro 20 e 00 Main, regra 4):
   assert.match(html, /<b>0<\/b> clientes[\s\S]*<b>0<\/b> faturas/);
   ctx.VybeComercial.abrir('orcamentos', { abas: ['pacotes', 'orcamentos'] }); await esperar();
   html = janela().innerHTML;
-  assert.match(html, /os donos cadastram na aba Pacotes\.<\/p><button type="button" class="vc-acao" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
+  assert.match(html, /os donos cadastram em Pacotes\.<\/p><button type="button" class="v2c-btn s" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
   assert.doesNotMatch(html.slice(html.indexOf('vc-abas')), /<h3>Orçamentos<\/h3>/, 'o título fica só no cabeçalho');
   assert.match(ler('vybe-mundo-comercial.js'), /'ir-pacotes': \(\) => abrir\('pacotes'/, 'o botão abre a aba Pacotes');
   const css = ler('vybe-mundo.css').split('/* ==== Quadro 20 (Finanças, 11/11/2026)')[1];

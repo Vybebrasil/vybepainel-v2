@@ -15,7 +15,7 @@ function dock({ online, zona = 'sala-1', minha = 'sala-1', aberta = '', mic = fa
     quartoDaSala: (z) => (quartos.includes(z) ? { id: z } : null),
     fn: (n) => ({ escritorioPessoasFalando: () => new Set(), escritorioCanal: (z) => 'c-' + z, escritorioNaPista: () => true,
       escritorioOutrosNaChamada: () => outros, escritorioAmbienteDoQuarto: (z) => ({ nome: z === 'sala-1' ? 'Sala do Paulo' : 'Sala da Bia' }) })[n] || null,
-    esc: (s) => String(s), svg: (d) => `<svg>${d}</svg>`, IC: { mic: 'MIC', micOff: 'MICOFF', musica: 'MUS', sair: 'SAIR' }, Set, Map, String, Math };
+    esc: (s) => String(s), svg: (d) => `<svg>${d}</svg>`, IC: { mic: 'MIC', micOff: 'MICOFF', musica: 'MUS', sair: 'SAIR' }, n0: (v) => String(v), window: {}, Set, Map, String, Math };
   vm.createContext(ctx); vm.runInContext(js.slice(ini, fim), ctx);
   return ctx.dockSalasHtml(cabem);
 }
@@ -28,16 +28,18 @@ test('dock fixo: microfone com o estado escrito, Minha sala e Sala atual (ver a 
   assert.equal(ordem.join(','), 'mic,ouvir,camera,tela,audio,ver-minha,ver-atual,salas,chat,musica,tv');
   assert.ok(h.includes('<span class="vq-rotulo">Mudo</span>'), 'mudo escrito');
   assert.ok(h.includes('<span class="vq-rotulo">Sala atual</span>'));
-  assert.equal([...h.matchAll(/data-vq-sala="([^"]+)"/g)].map((m) => m[1]).join(','), 'sala-2,recepcao', 'salas com gente, da que tem mais');
-  assert.ok(h.includes('<i class=" mudo">BS</i>'), 'quem está mudo fica marcado');
-  assert.ok(h.includes('mudo: você, Bia'), 'e escrito no título (você também está mudo)');
+  // Quadro da barra de baixo (moodboard, 12/11/2026): as salas com gente saem do dock (ficam no painel Salas) e a peça da
+  // voz diz a sala atual, quantos estão na voz e quem.
+  assert.equal([...h.matchAll(/data-vq-sala="([^"]+)"/g)].length, 0, 'trocar de sala é no painel Salas');
+  assert.ok(h.includes('<span class="vq-voz">') && h.includes('Sala da Bia · 2 na voz'), 'a peça da voz');
+  assert.ok(h.includes('<button type="button" class="dentro" disabled>Dentro</button>'), 'dentro da chamada');
 });
 
 test('fora da chamada: o laranja Entrar; dentro de uma sala, o Voltar vem primeiro; sala comum sem visual fica desligada', () => {
   const ini = js.indexOf('  function dockSalasHtml('), fim = js.indexOf('  const faixaDock = ');
   const ctx = { escritorio: { conectado: true, zona: 'recepcao', base: { eu: '1' }, online: [], vozPausada: true, chamada: null }, andarAbertoId: 'quarto:sala-1', body: { classList: { contains: () => false } },
     zonas3d: () => ({ recepcao: { nome: 'Convivência' } }), minhaSalaDaConta: () => 'sala-1', quartoDaSala: () => null,
-    fn: (n) => ({ escritorioCanal: (z) => 'c-' + z })[n] || null, esc: String, svg: (d) => d, IC: { mic: 'MIC', micOff: 'MICOFF', musica: 'MUS', sair: 'SAIR' }, Set, Map, String, Math };
+    fn: (n) => ({ escritorioCanal: (z) => 'c-' + z })[n] || null, esc: String, svg: (d) => d, IC: { mic: 'MIC', micOff: 'MICOFF', musica: 'MUS', sair: 'SAIR' }, n0: (v) => String(v), window: {}, Set, Map, String, Math };
   vm.createContext(ctx); vm.runInContext(js.slice(ini, fim), ctx);
   const h = ctx.dockSalasHtml(5);
   const ordem = [...h.matchAll(/data-dock="([a-z-]+)"/g)].map((m) => m[1]);

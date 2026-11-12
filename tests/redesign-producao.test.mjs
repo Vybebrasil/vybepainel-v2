@@ -57,7 +57,7 @@ test('Produção: "Pede ação" vem primeiro, cada alerta com o botão de resolv
   assert.match(h, /data-setor-sub="gestor">Ver a semana/, 'a semana cheia leva ao Painel de trabalho');
   assert.match(h, /data-espiar="alerta:3">Cobrar/, 'esperando o cliente: cobrar');
   assert.doesNotMatch(h, /<b>2 clientes sem planejamento<\/b>/, 'nível 5 fica nos cartões de baixo');
-  assert.match(h, /1 peça atrasada na sua fila/);
+  assert.match(h, /<b>1 peça atrasada<\/b> na sua fila/);
   assert.match(h, /<b>Post A<\/b>|Post A/);
 });
 
@@ -153,9 +153,12 @@ test('Projetos sem nenhum projeto: um vazio só, com "Novo projeto" para quem cr
   assert.match(h, /Nenhum projeto pontual/); assert.doesNotMatch(h, /Novo projeto/); assert.match(h, /Quem cuida da gestão cria os projetos/);
 });
 
-test('Projetos com projeto: a tela de hoje continua (números, Gantt e semana)', async () => {
+test('Projetos com projeto: cartões e o projeto aberto; o Gantt e a semana ficam em "Linha do tempo" (quadro ProjetosDepois)', async () => {
   const t = montarPessoas({ gestao: true, projetos: [{ id: '1', nome: 'Site', tipo: 'site', status: 'andamento', etapas: [] }] });
   await t.P.abrir('projetos');
-  const h = t.html();
-  assert.match(h, /vp-nums/); assert.match(h, /Gantt de projetos pontuais/); assert.match(h, /Linha do tempo da semana/);
+  let h = t.html();
+  assert.match(h, /data-v2pj-abre="1" aria-pressed="true"/); assert.match(h, /data-v2pj-pag/); assert.doesNotMatch(h, /vp-nums|vp-gantt/);
+  t.P._teste.v2({ vista: 'tempo' });
+  h = t.html();
+  assert.match(h, /<h3>Linha do tempo<\/h3>/); assert.match(h, /<h3>A semana<\/h3>/); assert.match(h, /vp-semana7/);
 });

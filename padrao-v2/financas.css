@@ -1,0 +1,183 @@
+/* PADRÃO V2 · FINANÇAS (quadros Finanças, Recebimentos, Contas a pagar e Inadimplência do moodboard, 12/11/2026).
+   As telas são desenhadas por vybe-mundo-financas.js (VybeFinancas.telas) dentro da janela do Comercial e da Visão
+   geral do setor. As medidas são as do quadro: cartão branco de raio 20, pílula de 30 e 38, ficha escolhida preta,
+   uma ação laranja por tela. A casa que hospeda ganha a classe fv2-casa e cede o cabeçalho dela para o da tela. */
+#vv-comercial.fv2-casa{background:#F9F8F5}
+#vv-comercial.fv2-casa > .vc-topo,.vv-setor-visao.fv2-casa > :is(.vs-topo,.vs-atalhos){display:none}
+#vv-comercial.fv2-casa > .vc-corpo{padding:26px 30px 32px}
+.vv-setor-visao.fv2-casa{background:#F9F8F5}
+.vv-setor-visao.fv2-casa > .vs-corpo{padding:26px 8px 8px}
+
+:is(#vv-comercial,.vv-setor-visao) .fv2{container-type:inline-size;container-name:fv2;font:400 13.5px/1.35 var(--vv-texto,Inter,system-ui,sans-serif);color:#1F1D1A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-in{display:flex;flex-direction:column;gap:16px;min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.fv2-lendo{opacity:.7;transition:opacity .15s}
+:is(#vv-comercial,.vv-setor-visao) .fv2 :is(p,h1,h2,dl,dd,ol){margin:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2 svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:is(#vv-comercial,.vv-setor-visao) .fv2-sr{position:absolute;left:-9999px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-sub{font:400 12.5px/1.4 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
+:is(#vv-comercial,.vv-setor-visao) .fv2-link{appearance:none;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) .fv2-link:hover{color:#8A3207}
+
+/* cabeçalho */
+:is(#vv-comercial,.vv-setor-visao) .fv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-ola{flex:1 1 200px;min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2-ola h1{font:700 30px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;color:#1F1D1A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 13.5px var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn:active{transform:scale(.96)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn:disabled{opacity:.4;cursor:default;box-shadow:inset 0 0 0 1px #E6E0D6}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn.p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn.p:hover{background:#A83E09}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn.s{height:30px;padding:0 12px;font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn.fv2-seta{width:30px;padding:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2-btn.fv2-perigo{color:#B42318}
+:is(#vv-comercial,.vv-setor-visao) .fv2 :is(.fv2-btn,.fv2-chip,.fv2-txt,.fv2-link,.fv2-busca,.fv2-seg button,.fv2-menu button):focus-visible{outline:2px solid #C2490C;outline-offset:2px;box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2-seg{display:inline-flex;flex:none;padding:4px;border-radius:999px;background:#EAE6DE}
+:is(#vv-comercial,.vv-setor-visao) .fv2-seg button{appearance:none;height:30px;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter,system-ui,sans-serif);cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) .fv2-seg button[aria-pressed="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-mes{display:inline-flex;align-items:center;gap:8px;flex:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) button.fv2-chip{cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) button.fv2-chip:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-chip[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2-lancar{position:relative;flex:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:30;display:flex;flex-direction:column;min-width:190px;padding:6px;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.06),0 24px 40px -22px rgba(31,29,26,.4)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-menu button{appearance:none;height:36px;padding:0 12px;border:0;border-radius:10px;background:none;color:#1F1D1A;font:500 13.5px var(--vv-texto,Inter,system-ui,sans-serif);text-align:left;cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) .fv2-menu button:hover{background:#F3F1EC}
+
+/* cartão, fala e números */
+:is(#vv-comercial,.vv-setor-visao) :is(.fv2-card,.fv2-fala,.fv2-kpi){min-width:0;padding:18px;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-fala{display:flex;align-items:center;gap:14px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-fala > p{flex:1;min-width:0;font:400 15px/1.45 var(--vv-texto,Inter,system-ui,sans-serif)}
+:is(#vv-comercial,.vv-setor-visao) .fv2 b{font-weight:700}
+:is(#vv-comercial,.vv-setor-visao) .fv2-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter,system-ui,sans-serif);color:#4B36A8}
+:is(#vv-comercial,.vv-setor-visao) .fv2-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter,system-ui,sans-serif)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:fv2-pulso 3.6s ease-out infinite}
+@keyframes fv2-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
+:is(#vv-comercial,.vv-setor-visao) .fv2-conta > .v2-mais > *{min-height:0;overflow:hidden}
+:is(#vv-comercial,.vv-setor-visao) .fv2-dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 24px;padding:6px 18px 0}
+:is(#vv-comercial,.vv-setor-visao) .fv2-dl > div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #EAE6DE;font-size:13px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-dl dt{color:#6B665E}
+:is(#vv-comercial,.vv-setor-visao) .fv2-dl dd{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > small{display:block;font:400 12.5px/1.4 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1F1D1A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpi.ruim > b{color:#B42318}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpi.bom > b{color:#11613A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpi.quieto > b{color:#B5AFA5}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > .v2-barra{background:#EAE6DE}
+:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > .v2-barra + small{margin-top:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-clis{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:8px;color:#1F1D1A}
+
+/* cliente e pílulas */
+:is(#vv-comercial,.vv-setor-visao) .fv2-cli{--c:#8A847A;display:inline-flex;align-items:center;gap:6px;font-weight:600}
+:is(#vv-comercial,.vv-setor-visao) .fv2-cli[data-carteira="vinicius"]{--c:#C2490C}
+:is(#vv-comercial,.vv-setor-visao) .fv2-cli[data-carteira="ewerton"]{--c:#3B5BA9}
+:is(#vv-comercial,.vv-setor-visao) .fv2-cli::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--c)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pill{flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pill.r{background:#FDECEE;color:#B42318}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pill.a{background:#FFF4D6;color:#7A4A00}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pill.g{background:#E8F5EC;color:#11613A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pill.b{background:#E7EEFB;color:#1E4A9A}
+
+/* filtro */
+:is(#vv-comercial,.vv-setor-visao) .fv2-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-fichas{display:flex;flex-wrap:wrap;gap:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-busca{flex:1 1 160px;min-width:140px;height:36px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;font:400 13.5px var(--vv-texto,Inter,system-ui,sans-serif);color:#1F1D1A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-extras{margin-top:-6px}
+
+/* grade e linhas */
+:is(#vv-comercial,.vv-setor-visao) .fv2-grade{display:grid;gap:14px;align-items:stretch}
+:is(#vv-comercial,.vv-setor-visao) .fv2-grade.a{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-grade.b{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-grade.c{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-card{display:flex;flex-direction:column;min-height:260px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-card.fv2-olha{animation:fv2-olha 1.2s ease-out}
+@keyframes fv2-olha{0%,60%{box-shadow:0 0 0 2px #1F1D1A,0 12px 24px -18px rgba(31,29,26,.22)}100%{box-shadow:0 0 0 2px transparent,0 12px 24px -18px rgba(31,29,26,.22)}}
+:is(#vv-comercial,.vv-setor-visao) .fv2-card-topo{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-bottom:2px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-card-topo h2{flex:1 0 auto;max-width:100%;font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pe{margin-top:auto;padding-top:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-nada{padding:12px 0;color:#6B665E}
+:is(#vv-comercial,.vv-setor-visao) .fv2-lin{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #F1EDE6;font-size:13.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-card-topo + :is(.fv2-lin,.fv2-linha > .fv2-lin),:is(#vv-comercial,.vv-setor-visao) .fv2-card-topo + .fv2-linha > .fv2-lin{border-top:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2-lin > p{flex:1;min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2-txt{appearance:none;flex:1;min-width:0;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;overflow-wrap:anywhere}
+:is(#vv-comercial,.vv-setor-visao) button.fv2-txt{cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) .fv2-valor{flex:none;font-variant-numeric:tabular-nums}
+:is(#vv-comercial,.vv-setor-visao) .fv2-so-la{flex:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2-linha[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1),visibility 0s .28s}
+:is(#vv-comercial,.vv-setor-visao) .fv2-det{padding:0 0 10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-hist{display:flex;align-items:center;gap:8px;padding:0 0 10px 34px;font-size:12.5px;color:#4A463F}
+:is(#vv-comercial,.vv-setor-visao) .fv2-hist::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#C9C2B6}
+:is(#vv-comercial,.vv-setor-visao) .fv2-det-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 0 2px 34px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-mini{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px 14px;padding:10px 12px;border-radius:14px;background:#F9F8F5;font-size:12.5px;color:#4A463F}
+:is(#vv-comercial,.vv-setor-visao) .fv2-mini > p{flex:1 1 180px;min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2-det-contas > .fv2-hist{padding-left:14px}
+/* Contas: o grupo com a barra da fatia */
+:is(#vv-comercial,.vv-setor-visao) .fv2-gr{display:grid;grid-template-columns:minmax(0,1fr) 110px 34px 150px 112px;gap:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-gr > .v2-barra{background:#EAE6DE}
+:is(#vv-comercial,.vv-setor-visao) .fv2-gr > .fv2-pill{justify-self:start}
+:is(#vv-comercial,.vv-setor-visao) .fv2-fin{flex-wrap:wrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2-fin > p{flex:1 1 200px}
+/* vazio numa linha, rodapé e a nota de quem administra */
+:is(#vv-comercial,.vv-setor-visao) .fv2-vz{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:7px 8px 7px 18px;border:1.5px dashed #D9D1C3;border-radius:999px;font-size:13px;color:#4A463F}
+:is(#vv-comercial,.vv-setor-visao) .fv2-vz > p{flex:1 1 220px;min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2-rodape{display:flex;flex-wrap:wrap;gap:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-nota{padding:12px 16px;border-radius:14px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;font-size:12.5px;color:#4A463F}
+:is(#vv-comercial,.vv-setor-visao) .fv2-nota ol{padding:6px 0 0 18px}
+/* Inadimplência: a régua */
+:is(#vv-comercial,.vv-setor-visao) .fv2-tri{position:relative;height:58px;margin:18px 8px 4px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-tri::before{content:"";position:absolute;left:0;right:0;top:10px;height:6px;border-radius:3px;background:linear-gradient(90deg,#EAE6DE 0 21%,#FFF4D6 21% 91%,#FDECEE 91%)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pt{position:absolute;top:5px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px #FFFFFF;animation:v2-pop .45s cubic-bezier(.34,1.56,.64,1) both}
+:is(#vv-comercial,.vv-setor-visao) .fv2-pt::before{content:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2-mk{position:absolute;top:26px;transform:translateX(-50%);font-size:11.5px;color:#6B665E;white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2-faixa{padding:8px 0}
+/* Finanças: o caixa em colunas e os atalhos */
+:is(#vv-comercial,.vv-setor-visao) .fv2-cols{flex:1;display:flex;align-items:flex-end;gap:6px;min-height:140px;height:170px;padding-top:14px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2-col > i{display:block;width:28px;height:var(--h);border-radius:8px 8px 3px 3px;background:#D9D3C8;transform-origin:bottom;animation:fv2-sobe .9s cubic-bezier(.2,.8,.2,1) both}
+:is(#vv-comercial,.vv-setor-visao) .fv2-col.agora > i{background:#FF7A2F}
+:is(#vv-comercial,.vv-setor-visao) .fv2-col.depois > i{background:repeating-linear-gradient(135deg,#F3C6A5 0 5px,#FFF1E6 5px 10px)}
+:is(#vv-comercial,.vv-setor-visao) .fv2-col > span{font-size:11.5px;color:#6B665E}
+:is(#vv-comercial,.vv-setor-visao) .fv2-col.agora > span{color:#1F1D1A;font-weight:600}
+@keyframes fv2-sobe{from{transform:scaleY(0)}to{transform:none}}
+:is(#vv-comercial,.vv-setor-visao) .fv2-abrir{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+
+@media (prefers-reduced-motion:reduce){
+  :is(#vv-comercial,.vv-setor-visao) :is(.fv2-ag::after,.fv2-col > i,.fv2-pt,.fv2-card.fv2-olha){animation:none}
+  :is(#vv-comercial,.vv-setor-visao) :is(.fv2-btn,.fv2-linha[aria-expanded="false"] > .v2-mais){transition:none}
+}
+@container fv2 (max-width:860px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2-grade:is(.a,.b,.c){grid-template-columns:minmax(0,1fr)}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-card{min-height:0}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-gr{grid-template-columns:minmax(0,1fr) 90px 34px auto}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-gr > .fv2-sub{grid-column:1 / -2;grid-row:2}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-gr > .fv2-pill{grid-column:-2;grid-row:1 / span 2;justify-self:end}
+}
+@container fv2 (max-width:560px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2-ola{flex-basis:100%}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-ola h1{font-size:24px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-kpi:first-child{grid-column:1 / -1}
+  :is(#vv-comercial,.vv-setor-visao) :is(.fv2-card,.fv2-fala,.fv2-kpi){padding:14px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-kpi > b{font-size:24px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-fala{flex-wrap:wrap}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-fala > p{flex-basis:calc(100% - 54px)}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-fala > .fv2-btn{margin-left:54px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-lin:not(.fv2-gr){flex-wrap:wrap;gap:8px 10px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-lin:not(.fv2-gr) > .fv2-txt{flex-basis:calc(100% - 90px)}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-lin:not(.fv2-gr) > :is(.fv2-btn,.fv2-valor,.fv2-so-la){margin-left:auto}
+  :is(#vv-comercial,.vv-setor-visao) :is(.fv2-hist,.fv2-det-acoes){padding-left:14px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-mini{margin-left:0}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-gr{grid-template-columns:minmax(0,1fr) 34px auto}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-gr > .v2-barra{grid-column:1 / -1;grid-row:3}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-gr > .fv2-sub{grid-column:1 / -1;grid-row:2}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-gr > .fv2-pill{grid-column:-2;grid-row:1}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-vz{border-radius:20px;padding:12px 14px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-col > i{width:22px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2-dl{padding:6px 14px 0}
+}
+@media (max-width:759px){
+  #vv-comercial.fv2-casa > .vc-corpo{padding:calc(16px + env(safe-area-inset-top)) 16px 28px}
+  .vv-setor-visao.fv2-casa > .vs-corpo{padding:16px 4px 8px}
+}

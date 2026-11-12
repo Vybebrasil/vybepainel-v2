@@ -7,7 +7,7 @@
 (() => {
   'use strict';
   const URL_API = '/api/painel?area=impressoes';
-  const st = { raiz: null, janela: null, antes: null, dados: null, erro: '', carregando: false, sel: '', form: null, cancelar: false, cotar: false, aviso: '', filtro: '', fornecedor: '', todas: false, vista: 'etapas' };
+  const st = { raiz: null, janela: null, antes: null, dados: null, erro: '', carregando: false, sel: '', form: null, cancelar: false, cotar: false, aviso: '', filtro: '', fornecedor: '', todas: false, vista: 'linhas', busca: '', filtros: false, mais: false, deck: 0, deckLista: false, pulou: new Set() };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   // Cabeçalho único da janela (vbCabecalhoHtml e vbFecharHtml, vybe-core.js). Sem o vybe-core (testes), só o título e as ações.
   const cabecalho = (o) => (typeof window !== 'undefined' && typeof window.vbCabecalhoHtml === 'function' ? window.vbCabecalhoHtml(o) : `<h2${o.id ? ` id="${o.id}"` : ''}>${esc(o.titulo)}</h2>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}${o.acoes || ''}`);
@@ -84,7 +84,7 @@
     const precisaForn = (id) => ['arquivo_enviado', 'em_impressao', 'pronto', 'entregue'].includes(id) && !i.fornecedor_id;
     return `<aside class="vi-ficha" aria-label="Impressão ${esc(i.titulo)}">
       <div class="vi-ficha-topo"><span><small>${esc(etapaNome(i.etapa))}${i.atrasada ? ' · <b class="t-ruim">atrasada</b>' : ''}</small><h3>${esc(i.titulo)}</h3></span>
-        <button type="button" class="vi-x" data-vi="fechar-ficha" aria-label="Fechar a ficha">✕</button></div>
+        <button type="button" class="vi-x" data-vi="fechar-ficha" aria-label="Fechar a ficha"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button></div>
       <dl class="vi-dados">
         <dt>Cliente</dt><dd>${cli(i.cliente_nome) || 'interno'}${i.projeto_nome ? ` · ${esc(i.projeto_nome)}` : ''}</dd>
         <dt>Fornecedor</dt><dd>${i.fornecedor_nome ? esc(i.fornecedor_nome) : '<em class="vi-tag ruim">sem fornecedor</em>'}</dd>
@@ -173,30 +173,135 @@
     return `<section class="vi-bloco"><h4>Por fornecedor</h4><ul class="vi-forn">${l.map((f) => `<li><button type="button" data-vi-fornecedor="${esc(f.fornecedor_id)}" aria-pressed="${String(f.fornecedor_id) === st.fornecedor}"><b>${esc(f.nome)}</b>
       <small>${f.abertas} aberta${f.abertas === 1 ? '' : 's'}${f.atrasadas ? ` · <span class="t-ruim">${f.atrasadas} atrasada${f.atrasadas === 1 ? '' : 's'}</span>` : ''} · ${f.entregues} entregue${f.entregues === 1 ? '' : 's'}${f.prazo_medio_dias != null ? ` · ${String(f.prazo_medio_dias).replace('.', ',')} d em média` : ''}</small></button></li>`).join('')}</ul></section>`;
   }
+  // ---------- Padrão v2 (quadro "Impressões" do moodboard, 12/11/2026) ----------
+  // A frase do Nestor, três números, o baralho do que espera um ok à esquerda e, à direita, um cartão com busca,
+  // fichas e uma linha por peça (as bolinhas das etapas, a gráfica e o prazo). A linha abre no lugar com a ficha de sempre.
+  const CERTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const MAX_LINHAS = 6;
+  const cliPonto = (nome) => cli(nome).replace(/>([^<>]*)<\/span>$/, '><span class="p2-nome">$1</span></span>');
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const diaSem = (iso) => { const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z'); return Number.isFinite(d.getTime()) ? `${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][d.getUTCDay()]}, ${br(iso)}` : ''; };
+  const unidades = (i) => (i.quantidade ? `${Number(i.quantidade).toLocaleString('pt-BR')} ${Number(i.quantidade) === 1 ? 'unidade' : 'unidades'}` : '');
+  const etapasDoCaminho = () => (st.dados?.etapas || []).filter((e) => e.id !== 'cancelado');
+  // O que espera um ok de quem abre a tela: a cotação mais barata de quem ainda não escolheu (só a gestão) e a gráfica
+  // sugerida para a peça sem fornecedor. "Agora não" tira do baralho até fechar a janela.
+  function decisoes() {
+    const d = st.dados, out = []; if (!d) return out;
+    for (const i of d.impressoes || []) {
+      if (!ABERTAS(i)) continue;
+      const cots = d.gestao && Array.isArray(i.cotacoes) ? i.cotacoes : [];
+      if (cots.length && !cots.some((c) => c.escolhida)) { const c = cots.slice().sort((a, b) => Number(a.valor) - Number(b.valor))[0]; out.push({ chave: 'cot:' + c.id, tipo: 'cotacao', i, c, outras: cots.length - 1 }); }
+      else if (!i.fornecedor_id && Array.isArray(i.sugestao) && i.sugestao.length) out.push({ chave: 'sug:' + i.id, tipo: 'sugestao', i, s: i.sugestao[0] });
+    }
+    return out.filter((x) => !st.pulou.has(x.chave)).sort((a, b) => (b.i.atrasada ? 1 : 0) - (a.i.atrasada ? 1 : 0) || String(a.i.previsao || '9').localeCompare(String(b.i.previsao || '9')));
+  }
+  const prazoHtml = (i, classe = 'p2-sub') => (i.atrasada ? `<span class="p2-pill r">${diasDeAtraso(i) ? `${diasDeAtraso(i)} ${diasDeAtraso(i) === 1 ? 'dia' : 'dias'} de atraso` : 'atrasada'}</span>` : i.previsao ? `<span class="${classe}">entrega ${esc(diaSem(i.previsao))}</span>` : '');
+  function cartaHtml(x, k) {
+    const i = x.i, pos = k - st.deck, topo = `<p class="vi2-topo"><span class="p2-pill v">${x.tipo === 'cotacao' ? 'Cotação' : 'Gráfica sugerida'}</span>${cliPonto(i.cliente_nome) || '<span class="p2-sub">interno</span>'}<span class="vi2-direita">${prazoHtml(i)}</span></p>`;
+    const corpo = x.tipo === 'cotacao'
+      ? `<p class="vi2-oq">Fechar ${esc(i.titulo)} com a ${esc(x.c.fornecedor_nome || 'gráfica')} por ${esc(reais(x.c.valor))}</p>
+        <div class="vi2-prv"><small>${esc(x.c.fornecedor_nome || 'Fornecedor')}${x.c.prazo_dias != null ? `, prazo de ${esc(x.c.prazo_dias)} ${Number(x.c.prazo_dias) === 1 ? 'dia' : 'dias'}` : ''}</small>${x.c.observacao ? `“${esc(x.c.observacao)}”` : x.outras ? `A mais barata de ${x.outras + 1} cotações.` : 'Única cotação guardada.'}</div>
+        <p class="vi2-ef"><b>Se aprovar:</b> a ${esc(x.c.fornecedor_nome || 'gráfica')} vira o fornecedor, e o valor e a previsão vão para a impressão.</p>`
+      : `<p class="vi2-oq">Usar a ${esc(x.s.nome)} em ${esc(i.titulo)}</p>
+        <div class="vi2-prv"><small>Ranking das gráficas</small>${esc(x.s.motivo || 'A primeira do ranking para esta peça.')}</div>
+        <p class="vi2-ef"><b>Se aprovar:</b> a edição abre com a ${esc(x.s.nome)} escolhida; só grava quando você salvar.</p>`;
+    return `<div class="v2-carta vi2-carta"${pos < 0 ? ' data-pos="fora"' : pos <= 2 ? ` data-pos="${pos}"` : ''} data-vi-carta="${k}">${topo}${corpo}</div>`;
+  }
+  function baralhoHtml(lista) {
+    const n = lista.length; st.deck = Math.min(Math.max(0, st.deck), n - 1);
+    const cabeca = `<div class="p2-lista-topo vi2-pede-topo"><h3 class="p2-h">Pede ação</h3><span class="p2-sub">${n} ${n === 1 ? 'decisão espera' : 'decisões esperam'} o seu ok</span></div>`;
+    if (st.deckLista) return `<div class="vi2-pede">${cabeca}<div class="p2-card vi2-deck-lista">${lista.map((x, k) => `<div class="p2-lin"><p><b>${esc(x.i.titulo)}</b><br><span class="p2-sub">${x.tipo === 'cotacao' ? `${esc(x.c.fornecedor_nome || 'Fornecedor')} · ${esc(reais(x.c.valor))}` : `sugerida: ${esc(x.s.nome)}`}</span></p><button type="button" class="p2-btn s k" data-vi-decidir="${k}">Aprovar</button></div>`).join('')}
+        <p class="p2-sub p2-pe"><button type="button" class="p2-link" data-vi="deck-lista">ver um por vez</button></p></div></div>`;
+    return `<div class="vi2-pede">${cabeca}<div class="v2-baralho vi2-baralho" aria-live="polite">${lista.map(cartaHtml).join('')}</div>
+      <div class="vi2-decide"><button type="button" class="p2-btn" data-vi="agora-nao">Agora não</button><button type="button" class="p2-btn k v2-estado" data-vi-decidir="atual">Aprovar</button></div>
+      <div class="vi2-conta"><span class="v2-pontos" aria-hidden="true">${lista.map((_, k) => `<i${k === st.deck ? ' class="on"' : ''}></i>`).join('')}</span><span class="p2-sub"><span data-vi-conta>${st.deck + 1} de ${n}</span>${n > 1 ? ' · seta para os lados passa' : ''} · <button type="button" class="p2-link" data-vi="deck-lista">ver em lista</button></span></div></div>`;
+  }
+  // As setas só mexem nas posições: o cartão da frente sai e o de trás vem, sem redesenhar a janela.
+  function passar(n) {
+    const total = decisoes().length; if (!total || st.deckLista) return;
+    st.deck = Math.min(Math.max(0, st.deck + n), total - 1);
+    st.janela?.querySelectorAll('[data-vi-carta]').forEach((c) => { const pos = Number(c.dataset.viCarta) - st.deck; if (pos < 0) c.dataset.pos = 'fora'; else if (pos <= 2) c.dataset.pos = String(pos); else delete c.dataset.pos; });
+    st.janela?.querySelectorAll('.v2-pontos > i').forEach((p, k) => p.classList.toggle('on', k === st.deck));
+    const c = st.janela?.querySelector('[data-vi-conta]'); if (c) c.textContent = `${st.deck + 1} de ${total}`;
+  }
+  function decidir(qual) {
+    const lista = decisoes(), x = lista[qual === 'atual' ? st.deck : Number(qual)]; if (!x) return;
+    if (x.tipo === 'cotacao') { st.sel = String(x.i.id); gravar({ acao: 'cotacao_escolher', id: x.c.id }, 'Cotação escolhida: fornecedor, valor e previsão foram para a impressão.'); return; }
+    st.sel = String(x.i.id); st.form = { ...x.i, fornecedor_id: x.s.fornecedor_id }; pintar(); st.janela.querySelector('[name=fornecedor_id]')?.focus();
+  }
+
+  function trilhaHtml(i) {
+    const et = etapasDoCaminho(), k = et.findIndex((e) => e.id === i.etapa);
+    if (i.etapa === 'cancelado') return '<span class="p2-pill n">Cancelada</span>';
+    return `<span class="vi2-tri" role="img" aria-label="Etapa ${k + 1} de ${et.length}: ${esc(etapaNome(i.etapa))}">${et.map((e, n) => `<i class="p2-cx${n < k || i.etapa === 'entregue' ? ' ok' : n === k ? ' at' : ''}">${n < k || i.etapa === 'entregue' ? CERTO : ''}</i>`).join('')}</span>`;
+  }
+  function linhaHtml(i) {
+    const et = st.dados.etapas || [], k = et.findIndex((e) => e.id === i.etapa), prox = ABERTAS(i) ? et[k + 1] : null, aberta = String(i.id) === st.sel;
+    const podeAvancar = prox && prox.id !== 'cancelado' && !(['arquivo_enviado', 'em_impressao', 'pronto', 'entregue'].includes(prox.id) && !i.fornecedor_id);
+    const forn = i.fornecedor_nome ? esc(i.fornecedor_nome) : `<b class="atencao">sem fornecedor</b>${ABERTAS(i) ? ` · <button type="button" class="p2-link vi-escolher" data-vi-escolher-forn="${esc(i.id)}">escolher</button>` : ''}`;
+    return `<div class="v2-abre p2-abre vi2-item${aberta ? ' sel' : ''}" aria-expanded="${aberta}"><div class="p2-lin"><div class="vi2-meio" data-vi-linha="${esc(i.id)}">
+        <p class="vi2-l1"><span>${cliPonto(i.cliente_nome) || '<span class="p2-sub">interno</span>'} · <button type="button" class="vi2-nome" data-vi-abrir="${esc(i.id)}" aria-expanded="${aberta}">${esc(i.titulo)}</button>${unidades(i) ? ` · ${esc(unidades(i))}` : ''}</span>${i.atrasada ? `<span class="p2-pill r">${diasDeAtraso(i) ? `${diasDeAtraso(i)} ${diasDeAtraso(i) === 1 ? 'dia' : 'dias'}` : 'atrasada'}</span>` : i.previsao ? `<span class="p2-sub">${esc(diaSem(i.previsao))}</span>` : ''}</p>
+        <div class="vi2-l2">${trilhaHtml(i)}<span class="vi2-onde">${esc(etapaNome(i.etapa))} · ${forn}</span>${i.atrasada && podeAvancar ? `<button type="button" class="p2-btn s v2-estado" data-vi-etapa="${esc(prox.id)}" data-vi-id="${esc(i.id)}">Marcar como ${esc(String(prox.nome).toLowerCase())}</button>` : ''}</div>
+      </div></div><div class="v2-mais"><div>${aberta ? ficha() : ''}</div></div></div>`;
+  }
+  function linhasHtml() {
+    const q = norm(st.busca).trim(), todas = visiveis().filter((i) => !q || norm(`${i.titulo} ${i.cliente_nome || ''} ${i.fornecedor_nome || ''} ${i.material || ''}`).includes(q));
+    const tudo = st.mais || st.todas || Boolean(q) || Boolean(st.filtro);
+    const abertas = todas.filter(ABERTAS).sort((a, b) => (b.atrasada ? 1 : 0) - (a.atrasada ? 1 : 0) || String(a.previsao || '9').localeCompare(String(b.previsao || '9')));
+    const fechadas = todas.filter((i) => !ABERTAS(i));
+    const lista = tudo ? [...abertas, ...fechadas] : abertas.slice(0, MAX_LINHAS);
+    // A peça escolhida aparece mesmo que esteja recolhida.
+    const sel = st.sel && !lista.some((i) => String(i.id) === st.sel) ? todas.find((i) => String(i.id) === st.sel) : null; if (sel) lista.push(sel);
+    const fora = abertas.length - lista.filter(ABERTAS).length, recolhidas = tudo ? 0 : fechadas.length - (sel && !ABERTAS(sel) ? 1 : 0);
+    const pe = [fora > 0 ? `+ ${fora} ${fora === 1 ? 'aberta' : 'abertas'}` : '', recolhidas > 0 ? `${recolhidas} ${recolhidas === 1 ? 'entregue ou cancelada fica recolhida' : 'entregues ou canceladas ficam recolhidas'}` : ''].filter(Boolean).join(' · ');
+    if (!lista.length) return `<p class="p2-vazio">${q || st.filtro || st.fornecedor ? 'Nenhuma impressão neste filtro.' : 'Nenhuma impressão aberta agora.'}${fechadas.length && !tudo ? ' <button type="button" class="p2-link" data-vi="mais">mostrar as entregues</button>' : ''}</p>`;
+    return `${lista.map(linhaHtml).join('')}${pe || st.mais ? `<p class="p2-sub p2-pe vi2-pe">${pe}${pe ? ' · ' : ''}<button type="button" class="p2-link" data-vi="mais">${st.mais ? 'recolher' : 'mostrar'}</button></p>` : ''}`;
+  }
+  const vistaHtml = () => (st.vista === 'etapas' ? quadro() + ficha() : st.vista === 'lista' ? listaHtml() + ficha() : linhasHtml());
+  function pintarLinhas() { const c = st.janela?.querySelector('.vi2-linhas'); if (c) c.innerHTML = vistaHtml(); }
   function corpo() {
     if (!st.dados && !st.erro) return estado('carregando', 'Carregando as impressões', '');
-    if (st.erro && !st.dados) return estado('erro', 'Não deu para abrir Impressões', st.erro, '<button type="button" class="vi-botao" data-vi="recarregar">Tentar de novo</button>');
-    const d = st.dados, R = d.resumo || {};
-    const chip = (k, rot, n, cls = '') => `<button type="button" class="vi-chip ${cls}" data-vi-filtro="${k}" aria-pressed="${st.filtro === k}">${rot}${n != null ? ` <em>${n}</em>` : ''}</button>`;
+    if (st.erro && !st.dados) return estado('erro', 'Não deu para abrir Impressões', st.erro, '<button type="button" class="p2-btn s" data-vi="recarregar">Tentar de novo</button>');
+    const d = st.dados, R = d.resumo || {}, todas = d.impressoes || [], abertas = todas.filter(ABERTAS);
+    if (!todas.length) return `${st.form ? `<div class="p2-card">${formulario()}</div>` : ''}<div class="p2-card vi2-vazio"><p><b>Nenhuma impressão ainda.</b> <span class="p2-sub">Adesivo, banner, cardápio, embalagem: acompanhe da arte à entrega na gráfica.</span></p>${st.form ? '' : '<button type="button" class="p2-btn s" data-vi="nova">Nova impressão</button>'}</div>`;
+    const chip = (k, rot, n) => `<button type="button" class="p2-chip vi-chip" data-vi-filtro="${k}" aria-pressed="${st.filtro === k}">${rot}${n != null ? ` <b>${n}</b>` : ''}</button>`;
     const fNome = st.fornecedor ? (d.fornecedores || []).find((f) => String(f.id) === st.fornecedor)?.nome || 'fornecedor' : '';
-    // Quadro 17: sem o aviso solto de "nenhum fornecedor" (o chip Sem fornecedor e o campo do formulário levam ao cadastro).
     const vista = (k, r) => `<button type="button" data-vi-vista="${k}" aria-pressed="${st.vista === k}">${r}</button>`;
-    return `<div class="vi-barra"><div class="vi-filtros" role="group" aria-label="Filtrar">${chip('', 'Abertas', R.abertas)}${chip('atrasadas', 'Atrasadas', R.atrasadas, R.atrasadas ? 'ruim' : '')}${chip('semfornecedor', 'Sem fornecedor', R.semFornecedor, R.semFornecedor ? 'atencao' : '')}
-        ${fNome ? `<button type="button" class="vi-chip" data-vi-fornecedor="" aria-pressed="true">${esc(fNome)} ✕</button>` : ''}
-        <button type="button" class="vi-chip" data-vi="todas" aria-pressed="${st.todas}" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias">Histórico inteiro</button></div>
-        ${(d.impressoes || []).length ? `<span class="vb-alternar vi-vista" role="group" aria-label="Ver como">${vista('etapas', 'Etapas')}${vista('lista', 'Lista')}</span>` : ''}</div>
-      ${st.form ? formulario() : ''}
-      <div class="vi-meio${st.sel ? ' com-ficha' : ''}">${(d.impressoes || []).length ? (st.vista === 'lista' ? listaHtml() : quadro()) : estado('vazio', 'Nenhuma impressão ainda', 'Adesivo, banner, cardápio, embalagem: use "Nova impressão", no alto, e acompanhe da arte à entrega na gráfica.')}${ficha()}</div>
-      ${porFornecedor()}`;
+    // A frase e os números saem das mesmas impressões da lista.
+    const atrasadas = abertas.filter((i) => i.atrasada), semForn = abertas.filter((i) => !i.fornecedor_id);
+    const urgente = atrasadas[0] || abertas.filter((i) => i.previsao).sort((a, b) => String(a.previsao).localeCompare(String(b.previsao)))[0] || null;
+    const nA = R.abertas ?? abertas.length, nAt = R.atrasadas ?? atrasadas.length, nS = R.semFornecedor ?? semForn.length;
+    const fala = `<div class="p2-card p2-fala"><span class="p2-ag" aria-hidden="true">N</span>
+      <p><span class="p2-quem">Nestor · Compras, fornecedores e impressões</span><b>${nA} ${nA === 1 ? 'impressão aberta' : 'impressões abertas'}.</b> ${nAt ? `${nAt} ${nAt === 1 ? 'atrasada' : 'atrasadas'} na gráfica` : 'Nenhuma atrasada'}${nS ? ` e <b>${nS} sem fornecedor</b>` : ''}.${urgente ? ` ${esc(urgente.titulo)}${urgente.cliente_nome ? ` de ${esc(urgente.cliente_nome)}` : ''} é a mais urgente: ${urgente.atrasada ? `a entrega era ${esc(diaSem(urgente.previsao))}` : `a entrega é ${esc(diaSem(urgente.previsao))}`}.` : ''}</p>
+      ${urgente ? `<button type="button" class="p2-btn s" data-vi-abrir="${esc(urgente.id)}">Ver ${esc(String(urgente.titulo).length > 22 ? 'a mais urgente' : urgente.titulo)}</button>` : ''}</div>`;
+    const porEtapa = etapasDoCaminho().map((e) => { const n = abertas.filter((i) => i.etapa === e.id).length; return n ? `${n} em ${String(e.nome).toLowerCase()}` : ''; }).filter(Boolean).slice(0, 3).join(' · ');
+    const nomes = (l) => l.slice(0, 2).map((i) => String(i.titulo).toLowerCase()).join(' e ') + (l.length > 2 ? ` e mais ${l.length - 2}` : '');
+    const kpis = `<div class="p2-kpis">
+      <div class="p2-card p2-kpi${nA ? '' : ' quieto'}"><small>Abertas</small><b><span class="v2-num">${nA}</span></b><small>${esc(porEtapa || 'nada em andamento')}</small></div>
+      <div class="p2-card p2-kpi${nAt ? ' ruim' : ' quieto'}"><small>Atrasadas</small><b><span class="v2-num" style="animation-delay:.12s">${nAt}</span></b><small>${atrasadas[0] ? `${esc(String(atrasadas[0].titulo).toLowerCase())}${atrasadas[0].cliente_nome ? ` de ${esc(atrasadas[0].cliente_nome)}` : ''}${diasDeAtraso(atrasadas[0]) ? `, há ${diasDeAtraso(atrasadas[0])} ${diasDeAtraso(atrasadas[0]) === 1 ? 'dia' : 'dias'}` : ''}` : 'tudo dentro da previsão'}</small></div>
+      <div class="p2-card p2-kpi${nS ? ' atencao' : ' quieto'}"><small>Sem fornecedor</small><b><span class="v2-num" style="animation-delay:.24s">${nS}</span></b><small>${semForn.length ? esc(nomes(semForn)) : 'todas com gráfica'}</small></div></div>`;
+    const dec = decisoes();
+    const filtrosMais = st.filtros ? `<div class="vi2-filtros-mais"><div class="p2-filtros"><span class="p2-sub">Ver como</span><span class="p2-seg vi-vista" role="group" aria-label="Ver como">${vista('linhas', 'Linhas')}${vista('etapas', 'Etapas')}${vista('lista', 'Tabela')}</span></div>${porFornecedor()}</div>` : '';
+    return `${fala}${kpis}${st.form ? `<div class="p2-card">${formulario()}</div>` : ''}
+      <div class="vi2-duas${dec.length ? '' : ' so-lista'}">${dec.length ? baralhoHtml(dec) : ''}
+        <div class="p2-card vi2-lista">
+          <div class="p2-filtros"><label class="p2-oculto" for="vi-busca">Buscar peça, cliente ou fornecedor</label><input id="vi-busca" class="p2-busca" type="search" placeholder="Buscar peça, cliente ou fornecedor" data-vi-busca value="${esc(st.busca)}">
+            <button type="button" class="p2-btn s" data-vi="filtros" aria-expanded="${st.filtros}"${st.filtros ? ' aria-pressed="true"' : ''}>Filtros</button></div>
+          <div class="p2-filtros vi-filtros" role="group" aria-label="Filtrar">${chip('', 'Abertas', nA)}${chip('atrasadas', 'Atrasadas', nAt)}${chip('semfornecedor', 'Sem fornecedor', nS)}
+            ${fNome ? `<button type="button" class="p2-chip" data-vi-fornecedor="" aria-pressed="true">${esc(fNome)} ✕</button>` : ''}
+            <button type="button" class="p2-chip" data-vi="todas" aria-pressed="${st.todas}" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias">Histórico inteiro</button></div>
+          ${filtrosMais}
+          <div class="vi2-linhas">${vistaHtml()}</div>
+        </div></div>`;
   }
   function pintar() {
     if (!st.janela) return;
-    const tinha = st.janela.querySelector('.vi-corpo')?.scrollTop || 0;
-    st.janela.innerHTML = `<div class="vi-topo vb-janela-topo">${cabecalho({ id: 'vi-titulo', titulo: 'Impressões', texto: 'Da arte à entrega na gráfica: etapa, fornecedor, prazo e histórico de cada peça impressa.',
-      acoes: `<span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="vi-botao principal" data-vi="nova">Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
+    const tinha = st.janela.scrollTop || 0;
+    st.janela.innerHTML = `<div class="vi-topo vb-janela-topo">${cabecalho({ id: 'vi-titulo', titulo: 'Impressões',
+      acoes: `<span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="p2-btn p" data-vi="nova">Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
       <p class="vi-aviso" role="status"></p><div class="vi-corpo">${corpo()}</div>`;
     pintarAviso();
-    const c = st.janela.querySelector('.vi-corpo'); if (c) c.scrollTop = tinha;
+    st.janela.scrollTop = tinha;
   }
   function pintarAviso(erro = false) { const a = st.janela?.querySelector('.vi-aviso'); if (a) { a.textContent = st.aviso; a.classList.toggle('erro', erro); } }
 
@@ -218,15 +323,18 @@
     if (e.target === st.raiz) { fechar(); return; }
     const ef = e.target.closest('[data-vi-escolher-forn]');
     if (ef) { const i = st.dados.impressoes.find((x) => String(x.id) === ef.dataset.viEscolherForn); if (i) { st.sel = String(i.id); st.form = { ...i }; pintar(); st.janela.querySelector('[name=fornecedor_id], [data-vi="cadastrar-fornecedor"]')?.focus(); } return; }
-    const b = e.target.closest('button'); if (!b || b.disabled) return;
+    const b = e.target.closest('button');
+    if (!b) { const l = e.target.closest('[data-vi-linha]'); if (l && !e.target.closest('a,input,select,textarea,label')) { st.sel = st.sel === l.dataset.viLinha ? '' : l.dataset.viLinha; st.cancelar = false; pintar(); } return; }
+    if (b.disabled) return;
     if (b.dataset.viVista) { st.vista = b.dataset.viVista; pintar(); return; }
-    if (b.dataset.viAbrir) { st.sel = b.dataset.viAbrir; st.cancelar = false; pintar(); return; }
+    if (b.dataset.viDecidir) { decidir(b.dataset.viDecidir); return; }
+    if (b.dataset.viAbrir) { st.sel = st.sel === b.dataset.viAbrir && st.vista === 'linhas' ? '' : b.dataset.viAbrir; st.cancelar = false; pintar(); st.janela.querySelector('.vi2-item.sel')?.scrollIntoView?.({ block: 'nearest' }); return; }
     if (b.dataset.viFiltro !== undefined) { st.filtro = b.dataset.viFiltro; pintar(); return; }
     if (b.dataset.viFornecedor !== undefined) { st.fornecedor = st.fornecedor === b.dataset.viFornecedor ? '' : b.dataset.viFornecedor; pintar(); return; }
     if (b.dataset.viArte) { const id = String(b.dataset.viArte); window.openItemWorkspace?.(id.startsWith('vybe:') ? id : 'vybe:' + id); return; }
     if (b.dataset.viUsar) { const i = st.dados.impressoes.find((x) => String(x.id) === st.sel); st.form = { ...i, fornecedor_id: b.dataset.viUsar }; pintar(); st.janela.querySelector('[name=fornecedor_id]')?.focus(); return; }
     if (b.dataset.viEscolher) { gravar({ acao: 'cotacao_escolher', id: b.dataset.viEscolher }, 'Cotação escolhida: fornecedor, valor e previsão foram para a impressão.'); return; }
-    if (b.dataset.viEtapa) { gravar({ acao: 'impressao_etapa', id: st.sel, etapa: b.dataset.viEtapa }, `Foi para ${etapaNome(b.dataset.viEtapa)}.`); return; }
+    if (b.dataset.viEtapa) { if (b.dataset.viId) st.sel = b.dataset.viId; if (b.classList.contains('v2-estado')) b.dataset.estado = 'indo'; gravar({ acao: 'impressao_etapa', id: st.sel, etapa: b.dataset.viEtapa }, `Foi para ${etapaNome(b.dataset.viEtapa)}.`); return; }
     const a = b.dataset.vi;
     if (a === 'fechar') fechar();
     else if (a === 'recarregar') carregar();
@@ -240,6 +348,10 @@
     else if (a === 'todas') { st.todas = !st.todas; carregar(); }
     else if (a === 'cotar') { st.cotar = true; pintar(); st.janela.querySelector('[data-vi-form=cotacao] select')?.focus(); }
     else if (a === 'nao-cotar') { st.cotar = false; pintar(); }
+    else if (a === 'filtros') { st.filtros = !st.filtros; pintar(); }
+    else if (a === 'mais') { st.mais = !st.mais; pintarLinhas(); }
+    else if (a === 'deck-lista') { st.deckLista = !st.deckLista; pintar(); }
+    else if (a === 'agora-nao') { const x = decisoes()[st.deck]; if (x) { st.pulou.add(x.chave); pintar(); } }
   }
   function aoMudar(e) {
     const m = e.target.closest('[data-vi-mover]'); if (m) { const para = m.value; m.value = ''; if (para) gravar({ acao: 'impressao_etapa', id: st.sel, etapa: para }, `Foi para ${etapaNome(para)}.`); return; }
@@ -256,7 +368,9 @@
     const o = formParaObjeto(form), id = st.form?.id;
     gravar({ acao: 'impressao_salvar', ...(id ? { id } : {}), ...o }, id ? 'Impressão salva.' : 'Impressão criada.');
   }
+  function aoDigitar(e) { if (e.target.matches?.('[data-vi-busca]')) { st.busca = e.target.value; pintarLinhas(); } }
   function aoTeclar(e) {
+    if (st.raiz && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('input,textarea,select') && !document.querySelector('dialog[open], #workspace-drawer.open')) { passar(e.key === 'ArrowRight' ? 1 : -1); return; }
     if (!st.raiz || e.key !== 'Escape' || e.defaultPrevented) return;
     if (document.querySelector('dialog[open], #workspace-drawer.open')) return;
     e.preventDefault(); e.stopPropagation();
@@ -272,7 +386,7 @@
       janela.id = 'vv-impressoes'; janela.className = 'vc-janela';
       janela.setAttribute('role', 'dialog'); janela.setAttribute('aria-modal', 'true'); janela.setAttribute('aria-labelledby', 'vi-titulo');
       raiz.append(janela);
-      raiz.addEventListener('click', aoClicar); raiz.addEventListener('change', aoMudar); raiz.addEventListener('submit', aoEnviar);
+      raiz.addEventListener('click', aoClicar); raiz.addEventListener('change', aoMudar); raiz.addEventListener('submit', aoEnviar); raiz.addEventListener('input', aoDigitar);
       document.body.append(raiz);
       Object.assign(st, { raiz, janela });
     }
@@ -280,7 +394,7 @@
   }
   function fechar() {
     const { raiz, antes } = st; if (!raiz) return;
-    Object.assign(st, { raiz: null, janela: null, antes: null, aviso: '', form: null, sel: '', cancelar: false });
+    Object.assign(st, { raiz: null, janela: null, antes: null, aviso: '', form: null, sel: '', cancelar: false, busca: '', mais: false, deck: 0, deckLista: false, pulou: new Set() });
     raiz.remove(); if (antes?.isConnected) antes.focus?.();
   }
   window.addEventListener('keydown', aoTeclar, true);

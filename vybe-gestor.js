@@ -671,6 +671,7 @@ function updateClearFiltersState() {
   btn.textContent = hasActiveFilter ? '✕ Limpar filtros' : '✓ Sem filtros';
   btn.title = hasActiveFilter ? 'Limpar busca e todos os filtros ativos' : 'Nenhum filtro ativo';
   if (typeof pintarFiltrosDaAgenda === 'function') pintarFiltrosDaAgenda();
+  if (typeof pv2PintarFiltroAtivo === 'function') pv2PintarFiltroAtivo();
 }
 
 function clearAllFilters(preserveDateMode = false) {
@@ -684,6 +685,7 @@ function clearAllFilters(preserveDateMode = false) {
   currentPersonFilter = 'all';
   selectedPersonIds.clear();
   sortCritico = false;
+  if (typeof pv2SoSemDono !== 'undefined') pv2SoSemDono = false;
   if (!preserveDateMode && dateMode !== 'veiculacao') {
     dateMode = 'veiculacao';
     document.getElementById('btn-mode-veiculacao')?.classList.add('active');
@@ -776,6 +778,7 @@ function semanaDeHoje() {
   pintarSeletorDeSemana();
 }
 function pintarSeletorDeSemana() {
+  if (typeof pv2PintarSemana === 'function') pv2PintarSemana();
   const rotulo = document.getElementById('semana-seletor-rotulo'); if (!rotulo) return;
   const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`), i = lista.indexOf(atual);
   const texto = atual ? 'Semana ' + String(atual.textContent || '').replace(/^\s*\d+\s*·\s*/, '').trim() : 'Semana';
@@ -928,6 +931,8 @@ function corDoFormato(formato) {
   return paleta[nome] || '#6b7280';
 }
 function renderByDay(sem, filter, dayFilter) {
+  // No mundo, a semana é a do quadro do padrão v2 (pv2RenderDias, no fim deste arquivo); abaixo fica o tema antigo.
+  if (typeof pv2RenderDias === 'function' && pv2Ligado()) { pv2RenderDias(sem, filter, dayFilter); return; }
   const items=itensDaSemanaGestor(sem);
   const fi=filtrarItensDoDia(items,filter);
   const diasBase=getDiasSemana(sem);
@@ -1171,6 +1176,7 @@ async function copyDailySummary() {
 // ─── Renderizar semana ────────────────────────────────────────────────────────
 function renderWeek(sem, filter, dayFilter) {
   if (viewMode === 'day') { renderByDay(sem, filter, dayFilter); updateClearFiltersState(); return; }
+  if (typeof pv2SairDosDias === 'function') pv2SairDosDias(sem);
   const items = getItemsBySemana(sem);
   const porCliente = groupByCliente(items);
   const dias = getDiasSemana(sem);
@@ -1249,6 +1255,7 @@ function renderCompactSummary() {
       <span>${clientesLow === 1 ? 'cliente' : 'clientes'} em alguma semana</span>
       ${clientesLow > 0 ? acao(clientesLow === 1 ? 'Ver qual' : 'Ver quais', 'verClientesComPoucosPosts()') : ''}</div>`) +
     `<p class="pv-kpi-linha" aria-label="Na semana"><span class="pv-kpi-linha-rot">Na semana</span>${linha(clientes.length, clientes.length === 1 ? 'cliente' : 'clientes')}${linha(podeFazer, 'pode fazer', "filtrarStatusDoResumo('Pode Fazer')")}${linha(captacao, 'em captação', "filtrarStatusDoResumo('Aguardo')")}</p>`;
+  if (typeof pv2PintarAlto === 'function') pv2PintarAlto({ pct, feitas: done, total, hoje: todayItems.length, hojePendente: todayPending, pendentes, poucosPosts: clientesLow });
 }
 // Os links dos cartões: abrem a mesma fila da barra (Requer ação, Vence hoje) e descem até ela, sem fechar se já estiver aberta.
 function abrirDoResumo(nome) {
@@ -1538,6 +1545,7 @@ function pintarBarraDeComando() {
   }
   const arquivo = document.getElementById('ops-arquivo-btn');
   if (arquivo) arquivo.classList.toggle('active', Boolean(document.getElementById('arquivadas-painel')));
+  if (typeof pv2PintarControles === 'function') pv2PintarControles();
 }
 
 // "Ver como": a agenda da semana é a visão de sempre. Ela fica marcada quando
@@ -1732,3 +1740,331 @@ async function salvarResponsaveisDaSelecao(item) {
     await gravarResponsaveisDaPeca(alvo, selected);
   });
 }
+
+// ─── Padrão v2 · Painel de trabalho pelo quadro DEPOIS do moodboard (12/11/2026) ─────────────
+// A tela é o quadro, nesta ordem: título com as vistas (Semana, Mês, Grupos, Equipe), Modos e Novo conteúdo; a fala do
+// Heitor ao lado de três números; a busca, as quatro fichas e Filtros; a semana com ‹ ›, Hoje, as contagens e
+// Por dia, Por cliente ou Grade; e quatro colunas de dia com o cartão que abre no lugar. Só vale no mundo
+// (body.mundo); no tema antigo (?legado=1) fica a tela de sempre. As peças antigas não são apagadas: cabeçalho, resumo,
+// barra e a navegação da agenda vão para #pv2-reserva (escondida) e seguem respondendo pelos mesmos ids; Pessoa, Status,
+// Veiculação ou Prazo, Mais filtros, Arquivo, o mês e "Limpar filtros" passam para dentro de Filtros.
+const PV2_IC = {
+  ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+  antes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+  depois: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+  baixo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+};
+function pv2Ligado() { return typeof document !== 'undefined' && Boolean(document.body?.classList.contains('mundo')); }
+// Cor é significado: vermelho no que voltou ou venceu, verde no que está pronto, lilás no que espera aprovação,
+// azul no que ainda vai começar, neutro no que espera alguém de fora e âmbar no que está em produção.
+function pv2Tom(status) {
+  const s = String(status || '').toLocaleLowerCase('pt-BR');
+  if (/altera|atras|vencid/.test(s)) return 'r';
+  if (/finaliz|feito|conclu|agendad|para agendar|aprovado|gravad/.test(s)) return 'g';
+  if (/aprova/.test(s)) return 'v';
+  if (/^a fazer|nova/.test(s)) return 'b';
+  if (/aguard|^ag\.|falta|info|sem status|^—$/.test(s)) return 'n';
+  return 'a';
+}
+function pv2Pill(texto, tom) { return `<span class="pv2-pill ${tom || pv2Tom(texto)}">${safeText(texto || 'Sem status')}</span>`; }
+// O cliente com a bolinha na cor da carteira dele (laranja ou azul do Responsável geral; cinza sem carteira).
+function pv2Cli(nome) {
+  if (!nome || nome === '—') return '';
+  const carteira = typeof carteiraDoCliente === 'function' ? carteiraDoCliente(nome) : '';
+  const dica = typeof descricaoCarteiraCliente === 'function' ? descricaoCarteiraCliente(nome) : '';
+  return `<span class="pv2-cli" data-carteira="${safeText(carteira)}" title="${safeText(dica)}">${safeText(nome)}</span>`;
+}
+function pv2Iniciais(nome) { return String(firstName(nome || '') || '?').slice(0, 2).toUpperCase(); }
+function pv2SemDono(item) { return !ownerUsersFor(item).length && !String(item?.responsavel || '').replace('—', '').trim(); }
+// Quem faz, em bolinha de duas letras. O "?" vermelho é peça sem dono: clicar escolhe o responsável (o mesmo editor de sempre).
+function pv2Av(item, { comNome = false } = {}) {
+  const donos = ownerUsersFor(item), id = safeText(item.id);
+  const nomes = donos.length ? donos.map((u) => u.name) : String(item?.responsavel || '').replace('—', '').split(',').map((n) => n.trim()).filter(Boolean);
+  if (!nomes.length && comNome) return `<button type="button" class="pv2-sem-dono" onclick="event.stopPropagation();openOwnerEditor(event,'${id}')" title="Escolher o responsável">Sem responsável</button>`;
+  if (!nomes.length) return `<button type="button" class="pv2-av sd" onclick="event.stopPropagation();openOwnerEditor(event,'${id}')" title="Sem dono: escolher o responsável" aria-label="Sem dono: escolher o responsável">?</button>`;
+  const rotulo = `Responsáveis: ${nomes.join(', ')}. Trocar`;
+  return `<button type="button" class="pv2-av" onclick="event.stopPropagation();openOwnerEditor(event,'${id}')" title="${safeText(rotulo)}" aria-label="${safeText(rotulo)}">${safeText(pv2Iniciais(nomes[0]))}</button>${nomes.length > 1 ? `<span class="pv2-av mais" aria-hidden="true">+${nomes.length - 1}</span>` : ''}${comNome ? `<span class="pv2-dono-nome">${safeText(firstName(nomes[0]))}</span>` : ''}`;
+}
+// Etapas da peça, lidas do status (o painel não guarda etapa por etapa): o que já passou fica marcado e a etapa da vez
+// vem em destaque. É a mesma leitura de Minhas tarefas.
+function pv2Etapas(d) {
+  const st = String(d?.status || '').toLocaleLowerCase('pt-BR'), fim = typeof isFinishedItem === 'function' && isFinishedItem(d);
+  const n = fim ? 5 : /agend|aprovad|pronta/.test(st) ? 4 : /aprova/.test(st) ? 3 : /andamento|execu|produ|altera|ajuste|corre|edi/.test(st) ? 2 : d?.tem_briefing === false || /briefing|info|nova/.test(st) ? 0 : 1;
+  const video = typeof ownerFormatKind === 'function' && ['audiovisual', 'motion'].includes(ownerFormatKind(d));
+  const nomes = video ? ['Briefing', 'Roteiro', 'Edição', 'Aprovação', 'Publicar'] : ['Briefing', 'Texto', 'Arte', 'Aprovação', 'Publicar'];
+  return nomes.map((nome, k) => ({ nome, feita: k < n, daVez: k === n }));
+}
+function pv2EtapasHtml(d) {
+  return `<div class="pv2-etapas" title="Pelo status da peça">${pv2Etapas(d).map((e) => `<span class="pv2-etp${e.feita ? ' ok' : e.daVez ? ' vez' : ''}"><i class="pv2-cx${e.feita ? ' ok' : ''}" aria-hidden="true">${e.feita ? PV2_IC.ok : ''}</i>${e.nome}</span>`).join('')}</div>`;
+}
+function pv2Titulo(d) {
+  const nome = String(d?.nome || '').trim(), formato = String(d?.formato || '').trim();
+  const temFormato = !formato || formato === '—' || nome.toLocaleLowerCase('pt-BR').startsWith(formato.toLocaleLowerCase('pt-BR'));
+  return temFormato ? nome : `${formato} · ${nome}`;
+}
+const pv2DiaMes = (iso) => (iso ? `${Number(iso.slice(8, 10))}/${iso.slice(5, 7)}` : '');
+
+// ----- o alto da tela: título, vistas, Modos, Novo conteúdo, fala, números, busca, fichas e Filtros -----
+// Vistas, abas e "Por dia" são escolha única (role="radio" com aria-checked): no quadro a ativa é branca; a ficha de
+// filtro é liga e desliga (aria-pressed) e fica preta quando ligada.
+let pv2SoSemDono = false;
+const pv2Totais = {};
+const pv2Pintado = {};
+function pv2Trocar(el, html) { if (el && pv2Pintado[el.id] !== html) { pv2Pintado[el.id] = html; el.innerHTML = html; } }
+function pv2Montar() {
+  if (!pv2Ligado()) return null;
+  let raiz = document.getElementById('pv2-painel');
+  if (raiz) return raiz;
+  const cab = document.querySelector('.container > .workspace-heading'), nav = document.querySelector('.container > .agenda-navigation');
+  const barra = document.querySelector('.container > .ops-command-bar'), resumo = document.getElementById('compact-summary');
+  if (!cab || !nav || !barra || !resumo) return null;
+  const casa = cab.parentElement;
+  raiz = document.createElement('div');
+  raiz.id = 'pv2-painel'; raiz.className = 'pv2 pv2-painel';
+  raiz.innerHTML = `<div class="pv2-topo"><h2>Painel de trabalho</h2>
+      <span class="pv2-seg" id="pv2-vistas" role="radiogroup" aria-label="Vista">
+        <button type="button" role="radio" data-vista="semana" onclick="mostrarAgendaDaSemana()" title="Agenda da equipe, dia a dia">Semana</button>
+        <button type="button" role="radio" data-vista="mes" onclick="toggleAgendaMensal()" title="Calendário do mês por cliente">Mês</button>
+        <button type="button" role="radio" data-vista="grupos" onclick="toggleVisaoDeGrupos()" title="Conteúdos divididos pelos grupos do quadro">Grupos</button>
+        <button type="button" role="radio" data-vista="equipe" onclick="mostrarEquipeDaSemana(document.getElementById('ops-equipe-btn'))" title="Carga de cada pessoa e distribuição por formato na semana">Equipe</button>
+      </span>
+      <details class="pv2-menu" id="pv2-modos"><summary class="pv2-btn" title="Fechamento do dia, mesa de comando, modo reunião e carga da equipe">Modos</summary>
+        <div class="pv2-pop" role="group" aria-label="Modos" onclick="if(event.target.closest('button'))this.closest('details').open=false">
+          <button type="button" data-modo-v2="fechamento" onclick="toggleDailyClose()">Fechamento do dia</button>
+          <button type="button" data-modo-v2="comando" onclick="toggleManagerCommandDrawer()">Mesa de comando <b id="pv2-comando-n"></b></button>
+          <button type="button" onclick="openMeetingMode()">Modo Reunião</button>
+          <button type="button" onclick="document.getElementById('ops-carga-btn')?.click()">Carga da equipe</button>
+        </div></details>
+      <button type="button" class="pv2-btn p" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">Novo conteúdo</button></div>
+    <div class="pv2-alto" id="pv2-alto"></div>
+    <div class="pv2-filtros" role="group" aria-label="Busca e filtros">
+      <label class="pv2-oculto" for="pv2-busca">Buscar peça ou cliente</label>
+      <input id="pv2-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar peça ou cliente" oninput="const t=this.value;this.value='';handleGlobalSearch(t)">
+      <span class="pv2-fichas" id="pv2-chips"></span>
+      <details class="pv2-menu" id="pv2-filtros-menu"><summary class="pv2-btn s" id="pv2-filtros-rot">Filtros</summary>
+        <div class="pv2-pop pv2-pop-filtros" id="pv2-filtros-pop"><span class="pv2-pop-rot">Mês de referência</span></div></details>
+    </div>`;
+  cab.before(raiz);
+  const semana = document.createElement('div');
+  semana.id = 'pv2-semana'; semana.className = 'pv2 pv2-semana';
+  semana.innerHTML = `<button type="button" class="pv2-btn s ic" data-passo="-1" onclick="passarSemana(-1)" aria-label="Semana anterior">${PV2_IC.antes}</button>
+    <h3 id="pv2-semana-rot" aria-live="polite">Semana</h3>
+    <button type="button" class="pv2-btn s ic" data-passo="1" onclick="passarSemana(1)" aria-label="Próxima semana">${PV2_IC.depois}</button>
+    <button type="button" class="pv2-btn s" id="pv2-semana-hoje" onclick="semanaDeHoje()">Hoje</button>
+    <span class="pv2-abas" id="pv2-abas" role="radiogroup" aria-label="Mostrar em todos os dias"></span>
+    <span class="pv2-seg" id="pv2-modo" role="radiogroup" aria-label="Como ver a semana">
+      <button type="button" role="radio" data-modo-semana="dia" onclick="pv2Modo('dia')">Por dia</button>
+      <button type="button" role="radio" data-modo-semana="cliente" onclick="pv2Modo('cliente')">Por cliente</button>
+      <button type="button" role="radio" data-modo-semana="grade" onclick="pv2Modo('grade')">Grade</button>
+    </span>`;
+  nav.before(semana);
+  const reserva = document.createElement('div');
+  reserva.id = 'pv2-reserva'; reserva.hidden = true;
+  casa.append(reserva);
+  // Filtros guarda o que saiu da barra: mês, Pessoa, Status, Veiculação ou Prazo, Mais filtros, Arquivo e limpar.
+  const pop = raiz.querySelector('#pv2-filtros-pop');
+  const mes = document.getElementById('month-nav'), filtros = document.getElementById('agenda-filtros');
+  const arquivo = document.getElementById('ops-arquivo-btn'), limpar = document.getElementById('ops-clear-btn');
+  if (mes) pop.append(mes);
+  if (filtros) { const rot = document.createElement('span'); rot.className = 'pv2-pop-rot'; rot.textContent = 'Recorte'; pop.append(rot, filtros); }
+  const pe = document.createElement('div'); pe.className = 'pv2-pop-pe';
+  if (arquivo) pe.append(arquivo);
+  if (limpar) pe.append(limpar);
+  pop.append(pe);
+  const escolhidos = document.getElementById('ops-selection-summary');
+  if (escolhidos) raiz.after(escolhidos);
+  reserva.append(cab, resumo, barra, nav);
+  casa.classList.add('pv2-casa');
+  // Um menu aberto fecha ao clicar fora dele.
+  document.addEventListener('click', (ev) => { document.querySelectorAll('.pv2-menu[open]').forEach((m) => { if (!m.contains(ev.target)) m.open = false; }); });
+  return raiz;
+}
+function pv2PintarAlto(n) {
+  const raiz = pv2Montar(); if (!raiz || !n) return;
+  const pl = (q, um, varios) => (q === 1 ? um : varios);
+  const semana = `A semana está em <b>${n.pct}%</b>.`;
+  const frase = !n.hoje ? `Hoje não publica nada. ${semana}`
+    : n.hojePendente > 0 ? `Hoje ${pl(n.hoje, 'publica', 'publicam')} <b>${n.hoje}</b> e ${n.hojePendente === n.hoje ? pl(n.hoje, 'ela não está pronta', 'nenhuma está pronta') : `<b>${n.hojePendente}</b> ${pl(n.hojePendente, 'ainda não está pronta', 'ainda não estão prontas')}`}. ${semana}`
+    : `Hoje ${pl(n.hoje, 'publica', 'publicam')} <b>${n.hoje}</b>, ${pl(n.hoje, 'já pronta', 'todas prontas')}. ${semana}`;
+  const kpi = (rotulo, valor, sub, acao, extra = '') => `<${acao ? `button type="button" onclick="${acao}"` : 'div'} class="pv2-card pv2-kpi${valor ? '' : ' quieto'}"><small>${rotulo}</small><b><span class="v2-num">${valor}</span>${extra}</b>${sub}</${acao ? 'button' : 'div'}>`;
+  pv2Trocar(document.getElementById('pv2-alto'), `<section class="pv2-card pv2-fala" aria-label="Fala do Heitor"><span class="pv2-ag" aria-hidden="true">H</span><p><span class="pv2-quem">Heitor · Coordenação de produção</span>${frase}</p></section>
+    ${kpi('Publica hoje', n.hoje, `<small>${!n.hoje ? 'nada publica hoje' : n.hojePendente === n.hoje ? 'sem estar pronto' : n.hojePendente > 0 ? `${n.hojePendente} sem estar pronto` : 'tudo pronto'}</small>`, n.hoje ? "abrirDoResumo('hoje')" : '')}
+    ${kpi('Pendentes', n.pendentes, '<small>a fazer ou falta D.A.</small>', n.pendentes ? "abrirDoResumo('acao')" : '')}
+    ${kpi('Semana fechada', n.feitas, `<div class="v2-barra" role="progressbar" aria-label="Semana fechada" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${n.pct}"><i style="--v:${n.pct}%;--c:#11613A"></i></div>`, '', ` <i>de ${n.total}</i>`)}`);
+  pv2Totais.poucosPosts = n.poucosPosts;
+  pv2PintarControles();
+}
+function pv2PintarControles() {
+  const raiz = pv2Montar(); if (!raiz) return;
+  const P = PAINEIS_DA_BARRA;
+  const vista = P.calendario.aberto() ? 'mes' : P.grupos.aberto() ? 'grupos' : equipeNaTela() ? 'equipe' : 'semana';
+  raiz.querySelectorAll('#pv2-vistas [data-vista]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.vista === vista)));
+  const conta = (id) => Number(document.getElementById(id)?.textContent) || 0;
+  const semDono = typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira).filter((d) => !atividadeDoDiaConcluida(d) && pv2SemDono(d)).length : 0;
+  const ficha = (rotulo, n, ligada, acao, dica) => `<button type="button" class="pv2-chip" aria-pressed="${Boolean(ligada)}" onclick="${acao}" title="${dica}">${rotulo} <b>${n}</b></button>`;
+  pv2Trocar(document.getElementById('pv2-chips'), ficha('Requer ação', conta('ops-action-count'), P.acao.aberto(), 'toggleActionQueue()', 'A fila do que pede ação, com o motivo')
+    + ficha('Vence hoje', conta('ops-today-count'), P.hoje.aberto(), 'toggleTodayQueue()', 'O que vence hoje')
+    + ficha('Sem dono', semDono, pv2SoSemDono, 'pv2AlternarSemDono()', 'Só as peças abertas da semana sem responsável')
+    + ficha('Menos de 3 posts', pv2Totais.poucosPosts || 0, typeof sortCritico !== 'undefined' && sortCritico, 'pv2PoucosPosts()', 'Clientes com menos de 3 posts em alguma semana, primeiro'));
+  pv2PintarFiltroAtivo();
+  const comando = document.getElementById('pv2-comando-n'), nComando = document.getElementById('manager-command-count')?.textContent || '';
+  if (comando && comando.textContent !== nComando) comando.textContent = nComando;
+  raiz.querySelector('[data-modo-v2="fechamento"]')?.setAttribute('aria-pressed', String(P.fechamento.aberto()));
+  raiz.querySelector('[data-modo-v2="comando"]')?.setAttribute('aria-pressed', String(P.comando.aberto()));
+  document.getElementById('pv2-semana')?.toggleAttribute('hidden', vista === 'equipe');
+}
+// "Filtros" acende quando há recorte ligado lá dentro (ou o Arquivo aberto).
+function pv2PintarFiltroAtivo() {
+  const limpar = document.getElementById('ops-clear-btn');
+  document.getElementById('pv2-filtros-rot')?.classList.toggle('tem', Boolean(limpar && !limpar.classList.contains('is-idle')) || Boolean(document.getElementById('arquivadas-painel')));
+}
+function pv2PintarSemana() {
+  if (!pv2Montar()) return;
+  const dias = getDiasSemana(currentWeek), rot = document.getElementById('pv2-semana-rot');
+  if (rot && dias.length) {
+    const a = dias[0].iso, b = dias[dias.length - 1].iso, mes = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' });
+    const texto = a.slice(0, 7) === b.slice(0, 7) ? `Semana de ${a.slice(8, 10)} a ${b.slice(8, 10)} de ${mes(b)}` : `Semana de ${a.slice(8, 10)} de ${mes(a)} a ${b.slice(8, 10)} de ${mes(b)}`;
+    if (rot.textContent !== texto) rot.textContent = texto;
+  }
+  const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`), i = lista.indexOf(atual);
+  const semana = document.getElementById('pv2-semana');
+  semana?.querySelector('[data-passo="-1"]')?.toggleAttribute('disabled', i <= 0);
+  semana?.querySelector('[data-passo="1"]')?.toggleAttribute('disabled', i < 0 || i >= lista.length - 1);
+  document.getElementById('pv2-semana-hoje')?.toggleAttribute('data-atual', Boolean(atual?.classList.contains('e-hoje')));
+  const modo = viewMode === 'client' ? 'cliente' : DIAS_EM_COLUNAS ? 'dia' : 'grade';
+  semana?.querySelectorAll('[data-modo-semana]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.modoSemana === modo)));
+  const t = pv2Totais[currentWeek];
+  pv2Trocar(document.getElementById('pv2-abas'), modo === 'cliente' || !t || panelMode !== 'gestor' ? '' : [['social', 'Redes'], ['demandas', 'Demandas'], ['pendencias', 'Pendências']]
+    .map(([id, nome]) => `<button type="button" role="radio" aria-checked="${abaDaSemana === id}" onclick="escolherAbaDaSemana(${currentWeek},'${id}')">${nome} ${t[id]}</button>`).join('<i aria-hidden="true">·</i>'));
+}
+function pv2Modo(modo) {
+  const botao = document.getElementById('btn-view-day');
+  if (modo === 'cliente') { if (viewMode !== 'client' && botao) toggleViewMode(botao); return; }
+  if (viewMode === 'client' && botao) toggleViewMode(botao);
+  if ((modo === 'grade') === DIAS_EM_COLUNAS) alternarDiasEmColunas();
+  pv2PintarSemana();
+}
+function pv2AlternarSemDono() {
+  pv2SoSemDono = !pv2SoSemDono;
+  if (pv2SoSemDono && viewMode === 'client') pv2Modo('dia');
+  for (let s = 1; s <= (META.weeks?.length || 4); s++) renderWeek(s, currentFilter, currentDayFilter);
+  mostrarAgendaDaSemana();
+  pv2PintarControles();
+}
+// "Menos de 3 posts": liga o "Crítico primeiro" e mostra a semana por cliente, que é onde essa ordem aparece.
+function pv2PoucosPosts() {
+  toggleSortCritico(document.getElementById('sort-critico-btn'));
+  if (sortCritico && viewMode !== 'client') pv2Modo('cliente');
+  mostrarAgendaDaSemana();
+  pv2PintarControles();
+}
+
+// ----- a semana em colunas de dia, com o cartão que abre no lugar -----
+const PV2_POR_DIA = 3, PV2_JANELA = 4;
+const pv2CartoesAbertos = new Set();
+function pv2DiasEl(sem) {
+  const grid = document.getElementById(`grid-s${sem}`); if (!grid) return null;
+  let el = document.getElementById(`pv2-dias-s${sem}`);
+  if (!el) { el = document.createElement('div'); el.id = `pv2-dias-s${sem}`; el.className = 'pv2 pv2-dias'; grid.after(el); }
+  const titulo = grid.previousElementSibling?.classList.contains('section-title') ? grid.previousElementSibling : null;
+  titulo?.classList.add('pv2-fora');
+  return el;
+}
+// Por cliente: a grade de sempre volta e as colunas de dia saem.
+function pv2SairDosDias(sem) {
+  if (!pv2Ligado()) return;
+  const el = pv2DiasEl(sem); if (!el) return;
+  el.hidden = true; el.innerHTML = '';
+  document.getElementById(`grid-s${sem}`)?.classList.remove('pv2-fora');
+}
+function pv2AlternarCartao(id, el) {
+  const cartao = el.closest('.pv2-pc'); if (!cartao) return;
+  const abrir = cartao.getAttribute('aria-expanded') !== 'true';
+  if (abrir) pv2CartoesAbertos.add(String(id)); else pv2CartoesAbertos.delete(String(id));
+  cartao.setAttribute('aria-expanded', String(abrir));
+  el.setAttribute('aria-expanded', String(abrir));
+}
+function pv2MostrarDia(sem, iso) {
+  if (diasExpandidos.has(iso)) diasExpandidos.delete(iso); else diasExpandidos.add(iso);
+  renderByDay(sem, currentFilter, currentDayFilter);
+}
+function pv2CartaoHtml(d, aba) {
+  const id = safeText(d.id), aberto = pv2CartoesAbertos.has(String(d.id));
+  const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
+  const clientes = clientesDoItem(d), data = dataDoCartaoDia(d), titulo = pv2Titulo(d);
+  const feita = atividadeDoDiaConcluida(d);
+  const previa = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d) : '';
+  const datas = [d.prazo_iso ? `prazo ${pv2DiaMes(d.prazo_iso)}` : '', d.veiculacao_iso ? `no ar ${pv2DiaMes(d.veiculacao_iso)}` : !isRequestItem(d) ? '' : d.conclusao_iso ? `conclusão ${pv2DiaMes(d.conclusao_iso)}` : ''].filter(Boolean).join(' · ');
+  return `<article class="pv2-pc v2-abre${marcada ? ' marcada' : ''}${feita ? ' feita' : ''}" data-cartao="${id}" aria-expanded="${aberto}" draggable="true"
+      ondragstart="managerCalendarDragStart('${isRequestItem(d) ? 'request' : 'content'}','${id}',event)" ondragend="managerCalendarDragEnd()">
+    <div class="pv2-pc-lin" role="button" tabindex="0" aria-expanded="${aberto}" title="Abrir no lugar. Arraste para mudar a data"
+        onclick="pv2AlternarCartao('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2AlternarCartao('${id}',this)}">
+      <p class="pv2-t">${safeText(titulo)}</p>
+      <div class="pv2-r">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}">+${clientes.length - 1}</span>` : ''}${pv2Pill(d.status)}<span class="pv2-avs">${pv2Av(d)}</span></div>
+    </div>
+    <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
+      ${datas || aba === 'pendencias' ? `<p class="pv2-sub">${aba === 'pendencias' ? (data ? `Entrega ${pv2DiaMes(data)}` : 'Sem data') + (datas ? ' · ' : '') : ''}${datas}</p>` : ''}
+      <div class="pv2-det-acoes"><button type="button" class="pv2-btn s k" onclick="openItemWorkspace('${id}')">Abrir a peça</button>
+        <button type="button" class="pv2-btn s" onclick="openStatusEditor(event,'${id}')">Trocar status</button>${previa}
+        <label class="pv2-lote" title="Marcar para ação em lote"><input type="checkbox" ${marcada ? 'checked' : ''} data-day-item="${id}" aria-label="Marcar ${safeText(d.nome || '')}" onclick="alternarSelecao('${id}',this.checked,event,ORDEM_VISIVEL_DO_DIA)">Marcar</label></div>
+    </div></div></div>
+  </article>`;
+}
+function pv2RenderDias(sem, filter, dayFilter) {
+  pv2Montar();
+  const alvo = pv2DiasEl(sem), grid = document.getElementById(`grid-s${sem}`);
+  if (!alvo || !grid) return;
+  const items = itensDaSemanaGestor(sem);
+  let fi = filtrarItensDoDia(items, filter);
+  if (pv2SoSemDono) fi = fi.filter((d) => !atividadeDoDiaConcluida(d) && pv2SemDono(d));
+  const diasBase = getDiasSemana(sem), labels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const dias = (dateMode === 'prazo'
+    ? [...new Set([...diasBase.map((d) => d.iso), ...items.map(dataDoCartaoDia).filter(Boolean)])].sort().map((iso) => ({ iso, label: labels[new Date(iso + 'T12:00:00').getDay()] }))
+    : diasBase).filter((d) => !dayFilter || d.iso === dayFilter);
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const gestor = panelMode === 'gestor', ordemVisivel = [];
+  const naSemana = { social: new Set(), demandas: new Set(), pendencias: new Set() };
+  // Quatro colunas à vista, a partir de hoje (ou do começo, na semana que não é a atual).
+  const iHoje = dias.findIndex((d) => d.iso === hoje), inicio = iHoje < 0 ? 0 : Math.min(iHoje, Math.max(0, dias.length - PV2_JANELA));
+  const fora = [];
+  const estado = typeof unifiedDemandasState === 'undefined' ? 'ready' : unifiedDemandasState;
+  const aviso = estado === 'error' ? 'Não foi possível atualizar as solicitações. Os dados exibidos podem estar desatualizados.' : estado !== 'ready' ? 'Carregando solicitações…' : '';
+  const colunas = dias.map((dia, i) => {
+    const dayItems = fi.filter((d) => dataDoCartaoDia(d) === dia.iso).sort((a, b) => String(a.cliente || '').localeCompare(String(b.cliente || ''), 'pt-BR'));
+    const pendencias = gestor ? pendenciasSolicitacoesDoDia(dia.iso, filter) : [];
+    const salva = abasPendenciasDia.get(dia.iso);
+    const aba = gestor ? (salva === true ? 'pendencias' : salva === false ? 'social' : !salva ? abaDaSemana : salva) : 'social';
+    const { redes, demandas, lista, abertas, concluidas } = listasDoCartaoDia(dayItems, pendencias, aba);
+    redes.forEach((x) => naSemana.social.add(String(x.id))); demandas.forEach((x) => naSemana.demandas.add(String(x.id))); pendencias.forEach((x) => naSemana.pendencias.add(String(x.id)));
+    const inteiro = diasExpandidos.has(dia.iso);
+    const aVista = inteiro ? [...abertas, ...concluidas] : abertas.slice(0, PV2_POR_DIA);
+    aVista.forEach((x) => ordemVisivel.push(String(x.id)));
+    const resto = abertas.length - Math.min(abertas.length, PV2_POR_DIA), pct = lista.length ? Math.round(concluidas.length * 100 / lista.length) : 0;
+    const naJanela = i >= inicio && i < inicio + PV2_JANELA;
+    if (!naJanela) fora.push(`${dia.label.toLowerCase()} ${Number(dia.iso.slice(8, 10))}`);
+    const nome = dia.iso === hoje ? `Hoje · ${dia.label.toLowerCase()} ${Number(dia.iso.slice(8, 10))}` : `${dia.label} ${Number(dia.iso.slice(8, 10))}`;
+    const dataCurta = dia.iso.slice(8, 10) + '/' + dia.iso.slice(5, 7);
+    const vazio = aba === 'social' ? 'Nada marcado neste dia.' : aba === 'demandas' ? 'Nenhuma entrega neste dia.' : 'Nada atrasado ou sem data.';
+    const pe = inteiro ? `<button type="button" class="pv2-link" onclick="pv2MostrarDia(${sem},'${dia.iso}')">recolher o dia</button>`
+      : resto > 0 || concluidas.length ? `${resto > 0 ? `+ ${resto}${dia.iso === hoje ? ' hoje' : ''}` : ''}${concluidas.length ? `${resto > 0 ? ', e ' : ''}${concluidas.length} ${concluidas.length === 1 ? 'pronta recolhida' : 'prontas recolhidas'}` : ''} · <button type="button" class="pv2-link" onclick="pv2MostrarDia(${sem},'${dia.iso}')" aria-label="Mostrar tudo de ${dataCurta}">mostrar</button>` : '';
+    return `<section class="pv2-col${dia.iso === hoje ? ' hoje' : ''}"${naJanela ? ' data-janela' : ''} data-date="${dia.iso}" data-previa-sequencia="${dia.label} · ${dataCurta}" aria-label="${dia.label} ${dataCurta}"
+        ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
+      <div class="pv2-cab"><details class="pv2-menu pv2-dia-menu"><summary title="Adicionar atividade ou gerar o resumo de ${dataCurta}"><b>${nome}</b></summary>
+          <div class="pv2-pop" onclick="if(event.target.closest('button'))this.closest('details').open=false">${gestor ? `<button type="button" onclick="adicionarDemandaNoDia('${dia.iso}','${aba}')">Adicionar atividade</button>` : ''}<button type="button" onclick="openDailySummary('${dia.iso}')">Gerar resumo</button></div></details>
+        <span class="pv2-sub">${concluidas.length} de ${lista.length}</span>${concluidas.length && lista.length ? `<div class="v2-barra" role="progressbar" aria-label="Progresso de ${dataCurta}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="--v:${pct}%;--c:#11613A"></i></div>` : ''}</div>
+      ${aba !== 'social' && aviso ? `<p class="pv2-sub" role="status">${aviso} <button type="button" class="pv2-link" onclick="ensureDemandasForOperationalViews(true)">Atualizar</button></p>` : ''}
+      ${aVista.map((d) => pv2CartaoHtml(d, aba)).join('')}
+      ${!abertas.length && !inteiro ? `<p class="pv2-sub pv2-nada">${lista.length ? 'Tudo concluído.' : vazio}</p>` : ''}
+      ${pe ? `<p class="pv2-sub pv2-pe">${pe}</p>` : ''}
+    </section>`;
+  }).join('');
+  const emColunas = DIAS_EM_COLUNAS;
+  grid.innerHTML = ''; grid.classList.remove('dias-colunas', 'dias-encaixados'); grid.classList.add('pv2-fora');
+  alvo.hidden = false;
+  alvo.classList.toggle('grade', !emColunas);
+  alvo.innerHTML = colunas + (emColunas && fora.length ? `<p class="pv2-sub pv2-fora-janela">${fora.length === 1 ? `${fora[0]} fica` : `${fora.slice(0, -1).join(', ')} e ${fora[fora.length - 1]} ficam`} fora desta vista · <button type="button" class="pv2-link" onclick="pv2Modo('grade')">mostrar a semana inteira</button></p>` : '');
+  pv2Totais[sem] = { social: naSemana.social.size, demandas: naSemana.demandas.size, pendencias: naSemana.pendencias.size };
+  ORDEM_VISIVEL_DO_DIA = ordemVisivel;
+  pintarSeletorDeSemana();
+}
+try { pv2Montar(); } catch { /* a tela antiga segue valendo */ }

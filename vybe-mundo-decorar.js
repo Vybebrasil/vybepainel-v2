@@ -440,7 +440,8 @@
       <button type="button" class="vv-decorar-x" data-vd-acao="sair" aria-label="Sair do modo decorar" title="Sair (Esc)">${ICONE.fechar}</button></div>`;
   }
   function htmlAbas() {
-    return `<div class="vv-decorar-abas" role="tablist" aria-label="O que decorar">${ABAS.map(([id, nome]) => `<button type="button" role="tab" id="vv-decorar-aba-${id}" aria-selected="${estado.aba === id}" aria-controls="vv-decorar-corpo" tabindex="${estado.aba === id ? 0 : -1}" data-vd-aba="${id}">${nome}</button>`).join('')}</div>`;
+    const conta = estado.carregando || estado.semQuarto ? null : inventario().length;
+    return `<div class="v2s-chips" role="group" aria-label="O que decorar">${ABAS.map(([id, nome]) => `<button type="button" class="v2s-chip" id="vv-decorar-aba-${id}" aria-pressed="${estado.aba === id}" aria-controls="vv-decorar-corpo" data-vd-aba="${id}">${id === 'moveis' ? `Meus itens${conta == null ? '' : ` · ${conta}`}` : nome}</button>`).join('')}</div>`;
   }
   function htmlBarra() {
     if (!estado.editando) return '';
@@ -465,9 +466,9 @@
     };
     const guardados = eco && eco.disponivel === false ? vazio('A loja ainda não está ligada', eco.motivo || 'O inventário aguarda o banco do Escritório.')
       : !lista.length ? vazio('Nada guardado no inventário', 'Os móveis que você compra na Loja aparecem aqui para pôr na sala.', botaoLoja())
-      : `<ul class="vv-decorar-grade">${lista.map(peca).join('')}</ul>`;
+      : `<ul class="vv-decorar-grade">${lista.map(peca).join('')}${typeof abrirCatalogoEscritorio === 'function' ? `<li><button type="button" class="vv-decorar-peca v2s-loja" data-vd-acao="loja" aria-label="Comprar na Loja">${ICONE.loja}<b>Loja</b></button></li>` : ''}</ul>`;
     const naSala = estado.itens.map((it, i) => `<li><button type="button" class="vv-decorar-item" data-vd-item="${i}" aria-pressed="${estado.sel === i}">${iconeHtml(it[0], 28)}<span>${esc(nomeDe(it[0]))}</span></button></li>`);
-    return `<div class="vv-decorar-secao"><h3 class="vv-decorar-rotulo">Guardados</h3>${lista.length && typeof abrirCatalogoEscritorio === 'function' ? `<button type="button" class="vv-decorar-link" data-vd-acao="loja">${ICONE.loja}Comprar na Loja</button>` : ''}</div>
+    return `<div class="vv-decorar-secao"><h3 class="vv-decorar-rotulo">Guardados</h3></div>
       ${guardados}
       <div class="vv-decorar-secao"><h3 class="vv-decorar-rotulo">Na sala <span class="vv-decorar-conta">${naSala.length}</span></h3></div>
       ${naSala.length ? `<ul class="vv-decorar-lista">${naSala.join('')}</ul>` : '<p class="vv-decorar-nota">A sala está vazia. Escolha um móvel guardado e clique no chão.</p>'}`;
@@ -499,18 +500,24 @@
     return `${erro}<div class="vv-decorar-rodape">
       <button type="button" class="vv-decorar-botao" data-vd-acao="desfazer"${estado.editando && !estado.salvando && estado.passos.length > 1 ? '' : ' disabled'} title="Desfazer (Ctrl+Z)">${ICONE.desfazer}Desfazer</button>
       <button type="button" class="vv-decorar-botao sair" data-vd-acao="sair">${sujo ? 'Sair sem salvar' : 'Sair'}</button>
-      <button type="button" class="vv-decorar-salvar" data-vd-acao="salvar"${sujo && !estado.salvando ? '' : ' disabled'} title="Salvar (Ctrl+S)">${estado.salvando ? 'Salvando…' : 'Salvar'}</button></div>`;
+      <button type="button" class="vv-decorar-salvar" data-vd-acao="salvar"${sujo && !estado.salvando ? '' : ' disabled'} title="Salvar (Ctrl+S)">${estado.salvando ? 'Salvando…' : 'Salvar a sala'}</button></div>`;
   }
   function pintar() {
     const r = estado.raiz;
     if (!r) return;
     const ativo = document.activeElement, dentro = Boolean(ativo && r.contains?.(ativo));
     const chave = dentro ? ['data-vd-acao', 'data-vd-aba', 'data-vd-movel', 'data-vd-item', 'data-vd-piso', 'data-vd-parede'].map((a) => [a, ativo.getAttribute?.(a)]).find(([, v]) => v != null) : null;
-    const rolagem = r.querySelector?.('.vv-decorar-corpo')?.scrollTop || 0;
-    r.innerHTML = htmlTopo() + htmlAbas() + `<p class="vv-decorar-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>` + htmlBarra()
-      + `<div class="vv-decorar-corpo" id="vv-decorar-corpo" role="tabpanel" aria-labelledby="vv-decorar-aba-${estado.aba}">${htmlCorpo()}</div>` + htmlRodape();
+    const rolagem = r.querySelector?.('.vv-decorar-corpo')?.scrollLeft || 0;
+    // Onde a sala está na tela: a etiqueta do modo fica no canto de cima dela e a bandeja embaixo, sem cobrir o Hoje.
+    const palco = document.querySelector?.('#mundo-andar .andar-palco')?.getBoundingClientRect?.();
+    if (palco && r.style?.setProperty) { r.style.setProperty('--v2s-esq', Math.round(palco.left) + 'px'); r.style.setProperty('--v2s-topo', Math.round(palco.top) + 'px'); }
+    r.innerHTML = `<span class="v2s-modo">Modo decorar · escolha na bandeja e clique no chão da sala</span>` + htmlTopo()
+      + `<div class="v2s-linha">${htmlAbas()}${htmlBarra()}${htmlRodape()}</div><p class="vv-decorar-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>`
+      + `<div class="vv-decorar-corpo" id="vv-decorar-corpo" role="group" aria-labelledby="vv-decorar-aba-${estado.aba}">${htmlCorpo()}</div>`;
     const corpo = r.querySelector?.('.vv-decorar-corpo');
-    if (corpo && rolagem) corpo.scrollTop = rolagem;
+    if (corpo && rolagem) corpo.scrollLeft = rolagem;
+    const eu = r.getBoundingClientRect?.();
+    if (eu && palco && r.style?.setProperty) r.style.setProperty('--v2s-sobe', Math.round(eu.top - palco.top - 16) + 'px');
     if (chave) r.querySelector?.(`[${chave[0]}="${String(chave[1]).replace(/["\\]/g, '\\$&')}"]`)?.focus?.();
   }
 

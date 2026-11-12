@@ -47,7 +47,7 @@ test('Cérebro da ficha sem Claude nem conector; busca com frase curta; rodapé 
   assert.match(css, /body\.mundo \.capt-gerir \.vb-link\.perigo\{order:-1;margin-right:auto;/);
   assert.match(css, /\.vb-link:not\(\.capt-gerir > \.vb-link\):not\(#ds-a\)/);
   assert.ok(ler('vybe-padrao.css').includes(':where(body:not(.mundo)) .capt-gerir .vb-link{'));
-  assert.match(js, /Ranking, Loja e Conquistas ficam no dock, no grupo Vybe\./);
+  assert.match(js, /Ranking, Loja e Conquistas ficam no menu, em Prédio, Jogos, Loja…/, 'padrão v2: a casca recolheu Prédio, Jogos, Loja, Ranking e Conquistas num item do menu');
 });
 
 test('junção da fase 3: lista do setor no celular entre o topo e a barra das salas; dock com caixa alta nos módulos; sem erros soltos', () => {

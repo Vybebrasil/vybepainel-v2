@@ -270,6 +270,8 @@ async function tela(t, sql, quem) {
   vm.runInContext(readFileSync('vybe-mundo-comercial.js', 'utf8'), ctx);
   const esperar = async () => { for (let i = 0; i < 60; i++) await new Promise((r) => setTimeout(r, 5)); };
   ctx.VybeComercial.abrir('funil'); await esperar();
+  // Padrão v2 (quadro CRM e funil): metas, corrida, gráficos e formulário ficam a um clique, no rodapé ("mostrar").
+  criados.find((e) => e.id === 'vv-comercial').ouvintes.click[0]({ target: { closest: () => ({ dataset: { v2: 'mes' } }) } });
   return { ctx, html: () => criados.find((e) => e.id === 'vv-comercial').innerHTML };
 }
 

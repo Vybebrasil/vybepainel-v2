@@ -1,0 +1,112 @@
+/* ======================================================================================
+   PADRÃO V2 · DIÁRIO DE PRODUÇÃO (quadro "Diário de produção" do moodboard aprovado em 12/11/2026).
+   As medidas são as do quadro: título de 30, alternador em pílula clara com a escolhida em branco, um botão
+   laranja de 38, cartão branco de raio 20 sem borda, número de 34, linha de 13,5, selo de 22, botão de linha de 30,
+   etapas em 118 / barra / 30 / 34. O HTML vem de vybe-relatorios.js (molde .v2d); os movimentos são as peças
+   .v2-* de vybe-mundo.css. Nada aqui força regra antiga.
+   ====================================================================================== */
+/* Cabeçalho: título, alternador e o único botão cheio da tela. A frase que explicava a tela desce para o pé. */
+#painel-diario .container > .vb-cabecalho{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 16px;padding:0}
+#painel-diario .vb-cabecalho-texto{flex:1 1 220px;min-width:0}
+#painel-diario .vb-cabecalho-texto h2{margin:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+#painel-diario .vb-cabecalho-texto p{display:none}
+#painel-diario .vb-cabecalho-acoes{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0}
+#painel-diario .v2d-seg{display:inline-flex;margin:0;padding:4px;border:0;border-radius:999px;background:#EAE6DE;box-shadow:none}
+#painel-diario .v2d-seg > button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif;letter-spacing:0;text-transform:none;cursor:pointer}
+#painel-diario .v2d-seg > button[aria-checked="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+#painel-diario .v2d-acao{appearance:none;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;min-width:138px;margin:0;padding:0 16px;border:0;border-radius:999px;background:#C2490C;color:#FFFFFF;font:600 13.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 8px 16px -10px #C2490C;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),background-color .2s}
+#painel-diario .v2d-acao:hover{background:#A83D08}
+#painel-diario .v2d-acao:active{transform:scale(.96)}
+#painel-diario .v2d-acao.v2-estado[data-estado="indo"]{background:#C2490C;color:transparent}
+#painel-diario .v2d-acao.v2-estado[data-estado="indo"]::after{border-color:rgba(255,255,255,.45);border-top-color:#FFFFFF}
+#painel-diario .v2d-acao.v2-estado.v2-estado[data-estado="feito"]{background:#11613A;color:#FFFFFF;box-shadow:none}
+#painel-diario :is(.v2d-seg > button,.v2d-acao,.v2d-btn,.v2d-quem,.v2d-link):focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
+
+/* O corpo da tela. */
+#painel-diario .v2d{display:flex;flex-direction:column;gap:16px;font-family:var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#painel-diario .v2d p,#painel-diario .v2d h3{margin:0}
+#painel-diario .v2d-card{min-width:0;box-sizing:border-box;padding:18px;border:0;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+#painel-diario .v2d-fala{display:flex;align-items:center;gap:14px}
+#painel-diario .v2d-fala > p{flex:1;min-width:0;font:400 15px/1.45 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#painel-diario .v2d-fala b{font-weight:700}
+#painel-diario .v2d-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter),sans-serif}
+#painel-diario .v2d-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2d-pulso 3.6s ease-out infinite}
+@keyframes v2d-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
+#painel-diario .v2d-quem-fala{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#4B36A8}
+#painel-diario .v2d-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#painel-diario .v2d-kpi > small{display:block;font:400 12.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#painel-diario .v2d-kpi > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1F1D1A}
+#painel-diario .v2d-kpi.ruim > b{color:#B42318}
+#painel-diario .v2d-kpi.atencao > b{color:#7A4A00}
+#painel-diario .v2d-dois{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:stretch}
+#painel-diario :is(.v2d-registros,.v2d-mudou){display:flex;flex-direction:column}
+#painel-diario .v2d-topo{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-bottom:2px}
+#painel-diario .v2d-topo h3{flex:1;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#painel-diario :is(.v2d-topo small,.v2d-pe,.v2d-sub,.v2d-nada){font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#painel-diario .v2d-pe{margin-top:auto;padding-top:8px}
+#painel-diario .v2d-nada{padding:12px 0}
+#painel-diario .v2d-vazio > p{font:400 15px/1.45 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#painel-diario .v2d-link{appearance:none;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;cursor:pointer}
+#painel-diario .v2d-link:hover{color:#8A3207}
+
+/* Registros: a linha do tempo. A linha abre no lugar (.v2-abre). */
+#painel-diario .v2d-tl{position:relative}
+#painel-diario .v2d-tl::before{content:"";position:absolute;left:5px;top:52px;bottom:28px;width:2px;background:#EAE6DE}
+#painel-diario .v2d-dl{padding:8px 0 2px 24px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#painel-diario .v2d-lin{display:flex;align-items:center;gap:12px;padding:10px 0;font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#painel-diario .v2d-pt{position:relative;flex:none;width:12px;height:12px;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 3px #C9C2B6}
+#painel-diario .v2d-pt.on{box-shadow:inset 0 0 0 3px #FF7A2F}
+#painel-diario .v2d-av{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
+#painel-diario .v2d-quem{appearance:none;flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#painel-diario .v2d-quem b{font-weight:700}
+#painel-diario .v2d-quem > small{display:block;margin-top:2px;font:400 12px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#painel-diario .v2d-pill{flex:none;display:inline-flex;align-items:center;gap:5px;max-width:100%;height:22px;box-sizing:border-box;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px/22px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#painel-diario .v2d-pill.r{background:#FDECEE;color:#B42318}
+#painel-diario .v2d-pill.a{background:#FFF4D6;color:#7A4A00}
+#painel-diario .v2d-pill.g{background:#E8F5EC;color:#11613A}
+#painel-diario .v2d-pill.b{background:#E7EEFB;color:#1E4A9A}
+#painel-diario .v2d-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer;white-space:nowrap;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1))}
+#painel-diario .v2d-btn:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
+#painel-diario .v2d-btn:active{transform:scale(.96)}
+#painel-diario .v2d-reg[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1)),visibility 0s .28s}
+#painel-diario .v2d-hist{display:flex;align-items:center;gap:8px;padding:0 0 10px 64px;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#painel-diario .v2d-hist::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#C9C2B6}
+#painel-diario .v2d-hist > span{min-width:0;overflow-wrap:anywhere}
+#painel-diario .v2d-acoes::before{visibility:hidden}
+#painel-diario .v2d-cli{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+#painel-diario .v2d-cli::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,#C2490C)}
+
+/* O que mudou: etapa, barra, quanto tem e a diferença. */
+#painel-diario .v2d-ets{display:grid;grid-template-columns:minmax(118px,max-content) minmax(0,1fr) 30px 34px;column-gap:10px}
+#painel-diario .v2d-et{grid-column:1 / -1;display:grid;grid-template-columns:subgrid;align-items:center;padding:9px 0;border-top:1px solid #F1EDE6;font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif}
+#painel-diario .v2d-et:first-child{border-top:0}
+#painel-diario .v2d-et > span:first-child{min-width:0;display:flex}
+#painel-diario .v2d-et .v2d-pill{display:inline-block;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+#painel-diario .v2d-et > .v2-barra{background:#EAE6DE}
+#painel-diario .v2d-et > b{font:700 15px var(--vv-titulo,"Inter Tight"),Inter,sans-serif;text-align:right;font-variant-numeric:tabular-nums;color:#1F1D1A}
+#painel-diario .v2d-dt{font:600 12.5px var(--vv-texto,Inter),sans-serif;text-align:right;color:#4A463F;white-space:nowrap}
+#painel-diario .v2d-dt.a{color:#7A4A00}
+#painel-diario .v2d-dt.g{color:#11613A}
+
+@media (prefers-reduced-motion:reduce){
+  #painel-diario .v2d-ag::after{animation:none}
+  #painel-diario .v2d-btn,#painel-diario .v2d-acao,#painel-diario .v2d-reg[aria-expanded="false"] > .v2-mais{transition:none}
+}
+@media (max-width:900px){
+  #painel-diario .v2d-dois{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  #painel-diario .vb-cabecalho-texto h2{font-size:24px}
+  #painel-diario .vb-cabecalho-acoes{flex:1 1 100%}
+  #painel-diario .v2d-acao{margin-left:auto}
+  #painel-diario .v2d-tres{gap:8px}
+  #painel-diario .v2d-card{padding:14px}
+  #painel-diario .v2d-kpi > b{font-size:26px}
+  #painel-diario .v2d-kpi > small{font-size:11.5px}
+  #painel-diario .v2d-lin{flex-wrap:wrap;gap:8px 10px}
+  #painel-diario .v2d-quem{flex:1 1 calc(100% - 64px)}
+  #painel-diario .v2d-lin > .v2d-pill{margin-left:62px}
+  #painel-diario .v2d-lin > .v2d-btn{margin-left:auto}
+  #painel-diario .v2d-hist{padding-left:24px}
+  #painel-diario .v2d-ets{grid-template-columns:minmax(96px,max-content) minmax(0,1fr) 30px 34px;column-gap:8px}
+}

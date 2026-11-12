@@ -197,56 +197,7 @@
 html.tema-escuro body.mundo :is(.vc-acao,#vv-conteudo .vc-bolinha,#vv-conteudo .vc-ponto,#vv-conteudo .vc-leg-ponto,#vv-conteudo .vc-barra i:not(.sem),#vv-conteudo .vc-legenda .vc-etapa,#vv-conteudo .vc-objetivo-campo i){filter:invert(1) hue-rotate(180deg)}
 /* o selo da etapa fica dentro do ponto, que já desinverteu */
 html.tema-escuro body.mundo .vc-ponto .vc-etapa{filter:none}
-/* PADRÃO V2 · PARA APROVAR (fase 3, 12/11/2026; moodboard B: baralho de decisão). Uma peça na frente, duas atrás;
-   as setas passam, os dois botões decidem a da frente. As peças do baralho vêm de vybe-mundo.css (.v2-baralho). */
-#vv-conteudo .vc-aba-n{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:999px;background:#C2490C;color:#FFFFFF;font:700 11px/1 var(--vv-texto);font-style:normal}
-#vv-conteudo .vc-apr{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(240px,.7fr);gap:20px;align-items:start;padding:8px 4px 4px}
-#vv-conteudo .vc-apr-mesa{min-width:0;display:flex;flex-direction:column;gap:14px}
-#vv-conteudo .vc-apr-frase{margin:0;font:500 15px/1.4 var(--vv-texto);color:#3A3F44}
-#vv-conteudo .vc-apr-frase b{font-weight:700;color:#1F1D1A}
-#vv-conteudo .vc-apr-baralho{height:clamp(300px,46vh,420px);margin-right:60px}
-#vv-conteudo .vc-apr-carta{display:flex;overflow:hidden;border:1px solid #E6E0D6}
-#vv-conteudo .vc-apr-arte{flex:none;height:100%;aspect-ratio:4/5;max-width:46%;display:grid;place-items:center;background:#EDE8DF;color:#8A847A;font:500 12.5px/1.4 var(--vv-texto);text-align:center}
-#vv-conteudo .vc-apr-arte img{width:100%;height:100%;object-fit:cover;display:block}
-#vv-conteudo .vc-apr-arte.vazia span{padding:0 14px}
-#vv-conteudo .vc-apr-txt{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:22px 22px 20px}
-#vv-conteudo .vc-apr-formato{font:600 11.5px/1 var(--vv-texto);letter-spacing:.04em;text-transform:uppercase;color:#8A847A}
-#vv-conteudo .vc-apr-txt > b{font:600 21px/1.2 var(--vv-titulo);letter-spacing:-.01em;color:#1F1D1A;overflow-wrap:anywhere}
-#vv-conteudo .vc-apr-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font:500 13px/1.3 var(--vv-texto);color:#3A3F44}
-#vv-conteudo .vc-apr-meta > span{display:inline-flex;align-items:center;gap:5px}
-#vv-conteudo .vc-apr-meta .ruim{color:#B3261E;font-weight:600}
-#vv-conteudo .vc-apr-espera{font:500 12.5px/1.4 var(--vv-texto);color:#6B665E}
-#vv-conteudo .vc-apr-txt > .vc-sec{margin-top:auto}
-#vv-conteudo .vc-apr-acoes{display:flex;align-items:center;justify-content:center;gap:10px;margin-right:60px}
-html body.mundo #vv-conteudo .vc-apr-ok,#vv-conteudo .vc-apr-ok{appearance:none;min-height:40px;padding:0 26px;border:0;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:600 14px var(--vv-texto);cursor:pointer}
-#vv-conteudo .vc-apr-ok:hover{background:#000000}
-#vv-conteudo .vc-apr-ok:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
-#vv-conteudo .vc-apr-acoes .vc-sec{min-height:40px;padding:0 20px}
-#vv-conteudo .vc-apr-acoes .vc-icone:disabled{opacity:.35;cursor:default}
-#vv-conteudo .vc-apr-conta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin:0 60px 0 0;font:500 12.5px/1.3 var(--vv-texto);color:#6B665E}
-#vv-conteudo .vc-apr-conta [data-vc-apr-conta]{font-weight:700;color:#1F1D1A;font-variant-numeric:tabular-nums}
-#vv-conteudo .vc-apr-nota{margin:0 60px 0 0;text-align:center;font:500 12px/1.45 var(--vv-texto);color:#8A847A}
-#vv-conteudo .vc-apr-fila{display:flex;flex-direction:column;gap:6px;padding:16px;border:1px solid #E6E0D6;border-radius:var(--ds-r-cartao,20px);background:#FFFFFF}
-#vv-conteudo .vc-apr-fila-topo{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
-#vv-conteudo .vc-apr-fila-topo b{font:600 15px/1.2 var(--vv-titulo);color:#1F1D1A}
-#vv-conteudo .vc-apr-fila-topo small{font:500 12px/1.3 var(--vv-texto);color:#6B665E}
-#vv-conteudo .vc-apr-fila-linha{appearance:none;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:12px;background:none;color:#1F1D1A;font:500 13px/1.3 var(--vv-texto);text-align:left;cursor:pointer}
-#vv-conteudo .vc-apr-fila-linha:hover{background:#F3F1EC}
-#vv-conteudo .vc-apr-fila-linha:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:1px}
-#vv-conteudo .vc-apr-fila-linha > span{min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-#vv-conteudo .vc-apr-fila-linha em{font-style:normal;color:#6B665E}
-#vv-conteudo .vc-apr-fila-linha small{flex:none;font:500 12px/1.3 var(--vv-texto);color:#6B665E}
-@media (max-width:860px){
-  #vv-conteudo .vc-apr{grid-template-columns:minmax(0,1fr)}
-  #vv-conteudo .vc-apr-baralho{height:440px;margin-right:36px}
-  #vv-conteudo .vc-apr-carta{flex-direction:column}
-  #vv-conteudo .vc-apr-arte{width:100%;max-width:none;height:52%;aspect-ratio:auto}
-  #vv-conteudo .vc-apr-txt{padding:16px}
-  #vv-conteudo .vc-apr-txt > b{font-size:18px}
-  #vv-conteudo .vc-apr-acoes,#vv-conteudo .vc-apr-conta,#vv-conteudo .vc-apr-nota{margin-right:0}
-  #vv-conteudo .vc-apr-acoes{gap:6px}
-  #vv-conteudo .vc-apr-acoes .vc-sec{padding:0 14px}
-  #vv-conteudo .vc-apr-ok{padding:0 18px}
-}
+/* PADRÃO V2 · PARA APROVAR (12/11/2026). A tela desta aba é o quadro "Aprovação de conteúdo" do moodboard e o
+   desenho dela mora em padrao-v2/conteudo.css (classes .v2c-*). Aqui fica só o que depende da gaveta da peça. */
 /* A peça aberta pelo baralho (ou pela prévia do calendário) precisa ficar na frente desta janela. */
 html body.mundo.vc-aberto #workspace-drawer.workspace-drawer{z-index:660!important}

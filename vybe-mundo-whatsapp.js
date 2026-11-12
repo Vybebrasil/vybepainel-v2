@@ -4,6 +4,7 @@
 // grupos internos da Vybe e os grupos dos clientes que o VYBES espelha no PC do Paulo: as mensagens que chegam, a aba
 // "Menções a você", o número de não lidas e o aviso (notificação do navegador + aviso na tela) quando chega mensagem nova
 // ou alguém marca a pessoa.
+// A tela segue o quadro "Conversas" do moodboard (12/11/2026): título e visões no alto, cartão da lista e cartão da conversa.
 // SÓ LEITURA nesta etapa: não há campo de envio. Lê /api/painel?area=vybes&etapa=whatsapp (server/vybes-whatsapp.js), que vai
 // à central pelo túnel com o crachá de quem está logado; a central decide quem vê o quê (donos: tudo; equipe: os grupos de que
 // participa). As não lidas ficam neste aparelho (localStorage, por pessoa) e só conta o que chegou depois da primeira abertura.
@@ -11,7 +12,8 @@
   const ROTA = '/api/painel?area=vybes&etapa=whatsapp';
   const ABERTO_MS = 12e3, FECHADO_MS = 40e3, ESCONDIDO_MS = 60e3, ERRO_MS = 90e3, SEM_HUD_MS = 10e3;
   const st = { dados: null, erro: '', aberto: false, aba: 'conversas', filtro: 'todos', busca: '', conversa: null, msgs: null, erroConversa: '',
-    lidas: null, chave: '', ultimoSeq: null, timer: 0, buscando: null, avisos: [], foco: null };
+    lidas: null, chave: '', ultimoSeq: null, timer: 0, buscando: null, avisos: [], foco: null,
+    todas: false, procurando: false, procura: '', lidaAoAbrir: null, visto: null };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = { balao: svg('<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>'), fechar: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
@@ -92,6 +94,7 @@
     return st.buscando;
   }
   async function abrirConversa(id, { manter = false, focar = null } = {}) {
+    if (!manter) { st.lidaAoAbrir = st.lidas ? lidaAte(id) : null; if (st.conversa !== id) { st.procurando = false; st.procura = ''; } }
     st.conversa = id; st.erroConversa = ''; st.foco = focar;
     if (!manter || st.msgs?.id !== id) { st.msgs = null; pintar(); }
     const lista = document.getElementById?.('vv-wa-mensagens'), noFim = !lista || lista.scrollHeight - lista.scrollTop - lista.clientHeight < 60;
@@ -186,93 +189,130 @@
     document.body.append(el);
     return el;
   }
+  // A tela é o quadro "Conversas" do moodboard (Paulo, 12/11/2026), nesta ordem: título, de onde vem e quando foi lido,
+  // e as duas visões (Conversas, Menções a você) na mesma linha; à esquerda o cartão da lista (busca, fichas, "Não lidas"
+  // e "Já vistas"); à direita o cartão da conversa (quem é, quem escreveu, "Buscar na conversa", os balões e o rodapé).
+  // Continua só leitura: o quadro desenha um campo de envio, mas o servidor não envia (POST devolve 405), então o rodapé
+  // diz isso em vez de mostrar um campo que não funciona. O pedido de avisos do navegador desceu para o pé da lista.
   function pintar({ rolar = false } = {}) {
     const el = raiz(); if (!el) return;
     el.hidden = !st.aberto; if (!st.aberto) return;
-    const lista = el.querySelector('#vv-wa-itens'), scrollLista = lista ? lista.scrollTop : 0, busca = el.querySelector('[data-wa-busca]'), focado = document.activeElement === busca;
+    const lista = el.querySelector('#vv-wa-itens'), scrollLista = lista ? lista.scrollTop : 0;
+    const ativo = document.activeElement, campo = ['data-wa-busca', 'data-wa-procura'].find((a) => ativo?.hasAttribute?.(a) && el.contains(ativo));
     const antigas = el.querySelector('#vv-wa-mensagens'), scrollMsgs = antigas ? antigas.scrollTop : 0;
     const { porConversa, naoLidas, mencoesNaoLidas } = contagem();
     const d = st.dados;
     el.classList.toggle('com-conversa', Boolean(st.conversa));
-    const html = `
-      <div class="vv-wa-topo">
-        <span class="vv-wa-marca">${IC.balao}</span>
-        <span class="vv-wa-titulo"><b>WhatsApp da Vybe</b><small>${esc(d?.eu?.socio ? 'Todos os grupos internos e de clientes' : 'Os grupos de que você participa')} · espelho do VYBES</small></span>
-        <button type="button" class="vv-wa-fechar" data-wa-fechar aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button>
+    const conta = (n) => (n ? `<b class="v2w-q">${n > 99 ? '99+' : n}</b>` : '');
+    const leitura = st.erro && d ? `${esc(st.erro)} · mostrando a última leitura` : d ? `atualizado às ${hora(Date.parse(d.geradoEm) || Date.now())}` : st.erro ? esc(st.erro) : 'lendo as conversas';
+    const pedirAvisos = typeof Notification !== 'undefined' && Notification.permission === 'default';
+    const html = `<div class="v2w">
+      <div class="v2w-topo">
+        <h2>Conversas</h2>
+        <p class="v2w-sub">WhatsApp da Vybe · ${d && !d.eu?.socio ? 'os grupos de que você participa' : 'grupos internos e de clientes'} · ${leitura}</p>
+        <span class="v2w-seg" role="tablist" aria-label="Visão">
+          <button type="button" role="tab" data-wa-aba="conversas" aria-selected="${st.aba === 'conversas'}">Conversas${conta(naoLidas)}</button>
+          <button type="button" role="tab" data-wa-aba="mencoes" aria-selected="${st.aba === 'mencoes'}">Menções a você${conta(mencoesNaoLidas)}</button>
+        </span>
+        <button type="button" class="v2w-x" data-wa-fechar aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button>
       </div>
-      ${typeof Notification !== 'undefined' && Notification.permission === 'default' ? `<div class="vv-wa-permissao">${IC.sino}<span>Quer aviso quando chegar mensagem ou alguém marcar você?</span><button type="button" class="vv-wa-acao" data-wa-notificar>Ativar avisos</button></div>` : ''}
-      <div class="vv-wa-corpo">
-        <div class="vv-wa-lista" role="region" aria-label="Conversas">
-          <div class="vv-wa-abas" role="tablist">
-            <button type="button" role="tab" data-wa-aba="conversas" aria-selected="${st.aba === 'conversas'}">Conversas${naoLidas ? `<span class="vv-wa-n">${naoLidas > 99 ? '99+' : naoLidas}</span>` : ''}</button>
-            <button type="button" role="tab" data-wa-aba="mencoes" aria-selected="${st.aba === 'mencoes'}">Menções a você${mencoesNaoLidas ? `<span class="vv-wa-n">${mencoesNaoLidas}</span>` : ''}</button>
-          </div>
-          ${st.aba === 'conversas' ? `<div class="vv-wa-filtros" role="group" aria-label="Filtrar">${[['todos', 'Todos'], ['interno', 'Internos'], ['cliente', 'Clientes'], ['naolidas', 'Não lidas']].map(([k, n]) => `<button type="button" data-wa-filtro="${k}" aria-pressed="${st.filtro === k}">${n}</button>`).join('')}</div>
-          <input type="search" class="vv-wa-busca" data-wa-busca placeholder="Buscar grupo ou cliente" value="${esc(st.busca)}" aria-label="Buscar grupo ou cliente">` : ''}
-          <div class="vv-wa-itens" id="vv-wa-itens" role="list">${st.aba === 'conversas' ? itensConversas(porConversa) : itensMencoes()}</div>
-          <p class="vv-wa-rodape">${st.erro && d ? `⚠️ ${esc(st.erro)} · mostrando a última leitura` : d ? `Atualizado às ${hora(Date.parse(d.geradoEm) || Date.now())}` : ''}</p>
+      <div class="v2w-grade">
+        <div class="v2w-card v2w-lista" role="region" aria-label="Conversas">
+          ${st.aba === 'conversas' ? `<input type="search" class="v2w-busca" data-wa-busca placeholder="Buscar grupo ou cliente" value="${esc(st.busca)}" aria-label="Buscar grupo ou cliente">
+          <div class="v2w-chips" role="group" aria-label="Filtrar">${[['todos', 'Todos'], ['interno', 'Internos'], ['cliente', 'Clientes'], ['naolidas', 'Não lidas']].map(([k, n]) => `<button type="button" class="v2w-chip" data-wa-filtro="${k}" aria-pressed="${st.filtro === k}">${n}${k === 'naolidas' && naoLidas ? ` <b>${naoLidas > 99 ? '99+' : naoLidas}</b>` : ''}</button>`).join('')}</div>` : ''}
+          <div class="v2w-itens" id="vv-wa-itens" role="list">${st.aba === 'conversas' ? itensConversas(porConversa) : itensMencoes()}</div>
+          ${pedirAvisos ? `<p class="v2w-pe">Quer aviso quando chegar mensagem ou alguém marcar você? <button type="button" class="v2w-link" data-wa-notificar>Ativar avisos</button></p>` : ''}
         </div>
-        <div class="vv-wa-conversa" role="region" aria-label="Mensagens">${painelConversa()}</div>
-      </div>`;
+        <div class="v2w-card v2w-conversa" role="region" aria-label="Mensagens">${painelConversa()}</div>
+      </div></div>`;
     // Nada mudou (a leitura de 12 em 12 s quase sempre volta igual): não mexe na tela, nem na rolagem, nem na seleção.
     if (html === st.ultimoHtml && !rolar && !st.foco) return;
     st.ultimoHtml = html; el.innerHTML = html;
     const novaLista = el.querySelector('#vv-wa-itens'); if (novaLista) novaLista.scrollTop = scrollLista;
-    if (focado) { const b = el.querySelector('[data-wa-busca]'); b?.focus(); b?.setSelectionRange?.(b.value.length, b.value.length); }
+    if (campo) { const b = el.querySelector(`[${campo}]`); b?.focus(); b?.setSelectionRange?.(b.value.length, b.value.length); }
     const msgs = el.querySelector('#vv-wa-mensagens');
     if (msgs && st.foco) { const alvo = msgs.querySelector(`[data-seq="${Number(st.foco)}"]`); if (alvo) { alvo.scrollIntoView({ block: 'center' }); alvo.classList.add('piscar'); st.foco = null; } }
     else if (msgs && rolar) msgs.scrollTop = msgs.scrollHeight;
     else if (msgs && antigas) msgs.scrollTop = scrollMsgs;
   }
-  function vazio(texto, detalhe = '') { return `<div class="vv-wa-vazio"><b>${esc(texto)}</b>${detalhe ? `<span>${esc(detalhe)}</span>` : ''}</div>`; }
+  function vazio(texto, detalhe = '') { return `<div class="v2w-vazio"><b>${esc(texto)}</b>${detalhe ? `<span>${esc(detalhe)}</span>` : ''}</div>`; }
+  const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  // Na lista e no balão a mensagem apagada vai em texto e traço, sem emoji (a notificação do sistema segue com resumoMsg).
+  const resumoNaLista = (m) => (m.apagada ? 'mensagem apagada' : [m.midia, m.texto].filter(Boolean).join(' ') || 'Mensagem');
+  const IC_APAGADA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M6 18L18 6"/></svg>';
+  // Grupo de cliente leva a cor do cliente (cliCor, vybe-core.js); grupo interno fica neutro.
+  const nomeDaConversa = (c) => (c.tipo === 'cliente' && c.cliente && typeof globalThis.cliCor === 'function' ? globalThis.cliCor(c.cliente) : esc(c.nome));
+  const avatarDe = (c, extra = '') => `<span class="v2w-av gr ${esc(c?.tipo || '')}${extra}" aria-hidden="true"${c?.tipo === 'cliente' ? ` style="--c:${corDe(c.cliente || c.nome)}"` : ''}>${esc(iniciais(c ? nomeCurto(c) : ''))}</span>`;
+  const VISTAS_NA_LISTA = 8;
   function itensConversas(porConversa) {
     const d = st.dados;
     if (!d) return st.erro ? vazio(st.erro, 'Tento de novo sozinho em instantes.') : vazio('Carregando as conversas…');
     if (!d.eu.vinculado) return vazio('Seu WhatsApp ainda não está vinculado ao Vybe OS.', 'Quando o seu número estiver vinculado, aparecem aqui os grupos de que você participa.');
-    const busca = st.busca.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const busca = semAcento(st.busca);
     const lista = d.conversas.filter((c) => (st.filtro === 'todos' || (st.filtro === 'naolidas' ? porConversa[c.id] : c.tipo === st.filtro))
-      && (!busca || `${c.nome} ${c.cliente || ''}`.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(busca)));
+      && (!busca || semAcento(`${c.nome} ${c.cliente || ''}`).includes(busca)));
     if (!d.conversas.length) return vazio('Nenhuma mensagem ainda.', 'As conversas aparecem aqui conforme chegam ao WhatsApp do VYBES.');
     if (!lista.length) return vazio('Nada com esse filtro.');
-    return lista.map((c) => {
+    const item = (c) => {
       const n = porConversa[c.id] || 0, u = c.ultima, mencao = (d.mencoes || []).some((m) => m.conversa === c.id && mencaoNaoLida(m));
-      return `<button type="button" role="listitem" class="vv-wa-item${st.conversa === c.id ? ' ativo' : ''}${n ? ' nao-lida' : ''}" data-wa-conversa="${c.id}" aria-current="${st.conversa === c.id}">
-        <span class="vv-wa-avatar ${c.tipo}" aria-hidden="true">${esc(iniciais(nomeCurto(c)))}</span>
-        <span class="vv-wa-meio"><span class="vv-wa-linha"><b>${esc(c.nome)}</b><time>${esc(quando(u.em))}</time></span>
-          <span class="vv-wa-linha"><small>${u.minha ? 'Você: ' : u.autor ? esc(u.autor.split(' ')[0]) + ': ' : ''}${esc(resumoMsg(u))}</small>${mencao ? '<i class="vv-wa-arroba" title="Menção a você">@</i>' : ''}${n ? `<span class="vv-wa-n">${n > 99 ? '99+' : n}</span>` : ''}</span></span>
+      return `<button type="button" role="listitem" class="v2w-cv${st.conversa === c.id ? ' on' : ''}${n ? ' nao-lida' : ''}" data-wa-conversa="${c.id}" aria-current="${st.conversa === c.id}" title="${esc(c.nome)}">
+        ${avatarDe(c)}
+        <span class="v2w-tx"><b>${nomeDaConversa(c)}</b><span>${u.minha ? 'Você: ' : u.autor ? esc(u.autor.split(' ')[0]) + ': ' : ''}${esc(resumoNaLista(u))}</span></span>
+        <span class="v2w-dir"><time>${esc(quando(u.em))}</time>${mencao || n ? `<span class="v2w-marcas">${mencao ? '<i class="v2w-arroba" title="Menção a você">@</i>' : ''}${n ? `<span class="v2w-nl">${n > 99 ? '99+' : n}</span>` : ''}</span>` : ''}</span>
       </button>`;
-    }).join('');
+    };
+    const novas = lista.filter((c) => porConversa[c.id]), vistas = lista.filter((c) => !porConversa[c.id]);
+    const inteira = st.todas || Boolean(busca) || st.filtro !== 'todos', cabem = inteira ? vistas : vistas.slice(0, Math.max(4, VISTAS_NA_LISTA - novas.length)), resto = vistas.length - cabem.length;
+    return `${novas.length ? `<p class="v2w-rot">Não lidas · ${novas.length}</p>${novas.map(item).join('')}` : ''}
+      ${cabem.length ? `${novas.length ? '<p class="v2w-rot">Já vistas</p>' : ''}${cabem.map(item).join('')}` : ''}
+      ${resto > 0 ? `<p class="v2w-pe">+ ${resto} ${resto === 1 ? 'grupo' : 'grupos'} · <button type="button" class="v2w-link" data-wa-todas>mostrar</button></p>` : ''}`;
   }
   function itensMencoes() {
     const d = st.dados;
     if (!d) return st.erro ? vazio(st.erro) : vazio('Carregando…');
     if (!d.mencoes?.length) return vazio('Ninguém marcou você por enquanto.', 'Quando alguém marcar você com @ num grupo, aparece aqui.');
-    return d.mencoes.map((m) => `<button type="button" role="listitem" class="vv-wa-item vv-wa-mencao${mencaoNaoLida(m) ? ' nao-lida' : ''}" data-wa-conversa="${m.conversa}" data-wa-seq="${m.seq}">
-      <span class="vv-wa-avatar mencao" aria-hidden="true">@</span>
-      <span class="vv-wa-meio"><span class="vv-wa-linha"><b>${esc(m.grupo)}</b><time>${esc(quando(m.em))}</time></span>
-        <span class="vv-wa-linha"><small>${esc(m.autor.split(' ')[0])}: ${esc(resumoMsg(m))}</small></span></span>
+    return d.mencoes.map((m) => `<button type="button" role="listitem" class="v2w-cv${mencaoNaoLida(m) ? ' nao-lida' : ''}" data-wa-conversa="${m.conversa}" data-wa-seq="${m.seq}">
+      <span class="v2w-av gr mencao" aria-hidden="true">@</span>
+      <span class="v2w-tx"><b>${esc(m.grupo)}</b><span>${esc(m.autor.split(' ')[0])}: ${esc(resumoNaLista(m))}</span></span>
+      <span class="v2w-dir"><time>${esc(quando(m.em))}</time>${mencaoNaoLida(m) ? '<span class="v2w-marcas"><span class="v2w-nl">1</span></span>' : ''}</span>
     </button>`).join('');
   }
   function painelConversa() {
-    if (!st.conversa) return `<div class="vv-wa-vazio grande">${IC.balao}<b>Escolha uma conversa</b><span>Só leitura nesta etapa: para responder, use o seu WhatsApp.</span></div>`;
+    if (!st.conversa) return `<div class="v2w-vazio grande">${IC.balao}<b>Escolha uma conversa</b><span>Só leitura nesta etapa: para responder, use o seu WhatsApp.</span></div>`;
     const c = st.dados?.conversas?.find((x) => x.id === st.conversa) || st.msgs;
-    const cab = `<div class="vv-wa-cab"><button type="button" class="vv-wa-voltar" data-wa-voltar aria-label="Voltar para a lista">${IC.voltar}</button>
-      <span class="vv-wa-avatar ${c?.tipo || ''}" aria-hidden="true">${esc(iniciais(c ? nomeCurto(c) : ''))}</span>
-      <span class="vv-wa-titulo"><b>${esc(c?.nome || 'Conversa')}</b><small>${c?.tipo === 'interno' ? 'Grupo interno da Vybe' : c?.cliente ? 'Grupo do cliente ' + esc(c.cliente) : 'Grupo de cliente'}</small></span></div>`;
+    const carregada = st.msgs && st.msgs.id === st.conversa ? st.msgs.mensagens : null;
+    // Quem escreveu nas mensagens guardadas (o espelho não traz a lista de participantes do grupo).
+    const autores = carregada ? [...new Set(carregada.filter((m) => !m.minha && m.autor).map((m) => m.autor))] : [];
+    const tipo = c?.tipo === 'interno' ? 'grupo interno' : c?.cliente ? `grupo do cliente ${esc(c.cliente)}` : 'grupo de cliente';
+    const cab = `<div class="v2w-cab"><button type="button" class="v2w-voltar" data-wa-voltar aria-label="Voltar para a lista">${IC.voltar}</button>
+      ${avatarDe(c)}
+      <div class="v2w-quem"><h3>${esc(c?.nome || 'Conversa')}</h3><p class="v2w-sub">${tipo}${autores.length ? ` · ${autores.length} ${autores.length === 1 ? 'pessoa escreveu' : 'pessoas escreveram'} aqui` : ''}</p></div>
+      ${autores.length ? `<span class="v2w-avs" aria-hidden="true">${autores.slice(-3).map((a) => `<span class="v2w-av" title="${esc(a)}">${esc(iniciais(a))}</span>`).join('')}</span>` : ''}
+      ${carregada?.length ? `<button type="button" class="v2w-btn" data-wa-procurar aria-expanded="${Boolean(st.procurando)}">Buscar na conversa</button>` : ''}</div>`;
     if (st.erroConversa) return cab + vazio(st.erroConversa);
-    if (!st.msgs || st.msgs.id !== st.conversa) return cab + vazio('Carregando as mensagens…');
+    if (!carregada) return cab + vazio('Carregando as mensagens…');
+    const termo = st.procurando ? semAcento(st.procura).trim() : '';
+    const mostradas = termo ? carregada.filter((m) => semAcento(`${m.autor || ''} ${m.texto || ''} ${m.midia || ''}`).includes(termo)) : carregada;
+    const procura = st.procurando ? `<div class="v2w-procura"><input type="search" class="v2w-busca" data-wa-procura placeholder="Buscar nesta conversa" value="${esc(st.procura)}" aria-label="Buscar nesta conversa"><span class="v2w-sub" role="status">${termo ? `${mostradas.length} de ${carregada.length}` : `${carregada.length} mensagens guardadas`}</span></div>` : '';
+    // "N novas": o que chegou depois da última vez que a pessoa abriu esta conversa neste aparelho.
+    const novas = termo ? [] : carregada.filter((m) => !m.minha && m.seq > (st.lidaAoAbrir ?? Infinity));
+    // O balão que acabou de chegar entra com movimento (uma vez): vale por 2 s depois da leitura que o trouxe.
+    const ultimo = carregada.at(-1)?.seq ?? 0;
+    if (st.visto?.id !== st.conversa) st.visto = { id: st.conversa, seq: ultimo, base: ultimo, ate: 0 };
+    else if (ultimo > st.visto.seq) st.visto = { id: st.conversa, seq: ultimo, base: st.visto.seq, ate: Date.now() + 2000 };
+    const chegou = Date.now() < st.visto.ate ? st.visto.base : Infinity;
     let dia = '', html = '';
-    for (const m of st.msgs.mensagens) {
+    for (const m of mostradas) {
       const r = relativo(m.em);
-      if (r !== dia) { dia = r; html += `<p class="vv-wa-dia"><span>${esc(r)}</span></p>`; }
-      html += `<div class="vv-wa-msg${m.minha ? ' minha' : ''}${m.vybes ? ' vybes' : ''}${m.paraVoce ? ' para-voce' : ''}" data-seq="${m.seq}">
-        ${m.minha ? '' : `<span class="vv-wa-autor"><i style="--c:${m.vybes ? '#8B7DFF' : corDe(m.autor)}"></i>${esc(m.autor)}${m.paraVoce ? '<em>marcou você</em>' : ''}</span>`}
-        ${m.citada ? `<span class="vv-wa-citada">${esc(m.citada)}</span>` : ''}
-        ${m.apagada ? '<span class="vv-wa-apagada">🚫 Mensagem apagada</span>' : `${m.midia ? `<span class="vv-wa-midia">${esc(m.midia)}</span>` : ''}${m.texto ? `<span class="vv-wa-texto">${esc(m.texto)}</span>` : ''}`}
-        <time>${m.editada ? 'editada · ' : ''}${esc(hora(m.em))}</time></div>`;
+      if (r !== dia) { dia = r; html += `<p class="v2w-dia"><span>${esc(r)}</span></p>`; }
+      if (novas[0] === m) html += `<p class="v2w-sep">${novas.length} ${novas.length === 1 ? 'nova' : 'novas'}</p>`;
+      html += `<div class="v2w-bl${m.minha ? ' eu' : ''}${m.vybes ? ' agt' : ''}${m.paraVoce ? ' para-voce' : ''}${m.seq > chegou ? ' novo' : ''}" data-seq="${m.seq}">
+        <small>${m.minha ? 'Você' : `${esc(m.autor)}${m.vybes ? ' · agente' : ''}`}${m.paraVoce ? '<em>marcou você</em>' : ''} <i>${m.editada ? 'editada · ' : ''}${esc(hora(m.em))}</i></small>
+        ${m.citada ? `<span class="v2w-citada">${esc(m.citada)}</span>` : ''}
+        ${m.apagada ? `<span class="v2w-apagada">${IC_APAGADA}Mensagem apagada</span>` : `${m.midia ? `<span class="v2w-midia">${esc(m.midia)}</span>` : ''}${m.texto ? `<span class="v2w-texto">${esc(m.texto)}</span>` : ''}`}</div>`;
     }
-    return cab + `<div class="vv-wa-mensagens" id="vv-wa-mensagens">${html || vazio('Sem mensagens guardadas nesta conversa.')}</div>
-      <div class="vv-wa-so-leitura">${IC.cadeado}<span>Só leitura nesta etapa. Para responder, use o seu WhatsApp.</span></div>`;
+    return cab + procura + `<div class="v2w-msgs" id="vv-wa-mensagens">${html || vazio(termo ? 'Nada com esse texto nesta conversa.' : 'Sem mensagens guardadas nesta conversa.')}</div>
+      <div class="v2w-rodape">${IC.cadeado}<p class="v2w-sub">Só leitura nesta etapa. Para responder, use o seu WhatsApp.</p></div>`;
   }
 
   // ---------- Interação ----------
@@ -283,9 +323,14 @@
     if (t.matches('[data-wa-notificar]')) { Notification.requestPermission?.().then(() => pintar(), () => pintar()); return; }
     if (t.dataset.waAba) { st.aba = t.dataset.waAba; if (st.aba === 'mencoes') marcarMencoesLidas(); return pintar(); }
     if (t.dataset.waFiltro) { st.filtro = t.dataset.waFiltro; return pintar(); }
+    if (t.matches('[data-wa-todas]')) { st.todas = true; return pintar(); }
+    if (t.matches('[data-wa-procurar]')) { st.procurando = !st.procurando; if (!st.procurando) st.procura = ''; pintar(); if (st.procurando) document.querySelector?.('#vv-whatsapp [data-wa-procura]')?.focus(); return; }
     if (t.dataset.waConversa) { abrirConversa(t.dataset.waConversa, { focar: t.dataset.waSeq ? Number(t.dataset.waSeq) : null }); }
   }
-  function aoDigitar(e) { if (e.target.matches?.('[data-wa-busca]')) { st.busca = e.target.value.slice(0, 60); pintar(); } }
+  function aoDigitar(e) {
+    if (e.target.matches?.('[data-wa-busca]')) { st.busca = e.target.value.slice(0, 60); pintar(); }
+    else if (e.target.matches?.('[data-wa-procura]')) { st.procura = e.target.value.slice(0, 60); pintar(); }
+  }
   function abrir(conversa = null, seq = null) {
     st.aberto = true;
     if (conversa) { st.aba = 'conversas'; abrirConversa(conversa, { focar: seq }); } else pintar();

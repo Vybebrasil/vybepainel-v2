@@ -116,7 +116,10 @@
     const x = el('button', 'vv-conversa-x', { type: 'button', 'aria-label': 'Fechar', title: 'Fechar (Esc)' });
     x.innerHTML = ICONE_FECHAR;
     x.addEventListener('click', () => fechar());
-    topo.append(abas, x);
+    // Quadro "Barra de baixo" (moodboard, 12/11/2026): o painel diz o nome dele, "Chat", ao lado das abas.
+    const titulo = el('h2', 'vv-conversa-titulo');
+    titulo.textContent = 'Chat';
+    topo.append(titulo, abas, x);
     st.corpo = el('div', 'vv-conversa-corpo', { id: 'vv-conversa-corpo', role: 'tabpanel' });
     raiz.append(topo, st.corpo);
     // Esc fecha só o que está por cima: o evento não sobe para o mundo.
@@ -257,7 +260,8 @@
     const sala = salaAtual();
     let nota = '';
     try { nota = fn('escritorioNotaChat')?.(sala) || ''; } catch { nota = ''; }
-    st.refs.cab.innerHTML = `<h3>Conversa · ${esc(nomeSala(sala))}</h3>${nota ? `<small>${esc(nota)}</small>` : ''}`;
+    // A sala em negrito e quem lê (quadro): "Atendimento · lê quem está na sala". A nota do Escritório, com as alas, fica no título da linha.
+    st.refs.cab.innerHTML = `<p class="vv-conversa-sala"${nota ? ` title="${esc(nota)}"` : ''}><b>${esc(nomeSala(sala))}</b> · lê quem está na sala</p>`;
     if (st.refs.campo) st.refs.campo.placeholder = 'Mensagem para ' + nomeSala(sala);
   }
   async function lerConversa() {

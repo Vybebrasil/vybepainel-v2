@@ -101,8 +101,10 @@ test('61: calendário do time com aniversários e férias; aniversário só com 
 
 test('64, 66: Criar com a cor de cada cliente; Ajuda e Boletim como painel no canto, sem fundo desfocado', () => {
   const cad = ler('cadastros_governed_v2.js'), css = ler('vybe-mundo.css'), bol = ler('vybe-mundo-boletim.css'), tut = ler('vybe-mundo-tutorial.css'), tutJs = ler('vybe-mundo-tutorial.js');
-  assert.match(cad, /class="fc-escolha fc-cli \$\{marcado \? 'marcada' : ''\}"/);
-  assert.match(cad, /cliCor\(c\)\.replace\(/, 'o nome do cliente com a cor da carteira');
+  // Padrão v2: o cliente é ficha em pílula (preta quando escolhida) com o ponto da carteira dele.
+  assert.match(cad, /class="nd-chip\$\{marcado \? ' on' : ''\}\$\{i >= aVista \? ' nd-resto' : ''\}"/);
+  assert.match(cad, /onclick="fcAlternarCliente\(this\.dataset\.valor\)">\$\{fcClienteHtml\(c\)\}<\/button>/, 'o nome do cliente com a cor da carteira');
+  assert.match(cad, /<span class="nd-cli" data-carteira="\$\{esc\(carteira\)\}">/);
   const fim = css.slice(css.indexOf('RH, AGENTES, CRIAR, AJUDA E BOLETIM'));
   assert.match(fim, /\.fc-escolha\.fc-cli\.marcada\{box-shadow:0 0 0 2px var\(--ds-acao,#C2490C\)\}/, 'escolhido com contorno laranja');
   assert.match(fim, /#fc-overlay \.fc-modal\{max-height:var\(--vv-janela-alto\)\}/, 'cabe acima do dock');

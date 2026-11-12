@@ -47,27 +47,28 @@ function carregarClientes() {
   return { ctx, pegar, store };
 }
 
-test('05: aviso "sem registro → Completar", zeros fora dos chips e escritos na frase', () => {
+test('05 no padrão v2: a fala do Mateus pede o cadastro e "Completar cadastros" recorta quem não tem reunião', () => {
   const { ctx, pegar } = carregarClientes();
   ctx.podeAdministrar = () => true;
   ctx.renderClientesBoard();
   const aviso = pegar('clientes-aviso');
   assert.equal(aviso.hidden, false);
-  assert.match(aviso.innerHTML, /<b>1 cliente sem registro de reunião<\/b> · e 1 só na operação, sem ficha/);
-  assert.match(aviso.innerHTML, /onclick="focarClientes\('sem-registro'\)">Completar</);
+  assert.match(aviso.innerHTML, /E 1 está sem ficha\./);
+  assert.match(aviso.innerHTML, /onclick="focarClientes\('sem-registro'\)">Completar cadastros</);
   const chips = pegar('clientes-filtros').innerHTML;
-  assert.doesNotMatch(chips, /Sem registro|Detratores|Painel a atualizar|Sem contato/, 'recortes com zero (ou no aviso) saem da frente');
-  assert.match(pegar('clientes-frase').textContent, /nenhum detrator · nenhum painel a atualizar\.$/);
+  assert.doesNotMatch(chips, /Sem registro|Detratores|Painel a atualizar|Sem contato/, 'os recortes ficam em Filtros');
+  assert.match(pegar('kpi-grid-clientes').innerHTML, /nenhum detrator · ninguém sem contato/);
 });
 
-test('05: Ativos, Inativos e Carteira como chips; carteira e situação recortam a lista', () => {
+test('05 no padrão v2: Ativos (ligado ao abrir), Inativos e Carteira como fichas; carteira e situação recortam a lista', () => {
   const { ctx, pegar } = carregarClientes();
   ctx.renderClientesBoard();
   const chips = pegar('clientes-filtros').innerHTML;
-  assert.match(chips, /aria-pressed="false"[^>]*>Ativos <b>2<\/b>/);
+  assert.match(chips, /aria-pressed="true"[^>]*>Ativos <b>2<\/b>/);
   assert.match(chips, />Inativos <b>1<\/b>/);
-  assert.match(chips, />Carteira<svg/);
+  assert.match(chips, />Carteira<\/button>/);
   assert.match(chips, /escolherColunasDeClientes\(this\)">Colunas/);
+  vm.runInContext("FILTRO_CLIENTES.situacao = ''", ctx);
   const filtra = () => [...vm.runInContext('clientMasterRecords().map((r) => r.name).filter((n) => passaNosFiltrosDeClientes(n))', ctx)].sort();
   vm.runInContext("FILTRO_CLIENTES.carteira = 'ewerton'", ctx);
   assert.deepEqual(filtra(), ['Alpha1']);
@@ -77,19 +78,18 @@ test('05: Ativos, Inativos e Carteira como chips; carteira e situação recortam
   assert.ok(filtra().includes('Loja Nova') && !filtra().includes('Alpha1'), 'sem responsável');
 });
 
-test('05: seis colunas na frente, Drive/Documento/Status pelo menu Colunas; head na cor da carteira', () => {
+test('05 no padrão v2: cinco colunas na frente; Plano, Segmento, Drive, Documento e Status pelo menu Colunas; cliente na cor da carteira', () => {
   const { ctx, store } = carregarClientes();
   const nomes = vm.runInContext('clientMasterRecords().map((r) => r.name)', ctx);
   let html = ctx.tabelaDeClientesHtml(nomes);
-  let cab = html.slice(html.indexOf('<thead>'), html.indexOf('</thead>'));
-  for (const sai of ['Status', 'Drive', 'Documento']) assert.doesNotMatch(cab, new RegExp(`>${sai}<`));
-  const linha = html.slice(html.indexOf('data-cliente="Alpha1"'));
-  assert.match(linha, /class="cli-head" data-carteira="ewerton" title="Ewerton · carteira de Ewerton"/);
-  store.set('vybe_clientes_colunas', JSON.stringify({ drive: true, documento: true, status: true }));
+  let cab = html.slice(html.indexOf('class="v2f-th"'), html.indexOf('data-cliente='));
+  for (const sai of ['Status', 'Drive', 'Documento', 'Plano', 'Segmento']) assert.doesNotMatch(cab, new RegExp(`>${sai}<`));
+  assert.match(html.slice(html.indexOf('data-cliente="Alpha1"')), /class="v2f-cli" style="--c:#3B5BA9">Alpha1</);
+  assert.match(html.slice(html.indexOf('data-cliente="Academia Lions"')), /class="v2f-cli" style="--c:#C2490C">Academia Lions</);
+  store.set('vybe_clientes_colunas_v2', JSON.stringify({ drive: true, documento: true, status: true, plano: true, segmento: true }));
   html = ctx.tabelaDeClientesHtml(nomes);
-  cab = html.slice(html.indexOf('<thead>'), html.indexOf('</thead>'));
-  for (const volta of ['Status', 'Drive', 'Documento']) assert.match(cab, new RegExp(`>${volta}<`));
-  assert.match(ler('vybe-mundo-clientes-ficha.css'), /\.cli-head\[data-carteira="vinicius"\]\{--cli-cart:#B4510E\}/);
+  cab = html.slice(html.indexOf('class="v2f-th"'), html.indexOf('data-cliente='));
+  for (const volta of ['Status', 'Drive', 'Documento', 'Plano', 'Segmento']) assert.match(cab, new RegExp(`>${volta}<`));
 });
 
 function carregarCerebro() {

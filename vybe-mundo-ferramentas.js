@@ -20,7 +20,7 @@
   const RECENTES = 'vybe-toolkit-recentes';
   const MAX_RECENTES = 6;
   const NIVEIS = [['M', 'Padrão'], ['Q', 'Reforçado'], ['H', 'Máximo (com logo por cima)']];
-  const st = { raiz: null, janela: null, antes: null, aba: 'inicio', qr: { texto: '', ecc: 'M', cor: '#1F1D1A' }, wa: { numero: '', mensagem: '' }, roi: { investimento: '', ticket: '', margem: '', vendas: '' }, aviso: '' };
+  const st = { raiz: null, janela: null, antes: null, aba: 'inicio', qr: { texto: '', ecc: 'M', cor: '#1F1D1A' }, wa: { numero: '', mensagem: '' }, roi: { investimento: '', ticket: '', margem: '', vendas: '' }, simples: { investimento: '', retorno: '' }, formato: 'png', feito: { qr: false, wa: false, roi: false }, busca: '', aviso: '' };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   // Cabeçalho único da janela (vbCabecalhoHtml e vbFecharHtml, vybe-core.js). Sem o vybe-core (testes), só o título e as ações.
   const cabecalho = (o) => (typeof window !== 'undefined' && typeof window.vbCabecalhoHtml === 'function' ? window.vbCabecalhoHtml(o) : `<h2${o.id ? ` id="${o.id}"` : ''}>${esc(o.titulo)}</h2>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}${o.acoes || ''}`);
@@ -51,25 +51,68 @@
     const d = r.dados || {};
     if (r.tipo === 'qr') return { titulo: String(d.texto || '').replace(/^https?:\/\//, '') || 'QR', sub: 'QR Code' };
     if (r.tipo === 'whatsapp') return { titulo: d.numero || 'Link do WhatsApp', sub: 'Link do WhatsApp' + (d.mensagem ? ` · "${d.mensagem}"` : '') };
+    if (d.retorno != null) { const c = retornoSimples(d.investimento, d.retorno); return { titulo: c ? `Retorno de ${c.pct.toLocaleString('pt-BR')}%` : 'Conta de retorno', sub: `ROI · investiu ${din(numero(d.investimento))} e voltou ${din(numero(d.retorno))}` }; }
     return { titulo: `Investimento ${din(numero(d.investimento))} · ticket ${din(numero(d.ticket))}`, sub: `Calculadora de ROI · margem ${d.margem || '—'}%` };
   }
-  function abaInicio() {
-    const recentes = lerRecentes();
-    const acoes = (r, i) => r.tipo === 'qr' ? `<button type="button" class="vf-botao" data-vf="refazer" data-vf-uso="${i}">Abrir</button><button type="button" class="vf-botao" data-vf="baixar-uso" data-vf-uso="${i}">Baixar PNG</button>`
-      : r.tipo === 'whatsapp' ? `<button type="button" class="vf-botao" data-vf="refazer" data-vf-uso="${i}">Abrir</button><button type="button" class="vf-botao" data-vf="copiar-uso" data-vf-uso="${i}">Copiar</button>`
-      : `<button type="button" class="vf-botao" data-vf="refazer" data-vf-uso="${i}">Abrir a conta</button>`;
-    return `<p class="vf-frase">Ferramentas rápidas da Vybe para o dia a dia com o cliente. Tudo roda aqui no navegador: nada é enviado para fora.</p>
-      <div class="vf-cartoes">${FERRAMENTAS.map((f) => `<article class="vf-cartao">
-        <span class="vf-cartao-ic">${icone(f.ic, 18)}</span><h3>${esc(f.nome)}</h3><p>${esc(f.frase)}</p>
-        <button type="button" class="vf-botao principal" data-vf-aba="${f.aba}">${esc(f.botao)}</button></article>`).join('')}</div>
-      <section class="vf-recentes" aria-labelledby="vf-recentes-titulo"><h3 id="vf-recentes-titulo">Usados por último</h3>
-        ${recentes.length ? `<ul>${recentes.map((r, i) => { const f = FERRAMENTAS.find((x) => x.aba === r.tipo), n = rotuloDoUso(r); return `<li class="vf-uso">
-          <span class="vf-uso-ic">${icone(f.ic)}</span><div class="vf-uso-txt"><b>${esc(n.titulo)}</b><small>${esc(n.sub)} · ${esc(quandoFoi(r.quando))}</small></div>
-          <div class="vf-uso-acoes">${acoes(r, i)}</div></li>`; }).join('')}</ul>`
-        : '<p class="vf-vazio">Nada usado ainda neste computador. O QR que você baixar, o link que copiar e a conta que fizer aparecem aqui para refazer com um clique.</p>'}
-      </section>`;
+  // Padrão v2 (quadro "Toolkit" do moodboard, 12/11/2026): a Visão geral deixa de ser vitrine. Em cima, a frase e os
+  // "Usados por último" em cartões; embaixo, as três ferramentas já com os campos, o botão preto e o resultado no lugar.
+  // As abas de cada ferramenta continuam com tudo (resistência e cor do QR, testar o link, a conta completa de ROI).
+  const CERTO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  // Conta direta da Visão geral: quanto investiu e quanto voltou. { pct, porReal } ou null.
+  function retornoSimples(inv, ret) {
+    const i = numero(inv), r = numero(ret); if (!i || i <= 0 || r == null) return null;
+    return { pct: Math.round((r - i) / i * 100), porReal: r / i };
   }
-
+  const fraseRoi = (c) => `Retorno de ${c.pct.toLocaleString('pt-BR')}% (${din(c.porReal)} para cada R$ 1)`;
+  // O resultado de cada ferramenta na Visão geral; antes de gerar, a frase que diz o que aparece ali.
+  function resultadoHtml(tipo) {
+    if (tipo === 'qr') {
+      const t = st.qr.texto.trim(), r = st.feito.qr && t ? svgQR(t) : { svg: '', erro: '' };
+      if (!r.svg) return `<p class="p2-sub">${esc(r.erro || 'O QR aparece aqui, pronto para baixar.')}</p>`;
+      return `<span class="vf2-qr">${r.svg}</span><p><b>QR pronto</b><br><span class="p2-sub">${st.formato === 'svg' ? 'SVG, o melhor para a gráfica' : 'PNG de 1.200 px'}</span></p><button type="button" class="p2-btn s" data-vf="${st.formato === 'svg' ? 'svg' : 'png'}">Baixar</button>`;
+    }
+    if (tipo === 'wa') {
+      const link = st.feito.wa ? linkWhatsapp(st.wa.numero, st.wa.mensagem) : '';
+      if (!link) return `<p class="p2-sub${st.feito.wa ? ' ruim' : ''}">${st.feito.wa ? 'Número inválido: use DDD + número (10 ou 11 dígitos).' : 'O link aparece aqui, pronto para copiar.'}</p>`;
+      return `<p><b class="vf2-quebra">${esc(link.replace(/^https:\/\//, '').split('?')[0])}</b><br><span class="p2-sub">${st.wa.mensagem.trim() ? 'abre a conversa com a mensagem pronta' : 'abre a conversa'}</span></p><button type="button" class="p2-btn s v2-estado" data-vf="copiar">Copiar</button>`;
+    }
+    const c = st.feito.roi ? retornoSimples(st.simples.investimento, st.simples.retorno) : null;
+    if (!c) return `<p class="p2-sub${st.feito.roi ? ' ruim' : ''}">${st.feito.roi ? 'Preencha o investimento e o retorno em reais.' : 'O retorno aparece aqui.'}</p>`;
+    return `<b class="vf2-roi${c.pct < 0 ? ' ruim' : ''}"><span class="v2-num">${c.pct.toLocaleString('pt-BR')}%</span></b><p><b>de retorno</b><br><span class="p2-sub">${din(c.porReal)} para cada R$ 1</span></p><button type="button" class="p2-btn s v2-estado" data-vf="copiar-roi">Copiar</button>`;
+  }
+  function pintarResultado(tipo) { const el = st.janela?.querySelector(`[data-vf-res="${tipo}"]`); if (el) el.innerHTML = resultadoHtml(tipo); }
+  function abaInicio() {
+    const recentes = lerRecentes(), q = norm(st.busca).trim();
+    const campo = (id, rot, attr, valor, ph, tipo = 'text') => `<div><label class="vf2-rot" for="${id}">${rot}</label><input id="${id}" class="p2-campo" type="${tipo}" ${attr} value="${esc(valor)}" placeholder="${ph}"></div>`;
+    const cabeca = (f) => `<div class="vf2-cab"><span class="vf2-ico">${icone(f.ic, 18)}</span><h3>${esc(f.nome)}</h3><button type="button" class="p2-link vf2-mais" data-vf-aba="${f.aba}">mais opções</button></div><p class="p2-sub">${esc(f.frase)}</p>`;
+    const cartoes = {
+      qr: (f) => `<article class="p2-card vf2-fer">${cabeca(f)}
+        ${campo('vf2-qr-texto', 'Link ou texto', 'data-vf-campo="qr.texto" maxlength="300"', st.qr.texto, 'https://')}
+        <div><span class="vf2-rot" id="vf2-formato">Formato</span><div class="vf2-formato" role="radiogroup" aria-labelledby="vf2-formato">${[['png', 'PNG'], ['svg', 'SVG']].map(([k, n]) => `<button type="button" class="p2-chip" role="radio" aria-checked="${st.formato === k}" data-vf-formato="${k}">${n}</button>`).join('')}</div></div>
+        <div><button type="button" class="p2-btn k" data-vf-gerar="qr">Gerar QR</button></div>
+        <div class="vf2-res" data-vf-res="qr" role="status">${resultadoHtml('qr')}</div></article>`,
+      whatsapp: (f) => `<article class="p2-card vf2-fer">${cabeca(f)}
+        ${campo('vf2-wa-numero', 'Número com DDD', 'data-vf-campo="wa.numero" inputmode="tel" maxlength="20"', st.wa.numero, '(74) 99999-9999', 'tel')}
+        ${campo('vf2-wa-msg', 'Mensagem pronta', 'data-vf-campo="wa.mensagem" maxlength="500"', st.wa.mensagem, 'Olá! Quero saber mais.')}
+        <div><button type="button" class="p2-btn k" data-vf-gerar="wa">Criar link</button></div>
+        <div class="vf2-res" data-vf-res="wa" role="status">${resultadoHtml('wa')}</div></article>`,
+      roi: (f) => `<article class="p2-card vf2-fer">${cabeca({ ...f, frase: 'Quanto investiu e quanto voltou viram o retorno da campanha.' })}
+        ${campo('vf2-roi-inv', 'Investimento', 'data-vf-campo="simples.investimento" inputmode="decimal"', st.simples.investimento, 'R$ 1.500')}
+        ${campo('vf2-roi-ret', 'Retorno', 'data-vf-campo="simples.retorno" inputmode="decimal"', st.simples.retorno, 'R$ 6.300')}
+        <div><button type="button" class="p2-btn k" data-vf-gerar="roi">Calcular</button></div>
+        <div class="vf2-res" data-vf-res="roi" role="status">${resultadoHtml('roi')}</div></article>`,
+    };
+    const visiveis = FERRAMENTAS.filter((f) => !q || norm(`${f.nome} ${f.frase}`).includes(q));
+    const acoes = (r, i) => `${r.tipo === 'qr' ? `<button type="button" class="p2-btn s" data-vf="baixar-uso" data-vf-uso="${i}">Baixar de novo</button>` : r.tipo === 'whatsapp' || r.dados.retorno != null ? `<button type="button" class="p2-btn s" data-vf="copiar-uso" data-vf-uso="${i}">Copiar</button>` : ''}<button type="button" class="p2-btn s" data-vf="refazer" data-vf-uso="${i}">Refazer</button>`;
+    const usados = recentes.length ? `<section class="vf2-usados" aria-labelledby="vf-recentes-titulo"><div class="p2-lista-topo"><h3 class="p2-h" id="vf-recentes-titulo">Usados por último</h3><span class="p2-sub">neste computador · refaz com um clique</span></div>
+        <div class="vf2-tres">${recentes.map((r, i) => { const n = rotuloDoUso(r); return `<div class="p2-card vf2-rec"><p class="vf2-rec-topo"><span class="p2-pill">${esc(n.sub.split(' · ')[0])}</span><span class="p2-sub">${esc(quandoFoi(r.quando))}</span></p>
+          <p class="vf2-rec-oq"><b>${esc(n.titulo)}</b>${n.sub.includes(' · ') ? ` · ${esc(n.sub.split(' · ').slice(1).join(' · '))}` : ''}</p><p class="vf2-rec-acoes">${acoes(r, i)}</p></div>`; }).join('')}</div></section>` : '';
+    return `<div class="p2-card p2-fala"><span class="p2-ag" aria-hidden="true">V</span><p><span class="p2-quem">VYBES · Ferramentas rápidas</span><b>${FERRAMENTAS.length} ferramentas</b> para o dia a dia com o cliente. Tudo roda aqui no navegador: nada é enviado para fora.</p></div>
+      ${usados}
+      ${visiveis.length ? `<div class="vf2-tres vf2-fers">${visiveis.map((f) => cartoes[f.aba](f)).join('')}</div>` : '<p class="p2-vazio">Nenhuma ferramenta com esse nome.</p>'}
+      ${recentes.length ? '' : '<p class="p2-sub vf-vazio"><b>Nada usado ainda neste computador.</b> <button type="button" class="p2-link" data-vf="primeiro-qr">Gerar o primeiro QR</button></p>'}`;
+  }
   // Número brasileiro → só dígitos com 55 na frente. Aceita (74) 99999-9999, 74999999999, +55 74 9…
   function numeroWhatsapp(entrada) {
     let d = String(entrada || '').replace(/\D/g, '');
@@ -156,10 +199,11 @@
   }
   function corpoDaAba() { return st.aba === 'inicio' ? abaInicio() : st.aba === 'whatsapp' ? abaWhatsapp() : st.aba === 'roi' ? abaRoi() : abaQR(); }
   function html() {
-    return `<div class="vf-topo vb-janela-topo">${cabecalho({ id: 'vf-titulo', titulo: 'Toolkit', texto: 'QR Code, link do WhatsApp e calculadora de ROI para o dia a dia com o cliente.', acoes: botaoX('data-vf="fechar"', 'vf-x') })}</div>
-      <div class="vf-abas" role="tablist" aria-label="Ferramentas do Toolkit">${ABAS.map(([k, n]) => `<button type="button" role="tab" aria-selected="${st.aba === k}" data-vf-aba="${k}">${n}</button>`).join('')}</div>
+    const seg = `<span class="p2-seg" role="tablist" aria-label="Ferramentas do Toolkit">${ABAS.map(([k, n]) => `<button type="button" role="tab" aria-selected="${st.aba === k}" data-vf-aba="${k}">${n}</button>`).join('')}</span>`;
+    const busca = `<label class="p2-oculto" for="vf-busca">Buscar ferramenta</label><input id="vf-busca" class="p2-busca vf2-busca" type="search" placeholder="Buscar ferramenta" data-vf-busca value="${esc(st.busca)}">`;
+    return `<div class="vf-topo vb-janela-topo">${cabecalho({ id: 'vf-titulo', titulo: 'Toolkit', acoes: `${seg}${busca}${botaoX('data-vf="fechar"', 'vf-x')}` })}</div>
       <p class="vf-aviso" role="status" aria-live="polite">${esc(st.aviso)}</p>
-      <div class="vf-corpo">${corpoDaAba()}</div>`;
+      <div class="vf-corpo${st.aba === 'inicio' ? ' vf2-inicio' : ' p2-card'}">${corpoDaAba()}</div>`;
   }
   function pintar(manterFoco = true) {
     if (!st.janela) return;
@@ -198,19 +242,31 @@
   function aoClicar(e) {
     if (e.target === st.raiz) { fechar(); return; }
     const aba = e.target.closest('[data-vf-aba]'); if (aba) { st.aba = aba.dataset.vfAba; st.aviso = ''; pintar(false); return; }
+    const fmt = e.target.closest('[data-vf-formato]'); if (fmt) { st.formato = fmt.dataset.vfFormato; st.janela.querySelectorAll('[data-vf-formato]').forEach((x) => x.setAttribute('aria-checked', String(x === fmt))); pintarResultado('qr'); return; }
+    const gerar = e.target.closest('[data-vf-gerar]');
+    if (gerar) {
+      const t = gerar.dataset.vfGerar; st.feito[t] = true; pintarResultado(t);
+      if (t === 'roi' && retornoSimples(st.simples.investimento, st.simples.retorno)) guardarUso('roi', { ...st.simples });
+      return;
+    }
     const b = e.target.closest('[data-vf]'); if (!b || b.disabled) return;
     const a = b.dataset.vf;
+    // O botão conta o estado: gira e fica verde com a palavra nova (v2-estado).
+    const feito = (texto) => { if (!b.classList.contains('v2-estado') || !b.isConnected) return; b.dataset.estado = 'feito'; b.innerHTML = CERTO + texto; };
+    if (a === 'primeiro-qr') { st.janela.querySelector('[data-vf-campo="qr.texto"]')?.focus(); return; }
+    if (a === 'copiar-roi') { const c = retornoSimples(st.simples.investimento, st.simples.retorno); if (c) (navigator.clipboard?.writeText(fraseRoi(c)) || Promise.reject()).then(() => { feito('Copiado'); avisar('Retorno copiado.'); }, () => avisar(fraseRoi(c))); return; }
     if (a === 'fechar') fechar();
     else if (a === 'svg') { const s = svgQR(st.qr.texto.trim()).svg; if (s) { guardarUso('qr', { texto: st.qr.texto.trim(), ecc: st.qr.ecc, cor: st.qr.cor }); baixar(nomeArquivo() + '.svg', new Blob([s], { type: 'image/svg+xml' })); avisar('SVG baixado: é o melhor para a gráfica (não perde qualidade).'); } }
     else if (a === 'png') baixarPNG();
     else if (a === 'copiar') {
       const link = linkWhatsapp(st.wa.numero, st.wa.mensagem);
       guardarUso('whatsapp', { numero: st.wa.numero.trim(), mensagem: st.wa.mensagem.trim() });
-      (navigator.clipboard?.writeText(link) || Promise.reject()).then(() => avisar('Link copiado.'), () => avisar('Não deu para copiar sozinho: selecione o link e copie.'));
+      (navigator.clipboard?.writeText(link) || Promise.reject()).then(() => { feito('Copiado'); avisar('Link copiado.'); }, () => avisar('Não deu para copiar sozinho: selecione o link e copie.'));
     } else if (a === 'refazer' || a === 'baixar-uso' || a === 'copiar-uso') {
       const r = lerRecentes()[Number(b.dataset.vfUso)]; if (!r) return;
       if (r.tipo === 'qr') Object.assign(st.qr, { texto: '', ecc: 'M', cor: CORES[0][0] }, r.dados);
       else if (r.tipo === 'whatsapp') Object.assign(st.wa, { numero: '', mensagem: '' }, r.dados);
+      else if (r.dados.retorno != null) { Object.assign(st.simples, r.dados); st.feito.roi = true; if (a === 'copiar-uso') { const c = retornoSimples(st.simples.investimento, st.simples.retorno); if (c) (navigator.clipboard?.writeText(fraseRoi(c)) || Promise.reject()).then(() => avisar('Retorno copiado.'), () => avisar(fraseRoi(c))); } else { st.aba = 'inicio'; st.aviso = ''; pintar(false); } return; }
       else Object.assign(st.roi, r.dados);
       if (a === 'baixar-uso') baixarPNG();
       else if (a === 'copiar-uso') {
@@ -220,8 +276,11 @@
     } else if (a === 'qr-do-link') { st.qr.texto = linkWhatsapp(st.wa.numero, st.wa.mensagem); st.aba = 'qr'; pintar(false); }
   }
   function aoDigitar(e) {
+    if (e.target.matches?.('[data-vf-busca]')) { if (e.type !== 'input') return; st.busca = e.target.value; if (st.aba !== 'inicio') st.aba = 'inicio'; const pos = e.target.selectionStart; pintar(false); const n = st.janela.querySelector('[data-vf-busca]'); n?.focus(); try { n?.setSelectionRange(pos, pos); } catch {} return; }
     const c = e.target.closest('[data-vf-campo]'); if (!c) return;
-    const [g, k] = c.dataset.vfCampo.split('.'); ({ qr: st.qr, wa: st.wa, roi: st.roi })[g][k] = c.value;
+    const [g, k] = c.dataset.vfCampo.split('.'); ({ qr: st.qr, wa: st.wa, roi: st.roi, simples: st.simples })[g][k] = c.value;
+    // Na Visão geral, mexer no campo desfaz o resultado: ele volta com o botão.
+    if (st.aba === 'inicio') { const t = g === 'simples' ? 'roi' : g; if (st.feito[t]) { st.feito[t] = false; pintarResultado(t); } return; }
     // A cor: a amostra escolhida fica marcada e "Outra" acende quando a cor não é da paleta.
     if (c.dataset.vfCampo === 'qr.cor') {
       const daPaleta = CORES.some(([cor]) => cor === c.value.toUpperCase());
@@ -252,13 +311,13 @@
       Object.assign(st, { raiz, janela });
     }
     pintar(false);
-    (st.janela.querySelector('[data-vf-campo]') || st.janela.querySelector('.vf-cartao .vf-botao'))?.focus();
+    (st.aba === 'inicio' ? st.janela.querySelector('[role="tab"][aria-selected="true"]') : st.janela.querySelector('[data-vf-campo]'))?.focus();
   }
   function fechar() {
     const { raiz, antes } = st; if (!raiz) return;
-    Object.assign(st, { raiz: null, janela: null, antes: null, aviso: '' });
+    Object.assign(st, { raiz: null, janela: null, antes: null, aviso: '', busca: '' });
     raiz.remove(); if (antes?.isConnected) antes.focus?.();
   }
   window.addEventListener('keydown', aoTeclar, true);
-  window.VybeFerramentas = Object.freeze({ abrir, fechar, aberto: () => Boolean(st.raiz), _linkWhatsapp: linkWhatsapp, _numeroWhatsapp: numeroWhatsapp, _rotuloDoUso: rotuloDoUso });
+  window.VybeFerramentas = Object.freeze({ abrir, fechar, aberto: () => Boolean(st.raiz), _linkWhatsapp: linkWhatsapp, _numeroWhatsapp: numeroWhatsapp, _rotuloDoUso: rotuloDoUso, _retornoSimples: retornoSimples });
 })();

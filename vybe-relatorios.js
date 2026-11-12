@@ -16,28 +16,187 @@ function normalizarSnapshotDiario(row) {
   const quando = new Date(row?.atualizado_em || row?.criado_em || `${row?.data_referencia || new Date().toISOString().slice(0,10)}T12:00:00`);
   const dataHora = quando.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }).replace(',', ' às');
   return {
-    ...row, id: Number(row?.id), dataHora,
+    ...row, id: Number(row?.id), dataHora, quando: quando.getTime(),
     total: Number(payload?.conteudos?.ativos ?? payload?.conteudos?.total ?? payload?.itens?.length ?? 0),
     itens: Array.isArray(payload?.itens) ? payload.itens : [],
+    temItens: Array.isArray(payload?.itens),
   };
 }
 
-function setDiarioDateMode(mode, btn) {
-  diarioDateMode = mode;
-  document.querySelectorAll('#date-mode-bar-diario .date-mode-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+// ─── Diário no padrão v2 (quadro "Diário de produção" do moodboard aprovado em 12/11/2026) ───────────────────
+// A tela inteira sai daqui: a fala do Heitor, três números, a linha do tempo dos registros (a linha abre no lugar)
+// e "O que mudou" entre o registro escolhido e o anterior. Tudo é contado nas peças que cada registro guardou
+// (status, datas e clientes); a lista vem sem as peças, então os registros à vista são abertos um a um.
+const DIARIO_VISIVEIS = 4;
+const DIARIO_ETAPAS = 6;
+const DIARIO_PRONTO = ['finalizado', 'agendado', 'para agendar'];
+const DIARIO_ORIGEM = { manual_painel: 'Pelo painel', cron: 'Automático', servico: 'VYBES', resumo_manha: 'Resumo da manhã' };
+const DIARIO_CERTO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+const DIARIO_PESSOA = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+const DIARIO_PE = '<p class="v2d-sub">Um registro guarda como os conteúdos estão naquele momento, para comparar com outro dia. Veiculação ou Prazo escolhe a data que conta.</p>';
+let diarioLista = [];
+let diarioComparado = null;   // registro que os números, a fala e "O que mudou" mostram; sem escolha, o mais novo
+let diarioAberto;             // linha aberta no lugar; sem escolha, a do registro comparado
+let diarioTodos = false;
+let diarioEtapasTodas = false;
+
+function diarioEsc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+function diarioFmt(n) { return Number(n || 0).toLocaleString('pt-BR'); }
+function diarioSinal(n) { return n > 0 ? `+${diarioFmt(n)}` : n < 0 ? `−${diarioFmt(-n)}` : '0'; }
+function diarioIso(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function diarioQuando(s) {
+  if (Number.isFinite(s?.quando)) return new Date(s.quando);
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\D+(\d{2}):(\d{2}))?/.exec(String(s?.dataHora || ''));
+  return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 12), +(m[5] || 0)) : null;
+}
+function diarioTemItens(s) { return Boolean(s && (s.temItens || (Array.isArray(s.itens) && s.itens.length))); }
+function diarioPronto(d) { return DIARIO_PRONTO.includes(String(d?.status || '').trim().toLowerCase()); }
+function diarioDataRef(d, modo) { return modo === 'prazo' ? (d.prazo_iso || d.veiculacao_iso || '') : (d.veiculacao_iso || d.prazo_iso || ''); }
+function diarioNomeData(modo = diarioDateMode) { return modo === 'prazo' ? 'do prazo' : 'da data de veiculação'; }
+
+// Os números de um registro. Pronta = Finalizado, Agendado ou Para agendar; "da semana" = com a data (veiculação ou
+// prazo, a que estiver escolhida) na semana do registro. Atrasada = não pronta, com essa data antes do dia do registro.
+function diarioNumeros(snap, modo = diarioDateMode) {
+  if (!diarioTemItens(snap)) return null;
+  const q = diarioQuando(snap) || new Date();
+  const dia = diarioIso(q);
+  const seg = new Date(q.getFullYear(), q.getMonth(), q.getDate() - ((q.getDay() + 6) % 7));
+  const ini = diarioIso(seg), fim = diarioIso(new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6));
+  const etapas = {}, pronta = new Set(), atrasada = new Set(), alt = new Set();
+  let prontas = 0;
+  for (const d of snap.itens) {
+    const ref = diarioDataRef(d, modo), id = String(d.id);
+    if (diarioPronto(d)) { pronta.add(id); if (ref >= ini && ref <= fim) prontas++; continue; }
+    const st = String(d.status || '').trim() || 'Sem status';
+    etapas[st] = (etapas[st] || 0) + 1;
+    if (ref && ref < dia) atrasada.add(id);
+    if (/altera/i.test(st)) alt.add(id);
+  }
+  return { dia, prontas, atrasadas: atrasada.size, alteracao: alt.size, etapas, pronta, atrasada, alt };
+}
+
+// O que mudou de um registro para o seguinte, peça por peça.
+function diarioMudanca(ant, atual, modo = diarioDateMode) {
+  const a = diarioNumeros(ant, modo), b = diarioNumeros(atual, modo);
+  if (!a || !b) return null;
+  const antes = new Set(ant.itens.map((d) => String(d.id)));
+  const prontas = [], passaram = [], voltaram = [];
+  for (const d of atual.itens) {
+    const id = String(d.id);
+    if (b.pronta.has(id)) { if (antes.has(id) && !a.pronta.has(id)) prontas.push(d); continue; }
+    if (b.atrasada.has(id) && !a.atrasada.has(id)) passaram.push(d);
+    if (b.alt.has(id) && antes.has(id) && !a.alt.has(id)) voltaram.push(d);
+  }
+  return { a, b, prontas, passaram, voltaram };
+}
+
+// As etapas de "O que mudou", na ordem do catálogo de status, com Prontas no fim.
+function diarioEtapas(m) {
+  const catalogo = (typeof STATUS_OPTIONS !== 'undefined' && Array.isArray(STATUS_OPTIONS) ? STATUS_OPTIONS : []).map((o) => String(o?.label || '').trim().toLowerCase());
+  const pos = (n) => { const i = catalogo.indexOf(n.toLowerCase()); return i < 0 ? 999 : i; };
+  const nomes = [...new Set([...Object.keys(m.b.etapas), ...Object.keys(m.a.etapas)])];
+  const linhas = nomes.map((nome) => ({ nome, n: m.b.etapas[nome] || 0, dif: (m.b.etapas[nome] || 0) - (m.a.etapas[nome] || 0) }))
+    .sort((x, y) => pos(x.nome) - pos(y.nome) || y.n - x.n || x.nome.localeCompare(y.nome));
+  linhas.push({ nome: 'Prontas', n: m.b.prontas, dif: m.prontas.length, pronta: true });
+  return linhas;
+}
+function diarioCorEtapa(nome, pronta) {
+  if (pronta) return 'g';
+  const n = String(nome).toLowerCase();
+  if (/altera|pode fazer|falta|aguard|^ag\./.test(n)) return 'a';
+  if (/aprova|andamento|execu|agend/.test(n)) return 'b';
+  return 'n';
+}
+
+function diarioDiaCurto(q) {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const dif = Math.round((hoje - new Date(q.getFullYear(), q.getMonth(), q.getDate())) / 864e5);
+  return dif === 0 ? 'hoje' : dif === 1 ? 'ontem' : q.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+function diarioHora(q) { return q.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+// "das 09:05" quando os dois registros são do mesmo dia; senão "de ontem", "de 10/11".
+function diarioDe(s, outro) {
+  const q = diarioQuando(s), o = outro ? diarioQuando(outro) : null;
+  if (!q) return '';
+  return o && diarioIso(q) === diarioIso(o) ? `das ${diarioHora(q)}` : `de ${diarioDiaCurto(q)}`;
+}
+function diarioRotuloDia(q) {
+  const semana = q.toLocaleDateString('pt-BR', { weekday: 'long' }).replace('-feira', ''), data = q.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const curto = diarioDiaCurto(q);
+  return curto === 'hoje' || curto === 'ontem' ? `${curto.charAt(0).toUpperCase()}${curto.slice(1)} · ${semana}, ${data}` : `${semana.charAt(0).toUpperCase()}${semana.slice(1)}, ${data}`;
+}
+function diarioClienteDe(d) { return (Array.isArray(d?.clientes) && d.clientes[0]) || String(d?.cliente || '').split(',')[0].trim() || 'Sem cliente'; }
+function diarioClientesHtml(itens) {
+  const conta = {};
+  itens.forEach((d) => { const c = diarioClienteDe(d); conta[c] = (conta[c] || 0) + 1; });
+  const ordem = Object.entries(conta).sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]));
+  const cor = (nome) => (typeof corDoClienteV2 === 'function' ? corDoClienteV2(nome) : '#6B665E');
+  const tres = ordem.slice(0, 3).map(([nome, n]) => `<span class="v2d-cli" style="--c:${cor(nome)}">${diarioEsc(nome)}</span> ${diarioFmt(n)}`).join(', ');
+  return ordem.length > 3 ? `${tres} e mais ${diarioFmt(ordem.length - 3)}` : tres;
+}
+// O retrato que o próprio registro guardou (payload.conteudos): ativos, sem data e com o prazo já passado. O prazo
+// passado conta peça de qualquer status, finalizada inclusive, então não é chamado de "atrasado".
+function diarioRetratoTexto(s) {
+  const c = s?.payload?.conteudos || {};
+  const ativos = Number(c.ativos ?? s?.total), semData = Number(c.sem_data), passado = Number(c.prazo_passado);
+  if (!Number.isFinite(ativos)) return '';
+  const base = `${diarioFmt(ativos)} ${ativos === 1 ? 'conteúdo ativo' : 'conteúdos ativos'}`;
+  return [semData, passado].every(Number.isFinite) ? `${base}, ${diarioFmt(semData)} sem data, ${diarioFmt(passado)} com o prazo já passado (de qualquer status)` : base;
+}
+
+// O cabeçalho vem do index.html: aqui o alternador vira a pílula clara do quadro (a escolhida em branco) e o botão
+// de registrar passa a ser a ação da tela, com as classes desta tela.
+function diarioCabecalho() {
+  const barra = document.getElementById('date-mode-bar-diario');
+  if (!barra) return;
+  barra.classList.remove('date-mode-bar');
+  barra.classList.add('v2d-seg');
+  barra.setAttribute('role', 'radiogroup');
+  barra.setAttribute('aria-label', 'Data que conta');
+  barra.querySelectorAll('button').forEach((b) => {
+    b.type = 'button';
+    b.classList.remove('date-mode-btn', 'active');
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(b.id === `diario-mode-${diarioDateMode}`));
+  });
+  const botao = diarioBotao();
+  if (botao) { botao.classList.remove('vb-botao', 'principal'); botao.classList.add('v2d-acao', 'v2-estado'); }
+}
+
+function diarioBotao() { return document.querySelector('#painel-diario .vb-cabecalho-acoes > button[onclick^="salvarSnapshot"]'); }
+
+function setDiarioDateMode(mode) {
+  diarioDateMode = mode === 'prazo' ? 'prazo' : 'veiculacao';
+  diarioCabecalho();
   if (diarioSnapshotAtivo) renderDiarioDetalhe(diarioSnapshotAtivo);
+  else diarioPintar();
+}
+
+// O botão conta o estado: gira enquanto grava e fica verde, "Registrado", quando o registro entra.
+function diarioBotaoEstado(estado) {
+  const botao = diarioBotao();
+  if (!botao) return null;
+  if (estado) botao.dataset.estado = estado; else delete botao.dataset.estado;
+  botao.innerHTML = estado === 'feito' ? `${DIARIO_CERTO}Registrado` : 'Registrar agora';
+  return botao;
 }
 
 async function salvarSnapshot() {
+  if (diarioBotao()?.dataset.estado) return;
+  diarioBotaoEstado('indo');
   try {
     const resposta = await fetch('/api/painel?area=diario', { method:'POST', credentials:'same-origin', headers:{ 'Content-Type':'application/json' }, body:'{}' });
     const dados = await resposta.json();
     if (!resposta.ok) throw new Error(dados?.error || `Falha ao salvar (${resposta.status})`);
     diarioSnapshotsCarregados = false;
+    diarioComparado = null;
+    diarioAberto = undefined;
+    diarioBotaoEstado('feito');
+    setTimeout(() => diarioBotaoEstado(''), 1800);
     showToast('Registro do dia salvo.', 'ok');
     await renderDiarioLista(true);
   } catch (erro) {
+    diarioBotaoEstado('');
     showToast(`Não foi possível salvar o registro: ${erro.message}`, 'err', 6000);
   }
 }
@@ -47,9 +206,33 @@ async function carregarSnapshots(forcar=false) {
   const resposta = await fetch(`/api/painel?area=diario&limite=${DIARIO_MAX}`, { credentials:'same-origin', cache:'no-store' });
   const dados = await resposta.json();
   if (!resposta.ok) throw new Error(dados?.error || `Falha ao carregar (${resposta.status})`);
-  diarioSnapshots = (dados.snapshots || []).map(normalizarSnapshotDiario);
+  // As peças já abertas continuam na mão: a lista do servidor vem sem elas.
+  const abertos = new Map(diarioSnapshots.filter((s) => s.temItens).map((s) => [`${s.id}|${s.atualizado_em}`, s]));
+  diarioSnapshots = (dados.snapshots || []).map(normalizarSnapshotDiario).map((s) => abertos.get(`${s.id}|${s.atualizado_em}`) || s);
   diarioSnapshotsCarregados = true;
   return diarioSnapshots;
+}
+
+// Abre as peças dos registros pedidos (os que ainda vieram sem elas). Quem falhar fica marcado e não é pedido de novo.
+async function diarioGarantirItens(registros) {
+  const faltam = registros.filter((s) => s && !diarioTemItens(s) && !s.semItens && Number.isFinite(Number(s.id)));
+  await Promise.all(faltam.map(async (s) => {
+    let novo = null;
+    try {
+      const resposta = await fetch(`/api/painel?area=diario&id=${encodeURIComponent(s.id)}`, { credentials:'same-origin', cache:'no-store' });
+      const dados = await resposta.json();
+      if (resposta.ok && dados?.snapshot) novo = normalizarSnapshotDiario(dados.snapshot);
+    } catch { novo = null; }
+    if (!novo) { s.semItens = true; return; }
+    const troca = (x) => (Number(x.id) === Number(s.id) ? novo : x);
+    diarioSnapshots = diarioSnapshots.map(troca);
+    diarioLista = diarioLista.map(troca);
+  }));
+}
+function diarioPrecisos() {
+  const i = Math.max(0, diarioLista.findIndex((s) => Number(s.id) === Number(diarioComparado)));
+  const ate = diarioTodos ? diarioLista.length : DIARIO_VISIVEIS + 1;
+  return [...diarioLista.slice(0, ate), diarioLista[i], diarioLista[i + 1]];
 }
 
 async function renderDiarioLista(forcar=false) {
@@ -57,53 +240,164 @@ async function renderDiarioLista(forcar=false) {
   try { lista = await carregarSnapshots(forcar); }
   catch (erro) {
     const legado = (() => { try { return JSON.parse(localStorage.getItem(DIARIO_KEY) || '[]'); } catch { return []; } })();
-    lista = legado;
+    lista = Array.isArray(legado) ? legado : [];
     showToast(`Diário central indisponível: ${erro.message}`, 'err', 5000);
   }
   const el = document.getElementById('diario-snapshots-list');
   if (!el) return;
   document.getElementById('diario-lista').style.display = 'block';
   document.getElementById('diario-detalhe').style.display = 'none';
-  if (lista.length === 0) {
-    // Quadro 10: o estado vazio explica para que serve; o botão fica só no topo.
-    el.innerHTML = vbEstadoHtml({ titulo: 'Nenhum registro salvo ainda', texto: 'Um registro guarda como estão os conteúdos agora, para comparar com outro dia. Use “Registrar agora”, no topo.' });
-    return;
-  }
-  // Linha do tempo: dia legível, hora, total, o retrato pequeno do estado e a variação para o registro anterior.
-  const diaDe = (txt) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\D+(\d{2}:\d{2}))?/.exec(String(txt || '')); return m ? { d: new Date(+m[3], +m[2] - 1, +m[1]), hora: m[4] || '' } : null; };
-  const hojeD = new Date(); hojeD.setHours(0, 0, 0, 0);
-  const rotuloDia = (d) => { const dif = Math.round((hojeD - d) / 864e5); if (dif === 0) return 'Hoje'; if (dif === 1) return 'Ontem';
-    const t = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).replace(/\./g, ''); return t.charAt(0).toUpperCase() + t.slice(1); };
-  el.innerHTML = `<div class="diario-linha-tempo">${lista.map((s, i) => {
-    const info = diaDe(s.dataHora), ant = lista[i + 1], dif = ant ? Number(s.total || 0) - Number(ant.total || 0) : null;
-    const infoAnt = ant ? diaDe(ant.dataHora) : null;
-    const contra = !infoAnt ? '' : info && Math.round((info.d - infoAnt.d) / 864e5) === 1 ? 'vs. ontem'
-      : `vs. ${infoAnt.d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
-    const varia = dif === null ? '' : `<span class="diario-varia ${dif > 0 ? 'sobe' : dif < 0 ? 'desce' : 'igual'}" title="Total de conteúdos comparado com o registro anterior">${dif > 0 ? '+' : ''}${dif === 0 ? 'igual' : dif.toLocaleString('pt-BR')}${contra ? ` <small>${contra}</small>` : ''}</span>`;
-    return `<div class="diario-registro" role="button" tabindex="0" onclick="abrirSnapshot(${s.id})" onkeydown="if(event.key==='Enter')abrirSnapshot(${s.id})">
-      <span class="diario-ponto" aria-hidden="true"></span>
-      <div class="diario-quando"><b>${info ? rotuloDia(info.d) : String(s.dataHora || '').replace(/[<>&]/g, '')}</b><small>${info?.hora ? 'às ' + info.hora : ''}</small></div>
-      ${diarioMiniHtml(s)}
-      <div class="diario-total"><b>${Number(s.total || 0).toLocaleString('pt-BR')}</b><small>${Number(s.total || 0) === 1 ? 'conteúdo' : 'conteúdos'}</small></div>
-      ${varia}
-      <span class="diario-abrir">Abrir →</span>
-      <button type="button" class="diario-apagar" title="Apagar este registro" aria-label="Apagar este registro" onclick="event.stopPropagation();excluirSnapshot(${s.id})">×</button>
-    </div>`; }).join('')}</div>`;
+  diarioCabecalho();
+  diarioLista = lista;
+  if (lista.length && !el.querySelector('.v2d-dois') && typeof vbEstadoHtml === 'function') el.innerHTML = vbEstadoHtml({ tipo: 'carregando', titulo: 'Abrindo os registros' });
+  if (lista.length) await diarioGarantirItens(diarioPrecisos());
+  diarioPintar();
 }
 
-// O retrato pequeno de um registro (quadro 10), com os números que o próprio registro guardou (payload.conteudos):
-// com data, sem data e com o prazo já passado. O prazo passado conta peça de qualquer status, finalizada inclusive,
-// então não é chamado de "atrasado". Registro antigo sem esses números fica sem o retrato.
-function diarioMiniHtml(s) {
-  const c = s?.payload?.conteudos || {};
-  const ativos = Number(c.ativos), semData = Number(c.sem_data), passado = Number(c.prazo_passado);
-  if (![ativos, semData, passado].every(Number.isFinite) || ativos <= 0) return '<span class="diario-mini vazio" aria-hidden="true"></span>';
-  const comData = Math.max(0, ativos - semData - passado);
-  const fmt = (n) => n.toLocaleString('pt-BR');
-  const frase = `${fmt(comData)} com data à frente, ${fmt(semData)} sem data, ${fmt(passado)} com o prazo já passado (de qualquer status)`;
-  const maior = Math.max(comData, semData, passado, 1); // a maior barra enche o quadro; a frase leva os números
-  const barra = (n, cls) => `<i class="${cls}" style="height:${Math.max(n ? 8 : 0, Math.round((n / maior) * 100))}%"></i>`;
-  return `<span class="diario-mini" role="img" aria-label="${frase}" title="${frase}">${barra(comData, 'ok')}${barra(semData, 'atencao')}${barra(passado, 'passou')}</span>`;
+function diarioComparar(id) {
+  diarioComparado = Number(id);
+  diarioAberto = Number(id);
+  diarioEtapasTodas = false;
+  diarioGarantirItens(diarioPrecisos()).then(diarioPintar);
+}
+// A linha abre no lugar, sem redesenhar a tela.
+function diarioAbrirLinha(id) {
+  diarioAberto = Number(diarioAberto) === Number(id) ? null : Number(id);
+  document.querySelectorAll('#diario-snapshots-list .v2d-reg').forEach((linha) => {
+    const aberta = Number(linha.dataset.registro) === Number(diarioAberto);
+    linha.setAttribute('aria-expanded', String(aberta));
+    linha.querySelector('.v2d-quem')?.setAttribute('aria-expanded', String(aberta));
+  });
+}
+function diarioMostrarTodos(sim) {
+  diarioTodos = Boolean(sim);
+  diarioPintar();
+  if (diarioTodos) diarioGarantirItens(diarioPrecisos()).then(diarioPintar);
+}
+function diarioMostrarEtapas(sim) { diarioEtapasTodas = Boolean(sim); diarioPintar(); }
+
+function diarioFalaHtml(atual, ant, m) {
+  const n = diarioNumeros(atual);
+  let frase;
+  if (!n) frase = `Não deu para abrir as peças deste registro. ${diarioEsc(diarioRetratoTexto(atual))}.`;
+  else if (!ant) frase = `Este é o primeiro registro guardado: <b>${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'pronta' : 'prontas'} na semana</b>, ${diarioFmt(n.atrasadas)} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'} e ${diarioFmt(n.alteracao)} em alteração. O próximo registro mostra o que mudou.`;
+  else if (!m) frase = `Não deu para abrir o registro anterior para comparar. Neste, <b>${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'pronta' : 'prontas'} na semana</b>, ${diarioFmt(n.atrasadas)} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'} e ${diarioFmt(n.alteracao)} em alteração.`;
+  else {
+    const p = m.prontas.length, a = m.passaram.length;
+    const prontas = p === 0 ? 'nenhuma peça ficou pronta' : p === 1 ? '1 peça ficou pronta' : `${diarioFmt(p)} peças ficaram prontas`;
+    const passou = a === 0 ? `nenhuma passou ${diarioNomeData()}` : a === 1 ? `1 passou ${diarioNomeData()}` : `${diarioFmt(a)} passaram ${diarioNomeData()}`;
+    const cresceu = diarioEtapas(m).filter((e) => !e.pronta && e.dif > 0).sort((x, y) => y.dif - x.dif)[0];
+    frase = `Do registro ${diarioDe(ant, atual)} para o ${diarioDe(atual, ant)}, <b>${prontas}</b> e <b>${passou}</b>.${cresceu ? ` A etapa que mais cresceu foi ${diarioEsc(cresceu.nome)}: de ${diarioFmt(cresceu.n - cresceu.dif)} para ${diarioFmt(cresceu.n)}.` : ''}`;
+  }
+  return `<div class="v2d-card v2d-fala"><span class="v2d-ag" aria-hidden="true">H</span><p><span class="v2d-quem-fala">Heitor · Coordenação de produção</span>${frase}</p></div>`;
+}
+
+function diarioNumerosHtml(atual, ant) {
+  const n = diarioNumeros(atual), a = ant ? diarioNumeros(ant) : null;
+  const eram = (v) => (a ? `${v === 1 ? 'era' : 'eram'} ${diarioFmt(v)} no registro ${diarioDe(ant, atual)}` : n ? 'primeiro registro guardado' : 'sem as peças deste registro');
+  const cartao = (rotulo, chave, cls, atraso) => `<div class="v2d-card v2d-kpi${cls ? ` ${cls}` : ''}"><small>${rotulo}</small><b><span class="v2-num"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${n ? diarioFmt(n[chave]) : '·'}</span></b><small>${eram(a ? a[chave] : 0)}</small></div>`;
+  return `<div class="v2d-tres">${cartao('Prontas da semana', 'prontas', '', '')}${cartao('Atrasadas', 'atrasadas', 'ruim', '.12s')}${cartao('Em alteração', 'alteracao', 'atencao', '.24s')}</div>`;
+}
+
+function diarioRegistroHtml(s, ant, comparado) {
+  const q = diarioQuando(s), n = diarioNumeros(s), m = ant ? diarioMudanca(ant, s) : null;
+  const origem = DIARIO_ORIGEM[s.origem] || '';
+  const avatar = s.origem && s.origem !== 'manual_painel' ? 'VY' : DIARIO_PESSOA;
+  const cer = n ? `${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'pronta' : 'prontas'} · ${diarioFmt(n.atrasadas)} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'} · ${diarioFmt(n.alteracao)} em alteração` : diarioRetratoTexto(s).split(',')[0];
+  let selo = '';
+  if (m) {
+    const p = m.prontas.length, dA = m.b.atrasadas - m.a.atrasadas;
+    selo = p > 0 ? `<span class="v2d-pill g">+${diarioFmt(p)} ${p === 1 ? 'pronta' : 'prontas'}</span>`
+      : dA > 0 ? `<span class="v2d-pill r">+${diarioFmt(dA)} ${dA === 1 ? 'atrasada' : 'atrasadas'}</span>`
+      : dA < 0 ? `<span class="v2d-pill g">${diarioSinal(dA)} ${dA === -1 ? 'atrasada' : 'atrasadas'}</span>`
+      : '<span class="v2d-pill n">igual</span>';
+  }
+  const hist = [];
+  if (m) {
+    const p = m.prontas.length, a = m.passaram.length, v = m.voltaram.length;
+    if (p) hist.push(`<span>${p === 1 ? '1 ficou pronta' : `${diarioFmt(p)} ficaram prontas`}: ${diarioClientesHtml(m.prontas)}</span>`);
+    if (a) hist.push(`<span>${a === 1 ? '1 passou' : `${diarioFmt(a)} passaram`} ${diarioNomeData()}: ${diarioClientesHtml(m.passaram)}</span>`);
+    if (v) hist.push(`<span>${v === 1 ? '1 voltou' : `${diarioFmt(v)} voltaram`} para Alteração</span>`);
+    if (!hist.length) hist.push('<span>Nada mudou desde o registro anterior.</span>');
+  } else if (!ant) hist.push('<span>Primeiro registro guardado.</span>');
+  const retrato = diarioRetratoTexto(s);
+  if (retrato) hist.push(`<span>${diarioEsc(retrato)}</span>`);
+  const aberta = Number(diarioAberto) === Number(s.id);
+  const id = Number(s.id);
+  return `<div class="v2-abre v2d-reg" data-registro="${id}" aria-expanded="${aberta}">
+    <div class="v2d-lin"><i class="v2d-pt${comparado ? ' on' : ''}" aria-hidden="true"></i><span class="v2d-av" aria-hidden="true">${avatar}</span>
+      <button type="button" class="v2d-quem" aria-expanded="${aberta}" onclick="diarioAbrirLinha(${id})"><span><b>${q ? diarioHora(q) : diarioEsc(s.dataHora || '')}</b>${origem ? ` · ${origem}` : ''}</span><small>${diarioEsc(cer)}</small></button>
+      ${selo}<button type="button" class="v2d-btn" onclick="diarioComparar(${id})">Comparar</button></div>
+    <div class="v2-mais"><div>
+      ${hist.map((h) => `<p class="v2d-hist">${h}</p>`).join('')}
+      <p class="v2d-hist v2d-acoes"><span><button type="button" class="v2d-link" onclick="abrirSnapshot(${id})">Ver as peças</button> · <button type="button" class="v2d-link" onclick="excluirSnapshot(${id})">Apagar registro</button></span></p>
+    </div></div>
+  </div>`;
+}
+
+function diarioRegistrosHtml(lista, atual) {
+  const visiveis = diarioTodos ? lista : lista.slice(0, DIARIO_VISIVEIS);
+  let dia = '';
+  const linhas = visiveis.map((s, i) => {
+    const q = diarioQuando(s), rotulo = q ? diarioRotuloDia(q) : '';
+    const cab = rotulo && rotulo !== dia ? `<p class="v2d-dl">${rotulo}</p>` : '';
+    dia = rotulo || dia;
+    return cab + diarioRegistroHtml(s, lista[i + 1] || null, s === atual);
+  }).join('');
+  const resto = lista.length - DIARIO_VISIVEIS;
+  const pe = resto <= 0 ? '' : diarioTodos
+    ? '<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarTodos(false)">Mostrar menos</button></p>'
+    : `<p class="v2d-pe">+ ${diarioFmt(resto)} ${resto === 1 ? 'registro' : 'registros'} · <button type="button" class="v2d-link" onclick="diarioMostrarTodos(true)">mostrar</button></p>`;
+  return `<section class="v2d-card v2d-registros" aria-label="Registros">
+    <div class="v2d-topo"><h3>Registros</h3><small>${diarioFmt(lista.length)} ${lista.length === 1 ? 'guardado' : 'guardados'} · o mais novo em cima</small></div>
+    <div class="v2d-tl">${linhas}</div>${pe}
+  </section>`;
+}
+
+function diarioMudouHtml(atual, ant, m) {
+  const qa = diarioQuando(atual), qb = ant ? diarioQuando(ant) : null;
+  const entre = !qa || !qb ? '' : diarioIso(qa) === diarioIso(qb) ? `${diarioDiaCurto(qa)}, ${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`;
+  let corpo;
+  if (!ant) corpo = '<p class="v2d-nada">Com dois registros guardados, as etapas aparecem aqui lado a lado.</p>';
+  else if (!m) corpo = '<p class="v2d-nada">Não deu para abrir as peças destes dois registros.</p>';
+  else {
+    const todas = diarioEtapas(m);
+    let visiveis = todas;
+    if (!diarioEtapasTodas && todas.length > DIARIO_ETAPAS) {
+      const escolha = new Set([...todas].sort((x, y) => (y.pronta ? 1 : 0) - (x.pronta ? 1 : 0) || (y.dif ? 1 : 0) - (x.dif ? 1 : 0) || y.n - x.n).slice(0, DIARIO_ETAPAS));
+      visiveis = todas.filter((e) => escolha.has(e));
+    }
+    const maior = Math.max(1, ...todas.map((e) => e.n));
+    const linhas = visiveis.map((e) => {
+      const subiu = e.dif > 0 && (e.pronta || /altera/i.test(e.nome));
+      const cor = e.pronta ? '#11613A' : subiu ? '#9A5B00' : '#1F1D1A';
+      return `<div class="v2d-et"><span><span class="v2d-pill ${diarioCorEtapa(e.nome, e.pronta)}" title="${diarioEsc(e.nome)}">${diarioEsc(e.nome)}</span></span><div class="v2-barra"><i style="--v:${Math.round((e.n / maior) * 100)}%;--c:${cor}"></i></div><b>${diarioFmt(e.n)}</b><span class="v2d-dt${subiu ? (e.pronta ? ' g' : ' a') : ''}">${diarioSinal(e.dif)}</span></div>`;
+    }).join('');
+    const fora = todas.filter((e) => !visiveis.includes(e));
+    const pe = fora.length
+      ? `<p class="v2d-pe">+ ${fora.length === 1 ? 'outra etapa' : `outras ${fora.length} etapas`}${fora.some((e) => e.dif) ? '' : ', sem mudança'} · <button type="button" class="v2d-link" onclick="diarioMostrarEtapas(true)">mostrar</button></p>`
+      : diarioEtapasTodas && todas.length > DIARIO_ETAPAS ? '<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarEtapas(false)">Mostrar menos</button></p>' : '';
+    corpo = `<div class="v2d-ets">${linhas}</div>${pe}`;
+  }
+  return `<section class="v2d-card v2d-mudou" aria-label="O que mudou">
+    <div class="v2d-topo"><h3>O que mudou</h3>${entre ? `<small>${entre}</small>` : ''}</div>${corpo}
+  </section>`;
+}
+
+function diarioPintar() {
+  const el = document.getElementById('diario-snapshots-list');
+  if (!el) return;
+  const lista = diarioLista;
+  if (!lista.length) {
+    el.innerHTML = `<div class="v2d"><div class="v2d-card v2d-vazio" role="status"><p>Nenhum registro salvo ainda.</p></div>${DIARIO_PE}</div>`;
+    return;
+  }
+  let i = lista.findIndex((s) => Number(s.id) === Number(diarioComparado));
+  if (i < 0) i = 0;
+  const atual = lista[i], ant = lista[i + 1] || null;
+  if (diarioAberto === undefined) diarioAberto = Number(atual.id);
+  const m = ant ? diarioMudanca(ant, atual) : null;
+  el.innerHTML = `<div class="v2d">${diarioFalaHtml(atual, ant, m)}${diarioNumerosHtml(atual, ant)}<div class="v2d-dois">${diarioRegistrosHtml(lista, atual)}${diarioMudouHtml(atual, ant, m)}</div>${DIARIO_PE}</div>`;
 }
 
 async function abrirSnapshot(id) {

@@ -502,8 +502,8 @@ function fcPodeAdicionar(campo) {
   return typeof podeGerirEtiquetas === 'function' && podeGerirEtiquetas();
 }
 function fcAdicionarOpcaoHtml(campo) {
-  return fcPodeAdicionar(campo) ? `<button type="button" class="fc-mais" data-adicionar="${campo}"
-    onclick="fcAbrirNovaOpcao('${campo}')">+ ${esc(fcConfigOpcao(campo).titulo)}</button>` : '';
+  return fcPodeAdicionar(campo) ? `<button type="button" class="nd-chip nd-novo" data-adicionar="${campo}"
+    onclick="fcAbrirNovaOpcao('${campo}')">${esc(fcConfigOpcao(campo).titulo)}</button>` : '';
 }
 window.fcAbrirNovaOpcao = function(campo) {
   if (fcEnviando || !fcPodeAdicionar(campo)) return;
@@ -673,48 +673,36 @@ function fcGrupoDoQuadro(grupo) {
      titleEl.textContent = n > 1
        ? `${formatText} - ${titleText}  +${n - 1}`
        : `${formatText} - ${titleText}`;
-     // A prévia mostra os clientes na cor de cada um, como a escolha (cliCor escapa o nome).
+     // Os clientes com o ponto da carteira de cada um.
      const escolhidos = state.clients?.length ? state.clients : (state.client ? [state.client] : []);
-     if (escolhidos.length && typeof cliCor === 'function') clientEl.innerHTML = escolhidos.map((c) => cliCor(c)).join(' ');
-     else clientEl.textContent = escolhidos.join(', ') || 'Cliente não selecionado';
-     
+     const carteira = (c) => (typeof carteiraDoCliente === 'function' ? carteiraDoCliente(c) : '');
+     if (escolhidos.length) clientEl.innerHTML = escolhidos.map((c) => `<span class="nd-cli" data-carteira="${esc(carteira(c))}">${esc(c)}</span>`).join(' ');
+     else clientEl.textContent = 'Cliente não selecionado';
+
      const groups = Object.fromEntries(fcQuadro().grupos.map(g=>[g.val,g.label]));
      const finalGroup = fcGrupoDoQuadro(state.manualGroup !== undefined ? state.manualGroup : dest.group);
      const finalGroupLabel = groups[finalGroup] || 'Redação';
      const finalStatus = state.manualStatus !== undefined ? state.manualStatus : fcStatusSugerido(dest.status);
      const finalCap = state.manualCap !== undefined ? state.manualCap : (dest.capture ? 'Agendar Captação' : '');
-     
+
      groupEl.textContent = finalGroupLabel;
-     
-     const getCol = fcCorDeStatus;
-     const stObj = getCol(finalStatus);
-     const bgStatus = stObj.bg;
-     const txtStatus = stObj.color;
-     const brdStatus = stObj.border;
-     let statusesHtml = `<span class="fc-prev-tag" style="background:${bgStatus}; color:${txtStatus}; border-color:${brdStatus};">${esc(finalStatus)}</span>`;
-     
-     if (finalCap) {
-         const capObj = getCol(finalCap);
-         const bgCap = capObj.bg;
-         const txtCap = capObj.color;
-         const brdCap = capObj.border;
-         statusesHtml += `<span class="fc-prev-tag" style="background:${bgCap}; color:${txtCap}; border-color:${brdCap};">CAPTAÇÃO: ${esc(finalCap)}</span>`;
-     }
-     statusEl.innerHTML = statusesHtml;
-     
-     datesEl.innerHTML = state.veic ? `${state.board === 'demandas' ? 'Conclusão' : 'Veiculação'}: ${state.veic.split('-').reverse().join('/')}` : 'Prazos pendentes';
-     
+
+     // A pílula tira o fundo claro e o texto escuro da cor que o status tem no quadro.
+     const pilula = (rotulo, cor) => `<span class="nd-pill" style="--c:${cor}">${esc(rotulo)}</span>`;
+     statusEl.innerHTML = pilula(finalStatus, fcCorDeStatus(finalStatus).color)
+       + (finalCap ? pilula(`Captação: ${finalCap}`, fcCorDeStatus(finalCap).color) : '');
+
+     const diaDaSemana = (iso) => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(`${iso}T12:00:00`).getDay()];
+     datesEl.textContent = state.veic
+       ? `${state.board === 'demandas' ? 'conclusão' : 'no ar'} ${diaDaSemana(state.veic)} ${state.veic.slice(8, 10)}/${state.veic.slice(5, 7)}`
+       : 'sem data';
+
      const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
      const assignedUsers = fcEquipeFinal(dest).map(id => users.find(u => String(u.id) === String(id))).filter(Boolean);
      
-     if (assignedUsers.length) {
-         usersEl.innerHTML = assignedUsers.map(u => {
-             const avatar = u.photo ? `<img src="${u.photo}">` : `<span>${u.name[0]}</span>`;
-             return `<div class="fc-avatar" style="background:${u.color}" title="${esc(u.name)}">${avatar}</div>`;
-         }).join('');
-     } else {
-         usersEl.textContent = 'Definido na Triagem';
-     }
+     usersEl.textContent = assignedUsers.length
+       ? assignedUsers.map((u) => String(u.name).split(' ')[0]).join(', ')
+       : 'triagem';
   }
 
   window.fcHandleInput = function(key, val) {
@@ -765,8 +753,9 @@ function fcGrupoDoQuadro(grupo) {
         state.removidos = (state.removidos || []).filter((x) => String(x) !== chave);
         if (!(dest.assignees || []).map(String).includes(chave)) state.assignees.push(id);
      }
-     renderPersons();
-     updateDestinyUI();
+     state.pessoasAbertas = true;
+     fcDesenharPasso();
+     Array.from(document.querySelectorAll('#fc-persons-container .nd-chip')).find((b) => b.getAttribute('onclick') === `fcTogglePerson('${id}')`)?.focus({ preventScroll: true });
   };
 
   function renderPersons() {
@@ -782,20 +771,13 @@ function fcGrupoDoQuadro(grupo) {
      container.innerHTML = users.map(u => {
         const id = String(u.id);
         const active = dentro.has(id);
-        const avatar = u.photo ? `<img src="${u.photo}">` : `<span>${u.name[0]}</span>`;
         // Marcar quem veio da regra explica por que a ficha ja nasceu ligada, e
         // deixa claro que tirar dali e uma excecao consciente, nao um descuido.
-        const selo = active && porRegra.has(id) ? '<i class="fc-person-regra" title="Escolhido pela regra do formato">regra</i>'
-          : (fora.has(id) ? '<i class="fc-person-tirado" title="A regra escolheria, você tirou">tirado</i>' : '');
-        return `
-          <div class="fc-person-btn ${active?'active':''} ${fora.has(id)?'tirado':''}"
-               onclick="fcTogglePerson('${u.id}')"
-               title="${active ? 'Clique para tirar' : 'Clique para somar'} ${esc(u.name)}"
-               role="button" aria-pressed="${active}">
-             <div class="fc-avatar" style="background:${u.color}">${avatar}</div>
-             ${u.name.split(' ')[0]}${selo}
-          </div>
-        `;
+        const selo = active && porRegra.has(id) ? '<i class="nd-selo" title="Escolhido pela regra do formato">regra</i>'
+          : (fora.has(id) ? '<i class="nd-selo" title="A regra escolheria, você tirou">tirado</i>' : '');
+        return `<button type="button" role="checkbox" aria-checked="${active}" class="nd-chip${active ? ' on' : ''}"
+               onclick="fcTogglePerson('${u.id}')" title="${active ? 'Clique para tirar' : 'Clique para somar'} ${esc(u.name)}">
+             <span class="nd-av">${esc(String(u.name).trim().slice(0, 2).toUpperCase())}</span>${esc(u.name.split(' ')[0])}${selo}</button>`;
      }).join('');
   }
 
@@ -976,9 +958,9 @@ function fcGrupoDoQuadro(grupo) {
                if(colorObj.color === '#c4c4c4' || colorObj.color === '#ffcb00') valEl.style.color = '#000';
                valEl.style.border = 'none';
            } else {
-               valEl.style.background = 'rgba(0,0,0,0.3)';
-               valEl.style.color = '#fff';
-               valEl.style.border = '1px solid rgba(255,255,255,0.1)';
+               valEl.style.background = '#F9F8F5';
+               valEl.style.color = '#1F1D1A';
+               valEl.style.border = 'none';
            }
        }
        // Estava fora do if e chamava de volta o caminho automatico:
@@ -998,21 +980,28 @@ function fcGrupoDoQuadro(grupo) {
   const FC_PASSOS = ['board', 'client', 'format', 'itens', 'destino'];
   let fcPasso = 0;
 
-  const FC_ROTULO = { board:'Onde', client:'Cliente', itens:'Conteúdos', destino:'Destino' };
-  function fcRotulo(p) { return p === 'format' ? fcQuadro().rotuloFormato
-    : p === 'itens' && state.board === 'demandas' ? 'Demandas' : FC_ROTULO[p]; }
-
-  function fcPergunta(p) {
-    if (p === 'board')   return ['O que você vai cadastrar?', 'Os dois quadros têm etapas e status diferentes.'];
-    if (p === 'client')  return ['Para quais clientes?', 'Selecione um ou mais clientes. A atividade será única e vinculada a todos.'];
-    if (p === 'format')  return [`Qual ${fcQuadro().rotuloFormato.toLowerCase()}?`,
-                                 'É isto que decide para qual etapa a peça vai.'];
-    if (p === 'itens') {
-      const n = state.itens.length;
-      return [n === 1 ? 'O que vai ser cadastrado?' : `Os ${n} conteúdos`,
-        `Cliente e ${fcQuadro().rotuloFormato.toLowerCase()} valem para todos. Título, data e briefing são de cada um.`];
-    }
-    return ['Confira antes de criar', 'Tudo aqui veio das regras de entrada. Mude o que quiser.'];
+  // TRÊS ETAPAS NA TELA, AS MESMAS CINCO CONFERÊNCIAS POR BAIXO (padrão v2, quadro "Nova demanda em etapas").
+  //
+  // A tela mostra três cartões lado a lado: O quê (quadro, formato e título), Para quem (clientes e responsável)
+  // e Quando (a data do cliente; o prazo interno sai dela). Objetivo, briefing, arquivo, grupo e status de entrada
+  // ficam em "Mais campos". O que é conferido antes de criar não mudou: FC_PASSOS e fcRespondido são os de sempre,
+  // e quando falta algo a tela leva para o cartão (ou para Mais campos) onde a resposta mora.
+  const FC_ETAPAS = ['O quê', 'Para quem', 'Quando'];
+  const FC_ETAPA_SUB = ['formato e título', 'um ou mais clientes', 'a data do cliente manda'];
+  const FC_FALTA_ETAPA = ['Escolha o formato e escreva o título.', 'Escolha o cliente.', 'Escolha a data.'];
+  let fcEtapa = 0;
+  const fcTemTexto = (v) => Boolean(String(v || '').trim());
+  function fcEtapaFeita(n) {
+    if (n === 0) return Boolean(state.format) && state.itens.every((i) => fcTemTexto(i.titulo));
+    if (n === 1) return Boolean(state.client);
+    return state.itens.every((i) => i.veic && i.prazo);
+  }
+  // Em qual cartão mora a resposta que falta para a conferência p.
+  function fcEtapaDoPasso(p) {
+    if (p === 'board' || p === 'format') return 0;
+    if (p === 'client') return 1;
+    if (p === 'itens') return state.itens.some((i) => !fcTemTexto(i.titulo)) ? 0 : 2;
+    return 2;
   }
 
   function fcRespondido(p) {
@@ -1029,117 +1018,247 @@ function fcGrupoDoQuadro(grupo) {
   const FC_OBJETIVOS = [['atracao', 'Atração', '#1F7AE0', 'traz gente nova'], ['educacao', 'Educação', '#0E8F6E', 'explica e gera confiança'],
     ['conversao', 'Conversão', '#C2490C', 'chama para comprar']];
   function fcObjetivoHtml() {
-    return `<div class="fc-objetivo"><span class="fc-dica">Objetivo da peça <small>(opcional · vale para todos os conteúdos)</small></span>
-      <div class="fc-escolhas" role="radiogroup" aria-label="Objetivo da peça">${FC_OBJETIVOS.map(([v, r, cor, dica]) => `
-        <button type="button" role="radio" class="fc-escolha ${state.objetivo === v ? 'marcada' : ''}" aria-checked="${state.objetivo === v}"
-          title="${dica}" onclick="fcEscolherObjetivo('${v}')"><i class="fc-objetivo-ponto" style="background:${cor}" aria-hidden="true"></i>${r}</button>`).join('')}</div></div>`;
+    return `<div class="fc-objetivo nd-objetivo"><p class="nd-rot">Objetivo da peça <span class="nd-neutro">opcional · vale para todos os conteúdos</span></p>
+      <div class="nd-fileira" role="radiogroup" aria-label="Objetivo da peça">${FC_OBJETIVOS.map(([v, r, cor, dica]) => `
+        <button type="button" role="radio" class="nd-chip${state.objetivo === v ? ' on' : ''}" aria-checked="${state.objetivo === v}"
+          title="${dica}" onclick="fcEscolherObjetivo('${v}')"><i class="nd-ponto" style="background:${cor}" aria-hidden="true"></i>${r}</button>`).join('')}</div></div>`;
   }
   window.fcEscolherObjetivo = function(valor) {
     state.objetivo = state.objetivo === valor ? '' : valor;
     const caixa = document.querySelector('#fc-overlay .fc-objetivo');
     if (caixa) caixa.outerHTML = fcObjetivoHtml();
+    document.querySelector('#fc-overlay .fc-objetivo .nd-chip.on, #fc-overlay .fc-objetivo .nd-chip')?.focus({ preventScroll: true });
   };
 
-  function fcCorpo(p) {
-    const esc2 = (t) => esc(String(t == null ? '' : t));
-    if (p === 'board') {
-      return ['producao', 'demandas'].map((q) => `
-        <button type="button" class="fc-escolha grande ${state.board === q ? 'marcada' : ''}"
-          onclick="fcEscolherQuadro('${q}')">
-          <b>${esc2(FC_QUADROS[q].nome)}</b>
-          <small>${q === 'producao' ? 'Conteúdo que a Vybe produz e publica'
-                                    : 'Pedido que chega e precisa de triagem'}</small></button>`).join('')
-        // O calendário sazonal é um atalho para começar (quadro 08): junto das opções, não solto no topo.
-        + `<button type="button" class="fc-sazonal-btn" onclick="abrirCalendarioSazonal()">
-            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg> Começar pelo calendário sazonal</button>`;
+  const FC_ICONE = {
+    visto: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+    producao: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 15l4-4 4 4 3-3 5 5"/></svg>',
+    demandas: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v10H9l-5 4z"/></svg>',
+    seta: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    erro: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',
+  };
+  const fcTecla = (acao) => `onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();${acao}}"`;
+  // O cliente com o ponto da carteira dele, como no resto do padrão.
+  function fcClienteHtml(nome) {
+    const carteira = typeof carteiraDoCliente === 'function' ? carteiraDoCliente(nome) : '';
+    return `<span class="nd-cli" data-carteira="${esc(carteira)}">${esc(nome)}</span>`;
+  }
+  function fcIniciais(nome) {
+    const partes = String(nome || '').trim().split(/\s+/);
+    return ((partes[0] || '').slice(0, 2)).toUpperCase();
+  }
+  function fcErroHtml(id, texto) {
+    return `<p class="nd-erro" id="${id}" role="alert" hidden>${FC_ICONE.erro}<span>${esc(texto)}</span></p>`;
+  }
+  // Os próximos quatro dias (domingo fica de fora) e "outra", que abre o campo de data.
+  function fcDiasSugeridos() {
+    const dias = [];
+    for (let n = 1; dias.length < 4 && n < 10; n += 1) {
+      const iso = getOffsetDate(todayIso(), n);
+      if (new Date(`${iso}T12:00:00`).getDay() !== 0) dias.push(iso);
     }
-    if (p === 'client') {
-      const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
-      return `<input type="text" class="fc-busca" id="fc-busca-cliente" placeholder="Buscar cliente..."
+    return dias;
+  }
+  function fcRegraDoFormato() {
+    const dest = typeof cadastrosDestiny === 'function'
+      ? cadastrosDestiny(state.format || '', state.briefReady, state.materialReady, state.assignees) : { assignees: [] };
+    const somados = (state.assignees || []).map(String);
+    const daRegra = (dest.assignees || []).map(String).filter((id) => !somados.includes(id));
+    return { dest, daRegra };
+  }
+
+  function fcCartaoOQueHtml(n, it) {
+    const lista = fcListaCatalogo('format');
+    return `
+      ${['producao', 'demandas'].map((q) => `
+        <button type="button" role="radio" aria-checked="${state.board === q}" class="nd-tipo${state.board === q ? ' on' : ''}" onclick="fcEscolherQuadro('${q}')">
+          <span class="nd-ico">${FC_ICONE[q]}</span>
+          <span class="nd-tipo-txt"><b>${esc(FC_QUADROS[q].nome)}</b><span class="nd-sub">${q === 'producao' ? 'o que a Vybe produz e publica' : 'pedido que chega e passa pela triagem'}</span></span></button>`).join('')}
+      <p class="nd-rot" id="fc-label-formato">${esc(fcQuadro().rotuloFormato)}</p>
+      <div class="nd-fileira" role="radiogroup" aria-labelledby="fc-label-formato">${lista.map((f) => `
+        <button type="button" role="radio" aria-checked="${state.format === f}" class="nd-chip${state.format === f ? ' on' : ''}"
+          data-valor="${esc(f)}" onclick="fcEscolherFormato(this.dataset.valor)">${esc(f)}</button>`).join('')}${fcAdicionarOpcaoHtml('format')}</div>
+      ${fcErroHtml('fc-erro-formato', 'Escolha o formato.')}
+      <label class="nd-rot" for="fc-titulo">Título${state.itens.length > 1 ? ` <span>${n + 1} de ${state.itens.length}</span>` : ''}</label>
+      <input type="text" id="fc-titulo" class="nd-campo" data-item="${n}" data-campo="titulo" autocomplete="off"
+        placeholder="Ex.: Promoção de sábado" value="${esc(it.titulo)}" aria-describedby="fc-erro-titulo" oninput="fcItemCampo(${n},'titulo',this.value)">
+      ${fcErroHtml('fc-erro-titulo', 'Escreva o título.')}
+      <p class="nd-sub nd-fim"><button type="button" class="nd-lk" onclick="abrirCalendarioSazonal()">Começar pelo calendário sazonal</button></p>`;
+  }
+
+  function fcCartaoParaQuemHtml() {
+    const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
+    const escolhidos = state.clients?.length ? state.clients : (state.client ? [state.client] : []);
+    // Seis à vista (os escolhidos primeiro); o resto abre no "+ N" ou aparece ao buscar.
+    const ordem = [...clientes.filter((c) => escolhidos.includes(c)), ...clientes.filter((c) => !escolhidos.includes(c))];
+    const aVista = Math.max(6, escolhidos.length);
+    const resto = Math.max(0, ordem.length - aVista);
+    const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+    const { dest, daRegra } = fcRegraDoFormato();
+    const pessoa = (id) => users.find((u) => String(u.id) === String(id));
+    const sugeridos = daRegra.map(pessoa).filter(Boolean);
+    const dentro = new Set(fcEquipeFinal(dest));
+    const aceita = sugeridos.length > 0 && sugeridos.every((u) => dentro.has(String(u.id)));
+    const nomes = sugeridos.map((u) => String(u.name).split(' ')[0]);
+    const outros = users.filter((u) => !daRegra.includes(String(u.id))).slice(0, 3);
+    const fala = sugeridos.length ? `
+      <div class="nd-fala">
+        <span class="nd-ag" aria-hidden="true">R</span>
+        <div class="nd-fala-txt">
+          <p><span class="nd-quem">Regra de entrada · ${esc(state.format)}</span>Sugiro ${sugeridos.length > 1 ? '' : 'o responsável '}<b>${esc(nomes.join(', '))}</b>: é quem a regra do formato escolhe.</p>
+          <div class="nd-fala-acoes">
+            <span class="nd-avs">${sugeridos.slice(0, 3).map((u) => `<span class="nd-av v2-pop" title="${esc(u.name)}">${esc(fcIniciais(u.name))}</span>`).join('')}</span>
+            <button type="button" class="nd-btn s${aceita ? ' feito' : ''}" onclick="fcAceitarRegra(${aceita ? 'false' : 'true'})"
+              title="${aceita ? 'Clique para tirar da demanda' : 'Clique para pôr na demanda'}">${aceita ? `${FC_ICONE.visto}${esc(nomes.join(', '))}` : 'Aceitar'}</button>
+          </div>
+        </div>
+      </div>` : `<p class="nd-sub">${state.format ? 'A regra deste formato não indica ninguém.' : 'Escolha o formato para ver quem a regra de entrada indica.'}</p>`;
+    return `
+      <label class="nd-fora" for="fc-busca-cliente">Buscar cliente</label>
+      <input type="search" class="nd-busca" id="fc-busca-cliente" placeholder="Buscar cliente" autocomplete="off"
           oninput="fcFiltrar('fc-lista-cliente', this.value)">
-        <div class="fc-escolhas" id="fc-lista-cliente">${clientes.map((c) => {
-          // Cada cliente na cor da carteira dele (cliCor, quadro 64); o escolhido ganha o contorno laranja e o visto.
-          const marcado = (state.clients?.length ? state.clients : [state.client]).includes(c);
-          const visto = '<svg class="fc-cli-visto" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-          const nome = typeof cliCor === 'function' ? cliCor(c).replace(/<\/span>$/, visto + '</span>') : esc2(c) + visto;
+      <div class="nd-fileira nd-clientes${state.clientesTodos ? ' todos' : ''}" id="fc-lista-cliente">${ordem.map((c, i) => {
+          const marcado = escolhidos.includes(c);
           return `
-          <button type="button" class="fc-escolha fc-cli ${marcado ? 'marcada' : ''}"
-            aria-pressed="${marcado}" aria-label="${esc2(c)}" data-busca="${esc2(String(c).toLowerCase())}"
-            data-valor="${esc2(c)}" onclick="fcAlternarCliente(this.dataset.valor)">${nome}</button>`;
-        }).join('')}</div>${fcAdicionarOpcaoHtml('client')}`;
-    }
-    if (p === 'format') {
-      const lista = fcListaCatalogo('format');
-      return `<div class="fc-escolhas">${lista.map((f) => `
-        <button type="button" class="fc-escolha ${state.format === f ? 'marcada' : ''}"
-          data-valor="${esc2(f)}" onclick="fcResponder('format', this.dataset.valor)">${esc2(f)}</button>`).join('')}</div>${fcAdicionarOpcaoHtml('format')}`;
-    }
-    if (p === 'itens') {
-      // Mais de três conteúdos: lista curta à esquerda e o conteúdo escolhido à
-      // direita. Vinte cartões empilhados obrigavam a rolar sem fim e a perder
-      // onde se estava.
-      if (state.itens.length > 3) return fcPreencherHtml(esc2);
-      const cartoes = state.itens.map((it, n) => `
-        <div class="fc-item" ondragover="fcArrastando(event,this,true)"
-             ondragleave="fcArrastando(event,this,false)" ondrop="fcSoltarArquivos(event,${n},this)">
-          <div class="fc-item-topo">
-            <b>${n + 1}</b>
-            <span>${esc2(state.format || 'Formato')} - ${esc2(it.titulo || 'sem título')}</span>
-            ${it.veic ? `<small class="fc-item-data" title="${state.board==='demandas'?'Conclusão':'Veiculação'}">${esc2(fcDiaCurto(it.veic))}</small>` : ''}
-            ${state.itens.length > 1
-              ? `<button type="button" class="icone-btn perigo" title="Tirar da lista"
-                   onclick="fcTirarItem(${n})">${typeof ICONE !== 'undefined' ? ICONE.lixo : '×'}</button>`
-              : ''}
-          </div>
-          <input type="text" class="fc-campo" data-item="${n}" data-campo="titulo"
-            placeholder="Título" value="${esc2(it.titulo)}"
-            oninput="fcItemCampo(${n},'titulo',this.value)">
-          <div class="fc-item-datas">
-            <label><span>${state.board==='demandas'?'Conclusão':'Veiculação'}</span>
-              <input type="date" class="fc-campo" data-item="${n}" data-campo="veic" value="${esc2(it.veic)}"
-                oninput="fcItemCampo(${n},'veic',this.value)"></label>
-            <label><span>Prazo de entrega</span>
-              <input type="date" class="fc-campo" data-item="${n}" data-campo="prazo" value="${esc2(it.prazo)}"
-                oninput="fcItemCampo(${n},'prazo',this.value)"></label>
-          </div>
-          <textarea class="fc-campo-texto" data-item="${n}" data-campo="brief"
-            placeholder="Briefing: objetivo, referência, contexto..."
+          <button type="button" role="checkbox" class="nd-chip${marcado ? ' on' : ''}${i >= aVista ? ' nd-resto' : ''}"
+            aria-checked="${marcado}" aria-label="${esc(c)}" data-busca="${esc(String(c).toLowerCase())}"
+            data-valor="${esc(c)}" onclick="fcAlternarCliente(this.dataset.valor)">${fcClienteHtml(c)}</button>`;
+        }).join('')}${resto ? `<button type="button" class="nd-chip nd-mais-clientes" onclick="fcMostrarClientes()">+ ${resto}</button>` : ''}${fcAdicionarOpcaoHtml('client')}</div>
+      ${fcErroHtml('fc-erro-cliente', 'Escolha o cliente.')}
+      <p class="nd-rot">Responsável</p>
+      ${fala}
+      <div class="nd-ou">${sugeridos.length ? '<span class="nd-sub">ou</span>' : ''}<span class="nd-avs">${outros.map((u) => `<span class="nd-av" title="${esc(u.name)}">${esc(fcIniciais(u.name))}</span>`).join('')}</span>
+        <button type="button" class="nd-lk escuro" aria-expanded="${Boolean(state.pessoasAbertas)}" aria-controls="fc-persons-container" onclick="fcAbrirPessoas()">escolher outra pessoa</button></div>
+      <div class="nd-fileira nd-pessoas" id="fc-persons-container"${state.pessoasAbertas ? '' : ' hidden'}></div>
+      <p class="nd-sub nd-fim">Sem responsável, a demanda entra na triagem.</p>`;
+  }
+
+  function fcCartaoQuandoHtml(n, it) {
+    const demanda = state.board === 'demandas';
+    const dias = fcDiasSugeridos();
+    const outra = Boolean(state.outraData) || Boolean(it.veic && !dias.includes(it.veic));
+    const dia = (iso) => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(`${iso}T12:00:00`).getDay()];
+    const curto = (iso) => (iso ? `${dia(iso)} ${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data');
+    return `
+      <span class="nd-seg" role="group" aria-label="Qual data"><span class="${demanda ? '' : 'on'}" title="Produção de conteúdo usa a data de veiculação">Veiculação</span><span class="${demanda ? 'on' : ''}" title="Solicitação de demanda usa a data de conclusão">Conclusão</span></span>
+      <div class="nd-dias" role="radiogroup" aria-label="${demanda ? 'Conclusão' : 'Veiculação'}">${dias.map((iso) => `
+        <button type="button" role="radio" aria-checked="${!outra && it.veic === iso}" class="nd-dia${!outra && it.veic === iso ? ' on' : ''}" onclick="fcEscolherDia('${iso}')">${dia(iso)}<b>${iso.slice(8, 10)}</b></button>`).join('')}
+        <button type="button" role="radio" aria-checked="${outra}" class="nd-dia${outra ? ' on' : ''}" onclick="fcEscolherDia('')">outra<b>···</b></button></div>
+      <label class="nd-data"${outra ? '' : ' hidden'}><span class="nd-sub">${demanda ? 'Conclusão' : 'Veiculação'}</span>
+        <input type="date" id="fc-veic" class="nd-campo" data-item="${n}" data-campo="veic" value="${esc(it.veic)}" oninput="fcItemCampo(${n},'veic',this.value);fcPintarTrilho()"></label>
+      ${fcErroHtml('fc-erro-data', 'Escolha a data.')}
+      <p class="nd-rot">O sistema calcula o resto</p>
+      <div class="nd-trilhos">
+        <label class="nd-trilho"><i></i><span>Prazo interno <span class="nd-sub">7 dias antes</span></span>
+          <input type="date" id="fc-prazo" class="nd-prazo" data-item="${n}" data-campo="prazo" value="${esc(it.prazo)}" title="Prazo de entrega interno · clique para mudar" oninput="fcItemCampo(${n},'prazo',this.value)"></label>
+        <div class="nd-trilho"><i class="ar"></i><span>${demanda ? 'Entrega ao cliente' : 'No ar'}</span><b id="fc-no-ar">${esc(curto(it.veic))}</b></div>
+      </div>
+      <p class="nd-sub nd-fim">${demanda ? 'Conclusão vale para o que não vai ao ar: o prazo é a entrega ao cliente.' : 'Veiculação é o dia em que a peça vai ao ar. Conclusão vale para a solicitação de demanda.'}</p>`;
+  }
+
+  // Mais campos: objetivo, briefing, arquivo, grupo e status de entrada, e as ferramentas de lote.
+  function fcMaisCamposHtml(n, it) {
+    const esc2 = (t) => esc(String(t == null ? '' : t));
+    const demanda = state.board === 'demandas';
+    const varios = state.itens.length > 1;
+    const prontos = state.itens.filter(fcItemPronto).length;
+    const faltam = fcFaltamTexto();
+    return `
+      ${demanda ? '' : fcObjetivoHtml()}
+      <div class="nd-mais-grade">
+        <div class="nd-mais-col" ondragover="fcArrastando(event,this,true)" ondragleave="fcArrastando(event,this,false)" ondrop="fcSoltarArquivos(event,${n},this)">
+          <label class="nd-rot" for="fc-brief">Briefing${varios ? ` · ${n + 1} de ${state.itens.length}` : ''} <span>obrigatório</span></label>
+          <textarea id="fc-brief" class="nd-area fc-campo-texto" data-item="${n}" data-campo="brief" aria-describedby="fc-erro-brief"
+            placeholder="Objetivo, referência, contexto..."
             oninput="fcItemCampo(${n},'brief',this.value);fcCrescerTexto(this)">${esc2(it.brief)}</textarea>
+          ${fcErroHtml('fc-erro-brief', 'Falta o briefing.')}
           ${fcArquivosHtml(n, it)}
-        </div>`).join('');
-      return `${state.escalaAberta ? fcEscalaHtml(esc2) : ''}<div class="fc-itens">${cartoes}</div>
-        <div class="fc-itens-acoes">
-          <button type="button" class="fc-mais" onclick="fcAdicionarItem()">+ adicionar ${state.board==='demandas'?'outra demanda':'outro conteúdo'}</button>
-          <button type="button" class="fc-mais" onclick="fcAbrirEscala()">Criar em escala</button>
-          ${state.itens.length > 1 ? '<button type="button" class="fc-mais" onclick="fcColarTitulos()">Colar títulos</button>' : ''}
-          ${state.itens.length > 1
-            ? '<button type="button" class="fc-mais" onclick="fcEscalonarDatas()">datas de sete em sete dias</button>'
-            : ''}
         </div>
-        <div class="fc-atalhos">
-          <label class="fc-atalho"><input type="checkbox" ${state.briefReady ? 'checked' : ''}
-            onchange="fcHandleInput('briefReady', this.checked)">
-            <span>Os briefings já estão prontos <small>pula a Redação</small></span></label>
-          <label class="fc-atalho"><input type="checkbox" ${state.materialReady ? 'checked' : ''}
-            onchange="fcHandleInput('materialReady', this.checked);fcDesenharPasso()">
-            <span>O material bruto já foi fornecido <small>ignora a Captação</small></span></label>
+        <div class="nd-mais-col">
+          <div class="fc-auto-group nd-destino" id="fc-auto-group-container"></div>
+          <div class="nd-atalhos">
+            <label class="nd-atalho"><input type="checkbox" ${state.briefReady ? 'checked' : ''}
+              onchange="fcHandleInput('briefReady', this.checked)">
+              <span>Os briefings já estão prontos <small>pula a Redação</small></span></label>
+            <label class="nd-atalho"><input type="checkbox" ${state.materialReady ? 'checked' : ''}
+              onchange="fcHandleInput('materialReady', this.checked);fcDesenharPasso()">
+              <span>O material bruto já foi fornecido <small>ignora a Captação</small></span></label>
+          </div>
+          ${state.materialReady ? `<div class="fc-bruto nd-bruto">
+            <label class="nd-rot" for="fc-bruto-link">Link da pasta do material bruto</label>
+            <input id="fc-bruto-link" class="nd-campo" type="url" value="${(state.materialBruto || '').replace(/"/g, '&quot;')}"
+              placeholder="https://drive.google.com/drive/folders/…"
+              oninput="fcHandleInput('materialBruto', this.value)">
+            <p class="nd-sub">O link aparece na tela de briefing, onde quem edita procura os arquivos.</p>
+          </div>` : ''}
         </div>
-        ${state.materialReady ? `<div class="fc-bruto">
-          <label for="fc-bruto-link">Link da pasta do material bruto</label>
-          <input id="fc-bruto-link" type="url" value="${(state.materialBruto || '').replace(/"/g, '&quot;')}"
-            placeholder="https://drive.google.com/drive/folders/…"
-            oninput="fcHandleInput('materialBruto', this.value)">
-          <small>"Fornecido" precisa dizer ONDE. Este link aparece na tela de briefing, que é
-            onde quem edita vai procurar os arquivos para baixar.</small>
-        </div>` : ''}`;
-    }
-    return `${state.board === 'demandas' ? '' : fcObjetivoHtml()}<div class="fc-auto-group" id="fc-auto-group-container"></div>
-      <div class="fc-bloco-equipe">
-        <span class="fc-dica">Equipe — as regras já escolhem quem entra. Clique para somar ou tirar qualquer pessoa.</span>
-        <div class="fc-persons" id="fc-persons-container"></div>
+      </div>
+      <div class="nd-lote" onkeydown="fcTeclaNoEditor(event)">
+        <p class="nd-rot">${varios ? `Lote <span class="nd-neutro" id="fc-lista-contador">${prontos} de ${state.itens.length} prontos</span> <span id="fc-lista-faltam">${esc2(faltam)}</span>` : 'Mais de um de uma vez'}</p>
+        ${state.escalaAberta ? fcEscalaHtml(esc2) : ''}
+        ${varios ? `<div class="fc-lista-linhas nd-lista">${state.itens.map((x, i) => fcLinhaDaListaHtml(x, i, esc2)).join('')}</div>` : ''}
+        <div class="nd-fileira">
+          <button type="button" class="nd-chip" onclick="fcAdicionarItem()">+ ${demanda ? 'outra demanda' : 'outro conteúdo'}</button>
+          <button type="button" class="nd-chip" onclick="fcAbrirEscala()">Criar em escala</button>
+          ${varios ? `<button type="button" class="nd-chip" onclick="fcColarTitulos()">Colar títulos</button>
+          <button type="button" class="nd-chip" onclick="fcEscalonarDatas()">Datas de sete em sete dias</button>
+          <button type="button" class="nd-chip" onclick="fcProximoSemBriefing()" ${faltam ? '' : 'disabled'}>Próximo que falta</button>
+          <button type="button" class="nd-chip nd-perigo" onclick="fcTirarItem(${n})">Tirar este da lista</button>` : ''}
+        </div>
       </div>`;
   }
 
+  window.fcEscolherFormato = function(valor) {
+    if (fcEnviando) return;
+    fcSincronizarDaTela();
+    state.format = valor;
+    fcDesenharPasso();
+    document.querySelector('#fc-guia [data-etapa="0"] .nd-chip.on')?.focus({ preventScroll: true });
+  };
+  window.fcMostrarClientes = function() {
+    state.clientesTodos = true;
+    document.getElementById('fc-lista-cliente')?.classList.add('todos');
+  };
+  window.fcAbrirPessoas = function() {
+    state.pessoasAbertas = !state.pessoasAbertas;
+    const caixa = document.getElementById('fc-persons-container');
+    if (caixa) caixa.hidden = !state.pessoasAbertas;
+    document.querySelector('#fc-guia [aria-controls="fc-persons-container"]')?.setAttribute('aria-expanded', String(Boolean(state.pessoasAbertas)));
+  };
+  // Aceitar põe na demanda quem a regra indica; clicar de novo tira (os mesmos "removidos" de sempre).
+  window.fcAceitarRegra = function(aceitar) {
+    if (fcEnviando) return;
+    fcSincronizarDaTela();
+    const { daRegra } = fcRegraDoFormato();
+    const fora = new Set((state.removidos || []).map(String));
+    daRegra.forEach((id) => { if (aceitar) fora.delete(id); else fora.add(id); });
+    state.removidos = [...fora];
+    fcDesenharPasso();
+  };
+  window.fcEscolherDia = function(iso) {
+    if (fcEnviando) return;
+    fcSincronizarDaTela();
+    const n = fcItemAtivo();
+    state.outraData = !iso;
+    if (iso) fcItemCampo(n, 'veic', iso);
+    fcDesenharPasso();
+    if (!iso) document.getElementById('fc-veic')?.focus();
+    else document.querySelector('#fc-guia .nd-dia.on')?.focus({ preventScroll: true });
+  };
+  window.fcPintarTrilho = function() {
+    const it = state.itens[fcItemAtivo()];
+    const alvo = document.getElementById('fc-no-ar');
+    if (alvo && it) alvo.textContent = it.veic ? fcDiaCurto(it.veic).toLowerCase() : 'sem data';
+  };
+  window.fcAlternarMais = function(abrir) {
+    state.maisAberto = abrir === undefined ? !state.maisAberto : Boolean(abrir);
+    const mais = document.getElementById('fc-mais');
+    mais?.setAttribute('aria-expanded', String(state.maisAberto));
+    // Fechado, o que está dentro não entra na ordem do Tab.
+    if (mais?.firstElementChild) mais.firstElementChild.inert = !state.maisAberto;
+    document.getElementById('fc-mais-chip')?.setAttribute('aria-expanded', String(state.maisAberto));
+    if (state.maisAberto) setTimeout(() => document.getElementById('fc-mais')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60);
+  };
 
   // Referencias do conteudo. Os arquivos ficam guardados em memoria ate a peca
   // existir: so depois de criada e que ela tem um id para pendurar arquivo, e o
@@ -1298,6 +1417,9 @@ function fcGrupoDoQuadro(grupo) {
     fcAtualizarLista(n);
     fcEspelharPrimeiro();
     updateDestinyUI();
+    fcPintarProgresso();
+    const aviso = { titulo: 'fc-erro-titulo', brief: 'fc-erro-brief', veic: 'fc-erro-data' }[campo];
+    if (aviso && valor) { const el = document.getElementById(aviso); if (el) el.hidden = true; document.getElementById({ titulo: 'fc-titulo', brief: 'fc-brief' }[campo] || '')?.classList.remove('er'); }
   };
 
   window.fcAdicionarItem = function() {
@@ -1306,11 +1428,12 @@ function fcGrupoDoQuadro(grupo) {
     state.itens.push({ titulo: '', veic: ultima ? getOffsetDate(ultima, 7) : '',
                        prazo: ultima ? getOffsetDate(ultima, 0) : '', brief: '', arquivos: [] });
     state.itemAtivo = state.itens.length - 1;
+    state.outraData = false;
     fcEspelharPrimeiro();
+    fcEtapa = 0;
     fcDesenharPasso();
-    // O titulo do novo cartao e onde a pessoa vai escrever agora.
-    const campos = document.querySelectorAll('[data-campo="titulo"]');
-    campos[campos.length - 1]?.focus();
+    // O titulo do novo conteudo e onde a pessoa vai escrever agora.
+    document.getElementById('fc-titulo')?.focus();
   };
 
   function fcDiaCurto(iso) {
@@ -1343,64 +1466,14 @@ function fcGrupoDoQuadro(grupo) {
         <span class="fc-lista-titulo">${esc2(it.titulo || 'sem título')}</span>
       </button>`;
   }
-  function fcPreencherHtml(esc2) {
-    const n = fcItemAtivo();
-    const it = state.itens[n];
-    const prontos = state.itens.filter(fcItemPronto).length;
-    const faltam = fcFaltamTexto();
-    const rotuloData = state.board === 'demandas' ? 'Conclusão' : 'Veiculação';
-    const opcoes = state.itens.map((x, i) => `<option value="${i}" ${i === n ? 'selected' : ''}>${i + 1} de ${state.itens.length} · ${
-      esc2(x.veic ? fcDiaCurto(x.veic) : 'sem data')} · ${esc2(x.titulo || 'sem título')}</option>`).join('');
-    return `${state.escalaAberta ? fcEscalaHtml(esc2) : ''}
-      <div class="fc-preencher">
-        <aside class="fc-lista">
-          <div class="fc-lista-topo"><b id="fc-lista-contador">${prontos} de ${state.itens.length} prontos</b>
-            <small id="fc-lista-faltam">${esc2(faltam)}</small></div>
-          <div class="fc-lista-linhas">${state.itens.map((x, i) => fcLinhaDaListaHtml(x, i, esc2)).join('')}</div>
-          <div class="fc-lista-acoes">
-            <button type="button" class="fc-mais" onclick="fcColarTitulos()">Colar títulos</button>
-            <button type="button" class="fc-mais" onclick="fcAbrirEscala()">Criar em escala</button>
-            <button type="button" class="fc-mais" onclick="fcAdicionarItem()">+ adicionar</button>
-          </div>
-        </aside>
-        <section class="fc-editor" onkeydown="fcTeclaNoEditor(event)">
-          <select class="fc-lista-select" onchange="fcIrParaConteudo(Number(this.value))" aria-label="Escolher conteúdo">${opcoes}</select>
-          <div class="fc-editor-topo">
-            <b>${n + 1} de ${state.itens.length}</b>
-            <span>${esc2(it.veic ? fcDiaCurto(it.veic) : 'sem data')}</span>
-            <button type="button" class="icone-btn perigo" title="Tirar da lista" onclick="fcTirarItem(${n})">${typeof ICONE !== 'undefined' ? ICONE.lixo : '×'}</button>
-          </div>
-          <input type="text" class="fc-campo" data-item="${n}" data-campo="titulo" placeholder="Título"
-            value="${esc2(it.titulo)}" oninput="fcItemCampo(${n},'titulo',this.value)">
-          <div class="fc-item-datas">
-            <label><span>${rotuloData}</span>
-              <input type="date" class="fc-campo" data-item="${n}" data-campo="veic" value="${esc2(it.veic)}"
-                oninput="fcItemCampo(${n},'veic',this.value)"></label>
-            <label><span>Prazo de entrega</span>
-              <input type="date" class="fc-campo" data-item="${n}" data-campo="prazo" value="${esc2(it.prazo)}"
-                oninput="fcItemCampo(${n},'prazo',this.value)"></label>
-          </div>
-          <textarea class="fc-campo-texto fc-editor-briefing" data-item="${n}" data-campo="brief"
-            placeholder="Briefing: objetivo, referência, contexto..."
-            oninput="fcItemCampo(${n},'brief',this.value)">${esc2(it.brief)}</textarea>
-          ${fcArquivosHtml(n, it)}
-          <div class="fc-editor-nav">
-            <button type="button" class="fc-mais" onclick="fcIrParaConteudo(${n - 1})" ${n === 0 ? 'disabled' : ''}>‹ Anterior</button>
-            <button type="button" class="fc-mais" onclick="fcProximoSemBriefing()" ${faltam ? '' : 'disabled'}>Próximo que falta</button>
-            <button type="button" class="fc-mais primario" onclick="fcIrParaConteudo(${n + 1})" ${n >= state.itens.length - 1 ? 'disabled' : ''}>Próximo ›</button>
-          </div>
-          <small class="fc-editor-dica">⌘↓ / Ctrl+↓ vai para o próximo · ⌘↑ / Ctrl+↑ volta</small>
-        </section>
-      </div>`;
-  }
-
   window.fcIrParaConteudo = function(n) {
     if (!state.itens.length) return;
+    fcSincronizarDaTela();
     state.itemAtivo = Math.min(Math.max(Number(n) || 0, 0), state.itens.length - 1);
+    state.outraData = false;
     fcDesenharPasso();
-    const titulo = document.querySelector('.fc-editor [data-campo="titulo"]');
-    const alvo = String(state.itens[state.itemAtivo]?.titulo || '').trim()
-      ? document.querySelector('.fc-editor-briefing') : titulo;
+    const alvo = String(state.itens[state.itemAtivo]?.titulo || '').trim() && state.maisAberto
+      ? document.getElementById('fc-brief') : document.getElementById('fc-titulo');
     alvo?.focus({ preventScroll: true });
     fcMostrarNaLista(state.itemAtivo);
   };
@@ -1483,6 +1556,7 @@ function fcGrupoDoQuadro(grupo) {
     const primeira = state.itens.find((i) => i.veic)?.veic || '';
     state.escala = state.escala || { quantidade: '', inicio: primeira, intervalo: '' };
     state.escalaAberta = true;
+    state.maisAberto = true;
     fcDesenharPasso();
     document.querySelector('.fc-escala input')?.focus();
   };
@@ -1565,7 +1639,10 @@ function fcGrupoDoQuadro(grupo) {
 
   window.fcFiltrar = function(listaId, termo) {
     const t = String(termo || '').toLowerCase().trim();
-    document.querySelectorAll('#' + listaId + ' .fc-escolha').forEach((b) => {
+    const lista = document.getElementById(listaId);
+    // Buscando, todos os clientes entram na conta (os recolhidos no "+ N" também).
+    lista?.classList?.toggle('buscando', Boolean(t));
+    document.querySelectorAll('#' + listaId + ' [data-busca]').forEach((b) => {
       b.style.display = !t || (b.dataset.busca || '').includes(t) ? '' : 'none';
     });
   };
@@ -1584,93 +1661,171 @@ function fcGrupoDoQuadro(grupo) {
 
   window.fcResponder = function(chave, valor) {
     fcHandleInput(chave, valor);
-    fcAvancar();
+    fcDesenharPasso();
   };
 
   window.fcEscolherQuadro = function(qual) {
+    if (fcEnviando) return;
+    fcSincronizarDaTela();
     if (state.board !== qual) {
       state.board = qual;
       // Grupo e status do quadro anterior nao existem no novo.
       state.manualGroup = state.manualStatus = state.manualCap = undefined;
       state.prioridade = ''; state.format = '';
     }
-    fcAvancar();
+    fcDesenharPasso();
+    document.querySelector('#fc-guia .nd-tipo.on')?.focus({ preventScroll: true });
   };
 
+  // Os três cartões ficam sempre na tela: ir para uma etapa só muda qual está em destaque.
   window.fcIrPara = function(n) {
     if (fcEnviando) return;
-    if (n < 0 || n >= FC_PASSOS.length) return;
-    // So deixa pular para frente ate onde ja foi respondido.
-    for (let i = 0; i < n; i++) if (!fcRespondido(FC_PASSOS[i])) return;
-    fcPasso = n;
-    fcDesenharPasso();
+    if (n < 0 || n >= FC_ETAPAS.length || n === fcEtapa) return;
+    fcEtapa = n;
+    fcPintarProgresso();
   };
 
   window.fcAvancar = function() {
     if (fcEnviando) return;
     fcSincronizarDaTela();
-    const p = FC_PASSOS[fcPasso];
-    if (!fcRespondido(p)) return typeof showToast === 'function'
-      ? showToast(FC_FALTA[p] || 'Responda esta pergunta para continuar.', 'info') : null;
-    if (fcPasso >= FC_PASSOS.length - 1) return fcSubmit();
-    fcPasso++;
-    fcDesenharPasso();
+    if (fcEtapa >= FC_ETAPAS.length - 1 || FC_PASSOS.every((q) => fcRespondido(q))) return fcSubmit();
+    if (!fcEtapaFeita(fcEtapa)) {
+      fcMostrarFaltas();
+      return typeof showToast === 'function' ? showToast(FC_FALTA_ETAPA[fcEtapa], 'info') : null;
+    }
+    fcEtapa++;
+    fcPintarProgresso();
+    fcFocarEtapa();
   };
 
-  window.fcVoltar = function() { if (fcEnviando) return; if (fcPasso > 0) { fcPasso--; fcDesenharPasso(); } };
+  window.fcVoltar = function() {
+    if (fcEnviando) return;
+    if (fcEtapa > 0) { fcEtapa--; fcPintarProgresso(); fcFocarEtapa(); } else fcCloseModal();
+  };
+
+  function fcFocarEtapa() {
+    const alvo = fcEtapa === 0 ? (state.format ? '#fc-titulo' : '[data-etapa="0"] .nd-chip')
+      : fcEtapa === 1 ? '#fc-busca-cliente' : '[data-etapa="2"] .nd-dia.on, [data-etapa="2"] .nd-dia';
+    document.querySelector(`#fc-guia ${alvo}`)?.focus({ preventScroll: true });
+  }
+
+  // O erro fica embaixo do campo que falta (famílias de subtela, formulário).
+  function fcMostrarFaltas() {
+    const it = state.itens[fcItemAtivo()] || {};
+    const faltas = {
+      'fc-erro-formato': !state.format,
+      'fc-erro-titulo': !fcTemTexto(it.titulo),
+      'fc-erro-cliente': !state.client,
+      'fc-erro-data': !(it.veic && it.prazo),
+      'fc-erro-brief': !fcTemTexto(it.brief),
+    };
+    const campos = { 'fc-erro-titulo': 'fc-titulo', 'fc-erro-cliente': 'fc-busca-cliente', 'fc-erro-brief': 'fc-brief' };
+    Object.entries(faltas).forEach(([id, falta]) => {
+      const aviso = document.getElementById(id);
+      if (aviso) aviso.hidden = !falta;
+      const campo = campos[id] && document.getElementById(campos[id]);
+      if (campo) { campo.classList.toggle('er', falta); if (falta) campo.setAttribute('aria-invalid', 'true'); else campo.removeAttribute('aria-invalid'); }
+    });
+  }
+
+  // O que muda sem redesenhar: a etapa em destaque, o visto das feitas, a barra e o botão.
+  window.fcPintarProgresso = function() {
+    const janela = document.querySelector('#fc-overlay .nd');
+    if (!janela) return;
+    janela.querySelectorAll('[data-etapa]').forEach((cartao) => {
+      const n = Number(cartao.dataset.etapa), agora = n === fcEtapa, feita = fcEtapaFeita(n);
+      cartao.classList.toggle('agora', agora);
+      if (agora) cartao.setAttribute('aria-current', 'step'); else cartao.removeAttribute('aria-current');
+      const num = cartao.querySelector('.nd-num');
+      if (num) { num.className = `nd-num${agora ? ' on' : feita ? ' ok' : ''}`; num.innerHTML = feita && !agora ? FC_ICONE.visto : String(n + 1); }
+      const sub = cartao.querySelector('.nd-cab .nd-sub');
+      if (sub) sub.textContent = feita && !agora ? 'feito' : FC_ETAPA_SUB[n];
+    });
+    const texto = janela.querySelector('.fc-trilha-texto');
+    if (texto) texto.textContent = `Etapa ${fcEtapa + 1} de ${FC_ETAPAS.length}`;
+    const barra = janela.querySelector('.nd-barra > i');
+    if (barra) barra.style.setProperty('--v', `${Math.round(((fcEtapa + 1) / FC_ETAPAS.length) * 100)}%`);
+    const pronto = FC_PASSOS.every((q) => fcRespondido(q));
+    const botao = document.getElementById('fc-submit-btn');
+    const varios = state.itens.length > 1;
+    if (botao && !fcEnviando) botao.textContent = fcEtapa >= FC_ETAPAS.length - 1 || pronto
+      ? (varios ? `Criar ${state.itens.length} demandas` : 'Criar demanda') : 'Continuar';
+    const voltar = document.getElementById('fc-voltar-btn');
+    if (voltar) voltar.textContent = fcEtapa > 0 ? 'Voltar' : 'Cancelar';
+    const semBriefing = state.itens.some((i) => !fcTemTexto(i.brief));
+    const nota = document.getElementById('fc-nota');
+    if (nota) {
+      const soFaltaBriefing = semBriefing && [0, 1, 2].every((n) => fcEtapaFeita(n));
+      nota.classList.toggle('falta', soFaltaBriefing);
+      nota.textContent = soFaltaBriefing ? 'Falta o briefing: ele fica em Mais campos.'
+        : `Mais campos guarda ${state.board === 'demandas' ? 'prioridade' : 'objetivo'}, briefing, arquivo, grupo e status de entrada.`;
+    }
+    document.getElementById('fc-mais-chip')?.classList.toggle('falta', semBriefing);
+  };
 
   window.fcDesenharPasso = function() {
     const caixa = document.getElementById('fc-guia');
     if (!caixa) return;
-    const p = FC_PASSOS[fcPasso];
-    const [titulo, sub] = fcPergunta(p);
-    const ultimo = fcPasso === FC_PASSOS.length - 1;
-    // Redesenhar o mesmo passo (trocar de conteudo na lista, gerar a escala)
-    // nao pode devolver a lista nem a janela para o topo: quem esta no 25 de
-    // 40 continua vendo o 25.
-    const mesmoPasso = caixa.dataset.passo === String(fcPasso);
-    // De um passo para o outro a pergunta desliza: para a esquerda ao avançar,
-    // para a direita ao voltar (Padrão Vybe, movimento com sentido).
-    const anterior = caixa.dataset.passo === undefined ? null : Number(caixa.dataset.passo);
-    const rolagem = mesmoPasso ? {
-      lista: caixa.querySelector('.fc-lista-linhas')?.scrollTop || 0,
-      corpo: caixa.closest('.fc-body')?.scrollTop || 0,
-    } : null;
-    caixa.dataset.passo = String(fcPasso);
-
-    caixa.innerHTML = `
-      <div class="fc-trilha">${FC_PASSOS.map((q, i) => `
-        <button type="button" class="fc-trilha-passo ${i === fcPasso ? 'agora' : ''} ${i < fcPasso ? 'feito' : ''}"
-          onclick="fcIrPara(${i})" ${i > fcPasso ? 'disabled' : ''} title="Etapa ${i + 1}: ${esc(fcRotulo(q))}"${i === fcPasso ? ' aria-current="step"' : ''}><span class="fc-trilha-nome">${esc(fcRotulo(q))}</span></button>`).join('')}
-        <span class="fc-trilha-texto">Etapa ${fcPasso + 1} de ${FC_PASSOS.length} · ${esc(fcRotulo(p))}</span></div>
-      <h2 class="fc-pergunta">${esc(titulo)}</h2>
-      ${sub ? `<p class="fc-sub">${esc(sub)}</p>` : ''}
-      <div class="fc-resposta">${fcCorpo(p)}</div>
-      <div class="fc-guia-rodape">
-        ${fcPasso > 0 ? '<button type="button" class="fc-btn-cancel" onclick="fcVoltar()">Voltar</button>' : ''}
-        <button type="button" class="fc-btn-create" id="fc-submit-btn" onclick="fcAvancar()">${
-          ultimo ? (state.itens.length > 1 ? `Criar ${state.itens.length} ${state.board === 'demandas' ? 'demandas' : 'conteúdos'}` : `Criar ${state.board === 'demandas' ? 'demanda' : 'conteúdo'}`) : 'Continuar'}</button>
-      </div>`;
-
-
-    if (!mesmoPasso && anterior !== null) {
-      caixa.classList.remove('fc-entra-frente', 'fc-entra-tras');
-      void caixa.offsetWidth;
-      caixa.classList.add(fcPasso > anterior ? 'fc-entra-frente' : 'fc-entra-tras');
+    // fcPasso é o recado de quem conferiu (abrir, criar, calendário): diz qual resposta falta. A tela leva
+    // para o cartão dela, ou abre Mais campos quando o que falta é o briefing.
+    let focar = '';
+    if (fcPasso >= 0) {
+      const p = FC_PASSOS[fcPasso];
+      fcPasso = -1;
+      if (p === 'itens') {
+        const falta = state.itens.findIndex((i) => !fcItemPronto(i));
+        if (falta >= 0) {
+          state.itemAtivo = falta;
+          const it = state.itens[falta];
+          if (fcTemTexto(it.titulo) && it.veic && it.prazo) { state.maisAberto = true; focar = 'brief'; }
+        }
+      }
+      const nova = fcEtapaDoPasso(p);
+      if (nova !== fcEtapa || !caixa.dataset.aberto) focar = focar || 'etapa';
+      fcEtapa = nova;
+      if (caixa.dataset.aberto && !fcRespondido(p)) focar = focar || 'faltas';
     }
-    if (ultimo) { renderPersons(); renderCustomDropdownsGlobal(); }
+    const primeiro = !caixa.dataset.aberto;
+    caixa.dataset.aberto = '1';
+    const rolagem = caixa.scrollTop || 0;
+    const lista = caixa.querySelector('.fc-lista-linhas')?.scrollTop || 0;
+    const busca = document.getElementById('fc-busca-cliente')?.value || '';
+    const n = fcItemAtivo();
+    const it = state.itens[n];
+    const cartao = (i, corpo) => `
+      <section class="nd-card nd-etapa" data-etapa="${i}" onpointerdown="fcIrPara(${i})" onfocusin="fcIrPara(${i})">
+        <div class="nd-cab" onclick="fcIrPara(${i})" title="Etapa ${i + 1}: ${esc(FC_ETAPAS[i])}"><span class="nd-num">${i + 1}</span><h2>${esc(FC_ETAPAS[i])}</h2><span class="nd-sub">${esc(FC_ETAPA_SUB[i])}</span></div>
+        ${corpo}
+      </section>`;
+    caixa.innerHTML = `
+      <div class="nd-etapas">${cartao(0, fcCartaoOQueHtml(n, it))}${cartao(1, fcCartaoParaQuemHtml())}${cartao(2, fcCartaoQuandoHtml(n, it))}</div>
+      <div class="fc-resposta nd-vaga"></div>
+      <div class="nd-card nd-previa">
+        <div class="nd-previa-txt">
+          <p class="nd-sub">Como vai chegar na equipe</p>
+          <p class="nd-previa-linha"><b id="fc-prev-title"></b><span id="fc-prev-client"></span><span id="fc-prev-status"></span>
+            <span class="nd-sub">grupo <span id="fc-prev-group"></span> · <span id="fc-prev-users"></span> · <span id="fc-prev-dates"></span></span></p>
+        </div>
+        <button type="button" class="nd-chip" id="fc-mais-chip" aria-expanded="${Boolean(state.maisAberto)}" aria-controls="fc-mais" onclick="fcAlternarMais()">Mais campos · 5${FC_ICONE.seta}</button>
+      </div>
+      <div class="v2-abre nd-mais" id="fc-mais" aria-expanded="${Boolean(state.maisAberto)}"><div class="v2-mais"${state.maisAberto ? '' : ' inert'}><div><div class="nd-card nd-mais-dentro">${fcMaisCamposHtml(n, it)}</div></div></div></div>`;
+
+    renderPersons();
+    renderCustomDropdownsGlobal();
     // Briefing vindo do calendario sazonal ou de uma volta ao passo ja chega
     // escrito: sem isto ele apareceria cortado na altura minima.
     caixa.querySelectorAll('.fc-campo-texto').forEach((t) => fcCrescerTexto(t));
     updateDestinyUI();
-    if (rolagem) {
-      const lista = caixa.querySelector('.fc-lista-linhas');
-      if (lista) lista.scrollTop = rolagem.lista;
-      const corpo = caixa.closest('.fc-body');
-      if (corpo) corpo.scrollTop = rolagem.corpo;
+    fcPintarProgresso();
+    if (busca) { const campo = document.getElementById('fc-busca-cliente'); if (campo) { campo.value = busca; fcFiltrar('fc-lista-cliente', busca); } }
+    if (!primeiro) {
+      caixa.scrollTop = rolagem;
+      const linhas = caixa.querySelector('.fc-lista-linhas');
+      if (linhas) linhas.scrollTop = lista;
     }
-    const foco = caixa.querySelector('#fc-busca-cliente, [data-campo="titulo"]');
-    if (foco) foco.focus({ preventScroll: Boolean(rolagem) });
+    if (focar === 'brief' || focar === 'faltas') fcMostrarFaltas();
+    if (focar === 'brief') { const campo = document.getElementById('fc-brief'); campo?.focus({ preventScroll: true }); setTimeout(() => campo?.scrollIntoView({ block: 'center' }), 320); }
+    else if (focar) fcFocarEtapa();
   };
 
     // Aceita o que quem chama ja sabe: {client, veic, prazo, board}. Quem abre
@@ -1743,7 +1898,7 @@ function fcGrupoDoQuadro(grupo) {
               <div class="fc-custom-dropdown">
                  <div class="fc-dropdown-value" id="fc-val-manualGroup" onclick="fcToggleDropdown('fc-list-group')">Redação</div>
                  <div class="fc-dropdown-list" id="fc-list-group">
-                    ${groups.map(g => `<div class="fc-dropdown-item" data-val="${esc(g.val)}" data-label="${esc(g.label)}" onclick="fcSelectDropdown('manualGroup', this.dataset.val, this.dataset.label)" style="color:#fff">${esc(g.label)}</div>`).join('')}
+                    ${groups.map(g => `<div class="fc-dropdown-item" data-val="${esc(g.val)}" data-label="${esc(g.label)}" onclick="fcSelectDropdown('manualGroup', this.dataset.val, this.dataset.label)">${esc(g.label)}</div>`).join('')}
                  </div>
               </div>
            </div>
@@ -1826,71 +1981,28 @@ function fcGrupoDoQuadro(grupo) {
     overlay.ondragover = (e) => e.preventDefault();
     overlay.ondrop = (e) => {
       e.preventDefault();
-      if (e.target.closest?.('.fc-item')) return;
+      if (e.target.closest?.('.nd-mais-col')) return;
       const temArquivo = (e.dataTransfer?.files || []).length > 0;
       if (!temArquivo) return;
-      if (FC_PASSOS[fcPasso] === 'itens' && state.itens.length === 1) {
-        fcSoltarArquivos(e, 0, null);
-      } else if (typeof showToast === 'function') {
-        showToast(FC_PASSOS[fcPasso] === 'itens'
-          ? 'Solte o arquivo em cima do conteúdo a que ele pertence.'
-          : 'As referências entram no passo Conteúdos.', 'info', 6000);
-      }
+      // O arquivo solto em qualquer ponto da janela vai para o conteúdo que está aberto.
+      fcSoltarArquivos(e, fcItemAtivo(), null);
+      fcAlternarMais(true);
     };
 
     overlay.innerHTML = `
-      <div class="fc-modal" role="dialog" aria-modal="true" aria-label="Criar">
-         
-         <div class="fc-main-col">
-             <div class="fc-header">
-                <button type="button" aria-label="Fechar cadastro" class="fc-close" onclick="fcCloseModal()"></button>
-             </div>
-             <div class="fc-body"><div id="fc-guia"></div></div>
-         </div>
-
-         <!-- RIGHT COLUMN: LIVE PREVIEW -->
-         <div class="fc-side-col">
-             
-             <div class="fc-side-title">Como vai chegar na equipe</div>
-             
-             <div class="fc-preview-card">
-                 <div class="fc-prev-head">
-                    <b id="fc-prev-title">Formato - Título pendente</b>
-                    <span id="fc-prev-client">Cliente não selecionado</span>
-                 </div>
-                 
-                 <div class="fc-prev-body">
-                    <div class="fc-prev-item">
-                       <small>Grupo</small>
-                       <div id="fc-prev-group">Redação</div>
-                    </div>
-                    
-                    <div class="fc-prev-item">
-                       <small>Prazos</small>
-                       <div id="fc-prev-dates">Prazos pendentes</div>
-                    </div>
-                    
-                    <div class="fc-prev-item">
-                       <small>Equipe</small>
-                       <div class="fc-prev-users" id="fc-prev-users">
-                          Definido na Triagem
-                       </div>
-                    </div>
-                    
-                    <div class="fc-prev-item">
-                       <small>Status</small>
-                       <div id="fc-prev-status">
-                          <span class="fc-prev-tag" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">A fazer</span>
-                       </div>
-                    </div>
-                 </div>
-             </div>
-             
-             <div class="fc-helper-text">
-                A prévia segue o formato escolhido e as regras de entrada (automações).
-             </div>
-         </div>
-         
+      <div class="nd" role="dialog" aria-modal="true" aria-labelledby="fc-nd-titulo">
+        <div class="nd-topo">
+          <h1 id="fc-nd-titulo">Nova demanda</h1>
+          <span class="nd-sub fc-trilha-texto">Etapa ${fcEtapa + 1} de ${FC_ETAPAS.length}</span>
+          <button type="button" aria-label="Fechar cadastro" class="nd-btn s nd-x" onclick="fcCloseModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="v2-barra nd-barra" role="progressbar" aria-label="Etapas do cadastro" aria-valuemin="1" aria-valuemax="3"><i style="--v:33%;--c:#FF7A2F"></i></div>
+        <div class="nd-corpo" id="fc-guia"></div>
+        <div class="nd-pe">
+          <p class="nd-sub" id="fc-nota"></p>
+          <button type="button" class="nd-btn" id="fc-voltar-btn" onclick="fcVoltar()">Voltar</button>
+          <button type="button" class="nd-btn k principal" id="fc-submit-btn" onclick="fcAvancar()">Criar demanda</button>
+        </div>
       </div>
     `;
 
@@ -1902,13 +2014,14 @@ function fcGrupoDoQuadro(grupo) {
     // cliente e data, abre direto na primeira pergunta que falta — o passo
     // pulado continua no trilho do topo, a um clique de distancia.
     fcPasso = 0;
+    fcEtapa = 0;
     if (!inicio.escolherQuadro && (inicio.client || inicio.veic || inicio.board || inicio.titulo)) {
       const pendente = FC_PASSOS.findIndex((q) => !fcRespondido(q));
       fcPasso = pendente < 0 ? FC_PASSOS.length - 1 : pendente;
     }
     fcDesenharPasso();
     if (typeof ensureClientMasterSources === 'function') void ensureClientMasterSources().then(() => {
-      if (document.getElementById('fc-overlay') === overlay && FC_PASSOS[fcPasso] === 'client'
+      if (document.getElementById('fc-overlay') === overlay && !fcEnviando && !overlay.contains(document.activeElement)
           && !document.getElementById('fc-nova-opcao') && !document.getElementById('fc-busca-cliente')?.value) fcDesenharPasso();
     }).catch(() => {});
     requestAnimationFrame(() => {

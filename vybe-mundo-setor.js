@@ -672,7 +672,7 @@
 
   async function pintar() {
     if (el.hidden || !ctx) return;
-    el.classList.toggle('fv2-casa', atual === 'setor:financas' && Boolean(window.VybeFinancas?.telas?.visao));
+    el.classList?.toggle?.('fv2-casa', atual === 'setor:financas' && Boolean(window.VybeFinancas?.telas?.visao));
     const g = ++geracao, montar = PAINEIS[atual], comPeriodo = atual === 'setor:comercial' || atual === 'setor:financas';
     el.innerHTML = `<div class="g2-topo vs-topo"><h2>${esc(ctx.nome)}</h2><span class="g2-seg" role="group" aria-label="Setores">${SETORES.map(([id, n]) => `<button type="button" data-setor-ir="${id}" aria-pressed="${id === atual}">${n}</button>`).join('')}</span>${comPeriodo ? barraPeriodo() : ''}
       <button type="button" class="g2-btn g2-atualizar" data-setor-atualizar title="Atualizar">${I_VOLTA}Atualizado ${hora()}</button><span class="g2-vaga"></span><button type="button" class="g2-btn g2-fechar" data-setor-fechar aria-label="Fechar">${traco('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
