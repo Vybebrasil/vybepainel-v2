@@ -134,8 +134,8 @@
   // O setor é um ícone do trilho; clicar abre ao lado a lista dos submódulos. Submódulo com `mod` só aparece
   // quando o módulo dele está carregado (window[mod[0]]), assim um setor nunca mostra botão que não abre nada.
   const TRILHO = [
-    { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
     { id: 'criar', nome: 'Criar', dica: 'Cadastros: criar conteúdo ou demanda', acao: true, ic: svg('<path d="M12 5v14M5 12h14"/>') },
+    { id: 'hoje', nome: 'Hoje', dica: 'Seu dia', ic: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>') },
     { id: 'setor:producao', grupo: 'Operação', nome: 'Produção', dica: 'Produção: entregas, tarefas, projetos, agenda, aprovação, arte e parceiros', ic: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'), sub: [
       { id: 'gestor', nome: 'Painel de trabalho', dica: 'O painel da produção: prioridades, prazos, agenda da semana e capacidade', board: 'producao' },
       { id: 'tarefas', nome: 'Minhas tarefas', dica: 'Sua fila, na ordem do dia' },
@@ -1742,6 +1742,10 @@
   }
   // "Pergunte ao VYBES": abre o VYBES de verdade (a central) com o pedido, que ela atende ao abrir
   // (chooseVybesMode({ pedido })). Não cria outro chat.
+  hud.addEventListener('click', (e) => {
+    const b = e.target.closest?.('[data-trilho-resto]'); if (!b) return;
+    const aberto = b.closest('.vv-trilho').classList.toggle('resto-aberto'); b.setAttribute('aria-expanded', String(aberto));
+  });
   hud.addEventListener('keydown', (e) => {
     if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !e.target.closest?.('#vv-hoje .v2d')) return;
     e.preventDefault(); passarDecidir(decidirEm + (e.key === 'ArrowRight' ? 1 : -1));
@@ -1776,15 +1780,18 @@
   });
 
   hud.innerHTML = `
-    <nav class="vv-ilha vv-trilho" aria-label="Módulos do Vybe OS"><button type="button" class="vv-trilho-recolher" data-trilho-recolher aria-label="Recolher o menu" title="Recolher o menu">${svg('<path d="M15 6l-6 6 6 6"/>')}</button>${(() => {
+    <nav class="vv-ilha vv-trilho" aria-label="Módulos do Vybe OS"><span class="vv-trilho-marca"><i aria-hidden="true">V</i><b>Vybe OS</b></span><button type="button" class="vv-trilho-recolher" data-trilho-recolher aria-label="Recolher o menu" title="Recolher o menu">${svg('<path d="M15 6l-6 6 6 6"/>')}</button>${(() => {
       let grupo = '';
       return TRILHO.map((t) => {
         if (t === '-') return '<span class="vv-trilho-espaco"></span>';
         const cab = t.grupo && t.grupo !== grupo ? `<span class="vv-trilho-grupo" data-grupo="${t.grupo}">${t.grupo}</span>` : ''; grupo = t.grupo || grupo;
         const setor = Array.isArray(t.sub);
-        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}${t.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${favoritavel(t) ? estrela(t.id) : ''}</button>`;
+        // Quadro da casca (moodboard, 12/11/2026): Prédio, Jogos, Loja, Ranking e Conquistas ficam atrás de um item só.
+        const resto = ['predio', 'jogos', 'loja', 'ranking', 'conquistas'].includes(t.id);
+        const abreResto = t.id === 'jogos' ? `<button type="button" class="vv-trilho-btn vv-trilho-resto-abre" data-trilho-resto aria-expanded="false" title="Prédio, Jogos, Loja, Ranking e Conquistas" aria-label="Prédio, Jogos, Loja, Ranking e Conquistas">${svg('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>')}<span>Prédio, Jogos, Loja…</span><i class="vv-trilho-seta" aria-hidden="true"></i></button>` : '';
+        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}${resto ? ' vv-trilho-resto' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}${t.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${favoritavel(t) ? estrela(t.id) : ''}</button>`;
         const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}${estrela(x.id)}</button>`).join('')}</div>` : '';
-        return cab + botao + subs + (t.id === 'criar' ? '<div class="vv-trilho-fav" hidden></div>' : '');
+        return cab + abreResto + botao + subs + (t.id === 'hoje' ? '<div class="vv-trilho-fav" hidden></div>' : '');
       }).join('') + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="conversas" title="Conversas: o WhatsApp da Vybe" aria-label="Conversas">${svg('<path d="M4 5h16v11H8l-4 4z"/>')}<span>Conversas</span></button>`
         // Celular (quadro 28): um dock só. A voz vira um lugar da barra de baixo; fora de uma chamada, o cartão das salas
         // (Salas e Entrar) abre por cima dela só quando se toca em Voz. Na chamada o dock das salas fica à vista (o
@@ -1802,12 +1809,14 @@
         <button type="button" class="vv-botao vv-busca-larga" data-ferr="busca" title="Buscar em todo o painel (⌘K)" aria-label="Buscar">${svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>')}<span class="vv-busca-texto">Buscar em tudo</span><kbd>⌘K</kbd></button>
         <button type="button" class="vv-botao vv-ferr-agenda" data-ferr="agenda" aria-expanded="false" aria-controls="vv-agenda" title="Agenda da Vybe: os próximos compromissos" aria-label="Agenda">${svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>')}<span class="vv-ferr-nome">Agenda</span></button>
         <button type="button" class="vv-botao" data-ferr="whatsapp" title="WhatsApp da Vybe (só leitura)" aria-label="WhatsApp da Vybe" aria-pressed="false">${svg('<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>')}<span class="vv-badge" id="vv-badge-whatsapp" hidden></span><span class="vv-ferr-nome">WhatsApp</span></button>
-        <button type="button" class="vv-botao vv-ferr-boletim" data-boletim hidden title="Boletim dos agentes e do VYBES: o que cada um fez, o que está errado e o que está fazendo agora" aria-label="Boletim dos agentes">${svg('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>')}<span class="vv-ferr-nome">Boletim</span></button>
         <button type="button" class="vv-botao" data-ferr="avisos" title="Avisos" aria-label="Avisos">${svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>')}<span class="vv-badge" id="vv-badge-avisos" hidden></span></button>
         <button type="button" class="vv-botao" data-ferr="conversa" title="Conversa da equipe e recados" aria-label="Conversa da equipe">${svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>')}</button>
+        <details class="vv-mais-menu"><summary class="vv-botao" title="Mais: boletim, notas, camadas e ajuda" aria-label="Mais">${svg('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>')}</summary><div class="vv-mais-lista">
+        <button type="button" class="vv-botao vv-ferr-boletim" data-boletim hidden title="Boletim dos agentes e do VYBES: o que cada um fez, o que está errado e o que está fazendo agora" aria-label="Boletim dos agentes">${svg('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>')}<span class="vv-ferr-nome">Boletim</span></button>
         <button type="button" class="vv-botao" data-ferr="notas" title="Suas notas" aria-label="Notas">${svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>')}<span class="vv-mais-nome">Notas</span></button>
         <button type="button" class="vv-botao" data-ferr="camadas" title="Camadas do mapa: clientes, marcos, captações e prospecção do CRM" aria-label="Camadas">${svg('<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>')}<span class="vv-mais-nome">Camadas do mapa</span></button>
         <button type="button" class="vv-botao" data-ferr="ajuda" title="Ajuda do VYBES: refazer o passeio e rever as dicas" aria-label="Ajuda do VYBES">${svg('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5"/><path d="M12 16.8h.01"/>')}<span class="vv-mais-nome">Ajuda</span></button>
+        </div></details>
         <button type="button" class="vv-botao" data-ferr="conta" title="Sua conta e equipe" aria-label="Conta">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>')}</button>
       </div>
       <span class="vv-divisor" aria-hidden="true"></span>

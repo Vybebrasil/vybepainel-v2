@@ -53,7 +53,9 @@ test('cliques do dock: sala com gente troca só a voz; Minha sala e Sala atual a
   assert.ok(!/data-ferr="(voz|mic|musica)"\s/.test(js.slice(js.indexOf('vv-busca-larga'), js.indexOf('data-ferr="conta"'))), 'voz, microfone e música saíram do topo');
   const topo = js.slice(js.indexOf('data-ferr="agenda" aria-expanded'), js.indexOf('data-ferr="conta"'));
   assert.deepEqual([...topo.matchAll(/data-ferr="([a-z]+)"/g)].map((m) => m[1]).slice(0, 2), ['agenda', 'whatsapp'], 'Agenda e depois WhatsApp');
-  assert.ok(!js.includes('<details class="vv-mais-menu">'), 'os ícones ficam à vista, sem o Mais');
+  // Quadro da casca (moodboard, 12/11/2026): Agenda, WhatsApp, Avisos e Conversa ficam à vista; Boletim, Notas, Camadas e Ajuda abrem no "Mais".
+  assert.ok(js.includes('<details class="vv-mais-menu">'), 'o que saiu do topo está no Mais');
+  assert.deepEqual([...topo.slice(topo.indexOf('<div class="vv-mais-lista">')).matchAll(/data-ferr="([a-z]+)"/g)].map((m) => m[1]), ['notas', 'camadas', 'ajuda']);
   assert.ok(js.includes('faixaDock.append?.(barra);'), 'a barra das salas abre em cima do dock');
 });
 
