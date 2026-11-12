@@ -1331,6 +1331,13 @@
   if (typeof setInterval === 'function') setInterval(() => { if (!gestao.hidden) pintarGestao(); }, 60000);
 
   let diaEscolhido = '';
+  // Padrão v2 (moodboard B2): Minhas tarefas é uma lista só, na ordem do guia. O filtro e a linha aberta ficam fora do
+  // HTML pintado (aplicarLinhaAberta põe o aria-expanded depois), para a linha abrir com o movimento, sem redesenhar.
+  let filtroTarefas = 'ordem', linhaAberta = '';
+  function aplicarLinhaAberta(raiz = hud) {
+    raiz.querySelectorAll?.('#vv-hoje .v2-linha').forEach((l) => { const a = l.dataset.linha === linhaAberta;
+      l.setAttribute('aria-expanded', String(a)); l.querySelector('.v2-linha-seta')?.setAttribute('aria-expanded', String(a)); });
+  }
   function meusCompromissos() {
     let eventos; try { eventos = agendaEventos; } catch { return []; } // a agenda ainda não foi lida
     if (!Array.isArray(eventos)) return [];
@@ -1566,17 +1573,23 @@
         : urgentes ? `${varios ? 'O time tem' : 'Você tem'} <b>${urgentes} atrasada${urgentes > 1 ? 's' : ''}</b>. Faça nesta ordem:` : 'Faça nesta ordem:',
       passos: passosGuia, comecar: true,
       depois: abertas.length > 3 ? `Depois disso, mais ${abertas.length - 3} na fila. <button type="button" class="vg-link" data-hoje-acao="foco">Abrir o dia completo</button>` : '' }) : '';
-    // Prioridades do dia: o que atrasou, o que é de hoje e o que vem depois (pela veiculação, a data do cliente).
-    function blocosDePrioridade() {
+    // Prioridades do dia (Paulo, 08/11/2026: atrasados, hoje e próximos dias, pela veiculação, a data do cliente).
+    // Padrão v2 (12/11/2026): os três grupos viram os filtros de UMA lista, na ordem do guia. A linha fica enxuta
+    // (peça, cliente, status e data) e abre no lugar com as ações: trocar o status, briefing, material, entrega e roteiro.
+    function listaUnica() {
       const atrasadasP = naFila.filter((x) => x.sit === 'atrasada' && !desatualizada(x));
       const deHojeP = naFila.filter((x) => !atrasadasP.includes(x) && (veic(x) || x.ref) === hoje);
       const depoisP = naFila.filter((x) => !atrasadasP.includes(x) && !deHojeP.includes(x));
-      const MAX = POR_GRUPO + 3;
-      const bloco = (rot, cor, lista, vazio, cls) => `<section class="vv-bloco vv-bloco-prio ${cls}" style="--st:${cor}"><div class="vv-rotulo-secao" style="--c:${cor}"><i></i>${rot}<span class="vv-pilula">${lista.length}</span></div>
-        ${lista.length ? lista.slice(0, MAX).map(item).join('') + (lista.length > MAX ? `<button type="button" class="vv-mais" data-hoje-acao="todas">+ ${lista.length - MAX} em ${rot.toLowerCase()}</button>` : '') : `<p class="vv-vazio">${vazio}</p>`}</section>`;
-      return bloco('Atrasadas', 'var(--sit-atrasada, #D2453B)', atrasadasP, 'Nada atrasado.', 'atrasadas')
-        + bloco('Para hoje', 'var(--vv-laranja, #F26B1D)', deHojeP, 'Nada vence hoje.', 'hoje')
-        + bloco('Próximos dias', 'var(--sit-fazer, #8A847A)', depoisP, 'Nada nos próximos dias.', 'depois');
+      const GRUPOS = { ordem: ['Na ordem', naFila, 'Fila limpa. Bom momento para adiantar o que vem.'], atrasadas: ['Atrasadas', atrasadasP, 'Nada atrasado.'], hoje: ['Para hoje', deHojeP, 'Nada vence hoje.'], depois: ['Próximos dias', depoisP, 'Nada nos próximos dias.'] };
+      if (!GRUPOS[filtroTarefas]) filtroTarefas = 'ordem';
+      const [, lista, vazio] = GRUPOS[filtroTarefas], MAX = POR_GRUPO * 3 + 2;
+      const seg = `<div class="vv-seg v2-lista-seg" role="tablist" aria-label="Filtrar a lista">${Object.entries(GRUPOS).map(([k, [rot, l]]) => `<button type="button" role="tab" aria-selected="${k === filtroTarefas}" data-hoje-acao="filtro" data-valor="${k}">${rot} <i>${l.length}</i></button>`).join('')}</div>`;
+      const linha = (x) => { const id = esc(String(x.d.id)), mais = acoesDaPeca(x.d);
+        return `<div class="v2-abre v2-linha" data-linha="${id}" aria-expanded="false"><div class="v2-linha-cab">${linhaDemanda(x.d, { ref: veic(x) || x.ref, sit: desatualizada(x) ? (x.sit === 'atrasada' ? 'fazer' : x.sit) : x.sit, aviso: desatualizada(x) ? 'prazo desatualizado' : '', quem: fila.users.length > 1 ? x.quem : null })}
+          <button type="button" class="v2-linha-seta" data-hoje-acao="linha" data-valor="${id}" aria-expanded="false" aria-label="Mostrar as ações de ${esc(titulo(x))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+          <div class="v2-mais"><div><div class="v2-linha-mais"><small>${esc(motivoNoGuia(x, hoje))}</small>${mais}<button type="button" class="v2-linha-abrir" data-hoje-acao="peca" data-valor="${id}">Abrir a peça</button></div></div></div></div>`; };
+      return `<section class="vv-bloco v2-lista" aria-label="Minha fila"><div class="v2-lista-topo"><span><b>${filtroTarefas === 'ordem' ? 'Na ordem' : GRUPOS[filtroTarefas][0]}</b><small>abra a linha para trocar o status e pegar o briefing</small></span>${seg}</div>
+        ${lista.length ? lista.slice(0, MAX).map(linha).join('') + (lista.length > MAX ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${lista.length - MAX} na fila · abrir o dia completo</button>` : '') : `<p class="vv-vazio">${vazio}</p>`}</section>`;
     }
     // Layout do Hoje (Paulo, 08/11/2026: "datas em linha mais no topo, avisos e agendas num box à direita, prioridade
     // a ATRASADOS, HOJE e PRÓXIMOS DIAS"): saudação e faixa de dias no topo; no meio as três colunas de prioridade (ou
@@ -1587,7 +1600,7 @@
       <button type="button" class="vv-dia hoje${!diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="" aria-pressed="${!diaEscolhido}"><small>Hoje</small><b>${Number(hoje.slice(8))}</b><span>${deHoje.length + atrasadas.length || '–'}</span></button>
       ${proximos.map((p, i) => `<button type="button" class="vv-dia${p.dia === diaEscolhido ? ' ativo' : ''}" data-hoje-acao="dia" data-valor="${p.dia}" aria-pressed="${p.dia === diaEscolhido}"><small>${diaCurto(p.dia, i)}</small><b>${Number(p.dia.slice(8))}</b><span>${p.n || '–'}</span></button>`).join('')}
       <button type="button" class="vv-mais vv-ver-todas" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}">${hojeVerTodas ? 'Ver prioridades' : `Ver todas por status (${abertas.length})`}</button></nav>`;
-    const blocosHtml = !diaEscolhido && !hojeVerTodas ? `<div class="vv-blocos vv-blocos-prio">${blocosDePrioridade()}</div>`
+    const blocosHtml = !diaEscolhido && !hojeVerTodas ? listaUnica()
       : `<div class="vv-blocos">${porStatus.length ? porStatus.map((g) => `<section class="vv-bloco vv-bloco-status" style="--st:${esc(g.cor)}">
       <div class="vv-rotulo-secao" style="--c:${esc(g.cor)}"><i></i>${esc(g.st)}<span class="vv-pilula">${g.itens.length}</span></div>
       ${g.itens.slice(0, POR_GRUPO).map(item).join('')}${g.itens.length > POR_GRUPO ? `<button type="button" class="vv-mais" data-hoje-acao="foco">+ ${g.itens.length - POR_GRUPO} em ${esc(g.st)}</button>` : ''}
@@ -1606,10 +1619,13 @@
       ${body.classList.contains('mundo-quarto') ? `<p class="vv-hoje-contas">${[[atrasadas.length, 'atrasada', 'atrasadas', 'ruim'], [deHoje.length, 'vence hoje', 'vencem hoje', 'atencao'], [abertas.length, 'na fila', 'na fila', '']].map(([n, um, varios, cls]) => `<span class="${n ? cls : ''}">${n} ${n === 1 ? um : varios}</span>`).join('')}</p>` : ''}
       ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}</div>${lado}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
+    aplicarLinhaAberta(el);
   }
   function acaoDoHoje(acao, valor) {
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
     if (acao === 'dia') { diaEscolhido = diaEscolhido === valor ? '' : valor; pintarHoje(); return; }
+    if (acao === 'filtro') { filtroTarefas = String(valor || 'ordem'); linhaAberta = ''; pintarHoje(); return; }
+    if (acao === 'linha') { linhaAberta = linhaAberta === String(valor) ? '' : String(valor); aplicarLinhaAberta(); return; }
     if (acao === 'todas' || acao === 'prioridades') { hojeVerTodas = acao === 'todas'; try { localStorage.setItem('vybe.hoje.todas', hojeVerTodas ? '1' : ''); } catch { /* sem guardar */ } pintarHoje(); return; }
     if (acao === 'peca') { chamar('openItemWorkspace', String(valor)); return; }
     if (acao === 'foco') { const alvo = verComo || eu?.id; if (alvo) chamar('chooseFocusUser', String(alvo)); return; }
