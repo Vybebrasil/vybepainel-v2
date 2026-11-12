@@ -781,11 +781,11 @@
     return `<div class="vv-seg vv-seg-3" role="tablist" aria-label="O que ver">${aba('agencia', 'Agência')}${aba('criacao', 'Criação')}${aba('tarefas', 'Minhas tarefas')}</div>`;
   }
   // O guia: o agente, uma frase e os passos numerados (Agora, Depois, Em seguida), cada um abre o que precisa ser feito.
-  function guiaHtml({ agente, intro, passos = [], depois = '', conversa = '' }) {
+  function guiaHtml({ agente, intro, passos = [], depois = '', conversa = '', comecar = false }) {
     const av = agente.nome === 'VYBES' ? '<span class="vv-ser vg-av-ser" aria-hidden="true"><i></i></span>' : `<span class="vg-av" aria-hidden="true">${esc(agente.nome.slice(0, 1))}</span>`;
     const quando = ['Agora', 'Depois', 'Em seguida'];
     return `<section class="vg-guia" aria-label="Guia de ${esc(agente.nome)}"><div class="vg-cab">${av}<span class="vg-quem"><b>${esc(agente.nome)}</b><small>${esc(agente.papel)}</small></span>
-        ${agente.nome !== 'VYBES' && souDono() ? `<button type="button" class="vg-agente" data-pend-agente="${esc(agente.setor)}">Ver o agente</button>` : ''}</div>
+        ${agente.nome !== 'VYBES' && souDono() ? `<button type="button" class="vg-agente" data-pend-agente="${esc(agente.setor)}">Ver o agente</button>` : ''}${comecar && passos[0] ? `<button type="button" class="vg-comecar" ${passos[0].attrs}>Começar</button>` : ''}</div>
       ${conversa || `<p class="vg-intro">${intro}</p>`}
       ${passos.length ? `<ol class="vg-passos">${passos.map((p, i) => `<li${i === 0 ? ' class="agora"' : ''}><button type="button" class="vg-passo" ${p.attrs}><span class="vg-num" aria-hidden="true">${i + 1}</span><span class="vg-meio"><small>${quando[i] || 'Depois'}</small><b>${p.titulo}</b><em>${p.motivo}</em></span><span class="vg-ir" aria-hidden="true">→</span></button></li>`).join('')}</ol>` : ''}
       ${depois ? `<p class="vg-depois">${depois}</p>` : ''}</section>`;
@@ -819,6 +819,19 @@
     const cartoes = (l) => (l.length ? `<div class="vs-kpis vv-dono-radar">${l.map((x) => V.kpi(x)).join('')}</div>` : '');
     if (typeof vbResumoHtml !== 'function') return cartoes(itens);
     return cartoes(cheios) + (zeros.length ? `<div class="vs-resumo vv-radar-zeros">${vbResumoHtml(zeros.map((x) => ({ valor: 0, rotulo: x.zero, espiar: x.espiar || '' })))}</div>` : '');
+  }
+  // Padrão v2 (moodboard B1 e B2, Paulo, 12/11/2026): no alto da tela ficam três números, não seis. Cada um diz uma
+  // coisa do dia, o que tem meta ganha a barra, e o que está zerado continua no lugar, só apagado (a tela não muda de
+  // forma de um dia para o outro). O que saiu dos cartões vai para a linha "Também de olho" (olhoHtml).
+  function tresNumerosHtml(itens) {
+    return `<div class="v2-tres" role="group" aria-label="Os números do dia">${itens.filter(Boolean).map((x) => {
+      const tag = x.attrs ? 'button' : 'div';
+      return `<${tag}${x.attrs ? ' type="button" ' + x.attrs : ''} class="v2-tres-c${x.quieto ? ' quieto' : x.tom ? ' ' + x.tom : ''}"><small>${esc(x.titulo)}</small><b class="v2-num">${x.valor}</b>${x.barra != null ? `<span class="v2-barra" style="--v:${Math.max(0, Math.min(100, Math.round(x.barra)))}%"><i></i></span>` : ''}<em>${x.sub}</em></${tag}>`;
+    }).join('')}</div>`;
+  }
+  function olhoHtml(itens) {
+    const l = itens.filter((x) => Number(x.n) > 0);
+    return l.length ? `<p class="v2-olho"><span>Também de olho:</span>${l.map((x) => `<button type="button" data-espiar="${esc(x.espiar)}"><b>${n0(x.n)}</b> ${esc(x.rotulo)}</button>`).join('')}</p>` : '';
   }
   const SAUDE = { critico: ['Crítico', 'u1'], atencao: ['Atenção', 'u2'], ok: ['Em dia', 'u6'] };
   const dataCompleta = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : 'Não definido';
@@ -986,14 +999,16 @@
     // semana em gráfico e clientes, gargalos e cobranças lado a lado; à direita VYBES, atendimento, compromissos e atalhos.
     const V = window.VybeSetor?.pecas;
     const emAtencao = (N.clientes || []).filter((c) => c.saude !== 'ok').length;
-    const radar = V ? radarHtml(V, [
-      { n: H.atrasadas, zero: 'atrasadas', icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' },
-      { n: H.emRisco, zero: 'com risco de furo nos próximos 2 dias', icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' },
-      { n: H.faltam, zero: `faltam hoje · ${n0(feitasHoje)} de ${n0(prevHoje)} ${rotuloDe(prevHoje, 'feita', 'feitas')}`, icone: 'calendario', titulo: 'Faltam hoje', valor: `${n0(H.faltam)}`, sub: `${n0(feitasHoje)} de ${n0(prevHoje)} ${rotuloDe(prevHoje, 'feita', 'feitas')}`, cls: H.faltam ? 'atencao' : '', espiar: 'faltam' },
-      { n: S.previstas, zero: 'previstas nesta semana', icone: 'aperto', titulo: 'Semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: 'entregues / previstas' },
-      { n: emAtencao, zero: `clientes em atenção, de ${plural(ativos, 'ativo', 'ativos')}`, icone: 'coracao', titulo: 'Clientes em atenção', valor: n0(emAtencao), sub: `de ${plural(ativos, 'ativo', 'ativos')}`, cls: clientesRuins.length ? 'atencao' : '', espiar: 'atencao' },
-      { n: sem3.length, zero: 'clientes sem 3 posts nesta semana', icone: 'doc', titulo: 'Sem 3 posts', valor: n0(sem3.length), sub: 'clientes nesta semana', cls: sem3.length ? 'atencao' : '', espiar: 'sem3' },
-    ]) : '';
+    const radar = tresNumerosHtml([
+      { titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: H.atrasadas ? `${n0(H.furos)} furando a data do cliente` : 'nada atrasado', tom: 'ruim', quieto: !H.atrasadas, attrs: 'data-espiar="atrasadas"' },
+      { titulo: 'Vão ao ar hoje', valor: n0(feitasHoje), sub: prevHoje ? `de ${n0(prevHoje)} ${rotuloDe(prevHoje, 'pronta', 'prontas')}` : 'nada previsto para hoje', barra: prevHoje ? feitasHoje / prevHoje * 100 : null, tom: H.faltam ? 'atencao' : '', quieto: !prevHoje, attrs: 'data-espiar="faltam"' },
+      { titulo: 'Semana', valor: n0(S.entregues), sub: S.previstas ? `de ${n0(S.previstas)} ${rotuloDe(S.previstas, 'entregue', 'entregues')}` : 'nada previsto nesta semana', barra: S.previstas ? (S.entregues || 0) / S.previstas * 100 : null, quieto: !S.previstas, attrs: 'data-abrir-gestao="semana"' },
+    ]);
+    const olho = olhoHtml([
+      { n: H.emRisco, rotulo: 'com risco de furo nos próximos 2 dias', espiar: 'emRisco' },
+      { n: emAtencao, rotulo: `${rotuloDe(emAtencao, 'cliente', 'clientes')} em atenção`, espiar: 'atencao' },
+      { n: sem3.length, rotulo: `${rotuloDe(sem3.length, 'cliente', 'clientes')} sem 3 posts na semana`, espiar: 'sem3' },
+    ]);
     const alertas = (N.alertas || []).filter((a) => a.nivel <= 3).slice(0, 6);
     const acao = alertas.length ? `<ul class="vs-alertas">${alertas.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vv-vazio">Nada crítico agora.</p>';
     // Paulo, 09/11/2026: "muita informação na tela sem ser de forma guiada... me guie: o que eu tenho que resolver primeiro".
@@ -1010,7 +1025,7 @@
     ];
     const restoAg = alertas.filter((a) => !passosAg.slice(0, 3).some((p) => p.attrs === `data-espiar="alerta:${(N.alertas || []).indexOf(a)}"`));
     const guiaAgencia = guiaHtml({ agente: { nome: 'VYBES', papel: 'Orquestrador · guia da agência', setor: 'orquestrador' },
-      intro: passosAg.length ? 'Por onde começar hoje, nesta ordem:' : 'Nada urgente agora. Bom momento para olhar a semana e os clientes.',
+      intro: passosAg.length ? `O dia tem <b>${['uma coisa', 'duas coisas', 'três coisas'][Math.min(passosAg.length, 3) - 1]}</b>${passosAg.length > 1 ? ', nesta ordem' : ' agora'}.${restoAg.length ? '' : ' O resto está andando.'}` : 'Nada urgente agora. Bom momento para olhar a semana e os clientes.',
       passos: passosAg.slice(0, 3),
       depois: restoAg.length ? `<details class="vg-resto"><summary>Mais ${restoAg.length} ponto${restoAg.length > 1 ? 's' : ''} de atenção</summary><ul class="vs-alertas">${restoAg.map((a) => `<li class="${a.nivel === 1 ? 'ruim' : 'atencao'}"><button type="button" class="vs-alerta" data-espiar="alerta:${(N.alertas || []).indexOf(a)}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul></details>` : '' });
     const bloco = (titulo, sub, corpo, extra = '') => `<section class="vs-bloco vv-dono-bloco"><div class="vs-bloco-cabeca"><span><b>${titulo}</b>${sub ? `<small>${sub}</small>` : ''}</span>${extra}</div>${corpo}</section>`;
@@ -1019,10 +1034,10 @@
     const cobrarHtml = time.map((t) => `<div class="vv-dono-linha estatica"><span class="av">${esc(String(t.pessoa || '?').slice(0, 2).toUpperCase())}</span><span class="meio"><b>${esc(t.pessoa)}</b><small>${esc(t.cobrar[0])}</small></span></div>`).join('')
       + bots.lista.slice(0, 3).map((b) => `<button type="button" class="vv-dono-linha" data-agente="${esc(b.andar)}|${esc(b.setor)}"><span class="av bot">AI</span><span class="meio"><b>${esc(b.nome)}</b><small>${esc(b.texto)}</small></span></button>`).join('')
       + (!time.length && !bots.lista.length ? '<p class="vv-vazio">Nada para cobrar agora.</p>' : '') + (!bots.sinal ? '<p class="vv-dica">Bots: sem sinal da central agora.</p>' : '');
-    const html = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>
-        <span class="vv-anel" style="--p:${prevHoje ? Math.round(feitasHoje / prevHoje * 100) : 100}" title="Produção de hoje: feitas de previstas" data-espiar="faltam" role="button" tabindex="0"><b>${n0(feitasHoje)}</b><small>/${n0(prevHoje)}</small></span></div>
+    const html = `${seg}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span></div>
       ${guiaAgencia}
       ${radar}
+      ${olho}
       <div class="vv-hoje-agenda-3d">${agendaDeHojeHtml()}</div>
       ${window.VybeAprovacoes?.blocoHtml?.('agencia') || ''}
       <div class="vv-hoje-grade"><div class="vv-hoje-principal vv-dono-principal">
@@ -1530,12 +1545,26 @@
         <select class="vv-pessoa-add" data-pessoa-add aria-label="Adicionar pessoa ao dia"><option value="">+ Adicionar</option>${time.filter((u) => !selIds.includes(String(u.id))).map((u) => `<option value="${esc(u.id)}">${esc(u.name || u.nome)}</option>`).join('')}</select>
         <button type="button" class="vv-pessoas-atalho" data-pessoas-atalho="criacao">Time de criação</button>${selIds.length > 1 || selIds[0] !== euId ? '<button type="button" class="vv-pessoas-atalho" data-pessoas-atalho="eu">Só eu</button>' : ''}</div>` : '';
     const varios = fila.users.length > 1;
+    // Padrão v2 (moodboard B2): Para hoje, Atrasadas e Feitas da semana no lugar do anel. "Feitas" conta as peças
+    // concluídas da pessoa cuja data (veiculação, ou o prazo sem ela) cai nesta semana, de segunda a domingo.
+    const iniSem = window.VybeDono?.util?.inicioDaSemana?.(hoje) || '', fimSem = iniSem ? somar(iniSem, 6) : '';
+    const feitasSem = iniSem && typeof unifiedOperationalItems === 'function' && typeof isFinishedItem === 'function'
+      ? unifiedOperationalItems().filter((d) => { const r = String(d.veiculacao_iso || d.prazo_iso || '').slice(0, 10);
+        return r >= iniSem && r <= fimSem && isFinishedItem(d) && [...(d.responsavel_ids || []), d.responsavel_id].some((id) => id != null && selIds.includes(String(id))); }).length : null;
+    const amanha = abertas.filter((x) => x.sit !== 'atrasada' && (veic(x) || x.ref) === somar(hoje, 1)).length;
+    const maisAntiga = atrasadas.map((x) => veic(x) || x.ref).filter(Boolean).sort()[0] || '';
+    const diasAtraso = maisAntiga ? Math.max(1, Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(maisAntiga + 'T12:00:00Z')) / 864e5)) : 0;
+    const numeros = tresNumerosHtml([
+      { titulo: 'Para hoje', valor: n0(deHoje.length), sub: amanha ? `${n0(amanha)} ${rotuloDe(amanha, 'veicula', 'veiculam')} amanhã` : deHoje.length ? 'pela data do cliente' : 'nada vence hoje', tom: 'atencao', quieto: !deHoje.length },
+      { titulo: 'Atrasadas', valor: n0(atrasadas.length), sub: atrasadas.length ? (diasAtraso ? `a mais antiga, ${plural(diasAtraso, 'dia', 'dias')}` : 'sem data do cliente') : 'nada atrasado', tom: 'ruim', quieto: !atrasadas.length },
+      feitasSem == null ? null : { titulo: 'Feitas da semana', valor: n0(feitasSem), sub: 'com data nesta semana', quieto: !feitasSem },
+    ]);
     // O guia do dia: a mesma ordem da fila (a data do cliente manda), com o porquê de cada passo.
     const { urgentes, passos: passosGuia } = passosDoGuia(abertas, hoje, varios);
     const guia = !diaEscolhido ? guiaHtml({ agente: guiaDe(fila.users),
       intro: !abertas.length ? 'Fila limpa. Bom momento para adiantar o que vem ou ajudar alguém do time.'
         : urgentes ? `${varios ? 'O time tem' : 'Você tem'} <b>${urgentes} atrasada${urgentes > 1 ? 's' : ''}</b>. Faça nesta ordem:` : 'Faça nesta ordem:',
-      passos: passosGuia,
+      passos: passosGuia, comecar: true,
       depois: abertas.length > 3 ? `Depois disso, mais ${abertas.length - 3} na fila. <button type="button" class="vg-link" data-hoje-acao="foco">Abrir o dia completo</button>` : '' }) : '';
     // Prioridades do dia: o que atrasou, o que é de hoje e o que vem depois (pela veiculação, a data do cliente).
     function blocosDePrioridade() {
@@ -1572,7 +1601,8 @@
       <div class="vv-chips"><button type="button" data-hoje-acao="foco">Meu dia</button><button type="button" data-hoje-acao="missoes">Missões e cobranças</button><button type="button" data-hoje-acao="demandas">Todas as demandas</button><button type="button" data-hoje-acao="agenda">Agenda</button><button type="button" data-hoje-acao="pedido_rh">Nova solicitação ao RH</button><button type="button" data-hoje-acao="radar">Radar da equipe</button></div>
     </aside>`;
     const html = `${segDono}${filtroPessoas}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2>${varios ? `<small class="vv-dia-de">O dia de ${esc(fila.users.map((u) => (String(u.id) === euId ? 'você' : nomeCurto(u))).join(', '))}</small>` : !dono && !euId ? `<small class="vv-dia-de">O dia de ${esc(nomeCurto(fila.user))} · <button type="button" class="vg-link" data-pessoas-atalho="trocar">Trocar</button></small>` : ''}</span>
-        <span class="vv-hoje-topo-acoes"><span class="vv-anel" style="--p:${abertas.length ? Math.round((1 - atrasadas.length / abertas.length) * 100) : 100}" title="Fila em dia"><b>${abertas.length - atrasadas.length}</b><small>/${abertas.length}</small></span>${criarHtml}</span></div>
+        <span class="vv-hoje-topo-acoes">${criarHtml}</span></div>
+      ${!diaEscolhido ? numeros : ''}
       ${body.classList.contains('mundo-quarto') ? `<p class="vv-hoje-contas">${[[atrasadas.length, 'atrasada', 'atrasadas', 'ruim'], [deHoje.length, 'vence hoje', 'vencem hoje', 'atencao'], [abertas.length, 'na fila', 'na fila', '']].map(([n, um, varios, cls]) => `<span class="${n ? cls : ''}">${n} ${n === 1 ? um : varios}</span>`).join('')}</p>` : ''}
       ${faixa}<div class="vv-hoje-grade"><div class="vv-hoje-principal">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}${blocosHtml}</div>${lado}</div>`;
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
