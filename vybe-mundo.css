@@ -5105,7 +5105,7 @@ body.mundo.mundo-quarto.agenda-fixa:not(.ver-agenda) #mundo-hud .vv-agenda{displ
 .vq-dock .vq-item:hover{transform:translateY(-3px)}
 .vq-dock .vq-icone{position:relative;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(180deg,#FFFFFF,#F3EEE6);border:1px solid rgba(31,29,26,.1);box-shadow:0 6px 14px -8px rgba(31,29,26,.45);color:#3A3F44}
 .vq-dock .vq-icone svg{width:18px;height:18px}
-.vq-dock .vq-item.minha .vq-icone{background:linear-gradient(180deg,#FF8A3D,#E2600F);border-color:#C2490C;color:#FFFFFF}
+.vq-dock .vq-item.minha .vq-icone{background:#1F1D1A;border-color:#1F1D1A;color:#FFFFFF}
 .vq-dock .vq-voltar .vq-icone{background:linear-gradient(180deg,#3A3631,#1F1D1A);border-color:#1F1D1A;color:#FFFFFF}
 .vq-dock .vq-voltar .vq-icone svg{width:19px;height:19px;stroke-width:2.4}
 .vq-dock .vq-item.aberta .vq-icone{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #F26B1D,0 8px 16px -8px rgba(31,29,26,.5)}
@@ -5230,7 +5230,7 @@ body.mundo.com-dock-salas #mundo-andar.quarto .andar-palco{bottom:var(--vv-dock-
 .vq-dock .vq-mic.mudo .vq-icone{background:linear-gradient(180deg,#E25B52,#D2453B);border-color:#B42318;color:#FFFFFF}
 .vq-dock .vq-mic.mudo .vq-rotulo{color:#B42318}
 .vq-dock .vq-mic.on .vq-rotulo{color:#11613A}
-.vq-dock .vq-entrar .vq-icone{background:linear-gradient(180deg,#FF8A3D,#C2490C);border-color:#C2490C;color:#FFFFFF}
+.vq-dock .vq-entrar .vq-icone{background:#C2490C;border-color:#C2490C;color:#FFFFFF}
 .vq-dock .vq-entrar .vq-rotulo{color:#C2490C}
 .vq-dock .vq-espera .vq-icone{opacity:.6}
 .vq-dock .vq-sair .vq-icone{color:#B42318;border-color:#F3C5C0}
