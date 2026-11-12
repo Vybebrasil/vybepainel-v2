@@ -288,8 +288,10 @@ export async function lerCarteira(sql, quem, dia = hojeBahia()) {
   const [config, onboardingLido, contratos, churn, historico, clima] = await Promise.all([
     parte(() => etapasConfiguradas(sql)),
     parte(async () => ({ clientes: await lerOnboardings(sql) })),
-    parte(async () => ({ lista: (await sql`SELECT cliente_id::text, valor_mensal, inicio, renovacao, status, observacao, atualizado_em
-        FROM vybe_cliente_contratos`).map((c) => ({ ...c, valor_mensal: numero(c.valor_mensal), inicio: diaDe(c.inicio), renovacao: diaDe(c.renovacao) })) })),
+    // Só o contrato lançado à mão na Carteira (um por cliente). Os que o importador trouxe do Finanças
+    // (origem_financas_id, migração 2026-11-11-financas-base.sql) chegam pela área vybe_financas, como hoje.
+    parte(async () => ({ lista: (await sql`SELECT k.cliente_id::text, k.valor_mensal, k.inicio, k.renovacao, k.status, k.observacao, k.atualizado_em
+        FROM vybe_cliente_contratos k WHERE (to_jsonb(k) ->> 'origem_financas_id') IS NULL`).map((c) => ({ ...c, valor_mensal: numero(c.valor_mensal), inicio: diaDe(c.inicio), renovacao: diaDe(c.renovacao) })) })),
     parte(async () => ({ registros: (await sql`SELECT id::text, cliente_id::text, saiu_em, tipo, motivo, detalhe, receita_mensal, registrado_em
         FROM vybe_cliente_churn ORDER BY saiu_em DESC, id DESC`).map((r) => ({ ...r, saiu_em: diaDe(r.saiu_em), receita_mensal: numero(r.receita_mensal) })) })),
     parte(async () => ({ meses: (await sql`SELECT mes, ROUND(AVG(score))::int AS media, COUNT(*)::int AS clientes,
@@ -385,11 +387,15 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
     if (d.inicio && d.renovacao && d.renovacao < d.inicio) falhar('A renovação não pode ser antes do início.');
     return sql.comTransacao(async (tx) => {
       await clienteAtivo(tx, id);
-      const [c] = await tx`INSERT INTO vybe_cliente_contratos (cliente_id, valor_mensal, inicio, renovacao, status, observacao, atualizado_por)
-        VALUES (${id}, ${d.valor}, ${d.inicio}, ${d.renovacao}, ${status}, ${d.observacao}, ${pessoaId})
-        ON CONFLICT (cliente_id) DO UPDATE SET valor_mensal=EXCLUDED.valor_mensal, inicio=EXCLUDED.inicio, renovacao=EXCLUDED.renovacao,
-          status=EXCLUDED.status, observacao=EXCLUDED.observacao, atualizado_em=now(), atualizado_por=EXCLUDED.atualizado_por
-        RETURNING cliente_id::text`;
+      // Atualiza o contrato lançado à mão do cliente ou cria: sem ON CONFLICT (cliente_id), porque a migração
+      // 2026-11-11-financas-base.sql tira o "um contrato por cliente" (os do Finanças entram ao lado) e isto precisa
+      // valer antes e depois dela. A linha do cliente fica travada na transação para dois salvamentos não criarem dois.
+      await tx`SELECT id FROM vybe_clientes WHERE id=${id} FOR UPDATE`;
+      let [c] = await tx`UPDATE vybe_cliente_contratos k SET valor_mensal=${d.valor}, inicio=${d.inicio}, renovacao=${d.renovacao}, status=${status},
+          observacao=${d.observacao}, atualizado_em=now(), atualizado_por=${pessoaId}
+        WHERE k.cliente_id=${id} AND (to_jsonb(k) ->> 'origem_financas_id') IS NULL RETURNING k.cliente_id::text`;
+      if (!c) [c] = await tx`INSERT INTO vybe_cliente_contratos (cliente_id, valor_mensal, inicio, renovacao, status, observacao, atualizado_por)
+        VALUES (${id}, ${d.valor}, ${d.inicio}, ${d.renovacao}, ${status}, ${d.observacao}, ${pessoaId}) RETURNING cliente_id::text`;
       return { contrato: c.cliente_id };
     });
   }

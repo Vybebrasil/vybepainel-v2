@@ -80,6 +80,13 @@ Rota: `GET /api/painel?area=vybe_financas&parte=comercial|carteira|rh&mes=AAAA-M
   acento, minúsculo, sem pontuação e sem `ltda`/`me`/`eireli`, só se houver um único cliente do
   Vybe OS com aquele nome.
 
+## Passagem para o banco do Vybe OS (11/11/2026)
+
+O Paulo decidiu abolir o Vybe Finanças. A fase 1 (importar o histórico e poder ler do próprio banco pela chave
+`VYBE_FINANCAS_FONTE`, com a ponte como padrão) está em [`docs/financas-no-vybe-os.md`](financas-no-vybe-os.md).
+Enquanto a chave não for ligada, tudo neste documento continua valendo como está. A ligação de clientes passa a
+respeitar primeiro o id do Finanças gravado em `vybe_clientes.financas_cliente_id`, quando existir.
+
 ## Criar e atualizar o cliente no Finanças (09/11/2026)
 
 O Paulo liberou o Vybe OS para levar o cadastro do cliente ao Finanças. É outra conexão, separada da leitura:
