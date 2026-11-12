@@ -25,7 +25,7 @@ test('TV: o player fica (o clipe que está passando e quem pôs); Desligar é o 
   assert.match(esc, /Passando agora\$\{quemPassou \? " · posto por " \+ safeText\(quemPassou\) : ""\}/);
   assert.match(esc, /\$\{telaHtml\}\r?\n<div class="ofc-tv-opcoes vb-alternar"/);
   assert.match(css, /body\.mundo \.ofc-tv-desligar\{[^}]*border:1px solid #F6BBC4;[^}]*color:#B42318/);
-  assert.match(css, /body\.mundo \.ofc-tv-opcao\.on\{background:var\(--ds-sel-fundo\)/);
+  assert.match(css, /body\.mundo \.ofc-tv-opcao\.on\{background:var\(--ds-on-fundo\)/);
 });
 
 test('Música fora de uma sala com som: um caminho (Entrar no Lounge), não só o aviso', () => {

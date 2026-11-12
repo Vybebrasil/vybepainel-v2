@@ -70,7 +70,7 @@ test('35 · ordem da Loja e do inventário em chips, não select nativo; categor
   assert.match(html, /aria-pressed="false" onclick="escritorio\.cat\.ordem='destaque'/);
   const css = ler('vybe-mundo.css');
   assert.match(css, /body\.mundo #office-catalogo \.ofc-catj-arvore\{display:flex;flex-wrap:wrap/);
-  assert.match(css, /body\.mundo #office-catalogo \.ofc-loja-nav\[aria-pressed=true\]\{background:var\(--ds-sel-fundo\)/);
+  assert.match(css, /body\.mundo #office-catalogo \.ofc-loja-nav\[aria-pressed=true\]\{background:var\(--ds-on-fundo\)/);
 });
 
 test('35 a 37 · ícones de móvel e troféu em voxel: parede também, guardados no navegador, sem pixel art esperando', () => {

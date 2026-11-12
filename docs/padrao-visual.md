@@ -11,6 +11,37 @@ as regras antigas.
 
 ---
 
+## 0. Padrão v2 (12/11/2026): o que vale por cima do resto deste manual
+
+O Paulo aprovou o moodboard de 122 quadros ("gostei da linha, pode executar tudo"). Onde este manual
+disser diferente, vale o que está aqui. A base entrou em `vybe-mundo.css` (bloco "PADRÃO V2 · BASE", no fim).
+
+| O quê | Antes | Agora |
+|---|---|---|
+| Fundo (`--vv-papel`) | `#F6F3EE` | `#F3F1EC` |
+| Ação principal (`--ds-acao`, `--vv-laranja`) | `#FF7A2F` | `#C2490C`, texto branco; hover `#A83D08`. Um botão cheio por tela. |
+| Selecionado (aba, filtro, chip, segmento) | laranja 13% + texto `#C2490C` | **preto com texto branco**: `--ds-on-fundo`, `--ds-on-texto`, `--ds-on-borda`. `--ds-sel-*` (laranja claro) fica só para hover e realce leve. |
+| Raio de controle (`--pc-r`, `--ds-r-botao`, `--ds-r-chip`, `--vv-r-botao`) | 8 | 999: botão, chip, filtro e busca são pílula |
+| Raio de cartão / janela | 10 a 18 / 24 | 20 / 28 |
+
+Movimentos (peças prontas; a tela põe a classe e não escreve animação; todos param com "Reduzir movimento"):
+
+| Classe | Para quê |
+|---|---|
+| `.v2-num` | número de topo que chega desembaçando |
+| `.v2-barra > i` (`--v`, `--c`) | barra que cresce até o valor |
+| `.v2-abre[aria-expanded]` + `.v2-mais` | linha ou cartão que abre no lugar |
+| `.v2-estado[data-estado="indo|feito"]` | botão que conclui: gira e vira "feito" verde |
+| `.v2-risca.feita` | tarefa que risca ao concluir |
+| `.v2-pop` | avatar de quem chega |
+| `.v2-chegou` | linha que acabou de trocar de status ou de grupo |
+| `.v2-baralho` + `.v2-carta[data-pos]` + `.v2-pontos` | baralho de decisão: um cartão por vez, o decidido sai para a esquerda |
+| `#v2-desfazer` | aviso em pílula preta com "Desfazer" depois de trocar status |
+
+Regras de tela do v2: no máximo três cartões de número; "pede ação" antes de qualquer lista, com o botão na
+linha; uma barra de filtro só; o detalhe abre no lugar; vazio é uma frase e uma ação; tudo que espera
+decisão aparece em baralho, com a lista a um clique.
+
 ## 1. Ideia
 
 Uma maquete de Irecê viva, vista de cima, com a Vybe no meio. Por cima dela, janelas de vidro

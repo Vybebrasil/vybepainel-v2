@@ -39,7 +39,7 @@
 .vv-personagem-estado b{color:#1F1D1A;font:700 17px/1.3 var(--vv-titulo,"Space Grotesk",system-ui,sans-serif)}
 .vv-personagem-estado p{max-width:380px;margin:0;color:#6B675F;font:500 13px/1.5 var(--vv-texto,system-ui,sans-serif)}
 .vv-personagem-estado button{margin-top:12px}
-.vv-personagem-girando{width:28px;height:28px;margin-bottom:6px;border-radius:50%;border:3px solid #EFEAE2;border-top-color:#FF7A2F;animation:vv-personagem-gira .8s linear infinite}
+.vv-personagem-girando{width:28px;height:28px;margin-bottom:6px;border-radius:50%;border:3px solid #EFEAE2;border-top-color:#C2490C;animation:vv-personagem-gira .8s linear infinite}
 @keyframes vv-personagem-gira{to{rotate:360deg}}
 @media (prefers-reduced-motion:reduce){.vv-personagem-girando{animation-duration:2.4s}}
 
@@ -74,15 +74,15 @@ img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
   display:grid;place-items:center;cursor:pointer;transition:border-color .15s,translate .15s}
 .vv-personagem-amostra:hover:not(:disabled){translate:0 -1px;border-color:#E6E0D6}
 .vv-personagem-amostra i{display:block;width:100%;height:100%;border-radius:8px;background:var(--c,#F3EFE8);box-shadow:inset 0 0 0 1px rgba(31,29,26,.14)}
-.vv-personagem-amostra[aria-pressed="true"],.vv-personagem-amostra[aria-pressed="true"]:hover{border-color:#FF7A2F}
+.vv-personagem-amostra[aria-pressed="true"],.vv-personagem-amostra[aria-pressed="true"]:hover{border-color:#C2490C}
 .vv-personagem-amostra.nenhum i{background:linear-gradient(135deg,transparent calc(50% - 1.5px),#D9D1C4 calc(50% - 1.5px) calc(50% + 1.5px),transparent calc(50% + 1.5px)),#FFFFFF}
 /* Desligada (peça que a pessoa ainda não tem): sem cor, para não parecer um tom pastel escolhível */
 .vv-personagem-amostra:disabled{opacity:.4;filter:grayscale(1);cursor:not-allowed}
 .vv-personagem-chips{display:flex;flex-wrap:wrap;gap:8px}
 .vv-personagem-chip{appearance:none;margin:0;height:34px;padding:0 14px;border:1px solid var(--ds-linha,#E6E0D6);border-radius:8px;background:#FFFFFF;color:#1F1D1A;
   font:600 12.5px var(--vv-texto,system-ui,sans-serif);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-.vv-personagem-chip:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C}
-.vv-personagem-chip[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEBDF);border-color:var(--ds-sel-borda,#FFD3B9);color:var(--ds-sel-texto,#C2490C);font-weight:700}
+.vv-personagem-chip:hover:not(:disabled){border-color:#C2490C;color:#C2490C}
+.vv-personagem-chip[aria-pressed="true"]{background:var(--ds-on-fundo,#FFEBDF);border-color:var(--ds-on-borda,#FFD3B9);color:var(--ds-on-texto,#C2490C);font-weight:700}
 .vv-personagem-chip:disabled{opacity:.45;cursor:not-allowed}
 
 /* Rodapé: aviso/erro à esquerda; Aleatório e Cancelar (secundários) e Salvar (a ação principal) */
@@ -96,11 +96,11 @@ img.vv-personagem-tela{object-fit:contain;object-position:50% 100%}
 .vv-personagem-sec,.vv-personagem-principal{appearance:none;margin:0;height:34px;padding:0 14px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
   font:600 12.5px var(--vv-texto,system-ui,sans-serif);white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
 .vv-personagem-sec{border:1px solid var(--ds-linha,#E6E0D6);background:#FFFFFF;color:#1F1D1A}
-.vv-personagem-sec:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C}
-.vv-personagem-principal{padding:0 18px;border:0;background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font-weight:700;box-shadow:0 8px 20px -8px #E8602E}
-.vv-personagem-principal:hover:not(:disabled){background:var(--ds-acao-hover,#E8602E)}
+.vv-personagem-sec:hover:not(:disabled){border-color:#C2490C;color:#C2490C}
+.vv-personagem-principal{padding:0 18px;border:0;background:var(--ds-acao,#C2490C);color:#FFFFFF;font-weight:700;box-shadow:0 8px 20px -8px #A83D08}
+.vv-personagem-principal:hover:not(:disabled){background:var(--ds-acao-hover,#A83D08)}
 .vv-personagem :is(.vv-personagem-sec,.vv-personagem-principal):disabled{opacity:.6;cursor:not-allowed}
-.vv-personagem :is(button,[tabindex="0"]):focus-visible{outline:none;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+.vv-personagem :is(button,[tabindex="0"]):focus-visible{outline:none;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 
 /* Celular: prévia em cima, opções embaixo, botões numa linha */
 @media (max-width:720px){

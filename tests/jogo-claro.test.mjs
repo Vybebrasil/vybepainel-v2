@@ -80,7 +80,7 @@ test('o jogo claro no fim do vybe-mundo.css: sem !important, sem html body.mundo
   assert.doesNotMatch(antiga, /\[class\*="rk2-"\]:not\(\.rk2-janela\)/);
   // O período do Ranking também fica de fora da regra preta: a seleção é o laranja do padrão (segunda rodada, 10/11/2026).
   assert.match(antiga, /\[role="tab"\]\[aria-selected="true"\]\):not\(\.rk2-camp\):not\(\.rk2-chip\):not\(\.vb-chip\):not\(\.rk2-periodos > button\)\{background:#1F1D1A!important/);
-  assert.match(css, /#ofc-ranking \.rk2-periodos button\[aria-selected="true"\]\{background:var\(--ds-sel-fundo\);color:var\(--ds-sel-texto\)\}/);
+  assert.match(css, /#ofc-ranking \.rk2-periodos button\[aria-selected="true"\]\{background:var\(--ds-on-fundo\);color:var\(--ds-on-texto\)\}/);
   // Os grupos das Conquistas quebram em linhas (nenhum chip cortado) e a Loja fica à direita do dock lateral.
   assert.match(css, /#workflow-modal\.ofc-menu-jogo \.ofc-cq-abas\{flex-wrap:wrap;overflow:visible\}/);
   assert.match(css, /body\.mundo #office-catalogo\{left:var\(--vv-palco-esq,0px\);right:var\(--vv-m\);/);

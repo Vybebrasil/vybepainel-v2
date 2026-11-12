@@ -7,9 +7,9 @@
    ========================================================================== */
 :root{
   /* marca */
-  --vv-laranja:#FF7A2F; --vv-laranja-escuro:#E8602E; --vv-laranja-claro:#FFE6D6; --vv-lilas:#8B7DFF; --vv-lilas-claro:#ECE9FF;
+  --vv-laranja:#C2490C; --vv-laranja-escuro:#A83D08; --vv-laranja-claro:#FFE6D6; --vv-lilas:#8B7DFF; --vv-lilas-claro:#ECE9FF;
   /* base clara */
-  --vv-papel:#F6F3EE; --vv-branco:#FFFFFF; --vv-tinta:#1F1D1A; --vv-apagado:#6B675F; --vv-linha:#E6E0D6;
+  --vv-papel:#F3F1EC; --vv-branco:#FFFFFF; --vv-tinta:#1F1D1A; --vv-apagado:#6B675F; --vv-linha:#E6E0D6;
   /* vidro */
   --vv-vidro:rgba(250,248,244,.80); --vv-vidro-forte:rgba(251,250,247,.94); --vv-vidro-leve:rgba(250,248,244,.56); --vv-vidro-borda:rgba(255,255,255,.7);
   --vv-sombra:0 18px 50px rgba(40,26,10,.22),0 2px 6px rgba(40,26,10,.08);
@@ -20,7 +20,7 @@
   /* fontes (as do painel: Space Grotesk nos títulos, a do sistema no texto) */
   --vv-titulo:"Inter Tight","Inter",var(--mac-ui,system-ui),sans-serif; --vv-texto:"Inter",var(--mac-ui,system-ui),sans-serif;
   /* medidas */
-  --vv-m:14px; --vv-r-placa:14px; --vv-r-cartao:10px; --vv-r-item:8px; --vv-r-botao:8px;
+  --vv-m:14px; --vv-r-placa:20px; --vv-r-cartao:20px; --vv-r-item:12px; --vv-r-botao:999px;
   /* situações: cor · fundo · texto (ordem de importância: atrasada > aprovar > ajuste > hoje > sem briefing > a fazer > pronta > concluída) */
   --sit-atrasada:#E5484D; --sit-atrasada-f:#FFEBEC; --sit-atrasada-t:#A4161A;
   --sit-aprovar:#8E4EC6;  --sit-aprovar-f:#F2E9FB;  --sit-aprovar-t:#5B2A8C;
@@ -54,7 +54,7 @@ html body.mundo.mundo-visivel #mode-gate#mode-gate{z-index:602!important}
 .rotulo-cliente b{max-width:150px;overflow:hidden;text-overflow:ellipsis;font-weight:800}
 .rotulo-cliente .n{min-width:20px;padding:2px 6px;border-radius:8px;background:var(--c);color:#fff;font:800 10.5px var(--vv-titulo);text-align:center}
 .rotulo-lugar{font:700 10px var(--vv-texto);color:#3d4a46;text-shadow:0 1px 0 #fff,0 0 6px #fff;letter-spacing:.02em}
-.rotulo-vybes{display:flex;align-items:center;gap:6px;padding:5px 12px 5px 8px;border-radius:8px;background:#FF7A2F;color:#fff;font:800 11px var(--vv-titulo);letter-spacing:0;box-shadow:0 8px 20px -6px #E8602E}
+.rotulo-vybes{display:flex;align-items:center;gap:6px;padding:5px 12px 5px 8px;border-radius:8px;background:#C2490C;color:#fff;font:800 11px var(--vv-titulo);letter-spacing:0;box-shadow:0 8px 20px -6px #A83D08}
 .rotulo-vybes i{width:8px;height:8px;border-radius:50%;background:#FFE3C8;box-shadow:0 0 0 3px rgba(255,227,200,.35);animation:vv-pulso 2s infinite}
 .rotulo-andar{display:flex;align-items:center;gap:7px;padding:5px 11px 5px 8px;border-radius:8px;background:var(--vv-vidro-forte);border:1px solid var(--vv-vidro-borda);box-shadow:var(--vv-sombra-curta);font:600 11.5px var(--vv-texto);color:var(--vv-tinta);transform-origin:0 50%}
 .rotulo-andar i{width:10px;height:10px;border-radius:3px;background:var(--c)}
@@ -403,12 +403,12 @@ body.mundo.mundo-modulo .btn-voltar-menu{display:none!important}
    As variáveis do painel (--surface, --text, --vybe-*, --pv-*) mudam só dentro das áreas de trabalho;
    as janelas por cima (workflow-modal etc.) continuam como estão até ganharem a camada delas.
    Peças com cor fixa no vybe-styles.css recebem ajuste pontual abaixo (levantadas no navegador). */
-body.mundo.mundo-modulo #mundo-moldura{background:#F6F3EE;border-color:transparent}
+body.mundo.mundo-modulo #mundo-moldura{background:#F3F1EC;border-color:transparent}
 body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-escritorio)){
-  --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;
+  --surface:#FFFFFF;--surface2:#F3F1EC;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;
   --vybe-glass:rgba(255,255,255,.86);--vybe-glass-strong:rgba(255,255,255,.95);--vybe-line:rgba(31,29,26,.10);--vybe-line-quiet:rgba(31,29,26,.06);
   --vybe-text:#1F1D1A;--vybe-muted:#6B675F;--pv-vidro:linear-gradient(180deg,#FFFFFF,#FAF8F4);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);
-  --pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;color:#1F1D1A}
+  --pv-linha:rgba(31,29,26,.08);--pv-campo:#F3F1EC;--pv-brilho:none;color:#1F1D1A}
 body.mundo.mundo-modulo :is(.app-header,.container,[id^="painel-"]:not(#painel-escritorio)) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){
   background:#FFFFFF;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:8px;box-shadow:none}
 body.mundo.mundo-modulo .board-switch-bar{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-linha)!important;box-shadow:var(--vv-sombra-curta)!important}
@@ -425,7 +425,7 @@ body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) 
 body.mundo.mundo-modulo :is(.quadro-toolbar,.capt-toolbar,.capt-menu-painel,.manager-calendar-client){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo.mundo-modulo :is(.date-mode-btn,.vb-alternar,.clientes-visao-btn,.cli-marcar,.capt-menu-acao,.tipo-chip){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo.mundo-modulo :is(.date-mode-btn,.clientes-visao-btn,.vb-alternar).active{background:#1F1D1A!important;color:#FFFFFF!important}
-body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) :is(th,.cli-th-volume){background:#F6F3EE!important;color:#6B675F!important;border-color:#E6E0D6!important}
+body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) :is(th,.cli-th-volume){background:#F3F1EC!important;color:#6B675F!important;border-color:#E6E0D6!important}
 body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) td{border-color:#EFEAE1!important}
 /* Agenda (Captações) no jeito do Google Agenda: grade clara, horas discretas, evento na cor do tipo. */
 body.mundo.mundo-modulo :is(.ag-semana,.ag-cabeca){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important}
@@ -443,7 +443,7 @@ body.mundo.mundo-modulo :is(.perf-period-bar,.ai-usage-periods){background:#FFFF
 body.mundo.mundo-modulo :is(.perf-period-btn,.ai-usage-period,.perf-period-bar button,.auto-sincronizar,.conta-aba,.conta-botao:not(.primario)){color:#1F1D1A!important}
 body.mundo.mundo-modulo :is(.perf-period-btn,.ai-usage-period,.conta-aba).active,body.mundo.mundo-modulo .perf-period-bar button.active{background:#1F1D1A!important;color:#FFFFFF!important}
 body.mundo.mundo-modulo :is(.ai-usage-value,.ai-usage-block-title span,.ai-setting-copy b,.conta-eu-copy b,.conta-campo-linha b,.conta-foto-atual span){color:#1F1D1A!important}
-body.mundo.mundo-modulo :is(.auto-pastilha,.conta-selo){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
+body.mundo.mundo-modulo :is(.auto-pastilha,.conta-selo){background:#F3F1EC!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo.mundo-modulo .auto-pastilha span{color:#1F1D1A!important}
 body.mundo.mundo-modulo .auto-sincronizar,body.mundo.mundo-modulo .conta-botao:not(.primario){background:#FFFFFF!important;border:1px solid #E6E0D6!important}
 /* Direção de arte (controler) e Modo Foco. */
@@ -477,10 +477,10 @@ body.mundo .office-dock{display:none!important}
 body.mundo.mundo-visivel #workspace-drawer{z-index:621!important}
 body.mundo.mundo-visivel :is(#workspace-backdrop,.workspace-backdrop){z-index:620!important}
 body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dialog,#notif-caixa){
-  --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;
+  --surface:#FFFFFF;--surface2:#F3F1EC;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;
   --vybe-glass:rgba(255,255,255,.9);--vybe-glass-strong:rgba(255,255,255,.96);--vybe-line:rgba(31,29,26,.10);--vybe-line-quiet:rgba(31,29,26,.06);
   --vybe-text:#1F1D1A;--vybe-muted:#6B675F;--pv-vidro:linear-gradient(180deg,#FFFFFF,#FAF8F4);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);
-  --pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;color:#1F1D1A}
+  --pv-linha:rgba(31,29,26,.08);--pv-campo:#F3F1EC;--pv-brilho:none;color:#1F1D1A}
 body.mundo #workspace-drawer{background:#FAF8F4!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none;border-left:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra)!important}
 body.mundo .spotlight-dialog{background:#FBFAF7!important;backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
 body.mundo #notif-caixa{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;backdrop-filter:var(--vv-desfoque)!important}
@@ -501,7 +501,7 @@ body.mundo #workspace-drawer .workspace-mais-menu .perigo{color:var(--sit-atrasa
 body.mundo #workspace-drawer .workspace-rodape{background:#FFFFFF!important;border-top:1px solid #E6E0D6!important}
 body.mundo #workspace-drawer :is(.workspace-action,.workspace-close){background:#FFFFFF!important;border:1px solid #E6E0D6!important}
 /* Cadastros (fc-*): a mesma janela e o mesmo fluxo, na pele clara do mundo. */
-body.mundo #fc-overlay{--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none;--surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--vybe-text:#1F1D1A;--vybe-muted:#6B675F;--vybe-line:rgba(31,29,26,.10);background:rgba(30,40,38,.18)!important;backdrop-filter:none!important}
+body.mundo #fc-overlay{--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F3F1EC;--pv-brilho:none;--surface:#FFFFFF;--surface2:#F3F1EC;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--vybe-text:#1F1D1A;--vybe-muted:#6B675F;--vybe-line:rgba(31,29,26,.10);background:rgba(30,40,38,.18)!important;backdrop-filter:none!important}
 body.mundo #fc-overlay .fc-modal{background:#FAF8F4!important;backdrop-filter:none;-webkit-backdrop-filter:none;background-image:none!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;color:#1F1D1A!important}
 body.mundo #fc-overlay .fc-modal *{border-color:#E6E0D6}
 body.mundo #fc-overlay .fc-modal :is(.fc-escolha:not(.fc-cli)){background:#FFFFFF!important;background-image:none!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
@@ -509,7 +509,7 @@ body.mundo #fc-overlay .fc-modal :is(.fc-escolha.ativo,.fc-escolha[aria-pressed=
 body.mundo #fc-overlay .fc-modal :is(.fc-pergunta,.fc-trilha-passo,b,strong,h2,h3,.fc-prev-users,div){color:#1F1D1A}
 body.mundo #fc-overlay .fc-modal :is(.fc-pergunta,.fc-trilha-passo,.fc-prev-users){color:#1F1D1A!important}
 body.mundo #fc-overlay .fc-modal :is(.fc-sub,.fc-helper-text,span){color:#6B675F}
-body.mundo #fc-overlay .fc-modal :is(.fc-sazonal-btn,.fc-prev-tag){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
+body.mundo #fc-overlay .fc-modal :is(.fc-sazonal-btn,.fc-prev-tag){background:#F3F1EC!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo #fc-overlay .fc-modal :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo .spotlight-dialog mark{color:#1F1D1A!important;background:var(--vv-laranja-claro)!important;border-radius:4px;box-shadow:none!important}
 
@@ -520,7 +520,7 @@ body.mundo img.avatar-voxel{image-rendering:auto!important;object-fit:contain}
 /* Base comum: .ofc-dialogo (Loja/Inventário/Conquistas…) e .workflow-modal.ofc-menu-jogo (Ranking, menus de jogo). */
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo){background:#FAF8F4!important;background-image:none!important;color:#1F1D1A!important;
   border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-placa)!important;box-shadow:var(--vv-sombra)!important;
-  --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F6F3EE;--pv-brilho:none}
+  --surface:#FFFFFF;--surface2:#F3F1EC;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F;--pv-vidro:rgba(250,248,244,.97);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);--pv-linha:rgba(31,29,26,.08);--pv-campo:#F3F1EC;--pv-brilho:none}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-abas,.ofc-catj-arvore,.ofc-catj-barra,.workflow-item){
   background:#FFFFFF!important;background-image:none!important;border-color:#E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important;color:#1F1D1A!important}
 body.mundo :is(.ofc-dialogo,.workflow-modal.ofc-menu-jogo) :is(.ofc-catj-busca,.ofc-cat-chip,select,input:not([type=checkbox]):not([type=radio]):not([type=range])){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
@@ -566,7 +566,7 @@ body.mundo.mundo-sobre-escritorio #painel-escritorio{visibility:hidden!important
 @keyframes vv-pisca{50%{opacity:0}}
 
 /* Topo dos módulos: a aba ativa usa a cor de ação da Vybe (era rosa) e "Ferramentas" vira pílula de vidro. */
-body.mundo.mundo-modulo .board-switch-btn.active{background:var(--vv-laranja)!important;color:#fff!important;box-shadow:0 6px 16px rgba(255,122,47,.28)!important}
+body.mundo.mundo-modulo .board-switch-btn.active{background:var(--vv-laranja)!important;color:#fff!important;box-shadow:0 6px 16px rgba(194,73,12,.28)!important}
 body.mundo.mundo-modulo .board-switch-btn{border-radius:8px!important}
 body.mundo.mundo-modulo .header-utilities>summary{background:#fff!important;color:var(--vv-tinta)!important;border:1px solid var(--vv-linha)!important;border-radius:8px!important;box-shadow:var(--vv-sombra-curta)!important;font-weight:600!important}
 body.mundo.mundo-modulo .app-header .logo{background:none!important;box-shadow:none!important}
@@ -601,7 +601,7 @@ body.mundo .workflow-modal .plj-avisos small{color:#6E6A62!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-actions,.context-actions){position:sticky;bottom:-22px;margin:16px -24px -22px!important;box-shadow:0 22px 0 rgba(250,248,244,1);padding:12px 24px!important;background:rgba(250,248,244,.96)!important;border-top:1px solid #ECE6DC!important;border-radius:0 0 12px 12px;backdrop-filter:blur(8px)}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-secondary,.workflow-primary){height:38px;padding:0 16px!important;border-radius:8px!important;font:700 12.5px var(--vv-texto)!important;letter-spacing:0!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-secondary{background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-primary{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(255,122,47,.28)}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-primary{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(194,73,12,.28)}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-name){color:#1F1D1A!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-client){color:var(--vv-lilas,#8E4EC6)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-field span{color:#6B675F!important;font:600 11.5px var(--vv-texto)!important}
@@ -746,7 +746,7 @@ body.mundo.mundo-modulo :is(.container,[id^="painel-"]) [style*="color: #ffd7de"
 .diario-linha-tempo::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;width:2px;background:#ECE6DC;border-radius:2px}
 .diario-registro{position:relative;display:grid;grid-template-columns:minmax(120px,1fr) 48px 84px 124px auto 34px;grid-template-areas:"quando mini total varia abrir apagar";align-items:center;gap:18px;padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #ECE6DC;cursor:pointer;transition:transform .15s var(--vv-mola,ease),box-shadow .15s}
 .diario-registro:hover,.diario-registro:focus-visible{transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,29,26,.08);outline:none}
-.diario-ponto{position:absolute;left:-17px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:#fff;border:3px solid var(--vv-laranja,#FF7A2F)}
+.diario-ponto{position:absolute;left:-17px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:#fff;border:3px solid var(--vv-laranja,#C2490C)}
 .diario-quando b,.diario-total b{display:block;font:700 14px var(--vv-texto,inherit);color:#1F1D1A}
 .diario-quando small,.diario-total small{display:block;font:500 11.5px var(--vv-texto,inherit);color:#6E6A62}
 .diario-total{grid-area:total;text-align:right}
@@ -796,7 +796,7 @@ body.mundo .ofc-ficha .ofc-hud-chip.perde{color:#C0263E!important}
 body.mundo .ofc-ficha .office-text-button{color:#B4510E!important;background:none!important}
 body.mundo .ofc-ficha .ofc-ficha-acoes{border-top:1px solid #ECE6DC!important}
 body.mundo .ofc-ficha .ofc-ficha-acoes button{background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:8px!important;font:700 12.5px var(--vv-texto)!important;box-shadow:0 1px 2px rgba(31,29,26,.05)!important}
-body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(255,122,47,.28)!important}
+body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(194,73,12,.28)!important}
 body.mundo .ofc-ficha .ofc-x{background:#fff!important;color:#6B675F!important;border:1px solid #E6E0D6!important;border-radius:8px!important}
 body.mundo .ofc-ficha .ofc-hud-palco{position:relative!important}
 body.mundo .ofc-ficha :is(.ofc-hud-proximos,.ofc-hud-ganhos,.ofc-hud-regras){background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
@@ -3193,7 +3193,7 @@ body.cam-sem-clientes .mundo-rotulo.rotulo-cliente,body.cam-sem-marcos .mundo-ro
 .vv-elevador:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,29,26,.09)}
 /* Fase 3b (quadro 33): número do andar neutro, sem arco-íris; a cor do setor fica num traço fino embaixo dele. */
 .vv-elevador .num{flex:none;width:30px;height:30px;border-radius:6px;display:grid;place-items:center;font:800 13px var(--vv-texto);color:var(--vv-tinta);background:#F1ECE4;box-shadow:inset 0 -2px 0 var(--c)}
-.vv-elevador[aria-current] .num,.vv-elevador.atual .num{background:var(--ds-acao,#FF7A2F);color:#fff;box-shadow:none}
+.vv-elevador[aria-current] .num,.vv-elevador.atual .num{background:var(--ds-acao,#C2490C);color:#fff;box-shadow:none}
 .vv-elevador .meio{flex:1;min-width:0}.vv-elevador .meio>b{display:block;font:700 13px var(--vv-texto);color:var(--vv-tinta)}
 .vv-elevador .kpis{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
 .vv-elevador .kpis em{font:500 11px var(--vv-texto);font-style:normal;color:var(--vv-apagado)}.vv-elevador .kpis strong{color:var(--vv-tinta);font-weight:800}
@@ -3229,7 +3229,7 @@ body.mundo.mundo-modulo:not(.palco-modulo) .vv-canto-modulo{display:flex}
    --vv-caixa-vao, no bloco "Terceira rodada · moldura" (fim do arquivo). O vão flutuante que havia aqui nunca valeu: o
    body:before do tema antigo é position:fixed, e um float de verdade estreitaria a Agenda e a Conta inteiras. */
 .vv-canto-modulo .vv-botao{width:34px;height:34px;padding:0;justify-content:center;border-radius:8px;background:#FFFFFF!important;border:1px solid #E6E0D6!important;box-shadow:none}
-.vv-canto-modulo .vv-botao:hover{background:#FFFFFF!important;border-color:var(--ds-acao,#FF7A2F)!important}
+.vv-canto-modulo .vv-botao:hover{background:#FFFFFF!important;border-color:var(--ds-acao,#C2490C)!important}
 .vv-canto-modulo svg{width:16px;height:16px;fill:none;stroke:#1F1D1A;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .vv-canto-modulo .vv-botao[aria-pressed="true"]{background:var(--vv-acao,#C2490C)!important}.vv-canto-modulo .vv-botao[aria-pressed="true"] svg{stroke:#fff}
 html body.mundo.mundo-modulo.mundo-tela-cheia{top:0!important;left:0!important;right:0!important;bottom:0!important;border-radius:0!important}
@@ -3405,7 +3405,7 @@ html body.mundo .status-editor-backdrop{background:rgba(31,29,26,.08)!important}
 
 /* ===== Opções das janelas de contexto (bloqueio, direção…): cartão branco, texto escuro ===== */
 html body.mundo .pv-opcao:not(#vv-x){background:#FFFFFF!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important}
-html body.mundo .pv-opcao:is(:hover,:focus-visible):not(#vv-x){background:color-mix(in srgb,var(--c,#FF7A2F) 8%,#FFFFFF)!important;border-color:color-mix(in srgb,var(--c,#FF7A2F) 45%,#FFFFFF)!important}
+html body.mundo .pv-opcao:is(:hover,:focus-visible):not(#vv-x){background:color-mix(in srgb,var(--c,#C2490C) 8%,#FFFFFF)!important;border-color:color-mix(in srgb,var(--c,#C2490C) 45%,#FFFFFF)!important}
 html body.mundo .pv-opcao :is(b,strong,span:not(.pv-opcao-ic)):not(#vv-x){color:#1F1D1A!important}
 html body.mundo .pv-opcao small:not(#vv-x){color:#6B675F!important}
 html body.mundo .pv-opcao-ic:not(#vv-x){filter:saturate(1.4) brightness(.72)}
@@ -3417,7 +3417,7 @@ html body.mundo .workflow-item-destino:not(#vv-x){color:#1F4FA8!important;backgr
 html body.mundo .workflow-item-client:not(#vv-x){color:#A3366F!important}
 
 /* ===== Cérebro do cliente (Clientes): no padrão claro (era o último quadro grafite) ===== */
-html body.mundo .vybes-cerebro-shell.cb:not(#vv-x){background:#F6F3EE!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;color-scheme:light}
+html body.mundo .vybes-cerebro-shell.cb:not(#vv-x){background:#F3F1EC!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;color-scheme:light}
 html body.mundo .vybes-cerebro-shell header:not(#vv-x),html body.mundo .vybes-cerebro-shell .cb-topo:not(#vv-x){background:rgba(255,255,255,.96)!important;border-color:#EFEAE2!important;backdrop-filter:blur(10px)}
 html body.mundo .vybes-cerebro-shell .cb-inspetor:not(#vv-x){background:#FFFFFF!important;border-color:#E6E0D6!important;color:#1F1D1A!important}
 html body.mundo .vybes-cerebro-shell :is(input,select,textarea):not(#vv-x){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E1DACE!important}
@@ -3443,26 +3443,26 @@ html body.mundo .workflow-primary:hover:not(#vv-x){background:#A93D08!important}
 /* ======================================================================================
    DESIGN SYSTEM · LARANJA ÚNICO (Paulo, 07/11/2026: "olha os botões laranjas todos diferentes…
    eu gosto do padrão do dock lateral, esse do Criar").
-   1) AÇÃO PRINCIPAL = o botão Criar do dock: #FF7A2F sólido, texto branco 700, brilho embaixo.
+   1) AÇÃO PRINCIPAL = o botão Criar do dock: #C2490C sólido, texto branco 700, brilho embaixo.
    2) SELECIONADO (aba, filtro, segmento, dia) = o Gestor do dock: laranja 13% de fundo, texto laranja escuro.
    Nada de degradê, nada de laranja escuro chapado. Fica por último para vencer as regras antigas.
    ====================================================================================== */
-html body.mundo{--ds-acao:#FF7A2F;--ds-acao-hover:#E8602E;--ds-acao-sombra:0 8px 20px -8px #E8602E;--ds-sel-fundo:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);--ds-sel-texto:#C2490C;--ds-sel-borda:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+html body.mundo{--ds-acao:#C2490C;--ds-acao-hover:#A83D08;--ds-acao-sombra:0 8px 20px -8px #A83D08;--ds-sel-fundo:color-mix(in srgb,#C2490C 13%,#FFFFFF);--ds-sel-texto:#C2490C;--ds-sel-borda:color-mix(in srgb,#C2490C 28%,#FFFFFF);--ds-on-fundo:#1F1D1A;--ds-on-texto:#FFFFFF;--ds-on-borda:#1F1D1A}
 html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important;font-weight:700!important;text-shadow:none!important}
 html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao-hover)!important}
 html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,button.primary,.btn-primary) *:not(svg):not(path):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
-html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-sel-fundo)!important;background-image:none!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important;box-shadow:none!important;text-shadow:none!important}
+html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-on-fundo)!important;background-image:none!important;color:var(--ds-on-texto)!important;border-color:var(--ds-on-borda)!important;box-shadow:none!important;text-shadow:none!important}
 html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill) :is(span,b,strong,small,em,i):not([class*="badge"]):not([class*="count"]):not([class*="dot"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
 
 /* ======================================================================================
    DESIGN SYSTEM · COMPONENTES (manual em docs/padrao-visual.md). Escalas únicas:
    raio 8 / 12 / 18 / 24 / 999 · altura 28 / 34 / 40 · botão 12.5px 600 · campo 38px.
    ====================================================================================== */
-html body.mundo{--ds-r-chip:8px;--ds-r-botao:8px;--ds-r-cartao:18px;--ds-r-janela:24px;--ds-h-compacto:28px;--ds-h-botao:34px;--ds-h-destaque:40px;--ds-linha:#E6E0D6;--ds-linha-forte:#D9D1C4;--ds-foco:0 0 0 3px rgba(255,122,47,.22)}
+html body.mundo{--ds-r-chip:999px;--ds-r-botao:999px;--ds-r-cartao:20px;--ds-r-janela:28px;--ds-h-compacto:28px;--ds-h-botao:34px;--ds-h-destaque:40px;--ds-linha:#E6E0D6;--ds-linha-forte:#D9D1C4;--ds-foco:0 0 0 3px rgba(194,73,12,.22)}
 
 /* Botão secundário: branco, borda fina, texto tinta. Hover: borda e texto laranja. */
 html body.mundo.mundo-modulo :is(.acao-abrir,.focus-brief-btn,.btn-refresh,.mode-switch-btn,.ops-close-btn:not(.tab-btn),.ops-command-toggle,.focus-command-btn,.vb-botao:not(.principal):not(.perigo),.workflow-secondary,.fc-btn-cancel,.sort-btn,.manager-calendar-actions button:not(.primary),.capt-tb button:not(.capt-tb-criar),.da-checkin-btn):not(.active):not(.ativo):not([aria-pressed="true"]):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;color:#1F1D1A!important;border-radius:var(--ds-r-botao)!important;min-height:var(--ds-h-compacto);font-size:12.5px!important;font-weight:600!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important;text-shadow:none!important}
-html body.mundo.mundo-modulo :is(.acao-abrir,.focus-brief-btn,.btn-refresh,.mode-switch-btn,.ops-close-btn:not(.tab-btn),.ops-command-toggle,.focus-command-btn,.vb-botao:not(.principal):not(.perigo),.workflow-secondary,.fc-btn-cancel,.sort-btn,.manager-calendar-actions button:not(.primary),.capt-tb button:not(.capt-tb-criar),.da-checkin-btn):not(.active):not(.ativo):not([aria-pressed="true"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#FF7A2F!important;color:#C2490C!important;background:#FFFCF9!important}
+html body.mundo.mundo-modulo :is(.acao-abrir,.focus-brief-btn,.btn-refresh,.mode-switch-btn,.ops-close-btn:not(.tab-btn),.ops-command-toggle,.focus-command-btn,.vb-botao:not(.principal):not(.perigo),.workflow-secondary,.fc-btn-cancel,.sort-btn,.manager-calendar-actions button:not(.primary),.capt-tb button:not(.capt-tb-criar),.da-checkin-btn):not(.active):not(.ativo):not([aria-pressed="true"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#C2490C!important;color:#C2490C!important;background:#FFFCF9!important}
 /* Botão de perigo: só contorno vermelho. */
 html body.mundo :is(.vb-botao.perigo,button.perigo,.workflow-danger):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#B42318!important;border:1px solid #F6BBC4!important;border-radius:var(--ds-r-botao)!important}
 /* Pílulas e chips (pessoas, carteiras, visões): branco, borda, raio cheio; a cor da pessoa só no detalhe. */
@@ -3471,7 +3471,7 @@ html body.mundo.mundo-modulo .team-load-chip:not(#ds-a):not(#ds-b):not(#ds-c){bo
 html body.mundo.mundo-modulo .team-load-chip *:not(img):not([class*="badge"]):not([class*="count"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
 /* Campos: raio 12, borda fina, foco laranja. */
 html body.mundo.mundo-modulo :is(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input:not([type]),select,textarea):not(#ds-a):not(#ds-b):not(#ds-c){background-color:#FFFFFF!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-botao)!important;color:#1F1D1A!important;box-shadow:none!important;color-scheme:light}
-html body.mundo.mundo-modulo :is(input,select,textarea):focus-visible:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#FF7A2F!important;box-shadow:var(--ds-foco)!important;outline:0!important}
+html body.mundo.mundo-modulo :is(input,select,textarea):focus-visible:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#C2490C!important;box-shadow:var(--ds-foco)!important;outline:0!important}
 /* Cartões clicáveis: branco, raio 18, borda e sombra curta. */
 html body.mundo.mundo-modulo :is(.da-capacity-card,.da-command-daily-card,.da-week-rail-day:not(.active),.focus-daily-plan-row):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-cartao)!important;box-shadow:0 1px 2px rgba(31,29,26,.04),0 8px 24px rgba(31,29,26,.05)!important}
 /* Foco de teclado igual em tudo. */
@@ -3479,7 +3479,7 @@ html body.mundo :is(button,a,[role="button"],[role="tab"]):focus-visible{outline
 
 /* ===== Modo Reunião e Mesa de comando: no padrão claro (eram painéis grafite) ===== */
 html body.mundo .meeting-mode-overlay:not(#ds-a){background:rgba(31,29,26,.3)!important;backdrop-filter:blur(8px)!important}
-html body.mundo .meeting-mode-sheet:not(#ds-a):not(#ds-b){background:#F6F3EE!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-janela)!important;box-shadow:0 30px 80px rgba(31,29,26,.25)!important;color-scheme:light;max-height:calc(100vh - 40px)!important;overflow:auto!important}
+html body.mundo .meeting-mode-sheet:not(#ds-a):not(#ds-b){background:#F3F1EC!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-janela)!important;box-shadow:0 30px 80px rgba(31,29,26,.25)!important;color-scheme:light;max-height:calc(100vh - 40px)!important;overflow:auto!important}
 html body.mundo .meeting-mode-sheet *:not(#ds-a):not(#ds-b){border-color:var(--ds-linha)}
 html body.mundo .meeting-mode-sheet :is(header,section,article,.meeting-metrics > span,.meeting-capacity,.meeting-grid > *,.meeting-row,.meeting-col):not(.meeting-priority):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important}
 html body.mundo .meeting-mode-sheet > header:not(#ds-a):not(#ds-b){background:transparent!important}
@@ -3542,7 +3542,7 @@ html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):no
 html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important}
 
 /* HUD do mapa segue o mesmo selecionado (era preto cheio) */
-html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"]:not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;box-shadow:inset 0 0 0 1px var(--ds-sel-borda)!important}
+html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"]:not(#ds-a):not(#ds-b){background:var(--ds-on-fundo)!important;color:var(--ds-on-texto)!important;box-shadow:inset 0 0 0 1px var(--ds-on-borda)!important}
 html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"] svg{stroke:currentColor}
 
 /* ======================================================================================
@@ -3571,7 +3571,7 @@ body.eh-dono .vv-trilho-btn[data-trilho="gestao"]{display:flex}
 .vv-graf text{font:600 9.5px var(--vv-texto);fill:#6B675F}.vv-graf text.hoje{fill:#C2490C;font-weight:800}
 .vv-legenda{display:flex;gap:12px;align-items:center;margin:4px 0 0;font:600 10.5px var(--vv-texto);color:#6B675F}
 .vv-legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:-6px;vertical-align:-1px}
-.vv-legenda i.pv{background:#E1DACE}.vv-legenda i.en{background:#18A957}.vv-legenda i.en2{background:#FF7A2F;height:3px;border-radius:2px}.vv-legenda i.md{background:repeating-linear-gradient(90deg,#6B675F 0 3px,transparent 3px 5px);height:2px}.vv-legenda i.pj{background:repeating-linear-gradient(90deg,#8B7DFF 0 2px,transparent 2px 4px);height:3px}
+.vv-legenda i.pv{background:#E1DACE}.vv-legenda i.en{background:#18A957}.vv-legenda i.en2{background:#C2490C;height:3px;border-radius:2px}.vv-legenda i.md{background:repeating-linear-gradient(90deg,#6B675F 0 3px,transparent 3px 5px);height:2px}.vv-legenda i.pj{background:repeating-linear-gradient(90deg,#8B7DFF 0 2px,transparent 2px 4px);height:3px}
 .vv-dono-linha{appearance:none;display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px;margin-bottom:5px;border-radius:8px;border:1px solid #EFEAE2;background:#fff;font-family:var(--vv-texto);cursor:pointer;transition:background .12s}
 .vv-dono-linha:not(.estatica):hover{background:#FAF5EE}
 .vv-dono-linha.estatica{cursor:default}
@@ -3595,7 +3595,7 @@ body.eh-dono .vv-trilho-btn[data-trilho="gestao"]{display:flex}
 body.mundo-gestao.mundo-tela-cheia .vv-gestao{top:0;bottom:0;left:0;right:0;border-radius:0;z-index:900}
 body.mundo-gestao #mundo-hud :is(.vv-hoje,.vv-agenda,.vv-placa,.vv-controles,.vv-chamada,.vv-topo){visibility:hidden}
 body.mundo-gestao .plj-aviso{visibility:hidden}
-.vv-g-topo{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 22px 12px;margin:0 -22px 12px;background:#F6F3EE;border-bottom:1px solid rgba(31,29,26,.08)}
+.vv-g-topo{position:sticky;top:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 22px 12px;margin:0 -22px 12px;background:#F3F1EC;border-bottom:1px solid rgba(31,29,26,.08)}
 .vv-g-topo h2{margin:2px 0 2px;font:700 26px/1.1 var(--vv-titulo);letter-spacing:-.02em}
 .vv-g-topo p{margin:0;font:500 12px var(--vv-texto);color:#6B675F}
 .vv-g-acoes{display:flex;gap:6px}.vv-g-acoes .vv-botao{width:36px;height:36px;padding:0;justify-content:center;background:#fff!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:8px!important}
@@ -3640,9 +3640,9 @@ body.mundo-gestao .plj-aviso{visibility:hidden}
 .vv-g-tabela .ok{color:#11613A;font-weight:800}.vv-g-tabela .nao{color:#B8B2A7}
 .vv-graf.linha .grade{stroke:#F0EBE3;stroke-width:1}
 .vv-graf.linha .mediana{stroke:#6B675F;stroke-width:1.2;stroke-dasharray:4 3}
-.vv-graf.linha .serie{fill:none;stroke:#FF7A2F;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.vv-graf.linha .serie{fill:none;stroke:#C2490C;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
 .vv-graf.linha .proj{fill:none;stroke:#8B7DFF;stroke-width:2.2;stroke-dasharray:2 4;stroke-linecap:round}
-.vv-graf.linha circle.pt{fill:#fff;stroke:#FF7A2F;stroke-width:2}.vv-graf.linha circle.atual{fill:#FF7A2F;stroke:#fff;stroke-width:2}.vv-graf.linha circle.ptproj{fill:#fff;stroke:#8B7DFF;stroke-width:2}
+.vv-graf.linha circle.pt{fill:#fff;stroke:#C2490C;stroke-width:2}.vv-graf.linha circle.atual{fill:#C2490C;stroke:#fff;stroke-width:2}.vv-graf.linha circle.ptproj{fill:#fff;stroke:#8B7DFF;stroke-width:2}
 .vv-graf.linha .rot,.vv-graf.linha .eixo{font:600 9.5px var(--vv-texto);fill:#6B675F}
 @media (max-width:900px){.vv-gestao{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px;padding:0 12px 20px}.vv-g-topo{margin:0 -12px 12px;padding-left:12px;padding-right:12px}.vv-dono-kpis{grid-template-columns:repeat(2,1fr)}}
 
@@ -3679,8 +3679,8 @@ html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:#6B675F!important}
 .vv-menu-conta hr{border:0;border-top:1px solid #EFEAE2;margin:4px 6px}
 
 /* ===== Login e chegada no design system (ação principal = Criar) ===== */
-html body.mundo :is(#login-gate .login-entrar,#login-gate .abr-primario,#login-chegar):not(#ds-a):not(#ds-b){background:#FF7A2F!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:0 8px 20px -8px #E8602E!important}
-html body.mundo :is(#login-gate .login-entrar,#login-gate .abr-primario):hover:not(#ds-a):not(#ds-b){background:#E8602E!important}
+html body.mundo :is(#login-gate .login-entrar,#login-gate .abr-primario,#login-chegar):not(#ds-a):not(#ds-b){background:#C2490C!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:0 8px 20px -8px #A83D08!important}
+html body.mundo :is(#login-gate .login-entrar,#login-gate .abr-primario):hover:not(#ds-a):not(#ds-b){background:#A83D08!important}
 html body.mundo #login-gate .abr-primario :is(b,small):not(#ds-a):not(#ds-b){color:#FFFFFF!important}
 html body.mundo #login-gate .login-rosto:not(#ds-a):not(#ds-b){background:#FFFFFF!important;border:1px solid #E6E0D6!important;border-radius:10px!important}
 html body.mundo #login-gate .login-rosto:is(.ativo,.selecionado,[aria-pressed="true"]):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;border-color:var(--ds-sel-borda)!important;color:var(--ds-sel-texto)!important}
@@ -3712,9 +3712,9 @@ html.tema-escuro body.mundo .mundo-vinheta{background:radial-gradient(ellipse at
 .vv-menu-tema .vv-tema-titulo{padding:6px 10px 4px;font:700 10.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:#A84E00}
 .vv-menu-tema button{display:flex!important;align-items:center;gap:10px}
 .vv-menu-tema button i{flex:none;width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font-style:normal;font-size:15px;background:#F3EFE8;color:#1F1D1A}
-.vv-menu-tema button[aria-checked="true"]{background:color-mix(in srgb,#FF7A2F 13%,#fff)}
+.vv-menu-tema button[aria-checked="true"]{background:color-mix(in srgb,#C2490C 13%,#fff)}
 .vv-menu-tema button[aria-checked="true"] b{color:#C2490C}
-.vv-menu-tema button[aria-checked="true"] i{background:#FF7A2F;color:#fff}
+.vv-menu-tema button[aria-checked="true"] i{background:#C2490C;color:#fff}
 .vv-dono-linha em.ok{color:#11613A}
 
 /* Conversa da equipe: cabeçalho claro (a regra antiga pinta todo <header> de grafite) e ao lado do "Seu dia" */
@@ -3741,7 +3741,7 @@ html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!imp
 #office-recado-rapido.vv-flutuante-ofc{position:fixed!important;z-index:660!important;right:calc(var(--vv-m) + 12px)!important;bottom:calc(var(--vv-m) + 70px)!important;top:auto!important;left:auto!important;width:320px!important;padding:12px 14px!important;border-radius:10px!important;background:#FFFFFF!important;border:1px solid #E6E0D6!important;box-shadow:0 20px 50px rgba(31,29,26,.25)!important;color:#1F1D1A!important;color-scheme:light}
 #office-recado-rapido.vv-flutuante-ofc :is(b,p,span,label){color:#1F1D1A!important}
 #office-recado-rapido.vv-flutuante-ofc :is(input,textarea){background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:6px!important}
-#office-recado-rapido.vv-flutuante-ofc button:not(.ofc-x){background:#FF7A2F!important;color:#fff!important;border:0!important;border-radius:6px!important}
+#office-recado-rapido.vv-flutuante-ofc button:not(.ofc-x){background:#C2490C!important;color:#fff!important;border:0!important;border-radius:6px!important}
 html.tema-escuro body.mundo .vv-palco{filter:none!important}
 html.tema-escuro body.mundo #office-tv.vv-flutuante-ofc{filter:none!important}
 
@@ -3756,7 +3756,7 @@ html.tema-escuro body.mundo #mundo-andar canvas{filter:brightness(.62) saturate(
 html.tema-escuro body.mundo #mundo-andar :is(.andar-topo,.sala-placa,.sala-nome,.sala-agente){filter:invert(.92) hue-rotate(180deg)}
 
 /* Abertura: no Irecity não existe a tela da Vybelândia (arte do Escritório antigo, 1 MB). O mundo é a abertura. */
-html body.mundo.abrindo-escritorio{background:#F6F3EE!important;background-image:none!important}
+html body.mundo.abrindo-escritorio{background:#F3F1EC!important;background-image:none!important}
 html body.mundo #mode-gate .identity-station::after{background-image:none!important}
 html body.mundo .abr-cena{background-image:none!important}
 
@@ -3786,12 +3786,12 @@ body.mundo.mundo-modulo #office-musica.vv-musica-janela,body.mundo.mundo-andar #
 .vv-musica-janela .ofc-musica-info > small{margin-top:-6px;font:500 11px var(--vv-texto);color:#6B675F}
 .vv-musica-janela button{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:6px;border:1px solid #E6E0D6;background:#fff;color:#1F1D1A;font:600 12px var(--vv-texto);cursor:pointer}
 .vv-musica-janela .ofc-musica-topo button{width:26px;height:26px;padding:0;border-radius:8px}
-.vv-musica-janela button:hover:not(:disabled){border-color:#FF7A2F}
+.vv-musica-janela button:hover:not(:disabled){border-color:#C2490C}
 .vv-musica-janela button:disabled{opacity:.4;cursor:default}
 .vv-musica-janela .ofc-musica-ctl{display:grid;grid-template-columns:40px 1fr 40px;gap:6px}
-.vv-musica-janela .ofc-musica-ctl button:nth-child(2),.vv-musica-janela .ofc-primario{background:#FF7A2F;border-color:#FF7A2F;color:#fff}
+.vv-musica-janela .ofc-musica-ctl button:nth-child(2),.vv-musica-janela .ofc-primario{background:#C2490C;border-color:#C2490C;color:#fff}
 .vv-musica-janela .ofc-musica-vol{display:flex;align-items:center;gap:8px}
-.vv-musica-janela .ofc-musica-vol input{flex:1;min-width:0;accent-color:#FF7A2F}
+.vv-musica-janela .ofc-musica-vol input{flex:1;min-width:0;accent-color:#C2490C}
 .vv-musica-janela .ofc-secundario{width:100%}
 html.tema-escuro body.mundo .vv-musica-janela :is(.ofc-musica-ctl button:nth-child(2),.ofc-primario){filter:invert(1) hue-rotate(180deg)}
 /* "Fila e link" da música: a janela no padrão claro */
@@ -3801,9 +3801,9 @@ body.mundo .ofc-musica-painel h3{font:700 17px var(--vv-texto);color:#1F1D1A}
 body.mundo .ofc-musica-painel :is(.ofc-nota,.ofc-musica-lista small){color:#6B675F!important}
 body.mundo .ofc-musica-painel .ofc-x{appearance:none;width:30px;height:30px;border-radius:6px;border:1px solid #E6E0D6;background:#fff;color:#1F1D1A;cursor:pointer}
 body.mundo .ofc-musica-form input{background:#FBFAF7!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:6px!important}
-body.mundo .ofc-musica-form input:focus{outline:2px solid color-mix(in srgb,#FF7A2F 45%,transparent);outline-offset:1px}
+body.mundo .ofc-musica-form input:focus{outline:2px solid color-mix(in srgb,#C2490C 45%,transparent);outline-offset:1px}
 body.mundo .ofc-musica-lista li{background:#F7F4EF!important}
-body.mundo .ofc-musica-lista li[aria-current="true"]{background:color-mix(in srgb,#FF7A2F 13%,#fff)!important;outline:1px solid color-mix(in srgb,#FF7A2F 40%,transparent)!important}
+body.mundo .ofc-musica-lista li[aria-current="true"]{background:color-mix(in srgb,#C2490C 13%,#fff)!important;outline:1px solid color-mix(in srgb,#C2490C 40%,transparent)!important}
 body.mundo .ofc-musica-lista li[aria-current="true"] b{color:#C2490C}
 body.mundo .ofc-musica-lista button,body.mundo .ofc-musica-rodape .ofc-secundario{background:#fff!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;border-radius:6px}
 body.mundo .ofc-musica-lista button.perigo{color:#D93D42!important}
@@ -3841,9 +3841,9 @@ body.mundo .ofc-musica-painel .ofc-erro{color:#D93D42}
 .vv-setor button b{font:600 13px var(--vv-texto)}
 .vv-setor button small{grid-column:1;font:500 11.5px/1.35 var(--vv-texto);color:#6B675F}
 .vv-setor button i{grid-row:1/3;grid-column:2;align-self:center;font-style:normal;color:#6B675F}
-.vv-setor button:hover,.vv-setor button:focus-visible{background:color-mix(in srgb,#FF7A2F 13%,#fff);outline:none}
+.vv-setor button:hover,.vv-setor button:focus-visible{background:color-mix(in srgb,#C2490C 13%,#fff);outline:none}
 .vv-setor button:hover b{color:#C2490C}
-.vv-trilho-btn[aria-expanded="true"]{background:color-mix(in srgb,#FF7A2F 13%,#fff);color:#C2490C}
+.vv-trilho-btn[aria-expanded="true"]{background:color-mix(in srgb,#C2490C 13%,#fff);color:#C2490C}
 html.tema-escuro body.mundo .vv-setor{filter:invert(.92) hue-rotate(180deg)}
 /* Prédio vivo e roteiro da semana (07/11/2026) */
 .vv-motivo-andar{max-width:100%;white-space:normal;line-height:1.3}
@@ -3928,7 +3928,7 @@ body.mundo.mundo-centro .vv-agenda{max-height:calc(100% - var(--vv-m) - 60px - 3
 .vd-dica{margin:6px 0 0;font-size:11px;color:#8A7F70}
 .vd-acoes{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .vd-botao{padding:6px 10px;border-radius:6px;border:1px solid #E6E0D6;background:#FAF8F4;font:600 12px var(--vv-texto,system-ui);color:#1F1D1A;cursor:pointer}
-.vd-botao.principal{background:#FF7A2F;border-color:#FF7A2F;color:#fff}
+.vd-botao.principal{background:#C2490C;border-color:#C2490C;color:#fff}
 
 /* ---------- Tipografia e cantos (Paulo, 08/11/2026: "mais sóbrio, como o AgencyFlow; hierarquia e peso contam") ----------
    Duas famílias da mesma linha: Inter Tight (títulos, números) e Inter (texto). Hierarquia por tamanho e peso,
@@ -4001,7 +4001,7 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 .vga-lista{overflow:auto;padding:10px;border-right:1px solid #ECE6DC}
 .vga-andar{margin-bottom:10px}.vga-andar > small{display:block;padding:6px 8px;font:600 12px var(--vv-texto);color:#6F6A62}
 .vga-linha{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:1px solid transparent;border-radius:8px;background:transparent;text-align:left;cursor:pointer;color:inherit}
-.vga-linha:hover{background:#FFF;border-color:#ECE6DC}.vga-linha.sel{background:#FFF;border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.12)}
+.vga-linha:hover{background:#FFF;border-color:#ECE6DC}.vga-linha.sel{background:#FFF;border-color:#C2490C;box-shadow:0 0 0 3px rgba(194,73,12,.12)}
 .vga-av{flex:none;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--e) 16%,#FFF);border:2px solid var(--e);font:700 12px var(--vv-titulo);color:#2B2925}
 .vga-av.grande{width:52px;height:52px;font-size:18px}
 .vga-meio{flex:1;min-width:0;display:grid}.vga-meio b{font:600 13.5px var(--vv-titulo)}.vga-meio small{font-size:11.5px;color:#6F6A62;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -4024,11 +4024,11 @@ body.mundo:not(.mundo-centro) .vv-hoje .vv-dono-kpis{margin:10px 0 4px}
 .vga-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:12px}
 .vga-form label{display:grid;gap:4px;font-size:12px;color:#6F6A62}.vga-form label.largo{grid-column:1/-1}
 .vga-form textarea,.vga-form select,.vga-form input{font:13px var(--vv-texto);padding:8px 10px;border:1px solid #E6E0D6;border-radius:8px;background:#FFF;color:#1F1D1A;min-width:0}
-.vga-principal{height:38px;padding:0 16px;border:0;border-radius:8px;background:#FF7A2F;color:#FFF;font:600 13px var(--vv-texto);cursor:pointer}
+.vga-principal{height:38px;padding:0 16px;border:0;border-radius:8px;background:#C2490C;color:#FFF;font:600 13px var(--vv-texto);cursor:pointer}
 .vga-nota{grid-column:1/-1;margin:2px 0 0;font-size:11.5px;color:#8A8378}.vga-msg{margin:10px 0 0;font-size:12.5px;color:#7A4A00}
 /* Depende de você (09/11/2026): a fila de todos os agentes com o que espera um dono, e o número no dock. */
 .vga-linha-fila{margin-bottom:10px;border-color:#ECE6DC;background:#FFF}
-.vga-av-fila{--e:#FF7A2F;color:#C2490C}.vga-av-fila svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vga-av-fila{--e:#C2490C;color:#C2490C}.vga-av-fila svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .vga-av.grande.vga-av-fila svg{width:26px;height:26px}
 .vga-n{--c:#D13D36}
 .vga-fila{list-style:none;margin:0;padding:0;display:grid;gap:8px}
@@ -4066,7 +4066,7 @@ body.trilho-largo .vv-trilho-btn .vv-trilho-n{position:static;margin-left:auto;m
 .vga-modos .vga-nota{margin-top:8px}
 .vga-previa{margin:2px 0}.vga-previa summary{font-size:12px;color:#6F6A62;cursor:pointer}
 .vga-previa pre{margin:6px 0 2px;padding:8px 10px;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.45 var(--vv-texto);color:#3A3732;background:#FBF8F3;border:1px solid #ECE6DC;border-radius:8px}
-.vga-acoes button.vga-sim{background:#FF7A2F;border-color:#FF7A2F;color:#FFF}
+.vga-acoes button.vga-sim{background:#C2490C;border-color:#C2490C;color:#FFF}
 @media (max-width:640px){.vga-fila li{flex-wrap:wrap}.vga-fila li > .vga-grupo{margin-left:0}.vga-fila .vga-acoes{max-width:none;width:100%;justify-content:flex-start;padding-left:44px}}
 @media (max-width:900px){
   .vv-ag{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px}
@@ -4134,7 +4134,7 @@ html body.mundo :is(#vv-carteira .vc-kicker,#vv-decorar .vv-decorar-kicker,#vv-m
    nem o palco da chamada, que moram embaixo. */
 
 /* Entrada sem o mapa (08/11/2026): fundo liso de papel com a luz da marca; nada do 3D aparece atrás do login. */
-html body.auth-pending.mundo-lobby > #mundo{background:radial-gradient(1200px 700px at 15% 85%,rgba(255,122,47,.16),transparent 60%),radial-gradient(900px 600px at 90% 10%,rgba(13,116,206,.10),transparent 60%),#F2EEE7!important}
+html body.auth-pending.mundo-lobby > #mundo{background:radial-gradient(1200px 700px at 15% 85%,rgba(194,73,12,.16),transparent 60%),radial-gradient(900px 600px at 90% 10%,rgba(13,116,206,.10),transparent 60%),#F2EEE7!important}
 html body.auth-pending.mundo-lobby > #mundo > *{display:none!important}
 
 html body #login-gate.irecity .login-chegada,html body #login-gate.irecity .login-chegada *{text-shadow:none!important;-webkit-text-stroke:0!important}
@@ -4314,7 +4314,7 @@ body.trilho-largo .vv-trilho-btn[aria-expanded="true"]:not([aria-current]){backg
 .vga-hist{margin-top:8px}.vga-hist > summary{cursor:pointer;font:600 12px var(--vv-texto);color:#4A4640}
 .vga-rotinas li{display:grid;grid-template-columns:1fr auto;align-items:center}.vga-rotinas time{grid-column:1/-1}
 .vga-rotinas time{font:600 11.5px var(--vv-texto);color:#4A4640;font-variant-numeric:tabular-nums}
-.vga-rotinas li.off{opacity:.55}.vga-rotinas b i{font-style:normal;font-size:10.5px;padding:1px 6px;border-radius:999px;background:var(--ds-sel-fundo);color:var(--ds-sel-texto);margin-left:4px}
+.vga-rotinas li.off{opacity:.55}.vga-rotinas b i{font-style:normal;font-size:10.5px;padding:1px 6px;border-radius:999px;background:var(--ds-on-fundo);color:var(--ds-on-texto);margin-left:4px}
 .vga-motor{font-style:normal;font-weight:700;color:var(--c)}.vga-codigo{font-family:ui-monospace,Consolas,monospace;font-size:10.5px!important;color:#8A8378!important;overflow-wrap:anywhere}
 .vga-fixa{font-style:normal;font-size:11px;color:#8A8378}
 .vga-chave{appearance:none;flex:none;width:34px;height:20px;padding:2px;border-radius:999px;border:0;background:#D8D2C8;cursor:pointer;transition:background .15s}
@@ -5105,7 +5105,7 @@ body.mundo.mundo-quarto.agenda-fixa:not(.ver-agenda) #mundo-hud .vv-agenda{displ
 .vq-dock .vq-item:hover{transform:translateY(-3px)}
 .vq-dock .vq-icone{position:relative;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(180deg,#FFFFFF,#F3EEE6);border:1px solid rgba(31,29,26,.1);box-shadow:0 6px 14px -8px rgba(31,29,26,.45);color:#3A3F44}
 .vq-dock .vq-icone svg{width:18px;height:18px}
-.vq-dock .vq-item.minha .vq-icone{background:linear-gradient(180deg,#FF8A3D,#E2600F);border-color:#C2490C;color:#FFFFFF}
+.vq-dock .vq-item.minha .vq-icone{background:#1F1D1A;border-color:#1F1D1A;color:#FFFFFF}
 .vq-dock .vq-voltar .vq-icone{background:linear-gradient(180deg,#3A3631,#1F1D1A);border-color:#1F1D1A;color:#FFFFFF}
 .vq-dock .vq-voltar .vq-icone svg{width:19px;height:19px;stroke-width:2.4}
 .vq-dock .vq-item.aberta .vq-icone{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #F26B1D,0 8px 16px -8px rgba(31,29,26,.5)}
@@ -5230,7 +5230,7 @@ body.mundo.com-dock-salas #mundo-andar.quarto .andar-palco{bottom:var(--vv-dock-
 .vq-dock .vq-mic.mudo .vq-icone{background:linear-gradient(180deg,#E25B52,#D2453B);border-color:#B42318;color:#FFFFFF}
 .vq-dock .vq-mic.mudo .vq-rotulo{color:#B42318}
 .vq-dock .vq-mic.on .vq-rotulo{color:#11613A}
-.vq-dock .vq-entrar .vq-icone{background:linear-gradient(180deg,#FF8A3D,#C2490C);border-color:#C2490C;color:#FFFFFF}
+.vq-dock .vq-entrar .vq-icone{background:#C2490C;border-color:#C2490C;color:#FFFFFF}
 .vq-dock .vq-entrar .vq-rotulo{color:#C2490C}
 .vq-dock .vq-espera .vq-icone{opacity:.6}
 .vq-dock .vq-sair .vq-icone{color:#B42318;border-color:#F3C5C0}
@@ -5298,7 +5298,7 @@ html body.mundo .vv-barra-topo .vv-botao:has(.vv-ferr-nome) .vv-badge{position:s
 /* As janelas de módulo não herdavam as cores do tema claro: o que usa --text (o vbEstadoHtml, por exemplo) saía quase
    branco sobre branco ("Nenhuma impressão ainda" nas Impressões). */
 body.mundo :is(#vv-impressoes,#vv-comercial,#vv-carteira,#vv-pessoas,#vv-conteudo,#vv-ferramentas,#vv-agentes){
-  --surface:#FFFFFF;--surface2:#F6F3EE;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F}
+  --surface:#FFFFFF;--surface2:#F3F1EC;--border:#E6E0D6;--text:#1F1D1A;--text-muted:#6B675F}
 /* Avisos do WhatsApp com uma janela aberta: descem para baixo do cabeçalho dela (antes cobriam o X e as abas). */
 html body.mundo:is(.palco-modulo,.mundo-modulo,.mundo-gestao) #vv-wa-avisos{top:calc(var(--vv-m,14px) + 136px)}
 /* Barra do lote: clara como o resto do mundo e acima do dock das salas (a escura do tema antigo cobria o dock). */
@@ -5314,7 +5314,7 @@ html body.mundo .grupos-lote .lote-acao:hover{background:#FFF1E6;border-color:#F
    (.mundo-modulo) e o Planejamentos abre na janela própria; o editor ficava com o menu escuro e o título branco sobre
    claro, invisível. Mesmas cores do resto do mundo; as regras do tema antigo aqui não são forçadas, então basta a força do seletor. */
 html body.mundo .plj-ed{background:#FBF9F5;border-color:#E6E0D6}
-html body.mundo .plj-ed-lista{background:#F6F3EE;border-right-color:#E6E0D6}
+html body.mundo .plj-ed-lista{background:#F3F1EC;border-right-color:#E6E0D6}
 html body.mundo .plj-ed-sec{color:#6B675F}
 html body.mundo .plj-ed-sec em{color:#3A3F44}
 html body.mundo .plj-ed-mais{background:#FFF1E6;color:#C2490C}
@@ -5349,7 +5349,7 @@ html body.mundo .plj-pedido{background:#FDECEE;border-color:#F3C7C2}
 html body.mundo .plj-pedido b{color:#B42318}
 html body.mundo .plj-pedido p{color:#1F1D1A}
 html body.mundo .plj-pedido small{color:#6B675F}
-html body.mundo .plj-etapas li{background:#F6F3EE;border-color:#E6E0D6;color:#6B675F}
+html body.mundo .plj-etapas li{background:#F3F1EC;border-color:#E6E0D6;color:#6B675F}
 html body.mundo .plj-etapas li i{background:#E6E0D6;color:#3A3F44}
 html body.mundo .plj-etapas li.feita{color:#11613A}
 html body.mundo .plj-etapas li.feita i{background:#11613A;color:#FFFFFF}
@@ -5463,7 +5463,7 @@ html body.mundo .ofc-agenda .ag-ev small{color:#5E5A53}
 html body.mundo .ag-faixa-dia{color:#1F1D1A}
 html body.mundo .ag-faixa-dia small{color:#8A847A}
 html body.mundo .ag-faixa-dia.hoje b{color:#C2410C}
-html body.mundo .ag-nada{background:#F6F3EE;color:#5E5A53}
+html body.mundo .ag-nada{background:#F3F1EC;color:#5E5A53}
 /* Redes, Demandas ou Pendências para a semana inteira, logo depois do título (escolha por dia continua no cartão). */
 html body.mundo .section-title .semana-abas{margin-left:12px}
 html body.mundo .section-title .semana-abas button{padding:6px 11px;font-size:12px}
@@ -5486,13 +5486,13 @@ body.mundo .vb-vitrine.vv-vitrine::after{display:none}
    ícone (fechar, setas). Os módulos não desenham mais o próprio botão: a classe deles entra nas listas abaixo.
    Sem forçar nada: as regras antigas que brigavam passaram a valer só fora do mundo.
    ====================================================================================== */
-body.mundo{--pc-h:34px;--pc-h-p:28px;--pc-h-g:40px;--pc-r:8px;--pc-linha:#E6E0D6;--pc-tinta:#1F1D1A;--pc-fonte:600 12.5px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;--pc-sombra-acao:0 8px 20px -8px #E8602E;--pc-desligado-fundo:#F1EEE9;--pc-desligado-texto:#A8A29A}
+body.mundo{--pc-h:34px;--pc-h-p:28px;--pc-h-g:40px;--pc-r:999px;--pc-linha:#E6E0D6;--pc-tinta:#1F1D1A;--pc-fonte:600 12.5px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;--pc-sombra-acao:0 8px 20px -8px #A83D08;--pc-desligado-fundo:#F1EEE9;--pc-desligado-texto:#A8A29A}
 /* Secundário: branco, borda fina, tinta; no hover, borda e texto laranja. */
 body.mundo :is(.vc-sec,.vc-perigo,.vc-ico,.vp-sec,.vp-x,.vf-botao,.vf-x,.vi-botao,.vi-x,.vga-fechar,.vb-janela-x,.dias-layout-btn,.conta-ensaio,.conta-botao,.auto-sincronizar){display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--pc-h);padding:0 14px;border:1px solid var(--pc-linha);border-radius:var(--pc-r);background:#FFFFFF;color:var(--pc-tinta);font:var(--pc-fonte);white-space:nowrap;text-decoration:none;cursor:pointer;box-shadow:none;transition:border-color .15s,color .15s,background-color .15s}
-body.mundo :is(.vc-sec,.vc-ico,.vp-sec,.vp-x,.vf-botao,.vf-x,.vi-botao,.vi-x,.vga-fechar,.vb-janela-x,.dias-layout-btn,.conta-ensaio,.conta-botao,.auto-sincronizar):hover:not(:disabled):not(.desligado){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+body.mundo :is(.vc-sec,.vc-ico,.vp-sec,.vp-x,.vf-botao,.vf-x,.vi-botao,.vi-x,.vga-fechar,.vb-janela-x,.dias-layout-btn,.conta-ensaio,.conta-botao,.auto-sincronizar):hover:not(:disabled):not(.desligado){border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
 /* Principal: o laranja do Criar, texto branco; um por área. */
-body.mundo :is(.vc-acao,.vp-acao,.vf-botao.principal,.vi-botao.principal,.conta-botao.primario,.auto-novo,.quadro-novo,.ops-novo-conteudo,.vb-botao.principal,.capt-tb-criar,.vv-botao.acao){display:inline-flex;align-items:center;justify-content:center;gap:6px;height:auto;min-height:var(--pc-h);padding:0 16px;border:1px solid transparent;border-radius:var(--pc-r);background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font:var(--pc-fonte);font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:var(--pc-sombra-acao);transition:background-color .15s}
-body.mundo :is(.vc-acao,.vp-acao,.vf-botao.principal,.vi-botao.principal,.conta-botao.primario,.auto-novo,.quadro-novo,.ops-novo-conteudo,.vb-botao.principal,.capt-tb-criar,.vv-botao.acao):hover:not(:disabled):not(.desligado){background:var(--ds-acao-hover,#E8602E);color:#FFFFFF}
+body.mundo :is(.vc-acao,.vp-acao,.vf-botao.principal,.vi-botao.principal,.conta-botao.primario,.auto-novo,.quadro-novo,.ops-novo-conteudo,.vb-botao.principal,.capt-tb-criar,.vv-botao.acao){display:inline-flex;align-items:center;justify-content:center;gap:6px;height:auto;min-height:var(--pc-h);padding:0 16px;border:1px solid transparent;border-radius:var(--pc-r);background:var(--ds-acao,#C2490C);color:#FFFFFF;font:var(--pc-fonte);font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:var(--pc-sombra-acao);transition:background-color .15s}
+body.mundo :is(.vc-acao,.vp-acao,.vf-botao.principal,.vi-botao.principal,.conta-botao.primario,.auto-novo,.quadro-novo,.ops-novo-conteudo,.vb-botao.principal,.capt-tb-criar,.vv-botao.acao):hover:not(:disabled):not(.desligado){background:var(--ds-acao-hover,#A83D08);color:#FFFFFF}
 /* Perigoso: contorno e texto vermelhos; cheio só para o que falhou. */
 body.mundo :is(.vc-perigo,.vc-ico.perigo,.vi-botao.perigo){border-color:#F6BBC4;color:#B42318}
 body.mundo :is(.vc-perigo,.vc-ico.perigo,.vi-botao.perigo):hover:not(:disabled){background:#FDECEE;border-color:#F6BBC4;color:#B42318}
@@ -5519,10 +5519,10 @@ body.mundo select:not([multiple]):not([size]):not(#pc-campo){padding-right:32px}
 .vv-demanda-status svg{width:12px;height:12px;fill:none;stroke:#8A847A;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .vv-demanda-status:hover svg{stroke:#C2490C}
 body.mundo .vv-demanda-acoes .focus-brief-btn{display:inline-flex;align-items:center;gap:5px;min-height:var(--pc-h-p,28px);padding:0 9px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:600 11.5px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer;box-shadow:none}
-body.mundo .vv-demanda-acoes .focus-brief-btn:hover{border-color:#FF7A2F;color:#C2490C}
+body.mundo .vv-demanda-acoes .focus-brief-btn:hover{border-color:#C2490C;color:#C2490C}
 body.mundo .vv-demanda-acoes .focus-brief-btn.faltando{background:#FFF4DC;border-color:#F3D48B;color:#8A5A00}
-body.mundo .vv-demanda-acoes .focus-brief-btn.entregar{background:#FF7A2F;border-color:transparent;color:#FFFFFF}
-body.mundo .vv-demanda-acoes .focus-brief-btn.entregar:hover{background:#E8602E;color:#FFFFFF}
+body.mundo .vv-demanda-acoes .focus-brief-btn.entregar{background:#C2490C;border-color:transparent;color:#FFFFFF}
+body.mundo .vv-demanda-acoes .focus-brief-btn.entregar:hover{background:#A83D08;color:#FFFFFF}
 body.mundo .vv-demanda-acoes .focus-brief-btn :is(svg,.icone-linha){width:14px;height:14px;flex:none}
 /* Coluna estreita (o Hoje tem três lado a lado): as ações viram só ícone, numa linha; o nome fica na dica e no leitor. */
 body.mundo .vv-bloco-prio{container-type:inline-size}
@@ -5561,7 +5561,7 @@ body.mundo #workflow-modal.ofc-menu-jogo .ofc-rk-cab small{color:#5E5A53}
 /* 37 · os grupos quebram em linhas: nenhum chip cortado à direita (a fileira rolava de lado e escondia os últimos). */
 body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas{flex-wrap:wrap;overflow:visible}
 body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A}
-body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip[aria-pressed="true"]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto)}
+body.mundo #workflow-modal.ofc-menu-jogo .ofc-cq-abas .vb-chip[aria-pressed="true"]{background:var(--ds-on-fundo);border-color:var(--ds-on-borda);color:var(--ds-on-texto)}
 body.mundo #workflow-modal.ofc-menu-jogo .cq-dica{color:#5E5A53}
 /* TV da sala (fase 3b, quadro 44): o player fica, com o clipe que está passando e quem pôs; as opções no cartão claro
    do sistema (o escolhido no selecionado laranja, sem rosa nem texto apagado) e Desligar como o perigoso do padrão. */
@@ -5570,7 +5570,7 @@ body.mundo .ofc-tv-tela.passando{display:block;background:#0b0c11}
 body.mundo .ofc-tv-tela.passando img{display:block;width:100%;height:100%;object-fit:cover}
 body.mundo .ofc-tv-tela.passando small{position:absolute;left:10px;top:10px;padding:4px 9px;border-radius:999px;background:rgba(0,0,0,.6);color:#FFFFFF;font:650 11.5px var(--vv-texto,"Inter"),sans-serif}
 body.mundo .ofc-tv-opcao{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A}
-body.mundo .ofc-tv-opcao.on{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto)}
+body.mundo .ofc-tv-opcao.on{background:var(--ds-on-fundo);border-color:var(--ds-on-borda);color:var(--ds-on-texto)}
 body.mundo .ofc-tv-opcao i{color:var(--ds-sel-texto)}
 body.mundo .ofc-tv-opcao .ofc-tv-ic,body.mundo .ofc-tv-opcao.tela .ofc-tv-ic{background:#F1ECE4;color:#1F1D1A}
 body.mundo .ofc-tv-desligar{display:inline-flex;align-items:center;min-height:var(--pc-h,34px);padding:0 14px;border:1px solid #F6BBC4;border-radius:var(--pc-r,8px);background:#FFFFFF;color:#B42318;font:600 12.5px var(--vv-texto,"Inter"),sans-serif}
@@ -5591,9 +5591,9 @@ body.mundo .vv-placa .vv-camada span{flex:1;min-width:0}
 /* Interruptor no lugar da caixa de marcar (a mesma marcação: input checkbox com role=switch). */
 body.mundo .vv-camada input[type="checkbox"]{order:2;flex:none;appearance:none;-webkit-appearance:none;width:32px;height:19px;margin:0;border-radius:999px;background:#D6CFC4;position:relative;cursor:pointer;transition:background-color .15s}
 body.mundo .vv-camada input[type="checkbox"]::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.25);transition:translate .15s}
-body.mundo .vv-camada input[type="checkbox"]:checked{background:var(--ds-acao,#FF7A2F)}
+body.mundo .vv-camada input[type="checkbox"]:checked{background:var(--ds-acao,#C2490C)}
 body.mundo .vv-camada input[type="checkbox"]:checked::after{translate:13px 0}
-body.mundo .vv-camada input[type="checkbox"]:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.3)}
+body.mundo .vv-camada input[type="checkbox"]:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.3)}
 body.mundo .vv-placa .vv-cb-legenda[hidden]{display:none}
 /* Menu da conta (fase 3b, quadro 46): quem você é e o saldo no alto, ícone neutro em cada linha, aparência na linha. */
 .vv-menu-conta{width:280px}
@@ -5608,7 +5608,7 @@ body.mundo .vv-placa .vv-cb-legenda[hidden]{display:none}
 .vv-menu-tema-linha{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px}
 .vv-menu-tema-linha > span:first-child{font:700 12.5px var(--vv-texto);color:#1F1D1A}
 .vv-menu-tema-linha .vb-alternar button{display:inline-flex;width:auto;padding:4px 8px;font:600 11.5px var(--vv-texto)}
-.vv-menu-tema-linha .vb-alternar button[aria-checked="true"]{background:var(--ds-sel-fundo);color:var(--ds-sel-texto)}
+.vv-menu-tema-linha .vb-alternar button[aria-checked="true"]{background:var(--ds-on-fundo);color:var(--ds-on-texto)}
 /* Topo na Cidade (fase 3b, quadro 32): com espaço, Agenda, WhatsApp e Boletim têm o nome escrito, como no resto do sistema. */
 @media (min-width:1280px){
   body.mundo.mundo-centro .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"],.vv-ferr-boletim){width:auto;padding:0 11px 0 9px;gap:6px}
@@ -5618,7 +5618,7 @@ body.mundo .vv-placa .vv-cb-legenda[hidden]{display:none}
 /* Cartão da captação (fase 3, quadro 65): rodapé do padrão, Apagar como perigoso à esquerda, os outros secundários à direita. */
 body.mundo .capt-gerir{align-items:center}
 body.mundo .capt-gerir .vb-link{display:inline-flex;align-items:center;min-height:var(--pc-h-p,28px);padding:0 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;text-decoration:none}
-body.mundo .capt-gerir .vb-link:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+body.mundo .capt-gerir .vb-link:hover{border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
 body.mundo .capt-gerir .vb-link.perigo{order:-1;margin-right:auto;border-color:#F6BBC4;color:#B42318}
 body.mundo .capt-gerir .vb-link.perigo:hover{background:#FDECEE}
 /* ===== Criação: o assistente do Deivid (10/11/2026; vybe-mundo-criacao.js). A conversa do Danilo dentro do guia, as
@@ -5690,9 +5690,9 @@ body.mundo .capt-gerir .vb-link.perigo:hover{background:#FDECEE}
 .vga-fila .vga-acoes{flex:1 0 100%;max-width:none;align-items:center;justify-content:flex-start;padding-left:44px}
 .vga-grupo .vga-fila .vga-acoes{padding-left:0}
 .vga-fila .vga-acoes > button,.vga-mais > summary{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:var(--pc-h-p,28px);padding:0 11px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:var(--pc-tinta,#1F1D1A);font:var(--pc-fonte,600 12.5px/1 system-ui);font-size:12px;white-space:nowrap;cursor:pointer}
-.vga-fila .vga-acoes > button:hover:not(:disabled),.vga-mais > summary:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
-.vga-fila .vga-acoes > button.vga-sim{border-color:transparent;background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font-weight:700;box-shadow:var(--pc-sombra-acao,0 8px 20px -8px #E8602E)}
-.vga-fila .vga-acoes > button.vga-sim:hover:not(:disabled){background:var(--ds-acao-hover,#E8602E);color:#FFFFFF}
+.vga-fila .vga-acoes > button:hover:not(:disabled),.vga-mais > summary:hover{border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
+.vga-fila .vga-acoes > button.vga-sim{border-color:transparent;background:var(--ds-acao,#C2490C);color:#FFFFFF;font-weight:700;box-shadow:var(--pc-sombra-acao,0 8px 20px -8px #A83D08)}
+.vga-fila .vga-acoes > button.vga-sim:hover:not(:disabled){background:var(--ds-acao-hover,#A83D08);color:#FFFFFF}
 /* "Mais": Ignorar, Estava errado e abrir o agente, num menu opaco. */
 .vga-mais{position:relative}
 .vga-mais > summary{list-style:none}
@@ -5706,15 +5706,15 @@ body.mundo .capt-gerir .vb-link.perigo:hover{background:#FDECEE}
 /* Retrato voxel do agente (quadros 62 e 63), no lugar das iniciais: o boneco do Prédio num fundo claro da cor do andar. */
 img.vga-av.vga-retrato{display:block;object-fit:cover;object-position:50% 30%;padding:0;border:1px solid color-mix(in srgb,var(--e) 30%,#E6E0D6);background:color-mix(in srgb,var(--e) 12%,#FFFFFF)}
 /* Página do agente (quadro 63): o histórico de 14 dias na cor do sistema, sem o roxo; falha continua vermelha (estado). */
-.vga-barras i{background:var(--ds-acao,#FF7A2F)}
+.vga-barras i{background:var(--ds-acao,#C2490C)}
 .vga-barras i.f{background:#D93D42}
 /* Criar (quadro 64): os clientes nas cores de cada um (a etiqueta da carteira, cliCor); o escolhido com contorno laranja
    e o visto. A janela cabe entre o topo e o dock das salas. */
 body.mundo #fc-overlay .fc-escolhas .fc-escolha.fc-cli{display:inline-flex;align-items:center;gap:4px;min-height:0;padding:2px;border:0;border-radius:8px;background:none;box-shadow:none;cursor:pointer}
 body.mundo #fc-overlay .fc-escolha.fc-cli .cliente-carteira{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:0 10px;border-radius:6px;background:var(--carteira-fundo);font:600 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
 body.mundo #fc-overlay .fc-escolha.fc-cli:hover .cliente-carteira{background:var(--carteira-hover)}
-body.mundo #fc-overlay .fc-escolha.fc-cli.marcada{box-shadow:0 0 0 2px var(--ds-acao,#FF7A2F)}
-body.mundo #fc-overlay .fc-escolha.fc-cli:focus-visible{outline:0;box-shadow:0 0 0 2px var(--ds-acao,#FF7A2F),0 0 0 5px rgba(255,122,47,.22)}
+body.mundo #fc-overlay .fc-escolha.fc-cli.marcada{box-shadow:0 0 0 2px var(--ds-acao,#C2490C)}
+body.mundo #fc-overlay .fc-escolha.fc-cli:focus-visible{outline:0;box-shadow:0 0 0 2px var(--ds-acao,#C2490C),0 0 0 5px rgba(194,73,12,.22)}
 body.mundo #fc-overlay .fc-escolha.fc-cli .fc-cli-visto{display:none;width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 body.mundo #fc-overlay .fc-escolha.fc-cli.marcada .fc-cli-visto{display:block}
 body.mundo.com-dock-salas #fc-overlay{box-sizing:border-box;padding-bottom:var(--vv-dock-alto,0px)}
@@ -5724,18 +5724,18 @@ body.mundo #fc-overlay .fc-modal{max-height:var(--vv-janela-alto)}
 body.mundo .vcal{background:#FFFFFF;-webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid var(--pc-linha,#E6E0D6);box-shadow:0 24px 60px -18px rgba(31,29,26,.35);font-family:var(--vv-texto,"Inter"),system-ui,sans-serif}
 body.mundo .vcal-mes{color:#1F1D1A;font-family:var(--vv-titulo,var(--vv-texto,"Inter")),system-ui,sans-serif}
 body.mundo .vcal-passo{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A}
-body.mundo .vcal-passo:hover{background:#FFFFFF;border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+body.mundo .vcal-passo:hover{background:#FFFFFF;border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
 body.mundo .vcal-semana span{color:#6B675F}
 body.mundo .vcal-dia{color:#1F1D1A;font-family:var(--vv-texto,"Inter"),system-ui,sans-serif}
-body.mundo .vcal-dia:hover{background:#F6F3EE}
+body.mundo .vcal-dia:hover{background:#F3F1EC}
 body.mundo .vcal-dia.fora{color:#B5AFA5}
 body.mundo .vcal-dia.hoje{color:var(--ds-sel-texto,#C2490C)}
-body.mundo .vcal-dia.escolhido,body.mundo .vcal-dia.escolhido:hover{background:var(--ds-acao,#FF7A2F);color:#FFFFFF}
+body.mundo .vcal-dia.escolhido,body.mundo .vcal-dia.escolhido:hover{background:var(--ds-acao,#C2490C);color:#FFFFFF}
 body.mundo .vcal-dia.escolhido::after{background:#FFFFFF}
-body.mundo .vcal-dia:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F)}
+body.mundo .vcal-dia:focus-visible{outline:2px solid var(--ds-acao,#C2490C)}
 body.mundo .vcal-pe{border-top-color:#F0EBE3}
 body.mundo .vcal-pe button{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font-family:var(--vv-texto,"Inter"),system-ui,sans-serif}
-body.mundo .vcal-pe button:hover{background:#FFFFFF;border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+body.mundo .vcal-pe button:hover{background:#FFFFFF;border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
 body.mundo .vcal-pe button.vcal-limpar:hover{background:#FDECEE;border-color:#F6BBC4;color:#B42318}
 
 /* ======================================================================================
@@ -5767,7 +5767,7 @@ body.mundo .conta-eu-retrato{border-radius:10px;border:1px solid #ECE6DC;backgro
 body.mundo :is(.conta-eu-retrato,.eq-retrato) img{width:100%;height:100%;object-fit:contain}
 body.mundo .conta-grupo-titulo{padding:0 10px 4px;font:600 11.5px var(--vv-texto);letter-spacing:0;text-transform:none;color:#8A847A}
 body.mundo .conta-aba{gap:10px;min-height:34px;padding:0 10px;border-radius:8px;font:500 13px var(--vv-texto)}
-body.mundo .conta-aba:hover{background:#F6F3EE}
+body.mundo .conta-aba:hover{background:#F3F1EC}
 body.mundo .conta-aba.ativa{background:var(--ds-sel-fundo,#FFEBDF);font-weight:600}
 body.mundo .conta-aba-rotulo{color:#1F1D1A}
 body.mundo .conta-aba.ativa .conta-aba-rotulo{color:var(--ds-sel-texto,#C2490C)}
@@ -5791,14 +5791,14 @@ body.mundo .eq-acoes{opacity:1;align-items:center;flex-wrap:nowrap;gap:6px}
 body.mundo .eq-mais{position:relative}
 body.mundo .eq-mais>summary{list-style:none;gap:4px;padding:0 10px}
 body.mundo .eq-mais>summary::-webkit-details-marker{display:none}
-body.mundo .eq-mais[open]>summary{border-color:var(--ds-acao,#FF7A2F)}
+body.mundo .eq-mais[open]>summary{border-color:var(--ds-acao,#C2490C)}
 body.mundo .eq-mais-menu{position:absolute;z-index:5;right:0;top:calc(100% + 4px);display:grid;min-width:200px;padding:4px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;box-shadow:var(--vv-sombra-janela,0 14px 34px -14px rgba(31,29,26,.35));animation:vv-aba .16s var(--curva,ease) both}
 body.mundo .eq-mais-item{display:flex;align-items:center;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;font:500 12.5px var(--vv-texto);text-align:left;cursor:pointer}
-body.mundo .eq-mais-item:hover{background:#F6F3EE}
+body.mundo .eq-mais-item:hover{background:#F3F1EC}
 body.mundo .eq-mais-perigo{margin-top:4px;box-shadow:inset 0 1px 0 #F1ECE4;border-radius:0 0 7px 7px}
 body.mundo .eq-mais-perigo span{color:#B42318}
 body.mundo .eq-mais-perigo:hover{background:#FDECEE}
-body.mundo .eq-mais-item:focus-visible,body.mundo .eq-mais>summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+body.mundo .eq-mais-item:focus-visible,body.mundo .eq-mais>summary:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:1px}
 @media (max-width:640px){
   body.mundo .eq-linha{grid-template-columns:44px minmax(0,1fr)}
   body.mundo .eq-acoes{grid-column:1/-1;justify-content:flex-start}
@@ -5814,11 +5814,11 @@ body.mundo .eq-mais-item:focus-visible,body.mundo .eq-mais>summary:focus-visible
    mundo inverte a tela clara inteira (html.tema-escuro body.mundo), então o escuro continua só no tema escuro.
    Cada janela pelo seu id: a mesma força que o tema antigo tinha, sem forçar nada.
    ====================================================================================== */
-body.mundo{--jg-claro-cartao:#FFFFFF;--jg-claro-poco:#F6F3EE;--jg-claro-trilha:#EFEAE2;--jg-claro-borda:#E6E0D6;--jg-claro-borda-forte:#D9D1C4;
+body.mundo{--jg-claro-cartao:#FFFFFF;--jg-claro-poco:#F3F1EC;--jg-claro-trilha:#EFEAE2;--jg-claro-borda:#E6E0D6;--jg-claro-borda-forte:#D9D1C4;
   --jg-claro-degrau:0 2px 0 #ECE5DA;--jg-claro-degrau-alto:0 3px 0 #E4DCCF,0 10px 22px -16px rgba(40,26,10,.35);--jg-claro-tinta:#1F1D1A;--jg-claro-apagado:#6B675F;
   --jg-claro-sel-fundo:var(--ds-sel-fundo,#FFF1E6);--jg-claro-sel-borda:var(--ds-sel-borda,#FFB98A);--jg-claro-sel-texto:var(--ds-sel-texto,#C2490C)}
 /* Os tokens do jogo escuro (--jg-*, --vb-jogo-*) viram o material claro dentro das janelas do jogo. */
-body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas,.vv-jogos-tela){--jg-fundo:#FAF8F4;--jg-painel:#FFFFFF;--jg-painel-2:#F6F3EE;--jg-slot:#FFFFFF;
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas,.vv-jogos-tela){--jg-fundo:#FAF8F4;--jg-painel:#FFFFFF;--jg-painel-2:#F3F1EC;--jg-slot:#FFFFFF;
   --jg-borda:#E6E0D6;--jg-borda-forte:#D9D1C4;--jg-relevo:0 0 0 transparent;--jg-sombra:0 18px 50px rgba(40,26,10,.18);--jg-sombra-leve:0 2px 0 #ECE5DA;
   --jg-apertado:0 0 0 #ECE5DA;--jg-ativo:var(--jg-claro-sel-fundo);--jg-raio:10px;--jg-raio-p:8px;--vb-jogo-fundo:#FFFFFF;--vb-jogo-degrau:#ECE5DA;
   --vb-n1:#B8733F;--vb-n2:#8C96A6;--vb-n3:#C98B00;--vb-n4:#2E8FB8;color:var(--jg-claro-tinta)}
@@ -5830,7 +5830,7 @@ body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-cartao{ba
 body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-poco{background:var(--jg-claro-poco);border:1px solid #EFEAE2}
 body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-rotulo{color:var(--jg-claro-apagado)}
 body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-numero{color:var(--jg-claro-tinta);text-shadow:none}
-body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-botao{background:var(--ds-acao,#FF7A2F);color:#FFFFFF;box-shadow:0 2px 0 #C2490C}
+body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-botao{background:var(--ds-acao,#C2490C);color:#FFFFFF;box-shadow:0 2px 0 #C2490C}
 body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) .vb-jogo-dica[data-dica]::after{background:#1F1D1A;color:#FFFFFF;border-color:transparent}
 
 /* ---------- Loja (quadro 35) ---------- */
@@ -5845,7 +5845,7 @@ body.mundo #office-catalogo .ofc-loja-prat-topo button{color:var(--jg-claro-sel-
 body.mundo #office-catalogo .ofc-movel{gap:6px;padding:8px;border:1px solid var(--jg-claro-borda);border-radius:10px;background:var(--jg-claro-cartao);background-image:none;box-shadow:var(--jg-claro-degrau);color:var(--jg-claro-tinta);justify-items:stretch;text-align:left}
 body.mundo #office-catalogo .ofc-movel:hover{border-color:var(--jg-claro-borda-forte);box-shadow:var(--jg-claro-degrau-alto)}
 body.mundo #office-catalogo .ofc-movel:active{transform:translateY(1px);box-shadow:0 1px 0 #ECE5DA}
-body.mundo #office-catalogo .ofc-movel:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:2px}
+body.mundo #office-catalogo .ofc-movel:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 body.mundo #office-catalogo .ofc-movel > img{width:100%;height:84px;object-fit:contain;padding:6px;border-radius:8px;box-shadow:none;background:linear-gradient(180deg,#F6F0E6,#EDE4D6);image-rendering:auto}
 body.mundo #office-catalogo .ofc-movel > img:not(.movel-voxel){image-rendering:pixelated}
 body.mundo #office-catalogo .ofc-movel > span{font:600 12px/1.3 var(--vv-texto,"Inter"),sans-serif;color:var(--jg-claro-tinta);min-height:2.6em}
@@ -5859,7 +5859,7 @@ body.mundo #office-catalogo .ofc-movel-faixa.r-incomum{background:#E7F6EC;color:
 body.mundo #office-catalogo .ofc-movel-faixa.r-raro{background:#E3ECFF;color:#1E40AF}
 body.mundo #office-catalogo .ofc-movel-faixa.r-epico{background:#F3E8FF;color:#6B21A8}
 body.mundo #office-catalogo .ofc-movel-faixa.r-lendario{background:#FFF4E5;color:#8A5200}
-body.mundo #office-catalogo .ofc-movel :is(.ofc-movel-jogo,.ofc-movel-desejo){background:var(--ds-acao,#FF7A2F);color:#FFFFFF;box-shadow:none}
+body.mundo #office-catalogo .ofc-movel :is(.ofc-movel-jogo,.ofc-movel-desejo){background:var(--ds-acao,#C2490C);color:#FFFFFF;box-shadow:none}
 /* Fileiras com cartões da mesma largura: nada de "900 moedas res…". */
 body.mundo #office-catalogo :is(.ofc-loja-fila,.ofc-loja-vitrine){display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;overflow:visible}
 body.mundo #office-catalogo .ofc-loja-jogos .ofc-nota{color:var(--jg-claro-apagado)}
@@ -5870,7 +5870,7 @@ body.mundo #ofc-ranking .rk2-cab h2{color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .rk2-periodos{background:#F1ECE4;border:0;box-shadow:none}
 body.mundo #ofc-ranking .rk2-periodos button{background:transparent;color:#5E5A53;box-shadow:none;border:0}
 /* 00 Sistema · o período escolhido é seleção: laranja do padrão, não preto (a regra geral do jogo deixa este alternador de fora). */
-body.mundo #ofc-ranking .rk2-periodos button[aria-selected="true"]{background:var(--ds-sel-fundo);color:var(--ds-sel-texto)}
+body.mundo #ofc-ranking .rk2-periodos button[aria-selected="true"]{background:var(--ds-on-fundo);color:var(--ds-on-texto)}
 /* Categorias principais: cartões claros com o líder; a escolhida no selecionado laranja. */
 body.mundo #ofc-ranking .rk2-camp{background:var(--jg-claro-cartao);border:1px solid var(--jg-claro-borda);box-shadow:var(--jg-claro-degrau);color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .rk2-camp:hover{border-color:var(--jg-claro-borda-forte)}
@@ -5885,7 +5885,7 @@ body.mundo #ofc-ranking .rk2-camp-eu{background:var(--jg-claro-cartao);border:1p
 body.mundo #ofc-ranking .rk2-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 body.mundo #ofc-ranking .rk2-chips > small{flex:1 0 100%;color:var(--jg-claro-apagado)}
 body.mundo #ofc-ranking .rk2-chip{width:auto;max-width:none;min-height:30px;padding:0 10px 0 4px;border:1px solid var(--jg-claro-borda);border-radius:999px;background:var(--jg-claro-cartao);color:var(--jg-claro-tinta);box-shadow:none}
-body.mundo #ofc-ranking .rk2-chip:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-ranking .rk2-chip:hover{border-color:var(--ds-acao,#C2490C);color:var(--jg-claro-sel-texto)}
 body.mundo #ofc-ranking .rk2-chip.ativo{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda);color:var(--jg-claro-sel-texto)}
 body.mundo #ofc-ranking .rk2-chip-txt{overflow:visible;text-overflow:clip;white-space:nowrap;max-width:none}
 body.mundo #ofc-ranking .rk2-chip-icone{background:#F1ECE4;color:var(--jg-claro-tinta);border-radius:999px;box-shadow:none}
@@ -5914,7 +5914,7 @@ body.mundo #ofc-ranking .rk2-lista > li:not(.ofc-rk-det-li):hover{border-color:v
 body.mundo #ofc-ranking .rk2-lista > li.eu{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda)}
 body.mundo #ofc-ranking .rk2-pos,body.mundo #ofc-ranking .rk2-valor b{color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .rk2-barra{background:var(--jg-claro-trilha);box-shadow:none}
-body.mundo #ofc-ranking .rk2-barra i{background:var(--ds-acao,#FF7A2F);box-shadow:none}
+body.mundo #ofc-ranking .rk2-barra i{background:var(--ds-acao,#C2490C);box-shadow:none}
 body.mundo #ofc-ranking .rk2-seta.sobe{color:#1F7A45}
 body.mundo #ofc-ranking .rk2-seta.desce{color:#B42318}
 body.mundo #ofc-ranking .rk2-seta.igual{color:#8A847A}
@@ -5925,7 +5925,7 @@ body.mundo #ofc-ranking .rk2-voce-pos b{color:var(--jg-claro-sel-texto)}
 body.mundo #ofc-ranking .rk2-voce-txt > b{color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .rk2-voce-txt p b{color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .ofc-rk-link{color:var(--jg-claro-sel-texto)}
-body.mundo #ofc-ranking .ofc-rk-anel{background:conic-gradient(var(--ds-acao,#FF7A2F) calc(var(--p,0) * 1%),var(--jg-claro-trilha) 0)}
+body.mundo #ofc-ranking .ofc-rk-anel{background:conic-gradient(var(--ds-acao,#C2490C) calc(var(--p,0) * 1%),var(--jg-claro-trilha) 0)}
 body.mundo #ofc-ranking .ofc-rk-anel i{background:var(--jg-claro-cartao);color:var(--jg-claro-tinta)}
 /* Detalhe, como funciona, copa, tesouros e a meta da agência: poço e cartão claros. */
 body.mundo #ofc-ranking :is(.ofc-rk-detalhe,.ofc-rk-det-col,.ofc-rk-como,.ofc-rk-anterior){background:var(--jg-claro-poco);border:1px solid #EFEAE2;box-shadow:none;color:var(--jg-claro-tinta)}
@@ -5933,7 +5933,7 @@ body.mundo #ofc-ranking :is(.rk2-copa,.ofc-rk-tesouro,.ofc-rk-agencia){backgroun
 body.mundo #ofc-ranking .ofc-rk-det-col h5{color:var(--jg-claro-tinta)}
 body.mundo #ofc-ranking .ofc-rk-tesouro li.eu{background:var(--jg-claro-sel-fundo)}
 body.mundo #ofc-ranking .ofc-rk-ag-barra{background:var(--jg-claro-trilha)}
-body.mundo #ofc-ranking .ofc-rk-ag-barra i{background:var(--ds-acao,#FF7A2F)}
+body.mundo #ofc-ranking .ofc-rk-ag-barra i{background:var(--ds-acao,#C2490C)}
 body.mundo #ofc-ranking .ofc-rk-ag-num strong{color:var(--jg-claro-tinta);text-shadow:none}
 
 /* ---------- Conquistas (quadro 37) ---------- */
@@ -5945,8 +5945,8 @@ body.mundo #ofc-conquistas .cq-luz{display:none}
 body.mundo #ofc-conquistas .cq-placa b{color:var(--jg-claro-tinta);text-shadow:none}
 body.mundo #ofc-conquistas .cq-placa small{color:var(--jg-claro-apagado)}
 body.mundo #ofc-conquistas .cq-trocar{background:#FFFFFF;border:1px solid var(--jg-claro-borda);color:var(--jg-claro-tinta);box-shadow:none;border-radius:8px}
-body.mundo #ofc-conquistas .cq-trocar:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--jg-claro-sel-texto)}
-body.mundo #ofc-conquistas .cq-anel{background:conic-gradient(var(--ds-acao,#FF7A2F) calc(var(--p,0) * 1%),var(--jg-claro-trilha) 0)}
+body.mundo #ofc-conquistas .cq-trocar:hover{border-color:var(--ds-acao,#C2490C);color:var(--jg-claro-sel-texto)}
+body.mundo #ofc-conquistas .cq-anel{background:conic-gradient(var(--ds-acao,#C2490C) calc(var(--p,0) * 1%),var(--jg-claro-trilha) 0)}
 body.mundo #ofc-conquistas .cq-anel::before{background:var(--jg-claro-cartao)}
 body.mundo #ofc-conquistas .cq-anel b{color:var(--jg-claro-tinta)}
 body.mundo #ofc-conquistas :is(.cq-arte,.cq-niveis li,.cq-premio){background:var(--jg-claro-poco);border:1px solid #EFEAE2;box-shadow:none}
@@ -5954,7 +5954,7 @@ body.mundo #ofc-conquistas .cq-arte img{image-rendering:auto}
 body.mundo #ofc-conquistas .cq-arte img:not(.movel-voxel){image-rendering:pixelated}
 body.mundo #ofc-conquistas .cq-premio b{color:var(--jg-claro-tinta)}
 body.mundo #ofc-conquistas .cq-trilha-linha{background:var(--jg-claro-trilha)}
-body.mundo #ofc-conquistas .cq-trilha-linha i{background:var(--ds-acao,#FF7A2F)}
+body.mundo #ofc-conquistas .cq-trilha-linha i{background:var(--ds-acao,#C2490C)}
 body.mundo #ofc-conquistas .cq-no i{background:#FFFFFF;border-color:var(--jg-claro-borda);box-shadow:none}
 body.mundo #ofc-conquistas .cq-no small{color:var(--jg-claro-apagado)}
 /* O nível só no ícone, na borda e no texto pequeno. */
@@ -5967,7 +5967,7 @@ body.mundo #ofc-conquistas .cq-no.ok.n1 i{background:var(--vb-n1);border-color:v
 body.mundo #ofc-conquistas .cq-no.ok.n2 i{background:var(--vb-n2);border-color:var(--vb-n2)}
 body.mundo #ofc-conquistas .cq-no.ok.n3 i{background:var(--vb-n3);border-color:var(--vb-n3)}
 body.mundo #ofc-conquistas .cq-no.ok.n4 i{background:var(--vb-n4);border-color:var(--vb-n4)}
-body.mundo #ofc-conquistas .cq-seu{background:var(--ds-acao,#FF7A2F);color:#FFFFFF}
+body.mundo #ofc-conquistas .cq-seu{background:var(--ds-acao,#C2490C);color:#FFFFFF}
 /* Abas das escadas: chips do sistema; "Perto de subir" e a escolhida no selecionado laranja. */
 body.mundo #ofc-conquistas .vb-chip[aria-pressed="true"]{background:var(--jg-claro-sel-fundo);border-color:var(--jg-claro-sel-borda);color:var(--jg-claro-sel-texto)}
 body.mundo #ofc-conquistas .vb-titulo{background:#FFFFFF;border:1px solid currentColor;box-shadow:none;text-shadow:none;color:var(--jg-claro-sel-texto)}
@@ -6083,7 +6083,7 @@ body.mundo .notas-janela.na-coluna .notas-canto{display:none}
 body.mundo .notas-topo-coluna{cursor:default;touch-action:auto;padding:12px 12px 10px 14px;gap:8px;border-bottom:1px solid #F0EBE3}
 body.mundo .notas-topo-coluna .vv-conversa-abas{flex:1}
 body.mundo .notas-janela :is(.notas-icone,.notas-voltar){width:34px;height:34px;border-radius:8px;color:#5E5A53}
-body.mundo .notas-janela :is(.notas-icone,.notas-voltar):hover{border-color:#FF7A2F;color:#C2490C}
+body.mundo .notas-janela :is(.notas-icone,.notas-voltar):hover{border-color:#C2490C;color:#C2490C}
 body.mundo .notas-sub{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #F0EBE3}
 body.mundo .notas-sub b{flex:1;min-width:0;font:600 14px var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.mundo .notas-sub .notas-voltar{width:auto;padding:0 10px 0 6px;gap:2px;display:inline-flex;align-items:center;font:600 12.5px var(--vv-texto,Inter),sans-serif}
@@ -6126,8 +6126,8 @@ body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-co
   body.mundo .vv-trilho [data-trilho="criar"]{order:2}
   body.mundo .vv-trilho [data-cel="conversas"]{order:3}
   body.mundo .vv-trilho [data-cel="mais"]{order:4}
-  body.mundo .vv-trilho > .vv-trilho-btn[aria-current]:not(.criar){background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
-  body.mundo .vv-trilho [data-cel="mais"][aria-expanded="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+  body.mundo .vv-trilho > .vv-trilho-btn[aria-current]:not(.criar){background:var(--ds-on-fundo,#FFEDE2);color:var(--ds-on-texto,#C2490C)}
+  body.mundo .vv-trilho [data-cel="mais"][aria-expanded="true"]{background:var(--ds-on-fundo,#FFEDE2);color:var(--ds-on-texto,#C2490C)}
   /* Dock das salas: no cartão, uma linha; numa chamada, os botões quebram em linhas em vez de rolar e cortar o último. */
   body.mundo .vv-dock-salas-faixa > .vq-dock{flex-wrap:wrap;justify-content:center;overflow:visible;padding-top:6px;row-gap:2px}
   body.mundo .vv-dock-salas-faixa > .vq-dock .vq-sep{display:none}
@@ -6158,7 +6158,7 @@ body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-co
   .vv-cel-item{appearance:none;display:flex;align-items:center;gap:8px;min-width:0;min-height:40px;padding:6px 10px;border:1px solid #EFEAE2;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px/1.25 var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
   .vv-cel-item > span{flex:1;min-width:0;overflow-wrap:anywhere}
   .vv-cel-item svg{flex:none;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-  .vv-cel-item[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEDE2);border-color:#F7C9A6;color:var(--ds-sel-texto,#C2490C)}
+  .vv-cel-item[aria-pressed="true"]{background:var(--ds-on-fundo,#FFEDE2);border-color:#F7C9A6;color:var(--ds-on-texto,#C2490C)}
   .vv-cel-item:disabled{color:#A8A29A;cursor:not-allowed}
   .vv-cel-item.trancado{color:#8A847A}
   .vv-cel-cadeado svg{width:13px;height:13px}
@@ -6197,7 +6197,7 @@ body.mundo :is(.ar-abas,.ia-periodos).vb-alternar button[aria-pressed="false"]{b
 .ar-espaco{flex:1}
 .ar-dica{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--vv-texto,inherit);color:#6B675F;cursor:help}
 .ar-dica-i{display:grid;place-items:center;width:16px;height:16px;border:1.5px solid currentColor;border-radius:50%;font:700 10px/1 var(--vv-texto,inherit);font-style:normal}
-.ar-dica:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:3px;border-radius:4px}
+.ar-dica:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:3px;border-radius:4px}
 .ar-dica.vb-jogo-dica[data-dica]::after{left:auto;right:0;width:min(340px,80vw)}
 body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-color:#E6E0D6;box-shadow:0 12px 32px -8px rgba(31,29,26,.25)}
 .ar-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
@@ -6217,9 +6217,9 @@ body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-col
 /* Liga/desliga: o interruptor do sistema (o mesmo das camadas), com o estado dito no nome acessível e na dica. */
 .ar-liga{flex:none;position:relative;width:36px;height:20px;padding:0;border:0;border-radius:999px;background:#D6CFC4;cursor:pointer;transition:background-color .15s}
 .ar-liga i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.25);transition:translate .15s var(--vv-mola,ease)}
-.ar-liga[aria-checked="true"]{background:var(--ds-acao,#FF7A2F)}
+.ar-liga[aria-checked="true"]{background:var(--ds-acao,#C2490C)}
 .ar-liga[aria-checked="true"] i{translate:16px 0}
-.ar-liga:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.3)}
+.ar-liga:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.3)}
 .ar-secao{margin:22px 0 8px;font:700 11px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F}
 .ar-falhas-topo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin:0 0 10px}
 .ar-falhas-topo p{flex:1 1 320px;margin:0;font:500 12.5px/1.45 var(--vv-texto,inherit);color:#5E5A53}
@@ -6238,7 +6238,7 @@ body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-col
 .ia-rotulo{margin:0 0 10px;font:700 11px var(--vv-texto,inherit);letter-spacing:.06em;text-transform:uppercase;color:#6B675F}
 .ia-grafico{display:flex;align-items:flex-end;gap:2px;height:110px;padding:0 2px;border-bottom:1px solid #ECE6DC}
 .ia-grafico i{flex:1;min-width:0;border-radius:3px 3px 0 0;background:#F2B48A}
-.ia-grafico i.hoje{background:var(--ds-acao,#FF7A2F)}
+.ia-grafico i.hoje{background:var(--ds-acao,#C2490C)}
 .ia-grafico i.gratis{background:#D6CFC4}
 .ia-grafico-eixo{display:flex;justify-content:space-between;margin-top:4px;font:500 11.5px var(--vv-texto,inherit);color:#6B675F}
 .ia-tabela{width:100%;border-collapse:collapse;font:500 12.5px var(--vv-texto,inherit);color:#1F1D1A}
@@ -6250,7 +6250,7 @@ body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-col
 .ia-nota{margin:0;font:500 12px/1.5 var(--vv-texto,inherit);color:#5E5A53}
 .ia-parametros{margin:4px 0 0;padding:10px 14px;border:1px solid #ECE6DC;border-radius:10px;background:#FAF8F4}
 .ia-parametros > summary{cursor:pointer;font:650 13px var(--vv-texto,inherit);color:#1F1D1A}
-.ia-parametros > summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:3px;border-radius:4px}
+.ia-parametros > summary:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:3px;border-radius:4px}
 .ia-parametros[open] > summary{margin-bottom:10px}
 .ia-campos{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;margin:10px 0}
 .ia-campos .ai-setting-field{display:grid;gap:4px;flex:1 1 160px;min-width:0}
@@ -6261,7 +6261,7 @@ body.mundo .ar-dica.vb-jogo-dica[data-dica]::after{background:#FFFFFF;border-col
    Menu de responsável: a busca no topo, no papel claro dos outros campos; o pé "+ N fora da disciplina" é um link. */
 body.mundo :is(.dono-editor,.lote-dono) .dono-busca{background:#FFFFFF;border:1px solid var(--pc-linha,#E6E0D6);color:#1F1D1A;font:500 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
 body.mundo :is(.dono-editor,.lote-dono) .dono-busca::placeholder{color:#8A847A}
-body.mundo :is(.dono-editor,.lote-dono) .dono-busca:focus{outline:0;border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo :is(.dono-editor,.lote-dono) .dono-busca:focus{outline:0;border-color:var(--ds-acao,#C2490C);box-shadow:var(--ds-foco,0 0 0 3px rgba(194,73,12,.22))}
 /* A busca do responsável em lote (quadro 23) ocupa a largura do menu, acima das fichas. */
 .lote-dono .dono-busca{width:100%;margin:0 0 10px}
 /* Fora de um módulo antigo (o lote segue marcado ao ir para o Hoje) o nome da ficha saía quase branco no menu claro. */
@@ -6279,7 +6279,7 @@ body.mundo .previa-grande-midia{gap:10px;padding:14px 16px 16px;color:#E8E2D8}
 body.mundo .previa-grande-topo{display:flex;align-items:center;gap:8px;min-height:32px;color:#BDB5A8;font:600 12px var(--vv-texto,"Inter"),system-ui,sans-serif}
 body.mundo #previa-grande-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#BDB5A8}
 body.mundo .previa-grande-topo button:not(.x-fechar){display:inline-flex;align-items:center;width:auto;height:32px;padding:0 12px;border:1px solid rgba(255,255,255,.18);border-radius:var(--pc-r,8px);background:rgba(255,255,255,.06);color:#F4F1EA;font:600 12.5px var(--vv-texto,"Inter"),system-ui,sans-serif}
-body.mundo .previa-grande-topo button.previa-grande-trocar{border-color:transparent;background:var(--ds-acao,#FF7A2F);color:#FFFFFF;font-weight:700}
+body.mundo .previa-grande-topo button.previa-grande-trocar{border-color:transparent;background:var(--ds-acao,#C2490C);color:#FFFFFF;font-weight:700}
 /* Com a ficha, Baixar e Trocar moram nela; o topo da mídia fica só com o nome do arquivo. */
 body.mundo .previa-grande.com-ficha .previa-grande-topo :is(.previa-grande-baixar,.previa-grande-trocar){display:none}
 body.mundo .previa-grande-topo .x-fechar{position:absolute;top:12px;right:12px;z-index:3;width:34px;height:34px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:50%;background:#FFFFFF;color:#1F1D1A}
@@ -6417,7 +6417,7 @@ body.mundo .ops-command-bar .agenda-mais-linha,body.mundo .ops-command-bar .agen
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu{display:grid;gap:4px;width:240px}
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button{appearance:none;display:flex;align-items:center;justify-content:space-between;min-height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#1F1D1A;font:600 13px var(--vv-texto);text-align:left;cursor:pointer}
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button:hover{background:#F7F3EE}
-body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button[aria-pressed="true"]{background:var(--ds-on-fundo,#FFEDE2);color:var(--ds-on-texto,#C2490C)}
 body.mundo :is(.ops-command-bar,#painel-demandas) .agenda-pessoa-menu button[aria-pressed="true"]::after{content:"";width:6px;height:10px;border:solid currentColor;border-width:0 2px 2px 0;rotate:45deg;translate:0 -2px}
 body.mundo .ops-command-bar .ops-clear-btn{height:32px;margin-left:auto}
 @media (max-width:900px){body.mundo #compact-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -6470,9 +6470,9 @@ body.mundo .grupo-bloco .grupo-titulo b{color:#1F1D1A}
 body.mundo .vb-mes{display:inline-flex;align-items:center;gap:2px;height:38px;padding:3px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF}
 body.mundo .vb-mes b{min-width:136px;padding:0 6px;color:#1F1D1A;font:650 13px var(--vv-texto,system-ui),sans-serif;text-align:center;white-space:nowrap}
 body.mundo .vb-mes button{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:6px;background:transparent;color:#5E5A53;cursor:pointer}
-body.mundo .vb-mes button:hover:not(:disabled){background:#F6F3EE;color:#1F1D1A}
+body.mundo .vb-mes button:hover:not(:disabled){background:#F3F1EC;color:#1F1D1A}
 body.mundo .vb-mes button:disabled{opacity:.35;cursor:default}
-body.mundo .vb-mes button:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+body.mundo .vb-mes button:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:1px}
 body.mundo .vb-mes svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 :is(#vv-carteira,#vv-comercial) .vc-resumo .vb-resumo{margin:0;gap:6px}
 :is(#vv-carteira,#vv-comercial) .vb-resumo-item{padding:6px 10px;background:#FFFFFF;border-color:#E6E0D6;color:#5E5A53;font-size:12.5px}
@@ -6505,7 +6505,7 @@ body.mundo .conta-ai-linha.erro .conta-ai-meio b{color:#B42318}
 body.mundo > footer{display:none}
 
 /* Campo de escolha: aberto com a borda do foco; desligado em cinza, sem a seta laranja do hover. */
-body.mundo select:not([multiple]):not([size])[aria-expanded="true"]{border-color:var(--ds-acao,#FF7A2F);box-shadow:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22))}
+body.mundo select:not([multiple]):not([size])[aria-expanded="true"]{border-color:var(--ds-acao,#C2490C);box-shadow:var(--ds-foco,0 0 0 3px rgba(194,73,12,.22))}
 body.mundo select:not([multiple]):not([size]):disabled{background-color:var(--pc-desligado-fundo,#F1EEE9);color:var(--pc-desligado-texto,#A8A29A);cursor:not-allowed}
 body.mundo select:not([multiple]):not([size]):not(:disabled){cursor:pointer}
 
@@ -6514,7 +6514,7 @@ body.mundo select:not([multiple]):not([size]):not(:disabled){cursor:pointer}
 @keyframes vb-seletor-entra{from{transform:translateY(-4px)}to{transform:none}}
 @keyframes vb-seletor-entra-acima{from{transform:translateY(4px)}to{transform:none}}
 .vb-seletor-busca{display:flex;align-items:center;gap:6px;flex:none;height:var(--pc-h,34px);padding:0 10px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FAF8F4;cursor:text}
-.vb-seletor-busca:focus-within{border-color:var(--ds-acao,#FF7A2F);background:#FFFFFF}
+.vb-seletor-busca:focus-within{border-color:var(--ds-acao,#C2490C);background:#FFFFFF}
 .vb-seletor-busca svg{width:14px;height:14px;flex:none;fill:none;stroke:#8A847A;stroke-width:2;stroke-linecap:round}
 .vb-seletor-busca input{flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:transparent;color:inherit;font:inherit}
 .vb-seletor-lista{position:relative;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;outline:0}
@@ -6523,7 +6523,7 @@ body.mundo select:not([multiple]):not([size]):not(:disabled){cursor:pointer}
 .vb-seletor-opcao span{flex:1;min-width:0;overflow-wrap:anywhere}
 .vb-seletor-opcao svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
 .vb-seletor-opcao.ativa{background:#F4EFE8}
-.vb-seletor-opcao.escolhida{background:var(--ds-sel-fundo,#FFEBDD);color:var(--ds-sel-texto,#C2490C);font-weight:650}
+.vb-seletor-opcao.escolhida{background:var(--ds-on-fundo,#FFEBDD);color:var(--ds-on-texto,#C2490C);font-weight:650}
 .vb-seletor-opcao.escolhida svg{visibility:visible}
 .vb-seletor-opcao.escolhida.ativa{box-shadow:inset 0 0 0 1px var(--ds-sel-borda,#FFC9A6)}
 .vb-seletor-opcao[aria-disabled="true"]{color:var(--pc-desligado-texto,#A8A29A);cursor:not-allowed;background:none}
@@ -6559,12 +6559,12 @@ body.mundo #fc-overlay .fc-trilha{gap:4px;margin-bottom:18px;padding-right:44px}
 body.mundo #fc-overlay .fc-trilha-passo{min-height:20px;cursor:pointer}
 body.mundo #fc-overlay .fc-trilha-passo:disabled{opacity:1;cursor:default}
 body.mundo #fc-overlay .fc-trilha-passo::before{content:"";width:22px;height:4px;border:0;border-radius:2px;background:#E6E0D6;box-shadow:none}
-body.mundo #fc-overlay .fc-trilha-passo:is(.agora,.feito)::before{background:var(--vv-laranja,#FF7A2F)}
+body.mundo #fc-overlay .fc-trilha-passo:is(.agora,.feito)::before{background:var(--vv-laranja,#C2490C)}
 body.mundo #fc-overlay .fc-trilha-passo.feito:hover::before{background:var(--vv-laranja-escuro,#C2490C)}
-body.mundo #fc-overlay .fc-trilha-passo:focus-visible{outline:2px solid var(--vv-laranja,#FF7A2F);outline-offset:2px;border-radius:3px}
+body.mundo #fc-overlay .fc-trilha-passo:focus-visible{outline:2px solid var(--vv-laranja,#C2490C);outline-offset:2px;border-radius:3px}
 body.mundo #fc-overlay .fc-trilha-nome{display:none}
 body.mundo #fc-overlay .fc-trilha-texto{display:inline;margin-left:4px;color:#6B675F;font:600 11.5px var(--vv-texto,"Inter"),sans-serif}
-body.mundo #fc-overlay .fc-side-col{width:300px;padding:20px 18px;background:#F6F3EE}
+body.mundo #fc-overlay .fc-side-col{width:300px;padding:20px 18px;background:#F3F1EC}
 body.mundo #fc-overlay .fc-side-title{margin-bottom:10px}
 body.mundo #fc-overlay .fc-preview-card{gap:10px;padding:14px 16px;border-radius:10px}
 body.mundo #fc-overlay .fc-prev-head b{color:#1F1D1A;font:650 15px/1.3 var(--vv-texto,"Inter"),sans-serif}
@@ -6597,7 +6597,7 @@ body.mundo .ofc-tv-janela .ofc-tv-opcoes .ofc-tv-ic{width:auto;height:auto;backg
 body.mundo .notas-janela .notas-menu{position:relative;display:inline-flex}
 body.mundo .notas-janela .notas-menu > summary{list-style:none;cursor:pointer}
 body.mundo .notas-janela .notas-menu > summary::-webkit-details-marker{display:none}
-body.mundo .notas-janela .notas-menu > summary:focus-visible{outline:2px solid var(--vv-laranja,#FF7A2F);outline-offset:2px}
+body.mundo .notas-janela .notas-menu > summary:focus-visible{outline:2px solid var(--vv-laranja,#C2490C);outline-offset:2px}
 body.mundo .notas-janela .notas-menu-lista{position:absolute;z-index:5;top:calc(100% + 4px);right:0;display:grid;gap:2px;min-width:170px;padding:4px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;box-shadow:var(--vv-sombra-curta,0 6px 18px rgba(31,29,26,.12))}
 /* Na barra dos cadernos (que corta o que passa dela), o menu abre na própria linha, ao lado dos três pontos. */
 body.mundo .notas-janela .notas-caderno-acoes[open]{flex-wrap:wrap;align-items:center;gap:4px}
@@ -6639,8 +6639,8 @@ body.mundo:has(.vv-avisos-painel) #vv-wa-avisos{visibility:hidden}
 .vb-escolha{position:relative;display:inline-block;flex:none}
 .vb-escolha > summary{list-style:none;display:inline-flex;align-items:center;gap:6px;min-height:var(--pc-h-p,28px);padding:0 10px 0 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#3D3A35;font:600 12.5px/1 var(--vv-texto,"Inter"),system-ui,sans-serif;white-space:nowrap;cursor:pointer;user-select:none}
 .vb-escolha > summary::-webkit-details-marker{display:none}
-.vb-escolha > summary:hover{border-color:var(--ds-acao,#FF7A2F)}
-.vb-escolha > summary:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:2px}
+.vb-escolha > summary:hover{border-color:var(--ds-acao,#C2490C)}
+.vb-escolha > summary:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 .vb-escolha > summary.vb-escolha-com{border-color:var(--ds-sel-borda,#FFD3B8);background:var(--ds-sel-fundo,#FFF1E8);color:var(--ds-sel-texto,#C2490C)}
 .vb-escolha-rotulo{color:#6B665E;font-weight:500}
 .vb-escolha-com .vb-escolha-rotulo{color:inherit;opacity:.8}
@@ -6653,7 +6653,7 @@ body.mundo:has(.vv-avisos-painel) #vv-wa-avisos{visibility:hidden}
 .vb-escolha-menu.grade button{justify-content:center;padding:0;font-variant-numeric:tabular-nums}
 .vb-escolha-menu button em{font-style:normal;color:#8A847A;font-size:12px;font-variant-numeric:tabular-nums}
 .vb-escolha-menu button:hover,.vb-escolha-menu button:focus-visible{background:#F6F2EC;outline:none}
-.vb-escolha-menu button[aria-selected="true"]{background:var(--ds-sel-fundo,#FFF1E8);color:var(--ds-sel-texto,#C2490C);font-weight:650}
+.vb-escolha-menu button[aria-selected="true"]{background:var(--ds-on-fundo,#FFF1E8);color:var(--ds-on-texto,#C2490C);font-weight:650}
 @media (prefers-reduced-motion:reduce){.vb-escolha-menu{animation:none}.vb-escolha > summary svg{transition:none}}
 /* Equipe online (quadro 22) e os outros painéis de página inteira (Jogos, cliente, agente): terminam acima do dock das salas. */
 @media (min-width:901px){body.mundo.com-dock-salas:not(.mundo-centro) .vv-placa{bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,74px) + 6px)}}
@@ -6663,7 +6663,7 @@ body.mundo:has(.vv-avisos-painel) #vv-wa-avisos{visibility:hidden}
 .vv-moedas-selo svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 body.mundo .vv-placa .vv-equipe-acoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 body.mundo .vv-placa .vv-atalho{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-height:46px;padding:8px 12px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,"Inter"),sans-serif;text-align:left;cursor:pointer;transition:border-color .15s}
-body.mundo .vv-placa .vv-atalho:hover{border-color:var(--ds-acao,#FF7A2F)}
+body.mundo .vv-placa .vv-atalho:hover{border-color:var(--ds-acao,#C2490C)}
 body.mundo .vv-placa .vv-atalho > i{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:8px;background:#F1ECE4;color:#1F1D1A}
 body.mundo .vv-placa .vv-atalho svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 /* Editor do planejamento (quadro 25): a peça com pedido do cliente marcada "pedido" no menu lateral. */
@@ -6671,7 +6671,7 @@ body.mundo .vv-placa .vv-atalho svg{width:15px;height:15px;fill:none;stroke:curr
 :where(body:not(.mundo)) .plj-ed-pedido{background:rgba(255,157,0,.18);color:#ffc46b}
 /* Página do agente (quadro 63): "Dar autonomia" como ação do cabeçalho, à direita. */
 .vga-cab > .vga-autonomia{margin-left:auto;flex:none;display:inline-flex;align-items:center;min-height:var(--pc-h,34px);padding:0 14px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:var(--pc-r,8px);background:#FFFFFF;color:#1F1D1A;font:var(--pc-fonte,600 12.5px/1 "Inter",sans-serif);cursor:pointer}
-.vga-cab > .vga-autonomia:hover:not(:disabled){border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
+.vga-cab > .vga-autonomia:hover:not(:disabled){border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
 .vga-cab > .vga-autonomia:disabled{background:var(--pc-desligado-fundo,#F1EEE9);color:var(--pc-desligado-texto,#A8A29A);cursor:default}
 
 /* ===== Frente mundo (redesign fase 3, quadros 32, 33, 43, 35–37 e 38; 10/11/2026) ===== */
@@ -6740,7 +6740,7 @@ body.mundo #office-catalogo .ofc-loja-nav .ofc-ico{width:20px;height:20px;paddin
 body.mundo #office-catalogo .ofc-loja-nav span{flex:none;overflow:visible}
 body.mundo #office-catalogo .ofc-loja-nav small{color:#8A847A;font:700 11px var(--vv-texto,Inter),sans-serif}
 body.mundo #office-catalogo .ofc-loja-nav:hover{border-color:var(--ds-sel-borda);background:#FFFFFF}
-body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true]{background:var(--ds-sel-fundo);border-color:var(--ds-sel-borda);color:var(--ds-sel-texto);box-shadow:none}
+body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true]{background:var(--ds-on-fundo);border-color:var(--ds-on-borda);color:var(--ds-on-texto);box-shadow:none}
 body.mundo #office-catalogo .ofc-loja-nav[aria-pressed=true] :is(.ofc-ico,small){background:none;color:var(--ds-sel-texto)}
 body.mundo #office-catalogo .ofc-catj-faixas .ofc-ordem-chips{border-left-color:#E6E0D6}
 
@@ -6805,14 +6805,14 @@ body.mundo #workspace-drawer .vybe-link.so-icone:focus-visible{outline:2px solid
 body.mundo #workspace-drawer .vc-objetivo-campo{display:inline-flex;flex-wrap:nowrap;gap:4px;max-width:100%}
 body.mundo #workspace-drawer .vc-objetivo-campo button{appearance:none;flex:0 1 auto;min-width:0;height:28px;padding:0 9px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font:600 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
 body.mundo #workspace-drawer .vc-objetivo-campo button i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c)}
-body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds-sel-fundo,#FFEBDF);border:1px solid transparent;color:var(--ds-sel-texto,#C2490C)}
+body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds-on-fundo,#FFEBDF);border:1px solid transparent;color:var(--ds-on-texto,#C2490C)}
 /* 28 Celular: um dock só (Hoje, Produção, Criar, Voz, Mais); o cartão das salas abre pelo Voz; a gaveta ocupa a tela
    com ‹ para voltar, copiar link e log no "⋯", campos em grade de dois e comentar e passar bastão fixos embaixo. */
 .vv-cel-voz-ponto{display:none}
 @media (max-width:600px){
   body.mundo .vv-trilho [data-cel="conversas"]{display:none}
   body.mundo .vv-trilho [data-cel="voz"]{order:3;position:relative}
-  body.mundo .vv-trilho [data-cel="voz"][aria-expanded="true"]{background:var(--ds-sel-fundo,#FFEDE2);color:var(--ds-sel-texto,#C2490C)}
+  body.mundo .vv-trilho [data-cel="voz"][aria-expanded="true"]{background:var(--ds-on-fundo,#FFEDE2);color:var(--ds-on-texto,#C2490C)}
   body.mundo .vv-trilho [data-cel="voz"].na-chamada .vv-cel-voz-ponto{display:block;position:absolute;top:5px;left:calc(50% + 6px);width:8px;height:8px;border-radius:50%;background:#1F9D55;box-shadow:0 0 0 2px #FFFFFF}
   body.mundo.dock-cartao:not(.cel-voz-aberta) .vv-dock-salas-faixa{display:none}
   body.mundo.com-dock-salas.dock-cartao:not(.cel-voz-aberta){--vv-dock-alto:0px}
@@ -6847,8 +6847,8 @@ body.mundo #workspace-drawer .vc-objetivo-campo button.ativo{background:var(--ds
 #vv-agentes .vga-cerebro .cb-diagnostico{flex:none;overflow:visible;padding:0;gap:12px}
 #vv-agentes .vga-cerebro .cb-sin-filtro{min-height:28px;border-color:var(--pc-linha,#E6E0D6);border-radius:999px;background:#FFFFFF;color:#1F1D1A}
 #vv-agentes .vga-cerebro .cb-sin-filtro b{min-width:0;padding:0;background:transparent;color:inherit;font:inherit;font-weight:700}
-#vv-agentes .vga-cerebro .cb-sin-filtro:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
-#vv-agentes .vga-cerebro .cb-sin-filtro[aria-pressed="true"]{background:var(--ds-sel-fundo,#FFE9DC);border-color:var(--ds-sel-borda,transparent);color:var(--ds-sel-texto,#C2490C)}
+#vv-agentes .vga-cerebro .cb-sin-filtro:hover{border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
+#vv-agentes .vga-cerebro .cb-sin-filtro[aria-pressed="true"]{background:var(--ds-on-fundo,#FFE9DC);border-color:var(--ds-on-borda,transparent);color:var(--ds-on-texto,#C2490C)}
 .cb-sin-onde-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .cb-sin-onde-acoes:empty{display:none}
 @media (max-width:640px){#vv-agentes .vga-cerebro{padding-bottom:56px}}
@@ -6881,7 +6881,7 @@ body.mundo :is(#vv-conteudo,#vv-comercial,#vv-carteira) .vc-topo{background:tran
 body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-icone,
 body.mundo:not(.mundo-centro) .vv-placa .vv-jogo-cab ~ .vv-fechar,
 body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar{width:34px;height:34px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;box-shadow:none}
-body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-icone:hover,body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar:hover{background:#FFFFFF;border-color:var(--ds-acao,#FF7A2F)}
+body.mundo :is(#vv-conteudo,#vv-comercial) .vc-topo .vc-icone:hover,body.mundo:not(.mundo-centro) .vv-placa > .vv-fechar:hover{background:#FFFFFF;border-color:var(--ds-acao,#C2490C)}
 @media (max-width:600px){
   body.mundo :is(#vv-pessoas,#vv-impressoes,#vv-ferramentas,#vv-agentes,.vv-plj) .vb-janela-topo{padding:12px 12px 10px 14px}
   body.mundo .vb-janela-topo > .vb-cabecalho{align-items:flex-start;gap:8px}
@@ -6900,7 +6900,7 @@ body.mundo.mundo-centro #vv-hoje .vv-hoje-agenda-lado{display:none}
 .vv-radar-zeros .vb-resumo{gap:6px}
 .vv-radar-zeros .vb-resumo-item{padding:5px 10px;text-align:left}
 .vv-radar-zeros .vb-resumo-item.espiavel{cursor:pointer}
-.vv-radar-zeros .vb-resumo-item.espiavel:hover{border-color:var(--ds-acao,#FF7A2F);color:#1F1D1A}
+.vv-radar-zeros .vb-resumo-item.espiavel:hover{border-color:var(--ds-acao,#C2490C);color:#1F1D1A}
 #vv-hoje .vv-dono-radar + .vv-radar-zeros{margin-top:-4px}
 /* 30 · "Semana" do Hoje é um botão do padrão (era texto laranja clicável). */
 body.mundo .vv-semana-abrir{min-height:var(--pc-h-p,28px);padding:0 10px}
@@ -6914,8 +6914,8 @@ body.mundo .vv-semana-abrir{min-height:var(--pc-h-p,28px);padding:0 10px}
    cartão. */
 body.mundo .ag-col{container:agcol / inline-size}
 .ag-junto-mais{position:absolute;left:2px;width:calc(100% - 4px);z-index:3;align-items:center;justify-content:center;padding:0 4px;border:1px solid var(--pc-linha,#E6E0D6);border-radius:8px;background:#FFFFFF;color:var(--ds-sel-texto,#C2490C);font:600 10.5px/1 var(--vv-texto,system-ui);font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer}
-.ag-junto-mais:hover{border-color:var(--ds-acao,#FF7A2F)}
-.ag-junto-mais:focus-visible{outline:2px solid var(--ds-acao,#FF7A2F);outline-offset:1px}
+.ag-junto-mais:hover{border-color:var(--ds-acao,#C2490C)}
+.ag-junto-mais:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:1px}
 @container agcol (max-width:119px){
   body.mundo .ag-col .ag-ev.junto{--emp-top:var(--e-top);--emp-alt:var(--e-alt);--emp-esq:2px;--emp-larg:calc(100% - 4px);padding:2px 4px 2px 7px}
   body.mundo .ag-col .ag-ev.junto b{margin:0;font:600 10px/12px var(--vv-texto);-webkit-line-clamp:var(--linhas-emp,1)}
@@ -7049,7 +7049,7 @@ body.mundo .conta-secao-topo h2{margin:0;font:700 22px/1.15 var(--vv-titulo,"Int
 }
 
 /* 5 · Gestão, Performance e visões de setor: fundo sólido, sem desfoque */
-body.mundo .vv-gestao{background:#F6F3EE;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.mundo .vv-gestao{background:#F3F1EC;backdrop-filter:none;-webkit-backdrop-filter:none}
 
 /* 6 · celular: com a barra de baixo à vista (o dock das salas recolhido no "Voz"), --vv-dock-alto é zero e as janelas
    iam até o pé da tela, por trás da barra. A folga de baixo é a altura da barra (64 px) mais as margens. */
@@ -7185,3 +7185,58 @@ body.mundo.mundo-modulo[data-modo="gestor"] > .container.vv-abrindo::after{conte
 #painel-demandas.vv-abrindo #grupos-board-demandas,#painel-clientes.vv-abrindo #panel-clientes-lista{display:none}
 body.mundo.mundo-modulo > :is(#painel-demandas,#painel-clientes).vv-abrindo > .container::after{content:"";display:block;height:calc(100dvh - 320px);margin-top:14px;border-radius:12px;
   background:linear-gradient(#F2EEE7,#F2EEE7) 0 0 / 100% 40px no-repeat,linear-gradient(#F2EEE7,#F2EEE7) 0 52px / 100% calc(100% - 52px) no-repeat}
+/* ======================================================================================
+   PADRÃO V2 · BASE (Paulo, 12/11/2026: "gostei da linha, pode executar tudo"; moodboard de 122 quadros).
+   O que mudou na raiz: fundo #F3F1EC, ação #C2490C (um botão cheio por tela), tudo que é controle em pílula
+   (--pc-r, --ds-r-botao, --ds-r-chip 999), cartão 20, janela 28, e o selecionado deixa de ser laranja claro:
+   é preto com texto branco (--ds-on-*). Os movimentos abaixo são peças prontas; a tela põe a classe, não
+   escreve a animação. Todos param com "Reduzir movimento".
+   ====================================================================================== */
+/* Número que chega: desembaça e assenta. Pôr no <span> do número. */
+.v2-num{display:inline-block;animation:v2-num .7s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+@keyframes v2-num{from{opacity:0;filter:blur(8px);transform:translateY(6px)}to{opacity:1;filter:none;transform:none}}
+/* Barra que cresce até o valor (--v). */
+.v2-barra{height:6px;border-radius:999px;background:#EDE8DF;overflow:hidden}
+.v2-barra > i{display:block;height:100%;width:var(--v,0%);border-radius:inherit;background:var(--c,#1F1D1A);transform-origin:left;animation:v2-barra .9s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+@keyframes v2-barra{from{transform:scaleX(0)}to{transform:none}}
+/* Linha que abre no lugar: <div class="v2-abre" aria-expanded="true|false"><div>linha</div><div class="v2-mais"><div>detalhe</div></div></div> */
+.v2-abre > .v2-mais{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1))}
+.v2-abre > .v2-mais > *{min-height:0;overflow:hidden}
+.v2-abre[aria-expanded="true"] > .v2-mais{grid-template-rows:1fr}
+/* Botão que conta o estado: data-estado="indo" gira, data-estado="feito" fica verde com o texto novo (o JS troca o texto). */
+.v2-estado{transition:background-color .2s,color .2s,border-color .2s}
+body.mundo .v2-estado.v2-estado[data-estado="indo"]{pointer-events:none;color:transparent;position:relative}
+.v2-estado[data-estado="indo"]::after{content:"";position:absolute;inset:0;margin:auto;width:14px;height:14px;border-radius:50%;border:2px solid #C9C2B6;border-top-color:#1F1D1A;animation:v2-giro .7s linear infinite}
+body.mundo .v2-estado.v2-estado[data-estado="feito"]{pointer-events:none;background:#E7F6EE;border-color:transparent;color:#11613A;box-shadow:none}
+@keyframes v2-giro{to{transform:rotate(360deg)}}
+/* Tarefa que risca ao concluir. */
+.v2-risca{background:linear-gradient(currentColor,currentColor) 0 55% / 0 1.5px no-repeat;transition:background-size .35s var(--vv-suave,cubic-bezier(.22,1,.36,1)),color .35s}
+.v2-risca.feita{background-size:100% 1.5px;color:#8A847A}
+/* Quem chega (avatar de presença). */
+.v2-pop{animation:v2-pop .45s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)) both}
+@keyframes v2-pop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+/* Linha que acabou de trocar de status ou de grupo. */
+.v2-chegou{animation:v2-chegou .5s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+@keyframes v2-chegou{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+/* Baralho de decisão: um cartão na frente, dois atrás; quem decide sai para a esquerda. */
+.v2-baralho{position:relative}
+.v2-baralho > .v2-carta{position:absolute;inset:0;background:#FFFFFF;border-radius:24px;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);transition:transform .45s var(--vv-suave,cubic-bezier(.22,1,.36,1)),opacity .45s}
+.v2-baralho > .v2-carta[data-pos="0"]{z-index:3}
+.v2-baralho > .v2-carta[data-pos="1"]{z-index:2;transform:translateX(28px) scale(.93);opacity:.85;pointer-events:none}
+.v2-baralho > .v2-carta[data-pos="2"]{z-index:1;transform:translateX(56px) scale(.86);opacity:.55;pointer-events:none}
+.v2-baralho > .v2-carta[data-pos="fora"]{z-index:4;transform:translateX(-115%) rotate(-9deg);opacity:0;pointer-events:none}
+.v2-baralho > .v2-carta:not([data-pos]){display:none}
+.v2-pontos{display:flex;gap:6px;align-items:center}
+.v2-pontos > i{width:6px;height:6px;border-radius:50%;background:#D9D3C8;transition:width .25s,background-color .25s}
+.v2-pontos > i.on{width:18px;border-radius:3px;background:#1F1D1A}
+/* Aviso com desfazer (troca de status): mostrarDesfazer() em vybe-mundo-v2.js. */
+#v2-desfazer{position:fixed;left:50%;bottom:calc(var(--vv-dock-alto,0px) + 22px);z-index:2147482000;display:flex;align-items:center;gap:14px;max-width:min(92vw,520px);padding:11px 16px;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:600 13px/1.3 var(--vv-texto,"Inter"),system-ui,sans-serif;box-shadow:0 18px 40px -18px rgba(31,29,26,.6);translate:-50% 0;animation:v2-sobe .3s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+#v2-desfazer[hidden]{display:none}
+#v2-desfazer button{appearance:none;border:0;background:none;padding:4px 2px;color:#FFB98A;font:inherit;font-weight:700;cursor:pointer}
+#v2-desfazer button:hover,#v2-desfazer button:focus-visible{color:#FFFFFF;outline:none;text-decoration:underline}
+@keyframes v2-sobe{from{opacity:0;translate:-50% 14px}to{opacity:1;translate:-50% 0}}
+@media (prefers-reduced-motion:reduce){
+  .v2-num,.v2-barra > i,.v2-pop,.v2-chegou,#v2-desfazer{animation:none}
+  .v2-abre > .v2-mais,.v2-risca,.v2-baralho > .v2-carta,.v2-estado{transition:none}
+  .v2-estado[data-estado="indo"]::after{animation-duration:1.6s}
+}

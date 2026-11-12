@@ -253,6 +253,8 @@ async function commitStatusChange(item, option) {
   const drawer = document.getElementById('workspace-drawer');
   const mesmaJanela = () => drawer && document.getElementById('workspace-drawer') === drawer && String(activeWorkspaceItemId) === id;
   let confirmado = false;
+  // Padrão v2: a troca de status termina num aviso com Desfazer, que volta para o status de antes.
+  const statusDeAntes = String(item.status || '');
   armOutboundMutationGuard('status');
   try {
     const resposta = await tentarEscritaDupla(item, { acao:'status', item:id, para:chaveDeStatus(option.label), _devolve:true });
@@ -273,6 +275,9 @@ async function commitStatusChange(item, option) {
     if (resposta.automacao_pendente) showToast(resposta.automacao_falha_registrada === false
       ? 'Status salvo, mas o encaminhamento falhou e não foi possível registrar a falha na fila. Abra “por que não rodou?” nesta atividade.'
       : 'Status salvo, mas o encaminhamento automático não foi concluído. Abra “por que não rodou?” para tentar o encaminhamento novamente.', 'info', 12000);
+    // Sem automação por trás, dá para voltar atrás num toque; com automação (efeito), o que ela fez não se desfaz daqui.
+    else if (!efeito && statusDeAntes && !mesmoStatus(statusDeAntes, final.label) && typeof mostrarDesfazer === 'function' && document.body.classList.contains('mundo')
+      && mostrarDesfazer(`Status: ${final.label}`, () => updateFocusStatus(id, statusDeAntes))) { /* o aviso com Desfazer já disse */ }
     else showToast(efeito || `✓ Status atualizado para ${final.label} · tela mantida no contexto atual`, 'ok', efeito ? 9000 : 4200);
     if (mesmaJanela()) {
       const dados = await fetchWorkspaceItem(item.id);

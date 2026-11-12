@@ -6,7 +6,7 @@
    automática do bloco MODO ESCURO de vybe-mundo.css (a camada é filha do body). */
 
 .vc-camada{position:fixed;inset:0;z-index:650;display:flex;align-items:stretch;justify-content:center;background:rgba(31,29,26,.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color-scheme:light}
-#vv-carteira{box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;height:100dvh;overflow:hidden;background:#F6F3EE;color:#1F1D1A;font:500 13px/1.4 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vc-entra .2s cubic-bezier(.22,1,.36,1) both}
+#vv-carteira{box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;height:100dvh;overflow:hidden;background:#F3F1EC;color:#1F1D1A;font:500 13px/1.4 var(--vv-texto,system-ui),sans-serif;text-align:left;animation:vc-entra .2s cubic-bezier(.22,1,.36,1) both}
 #vv-carteira *,#vv-carteira *::before,#vv-carteira *::after{box-sizing:border-box}
 @keyframes vc-entra{from{scale:.97}to{scale:1}}
 #vv-carteira .vc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -18,7 +18,7 @@
 #vv-carteira h2{margin:0;color:#1F1D1A;font:700 19px/1.2 var(--vv-titulo,"Space Grotesk",system-ui),sans-serif;letter-spacing:-.01em}
 #vv-carteira h3{margin:0 0 8px;color:#A84E00;font:700 10.5px/1.3 var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-carteira .vc-ico:disabled{opacity:.4;cursor:default}
-#vv-carteira .vc-ico[aria-expanded="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);color:#C2490C;border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+#vv-carteira .vc-ico[aria-expanded="true"]{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);color:#C2490C;border-color:color-mix(in srgb,#C2490C 28%,#FFFFFF)}
 #vv-carteira .vc-ico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 
 #vv-carteira .vc-controles{flex:none;display:flex;align-items:center;gap:8px;padding:8px 16px;background:#FFFFFF}
@@ -30,17 +30,17 @@
 #vv-carteira .vc-abas{flex:none;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:0 12px;background:#FFFFFF;border-bottom:1px solid #E6E0D6}
 #vv-carteira .vc-abas::-webkit-scrollbar{display:none}
 #vv-carteira .vc-abas [role="tab"]{flex:none;height:42px;padding:0 14px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#5B574F;font:600 13px var(--vv-texto,system-ui),sans-serif;cursor:pointer;white-space:nowrap}
-#vv-carteira .vc-abas [role="tab"][aria-selected="true"]{color:#C2490C;border-bottom-color:#FF7A2F}
+#vv-carteira .vc-abas [role="tab"][aria-selected="true"]{color:#C2490C;border-bottom-color:#C2490C}
 /* Com um módulo aberto, a regra geral de selecionado de vybe-mundo.css pinta o fundo de laranja 13%
    (com !important): aqui a aba é sublinhada, então vence só dentro da Carteira. */
-#vv-carteira .vc-abas [role="tab"][aria-selected="true"]:not(#vc-a):not(#vc-b):not(#vc-c){background:transparent!important;border-color:transparent transparent #FF7A2F!important;color:#C2490C!important}
+#vv-carteira .vc-abas [role="tab"][aria-selected="true"]:not(#vc-a):not(#vc-b):not(#vc-c){background:transparent!important;border-color:transparent transparent #C2490C!important;color:#C2490C!important}
 
 #vv-carteira .vc-aviso{flex:none;margin:8px 16px 0;padding:8px 12px;border-radius:8px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-carteira .vc-aviso:empty{display:none}
 #vv-carteira .vc-corpo{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:12px 14px calc(24px + env(safe-area-inset-bottom))}
 
 /* foco igual em tudo */
-#vv-carteira :is(button,select,input,textarea,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-carteira :is(button,select,input,textarea,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 
 /* números (KPI) com "vs mês anterior" */
 #vv-carteira .vc-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
@@ -62,10 +62,10 @@
 #vv-carteira .vc-filtros{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;margin-bottom:10px}
 #vv-carteira .vc-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:100%}
 #vv-carteira .vc-chips button{flex:none;height:32px;padding:0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12px var(--vv-texto,system-ui),sans-serif;cursor:pointer}
-#vv-carteira .vc-chips button[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);color:#C2490C;border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+#vv-carteira .vc-chips button[aria-pressed="true"]{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);color:#C2490C;border-color:color-mix(in srgb,#C2490C 28%,#FFFFFF)}
 #vv-carteira :is(.vc-ordem,.vc-campo){display:flex;flex-direction:column;gap:3px;min-width:0;color:#6B675F;font-size:11px;font-weight:700}
 #vv-carteira :is(.vc-ordem,.vc-campo) :is(select,input,textarea),#vv-carteira .vc-ed-lista input{width:100%;min-height:38px;padding:7px 10px;border:1px solid #E6E0D6;border-radius:8px;background-color:#FFFFFF;color:#1F1D1A;font:500 13px var(--vv-texto,system-ui),sans-serif;color-scheme:light}
-#vv-carteira :is(select,input,textarea):focus{border-color:#FF7A2F}
+#vv-carteira :is(select,input,textarea):focus{border-color:#C2490C}
 #vv-carteira .vc-ordem{flex:1 1 150px}
 
 #vv-carteira .vc-lista{list-style:none;margin:0;padding:0;display:grid;gap:8px}
@@ -155,7 +155,7 @@
 #vv-carteira .vc-contas tr.sem-head th{color:#6B675F}
 #vv-carteira .vc-contas .vc-nota-num{display:inline-grid;width:34px;height:28px;font-size:13px}
 #vv-carteira .vc-num-espiar{display:inline-block;min-width:32px;padding:4px 8px;border-radius:8px;border:1px solid #E6E0D6;background:#FFFFFF;text-align:center}
-#vv-carteira .vc-num-espiar:hover,#vv-carteira .vc-num-espiar:focus-visible{border-color:#FF7A2F;color:#C2490C;outline:none}
+#vv-carteira .vc-num-espiar:hover,#vv-carteira .vc-num-espiar:focus-visible{border-color:#C2490C;color:#C2490C;outline:none}
 
 /* mês a mês (SVG com o número em cima da barra) */
 #vv-carteira .vc-grafs{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
@@ -193,7 +193,7 @@
 #vv-carteira .vc-check{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px}
 #vv-carteira .vc-check label{display:flex;align-items:flex-start;gap:10px;min-height:40px;padding:8px 4px;border-radius:8px;cursor:pointer}
 #vv-carteira .vc-check label:hover{background:#FAF5EE}
-#vv-carteira .vc-check input{flex:none;width:20px;height:20px;margin:0;accent-color:#FF7A2F}
+#vv-carteira .vc-check input{flex:none;width:20px;height:20px;margin:0;accent-color:#C2490C}
 #vv-carteira .vc-check small{display:block;color:#6B675F;font-size:11px}
 
 /* editor das etapas */
@@ -248,8 +248,8 @@
 #vv-carteira .vc-onb-caminho{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:76px;padding:14px 16px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 #vv-carteira .vc-onb-caminho b{font:700 14px var(--vv-texto,system-ui),sans-serif}
 #vv-carteira .vc-onb-caminho small{font:500 12.5px/1.4 var(--vv-texto,system-ui),sans-serif;color:#6B655C}
-#vv-carteira .vc-onb-caminho:hover,#vv-carteira .vc-onb-caminho[aria-expanded="true"]{border-color:#FF7A2F;box-shadow:0 6px 18px -10px #E8602E}
-#vv-carteira .vc-onb-caminho:focus-visible{outline:2px solid #FF7A2F;outline-offset:2px}
+#vv-carteira .vc-onb-caminho:hover,#vv-carteira .vc-onb-caminho[aria-expanded="true"]{border-color:#C2490C;box-shadow:0 6px 18px -10px #A83D08}
+#vv-carteira .vc-onb-caminho:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
 #vv-carteira .vc-onb-comecar .vc-iniciar{margin-top:10px}
 #vv-carteira .vc-onb-atalhos{padding-top:10px}
 #vv-carteira .vc-controles[hidden]{display:none}

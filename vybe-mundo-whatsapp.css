@@ -3,7 +3,7 @@
    laranja cheio só na ação principal (Ativar avisos) e na contagem de não lidas; vermelho não aparece (nada aqui é atraso).
    Modo escuro: o tema escuro do Irecity inverte as janelas soltas no body (html.tema-escuro body.mundo > …); aqui só se
    desfaz a inversão no laranja, para a marca continuar laranja. */
-.vv-wa{--wa-linha:var(--ds-linha,#E6E0D6);--wa-acao:var(--ds-acao,#FF7A2F);--wa-sel:var(--ds-sel-fundo,#FFEBDF);--wa-sel-t:var(--ds-sel-texto,#C2490C);--wa-foco:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22));
+.vv-wa{--wa-linha:var(--ds-linha,#E6E0D6);--wa-acao:var(--ds-acao,#C2490C);--wa-sel:var(--ds-sel-fundo,#FFEBDF);--wa-sel-t:var(--ds-sel-texto,#C2490C);--wa-foco:var(--ds-foco,0 0 0 3px rgba(194,73,12,.22));
   /* Largura: até 900px, sem cobrir o "Seu dia" (--vv-livre-esq, medido pelo HUD). Estreito (menos de 620px), vira uma
      coluna só — lista ou conversa, como no celular — em vez de passar por cima do Seu dia. */
   position:fixed;z-index:640;top:calc(var(--vv-m,14px) + 64px);right:var(--vv-m,14px);container:wa / inline-size;
@@ -32,8 +32,8 @@
 .vv-wa-permissao{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 16px;background:#FFF7F1;border-bottom:1px solid var(--wa-linha);font:500 12.5px var(--vv-texto,system-ui);color:var(--vv-tinta,#1F1D1A);flex:none}
 .vv-wa-permissao svg{color:var(--wa-sel-t)}
 .vv-wa-permissao span{flex:1;min-width:0}
-.vv-wa-acao{appearance:none;border:0;height:30px;padding:0 13px;border-radius:8px;background:var(--wa-acao);color:#FFF!important;font:700 12.5px var(--vv-texto,system-ui);box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;white-space:nowrap;flex:none}
-.vv-wa-acao:hover{background:var(--ds-acao-hover,#E8602E)}
+.vv-wa-acao{appearance:none;border:0;height:30px;padding:0 13px;border-radius:8px;background:var(--wa-acao);color:#FFF!important;font:700 12.5px var(--vv-texto,system-ui);box-shadow:0 8px 20px -8px #A83D08;cursor:pointer;white-space:nowrap;flex:none}
+.vv-wa-acao:hover{background:var(--ds-acao-hover,#A83D08)}
 
 /* corpo: lista | conversa */
 .vv-wa-corpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,330px) 1fr}
@@ -70,7 +70,7 @@
 .vv-wa-rodape{margin:0;padding:7px 14px 9px;border-top:1px solid var(--wa-linha);font:500 10.5px var(--vv-texto,system-ui);color:var(--vv-apagado,#6B675F);flex:none;min-height:14px}
 
 /* conversa */
-.vv-wa-conversa{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--vv-papel,#F6F3EE)}
+.vv-wa-conversa{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--vv-papel,#F3F1EC)}
 .vv-wa-cab{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#FFF;border-bottom:1px solid var(--wa-linha);flex:none}
 .vv-wa-cab .vv-wa-titulo b{font-size:15px}
 .vv-wa-mensagens{flex:1;min-height:0;overflow-y:auto;padding:14px 18px 18px;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin}
@@ -97,7 +97,7 @@
 .vv-wa-vazio.grande svg{width:44px;height:44px;color:#CFC6B9}
 
 /* botão da barra do topo: contagem em laranja (não é atraso) */
-#vv-badge-whatsapp{background:var(--ds-acao,#FF7A2F)}
+#vv-badge-whatsapp{background:var(--ds-acao,#C2490C)}
 #vv-badge-whatsapp.com-mencao{background:#C2490C}
 
 /* avisos na tela (mensagem nova / menção), embaixo da barra do topo */
@@ -105,7 +105,7 @@
 .vv-wa-toast{appearance:none;pointer-events:auto;display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px 12px;text-align:left;cursor:pointer;
   background:#FFF;border:1px solid var(--ds-linha,#E6E0D6);border-radius:10px;box-shadow:0 1px 2px rgba(40,26,10,.06),0 10px 30px rgba(40,26,10,.12);
   font:500 12px var(--vv-texto,system-ui);color:var(--vv-tinta,#1F1D1A);animation:vv-wa-entra .2s var(--vv-suave,ease-out) both}
-.vv-wa-toast.mencao{box-shadow:inset 3px 0 0 var(--ds-acao,#FF7A2F),0 1px 2px rgba(40,26,10,.06),0 10px 30px rgba(40,26,10,.12)}
+.vv-wa-toast.mencao{box-shadow:inset 3px 0 0 var(--ds-acao,#C2490C),0 1px 2px rgba(40,26,10,.06),0 10px 30px rgba(40,26,10,.12)}
 .vv-wa-toast > span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0}
 .vv-wa-toast b{font:700 13px var(--vv-texto,system-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-wa-toast small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--vv-apagado,#6B675F);font:500 12px/1.35 var(--vv-texto,system-ui)}

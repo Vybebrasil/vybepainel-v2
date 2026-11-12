@@ -28,7 +28,7 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 #vv-decorar .vv-decorar-status.sujo{color:#8A5A00;font-weight:600}
 #vv-decorar .vv-decorar-status.sujo::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:#E2A11B;vertical-align:1px}
 #vv-decorar .vv-decorar-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;cursor:pointer;transition:border-color .15s,color .15s}
-#vv-decorar .vv-decorar-x:hover{border-color:#FF7A2F;color:#C2490C}
+#vv-decorar .vv-decorar-x:hover{border-color:#C2490C;color:#C2490C}
 
 /* abas segmentadas */
 #vv-decorar .vv-decorar-abas{flex:none;display:flex;gap:2px;margin:0 16px 8px 20px;padding:3px;border-radius:8px;background:#EFEAE2;border:1px solid #E6E0D6}
@@ -38,13 +38,13 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 #vv-decorar .vv-decorar-abas [role="tab"][aria-selected="true"]:not(#vd-a):not(#vd-b):not(#vd-c){background:#FFFFFF!important;color:#C2490C!important;border-color:transparent!important;box-shadow:0 1px 2px rgba(31,29,26,.08),0 0 0 1px #E6E0D6!important}
 
 /* foco de teclado igual em tudo (sem azul) */
-#vv-decorar :is(button,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)!important}
+#vv-decorar :is(button,[role="tab"]):focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)!important}
 
 /* aviso e barra da seleção */
 #vv-decorar .vv-decorar-aviso{flex:none;margin:0 16px 8px 20px;padding:7px 11px;border-radius:8px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-decorar .vv-decorar-aviso:empty{display:none}
 #vv-decorar .vv-decorar-dica{flex:none;margin:0 16px 8px 20px;color:#6B675F;font-size:11.5px}
-#vv-decorar .vv-decorar-barra{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 16px 8px 20px;padding:8px 8px 8px 12px;border-radius:10px;background:color-mix(in srgb,#FF7A2F 9%,#FFFFFF);border:1px solid color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+#vv-decorar .vv-decorar-barra{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 16px 8px 20px;padding:8px 8px 8px 12px;border-radius:10px;background:color-mix(in srgb,#C2490C 9%,#FFFFFF);border:1px solid color-mix(in srgb,#C2490C 28%,#FFFFFF)}
 #vv-decorar .vv-decorar-barra-txt{flex:1 1 140px;min-width:0;display:flex;flex-direction:column}
 #vv-decorar .vv-decorar-barra-txt small{color:#A84E00;font:700 10px var(--vv-texto,system-ui),sans-serif;letter-spacing:0;text-transform:none}
 #vv-decorar .vv-decorar-barra-txt b{color:#1F1D1A;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -62,8 +62,8 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 /* inventário em grade: cartão branco, ícone voxel, nome e quantas unidades estão livres */
 #vv-decorar .vv-decorar-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:0;padding:0;list-style:none}
 #vv-decorar .vv-decorar-peca{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;height:100%;min-height:112px;padding:8px 6px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:inherit;text-align:center;cursor:pointer;box-shadow:0 1px 2px rgba(31,29,26,.04);transition:border-color .15s,translate .15s,background .15s}
-#vv-decorar .vv-decorar-peca:hover:not(:disabled){border-color:#FF7A2F;translate:0 -1px}
-#vv-decorar .vv-decorar-peca[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+#vv-decorar .vv-decorar-peca:hover:not(:disabled){border-color:#C2490C;translate:0 -1px}
+#vv-decorar .vv-decorar-peca[aria-pressed="true"]{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);border-color:color-mix(in srgb,#C2490C 28%,#FFFFFF)}
 #vv-decorar .vv-decorar-peca[aria-pressed="true"] b{color:#C2490C}
 #vv-decorar .vv-decorar-peca:disabled{cursor:not-allowed;opacity:.55}
 #vv-decorar .vv-decorar-peca img,#vv-decorar .vv-decorar-peca .vv-decorar-sem-icone{width:56px;height:56px;object-fit:contain}
@@ -75,15 +75,15 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 #vv-decorar .vv-decorar-lista{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
 #vv-decorar .vv-decorar-item{display:flex;align-items:center;gap:8px;width:100%;min-height:36px;padding:4px 10px 4px 4px;border:1px solid transparent;border-radius:8px;background:transparent;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui),sans-serif;text-align:left;cursor:pointer}
 #vv-decorar .vv-decorar-item:hover{background:#FAF5EE}
-#vv-decorar .vv-decorar-item[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);color:#C2490C;border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF)}
+#vv-decorar .vv-decorar-item[aria-pressed="true"]{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);color:#C2490C;border-color:color-mix(in srgb,#C2490C 28%,#FFFFFF)}
 #vv-decorar .vv-decorar-item img,#vv-decorar .vv-decorar-item .vv-decorar-sem-icone{flex:none;width:28px;height:28px;border-radius:8px}
 #vv-decorar .vv-decorar-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* piso e parede: amostras */
 #vv-decorar .vv-decorar-amostras{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:0;padding:0;list-style:none}
 #vv-decorar .vv-decorar-opcao{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:8px 6px;border:1px solid #E6E0D6;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:600 11.5px var(--vv-texto,system-ui),sans-serif;text-align:center;cursor:pointer;transition:border-color .15s,translate .15s}
-#vv-decorar .vv-decorar-opcao:hover{border-color:#FF7A2F;translate:0 -1px}
-#vv-decorar .vv-decorar-opcao[aria-pressed="true"]{background:color-mix(in srgb,#FF7A2F 13%,#FFFFFF);border-color:color-mix(in srgb,#FF7A2F 28%,#FFFFFF);color:#C2490C}
+#vv-decorar .vv-decorar-opcao:hover{border-color:#C2490C;translate:0 -1px}
+#vv-decorar .vv-decorar-opcao[aria-pressed="true"]{background:color-mix(in srgb,#C2490C 13%,#FFFFFF);border-color:color-mix(in srgb,#C2490C 28%,#FFFFFF);color:#C2490C}
 #vv-decorar .vv-decorar-amostra{display:block;width:100%;height:44px;border-radius:8px;border:1px solid rgba(31,29,26,.12);background:repeating-conic-gradient(var(--a) 0 25%,var(--b) 0 50%) 0 0/16px 16px}
 #vv-decorar .vv-decorar-amostra.lisa{background:var(--a)}
 
@@ -99,13 +99,13 @@ body.vv-decorando #mundo-andar .andar-dica,body.vv-decorando #mundo-andar [data-
 
 /* botões: secundário branco; Salvar é a ação principal (o laranja do Criar) */
 #vv-decorar .vv-decorar-botao{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 12px;border:1px solid #E6E0D6;border-radius:8px;background:#FFFFFF;color:#1F1D1A;font:600 12.5px var(--vv-texto,system-ui),sans-serif;white-space:nowrap;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
-#vv-decorar .vv-decorar-botao:hover:not(:disabled){border-color:#FF7A2F;color:#C2490C;background:#FFFCF9}
+#vv-decorar .vv-decorar-botao:hover:not(:disabled){border-color:#C2490C;color:#C2490C;background:#FFFCF9}
 #vv-decorar .vv-decorar-botao:disabled{cursor:not-allowed;opacity:.5}
 #vv-decorar .vv-decorar-botao.sair:hover:not(:disabled){border-color:#F6BBC4;color:#B42318;background:#FFFFFF}
 #vv-decorar .vv-decorar-rodape{flex:none;display:flex;align-items:center;gap:8px;padding:12px 16px 16px 20px;border-top:1px solid #F0EBE3;background:#FFFFFF}
 #vv-decorar .vv-decorar-rodape .sair{margin-right:auto}
-#vv-decorar .vv-decorar-salvar{display:inline-flex;align-items:center;justify-content:center;height:34px;min-width:96px;padding:0 18px;border:0;border-radius:8px;background:#FF7A2F;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #E8602E;cursor:pointer;transition:background .15s}
-#vv-decorar .vv-decorar-salvar:hover:not(:disabled){background:#E8602E}
+#vv-decorar .vv-decorar-salvar{display:inline-flex;align-items:center;justify-content:center;height:34px;min-width:96px;padding:0 18px;border:0;border-radius:8px;background:#C2490C;color:#FFFFFF;font:700 12.5px var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px #A83D08;cursor:pointer;transition:background .15s}
+#vv-decorar .vv-decorar-salvar:hover:not(:disabled){background:#A83D08}
 #vv-decorar .vv-decorar-salvar:disabled{cursor:not-allowed;background:#FFC8A6;box-shadow:none}
 
 /* celular e janela estreita: folha de baixo, o andar fica à vista em cima */

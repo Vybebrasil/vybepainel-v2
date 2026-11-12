@@ -40,7 +40,7 @@ test('o bloco da fase 2 não força nada', () => {
 
 test('celular: a faixa de dias e o dia vazio da agenda legíveis no fundo claro', () => {
   assert.match(css, /html body\.mundo \.ag-faixa-dia\{color:#1F1D1A\}/);
-  assert.match(css, /html body\.mundo \.ag-nada\{background:#F6F3EE;color:#5E5A53\}/);
+  assert.match(css, /html body\.mundo \.ag-nada\{background:#F3F1EC;color:#5E5A53\}/);
 });
 
 test('agenda da equipe: Redes, Demandas ou Pendências escolhido uma vez para a semana; o dia troca o dele só no tema antigo', () => {

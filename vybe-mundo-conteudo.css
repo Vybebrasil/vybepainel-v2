@@ -2,7 +2,7 @@
    Janela branca raio 24 por cima do mapa; selecionado em laranja 13% com texto #C2490C; laranja cheio só na ação
    principal (Gerar/Copiar/Abrir peça/Novo conteúdo). As cores do objetivo são de categoria (pontos e barras finas),
    nunca fundo de botão. A etapa de aprovação usa a escala de urgência (3 bloqueio, 4 espera, 6 andando). */
-#vv-conteudo.vc{--vc-linha:var(--ds-linha,#E6E0D6);--vc-acao:var(--ds-acao,#FF7A2F);--vc-sel:var(--ds-sel-fundo,#FFEBDF);--vc-sel-t:var(--ds-sel-texto,#C2490C);--vc-apagado:var(--vv-apagado,#6B675F);--vc-foco:var(--ds-foco,0 0 0 3px rgba(255,122,47,.22));
+#vv-conteudo.vc{--vc-linha:var(--ds-linha,#E6E0D6);--vc-acao:var(--ds-acao,#C2490C);--vc-sel:var(--ds-sel-fundo,#FFEBDF);--vc-sel-t:var(--ds-sel-texto,#C2490C);--vc-apagado:var(--vv-apagado,#6B675F);--vc-foco:var(--ds-foco,0 0 0 3px rgba(194,73,12,.22));
   position:fixed;z-index:640;top:calc(var(--vv-m,14px) + 64px);right:var(--vv-m,14px);container:vc / inline-size;
   width:min(1180px,calc(100vw - 2*var(--vv-m,14px)),max(360px,calc(100vw - max(var(--vv-livre-esq,0px),var(--vv-m,14px)) - var(--vv-m,14px))));
   height:min(820px,calc(100dvh - var(--vv-m,14px)*2 - 64px));display:flex;flex-direction:column;overflow:hidden;
@@ -22,7 +22,7 @@
 #vv-conteudo .vc-titulo{display:flex;flex-direction:column;min-width:0;flex:1}
 #vv-conteudo .vc-titulo b{font:700 18px var(--vv-titulo,"Space Grotesk",system-ui);letter-spacing:-.01em;white-space:nowrap}
 #vv-conteudo .vc-titulo small{font:500 11.5px var(--vv-texto,system-ui);color:var(--vc-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#vv-conteudo .vc-abas{display:flex;gap:4px;padding:3px;border-radius:8px;background:#F6F3EE}
+#vv-conteudo .vc-abas{display:flex;gap:4px;padding:3px;border-radius:8px;background:#F3F1EC}
 #vv-conteudo .vc-abas button{appearance:none;height:30px;border:0;border-radius:6px;background:transparent;padding:0 12px;font:600 12.5px var(--vv-texto,system-ui);color:var(--vc-apagado);cursor:pointer;white-space:nowrap}
 #vv-conteudo .vc-abas button:hover{color:var(--vv-tinta,#1F1D1A)}
 #vv-conteudo .vc-abas button[aria-selected="true"]{background:var(--vc-sel);color:var(--vc-sel-t)}
@@ -147,9 +147,9 @@
 #vv-conteudo .vc-objetivo-campo{display:inline-flex;flex-wrap:wrap;gap:4px}
 #vv-conteudo .vc-objetivo-campo button{appearance:none;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--ds-linha,#E6E0D6);background:#FFF;color:var(--vv-tinta,#1F1D1A);font:600 12px var(--vv-texto,system-ui);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 #vv-conteudo .vc-objetivo-campo button i{width:9px;height:9px;border-radius:50%;background:var(--c)}
-#vv-conteudo .vc-objetivo-campo button:hover{border-color:var(--ds-acao,#FF7A2F);color:var(--ds-sel-texto,#C2490C)}
-#vv-conteudo .vc-objetivo-campo button.ativo{background:var(--ds-sel-fundo,#FFEBDF);border-color:transparent;color:var(--ds-sel-texto,#C2490C)}
-#vv-conteudo .vc-objetivo-campo button:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+#vv-conteudo .vc-objetivo-campo button:hover{border-color:var(--ds-acao,#C2490C);color:var(--ds-sel-texto,#C2490C)}
+#vv-conteudo .vc-objetivo-campo button.ativo{background:var(--ds-on-fundo,#FFEBDF);border-color:transparent;color:var(--ds-on-texto,#C2490C)}
+#vv-conteudo .vc-objetivo-campo button:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(194,73,12,.22)}
 #vv-conteudo .vc-indisponivel{color:var(--vv-apagado,#6B675F);font:600 12px var(--vv-texto,system-ui)}
 
 /* bolinha nas listas e no calendário */

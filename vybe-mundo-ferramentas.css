@@ -61,7 +61,7 @@
 #vv-ferramentas .vf-amostra{position:relative;display:inline-grid;place-items:center;min-width:30px;height:30px;border-radius:8px;border:1px solid #E6E0D6;background:#FFFFFF;cursor:pointer}
 #vv-ferramentas .vf-amostra input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
 #vv-ferramentas .vf-amostra i{width:18px;height:18px;border-radius:5px}
-#vv-ferramentas .vf-amostra:has(input:checked),#vv-ferramentas .vf-amostra.outra.on{border-color:#FF7A2F;box-shadow:0 0 0 2px rgba(255,122,47,.25)}
+#vv-ferramentas .vf-amostra:has(input:checked),#vv-ferramentas .vf-amostra.outra.on{border-color:#C2490C;box-shadow:0 0 0 2px rgba(194,73,12,.25)}
 #vv-ferramentas .vf-amostra:has(input:focus-visible){outline:2px solid #F26B1D;outline-offset:2px}
 #vv-ferramentas .vf-amostra.outra{padding:0 10px;font:600 12px Inter,system-ui,sans-serif;color:#1F1D1A}
 #vv-ferramentas .vf-oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
