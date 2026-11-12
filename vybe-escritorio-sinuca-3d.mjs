@@ -10,7 +10,7 @@ import {
   WebGLRenderer, Scene, Color, Fog, PerspectiveCamera, OrthographicCamera, AmbientLight, HemisphereLight, SpotLight,
   PointLight, Mesh, Group, Shape, Path, ExtrudeGeometry, ShapeGeometry, BackSide, PlaneGeometry, BoxGeometry, SphereGeometry, CylinderGeometry, RingGeometry, CircleGeometry,
   MeshStandardMaterial, MeshPhysicalMaterial, MeshBasicMaterial, CanvasTexture, TextureLoader, SRGBColorSpace, RepeatWrapping, PCFSoftShadowMap,
-  Vector3, Quaternion, BufferGeometry, Float32BufferAttribute, LineDashedMaterial, Line, Raycaster, Vector2, Plane, MathUtils,
+  Vector3, Quaternion, BufferGeometry, Float32BufferAttribute, LineDashedMaterial, LineBasicMaterial, Line, Sprite, SpriteMaterial, Raycaster, Vector2, Plane, MathUtils,
   ACESFilmicToneMapping, PMREMGenerator,
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -149,12 +149,16 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   // --- Fundo: a lousa do RANKING DO SALÃO na altura que a câmera vê ---
   const lousaCanvas = document.createElement('canvas'); lousaCanvas.width = 768; lousaCanvas.height = 480;
   const texLousa = new CanvasTexture(lousaCanvas); texLousa.colorSpace = SRGBColorSpace; texLousa.anisotropy = 8;
-  let lousaChave = '';
+  let lousaChave = '', vencedorNome = '';
   const pintarLousa = (linhas) => {
     const g = lousaCanvas.getContext('2d'), w = 768, h = 480;
     g.fillStyle = '#22302a'; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`; g.fillRect(Math.random() * w, Math.random() * h, 60 + Math.random() * 120, 20 + Math.random() * 40); }
-    g.fillStyle = '#ffe98a'; g.font = 'bold 60px "Kalam", "Comic Sans MS", "Segoe Print", cursive'; g.textAlign = 'center'; g.fillText('RANKING DO SALÃO', w / 2, 74);
+    // Fim de partida (Paulo, 11/11/2026): o nome de quem acabou de ganhar sobe para o alto da lousa.
+    const titulo = vencedorNome ? `★ ${vencedorNome} GANHOU! ★` : 'RANKING DO SALÃO', fonteT = (px) => `bold ${px}px "Kalam", "Comic Sans MS", "Segoe Print", cursive`;
+    let tpx = 60; g.fillStyle = '#ffe98a'; g.textAlign = 'center'; g.font = fonteT(tpx);
+    while (tpx > 34 && g.measureText(titulo).width > w - 80) g.font = fonteT(tpx -= 2);
+    g.fillText(titulo, w / 2, 74);
     g.strokeStyle = '#ffe98a'; g.lineWidth = 3; g.beginPath(); g.moveTo(120, 92); g.lineTo(w - 120, 92); g.stroke();
     const giz = (px) => `700 ${px}px "Kalam", "Kalam", "Comic Sans MS", "Segoe Print", cursive`;
     if (!linhas.length) {
@@ -248,6 +252,34 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
   peca(new BoxGeometry(14, 10, 20), new MeshStandardMaterial({ color: 0xffffff, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.82 }), balX, pisoY + 46.6, balZ - 18);
   for (let i = 0; i < 6; i++) peca(new SphereGeometry(1.6, 10, 8), mat(i % 2 ? 0xd88a2a : 0xe8b04a), balX - 3 + (i % 3) * 3, pisoY + 43.6, balZ - 24 + Math.floor(i / 3) * 6);
   for (const dz of [-30, -6, 18]) { peca(new CylinderGeometry(0.9, 1.2, 30, 8), inox, balX + 15, pisoY + 15, balZ + dz); peca(new CylinderGeometry(5, 5, 2.4, 18), mat(0xd8261c, { roughness: 0.45 }), balX + 15, pisoY + 31, balZ + dz); }
+  // A TORCIDA no balcão (Paulo, 11/11/2026): quem está assistindo aparece sentado nas banquetas, virado
+  // para a mesa, com o nome numa plaquinha de papel.
+  const torcidaGrupo = new Group(); cena.add(torcidaGrupo);
+  let torcidaChave = '';
+  const montarTorcida = (nomes) => {
+    for (const filho of [...torcidaGrupo.children]) { filho.traverse((o) => { o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); }); torcidaGrupo.remove(filho); }
+    const camisas = [0xd8261c, 0x2a7ad1, 0xf2bd14, 0x1f7a46], peles = [0xc68a5a, 0x8d5a3a, 0xe0b08a], cabelos = [0x2a1a10, 0x111111, 0x6b4a2a];
+    nomes.slice(0, 3).forEach((nome, i) => {
+      const g = new Group(), camisa = mat(camisas[i % 4]);
+      const corpo = new Mesh(new CylinderGeometry(4, 5, 15, 12), camisa); corpo.position.y = 7.5; g.add(corpo);
+      const cabeca = new Mesh(new SphereGeometry(3.5, 14, 12), mat(peles[i % 3])); cabeca.position.y = 19; g.add(cabeca);
+      const cabelo = new Mesh(new SphereGeometry(3.65, 14, 12, 0, Math.PI * 2, 0, Math.PI / 2.1), mat(cabelos[i % 3])); cabelo.position.y = 19.4; g.add(cabelo);
+      const braco = new Mesh(new BoxGeometry(9, 2.4, 2.6), camisa); braco.position.set(-5.5, 12, i % 2 ? 3 : -3); braco.rotation.z = -0.35; g.add(braco);
+      for (const lado of [-1.8, 1.8]) { const coxa = new Mesh(new BoxGeometry(8, 2.8, 2.6), mat(0x23324f)); coxa.position.set(4, 0.6, lado); g.add(coxa); const canela = new Mesh(new BoxGeometry(2.6, 10, 2.6), mat(0x23324f)); canela.position.set(7.6, -4.6, lado); g.add(canela); }
+      const copo = new Mesh(new CylinderGeometry(1, 0.8, 3.4, 10), new MeshStandardMaterial({ color: 0xf5c018, roughness: 0.2, transparent: true, opacity: 0.9 })); copo.position.set(-9, 11.6, i % 2 ? 3 : -3); g.add(copo);
+      const c = document.createElement('canvas'); c.width = 256; c.height = 72; const x = c.getContext('2d');
+      x.fillStyle = '#f8f3e3'; x.fillRect(0, 0, 256, 72); x.fillStyle = '#1f2f8f'; x.textAlign = 'center';
+      x.font = '700 44px "Kalam", "Comic Sans MS", cursive'; x.fillText(String(nome).slice(0, 12), 128, 52);
+      const tx = new CanvasTexture(c); tx.colorSpace = SRGBColorSpace;
+      const placa = new Sprite(new SpriteMaterial({ map: tx, depthTest: false })); placa.scale.set(15, 4.2, 1); placa.position.y = 28; g.add(placa);
+      g.position.set(balX + 15, pisoY + 32, balZ + [-30, -6, 18][i]); torcidaGrupo.add(g);
+    });
+  };
+  // O RASTRO A GIZ da branca no replay: a linha por onde ela passou, desenhada no pano.
+  const RASTRO_MAX = 600, rastroGeo = new BufferGeometry();
+  rastroGeo.setAttribute('position', new Float32BufferAttribute(new Float32Array(RASTRO_MAX * 3), 3)); rastroGeo.setDrawRange(0, 0);
+  const rastro = new Line(rastroGeo, new LineBasicMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0.9, depthWrite: false }));
+  rastro.frustumCulled = false; rastro.visible = false; rastro.renderOrder = 2; cena.add(rastro);
   // Caixa registradora e porta-guardanapo no balcão.
   const topoBal = pisoY + 41.6;
   peca(new BoxGeometry(12, 6, 12), mat(0x3a3f47, { roughness: 0.4 }), balX - 1, topoBal + 3, balZ + 22);
@@ -545,6 +577,7 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     });
     for (const c of d.caindo || []) { const m = bolas[c.n], [x, z] = mundo(c.x, c.y); m.visible = true; sombras[c.n].visible = false; m.position.set(x, R - (1 - c.escala) * 2.6 * R, z); m.scale.setScalar(Math.max(0.4, c.escala)); }
     if (d.fantasma) { const [x, z] = mundo(d.fantasma[0], d.fantasma[1]); fantasma.position.set(x, R, z); fantasma.visible = true; } else fantasma.visible = false;
+    if (d.rastro?.length > 1) { const pos = rastroGeo.attributes.position, n = Math.min(RASTRO_MAX, d.rastro.length); for (let k = 0; k < n; k++) { const [x, z] = mundo(d.rastro[k][0], d.rastro[k][1]); pos.setXYZ(k, x, 0.09, z); } pos.needsUpdate = true; rastroGeo.setDrawRange(0, n); rastro.visible = true; } else rastro.visible = false;
     // Tacos (o meu e/ou o do outro, ou o da animação)
 
     tacos.forEach((m, i) => { const t = d.tacos?.[i]; if (t) { const pt = porTaco(m, t.b, t.ang, t.recuo, t.elev, t.modelo, t.efeito, t.giro); void pt; } else m.visible = false; });
@@ -592,6 +625,10 @@ export function criarCena3d(alvo, { mesa: geo, raio, raioBranca, visual: visualI
     desenhar, pedir, mesaNoPonteiro,
     // A lousa do RANKING DO SALÃO na parede do fundo: [[nome, vitórias], ...] (só repinta quando muda).
     lousa(linhas) { const k = JSON.stringify(linhas || []); if (k === lousaChave) return; lousaChave = k; pintarLousa(linhas || []); pedir(); },
+    // Quem está assistindo: até três, sentados no balcão.
+    torcida(nomes) { const k = JSON.stringify(nomes || []); if (k === torcidaChave) return; torcidaChave = k; montarTorcida(nomes || []); pedir(); },
+    // Quem acabou de ganhar: o nome sobe para o alto da lousa do cavalete ('' volta ao normal).
+    vencedor(nome) { const v = String(nome || ''); if (v === vencedorNome) return; vencedorNome = v; pintarLousa(lousaChave ? JSON.parse(lousaChave) : []); pedir(); },
     // Zoom e altura da câmera escolhidos pelo jogador (roda do mouse e controles).
     ajustarVista(dz = 0, da = 0) { vista.zoom = MathUtils.clamp(vista.zoom * (1 + dz), 0.55, 1.8); vista.altura = MathUtils.clamp(vista.altura + da, -1, 1); pedir(); return { ...vista }; },
     get vista() { return { ...vista }; }, get custo() { return { ms: ultimoCusto, razao, chamadas: renderer.info.render.calls, triangulos: renderer.info.render.triangles }; },

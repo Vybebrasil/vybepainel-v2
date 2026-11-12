@@ -45,3 +45,36 @@ if(typeof document!=='undefined'){
  document.addEventListener('keydown',ev=>{if(ev.target?.closest?.('.ofc-snc-jogo,.ofc-snc-menu'))sinucaAudioPreparar(true);},{capture:true});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)sinucaAudioSilenciar();});
 }
+// SOM AMBIENTE DO BOTECO (Paulo, 11/11/2026: "boteco vivo"): conversa de bar baixinha e um copo
+// tilintando de vez em quando, sintetizados aqui (sem arquivo de áudio de terceiros). Cala quando a TV do
+// bar está tocando música, quando o som do escritório está desligado, com a aba escondida ou fora da sinuca.
+let sinucaAmb=null;
+function sinucaAmbienteQuer(){
+ if(typeof document==='undefined'||document.hidden||!sinucaAudioLigado())return false;
+ if(!document.querySelector('#workflow-modal.ofc-snc-jogo,#workflow-modal.ofc-snc-menu'))return false;
+ const tv=document.querySelector('.ofc-musica.na-tv');
+ return !(tv&&!tv.hidden&&typeof escritorio!=='undefined'&&escritorio.musica?.tocando);
+}
+function sinucaAmbiente(){
+ if(!sinucaAmbienteQuer()){
+  if(sinucaAmb){const a=sinucaAmb;sinucaAmb=null;clearInterval(a.copos);a.ganho.gain.setTargetAtTime(0,a.ctx.currentTime,.25);setTimeout(()=>{try{a.fonte.stop();a.lfo.stop();}catch{/* já parou */}a.ganho.disconnect();},1500);}
+  return;
+ }
+ if(sinucaAmb)return;
+ const a=sinucaAudioPreparar();if(!a||a.ctx.state!=='running')return;
+ const ctx=a.ctx,n=ctx.sampleRate*4,buf=ctx.createBuffer(1,n,ctx.sampleRate),d=buf.getChannelData(0);
+ // Ruído rosa (a "massa" de conversa), recortado na faixa da voz e respirando devagar.
+ let b0=0,b1=0,b2=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;b0=.99765*b0+w*.099046;b1=.963*b1+w*.2965164;b2=.57*b2+w*1.0526913;d[i]=(b0+b1+b2+w*.1848)*.12;}
+ const fonte=ctx.createBufferSource();fonte.buffer=buf;fonte.loop=true;
+ const banda=ctx.createBiquadFilter();banda.type='bandpass';banda.frequency.value=480;banda.Q.value=.8;
+ const mod=ctx.createGain();mod.gain.value=.6;const lfo=ctx.createOscillator();lfo.frequency.value=.3;const lfoG=ctx.createGain();lfoG.gain.value=.35;lfo.connect(lfoG).connect(mod.gain);
+ const ganho=ctx.createGain();ganho.gain.value=0;fonte.connect(banda).connect(mod).connect(ganho).connect(a.master);fonte.start();lfo.start();
+ ganho.gain.setTargetAtTime(.07,ctx.currentTime,1.2);
+ const copo=()=>{
+  if(sinucaAmb?.ganho!==ganho||Math.random()<.45)return;
+  const t=ctx.currentTime;
+  for(const f of [2300+Math.random()*900,3800+Math.random()*700]){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;g.gain.setValueAtTime(.01,t);g.gain.exponentialRampToValueAtTime(.0001,t+.45);o.connect(g).connect(a.master);o.start(t);o.stop(t+.5);o.onended=()=>{o.disconnect();g.disconnect();};}
+ };
+ sinucaAmb={ctx,fonte,lfo,ganho,copos:setInterval(copo,5200)};
+}
+if(typeof window!=='undefined'&&!window.__sinucaAmbiente){window.__sinucaAmbiente=setInterval(sinucaAmbiente,2500);}
