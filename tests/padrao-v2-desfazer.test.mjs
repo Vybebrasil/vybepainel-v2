@@ -50,7 +50,8 @@ test('mostrarDesfazer some sozinho e um aviso novo toma o lugar do anterior', ()
 test('a troca de status guarda o status de antes e só oferece Desfazer sem automação por trás', () => {
   assert.match(status, /const statusDeAntes = String\(item\.status \|\| ''\);/);
   assert.match(status, /else if \(!efeito && statusDeAntes && !mesmoStatus\(statusDeAntes, final\.label\) && typeof mostrarDesfazer === 'function'/);
-  assert.match(status, /mostrarDesfazer\(`Status: \$\{final\.label\}`, \(\) => updateFocusStatus\(id, statusDeAntes\)\)/);
+  // Quadro Status (moodboard): "Movida para X", some em 5 segundos.
+  assert.match(status, /mostrarDesfazer\(`Movida para \$\{final\.label\}`, \(\) => updateFocusStatus\(id, statusDeAntes\), 5000\)/);
   // o aviso antigo continua para quando há efeito de automação ou fora do mundo
   assert.match(status, /else showToast\(efeito \|\| `✓ Status atualizado para \$\{final\.label\}/);
 });

@@ -1,0 +1,4 @@
+/* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status". */
+#status-editor .v2-st-op{display:flex;align-items:center;gap:8px}
+#status-editor .v2-st-dica{margin-left:auto;font:500 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#status-editor .v2-st-todos{margin-top:4px;border-top:1px solid #F1EDE6;justify-content:flex-start;font-weight:600}

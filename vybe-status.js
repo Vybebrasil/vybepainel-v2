@@ -120,13 +120,24 @@ function openStatusEditor(event, itemId) {
   // do redesign, vybe-grupos.js); aqui ficam as escolhas e as ferramentas de cada etiqueta.
   const colunaDoStatus = `status:${isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID}`;
   const comFerramentas = typeof ferramentasDaEtiquetaHtml === 'function';
-  menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => {
+  const cabeca = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>`;
+  const listaInteira = () => `${cabeca}${statusOptions.map(o => {
     const atual = mesmoStatus(o.label, item.status);
     const linha = `<button type="button" class="status-editor-option ${atual ? 'current' : ''}" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}${o.ativa === false ? ' (desligada)' : ''}</span>${atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`;
     if (!comFerramentas || !o.chave) return linha;
     const etiqueta = { chave: o.chave, rotulo: o.label, cor: o.color, ativa: o.ativa !== false };
     return `<div class="etiqueta-linha ${o.ativa === false ? 'desligada' : ''}">${linha}${ferramentasDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}${chaveDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}</div>`;
   }).join('')}${juntarAprovacaoNoSeletorHtml(item)}`;
+  // Padrão v2 (quadro Status do moodboard, 12/11/2026): o menu abre só com o que cabe agora, o próximo passo, o seguinte
+  // e a volta, na ordem do catálogo; "Todos os N status" mostra a lista inteira, com as ferramentas de etiqueta.
+  const ativas = statusOptions.filter(o => o.ativa !== false);
+  const i = ativas.findIndex(o => mesmoStatus(o.label, item.status));
+  const curto = i < 0 ? [] : [[ativas[i + 1], 'próximo'], [ativas[i + 2], ''], [ativas[i - 1], 'voltar']].filter(([o]) => o);
+  const opcaoCurta = ([o, dica]) => `<button type="button" class="status-editor-option v2-st-op" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}</span>${dica ? `<small class="v2-st-dica">${dica}</small>` : ''}</button>`;
+  menu.innerHTML = curto.length && statusOptions.length > 4
+    ? `${cabeca}${curto.map(opcaoCurta).join('')}<button type="button" class="status-editor-option v2-st-todos" data-status-todos>Todos os ${statusOptions.length} status</button>`
+    : listaInteira();
+  menu.querySelector('[data-status-todos]')?.addEventListener('click', (e) => { e.stopPropagation(); menu.innerHTML = listaInteira(); ancorarPopover(menu, rect); });
   document.body.append(backdrop, menu);
   ancorarPopover(menu, rect);
 }
@@ -277,7 +288,7 @@ async function commitStatusChange(item, option) {
       : 'Status salvo, mas o encaminhamento automático não foi concluído. Abra “por que não rodou?” para tentar o encaminhamento novamente.', 'info', 12000);
     // Sem automação por trás, dá para voltar atrás num toque; com automação (efeito), o que ela fez não se desfaz daqui.
     else if (!efeito && statusDeAntes && !mesmoStatus(statusDeAntes, final.label) && typeof mostrarDesfazer === 'function' && document.body.classList.contains('mundo')
-      && mostrarDesfazer(`Status: ${final.label}`, () => updateFocusStatus(id, statusDeAntes))) { /* o aviso com Desfazer já disse */ }
+      && mostrarDesfazer(`Movida para ${final.label}`, () => updateFocusStatus(id, statusDeAntes), 5000)) { /* o aviso com Desfazer já disse */ }
     else showToast(efeito || `✓ Status atualizado para ${final.label} · tela mantida no contexto atual`, 'ok', efeito ? 9000 : 4200);
     if (mesmaJanela()) {
       const dados = await fetchWorkspaceItem(item.id);
