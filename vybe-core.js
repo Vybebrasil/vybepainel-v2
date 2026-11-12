@@ -229,6 +229,21 @@ function avisoCurtoNoMundo(texto, { erro = false, tempo = 6000, icone = 'info', 
   if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !texto) return false;
   return Boolean(mostrarAvisoCurto({ chave: 'curto:' + String(texto).slice(0, 80), icone, titulo: String(texto), erro, tempo, acoes }));
 }
+// Padrão v2: aviso em pílula preta com "Desfazer", embaixo e no meio (desenho em vybe-mundo.css, #v2-desfazer).
+// Um por vez: o novo toma o lugar do anterior. Some sozinho; Desfazer chama a função recebida uma única vez.
+function mostrarDesfazer(texto, desfazer, tempo = 6000) {
+  if (typeof document === 'undefined' || typeof desfazer !== 'function') return false;
+  let el = document.getElementById('v2-desfazer');
+  if (!el) { el = document.createElement('div'); el.id = 'v2-desfazer'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.append(el); }
+  clearTimeout(mostrarDesfazer.relogio);
+  const frase = document.createElement('span'); frase.textContent = String(texto || '');
+  const botao = document.createElement('button'); botao.type = 'button'; botao.textContent = 'Desfazer';
+  botao.onclick = () => { clearTimeout(mostrarDesfazer.relogio); el.hidden = true; try { desfazer(); } catch (e) { console.warn('[desfazer]', e); } };
+  el.replaceChildren(frase, botao);
+  el.hidden = true; void el.offsetWidth; el.hidden = false;
+  mostrarDesfazer.relogio = setTimeout(() => { el.hidden = true; }, tempo);
+  return true;
+}
 function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = '', acoes = [], erro = false, tempo = 7000 } = {}) {
   if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo') || !titulo) return null;
   let caixa = document.getElementById('vv-wa-avisos');
