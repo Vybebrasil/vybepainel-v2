@@ -21,8 +21,9 @@ test('fala do guia em uma frase com Começar, e os três números com a barra em
   assert.match(tela, /titulo: 'Para hoje'[\s\S]{0,400}titulo: 'Atrasadas'[\s\S]{0,400}titulo: 'Feitas na semana', valor: n0\(feitas\.length\), sub: '', barra:/);
 });
 
-test('filtros Hoje, Semana, Atrasadas e Feitas, a busca e Filtros', () => {
-  assert.match(tela, /const GRUPOS = \{ hoje: \['Hoje', hojeP, 'Hoje, na ordem'[^\]]*\], semana: \['Semana', semanaP[^\]]*\], atrasadas: \['Atrasadas', atrasadasP[^\]]*\], feitas: \['Feitas', feitas[^\]]*\] \};/);
+test('filtros Hoje, Semana, Todas, Atrasadas e Feitas, a busca e Filtros', () => {
+  // Todas (13/11/2026) fica entre Semana e Atrasadas: a fila inteira, na ordem.
+  assert.match(tela, /const GRUPOS = \{ hoje: \['Hoje', hojeP, 'Hoje, na ordem'[^\]]*\], semana: \['Semana', semanaP[^\]]*\], todas: \['Todas', naFila, 'Todas, na ordem', 'Nada aberto\.'\], atrasadas: \['Atrasadas', atrasadasP[^\]]*\], feitas: \['Feitas', feitas[^\]]*\] \};/);
   assert.match(tela, /class="v2t-busca" data-busca-tarefas placeholder="Buscar nas minhas tarefas"/);
   assert.match(tela, /aria-pressed="\$\{hojeVerTodas\}">Filtros<\/button>/);
   // A busca redesenha só a lista: o campo não perde o foco.

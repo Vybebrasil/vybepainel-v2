@@ -12,8 +12,8 @@
 //   (nome sem acento, caixa ou pontuação) com a data da peça dentro do mês. Data da peça = veiculação
 //   (o dia em que o cliente publica); sem veiculação, o prazo. Peça de vários clientes conta inteira
 //   para cada um deles.
-// - Entregue = status Finalizado, Feito, Concluído, Aprovado, Para agendar, Agendado, Publicado ou
-//   Postado (ENTREGUE de vybe-dono-metricas.js; tests/relatorio-resumo.test.mjs confere que é a mesma
+// - Entregue = status Finalizado, Feito, Concluído, Aprovado, Publicado ou Postado; Para agendar e
+//   Agendado esperam a postagem (Paulo, 13/11/2026: pronta é só Finalizado) (ENTREGUE de vybe-dono-metricas.js; tests/relatorio-resumo.test.mjs confere que é a mesma
 //   lista). Quem chama pode trocar a regra por `entregue(d)`.
 // - Dia da entrega = dia local de status_updated_at de uma peça entregue (o painel não guarda outro).
 // - No prazo = entregue até a data da peça (inclusive). Fora do prazo = entregue depois dela. Entregue
@@ -28,7 +28,7 @@
 (function (raiz) {
   'use strict';
 
-  const ENTREGUE = new Set(['finalizado', 'concluido', 'concluida', 'concluidas', 'aprovado', 'para agendar', 'agendado', 'publicado', 'postado']);
+  const ENTREGUE = new Set(['finalizado', 'concluido', 'concluida', 'concluidas', 'aprovado', 'publicado', 'postado']);
   const PAUSADA = new Set(['segurar post']);
   // A mesma junção dos nomes de solicitação de operationalFlowStatus (vybe-dono-metricas.js).
   const SINONIMOS = new Map([['nova demanda', 'a fazer'], ['em execucao', 'em andamento'], ['feito', 'finalizado'],

@@ -32,13 +32,15 @@
 //   peças (menos "Sem cliente") e `fonte.clientes` avisa.
 //
 // Estados da peça
-// - Entregue (pronta para a operação) = status Finalizado, Feito, Concluído, Aprovado
-//   (solicitação), Para agendar, Agendado, Publicado ou Postado: o "Pronto" do radar
-//   de risco (RISK_READY_STATUSES) e o `vybe_status.final` do banco. Os nomes de
-//   solicitação passam pela mesma junção de operationalFlowStatus. Quem chama pode
-//   trocar a regra por `finalizado(d)`. Para agendar e Agendado não viram
-//   "publicado": as contagens por status saem separadas (feitasPorStatus,
-//   entreguesPorStatus).
+// - Entregue (pronta) = status Finalizado, Feito, Concluído, Aprovado (solicitação),
+//   Publicado ou Postado. Paulo, 13/11/2026: "uma demanda só está PRONTA quando tá
+//   FINALIZADA". Para agendar (falta postar) e Agendado (a Tainara agendou) NÃO são
+//   prontas: quando o post sai, ela marca Finalizado. Os nomes de solicitação passam
+//   pela mesma junção de operationalFlowStatus. Quem chama pode trocar a regra por
+//   `finalizado(d)`.
+// - Aguardando postar = Para agendar ou Agendado: aberta, mas a produção acabou. Só
+//   atrasa quando a veiculação passa sem o Finalizado (vira furo); o prazo interno,
+//   os dias parada e o risco não contam para ela, e ela não entra na janela.
 // - Dia da entrega = dia local de status_updated_at (a última troca de status) de uma
 //   peça entregue. O painel não guarda outro dia de conclusão; se a peça trocar de
 //   um status final para outro (Para agendar → Agendado), a entrega anda junto.
@@ -133,7 +135,7 @@
 //   peça prevista. proximas4 = as 4 semanas seguintes.
 //
 // Alertas (escala de urgência de docs/padrao-visual.md)
-// - 1 crítico: veiculação vencida, pronta sem agendar com veiculação vencida, prazo
+// - 1 crítico: veiculação vencida, Para agendar ou Agendado com a veiculação vencida, prazo
 //   interno vencido. 2 alto: vai ao ar hoje e não está pronta, para agendar hoje,
 //   risco de furo, cliente sem conteúdo na semana. 3 bloqueio: peças travadas,
 //   o maior gargalo, próxima semana acima da capacidade. 4 espera: esperando o
@@ -180,7 +182,8 @@
     ['falta info', 'Falta Info'], ['para aprovacao', 'Para aprovação'],
   ]);
   const chaveStatus = (status) => { const k = chaveTexto(status); return SINONIMOS.get(k) || k; };
-  const ENTREGUE = new Set(['finalizado', 'concluido', 'concluida', 'concluidas', 'aprovado', 'para agendar', 'agendado', 'publicado', 'postado']);
+  const ENTREGUE = new Set(['finalizado', 'concluido', 'concluida', 'concluidas', 'aprovado', 'publicado', 'postado']);
+  const AGUARDA_POSTAR = new Set(['para agendar', 'agendado']);
   const PAUSADA = new Set(['segurar post']);
   const NAO_COMECOU = new Set(['a fazer', 'pode fazer']);
   const TRAVADA = new Set(['alteracao', 'falta info', 'falta d a', 'falta off', 'aguardo', 'aguardo redacao', 'ag interno']);
@@ -381,14 +384,15 @@
         const maisNova = veic > prazo ? veic : prazo;
         p.esquecida = !p.pausada && Boolean(maisNova) && maisNova < limiteEsquecida;
         const viva = !p.pausada && !p.esquecida;
+        p.aguardaPostar = AGUARDA_POSTAR.has(chave);
         p.furo = viva && Boolean(veic) && veic < dia;
-        p.prazoVencido = viva && Boolean(prazo) && prazo < dia;
+        p.prazoVencido = viva && !p.aguardaPostar && Boolean(prazo) && prazo < dia;
         p.atrasada = p.furo || p.prazoVencido;
-        p.naJanela = viva && Boolean(p.dataMin) && p.dataMin <= fimDaJanela;
+        p.naJanela = viva && !p.aguardaPostar && Boolean(p.dataMin) && p.dataMin <= fimDaJanela;
         p.esperaCliente = ESPERA_CLIENTE.has(chave);
-        p.semAndamento = NAO_COMECOU.has(chave) || TRAVADA.has(chave) || p.esperaCliente || (p.idade != null && p.idade >= R.paradaDias);
+        p.semAndamento = !p.aguardaPostar && (NAO_COMECOU.has(chave) || TRAVADA.has(chave) || p.esperaCliente || (p.idade != null && p.idade >= R.paradaDias));
         const perto = (x) => Boolean(x) && x >= dia && x <= limiteRisco;
-        p.emRisco = viva && !p.atrasada && (perto(veic) || perto(prazo))
+        p.emRisco = viva && !p.atrasada && !p.aguardaPostar && (perto(veic) || perto(prazo))
           && (RISCO_OPERACIONAL_ALTO.has(String(d.operational_risk?.level || '')) || p.semAndamento);
       }
       pecas.push(p);
@@ -404,7 +408,7 @@
 
     // ── Contas ───────────────────────────────────────────────────────────────────
     const previstasHoje = [], feitasHoje = [], atrasadas = [], emRisco = [], esquecidas = [];
-    const paraAgendarHoje = [], paraAgendarVencidas = [], travadas = [], esperando = [], semResponsavel = [], semBriefing = [];
+    const paraAgendarHoje = [], paraAgendarVencidas = [], agendadasVencidas = [], travadas = [], esperando = [], semResponsavel = [], semBriefing = [];
     let previstasEntreguesSemana = 0;
     const entreguesPorStatusSemana = new Map();
     const gargalos = new Map();
@@ -430,6 +434,7 @@
         if (p.veic === dia) paraAgendarHoje.push(p);
         else if (p.veic < dia && p.veic >= limiteEsquecida) paraAgendarVencidas.push(p);
       }
+      if (p.chave === 'agendado' && p.furo) agendadasVencidas.push(p);
       if (p.naJanela) {
         if (TRAVADA.has(p.chave)) travadas.push(p);
         if (p.esperaCliente) esperando.push(p);
@@ -517,7 +522,7 @@
       furos: furos.length,
       prazoInternoVencido: soPrazoInterno.length,
       esquecidas: esquecidas.length,
-      paraAgendar: { hoje: paraAgendarHoje.length, vencidas: paraAgendarVencidas.length },
+      paraAgendar: { hoje: paraAgendarHoje.length, vencidas: paraAgendarVencidas.length, agendadasVencidas: agendadasVencidas.length },
       feitasPorStatus: contarPorStatus(feitasHoje),
       lista: { faltam: faltam.map(peca), emRisco: emRisco.map(peca), atrasadas: atrasadas.map(peca) },
     };
@@ -716,8 +721,10 @@
     const alertas = [];
     const refPecas = (lista) => ({ tipo: 'pecas', ids: lista.map((p) => p.id) });
     const alertaDePecas = (nivel, lista, frase) => { if (lista.length) alertas.push({ nivel, texto: `${frase}: ${nomesDasPecas(lista)}`, ref: refPecas(lista) }); };
-    alertaDePecas(1, furos, `${plural(furos.length, 'peça furando', 'peças furando')} a data do cliente (veiculação vencida)`);
-    alertaDePecas(1, paraAgendarVencidas.sort(porData), `${plural(paraAgendarVencidas.length, 'peça pronta', 'peças prontas')} sem agendar com a veiculação vencida`);
+    const furosDeProducao = furos.filter((p) => !p.aguardaPostar); // Para agendar e Agendado vencidos têm o alerta deles
+    alertaDePecas(1, furosDeProducao, `${plural(furosDeProducao.length, 'peça furando', 'peças furando')} a data do cliente (veiculação vencida)`);
+    alertaDePecas(1, paraAgendarVencidas.sort(porData), `${plural(paraAgendarVencidas.length, 'peça', 'peças')} em Para agendar com a veiculação vencida (não foi postada)`);
+    alertaDePecas(1, agendadasVencidas.sort(porData), `${plural(agendadasVencidas.length, 'peça agendada', 'peças agendadas')} com a data passada e sem Finalizado (conferir se saiu)`);
     alertaDePecas(1, soPrazoInterno, `${plural(soPrazoInterno.length, 'peça', 'peças')} com o prazo interno vencido`);
     alertaDePecas(2, faltam, `${plural(faltam.length, 'peça vai', 'peças vão')} ao ar hoje sem estar ${faltam.length === 1 ? 'pronta' : 'prontas'}`);
     alertaDePecas(2, paraAgendarHoje.sort(porData), `${plural(paraAgendarHoje.length, 'peça', 'peças')} para agendar com veiculação hoje`);
@@ -788,18 +795,20 @@
   function situacaoDaPeca(d = {}, { hoje = new Date(), regras = {} } = {}) {
     const R = { ...REGRAS, ...regras }, dia = typeof hoje === 'string' ? hoje.slice(0, 10) : diaLocal(hoje);
     const chave = chaveStatus(d.status), veic = soData(d.veiculacao_iso ?? d.veiculacao), prazo = soData(d.prazo_iso ?? d.prazo);
-    const entregue = typeof d.status_final === 'boolean' ? d.status_final : ENTREGUE.has(chave);
+    // Para agendar e Agendado esperam a postagem (Paulo, 13/11/2026): não são entregues nem com status_final do banco.
+    const aguardaPostar = AGUARDA_POSTAR.has(chave);
+    const entregue = !aguardaPostar && (typeof d.status_final === 'boolean' ? d.status_final : ENTREGUE.has(chave));
     const referencia = veic || prazo, base = { chave, veic, prazo, referencia, entregue };
     if (entregue) return { ...base, situacao: 'entregue', atrasada: false, emRisco: false };
     if (PAUSADA.has(chave)) return { ...base, situacao: 'pausada', pausada: true, atrasada: false, emRisco: false };
     const maisNova = veic > prazo ? veic : prazo;
     if (maisNova && maisNova < somarDias(dia, -R.esquecidaDias)) return { ...base, situacao: 'esquecida', esquecida: true, atrasada: false, emRisco: false };
-    const furo = Boolean(veic) && veic < dia, prazoVencido = Boolean(prazo) && prazo < dia, atrasada = furo || prazoVencido;
+    const furo = Boolean(veic) && veic < dia, prazoVencido = !aguardaPostar && Boolean(prazo) && prazo < dia, atrasada = furo || prazoVencido;
     const esperaCliente = ESPERA_CLIENTE.has(chave), naoComecou = NAO_COMECOU.has(chave), travada = TRAVADA.has(chave);
     const desde = diaDe(d.status_updated_at) || diaDe(d.criado_em), idade = desde ? Math.max(0, diasEntre(desde, dia)) : null;
-    const semAndamento = naoComecou || travada || esperaCliente || (idade != null && idade >= R.paradaDias);
+    const semAndamento = !aguardaPostar && (naoComecou || travada || esperaCliente || (idade != null && idade >= R.paradaDias));
     const perto = (x) => Boolean(x) && x >= dia && x <= somarDias(dia, R.riscoDias);
-    const emRisco = !atrasada && (perto(veic) || perto(prazo)) && (['critical', 'high'].includes(String(d.operational_risk?.level || '')) || semAndamento);
+    const emRisco = !atrasada && !aguardaPostar && (perto(veic) || perto(prazo)) && (['critical', 'high'].includes(String(d.operational_risk?.level || '')) || semAndamento);
     const situacao = atrasada ? 'atrasada' : emRisco ? 'risco' : esperaCliente ? 'cliente' : travada ? 'parada' : naoComecou ? 'fazer' : 'andamento';
     return { ...base, situacao, furo, prazoVencido, atrasada, emRisco, esperaCliente, semAndamento, idade };
   }

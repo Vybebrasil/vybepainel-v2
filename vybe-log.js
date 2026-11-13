@@ -29,6 +29,15 @@ function logDataBr(valor) {
 }
 
 // { categoria, frase } — a frase já vem com o HTML escapado; só o <b> é nosso.
+// Comentário que veio do Monday chega em HTML (<p>, <strong>, <li>…). No log ele vira texto: parágrafo e item de lista
+// em linha própria (a linha usa white-space:pre-line), sem as tags. Confere de 13/11/2026.
+function textoDoComentario(v) {
+  const s = String(v ?? '');
+  if (!/<\/?[a-z][\s\S]*?>/i.test(s)) return s;
+  return s.replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h[1-6])\s*>/gi, '\n').replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n').trim();
+}
 function fraseDoLog(ev = {}, { demanda = false } = {}) {
   const b = (v) => `<b>${safeText(v)}</b>`;
   // Status aparece como a etiqueta dele, com a cor do catálogo — é assim que o
@@ -63,9 +72,9 @@ function fraseDoLog(ev = {}, { demanda = false } = {}) {
     case 'anexo': return { categoria: 'arquivos', frase: `enviou o arquivo ${b(para || '')}` };
     case 'anexo_removido': return { categoria: 'arquivos', frase: `removeu o arquivo ${b(de || '')}` };
     case 'comentario':
-      return { categoria: 'comentarios', frase: `${ev.do_monday ? 'comentou no Monday' : 'comentou'}: “${safeText(texto || '')}”` };
-    case 'comentario_editado': return { categoria: 'comentarios', frase: `editou um comentário: “${safeText(texto || '')}”` };
-    case 'comentario_apagado': return { categoria: 'comentarios', frase: `apagou um comentário: “${safeText(texto || '')}”` };
+      return { categoria: 'comentarios', frase: `${ev.do_monday ? 'comentou no Monday' : 'comentou'}: “${safeText(textoDoComentario(texto))}”` };
+    case 'comentario_editado': return { categoria: 'comentarios', frase: `editou um comentário: “${safeText(textoDoComentario(texto))}”` };
+    case 'comentario_apagado': return { categoria: 'comentarios', frase: `apagou um comentário: “${safeText(textoDoComentario(texto))}”` };
     case 'subitem_criado': return { categoria: 'tudo', frase: `criou a tarefa ${b(para || '')}` };
     case 'subitem_removido': return { categoria: 'tudo', frase: `removeu a tarefa ${b(de || '')}` };
     case 'subitem_status': return { categoria: 'status', frase: `mudou a tarefa ${b(texto || '')} de ${b(de || '—')} para ${b(para || '—')}` };

@@ -1,0 +1,12 @@
+/* PADRÃO V2 · MENU RECOLHIDO (confere de 13/11/2026). Recolhido pelo "‹", o menu continuava com a ilha de 232 e os nomes
+   espremidos embaixo dos ícones ("Recu Huma"), e a página entrava por cima dele (capturas do Paulo, no Hoje e na Minha
+   sala). Recolhido no computador, ele vira o trilho de ícones de 68: sem nomes (ficam no title), botões de 52×40, e a
+   área livre (--vv-livre-esq) passa a medir a ilha estreita. No celular (até 900) quem manda é a barra de baixo. */
+@media (min-width:901px){
+  body:not(.trilho-largo) #mundo-hud .vv-ilha.vv-trilho{width:68px;padding:10px 8px;align-items:center;overflow-x:hidden}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn{width:52px;height:40px;min-height:40px;padding:0;gap:0;justify-content:center;flex-direction:row}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn > span,
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-marca > b{display:none}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn.criar{width:44px;height:44px;border-radius:50%;justify-content:center}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn > svg{width:20px;height:20px;flex:none}
+}

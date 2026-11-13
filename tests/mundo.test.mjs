@@ -39,6 +39,13 @@ test('situação da peça: data do cliente manda e a mais urgente vence', () => 
   assert.equal(sit({ status: 'Pode Fazer', veiculacao_iso: '2026-11-06' }), 'hoje');
   assert.equal(sit({ status: 'Falta Briefing', veiculacao_iso: '2026-11-20' }), 'briefing');
   assert.equal(sit({ status: 'Agendado', veiculacao_iso: '2026-11-20' }), 'pronta');
+  // Pronta é só Finalizado (Paulo, 13/11/2026): Agendado e Para agendar não fecham nem com o final do banco
+  // e só atrasam pela veiculação (o prazo interno não conta para elas).
+  assert.equal(sit({ status: 'Agendado', status_final: true, veiculacao_iso: '2026-11-20' }), 'pronta');
+  assert.equal(sit({ status: 'Agendado', status_final: true, veiculacao_iso: '2026-11-05' }), 'atrasada');
+  assert.equal(sit({ status: 'Para agendar', status_final: true, veiculacao_iso: '2026-11-04' }), 'atrasada');
+  assert.notEqual(sit({ status: 'Para agendar', veiculacao_iso: '2026-11-20', prazo_iso: '2026-11-01', prazo_atrasado: true }), 'atrasada');
+  assert.equal(sit({ status: 'Qualquer', status_final: true, veiculacao_iso: '2026-11-01' }), 'concluida');
   assert.equal(sit({ status: 'Pode Fazer', veiculacao_iso: '2026-11-20' }), 'fazer');
 });
 

@@ -3,7 +3,10 @@
 function getTomorrowIso() { const dt = new Date((HOJE_ISO || new Date().toISOString().slice(0,10)) + 'T12:00:00'); dt.setDate(dt.getDate()+1); return dt.toISOString().slice(0,10); }
 
 // ─── Radar de Risco e SLA operacional ────────────────────────────────────────
-const RISK_READY_STATUSES = new Set(['Finalizado','Feito','Para agendar','Agendado']);
+// Pronta é só Finalizado (Paulo, 13/11/2026). Para agendar e Agendado esperam a postagem: seguem sem risco até a
+// data e, se ela passar sem o Finalizado, o prazo venceu.
+const RISK_READY_STATUSES = new Set(['Finalizado','Feito']);
+const RISK_AGUARDA_POSTAR = new Set(['Para agendar','Agendado']);
 const SLA_STATUS_HOURS = Object.freeze({
   'Para aprovação': 24,
   'Ag. Aprovação Cliente': 24,
@@ -36,6 +39,11 @@ function getOperationalRisk(d) {
   const due = getReferenceDate(d);
   const flowStatus = operationalFlowStatus(d);
   if (RISK_READY_STATUSES.has(flowStatus)) return { level:'safe', label:'Pronto', score:99, reason:'Etapa concluída para a operação', sla_label:'' };
+  if (RISK_AGUARDA_POSTAR.has(flowStatus)) {
+    const veic = String(d?.veiculacao_iso || '').slice(0,10) || due;
+    if (veic && veic < today) return { level:'critical', label:'Prazo vencido', score:0, reason:'A data passou e não foi marcada Finalizado', sla_label:'' };
+    return { level:'safe', label:'Aguardando postar', score:98, reason:'Produção concluída; falta postar e marcar Finalizado', sla_label:'' };
+  }
   const event = riskStatusEvent(d);
   const hoursInStatus = event ? Math.max(0, (Date.now() - Number(event.tsMs || 0)) / 3600000) : null;
   const slaHours = SLA_STATUS_HOURS[flowStatus] || 0;

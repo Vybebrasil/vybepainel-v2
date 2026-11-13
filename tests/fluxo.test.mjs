@@ -323,3 +323,24 @@ test('Cap. Agendada e Aguardo seguem direto para gravação sem portão', async 
   assert.deepEqual(gravados, ['Cap. Agendada','Aguardo']);
   assert.deepEqual(formularios, ['Falta Info']);
 });
+
+test('radar de risco: pronta é só Finalizado; Agendado e Para agendar esperam a postagem (Paulo, 13/11/2026)', () => {
+  const c = vm.createContext({ console, PESSOAS: {} });
+  vm.runInContext(fs.readFileSync('vybe-risco.js', 'utf8'), c);
+  c.HOJE_ISO = '2026-11-09';
+  c.window = {};
+  c.getReferenceDate = (d) => String(d.veiculacao_iso || d.prazo_iso || '').slice(0, 10);
+  c.operationalFlowStatus = (d) => d.status;
+  const risco = (d) => { c.d = d; vm.runInContext('r = JSON.stringify(getOperationalRisk(d));', c); return JSON.parse(c.r); };
+  for (const status of ['Finalizado', 'Feito']) {
+    const r = risco({ id: '1', status, veiculacao_iso: '2026-11-01' });
+    assert.equal(r.level, 'safe', status); assert.equal(r.label, 'Pronto', status);
+  }
+  for (const status of ['Para agendar', 'Agendado']) {
+    const passou = risco({ id: '2', status, veiculacao_iso: '2026-11-08' });
+    assert.equal(passou.level, 'critical', status); assert.equal(passou.label, 'Prazo vencido', status);
+    const futura = risco({ id: '3', status, veiculacao_iso: '2026-11-10', prazo_iso: '2026-11-01' });
+    assert.equal(futura.level, 'safe', status); assert.equal(futura.label, 'Aguardando postar', status);
+    assert.notEqual(futura.label, 'Pronto', status);
+  }
+});

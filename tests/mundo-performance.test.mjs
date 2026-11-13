@@ -20,10 +20,16 @@ test('entregas no período, no prazo do cliente e tempo de entrega', () => {
   const { VybePerformance: P } = carregar();
   const r = P.calcular({ hoje: HOJE, dias: 30, demandas: [
     peca(1, { status: 'Finalizado', veiculacao_iso: '2026-11-08', criado_em: '2026-11-01T10:00:00Z', status_updated_at: '2026-11-07T15:00:00Z' }),
-    peca(2, { status: 'Agendado', veiculacao_iso: '2026-11-03', criado_em: '2026-10-30T10:00:00Z', status_updated_at: '2026-11-05T15:00:00Z' }),
+    peca(2, { status: 'Finalizado', veiculacao_iso: '2026-11-03', criado_em: '2026-10-30T10:00:00Z', status_updated_at: '2026-11-05T15:00:00Z' }),
     peca(3, { status: 'Finalizado', veiculacao_iso: '2026-08-01', criado_em: '2026-07-01T10:00:00Z', status_updated_at: '2026-08-01T15:00:00Z' }),
+    // Pronta é só Finalizado (Paulo, 13/11/2026): Agendado com a data passada não é entrega, é atraso.
+    peca(4, { status: 'Agendado', veiculacao_iso: '2026-11-03', criado_em: '2026-10-30T10:00:00Z', status_updated_at: '2026-11-05T15:00:00Z' }),
+    peca(5, { status: 'Para agendar', veiculacao_iso: '2026-11-12', criado_em: '2026-10-30T10:00:00Z', status_updated_at: '2026-11-08T15:00:00Z' }),
   ] });
   assert.equal(r.total.entregues, 2, 'a entrega de agosto fica fora dos 30 dias');
+  assert.deepEqual([...r.total.ids.entregues].map(String).sort(), ['1', '2']);
+  assert.equal(r.total.abertas, 2, 'Agendado e Para agendar seguem abertas');
+  assert.deepEqual([...r.total.ids.atrasadas].map(String), ['4'], 'só o Agendado que passou da data atrasa');
   assert.equal(r.total.noPrazo, 1); assert.equal(r.total.atrasadasEnt, 1); assert.equal(r.total.noPrazoPct, 50);
   assert.equal(r.total.tempoMediano, 6, 'mediana de 6 e 6 dias do cadastro à entrega');
   assert.equal(r.grupos[0].nome, 'Criação'); assert.equal(r.formatos[0].entregues, 2);
