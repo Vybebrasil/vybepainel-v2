@@ -991,11 +991,11 @@ function partirPergunta(mensagem) {
 function confirmarNoPainel(mensagem, opcoes = {}) {
   const { titulo, texto } = partirPergunta(mensagem);
   const verbo = (titulo.match(/^(Comprar|Vender|Tirar|Apagar|Remover|Descartar|Guardar|Recuperar|Voltar|Mover|Vestir|Salvar|Reabrir|Aprovar|Limpar|Soltar|Fechar|Cancelar todos)/i) || [])[0];
-  return perguntarNoPainel({
-    titulo, texto,
-    confirmar: opcoes.confirmar || (verbo ? verbo.charAt(0).toUpperCase() + verbo.slice(1).toLowerCase() : 'Confirmar'),
-    perigo: opcoes.perigo ?? VERBOS_DE_PERIGO.test(titulo),
-  });
+  const confirmar = opcoes.confirmar || (verbo ? verbo.charAt(0).toUpperCase() + verbo.slice(1).toLowerCase() : 'Confirmar');
+  const perigo = opcoes.perigo ?? VERBOS_DE_PERIGO.test(titulo);
+  // O que apaga usa a janela única de apagar do padrão v2 (vbConfirmarApagar, vybe-core.js): Cancelar e o verbo em vermelho.
+  if (perigo && typeof vbConfirmarApagar === 'function') return vbConfirmarApagar({ titulo, texto, rotulo: confirmar });
+  return perguntarNoPainel({ titulo, texto, confirmar, perigo });
 }
 function nomearNoPainel(rotulo, valor = '') {
   const { titulo, texto } = partirPergunta(rotulo);

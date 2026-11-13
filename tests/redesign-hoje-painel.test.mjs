@@ -33,8 +33,10 @@ test('Hoje sem fila: pergunta de quem é o dia, guia do VYBES, agenda de hoje e 
   const semFila = pintar.slice(pintar.indexOf('if (!fila) {'), pintar.indexOf('const abertas = fila.itens'));
   assert.match(semFila, /De quem é este dia\?/);
   assert.match(semFila, /data-pessoa-dia=/);
-  assert.match(semFila, /passosDoGuia\(/, 'a mesma ordem da fila');
-  assert.match(semFila, /guiaHtml\(/, 'o mesmo guia Agora / Depois / Em seguida');
+  // Quadro "VYBES e Criar" (13/11/2026): o guia virou a conversa do VYBES, na mesma ordem da fila (passosDoGuia, em conversaHtml).
+  assert.match(semFila, /conversaHtml\(\)/, 'a conversa do VYBES no lugar do guia');
+  assert.match(funcao(src, 'conversaHtml'), /passosDoGuia\(/, 'a mesma ordem da fila');
+  assert.match(funcao(src, 'conversaHtml'), /\['Agora', 'Depois', 'Em seguida'\]/, 'os mesmos passos Agora / Depois / Em seguida');
   assert.match(semFila, /agendaDeHojeHtml\(\)/);
   assert.match(semFila, /agentesViramHtml\(\)/);
   assert.match(semFila, /criarHtml/);

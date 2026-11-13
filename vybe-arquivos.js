@@ -110,7 +110,7 @@ async function requestWorkspaceFileRemoval(assetId) {
         imagem: previa ? { url: previa, nome: asset.name } : null,
         texto: 'Ele sai desta atividade e vai para a lixeira do Drive da Vybe. A remoção fica registrada no histórico, e um administrador consegue recuperar.',
         confirmar: 'Mover para a lixeira', perigo: true })
-    : window.confirm(`Mover o arquivo "${asset.name}" para a lixeira do Drive da Vybe?`);
+    : await vbConfirmarApagar({ titulo: `Mover o arquivo "${asset.name}" para a lixeira?`, texto: 'Ele sai desta atividade e vai para a lixeira do Drive da Vybe.', rotulo: 'Mover para a lixeira' });
   if (!confirmado) return;
   const drawer = document.getElementById('workspace-drawer');
   let removido = false;

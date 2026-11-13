@@ -510,7 +510,7 @@
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
     if (id === 'perfil') { abrirPerfil(); return; }
-    ({ criar: () => chamar('openCadastrosStation'), gestor: () => chamar('chooseManagerMode'), direcao: () => chamar('chooseDaControllerMode'),
+    ({ criar: () => abrirCriar(), gestor: () => chamar('chooseManagerMode'), direcao: () => chamar('chooseDaControllerMode'),
       agenda: () => abrirEmPedacos(() => abrirAgenda()), clientes: () => abrirEmPedacos(() => chamar('chooseClientMode')), vybes: () => chamar('chooseVybesMode') })[id]?.();
   }
 
@@ -858,7 +858,9 @@
   function decidirHtml({ titulo = 'Para você decidir', artes = false } = {}) {
     const fila = filaDecidir();
     const topo = (sub) => `<div class="v2d-topo"><h3>${titulo}</h3><small>${sub}</small></div>`;
-    if (!fila) return `<aside class="v2d" aria-label="Para você decidir">${topo('lendo as aprovações')}</aside>`;
+    // A primeira leitura das aprovações pode ter sido antes do login: sem dados, lê de novo (uma vez por minuto no máximo).
+    if (!fila) { const A = window.VybeAprovacoes, e = A?.estado?.(); if (A && !e?.lendo && Date.now() - (decidirHtml.releu || 0) > 60e3) { decidirHtml.releu = Date.now(); A.atualizar(true); }
+      return `<aside class="v2d" aria-label="Para você decidir">${topo(e?.erro ? 'as aprovações não vieram agora' : 'lendo as aprovações')}${e?.erro ? `<p class="v2d-vazio">${esc(e.erro)} <button type="button" class="vg-link" data-hoje-acao="decidir-lista">abrir a lista</button></p>` : ''}</aside>`; }
     if (!fila.length) return `<aside class="v2d" aria-label="Para você decidir">${topo('nada em Para aprovação')}<p class="v2d-vazio">Nenhuma peça espera a sua aprovação agora.</p></aside>`;
     decidirEm = Math.max(0, Math.min(decidirEm, fila.length - 1));
     const carta = (i, k) => { const pos = posDecidir(k), t = pos && pos !== 'fora' ? previaDecidir(String(i.ref)) : previasDecidir[String(i.ref)];
@@ -1541,27 +1543,25 @@
       // Dois com o mesmo primeiro nome (Ewerton e Ewerton L.): o chip leva o segundo nome também.
       const repetido = (u) => time.filter((x) => nomeCurto(x) === nomeCurto(u)).length > 1;
       const nomeDoChip = (u) => (repetido(u) ? String(u.name || u.nome).split(' ').slice(0, 2).join(' ') : nomeCurto(u));
-      const topo = `${segDono}<div class="vv-hoje-topo"><span><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>${criarHtml}</div>`;
+      // Padrão v2 (quadro "VYBES e Criar", 13/11/2026): o mesmo cabeçalho de Minhas tarefas, com a pergunta "De quem é
+      // este dia?" dentro da ficha "Dia de"; a conversa do VYBES (o guia na ordem da fila, passosDoGuia, com as abas dos
+      // agentes) ao lado do Criar, que abre no lugar. Aprovações, a agenda de hoje e o que os agentes viram ficam embaixo.
       const quem = `<section class="vv-quem-dia" aria-labelledby="vv-quem-dia-t"><div class="vv-quem-dia-txt"><h3 id="vv-quem-dia-t">De quem é este dia?</h3>
           <p>Não achei sua fila pelo seu usuário. Escolha uma vez; fica guardado neste navegador.</p></div>
         ${time.length ? `<div class="vv-quem-chips" role="group" aria-label="Pessoas da equipe">${time.map((u) => `<button type="button" class="vv-pessoa-chip" data-pessoa-dia="${esc(u.id)}" title="${esc(u.name || u.nome)}">${esc(nomeDoChip(u))}</button>`).join('')}</div>`
           : vbEstadoHtml({ tipo: carregou ? 'vazio' : 'carregando', titulo: carregou ? 'Sem a lista da equipe' : 'Carregando a equipe', texto: 'A lista da equipe chega com os dados do painel.' })}</section>`;
-      let guia = '';
-      if (!carregou) guia = vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando a fila' });
-      else {
-        const todas = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : DADOS_ALL;
-        const porId = new Map(time.map((u) => [String(u.id), nomeCurto(u)]));
-        const abertasAg = todas.filter((d) => !(typeof isFinishedItem === 'function' && isFinishedItem(d)))
-          .map((d) => ({ d, sit: situacaoDaPeca(d), quem: [...new Set([...(d.responsavel_ids || []), d.responsavel_id].filter((x) => x != null).map((x) => porId.get(String(x))).filter(Boolean))] }));
-        const { urgentes: urg, passos } = passosDoGuia(abertasAg, hoje, true);
-        guia = guiaHtml({ agente: { nome: 'VYBES', papel: 'Orquestrador · guia do dia', setor: 'orquestrador' },
-          intro: !abertasAg.length ? 'Nenhuma peça aberta na agência agora.' : urg ? `A agência tem <b>${urg} atrasada${urg > 1 ? 's' : ''}</b>. Enquanto você não escolhe, a ordem da agência:` : 'Enquanto você não escolhe, a ordem da agência:',
-          passos,
-          depois: abertasAg.length > 3 ? `Depois disso, mais ${abertasAg.length - 3} na agência. <button type="button" class="vg-link" data-hoje-acao="demandas">Ver todas as demandas</button>` : '' });
+      const diaDe = `<details class="v2t-dia v2vb-dia-de"><summary class="v2t-chip"><i aria-hidden="true">?</i>Dia de: escolher<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="v2t-dia-pop">${quem}</div></details>`;
+      const topo = `<div class="v2t-topo"><span class="v2t-ola"><small class="vv-data">${esc(data)}</small><h2>${saud}${nome ? ', <em>' + esc(nome) + '</em>' : ''}</h2></span>${segDono}${diaDe}${criarHtml}</div>`;
+      const html = `<div class="v2t v2vb-hoje">${topo}<div class="v2vb-grade">${conversaHtml()}${criarPainelHtml('hoje')}</div>
+          <div class="v2vb-dia">${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}<div class="v2vb-dia-lado">${agendaDeHojeHtml()}${agentesViramHtml()}</div></div></div>`;
+      if (el.vvHtml !== html) {
+        // O que a pessoa está escrevendo para o VYBES e a ficha "Dia de" aberta sobrevivem à repintura.
+        const campo = el.querySelector('#v2vb-campo'), valor = campo?.value || '', foco = campo && document.activeElement === campo;
+        const diaAberto = Boolean(el.querySelector('.v2vb-dia-de')?.open);
+        el.innerHTML = html; el.vvHtml = html;
+        const novo = el.querySelector('#v2vb-campo'); if (novo && valor) novo.value = valor; if (novo && foco) novo.focus({ preventScroll: true });
+        if (diaAberto) el.querySelector('.v2vb-dia-de')?.setAttribute('open', '');
       }
-      const html = `${topo}${quem}<div class="vv-hoje-sem-fila">${guia}${!verComo ? (window.VybeAprovacoes?.blocoHtml?.('tarefas') || '') : ''}
-          <div class="vv-hoje-dia">${agendaDeHojeHtml()}${agentesViramHtml()}</div></div>`;
-      if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
       return;
     }
     const abertas = fila.itens.filter((x) => x.sit !== 'concluida');
@@ -1731,6 +1731,317 @@
     if (acao === 'missoes') { window.VybeMissoes?.abrir?.('missoes', verComo || undefined); window.VybeTutorial?.dica?.('missoes'); return; }
     if (acao === 'radar') chamar('chooseManagerMode');
   }
+
+  // ===== Entrada, Criar e a conversa do VYBES (quadros "Login e entrada" e "VYBES e Criar" do moodboard, 13/11/2026) =====
+  const sessaoAgora = () => { try { return typeof sessaoAtual === 'function' ? sessaoAtual() : null; } catch { return null; } };
+  const idDaSessao = () => { const s = sessaoAgora(); return s?.id != null ? String(s.id) : ''; };
+  const nomeDaSessao = () => String(sessaoAgora()?.nome || '').trim().split(/\s+/)[0];
+  const ICO = {
+    sol: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+    feito: '<path d="M5 12l4 4 10-10M5 19h14"/>',
+    aprovar: '<rect x="5" y="4" width="14" height="16" rx="3"/><path d="M9 12l2 2 4-4"/>',
+    demanda: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>',
+    plan: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+    peca: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 15l4-4 4 4 3-3 5 5"/>',
+    reuniao: '<circle cx="9" cy="9" r="3"/><path d="M3 19a6 6 0 0 1 12 0M16 7a3 3 0 0 1 0 6M18 19a5 5 0 0 0-2-4"/>',
+    mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  };
+
+  // "Continuar de onde parou": o servidor não guarda o que cada um abriu por último, então fica neste navegador, por
+  // pessoa (vybe.continuar.<id>): a última peça, demanda, planejamento ou cliente aberto, com o rótulo e a hora. Sem nada
+  // guardado, o cartão não aparece. Progresso só quando o dado existe (a revisão do planejamento pelo head).
+  const CHAVE_CONTINUAR = 'vybe.continuar.';
+  const TIPO_CONTINUAR = { peca: 'peça', demanda: 'demanda', planejamento: 'planejamento', cliente: 'ficha do cliente' };
+  function lerContinuar() {
+    const id = idDaSessao(); if (!id) return null;
+    try { const v = JSON.parse(localStorage.getItem(CHAVE_CONTINUAR + id) || 'null'); return v && TIPO_CONTINUAR[v.tipo] && v.alvo && v.rotulo ? v : null; } catch { return null; }
+  }
+  function guardarContinuar(x) {
+    const id = idDaSessao(); if (!id || !x?.alvo) return;
+    try { localStorage.setItem(CHAVE_CONTINUAR + id, JSON.stringify({ ...x, quando: new Date().toISOString() })); } catch { /* sem guardar: o cartão só não aparece */ }
+  }
+  // As funções que abrem cada coisa seguem as mesmas; por cima delas só fica a anotação do que foi aberto.
+  function vigiarContinuar() {
+    const embrulhar = (nome, depois) => {
+      const f = window[nome]; if (typeof f !== 'function' || f.vvContinuar) return;
+      const novo = function (...a) { const r = f.apply(this, a); try { depois(a, r); } catch { /* anotar é conforto */ } return r; };
+      novo.vvContinuar = true; window[nome] = novo;
+    };
+    const daPeca = (tipo) => ([id]) => {
+      const d = typeof findOperationalItem === 'function' ? findOperationalItem(id) : null;
+      const cli = d ? ((typeof clientesDoItem === 'function' ? clientesDoItem(d)[0] : d.cliente) || '') : '';
+      guardarContinuar({ tipo, alvo: String(id), rotulo: semGrito(String(d?.nome || d?.titulo || (tipo === 'demanda' ? 'Demanda' : 'Peça')).trim()), cliente: String(cli), sub: String(d?.status || '') });
+    };
+    embrulhar('openItemWorkspace', daPeca('peca'));
+    embrulhar('openDemandaWorkspace', daPeca('demanda'));
+    embrulhar('abrirPlanejamento', ([id], r) => { Promise.resolve(r).then(() => {
+      const p = typeof PLJ_ABERTO !== 'undefined' ? PLJ_ABERTO : null; if (!p || String(p.id) !== String(id)) return;
+      const rv = p.revisao || {}, mes = typeof pljMes === 'function' ? pljMes(p.mes) : String(p.mes || '');
+      guardarContinuar({ tipo: 'planejamento', alvo: String(id), rotulo: `Planejamento${mes ? ' de ' + mes : ''}`, cliente: String(p.cliente || ''),
+        ...(rv.total && ['revisar', 'ajustes'].includes(p.estado) ? { feitas: Number(rv.head_ok) || 0, total: Number(rv.total), conta: 'peças revisadas' } : {}) });
+    }).catch(() => {}); });
+    embrulhar('abrirClienteDetalhe', ([nome]) => { if (nome) guardarContinuar({ tipo: 'cliente', alvo: String(nome), rotulo: String(nome) }); });
+  }
+  function abrirContinuar() {
+    const x = lerContinuar(); if (!x) return;
+    if (x.tipo === 'peca') chamar('openItemWorkspace', x.alvo);
+    else if (x.tipo === 'demanda') chamar('openDemandaWorkspace', x.alvo);
+    else if (x.tipo === 'planejamento') chamar('abrirPlanejamento', x.alvo, 'documento');
+    else if (x.tipo === 'cliente') chamar('abrirFichaNoModulo', x.alvo);
+  }
+  function quandoAbriu(iso) {
+    const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
+    const dia = (x) => `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`, h = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return dia(d) === dia(new Date()) ? `hoje, ${h}` : dia(d) === dia(new Date(Date.now() - 864e5)) ? `ontem, ${h}` : `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}, ${h}`;
+  }
+
+  // A entrada logo depois do login (quadro "Login e entrada"): a fala do VYBES com o que pede a pessoa hoje, "Continuar de
+  // onde parou" e três atalhos. Aparece uma vez, quando a pessoa acabou de entrar pelo login (vybe-login.js marca); um
+  // toque leva ao trabalho e ela some. Os números são os mesmos do Hoje (minhaFila, VybeAprovacoes).
+  let entradaAberta = false, tourDepoisDaEntrada = false;
+  function aprovacoesEsperam() {
+    const st = window.VybeAprovacoes?.estado?.(), d = st?.dados; if (!d) return st?.erro ? -1 : null; // -1: a leitura falhou
+    const eu = d.eu || {}, todos = !(eu.clientes || []).length;
+    return [...(d.planejamentos || []), ...(d.pecas || [])].filter((i) => i.etapa === 'interna' && (todos || i.meu || (eu.diretor_arte && i.tipo === 'peca'))).length;
+  }
+  function resumoDoDia() {
+    if (typeof DADOS_ALL === 'undefined' || !Array.isArray(DADOS_ALL) || !DADOS_ALL.length) return null;
+    const fila = minhaFila(); if (!fila) return { semFila: true };
+    const hoje = hojeIso(), dataDe = (x) => veicDe(x) || x.ref || '';
+    const abertas = fila.itens.filter((x) => x.sit !== 'concluida');
+    const atrasadas = abertas.filter((x) => x.sit === 'atrasada' && !prazoDesatualizado(x, hoje)).length;
+    const paraHoje = abertas.filter((x) => !(x.sit === 'atrasada' && !prazoDesatualizado(x, hoje)) && dataDe(x) === hoje).length;
+    const feitasHoje = fila.itens.filter((x) => x.sit === 'concluida' && dataDe(x) === hoje).length;
+    return { atrasadas, paraHoje, feitasHoje, totalHoje: atrasadas + paraHoje + feitasHoje };
+  }
+  function entradaHtml() {
+    const agora = new Date(), data = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const h = agora.getHours(), saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite', nome = nomeDaSessao(), meu = idDaSessao();
+    const ini = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+    const gente = presencaDoEscritorio().filter((p) => p.nome !== 'Você' && p.id !== meu);
+    const online = gente.length ? `<span class="v2en-avs" aria-hidden="true">${gente.slice(0, 4).map((p) => `<span class="v2en-av">${esc(ini(p.nome))}</span>`).join('')}</span><small class="v2en-online">${n0(gente.length)} online</small>` : '';
+    const r = resumoDoDia(), apLido = aprovacoesEsperam(), ap = apLido === -1 ? null : apLido, dono = souDono();
+    let fala;
+    if (!r) fala = 'Estou lendo o seu dia. Já mostro o que pede você.';
+    else if (r.semFila) fala = 'Ainda não achei a sua fila pelo seu usuário. No Hoje você escolhe de quem é o dia, uma vez só.';
+    else {
+      const n = r.atrasadas + r.paraHoje + (ap || 0);
+      const partes = [r.atrasadas ? plural(r.atrasadas, 'atrasada', 'atrasadas') : '', r.paraHoje ? `${n0(r.paraHoje)} para hoje` : '', ap ? plural(ap, 'aprovação', 'aprovações') : ''].filter(Boolean);
+      fala = n ? `<b><span class="v2-num">${plural(n, 'coisa', 'coisas')}</span></b> ${n === 1 ? 'pede' : 'pedem'} você hoje: ${partes.join(', ').replace(/, ([^,]*)$/, ' e $1')}.` : 'Nada vence hoje na sua fila. Bom momento para adiantar o que vem.';
+    }
+    const c = lerContinuar();
+    const subCont = c ? [c.cliente && c.tipo !== 'cliente' ? cliCor(c.cliente) : '', esc(c.total ? `${n0(c.feitas)} de ${n0(c.total)} ${c.conta}` : c.sub || TIPO_CONTINUAR[c.tipo])].filter(Boolean).join(' · ') : '';
+    const cont = c ? `<section class="v2en-card v2en-cont" aria-labelledby="v2en-cont-t"><div class="v2en-cont-topo"><h2 id="v2en-cont-t">Continuar de onde parou</h2><small>${esc(quandoAbriu(c.quando))}</small></div>
+        <p><b>${esc(c.rotulo)}</b><small>${subCont}</small></p>${c.total ? `<span class="v2-barra" style="--v:${Math.round(Math.min(1, c.feitas / c.total) * 100)}%;--c:#11613A"><i></i></span>` : ''}
+        <button type="button" class="v2en-btn" data-entrada="continuar">Continuar</button></section>` : '';
+    const tarefas = !r ? 'lendo a sua fila' : r.semFila ? 'escolha de quem é o dia' : r.totalHoje ? `${n0(r.feitasHoje)} de ${n0(r.totalHoje)} ${rotuloDe(r.totalHoje, 'feita', 'feitas')}` : 'nada para hoje';
+    const aprov = apLido === -1 ? 'abrir a lista' : ap == null ? 'lendo as aprovações' :ap ? `${n0(ap)} ${ap === 1 ? 'espera' : 'esperam'} você` : 'nada esperando você';
+    const at = (acao, ic, titulo, sub) => `<button type="button" class="v2en-at" data-entrada="${acao}">${svg(ic)}<b>${titulo}</b><small>${esc(sub)}</small></button>`;
+    return `<div class="v2en">
+      <div class="v2en-topo"><div class="v2en-ola"><small>Vybe OS · ${esc(data)}</small><h1>${saud}${nome ? ', ' + esc(nome) : ''}</h1></div>${online}</div>
+      <section class="v2en-card v2en-fala" aria-label="VYBES"><span class="v2en-ag" aria-hidden="true">V</span><p><span class="v2en-quem">VYBES · guia da agência</span>${fala}</p></section>
+      ${cont}
+      <nav class="v2en-ats" aria-label="Ir para">${at('hoje', ICO.sol, 'Hoje', dono ? 'o dia da agência' : 'o seu dia e a agenda')}${at('tarefas', ICO.feito, 'Minhas tarefas', tarefas)}${at('aprovacoes', ICO.aprovar, 'Aprovações', aprov)}</nav>
+    </div>`;
+  }
+  function pintarEntrada() {
+    const el = document.getElementById('vv-entrada'); if (!el || !entradaAberta) return;
+    const html = entradaHtml(); if (el.vvHtml === html) return;
+    const foco = el.contains(document.activeElement) ? document.activeElement.dataset.entrada : '';
+    el.innerHTML = html; el.vvHtml = html;
+    if (foco) el.querySelector(`[data-entrada="${foco}"]`)?.focus({ preventScroll: true });
+  }
+  function mostrarEntrada() {
+    let el = document.getElementById('vv-entrada');
+    if (!el) {
+      el = document.createElement('section'); el.id = 'vv-entrada'; el.className = 'v2en-camada';
+      el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Entrada do Vybe OS');
+      document.body.append(el);
+    }
+    entradaAberta = true; el.hidden = false; body.classList.add('com-entrada'); el.vvHtml = ''; pintarEntrada();
+    // Os dados do painel chegam depois do login: enquanto a entrada está aberta, ela se atualiza sozinha.
+    clearInterval(mostrarEntrada.timer); mostrarEntrada.timer = setInterval(pintarEntrada, 2000);
+    void window.VybeAprovacoes?.atualizar?.();
+    setTimeout(() => el.querySelector('[data-entrada="continuar"], [data-entrada="hoje"]')?.focus({ preventScroll: true }), 80);
+  }
+  function fecharEntrada() {
+    if (!entradaAberta) return;
+    entradaAberta = false; body.classList.remove('com-entrada'); clearInterval(mostrarEntrada.timer);
+    const el = document.getElementById('vv-entrada'); if (el) { el.hidden = true; el.vvHtml = ''; }
+    if (tourDepoisDaEntrada) { tourDepoisDaEntrada = false; setTimeout(() => window.VybeTutorial?.iniciar?.(), 500); }
+  }
+  function acaoDaEntrada(acao) {
+    fecharEntrada();
+    if (acao === 'continuar') abrirContinuar();
+    else if (acao === 'tarefas') usarTrilho('tarefas');
+    else if (acao === 'aprovacoes') { if (window.VybeConteudo?.abrir) window.VybeConteudo.abrir({ aba: 'aprovar' }); else usarTrilho('conteudo'); }
+    else if (acao === 'hoje') { if (souDono() && !verComo) { visaoHoje = 'agencia'; try { localStorage.setItem('vybe.mundo.visaoHoje', 'agencia'); } catch { /* fica nesta tela */ } } usarTrilho('hoje'); }
+  }
+  document.addEventListener('click', (e) => { const b = e.target.closest?.('#vv-entrada [data-entrada]'); if (b) acaoDaEntrada(b.dataset.entrada); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (entradaAberta) { e.preventDefault(); fecharEntrada(); return; }
+    const j = document.getElementById('vv-criar'); if (j && !j.hidden) { e.preventDefault(); fecharCriar(); }
+  });
+  document.addEventListener('vybe:aprovacoes', () => pintarEntrada());
+
+  // Criar (quadro "VYBES e Criar"): quatro tipos. Demanda abre no lugar com o primeiro passo curto (produção ou
+  // solicitação, o cliente) à esquerda e a prévia de como chega na equipe à direita; Continuar leva ao cadastro de sempre
+  // (cadastros_governed_v2.js) já com o quadro e o cliente escolhidos. Conteúdo é o mesmo cadastro, na Produção;
+  // Planejamento abre os Planejamentos (ou o novo, com o cliente escolhido); Reunião abre a nova reunião.
+  let criarBoard = 'producao', criarCliente = '', criarAberto = true;
+  function criarPainelHtml(onde) {
+    const prev = typeof window.fcPreviaDoCriar === 'function' ? window.fcPreviaDoCriar(criarBoard) : null;
+    const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
+    const op = (board, nome, sub) => `<button type="button" role="radio" class="v2cr-op" data-criar-board="${board}" aria-checked="${criarBoard === board}"><b>${nome}</b><small>${sub}</small></button>`;
+    const tipo = (id, ic, nome, sub) => `<button type="button" class="v2cr-tipo" data-criar="${id}">${svg(ic)}<b>${nome}</b><small>${sub}</small></button>`;
+    return `<section class="v2cr" aria-label="Criar">
+      <div class="v2cr-topo"><h3>Criar</h3><small>o cartão abre no lugar, sem trocar de tela</small>${onde === 'janela' ? `<button type="button" class="v2cr-x" data-criar="sair" aria-label="Fechar">${svg(ICO.x)}</button>` : ''}</div>
+      <div class="v2-abre v2cr-dem" aria-expanded="${criarAberto}">
+        <button type="button" class="v2cr-lin" data-criar="demanda" aria-expanded="${criarAberto}">${svg(ICO.demanda)}<span class="v2cr-nome"><b>Demanda</b><small>conteúdo que a Vybe produz ou pedido que chega</small></span><span class="v2cr-passo" aria-hidden="true"><i class="on"></i><i></i><i></i></span><small class="v2cr-etapa">1 de 3 · O quê</small></button>
+        <div class="v2-mais"${criarAberto ? '' : ' inert'}><div><div class="v2cr-det">
+          <div class="v2cr-esq"><div class="v2cr-ops" role="radiogroup" aria-label="Onde a demanda entra">${op('producao', 'Produção de conteúdo', 'o que a Vybe produz e publica')}${op('demandas', 'Solicitação de demanda', 'pedido que chega e passa por triagem')}</div>
+            <p class="v2cr-clis">${criarCliente ? `<span class="v2cr-cli">${cliCor(criarCliente)}<button type="button" data-criar="sem-cliente" aria-label="Tirar ${esc(criarCliente)}">${svg(ICO.x)}</button></span>` : ''}<label class="v2cr-chip v2cr-escolhe"><span>${criarCliente ? 'trocar cliente' : '+ cliente'}</span><select data-criar-cliente aria-label="Cliente da demanda"><option value="">Escolher cliente</option>${clientes.map((c) => `<option${c === criarCliente ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></label><button type="button" class="v2cr-chip" data-criar="sazonal">Calendário sazonal</button></p></div>
+          <div class="v2cr-prev"><b>Como chega na equipe</b><span>${esc(prev?.formato || 'Formato')} · título pendente</span><span>${criarCliente ? cliCor(criarCliente) : 'Cliente: no próximo passo'}</span><span>Grupo: ${esc(prev?.grupo || 'pela regra de entrada')}</span><span>Prazos: pendentes</span><span>Equipe: ${esc(prev?.equipe || 'definida na triagem')}</span>${prev?.status ? `<span class="v2cr-pill" style="--c:${esc(prev.cor || '#8A847A')}">${esc(prev.status)}</span>` : ''}</div>
+        </div>
+        <div class="v2cr-acoes"><button type="button" class="v2cr-btn" data-criar="fechar">Fechar</button><button type="button" class="v2cr-btn k" data-criar="continuar">Continuar</button></div></div></div>
+      </div>
+      <div class="v2cr-tipos">${tipo('planejamento', ICO.plan, 'Planejamento', 'o mês de um cliente, peça a peça')}${tipo('conteudo', ICO.peca, 'Conteúdo', 'uma peça avulsa, no cadastro da produção')}${tipo('reuniao', ICO.reuniao, 'Reunião', 'grava, transcreve e sugere demandas')}</div>
+      <p class="v2cr-pe">Demanda e Conteúdo seguem para o cadastro completo; Planejamento e Reunião abrem as telas deles.</p>
+    </section>`;
+  }
+  function pintarCriar() {
+    const j = document.getElementById('vv-criar'); if (j && !j.hidden) j.firstElementChild.innerHTML = criarPainelHtml('janela');
+    const no = hud.querySelector('#vv-hoje .v2cr');
+    if (no) { const t = document.createElement('template'); t.innerHTML = criarPainelHtml('hoje').trim(); no.replaceWith(t.content.firstElementChild); const h = hud.querySelector('#vv-hoje'); if (h) h.vvHtml = ''; }
+  }
+  function alternarDemanda(abrir = !criarAberto) {
+    criarAberto = abrir;
+    document.querySelectorAll('.v2cr-dem').forEach((d) => {
+      d.setAttribute('aria-expanded', String(abrir)); d.querySelector('.v2cr-lin')?.setAttribute('aria-expanded', String(abrir));
+      const m = d.querySelector('.v2-mais'); if (m) m.inert = !abrir;
+    });
+  }
+  function abrirCriar() {
+    // No Hoje sem fila o Criar já está na tela: abre o cartão ali mesmo em vez de outra janela.
+    const no = hud.querySelector('#vv-hoje .v2cr');
+    if (no && no.getClientRects().length && !body.classList.contains('mundo-modulo') && !body.classList.contains('palco-modulo')) {
+      alternarDemanda(true); no.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); no.querySelector('[data-criar="continuar"]')?.focus({ preventScroll: true }); return;
+    }
+    let j = document.getElementById('vv-criar');
+    if (!j) {
+      j = document.createElement('div'); j.id = 'vv-criar'; j.className = 'v2cr-camada';
+      j.innerHTML = '<div class="v2cr-janela" role="dialog" aria-modal="true" aria-label="Criar"></div>';
+      j.addEventListener('click', (e) => { if (e.target === j) fecharCriar(); });
+      document.body.append(j);
+    }
+    criarAberto = true; j.hidden = false; pintarCriar();
+    setTimeout(() => j.querySelector('[data-criar="continuar"]')?.focus({ preventScroll: true }), 60);
+  }
+  function fecharCriar() { const j = document.getElementById('vv-criar'); if (j) j.hidden = true; }
+  function cadastroDoCriar(board) {
+    const inicial = { board, ...(criarCliente ? { client: criarCliente } : {}) };
+    fecharCriar();
+    if (typeof window.openCadastrosGoverned === 'function') window.openCadastrosGoverned(inicial); else chamar('openCadastrosStation');
+  }
+  function planejamentoDoCriar() {
+    fecharCriar();
+    const c = criarCliente && typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES.find((x) => String(x.nome) === criarCliente) : null;
+    if (c?.id && typeof window.novoPlanejamento === 'function') { window.novoPlanejamento(String(c.id), c.nome); return; }
+    if (window.VybePlanejamentos?.abrir) { window.VybePlanejamentos.abrir(); setTimeout(() => document.querySelector('.vv-plj details.p2-menu')?.setAttribute('open', ''), 700); }
+    else usarTrilho('planejamentos');
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest?.('.v2cr [data-criar], .v2cr [data-criar-board]'); if (!b) return;
+    if (b.dataset.criarBoard) { criarBoard = b.dataset.criarBoard; pintarCriar(); return; }
+    const a = b.dataset.criar;
+    if (a === 'demanda') alternarDemanda();
+    else if (a === 'fechar') { if (b.closest('#vv-criar')) fecharCriar(); else alternarDemanda(false); }
+    else if (a === 'sair') fecharCriar();
+    else if (a === 'continuar') cadastroDoCriar(criarBoard);
+    else if (a === 'conteudo') cadastroDoCriar('producao');
+    else if (a === 'planejamento') planejamentoDoCriar();
+    else if (a === 'reuniao') { fecharCriar(); if (window.VybeReunioes?.abrir) window.VybeReunioes.abrir(); else chamar('abrirReuniao'); }
+    else if (a === 'sazonal') { fecharCriar(); chamar('abrirCalendarioSazonal'); }
+    else if (a === 'sem-cliente') { criarCliente = ''; pintarCriar(); }
+  });
+  document.addEventListener('change', (e) => { const s = e.target.closest?.('.v2cr [data-criar-cliente]'); if (!s) return; criarCliente = s.value; pintarCriar(); });
+  // Os grupos de escolha (onde a demanda entra; com quem falar) andam com as setas, como todo grupo de opções.
+  document.addEventListener('keydown', (e) => {
+    if (!/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+    const atual = e.target.closest?.('.v2cr [role="radio"], #vv-hoje .v2vb [role="radio"]'); if (!atual) return;
+    const todos = [...atual.closest('[role="radiogroup"]').querySelectorAll('[role="radio"]')], i = todos.indexOf(atual);
+    const prox = todos[(i + (/Right|Down/.test(e.key) ? 1 : todos.length - 1)) % todos.length]; if (!prox) return;
+    e.preventDefault(); const qual = prox.dataset.criarBoard || prox.dataset.conversaAg; prox.click();
+    document.querySelector(`[data-criar-board="${qual}"], #vv-hoje [data-conversa-ag="${qual}"]`)?.focus({ preventScroll: true });
+  });
+
+  // A conversa do VYBES no Hoje sem fila (quadro "VYBES e Criar"): o guia vira o primeiro balão, com as abas dos agentes
+  // (VYBES, a agência; Danilo, a Criação; Heitor, a Coordenação de produção), as sugestões de pergunta e "Pergunte ao
+  // VYBES". A resposta é do VYBES de verdade (a central, chooseVybesMode): aqui fica o pedido enviado, sem inventar resposta.
+  const AGENTES_CONVERSA = { vybes: ['VYBES', 'Agência inteira'], danilo: ['Danilo', 'Direção de arte'], heitor: ['Heitor', 'Coordenação de produção'] };
+  let conversaAg = 'vybes', ultimaPergunta = '';
+  function conversaHtml() {
+    const hoje = hojeIso(), [nome, papel] = AGENTES_CONVERSA[conversaAg] || AGENTES_CONVERSA.vybes;
+    const carregou = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) && DADOS_ALL.length;
+    const time = (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : []).filter((u) => u?.id != null);
+    const curto = (u) => String(u.name || u.nome || '').split(' ')[0], porId = new Map(time.map((u) => [String(u.id), curto(u)]));
+    const quando = ['Agora', 'Depois', 'Em seguida'];
+    const ruim = (n) => (n ? `<b class="v2vb-ruim">${plural(n, 'atrasada', 'atrasadas')}</b>` : 'nada atrasado');
+    let bal, primeiroCli = '';
+    if (conversaAg === 'heitor') {
+      const r = window.VybeAgentes?.resumoParaHoje?.(50);
+      const l = r?.pode ? r.itens.filter((it) => /heitor/i.test(String(it.agente || ''))) : [];
+      bal = !r ? '<p>Lendo os agentes…</p>' : !r.pode ? '<p>O que o Heitor encontra na produção vai para os donos decidirem, em Depende de você.</p>'
+        : !l.length ? `<p>${r.lendo ? 'Lendo o que o Heitor viu…' : 'Nada do Heitor esperando decisão agora.'}</p>`
+        : `<p>O Heitor tem ${plural(l.length, 'ponto', 'pontos')} esperando decisão:</p>${l.slice(0, 3).map((it) => `<button type="button" class="v2vb-tar" data-hoje-acao="agente" data-valor="${esc(it.setor)}|${esc(it.chave || '')}"><i class="v2vb-cx" aria-hidden="true"></i><small>${esc(it.rotulo)}</small><span class="v2vb-t">${esc(it.titulo)}</span></button>`).join('')}`;
+      bal += '<p class="v2vb-pe"><button type="button" class="vg-link" data-hoje-acao="agentes">abrir os agentes</button></p>';
+    } else if (!carregou) bal = '<p>Lendo a fila da agência…</p>';
+    else {
+      const todas = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : DADOS_ALL;
+      const itens = conversaAg === 'danilo'
+        ? pecasDaCriacao(todas).map(({ d, ids }) => ({ d, sit: situacaoDaPeca(d), quem: ids.map((i) => porId.get(i)).filter(Boolean) }))
+        : todas.filter((d) => !(typeof isFinishedItem === 'function' && isFinishedItem(d)))
+          .map((d) => ({ d, sit: situacaoDaPeca(d), quem: [...new Set([...(d.responsavel_ids || []), d.responsavel_id].filter((x) => x != null).map((x) => porId.get(String(x))).filter(Boolean))] }));
+      const { urgentes, passos, ordem } = passosDoGuia(itens, hoje, true);
+      primeiroCli = ordem[0] ? String((typeof clientesDoItem === 'function' ? clientesDoItem(ordem[0].d)[0] : ordem[0].d.cliente) || '') : '';
+      const intro = conversaAg === 'danilo'
+        ? (itens.length ? `A Criação tem ${ruim(urgentes)}. A ordem do time:` : 'Nenhuma peça aberta no time de criação agora.')
+        : (itens.length ? `Ainda não sei qual é a sua fila: escolha em <b>Dia de</b>, no alto. A agência tem ${ruim(urgentes)}; a ordem é esta:` : 'Nenhuma peça aberta na agência agora.');
+      bal = `<p>${intro}</p>${passos.map((p, i) => `<button type="button" class="v2vb-tar" ${p.attrs} title="${p.motivo}"><i class="v2vb-cx" aria-hidden="true"></i><small>${quando[i]}</small><span class="v2vb-t">${p.titulo}</span></button>`).join('')}`
+        + (passos.length ? `<p class="v2vb-pe">${passos[0].motivo}${ordem.length > 3 ? ` · mais ${n0(ordem.length - 3)} ${conversaAg === 'danilo' ? 'no time' : 'na agência'}` : ''} · <button type="button" class="vg-link" data-hoje-acao="demandas">ver todas</button></p>` : '');
+    }
+    const av = `<span class="v2vb-ag" aria-hidden="true">${esc(nome.slice(0, 1))}</span>`;
+    const abas = Object.entries(AGENTES_CONVERSA).map(([id, [n]]) => `<button type="button" role="radio" class="v2vb-aba" data-conversa-ag="${id}" aria-checked="${conversaAg === id}">${n}</button>`).join('');
+    const sug = ['O que temos para hoje?', 'Quem está travado?', primeiroCli ? `Resumo: ${primeiroCli}` : '', 'Semana da agência'].filter(Boolean);
+    return `<section class="v2vb" aria-label="Conversa com ${esc(nome)}">
+      <div class="v2vb-cab">${av}<p><span class="v2t-quem">${esc(nome)} · ${esc(papel)}</span><b>Guia do seu dia</b></p><span class="v2vb-abas" role="radiogroup" aria-label="Com quem falar">${abas}</span></div>
+      <div class="v2vb-log" role="log" aria-live="polite"><div class="v2vb-bal">${bal}</div>
+        ${ultimaPergunta ? `<div class="v2vb-bal eu">${esc(ultimaPergunta)}</div><p class="v2vb-ouvi">pedido enviado ao VYBES: a resposta abre na janela dele</p>` : ''}</div>
+      <div class="v2vb-sug">${sug.map((s) => `<button type="button" class="v2vb-chip" data-conversa-sug="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+      <form class="v2vb-perg" data-pergunta data-setor="${conversaAg === 'vybes' ? '' : esc(nome)}"><label class="v2vb-leitor" for="v2vb-campo">Pergunte ao ${esc(nome)}</label><input id="v2vb-campo" type="text" placeholder="Pergunte ou peça ao ${esc(nome)}" autocomplete="off"><button type="button" class="v2vb-voz" data-conversa-voz aria-label="Falar com o VYBES" title="Falar com o VYBES">${svg(ICO.mic)}</button><button type="submit" class="v2vb-btn">Perguntar</button></form>
+    </section>`;
+  }
+  function pintarConversa() {
+    const no = hud.querySelector('#vv-hoje .v2vb'); if (!no) return;
+    const campo = no.querySelector('#v2vb-campo'), valor = campo?.value || '';
+    const t = document.createElement('template'); t.innerHTML = conversaHtml().trim(); no.replaceWith(t.content.firstElementChild);
+    const novo = hud.querySelector('#v2vb-campo'); if (novo && valor) novo.value = valor;
+    const h = hud.querySelector('#vv-hoje'); if (h) h.vvHtml = '';
+  }
+  function perguntarAoVybes(texto) {
+    const t = String(texto || '').trim(); if (!t) return;
+    ultimaPergunta = t; const setor = conversaAg === 'vybes' ? '' : AGENTES_CONVERSA[conversaAg][0];
+    chamar('chooseVybesMode', { pedido: setor ? `[${setor}] ${t}` : t });
+    pintarConversa();
+  }
+  hud.addEventListener('click', (e) => {
+    const b = e.target.closest?.('#vv-hoje [data-conversa-ag], #vv-hoje [data-conversa-sug], #vv-hoje [data-conversa-voz]'); if (!b) return;
+    if (b.dataset.conversaAg) { conversaAg = AGENTES_CONVERSA[b.dataset.conversaAg] ? b.dataset.conversaAg : 'vybes'; pintarConversa(); hud.querySelector(`#vv-hoje [data-conversa-ag="${conversaAg}"]`)?.focus({ preventScroll: true }); return; }
+    if (b.dataset.conversaSug) { perguntarAoVybes(b.dataset.conversaSug); return; }
+    chamar('chooseVybesMode');
+  });
   // "Pergunte ao VYBES": abre o VYBES de verdade (a central) com o pedido, que ela atende ao abrir
   // (chooseVybesMode({ pedido })). Não cria outro chat.
   hud.addEventListener('click', (e) => {
@@ -1766,6 +2077,8 @@
     const f = e.target.closest('[data-pergunta]'); if (!f) return;
     e.preventDefault();
     const texto = f.querySelector('input').value.trim();
+    // A conversa do Hoje guarda o pedido como balão (quadro "VYBES e Criar"); a resposta continua sendo da central.
+    if (f.classList.contains('v2vb-perg') && texto) { f.querySelector('input').value = ''; perguntarAoVybes(texto); return; }
     const setor = f.dataset.setor;
     chamar('chooseVybesMode', texto ? { pedido: setor ? `[${setor}] ${texto}` : texto } : undefined);
   });
@@ -3454,7 +3767,7 @@
     if (id === 'agenda' || id === 'voz') { abrirDaDireita(id); return; }
     if (id === 'musica') { abrirMusica(!body.classList.contains('musica-aberta')); return; }
     if (id === 'mic') { fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada); return; }
-    if (['busca', 'avisos', 'conta'].includes(id)) fecharJanelasDoTopo(id);
+    if (['busca', 'avisos', 'conta', 'notas', 'boletim', 'ajuda'].includes(id)) fecharJanelasDoTopo(id);
     if (id !== 'ajuda') window.VybeTutorial?.dica?.('ferr:' + id);
     if (id === 'busca') document.querySelector('[data-open-spotlight]')?.click();
     else if (id === 'camadas') mostrarCamadas();
@@ -3469,6 +3782,10 @@
     if (menos !== 'busca') document.querySelector('.spotlight-dialog[open]')?.close?.();
     if (menos !== 'avisos') fecharAvisos();
     if (menos !== 'conta') hud.querySelector('.vv-menu-conta')?.remove();
+    // Quadro Janelas do topo: Notas, Boletim e Ajuda abrem na mesma janela de 340; abrir uma fecha as outras.
+    if (menos !== 'notas' && document.getElementById('v2-notas') && typeof fecharNotas === 'function') fecharNotas();
+    if (menos !== 'boletim' && window.VybeBoletim?.aberto?.()) window.VybeBoletim.fechar();
+    if (menos !== 'ajuda' && document.querySelector('.vv-ajuda-janela, [data-tour="fechar-ajuda"]')) window.VybeTutorial?.fechar?.();
   }
   document.addEventListener?.('vybe:janela-topo', (e) => fecharJanelasDoTopo(e.detail?.qual));
   // O número do sino: notificações não lidas (o total do servidor; o ponto antigo do cabeçalho não tem número) e o que
@@ -4484,6 +4801,8 @@
   function prepararLobby() {
     const gate = document.getElementById('login-gate'); if (!gate || gate.dataset.irecity) return;
     gate.dataset.irecity = '1'; gate.classList.add('irecity');
+    // Padrão v2 (quadro "Login e entrada"): sem a cena antes do login, a porta já é o login. A chegada antiga
+    // (vybe-login.js de antes) só existe se a página vier com ela.
     const chegada = gate.querySelector('.login-chegada'); if (!chegada) return;
     const h = new Date().getHours(), saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
     chegada.innerHTML = `<span class="abr-kicker">Vybe OS · ${saud}</span>
@@ -4556,7 +4875,9 @@
       // App Agenda Vybe (/agenda, o que o Mizinho instala no celular): abre direto na Agenda e captações (no celular, no mês,
       // no jeito do Google Agenda), uma vez por carga, sem passar pelo Hoje nem pelo passeio de boas-vindas. O / não muda.
       if (APP_AGENDA && !sincronizar.agenda) { sincronizar.agenda = true; sincronizar.tour = true; setTimeout(() => usarTrilho('agenda'), 300); }
-      if (!sincronizar.tour) { sincronizar.tour = true; setTimeout(() => window.VybeTutorial?.iniciar?.(), 1200); }
+      // Logo depois do login, a entrada (quadro "Login e entrada") vem antes de tudo; o passeio espera ela fechar.
+      if (window.VYBE_ACABOU_DE_ENTRAR && !APP_AGENDA) { window.VYBE_ACABOU_DE_ENTRAR = false; vigiarContinuar(); mostrarEntrada(); }
+      if (!sincronizar.tour) { sincronizar.tour = true; setTimeout(() => { if (entradaAberta) tourDepoisDaEntrada = true; else window.VybeTutorial?.iniciar?.(); }, 1200); }
       if (centroAberto) { carregar(); mundo?.pausar(false); } else { mundo?.pausar(true); void garantirModulo(); } pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
       if (!timer) timer = setInterval(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); void carregarAgentes(); }, 5000);
     } else {
@@ -4673,6 +4994,8 @@
     addEventListener('resize', ajustarAreaLivre);
     // Dock largo ou de ícones (escolha da pessoa; no celular sempre a barra de baixo).
     aplicarDock(); addEventListener('resize', aplicarDock);
+    // "Continuar de onde parou": anota o que a pessoa abre (peça, demanda, planejamento, cliente) neste navegador.
+    vigiarContinuar();
     // Preferência na janela de Aparência (vybe-appearance.js), ao lado do vidro e do movimento.
     const form = document.querySelector('.appearance-dialog form');
     if (form && !form.querySelector('#appearance-mundo')) {

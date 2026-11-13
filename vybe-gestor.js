@@ -108,6 +108,7 @@ function vybeTagCliente(item) {
 // Status sempre clicável: era pílula morta na fila de demandas e no modo
 // reunião, e trocar exigia abrir a peça.
 function vybeStatus(item) {
+  if (typeof pv2Ligado === 'function' && pv2Ligado()) return pv2StatusBotao(item);
   const rotulo = item?.status || 'Sem status';
   const pill = pillHtml(rotulo, item?.status_color, item?.status_border);
   return `<button type="button" class="vybe-status-btn"
@@ -235,12 +236,14 @@ function pillHtml(s, color='', border='') {
 function managerStatusControl(item, { comTempo = true } = {}) {
     const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Vybe OS`;
     const cor = item.status_color || (typeof corDeStatus === 'function' ? corDeStatus(item.status)?.cor : '') || '';
-    const pill = `<button type="button" class="manager-status-control" onclick="openStatusEditor(event,'${item.id}')" title="${label}" aria-label="${label}">${pillHtml(item.status, cor, item.status_border)}</button>`;
-    
+    // No mundo, a pílula do padrão v2 com a setinha (quadro Status); no tema antigo, a de sempre.
+    const pill = pv2Ligado() ? pv2StatusBotao(item) : `<button type="button" class="manager-status-control" onclick="openStatusEditor(event,'${item.id}')" title="${label}" aria-label="${label}">${pillHtml(item.status, cor, item.status_border)}</button>`;
+
     if (!comTempo || !item.status_updated_at || ['Finalizado', 'Agendado', 'Para agendar'].includes(item.status)) {
         return pill;
     }
-    
+    if (pv2Ligado()) return `<span class="pv2-st-com-tempo">${pill}<span class="live-timer pv2-st-tempo" data-start="${safeText(item.status_updated_at)}" title="Tempo neste status" onclick="event.stopPropagation()">00:00:00</span></span>`;
+
     const isRunning = item.status === 'Em andamento';
     const color = isRunning ? '#00f0ff' : '#9cafba';
     const border = isRunning ? 'rgba(0,240,255,0.2)' : 'rgba(255,255,255,0.08)';
@@ -592,7 +595,7 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
     // Mesmas peças da fila de demandas e da visão por grupo, arrumadas para a
     // largura desta coluna. O ID e a captação entram aqui: faltavam.
     return `
-    <div class="item-row${isUrgent?' urgent':''}">
+    <div class="item-row${isUrgent?' urgent':''}${pv2Ligado()?pv2Chegou(d):''}">
       <span class="item-date">${diaSem} ${getDateFmt(d)}${prazoAtrasadoBadge}</span>
       ${vybeChipId(d)}
       ${fmtHtml(d.formato)}
@@ -1390,14 +1393,14 @@ function renderDailyClose(){
   // colado na etiqueta. Agora os números são uma leitura em uma linha e as duas
   // listas usam a linha de duas alturas: peça em cima, cliente e quem responde
   // embaixo, status à direita.
-  const linha = (d) => `<div class="ops-linha" role="button" tabindex="0" title="Abrir ${safeText(d.nome)}"
+  const linha = (d) => `<div class="ops-linha${pv2Ligado() ? pv2Chegou(d) : ''}" role="button" tabindex="0" title="Abrir ${safeText(d.nome)}"
       onclick="openItemWorkspace('${d.id}')"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openItemWorkspace('${d.id}')}">
       <div class="ops-linha-corpo"><b>${safeText(d.nome)}</b>
         <span class="ops-linha-apoio"><span class="ops-linha-cliente">${safeText(d.cliente || 'Sem cliente')}</span>${
           opsOwnerLabel(d) ? `<span>${safeText(opsOwnerLabel(d))}</span>` : '<span class="ops-linha-sem">sem responsável</span>'}</span>
       </div>
-      ${pillHtml(d.status, d.status_color, d.status_border)}
+      ${pv2Ligado() ? pv2StatusBotao(d) : pillHtml(d.status, d.status_color, d.status_border)}
     </div>`;
   const lista = (items, empty) => items.length
     ? items.slice(0, 5).map(linha).join('') + (items.length > 5 ? `<div class="ops-linha-mais">+ ${items.length - 5} no painel</div>` : '')
@@ -1621,7 +1624,7 @@ function filaLinhaHtml(d, motivo, { rotulo = false } = {}) {
   const marca = rotulo
     ? `<span class="acao-motivo m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}"><i aria-hidden="true"></i>${safeText(motivo.rotulo)}</span>`
     : `<span class="acao-marca m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}" aria-label="${safeText(motivo.rotulo)}"></span>`;
-  return `<article class="acao-linha${marcada ? ' marcada' : ''}${rotulo ? ' com-rotulo' : ''}" data-id="${safeText(String(d.id))}"
+  return `<article class="acao-linha${marcada ? ' marcada' : ''}${rotulo ? ' com-rotulo' : ''}${pv2Ligado() ? pv2Chegou(d) : ''}" data-id="${safeText(String(d.id))}"
       onclick="acaoAbrirPeca('${safeText(String(d.id))}',event)" title="Abrir ${safeText(d.nome || 'a atividade')}">
       <label class="acao-marcar" onclick="event.stopPropagation()"><input type="checkbox" ${marcada ? 'checked' : ''}
         data-id="${safeText(String(d.id))}" onclick="filaMarcar(this,event)" aria-label="Marcar ${safeText(d.nome || 'atividade')}"></label>
@@ -1995,17 +1998,16 @@ function pv2CartaoHtml(d, aba) {
   const feita = atividadeDoDiaConcluida(d);
   const previa = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d) : '';
   const datas = [d.prazo_iso ? `prazo ${pv2DiaMes(d.prazo_iso)}` : '', d.veiculacao_iso ? `no ar ${pv2DiaMes(d.veiculacao_iso)}` : !isRequestItem(d) ? '' : d.conclusao_iso ? `conclusão ${pv2DiaMes(d.conclusao_iso)}` : ''].filter(Boolean).join(' · ');
-  return `<article class="pv2-pc v2-abre${marcada ? ' marcada' : ''}${feita ? ' feita' : ''}" data-cartao="${id}" aria-expanded="${aberto}" draggable="true"
+  return `<article class="pv2-pc v2-abre${marcada ? ' marcada' : ''}${feita ? ' feita' : ''}${pv2Chegou(d)}" data-cartao="${id}" aria-expanded="${aberto}" draggable="true"
       ondragstart="managerCalendarDragStart('${isRequestItem(d) ? 'request' : 'content'}','${id}',event)" ondragend="managerCalendarDragEnd()">
     <div class="pv2-pc-lin" role="button" tabindex="0" aria-expanded="${aberto}" title="Abrir no lugar. Arraste para mudar a data"
         onclick="pv2AlternarCartao('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2AlternarCartao('${id}',this)}">
       <p class="pv2-t">${safeText(titulo)}</p>
-      <div class="pv2-r">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}">+${clientes.length - 1}</span>` : ''}${pv2Pill(d.status)}<span class="pv2-avs">${pv2Av(d)}</span></div>
+      <div class="pv2-r">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}">+${clientes.length - 1}</span>` : ''}${pv2StatusBotao(d)}<span class="pv2-avs">${pv2Av(d)}</span></div>
     </div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
       ${datas || aba === 'pendencias' ? `<p class="pv2-sub">${aba === 'pendencias' ? (data ? `Entrega ${pv2DiaMes(data)}` : 'Sem data') + (datas ? ' · ' : '') : ''}${datas}</p>` : ''}
-      <div class="pv2-det-acoes"><button type="button" class="pv2-btn s k" onclick="openItemWorkspace('${id}')">Abrir a peça</button>
-        <button type="button" class="pv2-btn s" onclick="openStatusEditor(event,'${id}')">Trocar status</button>${previa}
+      <div class="pv2-det-acoes"><button type="button" class="pv2-btn s k" onclick="openItemWorkspace('${id}')">Abrir a peça</button>${previa}
         <label class="pv2-lote" title="Marcar para ação em lote"><input type="checkbox" ${marcada ? 'checked' : ''} data-day-item="${id}" aria-label="Marcar ${safeText(d.nome || '')}" onclick="alternarSelecao('${id}',this.checked,event,ORDEM_VISIVEL_DO_DIA)">Marcar</label></div>
     </div></div></div>
   </article>`;
@@ -2068,3 +2070,70 @@ function pv2RenderDias(sem, filter, dayFilter) {
   pintarSeletorDeSemana();
 }
 try { pv2Montar(); } catch { /* a tela antiga segue valendo */ }
+
+// ----- o status mora na linha, com a setinha (quadro Status, passos 1 e 3) -----
+// A pílula do status é o botão que abre o menu curto (openStatusEditor, em vybe-status.js). Enquanto grava, gira no
+// lugar (v2-estado "indo"); quando a lista volta desenhada com o status novo, a pílula aparece verde com o visto e a
+// linha chega deslizando (v2-chegou), e depois de um instante a pílula assenta na cor do status. O aviso "Movida para"
+// com Desfazer é do commitStatusChange. Vale para qualquer lista que desenhe a pílula por aqui.
+const pv2StatusVisto = new Map(), pv2StatusMudou = new Map();
+const PV2_ST_CHEGADA = 1600;
+let pv2AssentarRelogio = 0;
+function pv2StatusChegouAgora(d) {
+  const id = String(d?.id ?? ''), st = String(d?.status || '');
+  if (!id) return false;
+  const antes = pv2StatusVisto.get(id);
+  pv2StatusVisto.set(id, st);
+  if (antes !== undefined && antes !== st) pv2StatusMudou.set(id, Date.now());
+  const em = pv2StatusMudou.get(id);
+  if (em && Date.now() - em < PV2_ST_CHEGADA) return true;
+  if (em) pv2StatusMudou.delete(id);
+  return false;
+}
+function pv2Chegou(d) { return pv2StatusChegouAgora(d) ? ' v2-chegou' : ''; }
+function pv2AgendarAssentar() {
+  if (typeof document === 'undefined') return;
+  clearTimeout(pv2AssentarRelogio);
+  pv2AssentarRelogio = setTimeout(() => document.querySelectorAll('.pv2-st[data-estado="feito"]').forEach((b) => { b.removeAttribute('data-estado'); b.querySelector('.pv2-st-ok')?.remove(); }), 1400);
+}
+function pv2StatusBotao(d) {
+  const id = safeText(d?.id ?? ''), rotulo = String(d?.status || 'Sem status'), chegou = pv2StatusChegouAgora(d);
+  if (chegou) pv2AgendarAssentar();
+  const dica = `Trocar status de ${safeText(d?.nome || 'atividade')}`;
+  return `<button type="button" class="pv2-st ${pv2Tom(rotulo)}${chegou ? ' v2-estado' : ''}" data-v2-st="${id}"${chegou ? ' data-estado="feito"' : ''} aria-haspopup="menu" aria-expanded="false" title="${dica}" aria-label="${safeText(rotulo)}. ${dica}" onclick="event.stopPropagation();openStatusEditor(event,'${id}')">${chegou ? `<i class="pv2-st-ok" aria-hidden="true">${PV2_IC.ok}</i>` : ''}<span class="pv2-st-rot">${safeText(rotulo)}</span><i class="pv2-st-seta" aria-hidden="true">${PV2_IC.baixo}</i></button>`;
+}
+// Escolheu no menu: a pílula daquela peça gira até a lista voltar desenhada. Se abriu um portão (a caixa de contexto)
+// ou a gravação terminou sem redesenhar (recusada, ou o mesmo status), ela volta a ser a pílula de antes.
+function pv2StatusIndo(ev) {
+  const op = ev.target?.closest?.('#status-editor button.status-editor-option');
+  if (!op || op.hasAttribute('data-status-todos')) return;
+  const id = typeof statusEditorItemId === 'undefined' ? '' : String(statusEditorItemId || '');
+  if (!id) return;
+  const pilulas = [...document.querySelectorAll('.pv2-st[data-v2-st]')].filter((b) => b.dataset.v2St === id);
+  if (!pilulas.length) return;
+  pilulas.forEach((b) => { b.classList.add('v2-estado'); b.dataset.estado = 'indo'; b.setAttribute('aria-busy', 'true'); });
+  const inicio = Date.now();
+  const solta = () => pilulas.forEach((b) => { if (b.dataset.estado === 'indo') { b.removeAttribute('data-estado'); b.removeAttribute('aria-busy'); } });
+  const olha = () => {
+    if (!pilulas.some((b) => b.isConnected)) return;
+    const gravando = typeof statusEmGravacao !== 'undefined' && statusEmGravacao.has(id);
+    if (document.getElementById('workflow-modal') || (!gravando && Date.now() - inicio > 300) || Date.now() - inicio > 20000) { solta(); return; }
+    setTimeout(olha, 150);
+  };
+  setTimeout(olha, 150);
+}
+// A pílula que abriu o menu fica marcada (aria-expanded, a setinha vira para cima) enquanto o menu está na tela.
+function pv2StatusAberto(ev) {
+  const pilula = ev.target?.closest?.('.pv2-st[data-v2-st]');
+  if (!pilula) return;
+  setTimeout(() => {
+    if (!document.getElementById('status-editor')) return;
+    pilula.setAttribute('aria-expanded', 'true');
+    const olha = () => { if (document.getElementById('status-editor') && pilula.isConnected) setTimeout(olha, 200); else pilula.setAttribute('aria-expanded', 'false'); };
+    setTimeout(olha, 200);
+  }, 0);
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('click', pv2StatusIndo, true);
+  document.addEventListener('click', pv2StatusAberto, true);
+}

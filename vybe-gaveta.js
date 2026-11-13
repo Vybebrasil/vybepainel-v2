@@ -220,9 +220,116 @@ async function gavetaAvancar(itemId, botao) {
 }
 function gavetaEsqueletoHtml(rotulo) {
   const l = (w, h = 12, r = 6) => `<i class="gv2-sk" style="width:${w};height:${h}px;border-radius:${r}px"></i>`;
-  return `<div class="gv2 gv2-carregando" aria-busy="true" aria-label="${rotulo}">
+  return `<div class="gv2 gv2-carregando" aria-busy="true" aria-label="${rotulo}">${gavetaPegaHtml()}
     <div class="gv2-topo"><p class="gv2-sub gv2-onde">${rotulo}</p><button type="button" class="gv2-ic gv2-fechar" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${GAVETA_ICONE.fechar}</button></div>
     ${l('72%', 26, 8)}${l('46%', 22, 999)}${l('100%', 66, 14)}${l('64%', 38, 999)}${l('100%', 12)}${l('88%', 12)}${l('70%', 12)}${l('100%', 46, 14)}</div>`;
+}
+// A GAVETA NO CELULAR (quadro "No celular", Demanda aberta em folha).
+//
+// Abaixo de 600 px a gaveta sobe de baixo para cima como folha: o puxador, o atraso, o título, o cliente com a data e quem
+// responde, a prévia da arte, as quatro etapas em texto com a atual em negrito, a lista do que falta e, no pé, Pedir
+// alteração e Aprovar. O resto da peça (datas, briefing, arquivos, conversa, histórico, comentário, passar bastão) continua
+// na mesma gaveta, a um toque: "ver a peça inteira" estica a folha e mostra tudo como antes.
+const GAVETA_ETAPAS = ['Criação', 'aprovação interna', 'cliente', 'pronta'];
+function etapaDaPeca(item) {
+  const s = String((typeof operationalFlowStatus === 'function' ? operationalFlowStatus(item) : item?.status) || item?.status || '').trim().toLowerCase();
+  if (/finaliz|agendad|para agendar|publicad|postad|entregue|conclu/.test(s)) return 3;
+  if (/cliente/.test(s)) return 2;
+  if (/aprova|ag\. interno|revis/.test(s)) return 1;
+  return 0;
+}
+function gavetaHojeIso() {
+  return (typeof HOJE_ISO === 'string' && HOJE_ISO) || new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10);
+}
+function gavetaAtrasoHtml(item) {
+  const p = String(item?.prazo_iso || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(p) || etapaDaPeca(item) === 3) return '';
+  const dias = Math.round((Date.parse(gavetaHojeIso()) - Date.parse(p)) / 864e5);
+  if (dias > 0) return `<span class="gv2-cel-pill r">Atrasada ${dias} ${dias === 1 ? 'dia' : 'dias'}</span>`;
+  return dias === 0 ? '<span class="gv2-cel-pill a">Prazo hoje</span>' : '';
+}
+// Aprovar e Pedir alteração só aparecem na aprovação interna e quando o quadro da peça tem os dois status de destino;
+// os dois abrem os portões de sempre (os mesmos do "Para você decidir" do Hoje), nada grava direto daqui.
+function gavetaDecisaoDaPeca(item) {
+  const st = String(item?.status || '');
+  if (!/aprova/i.test(st) || /cliente/i.test(st)) return null;
+  const opcoes = typeof operationalStatusOptions === 'function' ? operationalStatusOptions(item) : [];
+  const achar = (alvo) => opcoes.find((o) => String(o?.label || '').trim().toLowerCase() === alvo) || null;
+  // Aprovar leva a "Para agendar"; o quadro que não tem esse status aprova mandando para o status seguinte ao atual.
+  const seguinte = proximoStatusDaPeca(item);
+  const aprovar = achar('para agendar') || (seguinte && !/altera/i.test(seguinte.label) ? seguinte : null), alterar = achar('alteração');
+  return aprovar && alterar ? { aprovar, alterar } : null;
+}
+function gavetaDecidir(itemId, acao) {
+  const item = findOperationalItem(itemId);
+  const d = item ? gavetaDecisaoDaPeca(item) : null;
+  const portao = acao === 'aprovar' ? globalThis.openQualityGate : globalThis.openStatusContextGate;
+  if (!d || typeof portao !== 'function') return showToast('Esta peça não está em aprovação interna.', 'info');
+  portao(item, acao === 'aprovar' ? d.aprovar : d.alterar);
+}
+function gavetaInteira(sim) {
+  const drawer = document.getElementById('workspace-drawer');
+  if (!drawer) return;
+  drawer.classList.toggle('gv2-folha-inteira', !!sim);
+  drawer.querySelector('.gv2-corpo')?.scrollTo?.(0, 0);
+}
+// O puxador: arrastar para baixo fecha, para cima estica; um toque alterna entre a folha e a peça inteira.
+function gavetaPuxar(evento) {
+  const pega = evento.currentTarget;
+  const y0 = evento.clientY;
+  let dy = 0;
+  const mexe = (e) => { dy = e.clientY - y0; };
+  const solta = () => {
+    pega.removeEventListener('pointermove', mexe); pega.removeEventListener('pointerup', solta); pega.removeEventListener('pointercancel', solta);
+    const drawer = document.getElementById('workspace-drawer');
+    if (dy > 70) closeItemWorkspace();
+    else if (dy < -40) gavetaInteira(true);
+    else if (Math.abs(dy) < 8) gavetaInteira(!drawer?.classList.contains('gv2-folha-inteira'));
+  };
+  pega.setPointerCapture?.(evento.pointerId);
+  pega.addEventListener('pointermove', mexe); pega.addEventListener('pointerup', solta); pega.addEventListener('pointercancel', solta);
+}
+function gavetaPegaHtml() {
+  return '<span class="gv2-pega" role="button" tabindex="0" aria-label="Puxador: arraste para baixo para fechar, toque para ver a peça inteira" onpointerdown="gavetaPuxar(event)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();gavetaInteira(!this.closest(\'#workspace-drawer\')?.classList.contains(\'gv2-folha-inteira\'))}"><i aria-hidden="true"></i></span>';
+}
+function gavetaCelularHtml(detail, item, assets) {
+  const id = safeText(String(item.id));
+  const ehPedido = typeof isRequestItem === 'function' ? isRequestItem(item) : false;
+  const clientes = (typeof clientesDoItem === 'function' ? clientesDoItem(item) : [item.cliente]).filter(Boolean);
+  const data = ehPedido ? item.conclusao || item.veiculacao : item.veiculacao;
+  const quando = data && data !== '—' ? `${ehPedido ? 'conclusão' : 'veicula'} ${safeText(data)}` : (ehPedido ? 'sem data de conclusão' : 'sem veiculação');
+  const imagem = (assets || []).find((a) => (a?.public_url || a?.url) && /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(a.name || a.file_extension || a.public_url || a.url || '')));
+  const previa = imagem
+    ? `<a class="gv2-cel-arte" href="${safeText(imagem.public_url || imagem.url)}" target="_blank" rel="noopener"><img src="${safeText(imagem.public_url || imagem.url)}" alt="Prévia da arte de ${safeText(item.nome)}" loading="lazy"></a>`
+    : `<span class="gv2-cel-arte vazia" role="button" tabindex="0" onclick="document.getElementById('workspace-file-input').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Sem arte anexada · toque para enviar</span>`;
+  const etapa = etapaDaPeca(item);
+  const texto = GAVETA_ETAPAS.map((e, k) => (k === etapa ? `<b>${safeText(e)}</b>` : safeText(e))).join(', ');
+  const marca = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const linha = (estado, rotulo, sub = '') => `<div class="gv2-cel-lin"><i class="gv2-cel-cx ${estado}">${estado === 'vazio' ? '' : marca}</i><p>${rotulo}</p>${sub ? `<span class="gv2-sub">${sub}</span>` : ''}</div>`;
+  const subitens = detail?.subitens || [];
+  const maiusc = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const lista = subitens.length
+    ? subitens.slice(0, 4).map((s) => linha(/^(feito|conclu|aprovado)/i.test(String(s.status || '')) ? 'ok' : 'vazio', safeText(s.titulo || 'Subdemanda'), safeText(s.status || ''))).join('')
+      + (subitens.length > 4 ? `<p class="gv2-sub gv2-cel-mais">+ ${subitens.length - 4} na peça inteira</p>` : '')
+    : GAVETA_ETAPAS.map((e, k) => linha(k < etapa ? 'ok' : k === etapa ? 'vivo' : 'vazio', safeText(maiusc(e)), k === etapa ? safeText(item.status || '') : '')).join('');
+  const decisao = gavetaDecisaoDaPeca(item);
+  const proximo = proximoStatusDaPeca(item);
+  const pe = decisao
+    ? `<button type="button" class="gv2-cel-btn" onclick="gavetaDecidir('${id}','alterar')">Pedir alteração</button><button type="button" class="gv2-cel-btn k principal" onclick="gavetaDecidir('${id}','aprovar')">Aprovar</button>`
+    : proximo
+      ? `<button type="button" class="gv2-cel-btn k principal v2-estado" onclick="gavetaAvancar('${id}',this)"><span class="gv2-avancar-texto">${safeText(/^para\s/i.test(proximo.label) ? `Enviar ${proximo.label.charAt(0).toLowerCase()}${proximo.label.slice(1)}` : `Enviar para ${proximo.label}`)}</span></button>`
+      : `<button type="button" class="gv2-cel-btn k principal" onclick="openStatusEditor(event,'${id}')">Trocar status</button>`;
+  return `<div class="gv2-cel">
+      <div class="gv2-cel-topo">${gavetaAtrasoHtml(item)}<span class="gv2-cel-st" role="button" tabindex="0" aria-label="Status: ${safeText(item.status)}. Trocar" onclick="openStatusEditor(event,'${id}')" onkeydown="if(event.key==='Enter'||event.key===' ')openStatusEditor(event,'${id}')">${gavetaPilulaHtml(item.status, item.status_color, GAVETA_ICONE.seta)}</span><span class="gv2-cel-vao"></span>
+        ${menuDeAcoesDaPecaHtml(item, { linkELog: true })}<button type="button" class="gv2-cel-ic" onclick="closeItemWorkspace()" aria-label="Fechar">${GAVETA_ICONE.fechar}</button></div>
+      <h2 class="gv2-cel-titulo">${safeText(item.nome)}</h2>
+      <p class="gv2-sub gv2-cel-cli"><span class="gv2-clientes">${clientes.map(cliCor).join(' ') || 'Cliente não informado'}</span><span>${quando}</span>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'gv2-cel-dono') : ''}</p>
+      ${previa}
+      <div class="gv2-cel-etapas"><span class="v2-barra" style="--v:${(etapa + 1) * 25}%;--c:#6E56CF"><i></i></span><p class="gv2-sub">${texto}</p></div>
+      <div class="gv2-cel-lista">${lista}</div>
+      <p class="gv2-sub gv2-cel-tudo">Datas, briefing, arquivos, conversa e histórico · <span class="gv2-lk" role="button" tabindex="0" onclick="gavetaInteira(true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gavetaInteira(true)}">ver a peça inteira</span></p>
+      <div class="gv2-cel-pe">${pe}</div>
+    </div>`;
 }
 function gavetaLinkHtml() {
   return `<div class="entrega-link gv2-link"><label class="gv2-fora" for="workspace-link-input">Link do material</label><input id="workspace-link-input" class="workspace-input gv2-campo" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWorkspaceLink()}">
@@ -278,7 +385,9 @@ function gavetaLinkHtml() {
       <div class="gv2-conversa">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<p class="gv2-vazio">Sem atualizações ainda. Escreva a primeira no campo aqui embaixo.</p>'}</div>`;
   const historico = `${etapas || '<p class="gv2-vazio">Ainda não há troca de etapa registrada.</p>'}
       <div class="gv2-log">${botaoDoLogHtml(item.id)}<span class="gv2-sub">quem fez o quê nesta peça, com dia e hora</span></div>`;
-  drawer.innerHTML = `<div class="gv2">
+  drawer.classList.add('gv2-folha');
+  drawer.innerHTML = `<div class="gv2 gv2-tem-cel">
+      ${gavetaPegaHtml()}${gavetaCelularHtml(detail, item, assets)}
       <input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
       <div class="gv2-topo"><button type="button" class="workspace-voltar" onclick="closeItemWorkspace()" aria-label="Voltar" title="Voltar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
         <p class="gv2-sub gv2-onde">${ehPedido ? 'Solicitação' : 'Conteúdo'} · <span class="gv2-id" role="button" tabindex="0" onclick="copiarId('${id}')" onkeydown="if(event.key==='Enter')copiarId('${id}')" title="ID da atividade · clique para copiar">nº ${safeText(String(item.id).replace(/^vybe:/, ''))}</span></p>
@@ -322,7 +431,7 @@ async function openItemWorkspace(itemId) {
   const backdrop = document.createElement('div');
   backdrop.id = 'workspace-backdrop'; backdrop.className = 'workspace-backdrop'; backdrop.onclick = closeItemWorkspace;
   const drawer = document.createElement('aside');
-  drawer.id = 'workspace-drawer'; drawer.className = 'gv2-gaveta'; drawer.innerHTML = gavetaEsqueletoHtml('Carregando a peça');
+  drawer.id = 'workspace-drawer'; drawer.className = 'gv2-gaveta gv2-folha'; drawer.innerHTML = gavetaEsqueletoHtml('Carregando a peça');
   ABA_DA_GAVETA = 'resumo';
   document.body.append(backdrop, drawer);
   try {
@@ -352,7 +461,7 @@ async function openDemandaWorkspace(itemId) {
   const backdrop = document.createElement('div');
   backdrop.id = 'workspace-backdrop'; backdrop.className = 'workspace-backdrop'; backdrop.onclick = closeItemWorkspace;
   const drawer = document.createElement('aside');
-  drawer.id = 'workspace-drawer'; drawer.className = 'gv2-gaveta';
+  drawer.id = 'workspace-drawer'; drawer.className = 'gv2-gaveta gv2-folha gv2-folha-inteira';
   drawer.innerHTML = gavetaEsqueletoHtml('Carregando a solicitação');
   document.body.append(backdrop, drawer);
   try {
@@ -375,7 +484,8 @@ function renderDemandaWorkspace(detail, item) {
     ATUALIZACOES_DA_GAVETA = updates;
     const fechar = typeof GAVETA_ICONE !== 'undefined' ? GAVETA_ICONE.fechar : '×';
     const cliente = item.cliente ? (typeof cliCor === 'function' ? cliCor(item.cliente) : safeText(item.cliente)) : 'Cliente não informado';
-    drawer.innerHTML = `<div class="gv2 gv2-sol">
+    const pega = typeof gavetaPegaHtml === 'function' ? gavetaPegaHtml() : '';
+    drawer.innerHTML = `<div class="gv2 gv2-sol">${pega}
       <div class="gv2-topo"><p class="gv2-sub gv2-onde">Solicitação · nº ${safeText(String(item.id).replace(/^vybe:/, ''))}</p>${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { demanda: true, icone: true })}<button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${fechar}</button></div>
       <div class="gv2-cab"><h2 class="gv2-titulo">${safeText(item.nome)}</h2>
         <div class="gv2-linha"><span class="gv2-clientes">${cliente}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}<span class="gv2-sub">${safeText(item.tipo || 'Solicitação')}</span></div></div>

@@ -33,7 +33,7 @@
 #vv-carteira .vc-abas [role="tab"][aria-selected="true"]{color:#C2490C;border-bottom-color:#C2490C}
 /* Com um módulo aberto, a regra geral de selecionado de vybe-mundo.css pinta o fundo de laranja 13%
    (com !important): aqui a aba é sublinhada, então vence só dentro da Carteira. */
-#vv-carteira .vc-abas [role="tab"][aria-selected="true"]:not(#vc-a):not(#vc-b):not(#vc-c){background:transparent!important;border-color:transparent transparent #C2490C!important;color:#C2490C!important}
+#vv-carteira .vc-abas:not(.vb-abas) [role="tab"][aria-selected="true"]:not(#vc-a):not(#vc-b):not(#vc-c){background:transparent!important;border-color:transparent transparent #C2490C!important;color:#C2490C!important}
 
 #vv-carteira .vc-aviso{flex:none;margin:8px 16px 0;padding:8px 12px;border-radius:8px;background:#FFF6DE;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-carteira .vc-aviso:empty{display:none}

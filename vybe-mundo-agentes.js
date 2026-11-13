@@ -812,7 +812,12 @@
       return;
     }
     if (b.dataset.vgaLicao) { chamar({ licao: b.dataset.vgaId, acao: b.dataset.vgaLicao }, 'achado', 'Lição atualizada.', b.dataset.vgaDe || st.setor); return; }
-    if (b.dataset.vgaAcao) { if (b.dataset.vgaAcao === 'remover' && !confirm('Remover esta atribuição?')) return; chamar({ acao: b.dataset.vgaAcao, id: b.dataset.vgaId }); }
+    if (b.dataset.vgaAcao) {
+      const acao = b.dataset.vgaAcao, id = b.dataset.vgaId;
+      if (acao !== 'remover') { chamar({ acao, id }); return; }
+      const pergunta = typeof vbConfirmarApagar === 'function' ? vbConfirmarApagar({ titulo: 'Remover esta atribuição?', rotulo: 'Remover' }) : Promise.resolve(confirm('Remover esta atribuição?'));
+      pergunta.then((sim) => { if (sim) chamar({ acao, id }); });
+    }
   }
   function aoEnviar(e) {
     const fe = e.target.closest('[data-vga-estado-form]');

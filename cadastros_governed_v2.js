@@ -594,6 +594,21 @@ function fcGrupoDoQuadro(grupo) {
   const grupos = fcQuadro().grupos;
   return grupos.some((g) => g.val === grupo) ? grupo : grupos[0].val;
 }
+// Prévia do Criar (o cartão Demanda que abre no lugar, vybe-mundo.js): como a demanda chega na equipe antes de abrir
+// este cadastro, pelas mesmas regras (cadastrosDestiny, grupos e status do quadro). Só lê; não mexe no cadastro aberto.
+window.fcPreviaDoCriar = function(board) {
+  const q = FC_QUADROS[board] || FC_QUADROS.producao;
+  const dest = typeof cadastrosDestiny === 'function' ? (cadastrosDestiny('Formato Padrão', false, false, []) || {}) : {};
+  const grupos = q.grupos || [];
+  const grupo = (grupos.find((g) => g.val === dest.group) || grupos[0] || {}).label || '';
+  const chave = (s) => (typeof chaveDeStatus === 'function' ? chaveDeStatus(s) : String(s || '').toLowerCase());
+  const status = q.status.find((s) => dest.status && chave(s) === chave(dest.status))
+    || q.status.find((s) => chave(s) === (board === 'demandas' ? 'nova_demanda' : 'a_fazer')) || q.status[0] || '';
+  const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+  const equipe = (dest.assignees || []).map((id) => users.find((u) => String(u.id) === String(id))).filter(Boolean)
+    .map((u) => String(u.name || '').split(' ')[0]).filter(Boolean);
+  return { formato: q.rotuloFormato, grupo, status, cor: fcCorDeStatus(status).color, equipe: equipe.length ? equipe.join(', ') : 'definida na triagem' };
+};
 
   window.fcTrocarQuadro = function(qual) {
     if (state.board === qual) return;

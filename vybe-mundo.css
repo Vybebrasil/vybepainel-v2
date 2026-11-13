@@ -604,7 +604,7 @@ body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-j
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-primary{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(194,73,12,.28)}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-name){color:#1F1D1A!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-client){color:var(--vv-lilas,#8E4EC6)!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-field span{color:#6B675F!important;font:600 11.5px var(--vv-texto)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-field span:not(.vb-obrig){color:#6B675F!important;font:600 11.5px var(--vv-texto)!important}
 
 
 /* ===== Sobras do tema escuro (achadas pela varredura de contraste em cada módulo) ===== */
@@ -1138,7 +1138,7 @@ html body.mundo.mundo-modulo .workflow-title{color:#0069D1!important}
 html body.mundo.mundo-modulo .workflow-copy{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-item-client{color:#7300E6!important}
 html body.mundo.mundo-modulo .workflow-item-name{color:#5E5A53!important}
-html body.mundo.mundo-modulo .workflow-field span{color:#5E5A53!important}
+html body.mundo.mundo-modulo .workflow-field span:not(.vb-obrig){color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-check{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-secondary{color:#5E5A53!important}
 html body.mundo.mundo-modulo .workflow-hint{color:#5E5A53!important}
@@ -2039,7 +2039,7 @@ html body.mundo.mundo-modulo .plj-cad-topo b em{color:#B24B00!important}
 html body.mundo.mundo-modulo .plj-cad-foto{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-cad-dias span{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-pedido p{color:#5E5A53!important}
-html body.mundo.mundo-modulo .plj-abas button{color:#5E5A53!important}
+html body.mundo.mundo-modulo .plj-abas:not(.vb-abas) button{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-tempo b{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-tempo small{color:#5E5A53!important}
 html body.mundo.mundo-modulo .plj-tempo p{color:#5E5A53!important}
@@ -3031,7 +3031,7 @@ html body.mundo.mundo-modulo .day-pending-tabs button span{flex:none;margin-left
 html body.auth-pending.mundo-lobby > #mundo{display:block!important;z-index:660!important}
 body.mundo-lobby #mundo-hud,body.mundo-lobby #mundo .mundo-rotulo:not(.rotulo-marco):not(.rotulo-rua){display:none!important}
 body.mundo-lobby #mundo canvas{pointer-events:none}
-#login-gate.irecity{background:linear-gradient(180deg,rgba(246,243,238,.0) 0%,rgba(246,243,238,.18) 55%,rgba(31,29,26,.28) 100%)!important}
+#login-gate.irecity{background:linear-gradient(180deg,#F1EEE8 0%,#E6E0D6 100%)!important}
 #login-gate.irecity :is(.abr-cena,.abr-luz,.abr-faiscas,.abr-vinheta){display:none!important}
 #login-gate.irecity .login-chegada{background:rgba(255,255,255,.82);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border:1px solid rgba(255,255,255,.9);border-radius:14px;padding:30px 32px;box-shadow:0 30px 80px rgba(31,29,26,.22);max-width:520px;text-align:left}
 #login-gate.irecity .abr-kicker{color:#C2490C!important;font:700 11px var(--vv-texto,system-ui);letter-spacing:0;text-transform:none}
@@ -3437,7 +3437,7 @@ html body.mundo .cb-palco-acoes .vb-botao:hover:not(#vv-x){border-color:#C2490C!
 /* ===== Cadastro rápido e botão principal das janelas ===== */
 html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:#6B675F!important}
 html body.mundo #fc-overlay .fc-modal:not(#vv-x){color-scheme:light}
-html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:#C2490C!important;color:#FFFFFF!important;box-shadow:0 8px 20px -8px #C2490C!important}
+html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:#1F1D1A!important;color:#FFFFFF!important;box-shadow:none!important;border-radius:999px!important}
 html body.mundo .workflow-primary:hover:not(#vv-x){background:#A93D08!important}
 
 /* ======================================================================================
@@ -3448,9 +3448,9 @@ html body.mundo .workflow-primary:hover:not(#vv-x){background:#A93D08!important}
    Nada de degradê, nada de laranja escuro chapado. Fica por último para vencer as regras antigas.
    ====================================================================================== */
 html body.mundo{--ds-acao:#C2490C;--ds-acao-hover:#A83D08;--ds-acao-sombra:0 8px 20px -8px #A83D08;--ds-sel-fundo:color-mix(in srgb,#C2490C 13%,#FFFFFF);--ds-sel-texto:#C2490C;--ds-sel-borda:color-mix(in srgb,#C2490C 28%,#FFFFFF);--ds-on-fundo:#1F1D1A;--ds-on-texto:#FFFFFF;--ds-on-borda:#1F1D1A}
-html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important;font-weight:700!important;text-shadow:none!important}
-html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao-hover)!important}
-html body.mundo :is(.workflow-primary,.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.fc-primary,.fc-btn-next,.dono-salvar,button.primary,.btn-primary) *:not(svg):not(path):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
+html body.mundo :is(.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;background-image:none!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important;font-weight:700!important;text-shadow:none!important}
+html body.mundo :is(.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.dono-salvar,.manager-calendar-actions .primary,button.primary,.btn-primary,[data-chamada="reconectar"]):hover:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao-hover)!important}
+html body.mundo :is(.vb-botao.principal,.vv-botao.acao,.ops-novo-conteudo,.capt-tb-criar,.focus-next-btn.primary,.dono-salvar,button.primary,.btn-primary) *:not(svg):not(path):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
 html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-on-fundo)!important;background-image:none!important;color:var(--ds-on-texto)!important;border-color:var(--ds-on-borda)!important;box-shadow:none!important;text-shadow:none!important}
 html body.mundo.mundo-modulo :is(button,a,[role="tab"]):is(.active,.ativo,.ativa,.marcado,.selected,.is-active,[aria-pressed="true"],[aria-selected="true"]):not(.cli-situacao):not(.primary):not(.principal):not(.vv-botao):not(.status-editor-option):not(.pill) :is(span,b,strong,small,em,i):not([class*="badge"]):not([class*="count"]):not([class*="dot"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
 

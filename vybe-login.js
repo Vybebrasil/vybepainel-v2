@@ -69,70 +69,91 @@ async function carregarRostos() {
   }
 }
 
+// Padrão v2 (quadro "Login e entrada" do moodboard, 12/11/2026): um campo por vez. Passo 1, quem é você (os rostos);
+// passo 2, a senha, com a pessoa cumprimentada pelo nome. Neste computador, quem entrou por último já cai no passo 2.
+// "Trocar" volta aos rostos; "Outra pessoa" troca direto; "Não estou na lista" pede o e-mail e depois a senha.
+const escLogin = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function avatarLoginHtml(r, classe = 'v2lg-av') {
+  return `<span class="${classe}" aria-hidden="true">${r.foto ? `<img src="${escLogin(r.foto)}" alt="" loading="lazy">` : escLogin(r.iniciais || String(r.nome || '?').slice(0, 2).toUpperCase())}</span>`;
+}
 function rostosHtml() {
   return ROSTOS.map((r) => `
-    <button type="button" class="login-rosto" onclick="escolherRosto(${r.id})">
-      <span class="login-rosto-foto">${r.foto
-        ? `<img src="${r.foto}" alt="" loading="lazy">` : `<i>${r.iniciais}</i>`}</span>
-      <b>${r.nome}</b>
-    </button>`).join('');
+    <button type="button" class="v2lg-rosto" onclick="escolherRosto(${Number(r.id)})">${avatarLoginHtml(r)}<b>${escLogin(r.nome)}</b></button>`).join('');
+}
+function passoDoLogin(passo) {
+  const caixa = document.getElementById('login-form');
+  if (!caixa) return;
+  caixa.dataset.passo = passo;
+  const botao = document.getElementById('login-entrar');
+  if (botao && !botao.disabled) botao.textContent = passo === 'email' ? 'Continuar' : 'Entrar';
+  const erro = document.getElementById('login-erro');
+  if (erro) erro.hidden = true;
+}
+// "Outra pessoa": os outros rostos, pequenos, no pé do passo 2 (um toque troca).
+function pintarOutros() {
+  const caixa = document.getElementById('login-outros');
+  if (!caixa) return;
+  const outros = ROSTOS.filter((r) => !ESCOLHIDO || r.id !== ESCOLHIDO.id).slice(0, 4);
+  caixa.innerHTML = outros.map((r) => `<button type="button" class="v2lg-mini" onclick="escolherRosto(${Number(r.id)})" title="${escLogin(r.nome)}" aria-label="Entrar como ${escLogin(r.nome)}">${avatarLoginHtml(r, 'v2lg-av p')}</button>`).join('');
+  caixa.hidden = !outros.length;
 }
 
 // Os rostos chegam depois da tela: a saudação não espera a rede para aparecer.
 async function pintarRostos() {
   ROSTOS = await carregarRostos();
-  const caixa = document.querySelector('#login-gate .login-caixa');
+  const caixa = document.getElementById('login-form');
   const lista = document.getElementById('login-rostos-lista');
   if (!caixa || !lista) return;
+  caixa.classList.remove('carregando-rostos');
 
   // Banco fora do ar, ou ninguém com senha ainda: volta para e-mail e senha, que
   // sempre funciona. Uma porta que não abre é pior que uma porta sem graça.
-  if (!ROSTOS.length) {
-    caixa.classList.remove('tem-rostos', 'carregando-rostos');
-    const titulo = document.getElementById('login-titulo');
-    if (titulo) titulo.textContent = 'Entrar';
-    document.getElementById('login-email')?.focus();
-    return;
-  }
+  if (!ROSTOS.length) { usarOutroEmail(); return; }
 
   lista.innerHTML = rostosHtml();
   caixa.classList.add('tem-rostos');
-  caixa.classList.remove('carregando-rostos');
+  // Quem entrou por último neste computador: o login já cumprimenta e pede só a senha.
+  const ultimo = ultimoRosto();
+  if (caixa.dataset.passo === 'quem' && ultimo && ROSTOS.some((r) => r.id === ultimo)) escolherRosto(ultimo);
+  else document.querySelector('#login-rostos-lista button')?.focus({ preventScroll: true });
 }
 
 function escolherRosto(id) {
   ESCOLHIDO = ROSTOS.find((r) => r.id === Number(id)) || null;
-  const titulo = document.getElementById('login-titulo');
-  if (titulo && ESCOLHIDO) titulo.textContent = ESCOLHIDO.nome;
-  // 'escolhida' esconde os rostos: dali em diante é só a senha.
-  document.querySelector('#login-gate .login-caixa')?.classList.add('escolhida');
+  if (!ESCOLHIDO) return;
+  const nome = document.getElementById('login-nome');
+  if (nome) nome.textContent = ESCOLHIDO.nome;
+  const av = document.getElementById('login-av');
+  if (av) av.outerHTML = avatarLoginHtml(ESCOLHIDO, 'v2lg-av g').replace('<span ', '<span id="login-av" ');
+  const email = document.getElementById('login-email');
+  if (email) email.value = '';
+  pintarOutros();
+  passoDoLogin('senha');
   document.getElementById('login-senha')?.focus();
 }
 
 // Clicou na cara errada. Sem isto, a saída era recarregar a página.
 function voltarParaAsContas() {
   ESCOLHIDO = null;
-  const caixa = document.querySelector('#login-gate .login-caixa');
-  if (caixa) caixa.classList.remove('com-email', 'escolhida');
-  const titulo = document.getElementById('login-titulo');
-  if (titulo) titulo.textContent = ROSTOS.length ? 'Quem está operando?' : 'Entrar';
   const email = document.getElementById('login-email');
   const senha = document.getElementById('login-senha');
   if (email) email.value = '';
   if (senha) senha.value = '';
-  const erro = document.getElementById('login-erro');
-  if (erro) erro.hidden = true;
+  if (!ROSTOS.length) { usarOutroEmail(); return; }
+  passoDoLogin('quem');
+  document.querySelector('#login-rostos-lista button')?.focus({ preventScroll: true });
 }
 
 // Saída para quem não está na lista — conta nova que ainda não tem senha, ou
-// alguém entrando por outro endereço.
+// alguém entrando por outro endereço. Um campo por vez: o e-mail, depois a senha.
 function usarOutroEmail() {
   ESCOLHIDO = null;
-  const titulo = document.getElementById('login-titulo');
-  if (titulo) titulo.textContent = 'Entrar';
-  document.querySelector('#login-gate .login-caixa')?.classList.add('com-email');
   const campo = document.getElementById('login-email');
-  if (campo) { campo.value = ''; campo.focus(); }
+  if (campo) campo.value = '';
+  const senha = document.getElementById('login-senha');
+  if (senha) senha.value = '';
+  passoDoLogin('email');
+  campo?.focus();
 }
 
 function montarTelaDeLogin() {
@@ -140,59 +161,47 @@ function montarTelaDeLogin() {
   if (document.getElementById('login-gate')) return;
   const gate = document.createElement('div');
   gate.id = 'login-gate';
-  // A entrada é a Vybelândia: a cena anima e o "Entrar" revela quem é e a senha.
-  gate.className = 'login-vybelandia';
-  gate.dataset.etapa = 'cena';
-  // Sem depender da animação para o texto aparecer (ver vybe-escritorio-abertura.js).
-  setTimeout(() => gate.classList.add('abr-pronta'), 4000);
-  gate.style.setProperty('--vybelandia', `url("${document.getElementById('vybelandia-img')?.getAttribute('href') || '/assets/vybelandia.webp'}")`);
-  const faiscas = Array.from({ length: 24 }, (_, i) =>
-    `<i style="--x:${(i * 41) % 100}%;--d:${4 + (i % 5)}s;--a:${(i * 0.37) % 4}s;--s:${2 + (i % 3)}px"></i>`).join('');
+  // Sem a cena antes do login (quadro "Login e entrada"): a porta já é o login, e cumprimenta.
+  gate.className = 'v2lg-portao';
+  gate.dataset.etapa = 'login';
+  window.VYBELANDIA_VISTA = true; // a abertura do escritório não repete a cena
+  const ola = saudacao();
   gate.innerHTML = `
-    ${typeof vybelandiaCenaHtml === 'function' ? vybelandiaCenaHtml() : '<div class="abr-cena" aria-hidden="true"></div>'}<div class="abr-luz" aria-hidden="true"></div>
-    <div class="abr-faiscas" aria-hidden="true">${faiscas}</div><div class="abr-vinheta" aria-hidden="true"></div>
-    <div class="abr-texto login-chegada"><span class="abr-kicker">Vybe OS · ${saudacao()}</span><h1 class="login-cidade">Bem-vindo à <b>Vybelândia</b></h1>
-      <p>O escritório da Vybe agora é uma cidade. Entre para encontrar a equipe.</p>
-      <button type="button" class="abr-primario" id="login-chegar">Entrar na Vybelândia</button></div>
-    <form class="login-caixa carregando-rostos" id="login-form" autocomplete="on">
-      <div class="login-marca"><span class="login-logo">V</span>
-        <div><b>Vybe OS</b><small>Painel de Produção</small></div>
-      </div>
-      <p class="login-saudacao">${saudacao()}.</p>
-      <h1 id="login-titulo">Quem está operando?</h1>
-      <p class="login-ajuda login-so-sem-rostos">Use o e-mail cadastrado na operação. Se não lembrar a senha, peça ao Paulo.</p>
-      <div class="login-rostos">
-        <p class="login-ajuda">Toque na sua foto e informe sua senha.</p>
-        <div class="login-rostos-lista" id="login-rostos-lista">
-          <span class="login-rosto-vazio"></span><span class="login-rosto-vazio"></span>
-          <span class="login-rosto-vazio"></span><span class="login-rosto-vazio"></span>
+    <form class="v2lg carregando-rostos" id="login-form" autocomplete="on" data-passo="quem" novalidate>
+      <div class="v2lg-marca"><span class="v2lg-logo" aria-hidden="true">V</span><b>Vybe OS</b>
+        <span class="v2lg-pts" aria-hidden="true"><i class="um"></i><i class="dois"></i></span></div>
+      <div class="v2lg-quem">
+        <p class="v2lg-ola"><span class="v2lg-sub">${ola}</span><b id="login-titulo">Quem é você?</b></p>
+        <div class="v2lg-rostos" id="login-rostos-lista" role="group" aria-label="Quem está entrando">
+          <span class="v2lg-rosto-vazio"></span><span class="v2lg-rosto-vazio"></span><span class="v2lg-rosto-vazio"></span>
         </div>
-        <button type="button" class="login-outro" onclick="usarOutroEmail()">Não estou na lista</button>
       </div>
-      <label class="login-campo login-campo-email">
-        <span>E-mail</span>
-        <input type="email" id="login-email" name="email" autocomplete="username"
-               inputmode="email" placeholder="voce@gmail.com">
+      <div class="v2lg-eu">
+        <span class="v2lg-av g" id="login-av" aria-hidden="true"></span>
+        <p class="v2lg-ola"><span class="v2lg-sub">${ola}</span><b id="login-nome"></b></p>
+        <button type="button" class="v2lg-btn s" onclick="voltarParaAsContas()">Trocar</button>
+      </div>
+      <p class="v2lg-ola v2lg-so-email"><span class="v2lg-sub">${ola}</span><b>Entrar com o e-mail</b></p>
+      <label class="v2lg-campo v2lg-campo-email">
+        <span>Seu e-mail</span>
+        <input type="email" id="login-email" name="email" autocomplete="username" inputmode="email" placeholder="voce@gmail.com">
       </label>
-      <label class="login-campo">
-        <span>Senha</span>
-        <input type="password" id="login-senha" name="senha" autocomplete="current-password"
-               required placeholder="••••••••">
+      <label class="v2lg-campo v2lg-campo-senha">
+        <span>Sua senha</span>
+        <input type="password" id="login-senha" name="senha" autocomplete="current-password" placeholder="Digite a senha">
       </label>
-      <button type="button" class="login-voltar" onclick="voltarParaAsContas()">← Não sou eu</button>
-      <div class="login-erro" id="login-erro" role="alert" hidden></div>
-      <button type="submit" class="login-entrar" id="login-entrar">Entrar</button>
+      <div class="v2lg-erro" id="login-erro" role="alert" hidden></div>
+      <button type="submit" class="v2lg-entrar" id="login-entrar">Entrar</button>
+      <div class="v2lg-pe">
+        <span class="v2lg-sub v2lg-pe-rot">Outra pessoa</span>
+        <span class="v2lg-avs" id="login-outros" hidden></span>
+        <button type="button" class="v2lg-chip v2lg-outro" onclick="usarOutroEmail()">Não estou na lista</button>
+        <button type="button" class="v2lg-chip v2lg-voltar" onclick="voltarParaAsContas()">Escolher pelo rosto</button>
+      </div>
+      <p class="v2lg-ajuda">Se não lembrar a senha, peça ao Paulo.</p>
     </form>`;
   document.body.appendChild(gate);
   pintarRostos();
-  const chegar = () => {
-    gate.dataset.etapa = 'login';
-    window.VYBELANDIA_VISTA = true; // a abertura do escritório não repete a cena
-    document.querySelector('#login-rostos-lista button, #login-senha')?.focus({ preventScroll: true });
-  };
-  document.getElementById('login-chegar').addEventListener('click', chegar);
-  gate.addEventListener('keydown', (e) => { if (e.key === 'Enter' && gate.dataset.etapa === 'cena') { e.preventDefault(); chegar(); } });
-  document.getElementById('login-chegar').focus({ preventScroll: true });
 
   const form = document.getElementById('login-form');
   const erro = document.getElementById('login-erro');
@@ -202,9 +211,31 @@ function montarTelaDeLogin() {
     evento.preventDefault();
     const senha = document.getElementById('login-senha').value;
     const email = document.getElementById('login-email').value.trim();
+    // Passo do e-mail: confere o endereço e passa para a senha, sem ir ao servidor.
+    if (form.dataset.passo === 'email') {
+      const campo = document.getElementById('login-email');
+      if (!email || (campo.checkValidity && !campo.checkValidity())) {
+        erro.textContent = email ? 'Confira o e-mail: falta alguma parte.' : 'Escreva o e-mail cadastrado na operação.';
+        erro.hidden = false; campo.focus(); return;
+      }
+      const nome = document.getElementById('login-nome');
+      if (nome) nome.textContent = email;
+      const av = document.getElementById('login-av');
+      if (av) av.textContent = email.slice(0, 2).toUpperCase();
+      pintarOutros();
+      passoDoLogin('senha');
+      document.getElementById('login-senha').focus();
+      return;
+    }
     if (!ESCOLHIDO && !email) {
       erro.textContent = 'Toque na sua foto para dizer quem você é.';
       erro.hidden = false;
+      return;
+    }
+    if (!senha) {
+      erro.textContent = 'Digite a senha para entrar.';
+      erro.hidden = false;
+      document.getElementById('login-senha').focus();
       return;
     }
     erro.hidden = true;
@@ -221,6 +252,8 @@ function montarTelaDeLogin() {
       if (!resposta.ok) throw new Error(dados?.error || 'Não foi possível entrar.');
       SESSAO_ATUAL = dados.pessoa;
       lembrarRosto(dados.pessoa.id);
+      // A entrada logo depois do login (vybe-mundo.js, mostrarEntrada): só quando a pessoa acabou de entrar por aqui.
+      window.VYBE_ACABOU_DE_ENTRAR = true;
       gate.remove();
       iniciarPainel();
     } catch (falha) {
@@ -256,7 +289,8 @@ async function sairDaSessao() {
     const r = await fetch('/api/sessao', { method: 'DELETE', credentials: 'same-origin' });
     if (!r.ok) throw new Error('Não foi possível encerrar a sessão.');
     for (const chave of Object.keys(localStorage)) {
-      if (chave.startsWith('vybe') && chave !== ULTIMO_ROSTO) localStorage.removeItem(chave);
+      // "Continuar de onde parou" é guardado por pessoa (vybe.continuar.<id>): fica para a próxima entrada dela.
+      if (chave.startsWith('vybe') && chave !== ULTIMO_ROSTO && !chave.startsWith('vybe.continuar.')) localStorage.removeItem(chave);
     }
   } catch { showToast('Não foi possível sair. Verifique a conexão e tente novamente.', 'error'); return; }
   location.reload();

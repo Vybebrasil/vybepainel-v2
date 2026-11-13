@@ -55,7 +55,7 @@ test('gaveta: a pílula de status usa a cor do quadro e o carregando tem a forma
   assert.equal(c.gavetaPilulaHtml('Em Andamento', '#fdab3d'), '<span class="gv2-st" style="--c:#fdab3d">Em Andamento</span>');
   assert.match(c.gavetaPilulaHtml('X', 'javascript:alert(1)'), /--c:#8A847A/, 'cor fora do formato não entra no estilo');
   assert.match(c.gavetaEsqueletoHtml('Carregando a peça'), /class="gv2 gv2-carregando" aria-busy="true"/);
-  assert.match(gaveta, /drawer\.className = 'gv2-gaveta'; drawer\.innerHTML = gavetaEsqueletoHtml\('Carregando a peça'\);/);
+  assert.match(gaveta, /drawer\.className = 'gv2-gaveta gv2-folha'; drawer\.innerHTML = gavetaEsqueletoHtml\('Carregando a peça'\);/);
 });
 
 test('cadastro: três etapas na tela e as mesmas conferências antes de criar', () => {

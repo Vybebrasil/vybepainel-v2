@@ -1459,16 +1459,15 @@ function pv2dLinhaHtml(d, hoje) {
     Number(d.tarefas) ? `${Number(d.tarefas_feitas || 0)} de ${Number(d.tarefas)} tarefas feitas` : ''].filter(Boolean).join(' · ');
   const tipo = String(d.tipo || d.formato || '').trim(), selos = [tipo && tipo !== '—' ? pv2Pill(tipo, 'n') : '', d.prioridade ? pv2Pill('Prioridade ' + String(d.prioridade).toLocaleLowerCase('pt-BR'), /alta|urgent|crít/i.test(d.prioridade) ? 'r' : 'n') : ''].join('');
   const cadastro = [d.cadastrado_por ? `cadastrada por ${safeText(firstName(d.cadastrado_por))}` : '', d.criado_em ? `criada em ${pv2DiaMes(String(d.criado_em).slice(0, 10))}` : ''].filter(Boolean).join(' · ');
-  return `<div class="pv2-linha v2-abre${marcada ? ' marcada' : ''}" data-linha="${id}" aria-expanded="${aberta}">
+  return `<div class="pv2-linha v2-abre${marcada ? ' marcada' : ''}${pv2Chegou(d)}" data-linha="${id}" aria-expanded="${aberta}">
     <div class="pv2-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2dAlternarLinha('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2dAlternarLinha('${id}',this)}">
       <p class="pv2-nome">${clientes[0] ? pv2Cli(clientes[0]) + ' · ' : ''}${safeText(d.nome || '')}<small class="pv2-id">#${id}</small></p>
-      <span class="pv2-cs">${pv2Pill(d.status)}</span><span class="pv2-cp">${pv2dPrazoHtml(d, hoje)}</span>
+      <span class="pv2-cs">${pv2StatusBotao(d)}</span><span class="pv2-cp">${pv2dPrazoHtml(d, hoje)}</span>
       <span class="pv2-cr">${pv2Av(d, { comNome: true })}</span>
       <i class="pv2-seta" aria-hidden="true">${PV2_IC.depois}</i></div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
       <div class="pv2-det-linha"><p>${frase}${cadastro ? `<span class="pv2-cadastro"> · ${cadastro}</span>` : ''}</p>${selos}
         <label class="pv2-lote" title="Marcar para ação em lote"><input type="checkbox" ${marcada ? 'checked' : ''} aria-label="Marcar ${safeText(d.nome || '')}" onclick="alternarSelecao('${id}',this.checked,event,PV2D_ORDEM_VISIVEL)">Marcar</label>
-        <button type="button" class="pv2-btn s" onclick="openStatusEditor(event,'${id}')">Trocar status</button>
         <button type="button" class="pv2-btn s" onclick="openOwnerEditor(event,'${id}')">${semDono ? 'Escolher responsável' : 'Trocar responsável'}</button>
         <button type="button" class="pv2-btn s k" onclick="openItemWorkspace('${id}')">Abrir a peça</button></div>
     </div></div></div></div>`;

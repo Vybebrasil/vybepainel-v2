@@ -44,7 +44,7 @@ test('nada da barra antiga some: vai para a reserva ou para dentro de Filtros, c
 test('a semana em colunas: quatro dias à vista, cartão compacto que abre no lugar e "mostrar" no pé', () => {
   assert.match(painel, /const PV2_POR_DIA = 3, PV2_JANELA = 4;/);
   const cartao = bloco(painel, 'function pv2CartaoHtml(', 'function pv2RenderDias(');
-  naOrdem(cartao, ['class="pv2-pc v2-abre', 'class="pv2-pc-lin" role="button"', 'class="pv2-t"', 'pv2Cli(clientes[0])', 'pv2Pill(d.status)', 'pv2Av(d)', 'class="v2-mais"', 'pv2EtapasHtml(d)', '>Abrir a peça</button>', '>Trocar status</button>', 'data-day-item=']);
+  naOrdem(cartao, ['class="pv2-pc v2-abre', 'class="pv2-pc-lin" role="button"', 'class="pv2-t"', 'pv2Cli(clientes[0])', 'pv2StatusBotao(d)', 'pv2Av(d)', 'class="v2-mais"', 'pv2EtapasHtml(d)', '>Abrir a peça</button>', 'data-day-item=']);
   assert.match(cartao, /draggable="true"\s+ondragstart="managerCalendarDragStart\(/);
   const dias = bloco(painel, 'function pv2RenderDias(');
   assert.match(dias, /ondragover="soltarNoDiaSobre\(event,this\)" ondragleave="soltarNoDiaSai\(this\)" ondrop="soltarNoDia\('\$\{dia\.iso\}',event,this\)"/);
@@ -62,7 +62,7 @@ test('Demandas na ordem do quadro: título, Lista ou Calendário, Nova demanda, 
   naOrdem(dem, ["kpi('Atrasadas'", "kpi('Sem responsável'"]);
   assert.match(dem, /Distribuir \$\{sem\.length === 1 \? 'a 1' : 'as ' \+ sem\.length\}/);
   const linha = bloco(dem, 'function pv2dLinhaHtml(', 'function pv2dPintar(');
-  naOrdem(linha, ['class="pv2-nome"', 'class="pv2-cs"', 'class="pv2-cp"', 'class="pv2-cr"', 'class="pv2-seta"', 'class="v2-mais"', 'pv2EtapasHtml(d)', '>Trocar status</button>', "'Trocar responsável'", '>Abrir a peça</button>']);
+  naOrdem(linha, ['class="pv2-nome"', 'class="pv2-cs"', 'class="pv2-cp"', 'class="pv2-cr"', 'class="pv2-seta"', 'class="v2-mais"', 'pv2EtapasHtml(d)', "'Trocar responsável'", '>Abrir a peça</button>']);
   assert.match(dem, />Nova aqui<\/button>/);
   assert.match(dem, /neste grupo · <button type="button" class="pv2-link" onclick="pv2dGrupoInteiro\(/);
   assert.match(dem, /ficam recolhidos/);

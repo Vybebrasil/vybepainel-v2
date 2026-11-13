@@ -71,7 +71,7 @@ test('Busca (09/66): só "Esc" para fechar, sem rodapé técnico, cliente e stat
   assert.match(spot, /item\.status \|\| 'Sem status'/);
   assert.match(spot, /dispatchEvent\(new CustomEvent\('vybe:janela-topo', \{ detail: \{ qual: 'busca' \} \}\)\)/);
   assert.match(mundo, /document\.addEventListener\?\.\('vybe:janela-topo', \(e\) => fecharJanelasDoTopo\(e\.detail\?\.qual\)\);/);
-  assert.match(mundo, /if \(\['busca', 'avisos', 'conta'\]\.includes\(id\)\) fecharJanelasDoTopo\(id\);/);
+  assert.match(mundo, /if \(\['busca', 'avisos', 'conta', 'notas', 'boletim', 'ajuda'\]\.includes\(id\)\) fecharJanelasDoTopo\(id\);/);
   assert.match(mundo, /if \(menos !== 'busca'\) document\.querySelector\('\.spotlight-dialog\[open\]'\)\?\.close\?\.\(\);/);
   assert.match(css, /body\.mundo \.vv-tour-janela:focus\{outline:none\}/);
 });

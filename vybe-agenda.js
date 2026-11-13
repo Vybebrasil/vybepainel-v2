@@ -698,7 +698,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
     <!-- Redesign do legado, fase 2 (Paulo, 09/11/2026): o essencial em cima (status, quem faz, prazo e veiculação);
          o resto em "Mais campos", aberto do mesmo jeito na próxima vez. Os botões são os mesmos de antes. -->
     <div class="cr-campos cr-essenciais">
-      ${linha('Status', `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
+      ${linha('Status', typeof pv2Ligado === 'function' && pv2Ligado() && typeof pv2StatusBotao === 'function' ? pv2StatusBotao(item) : `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
       ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${linha('Prazo', data(item.prazo_iso))}
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
@@ -2052,7 +2052,8 @@ function linhaDeGrupoHtml(item, compacta = false) {
        title="${campo === 'prazo' ? 'Prazo de produção'
          : isRequestItem(item) ? 'Data de conclusão' : 'Data de veiculação'}">`;
   const escolha = (campo) => `<td onclick="${parar}">${pillEditavel(item, campo)}</td>`;
-  return `<tr class="${marcada ? 'marcada' : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
+  const pv2 = typeof pv2Ligado === 'function' && pv2Ligado() && typeof pv2StatusBotao === 'function';
+  return `<tr class="${marcada ? 'marcada' : ''}${pv2 && typeof pv2Chegou === 'function' ? pv2Chegou(item) : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
     <td class="grupo-marcar" onclick="${parar}">
       <input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(item.nome || '')}"
              onclick="${parar};alternarSelecao('${safeText(item.id)}',this.checked,event)"></td>
@@ -2065,8 +2066,8 @@ function linhaDeGrupoHtml(item, compacta = false) {
     <td class="grupo-previa" onclick="${parar}">${botaoDePreviaNaLinha(item)}</td>
     ${compacta ? '' : `<td onclick="${parar}">${botaoClientesDoItem(item)}</td>`}
     <td class="grupo-dono" data-label="Responsável" onclick="${parar}">${ownerEditorTrigger(item)}</td>
-    <td data-label="Status" onclick="${parar}"><button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
-      title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button></td>
+    <td data-label="Status" onclick="${parar}">${pv2 ? pv2StatusBotao(item) : `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${item.id}')"
+      title="Trocar status">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`}</td>
     ${COLUNAS_DA_TABELA[quadroDoItem(item)]
         .filter((c) => !compacta && ['captacao','formato','tipo_conteudo','off_audio','prioridade'].includes(c))
         .map(escolha).join('')}

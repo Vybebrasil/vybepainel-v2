@@ -1,0 +1,101 @@
+/* Padrão v2 · grupo celular (quadro "No celular": barra de 4 itens, toque de 44 px, tudo abre em folha).
+   1. A gaveta da peça vira folha de baixo para cima abaixo de 600 px (vybe-gaveta.js: gavetaCelularHtml).
+   2. Ajustes de celular das telas remontadas na rodada 1, todos dentro de @media (max-width:600px) e presos ao id da janela. */
+
+/* ===== 1. GAVETA DA PEÇA EM FOLHA ===== */
+/* fora do celular a folha não existe: a gaveta segue a do quadro Gaveta (padrao-v2/peca.css) */
+body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:none}
+
+@media (max-width:600px){
+  /* a folha cobre a barra de baixo, como no quadro: o HUD desce para trás do fundo escuro enquanto ela está aberta */
+  body.mundo:has(> #workspace-drawer.gv2-folha:not(.gv2-folha-inteira)) #mundo-hud{z-index:600}
+
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira){top:auto;right:0;bottom:0;left:0;width:100%;height:auto;max-height:calc(100dvh - 32px);padding:0;border-radius:28px 28px 0 0;box-shadow:0 -12px 30px -12px rgba(31,29,26,.4);animation:gv2-folha-sobe .36s cubic-bezier(.2,.8,.2,1) both}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira) > .gv2{border-radius:28px 28px 0 0;padding:0 14px max(14px,env(safe-area-inset-bottom));gap:10px}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha:not(.gv2-folha-inteira) > .gv2.gv2-tem-cel > :not(.gv2-cel):not(.gv2-pega){display:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha.gv2-folha-inteira > .gv2.gv2-tem-cel > .gv2-cel{display:none}
+
+  /* puxador: 44 px de toque, a barrinha de 36 × 5 no meio */
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-pega{appearance:none;flex:none;display:grid;place-items:center;align-self:stretch;height:44px;min-height:44px;margin:0 0 -16px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;cursor:grab;touch-action:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-pega > i{display:block;width:36px;height:5px;border-radius:3px;background:#D9D3C8}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-pega:focus-visible{outline:2px solid #C2490C;outline-offset:-4px}
+
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-cel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overscroll-behavior:contain;color:#1F1D1A}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel :is(p,h2){margin:0}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo{flex:none;display:flex;align-items:center;gap:8px;min-height:44px}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-vao{flex:1}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font:600 11.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill.r{background:#FDECEE;color:#B42318}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill.a{background:#FFF4D6;color:#7A4A00}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-st{display:inline-flex;align-items:center;min-width:0;height:44px;cursor:pointer}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-st .gv2-st{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo :is(.gv2-cel-ic,.workspace-mais > summary){appearance:none;flex:none;display:grid;place-items:center;box-sizing:border-box;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;border:1px solid #E6E0D6;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:none;list-style:none;cursor:pointer}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais > summary::-webkit-details-marker{display:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo :is(.gv2-cel-ic,.workspace-mais > summary) svg{width:16px;height:16px}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais{position:relative;flex:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu{position:absolute;z-index:6;top:50px;right:0;width:220px;box-sizing:border-box;display:flex;flex-direction:column;padding:6px;border-radius:16px;box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu :is(button,a){appearance:none;display:flex;align-items:center;height:44px;min-height:44px;padding:0 12px;border:0;border-radius:10px;text-align:left;text-decoration:none;font:500 14px var(--vv-texto,Inter,sans-serif);color:#1F1D1A;box-shadow:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu hr{width:100%;height:1px;margin:5px 0;border:0;background:#F1EDE6}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-titulo{font:700 19px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;overflow-wrap:anywhere}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli{display:flex;align-items:center;gap:8px;min-width:0}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-clientes{display:inline-flex;flex-wrap:wrap;gap:4px 8px;min-width:0;font-weight:600;color:#1F1D1A}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-clientes .cliente-carteira{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:600 13px var(--vv-texto,Inter,sans-serif)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-clientes .cliente-carteira::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--carteira-texto,#8A847A)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli > span:nth-child(2){white-space:nowrap}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-cel-dono{appearance:none;flex:none;display:inline-grid;place-items:center;min-width:44px;height:44px;min-height:44px;margin:0 0 0 auto;padding:0 4px;border:0;border-radius:999px;background:transparent;box-shadow:none;cursor:pointer}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte{flex:none;display:grid;place-items:center;box-sizing:border-box;width:100%;height:clamp(118px,24dvh,200px);margin:0;padding:0;border-radius:16px;background:#F3F1EC;overflow:hidden;text-decoration:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte > img{display:block;width:100%;height:100%;object-fit:contain}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte.vazia{height:118px;border:1.5px dashed #D9D3C8;box-shadow:none;font:600 12.5px var(--vv-texto,Inter,sans-serif);color:#6B665E;cursor:pointer}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas{flex:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas > .v2-barra{display:block}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas > p{padding-top:6px}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas > p b{color:#1F1D1A}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin{display:flex;align-items:center;gap:10px;box-sizing:border-box;min-height:44px;padding:8px 0;border-top:1px solid #F1EDE6;font-size:13px;line-height:1.3}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin:first-child{border-top:0}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > p{flex:1;min-width:0}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > .gv2-sub{max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.ok{background:#FF7A2F;box-shadow:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.vivo{box-shadow:inset 0 0 0 1.5px #FF7A2F;color:#FF7A2F}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo .gv2-lk{display:inline-flex;align-items:center;min-height:44px;vertical-align:middle}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo{margin-top:-8px}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pe{flex:none;display:flex;gap:8px;margin-top:auto;padding-top:2px}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;height:44px;min-height:44px;padding:0 16px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:none;font:600 13.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn.k{flex:1;min-width:0;border-color:#1F1D1A;background:#1F1D1A;color:#FFFFFF}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn:active{transform:scale(.96)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn[data-estado="feito"]{background:#11613A;color:#FFFFFF}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn.k[data-estado="indo"]::after{border-color:rgba(255,255,255,.35);border-top-color:#FFFFFF}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn .gv2-avancar-texto{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel :is(.gv2-cel-btn,.gv2-cel-ic,.gv2-cel-st,.gv2-lk,.gv2-cel-dono,.gv2-cel-arte,.workspace-mais > summary):focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+}
+/* ===== 2. AS TELAS DA RODADA 1 NO CELULAR ===== */
+@media (max-width:600px){
+  /* toque de 44 px (quadro: busca, botões e fichas com 44 de altura no celular). Só a altura e a largura mínimas mudam;
+     o desenho de cada grupo continua o do fragmento dele. As abas em segmento ficam em 36, como no quadro. */
+  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#automacoes-root,#vv-planejamentos,#vv-whatsapp,#vv-reunioes,#vv-ferramentas,.pv2-casa) :is(button,summary,a)[class*="-chip"][class*="-chip"],
+  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#automacoes-root,#vv-planejamentos,#vv-whatsapp,#vv-reunioes,#vv-ferramentas,.pv2-casa) :is(button,summary,a)[class*="-btn"][class*="-btn"]:not(.vv-trilho-btn){min-height:44px;min-width:44px;box-sizing:border-box}
+  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#automacoes-root,#vv-planejamentos,#vv-whatsapp,#vv-reunioes,#vv-ferramentas,.pv2-casa) input[class*="busca"][class*="busca"]{min-height:44px;box-sizing:border-box}
+  /* fechar e ícones soltos: 44 × 44 */
+  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#vv-wa-avisos) :is(.v2c-x,.v2l-x,.v2r-x,.vp-x,.vb-janela-x,.v2c-fechar,.vv-aviso-curto-x):is(button,a,summary){width:44px;height:44px;min-width:44px;min-height:44px;box-sizing:border-box}
+  /* o topo do celular (busca, avisos, mais, conta): 44 de altura como no quadro; a busca encolhe para caber */
+  body.mundo #mundo-hud :is(button,summary).vv-botao.vv-botao{min-height:44px;min-width:44px;height:44px;box-sizing:border-box}
+  body.mundo #mundo-hud :is(button,summary).vv-botao.vv-busca-larga{min-width:0}
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao.vv-botao:not(.vv-busca-larga){width:44px;min-width:44px;height:44px}
+  /* os dois botões do canto da janela (tela cheia e fechar) e o fechar da janela de Pessoas */
+  body.mundo .vv-canto-modulo .vv-botao.vv-botao{width:44px;height:44px;min-width:44px;min-height:44px}
+  body.mundo #vv-pessoas.v2p-janela .vp-topo-botoes > .vp-x.vb-janela-x{width:44px;min-width:44px;height:44px;min-height:44px}
+  /* abas em segmento: 36 de altura, como no quadro do celular (a família das abas desenha em 30) */
+  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,.pv2-casa) .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{height:36px}
+  /* VYBES no Hoje: as abas e as tarefas do painel */
+  body.mundo #vv-hoje :is(.v2vb-aba,.v2vb-tar){min-height:44px;box-sizing:border-box}
+
+  /* janelas que passavam por cima da barra de baixo: terminam acima dela */
+  /* a barra ocupa 56 px + 8 de margem embaixo; a janela começa a 12 do topo e para 8 acima da barra (12 + 64 + 8 = 84) */
+  body.mundo #office-catalogo.v2l-janela[open]{height:calc(100dvh - 84px - env(safe-area-inset-bottom));max-height:calc(100dvh - 84px - env(safe-area-inset-bottom));margin:12px auto auto}
+  body.mundo #workflow-modal.rk2-janela{top:calc(12px + (100dvh - 84px - env(safe-area-inset-bottom)) / 2);height:calc(100dvh - 84px - env(safe-area-inset-bottom));max-height:calc(100dvh - 84px - env(safe-area-inset-bottom))}
+}
+@keyframes gv2-folha-sobe{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha{animation:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn{transition:none}
+}
