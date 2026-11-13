@@ -84,7 +84,7 @@ const publica = (r, agora) => {
 
 // Pedido do painel. args: { item, para: [ids do Monday], oque, quando, por }.
 export async function pedirCobranca(db, pessoa, args = {}, { agora = Date.now(), env = process.env, doAudiovisual = null, link = null } = {}) {
-  if (!ehAmploPessoa(pessoa, env)) falhar(403, 'Só os donos da Vybe mandam cobrança pelo WhatsApp.');
+  if (!ehAmploPessoa(pessoa, env)) falhar(403, 'Só os donos e a coordenação mandam cobrança pelo WhatsApp.');
   await garantirTabelaCobrancas(db);
   const ref = limpo(args.item, 40), oque = limpo(args.oque, 120), quando = limpo(args.quando, 60), por = limpo(args.por, 300);
   if (!ref) falhar(400, 'Diga qual é a peça.');
@@ -126,7 +126,7 @@ export async function pedirCobranca(db, pessoa, args = {}, { agora = Date.now(),
 
 // O que o painel mostra: as cobranças de hoje (e as de ontem que ainda não fecharam), a mais nova primeiro.
 export async function cobrancasDoDia(db, pessoa, { agora = Date.now(), env = process.env } = {}) {
-  if (!ehAmploPessoa(pessoa, env)) falhar(403, 'Só os donos da Vybe veem as cobranças pelo WhatsApp.');
+  if (!ehAmploPessoa(pessoa, env)) falhar(403, 'Só os donos e a coordenação veem as cobranças pelo WhatsApp.');
   await garantirTabelaCobrancas(db);
   const rows = await db`SELECT * FROM vybe_cobrancas_whatsapp WHERE criado_em > ${new Date(agora - 36 * 3600e3).toISOString()} ORDER BY criado_em DESC LIMIT 60`;
   const dia = hojeBahia(agora);

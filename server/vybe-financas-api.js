@@ -111,7 +111,7 @@ export async function lerVybeFinancas(sql, pessoa, query = {}, { env = process.e
   // de antes (donos e administração) até a troca de fonte.
   // Paulo, 13/11/2026: o dinheiro é só dos quatro donos, pela ponte também (a coordenação vê tudo menos as finanças).
   const dono = ehDonoDeFato(pessoa), dinheiro = dono;
-  if (parte === 'comercial' && !dinheiro) falhar(conector.local ? 'O financeiro é só dos donos.' : 'Só os donos e a administração veem o dinheiro da agência.', 403);
+  if (parte === 'comercial' && !dinheiro) falhar('O financeiro é só dos donos.', 403);
   if (parte === 'rh' && !dono) falhar('A folha é só dos donos.', 403);
   const pode = { ver_dinheiro: dinheiro, ver_salarios: dono };
   if (!conector.configurado()) {

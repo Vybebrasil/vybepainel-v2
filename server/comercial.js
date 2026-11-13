@@ -12,14 +12,17 @@ import calc from '../shared/comercial-calculos.js';
 import { ehDono, podeEditarCrm, etapasCrm } from './crm.js';
 import { configComercial, salvarMetas, gerarFormulario, desligarFormulario, ultimosLeads } from './comercial-leads.js';
 import { lancamentosDoFinancas } from './vybe-financas-api.js';
-import { ehDonoPessoa } from './donos.js';
+import { ehDonoPessoa, ehAmploPessoa } from './donos.js';
 import { fonteLocal } from './financas-local.js';
 
 export const ABAS_COMERCIAL = ['funil', 'pacotes', 'orcamentos', 'financas', 'creators', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores', 'caixa'];
-export const ABAS_SO_DONOS = new Set(['financas', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores', 'caixa']);
+// Dinheiro (Paulo, 13/11/2026): só os quatro donos. Fornecedores e o ajuste do funil (etapas, metas, capacidade, formulário)
+// não são dinheiro: os donos e a coordenação (a Beatriz vê tudo menos as finanças).
+export const ABAS_SO_DONOS = new Set(['financas', 'recebimentos', 'contas', 'inadimplencia', 'caixa']);
+export const ABAS_AMPLO = new Set(['fornecedores']);
 const ACOES_SO_DONOS = new Set(['pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'recebivel_receber', 'recebivel_proximo', 'recebivel_cancelar',
-  'conta_salvar', 'conta_pagar', 'conta_cancelar', 'fornecedor_salvar', 'fornecedor_arquivar', 'capacidade_salvar', 'etapas_salvar',
-  'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
+  'conta_salvar', 'conta_pagar', 'conta_cancelar']);
+const ACOES_AMPLO = new Set(['fornecedor_salvar', 'fornecedor_arquivar', 'capacidade_salvar', 'etapas_salvar', 'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
 const ACOES_COMERCIAL = new Set(['orcamento_criar', 'orcamento_status', 'creator_salvar', 'creator_arquivar']);
 // O financeiro (Paulo, 11/11/2026): com a fonte no banco do Vybe OS (VYBE_FINANCAS_FONTE=local), estas abas e ações são
 // só dos quatro donos; administração sem ser dono fica de fora. Pela ponte vale a regra de antes.
@@ -267,7 +270,8 @@ export async function lerComercial(sql, pessoa, query = {}, { hoje = hojeNaBahia
   const aba = query.aba || 'funil';
   if (!ABAS_COMERCIAL.includes(aba)) falhar('Aba desconhecida.');
   const r = await papeis(sql, pessoa);
-  if (ABAS_SO_DONOS.has(aba) && !r.dono) falhar('Só os donos e a administração veem o dinheiro da agência.', 403);
+  if (ABAS_SO_DONOS.has(aba) && !r.dono) falhar('O financeiro é só dos donos.', 403);
+  if (ABAS_AMPLO.has(aba) && !ehAmploPessoa(pessoa)) falhar('Só os donos e a coordenação veem os fornecedores.', 403);
   if (ABAS_FINANCEIRO.has(aba) && fonteLocal() && !ehDonoPessoa(pessoa)) falhar('O financeiro é só dos donos.', 403);
   const dados = aba === 'funil' ? await lerFunil(sql, r, query, hoje)
     : aba === 'pacotes' ? { pacotes: await pacotes(sql, r.dono), capacidade: await capacidade(sql), produtos: calc.produtoCampeao((await oportunidadesDoFunil(sql).catch((e) => { if (e.code === '42P01') return { linhas: [] }; throw e; })).linhas, await pacotes(sql, false)) }
@@ -490,9 +494,10 @@ async function marcar(sql, consulta, id) { const [r] = await consulta; if (!r) f
 
 export async function escreverComercial(sql, pessoa, b = {}, { hoje = hojeNaBahia() } = {}) {
   const acao = String(b.acao || '');
-  if (!ACOES_SO_DONOS.has(acao) && !ACOES_COMERCIAL.has(acao)) falhar('Ação desconhecida.');
+  if (!ACOES_SO_DONOS.has(acao) && !ACOES_COMERCIAL.has(acao) && !ACOES_AMPLO.has(acao)) falhar('Ação desconhecida.');
   const r = await papeis(sql, pessoa);
-  if (ACOES_SO_DONOS.has(acao) && !r.dono) falhar('Só os donos e a administração mexem no dinheiro da agência.', 403);
+  if (ACOES_SO_DONOS.has(acao) && !r.dono) falhar('O financeiro é só dos donos.', 403);
+  if (ACOES_AMPLO.has(acao) && !ehAmploPessoa(pessoa)) falhar('Só os donos e a coordenação mexem aqui.', 403);
   if (ACOES_COMERCIAL.has(acao) && !r.comercial) falhar('Só a administração, os donos e a equipe comercial editam aqui.', 403);
   // Lançamento que veio do Vybe Finanças (id "fin:…") só se mexe lá: aqui ele é leitura.
   if (ACOES_FINANCEIRO.has(acao) && fonteLocal() && !ehDonoPessoa(pessoa)) falhar('O financeiro é só dos donos.', 403);

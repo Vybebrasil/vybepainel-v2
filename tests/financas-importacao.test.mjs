@@ -323,12 +323,11 @@ test('Comercial com a chave em "local": abas e ações de dinheiro só para os d
     }
     assert.equal((await chamar(equipe, null, { aba })).codigo, 403, aba);
   }
-  // O que não é dinheiro continua aberto: o funil. Fornecedores está em ABAS_SO_DONOS (server/comercial.js), então
-  // agora também fecha para a administração e a coordenação.
-  for (const pessoa of [administracao, coordenacao]) {
-    assert.equal((await chamar(pessoa, null, { aba: 'funil' })).codigo, 200);
-    assert.equal((await chamar(pessoa, null, { aba: 'fornecedores' })).codigo, 403);
-  }
+  // O que não é dinheiro continua aberto: o funil. Fornecedores (Paulo, 13/11/2026) é da coordenação também; a marca
+  // admin sozinha, sem ser dono nem coordenação, não vê.
+  for (const pessoa of [administracao, coordenacao]) assert.equal((await chamar(pessoa, null, { aba: 'funil' })).codigo, 200);
+  assert.equal((await chamar(coordenacao, null, { aba: 'fornecedores' })).codigo, 200);
+  assert.equal((await chamar(administracao, null, { aba: 'fornecedores' })).codigo, 403);
   // Escrita de dinheiro: administração e coordenação sem ser dono não mexem.
   const nova = { acao: 'conta_salvar', grupo: 'fixa', descricao: 'Luz', valor: 200, vencimento: '2026-11-25' };
   for (const pessoa of [administracao, coordenacao]) {

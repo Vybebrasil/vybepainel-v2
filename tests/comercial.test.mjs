@@ -62,12 +62,15 @@ test('rota comercial: 401 sem login, 403 sem sessão pessoal, 503 sem migração
 
 test('dinheiro só para os quatro donos, também no servidor (nem administração, nem coordenação)', async (t) => {
   const { sql } = await banco(t);
-  for (const aba of ['financas', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores']) {
+  for (const aba of ['financas', 'recebimentos', 'contas', 'inadimplencia']) {
     // Paulo, 13/11/2026: dinheiro só dos quatro donos — nem a marca admin, nem a coordenação (Beatriz).
     for (const quem of [criacao, atendimento, admin, beatriz]) { const r = await chamar(sql, quem, null, { aba }); assert.equal(r.codigo, 403, aba); }
     for (const quem of [paulo, vinicius]) { const r = await chamar(sql, quem, null, { aba }); assert.equal(r.codigo, 200, aba + JSON.stringify(r.body)); }
   }
-  for (const acao of ['pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'conta_salvar', 'fornecedor_salvar']) {
+  // Fornecedores não é dinheiro: donos e coordenação veem; a marca admin sozinha e a equipe, não.
+  for (const quem of [paulo, beatriz]) assert.equal((await chamar(sql, quem, null, { aba: 'fornecedores' })).codigo, 200, 'fornecedores');
+  for (const quem of [criacao, admin]) assert.equal((await chamar(sql, quem, null, { aba: 'fornecedores' })).codigo, 403, 'fornecedores');
+  for (const acao of ['pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'conta_salvar']) {
     for (const quem of [atendimento, admin, beatriz]) { const r = await chamar(sql, quem, { acao, nome: 'x' }); assert.equal(r.codigo, 403, acao); }
   }
   // A coordenação vê o resto do Comercial e edita o comercial, sem o dinheiro.
