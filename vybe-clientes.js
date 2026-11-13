@@ -346,7 +346,8 @@ function renderClientMasterDetail(cli) {
     completo ? `<button type="button" class="v2f-pill ${completo.feitos === completo.total ? 'g' : 'a'}" title="Ver o cadastro inteiro" onclick="trocarAbaDaFicha('cadastro')">cadastro ${completo.feitos} de ${completo.total}</button>` : '',
     !id ? '<span class="v2f-pill a">sem ficha no cadastro</span>' : '',
   ].filter(Boolean).join('');
-  const nota = `<section class="v2f-card v2f-saude" aria-label="Saúde do cliente">
+  // 10 · Cor do humor: a nota de saúde pinta o cartão do alto da ficha.
+  const nota = `<section class="v2f-card v2f-saude${tom ? ' v2-humor' : ''}"${tom ? (typeof vbHumorAttr === 'function' ? vbHumorAttr(Number(s.score)) : '') : ''} aria-label="Saúde do cliente">
       <div class="v2f-nota-caixa"><b class="v2f-nota" style="color:${tom ? tom.texto : '#6B665E'}"><span class="v2-num">${tom ? Number(s.score) : '—'}</span></b><p class="v2f-sub">saúde</p></div>
       <div class="v2f-porque"><p class="v2f-sub">${tom ? 'O porquê:' : 'Sem nota: cliente inativo ou sem peças para medir.'}</p><p class="v2f-pills">${motivos}</p></div>
     </section>`;

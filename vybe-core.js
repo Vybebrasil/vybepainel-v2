@@ -1244,7 +1244,92 @@ function vbArrumarAbas(raiz = document) {
     lista.style.setProperty('--vb-aba-x', x + 'px'); lista.style.setProperty('--vb-aba-w', w + 'px');
   }
 }
-if (typeof window !== 'undefined') Object.assign(window, { vbEstadoHtml, vbConfirmarApagar, vbMenuLinhaHtml, vbEtapasHtml, vbErroNoCampo, vbArrumarAbas });
+// ── MOVIMENTOS QUE FALTAVAM (moodboard aprovado, 12/11/2026; Paulo, 13/11/2026: "executa tudo") ─────────────────────────
+// 7 · Chip que voa, 8 · Troca de visão e 11 · Cartão vira ficha usam a mesma peça: a transição de vista do navegador
+// (View Transitions). Quem tem data-vt="<chave>" e está à vista antes e depois da troca "voa" da posição antiga para a
+// nova (a linha da lista vira o cartão do quadro, o chip escolhido vai para a fileira dos escolhidos); o que só existe de
+// um lado aparece ou some. Sem suporte no navegador, com "menos movimento" ou com a aba escondida, troca na hora, igual
+// a antes. As chaves precisam ser únicas na tela: a repetida fica sem voar (o navegador recusa nome repetido).
+const VB_VT_MAX = 48;
+function vbVisivelNaTela(el) {
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+}
+function vbMarcarVoo(raiz) {
+  const base = typeof raiz === 'string' ? document.querySelector(raiz) : raiz;
+  if (!base) return;
+  const usados = new Set();
+  for (const el of base.querySelectorAll('[data-vt]')) {
+    if (usados.size >= VB_VT_MAX) break;
+    const nome = 'vt-' + String(el.dataset.vt).replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (usados.has(nome) || !vbVisivelNaTela(el)) continue;
+    usados.add(nome); el.style.viewTransitionName = nome;
+  }
+}
+function vbLimparVoo() { for (const el of document.querySelectorAll('[data-vt]')) if (el.style.viewTransitionName) el.style.viewTransitionName = ''; }
+function vbTransicao(atualizar, { raiz = document.body, tipo = 'voa' } = {}) {
+  const reduzido = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (typeof document === 'undefined' || typeof document.startViewTransition !== 'function' || reduzido || document.hidden || document.documentElement.classList.contains('vb-voando')) {
+    atualizar(); return Promise.resolve();
+  }
+  vbMarcarVoo(raiz);
+  document.documentElement.classList.add('vb-voando'); document.documentElement.dataset.vbVoo = tipo;
+  let t;
+  try {
+    t = document.startViewTransition(() => { vbLimparVoo(); atualizar(); vbMarcarVoo(raiz); });
+  } catch { vbLimparVoo(); document.documentElement.classList.remove('vb-voando'); atualizar(); return Promise.resolve(); }
+  const fim = () => { vbLimparVoo(); document.documentElement.classList.remove('vb-voando'); delete document.documentElement.dataset.vbVoo; };
+  t.finished.then(fim, fim);
+  return t.updateCallbackDone.catch(() => {});
+}
+
+// 5 · Edita no lugar: a data vira o campo ali mesmo (sem janela). Enter ou sair do campo grava; Esc desiste. Enquanto
+// grava, o campo fica "gravando"; deu erro, volta o valor antigo e o erro aparece no próprio lugar.
+function vbEditarDataNoLugar(alvo, { valor = '', rotulo = 'Data', aoSalvar } = {}) {
+  if (!alvo || alvo.querySelector('input.vb-no-lugar')) return;
+  const antes = alvo.innerHTML;
+  alvo.classList.add('vb-editando');
+  alvo.innerHTML = `<input type="date" class="vb-no-lugar" value="${String(valor || '').slice(0, 10)}" aria-label="${String(rotulo).replace(/"/g, '&quot;')}">`;
+  const campo = alvo.querySelector('input');
+  let feito = false;
+  const voltar = (html = antes) => { alvo.innerHTML = html; alvo.classList.remove('vb-editando', 'vb-gravando'); };
+  const gravar = async () => {
+    if (feito) return; feito = true;
+    const novo = campo.value;
+    if (!novo || novo === String(valor || '').slice(0, 10)) { voltar(); return; }
+    alvo.classList.add('vb-gravando'); campo.disabled = true;
+    try { await aoSalvar?.(novo); alvo.classList.remove('vb-editando', 'vb-gravando'); }
+    catch (e) { voltar(); alvo.insertAdjacentHTML('beforeend', `<em class="vb-no-lugar-erro" role="alert">Não gravou: ${String(e?.message || e).replace(/</g, '&lt;')}</em>`); setTimeout(() => alvo.querySelector('.vb-no-lugar-erro')?.remove(), 4000); }
+  };
+  campo.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); gravar(); } else if (e.key === 'Escape') { e.preventDefault(); feito = true; voltar(); } });
+  campo.addEventListener('blur', gravar);
+  campo.addEventListener('click', (e) => e.stopPropagation());
+  campo.focus(); try { campo.showPicker?.(); } catch { /* sem o seletor do navegador: digita */ }
+}
+
+// O clique na data marcada com data-editar-data="prazo|veiculacao" e data-peca="<id>" (linha de Minhas tarefas, linha de
+// Demandas): vira o campo ali mesmo e grava pela função de sempre (moverDataDoItem, vybe-agenda.js — a mesma do arrastar
+// no calendário, com o aviso do Prazo de Ouro). Depois, "Desfazer" por alguns segundos volta a data antiga.
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', (e) => {
+  const alvo = e.target.closest?.('[data-editar-data][data-peca]'); if (!alvo || e.target.closest('input')) return;
+  const item = typeof findOperationalItem === 'function' ? findOperationalItem(alvo.dataset.peca) : null;
+  if (!item || typeof moverDataDoItem !== 'function') return;
+  e.preventDefault(); e.stopPropagation();
+  const campo = alvo.dataset.editarData === 'prazo' ? 'prazo' : 'veiculacao';
+  const pedido = typeof isRequestItem === 'function' && isRequestItem(item);
+  const antigo = campo === 'prazo' ? item.prazo_iso : (pedido ? (item.conclusao_iso || item.veiculacao_iso) : item.veiculacao_iso);
+  const nomeCampo = campo === 'prazo' ? 'o prazo' : pedido ? 'a conclusão' : 'a veiculação';
+  vbEditarDataNoLugar(alvo, { valor: antigo, rotulo: 'Mudar ' + nomeCampo, aoSalvar: async (iso) => {
+    await moverDataDoItem(item, campo, iso, { request: pedido });
+    const dm = (x) => (x ? `${x.slice(8, 10)}/${x.slice(5, 7)}` : 'sem data');
+    if (typeof mostrarDesfazer === 'function') mostrarDesfazer(`${nomeCampo[0].toUpperCase() + nomeCampo.slice(2)} foi para ${dm(iso)}`, () => antigo && moverDataDoItem(item, campo, antigo, { request: pedido }));
+  } });
+}, true);
+
+// 10 · Cor do humor: a nota (0 a 100) vira a cor do cartão, do vermelho ao verde, e muda devagar quando a nota muda.
+// Uso: style="--humor:73" e a classe v2-humor (ou vbHumorAttr(nota)).
+function vbHumorAttr(nota) { const n = Math.max(0, Math.min(100, Math.round(Number(nota)))); return Number.isFinite(n) ? ` style="--humor:${n}" data-humor="${n < 40 ? 'ruim' : n < 70 ? 'atencao' : 'bom'}"` : ''; }
+if (typeof window !== 'undefined') Object.assign(window, { vbEstadoHtml, vbConfirmarApagar, vbMenuLinhaHtml, vbEtapasHtml, vbErroNoCampo, vbArrumarAbas, vbTransicao, vbEditarDataNoLugar, vbHumorAttr });
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && typeof MutationObserver !== 'undefined') {
   let vbAbasPedido = 0;
   const pedirAbas = () => { if (vbAbasPedido) return; vbAbasPedido = requestAnimationFrame(() => { vbAbasPedido = 0; try { vbArrumarAbas(); } catch (e) { console.warn('[abas]', e); } }); };

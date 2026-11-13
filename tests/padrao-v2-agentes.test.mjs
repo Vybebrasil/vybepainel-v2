@@ -35,7 +35,7 @@ test('Agentes: o que espera um dono é um baralho com as mesmas rotas de decisã
 test('Agentes: "Como cada um está indo" usa o acerto da central como nota e não repete o movimento a cada leitura', () => {
   assert.match(ag, /perfil\?\.numeros\?\.acerto/);
   assert.match(ag, /<h3 class="v2g-h2">Como cada um está indo<\/h3><span class="v2g-sub">nota dos últimos 7 dias<\/span>/);
-  assert.match(ag, /class="v2a-agl" data-vga-setor="\$\{esc\(s\.id\)\}"/, 'a linha abre o agente');
+  assert.match(ag, /class="v2a-agl\$\{nota != null \? ' v2-humor' : ''\}"[^>]*data-vga-setor="\$\{esc\(s\.id\)\}"/, 'a linha abre o agente (com a cor do humor quando há nota)');
   for (const lado of ["elo('todos', 'mostrar')", "elo('andar', 'por andar')", "elo('planejados', `planejados (${planejados.length})`)"]) assert.ok(ag.includes(lado), lado);
   assert.match(ag, /st\.anima = !mesmo;/, 'número e barra só chegam ao abrir ou trocar de vista');
   assert.doesNotMatch(ag, /volta sozinho para sombra/, 'não promete rebaixamento automático, que o sistema não faz');

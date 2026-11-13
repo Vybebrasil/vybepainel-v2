@@ -1684,11 +1684,11 @@
       const extras = [typeof botaoDeBriefingHtml === 'function' ? botaoDeBriefingHtml(x.d) : '', typeof botaoDeMaterialBrutoHtml === 'function' ? botaoDeMaterialBrutoHtml(x.d) : '', typeof botaoDeEntregaHtml === 'function' ? botaoDeEntregaHtml(x.d) : '',
         rot ? `<a class="focus-brief-btn roteiro" href="${esc(rot.link)}" target="_blank" rel="noopener" title="${esc(rot.titulo || 'Roteiro')}">${typeof vbIcone === 'function' ? vbIcone('documento') : ''}<span>Roteiro</span></a>` : ''].filter(Boolean).join('');
       const olho = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(x.d, 'linha-previa vv-olho') : '';
-      return `<div class="v2-abre v2-linha${feita ? ' feita' : ''}" data-linha="${id}" aria-expanded="false"><div class="v2t-lin">
+      return `<div class="v2-abre v2-linha${feita ? ' feita' : ''}" data-linha="${id}" data-vt="peca-${id}" aria-expanded="false"><div class="v2t-lin">
           <button type="button" class="v2t-cx${feita ? ' ok' : ''}" data-hoje-acao="concluir" data-valor="${id}" aria-label="${feita ? 'Concluída' : 'Concluir'}: ${esc(titulo(x))}"${feita ? ' disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></button>
           <button type="button" class="v2t-nome" data-hoje-acao="linha" data-valor="${id}" title="${esc(titulo(x) + (cli ? ' · ' + cli : ''))}"><span class="v2-risca${feita ? ' feita' : ''}">${cli ? `${cliCor(cli)} · ` : ''}${esc(semGrito(titulo(x)))}</span>${varios && x.quem?.length ? `<small>${esc(x.quem.join(', '))}</small>` : ''}</button>
           <span class="v2t-st">${x.d.status ? (feita ? statusCor(x.d) : `<button type="button" class="vv-demanda-status" onclick="openStatusEditor(event,'${id}')" title="Trocar o status" aria-label="Trocar o status: ${esc(x.d.status)}">${statusCor(x.d)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`) : ''}</span>
-          <span class="v2t-quando">${olho}${quandoHtml(x)}</span>
+          <span class="v2t-quando">${olho}${feita ? quandoHtml(x) : `<span data-editar-data="veiculacao" data-peca="${id}" title="Tocar para mudar a data">${quandoHtml(x)}</span>`}</span>
           <button type="button" class="v2-linha-seta" data-hoje-acao="linha" data-valor="${id}" aria-expanded="false" aria-label="Abrir a linha de ${esc(titulo(x))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
         <div class="v2-mais"><div><div class="v2t-det">${etapasHtml(x.d)}
           <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${extras}
@@ -1736,7 +1736,9 @@
   function acaoDoHoje(acao, valor) {
     const eu = typeof operadorDoTopo === 'function' ? operadorDoTopo() : null;
     if (acao === 'dia') { diaEscolhido = diaEscolhido === valor ? '' : valor; pintarHoje(); return; }
-    if (acao === 'filtro') { filtroTarefas = String(valor || 'hoje'); linhaAberta = ''; listaInteira = false; pintarHoje(); return; }
+    if (acao === 'filtro') { filtroTarefas = String(valor || 'hoje'); linhaAberta = ''; listaInteira = false;
+      // 7 · Chip que voa: as linhas que ficam na lista nova voam para o lugar delas; as outras aparecem ou somem.
+      if (typeof vbTransicao === 'function') vbTransicao(() => pintarHoje(), { raiz: '#vv-hoje', tipo: 'chip' }); else pintarHoje(); return; }
     if (acao === 'decidir') { decidirPeca(String(valor)); return; }
     if (acao === 'decidir-lista') { if (window.VybeConteudo?.abrir) window.VybeConteudo.abrir({ aba: 'aprovar' }); else usarTrilho('conteudo'); return; }
     if (acao === 'lista-inteira') { listaInteira = true; soListaAgora = true; pintarHoje(); soListaAgora = false; return; }
