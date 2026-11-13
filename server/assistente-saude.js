@@ -4,6 +4,10 @@
 // - Quem pega: para um formato, quem tem experiência nele (peças finalizadas em 90 dias) e menos carga
 //   (peças abertas com prazo nos próximos 3 dias). O gestor decide; a Vybe AI só sugere.
 import { BOARD_PRODUCAO } from './grupos.js';
+import { AGUARDA_POSTAR } from './pronta.js';
+// Entregue = pronta (server/pronta.js): Para agendar e Agendado não contam. Eles só atrasam quando a veiculação
+// passou e não saíram; com veiculação futura não são cobrança (Paulo, 13/11/2026).
+const AG = AGUARDA_POSTAR;
 
 const somar = (iso, n) => new Date(Date.parse(iso + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -23,9 +27,11 @@ export function mensagemSaude(linhas) {
 export async function saudeDosClientes(sql, dia) {
   if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
   const linhas = await sql`SELECT cl.id::text, cl.nome AS cliente,
-      COUNT(DISTINCT c.id) FILTER (WHERE c.prazo < ${dia}::date AND NOT COALESCE(s.final, false)) AS atrasadas,
+      COUNT(DISTINCT c.id) FILTER (WHERE (c.prazo < ${dia}::date AND NOT COALESCE(s.final, false) AND COALESCE(c.status_chave, '') <> ALL(${AG}::text[]))
+        OR (COALESCE(c.status_chave, '') = ANY(${AG}::text[]) AND c.veiculacao < ${dia}::date)) AS atrasadas,
       COUNT(DISTINCT c.id) FILTER (WHERE c.veiculacao BETWEEN ${dia}::date AND ${somar(dia, 14)}::date) AS proximas,
-      COUNT(DISTINCT c.id) FILTER (WHERE COALESCE(s.final, false) AND c.veiculacao BETWEEN ${somar(dia, -30)}::date AND ${dia}::date) AS entregues30,
+      COUNT(DISTINCT c.id) FILTER (WHERE COALESCE(s.final, false) AND COALESCE(c.status_chave, '') <> ALL(${AG}::text[])
+        AND c.veiculacao BETWEEN ${somar(dia, -30)}::date AND ${dia}::date) AS entregues30,
       (SELECT COUNT(*) FROM vybe_conteudo_eventos e JOIN vybe_conteudo_clientes x ON x.conteudo_id = e.conteudo_id
         WHERE x.cliente_id = cl.id AND e.tipo = 'status' AND e.para ILIKE '%altera%' AND e.em >= ${somar(dia, -30)}::date) AS alteracoes
     FROM vybe_clientes cl
@@ -43,9 +49,12 @@ export async function saudeDosClientes(sql, dia) {
 export async function sugerirResponsavel(sql, { formato = '', dia }) {
   if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new TypeError('Dia inválido.');
   const f = normal(formato).slice(0, 5);
+  // Carga = produção ainda com a pessoa (nem pronta nem aguardando postar: Para agendar/Agendado já saíram da mão dela).
+  // Experiência = peças que ela produziu (pronta OU aguardando postar), de propósito mais largo que "entregue".
   const pessoas = await sql`SELECT p.id::text, p.nome, p.disciplina,
-      COUNT(DISTINCT c.id) FILTER (WHERE NOT COALESCE(s.final, false) AND c.prazo BETWEEN ${dia}::date AND ${somar(dia, 3)}::date) AS carga,
-      COUNT(DISTINCT c.id) FILTER (WHERE COALESCE(s.final, false) AND c.prazo >= ${somar(dia, -90)}::date
+      COUNT(DISTINCT c.id) FILTER (WHERE NOT COALESCE(s.final, false) AND COALESCE(c.status_chave, '') <> ALL(${AG}::text[])
+        AND c.prazo BETWEEN ${dia}::date AND ${somar(dia, 3)}::date) AS carga,
+      COUNT(DISTINCT c.id) FILTER (WHERE (COALESCE(s.final, false) OR COALESCE(c.status_chave, '') = ANY(${AG}::text[])) AND c.prazo >= ${somar(dia, -90)}::date
         AND (${f} = '' OR lower(COALESCE(c.formato, c.titulo, '')) LIKE ${f + '%'})) AS experiencia
     FROM vybe_pessoas p
     LEFT JOIN vybe_conteudo_responsaveis r ON r.pessoa_id = p.id
@@ -75,6 +84,7 @@ export async function pecasSemBriefing(sql, dia) {
         WHERE r.conteudo_id = c.id ORDER BY r.ordem LIMIT 1) AS responsavel
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO} AND NOT COALESCE(s.final, false)
+      AND COALESCE(c.status_chave, '') <> ALL(${AG}::text[]) -- Para agendar/Agendado já foi produzida: briefing não muda nada
       AND COALESCE(btrim(c.briefing), '') = ''
       AND EXISTS (SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id = c.id AND e.tipo = 'criacao' AND e.em >= ${somar(dia, -2)}::date)
       AND NOT EXISTS (SELECT 1 FROM vybe_conteudo_eventos e WHERE e.conteudo_id = c.id AND e.tipo = 'briefing')

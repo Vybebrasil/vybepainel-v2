@@ -884,7 +884,17 @@ export async function criarConteudoNaTransacao(sql, quem, dados) {
            AND (o.indice::text = ${String(tipo_conteudo)} OR LOWER(o.rotulo)=LOWER(${String(tipo_conteudo)})))
       WHERE c.id = ${novo.id}`;
   }
-  if (captacao && C.captacao) await sql`UPDATE vybe_conteudos SET captacao=${String(captacao)} WHERE id=${novo.id}`;
+  // Captação escolhida no cadastro: grava a CHAVE do catálogo (é ela que a fila de captações, o painel e o domínio
+  // leem) e o rótulo dele, como trocarEscolha faz. Vem a chave ou o rótulo ("Agendar Captação"). Sem catálogo ou
+  // sem opção que case, fica só o texto, como antes.
+  if (captacao && C.captacao) {
+    const texto = String(captacao).trim();
+    const [cat] = await sql`SELECT to_regclass('public.vybe_captacao') IS NOT NULL AS ok`;
+    const [op] = cat?.ok ? await sql`SELECT chave, rotulo FROM vybe_captacao
+      WHERE chave = ${texto} OR LOWER(rotulo) = LOWER(${texto}) ORDER BY (chave = ${texto}) DESC LIMIT 1` : [];
+    if (op) await sql`UPDATE vybe_conteudos SET captacao_chave=${op.chave}, captacao=${op.rotulo} WHERE id=${novo.id}`;
+    else await sql`UPDATE vybe_conteudos SET captacao=${texto} WHERE id=${novo.id}`;
+  }
   // Conteúdo que nasce sem dono some da fila de todo mundo.
   if (responsaveis.length) {
     await sql`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem)

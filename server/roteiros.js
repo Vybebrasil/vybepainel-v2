@@ -53,7 +53,8 @@ export async function listarRoteiros(sql) {
   await exigirTabelas(sql);
   const linhas = await sql`SELECT r.id::text AS id, r.doc_id, r.titulo, r.cliente_id::text AS cliente_id, cl.nome AS cliente,
       r.criado_em::text AS criado_em, r.pecas, r.origem,
-      COALESCE(json_agg(json_build_object('id', c.id::text, 'titulo', c.titulo, 'formato', c.formato,
+      -- monday_item_id junto: a peça importada do Monday é chamada pelo id de lá nas telas (o Hoje casa pelos dois).
+      COALESCE(json_agg(json_build_object('id', c.id::text, 'monday_item_id', c.monday_item_id::text, 'titulo', c.titulo, 'formato', c.formato,
         'veiculacao', c.veiculacao::text, 'prazo', c.prazo::text, 'status', s.rotulo, 'status_cor', s.cor) ORDER BY COALESCE(c.veiculacao, c.prazo), c.id) FILTER (WHERE c.id IS NOT NULL), '[]') AS conteudos
     FROM vybe_roteiros r
     LEFT JOIN vybe_clientes cl ON cl.id = r.cliente_id

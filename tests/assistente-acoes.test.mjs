@@ -8,7 +8,7 @@ const segredo = 's'.repeat(40), PROD = 7829537690;
 async function banco() {
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,email text,admin boolean,ativo boolean,pode_entrar boolean,monday_user_id bigint);
-    INSERT INTO vybe_pessoas VALUES(1,'Paulo Martins','paulo@x',true,true,true,1),(2,'Jady Lima','jady@x',false,true,true,100482777),
+    INSERT INTO vybe_pessoas VALUES(1,'Paulo Martins','paulo@x',false,true,true,68035537),(2,'Jady Lima','jady@x',false,true,true,100482777),
       (3,'Tainara Sodré','tai@x',false,true,true,80146924),(4,'Deivid Souza','deivid@x',false,true,true,68997024),(5,'Ewerton','ew@x',false,true,true,68036687);
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,monday_item_id bigint,titulo text,formato text,board_id bigint,status_chave text,removido_em timestamptz,veiculacao date);
     INSERT INTO vybe_conteudos VALUES(10,NULL,'Card A','Card',${PROD},'pode_fazer',NULL),(11,12863070737,'Reels B','Reels',${PROD},'para_agendar',NULL),
@@ -268,6 +268,23 @@ test('trocar responsável (redistribuir): só administração; troca de quem é 
     const ok = await confirmarAcao(sql, 1, a.codigo, segredo, { executar: exec });
     assert.match(ok.feito, /"Card A" agora é de \*Deivid Souza\*/);
     assert.deepEqual(trocas, [['paulo@x', { item: 'vybe:10', pessoas: ['68997024'] }]]);
+  } finally { await db.close(); }
+});
+
+// Regra de acesso nova (Paulo, 13/11/2026): administração pelo WhatsApp = dono ou coordenação (server/donos.js), pelo
+// id do Monday. A marca admin do banco sozinha não dá mais o poder; a Beatriz (coordenação) tem, mesmo sem a marca.
+test('administração pelo WhatsApp: dono ou coordenação; a marca admin do banco sozinha não basta', async () => {
+  const { db, sql } = await banco();
+  try {
+    await db.exec(`ALTER TABLE vybe_conteudo_responsaveis ADD COLUMN ordem int DEFAULT 0;
+      INSERT INTO vybe_pessoas VALUES(6,'Fulano Antigo','fulano@x',true,true,true,555000111),(7,'Beatriz Coordenação','bia@x',false,true,true,71130408);`);
+    await assert.rejects(() => prepararAcao(sql, 6, { acao: 'responsavel', item: 'vybe:10', de: 'Jady', para: 'Deivid' }, segredo), /só com a administração/,
+      'admin=true no banco, mas não é dono nem coordenação');
+    const a = await prepararAcao(sql, 7, { acao: 'responsavel', item: 'vybe:10', de: 'Jady', para: 'Deivid' }, segredo);
+    assert.match(a.resumo, /Trocar responsável de "Card A"/, 'coordenação administra sem a marca do banco');
+    const s = await prepararAcao(sql, 7, { acao: 'status', item: '10', para: 'finalizado' }, segredo);
+    assert.ok(s.codigo, 'coordenação muda qualquer status, como a administração');
+    await assert.rejects(() => prepararAcao(sql, 6, { acao: 'status', item: '10', para: 'finalizado' }, segredo), /administração/);
   } finally { await db.close(); }
 });
 

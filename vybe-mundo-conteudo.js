@@ -436,17 +436,14 @@
       <div class="vc-previa-acoes"><button type="button" class="vc-acao" data-vc-abrir-peca="${esc(p.id)}">Abrir peça</button>${olho}</div>`;
   }
   // Prévia: a miniatura do Drive que a tela de arquivos já usa (/api/painel?area=arquivos). Peça só do Vybe
-  // (vybe:<id>) não passa por essa leitura: a prévia completa fica no olhinho e em "Abrir peça".
+  // (vybe:<id>) também: o servidor casa pelo id interno.
   const buscandoThumb = new Set();
   function buscarThumb(id) {
     if (buscandoThumb.has(id)) return;
     buscandoThumb.add(id);
     setTimeout(async () => {
-      if (id.startsWith('vybe:')) st.thumbs[id] = null;
-      else {
-        try { const d = await lerJson(`/api/painel?area=arquivos&itens=${encodeURIComponent(id)}`); st.thumbs[id] = d.itens?.[id]?.thumb ? d.itens[id] : null; }
-        catch { st.thumbs[id] = null; }
-      }
+      try { const d = await lerJson(`/api/painel?area=arquivos&itens=${encodeURIComponent(id)}`); st.thumbs[id] = d.itens?.[id]?.thumb ? d.itens[id] : null; }
+      catch { st.thumbs[id] = null; }
       if (st.aberto && (st.peca === id || st.aba === 'aprovar')) pintar();
     }, 0);
   }

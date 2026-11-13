@@ -2,6 +2,7 @@
 import {validarJid,identificadorProtegido} from './assistente-identidade.js';
 import {exigirAdministradorPrivado,exigirContaAdministrativa} from './assistente-exclusivo.js';
 import {assistenteAtivo,escopoEquipe} from './assistente-ativacao.js';
+import {ehAmploPessoa} from './donos.js';
 // motivo: código curto de qual regra recusou (09/11/2026: rajadas de 403 no bot sem saber por quê). Vai ao bot já
 // autenticado; não traz identidade nem dado de pessoa.
 const negar=(motivo='negado',extra={})=>Object.assign(new Error('Conversa ou participantes não autorizados.'),{status:403,motivo,...extra});
@@ -28,8 +29,11 @@ export async function autorizarConversa(sql,jid,c,segredo,config) {
  const hashes=(equipe?[jid]:c.participantes).map(x=>identificadorProtegido(x,segredo));
  const [schema]=await sql`SELECT to_regclass('public.vybe_ai_vinculos') IS NOT NULL AS pronta`;
  if(!schema?.pronta)throw semVinculo();
- const linhas=await sql`SELECT v.jid_hash AS hash,p.id FROM vybe_ai_vinculos v JOIN vybe_pessoas p ON p.id=v.pessoa_id
-  WHERE v.jid_hash=ANY(${hashes}::text[]) AND v.revogado_em IS NULL AND p.ativo IS TRUE AND p.pode_entrar IS TRUE AND p.senha_hash IS NOT NULL AND (${equipe}::boolean OR p.admin IS TRUE)`;
+ // Sem o escopo da equipe, só quem administra: dono ou coordenação (ehAmploPessoa, Paulo 13/11/2026), não a marca
+ // vybe_pessoas.admin. to_jsonb: bancos de teste sem a coluna do Monday continuam valendo pelo id do ambiente.
+ const todas=await sql`SELECT v.jid_hash AS hash,p.id,to_jsonb(p)->>'monday_user_id' AS monday_user_id FROM vybe_ai_vinculos v JOIN vybe_pessoas p ON p.id=v.pessoa_id
+  WHERE v.jid_hash=ANY(${hashes}::text[]) AND v.revogado_em IS NULL AND p.ativo IS TRUE AND p.pode_entrar IS TRUE AND p.senha_hash IS NOT NULL`;
+ const linhas=equipe?todas:todas.filter(x=>ehAmploPessoa({id:x.id,monday_user_id:x.monday_user_id},config||process.env));
  if(linhas.length!==hashes.length)throw semVinculo();
  if(linhas.some(x=>!Number.isSafeInteger(Number(x.id))||Number(x.id)<=0))throw negar('vinculo_invalido');
  const pessoaId=Number(linhas.find(x=>x.hash===identificadorProtegido(jid,segredo))?.id);

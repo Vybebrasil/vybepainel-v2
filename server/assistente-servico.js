@@ -20,7 +20,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 }
 
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
-import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
+import { ehAmploPessoa, ehDonoPessoa, mondayDaPessoa } from './donos.js';
 import { minhasDemandas } from './assistente-consultas.js';
 import { rotinaDoDia, diasPessoais, riscos } from './assistente-rotinas.js';
 import { prepararAcao, confirmarAcao, opcoesDeCriacao } from './assistente-acoes.js';
@@ -125,8 +125,14 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (contexto?.tipo !== 'privado') return res.status(403).json({ error: 'Consulta somente no privado da administração.', motivo: 'somente_privado' });
       const banco = criarBanco();
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
-      const [adm] = await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND admin IS TRUE AND ativo IS TRUE`;
-      if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.', motivo: 'nao_admin' });
+      // Administração = dono ou coordenação (ehAmploPessoa, Paulo 13/11/2026), não a marca vybe_pessoas.admin.
+      // O diagnóstico privado fica como estava (marca do banco): não muda quem vê o diagnóstico.
+      const [ativa] = consulta === 'diagnostico'
+        ? await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND admin IS TRUE AND ativo IS TRUE`
+        : await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND ativo IS TRUE`;
+      const amplo = Boolean(ativa) && (consulta === 'diagnostico'
+        || ehAmploPessoa({ id: pessoaId, monday_user_id: await mondayDaPessoa(banco, pessoaId) }, config));
+      if (!amplo) return res.status(403).json({ error: 'Consulta restrita à administração.', motivo: 'nao_admin' });
       // VYBES: o estado que a central do PC do Paulo mostra, publicado para o módulo VYBES do painel (server/vybes.js).
       if (consulta === 'vybes_publicar') return res.status(200).json({ ok: true, ...(await guardarEstadoVybes(banco, req.body?.estado)) });
       // Ação pedida na central do VYBES por quem entrou pelo Vybe OS: com a permissão DELA (não a do Paulo).

@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
+import { AGUARDA_POSTAR } from './pronta.js';
 
 const raiz = () => process.cwd();
 const ler = (arquivo) => readFileSync(join(raiz(), arquivo), 'utf8');
@@ -56,7 +57,9 @@ export async function itensDoDia(sql, dia) {
       COALESCE(ARRAY(SELECT p.nome FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id = c.id ORDER BY r.ordem), '{}') AS responsaveis
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND c.board_id IN (${BOARD_PRODUCAO}, ${BOARD_DEMANDAS})
-      AND (NOT COALESCE(s.final, false) OR c.veiculacao BETWEEN ${de}::date AND ${ate}::date OR c.prazo BETWEEN ${de}::date AND ${ate}::date)`;
+      AND (NOT COALESCE(s.final, false) OR c.veiculacao BETWEEN ${de}::date AND ${ate}::date OR c.prazo BETWEEN ${de}::date AND ${ate}::date
+        -- Para agendar/Agendado não é pronta (server/pronta.js): com a veiculação vencida e sem sair, entra como atrasada.
+        OR (COALESCE(c.status_chave, '') = ANY(${AGUARDA_POSTAR}::text[]) AND c.veiculacao < ${dia}::date))`;
   return linhas.map((l) => {
     const pedido = String(l.board_id) === String(BOARD_DEMANDAS);
     const base = {
@@ -81,20 +84,28 @@ const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').t
 const primeiroNome = (n) => String(n || '').trim().split(/\s+/)[0] || '';
 
 // Meio-dia e fim do dia: leitura do mesmo recorte, com os rótulos de status do fluxo do painel.
+// Retrato do dia: "Agendado" que veicula hoje (ou depois) é "vai sair" e conta como entregue no dia, como sempre foi.
+// Agendado ou Para agendar com a veiculação JÁ VENCIDA não saiu: não é entregue e entra nas atrasadas
+// (PRONTA = SÓ FINALIZADO, Paulo 13/11/2026; server/pronta.js).
 function retrato(itens, dia, statusDe) {
   const s = (i) => normal(statusDe(i));
   const pedido = (i) => i.origem === 'solicitacao';
-  const entregue = (i) => pedido(i) ? ['finalizado', 'feito', 'aprovado', 'concluido'].includes(s(i)) : ['finalizado', 'agendado', 'publicado', 'postado'].includes(s(i));
-  const pronto = (i) => !pedido(i) && s(i) === 'para agendar';
+  const aguarda = (i) => !pedido(i) && ['para agendar', 'agendado'].includes(s(i));
+  const vencida = (i) => aguarda(i) && Boolean(i.veiculacao_iso) && i.veiculacao_iso < dia;
+  const entregue = (i) => pedido(i) ? ['finalizado', 'feito', 'aprovado', 'concluido'].includes(s(i))
+    : ['finalizado', 'publicado', 'postado'].includes(s(i)) || (s(i) === 'agendado' && !vencida(i));
+  const pronto = (i) => !pedido(i) && s(i) === 'para agendar' && !vencida(i);
   const pausa = (i) => s(i) === 'segurar post';
   const cliente = (i) => ['ag. info cliente', 'ag. aprovacao cliente'].includes(s(i));
   // Mesmo grupo do gerador do painel: esperando informação, redação ou gravação fica fora da cobrança.
   const faltaInfo = (i) => ['aguardo', 'aguardo redacao', 'falta info', 'falta d.a', 'falta off', 'ag. interno'].includes(s(i));
-  const aberto = (i) => !entregue(i) && !pronto(i);
+  // Em aberto = a produção ainda está com alguém (aguardando postar fica de fora; o vencido entra pelas atrasadas).
+  const aberto = (i) => !entregue(i) && !pronto(i) && !aguarda(i);
   const conteudosHoje = itens.filter((i) => !pedido(i) && i.veiculacao_iso === dia);
   const pedidosHoje = itens.filter((i) => pedido(i) && i.conclusao_iso === dia);
-  const atrasadas = itens.filter((i) => aberto(i) && !pausa(i) && !cliente(i) && i.prazo_iso && i.prazo_iso < dia && i.responsavel_ids.length);
-  return { s, pedido, entregue, pronto, pausa, cliente, faltaInfo, aberto, conteudosHoje, pedidosHoje, atrasadas };
+  const atrasadas = itens.filter((i) => ((aberto(i) && i.prazo_iso && i.prazo_iso < dia) || vencida(i))
+    && !pausa(i) && !cliente(i) && i.responsavel_ids.length);
+  return { s, pedido, aguarda, vencida, entregue, pronto, pausa, cliente, faltaInfo, aberto, conteudosHoje, pedidosHoje, atrasadas };
 }
 function linhaItem(i) {
   const pessoas = i.responsavel ? i.responsavel.split(',').map(primeiroNome).filter(Boolean).join(', ') : 'sem responsável';
@@ -253,7 +264,7 @@ export function mensagemMeuDia(itens, dia, statusDe, rotuloDia, pessoa, max = 8)
   return [`📅 *Seu dia, ${nome} · ${rotuloDia}*`, '',
     `✅ ${prontas.length} pronta(s) hoje · ⏳ ${abertas.length} em aberto · 🔴 ${atrasadas.length} atrasada(s)`,
     ...bloco('⏳ Em aberto hoje', abertas),
-    ...bloco('🔴 Atrasadas', atrasadas, (i) => ` · prazo ${curto(i.prazo_iso)}`),
+    ...bloco('🔴 Atrasadas', atrasadas, (i) => (r.vencida(i) ? ` · veiculação ${curto(i.veiculacao_iso)}, não saiu` : ` · prazo ${curto(i.prazo_iso)}`)),
     ...bloco('🔭 Prazo amanhã', deAmanha),
   ].join('\n');
 }
@@ -286,7 +297,7 @@ export async function fechamentoDaSemana(sql, dia, agora = new Date(), { ranking
   const inicio = somarDias(dia, -((new Date(dia + 'T12:00:00Z').getUTCDay() + 6) % 7)), segunda = somarDias(inicio, 7);
   const [eventos] = await sql`SELECT to_regclass('public.vybe_conteudo_eventos') IS NOT NULL AS ok`;
   const fechadas = eventos?.ok ? await sql`SELECT c.id::text AS id, c.board_id::text AS board_id FROM vybe_conteudos c JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
-    WHERE c.removido_em IS NULL AND s.final IS TRUE AND c.id IN (SELECT conteudo_id FROM vybe_conteudo_eventos WHERE tipo = 'status'
+    WHERE c.removido_em IS NULL AND s.final IS TRUE AND COALESCE(c.status_chave, '') <> ALL(${AGUARDA_POSTAR}::text[]) AND c.id IN (SELECT conteudo_id FROM vybe_conteudo_eventos WHERE tipo = 'status'
       GROUP BY conteudo_id HAVING vybe_dia_bahia(max(em)) BETWEEN ${inicio}::date AND ${dia}::date)` : [];
   const execucao = new Map(), agendamento = new Map();
   const [moedas] = await sql`SELECT to_regclass('public.vybe_escritorio_moedas') IS NOT NULL AS ok`;
@@ -343,7 +354,9 @@ export async function resumoCliente(sql, clienteId, dia) {
   const [cliente] = await sql`SELECT nome FROM vybe_clientes WHERE id = ${clienteId} AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
   if (!cliente) throw new TypeError('Cliente inválido.');
   const inicio = somarDias(dia, -((new Date(dia + 'T12:00:00Z').getUTCDay() + 6) % 7)), segunda = somarDias(inicio, 7), domingo = somarDias(inicio, 13);
-  const pecas = await sql`SELECT c.titulo, c.veiculacao::text AS veiculacao, s.rotulo AS status, COALESCE(s.final, false) AS final
+  // Publicado para o cliente = pronta (Para agendar/Agendado ainda não saiu).
+  const pecas = await sql`SELECT c.titulo, c.veiculacao::text AS veiculacao, s.rotulo AS status,
+      COALESCE(s.final, false) AND COALESCE(c.status_chave, '') <> ALL(${AGUARDA_POSTAR}::text[]) AS final
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO}
       AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${clienteId})
@@ -459,7 +472,7 @@ export async function calendarioClientes(sql, mesIso, clienteId = null) {
   const planejamentos = await sql`SELECT cliente_id::text, estado FROM vybe_planejamentos
     WHERE estado <> 'arquivado' AND mes BETWEEN ${inicio}::date AND ${fim}::date`;
   const linhas = await sql`SELECT c.id::text, c.monday_item_id, c.board_id::text, c.titulo, c.veiculacao::text AS veiculacao,
-      s.rotulo AS status, COALESCE(s.final, false) AS final,
+      s.rotulo AS status, COALESCE(s.final, false) AND COALESCE(c.status_chave, '') <> ALL(${AGUARDA_POSTAR}::text[]) AS final,
       ARRAY(SELECT cc.cliente_id::text FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id) AS cliente_ids
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND c.board_id IN (${BOARD_PRODUCAO}, ${BOARD_DEMANDAS})
@@ -504,10 +517,14 @@ export async function previsaoDeAtrasos(sql, dia) {
       COALESCE((SELECT json_agg(json_build_object('para', e.para, 'em', e.em) ORDER BY e.em) FROM vybe_conteudo_eventos e WHERE e.conteudo_id = c.id AND e.tipo = 'status'), '[]') AS eventos
     FROM vybe_conteudos c JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave AND s.final
     WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO} AND c.status_em >= ${somarDias(dia, -90)}::date LIMIT 2000`;
+  // A previsão é do prazo da EQUIPE (produção): o histórico é até a produção terminar (s.final, que inclui Para agendar
+  // e Agendado de propósito) e as abertas são só as que ainda estão em produção. Aguardar postar não atrasa pelo
+  // prazo; atrasa pela veiculação, e isso aparece nas atrasadas da rotina (retrato), não aqui.
   const abertas = await sql`SELECT c.id::text, c.monday_item_id, c.titulo, c.formato, c.prazo::text AS prazo, to_json(c.status_em) #>> '{}' AS status_em, s.rotulo AS status,
       (SELECT string_agg(cl.nome, ' / ') FROM vybe_conteudo_clientes cc JOIN vybe_clientes cl ON cl.id = cc.cliente_id WHERE cc.conteudo_id = c.id) AS cliente
     FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND c.board_id = ${BOARD_PRODUCAO} AND NOT COALESCE(s.final, false)
+      AND COALESCE(c.status_chave, '') <> ALL(${AGUARDA_POSTAR}::text[])
       AND c.prazo BETWEEN ${dia}::date AND ${somarDias(dia, 5)}::date`;
   const historico = historicoLinhas.map((h) => ({ ...h, eventos: typeof h.eventos === 'string' ? JSON.parse(h.eventos) : h.eventos }));
   const lista = preverAtrasos({ historico, abertas: abertas.map((a) => ({ ...a, prazo: textoData(a.prazo) })), dia });
