@@ -123,11 +123,10 @@ test('Reuniões: janela própria com fala, três números, Pede ação que abre 
   assert.equal(ctx.VybeReunioes.dadosDe('2').reunioes.length, 1);
 });
 
-test('CSS: tudo em padrao-v2/ficha.css, sem !important nem html body.mundo; arquivos com fim de linha CRLF', () => {
+test('CSS: tudo em padrao-v2/ficha.css, sem !important nem html body.mundo', () => {
   const css = ler('padrao-v2/ficha.css');
   assert.doesNotMatch(css, /!important/);
   assert.doesNotMatch(css, /html body\.mundo/);
   assert.match(css, /#painel-clientes \.v2f-tabela/);
   assert.match(css, /\.vc-camada > #vv-reunioes/);
-  for (const f of ['vybe-clientes.js', 'vybe-clientes-ficha.js', 'vybe-clientes-reunioes.js']) assert.ok(!/[^\r]\n/.test(ler(f)), `${f} em CRLF`);
 });

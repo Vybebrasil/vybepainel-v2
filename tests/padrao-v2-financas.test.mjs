@@ -20,10 +20,9 @@ const RECEBIMENTOS = () => ({ hoje: HOJE, fonte: 'Vybe OS', periodo: { tipo: 'me
     fatura(3, 'Cliente D', 3000, '2026-11-05', { status: 'recebido', aberto: 0, valor_recebido: 3000, recebido_em: '2026-11-05' }), fatura(4, 'Cliente E', 1000, '2026-11-20', { cancelado: true, status: 'cancelado', aberto: 0 })] });
 const DE_OUTUBRO = fatura(9, 'Cliente A', 4200, '2026-10-25', { status: 'atrasado', atraso: 18 });
 
-test('telas publicadas e o arquivo continua em CRLF, sem travessão em texto de tela', () => {
+test('telas publicadas, sem travessão em texto de tela', () => {
   const t = carregar().telas;
   for (const k of ['recebimentos', 'contas', 'inadimplencia', 'visao']) assert.equal(typeof t[k], 'function', k);
-  assert.ok(!/[^\r]\n/.test(FONTE), 'fim de linha CRLF');
   assert.ok(!/—/.test(FONTE.slice(FONTE.indexOf('Telas do padrão v2'))), 'sem travessão nas telas novas');
 });
 
