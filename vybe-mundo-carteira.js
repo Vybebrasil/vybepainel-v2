@@ -261,7 +261,8 @@
     const vencidas = c.numeros?.atrasadas || 0;
     const legenda = ruins.length ? ruins.slice(0, 3).map((m) => `<span style="--c:${corDaPerda(m)}">${esc(motivoCurto(m.texto))}</span>`).join('')
       : `<span style="--c:#11613A">${esc(bons[0]?.texto || 'sem sinal de alerta')}</span>`;
-    return `<li class="v2-abre v2c-linha" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="v2c-lin">
+    // 10 · Cor do humor: a nota de saúde (0 a 100) pinta a linha do vermelho ao verde.
+    return `<li class="v2-abre v2c-linha${Number.isFinite(Number(c.score)) ? " v2-humor" : ""}" data-vc-linha="${esc(chave)}"${Number.isFinite(Number(c.score)) ? (typeof vbHumorAttr === 'function' ? vbHumorAttr(c.score) : '') : ''} aria-expanded="${aberto}"><div class="v2c-lin">
         <button type="button" class="v2c-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${c.nome}, nota ${c.score}, ${c.rotuloRisco}`)}">
           <span class="v2c-nota ${TOM_DO_RISCO[c.risco] || 'a'}">${c.score}</span>
           <span class="v2c-quemc"><b>${cliCor(c.nome)}</b><small>${esc(c.heads.length ? `Head ${c.heads.map(primeiroNome).join(' e ')}` : 'Sem head')} · ${esc(String(c.rotuloRisco || '').toLowerCase())}</small></span>

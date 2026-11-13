@@ -27,7 +27,8 @@ function escolherVisaoDemanda(visao) {
   visaoRapidaDemandas = visao;
   currentDemandaStatusFilter = 'all'; currentDemandaAtrasadas = false;
   currentDemandaPersonFilter = 'all';
-  renderDemandas();
+  // 7 · Chip que voa: o chip escolhido e as linhas que ficam voam para o lugar novo; as que saem encolhem.
+  if (typeof vbTransicao === 'function') vbTransicao(() => renderDemandas(), { raiz: '#painel-demandas', tipo: 'chip' }); else renderDemandas();
 }
 function chavePreferenciasDemandas() {
   const eu = typeof pessoaLogada === 'function' ? pessoaLogada() : null;
@@ -1422,7 +1423,8 @@ function pv2dMontar() {
   return raiz;
 }
 function pv2dVista(vista) {
-  if ((vista === 'calendario') !== Boolean(agendaDeDemandasAberta)) alternarAgendaDeDemandas();
+  // 8 · Troca de visão: a peça voa da linha da lista para o dia do calendário (e volta), pelo data-vt="peca-<id>".
+  if ((vista === 'calendario') !== Boolean(agendaDeDemandasAberta)) { if (typeof vbTransicao === 'function') vbTransicao(() => alternarAgendaDeDemandas(), { raiz: '#painel-demandas', tipo: 'visao' }); else alternarAgendaDeDemandas(); }
   else pv2dPintar();
 }
 function pv2dColuna(caixa) {
@@ -1459,10 +1461,10 @@ function pv2dLinhaHtml(d, hoje) {
     Number(d.tarefas) ? `${Number(d.tarefas_feitas || 0)} de ${Number(d.tarefas)} tarefas feitas` : ''].filter(Boolean).join(' · ');
   const tipo = String(d.tipo || d.formato || '').trim(), selos = [tipo && tipo !== '—' ? pv2Pill(tipo, 'n') : '', d.prioridade ? pv2Pill('Prioridade ' + String(d.prioridade).toLocaleLowerCase('pt-BR'), /alta|urgent|crít/i.test(d.prioridade) ? 'r' : 'n') : ''].join('');
   const cadastro = [d.cadastrado_por ? `cadastrada por ${safeText(firstName(d.cadastrado_por))}` : '', d.criado_em ? `criada em ${pv2DiaMes(String(d.criado_em).slice(0, 10))}` : ''].filter(Boolean).join(' · ');
-  return `<div class="pv2-linha v2-abre${marcada ? ' marcada' : ''}${pv2Chegou(d)}" data-linha="${id}" aria-expanded="${aberta}">
+  return `<div class="pv2-linha v2-abre${marcada ? ' marcada' : ''}${pv2Chegou(d)}" data-linha="${id}" data-vt="peca-${id}" aria-expanded="${aberta}">
     <div class="pv2-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2dAlternarLinha('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2dAlternarLinha('${id}',this)}">
       <p class="pv2-nome">${clientes[0] ? pv2Cli(clientes[0]) + ' · ' : ''}${safeText(d.nome || '')}<small class="pv2-id">#${id}</small></p>
-      <span class="pv2-cs">${pv2StatusBotao(d)}</span><span class="pv2-cp">${pv2dPrazoHtml(d, hoje)}</span>
+      <span class="pv2-cs">${pv2StatusBotao(d)}</span><span class="pv2-cp"${feita ? '' : ` data-editar-data="prazo" data-peca="${id}" title="Tocar para mudar o prazo"`}>${pv2dPrazoHtml(d, hoje)}</span>
       <span class="pv2-cr">${pv2Av(d, { comNome: true })}</span>
       <i class="pv2-seta" aria-hidden="true">${PV2_IC.depois}</i></div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}

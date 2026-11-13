@@ -3221,6 +3221,28 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
   #vv-hoje .v2a-online{min-width:0;max-width:100%}
   #vv-hoje .v2a-online > small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+/* Semana da agência no Hoje (Paulo, 13/11/2026: "o que é aquela sobra cinza em cada dia?"). A barra parte do chão, sem o
+   trilho cinza de fundo (que sobrava em cima e embaixo, porque a pilha ficava centralizada), com o número de peças em
+   cima. O contorno escuro é o dia ESCOLHIDO (a legenda conta só ele); hoje fica marcado só no nome. */
+#vv-hoje .v2a-semana .vv-sem-col{flex-direction:column}
+#vv-hoje .v2a-semana .vv-sem-topo{order:1;display:block;text-align:center;font:600 12px/1 var(--vv-texto,Inter,sans-serif);color:#4A463F}
+#vv-hoje .v2a-semana .vv-sem-topo b{font-weight:600}
+#vv-hoje .v2a-semana .vv-sem-topo em{display:none}
+#vv-hoje .v2a-semana .vv-sem-barras{order:2;justify-content:flex-start;background:none;border-radius:8px;box-shadow:inset 0 -2px 0 #E6E0D6}
+#vv-hoje .v2a-semana .vv-sem-dia{order:3}
+#vv-hoje .v2a-semana .vv-sem-col.hoje .vv-sem-barras{box-shadow:inset 0 -2px 0 #E6E0D6}
+#vv-hoje .v2a-semana .vv-sem-col.escolhido .vv-sem-barras{box-shadow:0 0 0 2px #1F1D1A}
+#vv-hoje .v2a-semana .vv-sem-col.escolhido .vv-sem-dia{color:#1F1D1A;font-weight:700}
+#vv-hoje .v2a-semana .vv-sem-quando{margin:12px 0 0;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2a-semana .vv-sem-quando b{color:#1F1D1A;font-weight:600}
+#vv-hoje .v2a-semana .vv-sem-quando + .vv-sem-legenda{margin-top:6px}
+/* Baralho "Para você decidir": ‹ › nas pontas da fileira de botões (além das setas do teclado) e, no cartão, o status na
+   pílula de cor e o grupo do quadro (Paulo, 13/11/2026). */
+#vv-hoje .v2d-acoes .v2d-passo{flex:none;width:36px;min-width:36px;padding:0;font:600 18px/1 var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .v2d-acoes .v2d-passo:disabled{opacity:.35;cursor:default}
+#vv-hoje .v2d-carta .v2d-grupo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px}
+#vv-hoje .v2d-carta .v2d-grupo small{font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2d-carta .v2d-grupo em{font:600 11px var(--vv-texto,Inter,sans-serif);font-style:normal;padding:2px 8px;border-radius:999px;background:#EFEBE4;color:#1F1D1A}
 
 /* ===== padrao-v2/listas.css ===== */
 /* PADRÃO V2 · STATUS NA LINHA (quadro Status do moodboard, passos 1 a 3): a pílula do status é o botão, com a setinha;
@@ -3261,6 +3283,35 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 }
 /* Demandas: a coluna do status ganha a largura da setinha, para "Aguardando Info." caber inteiro */
 @media (min-width:761px){#pv2-demandas .pv2-linha .pv2-cs{width:140px}}
+
+/* ===== padrao-v2/movimentos.css ===== */
+/* PADRÃO V2 · MOVIMENTOS QUE FALTAVAM (moodboard aprovado; 13/11/2026). A peça é vbTransicao (vybe-core.js): o que tem
+   data-vt voa da posição antiga para a nova com a mola do sistema; o resto da tela troca num esmaecer curto. */
+::view-transition-group(*){animation-duration:.38s;animation-timing-function:cubic-bezier(.32,.72,0,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.16s}
+/* Os itens que voam não esmaecem no meio do caminho (senão some o "voo"). */
+::view-transition-old(*):not(:root),::view-transition-new(*){mix-blend-mode:normal}
+/* Chip que entra: cresce do ponto (sem começar transparente, regra do mundo); chip que sai: encolhe. */
+@keyframes vb-vt-entra{from{transform:scale(.6)}}
+@keyframes vb-vt-sai{to{opacity:0;transform:scale(.6)}}
+html[data-vb-voo="chip"]::view-transition-new(*):only-child{animation:vb-vt-entra .28s cubic-bezier(.32,.72,0,1) both}
+html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai .2s ease-in both}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none}}
+
+/* 5 · Edita no lugar: o campo de data ocupa o lugar do texto, na mesma pílula. */
+.vb-editando{display:inline-flex;align-items:center}
+input.vb-no-lugar{appearance:none;height:28px;max-width:150px;box-sizing:border-box;margin:0;padding:0 10px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter,sans-serif);color-scheme:light}
+.vb-gravando input.vb-no-lugar{opacity:.6;box-shadow:inset 0 0 0 1.5px #B5AFA5}
+.vb-no-lugar-erro{display:inline-block;margin-left:6px;font:500 11.5px var(--vv-texto,Inter,sans-serif);font-style:normal;color:#B42318}
+[data-editar-data]{cursor:text;border-radius:999px;transition:background .15s}
+[data-editar-data]:hover{background:#F3F1EC;box-shadow:0 0 0 3px #F3F1EC}
+
+/* 10 · Cor do humor: do vermelho (0) ao verde (100), devagar. A faixa à esquerda leva a cor cheia; o fundo, um véu. */
+.v2-humor:not(#vb-h1):not(#vb-h2){--humor-cor:hsl(calc(var(--humor,50) * 1.2) 62% 42%);--humor-veu:hsl(calc(var(--humor,50) * 1.2) 70% 97%);
+  background-color:var(--humor-veu);box-shadow:inset 4px 0 0 var(--humor-cor),0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);
+  transition:background-color .9s ease,box-shadow .9s ease}
+.v2-humor:not(#vb-h1):not(#vb-h2) .v2-humor-nota{color:var(--humor-cor);transition:color .9s ease}
+@media (prefers-reduced-motion:reduce){.v2-humor,.v2-humor .v2-humor-nota{transition:none}}
 
 /* ===== padrao-v2/notas.css ===== */
 /* ======================================================================================

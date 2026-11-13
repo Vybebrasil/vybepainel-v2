@@ -435,7 +435,8 @@
     const m = modoDo(s), [rot] = rotuloDoModo(m), nota = notaDe(s.id), [barra, tinta] = corDaNota(nota);
     const meus = F.decidir.filter((it) => (it.vistos || [it]).some((v) => v.setor === s.id));
     const aperta = meus.some((it) => it.tipo === 'falha' || (it.tipo === 'aprovacao' && horasAte(it.p.expiraEm) <= 6));
-    return `<button type="button" class="v2a-agl" data-vga-setor="${esc(s.id)}" title="Abrir ${esc(s.agente)}${m.ate ? ` · volta ${esc(quando(m.ate))}` : ''}">
+    // 10 · Cor do humor: a taxa de acerto do agente pinta o cartão (sem nota, fica neutro).
+    return `<button type="button" class="v2a-agl${nota != null ? ' v2-humor' : ''}"${nota != null ? (typeof vbHumorAttr === 'function' ? vbHumorAttr(nota) : '') : ''} data-vga-setor="${esc(s.id)}" title="Abrir ${esc(s.agente)}${m.ate ? ` · volta ${esc(quando(m.ate))}` : ''}">
       <span class="v2g-av lil" aria-hidden="true">${esc(iniciais(s.agente))}</span>
       <span class="v2a-agl-meio"><span class="v2a-agl-nome"><b>${esc(s.agente)}</b> <span class="v2g-sub">· ${esc(s.nome)}</span></span><span class="v2-barra${anima ? '' : ' parada'}"><i style="--v:${nota ?? 0}%;--c:${barra}"></i></span></span>
       ${meus.length ? `<span class="v2g-pill ${aperta ? 'r' : 'n'}">${pedidosTxt(meus.length)}</span>` : '<span></span>'}

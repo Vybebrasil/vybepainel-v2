@@ -28,7 +28,7 @@ test('a fala é do Mateus e diz a causa que mais tira ponto; "Ver as N peças" l
 
 test('a linha do cliente: nota, quem é, a barra do que tirou ponto e a ação; abre no lugar sem redesenhar', () => {
   const linha = carteira.slice(carteira.indexOf('  function linhaCliente('), carteira.indexOf('  // Mini painel dos números'));
-  naOrdem(linha, ['class="v2-abre v2c-linha"', 'class="v2c-nota ', 'class="v2c-quemc"', 'class="v2c-perde"', 'class="v2c-leg"', 'class="v2c-ac"', 'class="v2-mais"', 'class="v2c-mot"']);
+  naOrdem(linha, ['class="v2-abre v2c-linha', 'class="v2c-nota ', 'class="v2c-quemc"', 'class="v2c-perde"', 'class="v2c-leg"', 'class="v2c-ac"', 'class="v2-mais"', 'class="v2c-mot"']);
   assert.match(linha, /`Abrir as \$\{vencidas\}`/);
   assert.match(carteira, /function alternarLinha\(chave, focar = ''\) \{[\s\S]{0,420}linha\.setAttribute\('aria-expanded', String\(abrindo\)\);/);
   assert.match(carteira, /if \(d\.vcAbrir\) return alternarLinha\(d\.vcAbrir, d\.vcFocar \|\| ''\);/);

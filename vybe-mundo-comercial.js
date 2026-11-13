@@ -383,6 +383,8 @@
     else if (a === 'chip') { v.chip[st.aba] = id; v.mostra = {}; v.aberta = ''; }
     else if (a === 'filtros') v.filtros[st.aba] = !v.filtros[st.aba];
     else if (a === 'paradas') { v.visao = 'quadro'; v.fase = 'proposta'; v.aberta = id ? 'op:' + id : ''; }
+    // 8 · Troca de visão (quadro ↔ lista) e 7 · chip que voa (fase e chips): o cartão do negócio voa para o lugar novo.
+    if (['visao', 'fase', 'chip'].includes(a) && typeof window.vbTransicao === 'function') { window.vbTransicao(() => pintar(), { tipo: a === 'visao' ? 'visao' : 'chip' }); return; }
     pintar();
   }
   // Arrastar o cartão para a etapa seguinte faz o mesmo que o botão (uma etapa por vez; Perdido pede o motivo).
@@ -469,7 +471,7 @@
     const cartao = (o, naLista) => {
       const id = esc(o.id), ab = v.aberta === 'op:' + o.id, f = faseDe(o.etapa), fim = ['ganho', 'perdido'].includes(o.etapa);
       const sub = [naLista ? etapaNome(o.etapa) : '', naLista || f !== 'novo' ? o.responsavel_nome || 'Sem responsável' : etapaNome(o.etapa), valorDe(o)].filter(Boolean).map(esc).join(' · ');
-      return `<article class="v2c-op v2-abre" data-v2-linha="op:${id}" aria-expanded="${ab}"${p.editar_comercial && !fim ? ` draggable="true" data-v2-arrasta="${id}"` : ''}>
+      return `<article class="v2c-op v2-abre" data-v2-linha="op:${id}" data-vt="op-${id}" aria-expanded="${ab}"${p.editar_comercial && !fim ? ` draggable="true" data-v2-arrasta="${id}"` : ''}>
         <button type="button" class="v2c-op-lin" data-v2="abre" data-id="op:${id}" aria-expanded="${ab}"><span class="v2c-t"><span>${esc(o.nome)}</span>${selo(seloDe(o))}</span><span class="v2c-sub">${sub}</span></button>
         <div class="v2-mais"><div>${detalhe(o)}</div></div></article>`;
     };
