@@ -380,7 +380,10 @@
   // A entrada leva 420 ms (--vv-t-janela) com a mola --vv-mola (cubic-bezier(.32,.72,0,1)): aos 300 ms a janela já está a
   // menos de 1 px do lugar. O conteúdo aparece aí, e o quadro dele cai no fim do deslize (medido: 509 ms no WebKit,
   // contra 685 ms esperando a entrada acabar).
-  const CONTEUDO_APARECE_MS = 300;
+  // Confere de 13/11/2026 (Paulo: "as telas do legado parecem demorar de abrir, meio que abrindo de outro sistema"): as
+  // telas novas aparecem na hora e as antigas mostravam 300 ms de bloco vazio. Agora o conteúdo entra aos 100 ms, com a
+  // janela a uns 4 px do lugar (a mola já fez 60% do caminho); as outras semanas seguem nas folgas.
+  const CONTEUDO_APARECE_MS = 100;
   let adiandoDesenho = false, aberturaAtual = 0;
   function embrulharDesenhos() {
     for (const nome of DESENHOS_ADIAVEIS) {

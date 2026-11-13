@@ -7,6 +7,9 @@
 //   hoje:     prazo hoje e já passou do meio-dia (Bahia)
 //   vence:    prazo amanhã e a peça nem começou
 //   agendar:  em "Para agendar" com a veiculação hoje ou já passada
+//   conferir_postagem: "Agendado" com a veiculação já passada e sem Finalizado (Paulo, 13/11/2026: "a demanda só está
+//                      PRONTA quando tá FINALIZADA... pode acontecer de a Tainara não postar"); quem agenda confere se
+//                      saiu e marca Finalizado. Só os últimos 7 dias, para não despejar o histórico antigo de uma vez.
 //   lembrar_cliente: a demanda espera o cliente; ele vai ao quarto do head
 //                    pedir para ser lembrado (não é cobrança ao time)
 //   postar_parada: a veiculação chegou (hoje ou já passou) e a peça nem
@@ -39,7 +42,8 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
     JOIN vybe_clientes cl ON cl.id=v.cliente_id
     LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
     WHERE c.removido_em IS NULL
-      AND (NOT COALESCE(s.final,false) OR (c.status_chave='para_agendar' AND c.veiculacao <= ${hoje}::date))
+      AND (NOT COALESCE(s.final,false) OR (c.status_chave='para_agendar' AND c.veiculacao <= ${hoje}::date)
+        OR (c.status_chave='agendado' AND c.veiculacao < ${hoje}::date AND c.veiculacao >= ${somarDias(hoje, -7)}::date))
       AND (COALESCE(c.prazo, c.veiculacao) <= ${amanha}::date OR c.veiculacao <= ${hoje}::date)`;
   const [da] = await sql`SELECT id::text FROM vybe_pessoas WHERE ativo IS NOT FALSE AND nome ILIKE 'Deivid%' ORDER BY id LIMIT 1`;
   const agendamento = (await sql`SELECT pessoa_id::text AS id FROM vybe_escritorio_funcoes WHERE funcao='agendamento'`).map((p) => p.id);
@@ -53,6 +57,10 @@ export async function cobrancasDaEquipe(sql, agora = new Date()) {
     const heads = l.heads.length ? l.heads : gestao;
     if (l.status_chave === 'para_agendar') {
       if (l.veiculacao && l.veiculacao <= hoje) cobrar(agendamento, { ...base, tipo: 'agendar', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje) });
+      continue;
+    }
+    if (l.status_chave === 'agendado') {
+      if (l.veiculacao && l.veiculacao < hoje && l.veiculacao >= somarDias(hoje, -7)) cobrar(agendamento, { ...base, tipo: 'conferir_postagem', data: l.veiculacao, dias: diasEntre(l.veiculacao, hoje) });
       continue;
     }
     // As regras do prazo vêm primeiro (cobram quem executa); depois, se a

@@ -135,7 +135,7 @@ function abrirMissaoEscritorio(ref, quadro, ev) {
 // atrasadas, do dia depois do meio-dia, vencendo sem começar, para agendar.
 // Quando a demanda espera o próprio cliente, ele vai ao quarto do head pedir
 // para ser lembrado. Resolvida, o cliente agradece e vai embora.
-const COBRANCA_TOM = { atrasada: "cobra", hoje: "cobra", vence: "avisa", agendar: "cobra", lembrar_cliente: "lembra", marcar_gravacao: "lembra", postar_parada: "cobra" };
+const COBRANCA_TOM = { atrasada: "cobra", hoje: "cobra", vence: "avisa", agendar: "cobra", conferir_postagem: "avisa", lembrar_cliente: "lembra", marcar_gravacao: "lembra", postar_parada: "cobra" };
 // Esperando aprovação do cliente (e não material): muda a fala e o rótulo.
 const cobrancaEsperaAprovacao = (c) => c.status_chave === "ag_aprovacao_cliente" || /aprova/i.test(c.status || "");
 function falasDaCobranca(c, dono) {
@@ -153,6 +153,7 @@ function falasDaCobranca(c, dono) {
   if (c.tipo === "lembrar_cliente" && cobrancaEsperaAprovacao(c)) return [`Ainda não aprovei o ${t}. Me lembra?`, `${dono}, me cobra a aprovação do ${t}!`];
   if (c.tipo === "lembrar_cliente") return [`Tô devendo coisa do ${t}. Me cobra!`, `Me lembra de mandar o que falta do ${t}?`];
   if (c.tipo === "agendar") return d > 0 ? [`O ${t} já devia estar no ar!`, `Ninguém postou o ${t}? Faz ${d} dia${d > 1 ? "s" : ""}!`] : [`Hoje é dia do ${t} ir ao ar!`, `${dono}, não esquece de agendar o ${t}!`];
+  if (c.tipo === "conferir_postagem") return [`O ${t} saiu mesmo? Ninguém marcou Finalizado.`, `${dono}, confere se o ${t} foi ao ar e marca Finalizado!`];
   if (c.tipo === "vence") return [`Amanhã vence o ${t}. Já dá pra começar?`, `${dono}, o ${t} é pra amanhã, hein!`];
   if (c.tipo === "hoje") return [`${dono}, o ${t} é pra hoje!`, `Já passou do meio-dia e o ${t} não saiu…`];
   const aprovar = /aprova/i.test(c.status);
@@ -168,7 +169,7 @@ function escritorioDonoDoQuarto() {
   return sala?.pessoa_id ? String(sala.pessoa_id) : null;
 }
 // Gravidade para ordenar e dar o tom do cliente (o pior pedido manda).
-const COBRANCA_PESO = { atrasada: 4, postar_parada: 3, agendar: 3, hoje: 2, vence: 1, lembrar_cliente: 0, marcar_gravacao: 0 };
+const COBRANCA_PESO = { atrasada: 4, postar_parada: 3, agendar: 3, conferir_postagem: 2, hoje: 2, vence: 1, lembrar_cliente: 0, marcar_gravacao: 0 };
 // Lembretes (o cliente pedindo para ser lembrado) não são cobrança ao time.
 const COBRANCA_LEMBRETE = new Set(["lembrar_cliente", "marcar_gravacao"]);
 // Um cliente por boneco (com quantas demandas ele cobra no nome) e o quadro
@@ -195,6 +196,7 @@ function cobrancaRotulo(c) {
   if (c.tipo === "hoje") return "Prazo é hoje";
   if (c.tipo === "vence") return `Prazo amanhã${dm}`;
   if (c.tipo === "agendar") return c.dias > 0 ? `Veiculação atrasada há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm}` : "Veiculação é hoje";
+  if (c.tipo === "conferir_postagem") return `Agendada para${dm || " a data"}, sem Finalizado: conferir se saiu`;
   if (c.tipo === "postar_parada") {
     return c.dias > 0 ? `Veiculação passou há ${c.dias} dia${c.dias > 1 ? "s" : ""}${dm} e não começou` : "Veiculação hoje e não começou";
   }

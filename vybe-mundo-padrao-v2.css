@@ -1617,6 +1617,13 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 /* Dock compacto: não coube com os nomes (vybe-mundo.js, pintarDock). Só os ícones, botões de 44. */
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:44px;height:44px;padding:0 4px}
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item .vq-rotulo{display:none}
+/* Compacto e ainda apertado (Minha sala a 1280 e 1440: Voltar, a sala, 13 botões): o nome da sala vira só os rostos e o
+   botão, os botões ficam com 40 e, se mesmo assim faltar, o dock rola de lado em vez de cortar o fim (TV, Música). */
+#vv-dock-salas-faixa.dock-compacto .vq-dock{gap:2px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+#vv-dock-salas-faixa.dock-compacto .vq-dock::-webkit-scrollbar{display:none}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:40px;padding:0 2px}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-sep{margin:0 2px}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz{max-width:160px;gap:6px}
 
 /* ===== padrao-v2/entrada.css ===== */
 /* PADRÃO V2 · LOGIN E ENTRADA, VYBES E CRIAR (quadros EntradaDepois e VybesCriarDepois do moodboard, 13/11/2026).
@@ -3021,7 +3028,7 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
   #vv-hoje .v2a .v2-tres-c,#vv-hoje .v2t-alto .v2-tres-c{padding:10px 10px 12px;gap:4px;border-radius:16px}
   #vv-hoje .v2a .v2-tres-c > b,#vv-hoje .v2t-alto .v2-tres-c > b{font-size:24px}
   #vv-hoje .v2a .v2-tres-c > small,#vv-hoje .v2a .v2-tres-c > em,
-  #vv-hoje .v2t-alto .v2-tres-c > small,#vv-hoje .v2t-alto .v2-tres-c > em{font-size:11px;line-height:1.25;overflow-wrap:normal;hyphens:auto}
+  #vv-hoje .v2t-alto .v2-tres-c > small,#vv-hoje .v2t-alto .v2-tres-c > em{font-size:11px;line-height:1.25;overflow-wrap:normal;hyphens:manual}
   #vv-hoje .v2-tres-c > b > i{display:block;font-size:11px}
   #vv-hoje .v2a-guia{padding:14px}
   #vv-hoje .v2a-fala > p{font-size:14px}
@@ -3029,6 +3036,24 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
   #vv-hoje .v2a-passo > .v2t-q{grid-area:quando;justify-self:start}
   #vv-hoje .v2a-passo > p{grid-area:texto}
   #vv-hoje .v2a-passo > button{grid-area:botao}
+}
+/* A fala do guia (Danilo na Criação, Heitor na Coordenação, VYBES em Minhas tarefas) na coluna estreita: o texto ficava
+   com uma palavra por linha porque os botões ("Perguntar ao Danilo", "Ver o agente", "Começar") disputavam a mesma linha
+   (captura do Paulo na Minha sala, 13/11/2026). Abaixo de 520, o texto ocupa a linha toda ao lado do rosto e os botões
+   descem para baixo dele. */
+@container hoje (max-width:520px){
+  #vv-hoje .v2t-fala{flex-wrap:wrap;align-items:flex-start;gap:10px 12px}
+  #vv-hoje .v2t-fala > p{flex:1 1 calc(100% - 56px);min-width:0}
+  #vv-hoje .v2t-fala > button{flex:none;margin-left:52px}
+  #vv-hoje .v2t-fala > button ~ button{margin-left:0}
+}
+/* Coluna estreita: o cabeçalho dos cartões ("Fila do Danilo" · "0 delegações · 5 cobranças") desce o complemento para
+   baixo do título em vez de espremer o título; os nomes do time ao lado das bolinhas cortam com reticências. */
+@container hoje (max-width:420px){
+  #vv-hoje .v2a-cab{flex-wrap:wrap;row-gap:2px}
+  #vv-hoje .v2a-cab > h3{flex:1 0 100%}
+  #vv-hoje .v2a-online{min-width:0;max-width:100%}
+  #vv-hoje .v2a-online > small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 
 /* ===== padrao-v2/listas.css ===== */

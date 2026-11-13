@@ -40,7 +40,7 @@ test('tela antiga em pedaços: o clique só troca a tela; o desenho pesado vem d
   assert.match(mundo, /if \(adiandoDesenho \? !SO_NO_FIM_DAS_FOLGAS\.has\(nome\) : nasFolgas && SO_NO_FIM_DAS_FOLGAS\.has\(nome\)\) \{ desenhosNaFila\.delete\(chave\); desenhosNaFila\.set\(chave, \{ f, a, este: this \}\); return undefined; \}\s*desenhosNaFila\.delete\(chave\);\s*return f\.apply\(this, a\);/);
   // a semana à vista primeiro, depois do primeiro quadro; as outras nas folgas
   assert.match(mundo, /requestAnimationFrame\(\(\) => \{\s*setTimeout\(\(\) => \{\s*const ativa = 'renderWeek:'/);
-  assert.match(mundo, /const CONTEUDO_APARECE_MS = 300;/);
+  assert.match(mundo, /const CONTEUDO_APARECE_MS = 100;/);
   const c = bloco('/* ==== Quinta rodada · tela antiga em pedaços');
   assert.match(c, /body\.mundo\.mundo-modulo > \.container\.vv-abrindo > :not\(\.workspace-heading\):not\(#production-command-dashboard\)\{display:none\}/);
   assert.doesNotMatch(c, /!important|html body\.mundo/);
