@@ -16,7 +16,10 @@
   const ABAS = [
     ['funil', 'Funil'], ['pacotes', 'Pacotes'], ['orcamentos', 'Orçamentos'], ['financas', 'Finanças por cliente', 1], ['recebimentos', 'Recebimentos', 1],
     ['contas', 'Contas a pagar', 1], ['inadimplencia', 'Inadimplência', 1], ['caixa', 'Caixa', 1], ['fornecedores', 'Fornecedores', 1], ['creators', 'Creators'],
+    // Financeiro do próprio Vybe OS (13/11/2026, vybe-mundo-financeiro.js → area=financeiro, só os quatro donos).
+    ['vorcaro', 'Vorcaro', 1], ['extrato', 'Extrato', 1], ['clientes_mes', 'Clientes mês a mês', 1], ['cartao', 'Cartão', 1], ['fixos', 'Gastos fixos', 1], ['projecao', 'Projeção', 1],
   ];
+  const ABAS_FINANCEIRO = new Set(['vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao']);
   // Frase do cabeçalho quando a janela abre num item só do dock (auditoria 09/11: Fornecedores e Creators mostravam o texto do Comercial).
   const FRASE = {
     funil: 'Oportunidades por etapa, metas do mês e a corrida comercial', pacotes: 'Os produtos da Vybe, com preço, entregas e carga do time',
@@ -24,6 +27,8 @@
     recebimentos: 'Faturas recorrentes e pontuais, uma linha por fatura', contas: 'Fixas, variáveis, folha e impostos do período',
     inadimplencia: 'Faturas vencidas e não recebidas, por cliente', caixa: 'Previsão do caixa no mês e nos 3 seguintes',
     fornecedores: 'Gráficas, estúdios e parceiros, com BV e contato', creators: 'Influenciadores de Irecê e região para as campanhas',
+    vorcaro: 'A Tesouraria: o que pede atenção no financeiro e o que chegou pelo WhatsApp', extrato: 'O extrato do banco e para onde foi cada lançamento de verdade', clientes_mes: 'Cada cliente, mês a mês: pago ou em aberto',
+    cartao: 'As faturas do cartão da agência, item por item', fixos: 'Programas, assinaturas, aluguel e o que sai todo mês', projecao: 'Fluxo de caixa realizado e projetado, com cenários',
   };
   // Título da janela aberta por um item do dock: o nome do item (quadros 19 e 58: "CRM e funil", não "Funil").
   const TITULO = { funil: 'CRM e funil', pacotes: 'Produtos e pacotes', financas: 'Finanças por cliente' };
@@ -38,6 +43,12 @@
     caixa: 'Só donos e administração. Previsão do mês atual e dos 3 seguintes: recebimentos recorrentes (os lançados e a projeção de cada contrato pelo ciclo) menos contas fixas e folha. Mês sem conta lançada repete o fixo do mês atual (estimado). Se a Carteira indicar risco alto de churn num cliente que pesa mais de 15% do faturamento, aparece o alerta.',
     fornecedores: 'Só donos e administração. Cadastro por categoria, com BV (% de bonificação de volume) e contato.',
     creators: 'Influenciadores locais de Irecê e região: @, seguidores, engajamento, nicho, cidade e contato. Filtre por nicho e cidade.',
+    vorcaro: 'Só os quatro donos. O Vorcaro olha o setor inteiro (extrato, clientes, cartão, fixos e projeção), lista o que pede atenção e recebe o que vocês mandam no grupo Vybe Financeiro. Nada é lançado sem um dono confirmar.',
+    extrato: 'Só os quatro donos. Importe o CSV do extrato do Banco do Brasil: a prévia mostra o que entra antes de gravar. Cada lançamento tem o lado do banco e o lado real (categoria, cliente, dividido em partes, pago, não pago ou em aberto).',
+    clientes_mes: 'Só os quatro donos. Mensalidade do contrato contra as entradas ligadas a cada cliente no Extrato, pelo mês a que se referem.',
+    cartao: 'Só os quatro donos. Os itens de cada fatura, com categoria e situação; o pagamento da fatura vem do Extrato.',
+    fixos: 'Só os quatro donos. O que sai todo mês, com o dia e a forma de pagar; mostra se já saiu no extrato ou na fatura do mês.',
+    projecao: 'Só os quatro donos. Média dos meses fechados do Extrato, projetada para 3, 6 ou 12 meses, com cenários.',
   };
   const st = { aberto: false, aba: 'funil', dados: {}, erro: {}, carregando: {}, folha: null, ajuda: false, periodo: { tipo: 'mensal', mes: '' }, verFalta: false,
     fase: '', filtro: {}, msg: '', ocupado: false, etapasEdit: null };
@@ -133,7 +144,7 @@
   async function carregar(aba = st.aba) {
     st.carregando[aba] = true; st.erro[aba] = ''; pintar();
     try {
-      const d = await pedir('comercial', null, queryDaAba(aba));
+      const d = ABAS_FINANCEIRO.has(aba) ? await pedir('financeiro', null, '') : await pedir('comercial', null, queryDaAba(aba));
       st.dados[aba] = completar(d); if (d.pode) podeDinheiro = Boolean(d.pode.ver_dinheiro);
       if (ABAS_FIN.has(aba)) carregarFin();
       // "Usar em orçamento" (Produtos e pacotes): a folha do orçamento novo já abre com o pacote escolhido.
@@ -1306,7 +1317,7 @@
     let conteudo, telaFin = false;
     if (erro) conteudo = `<div class="vc-vazio"><p>${esc(erro)}</p><button type="button" class="vc-sec" data-vc="recarregar">Tentar de novo</button></div>`;
     else if (!d) conteudo = '<div class="vc-vazio"><p>Carregando…</p></div>';
-    else { try { const tela = window.VybeFinancas?.telas?.[st.aba]; telaFin = Boolean(tela); conteudo = tela ? tela({ d, filtro: st.filtro, verFalta: st.verFalta, admin: souAdminAqui(), repintar: pintar, recarregar: () => carregar() }) : PINTOR[st.aba](d); } catch (e) { console.error('[comercial]', e); conteudo = vazio('Não foi possível mostrar esta aba.'); } }
+    else { try { const tela = window.VybeFinancas?.telas?.[st.aba] || window.VybeFinanceiro?.telas?.[st.aba]; telaFin = Boolean(tela); conteudo = tela ? tela({ d, filtro: st.filtro, verFalta: st.verFalta, admin: souAdminAqui(), repintar: pintar, recarregar: () => carregar() }) : PINTOR[st.aba](d); } catch (e) { console.error('[comercial]', e); conteudo = vazio('Não foi possível mostrar esta aba.'); } }
     el.innerHTML = `${v2 ? topoV2(erro ? null : d) : `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? TITULO[st.aba] || (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
         ${acaoDoTopo(d)}
         <button type="button" class="vc-icone" data-vc="ajuda" aria-label="O que é este módulo" aria-pressed="${st.ajuda}" title="O que é isto?">${IC.ajuda}</button>

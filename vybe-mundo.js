@@ -177,6 +177,13 @@
       { id: 'recebimentos', nome: 'Recebimentos', dica: 'Recorrentes e pontuais: a receber, recebido e pendente', mod: ['VybeComercial', 'recebimentos'] },
       { id: 'contas', nome: 'Contas a pagar', dica: 'Fixas, variáveis, folha, impostos, com % do faturamento', mod: ['VybeComercial', 'contas'] },
       { id: 'inadimplencia', nome: 'Inadimplência', dica: 'Quem está em atraso e há quanto tempo', mod: ['VybeComercial', 'inadimplencia'] },
+      // Financeiro do próprio Vybe OS (Paulo, 13/11/2026): extrato do banco, cliente mês a mês, cartão, fixos e projeção.
+      { id: 'vorcaro', nome: 'Vorcaro · Tesouraria', dica: 'O que pede atenção no financeiro e o que chegou pelo WhatsApp', mod: ['VybeComercial', 'vorcaro'] },
+      { id: 'extrato', nome: 'Extrato e conciliação', dica: 'O extrato do banco e para onde foi cada lançamento', mod: ['VybeComercial', 'extrato'] },
+      { id: 'clientes_mes', nome: 'Clientes mês a mês', dica: 'Quem pagou e quem está em aberto, mês a mês', mod: ['VybeComercial', 'clientes_mes'] },
+      { id: 'cartao', nome: 'Cartão de crédito', dica: 'Cada item da fatura, pago ou não', mod: ['VybeComercial', 'cartao'] },
+      { id: 'fixos', nome: 'Gastos fixos', dica: 'Programas, assinaturas, aluguel e o que sai todo mês', mod: ['VybeComercial', 'fixos'] },
+      { id: 'projecao', nome: 'Relatórios e projeção', dica: 'Caixa realizado e projetado em 3, 6 e 12 meses, com cenários', mod: ['VybeComercial', 'projecao'] },
       { id: 'vybe-financas', nome: 'Vybe Finanças', dica: 'Abrir o app financeiro da Vybe', url: 'https://vybe-financas.vercel.app/' },
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
