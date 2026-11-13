@@ -57,6 +57,8 @@ const EQUIPES = Object.freeze({
   motion:               Object.freeze([PESSOAS.DEIVID, PESSOAS.BEATRIZ, PESSOAS.RERISTON]),
   publicacao:           Object.freeze([PESSOAS.TAINARA, PESSOAS.PAULO, PESSOAS.VINICIUS]),
   aprovacaoAudiovisual: Object.freeze([PESSOAS.PAULO, PESSOAS.VINICIUS, PESSOAS.EWERTON_L, PESSOAS.EWERTON_S]),
+  // Coordenação de produção (Paulo, 13/11/2026): a Beatriz distribui a carga do time; vê a aba Coordenação do Hoje.
+  coordenacao:          Object.freeze([PESSOAS.BEATRIZ]),
 });
 
 

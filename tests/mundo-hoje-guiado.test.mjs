@@ -56,7 +56,7 @@ test('Agência: o VYBES guia (alerta mais grave, cliente esperando no WhatsApp, 
 test('Criação: o time do Deivid (design e edição), guiado pelo Danilo, com as pessoas, as filas e a semana; o dock abre ela', () => {
   assert.ok(js.includes("const timeDeCriacao = () => (typeof EQUIPES !== 'undefined' ? [...EQUIPES.design, ...EQUIPES.audiovisual] : []).map(String);"));
   assert.ok(js.includes('<span class="v2t-quem">Danilo · Direção de arte · o que temos para hoje</span>'), 'a fala do Danilo (quadro da Direção de arte)');
-  assert.ok(js.includes("aba('criacao', 'Criação')"), 'aba dos donos');
+  assert.ok(js.includes("['criacao', 'Criação']"), 'aba dos donos');
   assert.ok(js.includes("if (visaoHoje === 'criacao' && ((dono && !verComo) || criacaoPeloDock)) { pintarCriacao(el, { data }); return; }"));
   assert.ok(js.includes("if (id === 'direcao') { visaoHoje = 'criacao'; criacaoPeloDock = true;"), 'Direção de arte do dock abre a Criação');
   // Quadro "Direção de arte" do moodboard (12/11/2026): três números, Fila do Danilo, baralho "Esperando o seu parecer" e o Time.

@@ -1188,6 +1188,63 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   #vv-carteira .v2k-det > .vc-form{padding-left:0}
 }
 
+/* ===== padrao-v2/coordenacao.css ===== */
+/* PADRÃO V2 · HOJE · COORDENAÇÃO (13/11/2026). A aba do Heitor e da Beatriz (vybe-mundo-coordenacao.js): fala do Heitor,
+   período Hoje/Semana/Mês em pílula, "Sem ninguém atribuído" com o nome de cada pessoa e a carga dela, "Para equilibrar"
+   com as trocas sugeridas e a Carga do time (abre a pessoa no lugar, com "passar para"). Cartões brancos de canto 20 como
+   o resto do Hoje; confirmação na própria linha (Confirmar preto). */
+.vv-seg-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+#vv-hoje .v2o .v2t-topo{flex-wrap:wrap;gap:10px}
+#vv-hoje .v2o-periodo{display:inline-flex;gap:0;padding:4px;border-radius:999px;background:#EAE6DE;margin-left:auto}
+#vv-hoje .v2o-periodo > button{appearance:none;height:30px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:#4A463F;font:500 13px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-hoje .v2o-periodo > button[aria-selected="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.16)}
+#vv-hoje .v2o .v2t-fala > .vg-av{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#0E7490;color:#FFFFFF;font:700 14px var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .v2o-corpo{display:flex;gap:14px;align-items:flex-start}
+#vv-hoje .v2o-esq{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
+#vv-hoje .v2o-dir{flex:0 0 360px;min-width:0}
+#vv-hoje .v2o-cartao{padding:18px;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+#vv-hoje .v2o-cartao .v2a-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+#vv-hoje .v2o-cartao .v2a-cab h3{margin:0;font:600 15px var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
+#vv-hoje .v2o-cartao .v2a-cab small{font:400 12.5px var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2o-semdono{box-shadow:inset 0 0 0 1.5px #F4C7A8,0 12px 24px -18px rgba(31,29,26,.22)}
+#vv-hoje .v2o-cartao ul{list-style:none;margin:0;padding:0}
+#vv-hoje .v2o-cartao li{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 0;border-top:1px solid #F1EDE6}
+#vv-hoje .v2o-cartao .v2a-cab + ul > li:first-child{border-top:0}
+#vv-hoje .v2o-peca{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:2px}
+#vv-hoje .v2o-peca b{font:600 13.5px/1.3 var(--vv-texto,Inter,sans-serif);color:#1F1D1A;overflow-wrap:anywhere}
+#vv-hoje .v2o-peca small{font:400 12px/1.35 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2o-peca .ruim,#vv-hoje .v2o .ruim{color:#B42318;font-style:normal;font-weight:600}
+#vv-hoje .v2o-quem{display:flex;flex-wrap:wrap;gap:6px}
+#vv-hoje .v2o-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-hoje .v2o-chip small{font:500 11px var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2o-chip:hover{background:#EAE6DE}
+#vv-hoje .v2o-chip.sugerido{background:#FFE9DC;color:#8A3207;box-shadow:inset 0 0 0 1.5px #C2490C}
+#vv-hoje .v2o-chip.sugerido small{color:#8A3207}
+#vv-hoje .v2o-porque{flex:1 1 200px;font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);color:#4A463F}
+#vv-hoje .v2o-btn{appearance:none;height:32px;padding:0 14px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-hoje .v2o-btn.k{background:#1F1D1A;color:#FFFFFF}
+#vv-hoje .v2o-conf{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;font:500 12.5px var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
+#vv-hoje .v2o-grava{font:500 12.5px var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2o-nota{margin:8px 0 0;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2o-msg{margin:0;padding:10px 14px;border-radius:14px;background:#FDECEC;color:#8C1D13;font:500 13px var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .v2o-pes{border-top:1px solid #F1EDE6}
+#vv-hoje .v2o-time .v2a-cab + .v2o-pes{border-top:0}
+#vv-hoje .v2o-pes-linha{appearance:none;display:flex;align-items:center;gap:10px;width:100%;padding:10px 0;border:0;background:none;color:#1F1D1A;font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-hoje .v2o-pes-linha > i{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-hoje .v2o-pes-linha > span{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+#vv-hoje .v2o-pes-linha small{color:#6B665E}
+#vv-hoje .v2o-pes-linha em{font-style:normal;font-weight:600}
+#vv-hoje .v2o-pes.aberta .v2o-pes-linha > i{background:#1F1D1A;color:#FFFFFF}
+#vv-hoje .v2o-lista{margin:0 0 8px 40px}
+#vv-hoje .v2o-lista > li{padding:8px 0}
+/* A coluna do Hoje estreita (Minha sala) ou o celular: tudo numa coluna. */
+@container hoje (max-width:860px){
+  #vv-hoje .v2o-corpo{flex-direction:column}
+  #vv-hoje .v2o-dir{flex:none;width:100%}
+  #vv-hoje .v2o-periodo{margin-left:0}
+  #vv-hoje .v2o-lista{margin-left:0}
+}
+
 /* ===== padrao-v2/diario.css ===== */
 /* ======================================================================================
    PADRÃO V2 · DIÁRIO DE PRODUÇÃO (quadro "Diário de produção" do moodboard aprovado em 12/11/2026).

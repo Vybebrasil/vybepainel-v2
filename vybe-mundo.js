@@ -735,6 +735,8 @@
   document.addEventListener('vybe:aprovacoes', () => pintarHoje());
   // O assistente da Criação (vybe-mundo-criacao.js) aprovou, adiou ou leu os achados do Danilo: repinta o Hoje.
   document.addEventListener('vybe:criacao', () => pintarHoje());
+  // A Coordenação (vybe-mundo-coordenacao.js) trocou período, abriu uma pessoa ou gravou um responsável: repinta o Hoje.
+  document.addEventListener('vybe:coordenacao', () => pintarHoje());
   // Ver o dia de várias pessoas (Paulo, 09/11/2026: "consigo adicionar e remover pessoas... ver o dia de Deivid, Jady,
   // meu e de Ewerton, ou só de quem eu quiser, nessa mesma aba"). Só para os donos; fica guardado no navegador de quem olha.
   const CHAVE_PESSOAS = 'vybe.hoje.pessoas';
@@ -778,10 +780,34 @@
         titulo: `${esc(String(x.d.nome || x.d.titulo || 'Peça').trim())}${cli(x) ? ' ' + cliCor(cli(x)) : ''}`,
         motivo: esc(motivoNoGuia(x, hoje)) + (comQuem && x.quem?.length ? ' · ' + esc(x.quem.join(', ')) : '') })) };
   }
-  // As abas do Hoje para os donos: Agência (a agência inteira), Criação (o time do Deivid) e Minhas tarefas.
+  // Quem coordena a produção (EQUIPES.coordenacao: a Beatriz) vê a aba Coordenação, além dos donos.
+  const souCoordenacao = () => { const eu = String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || ''); return Boolean(eu) && (typeof EQUIPES !== 'undefined' ? EQUIPES.coordenacao || [] : []).map(String).includes(eu); };
+  const podeCoordenar = () => !verComo && (souDono() || souCoordenacao());
+  // As abas do Hoje. Donos: Agência (a agência inteira), Criação (o time do Deivid), Coordenação (a carga do time, com o
+  // Heitor) e Minhas tarefas. Quem coordena e não é dono: Minhas tarefas e Coordenação.
   function segHoje(atual) {
     const aba = (id, rot) => `<button type="button" role="tab" aria-selected="${atual === id}" data-visao-hoje="${id}">${rot}</button>`;
-    return `<div class="vv-seg vv-seg-3" role="tablist" aria-label="O que ver">${aba('agencia', 'Agência')}${aba('criacao', 'Criação')}${aba('tarefas', 'Minhas tarefas')}</div>`;
+    const abas = souDono() && !verComo ? [['agencia', 'Agência'], ['criacao', 'Criação'], ['coordenacao', 'Coordenação'], ['tarefas', 'Minhas tarefas']]
+      : podeCoordenar() ? [['tarefas', 'Minhas tarefas'], ['coordenacao', 'Coordenação']] : [];
+    if (!abas.length) return '';
+    return `<div class="vv-seg vv-seg-${abas.length}" role="tablist" aria-label="O que ver">${abas.map(([id, rot]) => aba(id, rot)).join('')}</div>`;
+  }
+  function pintarCoordenacao(el, { data }) {
+    const C = window.VybeCoordenacao; if (!C) return false;
+    const T = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+    const E = typeof EQUIPES !== 'undefined' ? EQUIPES : { design: [], audiovisual: [] };
+    const papel = (id) => (typeof DA_CONTROLLER_ROLES !== 'undefined' && DA_CONTROLLER_ROLES[id]) || 'Produção';
+    const limite = (id) => (typeof daCapacitySignal === 'function' ? daCapacitySignal({ id }, []).threshold : ((E.audiovisual || []).map(String).includes(id) ? 24 : 14));
+    const time = timeDeCriacao().map((id) => ({ id, nome: (T.find((u) => String(u.id) === id) || {}).name || id, papel: papel(id),
+      disciplina: (E.audiovisual || []).map(String).includes(id) ? 'audiovisual' : 'design', limiteSemana: limite(id) }));
+    const fin = (d) => (typeof isFinishedItem === 'function' ? isFinishedItem(d) : /finalizad/i.test(String(d.status || '')));
+    const itens = (typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : []).filter((d) => !fin(d) && !(typeof isRequestItem === 'function' && isRequestItem(d)));
+    const nome = (id) => (time.find((p) => p.id === String(id)) || {}).nome || String(id);
+    const cliente = (d) => (typeof clientesDoItem === 'function' ? clientesDoItem(d)[0] : d.cliente) || '';
+    const html = C.html({ itens, time, hoje: hojeIso(), data, nome, cliente, abas: segHoje('coordenacao'),
+      peso: (d, u) => (typeof daEffortWeight === 'function' ? daEffortWeight(d, u) : 1) });
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
+    return true;
   }
   // O guia: o agente, uma frase e os passos numerados (Agora, Depois, Em seguida), cada um abre o que precisa ser feito.
   function guiaHtml({ agente, intro, passos = [], depois = '', conversa = '', comecar = false }) {
@@ -1534,7 +1560,8 @@
     const dono = souDono(); body.classList.toggle('eh-dono', dono);
     if (dono && !verComo && visaoHoje === 'agencia') { pintarAgencia(el, { data, saud, nome }); return; }
     if (visaoHoje === 'criacao' && ((dono && !verComo) || criacaoPeloDock)) { pintarCriacao(el, { data }); return; }
-    const segDono = dono && !verComo ? segHoje('tarefas') : '';
+    if (visaoHoje === 'coordenacao' && podeCoordenar() && pintarCoordenacao(el, { data })) return;
+    const segDono = podeCoordenar() ? segHoje('tarefas') : '';
     // O título do dia com "Criar" à direita, o mesmo cabeçalho de todas as telas (quadro 31).
     const criarHtml = `<button type="button" class="vv-hoje-criar" data-trilho="criar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Criar</button>`;
     if (!fila) {
