@@ -2536,6 +2536,172 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
   .vv-setor-visao.fv2-casa > .vs-corpo{padding:16px 4px 8px}
 }
 
+/* ===== padrao-v2/financeiro.css ===== */
+/* PADRÃO V2 · FINANCEIRO DO VYBE OS (13/11/2026): Extrato e conciliação, Clientes mês a mês, Cartão, Gastos fixos e
+   Relatórios e projeção (vybe-mundo-financeiro.js). Moram na janela do Comercial como as telas de financas.css e usam as
+   mesmas peças (fv2-*); aqui só o que é delas (fx-*). Cartão branco de raio 20, pílulas, uma ação laranja por tela. */
+#vv-comercial .fx .fx-kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+#vv-comercial .fx .fx-kpis-4 .fv2-kpi > b{font-size:28px}
+#vv-comercial .fx-duas{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px;align-items:start}
+#vv-comercial .fx-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+#vv-comercial .fx-rot{margin:14px 0 4px;font:600 11.5px/1.3 var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:.04em;text-transform:uppercase;color:#8A847A}
+#vv-comercial .fx-neg{color:#B42318}
+#vv-comercial .fx-arquivo{cursor:pointer}
+#vv-comercial .fx-arquivo:focus-within{outline:2px solid #C2490C;outline-offset:2px}
+
+/* campos */
+#vv-comercial .fx-in,#vv-comercial .fx-sel{box-sizing:border-box;width:100%;min-width:0;height:36px;padding:0 12px;border:0;border-radius:12px;background:#F6F4EF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 13.5px var(--vv-texto,Inter,system-ui,sans-serif)}
+#vv-comercial .fx-sel{padding-right:6px}
+#vv-comercial .fx-area{height:auto;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;resize:vertical}
+#vv-comercial :is(.fx-in,.fx-sel):focus-visible{outline:2px solid #C2490C;outline-offset:1px}
+#vv-comercial .fx-num{text-align:right;font-variant-numeric:tabular-nums}
+#vv-comercial .fx-filtros-sel,#vv-comercial .fv2-filtros > .fx-sel{width:auto;max-width:220px;height:30px;border-radius:999px;background:#FFFFFF}
+#vv-comercial .fx-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 12px;margin:10px 0}
+#vv-comercial .fx-campo{display:flex;flex-direction:column;gap:4px;min-width:0}
+#vv-comercial .fx-campo > span{font:500 12px var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
+#vv-comercial .fx-campo.largo{grid-column:span 2}
+#vv-comercial .fx-linha-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+#vv-comercial .fx-linha-acoes.fx-fim{padding-top:12px;border-top:1px solid #F1EDE6}
+#vv-comercial .fx-linha-acoes > .fx-in{flex:1 1 160px;width:auto}
+#vv-comercial .fx-check{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}
+#vv-comercial .fx-check small,#vv-comercial .fx-corte small{margin-left:auto;color:#6B665E;font-variant-numeric:tabular-nums}
+#vv-comercial .fx-check input{accent-color:#C2490C}
+
+/* extrato: uma linha por lançamento (banco à esquerda, real abaixo, valor e o check) */
+#vv-comercial .fx-lanc > .fv2-lin{gap:10px}
+#vv-comercial .fx-dia{flex:none;width:42px;font:600 12px var(--vv-texto,Inter,system-ui,sans-serif);color:#8A847A;font-variant-numeric:tabular-nums}
+#vv-comercial .fx-banco{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial .fx-real{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px;color:#6B665E;font-size:12.5px}
+#vv-comercial .fx-quem{color:#4A463F}
+#vv-comercial .fx-valor{flex:none;font:700 14px var(--vv-texto,Inter,system-ui,sans-serif);font-variant-numeric:tabular-nums}
+#vv-comercial .fx-valor.e{color:#11613A}
+#vv-comercial .fx-valor.s{color:#1F1D1A}
+#vv-comercial .fx-ok{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #D9D1C3;color:#B5AEA2;cursor:pointer}
+#vv-comercial .fx-ok svg{width:15px;height:15px;stroke-width:2.6}
+#vv-comercial .fx-ok:hover{box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#1F1D1A}
+#vv-comercial .fx-ok[aria-pressed="true"]{background:#11613A;box-shadow:none;color:#FFFFFF}
+#vv-comercial .fx-ok:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+#vv-comercial .fx-lanc.ok .fx-banco{color:#6B665E}
+#vv-comercial .fx-editor{margin:2px 0 6px 52px;padding:14px 16px;border-radius:16px;background:#FBFAF7;box-shadow:inset 0 0 0 1px #EFEBE4}
+#vv-comercial .fx-comobanco{font-size:12.5px;color:#4A463F}
+#vv-comercial .fx-comobanco small{display:block;font:600 11px var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:.04em;text-transform:uppercase;color:#8A847A}
+#vv-comercial .fx-partes{margin-top:12px;padding:12px;border-radius:14px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6}
+#vv-comercial .fx-parte{display:grid;grid-template-columns:100px minmax(130px,1fr) minmax(120px,.8fr) 30px;gap:8px;align-items:center;margin-top:8px}
+#vv-comercial .fx-cenario .fx-parte{grid-template-columns:62px auto 90px auto 56px 30px;font-size:12.5px;color:#6B665E}
+#vv-comercial .fx-cenario .fx-parte.fx-gasto{grid-template-columns:minmax(0,1fr) 90px auto 56px 30px}
+#vv-comercial .fx-regra{margin-top:12px;padding:12px;border-radius:14px;background:#FFF8F2;box-shadow:inset 0 0 0 1px #F5D9C6}
+#vv-comercial .fx-previa{box-shadow:inset 0 0 0 2px #C2490C,0 12px 24px -18px rgba(31,29,26,.22)}
+#vv-comercial .fx-previa-num{margin:8px 0;font-size:14px}
+
+/* listas curtas, categorias com barra */
+#vv-comercial .fx-mini{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 12px;padding:8px 0;border-top:1px solid #F1EDE6;font-size:13px}
+#vv-comercial .fx-mini > span{min-width:0;overflow-wrap:anywhere}
+#vv-comercial .fx-cat{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 10px;width:100%;margin:0;padding:8px 10px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;text-align:left}
+#vv-comercial button.fx-cat{cursor:pointer}
+#vv-comercial button.fx-cat:hover{background:#F6F4EF}
+#vv-comercial .fx-cat[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF}
+#vv-comercial .fx-cat[aria-pressed="true"] small{color:#D9D1C3}
+#vv-comercial .fx-cat > span{display:flex;flex-direction:column;min-width:0;font-size:13px}
+#vv-comercial .fx-cat small,#vv-comercial .fx-corte span small{font-size:11.5px;color:#8A847A}
+#vv-comercial .fx-cat > b{font-variant-numeric:tabular-nums;font-size:13px}
+#vv-comercial .fx-barra{grid-column:1 / -1;display:block;height:6px;border-radius:999px;background:#EFEBE4;overflow:hidden}
+#vv-comercial .fx-barra > i{display:block;height:100%;border-radius:inherit;background:#C2490C}
+#vv-comercial .fx-barra.bom > i{background:#11613A}
+#vv-comercial .fx-det{margin-top:10px}
+#vv-comercial .fx-det > summary{cursor:pointer;color:#C2490C;font-size:12.5px;font-weight:600}
+#vv-comercial .fx-det > summary:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+
+/* cartão e fixos: item com situação */
+#vv-comercial .fx-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 0;border-top:1px solid #F1EDE6}
+#vv-comercial .fx-item-txt{flex:1 1 180px;display:flex;flex-direction:column;min-width:0}
+#vv-comercial .fx-item-txt small{color:#6B665E;font-size:12px}
+#vv-comercial .fx .fx-seg-p button{height:26px;padding:0 10px;font-size:11.5px}
+
+/* clientes mês a mês: a grade de bolinhas */
+#vv-comercial .fx-mm-rolo{overflow-x:auto;margin-top:10px}
+#vv-comercial .fx-mm{display:grid;grid-template-columns:minmax(150px,1.6fr) repeat(var(--n,6),minmax(52px,1fr)) minmax(92px,1fr);align-items:center;gap:6px;min-width:560px;padding:7px 0;border-top:1px solid #F1EDE6}
+#vv-comercial .fx-mm-cab{border-top:0;font:600 11.5px var(--vv-texto,Inter,system-ui,sans-serif);color:#8A847A;text-transform:uppercase;letter-spacing:.03em}
+#vv-comercial .fx-mm > :not(:first-child){text-align:center}
+#vv-comercial .fx-mm > b{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+#vv-comercial .fx-mm-nome{appearance:none;display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:0;border:0;background:none;color:inherit;font:600 13.5px var(--vv-texto,Inter,system-ui,sans-serif);text-align:left;cursor:pointer}
+#vv-comercial .fx-mm-nome small{font-weight:400;font-size:11.5px;color:#8A847A}
+#vv-comercial .fx-mm-nome:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+#vv-comercial .fx-cel{display:inline-grid;place-items:center;min-width:30px;height:26px;padding:0 6px;border-radius:999px;font:700 11.5px var(--vv-texto,Inter,system-ui,sans-serif);font-variant-numeric:tabular-nums}
+#vv-comercial .fx-cel.pago{background:#E8F5EC;color:#11613A}
+#vv-comercial .fx-cel.parcial{background:#FFF4D6;color:#7A4A00}
+#vv-comercial .fx-cel.aberto{background:#FDECEE;color:#B42318}
+#vv-comercial .fx-cel.a_receber{background:#E7EEFB;color:#1E4A9A}
+#vv-comercial .fx-cel:is(.sem,.fora){background:none;color:#C9C2B6}
+#vv-comercial .fx-legenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+#vv-comercial .fx-legenda .fx-cel{min-width:22px;height:20px}
+#vv-comercial .fx-mm-det{min-width:560px;margin:0 0 8px;padding:6px 14px;border-radius:14px;background:#FBFAF7}
+
+/* projeção */
+/* .fv2 svg (ícones de 14px, financas.css) não vale para o gráfico: o seletor aqui é mais específico de propósito. */
+#vv-comercial .fv2 svg.fx-graf{display:block;width:100%;height:auto;margin-top:10px}
+#vv-comercial .fx-graf polyline{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+#vv-comercial .fx-graf .real{stroke:#1F1D1A}
+#vv-comercial .fx-graf .hoje{stroke:#8A847A;stroke-dasharray:5 5}
+#vv-comercial .fx-graf .com{stroke:#C2490C}
+#vv-comercial .fx-graf .zero{stroke:#E6E0D6;stroke-width:1}
+#vv-comercial .fx-graf text{fill:#8A847A;stroke:none;font:500 11px var(--vv-texto,Inter,system-ui,sans-serif)}
+#vv-comercial .fx-l{display:inline-block;width:18px;height:3px;margin-left:8px;border-radius:2px;background:#1F1D1A;vertical-align:middle}
+#vv-comercial .fx-l.hoje{background:repeating-linear-gradient(90deg,#8A847A 0 5px,transparent 5px 9px)}
+#vv-comercial .fx-l.com{background:#C2490C}
+#vv-comercial .fx-tab{display:flex;flex-direction:column;margin-top:8px;overflow-x:auto}
+#vv-comercial .fx-tr{display:grid;grid-template-columns:70px repeat(5,minmax(78px,1fr));gap:8px;min-width:480px;padding:7px 0;border-top:1px solid #F1EDE6;font-size:12.5px;font-variant-numeric:tabular-nums}
+#vv-comercial .fx-tr > :not(:first-child){text-align:right}
+#vv-comercial .fx-dre .fx-tr{grid-template-columns:minmax(120px,1.4fr) repeat(var(--n,4),minmax(78px,1fr))}
+#vv-comercial .fx-th{border-top:0;font-weight:600;color:#8A847A}
+#vv-comercial .fx-tot{font-weight:700;border-top:1.5px solid #1F1D1A}
+#vv-comercial .fx-fluxo{display:grid;grid-template-columns:70px minmax(80px,1fr) auto;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #F1EDE6;font-size:12.5px}
+#vv-comercial .fx-fluxo > span:first-child{display:flex;flex-direction:column;font-weight:600}
+#vv-comercial .fx-fluxo small{font-weight:400;color:#B45309;font-size:11px}
+#vv-comercial .fx-fluxo-b{display:flex;flex-direction:column;gap:3px}
+#vv-comercial .fx-fluxo-b > i{display:block;height:6px;border-radius:999px;background:#11613A}
+#vv-comercial .fx-fluxo-b > i.s{background:#C2490C}
+#vv-comercial .fx-corte{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #F1EDE6}
+#vv-comercial .fx-corte > span{flex:1;display:flex;flex-direction:column;min-width:0;font-size:13px}
+#vv-comercial .fx-corte > .fx-sel{width:110px;height:30px}
+#vv-comercial .fx-lado .fv2-card{position:relative}
+#vv-comercial .fx-proj .fx-cenario{position:sticky;top:0}
+
+@media (prefers-reduced-motion:reduce){
+  #vv-comercial .fx :is(.fx-ok,.fx-cat){transition:none}
+}
+@container fv2 (max-width:860px){
+  #vv-comercial .fx-duas{grid-template-columns:minmax(0,1fr)}
+  #vv-comercial .fx .fx-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #vv-comercial .fx-proj .fx-cenario{position:static}
+}
+@container fv2 (max-width:560px){
+  #vv-comercial .fx .fx-kpis-4 .fv2-kpi > b{font-size:22px}
+  #vv-comercial .fx-editor{margin-left:0}
+  #vv-comercial .fx-campo.largo{grid-column:auto}
+  #vv-comercial .fx-parte{grid-template-columns:90px minmax(0,1fr) 30px}
+  #vv-comercial .fx-parte > :nth-child(3){grid-column:1 / 3}
+  #vv-comercial .fx-cenario .fx-parte,#vv-comercial .fx-cenario .fx-parte.fx-gasto{grid-template-columns:1fr 1fr 30px}
+  #vv-comercial .fx-lanc > .fv2-lin{flex-wrap:wrap}
+  #vv-comercial .fx-lanc .fv2-txt{flex-basis:calc(100% - 52px)}
+  #vv-comercial .fx-lanc .fx-valor{margin-left:52px;margin-right:auto}
+  #vv-comercial .fx-banco{white-space:normal}
+}
+
+/* Vorcaro (Tesouraria): achados com o peso na bolinha e as propostas do WhatsApp */
+#vv-comercial .fx-achado{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #F1EDE6}
+#vv-comercial .fv2-card-topo + .fx-achado{border-top:0}
+#vv-comercial .fx-achado > p{flex:1;min-width:0;font-size:13.5px}
+#vv-comercial .fx-sinal{flex:none;width:10px;height:10px;border-radius:50%;background:#C9C2B6}
+#vv-comercial .fx-achado.g3 .fx-sinal{background:#B42318;box-shadow:0 0 0 4px #FDECEE}
+#vv-comercial .fx-achado.g2 .fx-sinal{background:#D97706;box-shadow:0 0 0 4px #FFF4D6}
+#vv-comercial .fx-proposta{margin-top:10px;padding:14px 16px;border-radius:16px;background:#FBFAF7;box-shadow:inset 0 0 0 1px #EFEBE4}
+#vv-comercial .fx-proposta .fx-valor{margin-right:auto}
+@container fv2 (max-width:560px){
+  #vv-comercial .fx-achado{flex-wrap:wrap}
+  #vv-comercial .fx-achado > p{flex-basis:calc(100% - 22px)}
+  #vv-comercial .fx-achado > .fv2-btn{margin-left:22px}
+}
+
 /* ===== padrao-v2/gestao.css ===== */
 /* ======================================================================================
    PADRÃO V2 · GESTÃO, PERFORMANCE E VISÃO DO SETOR (quadros "Gestão", "Performance" e "Visão do setor" do moodboard

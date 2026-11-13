@@ -1,5 +1,6 @@
 import { QUARTOS } from '../server/escritorio-quartos.js';
 import { demoWhatsapp } from './fixtures-whatsapp.mjs';
+import { financeiroDemo } from './fixtures-financeiro.mjs';
 // Exclusivo do servidor local. Nenhuma consulta ou gravação externa.
 import { readFileSync } from 'node:fs';
 import { salasDoEscritorio } from '../server/escritorio-mapa.js';
@@ -64,7 +65,7 @@ function clientesDemo(req,res,url,body,reply){
 }
 function aplicarDemo(c,campos){const {colunas,extras}=separarCampos(campos);Object.assign(c,colunas);
   for(const [k,v] of Object.entries(extras)){if(v)c.cadastro[k]=v;else delete c.cadastro[k];}}
-const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true};
+const pessoa={id:1,nome:'Operador de teste',email:'operador@example.test',admin:true,...(process.env.DEMO_DONO==='1'?{dono:true}:{})}; // DEMO_DONO=1: ver as áreas só dos donos (Finanças)
 // As Notas gravam na demonstração: são um caderno em memória, sem banco nem
 // Monday atrás, e é a única forma de exercitar a tela local de ponta a ponta.
 let NOTAS_DEMO=[{id:1,titulo:'17/09 · notas do dia',
@@ -169,6 +170,8 @@ export async function demoApi(req,res,url,body) {
     if(!a&&c){a={id:'a'+c.id,nome:'Dados & Acessos - '+c.nome,cliente_id:c.id,cliente:c.nome,grupo:'',drive:'',link:'',manus:false,documento:false,atualizado_em:new Date().toISOString()};ACESSOS_DEMO.push(a);}
     if(a&&d.pasta_drive!==undefined)a.drive=d.pasta_drive;return reply(200,{ok:true});
   }
+  // Financeiro (13/11/2026): o servidor de verdade num PGlite em memória, com extrato fictício (scripts/fixtures-financeiro.mjs).
+  if(url.pathname==='/api/painel' && url.searchParams.get('area')==='financeiro') return financeiroDemo(req,url,body,reply);
   if(req.method!=='GET')return reply(403,{error:'Demonstração de interface somente leitura. As gravações são testadas no PostgreSQL em memória.'});
   if(url.pathname==='/api/conteudos') {
     const demanda=url.searchParams.get('board')==='demandas';

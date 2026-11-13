@@ -9,6 +9,7 @@ import { areaComercial } from '../server/comercial-api.js';
 import { areaCrm } from '../server/crm-api.js';
 import { hojeNaBahia } from '../server/comercial.js';
 import calc from '../shared/comercial-calculos.js';
+import { areaFinanceiro } from '../server/financeiro.js';
 
 function elemento(tag) {
   const el = { tagName: tag.toUpperCase(), dataset: {}, hidden: false, innerHTML: '', ouvintes: {}, scrollTop: 0, attrs: {},
@@ -26,6 +27,8 @@ async function montar(t, quem) {
     INSERT INTO vybe_clientes VALUES (10,'Hebravet',true);`);
   await db.exec(readFileSync('migrations/2026-11-07-crm-prospeccao.sql', 'utf8'));
   await db.exec(readFileSync('migrations/2026-11-07-comercial.sql', 'utf8'));
+  // As abas do Financeiro (area=financeiro) guardam em vybe_carteira_config.
+  await db.exec(`CREATE TABLE IF NOT EXISTS vybe_carteira_config (chave text PRIMARY KEY, valor jsonb NOT NULL, atualizado_em timestamptz NOT NULL DEFAULT now(), atualizado_por bigint)`);
   const chamar = async (fn, req, pessoa) => { let codigo = 0, corpo = null; const res = { setHeader() {}, status(n) { codigo = n; return this; }, json(d) { corpo = d; return this; } }; await fn(req, res, pessoa, () => sql); return { codigo, corpo }; };
   const dono = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } };
   const hoje = hojeNaBahia();
@@ -47,13 +50,15 @@ async function montar(t, quem) {
   const ctx = vm.createContext({ document: doc, console, setTimeout, Intl, Date, JSON, Math, Number, String, Object, Array, Promise, Error, encodeURIComponent, confirm: () => true,
     DADOS_ALL: [{ responsavel_ids: ['300'], status: 'Em produção' }], isFinishedItem: () => false,
     fetch: async (url, op = {}) => {
-      const u = new URL(url, 'http://x'), q = Object.fromEntries(u.searchParams), area = q.area === 'crm' ? areaCrm : areaComercial;
+      const u = new URL(url, 'http://x'), q = Object.fromEntries(u.searchParams), area = q.area === 'crm' ? areaCrm : q.area === 'financeiro' ? areaFinanceiro : areaComercial;
       const r = await chamar(area, { method: op.method || 'GET', body: op.body ? JSON.parse(op.body) : null, query: q }, quem);
       return { ok: r.codigo === 200, status: r.codigo, json: async () => r.corpo };
     } });
   ctx.window = ctx; ctx.window.addEventListener = (tipo, f, cap) => (doc.ouvintes['w' + tipo] ||= []).push({ f, cap });
   vm.runInContext(readFileSync('shared/comercial-calculos.js', 'utf8'), ctx);
   vm.runInContext(readFileSync('vybe-mundo-comercial.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
   const janela = () => criados.find((e) => e.id === 'vv-comercial');
   const esperar = async () => { for (let i = 0; i < 50; i++) await new Promise((r) => setTimeout(r, 5)); };
   return { ctx, doc, janela, esperar };
@@ -62,7 +67,8 @@ async function montar(t, quem) {
 test('dono: todas as abas pintam com dados reais, com o dinheiro e sem HTML injetado', async (t) => {
   const { ctx, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } });
   const espera = { funil: 'Loja X', pacotes: 'Zona crítica', orcamentos: 'Padaria', financas: 'Hebravet', recebimentos: 'inadimplente', contas: 'Aluguel',
-    inadimplencia: 'Crítico', caixa: 'Entradas recorrentes', fornecedores: 'Gráfica', creators: 'Ana' };
+    inadimplencia: 'Crítico', caixa: 'Entradas recorrentes', fornecedores: 'Gráfica', creators: 'Ana',
+    vorcaro: 'Ainda não tenho o extrato', extrato: 'Importar extrato', clientes_mes: 'Hebravet', cartao: 'Colar fatura', fixos: 'Novo gasto fixo', projecao: 'A projeção nasce' };
   for (const aba of ctx.VybeComercial.ABAS.map((a) => a.id)) {
     ctx.VybeComercial.abrir(aba); await esperar();
     const html = janela().innerHTML;
