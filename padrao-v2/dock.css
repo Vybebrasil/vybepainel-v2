@@ -255,3 +255,10 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 /* Dock compacto: não coube com os nomes (vybe-mundo.js, pintarDock). Só os ícones, botões de 44. */
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:44px;height:44px;padding:0 4px}
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item .vq-rotulo{display:none}
+/* Compacto e ainda apertado (Minha sala a 1280 e 1440: Voltar, a sala, 13 botões): o nome da sala vira só os rostos e o
+   botão, os botões ficam com 40 e, se mesmo assim faltar, o dock rola de lado em vez de cortar o fim (TV, Música). */
+#vv-dock-salas-faixa.dock-compacto .vq-dock{gap:2px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+#vv-dock-salas-faixa.dock-compacto .vq-dock::-webkit-scrollbar{display:none}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:40px;padding:0 2px}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-sep{margin:0 2px}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz{max-width:160px;gap:6px}

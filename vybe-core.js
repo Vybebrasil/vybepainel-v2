@@ -1183,6 +1183,17 @@ function vbArrumarAbas(raiz = document) {
     lista.vbAbasAssinatura = assinatura;
     if (!lista.dataset.vbAbasChave) lista.dataset.vbAbasChave = lista.getAttribute('aria-label') || lista.id || String(lista.className).split(' ')[0];
     lista.classList.add('vb-abas');
+    // A largura muda sem o conteúdo mudar (a coluna do Hoje encolhe ao abrir a Minha sala, a janela muda de tamanho): mede
+    // de novo. Sem isto, as abas que não cabiam ficavam cortadas em vez de irem para o "Mais" (confere de 13/11/2026).
+    if (!lista.vbAbasRO && typeof ResizeObserver === 'function' && lista.parentElement) {
+      let larguraVista = 0;
+      lista.vbAbasRO = new ResizeObserver(([e]) => {
+        const w = Math.round(e.contentRect.width); if (!w || w === larguraVista) return;
+        const primeira = !larguraVista; larguraVista = w; if (primeira) return;
+        lista.vbAbasAssinatura = ''; requestAnimationFrame(() => { try { vbArrumarAbas(lista.parentElement || document); } catch { /* segue */ } });
+      });
+      lista.vbAbasRO.observe(lista.parentElement);
+    }
     // Contador: só o número que existe; zero não é o que ver.
     for (const aba of abas) for (const n of aba.querySelectorAll('b, em, small, span, i')) {
       if (n.children.length || !/^\(?\d+\)?$/.test(n.textContent.trim())) continue;

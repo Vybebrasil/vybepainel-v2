@@ -92,9 +92,9 @@ export async function avisosDeStatus(sql, { desde }, agora = new Date()) {
 // Ronda dos clientes (robozinhos no WhatsApp): as MESMAS cobranças do Escritório (cobrancasDaEquipe),
 // agrupadas por grupo do WhatsApp e por cliente, cada cliente "cobrando" quem deve agir.
 // Atraso de 3 dias ou mais também marca o dono do cliente (escala, Paulo 26/10/2026).
-const GRUPO_DA_COBRANCA = { atrasada: 'criacao', hoje: 'criacao', vence: 'criacao', agendar: 'publicacoes',
+const GRUPO_DA_COBRANCA = { atrasada: 'criacao', hoje: 'criacao', vence: 'criacao', agendar: 'publicacoes', conferir_postagem: 'publicacoes',
   lembrar_cliente: 'atendimento', marcar_gravacao: 'atendimento', postar_parada: 'atendimento' };
-const GRAVIDADE = { postar_parada: 0, atrasada: 1, agendar: 2, hoje: 3, vence: 4, lembrar_cliente: 5, marcar_gravacao: 6 };
+const GRAVIDADE = { postar_parada: 0, atrasada: 1, agendar: 2, conferir_postagem: 2, hoje: 3, vence: 4, lembrar_cliente: 5, marcar_gravacao: 6 };
 const ESCALA_DIAS = 3, MAX_LINHAS = 25;
 function fraseDaCobranca(c) {
   const dias = (n) => `${n} dia${n === 1 ? '' : 's'}`;
@@ -103,6 +103,7 @@ function fraseDaCobranca(c) {
     case 'hoje': return '⏰ prazo hoje';
     case 'vence': return '⚠️ vence amanhã e ainda não começou';
     case 'agendar': return `📅 veicula ${curto(c.data)} e está para agendar`;
+    case 'conferir_postagem': return `📌 agendada para ${curto(c.data)} e ainda sem Finalizado: confere se saiu`;
     case 'lembrar_cliente': return `🟡 esperando o cliente${c.dias > 0 ? ` há ${dias(c.dias)}` : ''}, lembrar o cliente`;
     case 'marcar_gravacao': return '🎬 falta marcar a gravação';
     case 'postar_parada': return `🚨 veicula ${curto(c.data)} e nem começou`;

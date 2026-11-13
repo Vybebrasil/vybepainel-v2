@@ -256,10 +256,11 @@ export const SEMENTE = [
     condicao: { status_nao_em: ['agendado', 'finalizado', 'para_agendar'] },
     acoes: [{ tipo: 'notificar', texto: 'Veicula hoje e ainda não está pronto: {titulo} ({cliente}).' }] },
 
+  // Pronta é só Finalizado (Paulo, 13/11/2026): no dia seguinte, Agendado também cobra, para conferir se saiu.
   { nome: 'Cobra um dia depois da veiculação', ordem: 52,
     gatilho: { tipo: 'data', campo: 'veiculacao', dias: 1, hora: '11:00' },
-    condicao: { status_nao_em: ['agendado', 'finalizado'] },
-    acoes: [{ tipo: 'notificar', texto: 'Veiculou ontem e continua em aberto: {titulo} ({cliente}).' }] },
+    condicao: { status_nao_em: ['finalizado'] },
+    acoes: [{ tipo: 'notificar', texto: 'Veiculou ontem e não foi marcada Finalizado: {titulo} ({cliente}). Se saiu, marque Finalizado.' }] },
 ];
 
 // Semeia as regras importadas. Com refazer=true, corrige as que já existem em vez

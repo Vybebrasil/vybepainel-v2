@@ -60,4 +60,16 @@ test('cada demanda que pede ação manda o cliente para o quarto de quem deve ag
  assert.ok(titulos(depois,3).includes('Reels - Bastidor:atrasada')&&titulos(depois,3).includes('Motion - Abertura:atrasada'),'vídeo em aprovação cobra o head do cliente');
  assert.ok(!titulos(depois,4).some(t=>/Bastidor|Abertura/.test(t)),'o Deivid continua só com design');
  assert.deepEqual(titulos(depois,4),['Card para aprovar:atrasada']);
+ // Pronta é só Finalizado (Paulo, 13/11/2026): Agendado com a veiculação passada e sem Finalizado pede a quem agenda que
+ // confira se saiu; só os últimos 7 dias (o histórico antigo não despeja de uma vez); Agendado de hoje ou adiante não cobra.
+ await db.exec(`INSERT INTO vybe_status VALUES(7829537690,'agendado','Agendado',true);
+  INSERT INTO vybe_conteudos(id,board_id,titulo,status_chave,prazo,veiculacao) VALUES
+   (17,7829537690,'Agendado de anteontem','agendado','2026-10-17','2026-10-18'),
+   (18,7829537690,'Agendado de outubro','agendado','2026-10-01','2026-10-02'),
+   (19,7829537690,'Agendado para amanhã','agendado','2026-10-19','2026-10-21');
+  INSERT INTO vybe_conteudo_clientes VALUES(17,1),(18,1),(19,1);INSERT INTO vybe_conteudo_responsaveis VALUES(17,7,0),(18,7,0),(19,7,0);`);
+ const conferir=await cobrancasDaEquipe(sql,new Date('2026-10-20T17:00:00Z'));
+ assert.ok(titulos(conferir,5).includes('Agendado de anteontem:conferir_postagem'),'quem agenda confere se saiu');
+ assert.ok(!titulos(conferir,5).some(t=>/Agendado de outubro|Agendado para amanhã/.test(t)),'mais de 7 dias ou data futura não cobra');
+ assert.ok(![...conferir.values()].flat().some(c=>c.tipo==='atrasada'&&/^Agendado/.test(c.titulo)),'Agendado não vira atraso de quem produz');
 });
