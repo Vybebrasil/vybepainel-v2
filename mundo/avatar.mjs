@@ -118,8 +118,19 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
   // Cabeça grande. Com máscara do Habbo (cabeça de cavalo e afins: f.acessorio cobre quase toda a cabeça), a cabeça,
   // o rosto e o cabelo dão lugar ao acessório.
   const yc = .92, H = .74, W = .78, D = .72, fr = D / 2, topo = yc + H;
-  const mascara = Boolean(f.acessorio && f.acessorio.cobre > .55);
+  // Só a máscara MODELADA (receita no tamanho da cabeça, como a de cavalo) toma o lugar da cabeça: a esculpida veste a
+  // cabeça por fora, e a proporção da cabeça é sempre a mesma, com ou sem acessório (Paulo, 13/11/2026).
+  const mascara = (f.acessorios || [f.acessorio]).some((a) => a && a.cobre > .55 && a.caixas?.length);
   const ct = f.cabelo, bone = Boolean(f.chapeu); // também usados pelo fone do agente, depois da cabeça
+  // A peça do Habbo veste uma cabeça redonda; a nossa é um cubo. Bloco que cai dentro do cubo (cabelo curto, a copa do
+  // chapéu) é empurrado para a casca dele, do centro da cabeça para fora: a peça vira uma touca justa por fora do cubo.
+  const naCasca = (k) => {
+    const cy = yc + H * .5, dx = k.x / (W / 2 + .03), dy = (k.y - cy) / (H / 2 + .03), dz = k.z / (D / 2 + .03), t = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+    if (t >= 1 || k.y < yc + .05) return k;
+    // Para a frente, só a franja (acima da testa): o rosto fica à mostra (o cabelo comprido do Deivid cobria a cara).
+    if (dz > 0 && Math.abs(dz) >= Math.abs(dx) && Math.abs(dz) >= Math.abs(dy) && k.y < yc + H * .72) return null;
+    const e = 1 / Math.max(t, .2); return { x: k.x * e, y: cy + (k.y - cy) * e, z: k.z * e, cor: k.cor, e: Math.min(e, 1.8) }; // e: o bloco cresce junto (sem frestas na touca)
+  };
   if (!mascara) {
   C(0, yc - .02, 0, .22, .04, .22, f.pele);
   C(0, yc, 0, W, H, D, f.pele);
@@ -146,7 +157,7 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
   }
   // Cabelo do Habbo (f.cabeloHabbo): a forma esculpida da arte da pessoa, de frente e de perfil, por cima da cabeça.
   const cabeloEsculpido = Boolean(f.cabeloHabbo?.blocos?.length) && !bone;
-  if (cabeloEsculpido) { const [lx, ly, lz] = f.cabeloHabbo.lados.map((v) => v * 1.002); for (const k of f.cabeloHabbo.blocos) C(k.x, k.y, k.z, lx, ly, lz, k.cor); }
+  if (cabeloEsculpido) { const [lx, ly, lz] = f.cabeloHabbo.lados.map((v) => v * 1.002); for (const k0 of f.cabeloHabbo.blocos) { const k = naCasca(k0); if (!k || (k.z > fr - .06 && k.y > yc - .02 && k.y < yc + H * .72 && Math.abs(k.x) < W / 2 - .04)) continue; const e = k.e || 1; /* janela do rosto */ C(k.x, k.y, k.z, lx * e, ly * e, lz * e, k.cor); } }
   // Sem ele, o cabelo em blocos, com volume (mais largo que a cabeça) e mechas na franja.
   if (ct && !cabeloEsculpido) {
     const cs = escuro(ct, .18), cl = claro(ct, .14);
@@ -177,7 +188,15 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
   }
   }
   // Acessório de cabeça do Habbo (chapéu, máscara, enfeite), em voxels na escala da nossa cabeça (figuraDoHabbo).
-  if (f.acessorio?.blocos?.length) { const [lx, ly, lz] = (f.acessorio.lados || [f.acessorio.lado, f.acessorio.lado, f.acessorio.lado]).map((v) => v * 1.002); for (const k of f.acessorio.blocos) C(k.x, k.y, k.z, lx, ly, lz, k.cor); }
+  // Cada acessório é a peça voxel do item dele (chapéu, máscara, óculos, enfeite), encaixada na cabeça.
+  for (const a of f.acessorios || (f.acessorio ? [f.acessorio] : [])) {
+    // Peça modelada (pecas-cabeca.mjs): caixas de tamanhos próprios, desenhadas como estão.
+    if (a?.caixas?.length) { for (const k of a.caixas) C(k.x, k.y, k.z, k.w, k.h, k.d, k.cor); continue; }
+    if (!a?.blocos?.length) continue;
+    const [lx, ly, lz] = (a.lados || [a.lado, a.lado, a.lado]).map((v) => v * 1.002);
+    const doRosto = a.tipo === 'fa' || a.tipo === 'ea'; /* chapéu e enfeite não cobrem o rosto */
+    for (const k0 of a.blocos) { const k = doRosto ? k0 : naCasca(k0); if (!k || (!doRosto && k.z > fr - .06 && k.y > yc - .02 && k.y < yc + H * .72 && Math.abs(k.x) < W / 2 - .04)) continue; const e = k.e || 1; C(k.x, k.y, k.z, lx * e, ly * e, lz * e, k.cor); }
+  }
   let antena = -1;
   if (f.agente) {
     // Fone: arco por cima, conchas nas orelhas com o anel do setor e o microfone até a boca.
@@ -250,7 +269,8 @@ export async function figuraFiel(figura = '') {
   const h = figura ? await figuraDoHabbo(figura).catch(() => null) : null;
   if (!h) return base;
   const cores = Object.fromEntries(Object.entries(h.cores || {}).filter(([, v]) => v));
-  return { ...base, ...cores, chapeu: h.acessorio ? null : base.chapeu, oculos: h.acessorio ? false : base.oculos, acessorio: h.acessorio, cabeloHabbo: h.cabeloHabbo };
+  // Com as peças do Habbo, o chapéu e os óculos de blocos da leitura rápida saem: cada acessório é a peça dele.
+  return { ...base, ...cores, chapeu: null, oculos: false, acessorio: h.acessorio, acessorios: h.acessorios || [], cabeloHabbo: h.cabeloHabbo };
 }
 // Retrato fiel: o mesmo desenho do avatarVoxel com a figura fiel. Quem mostra pinta o rápido e troca por este.
 const fieis = new Map();
@@ -265,8 +285,11 @@ function retratar(f, { cabeca = false, direcao = 2 } = {}) {
   const g = boneco(f);
   g.rotation.y = [-.6, -.3, .3, .6, 2.6, 3, -2.6, -3][Number(direcao) % 8] ?? .3;
   cena.add(g);
-  if (cabeca) { camera.position.set(0, 1.36, 2.7); camera.lookAt(0, 1.3, 0); }
-  else { camera.position.set(0, 1.1, 5); camera.lookAt(0, .93, 0); }
+  // Enquadra o que a pessoa tem na cabeça (o chapéu de bruxo saía cortado): o topo mais alto do boneco manda.
+  let topo = 1.95; for (const a of f.acessorios || (f.acessorio ? [f.acessorio] : [])) { for (const k of a?.blocos || []) topo = Math.max(topo, k.y + (a.lados?.[1] || a.lado || 0)); for (const k of a?.caixas || []) topo = Math.max(topo, k.y + k.h); }
+  const sobra = Math.max(0, topo - 1.95);
+  if (cabeca) { camera.position.set(0, 1.36 + sobra / 2, 2.7 + sobra * 1.6); camera.lookAt(0, 1.3 + sobra / 2, 0); }
+  else { camera.position.set(0, 1.1 + sobra / 2, 5 + sobra * 2.4); camera.lookAt(0, .93 + sobra / 2, 0); }
   renderer.render(cena, camera);
   const url = renderer.domElement.toDataURL('image/png');
   cena.remove(g); g.traverse((x) => x.geometry?.dispose?.());
@@ -302,6 +325,8 @@ export function desenharPreviaAvatar(canvas, figura = '', { angulo = .3 } = {}) 
     atual = nova;
     if (g) { c.remove(g); soltar(g); }
     g = boneco(lerFigura(nova)); c.add(g); pedir();
+    // Em seguida o boneco montado pelas peças do Habbo (figuraFiel): o mesmo das fichas, do quarto e da cidade.
+    figuraFiel(nova).then((ff) => { if (!vivo || atual !== nova || !ff) return; if (g) { c.remove(g); soltar(g); } g = boneco(ff); c.add(g); pedir(); }).catch(() => {});
   }
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(pedir) : null;
   ro?.observe(canvas);

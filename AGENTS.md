@@ -248,6 +248,15 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   `figuraDoHabbo` lê da arte da pessoa a pele, o cabelo (cor e forma esculpida de frente e de perfil, `cabeloHabbo`),
   a camisa, o casaco, as mangas e os braços (`bracosDoBoneco`), a calça, o sapato e os acessórios de cabeça
   (chapéu, enfeite, máscara e óculos); o corpo continua o `desenharBoneco`.
+  Personagem peça a peça (Paulo, 13/11/2026: "copiar as cabeças do Habbo... cabelos, corpo, pernas, sapatos, braços...
+  editar o personagem peça a peça"; "desenha item a item do Habbo antes de montar cada boneco"): cada item do Habbo é uma
+  peça voxel própria (`pecaVoxelDoHabbo` em `mundo/moveis-habbo.mjs`), feita uma vez sobre uma cabeça padrão e
+  reaproveitada; o boneco (`figuraDoHabbo`) só monta as peças. Item conhecido é MONTADO por receita em
+  `mundo/pecas-cabeca.mjs` (cabeça de cavalo, chapéu de bruxo, óculos, barba; tabela `PECAS_MODELADAS`); o resto é
+  esculpido e veste o cubo da cabeça por fora (`naCasca`), sem cobrir o rosto. A cabeça tem sempre a mesma proporção:
+  só máscara modelada toma o lugar dela. Efeito (fumaça, brilho) não vira bloco. O criador do mundo
+  (`vybe-mundo-personagem.js`) tem uma aba por tipo de item, a grade com a pessoa vestindo cada item e as cores
+  oficiais; grava a mesma figura do Habbo pela gravação do Escritório. Item novo vira receita, não exceção no boneco.
   Estilo ideal (Paulo, 09/11/2026, referências de quarto voxel: "esse é o estilo ideal pra tudo"): voxel liso, sem
   grade nem contorno, sombra macia, oclusão nos cantos (`acabamentoDeMaquete`), luz quente com contraste. Móvel do
   quarto de tipo conhecido é MONTADO pelo motor `mundo/moveis-voxel.mjs` (receita por tipo, grade de 1/16 de
