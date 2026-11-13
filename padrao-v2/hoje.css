@@ -1,0 +1,18 @@
+/* PADRÃO V2 · HOJE ESTREITO (confere de 13/11/2026). Na Minha sala o Hoje vira uma coluna de ~300px: os três números
+   apertavam até quebrar palavra por palavra, e no guia o selo ficava sozinho à esquerda com o "Abrir" caindo embaixo.
+   Abaixo de 420px: números menores e mais juntos; cada passo do guia em duas linhas (selo e "Abrir" no alto, o texto
+   embaixo com a largura toda). */
+@container hoje (max-width:420px){
+  #vv-hoje .v2a .v2-tres,#vv-hoje .v2t-alto > .v2-tres{gap:6px}
+  #vv-hoje .v2a .v2-tres-c,#vv-hoje .v2t-alto .v2-tres-c{padding:10px 10px 12px;gap:4px;border-radius:16px}
+  #vv-hoje .v2a .v2-tres-c > b,#vv-hoje .v2t-alto .v2-tres-c > b{font-size:24px}
+  #vv-hoje .v2a .v2-tres-c > small,#vv-hoje .v2a .v2-tres-c > em,
+  #vv-hoje .v2t-alto .v2-tres-c > small,#vv-hoje .v2t-alto .v2-tres-c > em{font-size:11px;line-height:1.25;overflow-wrap:normal;hyphens:auto}
+  #vv-hoje .v2-tres-c > b > i{display:block;font-size:11px}
+  #vv-hoje .v2a-guia{padding:14px}
+  #vv-hoje .v2a-fala > p{font-size:14px}
+  #vv-hoje .v2a-passo{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"quando botao" "texto texto";align-items:center;gap:6px 8px}
+  #vv-hoje .v2a-passo > .v2t-q{grid-area:quando;justify-self:start}
+  #vv-hoje .v2a-passo > p{grid-area:texto}
+  #vv-hoje .v2a-passo > button{grid-area:botao}
+}

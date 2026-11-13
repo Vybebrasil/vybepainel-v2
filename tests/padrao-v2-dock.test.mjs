@@ -126,7 +126,7 @@ test('fragmento do dock: medidas do quadro, sem !important e sem html body.mundo
   assert.match(css, /#office-ajustes-audio \.v2k-btn\.k\{background:#1F1D1A;color:#FFFFFF/);
   // dock: pílula branca, botão 54×48 raio 16, ligado preto, desligado cinza, contador verde
   assert.match(css, /#vv-dock-salas-faixa > \.vq-dock\.vv-dock-salas\{align-items:center;gap:4px;padding:8px;border:0;border-radius:999px;background:#FFFFFF/);
-  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-item\{[^}]*width:54px;height:48px;padding:0;border:0;border-radius:16px/);
+  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-item\{[^}]*width:auto;min-width:54px;height:48px;padding:0 6px;border:0;border-radius:16px/, 'cresce para caber o nome (Minha sala)');
   assert.match(css, /body\[data-som-aba="tv"\] #vv-dock-salas-faixa \.vq-dock \.vq-item\[data-dock="tv"\]\{background:#1F1D1A;color:#FFFFFF\}/);
   assert.match(css, /body\.ver-voz #vv-dock-salas-faixa \.vq-dock \.vq-item\[data-dock="salas"\]/);
   assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-item:disabled\{opacity:1;color:#6B665E/);

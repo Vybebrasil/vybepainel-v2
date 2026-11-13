@@ -66,6 +66,9 @@ test('cadastro: três etapas na tela e as mesmas conferências antes de criar', 
   vm.runInContext(trecho(cad, '  const fcTemTexto', '  function fcRespondido(p) {'), c);
   assert.deepEqual([0, 1, 2].map((n) => c.fcEtapaFeita(n)), [false, false, false]);
   Object.assign(c.state, { format: 'Card', client: 'Cliente A', itens: [{ titulo: 'Promoção', veic: '2026-11-14', prazo: '2026-11-07' }] });
+  assert.deepEqual([0, 1, 2].map((n) => c.fcEtapaFeita(n)), [false, true, true], 'sem briefing o O quê não fecha');
+  assert.equal(c.fcEtapaDoPasso('itens'), 0, 'o briefing que falta mora no O quê');
+  c.state.itens[0].brief = 'Foto do produto com o preço';
   assert.deepEqual([0, 1, 2].map((n) => c.fcEtapaFeita(n)), [true, true, true]);
   assert.deepEqual(['board', 'format', 'client', 'itens', 'destino'].map((p) => c.fcEtapaDoPasso(p)), [0, 0, 1, 2, 2]);
   c.state.itens[0].titulo = ' ';
@@ -80,11 +83,15 @@ test('cadastro: o que vai para o servidor é o de antes, campo por campo', () =>
     "objetivo: state.board === 'demandas' ? null : (state.objetivo || null),", 'responsaveis: fcEquipeFinal(dest),', '_devolve: true,']) assert.ok(envio.includes(campo), campo);
 });
 
-test('cadastro: Mais campos guarda objetivo, briefing, arquivo, grupo e status; o que falta aparece embaixo do campo', () => {
+test('cadastro: o briefing obrigatório fica à vista no O quê; Mais campos guarda objetivo, arquivo, grupo e status', () => {
   const mais = trecho(cad, '  function fcMaisCamposHtml(n, it) {', '  window.fcEscolherFormato =');
-  for (const p of ['fcObjetivoHtml()', 'data-campo="brief"', 'fcArquivosHtml(n, it)', 'id="fc-auto-group-container"', "fcHandleInput('briefReady', this.checked)", "fcHandleInput('materialReady', this.checked)",
+  for (const p of ['fcObjetivoHtml()', 'fcArquivosHtml(n, it)', 'id="fc-auto-group-container"', "fcHandleInput('briefReady', this.checked)", "fcHandleInput('materialReady', this.checked)",
     'fcAdicionarItem()', 'fcAbrirEscala()', 'fcColarTitulos()', 'fcEscalonarDatas()', 'fcTirarItem(']) assert.ok(mais.includes(p), p);
-  assert.match(cad, /if \(fcTemTexto\(it\.titulo\) && it\.veic && it\.prazo\) \{ state\.maisAberto = true; focar = 'brief'; \}/, 'faltando só o briefing, Mais campos abre sozinho');
+  assert.ok(!mais.includes('data-campo="brief"'), 'o briefing saiu de Mais campos');
+  const oQue = trecho(cad, '  function fcCartaoOQueHtml(n, it) {', '  function fcCartaoParaQuemHtml() {');
+  assert.ok(oQue.includes('data-campo="brief"') && oQue.includes('obrigatório'), 'o briefing está no O quê, marcado obrigatório');
+  assert.match(cad, /if \(fcTemTexto\(it\.titulo\) && !fcTemTexto\(it\.brief\)\) focar = 'brief';/, 'faltando o briefing, a tela vai ao campo');
+  assert.match(cad, /if \(n === 0\) return Boolean\(state\.format\) && state\.itens\.every\(\(i\) => fcTemTexto\(i\.titulo\) && fcTemTexto\(i\.brief\)\);/, 'sem briefing a primeira etapa não fecha');
   for (const id of ['fc-erro-formato', 'fc-erro-titulo', 'fc-erro-cliente', 'fc-erro-data', 'fc-erro-brief']) assert.ok(cad.includes(`fcErroHtml('${id}'`), id);
   assert.match(cad, /role="alert" hidden>/);
   // Cada campo do conteúdo aparece uma vez só na tela: a leitura da tela (fcSincronizarDaTela) não pode achar dois.
