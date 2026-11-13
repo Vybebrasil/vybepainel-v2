@@ -740,7 +740,7 @@
     if (itens.length < 2 || st.enviando || !confirm(`Dizer "pode fazer" aos ${itens.length} pedidos de uma vez? Os pedidos de agente em sombra são executados pela central e as lições passam a valer sempre.`)) return;
     st.enviando = true; st.msg = ''; pintar();
     let feitos = 0, falhou = '';
-    const mandar = async (corpo) => { const r = await fetch('/api/painel?area=vybes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Não foi possível salvar agora.'); };
+    const mandar = async (corpo) => { const r = await fetch('/api/painel?area=vybes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) }); const d = await r.json().catch(() => ({})); if (!r.ok || d.ok === false || d.falhou) throw new Error(d.error || d.motivo || 'A central não executou o pedido.'); };
     for (const it of itens) {
       try {
         if (it.tipo === 'aprovacao') await mandar({ etapa: 'aprovacao', id: it.p.id, decisao: 'aprovar', motivo: '' });

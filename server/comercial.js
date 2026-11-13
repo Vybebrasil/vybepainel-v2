@@ -20,9 +20,11 @@ export const ABAS_COMERCIAL = ['funil', 'pacotes', 'orcamentos', 'financas', 'cr
 // não são dinheiro: os donos e a coordenação (a Beatriz vê tudo menos as finanças).
 export const ABAS_SO_DONOS = new Set(['financas', 'recebimentos', 'contas', 'inadimplencia', 'caixa']);
 export const ABAS_AMPLO = new Set(['fornecedores']);
+// Metas (MRR e avulso), capacidade, etapas e formulário do funil ficam com os donos: a tela só mostra a eles, e salvar
+// metas sem os valores do mês (que a coordenação não recebe) zerava as metas de dinheiro (confere de 13/11/2026).
 const ACOES_SO_DONOS = new Set(['pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'recebivel_receber', 'recebivel_proximo', 'recebivel_cancelar',
-  'conta_salvar', 'conta_pagar', 'conta_cancelar']);
-const ACOES_AMPLO = new Set(['fornecedor_salvar', 'fornecedor_arquivar', 'capacidade_salvar', 'etapas_salvar', 'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
+  'conta_salvar', 'conta_pagar', 'conta_cancelar', 'capacidade_salvar', 'etapas_salvar', 'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
+const ACOES_AMPLO = new Set(['fornecedor_salvar', 'fornecedor_arquivar']);
 const ACOES_COMERCIAL = new Set(['orcamento_criar', 'orcamento_status', 'creator_salvar', 'creator_arquivar']);
 // O financeiro (Paulo, 11/11/2026): com a fonte no banco do Vybe OS (VYBE_FINANCAS_FONTE=local), estas abas e ações são
 // só dos quatro donos; administração sem ser dono fica de fora. Pela ponte vale a regra de antes.

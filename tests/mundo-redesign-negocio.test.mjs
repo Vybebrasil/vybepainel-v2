@@ -139,7 +139,7 @@ test('Equipe: retrato, situação escrita, um botão principal e as ações rara
   const fora = (l) => l.slice(0, l.indexOf('class="eq-mais"') >>> 0);
   assert.match(fora(linhas[1]), />Definir senha</, 'um botão principal');
   assert.doesNotMatch(fora(linhas[1]), /Tirar admin|subsolo/i, 'as ações raras não ficam soltas');
-  assert.match(linhas[1], /eq-mais-menu[\s\S]*Tirar admin[\s\S]*eq-mais-perigo[\s\S]*Mandar para o subsolo/);
+  assert.match(linhas[1], /eq-mais-menu[\s\S]*eq-mais-perigo[\s\S]*Mandar para o subsolo/);
   assert.doesNotMatch(linhas[0], /Tirar admin|Tirar acesso|subsolo<\/span>/, 'ninguém se tira o próprio acesso');
   assert.match(linhas[2], /no subsolo do Escritório[\s\S]*>Reativar</);
   assert.match(html, /conta-secao-topo[\s\S]*Novo colaborador<\/button><\/header>/, 'Novo colaborador à direita do título');

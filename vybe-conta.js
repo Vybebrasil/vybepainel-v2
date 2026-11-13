@@ -375,7 +375,6 @@ function acoesDaPessoa(p, sou, travado) {
     travado && principal !== destravar ? destravar : null,
     principal !== senha ? senha : null,
     p.pode_entrar ? (sou ? null : b('Tirar acesso', `acaoPessoa('${email}','bloquear')`)) : (principal !== liberar ? liberar : null),
-    p.admin ? (sou ? null : b('Tirar admin', `acaoPessoa('${email}','tirar_admin')`)) : b('Tornar admin', `acaoPessoa('${email}','tornar_admin')`),
   ].filter(Boolean);
   const subsolo = sou ? '' : `<button type="button" class="eq-mais-item eq-mais-perigo" role="menuitem" data-id="${id}" data-nome="${nome}" onclick="abrirDesativarNoCiclo('pessoa',this.dataset.id,this.dataset.nome,{depois:carregarConta})"><span>Mandar para o subsolo</span></button>`;
   const mais = raras.length || subsolo ? `<details class="eq-mais"><summary class="conta-botao" aria-label="Mais ações para ${nome}">Mais<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
@@ -405,7 +404,7 @@ function blocoEquipe(eu) {
     <div class="eq-linha ${p.pode_entrar ? '' : 'fora'}">
       <span class="eq-retrato">${retratoDaPessoa(p)}</span>
       <div class="eq-quem">
-        <b>${safeText(p.nome)}</b>${p.admin ? '<span class="eq-tag">admin</span>' : ''}${sou ? '<span class="eq-tag eu">você</span>' : ''}
+        <b>${safeText(p.nome)}</b>${p.dono ? '<span class="eq-tag">dono</span>' : p.coordenacao ? '<span class="eq-tag">coordenação</span>' : ''}${sou ? '<span class="eq-tag eu">você</span>' : ''}
         <span class="eq-email">${safeText(p.email)}</span>
         <div class="eq-estado">${situacaoDaPessoa(p, travado)}</div>
       </div>

@@ -271,7 +271,7 @@
   function cartao(ctx) {
     anfitriao = ctx;
     const d = ctx.d, u = ui.cartao, faturas = d.cartao?.faturas || [], soltos = d.cartao?.pagamentos_sem_fatura || [];
-    if (!/^d{4}-d{2}$/.test(u.fatura || '')) u.fatura = faturas[0]?.fatura || d.hoje?.slice(0, 7) || '';
+    if (!/^\d{4}-\d{2}$/.test(u.fatura || '')) u.fatura = faturas[0]?.fatura || d.hoje?.slice(0, 7) || '';
     const meses = [...new Set([...faturas.map((f) => f.fatura), d.hoje?.slice(0, 7), u.fatura].filter(Boolean))].sort();
     const doMes = faturas.filter((f) => f.fatura === u.fatura);
     const total = doMes.reduce((s, f) => s + f.total, 0), pago = doMes.reduce((s, f) => s + f.pago_no_extrato, 0), falta = doMes.reduce((s, f) => s + f.falta, 0);
@@ -734,8 +734,10 @@
         if (!/^\d{4}-\d{2}$/.test(fatura)) return avisar('Escolha o mês da fatura.');
         const itens = lerFaturaColada(c.querySelector('[name="cf_texto"]').value, fatura);
         if (!itens.length) return avisar('Não achei nenhuma linha com valor. Use uma compra por linha: 12/10 ADOBE 99,90');
-        let ok = 0;
-        for (const it of itens) { try { await post({ acao: 'cartao_salvar', item: { ...it, cartao: cartaoNome, status: 'em_aberto' } }); ok++; } catch (e) { avisar(e.message); break; } }
+        let ok = 0, falha = '';
+        for (const it of itens) { try { await post({ acao: 'cartao_salvar', item: { ...it, cartao: cartaoNome, status: 'em_aberto' } }); ok++; } catch (e) { falha = e.message || 'falhou'; break; } }
+        // Parou no meio: diz quantos entraram e de onde recomeçar (colar tudo de novo duplicaria os que já entraram).
+        if (falha) { avisar(`${ok} de ${itens.length} itens lançados; parou no ${ok + 1}º: ${falha}. Cole só a partir dele para não duplicar.`); ui.cartao.fatura = fatura; await anfitriao.recarregar?.(); return; }
         avisar(`${ok} itens lançados na fatura de ${nomeMes(fatura)}.`, 'success');
         ui.cartao.colar = false; ui.cartao.fatura = fatura; await anfitriao.recarregar?.(); return;
       }

@@ -22,7 +22,8 @@ function avisarNotificacoesNovas(novas) {
   for (const n of novas.slice(0, 2)) {
     const mencao = /mencion/i.test(n.texto || '');
     const acoes = [];
-    if (n.conteudo_id) acoes.push({ rotulo: 'Abrir a peça', principal: true, fazer: () => abrirDoNotificacao(n.id, n.conteudo_id) });
+    // A peça se abre pelo id dela no painel (Monday ou vybe:N), não pelo id interno (confere de 13/11/2026).
+    if (n.conteudo_id) acoes.push({ rotulo: 'Abrir a peça', principal: true, fazer: () => abrirDoNotificacao(n.id, n.monday_item_id || 'vybe:' + n.conteudo_id) });
     acoes.push({ rotulo: 'Ver avisos', fazer: () => document.querySelector('[data-ferr="avisos"]')?.click() });
     mostrarAvisoCurto({ chave: 'notif:' + n.id, icone: mencao ? 'mencao' : 'sino', titulo: n.conteudo_nome || (mencao ? 'Mencionaram você' : 'Aviso novo'), frase: n.texto || '', acoes, tempo: mencao ? 12000 : 8000 });
   }
@@ -85,7 +86,7 @@ function pintarListaNotificacoes() {
   const visiveis = AVISOS_SO_NAO_LIDOS ? notificacoes.filter((n) => !n.lida_em) : notificacoes;
   if (!visiveis.length) { lista.innerHTML = '<div class="notif-vazio">Nenhum aviso não lido.</div>'; return; }
   lista.innerHTML = visiveis.map((n) => `
-    <div class="notif-item ${n.lida_em ? '' : 'nao-lida'}" ${n.conteudo_id ? `onclick="abrirDoNotificacao('${n.id}','${n.conteudo_id}')"` : ''}>
+    <div class="notif-item ${n.lida_em ? '' : 'nao-lida'}" ${n.conteudo_id ? `onclick="abrirDoNotificacao('${n.id}','${n.monday_item_id || 'vybe:' + n.conteudo_id}')"` : ''}>
       <div class="notif-texto">${safeText(n.texto)}</div>
       <div class="notif-meta">${safeText(n.conteudo_nome || '')}<span>${quandoFoi(n.criada_em)}</span></div>
     </div>`).join('');

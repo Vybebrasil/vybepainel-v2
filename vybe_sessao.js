@@ -139,7 +139,12 @@ async function entrar(quem, senha) {
 
   await sql`UPDATE vybe_pessoas SET tentativas = 0, bloqueado_ate = NULL, ultimo_acesso = NOW()
     WHERE id = ${pessoa.id}`;
-  return { id: Number(pessoa.id), nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin), versao: Number(pessoa.sessao_versao) };
+  // A mesma regra da sessão (sessaoDoPedido): dono e coordenação pelo id do Monday; admin = dono ou coordenação. Antes, o
+  // login devolvia só a marca antiga de admin, e os donos viam a tela de equipe até recarregar (confere de 13/11/2026).
+  const monday = (await pessoaAtual(Number(pessoa.id)))?.monday_user_id ?? null;
+  const dono = ehDonoPessoa({ id: Number(pessoa.id), monday_user_id: monday });
+  const coordenacao = !dono && ehCoordenacaoPessoa({ monday_user_id: monday });
+  return { id: Number(pessoa.id), nome: pessoa.nome, email: pessoa.email, admin: dono || coordenacao, dono, coordenacao, versao: Number(pessoa.sessao_versao) };
 }
 
 const b64 = (s) => Buffer.from(s).toString('base64url');
@@ -215,10 +220,16 @@ export async function listarPessoas() {
   const sql = database();
   // Quem foi apagado nao aparece; quem esta no subsolo aparece marcado, para
   // a Equipe nao mostrar como "sem acesso" alguem que simplesmente saiu.
-  return sql`SELECT id, nome, email, admin, pode_entrar, ativo, tentativas, bloqueado_ate,
-      (senha_hash IS NOT NULL) AS tem_senha, ultimo_acesso
-    FROM vybe_pessoas WHERE email IS NOT NULL AND apagado_em IS NULL
-    ORDER BY ativo DESC, pode_entrar DESC, admin DESC, nome`;
+  const linhas = await sql`SELECT id, nome, email, pode_entrar, ativo, tentativas, bloqueado_ate,
+      (senha_hash IS NOT NULL) AS tem_senha, ultimo_acesso, to_jsonb(p) ->> 'monday_user_id' AS monday_user_id
+    FROM vybe_pessoas p WHERE email IS NOT NULL AND apagado_em IS NULL
+    ORDER BY ativo DESC, pode_entrar DESC, nome`;
+  // Quem administra é dono ou coordenação (Paulo, 13/11/2026), pela mesma regra da sessão; a marca antiga não conta.
+  return linhas.map(({ monday_user_id: m, ...p }) => {
+    const dono = ehDonoPessoa({ id: Number(p.id), monday_user_id: m ?? null });
+    const coordenacao = !dono && ehCoordenacaoPessoa({ monday_user_id: m ?? null });
+    return { ...p, dono, coordenacao, admin: dono || coordenacao };
+  });
 }
 
 // Quem administra decide quem entra. pode_entrar nasce FALSE de propósito, então

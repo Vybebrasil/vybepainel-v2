@@ -319,9 +319,17 @@ export async function lerCarteira(sql, quem, dia = hojeBahia()) {
       ...saidaDe(inativo, ch, c, pistas[c.id]),
       valor: ct?.valor_mensal ?? numero(c.valor), motivo_saida: inativo ? c.motivo_saida || '' : '' };
   }) : null;
+  // Valores em reais (contrato, receita perdida, valor do cliente) são só dos quatro donos (Paulo, 13/11/2026); para os
+  // outros a carteira vem sem eles (a saúde, o onboarding e o histórico continuam).
+  const dinheiro = ehDonoPessoa(quem?.pessoa);
+  if (!dinheiro) {
+    for (const c of contratos.lista || []) c.valor_mensal = null;
+    for (const r of churn.registros || []) r.receita_mensal = null;
+    for (const c of clientes || []) c.valor = null;
+  }
   return {
     dia, eu, admin, atendimento, meus_clientes: meus,
-    pode: { contratos: admin, churn: admin, etapas: admin, onboarding_todos: admin || atendimento },
+    pode: { contratos: dinheiro, churn: dinheiro, etapas: admin, onboarding_todos: admin || atendimento, ver_dinheiro: dinheiro },
     pessoas, sinais, clima, clientes,
     etapas, etapas_padrao: ETAPAS_PADRAO,
     onboarding, contratos, churn, historico, migracao: MIGRACAO,
@@ -342,6 +350,8 @@ async function clienteAtivo(tx, id) {
   if (!c) falhar('Cliente não encontrado.', 404);
   return c;
 }
+// Contrato e cancelamento levam valor em reais: só os quatro donos (Paulo, 13/11/2026).
+const soDono = (quem) => { if (!ehDonoPessoa(quem?.pessoa)) falhar('Contratos e cancelamentos levam valores: só os donos alteram.', 403); };
 const soAdmin = (quem) => { if (!gestao(quem.pessoa)) falhar('Só os donos e quem administra alteram contratos, cancelamentos e as etapas.', 403); };
 
 export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
@@ -378,7 +388,7 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
   }
 
   if (acao === 'contrato_salvar') {
-    soAdmin(quem);
+    soDono(quem);
     const id = idValido(b.cliente_id, 'Cliente');
     const status = String(b.status || 'ativo');
     if (!CONTRATO_STATUS.includes(status)) falhar('Status de contrato inválido.');
@@ -401,7 +411,7 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
   }
 
   if (acao === 'churn_registrar') {
-    soAdmin(quem);
+    soDono(quem);
     const id = idValido(b.cliente_id, 'Cliente');
     const saiu = dataValida(b.saiu_em, 'Data de saída') || falhar('Informe a data de saída.');
     if (saiu > dia) falhar('A data de saída não pode ser no futuro.');
@@ -420,7 +430,7 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
     });
   }
   if (acao === 'churn_apagar') {
-    soAdmin(quem);
+    soDono(quem);
     const id = idValido(b.id);
     const r = await sql`DELETE FROM vybe_cliente_churn WHERE id=${id} RETURNING id`;
     if (!r.length) falhar('Registro não encontrado.', 404);

@@ -15,7 +15,7 @@
   const C = () => window.VybeComercialCalculos;
   const ABAS = [
     ['funil', 'Funil'], ['pacotes', 'Pacotes'], ['orcamentos', 'Orçamentos'], ['financas', 'Finanças por cliente', 1], ['recebimentos', 'Recebimentos', 1],
-    ['contas', 'Contas a pagar', 1], ['inadimplencia', 'Inadimplência', 1], ['caixa', 'Caixa', 1], ['fornecedores', 'Fornecedores', 1], ['creators', 'Creators'],
+    ['contas', 'Contas a pagar', 1], ['inadimplencia', 'Inadimplência', 1], ['caixa', 'Caixa', 1], ['fornecedores', 'Fornecedores'], ['creators', 'Creators'],
     // Financeiro do próprio Vybe OS (13/11/2026, vybe-mundo-financeiro.js → area=financeiro, só os quatro donos).
     ['vorcaro', 'Vorcaro', 1], ['extrato', 'Extrato', 1], ['clientes_mes', 'Clientes mês a mês', 1], ['cartao', 'Cartão', 1], ['fixos', 'Gastos fixos', 1], ['projecao', 'Projeção', 1],
   ];
@@ -70,7 +70,7 @@
   const STATUS_ORC = { rascunho: ['Rascunho', 'u5'], enviado: ['Enviado', 'u4'], aceito: ['Aceito', 'u6'], recusado: ['Recusado', 'u3'] };
   // Palpite antes da primeira resposta do servidor (que é quem decide): só para não piscar abas de dinheiro.
   function palpiteDono() {
-    try { if (typeof souAdmin === 'function' && souAdmin()) return true; } catch {}
+    // Dinheiro só dos donos (Paulo, 13/11/2026): a marca de admin (que inclui a coordenação) não conta para o palpite.
     try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; } // dono pelo servidor (server/donos.js)
   }
   const souAdminAqui = () => { try { return typeof souAdmin === 'function' && Boolean(souAdmin()); } catch { return false; } };
