@@ -3096,6 +3096,35 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 /* Demandas: a coluna do status ganha a largura da setinha, para "Aguardando Info." caber inteiro */
 @media (min-width:761px){#pv2-demandas .pv2-linha .pv2-cs{width:140px}}
 
+/* ===== padrao-v2/movimentos.css ===== */
+/* PADRÃO V2 · MOVIMENTOS QUE FALTAVAM (moodboard aprovado; 13/11/2026). A peça é vbTransicao (vybe-core.js): o que tem
+   data-vt voa da posição antiga para a nova com a mola do sistema; o resto da tela troca num esmaecer curto. */
+::view-transition-group(*){animation-duration:.38s;animation-timing-function:cubic-bezier(.32,.72,0,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.16s}
+/* Os itens que voam não esmaecem no meio do caminho (senão some o "voo"). */
+::view-transition-old(*):not(:root),::view-transition-new(*){mix-blend-mode:normal}
+/* Chip que entra: cresce do ponto (sem começar transparente, regra do mundo); chip que sai: encolhe. */
+@keyframes vb-vt-entra{from{transform:scale(.6)}}
+@keyframes vb-vt-sai{to{opacity:0;transform:scale(.6)}}
+html[data-vb-voo="chip"]::view-transition-new(*):only-child{animation:vb-vt-entra .28s cubic-bezier(.32,.72,0,1) both}
+html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai .2s ease-in both}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none}}
+
+/* 5 · Edita no lugar: o campo de data ocupa o lugar do texto, na mesma pílula. */
+.vb-editando{display:inline-flex;align-items:center}
+input.vb-no-lugar{appearance:none;height:28px;max-width:150px;box-sizing:border-box;margin:0;padding:0 10px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter,sans-serif);color-scheme:light}
+.vb-gravando input.vb-no-lugar{opacity:.6;box-shadow:inset 0 0 0 1.5px #B5AFA5}
+.vb-no-lugar-erro{display:inline-block;margin-left:6px;font:500 11.5px var(--vv-texto,Inter,sans-serif);font-style:normal;color:#B42318}
+[data-editar-data]{cursor:text;border-radius:999px;transition:background .15s}
+[data-editar-data]:hover{background:#F3F1EC;box-shadow:0 0 0 3px #F3F1EC}
+
+/* 10 · Cor do humor: do vermelho (0) ao verde (100), devagar. A faixa à esquerda leva a cor cheia; o fundo, um véu. */
+.v2-humor:not(#vb-h1):not(#vb-h2){--humor-cor:hsl(calc(var(--humor,50) * 1.2) 62% 42%);--humor-veu:hsl(calc(var(--humor,50) * 1.2) 70% 97%);
+  background-color:var(--humor-veu);box-shadow:inset 4px 0 0 var(--humor-cor),0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);
+  transition:background-color .9s ease,box-shadow .9s ease}
+.v2-humor:not(#vb-h1):not(#vb-h2) .v2-humor-nota{color:var(--humor-cor);transition:color .9s ease}
+@media (prefers-reduced-motion:reduce){.v2-humor,.v2-humor .v2-humor-nota{transition:none}}
+
 /* ===== padrao-v2/notas.css ===== */
 /* ======================================================================================
    PADRÃO V2 · NOTAS E AS OUTRAS JANELAS DO TOPO (moodboard, quadro DEPOIS "Janelas do topo"; 13/11/2026).
