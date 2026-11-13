@@ -571,7 +571,7 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
   else if(filter==='redacao') fi = fi.filter(d=>String(d.group_id)==='group_title' && d.status==='A Fazer');
   else if(filter==='design')  fi = fi.filter(d=>isDesign(d.responsavel));
   else if(filter==='edicao')  fi = fi.filter(d=>isEdicao(d.responsavel));
-  else if(filter==='status:pending_all') fi = fi.filter(d=>!['Finalizado','Agendado','Para agendar'].includes(d.status));
+  else if(filter==='status:pending_all') fi = fi.filter(d=>!['Finalizado'].includes(d.status));
   else if(filter&&filter.startsWith('status:')) fi = fi.filter(d=>d.status===filter.replace('status:',''));
 
   // Todo número e indicador visual do cartão deve usar o mesmo recorte que a lista.
@@ -608,10 +608,10 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
   }).join("");
   // Barra de progresso
   const totalItems = fi.length;
-  const doneItems = fi.filter(d => ['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
+  const doneItems = fi.filter(d => ['Finalizado'].includes(d.status)).length;
   const progressPct = totalItems > 0 ? Math.round(doneItems / totalItems * 100) : 0;
   const hasPending = fi.some(d => ['A Fazer','Falta D.A','Pode Fazer','Aguardo','Alteração'].includes(d.status));
-  const allDone = totalItems > 0 && fi.every(d => ['Finalizado','Agendado','Para agendar'].includes(d.status));
+  const allDone = totalItems > 0 && fi.every(d => ['Finalizado'].includes(d.status));
   const pendingCls = allDone ? 'all-done' : (hasPending ? 'has-pending' : '');
   const progressHtml = totalItems > 0 ? `<div class="client-progress"><div class="client-progress-bar"><div class="client-progress-fill" style="width:${progressPct}%"></div></div><span class="client-progress-text">${doneItems}/${totalItems} (${progressPct}%)</span></div>` : '';
   return `<div class="client-card ${alertCls} ${pendingCls}">
@@ -729,9 +729,10 @@ function itensDaSemanaGestor(sem) {
     vistos.add(chave); return true;
   });
 }
+// Concluída é só Finalizado (Paulo, 13/11/2026): Para agendar e Agendado ainda esperam a postagem.
 function atividadeDoDiaConcluida(item) {
   return isRequestItem(item) ? DEMANDA_CONCLUIDA.includes(item.status)
-    : ['Finalizado','Agendado','Para agendar'].includes(item.status);
+    : item.status === 'Finalizado';
 }
 function adicionarDemandaNoDia(dateIso, aba) {
   const veic = dateMode === 'prazo' ? cadastrosIsoOffset(dateIso, PRAZO_OURO_DIAS) : dateIso;
@@ -1219,7 +1220,7 @@ function renderCompactSummary() {
   const total = all.length;
   const clientes = [...new Set(all.flatMap(clientesDoItem))];
   const numWeeks = META.weeks ? META.weeks.length : 4;
-  const done = all.filter(d => ['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
+  const done = all.filter(d => ['Finalizado'].includes(d.status)).length;
   const podeFazer = all.filter(d => d.status === 'Pode Fazer').length;
   const pendentes = all.filter(d => ['A Fazer','Falta D.A'].includes(d.status)).length;
   const captacao = all.filter(d => d.status === 'Aguardo').length;
@@ -1229,7 +1230,7 @@ function renderCompactSummary() {
   // Hoje: usar a mesma fonte temporal devolvida pela sincronização do Monday.
   const todayIso = HOJE_ISO || new Date().toISOString().slice(0, 10);
   const todayItems = DADOS.filter(itemNaCarteira).filter(d => d.veiculacao_iso === todayIso);
-  const todayPending = todayItems.filter(d => !['Finalizado','Agendado','Para agendar'].includes(d.status)).length;
+  const todayPending = todayItems.filter(d => !['Finalizado'].includes(d.status)).length;
 
   // Eram oito números do mesmo tamanho, cada um com uma cor. Oito destaques é
   // nenhum destaque: o olho não sabia por onde começar. Agora um número lidera
@@ -1284,7 +1285,7 @@ function renderDaySummary() {
   const todayIso = HOJE_ISO || new Date().toISOString().slice(0,10);
   const todayStr = todayIso ? `${todayIso.slice(8,10)}/${todayIso.slice(5,7)}` : '—';
   const todayItems = DADOS.filter(itemNaCarteira).filter(d => d.veiculacao_iso === todayIso);
-  const pending = todayItems.filter(d => !['Finalizado','Agendado'].includes(d.status));
+  const pending = todayItems.filter(d => !['Finalizado'].includes(d.status));
   const done = todayItems.filter(d => d.status === 'Finalizado');
   const scheduled = todayItems.filter(d => d.status === 'Agendado');
   const el = document.getElementById('day-summary');

@@ -53,12 +53,15 @@
     // Auditoria 09/11 (A4): o fechamento vem do banco (status_final) quando chega; o atraso, da função oficial
     // (VybeDono.util.situacaoDaPeca: veiculação primeiro, pausada e esquecida fora). As categorias do Hoje (aprovar, ajuste,
     // pronta…) continuam aqui: "Agendado" e "Para agendar" são prontas, não concluídas (contagens separadas).
-    const fechada = typeof item?.status_final === 'boolean' ? item.status_final : typeof isFinishedItem === 'function' ? isFinishedItem(item) : /finalizad|feito|conclu/i.test(st);
+    // Paulo, 13/11/2026: pronta é só Finalizado. Mesmo que o catálogo marque Agendado ou Para agendar como final, aqui
+    // eles esperam a postagem e atrasam quando a data passa sem o Finalizado.
+    const esperaPostar = /agendad|para agendar/i.test(st);
+    const fechada = !esperaPostar && (typeof item?.status_final === 'boolean' ? item.status_final : typeof isFinishedItem === 'function' ? isFinishedItem(item) : /finalizad|feito|conclu/i.test(st));
     if (fechada) return 'concluida';
     const veic = String(item?.veiculacao_iso || ''), prazo = String(item?.prazo_iso || '');
     const oficial = window.VybeDono?.util?.situacaoDaPeca;
     if (typeof oficial === 'function') { if (oficial(item, { hoje }).atrasada) return 'atrasada'; }
-    else if ((veic && veic < hoje) || item?.prazo_atrasado || (prazo && prazo < hoje)) return 'atrasada';
+    else if ((veic && veic < hoje) || (!esperaPostar && (item?.prazo_atrasado || (prazo && prazo < hoje)))) return 'atrasada';
     if (/aprova/i.test(st)) return 'aprovar';
     if (/altera|ajuste|corre/i.test(st)) return 'ajuste';
     if (veic === hoje || prazo === hoje) return 'hoje';
@@ -1626,7 +1629,9 @@
     const avGuia = agente.nome === 'VYBES' ? '<span class="vv-ser vg-av-ser" aria-hidden="true"><i></i></span>' : `<span class="vg-av" aria-hidden="true">${esc(agente.nome.slice(0, 1))}</span>`;
     const fala = `<section class="v2t-fala" aria-label="Guia de ${esc(agente.nome)}">${avGuia}<p><span class="v2t-quem">${esc(agente.nome)} · guia do dia</span>${frase}</p>${passosGuia[0] ? `<button type="button" class="v2t-btn" ${passosGuia[0].attrs}>Começar</button>` : ''}</section>`;
     // Filtros: quatro fichas, a busca e "Filtros" (agrupa por status).
-    const GRUPOS = { hoje: ['Hoje', hojeP, 'Hoje, na ordem', 'Nada para hoje.'], semana: ['Semana', semanaP, 'Semana, na ordem', 'Nada nesta semana.'], atrasadas: ['Atrasadas', atrasadasP, 'Atrasadas, da mais antiga', 'Nada atrasado.'], feitas: ['Feitas', feitas, 'Feitas na semana', 'Nada concluído nesta semana.'] };
+    // "Todas" (Paulo, 13/11/2026: "aqui tá parecendo que eu só tenho 1 demanda pra fazer"): o que veicula depois de
+    // domingo ou não tem data não cabia em nenhuma ficha e sumia da lista; agora a ficha mostra tudo o que está aberto.
+    const GRUPOS = { hoje: ['Hoje', hojeP, 'Hoje, na ordem', 'Nada para hoje.'], semana: ['Semana', semanaP, 'Semana, na ordem', 'Nada nesta semana.'], todas: ['Todas', naFila, 'Todas, na ordem', 'Nada aberto.'], atrasadas: ['Atrasadas', atrasadasP, 'Atrasadas, da mais antiga', 'Nada atrasado.'], feitas: ['Feitas', feitas, 'Feitas na semana', 'Nada concluído nesta semana.'] };
     if (!GRUPOS[filtroTarefas]) filtroTarefas = 'hoje';
     const termo = buscaTarefas.trim().toLowerCase(), bate = (x) => !termo || `${titulo(x)} ${cliente(x)} ${x.d.status || ''}`.toLowerCase().includes(termo);
     const filtros = `<div class="v2t-filtros"><span class="v2t-fichas" role="tablist" aria-label="Filtrar a lista">${Object.entries(GRUPOS).map(([k, [rot, l]]) => `<button type="button" role="tab" class="v2t-ficha" aria-selected="${k === filtroTarefas}" data-hoje-acao="filtro" data-valor="${k}">${rot} <b>${n0(l.length)}</b></button>`).join('')}</span>
@@ -2647,6 +2652,17 @@
     const cabem = medidaDock.cabem;
     const html = dockSalasHtml(cabem);
     if (nav.dataset.html !== html) { nav.innerHTML = html; nav.dataset.html = html; }
+    // Dock compacto (confere de 13/11/2026): os botões do padrão v2 têm o nome dentro e passam dos 56 da conta acima
+    // ("Minha sala", "Decorar"); a 1024, ou na Minha sala com Voltar e Decorar, o fim do dock saía da tela. Se não couber,
+    // ficam só os ícones (o nome segue no title). Mede só quando a tela ou o conteúdo mudou.
+    const chaveCompacto = tela + '|' + html;
+    if (medidaDock.compacto !== chaveCompacto) {
+      medidaDock.compacto = chaveCompacto;
+      faixaDock.classList.remove('dock-compacto');
+      const r = nav.getBoundingClientRect?.();
+      if (r && r.width && (r.right > innerWidth - 4 || r.left < 4 || nav.scrollWidth > nav.clientWidth + 2)) faixaDock.classList.add('dock-compacto');
+      else if (!r || !r.width) medidaDock.compacto = ''; // ainda sem medida: tenta de novo na próxima pintura
+    }
     // Celular: dentro de uma sala o dock toma o lugar da barra de baixo; fora, o cartão. Na tela estreita (dock em cima
     // da barra de baixo) --vv-dock-alto vira a distância de verdade do pé da tela ao topo do dock, menos a margem: o que
     // termina "acima do dock" (Hoje, janelas, coluna da Conversa, Notas, avisos) usa a mesma conta do computador.

@@ -3471,6 +3471,8 @@ html body.mundo.mundo-modulo .team-load-chip:not(#ds-a):not(#ds-b):not(#ds-c){bo
 html body.mundo.mundo-modulo .team-load-chip *:not(img):not([class*="badge"]):not([class*="count"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
 /* Campos: raio 12, borda fina, foco laranja. */
 html body.mundo.mundo-modulo :is(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input:not([type]),select,textarea):not(#ds-a):not(#ds-b):not(#ds-c){background-color:#FFFFFF!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-botao)!important;color:#1F1D1A!important;box-shadow:none!important;color-scheme:light}
+/* Caixa de texto de várias linhas não é pílula (Paulo, 13/11/2026: o briefing virava um oval que cortava o texto). */
+html body.mundo textarea:not(#ds-a):not(#ds-b):not(#ds-c):not(#ds-d){border-radius:16px!important}
 html body.mundo.mundo-modulo :is(input,select,textarea):focus-visible:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#C2490C!important;box-shadow:var(--ds-foco)!important;outline:0!important}
 /* Cartões clicáveis: branco, raio 18, borda e sombra curta. */
 html body.mundo.mundo-modulo :is(.da-capacity-card,.da-command-daily-card,.da-week-rail-day:not(.active),.focus-daily-plan-row):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-cartao)!important;box-shadow:0 1px 2px rgba(31,29,26,.04),0 8px 24px rgba(31,29,26,.05)!important}
@@ -4779,17 +4781,20 @@ html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:inline;f
 /* Dock: cada categoria com a sua cor (Paulo: "um roxinho, ciano… no lugar de tudo laranja"). O traço do rótulo, o
    ícone e a marca do item aberto seguem a cor da categoria; o botão Criar continua laranja (é a ação principal). */
 .vv-trilho{--cat:var(--vv-laranja,#F26B1D)}
-.vv-trilho [data-grupo="Operação"]{--cat:#F26B1D}
-.vv-trilho [data-grupo="Negócio"]{--cat:#8B5CF6}
-.vv-trilho [data-grupo="Time"]{--cat:#0EA5B7}
-.vv-trilho [data-grupo="Vybe"]{--cat:#16A34A}
+.vv-trilho [data-grupo="Operação"]{--cat:#F26B1D;--cat-forte:#C2490C}
+.vv-trilho [data-grupo="Negócio"]{--cat:#8B5CF6;--cat-forte:#7C3AED}
+.vv-trilho [data-grupo="Time"]{--cat:#0EA5B7;--cat-forte:#0E7490}
+.vv-trilho [data-grupo="Vybe"]{--cat:#16A34A;--cat-forte:#15803D}
 body.trilho-largo .vv-trilho-grupo::before{background:var(--cat)!important}
 body.trilho-largo .vv-trilho-grupo{color:#6B665E!important}
 .vv-trilho .vv-trilho-btn[data-grupo]:not(.criar) svg{color:color-mix(in srgb,var(--cat) 75%,#4A463F)}
-.vv-trilho .vv-trilho-btn[data-grupo][aria-current]:not(.criar){background:#1F1D1A;color:#FFFFFF}
+/* Selecionado na cor do módulo (Paulo, 13/11/2026: "fica da cor do módulo, nesse caso era pra tá roxinho"). O tom forte
+   da categoria segura o texto branco; o ícone acompanha o texto. */
+.vv-trilho .vv-trilho-btn[data-grupo][aria-current]:not(.criar){background:var(--cat-forte,#1F1D1A);color:#FFFFFF}
+.vv-trilho .vv-trilho-btn[data-grupo][aria-current]:not(.criar) svg{color:#FFFFFF}
 .vv-trilho .vv-trilho-btn[data-grupo][aria-current]::before{background:transparent!important}
 .vv-trilho .vv-trilho-sub[data-grupo]{border-left-color:color-mix(in srgb,var(--cat) 30%,transparent)!important}
-.vv-trilho .vv-trilho-sub[data-grupo] button[aria-current]{background:#EAE6DE!important;color:#1F1D1A!important}
+.vv-trilho .vv-trilho-sub[data-grupo] button[aria-current]{background:color-mix(in srgb,var(--cat) 14%,#FFFFFF)!important;color:var(--cat-forte,#1F1D1A)!important}
 /* Sem a linha vazia em cima do "Hoje": o botão de recolher fica no canto, por cima. */
 body.trilho-largo .vv-trilho{position:absolute}
 body.trilho-largo .vv-trilho-recolher{position:absolute;top:10px;right:8px;margin:0!important;z-index:1}
@@ -7493,7 +7498,7 @@ body.mundo .v2-estado.v2-estado[data-estado="feito"]{pointer-events:none;backgro
 #mundo-hud .vv-mais-lista > .vv-botao > span{display:inline}
 #mundo-hud .vv-ilha.vv-trilho{width:232px;padding:12px;border:0;border-radius:28px;background:#F9F8F5;box-shadow:0 24px 48px -30px rgba(31,29,26,.3)}
 #mundo-hud .vv-trilho .vv-trilho-btn{height:32px;min-height:32px;padding:0 9px;gap:10px;border-radius:999px;font:500 13.5px var(--vv-texto);color:#1F1D1A}
-#mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar){background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar){background:var(--cat-forte,#1F1D1A);color:#FFFFFF;box-shadow:none}
 #mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar)::before{display:none}
 #mundo-hud .vv-trilho .vv-trilho-btn.criar{height:36px;margin:6px 0;justify-content:flex-start;border-radius:999px;background:#C2490C;color:#FFFFFF;font-weight:600;box-shadow:0 8px 16px -10px #C2490C}
 #mundo-hud .vv-trilho .vv-trilho-grupo{display:flex;align-items:flex-end;height:24px;box-sizing:border-box;margin:0;padding:0 9px 4px;border:0;font:600 11px var(--vv-texto);letter-spacing:.05em;text-transform:uppercase;color:#6B665E}

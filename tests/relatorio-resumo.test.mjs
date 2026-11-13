@@ -16,7 +16,7 @@ const em = (iso, h = 10) => { const [y, m, d] = iso.split('-').map(Number); retu
 const HOJE = '2026-10-20';
 const PECAS = [
   { id: 1, nome: 'Reels lançamento', clientes: ['Padaria Sol'], formato: 'Reels', status: 'Finalizado', veiculacao_iso: '2026-10-05', status_updated_at: em('2026-10-04'), objetivo: 'Atração' },
-  { id: 2, nome: 'Carrossel receita', cliente: 'Padaria Sol', formato: 'Carrossel', status: 'Agendado', veiculacao_iso: '2026-10-08', status_updated_at: em('2026-10-09'), objetivo: 'educativo' },
+  { id: 2, nome: 'Carrossel receita', cliente: 'Padaria Sol', formato: 'Carrossel', status: 'Finalizado', veiculacao_iso: '2026-10-08', status_updated_at: em('2026-10-09'), objetivo: 'educativo' },
   { id: 3, nome: 'Card promoção', cliente: 'padaria sol', formato: 'Card', status: 'Para agendar', veiculacao_iso: '2026-10-12', status_updated_at: em('2026-10-12', 23), objetivo: 'Conversão' },
   { id: 4, nome: 'Reels bastidores', cliente: 'Padaria Sol', formato: 'Reels', status: 'Em andamento', veiculacao_iso: '2026-10-15' },
   { id: 5, nome: 'Story enquete', cliente: 'Padaria Sol', formato: '—', status: 'Segurar Post', veiculacao_iso: '2026-10-16' },
@@ -43,13 +43,16 @@ test('peças do mês: só o cliente (qualquer dos clientes da peça), só o mês
 
 test('entregas: entregues pela lista do painel; no prazo pelo dia da entrega até a data da peça', () => {
   const r = resumo({ pecas: PECAS, cliente: 'Padaria Sol', mes: '2026-10', hoje: HOJE });
-  assert.equal(r.entregues, 5); // 1, 2, 3 (Para agendar), 7 (Feito) e 8 (Publicado)
-  assert.equal(r.abertas, 4);
-  assert.equal(r.noPrazo, 3); // 1 (véspera), 3 (mesmo dia, 23h local) e 7 (pelo prazo, sem veiculação)
+  // Paulo, 13/11/2026: pronta é só Finalizado. A 3 (Para agendar) ainda espera a postagem: não é entregue e, com a
+  // veiculação de 12/10 passada, está atrasada.
+  assert.equal(r.entregues, 4); // 1, 2, 7 (Feito) e 8 (Publicado)
+  assert.equal(r.abertas, 5);
+  assert.equal(r.noPrazo, 2); // 1 (véspera) e 7 (pelo prazo, sem veiculação)
   assert.equal(r.foraDoPrazo, 1); // 2: entregue um dia depois da veiculação
   assert.equal(r.semDiaDaEntrega, 1); // 8: sem status_updated_at
-  assert.equal(r.noPrazoPct, 75);
-  assert.equal(r.atrasadas, 1, 'só a 4: a 5 está em Segurar Post e 6 e 9 ainda não chegaram');
+  assert.equal(r.noPrazoPct, 67);
+  assert.equal(r.atrasadas, 2, 'a 4 e a 3 (Para agendar com a data passada); a 5 está em Segurar Post e 6 e 9 ainda não chegaram');
+  assert.equal(r.pecas.find((p) => p.id === '3').noPrazo, null, 'Para agendar não conta como entregue');
   assert.equal(r.pecas.find((p) => p.id === '2').noPrazo, false);
   assert.equal(r.pecas.find((p) => p.id === '8').noPrazo, null);
 });
@@ -58,7 +61,7 @@ test('por formato: mais peças primeiro, "—" vira "Sem formato" e vai por últ
   const r = resumo({ pecas: PECAS, cliente: 'Padaria Sol', mes: '2026-10', hoje: HOJE });
   assert.deepEqual(r.porFormato, [
     { formato: 'Reels', total: 4, entregues: 2 },
-    { formato: 'Card', total: 3, entregues: 2 },
+    { formato: 'Card', total: 3, entregues: 1 },
     { formato: 'Carrossel', total: 1, entregues: 1 },
     { formato: 'Sem formato', total: 1, entregues: 0 },
   ]);
@@ -83,7 +86,7 @@ test('regras trocáveis, mês vazio e entradas inválidas', () => {
   const r = resumo({ pecas: PECAS, cliente: 'Padaria Sol', mes: '2026-10-15', hoje: HOJE, entregue: (d) => d.status === 'Finalizado', ehSolicitacao: () => false });
   assert.equal(r.mes, '2026-10');
   assert.equal(r.total, 10, 'a solicitação entra quando quem chama diz que não é solicitação');
-  assert.equal(r.entregues, 2); // 1 e 13 (o repetido não conta)
+  assert.equal(r.entregues, 3); // 1, 2 e 13 (o repetido não conta)
   const vazio = resumo({ pecas: [], cliente: 'Padaria Sol', mes: '2026-02', hoje: HOJE });
   assert.equal(vazio.fim, '2026-02-28');
   assert.equal(vazio.noPrazoPct, null);

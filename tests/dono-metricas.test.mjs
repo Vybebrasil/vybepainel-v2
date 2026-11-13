@@ -57,18 +57,23 @@ test('hoje: a veiculação diz o que está previsto; feitas no dia, faltam, atra
   assert.equal(h.faltam, 1);
   assert.deepEqual(h.lista.faltam.map((p) => p.nome), ['Reels de hoje']);
   // Feita = entregue com a troca de status hoje, qualquer que seja a data da peça.
-  // Finalizado e Para agendar contam separados (não viram "publicado").
-  assert.equal(h.feitas, 2);
-  assert.deepEqual(h.feitasPorStatus, { Finalizado: 1, 'Para agendar': 1 });
-  // Furo (veiculação vencida) vem antes do prazo interno vencido.
-  assert.deepEqual(h.lista.atrasadas.map((p) => p.nome), ['Furo da Beta', 'Reels de hoje']);
-  assert.equal(h.atrasadas, 2);
-  assert.equal(h.furos, 1);
+  // Pronta é só Finalizado (Paulo, 13/11/2026): "Pronto agora" foi para Para agendar hoje e não conta.
+  assert.equal(h.feitas, 1);
+  assert.deepEqual(h.feitasPorStatus, { Finalizado: 1 });
+  // Furo (veiculação vencida) vem antes do prazo interno vencido. Para agendar com a
+  // veiculação passada ("Sem agendar") não foi postada: é furo.
+  assert.deepEqual(h.lista.atrasadas.map((p) => p.nome), ['Furo da Beta', 'Sem agendar', 'Reels de hoje']);
+  assert.equal(h.atrasadas, 3);
+  assert.equal(h.furos, 2);
   assert.equal(h.prazoInternoVencido, 1);
+  // Agendado e Para agendar com a data pela frente esperam a postagem: nem atrasados nem em risco.
   assert.deepEqual(h.lista.emRisco.map((p) => p.nome), ['Card sem começar', 'SLA estourado']);
   assert.equal(h.emRisco, 2);
+  for (const nome of ['Story agendado', 'Pronto agora']) {
+    assert.ok(!h.lista.atrasadas.some((p) => p.nome === nome) && !h.lista.emRisco.some((p) => p.nome === nome), nome);
+  }
   assert.equal(h.esquecidas, 1);
-  assert.deepEqual(h.paraAgendar, { hoje: 0, vencidas: 1 });
+  assert.deepEqual(h.paraAgendar, { hoje: 0, vencidas: 1, agendadasVencidas: 0 });
   const furo = demandas.find((d) => d.nome === 'Furo da Beta');
   assert.deepEqual(h.lista.atrasadas[0], { id: furo.id, nome: 'Furo da Beta', cliente: 'Beta', status: 'Alteração',
     veiculacao_iso: '2026-11-02', prazo_iso: '2026-10-27', responsavel: 'Jady' });
@@ -77,16 +82,17 @@ test('hoje: a veiculação diz o que está previsto; feitas no dia, faltam, atra
   assert.equal(r.semana.inicio, '2026-11-02');
   assert.equal(r.semana.fim, '2026-11-08');
   assert.deepEqual(r.semana.porDia.map((d) => d.dia), ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08']);
-  assert.deepEqual(r.semana.porDia.find((d) => d.dia === HOJE), { dia: HOJE, previstas: 3, entregues: 2 });
-  assert.equal(r.semana.entregues, 3); // Story agendado (03/11) e as duas de hoje
-  assert.deepEqual(r.semana.entreguesPorStatus, { Finalizado: 1, Agendado: 1, 'Para agendar': 1 });
+  assert.deepEqual(r.semana.porDia.find((d) => d.dia === HOJE), { dia: HOJE, previstas: 3, entregues: 1 });
+  assert.equal(r.semana.entregues, 1); // só o Card pronto: Agendado e Para agendar não são entrega
+  assert.deepEqual(r.semana.entreguesPorStatus, { Finalizado: 1 });
 
   // Alertas na escala de urgência, do 1 (crítico) ao 6 (andando).
   assert.ok(r.alertas.every((a, i, l) => !i || l[i - 1].nivel <= a.nivel), 'alertas em ordem de nível');
   assert.equal(r.alertas[0].nivel, 1);
   assert.match(r.alertas[0].texto, /^1 peça furando a data do cliente \(veiculação vencida\): Furo da Beta$/);
   assert.deepEqual(r.alertas[0].ref, { tipo: 'pecas', ids: [furo.id] });
-  assert.ok(r.alertas.some((a) => a.nivel === 1 && /pronta sem agendar com a veiculação vencida: Sem agendar/.test(a.texto)));
+  // O alerta de furo fica sem as que aguardam postar: elas têm o alerta próprio.
+  assert.ok(r.alertas.some((a) => a.nivel === 1 && /^1 peça em Para agendar com a veiculação vencida \(não foi postada\): Sem agendar$/.test(a.texto)));
   assert.ok(r.alertas.some((a) => a.nivel === 2 && /^1 peça vai ao ar hoje sem estar pronta: Reels de hoje$/.test(a.texto)));
   assert.ok(r.alertas.some((a) => a.nivel === 2 && /risco de furo nos próximos 2 dias/.test(a.texto)));
   assert.ok(r.alertas.some((a) => a.nivel === 5 && /mais de 30 dias/.test(a.texto)));
@@ -129,12 +135,20 @@ test('cobertura: 3 posts por cliente na semana, cliente sem conteúdo e planejam
   assert.match(r.fonte.planejamento, /planejamento_url/);
   assert.equal(r.semana.previstas, 6); // 3 da Alfa, 1 da Beta, a de dois clientes e a solicitação
 
-  // Saúde do pior para o melhor.
-  assert.deepEqual(r.clientes.map((c) => [c.cliente, c.saude]), [['Gama', 'critico'], ['Beta', 'atencao'], ['Alfa', 'ok']]);
-  const gama = r.clientes[0];
+  // Saúde do pior para o melhor. O Agendado da Alfa de 02/11 passou da data sem
+  // Finalizado: é furo e a Alfa fica crítica (Paulo, 13/11/2026: pronta é só Finalizado).
+  assert.deepEqual(r.clientes.map((c) => [c.cliente, c.saude]), [['Alfa', 'critico'], ['Gama', 'critico'], ['Beta', 'atencao']]);
+  const alfa = r.clientes.find((c) => c.cliente === 'Alfa');
+  assert.equal(alfa.furos, 1);
+  assert.deepEqual(alfa.lista.atrasadas.map((p) => [p.status, p.veiculacao_iso]), [['Agendado', '2026-11-02']]);
+  assert.ok(alfa.motivos.includes('1 peça com a veiculação vencida'));
+  assert.equal(alfa.semana, 3);
+  assert.ok(r.alertas.some((a) => a.nivel === 1 && a.texto === `1 peça agendada com a data passada e sem Finalizado (conferir se saiu): ${demandas[0].nome}`));
+  assert.equal(r.hoje.paraAgendar.agendadasVencidas, 1);
+  const gama = r.clientes.find((c) => c.cliente === 'Gama');
   assert.ok(gama.motivos.includes('sem conteúdo nesta semana'));
   assert.ok(gama.motivos.includes('sem planejamento'));
-  const beta = r.clientes[1];
+  const beta = r.clientes.find((c) => c.cliente === 'Beta');
   assert.equal(beta.semana, 2);
   assert.equal(beta.proximaSemana, 1);
   assert.deepEqual(beta.motivos, ['2/3 posts nesta semana', 'próxima semana 1/3', 'sem planejamento']);
@@ -309,8 +323,10 @@ test('heads: a carteira de cada líder, cliente com dois heads e cliente sem hea
   // Sem head vai por último; cliente inativo fica de fora.
   assert.equal(sem.semHead, true);
   assert.deepEqual(sem.clientes, ['Gama']);
+  // "Pronta Gama" está Agendado para 05/11: espera a postagem, não é entrega nem atraso nem risco.
   assert.equal(sem.atrasadas, 0);
-  assert.deepEqual(sem.semana, { previstas: 1, entregues: 1, pct: 100 });
+  assert.equal(sem.emRisco, 0);
+  assert.deepEqual(sem.semana, { previstas: 1, entregues: 0, pct: 0 });
   assert.ok(!r.heads.some((h) => h.clientes.includes('Inativa')));
 
   // A regra dos heads é a mesma da Carteira.
@@ -404,7 +420,11 @@ test('roda rápido com 2.100 peças (folga para a suíte inteira rodando junto)'
 
 test('situação de uma peça: a função oficial para todas as telas (auditoria 09/11)', () => {
   const s = (d) => D.util.situacaoDaPeca(d, { hoje: '2026-11-09' }).situacao;
-  assert.equal(s({ status: 'Agendado', veiculacao_iso: '2026-11-01' }), 'entregue'); // antes: atrasada no Irecity, entregue no Dono
+  // Pronta é só Finalizado (Paulo, 13/11/2026): Agendado com a data passada não foi postado.
+  assert.equal(s({ status: 'Agendado', veiculacao_iso: '2026-11-01' }), 'atrasada');
+  assert.equal(s({ status: 'Para agendar', veiculacao_iso: '2026-11-01' }), 'atrasada');
+  assert.equal(s({ status: 'Agendado', veiculacao_iso: '2026-11-10', status_updated_at: '2026-11-09T12:00:00' }), 'andamento');
+  assert.equal(s({ status: 'Finalizado', veiculacao_iso: '2026-11-01' }), 'entregue');
   assert.equal(s({ status: 'Feito', veiculacao_iso: '2026-11-01' }), 'entregue'); // "Feito" não contava no Dono
   assert.equal(s({ status: 'Qualquer', status_final: true, veiculacao_iso: '2026-11-01' }), 'entregue'); // o final do banco manda
   assert.equal(s({ status: 'Segurar Post', veiculacao_iso: '2026-11-01' }), 'pausada'); // pausada não é atrasada

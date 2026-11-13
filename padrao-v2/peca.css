@@ -345,3 +345,25 @@ body.mundo #workflow-modal [data-bastao] textarea{border-radius:14px}
 body.mundo #workflow-modal .workflow-item{flex-wrap:wrap}
 body.mundo #workflow-modal .workflow-item-texto{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
 body.mundo #workflow-modal .workflow-item-name{white-space:normal;overflow-wrap:anywhere}
+
+/* LOG DE ATIVIDADE NO PADRÃO V2 (confere de 13/11/2026). Abria escuro, do tema antigo (vybe-appearance.css), e no mundo
+   os nomes em negrito sumiam no fundo escuro. Agora é a mesma folha branca da gaveta: filtros em pílula, ativo preto,
+   o dia como rótulo cinza e a linha "quem · o quê · hora". */
+body.mundo #workspace-drawer .log-atividade{background:#FFFFFF;color:#1F1D1A}
+body.mundo #workspace-drawer .log-topo{padding:18px 20px 10px}
+body.mundo #workspace-drawer .log-topo b{color:#1F1D1A;font:600 17px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+body.mundo #workspace-drawer .log-voltar{height:32px;padding:0 14px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:500 13px var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-voltar:hover{background:#EAE6DE}
+body.mundo #workspace-drawer .log-filtros{padding:0 20px 12px;border-bottom:1px solid #EFEBE4}
+body.mundo #workspace-drawer .log-filtros button{height:30px;padding:0 14px;border-radius:999px;background:#F3F1EC;color:#4A463F;font:500 12.5px var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-filtros button:hover{color:#1F1D1A}
+body.mundo #workspace-drawer .log-filtros button.ativo{background:#1F1D1A;color:#FFFFFF}
+body.mundo #workspace-drawer .log-corpo{padding:4px 20px 40px}
+body.mundo #workspace-drawer .log-dia-rotulo{background:#FFFFFF;color:#6B665E;font:600 12px var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-linha{border-top:1px solid #F1EDE6;font:400 13px/1.45 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-oque{color:#4A463F;white-space:pre-line}
+body.mundo #workspace-drawer .log-oque b{color:#1F1D1A}
+body.mundo #workspace-drawer .log-hora,body.mundo #workspace-drawer .log-nota{color:#6B665E}
+body.mundo #workspace-drawer .log-rosto{background:#EAE6DE;color:#1F1D1A}
+body.mundo #workspace-drawer .log-rosto-sistema{background:#F3F1EC;color:#6B665E}
+body.mundo #workspace-drawer .log-rosto-sistema.automacao{background:#EFE7FD;color:#6D3FD1}

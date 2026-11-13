@@ -26,7 +26,10 @@ test('semana integra solicitações de qualquer tipo, com entrega e fallback de 
 test('progresso usa os estados finais próprios das solicitações',()=>{
  const c=contexto();assert.equal(c.atividadeDoDiaConcluida({origem:'solicitacao',status:'Feito'}),true);
  assert.equal(c.atividadeDoDiaConcluida({origem:'solicitacao',status:'A Fazer'}),false);
- assert.equal(c.atividadeDoDiaConcluida({status:'Agendado'}),true);
+ // Concluída é só Finalizado (Paulo, 13/11/2026): Agendado e Para agendar ainda esperam a postagem.
+ assert.equal(c.atividadeDoDiaConcluida({status:'Agendado'}),false);
+ assert.equal(c.atividadeDoDiaConcluida({status:'Para agendar'}),false);
+ assert.equal(c.atividadeDoDiaConcluida({status:'Finalizado'}),true);
 });
 
 test('pendências atravessam meses, excluem concluídas e o próprio dia e preservam datas',()=>{

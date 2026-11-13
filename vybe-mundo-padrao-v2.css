@@ -267,6 +267,20 @@
   #automacoes-root.v2r .v2g-lin{flex-wrap:wrap;gap:6px 10px}
 }
 
+/* ===== padrao-v2/casca.css ===== */
+/* PADRÃO V2 · MENU RECOLHIDO (confere de 13/11/2026). Recolhido pelo "‹", o menu continuava com a ilha de 232 e os nomes
+   espremidos embaixo dos ícones ("Recu Huma"), e a página entrava por cima dele (capturas do Paulo, no Hoje e na Minha
+   sala). Recolhido no computador, ele vira o trilho de ícones de 68: sem nomes (ficam no title), botões de 52×40, e a
+   área livre (--vv-livre-esq) passa a medir a ilha estreita. No celular (até 900) quem manda é a barra de baixo. */
+@media (min-width:901px){
+  body:not(.trilho-largo) #mundo-hud .vv-ilha.vv-trilho{width:68px;padding:10px 8px;align-items:center;overflow-x:hidden}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn{width:52px;height:40px;min-height:40px;padding:0;gap:0;justify-content:center;flex-direction:row}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn > span,
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-marca > b{display:none}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn.criar{width:44px;height:44px;border-radius:50%;justify-content:center}
+  body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn > svg{width:20px;height:20px;flex:none}
+}
+
 /* ===== padrao-v2/celular.css ===== */
 /* Padrão v2 · grupo celular (quadro "No celular": barra de 4 itens, toque de 44 px, tudo abre em folha).
    1. A gaveta da peça vira folha de baixo para cima abaixo de 600 px (vybe-gaveta.js: gavetaCelularHtml).
@@ -1413,12 +1427,13 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
 #vv-dock-salas-faixa .vq-dock .vq-item .vq-rotulo{max-width:none;font:500 10.5px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em;color:inherit;white-space:nowrap;overflow:visible;text-overflow:clip}
 #vv-dock-salas-faixa .vq-dock .vq-ponto{display:none}
 #vv-dock-salas-faixa .vq-dock .vq-sep{flex:none;align-self:center;width:1px;height:28px;margin:0 4px;background:#E6E0D6}
-/* ligado: preto. O painel aberto acende o botão dele (Salas pela classe ver-voz, Som pelo data-som-aba do body). */
+/* ligado: laranja da ação (Paulo, 13/11/2026: "os botões do dock ativos muda de preto pra laranja: o microfone, o Minha
+   sala"). O painel aberto acende o botão dele (Salas pela classe ver-voz, Som pelo data-som-aba do body). */
 #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.vq-mic.on,.on),
 body.ver-voz #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="salas"],
 body[data-som-aba="audio"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="audio"],
 body[data-som-aba="musica"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="musica"],
-body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{background:#1F1D1A;color:#FFFFFF}
+body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{background:#C2490C;color:#FFFFFF}
 /* entrar na voz: a ação preta do quadro */
 #vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar{background:#1F1D1A;color:#FFFFFF}
 /* mudo e sem ouvir: o estado continua dito no nome, em vermelho (é o que pede atenção) */
@@ -1542,6 +1557,9 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 .vv-conversa .vv-conversa-nota.vv-conversa-nota{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
 .vv-conversa .vv-conversa-av.vv-conversa-av{background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter,sans-serif)}
 .vv-conversa :is(button,input):focus-visible{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #1F1D1A}
+/* Dock compacto: não coube com os nomes (vybe-mundo.js, pintarDock). Só os ícones, botões de 44. */
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:44px;height:44px;padding:0 4px}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item .vq-rotulo{display:none}
 
 /* ===== padrao-v2/entrada.css ===== */
 /* PADRÃO V2 · LOGIN E ENTRADA, VYBES E CRIAR (quadros EntradaDepois e VybesCriarDepois do moodboard, 13/11/2026).
@@ -3837,6 +3855,28 @@ body.mundo #workflow-modal [data-bastao] textarea{border-radius:14px}
 body.mundo #workflow-modal .workflow-item{flex-wrap:wrap}
 body.mundo #workflow-modal .workflow-item-texto{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
 body.mundo #workflow-modal .workflow-item-name{white-space:normal;overflow-wrap:anywhere}
+
+/* LOG DE ATIVIDADE NO PADRÃO V2 (confere de 13/11/2026). Abria escuro, do tema antigo (vybe-appearance.css), e no mundo
+   os nomes em negrito sumiam no fundo escuro. Agora é a mesma folha branca da gaveta: filtros em pílula, ativo preto,
+   o dia como rótulo cinza e a linha "quem · o quê · hora". */
+body.mundo #workspace-drawer .log-atividade{background:#FFFFFF;color:#1F1D1A}
+body.mundo #workspace-drawer .log-topo{padding:18px 20px 10px}
+body.mundo #workspace-drawer .log-topo b{color:#1F1D1A;font:600 17px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+body.mundo #workspace-drawer .log-voltar{height:32px;padding:0 14px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:500 13px var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-voltar:hover{background:#EAE6DE}
+body.mundo #workspace-drawer .log-filtros{padding:0 20px 12px;border-bottom:1px solid #EFEBE4}
+body.mundo #workspace-drawer .log-filtros button{height:30px;padding:0 14px;border-radius:999px;background:#F3F1EC;color:#4A463F;font:500 12.5px var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-filtros button:hover{color:#1F1D1A}
+body.mundo #workspace-drawer .log-filtros button.ativo{background:#1F1D1A;color:#FFFFFF}
+body.mundo #workspace-drawer .log-corpo{padding:4px 20px 40px}
+body.mundo #workspace-drawer .log-dia-rotulo{background:#FFFFFF;color:#6B665E;font:600 12px var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-linha{border-top:1px solid #F1EDE6;font:400 13px/1.45 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .log-oque{color:#4A463F;white-space:pre-line}
+body.mundo #workspace-drawer .log-oque b{color:#1F1D1A}
+body.mundo #workspace-drawer .log-hora,body.mundo #workspace-drawer .log-nota{color:#6B665E}
+body.mundo #workspace-drawer .log-rosto{background:#EAE6DE;color:#1F1D1A}
+body.mundo #workspace-drawer .log-rosto-sistema{background:#F3F1EC;color:#6B665E}
+body.mundo #workspace-drawer .log-rosto-sistema.automacao{background:#EFE7FD;color:#6D3FD1}
 
 /* ===== padrao-v2/pessoas.css ===== */
 /* ======================================================================================

@@ -122,12 +122,13 @@
 #vv-dock-salas-faixa .vq-dock .vq-item .vq-rotulo{max-width:none;font:500 10.5px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em;color:inherit;white-space:nowrap;overflow:visible;text-overflow:clip}
 #vv-dock-salas-faixa .vq-dock .vq-ponto{display:none}
 #vv-dock-salas-faixa .vq-dock .vq-sep{flex:none;align-self:center;width:1px;height:28px;margin:0 4px;background:#E6E0D6}
-/* ligado: preto. O painel aberto acende o botão dele (Salas pela classe ver-voz, Som pelo data-som-aba do body). */
+/* ligado: laranja da ação (Paulo, 13/11/2026: "os botões do dock ativos muda de preto pra laranja: o microfone, o Minha
+   sala"). O painel aberto acende o botão dele (Salas pela classe ver-voz, Som pelo data-som-aba do body). */
 #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.vq-mic.on,.on),
 body.ver-voz #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="salas"],
 body[data-som-aba="audio"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="audio"],
 body[data-som-aba="musica"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="musica"],
-body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{background:#1F1D1A;color:#FFFFFF}
+body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{background:#C2490C;color:#FFFFFF}
 /* entrar na voz: a ação preta do quadro */
 #vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar{background:#1F1D1A;color:#FFFFFF}
 /* mudo e sem ouvir: o estado continua dito no nome, em vermelho (é o que pede atenção) */
@@ -251,3 +252,6 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 .vv-conversa .vv-conversa-nota.vv-conversa-nota{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
 .vv-conversa .vv-conversa-av.vv-conversa-av{background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter,sans-serif)}
 .vv-conversa :is(button,input):focus-visible{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #1F1D1A}
+/* Dock compacto: não coube com os nomes (vybe-mundo.js, pintarDock). Só os ícones, botões de 44. */
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:44px;height:44px;padding:0 4px}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item .vq-rotulo{display:none}

@@ -575,7 +575,8 @@ let perfChartDiario = null;
 let perfChartDiarioPrazo = null;
 let perfChartDiarioVeiculacao = null;
 window.perfFiltroCache = { atrasados:[], concluidos:[], pendentesVeic:[], publicados:[] };
-const STATUS_CONCLUIDO = ['Finalizado','Agendado','Para Agendar'];
+// Concluída é só Finalizado (Paulo, 13/11/2026): Para agendar e Agendado ainda esperam a postagem.
+const STATUS_CONCLUIDO = ['Finalizado'];
 
 function setPerfPeriod(dias, btn) {
   perfPeriodDias = dias;

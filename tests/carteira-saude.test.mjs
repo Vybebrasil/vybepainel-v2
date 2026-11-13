@@ -23,8 +23,9 @@ const CLIENTES = [
 let seq = 0;
 const peca = (o = {}) => ({ id: `p${++seq}`, nome: `Peça ${seq}`, clientes: [o.cliente || 'Alfa'], status: 'A Fazer', veiculacao_iso: '', prazo_iso: '', ...o });
 // Alfa em dia: 3 posts na semana, entregas no prazo, nada atrasado.
-const emDia = (cliente) => [
-  peca({ cliente, status: 'Agendado', veiculacao_iso: '2026-11-03', status_updated_at: em('2026-11-01') }),
+// Agendado só está em dia com a veiculação pela frente (Paulo, 13/11/2026: pronta é só Finalizado).
+const emDia = (cliente, agendadoEm = '2026-11-05') => [
+  peca({ cliente, status: 'Agendado', veiculacao_iso: agendadoEm, status_updated_at: em('2026-11-01') }),
   peca({ cliente, status: 'Em andamento', veiculacao_iso: '2026-11-06', status_updated_at: em('2026-11-03') }),
   peca({ cliente, status: 'Em andamento', veiculacao_iso: '2026-11-07', status_updated_at: em('2026-11-03') }),
   ...['2026-10-10', '2026-10-15', '2026-10-20', '2026-10-25'].map((v) => peca({ cliente, status: 'Finalizado', veiculacao_iso: v, status_updated_at: em(v) })),
@@ -41,6 +42,12 @@ test('cliente em dia fica perto de 100, risco baixo, com o que vai bem nos motiv
   assert.ok(alfa.motivos.every((m) => m.tom === 'bom'));
   assert.ok(alfa.motivos.some((m) => m.texto === '100% das entregas no prazo'));
   assert.ok(!r.clientes.some((c) => c.nome === 'Inativa'), 'só clientes ativos');
+  assert.ok(alfa.motivos.some((m) => m.texto === 'nada atrasado'), 'Agendado com a data pela frente não atrasa');
+  // Agendado com a veiculação passada e sem Finalizado é furo (Paulo, 13/11/2026).
+  const passou = calcular({ demandas: emDia('Alfa', '2026-11-03'), clientes: CLIENTES, hoje: HOJE }).clientes.find((c) => c.nome === 'Alfa');
+  assert.equal(passou.score, 90);
+  assert.ok(passou.motivos.some((m) => m.tom === 'ruim' && m.texto === '1 peça com a veiculação vencida' && m.pontos === -10));
+  assert.ok(!passou.motivos.some((m) => m.texto === 'nada atrasado'));
 });
 
 test('cada sinal tira pontos com teto e vira uma frase curta; lista do menor para o maior', () => {
