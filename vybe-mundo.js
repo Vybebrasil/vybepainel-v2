@@ -2552,7 +2552,8 @@
     const carregar = fn('mapaCarregarMovel'); if (!carregar) return [];
     const classes = [...new Set((itens || []).map((it) => it?.[0]).filter((c) => /^[a-z0-9_]{1,64}$/i.test(String(c || '')) && !/^vybeimg_/.test(c) && (!m?.temArteLocal || m.temArteLocal(c))))];
     const lista = await Promise.all(classes.map(async (c) => {
-      try { const { dados } = await carregar(c); const d = dados?.logic?.model?.dimensions; return d ? [c, { x: d.x, y: d.y }] : null; } catch { return null; }
+      // Com as direções desenhadas: o quarto vira a peça como o Habbo (direção sem desenho vale a oposta).
+      try { const { dados } = await carregar(c); const d = dados?.logic?.model?.dimensions; const v = dados?.visualizations?.find?.((x) => x.size === 64); return d ? [c, { x: d.x, y: d.y, direcoes: Object.keys(v?.directions || {}).map(Number) }] : null; } catch { return null; }
     }));
     return lista.filter(Boolean);
   }

@@ -60,8 +60,11 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     // A maquete é uma ilha flutuante (Paulo, 08/11/2026: "o acabamento reto todo igual flutuando"): o gramado em cima e,
     // embaixo, colunas de terra e pedra que afundam mais para o meio, como um cone irregular em degraus, com faixas de
     // terra em tons diferentes, pedra escurecendo com a profundidade e pedras penduradas. Colunas de 3 × 3.
-    o.caixa(0, -1, 0, 2 * S, 1, 2 * S, '#74B95A');
-    const fino = new Obra(), CEL = 4, n = Math.ceil(2 * S / CEL), TERRA = ['#8A5A3B', '#7E5135', '#946240'], PEDRA = ['#8E8A84', '#827E78', '#77736E', '#6B6762'];
+    // Gramado, calçadas e praça só recebem sombra (camada própria, sempre à vista): projetando, sombreavam a si mesmos
+    // em serrilhado. Não vão na camada fina, que some de longe.
+    const fino = new Obra(), chaoBase = new Obra();
+    chaoBase.caixa(0, -1, 0, 2 * S, 1, 2 * S, '#74B95A');
+    const CEL = 4, n = Math.ceil(2 * S / CEL), TERRA = ['#8A5A3B', '#7E5135', '#946240'], PEDRA = ['#8E8A84', '#827E78', '#77736E', '#6B6762'];
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
       const x0 = -S + i * CEL, z0 = -S + j * CEL, w = Math.min(CEL, S - x0), d = Math.min(CEL, S - z0), cx = x0 + w / 2, cz = z0 + d / 2;
       const borda = Math.min(S - Math.abs(cx), S - Math.abs(cz)), centro = Math.max(0, 1 - Math.hypot(cx, cz) / (S * 1.25));
@@ -81,10 +84,10 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     }
     // Calçada do anel das lojas, a praça do prédio e as quatro alamedas em cruz.
     const anelI = R - 3.2;
-    for (const [x, z, w, d] of [[0, -(R - 1.6), 2 * R, 3.2], [0, R - 1.6, 2 * R, 3.2], [-(R - 1.6), 0, 3.2, 2 * R - 6.4], [R - 1.6, 0, 3.2, 2 * R - 6.4]]) o.caixa(x, 0, z, w, CHAO, d, '#DCD3C2');
-    o.caixa(0, 0, 0, 26, CHAO, 26, '#E8E0D0');
+    for (const [x, z, w, d] of [[0, -(R - 1.6), 2 * R, 3.2], [0, R - 1.6, 2 * R, 3.2], [-(R - 1.6), 0, 3.2, 2 * R - 6.4], [R - 1.6, 0, 3.2, 2 * R - 6.4]]) chaoBase.caixa(x, 0, z, w, CHAO, d, '#DCD3C2');
+    chaoBase.caixa(0, 0, 0, 26, CHAO, 26, '#E8E0D0');
     const alamedas = [[0, -(13 + anelI) / 2, 4, anelI - 13], [0, (13 + anelI) / 2, 4, anelI - 13], [-(13 + anelI) / 2, 0, anelI - 13, 4], [(13 + anelI) / 2, 0, anelI - 13, 4]];
-    for (const [x, z, w, d] of alamedas) o.caixa(x, 0, z, w, CHAO, d, '#E2D9C8');
+    for (const [x, z, w, d] of alamedas) chaoBase.caixa(x, 0, z, w, CHAO, d, '#E2D9C8');
     // Piso de pedra (referências de 09/11/2026): a praça em ladrilhos com anéis de tom em volta do prédio, as
     // alamedas e a calçada do anel em ladrilhos com a guia mais escura nas bordas. Só a camada fina (sem sombra).
     const PEDRAS = ['#E8E0D0', '#DED4C2', '#F0E9DC', '#D6CBB8'];
@@ -115,7 +118,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       o.caixa(a, CHAO, b, .22, 3, .22, '#4A4F55'); o.luz(a, CHAO + 3, b, .5, .35, .5, '#FFE7B0'); postes.push({ x: a, z: b });
     }
     detalhes(o, L, fino);
-    g.add(o.montar({ pedacos: 3 }));
+    g.add(o.montar({ pedacos: 3 })); g.add(chaoBase.montar({ sombra: false }));
     // Ilha, sebes, tufos e manchas recebem sombra mas não projetam: ficam fora do cálculo da sombra (desempenho).
     finoMalha = fino.montar({ sombra: false, pedacos: 3 }); g.add(finoMalha);
     // Ilhotas flutuando em volta da maquete (Paulo, 08/11/2026: "mais vivo, detalhado"); a vida (vida.mjs) as balança.

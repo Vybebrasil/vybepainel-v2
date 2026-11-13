@@ -284,6 +284,13 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   A luz da cidade é a mesma mexendo e parada; o mapa de sombra só é refeito quando a câmera para. Não crie outro composer.
   Parada, a cidade anima o enfeite a 30 qps constantes e só vira foto depois de 1 min sem mexer (Paulo, 10/11/2026:
   o ritmo caindo parecia travar); `?medir=1` mostra o tempo por quadro e as chamadas de desenho num canto.
+  Arquiteto (Paulo, 13/11/2026: "não parece que um arquiteto passou aqui... um projeto arquitetônico bem detalhado de
+  cada quarto"): fora do Decorar, `mundo/arquiteto.mjs` lê as peças de construção como arquitetura, sem mudar o que foi
+  salvo: placa de piso no chão vira o acabamento do ladrilho (madeira, mármore, cimento, grama, água, folhas); divisória
+  e bloco em fila viram parede contínua (toras, reboco, vidro transparente, tijolo, pedra) ou mureta, encostada na
+  borda do quarto; janela e porta de chão junto da parede viram vão nela. Peça de construção fora do quarto não entra.
+  Toda borda do fundo que dá para o vazio tem parede (recuos de U e L). Duas faces nunca no mesmo plano (o piso saía em
+  triângulos); o piso e o gramado só recebem sombra; a peça vira na direção que o Habbo desenha (`direcaoDesenhada`).
   Releitura (Paulo, 09/11/2026: "pode reinterpretar"): o quarto voxel não copia o Habbo; é o quarto da pessoa no
   estilo Vybe. Piso, parede e móveis caem na `PALETA` (`harmonizar`, `corDeParede`, `corDePiso` em `estilo.mjs`); a
   parede ganha borda, rodapé, janela com cortina num trecho livre do fundo e tomada (`vestirParedes`); o quarto é

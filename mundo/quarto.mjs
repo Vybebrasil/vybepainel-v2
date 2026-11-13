@@ -15,6 +15,7 @@ import { tipoDoMovel, desenharBoneco, figuraDaPessoa, figuraFiel } from './avata
 import { pegada, giroDaDirecao, definirMedida, encaixar, cabeNaSala, sobrepoe, proximaDirecao, medidaDaPeca, moverItem, girarItem, guardarItem, porItem } from './sala.mjs';
 import { NIVEL_HABBO, moveisDoHabbo, placaDoHabbo, corDoRevestimento, paletaDoHabbo, medidaDaPlaca, guardado } from './moveis-habbo.mjs';
 import { tipoModelado, montarMovel, coresDaPaleta, carregarCatalogo, tipoDeParede, montarDeParede, coresSemArte, pegadaSemArte, placaSemArte } from './moveis-voxel.mjs';
+import { projetarQuarto, desenharEstrutura, desenharPiso } from './arquiteto.mjs';
 import ARTES_LOCAIS from './artes-locais.json' with { type: 'json' };
 import { relogioBahia } from './captacoes.mjs';
 import { noiteDaHora } from './vida.mjs';
@@ -40,9 +41,17 @@ export function plantaDoQuarto({ w, h, celdas = null, nivelEm = null } = {}) {
 // Onde cada parede fica: como no Habbo, no fundo (lado de y menor) e à esquerda (lado de x menor) de cada ladrilho da
 // borda de cima e da esquerda da planta. Devolve [{ x, y, eixo: 'x' | 'y' }] (eixo 'x' = parede do fundo).
 export function paredesDaPlanta(p) {
-  const lista = [];
+  const lista = [], tem = (x, y) => (p.grade[y]?.[x] ?? -1) >= 0;
   for (let x = 0; x < p.W; x++) { const y = p.grade.findIndex((l) => l[x] >= 0); if (y >= 0) lista.push({ x, y, eixo: 'x' }); }
   for (let y = 0; y < p.D; y++) { const x = p.grade[y].findIndex((n) => n >= 0); if (x >= 0) lista.push({ x, y, eixo: 'y' }); }
+  // Recuos da planta (U, L, terraços): toda borda do fundo que dá para o vazio também tem parede (Paulo, 13/11/2026:
+  // "lugar sem parede"). O Habbo só erguia na primeira célula de cada linha e coluna; o lado do recuo ficava aberto.
+  const ja = new Set(lista.map((t) => `${t.eixo}:${t.x},${t.y}`));
+  for (let y = 0; y < p.D; y++) for (let x = 0; x < p.W; x++) {
+    if (!tem(x, y)) continue;
+    if (y > 0 && !tem(x, y - 1) && !ja.has(`x:${x},${y}`)) lista.push({ x, y, eixo: 'x', interna: true });
+    if (x > 0 && !tem(x - 1, y) && !ja.has(`y:${x},${y}`)) lista.push({ x, y, eixo: 'y', interna: true });
+  }
   return lista;
 }
 
@@ -231,6 +240,8 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
     // Como no Habbo: o topo do ladrilho na cor do piso e a lateral de um patamar no mesmo piso, mais escuro (sem faixa
     // de realce). Embaixo do chão, a base de maquete do padrão (terra em camadas, estilo.mjs).
     if (topo > 0) casca.caixa(x + .5, -.12, y + .5, 1, topo, 1, misturar(a, '#1F1D1A', .32));
+    // Placa de piso que a pessoa pôs no chão (arquiteto.mjs): o ladrilho é feito no material dela, rente e contínuo.
+    const mat = projeto?.pisos.get(x + ',' + y); if (mat) { desenharPiso(casca, x, y, topo, mat, misturar); continue; }
     if (!madeira(a)) { casca.caixa(x + .5, topo - .12, y + .5, 1, .12, 1, (x + y) % 2 ? a : b); continue; }
     // Piso de madeira em tábuas (referências de 09/11/2026): 4 tábuas por ladrilho, emendas desencontradas, cada
     // tábua num tom e a fresta escura entre elas.
@@ -242,7 +253,8 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
     }
   }
   baseDeMaquete(casca, { W, D, ladrilhos: (x, y) => (P.grade[y]?.[x] ?? -1) >= 0, topo: -.12, fundo: -1.15 });
-  gCasca = casca.montar(); cena.add(gCasca); sujar(true);
+  // O piso só recebe sombra: projetando, ele sombreava a si mesmo em serrilhado (os triângulos nas tábuas).
+  gCasca = casca.montar({ sombra: false }); cena.add(gCasca); sujar(true);
   }
 
   // ---------- paredes: cada trecho com a pintura que o dono escolheu (cor, revestimento e altura) ----------
@@ -256,7 +268,7 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
   // Parede vestida (referências de 09/11/2026): uma janela com peitoril, cortina e luz entrando no trecho livre mais
   // perto do meio da parede do fundo (onde a pessoa não pendurou nada) e uma tomada perto do chão na esquerda.
   function vestirParedes(o, H) {
-    const fundo = paredesDaPlanta(P).filter((t) => t.eixo === 'x'), ocupadas = new Set();
+    const fundo = paredesDaPlanta(P).filter((t) => t.eixo === 'x' && !t.interna), ocupadas = new Set();
     for (const it of Array.isArray(quarto.itens) ? quarto.itens : []) {
       const [classe, ix, , dir] = Array.isArray(it) ? it : []; if (!classe || !ehDeParede(classe) || Number(dir) === 2) continue;
       const c = Math.floor(Number(ix)); for (let k = -1; k <= 2; k++) ocupadas.add(c + k);
@@ -277,7 +289,7 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
         luzes.push({ x, y: y0 + alto / 2, z: z + .6, janela: true });
       }
     }
-    const esquerda = paredesDaPlanta(P).filter((t) => t.eixo === 'y'), t = esquerda[Math.min(esquerda.length - 1, 2)];
+    const esquerda = paredesDaPlanta(P).filter((t) => t.eixo === 'y' && !t.interna), t = esquerda[Math.min(esquerda.length - 1, 2)];
     if (t) { const chao = P.grade[t.y][t.x] * NIVEL; o.caixa(t.x + .03, chao + .32, t.y + .5, .04, .16, .12, '#F7F2E8'); o.caixa(t.x + .05, chao + .36, t.y + .5, .02, .06, .05, '#857B70'); }
   }
   function montarParedes() {
@@ -315,7 +327,33 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
   // Tudo é montado pelo motor de móveis (moveis-voxel.mjs), com o tamanho e as cores tirados da arte: receita do tipo,
   // volume liso para o que não tem receita e as receitas de parede. Enquanto a arte chega, nada aparece no lugar; só
   // se ela não carregar fica a peça voxel do catálogo, para a sala não sumir.
+  // Direção como o Habbo desenha (mapaDirecaoValida no Escritório): sem desenho na salva, vale a oposta; sem as duas, a
+  // primeira que existe. O cachorro salvo em 0 (só tem 2 e 4) olhava para a parede; no Habbo ele olha para a sala.
+  // Peça sem arte local (o Habbo limita a busca): o catálogo diz quantos giros ela tem; com 2, só 2 e 4 são desenhados.
+  const direcaoDesenhada = (classe, d) => {
+    const l = medidaDaPeca(classe)?.direcoes || (Number(infoCatalogo?.get(classe)?.giros) === 2 ? [2, 4] : null);
+    if (!l?.length || l.includes(d)) return d; return l.includes((d + 4) % 8) ? (d + 4) % 8 : l[0];
+  };
   let gItens = null, geracaoItens = 0;
+  // Projeto do arquiteto (arquiteto.mjs): o piso, as paredes e as muretas que a pessoa montou com peças, lidos como
+  // arquitetura. Fora do Decorar; no Decorar as peças voltam a ser uma a uma (para escolher e mover).
+  let projeto = null, gEstruturas = null, infoCatalogo = null;
+  const catalogoPronto = carregarCatalogo().then((m) => { infoCatalogo = m || new Map(); }).catch(() => { infoCatalogo = new Map(); });
+  function montarEstruturas() {
+    if (gEstruturas) { cena.remove(gEstruturas); liberar(gEstruturas); gEstruturas = null; }
+    if (!projeto?.estruturas.length) return;
+    const o = new Obra(), vidros = [];
+    for (const s of projeto.estruturas) desenharEstrutura(o, s, { chao: (x, z) => baseDoLadrilho(x, z), cor: corParedeAtual, misturar, vidro: (...b) => vidros.push(b) });
+    gEstruturas = o.montar();
+    // Vidro de verdade (transparente, refletindo de leve), não uma placa branca: um material só para todos os painéis.
+    if (vidros.length) {
+      const mat = new THREE.MeshStandardMaterial({ color: '#CFE8F0', transparent: true, opacity: .26, roughness: .05, metalness: .1, depthWrite: false });
+      const malha = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, vidros.length), m4 = new THREE.Matrix4();
+      vidros.forEach(([x, y, z, w, h, d], k) => { m4.makeScale(w, h, d).setPosition(x, y + h / 2, z); malha.setMatrixAt(k, m4); });
+      malha.renderOrder = 2; gEstruturas.add(malha);
+    }
+    cena.add(gEstruturas);
+  }
   const baseDoLadrilho = (x, y) => Math.max(0, P.nivel(Math.min(W - 1, Math.max(0, Math.floor(x))), Math.min(D - 1, Math.max(0, Math.floor(y))))) * NIVEL;
   // A parede encostada num ladrilho: a do fundo fica no primeiro ladrilho da coluna; a da esquerda, no da linha.
   const paredeFundo = (x) => { const c = Math.min(W - 1, Math.max(0, Math.floor(x))), y = P.grade.findIndex((l) => l[c] >= 0); return Math.max(0, y); };
@@ -389,16 +427,21 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
   let gVis = []; // índice do item → malha (para escolher e arrastar no modo decorar)
   function montarItens(itens, { junto = false } = {}) {
     // Os móveis esperam a ficha do Habbo (é ela que diz o que é de parede, assento ou cama).
-    if (!fisica) { quarto.itens = itens; fisicaPronta.then(() => { if (vivo) montarItens(quarto.itens, { junto }); }); return; }
+    if (!fisica || !infoCatalogo) { quarto.itens = itens; Promise.all([fisicaPronta, catalogoPronto]).then(() => { if (vivo) montarItens(quarto.itens, { junto }); }); return; }
     const geracao = ++geracaoItens;
     luzes = luzes.filter((l) => l.janela); lerFisica(itens); quarto.itens = itens; // a luz da janela fica
+    const antes = projeto;
+    projeto = ed ? null : projetarQuarto(itens, { ficha: fichaDe, info: (c) => infoCatalogo.get(c), deParede: ehDeParede, W, D, nivel: NIVEL, alturaParede: ALTURA_PAREDE });
+    if (antes?.pisos.size || projeto?.pisos.size) montarPiso();
+    montarEstruturas();
     const grupo = new THREE.Group(), vis = [], antigo = gItens;
     // Na edição, a sala nova só entra pronta (sem piscar); na abertura, cada peça entra quando chega.
     if (!junto || !antigo) { if (antigo) { cena.remove(antigo); liberar(antigo); } gItens = grupo; gVis = vis; cena.add(grupo); sujar(true); }
     const promessas = (Array.isArray(itens) ? itens : []).map((it, i) => {
       const [classe, ix, iy, dir, estado, altura] = Array.isArray(it) ? it : [];
       if (!classe || !Number.isFinite(Number(ix)) || !Number.isFinite(Number(iy))) return null;
-      const x = Number(ix), y = Number(iy), d = Number(dir) || 0, parede = ehDeParede(classe) || /^vybeimg_\d+$/.test(String(classe));
+      if (projeto?.usados.has(i)) return null; // desenhado pelo arquiteto (piso, parede, mureta, janela ou porta)
+      const x = Number(ix), y = Number(iy), d = direcaoDesenhada(String(classe), Number(dir) || 0), parede = ehDeParede(classe) || /^vybeimg_\d+$/.test(String(classe));
       return pecaDoHabbo(String(classe), x, y, d, Number(estado) || 0, altura, parede)
         .catch(() => null)
         .then((m) => {
@@ -730,6 +773,7 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
     cena.remove(ed.camada); liberar(ed.camada);
     for (const m of gVis) if (m) m.visible = true;
     ed = null; canvas.style.cursor = ''; sujar(true);
+    if (vivo) montarItens(quarto.itens); // fora do Decorar, o arquiteto volta a ler as peças como arquitetura
   }
   // Acabamento escolhido no painel (piso: as duas cores do ladrilho; parede: a cor). Escolher o piso tira a pintura
   // ladrilho a ladrilho, como no editor; null volta ao do quarto.
@@ -920,7 +964,9 @@ export function abrirQuarto(canvas, { quarto = {}, vitrine = false } = {}) {
     },
     definirAcabamento,
     // Medidas do Habbo: só a peça de reserva (catálogo) usa; a esculpida já sai do tamanho do móvel.
-    medidas(lista) { for (const [classe, m] of lista || []) definirMedida(classe, m); },
+    // A medida do Habbo chega depois do primeiro desenho: com ela, a mesa ganha o tamanho de verdade (o monitor não
+    // sobra da borda) e cada peça a direção desenhada; o quarto se remonta uma vez, sem piscar.
+    medidas(lista) { for (const [classe, m] of lista || []) definirMedida(classe, m); if (vivo && !ed && (lista || []).length) montarItens(quarto.itens, { junto: true }); },
     // Onde um ponto do quarto (ladrilhos e altura do mundo) aparece na tela, em pixels da página.
     naTela(x, y = 0, z = 0) { posicionar(); const r = canvas.getBoundingClientRect(), q = new THREE.Vector3(x, y, z).project(camera); return { x: r.left + (q.x * .5 + .5) * r.width, y: r.top + (-q.y * .5 + .5) * r.height }; },
     verTudo() { quer.alvo.copy(alvo.set(W / 2, .6 + nivelMax * NIVEL / 2, D / 2)); quer.dist = longe; sujar(); },
