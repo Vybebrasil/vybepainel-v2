@@ -238,3 +238,27 @@ function desligarBarraDoTopo() {
   clearInterval(TOPO_RELOGIO);
   TOPO_RELOGIO = null;
 }
+
+/* ── janelas do topo ──────────────────────────────────────────────────────── */
+
+// Quadro "Janelas do topo" (moodboard, 12/11/2026): Notas, Boletim e Ajuda abrem
+// na mesma janela da Busca e dos Avisos, com 340 de largura, embaixo do ícone
+// que as chamou e alinhadas pela direita dele. Quem mora dentro do "Mais" abre
+// embaixo dos três pontinhos, que é o ícone que a pessoa vê. No celular (ou sem
+// barra do topo) a folha de estilo põe a janela no alto da tela, de ponta a ponta.
+function colocarJanelaDoTopo(janela, seletor) {
+  if (!janela?.style || typeof document === 'undefined') return false;
+  const largura = typeof innerWidth === 'number' ? innerWidth : 0;
+  const aVista = (el) => Boolean(el?.getBoundingClientRect && el.getBoundingClientRect().width > 0);
+  let ancora = seletor ? document.querySelector(seletor) : null;
+  if (!aVista(ancora) || ancora.closest?.('.vv-mais-menu')) ancora = document.querySelector('.vv-barra-topo .vv-mais-menu > summary');
+  if (largura < 600 || !aVista(ancora)) {
+    janela.style.top = ''; janela.style.right = ''; janela.removeAttribute?.('data-no-icone');
+    return false;
+  }
+  const r = ancora.getBoundingClientRect();
+  janela.style.top = `${Math.round(r.bottom + 8)}px`;
+  janela.style.right = `${Math.max(8, Math.round(largura - r.right))}px`;
+  janela.setAttribute?.('data-no-icone', '');
+  return true;
+}

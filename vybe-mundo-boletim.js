@@ -204,7 +204,7 @@
     if (!st.aberto) { if (raiz) raiz.hidden = true; return; }
     if (!raiz) {
       raiz = document.createElement('div'); raiz.className = 'vbl-fundo'; raiz.hidden = true;
-      raiz.innerHTML = '<div class="vbl-janela" role="dialog" aria-modal="false" aria-labelledby="vbl-titulo"></div>';
+      raiz.innerHTML = '<div class="vbl-janela" id="vbl-janela" role="dialog" aria-modal="false" aria-labelledby="vbl-titulo"></div>';
       raiz.addEventListener('click', aoClicar); document.body.append(raiz);
     }
     const jan = raiz.querySelector('.vbl-janela'); st.achados = {};
@@ -215,8 +215,12 @@
     st.i = Math.max(0, Math.min(st.i, paginas.length - 1));
     const nomes = B ? ['Agência', ...B.cartoes.map((b) => b.agente)] : [];
     const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Bahia', weekday: 'long', day: 'numeric', month: 'long' });
-    jan.innerHTML = `<div class="vbl-topo"><span><small>${esc(data)}</small><h2 id="vbl-titulo">Boletim dos agentes</h2><p>O que cada setor fez, o que está errado e pra onde ir.</p></span>
-        <button type="button" class="vbl-fechar" data-vbl-fechar aria-label="Fechar o boletim"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    // Quadro "Janelas do topo" (12/11/2026): o nome, uma etiqueta com o estado do dia e o X redondo, como Busca e Avisos.
+    const etiqueta = !B ? (st.erro ? '' : ['n', 'lendo']) : B.resumo.urgentes ? ['r', plural(B.resumo.urgentes, 'urgente', 'urgentes')]
+      : B.resumo.abertos ? ['a', `${B.resumo.abertos} em aberto`] : ['g', 'tudo em dia'];
+    jan.innerHTML = `<div class="vbl-topo"><h2 id="vbl-titulo" title="Boletim dos agentes de ${esc(data)}: o que cada setor fez, o que está errado e pra onde ir">Boletim</h2>
+        ${etiqueta ? `<span class="vbl-etiqueta ${etiqueta[0]}">${esc(etiqueta[1])}</span>` : ''}
+        <button type="button" class="vbl-fechar" data-vbl-fechar aria-label="Fechar o boletim" title="Fechar (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       ${!B ? (st.erro
         ? `<div class="vbl-estado-tela"><b>Não deu para montar o boletim</b><p>${esc(st.erro)}</p><button type="button" class="vbl-botao principal" data-vbl-tentar>Tentar de novo</button></div>`
         : '<div class="vbl-estado-tela vbl-carregando" aria-busy="true"><i></i><i></i><i></i><p>Pedindo o relatório de cada agente à central…</p></div>')
@@ -225,6 +229,7 @@
         ${st.msg ? `<p class="vbl-msg" role="status">${esc(st.msg)}</p>` : ''}<div class="vbl-pe"><button type="button" class="vbl-botao" data-vbl-passo="-1" ${st.i ? '' : 'disabled'}>Anterior</button><small>${st.i + 1} de ${paginas.length}</small>
           <button type="button" class="vbl-botao ${st.i < paginas.length - 1 ? 'principal' : ''}" data-vbl-passo="${st.i < paginas.length - 1 ? 1 : 0}">${st.i < paginas.length - 1 ? 'Próximo' : 'Concluir'}</button></div>`}`;
     raiz.hidden = false;
+    if (typeof G.colocarJanelaDoTopo === 'function') G.colocarJanelaDoTopo(jan, '[data-boletim]');
     if (st.repintando === st.i) { raiz.querySelectorAll('.vbl-palco details > summary').forEach((x) => { if (abertos.includes(x.textContent)) x.parentElement.open = true; }); const p = raiz.querySelector('.vbl-palco'); if (p) p.scrollTop = rolagem; }
     st.repintando = st.i;
     raiz.querySelector('.vbl-abas [aria-current]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
@@ -257,6 +262,7 @@
   // "Abrir a demanda completa" na peça: a gaveta abre embaixo das janelas; o boletim sai da frente.
   G.addEventListener?.('vybe:peca-completa', () => { if (st.aberto) fechar(); });
   function abrir() {
+    document.querySelector?.('.vv-mais-menu[open]')?.removeAttribute('open'); // escolher o Boletim no "Mais" fecha o menu
     st.aberto = true; st.i = 0;
     try { localStorage.setItem(CHAVE_VISTO, diaBahia()); } catch { /* sem armazenamento: abre de novo amanhã do mesmo jeito */ }
     pintar(); void carregar();
@@ -270,6 +276,7 @@
     else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && raiz?.contains(document.activeElement)) { const n = raiz?.querySelectorAll('.vbl-abas button').length || 0; const i = st.i + (e.key === 'ArrowRight' ? 1 : -1); if (i >= 0 && i < n) { st.i = i; pintar(); } }
   });
   document.addEventListener('click', (e) => { if (e.target.closest?.('[data-boletim]')) abrir(); });
+  G.addEventListener?.('resize', () => { if (st.aberto && raiz && typeof G.colocarJanelaDoTopo === 'function') G.colocarJanelaDoTopo(raiz.querySelector('.vbl-janela'), '[data-boletim]'); });
 
   // Botão do Hoje (só para os donos, como a página Agentes).
   const podeVer = () => souDono() && !vendoComoOutro();

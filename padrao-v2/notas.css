@@ -1,0 +1,179 @@
+/* ======================================================================================
+   PADRÃO V2 · NOTAS E AS OUTRAS JANELAS DO TOPO (moodboard, quadro DEPOIS "Janelas do topo"; 13/11/2026).
+   "Notas, agenda, conversa, WhatsApp, boletim e ajuda abrem nesta mesma janela": 340 de largura, branca, raio 24,
+   aberta embaixo do ícone (colocarJanelaDoTopo, em vybe-topo.js), cabeçalho com o nome, a etiqueta e o X redondo de 30,
+   corpo com rótulos de 11,5 e linhas de 40, pé com linha fina e a dica. Notas (#v2-notas), Boletim (.vbl-janela),
+   Ajuda (.vv-tour-janela.v2aj) e a Agenda rápida (#vv-agenda, que é desenhada em vybe-mundo.js). Nada aqui força regra antiga.
+   ====================================================================================== */
+
+/* ---------- Notas: a janela do topo ---------- */
+#v2-notas.v2nt{position:fixed;z-index:880;top:76px;right:14px;display:flex;flex-direction:column;box-sizing:border-box;width:340px;max-width:calc(100vw - 16px);max-height:min(640px,calc(100dvh - 96px));margin:0;padding:0;border:0;border-radius:24px;overflow:hidden;background:#FFFFFF;color:#1F1D1A;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);font:400 13.5px/1.35 var(--vv-texto,Inter),system-ui,sans-serif;color-scheme:light;animation:v2nt-surge .18s cubic-bezier(.2,.8,.2,1) both}
+@keyframes v2nt-surge{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+#v2-notas.v2nt :is(p,h2){margin:0}
+#v2-notas .v2nt-cab{flex:none;display:flex;align-items:center;gap:8px;padding:14px 14px 10px 18px}
+#v2-notas .v2nt-cab h2{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#v2-notas .v2nt-cab .v2nt-ib:first-child{margin-left:-6px}
+#v2-notas .v2nt-pill{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#v2-notas .v2nt-ib{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;min-width:0;min-height:0;margin:0;padding:0;border:0;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;cursor:pointer}
+#v2-notas .v2nt-ib svg{width:18px;height:18px;stroke-width:1.8}
+#v2-notas .v2nt-ib:hover{background:#F3F1EC}
+#v2-notas .v2nt-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;min-height:0;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .2s}
+#v2-notas .v2nt-btn:hover{background:#F3F1EC}
+#v2-notas .v2nt-btn:active,#v2-notas .v2nt-chip:active{transform:scale(.96)}
+#v2-notas .v2nt-btn.p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+#v2-notas .v2nt-btn.p:hover{background:#A83E09}
+#v2-notas :is(.v2nt-ib,.v2nt-btn,.v2nt-chip,.v2nt-r):focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+#v2-notas .v2nt-corpo{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 12px 8px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#v2-notas .v2nt-campo{flex:none;display:flex;padding:0 4px 10px}
+#v2-notas .v2nt-busca{flex:1;min-width:0;height:36px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:400 13.5px var(--vv-texto,Inter),sans-serif;outline:none}
+#v2-notas .v2nt-busca:focus{box-shadow:inset 0 0 0 1.5px #1F1D1A}
+#v2-notas .v2nt-busca::placeholder{color:#6B665E}
+#v2-notas .v2nt-fichas{flex:none;display:flex;flex-wrap:wrap;gap:6px;padding:0 4px}
+#v2-notas .v2nt-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;max-width:100%;height:30px;min-height:0;box-sizing:border-box;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:500 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+#v2-notas .v2nt-chip:hover{background:#F3F1EC}
+#v2-notas .v2nt-chip i{font-style:normal;font-weight:600;color:#6B665E}
+#v2-notas .v2nt-chip[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#v2-notas .v2nt-chip[aria-pressed="true"] i{color:rgba(255,255,255,.7)}
+#v2-notas .v2nt-chip-novo{color:#6B665E}
+#v2-notas .v2nt-g{flex:none;padding:12px 8px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#v2-notas .v2nt-r{appearance:none;flex:none;display:flex;align-items:center;gap:10px;width:100%;min-height:40px;box-sizing:border-box;margin:0;padding:6px 8px;border:0;border-radius:12px;background:none;box-shadow:none;color:#1F1D1A;text-align:left;font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#v2-notas .v2nt-r:hover{background:#F3F1EC}
+#v2-notas .v2nt-r-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+#v2-notas .v2nt-r-txt :is(b,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v2-notas .v2nt-r-txt b{font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#v2-notas .v2nt-r-txt small{font:400 12px/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#v2-notas .v2nt-sub{flex:none;max-width:46%;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#v2-notas .v2nt-vazio{padding:18px 8px;font:400 12.5px/1.45 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#v2-notas .v2nt-pe{flex:none;display:flex;align-items:center;gap:8px;padding:12px 14px;border-top:1px solid #F1EDE6}
+#v2-notas .v2nt-dica{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+/* a nota aberta no lugar da lista */
+#v2-notas .v2nt-titulo{flex:none;width:100%;box-sizing:border-box;margin:0;padding:4px 8px;border:0;border-radius:10px;background:none;box-shadow:none;color:#1F1D1A;font:600 15px/1.3 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;outline:none}
+#v2-notas .v2nt-titulo:focus{background:#F9F8F5}
+#v2-notas .v2nt-de{flex:none;padding:2px 8px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#v2-notas .v2nt-nota .v2nt-fichas{padding-bottom:8px}
+#v2-notas .v2nt-nota .v2nt-fichas .v2nt-chip{padding:0 11px}
+#v2-notas .v2nt-nota .nota-folha{flex:none;min-height:120px;margin:0;padding:6px 0 0;border:0;border-top:1px solid #F1EDE6;border-radius:0;background:none;box-shadow:none;cursor:text}
+#v2-notas .v2nt-nota .nota-linha{display:flex;align-items:flex-start;gap:8px;padding:4px 8px;border-radius:10px;background:none;color:#1F1D1A;font:400 13.5px/1.5 var(--vv-texto,Inter),sans-serif}
+#v2-notas .v2nt-nota .nota-linha:hover{background:#F9F8F5}
+#v2-notas .v2nt-nota .nota-linha.editando{background:#F3F1EC}
+#v2-notas .v2nt-nota .nota-linha.m-titulo{margin-top:4px;font:600 15px/1.4 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+#v2-notas .v2nt-nota .nota-linha.m-titulo2{margin-top:2px;font:600 14px/1.4 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+#v2-notas .v2nt-nota .nota-linha input[type=checkbox]{flex:none;width:16px;height:16px;margin:3px 0 0;accent-color:#FF7A2F}
+#v2-notas .v2nt-nota :is(.nota-texto,.nota-ponto){color:#1F1D1A}
+#v2-notas .v2nt-nota .nota-texto.feito{color:#6B665E;text-decoration:line-through}
+#v2-notas .v2nt-nota .nota-entrada{flex:1;min-width:0;margin:0;padding:0;border:0;background:transparent;box-shadow:none;color:#1F1D1A;font:inherit;line-height:inherit;resize:none;outline:none}
+#v2-notas .v2nt-nota .notas-emojis{display:grid;gap:8px;margin:0 4px 8px;padding:10px;border:0;border-radius:14px;background:#F9F8F5}
+#v2-notas .v2nt-nota .notas-emoji-grupo > span{font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#v2-notas .v2nt-nota .notas-emoji-grupo button{width:30px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;box-shadow:none}
+#v2-notas .v2nt-nota .notas-emoji-grupo button:hover{background:#EFEBE4}
+@media (max-width:599px){
+  #v2-notas.v2nt{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100dvh - 16px)}
+}
+@media (prefers-reduced-motion:reduce){
+  #v2-notas.v2nt{animation:none}
+  #v2-notas :is(.v2nt-btn,.v2nt-chip){transition:none}
+}
+
+/* ---------- Notas grandes ("Abrir grande") no mundo: a janela solta de antes, com a escrita legível no claro ---------- */
+body.mundo #notas-janela .nota-folha{border-color:#E6E0D6;background:#FFFFFF}
+body.mundo #notas-janela :is(.nota-texto,.nota-ponto,.nota-linha-vazia){color:#1F1D1A}
+body.mundo #notas-janela .nota-texto.feito{color:#6B665E}
+body.mundo #notas-janela .nota-linha:hover{background:#F9F8F5}
+body.mundo #notas-janela .nota-linha.editando{background:#F3F1EC}
+
+/* ---------- Boletim dos agentes: a mesma janela, embaixo do "Mais" ---------- */
+.vbl-fundo #vbl-janela.vbl-janela{position:fixed;top:76px;right:14px;width:340px;max-width:calc(100vw - 16px);max-height:min(680px,calc(100dvh - 96px));border:0;border-radius:24px;background:#FFFFFF;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);font:400 13.5px/1.35 var(--vv-texto,Inter),system-ui,sans-serif}
+.vbl-fundo #vbl-janela .vbl-topo{align-items:center;gap:8px;padding:14px 14px 10px 18px}
+.vbl-fundo #vbl-janela .vbl-topo h2{flex:1;min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+.vbl-fundo .vbl-etiqueta{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+.vbl-fundo .vbl-etiqueta.r{background:#FDECEE;color:#B42318}
+.vbl-fundo .vbl-etiqueta.a{background:#FFF4D6;color:#7A4A00}
+.vbl-fundo .vbl-etiqueta.g{background:#E8F5EC;color:#11613A}
+.vbl-fundo #vbl-janela .vbl-fechar{width:30px;height:30px;border:0;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6}
+.vbl-fundo #vbl-janela .vbl-fechar:hover{background:#F3F1EC}
+.vbl-fundo #vbl-janela .vbl-abas{gap:6px;padding:0 16px 10px;border-bottom:0;scrollbar-width:none}
+.vbl-fundo #vbl-janela .vbl-abas::-webkit-scrollbar{display:none}
+.vbl-fundo #vbl-janela .vbl-abas button{border:0;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter),sans-serif}
+.vbl-fundo #vbl-janela .vbl-abas button:hover{background:#F3F1EC}
+.vbl-fundo #vbl-janela .vbl-abas button[aria-current="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+.vbl-fundo #vbl-janela .vbl-palco{padding:4px 12px 12px}
+.vbl-fundo #vbl-janela .vbl-cartao{gap:10px}
+.vbl-fundo #vbl-janela .vbl-cab{gap:10px;padding:0 6px}
+.vbl-fundo #vbl-janela .vbl-av{width:36px;height:36px;border-radius:50%;font-size:14px}
+.vbl-fundo #vbl-janela .vbl-quem b{font:600 15px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+.vbl-fundo #vbl-janela .vbl-secao{padding:10px 12px;border:0;border-radius:16px;background:#F9F8F5}
+.vbl-fundo #vbl-janela .vbl-secao h4{font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+.vbl-fundo #vbl-janela .vbl-secao li{border-radius:12px;background:#FFFFFF}
+.vbl-fundo #vbl-janela .vbl-nums,.vbl-fundo #vbl-janela .vbl-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vbl-fundo #vbl-janela .vbl-num{border:0;border-radius:14px;background:#F9F8F5}
+.vbl-fundo #vbl-janela .vbl-secao li.vbl-achado{flex-wrap:wrap}
+.vbl-fundo #vbl-janela .vbl-achado-abrir{flex:1 1 100%}
+.vbl-fundo #vbl-janela .vbl-achado-txt{min-width:0}
+.vbl-fundo #vbl-janela .vbl-achado-acoes{padding:0 8px 8px 46px}
+.vbl-fundo #vbl-janela .vbl-secao .vbl-agora-lista li{grid-template-columns:1fr}
+.vbl-fundo #vbl-janela .vbl-agora-lista li > .vbl-agora{grid-column:1;grid-row:auto}
+.vbl-fundo #vbl-janela .vbl-estado-tela{padding:28px 18px}
+.vbl-fundo #vbl-janela .vbl-pe{padding:12px 14px;border-top:1px solid #F1EDE6}
+.vbl-fundo #vbl-janela .vbl-pe small{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+.vbl-fundo #vbl-janela .vbl-botao{height:30px;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter),sans-serif}
+.vbl-fundo #vbl-janela .vbl-botao:hover:not(:disabled){background:#F3F1EC}
+.vbl-fundo #vbl-janela .vbl-botao.principal{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+.vbl-fundo #vbl-janela .vbl-botao.principal:hover{background:#A83E09}
+@media (max-width:599px){
+  .vbl-fundo #vbl-janela.vbl-janela{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100dvh - 16px - var(--vv-dock-alto,0px))}
+}
+
+/* ---------- Ajuda do VYBES: a mesma janela, embaixo do "Mais" ---------- */
+.vv-tour-raiz .vv-tour-janela.v2aj{position:fixed;top:76px;right:14px;display:flex;flex-direction:column;width:340px;max-width:calc(100vw - 16px);max-height:min(680px,calc(100dvh - 96px));padding:0;border:0;border-radius:24px;overflow:hidden;background:#FFFFFF;color:#1F1D1A;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);font:400 13.5px/1.35 var(--vv-texto,Inter),system-ui,sans-serif}
+.vv-tour-raiz .v2aj .vv-tour-janela-topo{flex:none;gap:8px;margin:0;padding:14px 14px 10px 18px}
+.vv-tour-raiz .v2aj .vv-tour-janela-topo .vv-tour-titulo{flex:1;min-width:0;margin:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+.vv-tour-raiz .v2aj .v2aj-etiqueta{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+.vv-tour-raiz .v2aj .v2aj-etiqueta.nova{background:#EEEAFB;color:#4B36A8}
+.vv-tour-raiz .v2aj .vv-tour-x{width:30px;height:30px;margin:0;border:0;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font-size:0}
+.vv-tour-raiz .v2aj .vv-tour-x::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/18px 18px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/18px 18px no-repeat}
+.vv-tour-raiz .v2aj .vv-tour-x:hover{background:#F3F1EC}
+.vv-tour-raiz .v2aj .v2aj-corpo{flex:1;min-height:0;padding:0 12px 8px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.vv-tour-raiz .v2aj .vv-tour-chave{gap:10px;min-height:40px;padding:0 8px;border-radius:12px;font:400 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+.vv-tour-raiz .v2aj .vv-tour-chave input{accent-color:#1F1D1A}
+.vv-tour-raiz .v2aj :is(.vv-tour-secao,.vv-tour-grupo){margin:0;padding:12px 8px 4px;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+.vv-tour-raiz .v2aj .vv-tour-lista{gap:0}
+.vv-tour-raiz .v2aj .vv-tour-linha{gap:1px 10px;min-height:40px;padding:6px 8px;border:0;border-radius:12px;background:none;color:#1F1D1A;transition:background-color .15s}
+.vv-tour-raiz .v2aj .vv-tour-linha:hover{background:#F3F1EC;translate:none}
+.vv-tour-raiz .v2aj .vv-tour-linha b{font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+.vv-tour-raiz .v2aj .vv-tour-linha small{font:400 12px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B665E;-webkit-line-clamp:1}
+.vv-tour-raiz .v2aj .vv-tour-linha em{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif}
+.vv-tour-raiz .v2aj .vv-tour-linha em.nova{background:#EEEAFB;color:#4B36A8}
+.vv-tour-raiz .v2aj .vv-tour-janela-pe{flex:none;flex-wrap:nowrap;gap:8px;margin:0;padding:12px 14px;border-top:1px solid #F1EDE6}
+.vv-tour-raiz .v2aj :is(.vv-tour-link,.vv-tour-principal){display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+.vv-tour-raiz .v2aj :is(.vv-tour-link,.vv-tour-principal):active{transform:scale(.96)}
+.vv-tour-raiz .v2aj .vv-tour-link:hover{background:#F3F1EC;color:#1F1D1A}
+.vv-tour-raiz .v2aj .vv-tour-principal{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+.vv-tour-raiz .v2aj .vv-tour-principal:hover{background:#A83E09}
+@media (max-width:599px){
+  .vv-tour-raiz .vv-tour-janela.v2aj{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100dvh - 16px - var(--vv-dock-alto,0px))}
+}
+
+/* ---------- Agenda rápida do topo (a janela é de vybe-mundo.js: aqui só a forma) ---------- */
+/* O título vem de ::before porque uma regra antiga forçada (vybe-mundo.css) prende o <b> em 12px cinza. */
+body.ver-agenda #mundo-hud #vv-agenda.vv-agenda{padding:0;border:0;border-radius:24px;overscroll-behavior:contain;scrollbar-width:thin;color:#1F1D1A;font:400 13.5px/1.35 var(--vv-texto,Inter),system-ui,sans-serif}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-topo{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;box-sizing:border-box;width:100%;min-height:0;margin:0;padding:14px 14px 10px 18px;border:0;border-radius:0;background:#FFFFFF;color:#1F1D1A}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-topo::before{content:"Agenda";flex:1;min-width:0;text-align:left;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-topo :is(svg,b){display:none}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-seta{flex:none;display:grid;place-items:center;width:30px;height:30px;margin:0;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 13px/1 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-topo:hover .vv-agenda-seta{background:#F3F1EC}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-lista{padding:0 12px 4px}
+body.ver-agenda #mundo-hud #vv-agenda .vv-evento{position:relative;display:block;box-sizing:border-box;width:100%;min-height:40px;margin:0;padding:7px 8px 7px 24px;border:0;border-radius:12px;background:none;box-shadow:none;color:#1F1D1A;text-align:left}
+body.ver-agenda #mundo-hud #vv-agenda .vv-evento::before{content:"";position:absolute;left:9px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--c,#C2490C)}
+body.ver-agenda #mundo-hud #vv-agenda .vv-evento:hover{background:#F3F1EC}
+body.ver-agenda #mundo-hud #vv-agenda .vv-evento small{font-size:12.5px;color:#6B665E}
+body.ver-agenda #mundo-hud #vv-agenda .vv-evento b{margin-top:1px;font:600 13.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+body.ver-agenda #mundo-hud #vv-agenda .vv-evento span{margin-top:1px;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+body.ver-agenda #mundo-hud #vv-agenda .vd-agenda{gap:2px;margin:4px 0 0;padding:4px 0 0;border-top:0}
+body.ver-agenda #mundo-hud #vv-agenda .vd-agenda-rotulo{display:block;margin:0;padding:8px 8px 4px}
+body.ver-agenda #mundo-hud #vv-agenda .vd-agenda-linha{min-height:30px;padding:0 8px}
+body.ver-agenda #mundo-hud #vv-agenda .vd-agenda-linha > span{color:#6B665E}
+body.ver-agenda #mundo-hud #vv-agenda .vv-roteiros{margin:0;padding:0 12px 4px}
+body.ver-agenda #mundo-hud #vv-agenda .vv-roteiro{margin:0 0 4px;padding:8px 10px;border:0;border-radius:12px;background:#F9F8F5;box-shadow:none}
+body.ver-agenda #mundo-hud #vv-agenda .vv-dica{margin:0;padding:12px 8px;font:400 12.5px/1.45 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-abrir{position:sticky;bottom:0;display:flex;align-items:center;justify-content:flex-end;box-sizing:border-box;width:100%;height:auto;min-height:0;margin:0;padding:12px 14px;border:0;border-top:1px solid #F1EDE6;border-radius:0;background:#FFFFFF;box-shadow:none;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif}
+body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-abrir:hover{background:#FFFFFF;color:#C2490C}

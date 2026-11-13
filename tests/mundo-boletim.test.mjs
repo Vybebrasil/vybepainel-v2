@@ -45,7 +45,8 @@ test('só os donos: botão no Hoje e abertura sozinha uma vez por dia, sem abrir
   const fonte = readFileSync('vybe-mundo-boletim.js', 'utf8');
   assert.match(fonte, /visto === diaBahia\(\)/);
   assert.match(fonte, /if \(await carregar\(\)\) abrir\(\);/);
-  assert.match(readFileSync('vybe-mundo.js', 'utf8'), /\$\{window\.VybeBoletim\?\.botaoHtml\?\.\(\) \|\| ''\}/);
+  // Quadro B1 do moodboard (12/11/2026): o Hoje da agência não tem mais o cartão do Boletim; o botão fica na barra do topo.
+  assert.match(readFileSync('vybe-mundo.js', 'utf8'), /class="vv-botao vv-ferr-boletim" data-boletim/);
   const idx = readFileSync('index.html', 'utf8');
   assert.ok(idx.indexOf('/vybe-mundo-agentes.js') < idx.indexOf('/vybe-mundo-boletim.js'), 'depois de Agentes');
   assert.match(idx, /vybe-mundo-boletim\.css/);
@@ -67,7 +68,8 @@ test('botão Boletim no topo (de qualquer lugar), só para quem vê o boletim', 
   assert.match(js, /class="vv-botao vv-ferr-boletim" data-boletim hidden/);
   assert.match(js, /vv-ferr-boletim[^\n]*<span class="vv-ferr-nome">Boletim<\/span>/, 'com o nome, como WhatsApp e Agenda');
   assert.match(readFileSync('vybe-mundo.css', 'utf8'), /\[data-ferr="agenda"\],\.vv-ferr-boletim\)\{width:auto/);
-  assert.ok(js.indexOf('vv-ferr-boletim') > js.indexOf('data-ferr="whatsapp"') && js.indexOf('vv-ferr-boletim') < js.indexOf('data-ferr="avisos"'), 'depois do WhatsApp');
+  // Quadro da casca (moodboard, 12/11/2026): o Boletim sai da fileira do topo e fica dentro do "Mais".
+  assert.ok(js.indexOf('vv-ferr-boletim') > js.indexOf('<div class="vv-mais-lista">') && js.indexOf('vv-ferr-boletim') < js.indexOf('data-ferr="conta"'), 'dentro do Mais');
   assert.match(js, /btBoletim\.hidden = !window\.VybeBoletim\?\.podeVer\?\.\(\)/);
   assert.equal(carregar({ dono: false }).podeVer(), false);
 });

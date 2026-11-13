@@ -15,20 +15,22 @@ test('Diário: "Registrar agora" uma vez só, no topo, sem o ícone rosa', () =>
   const painel = trecho(ler('index.html'), '<div id="painel-diario"', '<!-- ===== PAINEL SOLICITAÇÕES');
   assert.equal(painel.match(/Registrar agora/g).length, 1);
   assert.doesNotMatch(painel, /pv-ic-aba|#ee83b7/);
-  const lista = trecho(ler('vybe-relatorios.js'), 'async function renderDiarioLista', 'async function abrirSnapshot');
-  assert.doesNotMatch(lista, /salvarSnapshot\(\)/, 'o estado vazio não repete o botão');
-  assert.match(lista, /para comparar com outro dia/);
+  // Padrão v2 (quadro "Diário de produção", 12/11/2026): o vazio é uma frase só e a explicação vai para o pé da tela.
+  const tela = trecho(ler('vybe-relatorios.js'), 'async function renderDiarioLista', 'async function abrirSnapshot');
+  assert.doesNotMatch(tela, /salvarSnapshot()/, 'o estado vazio não repete o botão');
+  assert.match(tela, /Nenhum registro salvo ainda./);
+  assert.match(ler('vybe-relatorios.js'), /const DIARIO_PE = .*para comparar com outro dia/);
 });
 
-test('Diário: o retrato pequeno usa os números do registro e não chama prazo passado de atrasado', () => {
+test('Diário: o retrato do registro usa os números dele e não chama prazo passado de atrasado', () => {
   const c = vm.createContext({});
-  vm.runInContext(trecho(ler('vybe-relatorios.js'), 'function diarioMiniHtml', 'async function abrirSnapshot'), c);
-  const html = c.diarioMiniHtml({ payload: { conteudos: { ativos: 100, sem_data: 10, prazo_passado: 30 } } });
-  assert.match(html, /role="img"/);
-  assert.match(html, /60 com data à frente, 10 sem data, 30 com o prazo já passado/);
-  assert.equal((html.match(/<i /g) || []).length, 3);
-  assert.doesNotMatch(html, /atrasad/i);
-  assert.match(c.diarioMiniHtml({ payload: {} }), /diario-mini vazio/, 'registro antigo sem números fica sem retrato');
+  const fonte = ler('vybe-relatorios.js');
+  vm.runInContext(trecho(fonte, 'function diarioFmt', 'function diarioSinal'), c);
+  vm.runInContext(trecho(fonte, 'function diarioRetratoTexto', '// O cabeçalho vem do index.html'), c);
+  const texto = c.diarioRetratoTexto({ payload: { conteudos: { ativos: 100, sem_data: 10, prazo_passado: 30 } } });
+  assert.equal(texto, '100 conteúdos ativos, 10 sem data, 30 com o prazo já passado (de qualquer status)');
+  assert.doesNotMatch(texto, /atrasad/i);
+  assert.equal(c.diarioRetratoTexto({ total: 5, payload: {} }), '5 conteúdos ativos', 'registro antigo sem os números fica só com o total');
 });
 
 test('o rodapé técnico sai das três telas, sem forçar nada', () => {
@@ -42,7 +44,7 @@ test('o rodapé técnico sai das três telas, sem forçar nada', () => {
 test('Automações: regras primeiro, falhas numa aba, Recalcular e Sincronizar no "Mais", Prioridade na dica', () => {
   const fonte = ler('vybe-automacoes-ui.js');
   const pintar = trecho(fonte, 'function pintarAutomacoes', 'function trocarAbaAutomacoes');
-  assert.match(pintar, /class="vb-alternar ar-abas"/);
+  assert.match(pintar, /class="v2g-seg ar-abas" role="radiogroup"/, 'padrão v2 (quadro Automações): Regras e Falhas em pílula clara, com a escolhida em branco');
   assert.match(pintar, /Regras <span class="ar-n">/);
   assert.match(pintar, /Falhas <span class="ar-n" id="auto-aba-falhas-n">/);
   assert.match(pintar, /Nova regra/);

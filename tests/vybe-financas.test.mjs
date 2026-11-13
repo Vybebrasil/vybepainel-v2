@@ -294,8 +294,8 @@ test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra m
   const comercialVazio = { ok: true, aba: 'financas', pode: { ver_dinheiro: true, editar_comercial: true, editar_pacotes: true },
     clientes: [{ cliente_id: '10', cliente_nome: 'Hebravet', valor_mensal: 2000, status_pagamento: 'em_dia', custo: 0, margem_percentual: null }],
     resumo: { receita: 2000, custo: 0, margem_percentual: null, criticas: 0, pagamento: { atrasado: 0, inadimplente: 0 } }, pacotes: [], zona_critica: 20, status: [] };
-  for (const [conector, espera, naoEspera] of [[conectorFalso(), /fonte: Vybe Finanças[\s\S]*Margem real por cliente[\s\S]*Margem real \(Vybe Finanças\): R\$\s?1\.700,00/, /Os valores reais chegam quando/],
-    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /Os valores reais chegam quando o controle financeiro for ligado[\s\S]*Custo estimado/, /fonte: Vybe Finanças/]]) {
+  for (const [conector, espera, naoEspera] of [[conectorFalso(), /margem real R\$\s?1\.700,00 no mês[\s\S]*Mês a mês e margem real · mostrar/, /Os valores reais chegam quando/],
+    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /<h2>Finanças por cliente<\/h2>[\s\S]*<small>Custo da carteira<\/small>/, /Mês a mês e margem real|fonte: Vybe Finanças/]]) {
     const respostas = (q) => (q.area === 'vybe_financas' ? null : { codigo: 200, corpo: comercialVazio });
     const t = contexto((q) => respostas(q) || { codigo: 0, corpo: null });
     // A área de verdade, com o conector falso (as permissões do servidor valem também aqui).
@@ -315,7 +315,7 @@ test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra m
       assert.equal(p.itens[0].nome, 'Salário/Prolabore');
       assert.equal(t.ctx.VybeEspiarProvedores.financas('comercial:inad').itens[0].nome, 'Dia Lab');
       t.ctx.VybeComercial.abrir('contas'); await esperar();
-      assert.match(t.criados.find((e) => e.id === 'vv-comercial').innerHTML, /Despesas de novembro de 2026[\s\S]*Adobe[\s\S]*Contas lançadas no Vybe OS/);
+      assert.match(t.criados.find((e) => e.id === 'vv-comercial').innerHTML, /data-tela="con"[\s\S]*<h1>Contas a pagar<\/h1>[\s\S]*novembro de 2026/);
     }
   }
 });
@@ -330,6 +330,7 @@ test('tela do RH: a Folha aparece para o dono e some para quem não é', async (
     vm.runInContext(readFileSync('vybe-mundo-financas.js', 'utf8'), t.ctx);
     vm.runInContext(readFileSync('vybe-mundo-pessoas.js', 'utf8'), t.ctx);
     await t.ctx.VybePessoas.abrir('rh'); await esperar();
+    t.ctx.VybePessoas._teste.ver('folha'); // padrão v2: a Folha saiu do alto da tela e abre em "Também no RH"
     const html = (function achar(e) { return [e.innerHTML || '', ...(e.filhos || []).map(achar)].join(''); })(t.corpo);
     if (quem === paulo) { assert.match(html, /Folha[\s\S]*Ana Souza[\s\S]*salário R\$\s?3\.000,00/); assert.equal(t.ctx.VybeEspiarProvedores.financas('rh:folha').itens.length, 2); }
     else assert.doesNotMatch(html, /Ana Souza|só os donos veem/);
@@ -373,7 +374,8 @@ test('tela da Carteira → Contratos: fonte do Finanças, sem par e o contrato d
   assert.match(html, /no Finanças sem par no Vybe OS/);
   assert.doesNotMatch(html, /Aguardando ativação/);
   // Hebravet (contrato do Finanças) sem "Editar"; Antonov (registro do Vybe OS) continua editável.
-  const heb = html.slice(html.indexOf('<b>Hebravet</b>'), html.indexOf('</li>', html.indexOf('<b>Hebravet</b>')));
+  const heb = html.slice(html.indexOf('data-vc-linha="k:10"'), html.indexOf('</li>', html.indexOf('data-vc-linha="k:10"')));
+  assert.ok(heb.includes('Hebravet'));
   assert.doesNotMatch(heb, /data-vc-form-abrir/);
   assert.match(html, /Antonov[\s\S]*?data-vc-form-abrir="contrato" data-vc-cli="12"/);
 });

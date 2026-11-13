@@ -1,0 +1,116 @@
+/* PADRÃO V2 · CONTRATOS E CHURN (12/11/2026): as duas telas do menu Comercial iguais aos quadros DEPOIS do moodboard.
+   As peças da janela (cartão, fala, três números, fichas, botões, linha que abre no lugar) são as de padrao-v2/clientes.css
+   (#vv-carteira .v2c-*); aqui só o que estes quadros têm de próprio, com o prefixo v2k. Tudo ganha pelo id da janela. */
+
+/* as duas colunas: Contratos (Pede ação e mês a mês | clientes ativos) e Churn (Pede ação e quem saiu | saídas e retenção) */
+#vv-carteira .v2k-grade2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:stretch}
+#vv-carteira .v2k-grade2.v2k-churn{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+#vv-carteira .v2k-col-esq{min-width:0;display:flex;flex-direction:column;gap:14px}
+#vv-carteira .v2k-col-esq > .v2k-meses{flex:1 1 auto}
+#vv-carteira .v2k-grade2 > .v2c-card{display:flex;flex-direction:column;min-width:0}
+
+/* número em âmbar (renovam em 30 dias) e o vermelho do que venceu */
+#vv-carteira .v2c-kpi.amarelo > b{color:#7A4A00}
+#vv-carteira .v2k-ruim{color:#B42318;font-weight:600}
+#vv-carteira .v2k-espia{color:inherit;cursor:pointer;border-radius:4px}
+#vv-carteira .v2k-espia:hover{color:#1F1D1A;text-decoration:underline;text-underline-offset:2px}
+#vv-carteira .v2k-espia:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
+
+/* Pede ação */
+#vv-carteira .v2k-acoes{list-style:none;margin:0;padding:0}
+#vv-carteira .v2k-acao{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 0;border-top:1px solid #F1EDE6;font:400 13.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-carteira .v2k-acao:first-child{border-top:0}
+#vv-carteira .v2k-acao > p{flex:1 1 200px;min-width:0;margin:0}
+#vv-carteira .v2k-acao-tx{flex:1 1 200px;min-width:0}
+#vv-carteira .v2k-acao .v2k-acao-tx > p{margin:4px 0 0}
+#vv-carteira .v2k-acao b{font-weight:600}
+#vv-carteira .v2k-acao-form{flex:1 1 100%;min-width:0}
+#vv-carteira .v2k-cli{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+#vv-carteira .v2k-porque{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:0 0 12px}
+#vv-carteira .v2k-quem-saiu{margin-top:2px;padding-top:12px;border-top:1px solid #F1EDE6}
+#vv-carteira .v2k-acoes + .v2k-quem-saiu,#vv-carteira .v2k-acoes + .v2c-pe + .v2k-quem-saiu{margin-top:0}
+#vv-carteira .v2k-quem-saiu > small{font-size:12.5px}
+
+/* os formulários de sempre (mesmos campos), em duas colunas dentro dos cartões */
+#vv-carteira .v2k-grade2 .vc-form,#vv-carteira .v2k-registrar .vc-form{grid-template-columns:repeat(2,minmax(0,1fr));padding:4px 0 12px}
+#vv-carteira .v2k-grade2 .vc-form .vc-campo.largo,#vv-carteira .v2k-registrar .vc-form .vc-campo.largo{grid-column:1/-1}
+#vv-carteira .v2k-registrar{align-items:flex-end}
+#vv-carteira .v2k-registrar > .vc-campo{flex:1 1 260px;margin:0}
+#vv-carteira .v2k-registrar > .vc-form,#vv-carteira .v2k-registrar > .v2k-porque,#vv-carteira .v2k-registrar > .v2k-registrar-quem{flex:1 1 100%}
+#vv-carteira .v2k-registrar-quem{margin:0;font:400 13.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-carteira .v2k-painel > .vb-mes{margin:0}
+#vv-carteira .v2c-painel.v2k-painel > .vc-ordem{flex:0 1 280px;margin-left:auto}
+
+/* Mês a mês (Contratos): uma série por vez, colunas com o mês de agora em laranja */
+#vv-carteira .v2k-meses{display:flex;flex-direction:column;padding:14px 18px}
+#vv-carteira .v2k-meses-topo{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#vv-carteira .v2k-meses-topo > h2{flex:1 1 auto;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#vv-carteira .v2k-meses-topo > .v2c-chips{gap:6px}
+#vv-carteira .v2k-cols{flex:1 1 auto;min-height:110px;display:flex;align-items:flex-end;gap:4px;padding-top:8px}
+#vv-carteira .v2k-col{flex:1;min-width:0;height:100%;min-height:110px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+#vv-carteira .v2k-col > i{display:block;width:24px;max-width:100%;height:var(--h);border-radius:7px 7px 3px 3px;background:#D9D3C8;transform-origin:bottom;animation:v2k-sobe .7s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+#vv-carteira .v2k-col.agora > i{background:#FF7A2F}
+#vv-carteira .v2k-col > span{font:400 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#vv-carteira .v2k-col.agora > span{color:#1F1D1A;font-weight:600}
+#vv-carteira .v2k-col[data-espiar]{cursor:pointer}
+@keyframes v2k-sobe{from{transform:scaleY(0)}to{transform:none}}
+
+/* Clientes ativos (Contratos): nome e desde quando | trilha até a renovação | valor | data */
+#vv-carteira .v2k-linha-ct{display:grid;grid-template-columns:minmax(0,1fr) 150px 76px 122px;align-items:center;gap:12px}
+#vv-carteira .v2k-nome{min-width:0;display:flex;flex-direction:column;gap:1px}
+#vv-carteira .v2k-nome > b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-carteira .v2k-nome > small,#vv-carteira .v2k-dir > small,#vv-carteira .v2k-trilha > small{font:400 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B665E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-carteira .v2k-trilha{min-width:0;display:flex;flex-direction:column;gap:6px}
+#vv-carteira .v2k-trilha > .v2-barra{background:#EAE6DE}
+#vv-carteira .v2k-valor{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#vv-carteira .v2k-linha-ct > .v2c-pill{justify-content:flex-start;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#vv-carteira .v2k-det{padding:0 0 4px}
+#vv-carteira .v2k-hist{display:flex;align-items:center;gap:8px;margin:0;padding:0 0 10px 14px;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-carteira .v2k-hist::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#C9C2B6}
+#vv-carteira .v2k-det-acoes{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0 0 12px 14px}
+#vv-carteira .v2k-det > .vc-form{padding-left:14px}
+
+/* Quem saiu (Churn): o porquê à esquerda, quanto levou à direita */
+#vv-carteira .v2k-saiu .v2c-abrir{justify-content:space-between}
+#vv-carteira .v2k-saiu .v2k-nome{flex:1}
+#vv-carteira .v2k-dir{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right}
+#vv-carteira .v2k-dir > b{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Saídas e retenção (Churn) */
+#vv-carteira .v2k-lado > h2{font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#vv-carteira .v2k-lado > .v2k-seg{margin:10px 0 0}
+#vv-carteira .v2k-vista{min-width:0}
+#vv-carteira .v2k-motivos > .v2k-mot{display:flex;align-items:baseline;gap:8px;margin:12px 0 6px;font:500 13px/1.3 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-carteira .v2k-motivos > .v2k-mot > span:first-child{flex:1;min-width:0}
+#vv-carteira .v2k-motivos > .v2-barra{background:#EAE6DE}
+#vv-carteira .v2k-grafs{grid-template-columns:minmax(0,1fr);margin-top:12px}
+#vv-carteira .v2k-vista > .vc-tabela-rola,#vv-carteira .v2k-vista > .vb-estado{margin-top:12px}
+#vv-carteira .v2k-lado > .v2c-pe{border-top:0}
+
+/* o rodapé tracejado (parte ainda não ligada) e a nota final */
+#vv-carteira .v2k-vz{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:7px 8px 7px 18px;border:1.5px dashed #D9D1C3;border-radius:999px;font:400 13px/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-carteira .v2k-vz > p{flex:1 1 300px;margin:0}
+#vv-carteira .v2k-vz b{color:#1F1D1A}
+#vv-carteira .v2k-vz .vc-ativacao-tec{display:block;margin-top:4px}
+#vv-carteira .v2k-nota{margin:0}
+#vv-carteira .v2k-fin > .vc-secao{margin:0}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-ajuda .vc-ajuda > p{margin-top:6px}
+
+@media (prefers-reduced-motion:reduce){#vv-carteira .v2k-col > i{animation:none}}
+@container v2c (max-width:980px){
+  #vv-carteira .v2k-grade2,#vv-carteira .v2k-grade2.v2k-churn{grid-template-columns:minmax(0,1fr)}
+  #vv-carteira .v2k-cols,#vv-carteira .v2k-col{min-height:96px}
+}
+@container v2c (max-width:680px){
+  #vv-carteira .v2k-linha-ct{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-tres{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-tres > .v2c-kpi:first-child{grid-column:1/-1}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-kpi > b{white-space:nowrap}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-kpi > b > .v2c-pill{font-size:11px;vertical-align:middle}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-topo > .v2c-sub{order:3;flex:1 1 100%}
+  #vv-carteira .v2k-trilha{grid-column:1/-1;order:5}
+  #vv-carteira .v2k-grade2 .vc-form,#vv-carteira .v2k-registrar .vc-form{grid-template-columns:minmax(0,1fr)}
+  #vv-carteira .v2k-vz{border-radius:20px;padding:10px 12px}
+  #vv-carteira .v2k-det-acoes,#vv-carteira .v2k-hist{padding-left:0}
+  #vv-carteira .v2k-det > .vc-form{padding-left:0}
+}

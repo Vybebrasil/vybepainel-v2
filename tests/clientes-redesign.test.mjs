@@ -60,31 +60,33 @@ function carregar() {
   return { ctx, pegar };
 }
 
-test('tabela de clientes: saem Dashboard, Última reunião, NPS e Manus; entram saúde, em aberto e cadastro', () => {
+test('tabela de clientes (quadro Clientes do padrão v2): Cliente, Head, Saúde, Em aberto e Cadastro; a linha abre no lugar', () => {
   const { ctx } = carregar();
   const nomes = vm.runInContext('clientMasterRecords().map((r) => r.name)', ctx);
   assert.ok(nomes.includes('Academia Lions') && nomes.includes('Alpha1'));
   const html = ctx.tabelaDeClientesHtml(nomes);
-  const cabecalho = html.slice(html.indexOf('<thead>'), html.indexOf('</thead>'));
-  for (const sai of ['Dashboard', 'Última reunião', 'NPS', 'Manus']) assert.doesNotMatch(cabecalho, new RegExp(`>${sai}<`), sai);
-  for (const entra of ['Saúde', 'Em aberto', 'Cadastro', 'Head', 'Segmento']) assert.match(cabecalho, new RegExp(`>${entra}<`), entra);
-  // Quadro 05: Status, Drive e Documento saem da frente; ficam no menu Colunas e na ficha.
-  for (const sai of ['Status', 'Drive', 'Documento']) assert.doesNotMatch(cabecalho, new RegExp(`>${sai}<`), sai);
-  const linha = html.slice(html.indexOf('data-cliente="Academia Lions"'), html.indexOf('</tr>', html.indexOf('data-cliente="Academia Lions"')));
-  assert.match(linha, /class="cli-saude ok"[^>]*><i aria-hidden="true"><\/i><b>88<\/b>/);
-  assert.match(linha, /<b>1<\/b> conteúdo<\/span>/, 'o finalizado não conta como em aberto');
-  assert.match(linha, /<b>1<\/b> pedido<\/span>/);
-  assert.match(linha, /aria-valuenow="3"[^>]*aria-label="Cadastro"/);
-  assert.match(linha, /3 de 3/);
-  assert.match(linha, /class="cli-head"[\s\S]*habbo-imaging[\s\S]*cli-head-nome">Vinícius</, 'head com retrato e nome');
-  const outra = html.slice(html.indexOf('data-cliente="Alpha1"'));
-  assert.match(outra, /class="cli-saude ruim"[^>]*title="Nota 42 de 100, risco alto: 3 peças atrasadas"/);
-  assert.match(outra, /1 de 3/);
-  assert.match(outra, /figure=padrao/, 'sem personagem: o boneco padrão, nunca o círculo cinza');
+  const cabecalho = html.slice(html.indexOf('class="v2f-th"'), html.indexOf('data-cliente='));
+  for (const sai of ['Dashboard', 'Última reunião', 'NPS', 'Manus', 'Status', 'Drive', 'Documento', 'Segmento', 'Plano']) assert.doesNotMatch(cabecalho, new RegExp(`>${sai}<`), sai);
+  for (const entra of ['Cliente', 'Head', 'Saúde', 'Em aberto', 'Cadastro']) assert.match(cabecalho, new RegExp(`>${entra}<`), entra);
+  // A pior nota no alto: quem precisa de você primeiro.
+  assert.ok(html.indexOf('data-cliente="Alpha1"') < html.indexOf('data-cliente="Academia Lions"'));
+  const linha = html.slice(html.indexOf('data-cliente="Academia Lions"'));
+  assert.match(linha, /<b style="color:#11613A">88<\/b><div class="v2-barra"><i style="--v:88%;--c:#11613A">/);
+  assert.match(linha, /1 conteúdo<\/span>/, 'o finalizado não conta como em aberto');
+  assert.match(linha, /class="v2f-pill g">completo</);
+  assert.match(linha, /class="v2f-seg2">· Academia · Plus</);
+  assert.match(linha, /<b>Em aberto<\/b> · 1 conteúdo · 1 pedido/, 'o pedido vai para o detalhe que abre');
+  assert.match(linha, /class="v2f-btn s k" onclick="abrirClienteDetalhe\('Academia Lions'\)">Abrir a ficha/);
+  const outra = html.slice(html.indexOf('data-cliente="Alpha1"'), html.indexOf('data-cliente="Academia Lions"'));
+  assert.match(outra, /<b style="color:#B42318">42<\/b>/);
+  assert.match(outra, /faltam 2 de 3/);
+  assert.match(outra, /<b>Saúde 42<\/b> · 3 peças atrasadas/);
+  assert.match(html, /o título da coluna muda a ordem · plano, segmento e pedidos seguem em Colunas/);
 });
 
-test('filtros da lista: head, segmento e busca recortam; os chips mostram o escolhido', () => {
+test('filtros da lista: head, segmento e busca recortam; a barra é Ativos, Inativos, Carteira, Head, Filtros e Colunas', () => {
   const { ctx, pegar } = carregar();
+  vm.runInContext("FILTRO_CLIENTES.situacao = ''", ctx);
   const filtra = () => vm.runInContext("clientMasterRecords().map((r) => r.name).filter((n) => passaNosFiltrosDeClientes(n))", ctx);
   assert.deepEqual([...filtra()].sort(), ['Academia Lions', 'Alpha1']);
   vm.runInContext("FILTRO_CLIENTES.head = 'ewerton'", ctx);
@@ -94,42 +96,56 @@ test('filtros da lista: head, segmento e busca recortam; os chips mostram o esco
   vm.runInContext("FILTRO_CLIENTES.segmento = ''; FILTRO_CLIENTES.busca = 'alp'", ctx);
   assert.deepEqual([...filtra()], ['Alpha1']);
   vm.runInContext("FILTRO_CLIENTES.busca = ''; FILTRO_CLIENTES.head = 'vinicius'", ctx);
-  ctx.pintarFiltrosDeClientes([{ label: 'Sem contato', value: 0, acao: "focarClientes('sem-contato')", tom: 'alerta', dica: 'x', aceso: false }]);
+  ctx.pintarFiltrosDeClientes([{ label: 'Sem contato', foco: 'sem-contato', value: 0, aceso: false }]);
   const chips = pegar('clientes-filtros').innerHTML;
   assert.match(chips, /aria-pressed="true"[^>]*>Head: Vinícius/);
-  assert.doesNotMatch(chips, /Sem contato <b>0<\/b>/, 'quadro 05: o zero sai da frente (vai na frase do cabeçalho)');
-  assert.match(chips, /Limpar filtros/);
+  assert.doesNotMatch(chips, /Sem contato/, 'os recortes ficam em Filtros');
+  assert.match(chips, /abrirFiltrosDeClientes\(this\)">Filtros</);
+  assert.match(chips, /escolherColunasDeClientes\(this\)">Colunas</);
   const opcoes = vm.runInContext("opcoesDeFiltroDeClientes('head').map((o) => o.rotulo)", ctx);
   assert.deepEqual([...opcoes], ['Todos os heads', 'Ewerton (1)', 'Vinícius (1)']);
   ctx.selosDeVisaoDeClientes();
-  assert.match(pegar('clientes-visao').innerHTML, /role="tab" aria-selected="true"[^>]*>Tabela</);
-  assert.doesNotMatch(pegar('clientes-visao').innerHTML, /\+ Cliente/, 'Novo cliente mora no cabeçalho');
+  assert.match(pegar('clientes-visao-topo').innerHTML, /role="tab" aria-selected="true"[^>]*>Tabela</, 'Tabela, Fichas e Cérebro sobem para o cabeçalho');
+  assert.equal(pegar('clientes-visao').innerHTML, '');
 });
 
-test('cabeçalho da lista: os números viram uma frase e Novo cliente é a ação principal', () => {
+test('cabeçalho da lista: a fala do Mateus, três números e Novo cliente como a ação da tela', () => {
   const { ctx, pegar } = carregar();
   ctx.podeAdministrar = () => true;
   ctx.renderClientesBoard();
-  assert.equal(pegar('clientes-frase').textContent, '2 ativos · NPS médio 9,0 (1 nota) · ninguém sem contato · nenhum detrator · nenhum painel a atualizar.');
-  assert.match(pegar('clientes-acoes').innerHTML, /class="vb-botao principal"[^>]*>[\s\S]*Novo cliente/);
-  assert.equal(pegar('kpi-grid-clientes').innerHTML, '');
+  assert.equal(pegar('clientes-frase').textContent, '');
+  assert.match(pegar('clientes-acoes').innerHTML, /class="v2f-btn" onclick="openCadastrosStation\(\)">Cadastros<\/button><button type="button" class="v2f-btn p" onclick="novoClienteNoPainel\(\)">Novo cliente/);
+  const kpis = pegar('kpi-grid-clientes').innerHTML;
+  assert.match(kpis, /<small>Ativos<\/small><b><span class="v2-num">2<\/span><\/b><small>1 em dia · 1 em risco alto<\/small>/);
+  assert.match(kpis, /<small>Sem registro de reunião<\/small><b><span class="v2-num" style="animation-delay:.12s">1<\/span>/);
+  assert.match(kpis, /<small>Com NPS<\/small><b><span class="v2-num" style="animation-delay:.24s">1<\/span><\/b><small>média 9,0 · nenhum detrator · ninguém sem contato/);
+  const fala = pegar('clientes-aviso').innerHTML;
+  assert.match(fala, /Mateus · Atendimento ao cliente/);
+  assert.match(fala, /Um cliente está em dia e 1 em risco alto\./);
+  assert.match(fala, /onclick="focarClientes\('sem-registro'\)">Completar cadastros</);
 });
 
-test('ficha: cabeçalho com o cliente na cor dele, três números e Dados e acessos num cartão', () => {
+test('ficha (quadro Ficha do cliente): uma linha no alto, a nota com o porquê, a fala, Pede ação, entregas e Dados e acessos', () => {
   const { ctx, pegar } = carregar();
   ctx.podeAdministrar = () => true;
   ctx.renderClientMasterDetail('Academia Lions');
   const cabeca = pegar('cliente-detalhe-cabeca').innerHTML;
-  assert.match(cabeca, /class="clf-nome"><span class="cliente-carteira">Academia Lions<\/span><button[^>]*cli-situacao ativo/);
+  assert.match(cabeca, /clf-voltar" onclick="voltarClientesLista\(\)">/);
+  assert.match(cabeca, /class="clf-nome v2f-nome"[^>]*>Academia Lions<\/h2><button[^>]*cli-situacao ativo/);
   assert.match(cabeca, /Academia[\s\S]*Plus[\s\S]*head[\s\S]*Vinícius/);
-  assert.match(cabeca, /Editar cadastro[\s\S]*class="vb-botao principal" onclick="openCadastrosGoverned\(\{ client: 'Academia Lions' \}\)"/);
+  assert.match(cabeca, /Editar cadastro[\s\S]*class="v2f-btn p" onclick="openCadastrosGoverned\(\{ client: 'Academia Lions' \}\)">Nova demanda/);
   const corpo = pegar('client-master-detail').innerHTML;
-  assert.match(corpo, /<b>1<\/b><small>conteúdo em aberto<\/small><span class="clf-hist">2 no histórico/);
-  assert.match(corpo, /<b>1<\/b><small>pedido em aberto<\/small>/);
-  assert.match(corpo, /<b>—<\/b><small>próxima reunião<\/small><button[^>]*>Marcar reunião/);
-  assert.match(corpo, /<h3 class="clf-titulo">Dados e acessos<\/h3>/);
-  assert.match(corpo, /<summary class="vb-botao">Ver acessos<\/summary>/);
-  assert.match(corpo, /Painel do cliente[\s\S]*Atualizado/, 'o estado do painel continua na ficha');
+  assert.match(corpo, /class="v2f-nota" style="color:#11613A"><span class="v2-num">88</);
+  assert.match(corpo, /reunião há 9 dias/);
+  assert.match(corpo, /onclick="trocarAbaDaFicha\('cadastro'\)">cadastro 3 de 3</);
+  assert.match(corpo, /Mateus · Atendimento ao cliente/);
+  assert.match(corpo, /<h3>Pede ação<\/h3>[\s\S]*Próxima reunião<\/b> ainda não marcada[\s\S]*>Marcar reunião</);
+  assert.match(corpo, /<h3>Próximas entregas<\/h3><span class="v2f-sub">1 conteúdo em aberto · 1 pedido/);
+  assert.match(corpo, /<h3>Última reunião<\/h3>/);
+  assert.match(corpo, /<h3>Dados e acessos<\/h3>[\s\S]*Drive<\/b> do cliente[\s\S]*Documento de acessos[\s\S]*>Ver acessos<[\s\S]*Link do projeto/);
+  assert.match(corpo, /Painel do cliente[\s\S]*Atualizado/, 'o estado do painel continua na ficha, em Ver acessos');
+  assert.match(corpo, /class="ficha-abas v2f-seg"[\s\S]*>Resumo<[\s\S]*>Demandas<b class="v2f-q">1<\/b>[\s\S]*>Conteúdo<b class="v2f-q">1<\/b>[\s\S]*>Reuniões</);
+  assert.match(corpo, /class="v2f-chip"[^>]*>Ecossistema<[\s\S]*>Cérebro</);
   assert.doesNotMatch(corpo, /class="cli-mais"/, 'sem os "+" soltos');
 });
 

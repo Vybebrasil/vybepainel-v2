@@ -3874,6 +3874,8 @@ function abrirTvEscritorio(m) {
   // preciso); Foco e Praça não têm conversa.
   const comConversa = Boolean(escritorio.zona && escritorio.zona !== "foco");
   escritorio.tvAtual = m;
+  // No mundo a TV é uma aba do painel Som, em cima do dock (padrão v2); a janela abaixo fica para o Escritório antigo.
+  if (escritorioPainelSomNoMundo()) return alternarPainelSomEscritorio("tv");
   // O que está passando fica no alto (Paulo, 10/11/2026: "o player de vídeo vai sair? passando o clipe?"): a capa do
   // vídeo da TV aberta e quem pôs; desligada, a tela escura de sempre.
   const tvAberta = document.getElementById("office-tv");
@@ -3891,20 +3893,6 @@ ${telaHtml}
 <label class="ofc-tv-link"><span class="sr-only">Link do vídeo do YouTube</span><input name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" required></label>
 ${comConversa ? "" : '<p class="ofc-nota">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}
 <div class="workflow-actions"><button type="button" class="ofc-tv-desligar" onclick="closeWorkflowModal();passarVideoEscritorio('')">Desligar a TV</button><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Passar o vídeo</button></div></form>`);
-  // No mundo a TV abre em cima do dock das salas, sem a janela no meio nem o fundo desfocado (quadro 44): sai o fundo e
-  // o clique fora fecha, como os outros balões do dock.
-  if (document.body.classList.contains("mundo")) {
-    document.getElementById("workflow-backdrop")?.remove();
-    const janela = document.getElementById("workflow-modal");
-    janela?.classList.add("ofc-tv-janela");
-    const fora = (ev) => {
-      if (!janela?.isConnected) return document.removeEventListener("pointerdown", fora, true);
-      if (janela.contains(ev.target) || ev.target.closest?.(".vv-dock-salas, .vv-dock-salas-faixa")) return;
-      document.removeEventListener("pointerdown", fora, true);
-      closeWorkflowModal();
-    };
-    setTimeout(() => document.addEventListener("pointerdown", fora, true), 0);
-  }
 }
 function escritorioIdYoutube(url) {
   const m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(String(url || "").trim());
@@ -3918,6 +3906,7 @@ function passarVideoEscritorio(url) {
   if (escritorio.tvAtual && escritorioEstadosDoMovel(escritorio.tvAtual).length > 1) escritorioMudarEstado(escritorio.tvAtual, id ? 1 : 0);
   mostrarTvEscritorio(id, String(escritorio.base?.eu));
   escritorioEmitir("chat:bubble", { texto: ESCRITORIO_COMANDO + "tv=" + cena + ":" + id });
+  if (escritorioPainelSom()?.dataset.aba === "tv") abrirSomEscritorio("tv");
 }
 async function compartilharTelaNaTvEscritorio() {
   if (escritorio.tvAtual && escritorioEstadosDoMovel(escritorio.tvAtual).length > 1) escritorioMudarEstado(escritorio.tvAtual, 1);
@@ -4943,9 +4932,184 @@ async function escritorioAplicarDispositivos(meeting) {
     if (p.saida) { const d = (await self.getSpeakerDevices()).find((x) => x.deviceId === p.saida); if (d) await self.setDevice(d); }
   } catch (e) { console.warn("Dispositivo de áudio:", e); }
 }
+// Som: um painel só para áudio, música e TV (padrão v2, quadro "Barra de baixo", 12/11/2026). No mundo, os ajustes de
+// áudio, a fila da música e a TV da sala deixam de ser três janelas diferentes (uma delas abria cortada à esquerda) e
+// viram abas do mesmo painel, que abre inteiro, ancorado em cima do botão do dock. Fora do mundo nada muda.
+const ESCRITORIO_SOM_ABAS = { audio: "Áudio", musica: "Música", tv: "TV" };
+const ESCRITORIO_SOM_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+function escritorioPainelSomNoMundo() {
+  return typeof document !== "undefined" && document.body.classList.contains("mundo");
+}
+function escritorioPainelSom() {
+  const el = document.getElementById("office-ajustes-audio");
+  return el?.classList.contains("v2k-som") ? el : null;
+}
+function fecharSomEscritorio() {
+  const el = escritorioPainelSom();
+  if (!el) return;
+  clearInterval(escritorio.timerTesteMic);
+  document.removeEventListener("pointerdown", el.somFora, true);
+  document.removeEventListener("keydown", el.somTecla, true);
+  removeEventListener("resize", el.somMedida);
+  el.remove();
+  delete document.body.dataset.somAba;
+}
+// O painel fica em cima do botão que o abriu, inteiro na tela: o CSS prende as bordas, aqui só vai o centro do botão
+// e a altura do dock.
+function escritorioAncorarSom(el, aba) {
+  const dock = document.querySelector(".vv-dock-salas"), rd = dock?.getBoundingClientRect?.();
+  const rb = dock?.querySelector(`[data-dock="${aba}"]`)?.getBoundingClientRect?.();
+  if (rd?.height) el.style.setProperty("--v2k-pe", Math.round(innerHeight - rd.top + 10) + "px"); else el.style.removeProperty("--v2k-pe");
+  if (rb?.width) el.style.setProperty("--v2k-x", Math.round(rb.left + rb.width / 2) + "px"); else el.style.removeProperty("--v2k-x");
+}
+function escritorioTvPassando() {
+  const tv = document.getElementById("office-tv");
+  const id = /\/embed\/([A-Za-z0-9_-]{11})/.exec(tv?.querySelector("iframe")?.getAttribute("src") || "")?.[1] || "";
+  const quem = (tv?.querySelector("header span")?.textContent || "").replace(/^TV · /, "").replace(/ passou$/, "");
+  return { id, quem };
+}
+// Leve, Equilibrado e Forte são a mesma sensibilidade de antes (1 a 10), em três passos; o ajuste fino continua em
+// "Mais ajustes".
+function escritorioForcaFiltro() {
+  const p = escritorioLerPrefsAudio();
+  if (p.filtro === false) return "";
+  const s = Math.min(10, Math.max(1, Number(p.sensibilidade) || 5));
+  return s <= 3 ? "leve" : s >= 8 ? "forte" : "equilibrado";
+}
+async function mudarForcaFiltroEscritorio(forca) {
+  if (escritorioLerPrefsAudio().filtro === false) await mudarFiltroVozEscritorio(true);
+  mudarSensibilidadeAudio(forca === "leve" ? 3 : forca === "forte" ? 8 : 5);
+  if (escritorioPainelSom()?.dataset.aba === "audio") abrirSomEscritorio("audio");
+}
+function testarSaidaEscritorio() {
+  escritorioTocar(660, 0.35, 0.12);
+  setTimeout(() => escritorioTocar(880, 0.35, 0.12), 220);
+}
+function irAoLoungePeloSom() {
+  if (typeof window.vybesIrParaSala === "function") window.vybesIrParaSala("lounge"); else irParaMusicaEscritorio();
+  setTimeout(() => { const el = escritorioPainelSom(); if (el) abrirSomEscritorio(el.dataset.aba); }, 1800);
+}
+function escritorioSomAudioHtml(mics, saidas, atual, self) {
+  const p = escritorioPrefsAudio(), prefs = escritorioLerPrefsAudio();
+  const nome = (d, i, tipo) => safeText(d.label || `${tipo} ${i + 1}`);
+  const opcoes = (lista, id, tipo) => lista.map((d, i) => `<option value="${safeText(d.deviceId)}" ${d.deviceId === id ? "selected" : ""}>${nome(d, i, tipo)}</option>`).join("");
+  const forca = escritorioForcaFiltro(), sens = Math.min(10, Math.max(1, Number(prefs.sensibilidade) || 5));
+  const passo = (id, rotulo) => `<button type="button" aria-pressed="${forca === id}" onclick="mudarForcaFiltroEscritorio('${id}')">${rotulo}</button>`;
+  const chave = (acao, rotulo, dica, ligado) => `<label class="v2k-chave"><input type="checkbox" ${ligado ? "checked" : ""} onchange="${acao}"><span><b>${rotulo}</b><small>${dica}</small></span></label>`;
+  const naPista = escritorioNaPista(), fila = escritorio.musica?.fila?.length || 0, tv = escritorioTvPassando();
+  const mais = escritorio.somMaisAberto === true;
+  return `<p class="v2k-g">Microfone</p>
+<div class="v2k-fila"><select class="v2k-escolha" aria-label="Microfone" onchange="trocarDispositivoAudio('audioinput',this.value)" ${self && mics.length ? "" : "disabled"}>${opcoes(mics, atual.audio?.deviceId, "Microfone") || `<option>${self ? "Nenhum microfone encontrado" : "Padrão do sistema"}</option>`}</select><div class="v2k-nivel${self ? "" : " parado"}" id="office-nivel-teste" aria-hidden="true"><i style="--h:40%"></i><i style="--h:80%"></i><i style="--h:100%"></i><i style="--h:60%"></i><i style="--h:90%"></i><i style="--h:50%"></i></div></div>
+<p class="v2k-g">Saída</p>
+<div class="v2k-fila"><select class="v2k-escolha" aria-label="Saída de som" onchange="trocarDispositivoAudio('audiooutput',this.value)" ${self && saidas.length ? "" : "disabled"}>${opcoes(saidas, atual.speaker?.deviceId, "Saída") || "<option>Padrão do sistema</option>"}</select><button type="button" class="v2k-btn s" onclick="testarSaidaEscritorio()">Testar</button></div>
+${self ? (saidas.length ? "" : '<p class="v2k-sub">Este navegador não deixa escolher a saída; use a do sistema.</p>') : '<p class="v2k-sub">Entre numa sala para escolher o microfone e a saída.</p>'}
+<p class="v2k-g">Filtro de ruído</p>
+<div class="v2k-seg v2k-solto" role="group" aria-label="Filtro de ruído">${passo("leve", "Leve")}${passo("equilibrado", "Equilibrado")}${passo("forte", "Forte")}</div>
+<p class="v2k-sub">${forca ? "Cortou o começo da frase? Diminua. Passa barulho? Aumente." : "O filtro está desligado. Escolha um nível para ligar."}</p>
+<p class="v2k-g v2k-outras">Nas outras abas</p>
+<div class="v2k-lin"><p><b>Música</b><br><span class="v2k-sub">${naPista ? (fila ? `${fila} na fila de ${safeText(escritorioNomeDaSalaMusica())}` : "fila vazia nesta sala") : "toca dentro de uma sala com som"}</span></p>${naPista ? `<button type="button" class="v2k-btn s" onclick="abrirSomEscritorio('musica')">Abrir a fila</button>` : `<button type="button" class="v2k-btn s" onclick="irAoLoungePeloSom()">Ir ao Lounge</button>`}</div>
+<div class="v2k-lin"><p><b>TV da sala</b> <span class="v2k-pill ${tv.id ? "b" : "n"}">${tv.id ? "passando" : "desligada"}</span><br><span class="v2k-sub">vídeo do YouTube ou a sua tela</span></p><button type="button" class="v2k-btn s" onclick="abrirSomEscritorio('tv')" ${escritorio.zona ? "" : "disabled"}>Passar</button></div>
+<div class="v2-abre v2k-mais" aria-expanded="${mais}"><div></div><div class="v2-mais"><div id="office-som-mais"${mais ? "" : " inert"}>
+<p class="v2k-g">Mais ajustes</p>
+${chave("mudarFiltroVozEscritorio(this.checked).then(()=>abrirSomEscritorio('audio'))", "Filtro de voz (recomendado)", "Fecha o microfone quando não é você falando: corta barulho da casa, ventilador e teclado.", prefs.filtro !== false)}
+<label class="v2k-campo"><span>Sensibilidade · <i id="office-sens-rotulo">${sens <= 3 ? "Pega mais som" : sens >= 8 ? "Só voz bem próxima" : "Equilibrado"}</i></span><input type="range" min="1" max="10" step="1" value="${sens}" oninput="mudarSensibilidadeAudio(this.value)" onchange="abrirSomEscritorio('audio')" aria-label="Sensibilidade do filtro de voz"></label>
+${chave("mudarProcessamentoAudio('ruido',this.checked)", "Redução de ruído", "Corta barulho de fundo constante.", p.noiseSupression)}
+${chave("mudarProcessamentoAudio('eco',this.checked)", "Cancelamento de eco", "Evita que sua caixa de som volte no microfone.", p.echoCancellation)}
+${chave("mudarProcessamentoAudio('ganho',this.checked)", "Ganho automático", "Ajusta a sensibilidade do microfone sozinho. Desligue se sua voz ficar baixa ou estourando.", p.autoGainControl)}
+</div></div></div>`;
+}
+function alternarMaisAjustesSom(botao) {
+  const el = escritorioPainelSom(), caixa = el?.querySelector(".v2k-mais");
+  if (!caixa) return;
+  const abre = caixa.getAttribute("aria-expanded") !== "true";
+  escritorio.somMaisAberto = abre;
+  caixa.setAttribute("aria-expanded", String(abre));
+  caixa.querySelector("#office-som-mais")?.toggleAttribute("inert", !abre);
+  botao.setAttribute("aria-expanded", String(abre));
+  botao.textContent = abre ? "Menos ajustes" : "Mais ajustes";
+  if (abre) setTimeout(() => caixa.scrollIntoView?.({ block: "nearest", behavior: "smooth" }), 280);
+}
+function escritorioSomMusicaHtml() {
+  if (!escritorio.conectado) return '<div class="v2k-vazio"><p>Entre no escritório para usar a música.</p></div>';
+  if (!escritorioNaPista()) return '<div class="v2k-vazio"><p>A música toca dentro de uma sala com som. O Lounge tem.</p><button type="button" class="v2k-btn k" onclick="irAoLoungePeloSom()">Ir ao Lounge</button></div>';
+  return `<p class="v2k-sub v2k-onde"><b>${safeText(escritorioNomeDaSalaMusica())}</b> · quem está na sala ouve junto</p>
+<form class="v2k-fila v2k-form" onsubmit="event.preventDefault();adicionarMusicaEscritorio(this)"><input class="v2k-campo-texto" name="link" placeholder="Link do YouTube (vídeo ou playlist)" aria-label="Link do YouTube" autocomplete="off" required><button class="v2k-btn k s">Pôr na fila</button></form>
+<p class="v2k-erro" id="office-musica-erro" role="alert"></p>
+<div id="office-musica-fila" class="v2k-lista"></div>`;
+}
+function escritorioSomTvHtml() {
+  const comConversa = Boolean(escritorio.zona && escritorio.zona !== "foco"), tv = escritorioTvPassando();
+  if (!escritorio.zona) return '<div class="v2k-vazio"><p>A TV fica dentro de uma sala. Entre numa sala para passar um vídeo.</p></div>';
+  return `<p class="v2k-sub v2k-onde"><b>TV da sala</b> <span class="v2k-pill ${tv.id ? "b" : "n"}">${tv.id ? "passando" : "desligada"}</span><br>quem está na sala assiste junto</p>
+${tv.id
+    ? `<div class="ofc-tv-tela passando"><img src="https://i.ytimg.com/vi/${encodeURIComponent(tv.id)}/hqdefault.jpg" alt="" loading="lazy"><small>Passando agora${tv.quem ? " · posto por " + safeText(tv.quem) : ""}</small></div>`
+    : '<div class="ofc-tv-tela" aria-hidden="true"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5l11 7-11 7z"/></svg></span><small>A TV está desligada</small></div>'}
+<p class="v2k-g">O que passar</p>
+<div class="v2k-seg v2k-solto" role="group" aria-label="O que passar na TV"><button type="button" aria-pressed="true" onclick="document.getElementById('office-som-tv-link')?.focus()">Vídeo do YouTube</button><button type="button" aria-pressed="false" onclick="fecharSomEscritorio();compartilharTelaNaTvEscritorio()"${comConversa ? "" : " disabled"}>Minha tela</button></div>
+<form id="office-som-tv" class="v2k-fila v2k-form" onsubmit="event.preventDefault();passarVideoEscritorio(this.elements.url.value)"><input class="v2k-campo-texto" id="office-som-tv-link" name="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" aria-label="Link do vídeo do YouTube" autocomplete="off" required></form>
+${comConversa ? "" : '<p class="v2k-sub">Aqui não há conversa por voz, então não dá para compartilhar a tela.</p>'}`;
+}
+function escritorioSomPeHtml(aba) {
+  if (aba === "musica") return `<span class="v2k-sub">O volume é só seu.</span>${escritorioNaPista() && escritorio.musica?.fila?.length ? `<span class="v2k-vao"></span><button type="button" class="v2k-btn s" onclick="confirmarNoPainel('Limpar a fila inteira?').then((ok)=>{if(ok)controleMusicaEscritorio('limpar')})">Limpar fila</button>` : ""}`;
+  if (aba === "tv") return escritorio.zona ? `<button type="button" class="v2k-btn s" onclick="passarVideoEscritorio('')" ${escritorioTvPassando().id ? "" : "disabled"}>Desligar a TV</button><span class="v2k-vao"></span><button type="submit" form="office-som-tv" class="v2k-btn k s">Passar o vídeo</button>` : '<span class="v2k-sub">Vídeo do YouTube ou a sua tela.</span>';
+  return `<span class="v2k-sub">Os ajustes já valem na conversa.</span><span class="v2k-vao"></span><button type="button" class="v2k-btn s" aria-expanded="${escritorio.somMaisAberto === true}" aria-controls="office-som-mais" onclick="alternarMaisAjustesSom(this)">${escritorio.somMaisAberto === true ? "Menos ajustes" : "Mais ajustes"}</button>`;
+}
+async function abrirSomEscritorio(aba = "audio") {
+  if (!ESCRITORIO_SOM_ABAS[aba]) aba = "audio";
+  const self = escritorio.chamada?.self;
+  let mics = [], saidas = [];
+  if (aba === "audio") { try { mics = self ? await self.getAudioDevices() : []; saidas = self ? await self.getSpeakerDevices() : []; } catch {} }
+  let el = escritorioPainelSom();
+  if (!el) {
+    document.getElementById("office-ajustes-audio")?.remove();
+    el = document.createElement("section");
+    el.id = "office-ajustes-audio";
+    el.className = "v2k-painel v2k-som";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", "Som: áudio, música e TV");
+    el.somFora = (ev) => { if (!el.contains(ev.target) && !ev.target.closest?.(".vv-dock-salas-faixa, dialog, .vv-aviso-curto, #workflow-modal")) fecharSomEscritorio(); };
+    el.somTecla = (ev) => { if (ev.key === "Escape" && !document.querySelector("dialog[open], #workflow-modal")) { ev.stopPropagation(); fecharSomEscritorio(); } };
+    el.somMedida = () => escritorioAncorarSom(el, el.dataset.aba);
+    document.addEventListener("pointerdown", el.somFora, true);
+    document.addEventListener("keydown", el.somTecla, true);
+    addEventListener("resize", el.somMedida);
+    document.body.append(el);
+  }
+  const rolagem = el.dataset.aba === aba ? el.querySelector(".v2k-corpo")?.scrollTop || 0 : 0;
+  el.dataset.aba = aba;
+  document.body.dataset.somAba = aba;
+  escritorioAncorarSom(el, aba);
+  const abaHtml = ([id, rotulo]) => `<button type="button" role="tab" id="office-som-aba-${id}" aria-selected="${id === aba}" aria-controls="office-som-corpo" onclick="abrirSomEscritorio('${id}')">${rotulo}</button>`;
+  el.innerHTML = `<div class="v2k-cab"><h2>Som</h2><div class="v2k-seg" role="tablist" aria-label="Áudio, música ou TV">${Object.entries(ESCRITORIO_SOM_ABAS).map(abaHtml).join("")}</div><button type="button" class="v2k-x" onclick="fecharSomEscritorio()" aria-label="Fechar" title="Fechar (Esc)">${ESCRITORIO_SOM_X}</button></div>
+<div class="v2k-corpo" id="office-som-corpo" role="tabpanel" aria-labelledby="office-som-aba-${aba}">${aba === "musica" ? escritorioSomMusicaHtml() : aba === "tv" ? escritorioSomTvHtml() : escritorioSomAudioHtml(mics, saidas, self?.getCurrentDevices?.() || {}, self)}</div>
+<div class="v2k-pe">${escritorioSomPeHtml(aba)}</div>`;
+  if (rolagem) el.querySelector(".v2k-corpo").scrollTop = rolagem;
+  clearInterval(escritorio.timerTesteMic);
+  if (aba === "musica" && document.getElementById("office-musica-fila")) {
+    desenharFilaMusicaEscritorio();
+    if (!escritorio.musica) escritorioEmitir("music:get", {});
+  }
+  if (aba !== "audio") return;
+  // Nível ao vivo do próprio microfone: as seis barras sobem com a voz.
+  escritorio.timerTesteMic = setInterval(() => {
+    const nivel = document.getElementById("office-nivel-teste");
+    if (!nivel) { clearInterval(escritorio.timerTesteMic); return; }
+    const f = escritorio.chamada && escritorioNivelAudio.fontes.get(escritorio.chamada.self.id);
+    if (!f) { nivel.style.setProperty("--n", "0"); return; }
+    f.an.getByteTimeDomainData(f.dados);
+    let soma = 0; for (const v of f.dados) soma += (v - 128) * (v - 128);
+    nivel.style.setProperty("--n", Math.min(1, Math.sqrt(soma / f.dados.length) / 28).toFixed(2));
+  }, 100);
+}
+// O botão do dock abre o painel na aba dele; com ela já à vista, fecha.
+function alternarPainelSomEscritorio(aba) {
+  if (escritorioPainelSom()?.dataset.aba === aba) { fecharSomEscritorio(); return Promise.resolve(); }
+  return abrirSomEscritorio(aba);
+}
 async function abrirAjustesAudioEscritorio() {
   const self = escritorio.chamada?.self;
   document.getElementById("ofc-btn-audio")?.classList.remove("alerta");
+  if (escritorioPainelSomNoMundo()) return alternarPainelSomEscritorio("audio");
   let el = document.getElementById("office-ajustes-audio");
   if (el) { el.remove(); return; }
   const caixa = document.querySelector(".ofc-principal");
@@ -5344,7 +5508,7 @@ async function sairChamadaEscritorio({ manual = false } = {}) {
   escritorio.somBloqueado = false;
   escritorioNivelAudio.parar();
   escritorioPararVozes();
-  if (!escritorio.reconectandoAudio) document.getElementById("office-ajustes-audio")?.remove();
+  if (!escritorio.reconectandoAudio) { const som = typeof escritorioPainelSom === "function" ? escritorioPainelSom() : null; if (som) setTimeout(() => { if (escritorioPainelSom()) abrirSomEscritorio(som.dataset.aba); }, 0); else document.getElementById("office-ajustes-audio")?.remove(); }
   try {
     await Promise.allSettled([["audioEnabled", "disableAudio"], ["videoEnabled", "disableVideo"], ["screenShareEnabled", "disableScreenShare"]]
       .filter(([flag]) => m?.self?.[flag]).map(([, metodo]) => Promise.resolve().then(() => m.self[metodo]())));

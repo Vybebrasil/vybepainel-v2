@@ -72,8 +72,14 @@
       if (s.situacao === 'esquecida') { processos.esquecidas.push(id); continue; }
       // Aberta: a fila de agora, por etapa (status) e em cada recorte.
       const st = String(d.status || 'Sem status').trim() || 'Sem status';
-      const e = porStatus.get(st) || { status: st, cor: d.status_color || '', qtd: 0, idades: [], atrasadas: 0, ids: [] };
+      const e = porStatus.get(st) || { status: st, cor: d.status_color || '', qtd: 0, idades: [], atrasadas: 0, ids: [], idsAtrasadas: [], porCliente: new Map() };
       e.qtd += 1; e.ids.push(id); if (s.idade != null) e.idades.push(s.idade); if (s.atrasada) e.atrasadas += 1; porStatus.set(st, e);
+      // As atrasadas da etapa, por cliente, com os dias da mais antiga (a etapa abre no lugar com isto).
+      if (s.atrasada) {
+        e.idsAtrasadas.push(id);
+        const venceu = s.referencia && s.referencia < hoje ? diasEntre(s.referencia, hoje) : 0;
+        for (const c of clientesDe(d)) { const x = e.porCliente.get(c) || { cliente: c, qtd: 0, dias: 0 }; x.qtd += 1; x.dias = Math.max(x.dias, venceu); e.porCliente.set(c, x); }
+      }
       const alteracao = s.chave === 'alteracao', parada = s.semAndamento && !s.esperaCliente && (s.idade ?? 0) >= 3;
       for (const g of grupos) {
         g.abertas += 1; g.ids.abertas.push(id);
@@ -96,7 +102,8 @@
       if (c && c < hoje) solVencidas.push(String(d.id));
     }
     const lista = (m, min = 1) => [...m.entries()].map(([nome, g]) => ({ nome, ...fechar(g) })).filter((x) => x.entregues + x.abertas >= min);
-    const etapas = [...porStatus.values()].map((e) => ({ status: e.status, cor: e.cor, qtd: e.qtd, atrasadas: e.atrasadas, idadeMediana: mediana(e.idades), ids: e.ids }))
+    const etapas = [...porStatus.values()].map((e) => ({ status: e.status, cor: e.cor, qtd: e.qtd, atrasadas: e.atrasadas, idadeMediana: mediana(e.idades), ids: e.ids, idsAtrasadas: e.idsAtrasadas,
+      atrasadasPorCliente: [...e.porCliente.values()].sort((a, b) => b.qtd - a.qtd || b.dias - a.dias) }))
       .sort((a, b) => b.qtd * (1 + (a.idadeMediana || 0)) - a.qtd * (1 + (b.idadeMediana || 0)) || b.qtd - a.qtd);
     return {
       hoje, dias, corte, total: fechar(total), etapas,
@@ -134,6 +141,7 @@
     const P = ultimo; if (!P) return null;
     const [tipo, qual = '', nome = ''] = String(resto).split('|');
     const TIT = { entregues: 'entregues no período', abertas: 'abertas agora', atrasadas: 'atrasadas agora' };
+    if (tipo === 'etapaAtr') { const e = P.etapas.find((x) => x.status === qual); return e ? { titulo: `atrasadas em ${e.status}`, itens: itensDe(e.idsAtrasadas || []), clicar: abrirPeca } : null; }
     if (tipo === 'etapa') { const e = P.etapas.find((x) => x.status === qual); return e ? { titulo: `em ${e.status}`, itens: itensDe(e.ids), clicar: abrirPeca } : null; }
     if (tipo === 'proc') { const ids = P.processos[qual] || []; const T = { semBriefing: 'sem briefing', semResponsavel: 'sem responsável', captacaoAgendar: 'com captação a agendar', esquecidas: 'esquecidas (data vencida há 30+ dias)', pausadas: 'pausadas', semData: 'sem data', solicitacoesAbertas: 'solicitações abertas', solicitacoesVencidas: 'solicitações com conclusão vencida' }; return { titulo: T[qual] || qual, itens: itensDe(ids), clicar: abrirPeca }; }
     const fonte = tipo === 'total' ? P.total : (P[tipo] || []).find((x) => x.nome === nome);
@@ -149,43 +157,100 @@
       </tbody></table></div>`;
   }
 
+  // Padrão v2 (quadro "Performance", moodboard aprovado em 12/11/2026): a frase do Heitor, três números, o que pede
+  // ação antes de produzir, as entregas e a fila por etapa (a etapa abre no lugar com as atrasadas por cliente). As
+  // tabelas por departamento, formato, pessoa e cliente continuam no "mostrar" do pé. Desenho em padrao-v2/gestao.css.
+  let pintado = '';
   function html(alvo) {
-    const V = raiz.VybeSetor?.pecas;
+    const V = raiz.VybeSetor?.pecas, v2 = V?.v2;
     const P = calcular(dados());
     ultimo = P;
-    const seletor = `<span class="vs-alternar vv-perf-periodo" role="group" aria-label="Período">${PERIODOS.map(([d, r]) => `<button type="button" data-perf-dias="${d}" aria-pressed="${d === dias}">${r}</button>`).join('')}</span>`;
-    if (!V || !P) { alvo.innerHTML = '<p class="vv-vazio">Os números aparecem quando a produção terminar de carregar.</p>'; return; }
+    if (!V || !v2 || !P) { alvo.innerHTML = '<p class="vv-vazio">Os números aparecem quando a produção terminar de carregar.</p>'; return; }
     // Zero vira uma linha (00 Main, regra 4): kpiLinha marca o zero e G (pecas.grade) junta os zeros numa linha discreta.
     const { kpiLinha: k = V.kpi, grade: G = (h) => `<div class="vs-kpis">${h}</div>`, bloco, barras, deitadas, linha } = V, T = P.total, Pr = P.processos;
+    const { fala, tres, pede, cartao, duas, mais, tela, btn, elo, pl, pctDe } = v2;
     const sem = P.semanas.map((s) => ({ ...s, rotulo: s.inicio.slice(8, 10) + '/' + s.inicio.slice(5, 7) }));
-    const etapasMax = P.etapas.slice(0, 12);
-    const proc = [
-      ['semBriefing', 'Sem briefing', 'peças abertas sem o briefing preenchido', 'atencao'],
-      ['semResponsavel', 'Sem responsável', 'ninguém vai fazer', 'ruim'],
-      ['captacaoAgendar', 'Captação a agendar', 'esperando a produção marcar', 'atencao'],
-      ['semData', 'Sem data', 'nem veiculação nem prazo', 'atencao'],
-      ['solicitacoesAbertas', 'Solicitações abertas', 'quadro de demandas', ''],
-      ['solicitacoesVencidas', 'Solicitações vencidas', 'conclusão planejada já passou', 'ruim'],
-      ['pausadas', 'Pausadas', 'Segurar Post: não atrasam', ''],
-      ['esquecidas', 'Esquecidas', 'data vencida há 30+ dias: limpar', 'atencao'],
+    const rotDias = (PERIODOS.find(([d]) => d === dias) || [dias, `${dias} dias`])[1];
+    const cli = (n) => (typeof cliCor === 'function' ? cliCor(n) : esc(n)), st = (n) => (typeof statusCor === 'function' ? statusCor({ status: n }) : esc(n));
+    const nProc = (q) => (Pr[q] || []).length, semResp = nProc('semResponsavel');
+    const ativos = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES.filter((c) => c && c.id && c.nome && c.ativo !== false).length : null;
+    const principal = semResp ? btn(semResp === 1 ? 'Distribuir a peça sem dono' : `Distribuir as ${n0(semResp)}`, 'data-espiar="perf:proc|semResponsavel"', 'p')
+      : T.atrasadas ? btn(T.atrasadas === 1 ? 'Abrir a atrasada' : `Abrir as ${n0(T.atrasadas)} atrasadas`, 'data-espiar="perf:total|atrasadas"', 'p') : '';
+    const topo = `<div class="g2-topo"><h2>Performance da operação</h2><small class="g2-topo-sub">${!ativos ? '' : `${pl(ativos, 'cliente ativo', 'clientes ativos')} · `}@@HORA@@</small><span class="g2-seg vv-perf-periodo" role="group" aria-label="Período">${PERIODOS.map(([d, r]) => `<button type="button" data-perf-dias="${d}" aria-pressed="${d === dias}">${r}</button>`).join('')}</span>${principal}</div>`;
+    // A frase: o gargalo é dono (peça sem responsável) ou etapa (onde a fila está parada).
+    const maior = P.etapas[0];
+    const gargalo = semResp && semResp * 2 >= T.abertas ? `O gargalo é dono, não etapa: <b>${n0(semResp)} das ${pl(T.abertas, 'peça aberta', 'peças abertas')} ${semResp === 1 ? 'está' : 'estão'} sem responsável</b>`
+      : maior ? `A fila está mais cheia em <b>${esc(maior.status)}</b>, com ${pl(maior.qtd, 'peça', 'peças')}${semResp ? `, e ${n0(semResp)} ${semResp === 1 ? 'está' : 'estão'} sem responsável` : ''}` : '<b>Nenhuma peça aberta agora</b>';
+    const frase = `${gargalo}${T.atrasadas ? ` e <b>${pl(T.atrasadas, 'já passou', 'já passaram')} da data</b>` : ''}. `
+      + (T.entregues ? `Em ${esc(rotDias)} ${T.entregues === 1 ? 'saiu' : 'saíram'} ${n0(T.entregues)}${T.noPrazoPct != null ? `, ${T.noPrazoPct}% no prazo do cliente` : ''}${T.tempoMediano != null ? `, em ${dd(T.tempoMediano)} do cadastro à entrega (mediana)` : ''}.`
+        : `Nada saiu em ${esc(rotDias)}, então ainda não dá para medir prazo nem tempo de entrega.`);
+    const falaHtml = fala('heitor', frase).replace('</p></div>', `</p>${semResp ? btn(semResp === 1 ? 'Ver a peça' : `Ver as ${n0(semResp)}`, 'data-espiar="perf:proc|semResponsavel"') : T.atrasadas ? btn('Ver as atrasadas', 'data-espiar="perf:total|atrasadas"') : ''}</div>`);
+    const numeros = tres([
+      { rotulo: 'Abertas agora', valor: n0(T.abertas), espiar: T.abertas ? 'perf:total|abertas' : '', sub: `${n0(T.paradas)} ${T.paradas === 1 ? 'parada' : 'paradas'} há 3 dias ou mais` },
+      { rotulo: 'Atrasadas agora', valor: n0(T.atrasadas), tom: T.atrasadas ? 'ruim' : '', espiar: T.atrasadas ? 'perf:total|atrasadas' : '', sub: T.abertas ? `${pctDe(T.atrasadas, T.abertas)}% da fila${T.atrasadas ? ` · ${elo('ver quais', 'data-espiar="perf:total|atrasadas"')}` : ''}` : 'fila vazia' },
+      { rotulo: 'Em alteração', valor: n0(T.alteracao), tom: T.alteracao ? 'atencao' : '', sub: 'retrabalho na fila agora' },
+    ]);
+    // Pede ação: o que trava antes de produzir, o que tem número primeiro; os zerados ficam em "mostrar".
+    const porAtraso = [...P.etapas].filter((e) => e.atrasadas).sort((a, b) => b.atrasadas - a.atrasadas);
+    const aprov = porAtraso.filter((e) => /aprova/i.test(e.status))[0];
+    const PROC = [
+      ['semResponsavel', 'Sem responsável', 'ninguém vai fazer', 'r'], ['solicitacoesVencidas', 'Solicitações vencidas', 'a conclusão planejada já passou', 'r'],
+      ['semBriefing', 'Sem briefing', 'peças abertas sem o briefing preenchido', 'a'], ['captacaoAgendar', 'Captação a agendar', 'esperando a produção marcar', 'a'],
+      ['semData', 'Sem data', 'nem veiculação nem prazo', 'a'], ['esquecidas', 'Esquecidas', 'data vencida há 30 dias ou mais: limpar', 'a'],
+      ['solicitacoesAbertas', 'Solicitações abertas', 'quadro de demandas', 'n'], ['pausadas', 'Pausadas', 'Segurar Post: não atrasam', 'n'],
     ];
-    alvo.innerHTML = `<div class="vv-perf-topo"><p class="vs-aviso">Como a operação inteira está andando: o que saiu, no prazo ou não, quanto leva e onde trava. A produtividade de cada pessoa do time fica no RH.</p>${seletor}</div>
-      ${G(`
+    const linhaProc = ([q, t, s, tom]) => ({ q, n: nProc(q), tom, pill: n0(nProc(q)), texto: `<b>${esc(t)}</b> · ${esc(s)}`, botao: nProc(q) ? btn('Ver quais são', `data-espiar="perf:proc|${q}"`) : '' });
+    const comNumero = PROC.filter(([q, , , tom]) => nProc(q) && tom !== 'n').map(linhaProc);
+    if (T.atrasadas) comNumero.push({ n: T.atrasadas, tom: 'r', pill: n0(T.atrasadas), texto: `<b>Atrasadas</b>${porAtraso.length ? ' · ' + porAtraso.slice(0, 2).map((e) => `${n0(e.atrasadas)} em ${esc(e.status)}`).join(', ') : ''}`, botao: btn(T.atrasadas === 1 ? 'Abrir a atrasada' : `Abrir as ${n0(T.atrasadas)}`, 'data-espiar="perf:total|atrasadas"') });
+    if (aprov) comNumero.push({ n: aprov.atrasadas, tom: 'a', pill: n0(aprov.atrasadas), texto: `<b>${esc(aprov.status)}</b> ${aprov.atrasadas === 1 ? 'vencida' : 'vencidas'}, esperando o cliente`, botao: btn('Ver quais são', `data-espiar="perf:etapaAtr|${esc(aprov.status)}"`) });
+    const ordem = comNumero.sort((a, b) => (a.tom === b.tom ? b.n - a.n : a.tom === 'r' ? -1 : 1));
+    const zerados = PROC.filter(([q, , , tom]) => !nProc(q) && tom !== 'n'), informa = PROC.filter(([, , , tom]) => tom === 'n');
+    const foraN = Math.max(0, ordem.length - 3);
+    const pedeHtml = pede(ordem, { sub: 'onde a fila trava antes de produzir', vazio: 'Nada travando a fila agora.', mostra: 3, resto: [...zerados, ...informa].map(linhaProc).map((l) => ({ ...l, tom: 'n' })),
+      pe: [foraN ? `+ ${n0(foraN)} com número` : '', zerados.length ? `${foraN ? '' : '+ '}${pl(zerados.length, 'zerado', 'zerados')}: ${zerados.map((z) => esc(z[1])).join(', ')}` : '', !foraN && !zerados.length ? 'Solicitações abertas e pausadas' : ''].filter(Boolean).join(' · ') });
+    // Entregas por semana: o gráfico só com entrega no período; os três números ficam sempre.
+    const outro = dias === 90 ? [180, 'Ver 6 meses'] : dias === 180 ? [30, 'Ver 30 dias'] : [90, 'Ver 3 meses'];
+    const entregasHtml = cartao('Entregas por semana', '', (T.entregues
+      ? barras(sem, [{ chave: 'noPrazo', rotulo: 'No prazo', cls: 'c3' }, { chave: 'atrasadas', rotulo: 'Depois da data', cls: 'c4' }, { chave: 'criadas', rotulo: 'Cadastradas', cls: 'c5' }], { altura: 150 })
+      : `<p class="g2-pe g2-pe-topo">Nenhuma entrega registrada em ${esc(rotDias)}. Com entregas, o gráfico de no prazo, depois da data e cadastradas aparece aqui.</p>`)
+      + `<div class="g2-minis"><p class="g2-mini"><span>Entregues em ${esc(rotDias)}</span>${T.entregues ? `<button type="button" class="g2-link forte" data-espiar="perf:total|entregues">${n0(T.entregues)}</button>` : '<b>0</b>'}</p>
+        <p class="g2-mini"><span>No prazo do cliente</span><b>${T.noPrazoPct == null ? 'sem dado' : T.noPrazoPct + '%'}</b><span>${n0(T.noPrazo)} no prazo · ${n0(T.atrasadasEnt)} depois</span></p>
+        <p class="g2-mini"><span>Do cadastro à entrega</span><b>${T.tempoMediano == null ? 'sem dado' : dd(T.tempoMediano)}</b>${T.tempoMediano == null ? '' : '<span>mediana</span>'}</p></div>`,
+      { cls: 'g2-entregas', acao: btn(outro[1], `data-perf-dias="${outro[0]}"`) });
+    // Onde a fila está: uma linha por etapa; clicar abre no lugar as atrasadas por cliente.
+    const maxQtd = Math.max(1, ...P.etapas.map((e) => e.qtd)), temIdade = P.etapas.some((e) => e.idadeMediana != null);
+    const linhaEtapa = (e, aberta) => {
+      const det = (e.atrasadasPorCliente || []).slice(0, 3).map((c, i, l) => `<span>${cli(c.cliente)} · ${pl(c.qtd, 'atrasada', 'atrasadas')}${i === 0 && c.dias > 0 ? `, a mais antiga há ${pl(c.dias, 'dia', 'dias')}` : ''}${i === l.length - 1 ? ` · ${elo(e.atrasadas === 1 ? 'abrir a atrasada' : `abrir as ${n0(e.atrasadas)}`, `data-espiar="perf:etapaAtr|${esc(e.status)}"`)}` : ''}</span>`);
+      if (e.idadeMediana != null) det.push(`<span>parada há ${dd(e.idadeMediana)} (mediana)</span>`);
+      const lin = `<div class="g2-fx"><span class="g2-fx-st">${st(e.status)}</span><div class="v2-barra g2-barra"><i style="--v:${Math.round((e.qtd / maxQtd) * 100)}%;--c:#1F1D1A"></i></div><button type="button" class="g2-fx-n" data-espiar="perf:etapa|${esc(e.status)}" title="Ver as peças">${n0(e.qtd)}</button>${det.length ? `<button type="button" class="g2-fx-at${e.atrasadas ? '' : ' calmo'}" data-g2-abre aria-expanded="${aberta}">${e.atrasadas ? pl(e.atrasadas, 'atrasada', 'atrasadas') : 'em dia'}</button>` : '<span class="g2-fx-at calmo">em dia</span>'}</div>`;
+      return det.length ? `<div class="v2-abre g2-linha" aria-expanded="${aberta}">${lin}<div class="v2-mais"><div><div class="g2-hists fx">${det.map((d) => `<p class="g2-hist">${d}</p>`).join('')}</div></div></div></div>` : `<div class="g2-linha">${lin}</div>`;
+    };
+    const vis = P.etapas.slice(0, 5), outras = P.etapas.slice(5), nOutras = outras.reduce((s, e) => s + e.qtd, 0);
+    let abriu = false;
+    const filaHtml = cartao('Onde a fila está', `peças por etapa · dias parada: ${temIdade ? 'ao abrir a etapa' : 'sem dado'}`, (vis.length ? vis.map((e) => { const a = !abriu && (e.atrasadasPorCliente || []).length > 0; if (a) abriu = true; return linhaEtapa(e, a); }).join('') : '<p class="g2-vazio">Nenhuma peça aberta.</p>')
+      + (outras.length ? `<div class="v2-abre g2-resto" aria-expanded="false"><div class="v2-mais"><div>${outras.map((e) => linhaEtapa(e, false)).join('')}</div></div><p class="g2-pe">+ ${pl(outras.length, 'outra etapa', 'outras etapas')} com ${pl(nOutras, 'peça recolhida', 'peças recolhidas')} · <button type="button" class="g2-link" data-g2-abre data-g2-troca="recolher" aria-expanded="false">mostrar</button> · a etapa abre no lugar com as atrasadas por cliente</p></div>`
+        : vis.length ? '<p class="g2-pe g2-pe-fim">A etapa abre no lugar com as atrasadas por cliente.</p>' : ''), { cls: 'g2-fila' });
+    const ABAS = [['agencia', 'Agência'], ['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
+    const abrir = `<nav class="g2-abrir" aria-label="Abrir"><span>Abrir:</span>${ABAS.map(([id, n]) => `<button type="button" class="g2-chip" data-gestao-aba="${id}">${n}</button>`).join('')}<span class="g2-abrir-fim">As pessoas ficam em <button type="button" class="g2-link" data-perf-ir="produtividade">RH › Produtividade</button></span></nav>`;
+    const antigo = G(`
         ${k({ icone: 'aperto', titulo: 'Entregues', valor: n0(T.entregues), sub: `nos últimos ${n0(dias)} dias`, espiar: T.entregues ? 'perf:total|entregues' : '' })}
         ${k({ icone: 'relogio', titulo: 'No prazo do cliente', valor: pc(T.noPrazoPct), sub: `${n0(T.noPrazo)} no prazo · ${n0(T.atrasadasEnt)} depois da data`, cls: T.noPrazoPct != null && T.noPrazoPct < 80 ? 'atencao' : '' })}
         ${k({ icone: 'calendario', titulo: 'Tempo de entrega', valor: dd(T.tempoMediano), sub: 'mediana do cadastro à entrega' })}
-        ${k({ icone: 'doc', titulo: 'Abertas agora', valor: n0(T.abertas), sub: `${n0(T.paradas)} paradas há 3+ dias`, espiar: T.abertas ? 'perf:total|abertas' : '' })}
-        ${k({ icone: 'alerta', titulo: 'Atrasadas agora', valor: n0(T.atrasadas), cls: T.atrasadas ? 'ruim' : '', espiar: T.atrasadas ? 'perf:total|atrasadas' : '' })}
-        ${k({ icone: 'saida', titulo: 'Em alteração', valor: n0(T.alteracao), sub: 'retrabalho na fila agora', cls: T.alteracao ? 'atencao' : '' })}
-      `)}
-      ${bloco('Entregas por semana', 'no prazo do cliente e depois da data; e as peças cadastradas', barras(sem, [{ chave: 'noPrazo', rotulo: 'No prazo', cls: 'c3' }, { chave: 'atrasadas', rotulo: 'Depois da data', cls: 'c4' }, { chave: 'criadas', rotulo: 'Cadastradas', cls: 'c5' }]), { icone: 'alta' })}
-      ${linha(bloco('Fluxo: onde a fila está', 'peças abertas por etapa; a barra é a quantidade, o número pequeno é quantos dias paradas (mediana)', deitadas(etapasMax.map((e) => ({ st: true, nome: e.status, valor: e.qtd, cls: (e.idadeMediana || 0) >= 3 ? 'ruim' : e.atrasadas ? 'atencao' : 'ok', rotulo: `<button type="button" class="vv-num" data-espiar="perf:etapa|${esc(e.status)}">${n0(e.qtd)}</button> <small>${dd(e.idadeMediana)}</small>`, sub: `${n0(e.atrasadas)} atrasada${Number(e.atrasadas) === 1 ? '' : 's'}` })), { vazio: 'Nenhuma peça aberta.' }), { icone: 'relogio' })
-        + bloco('Processos', 'o que costuma travar antes da produção', `<ul class="vv-perf-proc">${proc.map(([q, t, s, cls]) => { const n = (Pr[q] || []).length; return `<li class="${n && cls ? cls : ''}"><span><b>${esc(t)}</b><small>${esc(s)}</small></span>${n ? `<button type="button" class="vv-num" data-espiar="perf:proc|${q}">${n0(n)}</button>` : '<em>0</em>'}</li>`; }).join('')}</ul>`, { icone: 'alerta' }))}
-      ${linha(bloco('Por departamento', 'entregues no período e abertas agora', barras(P.grupos.slice(0, 8).map((g) => ({ rotulo: String(g.nome).split(' ')[0], entregues: g.entregues, abertas: g.abertas, atrasadas: g.atrasadas })), [{ chave: 'entregues', rotulo: 'Entregues', cls: 'c3' }, { chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'pessoas' })
-        + bloco('Por formato', 'quanto sai e quanto leva', deitadas(P.formatos.slice(0, 8).map((f) => ({ nome: f.nome, valor: f.entregues, cls: 'ok', rotulo: `${n0(f.entregues)} <small>${dd(f.tempoMediano)}</small>`, sub: `${n0(f.abertas)} aberta${Number(f.abertas) === 1 ? '' : 's'} · no prazo ${pc(f.noPrazoPct)}` })), { vazio: 'Sem entregas no período.' }), { icone: 'doc' }))}
-      ${bloco('Departamentos', 'cada número abre as peças por trás dele', tabela(P.grupos, { chave: 'grupos' }), { icone: 'pessoas' })}
-      ${bloco('Operacionais', 'cada pessoa responsável pelas peças; peça de duas pessoas conta para as duas', tabela(P.pessoas, { chave: 'pessoas' }), { icone: 'pessoas' })}
-      ${bloco('Clientes', 'os com mais atrasos primeiro', tabela(P.clientes, { chave: 'clientes', cli: true }), { icone: 'coracao' })}`;
+      `)
+      + bloco('Entregas e cadastros por semana', 'no prazo do cliente e depois da data; e as peças cadastradas', barras(sem, [{ chave: 'noPrazo', rotulo: 'No prazo', cls: 'c3' }, { chave: 'atrasadas', rotulo: 'Depois da data', cls: 'c4' }, { chave: 'criadas', rotulo: 'Cadastradas', cls: 'c5' }]), { icone: 'alta' })
+      + linha(bloco('Por departamento', 'entregues no período e abertas agora', barras(P.grupos.slice(0, 8).map((g) => ({ rotulo: String(g.nome).split(' ')[0], entregues: g.entregues, abertas: g.abertas, atrasadas: g.atrasadas })), [{ chave: 'entregues', rotulo: 'Entregues', cls: 'c3' }, { chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }]), { icone: 'pessoas' })
+        + bloco('Por formato', 'quanto sai e quanto leva', deitadas(P.formatos.slice(0, 8).map((f) => ({ nome: f.nome, valor: f.entregues, cls: 'ok', rotulo: `${n0(f.entregues)} <small>${dd(f.tempoMediano)}</small>`, sub: `${n0(f.abertas)} aberta${Number(f.abertas) === 1 ? '' : 's'} · no prazo ${pc(f.noPrazoPct)}` })), { vazio: 'Sem entregas no período.' }), { icone: 'doc' }))
+      + bloco('Departamentos', 'cada número abre as peças por trás dele', tabela(P.grupos, { chave: 'grupos' }), { icone: 'pessoas' })
+      + bloco('Operacionais', 'cada pessoa responsável pelas peças; peça de duas pessoas conta para as duas', tabela(P.pessoas, { chave: 'pessoas' }), { icone: 'pessoas' })
+      + bloco('Clientes', 'os com mais atrasos primeiro', tabela(P.clientes, { chave: 'clientes', cli: true }), { icone: 'coracao' });
+    const tudo = topo + `<div class="vs-corpo@@QUIETA@@">${tela(falaHtml, numeros, duas(`<div class="g2-col">${pedeHtml}${entregasHtml}</div>`, filaHtml, 'iguais'), abrir, mais('Tabelas por departamento, formato, pessoa e cliente', antigo))}</div>`;
+    alvo.innerHTML = tudo.replace('@@HORA@@', v2.hora()).replace('@@QUIETA@@', tudo === pintado ? ' g2-quieta' : '');
+    pintado = tudo;
+    alvo.addEventListener?.('click', (ev) => {
+      const b = ev.target.closest?.('button'); if (!b) return;
+      if (v2.clique(b)) return;
+      if (b.dataset.perfIr) { const item = document.querySelector(`.vv-trilho [data-submodulo="${b.dataset.perfIr}"]`); if (item) item.click(); else raiz.VybePessoas?.abrir?.(b.dataset.perfIr); }
+    });
   }
 
   raiz.VybePerformance = Object.freeze({

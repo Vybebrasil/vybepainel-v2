@@ -209,19 +209,21 @@
 
   // ---------- desenho (pintarCriacao chama; o resto da aba continua lá) ----------
   const cli = (c) => (typeof G.cliCor === 'function' ? G.cliCor(c) : esc(c));
-  function caixa({ chave, tipo, titulo, cliente, linhas, aprovar, verAntes = '', envios = [] }) {
+  function caixa({ chave, tipo, titulo, cliente, linhas, aprovar, verAntes = '', envios = [], pilula = null }) {
+    // Padrão v2 (quadro "Direção de arte", 12/11/2026): a etiqueta diz o que é (Delegar em lilás, parada em vermelho, hoje em amarelo).
+    const etiqueta = (padrao) => `<i class="vcr-pill ${pilula?.[1] || (tipo === 'delegar' ? 'v' : 'a')}">${esc(pilula?.[0] || padrao)}</i>`;
     const conf = st.confirmando === chave, grav = st.gravando === chave, m = st.msg[chave];
     // Cobrança já pedida hoje: a caixa mostra o que houve com cada envio; só volta a ter botão se algum falhou.
     if (envios.length && !conf && !grav) {
       const falhou = envios.some((r) => r.estado === 'falhou');
-      return `<li class="vcr-sug" data-vcr-tipo="${tipo}"><div class="vcr-sug-meio"><small>Cobrar${cliente ? ' · ' + cli(cliente) : ''}</small><b>${titulo}</b>${linhas.map((l) => `<span>${l}</span>`).join('')}
+      return `<li class="vcr-sug" data-vcr-tipo="${tipo}"><div class="vcr-sug-meio"><small>${etiqueta('Cobrar')}${cliente ? cli(cliente) : ''}</small><b>${titulo}</b>${linhas.map((l) => `<span>${l}</span>`).join('')}
         ${envios.map(linhaDaCobranca).map((l) => `<p class="vcr-msg${l.erro ? ' erro' : l.espera ? ' espera' : ''}" role="status">${esc(l.texto)}</p>`).join('')}${m ? `<p class="vcr-msg${m.erro ? ' erro' : ''}" role="status">${esc(m.texto)}</p>` : ''}</div>
       <div class="vcr-sug-acoes">${falhou ? `<button type="button" class="vc-acao" data-vcr-aprovar="${esc(chave)}">Tentar de novo</button><button type="button" class="vc-sec" data-vcr-copiar="${esc(chave)}" title="Para você mesmo mandar">Copiar a mensagem</button>` : ''}</div></li>`;
     }
-    return `<li class="vcr-sug" data-vcr-tipo="${tipo}"><div class="vcr-sug-meio"><small>${tipo === 'delegar' ? 'Delegar' : 'Cobrar'}${cliente ? ' · ' + cli(cliente) : ''}</small><b>${titulo}</b>${linhas.map((l) => `<span>${l}</span>`).join('')}
+    return `<li class="vcr-sug" data-vcr-tipo="${tipo}"><div class="vcr-sug-meio"><small>${etiqueta(tipo === 'delegar' ? 'Delegar' : 'Cobrar')}${cliente ? cli(cliente) : ''}</small><b>${titulo}</b>${linhas.map((l) => `<span>${l}</span>`).join('')}
         ${m ? `<p class="vcr-msg${m.erro ? ' erro' : ''}" role="status">${esc(m.texto)}</p>` : ''}</div>
       <div class="vcr-sug-acoes">${conf ? `<span class="vcr-conf">${aprovar.confirmar}</span><button type="button" class="vc-acao" data-vcr-confirmar="${esc(chave)}" ${grav ? 'disabled' : ''}>${grav ? 'Gravando…' : 'Confirmar'}</button><button type="button" class="vc-sec" data-vcr-voltar ${grav ? 'disabled' : ''}>Voltar</button>`
-        : `<button type="button" class="vc-acao" data-vcr-aprovar="${esc(chave)}">${aprovar.rotulo}</button>${verAntes}<button type="button" class="vc-sec" data-vcr-adiar="${esc(chave)}" title="Some só hoje, neste navegador">Agora não</button>`}</div></li>`;
+        : `<button type="button" class="vc-acao" data-vcr-aprovar="${esc(chave)}">${aprovar.rotulo}</button>${verAntes}<button type="button" class="vc-sec" data-vcr-adiar="${esc(chave)}" title="Some só hoje, neste navegador">${tipo === 'delegar' ? 'Deixar como está' : 'Agora não'}</button>`}</div></li>`;
   }
   let ultimas = { delegacoes: [], cobrancas: [], foto: null };
   // Pergunta livre: a mesma rota do módulo VYBES (etapa=perguntar → /api/cosmos/sala na central, respondida pelo Qwen).
@@ -273,18 +275,19 @@
     const pessoa = (p) => esc(primeiro(p.nome));
     const sugHtml = [...delegacoes.map((s) => caixa({ chave: s.chave, tipo: 'delegar', cliente: s.cliente, titulo: `${esc(s.nome)}: de ${pessoa(s.de)} para ${pessoa(s.para)}`,
         linhas: [esc(s.porque), s.vaiAoAr ? (s.vaiAoAr < hoje ? `Ia ao ar ${esc(dm(s.vaiAoAr))} (já passou).` : `Vai ao ar ${esc(s.vaiAoAr === hoje ? 'hoje' : dm(s.vaiAoAr))}.`) : 'Sem data do cliente.'],
-        aprovar: { rotulo: `Passar para ${pessoa(s.para)}`, confirmar: `Tirar ${pessoa(s.de)} e pôr ${pessoa(s.para)} na peça?` },
+        aprovar: { rotulo: 'Aprovar', confirmar: `Tirar ${pessoa(s.de)} e pôr ${pessoa(s.para)} na peça?` },
         verAntes: `<button type="button" class="vc-sec" data-vcr-ver="${esc(s.chave)}">Ver antes</button>` })),
       ...cobrancas.map((s) => caixa({ chave: s.chave, tipo: 'cobrar', cliente: s.cliente, titulo: `${esc(s.quem.join(' e '))}: ${esc(s.oque)} em ${esc(s.nome)}`,
         linhas: [`${esc(s.por)}. Cobrar ${esc(s.quando)}.`, esc(s.destravar)],
+        pilula: s.parado != null && s.parado >= 2 ? [`Parada ${plural(s.parado, 'dia', 'dias')}`, 'r'] : s.vaiAoAr === hoje ? ['Hoje', 'a'] : ['Cobrar', 'a'],
         envios: daPeca(s), aprovar: { rotulo: 'Cobrar', confirmar: `Mandar a cobrança no WhatsApp de ${esc(s.quem.join(' e '))} e deixar no histórico da peça?` } }))].join('');
     // Quem passou do limite sem ninguém com folga na mesma disciplina: não há para quem passar; o caminho é o prazo.
     const lotados = lista.filter((p) => p.carga > p.limite);
     const semPara = lotados.filter((p) => !delegacoes.some((d) => d.de.id === p.id) && !lista.some((q) => q.disciplina === p.disciplina && q.id !== p.id && q.id !== deivid && q.carga < q.limite));
     const lotadosHtml = semPara.length ? `<p class="vcr-lotado"><b>Acima do limite sem ter para quem passar:</b> ${semPara.map((p) => `${esc(primeiro(p.nome))} (${p.carga} de ${p.limite})`).join(', ')}. Vale renegociar prazo com o head ou segurar peça nova.</p>` : '';
-    const sugestoes = `<section class="vs-bloco vcr-bloco" aria-label="Para você aprovar"><div class="vs-bloco-cabeca"><span><b>Para você aprovar</b><small>delegações pela carga e pelo que cada um já fez · cobranças do que parou</small></span></div>
+    const sugestoes = `<section class="vs-bloco vcr-bloco vcr-fila" aria-label="Fila do Danilo"><div class="vs-bloco-cabeca"><span><b>Fila do Danilo</b><small>${plural(delegacoes.length, 'delegação', 'delegações')} · ${plural(cobrancas.length, 'cobrança', 'cobranças')}</small></span></div>
       ${lotadosHtml}${sugHtml ? `<ul class="vcr-sugs">${sugHtml}</ul>` : `<p class="vv-vazio">${lotados.length ? 'Nada parado com a data chegando.' : 'Nada para delegar nem cobrar agora: ninguém acima do limite e nada parado com a data chegando.'}</p>`}
-      <p class="vcr-nota">Cobrar manda a mensagem no WhatsApp da pessoa (o Danilo cobra o design; o Lucas, o audiovisual) e deixa a cobrança no histórico da peça. Aqui aparece se foi ou se falhou.</p></section>`;
+      <p class="vcr-nota">Cobrar manda no WhatsApp da pessoa e fica no histórico da peça.</p></section>`;
     const clientes = clientesConfirmadoSugestao({ itens: ctx.itens, todas: ctx.todas, achados: st.achados.lista, hoje, finalizada: ctx.finalizada });
     const MAX = 8, cartao = (c) => `<li class="vcr-cli"><div class="vcr-cli-cab">${cli(c.cliente)}<small>${plural(c.confirmadas.length, 'demanda', 'demandas')} · ${plural(c.sugestoes.length, 'sugestão', 'sugestões')}</small></div>
         <div class="vcr-cli-col"><small class="vcr-rot confirmado">Demanda confirmada</small>${c.confirmadas.length ? c.confirmadas.slice(0, 3).map((p) => `<button type="button" class="vcr-peca" data-hoje-acao="peca" data-valor="${esc(p.id)}">${esc(p.nome)}</button>`).join('') + (c.confirmadas.length > 3 ? `<small>e mais ${c.confirmadas.length - 3}</small>` : '') : '<small>Nenhuma aberta com o time.</small>'}</div>

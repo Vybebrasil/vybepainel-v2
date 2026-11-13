@@ -30,15 +30,18 @@ async function montar(dados) {
   return { ctx, pedidos, html: () => corpo.filho?.filho?.innerHTML || '' };
 }
 
+const fonteDe = () => readFileSync('vybe-mundo-impressoes.js', 'utf8');
+
 // Quadro 17 (10/11/2026): sem o aviso solto de fornecedor; a peça sem gráfica tem "escolher", que abre a edição (onde
 // fica o caminho para cadastrar quando não há nenhuma), e o atraso aparece em dias na própria peça.
 test('sem fornecedor: escolher na própria peça, sem aviso solto; cartões com cliente e atraso', async () => {
   const t = await montar(DADOS());
   const h = t.html();
   assert.doesNotMatch(h, /Nenhum fornecedor cadastrado|vi-alerta/);
-  assert.match(h, /sem fornecedor<\/em> · <span class="vi-escolher" data-vi-escolher-forn="1">escolher<\/span>/);
-  assert.match(h, /atrasada \d+ dias? · 05\/11/);
-  assert.equal((h.match(/vi-botao principal/g) || []).length, 1, 'um botão principal só');
+  // Padrão v2 (quadro Impressões, 12/11/2026): uma linha por peça, com "sem fornecedor · escolher" e o atraso em dias na pílula.
+  assert.match(h, /<b class="atencao">sem fornecedor<\/b> · <button type="button" class="p2-link vi-escolher" data-vi-escolher-forn="1">escolher<\/button>/);
+  assert.match(h, /<span class="p2-pill r">\d+ dias?<\/span>/);
+  assert.equal((h.match(/p2-btn p"/g) || []).length, 1, 'um botão principal só');
   assert.ok(t.pedidos.some((p) => p.url === '/api/painel?area=impressoes' && p.metodo === 'GET'));
 });
 
@@ -61,9 +64,11 @@ test('servidor #549: histórico inteiro, gráficas sugeridas com motivo, cotaç�
   const base = DADOS({ fornecedores: forn, ranking: rk });
   base.impressoes[0] = { ...base.impressoes[0], sugestao: rk, cotacoes: [{ id: 'c1', fornecedor_id: '3', fornecedor_nome: 'Emballar', valor: 180, prazo_dias: 5, escolhida: false }] };
   const t = await montar({ ...base, gestao: true });
-  assert.match(t.html(), /Ranking das gráficas/); assert.match(t.html(), /Mais entregas da região/);
+  // Padrão v2: a cotação que espera escolha e a gráfica sugerida vêm no baralho de "Pede ação"; o ranking fica em Filtros.
+  assert.match(t.html(), /Pede ação/); assert.match(t.html(), /Fechar Adesivo com a Emballar por R\$\s180,00/);
+  assert.match(t.html(), /data-vi="filtros"/); assert.match(fonteDe(), /\$\{porFornecedor\(\)\}<\/div>` : ''/, 'o ranking das gráficas abre em Filtros');
   assert.match(t.html(), /data-vi="todas"/);
-  const fonte = readFileSync('vybe-mundo-impressoes.js', 'utf8');
+  const fonte = fonteDe();
   assert.match(fonte, /'&todas=1'/);
   assert.match(fonte, /acao: 'cotacao_salvar', impressao_id: st\.sel/);
   assert.match(fonte, /acao: 'cotacao_escolher', id:/);

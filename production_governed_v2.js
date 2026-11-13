@@ -408,9 +408,16 @@
     // Quadro 04 (redesign, 10/11/2026): na agenda o cabeçalho tem a ação ("Marcar captação", o mesmo formulário do
     // clique num horário, já em Captação) e as abas vão para a barra única da agenda, com o período e Dia/Semana/Mês.
     const naAgenda = window.productionV2View === 'captacoes' && typeof captacoesHtml === 'function';
+    // No mundo, o cabeçalho é o do quadro do padrão v2: título, as abas e a ação da tela numa linha só.
+    const abaV2 = (v, nome) => `<button type="button" role="radio" aria-checked="${window.productionV2View === v}" onclick="setProdV2View('${v}')">${nome}</button>`;
+    const cabecaV2 = typeof pv2Ligado === 'function' && pv2Ligado() ? `<header id="pv2-agenda-topo" class="pv2"><div class="pv2-topo"><h2>Agenda e captações</h2>
+        <span class="pv2-seg" role="radiogroup" aria-label="Agenda">${abaV2('captacoes', 'Captações')}${abaV2('roteiros', 'Roteiros')}${abaV2('feed', 'Feed')}${abaV2('calendar', 'Calendário')}</span>
+        ${naAgenda ? `<button type="button" class="pv2-btn p capt-marcar" onclick="captMarcarCaptacao()" title="Marcar uma captação (ou outro compromisso) no Google Agenda da Vybe (N)">Marcar captação</button>` : `<span class="pv2-seg" role="radiogroup" aria-label="Data de referência">
+          <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'prazo'}" onclick="productionCommandSetDateMode('prazo')" title="Agrupar pelo Prazo de Entrega">Prazo</button>
+          <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'veiculacao'}" onclick="productionCommandSetDateMode('veiculacao')" title="Agrupar pela data que vai para o ar">Veiculação</button></span>`}</div></header>` : '';
     root.innerHTML = `
       <div class="prod-v2-layout">
-         <header class="prod-v2-head${naAgenda ? ' com-acao' : ''}">
+         ${cabecaV2 || `<header class="prod-v2-head${naAgenda ? ' com-acao' : ''}">
             <div class="p-head-title pv-cabeca" style="--c:#38d9c5">
                ${naAgenda ? '' : `<span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="6" width="10" height="9" rx="2"/><path d="m13 9 4-2v7l-4-2"/></svg></span>`}
                <div>${naAgenda ? '' : '<span class="pv-etiqueta">Produção</span>'}
@@ -425,7 +432,7 @@
                   <button class="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode==='veiculacao'?'active':''}" onclick="productionCommandSetDateMode('veiculacao')" title="Agrupar pela data que vai para o ar">Veiculação</button>
                </div>
             </div>`}
-         </header>
+         </header>`}
          ${contentHtml}
       </div>
     `;

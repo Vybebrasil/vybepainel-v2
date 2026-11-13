@@ -108,7 +108,7 @@ test('desenha as mensagens da sala do Escritório: as minhas à direita e o text
   await esperar();
   assert.deepEqual(t.ch.api[0], ['mensagens', null, { sala: 'criacao' }], 'mesma leitura de carregarChatEscritorio');
   const html = t.raiz().texto();
-  assert.match(html, /Conversa · Criação/);
+  assert.match(html, /<b>Criação<\/b> · lê quem está na sala/);
   assert.match(html, /<b>Bia Souza<\/b><p>Bom dia, equipe<\/p>/);
   assert.match(html, /class="vv-conversa-msg meu"><b>Você<\/b><p>Bom dia!<\/p>/);
   assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
@@ -232,5 +232,5 @@ test('no Irecity, a aba Conversa e os Recados do Escritório abrem este painel; 
   assert.deepEqual(dentro.ch.abaAntiga, ['pessoas'], 'as outras abas seguem com o Escritório');
   dentro.ctx.alternarAbaEscritorio('conversa', true);
   await esperar();
-  assert.match(dentro.raiz().texto(), /Conversa · Criação/);
+  assert.match(dentro.raiz().texto(), /<b>Criação<\/b> · lê quem está na sala/);
 });

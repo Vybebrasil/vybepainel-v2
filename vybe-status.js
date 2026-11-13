@@ -120,13 +120,24 @@ function openStatusEditor(event, itemId) {
   // do redesign, vybe-grupos.js); aqui ficam as escolhas e as ferramentas de cada etiqueta.
   const colunaDoStatus = `status:${isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID}`;
   const comFerramentas = typeof ferramentasDaEtiquetaHtml === 'function';
-  menu.innerHTML = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>${statusOptions.map(o => {
+  const cabeca = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>`;
+  const listaInteira = () => `${cabeca}${statusOptions.map(o => {
     const atual = mesmoStatus(o.label, item.status);
     const linha = `<button type="button" class="status-editor-option ${atual ? 'current' : ''}" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}${o.ativa === false ? ' (desligada)' : ''}</span>${atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`;
     if (!comFerramentas || !o.chave) return linha;
     const etiqueta = { chave: o.chave, rotulo: o.label, cor: o.color, ativa: o.ativa !== false };
     return `<div class="etiqueta-linha ${o.ativa === false ? 'desligada' : ''}">${linha}${ferramentasDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}${chaveDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}</div>`;
   }).join('')}${juntarAprovacaoNoSeletorHtml(item)}`;
+  // Padrão v2 (quadro Status do moodboard, 12/11/2026): o menu abre só com o que cabe agora, o próximo passo, o seguinte
+  // e a volta, na ordem do catálogo; "Todos os N status" mostra a lista inteira, com as ferramentas de etiqueta.
+  const ativas = statusOptions.filter(o => o.ativa !== false);
+  const i = ativas.findIndex(o => mesmoStatus(o.label, item.status));
+  const curto = i < 0 ? [] : [[ativas[i + 1], 'próximo'], [ativas[i + 2], ''], [ativas[i - 1], 'voltar']].filter(([o]) => o);
+  const opcaoCurta = ([o, dica]) => `<button type="button" class="status-editor-option v2-st-op" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="v2-st-pilula ${typeof pv2Tom === 'function' ? pv2Tom(o.label) : ''}" style="--c:${o.color}">${safeText(o.label)}</span>${dica ? `<small class="v2-st-dica">${dica}</small>` : ''}</button>`;
+  menu.innerHTML = curto.length && statusOptions.length > 4
+    ? `${cabeca}${curto.map(opcaoCurta).join('')}<button type="button" class="status-editor-option v2-st-todos" data-status-todos><span class="v2-st-todos-txt">Todos os ${statusOptions.length} status</span></button>`
+    : listaInteira();
+  menu.querySelector('[data-status-todos]')?.addEventListener('click', (e) => { e.stopPropagation(); menu.innerHTML = listaInteira(); ancorarPopover(menu, rect); });
   document.body.append(backdrop, menu);
   ancorarPopover(menu, rect);
 }
@@ -277,7 +288,7 @@ async function commitStatusChange(item, option) {
       : 'Status salvo, mas o encaminhamento automático não foi concluído. Abra “por que não rodou?” para tentar o encaminhamento novamente.', 'info', 12000);
     // Sem automação por trás, dá para voltar atrás num toque; com automação (efeito), o que ela fez não se desfaz daqui.
     else if (!efeito && statusDeAntes && !mesmoStatus(statusDeAntes, final.label) && typeof mostrarDesfazer === 'function' && document.body.classList.contains('mundo')
-      && mostrarDesfazer(`Status: ${final.label}`, () => updateFocusStatus(id, statusDeAntes))) { /* o aviso com Desfazer já disse */ }
+      && mostrarDesfazer(`Movida para ${final.label}`, () => updateFocusStatus(id, statusDeAntes), 5000)) { /* o aviso com Desfazer já disse */ }
     else showToast(efeito || `✓ Status atualizado para ${final.label} · tela mantida no contexto atual`, 'ok', efeito ? 9000 : 4200);
     if (mesmaJanela()) {
       const dados = await fetchWorkspaceItem(item.id);
@@ -289,7 +300,13 @@ async function commitStatusChange(item, option) {
     }
   } catch(e) {
     if (confirmado) showToast('Status salvo. Não foi possível atualizar todos os detalhes; atualize a tela para conferir.', 'info', 9000);
-    else showToast(recadoDeStatusRecusado(e, option), 'err', 9000);
+    // A gravação recusada já avisou (vybe-dominio.js): um aviso só. O de status desconhecido diz o que fazer e fica no
+    // lugar do genérico.
+    else if (!e?.vbAvisado) showToast(recadoDeStatusRecusado(e, option), 'err', 9000);
+    else if (/Status desconhecido|não existe nas solicitações|nao existe nas solicitacoes/i.test(String(e?.message || ''))) {
+      document.querySelectorAll('#vv-wa-avisos .vv-aviso-curto').forEach((x) => { if (String(x.dataset.chave || '').startsWith('curto:Não foi possível salvar no banco Vybe')) x.remove(); });
+      showToast(recadoDeStatusRecusado(e, option), 'err', 9000);
+    }
   } finally {
     statusEmGravacao.delete(id);
   }
@@ -475,7 +492,7 @@ function statusContextOriginHtml(nome) {
       <button type="button" class="context-person context-person-other" data-origin-id="" aria-pressed="${!atual}"
         onclick="selecionarOrigemContexto('')"><span class="context-other-icon" aria-hidden="true">+</span><span>Outra pessoa</span></button>
     </div></div>
-    <label class="workflow-field" id="context-origin-external" ${atual ? 'hidden' : ''}><span>Nome do contato · obrigatório</span>
+    <label class="workflow-field" id="context-origin-external" ${atual ? 'hidden' : ''}><span>Nome do contato<em class="vb-obrig">obrigatório</em></span>
       <input id="context-origin-name" type="text" value="${safeText(atual ? '' : nome)}" placeholder="Nome do cliente ou contato"
         oninput="document.getElementById('status-context-requester').value=this.value"></label>`;
 }
@@ -522,23 +539,23 @@ function openStatusContextGate(item, option) {
   const euAgora = (typeof sessaoAtual === 'function' ? sessaoAtual()?.nome : '') || '';
   const requesterFields = rule.requester ? statusContextOriginHtml(euAgora) : '';
   const sourceFields = rule.source ? `<label class="workflow-field"><span>Canal da referência</span><select id="status-context-source"><option value="WhatsApp">WhatsApp</option><option value="Reunião">Reunião</option><option value="E-mail">E-mail</option><option value="Outro">Outro</option></select></label>` : '';
-  const completedField = (rule.completed || requiresHandoff) ? `<label class="workflow-field"><span>O que já foi concluído? ${rule.completed ? '· obrigatório' : '· opcional'}</span><textarea id="status-context-completed" rows="2" placeholder="Ex.: Versão final revisada, arquivo anexado e copy conferida."></textarea></label>` : '';
+  const completedField = (rule.completed || requiresHandoff) ? `<label class="workflow-field"><span>O que já foi concluído?${rule.completed ? '<em class="vb-obrig">obrigatório</em>' : ''}</span><textarea id="status-context-completed" rows="2" placeholder="Ex.: Versão final revisada, arquivo anexado e copy conferida."></textarea></label>` : '';
   const checklist = requiresQuality ? `<div class="workflow-checks"><span class="workflow-field"><span>Checklist de qualidade</span></span>${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" data-quality-check name="quality-${index}"><span>${safeText(check)}</span></label>`).join('')}</div>` : '';
-  const responsible=`<div class="workflow-field"><span id="status-context-owners-label">Responsáveis pela próxima ação · obrigatório</span><p class="context-field-help">Selecione uma ou mais pessoas. Elas serão atribuídas à atividade.</p><div role="group" aria-labelledby="status-context-owners-label">${statusContextResponsibleOptions(item)}</div></div>${statusContextGrupoHtml(item, option)}`;
+  const responsible=`<div class="workflow-field"><span id="status-context-owners-label">Responsáveis pela próxima ação<em class="vb-obrig">obrigatório</em></span><p class="context-field-help">Selecione uma ou mais pessoas. Elas serão atribuídas à atividade.</p><div role="group" aria-labelledby="status-context-owners-label">${statusContextResponsibleOptions(item)}</div></div>${statusContextGrupoHtml(item, option)}`;
   const etapas = [
-    { nome:'Motivo', campo:'status-context-reason', html:`<label class="workflow-field"><span>${safeText(rule.question)} · obrigatório</span><p class="context-field-help">${safeText(rule.helper)}</p><textarea id="status-context-reason" rows="4" placeholder="Descreva o que falta ou o motivo da mudança."></textarea></label>` },
+    { nome:'Motivo', campo:'status-context-reason', html:`<label class="workflow-field"><span>${safeText(rule.question)}<em class="vb-obrig">obrigatório</em></span><p class="context-field-help">${safeText(rule.helper)}</p><textarea id="status-context-reason" rows="4" placeholder="Descreva o que falta ou o motivo da mudança."></textarea></label>` },
     ...(completedField ? [{nome:'Concluído',campo:rule.completed?'status-context-completed':'',html:completedField}] : []),
     ...(requesterFields || sourceFields ? [{nome:'Origem',campo:rule.requester?'status-context-requester':'',html:requesterFields+sourceFields}] : []),
     {nome:'Responsáveis',campo:'status-context-next-owner',html:responsible},
-    {nome:'Referência',html:`<label class="workflow-field"><span>Quer incluir um link de referência? · opcional</span><input id="status-context-link" type="url" placeholder="https://drive.google.com/…"></label><p class="context-field-help">Se não precisar, continue sem preencher.</p>`},
+    {nome:'Referência',html:`<label class="workflow-field"><span>Quer incluir um link de referência?</span><input id="status-context-link" type="url" placeholder="https://drive.google.com/…"></label><p class="context-field-help">Se não precisar, continue sem preencher.</p>`},
     ...(checklist ? [{nome:'Qualidade',html:checklist}] : []),
     {nome:'Revisão',html:'<h3 class="context-review-title">Confira antes de salvar</h3><dl id="context-review"></dl>'}
   ];
-  const form=`<form id="status-context-form" data-step="0" onchange="updateStatusContextState()" onsubmit="event.preventDefault();avancarContextoStatus()">${etapas.map((etapa,i)=>`<section data-context-step="${i}" data-name="${safeText(etapa.nome)}" data-required="${etapa.campo||''}" ${i?'hidden':''}>${etapa.html}</section>`).join('')}<p id="context-step-error" role="alert" hidden></p></form>`;
+  const form=`<form id="status-context-form" data-step="0" onchange="updateStatusContextState()" onsubmit="event.preventDefault();avancarContextoStatus()">${etapas.map((etapa,i)=>`<section data-context-step="${i}" data-name="${safeText(etapa.nome)}" data-required="${etapa.campo||''}" ${i?'hidden':''}>${etapa.html}</section>`).join('')}<p id="context-step-error" class="vb-erro" role="alert" hidden></p></form>`;
   const preview=isCard?`<aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia do card</b><small>arquivo vinculado</small></div><div id="status-context-card-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside>`:'';
   const origem = document.activeElement;
   pendingWorkflowChange={item,option,manual:false};
-  openWorkflowModal(`<header class="context-header"><div class="workflow-kicker"><span>Atualizar atividade</span><button class="workflow-close" type="button" aria-label="Fechar alteração de status" onclick="closeWorkflowModal()">×</button></div><h2 class="context-title" id="context-dialog-title">${safeText(option.label)}</h2><div id="context-progress" class="context-progress" role="status" aria-live="polite"></div>${typeof workflowItemHtml === 'function' ? workflowItemHtml(item, option.label) : `<div class="context-item"><span>${safeText(item.cliente || 'Cliente não informado')}</span><strong>${safeText(item.nome)}</strong></div>`}<ol class="context-progress-track context-passos" aria-hidden="true">${etapas.map((e,i)=>`<li data-progress-step="${i}"><i>${i+1}</i><span>${safeText(e.nome)}</span></li>`).join('')}</ol></header><div class="context-scroll"><div class="status-context-layout"><div class="status-context-main">${form}</div>${preview}</div></div><footer class="context-actions"><small>Nada será alterado até você confirmar.</small><div><button id="context-back" type="button" class="workflow-secondary" onclick="voltarContextoStatus()">Cancelar</button><button id="status-context-submit" type="button" class="workflow-primary" onclick="avancarContextoStatus()">Continuar</button></div></footer>`);
+  openWorkflowModal(`<header class="context-header"><div class="workflow-kicker"><span>Atualizar atividade</span><button class="workflow-close" type="button" aria-label="Fechar alteração de status" onclick="closeWorkflowModal()">×</button></div><h2 class="context-title" id="context-dialog-title">${safeText(option.label)}</h2><div id="context-progress" class="context-progress" role="status" aria-live="polite"></div>${typeof workflowItemHtml === 'function' ? workflowItemHtml(item, option.label) : `<div class="context-item"><span>${safeText(item.cliente || 'Cliente não informado')}</span><strong>${safeText(item.nome)}</strong></div>`}${typeof vbEtapasHtml === 'function' ? vbEtapasHtml(etapas.map((e) => e.nome), 0, { attr: 'data-progress-step' }) : `<ol class="context-progress-track context-passos" aria-hidden="true">${etapas.map((e,i)=>`<li data-progress-step="${i}"><i>${i+1}</i><span>${safeText(e.nome)}</span></li>`).join('')}</ol>`}</header><div class="context-scroll"><div class="status-context-layout"><div class="status-context-main">${form}</div>${preview}</div></div><footer class="context-actions"><small>Nada será alterado até você confirmar.</small><div><button id="context-back" type="button" class="pt-btn" onclick="voltarContextoStatus()">Cancelar</button><button id="status-context-submit" type="button" class="pt-btn k" onclick="avancarContextoStatus()">Continuar</button></div></footer>`);
   const modal=document.getElementById('workflow-modal');
   modal.classList.add('status-context-dialog');
   modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','context-dialog-title');
@@ -566,8 +583,9 @@ function mostrarEtapaContexto(indice) {
   document.getElementById('context-progress').textContent=`${atual+1} de ${etapas.length} · ${etapas[atual].dataset.name}`;
   document.querySelectorAll('[data-progress-step]').forEach(el => { const n = Number(el.dataset.progressStep); el.classList.toggle('complete', n <= atual); el.classList.toggle('feito', n < atual); el.classList.toggle('atual', n === atual); });
   document.getElementById('context-back').textContent=atual?'Voltar':'Cancelar';
-  document.getElementById('status-context-submit').textContent=final?'Confirmar alteração':'Continuar →';
+  document.getElementById('status-context-submit').textContent=final?'Confirmar alteração':'Continuar';
   document.getElementById('context-step-error').hidden=true;
+  document.querySelectorAll('#status-context-form [aria-invalid="true"]').forEach((c) => c.removeAttribute('aria-invalid'));
   const modal=document.getElementById('workflow-modal');
   const preview=modal.querySelector('.status-context-preview');
   if(preview) preview.hidden=!final;
@@ -608,6 +626,9 @@ function avancarContextoStatus() {
     const erro=erroEtapaContexto(etapa); if(!erro) continue;
     if(revisao) mostrarEtapaContexto(Number(etapa.dataset.contextStep));
     const aviso=document.getElementById('context-step-error');aviso.textContent=erro.mensagem;aviso.hidden=false;
+    // O erro fica embaixo do campo (padrão v2, família Formulário): o campo escondido (responsáveis) aponta o grupo dele.
+    const ancora=typeof erro.campo.closest==='function'?(erro.campo.type==='hidden'||erro.campo.type==='checkbox'?erro.campo.closest('.workflow-field,.workflow-checks,label'):erro.campo):null;
+    if(ancora&&typeof ancora.after==='function'){ancora.after(aviso);if(erro.campo.type!=='hidden'&&erro.campo.type!=='checkbox')erro.campo.setAttribute('aria-invalid','true');}
     if(erro.campo.type!=='hidden') erro.campo.focus();
     return;
   }

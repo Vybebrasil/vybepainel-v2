@@ -200,111 +200,226 @@ const ICONE_MAIS_AUTOMACOES = '<svg viewBox="0 0 24 24" aria-hidden="true"><path
 const DICA_PRIORIDADE = 'A coluna Prioridade não é escrita à mão: é o espelho da veiculação. Atrasado, hoje ou amanhã é Crítica; 2 a 3 dias, Alta; 4 a 7 dias, Média; 8 dias ou mais, Baixa. Sobe e desce sozinha na varredura da madrugada; peça finalizada ou sem veiculação não é tocada.';
 const DICA_REGRAS_DE_DATA = 'As regras por data rodam numa varredura por dia, de madrugada, e não na hora que estiver escrita nelas.';
 
+// Quadro "Automações" do padrão v2 (moodboard aprovado, 12/11/2026): título com Regras/Falhas, Mais e Nova regra; a
+// frase de quem cuida (Cícero); três números; "Pede ação" e "O que as regras fizeram" à esquerda; à direita as regras,
+// cada uma numa linha com a chave, o nome, "Testar regra" e a frase "Quando… então…", que abre no lugar.
+const ICONE_SETA_REGRA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const REGRAS_NA_FRENTE = 4, ACOES_NA_FRENTE = 4, PEDIDOS_NA_FRENTE = 3;
+let FALHAS_DE_AUTOMACOES = null;   // null enquanto a consulta não volta
+let BUSCA_DE_REGRAS = '';
+let REGRA_ABERTA = null, TODAS_AS_REGRAS = false, FILTROS_DE_SAUDE = false, HISTORICO_INTEIRO = false, PEDE_ACAO_INTEIRO = false;
+
+function regrasComSaude() { return AUTOMACOES.map((a) => ({ ...a, saude: saudeDaRegra(a) })); }
+function regraNoRecorte(a) {
+  if (FILTRO_DE_REGRAS === 'ligada') { if (!a.ativa) return false; }
+  else if (FILTRO_DE_REGRAS !== 'todas' && a.saude.chave !== FILTRO_DE_REGRAS) return false;
+  const q = BUSCA_DE_REGRAS.trim().toLowerCase();
+  return !q || `${a.nome} ${frasearGatilho(a.gatilho)} ${(a.acoes || []).map(frasearAcao).join(' ')}`.toLowerCase().includes(q);
+}
+function nomeDoAgenteDeAutomacao() {
+  try {
+    const planta = window.mundoVoxel?.planta?.() || [];
+    for (const andar of planta) for (const s of andar.setores || []) if (s.id === 'automacao' && s.agente) return String(s.agente);
+  } catch { /* sem a planta do prédio: o nome de sempre */ }
+  return 'Cícero';
+}
+
 function pintarAutomacoes() {
   const raiz = document.getElementById('automacoes-root');
   if (!raiz) return;
+  raiz.classList.add('v2r');
   const admin = podeEditarAutomacoes();
-  const comSaude = AUTOMACOES.map((a) => ({ ...a, saude: saudeDaRegra(a) }));
-  const conta = (chave) => comSaude.filter((a) => a.saude.chave === chave).length;
-
-  const visiveis = FILTRO_DE_REGRAS === 'todas'
-    ? comSaude : comSaude.filter((a) => a.saude.chave === FILTRO_DE_REGRAS);
-
-  const pastilhas = [
-    ['todas', 'Todas', comSaude.length],
-    ['trabalhando', 'Trabalhando', conta('trabalhando')],
-    ['parada', 'Paradas', conta('parada')],
-    ['nunca', 'Nunca rodaram', conta('nunca')],
-    ['desligada', 'Desligadas', conta('desligada')],
-  ].filter(([chave, , n]) => chave === 'todas' || n)
-   .map(([chave, rotulo, n]) => `<button type="button" class="vb-chip" onclick="filtrarRegras('${chave}')"
-      aria-pressed="${FILTRO_DE_REGRAS === chave}">${rotulo} <b>${n}</b></button>`).join('');
-
-  const linhas = visiveis.map((a) => {
-    const s = a.saude;
-    const condicao = frasearCondicao(a.condicao);
-    const acoes = (a.acoes || []).map((x) => safeText(frasearAcao(x))).join(' e ') || '—';
-    const nome = safeText(a.nome);
-    const liga = admin
-      ? `<button type="button" class="ar-liga" role="switch" aria-checked="${a.ativa ? 'true' : 'false'}"
-          aria-label="Regra ${nome} ${a.ativa ? 'ligada' : 'desligada'}" title="${a.ativa ? 'Ligada: clique para desligar' : 'Desligada: clique para ligar'}"
-          onclick="alternarAutomacao(${a.id})"><i aria-hidden="true"></i></button>`
-      : `<span class="ar-estado">${a.ativa ? 'Ligada' : 'Desligada'}</span>`;
-    return `
-    <article class="ar-regra ${a.ativa ? '' : 'desligada'}">
-      <div class="ar-corpo">
-        <h3 class="ar-nome">${nome}</h3>
-        <p class="ar-frase"><em>Quando</em> ${safeText(frasearGatilho(a.gatilho))}${condicao
-          ? ` <em>só se</em> ${safeText(condicao)}` : ''} <em>então</em> ${acoes}</p>
-        <small class="ar-detalhe"><span class="auto-selo ${s.chave}"><i></i>${safeText(s.rotulo)}</span>${safeText(s.detalhe)}</small>
-      </div>
-      <div class="ar-acoes">
-        ${admin ? `<button type="button" class="vb-botao" onclick="editarAutomacao(${a.id})">Editar</button>
-        <details class="vga-mais ar-mais"><summary aria-label="Mais ações da regra ${nome}">Mais ${ICONE_MAIS_AUTOMACOES}</summary>
-          <div class="vga-mais-menu">
-            <button type="button" onclick="this.closest('details').open=false;ensaiarAutomacao(${a.id})" title="Ver o que ela faria, sem mexer em nada">Ensaiar</button>
-            <button type="button" onclick="this.closest('details').open=false;excluirAutomacao(${a.id})">Excluir</button>
-          </div></details>` : ''}
-        ${liga}
-      </div>
-    </article>`;
-  }).join('');
-
+  const comSaude = regrasComSaude();
   const temRegraDeData = AUTOMACOES.some((a) => a.gatilho?.tipo === 'data' && a.ativa);
   const dica = (rotulo, texto) => `<span class="ar-dica vb-jogo-dica" tabindex="0" data-dica="${safeText(texto)}" title="${safeText(texto)}">${rotulo}<span class="ar-dica-i" aria-hidden="true">i</span></span>`;
-  const mais = admin ? `<details class="vga-mais ar-mais"><summary>Mais ${ICONE_MAIS_AUTOMACOES}</summary>
+  const mais = admin ? `<details class="vga-mais ar-mais"><summary class="v2g-btn">Mais ${ICONE_MAIS_AUTOMACOES}</summary>
       <div class="vga-mais-menu">
         <button type="button" onclick="this.closest('details').open=false;recalcularPrioridadesAgora(this)"
           title="Refaz a coluna Prioridade de todas as peças a partir da veiculação. Roda sozinho toda madrugada; isto aqui é para não esperar.">Recalcular prioridades</button>
         <button type="button" onclick="this.closest('details').open=false;sincronizarRegrasDoSistema(this)"
           title="Traz para o painel as regras que vieram do Monday, corrigindo as que mudaram. Regra criada aqui não é tocada.">Sincronizar regras do sistema</button>
       </div></details>` : '';
-  const novo = admin ? `<button type="button" class="vb-botao principal" onclick="editarAutomacao(null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova regra</button>` : '';
+  const novo = admin ? '<button type="button" class="v2g-btn p auto-novo" onclick="editarAutomacao(null)">Nova regra</button>' : '';
   const regras = ABA_DE_AUTOMACOES !== 'falhas';
+  // Regras/Falhas como par de opções (aria-checked): o "selecionado é preto" do painel antigo vale para aria-pressed.
+  const abas = `<div class="v2g-seg ar-abas" role="radiogroup" aria-label="Regras ou falhas">
+        <button type="button" role="radio" aria-checked="${regras}" onclick="trocarAbaAutomacoes('regras')">Regras <span class="ar-n">${comSaude.length}</span></button>
+        <button type="button" role="radio" aria-checked="${!regras}" onclick="trocarAbaAutomacoes('falhas')">Falhas <span class="ar-n" id="auto-aba-falhas-n">…</span></button>
+      </div>`;
+  const semRegra = !comSaude.length;
 
   raiz.innerHTML = `
-    ${vbCabecalhoHtml({ titulo: 'Automações',
-      texto: admin ? 'As regras que movem, atribuem e avisam sozinhas. Mudar aqui vale na hora.'
-        : 'As regras que movem, atribuem e avisam sozinhas. Só quem administra altera; a lista explica por que um card muda de dono sozinho.',
-      acoes: mais + novo })}
-    <div class="ar-barra">
-      <div class="vb-alternar ar-abas" role="group" aria-label="Regras ou falhas">
-        <button type="button" aria-pressed="${regras}" onclick="trocarAbaAutomacoes('regras')">Regras <span class="ar-n">${comSaude.length}</span></button>
-        <button type="button" aria-pressed="${!regras}" onclick="trocarAbaAutomacoes('falhas')">Falhas <span class="ar-n" id="auto-aba-falhas-n">…</span></button>
-      </div>
-      <span class="ar-espaco"></span>
-      ${temRegraDeData ? dica('Regras por data rodam de madrugada', DICA_REGRAS_DE_DATA) : ''}
-      ${dica('Prioridade é automática', DICA_PRIORIDADE)}
-    </div>
-    <section class="ar-aba" data-aba="regras" aria-label="Regras" ${regras ? '' : 'hidden'}>
+    ${vbCabecalhoHtml({ titulo: 'Automações', acoes: abas + mais + novo })}
+    <section class="ar-aba v2r-tela" data-aba="regras" aria-label="Regras" ${regras ? '' : 'hidden'}>
+      ${semRegra ? '' : '<div class="v2g-card v2g-fala" id="auto-fala"></div><div class="v2r-kpis" id="auto-kpis"></div>'}
       <div id="auto-editor"></div>
-      ${comSaude.length > 1 ? `<div class="ar-filtros" role="group" aria-label="Filtrar regras">${pastilhas}</div>` : ''}
-      <div class="ar-lista">${linhas || (comSaude.length
-        ? vbEstadoHtml({ titulo: 'Nenhuma regra neste recorte', texto: 'Escolha “Todas” para ver a lista inteira.' })
-        : vbEstadoHtml({ titulo: 'Nenhuma regra ainda', texto: admin ? 'Uma regra move, atribui ou avisa sozinha quando uma peça muda. Comece por “Nova regra”, no topo.' : 'Quando quem administra criar uma regra, ela aparece aqui.' }))}</div>
-      <h3 class="ar-secao">O que as regras fizeram</h3>
-      <div id="auto-historico" class="auto-hist">${vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando o registro' })}</div>
+      ${semRegra ? `<div class="v2g-card v2r-vazio"><p>Nenhuma regra ainda. Uma regra move, atribui ou avisa sozinha quando uma peça muda.${admin ? '' : ' Quando quem administra criar uma regra, ela aparece aqui.'}</p>${novo}</div>
+      <div id="auto-historico" hidden></div>` : `<div class="v2r-grade">
+        <div class="v2r-col">
+          <div class="v2g-card" id="auto-pede"></div>
+          <div class="v2g-card v2r-fez">
+            <div class="v2g-cab"><h3 class="v2g-h2">O que as regras fizeram</h3><span class="v2g-sub" id="auto-historico-n"></span></div>
+            <div id="auto-historico" class="v2r-hist">${vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando o registro' })}</div>
+          </div>
+        </div>
+        <div class="v2g-card v2r-regras">
+          <div class="v2g-cab"><h3 class="v2g-h2">Regras</h3><span class="v2r-dicas">${temRegraDeData ? dica('Regras por data rodam de madrugada', DICA_REGRAS_DE_DATA) : ''}${dica('Prioridade é automática', DICA_PRIORIDADE)}</span></div>
+          <div class="v2r-filtros">
+            <label for="auto-busca" class="v2g-fora">Buscar regra</label>
+            <input class="v2g-busca" id="auto-busca" type="search" placeholder="Buscar regra" autocomplete="off" value="${safeText(BUSCA_DE_REGRAS)}" oninput="buscarRegras(this.value)">
+            <span class="v2r-chips" id="auto-regras-chips" role="group" aria-label="Filtrar regras"></span>
+          </div>
+          <div id="auto-regras-lista" class="v2r-lista"></div>
+        </div>
+      </div>`}
     </section>
-    <section class="ar-aba" data-aba="falhas" aria-label="Encaminhamentos com falha" ${regras ? 'hidden' : ''}>
+    <section class="ar-aba v2g-card v2r-falhas" data-aba="falhas" aria-label="Encaminhamentos com falha" ${regras ? 'hidden' : ''}>
       <div class="ar-falhas-topo"><p>Status de Produção e Demandas que não conseguiram seguir. As resolvidas ficam no histórico; até 100, com as pendentes primeiro.</p>
-        <button type="button" class="vb-botao" onclick="carregarFalhasAutomacoes()">Atualizar</button></div>
+        <button type="button" class="v2g-btn s" onclick="carregarFalhasAutomacoes()">Atualizar</button></div>
       <div id="auto-falhas-lista" aria-live="polite">${vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando as falhas' })}</div>
     </section>`;
+  pintarResumoDasAutomacoes();
+  pintarListaDeRegras();
+}
+
+// A frase do agente, os três números e o "Pede ação": repintam quando as falhas chegam, sem mexer na lista nem na busca.
+function pintarResumoDasAutomacoes() {
+  const fala = document.getElementById('auto-fala'), kpis = document.getElementById('auto-kpis'), pede = document.getElementById('auto-pede');
+  if (!fala || !kpis || !pede) return;
+  const admin = podeEditarAutomacoes(), comSaude = regrasComSaude();
+  const n = (v) => Number(v).toLocaleString('pt-BR');
+  const ligadas = comSaude.filter((a) => a.ativa).length;
+  const acoes = comSaude.reduce((t, a) => t + Number(a.execucoes_30_dias || 0), 0);
+  const lendo = FALHAS_DE_AUTOMACOES === null;
+  const pendentes = (FALHAS_DE_AUTOMACOES || []).filter((f) => f.estado === 'pendente');
+  // Quantas vezes rodaram, em 30 dias, as regras que movem, que atribuem e que avisam (uma regra pode fazer mais de uma coisa).
+  const rodaram = (tipos) => comSaude.filter((a) => (a.acoes || []).some((x) => tipos.includes(x.tipo))).reduce((t, a) => t + Number(a.execucoes_30_dias || 0), 0);
+  const partes = [[rodaram(['grupo']), 'moveram'], [rodaram(['responsaveis']), 'atribuíram'], [rodaram(['notificar', 'update']), 'avisaram'], [rodaram(['status', 'captacao']), 'mudaram etiqueta']]
+    .filter(([q]) => q).map(([q, rotulo]) => `${n(q)} ${rotulo}`).join(' · ');
+  const agente = nomeDoAgenteDeAutomacao();
+
+  const fez = !ligadas ? 'Nenhuma regra está ligada: nada se move sozinho agora.'
+    : `${ligadas === 1 ? 'A regra ligada fez' : `As ${ligadas} regras ligadas fizeram`} <b>${n(acoes)} ${acoes === 1 ? 'ação' : 'ações'} em 30 dias</b> sem ninguém tocar.`;
+  const falhou = lendo ? '' : pendentes.length
+    ? ` <b>${pendentes.length === 1 ? '1 encaminhamento falhou' : `${pendentes.length} encaminhamentos falharam`}</b> e ${pendentes.length === 1 ? 'espera' : 'esperam'} alguém: dá para ver o diagnóstico e tentar de novo.`
+    : ' Nenhuma falha esperando.';
+  fala.innerHTML = `<span class="v2g-ag" aria-hidden="true">${safeText(agente.slice(0, 1).toUpperCase())}</span>
+    <p><span class="v2g-quem">${safeText(agente)} · Automação</span>${fez}${falhou}</p>
+    ${pendentes.length ? `<button type="button" class="v2g-btn s" onclick="trocarAbaAutomacoes('falhas')">${pendentes.length === 1 ? 'Ver a falha' : `Ver as ${pendentes.length}`}</button>` : ''}`;
+
+  kpis.innerHTML = `
+    <div class="v2g-card v2g-kpi"><small>Regras ligadas</small><b><span class="v2-num">${ligadas}</span> <i>de ${comSaude.length}</i></b><small>${admin ? 'mudar aqui vale na hora' : 'só quem administra altera'}</small></div>
+    <div class="v2g-card v2g-kpi"><small>Ações em 30 dias</small><b><span class="v2-num">${n(acoes)}</span></b><small>${partes || 'nenhuma regra rodou no período'}</small></div>
+    <div class="v2g-card v2g-kpi${pendentes.length ? ' ruim' : ''}"><small>Falhas</small><b><span class="v2-num">${lendo ? '…' : pendentes.length}</span></b><small>${lendo ? 'consultando' : pendentes.length ? 'esperando alguém' : 'nenhuma esperando'}</small></div>`;
+
+  const itens = [
+    ...pendentes.map((f) => `<div class="v2g-lin v2r-pede"><span class="v2g-pill r">Falhou</span><p><b>${safeText(f.titulo)}</b> · ${safeText(f.motivo)}${f.clientes ? ` · ${safeText(f.clientes)}` : ''}</p>
+      <span class="v2r-pede-acoes"><button type="button" class="v2g-btn s" data-item="${safeText(f.item)}" onclick="diagnosticarAutomacao(this.dataset.item,this)">Ver diagnóstico</button>
+      <button type="button" class="v2g-btn s" data-item="${safeText(f.item)}" data-evento="${safeText(f.ocorrencia)}" onclick="retomarEncaminhamentoDaPeca(this.dataset.item,this.dataset.evento,this)">Tentar de novo</button></span></div>`),
+    ...comSaude.filter((a) => a.saude.chave === 'desligada').map((a) => `<div class="v2g-lin"><span class="v2g-pill a">Desligada</span><p><b>${safeText(a.nome)}</b> · ${safeText(a.saude.detalhe)}</p>
+      ${admin ? `<button type="button" class="v2g-btn s" onclick="alternarAutomacao(${a.id})">Ligar</button>` : ''}</div>`),
+    ...comSaude.filter((a) => a.saude.chave === 'parada').map((a) => `<div class="v2g-lin"><span class="v2g-pill a">Parada</span><p><b>${safeText(a.nome)}</b> · ${safeText(a.saude.detalhe)}</p>
+      <button type="button" class="v2g-btn s" onclick="abrirRegra(${a.id},true)">Abrir</button></div>`),
+  ];
+  const mostra = PEDE_ACAO_INTEIRO ? itens : itens.slice(0, PEDIDOS_NA_FRENTE);
+  pede.innerHTML = `<div class="v2g-cab"><h3 class="v2g-h2">Pede ação</h3><span class="v2g-sub">${itens.length ? `${itens.length} ${itens.length === 1 ? 'coisa' : 'coisas'}` : ''}</span></div>
+    ${mostra.join('') || `<p class="v2g-sub v2r-nada">${lendo ? 'Conferindo as falhas…' : 'Nada pede ação agora.'}</p>`}
+    ${itens.length > PEDIDOS_NA_FRENTE ? `<p class="v2g-sub v2r-pe">${PEDE_ACAO_INTEIRO ? '' : `+ ${itens.length - mostra.length} · `}<a href="#" role="button" class="v2g-link" onclick="mostrarTodoOPedeAcao(${!PEDE_ACAO_INTEIRO});return false">${PEDE_ACAO_INTEIRO ? 'recolher' : 'mostrar'}</a></p>` : ''}`;
+}
+function mostrarTodoOPedeAcao(sim) { PEDE_ACAO_INTEIRO = Boolean(sim); pintarResumoDasAutomacoes(); }
+// A consulta das falhas terminou (ou falhou: lista vazia para a tela não ficar em "consultando").
+function aoLerFalhasDeAutomacoes(falhas) { FALHAS_DE_AUTOMACOES = Array.isArray(falhas) ? falhas : []; pintarResumoDasAutomacoes(); }
+
+function linhaDaRegraHtml(a, admin) {
+  const s = a.saude, nome = safeText(a.nome), aberta = REGRA_ABERTA === Number(a.id);
+  const condicao = frasearCondicao(a.condicao);
+  const acoes = (a.acoes || []).map((x) => safeText(frasearAcao(x))).join(' e ') || '—';
+  const total = Number(a.execucoes_total || 0);
+  const selo = { desligada: ['n', 'Desligada'], parada: ['a', 'Parada'], nunca: ['n', 'Nunca rodou'] }[s.chave];
+  const liga = admin
+    ? `<button type="button" class="v2g-tg" role="switch" aria-checked="${a.ativa ? 'true' : 'false'}"
+        aria-label="Regra ${nome} ${a.ativa ? 'ligada' : 'desligada'}" title="${a.ativa ? 'Ligada: clique para desligar' : 'Desligada: clique para ligar'}"
+        onclick="alternarAutomacao(${a.id})"></button>`
+    : `<span class="v2g-pill ${a.ativa ? 'g' : 'n'}">${a.ativa ? 'Ligada' : 'Desligada'}</span>`;
+  const ultima = (EXECUCOES || []).find((e) => e.automacao === a.nome);
+  const saude = s.rotulo.charAt(0).toUpperCase() + s.rotulo.slice(1) + (s.detalhe ? ` · ${s.detalhe}` : '');
+  return `
+    <div class="v2-abre v2r-regra${a.ativa ? '' : ' desligada'}" data-regra="${Number(a.id)}" aria-expanded="${aberta}">
+      <div class="v2r-lin">
+        ${liga}
+        <button type="button" class="v2r-nome" aria-expanded="${aberta}" title="Abrir a regra" onclick="abrirRegra(${a.id})"><b>${nome}</b></button>
+        ${selo && (admin || s.chave !== 'desligada') ? `<span class="v2g-pill ${selo[0]}">${selo[1]}</span>` : ''}
+        ${admin ? `<button type="button" class="v2g-btn s v2-estado" title="Ver o que ela faria, sem mexer em nada" onclick="ensaiarAutomacao(${a.id},this)">Testar regra</button>` : ''}
+        <p class="v2r-qe"><em>Quando</em> ${safeText(frasearGatilho(a.gatilho))}${condicao
+          ? ` <em>só se</em> ${safeText(condicao)}` : ''} ${ICONE_SETA_REGRA}<em>então</em> ${acoes}<span class="v2g-sub">${total.toLocaleString('pt-BR')} ${total === 1 ? 'ação' : 'ações'}</span></p>
+      </div>
+      <div class="v2-mais"><div>
+        <p class="v2g-hist">${safeText(saude)}</p>
+        ${ultima ? `<p class="v2g-hist">A última ação foi em ${safeText(ultima.titulo || 'conteúdo removido')}, ${safeText(quandoFoiAutomacao(new Date(ultima.em)))}</p>` : ''}
+        ${admin ? `<p class="v2g-hist"><span><a href="#" role="button" class="v2g-link" onclick="editarAutomacao(${a.id});return false">Editar a regra</a> · <a href="#" role="button" class="v2g-link" onclick="excluirAutomacao(${a.id});return false">excluir</a></span></p>` : ''}
+      </div></div>
+    </div>`;
+}
+
+// As fichas do filtro e as linhas: repintam sozinhas, para a busca não perder o foco a cada letra.
+function pintarListaDeRegras() {
+  const chips = document.getElementById('auto-regras-chips'), lista = document.getElementById('auto-regras-lista');
+  if (!chips || !lista) return;
+  const admin = podeEditarAutomacoes(), comSaude = regrasComSaude();
+  const conta = (f) => comSaude.filter(f).length;
+  const chip = ([chave, rotulo, n]) => `<button type="button" class="v2g-chip" onclick="filtrarRegras('${chave}')" aria-pressed="${FILTRO_DE_REGRAS === chave}">${rotulo} <b>${n}</b></button>`;
+  const saude = [['trabalhando', 'Trabalhando'], ['parada', 'Paradas'], ['nunca', 'Nunca rodaram']]
+    .map(([chave, rotulo]) => [chave, rotulo, conta((a) => a.saude.chave === chave)]).filter(([, , n]) => n);
+  const comSaudeAberta = FILTROS_DE_SAUDE || saude.some(([chave]) => chave === FILTRO_DE_REGRAS);
+  chips.innerHTML = [['todas', 'Todas', comSaude.length], ['ligada', 'Ligadas', conta((a) => a.ativa)], ['desligada', 'Desligadas', conta((a) => !a.ativa)]].map(chip).join('')
+    + (saude.length ? `<button type="button" class="v2g-btn s" aria-expanded="${comSaudeAberta}" onclick="abrirFiltrosDeRegras()">Filtros</button>` : '')
+    + (saude.length && comSaudeAberta ? `<span class="v2r-saude">${saude.map(chip).join('')}</span>` : '');
+
+  const visiveis = comSaude.filter(regraNoRecorte);
+  const recorte = FILTRO_DE_REGRAS !== 'todas' || Boolean(BUSCA_DE_REGRAS.trim());
+  // A regra aberta nunca fica escondida no "+ N recolhidas".
+  const frente = visiveis.slice(0, REGRAS_NA_FRENTE);
+  const mostra = TODAS_AS_REGRAS || recorte ? visiveis : [...frente, ...visiveis.slice(REGRAS_NA_FRENTE).filter((a) => Number(a.id) === REGRA_ABERTA)];
+  const resto = visiveis.length - mostra.length;
+  const pe = resto > 0 ? `+ ${resto} ${resto === 1 ? 'regra recolhida' : 'regras recolhidas'} · <a href="#" role="button" class="v2g-link" onclick="mostrarTodasAsRegras(true);return false">mostrar</a> · `
+    : TODAS_AS_REGRAS && !recorte && visiveis.length > REGRAS_NA_FRENTE ? '<a href="#" role="button" class="v2g-link" onclick="mostrarTodasAsRegras(false);return false">recolher</a> · ' : '';
+  lista.innerHTML = mostra.length
+    ? mostra.map((a) => linhaDaRegraHtml(a, admin)).join('') + `<p class="v2g-sub v2r-pe">${pe}clicar na regra abre${admin ? ' e edita' : ''}</p>`
+    : '<p class="v2g-sub v2r-nada">Nenhuma regra neste recorte. <a href="#" role="button" class="v2g-link" onclick="limparRecorteDeRegras();return false">Ver todas</a></p>';
+}
+function buscarRegras(valor) { BUSCA_DE_REGRAS = String(valor || ''); pintarListaDeRegras(); }
+function abrirFiltrosDeRegras() { FILTROS_DE_SAUDE = !FILTROS_DE_SAUDE; pintarListaDeRegras(); }
+function mostrarTodasAsRegras(sim) { TODAS_AS_REGRAS = Boolean(sim); pintarListaDeRegras(); }
+function limparRecorteDeRegras() {
+  FILTRO_DE_REGRAS = 'todas'; BUSCA_DE_REGRAS = '';
+  const busca = document.getElementById('auto-busca'); if (busca) busca.value = '';
+  pintarListaDeRegras();
+}
+// Abre a regra no lugar (um clique abre, outro fecha); `manter` é para quem chega de outro bloco e quer vê-la aberta.
+function abrirRegra(id, manter = false) {
+  REGRA_ABERTA = !manter && REGRA_ABERTA === Number(id) ? null : Number(id);
+  const lista = document.getElementById('auto-regras-lista');
+  if (!lista) return;
+  if (manter && !lista.querySelector(`[data-regra="${Number(id)}"]`)) pintarListaDeRegras();
+  lista.querySelectorAll('.v2r-regra').forEach((linha) => {
+    const aberta = Number(linha.dataset.regra) === REGRA_ABERTA;
+    linha.setAttribute('aria-expanded', String(aberta));
+    linha.querySelector('.v2r-nome')?.setAttribute('aria-expanded', String(aberta));
+    if (aberta && manter) linha.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
 }
 
 function trocarAbaAutomacoes(aba) {
   ABA_DE_AUTOMACOES = aba === 'falhas' ? 'falhas' : 'regras';
   const raiz = document.getElementById('automacoes-root');
   if (!raiz) return;
-  raiz.querySelectorAll('.ar-abas button').forEach((b, i) => b.setAttribute('aria-pressed', String((i === 1) === (ABA_DE_AUTOMACOES === 'falhas'))));
+  raiz.querySelectorAll('.ar-abas button').forEach((b, i) => b.setAttribute('aria-checked', String((i === 1) === (ABA_DE_AUTOMACOES === 'falhas'))));
   raiz.querySelectorAll('.ar-aba').forEach((sec) => { sec.hidden = sec.dataset.aba !== ABA_DE_AUTOMACOES; });
 }
 
 function filtrarRegras(chave) {
   FILTRO_DE_REGRAS = FILTRO_DE_REGRAS === chave && chave !== 'todas' ? 'todas' : chave;
-  pintarAutomacoes();
-  carregarHistorico();
-  carregarFalhasAutomacoes();
+  pintarListaDeRegras();
 }
 
 // A lista pertence à instância da tela: uma resposta antiga não repinta outra abertura.
@@ -325,6 +440,7 @@ async function carregarFalhasAutomacoes() {
     const falhas = d.falhas || [];
     const pendentes = falhas.filter((f) => f.estado === 'pendente').length;
     contagem(String(pendentes), pendentes === 1 ? '1 falha pendente' : `${pendentes} falhas pendentes`);
+    if (typeof aoLerFalhasDeAutomacoes === 'function') aoLerFalhasDeAutomacoes(falhas);
     if (!falhas.length) { caixa.innerHTML = '<p class="auto-carregando">Nenhuma falha de encaminhamento registrada.</p>'; return; }
     const data = valor => new Date(valor).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const nomes = {pendente:'Pendente',resolvida:'Resolvida',superada:'Etapa alterada',removida:'Atividade removida'};
@@ -343,7 +459,8 @@ async function carregarFalhasAutomacoes() {
   } catch (erro) {
     if (document.getElementById('auto-falhas-lista') === caixa && caixa.dataset.pedido === pedido) {
       contagem('!', 'Não foi possível consultar as falhas');
-      caixa.innerHTML = `<p class="auto-carregando" role="alert">Não foi possível consultar as falhas. ${safeText(erro.message)}</p><button type="button" class="vb-botao" onclick="carregarFalhasAutomacoes()">Tentar de novo</button>`;
+      if (typeof aoLerFalhasDeAutomacoes === 'function') aoLerFalhasDeAutomacoes([]);
+      caixa.innerHTML = `<p class="auto-carregando" role="alert">Não foi possível consultar as falhas. ${safeText(erro.message)}</p><button type="button" class="v2g-btn s" onclick="carregarFalhasAutomacoes()">Tentar de novo</button>`;
     }
   }
 }
@@ -367,21 +484,45 @@ async function carregarHistorico() {
 function pintarHistorico() {
   const caixa = document.getElementById('auto-historico');
   if (!caixa) return;
+  const contagem = document.getElementById('auto-historico-n');
   if (!EXECUCOES.length) {
-    caixa.innerHTML = '<div class="auto-carregando">Nenhuma regra disparou ainda.</div>';
+    caixa.innerHTML = '<p class="v2g-sub v2r-nada">Nenhuma regra disparou ainda.</p>';
+    if (contagem) contagem.textContent = '';
     return;
   }
-  caixa.innerHTML = EXECUCOES.map((e) => {
+  // Uma linha por ação, como no quadro: o que a regra fez (selo), em qual peça e a hora. A regra e a mudança que a
+  // disparou ficam na dica da linha e aparecem escritas quando a lista inteira é aberta.
+  const hoje = new Date().toDateString();
+  const mostra = HISTORICO_INTEIRO ? EXECUCOES : EXECUCOES.slice(0, ACOES_NA_FRENTE);
+  caixa.innerHTML = mostra.map((e) => {
     const ev = e.evento || {};
     const gatilho = ev.tipo === 'data' ? `por ${ev.campo || 'data'}`
       : `${nomeDeStatus(ev.de) || '—'} → ${nomeDeStatus(ev.para) || ''}`;
-    return `<div class="auto-hist-linha">
-      <span class="auto-hist-quando">${new Date(e.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-      <span class="auto-hist-peca">${safeText(e.titulo || '(conteúdo removido)')}<small>${safeText(gatilho)}</small></span>
-      <span class="auto-hist-regra">${safeText(e.automacao)}</span>
-      <span class="auto-hist-feitas">${(e.feitas || []).map((f) => safeText(traduzirFeita(f))).join(' · ') || '—'}</span>
+    const [tom, selo] = seloDaExecucao(e.feitas);
+    const quando = new Date(e.em);
+    const hora = quando.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dia = quando.toDateString() === hoje ? '' : `${quando.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} `;
+    return `<div class="v2g-lin" title="${safeText(`${e.automacao || ''} · ${gatilho}`)}">
+      <span class="v2g-pill ${tom}">${selo}</span>
+      <p><b>${safeText(e.titulo || '(conteúdo removido)')}</b> · ${(e.feitas || []).map((f) => safeText(traduzirFeita(f))).join(' · ') || '—'}${HISTORICO_INTEIRO
+        ? `<small>${safeText(e.automacao || '')} · ${safeText(gatilho)}</small>` : ''}</p>
+      <span class="v2g-sub">${dia}${hora}</span>
     </div>`;
-  }).join('');
+  }).join('') + (EXECUCOES.length > ACOES_NA_FRENTE
+    ? `<p class="v2g-sub v2r-pe">${HISTORICO_INTEIRO ? '' : `+ ${EXECUCOES.length - mostra.length} ${EXECUCOES.length - mostra.length === 1 ? 'ação' : 'ações'} · `}<a href="#" role="button" class="v2g-link" onclick="mostrarHistoricoInteiro(${!HISTORICO_INTEIRO});return false">${HISTORICO_INTEIRO ? 'recolher' : 'mostrar'}</a></p>` : '');
+  if (contagem) contagem.textContent = EXECUCOES.length === 1 ? 'a última' : `as últimas ${EXECUCOES.length}`;
+  // Com o registro em mãos, a regra aberta passa a dizer qual foi a última ação dela.
+  pintarListaDeRegras();
+}
+function mostrarHistoricoInteiro(sim) { HISTORICO_INTEIRO = Boolean(sim); pintarHistorico(); }
+// O selo da linha: a primeira coisa que a regra fez naquela peça.
+function seloDaExecucao(feitas) {
+  const t = String((feitas || [])[0] || '');
+  if (/^grupo/.test(t)) return ['g', 'Moveu'];
+  if (/^responsáveis/.test(t)) return ['b', 'Atribuiu'];
+  if (t === 'notificação' || t === 'update') return ['a', 'Avisou'];
+  if (/^(status|captação)/.test(t)) return ['n', 'Mudou'];
+  return ['n', 'Rodou'];
 }
 
 // O registro guardava "grupo → novo_grupo22352__1". O id é o que ficou gravado
@@ -402,7 +543,14 @@ function traduzirFeita(texto) {
 }
 
 // ── ensaio ────────────────────────────────────────────────────────────────────
-async function ensaiarAutomacao(id) {
+// O botão "Testar regra" conta o estado: gira enquanto o ensaio roda e fica "Passou" quando volta.
+function estadoDoBotaoDeTeste(botao, estado) {
+  if (!botao?.dataset) return;
+  if (!estado) { delete botao.dataset.estado; botao.textContent = 'Testar regra'; return; }
+  botao.dataset.estado = estado;
+  if (estado === 'feito') { botao.textContent = 'Passou'; setTimeout(() => estadoDoBotaoDeTeste(botao, ''), 2600); }
+}
+async function ensaiarAutomacao(id, botao) {
   const regra = AUTOMACOES.find((a) => Number(a.id) === Number(id));
   if (!regra) return;
   const g = regra.gatilho || {};
@@ -418,6 +566,7 @@ async function ensaiarAutomacao(id) {
   // diagnostico, sendo defeito do ensaio.
   const captacao = (regra.condicao?.captacao_em || [])[0] || null;
   const status = g.tipo !== 'status' ? (regra.condicao?.status_em || [])[0] || null : null;
+  estadoDoBotaoDeTeste(botao, 'indo');
   try {
     const resposta = await fetch(`${AUTOMACOES_API}&acao=ensaio`, {
       method: 'POST', credentials: 'same-origin',
@@ -430,7 +579,9 @@ async function ensaiarAutomacao(id) {
     const r = d.resultado || {};
     showToast(`Ensaio (${formato}): status → ${nomeDeStatus(r.status)} · grupo → ${nomeDeGrupo(r.grupo)} · ${
       (r.responsaveis || []).map((p) => primeiroNome(nomeDePessoa(p))).join(', ') || 'sem responsável'}`, 'info', 9000);
+    estadoDoBotaoDeTeste(botao, 'feito');
   } catch (erro) {
+    estadoDoBotaoDeTeste(botao, '');
     showToast(`Ensaio falhou: ${erro.message}`, 'error', 6000);
   }
 }

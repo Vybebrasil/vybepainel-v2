@@ -21,7 +21,7 @@ test('a fila é a aprovação interna, pela data do cliente, e larga a peça que
 test('a decisão passa pelos portões de sempre; sem peça, status ou portão, abre a peça', () => {
   assert.match(js, /alvo = acao === 'aprovar' \? 'para agendar' : 'alteração';/);
   assert.match(js, /const portao = acao === 'aprovar' \? globalThis\.openQualityGate : globalThis\.openStatusContextGate;/);
-  assert.match(js, /if \(!item \|\| !opcao \|\| typeof portao !== 'function'\) \{ toast\('Abri a peça: a decisão dela é por lá\.', 'info'\); return abrirDaFila\(i\); \}/);
+  assert.match(js, /if \(!item \|\| !opcao \|\| typeof portao !== 'function'\) \{ st\.lote = \[\]; toast\('Abri a peça: a decisão dela é por lá\.', 'info'\); return abrirDaFila\(i\); \}/);
   assert.match(js, /portao\(item, opcao\);/);
   // Nada grava status direto daqui.
   const trecho = js.slice(js.indexOf('// ---------- Para aprovar'), js.indexOf('// ---------- Equilíbrio ----------'));
@@ -39,5 +39,6 @@ test('sem dados (leitura antes do login), abrir a aba lê de novo; a gaveta da p
   assert.match(js, /const relerFila = \(forcar = false\) => A\(\)\?\.atualizar\?\.\(forcar \|\| !A\(\)\.estado\(\)\.dados\);/);
   assert.match(js, /document\.body\.classList\.toggle\('vc-aberto', st\.aberto\);/);
   assert.match(css, /html body\.mundo\.vc-aberto #workspace-drawer\.workspace-drawer\{z-index:660!important\}/);
-  assert.match(css, /#vv-conteudo \.vc-apr-ok\{[^}]*background:#1F1D1A;color:#FFFFFF/);
+  assert.match(fs.readFileSync('padrao-v2/conteudo.css', 'utf8'), /#vv-conteudo\.vc \.v2c-btn\.k\{background:#1F1D1A;color:#FFFFFF/);
+  assert.doesNotMatch(css, /vc-apr-/, 'as classes da tela antiga saíram do CSS');
 });

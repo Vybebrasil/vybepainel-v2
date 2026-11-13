@@ -155,7 +155,7 @@ async function renomearTarefa(subitemId, itemId, alvo) {
 }
 
 async function removerTarefa(subitemId, itemId, titulo) {
-  if (!await confirmarNoPainel(`Remover a subdemanda "${titulo}"?`)) return;
+  if (!await (typeof vbConfirmarApagar === 'function' ? vbConfirmarApagar({ titulo: `Remover a subdemanda "${titulo}"?`, rotulo: 'Remover' }) : confirmarNoPainel(`Remover a subdemanda "${titulo}"?`))) return;
   const d = await mexerNaTarefa({ operacao: 'remover', subitem: subitemId }, itemId);
   if (d) showToast('✓ Subdemanda removida', 'ok');
 }

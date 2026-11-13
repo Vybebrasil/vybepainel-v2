@@ -46,7 +46,7 @@ test('Comercial e Finanças: sem dados, a visão geral mostra os números, os pr
   await esperar();
   const html = visao.querySelector('.vs-corpo').innerHTML;
   assert.doesNotMatch(html, /Sem números do Comercial agora/);
-  for (const t of ['Leads novos', 'Propostas enviadas', 'Negócios fechados', 'Clientes ativos', 'Próximos passos', 'Meta do mês']) assert.ok(html.includes(t), t);
+  for (const t of ['Leads novos', 'Propostas enviadas', 'Negócios fechados', 'Clientes ativos', 'Pede ação', 'Meta do mês']) assert.ok(html.includes(t), t);
   assert.match(html, /data-setor-sub="funil">Abrir o funil/, 'cada número leva à aba');
   assert.match(html, /Cadastrar os pacotes da Vybe/);
   assert.match(html, /1 contrato renova em 30 dias/);
@@ -57,7 +57,7 @@ test('Comercial e Finanças: sem dados, a visão geral mostra os números, os pr
   await esperar();
   const fin = visao.querySelector('.vs-corpo').innerHTML;
   assert.doesNotMatch(fin, /Sem números de Finanças agora/);
-  for (const t of ['Receita contratada', 'Recebido', 'Em atraso', 'Próximos passos', 'Ligar o Vybe Finanças', 'Meta de vendas do mês']) assert.ok(fin.includes(t), t);
+  for (const t of ['Receita contratada', 'Recebido', 'Em atraso', 'Pede ação', 'Ligar o Vybe Finanças', 'Meta de vendas do mês']) assert.ok(fin.includes(t), t);
   assert.match(fin, /data-setor-ir="setor:comercial"/, 'a meta mora no Funil: o botão leva ao Comercial');
 });
 
@@ -70,7 +70,7 @@ function comercial(respostas, extra) {
   return { ...c, janela, clicar };
 }
 
-test('Funil: uma coluna por fase mesmo vazio, Novo lead no título e os motivos de perda como filtro do Perdido', async () => {
+test('Funil (padrão v2): uma etapa por fase mesmo vazia, Novo lead no título e os motivos de perda como filtro do Perdido', async () => {
   const calc = (await import('../shared/comercial-calculos.js')).default;
   const ops = [{ id: '1', nome: 'Padaria Sol', etapa: 'empresa' }, { id: '2', nome: 'Pet Feliz', etapa: 'perdido', motivo_perda: 'preco' }, { id: '3', nome: 'Loja Azul', etapa: 'perdido', motivo_perda: 'timing' }];
   let comDados = false;
@@ -81,13 +81,17 @@ test('Funil: uma coluna por fase mesmo vazio, Novo lead no título e os motivos 
   });
   ctx.VybeComercial.abrir('funil'); await esperar();
   let html = janela().innerHTML;
-  assert.equal((html.match(/<section class="vc-coluna/g) || []).length, calc.FASES.length, 'sem resposta do funil, as fases padrão vazias');
+  assert.equal((html.match(/class="v2c-et z[ "]/g) || []).length, calc.FASES.length, 'sem resposta do funil, as fases padrão vazias (tracejadas)');
   assert.doesNotMatch(html, /Novo lead/, 'só quem edita o comercial vê o botão');
 
   comDados = true; ctx.VybeComercial.abrir('funil'); await esperar();
   html = janela().innerHTML;
   assert.match(html.slice(0, html.indexOf('vc-abas')), /data-vc="lead"[^>]*>.*Novo lead/, 'Novo lead no topo, ao lado do título');
-  assert.match(html, /data-vc-motivo="preco"[^>]*>Preço <b>1<\/b>/);
+  // Ganho e Perdido abrem a lista ao clicar na etapa (quadro CRM e funil).
+  assert.ok(!html.includes('Pet Feliz'), 'Perdido fica recolhido na etapa');
+  clicar({ v2: 'fase', id: 'perdido' });
+  html = janela().innerHTML;
+  assert.match(html, /data-vc-motivo="preco"[^>]*>Preço · 1</);
   assert.doesNotMatch(html, /role="tablist" aria-label="Fases do funil"/, 'as fases não são mais abas');
   assert.ok(html.includes('Pet Feliz') && html.includes('Loja Azul'));
   clicar({ vcMotivo: 'preco' });
@@ -112,8 +116,9 @@ test('Finanças por cliente: os clientes ativos aparecem sem contrato e o aviso 
   const html = janela().innerHTML;
   assert.doesNotMatch(html, /Nenhum cliente ativo/);
   assert.ok(html.indexOf('Academia Lions') < html.indexOf('Antonov'), 'em ordem alfabética');
-  assert.equal((html.match(/>sem contrato</g) || []).length, 2);
-  assert.match(html, /class="vc-nota"/);
+  assert.equal((html.match(/<span class="v2c-pill n">sem contrato</g) || []).length, 2);
+  // Padrão v2 (quadro Por cliente): sem caixa de aviso no corpo; o que falta fica no rodapé, só para quem administra.
+  assert.doesNotMatch(html, /class="vc-nota"|ver o que falta/);
   assert.doesNotMatch(html, /só leitura|class="vc-aviso"/);
   assert.doesNotMatch(html, /Falta a ligação do banco/, 'o motivo técnico fica em Ver o que falta, só para quem administra (quadro 56)');
 });

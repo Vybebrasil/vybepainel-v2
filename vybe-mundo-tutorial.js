@@ -662,41 +662,52 @@
     const linha = (titulo, sub, visto, acao, extra, [sim, nao] = ['Vista', 'Nova']) => guardar(h('button', { type: 'button', class: 'vv-tour-linha', onclick: acao, ...extra },
       h('b', {}, titulo), h('small', {}, sub), h('em', { class: visto ? 'vista' : 'nova' }, visto ? sim : nao)));
 
-    const fechar = guardar(botao('vv-tour-x', '×', () => fecharAjuda(), { 'aria-label': 'Fechar a ajuda', 'data-tour': 'fechar-ajuda' }));
-    const refazer = guardar(botao('vv-tour-principal vv-tour-largo', 'Refazer o passeio', () => { fecharAjuda(false); iniciar({ forcar: true }); }, { 'data-tour': 'refazer' }));
+    const fechar = guardar(botao('vv-tour-x', '×', () => fecharAjuda(), { 'aria-label': 'Fechar a ajuda', title: 'Fechar (Esc)', 'data-tour': 'fechar-ajuda' }));
+    const refazer = guardar(botao('vv-tour-principal', 'Refazer o passeio', () => { fecharAjuda(false); iniciar({ forcar: true }); }, { 'data-tour': 'refazer' }));
     const passeios = Object.entries(CONTEUDO.passeios).map(([id, p]) =>
       linha(p.titulo, p.resumo || '', Boolean(e.passeios[id]), () => { fecharAjuda(false); iniciar({ forcar: true, passeio: id }); }, { 'data-tour-passeio': id }, ['Visto', 'Novo']));
     const ids = Object.keys(CONTEUDO.dicas).filter((id) => CONTEUDO.dicas[id].so !== 'dono' || dono);
     const grupos = [...new Set([...(CONTEUDO.grupos || []), ...ids.map((id) => CONTEUDO.dicas[id].grupo || 'Outras')])]
       .map((g) => [g, ids.filter((id) => (CONTEUDO.dicas[id].grupo || 'Outras') === g)]).filter(([, l]) => l.length)
-      .map(([g, l]) => [h('h4', { class: 'vv-tour-grupo' }, g), h('div', { class: 'vv-tour-lista' },
+      .map(([g, l]) => [h('h4', { class: 'vv-tour-grupo' }, 'Dicas · ' + g), h('div', { class: 'vv-tour-lista' },
         l.map((id) => linha(CONTEUDO.dicas[id].titulo, comNome(CONTEUDO.dicas[id].texto, eu.nome), Boolean(e.dicas[id]), () => { fecharAjuda(false); dica(id, { forcar: true }); }, { 'data-tour-dica': id })))]);
     const chave = guardar(h('input', { type: 'checkbox', 'data-tour': 'chave-dicas', checked: !e.semDicas, onchange: (ev) => desligarDicas(!ev.target.checked) }));
     const zerar = guardar(botao('vv-tour-link', 'Zerar o que já vi', () => { fecharAjuda(false); reset(); ajuda(); }, { 'data-tour': 'zerar' }));
+    const novas = Object.keys(CONTEUDO.passeios).filter((id) => !e.passeios[id]).length + ids.filter((id) => !e.dicas[id]).length;
 
-    // Painel no canto (quadro 66, 10/11/2026): sem véu nem fundo desfocado; o resto da tela continua clicável.
-    const janela = h('section', { class: 'vv-tour-janela', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'vv-tour-ajuda-titulo', 'aria-describedby': 'vv-tour-ajuda-texto', tabindex: '-1' },
+    // Quadro "Janelas do topo" (12/11/2026): a mesma janela da Busca e dos Avisos, embaixo do ícone (o "Mais"), com o
+    // nome, a etiqueta e o X no cabeçalho, as dicas em linhas e o pé com "Zerar" e "Refazer o passeio". Sem véu.
+    const janela = h('section', { class: 'vv-tour-janela v2aj', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'vv-tour-ajuda-titulo', 'aria-describedby': 'vv-tour-ajuda-texto', tabindex: '-1' },
       h('header', { class: 'vv-tour-janela-topo' },
-        h('span', { class: 'vv-tour-avatar', 'aria-hidden': 'true' }, h('i')),
-        h('div', {}, h('small', { class: 'vv-tour-kicker' }, 'Ajuda'), h('h2', { class: 'vv-tour-titulo', id: 'vv-tour-ajuda-titulo' }, 'Ajuda do VYBES')),
+        h('h2', { class: 'vv-tour-titulo', id: 'vv-tour-ajuda-titulo' }, 'Ajuda'),
+        h('span', { class: 'v2aj-etiqueta' + (novas ? ' nova' : '') }, novas ? `${novas} ${novas === 1 ? 'nova' : 'novas'}` : 'tudo visto'),
         fechar),
-      h('p', { class: 'vv-tour-texto', id: 'vv-tour-ajuda-texto' }, comNome('Oi, {nome}. Aqui você revê o passeio e qualquer dica, quando quiser.', eu.nome)),
-      refazer,
-      h('h3', { class: 'vv-tour-secao' }, 'Passeios'), h('div', { class: 'vv-tour-lista' }, passeios),
-      h('h3', { class: 'vv-tour-secao' }, 'Dicas'), grupos,
-      h('div', { class: 'vv-tour-janela-pe' },
+      h('div', { class: 'v2aj-corpo' },
+        h('p', { class: 'vv-tour-texto vv-tour-so-leitor', id: 'vv-tour-ajuda-texto' }, comNome('Oi, {nome}. Aqui você revê o passeio e qualquer dica, quando quiser.', eu.nome)),
         h('label', { class: 'vv-tour-chave' }, chave, h('span', {}, 'Mostrar uma dica quando eu abrir algo pela primeira vez')),
-        zerar));
+        h('h3', { class: 'vv-tour-secao' }, 'Passeios'), h('div', { class: 'vv-tour-lista' }, passeios),
+        grupos),
+      h('div', { class: 'vv-tour-janela-pe' }, zerar, refazer));
     const tela = h('div', { class: 'vv-tour vv-tour-ajuda', 'data-modo': 'ajuda' }, janela);
     raizDoTutorial().append(tela);
+    G.colocarJanelaDoTopo?.(janela, '[data-ferr="ajuda"]');
+    doc.addEventListener?.('pointerdown', foraDaAjuda, true);
     ajudaAtual = { tela, janela, focaveis, focoAntes: doc.activeElement };
     atualizarOuvidos();
     janela.focus?.({ preventScroll: true });
     return true;
   }
+  // Como as outras janelas do topo, clicar fora fecha (o ícone do "Mais" e a própria janela não contam).
+  function foraDaAjuda(ev) {
+    if (!ajudaAtual) return;
+    if (ev?.target?.closest?.('.vv-tour-ajuda, .vv-mais-menu, [data-ferr="ajuda"], .vv-cel-mais')) return;
+    fecharAjuda(false);
+  }
+  G.addEventListener?.('resize', () => { if (ajudaAtual) G.colocarJanelaDoTopo?.(ajudaAtual.janela, '[data-ferr="ajuda"]'); });
   function fecharAjuda(devolverFoco = true) {
     const a = ajudaAtual; if (!a) return;
     ajudaAtual = null;
+    doc.removeEventListener?.('pointerdown', foraDaAjuda, true);
     a.tela.remove();
     atualizarOuvidos();
     if (devolverFoco && a.focoAntes && a.focoAntes.isConnected !== false) a.focoAntes.focus?.({ preventScroll: true });

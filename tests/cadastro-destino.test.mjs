@@ -27,7 +27,7 @@ test('revisão mostra grupo, status e captação manuais sem substituir pelo aut
   assert.equal(seletores.manualStatus.value,'Em Execução');
   assert.equal(seletores.manualCap.value,'Captação Feita');
   assert.equal(state.manualGroup,'execucao');
-  assert.equal(elementos.get('fc-prev-dates').innerHTML,'Conclusão: 02/10/2026');
+  assert.equal(elementos.get('fc-prev-dates').textContent,'conclusão sex 02/10');
 });
 
 test('sem escolha manual, revisão continua seguindo o destino automático',()=>{

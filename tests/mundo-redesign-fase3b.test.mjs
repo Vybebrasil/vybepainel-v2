@@ -7,10 +7,12 @@ const ler = (f) => readFileSync(f, 'utf8');
 const css = ler('vybe-mundo.css'), js = ler('vybe-mundo.js'), esc = ler('vybe-escritorio.js');
 
 test('Cidade: legenda conta os clientes do mapa pela situação, só na vista da Cidade', () => {
-  assert.match(js, /function pintarLegendaCidade\(lista\) \{/);
+  // Padrão v2 (quadro "Centro"): a legenda virou a barra Vybelândia, com as mesmas três contagens, que ficam à vista
+  // também com a loja aberta (a barra do quadro não some).
+  assert.match(js, /function pintarLegendaCidade\(lista, sel = ''\) \{/);
   assert.match(js, /pintarLegendaCidade\(lista\);/);
-  assert.match(js, /if \(c\.situacao === 'atrasada'\) n\.atraso\+\+; else if \(\['aprovar', 'ajuste', 'hoje', 'briefing'\]\.includes\(c\.situacao\)\) n\.atencao\+\+; else n\.dia\+\+;/);
-  assert.match(css, /:has\(\.vv-vistas \[data-vista="predio"\]\[aria-pressed="true"\]\)\) \.vv-legenda-cidade\{display:none\}/);
+  assert.match(js, /const grupoDaCidade = \(c\) => \(c\.situacao === 'atrasada' \? 'atraso' : \['aprovar', 'ajuste', 'hoje', 'briefing'\]\.includes\(c\.situacao\) \? 'atencao' : 'dia'\);/);
+  assert.match(css, /#mundo-hud \.vv-legenda-cidade\.v2m-barra\{position:absolute/);
 });
 
 test('Prédio: número do andar neutro, nome inteiro, situação num ponto e aviso discreto', () => {

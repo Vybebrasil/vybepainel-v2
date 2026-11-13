@@ -1,0 +1,38 @@
+/* PADRÃO V2 · STATUS NA LINHA (quadro Status do moodboard, passos 1 a 3): a pílula do status é o botão, com a setinha;
+   abre o menu curto de vybe-status.js no lugar. Gira enquanto grava, chega verde com o visto e assenta na cor do status.
+   Listas: Painel de trabalho (colunas de dia, Por cliente, Requer ação, Vence hoje, Fechamento do dia) e Demandas. */
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st{
+  appearance:none;border:0;margin:0;flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;max-width:100%;min-width:0;box-sizing:border-box;
+  padding:0 7px 0 9px;border-radius:999px;font:600 11.5px/22px var(--vv-texto,Inter),system-ui,sans-serif;letter-spacing:0;white-space:nowrap;
+  cursor:pointer;box-shadow:none;position:relative;transition:background-color .2s,color .2s,box-shadow .15s,transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1))}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st .pv2-st-rot{min-width:0;overflow:hidden;text-overflow:ellipsis}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st :is(.pv2-st-seta,.pv2-st-ok){flex:none;display:inline-grid;place-items:center;width:10px;height:10px}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st .pv2-st-ok svg{width:11px;height:11px;stroke-width:3.5}
+/* as cores do quadro: vermelho voltou ou venceu, âmbar em produção, verde pronto, azul vai começar, lilás aprovação, neutro espera */
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st.r{background:#FDECEE;color:#B42318}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st.a{background:#FFF4D6;color:#7A4A00}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st.g{background:#E8F5EC;color:#11613A}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st.b{background:#E7EEFB;color:#1E4A9A}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st.v{background:#EEEAFB;color:#4B36A8}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st.n{background:#EFEBE4;color:#4A463F}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st:hover{box-shadow:inset 0 0 0 1px currentColor}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st:active{transform:scale(.96)}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
+/* passo 2: com o menu aberto, a pílula ganha o contorno preto e a setinha vira para cima */
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st[aria-expanded="true"]{box-shadow:0 0 0 2px #1F1D1A}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st[aria-expanded="true"] .pv2-st-seta svg{transform:rotate(180deg)}
+/* passo 3: gira no lugar enquanto grava; chega verde-escuro com o visto e o status novo */
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st[data-estado="indo"]{pointer-events:none;background:#FFFFFF;color:transparent;box-shadow:inset 0 0 0 1px #E6E0D6}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st[data-estado="indo"]::after{width:10px;height:10px}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st[data-estado="indo"] > *{visibility:hidden}
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st[data-estado="feito"]{pointer-events:none;background:#11613A;color:#FFFFFF;box-shadow:none}
+/* o tempo no status (Por cliente), discreto ao lado da pílula */
+:is(#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6) .pv2-st-com-tempo{flex:none;display:inline-flex;align-items:center;gap:6px;min-width:0}
+:is(#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6) .pv2-st-tempo{font:500 11px/1 var(--vv-texto,Inter),system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#6B665E;cursor:default}
+@media (prefers-reduced-motion:reduce){
+  :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st,
+  :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st svg{transition:none}
+}
+/* Demandas: a coluna do status ganha a largura da setinha, para "Aguardando Info." caber inteiro */
+@media (min-width:761px){#pv2-demandas .pv2-linha .pv2-cs{width:140px}}

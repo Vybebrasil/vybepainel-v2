@@ -170,7 +170,7 @@ function pintarPlanejamento(aba) {
       <button class="workflow-close" type="button" aria-label="Fechar" onclick="pljFecharModal()">×</button></div>
     <div class="plj-topo"><h2 class="workflow-title">${pljEsc(pljMes(p.mes))}</h2>${pljSelo(p.estado)}<small>versão ${pljEsc(p.versao)} · ${p.origem === 'agente' ? 'publicado pelo agente' : 'feito no painel'}</small>${drive}</div>
     ${pljEtapasHtml(p)}${resposta}${pljDemandasCriadasHtml(p)}
-    <div class="plj-abas" role="tablist">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')">${r}</button>`).join('')}</div>
+    <div class="plj-abas vb-abas" role="tablist" aria-label="Partes do planejamento">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" class="${k === aba ? 'ativa' : ''}" onclick="pljTrocarAba('${k}')"><span>${r}</span></button>`).join('')}</div>
     <div class="plj-corpo">${aba === 'historico' ? pljHistoricoHtml() : aba === 'identidade' ? pljIdentidadeHtml()
       : `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>`}</div>
     <div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div>`;
@@ -511,7 +511,10 @@ function pljEtapasHtml(p) {
   const r = p.revisao || {};
   const interno = ['revisar', 'ajustes'].includes(p.estado) && r.total ? `<span class="plj-rev">Sua revisão: <b>${r.head_ok} de ${r.total} OK</b>${r.head_ajustar ? ` · <b class="ruim">${r.head_ajustar} para ajustar</b>` : ''}</span>` : '';
   const cliente = ['enviado', 'ajustes', 'aprovado'].includes(p.estado) && r.total && (r.cliente_aprovadas || r.cliente_ajustes) ? `<span class="plj-rev">Cliente: <b class="bom">${r.cliente_aprovadas} aprovadas</b>${r.cliente_ajustes ? ` · <b class="ruim">${r.cliente_ajustes} com ajuste</b>` : ''}${r.total - r.cliente_aprovadas - r.cliente_ajustes > 0 ? ` · ${r.total - r.cliente_aprovadas - r.cliente_ajustes} sem resposta` : ''}</span>` : '';
-  return `<div class="plj-etapas" aria-label="Etapas do planejamento"><ol>${nomes.map((n, i) => `<li class="${i < atual ? 'feita' : i === atual ? 'agora' : ''}${i === 0 && p.estado === 'ajustes' ? ' ajustes' : ''}"><i>${i < atual ? '✓' : i + 1}</i><span>${i === 0 && p.estado === 'ajustes' ? 'Ajustar' : n}</span></li>`).join('')}</ol><small>${pljEsc(proximo)}</small>${interno || cliente ? `<div class="plj-revs">${interno}${cliente}</div>` : ''}</div>`;
+  // Etapas em pílula do padrão v2 (vbEtapasHtml); sem a peça compartilhada, a lista de antes.
+  const rotulos = nomes.map((n, i) => (i === 0 && p.estado === 'ajustes' ? 'Ajustar' : n));
+  const etapas = typeof vbEtapasHtml === 'function' ? vbEtapasHtml(rotulos, atual) : `<ol>${rotulos.map((n, i) => `<li class="${i < atual ? 'feita' : i === atual ? 'agora' : ''}"><i>${i < atual ? '✓' : i + 1}</i><span>${n}</span></li>`).join('')}</ol>`;
+  return `<div class="plj-etapas${p.estado === 'ajustes' ? ' ajustes' : ''}" aria-label="Etapas do planejamento">${etapas}<small>${pljEsc(proximo)}</small>${interno || cliente ? `<div class="plj-revs">${interno}${cliente}</div>` : ''}</div>`;
 }
 // O editor grava no rascunho a cada tecla (pljEdAplicar); nada a colher da tela.
 function pljColher() {}

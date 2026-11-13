@@ -1,0 +1,252 @@
+/* ======================================================================================
+   PADRÃO V2 · BARRA DE BAIXO (moodboard, quadro DEPOIS "Barra de baixo": um painel só para salas, chat, áudio,
+   música e TV; 12/11/2026). Medidas do quadro: dock em pílula branca com botões de 54×48 e raio 16, ligado preto
+   #1F1D1A, desligado cinza #6B665E, contador verde #11613A; painel branco de raio 24 com cabeçalho (título, abas em
+   pílula e fechar redondo de 30), corpo e pé com linha #F1EDE6. Nada aqui força regra antiga.
+   Peças v2k-*: o painel Som (vybe-escritorio.js, abrirSomEscritorio) e as peças novas do dock.
+   ====================================================================================== */
+
+/* ---------- o painel (Som: áudio, música e TV) ---------- */
+#office-ajustes-audio.v2k-som{--v2k-l:360px;position:fixed;z-index:700;box-sizing:border-box;margin:0;padding:0;
+  width:min(var(--v2k-l),calc(100vw - 24px));
+  left:clamp(12px,calc(var(--v2k-x,50vw) - var(--v2k-l) / 2),calc(100vw - var(--v2k-l) - 12px));right:auto;top:auto;
+  bottom:var(--v2k-pe,calc(var(--vv-dock-alto,76px) + var(--vv-m,14px) + 10px));
+  max-height:calc(100dvh - var(--v2k-pe,100px) - 16px);
+  display:flex;flex-direction:column;overflow:hidden;border:0;border-radius:24px;background:#FFFFFF;color:#1F1D1A;color-scheme:light;
+  box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);
+  font:400 13.5px/1.4 var(--vv-texto,Inter,system-ui,sans-serif);animation:v2k-surge .2s cubic-bezier(.22,1,.36,1) both}
+@keyframes v2k-surge{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}
+#office-ajustes-audio.v2k-som *,#office-ajustes-audio.v2k-som *::before{box-sizing:border-box}
+#office-ajustes-audio.v2k-som p{margin:0}
+#office-ajustes-audio.v2k-som svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#office-ajustes-audio .v2k-cab{flex:none;display:flex;align-items:center;gap:8px;padding:14px 14px 10px 18px;border:0;background:none}
+#office-ajustes-audio .v2k-cab h2{flex:1;min-width:0;margin:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:0;color:#1F1D1A}
+#office-ajustes-audio .v2k-corpo{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:0 18px 12px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#office-ajustes-audio .v2k-corpo > *{flex:none}
+#office-ajustes-audio .v2k-pe{flex:none;display:flex;align-items:center;gap:8px;min-height:55px;padding:12px 14px;border-top:1px solid #F1EDE6}
+#office-ajustes-audio .v2k-vao{flex:1}
+
+/* abas e escolhas em pílula */
+#office-ajustes-audio .v2k-seg{flex:none;display:inline-flex;padding:4px;border-radius:999px;background:#EAE6DE}
+#office-ajustes-audio .v2k-seg.v2k-solto{align-self:flex-start;max-width:100%}
+#office-ajustes-audio .v2k-seg button{appearance:none;margin:0;border:0;height:30px;padding:0 14px;border-radius:999px;background:none;color:#6B665E;
+  font:600 12.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:background-color .15s,color .15s}
+#office-ajustes-audio .v2k-cab .v2k-seg button{padding:0 9px}
+#office-ajustes-audio .v2k-seg button:hover{color:#1F1D1A}
+#office-ajustes-audio .v2k-seg button:is([aria-selected="true"],[aria-pressed="true"]){background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+#office-ajustes-audio .v2k-seg button:disabled{color:#6B665E;opacity:.6;cursor:not-allowed}
+
+/* fechar redondo e botões */
+#office-ajustes-audio .v2k-x{appearance:none;flex:none;margin:0;padding:0;border:0;width:30px;height:30px;border-radius:50%;background:#FFFFFF;color:#1F1D1A;
+  display:grid;place-items:center;box-shadow:inset 0 0 0 1px #E6E0D6;cursor:pointer}
+#office-ajustes-audio .v2k-x svg{width:18px;height:18px}
+#office-ajustes-audio .v2k-x:hover{background:#F3F1EC}
+#office-ajustes-audio .v2k-btn{appearance:none;flex:none;margin:0;border:0;height:38px;padding:0 16px;border-radius:999px;background:#FFFFFF;color:#1F1D1A;
+  font:600 13.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer;box-shadow:inset 0 0 0 1px #E6E0D6;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+#office-ajustes-audio .v2k-btn:active{transform:scale(.96)}
+#office-ajustes-audio .v2k-btn.s{height:30px;padding:0 12px;font-size:12.5px}
+#office-ajustes-audio .v2k-btn.k{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#office-ajustes-audio .v2k-btn.v2k-tira{color:#B42318}
+#office-ajustes-audio .v2k-btn:disabled{background:#F3F1EC;color:#6B665E;box-shadow:none;cursor:not-allowed}
+#office-ajustes-audio :is(.v2k-btn,.v2k-x,.v2k-seg button,.v2k-escolha,.v2k-campo-texto,input):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
+
+/* textos, rótulos de grupo e linhas */
+#office-ajustes-audio .v2k-g{padding:12px 0 4px;font:600 11.5px var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#office-ajustes-audio .v2k-g.v2k-outras{padding-top:18px}
+#office-ajustes-audio .v2k-sub{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#office-ajustes-audio .v2k-sub b{font-weight:600;color:#1F1D1A}
+#office-ajustes-audio .v2k-seg + .v2k-sub,#office-ajustes-audio .v2k-fila + .v2k-sub{padding-top:6px}
+#office-ajustes-audio .v2k-onde{padding:4px 0 10px}
+#office-ajustes-audio .v2k-fila{display:flex;align-items:center;gap:10px;min-width:0;margin:0}
+#office-ajustes-audio .v2k-lin{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #F1EDE6;font-size:13.5px;line-height:1.4}
+#office-ajustes-audio .v2k-g + .v2k-lin,#office-ajustes-audio .v2k-lista > .v2k-lin:first-child{border-top:0}
+#office-ajustes-audio .v2k-lin p{flex:1;min-width:0}
+#office-ajustes-audio .v2k-lin b{font-weight:600}
+#office-ajustes-audio .v2k-lin img{flex:none;border-radius:8px;object-fit:cover}
+#office-ajustes-audio .v2k-lin[aria-current="true"] p > b{color:#11613A}
+#office-ajustes-audio .v2k-pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font:600 11.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap;vertical-align:middle}
+#office-ajustes-audio .v2k-pill.n{background:#EFEBE4;color:#4A463F}
+#office-ajustes-audio .v2k-pill.b{background:#E7EEFB;color:#1E4A9A}
+#office-ajustes-audio .v2k-vazio{margin:auto 0;padding:36px 8px;display:grid;justify-items:center;gap:14px;text-align:center}
+#office-ajustes-audio .v2k-vazio p{font-size:13.5px;color:#6B665E}
+#office-ajustes-audio .v2k-erro{color:#B42318;font:600 12px/1.35 var(--vv-texto,Inter,sans-serif)}
+#office-ajustes-audio .v2k-erro:empty{display:none}
+#office-ajustes-audio .v2k-lista{padding-top:6px}
+
+/* escolha de aparelho (pílula com seta), campo de link e medidor do microfone */
+#office-ajustes-audio .v2k-escolha{appearance:none;flex:1;min-width:0;height:30px;margin:0;padding:0 32px 0 12px;border:0;border-radius:999px;color:#1F1D1A;
+  background:#FFFFFF url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231F1D1A' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 10l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center / 14px 14px;
+  box-shadow:inset 0 0 0 1px #E6E0D6;font:500 12.5px var(--vv-texto,Inter,sans-serif);text-overflow:ellipsis;cursor:pointer}
+#office-ajustes-audio .v2k-escolha:disabled{color:#6B665E;opacity:1;cursor:not-allowed}
+#office-ajustes-audio .v2k-campo-texto{appearance:none;flex:1;min-width:0;height:36px;margin:0;padding:0 16px;border:0;border-radius:999px;background:#F9F8F5;color:#1F1D1A;
+  box-shadow:inset 0 0 0 1px #E6E0D6;font:400 13.5px var(--vv-texto,Inter,sans-serif)}
+#office-ajustes-audio .v2k-campo-texto::placeholder{color:#6B665E;opacity:1}
+#office-ajustes-audio .v2k-form{padding:2px 0 6px}
+#office-ajustes-audio .v2k-seg + .v2k-form{padding-top:10px}
+#office-ajustes-audio .v2k-nivel{flex:none;display:flex;align-items:flex-end;gap:3px;width:64px;height:26px}
+#office-ajustes-audio .v2k-nivel i{display:block;flex:1;border-radius:2px;background:#11613A;height:calc(var(--h) * .3 + var(--h) * .7 * var(--n,0));transition:height .1s linear}
+#office-ajustes-audio .v2k-nivel.parado i{background:#C9C2B6}
+
+/* TV: a tela em cima, no raio do padrão */
+#office-ajustes-audio .ofc-tv-tela{flex:none;aspect-ratio:16/8;border:0;border-radius:16px}
+
+/* Mais ajustes: abre no lugar (v2-abre da base) */
+#office-ajustes-audio .v2k-mais[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1),visibility 0s .28s}
+#office-ajustes-audio .v2k-chave{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer}
+#office-ajustes-audio .v2k-chave input{appearance:none;flex:none;position:relative;width:34px;height:20px;margin:1px 0 0;border:0;border-radius:999px;background:#C9C2B6;cursor:pointer;transition:background-color .15s}
+#office-ajustes-audio .v2k-chave input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;transition:transform .15s}
+#office-ajustes-audio .v2k-chave input:checked{background:#1F1D1A}
+#office-ajustes-audio .v2k-chave input:checked::after{transform:translateX(14px)}
+#office-ajustes-audio .v2k-chave span{display:grid;gap:1px;min-width:0}
+#office-ajustes-audio .v2k-chave b{font:600 13.5px/1.3 var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
+#office-ajustes-audio .v2k-chave small{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#office-ajustes-audio .v2k-campo{display:grid;gap:6px;padding:8px 0}
+#office-ajustes-audio .v2k-campo > span{font:600 13.5px/1.3 var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
+#office-ajustes-audio .v2k-campo i{font-style:normal;font-weight:400;color:#6B665E}
+#office-ajustes-audio .v2k-campo input[type="range"]{width:100%;margin:0;accent-color:#1F1D1A}
+@media (prefers-reduced-motion:reduce){
+  #office-ajustes-audio.v2k-som{animation:none}
+  #office-ajustes-audio :is(.v2k-btn,.v2k-nivel i,.v2k-chave input,.v2k-chave input::after,.v2k-seg button,.v2k-mais > .v2-mais){transition:none}
+}
+
+/* ---------- o dock: pílula branca, botões 54×48 com o nome dentro ---------- */
+#vv-dock-salas-faixa > .vq-dock.vv-dock-salas{align-items:center;gap:4px;padding:8px;border:0;border-radius:999px;background:#FFFFFF;
+  -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -20px rgba(31,29,26,.4)}
+#vv-dock-salas-faixa .vq-dock .vq-item{position:relative;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  width:54px;height:48px;padding:0;border:0;border-radius:16px;background:none;color:#1F1D1A;font:500 10.5px var(--vv-texto,Inter,sans-serif);
+  transform:none;transition:background-color .15s,color .15s,scale .14s cubic-bezier(.34,1.56,.64,1)}
+#vv-dock-salas-faixa .vq-dock .vq-item:hover{transform:none;background:#F3F1EC}
+#vv-dock-salas-faixa .vq-dock .vq-item:active{transform:none;scale:.96}
+#vv-dock-salas-faixa .vq-dock .vq-item .vq-icone{position:static;display:grid;place-items:center;width:auto;height:18px;border:0;border-radius:0;background:none;box-shadow:none;color:inherit;opacity:1}
+#vv-dock-salas-faixa .vq-dock .vq-item .vq-icone svg{width:18px;height:18px;stroke-width:1.8}
+#vv-dock-salas-faixa .vq-dock .vq-item .vq-rotulo{max-width:none;font:500 10.5px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em;color:inherit;white-space:nowrap;overflow:visible;text-overflow:clip}
+#vv-dock-salas-faixa .vq-dock .vq-ponto{display:none}
+#vv-dock-salas-faixa .vq-dock .vq-sep{flex:none;align-self:center;width:1px;height:28px;margin:0 4px;background:#E6E0D6}
+/* ligado: preto. O painel aberto acende o botão dele (Salas pela classe ver-voz, Som pelo data-som-aba do body). */
+#vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.vq-mic.on,.on),
+body.ver-voz #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="salas"],
+body[data-som-aba="audio"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="audio"],
+body[data-som-aba="musica"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="musica"],
+body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{background:#1F1D1A;color:#FFFFFF}
+/* entrar na voz: a ação preta do quadro */
+#vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar{background:#1F1D1A;color:#FFFFFF}
+/* mudo e sem ouvir: o estado continua dito no nome, em vermelho (é o que pede atenção) */
+#vv-dock-salas-faixa .vq-dock .vq-item:is(.vq-mic.mudo,.vq-surdo){color:#B42318}
+/* desligado: cinza, sem apagar o botão */
+#vv-dock-salas-faixa .vq-dock .vq-item:disabled{opacity:1;color:#6B665E;background:none;cursor:not-allowed}
+#vv-dock-salas-faixa .vq-dock .vq-item:disabled .vq-icone{opacity:.7}
+#vv-dock-salas-faixa .vq-dock .vq-item:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
+#vv-dock-salas-faixa .vq-dock .vq-item:focus-visible .vq-icone{outline:0}
+/* contador no canto do botão */
+#vv-dock-salas-faixa .vq-dock .vq-conta{position:absolute;top:0;right:4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#1F1D1A;color:#FFFFFF;
+  font:700 10.5px/18px var(--vv-texto,Inter,sans-serif);text-align:center;box-shadow:0 0 0 2px #FFFFFF}
+#vv-dock-salas-faixa .vq-dock .vq-conta.on{background:#11613A}
+/* salas com gente (enquanto ficam no dock): rostos no lugar do ícone */
+#vv-dock-salas-faixa .vq-dock .vq-rostos i,#vv-dock-salas-faixa .vq-dock .vq-rostos.n1 i,#vv-dock-salas-faixa .vq-dock .vq-rostos.n3 i{width:18px;height:18px;margin-left:-6px;border:0;background:#EFEBE4;color:#4A463F;
+  font:700 7.5px var(--vv-texto,Inter,sans-serif);box-shadow:0 0 0 1.5px #FFFFFF}
+#vv-dock-salas-faixa .vq-dock .vq-rostos i:first-child{margin-left:0}
+#vv-dock-salas-faixa .vq-dock .vq-rostos i.fala{background:#11613A;color:#FFFFFF}
+#vv-dock-salas-faixa .vq-dock .vq-item.voz{background:#F3F1EC}
+/* a voz: onde você está, quantos na voz e Entrar (peça nova do quadro; o HTML vem de dockSalasHtml em vybe-mundo.js) */
+#vv-dock-salas-faixa .vq-dock .vq-voz{flex:none;display:flex;align-items:center;gap:10px;height:48px;max-width:340px;padding:0 8px 0 10px;border-radius:999px;background:#F3F1EC;color:#1F1D1A;
+  font:600 12.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#vv-dock-salas-faixa .vq-dock .vq-voz > span:not(.vq-rostos){min-width:0;overflow:hidden;text-overflow:ellipsis}
+#vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos{flex:none;display:inline-flex;padding-left:8px}
+#vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i{display:inline-grid;place-items:center;width:28px;height:28px;margin-left:-8px;border:0;border-radius:50%;background:#EFEBE4;color:#4A463F;
+  font:700 10.5px var(--vv-texto,Inter,sans-serif);font-style:normal;box-shadow:0 0 0 2px #FFFFFF}
+#vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i.fala{background:#11613A;color:#FFFFFF}
+#vv-dock-salas-faixa .vq-dock .vq-voz button{appearance:none;flex:none;margin:0;border:0;height:30px;padding:0 12px;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:600 12.5px var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+#vv-dock-salas-faixa .vq-dock .vq-voz button:active{transform:scale(.96)}
+#vv-dock-salas-faixa .vq-dock .vq-voz button:disabled{background:#EAE6DE;color:#6B665E;cursor:default}
+#vv-dock-salas-faixa .vq-dock .vq-voz button.dentro{background:#11613A}
+@media (max-width:900px){
+  #vv-dock-salas-faixa > .vq-dock.vv-dock-salas{border-radius:24px;row-gap:4px}
+  #vv-dock-salas-faixa .vq-dock .vq-item{width:50px}
+  #vv-dock-salas-faixa .vq-dock .vq-voz{max-width:100%}
+}
+@media (prefers-reduced-motion:reduce){#vv-dock-salas-faixa .vq-dock .vq-item,#vv-dock-salas-faixa .vq-dock .vq-voz button{transition:none}}
+
+/* ---------- Salas: o mesmo painel (o lugar dele, em cima do dock, já é o do quadro) ---------- */
+#vv-dock-salas-faixa > .vv-chamada{gap:0;padding:0;border:0;border-radius:24px;overflow:hidden;background:#FFFFFF;color:#1F1D1A;
+  box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);font:400 13.5px/1.4 var(--vv-texto,Inter,sans-serif)}
+#vv-dock-salas-faixa > .vv-chamada > .sala{padding:16px 18px}
+#vv-dock-salas-faixa > .vv-chamada .vz-onde > b{font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
+#vv-dock-salas-faixa > .vv-chamada .vz-onde > small:last-child{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .vz-pessoa{margin:14px 18px 0;padding:12px 14px;border:0;border-radius:16px;background:#F3F1EC}
+#vv-dock-salas-faixa > .vv-chamada .vz-salas{margin:0;padding:0 18px 12px;border-top:0}
+#vv-dock-salas-faixa > .vv-chamada .vz-salas-topo{margin:0 -4px 0 0;padding:14px 0 10px;gap:8px}
+#vv-dock-salas-faixa > .vv-chamada .vz-salas-topo b{font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
+#vv-dock-salas-faixa > .vv-chamada .vz-salas-topo small{margin-top:2px;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .vz-salas-topo .v2k-pill{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#E8F5EC;color:#11613A;font:600 11.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#vv-dock-salas-faixa > .vv-chamada .vz-botao{height:30px;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter,sans-serif)}
+#vv-dock-salas-faixa > .vv-chamada .vz-botao:hover{background:#F3F1EC}
+#vv-dock-salas-faixa > .vv-chamada .vz-botao.principal{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#vv-dock-salas-faixa > .vv-chamada .vz-botao.v2k-x{flex:none;width:30px;padding:0;border-radius:50%}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala{grid-template-columns:minmax(0,1fr) auto;gap:12px;margin:0;padding:12px 0;border-top:1px solid #F1EDE6;border-radius:0;background:none;box-shadow:none}
+#vv-dock-salas-faixa > .vv-chamada .vz-salas-topo + .vz-sala,#vv-dock-salas-faixa > .vv-chamada .vz-rotulo + .vz-sala{border-top:0}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala:hover{background:none}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .ic{display:none}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .meio{gap:2px}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .meio > b{font:600 13.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .meio > b small{margin-left:6px;padding:0 9px;border-radius:999px;background:#FFF4D6;color:#7A4A00;font:600 11.5px/22px var(--vv-texto,Inter,sans-serif);display:inline-block}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .meio > small{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .gente{gap:4px 0}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .gente i{padding:0;border-radius:0;background:none;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .gente i:not(:last-child)::after{content:", ";white-space:pre}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .gente i.fala{background:none;color:#11613A;font-weight:600}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala .gente i.mudo{background:none;color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala em{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:#FFFFFF;color:#1F1D1A;opacity:1;
+  box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter,sans-serif);transition:scale .14s cubic-bezier(.34,1.56,.64,1)}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala:hover em{background:#F3F1EC}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala:active em{scale:.96}
+#vv-dock-salas-faixa > .vv-chamada .vz-sala.minha em{background:#11613A;color:#FFFFFF;box-shadow:none}
+#vv-dock-salas-faixa > .vv-chamada .vz-rotulo{margin:0;padding:12px 0 4px;font:600 11.5px var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none;color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .vz-recolhe{margin:0;border-top:1px solid #F1EDE6}
+#vv-dock-salas-faixa > .vv-chamada .vz-recolhe summary{padding:12px 0;font:600 13.5px var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
+#vv-dock-salas-faixa > .vv-chamada .vz-recolhe summary span{padding:0 9px;background:#EFEBE4;color:#4A463F;font:600 11.5px/22px var(--vv-texto,Inter,sans-serif)}
+#vv-dock-salas-faixa > .vv-chamada .vz-online{padding:8px 0;gap:10px}
+#vv-dock-salas-faixa > .vv-chamada .vz-online .av{background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter,sans-serif)}
+#vv-dock-salas-faixa > .vv-chamada .vz-online .av.fala{background:#11613A;color:#FFFFFF}
+#vv-dock-salas-faixa > .vv-chamada .vz-online b{font:600 13.5px var(--vv-texto,Inter,sans-serif)}
+#vv-dock-salas-faixa > .vv-chamada .vz-online small{font:400 12.5px var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .vz-dica{margin:0;padding:10px 0;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-dock-salas-faixa > .vv-chamada .v2k-pe{display:flex;align-items:center;gap:8px;margin:0 -18px -12px;padding:12px 14px;border-top:1px solid #F1EDE6;position:sticky;bottom:-12px;background:#FFFFFF}
+#vv-dock-salas-faixa > .vv-chamada .v2k-pe .v2k-vao{flex:1}
+#vv-dock-salas-faixa > .vv-chamada :is(.vz-botao,.vz-sala,.vz-recolhe summary):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){#vv-dock-salas-faixa > .vv-chamada .vz-sala em{transition:none}}
+
+/* ---------- Chat (conversa, recados e notas): as peças do mesmo painel ---------- */
+.vv-conversa.vv-conversa{border:0;border-radius:24px;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);font:400 13.5px/1.4 var(--vv-texto,Inter,sans-serif)}
+.vv-conversa .vv-conversa-topo.vv-conversa-topo{gap:8px;padding:14px 14px 10px 18px}
+.vv-conversa .vv-conversa-topo.vv-conversa-topo::before{content:"Chat";flex:1;min-width:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
+.vv-conversa .vv-conversa-abas.vv-conversa-abas{flex:none;display:inline-flex;gap:0;padding:4px;border-radius:999px;background:#EAE6DE}
+.vv-conversa .vv-conversa-abas.vv-conversa-abas button{height:30px;padding:0 9px;border-radius:999px;color:#6B665E;font:600 12.5px var(--vv-texto,Inter,sans-serif)}
+.vv-conversa .vv-conversa-abas.vv-conversa-abas button[aria-selected="true"]{background:#FFFFFF;color:#1F1D1A;font-weight:600;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+.vv-conversa .vv-conversa-x.vv-conversa-x{width:30px;height:30px;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6}
+.vv-conversa .vv-conversa-x.vv-conversa-x:hover{background:#F3F1EC}
+.vv-conversa .vv-conversa-badge.vv-conversa-badge{border-radius:9px;background:#11613A;color:#FFFFFF;font:700 10.5px/18px var(--vv-texto,Inter,sans-serif)}
+.vv-conversa .vv-conversa-cab.vv-conversa-cab{padding:4px 18px 10px;border-bottom:0}
+.vv-conversa .vv-conversa-cab.vv-conversa-cab h3{display:inline;font:600 12.5px/1.4 var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:#1F1D1A;white-space:normal}
+.vv-conversa .vv-conversa-cab.vv-conversa-cab small{margin-top:0;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+.vv-conversa .vv-conversa-voltar.vv-conversa-voltar{height:30px;padding:0 12px;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter,sans-serif)}
+.vv-conversa .vv-conversa-log.vv-conversa-log{padding:6px 18px 12px;gap:8px}
+.vv-conversa .vv-conversa-msg.vv-conversa-msg{max-width:230px;padding:9px 13px;border-radius:16px 16px 16px 4px;background:#F3F1EC;color:#1F1D1A}
+.vv-conversa .vv-conversa-msg.vv-conversa-msg.meu{border-radius:16px 16px 4px 16px;background:#1F1D1A;color:#FFFFFF}
+.vv-conversa .vv-conversa-msg.vv-conversa-msg p{font:400 13.5px/1.4 var(--vv-texto,Inter,sans-serif);color:inherit}
+.vv-conversa .vv-conversa-msg.vv-conversa-msg b{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+.vv-conversa .vv-conversa-msg.vv-conversa-msg.meu b{color:#D9D3C8}
+.vv-conversa .vv-conversa-msg.vv-conversa-msg time{font:400 11.5px/1.2 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+.vv-conversa .vv-conversa-msg.vv-conversa-msg.meu time{color:#D9D3C8}
+.vv-conversa .vv-conversa-form.vv-conversa-form{gap:8px;padding:12px 14px;border-top:1px solid #F1EDE6}
+.vv-conversa .vv-conversa-campo.vv-conversa-campo{height:36px;padding:0 16px;border:0;border-radius:999px;background:#F9F8F5;box-shadow:inset 0 0 0 1px #E6E0D6;font:400 13.5px var(--vv-texto,Inter,sans-serif)}
+.vv-conversa .vv-conversa-campo.vv-conversa-campo::placeholder{color:#6B665E}
+.vv-conversa .vv-conversa-campo.vv-conversa-campo:focus{border:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
+.vv-conversa .vv-conversa-enviar.vv-conversa-enviar,.vv-conversa .vv-conversa-acao.vv-conversa-acao{height:30px;padding:0 12px;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:600 12.5px var(--vv-texto,Inter,sans-serif)}
+.vv-conversa .vv-conversa-enviar.vv-conversa-enviar:hover,.vv-conversa .vv-conversa-acao.vv-conversa-acao:hover{background:#3A3631}
+.vv-conversa .vv-conversa-sec.vv-conversa-sec{height:30px;padding:0 12px;border:0;border-radius:999px;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter,sans-serif)}
+.vv-conversa .vv-conversa-sec.vv-conversa-sec:hover{color:#1F1D1A;background:#F3F1EC}
+.vv-conversa .vv-conversa-vazio.vv-conversa-vazio b{font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
+.vv-conversa .vv-conversa-vazio.vv-conversa-vazio p{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+.vv-conversa .vv-conversa-nota.vv-conversa-nota{font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+.vv-conversa .vv-conversa-av.vv-conversa-av{background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter,sans-serif)}
+.vv-conversa :is(button,input):focus-visible{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px #1F1D1A}

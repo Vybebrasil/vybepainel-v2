@@ -1,0 +1,293 @@
+/* PADRÃO V2 · FICHA (12/11/2026): Gestão de clientes, Ficha do cliente e Reuniões iguais aos quadros DEPOIS do
+   moodboard (ClientesDepois, FichaClienteDepois, ReunioesDepois). As medidas são as do quadro: 26/30 de respiro e 16
+   entre blocos, cartão branco de raio 20 sem borda, botão em pílula de 38 (cabeçalho) e 30 (linha), ficha de 30
+   (ligada em preto), número de 34, linha de 13,5, texto #1F1D1A e #6B665E. Tudo ganha pelo id da janela
+   (#painel-clientes e #vv-reunioes); nada aqui força regra antiga. */
+
+/* ===== Peças comuns às três telas (v2f- na Gestão e na ficha; v2r- na tela Reuniões) ===== */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card,.v2r-card){min-width:0;box-sizing:border-box;margin:0;padding:18px;border:0;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);color:#1F1D1A;font:400 13.5px/1.4 var(--vv-texto,Inter),system-ui,sans-serif}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card,.v2r-card) :is(p,h3){margin:0}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo){display:flex;align-items:baseline;gap:8px;margin:0 0 2px}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo) > h3{flex:1;min-width:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:0;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-sub,.v2r-sub){font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-vazio,.v2r-vazio){padding:12px 0 2px;font-size:13px;color:#6B665E}
+
+/* Botão em pílula: 38 no cabeçalho, 30 na linha (.s); .p é a ação da tela, .k confirma. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn){appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;height:38px;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:600 13.5px/1 var(--vv-texto,Inter),sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer;box-shadow:inset 0 0 0 1px #E6E0D6;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .15s}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):hover{background:#F6F3EE}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):active{transform:scale(.96)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):disabled{opacity:.5;cursor:default}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p:hover{background:#A93F0A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).k{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).k:hover{background:#34312C}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).s{height:30px;padding:0 12px;font-size:12.5px}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn)[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+
+/* Ficha de filtro: 30 de altura, ligada em preto. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip){appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:500 12.5px/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:inset 0 0 0 1px #E6E0D6}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip) > b{font-weight:700}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip):hover{background:#F6F3EE}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip)[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
+
+/* Selo de estado. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill){appearance:none;flex:none;display:inline-flex;align-items:center;gap:5px;box-sizing:border-box;height:22px;margin:0;padding:0 9px;border:0;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).r{background:#FDECEE;color:#B42318}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).a{background:#FFF4D6;color:#7A4A00}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).g{background:#E8F5EC;color:#11613A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).b{background:#E7EEFB;color:#1E4A9A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).v{background:#EEEAFB;color:#4B36A8}
+:is(#painel-clientes,#vv-reunioes) button:is(.v2f-pill,.v2r-pill){cursor:pointer}
+:is(#painel-clientes,#vv-reunioes) button:is(.v2f-pill,.v2r-pill):hover{filter:brightness(.96)}
+
+/* A fala do agente dono da tela. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-fala,.v2r-fala){display:flex;align-items:center;gap:14px}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-fala-texto,.v2r-fala-texto){flex:1;min-width:0;font:400 15px/1.45 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-fala-texto,.v2r-fala-texto) b{font-weight:700;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-quem,.v2r-quem){display:block;margin-bottom:2px;font:600 12px/1.3 var(--vv-texto,Inter),sans-serif;color:#4B36A8}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-ag,.v2r-ag){flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px/1 var(--vv-texto,Inter),sans-serif}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-ag,.v2r-ag)::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2f-pulso 3.6s ease-out infinite}
+@keyframes v2f-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
+
+/* Três números. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpis,.v2r-kpis){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0;padding:0}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpis,.v2r-kpis)[hidden]{display:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > small{display:block;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > b.ruim{color:#B42318}
+
+/* Linha de lista e avatar. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin){display:flex;align-items:center;gap:12px;min-width:0;padding:12px 0;border-top:1px solid #F1EDE6;font:400 13.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo) + :is(.v2f-lin,.v2r-lin),
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo) + .v2-abre > :is(.v2f-lin,.v2r-lin){border-top:0}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin) > p{flex:1;min-width:0}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin) :is(b,strong){font-weight:700;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-av,.v2r-av){flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px/1 var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-avs,.v2r-avs){flex:none;display:inline-flex;padding-left:8px}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-avs,.v2r-avs):empty{display:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-avs,.v2r-avs) > :is(.v2f-av,.v2r-av){margin-left:-8px}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-cli,.v2r-cli){display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-cli,.v2r-cli)::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,#C2490C)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-link,.v2r-link){appearance:none;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-link,.v2r-link):hover{color:#8A3207}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pe,.v2r-pe){padding-top:8px;border-top:1px solid #F1EDE6;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-botoes,.v2r-botoes){display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+/* O que abre no lugar: o texto da linha é o botão. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir){appearance:none;display:inline;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px;border-radius:4px}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-cx){flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
+:is(#painel-clientes,#vv-reunioes) .v2f-cx.ok{background:#FF7A2F;box-shadow:none}
+
+/* ===== Gestão de clientes (#painel-clientes, renderClientesBoard em vybe-clientes.js) ===== */
+/* O fundo #F9F8F5 da janela do quadro: a sombra enche a janela inteira (que recorta pelo próprio canto). */
+#painel-clientes{background:#F9F8F5;box-shadow:0 0 0 100vmax #F9F8F5;color:#1F1D1A}
+#painel-clientes > .container{display:flex;flex-direction:column;gap:16px;max-width:none;padding:26px 30px;container:v2f / inline-size}
+#painel-clientes > .container > *{margin-top:0;margin-bottom:0}
+#painel-clientes #clientes-hero{order:1;gap:12px}
+#painel-clientes #clientes-aviso{order:2}
+#painel-clientes #kpi-grid-clientes{order:3}
+#painel-clientes #client-master-source-rail{order:4}
+#painel-clientes #panel-clientes-lista{order:5;display:flex;flex-direction:column;gap:16px;min-width:0}
+#painel-clientes #panel-cliente-detalhe{order:5;display:flex;flex-direction:column;gap:16px;min-width:0}
+#painel-clientes #client-master-kpis{display:none}
+#painel-clientes #clientes-hero .pv-cabeca{flex:1;min-width:0;gap:0}
+#painel-clientes #clientes-hero :is(.pv-ic,.pv-etiqueta,#clientes-frase){display:none}
+#painel-clientes #clientes-hero h2{margin:0;font-size:30px;line-height:1.1;letter-spacing:-.01em}
+#painel-clientes #clientes-acoes.v2f-topo-acoes{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:12px;margin:0}
+/* Tabela · Fichas · Cérebro (e as abas da ficha): trilho #EAE6DE, ligada branca. */
+#painel-clientes .v2f-seg{display:inline-flex;flex:none;max-width:100%;margin:0;padding:4px;border:0;border-radius:999px;background:#EAE6DE;overflow-x:auto;scrollbar-width:none}
+#painel-clientes .v2f-seg::-webkit-scrollbar{display:none}
+#painel-clientes .v2f-seg > button{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#painel-clientes .v2f-seg > button:hover{color:#1F1D1A}
+#painel-clientes .v2f-seg > button[aria-selected="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+#painel-clientes .v2f-seg > button:focus-visible{outline:2px solid #1F1D1A;outline-offset:-2px}
+#painel-clientes .v2f-q{margin-left:0;padding:0 6px;height:18px;border-radius:9px;background:#EAE6DE;color:#4A463F;font:600 11px/18px var(--vv-texto,Inter),sans-serif}
+#painel-clientes .v2f-seg > button[aria-selected="true"] .v2f-q{background:#F3F1EC}
+#painel-clientes #clientes-aviso.v2f-fala{border:0;background:#FFFFFF;color:#1F1D1A}
+#painel-clientes #clientes-aviso.v2f-fala[hidden]{display:none}
+/* Busca e filtros numa linha só: a busca cresce, as fichas vêm depois. */
+#painel-clientes .cli-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;padding:0;border:0;background:none}
+#painel-clientes .cli-barra > .clientes-visao{display:none}
+#painel-clientes .cli-barra > .cli-busca{order:-1;flex:1 1 200px;min-width:140px;margin:0}
+#painel-clientes .cli-barra > .cli-busca > svg{display:none}
+#painel-clientes .cli-barra > .cli-busca > input{width:100%;height:36px;box-sizing:border-box;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 13.5px/1 var(--vv-texto,Inter),sans-serif}
+#painel-clientes .cli-barra > .cli-busca > input::placeholder{color:#6B665E}
+#painel-clientes .cli-barra > .cli-busca > input:focus-visible{outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
+#painel-clientes .cli-barra > .cli-filtros{order:0;flex:0 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0}
+#painel-clientes .cli-barra > .cli-filtros[hidden]{display:none}
+#painel-clientes #grid-clientes-lista.em-tabela{display:block;margin:0;padding:0}
+
+/* A tabela num cartão: Cliente, Head, Saúde, Em aberto, Cadastro e a seta; a linha abre no lugar. */
+#painel-clientes .v2f-tabela{display:flex;flex-direction:column;padding:8px 18px 14px}
+#painel-clientes :is(.v2f-th,.v2f-tr){display:grid;grid-template-columns:minmax(0,1.5fr) 124px 150px minmax(0,1.2fr) 130px var(--v2f-extras,) 16px;align-items:center;gap:14px}
+#painel-clientes .v2f-th{height:32px;border-bottom:1px solid #F1EDE6;font:600 11.5px/1 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#painel-clientes .v2f-th-nome{display:flex;align-items:center;gap:8px;min-width:0}
+#painel-clientes .v2f-th-b{appearance:none;display:inline-flex;align-items:center;gap:4px;justify-self:start;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+#painel-clientes .v2f-th-b:hover,#painel-clientes .v2f-th-b[aria-sort]:not([aria-sort="none"]){color:#1F1D1A}
+#painel-clientes .v2f-th-b > i{font-style:normal}
+#painel-clientes .v2f-linha{border-top:1px solid #F1EDE6}
+#painel-clientes .v2f-th + .v2f-linha{border-top:0}
+#painel-clientes .v2f-tr{padding:10px 0;font:400 13.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A;cursor:pointer}
+#painel-clientes .v2f-tr > *{min-width:0}
+#painel-clientes .v2f-c-nome{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0}
+#painel-clientes .v2f-seg2{font-size:11.5px;font-weight:400;color:#6B665E}
+#painel-clientes .v2f-hd{display:inline-flex;align-items:center;gap:8px;min-width:0}
+#painel-clientes .v2f-hd-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#painel-clientes .v2f-sa{display:flex;align-items:center;gap:8px}
+#painel-clientes .v2f-sa > b{flex:none;width:22px;font:700 14px/1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+#painel-clientes .v2f-sa > .v2-barra{flex:1;height:6px;border-radius:3px;background:#EAE6DE}
+#painel-clientes .v2f-ruim{font-weight:700;color:#B42318}
+#painel-clientes .v2f-extra{font-size:12.5px;color:#4A463F;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#painel-clientes .v2f-extra.cli-editavel{cursor:text}
+#painel-clientes .v2f-marcar{flex:none;width:16px;height:16px;margin:0;accent-color:#1F1D1A}
+#painel-clientes .v2f-linha.marcada > .v2f-tr{background:#F6F3EE;box-shadow:-18px 0 0 #F6F3EE,18px 0 0 #F6F3EE}
+#painel-clientes .v2f-vai{appearance:none;display:grid;place-items:center;width:16px;height:24px;margin:0;padding:0;border:0;background:none;color:#6B665E;cursor:pointer}
+#painel-clientes .v2f-vai > svg{transition:transform .2s}
+#painel-clientes .v2f-vai[aria-expanded="true"] > svg{transform:rotate(90deg)}
+#painel-clientes .v2f-vai:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px;border-radius:4px}
+#painel-clientes .v2f-ficha{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 12px 3px;padding:2px 0 2px 14px;border-left:2px solid #EAE6DE;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#painel-clientes .v2f-ficha-texto{flex:1 1 320px;min-width:0}
+#painel-clientes .v2f-ficha-texto > p{margin:0;padding:3px 0}
+#painel-clientes .v2f-ficha-texto b{font-weight:700;color:#1F1D1A}
+#painel-clientes .v2f-cad{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+#painel-clientes .v2f-ck{display:inline-flex;align-items:center;gap:6px}
+#painel-clientes .v2f-feito{text-decoration:line-through;color:#6B665E}
+#painel-clientes .v2f-tabela > .v2f-pe{margin:0;padding-top:10px}
+#painel-clientes .v2f-linha:last-of-type{margin-bottom:10px}
+/* A situação (Inativo, Sem cadastro) na linha e no cabeçalho da ficha vira o selo do padrão. */
+#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao{appearance:none;display:inline-flex;align-items:center;height:22px;margin:0;padding:0 9px;border:0;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao.ativo{background:#E8F5EC;color:#11613A}
+#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao.nenhum{background:#FFF4D6;color:#7A4A00}
+#painel-clientes :is(.v2f-tr,.v2f-cabeca) button.cli-situacao{cursor:pointer}
+
+/* ===== Ficha do cliente (#panel-cliente-detalhe, renderClientMasterDetail e as abas de vybe-clientes-ficha.js) ===== */
+#painel-clientes .clf-cabeca{margin:0}
+#painel-clientes .v2f-cabeca{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px 12px;margin-right:var(--vv-caixa-vao,0px)}
+#painel-clientes .v2f-cabeca > .v2f-nome{margin:0;padding:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em}
+#painel-clientes .v2f-cabeca > .v2f-meta{flex:1 1 220px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0;margin:0;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#painel-clientes .v2f-meta .clf-meta-item{display:inline-flex;align-items:center;gap:8px;color:#6B665E}
+#painel-clientes .v2f-meta .clf-meta-item.editavel{cursor:pointer;border-radius:6px}
+#painel-clientes .v2f-meta .clf-meta-item.editavel:hover{color:#1F1D1A}
+#painel-clientes .v2f-meta .clf-meta-rot{color:#6B665E}
+#painel-clientes .v2f-meta .clf-ponto{font-style:normal;color:#6B665E}
+#painel-clientes .v2f-cabeca > .v2f-acoes{display:flex;flex-wrap:wrap;gap:12px;margin-left:auto}
+#painel-clientes .client-master-detail{display:flex;flex-direction:column;gap:16px;margin:0;padding:0}
+#painel-clientes .v2f-alto{display:grid;grid-template-columns:minmax(0,450px) minmax(0,1fr);gap:14px}
+#painel-clientes .v2f-saude{display:flex;align-items:center;gap:16px}
+#painel-clientes .v2f-nota-caixa{flex:none;text-align:center}
+#painel-clientes .v2f-nota{display:block;font:700 52px/1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em}
+#painel-clientes .v2f-nota-caixa > .v2f-sub{margin-top:4px}
+#painel-clientes .v2f-porque{flex:1;min-width:0}
+#painel-clientes .v2f-porque > .v2f-sub{margin-bottom:8px}
+#painel-clientes .v2f-pills{display:flex;flex-wrap:wrap;gap:6px}
+#painel-clientes .v2f-abas{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#painel-clientes .v2f-espaco{flex:1}
+#painel-clientes .v2f-corpo{display:flex;flex-direction:column;gap:16px;min-width:0}
+#painel-clientes .v2f-corpo:empty{display:none}
+#painel-clientes .v2f-dupla{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+#painel-clientes .v2f-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+#painel-clientes .v2f-hist{display:flex;align-items:center;gap:8px;padding:0 0 10px;font-size:12.5px;color:#4A463F}
+#painel-clientes .v2f-hist::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#C9C2B6}
+#painel-clientes .v2f-entrega{cursor:pointer}
+#painel-clientes .v2f-entrega:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px;border-radius:8px}
+#painel-clientes .v2f-olho{appearance:none;flex:none;display:inline-grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:50%;background:#E8F5EC;color:#11613A;cursor:pointer}
+#painel-clientes .v2f-olho > svg{width:14px;height:14px}
+#painel-clientes .v2f-entregas > .v2f-pe{margin-top:4px}
+#painel-clientes .v2f-reuniao > .v2f-card-topo{margin-bottom:8px}
+#painel-clientes .v2f-reu-linha{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13.5px}
+#painel-clientes .v2f-dec{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13.5px}
+#painel-clientes .v2f-reuniao > .v2f-pe{margin-top:12px}
+#painel-clientes .v2f-acessos-lista{padding:4px 0 10px}
+#painel-clientes .v2f-acessos-lista[hidden]{display:none}
+#painel-clientes .v2f-plj{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+/* As listas completas, nas abas Conteúdo e Demandas. */
+#painel-clientes .cliente-listas{margin:0}
+#painel-clientes .cliente-listas > section[hidden]{display:none}
+
+/* ===== Reuniões (#vv-reunioes, VybeReunioes.abrir em vybe-clientes-reunioes.js) ===== */
+.vc-camada > #vv-reunioes{height:100%;background:#F9F8F5;border:0;overflow:hidden;display:flex;flex-direction:column}
+@media (min-width:721px){.vc-camada > #vv-reunioes{border-radius:28px}}
+#vv-reunioes .v2r{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:26px 30px 0;container:v2r / inline-size;font:400 13.5px/1.4 var(--vv-texto,Inter),system-ui,sans-serif;color:#1F1D1A}
+#vv-reunioes .v2r p,#vv-reunioes .v2r h2,#vv-reunioes .v2r h3{margin:0}
+#vv-reunioes .v2r-topo{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+#vv-reunioes .v2r-topo > h2{flex:1 1 160px;min-width:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+#vv-reunioes .v2r-x{appearance:none;flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border:0;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;cursor:pointer}
+#vv-reunioes .v2r-x:hover{background:#F6F3EE}
+#vv-reunioes .v2r-x:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
+#vv-reunioes .v2r-corpo{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px;margin:0 -30px;padding:0 30px 26px;overflow:auto;overscroll-behavior:contain}
+#vv-reunioes .v2r-corpo > *{flex:none}
+#vv-reunioes .v2r-dupla{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:stretch}
+#vv-reunioes .v2r-dupla.so-lista{grid-template-columns:minmax(0,1fr)}
+#vv-reunioes .v2r-lista{display:flex;flex-direction:column}
+#vv-reunioes .v2r-form{display:flex;flex-direction:column;gap:8px}
+#vv-reunioes .v2r-form[hidden]{display:none}
+#vv-reunioes .v2r-form > .v2r-card-topo{align-items:center;margin:0}
+#vv-reunioes .v2r-dt{display:flex;flex-direction:column;gap:5px;margin:0 0 12px 3px;padding:2px 0 2px 14px;border-left:2px solid #EAE6DE;font-size:12.5px;color:#4A463F}
+#vv-reunioes .v2r-dt b{font-weight:700;color:#1F1D1A}
+#vv-reunioes .v2r-dt > .v2r-botoes{margin-top:0;padding-top:3px}
+#vv-reunioes .v2r-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+#vv-reunioes .v2r-filtros[hidden]{display:none}
+#vv-reunioes .v2r-busca{flex:1 1 140px;min-width:140px;height:36px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 13.5px/1 var(--vv-texto,Inter),sans-serif;appearance:none}
+#vv-reunioes .v2r-busca::placeholder{color:#6B665E}
+#vv-reunioes .v2r-busca:focus-visible{outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
+#vv-reunioes .v2r-oculto{position:absolute;left:-9999px}
+#vv-reunioes .v2r-filtros + [data-v2r="linhas"] > .v2r-lin:first-child{border-top:0}
+#vv-reunioes .v2r-dia{flex:none;width:38px}
+#vv-reunioes [data-v2r="pede"] > .v2r-pe{border-top:1px solid #F1EDE6}
+/* Formulário de Nova reunião: campo em pílula de 34, área de texto com raio 14. */
+#vv-reunioes .v2r-g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+#vv-reunioes .v2r-g2.v2r-g-data{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)}
+#vv-reunioes .v2r-cp{display:flex;flex-direction:column;gap:4px;min-width:0}
+#vv-reunioes .v2r-cp > label{font:600 12px/1.3 var(--vv-texto,Inter),sans-serif;color:#4A463F}
+#vv-reunioes .v2r-inp{box-sizing:border-box;width:100%;height:34px;margin:0;padding:0 14px;border:0;border-radius:999px;background:#F9F8F5;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 13px/1.2 var(--vv-texto,Inter),sans-serif;color-scheme:light}
+#vv-reunioes textarea.v2r-inp{height:auto;min-height:46px;padding:8px 14px;border-radius:14px;line-height:1.35;resize:vertical}
+#vv-reunioes .v2r-cp-ata{flex:1}
+#vv-reunioes .v2r-cp-ata > textarea.v2r-inp{flex:1;min-height:64px}
+#vv-reunioes .v2r-inp::placeholder,#vv-reunioes .v2r-nu::placeholder{color:#6B665E}
+#vv-reunioes :is(.v2r-inp,.v2r-pt):focus-visible,#vv-reunioes .v2r-pt:focus-within{outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
+#vv-reunioes .v2r-inp.v2r-pt{display:flex;align-items:center;gap:8px;padding:0 10px 0 6px}
+#vv-reunioes .v2r-pt .v2r-av{box-shadow:0 0 0 2px #F9F8F5}
+#vv-reunioes .v2r-nu{flex:1;min-width:0;height:100%;margin:0;padding:0 4px;border:0;outline:0;background:transparent;color:#1F1D1A;font:400 13px/1.2 var(--vv-texto,Inter),sans-serif}
+#vv-reunioes .v2r-form .ciclo-erro{margin:0}
+#vv-reunioes .v2r-form .ciclo-erro:empty{display:none}
+#vv-reunioes .v2r-form-pe{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:auto;padding-top:4px}
+
+/* ===== Telas estreitas: uma coluna, nada vaza para o lado ===== */
+@container v2f (max-width:900px){
+  #painel-clientes .v2f-alto,#painel-clientes .v2f-dupla{grid-template-columns:minmax(0,1fr)}
+  #painel-clientes :is(.v2f-th,.v2f-tr){grid-template-columns:minmax(0,1.5fr) 110px 120px minmax(0,1.2fr) 16px}
+  #painel-clientes :is(.v2f-th,.v2f-tr) > :is(.v2f-cd,.v2f-extra,.v2f-h-cadastro,.v2f-h-extra){display:none}
+}
+@container v2f (max-width:620px){
+  #painel-clientes :is(.v2f-kpis){grid-template-columns:minmax(0,1fr)}
+  #painel-clientes :is(.v2f-th,.v2f-tr){grid-template-columns:minmax(0,1fr) 84px 16px}
+  #painel-clientes :is(.v2f-th,.v2f-tr) > :is(.v2f-hd,.v2f-ab,.v2f-h-head,.v2f-h-abertos){display:none}
+  #painel-clientes :is(.v2f-fala,.v2f-saude){flex-wrap:wrap}
+  #painel-clientes .v2f-fala-texto{flex:1 1 calc(100% - 60px)}
+  #painel-clientes .v2f-lin{flex-wrap:wrap}
+  #painel-clientes .v2f-lin > p{flex:1 1 60%}
+  #painel-clientes .v2f-cabeca > .v2f-acoes{margin-left:0}
+}
+@media (max-width:720px){
+  #painel-clientes > .container{padding:18px 16px 24px}
+  #vv-reunioes .v2r{padding:18px 16px 0}
+  #vv-reunioes .v2r-corpo{margin:0 -16px;padding:0 16px 20px}
+}
+@container v2r (max-width:820px){
+  #vv-reunioes .v2r-dupla{grid-template-columns:minmax(0,1fr)}
+  #vv-reunioes .v2r-form{order:-1}
+}
+@container v2r (max-width:560px){
+  #vv-reunioes .v2r-kpis{grid-template-columns:minmax(0,1fr)}
+  #vv-reunioes .v2r-fala{flex-wrap:wrap}
+  #vv-reunioes .v2r-fala-texto{flex:1 1 calc(100% - 60px)}
+  #vv-reunioes .v2r-lin{flex-wrap:wrap}
+  #vv-reunioes .v2r-lin > p{flex:1 1 60%}
+  #vv-reunioes .v2r-g2,#vv-reunioes .v2r-g2.v2r-g-data{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  :is(#painel-clientes,#vv-reunioes) :is(.v2f-ag,.v2r-ag)::after{animation:none}
+  :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn),#painel-clientes .v2f-vai > svg{transition:none}
+}

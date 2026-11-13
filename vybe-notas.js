@@ -16,6 +16,12 @@
 // A leitura da lista usa notasMarkdownHtml; dentro da nota, cada linha se edita
 // no lugar. As regras de linha (Enter, Backspace, marca) são funções sem tela, e
 // é nelas que os testes entram.
+//
+// No mundo (quadro "Janelas do topo", 12/11/2026) as Notas abrem como as outras
+// janelas do topo: 340 de largura, embaixo do ícone, com a busca, os cadernos em
+// fichas e a lista; a nota abre no lugar da lista. "Abrir grande", no cabeçalho,
+// leva para a janela solta de sempre (arrastar, redimensionar, expandir, menu do
+// caderno, demanda ligada), com a mesma nota aberta.
 
 const NOTAS_GEOMETRIA = 'vybe_notas_janela_v1';
 const CADERNO_PADRAO_TELA = 'Notas do dia';
@@ -156,9 +162,9 @@ function notasGuardarGeometria(mudanca) {
   try { localStorage.setItem(NOTAS_GEOMETRIA, JSON.stringify({ ...notasGeometria(), ...mudanca })); } catch { /* sem memória, tudo bem */ }
 }
 
-// No mundo (fase 3d, quadro 42) as Notas são a terceira aba da coluna da Conversa: abrem no mesmo lugar dela, acima do
-// dock, com as abas Conversa, Recados e Notas no topo. Expandir continua; arrastar e a barrinha ficam para fora do mundo.
-const notasNaColuna = () => Boolean(document.body?.classList?.contains('mundo'));
+// No mundo as Notas abrem na janela do topo (#v2-notas); a janela grande (#notas-janela) é a de arrastar e redimensionar.
+const notasNoMundo = () => Boolean(document.body?.classList?.contains('mundo'));
+const notasJanela = () => document.getElementById('v2-notas') || document.getElementById('notas-janela');
 const NOTAS_ICONES = {
   expandir: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
   reduzir: '<path d="M4 14h6v6M20 10h-6V4M10 14l-7 7M14 10l7-7"/>',
@@ -171,19 +177,9 @@ const NOTAS_ICONES = {
   mais: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
 };
 const notasIcone = (nome) => `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NOTAS_ICONES[nome] || ''}</svg>`;
-function notasIrParaAba(aba) {
-  fecharNotas();
-  if (window.VybeConversa?.abrir) window.VybeConversa.abrir(aba);
-}
 
 function notasAplicarGeometria(janela) {
   const g = notasGeometria();
-  if (janela.classList.contains('na-coluna')) {
-    janela.classList.remove('barra');
-    for (const k of ['width', 'height', 'left', 'top']) janela.style[k] = '';
-    janela.classList.toggle('cheia', g.modo === 'cheia');
-    return;
-  }
   if (g.modo === 'cheia') { janela.classList.add('cheia'); return; }
   if (g.modo === 'barra') { janela.classList.add('barra'); }
   const largura = Math.min(Math.max(Number(g.largura) || 520, 340), window.innerWidth - 16);
@@ -197,7 +193,7 @@ function notasAplicarGeometria(janela) {
 // e para dedo, e não depende de biblioteca.
 function notasArrastar(evento) {
   const janela = document.getElementById('notas-janela');
-  if (!janela || janela.classList.contains('cheia') || janela.classList.contains('na-coluna') || evento.target.closest('button')) return;
+  if (!janela || janela.classList.contains('cheia') || evento.target.closest('button')) return;
   const inicio = janela.getBoundingClientRect();
   const x0 = evento.clientX, y0 = evento.clientY;
   const mover = (e) => {
@@ -265,24 +261,146 @@ async function notasPedir(caminho, opcoes = {}) {
 }
 
 async function abrirNotas() {
-  // Na coluna do mundo, a Conversa aberta dá o lugar às Notas.
-  if (notasNaColuna() && window.VybeConversa?.aberto?.()) window.VybeConversa.fechar();
+  // A janela grande já aberta volta para a frente, como estava.
   const existente = document.getElementById('notas-janela');
   if (existente) { existente.classList.remove('barra'); notasGuardarGeometria({ modo: 'solta' }); notasAplicarGeometria(existente); return pintarNotas(); }
+  // No mundo, o ícone abre e fecha a janela do topo.
+  if (notasNoMundo()) return document.getElementById('v2-notas') ? fecharNotas() : abrirNotasNoTopo();
+  criarNotasGrande();
+  NOTAS_ESTADO = 'lista'; NOTA_ABERTA = null; NOTAS_BUSCA = '';
+  await recarregarNotas();
+}
+
+function criarNotasGrande() {
   const janela = document.createElement('section');
   janela.id = 'notas-janela';
-  janela.className = 'notas-janela' + (notasNaColuna() ? ' na-coluna' : '');
+  janela.className = 'notas-janela';
   janela.setAttribute('role', 'dialog');
   janela.setAttribute('aria-label', 'Suas notas');
   janela.innerHTML = '<div class="workspace-loading">Carregando suas notas…</div>';
   document.body.append(janela);
   notasAplicarGeometria(janela);
+  return janela;
+}
+
+// ── janela do topo ───────────────────────────────────────────────────────────
+// Quadro "Janelas do topo": cabeçalho com o nome, a etiqueta, "Abrir grande" e o
+// X redondo; no corpo a busca, os cadernos em fichas e a lista; no pé a dica e
+// "Nova nota". A nota abre no lugar da lista, com a mesma escrita por linhas.
+async function abrirNotasNoTopo() {
+  const janela = document.createElement('section');
+  janela.id = 'v2-notas';
+  janela.className = 'v2nt';
+  janela.setAttribute('role', 'dialog');
+  janela.setAttribute('aria-labelledby', 'v2nt-titulo');
+  janela.innerHTML = `${notasCabTopoHtml()}<div class="v2nt-corpo"><p class="v2nt-vazio">Carregando suas notas…</p></div>`;
+  document.body.append(janela);
+  notasColocarNoTopo();
+  document.querySelector('[data-ferr="notas"]')?.setAttribute('aria-expanded', 'true');
+  setTimeout(() => document.addEventListener('pointerdown', notasForaDoTopo, true), 0);
   NOTAS_ESTADO = 'lista'; NOTA_ABERTA = null; NOTAS_BUSCA = '';
   await recarregarNotas();
+  janela.querySelector('.v2nt-busca')?.focus({ preventScroll: true });
+}
+
+function notasColocarNoTopo() {
+  const janela = document.getElementById('v2-notas');
+  if (janela && typeof colocarJanelaDoTopo === 'function') colocarJanelaDoTopo(janela, '[data-ferr="notas"]');
+}
+
+// Clicar fora fecha (o que estava escrito é salvo pelo fecharNotas). As caixas
+// de confirmação do painel e o menu do "Mais" não contam como fora.
+function notasForaDoTopo(evento) {
+  if (!document.getElementById('v2-notas')) { document.removeEventListener('pointerdown', notasForaDoTopo, true); return; }
+  if (evento.target?.closest?.('#v2-notas, [data-ferr="notas"], .vv-mais-menu, dialog, #cli-pergunta, .workflow-modal, #workflow-modal, .vv-cel-mais')) return;
+  fecharNotas();
+}
+
+// "Abrir grande": a janela de sempre, com a mesma lista ou a mesma nota aberta.
+function abrirNotasGrande() {
+  capturarLinhaAberta();
+  const pequena = document.getElementById('v2-notas');
+  pequena?.remove();
+  document.removeEventListener('pointerdown', notasForaDoTopo, true);
+  document.querySelector('[data-ferr="notas"]')?.setAttribute('aria-expanded', 'false');
+  NOTAS_EMOJI_ABERTO = false;
+  const janela = criarNotasGrande();
+  janela.classList.remove('barra', 'cheia');
+  notasGuardarGeometria({ modo: 'solta' });
+  notasAplicarGeometria(janela);
+  pintarNotas();
+}
+
+function notasCabTopoHtml() {
+  const naNota = NOTAS_ESTADO === 'nota' && NOTA_ABERTA;
+  const total = NOTAS_BUSCA ? NOTAS.length : NOTAS_CADERNOS.reduce((t, c) => t + (Number(c.notas) || 0), 0);
+  const etiqueta = naNota ? '' : NOTAS_BUSCA
+    ? `${total} ${total === 1 ? 'achada' : 'achadas'}`
+    : `${total} ${total === 1 ? 'nota' : 'notas'}`;
+  return `<div class="v2nt-cab">
+      ${naNota ? `<button type="button" class="v2nt-ib" onclick="voltarParaAsNotas()" aria-label="Voltar para as notas" title="Voltar para as notas">${notasIcone('voltar')}</button>` : ''}
+      <h2 id="v2nt-titulo">Notas</h2>
+      ${etiqueta ? `<span class="v2nt-pill">${safeText(etiqueta)}</span>` : ''}
+      <button type="button" class="v2nt-btn" onclick="abrirNotasGrande()" title="Abrir a janela grande: arrastar, redimensionar, menu do caderno e demanda ligada">Abrir grande</button>
+      <button type="button" class="v2nt-ib" onclick="fecharNotas()" aria-label="Fechar as notas" title="Fechar (Esc)">${notasIcone('fechar')}</button>
+    </div>`;
+}
+
+function pintarNotasNoTopo() {
+  const janela = document.getElementById('v2-notas');
+  if (!janela) return;
+  const doCaderno = NOTAS.filter((n) => NOTAS_BUSCA || (n.caderno || CADERNO_PADRAO_TELA) === NOTAS_CADERNO);
+  const linhas = doCaderno.map((n) => {
+    const peca = n.item_ref && typeof findOperationalItem === 'function' ? findOperationalItem(n.item_ref) : null;
+    const sub = NOTAS_BUSCA ? (n.caderno || CADERNO_PADRAO_TELA) : (typeof quandoNaBahia === 'function' ? quandoNaBahia(n.atualizado_em) : '');
+    return `<button type="button" class="v2nt-r" onclick="abrirNota(${Number(n.id)})" title="${safeText(notasResumo(n) || 'Nota vazia')}">
+        <span class="v2nt-r-txt"><b>${safeText(n.titulo || 'Sem título')}</b>${n.item_ref ? `<small>sobre ${safeText(peca?.nome || n.item_ref)}</small>` : ''}</span>
+        <span class="v2nt-sub">${safeText(sub)}</span></button>`;
+  }).join('');
+  const fichas = NOTAS_CADERNOS.map((c) => `<button type="button" class="v2nt-chip" aria-pressed="${c.nome === NOTAS_CADERNO && !NOTAS_BUSCA}"
+      onclick="escolherCaderno(decodeURIComponent('${encodeURIComponent(c.nome)}'))">${safeText(c.nome)}<i>${Number(c.notas) || 0}</i></button>`).join('');
+  const rotulo = NOTAS_BUSCA ? 'Em todos os cadernos' : NOTAS_CADERNO;
+  const corpo = janela.querySelector('.v2nt-corpo');
+  const rolagem = corpo ? corpo.scrollTop : 0;
+  janela.innerHTML = `${notasCabTopoHtml()}
+    <div class="v2nt-corpo">
+      <div class="v2nt-campo"><input class="v2nt-busca" type="search" placeholder="Buscar nas notas" value="${safeText(NOTAS_BUSCA)}"
+        oninput="buscarNotas(this.value)" aria-label="Buscar nas suas notas"></div>
+      <div class="v2nt-fichas" role="group" aria-label="Cadernos">${fichas}<button type="button" class="v2nt-chip v2nt-chip-novo" onclick="novoCaderno()">+ Caderno</button></div>
+      <p class="v2nt-g">${safeText(rotulo)}</p>
+      ${linhas || `<p class="v2nt-vazio">${NOTAS_BUSCA ? 'Nenhuma nota com essa palavra.' : 'Caderno vazio. Crie a primeira nota.'}</p>`}
+    </div>
+    <div class="v2nt-pe"><span class="v2nt-dica">salva sozinha enquanto você escreve</span><button type="button" class="v2nt-btn p" onclick="novaNota()">Nova nota</button></div>`;
+  const novo = janela.querySelector('.v2nt-corpo');
+  if (novo) novo.scrollTop = rolagem;
+}
+
+function pintarNotaNoTopo() {
+  const janela = document.getElementById('v2-notas');
+  if (!janela || !NOTA_ABERTA) return;
+  const peca = NOTA_ABERTA.item_ref && typeof findOperationalItem === 'function' ? findOperationalItem(NOTA_ABERTA.item_ref) : null;
+  const de = [NOTA_ABERTA.caderno || CADERNO_PADRAO_TELA, NOTA_ABERTA.item_ref ? `sobre ${peca?.nome || NOTA_ABERTA.item_ref}` : ''].filter(Boolean).join(' · ');
+  const b = (rotulo, acao, titulo) => `<button type="button" class="v2nt-chip" onclick="${acao}" title="${titulo}">${rotulo}</button>`;
+  janela.innerHTML = `${notasCabTopoHtml()}
+    <div class="v2nt-corpo v2nt-nota">
+      <input class="v2nt-titulo" value="${safeText(NOTA_ABERTA.titulo)}" placeholder="Título da nota"
+        oninput="editarNota('titulo',this.value)" aria-label="Título da nota">
+      <p class="v2nt-de">${safeText(de)}</p>
+      <div class="v2nt-fichas" role="group" aria-label="Escrever">
+        ${b('Título', "aplicarNaNota('titulo')", 'Título da seção')}${b('Lista', "aplicarNaNota('lista')", 'Item de lista')}${b('Caixinha', "aplicarNaNota('check')", 'Caixinha para marcar')}${b('<b>N</b>', "aplicarNaNota('negrito')", 'Negrito')}${b('Emoji', 'alternarEmojis()', 'Inserir emoji')}
+      </div>
+      ${NOTAS_EMOJI_ABERTO ? notasEmojisHtml() : ''}
+      <div class="nota-folha" onclick="if(event.target===this)focarLinha(${NOTA_LINHAS.length - 1})">
+        ${NOTA_LINHAS.map(notasLinhaHtml).join('')}
+      </div>
+    </div>
+    <div class="v2nt-pe"><span class="v2nt-dica" id="notas-pe">${NOTA_ABERTA.id
+      ? `Salva ${safeText(typeof quandoNaBahia === 'function' ? quandoNaBahia(NOTA_ABERTA.atualizado_em || new Date().toISOString()) : '')}`
+      : 'Salva sozinha enquanto você escreve.'}</span><button type="button" class="v2nt-btn" onclick="voltarParaAsNotas()">Pronto</button></div>`;
 }
 
 async function recarregarNotas() {
-  const janela = document.getElementById('notas-janela');
+  const janela = notasJanela();
   if (!janela) return;
   try {
     const d = await notasPedir(NOTAS_BUSCA ? `&busca=${encodeURIComponent(NOTAS_BUSCA)}` : '');
@@ -291,14 +409,22 @@ async function recarregarNotas() {
     if (!NOTAS_CADERNOS.some((c) => c.nome === NOTAS_CADERNO)) NOTAS_CADERNO = NOTAS_CADERNOS[0].nome;
     pintarNotas();
   } catch (erro) {
-    janela.innerHTML = `${notasTopoHtml()}<div class="notas-conteudo"><div class="workspace-empty">${safeText(erro.message)}</div></div>${notasCantoHtml()}`;
+    janela.innerHTML = janela.id === 'v2-notas'
+      ? `${notasCabTopoHtml()}<div class="v2nt-corpo"><p class="v2nt-vazio">${safeText(erro.message)}</p></div>`
+      : `${notasTopoHtml()}<div class="notas-conteudo"><div class="workspace-empty">${safeText(erro.message)}</div></div>${notasCantoHtml()}`;
   }
 }
 
 function fecharNotas() {
   capturarLinhaAberta();
   if (NOTAS_SALVANDO) { clearTimeout(NOTAS_SALVANDO); NOTAS_SALVANDO = null; salvarNotaAberta(); }
-  document.getElementById('notas-janela')?.remove();
+  const pequena = document.getElementById('v2-notas');
+  if (pequena) {
+    pequena.remove();
+    document.removeEventListener('pointerdown', notasForaDoTopo, true);
+    const icone = document.querySelector('[data-ferr="notas"]');
+    icone?.setAttribute('aria-expanded', 'false');
+  } else document.getElementById('notas-janela')?.remove();
   NOTA_ABERTA = null; NOTAS_ESTADO = 'lista'; NOTAS_EMOJI_ABERTO = false;
   return true;
 }
@@ -311,15 +437,6 @@ function notasTopoHtml() {
   const cheia = document.getElementById('notas-janela')?.classList.contains('cheia');
   const barra = document.getElementById('notas-janela')?.classList.contains('barra');
   const naNota = NOTAS_ESTADO === 'nota' && !barra;
-  if (document.getElementById('notas-janela')?.classList.contains('na-coluna')) {
-    // O topo da coluna: as abas e o fechar na mesma linha, como todo cabeçalho de janela; dentro de uma nota, a volta.
-    const aba = (id, rotulo) => `<button type="button" role="tab" aria-selected="${id === 'notas'}" tabindex="${id === 'notas' ? 0 : -1}"${id === 'notas' ? '' : ` onclick="notasIrParaAba('${id}')"`}>${rotulo}</button>`;
-    return `<div class="notas-topo notas-topo-coluna">
-        <div class="vv-conversa-abas" role="tablist" aria-label="Conversa da equipe, recados ou notas">${aba('conversa', 'Conversa')}${aba('recados', 'Recados')}${aba('notas', 'Notas')}</div>
-        <button type="button" class="notas-icone" onclick="expandirNotas()" title="${cheia ? 'Voltar para a coluna' : 'Expandir para a tela'}" aria-label="${cheia ? 'Voltar para a coluna' : 'Expandir'}">${notasIcone(cheia ? 'reduzir' : 'expandir')}</button>
-        <button type="button" class="notas-icone" onclick="fecharNotas()" title="Fechar (Esc)" aria-label="Fechar as notas">${notasIcone('fechar')}</button>
-      </div>${naNota ? `<div class="notas-sub"><button type="button" class="notas-voltar" onclick="voltarParaAsNotas()" aria-label="Voltar para as notas">${notasIcone('voltar')}<span>Notas</span></button><b>${safeText(NOTA_ABERTA?.titulo || 'Nota')}</b></div>` : ''}`;
-  }
   return `<div class="notas-topo" onpointerdown="notasArrastar(event)">
       ${naNota ? `<button type="button" class="notas-voltar" onclick="voltarParaAsNotas()" aria-label="Voltar para as notas">${notasIcone('voltar')}</button>` : ''}
       <b>${naNota ? safeText(NOTA_ABERTA?.titulo || 'Nota') : 'Notas'}</b>
@@ -332,6 +449,7 @@ function notasTopoHtml() {
 }
 
 function pintarNotas() {
+  if (document.getElementById('v2-notas')) return NOTAS_ESTADO === 'nota' ? pintarNotaAberta() : pintarNotasNoTopo();
   const janela = document.getElementById('notas-janela');
   if (!janela) return;
   if (janela.classList.contains('barra')) { janela.innerHTML = notasTopoHtml(); return; }
@@ -424,11 +542,11 @@ function buscarNotas(termo) {
   NOTAS_BUSCA = String(termo || '');
   clearTimeout(NOTAS_BUSCA_TIMER);
   NOTAS_BUSCA_TIMER = setTimeout(async () => {
-    const campo = document.querySelector('.notas-barra input');
+    const campo = document.querySelector('.notas-barra input, .v2nt-busca');
     const tinhaFoco = document.activeElement === campo;
     await recarregarNotas();
     if (tinhaFoco) {
-      const novo = document.querySelector('.notas-barra input');
+      const novo = document.querySelector('.notas-barra input, .v2nt-busca');
       novo?.focus(); novo?.setSelectionRange(novo.value.length, novo.value.length);
     }
   }, 260);
@@ -506,10 +624,24 @@ function notasLinhaHtml(linha, indice) {
 }
 
 function pintarNotaAberta() {
-  const janela = document.getElementById('notas-janela');
+  const janela = notasJanela();
   if (!janela || !NOTA_ABERTA) return;
   if (!NOTA_LINHAS.length) NOTA_LINHAS = String(NOTA_ABERTA.corpo || '').replace(/\r\n/g, '\n').split('\n');
   if (!NOTA_LINHAS.length) NOTA_LINHAS = [''];
+  if (janela.id === 'v2-notas') pintarNotaNoTopo();
+  else pintarNotaGrande(janela);
+  const entrada = janela.querySelector('.nota-entrada');
+  if (entrada) {
+    crescerLinha(entrada);
+    entrada.focus({ preventScroll: janela.id === 'v2-notas' });
+    entrada.scrollIntoView?.({ block: 'nearest' });
+    const pos = NOTA_FIM === 'fim' || NOTA_FIM === null ? entrada.value.length : Number(NOTA_FIM);
+    entrada.setSelectionRange(pos, pos);
+  }
+  NOTA_FIM = null;
+}
+
+function pintarNotaGrande(janela) {
   const peca = NOTA_ABERTA.item_ref && typeof findOperationalItem === 'function'
     ? findOperationalItem(NOTA_ABERTA.item_ref) : null;
   const sobre = NOTA_ABERTA.item_ref
@@ -533,14 +665,6 @@ function pintarNotaAberta() {
         ? `Salva ${safeText(quandoNaBahia(NOTA_ABERTA.atualizado_em || new Date().toISOString()))}`
         : 'Salva sozinha enquanto você escreve.'}</p>
     </div>${notasCantoHtml()}`;
-  const entrada = janela.querySelector('.nota-entrada');
-  if (entrada) {
-    crescerLinha(entrada);
-    entrada.focus();
-    const pos = NOTA_FIM === 'fim' || NOTA_FIM === null ? entrada.value.length : Number(NOTA_FIM);
-    entrada.setSelectionRange(pos, pos);
-  }
-  NOTA_FIM = null;
 }
 
 // Qualquer ação de fora (marcar caixinha, barra de ferramentas, emoji, trocar
@@ -817,16 +941,19 @@ async function mandarNotaParaPeca() {
 // Esc fecha o painel de emoji antes da janela, e a janela antes de qualquer
 // camada do painel atrás dela.
 document.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape' || !document.getElementById('notas-janela')) return;
+  if (event.key !== 'Escape' || !notasJanela()) return;
   const alvo = event.target;
-  if (alvo && /^(INPUT|TEXTAREA)$/.test(alvo.tagName)) { alvo.blur(); return; }
+  if (alvo && /^(INPUT|TEXTAREA)$/.test(alvo.tagName) && !alvo.classList?.contains('v2nt-busca')) { alvo.blur(); return; }
   event.preventDefault();
   event.stopImmediatePropagation();
   if (NOTAS_EMOJI_ABERTO) { NOTAS_EMOJI_ABERTO = false; return pintarNotaAberta(); }
+  const doTopo = Boolean(document.getElementById('v2-notas'));
   fecharNotas();
+  if (doTopo) document.querySelector('.vv-barra-topo .vv-mais-menu > summary')?.focus?.();
 });
 
 window.addEventListener('resize', () => {
+  notasColocarNoTopo();
   const janela = document.getElementById('notas-janela');
   if (janela && !janela.classList.contains('cheia') && !janela.classList.contains('barra')) notasAplicarGeometria(janela);
 });

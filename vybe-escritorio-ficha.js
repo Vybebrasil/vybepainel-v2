@@ -1456,7 +1456,7 @@ function pintarRankingEscritorio() {
   const antes = new Map([...el.querySelectorAll("[data-pid]")].map((n) => [n.dataset.pid + (n.classList.contains("rk2-degrau") ? "p" : "l"), n.getBoundingClientRect()]));
   const chaveAntes = el.dataset.rkChave || "";
   // Redesenhar (abrir uma linha, chegar dado novo) não volta a rolagem ao topo.
-  const rolagem = el.querySelector(".rk2-corpo")?.scrollTop || 0;
+  const rolagem = el.querySelector(".v2r-rola")?.scrollTop || 0;
   const per = escritorioRanking.periodo, d = escritorioRanking.dados[per], eu = String(escritorio.base?.eu || "");
   const dataBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : "");
   const nome = (p) => String(p.nome || "").split(" ")[0];
@@ -1466,34 +1466,28 @@ function pintarRankingEscritorio() {
   const fecha = per === "total" ? "desde o começo" : per === "dia" ? "fecha hoje à meia-noite" : faltam === 0 ? "fecha hoje à meia-noite" : faltam === 1 ? "fecha amanhã" : `fecha em ${faltam} dias`;
   const titulo = { dia: "Ranking de hoje", semana: "Ranking da semana", mes: "Ranking do mês", total: "Ranking de sempre" }[per];
   const intervalo = !d?.inicio ? "" : per === "dia" ? dataBr(d.inicio) : per === "mes" ? new Date(d.inicio + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }) : `${dataBr(d.inicio)} a ${dataBr(d.fim)}`;
-  const topo = `<header class="rk2-cab"><span class="rk2-cab-icone">${rkIcone("geral")}</span><div><h2>${titulo}</h2><small>${[intervalo, fecha].filter(Boolean).map(safeText).join(" · ")}</small></div><button type="button" class="ofc-rk-x" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></header>
-<div class="rk2-periodos" role="tablist" aria-label="Período">${RK_PERIODOS.map(([k, t]) => `<button type="button" role="tab" aria-selected="${per === k}" onclick="trocarPeriodoRankingEscritorio('${k}')">${t}</button>`).join("")}</div>`;
-  if (escritorioRanking.erro && !d) { el.innerHTML = topo + `<div class="rk2-corpo">${vbEstadoHtml({ tipo: "erro", titulo: "Não deu para carregar o ranking", texto: escritorioRanking.erro, acao: '<button type="button" class="vb-botao" onclick="carregarRankingEscritorio()">Tentar de novo</button>' })}</div>`; return; }
-  if (!d) { el.innerHTML = topo + `<div class="rk2-corpo">${vbEstadoHtml({ tipo: "carregando", titulo: "Carregando o ranking" })}</div>`; return; }
-  if (!d.disponivel) { el.innerHTML = topo + `<div class="rk2-corpo">${vbEstadoHtml({ titulo: "O ranking ainda não começou", texto: "Ele aparece quando a contagem de pontos estiver ativa." })}</div>`; return; }
+  // Quadro "Ranking" do padrão v2 (12/11/2026): título com o período e "Por que essa ordem?" numa linha, as categorias
+  // em fichas, o pódio num cartão, a sua posição numa faixa preta, a lista curta com "mostrar" e, ao lado, os jogos.
+  const fechar = '<button type="button" class="v2r-x" onclick="closeWorkflowModal()" aria-label="Fechar o ranking"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+  const periodos = `<div class="v2r-seg" role="group" aria-label="Período">${RK_PERIODOS.map(([k, t]) => `<button type="button" aria-pressed="${per === k}" onclick="trocarPeriodoRankingEscritorio('${k}')">${t}</button>`).join("")}</div>`;
+  const topoDe = (porque) => `<div class="v2r-topo"><h1>Ranking</h1><p class="v2r-sub v2r-quando" title="${safeText(titulo)}">${[intervalo, fecha].filter(Boolean).map(safeText).join(" · ")}</p>${periodos}${porque}${fechar}</div>`;
+  const jogos = escritorioJogosRankingHtml();
+  const soEstado = (html) => { el.innerHTML = `<div class="v2r">${topoDe("")}<div class="v2r-corpo"><div class="v2r-esq"><div class="v2r-card">${html}</div></div>${jogos}</div></div>`; };
+  if (escritorioRanking.erro && !d) { soEstado(vbEstadoHtml({ tipo: "erro", titulo: "Não deu para carregar o ranking", texto: escritorioRanking.erro, acao: '<button type="button" class="v2r-btn" onclick="carregarRankingEscritorio()">Tentar de novo</button>' })); return; }
+  if (!d) { soEstado(vbEstadoHtml({ tipo: "carregando", titulo: "Carregando o ranking" })); return; }
+  if (!d.disponivel) { soEstado(vbEstadoHtml({ titulo: "O ranking ainda não começou", texto: "Ele aparece quando a contagem de pontos estiver ativa." })); return; }
   const cats = rkCategorias(d);
   const extra = [{ k: "tesouros", nome: "Tesouros", icone: "tesouros" }, ...(per === "total" ? [] : [{ k: "agencia", nome: "Agência", icone: "agencia" }])];
   const cat = cats.find((c) => c.k === escritorioRanking.aba) || (extra.find((c) => c.k === escritorioRanking.aba) ? null : cats[0]);
   const aba = cat ? cat.k : escritorioRanking.aba;
   const premio = (k) => d.premios?.find((p) => p.chave === k);
   const ordenar = (c) => [...d.pessoas].map((p) => ({ p, v: c.valor(p) })).sort((a, b) => b.v - a.v || b.p.xp - a.p.xp || a.p.nome.localeCompare(b.p.nome));
-  // Categorias (Paulo, 21/10/2026: "ta ruim ver e decidir as categorias"):
-  // as cinco principais em cartões com o líder; as de atividade em chips que
-  // quebram linha, só as que alguém pontuou. A sua posição só na escolhida.
-  const escolher = (k) => `onclick="escritorioRanking.aba='${k}';escritorioRanking.aberto=null;pintarRankingEscritorio()"`;
+  const escolher = (k) => `onclick="escritorioRanking.aba='${k}';escritorioRanking.aberto=null;escritorioRanking.todos=false;pintarRankingEscritorio()"`;
   const PRINCIPAIS = ["geral", "superacao", "moedas", "entregas", "sequencia"];
-  // A arte de cada categoria é um troféu do Habbo (o mesmo jogo das Conquistas).
-  const RK_ARTE = { geral: "trophy_fball_c26_wingedgold", superacao: "prizetrophy_hot", moedas: "bc_blocktrophy_1", entregas: "army_c15_crate", sequencia: "trophy_torch" };
-  const cartoes = cats.filter((c) => PRINCIPAIS.includes(c.k)).map((c) => {
-    const ord = ordenar(c).filter((x) => x.v > 0), lider = ord[0], minha = ord.findIndex((x) => x.p.id === eu);
-    return `<button type="button" class="rk2-camp${aba === c.k ? " ativo" : ""}${lider?.p.id === eu ? " meu" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || "")}" ${escolher(c.k)}>
-      <span class="rk2-camp-arte">${escritorioMiniaturaHtml(RK_ARTE[c.k] || "prizetrophy")}</span><span class="rk2-camp-txt"><small>${safeText(c.nome)}</small>${lider ? `<b>${safeText(nome(lider.p))}</b><em>${safeText(c.fmt(lider.v, lider.p))}</em>` : "<b>—</b>"}</span>${lider ? rosto(lider.p.id, 26) : ""}${aba === c.k && minha > 0 ? `<i class="rk2-camp-eu">você ${minha + 1}º</i>` : ""}</button>`;
-  }).join("");
-  const chipsAtv = [...cats.filter((c) => !PRINCIPAIS.includes(c.k) && c.k !== "xp").map((c) => {
-    const lider = ordenar(c).find((x) => x.v > 0);
-    return lider ? `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" title="${safeText(c.dica || `Quem mais fez: ${c.nome.toLowerCase()}`)}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span><span class="rk2-chip-txt">${safeText(c.nome)}</span></button>` : "";
-  }), ...extra.map((c) => `<button type="button" class="rk2-chip${aba === c.k ? " ativo" : ""}" aria-pressed="${aba === c.k}" ${escolher(c.k)}><span class="rk2-chip-icone ic-${c.k}">${rkIcone(c.icone)}</span>${c.nome}${c.k === "agencia" ? `<b>${d.agencia.pct}%</b>` : ""}</button>`)].join("");
-  const campeoes = `<div class="rk2-principais" role="group" aria-label="Categorias">${cartoes}</div>${chipsAtv ? `<div class="rk2-chips" role="group" aria-label="Por atividade"><small>Por atividade</small>${chipsAtv}</div>` : ""}`;
+  // As cinco principais à vista; as de atividade (só as que alguém pontuou), Tesouros e Agência abrem em "Atividade".
+  const atividades = [...cats.filter((c) => !PRINCIPAIS.includes(c.k) && c.k !== "xp" && ordenar(c).some((x) => x.v > 0)), ...extra];
+  const naAtividade = atividades.some((c) => c.k === aba);
+  const fichas = `<div class="v2r-chips" role="group" aria-label="Categorias">${cats.filter((c) => PRINCIPAIS.includes(c.k)).map((c) => `<button type="button" class="v2r-chip" aria-pressed="${aba === c.k}" title="${safeText(c.dica || "")}" ${escolher(c.k)}>${safeText(c.nome)}</button>`).join("")}${atividades.length ? `<button type="button" class="v2r-chip${naAtividade ? " tem" : ""}" aria-expanded="${Boolean(escritorioRanking.atividades || naAtividade)}" onclick="escritorioRanking.atividades=!(escritorioRanking.atividades||${naAtividade});pintarRankingEscritorio()">Atividade · ${atividades.length}</button>` : ""}</div>${escritorioRanking.atividades || naAtividade ? `<div class="v2r-chips v2r-atividades" role="group" aria-label="Por atividade">${atividades.map((c) => `<button type="button" class="v2r-chip p" aria-pressed="${aba === c.k}" title="${safeText(c.dica || c.nome)}" ${escolher(c.k)}>${safeText(c.nome)}${c.k === "agencia" ? ` · ${d.agencia.pct}%` : ""}</button>`).join("")}</div>` : ""}`;
   escritorioRanking.detalheDe = (p) => detalhe(p);
   const detalhe = (p) => {
     if (!p) return "";
@@ -1505,7 +1499,11 @@ function pintarRankingEscritorio() {
 <div class="ofc-rk-det-col"><h5>De onde veio o XP <small>${p.xp} XP</small></h5>${xp.length ? `<ul class="ofc-rk-det-lista">${xp.map(([k, n]) => { const vezes = Number(p.atividades?.[k] || 0), f = rkFormatosTexto(p.formatos?.[k]); const dica = [vezes ? `${vezes.toLocaleString("pt-BR")} ${vezes === 1 ? "vez" : "vezes"}${vezes > 1 ? ` · média de ${Math.round(n / vezes)} XP por vez` : ""}` : "", f].filter(Boolean).join(" · "); return `<li${dica ? ` class="vb-jogo-dica" tabindex="0" data-dica="${safeText(dica)}"` : ""}><span>${regra(k)}</span><b>${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR")} XP</b></li>`; }).join("")}</ul>` : '<p class="ofc-nota">Nada ainda.</p>'}</div>
 ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${p.pecas.length < p.entregas ? `as ${p.pecas.length} mais recentes` : "do período"}</small></h5><ul class="ofc-rk-det-pecas">${p.pecas.map((x) => `<li><time>${dataBr(x.dia)}</time><span><b>${safeText(x.titulo || "Sem título")}</b>${x.cliente ? `<small>${safeText(x.cliente)}</small>` : ""}</span><em>${regra(x.regra).replace(/ \(.*\)$/, "")}</em></li>`).join("")}</ul></div>` : ""}</div>`;
   };
-  let corpo = "", voceFixa = "";
+  const iniciais = (p) => safeText(nome(p).slice(0, 2).toUpperCase());
+  const av = (p, tam) => { const u = escritorioCabecaUrl(p.id); return `<span class="v2r-av" style="--t:${tam}px">${u ? `<img src="${safeText(u)}" alt="" loading="lazy">` : iniciais(p)}</span>`; };
+  const mexeu = (p) => { if (per === "total" || !p.posicao || !p.antes) return p.posicao && !p.antes && per !== "total" ? "entrou agora" : ""; const n = p.antes - p.posicao; return !n ? "mesma posição" : `${n > 0 ? "subiu" : "caiu"} ${Math.abs(n)}`; };
+  const funcao = (p) => safeText(ESCRITORIO_FUNCAO_NOME[p.funcao] || "");
+  let esquerda = "";
   if (cat) {
     const geral = cat.k === "geral";
     const ord = ordenar(cat), vivos = ord.filter((x) => x.v > 0);
@@ -1515,46 +1513,71 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
     let dica = "";
     if (eu_) {
       const acima = ord[minha - 1];
-      if (minha === 0 && eu_.v > 0) dica = `Você lidera ${geral ? "o período" : `em ${cat.nome}`}. Segure o 1º lugar.`;
-      else if (acima && geral && per === "total") dica = `Faltam <b>${Math.max(1, Number(acima.p.xpTotal || 0) - Number(eu_.p.xpTotal || 0) + 1).toLocaleString("pt-BR")} XP</b> para passar ${safeText(nome(acima.p))}.`;
-      else if (acima) dica = `Faltam <b>${safeText(cat.fmt(Math.max(1, acima.v - eu_.v + 1), acima.p))}</b> para passar ${safeText(nome(acima.p))}.`;
-      else dica = "Entregue para entrar neste ranking.";
+      if (minha === 0 && eu_.v > 0) dica = `você lidera ${geral ? "o período" : `em ${safeText(cat.nome)}`}`;
+      else if (acima && geral && per === "total") dica = `faltam ${Math.max(1, Number(acima.p.xpTotal || 0) - Number(eu_.p.xpTotal || 0) + 1).toLocaleString("pt-BR")} XP para passar ${safeText(nome(acima.p))}`;
+      else if (acima) dica = `faltam ${safeText(cat.fmt(Math.max(1, acima.v - eu_.v + 1), acima.p))} para passar ${safeText(nome(acima.p))}`;
+      else dica = "entregue para entrar neste ranking";
     }
-    const voce = eu_ ? `<section class="rk2-voce rk2-voce-fixa" aria-label="Sua posição"><div class="rk2-voce-pos"><b>${posDe(eu_) ? posDe(eu_) + "º" : "—"}</b>${geral ? rkSeta(eu_.p) : ""}</div>${rosto(eu_.p.id, 46)}<div class="rk2-voce-txt"><b>Você · <span data-vb-contar="${Number(eu_.v)}" data-vb-chave="rk-${per}-${cat.k}">${safeText(cat.fmt(eu_.v, eu_.p))}</span></b><small>${safeText(cat.sub(eu_.p))}${eu_.p.sequencia > 1 ? ` · ${eu_.p.sequencia} dias seguidos entregando` : ""}</small><p>${dica} <button type="button" class="ofc-rk-link" onclick="verMinhaLinhaRankingEscritorio()">Ver o que contou</button></p></div>${geral && per !== "total" ? `<span class="ofc-rk-anel" style="--p:${Math.min(100, eu_.p.pct)}" aria-hidden="true"><i>${eu_.p.pct}%</i></span>` : ""}</section>` : "";
     const tres = vivos.slice(0, 3);
-    const podio = tres.length ? `<div class="rk2-podio">${[tres[1], tres[0], tres[2]].filter(Boolean).map((x) => { const pos = tres.indexOf(x) + 1, pr = geral && per === "semana" ? premio("ranking_" + pos) : null;
-      return `<button type="button" data-pid="${x.p.id}" class="rk2-degrau p${pos}${x.p.id === eu ? " eu" : ""}" style="--atraso:${[0, 0.15, 0, 0.3][pos]}s" onclick="abrirDetalheRankingEscritorio('${x.p.id}', this)" aria-label="${pos}º lugar: ${safeText(nome(x.p))}, ${safeText(cat.fmt(x.v, x.p))}">
-        ${pos === 1 ? '<span class="rk2-coroa" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></span>' : ""}
-        <div class="ofc-rk-figura">${escritorioRankingBoneco(x.p.id, pos === 1 ? "wav" : "std") || rosto(x.p.id, 56)}${pr ? escritorioRankingTrofeu(pr.classe) : ""}<span class="rk2-selo" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></div>
-        <b class="ofc-rk-dnome">${safeText(nome(x.p))}${x.p.id === eu ? " · você" : ""}</b><span class="ofc-rk-dvalor" data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</span><small>${safeText(cat.sub(x.p))}${geral ? " " + rkSeta(x.p) : ""}</small>${rkPorque(cat, x.p, d) ? `<span class="rk2-porque">${safeText(rkPorque(cat, x.p, d))}</span>` : ""}
-        <div class="rk2-bloco"><span>${pos}º</span></div>${pr ? `<em class="rk2-premio" title="Prêmio no fechamento da semana">+${pr.moedas} moedas · +${pr.pontos} XP</em>` : ""}</button>`; }).join("")}</div>` : vbEstadoHtml({ titulo: "Ninguém pontuou aqui ainda", texto: "O primeiro a entregar abre o pódio." });
-    const lista = ord.length > tres.length ? `<ol class="rk2-lista">${ord.slice(tres.length).map((x, k) => { const pos = posDe(x);
-      return `<li data-pid="${x.p.id}" class="${x.p.id === eu ? "eu" : ""}${escritorioRanking.aberto === x.p.id ? " aberto" : ""}" style="--i:${k}" role="button" tabindex="0" aria-expanded="${escritorioRanking.aberto === x.p.id}" onclick="abrirDetalheRankingEscritorio('${x.p.id}', this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirDetalheRankingEscritorio('${x.p.id}', this)}">
-        <span class="rk2-pos">${pos ? pos + "º" : "—"}${geral && per !== "total" ? rkSeta(x.p) : ""}</span><span class="rk2-avatar">${rosto(x.p.id)}<span class="rk2-selo mini" title="Nível ${x.p.nivel || "—"}">${x.p.nivel || "—"}</span></span><span class="rk2-nome">${(() => { const t = (escritorio.base?.equipe || []).find((e) => String(e.id) === String(x.p.id))?.titulo; return `<b>${safeText(nome(x.p))}${t?.texto ? `<em class="mapa-titulo rk2-titulo n${Number(t.nivel) || 1}"><i aria-hidden="true"></i><span>${safeText(t.texto)}</span></em>` : ""}</b><small>${safeText(ESCRITORIO_FUNCAO_NOME[x.p.funcao] || "")}${rkPorque(cat, x.p, d) ? ` · <span class="rk2-porque">${safeText(rkPorque(cat, x.p, d))}</span>` : ""}</small>`; })()}</span>
-        <span class="rk2-barra" aria-hidden="true"><i style="width:${Math.max(2, Math.min(100, (x.v / max) * 100))}%"></i></span><span class="rk2-valor"><b data-rk-num="${Number(x.v)}" data-rk-fmt="${safeText(cat.fmt(1234567, x.p).replace("1.234.567", "#").replace("1234567", "#"))}">${safeText(cat.fmt(x.v, x.p))}</b><small>${safeText(cat.sub(x.p))}</small></span></li>${escritorioRanking.aberto === x.p.id ? `<li class="ofc-rk-det-li">${detalhe(x.p)}</li>` : ""}`; }).join("")}</ol>` : "";
-    const copaMes = per === "mes" && geral ? `<div class="rk2-copa">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="" width="44" height="50">` : ""}<span><b>Copa Vybe de ${safeText(new Date((d.inicio || hoje) + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }))}</b><small>Quem tiver mais XP do trabalho no fim do mês leva a taça da Copa (épica), o título "Campeão da Copa" e ${(() => { const r = d.premios?.find((x) => x.chave === "copa_1"); return r ? `+${r.moedas} moedas · +${r.pontos} XP` : "o prêmio"; })()}. 2º e 3º levam as taças de prata e bronze. ${safeText(fecha)}.</small></span></div>` : "";
-    corpo = `<div class="rk2-duas"><div class="rk2-meio">${copaMes}<p class="rk2-regra"><b>Por que essa ordem?</b> ${safeText(cat.dica || "")}</p>${podio}${tres.some((x) => x.p.id === escritorioRanking.aberto) ? detalhe(tres.find((x) => x.p.id === escritorioRanking.aberto).p) : ""}</div>${lista ? `<div class="rk2-direita">${lista}</div>` : ""}</div>`;
-    voceFixa = voce;
-  } else if (aba === "tesouros") {
+    const podio = tres.length ? `<div class="v2r-card v2r-podio">${[tres[1], tres[0], tres[2]].filter(Boolean).map((x) => { const pos = tres.indexOf(x) + 1, pr = geral && per === "semana" ? premio("ranking_" + pos) : null;
+      return `<button type="button" data-pid="${x.p.id}" class="v2r-pd p${pos}${x.p.id === eu ? " eu" : ""}" onclick="abrirDetalheRankingEscritorio('${x.p.id}', this)" aria-label="${pos}º lugar: ${safeText(nome(x.p))}, ${safeText(cat.fmt(x.v, x.p))}">
+        ${av(x.p, 56)}<span class="v2r-pd-nome"><b>${safeText(nome(x.p))}${x.p.id === eu ? " (você)" : ""}</b>${funcao(x.p) ? ` · ${funcao(x.p)}` : ""}</span>
+        <strong><span class="v2-num" style="animation-delay:${[0, 0, .12, .24][pos]}s">${safeText(cat.fmt(x.v, x.p))}</span></strong>
+        <span class="v2r-sub">${safeText([cat.sub(x.p).replace("da própria meta", "da meta"), geral ? mexeu(x.p) : ""].filter(Boolean).join(" · "))}</span>
+        <span class="v2r-deg" aria-hidden="true">${pos}º</span><span class="v2r-sub v2r-premio">${pr ? `+${pr.moedas} moedas · +${pr.pontos} XP` : safeText(rkPorque(cat, x.p, d) || "")}</span></button>`; }).join("")}</div>` : `<div class="v2r-card">${vbEstadoHtml({ titulo: "Ninguém pontuou aqui ainda", texto: "O primeiro a entregar abre o pódio." })}</div>`;
+    const voce = eu_ ? `<section class="v2r-voce" data-pid="${eu_.p.id}" aria-label="Sua posição"><span class="v2r-pos">${posDe(eu_) ? posDe(eu_) + "º" : "—"}</span>${av(eu_.p, 28)}<p><b>Você · ${safeText(cat.fmt(eu_.v, eu_.p))}</b><span>${[dica, geral && per !== "total" ? `${eu_.p.pct}% da sua meta` : safeText(cat.sub(eu_.p))].filter(Boolean).join(" · ")}</span></p><button type="button" class="v2r-btn s" onclick="verMinhaLinhaRankingEscritorio()">De onde veio o XP</button></section>` : "";
+    const resto = ord.slice(tres.length).filter((x) => x.p.id !== eu || escritorioRanking.todos);
+    const mostra = escritorioRanking.todos ? resto : resto.slice(0, 2), faltam_ = resto.length - mostra.length;
+    const linha = (x) => { const pos = posDe(x), pq = rkPorque(cat, x.p, d);
+      return `<button type="button" data-pid="${x.p.id}" class="v2r-lin${x.p.id === eu ? " eu" : ""}" onclick="abrirDetalheRankingEscritorio('${x.p.id}', this)"><span class="v2r-pos">${pos ? pos + "º" : "—"}</span>${av(x.p, 28)}<span class="v2r-lin-txt"><b>${safeText(nome(x.p))}</b>${[funcao(x.p), safeText(pq.replace(/^\+[\d.]+ XP de /, "").split(" · ")[0])].filter(Boolean).map((s) => ` · ${s}`).join("")}</span><span class="v2-barra" aria-hidden="true"><i style="--v:${Math.max(2, Math.min(100, (x.v / max) * 100))}%;--c:#FF7A2F"></i></span><b class="v2r-valor">${safeText(cat.fmt(x.v, x.p))}</b></button>`; };
+    const nota = geral ? "conquistas e prêmios da Copa não contam no XP" : safeText(cat.nome.toLowerCase()) + " no período";
+    const lista = mostra.length || faltam_ > 0 ? `<div class="v2r-card v2r-lista">${mostra.map(linha).join("")}<p class="v2r-sub v2r-pe">${faltam_ > 0 ? `+ ${faltam_} ${faltam_ === 1 ? "pessoa" : "pessoas"} · <button type="button" class="v2r-link" onclick="escritorioRanking.todos=true;pintarRankingEscritorio()">mostrar</button> · ` : escritorioRanking.todos && resto.length > 2 ? '<button type="button" class="v2r-link" onclick="escritorioRanking.todos=false;pintarRankingEscritorio()">mostrar menos</button> · ' : ""}${nota}</p></div>` : "";
+    const copaMes = per === "mes" && geral ? `<div class="v2r-card v2r-copa">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="" width="36" height="42">` : ""}<p><b>Copa Vybe de ${safeText(new Date((d.inicio || hoje) + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }))}</b><span class="v2r-sub">Quem tiver mais XP do trabalho no fim do mês leva a taça, o título "Campeão da Copa" e ${(() => { const r = d.premios?.find((x) => x.chave === "copa_1"); return r ? `+${r.moedas} moedas e +${r.pontos} XP` : "o prêmio"; })()}. ${safeText(fecha)}.</span></p></div>` : "";
+    esquerda = copaMes + podio + voce + lista;
+  }
+  let corpo = "";
+  if (!cat && aba === "tesouros") {
     const pat = d.patrimonio || [];
     const ricos = [...pat].sort((a, b) => b.saldo - a.saldo), colec = [...pat].sort((a, b) => b.moveis - a.moveis || b.lendarios - a.lendarios || b.distintos - a.distintos);
     const coluna = (titulo, dica, lst, valor, sub) => `<section class="ofc-rk-tesouro"><h4>${titulo}</h4><small>${dica}</small><ol>${lst.map((p, i) => `<li class="${p.id === eu ? "eu" : ""}${i < 3 ? " top" + (i + 1) : ""}"><span class="ofc-rk-pos">${i + 1}º</span>${rosto(p.id, i < 3 ? 36 : 28)}<span class="ofc-rk-nome"><b>${safeText(nome(p))}</b><small>${sub(p)}</small></span><span class="ofc-rk-valor"><b>${valor(p)}</b></span></li>`).join("")}</ol></section>`;
     corpo = `<p class="ofc-rk-legenda">De todos os tempos.</p><div class="ofc-rk-tesouros">${coluna("Mais rico", "VybeCoins na carteira agora", ricos, (p) => `${Number(p.saldo).toLocaleString("pt-BR")}`, () => "VybeCoins")}${coluna("Colecionador", "Móveis guardados e no quarto", colec, (p) => `${p.moveis}`, (p) => [`${p.distintos} diferentes`, p.lendarios ? `${p.lendarios} lendários` : "", p.trofeus ? `${p.trofeus} troféus` : ""].filter(Boolean).join(" · "))}</div>`;
-  } else {
+  } else if (!cat) {
     const a = d.agencia, bonus = premio("meta_agencia"), falta = Math.max(0, a.meta - a.pecas);
     const dias = Math.max(1, (faltam ?? 0) + 1), ritmo = Math.ceil(falta / dias);
     corpo = `<section class="ofc-rk-agencia${a.bateu ? " bateu" : ""}"><div class="ofc-rk-ag-num"><strong>${a.pecas}</strong><span>de ${a.meta} peças</span></div><div class="ofc-rk-ag-barra" aria-hidden="true"><i style="width:${Math.min(100, a.pct)}%"></i></div><p>${a.bateu ? "<b>Meta batida!</b>" : `Faltam <b>${falta} peças</b>, cerca de ${ritmo} por dia.`}${per === "semana" && bonus ? ` No fechamento da semana, se a agência bater, todo mundo ganha <b>+${bonus.moedas} moedas e +${bonus.pontos} XP</b>.` : ""}</p><div class="ofc-rk-equipe">${d.pessoas.map((p) => `<span title="${safeText(nome(p))}: ${p.entregas} entregas">${rosto(p.id, 30)}</span>`).join("")}</div><small>A meta é a média de peças por semana nas últimas 8 semanas, na proporção do período. Cada peça conta uma vez.</small></section>`;
   }
+  if (!cat) esquerda = `<div class="v2r-card v2r-legado">${corpo}</div>`;
   const anterior = per === "semana" && d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
   const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul><li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
-  // Menu largo (Paulo, 21/10/2026: "ganhar espaço dos lados… parecer um menu do
-  // personagem"): com tela larga, categorias numa coluna e o resto ao lado.
-  el.innerHTML = topo + `<div class="rk2-corpo${escritorioRanking.carregando === per ? " atualizando" : ""}"><div class="rk2-grade"><aside class="rk2-lado">${campeoes}</aside><div class="rk2-principal">${corpo}${anterior}${como}</div></div>${voceFixa}</div>`;
-  if (chaveAntes.split(":")[0] === per) el.querySelector(".rk2-corpo").scrollTop = rolagem;
-  rkVigiarMinhaLinha(el, eu);
-  if (typeof vbAnimarContagens === "function") vbAnimarContagens(el);
+  const porqueAberto = Boolean(escritorioRanking.porque);
+  const porque = `<button type="button" class="v2r-btn" aria-expanded="${porqueAberto}" aria-controls="v2r-porque" onclick="escritorioRanking.porque=!escritorioRanking.porque;const p=document.getElementById('v2r-porque');p.setAttribute('aria-expanded',escritorioRanking.porque);this.setAttribute('aria-expanded',escritorioRanking.porque)">Por que essa ordem?</button>`;
+  el.innerHTML = `<div class="v2r${escritorioRanking.carregando === per ? " atualizando" : ""}">${topoDe(porque)}
+<div class="v2-abre v2r-porque" id="v2r-porque" aria-expanded="${porqueAberto}"><i hidden></i><div class="v2-mais"><div><div class="v2r-card v2r-porque-dentro"><p>${safeText(cat?.dica || (aba === "tesouros" ? "Tesouros mostra a carteira e a coleção de cada um, de todos os tempos." : "A meta da agência é a média de peças por semana nas últimas 8 semanas, na proporção do período."))}</p>${anterior}${como}</div></div></div></div>
+<div class="v2r-corpo"><div class="v2r-esq">${fichas}<div class="v2r-rola">${esquerda}</div></div>${jogos}</div></div>`;
+  const rola = el.querySelector(".v2r-rola"); if (rola && chaveAntes.split(":")[0] === per) rola.scrollTop = rolagem;
   el.dataset.rkChave = per + ":" + aba;
-  rkAnimar(el, antes, chaveAntes !== el.dataset.rkChave, chaveAntes.split(":")[0] !== per);
+}
+// Os jogos ao lado do ranking (quadro "Ranking" do padrão v2): as três mesas com a arte desenhada, os jogos da mesa
+// de jogos em fichas e quem está online para chamar. A partida abre pela mesma função do mundo (mundoVoxel.jogar).
+const V2R_JOGOS = [
+  ["sinuca", "Sinuca", "Simulador de sinuca de boteco: mira, força, efeito e física de mesa real.", "Jogar", '<span class="v2r-pano"><i style="left:14px;top:19px"></i><i style="left:46px;top:12px;--c:#E8B93A"></i><i style="left:55px;top:19px;--c:#B42318"></i><i style="left:46px;top:26px;--c:#3B5BA9"></i><i style="left:64px;top:8px;--c:#1F1D1A"></i></span>'],
+  ["xadrez", "Xadrez", "Partida contra alguém da equipe; pode valer aposta.", "Desafiar", '<span class="v2r-xad"></span>'],
+  ["poker", "Pôquer", "Texas hold'em valendo VybeCoins ou de graça.", "Jogar", '<span class="v2r-feltro"><i style="left:24px;transform:rotate(-8deg)"></i><i style="left:41px;transform:rotate(8deg)"></i></span>'],
+];
+function escritorioJogarDoRanking(id) {
+  if (typeof window.mundoVoxel?.jogar !== "function") { escritorioAviso("Os jogos abrem pelo Escritório: entre nele (Entrar, na barra de baixo) e escolha a mesa."); return; }
+  closeWorkflowModal();
+  window.mundoVoxel.jogar(id);
+}
+function escritorioJogosRankingHtml() {
+  const lista = escritorio.conectado ? (escritorio.onlineTodos || escritorio.online || []) : (escritorio.lobbyOnline || []);
+  const eu = String(escritorio.base?.eu || ""), gente = lista.filter((p) => String(p.id) !== eu);
+  const av = (p) => { const u = typeof escritorioCabecaUrl === "function" ? escritorioCabecaUrl(p.id) : ""; return `<span class="v2r-av v2-pop" style="--t:28px" title="${safeText(p.nome || "")}">${u ? `<img src="${safeText(u)}" alt="" loading="lazy">` : safeText(String(p.nome || "?").slice(0, 2).toUpperCase())}</span>`; };
+  const avs = gente.length ? `<span class="v2r-avs">${gente.slice(0, 4).map(av).join("")}</span>` : "";
+  return `<aside class="v2r-dir" aria-label="Jogos"><div class="v2r-dir-topo"><h2>Jogos · no terraço do prédio</h2><span class="v2r-pill ${gente.length ? "g" : "n"}">${gente.length} online agora</span></div>
+${V2R_JOGOS.map(([id, nome, txt, rotulo, arte], i) => `<div class="v2r-card v2r-jg"><span class="v2r-mesa" aria-hidden="true">${arte}</span><div><p><b>${nome}</b><span class="v2r-sub">${txt}</span></p><div class="v2r-jg-pe"><span class="v2r-sub">${gente.length ? "tem gente online para chamar" : "mesa livre"}</span><button type="button" class="v2r-btn s${i === 0 ? " k" : ""}" onclick="escritorioJogarDoRanking('${id}')">${rotulo}</button></div></div></div>`).join("")}
+<div class="v2r-chips v2r-mesa-jogos"><span class="v2r-sub">Mesa de jogos:</span>${["Dominó", "Dama", "Velha", "Truco"].map((n) => `<button type="button" class="v2r-chip" onclick="escritorioJogarDoRanking('mesa')">${n}</button>`).join("")}</div>
+<div class="v2r-card v2r-quem">${avs}<p><b>Quem pode jogar agora</b><span class="v2r-sub">${gente.length ? `${gente.slice(0, 3).map((p) => safeText(String(p.nome || "").split(" ")[0])).join(", ")}${gente.length > 3 ? ` e mais ${gente.length - 3}` : ""}.` : "Sem ninguém online, abra a mesa e espere alguém chegar."}</span></p><button type="button" class="v2r-btn s" onclick="closeWorkflowModal();window.mundoVoxel?.irPara?.('jogos')">Chamar</button></div></aside>`;
 }
 // A barra "Você" fica fixa embaixo e some quando a sua linha (ou o seu lugar
 // no pódio) está na tela, para não mostrar você duas vezes.
@@ -1567,7 +1590,7 @@ function rkVigiarMinhaLinha(el, eu) {
 }
 function verMinhaLinhaRankingEscritorio() {
   const eu = String(escritorio.base?.eu || "");
-  abrirDetalheRankingEscritorio(eu, document.querySelector(`#ofc-ranking [data-pid="${CSS.escape(eu)}"]`) || document.querySelector("#ofc-ranking .rk2-voce-fixa"));
+  abrirDetalheRankingEscritorio(eu, document.querySelector(`#ofc-ranking [data-pid="${CSS.escape(eu)}"]`) || document.querySelector("#ofc-ranking .v2r-voce"));
 }
 
 // Movimento de jogo (respeita "Reduzir movimento"): quem trocou de lugar
@@ -1653,6 +1676,8 @@ const ESCRITORIO_GRUPOS_CONQUISTA = [
   ["escritorio", "Escritório", "Um nível só, para começar a usar.", ["quarto", "andar2", "presente", "troca", "postits"]],
 ];
 async function abrirConquistasEscritorio() {
+  // Padrão v2 (quadro "Loja e Conquistas"): as conquistas moram na janela da Loja, na parte Conquistas.
+  if (typeof abrirCatalogoEscritorio === "function" && typeof escritorioConquistasLojaHtml === "function") { escritorio.conquistasLidas = false; abrirCatalogoEscritorio("conquistas"); return; }
   if (!document.getElementById("ofc-conquistas")) {
     openWorkflowModal('<div class="ofc-ranking ofc-conquistas" id="ofc-conquistas" role="dialog" aria-label="Conquistas"></div>');
     document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "ofc-menu-jogo");
@@ -1759,6 +1784,7 @@ async function escolherTituloEscritorio(chave) {
     escritorioAviso(r.titulo ? `Agora você aparece como ${r.titulo.texto}.` : "Título escondido.");
     if (typeof atualizarPessoasEscritorio === "function") atualizarPessoasEscritorio();
   } catch (e) { escritorioAviso(e.message || "Não deu para trocar o título."); }
+  if (typeof redesenharConquistasLoja === "function") redesenharConquistasLoja();
   if (document.getElementById("ofc-conquistas")) pintarConquistasEscritorio();
   if (document.getElementById("office-ficha")?.open) abrirFichaEscritorio(escritorio.fichaDe, true);
 }

@@ -1082,10 +1082,184 @@ function vbMesHtml({ mes, max = '', attr = 'data-vb-mes', ano = false } = {}) {
     + `<b aria-live="polite">${ano ? mes.slice(0, 4) : `${VB_MESES[Number(mes.slice(5, 7)) - 1]} de ${mes.slice(0, 4)}`}</b>`
     + `<button type="button" ${attr}="${depois}" aria-label="Próximo ${nome}" title="Próximo ${nome}"${fim ? ' disabled' : ''}>${seta('m9 6 6 6-6 6')}</button></div>`;
 }
-// tipo: 'vazio' | 'erro' | 'carregando'; acao: HTML de um botão (opcional).
-function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icone = '' } = {}) {
-  if (tipo === 'carregando') return `<div class="vb-carregando" role="status" aria-label="${safeText(titulo || 'Carregando')}"><div class="vb-brilho"></div><div class="vb-brilho"></div><div class="vb-brilho"></div></div>`;
-  return `<div class="vb-estado ${tipo}" role="${tipo === 'erro' ? 'alert' : 'status'}"><span class="vb-estado-icone">${vbIcone(icone || tipo)}</span>${titulo ? `<b>${safeText(titulo)}</b>` : ''}${texto ? `<p>${safeText(texto)}</p>` : ''}${acao}</div>`;
+// tipo: 'vazio' | 'erro' | 'carregando' (vazio e carregando do padrão v2, quadro "Famílias de subtela", família 6).
+// Vazio: o ícone, uma frase (o título) e uma ação (acao: HTML de um botão); o texto, quando vem, fica numa linha
+// apagada embaixo. Carregando: o esqueleto com a forma da tela, nunca uma barra genérica. forma: 'lista' (bolinha,
+// linha e pílula, como uma linha da lista), 'cartoes' (blocos de cartão) ou 'texto' (linhas de parágrafo); linhas: 1 a 6.
+function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icone = '', forma = 'lista', linhas = 3 } = {}) {
+  if (tipo === 'carregando') {
+    const f = ['lista', 'cartoes', 'texto'].includes(forma) ? forma : 'lista', n = Math.max(1, Math.min(6, Number(linhas) || 3));
+    const peca = f === 'cartoes' ? '<i class="vb-sk vb-esq-cartao"></i>' : f === 'texto' ? '<i class="vb-sk vb-esq-texto"></i>'
+      : '<span class="vb-esq-lin"><i class="vb-sk vb-esq-av"></i><i class="vb-sk vb-esq-txt"></i><i class="vb-sk vb-esq-pil"></i></span>';
+    return `<div class="vb-carregando vb-esq ${f}" role="status" aria-busy="true" aria-label="${safeText(titulo || 'Carregando')}">${peca.repeat(n)}</div>`;
+  }
+  const frase = titulo || texto, resto = titulo && texto ? texto : '';
+  return `<div class="vb-estado ${tipo}" role="${tipo === 'erro' ? 'alert' : 'status'}"><span class="vb-estado-icone">${vbIcone(icone || tipo)}</span>${frase ? `<b>${safeText(frase)}</b>` : ''}${resto ? `<p>${safeText(resto)}</p>` : ''}${acao}</div>`;
+}
+// Confirmação (família 5): ação que dá para desfazer não pergunta (vira "feito" no botão e chama mostrarDesfazer);
+// a janela de confirmação é só para apagar. Cancelar e Apagar (vermelho), Esc ou clique fora cancelam, o foco começa
+// em Cancelar e volta para onde estava. Devolve Promise<boolean>.
+function vbConfirmarApagar({ titulo = 'Apagar?', texto = '', rotulo = 'Apagar' } = {}) {
+  if (typeof document === 'undefined' || !document.body) return Promise.resolve(false);
+  document.getElementById('vb-apagar')?.vbFechar?.(false);
+  return new Promise((resolve) => {
+    const foco = document.activeElement;
+    const fundo = document.createElement('div');
+    fundo.id = 'vb-apagar'; fundo.className = 'vb-apagar';
+    fundo.innerHTML = `<div class="vb-apagar-caixa" role="alertdialog" aria-modal="true" aria-labelledby="vb-apagar-t"${texto ? ' aria-describedby="vb-apagar-x"' : ''}>`
+      + `<p class="vb-apagar-t" id="vb-apagar-t">${safeText(titulo)}</p>${texto ? `<p class="vb-apagar-x" id="vb-apagar-x">${safeText(texto)}</p>` : ''}`
+      + `<div class="vb-apagar-acoes"><button type="button" class="vb-apagar-nao">Cancelar</button><button type="button" class="vb-apagar-sim">${safeText(rotulo)}</button></div></div>`;
+    let fechada = false;
+    const tecla = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); fechar(false); return; }
+      if (e.key !== 'Tab') return;
+      const [a, b] = fundo.querySelectorAll('button');
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); b.focus(); } else if (!e.shiftKey && document.activeElement === b) { e.preventDefault(); a.focus(); }
+    };
+    const fechar = (sim) => {
+      if (fechada) return; fechada = true;
+      window.removeEventListener('keydown', tecla, true);
+      fundo.remove();
+      if (foco && foco.isConnected && typeof foco.focus === 'function') foco.focus();
+      resolve(Boolean(sim));
+    };
+    fundo.vbFechar = fechar;
+    fundo.addEventListener('click', (e) => {
+      if (e.target === fundo || e.target.closest?.('.vb-apagar-nao')) fechar(false);
+      else if (e.target.closest?.('.vb-apagar-sim')) fechar(true);
+    });
+    window.addEventListener('keydown', tecla, true);
+    document.body.append(fundo);
+    fundo.querySelector('.vb-apagar-nao')?.focus();
+  });
+}
+// Menu de linha (família 2): três pontos que abrem no lugar, no máximo 5 itens, o que apaga por último e em vermelho.
+// itens: [{ rotulo, attrs = '' (atributos do botão, ex. 'data-acao="editar"'), perigo = false, desligado = false }].
+function vbMenuLinhaHtml({ rotulo = 'Mais opções', itens = [] } = {}) {
+  const lista = (Array.isArray(itens) ? itens : []).filter((x) => x && x.rotulo);
+  const ordem = lista.filter((x) => !x.perigo).concat(lista.filter((x) => x.perigo));
+  if (ordem.length > 5 && typeof console !== 'undefined') console.warn(`[menu de linha] ${ordem.length} itens: o padrão pede no máximo 5.`);
+  return `<details class="vb-menu-linha"><summary class="vb-pt3" aria-label="${safeText(rotulo)}" title="${safeText(rotulo)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></summary>`
+    + `<div class="vb-menu" role="menu" aria-label="${safeText(rotulo)}">${ordem.map((x) => `<button type="button" role="menuitem" class="vb-mi${x.perigo ? ' vb-mi-apaga' : ''}"${x.attrs ? ' ' + x.attrs : ''}${x.desligado ? ' disabled' : ''}>${safeText(x.rotulo)}</button>`).join('')}</div></details>`;
+}
+// Formulário (família 4): etapas "1 de N" em pílula (a atual preta, as feitas em verde) e o erro embaixo do campo.
+function vbEtapasHtml(nomes = [], atual = 0, { attr = '' } = {}) {
+  const lista = (Array.isArray(nomes) ? nomes : []).map(String);
+  return `<div class="vb-etapas${lista.length > 4 ? ' muitas' : ''}" role="img" aria-label="Etapa ${Math.min(atual, lista.length - 1) + 1} de ${lista.length}">${lista.map((n, i) => `${i ? '<i aria-hidden="true"></i>' : ''}<span class="vb-etapa${i === atual ? ' atual' : i < atual ? ' feito' : ''}"${attr ? ` ${attr}="${i}"` : ''}><b>${i + 1}</b><em>${safeText(n)}</em></span>`).join('')}</div>`;
+}
+// Marca (ou limpa, com mensagem vazia) o erro de um campo: borda vermelha, aria-invalid e a frase logo embaixo dele.
+function vbErroNoCampo(campo, mensagem = '') {
+  if (!campo || typeof document === 'undefined') return null;
+  const alvo = campo.type === 'hidden' ? (campo.closest?.('.workflow-field, [role="group"], label') || campo.parentElement) : campo;
+  if (!alvo) return null;
+  const id = (campo.id || 'campo') + '-erro';
+  let aviso = document.getElementById(id);
+  if (!mensagem) { aviso?.remove(); campo.removeAttribute?.('aria-invalid'); alvo.classList?.remove('vb-campo-erro'); return null; }
+  if (!aviso) { aviso = document.createElement('p'); aviso.id = id; aviso.className = 'vb-erro'; aviso.setAttribute('role', 'alert'); }
+  aviso.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>${safeText(mensagem)}`;
+  alvo.after(aviso);
+  campo.setAttribute?.('aria-invalid', 'true');
+  if (campo.type !== 'hidden') { campo.setAttribute?.('aria-describedby', id); campo.classList?.add('vb-campo-erro'); } else alvo.classList?.add('vb-campo-erro');
+  return aviso;
+}
+// Abas (família 1): pílula branca sobre #EAE6DE que desliza até a aba tocada; contador só quando há o que ver (o "0"
+// some); passou de 6 abas, o resto vai em "Mais". Vale para toda lista de abas (role="tablist") do mundo, inclusive as
+// que os módulos ainda desenham do jeito antigo: a peça não troca o HTML de ninguém, só marca a lista (.vb-abas), esconde
+// as abas que sobram (.vb-aba-fora) e põe o menu "Mais" no fim, que clica na aba de verdade (os ouvintes são os de sempre).
+const VB_ABAS_FORA = '.v2t-fichas, .ag-faixa, [aria-orientation="vertical"]';
+const VB_ABAS_DONO = '[class*="ofc-"], [class*="snc-"], [class*="prov-"], .spotlight, #spotlight';
+const VB_ABAS_POSICAO = new Map();
+const VB_ABAS_MAX = 6;
+function vbAbaSelecionada(aba) { return aba.getAttribute('aria-selected') === 'true' || aba.classList.contains('ativa') || aba.classList.contains('active'); }
+function vbArrumarAbas(raiz = document) {
+  if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo')) return;
+  for (const lista of raiz.querySelectorAll('[role="tablist"]')) {
+    if (lista.matches(VB_ABAS_FORA) || lista.closest(VB_ABAS_DONO)) continue;
+    const abas = [...lista.querySelectorAll('[role="tab"]')].filter((a) => !a.closest('.vb-abas-mais'));
+    if (abas.length < 2) continue;
+    const sel = Math.max(0, abas.findIndex(vbAbaSelecionada));
+    const assinatura = `${abas.length}|${sel}|${abas.map((a) => a.textContent).join('|')}`;
+    if (lista.vbAbasAssinatura === assinatura) continue;
+    lista.vbAbasAssinatura = assinatura;
+    if (!lista.dataset.vbAbasChave) lista.dataset.vbAbasChave = lista.getAttribute('aria-label') || lista.id || String(lista.className).split(' ')[0];
+    lista.classList.add('vb-abas');
+    // Contador: só o número que existe; zero não é o que ver.
+    for (const aba of abas) for (const n of aba.querySelectorAll('b, em, small, span, i')) {
+      if (n.children.length || !/^\(?\d+\)?$/.test(n.textContent.trim())) continue;
+      n.classList.add('vb-aba-n');
+      n.hidden = Number(n.textContent.replace(/\D/g, '')) === 0;
+    }
+    // Mais de 6: as 6 primeiras (a selecionada entra no lugar da sexta) e o resto no "Mais". Se nem assim couber (celular),
+    // a última que não está selecionada também vai para o "Mais", até a lista caber sem rolar de lado.
+    let mais = [...lista.children].find((x) => x.classList?.contains('vb-abas-mais'));
+    const vistas = new Set(abas.map((a, i) => i).slice(0, VB_ABAS_MAX));
+    if (!vistas.has(sel)) { vistas.delete(VB_ABAS_MAX - 1); vistas.add(sel); }
+    const aplicar = () => {
+      const fora = abas.map((a, i) => i).filter((i) => !vistas.has(i));
+      abas.forEach((a, i) => a.classList.toggle('vb-aba-fora', fora.includes(i)));
+      lista.classList.toggle('vb-abas-com-mais', fora.length > 0);
+      if (!fora.length) { mais?.remove(); mais = null; return; }
+      if (!mais) {
+        mais = document.createElement('details'); mais.className = 'vb-abas-mais';
+        mais.addEventListener('click', (e) => {
+          const ir = e.target.closest?.('[data-vb-aba-ir]'); if (!ir) return;
+          e.preventDefault(); mais.open = false;
+          const alvo = [...lista.querySelectorAll('[role="tab"]')].filter((a) => !a.closest('.vb-abas-mais'))[Number(ir.dataset.vbAbaIr)];
+          alvo?.click(); alvo?.focus?.();
+        });
+        lista.append(mais);
+      }
+      mais.innerHTML = `<summary class="vb-abas-mais-btn" aria-label="Mais abas">Mais<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="vb-menu" role="menu" aria-label="Mais abas">${fora.map((i) => `<button type="button" role="menuitem" class="vb-mi" data-vb-aba-ir="${i}">${safeText(abas[i].textContent.trim())}</button>`).join('')}</div>`;
+    };
+    aplicar();
+    if (lista.getClientRects().length) {
+      const larguraUtil = () => Math.min(lista.clientWidth, lista.parentElement ? lista.parentElement.clientWidth : Infinity);
+      for (let i = abas.length - 1; i >= 0 && lista.scrollWidth > larguraUtil() + 1 && vistas.size > 1; i--) {
+        if (i === sel || !vistas.has(i)) continue;
+        vistas.delete(i); aplicar();
+      }
+    }
+    // A pílula que desliza: sai de onde estava a última seleção desta mesma lista e vai até a aba de agora.
+    const aba = abas[sel];
+    if (!aba.getClientRects().length) continue;
+    const x = aba.offsetLeft, w = aba.offsetWidth, antes = VB_ABAS_POSICAO.get(lista.dataset.vbAbasChave);
+    VB_ABAS_POSICAO.set(lista.dataset.vbAbasChave, { x, w });
+    const nova = !lista.classList.contains('vb-abas-desliza');
+    if (nova && antes && (antes.x !== x || antes.w !== w)) {
+      lista.style.setProperty('--vb-aba-x', antes.x + 'px'); lista.style.setProperty('--vb-aba-w', antes.w + 'px');
+      lista.classList.add('vb-abas-desliza'); void lista.offsetWidth;
+    }
+    lista.classList.add('vb-abas-desliza');
+    lista.style.setProperty('--vb-aba-x', x + 'px'); lista.style.setProperty('--vb-aba-w', w + 'px');
+  }
+}
+if (typeof window !== 'undefined') Object.assign(window, { vbEstadoHtml, vbConfirmarApagar, vbMenuLinhaHtml, vbEtapasHtml, vbErroNoCampo, vbArrumarAbas });
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && typeof MutationObserver !== 'undefined') {
+  let vbAbasPedido = 0;
+  const pedirAbas = () => { if (vbAbasPedido) return; vbAbasPedido = requestAnimationFrame(() => { vbAbasPedido = 0; try { vbArrumarAbas(); } catch (e) { console.warn('[abas]', e); } }); };
+  const ligar = () => { if (!document.body) return; new MutationObserver(pedirAbas).observe(document.body, { childList: true, subtree: true, characterData: true }); pedirAbas(); };
+  if (document.body) ligar(); else document.addEventListener('DOMContentLoaded', ligar, { once: true });
+  // Tamanho novo: a pílula volta para cima da aba selecionada (sem deslizar).
+  window.addEventListener('resize', () => { document.querySelectorAll('.vb-abas').forEach((l) => { l.vbAbasAssinatura = ''; l.classList.remove('vb-abas-desliza'); VB_ABAS_POSICAO.delete(l.dataset.vbAbasChave); }); pedirAbas(); });
+  // Menu de linha e "Mais" das abas: um aberto por vez; clicar fora, escolher um item ou Esc fecha.
+  const menus = 'details.vb-menu-linha[open], details.vb-abas-mais[open]';
+  document.addEventListener('click', (ev) => {
+    const dentro = ev.target?.closest?.('details.vb-menu-linha, details.vb-abas-mais');
+    document.querySelectorAll(menus).forEach((d) => { if (d !== dentro) d.open = false; });
+    if (dentro && ev.target.closest?.('.vb-mi') && dentro.classList.contains('vb-menu-linha')) dentro.open = false;
+  });
+  // Gaveta (família 3): toda gaveta fecha por X, Esc ou clique fora. A da peça já fecha (vybe-gaveta.js); estas duas
+  // fechavam só pelo X e pelo fundo. Uma janela por cima (apagar, pergunta, portão) recebe o Esc antes.
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || ev.defaultPrevented || document.querySelector('#vb-apagar, #cli-pergunta, #workflow-modal, ' + menus)) return;
+    if (document.getElementById('prod-v2-overlay') && typeof window.closeProductionSheet === 'function') { ev.preventDefault(); window.closeProductionSheet(); return; }
+    if (document.querySelector('.manager-command-drawer.open') && typeof closeManagerCommandDrawer === 'function') { ev.preventDefault(); closeManagerCommandDrawer(); }
+  });
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    const aberto = document.querySelector(menus); if (!aberto) return;
+    ev.preventDefault(); ev.stopImmediatePropagation(); aberto.open = false; aberto.querySelector('summary')?.focus?.();
+  }, true);
 }
 // Escolha em chip (moodboard 10/11/2026, quadros 17, 21, 30, 39, 49 e 61: "select nativo vira o menu do sistema"): um
 // chip com o valor atual e um menu de opções. O valor vai num campo escondido (`campo` = os atributos dele, ex.

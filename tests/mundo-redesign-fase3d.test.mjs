@@ -82,7 +82,7 @@ test('sino: aviso novo vira aviso curto com "Abrir a peça"; a primeira leitura 
 test('avisos do sino: painel preso no sino, tipo num ícone neutro, frase inteira, ação em cada linha e "Novo" escrito', () => {
   assert.ok(js.includes("p.className = 'vv-avisos-painel'; p.setAttribute('role', 'dialog')"), 'painel, não a janela no meio da tela');
   assert.ok(!js.includes("m.className = 'vv-avisos-menu'"), 'sem o menu de escolha antigo');
-  for (const t of ['<h3>Esperando você</h3>', '<h3>Nos seus clientes</h3>', "'Anteriores' : 'Notificações'}</h3>", "' disabled title=\"Tudo já foi lido\"'}>Marcar como lidos", 'data-aviso-centro>Ir ao Centro de Operação'])
+  for (const t of ['<h3>Pede ação</h3>', '<h3>Nos seus clientes</h3>', "'Anteriores' : 'Notificações'}</h3>", "' disabled title=\"Tudo já foi lido\"'}>Marcar como lidos", 'data-aviso-centro>Centro de Operação'])
     assert.ok(js.includes(t), t);
   assert.ok(js.includes('<em class="vv-aviso-novo">Novo</em>'), 'não lido com a palavra, não só a cor');
   assert.ok(js.includes(">Abrir a peça</button>` : ''"), 'a notificação abre a peça');
@@ -113,12 +113,14 @@ test('Academy: o vazio tem o botão de começar e a frase útil; quem não monta
   assert.ok(fonte.includes('Quem monta as trilhas são os donos e o RH: peça a eles a sua.'));
 });
 
-test('Conversa e Notas: a coluna para acima do dock; Notas é a terceira aba, no mesmo lugar e desenho', () => {
+test('Conversa e Notas: a coluna para acima do dock; a aba Notas abre as Notas (no mundo, na janela do topo)', () => {
   const conversa = ler('vybe-mundo-conversa.js'), notas = ler('vybe-notas.js'), ccss = ler('vybe-mundo-conversa.css'), aparencia = ler('vybe-appearance.css');
   assert.ok(conversa.includes("[['conversa', 'Conversa'], ['recados', 'Recados'], ['notas', 'Notas']]"));
   assert.ok(conversa.includes("if (aba === 'notas') { abrirNotasNaColuna(); return; }"));
-  assert.ok(notas.includes("janela.className = 'notas-janela' + (notasNaColuna() ? ' na-coluna' : '');"));
-  assert.ok(notas.includes('notasIrParaAba') && notas.includes('class="notas-discreto"'), 'abas no topo das Notas; renomear e apagar como botões discretos');
+  // Quadro "Janelas do topo" (12/11/2026): no mundo as Notas abrem na janela de 340 embaixo do ícone; a grande é a solta.
+  assert.ok(notas.includes("if (notasNoMundo()) return document.getElementById('v2-notas') ? fecharNotas() : abrirNotasNoTopo();"));
+  assert.ok(notas.includes("janela.className = 'notas-janela';") && !notas.includes("' na-coluna'"));
+  assert.ok(notas.includes('class="notas-discreto"'), 'renomear e apagar como botões discretos');
   assert.ok(notas.includes("notasIcone('fechar')") && !notas.includes("'⤢'") && !notas.includes("'▣'"), 'ícones desenhados no lugar de ⤢ ▣ —');
   assert.ok(ccss.includes('.vv-conversa-topo{flex:none;display:flex;flex-direction:row;'), 'abas e X na mesma linha');
   assert.ok(ccss.includes('bottom:var(--vv-coluna-fundo,84px)') && css.includes('bottom:var(--vv-coluna-fundo,var(--vv-m))!important'), 'a coluna termina acima do dock');

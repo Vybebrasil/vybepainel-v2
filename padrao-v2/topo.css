@@ -1,0 +1,247 @@
+/* ======================================================================================
+   PADRÃO V2 · TOPO (moodboard, quadros DEPOIS "Janelas do topo" e "Conta e equipe"; 12/11/2026).
+   Janelas do topo: uma janela só, 340 de largura, mesmo cabeçalho (nome + X redondo de 30), corpo e pé com linha
+   fina, branca, raio 24, aberta embaixo do ícone. Vale para a Busca (#v2j-busca), os Avisos (.vv-avisos-painel) e o
+   menu da Conta (.vv-menu-conta). Conta e equipe (#conta-root .v2c): janela #F9F8F5, cartão branco de raio 20 sem
+   borda, controle em pílula (38 e 30), ficha selecionada preta, uma ação #C2490C. Nada aqui força regra antiga.
+   ====================================================================================== */
+
+/* ---------- Busca ---------- */
+#v2j-busca{--v2j-topo:11vh;box-sizing:border-box;width:340px;max-width:calc(100vw - 16px);max-height:calc(100dvh - var(--v2j-topo) - 16px);margin:var(--v2j-topo) auto auto;padding:0;overflow:hidden;font:400 13.5px/1.35 var(--vv-texto,Inter),system-ui,sans-serif;color:#1F1D1A}
+#v2j-busca[open]{display:flex;flex-direction:column}
+#v2j-busca::backdrop{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+#v2j-busca .v2j-cab{flex:none;display:flex;align-items:center;gap:8px;padding:14px 14px 10px 18px}
+#v2j-busca .v2j-cab h2{flex:1;min-width:0;margin:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#v2j-busca .v2j-pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#v2j-busca .v2j-x.spotlight-fechar{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;cursor:pointer}
+#v2j-busca .v2j-x.spotlight-fechar:hover{background:#F3F1EC}
+#v2j-busca .v2j-x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#v2j-busca .v2j-oculto{position:absolute;left:-9999px}
+#v2j-busca .v2j-corpo{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 12px}
+#v2j-busca .spotlight-campo{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 4px 10px;border:0;background:none;box-shadow:none}
+#v2j-busca #spotlight-input{flex:1;min-width:140px;height:36px;box-sizing:border-box;padding:0 16px;border-radius:999px;font:400 13.5px var(--vv-texto,Inter),sans-serif;letter-spacing:0;outline:none}
+#v2j-busca #spotlight-input:focus-visible{border-color:#1F1D1A}
+#v2j-busca #spotlight-input::placeholder{color:#6B665E}
+#v2j-busca .spotlight-escopo{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border:0;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:500 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;max-width:100%}
+#v2j-busca .spotlight-escopo[hidden]{display:none}
+#v2j-busca .spotlight-escopo b{color:#FFFFFF;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+#v2j-busca .spotlight-escopo button{appearance:none;display:grid;place-items:center;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#FFFFFF;font:400 14px/1 Inter,sans-serif;cursor:pointer}
+#v2j-busca .spotlight-abas{flex:none;display:flex;flex-wrap:wrap;gap:6px;padding:0 4px;border:0;background:none}
+#v2j-busca .spotlight-abas button{appearance:none;display:inline-flex;align-items:center;height:30px;min-height:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:500 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#v2j-busca .spotlight-abas button[aria-selected="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#v2j-busca .spotlight-lista{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0;padding:0 0 8px;border:0}
+#v2j-busca .spotlight-grupo{margin:0;padding:12px 8px 4px;border:0;background:none;font:600 11.5px var(--vv-texto,Inter),sans-serif;letter-spacing:0;text-transform:none;color:#6B665E}
+#v2j-busca .spotlight-linha{display:flex;align-items:center;gap:10px;min-height:40px;margin:0;padding:0 8px;border:0;border-radius:12px;background:none;font-size:13.5px;color:#1F1D1A;cursor:pointer}
+#v2j-busca .spotlight-linha[aria-selected="true"]{background:#F3F1EC;box-shadow:none}
+#v2j-busca .spotlight-titulo{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 13.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#v2j-busca .spotlight-sub,#v2j-busca .spotlight-dica{flex:none;max-width:52%;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#v2j-busca .spotlight-dica{display:none}
+#v2j-busca .spotlight-linha[aria-selected="true"] .spotlight-dica{display:block}
+#v2j-busca .spotlight-linha[aria-selected="true"] .spotlight-sub{display:none}
+#v2j-busca .spotlight-avatar{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter),sans-serif}
+#v2j-busca .spotlight-mais{flex:1;font:600 12.5px var(--vv-texto,Inter),sans-serif;color:#C2490C}
+#v2j-busca .spotlight-vazio{padding:18px 8px;border:0;background:none;text-align:left;font:400 12.5px/1.45 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+/* o cliente, com a bolinha na cor dele, no lugar da etiqueta */
+#v2j-busca .spotlight-titulo :is(.cliente-carteira,.spotlight-cli){display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:0;border:0;border-radius:0;background:none;font:600 13.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#v2j-busca .spotlight-titulo :is(.cliente-carteira,.spotlight-cli)::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--carteira-texto,#C2490C)}
+#v2j-busca .v2j-pe{flex:none;display:flex;align-items:center;gap:8px;margin:0;padding:12px 14px;border:0;border-top:1px solid #F1EDE6;background:none;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+@media (max-width:599px){
+  #v2j-busca{--v2j-topo:8px;width:auto;max-width:none;margin:8px 8px auto}
+}
+
+/* ---------- Avisos ---------- */
+/* O cabeçalho vira "conteúdo" da grade da janela: o nome e o X ficam no alto, o corpo no meio e "Marcar como lidos"
+   desce para o pé, ao lado do Centro de Operação, como no quadro. */
+#mundo-hud .vv-avisos-painel{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr) auto;width:340px;max-width:calc(100vw - 16px);border:0;border-radius:24px;background:#FFFFFF;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);font:400 13.5px/1.35 var(--vv-texto,Inter),system-ui,sans-serif;color:#1F1D1A}
+#mundo-hud .vv-avisos-painel .vv-avisos-cab{display:contents}
+#mundo-hud .vv-avisos-painel .vv-avisos-cab > div{grid-area:1 / 1 / 2 / 3;display:flex;align-items:center;gap:8px;min-width:0;padding:14px 0 10px 18px}
+#mundo-hud .vv-avisos-painel .vv-avisos-cab h2{flex:1;min-width:0;margin:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#mundo-hud .vv-avisos-painel .vv-avisos-cab small{flex:none;display:inline-flex;align-items:center;height:22px;margin:0;padding:0 9px;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 11.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#mundo-hud .vv-avisos-painel:has(.nao-lido) .vv-avisos-cab small{background:#FFF4D6;color:#7A4A00}
+#mundo-hud .vv-avisos-painel .vv-aviso-x{grid-area:1 / 3 / 2 / 4;align-self:center;display:grid;place-items:center;width:30px;min-width:30px;height:30px;min-height:30px;margin:4px 14px 0 8px;padding:0;border:0;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6}
+#mundo-hud .vv-avisos-painel .vv-aviso-x svg{width:18px;height:18px;stroke-width:1.8}
+#mundo-hud .vv-avisos-painel .vv-avisos-corpo{grid-area:2 / 1 / 3 / 4;padding:0 18px 6px}
+#mundo-hud .vv-avisos-painel .vv-avisos-corpo h3{margin:0;padding:12px 0 4px;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#mundo-hud .vv-avisos-painel .vv-avisos-corpo ul{display:block}
+#mundo-hud .vv-avisos-painel .vv-aviso-linha{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:12px 0;border:0;border-top:1px solid #F1EDE6;border-radius:0;background:none;font-size:13.5px}
+#mundo-hud .vv-avisos-painel ul > .vv-aviso-linha:first-child{border-top:0}
+#mundo-hud .vv-avisos-painel .vv-aviso-ic{display:none}
+#mundo-hud .vv-avisos-painel .vv-aviso-txt{flex:1;min-width:0;gap:1px}
+#mundo-hud .vv-avisos-painel .vv-aviso-txt b{font:600 13.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#mundo-hud .vv-avisos-painel .vv-aviso-linha.urgente .vv-aviso-txt b{color:#B42318}
+#mundo-hud .vv-avisos-painel .vv-aviso-txt small{font:400 12.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#mundo-hud .vv-avisos-painel .vv-aviso-novo{display:inline-flex;align-items:center;height:18px;margin-right:6px;padding:0 7px;border-radius:999px;background:#FFF4D6;color:#7A4A00;font:600 11px var(--vv-texto,Inter),sans-serif;vertical-align:1px}
+#mundo-hud .vv-avisos-painel :is(.vv-aviso-acao,.vv-aviso-lidos,.vv-avisos-pe .vc-sec){flex:none;height:30px;min-height:30px;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#mundo-hud .vv-avisos-painel :is(.vv-aviso-acao,.vv-aviso-lidos,.vv-avisos-pe .vc-sec):hover:not(:disabled){background:#F3F1EC;color:#1F1D1A}
+#mundo-hud .vv-avisos-painel .vv-aviso-lidos:disabled{color:#6B665E;background:#F9F8F5}
+#mundo-hud .vv-avisos-painel .vv-aviso-linha > .vv-aviso-pecas{flex:0 0 100%;margin:0;padding:0 0 0 6px}
+#mundo-hud .vv-avisos-painel .vv-aviso-linha.peca{padding:8px 0;border-top:0;border-style:none}
+#mundo-hud .vv-avisos-painel .vv-aviso-linha.peca .vv-aviso-txt b{font-weight:400;font-size:12.5px;color:#4A463F}
+#mundo-hud .vv-avisos-painel .vv-aviso-mais{padding:0 0 8px;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#mundo-hud .vv-avisos-painel .vv-aviso-vazio{justify-items:start;padding:18px 0;text-align:left}
+#mundo-hud .vv-avisos-painel .vv-aviso-vazio.vv-aviso-ultimo{padding:12px 0 0}
+#mundo-hud .vv-avisos-painel .vv-aviso-vazio b{font:600 13.5px var(--vv-texto,Inter),sans-serif}
+#mundo-hud .vv-avisos-painel .vv-aviso-lidos{grid-area:3 / 1 / 4 / 2;align-self:center;margin:12px 0 12px 14px}
+#mundo-hud .vv-avisos-painel .vv-avisos-pe{grid-area:3 / 2 / 4 / 4;justify-content:flex-end;padding:12px 14px 12px 8px;border:0}
+#mundo-hud .vv-avisos-painel:has(.vv-aviso-lidos,.vv-avisos-pe) .vv-avisos-corpo{border-bottom:1px solid #F1EDE6}
+@media (max-width:599px){
+  #mundo-hud .vv-avisos-painel{width:auto;max-width:none}
+}
+
+/* ---------- menu da Conta ---------- */
+#mundo-hud .vv-menu-conta{display:flex;flex-wrap:wrap;align-items:center;box-sizing:border-box;width:340px;max-width:calc(100vw - 16px);padding:0 12px;border:0;border-radius:24px;background:#FFFFFF;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);font:400 13.5px/1.35 var(--vv-texto,Inter),system-ui,sans-serif;color:#1F1D1A}
+#mundo-hud .vv-menu-conta::before{content:"Conta";flex:0 0 100%;box-sizing:border-box;padding:18px 6px 12px;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#mundo-hud .vv-menu-conta > *{flex:0 0 100%;box-sizing:border-box}
+#mundo-hud .vv-menu-conta > hr{display:none}
+#mundo-hud .vv-menu-conta .vv-menu-quem{gap:12px;min-height:60px;padding:0 8px}
+#mundo-hud .vv-menu-conta .vv-menu-av{width:44px;height:44px;background:#EFEBE4;color:#4A463F;font:700 14px var(--vv-texto,Inter),sans-serif}
+#mundo-hud .vv-menu-conta .vv-menu-quem b{font:700 15px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#mundo-hud .vv-menu-conta .vv-menu-quem small{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#mundo-hud .vv-menu-conta button[data-conta-acao]{gap:10px;min-height:40px;padding:0 8px;border-radius:12px;color:#1F1D1A}
+#mundo-hud .vv-menu-conta button[data-conta-acao]:hover{background:#F3F1EC}
+#mundo-hud .vv-menu-conta .vv-menu-ic{width:18px;height:18px;border-radius:0;background:none;color:#1F1D1A}
+#mundo-hud .vv-menu-conta .vv-menu-ic svg{width:18px;height:18px;stroke-width:1.8}
+#mundo-hud .vv-menu-conta button[data-conta-acao] > span{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+#mundo-hud .vv-menu-conta button[data-conta-acao] b{flex:none;font:400 13.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#mundo-hud .vv-menu-conta button[data-conta-acao] small{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#mundo-hud .vv-menu-conta .vv-menu-tema-linha{flex-wrap:wrap;justify-content:flex-start;gap:0;padding:0 8px 6px}
+#mundo-hud .vv-menu-conta .vv-menu-tema-linha > span:first-child{flex:0 0 100%;padding:12px 0 6px;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar{display:inline-flex;gap:0;padding:4px;border:0;border-radius:999px;background:#EAE6DE}
+#mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button{display:inline-flex;align-items:center;justify-content:center;width:auto;height:30px;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif}
+#mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button[aria-checked="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+/* o pé: "mais ajustes" à esquerda, Sair em botão à direita */
+#mundo-hud .vv-menu-conta button[data-conta-acao="ajustes"]{order:2;flex:1 1 0;min-width:0;margin:6px 0 0;padding:12px 2px;border-top:1px solid #F1EDE6;border-radius:0}
+#mundo-hud .vv-menu-conta button[data-conta-acao="ajustes"]:hover{background:none}
+#mundo-hud .vv-menu-conta button[data-conta-acao="ajustes"] .vv-menu-ic,#mundo-hud .vv-menu-conta button[data-conta-acao="ajustes"] small{display:none}
+#mundo-hud .vv-menu-conta button[data-conta-acao="ajustes"] b{font-size:12.5px;color:#6B665E}
+#mundo-hud .vv-menu-conta button[data-conta-acao="ajustes"]:hover b{color:#1F1D1A}
+#mundo-hud .vv-menu-conta button[data-conta-acao="sair"]{order:3;flex:0 0 auto;width:auto;min-height:0;margin:6px 0 0;padding:12px 2px;border-top:1px solid #F1EDE6;border-radius:0}
+#mundo-hud .vv-menu-conta button[data-conta-acao="sair"]:hover{background:none}
+#mundo-hud .vv-menu-conta button[data-conta-acao="sair"] .vv-menu-ic{display:none}
+#mundo-hud .vv-menu-conta button[data-conta-acao="sair"] b{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#mundo-hud .vv-menu-conta button[data-conta-acao="sair"]:hover b{background:#F3F1EC}
+#mundo-hud .vv-menu-conta button[data-conta-acao^="vercomo:"]:last-child{margin-bottom:12px}
+
+/* ---------- Conta e equipe ---------- */
+#conta-root .v2c{display:flex;flex-direction:column;gap:16px;box-sizing:border-box;padding:4px 0 0;color:#1F1D1A;font:400 13.5px/1.4 var(--vv-texto,Inter),system-ui,sans-serif}
+#conta-root .v2c :is(p,h1,h2){margin:0}
+#conta-root .v2c h1{flex:1;min-width:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+#conta-root .v2c h2{font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
+#conta-root .v2c b{color:#1F1D1A}
+#conta-root .v2c .v2c-sub{font-size:12.5px;color:#6B665E}
+#conta-root .v2c-topo{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px;margin-right:var(--vv-caixa-vao,0px);text-align:left}
+#conta-root .v2c-card{min-width:0;box-sizing:border-box;padding:18px;border:0;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+#conta-root .v2c-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;min-height:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 13.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .2s,color .2s}
+#conta-root .v2c-btn:active{transform:scale(.96)}
+#conta-root .v2c-btn:hover{background:#F3F1EC}
+#conta-root .v2c-btn:focus-visible,#conta-root .v2c-chip:focus-visible,#conta-root .v2c-link:focus-visible,#conta-root .v2c-seg button:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+#conta-root .v2c-btn.p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
+#conta-root .v2c-btn.p:hover{background:#A83E09}
+#conta-root .v2c-btn.k,#conta-root .v2c-btn[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#conta-root .v2c-btn.s{height:30px;padding:0 12px;font-size:12.5px}
+#conta-root .v2c-btn:disabled{background:#F3F1EC;color:#6B665E;box-shadow:none;cursor:not-allowed}
+#conta-root .v2c-btn.v2-estado[data-estado="indo"]{position:relative;color:transparent;pointer-events:none}
+#conta-root .v2c-pill{flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font:600 11.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#conta-root .v2c-pill.r{background:#FDECEE;color:#B42318}
+#conta-root .v2c-pill.a{background:#FFF4D6;color:#7A4A00}
+#conta-root .v2c-pill.g{background:#E8F5EC;color:#11613A}
+#conta-root .v2c-pill.n{background:#EFEBE4;color:#4A463F}
+/* A cor do texto dos botões: uma regra antiga de vybe-mundo.css pinta de cinza todo botão dentro de um bloco "auto-"
+   (o #conta-root é .auto-shell). A tinta do texto é dita à parte, sem brigar com ela. */
+#conta-root .v2c .v2c-btn,#conta-root .v2c .v2c-chip{-webkit-text-fill-color:#1F1D1A}
+#conta-root .v2c .v2c-btn.p,#conta-root .v2c .v2c-btn.k,#conta-root .v2c .v2c-btn[aria-pressed="true"],#conta-root .v2c .v2c-chip[aria-pressed="true"]{-webkit-text-fill-color:#FFFFFF}
+#conta-root .v2c .v2c-seg button{-webkit-text-fill-color:#6B665E}
+#conta-root .v2c .v2c-seg button[aria-checked="true"]{-webkit-text-fill-color:#1F1D1A}
+#conta-root .v2c .v2c-link{-webkit-text-fill-color:#C2490C}
+#conta-root .v2c .v2c-link:hover{-webkit-text-fill-color:#8A3207}
+#conta-root .v2c .v2c-btn:disabled{-webkit-text-fill-color:#6B665E}
+#conta-root .v2c .v2c-btn.v2-estado[data-estado="indo"]{-webkit-text-fill-color:transparent}
+/* a fala do VYBES */
+#conta-root .v2c-fala{display:flex;align-items:center;gap:14px}
+#conta-root .v2c-fala p{flex:1;min-width:0;font-size:15px;line-height:1.45;color:#1F1D1A}
+#conta-root .v2c-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter),sans-serif}
+#conta-root .v2c-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2c-pulso 3.6s ease-out infinite}
+@keyframes v2c-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
+#conta-root .v2c-quem-fala{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#4B36A8}
+/* os três números */
+#conta-root .v2c-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#conta-root .v2c-kpi small{display:block;font-size:12.5px;color:#6B665E}
+#conta-root .v2c-kpi-linha{display:flex;align-items:center;gap:10px;min-width:0}
+#conta-root .v2c-kpi-linha b{flex:1;display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1F1D1A}
+#conta-root .v2c-avs{display:inline-flex;padding-left:8px}
+#conta-root .v2c-av{display:inline-grid;place-items:center;width:28px;height:28px;margin-left:-8px;border-radius:50%;overflow:hidden;background:#EFEBE4;color:#4A463F;box-shadow:0 0 0 2px #FFFFFF;font:700 10.5px var(--vv-texto,Inter),sans-serif}
+#conta-root .v2c-av img{width:100%;height:100%;object-fit:cover}
+#conta-root .v2c-clis{display:flex;align-items:center;gap:10px;min-width:0;font-size:12.5px}
+#conta-root .v2c-cli{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:110px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600;color:#1F1D1A}
+#conta-root .v2c-cli::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#3B5BA9}
+#conta-root .v2c-cli + .v2c-cli::before{background:#C2490C}
+#conta-root .v2c-link{appearance:none;display:inline;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;cursor:pointer}
+#conta-root .v2c-link:hover{color:#8A3207}
+/* pede ação e o cartão de quem você é */
+#conta-root .v2c-duas{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:stretch}
+#conta-root .v2c-duas > .v2c-card{display:flex;flex-direction:column}
+#conta-root .v2c-card-topo{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+#conta-root .v2c-card-topo h2{flex:1}
+#conta-root .v2c-lin{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #F1EDE6;font-size:13.5px;color:#1F1D1A}
+#conta-root .v2c-lin > p{flex:1;min-width:0}
+#conta-root .v2c-card-topo + .v2c-lin,#conta-root .v2c-operacao h2 + .v2c-lin,#conta-root .v2c-quem + .v2c-lin{border-top:0}
+#conta-root .v2c-operacao{margin-top:12px;padding-top:14px;border-top:1px solid #F1EDE6}
+#conta-root .v2c-tudo-certo{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;border-radius:14px;background:#F3F1EC;font-size:12.5px;line-height:1.45;color:#4A463F}
+#conta-root .v2c-tudo-certo svg{flex:none;color:#11613A}
+#conta-root .v2c-quem{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+#conta-root .v2c-quem > div{flex:1;min-width:0}
+#conta-root .v2c-quem .v2c-sub{margin-top:3px;overflow:hidden;text-overflow:ellipsis}
+#conta-root .v2c-retrato{flex:none;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;overflow:hidden;background:#FFF1E6;color:#8A3207;font:700 18px var(--vv-texto,Inter),sans-serif}
+#conta-root .v2c-retrato img{width:100%;height:100%;object-fit:cover}
+#conta-root .v2c-retrato span{color:#8A3207}
+#conta-root .v2c-dado{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:0 12px;min-height:30px}
+#conta-root .v2c-dado > span:first-child{font-size:12.5px;color:#6B665E}
+#conta-root #v2c-senha > .v2c-lin{border-top:1px solid #F1EDE6}
+#conta-root .v2c-senha-campos{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 0 12px 104px}
+#conta-root #v2c .v2c-senha-campos input,#conta-root #v2c .conta-ai-codigo input{flex:1 1 120px;min-width:0;height:32px;box-sizing:border-box;padding:0 14px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:400 12.5px var(--vv-texto,Inter),sans-serif;outline:none}
+#conta-root #v2c .v2c-senha-campos input:focus,#conta-root #v2c .conta-ai-codigo input:focus{border:0;box-shadow:inset 0 0 0 1.5px #1F1D1A;outline:none}
+#conta-root #v2c .v2c-senha-campos input::placeholder{color:#6B665E}
+#conta-root .conta-ai{margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+#conta-root .conta-ai-meio{display:block;min-width:0}
+#conta-root .conta-ai-meio small{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#conta-root .conta-ai-meio .v2c-pill{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#conta-root .conta-ai-acoes{display:flex;gap:8px}
+#conta-root .conta-ai-codigo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;padding:0 0 12px 104px;border:0;background:none}
+#conta-root .conta-ai-codigo label,#conta-root .conta-ai-codigo small{flex:0 0 100%;font-size:12.5px;color:#6B665E}
+#conta-root .conta-ai-aviso{margin:0;padding:0 0 0 104px}
+#conta-root .conta-ai-aviso:empty{display:none}
+#conta-root .conta-ai-aviso:not(:empty){padding-bottom:10px}
+#conta-root .v2c-seg{display:inline-flex;padding:4px;border-radius:999px;background:#EAE6DE}
+#conta-root .v2c-seg button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#conta-root .v2c-seg button[aria-checked="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+#conta-root .v2c-nota{margin-top:auto;padding-top:10px}
+/* a parte aberta pela fileira do pé (equipe, clientes, opções, credenciais, manutenção) */
+#conta-root .v2c-secao{display:flex;flex-direction:column;gap:14px}
+#conta-root .v2c-secao .conta-secao-topo{margin:0;max-width:none}
+#conta-root .v2c-secao .conta-secao-topo h2{font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+#conta-root .v2c-secao .conta-secao-topo p{margin-top:4px;font-size:12.5px;line-height:1.45}
+/* a fileira "Abrir" */
+#conta-root .v2c-abrir{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#conta-root .v2c-abrir > .v2c-sub{margin-right:2px}
+#conta-root .v2c-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:500 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#conta-root .v2c-chip:hover{background:#F3F1EC}
+#conta-root .v2c-chip[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+@media (max-width:900px){
+  #conta-root .v2c-topo{margin-right:0}
+  #conta-root .v2c h1{flex:1 1 100%;font-size:24px}
+  #conta-root .v2c-tres,#conta-root .v2c-duas{grid-template-columns:minmax(0,1fr)}
+  #conta-root .v2c-fala{align-items:flex-start}
+  #conta-root .v2c-lin{flex-wrap:wrap;gap:8px 12px}
+  #conta-root .v2c-pede .v2c-lin > .v2c-pill + p{flex:1 1 100%;order:2}
+  #conta-root .v2c-pede .v2c-lin > .v2c-pill ~ .v2c-btn{order:3}
+  #conta-root .v2c-dado{grid-template-columns:minmax(0,1fr) auto;gap:4px 12px}
+  #conta-root .v2c-dado > :first-child{grid-column:1 / -1}
+  #conta-root .v2c-quem > div{flex:1 1 140px}
+  #conta-root .v2c-senha-campos,#conta-root .conta-ai-codigo{padding-left:0}
+  #conta-root .conta-ai-aviso{padding-left:0}
+  #conta-root .v2c-quem{flex-wrap:wrap}
+}
+@media (prefers-reduced-motion:reduce){
+  #conta-root .v2c-ag::after{animation:none}
+  #conta-root .v2c-btn{transition:none}
+}

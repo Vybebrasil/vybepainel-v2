@@ -67,7 +67,9 @@ test('65: "Trocar cliente" é botão e as peças esperando aparecem no cartão',
 });
 
 test('06: copiar link e log de atividade viram ícones com nome acessível e dica', () => {
-  assert.ok(gaveta.includes('${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { icone: true })}'));
+  // Padrão v2 (quadro da gaveta): três ícones no topo (link, mais ações, fechar); o log da peça mora no "mais ações" e na aba Histórico.
+  assert.ok(gaveta.includes('${botaoDeLinkHtml(item, { icone: true })}${menuDeAcoesDaPecaHtml(item, { linkELog: true })}'));
+  assert.ok(gaveta.includes('${botaoDoLogHtml(item.id, { demanda: true, icone: true })}'), 'na solicitação o log segue como ícone');
   assert.ok(gestor.includes(`\${icone ? ' aria-label="Copiar link"' : ''}`) && gestor.includes('title="Copiar o link desta atividade para mandar no grupo"'));
   assert.ok(log.includes(`\${icone ? ' aria-label="Log de atividade"' : ''}`) && log.includes('title="Log de atividade:'));
   assert.ok(gestor.includes("botao.classList.contains('so-icone') ? visto"), 'o visto entra no lugar do ícone, sem mudar a largura');
@@ -84,8 +86,8 @@ test('28: um dock só no celular (Voz no lugar do cartão), gaveta em tela cheia
   assert.ok(!bloco.includes('.vq-dock{display:none') && !/na-chamada[^{]*\.vv-dock-salas-faixa\{display:none/.test(bloco), 'na chamada o microfone continua à vista');
   assert.ok(gaveta.includes('class="workspace-voltar"') && gaveta.includes('menuDeAcoesDaPecaHtml(item, { linkELog: true })'));
   assert.ok(gaveta.includes('class="workspace-mais-cel" onclick="fecharMenusDaGaveta();copiarLinkDaAtividade('));
-  assert.ok(gaveta.includes('class="workspace-faixa-objetivo"') && bloco.includes('.vc-objetivo-campo{display:inline-flex;flex-wrap:nowrap;'), 'Objetivo numa linha');
-  assert.ok(gaveta.includes('<div class="workspace-rolagem">') && !gaveta.includes('style="flex:1;overflow-y:auto;padding:22px 24px 0;'));
+  assert.ok(gaveta.includes('${gavetaObjetivoHtml(item)}') && gaveta.includes('vc.campoObjetivoHtml(item)') && bloco.includes('.vc-objetivo-campo{display:inline-flex;flex-wrap:nowrap;'), 'Objetivo numa linha');
+  assert.ok(gaveta.includes('<div class="gv2-corpo">') && !gaveta.includes('style="flex:1;overflow-y:auto;padding:22px 24px 0;'));
 });
 
 test('frente operação sem forçar nada: nenhum !important nem html body.mundo no bloco novo', () => {

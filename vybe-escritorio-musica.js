@@ -166,6 +166,8 @@ function receberMusicaEscritorio(estado) {
 }
 // Painel da jukebox: colar link, ver a fila, tocar uma, tirar uma.
 function abrirMusicaEscritorio() {
+  // No mundo a fila é a aba Música do painel Som (padrão v2), que também diz o caminho quando a sala não tem som.
+  if (typeof escritorioPainelSomNoMundo === "function" && escritorioPainelSomNoMundo()) return abrirSomEscritorio("musica");
   if (!escritorio.conectado) return escritorioAviso("Entre no escritório para usar a música.");
   if (!escritorioNaPista()) return escritorioAviso("Esta sala não tem aparelho de som. A música toca nas salas com jukebox, rádio ou vitrola.");
   let d = document.getElementById("office-musica-painel");
@@ -190,6 +192,16 @@ function desenharFilaMusicaEscritorio() {
   const el = document.getElementById("office-musica-fila");
   if (!el) return;
   const m = escritorio.musica;
+  // Dentro do painel Som (padrão v2): linhas com botões em pílula; "Limpar fila" fica no pé do painel.
+  const som = el.closest(".v2k-som");
+  if (som) {
+    const pe = som.querySelector(".v2k-pe");
+    if (pe && typeof escritorioSomPeHtml === "function") pe.innerHTML = escritorioSomPeHtml("musica");
+    if (!m) { el.innerHTML = '<p class="v2k-sub">Carregando a fila…</p>'; return; }
+    if (!m.fila.length) { el.innerHTML = '<p class="v2k-sub">A fila está vazia. Cole um link acima para começar.</p>'; return; }
+    el.innerHTML = m.fila.map((f, i) => `<div class="v2k-lin"${i === m.indice ? ' aria-current="true"' : ""}>${f.kind === "video" ? `<img src="https://i.ytimg.com/vi/${f.videoId}/default.jpg" alt="" width="48" height="36" loading="lazy">` : ""}<p><b>${i === m.indice ? (m.tocando ? "Tocando agora" : "Pausada") : f.kind === "playlist" ? "Playlist" : "Música"}</b><br><span class="v2k-sub">${f.kind === "playlist" ? "Playlist do YouTube" : "Vídeo do YouTube"} · de ${safeText(String(f.por || ""))}</span></p><button type="button" class="v2k-btn s" onclick="controleMusicaEscritorio('tocarItem','${f.id}')" ${i === m.indice && m.tocando ? "disabled" : ""}>Tocar</button><button type="button" class="v2k-btn s v2k-tira" onclick="controleMusicaEscritorio('remover','${f.id}')" aria-label="Tirar da fila">Tirar</button></div>`).join("");
+    return;
+  }
   if (!m) { el.innerHTML = '<p class="ofc-nota">Carregando a fila…</p>'; return; }
   if (!m.fila.length) { el.innerHTML = '<p class="ofc-nota">A fila está vazia. Cole um link acima para começar.</p>'; return; }
   el.innerHTML = `<ol class="ofc-musica-lista">${m.fila.map((f, i) => `<li${i === m.indice ? ' aria-current="true"' : ""}><img src="${f.kind === "video" ? `https://i.ytimg.com/vi/${f.videoId}/default.jpg` : ""}" alt="" width="48" height="36" loading="lazy" ${f.kind === "video" ? "" : "hidden"}><span><b>${i === m.indice ? (m.tocando ? "Tocando agora" : "Pausada") : f.kind === "playlist" ? "Playlist" : "Música"}</b><small>${f.kind === "playlist" ? "Playlist do YouTube" : "Vídeo do YouTube"} · de ${safeText(String(f.por || ""))}</small></span><button type="button" onclick="controleMusicaEscritorio('tocarItem','${f.id}')" ${i === m.indice && m.tocando ? "disabled" : ""}>Tocar</button><button type="button" class="perigo" onclick="controleMusicaEscritorio('remover','${f.id}')" aria-label="Tirar da fila">Tirar</button></li>`).join("")}</ol>

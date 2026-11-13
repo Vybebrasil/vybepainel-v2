@@ -331,6 +331,8 @@ async function tentarEscritaDupla(item, corpo) {
   } catch (erro) {
     console.error('Escrita no banco Vybe falhou; o Monday não receberá uma gravação paralela.', erro);
     showToast(`Não foi possível salvar no banco Vybe: ${erro.message}`, 'error', 7000);
+    // Quem chamou não repete o aviso (a troca de status tinha um segundo, logo em seguida).
+    try { erro.vbAvisado = true; } catch { /* erro congelado: segue sem a marca */ }
     throw erro;
   }
 }

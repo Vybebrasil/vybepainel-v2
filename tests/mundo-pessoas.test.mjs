@@ -68,8 +68,9 @@ test('quem não é da gestão: só o próprio mês, sem ranking, sem pesos e sem
   const t = montar();
   await t.P.abrir('produtividade');
   const h = t.html();
-  assert.match(h, /Como foi o seu mês/); assert.match(h, /Fila em dia/);
-  assert.doesNotMatch(h, /Ranking do mês|Pesos do score|data-vp-aba="recrutamento"|data-vp-aba="documentos"/);
+  // Padrão v2 (quadro da Produtividade): o próprio mês aberto, com o score, os componentes e as conquistas.
+  assert.match(h, /<h3>O seu mês<\/h3>/); assert.match(h, /O seu score de novembro é 80/); assert.match(h, /Fila em dia/); assert.match(h, /Entregas no prazo<\/span><b>66%/);
+  assert.doesNotMatch(h, /O mês de cada um|Pede ação|Pesos do score|Carga da semana|data-vp-aba="recrutamento"|data-vp-aba="documentos"/);
   await t.P.abrir('recrutamento');
   assert.match(t.html(), /aria-selected="true" data-vp-aba="produtividade"/, 'aba da gestão cai em Produtividade');
   assert.ok(!t.pedidos.some((p) => p.url.includes('aba=recrutamento')), 'nem pede ao servidor');
@@ -78,35 +79,46 @@ test('quem não é da gestão: só o próprio mês, sem ranking, sem pesos e sem
 test('gestão: ranking, pesos, metas e as abas de Recrutamento e Documentos', async () => {
   const t = montar({ gestao: true });
   await t.P.abrir('produtividade');
-  assert.match(t.html(), /Ranking do mês/); assert.match(t.html(), /Pesos do score/);
-  assert.match(t.html(), /Carga da semana/); assert.match(t.html(), /Sobrecarregada/, 'a carga da semana fica na Produtividade dos donos'); assert.match(t.html(), /data-vp-aba="documentos"/);
+  // Padrão v2: o ranking virou "O mês de cada um"; carga, pesos e metas ficam a um clique, em "Também aqui".
+  assert.match(t.html(), /<h3>O mês de cada um<\/h3>/); assert.match(t.html(), /3 de 10 entregas/); assert.match(t.html(), /data-vp-aba="documentos"/);
+  assert.match(t.html(), /data-v2p-ver="carga">Carga da semana/); assert.doesNotMatch(t.html(), /Sobrecarregada|data-vp-form="pesos"/);
+  t.P._teste.ver('carga'); assert.match(t.html(), /Sobrecarregada/, 'a carga da semana fica na Produtividade dos donos');
+  t.P._teste.ver('pesos'); assert.match(t.html(), /data-vp-form="pesos"/); t.P._teste.ver('metas'); assert.match(t.html(), /data-vp-form="metas"/);
   await t.P.abrir('recrutamento');
   assert.match(t.html(), /Fulana/); assert.match(t.html(), /vs mês anterior/); assert.match(t.html(), /Mensal/);
   await t.P.abrir('documentos');
-  assert.match(t.html(), /Renovar em breve/);
+  assert.match(t.html(), /Vence em 20\/11/); assert.match(t.html(), /data-vp-editar-documento="1"[^>]*>Renovar</);
 });
 
 test('todas as abas desenham com dados e com o estado vazio', async () => {
   const t = montar({ gestao: true });
   for (const aba of ['rh', 'projetos', 'academy']) { await t.P.abrir(aba); assert.doesNotMatch(t.html(), /Carregando|Não deu para abrir/, aba); }
   await t.P.abrir('projetos');
+  t.P._teste.v2({ vista: 'tempo' });
   assert.match(t.html(), /vp-gantt-barra atrasada/);
   assert.doesNotMatch(t.html(), /Carga da semana/, 'a carga saiu de Projetos pontuais (auditoria 09/11)');
   await t.P.abrir('rh');
-  assert.match(t.html(), /Headcount/); assert.match(t.html(), /Responder a pesquisa/); assert.match(t.html(), /O resultado aparece com 3/);
+  assert.doesNotMatch(t.html(), /Headcount|Responder a pesquisa/, 'padrão v2: visão geral e clima saem do alto e ficam a um clique');
+  t.P._teste.ver('visao'); assert.match(t.html(), /Headcount/);
+  t.P._teste.ver('clima'); assert.match(t.html(), /Responder a pesquisa/); assert.match(t.html(), /O resultado aparece com 3/);
 });
 
 test('RH 08/11: fila com números clicáveis, fora do prazo em vermelho, resposta e histórico do clima', async () => {
   const g = montar({ gestao: true });
   await g.P.abrir('rh');
   let h = g.html();
+  // Padrão v2: os três números do quadro continuam clicáveis (mini painel) e o fora do prazo fica em vermelho na linha de baixo.
   assert.match(h, /data-espiar="pessoas:abertos"/); assert.match(h, /data-espiar="pessoas:fora"/); assert.match(h, /data-espiar="pessoas:respondidos"/);
-  assert.match(h, /vp-kpi espiavel u1/, 'fora do prazo pinta o número de vermelho');
-  assert.match(h, /1,5 dias úteis/); assert.match(h, /100% respondidos no prazo/);
-  assert.match(h, /vp-item u1/); assert.match(h, /Fora do prazo há 2 dias úteis/); assert.match(h, /aberto há 6 dias/); assert.match(h, /para 04\/11/);
-  assert.match(h, /data-vp-form="responder"/); assert.match(h, /Prazos de resposta por tipo/);
-  assert.match(h, /Clima de agosto/); assert.match(h, /Encerrar agora/); assert.match(h, /2 respostas de 6 pessoas/);
+  assert.match(h, /class="v2p-ruim" data-espiar="pessoas:fora"[^>]*>1 fora do prazo</);
+  assert.match(h, /1 de 1/); assert.match(h, /tempo médio de 1,5 dias úteis/);
+  assert.match(h, /Fora do prazo há 2 dias úteis/, 'no cartão do baralho'); assert.match(h, /aberto há 6 dias/); assert.match(h, /para 04\/11/);
+  assert.doesNotMatch(h, /data-vp-form="responder"|Prazos de resposta por tipo|Clima de agosto|Encerrar agora/, 'lista, prazos e clima a um clique');
+  g.P._teste.ver('lista'); h = g.html();
+  assert.match(h, /vp-kpi espiavel u1/, 'na lista, fora do prazo pinta o número de vermelho'); assert.match(h, /100% respondidos no prazo/);
+  assert.match(h, /vp-item u1/); assert.match(h, /data-vp-form="responder"/); assert.match(h, /Prazos de resposta por tipo/);
   assert.doesNotMatch(h, /name="folha"/, 'tipo antigo fora da tabela de prazos');
+  g.P._teste.ver('clima'); h = g.html();
+  assert.match(h, /Clima de agosto/); assert.match(h, /Encerrar agora/); assert.match(h, /2 respostas de 6 pessoas/);
   // Mini painel: a lista por trás do número, e o clique filtra a lista.
   const prov = g.ctx.window.VybeEspiarProvedores.pessoas;
   const fora = prov('fora');
@@ -120,7 +132,10 @@ test('RH 08/11: fila com números clicáveis, fora do prazo em vermelho, respost
   const a = montar();
   await a.P.abrir('rh');
   h = a.html();
-  assert.match(h, /Seus pedidos ao RH/); assert.match(h, /Resposta do RH:<\/b> Já enviamos por e-mail/); assert.match(h, /Cancelar pedido/);
+  assert.match(h, /Seus pedidos/); assert.match(h, /Cancelar pedido/); assert.match(h, /O seu pedido<\/b> · Declaração/); assert.match(h, /Já enviamos por e-mail/);
+  assert.doesNotMatch(h, /data-v2p-decidir|data-v2p-ver="prazos"|data-v2p-ver="visao"/, 'quem pediu não decide nem vê as partes da gestão');
+  a.P._teste.ver('lista'); h = a.html();
+  assert.match(h, /Seus pedidos ao RH/); assert.match(h, /Resposta do RH:<\/b> Já enviamos por e-mail/);
   assert.doesNotMatch(h, /Prazos de resposta|data-vp-form="responder"|Clima de agosto|Encerrar agora/);
 });
 
@@ -148,6 +163,7 @@ test('Projetos: etapa que virou demanda mostra o status da esteira e o aviso de 
     const t = montar({ gestao: true });
     t.ctx.statusCor = (d) => `<span class="pill">${d.status}</span>`;
     await t.P.abrir('projetos');
+    t.P._teste.v2({ vista: 'tempo' });
     assert.match(t.html(), /data-vp-demanda="77"/); assert.match(t.html(), /Em andamento/);
   } finally { RESPOSTAS.projetos = original; }
 });

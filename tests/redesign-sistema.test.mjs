@@ -139,10 +139,11 @@ test('zeros em linha discreta, plural certo, mês no seletor e agenda no Hoje da
   assert.match(mundo, /Também de olho:/);
   assert.match(mundo, /'peças em aberto', 'peça em aberto'\]/);
   assert.match(ler('vybe-mundo-agentes.js'), /x\.n === 1 \? 'Ver o achado' : `Ver os \$\{x\.n\}`/);
-  assert.match(mundo, /<div class="vv-hoje-agenda-3d">\$\{agendaDeHojeHtml\(\)\}<\/div>/);
-  assert.match(mundo, /class="vc-sec vv-semana-abrir" data-abrir-gestao="semana">Abrir a semana<\/button>/);
+  assert.match(mundo, /<section class="v2a-cartao v2a-agenda">\$\{agendaDeHojeHtml\(\)\}/);
+  assert.match(mundo, /class="v2t-btn" data-abrir-gestao="semana">Abrir a semana<\/button>/);
   assert.match(pessoas, /mesHtml\(ref, 'data-vp-ref-ir', estado\.periodo === 'anual'\)/);
-  assert.match(pessoas, /kpisHtml\(\[\['Vagas abertas', ind\.abertas\]/);
+  // Padrão v2 (12/11/2026): o Recrutamento abre com três números fixos, como no quadro; o zerado fica no lugar.
+  assert.match(pessoas, /tresHtml\(\[\s*\{ rotulo: 'Vagas abertas', valor: ind\.abertas \?\? abertas\.length/);
   // O anel da dica e o foco: laranja do padrão; o contorno grosso da aparência antiga não vale no mundo.
   assert.doesNotMatch(ler('vybe-mundo-tutorial.css'), /139,125,255,\.(9|18|22)\)|0 0 0 2px #8B7DFF/);
   assert.match(ler('vybe-appearance.css'), /:where\(body:not\(\.mundo\)\)\.vybe-desktop :is\(button, a, input, select, textarea, \[tabindex\]\):focus-visible/);

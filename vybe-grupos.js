@@ -153,7 +153,9 @@ function abrirMenuDoGrupo(event, quadro, grupoId) {
   fundo.onclick = fecharMenuDoGrupo;
   const menu = document.createElement('div');
   menu.id = 'grupo-menu';
-  menu.className = 'status-editor grupo-menu';
+  // Menu de linha do padrão v2 (quadro Famílias de subtela): no máximo 5 itens, o que apaga por último e em vermelho.
+  // A cor é uma fileira de bolinhas (não conta como item); subir e descer dividem uma linha; as duas etiquetas, outra.
+  menu.className = 'vb-menu grupo-menu';
   menu.setAttribute('role', 'menu');
   // "Nova etiqueta" e "Ordem" do status moram aqui (quadro 23 do redesign): o menu de status fica só com as escolhas,
   // e o vocabulário do quadro se arruma junto dos grupos dele. As funções são as mesmas de antes (vybe-agenda.js).
@@ -161,17 +163,14 @@ function abrirMenuDoGrupo(event, quadro, grupoId) {
     && typeof criarEtiqueta === 'function' && typeof organizarEtiquetas === 'function';
   const colunaDoStatus = `status:${QUADRO_ID()[quadro]}`;
   const nomeDoStatus = quadro === 'demandas' ? 'Status da solicitação' : 'Status do conteúdo';
-  const item = (rotulo, acao, { desligado = false, perigo = false } = {}) =>
-    `<button type="button" role="menuitem" class="status-editor-option${perigo ? ' perigo' : ''}" data-acao="${acao}" ${desligado ? 'disabled' : ''}>${rotulo}</button>`;
-  menu.innerHTML = `<div class="status-editor-head">${safeText(grupo.titulo)}</div>
-    ${item('Renomear…', 'renomear')}
+  const item = (rotulo, acao, { desligado = false, perigo = false, rotuloAria = '' } = {}) =>
+    `<button type="button" role="menuitem" class="vb-mi${perigo ? ' vb-mi-apaga' : ''}" data-acao="${acao}"${rotuloAria ? ` aria-label="${rotuloAria}"` : ''} ${desligado ? 'disabled' : ''}>${rotulo}</button>`;
+  menu.innerHTML = `<p class="vb-menu-titulo">${safeText(grupo.titulo)}</p>
     ${paletaDoGrupoHtml(grupo)}
-    ${item('Mover para cima', 'subir', { desligado: i === 0 })}
-    ${item('Mover para baixo', 'descer', { desligado: i === grupos.length - 1 })}
+    ${item('Renomear…', 'renomear')}
+    <div class="vb-mi-par" role="group" aria-label="Mover o grupo"><span>Mover</span>${item('Para cima', 'subir', { desligado: i === 0, rotuloAria: 'Mover para cima' })}${item('Para baixo', 'descer', { desligado: i === grupos.length - 1, rotuloAria: 'Mover para baixo' })}</div>
     ${item('Novo grupo abaixo…', 'novo')}
-    ${etiquetasDeStatus ? `<div class="status-editor-head grupo-menu-secao">Etiquetas de status</div>
-    ${item('Nova etiqueta…', 'etiqueta')}
-    ${item('Ordem das etiquetas…', 'ordem')}` : ''}
+    ${etiquetasDeStatus ? `<div class="vb-mi-par" role="group" aria-label="Etiquetas de status"><span>Etiquetas</span>${item('Nova…', 'etiqueta', { rotuloAria: 'Nova etiqueta de status' })}${item('Ordem…', 'ordem', { rotuloAria: 'Ordem das etiquetas de status' })}</div>` : ''}
     ${item('Apagar grupo…', 'apagar', { perigo: true })}`;
   menu.onclick = (e) => {
     const cor = e.target.closest('[data-cor]')?.dataset.cor;
@@ -234,8 +233,10 @@ async function novoGrupo(quadro, depoisDe) {
 }
 
 async function apagarGrupoDoQuadro(quadro, grupo) {
-  const ok = await perguntarNoPainel({ titulo: `Apagar "${grupo.titulo}"?`, confirmar: 'Apagar grupo', perigo: true,
-    texto: 'Só dá para apagar grupos sem atividades ou automações vinculadas. Atividades arquivadas e removidas também precisam ser resolvidas antes.' });
+  const pergunta = { titulo: `Apagar "${grupo.titulo}"?`, rotulo: 'Apagar grupo',
+    texto: 'Só dá para apagar grupos sem atividades ou automações vinculadas. Atividades arquivadas e removidas também precisam ser resolvidas antes.' };
+  const ok = typeof vbConfirmarApagar === 'function' ? await vbConfirmarApagar(pergunta)
+    : await perguntarNoPainel({ titulo: pergunta.titulo, confirmar: pergunta.rotulo, perigo: true, texto: pergunta.texto });
   if (!ok) return;
   await mudarGrupo(quadro, { acao: 'apagar', grupo_id: grupo.grupo_id }, `Grupo "${grupo.titulo}" apagado.`);
 }
