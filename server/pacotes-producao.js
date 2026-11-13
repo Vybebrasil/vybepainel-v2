@@ -13,7 +13,7 @@
 //    roteiro; a captação sugerida vai para a agenda. "recusa pacote N" descarta.
 // A partir daí seguem as automações de sempre (Heitor, Ademir, Reriston, aprovação).
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
-import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
+import { ehDonoPessoa, ehAmploPessoa, mondayDaPessoa } from './donos.js';
 import { incluirRoteiro, ligar, docDoLink } from './roteiros.js';
 
 const MAX_PECAS = 20;
@@ -115,8 +115,9 @@ export async function marcarAvisado(db, id) {
 }
 
 async function exigirDono(db, pessoaId, config) {
-  const dono = ehDonoPessoa({ id: pessoaId, monday_user_id: await mondayDaPessoa(db, pessoaId) }, config);
-  if (!dono) throw publica('Só os donos da Vybe aprovam pacote de produção.');
+  // Pacote de produção é produção, não dinheiro: os donos e a coordenação (Paulo, 13/11/2026).
+  const dono = ehAmploPessoa({ id: pessoaId, monday_user_id: await mondayDaPessoa(db, pessoaId) }, config);
+  if (!dono) throw publica('Só os donos e a coordenação aprovam pacote de produção.');
 }
 const ESTADO_FALADO = { executando: 'já está sendo cadastrado', executado: 'já foi cadastrado', recusado: 'foi recusado', falhou: 'já foi tentado e falhou (confira o painel)' };
 async function pegarParaDecidir(db, id, pessoaId, novoEstado) {

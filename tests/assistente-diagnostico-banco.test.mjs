@@ -6,9 +6,12 @@ import {assinarSessao} from '../vybe_sessao.js';
 import handler from '../api/painel.js';
 import {conexao} from './postgres.mjs';
 
-const segredoAnterior = process.env.SESSAO_SECRET;
-before(() => {process.env.SESSAO_SECRET='segredo-ficticio-somente-para-testar-sessoes';});
-after(() => {if(segredoAnterior === undefined) delete process.env.SESSAO_SECRET; else process.env.SESSAO_SECRET=segredoAnterior;});
+// Paulo, 13/11/2026: "admin e dono são a mesma coisa" — a sessão administra quem é dono (ou coordenação), não quem tem a
+// marca admin no cadastro. A pessoa fictícia 1 é dona por VYBE_DONOS_IDS (a consulta deste diagnóstico não lê o Monday).
+const ENV_SALVO = ['SESSAO_SECRET','VYBE_DONOS_IDS','VYBE_AI_ADMIN_PESSOA_ID'].map(k=>[k,process.env[k]]);
+before(() => {process.env.SESSAO_SECRET='segredo-ficticio-somente-para-testar-sessoes';process.env.VYBE_DONOS_IDS='1';delete process.env.VYBE_AI_ADMIN_PESSOA_ID;});
+after(() => {for(const [k,v] of ENV_SALVO){if(v === undefined) delete process.env[k]; else process.env[k]=v;}});
+async function semDono(fn){const v=process.env.VYBE_DONOS_IDS;delete process.env.VYBE_DONOS_IDS;try{return await fn();}finally{process.env.VYBE_DONOS_IDS=v;}}
 const url='postgresql://usuario:senha-ficticia@ep-exemplo-pooler.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require';
 const config={VERCEL_ENV:'preview',VYBE_HOMOLOGACAO:'1',VERCEL_GIT_COMMIT_REF:'feature/vybe-ai-readonly-integration',DATABASE_URL:url};
 const pessoa={id:1,nome:'Fictícia',email:'ficticia@example.invalid',admin:true,ativo:true,pode_entrar:true,senha_hash:true,sessao_versao:2};
@@ -70,7 +73,16 @@ test('anônimo, cookie adulterado e tokens de serviço/bot/manutenção não sub
 });
 
 test('permissão administrativa é a atual do banco; sessão revogada ou conta bloqueada não passa',async()=>{
-  for(const [p,status] of [[{...pessoa,admin:false},403],[null,401],
+  // A marca admin do cadastro sozinha não abre mais: quem não é dono nem coordenação recebe 403.
+  for(const p of [pessoa,{...pessoa,admin:false}]) {
+    const {resposta,db}=await semDono(()=>chamar({db:bancoFalso(p)}));
+    assert.equal(resposta.codigo,403);assert.equal(db.queries.length,1);
+    assert.ok(!db.queries[0].text.includes('current_database'));
+  }
+  // Dono sem a marca admin no cadastro administra (dono = admin).
+  const {resposta:donoSemMarca}=await chamar({db:bancoFalso({...pessoa,admin:false})});
+  assert.equal(donoSemMarca.codigo,200);
+  for(const [p,status] of [[null,401],
     [{...pessoa,ativo:false},401],[{...pessoa,pode_entrar:false},401],
     [{...pessoa,senha_hash:false},401],[{...pessoa,sessao_versao:3},401]]) {
     const {resposta,db}=await chamar({db:bancoFalso(p)});
@@ -136,6 +148,9 @@ test('PostgreSQL isolado confirma validação da sessão sem inicialização de 
   assert.deepEqual((await sql`SELECT * FROM vybe_pessoas`)[0],antes);
   const cols=await sql`SELECT column_name FROM information_schema.columns WHERE table_name='vybe_pessoas'`;
   assert.equal(cols.length,6);
+  // admin=true no cadastro, mas não é dono nem coordenação: 403.
+  const soMarca=res();await semDono(()=>diagnosticoBancoAssistente(pedido(),soMarca,()=>sql,ambiente));
+  assert.equal(soMarca.codigo,403);
   await sql`UPDATE vybe_pessoas SET senha_hash='' WHERE id=1`;
   const bloqueada=res();await diagnosticoBancoAssistente(pedido(),bloqueada,()=>sql,ambiente);
   assert.equal(bloqueada.codigo,401);

@@ -10,11 +10,20 @@ const pessoa={id:1,nome:'Teste',email:'teste@example.test',admin:true,ativo:true
 const req={headers:{cookie:`vybe_sessao=${assinarSessao({...pessoa,versao:2})}`}};
 const verificar=(p)=>sessaoDoPedido(req,{buscarPessoa:async()=>p});
 test('sessão consulta acesso vigente e rejeita pessoa bloqueada, inativa ou excluída',async()=>{
-  assert.equal((await verificar(pessoa)).admin,true);
+  // Paulo, 13/11/2026: "admin e dono são a mesma coisa" — admin da sessão vem de dono ou coordenação (pelo Monday),
+  // nunca da marca admin do cadastro.
+  const so=(s)=>({admin:s.admin,dono:s.dono,coordenacao:s.coordenacao});
+  assert.deepEqual(so(await verificar(pessoa)),{admin:false,dono:false,coordenacao:false},'marca admin do cadastro não basta');
+  assert.deepEqual(so(await verificar({...pessoa,admin:false,monday_user_id:'68035653'})),{admin:true,dono:true,coordenacao:false},'dono sem a marca administra');
+  assert.deepEqual(so(await verificar({...pessoa,admin:false,monday_user_id:'71130408'})),{admin:true,dono:false,coordenacao:true},'coordenação administra sem ser dona');
+  assert.deepEqual(so(await verificar({...pessoa,monday_user_id:'99999999'})),{admin:false,dono:false,coordenacao:false});
   for(const p of [null,{...pessoa,ativo:false},{...pessoa,pode_entrar:false}])assert.equal(await verificar(p),null);
 });
 test('retirada do papel e mudança da versão não preservam privilégio do cookie',async()=>{
   assert.equal((await verificar({...pessoa,admin:false})).admin,false);
+  // O cookie diz admin:true; quem saiu da coordenação (ou deixou de ser dono) no cadastro perde o acesso na hora.
+  assert.equal((await verificar({...pessoa,monday_user_id:'71130408'})).admin,true);
+  assert.equal((await verificar({...pessoa,monday_user_id:null})).admin,false);
   assert.equal(await verificar({...pessoa,sessao_versao:3}),null);
 });
 test('cookie malformado ou adulterado falha sem consultar banco',async()=>{

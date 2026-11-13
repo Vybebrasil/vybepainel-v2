@@ -10,6 +10,10 @@ const jid='1111111111@c.us',segredo='segredo-exclusivamente-ficticio-123456789';
 const config={VERCEL_ENV:'preview',VYBE_HOMOLOGACAO:'1',VERCEL_GIT_COMMIT_REF:'feature/vybe-ai-readonly-integration',VYBE_AI_LINK_SECRET:segredo,DATABASE_URL:'postgresql://fixture:fixture@ep-fragrant-bird-b6me3xz7.c-2.sa-east-1.aws.neon.tech/neondb'};
 test('diagnóstico de vínculo: sessão real assinada, READ ONLY, isolamento e resposta mínima',async t=>{
  const anterior=process.env.SESSAO_SECRET;process.env.SESSAO_SECRET='sessao-ficticia-para-teste-sem-rede';
+ // Paulo, 13/11/2026: admin da sessão = dono ou coordenação (a marca admin do cadastro não basta). A conta fictícia 123 é
+ // dona por VYBE_DONOS_IDS; a consulta da conta continua exigindo também admin IS TRUE no cadastro.
+ const envDono=['VYBE_DONOS_IDS','VYBE_AI_ADMIN_PESSOA_ID'].map(k=>[k,process.env[k]]);
+ process.env.VYBE_DONOS_IDS='123';delete process.env.VYBE_AI_ADMIN_PESSOA_ID;
  try {
   const cookie='vybe_sessao='+assinarSessao({id:123,nome:'ignorado',email:'ignorado',admin:true,versao:2});
   async function executar({ambiente={},pedido={},pessoa={},corresponde=true,falhar=false}={}) {
@@ -25,7 +29,9 @@ test('diagnóstico de vínculo: sessão real assinada, READ ONLY, isolamento e r
       return [{id:123,ativo:true,pode_entrar:true,admin:true,senha_hash:true,sessao_versao:2,...pessoa}];
      }
      if(x.texto.startsWith('SELECT nome, email')){
-      assert.deepEqual(x.values,[123]);
+      assert.deepEqual(x.values,[123]);assert.match(x.texto,/admin IS TRUE/);
+      // Como o SQL real: sem a marca admin no cadastro, a conta não aparece.
+      if(pessoa.admin===false)return [];
       return [{nome:'Paulo Teste AI — fictício',email:'fixture@vybe.invalid',...pessoa}];
      }
      return x.texto.includes('current_database')?[{banco:'neondb'}]:[{corresponde}];
@@ -48,7 +54,12 @@ test('diagnóstico de vínculo: sessão real assinada, READ ONLY, isolamento e r
    const x=await executar({pedido});assert.notEqual(x.r.codigo,200);assert.equal(x.aberturas,0);
   });
   for(const pessoa of [{admin:false},{ativo:false},{pode_entrar:false},{sessao_versao:3},{nome:'Outra pessoa'},{email:'real@example.invalid'}])await t.test('conta recusada '+Object.keys(pessoa)[0],async()=>{
-   const x=await executar({pessoa});assert.notEqual(x.r.codigo,200);assert.equal(x.consultas.length,('nome' in pessoa||'email' in pessoa)?2:1);
+   const x=await executar({pessoa});assert.notEqual(x.r.codigo,200);assert.equal(x.consultas.length,('nome' in pessoa||'email' in pessoa||'admin' in pessoa)?2:1);
+  });
+  await t.test('conta recusada: marca admin sem ser dono nem coordenação',async()=>{
+   const v=process.env.VYBE_DONOS_IDS;delete process.env.VYBE_DONOS_IDS;
+   try{const x=await executar();assert.equal(x.r.codigo,403);assert.equal(x.consultas.length,1);}
+   finally{process.env.VYBE_DONOS_IDS=v;}
   });
   await t.test('destino diferente e falha não produzem correspondência',async()=>{
    for(const op of [{ambiente:{DATABASE_URL:config.DATABASE_URL.replace('ep-fragrant-bird','ep-outro')}},{falhar:true},{corresponde:null}]){
@@ -79,5 +90,6 @@ test('diagnóstico de vínculo: sessão real assinada, READ ONLY, isolamento e r
     assert.equal(r.codigo,404);
    }finally{keys.forEach((k,i)=>{if(antes[i]===undefined)delete process.env[k];else process.env[k]=antes[i];});}
   });
- }finally{if(anterior===undefined)delete process.env.SESSAO_SECRET;else process.env.SESSAO_SECRET=anterior;}
+ }finally{if(anterior===undefined)delete process.env.SESSAO_SECRET;else process.env.SESSAO_SECRET=anterior;
+  for(const [k,v] of envDono){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
 });

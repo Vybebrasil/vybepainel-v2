@@ -10,6 +10,8 @@ function sessaoAtual() { return SESSAO_ATUAL; }
 // Dono (Paulo, Vinícius, Ewerton e Deivid): quem decide é o servidor (server/donos.js, pelo id da pessoa, campo `dono`
 // de /api/sessao). Nenhuma tela decide pelo primeiro nome.
 function souDonoDaSessao() { return Boolean(SESSAO_ATUAL && SESSAO_ATUAL.dono === true); }
+// Coordenação (Beatriz, Paulo 13/11/2026): vê tudo menos as finanças. Também decidido pelo servidor (campo `coordenacao`).
+function souCoordenacaoDaSessao() { return Boolean(SESSAO_ATUAL && SESSAO_ATUAL.coordenacao === true); }
 
 async function consultarSessao() {
   try {

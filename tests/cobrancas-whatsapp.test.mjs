@@ -79,6 +79,11 @@ test('uma cobrança por pessoa, por peça, por dia: clicar de novo não duplica;
   assert.equal((await pedirCobranca(sql, DEIVID, pedido, opcoes)).cobrancas[0].estado, 'enviado', 'já foi hoje: não cobra a mesma pessoa de novo pela mesma peça');
   await assert.rejects(() => registrarResultado(sql, { id: a.id, estado: 'qualquer' }), /Resultado inválido/);
   await assert.rejects(() => cobrancasDoDia(sql, { id: 5 }, opcoes), (e) => e.status === 403);
+  // Paulo, 13/11/2026: cobrança não é dinheiro — a coordenação (Beatriz, pela sessão ou pelo id do Monday) vê e pede.
+  for (const beatriz of [{ id: 9, nome: 'Beatriz', coordenacao: true }, { id: 9, nome: 'Beatriz', monday_user_id: BIA_M }]) {
+    assert.ok((await cobrancasDoDia(sql, beatriz, opcoes)).cobrancas.length >= 1, 'coordenação vê as cobranças do dia');
+    assert.equal((await pedirCobranca(sql, beatriz, pedido, opcoes)).cobrancas[0].pessoa, 'Jady Lima', 'coordenação pede cobrança');
+  }
 });
 
 test('bot fora do ar: pedido velho não sai mais e aparece como falha; "enviando" sem confirmação também', async () => {

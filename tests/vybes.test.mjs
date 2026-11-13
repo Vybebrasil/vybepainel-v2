@@ -83,11 +83,15 @@ test('vybes: o cartão diz se a central está no ar e se quem olha age', async (
   assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: false, whatsapp: null, agir: true, dono: false }, 'sem túnel publicado');
   await guardarEstadoVybes(sql, { tunel: TUNEL });
   assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: true, whatsapp: true, agir: true, dono: false });
-  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, whatsapp: true, agir: true, dono: false });
+  // A pessoa 5 tem o id do Monday da coordenação (71130408, Beatriz): no cartão, `dono` é quem aprova os pedidos dos
+  // agentes, e isso vale para os donos e a coordenação (Paulo, 13/11/2026). O crachá da central continua d:false para ela.
+  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, whatsapp: true, agir: true, dono: true });
+  assert.equal(conferir(decodeURIComponent((await entradaVybes(sql, sessao(5), { env, agora })).url.split('t=')[1])).d, false, 'coordenação não vira dona no crachá');
   assert.equal((await estadoVybes(sql, sessao(6), { agora })).dono, true, 'Vinícius (id do Monday) é dono');
   // WhatsApp desconectado: a central continua no ar e o cartão diz "WhatsApp desconectado".
   await guardarEstadoVybes(sql, { tunel: TUNEL, whatsapp: false });
-  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, whatsapp: false, agir: true, dono: false });
+  assert.deepEqual(await estadoVybes(sql, sessao(2), { agora }), { noAr: true, whatsapp: false, agir: true, dono: false });
+  assert.deepEqual(await estadoVybes(sql, sessao(5), { agora }), { noAr: true, whatsapp: false, agir: true, dono: true });
   assert.match((await entradaVybes(sql, sessao(5), { env, agora })).url, /\/entrar\?t=/, 'a entrada continua valendo');
   assert.equal((await estadoVybes(sql, sessao(2), { agora: agora + 11 * 60e3 })).noAr, false, 'túnel velho = fora do ar');
   await assert.rejects(estadoVybes(sql, { tipo: 'servico' }, { agora }), /Entre no painel/);

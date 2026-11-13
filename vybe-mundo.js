@@ -460,7 +460,7 @@
     // Minhas tarefas (quadro 31 do redesign, 10/11/2026): o item do dock e a aba do Hoje levam ao mesmo lugar, o Hoje na
     // aba Minhas tarefas. O Modo Foco antigo continua a um clique ("Abrir o dia completo").
     if (id === 'tarefas') { visaoHoje = 'tarefas'; try { localStorage.setItem('vybe.mundo.visaoHoje', 'tarefas'); } catch { /* fica nesta tela */ } usarTrilho.tarefas = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
-    if (TRANCADOS.has(id) && !souDono()) { const b = hud.querySelector(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`); if (b) avisarTrancado(b); else chamar('showToast', 'Só os donos veem esta área.', 'info', 3500); return; }
+    if (trancadoPara(id)) { const b = hud.querySelector(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`); if (b) avisarTrancado(b); else chamar('showToast', 'Só os donos veem esta área.', 'info', 3500); return; }
     const fora = TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.url);
     if (fora) { window.open(fora.url, '_blank', 'noopener'); return; } // sistema irmão (VybeHub): abre ao lado, sem mexer na tela
     if (String(id).startsWith('setor:')) {
@@ -619,8 +619,10 @@
   // Dono pela informação do servidor (sessão, server/donos.js), não pelo primeiro nome.
   // Primeiro nome só para casar a agenda e os filtros por pessoa (NUNCA para decidir dono).
   const primeiroNome = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().split(/\s+/)[0];
+  // Paulo, 13/11/2026: "admin e dono são a mesma coisa... podem e veem tudo; a Beatriz só não tem acesso às finanças".
+  // Na tela, a coordenação vê o que os donos veem; o dinheiro (Finanças, IA e custos) pergunta souDonoDoDinheiro.
   function souDonoDeVerdade() {
-    try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; }
+    try { return (typeof souDonoDaSessao === 'function' && souDonoDaSessao()) || (typeof souCoordenacaoDaSessao === 'function' && souCoordenacaoDaSessao()); } catch { return false; }
   }
   // Ver como (Paulo, 09/11/2026: "os donos podem alterar pra ver como qualquer perfil pra conferir como tá tudo e como
   // cada um tá vendo"): só a TELA muda (Hoje, dock com cadeados, números de dono). O servidor continua decidindo pela
@@ -631,10 +633,16 @@
   const pessoaVista = () => (verComo ? timeDoPainel().find((u) => String(u.id) === String(verComo)) || null : null);
   // Dono na tela: sem "ver como", a sessão; vendo como alguém, o que essa pessoa é (o servidor manda `dono` na equipe;
   // sem o campo, a pessoa vista conta como equipe).
+  const ehCoordenacaoId = (id) => (typeof EQUIPES !== 'undefined' ? EQUIPES.coordenacao || [] : []).map(String).includes(String(id));
   function souDono() {
     const dono = souDonoDeVerdade();
     if (!verComo || !dono) return dono;
-    return pessoaVista()?.dono === true;
+    return pessoaVista()?.dono === true || ehCoordenacaoId(verComo);
+  }
+  // O dinheiro da agência é só dos quatro donos, também vendo como outra pessoa.
+  function souDonoDoDinheiro() {
+    const dono = typeof souDonoDaSessao === 'function' && souDonoDaSessao();
+    return dono && (!verComo || pessoaVista()?.dono === true);
   }
   // Quem pode trocar: os donos e quem administra (o "ver como" do Hoje já era de quem administra).
   const podeVerComo = () => souDonoDeVerdade() || (typeof souAdmin === 'function' && souAdmin());
@@ -652,11 +660,13 @@
   // O item some do dock (CSS, classe trancado) e o título do grupo que ficou vazio some junto. Ficam para todos os
   // itens do Time que são de todos: Produtividade (o próprio mês), Pedidos e calendário, Equipe online e Academy.
   const TRANCADOS = new Set(['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas']);
+  // Só dos donos de verdade (a coordenação não vê): o setor Finanças, as abas dele e IA e custos.
+  const SO_DINHEIRO = new Set(['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vybe-financas', 'ai-usage']);
+  const trancadoPara = (id) => (TRANCADOS.has(id) && !souDono()) || (SO_DINHEIRO.has(id) && !souDonoDoDinheiro());
   function aplicarCadeados() {
-    const fechado = !souDono();
     hud.querySelectorAll?.('.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor]').forEach((b) => {
       const id = b.dataset.trilho || b.dataset.submodulo || (b.dataset.visaoSetor ? 'visao:' + b.dataset.visaoSetor : '');
-      const tranca = fechado && TRANCADOS.has(id);
+      const tranca = trancadoPara(id);
       // Só mexe quando muda: regravar a classe dispara os observadores do HUD, que repintam o Hoje (laço sem fim).
       if (b.classList.contains('trancado') === tranca) return;
       b.classList.toggle('trancado', tranca);
@@ -697,7 +707,7 @@
     return { id, nome: sub.nome, ic: setor?.ic || '', de: setor?.nome || '', setor: sub.setor, url: sub.url || '', sub };
   }
   // Favorito de área que a pessoa não abre (ou de módulo que não carregou) não aparece.
-  const favVisivel = (x) => Boolean(x) && (souDono() || !(TRANCADOS.has(x.id) || TRANCADOS.has(x.setor))) && (!x.sub || subVisivel(x.sub));
+  const favVisivel = (x) => Boolean(x) && !trancadoPara(x.id) && !(x.setor && trancadoPara(x.setor)) && (!x.sub || subVisivel(x.sub));
   function alternarFavorito(id) {
     if (!itemDoDock(id)) return;
     const l = lerFavoritos(), i = l.indexOf(id);
