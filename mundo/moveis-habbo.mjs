@@ -454,9 +454,26 @@ const urlBoneco = (figura, dir) => '/api/painel?' + new URLSearchParams({ area: 
 const FIGURA = /^[a-z]{2}-\d+(-\d+){0,2}(\.[a-z]{2}-\d+(-\d+){0,2})*$/;
 // Acessórios de cabeça: chapéu (ha), enfeite (he), máscara/rosto (fa) e óculos (ea), esculpidos da arte.
 const ACESSORIOS = /^(ha|he|fa|ea)-/;
+// Fila das fotos (13/11/2026): cada peça sozinha é uma foto, e o Habbo recusa pedidos em rajada (o servidor devolvia
+// 404). No máximo 3 de cada vez; foto que falha tenta de novo com espera crescente. A mesma foto é pedida uma vez só.
+const FOTOS = new Map(); let fotosEmCurso = 0; const filaFotos = [];
+function vezDaFoto() { return new Promise((ok) => { if (fotosEmCurso < 3) { fotosEmCurso++; ok(); } else filaFotos.push(ok); }); }
+function fimDaFoto() { const prox = filaFotos.shift(); if (prox) prox(); else fotosEmCurso--; }
+function carregarFoto(url) {
+  return new Promise((ok, falha) => { const img = new Image(); img.onload = () => ok(img); img.onerror = () => falha(new Error('sem boneco')); img.src = url; });
+}
 async function pixelsDoBoneco(figura, dir) {
-  const img = new Image(); img.src = urlBoneco(figura, dir);
-  await new Promise((ok, falha) => { img.onload = ok; img.onerror = () => falha(new Error('sem boneco')); });
+  const k = figura + '|' + dir;
+  if (!FOTOS.has(k)) FOTOS.set(k, (async () => {
+    for (let tentativa = 0; ; tentativa++) {
+      await vezDaFoto();
+      try { return await carregarFoto(urlBoneco(figura, dir)); }
+      catch (e) { if (tentativa >= 3) throw e; }
+      finally { fimDaFoto(); }
+      await new Promise((r) => setTimeout(r, 700 * (tentativa + 1) + Math.random() * 400));
+    }
+  })().catch((e) => { FOTOS.delete(k); throw e; }));
+  const img = await FOTOS.get(k);
   const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
   const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
   return { w: c.width, h: c.height, px: g.getImageData(0, 0, c.width, c.height).data };
@@ -475,11 +492,22 @@ export function corDaFaixa({ w, px }, y0, y1, x0 = 0, x1 = w) {
   let melhor = null, n = 0; for (const [k, c] of conta) if (c > n) { melhor = k; n = c; }
   return melhor;
 }
+// A segunda cor que mais aparece (bem diferente da primeira): a crina, a faixa do chapéu.
+function segundaCor({ w, h, px }, primeira) {
+  const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)), a = primeira ? p(primeira) : null, conta = new Map();
+  for (let i = 0; i < w * h * 4; i += 4) {
+    if (px[i + 3] <= 40) continue; const lum = px[i] * .3 + px[i + 1] * .59 + px[i + 2] * .11; if (lum < 30) continue;
+    if (a && Math.abs(px[i] - a[0]) + Math.abs(px[i + 1] - a[1]) + Math.abs(px[i + 2] - a[2]) < 90) continue;
+    const k = '#' + [px[i], px[i + 1], px[i + 2]].map((v) => v.toString(16).padStart(2, '0')).join(''); conta.set(k, (conta.get(k) || 0) + 1);
+  }
+  let melhor = null, n = 6; for (const [k, c] of conta) if (c > n) { melhor = k; n = c; }
+  return melhor;
+}
 // Só o acessório: o que o desenho com ele tem de diferente do desenho sem ele, na altura da cabeça.
-function soAcessorio(com, sem, ate) {
+function soAcessorio(com, sem, ate, opaco = 40) {
   const px = new Uint8ClampedArray(com.px.length);
-  for (let y = 0; y <= ate; y++) for (let x = 0; x < com.w; x++) {
-    const i = (y * com.w + x) * 4; if (com.px[i + 3] <= 40) continue;
+  for (let y = 0; y <= Math.min(ate, com.h - 1); y++) for (let x = 0; x < com.w; x++) {
+    const i = (y * com.w + x) * 4; if (com.px[i + 3] <= opaco) continue;
     const j = (y * sem.w + x) * 4;
     const igual = sem.px[j + 3] > 40 && Math.abs(com.px[i] - sem.px[j]) + Math.abs(com.px[i + 1] - sem.px[j + 1]) + Math.abs(com.px[i + 2] - sem.px[j + 2]) < 24;
     if (!igual) { px[i] = com.px[i]; px[i + 1] = com.px[i + 1]; px[i + 2] = com.px[i + 2]; px[i + 3] = 255; }
@@ -494,48 +522,73 @@ export function bracosDoBoneco(img, pe, pele) {
   const cima = lado(pe - 44, pe - 37), baixo = lado(pe - 34, pe - 27);
   return { manga: cima && !perto(cima, pele) ? cima : pele || null, antebraco: baixo && !perto(baixo, pele) ? baixo : pele || null };
 }
+// Padrão de personagem (Paulo, 13/11/2026: "copiar as cabeças do Habbo... cabelos, corpo, pernas, sapatos, braços...
+// editar o personagem peça a peça"; "por que não desenha item a item do Habbo antes de montar cada boneco? cada peça vai
+// se encaixar"). Antes tudo saía de UMA foto da figura inteira: o chapéu, a fumaça, o capuz e a sombra do desenho
+// entravam na cor e na forma de tudo (Ademir virava cogumelo, Ewerton ficava preto, Bia e Paulo carecas).
+// Agora cada ITEM do Habbo vira uma peça voxel própria (pecaVoxelDoHabbo), feita uma vez e reaproveitada por quem usar
+// o mesmo item: ele é pedido ao Habbo sozinho, sobre uma cabeça padrão, e a diferença para a cabeça sem nada é o item
+// limpo; a cor é a que mais aparece nele e a forma (cabelo, chapéu, máscara, óculos) sai de frente e de perfil. O boneco
+// (figuraDoHabbo) é só a montagem das peças. Tipos que não são roupa nem cabeça (efeitos, bichinhos) ficam de fora.
+import { montarPecaDeCabeca, temReceitaDeCabeca, PECAS_EFEITO, chaveDaPeca } from './pecas-cabeca.mjs';
+const TIPO = (p) => String(p).slice(0, 2);
+const ACESSORIO_TIPOS = ['ha', 'he', 'fa', 'ea'];
+export const TIPOS_DE_PECA = ['hd', 'hr', 'ha', 'he', 'fa', 'ea', 'ch', 'cc', 'lg', 'sh'];
+const CABECA_PADRAO = 'hd-180-1';
+// A peça voxel de UM item do Habbo ('hr-3386-61', 'ha-6273-76-66'...): { tipo, cor, manga, antebraco, forma }.
+export function pecaVoxelDoHabbo(parte) {
+  const chave = 'peca|' + parte, t = TIPO(parte);
+  if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
+    if (!FIGURA.test(String(parte || '')) || !TIPOS_DE_PECA.includes(t)) return null;
+    if (t === 'hd') {
+      const nu = await pixelsDoBoneco(parte, 2), pe = linhaDoPe(nu), queixo = pe - 49;
+      return { tipo: t, cor: corDaFaixa(nu, queixo - 12, queixo - 2, 22, 44) };
+    }
+    if (PECAS_EFEITO.has(chaveDaPeca(parte))) return null; // efeito (fumaça, brilho): não vira bloco
+    const sozinha = CABECA_PADRAO + '.' + parte, acessorio = ACESSORIO_TIPOS.includes(t);
+    const [nu, com] = await Promise.all([pixelsDoBoneco(CABECA_PADRAO, 2), pixelsDoBoneco(sozinha, 2)]);
+    const cor = corDaFaixa(soAcessorio(com, nu, com.h - 1, acessorio ? 180 : 40), 0, com.h - 1);
+    const peca = { tipo: t, cor };
+    if (t === 'ch' || t === 'cc') {
+      const pe = linhaDoPe(nu), pele = corDaFaixa(nu, pe - 61, pe - 51, 22, 44);
+      const b = bracosDoBoneco(com, linhaDoPe(com), pele);
+      peca.manga = b.manga === pele ? null : b.manga; peca.antebraco = b.antebraco === pele ? null : b.antebraco;
+    }
+    // Item com receita (pecas-cabeca.mjs): montado peça por peça nas duas cores que mais aparecem nele.
+    if (acessorio && temReceitaDeCabeca(parte)) {
+      const so = soAcessorio(com, nu, com.h - 1, 180), cor2 = segundaCor(so, cor);
+      peca.forma = montarPecaDeCabeca(parte, cor, cor2);
+      return peca;
+    }
+    if (t === 'hr' || acessorio) {
+      const [cf, cs, pf, ps] = await Promise.all([pixelsDoBoneco(sozinha, 3), pixelsDoBoneco(CABECA_PADRAO, 3), pixelsDoBoneco(sozinha, 1), pixelsDoBoneco(CABECA_PADRAO, 1)]);
+      // Cabelo desce até o peito (cabelo comprido pelos ombros); acessório fica na cabeça. Efeito semitransparente fora.
+      const ate = (n2) => linhaDoPe(n2) - (t === 'hr' ? 22 : 46), opaco = acessorio ? 180 : 40;
+      peca.forma = acessorioDeFrenteEPerfil({ frente: soAcessorio(cf, cs, ate(cs), opaco), frenteNu: cs, perfil: soAcessorio(pf, ps, ate(ps), opaco), perfilNu: ps }, 2, t === 'hr' ? { escala: .74 * 1.08 } : {});
+    }
+    return peca;
+  })().catch(() => { CACHE.delete(chave); return null; })); // falha (o Habbo recusou) não fica guardada: tenta de novo depois
+  return CACHE.get(chave);
+}
+// O boneco de uma figura: a montagem das peças voxel de cada item (cada uma feita uma vez, reaproveitada).
 export function figuraDoHabbo(figura) {
-  const chave = 'figura|' + figura;
+  const chave = 'figura3|' + figura;
   if (!CACHE.has(chave)) CACHE.set(chave, (async () => {
     if (!FIGURA.test(String(figura || ''))) return null;
-    const partes = String(figura).split('.');
-    const semAcessorio = partes.filter((p) => !ACESSORIOS.test(p)).join('.');
-    const temAcessorio = semAcessorio !== String(figura);
-    const frente = await pixelsDoBoneco(figura, 2), nu = temAcessorio ? await pixelsDoBoneco(semAcessorio, 2) : frente;
-    const pe = linhaDoPe(nu), topo = linhaDoTopo(nu), queixo = pe - 49; if (pe < 0 || topo < 0) return null;
-    // Cada parte da figura vira a parte do boneco (Paulo, 09/11/2026: "trocar a cabeça, corpo, pernas, braços,
-    // acessórios... cor da pele, cabelo"): pele (hd), cabelo (hr, cor e forma), camisa (ch), casaco (cc), mangas e
-    // braços (o que a camisa/casaco cobre do braço), calça (lg), sapato (sh) e os acessórios de cabeça.
-    const temCabelo = partes.some((p) => p.startsWith('hr-')), temCasaco = partes.some((p) => p.startsWith('cc-'));
-    const pele = corDaFaixa(nu, queixo - 12, queixo - 2, 22, 44);
-    const semCasaco = temCasaco ? await pixelsDoBoneco(partes.filter((p) => !/^cc-/.test(p) && !ACESSORIOS.test(p)).join('.'), 2).catch(() => null) : null;
+    const partes = String(figura).split('.').filter((p) => TIPOS_DE_PECA.includes(TIPO(p)));
+    const pecas = (await Promise.all(partes.map((p) => pecaVoxelDoHabbo(p)))).filter(Boolean);
+    if (pecas.length < partes.length) queueMicrotask(() => CACHE.delete(chave)); // faltou peça: a próxima leitura completa
+    const de = (t) => pecas.find((p) => p.tipo === t) || null;
+    const hd = de('hd'), hr = de('hr'), ch = de('ch'), cc = de('cc'), lg = de('lg'), sh = de('sh');
+    const pele = hd?.cor || null;
+    const veste = cc || ch;
     const cores = {
-      pele,
-      cabelo: temCabelo ? corDaFaixa(nu, topo, topo + 10, 16, 48) : null,
-      roupa: corDaFaixa(semCasaco || frente, pe - 44, pe - 28, 26, 38) || corDaFaixa(frente, pe - 44, pe - 28, 20, 44),
-      casaco: temCasaco ? corDaFaixa(frente, pe - 44, pe - 28, 18, 28) : null,
-      calca: corDaFaixa(frente, pe - 22, pe - 12, 22, 42),
-      tenis: corDaFaixa(frente, pe - 7, pe - 2, 22, 44),
-      ...bracosDoBoneco(frente, pe, pele),
+      pele, cabelo: hr?.cor || null, roupa: ch?.cor || cc?.cor || null, casaco: cc?.cor || null, calca: lg?.cor || null, tenis: sh?.cor || null,
+      manga: veste?.manga || ch?.manga || pele, antebraco: veste?.antebraco || ch?.antebraco || pele,
     };
-    // Forma do cabelo: o que a figura tem a mais que a mesma figura careca, de frente e de perfil, como os acessórios.
-    let cabeloHabbo = null;
-    if (temCabelo) {
-      try {
-        const careca = partes.filter((p) => !/^hr-/.test(p) && !ACESSORIOS.test(p)).join('.');
-        const [cf, cs, pf, ps] = await Promise.all([pixelsDoBoneco(semAcessorio, 3), pixelsDoBoneco(careca, 3), pixelsDoBoneco(semAcessorio, 1), pixelsDoBoneco(careca, 1)]);
-        const ate = (nu2) => linhaDoPe(nu2) - 22; // até o peito: cabelo comprido desce pelos ombros
-        cabeloHabbo = acessorioDeFrenteEPerfil({ frente: soAcessorio(cf, cs, ate(cs)), frenteNu: cs, perfil: soAcessorio(pf, ps, ate(ps)), perfilNu: ps }, 2, { escala: .74 * 1.08 });
-      } catch { /* sem as fotos: o cabelo de blocos do boneco */ }
-    }
-    let acessorio = null;
-    if (temAcessorio) {
-      try {
-        const [fc, fs, sc, ss] = await Promise.all([pixelsDoBoneco(figura, 3), pixelsDoBoneco(semAcessorio, 3), pixelsDoBoneco(figura, 1), pixelsDoBoneco(semAcessorio, 1)]);
-        acessorio = acessorioDeFrenteEPerfil({ frente: soAcessorio(fc, fs, linhaDoPe(fs) - 46), frenteNu: fs, perfil: soAcessorio(sc, ss, linhaDoPe(ss) - 46), perfilNu: ss });
-      } catch { /* sem as fotos: boneco sem o acessório */ }
-    }
-    return { cores, acessorio, cabeloHabbo };
+    const acessorios = pecas.filter((p) => ACESSORIO_TIPOS.includes(p.tipo) && p.forma).map((p) => ({ ...p.forma, tipo: p.tipo }));
+    // acessorio: o primeiro (compatível com quem lia um só); acessorios: todos, cada um a sua peça.
+    return { cores, cabeloHabbo: hr?.forma || null, acessorio: acessorios[0] || null, acessorios, pecas };
   })().catch(() => null));
   return CACHE.get(chave);
 }
@@ -559,7 +612,10 @@ export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu },
   for (let y = cf.topo; y <= cf.queixo; y++) for (let x = 0; x < frenteNu.w; x++) if (alfa0(frenteNu, x, y) > 40) { n0++; if (alfa0(frente, x, y) > 40) c0++; }
   const cobre = n0 ? c0 / n0 : 0, mascara = cobre > .55;
   // escala: medida fixa (o cabelo vai do tamanho da cabeça careca, com folga para ficar por fora dela).
-  const ky = (escala || (mascara ? .74 : .9 * 1.08)) / Math.max(10, cf.queixo - cf.topo), kx = ky, kz = ky;
+  const ky = (escala || (mascara ? .74 : .9 * 1.08)) / Math.max(10, cf.queixo - cf.topo);
+  // Encaixe na NOSSA cabeça (13/11/2026: o cabelo curto do Paulo sumia dentro dela): a do Habbo é redonda e mais
+  // estreita; a nossa é um cubo de 0,78 × 0,72. Largura e profundidade da peça vão na medida do cubo, com 4% de folga.
+  const kx = ky * Math.min(1.6, Math.max(.9, (.78 * 1.04) / (cf.largura * ky))), kz = ky * Math.min(1.6, Math.max(.9, (.72 * 1.04) / (cp.largura * ky)));
   const alfa = (img, x, y) => (x >= 0 && y >= 0 && x < img.w && y < img.h ? img.px[(y * img.w + x) * 4 + 3] : 0);
   const cor = (img, x, y) => corSemContorno(img.px, img.w, img.h, x, y);
   // Linha da foto → altura no boneco: o queixo de cada foto vai para 0,92.
@@ -578,6 +634,15 @@ export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu },
     }
   }
   if (lista.length < 4) return null;
+  // Cada camada arredondada pela elipse que cabe nela (13/11/2026): de frente e de perfil, uma aba redonda vira um
+  // quadrado cheio (o "cogumelo" do chapéu de bruxo). Fica o que está dentro da elipse da frente × perfil da camada.
+  {
+    const faixa = new Map();
+    for (const q of lista) { const f = faixa.get(q.j) || { i0: Infinity, i1: -Infinity, l0: Infinity, l1: -Infinity }; f.i0 = Math.min(f.i0, q.i); f.i1 = Math.max(f.i1, q.i); f.l0 = Math.min(f.l0, q.l); f.l1 = Math.max(f.l1, q.l); faixa.set(q.j, f); }
+    const dentro = (q) => { const f = faixa.get(q.j), ri = (f.i1 - f.i0) / 2 + .6, rl = (f.l1 - f.l0) / 2 + .6, ci = (f.i0 + f.i1) / 2, cl = (f.l0 + f.l1) / 2; return ((q.i - ci) / ri) ** 2 + ((q.l - cl) / rl) ** 2 <= 1.12; };
+    const ficam = lista.filter(dentro);
+    if (ficam.length >= 4) { lista.length = 0; lista.push(...ficam); cheio.clear(); for (const q of lista) cheio.add(chave(q.i, q.j, q.l)); }
+  }
   const tem = (i, j, l) => cheio.has(chave(i, j, l));
   const lmax = new Map(); for (const q of lista) { const c = q.i + ',' + q.j; lmax.set(c, Math.max(lmax.get(c) ?? -Infinity, q.l)); }
   for (const q of lista) {
@@ -585,7 +650,10 @@ export function acessorioDeFrenteEPerfil({ frente, frenteNu, perfil, perfilNu },
     if (tem(i + 1, j, l) && tem(i - 1, j, l) && tem(i, j + 1, l) && tem(i, j - 1, l) && tem(i, j, l + 1) && tem(i, j, l - 1)) continue;
     const naFrente = l >= lmax.get(i + ',' + j) - 1;
     const c = (naFrente ? cor(frente, q.x, q.y) : cor(perfil, q.z, q.yp)) || cor(frente, q.x, q.y) || cor(perfil, q.z, q.yp) || [128, 128, 128];
-    blocos.push({ x: i * passo * kx, y: .92 + j * passo * ky - passo * ky / 2, z: l * passo * kz, cor: '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('') });
+    blocos.push({ x: i * passo * kx, y: .92 + j * passo * ky - passo * ky / 2, z: l * passo * kz, c, lx: i * 97 + l, ly: j });
   }
+  // Poucos tons, como uma peça pintada (Paulo, 13/11/2026: "a cabeça com vários quadradinhos"): cada pixel do Habbo
+  // com o seu tom virava um mosaico; a paleta curta e o voto dos vizinhos deixam a peça lisa, com luz e sombra do 3D.
+  chapar(blocos, 4);
   return { lado: passo * Math.max(kx, ky, kz), lados: [passo * kx, passo * ky, passo * kz], cobre, blocos };
 }

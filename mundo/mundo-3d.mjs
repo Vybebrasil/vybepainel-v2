@@ -11,6 +11,7 @@ import { PLANTA, ESTADOS, ZONAS_DO_PREDIO, MESAS_POR_ANDAR } from './planta.mjs'
 import { Obra } from './voxel.mjs';
 import LOCAIS from './locais.json' with { type: 'json' };
 
+export { pecaVoxelDoHabbo, figuraDoHabbo, TIPOS_DE_PECA } from './moveis-habbo.mjs';
 export { PLANTA, ESTADOS };
 // Leitura dos agentes sem montar a cena (Hoje, Gestão e a página Agentes com o Centro fechado).
 export { criarFonteAgentes, apresentarAgente, referenciaDaPeca, ESTADOS_REAIS, ZONAS_DO_PREDIO };

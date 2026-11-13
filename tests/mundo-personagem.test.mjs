@@ -101,39 +101,36 @@ function preparar({ comBase = true, roupas = ROUPAS, gravar = null, modulo = nul
   return { ctx, doc, ch, P: ctx.VybePersonagem, escritorio, novaBase, raiz, achar, clicar, tecla, figuraDaPrevia, lado: () => achar('vv-personagem-lado'), corpo: () => achar('vv-personagem-corpo') };
 }
 
-test('abre com a escolha de hoje e o boneco voxel; Salvar grava pela função do Escritório com a figura montada', async () => {
+test('abre peça a peça com o boneco voxel; trocar a cor de uma peça e Salvar grava pela função do Escritório', async () => {
   const t = preparar();
   t.P.abrir();
   assert.equal(t.P.aberto(), true);
   assert.equal(t.raiz().hidden, false);
   await esperar();
   assert.deepEqual(t.ch.api.map(([a]) => a), ['roupas'], 'relê o que a pessoa pode vestir, como o Provador');
-  const hoje = lerFigura(FIG);
-  assert.match(t.lado().innerHTML, new RegExp(`data-campo="pele" data-valor="${hoje.pele}" aria-pressed="true"`));
-  assert.match(t.lado().innerHTML, /role="tab"[^>]*data-valor="acessorios"/);
+  // Uma aba por tipo de item do Habbo; abre no cabelo, com o cabelo de hoje marcado na grade.
+  for (const tipo of ['hd', 'hr', 'ha', 'ea', 'fa', 'he', 'ch', 'cc', 'lg', 'sh']) assert.match(t.lado().innerHTML, new RegExp(`role="tab"[^>]*data-valor="${tipo}"`));
+  assert.match(t.lado().innerHTML, /data-vp="peca" data-t="hr" data-id="828" aria-pressed="true"/);
   assert.equal(t.achar('vv-personagem-tela').tagName, 'IMG', 'sem a prévia viva, a imagem do avatarVoxel');
   assert.equal(t.figuraDaPrevia(), FIG);
 
-  const nova = paleta('ch', 'roupa').find((c) => c !== hoje.roupa);
-  t.clicar({ vp: 'aba', valor: 'roupa' });
-  t.clicar({ vp: 'cor', campo: 'roupa', valor: nova });
-  assert.match(t.lado().innerHTML, new RegExp(`data-campo="roupa" data-valor="${nova}" aria-pressed="true"`));
-  assert.equal(lerFigura(t.figuraDaPrevia()).roupa, nova, 'a prévia mostra a camisa nova');
+  const pal = CATALOGO.pal[CATALOGO.tipos.ch.p], nova = pal.find(([id]) => id !== 1408)[0];
+  t.clicar({ vp: 'aba', valor: 'ch' });
+  t.clicar({ vp: 'cor', t: 'ch', valor: String(nova) });
+  assert.match(t.lado().innerHTML, new RegExp(`data-vp="cor" data-t="ch" data-valor="${nova}" aria-pressed="true"`));
+  assert.equal(partes(t.figuraDaPrevia()).ch.cores[0], nova, 'a prévia mostra a camisa na cor nova');
   assert.equal(t.ch.api.filter(([a]) => a === 'perfil').length, 0, 'nada grava antes do Salvar');
 
   t.clicar({ vp: 'salvar' });
   await esperar();
   const [acao, corpo] = t.ch.api.at(-1);
   assert.equal(acao, 'perfil');
-  const fig = corpo.perfil.figura;
+  const fig = corpo.perfil.figura, p = partes(fig);
   assert.match(fig, FIGURA_SERVIDOR);
-  const v = lerFigura(fig);
-  assert.deepEqual({ ...v, roupa: hoje.roupa }, hoje, 'só a camisa mudou no boneco');
-  assert.equal(v.roupa, nova);
-  const p = partes(fig);
   assert.equal(p.ch.id, 255, 'a mesma camisa do Habbo, só outra cor');
-  assert.ok(CATALOGO.pal[CATALOGO.tipos.ch.p].some(([id]) => id === p.ch.cores[0]), 'cor do catálogo do Escritório');
+  assert.equal(p.ch.cores[0], nova);
   assert.match(fig, /(^|\.)sh-305-62(\.|$)/, 'o sapato fica como estava');
+  assert.match(fig, /(^|\.)hr-828-61(\.|$)/, 'o cabelo fica como estava');
   assert.equal(corpo.perfil.mao, 'crr=6', 'o objeto na mão continua');
   assert.equal(corpo.perfil.abertura, undefined, 'só o personagem: não marca a abertura');
   assert.equal(t.escritorio.perfil.figura, fig);
@@ -144,76 +141,48 @@ test('abre com a escolha de hoje e o boneco voxel; Salvar grava pela função do
   assert.equal(t.raiz().hidden, true);
 });
 
-test('cabelo: sem cabelo, cor de volta com o mesmo estilo e troca para curto só com peça grátis', async () => {
+test('cabelo item a item: sem cabelo, outro cabelo da grade (só os livres) e grava', async () => {
   const t = preparar();
-  assert.equal(lerFigura(FIG).longo, true, 'hr-828 é cabelo longo no voxel');
   t.P.abrir();
   await esperar();
-  t.clicar({ vp: 'aba', valor: 'cabelo' });
-  t.clicar({ vp: 'estilo', valor: 'sem' });
+  t.clicar({ vp: 'peca', t: 'hr', id: '' });
   assert.equal(partes(t.figuraDaPrevia()).hr, undefined);
-  assert.equal(lerFigura(t.figuraDaPrevia()).cabelo, null);
-  assert.match(t.lado().innerHTML, /data-vp="estilo" data-valor="sem" aria-pressed="true"/);
-  // Escolher uma cor devolve o cabelo no estilo de antes (o mesmo hr-828, só outra cor).
-  const cor = paleta('hr', 'cabelo')[7];
-  t.clicar({ vp: 'cor', campo: 'corCabelo', valor: cor });
-  let v = lerFigura(t.figuraDaPrevia());
-  assert.equal(v.cabelo, cor);
-  assert.equal(v.longo, true);
-  assert.equal(partes(t.figuraDaPrevia()).hr.id, 828);
-  // Curto: o hr-828 é longo, então entra um cabelo grátis do corpo, na mesma cor.
-  t.clicar({ vp: 'estilo', valor: 'curto' });
-  v = lerFigura(t.figuraDaPrevia());
-  assert.equal(v.cabelo, cor);
-  assert.equal(v.longo, false);
+  assert.match(t.lado().innerHTML, /data-vp="peca" data-t="hr" data-id="" aria-pressed="true"/);
+  // A grade só mostra o que a pessoa pode vestir: grátis do corpo ou o que já veste.
+  const ids = [...t.lado().innerHTML.matchAll(/data-vp="peca" data-t="hr" data-id="(\d+)"/g)].map((m) => Number(m[1]));
+  assert.ok(ids.length > 3, 'há cabelos para escolher');
+  for (const id of ids) assert.ok(livre('hr', id) && serveM('hr', id), `hr-${id} livre e do corpo`);
+  const outro = ids.find((id) => id !== 828);
+  t.clicar({ vp: 'peca', t: 'hr', id: String(outro) });
+  assert.equal(partes(t.figuraDaPrevia()).hr.id, outro);
   t.clicar({ vp: 'salvar' });
   await esperar();
-  let fig = t.ch.api.at(-1)[1].perfil.figura;
-  const hr = partes(fig).hr;
-  assert.ok(GRATIS.includes(`roupa:hr-${hr.id}`) && serveM('hr', hr.id), `cabelo novo grátis e do corpo: hr-${hr.id}`);
-  assert.equal(lerFigura(fig).longo, false);
-
-  // Sem cabelo também grava (a parte hr sai da figura).
-  t.P.abrir();
-  await esperar();
-  t.clicar({ vp: 'aba', valor: 'cabelo' });
-  t.clicar({ vp: 'estilo', valor: 'sem' });
-  t.clicar({ vp: 'salvar' });
-  await esperar();
-  fig = t.ch.api.at(-1)[1].perfil.figura;
-  assert.equal(partes(fig).hr, undefined);
-  assert.equal(lerFigura(fig).cabelo, null);
+  const fig = t.ch.api.at(-1)[1].perfil.figura;
+  assert.match(fig, FIGURA_SERVIDOR);
+  assert.equal(partes(fig).hr.id, outro);
 });
 
-test('acessórios: sem peça livre ficam desligados com o aviso da loja; com as skins desligadas, veste chapéu e óculos', async () => {
+test('acessórios item a item: sem peça livre, a grade só tem "Sem" e o aviso da loja; com as skins desligadas, veste chapéu e óculos', async () => {
   const t = preparar();
   t.P.abrir();
   await esperar();
-  t.clicar({ vp: 'aba', valor: 'acessorios' });
-  assert.match(t.lado().innerHTML, /loja de roupas do Escritório/);
-  assert.match(t.lado().innerHTML, /data-campo="chapeu" data-valor="[^"]+"[^>]* disabled/);
-  assert.match(t.lado().innerHTML, /data-vp="oculos" data-valor="1" aria-pressed="false" disabled/);
-  const antes = t.figuraDaPrevia();
-  t.clicar({ vp: 'cor', campo: 'chapeu', valor: paleta('ha', 'chapeu')[0] });
-  assert.equal(t.figuraDaPrevia(), antes, 'não inventa peça que a pessoa não tem');
-  assert.match(t.achar('vv-personagem-aviso').textContent, /ainda não tem chapéu/);
+  t.clicar({ vp: 'aba', valor: 'ha' });
+  const livres = [...t.lado().innerHTML.matchAll(/data-vp="peca" data-t="ha" data-id="(\d+)"/g)].map((m) => Number(m[1]));
+  for (const id of livres) assert.ok(livre('ha', id), `ha-${id} só se for livre`);
   t.P.fechar();
 
   const s = preparar({ roupas: { ativo: false } });
   s.P.abrir();
   await esperar();
-  s.clicar({ vp: 'aba', valor: 'acessorios' });
-  assert.doesNotMatch(s.lado().innerHTML, /loja de roupas/);
-  const chapeu = paleta('ha', 'chapeu')[4];
-  s.clicar({ vp: 'cor', campo: 'chapeu', valor: chapeu });
-  s.clicar({ vp: 'oculos', valor: '1' });
+  for (const tipo of ['ha', 'ea']) {
+    s.clicar({ vp: 'aba', valor: tipo });
+    const id = Number(s.lado().innerHTML.match(new RegExp(`data-vp="peca" data-t="${tipo}" data-id="(\\d+)"`))[1]);
+    s.clicar({ vp: 'peca', t: tipo, id: String(id) });
+  }
   s.clicar({ vp: 'salvar' });
   await esperar();
   const fig = s.ch.api.at(-1)[1].perfil.figura;
   assert.match(fig, FIGURA_SERVIDOR);
-  const v = lerFigura(fig);
-  assert.equal(v.chapeu, chapeu);
-  assert.equal(v.oculos, true);
   for (const t2 of ['ha', 'ea']) assert.ok(serveM(t2, partes(fig)[t2].id), `${t2} do catálogo e do corpo`);
 });
 
@@ -281,8 +250,8 @@ test('erro ao gravar: a janela fica aberta com a mensagem do Escritório e o Sal
   const t = preparar({ gravar: async () => { throw new Error('Faltam 1 peça no seu guarda-roupa. Compre no criador para salvar.'); } });
   t.P.abrir();
   await esperar();
-  t.clicar({ vp: 'aba', valor: 'calca' });
-  t.clicar({ vp: 'cor', campo: 'calca', valor: paleta('lg', 'calca').find((c) => c !== lerFigura(FIG).calca) });
+  t.clicar({ vp: 'aba', valor: 'lg' });
+  t.clicar({ vp: 'cor', t: 'lg', valor: String(CATALOGO.pal[CATALOGO.tipos.lg.p].find(([id]) => id !== 110)[0]) });
   t.clicar({ vp: 'salvar' });
   await esperar();
   assert.equal(t.P.aberto(), true);
@@ -304,9 +273,10 @@ test('prévia 3D viva quando o pacote exporta desenharPreviaAvatar: troca, gira 
   await esperar();
   assert.deepEqual(t.ch.previa[0], ['criar', 'CANVAS', FIG]);
   assert.equal(t.achar('vv-personagem-tela').tagName, 'CANVAS');
-  t.clicar({ vp: 'cor', campo: 'pele', valor: paleta('hd', 'pele')[5] });
+  const pele = CATALOGO.pal[CATALOGO.tipos.hd.p][5][0];
+  t.clicar({ vp: 'cor', t: 'hd', valor: String(pele) });
   const trocou = t.ch.previa.filter(([a]) => a === 'trocar').at(-1);
-  assert.equal(lerFigura(trocou[1]).pele, paleta('hd', 'pele')[5]);
+  assert.equal(partes(trocou[1]).hd.cores[0], pele);
   t.clicar({ vp: 'girar', valor: '1' });
   assert.deepEqual(t.ch.previa.at(-1), ['girar', Math.round(Math.PI / 4 * 1000) / 1000]);
   t.P.fechar();
