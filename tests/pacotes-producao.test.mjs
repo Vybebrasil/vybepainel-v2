@@ -49,6 +49,8 @@ test('o pacote é conferido antes de entrar: datas, peças, captação e link', 
 
 test('chat propõe pelo conector, VYBES avisa uma vez, dono dá o ok: peças em Produção, roteiro ligado e captação na agenda', async () => {
   const { db, sql } = await banco();
+  // O conector não recebe a data: o relógio fica no dia do pacote (10/11/2026) para a captação de 12/11 não virar passado.
+  const relogio = Date.now; Date.now = () => agora;
   try {
     assert.ok(FERRAMENTAS.some((f) => f.name === 'propor_pacote_producao'));
     // Pelo conector do Claude (só registra; nada nasce em Produção).
@@ -101,7 +103,7 @@ test('chat propõe pelo conector, VYBES avisa uma vez, dono dá o ok: peças em 
     await assert.rejects(() => executarPacote(sql, 1, 1, segredo, { config: {}, agora, executar }), /já foi cadastrado/);
     await assert.rejects(() => recusarPacote(sql, 1, 1, { config: {} }), /já foi cadastrado/);
     assert.equal(criados.length, 2);
-  } finally { await db.close(); }
+  } finally { Date.now = relogio; await db.close(); }
 });
 
 test('recusa descarta sem criar; peça com erro não derruba as outras; pacote inexistente avisa', async () => {
