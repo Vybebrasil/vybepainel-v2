@@ -21,6 +21,8 @@ const resposta = () => ({ codigo: 0, body: null, setHeader() {}, status(n) { thi
 const dono = { id: 1, nome: 'Dono Um', admin: false, dono: true };
 const administracao = { id: 2, nome: 'Dona Dois', admin: true };   // administra o painel, mas não é um dos quatro donos
 const equipe = { id: 3, nome: 'Ana Lima', admin: false };
+// Coordenação (Beatriz, Paulo 13/11/2026): a sessão marca admin e coordenacao; vê tudo menos as finanças.
+const coordenacao = { id: 4, nome: 'Beatriz', admin: true, dono: false, coordenacao: true };
 const sessao = (pessoa) => ({ tipo: 'sessao', pessoa });
 
 // Um Finanças de demonstração, um Vybe OS com a migração, e o plano montado como o script monta.
@@ -293,14 +295,17 @@ test('Comercial com a chave em "local": abas e ações de dinheiro só para os d
   t.after(() => { for (const [k, v] of [['VYBE_FINANCAS_FONTE', antes], [VARIAVEL, antesUrl]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } });
   delete process.env[VARIAVEL];
 
-  // Chave na ponte (padrão) e ponte desligada: as abas mostram só o que foi lançado à mão, como sempre, para donos e administração.
+  // Chave na ponte (padrão) e ponte desligada: as abas mostram só o que foi lançado à mão, como sempre, para os donos.
+  // Paulo, 13/11/2026: o dinheiro é só dos quatro donos também pela ponte (a administração e a coordenação não veem).
   delete process.env.VYBE_FINANCAS_FONTE;
-  for (const pessoa of [dono, administracao]) {
-    const r = await chamar(pessoa, null, { aba: 'recebimentos', mes: '2026-11' });
+  {
+    const r = await chamar(dono, null, { aba: 'recebimentos', mes: '2026-11' });
     assert.equal(r.codigo, 200, JSON.stringify(r.body)); assert.equal(r.body.fonte, 'Vybe OS'); assert.deepEqual(r.body.recebiveis.map((x) => x.descricao), ['Lançado à mão']);
-    assert.deepEqual((await chamar(pessoa, null, { aba: 'contas', mes: '2026-11' })).body.contas.map((x) => x.descricao), ['Conta à mão']);
+    assert.deepEqual((await chamar(dono, null, { aba: 'contas', mes: '2026-11' })).body.contas.map((x) => x.descricao), ['Conta à mão']);
   }
-  assert.equal((await chamar(equipe, null, { aba: 'recebimentos' })).codigo, 403);
+  for (const pessoa of [administracao, coordenacao, equipe]) {
+    for (const aba of ['recebimentos', 'contas']) assert.equal((await chamar(pessoa, null, { aba, mes: '2026-11' })).codigo, 403, `${pessoa.nome} ${aba}`);
+  }
 
   // Chave em "local": o histórico importado aparece para o dono, como leitura.
   process.env.VYBE_FINANCAS_FONTE = 'local';
@@ -311,17 +316,25 @@ test('Comercial com a chave em "local": abas e ações de dinheiro só para os d
   assert.equal(inad.body.total, 6700);
   for (const aba of ['financas', 'recebimentos', 'contas', 'inadimplencia', 'caixa']) {
     assert.equal((await chamar(dono, null, { aba })).codigo, 200, aba);
-    const r = await chamar(administracao, null, { aba });
-    assert.equal(r.codigo, 403, aba); assert.equal(r.body.error, 'O financeiro é só dos donos.');
+    // A recusa agora sai na primeira barreira (papeis().dono = só os quatro donos), antes da do financeiro local.
+    for (const pessoa of [administracao, coordenacao]) {
+      const r = await chamar(pessoa, null, { aba });
+      assert.equal(r.codigo, 403, aba); assert.match(r.body.error, /donos/);
+    }
     assert.equal((await chamar(equipe, null, { aba })).codigo, 403, aba);
   }
-  // O que não é dinheiro continua como estava para a administração.
-  assert.equal((await chamar(administracao, null, { aba: 'fornecedores' })).codigo, 200);
-  assert.equal((await chamar(administracao, null, { aba: 'funil' })).codigo, 200);
-  // Escrita de dinheiro: administração sem ser dono não mexe.
+  // O que não é dinheiro continua aberto: o funil. Fornecedores está em ABAS_SO_DONOS (server/comercial.js), então
+  // agora também fecha para a administração e a coordenação.
+  for (const pessoa of [administracao, coordenacao]) {
+    assert.equal((await chamar(pessoa, null, { aba: 'funil' })).codigo, 200);
+    assert.equal((await chamar(pessoa, null, { aba: 'fornecedores' })).codigo, 403);
+  }
+  // Escrita de dinheiro: administração e coordenação sem ser dono não mexem.
   const nova = { acao: 'conta_salvar', grupo: 'fixa', descricao: 'Luz', valor: 200, vencimento: '2026-11-25' };
-  assert.equal((await chamar(administracao, nova)).codigo, 403);
-  assert.equal((await chamar(administracao, { acao: 'recebivel_cancelar', id: 1 })).codigo, 403);
+  for (const pessoa of [administracao, coordenacao]) {
+    assert.equal((await chamar(pessoa, nova)).codigo, 403);
+    assert.equal((await chamar(pessoa, { acao: 'recebivel_cancelar', id: 1 })).codigo, 403);
+  }
   assert.equal((await chamar(dono, nova)).codigo, 200);
   // Linha importada não se edita, não se dá baixa e não se cancela, nem pelo id "fin:" nem pelo id interno.
   const [imp] = await sql`SELECT id::text FROM vybe_comercial_recebiveis WHERE origem_financas_id = ${U(103)}`;

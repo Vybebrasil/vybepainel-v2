@@ -7,7 +7,7 @@
 //
 // Só leitura. Nada aqui aprova, cadastra ou avisa: isso continua nos fluxos de sempre (vybe-planejamentos.js, peça).
 
-import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
+import { ehDonoPessoa, ehAmploPessoa, mondayDaPessoa } from './donos.js';
 import { BOARD_DEMANDAS } from './grupos.js';
 
 export const DEIVID_MONDAY = '68997024'; // diretor de arte (server/donos.js DONOS_MONDAY)
@@ -28,8 +28,9 @@ async function tabelaExiste(sql, nome) {
 
 // Uma lista só, já com "meu" (cliente da carteira de quem pediu) e as horas paradas.
 export async function aprovacoesDaPessoa(sql, pessoa, { env = process.env, agora = new Date() } = {}) {
-  const dono = ehDonoPessoa(pessoa, env);
+  // A coordenação vê como os donos (Paulo, 13/11/2026: a Beatriz vê tudo menos as finanças).
   const monday = String(pessoa?.monday_user_id ?? pessoa?.monday_id ?? '') || (pessoa?.id ? await mondayDaPessoa(sql, pessoa.id) : '');
+  const dono = ehAmploPessoa({ ...pessoa, monday_user_id: monday || null }, env);
   const diretorArte = monday === DEIVID_MONDAY;
   const meus = new Set((await sql`SELECT cliente_id::text AS id FROM vybe_cliente_pessoas WHERE pessoa_id = ${Number(pessoa?.id) || 0}`).map((r) => r.id));
   const heads = new Map();

@@ -24,6 +24,18 @@ export function ehDonoPessoa(pessoa, env = process.env) {
   return idsDoEnv(env).has(String(id));
 }
 
+// Coordenação de produção (Paulo, 13/11/2026: "admin e dono são a mesma coisa... Paulo, Ewerton, Vinícius e Deivid podem
+// e veem tudo; e a Beatriz só não tem acesso às finanças"). Pelo id do Monday, como os donos.
+export const COORDENACAO_MONDAY = Object.freeze({ '71130408': 'Beatriz' });
+export function ehCoordenacaoPessoa(pessoa) {
+  if (!pessoa) return false;
+  if (pessoa.coordenacao === true) return true;
+  const m = pessoa.monday_user_id ?? pessoa.monday_id ?? null;
+  return m != null && Object.prototype.hasOwnProperty.call(COORDENACAO_MONDAY, String(m));
+}
+// Acesso amplo: tudo menos o dinheiro da agência (financeiro, folha, IA e custos), que fica com ehDonoPessoa.
+export function ehAmploPessoa(pessoa, env = process.env) { return ehDonoPessoa(pessoa, env) || ehCoordenacaoPessoa(pessoa); }
+
 // O id do Monday de uma pessoa, sem quebrar onde a coluna não existe (bancos de teste): '' quando não tem.
 export async function mondayDaPessoa(sql, id) {
   try {

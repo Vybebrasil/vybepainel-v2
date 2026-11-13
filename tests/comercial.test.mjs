@@ -15,6 +15,8 @@ const vinicius = { tipo: 'sessao', pessoa: { id: 2, nome: 'Vinícius', admin: fa
 const atendimento = { tipo: 'sessao', pessoa: { id: 5, nome: 'Taynara', admin: false } };
 const criacao = { tipo: 'sessao', pessoa: { id: 3, nome: 'Bia', admin: false } };
 const admin = { tipo: 'sessao', pessoa: { id: 4, nome: 'Suporte', admin: true } };
+// Coordenação (Beatriz, Paulo 13/11/2026): a sessão marca admin e coordenacao; vê tudo menos as finanças.
+const beatriz = { tipo: 'sessao', pessoa: { id: 6, nome: 'Beatriz', admin: true, dono: false, coordenacao: true } };
 
 async function banco(t, { comercial = true } = {}) {
   const { db, sql } = conexao(); t.after(() => db.close());
@@ -58,15 +60,18 @@ test('rota comercial: 401 sem login, 403 sem sessão pessoal, 503 sem migração
   const v = await crm(sql, paulo, { acao: 'valor', id: c.body.id, versao: 1, valor_mensal: 100 }); assert.equal(v.codigo, 503);
 });
 
-test('dinheiro só para donos e administração, também no servidor', async (t) => {
+test('dinheiro só para os quatro donos, também no servidor (nem administração, nem coordenação)', async (t) => {
   const { sql } = await banco(t);
   for (const aba of ['financas', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores']) {
-    for (const quem of [criacao, atendimento]) { const r = await chamar(sql, quem, null, { aba }); assert.equal(r.codigo, 403, aba); }
-    for (const quem of [paulo, admin]) { const r = await chamar(sql, quem, null, { aba }); assert.equal(r.codigo, 200, aba + JSON.stringify(r.body)); }
+    // Paulo, 13/11/2026: dinheiro só dos quatro donos — nem a marca admin, nem a coordenação (Beatriz).
+    for (const quem of [criacao, atendimento, admin, beatriz]) { const r = await chamar(sql, quem, null, { aba }); assert.equal(r.codigo, 403, aba); }
+    for (const quem of [paulo, vinicius]) { const r = await chamar(sql, quem, null, { aba }); assert.equal(r.codigo, 200, aba + JSON.stringify(r.body)); }
   }
   for (const acao of ['pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'conta_salvar', 'fornecedor_salvar']) {
-    const r = await chamar(sql, atendimento, { acao, nome: 'x' }); assert.equal(r.codigo, 403, acao);
+    for (const quem of [atendimento, admin, beatriz]) { const r = await chamar(sql, quem, { acao, nome: 'x' }); assert.equal(r.codigo, 403, acao); }
   }
+  // A coordenação vê o resto do Comercial e edita o comercial, sem o dinheiro.
+  const fb = await chamar(sql, beatriz, null, { aba: 'funil' }); assert.equal(fb.codigo, 200); assert.equal(fb.body.pode.ver_dinheiro, false); assert.equal(fb.body.pode.editar_comercial, true);
   // Pacote: equipe vê preço, não custo nem margem.
   let r = await chamar(sql, paulo, { acao: 'pacote_salvar', nome: 'Social Start', tipo: 'recorrente', preco: 2000, entregas: ['12 posts', '4 reels'], horas: 20, custo_hora: 50, captacoes: 2, custo_captacao: 150 });
   assert.equal(r.codigo, 200, JSON.stringify(r.body));
@@ -126,7 +131,8 @@ test('orçamento, finanças por cliente, recebimentos, contas, inadimplência e 
   // Finanças por cliente: custo 30 h × R$ 55 = 1650 sobre 2000 → margem 17,5% (zona crítica).
   r = await chamar(sql, paulo, { acao: 'financas_salvar', cliente_id: 10, valor_mensal: 2000, pacote_id: social, status_pagamento: 'atrasado' }); assert.equal(r.codigo, 200, JSON.stringify(r.body));
   assert.equal((await chamar(sql, paulo, { acao: 'financas_salvar', cliente_id: 10, valor_mensal: 1 })).codigo, 409);
-  r = await chamar(sql, admin, null, { aba: 'financas' });
+  assert.equal((await chamar(sql, admin, null, { aba: 'financas' })).codigo, 403);
+  r = await chamar(sql, vinicius, null, { aba: 'financas' });
   const h = r.body.clientes.find((c) => c.cliente_nome === 'Hebravet');
   assert.equal(h.margem_percentual, 17.5); assert.equal(h.zona_critica, true); assert.equal(h.status_pagamento, 'atrasado');
   assert.equal(r.body.clientes.some((c) => c.cliente_nome === 'Antigo'), false); assert.equal(r.body.resumo.criticas, 1);

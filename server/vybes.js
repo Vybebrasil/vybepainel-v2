@@ -14,7 +14,7 @@ import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { lerWhatsappDaCentral } from './vybes-whatsapp.js';
 import { ETAPAS_LEITURA, ETAPAS_DE_DONO, lerEtapa, mudarNaCentral } from './vybes-agentes.js';
-import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
+import { ehDonoPessoa, ehAmploPessoa, mondayDaPessoa } from './donos.js';
 
 const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
 const CRACHA_VALE_MS = 2 * 60e3;
@@ -76,8 +76,10 @@ export function assinarCracha(dados, base = process.env.VYBE_AI_BOT_TOKEN) {
 async function donoDaSessao(sql, quem, env = process.env) {
   const p = quem?.pessoa;
   if (!p) return false;
-  if (typeof p.dono === 'boolean') return p.dono || ehDonoPessoa({ id: p.id }, env);
-  return ehDonoPessoa({ id: p.id, monday_user_id: (await mondayDaPessoa(sql, p.id)) || null }, env);
+  // Aprovar pedidos dos agentes e mudar o estado deles: os donos e a coordenação (Paulo, 13/11/2026). O crachá da central
+  // (abaixo) continua marcando dono só os quatro: é por ele que o VYBES chama de "senhor".
+  if (typeof p.dono === 'boolean') return p.dono || p.coordenacao === true || ehAmploPessoa({ id: p.id }, env);
+  return ehAmploPessoa({ id: p.id, monday_user_id: (await mondayDaPessoa(sql, p.id)) || null }, env);
 }
 
 // Cartão VYBES na tela de módulos: se a central está no ar (o bot publicou o túnel há pouco), se o WhatsApp do bot está

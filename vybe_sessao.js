@@ -14,7 +14,7 @@ import { neon } from '@neondatabase/serverless';
 import { randomBytes, scrypt, timingSafeEqual, createHmac } from 'node:crypto';
 import { promisify } from 'node:util';
 import { garantirCicloDeVida } from './server/ciclo-de-vida.js';
-import { ehDonoPessoa } from './server/donos.js';
+import { ehDonoPessoa, ehCoordenacaoPessoa } from './server/donos.js';
 
 const scryptAsync = promisify(scrypt);
 const DIAS_DE_SESSAO = 30;
@@ -189,7 +189,11 @@ export async function sessaoDoPedido(req, { buscarPessoa = pessoaAtual } = {}) {
   const dono = ehDonoPessoa({ id: Number(sessao.id), monday_user_id: pessoa.monday_user_id ?? null });
   // Dono tem tudo (Paulo, 08/11/2026), e muita tela e rota ainda pergunta só "administra?" (quem.pessoa.admin): o Vinícius,
   // dono sem a marca de administrador no cadastro, via coisa bloqueada (Paulo, 10/11/2026). Dono conta como quem administra.
-  return { ...sessao, nome: pessoa.nome, email: pessoa.email, admin: Boolean(pessoa.admin) || dono, dono };
+  // Paulo, 13/11/2026: "admin e dono são a mesma coisa" — administra quem é dono (os quatro) e a coordenação (Beatriz),
+  // que vê tudo menos as finanças (as rotas de dinheiro perguntam ehDonoPessoa, não `admin`). A marca "admin" do cadastro
+  // deixa de dar acesso.
+  const coordenacao = !dono && ehCoordenacaoPessoa({ monday_user_id: pessoa.monday_user_id ?? null });
+  return { ...sessao, nome: pessoa.nome, email: pessoa.email, admin: dono || coordenacao, dono, coordenacao };
 }
 
 async function pessoaAtual(id) {

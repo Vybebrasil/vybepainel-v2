@@ -57,8 +57,10 @@ const umDe = (v, lista, campo) => { if (!lista.includes(v)) falhar(`${campo} inv
 export const hojeNaBahia = (agora = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(agora);
 
 export async function papeis(sql, pessoa) {
-  const dono = ehDono(pessoa);
-  return { dono, comercial: dono || await podeEditarCrm(sql, pessoa) };
+  // dono aqui é o DINHEIRO (abas e ações de valores): só os quatro donos (Paulo, 13/11/2026: a coordenação vê tudo menos
+  // as finanças). Editar o comercial (orçamentos, creators) também vale para quem administra e para o Atendimento.
+  const dono = ehDonoPessoa(pessoa);
+  return { dono, comercial: dono || ehDono(pessoa) || await podeEditarCrm(sql, pessoa) };
 }
 
 // ---------- Leitura ----------

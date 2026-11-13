@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         // dono: a regra única de server/donos.js (as telas não decidem mais pelo primeiro nome).
-        pessoa: { id: sessao.id, nome: sessao.nome, email: sessao.email, admin: sessao.admin, dono: Boolean(sessao.dono) },
+        pessoa: { id: sessao.id, nome: sessao.nome, email: sessao.email, admin: sessao.admin, dono: Boolean(sessao.dono), coordenacao: Boolean(sessao.coordenacao) },
       });
     }
 

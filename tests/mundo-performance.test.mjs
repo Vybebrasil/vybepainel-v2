@@ -68,7 +68,9 @@ test('Performance é aba da Gestão e o item do dock abre direto nela', () => {
 });
 test('Negócio e Time com cadeado para quem não é dono; ver como só muda a tela', () => {
   for (const id of ['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos']) assert.ok(js.includes(`'${id}'`) && /const TRANCADOS = new Set\(/.test(js), id);
-  assert.match(js, /if \(TRANCADOS\.has\(id\) && !souDono\(\)\)/, 'atalhos também respeitam o cadeado');
+  // Paulo, 13/11/2026: a guarda é trancadoPara — Negócio para dono/coordenação, o dinheiro (SO_DINHEIRO) só para dono.
+  assert.match(js, /const trancadoPara = \(id\) => \(TRANCADOS\.has\(id\) && !souDono\(\)\) \|\| \(SO_DINHEIRO\.has\(id\) && !souDonoDoDinheiro\(\)\);/);
+  assert.match(js, /if \(trancadoPara\(id\)\) \{/, 'atalhos também respeitam o cadeado');
   assert.match(js, /if \(!verComo \|\| !dono\) return dono;/, 'sem ser dono de verdade, ver como não dá nada');
   assert.match(js, /const podeVerComo = \(\) => souDonoDeVerdade\(\) \|\| /);
 });
