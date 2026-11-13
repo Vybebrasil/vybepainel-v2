@@ -35,7 +35,12 @@ export function voxelizar(material, { tam = 0.1, amp = 0.22, grade = 1, borda = 
   vVxNor = normalize(mat3(vxM) * objectNormal);
   vVxLoc = position;
   vVxEsc = vec3(length(vxM[0].xyz), length(vxM[1].xyz), length(vxM[2].xyz));
-  vVxOri = vxM[3].xyz;`);
+  vVxOri = vxM[3].xyz;
+#ifdef USE_INSTANCING
+  // Desempate de profundidade pela ordem da caixa na obra (13/11/2026): onde duas faces coincidem, vence sempre a
+  // montada depois (o detalhe por cima da base), sem trocar de cor a cada triângulo nem com o zoom. No máximo 1e-4 do recorte (milímetros).
+  gl_Position.z -= float(gl_InstanceID % 256) * 4.0e-7 * gl_Position.w; // passo acima da resolução da profundidade (24 bits)
+#endif`);
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vVxPos; varying vec3 vVxNor; varying vec3 vVxLoc; varying vec3 vVxEsc; varying vec3 vVxOri;')
       .replace('#include <color_fragment>', `#include <color_fragment>
@@ -73,8 +78,20 @@ ${borda ? `  vec3 vxL = (0.5 - abs(vVxLoc)) * vVxEsc;
   diffuseColor.rgb *= mix(1.0, mix(0.8, 1.0, clamp(smoothstep(0.0, 0.2, vxB) + step(0.5, vxA.y), 0.0, 1.0)), smoothstep(0.15, 0.4, vVxEsc.y));` : ''}
 }`);
   };
-  material.customProgramCacheKey = () => `voxel3:${tam}:${amp}:${grade}:${borda}:${tomBloco}`;
+  material.customProgramCacheKey = () => `voxel4:${tam}:${amp}:${grade}:${borda}:${tomBloco}`;
   return material;
+}
+// Folga de cada caixa (Paulo, 13/11/2026: "um bug de luz e sombra"): duas caixas com uma face no mesmo plano, de cores
+// diferentes, brigavam pelo pixel (z-fighting: a cor trocava a cada triângulo e com o zoom; no mundo eram mais de mil
+// pares). Cada caixa cresce de 1 a 4 mm, uma quantidade própria tirada da posição e do tamanho dela: as faces que
+// coincidiam ficam a milímetros uma da outra e a da frente sempre vence. Invisível no tamanho da maquete.
+// k: a ordem da caixa na obra (peças vizinhas na receita são as que se encostam: cada uma num degrau de 0,3 mm).
+export function folgaDaCaixa(b, k = 0) {
+  // Pelo tamanho: a peça miúda (mancha, flor, detalhe) cresce mais que o bloco grande embaixo dela e sempre aparece.
+  const area = Math.max(1e-4, Math.min(b.w * b.d, b.w * b.h, b.h * b.d));
+  // Pela cor: blocos iguais e no mesmo lugar, de cores diferentes (sebe, terra), ficam em degraus de 0,2 mm.
+  let c = 0; for (const ch of String(b.cor)) c = (c * 31 + ch.charCodeAt(0)) % 9973;
+  void k; return .0008 + .003 * Math.min(1, Math.max(0, -Math.log10(area) / 4)) + (c % 8) * .0002;
 }
 // Material único das caixas do mundo (uma compilação só para casas, árvores, sedes, prédio e salas).
 let matCaixa = null;
@@ -178,7 +195,7 @@ export class Obra {
       this.caixa(x, y, z, .2 * s, .9 * s, .2 * s, tronco).caixa(x + .18 * s, y + .7 * s, z, .34 * s, .1 * s, .12 * s, tronco);
       this.caixa(x, y + .85 * s, z, 1.3 * s, .42 * s, 1.2 * s, ft(0));
       [[.55, .1, .1], [-.5, -.1, 0], [.05, .5, .06], [0, -.52, .12], [.3, .3, .3], [-.32, -.25, .28]].forEach(([a2, b2, c], k) => this.caixa(x + a2 * s, y + (.82 + c) * s, z + b2 * s, .55 * s, .4 * s, .55 * s, ft([0, -.06, .07][k % 3])));
-      this.caixa(x - .1 * s, y + 1.3 * s, z + .05 * s, .6 * s, .22 * s, .6 * s, ft(.08));
+      this.caixa(x - .1 * s, y + 1.3 * s, z + .05 * s, .6 * s, .245 * s, .6 * s, ft(.08)); // topo acima do tufo mais alto (empatava)
       for (const [a2, b2] of [[.7, .5], [-.6, .6], [.4, -.7]]) this.caixa(x + a2 * s, y, z + b2 * s, .2 * s, .03, .2 * s, ft(-.02));
       return this;
     }
@@ -190,7 +207,7 @@ export class Obra {
       for (let f = 0; f < 8; f++) {
         const a = f / 8 * Math.PI * 2 + .2, dx = Math.cos(a), dz = Math.sin(a), cor = f % 2 ? tons[0] : tons[1];
         [[.22, 0, .3], [.48, -.04, .26], [.72, -.16, .2], [.9, -.34, .14]].forEach(([r, h, larg]) =>
-          this.caixa(tx + dx * r * s, ty + h * s, z + dz * r * s, (Math.abs(dx) > .5 ? .3 : larg) * s, .09 * s, (Math.abs(dz) > .5 ? .3 : larg) * s, cor));
+          this.caixa(tx + dx * r * s, ty + (h + f * .006) * s, z + dz * r * s, (Math.abs(dx) > .5 ? .3 : larg) * s, .09 * s, (Math.abs(dz) > .5 ? .3 : larg) * s, cor)); // cada folha num degrau: nunca no mesmo plano da vizinha
       }
       this.caixa(tx, ty + .04 * s, z, .3 * s, .14 * s, .3 * s, tons[2]);
       this.caixa(tx, ty - .14 * s, z + .12 * s, .14 * s, .14 * s, .14 * s, '#7A5534').caixa(tx + .12 * s, ty - .16 * s, z - .08 * s, .14 * s, .14 * s, .14 * s, '#7A5534');
@@ -222,9 +239,9 @@ export class Obra {
     this.caixa(x + .03 * s, y + 1.0 * s, z - .02 * s, 1.08 * s, .26 * s, 1.1 * s, tons[1]);
     this.caixa(x - .04 * s, y + 1.22 * s, z + .03 * s, .74 * s, .2 * s, .7 * s, tons[2]);
     [[.62, 0], [-.6, .08], [.06, .6], [-.04, -.6], [.44, .44], [-.46, -.4], [.42, -.44], [-.4, .46]].forEach(([a2, b2], k) =>
-      this.caixa(x + a2 * s, y + (.64 + (k % 3) * .1) * s, z + b2 * s, .42 * s, .36 * s, .42 * s, k % 2 ? escuro : tons[k % 3]));
-    for (const [a2, b2, h] of [[.2, .1, 1.4], [-.18, -.14, 1.36], [.02, -.24, 1.32]]) this.caixa(x + a2 * s, y + h * s, z + b2 * s, .26 * s, .14 * s, .26 * s, claro);
-    if (fruta) for (const [a2, b2] of [[.3, .62], [-.66, .1], [.1, -.62], [.6, -.2]]) this.caixa(x + a2 * s, y + .9 * s, z + b2 * s, .1, .1, .1, fruta);
+      this.caixa(x + a2 * s, y + (.64 + (k % 3) * .1 + k * .007) * s, z + b2 * s, .42 * s, .36 * s, .42 * s, k % 2 ? escuro : tons[k % 3])); // cada tufo num degrau
+    for (const [a2, b2, h] of [[.18, .1, 1.4], [-.18, -.14, 1.36], [.02, -.22, 1.32]]) this.caixa(x + a2 * s, y + h * s, z + b2 * s, .26 * s, .14 * s, .26 * s, claro);
+    if (fruta) for (const [a2, b2] of [[.3, .62], [-.66, .1], [.1, -.62], [.6, -.2]]) this.caixa(x + a2 * s, y + .93 * s, z + b2 * s, .11, .11, .11, fruta);
     return this;
   }
   // Árvore sorteada pela posição (sempre a mesma no mesmo lugar): mistura de espécies, tamanhos e verdes.
@@ -252,7 +269,7 @@ export class Obra {
     const umaMalha = (lista, material, s) => {
       const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), material, lista.length);
       const m = new THREE.Matrix4(), c = new THREE.Color();
-      lista.forEach((b, k) => { m.makeScale(b.w, b.h, b.d); m.setPosition(b.x, b.y + b.h / 2, b.z); mesh.setMatrixAt(k, m); mesh.setColorAt(k, c.set(b.cor)); });
+      lista.forEach((b, k) => { const f = folgaDaCaixa(b, k); m.makeScale(b.w + f, b.h + f, b.d + f); m.setPosition(b.x, b.y + b.h / 2, b.z); mesh.setMatrixAt(k, m); mesh.setColorAt(k, c.set(b.cor)); });
       mesh.castShadow = s; mesh.receiveShadow = true; mesh.computeBoundingSphere();
       raiz.add(mesh);
     };

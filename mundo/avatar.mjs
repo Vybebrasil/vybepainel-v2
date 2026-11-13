@@ -89,7 +89,7 @@ export function desenharBoneco(o, f, { x = 0, y = 0, z = 0, s = 1, giro = 0, pas
     const q = pz(sx) + pe;
     C(sx, 0, .03 + q, .25, .07, .36, '#F4F1EA');
     C(sx, .07, .02 + q, .23, .11, .32, f.tenis);
-    C(sx, .07, .17 + q, .23, .06, .04, claro(f.tenis, .55));
+    C(sx, .07, .17 + q, .24, .06, .05, claro(f.tenis, .55)); // bico um fio mais largo e à frente do cabedal (rente, empatava)
     C(sx, .18, q, .21, .03, .2, '#FFFFFF');
   }
   // Pernas e cinto.

@@ -101,7 +101,7 @@ export const NICHOS = {
     C(0, .12, -.35, 5, 3.4, 3.9, P.claro); C(0, 3.52, -.35, 5.25, .3, 4.15, '#FFFFFF');
     C(-.7, .4, 1.6, 2.6, 1.8, .08, '#BFE0EC', true); C(-.7, .32, 1.64, 2.8, .1, .12, '#FFFFFF');
     C(1.45, .12, 1.6, .95, 2.05, .1, P.escuro);
-    for (let f = 0; f < 7; f++) C(-2.5 + (5 / 7) * (f + .5), 2.38, 2.1, 5 / 7, .16, 1.15, f % 2 ? (P.acento === P.claro ? '#FFFFFF' : P.acento) : P.marca);
+    for (let f = 0; f < 7; f++) C(-2.56 + (5.12 / 7) * (f + .5), 2.38, 2.1, 5.12 / 7, .16, 1.15, f % 2 ? (P.acento === P.claro ? '#FFFFFF' : P.acento) : P.marca); // toldo um pouco mais largo que a loja (rente, empatava)
     for (const s of [-1, 1]) { C(s * 2.55, .12, 2.35, .5, .45, .5, '#B5462F'); C(s * 2.55, .57, 2.35, .6, .6, .6, '#5FA34E'); }
     return PLACA(2.95, 2.6, .7);
   },

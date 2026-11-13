@@ -82,3 +82,13 @@ test('material voxel: a quina mede o pixel pela posição; piso só recebe sombr
   assert.match(q, /casca\.montar\(\{ sombra: false \}\)/);
   assert.match(q, /const direcaoDesenhada/);
 });
+
+test('mundo sem z-fighting: folga por caixa, desempate de profundidade no shader e a cidade varrida', async () => {
+  const s = fs.readFileSync('mundo/voxel.mjs', 'utf8');
+  assert.match(s, /export function folgaDaCaixa/); assert.match(s, /gl_InstanceID % 256/);
+  const { execFileSync } = await import('node:child_process');
+  const saida = execFileSync(process.execPath, ['scripts/varrer-empates.mjs'], { encoding: 'utf8' });
+  const [, total, visiveis] = saida.match(/empates (\d+) visíveis \(área > 1 cm² × 100\) (\d+)/) || [];
+  assert.ok(Number(total) <= 15, `a cidade tinha 1926 faces empatadas; hoje ${total}`);
+  assert.ok(Number(visiveis) <= 6, `empates com área que se vê: ${visiveis}`);
+});

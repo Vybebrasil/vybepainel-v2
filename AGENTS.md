@@ -291,6 +291,9 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   borda do quarto; janela e porta de chão junto da parede viram vão nela. Peça de construção fora do quarto não entra.
   Toda borda do fundo que dá para o vazio tem parede (recuos de U e L). Duas faces nunca no mesmo plano (o piso saía em
   triângulos); o piso e o gramado só recebem sombra; a peça vira na direção que o Habbo desenha (`direcaoDesenhada`).
+  Z-fighting (13/11/2026, a cidade tinha 1926 pares de faces no mesmo plano): toda caixa ganha a folga de `folgaDaCaixa`
+  e o shader desempata a profundidade pela ordem da caixa (vence a montada depois). `node scripts/varrer-empates.mjs`
+  varre a cidade; o teste cobra o teto. Peça nova não encosta face com face de outra cor no mesmo plano.
   Releitura (Paulo, 09/11/2026: "pode reinterpretar"): o quarto voxel não copia o Habbo; é o quarto da pessoa no
   estilo Vybe. Piso, parede e móveis caem na `PALETA` (`harmonizar`, `corDeParede`, `corDePiso` em `estilo.mjs`); a
   parede ganha borda, rodapé, janela com cortina num trecho livre do fundo e tomada (`vestirParedes`); o quarto é

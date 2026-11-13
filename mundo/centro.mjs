@@ -80,7 +80,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     // Franja de grama caindo pela borda e alguns blocos de pedra soltos embaixo.
     for (let i = -S + .5; i < S; i += 1) for (const [a, b] of [[i, -S + .5], [i, S - .5], [-S + .5, i], [S - .5, i]]) {
       const k = ruido(a * 3 + 7, b * 5 + 11);
-      if (k > .55) o.caixa(a, -1 - .35 - k * .3, b, 1.02, .5 + k * .5, 1.02, k > .8 ? '#5E9E47' : '#6AAE51');
+      if (k > .55) o.caixa(a, -1 - .35 - k * .3, b, 1.02 + (Math.round(i * 2 + 40) % 4) * .03, .5 + k * .5, 1.02 + (Math.round(i * 2 + 41) % 4) * .03, k > .8 ? '#5E9E47' : '#6AAE51'); // largura própria: a face de fora não empata com a vizinha
     }
     // Calçada do anel das lojas, a praça do prédio e as quatro alamedas em cruz.
     const anelI = R - 3.2;
@@ -242,13 +242,17 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
       return ax > borda || az > borda;
     };
     // Manchas de grama em outros tons (o gramado não é uma cor só).
+    let manchas = 0;
     // Gramado com vida (Paulo, 10/11/2026: "tudo mais FODA"): manchas grandes em quatro verdes, em duas alturas
     // finas (a de cima menor, mais clara), para o gramado não ser uma cor só nem uma colcha de retalhos.
     for (let x = -S + 2.5; x < S - 2.5; x += 3.2) for (let z = -S + 2.5; z < S - 2.5; z += 3.2) {
       const k = ruido(x * .37 + 11, z * .41 + 2), px = x + (k - .5) * 2, pz = z + (ruido(z, x + 4) - .5) * 2;
       if (k < .33 || !grama(px, pz)) continue;
-      fino.caixa(px, 0, pz, 2 + k * 2.4, .03, 1.6 + k * 2, ['#6FB353', '#86C46A', '#64A84D', '#7DBE60'][Math.floor(k * 41) % 4]);
-      if (k > .7) fino.caixa(px + (k - .8) * 1.4, .03, pz - (k - .8), 1 + k, .02, .8 + k * .8, '#93CC74');
+      // Cada mancha numa espessura própria (degraus de 4 mm): manchas vizinhas no mesmo plano brigavam pelo pixel e o
+      // gramado saía em retalhos com bordas retas que mudavam com o zoom (pareciam sombra quebrada).
+      const nM = (manchas = (manchas + 1) % 13), hM = .02 + nM * .004;
+      fino.caixa(px, 0, pz, 2 + k * 2.4, hM, 1.6 + k * 2, ['#6FB353', '#86C46A', '#64A84D', '#7DBE60'][Math.floor(k * 41) % 4]);
+      if (k > .7) fino.caixa(px + (k - .8) * 1.4, hM, pz - (k - .8), 1 + k, .01, .8 + k * .8, '#93CC74');
     }
     // Meio-fio claro entre a grama e as calçadas (praça, alamedas e o lado de dentro do anel), com recortes onde
     // as alamedas cruzam: a borda nítida que as maquetes de referência têm entre piso e gramado.
@@ -289,7 +293,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     o.caixa(tx, CHAO + .35, tz, 3.2, 1.6, 1.6, '#FF7A2F').caixa(tx, CHAO + 1.95, tz, 3.1, .25, 1.5, '#FFFFFF');
     o.luz(tx + .2, CHAO + .95, tz + .81, 1.8, .7, .02, '#FFE2B0').caixa(tx + .2, CHAO + .9, tz + .95, 2, .08, .3, '#FFFFFF');
     for (let f = 0; f < 6; f++) o.caixa(tx - .8 + f * .4 + .2, CHAO + 1.72, tz + 1.1, .4, .08, .6, f % 2 ? '#FFFFFF' : '#E5484D');
-    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) o.caixa(tx + a * 1.1, CHAO, tz + b * .7, .4, .4, .2, '#1F1D1A');
+    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) o.caixa(tx + a * 1.1, CHAO, tz + b * .72, .4, .4, .24, '#1F1D1A'); // a roda sai um pouco da lataria (rente, empatava)
     o.letreiro('CAFE', { x: tx - 1.61, y: CHAO + 1.1, z: tz, px: .09, cor: '#FFFFFF' });
     o.caixa(tx + 3.1, CHAO, tz - .2, .08, .7, .08, '#4A4F55').caixa(tx + 3.1, CHAO + .7, tz - .2, .8, .06, .8, '#FFFFFF');
     o.caixa(tx + 3.1, CHAO, tz - .2, .06, 1.9, .06, '#4A4F55').caixa(tx + 3.1, CHAO + 1.9, tz - .2, 1.6, .1, 1.6, '#F2C14E').caixa(tx + 3.1, CHAO + 2, tz - .2, .9, .1, .9, '#FFFFFF');
@@ -329,7 +333,7 @@ export function construirCentro(motor, { quantos = 32 } = {}) {
     const tipo = k % 3, x = 1.35;
     if (tipo === 0) {
       for (const d of [-.5, .5]) C(x + d, CHAO, z, .08, .3, .34, ferro);
-      C(x, CHAO + .3, z, 1.2, .07, .4, madeira); C(x, CHAO + .37, z - .17, 1.2, .3, .06, madeira); C(x, CHAO + .52, z - .17, 1.2, .05, .07, '#B07C50');
+      C(x, CHAO + .3, z, 1.2, .07, .4, madeira); C(x, CHAO + .37, z - .17, 1.2, .3, .06, madeira); C(x, CHAO + .52, z - .17, 1.26, .05, .1, '#B07C50');
     } else if (tipo === 1) {
       C(x, CHAO, z, .08, .62, .08, ferro); C(x, CHAO + .62, z, .62, .05, .62, '#FFFFFF');
       for (const d of [-.5, .5]) { C(x + d, CHAO, z, .32, .34, .32, P.marca); C(x + d, CHAO + .34, z + (d < 0 ? -.13 : .13), .32, .3, .06, P.marca); }
