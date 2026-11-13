@@ -735,7 +735,7 @@ function captMesesHtml() {
     return `${marcaAno}<button type="button" onclick="captIrMes('${iso}')"${atual ? ' aria-current="date"' : ""}>${safeText(nome)}</button>`;
   }).join("")}</nav>`;
 }
-function captMesHtml(eventos) {
+function captMesHtml(eventos, { semMeses = false } = {}) {
   const d = CAPT.dia || captHoje(), mes = d.slice(0, 7), hoje = captHoje();
   const ini = agSegunda(captPrimeiroDoMes(d)), dias = Array.from({ length: 42 }, (_, i) => agSomar(ini, i));
   const chip = (e) => { const p = agPartesDoTitulo(e);
@@ -745,7 +745,7 @@ function captMesHtml(eventos) {
   // No celular, as letras dos dias (S T Q Q S S D) e até 5 por dia, como no Google Agenda; no computador, 3 e o "+N outras".
   const cel = captNoCelular(), max = cel ? 5 : 3;
   const cab = (cel ? ["S", "T", "Q", "Q", "S", "S", "D"] : ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]).map((n) => `<div class="capt-mes-cab" role="columnheader">${n}</div>`).join("");
-  return `${cel ? captMesesHtml() : ""}<div class="capt-mes" role="grid" aria-label="Mês">${cab}${dias.map((dia) => {
+  return `${cel && !semMeses ? captMesesHtml() : ""}<div class="capt-mes" role="grid" aria-label="Mês">${cab}${dias.map((dia) => {
     const lista = eventos.filter((e) => e.dia === dia).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
     return `<div class="capt-mes-dia${dia.slice(0, 7) !== mes ? " fora" : ""}${dia === hoje ? " hoje" : ""}${dia < hoje ? " passou" : ""}" role="gridcell" onclick="captTocarDia('${dia}')">
       <button type="button" class="capt-mes-num" onclick="captVerDia('${dia}')" aria-label="Ver ${safeText(captDiaLongo(dia))}">${Number(dia.slice(8))}</button>
@@ -850,7 +850,14 @@ function captacoesHtml() {
       <section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">${corpo}</section>
       ${CAPT.inspetor ? `<aside class="capt-lado" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>` : ""}
     </div>
-    <button type="button" class="capt-fab" onclick="captNovoEvento({dia:'${CAPT.vista === "dia" ? d : hoje}'},null)" aria-label="Marcar na agenda${CAPT.vista === "dia" ? " neste dia" : ""}" title="Marcar na agenda"><span aria-hidden="true">+</span></button></div>`;
+    ${captFabHtml()}</div>`;
+}
+// O + flutuante do celular (só aparece abaixo de 700 px, vybe-styles.css): abre o "Novo na agenda" (captNovoEvento) no
+// dia aberto na visão Dia; no mês e na semana, hoje (ou o 1º do mês aberto, se for outro mês).
+function captFabHtml() {
+  const hoje = captHoje(), d = CAPT.dia || hoje;
+  const dia = CAPT.vista === "dia" ? d : CAPT.vista === "mes" && d.slice(0, 7) !== hoje.slice(0, 7) ? `${d.slice(0, 7)}-01` : hoje;
+  return `<button type="button" class="capt-fab" onclick="captNovoEvento({dia:'${dia}'},null)" aria-label="Marcar na agenda${CAPT.vista === "dia" ? " neste dia" : ""}" title="Marcar na agenda"><span aria-hidden="true">+</span></button>`;
 }
 
 // Teclado, como no Calendário: T hoje, ← → navega, D S M L troca a visão, N
@@ -1376,10 +1383,15 @@ function pv2aCorpoHtml() {
   const passo = CAPT.vista === "dia" ? "dia" : CAPT.vista === "mes" ? "mês" : "semana";
   const fim = agSomar(CAPT.semana, 6), periodo = CAPT.vista === "dia" || CAPT.vista === "mes" ? "" : ` · ${Number(CAPT.semana.slice(8))} a ${Number(fim.slice(8))}`;
   const d = CAPT.dia || hoje, ehHoje = CAPT.vista === "dia" ? d === hoje : CAPT.vista === "mes" ? d.slice(0, 7) === hoje.slice(0, 7) : CAPT.semana === agSegunda(hoje);
+  // Celular, visão de mês (Paulo, 13/11/2026: "igual ao Google Agenda"): o cabeçalho do cartão vira uma faixa só, com os
+  // meses e os anos e o Hoje; o título e as setas saem (o mês já está marcado na faixa e ela rola para os lados).
+  const mesCel = CAPT.vista === "mes" && captNoCelular();
   const corpo = emLista ? pv2aSemanaHtml(eventos, bate)
-    : `<div class="capt capt-cal vista-${CAPT.vista === "lista" ? "semana" : CAPT.vista}"><div class="capt-colunas"><section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">${CAPT.vista === "mes" ? captMesHtml(eventos) : CAPT.vista === "dia" ? captDiaHtml(eventos)
+    : `<div class="capt capt-cal vista-${CAPT.vista === "lista" ? "semana" : CAPT.vista}"><div class="capt-colunas"><section class="capt-agenda${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">${CAPT.vista === "mes" ? captMesHtml(eventos, { semMeses: mesCel }) : CAPT.vista === "dia" ? captDiaHtml(eventos)
       : agendaSemanaHtml({ inicio: CAPT.semana, eventos, dia: CAPT.dia, sel: CAPT.sel, acoes: { evento: "captSelecionar", vazio: "captMarcarEm", soltar: "captSoltarCliente", dia: "captDiaMovel", previa: "captPreviaHtml", verDia: "captVerDia" } })}</section></div></div>`;
-  const agenda = `<section class="pv2-card pv2a-semana${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}"><div class="pv2a-cab"><h3>${safeText(titulo)}${periodo}</h3>
+  const agenda = mesCel ? `<section class="pv2-card pv2a-semana pv2a-mes-cartao${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}"><div class="pv2a-cab pv2a-cab-meses">${captMesesHtml()}
+      <button type="button" class="pv2-btn s" onclick="captNavegar(0)" title="Hoje (T)"${ehHoje ? ' aria-current="date"' : ""}>Hoje</button></div>${corpo}</section>`
+    : `<section class="pv2-card pv2a-semana${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}"><div class="pv2a-cab"><h3>${safeText(titulo)}${periodo}</h3>
       <button type="button" class="pv2-btn s" onclick="captNavegar(0)" title="Hoje (T)"${ehHoje ? ' aria-current="date"' : ""}>Hoje</button>
       <button type="button" class="pv2-btn s ic" onclick="captNavegar(-1)" aria-label="${passo === "mês" ? "Mês" : passo === "dia" ? "Dia" : "Semana"} anterior" title="Anterior (←)">${PV2_IC.antes}</button>
       <button type="button" class="pv2-btn s ic" onclick="captNavegar(1)" aria-label="${passo === "semana" ? "Próxima semana" : `Próximo ${passo}`}" title="Próximo (→)">${PV2_IC.depois}</button></div>${corpo}</section>`;
@@ -1398,7 +1410,7 @@ function pv2aHtml({ todos, pend, nPend }) {
   const vistas = CAPT_VISTAS.map(([v, n, tecla]) => `<button type="button" class="pv2-chip" aria-pressed="${CAPT.vista === v || (v === "semana" && CAPT.vista === "lista")}" onclick="captVista('${v}')" title="${n} (${tecla})">${n}</button>`).join("");
   const tipos = Object.entries(AG_TIPOS).map(([t, n]) => `<label class="pv2-lote"><input type="checkbox" ${CAPT.tipos.has(t) ? "checked" : ""} onchange="captTipo('${t}')">${n} <b>${todos.filter((e) => e.tipo === t).length}</b></label>`).join("");
   const filtrado = CAPT.tipos.size < Object.keys(AG_TIPOS).length || CAPT.grade;
-  return `<div id="pv2-agenda" class="pv2 pv2-agenda"><span class="capt-cal" hidden></span>
+  return `<div id="pv2-agenda" class="pv2 pv2-agenda${CAPT.vista === "mes" && captNoCelular() ? " pv2a-mes-cel" : ""}"><span class="capt-cal" hidden></span>
     <section class="pv2-card pv2-fala" aria-label="Fala do Lucas"><span class="pv2-ag" aria-hidden="true">L</span><p><span class="pv2-quem">Lucas · Audiovisual e captação</span>${frase}</p>${botao}</section>
     <div class="pv2-filtros" role="toolbar" aria-label="Captações">
       <label class="pv2-oculto" for="pv2a-busca">Buscar cliente ou captação</label>
@@ -1413,5 +1425,6 @@ function pv2aHtml({ todos, pend, nPend }) {
     ${CAPT.avisoAgenda ? `<p class="pv2-sub pv2a-aviso" role="status">${safeText(CAPT.avisoAgenda)}</p>` : ""}
     <div id="pv2a-corpo" class="pv2a-duas${pv2aSemanaEmLista() ? "" : " larga"}">${pv2aCorpoHtml()}</div>
     ${CAPT.inspetor ? `<aside class="pv2-card capt-lado pv2a-inspetor" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>` : ""}
+    ${captFabHtml()}
   </div>`;
 }

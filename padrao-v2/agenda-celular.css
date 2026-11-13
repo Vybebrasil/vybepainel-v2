@@ -1,0 +1,50 @@
+/* Padrão v2 · Agenda no celular, mês no jeito do Google Agenda (Paulo, 13/11/2026, com os prints do Google Agenda e da
+   agenda atual: "os blocos grandes quebram o texto em várias linhas; quero igual ao Google Agenda").
+   Só abaixo de 700 px (o mesmo corte de captNoCelular em vybe-captacoes.js) e preso ao id da janela (#pv2-agenda):
+   1. cabeçalho do cartão numa faixa só (meses, anos e Hoje), sem o título e as setas;
+   2. a grade do mês encosta nas bordas e cada semana tem um sexto da tela;
+   3. cada compromisso é uma barrinha de uma linha, com o nome cortado (o nome inteiro está no rótulo e no cartão);
+   4. a fala do Lucas e a busca saem do mês no celular (continuam na Semana e no Dia), para a grade aparecer inteira;
+   5. o + flutuante (captFabHtml) no padrão v2: quadrado de canto 16, laranja principal. */
+@media (max-width:700px){
+  /* 4 · menos coisa acima da grade */
+  body.mundo #pv2-agenda.pv2a-mes-cel{gap:10px}
+  body.mundo #pv2-agenda.pv2a-mes-cel > .pv2-fala,body.mundo #pv2-agenda.pv2a-mes-cel .pv2-filtros > .pv2-busca{display:none}
+
+  /* 1 · o cartão do mês vai de borda a borda da tela (os 22 px são o vão do body, 10, mais o da .container, 12, no celular); a faixa única tem meses e anos rolando para os lados e o Hoje parado à direita */
+  body.mundo #pv2-agenda .pv2a-mes-cartao{margin-left:-22px;margin-right:-22px;padding:8px 0 0;border-radius:0;box-shadow:none;overflow:hidden}
+  body.mundo #pv2-agenda .pv2a-cab-meses{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;margin:0 0 4px;padding:0 8px 0 6px}
+  body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses{display:flex;flex:1 1 auto;align-items:center;gap:4px;min-width:0;overflow-x:auto;padding:2px;scrollbar-width:none}
+  body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses::-webkit-scrollbar{display:none}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button{flex:none;height:32px;padding:0 12px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button[aria-current]{background:#C2490C;color:#FFFFFF}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses-ano{flex:none;padding:0 2px;font:700 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+  body.mundo #pv2-agenda .pv2a-cab-meses > .pv2-btn{flex:none}
+
+  /* 2 · grade de ponta a ponta; seis semanas cabem numa tela (o cabeçalho dos dias e a faixa ficam fora da conta) */
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes{margin:0;border:0;border-top:1px solid #ECE6DC;border-radius:0;background:#FFFFFF;box-shadow:none}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-cab{padding:4px 0;border-bottom:1px solid #ECE6DC;background:#FFFFFF;color:#6B665E;font:600 10.5px var(--vv-texto,Inter),sans-serif;text-align:center}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-dia{min-height:max(78px,calc((100dvh - 190px) / 6));padding:2px 1px 1px;gap:1px;overflow:hidden;border-right:1px solid #ECE6DC;border-bottom:1px solid #ECE6DC}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-dia:nth-child(7n){border-right:0}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-num{flex:none;min-width:22px;height:22px;font:600 11.5px var(--vv-texto,Inter),sans-serif}
+
+  /* 3 · barrinha de uma linha (15 px), o nome cortado no fim da célula, sem reticências, como no Google Agenda. Sai o toque
+     mínimo de 44 px do grupo celular: quem recebe o toque é o dia inteiro (abre o dia), como no Google Agenda. */
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip{display:block;flex:none;width:100%;min-width:0;height:15px;min-height:0;padding:0 3px;border-radius:3px;box-shadow:none;font:600 10px/15px var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:clip}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip.sel{box-shadow:0 0 0 2px #C2490C}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip span{display:block;-webkit-line-clamp:none;overflow:hidden;white-space:nowrap;text-overflow:clip;overflow-wrap:normal;hyphens:manual;-webkit-hyphens:manual}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-mais{flex:none;height:14px;min-height:0;min-width:0;padding:0 2px;font:600 10px/14px var(--vv-texto,Inter),sans-serif}
+
+  /* 5 · o + do Google Agenda, no padrão: quadrado de canto 16, branco com o + laranja (o círculo laranja cheio do menu de
+     baixo é o "Criar" de conteúdo e demanda; os dois não podem parecer o mesmo botão) */
+  body.mundo #pv2-agenda .capt-fab{display:grid;width:56px;height:56px;border-radius:16px;background:#FFFFFF;color:#C2490C;box-shadow:0 0 0 1px #ECE6DC,0 10px 22px -8px rgba(31,29,26,.45)}
+  body.mundo #pv2-agenda .capt-fab span{font:300 36px/1 var(--vv-texto,Inter),sans-serif}
+  body.mundo #pv2-agenda .capt-fab:active{transform:scale(.96)}
+}
+
+/* 6 · "Novo na agenda" (captNovoEvento, o que o + abre): o tipo ainda vinha no tema escuro antigo (fundo #161820 e a
+   Captação escolhida em branco sobre claro, sem leitura). Vale em qualquer tamanho: troca as variáveis do tema antigo
+   (vybe-padrao.css as usa com prioridade forçada) e a cor do texto. */
+body.mundo #ag-cartao .capt-novo-tipo{--pv-tile:#FFFFFF;--pv-linha:#ECE6DC;color:#1F1D1A}
+body.mundo #ag-cartao .capt-novo-tipo span{color:#6B665E}
+body.mundo #ag-cartao .capt-novo-tipo input:checked + span{background:transparent;color:#1F1D1A}
