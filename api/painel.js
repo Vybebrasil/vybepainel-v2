@@ -1,3 +1,4 @@
+import { ehDonoPessoa } from '../server/donos.js';
 import { pessoaLiberadaAssistente } from '../server/assistente-ativacao.js';
 import { areaEscritorio } from '../server/escritorio.js';
 import { areaConvite, convidadoDoCookie } from '../server/escritorio-convite.js';
@@ -273,6 +274,14 @@ async function areaPessoas(req, res, quem) {
     const { email, acao, senha } = req.body || {};
     // Entrar, sair, voltar e apagar passam todos pelo ciclo de vida, o mesmo
     // do cliente: e o unico lugar que muda esse estado (server/ciclo-de-vida.js).
+    // Senha, acesso e ciclo de vida de um DONO só um dono mexe (confere de 13/11/2026: com a coordenação administrando,
+    // ela conseguia trocar a senha ou bloquear um dono).
+    if (quem.tipo === 'sessao' && !ehDonoPessoa(quem.pessoa) && acao !== 'criar') {
+      const alvoId = Number(req.body?.id) || 0, alvoEmail = String(email || '');
+      const [alvo] = alvoId ? await sql()`SELECT id, to_jsonb(p) ->> 'monday_user_id' AS m FROM vybe_pessoas p WHERE id = ${alvoId}`
+        : alvoEmail ? await sql()`SELECT id, to_jsonb(p) ->> 'monday_user_id' AS m FROM vybe_pessoas p WHERE LOWER(email) = LOWER(${alvoEmail})` : [];
+      if (alvo && ehDonoPessoa({ id: Number(alvo.id), monday_user_id: alvo.m ?? null })) return res.status(403).json({ error: 'Só um dono mexe no acesso de outro dono.' });
+    }
     if (['criar', 'desativar', 'reativar', 'apagar'].includes(acao)) {
       const autor = quem?.pessoa?.nome || 'Vybe OS';
       try {
@@ -284,6 +293,8 @@ async function areaPessoas(req, res, quem) {
       }
     }
     if (!email || !acao) return res.status(400).json({ error: 'Informe o e-mail e a ação.' });
+    // A marca de admin não dá mais acesso (Paulo, 13/11/2026): administra quem é dono ou coordenação.
+    if (acao === 'tornar_admin' || acao === 'tirar_admin') return res.status(400).json({ error: 'A marca de admin não é mais usada: administra quem é dono ou da coordenação.' });
 
     // Tirar de si mesmo o poder de administrar deixaria a operação sem ninguém
     // que possa devolver — e sem serviço de e-mail para recuperar.

@@ -143,7 +143,7 @@ test('Funil: título "CRM e funil", números numa linha, sem arquivo de migraç�
   assert.match(html, /<small>Taxa de ganho<\/small>[\s\S]*sem negócio fechado ainda/);
   assert.match(html, /O valor da negociação ainda não foi ligado/);
   assert.doesNotMatch(html, /\.sql|Ver o que falta|Novo lead/);
-  const dono = comercial(resp, { souAdmin: () => true });
+  const dono = comercial(resp, { souDonoDaSessao: () => true, souAdmin: () => true });
   dono.ctx.VybeComercial.abrir('funil', { abas: ['funil'] }); await esperar();
   html = dono.janela().innerHTML;
   assert.match(topoDe(html), /data-vc="lead">.*Novo lead/, 'sem resposta de permissão, o palpite de dono desenha o botão');

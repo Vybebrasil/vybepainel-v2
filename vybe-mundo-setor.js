@@ -276,15 +276,17 @@
     async 'setor:agencia'() {
       const N = ctx.numeros(), H = N?.hoje || {}, S = N?.semana || {}, Hi = N?.historico || {}, P = N?.projecao || {}, C = N?.cobertura || {};
       const mes = String(per.mes).slice(0, 7);
-      const [vf, fin, rec, com, cart, ina] = await Promise.all([ler('/api/painel?area=vybe_financas&parte=comercial&mes=' + mes), ler('/api/painel?area=comercial&aba=financas'),
-        ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()), ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=carteira'), ler('/api/painel?area=comercial&aba=inadimplencia')]);
+      // Dinheiro só para os donos (Paulo, 13/11/2026): para quem não é dono nem se pede (antes, a coordenação pedia e levava 403).
+      const veDinheiro = typeof souDonoDaSessao !== 'function' || souDonoDaSessao(), negado = Promise.resolve({ falha: 'negado' });
+      const [vf, fin, rec, com, cart, ina] = await Promise.all([veDinheiro ? ler('/api/painel?area=vybe_financas&parte=comercial&mes=' + mes) : negado, veDinheiro ? ler('/api/painel?area=comercial&aba=financas') : negado,
+        veDinheiro ? ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()) : negado, ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=carteira'), veDinheiro ? ler('/api/painel?area=comercial&aba=inadimplencia') : negado]);
       const contra = per.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
       const rs = (v) => (Math.abs(Number(v)) >= 1e4 ? 'R$ ' + curto(v) : reais(v));
       // Dinheiro
       const temVF = !vf.falha && vf.conectado && vf.resumo, VR = vf.resumo || {};
       const F = fin.resumo || {}, RA = rec.resumo?.atual || {}, RV = rec.resumo?.variacao || {};
       const semDinheiro = !temVF && (fin.falha === 'negado' || (!fin.resumo && !rec.resumo));
-      const dinheiro = semDinheiro ? kpi({ icone: 'dinheiro', titulo: 'Dinheiro', valor: '—', sub: fin.falha === 'negado' ? 'só os donos e a administração veem' : 'sem números agora' })
+      const dinheiro = semDinheiro ? kpi({ icone: 'dinheiro', titulo: 'Dinheiro', valor: '—', sub: fin.falha === 'negado' ? 'só os donos veem' : 'sem números agora' })
         : temVF ? kpi({ icone: 'aperto', titulo: 'Recebido no mês', valor: rs(VR.recebido), sub: `de ${reais(VR.previsto)} previsto` })
           + kpi({ icone: 'alta', titulo: 'Resultado', valor: rs(VR.resultado), sub: 'recebido − despesas pagas', cls: Number(VR.resultado) < 0 ? 'ruim' : '' })
           + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: rs(vf.inadimplencia?.total), cls: Number(vf.inadimplencia?.total) > 0 ? 'ruim' : '', sub: `${num((vf.inadimplencia?.clientes || []).length)} cliente${(vf.inadimplencia?.clientes || []).length === 1 ? '' : 's'}` })
@@ -343,13 +345,13 @@
         texto: `<b>Produção</b> · ${furos ? `${pl(furos, 'peça', 'peças')} furando a data do cliente` : atr ? `${pl(atr, 'peça', 'peças')} com o prazo interno vencido` : esc(cabeca(daProducao[0]))}`,
         botao: btn('Ver por etapa', 'data-gestao-aba="performance"'),
         det: daProducao.filter((a) => !/furando a data/.test(a.texto) && (atr || a !== daProducao[0])).slice(0, 4).map((a) => esc(cabeca(a).replace(/^(\d+) peças? /, '$1 '))) });
-      if (semDinheiro && !inaTotal) acoes.push({ tom: 'n', pill: 'Sem dado', texto: `<b>Finanças</b> · ${fin.falha === 'negado' ? 'só os donos e a administração veem' : 'sem números agora'}`, botao: irSetor('setor:financas', 'Abrir Finanças') });
+      if (semDinheiro && !inaTotal) acoes.push({ tom: 'n', pill: 'Sem dado', texto: `<b>Finanças</b> · ${fin.falha === 'negado' ? 'só os donos veem' : 'sem números agora'}`, botao: irSetor('setor:financas', 'Abrir Finanças') });
       else if (inaTotal > 0) { const dias = Math.max(0, ...inaL.map((c) => Number(c.atraso_mais_antigo) || 0)); acoes.push({ tom: 'r', pill: dias ? pl(dias, 'dia', 'dias') : 'Em atraso', texto: `<b>Finanças</b> · ${rs(inaTotal)} em atraso, de ${pl(inaL.length, 'cliente', 'clientes')}`, botao: irSetor('setor:financas', 'Abrir Finanças') }); }
       const semCont = (C.semConteudo || []).map(nomeCli).filter(Boolean), iSemCont = AL.findIndex((a) => a.nivel === 2 && a.ref?.tipo === 'clientes');
       if (semCont.length) acoes.push({ tom: 'a', pill: 'Esta semana', texto: `<b>Clientes</b> · ${semCont.length === 1 ? cliCor(semCont[0]) : pl(semCont.length, 'cliente', 'clientes')} sem nenhum conteúdo nesta semana`,
         botao: iSemCont >= 0 ? btn(semCont.length === 1 ? 'Ver o cliente' : 'Ver quais', `data-espiar="alerta:${iSemCont}"`) : '', det: semCont.length > 1 ? [semCont.slice(0, 6).map((c) => cliCor(c)).join(' · ') + (semCont.length > 6 ? ` e mais ${num(semCont.length - 6)}` : '')] : [] });
       else if (criticos) acoes.push({ tom: 'r', pill: pl(criticos, 'crítico', 'críticos'), texto: '<b>Clientes</b> · saúde crítica na carteira', botao: btn('Abrir a carteira', 'data-setor-sub="carteira"') });
-      if (com.falha) acoes.push({ tom: 'n', pill: 'Sem dado', texto: `<b>Comercial</b> · ${com.falha === 'negado' ? 'só os donos e a administração veem' : 'sem números agora'}`, botao: irSetor('setor:comercial', 'Abrir Comercial') });
+      if (com.falha) acoes.push({ tom: 'n', pill: 'Sem dado', texto: `<b>Comercial</b> · ${com.falha === 'negado' ? 'só os donos veem' : 'sem números agora'}`, botao: irSetor('setor:comercial', 'Abrir Comercial') });
       else if (!metas.length) acoes.push({ tom: 'a', pill: 'Sem meta', texto: `<b>Comercial</b> · nenhuma meta definida para ${esc(mesNome)}`, botao: btn('Definir metas', 'data-setor-sub="funil"') });
       else if (metas.some((m) => !m.batida)) acoes.push({ tom: 'n', pill: `${num(metas.filter((m) => m.batida).length)} de ${num(metas.length)}`, texto: `<b>Comercial</b> · metas batidas em ${esc(mesNome)}`, botao: irSetor('setor:comercial', 'Abrir Comercial'), det: metas.map((m) => `${esc(m.nome)}: ${m.texto}`) });
       const ordem = porGravidade(acoes);

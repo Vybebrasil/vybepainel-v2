@@ -8,7 +8,9 @@ import { areaCarteira, situacaoDoOnboarding, validarEtapas, ETAPAS_PADRAO, hojeB
 import handler from '../api/painel.js';
 
 const resposta = () => ({ codigo: 0, body: null, setHeader() {}, status(n) { this.codigo = n; return this; }, json(d) { this.body = d; return this; } });
-const admin = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: true } };
+// Paulo, 13/11/2026: admin é dono; a coordenação administra mas não vê dinheiro.
+const admin = { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: true, dono: true } };
+const coordenacao = { tipo: 'sessao', pessoa: { id: 3, nome: 'Beatriz', admin: true, coordenacao: true } };
 const head = { tipo: 'sessao', pessoa: { id: 2, nome: 'Vinícius', admin: false } };
 const atendimento = { tipo: 'sessao', pessoa: { id: 3, nome: 'Ana', admin: false } };
 const outro = { tipo: 'sessao', pessoa: { id: 4, nome: 'Bia', admin: false } };
@@ -84,6 +86,11 @@ test('sem a migração: lê sinais e a base, partes "aguardando ativação" e es
   assert.equal(base.Gama.saida, '2026-06-15');
   assert.equal(base.Gama.motivo_saida, 'achou caro');
   assert.equal(base.Gama.valor, 900);
+  // A coordenação vê a carteira sem os valores em reais e não mexe em contrato nem cancelamento.
+  const semDinheiro = await chamar(sql, coordenacao);
+  assert.equal(semDinheiro.body.clientes.find((c) => c.nome === 'Gama').valor, null);
+  assert.equal(semDinheiro.body.pode.ver_dinheiro, false);
+  assert.equal(semDinheiro.body.pode.contratos, false);
   const w = await chamar(sql, admin, { acao: 'onboarding_iniciar', cliente_id: 10 });
   assert.equal(w.codigo, 503);
   assert.equal(w.body.aguardando, true);

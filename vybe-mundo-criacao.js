@@ -318,6 +318,8 @@
           body: JSON.stringify({ acao: 'pedir', item: String(item.id), para: c.para, oque: c.oque, quando: c.quando, por: c.por }) });
         const resp = await r.json().catch(() => ({}));
         if (!r.ok || !Array.isArray(resp.cobrancas)) throw new Error(resp.error || 'o painel não registrou o pedido de envio');
+        // A mesma cobrança já estava na fila (o servidor não manda de novo): avisa e não grava outra nota no histórico.
+        if (resp.repetida) { st.msg[chave] = { erro: false, texto: 'Essa cobrança já tinha sido pedida e ainda está na fila do WhatsApp.' }; st.confirmando = ''; st.gravando = ''; repintar(); return; }
         const ids = new Set(resp.cobrancas.map((x) => x.id));
         st.cob.lista = [...resp.cobrancas, ...st.cob.lista.filter((x) => !ids.has(x.id))]; st.cob.voltas = 0; vigiarCobrancas();
         const agentes = [...new Set(resp.cobrancas.map((x) => x.agente))].join(' e ');
