@@ -43,6 +43,7 @@ import { areaSetorPessoas } from '../server/pessoas.js';
 import { areaImpressoes } from '../server/impressoes.js';
 import { areaCobrancas } from '../server/cobrancas-whatsapp.js';
 import { garantirMigracoesIrecity } from '../server/migracoes-irecity.js';
+import { lerFluxoStatus, gravarFluxoDoQuadro, normalizarFluxoDoQuadro, conferirFluxoDoQuadro } from '../server/fluxo-status.js';
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { areaDriveVideos } from '../server/drive-videos.js';
@@ -1296,6 +1297,9 @@ async function areaOpcoes(req, res, quem) {
   const db = sql();
 
   if (req.method === 'GET') {
+    // Como o botão principal da peça usa a ordem dos status (server/fluxo-status.js): toda a equipe lê, só quem
+    // administra muda.
+    if (req.query?.fluxo === '1') return res.status(200).json({ ok: true, fluxo: await lerFluxoStatus(db) });
     const [opcoes, captacao] = await Promise.all([
       db`SELECT coluna_id, chave, rotulo, indice, ativa, so_vybe FROM vybe_opcoes
           ORDER BY coluna_id, indice`,
@@ -1319,6 +1323,15 @@ async function areaOpcoes(req, res, quem) {
       const r = await alternarNoCatalogo(db, cat, chave);
       if (!r.length) return res.status(404).json({ error: 'Etiqueta não encontrada.' });
       return res.status(200).json({ ok: true, opcao: r[0] });
+    }
+
+    if (acao === 'fluxo-status') {
+      if (cat.onde !== 'status') return res.status(400).json({ error: 'O fluxo vale só para status.' });
+      const cfg = normalizarFluxoDoQuadro(req.body || {});
+      const erro = conferirFluxoDoQuadro(cfg, (await lerEtiquetas(db, cat)).map((e) => e.chave));
+      if (erro) return res.status(400).json({ error: erro });
+      const fluxo = await gravarFluxoDoQuadro(db, cat.board, cfg, quem.pessoa?.id);
+      return res.status(200).json({ ok: true, acao, fluxo });
     }
 
     // A ordem da lista e a ordem do fluxo: quem abre o menu le de cima para

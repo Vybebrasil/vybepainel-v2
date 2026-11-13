@@ -29,7 +29,8 @@ function normalizarSnapshotDiario(row) {
 // (status, datas e clientes); a lista vem sem as peças, então os registros à vista são abertos um a um.
 const DIARIO_VISIVEIS = 4;
 const DIARIO_ETAPAS = 6;
-const DIARIO_PRONTO = ['finalizado', 'agendado', 'para agendar'];
+// Pronta é só Finalizado (Paulo, 13/11/2026: "uma demanda só está PRONTA quando está FINALIZADA").
+const DIARIO_PRONTO = ['finalizado'];
 const DIARIO_ORIGEM = { manual_painel: 'Pelo painel', cron: 'Automático', servico: 'VYBES', resumo_manha: 'Resumo da manhã' };
 const DIARIO_CERTO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
 const DIARIO_PESSOA = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
@@ -54,7 +55,7 @@ function diarioPronto(d) { return DIARIO_PRONTO.includes(String(d?.status || '')
 function diarioDataRef(d, modo) { return modo === 'prazo' ? (d.prazo_iso || d.veiculacao_iso || '') : (d.veiculacao_iso || d.prazo_iso || ''); }
 function diarioNomeData(modo = diarioDateMode) { return modo === 'prazo' ? 'do prazo' : 'da data de veiculação'; }
 
-// Os números de um registro. Pronta = Finalizado, Agendado ou Para agendar; "da semana" = com a data (veiculação ou
+// Os números de um registro. Pronta = Finalizado; "da semana" = com a data (veiculação ou
 // prazo, a que estiver escolhida) na semana do registro. Atrasada = não pronta, com essa data antes do dia do registro.
 function diarioNumeros(snap, modo = diarioDateMode) {
   if (!diarioTemItens(snap)) return null;

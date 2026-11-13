@@ -127,15 +127,24 @@ function openStatusEditor(event, itemId) {
     if (!comFerramentas || !o.chave) return linha;
     const etiqueta = { chave: o.chave, rotulo: o.label, cor: o.color, ativa: o.ativa !== false };
     return `<div class="etiqueta-linha ${o.ativa === false ? 'desligada' : ''}">${linha}${ferramentasDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}${chaveDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}</div>`;
-  }).join('')}${juntarAprovacaoNoSeletorHtml(item)}`;
+  }).join('')}${juntarAprovacaoNoSeletorHtml(item)}${fluxoBtn}`;
   // Padrão v2 (quadro Status do moodboard, 12/11/2026): o menu abre só com o que cabe agora, o próximo passo, o seguinte
   // e a volta, na ordem do catálogo; "Todos os N status" mostra a lista inteira, com as ferramentas de etiqueta.
+  // O "próximo" é o mesmo do botão principal da gaveta (o fluxo do quadro, vybe-gaveta.js); quem administra muda esse
+  // fluxo em "Ordem e próximo passo", no pé do menu.
   const ativas = statusOptions.filter(o => o.ativa !== false);
   const i = ativas.findIndex(o => mesmoStatus(o.label, item.status));
-  const curto = i < 0 ? [] : [[ativas[i + 1], 'próximo'], [ativas[i + 2], ''], [ativas[i - 1], 'voltar']].filter(([o]) => o);
+  const sugerido = i < 0 ? null : (typeof proximoStatusDaPeca === 'function' ? proximoStatusDaPeca(item) : ativas[i + 1]);
+  const chaveDoRotulo = (t) => (typeof chaveDeStatus === 'function' ? chaveDeStatus(t) : String(t || '').trim().toLowerCase());
+  const vistos = new Set([chaveDoRotulo(item.status)]);
+  const novo = (o) => o && !vistos.has(chaveDoRotulo(o.label)) && vistos.add(chaveDoRotulo(o.label));
+  const frente = i < 0 ? [] : [[sugerido, 'próximo'], [ativas[i + 1], ''], [ativas[i + 2], '']].filter(([o]) => novo(o)).slice(0, 2);
+  const curto = i < 0 ? [] : [...frente, ...[[ativas[i - 1], 'voltar']].filter(([o]) => novo(o))];
+  const fluxoBtn = typeof podeGerirEtiquetas === 'function' && podeGerirEtiquetas()
+    ? `<button type="button" class="status-editor-option v2-st-fluxo" onclick="abrirFluxoDoStatus('${item.id}')"><span>Ordem e próximo passo</span></button>` : '';
   const opcaoCurta = ([o, dica]) => `<button type="button" class="status-editor-option v2-st-op" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="v2-st-pilula ${typeof pv2Tom === 'function' ? pv2Tom(o.label) : ''}" style="--c:${o.color}">${safeText(o.label)}</span>${dica ? `<small class="v2-st-dica">${dica}</small>` : ''}</button>`;
   menu.innerHTML = curto.length && statusOptions.length > 4
-    ? `${cabeca}${curto.map(opcaoCurta).join('')}<button type="button" class="status-editor-option v2-st-todos" data-status-todos><span class="v2-st-todos-txt">Todos os ${statusOptions.length} status</span></button>`
+    ? `${cabeca}${curto.map(opcaoCurta).join('')}<button type="button" class="status-editor-option v2-st-todos" data-status-todos><span class="v2-st-todos-txt">Todos os ${statusOptions.length} status</span></button>${fluxoBtn}`
     : listaInteira();
   menu.querySelector('[data-status-todos]')?.addEventListener('click', (e) => { e.stopPropagation(); menu.innerHTML = listaInteira(); ancorarPopover(menu, rect); });
   document.body.append(backdrop, menu);
@@ -680,3 +689,88 @@ async function updateFocusStatus(itemId, escolha) { const item=findOperationalIt
    clicasse e trocasse de aba, a troca de status ficava parada para sempre,
    esperando um quadro que nunca vem. */
   await new Promise(resolve=>setTimeout(resolve,0)); if(statusNeedsConferenciaVisual(option)) return abrirConferenciaVisual(item,option); if(precisaDeConferenciaFinal(item,option)) return openMaterialReviewGate(item,option); if(statusNeedsQuality(option)) return openQualityGate(item,option); if(statusNeedsContext(option)) return openStatusContextGate(item,option); return openHandoffGate(item,option); } return commitStatusChange(item,option); }
+
+// ---------- Ordem e próximo passo (Paulo, 13/11/2026) ----------
+// "Deixa algo pra eu poder editar essa ordem e escolher como vai funcionar essa ordem lá mesmo": no menu de status de
+// qualquer peça, quem administra abre esta janela e escolhe como o botão principal da peça decide para onde ela vai
+// (seguir a lista, escolher o próximo de cada status ou sempre perguntar). A ordem da lista continua sendo a do
+// catálogo, mudada em "Mudar a ordem da lista" (organizarEtiquetas). Grava em /api/painel?area=opcoes (acao
+// fluxo-status, server/fluxo-status.js) e vale para todo mundo. O que a gaveta lê está em vybe-gaveta.js
+// (FLUXO_STATUS, fluxoDoQuadro, proximoStatusDaPeca).
+let FLUXO_EM_EDICAO = null;
+const FLUXO_MODOS = [
+  ['ordem', 'Seguir a ordem da lista', 'O botão envia para o status logo abaixo.'],
+  ['proprio', 'Escolher o próximo de cada status', 'O que ficar sem escolha segue a lista.'],
+  ['perguntar', 'Sempre perguntar', 'O botão abre o menu de status, sem sugerir.'],
+];
+function abrirFluxoDoStatus(itemId) {
+  if (typeof closeStatusEditor === 'function') closeStatusEditor();
+  const item = findOperationalItem(itemId);
+  if (!item || typeof fluxoDoQuadro !== 'function') return;
+  const board = quadroDaPeca(item);
+  const opcoes = operationalStatusOptions(item).filter((o) => o && o.chave && o.ativa !== false);
+  if (!opcoes.length) return showToast('As opções de status ainda estão carregando.', 'info');
+  const cfg = fluxoDoQuadro(board);
+  FLUXO_EM_EDICAO = { itemId: String(itemId), board, modo: cfg.modo, proximo: { ...cfg.proximo }, opcoes };
+  openWorkflowModal(fluxoDoStatusHtml());
+}
+function fluxoDoStatusHtml() {
+  const f = FLUXO_EM_EDICAO;
+  const pedido = typeof BOARD_DEMANDAS_ID !== 'undefined' && String(f.board) === String(BOARD_DEMANDAS_ID);
+  const bolinha = (o) => `<i class="fx-cor" style="--c:${/^#[0-9a-f]{3,8}$/i.test(String(o.color || '')) ? o.color : '#8A847A'}"></i>`;
+  const corpo = f.modo === 'ordem'
+    ? `<ol class="fx-ordem">${f.opcoes.map((o) => `<li>${bolinha(o)}${safeText(o.label)}</li>`).join('')}</ol>`
+    : f.modo === 'proprio'
+      ? `<div class="fx-lista">${f.opcoes.map((o, i) => {
+          const seguinte = f.opcoes[i + 1], escolha = f.proximo[o.chave] || '';
+          const opcoes = [`<option value="">${seguinte ? `Seguinte da lista (${safeText(seguinte.label)})` : 'Fim da lista (pergunta)'}</option>`,
+            ...f.opcoes.filter((x) => x.chave !== o.chave).map((x) => `<option value="${safeText(x.chave)}"${escolha === x.chave ? ' selected' : ''}>${safeText(x.label)}</option>`),
+            `<option value="-"${escolha === '-' ? ' selected' : ''}>Perguntar (abre o menu)</option>`];
+          return `<label class="fx-linha"><span class="fx-de">${bolinha(o)}${safeText(o.label)}</span><span class="fx-seta" aria-hidden="true">→</span>
+            <select aria-label="Depois de ${safeText(o.label)}" onchange="fluxoEscolher('${paraAtributo(o.chave)}', this.value)">${opcoes.join('')}</select></label>`;
+        }).join('')}</div>`
+      : '<p class="fx-nota">Nenhum status é sugerido: o botão principal da peça vira "Trocar status" e abre o menu.</p>';
+  return `<div class="workflow-kicker"><span>Status · ${pedido ? 'Solicitações' : 'Produção'}</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></div>
+    <div class="fx-fluxo">
+      <h3 class="fx-titulo">Ordem e próximo passo</h3>
+      <p class="fx-nota">Como o botão principal da peça escolhe para onde ela vai. Vale para todo mundo.</p>
+      <div class="fx-modos" role="radiogroup" aria-label="Como funciona">${FLUXO_MODOS.map(([v, t, d]) => `<button type="button" role="radio" aria-checked="${f.modo === v}" class="fx-modo${f.modo === v ? ' on' : ''}" onclick="fluxoModo('${v}')"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
+      ${corpo}
+    </div>
+    <div class="workflow-actions"><button type="button" class="workflow-secondary fx-ordem-btn" onclick="fluxoMudarOrdem()">Mudar a ordem da lista</button><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" id="fx-salvar" onclick="salvarFluxoDoStatus()">Salvar</button></div>`;
+}
+function fluxoRepintar() {
+  const modal = document.getElementById('workflow-modal');
+  if (modal && FLUXO_EM_EDICAO) modal.innerHTML = fluxoDoStatusHtml();
+}
+function fluxoModo(modo) { if (!FLUXO_EM_EDICAO) return; FLUXO_EM_EDICAO.modo = modo; fluxoRepintar(); }
+function fluxoEscolher(chave, valor) {
+  if (!FLUXO_EM_EDICAO) return;
+  if (valor) FLUXO_EM_EDICAO.proximo[chave] = valor; else delete FLUXO_EM_EDICAO.proximo[chave];
+}
+function fluxoMudarOrdem() {
+  const board = FLUXO_EM_EDICAO?.board;
+  closeWorkflowModal();
+  if (board && typeof organizarEtiquetas === 'function') organizarEtiquetas(`status:${board}`, 'status', 'Status');
+}
+async function salvarFluxoDoStatus() {
+  const f = FLUXO_EM_EDICAO;
+  if (!f) return;
+  const botao = document.getElementById('fx-salvar');
+  if (botao) { botao.disabled = true; botao.textContent = 'Salvando…'; }
+  try {
+    const r = await chamarEtiqueta({ acao: 'fluxo-status', coluna: `status:${f.board}`, modo: f.modo, proximo: f.modo === 'proprio' ? f.proximo : {} });
+    if (r?.fluxo?.boards) FLUXO_STATUS = r.fluxo;
+    FLUXO_EM_EDICAO = null;
+    closeWorkflowModal();
+    showToast('✓ Próximo passo salvo · vale para todo mundo', 'ok', 4500);
+    const id = typeof activeWorkspaceItemId !== 'undefined' ? activeWorkspaceItemId : '';
+    if (id && document.getElementById('workspace-drawer') && typeof DETALHE_DA_GAVETA !== 'undefined' && DETALHE_DA_GAVETA) {
+      const item = findOperationalItem(id);
+      if (item) renderWorkspaceDrawer(DETALHE_DA_GAVETA, item);
+    }
+  } catch (e) {
+    if (botao) { botao.disabled = false; botao.textContent = 'Tentar de novo'; }
+    showToast(e.message, 'err', 7000);
+  }
+}

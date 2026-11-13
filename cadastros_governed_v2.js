@@ -998,16 +998,17 @@ window.fcPreviaDoCriar = function(board) {
   // TRÊS ETAPAS NA TELA, AS MESMAS CINCO CONFERÊNCIAS POR BAIXO (padrão v2, quadro "Nova demanda em etapas").
   //
   // A tela mostra três cartões lado a lado: O quê (quadro, formato e título), Para quem (clientes e responsável)
-  // e Quando (a data do cliente; o prazo interno sai dela). Objetivo, briefing, arquivo, grupo e status de entrada
-  // ficam em "Mais campos". O que é conferido antes de criar não mudou: FC_PASSOS e fcRespondido são os de sempre,
+  // e Quando (a data do cliente; o prazo interno sai dela). O briefing é obrigatório e fica à vista no O quê, logo
+  // abaixo do título (Paulo, 13/11/2026: "o briefing é obrigatório nas demandas pra evitar erro"). Objetivo, arquivo,
+  // grupo e status de entrada ficam em "Mais campos". O que é conferido antes de criar não mudou: FC_PASSOS e fcRespondido são os de sempre,
   // e quando falta algo a tela leva para o cartão (ou para Mais campos) onde a resposta mora.
   const FC_ETAPAS = ['O quê', 'Para quem', 'Quando'];
-  const FC_ETAPA_SUB = ['formato e título', 'um ou mais clientes', 'a data do cliente manda'];
-  const FC_FALTA_ETAPA = ['Escolha o formato e escreva o título.', 'Escolha o cliente.', 'Escolha a data.'];
+  const FC_ETAPA_SUB = ['formato, título e briefing', 'um ou mais clientes', 'a data do cliente manda'];
+  const FC_FALTA_ETAPA = ['Escolha o formato e escreva o título e o briefing.', 'Escolha o cliente.', 'Escolha a data.'];
   let fcEtapa = 0;
   const fcTemTexto = (v) => Boolean(String(v || '').trim());
   function fcEtapaFeita(n) {
-    if (n === 0) return Boolean(state.format) && state.itens.every((i) => fcTemTexto(i.titulo));
+    if (n === 0) return Boolean(state.format) && state.itens.every((i) => fcTemTexto(i.titulo) && fcTemTexto(i.brief));
     if (n === 1) return Boolean(state.client);
     return state.itens.every((i) => i.veic && i.prazo);
   }
@@ -1015,7 +1016,7 @@ window.fcPreviaDoCriar = function(board) {
   function fcEtapaDoPasso(p) {
     if (p === 'board' || p === 'format') return 0;
     if (p === 'client') return 1;
-    if (p === 'itens') return state.itens.some((i) => !fcTemTexto(i.titulo)) ? 0 : 2;
+    if (p === 'itens') return state.itens.some((i) => !fcTemTexto(i.titulo) || !fcTemTexto(i.brief)) ? 0 : 2;
     return 2;
   }
 
@@ -1098,6 +1099,11 @@ window.fcPreviaDoCriar = function(board) {
       <input type="text" id="fc-titulo" class="nd-campo" data-item="${n}" data-campo="titulo" autocomplete="off"
         placeholder="Ex.: Promoção de sábado" value="${esc(it.titulo)}" aria-describedby="fc-erro-titulo" oninput="fcItemCampo(${n},'titulo',this.value)">
       ${fcErroHtml('fc-erro-titulo', 'Escreva o título.')}
+      <label class="nd-rot" for="fc-brief">Briefing${state.itens.length > 1 ? ` <span>${n + 1} de ${state.itens.length}</span>` : ''} <span class="nd-obrig">obrigatório</span></label>
+      <textarea id="fc-brief" class="nd-area fc-campo-texto" data-item="${n}" data-campo="brief" aria-describedby="fc-erro-brief"
+        placeholder="O que a peça precisa: objetivo, mensagem, referência, contexto..."
+        oninput="fcItemCampo(${n},'brief',this.value);fcCrescerTexto(this)">${esc(it.brief || '')}</textarea>
+      ${fcErroHtml('fc-erro-brief', 'Falta o briefing.')}
       <p class="nd-sub nd-fim"><button type="button" class="nd-lk" onclick="abrirCalendarioSazonal()">Começar pelo calendário sazonal</button></p>`;
   }
 
@@ -1171,7 +1177,7 @@ window.fcPreviaDoCriar = function(board) {
       <p class="nd-sub nd-fim">${demanda ? 'Conclusão vale para o que não vai ao ar: o prazo é a entrega ao cliente.' : 'Veiculação é o dia em que a peça vai ao ar. Conclusão vale para a solicitação de demanda.'}</p>`;
   }
 
-  // Mais campos: objetivo, briefing, arquivo, grupo e status de entrada, e as ferramentas de lote.
+  // Mais campos: objetivo, arquivo, grupo e status de entrada, e as ferramentas de lote (o briefing fica no O quê).
   function fcMaisCamposHtml(n, it) {
     const esc2 = (t) => esc(String(t == null ? '' : t));
     const demanda = state.board === 'demandas';
@@ -1182,11 +1188,7 @@ window.fcPreviaDoCriar = function(board) {
       ${demanda ? '' : fcObjetivoHtml()}
       <div class="nd-mais-grade">
         <div class="nd-mais-col" ondragover="fcArrastando(event,this,true)" ondragleave="fcArrastando(event,this,false)" ondrop="fcSoltarArquivos(event,${n},this)">
-          <label class="nd-rot" for="fc-brief">Briefing${varios ? ` · ${n + 1} de ${state.itens.length}` : ''} <span>obrigatório</span></label>
-          <textarea id="fc-brief" class="nd-area fc-campo-texto" data-item="${n}" data-campo="brief" aria-describedby="fc-erro-brief"
-            placeholder="Objetivo, referência, contexto..."
-            oninput="fcItemCampo(${n},'brief',this.value);fcCrescerTexto(this)">${esc2(it.brief)}</textarea>
-          ${fcErroHtml('fc-erro-brief', 'Falta o briefing.')}
+          <p class="nd-rot">Arquivos de referência</p>
           ${fcArquivosHtml(n, it)}
         </div>
         <div class="nd-mais-col">
@@ -1487,7 +1489,7 @@ window.fcPreviaDoCriar = function(board) {
     state.itemAtivo = Math.min(Math.max(Number(n) || 0, 0), state.itens.length - 1);
     state.outraData = false;
     fcDesenharPasso();
-    const alvo = String(state.itens[state.itemAtivo]?.titulo || '').trim() && state.maisAberto
+    const alvo = String(state.itens[state.itemAtivo]?.titulo || '').trim()
       ? document.getElementById('fc-brief') : document.getElementById('fc-titulo');
     alvo?.focus({ preventScroll: true });
     fcMostrarNaLista(state.itemAtivo);
@@ -1772,17 +1774,16 @@ window.fcPreviaDoCriar = function(board) {
     if (nota) {
       const soFaltaBriefing = semBriefing && [0, 1, 2].every((n) => fcEtapaFeita(n));
       nota.classList.toggle('falta', soFaltaBriefing);
-      nota.textContent = soFaltaBriefing ? 'Falta o briefing: ele fica em Mais campos.'
-        : `Mais campos guarda ${state.board === 'demandas' ? 'prioridade' : 'objetivo'}, briefing, arquivo, grupo e status de entrada.`;
+      nota.textContent = soFaltaBriefing ? 'Falta o briefing: ele fica no cartão O quê, embaixo do título.'
+        : `Mais campos guarda ${state.board === 'demandas' ? 'prioridade' : 'objetivo'}, arquivo, grupo e status de entrada.`;
     }
-    document.getElementById('fc-mais-chip')?.classList.toggle('falta', semBriefing);
   };
 
   window.fcDesenharPasso = function() {
     const caixa = document.getElementById('fc-guia');
     if (!caixa) return;
     // fcPasso é o recado de quem conferiu (abrir, criar, calendário): diz qual resposta falta. A tela leva
-    // para o cartão dela, ou abre Mais campos quando o que falta é o briefing.
+    // para o cartão dela; faltando só o briefing, vai direto ao campo dele no O quê.
     let focar = '';
     if (fcPasso >= 0) {
       const p = FC_PASSOS[fcPasso];
@@ -1792,7 +1793,7 @@ window.fcPreviaDoCriar = function(board) {
         if (falta >= 0) {
           state.itemAtivo = falta;
           const it = state.itens[falta];
-          if (fcTemTexto(it.titulo) && it.veic && it.prazo) { state.maisAberto = true; focar = 'brief'; }
+          if (fcTemTexto(it.titulo) && !fcTemTexto(it.brief)) focar = 'brief';
         }
       }
       const nova = fcEtapaDoPasso(p);
@@ -1821,7 +1822,7 @@ window.fcPreviaDoCriar = function(board) {
           <p class="nd-previa-linha"><b id="fc-prev-title"></b><span id="fc-prev-client"></span><span id="fc-prev-status"></span>
             <span class="nd-sub">grupo <span id="fc-prev-group"></span> · <span id="fc-prev-users"></span> · <span id="fc-prev-dates"></span></span></p>
         </div>
-        <button type="button" class="nd-chip" id="fc-mais-chip" aria-expanded="${Boolean(state.maisAberto)}" aria-controls="fc-mais" onclick="fcAlternarMais()">Mais campos · 5${FC_ICONE.seta}</button>
+        <button type="button" class="nd-chip" id="fc-mais-chip" aria-expanded="${Boolean(state.maisAberto)}" aria-controls="fc-mais" onclick="fcAlternarMais()">Mais campos · 4${FC_ICONE.seta}</button>
       </div>
       <div class="v2-abre nd-mais" id="fc-mais" aria-expanded="${Boolean(state.maisAberto)}"><div class="v2-mais"${state.maisAberto ? '' : ' inert'}><div><div class="nd-card nd-mais-dentro">${fcMaisCamposHtml(n, it)}</div></div></div></div>`;
 

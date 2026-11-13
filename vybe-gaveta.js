@@ -155,13 +155,53 @@ function gavetaTeclaNaAba(evento) {
   gavetaAba(GAVETA_ABAS[n]);
   document.querySelector(`#workspace-drawer [data-gv-aba="${GAVETA_ABAS[n]}"]`)?.focus();
 }
-// O próximo passo é o status seguinte na ordem do quadro da peça (a mesma ordem do seletor de status).
-// Sem seguinte (último status, ou status fora do catálogo), o botão abre o seletor.
+// O próximo passo segue o fluxo do quadro (Paulo, 13/11/2026; servidor em server/fluxo-status.js): por padrão, o status
+// seguinte na ordem do catálogo (a mesma ordem do seletor); no modo próprio, o próximo escolhido para o status atual;
+// em "perguntar", nenhum. Sem próximo (último status, status fora do catálogo ou "perguntar"), o botão abre o seletor.
+// O fluxo é lido uma vez; enquanto não chega, vale a ordem da lista, e quando chega a gaveta aberta se redesenha.
 function proximoStatusDaPeca(item) {
+  carregarFluxoStatus();
+  const fluxo = fluxoDoQuadro(quadroDaPeca(item));
+  if (fluxo.modo === 'perguntar') return null;
   const opcoes = (typeof operationalStatusOptions === 'function' ? operationalStatusOptions(item) : []).filter((o) => o && o.ativa !== false);
   const igual = (a, b) => (typeof mesmoStatus === 'function' ? mesmoStatus(a, b) : String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase());
   const atual = opcoes.findIndex((o) => igual(o.label, item?.status));
-  return atual >= 0 && atual < opcoes.length - 1 ? opcoes[atual + 1] : null;
+  if (atual < 0) return null;
+  if (fluxo.modo === 'proprio') {
+    const escolha = fluxo.proximo[opcoes[atual].chave];
+    if (escolha === '-') return null;
+    const o = escolha ? opcoes.find((x) => x.chave === escolha) : null;
+    if (o) return o;
+  }
+  return atual < opcoes.length - 1 ? opcoes[atual + 1] : null;
+}
+let FLUXO_STATUS = null, FLUXO_STATUS_LENDO = false;
+function quadroDaPeca(item) {
+  const pedido = typeof isRequestItem === 'function' && isRequestItem(item);
+  return String(pedido ? (typeof BOARD_DEMANDAS_ID !== 'undefined' ? BOARD_DEMANDAS_ID : '') : (typeof BOARD_ID !== 'undefined' ? BOARD_ID : ''));
+}
+function fluxoDoQuadro(board) {
+  const cfg = FLUXO_STATUS?.boards?.[String(board)];
+  return { modo: ['ordem', 'proprio', 'perguntar'].includes(cfg?.modo) ? cfg.modo : 'ordem', proximo: cfg?.proximo || {} };
+}
+function carregarFluxoStatus(forcar = false) {
+  if ((FLUXO_STATUS && !forcar) || FLUXO_STATUS_LENDO || typeof fetch !== 'function') return;
+  FLUXO_STATUS_LENDO = true;
+  fetch('/api/painel?area=opcoes&fluxo=1', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      const antes = JSON.stringify(FLUXO_STATUS);
+      FLUXO_STATUS = d?.fluxo?.boards ? d.fluxo : { boards: {} };
+      if (antes === JSON.stringify(FLUXO_STATUS) || typeof document === 'undefined') return;
+      const aberta = document.getElementById('workspace-drawer');
+      const id = typeof activeWorkspaceItemId !== 'undefined' ? activeWorkspaceItemId : null;
+      if (aberta && id && typeof DETALHE_DA_GAVETA !== 'undefined' && DETALHE_DA_GAVETA && typeof findOperationalItem === 'function') {
+        const item = findOperationalItem(id);
+        if (item) renderWorkspaceDrawer(DETALHE_DA_GAVETA, item);
+      }
+    })
+    .catch(() => { FLUXO_STATUS = FLUXO_STATUS || { boards: {} }; })
+    .finally(() => { FLUXO_STATUS_LENDO = false; });
 }
 // O status na pílula do padrão: fundo claro e texto escuro tirados da cor que o status tem no quadro.
 function gavetaPilulaHtml(status, cor, seta = '') {
