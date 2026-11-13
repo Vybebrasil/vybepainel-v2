@@ -31,20 +31,23 @@
     direita: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M20 4.5V9h-4.5"/></svg>',
     dado: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><g fill="currentColor" stroke="none"><circle cx="9" cy="9" r="1.3"/><circle cx="15" cy="9" r="1.3"/><circle cx="9" cy="15" r="1.3"/><circle cx="15" cy="15" r="1.3"/></g></svg>',
   };
-  const ABAS = [['pele', 'Pele'], ['cabelo', 'Cabelo'], ['roupa', 'Roupa'], ['calca', 'Calça'], ['acessorios', 'Acessórios']];
-  // Cada escolha mexe numa parte da figura do Habbo; o segundo nome é o campo que lerFigura lê dela.
-  const PARTES = { pele: ['hd', 'pele'], cabelo: ['hr', 'cabelo'], roupa: ['ch', 'roupa'], casaco: ['cc', 'casaco'], calca: ['lg', 'calca'], chapeu: ['ha', 'chapeu'], oculos: ['ea', 'oculos'] };
-  const SEM_PECA = { pele: 'esse tom de pele', cabelo: 'cabelo nesse estilo', roupa: 'camisa nessa cor', casaco: 'casaco', calca: 'calça nessa cor', chapeu: 'chapéu', oculos: 'óculos' };
+  // Peça a peça (Paulo, 13/11/2026: "copiar as cabeças do Habbo... cabelos, corpo, pernas, sapatos, braços... editar o
+  // personagem peça a peça"): uma aba por tipo de item do Habbo. Cada item é uma peça voxel própria (pecaVoxelDoHabbo em
+  // mundo/moveis-habbo.mjs) e a grade mostra a pessoa vestindo cada um. A figura salva continua a do Habbo.
+  const ABAS = [['hd', 'Rosto'], ['hr', 'Cabelo'], ['ha', 'Chapéu'], ['ea', 'Óculos'], ['fa', 'Máscara'], ['he', 'Na cabeça'], ['ch', 'Camisa'], ['cc', 'Casaco'], ['lg', 'Calça'], ['sh', 'Sapato']];
+  const OPCIONAL = new Set(['hr', 'ha', 'ea', 'fa', 'he', 'cc', 'sh']);
+  const DA_CABECA = new Set(['hd', 'hr', 'ha', 'ea', 'fa', 'he']);
+  const POR_PAGINA = 24;
   // Funções do Escritório que esta janela usa (vybe-escritorio-abertura.js).
   const NECESSARIAS = ['criadorDaFigura', 'criadorFigura', 'criadorConjunto', 'criadorServe', 'criadorPaleta', 'criadorCarregarCatalogo', 'salvarPersonagemEscritorio'];
   // O avatarVoxel numera as 8 direções fora da ordem do giro (ângulos -.6, -.3, .3, .6, 2.6, 3, -2.6, -3).
   const GIRO_IMAGEM = [0, 1, 2, 3, 4, 5, 7, 6];
 
   const st = {
-    aberto: false, fase: '', erro: '', aviso: '', seq: 0, pode: {},
+    aberto: false, fase: '', erro: '', aviso: '', seq: 0, seqMini: 0, pode: {},
     fundo: null, raiz: null, corpo: null, refs: {},
     mod: null, paletas: null, base: null, salva: '', f: null, figura: '', escolha: null,
-    aba: 'pele', ultimoEstilo: 'curto', salvando: false, previa: null, tela: null, giro: 3, arrasto: 0,
+    aba: 'hr', mostrar: {}, salvando: false, previa: null, tela: null, giro: 3, arrasto: 0,
     entrandoDesde: 0, vigia: 0, focoAntes: null,
   };
 
@@ -71,103 +74,43 @@
   }
   const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // ---------- as cores do boneco voxel, lidas do próprio lerFigura (uma fonte só) ----------
-  // Uma parte com conjunto 0 e cor i dá a i-ésima cor da lista dela; casaco e chapéu usam as cores da
-  // camisa com outro deslocamento, então aparecem na mesma ordem da camisa.
-  function paletasDoAvatar(ler) {
-    const cores = (t, campo) => [...new Set(Array.from({ length: 240 }, (_, i) => ler(`${t}-0-${i}`)[campo]).filter(Boolean))];
-    const roupa = cores('ch', 'roupa');
-    const naOrdem = (lista) => [...lista].sort((a, b) => (roupa.indexOf(a) + 1 || 999) - (roupa.indexOf(b) + 1 || 999));
-    return { pele: cores('hd', 'pele'), cabelo: cores('hr', 'cabelo'), roupa, calca: cores('lg', 'calca'), casaco: naOrdem(cores('cc', 'casaco')), chapeu: naOrdem(cores('ha', 'chapeu')) };
-  }
-  function escolhaDaFigura(figura) {
-    const v = st.mod.lerFigura(figura);
-    return { pele: v.pele, cabelo: v.cabelo ? (v.longo ? 'longo' : 'curto') : 'sem', corCabelo: v.cabelo || st.paletas.cabelo[0], roupa: v.roupa,
-      casaco: v.casaco || null, calca: v.calca, chapeu: v.chapeu || null, oculos: Boolean(v.oculos) };
-  }
-
-  // ---------- da escolha para a figura do Escritório ----------
-  // Peças que a pessoa pode vestir agora, na ordem de preferência: a que já veste, a do boneco padrão do
-  // Escritório e as livres do catálogo (com cor antes das sem cor; as de assinante do Habbo por último).
+  // ---------- peças ----------
+  // Itens que a pessoa pode vestir agora: o que já veste primeiro, o do boneco padrão, os livres do catálogo (grátis,
+  // comprados ou já vestidos: criadorRoupaLivre, a mesma regra do servidor).
   function conjuntosPara(t, g, idAtual) {
     const servir = fn('criadorServe'), livre = fn('criadorRoupaLivre');
     const padrao = Number(String(padraoDoEscritorio()[g] || '').split('.').map((p) => p.split('-')).find(([x]) => x === t)?.[1]);
-    const peso = (s) => (s[0] === idAtual ? -10 : s[0] === padrao ? -5 : 0) + (Number(s[3]) > 0 ? 0 : 2) + (s[2] ? 1 : 0);
+    const peso = (s) => (s[0] === idAtual ? -10 : s[0] === padrao ? -5 : 0);
     return (catalogo()?.tipos?.[t]?.s || [])
-      .filter((s) => servir(s, g) && (!livre || livre(`roupa:${t}-${s[0]}`)))
+      .filter((s) => servir(s, g) && (s[0] === idAtual || !livre || livre(`roupa:${t}-${s[0]}`)))
       .map((s, i) => [s, i]).sort((a, b) => peso(a[0]) - peso(b[0]) || a[1] - b[1]).map(([s]) => s);
   }
-  // Veste em f a parte do campo com o valor que o boneco voxel deve mostrar. A parte que já dá esse valor
-  // fica como está (peça e cores de hoje); senão procura peça livre e cor do catálogo que dêem.
-  function vestir(f, campo, alvo, { longo } = {}) {
-    const [t, prop] = PARTES[campo], figuraDe = fn('criadorFigura');
-    const le = (id, cores) => st.mod.lerFigura(figuraDe({ g: f.g, partes: { [t]: { id, cores } } }));
-    const serve = (v) => v[prop] === alvo && (longo === undefined || v.longo === longo);
-    const atual = f.partes[t];
-    if (atual && serve(le(atual.id, atual.cores))) return true;
-    const pal = fn('criadorPaleta')(t) || [];
-    // A cor do Habbo mais parecida primeiro: o boneco antigo (fora do Irecity) fica parecido com o voxel.
-    const cores = typeof alvo === 'string' ? [...pal].sort((a, b) => distancia(a[1], alvo) - distancia(b[1], alvo)) : pal;
-    for (const conj of conjuntosPara(t, f.g, atual?.id)) {
-      const duas = Number(conj[3]) > 1, mesma = atual && conj[0] === atual.id;
-      for (const [cor] of cores) {
-        const lista = duas ? [cor, (mesma && atual.cores[1]) || pal[Math.min(pal.length - 1, 8)]?.[0] || cor] : [cor];
-        if (serve(le(conj[0], lista))) { f.partes[t] = { id: conj[0], cores: lista }; return true; }
-      }
-    }
-    return false;
+  // A figura com o item `id` no tipo `t` (null tira), mantendo as cores que a pessoa já usa nele.
+  function figuraCom(t, id, f0 = st.f) {
+    const f = { g: f0.g, partes: copiar(f0.partes) };
+    if (id === null) { delete f.partes[t]; return f; }
+    const conj = fn('criadorConjunto')(t, id), pal = fn('criadorPaleta')(t) || [], atuais = f0.partes[t]?.cores || [];
+    f.partes[t] = { id: Number(id), cores: Array.from({ length: Math.max(Number(conj?.[3] ?? 1), 0) }, (_, i) => atuais[i] || pal[0]?.[0] || 1) };
+    return f;
   }
-  function montar(escolha) {
-    const f = { g: st.base.g, partes: copiar(st.base.partes) }, faltou = [];
-    const pede = (campo, alvo, extra) => { if (!vestir(f, campo, alvo, extra)) faltou.push(campo); };
-    pede('pele', escolha.pele);
-    if (escolha.cabelo === 'sem') delete f.partes.hr; else pede('cabelo', escolha.corCabelo, { longo: escolha.cabelo === 'longo' });
-    pede('roupa', escolha.roupa);
-    if (escolha.casaco) pede('casaco', escolha.casaco); else delete f.partes.cc;
-    pede('calca', escolha.calca);
-    if (escolha.chapeu) pede('chapeu', escolha.chapeu); else delete f.partes.ha;
-    if (escolha.oculos) pede('oculos', true); else delete f.partes.ea;
-    return { f, figura: fn('criadorFigura')(f), faltou };
-  }
-  // Parte opcional: dá para vestir se a pessoa já tem uma ou se há peça livre no catálogo.
-  function pode(campo) {
-    if (campo in st.pode) return st.pode[campo];
-    const t = PARTES[campo][0];
-    return (st.pode[campo] = Boolean(st.base.partes[t]) || conjuntosPara(t, st.base.g).length > 0);
-  }
-  function podeEstilo(estilo) {
-    const chave = 'estilo:' + estilo + st.escolha.corCabelo;
-    if (estilo === 'sem' || estilo === st.escolha.cabelo) return true;
-    if (!(chave in st.pode)) st.pode[chave] = !montar({ ...st.escolha, cabelo: estilo }).faltou.includes('cabelo');
-    return st.pode[chave];
-  }
-  function escolher(mudanca) {
-    const nova = { ...st.escolha, ...mudanca };
-    const r = montar(nova);
-    const pedidos = Object.keys(mudanca).map((k) => (k === 'corCabelo' ? 'cabelo' : k));
-    const faltou = r.faltou.find((c) => pedidos.includes(c));
-    if (faltou) { st.aviso = `Você ainda não tem ${SEM_PECA[faltou]} para vestir.`; pintar(); return; }
-    if (nova.cabelo !== 'sem') st.ultimoEstilo = nova.cabelo;
-    Object.assign(st, { escolha: nova, f: r.f, figura: r.figura, aviso: '' });
-    st.refs.erro.textContent = '';
-    pintar();
+  function aplicar(f) { Object.assign(st, { f, figura: fn('criadorFigura')(f), aviso: '' }); st.refs.erro.textContent = ''; pintar(); }
+  const vestirPeca = (t, id) => aplicar(figuraCom(t, id));
+  function pintarPeca(t, cor, i = 0) {
+    if (!st.f.partes[t]) return;
+    const f = { g: st.f.g, partes: copiar(st.f.partes) }, cores = f.partes[t].cores;
+    if (!cores.length) return;
+    cores[Math.min(i, cores.length - 1)] = Number(cor); aplicar(f);
   }
   function sortear() {
-    const p = st.paletas, um = (l) => l[Math.floor(Math.random() * l.length)], chance = (x) => Math.random() < x;
-    const nova = {
-      pele: um(p.pele), cabelo: chance(0.1) ? 'sem' : um(['curto', 'longo']), corCabelo: um(p.cabelo), roupa: um(p.roupa),
-      casaco: pode('casaco') && chance(0.3) ? um(p.casaco) : null, calca: um(p.calca),
-      chapeu: pode('chapeu') && chance(0.2) ? um(p.chapeu) : null, oculos: pode('oculos') && chance(0.25),
-    };
-    let r = montar(nova);
-    if (r.faltou.length) {
-      for (const c of r.faltou) { nova[c] = st.escolha[c]; if (c === 'cabelo') nova.corCabelo = st.escolha.corCabelo; }
-      r = montar(nova);
+    let f = { g: st.f.g, partes: copiar(st.f.partes) };
+    const um = (l) => l[Math.floor(Math.random() * l.length)];
+    for (const [t] of ABAS) {
+      if (OPCIONAL.has(t) && t !== 'hr' && Math.random() < .65) { if (t !== 'sh') delete f.partes[t]; continue; }
+      const lista = conjuntosPara(t, f.g, f.partes[t]?.id); if (!lista.length) continue;
+      f = figuraCom(t, um(lista)[0], f);
+      const pal = fn('criadorPaleta')(t) || []; if (pal.length && f.partes[t]?.cores.length) f.partes[t].cores[0] = um(pal)[0];
     }
-    if (nova.cabelo !== 'sem') st.ultimoEstilo = nova.cabelo;
-    Object.assign(st, { escolha: nova, f: r.f, figura: r.figura, aviso: '' });
-    st.refs.erro.textContent = '';
-    pintar();
+    aplicar(f);
   }
 
   // ---------- carregar ----------
@@ -195,8 +138,7 @@
     st.base = b;
     st.f = { g: b.g, partes: copiar(b.partes) };
     st.salva = st.figura = fn('criadorFigura')(b);
-    st.escolha = escolhaDaFigura(st.figura);
-    st.ultimoEstilo = st.escolha.cabelo === 'sem' ? 'curto' : st.escolha.cabelo;
+    st.mostrar = {};
   }
   async function carregar() {
     const seq = ++st.seq;
@@ -212,7 +154,6 @@
       if (typeof mod?.lerFigura !== 'function') throw new Error('O boneco do mundo não carregou.');
       if (!catalogo()) throw new Error('O catálogo de peças do Escritório não carregou.');
       st.mod = mod;
-      st.paletas = st.paletas || paletasDoAvatar(mod.lerFigura);
       iniciar();
       st.fase = 'pronto';
     } catch (e) {
@@ -354,6 +295,7 @@
     montarPrevia();
     lado.innerHTML = `<div class="vv-personagem-abas" role="tablist" aria-label="Partes do personagem">${ABAS.map(([id, nome]) => `<button type="button" role="tab" id="vv-personagem-aba-${id}" data-vp="aba" data-valor="${id}" aria-selected="${st.aba === id}" aria-controls="vv-personagem-painel" tabindex="${st.aba === id ? 0 : -1}">${nome}</button>`).join('')}</div>
       <div class="vv-personagem-opcoes" id="vv-personagem-painel" role="tabpanel" aria-labelledby="vv-personagem-aba-${st.aba}">${opcoesHtml()}</div>`;
+    pintarMiniaturas();
     aviso.textContent = st.aviso;
     aviso.hidden = !st.aviso;
     erro.hidden = !erro.textContent;
@@ -362,30 +304,29 @@
       <button type="button" class="vv-personagem-principal" data-vp="salvar"${st.salvando ? ' disabled aria-busy="true"' : ''}>${st.salvando ? 'Salvando…' : 'Salvar'}</button>`;
   }
   const grupo = (titulo, conteudo, dica = '') => `<section class="vv-personagem-grupo"><h3>${esc(titulo)}</h3>${conteudo}${dica ? `<p class="vv-personagem-dica">${esc(dica)}</p>` : ''}</section>`;
-  function amostras(campo, lista, atual, rotulo, { desligado = false, nenhum = '' } = {}) {
-    const sem = nenhum ? `<button type="button" class="vv-personagem-amostra nenhum" data-vp="nenhum" data-campo="${campo}" aria-pressed="${!atual}" aria-label="${esc(nenhum)}" title="${esc(nenhum)}"><i aria-hidden="true"></i></button>` : '';
-    return `<div class="vv-personagem-grade" role="group" aria-label="${esc(rotulo)}">${sem}${lista.map((cor, i) => `<button type="button" class="vv-personagem-amostra" data-vp="cor" data-campo="${campo}" data-valor="${esc(cor)}" aria-pressed="${atual === cor}" aria-label="${esc(rotulo)}: cor ${i + 1} de ${lista.length}" title="Cor ${i + 1}"${desligado ? ' disabled' : ''} style="--c:${esc(cor)}"><i aria-hidden="true"></i></button>`).join('')}</div>`;
-  }
-  const chips = (vp, opcoes, atual, rotulo, livre = () => true) => `<div class="vv-personagem-chips" role="group" aria-label="${esc(rotulo)}">${opcoes.map(([v, nome]) => `<button type="button" class="vv-personagem-chip" data-vp="${vp}" data-valor="${v}" aria-pressed="${atual === v}"${livre(v) ? '' : ' disabled'}>${esc(nome)}</button>`).join('')}</div>`;
-  // Chapéu, óculos e casaco não são grátis (migração das skins): sem um comprado, o aviso diz de onde vêm.
-  const naLoja = (faltam) => (faltam.length ? `<p class="vv-personagem-dica">Você ainda não tem ${faltam.join(' nem ')}: ${faltam.length > 1 ? 'essas peças vêm' : 'essa peça vem'} da loja de roupas do Escritório.</p>` : '');
+  // A aba do tipo: a grade de itens (a pessoa vestindo cada um, em voxel) e as cores oficiais do item escolhido.
   function opcoesHtml() {
-    const e = st.escolha, p = st.paletas;
-    if (st.aba === 'pele') return grupo('Tom de pele', amostras('pele', p.pele, e.pele, 'Tom de pele'));
-    if (st.aba === 'cabelo') {
-      return grupo('Estilo', chips('estilo', [['curto', 'Curto'], ['longo', 'Longo'], ['sem', 'Sem cabelo']], e.cabelo, 'Estilo do cabelo', podeEstilo))
-        + grupo('Cor do cabelo', amostras('corCabelo', p.cabelo, e.cabelo === 'sem' ? null : e.corCabelo, 'Cor do cabelo'), e.cabelo === 'sem' ? 'Escolha uma cor para voltar a ter cabelo.' : '');
+    const t = st.aba, atual = st.f.partes[t], lista = conjuntosPara(t, st.f.g, atual?.id);
+    const n = st.mostrar[t] || POR_PAGINA, nome = ABAS.find(([x]) => x === t)?.[1] || '';
+    const sem = OPCIONAL.has(t) ? `<button type="button" class="vv-personagem-peca nenhum" data-vp="peca" data-t="${t}" data-id="" aria-pressed="${!atual}" title="Sem ${esc(nome.toLowerCase())}"><span aria-hidden="true">Sem</span></button>` : '';
+    const itens = lista.slice(0, n).map((c) => {
+      const fig = fn('criadorFigura')(figuraCom(t, c[0]));
+      return `<button type="button" class="vv-personagem-peca" data-vp="peca" data-t="${t}" data-id="${c[0]}" aria-pressed="${atual?.id === c[0]}" title="${esc(nome)} nº ${c[0]}"><img alt="" data-fig="${esc(fig)}" data-cabeca="${DA_CABECA.has(t) ? 1 : ''}"></button>`;
+    }).join('');
+    const mais = lista.length > n ? `<button type="button" class="vv-personagem-sec vv-personagem-mais" data-vp="mais">Mais ${Math.min(POR_PAGINA, lista.length - n)} de ${lista.length - n}</button>` : '';
+    const vazio = !lista.length && !sem ? '<p class="vv-personagem-dica">Você ainda não tem itens desse tipo: eles vêm da loja de roupas do Escritório.</p>' : '';
+    const pal = atual?.cores?.length ? fn('criadorPaleta')(t) || [] : [];
+    const cores = pal.length ? grupo('Cor', `<div class="vv-personagem-grade" role="group" aria-label="Cor">${pal.map(([id, hex], i) => `<button type="button" class="vv-personagem-amostra" data-vp="cor" data-t="${t}" data-valor="${id}" aria-pressed="${atual.cores[0] === id}" aria-label="Cor ${i + 1} de ${pal.length}" style="--c:#${esc(String(hex).replace('#', ''))}"><i aria-hidden="true"></i></button>`).join('')}</div>`) : '';
+    return grupo(nome, `<div class="vv-personagem-pecas" role="group" aria-label="${esc(nome)}">${sem}${itens}</div>${mais}`) + vazio + cores;
+  }
+  // Miniaturas: a rápida na hora, a montada pelas peças do Habbo em seguida (uma de cada vez, só da aba aberta).
+  async function pintarMiniaturas() {
+    const seq = ++st.seqMini, imgs = [...(st.refs.lado?.querySelectorAll('img[data-fig]') || [])];
+    for (const img of imgs) { try { img.src = st.mod.avatarVoxel(img.dataset.fig, { cabeca: Boolean(img.dataset.cabeca), direcao: 2 }); } catch { /* sem WebGL */ } }
+    for (const img of imgs) {
+      if (seq !== st.seqMini || !img.isConnected) return;
+      try { const url = await st.mod.avatarVoxelFiel?.(img.dataset.fig, { cabeca: Boolean(img.dataset.cabeca), direcao: 2 }); if (url && seq === st.seqMini && img.isConnected) img.src = url; } catch { /* fica a rápida */ }
     }
-    if (st.aba === 'roupa') {
-      const casaco = pode('casaco');
-      return grupo('Camisa', amostras('roupa', p.roupa, e.roupa, 'Camisa'))
-        + grupo('Casaco', amostras('casaco', p.casaco, e.casaco, 'Casaco', { desligado: !casaco, nenhum: 'Sem casaco' })) + naLoja(casaco ? [] : ['casaco']);
-    }
-    if (st.aba === 'calca') return grupo('Calça', amostras('calca', p.calca, e.calca, 'Calça'));
-    const chapeu = pode('chapeu'), oculos = pode('oculos');
-    return grupo('Chapéu', amostras('chapeu', p.chapeu, e.chapeu, 'Chapéu', { desligado: !chapeu, nenhum: 'Sem chapéu' }))
-      + grupo('Óculos', chips('oculos', [['0', 'Sem óculos'], ['1', 'Com óculos']], e.oculos ? '1' : '0', 'Óculos', (v) => v === '0' || oculos))
-      + naLoja([chapeu ? '' : 'chapéu', oculos ? '' : 'óculos'].filter(Boolean));
   }
 
   // ---------- prévia ----------
@@ -462,10 +403,9 @@
     if (vp === 'aba' && ABAS.some(([id]) => id === valor)) { st.aba = valor; st.aviso = ''; pintar(); }
     else if (vp === 'girar') passo(Number(valor) < 0 ? -1 : 1);
     else if (vp === 'aleatorio') sortear();
-    else if (vp === 'cor' && PARTES[campo === 'corCabelo' ? 'cabelo' : campo]) escolher(campo === 'corCabelo' ? { corCabelo: valor, cabelo: st.escolha.cabelo === 'sem' ? st.ultimoEstilo || 'curto' : st.escolha.cabelo } : { [campo]: valor });
-    else if (vp === 'nenhum' && (campo === 'casaco' || campo === 'chapeu')) escolher({ [campo]: null });
-    else if (vp === 'estilo' && ['curto', 'longo', 'sem'].includes(valor)) escolher({ cabelo: valor });
-    else if (vp === 'oculos') escolher({ oculos: valor === '1' });
+    else if (vp === 'peca' && ABAS.some(([t]) => t === alvo.dataset.t)) vestirPeca(alvo.dataset.t, alvo.dataset.id === '' ? null : Number(alvo.dataset.id));
+    else if (vp === 'cor' && st.f.partes[alvo.dataset.t]) pintarPeca(alvo.dataset.t, valor);
+    else if (vp === 'mais') { st.mostrar[st.aba] = (st.mostrar[st.aba] || POR_PAGINA) + POR_PAGINA; pintar(); }
   }
   function aoTeclarAbas(ev) {
     const aba = ev.target?.dataset?.vp === 'aba' ? ev.target.dataset.valor : null;
@@ -528,7 +468,7 @@
     garantirRaiz();
     if (st.aberto) { focar(); return; }
     st.focoAntes = document.activeElement || null;
-    Object.assign(st, { aberto: true, aba: 'pele', entrandoDesde: 0, venceuPintado: false });
+    Object.assign(st, { aberto: true, aba: 'hr', entrandoDesde: 0, venceuPintado: false });
     st.refs.erro.textContent = '';
     st.vigia = setInterval(vigiar, VIGIA_MS);
     document.addEventListener?.('keydown', aoTeclar, true);

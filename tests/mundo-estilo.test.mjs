@@ -49,7 +49,7 @@ test('boneco do Habbo: cabelo esculpido entra no lugar do cabelo de blocos; ócu
   const av = fs.readFileSync('mundo/avatar.mjs', 'utf8'), mh = fs.readFileSync('mundo/moveis-habbo.mjs', 'utf8');
   assert.match(av, /f\.cabeloHabbo/); assert.match(av, /ct && !cabeloEsculpido/);
   assert.match(mh, /ACESSORIOS = \/\^\(ha\|he\|fa\|ea\)-\//);
-  assert.match(mh, /cabeloHabbo/); assert.match(mh, /casaco: temCasaco/);
+  assert.match(mh, /cabeloHabbo/); assert.match(mh, /casaco: cc\?\.cor/);
 });
 
 test('motor de móveis: reconhece o tipo pelo nome e pela ficha e monta dentro da pegada, na grade fina', async () => {

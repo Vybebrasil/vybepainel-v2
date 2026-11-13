@@ -124,3 +124,13 @@ html.tema-escuro body.mundo .vv-personagem :is(canvas.vv-personagem-tela,.vv-per
 /* O fundo de escurecer não inverte (escurece, como .workflow-backdrop). !important: a regra que inverte os
    filhos do body tem três :not(#id) e venceria pela especificidade. */
 html.tema-escuro body.mundo > .vv-personagem-fundo{filter:none!important;background:rgba(0,0,0,.45)}
+
+/* Peça a peça (13/11/2026): a grade de itens do Habbo, cada um a pessoa vestindo a peça em voxel. */
+.vv-personagem-pecas{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px}
+.vv-personagem-peca{position:relative;aspect-ratio:1;padding:0;border:1px solid var(--pc-linha,#E6E0D6);border-radius:10px;background:#FFFFFF;cursor:pointer;overflow:hidden;transition:transform .15s var(--vv-mola,ease),border-color .15s}
+.vv-personagem-peca img{width:100%;height:100%;object-fit:contain;display:block}
+.vv-personagem-peca:hover{transform:translateY(-1px);border-color:#D9CFC2}
+.vv-personagem-peca[aria-pressed="true"]{border:2px solid var(--vv-laranja,#FF7A2F);box-shadow:0 0 0 3px rgba(255,122,47,.18)}
+.vv-personagem-peca:focus-visible{outline:2px solid var(--vv-laranja,#FF7A2F);outline-offset:2px}
+.vv-personagem-peca.nenhum span{display:grid;place-items:center;height:100%;font:600 12px var(--vv-texto,system-ui);color:#6B675F}
+.vv-personagem-mais{margin-top:10px}
