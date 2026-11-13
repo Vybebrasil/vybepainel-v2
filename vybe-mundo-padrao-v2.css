@@ -3055,6 +3055,28 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
   #vv-hoje .v2a-online{min-width:0;max-width:100%}
   #vv-hoje .v2a-online > small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+/* Semana da agência no Hoje (Paulo, 13/11/2026: "o que é aquela sobra cinza em cada dia?"). A barra parte do chão, sem o
+   trilho cinza de fundo (que sobrava em cima e embaixo, porque a pilha ficava centralizada), com o número de peças em
+   cima. O contorno escuro é o dia ESCOLHIDO (a legenda conta só ele); hoje fica marcado só no nome. */
+#vv-hoje .v2a-semana .vv-sem-col{flex-direction:column}
+#vv-hoje .v2a-semana .vv-sem-topo{order:1;display:block;text-align:center;font:600 12px/1 var(--vv-texto,Inter,sans-serif);color:#4A463F}
+#vv-hoje .v2a-semana .vv-sem-topo b{font-weight:600}
+#vv-hoje .v2a-semana .vv-sem-topo em{display:none}
+#vv-hoje .v2a-semana .vv-sem-barras{order:2;justify-content:flex-start;background:none;border-radius:8px;box-shadow:inset 0 -2px 0 #E6E0D6}
+#vv-hoje .v2a-semana .vv-sem-dia{order:3}
+#vv-hoje .v2a-semana .vv-sem-col.hoje .vv-sem-barras{box-shadow:inset 0 -2px 0 #E6E0D6}
+#vv-hoje .v2a-semana .vv-sem-col.escolhido .vv-sem-barras{box-shadow:0 0 0 2px #1F1D1A}
+#vv-hoje .v2a-semana .vv-sem-col.escolhido .vv-sem-dia{color:#1F1D1A;font-weight:700}
+#vv-hoje .v2a-semana .vv-sem-quando{margin:12px 0 0;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2a-semana .vv-sem-quando b{color:#1F1D1A;font-weight:600}
+#vv-hoje .v2a-semana .vv-sem-quando + .vv-sem-legenda{margin-top:6px}
+/* Baralho "Para você decidir": ‹ › nas pontas da fileira de botões (além das setas do teclado) e, no cartão, o status na
+   pílula de cor e o grupo do quadro (Paulo, 13/11/2026). */
+#vv-hoje .v2d-acoes .v2d-passo{flex:none;width:36px;min-width:36px;padding:0;font:600 18px/1 var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .v2d-acoes .v2d-passo:disabled{opacity:.35;cursor:default}
+#vv-hoje .v2d-carta .v2d-grupo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px}
+#vv-hoje .v2d-carta .v2d-grupo small{font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#vv-hoje .v2d-carta .v2d-grupo em{font:600 11px var(--vv-texto,Inter,sans-serif);font-style:normal;padding:2px 8px;border-radius:999px;background:#EFEBE4;color:#1F1D1A}
 
 /* ===== padrao-v2/listas.css ===== */
 /* PADRÃO V2 · STATUS NA LINHA (quadro Status do moodboard, passos 1 a 3): a pílula do status é o botão, com a setinha;

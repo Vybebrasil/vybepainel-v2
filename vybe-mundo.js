@@ -824,7 +824,8 @@
   }
   function trocarVisaoHoje(v) { visaoHoje = v; try { localStorage.setItem('vybe.mundo.visaoHoje', v); } catch {} pintarHoje(); }
   let cacheDono = { chave: '', valor: null };
-  const semanaAgencia = { campo: 'veiculacao', referencia: '' };
+  // dia: o dia escolhido no gráfico "Semana da agência" do Hoje ('' = a semana toda).
+  const semanaAgencia = { campo: 'veiculacao', referencia: '', dia: '' };
   function numerosDoDono() {
     const D = typeof window !== 'undefined' ? window.VybeDono : null;
     if (!D?.calcular || typeof DADOS_ALL === 'undefined' || !Array.isArray(DADOS_ALL) || !DADOS_ALL.length) return null;
@@ -895,14 +896,17 @@
       return `<aside class="v2d" aria-label="Para você decidir">${topo(e?.erro ? 'as aprovações não vieram agora' : 'lendo as aprovações')}${e?.erro ? `<p class="v2d-vazio">${esc(e.erro)} <button type="button" class="vg-link" data-hoje-acao="decidir-lista">abrir a lista</button></p>` : ''}</aside>`; }
     if (!fila.length) return `<aside class="v2d" aria-label="Para você decidir">${topo('nada em Para aprovação')}<p class="v2d-vazio">Nenhuma peça espera a sua aprovação agora.</p></aside>`;
     decidirEm = Math.max(0, Math.min(decidirEm, fila.length - 1));
+    // Paulo, 13/11/2026: "em qual grupo tá? qual status tá?" — o grupo do quadro e o status na pílula de cor, embaixo.
+    const linhaGrupoStatus = (i) => { const grupo = String(i.item?.grupo || i.grupo || '').trim(), st = String(i.item?.status || i.status || '').trim();
+      return grupo || st ? `<span class="v2d-grupo">${st ? (i.item && typeof statusCor === 'function' ? statusCor(i.item) : `<em>${esc(st)}</em>`) : ''}${grupo ? `<small>${esc(grupo)}</small>` : ''}</span>` : ''; };
     const carta = (i, k) => { const pos = posDecidir(k), t = pos && pos !== 'fora' ? previaDecidir(String(i.ref)) : previasDecidir[String(i.ref)];
       return `<article class="v2-carta v2d-carta"${pos ? ` data-pos="${pos}"` : ''} data-carta="${k}" aria-hidden="${pos !== '0'}"><div class="v2d-arte">${t ? `<img src="${esc(t)}" alt="Prévia de ${esc(i.titulo)}" loading="lazy">` : `<span>${t === null ? esc(i.formato || 'Peça') + ' · sem arquivo anexado' : 'buscando a prévia'}</span>`}</div>
-        <p><b>${esc(i.titulo)}</b><small>${i.cliente ? cliCor(i.cliente) + ' · ' : ''}${esc(quandoVeiculaTxt(i))}${i.heads?.length ? ' · head ' + esc(i.heads.map((h) => h.nome).join(', ')) : ''}</small></p></article>`; };
+        <p><b>${esc(i.titulo)}</b><small>${i.cliente ? cliCor(i.cliente) + ' · ' : ''}${esc(quandoVeiculaTxt(i))}${i.heads?.length ? ' · head ' + esc(i.heads.map((h) => h.nome).join(', ')) : ''}</small>${linhaGrupoStatus(i)}</p></article>`; };
     const porCli = new Map(); for (const i of fila) porCli.set(i.cliente || 'Sem cliente', (porCli.get(i.cliente || 'Sem cliente') || 0) + 1);
     const antiga = Math.max(...fila.map((i) => i.horas ?? 0));
     return `<aside class="v2d" aria-label="Para você decidir">${topo(artes ? `${n0(fila.length)} ${rotuloDe(fila.length, 'arte', 'artes')}` : `${n0(fila.length)} ${rotuloDe(fila.length, 'peça', 'peças')} em Para aprovação`)}
       <div class="v2-baralho v2d-baralho" tabindex="0" aria-label="Peças para decidir: as setas do teclado passam">${fila.map(carta).join('')}</div>
-      <div class="v2d-acoes"><button type="button" class="v2t-btn g" data-hoje-acao="decidir" data-valor="alterar">Pedir alteração</button><button type="button" class="v2t-btn g k" data-hoje-acao="decidir" data-valor="aprovar">Aprovar</button></div>
+      <div class="v2d-acoes"><button type="button" class="v2t-btn g v2d-passo" data-hoje-acao="decidir-passo" data-valor="-1" aria-label="Peça anterior"${decidirEm === 0 ? ' disabled' : ''}>‹</button><button type="button" class="v2t-btn g" data-hoje-acao="decidir" data-valor="alterar">Pedir alteração</button><button type="button" class="v2t-btn g k" data-hoje-acao="decidir" data-valor="aprovar">Aprovar</button><button type="button" class="v2t-btn g v2d-passo" data-hoje-acao="decidir-passo" data-valor="1" aria-label="Próxima peça"${decidirEm >= fila.length - 1 ? ' disabled' : ''}>›</button></div>
       <div class="v2d-conta"><span class="v2-pontos" aria-hidden="true">${fila.length <= 10 ? fila.map((_, k) => `<i${k === decidirEm ? ' class="on"' : ''}></i>`).join('') : ''}</span><small><span data-decidir-conta>${decidirEm + 1} de ${fila.length}</span> · seta para os lados passa · <button type="button" class="vg-link" data-hoje-acao="decidir-lista">ver em lista</button></small></div>
       ${artes ? '' : `<div class="v2d-fila"><small>Na fila, por cliente</small><p>${[...porCli.entries()].slice(0, 4).map(([c, n]) => `<span>${cliCor(c)} · ${n}</span>`).join('')}</p>
         <small>${antiga >= 1 ? `A mais antiga espera há ${antiga < 48 ? antiga + ' h' : Math.round(antiga / 24) + ' dias'}. ` : ''}Aprovada, a peça segue para agendar.</small></div>`}</aside>`;
@@ -916,6 +920,7 @@
     raiz.querySelectorAll('[data-carta]').forEach((c) => { const pos = posDecidir(Number(c.dataset.carta)); if (pos) c.dataset.pos = pos; else delete c.dataset.pos; c.setAttribute('aria-hidden', String(pos !== '0')); });
     raiz.querySelectorAll('.v2-pontos > i').forEach((x, k) => x.classList.toggle('on', k === novo));
     const conta = raiz.querySelector('[data-decidir-conta]'); if (conta) conta.textContent = `${novo + 1} de ${fila.length}`;
+    const [ant, prox] = raiz.querySelectorAll('.v2d-passo'); if (ant) ant.disabled = novo === 0; if (prox) prox.disabled = novo >= fila.length - 1;
   }
   function decidirPeca(acao) {
     const i = (filaDecidir() || [])[decidirEm]; if (!i) return;
@@ -938,13 +943,18 @@
       <nav aria-label="Navegar pelas semanas"><button type="button" data-semana-passo="-1" aria-label="Semana anterior">‹</button><span>${esc(dataCompleta(g.inicio))} – ${esc(dataCompleta(g.fim))}</span><button type="button" data-semana-passo="1" aria-label="Próxima semana">›</button><button type="button" data-semana-passo="0">Atual</button></nav></div>`;
   }
   function selecionarSemana(b) {
+    if (b.dataset.semanaDia !== undefined) {
+      const dia = String(b.dataset.semanaDia || '');
+      semanaAgencia.dia = !dia || semanaAgencia.dia === dia ? '' : dia;
+      pintarHoje(); return true;
+    }
     if (b.dataset.semanaCampo) {
       if (!['prazo', 'veiculacao'].includes(b.dataset.semanaCampo)) return false;
       semanaAgencia.campo = b.dataset.semanaCampo;
     } else if (b.dataset.semanaPasso !== undefined) {
       const passo = Number(b.dataset.semanaPasso); if (![-1, 0, 1].includes(passo)) return false;
       const inicio = window.VybeDono.util.inicioDaSemana(semanaAgencia.referencia || hojeIso());
-      semanaAgencia.referencia = passo ? somar(inicio, passo * 7) : '';
+      semanaAgencia.referencia = passo ? somar(inicio, passo * 7) : ''; semanaAgencia.dia = '';
     } else return false;
     cacheDono.chave = ''; pintarHoje(); pintarGestao(); return true;
   }
@@ -1046,7 +1056,7 @@
       return { titulo: 'peças em ' + nomeDia, n: itens.length, ...blocos, rodape: campo === 'prazo_iso' ? 'pelo prazo' : 'pela veiculação' };
     };
   }
-  function semanaPorStatusHtml(G) {
+  function semanaPorStatusHtml(G, { selecionavel = false } = {}) {
     const itens = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
     const campo = G?.campo === 'prazo' ? 'prazo_iso' : 'veiculacao_iso', dias = (G?.porDia || []).map((x) => x.dia);
     if (!dias.length) return '<p class="vv-vazio">Sem a semana agora.</p>';
@@ -1067,15 +1077,24 @@
       return { dia, lista, grupos: [...grupos.values()].sort((a, b) => b.n - a.n), prontas };
     });
     const max = Math.max(1, ...colunas.map((c) => c.lista.length));
+    // No Hoje (Paulo, 13/11/2026: "como tá sexta selecionado, não era pra aparecer os números só de sexta?"): tocar num dia
+    // escolhe o dia e a legenda passa a contar só ele; tocar de novo volta à semana. O dia de hoje fica só no nome.
+    const sel = selecionavel && dias.includes(semanaAgencia.dia) ? semanaAgencia.dia : '';
     const col = (c) => {
       const passou = c.dia < hojeDia, hojeC = c.dia === hojeDia;
-      return `<button type="button" class="vv-sem-col${hojeC ? ' hoje' : ''}${passou ? ' passou' : ''}" data-espiar="semdia:${c.dia}|${campo}" aria-label="${esc(c.lista.length + ' peças em ' + c.dia.slice(8, 10) + '/' + c.dia.slice(5, 7))}">
+      const acao = selecionavel ? `data-semana-dia="${c.dia}" aria-pressed="${c.dia === sel}"` : `data-espiar="semdia:${c.dia}|${campo}"`;
+      return `<button type="button" class="vv-sem-col${hojeC ? ' hoje' : ''}${passou ? ' passou' : ''}${c.dia === sel ? ' escolhido' : ''}" ${acao} aria-label="${esc(c.lista.length + ' peças em ' + c.dia.slice(8, 10) + '/' + c.dia.slice(5, 7))}">
         <span class="vv-sem-topo">${c.lista.length ? `<b>${c.lista.length}</b>${c.prontas ? `<em title="já saíram">${c.prontas} prontas</em>` : ''}` : '<b>–</b>'}</span>
         <span class="vv-sem-barras"><i class="total" style="--h:${Math.round((c.lista.length / max) * 100)}%" title="${c.lista.length} previstas"></i>${c.grupos.map((g) => `<i style="--c:${esc(g.cor)};--h:${Math.max(4, Math.round((g.n / max) * 100))}%" title="${g.n} ${esc(g.st)}"></i>`).join('')}</span>
         <span class="vv-sem-dia">${NOMES[new Date(c.dia + 'T12:00:00Z').getUTCDay()]} <small>${c.dia.slice(8, 10)}/${c.dia.slice(5, 7)}</small></span></button>`;
     };
-    const legenda = [...statusSet.values()].sort((a, b) => b.n - a.n).slice(0, 10).map((x) => `<span><i style="--c:${esc(x.cor)}"></i>${esc(x.st)} <b>${x.n}</b></span>`).join('');
-    return `<div class="vv-sem">${colunas.map(col).join('')}</div><div class="vv-sem-legenda">${legenda || '<span>Nada nesta semana.</span>'}</div>`;
+    const doSel = sel ? colunas.find((c) => c.dia === sel) : null;
+    const fonte = doSel ? doSel.grupos.map((g) => ({ st: g.st, cor: g.cor, n: g.n })) : [...statusSet.values()];
+    const legenda = fonte.sort((a, b) => b.n - a.n).slice(0, 10).map((x) => `<span><i style="--c:${esc(x.cor)}"></i>${esc(x.st)} <b>${x.n}</b></span>`).join('');
+    const total = doSel ? doSel.lista.length : colunas.reduce((t, c) => t + c.lista.length, 0);
+    const nomeSel = doSel ? `${['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][new Date(sel + 'T12:00:00Z').getUTCDay()]}, ${sel.slice(8, 10)}/${sel.slice(5, 7)}` : '';
+    const titulo = !selecionavel ? '' : `<p class="vv-sem-quando">${doSel ? `<b>${esc(nomeSel)}</b> · ${total} ${total === 1 ? 'peça' : 'peças'} · <button type="button" class="vg-link" data-espiar="semdia:${sel}|${campo}">ver a lista</button> · <button type="button" class="vg-link" data-semana-dia="">semana toda</button>` : `<b>Semana toda</b> · ${total} ${total === 1 ? 'peça' : 'peças'} · toque num dia para ver só ele`}</p>`;
+    return `<div class="vv-sem">${colunas.map(col).join('')}</div>${titulo}<div class="vv-sem-legenda">${legenda || `<span>Nada ${doSel ? 'neste dia' : 'nesta semana'}.</span>`}</div>`;
   }
   function pintarAgencia(el, { data, saud, nome }) {
     const N = numerosDoDono();
@@ -1126,7 +1145,7 @@
     const online = presencaDoEscritorio();
     const quemOnline = online.length ? `<span class="v2a-online" title="${esc(online.map((g) => g.nome).filter(Boolean).join(', '))}"><span class="v2a-avs" aria-hidden="true">${online.slice(0, 4).map((g) => `<i class="v2-pop">${esc(String(g.nome || '?').trim().slice(0, 2).toUpperCase())}</i>`).join('')}</span><small>${n0(online.length)} online</small></span>` : '';
     const ag = window.VybeAgentes?.resumoParaHoje?.(3), agTotal = ag?.pode ? (ag.total || 0) : 0;
-    const semana = `<section class="v2a-cartao v2a-semana"><div class="v2a-cab"><h3>Semana da agência</h3><button type="button" class="v2t-btn" data-abrir-gestao="semana">Abrir a semana</button></div>${semanaPorStatusHtml(N.graficoSemana)}</section>`;
+    const semana = `<section class="v2a-cartao v2a-semana"><div class="v2a-cab"><h3>Semana da agência</h3><button type="button" class="v2t-btn" data-abrir-gestao="semana">Abrir a semana</button></div>${semanaPorStatusHtml(N.graficoSemana, { selecionavel: true })}</section>`;
     const agenda = `<section class="v2a-cartao v2a-agenda">${agendaDeHojeHtml()}${agTotal ? `<p class="v2t-pe">Os agentes viram ${n0(agTotal)} ${rotuloDe(agTotal, 'coisa', 'coisas')} para você decidir · <button type="button" class="vg-link" data-hoje-acao="agentes">abrir</button></p>` : ''}</section>`;
     const apr = window.VybeAprovacoes?.estado?.().dados, limite = { interna: 24, cliente: 48, cadastrar: 24 };
     const paradas = apr ? [...(apr.planejamentos || []), ...(apr.pecas || [])].filter((x) => x.horas != null && x.horas >= (limite[x.etapa] ?? 24)).length : 0;
@@ -1740,6 +1759,8 @@
       // 7 · Chip que voa: as linhas que ficam na lista nova voam para o lugar delas; as outras aparecem ou somem.
       if (typeof vbTransicao === 'function') vbTransicao(() => pintarHoje(), { raiz: '#vv-hoje', tipo: 'chip' }); else pintarHoje(); return; }
     if (acao === 'decidir') { decidirPeca(String(valor)); return; }
+    // ‹ › do baralho (Paulo, 13/11/2026: "não dá pra eu passar e voltar pro próximo ou anterior?").
+    if (acao === 'decidir-passo') { passarDecidir(decidirEm + (Number(valor) < 0 ? -1 : 1)); return; }
     if (acao === 'decidir-lista') { if (window.VybeConteudo?.abrir) window.VybeConteudo.abrir({ aba: 'aprovar' }); else usarTrilho('conteudo'); return; }
     if (acao === 'lista-inteira') { listaInteira = true; soListaAgora = true; pintarHoje(); soListaAgora = false; return; }
     // A bolinha conclui (quadro B2): risca na hora e grava pelo caminho de sempre (updateFocusStatus, com os portões e o
