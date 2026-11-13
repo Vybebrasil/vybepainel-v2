@@ -104,7 +104,7 @@ test('cadastro: escolhido é ficha preta, sem os estados que o tema antigo pinta
   assert.match(cartoes, /role="radio" aria-checked="\$\{state\.format === f\}" class="nd-chip\$\{state\.format === f \? ' on' : ''\}"/);
   assert.match(css, /body\.mundo #fc-overlay \.nd \.nd-chip\.on\{background:#1F1D1A;color:#FFFFFF;box-shadow:none\}/);
   assert.match(css, /body\.mundo #fc-overlay \.nd-etapa\.agora\{box-shadow:inset 0 0 0 2px #1F1D1A/);
-  assert.match(css, /body\.mundo #fc-overlay \.nd-num\.ok\{background:#FF7A2F;color:#FFFFFF\}/);
+  assert.match(css, /body\.mundo #fc-overlay \.nd-num\.ok\{background:#1F1D1A;color:#FFFFFF\}/);
 });
 
 test('portão de bastão: etapas em pílula, "N de 3" e os mesmos campos que a gravação lê', () => {

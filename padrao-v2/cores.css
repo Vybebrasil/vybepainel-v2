@@ -1,0 +1,25 @@
+/* PADRÃO V2 · CORES ENXUTAS (confere de cor, 13/11/2026; Paulo: "pra não olhar muita informação e tudo parecer a mesma
+   coisa"). Regras: pílula cheia só no que pede atenção (vermelho venceu, âmbar voltou para ajuste, verde pronto); o resto
+   do status é uma pílula clara com a bolinha na cor do catálogo (Paulo, 08/11: o status tem de mostrar a cor dele);
+   vermelho só no que venceu; lilás só no agente; laranja só na ação. */
+
+/* A pílula de status nas listas e cartões do mundo (pillHtml em vybe-gestor.js). */
+body.mundo .pill.vv-st-ponto{display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;box-sizing:border-box;padding:0 9px;border:0;border-radius:999px;
+  background:#F3F1EC;color:#4A463F;font:600 11.5px/1 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:none}
+body.mundo .pill.vv-st-ponto > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,#B5AFA5)}
+body.mundo .pill.vv-st-ponto.r{background:#FDECEE;color:#B42318}
+body.mundo .pill.vv-st-ponto.a{background:#FFF4D6;color:#7A4A00}
+body.mundo .pill.vv-st-ponto.g{background:#E8F5EC;color:#11613A}
+
+/* O botão de status das listas (pv2StatusBotao): neutro com a bolinha; azul e lilás (antigos "a fazer" e "aprovação")
+   viram neutros — o lilás é do agente. */
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido,#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-ia,#vv-hoje,#workspace-drawer) .pv2-st.pv2-st:is(.n,.b,.v){background:#F3F1EC;color:#4A463F}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido,#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-ia,#vv-hoje,#workspace-drawer) .pv2-st.pv2-st:is(.n,.b,.v)::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,#B5AFA5)}
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-pill.pv2-pill:is(.b,.v){background:#F3F1EC;color:#4A463F}
+
+/* Peça sem responsável: neutro tracejado, não vermelho (vermelho é do que venceu). */
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-av.sd.sd{background:#FFFFFF;color:#6B665E;box-shadow:inset 0 0 0 1.5px #C9C2B6}
+
+/* Links do mundo em tinta sublinhada (o laranja fica só no botão de ação). */
+body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .vg-link{color:#1F1D1A;text-decoration:underline;text-decoration-color:#C9C2B6;text-underline-offset:3px}
+body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .vg-link:hover{text-decoration-color:#1F1D1A}

@@ -9,7 +9,7 @@
 @keyframes v2lg-entra{from{transform:translateY(12px) scale(.98)}to{transform:none}}
 #login-gate .v2lg p{margin:0}
 #login-gate .v2lg-marca{display:flex;align-items:center;gap:10px}
-#login-gate .v2lg-logo{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#FF7A2F;color:#FFFFFF;font:700 16px var(--vv-texto,Inter),sans-serif}
+#login-gate .v2lg-logo{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#1F1D1A;color:#FFFFFF;font:700 16px var(--vv-texto,Inter),sans-serif}
 #login-gate .v2lg-marca > b{flex:1;font:600 15px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
 #login-gate .v2lg-pts{display:flex;gap:6px;align-items:center}
 #login-gate .v2lg-pts > i{width:6px;height:6px;border-radius:50%;background:#D9D3C8;transition:width .25s,background-color .25s}
@@ -141,7 +141,7 @@
 :is(#vv-hoje,#vv-criar) .v2cr-etapa{flex:none;white-space:nowrap}
 :is(#vv-hoje,#vv-criar) .v2cr-passo{flex:none;display:flex;gap:5px;align-items:center}
 :is(#vv-hoje,#vv-criar) .v2cr-passo > i{display:block;width:22px;height:4px;border-radius:2px;background:#E4DFD6}
-:is(#vv-hoje,#vv-criar) .v2cr-passo > i.on{background:#FF7A2F}
+:is(#vv-hoje,#vv-criar) .v2cr-passo > i.on{background:#1F1D1A}
 :is(#vv-hoje,#vv-criar) .v2cr-dem[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1)),visibility 0s .28s}
 :is(#vv-hoje,#vv-criar) .v2cr-det{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;padding-top:4px}
 :is(#vv-hoje,#vv-criar) .v2cr-esq,:is(#vv-hoje,#vv-criar) .v2cr-ops{min-width:0;display:flex;flex-direction:column;gap:8px}

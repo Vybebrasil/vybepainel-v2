@@ -200,7 +200,7 @@ body.mundo #fc-overlay .nd .nd-cli::before{content:"";flex:none;width:8px;height
 body.mundo #fc-overlay .nd .nd-cli[data-carteira="vinicius"]::before{background:#C2490C}
 body.mundo #fc-overlay .nd .nd-cli[data-carteira="ewerton"]::before{background:#3B5BA9}
 body.mundo #fc-overlay .nd .nd-chip.on .nd-cli[data-carteira="ewerton"]::before{background:#7FA0F0}
-body.mundo #fc-overlay .nd .nd-chip.on .nd-cli[data-carteira="vinicius"]::before{background:#FF7A2F}
+body.mundo #fc-overlay .nd .nd-chip.on .nd-cli[data-carteira="vinicius"]::before{background:#1F1D1A}
 body.mundo #fc-overlay .nd .nd-av{display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter,sans-serif);box-shadow:0 0 0 2px #FFFFFF}
 body.mundo #fc-overlay .nd .nd-chip .nd-av{width:20px;height:20px;margin-left:-7px;font-size:8.5px;box-shadow:none}
 body.mundo #fc-overlay .nd .nd-avs{display:inline-flex;padding-left:8px}
@@ -217,7 +217,7 @@ body.mundo #fc-overlay .nd-etapa.agora{box-shadow:inset 0 0 0 2px #1F1D1A,0 12px
 body.mundo #fc-overlay .nd-cab{display:flex;align-items:center;gap:8px;cursor:pointer}
 body.mundo #fc-overlay .nd-cab h2{flex:1;min-width:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
 body.mundo #fc-overlay .nd-num{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 11.5px var(--vv-texto,Inter,sans-serif);transition:background-color .25s,color .25s}
-body.mundo #fc-overlay .nd-num.ok{background:#FF7A2F;color:#FFFFFF}
+body.mundo #fc-overlay .nd-num.ok{background:#1F1D1A;color:#FFFFFF}
 body.mundo #fc-overlay .nd-num.on{background:#1F1D1A;color:#FFFFFF}
 body.mundo #fc-overlay .nd .nd-fim{margin-top:auto}
 body.mundo #fc-overlay .nd .nd-tipo{appearance:none;flex:none;display:flex;align-items:center;gap:12px;width:100%;height:72px;min-height:72px;box-sizing:border-box;padding:0 14px;border:0;border-radius:16px;background:#F9F8F5;color:#1F1D1A;font:400 13.5px/1.35 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer;box-shadow:none;transition:background-color .2s,box-shadow .2s}
@@ -251,7 +251,7 @@ body.mundo #fc-overlay .nd-data{display:flex;align-items:center;gap:10px}
 body.mundo #fc-overlay .nd-data[hidden]{display:none}
 body.mundo #fc-overlay .nd-trilho{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12.5px;color:#4A463F}
 body.mundo #fc-overlay .nd-trilho > i{flex:none;width:8px;height:8px;border-radius:50%;background:#C9C2B6}
-body.mundo #fc-overlay .nd-trilho > i.ar{background:#FF7A2F}
+body.mundo #fc-overlay .nd-trilho > i.ar{background:#1F1D1A}
 body.mundo #fc-overlay .nd-trilho > b{margin-left:auto;font-weight:600;color:#1F1D1A}
 body.mundo #fc-overlay .nd .nd-prazo{margin-left:auto;width:auto;height:26px;padding:0 6px;border:0;border-radius:8px;background:transparent;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter,sans-serif);text-align:right;box-shadow:none}
 body.mundo #fc-overlay .nd .nd-prazo:is(:hover,:focus){background:#F9F8F5;outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}

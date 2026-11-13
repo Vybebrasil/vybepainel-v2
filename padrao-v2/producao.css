@@ -99,8 +99,8 @@
 /* bolinha de etapa: feita cheia, a de agora com o aro laranja */
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.ok{background:#FF7A2F;box-shadow:none}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.at{box-shadow:inset 0 0 0 2px #FF7A2F}
+:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.ok{background:#1F1D1A;box-shadow:none}
+:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.at{box-shadow:inset 0 0 0 2px #1F1D1A}
 /* menu que desce de um botão */
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-menu{position:relative;flex:none}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-menu-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:30;display:flex;flex-direction:column;gap:2px;width:min(300px,82vw);max-height:min(360px,60vh);overflow-y:auto;padding:8px;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.06),0 24px 40px -22px rgba(31,29,26,.4)}

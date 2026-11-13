@@ -132,7 +132,7 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 /* entrar na voz: a ação preta do quadro */
 #vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar{background:#1F1D1A;color:#FFFFFF}
 /* mudo e sem ouvir: o estado continua dito no nome, em vermelho (é o que pede atenção) */
-#vv-dock-salas-faixa .vq-dock .vq-item:is(.vq-mic.mudo,.vq-surdo){color:#B42318}
+#vv-dock-salas-faixa .vq-dock .vq-item:is(.vq-mic.mudo,.vq-surdo){color:#1F1D1A}
 /* desligado: cinza, sem apagar o botão */
 #vv-dock-salas-faixa .vq-dock .vq-item:disabled{opacity:1;color:#6B665E;background:none;cursor:not-allowed}
 #vv-dock-salas-faixa .vq-dock .vq-item:disabled .vq-icone{opacity:.7}

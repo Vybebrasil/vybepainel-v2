@@ -227,7 +227,7 @@ body.mundo #ag-cartao .capt-novo-tipo input:checked + span{background:transparen
 #vv-agentes.v2a .v2a-achados-pe > p{flex:1;min-width:0;margin:0}
 #vv-agentes.v2a .v2a-dias{flex:none;display:flex;align-items:flex-end;gap:4px;height:34px}
 #vv-agentes.v2a .v2a-dias > i{display:block;width:10px;height:var(--h,10%);border-radius:3px;background:#D9D3C8}
-#vv-agentes.v2a .v2a-dias > i.hoje{background:#FF7A2F}
+#vv-agentes.v2a .v2a-dias > i.hoje{background:#1F1D1A}
 #vv-agentes.v2a .v2a-ficha{display:flex;flex-direction:column;gap:14px;padding-top:16px;border-top:1px solid #E6E0D6}
 #vv-agentes.v2a .v2a-ficha > *{margin:0}
 @media (max-width:1180px){
@@ -391,8 +391,8 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > p{flex:1;min-width:0}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > .gv2-sub{max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.ok{background:#FF7A2F;box-shadow:none}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.vivo{box-shadow:inset 0 0 0 1.5px #FF7A2F;color:#FF7A2F}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.ok{background:#1F1D1A;box-shadow:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.vivo{box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#1F1D1A}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo .gv2-lk{display:inline-flex;align-items:center;min-height:44px;vertical-align:middle}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo{margin-top:-8px}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pe{flex:none;display:flex;gap:8px;margin-top:auto;padding-top:2px}
@@ -565,8 +565,8 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
 #vv-carteira .v2c-nm{flex:none;width:120px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 #vv-carteira .v2c-tri{flex:none;display:inline-flex;align-items:center;gap:10px}
 #vv-carteira .v2c-cx{position:relative;flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF;font-style:normal}
-#vv-carteira .v2c-cx.ok{background:#FF7A2F;box-shadow:none}
-#vv-carteira .v2c-cx.at{box-shadow:inset 0 0 0 2px #FF7A2F}
+#vv-carteira .v2c-cx.ok{background:#1F1D1A;box-shadow:none}
+#vv-carteira .v2c-cx.at{box-shadow:inset 0 0 0 2px #1F1D1A}
 #vv-carteira .v2c-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
 #vv-carteira .v2c-tri .v2c-cx + .v2c-cx::before{content:"";position:absolute;right:100%;top:50%;width:10px;height:2px;margin-top:-1px;background:#D9D3C8}
 #vv-carteira .v2c-agora{flex:1;min-width:0}
@@ -1174,7 +1174,7 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
 #vv-carteira .v2k-cols{flex:1 1 auto;min-height:110px;display:flex;align-items:flex-end;gap:4px;padding-top:8px}
 #vv-carteira .v2k-col{flex:1;min-width:0;height:100%;min-height:110px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
 #vv-carteira .v2k-col > i{display:block;width:24px;max-width:100%;height:var(--h);border-radius:7px 7px 3px 3px;background:#D9D3C8;transform-origin:bottom;animation:v2k-sobe .7s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
-#vv-carteira .v2k-col.agora > i{background:#FF7A2F}
+#vv-carteira .v2k-col.agora > i{background:#1F1D1A}
 #vv-carteira .v2k-col > span{font:400 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
 #vv-carteira .v2k-col.agora > span{color:#1F1D1A;font-weight:600}
 #vv-carteira .v2k-col[data-espiar]{cursor:pointer}
@@ -1297,6 +1297,33 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   #vv-hoje .v2o-lista{margin-left:0}
 }
 
+/* ===== padrao-v2/cores.css ===== */
+/* PADRÃO V2 · CORES ENXUTAS (confere de cor, 13/11/2026; Paulo: "pra não olhar muita informação e tudo parecer a mesma
+   coisa"). Regras: pílula cheia só no que pede atenção (vermelho venceu, âmbar voltou para ajuste, verde pronto); o resto
+   do status é uma pílula clara com a bolinha na cor do catálogo (Paulo, 08/11: o status tem de mostrar a cor dele);
+   vermelho só no que venceu; lilás só no agente; laranja só na ação. */
+
+/* A pílula de status nas listas e cartões do mundo (pillHtml em vybe-gestor.js). */
+body.mundo .pill.vv-st-ponto{display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;box-sizing:border-box;padding:0 9px;border:0;border-radius:999px;
+  background:#F3F1EC;color:#4A463F;font:600 11.5px/1 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:none}
+body.mundo .pill.vv-st-ponto > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,#B5AFA5)}
+body.mundo .pill.vv-st-ponto.r{background:#FDECEE;color:#B42318}
+body.mundo .pill.vv-st-ponto.a{background:#FFF4D6;color:#7A4A00}
+body.mundo .pill.vv-st-ponto.g{background:#E8F5EC;color:#11613A}
+
+/* O botão de status das listas (pv2StatusBotao): neutro com a bolinha; azul e lilás (antigos "a fazer" e "aprovação")
+   viram neutros — o lilás é do agente. */
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido,#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-ia,#vv-hoje,#workspace-drawer) .pv2-st.pv2-st:is(.n,.b,.v){background:#F3F1EC;color:#4A463F}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido,#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-ia,#vv-hoje,#workspace-drawer) .pv2-st.pv2-st:is(.n,.b,.v)::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,#B5AFA5)}
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-pill.pv2-pill:is(.b,.v){background:#F3F1EC;color:#4A463F}
+
+/* Peça sem responsável: neutro tracejado, não vermelho (vermelho é do que venceu). */
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-av.sd.sd{background:#FFFFFF;color:#6B665E;box-shadow:inset 0 0 0 1.5px #C9C2B6}
+
+/* Links do mundo em tinta sublinhada (o laranja fica só no botão de ação). */
+body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .vg-link{color:#1F1D1A;text-decoration:underline;text-decoration-color:#C9C2B6;text-underline-offset:3px}
+body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .vg-link:hover{text-decoration-color:#1F1D1A}
+
 /* ===== padrao-v2/diario.css ===== */
 /* ======================================================================================
    PADRÃO V2 · DIÁRIO DE PRODUÇÃO (quadro "Diário de produção" do moodboard aprovado em 12/11/2026).
@@ -1355,7 +1382,7 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
 #painel-diario .v2d-dl{padding:8px 0 2px 24px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#6B665E}
 #painel-diario .v2d-lin{display:flex;align-items:center;gap:12px;padding:10px 0;font:400 13.5px/1.35 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
 #painel-diario .v2d-pt{position:relative;flex:none;width:12px;height:12px;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 3px #C9C2B6}
-#painel-diario .v2d-pt.on{box-shadow:inset 0 0 0 3px #FF7A2F}
+#painel-diario .v2d-pt.on{box-shadow:inset 0 0 0 3px #1F1D1A}
 #painel-diario .v2d-av{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
 #painel-diario .v2d-quem{appearance:none;flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 #painel-diario .v2d-quem b{font-weight:700}
@@ -1546,7 +1573,7 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 /* entrar na voz: a ação preta do quadro */
 #vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar{background:#1F1D1A;color:#FFFFFF}
 /* mudo e sem ouvir: o estado continua dito no nome, em vermelho (é o que pede atenção) */
-#vv-dock-salas-faixa .vq-dock .vq-item:is(.vq-mic.mudo,.vq-surdo){color:#B42318}
+#vv-dock-salas-faixa .vq-dock .vq-item:is(.vq-mic.mudo,.vq-surdo){color:#1F1D1A}
 /* desligado: cinza, sem apagar o botão */
 #vv-dock-salas-faixa .vq-dock .vq-item:disabled{opacity:1;color:#6B665E;background:none;cursor:not-allowed}
 #vv-dock-salas-faixa .vq-dock .vq-item:disabled .vq-icone{opacity:.7}
@@ -1689,7 +1716,7 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 @keyframes v2lg-entra{from{transform:translateY(12px) scale(.98)}to{transform:none}}
 #login-gate .v2lg p{margin:0}
 #login-gate .v2lg-marca{display:flex;align-items:center;gap:10px}
-#login-gate .v2lg-logo{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#FF7A2F;color:#FFFFFF;font:700 16px var(--vv-texto,Inter),sans-serif}
+#login-gate .v2lg-logo{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#1F1D1A;color:#FFFFFF;font:700 16px var(--vv-texto,Inter),sans-serif}
 #login-gate .v2lg-marca > b{flex:1;font:600 15px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
 #login-gate .v2lg-pts{display:flex;gap:6px;align-items:center}
 #login-gate .v2lg-pts > i{width:6px;height:6px;border-radius:50%;background:#D9D3C8;transition:width .25s,background-color .25s}
@@ -1821,7 +1848,7 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 :is(#vv-hoje,#vv-criar) .v2cr-etapa{flex:none;white-space:nowrap}
 :is(#vv-hoje,#vv-criar) .v2cr-passo{flex:none;display:flex;gap:5px;align-items:center}
 :is(#vv-hoje,#vv-criar) .v2cr-passo > i{display:block;width:22px;height:4px;border-radius:2px;background:#E4DFD6}
-:is(#vv-hoje,#vv-criar) .v2cr-passo > i.on{background:#FF7A2F}
+:is(#vv-hoje,#vv-criar) .v2cr-passo > i.on{background:#1F1D1A}
 :is(#vv-hoje,#vv-criar) .v2cr-dem[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1)),visibility 0s .28s}
 :is(#vv-hoje,#vv-criar) .v2cr-det{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;padding-top:4px}
 :is(#vv-hoje,#vv-criar) .v2cr-esq,:is(#vv-hoje,#vv-criar) .v2cr-ops{min-width:0;display:flex;flex-direction:column;gap:8px}
@@ -2189,7 +2216,7 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir){appearance:none;display:inline;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px;border-radius:4px}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-cx){flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-:is(#painel-clientes,#vv-reunioes) .v2f-cx.ok{background:#FF7A2F;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) .v2f-cx.ok{background:#1F1D1A;box-shadow:none}
 
 /* ===== Gestão de clientes (#painel-clientes, renderClientesBoard em vybe-clientes.js) ===== */
 /* O fundo #F9F8F5 da janela do quadro: a sombra enche a janela inteira (que recorta pelo próprio canto). */
@@ -2542,7 +2569,7 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 :is(#vv-comercial,.vv-setor-visao) .fv2-cols{flex:1;display:flex;align-items:flex-end;gap:6px;min-height:140px;height:170px;padding-top:14px}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col > i{display:block;width:28px;height:var(--h);border-radius:8px 8px 3px 3px;background:#D9D3C8;transform-origin:bottom;animation:fv2-sobe .9s cubic-bezier(.2,.8,.2,1) both}
-:is(#vv-comercial,.vv-setor-visao) .fv2-col.agora > i{background:#FF7A2F}
+:is(#vv-comercial,.vv-setor-visao) .fv2-col.agora > i{background:#1F1D1A}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col.depois > i{background:repeating-linear-gradient(135deg,#F3C6A5 0 5px,#FFF1E6 5px 10px)}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col > span{font-size:11.5px;color:#6B665E}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col.agora > span{color:#1F1D1A;font-weight:600}
@@ -3120,7 +3147,7 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 #ofc-ranking .v2r-pd{appearance:none;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;padding:0;border:0;background:none;color:#1F1D1A;font:400 12.5px/1.3 var(--vv-texto,Inter,sans-serif);text-align:center;cursor:pointer}
 #ofc-ranking .v2r-pd:focus-visible{outline:2px solid #1F1D1A;outline-offset:4px;border-radius:14px}
 #ofc-ranking .v2r-pd > .v2r-av{margin-bottom:5px}
-#ofc-ranking .v2r-pd.p1 > .v2r-av{box-shadow:0 0 0 2px #FFFFFF,0 0 0 5px #FF7A2F}
+#ofc-ranking .v2r-pd.p1 > .v2r-av{box-shadow:0 0 0 2px #FFFFFF,0 0 0 5px #1F1D1A}
 #ofc-ranking .v2r-pd-nome{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #ofc-ranking .v2r-pd > strong{font:700 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;color:#1F1D1A;white-space:nowrap}
 #ofc-ranking .v2r-pd.p1 > strong{font-size:30px}
@@ -3360,7 +3387,7 @@ input.vb-no-lugar{appearance:none;height:28px;max-width:150px;box-sizing:border-
 
 /* 10 · Cor do humor: do vermelho (0) ao verde (100), devagar. A faixa à esquerda leva a cor cheia; o fundo, um véu. */
 .v2-humor:not(#vb-h1):not(#vb-h2){--humor-cor:hsl(calc(var(--humor,50) * 1.2) 62% 42%);--humor-veu:hsl(calc(var(--humor,50) * 1.2) 70% 97%);
-  background-color:var(--humor-veu);box-shadow:inset 4px 0 0 var(--humor-cor),0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);
+  box-shadow:inset 4px 0 0 var(--humor-cor),0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);
   transition:background-color .9s ease,box-shadow .9s ease}
 .v2-humor:not(#vb-h1):not(#vb-h2) .v2-humor-nota{color:var(--humor-cor);transition:color .9s ease}
 @media (prefers-reduced-motion:reduce){.v2-humor,.v2-humor .v2-humor-nota{transition:none}}
@@ -3426,7 +3453,7 @@ input.vb-no-lugar{appearance:none;height:28px;max-width:150px;box-sizing:border-
 #v2-notas .v2nt-nota .nota-linha.editando{background:#F3F1EC}
 #v2-notas .v2nt-nota .nota-linha.m-titulo{margin-top:4px;font:600 15px/1.4 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
 #v2-notas .v2nt-nota .nota-linha.m-titulo2{margin-top:2px;font:600 14px/1.4 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
-#v2-notas .v2nt-nota .nota-linha input[type=checkbox]{flex:none;width:16px;height:16px;margin:3px 0 0;accent-color:#FF7A2F}
+#v2-notas .v2nt-nota .nota-linha input[type=checkbox]{flex:none;width:16px;height:16px;margin:3px 0 0;accent-color:#1F1D1A}
 #v2-notas .v2nt-nota :is(.nota-texto,.nota-ponto){color:#1F1D1A}
 #v2-notas .v2nt-nota .nota-texto.feito{color:#6B665E;text-decoration:line-through}
 #v2-notas .v2nt-nota .nota-entrada{flex:1;min-width:0;margin:0;padding:0;border:0;background:transparent;box-shadow:none;color:#1F1D1A;font:inherit;line-height:inherit;resize:none;outline:none}
@@ -3622,12 +3649,12 @@ body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-abrir:hover{background:#FFFFFF;
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi.quieto > b{color:#B5AFA5}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi > .v2-barra{background:#EAE6DE}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx.ok{background:#FF7A2F;box-shadow:none}
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx.ok{background:#1F1D1A;box-shadow:none}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp{display:inline-flex;align-items:center;gap:6px;font:400 12.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#4A463F}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.ok{color:#6B665E}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.vez{font-weight:600;color:#1F1D1A}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.vez .pv2-cx{box-shadow:inset 0 0 0 1.5px #FF7A2F}
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.vez .pv2-cx{box-shadow:inset 0 0 0 1.5px #1F1D1A}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-menu{position:relative;flex:none}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-menu > summary{list-style:none;cursor:pointer}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-menu > summary::-webkit-details-marker{display:none}
@@ -3816,11 +3843,11 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 #pv2-ia .pv2i-dias-caixa{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end}
 #pv2-ia .pv2i-dias{display:flex;align-items:flex-end;gap:3px;height:74px}
 #pv2-ia .pv2i-dias i{display:block;flex:1;min-width:1px;height:var(--h);border-radius:3px 3px 1px 1px;background:#D9D3C8;transform-origin:bottom;animation:pv2i-sobe .9s cubic-bezier(.2,.8,.2,1) both}
-#pv2-ia .pv2i-dias i.pico{background:#FF7A2F}
+#pv2-ia .pv2i-dias i.pico{background:#1F1D1A}
 @keyframes pv2i-sobe{from{transform:scaleY(0)}to{transform:none}}
 #pv2-ia .pv2i-eixo{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
 #pv2-ia .pv2i-eixo span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-#pv2-ia .pv2i-eixo i{display:inline-block;width:8px;height:8px;border-radius:2px;background:#FF7A2F}
+#pv2-ia .pv2i-eixo i{display:inline-block;width:8px;height:8px;border-radius:2px;background:#1F1D1A}
 #pv2-ia .pv2i-baixo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:stretch}
 #pv2-ia .pv2i-baixo > .pv2-card{display:flex;flex-direction:column}
 #pv2-ia .pv2i-cab{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
@@ -4061,7 +4088,7 @@ body.mundo #fc-overlay .nd .nd-cli::before{content:"";flex:none;width:8px;height
 body.mundo #fc-overlay .nd .nd-cli[data-carteira="vinicius"]::before{background:#C2490C}
 body.mundo #fc-overlay .nd .nd-cli[data-carteira="ewerton"]::before{background:#3B5BA9}
 body.mundo #fc-overlay .nd .nd-chip.on .nd-cli[data-carteira="ewerton"]::before{background:#7FA0F0}
-body.mundo #fc-overlay .nd .nd-chip.on .nd-cli[data-carteira="vinicius"]::before{background:#FF7A2F}
+body.mundo #fc-overlay .nd .nd-chip.on .nd-cli[data-carteira="vinicius"]::before{background:#1F1D1A}
 body.mundo #fc-overlay .nd .nd-av{display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter,sans-serif);box-shadow:0 0 0 2px #FFFFFF}
 body.mundo #fc-overlay .nd .nd-chip .nd-av{width:20px;height:20px;margin-left:-7px;font-size:8.5px;box-shadow:none}
 body.mundo #fc-overlay .nd .nd-avs{display:inline-flex;padding-left:8px}
@@ -4078,7 +4105,7 @@ body.mundo #fc-overlay .nd-etapa.agora{box-shadow:inset 0 0 0 2px #1F1D1A,0 12px
 body.mundo #fc-overlay .nd-cab{display:flex;align-items:center;gap:8px;cursor:pointer}
 body.mundo #fc-overlay .nd-cab h2{flex:1;min-width:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A}
 body.mundo #fc-overlay .nd-num{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 11.5px var(--vv-texto,Inter,sans-serif);transition:background-color .25s,color .25s}
-body.mundo #fc-overlay .nd-num.ok{background:#FF7A2F;color:#FFFFFF}
+body.mundo #fc-overlay .nd-num.ok{background:#1F1D1A;color:#FFFFFF}
 body.mundo #fc-overlay .nd-num.on{background:#1F1D1A;color:#FFFFFF}
 body.mundo #fc-overlay .nd .nd-fim{margin-top:auto}
 body.mundo #fc-overlay .nd .nd-tipo{appearance:none;flex:none;display:flex;align-items:center;gap:12px;width:100%;height:72px;min-height:72px;box-sizing:border-box;padding:0 14px;border:0;border-radius:16px;background:#F9F8F5;color:#1F1D1A;font:400 13.5px/1.35 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer;box-shadow:none;transition:background-color .2s,box-shadow .2s}
@@ -4112,7 +4139,7 @@ body.mundo #fc-overlay .nd-data{display:flex;align-items:center;gap:10px}
 body.mundo #fc-overlay .nd-data[hidden]{display:none}
 body.mundo #fc-overlay .nd-trilho{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12.5px;color:#4A463F}
 body.mundo #fc-overlay .nd-trilho > i{flex:none;width:8px;height:8px;border-radius:50%;background:#C9C2B6}
-body.mundo #fc-overlay .nd-trilho > i.ar{background:#FF7A2F}
+body.mundo #fc-overlay .nd-trilho > i.ar{background:#1F1D1A}
 body.mundo #fc-overlay .nd-trilho > b{margin-left:auto;font-weight:600;color:#1F1D1A}
 body.mundo #fc-overlay .nd .nd-prazo{margin-left:auto;width:auto;height:26px;padding:0 6px;border:0;border-radius:8px;background:transparent;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter,sans-serif);text-align:right;box-shadow:none}
 body.mundo #fc-overlay .nd .nd-prazo:is(:hover,:focus){background:#F9F8F5;outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
@@ -4422,7 +4449,7 @@ body.mundo #workspace-drawer .log-rosto-sistema.automacao{background:#EFE7FD;col
 #vv-pessoas .v2p-ds{font-size:11.5px;line-height:14px;color:#6B665E;text-align:center}
 #vv-pessoas .v2p-dia{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;height:38px;box-sizing:border-box;padding:3px 5px;border-radius:10px;background:#F6F3EE;color:#4A463F;font:600 11.5px/14px var(--vv-texto,Inter),sans-serif}
 #vv-pessoas .v2p-dia > b{font-weight:600}
-#vv-pessoas .v2p-dia.hoje{background:#FFF1E6;box-shadow:inset 0 0 0 1.5px #FF7A2F;color:#8A3207}
+#vv-pessoas .v2p-dia.hoje{background:#FFF1E6;box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#8A3207}
 #vv-pessoas .v2p-dia.fora{background:none}
 #vv-pessoas .v2p-dia-evs{display:flex;gap:2px;max-width:100%}
 #vv-pessoas .v2p-cal-lado{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -4465,7 +4492,7 @@ body.mundo #workspace-drawer .log-rosto-sistema.automacao{background:#EFE7FD;col
 #vv-pessoas .v2p-cx{appearance:none;flex:none;display:grid;place-items:center;width:18px;height:18px;margin:0;padding:0;border:0;border-radius:50%;background:none;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF;cursor:pointer;transition:background-color .2s,box-shadow .2s}
 #vv-pessoas .v2p-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:0}
 #vv-pessoas .v2p-cx:hover{box-shadow:inset 0 0 0 1.5px #C2490C}
-#vv-pessoas .v2p-cx.ok{background:#FF7A2F;box-shadow:none}
+#vv-pessoas .v2p-cx.ok{background:#1F1D1A;box-shadow:none}
 #vv-pessoas .v2p-cx.ok svg{opacity:1}
 #vv-pessoas .v2p-cx:disabled{cursor:default;opacity:.6}
 #vv-pessoas .v2p-play{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#FFF1E6;color:#8A3207}
@@ -4630,8 +4657,8 @@ body.mundo #workspace-drawer .log-rosto-sistema.automacao{background:#EFE7FD;col
 /* bolinha de etapa: feita cheia, a de agora com o aro laranja */
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.ok{background:#FF7A2F;box-shadow:none}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.at{box-shadow:inset 0 0 0 2px #FF7A2F}
+:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.ok{background:#1F1D1A;box-shadow:none}
+:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-cx.at{box-shadow:inset 0 0 0 2px #1F1D1A}
 /* menu que desce de um botão */
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-menu{position:relative;flex:none}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-menu-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:30;display:flex;flex-direction:column;gap:2px;width:min(300px,82vw);max-height:min(360px,60vh);overflow-y:auto;padding:8px;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.06),0 24px 40px -22px rgba(31,29,26,.4)}
@@ -4907,7 +4934,7 @@ body.mundo #workspace-drawer .log-rosto-sistema.automacao{background:#EFE7FD;col
 #vv-pessoas .v2pj-tempo .vp-gantt-barra.feita{background:#11613A}
 #vv-pessoas .v2pj-tempo .vp-gantt-barra.atrasada{background:#B42318}
 #vv-pessoas .v2pj-tempo .vp-dia{border:0;border-radius:14px;background:#F6F3EE}
-#vv-pessoas .v2pj-tempo .vp-dia.hoje{background:#FFF1E6;box-shadow:inset 0 0 0 1.5px #FF7A2F}
+#vv-pessoas .v2pj-tempo .vp-dia.hoje{background:#FFF1E6;box-shadow:inset 0 0 0 1.5px #1F1D1A}
 #vv-pessoas .v2pj-tempo .vp-etapa-dia{border-radius:10px;border-left-color:#3B5BA9}
 #vv-pessoas .v2pj-tempo .vp-etapa-dia.feita{border-left-color:#11613A}
 #vv-pessoas .v2pj-tempo .vp-etapa-dia.atrasada{border-left-color:#B42318}

@@ -1083,15 +1083,18 @@
     const statusSet = new Map();
     const colunas = dias.map((dia) => {
       const lista = porDia.get(dia), grupos = new Map();
+      // Três situações em vez das cores do Monday (confere de cor, 13/11/2026: o arco-íris pesava mais que o número):
+      // prontas (só Finalizado), em produção e atrasadas. O detalhe por status está em "ver a lista" do dia.
       for (const d of lista) {
-        const st = String(d.status || 'Sem status').trim() || 'Sem status';
-        if (!grupos.has(st)) grupos.set(st, { st, n: 0, cor: corStatus(d, situacaoDaPeca(d)) });
+        const sit = situacaoDaPeca(d), st = sit === 'concluida' ? 'Prontas' : sit === 'atrasada' ? 'Atrasadas' : 'Em produção';
+        if (!grupos.has(st)) grupos.set(st, { st, n: 0, cor: st === 'Prontas' ? '#11613A' : st === 'Atrasadas' ? '#B42318' : '#C9C2B6' });
         grupos.get(st).n++;
         if (!statusSet.has(st)) statusSet.set(st, { st, cor: grupos.get(st).cor, n: 0 });
         statusSet.get(st).n++;
       }
       const prontas = lista.filter((d) => situacaoDaPeca(d) === 'concluida').length;
-      return { dia, lista, grupos: [...grupos.values()].sort((a, b) => b.n - a.n), prontas };
+      const ORDEM_SIT = { Prontas: 0, 'Em produção': 1, Atrasadas: 2 };
+      return { dia, lista, grupos: [...grupos.values()].sort((a, b) => ORDEM_SIT[a.st] - ORDEM_SIT[b.st]), prontas };
     });
     const max = Math.max(1, ...colunas.map((c) => c.lista.length));
     // No Hoje (Paulo, 13/11/2026: "como tá sexta selecionado, não era pra aparecer os números só de sexta?"): tocar num dia
@@ -1107,7 +1110,8 @@
     };
     const doSel = sel ? colunas.find((c) => c.dia === sel) : null;
     const fonte = doSel ? doSel.grupos.map((g) => ({ st: g.st, cor: g.cor, n: g.n })) : [...statusSet.values()];
-    const legenda = fonte.sort((a, b) => b.n - a.n).slice(0, 10).map((x) => `<span><i style="--c:${esc(x.cor)}"></i>${esc(x.st)} <b>${x.n}</b></span>`).join('');
+    const ORDEM_LEG = { Prontas: 0, 'Em produção': 1, Atrasadas: 2 };
+    const legenda = fonte.sort((a, b) => (ORDEM_LEG[a.st] ?? 9) - (ORDEM_LEG[b.st] ?? 9)).slice(0, 10).map((x) => `<span><i style="--c:${esc(x.cor)}"></i>${esc(x.st)} <b>${x.n}</b></span>`).join('');
     const total = doSel ? doSel.lista.length : colunas.reduce((t, c) => t + c.lista.length, 0);
     const nomeSel = doSel ? `${['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][new Date(sel + 'T12:00:00Z').getUTCDay()]}, ${sel.slice(8, 10)}/${sel.slice(5, 7)}` : '';
     const titulo = !selecionavel ? '' : `<p class="vv-sem-quando">${doSel ? `<b>${esc(nomeSel)}</b> · ${total} ${total === 1 ? 'peça' : 'peças'} · <button type="button" class="vg-link" data-espiar="semdia:${sel}|${campo}">ver a lista</button> · <button type="button" class="vg-link" data-semana-dia="">semana toda</button>` : `<b>Semana toda</b> · ${total} ${total === 1 ? 'peça' : 'peças'} · toque num dia para ver só ele`}</p>`;

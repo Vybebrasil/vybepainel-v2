@@ -230,6 +230,8 @@ function hslParaHex(h, s, l) {
 function pillHtml(s, color='', border='') {
   const doCatalogo = color ? null : corDeStatus(s);
   const cor = color || doCatalogo?.cor || '';
+  // No mundo (padrão v2): pílula clara com a bolinha na cor do status; cheia só no que pede atenção (pv2Tom).
+  if (pv2Ligado()) return `<span class="pill vv-st-ponto ${pv2Tom(s)}"${cor ? ` style="--st:${safeText(cor)}"` : ''}><i aria-hidden="true"></i>${s}</span>`;
   const bordaFinal = border || doCatalogo?.borda || '';
   return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(cor, bordaFinal)}><span class="pill-dot"${statusDotInlineStyle(cor)}></span>${s}</span>`;
 }
@@ -1759,16 +1761,15 @@ const PV2_IC = {
   baixo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
 };
 function pv2Ligado() { return typeof document !== 'undefined' && Boolean(document.body?.classList.contains('mundo')); }
-// Cor é significado: vermelho no que voltou ou venceu, verde no que está pronto, lilás no que espera aprovação,
-// azul no que ainda vai começar, neutro no que espera alguém de fora e âmbar no que está em produção.
+// Cor é significado (Paulo, 13/11/2026: "pra não olhar muita informação e tudo parecer a mesma coisa"). Pílula cheia só no
+// que pede atenção: vermelho no que venceu, âmbar no que voltou para ajuste, verde no que está pronto (só Finalizado e
+// equivalentes). O resto fica neutro, com a bolinha na cor do catálogo (a cor do status continua dizendo qual é).
 function pv2Tom(status) {
   const s = String(status || '').toLocaleLowerCase('pt-BR');
-  if (/altera|atras|vencid/.test(s)) return 'r';
-  if (/finaliz|feito|conclu|agendad|para agendar|aprovado|gravad/.test(s)) return 'g';
-  if (/aprova/.test(s)) return 'v';
-  if (/^a fazer|nova/.test(s)) return 'b';
-  if (/aguard|^ag\.|falta|info|sem status|^—$/.test(s)) return 'n';
-  return 'a';
+  if (/atras|vencid/.test(s)) return 'r';
+  if (/altera|ajuste|corre|refaz/.test(s)) return 'a';
+  if (/finaliz|feito|conclu|publicad|postad/.test(s)) return 'g';
+  return 'n';
 }
 function pv2Pill(texto, tom) { return `<span class="pv2-pill ${tom || pv2Tom(texto)}">${safeText(texto || 'Sem status')}</span>`; }
 // O cliente com a bolinha na cor da carteira dele (laranja ou azul do Responsável geral; cinza sem carteira).
@@ -2101,7 +2102,8 @@ function pv2StatusBotao(d) {
   const id = safeText(d?.id ?? ''), rotulo = String(d?.status || 'Sem status'), chegou = pv2StatusChegouAgora(d);
   if (chegou) pv2AgendarAssentar();
   const dica = `Trocar status de ${safeText(d?.nome || 'atividade')}`;
-  return `<button type="button" class="pv2-st ${pv2Tom(rotulo)}${chegou ? ' v2-estado' : ''}" data-v2-st="${id}"${chegou ? ' data-estado="feito"' : ''} aria-haspopup="menu" aria-expanded="false" title="${dica}" aria-label="${safeText(rotulo)}. ${dica}" onclick="event.stopPropagation();openStatusEditor(event,'${id}')">${chegou ? `<i class="pv2-st-ok" aria-hidden="true">${PV2_IC.ok}</i>` : ''}<span class="pv2-st-rot">${safeText(rotulo)}</span><i class="pv2-st-seta" aria-hidden="true">${PV2_IC.baixo}</i></button>`;
+  const corSt = d?.status_color || (typeof corDeStatus === 'function' ? corDeStatus(rotulo)?.cor : '') || '';
+  return `<button type="button" class="pv2-st ${pv2Tom(rotulo)}${chegou ? ' v2-estado' : ''}"${corSt ? ` style="--st:${safeText(corSt)}"` : ''} data-v2-st="${id}"${chegou ? ' data-estado="feito"' : ''} aria-haspopup="menu" aria-expanded="false" title="${dica}" aria-label="${safeText(rotulo)}. ${dica}" onclick="event.stopPropagation();openStatusEditor(event,'${id}')">${chegou ? `<i class="pv2-st-ok" aria-hidden="true">${PV2_IC.ok}</i>` : ''}<span class="pv2-st-rot">${safeText(rotulo)}</span><i class="pv2-st-seta" aria-hidden="true">${PV2_IC.baixo}</i></button>`;
 }
 // Escolheu no menu: a pílula daquela peça gira até a lista voltar desenhada. Se abriu um portão (a caixa de contexto)
 // ou a gravação terminou sem redesenhar (recusada, ou o mesmo status), ela volta a ser a pílula de antes.

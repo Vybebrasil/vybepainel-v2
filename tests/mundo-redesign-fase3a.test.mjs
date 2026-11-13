@@ -76,5 +76,5 @@ test('janelas e conteúdo do mundo entram só com movimento: nada começa transp
 
 test('Conquistas na janela clara: abas e dica com a cor do sistema', () => {
   assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo \.ofc-cq-abas \.vb-chip\{background:#FFFFFF;/);
-  assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo \.cq-dica\{color:#5E5A53\}/);
+  assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo \.cq-dica\{color:#6B665E\}/);
 });

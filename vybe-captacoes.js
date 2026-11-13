@@ -1328,7 +1328,7 @@ function pv2aPedeAcaoHtml(pend, bate) {
     const quando = `${agDiaSemana(e.dia, "long")}, ${Number(e.dia.slice(8))}/${e.dia.slice(5, 7)}${e.inicio ? ` · ${agHorario(e)}` : ""}`;
     const sub = k ? (k.pecas.length ? `gravada, ${gravadas} de ${captPlural(k.pecas.length, "peça marcada", "peças marcadas")}` : "gravada, sem peças ligadas") : "gravada, ainda sem nada no sistema";
     return `<div class="pv2-linha v2-abre" aria-expanded="${aberta}"><div class="pv2-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2aAlternar('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2aAlternar('${id}',this)}">
-        ${pv2Pill(dias <= 0 ? "Hoje" : `Há ${captPlural(dias, "dia", "dias")}`, dias >= 6 ? "r" : "a")}<p>${e.cliente ? pv2Cli(e.cliente) : `<b>${safeText(e.titulo || "Captação")}</b>`} · ${safeText(quando)}<br><span class="pv2-sub">${safeText(sub)}</span></p>
+        ${pv2Pill(dias <= 0 ? "Hoje" : `Há ${captPlural(dias, "dia", "dias")}`, dias >= 1 ? "r" : "a")}<p>${e.cliente ? pv2Cli(e.cliente) : `<b>${safeText(e.titulo || "Captação")}</b>`} · ${safeText(quando)}<br><span class="pv2-sub">${safeText(sub)}</span></p>
         <button type="button" class="pv2-btn s" onclick="event.stopPropagation();captAbrirFechar('${id}')">Fechar gravação</button></div>
       <div class="v2-mais"><div><div class="pv2-det">
         <span class="pv2-etp ok"><i class="pv2-cx ok" aria-hidden="true">${PV2_IC.ok}</i>Gravada ${safeText(agDiaSemana(e.dia, "long"))}${e.inicio ? `, ${safeText(agHorario(e))}` : ""}</span>

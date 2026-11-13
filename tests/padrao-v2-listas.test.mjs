@@ -25,12 +25,15 @@ function pilulas() {
 test('a pílula é o botão do status: cor do significado, setinha e o menu curto no lugar, sem abrir a linha', () => {
   const { pv2StatusBotao } = pilulas();
   const html = pv2StatusBotao({ id: 'vybe:7', nome: 'Card · Promoção', status: 'Para Aprovação' });
-  assert.match(html, /^<button type="button" class="pv2-st v" data-v2-st="vybe:7" aria-haspopup="menu" aria-expanded="false"/);
+  assert.match(html, /^<button type="button" class="pv2-st n" data-v2-st="vybe:7" aria-haspopup="menu" aria-expanded="false"/);
   assert.match(html, /onclick="event\.stopPropagation\(\);openStatusEditor\(event,'vybe:7'\)"/);
   assert.match(html, /<span class="pv2-st-rot">Para Aprovação<\/span><i class="pv2-st-seta" aria-hidden="true"><svg[^>]*><path d="M6 9l6 6 6-6"\/><\/svg><\/i><\/button>$/);
   assert.doesNotMatch(html, /data-estado|pv2-st-ok/, 'na primeira vez a pílula só aparece');
-  assert.match(pv2StatusBotao({ id: 1, status: 'Alteração' }), /class="pv2-st r"/);
-  assert.match(pv2StatusBotao({ id: 2, status: 'Pode Fazer' }), /class="pv2-st a"/);
+  // Cores enxutas (13/11/2026): vermelho só no que venceu, âmbar no que voltou para ajuste, o resto neutro com a bolinha.
+  assert.match(pv2StatusBotao({ id: 1, status: 'Alteração' }), /class="pv2-st a"/);
+  assert.match(pv2StatusBotao({ id: 4, status: 'Atrasado' }), /class="pv2-st r"/);
+  assert.match(pv2StatusBotao({ id: 2, status: 'Pode Fazer' }), /class="pv2-st n"/);
+  assert.match(pv2StatusBotao({ id: 5, status: 'Para agendar' }), /class="pv2-st n"/, 'Para agendar não é pronto');
   assert.match(pv2StatusBotao({ id: 3, status: 'Finalizado' }), /class="pv2-st g"/);
 });
 
@@ -42,7 +45,7 @@ test('trocou o status: a linha chega (v2-chegou) e a pílula vem verde com o vis
   peca.status = 'Em Andamento';
   assert.equal(pv2Chegou(peca), ' v2-chegou', 'a linha que acabou de trocar desliza');
   const nova = pv2StatusBotao(peca);
-  assert.match(nova, /class="pv2-st a v2-estado" data-v2-st="9" data-estado="feito"/);
+  assert.match(nova, /class="pv2-st n v2-estado" data-v2-st="9" data-estado="feito"/);
   assert.match(nova, /<i class="pv2-st-ok" aria-hidden="true"><svg[^>]*><path d="M5 12l5 5 9-10"\/><\/svg><\/i><span class="pv2-st-rot">Em Andamento<\/span>/);
   passa(2000);
   assert.equal(pv2Chegou(peca), '', 'passou o instante, a linha não chega de novo a cada desenho');

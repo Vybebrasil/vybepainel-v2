@@ -78,7 +78,7 @@
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir){appearance:none;display:inline;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px;border-radius:4px}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-cx){flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-:is(#painel-clientes,#vv-reunioes) .v2f-cx.ok{background:#FF7A2F;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) .v2f-cx.ok{background:#1F1D1A;box-shadow:none}
 
 /* ===== Gestão de clientes (#painel-clientes, renderClientesBoard em vybe-clientes.js) ===== */
 /* O fundo #F9F8F5 da janela do quadro: a sombra enche a janela inteira (que recorta pelo próprio canto). */
