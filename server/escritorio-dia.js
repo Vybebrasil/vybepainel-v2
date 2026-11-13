@@ -10,8 +10,13 @@
 //               final. A coluna "Conclusão" das demandas é uma data
 //               planejada, não o dia em que a peça ficou pronta.
 // O status sai como está no painel (Para agendar e Agendado não viram
-// "publicado"); "pronta" é o status final da tabela vybe_status.
+// "publicado"). Sem a entrega registrada, "pronta" pelo status é a de
+// server/pronta.js (final e não é Para agendar/Agendado). Para agendar e
+// Agendado com veiculação futura (ou de hoje) não são cobrança: a produção
+// da pessoa acabou e o rótulo do status mostra que falta postar. Com a
+// veiculação vencida e sem sair, viram "falta" e entram nas atrasadas.
 import { diaBahia, somarDias } from './escritorio-pontos.js';
+import { AGUARDA_POSTAR, aguardaPostarVencida } from './pronta.js';
 
 export function diaUtilAntes(iso) {
   let d = somarDias(iso, -1);
@@ -32,15 +37,17 @@ export async function diaDaEquipe(sql, agora = new Date()) {
       entregues AS (
         SELECT e.conteudo_id FROM vybe_escritorio_entregas e JOIN vybe_escritorio_regras g ON g.chave=e.regra AND g.entrega
         WHERE e.dia >= ${ontem}::date AND e.conteudo_id IS NOT NULL)
-      SELECT c.id, c.monday_item_id, c.board_id, c.titulo, c.status_chave, s.rotulo AS status, s.cor AS status_cor, COALESCE(s.final,false) AS final,
+      SELECT c.id, c.monday_item_id, c.board_id, c.titulo, c.status_chave, s.rotulo AS status, s.cor AS status_cor, COALESCE(s.final,false) AND COALESCE(c.status_chave,'') <> ALL(${AGUARDA_POSTAR}::text[]) AS final,
+        COALESCE(c.status_chave,'') = ANY(${AGUARDA_POSTAR}::text[]) AS aguarda,
         TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo, TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,
         COALESCE(ARRAY(SELECT r.pessoa_id::text FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=c.id ORDER BY r.ordem), '{}') AS responsaveis,
         COALESCE(ARRAY(SELECT cl.nome FROM vybe_conteudo_clientes v JOIN vybe_clientes cl ON cl.id=v.cliente_id WHERE v.conteudo_id=c.id ORDER BY cl.nome), '{}') AS clientes,
         COALESCE((SELECT json_agg(json_build_object('tipo',a.tipo,'de',a.de,'para',a.para)) FROM adiadas a WHERE a.conteudo_id=c.id), '[]'::json) AS adiada,
-        CASE WHEN COALESCE(s.final,false) THEN (SELECT TO_CHAR(vybe_dia_bahia(max(e.em)),'YYYY-MM-DD') FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='status') END AS pronta_em
+        CASE WHEN COALESCE(s.final,false) OR COALESCE(c.status_chave,'') = ANY(${AGUARDA_POSTAR}::text[]) THEN (SELECT TO_CHAR(vybe_dia_bahia(max(e.em)),'YYYY-MM-DD') FROM vybe_conteudo_eventos e WHERE e.conteudo_id=c.id AND e.tipo='status') END AS pronta_em
       FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
       WHERE c.removido_em IS NULL AND (
-        (COALESCE(c.prazo, c.veiculacao) < ${hoje}::date AND NOT COALESCE(s.final,false))
+        (COALESCE(c.prazo, c.veiculacao) < ${hoje}::date AND NOT COALESCE(s.final,false) AND COALESCE(c.status_chave,'') <> ALL(${AGUARDA_POSTAR}::text[]))
+        OR (COALESCE(c.status_chave,'') = ANY(${AGUARDA_POSTAR}::text[]) AND c.veiculacao < ${hoje}::date)
         OR COALESCE(c.prazo, c.veiculacao) IN (${hoje}::date, ${ontem}::date)
         OR c.id IN (SELECT conteudo_id FROM adiadas) OR c.id IN (SELECT conteudo_id FROM entregues))`,
     sql`SELECT e.pessoa_id::text AS pessoa, e.conteudo_id::text AS conteudo, TO_CHAR(min(e.dia),'YYYY-MM-DD') AS dia
@@ -59,10 +66,14 @@ export async function diaDaEquipe(sql, agora = new Date()) {
       ref: p.monday_item_id ? String(p.monday_item_id) : 'vybe:' + p.id, quadro: String(p.board_id) === '8385559107' ? 'demandas' : 'producao',
       titulo: p.titulo || 'Sem título', clientes: p.clientes || [], status: p.status || '', status_cor: p.status_cor || '', prazo: p.prazo, veiculacao: p.veiculacao,
     };
+    // Aguardando postar com a veiculação vencida = não saiu (atrasada); antes disso, a parte da pessoa está feita.
+    const vencida = p.aguarda && aguardaPostarVencida(p.status_chave, p.veiculacao, hoje);
+    const feitaPeloStatus = p.final || (p.aguarda && !vencida);
     const quem = new Set([...(p.responsaveis || []), ...entregas.filter((e) => e.conteudo === String(p.id)).map((e) => e.pessoa)]);
     for (const pessoa of quem) {
-      const feita = entregou.get(pessoa + ':' + p.id) || (p.final ? p.pronta_em || null : null);
-      const estado = (dia) => (feita && feita <= dia ? 'pronta' : feita ? 'depois' : p.final ? 'pronta' : FAZENDO.test(p.status || '') ? 'fazendo' : 'falta');
+      const feita = entregou.get(pessoa + ':' + p.id) || (feitaPeloStatus ? p.pronta_em || null : null);
+      const estado = (dia) => (vencida && !entregou.has(pessoa + ':' + p.id) ? 'falta'
+        : feita && feita <= dia ? 'pronta' : feita ? 'depois' : feitaPeloStatus ? 'pronta' : FAZENDO.test(p.status || '') ? 'fazendo' : 'falta');
       const lista = daPessoa(pessoa);
       for (const [dia, chave] of [[hoje, 'hoje'], [ontem, 'ontem']]) {
         const saiu = (p.adiada || []).find((a) => a.de === dia && data !== dia);
@@ -70,7 +81,7 @@ export async function diaDaEquipe(sql, agora = new Date()) {
         if (!no || (!p.responsaveis?.includes(pessoa) && feita !== dia)) continue;
         lista[chave].push({ ...base, estado: estado(dia), pronta_em: feita, adiada: saiu && feita !== dia ? { campo: saiu.tipo, para: saiu.para || null } : null });
       }
-      if (!p.final && data && data < hoje && p.responsaveis?.includes(pessoa) && !lista.hoje.some((x) => x.ref === base.ref)) lista.atrasadas.push({ ...base, estado: estado(hoje), pronta_em: null, adiada: null });
+      if (((!p.final && !p.aguarda && data && data < hoje) || vencida) && p.responsaveis?.includes(pessoa) && !lista.hoje.some((x) => x.ref === base.ref)) lista.atrasadas.push({ ...base, estado: estado(hoje), pronta_em: null, adiada: null });
     }
   }
   const ordem = { fazendo: 0, falta: 1, depois: 2, pronta: 3 };

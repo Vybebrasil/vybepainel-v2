@@ -572,7 +572,11 @@
       roteirosPedidos = true;
       fetch('/api/painel?area=roteiros', { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
         const m = new Map();
-        for (const r of j?.roteiros || []) for (const c of r.conteudos || []) if (r.link && !m.has('vybe:' + c.id)) m.set('vybe:' + c.id, { link: r.link, titulo: r.titulo });
+        // Pelos dois ids: a peça nascida no Vybe vem como vybe:<id>; a importada do Monday, pelo id de lá.
+        for (const r of j?.roteiros || []) for (const c of r.conteudos || []) {
+          if (!r.link) continue;
+          for (const k of ['vybe:' + c.id, c.monday_item_id ? String(c.monday_item_id) : '']) if (k && !m.has(k)) m.set(k, { link: r.link, titulo: r.titulo });
+        }
         roteirosPorPeca = m; pintarHoje();
       }).catch(() => { roteirosPorPeca = new Map(); });
     }
@@ -893,7 +897,7 @@
   function previaDecidir(ref) {
     if (ref in previasDecidir) return previasDecidir[ref];
     previasDecidir[ref] = undefined;
-    if (String(ref).startsWith('vybe:')) { previasDecidir[ref] = null; return null; }
+    // Peça do Vybe (vybe:<id>) também tem miniatura: o servidor casa pelo id interno.
     fetch(`/api/painel?area=arquivos&itens=${encodeURIComponent(ref)}`, { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
       .then((j) => { previasDecidir[ref] = j?.itens?.[ref]?.thumb || null; }).catch(() => { previasDecidir[ref] = null; }).finally(() => { if (visaoHoje !== 'tarefas') pintarHoje(); });
     return undefined;

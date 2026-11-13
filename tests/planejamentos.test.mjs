@@ -18,7 +18,7 @@ async function banco(t){
  INSERT INTO vybe_clientes(id,nome,email) VALUES(10,'Serra Grande','contato@serra.example'),(11,'Mangaba',NULL),(12,'Mangaba Kids',NULL);
  CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint,ordem int DEFAULT 0);
  INSERT INTO vybe_cliente_pessoas VALUES(10,3,0),(11,24,0);
- CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,status_chave text,prazo date,briefing text,removido_em timestamptz,monday_item_id text);
+ CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,board_id bigint,titulo text,status_chave text,prazo date,briefing text,removido_em timestamptz,monday_item_id text,veiculacao date);
  CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text,final boolean DEFAULT false);
  CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint);
  CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint,ordem int DEFAULT 0);`);

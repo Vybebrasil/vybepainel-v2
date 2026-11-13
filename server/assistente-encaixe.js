@@ -1,6 +1,7 @@
 // Encaixe de captação (Paulo, 27/10/2026): cruza a agenda do Google (a mesma do módulo de Captações) com as peças paradas
 // em "Agendar Captação" e sugere horários livres nos próximos dias úteis, dois clientes por janela de 2 horas (1 hora
 // cada), começando por quem veicula antes. Marcar na agenda é uma ação com SIM (acao 'agendar_captacao').
+import { AGUARDA_POSTAR } from './pronta.js';
 import { agendaDeCaptacoes, criarEvento, CAPTACAO } from './captacoes.js';
 
 const JANELAS = [['08:00', '10:00'], ['10:00', '12:00'], ['14:00', '16:00'], ['16:00', '18:00']];
@@ -42,6 +43,7 @@ export async function encaixeCaptacao(sql, dia, { listar } = {}) {
     FROM vybe_conteudos c JOIN vybe_conteudo_clientes cc ON cc.conteudo_id = c.id JOIN vybe_clientes cl ON cl.id = cc.cliente_id
     LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
     WHERE c.removido_em IS NULL AND c.captacao_chave = ${CAPTACAO.pronta} AND NOT COALESCE(s.final, false)
+      AND COALESCE(c.status_chave, '') <> ALL(${AGUARDA_POSTAR}::text[]) -- Para agendar/Agendado já foi produzida: não espera gravação
     ORDER BY c.veiculacao NULLS LAST LIMIT 60`;
   if (!pecas.length) return { texto: null };
   const eventos = await agendaDeCaptacoes(sql, { inicio: somarDias(dia, 1), dias: 10, hoje: dia, ...(listar ? { listar } : {}) });

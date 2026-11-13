@@ -14,7 +14,7 @@ async function banco(t) {
     CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, cor text);
     CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, titulo text, formato text, prazo date, veiculacao date,
-      status_chave text, board_id bigint, criado_em timestamptz DEFAULT now(), removido_em timestamptz);
+      status_chave text, board_id bigint, criado_em timestamptz DEFAULT now(), removido_em timestamptz, monday_item_id text);
     CREATE TABLE vybe_conteudo_clientes (conteudo_id bigint, cliente_id bigint);
     INSERT INTO vybe_pessoas VALUES (1, 'Paulo Martins');
     INSERT INTO vybe_clientes VALUES (8, 'Hellen Rocha'), (32, 'Brussolo Ristorante');
@@ -25,7 +25,8 @@ async function banco(t) {
       (1223, 'Reels - Video 01', 'Reels', '2026-06-22', 'finalizado', 1),
       (900, 'Reels antigo', 'Reels', '2025-01-10', 'finalizado', 1),
       (500, 'Foto do prato', 'Fotografia', '2026-06-20', 'finalizado', 1);
-    INSERT INTO vybe_conteudo_clientes VALUES (1188, 8), (1189, 8), (1223, 8), (900, 8), (500, 32);`);
+    INSERT INTO vybe_conteudo_clientes VALUES (1188, 8), (1189, 8), (1223, 8), (900, 8), (500, 32);
+    UPDATE vybe_conteudos SET monday_item_id = '12863070737' WHERE id = 1188;`);
   await db.exec(readFileSync('migrations/2026-10-21-producao-roteiros.sql', 'utf8'));
   return { db, sql };
 }
@@ -42,6 +43,10 @@ test('a importação traz os roteiros antigos com cliente e peças e só liga o 
   assert.equal(hellen.cliente, 'Hellen Rocha');
   assert.equal(hellen.pecas.length, 7);
   assert.deepEqual(hellen.conteudos.map((c) => [c.id, c.status]), [['1188', 'Finalizado']]);
+  // Peça importada do Monday: o id de lá vem junto, para o Hoje achar o roteiro pela peça (Paulo, 13/11/2026).
+  assert.equal(hellen.conteudos[0].monday_item_id, '12863070737');
+  const hoje = readFileSync('vybe-mundo.js', 'utf8');
+  assert.match(hoje, /for \(const k of \['vybe:' \+ c\.id, c\.monday_item_id \? String\(c\.monday_item_id\) : ''\]\)/, 'o Hoje indexa pelos dois ids');
   assert.equal(hellen.link, `https://docs.google.com/document/d/${DOC}/edit`);
   // Cliente que não existe neste banco entra sem cliente, e o mais novo vem primeiro.
   assert.equal(lista[0].cliente, 'Brussolo Ristorante');

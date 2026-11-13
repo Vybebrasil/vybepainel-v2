@@ -2073,7 +2073,7 @@ function abrirFichaDeCliente(nome) {
   openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Cadastro de clientes</span>
       <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
     <h2 class="workflow-title">${safeText(nome)}</h2>
-    <p class="workflow-copy">Edite o cadastro e a carteira do cliente. Campos em branco permanecem como estão.</p>
+    <p class="workflow-copy">Edite o cadastro e a carteira do cliente. Apagar um campo e salvar apaga o valor.</p>
     <input type="hidden" id="cli-f-id" value="${safeText(id)}">
     <input type="hidden" id="cli-f-nome" value="${safeText(nome)}">
     <div class="cli-form">
@@ -2109,7 +2109,11 @@ async function salvarFichaDeCliente() {
   if (!id) return;
   const campos = {};
   const pegar = (chave) => String(document.getElementById(`cli-f-${chave}`)?.value ?? '').trim();
-  CAMPOS_DA_FICHA.forEach(([chave]) => { const v = pegar(chave); if (v) campos[chave] = v; });
+  // Vai o que tem valor e o que a pessoa mexeu, inclusive o que ela apagou (vazio = apagar no servidor).
+  // O valor de abertura é o atributo value do campo (defaultValue) ou a opção marcada do select.
+  const inicial = (el) => el.tagName === 'SELECT' ? ([...el.options].find((o) => o.defaultSelected) || el.options[0])?.value ?? '' : el.defaultValue;
+  const mexeu = (chave) => { const el = document.getElementById(`cli-f-${chave}`); return Boolean(el) && String(el.value ?? '').trim() !== String(inicial(el) ?? '').trim(); };
+  CAMPOS_DA_FICHA.forEach(([chave]) => { const v = pegar(chave); if (v || mexeu(chave)) campos[chave] = v; });
   // O painel vai sempre, inclusive vazio: aqui a escolha e explicita — quem
   // clica em "sem informacao" esta pedindo para limpar, nao deixando em branco.
   campos.dashboard = pegar('dashboard');

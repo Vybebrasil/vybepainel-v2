@@ -10,7 +10,7 @@ const agora = Date.parse('2026-11-02T15:00:00Z');
 async function banco() {
   const { db, sql } = conexao();
   await db.exec(`CREATE TABLE vybe_pessoas(id bigint PRIMARY KEY,nome text,email text,admin boolean,ativo boolean,pode_entrar boolean,monday_user_id bigint);
-    INSERT INTO vybe_pessoas VALUES(1,'Paulo Martins','paulo@x',true,true,true,1),(2,'Jady Lima','jady@x',false,true,true,2),(5,'Ewerton','ew@x',false,true,true,5);
+    INSERT INTO vybe_pessoas VALUES(1,'Paulo Martins','paulo@x',false,true,true,68035537),(2,'Jady Lima','jady@x',false,true,true,2),(5,'Ewerton','ew@x',false,true,true,5);
     CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,monday_item_id bigint,titulo text,formato text,board_id bigint,status_chave text,removido_em timestamptz,veiculacao date,prazo date);
     INSERT INTO vybe_conteudos VALUES(20,NULL,'Reels - Medalha','Reels',${PROD},'pode_fazer',NULL,'2026-11-10','2026-11-08'),
       (21,NULL,'Arte - Backdrop',NULL,${DEMANDAS},'nova',NULL,'2026-11-12','2026-11-05');

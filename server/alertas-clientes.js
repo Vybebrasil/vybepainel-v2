@@ -4,7 +4,10 @@
 //   atrasadas:  prazo vencido há mais de 2 dias
 //   aprovar:    paradas num status de aprovação (interna ou do cliente)
 // Uma peça com vários clientes aparece em cada um (vínculo em vybe_conteudo_clientes).
+// Em aberto = ainda não pronta (server/pronta.js). Para agendar e Agendado só entram quando a veiculação
+// passou e não saiu (atrasadas); antes disso não é cobrança nem falta de informação (Paulo, 13/11/2026).
 import { diaBahia, somarDias } from './escritorio-pontos.js';
+import { AGUARDA_POSTAR, aguardaPostar } from './pronta.js';
 
 const SEM_INFO = ['falta_info', 'ag_info_cliente', 'aguardando_info', 'falta_off', 'falta_d_a'];
 const APROVAR = ['para_aprovacao', 'em_aprovacao', 'ag_aprovacao_cliente'];
@@ -13,12 +16,14 @@ const LIMITE = 8;
 export async function alertasDosClientes(sql, { clienteIds = null, agora = new Date() } = {}) {
   const hoje = diaBahia(agora), atraso = somarDias(hoje, -2);
   const linhas = await sql`SELECT v.cliente_id, c.id, c.monday_item_id, c.board_id, c.titulo, c.status_chave, s.rotulo AS status,
-      TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo, COALESCE(NULLIF(trim(c.briefing),''),'') <> '' AS tem_briefing,
+      TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo, TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao, COALESCE(NULLIF(trim(c.briefing),''),'') <> '' AS tem_briefing,
       EXISTS(SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id=c.id) AS tem_responsavel
     FROM vybe_conteudo_clientes v
     JOIN vybe_conteudos c ON c.id=v.conteudo_id
     LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
-    WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
+    WHERE c.removido_em IS NULL
+      AND ((NOT COALESCE(s.final,false) AND COALESCE(c.status_chave,'') <> ALL(${AGUARDA_POSTAR}::text[]))
+        OR (COALESCE(c.status_chave,'') = ANY(${AGUARDA_POSTAR}::text[]) AND c.veiculacao < ${hoje}::date))
       AND (${clienteIds}::bigint[] IS NULL OR v.cliente_id = ANY(${clienteIds}::bigint[]))
     ORDER BY c.prazo NULLS LAST, c.id`;
   const por = new Map();
@@ -30,6 +35,8 @@ export async function alertasDosClientes(sql, { clienteIds = null, agora = new D
     const item = { ref: l.monday_item_id ? String(l.monday_item_id) : 'vybe:' + l.id, quadro: String(l.board_id) === '8385559107' ? 'demandas' : 'producao',
       titulo: l.titulo || 'Sem título', status: l.status || '', prazo: l.prazo };
     const a = de(String(l.cliente_id));
+    // Para agendar/Agendado com a veiculação vencida (a consulta só traz essas): atrasada pela data do cliente.
+    if (aguardaPostar(l.status_chave)) { a.atrasadas.push({ ...item, veiculacao: l.veiculacao }); continue; }
     const faltas = [SEM_INFO.includes(l.status_chave) && (l.status || 'falta informação'), !l.tem_briefing && 'sem briefing',
       !l.prazo && 'sem prazo', !l.tem_responsavel && 'sem responsável'].filter(Boolean);
     if (faltas.length) a.sem_info.push({ ...item, motivo: faltas.join(', ') });

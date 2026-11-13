@@ -70,7 +70,9 @@ export async function consumirCodigo(sql, jid, codigo, segredo, pessoaAdministra
     // pode ressuscitar o vínculo depois de uma revogação concorrente.
     const pessoas = await tx`SELECT p.id FROM vybe_pessoas p JOIN vybe_ai_desafios d ON d.pessoa_id=p.id
       WHERE d.codigo_hash=${codigoHash}
-        AND (${pessoaAdministrativa}::bigint IS NULL OR (p.id=${pessoaAdministrativa} AND p.admin IS TRUE)) FOR UPDATE OF p`;
+        AND (${pessoaAdministrativa}::bigint IS NULL OR p.id=${pessoaAdministrativa}) FOR UPDATE OF p`;
+    // Sem o escopo da equipe, só a conta administrativa (VYBE_AI_ADMIN_PESSOA_ID) vincula. Essa pessoa é dona por
+    // definição (server/donos.js, regra 2); a marca vybe_pessoas.admin deixou de contar (Paulo, 13/11/2026).
     if (!pessoas.length) return false;
     const linhas = await tx`
       WITH consumido AS (

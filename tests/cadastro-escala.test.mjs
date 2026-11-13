@@ -9,18 +9,35 @@ function cadastro() {
   // Só as funções de fora do fechamento: o resto do arquivo monta a tela.
   const fonte = fs.readFileSync('cadastros_governed_v2.js', 'utf8').split('\n(function() {')[0];
   const c = vm.createContext({ console });
+  // O Prazo de Ouro vem do módulo compartilhado com o servidor, carregado antes do cadastro no index.html.
+  vm.runInContext(fs.readFileSync('shared/prazo-de-ouro.js', 'utf8'), c);
   vm.runInContext(fonte, c);
   return (chamada, ...args) => { c.a = args; return JSON.parse(vm.runInContext(`JSON.stringify(${chamada})`, c)); };
 }
 
-test('dez fotografias a cada três dias: veiculação no ritmo e prazo sete dias antes', () => {
+test('dez fotografias a cada três dias: veiculação no ritmo e prazo pelo Prazo de Ouro (o do servidor)', () => {
   const chamar = cadastro();
-  const datas = chamar('cadastroDatasEmEscala(a[0], a[1], a[2])', '2026-09-23', 10, 3);
+  // Cadastradas em 01/09: todas com o ouro no futuro.
+  const datas = chamar('cadastroDatasEmEscala(a[0], a[1], a[2], a[3])', '2026-09-23', 10, 3, '2026-09-01');
   assert.equal(datas.length, 10);
   assert.deepEqual(datas[0], { veic: '2026-09-23', prazo: '2026-09-16' });
-  assert.deepEqual(datas[1], { veic: '2026-09-26', prazo: '2026-09-19' });
+  // 19/09 é sábado: volta para a sexta 18/09, como no servidor.
+  assert.deepEqual(datas[1], { veic: '2026-09-26', prazo: '2026-09-18' });
   // Atravessa o mês sem escorregar de dia.
   assert.deepEqual(datas[9], { veic: '2026-10-20', prazo: '2026-10-13' });
+});
+
+test('Prazo de Ouro igual nos dois lados: o cadastro usa a mesma função do servidor', async () => {
+  const chamar = cadastro();
+  const { prazoDaPeca } = await import('../server/planejamentos.js');
+  for (const [veic, hoje] of [['2026-11-20', '2026-10-20'], ['2026-11-22', '2026-10-20'], ['2026-10-24', '2026-10-20'], ['2026-10-21', '2026-10-20']])
+    assert.equal(chamar('cadastroPrazoDeOuro(a[0], a[1])', veic, hoje), prazoDaPeca(veic, hoje), veic + ' cadastrada em ' + hoje);
+  // Já passou o ouro: hoje; a menos de 2 dias da veiculação: 2 dias antes.
+  assert.equal(chamar('cadastroPrazoDeOuro(a[0], a[1])', '2026-10-24', '2026-10-20'), '2026-10-20');
+  assert.equal(chamar('cadastroPrazoDeOuro(a[0], a[1])', '2026-10-21', '2026-10-20'), '2026-10-19');
+  // As telas de cadastro não fazem mais veiculação − 7 por conta própria.
+  assert.doesNotMatch(fs.readFileSync('cadastros_governed_v2.js', 'utf8'), /getOffsetDate\([^)]*,\s*-7\)/);
+  assert.match(fs.readFileSync('index.html', 'utf8'), /shared\/prazo-de-ouro\.js"><\/script>\s*<script src="\/cadastros_governed_v2\.js"/);
 });
 
 test('fim de semana não é pulado: a data é a que a conta dá', () => {

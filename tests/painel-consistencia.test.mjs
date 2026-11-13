@@ -87,3 +87,23 @@ test('responsável geral persiste na ficha sem alterar heads; servidor recusa n�
  assert.equal((await sql`SELECT responsavel FROM vybe_clientes`)[0].responsavel,'Sem responsável geral');
  }finally{await db.close();}
 });
+
+// Paulo, 13/11/2026: apagar um campo da ficha e salvar não apagava (o servidor usava COALESCE e a tela só mandava os
+// preenchidos). Vazio enviado = apagar; campo que não veio fica como está.
+test('ficha do cliente: campo enviado vazio apaga; campo que não veio fica; NPS apagado leva a data junto',async()=>{
+ const {db,sql}=conexao();try{
+ await db.exec(`CREATE TABLE vybe_clientes(id bigint primary key,nome text,email text,telefone text,endereco text,cnpj text,plano text,segmento text,responsavel text,planejamento_url text,valor numeric,proxima_reuniao date,ultima_reuniao date,nps smallint,nps_em date,dashboard text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
+ INSERT INTO vybe_clientes(id,nome,email,telefone,plano,proxima_reuniao,nps,nps_em,dashboard) VALUES(1,'Teste','a@x.com','7499','Ouro','2026-11-20',9,'2026-11-01','Atualizado');`);
+ const c=vm.createContext({sql:()=>sql,garantirSchemaDeReunioes:async()=>{},garantirCicloDeVida:async()=>{},garantirSchemaDoCadastro:async()=>{}});
+ const s=fonte('api/painel.js');let start=s.indexOf('async function areaClientes');let end=s.indexOf('\nasync function ',start+1);
+ vm.runInContext(s.slice(start,end),c);
+ let status,corpo;const res={status(v){status=v;return this;},json(v){corpo=v;}};
+ await c.areaClientes({method:'POST',body:{acao:'ficha',id:1,campos:{email:'',proxima_reuniao:'',nps:'',plano:'Prata'}}},res,{pessoa:{admin:true}});
+ assert.equal(status,200,JSON.stringify(corpo));
+ const [l]=await sql`SELECT email,telefone,plano,proxima_reuniao,nps,nps_em,dashboard FROM vybe_clientes WHERE id=1`;
+ assert.equal(l.email,null,'apagado');assert.equal(l.proxima_reuniao,null,'data apagada');assert.equal(l.nps,null);assert.equal(l.nps_em,null);
+ assert.equal(l.plano,'Prata','trocado');assert.equal(l.telefone,'7499','não veio: fica');assert.equal(l.dashboard,'Atualizado','não veio: fica');
+ const tela=fonte('vybe-clientes.js');
+ assert.match(tela,/if \(v \|\| mexeu\(chave\)\) campos\[chave\] = v;/,'a ficha manda o que foi mexido, inclusive vazio');
+ }finally{await db.close();}
+});

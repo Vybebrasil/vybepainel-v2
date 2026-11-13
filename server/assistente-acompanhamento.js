@@ -14,6 +14,9 @@ const primeiro = (n) => String(n || '').trim().split(/\s+/)[0] || '';
 // Atenção: aqui "entregue" é "já saiu ou está agendado" (plantão e fim de semana), não "a equipe terminou".
 // "Para agendar" e "Aprovado" ainda precisam de alguém, por isso NÃO entram. A situação geral da peça é
 // VybeDono.util.situacaoDaPeca (vybe-dono-metricas.js).
+// PRONTA = SÓ FINALIZADO (Paulo, 13/11/2026; server/pronta.js) vale para contar entrega e atraso. O plantão (o que
+// publica HOJE) e o fim de semana (o que tinha data no sábado/domingo) perguntam outra coisa: "vai sair / saiu na
+// data?". Agendado ali é a postagem programada no dia, então continua contando como "saiu". Fica de propósito.
 const ENTREGUE = ['finalizado', 'agendado', 'publicado', 'postado'];
 const diasParado = (i, dia) => { const d = String(i.status_updated_at || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(d) ? Math.round((Date.parse(dia) - Date.parse(d)) / 864e5) : 0; };
 

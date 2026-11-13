@@ -987,25 +987,34 @@ async function areaClientes(req, res, quem) {
         return res.status(400).json({ error: 'Informe o cliente e os campos.' });
       if (campos.responsavel !== undefined && (typeof campos.responsavel !== 'string' || campos.responsavel.length > 120))
         return res.status(400).json({ error: 'Responsável geral inválido.' });
+      // Campo enviado vazio = apagar (Paulo, 13/11/2026: apagar e salvar não apagava). Campo que não veio (ou null)
+      // fica como está — a ficha manda só o que a pessoa mexeu.
+      const apaga = {}, v = {};
+      for (const k of ['email', 'telefone', 'endereco', 'cnpj', 'plano', 'segmento', 'responsavel', 'planejamento_url',
+        'valor', 'proxima_reuniao', 'ultima_reuniao', 'nps', 'dashboard']) {
+        const x = campos[k];
+        apaga[k] = typeof x === 'string' && !x.trim();
+        v[k] = x === undefined || apaga[k] ? null : x;
+      }
       const r = await db`UPDATE vybe_clientes SET
-          email=COALESCE(${campos.email ?? null}, email),
-          telefone=COALESCE(${campos.telefone ?? null}, telefone),
-          endereco=COALESCE(${campos.endereco ?? null}, endereco),
-          cnpj=COALESCE(${campos.cnpj ?? null}, cnpj),
-          plano=COALESCE(${campos.plano ?? null}, plano),
-          segmento=COALESCE(${campos.segmento ?? null}, segmento),
-          responsavel=COALESCE(${campos.responsavel ?? null}, responsavel),
-          planejamento_url=COALESCE(${campos.planejamento_url ?? null}, planejamento_url),
-          valor=COALESCE(${campos.valor ?? null}::numeric, valor),
-          proxima_reuniao=COALESCE(${campos.proxima_reuniao ?? null}::date, proxima_reuniao),
-          ultima_reuniao=COALESCE(${campos.ultima_reuniao ?? null}::date, ultima_reuniao),
+          email=CASE WHEN ${apaga.email}::boolean THEN NULL ELSE COALESCE(${v.email}, email) END,
+          telefone=CASE WHEN ${apaga.telefone}::boolean THEN NULL ELSE COALESCE(${v.telefone}, telefone) END,
+          endereco=CASE WHEN ${apaga.endereco}::boolean THEN NULL ELSE COALESCE(${v.endereco}, endereco) END,
+          cnpj=CASE WHEN ${apaga.cnpj}::boolean THEN NULL ELSE COALESCE(${v.cnpj}, cnpj) END,
+          plano=CASE WHEN ${apaga.plano}::boolean THEN NULL ELSE COALESCE(${v.plano}, plano) END,
+          segmento=CASE WHEN ${apaga.segmento}::boolean THEN NULL ELSE COALESCE(${v.segmento}, segmento) END,
+          responsavel=CASE WHEN ${apaga.responsavel}::boolean THEN NULL ELSE COALESCE(${v.responsavel}, responsavel) END,
+          planejamento_url=CASE WHEN ${apaga.planejamento_url}::boolean THEN NULL ELSE COALESCE(${v.planejamento_url}, planejamento_url) END,
+          valor=CASE WHEN ${apaga.valor}::boolean THEN NULL ELSE COALESCE(${v.valor}::numeric, valor) END,
+          proxima_reuniao=CASE WHEN ${apaga.proxima_reuniao}::boolean THEN NULL ELSE COALESCE(${v.proxima_reuniao}::date, proxima_reuniao) END,
+          ultima_reuniao=CASE WHEN ${apaga.ultima_reuniao}::boolean THEN NULL ELSE COALESCE(${v.ultima_reuniao}::date, ultima_reuniao) END,
           -- Nota nova carimba a data sozinha: anotar o NPS e depois lembrar de
-          -- registrar quando foi seriam dois passos para um fato so.
-          nps=COALESCE(${campos.nps ?? null}::smallint, nps),
-          nps_em=CASE WHEN ${campos.nps ?? null}::smallint IS NULL THEN nps_em ELSE CURRENT_DATE END,
+          -- registrar quando foi seriam dois passos para um fato so. Apagar a nota apaga a data.
+          nps=CASE WHEN ${apaga.nps}::boolean THEN NULL ELSE COALESCE(${v.nps}::smallint, nps) END,
+          nps_em=CASE WHEN ${apaga.nps}::boolean THEN NULL WHEN ${v.nps}::smallint IS NULL THEN nps_em ELSE CURRENT_DATE END,
           -- O estado do painel do cliente e um campo do cadastro como os outros;
           -- faltava so poder edita-lo daqui, em vez de voltar ao Monday para isso.
-          dashboard=COALESCE(${campos.dashboard ?? null}, dashboard)
+          dashboard=CASE WHEN ${apaga.dashboard}::boolean THEN NULL ELSE COALESCE(${v.dashboard}, dashboard) END
         WHERE id=${Number(id)} RETURNING id, nome`;
       if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
       return res.status(200).json({ ok: true, cliente: r[0] });
@@ -1595,15 +1604,28 @@ async function areaArquivos(req, res) {
   // máximo o que uma pessoa tem em aberto, bem abaixo disso.
   if (!itens.length) return res.status(200).json({ ok: true, itens: {} });
   const ids = [...new Set(itens)].slice(0, 300);
+  return res.status(200).json({ ok: true, itens: await miniaturasDasPecas(sql(), ids) });
+}
 
-  const linhas = await sql()`
-    SELECT DISTINCT ON (c.monday_item_id)
-           c.monday_item_id AS item, a.nome, a.extensao, a.drive_file_id,
-           COUNT(*) OVER (PARTITION BY c.monday_item_id)::int AS total
-      FROM vybe_conteudos c
-      JOIN vybe_conteudo_arquivos a ON a.conteudo_id = c.id AND a.ausente_em IS NULL
-     WHERE c.monday_item_id = ANY(${ids}) AND c.removido_em IS NULL
-     ORDER BY c.monday_item_id, a.criado_em DESC NULLS LAST`;
+// Exportada para o teste (PGlite): o mapa { ref pedida → arquivo mais recente }.
+export async function miniaturasDasPecas(banco, ids) {
+  // Peça nascida no Vybe OS não tem id do Monday: a tela pede "vybe:<id>" (o id interno), e a resposta volta com a
+  // mesma chave que foi pedida. Peça importada continua pelo id do Monday.
+  const locais = ids.filter((x) => /^vybe:\d{1,15}$/.test(x)).map((x) => x.slice(5));
+  const monday = ids.filter((x) => !x.startsWith('vybe:'));
+  const linhas = await banco`
+    WITH pedidos AS (
+      SELECT c.id, c.monday_item_id::text AS item FROM vybe_conteudos c
+       WHERE c.monday_item_id = ANY(${monday}) AND c.removido_em IS NULL
+      UNION ALL
+      SELECT c.id, 'vybe:' || c.id::text AS item FROM vybe_conteudos c
+       WHERE c.id = ANY(${locais}::bigint[]) AND c.removido_em IS NULL)
+    SELECT DISTINCT ON (p.item)
+           p.item, a.nome, a.extensao, a.drive_file_id,
+           COUNT(*) OVER (PARTITION BY p.item)::int AS total
+      FROM pedidos p
+      JOIN vybe_conteudo_arquivos a ON a.conteudo_id = p.id AND a.ausente_em IS NULL
+     ORDER BY p.item, a.criado_em DESC NULLS LAST`;
 
   const mapa = {};
   for (const l of linhas) {
@@ -1617,7 +1639,7 @@ async function areaArquivos(req, res) {
       abrir: l.drive_file_id ? `https://drive.google.com/file/d/${l.drive_file_id}/view` : null,
     };
   }
-  return res.status(200).json({ ok: true, itens: mapa });
+  return mapa;
 }
 
 // Baixar um arquivo da peca. Um link cross-origin com `download` nao baixa: o

@@ -4,10 +4,27 @@
 //
 // Dez fotografias a cada três dias eram dez cartões criados à mão, com a data
 // digitada em cada um. Aqui se diz quantos, a primeira veiculação e o intervalo,
-// e os cartões nascem com as datas: veiculação no ritmo pedido e prazo sete dias
-// antes (o Prazo de Ouro). Fim de semana não é pulado — a data é a que a conta
-// dá. O limite de 60 é trava contra um zero a mais digitado sem querer.
+// e os cartões nascem com as datas: veiculação no ritmo pedido e o prazo pelo
+// Prazo de Ouro. Fim de semana não é pulado na veiculação — a data é a que a
+// conta dá. O limite de 60 é trava contra um zero a mais digitado sem querer.
 const CADASTRO_ESCALA_MAX = 60;
+
+// Prazo de Ouro (Paulo, 13/11/2026): a MESMA regra do servidor, em shared/prazo-de-ouro.js — 7 dias antes da
+// veiculação; fim de semana volta para a sexta; se já passou, hoje, mas nunca depois de 2 dias antes da veiculação.
+// Antes a tela fazia veiculação − 7 puro e o prazo do cadastro não batia com o do planejamento.
+function cadastroHoje() {
+  if (typeof HOJE_ISO !== 'undefined' && HOJE_ISO) return HOJE_ISO;
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function cadastroPrazoDeOuro(veic, hoje = cadastroHoje()) {
+  const ouro = typeof VybePrazoDeOuro !== 'undefined' ? VybePrazoDeOuro : null;
+  if (ouro) return ouro.prazoDaPeca(veic, hoje);
+  // Sem o módulo compartilhado (não deveria acontecer: index.html carrega antes), 7 dias antes como sempre.
+  if (!veic) return '';
+  const [a, m, d] = String(veic).split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, d - 7)).toISOString().slice(0, 10);
+}
 
 // Cor de cada status nas etiquetas do cadastro (uma tabela só, usada pelos
 // seletores, pela prévia e pelas listas). Os valores seguem o vocabulário de
@@ -31,7 +48,7 @@ function fcCorDeStatus(s) {
   if (c?.cor) return { color: c.cor, bg: `color-mix(in srgb, ${c.cor} 15%, transparent)`, border: `color-mix(in srgb, ${c.borda || c.cor} 30%, transparent)` };
   return { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
 }
-function cadastroDatasEmEscala(inicio, quantidade, intervalo) {
+function cadastroDatasEmEscala(inicio, quantidade, intervalo, hoje = cadastroHoje()) {
   const q = Number(quantidade), passo = Number(intervalo);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(inicio || ''))) throw new Error('Informe a primeira veiculação.');
   if (!Number.isInteger(q) || q < 1) throw new Error('Informe quantos conteúdos criar.');
@@ -44,7 +61,7 @@ function cadastroDatasEmEscala(inicio, quantidade, intervalo) {
   };
   return Array.from({ length: q }, (_, n) => {
     const veic = somar(inicio, n * passo);
-    return { veic, prazo: somar(veic, -7) };
+    return { veic, prazo: cadastroPrazoDeOuro(veic, hoje) };
   });
 }
 // Colar a lista de títulos: um por linha; linhas vazias não contam.
@@ -728,7 +745,7 @@ window.fcPreviaDoCriar = function(board) {
      state[key] = val;
      
      if(key === 'veic' && val) {
-        state.prazo = getOffsetDate(val, -7);
+        state.prazo = cadastroPrazoDeOuro(val);
         const pEl = document.getElementById('fc-prazo');
         if(pEl) pEl.value = state.prazo;
      }
@@ -1423,7 +1440,7 @@ window.fcPreviaDoCriar = function(board) {
     if (!it) return;
     it[campo] = valor;
     if (campo === 'veic' && valor) {
-      it.prazo = getOffsetDate(valor, -7);
+      it.prazo = cadastroPrazoDeOuro(valor);
       const p = document.querySelector(`[data-item="${n}"][data-campo="prazo"]`);
       if (p) p.value = it.prazo;
     }
@@ -1648,7 +1665,7 @@ window.fcPreviaDoCriar = function(board) {
     state.itens.forEach((it, n) => {
       if (n <= inicio) return;
       it.veic = getOffsetDate(base, 7 * (n - inicio));
-      it.prazo = getOffsetDate(it.veic, -7);
+      it.prazo = cadastroPrazoDeOuro(it.veic);
     });
     fcEspelharPrimeiro();
     fcDesenharPasso();
@@ -1886,7 +1903,7 @@ window.fcPreviaDoCriar = function(board) {
     }
     if (inicio.veic) {
       state.itens[0].veic = inicio.veic;
-      state.itens[0].prazo = inicio.prazo || getOffsetDate(inicio.veic, -7);
+      state.itens[0].prazo = inicio.prazo || cadastroPrazoDeOuro(inicio.veic);
     }
     // O calendario sazonal manda tambem o nome da data e um comeco de briefing:
     // sem isso quem escolheu "Dia do Cliente" teria que redigitar "Dia do
@@ -2073,7 +2090,7 @@ window.fcPreviaDoCriar = function(board) {
     const vazio = state.itens.findIndex(
       (i) => !String(i.titulo || '').trim() && !i.veic && !String(i.brief || '').trim());
     const item = { titulo: dados.titulo || '', veic: dados.veic,
-                   prazo: dados.prazo || getOffsetDate(dados.veic, -7), brief: dados.brief || '' };
+                   prazo: dados.prazo || cadastroPrazoDeOuro(dados.veic), brief: dados.brief || '' };
     if (vazio >= 0) state.itens[vazio] = item; else state.itens.push(item);
     fcEspelharPrimeiro();
 

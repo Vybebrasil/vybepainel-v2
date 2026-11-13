@@ -3,6 +3,7 @@
 // head revisa e edita, manda para o cliente por um link e o cliente aprova ou
 // pede ajustes. Identidade e permissão vêm da sessão; o link do cliente é um
 // segredo de uso externo (só o hash fica no banco).
+import prazoDeOuro from '../shared/prazo-de-ouro.js';
 import { alertasDosClientes } from './alertas-clientes.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { criarConteudoNaTransacao } from '../api/conteudo.js';
@@ -283,17 +284,10 @@ export async function mudarEstadoInterno(sql, pessoa, { id, estado }) {
 // Paulo, 20/10/2026: "tiver tudo ok ele poder cadastrar cada demanda com um
 // simples botão". Uma transação: ou entram todas, ou nenhuma; o planejamento
 // vira "cadastrado" junto, então clicar de novo não duplica.
-const somarDias = (iso, n) => { const x = new Date(`${iso}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
-const diaUtil = (iso) => { let x = iso; while ([0, 6].includes(new Date(`${x}T12:00:00Z`).getUTCDay())) x = somarDias(x, -1); return x; };
-// Prazo de Ouro: 7 dias antes da veiculação (PRAZO_OURO_DIAS). Se já passou,
-// hoje, mas nunca depois de 2 dias antes da veiculação (margem mínima do Paulo).
-// Sábado e domingo voltam para a sexta.
-export function prazoDaPeca(veiculacao, hoje) {
- const ouro = diaUtil(somarDias(veiculacao, -7));
- if (ouro >= hoje) return ouro;
- const limite = diaUtil(somarDias(veiculacao, -2));
- return hoje <= limite ? hoje : limite;
-}
+const { somarDias, diaUtil } = prazoDeOuro;
+// Prazo de Ouro: 7 dias antes da veiculação; se já passou, hoje, mas nunca depois de 2 dias antes da veiculação;
+// sábado e domingo voltam para a sexta. A regra mora em shared/prazo-de-ouro.js, a mesma do cadastro na tela.
+export const prazoDaPeca = prazoDeOuro.prazoDaPeca;
 // O que é conteúdo vai para Produção; "Outro" é pedido avulso e entra em Solicitações.
 const FORMATO_DO_PAINEL = { Card: 'Card', Carrossel: 'Carrossel', Reels: 'Reels', Fotografia: 'Fotografia', 'Vídeo': 'Vídeo', Stories: 'Story', Outro: 'Avulso' };
 // A peça inteira vai para a demanda (Paulo, 09/11/2026: "só cadastrou metade do conteúdo"). Antes iam só tema,
