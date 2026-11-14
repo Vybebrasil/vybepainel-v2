@@ -1697,6 +1697,128 @@ body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .
   :is(#pv2-agenda,#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .d3-acao > .d3-acao-btn,#vv-pessoas .v2p-proj .d3-acao > .d3-acao-btn{margin-left:46px;max-width:calc(100% - 46px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 
+/* ===== padrao-v2/d3-auditoria-janelas.css ===== */
+/* Direção 3 · janelas da auditoria (14/11/2026): o planejamento aberto e o construtor de regra das Automações.
+   Fundo areia, cartão branco canto 20, botão principal preto liso; o laranja cheio fica só no bloco de ação. */
+
+/* ── Planejamento aberto (#workflow-modal.plj-janela, vybe-planejamentos.js) ─────────────────────────────────────
+   O documento vem na moldura com a escolha clara (pljPreparaDocumento); em volta dele, areia e barras brancas. */
+#workflow-modal.plj-janela.plj-modo-doc,#workflow-modal.plj-janela.plj-modo-editar{background:var(--d3-areia)}
+#workflow-modal.plj-janela .plj-flut{border-radius:var(--d3-r-cartao);border:1px solid var(--d3-borda);background:var(--d3-cartao);box-shadow:0 12px 28px -20px rgba(31,29,26,.45);backdrop-filter:none}
+#workflow-modal.plj-janela .plj-flut-x{width:36px;height:36px;background:var(--d3-trilho);color:var(--d3-tinta)}
+#workflow-modal.plj-janela .plj-flut-x:hover{background:var(--d3-borda)}
+#workflow-modal.plj-janela .plj-flut-links .cli-porta{height:36px;border-radius:999px;border-color:var(--d3-borda);background:var(--d3-cartao);color:var(--d3-tinta)}
+#workflow-modal.plj-janela .plj-flut-links .cli-porta:hover{border-color:var(--d3-tinta);background:var(--d3-cartao)}
+#workflow-modal.plj-janela .plj-flut-links .plj-flut-editar{border-color:var(--d3-borda);background:var(--d3-trilho)}
+#workflow-modal.plj-janela .plj-flut-links .cli-porta:focus-visible,#workflow-modal.plj-janela .plj-flut-x:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+/* A barra de baixo cabe na tela: a dica quebra linha em vez de passar por baixo dos botões. */
+#workflow-modal.plj-janela .plj-flut-base{left:12px;max-width:none;box-sizing:border-box;flex-wrap:wrap;justify-content:flex-end}
+#workflow-modal.plj-janela .plj-flut-base .plj-flut-dica{flex:1 1 220px;min-width:0;white-space:normal}
+#workflow-modal.plj-janela .plj-flut-base > .plj-acoes-flut{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+#workflow-modal.plj-janela .plj-flut-base > .plj-acoes-flut > :is(.workflow-primary,.workflow-secondary){height:40px;margin:0;padding:0 18px;border-radius:999px}
+#workflow-modal.plj-janela .plj-flut-dica b{color:var(--d3-tinta)}
+#workflow-modal.plj-janela:focus{outline:none}
+/* Histórico: a linha do tempo era texto claro do tema escuro, sumia no fundo claro. */
+#workflow-modal.plj-janela .plj-tempo b{color:var(--d3-tinta)}
+#workflow-modal.plj-janela .plj-tempo small{color:var(--d3-apagado)}
+#workflow-modal.plj-janela .plj-tempo p{color:var(--d3-texto2)}
+#workflow-modal.plj-janela .plj-tempo li::before{background:var(--d3-borda)}
+#workflow-modal.plj-janela .plj-tempo li.com-fala p{background:var(--d3-trilho);border-color:var(--d3-borda)}
+#workflow-modal.plj-janela .plj-tempo li.ruim.com-fala p{background:var(--d3-perigo-veu);border-color:#F5C2C7}
+@media (min-width:1000px){#workflow-modal.plj-janela .plj-flut-base{left:auto;max-width:calc(100% - 24px)}}
+
+/* ── Automações › Nova regra (#auto-editor .auto-construtor, vybe-automacoes-ui.js) ────────────────────────────────
+   Blocos à esquerda; à direita, a prévia em cartão claro e os botões juntos, presos ao rolar. O cabeçalho deixa
+   livre o canto onde ficam o ⛶ e o ✕ da janela. */
+#automacoes-root .auto-construtor{margin:0 0 20px;border:0;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);backdrop-filter:none;overflow:visible;grid-template-columns:minmax(0,1fr) 300px;column-gap:20px}
+#automacoes-root .auto-construtor:focus{outline:none}
+#automacoes-root .auto-construtor > .auto-construtor-topo{grid-column:1/-1;padding:20px 104px 16px 22px;border-bottom:1px solid var(--d3-linha)}
+#automacoes-root .auto-construtor > .auto-bloco{grid-column:1;border-bottom:1px solid var(--d3-linha)}
+#automacoes-root .auto-construtor > .auto-bloco:last-of-type{border-bottom:0}
+#automacoes-root .auto-construtor-fechar{display:grid;place-items:center;width:34px;height:34px;padding:0;border-radius:50%;background:var(--d3-trilho);font-size:20px}
+#automacoes-root .auto-construtor-fechar:hover{background:var(--d3-borda)}
+#automacoes-root .auto-bloco-numero{border:1px solid var(--d3-borda);background:var(--d3-trilho)}
+#automacoes-root .auto-bloco-numero > i{font-style:normal;color:var(--d3-tinta)}
+#automacoes-root .auto-construtor > .auto-lado{grid-column:2;grid-row:2 / span 4;align-self:start;position:sticky;top:90px;display:grid;gap:12px;margin:20px 22px 20px 0}
+#automacoes-root .auto-previa{display:grid;gap:8px;padding:16px 18px;border-radius:var(--d3-r-cartao);border:1px solid var(--d3-borda);background:var(--d3-trilho)}
+#automacoes-root .auto-previa > span{color:var(--d3-apagado);font:600 12px var(--vv-texto,Inter),sans-serif}
+#automacoes-root .auto-previa > b{color:var(--d3-tinta);font:600 15px/1.45 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .auto-previa.incompleta > b{color:var(--d3-apagado);font-weight:500;font-size:14px}
+#automacoes-root .auto-previa > .auto-problema{margin:0;font:500 12.5px/1.5 var(--vv-texto,Inter),sans-serif;font-style:normal}
+#automacoes-root .auto-c-botoes{display:flex;justify-content:flex-end;gap:8px}
+#automacoes-root .auto-c-botoes > .v2g-btn{height:40px;padding:0 18px;border-radius:999px}
+#automacoes-root .auto-c-botoes > .v2g-btn.k:disabled{opacity:1;background:var(--d3-linha);color:var(--d3-apagado);box-shadow:none;cursor:not-allowed}
+@media (max-width:900px){
+  #automacoes-root .auto-construtor{grid-template-columns:minmax(0,1fr)}
+  #automacoes-root .auto-construtor > .auto-lado{grid-column:1;grid-row:auto;position:static;margin:0 16px 18px}
+  #automacoes-root .auto-construtor > .auto-bloco:last-of-type{border-bottom:1px solid var(--d3-linha)}
+}
+@media (max-width:600px){
+  #automacoes-root .auto-construtor > .auto-construtor-topo{padding:16px 104px 14px 16px}
+  #automacoes-root .auto-construtor > .auto-bloco{padding:16px}
+  #automacoes-root .auto-c-botoes > .v2g-btn{flex:1 1 0;height:44px}
+}
+
+/* ===== padrao-v2/d3-auditoria.css ===== */
+/* Auditoria front x back (14/11/2026): acertos pequenos de várias telas, no padrão Direção 3.
+   Ganha por especificidade (id da janela ou classe repetida), sem prioridade forçada. */
+
+/* Sistema irmão no menu lateral (VybeHub ↗): agora é link de verdade; fica com a cara do item ao lado. */
+#mundo-hud .vv-trilho a:is(.vv-trilho-btn,.vv-trilho-fav-item,[data-submodulo]),#mundo-hud .vv-setor > a[role="menuitem"]{text-decoration:none;cursor:pointer}
+
+/* Saúde da carteira: "Filtros" aberto fica preto com texto branco (antes, branco sobre branco). */
+#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-filtros > .v2c-btn:is(.k,[aria-expanded="true"]),
+#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-filtros > .v2c-btn:is(.k,[aria-expanded="true"]):hover{background:var(--d3-tinta);color:#FFFFFF}
+
+/* Contraste mínimo 4.5:1 (texto) e 3:1 (número grande). */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-num.q.q > .d3-num-v,#pv2-ia.d3f .d3-num.q.q > .d3-num-v{color:var(--vv-apagado,#6B675F)}
+#vv-carteira .v2c-kpi.quieto.quieto > b,#vv-comercial.v2c .v2c-kpi.quieto.quieto > b,:is(#vv-comercial,.vv-setor-visao) .fv2-kpi.quieto.quieto > b,
+:is(#pv2-painel,#pv2-semana,#pv2-demandas,#pv2-agenda,#pv2-ia) .pv2-kpi.quieto.quieto > b{color:var(--vv-apagado,#6B675F)}
+body.mundo .vb-resumo-item.zero.zero,:is(#vv-carteira,#vv-comercial,#mundo-hud) .vb-resumo-item.zero.zero,.vs-resumo .vb-resumo-item.zero.zero{color:var(--vv-apagado,#6B675F)}
+#vv-ferramentas.vc-janela :is(.vf-dica,.vf-cor small,.vf-qr.vazio p,.vf-link.vazio p){color:var(--vv-apagado,#6B675F)}
+.vv-gestao.vv-gestao .g2-mais > summary > u{color:#A83D08}
+
+/* Fala de agente sem ação: cartão claro (laranja cheio só no bloco com botão). O submódulo do trilho não muda. */
+.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta{background:var(--d3-cartao,#FFFFFF);color:var(--d3-tinta)}
+.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-fala-lin > p{color:var(--d3-tinta)}
+.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-quem{color:var(--d3-agente-texto,#4B36A8);opacity:1}
+.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-ag{background:var(--d3-agente,#6E56CF);color:#FFFFFF}
+#vv-placa .v2e .v2n-fala.v2n-fala-quieta{background:var(--d3-cartao,#FFFFFF)}
+#vv-placa .v2e .v2n-fala.v2n-fala-quieta > p,#vv-placa .v2e .v2n-fala.v2n-fala-quieta > p b{color:var(--d3-tinta)}
+#vv-placa .v2e .v2n-fala.v2n-fala-quieta .v2n-quem{color:var(--d3-agente-texto,#4B36A8);opacity:1}
+#vv-placa .v2e .v2n-fala.v2n-fala-quieta > .v2n-ag{background:var(--d3-agente,#6E56CF);color:#FFFFFF}
+
+/* Anel de foco: baralho de aprovação e chips de filtro (o foco dos botões vem de --ds-foco, que vybe-mundo.css aplica). */
+body.mundo .v2-baralho.v2-baralho:not(.d3h-baralho):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:4px;border-radius:var(--d3-r-cartao,20px)}
+#vv-hoje .d3h-baralho.d3h-baralho:focus-visible{box-shadow:0 0 0 2px #FFFFFF,0 0 0 4px var(--d3-tinta);border-radius:var(--d3-r-cartao,20px)}
+body.mundo :is(.v2f-chip,.v2c-chip,.v2r-chip,.pv2-chip,.acao-chip,.vd-chip,.v2w-chip,.vb-chip,.d3h-chip,.v2p-chip){--ds-foco:0 0 0 2px #FFFFFF,0 0 0 4px #1F1D1A}
+
+/* Camadas antigas por baixo do mundo: fora de uma tela antiga (mundo-modulo) ou da Gestão, o cabeçalho e o painel
+   antigos não aparecem nem recebem foco. O modo clássico (?legado=1) não tem body.mundo e fica igual. */
+body.mundo:not(.mundo-modulo):not(.mundo-gestao) > :is(header.app-header,.container,[id^="painel-"]:not(#painel-escritorio)){visibility:hidden}
+
+/* Agenda no celular: um "+" só. O da barra de baixo (Criar) fica; marcar na agenda segue no "Marcar captação" do topo e
+   no toque no dia ou na hora. A barrinha do cliente no mês termina em reticências. */
+@media (max-width:600px){
+  body.mundo #pv2-agenda .capt-fab.capt-fab{display:none}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip.ag-chip span{text-overflow:ellipsis}
+}
+
+/* Loja: o cartão do item com "Comprar" inteiro (duas colunas quando a coluna estreita) e, em tela baixa, o corpo rola
+   inteiro em vez de espremer a lista de conquistas atrás do "Seu título no mapa". */
+#office-catalogo .v2l-grade.v2l-grade{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+#office-catalogo .v2l-pe.v2l-pe > .v2l-btn{flex:none}
+#office-catalogo .v2l-pe.v2l-pe{flex-wrap:wrap}
+@media (min-width:861px) and (max-height:760px){
+  #office-catalogo:not([data-aba="conquistas"]) .v2l-corpo.v2l-corpo{overflow-y:auto;scrollbar-width:thin}
+  #office-catalogo:not([data-aba="conquistas"]) .v2l-corpo.v2l-corpo > :is(.v2l-esq,.v2l-conq){min-height:auto}
+  #office-catalogo:not([data-aba="conquistas"]) .v2l-corpo .v2l-grade.v2l-grade,#office-catalogo:not([data-aba="conquistas"]) .v2l-corpo .v2l-escadas.v2l-escadas{flex:none;overflow:visible}
+}
+
+/* "Sem filtros" do painel antigo no mundo: pílula clara lisa, sem o degradê escuro do tema antigo (que agora vale só fora
+   do mundo, em vybe-padrao.css). */
+body.mundo #ops-clear-btn.ops-clear-btn{height:32px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-cartao,#FFFFFF);box-shadow:inset 0 0 0 1px var(--d3-linha,#E6E0D6);font:600 12.5px var(--vv-texto,Inter),sans-serif}
+
 /* ===== padrao-v2/d3-clientes.css ===== */
 /* DIREÇÃO 3 · CLIENTES (moodboard 3 aprovado em 13/11/2026): Saúde da carteira, Onboarding, Gestão de clientes, ficha,
    Reuniões e as placas do centro comercial iguais aos quadros D3. Fundo areia, cartão branco de canto 20 só com título e
@@ -5453,6 +5575,58 @@ button.d3s-lin-txt{cursor:pointer}
   #vv-pessoas.v2p-janela .v2p-mini{flex-basis:auto;max-width:none}
 }
 /* ===== FIM RH · rodada "fiel ao quadro" ===== */
+
+/* ===== padrao-v2/d3-voz.css ===== */
+/* Estados da chamada (Paulo, 14/11/2026: "ainda não tá claro quando tá conectando, quando tá off, quando buga").
+   A fase vem de escritorioEstadoChamada (vybe-escritorio.js) e chega no dock como data-fase na peça da voz:
+   fora · conectando · na-sala · reconectando · caiu · sem-voz · outra-aba · indisponivel.
+   Laranja só no botão ativo (dock.css); erro em vermelho claro; espera em cinza com o girador. */
+
+/* o girador: conectando e reconectando, no botão da voz, no cartão do celular e no painel Salas */
+#vv-dock-salas-faixa .vq-gira,#vv-dock-salas-faixa .vv-chamada .vq-gira,.vv-topo-sala .vq-gira{display:inline-block;flex:none;width:11px;height:11px;margin-right:6px;vertical-align:-1px;
+  border:2px solid var(--d3-borda);border-top-color:var(--d3-tinta);border-radius:50%;animation:vq-gira .8s linear infinite}
+@keyframes vq-gira{to{transform:rotate(360deg)}}
+
+/* a peça da voz por fase; com folga (o compacto do dock continua cuidando das telas estreitas) cabe "3 na voz · Ana na tela" */
+@media (min-width:901px){#vv-dock-salas-faixa:not(.dock-compacto) .vq-dock .vq-voz{max-width:440px}}
+#vv-dock-salas-faixa .vq-dock .vq-voz button.vq-espera,#vv-dock-salas-faixa .vq-dock .vq-voz button.vq-espera:disabled{display:inline-flex;align-items:center;background:var(--d3-areia);color:var(--d3-texto2);cursor:progress}
+#vv-dock-salas-faixa .vq-dock .vq-voz button.vq-erro{background:var(--d3-perigo-veu);color:var(--d3-perigo);box-shadow:inset 0 0 0 1px var(--d3-perigo)}
+#vv-dock-salas-faixa .vq-dock .vq-voz button.vq-erro:hover{background:var(--d3-perigo);color:var(--d3-cartao)}
+#vv-dock-salas-faixa .vq-dock .vq-voz[data-fase="caiu"]{background:var(--d3-perigo-veu)}
+#vv-dock-salas-faixa .vq-dock .vq-voz[data-fase="caiu"] > span:not(.vq-rostos){color:var(--d3-perigo)}
+#vv-dock-salas-faixa .vq-dock .vq-voz[data-fase="reconectando"]{background:var(--d3-ajuste-veu)}
+#vv-dock-salas-faixa .vq-dock .vq-voz[data-fase="reconectando"] > span:not(.vq-rostos){color:var(--d3-ajuste)}
+#vv-dock-salas-faixa .vq-dock .vq-voz[data-fase="na-sala"]{background:var(--d3-pronto-veu)}
+/* dock compacto (a peça da voz tem 160px): com o botão longo da fase, só o botão fica, para não cobrir o microfone */
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz:is([data-fase="conectando"],[data-fase="reconectando"],[data-fase="caiu"]) > span{display:none}
+#vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz:is([data-fase="conectando"],[data-fase="reconectando"],[data-fase="caiu"]){padding:0 6px;gap:0}
+
+/* quem fala: anel que pulsa no rosto (o medidor marca .fala na hora); quem mostra a tela: anel azul fixo */
+#vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i{position:relative}
+#vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i.fala{background:var(--d3-pronto);color:var(--d3-cartao);animation:vq-fala 1s ease-out infinite}
+@keyframes vq-fala{0%{box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 3px var(--d3-pronto)}100%{box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 8px transparent}}
+#vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i.tela{box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 4px var(--d3-info)}
+#vv-dock-salas-faixa .vv-chamada .vz-salas .gente i.tela{color:var(--d3-info)}
+
+/* botões de mídia bloqueados (microfone, câmera, som): vermelho no nome e no ícone, sem o laranja do ativo */
+#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq:hover{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+
+/* cartão do celular fora das salas: a mesma regra */
+#vv-dock-salas-faixa .vq-cartao .vc-acao.vq-espera,#vv-dock-salas-faixa .vq-cartao .vc-acao.vq-espera:disabled{display:inline-flex;align-items:center;background:var(--d3-areia);color:var(--d3-texto2);opacity:1;cursor:progress}
+#vv-dock-salas-faixa .vq-cartao .vc-acao.vq-erro{background:var(--d3-perigo-veu);color:var(--d3-perigo);box-shadow:inset 0 0 0 1px var(--d3-perigo)}
+#vv-dock-salas-faixa .vq-cartao[data-fase="caiu"] .vq-cartao-txt small{color:var(--d3-perigo)}
+#vv-dock-salas-faixa .vq-cartao .vc-acao:disabled:not(.vq-espera){background:var(--d3-areia);color:var(--d3-apagado);opacity:1}
+
+/* painel Salas fora do escritório: o ponto diz a fase */
+#vv-dock-salas-faixa .vv-chamada > .sala.off[data-fase="caiu"] .vz-ponto{background:var(--d3-perigo)}
+#vv-dock-salas-faixa .vv-chamada > .sala.off[data-fase="reconectando"] .vz-ponto{background:var(--d3-ajuste)}
+#vv-dock-salas-faixa .vv-chamada > .sala.off[data-fase="conectando"] .vz-onde > b{display:inline-flex;align-items:center}
+
+@media (prefers-reduced-motion:reduce){
+  #vv-dock-salas-faixa .vq-gira,#vv-dock-salas-faixa .vv-chamada .vq-gira,.vv-topo-sala .vq-gira{animation-duration:2.4s}
+  #vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i.fala{animation:none;box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 4px var(--d3-pronto)}
+}
 
 /* ===== padrao-v2/diario.css ===== */
 /* ======================================================================================

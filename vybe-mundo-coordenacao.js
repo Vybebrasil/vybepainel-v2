@@ -229,8 +229,9 @@
   // - Hoje: um dia; Semana: segunda a domingo (sábado e domingo vazios saem); Mês: o calendário do mês, dia a dia.
   //   ‹ › anda um período. A peça cai no dia da referência: Prazo (o prazo interno, padrão) ou Veiculação (data do
   //   cliente). Aberta e vencida antes do período aparece em "Antes"; sem a data da referência vira contagem.
-  // - Limite do dia: 5 peças por pessoa (a média da Beatriz); o limite de carga da pessoa (limite_carga, gravado pelos
-  //   donos em area=series), quando existe para ela, manda. Vermelho só quando passou.
+  // - Limite do dia: peças por dia de area=series (limite_dia: { padrao: 5, pessoas }, gravado pelos donos e pela
+  //   coordenação); o da pessoa, quando existe, manda; sem a série, 5 (a média da Beatriz). limite_carga é outra coisa
+  //   (peças abertas) e não entra aqui. Vermelho só quando passou.
   // - Repetição: o mesmo cliente 2 vezes no dia da mesma pessoa, ou 3 no dia da agência; o mesmo formato 3 vezes no dia
   //   da agência (ex.: carrossel). Pílulas discretas e o resumo no topo da grade.
   // - Mudar: arrastar a peça para outra pessoa e/ou outro dia (no Mês, entre dias), ou o menu ⋯ ("Passar para…",
@@ -253,7 +254,9 @@
   const fmtPlural = (f, n) => (n === 1 ? f.toLowerCase() : PLURAL_FMT[norm(f)] || `× ${f.toLowerCase()}`);
   const dm = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data');
   const dowDe = (iso) => new Date(`${iso}T12:00:00`).getDay();
-  const paraAprovar = (d) => /aprova/i.test(String(d.status || '')) && !/cliente/i.test(String(d.status || ''));
+  // Aprovação interna: Para, Em ou Aguardando aprovação, pelo começo do status sem acento. "Aprovado" e
+  // "Ag. Aprovação Cliente" não entram.
+  const paraAprovar = (d) => /^(para|em|aguardando) aprova/.test(norm(d.status));
 
   function colunasDe(periodo, hoje, desloca = 0) {
     if (periodo === 'dia') { const d = somarDias(hoje, desloca); return [{ inicio: d, fim: d, dia: true }]; }
@@ -361,7 +364,13 @@
     if (sg.periodoVisto && sg.periodoVisto !== st.periodo) { sg.desloca = 0; sg.pedido = null; }
     sg.periodoVisto = st.periodo;
     const S = typeof G.d3Series === 'function' ? G.d3Series('setor', repintar) : null;
-    const limiteDia = (id) => { if (!S) return LIMITE_DIA; const x = Object.values(S.carga || {}).find((c) => String(c.monday || '') === id || String(c.sujeito) === id); return (x && Number(S.limite?.pessoas?.[x.sujeito])) || LIMITE_DIA; };
+    const limiteDia = (id) => {
+      const L = S?.limite_dia; if (!L) return LIMITE_DIA;
+      const padrao = Number(L.padrao) > 0 ? Number(L.padrao) : LIMITE_DIA;
+      // limite_dia.pessoas usa o id de vybe_pessoas (o sujeito da carga); a ficha usa o id do Monday.
+      const x = Object.values(S.carga || {}).find((c) => String(c.monday || '') === id || String(c.sujeito) === id);
+      return Number(L.pessoas?.[x ? String(x.sujeito) : id]) || padrao;
+    };
     const pessoa = pessoaDaFicha(time);
     const g = gradeCalcular({ itens, time, hoje, periodo: st.periodo, desloca: sg.desloca, ref: sg.ref, pessoa, limiteDia, cliente, filtro: sg.filtro, busca: sg.busca });
     const I = indicadores({ itens, time, hoje });

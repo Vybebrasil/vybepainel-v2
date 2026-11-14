@@ -99,7 +99,8 @@
     return `${cartoes.trim() ? `<div class="vs-kpis">${cartoes}</div>` : ''}${zeros.length ? `<div class="vs-resumo vs-zeros"><div class="vb-resumo" role="group" aria-label="Sem movimento">${zeros.join('')}</div></div>` : ''}`;
   }
   const bloco = (titulo, sub, corpo, { icone = 'alta', cls = '', acao = '' } = {}) => `<section class="vs-bloco ${cls}"><div class="vs-bloco-cabeca"><i>${ic(icone)}</i><span><b>${esc(titulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${acao}</div>${corpo}</section>`;
-  const abrirAba = (id, rotulo = 'Abrir') => (ctx?.subs || []).some((s) => s.id === id) ? `<button type="button" class="vs-abrir" data-setor-sub="${esc(id)}">${esc(rotulo)} →</button>` : '';
+  // O nome acessível diz o que o botão faz e para onde leva ("Abrir CRM e funil"), não só "Abrir →".
+  const abrirAba = (id, rotulo = 'Abrir') => { const aba = (ctx?.subs || []).find((s) => s.id === id); return aba ? `<button type="button" class="vs-abrir" data-setor-sub="${esc(id)}" aria-label="${esc(rotulo === 'Abrir' ? `Abrir ${aba.nome || id}` : `${rotulo}: abrir ${aba.nome || id}`)}">${esc(rotulo)} →</button>` : ''; };
   // Barras verticais (SVG que acompanha a largura), com o valor em cima; as barras crescem ao aparecer.
   function barras(itens, series, { fmt = num, curtoFmt = curto, altura = 180 } = {}) {
     if (!itens.length || !itens.some((i) => series.some((s) => Number(i[s.chave]) > 0))) return aviso('Sem dados no período.');
@@ -151,7 +152,8 @@
   let principal = '';
   function fala(quem, frase, { conta = [] } = {}) {
     const [nome, papel] = AGENTE[quem] || AGENTE.vybes, linhas = conta.filter(Boolean);
-    return `<section class="g2-card g2-fala v2-abre" aria-expanded="false" aria-label="${esc(nome)}, ${esc(papel)}"><div class="g2-fala-lin"><span class="g2-ag" aria-hidden="true">${esc(nome.charAt(0))}</span><p><span class="g2-quem">${esc(nome)} · ${esc(papel)}</span>${frase}</p>${linhas.length ? '<button type="button" class="g2-btn s" data-g2-abre aria-expanded="false">Ver a conta</button>' : ''}</div>${linhas.length ? `<div class="v2-mais"><div><ul class="g2-conta">${linhas.map((c) => `<li>${c}</li>`).join('')}</ul></div></div>` : ''}</section>`;
+    // Direção 3: laranja cheio só quando a fala tem ação; sem botão ela vira cartão claro (g2-fala-quieta).
+    return `<section class="g2-card g2-fala v2-abre${linhas.length ? '' : ' g2-fala-quieta'}" aria-expanded="false" aria-label="${esc(nome)}, ${esc(papel)}"><div class="g2-fala-lin"><span class="g2-ag" aria-hidden="true">${esc(nome.charAt(0))}</span><p><span class="g2-quem">${esc(nome)} · ${esc(papel)}</span>${frase}</p>${linhas.length ? '<button type="button" class="g2-btn s" data-g2-abre aria-expanded="false">Ver a conta</button>' : ''}</div>${linhas.length ? `<div class="v2-mais"><div><ul class="g2-conta">${linhas.map((c) => `<li>${c}</li>`).join('')}</ul></div></div>` : ''}</section>`;
   }
   // Um dos três números: rótulo, número que chega, barra (0 a 100) e a linha de baixo. Com espiar, o número abre a lista.
   function numero({ rotulo, valor, de = '', barra = null, cor = '', tom = '', sub = '', espiar = '' }, i = 0) {
@@ -405,7 +407,7 @@
     const metas = (progressoLista || []).filter((x) => x.meta > 0 && filtro(x)).map((x) => ({ ...x, texto: `${x.tipo === 'dinheiro' ? reais(x.realizado) : num(x.realizado)} de ${x.tipo === 'dinheiro' ? reais(x.meta) : num(x.meta)}${x.batida ? ' · meta batida' : ''}` }));
     // As metas moram no Funil (Editar metas); fora do Comercial, o botão leva ao setor.
     const rotulo = metas.length ? 'Metas' : 'Definir a meta';
-    const acao = abrirAba('funil', rotulo) || `<button type="button" class="vs-abrir" data-setor-ir="setor:comercial">${rotulo} →</button>`;
+    const acao = abrirAba('funil', rotulo) || `<button type="button" class="vs-abrir" data-setor-ir="setor:comercial" aria-label="${rotulo}: abrir o Comercial">${rotulo} →</button>`;
     const corpo = metas.length ? progresso(metas)
       : `<div class="vs-meta-vazia"><span class="vs-d-trilho"><i style="width:0%"></i></span><p>Nenhuma meta definida para ${esc(periodoNome)}. Os donos definem no Funil, em Editar metas.</p></div>`;
     return bloco(titulo, periodoNome, corpo, { icone: 'meta', cls: 'vs-destaque', acao });
@@ -467,7 +469,7 @@
       const caixa = temVF ? (vf.series || []).slice(-6).map((m) => ({ ...m, rotulo: mesCurto(m.mes) })) : [];
       const piores = [...saude].sort((a, b) => (a.score ?? 999) - (b.score ?? 999)).slice(0, 6);
       const time = [...(N?.time || [])].sort((a, b) => (b.abertas || 0) - (a.abertas || 0)).slice(0, 6);
-      const ir = (setor, rotulo) => `<button type="button" class="vs-abrir" data-setor-ir="${esc(setor)}">${esc(rotulo)} →</button>`;
+      const ir = (setor, rotulo) => `<button type="button" class="vs-abrir" data-setor-ir="${esc(setor)}" aria-label="Abrir ${esc(rotulo)}">${esc(rotulo)} →</button>`;
       // ---- Padrão v2 (quadro "Gestão"): a frase do VYBES, três números, o que pede ação por setor e a semana por dia ----
       const prontas = S.previstasEntregues ?? S.entregues, falt = Number(H.faltam) || 0, atr = Number(H.atrasadas) || 0, furos = Number(H.furos ?? atr) || 0, prox = P.proximaSemana || {};
       const criticos = conta('critico'), abertas = abertasAgora(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : null, H.dia);
@@ -916,7 +918,11 @@
   el.addEventListener('change', (ev) => { if (ev.target.matches?.('[data-vs-mes]')) { per.mes = ev.target.value; pintar(); } });
 
   function abrir(setor, contexto) {
-    atual = setor; ctx = contexto; el.hidden = false; el.scrollTop = 0;
+    atual = setor; ctx = contexto; el.hidden = false;
+    // Volta ao topo no quadro seguinte, antes de pintar: gravar scrollTop aqui, com a classe do body recém-trocada,
+    // forçava o estilo e o layout da página inteira dentro do clique.
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { if (!el.hidden) el.scrollTop = 0; });
+    else el.scrollTop = 0;
     document.body.classList.add('mundo-setor-visao');
     pintar();
   }

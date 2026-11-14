@@ -285,7 +285,7 @@ function renderAiUsageBoard(data) {
         <div class="ai-setting-field"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
         <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência (R$ por US$ 1)</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd) || 5.5}"></div>
         <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing === 'free' ? 'selected' : ''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing === 'paid' ? 'selected' : ''}>API paga</option></select></div>
-        <button class="ai-setting-save vb-botao principal" type="button" onclick="saveAiUsageSettings()">Salvar</button>
+        <button class="ai-setting-save vb-botao principal" type="button" onclick="saveAiUsageSettings()" aria-label="Salvar o dólar e o plano do Gemini">Salvar</button>
       </div>
       <p class="ia-nota">Os valores são estimativas pelo tamanho de cada pedido e da resposta. Não substituem as faturas da OpenAI, do Google e da Anthropic, que mudam com plano, créditos, descontos e cobrança intermediada.</p>
     </details>`;
@@ -1683,7 +1683,7 @@ function pv2iRender(data) {
           <div class="ai-setting-field"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
           <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência (R$ por US$ 1)</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd) || 5.5}"></div>
           <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing === 'free' ? 'selected' : ''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing === 'paid' ? 'selected' : ''}>API paga</option></select></div>
-          <button class="ai-setting-save pv2-btn s k" type="button" onclick="saveAiUsageSettings()">Salvar</button></div></details>`;
+          <button class="ai-setting-save pv2-btn s k" type="button" onclick="saveAiUsageSettings()" aria-label="Salvar o dólar e o plano do Gemini">Salvar</button></div></details>`;
   const listaQuem = porCliente ? clientesIa : people;
   const trocar = `<button type="button" class="pv2-chip pv2i-recorte" aria-pressed="${porCliente}" onclick="pv2iTrocarRecorte()">${porCliente ? 'Por pessoa' : 'Por cliente'}</button>`;
   const comQuem = `<section class="pv2-card pv2i-quem" aria-label="Com quem"><div class="pv2i-cab"><h3>Com quem</h3><span class="pv2-sub">${porCliente ? 'por cliente' : 'quem pediu'}</span></div>${porCliente ? deCliente || '<p class="pv2-sub pv2-nada">Sem cliente registrado nos pedidos do período (passa a contar nas gravações novas).</p>' : quem || '<p class="pv2-sub pv2-nada">Sem pessoas identificadas no período.</p>'}

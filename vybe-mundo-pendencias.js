@@ -38,7 +38,7 @@
     void atualizar();
     const a = st.dados?.atendimento || {}, cli = a.clientesEsperando || [], time = a.timeSemResolver || [], agente = a.agente || 'Mateus';
     return `<section class="vv-bloco vv-pend" aria-label="Atendimento: WhatsApp pendente">
-      <div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>${esc(agente)} · Atendimento<span class="vv-pilula">${cli.length + time.length}</span><button type="button" class="vv-pend-agente" data-pend-agente="concierge">ver o agente</button></div>
+      <div class="vv-rotulo-secao" style="--c:var(--vv-lilas)"><i></i>${esc(agente)} · Atendimento<span class="vv-pilula">${cli.length + time.length}</span><button type="button" class="vv-pend-agente" data-pend-agente="concierge" aria-label="Ver o agente ${esc(agente)}">ver o agente</button></div>
       ${sinal()}
       <div class="vv-pend-colunas">
         <div><small class="vv-pend-sub">Clientes esperando resposta</small>${cli.length ? cli.slice(0, 4).map(linhaCliente).join('') : st.dados ? '<p class="vv-vazio">Nenhum cliente esperando resposta.</p>' : ''}${cli.length > 4 ? `<button type="button" class="vv-mais" data-pend-whatsapp>+ ${cli.length - 4} cliente${cli.length - 4 === 1 ? '' : 's'}</button>` : ''}</div>

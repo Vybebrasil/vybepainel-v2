@@ -15,7 +15,8 @@ test('Conteúdo abre em Para aprovar, com as quatro abas do quadro D3 (Com o cli
 
 test('a fila é a aprovação interna, pela data do cliente, e larga a peça que o painel já mostra fora de aprovação', () => {
   assert.match(js, /pecas\.filter\(\(i\) => i\.etapa === 'interna'\)/);
-  assert.match(js, /return !p \|\| \/aprova\/i\.test\(String\(p\.status \|\| ''\)\);/);
+  // Regex ancorada (auditoria 14/11/2026): "Aprovado" e "Ag. Aprovação Cliente" não são "para aprovar".
+  assert.match(js, /return !p \|\| esperaAprovacao\(p\.status\);/);
   assert.match(js, /String\(a\.veiculacao \|\| a\.prazo \|\| '9'\)\.localeCompare\(String\(b\.veiculacao \|\| b\.prazo \|\| '9'\)\)/);
 });
 

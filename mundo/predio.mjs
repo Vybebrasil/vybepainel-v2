@@ -298,7 +298,7 @@ export function construirPredio(motor, { x, z, y }) {
       r.centro = c; rotulosPessoas.push(r);
     }
   }
-  motor.animar(() => { for (const r of rotulosPessoas) { r.pos.set(x + r.centro.x, y + r.centro.g.position.y + 1.6, z + r.centro.z); r.el.hidden = !r.centro.g.visible; } });
+  motor.animar(() => { for (const r of rotulosPessoas) { r.pos.set(x + r.centro.x, y + r.centro.g.position.y + 1.6, z + r.centro.z); const h = !r.centro.g.visible; if (r.el.hidden !== h) r.el.hidden = h; } });
 
   function terracoMoveis(pecas) {
     {
@@ -415,7 +415,7 @@ export function construirPredio(motor, { x, z, y }) {
       tira.set(a.andar.nivel, t1);
       a.g.position.y = a.andar.nivel * PE + .15 + a.andar.nivel * ABRE * abre + t1;
       a.g.visible = t1 < 45;
-      a.rotulo.el.hidden = true;
+      if (!a.rotulo.el.hidden) a.rotulo.el.hidden = true; // atribuir o mesmo valor ainda gera mutação no DOM a cada quadro
       if (a.g.userData.teto) a.g.userData.teto.visible = foco === null && abre < .05;
     }
     ser.visible = foco === null;
@@ -431,7 +431,7 @@ export function construirPredio(motor, { x, z, y }) {
     luz.intensity = 5 + Math.sin(t * 1.6) * 1.2;
     rotuloSer.pos.y = y + ser.position.y + 3.4;
     for (const a of andares) a.rotulo.pos.y = y + a.g.position.y + 1.2;
-    for (const ag of agentesRot) { const a = andares[ag.andarIdx]; if (!a) continue; ag.r.pos.y = y + a.g.position.y + 1.95; const ver = foco === ag.nivel && a.g.visible; ag.r.el.hidden = !ver; ag.r.forcarEscondido = !ver; }
+    for (const ag of agentesRot) { const a = andares[ag.andarIdx]; if (!a) continue; ag.r.pos.y = y + a.g.position.y + 1.95; const ver = foco === ag.nivel && a.g.visible; if (ag.r.el.hidden === ver) ag.r.el.hidden = !ver; ag.r.forcarEscondido = !ver; }
     let agenteAnimado = false;
     for (const f of animaveis) agenteAnimado = (f(t) === true) || agenteAnimado;
     return abrindo || (ser.visible && motor.emVista(ser)) || agenteAnimado;

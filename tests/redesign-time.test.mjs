@@ -19,8 +19,9 @@ test('vbEscolhaHtml: chip com o valor, menu de opções com contagem e o campo e
   assert.doesNotMatch(html, /<select/);
   assert.match(html, /<details class="vb-escolha"><summary class="vb-chip vb-escolha-com" aria-label="Nicho: Moda">/);
   assert.match(html, /<input type="hidden" data-vc-filtro="nicho" value="Moda">/);
-  assert.match(html, /data-vb-escolha="" aria-selected="false"><span>Todos<\/span>/, 'a opção vazia vem primeiro');
-  assert.match(html, /data-vb-escolha="Moda" aria-selected="true"><span>Moda<\/span><em>3<\/em>/);
+  // Auditoria de 14/11/2026: cada opção diz o que faz (aria-label "Escolher …", com a contagem).
+  assert.match(html, /data-vb-escolha="" aria-selected="false" aria-label="Escolher Todos"><span>Todos<\/span>/, 'a opção vazia vem primeiro');
+  assert.match(html, /data-vb-escolha="Moda" aria-selected="true" aria-label="Escolher Moda \(3\)"><span>Moda<\/span><em>3<\/em>/);
   assert.match(html, /Pet &lt;x&gt;/, 'escapa o texto');
   const sem = ctx.f({ rotulo: 'Dia', valor: '', vazio: '—', campo: 'name="nasc_dia"', grade: 7, opcoes: [{ valor: '1', nome: '1' }] });
   assert.match(sem, /<summary class="vb-chip" aria-label="Dia: —">/);

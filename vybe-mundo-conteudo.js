@@ -222,11 +222,14 @@
     if (!opcao) return { item, motivo: acao === 'aprovar' ? 'o quadro dela não tem o status depois da aprovação' : 'o quadro dela não tem Alteração' };
     return { item, opcao, portao };
   }
+  // Espera aprovação interna: Para aprovação, Em aprovação ou Aguardando aprovação. "Aprovado" e "Ag. Aprovação
+  // Cliente" não entram (a regex é ancorada no começo do status sem acento).
+  const esperaAprovacao = (status) => /^(para|em|aguardando) aprova/.test(normal(status));
   function filaParaAprovar() {
     const d = A()?.estado?.().dados;
     if (!d) return null;
     const pecas = Array.isArray(d.pecas) ? d.pecas : [];
-    const fila = pecas.filter((i) => i.etapa === 'interna').filter((i) => { const p = itemDoPainel(i); return !p || /aprova/i.test(String(p.status || '')); })
+    const fila = pecas.filter((i) => i.etapa === 'interna').filter((i) => { const p = itemDoPainel(i); return !p || esperaAprovacao(p.status); })
       .sort((a, b) => String(a.veiculacao || a.prazo || '9').localeCompare(String(b.veiculacao || b.prazo || '9')) || (b.horas ?? -1) - (a.horas ?? -1));
     const comO = pecas.filter((i) => i.etapa === 'cliente');
     return { fila, comCliente: comO.length, comO };

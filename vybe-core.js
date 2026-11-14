@@ -350,6 +350,9 @@ function ajustarAvisosCurtos() {
   }
   const barras = [...document.querySelectorAll(AVISO_CURTO_BARRAS)].map((b) => b.getBoundingClientRect()).filter((q) => q.width > 2 && q.height > 2);
   for (const q of barras) obstaculos.push({ el: null, l: q.left, t: q.top, r: q.right, b: q.bottom });
+  // Computador, regra "nada cobre" (auditoria de 14/11/2026): a janela aberta (módulo, Hoje, painel do setor) conta
+  // inteira, com o texto, não só os botões. O aviso fica fora dela; sem vaga, vira pílula fora da janela ou vai ao sino.
+  if (W > 600) for (const q of avisoCurtoJanelas(caixa, W, H)) obstaculos.push({ el: null, l: q.left, t: q.top, r: q.right, b: q.bottom });
   const cobertos = (l, t, w, h) => obstaculos.filter((o) => o.r > l + 1 && o.l < l + w - 1 && o.b > t + 1 && o.t < t + h - 1);
   const quantos = (l, t, w, h, teto) => { let n = 0; for (const o of obstaculos) if (o.r > l + 1 && o.l < l + w - 1 && o.b > t + 1 && o.t < t + h - 1 && ++n > teto) break; return n; };
   // Volta ao lugar e ao tamanho de sempre (quem esperava a vez reaparece e o tempo dele começa) e mede de novo.
@@ -429,7 +432,33 @@ function ajustarAvisosCurtos() {
       if (v && (!menor || v.n < menor.n)) menor = { ...v, w, minimo };
     }
   }
-  if (menor) { caixa.classList.toggle('minimo', menor.minimo); por(menor.x, menor.y, menor.w); }
+  // (4) Pílula de uma linha (o primeiro aviso; os outros esperam a vez) numa vaga sem controle e fora da janela, perto
+  // do canto de baixo à direita, ao lado da barra de baixo; tocar abre o aviso inteiro. (5) Sem vaga: vai para o sino.
+  caixa.classList.remove('compacto', 'minimo'); caixa.classList.add('pilula');
+  const filhos = [...caixa.children];
+  filhos.forEach((x, i) => { if (i > 0 && !x.hidden) { x.hidden = true; x.vvPausar?.(); } });
+  const toda = { l: esquerda, r: W - margem, t: margem, b: H - margem };
+  for (const w of [Math.min(r.width, 300), 220, 170, 140, 120]) {
+    v = procurar(w, 34, toda, { x: W - margem - w, y: H - margem - 34 });
+    if (v && !v.n) { por(v.x, v.y, w); return; }
+  }
+  caixa.classList.remove('pilula');
+  for (const x of filhos) mandarAvisoAoSino(x);
+  caixa.style.right = ''; caixa.style.top = ''; caixa.style.width = '';
+
+}
+// A janela aberta embaixo do aviso: o primeiro ancestral fixo ou absoluto, grande (40% da largura, metade da altura) e
+// que não é a tela inteira (o mapa 3D e o HUD não contam), achado em dois pontos do palco.
+function avisoCurtoJanelas(caixa, W, H) {
+  const achadas = [];
+  for (const [x, y] of [[W * 0.6, H * 0.45], [W * 0.85, H * 0.25]]) {
+    for (let e = document.elementsFromPoint(x, y).find((z) => !caixa.contains(z)); e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      const pos = getComputedStyle(e).position; if (pos !== 'fixed' && pos !== 'absolute') continue;
+      const q = e.getBoundingClientRect();
+      if (q.width >= W * 0.4 && q.height >= H * 0.5 && (q.width < W * 0.97 || q.height < H * 0.97)) { if (!achadas.some((a) => a.left === q.left && a.top === q.top && a.width === q.width)) achadas.push(q); break; }
+    }
+  }
+  return achadas;
 }
 
 // Celular (quinta rodada, 11/11/2026; quadro 29, regra 6, e a regra do Paulo "nada cobre"): o aviso NUNCA fica sobre um
@@ -501,14 +530,22 @@ function mandarAvisoAoSino(el) {
 function abrirPilulaDoAviso(caixa) {
   if (!caixa.classList.contains('pilula') || caixa.classList.contains('aberto')) return;
   const barra = document.querySelector('.vv-barra-topo')?.getBoundingClientRect?.(), m = 8;
+  const antes = caixa.getBoundingClientRect();
   caixa.classList.add('aberto');
   for (const x of caixa.children) { x.hidden = false; x.vvPausar?.(); }
-  caixa.style.width = `${Math.round(window.innerWidth - 2 * m)}px`; caixa.style.right = `${m}px`;
-  caixa.style.top = `${Math.round((barra?.bottom || 56) + 6)}px`;
+  if (window.innerWidth > 600) {
+    // Computador: abre no lugar da pílula, crescendo para cima (quem pediu para ver aceita cobrir, até fechar).
+    const w = Math.min(360, window.innerWidth - 2 * m);
+    caixa.style.width = `${w}px`; caixa.style.right = `${Math.round(Math.max(m, window.innerWidth - antes.right))}px`;
+    caixa.style.top = `${Math.round(Math.max(m, antes.bottom - caixa.getBoundingClientRect().height))}px`;
+  } else {
+    caixa.style.width = `${Math.round(window.innerWidth - 2 * m)}px`; caixa.style.right = `${m}px`;
+    caixa.style.top = `${Math.round((barra?.bottom || 56) + 6)}px`;
+  }
   const fora = (e) => { if (!caixa.contains(e.target)) fechar(); };
   const tecla = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fechar(); } };
   function fechar() {
-    document.removeEventListener('pointerdown', fora, true); document.removeEventListener('keydown', tecla, true);
+    document.removeEventListener('pointerdown', fora, true); window.removeEventListener('keydown', tecla, true);
     caixa.vvFecharPilula = null;
     if (!caixa.classList.contains('aberto')) return;
     caixa.classList.remove('aberto');
@@ -516,7 +553,8 @@ function abrirPilulaDoAviso(caixa) {
     ajustarAvisosCurtos();
   }
   caixa.vvFecharPilula = fechar;
-  document.addEventListener('pointerdown', fora, true); document.addEventListener('keydown', tecla, true);
+  // Esc na janela, em captura: fecha o aviso aberto antes do Esc da tela de trás.
+  document.addEventListener('pointerdown', fora, true); window.addEventListener('keydown', tecla, true);
 }
 
 // ─── GraphQL Query ────────────────────────────────────────────────────────────
@@ -1388,7 +1426,7 @@ function vbEscolhaHtml({ rotulo = '', valor = '', opcoes = [], campo = '', vazio
   const lista = (vazio ? [{ valor: '', nome: vazio }] : []).concat(opcoes);
   return `<details class="vb-escolha"><summary class="vb-chip${atual ? ' vb-escolha-com' : ''}" aria-label="${e(rotulo)}: ${e(nomeAtual)}">${rotulo ? `<span class="vb-escolha-rotulo">${e(rotulo)}</span>` : ''}<b class="vb-escolha-valor">${e(nomeAtual)}</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>`
     + `<input type="hidden" ${campo} value="${e(v)}">`
-    + `<div class="vb-escolha-menu${grade ? ' grade' : ''}" role="listbox" aria-label="${e(rotulo)}"${grade ? ` style="--colunas:${Number(grade) || 1}"` : ''}>${lista.map((o) => `<button type="button" role="option" data-vb-escolha="${e(o.valor)}" aria-selected="${String(o.valor) === v}"><span>${e(o.nome)}</span>${conta(o.n)}</button>`).join('')}</div></details>`;
+    + `<div class="vb-escolha-menu${grade ? ' grade' : ''}" role="listbox" aria-label="${e(rotulo)}"${grade ? ` style="--colunas:${Number(grade) || 1}"` : ''}>${lista.map((o) => `<button type="button" role="option" data-vb-escolha="${e(o.valor)}" aria-selected="${String(o.valor) === v}" aria-label="Escolher ${e(o.nome)}${o.n === undefined || o.n === null || o.n === '' ? '' : ` (${e(o.n)})`}"><span>${e(o.nome)}</span>${conta(o.n)}</button>`).join('')}</div></details>`;
 }
 if (typeof window !== 'undefined') { window.vbEscolhaHtml = vbEscolhaHtml; window.vbCabecalhoHtml = vbCabecalhoHtml; window.vbFecharHtml = vbFecharHtml; window.vbMesHtml = vbMesHtml; window.vbResumoHtml = vbResumoHtml; }
 // Um menu aberto por vez: a opção grava no campo escondido e avisa (input e change); clicar fora ou Esc fecha.

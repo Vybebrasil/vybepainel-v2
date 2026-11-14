@@ -359,11 +359,32 @@
     const ids = clientesAtivos().map((c) => String(c.id)).filter((id) => forcar || !dados[id]);
     if (!ids.length) return;
     tela.lendo = true;
+    // Uma chamada para todos (clientes=); se o servidor não tiver essa leitura, um por cliente como antes.
+    const faltam = await carregarLote(ids);
     let i = 0;
-    const fila = async () => { while (i < ids.length) { const id = ids[i]; i += 1; await carregar(id, forcar); } };
-    await Promise.all(Array.from({ length: Math.min(6, ids.length) }, fila));
+    const fila = async () => { while (i < faltam.length) { const id = faltam[i]; i += 1; await carregar(id, forcar); } };
+    await Promise.all(Array.from({ length: Math.min(6, faltam.length) }, fila));
     tela.lendo = false;
     pintarTela();
+  }
+  // Devolve os ids que ficaram sem leitura (todos, quando a rota de vários não respondeu).
+  async function carregarLote(ids) {
+    const faltam = [];
+    for (let k = 0; k < ids.length; k += 200) {
+      const parte = ids.slice(k, k + 200);
+      try {
+        const r = await fetch(`/api/painel?area=reunioes&clientes=${parte.map(encodeURIComponent).join(',')}`, { credentials: 'same-origin', cache: 'no-store' });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.clientes || typeof d.clientes !== 'object') { faltam.push(...parte); continue; }
+        const comuns = { tipos: d.tipos, questoes: d.questoes, acessos_pedidos: d.acessos_pedidos };
+        for (const id of parte) {
+          const x = d.clientes[id];
+          if (!x) { faltam.push(id); continue; }
+          dados[id] = x.ok === false ? { erro: x.error || 'Não consegui ler as reuniões.' } : { d: { ...x, ...comuns } };
+        }
+      } catch { faltam.push(...parte); }
+    }
+    return faltam;
   }
 
   function numerosDaTela() {

@@ -15,7 +15,8 @@ function faixa({ zona = 'sala-1', minha = 'sala-1', online = [], conectado = tru
   const ctx = { window, escritorio: { conectado, zona: ezona, base: { eu: '1' }, online, vozPausada: false, chamada: { self: { audioEnabled: mic } }, canalChamada: 'c-' + ezona },
     minhaSalaDaConta: () => minha, zonas3d: () => ({ recepcao: { nome: 'Convivência' } }),
     fn: (n) => ({ escritorioCanal: (z) => 'c-' + z, escritorioEstadoVozTexto: () => 'Na conversa da sala', escritorioPessoasFalando: () => new Set(['2']) })[n] || null,
-    esc: (s) => String(s), svg: (d) => `<svg>${d}</svg>`, Set, String, Boolean };
+    esc: (s) => String(s), svg: (d) => `<svg>${d}</svg>`, Set, String, Boolean,
+    vozAgora: () => ({ fase: conectado ? 'na-sala' : 'fora', midia: {} }) };
   vm.createContext(ctx); vm.runInContext(js.slice(ini, fim), ctx);
   ctx.pintarCabDaSala({ querySelector: () => cab }, zona, { nome: 'Sala do Paulo' });
   return cab.innerHTML;
@@ -29,7 +30,8 @@ test('faixa da sala: nome, quem está (você primeiro) e a voz dita em texto', (
   assert.match(h, /class=" fala" title="Vinícius L \(falando\)"/, 'quem fala fica marcado');
   assert.ok(faixa({ mic: true }).includes('Voz ligada, microfone aberto'));
   assert.ok(faixa({ ezona: 'recepcao' }).includes('Sua voz está em Convivência'));
-  assert.ok(faixa({ conectado: false }).includes('Voz desligada: entre pelo microfone do dock'));
+  // Estados da voz (14/11/2026): fora diz onde entrar; conectando/caiu vêm da fase (tests/voz-estados.test.mjs).
+  assert.ok(faixa({ conectado: false }).includes('Fora da voz: use Entrar no dock'));
   assert.ok(faixa({ conectado: false }).includes('Ninguém na sala agora'));
 });
 

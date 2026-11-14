@@ -528,7 +528,20 @@
       d.balao.hidden = coberto; if (d.anel) d.anel.hidden = coberto;
       if (!coberto && colocarCompacta(d.balao, c, alvo, c && def?.evitar ? caixasAEvitar(def.evitar) : []) === 'espera') { d.balao.hidden = true; if (d.anel) d.anel.hidden = true; }
     }
-    else colocarBalao(d.balao, c, def?.lado, c && def?.evitar ? caixasAEvitar(def.evitar) : []);
+    else {
+      // Auditoria de 14/11/2026 ("nada cobre"): a dica grande também não fica sobre controle (a busca e os cabeçalhos
+      // dos Clientes, o formulário das Automações). Cobrindo algum, ela procura vaga como a compacta e, sem vaga, espera
+      // escondida até ter lugar; depois de achar vaga, segue por esse caminho (não pula a cada 400 ms).
+      const evitar = c && def?.evitar ? caixasAEvitar(def.evitar) : [];
+      if (!d.balao.hasAttribute?.('data-posto')) {
+        colocarBalao(d.balao, c, def?.lado, evitar);
+        const q = d.balao.getBoundingClientRect?.(); if (!q) return;
+        const embaixo = controlesNaTela().filter((o) => o.left < q.right + 4 && o.right > q.left - 4 && o.top < q.bottom + 4 && o.bottom > q.top - 4);
+        if (!embaixo.length || !soOsDaFrente(embaixo).length) return;
+      }
+      const posto = colocarCompacta(d.balao, c, alvo, evitar);
+      d.balao.hidden = posto === 'espera'; if (d.anel) d.anel.hidden = d.balao.hidden;
+    }
   }
   // ---------- dica compacta: nunca em cima de controle ----------
   // Todo controle à vista conta (botão, link, campo, aba, linha clicável), não só os do `evitar`. Região do tamanho de

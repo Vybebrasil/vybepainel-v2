@@ -1002,11 +1002,16 @@ window.abrirCalendarioSazonal = function() {
    Da data para o cadastro
    ------------------------------------------------------------------------- */
 
-// O prazo de ouro sao sete dias antes da veiculacao. Para uma data que cai
-// nesta semana, sete dias antes ja passou: nasceria atrasada. Nesse caso o
-// prazo e hoje, e quem cadastra ve a data apertada em vez de um atraso.
+// O prazo de ouro e a regra unica de shared/prazo-interno.js (window.VybePrazoInterno), a mesma do
+// planejamento e do bot: 7 dias antes da veiculacao, sexta no fim de semana, hoje se ja passou e no maximo
+// 2 dias antes. Sem o global, fica a conta antiga: sete dias antes, ou hoje se ja passou.
 function sazonalPrazoDe(iso) {
   const hoje = sazonalHojeIso();
+  const comum = globalThis.VybePrazoInterno;
+  if (comum && typeof comum.prazoInterno === 'function') {
+    const p = comum.prazoInterno(iso, hoje);
+    if (p) return p;
+  }
   const d = new Date(iso + 'T12:00:00');
   d.setDate(d.getDate() - 7);
   const sete = d.toISOString().slice(0, 10);

@@ -1086,7 +1086,7 @@
     j.innerHTML = htmlJanela();
     if (chave === 'data-vc-busca-onb' || chave === 'data-vc-busca') { const campo = j.querySelector(`[${chave}]`); campo?.focus?.(); campo?.setSelectionRange?.(campo.value.length, campo.value.length); }
     const novoCorpo = j.querySelector('.vc-corpo');
-    if (novoCorpo) novoCorpo.scrollTop = rolagem;
+    if (novoCorpo && rolagem) novoCorpo.scrollTop = rolagem; // gravar 0 numa janela nova só forçaria um layout da página inteira
     if (chave) {
       const todos = [...j.querySelectorAll(`[${chave}]`)], rotulo = foco.getAttribute('aria-label');
       // As setas do mês mudam de valor a cada clique: o foco volta para a mesma seta.

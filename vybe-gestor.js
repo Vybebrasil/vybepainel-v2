@@ -1702,7 +1702,15 @@ function toggleAllActionItems() {
 
 // ─── Meu Dia / Inteligência de gestão ─────────────────────────────────────────
 let focusShowAll = false;
-function isFinishedItem(d) { return ['Finalizado','Feito','Concluído','Concluido'].includes(operationalFlowStatus(d)); }
+// "Pronta" é só Finalizado, Feito ou Concluído: a regra única de VybeDono.util.finalizado (vybe-dono-metricas.js).
+// Sem ela carregada, a mesma lista aqui. Aprovado, Publicado, Postado, Agendado e Para agendar não fecham a peça.
+const STATUS_PRONTA_LOCAL = new Set(['finalizado', 'finalizada', 'feito', 'concluido', 'concluida', 'concluidos', 'concluidas']);
+function statusPronto(status) {
+  const regra = globalThis.VybeDono?.util?.finalizado;
+  if (typeof regra === 'function') return Boolean(regra(status));
+  return STATUS_PRONTA_LOCAL.has(String(status || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim());
+}
+function isFinishedItem(d) { return statusPronto(operationalFlowStatus(d)); }
 function getReferenceDate(d) { return d.prazo_iso || d.veiculacao_iso || ''; }
 
 // ── Soltar a peça num dia da semana ──────────────────────────────────────────

@@ -31,6 +31,22 @@ function fcCorDeStatus(s) {
   if (c?.cor) return { color: c.cor, bg: `color-mix(in srgb, ${c.cor} 15%, transparent)`, border: `color-mix(in srgb, ${c.borda || c.cor} 30%, transparent)` };
   return { color: '#8888a8', bg: 'rgba(136,136,168,0.12)', border: 'rgba(136,136,168,0.25)' };
 }
+// Prazo interno da peça: o Prazo de Ouro de shared/prazo-interno.js (window.VybePrazoInterno), a mesma regra do
+// planejamento e do bot (7 dias antes, sexta no fim de semana, hoje se já passou, no máximo 2 dias antes).
+// Sem o global, fica 7 dias antes da veiculação.
+function cadastroPrazoInterno(veic, hoje) {
+  const v = String(veic || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return '';
+  const comum = globalThis.VybePrazoInterno;
+  if (comum && typeof comum.prazoInterno === 'function') {
+    const agora = new Date(), dois = (n) => String(n).padStart(2, '0');
+    const dia = hoje || `${agora.getFullYear()}-${dois(agora.getMonth() + 1)}-${dois(agora.getDate())}`;
+    const p = comum.prazoInterno(v, dia);
+    if (p) return p;
+  }
+  const [a, m, d] = v.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, d - 7)).toISOString().slice(0, 10);
+}
 function cadastroDatasEmEscala(inicio, quantidade, intervalo) {
   const q = Number(quantidade), passo = Number(intervalo);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(inicio || ''))) throw new Error('Informe a primeira veiculação.');
@@ -44,7 +60,7 @@ function cadastroDatasEmEscala(inicio, quantidade, intervalo) {
   };
   return Array.from({ length: q }, (_, n) => {
     const veic = somar(inicio, n * passo);
-    return { veic, prazo: somar(veic, -7) };
+    return { veic, prazo: cadastroPrazoInterno(veic) };
   });
 }
 // Colar a lista de títulos: um por linha; linhas vazias não contam.
@@ -728,7 +744,7 @@ window.fcPreviaDoCriar = function(board) {
      state[key] = val;
      
      if(key === 'veic' && val) {
-        state.prazo = getOffsetDate(val, -7);
+        state.prazo = cadastroPrazoInterno(val);
         const pEl = document.getElementById('fc-prazo');
         if(pEl) pEl.value = state.prazo;
      }
@@ -1460,7 +1476,7 @@ window.fcPreviaDoCriar = function(board) {
     if (!it) return;
     it[campo] = valor;
     if (campo === 'veic' && valor) {
-      it.prazo = getOffsetDate(valor, -7);
+      it.prazo = cadastroPrazoInterno(valor);
       const p = document.querySelector(`[data-item="${n}"][data-campo="prazo"]`);
       if (p) p.value = it.prazo;
     }
@@ -1685,7 +1701,7 @@ window.fcPreviaDoCriar = function(board) {
     state.itens.forEach((it, n) => {
       if (n <= inicio) return;
       it.veic = getOffsetDate(base, 7 * (n - inicio));
-      it.prazo = getOffsetDate(it.veic, -7);
+      it.prazo = cadastroPrazoInterno(it.veic);
     });
     fcEspelharPrimeiro();
     fcDesenharPasso();
@@ -1923,7 +1939,7 @@ window.fcPreviaDoCriar = function(board) {
     }
     if (inicio.veic) {
       state.itens[0].veic = inicio.veic;
-      state.itens[0].prazo = inicio.prazo || getOffsetDate(inicio.veic, -7);
+      state.itens[0].prazo = inicio.prazo || cadastroPrazoInterno(inicio.veic);
     }
     // O calendario sazonal manda tambem o nome da data e um comeco de briefing:
     // sem isso quem escolheu "Dia do Cliente" teria que redigitar "Dia do
@@ -2110,7 +2126,7 @@ window.fcPreviaDoCriar = function(board) {
     const vazio = state.itens.findIndex(
       (i) => !String(i.titulo || '').trim() && !i.veic && !String(i.brief || '').trim());
     const item = { titulo: dados.titulo || '', veic: dados.veic,
-                   prazo: dados.prazo || getOffsetDate(dados.veic, -7), brief: dados.brief || '' };
+                   prazo: dados.prazo || cadastroPrazoInterno(dados.veic), brief: dados.brief || '' };
     if (vazio >= 0) state.itens[vazio] = item; else state.itens.push(item);
     fcEspelharPrimeiro();
 

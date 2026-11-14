@@ -319,7 +319,7 @@
     const itens = (id === 'setor:gestao' || id === 'setor:toolkit' ? [] : [{ id: '__visao', nome: 'Visão geral', dica: 'O resumo de todas as abas do setor' }]).concat(t.sub.filter(subVisivel));
     const el = document.createElement('div');
     el.className = 'vv-setor'; el.dataset.setor = id; el.setAttribute?.('role', 'menu'); el.setAttribute?.('aria-label', t.nome);
-    el.innerHTML = `<div class="vv-setor-topo">${t.ic}<b>${esc(t.nome)}</b></div>` + itens.map((x) => `<button type="button" role="menuitem" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small>${x.url ? '<i aria-hidden="true">↗</i>' : ''}</button>`).join('');
+    el.innerHTML = `<div class="vv-setor-topo">${t.ic}<b>${esc(t.nome)}</b></div>` + itens.map((x) => x.url ? `<a role="menuitem" href="${esc(x.url)}" target="_blank" rel="noopener" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small><i aria-hidden="true">↗</i></a>` : `<button type="button" role="menuitem" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small></button>`).join('');
     hud.append(el);
     const r = botao?.getBoundingClientRect?.(), trilho = hud.querySelector('.vv-trilho')?.getBoundingClientRect?.();
     if (r && trilho) {
@@ -332,7 +332,7 @@
       else { el.style.left = (trilho.right + 8) + 'px'; el.style.top = Math.max(8, Math.min(innerHeight - el.offsetHeight - 8, r.top - 6)) + 'px'; }
     }
     botao?.setAttribute?.('aria-expanded', 'true');
-    el.addEventListener('click', (ev) => { const b = ev.target.closest('[data-submodulo]'); if (!b) return; fecharSetor(); if (b.dataset.submodulo === '__visao') abrirVisaoSetor(id); else usarTrilho(b.dataset.submodulo); });
+    el.addEventListener('click', (ev) => { const b = ev.target.closest('[data-submodulo]'); if (!b) return; fecharSetor(); if (b.matches('a[href]')) return; if (b.dataset.submodulo === '__visao') abrirVisaoSetor(id); else usarTrilho(b.dataset.submodulo); });
   }
   if (typeof document !== 'undefined') {
     document.addEventListener?.('click', (ev) => { if (hud.querySelector('.vv-setor') && !ev.target.closest?.('.vv-setor,[data-trilho^="setor:"]')) fecharSetor(); }, true);
@@ -728,7 +728,7 @@
     // Só repinta quando muda (pessoa, lista ou acesso): mexer no dock dispara os observadores do HUD.
     const marca = () => [chaveFav(), ids.join(','), itens.map((x) => x.id).join(','), el.childElementCount].join('|');
     if (marca() === favPintado) return;
-    el.innerHTML = itens.length ? '<span class="vv-trilho-grupo">Favoritos</span>' + itens.map((x) => `<button type="button" class="vv-trilho-fav-item" data-fav-ir="${esc(x.id)}" title="${esc(x.de ? x.de + ': ' + x.nome : x.nome)}">${x.ic}<span>${esc(x.nome)}</span>${x.de ? `<small>${esc(x.de)}</small>` : ''}${x.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${estrela(x.id)}</button>`).join('') : '';
+    el.innerHTML = itens.length ? '<span class="vv-trilho-grupo">Favoritos</span>' + itens.map((x) => `<${x.url ? `a href="${esc(x.url)}" target="_blank" rel="noopener"` : 'button type="button"'} class="vv-trilho-fav-item" data-fav-ir="${esc(x.id)}" title="${esc(x.de ? x.de + ': ' + x.nome : x.nome)}">${x.ic}<span>${esc(x.nome)}</span>${x.de ? `<small>${esc(x.de)}</small>` : ''}${x.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${estrela(x.id)}</${x.url ? 'a' : 'button'}>`).join('') : '';
     el.hidden = !itens.length;
     hud.querySelectorAll('.vv-trilho [data-fav]').forEach((s) => { const on = ids.includes(s.dataset.fav); if (s.classList.contains('on') !== on) { s.classList.toggle('on', on); s.setAttribute('title', on ? 'Tirar dos favoritos' : 'Pôr nos favoritos'); } });
     favPintado = marca();
@@ -856,7 +856,7 @@
     const av = agente.nome === 'VYBES' ? '<span class="vv-ser vg-av-ser" aria-hidden="true"><i></i></span>' : `<span class="vg-av" aria-hidden="true">${esc(agente.nome.slice(0, 1))}</span>`;
     const quando = ['Agora', 'Depois', 'Em seguida'];
     return `<section class="vg-guia" aria-label="Guia de ${esc(agente.nome)}"><div class="vg-cab">${av}<span class="vg-quem"><b>${esc(agente.nome)}</b><small>${esc(agente.papel)}</small></span>
-        ${agente.nome !== 'VYBES' && souDono() ? `<button type="button" class="vg-agente" data-pend-agente="${esc(agente.setor)}">Ver o agente</button>` : ''}${comecar && passos[0] ? `<button type="button" class="vg-comecar" ${passos[0].attrs}>Começar</button>` : ''}</div>
+        ${agente.nome !== 'VYBES' && souDono() ? `<button type="button" class="vg-agente" data-pend-agente="${esc(agente.setor)}" aria-label="Ver o agente ${esc(agente.nome)}">Ver o agente</button>` : ''}${comecar && passos[0] ? `<button type="button" class="vg-comecar" ${passos[0].attrs}>Começar</button>` : ''}</div>
       ${conversa || `<p class="vg-intro">${intro}</p>`}
       ${passos.length ? `<ol class="vg-passos">${passos.map((p, i) => `<li${i === 0 ? ' class="agora"' : ''}><button type="button" class="vg-passo" ${p.attrs}><span class="vg-num" aria-hidden="true">${i + 1}</span><span class="vg-meio"><small>${quando[i] || 'Depois'}</small><b>${p.titulo}</b><em>${p.motivo}</em></span><span class="vg-ir" aria-hidden="true">→</span></button></li>`).join('')}</ol>` : ''}
       ${depois ? `<p class="vg-depois">${depois}</p>` : ''}</section>`;
@@ -913,8 +913,10 @@
     const d = window.VybeAprovacoes?.estado?.().dados; if (!d) return null;
     const painel = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
     const achar = VC()?.itemDaFila || ((i) => (i.quadro === 'demandas' ? null : painel.find((x) => String(x.id) === String(i.ref)) || null));
+    // Espera aprovação interna (Para, Em ou Aguardando aprovação), pelo começo do status sem acento: "Aprovado" não entra.
+    const espera = (s) => /^(para|em|aguardando) aprova/.test(String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim());
     return (d.pecas || []).filter((i) => i.etapa === 'interna').map((i) => ({ ...i, item: achar(i) }))
-      .filter((i) => !i.item || /aprova/i.test(String(i.item.status || '')))
+      .filter((i) => !i.item || espera(i.item.status))
       .sort((a, b) => String(a.veiculacao || a.prazo || '9').localeCompare(String(b.veiculacao || b.prazo || '9')) || (b.horas ?? -1) - (a.horas ?? -1));
   }
   // undefined enquanto busca; null sem arquivo; senão { tipo, thumb, nome, n }.
@@ -1589,7 +1591,12 @@
     const h = Math.min(espiaoEl.offsetHeight, innerHeight - 16), embaixo = r.bottom + 8 + h < innerHeight;
     espiaoEl.style.top = (embaixo ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px';
   }
-  function fecharEspiar() { clearTimeout(espiaoTimer); espiaoTimer = null; espiaoEl.hidden = true; espiaoFixo = false; espiaoAncora = null; }
+  // Fechar o mini painel fixo devolve o foco ao número que o abriu (quando o foco estava nele ou se perdeu).
+  function fecharEspiar() {
+    const volta = espiaoFixo ? espiaoAncora : null, foco = document.activeElement;
+    clearTimeout(espiaoTimer); espiaoTimer = null; espiaoEl.hidden = true; espiaoFixo = false; espiaoAncora = null;
+    if (volta?.isConnected && (!foco || foco === document.body || espiaoEl.contains(foco))) volta.focus?.({ preventScroll: true });
+  }
   const ponteiroFino = () => !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
   document.addEventListener?.('mouseover', (e) => {
     if (!ponteiroFino() || espiaoFixo) return;
@@ -1606,7 +1613,8 @@
     if (espiaoEl.hidden || e.target.closest?.('.vv-espiar')) return;
     fecharEspiar();
   }, true);
-  document.addEventListener?.('keydown', (e) => {
+  // Na janela, em captura: o Esc do mini painel vem antes do Esc das telas (a Gestão fechava a tela e deixava o painel).
+  window.addEventListener?.('keydown', (e) => {
     if (e.key === 'Escape' && !espiaoEl.hidden) { e.preventDefault(); e.stopPropagation(); fecharEspiar(); return; }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('[data-espiar][role="button"]')) { e.preventDefault(); mostrarEspiar(e.target, true); }
   }, true);
@@ -1741,8 +1749,8 @@
         attrs: primeiraArte.quadro === 'demandas' || !primeiraArte.item ? 'data-hoje-acao="decidir-lista"' : `data-hoje-acao="peca" data-valor="${esc(primeiraArte.ref)}"` }
       : !itens.length ? { frase: 'O time está sem peças em aberto.', botao: 'Ver a agência', attrs: 'data-visao-hoje="agencia"' }
       : { frase: `${atrasadas.length ? `${plural(atrasadas.length, 'atrasada', 'atrasadas')} no time` : `${plural(deHoje.length, 'peça vai', 'peças vão')} ao ar hoje`}.${acima.length ? ` ${esc(acima.join(' e '))} acima do limite.` : ''}`, botao: 'Começar', attrs: passos[0]?.attrs || 'data-criacao-atalho="ajustes"' };
-    const conversaBtn = A?.conversa ? '<button type="button" class="d3h-btn s" data-criacao-atalho="perguntar" aria-expanded="false">Perguntar ao Danilo</button>' : '';
-    const agenteBtn = dono ? '<button type="button" class="d3h-btn s" data-pend-agente="design">Ver o agente</button>' : '';
+    const conversaBtn = A?.conversa ? '<button type="button" class="d3h-btn s" data-criacao-atalho="perguntar" aria-expanded="false" aria-label="Perguntar ao Danilo sobre a arte">Perguntar ao Danilo</button>' : '';
+    const agenteBtn = dono ? '<button type="button" class="d3h-btn s" data-pend-agente="design" aria-label="Ver o agente da direção de arte">Ver o agente</button>' : '';
     // Os números do quadro D3-Criacao: Esperam revisão (as artes do baralho), Em ajuste, Venceram e Em aprovação.
     const antigaArte = artes.length ? Math.max(...artes.map((x) => x.horas ?? 0)) : 0;
     const numeros = numerosD3([
@@ -2414,8 +2422,10 @@
         // Quadro da casca (moodboard, 12/11/2026): Prédio, Jogos, Loja, Ranking e Conquistas ficam atrás de um item só.
         const resto = ['predio', 'jogos', 'loja', 'ranking', 'conquistas'].includes(t.id);
         const abreResto = t.id === 'jogos' ? `<button type="button" class="vv-trilho-btn vv-trilho-resto-abre" data-trilho-resto aria-expanded="false" title="Prédio, Jogos, Loja, Ranking e Conquistas" aria-label="Prédio, Jogos, Loja, Ranking e Conquistas">${svg('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>')}<span>Prédio, Jogos, Loja…</span><i class="vv-trilho-seta" aria-hidden="true"></i></button>` : '';
-        const botao = `<button type="button" class="vv-trilho-btn${t.acao ? ' criar' : ''}${resto ? ' vv-trilho-resto' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}${t.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${favoritavel(t) ? estrela(t.id) : ''}</button>`;
-        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${x.url ? ' <i aria-hidden="true">↗</i>' : ''}${estrela(x.id)}</button>`).join('')}</div>` : '';
+        // Sistema irmão (VybeHub, ↗): link de verdade, aberto pelo navegador; o window.open no clique travava a tela.
+        const tag = t.url ? `a href="${t.url}" target="_blank" rel="noopener"` : 'button type="button"';
+        const botao = `<${tag} class="vv-trilho-btn${t.acao ? ' criar' : ''}${resto ? ' vv-trilho-resto' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}${t.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${favoritavel(t) ? estrela(t.id) : ''}</${t.url ? 'a' : 'button'}>`;
+        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => x.url ? `<a href="${x.url}" target="_blank" rel="noopener" data-submodulo="${x.id}" title="${x.dica}">${x.nome} <i aria-hidden="true">↗</i>${estrela(x.id)}</a>` : `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${estrela(x.id)}</button>`).join('')}</div>` : '';
         return cab + abreResto + botao + subs + (t.id === 'hoje' ? '<div class="vv-trilho-fav" hidden></div>' : '');
       }).join('') + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="conversas" title="Conversas: o WhatsApp da Vybe" aria-label="Conversas">${svg('<path d="M4 5h16v11H8l-4 4z"/>')}<span>Conversas</span></button>`
         // Celular (quadro 28): um dock só. A voz vira um lugar da barra de baixo; fora de uma chamada, o cartão das salas
@@ -2861,6 +2871,7 @@
   // cabem: quantas salas com gente cabem na largura agora; as outras vão para "+N salas", sem cortar nada.
   function dockSalasHtml(cabem = Infinity) {
     const e = typeof escritorio !== 'undefined' ? escritorio : null; if (!e) return '';
+    const st = vozAgora(), md = st.midia || {};
     const Z = zonas3d(), eu = String(e.base?.eu || ''), minha = minhaSalaDaConta();
     const zonaAberta = String(andarAbertoId || '').startsWith('quarto:') ? andarAbertoId.slice(7) : '';
     const nome = (z) => { let n = Z[z]?.nome; if (!n) { try { n = fn('escritorioAmbienteDoQuarto')?.(z)?.nome; } catch { n = ''; } } return n || 'Sala'; };
@@ -2871,14 +2882,17 @@
     const naChamada = Boolean(!e.vozPausada && e.conectado && canal && e.chamada && e.canalChamada === canal), mic = Boolean(e.chamada?.self?.audioEnabled);
     // Celular fora de uma sala (fase 3d, quadro 47): o dock vira um cartão "Fora das salas" com Salas e Entrar, sem cortar
     // o último botão. O resto do dock (áudio, ouvir, música, TV) vai para o "Mais" da barra de baixo, pelos mesmos botões.
-    if (typeof noCelular === 'function' && noCelular() && !zonaAberta && !naChamada && !e.entrandoChamada) {
+    // Conectando ou caiu, o cartão continua (com o estado no botão); antes ele sumia durante a entrada e voltava com Entrar.
+    if (typeof noCelular === 'function' && noCelular() && !zonaAberta && st.fase !== 'na-sala') {
       const n = (e.online || []).length, comGente = por.size;
       const extra = (acao, nome, icone, titulo, desligado = false) => `<button type="button" data-dock="${acao}" data-dock-extra data-nome="${esc(nome)}" title="${esc(titulo)}" hidden${desligado ? ' disabled' : ''}>${icone}</button>`;
-      return `<div class="vq-cartao" role="group" aria-label="Voz das salas">
+      const titulo = { conectando: 'Conectando à voz', reconectando: 'Reconectando à voz', caiu: 'A voz não conectou', 'outra-aba': 'Voz em outra aba', indisponivel: 'Sem voz aqui', 'sem-voz': 'Sem voz aqui' }[st.fase] || 'Fora das salas';
+      const linha = st.fase === 'caiu' && st.motivo ? esc(st.motivo) : n ? `${n} ${n === 1 ? 'pessoa' : 'pessoas'} online${comGente ? ` · ${comGente} ${comGente === 1 ? 'sala' : 'salas'} com gente` : ''}` : 'Ninguém nas salas agora';
+      return `<div class="vq-cartao" role="group" aria-label="Voz das salas" data-fase="${st.fase}">
         <span class="vq-cartao-ic" aria-hidden="true">${IC.mic}</span>
-        <span class="vq-cartao-txt"><b>Fora das salas</b><small>${n ? `${n} ${n === 1 ? 'pessoa' : 'pessoas'} online${comGente ? ` · ${comGente} ${comGente === 1 ? 'sala' : 'salas'} com gente` : ''}` : 'Ninguém nas salas agora'}</small></span>
+        <span class="vq-cartao-txt"><b>${titulo}</b><small>${linha}</small></span>
         <button type="button" class="vc-sec vq-cartao-salas" data-dock="salas" title="Todas as salas de voz: quem está em cada uma">Salas</button>
-        ${e.conectando ? '<button type="button" class="vc-acao" disabled>Conectando…</button>' : '<button type="button" class="vc-acao" data-dock="entrar" title="Entrar na chamada da sala (você entra mudo)">Entrar</button>'}
+        ${botaoVozHtml(st, 'vc-acao')}
         ${extra('audio', 'Ajustes de áudio', IC.ajustes, 'Ajustes de áudio: microfone, saída, ruído e teste')}${extra('ouvir', surdo ? 'Voltar a ouvir' : 'Silenciar as vozes', surdo ? IC.semSom : IC.som, 'Silenciar as vozes só para você')}${extra('musica', 'Música da sala', IC.musica, 'Música da sala: só nas salas com aparelho de som (o Lounge tem)')}${extra('tv', 'TV da sala', IC.tv, 'TV da sala', !e.zona)}
       </div>`;
     }
@@ -2889,10 +2903,23 @@
     if (zonaAberta) partes.push(botao({ acao: 'voltar', cls: 'vq-voltar', icone: svg('<path d="M15 6l-6 6 6 6"/>'), rot: 'Voltar', titulo: 'Sair da sala e voltar ao painel' }) + sep);
     // Quadro da barra de baixo (moodboard, 12/11/2026): a peça da voz diz a sala, quantos estão na voz e traz o Entrar;
     // o microfone fica sempre no lugar (apagado fora da chamada).
-    const aqui = por.get(e.zona) || [], naVoz = aqui.length;
-    const rostosVoz = aqui.slice(0, 3).map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}">${esc(String(o.id) === eu ? 'Eu' : ini(o.nome))}</i>`).join('');
-    partes.push(`<span class="vq-voz"><span class="vq-rostos" aria-hidden="true">${rostosVoz}</span><span>${esc(e.zona ? nome(e.zona) : 'Fora das salas')}${e.zona ? ` · ${naVoz ? n0(naVoz) + ' na voz' : 'vazia'}` : ''}</span>${naChamada ? '<button type="button" class="dentro" disabled>Dentro</button>' : e.conectando ? '<button type="button" disabled>Conectando…</button>' : '<button type="button" data-dock="entrar" title="Entrar na chamada da sala (você entra mudo)">Entrar</button>'}</span>` + sep);
-    partes.push(botao({ acao: 'mic', cls: mic ? 'vq-mic on' : naChamada ? 'vq-mic mudo' : 'vq-mic', icone: mic ? IC.mic : IC.micOff, rot: naChamada && !mic ? 'Mudo' : 'Microfone', titulo: naChamada ? (mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: ninguém te ouve. Clique para falar') : 'Liga dentro de uma sala', extra: `aria-pressed="${mic}" ${naChamada ? '' : 'disabled'}` }));
+    // Os rostos acendem quem fala (data-voz-pessoa: o medidor de volume marca na hora, sem esperar a próxima pintura) e
+    // marcam quem está mostrando a tela.
+    const aqui = por.get(e.zona) || [], naVoz = aqui.length, telas = new Set(md.transmitindo || []);
+    const rostosVoz = aqui.slice(0, 3).map((o) => { const id = String(o.id); return `<i data-voz-pessoa="${esc(id)}" class="${falando.has(id) ? 'fala' : ''}${telas.has(id) ? ' tela' : ''}">${esc(id === eu ? 'Eu' : ini(o.nome))}</i>`; }).join('');
+    const quemTela = aqui.filter((o) => telas.has(String(o.id))).map((o) => String(o.id) === eu ? 'você' : String(o.nome || '').split(' ')[0]);
+    // Conectando, reconectando e caiu: o botão ao lado já diz a fase (e o motivo vai na dica); o texto fica só com a sala,
+    // para não cortar com reticências o que importa.
+    const situacao = ['conectando', 'reconectando', 'caiu'].includes(st.fase) ? '' : naVoz ? n0(naVoz) + ' na voz' : 'vazia';
+    const dicaVoz = { 'na-sala': 'Você está na chamada', conectando: 'Conectando à voz', reconectando: 'A conexão caiu, voltando sozinho', caiu: `A voz não conectou${st.motivo ? ': ' + st.motivo : ''}`, fora: 'Fora da chamada', 'sem-voz': 'Lugar sem voz', 'outra-aba': 'Voz em outra aba', indisponivel: st.motivo || 'Sem voz' }[st.fase] || '';
+    const textoVoz = `${esc(e.zona ? nome(e.zona) : 'Fora das salas')}${e.zona && situacao ? ` · ${situacao}` : ''}${quemTela.length ? ` · ${esc(quemTela.join(' e '))} na tela` : ''}`;
+    partes.push(`<span class="vq-voz" data-fase="${st.fase}" title="${esc(dicaVoz)}"><span class="vq-rostos" aria-hidden="true">${rostosVoz}</span><span>${textoVoz}</span>${botaoVozHtml(st)}</span>` + sep);
+    // Microfone: ligado (laranja), mudo, bloqueado ou sem microfone (com o motivo e o clique que tenta liberar), apagado fora.
+    const erroMic = e.erroMic || {}, rotMicErro = erroMic.tipo === 'negado' ? 'Bloqueado' : erroMic.tipo === 'ocupado' ? 'Ocupado' : 'Sem mic';
+    const foraDica = st.fase === 'conectando' || st.fase === 'reconectando' ? 'O microfone liga quando a voz conectar' : 'Liga dentro de uma sala';
+    partes.push(md.mic === 'bloqueado'
+      ? botao({ acao: 'mic-liberar', cls: 'vq-mic vq-bloq', icone: IC.micOff, rot: rotMicErro, titulo: `${erroMic.titulo || 'O microfone não ligou'}. ${erroMic.dica || ''} Clique para tentar de novo.`, extra: 'aria-pressed="false"' })
+      : botao({ acao: 'mic', cls: mic ? 'vq-mic on' : naChamada ? 'vq-mic mudo' : 'vq-mic', icone: mic ? IC.mic : IC.micOff, rot: naChamada && !mic ? 'Mudo' : 'Microfone', titulo: naChamada ? (mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: ninguém te ouve. Clique para falar') : foraDica, extra: `aria-pressed="${mic}" ${naChamada ? '' : 'disabled'}` }));
     // Celular dentro de uma sala (quadro D3-Celular): o dock abre recolhido, só Voltar, a sala, o microfone e "Mais";
     // o "Mais" abre o resto no lugar e vira "Menos".
     if (typeof noCelular === 'function' && noCelular() && zonaAberta) {
@@ -2901,9 +2928,17 @@
     }
     // Os controles da chamada, todos no dock: ouvir (silenciar todas as vozes só para você), câmera, tela e os ajustes de áudio.
     const cam = Boolean(e.chamada?.self?.videoEnabled), telaOn = Boolean(e.chamada?.self?.screenShareEnabled);
-    partes.push(botao({ acao: 'ouvir', cls: surdo ? 'vq-surdo' : '', icone: surdo ? IC.semSom : IC.som, rot: surdo ? 'Sem som' : 'Ouvir', titulo: surdo ? 'Você não está ouvindo ninguém: clique para voltar a ouvir' : 'Silenciar as vozes só para você', extra: `aria-pressed="${surdo}"` }));
-    partes.push(botao({ acao: 'camera', cls: cam ? 'vq-ligado' : '', icone: IC.camera, rot: 'Câmera', titulo: cam ? 'Desligar a câmera' : naChamada ? 'Ligar a câmera' : 'Entre numa sala com voz para usar a câmera', extra: `aria-pressed="${cam}" ${naChamada || cam ? '' : 'disabled'}` }));
-    partes.push(botao({ acao: 'tela', cls: telaOn ? 'vq-ligado' : '', icone: IC.tela, rot: 'Tela', titulo: telaOn ? 'Parar de mostrar a tela' : naChamada ? 'Mostrar minha tela para a sala' : 'Entre numa sala com voz para mostrar a tela', extra: `aria-pressed="${telaOn}" ${naChamada || telaOn ? '' : 'disabled'}` }));
+    // Ouvir: o navegador pode bloquear o som da chamada até um clique (Safari, aba aberta sem toque): aí o botão diz e libera.
+    partes.push(md.som === 'bloqueado'
+      ? botao({ acao: 'liberar-som', cls: 'vq-bloq', icone: IC.semSom, rot: 'Ativar som', titulo: 'O navegador bloqueou o som da chamada: clique para ouvir', extra: 'aria-pressed="false"' })
+      : botao({ acao: 'ouvir', cls: surdo ? 'vq-surdo' : '', icone: surdo ? IC.semSom : IC.som, rot: surdo ? 'Sem som' : 'Ouvir', titulo: surdo ? 'Você não está ouvindo ninguém: clique para voltar a ouvir' : 'Silenciar as vozes só para você', extra: `aria-pressed="${surdo}"` }));
+    const erroCam = e.erroCamera || {};
+    partes.push(md.camera === 'bloqueada'
+      ? botao({ acao: 'camera', cls: 'vq-bloq', icone: IC.camera, rot: 'Bloqueada', titulo: `${erroCam.titulo || 'A câmera não ligou'}. ${erroCam.dica || ''}`, extra: 'aria-pressed="false"' })
+      : botao({ acao: 'camera', cls: cam ? 'vq-ligado' : '', icone: IC.camera, rot: 'Câmera', titulo: cam ? 'Câmera ligada: clique para desligar' : naChamada ? 'Ligar a câmera' : 'Entre numa sala com voz para usar a câmera', extra: `aria-pressed="${cam}" ${naChamada || cam ? '' : 'disabled'}` }));
+    partes.push(md.tela === 'sem-suporte'
+      ? botao({ acao: 'tela', icone: IC.tela, rot: 'Tela', titulo: 'Este navegador não transmite a tela (iPhone e iPad não deixam)', extra: 'aria-pressed="false" disabled' })
+      : botao({ acao: 'tela', cls: telaOn ? 'vq-ligado' : '', icone: IC.tela, rot: telaOn ? 'Mostrando' : 'Tela', titulo: telaOn ? 'Você está mostrando a tela: clique para parar' : naChamada ? 'Mostrar minha tela para a sala' : 'Entre numa sala com voz para mostrar a tela', extra: `aria-pressed="${telaOn}" ${naChamada || telaOn ? '' : 'disabled'}` }));
     partes.push(botao({ acao: 'audio', icone: IC.ajustes, rot: 'Áudio', titulo: 'Ajustes de áudio: microfone, saída, ruído e teste' }));
     partes.push(sep);
     // Ver a sala: a minha e a que estou na voz (quando é a sala de alguém).
@@ -2960,6 +2995,31 @@
     try { for (const p of fn('escritorioOutrosNaChamada')?.(e.chamada) || []) m.set(String(p.customParticipantId || '').split(':')[0], Boolean(p.audioEnabled)); } catch { /* sem a lista ainda */ }
     if (e.base?.eu != null) m.set(String(e.base.eu), Boolean(e.chamada.self?.audioEnabled));
     return m;
+  }
+  // Estado único da chamada (escritorioEstadoChamada, em vybe-escritorio.js): o dock, a barra de cima, o painel Salas e o
+  // cartão do celular dizem a mesma coisa. Sem ele, o mínimo tirado do próprio escritorio.
+  function vozAgora() {
+    try { const s = fn('escritorioEstadoChamada')?.(); if (s) return s; } catch { /* segue com o mínimo */ }
+    const e = typeof escritorio !== 'undefined' ? escritorio : null, canal = e?.conectado ? fn('escritorioCanal')?.(e.zona) : null;
+    const fase = !e ? 'fora' : !e.vozPausada && canal && e.chamada && e.canalChamada === canal ? 'na-sala' : e.conectando || (e.conectado && e.entrandoChamada) ? 'conectando' : 'fora';
+    return { fase, midia: { mic: 'fora', camera: 'fora', tela: 'fora', som: 'ouvindo', transmitindo: [] } };
+  }
+  const GIRA = '<i class="vq-gira" aria-hidden="true"></i>';
+  // O botão da peça da voz, por fase (Paulo, 14/11/2026: "às vezes tá conectando mas fica o nome ENTRAR lá e a pessoa fica
+  // clicando"). Só a fase "fora" tem Entrar; conectando e reconectando ficam travados e girando; caiu traz Tentar de novo.
+  function botaoVozHtml(st, cls = '') {
+    const k = (x) => { const c = [cls, x].filter(Boolean).join(' '); return c ? ` class="${c}"` : ''; };
+    const motivo = st.motivo ? esc(st.motivo) : '';
+    switch (st.fase) {
+      case 'na-sala': return `<button type="button"${k('dentro')} disabled title="Você está na chamada desta sala">Dentro</button>`;
+      case 'conectando': return `<button type="button"${k('vq-espera')} disabled aria-busy="true" title="Conectando à voz${st.etapa ? ': ' + esc(st.etapa) : ''}">${GIRA}Conectando…</button>`;
+      case 'reconectando': return `<button type="button"${k('vq-espera')} disabled aria-busy="true" title="${motivo || 'A conexão caiu'}: voltando sozinho">${GIRA}${st.semRede ? 'Sem internet' : 'Reconectando…'}</button>`;
+      case 'caiu': return `<button type="button"${k('vq-erro')} data-dock="tentar" title="A voz não conectou${motivo ? ': ' + motivo : ''}. Clique para tentar de novo">Tentar de novo</button>`;
+      case 'outra-aba': return `<button type="button"${k('')} data-dock="assumir" title="A voz está aberta em outra aba deste navegador: trazer para esta">Usar aqui</button>`;
+      case 'indisponivel': return `<button type="button"${k('')} disabled title="${motivo}">Sem voz</button>`;
+      case 'sem-voz': return '';
+      default: return `<button type="button"${k('')} data-dock="entrar" title="Entrar na chamada da sala (você entra mudo)">Entrar</button>`;
+    }
   }
   const faixaDock = document.createElement('div'); faixaDock.className = 'vv-dock-salas-faixa'; faixaDock.id = 'vv-dock-salas-faixa'; faixaDock.hidden = true;
   faixaDock.innerHTML = '<nav class="vq-dock vv-dock-salas" aria-label="Salas: voz, ver a sala, quem está em cada uma, chat e música"></nav>';
@@ -3021,7 +3081,9 @@
     if (a === 'voltar') { body.classList.remove('cel-dock-aberto'); sairDoAndar(); return; }
     if (a === 'cel-mais') { body.classList.toggle('cel-dock-aberto'); pintarDock(); faixaDock.querySelector('[data-dock="cel-mais"]')?.focus?.(); return; }
     if (a === 'mic') { fn('alternarMidiaEscritorio')?.('audio')?.finally?.(pintarChamada); return; }
-    if (a === 'entrar') { entrarPeloTopo(); return; }
+    if (a === 'mic-liberar') { fn('liberarMicrofoneEscritorio')?.()?.finally?.(pintarChamada); return; }
+    if (a === 'liberar-som') { fn('escritorioLiberarSom')?.()?.finally?.(pintarChamada); return; }
+    if (a === 'entrar' || a === 'tentar' || a === 'assumir') { entrarPeloTopo(); return; }
     if (a === 'ouvir') { alternarSurdo(); return; }
     if (a === 'camera') { fn('alternarMidiaEscritorio')?.('video')?.finally?.(pintarChamada); return; }
     if (a === 'tela') { fn('alternarMidiaEscritorio')?.('screen')?.finally?.(() => { pintarChamada(); trazerProPalco(); }); return; }
@@ -3070,7 +3132,10 @@
     const canal = e?.conectado ? fn('escritorioCanal')?.(e.zona) : null;
     const naChamada = Boolean(!e?.vozPausada && e?.conectado && canal && e.chamada && e.canalChamada === canal), mic = Boolean(e?.chamada?.self?.audioEnabled);
     const minus = (s) => s.charAt(0).toLowerCase() + s.slice(1);
-    const voz = !e?.conectado ? (e?.conectando ? 'conectando à voz…' : 'voz desligada: entre pelo microfone do dock')
+    const st = vozAgora();
+    const voz = st.fase === 'conectando' ? 'conectando à voz…' : st.fase === 'reconectando' ? `reconectando à voz${st.semRede ? ' (sem internet)' : '…'}`
+      : st.fase === 'caiu' ? `a voz não conectou: ${st.motivo || 'tente de novo'}` : st.fase === 'indisponivel' ? 'sem voz nesta demonstração'
+      : !e?.conectado ? 'fora da voz: use Entrar no dock'
       : e.zona !== zona ? `sua voz está em ${nomeDe(e.zona)}`
       : naChamada ? (mic ? 'voz ligada, microfone aberto' : 'voz ligada, você está mudo')
       : minus(String(fn('escritorioEstadoVozTexto')?.() || 'sem voz aqui'));
@@ -3774,7 +3839,7 @@
       <div class="v2e-topo"><h1>Equipe online</h1><small class="v2e-data">${esc(diaD3())}</small>
         ${D.saldo !== null ? `<span class="v2n-chip vv-moedas-selo" title="Seu saldo de VybeCoins"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg><b>${n0(D.saldo)}</b> VybeCoins</span>` : ''}
         ${temConversa ? '<button type="button" class="v2n-btn p" data-equipe="conversa">Conversa da equipe</button>' : ''}</div>
-      <section class="v2n-card v2n-fala" aria-label="VYBES sobre a equipe"><span class="v2n-ag" aria-hidden="true">V</span><p><span class="v2n-quem">VYBES · Escritório</span>${fala}</p>${D.nRecados ? '<button type="button" class="v2n-btn s" data-equipe="recados">Ler os recados</button>' : ''}</section>
+      <section class="v2n-card v2n-fala${D.nRecados ? '' : ' v2n-fala-quieta'}" aria-label="VYBES sobre a equipe"><span class="v2n-ag" aria-hidden="true">V</span><p><span class="v2n-quem">VYBES · Escritório</span>${fala}</p>${D.nRecados ? '<button type="button" class="v2n-btn s" data-equipe="recados">Ler os recados</button>' : ''}</section>
       <div class="v2e-nums">
         ${kpi('Online agora', `${n0(on)}<small> / ${n0(D.total)}</small>`, on ? `em ${plural(nSalas, 'sala', 'salas')}` : 'ninguém nas salas', rostos, !on)}
         ${kpi('Recados sem ler', n0(D.nRecados), D.nRecados ? `de ${plural(D.recados.length, 'pessoa', 'pessoas')}` : 'nada esperando', '', !D.nRecados)}
@@ -4360,6 +4425,8 @@
   hud.addEventListener('click', (e) => {
     // Estrela do dock: favorita sem abrir o item em que ela está.
     const fav = e.target.closest?.('.vv-trilho [data-fav]'); if (fav) { e.preventDefault(); alternarFavorito(fav.dataset.fav); return; }
+    // Link ↗ (sistema irmão): o navegador abre a aba nova; nada mais a fazer aqui.
+    if (e.target.closest?.('.vv-trilho a[href][target="_blank"]')) return;
     const favIr = e.target.closest?.('[data-fav-ir]'); if (favIr) { irAoFavorito(favIr.dataset.favIr); return; }
     const b = e.target.closest('button, tr[data-agente]'); if (!b) return;
     // Andar aberto por baixo dos HUDs: outro andar no elevador entra nele; trocar de vista, voltar à lista
@@ -4455,6 +4522,7 @@
       else if (b.dataset.legado === 'missoes') { if (window.VybeMissoes?.abrir) window.VybeMissoes.abrir('missoes'); else chamar('showToast', 'Missões chegando nesta versão.', 'info'); }
     }
     else if (b.dataset.entrarZona) irParaSala(b.dataset.entrarZona);
+    else if (b.hasAttribute('data-voz-tentar')) entrarPeloTopo();
     else if (b.hasAttribute('data-agenda-recolher')) { const ag = hud.querySelector('#vv-agenda'); const fechada = ag.classList.toggle('recolhida'); b.setAttribute('aria-expanded', String(!fechada)); }
     else if (b.hasAttribute('data-abrir-agenda')) abrirAgenda();
     else if (b.dataset.agendaDia) abrirAgenda(b.dataset.agendaDia);
@@ -4877,13 +4945,18 @@
   // microfone tá mudo, quando não tá conectado... tão reclamando de dificuldade de achar onde entra na chamada"):
   //   chamada → verde com o nome da sala; fora da chamada → laranja "Entrar na chamada" (o clique já entra);
   //   conectando → cinza "Conectando…". O microfone fica à vista na chamada, com "Mudo" (vermelho) ou "Ligado" (verde).
-  const TOPO_VOZ = { chamada: '', pausada: 'Entrar na chamada', fora: 'Entrar na chamada', conectando: 'Conectando…', outra: 'Voz em outra aba', semvoz: 'Salas' };
-  function marcarVozNoTopo(estado = 'semvoz', mic = false, sala = '') {
+  // Estado único (14/11/2026): reconectando e caiu ganham palavra própria; caiu também entra pelo clique (tenta de novo).
+  const TOPO_VOZ = { chamada: '', pausada: 'Entrar na chamada', fora: 'Entrar na chamada', conectando: 'Conectando…', reconectando: 'Reconectando…', caiu: 'Tentar de novo', outra: 'Voz em outra aba', indisponivel: 'Sem voz', semvoz: 'Salas' };
+  const TOPO_DA_FASE = { 'na-sala': 'chamada', conectando: 'conectando', reconectando: 'reconectando', caiu: 'caiu', fora: 'fora', 'outra-aba': 'outra', indisponivel: 'indisponivel', 'sem-voz': 'semvoz' };
+  function marcarVozNoTopo(estado = 'semvoz', mic = false, sala = '', motivo = '') {
     const v = hud.querySelector('[data-ferr="voz"]'), m = hud.querySelector('[data-ferr="mic"]'); if (!v || !m) return;
-    const naChamada = estado === 'chamada';
-    v.classList.toggle('on', naChamada); v.classList.toggle('entrar', estado === 'pausada' || estado === 'fora'); v.classList.toggle('espera', estado === 'conectando');
+    const naChamada = estado === 'chamada', espera = estado === 'conectando' || estado === 'reconectando';
+    v.classList.toggle('on', naChamada); v.classList.toggle('entrar', estado === 'pausada' || estado === 'fora' || estado === 'caiu'); v.classList.toggle('espera', espera); v.classList.toggle('erro', estado === 'caiu');
     v.dataset.estadoVoz = estado;
-    v.title = naChamada ? `Na chamada: ${sala}. Abrir a sala de voz` : estado === 'pausada' || estado === 'fora' ? 'Entrar na chamada da sala e ver quem está em cada sala' : 'Sala de voz: quem está em cada sala, microfone, música e TV';
+    if (espera) v.setAttribute('aria-busy', 'true'); else v.removeAttribute('aria-busy');
+    v.title = naChamada ? `Na chamada: ${sala}. Abrir a sala de voz` : estado === 'pausada' || estado === 'fora' ? 'Entrar na chamada da sala e ver quem está em cada sala'
+      : estado === 'caiu' ? `A voz não conectou${motivo ? ': ' + motivo : ''}. Clique para tentar de novo` : espera ? `${TOPO_VOZ[estado]} ${motivo ? '(' + motivo + ')' : ''}`.trim()
+      : 'Sala de voz: quem está em cada sala, microfone, música e TV';
     v.setAttribute('aria-label', v.title);
     let rot = v.querySelector('.vv-voz-nome'); if (!rot) { rot = document.createElement('span'); rot.className = 'vv-voz-nome'; v.append(rot); }
     rot.textContent = naChamada ? String(sala).replace(/^Sala d[aoe]s? /i, '') : TOPO_VOZ[estado] || 'Salas'; rot.hidden = false;
@@ -4893,10 +4966,17 @@
     m.title = mic ? 'Microfone ligado: clique para silenciar' : 'Você está mudo: ninguém te ouve. Clique para falar'; m.setAttribute('aria-label', m.title);
   }
   // Clique no botão laranja do topo: já entra (na chamada da sala ou nas salas de voz) e abre a sala.
+  // Uma porta só para Entrar, Tentar de novo e Usar aqui, decidida pela fase: conectando, reconectando e já dentro não
+  // fazem nada (sem clique duplo); o dock se pinta na hora, para o botão virar "Conectando…" no mesmo clique.
   function entrarPeloTopo() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null; if (!e) return;
-    if (e.conectado && e.vozPausada && fn('escritorioCanal')?.(e.zona)) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); }
+    const st = vozAgora();
+    if (['conectando', 'reconectando', 'na-sala', 'indisponivel', 'sem-voz'].includes(st.fase)) { pintarChamada(); return; }
+    if (st.fase === 'caiu') { pintarChamada.tentou = true; fn('escritorioTentarChamadaDeNovo')?.(); }
+    else if (st.fase === 'outra-aba') fn('trazerEscritorioParaEstaAba')?.();
+    else if (e.conectado && fn('escritorioCanal')?.(e.zona)) { e.vozPausada = false; fn('escritorioConversaAutomatica')?.(); }
     else if (!e.conectado && !e.conectando) { pintarChamada.tentou = true; (e.base ? fn('conectarEscritorio') : fn('abrirEscritorio'))?.(); }
+    pintarChamada.ultimo = ''; pintarChamada();
     setTimeout(pintarChamada, 600);
   }
   // Quadro D3-Topo: a sala com mais gente agora vira uma pílula na barra de cima (rostos, "Sala · N" e Entrar).
@@ -4908,7 +4988,14 @@
     if (!zona) { p.hidden = true; p.innerHTML = ''; return; }
     const dentro = String(e?.zona || '') === String(zona), nome = nomeZona(zona);
     const iniciais = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
-    const html = `<span class="vv-topo-sala-rostos" aria-hidden="true">${gente.slice(0, 3).map((g) => `<i>${esc(iniciais(g.nome))}</i>`).join('')}</span><span class="vv-topo-sala-nome">${esc(nome)} · ${n0(gente.length)}</span>${dentro ? '<span class="vv-topo-sala-dentro">Dentro</span>' : `<button type="button" class="vv-topo-sala-entrar" data-entrar-zona="${esc(zona)}" title="Entrar em ${esc(nome)}">Entrar</button>`}`;
+    // A mesma fase do dock: "Dentro" só na chamada; conectando gira; caiu oferece Tentar de novo; o Entrar de outra sala
+    // fica travado enquanto o escritório ainda não conectou (antes ele aparecia e o clique não fazia nada).
+    const st = vozAgora(), espera = st.fase === 'conectando' || st.fase === 'reconectando';
+    const estado = espera ? `<span class="vv-topo-sala-dentro" aria-busy="true">${GIRA}${st.fase === 'conectando' ? 'Conectando…' : 'Reconectando…'}</span>`
+      : st.fase === 'caiu' ? `<button type="button" class="vv-topo-sala-entrar" data-voz-tentar title="A voz não conectou${st.motivo ? ': ' + esc(st.motivo) : ''}. Tentar de novo">Tentar de novo</button>` : '';
+    const html = `<span class="vv-topo-sala-rostos" aria-hidden="true">${gente.slice(0, 3).map((g) => `<i>${esc(iniciais(g.nome))}</i>`).join('')}</span><span class="vv-topo-sala-nome">${esc(nome)} · ${n0(gente.length)}</span>${
+      dentro ? estado || (['na-sala', 'sem-voz', 'indisponivel'].includes(st.fase) ? '<span class="vv-topo-sala-dentro">Dentro</span>' : `<button type="button" class="vv-topo-sala-entrar" data-voz-tentar title="Entrar na chamada de ${esc(nome)}">Entrar</button>`)
+        : !e?.conectado && estado ? estado : `<button type="button" class="vv-topo-sala-entrar" data-entrar-zona="${esc(zona)}" title="Entrar em ${esc(nome)}">Entrar</button>`}`;
     if (p.innerHTML !== html) p.innerHTML = html;
     p.hidden = false;
   }
@@ -4924,19 +5011,27 @@
     const outros = (e.online || []).filter((o) => String(o.id) !== eu);
     pintarDock();
     if (typeof pintarSalaNoTopo === 'function') pintarSalaNoTopo(e, Z, nomeZona);
+    const st = vozAgora();
     if (!e.conectado) {
-      const outraAba = Boolean(e.emOutraAba || fn('escritorioOutraAbaConectada')?.());
-      marcarVozNoTopo(outraAba ? 'outra' : 'conectando');
+      const outraAba = st.fase === 'outra-aba';
       if (!outraAba && !e.conectando && e.base && !e.base.demo && !pintarChamada.tentou && fn('conectarEscritorio')) {
         pintarChamada.tentou = true;
         if (e.microfoneQuer === undefined) e.microfoneQuer = false; // entra calado; liga o microfone quando quiser falar
         fn('conectarEscritorio')();
       }
-      pintarChamada.ultimo = '';
-      const topo = (titulo, frase, botao = '') => `<div class="sala off"><span class="vz-ponto" aria-hidden="true"></span><span class="vz-onde"><b>${titulo}</b><small>${frase}</small></span>${botao}</div>`;
-      barra.innerHTML = outraAba
+      const agora = vozAgora();
+      marcarVozNoTopo(TOPO_DA_FASE[agora.fase] || 'fora', false, '', agora.motivo || '');
+      const topo = (titulo, frase, botao = '') => `<div class="sala off" data-fase="${agora.fase}"><span class="vz-ponto" aria-hidden="true"></span><span class="vz-onde"><b>${titulo}</b><small>${esc(frase)}</small></span>${botao}</div>`;
+      // Antes dizia "Conectando às salas…" em qualquer caso, inclusive quando a conexão já tinha falhado (ou na demo, sem
+      // servidor): a frase agora sai da fase.
+      const html = outraAba
         ? topo('Voz aberta em outra aba', 'Só uma aba fica na chamada, para não ouvir em dobro', '<button type="button" class="vz-botao principal" data-chamada="assumir">Usar nesta aba</button>')
-        : topo('Conectando às salas…', 'Já já você vê quem está em cada sala');
+        : agora.fase === 'caiu' ? topo('Não conectou às salas', agora.motivo || 'Confira a internet', '<button type="button" class="vz-botao principal" data-chamada="tentar">Tentar de novo</button>')
+          : agora.fase === 'indisponivel' ? topo('Sem voz aqui', agora.motivo || 'Sem servidor de voz')
+            : agora.fase === 'reconectando' ? topo(agora.semRede ? 'Sem internet' : 'Reconectando…', 'Volta sozinho quando a conexão voltar')
+              : agora.fase === 'fora' ? topo('Fora das salas', 'Entre para ver quem está em cada sala', '<button type="button" class="vz-botao principal" data-chamada="reconectar">Entrar</button>')
+                : topo(`${GIRA}Conectando às salas…`, 'Já já você vê quem está em cada sala');
+      if (pintarChamada.ultimo !== html) { barra.innerHTML = html; pintarChamada.ultimo = html; }
       // Não conectou: tenta de novo sozinho a cada 20 s, sem botão "Entrar" (não existe ficar fora das salas).
       if (pintarChamada.tentou && !e.conectando && !outraAba && !pintarChamada.agendado) { pintarChamada.agendado = true; setTimeout(() => { pintarChamada.agendado = false; if (!e.conectado && !e.conectando) pintarChamada.tentou = false; }, 20000); }
       return;
@@ -4983,17 +5078,18 @@
     // Quem está mudo (Paulo, 09/11/2026: "quem tá mutado não devia ser mais claro?"): escrito no estado e marcado em cada um.
     const mics = microfonesNaChamada(e), mudosL = naVozL.filter((o) => mics.get(String(o.id)) === false);
     const ouvem = (naVoz ? `Na chamada com ${nomes(naVozL)}${mudosL.length ? ` (${nomes(mudosL)} ${mudosL.length === 1 ? 'está mudo' : 'estão mudos'})` : ''}` : 'Só você na chamada') + (foraDaVoz ? ` · ${nomes(foraL)} ${foraDaVoz === 1 ? 'está' : 'estão'} na sala, fora da chamada` : '');
-    marcarVozNoTopo(naChamada ? 'chamada' : e.vozPausada && canal ? 'pausada' : 'semvoz', mic, nomeZona(e.zona));
+    marcarVozNoTopo(st.fase === 'fora' && e.vozPausada && canal ? 'pausada' : TOPO_DA_FASE[st.fase] || 'semvoz', mic, nomeZona(e.zona), st.motivo || '');
     // Paulo, 09/11/2026: "muito ruim o HUD que abre das salas"; depois do dock fixo, "pensa se faz sentido os botões".
     // O microfone, Entrar, Sair e a Música ficam só no dock; aqui fica a sala (onde você está e com quem), os controles
     // de dentro da sala (câmera, tela, TV e áudio) e as outras salas. Nada cobre, nada rola.
     // Paulo, 09/11/2026: "os controles de áudio são um botão no dock, não dentro de salas... a tela, o de mutar o que ouve, a
     // câmera também... o SALAS mostra as SALAS, toda". O painel é só a lista das salas (com o estado da chamada em cima);
     // microfone, ouvir, câmera, tela, áudio, música, TV e sair ficam no dock.
-    const estadoVoz = naChamada ? ouvem : e.vozPausada && canal ? 'Você está na sala, mas fora da chamada' : estado;
+    const fraseFase = { conectando: 'Conectando à voz…', reconectando: st.semRede ? 'Sem internet: volta sozinho' : 'Reconectando à voz…', caiu: `A voz não conectou${st.motivo ? ': ' + st.motivo : ''}`, indisponivel: st.motivo || 'Sem voz aqui' }[st.fase];
+    const estadoVoz = naChamada ? ouvem : e.vozPausada && canal ? 'Você está na sala, mas fora da chamada' : fraseFase || estado;
     const html = `${pessoa ? `<div class="vz-pessoa"><b>${esc(pessoa.nome)}</b><small>${esc(nomeZona(pessoa.zona))}</small>
         ${pessoa.zona !== e.zona ? `<span class="vz-linha">${pessoa.zona ? `<button type="button" class="vz-botao principal" data-ir-sala="${esc(pessoa.zona)}">Ir para a sala de ${esc(primeiro(pessoa.nome))}</button>` : ''}<button type="button" class="vz-botao" data-chamar-pessoa="${esc(pessoa.id)}">Chamar para cá</button></span>` : '<small>Está na mesma sala que você.</small>'}</div>` : ''}
-      ${salasDeVozHtml({ e, Z, outros, falando, nomeZona, minhaSala, estadoVoz })}`;
+      ${salasDeVozHtml({ e, Z, outros, falando, nomeZona, minhaSala, estadoVoz, telas: new Set(st.midia?.transmitindo || []) })}`;
     // A barra se atualiza a cada 1,5 s (quem fala, quem entrou). Só redesenha se mudou algo, e guarda a rolagem
     // da lista de salas e o que a pessoa abriu nela (salas vazias, chamar alguém).
     if (html === pintarChamada.ultimo) return;
@@ -5005,7 +5101,7 @@
   }
   // Salas de voz, como no Discord: as salas com gente primeiro (acende quem fala), as vazias recolhidas por andar,
   // cadeado nas trancadas; clicar entra na sala e na conversa dela, sem sair do mapa. Chamar alguém fica recolhido.
-  function salasDeVozHtml({ e, Z, outros, falando, nomeZona, minhaSala, estadoVoz = '' }) {
+  function salasDeVozHtml({ e, Z, outros, falando, nomeZona, minhaSala, estadoVoz = '', telas = new Set() }) {
     const mics = microfonesNaChamada(e);
     const planta = mundo?.planta || [], porAndar = new Map();
     for (const [id, z] of Object.entries(Z)) { const k = z.andar || 'outros'; if (!porAndar.has(k)) porAndar.set(k, []); porAndar.get(k).push([id, z]); }
@@ -5020,7 +5116,7 @@
       const rostos = gente.length ? `<span class="vz-avs" aria-hidden="true">${gente.slice(0, 3).map((o) => `<i class="${falando.has(String(o.id)) ? 'fala' : ''}">${esc(o.id === eu.id ? 'Eu' : iniciais(o.nome))}</i>`).join('')}</span>` : '';
       return `<button type="button" class="vz-sala${minha ? ' minha' : ''}${gente.length ? ' com-gente' : ''}" data-ir-sala="${esc(id)}" ${minha ? 'aria-current="true"' : ''} title="${minha ? 'Você está nesta sala' : 'Entrar nesta sala e na conversa dela'}">
         <span class="ic" aria-hidden="true">${tranc ? IC.cadeado : IC.salas}</span>
-        <span class="meio"><b>${esc(z.nome || nomeZona(id))}${tranc ? ' <small>trancada</small>' : ''}</b>${gente.length ? `<span class="gente">${gente.map((o) => { const mudo = mics.get(String(o.id)) === false; return `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}${mudo ? ' mudo' : ''}" title="${esc(o.nome)}${mudo ? ' (mudo)' : ''}">${esc(o.id === eu.id ? 'Você' : primeiro(o.nome))}${mudo ? ' · mudo' : ''}</i>`; }).join('')}</span>` : `<small>${esc(nomeAndar(z.andar || 'outros'))}</small>`}</span>
+        <span class="meio"><b>${esc(z.nome || nomeZona(id))}${tranc ? ' <small>trancada</small>' : ''}</b>${gente.length ? `<span class="gente">${gente.map((o) => { const mudo = mics.get(String(o.id)) === false, tela = telas.has(String(o.id)); return `<i data-voz-pessoa="${esc(o.id)}" class="${falando.has(String(o.id)) ? 'fala' : ''}${mudo ? ' mudo' : ''}${tela ? ' tela' : ''}" title="${esc(o.nome)}${mudo ? ' (mudo)' : ''}${tela ? ' (mostrando a tela)' : ''}">${esc(o.id === eu.id ? 'Você' : primeiro(o.nome))}${mudo ? ' · mudo' : ''}${tela ? ' · tela' : ''}</i>`; }).join('')}</span>` : `<small>${esc(nomeAndar(z.andar || 'outros'))}</small>`}</span>
         ${rostos}<em>${minha ? 'Dentro' : 'Entrar'}</em></button>`;
     };
     const fora = outros.filter((o) => !o.zona || !Z[o.zona]);
@@ -5055,6 +5151,7 @@
     else if (c === 'tela') fn('alternarMidiaEscritorio')?.('screen')?.finally?.(() => { pintarChamada(); trazerProPalco(); });
     else if (c === 'camera') fn('alternarMidiaEscritorio')?.('video')?.finally?.(pintarChamada);
     else if (c === 'tv') fn('abrirTvEscritorio')?.(typeof escritorio !== 'undefined' ? escritorio.tvAtual || null : null);
+    else if (c === 'tentar') entrarPeloTopo();
     else if (c === 'reconectar') { const e = typeof escritorio !== 'undefined' ? escritorio : null; pintarChamada.tentou = true; (e?.base ? fn('conectarEscritorio') : fn('abrirEscritorio'))?.(); setTimeout(pintarChamada, 1500); } // a mesma entrada do botão "Entrar no escritório"
     else if (c === 'assumir') { fn('trazerEscritorioParaEstaAba')?.(); setTimeout(pintarChamada, 1500); }
     else if (c === 'chamar') { chamarAberto = !chamarAberto; pessoaAberta = null; pintarChamada(); }

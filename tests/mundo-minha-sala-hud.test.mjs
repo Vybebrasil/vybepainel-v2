@@ -31,8 +31,8 @@ test('dock fixo: microfone com o estado escrito, Minha sala e Sala atual (ver a 
   // Quadro da barra de baixo (moodboard, 12/11/2026): as salas com gente saem do dock (ficam no painel Salas) e a peça da
   // voz diz a sala atual, quantos estão na voz e quem.
   assert.equal([...h.matchAll(/data-vq-sala="([^"]+)"/g)].length, 0, 'trocar de sala é no painel Salas');
-  assert.ok(h.includes('<span class="vq-voz">') && h.includes('Sala da Bia · 2 na voz'), 'a peça da voz');
-  assert.ok(h.includes('<button type="button" class="dentro" disabled>Dentro</button>'), 'dentro da chamada');
+  assert.ok(/<span class="vq-voz" data-fase="na-sala"/.test(h) && h.includes('Sala da Bia · 2 na voz'), 'a peça da voz');
+  assert.ok(/<button type="button" class="dentro" disabled[^>]*>Dentro<\/button>/.test(h), 'dentro da chamada');
 });
 
 test('fora da chamada: o laranja Entrar; dentro de uma sala, o Voltar vem primeiro; sala comum sem visual fica desligada', () => {

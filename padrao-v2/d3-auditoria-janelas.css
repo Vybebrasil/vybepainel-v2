@@ -1,0 +1,60 @@
+/* Direção 3 · janelas da auditoria (14/11/2026): o planejamento aberto e o construtor de regra das Automações.
+   Fundo areia, cartão branco canto 20, botão principal preto liso; o laranja cheio fica só no bloco de ação. */
+
+/* ── Planejamento aberto (#workflow-modal.plj-janela, vybe-planejamentos.js) ─────────────────────────────────────
+   O documento vem na moldura com a escolha clara (pljPreparaDocumento); em volta dele, areia e barras brancas. */
+#workflow-modal.plj-janela.plj-modo-doc,#workflow-modal.plj-janela.plj-modo-editar{background:var(--d3-areia)}
+#workflow-modal.plj-janela .plj-flut{border-radius:var(--d3-r-cartao);border:1px solid var(--d3-borda);background:var(--d3-cartao);box-shadow:0 12px 28px -20px rgba(31,29,26,.45);backdrop-filter:none}
+#workflow-modal.plj-janela .plj-flut-x{width:36px;height:36px;background:var(--d3-trilho);color:var(--d3-tinta)}
+#workflow-modal.plj-janela .plj-flut-x:hover{background:var(--d3-borda)}
+#workflow-modal.plj-janela .plj-flut-links .cli-porta{height:36px;border-radius:999px;border-color:var(--d3-borda);background:var(--d3-cartao);color:var(--d3-tinta)}
+#workflow-modal.plj-janela .plj-flut-links .cli-porta:hover{border-color:var(--d3-tinta);background:var(--d3-cartao)}
+#workflow-modal.plj-janela .plj-flut-links .plj-flut-editar{border-color:var(--d3-borda);background:var(--d3-trilho)}
+#workflow-modal.plj-janela .plj-flut-links .cli-porta:focus-visible,#workflow-modal.plj-janela .plj-flut-x:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+/* A barra de baixo cabe na tela: a dica quebra linha em vez de passar por baixo dos botões. */
+#workflow-modal.plj-janela .plj-flut-base{left:12px;max-width:none;box-sizing:border-box;flex-wrap:wrap;justify-content:flex-end}
+#workflow-modal.plj-janela .plj-flut-base .plj-flut-dica{flex:1 1 220px;min-width:0;white-space:normal}
+#workflow-modal.plj-janela .plj-flut-base > .plj-acoes-flut{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+#workflow-modal.plj-janela .plj-flut-base > .plj-acoes-flut > :is(.workflow-primary,.workflow-secondary){height:40px;margin:0;padding:0 18px;border-radius:999px}
+#workflow-modal.plj-janela .plj-flut-dica b{color:var(--d3-tinta)}
+#workflow-modal.plj-janela:focus{outline:none}
+/* Histórico: a linha do tempo era texto claro do tema escuro, sumia no fundo claro. */
+#workflow-modal.plj-janela .plj-tempo b{color:var(--d3-tinta)}
+#workflow-modal.plj-janela .plj-tempo small{color:var(--d3-apagado)}
+#workflow-modal.plj-janela .plj-tempo p{color:var(--d3-texto2)}
+#workflow-modal.plj-janela .plj-tempo li::before{background:var(--d3-borda)}
+#workflow-modal.plj-janela .plj-tempo li.com-fala p{background:var(--d3-trilho);border-color:var(--d3-borda)}
+#workflow-modal.plj-janela .plj-tempo li.ruim.com-fala p{background:var(--d3-perigo-veu);border-color:#F5C2C7}
+@media (min-width:1000px){#workflow-modal.plj-janela .plj-flut-base{left:auto;max-width:calc(100% - 24px)}}
+
+/* ── Automações › Nova regra (#auto-editor .auto-construtor, vybe-automacoes-ui.js) ────────────────────────────────
+   Blocos à esquerda; à direita, a prévia em cartão claro e os botões juntos, presos ao rolar. O cabeçalho deixa
+   livre o canto onde ficam o ⛶ e o ✕ da janela. */
+#automacoes-root .auto-construtor{margin:0 0 20px;border:0;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);backdrop-filter:none;overflow:visible;grid-template-columns:minmax(0,1fr) 300px;column-gap:20px}
+#automacoes-root .auto-construtor:focus{outline:none}
+#automacoes-root .auto-construtor > .auto-construtor-topo{grid-column:1/-1;padding:20px 104px 16px 22px;border-bottom:1px solid var(--d3-linha)}
+#automacoes-root .auto-construtor > .auto-bloco{grid-column:1;border-bottom:1px solid var(--d3-linha)}
+#automacoes-root .auto-construtor > .auto-bloco:last-of-type{border-bottom:0}
+#automacoes-root .auto-construtor-fechar{display:grid;place-items:center;width:34px;height:34px;padding:0;border-radius:50%;background:var(--d3-trilho);font-size:20px}
+#automacoes-root .auto-construtor-fechar:hover{background:var(--d3-borda)}
+#automacoes-root .auto-bloco-numero{border:1px solid var(--d3-borda);background:var(--d3-trilho)}
+#automacoes-root .auto-bloco-numero > i{font-style:normal;color:var(--d3-tinta)}
+#automacoes-root .auto-construtor > .auto-lado{grid-column:2;grid-row:2 / span 4;align-self:start;position:sticky;top:90px;display:grid;gap:12px;margin:20px 22px 20px 0}
+#automacoes-root .auto-previa{display:grid;gap:8px;padding:16px 18px;border-radius:var(--d3-r-cartao);border:1px solid var(--d3-borda);background:var(--d3-trilho)}
+#automacoes-root .auto-previa > span{color:var(--d3-apagado);font:600 12px var(--vv-texto,Inter),sans-serif}
+#automacoes-root .auto-previa > b{color:var(--d3-tinta);font:600 15px/1.45 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .auto-previa.incompleta > b{color:var(--d3-apagado);font-weight:500;font-size:14px}
+#automacoes-root .auto-previa > .auto-problema{margin:0;font:500 12.5px/1.5 var(--vv-texto,Inter),sans-serif;font-style:normal}
+#automacoes-root .auto-c-botoes{display:flex;justify-content:flex-end;gap:8px}
+#automacoes-root .auto-c-botoes > .v2g-btn{height:40px;padding:0 18px;border-radius:999px}
+#automacoes-root .auto-c-botoes > .v2g-btn.k:disabled{opacity:1;background:var(--d3-linha);color:var(--d3-apagado);box-shadow:none;cursor:not-allowed}
+@media (max-width:900px){
+  #automacoes-root .auto-construtor{grid-template-columns:minmax(0,1fr)}
+  #automacoes-root .auto-construtor > .auto-lado{grid-column:1;grid-row:auto;position:static;margin:0 16px 18px}
+  #automacoes-root .auto-construtor > .auto-bloco:last-of-type{border-bottom:1px solid var(--d3-linha)}
+}
+@media (max-width:600px){
+  #automacoes-root .auto-construtor > .auto-construtor-topo{padding:16px 104px 14px 16px}
+  #automacoes-root .auto-construtor > .auto-bloco{padding:16px}
+  #automacoes-root .auto-c-botoes > .v2g-btn{flex:1 1 0;height:44px}
+}

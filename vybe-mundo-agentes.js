@@ -286,9 +286,32 @@
     acompanhar.sort((x, y) => y.n - x.n);
     return { decidir, acompanhar, esperando, total: decidir.length };
   }
+  // Todos os perfis numa chamada (etapa=perfis); se o servidor não tiver essa leitura, um por agente como antes.
+  // Mesma folga de 30 s do lerPerfil: quem foi lido há pouco ou está sendo lido fica de fora.
   function lerTodos() {
-    const fila = setores().map((s) => s.id);
-    return Promise.all(Array.from({ length: 4 }, async () => { while (fila.length) await lerPerfil(fila.shift()).catch(() => {}); }));
+    const agora = Date.now();
+    const ids = setores().map((s) => s.id).filter((id) => { const p = st.perfis[id]; return !p || (!p.lendo && agora - p.em >= 30e3); });
+    if (!ids.length) return Promise.all(setores().map((s) => st.perfis[s.id]?.lendo).filter(Boolean));
+    const um = (fila) => Promise.all(Array.from({ length: 4 }, async () => { while (fila.length) await lerPerfil(fila.shift()).catch(() => {}); }));
+    const perfis = ids.map((id) => [id, st.perfis[id] ||= { dados: null, erro: '', em: 0, lendo: null }]);
+    const lote = fetch(`/api/painel?area=vybes&etapa=perfis&setores=${ids.map(encodeURIComponent).join(',')}`, { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.perfis && typeof d.perfis === 'object') return { d };
+        if ([400, 404, 405].includes(r.status) || r.ok) return { antigo: true };
+        return { erro: d.error || 'Sem perfil da central agora.' };
+      }).catch(() => ({ erro: 'Sem perfil da central agora.' }));
+    for (const [, p] of perfis) { p.em = agora; p.lendo = lote; }
+    return lote.then(({ d, antigo, erro }) => {
+      for (const [, p] of perfis) p.lendo = null;
+      if (antigo) { for (const [, p] of perfis) p.em = 0; return um(ids.slice()); }
+      for (const [id, p] of perfis) {
+        const x = d?.perfis?.[id];
+        if (x?.perfil) { p.dados = x; p.erro = ''; guardarAcerto(id, x.perfil?.numeros?.acerto); }
+        else p.erro = x?.error || erro || 'Sem perfil da central agora.';
+      }
+      if (st.aberto && ids.includes(st.setor)) pintar();
+    });
   }
   function filaAgora() {
     const ag = setores(), f = fonte(), atividades = Object.fromEntries((f.dados?.agentes || []).map((a) => [a.setor, a]));

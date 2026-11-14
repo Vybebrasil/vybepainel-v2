@@ -1932,17 +1932,37 @@ export async function areaAssistente(req, res, quem, criarBanco = sql) {
 }
 
 // Reuniões e onboarding do cliente (server/reunioes.js): ata, pauta sugerida, gravação no Drive e link do onboarding.
-async function areaReunioes(req, res, quem) {
+// A leitura de um cliente: a mesma na rota de um (cliente=) e na de vários (clientes=).
+async function reunioesDoCliente(db, pessoa, cliente) {
+  const [reunioes, pauta, onboarding, pode, esteira] = await Promise.all([listarReunioes(db, cliente), sugerirPauta(db, cliente), respostasDoOnboarding(db, cliente).catch(() => null), podeMexer(db, pessoa, cliente),
+    db`SELECT 1 FROM vybe_cliente_onboarding WHERE cliente_id=${Number(cliente)} AND encerrado_em IS NULL`.catch(() => [])]);
+  return { reunioes, pauta, onboarding, pode, em_onboarding: esteira.length > 0 };
+}
+export const REUNIOES_LOTE_MAX = 200;
+export async function areaReunioes(req, res, quem) {
   const db = sql();
   await garantirSchemaReunioes(db);
   const pessoa = quem.tipo === 'servico' ? { admin: true } : (quem.pessoa || {});
   const falha = (e) => { if (e.status) return res.status(e.status).json({ error: e.message }); throw e; };
   if (req.method === 'GET') {
+    const comuns = { tipos: TIPOS_REUNIAO, questoes: QUESTOES, acessos_pedidos: ACESSOS_PEDIDOS };
+    // Vários clientes numa chamada (tela Reuniões): cada um com a mesma leitura e o mesmo "pode" da rota de um.
+    if (req.query?.clientes != null) {
+      const ids = [...new Set(String(req.query.clientes).split(',').map((x) => x.trim()).filter(Boolean))];
+      if (!ids.length) return res.status(400).json({ error: 'Informe os clientes.' });
+      if (ids.length > REUNIOES_LOTE_MAX) return res.status(400).json({ error: `No máximo ${REUNIOES_LOTE_MAX} clientes por vez.` });
+      if (ids.some((x) => !/^\d{1,18}$/.test(x) || !Number(x))) return res.status(400).json({ error: 'Cliente inválido.' });
+      const clientes = {};
+      let i = 0;
+      const fila = async () => { while (i < ids.length) { const id = ids[i++];
+        try { clientes[id] = { ok: true, ...(await reunioesDoCliente(db, pessoa, Number(id))) }; }
+        catch (e) { if (!e.status) console.error('[reunioes] lote:', e?.message || e); clientes[id] = { ok: false, error: e.status ? e.message : 'Não consegui ler as reuniões.' }; } } };
+      await Promise.all(Array.from({ length: Math.min(4, ids.length) }, fila));
+      return res.status(200).json({ ok: true, clientes, ...comuns });
+    }
     const cliente = Number(req.query?.cliente || 0);
     if (!cliente) return res.status(400).json({ error: 'Informe o cliente.' });
-    const [reunioes, pauta, onboarding, pode, esteira] = await Promise.all([listarReunioes(db, cliente), sugerirPauta(db, cliente), respostasDoOnboarding(db, cliente).catch(() => null), podeMexer(db, pessoa, cliente),
-      db`SELECT 1 FROM vybe_cliente_onboarding WHERE cliente_id=${Number(cliente)} AND encerrado_em IS NULL`.catch(() => [])]);
-    return res.status(200).json({ ok: true, reunioes, pauta, onboarding, pode, em_onboarding: esteira.length > 0, tipos: TIPOS_REUNIAO, questoes: QUESTOES, acessos_pedidos: ACESSOS_PEDIDOS });
+    return res.status(200).json({ ok: true, ...(await reunioesDoCliente(db, pessoa, cliente)), ...comuns });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
   const b = req.body || {};
@@ -2057,7 +2077,7 @@ export default async function handler(req, res) {
   // Convidado do Escritório: entra por um link assinado, sem conta
   // (server/escritorio-convite.js). Do resto do escritório, só a arte do mapa.
   if (areaPublica === 'convite') return areaConvite(req, res, sql());
-  if (areaPublica === 'escritorio' && req.method === 'GET' && ['arte', 'boneco', 'imagem'].includes(String(req.query?.acao || ''))
+  if (areaPublica === 'escritorio' && req.method === 'GET' && ['arte', 'artes', 'boneco', 'imagem'].includes(String(req.query?.acao || ''))
       && !String(req.headers?.cookie || '').includes('vybe_sessao=') && convidadoDoCookie(req))
     return areaEscritorio(req, res, { tipo: 'sessao', pessoa: null }, sql());
   // Integração exclusivamente privada do WhatsApp: token próprio, sem poderes admin.

@@ -1715,9 +1715,12 @@
   }
   function pintar() {
     const el = raiz(); if (!el) return;
+    const estavaAberta = !el.hidden && el.isConnected !== false;
     el.hidden = !st.aberto; if (!st.aberto) return;
     const ativo = document.activeElement, idFoco = el.contains(ativo) ? (ativo.dataset.vcBusca || ativo.name || '') : '', selFim = ativo?.selectionEnd;
-    const corpo = el.querySelector('.vc-corpo'), rolagem = corpo ? corpo.scrollTop : 0;
+    // Ler ou gravar scrollTop força o navegador a recalcular o estilo e o layout da página inteira na hora. A janela que
+    // estava fechada não tem rolagem a guardar, e a janela nova já nasce no topo: só lê e só grava quando há o que manter.
+    const corpo = estavaAberta ? el.querySelector('.vc-corpo') : null, rolagem = corpo ? corpo.scrollTop : 0;
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const dinheiro = veDinheiro(), abas = ABAS.filter((a) => (!a[2] || dinheiro) && (!st.soAbas || st.soAbas.has(a[0])));
     if (!abas.some((a) => a[0] === st.aba)) st.aba = 'funil';
@@ -1736,7 +1739,7 @@
       ${st.msg && !st.folha ? `<p class="vc-msg-geral${st.msg.startsWith('⚠️') ? ' erro' : ''}" role="status">${esc(st.msg)}</p>` : ''}
       <div class="vc-corpo${v2 ? ' v2c-corpo' : ''}${st.carregando[st.aba] && d ? ' atualizando' : ''}">${conteudo}</div>${folhaHtml()}`;
     el.classList?.toggle?.('fv2-casa', telaFin);
-    const nc = el.querySelector('.vc-corpo'); if (nc) nc.scrollTop = rolagem;
+    const nc = rolagem ? el.querySelector('.vc-corpo') : null; if (nc) nc.scrollTop = rolagem;
     if (v2 && d && !erro) st.v2.visto[st.aba] = true;
     if (idFoco) { const alvo = el.querySelector(`[data-vc-busca="${idFoco}"], [name="${idFoco}"]`); if (alvo) { alvo.focus(); try { alvo.setSelectionRange?.(selFim, selFim); } catch {} } }
   }
@@ -1821,7 +1824,7 @@
     st.soAbas = Array.isArray(opcoes.abas) && opcoes.abas.length ? new Set(opcoes.abas) : null; st.rotulo = opcoes.rotulo || '';
     st.aberto = true; if (valida) st.aba = aba; st.folha = null; st.msg = ''; st.v2.visto = {};
     if (!st.periodo.mes) st.periodo.mes = hojeIso().slice(0, 7);
-    pintar(); carregar();
+    carregar(); // carregar() já pinta na hora (com "Carregando…" ou os dados guardados) antes de buscar
   }
   function fechar() { st.aberto = false; st.folha = null; const el = document.getElementById('vv-comercial'); if (el) el.hidden = true; }
   // Sala de Closing (1º andar): modulo { tipo: 'janela', alvo: 'comercial' } na planta. Captura antes do HUD, que trataria como quadro.
