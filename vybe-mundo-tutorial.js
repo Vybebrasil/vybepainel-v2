@@ -513,6 +513,12 @@
     const d = dicaAtual; const def = CONTEUDO.dicas[d.id];
     const alvo = def?.alvo ? acharAlvo(def.alvo) : null;
     if (d.temAlvo && !alvo) { fecharDica('depois'); return; } // o que ela explicava fechou: volta outro dia
+    // A gaveta da peça aberta é o que a pessoa está fazendo: a dica não fica por cima dela. Espera escondida e volta
+    // quando a gaveta fecha (o relógio de reposicionar passa aqui a cada 400 ms).
+    const gaveta = doc.getElementById?.('workspace-drawer');
+    const comGaveta = Boolean(gaveta && gaveta.getClientRects?.().length);
+    d.balao.hidden = comGaveta; if (d.anel) d.anel.hidden = comGaveta;
+    if (comGaveta) return;
     const c = alvo ? caixaDe(alvo) : null;
     if (d.anel && c) estilo(d.anel, { left: px(c.left), top: px(c.top), width: px(c.width), height: px(c.height) });
     // A compacta explica a tela de trás: com outra janela, menu ou modal por cima da caixa dela, o balão espera escondido.

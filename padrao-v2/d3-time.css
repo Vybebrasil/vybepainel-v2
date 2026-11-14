@@ -456,10 +456,11 @@
 /* Automações: título com "Gestão" ao lado, a aba preta escolhida, "Nova regra" preta e as regras em linha. */
 #automacoes-root.v2r > .vb-cabecalho .vb-cabecalho-texto{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px}
 #automacoes-root.v2r > .vb-cabecalho .vb-cabecalho-texto > p{margin:0;font:400 14px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
-/* A aba escolhida fica branca sobre a pílula clara: a regra antiga com !important de vybe-mundo.css (linha 2981,
-   [class*="auto-"] button) pinta o texto de cinza e impede a aba preta do quadro. */
+/* A aba escolhida é preta sobre o trilho (a regra antiga de vybe-mundo.css que pintava de cinza todo botão dentro de um
+   bloco "auto-" deixou de pegar os botões de .v2g-seg na limpeza de 14/11/2026). */
 #automacoes-root.v2r .ar-abas.v2g-seg{background:var(--d3-trilho)}
-#automacoes-root.v2r .ar-abas.v2g-seg > button{transition:background-color .25s,box-shadow .25s}
+#automacoes-root.v2r .ar-abas.v2g-seg > button{transition:background-color .25s,box-shadow .25s,color .25s}
+#automacoes-root.v2r .ar-abas.v2g-seg > button[aria-checked="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
 #automacoes-root.v2r .ar-mais > summary.v2g-btn{background:#FFFFFF;box-shadow:none}
 #automacoes-root.v2r .v2g-btn.k.auto-novo{height:40px;padding:0 18px}
 #automacoes-root.v2r .d3t-auto-acao:empty{display:none}

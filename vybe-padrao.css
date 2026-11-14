@@ -43,8 +43,6 @@
 .workspace-heading .pv-ic{width:46px;height:46px;flex:none;border-radius:8px;display:grid;place-items:center;color:#ee83b7;background:linear-gradient(180deg,rgba(238,131,183,.26),rgba(238,131,183,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(238,131,183,.4),0 10px 24px -12px #ee83b7}
 .workspace-heading .pv-ic svg{width:21px;height:21px;display:block}
 /* Rosa do setor só no tema antigo; no mundo o rótulo é neutro (redesign 09/11/2026, vybe-mundo.css). */
-:where(body:not(.mundo)) .workspace-heading .workspace-eyebrow{color:#ee83b7!important}
-.workspace-heading .workspace-eyebrow{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
 :where(body:not(.mundo)) .workspace-heading h2{font:700 28px/1.05 var(--pv-titulo)!important;letter-spacing:-.015em!important;margin:2px 0 0!important}
 .workspace-heading .ops-acoes{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .workspace-heading .ops-acoes button,.ops-clear-btn{height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important}
@@ -63,10 +61,6 @@
 .pv-anel{--p:0;position:relative;flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#62d394 calc(var(--p)*1%),rgba(255,255,255,.08) 0)}
 .pv-anel::before{content:"";position:absolute;inset:4px;border-radius:50%;background:#15171e}
 .pv-anel i{position:relative;font:700 9.5px var(--pv-titulo);font-style:normal;color:#a8a39c}
-.pv-mini{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:3px}
-.pv-mini .resumo-item{display:inline-flex;align-items:baseline;gap:5px;font-size:11.5px;color:#a8a39c}
-.pv-mini .resumo-item b{font:700 15px var(--pv-titulo);color:#fff}
-.pv-mini .resumo-item.risco b{color:#f7c948}
 /* Barra do Painel de trabalho: no mundo ela é uma barra só (quadro 01 do redesign, 10/11/2026, fim de vybe-mundo.css); estas regras ficam com o tema antigo. */
 .ops-command-bar{padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
 :where(body:not(.mundo)) .ops-command-bar{display:grid!important;gap:12px!important}
@@ -176,9 +170,6 @@
 /* ---- Gaveta da peça (a tela de aprovar): vidro, título grande, seções em cartão ---- */
 #workspace-drawer{border-left:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important}
 #workspace-drawer .workspace-title{font:700 25px/1.12 var(--pv-titulo)!important;letter-spacing:-.015em!important}
-#workspace-drawer .workspace-client{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
-#workspace-drawer .workspace-kicker{font:700 10px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none;color:#7d7870!important}
-#workspace-drawer .workspace-id{border-radius:7px!important;background:rgba(255,255,255,.06)!important;color:#a8a39c!important}
 #workspace-drawer .workspace-section{border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important}
 #workspace-drawer .workspace-section-head{border:0!important;background:none!important}
 #workspace-drawer .workspace-section-head :is(h3,h4,b,strong){font-family:var(--pv-titulo)!important;font-weight:700!important}
@@ -333,7 +324,6 @@
    Performance, IA & Custos, Automações, Conta & Equipe): mesmo título, mesmos
    botões e mesmos seletores de período do Painel de trabalho ---- */
 :where(body:not(.mundo)) :is(.vb-cabecalho-texto h2,.ai-usage-title,.auto-titulo,.conta-secao-topo h2){font:700 28px/1.08 var(--pv-titulo)!important;letter-spacing:-.015em!important;color:#fff!important}
-.auto-titulo + .auto-titulo,.auto-secao .auto-titulo{font-size:22px!important}
 :where(body:not(.mundo)) :is(.eq-acoes button,.auto-sincronizar,.conta-botao,.vb-cabecalho .vb-botao:not(.principal)){height:32px!important;padding:0 12px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important;font:600 12px var(--mac-ui)!important;text-transform:none!important;letter-spacing:0!important}
 :where(body:not(.mundo)) :is(.eq-acoes button:hover,.auto-sincronizar:hover,.conta-botao:hover){border-color:rgba(255,179,92,.45)!important}
 :where(body:not(.mundo)) .eq-acoes button.perigo{color:#ff8a9c!important;border-color:rgba(255,107,138,.28)!important}
@@ -580,7 +570,6 @@
 
 /* Mizinho: a aba ativa na cor do módulo (Audiovisual) */
 .prod-v2-head .p-segment button.active{background:linear-gradient(180deg,rgba(56,217,197,.3),rgba(56,217,197,.12))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(56,217,197,.45)!important}
-:where(body:not(.mundo)) .capt-tb-criar{border:0!important;border-radius:6px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 12.5px var(--mac-ui)!important;box-shadow:0 8px 20px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .meeting-mode-sheet .meeting-head.meeting-head{display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:space-between!important}.meeting-mode-sheet .meeting-head .x-fechar{position:static!important;margin:0!important;order:2}
 
 
@@ -589,7 +578,7 @@
    vez, as que encaixam acesas em verde e as outras apagadas (uma regra antiga
    deixava todas iguais e não dava para saber qual jogar). */
 .dmn-cobra{--u:calc(100cqw / 18)!important;min-height:110px!important}
-.dmn-mao-pecas:has(.pode) .dmn-mao-peca:not(.pode),.dmn-mao:has(.pode) .dmn-mao-peca:not(.pode){opacity:.35!important;filter:grayscale(.5)}
+.dmn-mao:has(.pode) .dmn-mao-peca:not(.pode){opacity:.35!important;filter:grayscale(.5)}
 .dmn-mao-peca.pode .dmn-peca{box-shadow:0 0 0 2px #46d48c,0 0 14px rgba(70,212,140,.55),0 4px 10px #0008!important}
 .dmn-mao-peca .dmn-peca{--m:38px!important}
 
@@ -670,18 +659,6 @@
 
 /* Gaveta da peça: faixa com status, prazo, veiculação e responsável; rodapé
    fixo com atualização rápida, Comentar e Passar bastão (como no desenho). */
-#workspace-drawer .workspace-meta{display:none!important}
-.workspace-faixa{display:grid;grid-template-columns:auto auto auto minmax(0,1fr);margin:12px 0 14px!important;border-radius:8px;border:1px solid var(--pv-linha);background:rgba(255,255,255,.025);overflow:hidden}
-.workspace-faixa > div{display:grid;align-content:start;gap:5px;padding:10px 14px;border-left:1px solid rgba(255,255,255,.06)}
-.workspace-faixa > div:first-child{border-left:0}
-.workspace-faixa dt{color:#7d7870;font:700 9.5px var(--mac-ui);letter-spacing:0;text-transform:none}
-.workspace-faixa dd{margin:0;display:flex;align-items:center;gap:6px;color:#fff;font:700 14px var(--pv-titulo)}
-.workspace-faixa .owner-editor-trigger{display:inline-flex!important;align-items:center;gap:6px;padding:0!important;border:0!important;background:none!important;color:#fff!important;font:600 13px var(--mac-ui)!important}
-#workspace-drawer .workspace-rodape{position:sticky;bottom:0;z-index:3;display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;margin:18px -24px 0;padding:14px 24px 18px;border-top:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(24,26,34,.96),#15171e)}
-.workspace-rodape .workspace-textarea{min-height:46px!important;height:46px;resize:none;border-radius:8px!important}
-#workspace-drawer .workspace-rodape .workspace-action.workspace-comentar{border:0!important;background:none!important;color:#ece8e3!important;font:600 13px var(--mac-ui)!important}
-#workspace-drawer .workspace-rodape .workspace-action.workspace-bastao{height:42px!important;padding:0 18px!important;border:0!important;border-radius:8px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;font:700 13.5px var(--mac-ui)!important;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
-#workspace-drawer .entrega-depois{display:none!important}
 
 /* Seu espaço de trabalho: o anel do Gestor, a seta de cada cartão e a saudação */
 #mode-gate#mode-gate .identity-ola{display:block;color:#ff9a5c;font:700 11px var(--mac-ui);letter-spacing:0;text-transform:none;margin-bottom:2px}
@@ -894,14 +871,8 @@
 .pv-ic-aba svg{width:21px;height:21px}
 .vb-cabecalho:has(.pv-ic-aba){flex-wrap:nowrap!important;align-items:center!important}
 .vb-cabecalho .pv-etiqueta{margin-bottom:2px}
-.auto-cabeca:has(.pv-ic-aba){display:flex!important;align-items:center;gap:14px}
 :where(body:not(.mundo)) :is(.auto-kicker,.ai-usage-kicker){color:#ff8f4f!important}
-.auto-kicker,.ai-usage-kicker{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
-.ai-usage-kicker{color:#b99cff!important}
-.ai-usage-head,.ai-usage-cab{display:flex!important;align-items:center;gap:14px}
-.ai-usage-head.ai-usage-head,.auto-cabeca.auto-cabeca{display:flex!important;grid-template-columns:none!important;align-items:center!important;gap:14px!important}
-.ai-usage-head.ai-usage-head{border:0!important;background:none!important;box-shadow:none!important;padding:4px 0 10px!important}
-.ai-usage-head > div:nth-of-type(1),.auto-cabeca > div:nth-of-type(1){flex:1;min-width:0}
+.auto-kicker{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
 
 /* ===== Escritório como extensão da tela de módulos =====
    O mesmo vidro escuro dos cartões de módulo (linha de luz no topo), títulos
@@ -946,10 +917,6 @@
 .ofc .ofc-abas button[aria-selected="true"],.ofc .ofc-abas button.on,.ofc .ofc-abas button.ativa{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05))!important;color:#fff!important}
 .ofc .ofc-p-eu,.ofc .ofc-p-bloco{border-radius:10px!important}
 .ofc .ofc-p-centro{--c:#f7c948;border-radius:12px!important}
-.ofc .ofc-p-titulo h5{color:var(--esc)!important;font:700 10px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
-.ofc .ofc-p-centro-topo b,.ofc .ofc-p-centro-topo strong{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
-.ofc .ofc-p-num{border-radius:8px!important;border:1px solid var(--esc-borda)!important;background:rgba(255,255,255,.035)!important}
-.ofc .ofc-p-num b{font-family:var(--pv-titulo)!important}
 .ofc .ofc-p-entrar{border-radius:8px!important;background:var(--pv-laranja)!important;color:#1b0d06!important;box-shadow:0 10px 24px -10px #ff7a2e,inset 0 1px 0 rgba(255,255,255,.35)!important}
 .ofc .ofc-p-sala,.ofc .ofc-p-quarto{border-radius:8px!important;border:1px solid var(--esc-borda)!important;background:linear-gradient(180deg,#232633,#1a1c25)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)!important}
 .ofc .ofc-p-sala:hover,.ofc .ofc-p-quarto:hover{border-color:color-mix(in srgb,var(--esc) 50%,transparent)!important}
@@ -1010,7 +977,6 @@
 .ofc-bonus-txt small{color:var(--c)!important;font:700 10px var(--mac-ui)!important;letter-spacing:0!important}
 .ofc-bonus-txt b{font-family:var(--pv-titulo)!important;letter-spacing:-.01em}
 /* baú da lateral: cartão dourado no vidro, sem o fundo marrom */
-.ofc .ofc-p-bau{--c:#f7c948;border:1px solid color-mix(in srgb,var(--c) 30%,rgba(255,255,255,.08))!important;background:radial-gradient(ellipse 90% 90% at 100% 0%,color-mix(in srgb,var(--c) 18%,transparent),transparent 70%),rgba(19,21,28,.94)!important;color:#fff!important;border-radius:8px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
 /* trilho: o item ativo turquesa, não laranja */
 .ofc .ofc-p-centro .ofc-p-entrar{font-family:var(--pv-titulo)!important}
 

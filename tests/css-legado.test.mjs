@@ -8,7 +8,7 @@ const ler = (f) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
 test('cabeçalho escuro e camada do .app-header só fora do Irecity, com a força de antes', () => {
   const st = ler('vybe-styles.css'), pd = ler('vybe-padrao.css');
   assert.match(st, /:where\(body:not\(\.mundo\)\) header:where\(:not\(\.tema-sinuca\)\) \{ background:/);
-  assert.match(st, /:where\(body:not\(\.mundo\)\) header:where\(:not\(\.tema-sinuca\)\),:where\(body:not\(\.mundo\)\) \.topbar\{/);
+  // Limpeza de 14/11/2026: a regra de .topbar saiu na poda das regras mortas (nenhum JS/HTML monta mais .topbar).
   assert.doesNotMatch(st, /\n\s*header:where\(:not\(\.tema-sinuca\)\) \{ background/);
   assert.match(pd, /:where\(body:not\(\.mundo\)\) \.app-header\{z-index:200!important\}/);
 });

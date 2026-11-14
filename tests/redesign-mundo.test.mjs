@@ -69,7 +69,7 @@ test('35 · ordem da Loja e do inventário em chips, não select nativo; categor
   assert.match(html, /aria-pressed="true" onclick="escritorio\.cat\.ordem='preco'[^"]*">Mais baratos/);
   assert.match(html, /aria-pressed="false" onclick="escritorio\.cat\.ordem='destaque'/);
   const css = ler('vybe-mundo.css');
-  assert.match(css, /body\.mundo #office-catalogo \.ofc-catj-arvore\{display:flex;flex-wrap:wrap/);
+  // Limpeza de 14/11/2026: a regra de .ofc-catj-arvore saiu na poda das regras mortas (nenhum JS/HTML monta mais .ofc-catj-arvore).
   assert.match(css, /body\.mundo #office-catalogo \.ofc-loja-nav\[aria-pressed=true\]\{background:var\(--ds-on-fundo\)/);
 });
 

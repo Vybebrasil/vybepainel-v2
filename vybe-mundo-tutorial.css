@@ -60,6 +60,9 @@
 .vv-tour-principal{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 14px;border:0;border-radius:8px;
   background:var(--tour-acao);color:#fff;font:700 12.5px/1 var(--vv-texto,system-ui),sans-serif;box-shadow:0 8px 20px -8px var(--tour-acao-hover);transition:background .15s}
 .vv-tour-principal:hover{background:var(--tour-acao-hover)}
+/* Direção 3 (limpeza de 14/11/2026): na dica, "Entendi" é preto; o laranja cheio é só o bloco de ação da tela. */
+.vv-tour-dica .vv-tour-principal{border-radius:999px;background:var(--tour-tinta);box-shadow:none}
+.vv-tour-dica .vv-tour-principal:hover{background:#000000}
 .vv-tour-sec{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 12px;border:1px solid var(--tour-linha);border-radius:8px;
   background:var(--tour-sec);color:var(--tour-tinta);font:600 12.5px/1 var(--vv-texto,system-ui),sans-serif;transition:border-color .15s,color .15s}
 .vv-tour-sec:hover{border-color:var(--tour-acao);color:var(--tour-sel)}
