@@ -3682,6 +3682,10 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{posi
 #d3-sala .d3s-sub{font-size:12.5px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #d3-sala .d3s-grade{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.85fr);gap:14px;min-height:0}
 #d3-sala .d3s-col2,#d3-sala .d3s-col3{display:flex;flex-direction:column;gap:14px;min-height:0;min-width:0;overflow:hidden}
+/* Janela baixa (app do Mac com 650 de altura): o cartão não encolhe abaixo do conteúdo, a coluna rola por dentro.
+   Antes o Humor do cartão Agora passava por cima do Seu dia (regra "nada cobre"). */
+#d3-sala .d3s-grade > :is(.d3s-col2,.d3s-col3){overflow-y:auto;scrollbar-width:thin}
+#d3-sala .d3s-grade > :is(.d3s-col2,.d3s-col3) > .d3s-cartao{flex-shrink:0}
 #d3-sala .d3s-quarto{min-height:220px;border-radius:var(--d3-r-cartao);box-shadow:inset 0 0 0 1px rgba(31,29,26,.06);pointer-events:none}
 #d3-sala .d3s-cartao{box-sizing:border-box;min-height:0;padding:14px 16px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
 #d3-sala .d3s-quarto.d3s-cartao{background:transparent;padding:0}
@@ -4113,7 +4117,9 @@ button.d3-num.d3p-num:active{transform:scale(.98)}
 #pv2-demandas.pv2 .pv2-grupo > .d3p-mais{height:30px;margin:0}
 #pv2-demandas.pv2 .pv2-pe-geral,#pv2-demandas.pv2 .pv2-nada{padding:10px 18px;border-top:1px solid var(--d3-linha)}
 
-@media (max-width:1100px){
+/* Com o menu lateral aberto a janela de Demandas mede uns 250 px a menos que a tela: até 1280 de tela, as colunas
+   Tipo, Conclusão e Tarefas saem para o nome da demanda não ficar por baixo do cliente. */
+@media (max-width:1280px){
   #pv2-demandas.pv2 :is(.d3d-cab,.d3d-lin){grid-template-columns:minmax(0,1fr) 120px 128px 72px 120px 16px}
   #pv2-demandas.pv2 :is(.d3d-cab,.d3d-lin) > :is(:nth-child(1),:nth-child(6),:nth-child(8)){display:none}
 }

@@ -181,7 +181,9 @@ button.d3-num.d3p-num:active{transform:scale(.98)}
 #pv2-demandas.pv2 .pv2-grupo > .d3p-mais{height:30px;margin:0}
 #pv2-demandas.pv2 .pv2-pe-geral,#pv2-demandas.pv2 .pv2-nada{padding:10px 18px;border-top:1px solid var(--d3-linha)}
 
-@media (max-width:1100px){
+/* Com o menu lateral aberto a janela de Demandas mede uns 250 px a menos que a tela: até 1280 de tela, as colunas
+   Tipo, Conclusão e Tarefas saem para o nome da demanda não ficar por baixo do cliente. */
+@media (max-width:1280px){
   #pv2-demandas.pv2 :is(.d3d-cab,.d3d-lin){grid-template-columns:minmax(0,1fr) 120px 128px 72px 120px 16px}
   #pv2-demandas.pv2 :is(.d3d-cab,.d3d-lin) > :is(:nth-child(1),:nth-child(6),:nth-child(8)){display:none}
 }

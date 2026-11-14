@@ -28,7 +28,9 @@ test('toda sala com módulo aponta para um módulo que existe no painel', () => 
 test('situação da peça: data do cliente manda e a mais urgente vence', () => {
   const ctx = { window: {}, document: { body: { classList: { toggle() {}, contains() { return false; } }, dataset: {}, append() {} }, createElement: () => ({ getContext: () => null, addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], innerHTML: '' }), readyState: 'complete', getElementById: () => null, querySelector: () => null, addEventListener() {} },
     localStorage: { getItem: () => null, setItem() {} }, MutationObserver: class { observe() {} }, addEventListener() {}, matchMedia: () => ({ matches: false }),
-    setInterval: () => 0, clearInterval() {}, hojeDeVerdade: () => '2026-11-06', isFinishedItem: (d) => /Finalizado/.test(d.status) };
+    setInterval: () => 0, clearInterval() {}, setTimeout: () => 0, clearTimeout() {}, hojeDeVerdade: () => '2026-11-06', isFinishedItem: (d) => /Finalizado/.test(d.status),
+    // Só a conta da situação interessa aqui: o mundo fica desligado (antes isso vinha de faltar WebGL no Node).
+    location: { search: '?legado=1' }, URLSearchParams };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync('vybe-mundo.js', 'utf8'), ctx);
   const sit = ctx.window.situacaoDaPecaNoMundo;
