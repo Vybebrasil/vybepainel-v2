@@ -4068,6 +4068,21 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{posi
 body.mundo.mundo-quarto.d3s-painel.d3s-com-cor #mundo-andar.quarto > .andar-palco{background:var(--d3s-cor)}
 #d3-sala .d3s-mais{appearance:none;align-self:flex-start;margin-top:6px;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 12.5px var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-decoration-color:var(--d3-borda);text-underline-offset:3px;cursor:pointer}
 #d3-sala .d3s-vazio{padding:6px 0;font-size:12.5px;color:var(--d3-apagado)}
+/* Números do trabalho (14/11): os que levam a algum lugar são botões; vencidas em vermelho, aprovar em âmbar. */
+#d3-sala button.d3s-num{appearance:none;margin:0;border:0;font:inherit;text-align:left;cursor:pointer}
+#d3-sala button.d3s-num:hover{box-shadow:inset 0 0 0 1px var(--d3-borda)}
+#d3-sala .d3s-num.r .d3-num-v{color:var(--d3-perigo)}
+#d3-sala .d3s-num.a .d3-num-v{color:var(--d3-ajuste)}
+/* Seu dia: "Para adiantar" quando o dia está leve; a data no lugar do vencimento. */
+#d3-sala .d3s-adiantar{margin-top:10px;padding-bottom:4px;font:600 12px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+#d3-sala .d3s-lin > .d3h-qd{flex:none;font-size:12px;color:var(--d3-apagado);white-space:nowrap}
+/* Sua semana: um dia por linha, barra da carga contra o limite de 5. */
+#d3-sala .d3s-dia-carga{display:grid;grid-template-columns:44px minmax(0,1fr) 40px;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--d3-linha)}
+#d3-sala .d3s-dia-carga > b{font-weight:600;font-size:13px}
+#d3-sala .d3s-dia-carga > small{font-size:12px;color:var(--d3-apagado);text-align:right}
+#d3-sala .d3s-dia-carga.hoje > b{color:var(--d3-acao)}
+#d3-sala .d3s-dia-carga.cheio > small{color:var(--d3-perigo);font-weight:600}
+#d3-sala .d3s-dia-carga.cheio .d3-barra > i{background:var(--d3-perigo)}
 /* Decorar: a barra de itens entra embaixo, dentro do cartão do quarto. */
 body.mundo.d3s-painel #vv-decorar#vv-decorar{left:calc(var(--d3s-qx,16px) + 10px);right:auto;width:calc(var(--d3s-qw,60vw) - 20px);bottom:calc(var(--d3s-qb,90px) + 10px);max-height:calc(var(--d3s-qh,50vh) * .55)}
 @media (max-width:900px){
@@ -5608,9 +5623,11 @@ button.d3s-lin-txt{cursor:pointer}
 #vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i.tela{box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 4px var(--d3-info)}
 #vv-dock-salas-faixa .vv-chamada .vz-salas .gente i.tela{color:var(--d3-info)}
 
+/* transmitindo (Paulo, 14/11/2026: "o microfone quando tá funcionando, no lugar de laranja, é verde"): o verde de
+   microfone, câmera e tela ligados fica no quadradinho do ícone, no fim de dock.css (estilo do dock do Mac). */
+
 /* botões de mídia bloqueados (microfone, câmera, som): vermelho no nome e no ícone, sem o laranja do ativo */
-#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
-#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq:hover{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq,#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq:hover{color:var(--d3-perigo)}
 
 /* cartão do celular fora das salas: a mesma regra */
 #vv-dock-salas-faixa .vq-cartao .vc-acao.vq-espera,#vv-dock-salas-faixa .vq-cartao .vc-acao.vq-espera:disabled{display:inline-flex;align-items:center;background:var(--d3-areia);color:var(--d3-texto2);opacity:1;cursor:progress}
@@ -6113,6 +6130,27 @@ body.cel-na-sala.cel-dock-aberto #vv-dock-salas-faixa .vq-dock > .vq-cel-mais{or
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:40px;padding:0 2px}
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-sep{margin:0 2px}
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz{max-width:160px;gap:6px}
+/* Dock no estilo do Mac (Paulo, 14/11/2026: "deixa os botões no estilo do dock do Mac; os nossos são meio retangular
+   grandão"). O botão não pinta mais um retângulo: o estado vai num quadradinho arredondado só atrás do ícone (como o ícone
+   de um app), o nome fica embaixo em tinta, e o hover sobe e aumenta um pouco o ícone. Laranja = painel aberto ou a sua
+   sala; verde = microfone, câmera ou tela transmitindo; vermelho claro = bloqueado. O "Entrar" preto da voz não muda. */
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar){gap:2px;background:none;color:#1F1D1A}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar):disabled{color:#6B665E}
+#vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar) .vq-icone{width:32px;height:32px;border-radius:10px;
+  transition:background-color .15s,color .15s,transform .2s cubic-bezier(.34,1.56,.64,1)}
+#vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar):not(:disabled):hover .vq-icone{background:#F3F1EC;transform:translateY(-2px) scale(1.1)}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.on) .vq-icone,
+:root body.ver-voz #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="salas"] .vq-icone,
+:root body[data-som-aba="audio"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="audio"] .vq-icone,
+:root body[data-som-aba="musica"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="musica"] .vq-icone,
+:root body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"] .vq-icone{background:#C2490C;color:#FFFFFF}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item.vq-mic.on .vq-icone,
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:is([data-dock="camera"],[data-dock="tela"]).vq-ligado .vq-icone{background:var(--d3-pronto);color:#FFFFFF}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq .vq-icone{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq{color:var(--d3-perigo)}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.on,.vq-mic.on) .vq-rotulo{font-weight:600}
+#vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar) .vq-conta{top:-2px;right:2px}
+@media (prefers-reduced-motion:reduce){#vv-dock-salas-faixa .vq-dock .vq-item .vq-icone{transition:none}#vv-dock-salas-faixa .vq-dock .vq-item:hover .vq-icone{transform:none}}
 
 /* ===== padrao-v2/entrada.css ===== */
 /* PADRÃO V2 · LOGIN E ENTRADA, VYBES E CRIAR (quadros EntradaDepois e VybesCriarDepois do moodboard, 13/11/2026).

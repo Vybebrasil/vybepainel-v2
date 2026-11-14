@@ -2914,7 +2914,7 @@
     const dicaVoz = { 'na-sala': 'Você está na chamada', conectando: 'Conectando à voz', reconectando: 'A conexão caiu, voltando sozinho', caiu: `A voz não conectou${st.motivo ? ': ' + st.motivo : ''}`, fora: 'Fora da chamada', 'sem-voz': 'Lugar sem voz', 'outra-aba': 'Voz em outra aba', indisponivel: st.motivo || 'Sem voz' }[st.fase] || '';
     const textoVoz = `${esc(e.zona ? nome(e.zona) : 'Fora das salas')}${e.zona && situacao ? ` · ${situacao}` : ''}${quemTela.length ? ` · ${esc(quemTela.join(' e '))} na tela` : ''}`;
     partes.push(`<span class="vq-voz" data-fase="${st.fase}" title="${esc(dicaVoz)}"><span class="vq-rostos" aria-hidden="true">${rostosVoz}</span><span>${textoVoz}</span>${botaoVozHtml(st)}</span>` + sep);
-    // Microfone: ligado (laranja), mudo, bloqueado ou sem microfone (com o motivo e o clique que tenta liberar), apagado fora.
+    // Microfone: ligado (verde), mudo, bloqueado ou sem microfone (com o motivo e o clique que tenta liberar), apagado fora.
     const erroMic = e.erroMic || {}, rotMicErro = erroMic.tipo === 'negado' ? 'Bloqueado' : erroMic.tipo === 'ocupado' ? 'Ocupado' : 'Sem mic';
     const foraDica = st.fase === 'conectando' || st.fase === 'reconectando' ? 'O microfone liga quando a voz conectar' : 'Liga dentro de uma sala';
     partes.push(md.mic === 'bloqueado'
@@ -3215,31 +3215,31 @@
       });
       if (typeof ResizeObserver === 'function') new ResizeObserver(() => medirQuartoD3(andar)).observe(el.querySelector('.d3s-quarto'));
       el.addEventListener('scroll', () => medirQuartoD3(andar), { passive: true });
-      // Uma leitura do ranking da semana (o XP e a posição do número "XP da semana"); sem ela, vale o XP do nível.
-      if (!pintarSalaD3.pediuRanking) { pintarSalaD3.pediuRanking = true; try { Promise.resolve(fn('carregarRankingEscritorio')?.('semana')).catch(() => {}); } catch { /* segue sem o ranking */ } }
     }
     const cab = andar.querySelector('.quarto-cab'), tit = el.querySelector('.d3s-tit'); if (cab && cab.parentNode !== tit) tit.append(cab);
-    const e = typeof escritorio !== 'undefined' ? escritorio : null, eco = e?.base?.economia || null, pts = eco?.pontos || null, marcos = Array.isArray(eco?.marcos) ? eco.marcos : [];
+    const e = typeof escritorio !== 'undefined' ? escritorio : null;
     const fila = minhaFila(), hoje = hojeIso();
     const dataDe = (x) => veicDe(x) || x.ref || '';
     const abertas = fila ? fila.itens.filter((x) => x.sit !== 'concluida') : [];
     const deHoje = fila ? fila.itens.filter((x) => dataDe(x) === hoje || (x.sit === 'atrasada' && !prazoDesatualizado(x, hoje))) : [];
     const feitasHoje = deHoje.filter((x) => x.sit === 'concluida').length;
-    const degraus = marcos.flatMap((m) => m.degraus || []), trofeus = degraus.filter((d) => d.ok).length;
     const { ordem } = passosDoGuia(abertas, hoje, false), x0 = ordem[0];
     const cli = (x) => (typeof clientesDoItem === 'function' ? clientesDoItem(x.d)[0] : x.d.cliente) || '';
     const nomeDe = (x) => semGrito(String(x?.d?.nome || 'Peça'));
     // A faixa laranja: a primeira peça da fila, com Abrir.
     const faixa = `<section class="d3-acao d3s-acao" aria-label="Seu dia"><span class="d3-acao-av" aria-hidden="true">V</span><span class="d3-acao-frase"><small>VYBES · Seu dia</small><span>${x0 ? `Sua primeira agora é ${esc(nomeDe(x0))}${cli(x0) ? ` da ${esc(cli(x0))}` : ''}.` : fila ? 'Fila limpa. Bom momento para adiantar o que vem.' : 'Escolha de quem é o dia no Hoje.'}</span></span>${x0 ? `<button type="button" class="d3-acao-btn" data-hoje-acao="peca" data-valor="${esc(x0.d.id)}">Abrir</button>` : `<button type="button" class="d3-acao-btn" data-trilho="tarefas">Abrir o dia</button>`}</section>`;
-    // Números: o XP da semana e a posição vêm do ranking (quando já leu); senão, o XP do nível.
-    const rk = typeof escritorioRanking !== 'undefined' ? escritorioRanking?.dados?.semana : null, eu = String(e?.base?.eu || '');
-    const ordR = rk?.pessoas ? [...rk.pessoas].sort((a, b) => b.xp - a.xp) : [], euR = ordR.find((p) => String(p.id) === eu), pos = euR ? ordR.indexOf(euR) + 1 : 0;
-    const serie = (() => { if (!euR?.ritmo?.length || typeof rkEixo !== 'function') return null; let a = 0; const s = rkEixo(rk).map((dia) => (a += Number(euR.ritmo.find(([x]) => x === dia)?.[1] || 0))); return s.length > 1 ? s : null; })();
-    const num = (rot, v, de, sub, { barra = null, linha = null } = {}) => `<div class="d3-num d3s-num"><span class="d3-num-rot">${rot}</span><span class="d3s-num-linha"><b class="d3-num-v">${v}${de ? `<small> / ${de}</small>` : ''}</b>${linha && typeof d3LinhaSvg === 'function' ? d3LinhaSvg(linha, { largura: 90, altura: 28 }) : ''}</span>${barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ''}${sub ? `<small class="d3s-sub">${sub}</small>` : ''}</div>`;
+    // Números (Paulo, 14/11/2026: "coloca algo mais útil do que XP, VybeCoins, troféus"): o trabalho, não o jogo.
+    // Feitas hoje, o que venceu, o que vai ao ar nos próximos 7 dias e as artes esperando aprovação.
+    const ate7 = somar(hoje, 7);
+    const vencidas = abertas.filter((x) => x.sit === 'atrasada' && !prazoDesatualizado(x, hoje) && dataDe(x) < hoje);
+    const semana = abertas.filter((x) => { const v = dataDe(x); return v > hoje && v <= ate7; });
+    const amanha = semana.filter((x) => dataDe(x) === somar(hoje, 1)).length;
+    const artes = !verComo ? (filaDecidir() || []).length : 0;
+    const num = (rot, v, de, sub, { barra = null, tom = '', acao = '' } = {}) => `<${acao ? `button type="button" ${acao}` : 'div'} class="d3-num d3s-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rot}</span><span class="d3s-num-linha"><b class="d3-num-v">${v}${de ? `<small> / ${de}</small>` : ''}</b></span>${barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ''}${sub ? `<small class="d3s-sub">${sub}</small>` : ''}</${acao ? 'button' : 'div'}>`;
     const nums = num('Feitas hoje', fila ? n0(feitasHoje) : '–', fila ? n0(deHoje.length) : '', fila ? '' : 'escolha o dia no Hoje', { barra: fila && deHoje.length ? feitasHoje / deHoje.length * 100 : fila ? 0 : null })
-      + (euR ? num('XP da semana', n0(euR.xp || 0), '', `${pos}º no ranking`, { linha: serie }) : num('XP', pts ? n0(pts.xp || 0) : '–', pts?.xpProximo ? n0(pts.xpProximo) : '', pts?.nivel != null ? `nível ${n0(pts.nivel)}` : 'entre no Escritório', { barra: pts?.xpProximo ? (pts.xp || 0) / pts.xpProximo * 100 : null }))
-      + num('VybeCoins', eco?.saldo != null ? n0(eco.saldo) : '–', '', '')
-      + num('Troféus', degraus.length ? n0(trofeus) : '–', degraus.length ? n0(degraus.length) : '', '', { barra: degraus.length ? trofeus / degraus.length * 100 : null });
+      + num('Vencidas', fila ? n0(vencidas.length) : '–', '', fila ? (vencidas.length ? `a mais antiga é de ${dmD3(dataDe(vencidas.reduce((a, b) => (dataDe(b) < dataDe(a) ? b : a))))}` : 'nada vencido') : '', { tom: vencidas.length ? 'r' : '', acao: fila ? 'data-trilho="tarefas"' : '' })
+      + num('Próximos 7 dias', fila ? n0(semana.length) : '–', '', fila ? (amanha ? `${n0(amanha)} para amanhã` : semana.length ? 'nada para amanhã' : 'semana livre') : '', { acao: fila ? 'data-trilho="tarefas"' : '' })
+      + num('Para aprovar', verComo ? '–' : n0(artes), '', artes ? 'artes esperando você' : 'nenhuma arte parada', { tom: artes ? 'a' : '', acao: artes ? 'data-hoje-acao="decidir-lista"' : '' });
     // Agora: a peça, quando vai ao ar e o humor (o status do Escritório).
     const status = e?.conectado ? e.status || 'disponivel' : 'ausente';
     const HUMOR = [['disponivel', 'Livre'], ['foco', 'Focado'], ['reuniao', 'Reunião'], ['ausente', 'Fora']];
@@ -3256,18 +3256,25 @@
       ${x0 ? `<button type="button" class="d3s-peca" data-hoje-acao="peca" data-valor="${esc(x0.d.id)}"><span class="d3s-thumb" aria-hidden="true"></span><span class="d3s-peca-txt"><b>${esc(nomeDe(x0))}</b>${cli(x0) ? `<span>${cliCor(cli(x0))}</span>` : ''}</span>${quandoD3(x0.d.veiculacao_iso || x0.d.prazo_iso, hoje)}</button>` : `<p class="d3s-vazio">${fila ? 'Fila limpa' : 'Escolha de quem é o dia no Hoje'}</p>`}
       <p class="d3s-rot">Humor</p><div class="d3s-humor" role="group" aria-label="Humor">${HUMOR.map(([k, r]) => `<button type="button" data-d3-humor="${k}" aria-pressed="${status === k}"${e?.conectado ? '' : ' disabled title="Entre no Escritório para mudar o humor"'}><i class="${k}"></i>${r}</button>`).join('')}</div>${corHtml}</section>`;
     const dia = deHoje.slice().sort((a, b) => (b.sit === 'concluida') - (a.sit === 'concluida'));
-    const artes = !verComo ? (filaDecidir() || []).length : 0;
+    // Dia folgado (Paulo, 14/11/2026: "já que tá folgado, o dia não devia puxar ao mínimo umas 4 demandas do que vem?"):
+    // com menos de 4 abertas para hoje, entram as 4 próximas que já podem ser adiantadas, pela data, em "Para adiantar".
+    const abertasHoje = dia.filter((x) => x.sit !== 'concluida').length;
+    const adiantar = fila && abertasHoje < 4 ? abertas.filter((x) => dataDe(x) > hoje).sort((a, b) => dataDe(a).localeCompare(dataDe(b))).slice(0, 4) : [];
+    const linDia = (x, { quando = false } = {}) => `<button type="button" class="d3s-lin${x.sit === 'concluida' ? ' feita' : ''}" data-hoje-acao="peca" data-valor="${esc(x.d.id)}"><i aria-hidden="true"></i><span class="v2-risca${x.sit === 'concluida' ? ' feita' : ''}">${esc(nomeDe(x))}</span>${x.sit === 'atrasada' && dataDe(x) < hoje ? `<em class="d3s-venc">${dmD3(dataDe(x))}</em>` : ''}${quando ? quandoD3(dataDe(x), hoje) : ''}${cli(x) ? cliCor(cli(x)) : ''}</button>`;
+    const maxHoje = adiantar.length ? 4 : 6;
     const seuDia = `<section class="d3s-cartao d3s-dia" aria-label="Seu dia"><div class="d3s-cab"><h3>Seu dia</h3><small>${fila ? `${n0(feitasHoje)} de ${n0(deHoje.length)}` : ''}</small></div>
-      <div class="d3s-lista">${dia.slice(0, 6).map((x) => `<button type="button" class="d3s-lin${x.sit === 'concluida' ? ' feita' : ''}" data-hoje-acao="peca" data-valor="${esc(x.d.id)}"><i aria-hidden="true"></i><span class="v2-risca${x.sit === 'concluida' ? ' feita' : ''}">${esc(nomeDe(x))}</span>${x.sit === 'atrasada' && dataDe(x) < hoje ? `<em class="d3s-venc">${dmD3(dataDe(x))}</em>` : ''}${cli(x) ? cliCor(cli(x)) : ''}</button>`).join('') || '<p class="d3s-vazio">Nada para hoje</p>'}
-      ${dia.length > 6 ? `<button type="button" class="d3s-mais" data-trilho="tarefas">+ ${n0(dia.length - 6)}</button>` : ''}</div>
+      <div class="d3s-lista">${dia.slice(0, maxHoje).map((x) => linDia(x)).join('') || (adiantar.length ? '' : '<p class="d3s-vazio">Nada para hoje</p>')}
+      ${dia.length > maxHoje ? `<button type="button" class="d3s-mais" data-trilho="tarefas">+ ${n0(dia.length - maxHoje)}</button>` : ''}
+      ${adiantar.length ? `<p class="d3s-adiantar">${abertasHoje ? 'Dia leve. Para adiantar' : 'Hoje está livre. Para adiantar'}</p>${adiantar.map((x) => linDia(x, { quando: true })).join('')}` : ''}</div>
       ${artes ? `<div class="d3s-pe"><b>${plural(artes, 'arte para aprovar', 'artes para aprovar')}</b><button type="button" class="d3s-btn k" data-hoje-acao="decidir-lista">Aprovar</button></div>` : ''}</section>`;
-    // Conquistas: quantos troféus por nível e as mais perto do próximo, com barra.
-    const porNivel = [1, 2, 3, 4].map((nv) => degraus.filter((d) => d.ok && d.nivel === nv).length);
-    const perto = marcos.filter((m) => m.proximo).sort((a, b) => b.valor / b.proximo.meta - a.valor / a.proximo.meta).slice(0, 2);
-    const conq = `<section class="d3s-cartao d3s-conq" aria-label="Conquistas"><div class="d3s-cab"><h3>Conquistas</h3><small>${degraus.length ? n0(trofeus) : ''}</small></div>
-      ${degraus.length ? `<p class="d3s-niveis">${porNivel.map((q, i) => `<span><i class="n${i + 1}"></i>${n0(q)}</span>`).join('')}</p>` : ''}
-      ${perto.map((m) => `<div class="d3s-marco"><p><b>${esc(m.nome)}</b><small>${n0(m.valor)} / ${n0(m.proximo.meta)}</small></p><span class="d3-barra" style="--v:${Math.round(Math.min(1, m.valor / Math.max(1, m.proximo.meta)) * 100)}%"><i></i></span><small>${esc(m.proximo.nome || '')}</small></div>`).join('') || `<p class="d3s-vazio">${eco ? 'Nenhuma perto do próximo troféu' : 'Entre no Escritório para ver'}</p>`}
-      <button type="button" class="d3s-mais" data-trilho="conquistas">ver todas</button></section>`;
+    // Sua semana (no lugar das Conquistas, que seguem no menu Prédio, Jogos, Loja…): os próximos 5 dias úteis com quantas
+    // peças vão ao ar em cada um, contra o limite de 5 por dia da Coordenação. Mostra onde aperta e onde dá para adiantar.
+    const LIMITE_DIA = 5, diasUteis = [];
+    for (let i = 0, d = hoje; diasUteis.length < 5 && i < 14; i += 1, d = somar(hoje, i)) { const w = new Date(`${d}T12:00:00Z`).getUTCDay(); if (w !== 0 && w !== 6) diasUteis.push(d); }
+    const carga = diasUteis.map((d) => ({ d, n: abertas.filter((x) => dataDe(x) === d).length }));
+    const conq = `<section class="d3s-cartao d3s-conq d3s-semana" aria-label="Sua semana"><div class="d3s-cab"><h3>Sua semana</h3><small>${fila ? `${n0(carga.reduce((s, c) => s + c.n, 0))} peças` : ''}</small></div>
+      ${fila ? carga.map((c) => `<div class="d3s-dia-carga${c.n > LIMITE_DIA ? ' cheio' : ''}${c.d === hoje ? ' hoje' : ''}"><b>${c.d === hoje ? 'Hoje' : DIAS_D3[new Date(c.d + 'T12:00:00Z').getUTCDay()].slice(0, 3)}</b><span class="d3-barra" style="--v:${Math.round(Math.min(1, c.n / LIMITE_DIA) * 100)}%"><i></i></span><small>${c.n ? n0(c.n) : 'livre'}</small></div>`).join('') : '<p class="d3s-vazio">Escolha de quem é o dia no Hoje</p>'}
+      <button type="button" class="d3s-mais" data-trilho="tarefas">ver tarefas</button></section>`;
     // Datas: as próximas datas fortes do calendário sazonal (vybe-sazonal.js).
     let datas = []; try { if (typeof datasSazonaisDoAno === 'function') { const ano = Number(hoje.slice(0, 4)); datas = [...datasSazonaisDoAno(ano), ...datasSazonaisDoAno(ano + 1)].filter((d) => d.iso >= hoje && d.destaque).slice(0, 3); } } catch { datas = []; }
     // "N sem peça" (quadro): nas datas dos próximos 14 dias, os clientes que a data pede (VybeDatas.sugestoes) sem nenhuma

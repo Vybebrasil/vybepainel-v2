@@ -29,9 +29,11 @@
 #vv-dock-salas-faixa .vq-dock .vq-voz .vq-rostos i.tela{box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 4px var(--d3-info)}
 #vv-dock-salas-faixa .vv-chamada .vz-salas .gente i.tela{color:var(--d3-info)}
 
+/* transmitindo (Paulo, 14/11/2026: "o microfone quando tá funcionando, no lugar de laranja, é verde"): o verde de
+   microfone, câmera e tela ligados fica no quadradinho do ícone, no fim de dock.css (estilo do dock do Mac). */
+
 /* botões de mídia bloqueados (microfone, câmera, som): vermelho no nome e no ícone, sem o laranja do ativo */
-#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
-#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq:hover{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq,#vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq:hover{color:var(--d3-perigo)}
 
 /* cartão do celular fora das salas: a mesma regra */
 #vv-dock-salas-faixa .vq-cartao .vc-acao.vq-espera,#vv-dock-salas-faixa .vq-cartao .vc-acao.vq-espera:disabled{display:inline-flex;align-items:center;background:var(--d3-areia);color:var(--d3-texto2);opacity:1;cursor:progress}
