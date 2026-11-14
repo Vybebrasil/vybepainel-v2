@@ -537,3 +537,99 @@ body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loj
   body.mundo.mundo-centro #mundo-hud > .v2m-fala.d3h-acao > .d3-acao-frase > span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   body.mundo.mundo-centro #mundo-hud > .v2m-fala.d3h-acao > .d3-acao-btn{height:34px;padding:0 12px;font-size:12.5px}
 }
+
+/* CENTRO POR CIMA DO 3D (D3-Centro e D3-Loja; Paulo, 14/11/2026: o 3D fica): números numa faixa baixa sob a faixa
+   laranja, lojas por atraso à direita (acima dos controles do mapa), módulos embaixo à esquerda (acima do dock). O cartão
+   da loja aberta ocupa o lugar da lista. No celular, uma folha de baixo recolhida. */
+#mundo-hud > #d3-centro{display:none}
+body.mundo.mundo-centro:not(.mundo-predio):not(.mundo-modulo):not(.v2m-dia):not(.mundo-andar) #mundo-hud > #d3-centro{display:block;position:absolute;inset:0;z-index:3;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+#d3-centro > *{pointer-events:auto}
+#d3-centro :is(h3,p){margin:0}
+#d3-centro > .d3c-alca{display:none}
+#d3-centro .d3c-nums{position:absolute;top:calc(var(--vv-m,14px) + 212px);left:calc(var(--vv-livre-esq,250px) + 6px);right:var(--vv-m,14px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#d3-centro .d3c-num{min-height:0;padding:10px 14px;gap:3px;border-radius:18px;box-shadow:0 14px 28px -22px rgba(31,29,26,.5)}
+#d3-centro .d3c-num > .d3-num-v{font-size:26px}
+#d3-centro .d3c-num > .d3-num-v > small{font:600 15px var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-apagado)}
+#d3-centro .d3c-num.r > .d3-num-v{color:var(--d3-perigo)}
+#d3-centro .d3c-sub{font-size:12px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#d3-centro .d3c-cartao{box-sizing:border-box;padding:12px 14px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:0 18px 36px -24px rgba(31,29,26,.55)}
+#d3-centro .d3c-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-bottom:6px}
+#d3-centro .d3c-cab > h3{font:700 15px var(--vv-texto,Inter,sans-serif)}
+#d3-centro .d3c-cab > small{font-size:12.5px;color:var(--d3-apagado)}
+#d3-centro .d3c-lojas{position:absolute;top:calc(var(--vv-m,14px) + 312px);right:var(--vv-m,14px);width:300px;max-height:calc(100dvh - var(--vv-m,14px) - 312px - var(--vv-dock-alto,74px) - 90px);overflow:hidden}
+#d3-centro .d3c-loja{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) 70px 24px;align-items:center;gap:10px;width:100%;margin:0;padding:7px 0;border:0;border-top:1px solid var(--d3-linha);background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+#d3-centro .d3c-loja-nome{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#d3-centro .d3c-loja .d3-barra.r > i{background:var(--d3-perigo)}
+#d3-centro .d3c-loja > b{text-align:right;font-weight:700}
+#d3-centro .d3c-loja > b.r{color:var(--d3-perigo)}
+#d3-centro .cliente-carteira{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:0;border:0;background:none;box-shadow:none;color:var(--carteira-texto,var(--d3-tinta));font:inherit;font-weight:600}
+#d3-centro .cliente-carteira::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
+#d3-centro .d3c-pe,#d3-centro .d3c-vazio{padding-top:6px;border-top:1px solid var(--d3-linha);font-size:12.5px;color:var(--d3-apagado)}
+#d3-centro .d3c-modulos{position:absolute;left:calc(var(--vv-livre-esq,250px) + 6px);bottom:calc(var(--vv-dock-alto,74px) + 12px);width:min(440px,calc(100vw - var(--vv-livre-esq,250px) - 360px))}
+#d3-centro .d3c-mods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#d3-centro .d3c-mod{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;margin:0;padding:8px 10px;border:0;border-radius:14px;background:var(--d3-trilho);color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+#d3-centro .d3c-mod:hover{background:var(--d3-trilho)}
+#d3-centro .d3c-mod > b{font:600 12.5px/1.25 var(--vv-texto,Inter,sans-serif)}
+#d3-centro .d3c-mod > small{font-size:11.5px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#d3-centro .d3c-mod > small.r{color:var(--d3-perigo)}
+#d3-centro .d3c-mod > small.g{color:var(--d3-pronto)}
+/* A loja aberta fica onde a lista estava; a lista some enquanto ela está aberta. */
+body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){top:calc(var(--vv-m,14px) + 312px);width:300px;max-height:calc(100dvh - var(--vv-m,14px) - 312px - var(--vv-dock-alto,74px) - 90px);overflow:auto}
+body.mundo.mundo-centro #mundo-hud:has(> #vv-placa:not([hidden]) > .d3m-loja) > #d3-centro .d3c-lojas{display:none}
+@media (max-width:900px){
+  body.mundo.mundo-centro:not(.mundo-predio):not(.mundo-modulo):not(.v2m-dia):not(.mundo-andar) #mundo-hud > #d3-centro{inset:auto var(--vv-m,8px) 136px var(--vv-m,8px);max-height:calc(100dvh - 136px - 262px);overflow:auto;overscroll-behavior:contain;padding:8px;border-radius:22px;background:var(--d3-areia);box-shadow:0 -10px 30px -18px rgba(31,29,26,.5);pointer-events:auto}
+  #d3-centro > .d3c-alca{appearance:none;display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:6px 8px;border:0;background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+  #d3-centro > .d3c-alca > i{width:28px;height:4px;border-radius:2px;background:var(--d3-meta)}
+  #d3-centro > .d3c-alca > span{min-width:0;color:var(--d3-apagado);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #d3-centro:not(.aberta) > :not(.d3c-alca){display:none}
+  #d3-centro .d3c-nums,#d3-centro .d3c-lojas,#d3-centro .d3c-modulos{position:static;width:auto;max-height:none;margin-top:8px}
+  #d3-centro .d3c-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #d3-centro .d3c-mods{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body.mundo.mundo-centro #mundo-hud:has(> #vv-placa:not([hidden]) > .d3m-loja) > #d3-centro{display:none}
+  body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){top:auto;width:auto;max-height:55dvh}
+}
+
+/* MINHA SALA POR CIMA DO QUARTO 3D (D3-MinhaSala): uma coluna de cartões à direita do quarto, abaixo do cabeçalho da sala
+   e acima do dock; o Hoje estreito continua à esquerda. No celular, uma folha de baixo recolhida. */
+#mundo-andar > #d3-sala{position:absolute;z-index:3;top:146px;right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);width:320px;display:flex;flex-direction:column;gap:10px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+#d3-sala > *{pointer-events:auto}
+#d3-sala :is(h3,p){margin:0}
+#d3-sala > .d3c-alca{display:none}
+#d3-sala .d3s-nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#d3-sala .d3s-num{min-height:0;padding:9px 12px;gap:3px;border-radius:16px;box-shadow:0 14px 28px -22px rgba(31,29,26,.5)}
+#d3-sala .d3s-num > .d3-num-v{font-size:24px}
+#d3-sala .d3s-num > .d3-num-v > small{font:600 14px var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-apagado)}
+#d3-sala .d3s-sub{font-size:11.5px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#d3-sala .d3s-cartao{flex:none;box-sizing:border-box;padding:11px 14px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:0 18px 36px -24px rgba(31,29,26,.55)}
+#d3-sala .d3s-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-bottom:6px}
+#d3-sala .d3s-cab > h3{font:700 15px var(--vv-texto,Inter,sans-serif)}
+#d3-sala .d3s-cab > small{min-width:0;font-size:12px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#d3-sala .d3s-peca{appearance:none;display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:8px;border:0;border-radius:14px;background:var(--d3-trilho);color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+#d3-sala .d3s-peca > span{flex:1;min-width:0;display:flex;flex-direction:column}
+#d3-sala .d3s-peca b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#d3-sala .d3s-rot{margin-top:8px;font-size:12px;color:var(--d3-apagado)}
+#d3-sala .d3s-humor{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+#d3-sala .d3s-humor > button{appearance:none;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:500 12.5px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#d3-sala .d3s-humor > button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
+#d3-sala .d3s-humor > button:disabled{cursor:default;opacity:.6}
+#d3-sala .d3s-humor i{width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+#d3-sala .d3s-humor i.disponivel{background:var(--d3-pronto)}
+#d3-sala .d3s-humor i.foco{background:#FFFFFF;box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+#d3-sala .d3s-humor i.reuniao{background:var(--d3-ajuste)}
+#d3-sala .d3s-lin{appearance:none;display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:6px 0;border:0;border-top:1px solid var(--d3-linha);background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+#d3-sala .d3s-lin > i{flex:none;width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-borda)}
+#d3-sala .d3s-lin.feita > i{background:var(--d3-pronto);box-shadow:none}
+#d3-sala .d3s-lin > .v2-risca{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#d3-sala .cliente-carteira{display:inline-flex;align-items:center;gap:5px;max-width:45%;padding:0;border:0;background:none;box-shadow:none;color:var(--carteira-texto,var(--d3-tinta));font:inherit;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#d3-sala .d3s-marco{padding:6px 0;border-top:1px solid var(--d3-linha)}
+#d3-sala .d3s-marco > p{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+#d3-sala .d3s-marco small{color:var(--d3-apagado)}
+#d3-sala .d3s-mais{appearance:none;margin:6px 0 0;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 12.5px var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-decoration-color:var(--d3-borda);text-underline-offset:3px;cursor:pointer}
+#d3-sala .d3s-vazio{font-size:12.5px;color:var(--d3-apagado)}
+@media (max-width:900px){
+  #mundo-andar > #d3-sala{top:auto;left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:calc(var(--vv-dock-alto,64px) + 2 * var(--vv-m,8px) + 4px);width:auto;max-height:calc(100dvh - var(--vv-dock-alto,64px) - 190px);overflow:auto;overscroll-behavior:contain;padding:8px;border-radius:22px;background:var(--d3-areia);box-shadow:0 -10px 30px -18px rgba(31,29,26,.5);pointer-events:auto}
+  #d3-sala > .d3c-alca{appearance:none;display:flex;align-items:center;gap:8px;width:100%;margin:0;padding:6px 8px;border:0;background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+  #d3-sala > .d3c-alca > i{width:28px;height:4px;border-radius:2px;background:var(--d3-meta)}
+  #d3-sala > .d3c-alca > span{min-width:0;color:var(--d3-apagado);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #d3-sala:not(.aberta) > :not(.d3c-alca){display:none}
+}
