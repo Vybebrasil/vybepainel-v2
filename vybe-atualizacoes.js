@@ -52,7 +52,27 @@ function ferramentasDaAtualizacaoHtml(update) {
     </span>`;
 }
 
-function workspaceTimelineEvent(update){ const body=workspacePlainText(update?.body||'') || 'Atualização sem texto.'; const type=workspaceTimelineType(body); const editado=update?.editado_em?'<span class="workspace-update-editado">editado</span>':''; return `<div class="workspace-update workspace-timeline-event" data-update="${safeText(String(update?.update_id||''))}"><div class="workspace-update-meta"><span class="workspace-timeline-type">${type}</span>${safeText(update?.creator?.name||'Equipe Vybe')} · ${safeText(quandoNaBahia(update?.created_at) || (update?.created_at||'').replace('T',' ').slice(0,16))}${editado}${ferramentasDaAtualizacaoHtml(update)}</div><div class="workspace-update-body">${safeText(body)}</div></div>`; }
+// Direção 3 (no mundo): cada registro numa linha do histórico, com a bolinha (tinta para gente, apagada para o
+// sistema), o tipo em pílula clara, quem e quando, e o texto em #4A463F. O carimbo "[Vybe OS · Checklist]" vira o tipo
+// e os emojis de caixa marcada saem da frente das linhas; o texto fica inteiro. Fora do mundo, o desenho de antes.
+const EMOJI_DE_CAIXA = /^[\s•]*(?:[✅☑☐☒✓✔✖❌❎⬜⬛\u{1F532}\u{1F533}\u{1F7E2}\u{1F534}\u{1F7E1}]️?\s*)+/gmu;
+function textoDoRegistro(texto) {
+  let corpo = String(texto || '');
+  const carimbo = corpo.match(/^\s*\[Vybe OS\s*[·•・-]\s*([^\]]+)\]\s*/i);
+  if (carimbo) corpo = corpo.slice(carimbo[0].length);
+  corpo = corpo.replace(EMOJI_DE_CAIXA, '').replace(/\n{3,}/g, '\n\n').trim();
+  return { corpo, tipo: carimbo ? carimbo[1].trim() : '' };
+}
+function workspaceTimelineEvent(update){
+  if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo')) return workspaceTimelineEventAntigo(update);
+  const bruto=workspacePlainText(update?.body||'');
+  const { corpo, tipo } = textoDoRegistro(bruto);
+  const sistema=atualizacaoDoSistema(update);
+  const editado=update?.editado_em?'<span class="workspace-update-editado">editado</span>':'';
+  const quando=quandoNaBahia(update?.created_at) || (update?.created_at||'').replace('T',' ').slice(0,16);
+  return `<div class="workspace-timeline-event gv2-ev${sistema ? ' sis' : ''}" data-update="${safeText(String(update?.update_id||''))}"><i class="gv2-ev-ponto" aria-hidden="true"></i><div class="gv2-ev-corpo"><p class="gv2-ev-meta"><span class="gv2-ev-tipo">${safeText(tipo || workspaceTimelineType(bruto))}</span><b>${safeText(update?.creator?.name||'Equipe Vybe')}</b><span class="gv2-ev-quando">${safeText(quando)}</span>${editado}${ferramentasDaAtualizacaoHtml(update)}</p><p class="gv2-ev-txt">${safeText(corpo || bruto || 'Atualização sem texto.')}</p></div></div>`;
+}
+function workspaceTimelineEventAntigo(update){ const body=workspacePlainText(update?.body||'') || 'Atualização sem texto.'; const type=workspaceTimelineType(body); const editado=update?.editado_em?'<span class="workspace-update-editado">editado</span>':''; return `<div class="workspace-update workspace-timeline-event" data-update="${safeText(String(update?.update_id||''))}"><div class="workspace-update-meta"><span class="workspace-timeline-type">${type}</span>${safeText(update?.creator?.name||'Equipe Vybe')} · ${safeText(quandoNaBahia(update?.created_at) || (update?.created_at||'').replace('T',' ').slice(0,16))}${editado}${ferramentasDaAtualizacaoHtml(update)}</div><div class="workspace-update-body">${safeText(body)}</div></div>`; }
 
 // Guarda o que a gaveta leu, para corrigir e apagar acharem o texto atual sem
 // uma segunda ida ao servidor.

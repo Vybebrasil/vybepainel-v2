@@ -174,7 +174,7 @@
 #workspace-drawer .workspace-section-head{border:0!important;background:none!important}
 #workspace-drawer .workspace-section-head :is(h3,h4,b,strong){font-family:var(--pv-titulo)!important;font-weight:700!important}
 :where(body:not(.mundo)) #workspace-drawer :is(.workspace-action,.workspace-close,.workspace-mais>button,.workspace-barra-acoes button){border-radius:6px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important;color:#ece8e3!important}
-#workspace-drawer .workspace-dropzone{border-radius:10px!important;border:1.5px dashed rgba(255,154,92,.5)!important;background:radial-gradient(ellipse at 50% 0,rgba(255,154,92,.1),transparent 70%)!important}
+:where(body:not(.mundo)) #workspace-drawer .workspace-dropzone{border-radius:10px!important;border:1.5px dashed rgba(255,154,92,.5)!important;background:radial-gradient(ellipse at 50% 0,rgba(255,154,92,.1),transparent 70%)!important}
 :where(body:not(.mundo)) #workspace-drawer :is(.workspace-textarea,.workspace-input,textarea,input[type="text"],input[type="url"]){border-radius:8px!important;border:1px solid rgba(255,255,255,.1)!important;background:var(--pv-campo)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.3)!important}
 
 /* ---- Barra do topo: marca branca completa num quadro escuro ---- */
@@ -348,16 +348,16 @@
 
 /* Janelas da Direção de arte (radar, linha do tempo, o time fez hoje): a
    mesma moldura das outras janelas, centralizada; o radar deixa de ser faixa */
-.da-approval-radar-overlay,.da-activity-history-overlay,.da-today-production-overlay{display:grid!important;place-items:center!important;padding:24px!important;background:rgba(6,7,10,.6)!important;backdrop-filter:blur(8px)!important}
-.da-approval-radar,.da-activity-history-modal,.da-today-production-modal{position:relative!important;inset:auto!important;width:min(640px,100%)!important;max-height:min(86vh,820px)!important;height:auto!important;margin:0!important;overflow:auto!important;padding:24px!important;border-radius:12px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(36,38,50,.98),rgba(22,24,32,.98))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 40px 90px -30px rgba(0,0,0,.85)!important;transform:none!important}
-.da-approval-radar-head,.da-activity-history-head,.da-today-production-modal-head{display:flex!important;align-items:flex-start;justify-content:space-between;gap:12px;padding:0 0 14px!important;margin:0!important;border:0!important;background:none!important}
-.da-approval-radar-head span,.da-activity-history-head span,.da-today-production-modal-head span{display:block;color:#ff6b8a!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
-.da-approval-radar-head b,.da-activity-history-head b,.da-today-production-modal-head b{display:block;margin-top:6px;color:#fff!important;font:700 24px/1.1 var(--pv-titulo)!important;letter-spacing:-.015em;text-transform:none!important}
+.da-approval-radar-overlay,.da-activity-history-overlay{display:grid!important;place-items:center!important;padding:24px!important;background:rgba(6,7,10,.6)!important;backdrop-filter:blur(8px)!important}
+.da-approval-radar,.da-activity-history-modal{position:relative!important;inset:auto!important;width:min(640px,100%)!important;max-height:min(86vh,820px)!important;height:auto!important;margin:0!important;overflow:auto!important;padding:24px!important;border-radius:12px!important;border:1px solid rgba(255,255,255,.1)!important;background:linear-gradient(180deg,rgba(36,38,50,.98),rgba(22,24,32,.98))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 40px 90px -30px rgba(0,0,0,.85)!important;transform:none!important}
+.da-approval-radar-head,.da-activity-history-head{display:flex!important;align-items:flex-start;justify-content:space-between;gap:12px;padding:0 0 14px!important;margin:0!important;border:0!important;background:none!important}
+.da-approval-radar-head span,.da-activity-history-head span{display:block;color:#ff6b8a!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
+.da-approval-radar-head b,.da-activity-history-head b{display:block;margin-top:6px;color:#fff!important;font:700 24px/1.1 var(--pv-titulo)!important;letter-spacing:-.015em;text-transform:none!important}
 .da-today-production-modal-head b::first-letter{text-transform:none}
-.da-approval-radar-head small,.da-activity-history-head small,.da-today-production-modal-head small{display:block;margin-top:6px;color:#a8a39c!important;font:400 12.5px/1.45 var(--mac-ui)!important}
-.da-approval-radar-close,.da-activity-history-modal .x-fechar,.da-today-production-modal .x-fechar{width:32px!important;height:32px!important;flex:none;border-radius:50%!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(255,255,255,.05)!important;color:#ece8e3!important;font-size:16px!important}
+.da-approval-radar-head small,.da-activity-history-head small{display:block;margin-top:6px;color:#a8a39c!important;font:400 12.5px/1.45 var(--mac-ui)!important}
+.da-approval-radar-close,.da-activity-history-modal .x-fechar{width:32px!important;height:32px!important;flex:none;border-radius:50%!important;border:1px solid rgba(255,255,255,.12)!important;background:rgba(255,255,255,.05)!important;color:#ece8e3!important;font-size:16px!important}
 .da-approval-radar-summary{display:flex!important;justify-content:space-between;gap:10px;padding:10px 12px!important;margin:0 0 12px!important;border-radius:8px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.03)!important;color:#a8a39c!important;font:500 12px var(--mac-ui)!important}
-.da-approval-radar-empty,.da-history-empty,.da-today-timeline-empty,.da-today-production-modal .da-history-empty,.da-command-modal .da-approval-radar-empty{display:grid;place-items:center;min-height:150px;padding:24px!important;border-radius:10px!important;border:1px dashed rgba(255,255,255,.12)!important;background:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0 10px,transparent 10px 20px)!important;color:#a8a39c!important;font:500 13px/1.5 var(--mac-ui)!important;text-align:center}
+.da-approval-radar-empty,.da-history-empty,.da-command-modal .da-approval-radar-empty{display:grid;place-items:center;min-height:150px;padding:24px!important;border-radius:10px!important;border:1px dashed rgba(255,255,255,.12)!important;background:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0 10px,transparent 10px 20px)!important;color:#a8a39c!important;font:500 13px/1.5 var(--mac-ui)!important;text-align:center}
 .da-command-modal .workflow-title{font-size:26px!important}
 
 /* Resumo por grupo: os grupos em cartões à esquerda, a mensagem como balão do WhatsApp à direita */
@@ -765,17 +765,17 @@
 .pv-numeros small{color:#7d7870;font:700 9.5px var(--mac-ui);letter-spacing:0;text-transform:none}
 .pv-numeros b{color:#fff;font:700 26px/1 var(--pv-titulo)}
 .pv-vazio-ic{width:34px;height:34px;border-radius:6px;display:grid;place-items:center;color:#ff9a5c;background:rgba(255,143,79,.12);font-size:16px}
-.da-approval-radar-empty b,.da-history-empty b,.da-today-timeline-empty b{color:#fff;font:700 14px var(--pv-titulo)}
-.da-approval-radar-empty,.da-history-empty,.da-today-timeline-empty{gap:6px!important;align-content:center}
+.da-approval-radar-empty b,.da-history-empty b{color:#fff;font:700 14px var(--pv-titulo)}
+.da-approval-radar-empty,.da-history-empty{gap:6px!important;align-content:center}
 .pv-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
 .pv-filtros button{height:28px;padding:0 12px;border-radius:6px;border:1px solid var(--pv-linha);background:rgba(255,255,255,.03);color:#a8a39c;font:600 12px var(--mac-ui);cursor:pointer}
 .pv-filtros button.on{border-color:transparent;background:linear-gradient(180deg,#46d48c,#2fbf78);color:#06240f}
 .da-approval-radar-summary .context-passos{flex:1;margin:0!important}
-.da-approval-radar .workflow-actions,.da-activity-history-modal .workflow-actions,.da-today-production-modal .workflow-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px!important;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+.da-approval-radar .workflow-actions,.da-activity-history-modal .workflow-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px!important;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
 .da-activity-history-modal .workflow-item{margin:6px 0 0!important}
 .da-activity-history-modal .workflow-item{display:flex!important;flex-direction:row!important}
 .da-activity-history-modal .workflow-item-texto{flex:1}
-.da-approval-radar .workflow-secondary,.da-activity-history-modal .workflow-secondary,.da-today-production-modal .workflow-secondary{height:34px!important;padding:0 14px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important}
+.da-approval-radar .workflow-secondary,.da-activity-history-modal .workflow-secondary{height:34px!important;padding:0 14px!important;border-radius:6px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important}
 .da-approval-radar-close,.da-activity-history-modal .x-fechar,.da-today-production-modal .x-fechar,.previa-grande-topo .x-fechar,.meeting-head .x-fechar{font-size:0!important}
 .da-activity-history-modal .workflow-item{display:flex!important;align-items:center;gap:12px;padding:12px 14px!important;border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:rgba(255,255,255,.03)!important}
 .da-activity-history-modal .workflow-item-client{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}

@@ -20,9 +20,10 @@
 #v2-notas .v2nt-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;min-height:0;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .2s}
 #v2-notas .v2nt-btn:hover{background:#F3F1EC}
 #v2-notas .v2nt-btn:active,#v2-notas .v2nt-chip:active{transform:scale(.96)}
-#v2-notas .v2nt-btn.p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
-#v2-notas .v2nt-btn.p:hover{background:#A83E09}
-#v2-notas :is(.v2nt-ib,.v2nt-btn,.v2nt-chip,.v2nt-r):focus-visible{outline:2px solid #C2490C;outline-offset:2px}
+/* Direção 3: confirmar em preto; o laranja cheio fica só no bloco de ação da tela. */
+#v2-notas .v2nt-btn.p{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#v2-notas .v2nt-btn.p:hover{background:#4A463F}
+#v2-notas :is(.v2nt-ib,.v2nt-btn,.v2nt-chip,.v2nt-r):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
 #v2-notas .v2nt-corpo{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 12px 8px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 #v2-notas .v2nt-campo{flex:none;display:flex;padding:0 4px 10px}
 #v2-notas .v2nt-busca{flex:1;min-width:0;height:36px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:400 13.5px var(--vv-texto,Inter),sans-serif;outline:none}
@@ -115,10 +116,10 @@ body.mundo #notas-janela .nota-linha.editando{background:#F3F1EC}
 .vbl-fundo #vbl-janela .vbl-estado-tela{padding:28px 18px}
 .vbl-fundo #vbl-janela .vbl-pe{padding:12px 14px;border-top:1px solid #F1EDE6}
 .vbl-fundo #vbl-janela .vbl-pe small{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
-.vbl-fundo #vbl-janela .vbl-botao{height:30px;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;font:600 12.5px var(--vv-texto,Inter),sans-serif}
-.vbl-fundo #vbl-janela .vbl-botao:hover:not(:disabled){background:#F3F1EC}
-.vbl-fundo #vbl-janela .vbl-botao.principal{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
-.vbl-fundo #vbl-janela .vbl-botao.principal:hover{background:#A83E09}
+.vbl-fundo #vbl-janela .vbl-botao{height:30px;padding:0 12px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;box-shadow:none;font:600 12.5px var(--vv-texto,Inter),sans-serif}
+.vbl-fundo #vbl-janela .vbl-botao:hover:not(:disabled){background:#E6E0D6}
+.vbl-fundo #vbl-janela .vbl-botao.principal{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+.vbl-fundo #vbl-janela .vbl-botao.principal:hover{background:#4A463F}
 @media (max-width:599px){
   .vbl-fundo #vbl-janela.vbl-janela{top:8px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100dvh - 16px - var(--vv-dock-alto,0px))}
 }

@@ -211,3 +211,9 @@ body.mundo .vb-escolha > summary.vb-chip.vb-escolha-com{border:0;background:var(
 body.mundo .vb-escolha > summary.vb-chip:hover{background:var(--d3-borda,#E6E0D6)}
 body.mundo .vb-escolha > summary.vb-chip .vb-escolha-rotulo{color:var(--d3-apagado,#6B665E);opacity:1}
 body.mundo .vb-escolha[open] > summary.vb-chip{background:#FFFFFF;box-shadow:inset 0 0 0 1.5px var(--d3-tinta,#1F1D1A)}
+
+/* ===== 7. CAMPO DA PERGUNTA DO PAINEL (perguntarNoPainel, .cli-pergunta): o campo do padrão, fundo #F3F1EC sem borda
+   laranja; no foco fica branco com o contorno em tinta (D3-Fam-Formularios). Vale para "Sem briefing" e as outras. ===== */
+body.mundo .cli-pergunta-caixa :is(input,textarea){border:0;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);box-shadow:none;font:400 13.5px/1.5 var(--vv-texto,Inter,sans-serif)}
+body.mundo .cli-pergunta-caixa :is(input,textarea)::placeholder{color:var(--d3-apagado,#6B665E)}
+body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:var(--d3-cartao,#FFFFFF);box-shadow:inset 0 0 0 1.5px var(--d3-tinta,#1F1D1A)}

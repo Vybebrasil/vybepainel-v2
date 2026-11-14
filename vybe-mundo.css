@@ -741,10 +741,10 @@ body.mundo .ofc-ficha .ofc-hud-chip{background:#FAF8F4!important;border:1px soli
 body.mundo .ofc-ficha .ofc-hud-chip.moeda{color:#9A6200!important}
 body.mundo .ofc-ficha .ofc-hud-chip.xp{color:#1F5FB8!important}
 body.mundo .ofc-ficha .ofc-hud-chip.perde{color:#C0263E!important}
-body.mundo .ofc-ficha .office-text-button{color:#B4510E!important;background:none!important}
+body.mundo .ofc-ficha .office-text-button{color:var(--d3-tinta,#B4510E)!important;background:none!important}
 body.mundo .ofc-ficha .ofc-ficha-acoes{border-top:1px solid #ECE6DC!important}
-body.mundo .ofc-ficha .ofc-ficha-acoes button{background:#fff!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:8px!important;font:700 12.5px var(--vv-texto)!important;box-shadow:0 1px 2px rgba(31,29,26,.05)!important}
-body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;box-shadow:0 8px 18px rgba(194,73,12,.28)!important}
+body.mundo .ofc-ficha .ofc-ficha-acoes button{background:#fff;color:#1F1D1A;border:1px solid #E6E0D6;border-radius:8px;font:700 12.5px var(--vv-texto);box-shadow:0 1px 2px rgba(31,29,26,.05)}
+body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-laranja);color:#fff;border:0;box-shadow:0 8px 18px rgba(194,73,12,.28)}
 body.mundo .ofc-ficha .ofc-x{background:#fff!important;color:#6B665E!important;border:1px solid #E6E0D6!important;border-radius:8px!important}
 body.mundo .ofc-ficha .ofc-hud-palco{position:relative!important}
 body.mundo .ofc-ficha :is(.ofc-hud-proximos,.ofc-hud-ganhos,.ofc-hud-regras){background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
@@ -1289,14 +1289,6 @@ html body.mundo.mundo-modulo .da-today-person b{color:#9B5F18!important}
 html body.mundo.mundo-modulo .da-today-person small{color:#6B665E!important}
 html body.mundo.mundo-modulo .da-today-empty{color:#51756D!important}
 html body.mundo.mundo-modulo .da-today-open{color:#017562!important}
-html body.mundo.mundo-modulo .da-today-production-modal-head span{color:#037C6C!important}
-html body.mundo.mundo-modulo .da-today-production-modal-head b{color:#A85900!important}
-html body.mundo.mundo-modulo .da-today-production-modal-head small{color:#6B665E!important}
-html body.mundo.mundo-modulo .da-today-production-modal-head button{color:#896129!important}
-html body.mundo.mundo-modulo .da-today-timeline-time{color:#47756E!important}
-html body.mundo.mundo-modulo .da-today-timeline-copy b{color:#9B5F18!important}
-html body.mundo.mundo-modulo .da-today-timeline-copy small{color:#6B665E!important}
-html body.mundo.mundo-modulo .da-today-timeline-empty{color:#6B665E!important}
 html body.mundo.mundo-modulo .da-activity-history-modal{color:#6B665E!important}
 html body.mundo.mundo-modulo .da-activity-history-loading{color:#027463!important}
 html body.mundo.mundo-modulo .da-activity-history-head span{color:#027463!important}
@@ -1527,7 +1519,6 @@ html body.mundo.mundo-modulo .lote-data-acoes button.quieto{color:#6B665E!import
 html body.mundo.mundo-modulo .manager-calendar-modo{color:#6B665E!important}
 html body.mundo.mundo-modulo .cliente-busca .fc-busca{color:#6B665E!important}
 html body.mundo.mundo-modulo .cliente-busca-conta{color:#6B665E!important}
-html body.mundo.mundo-modulo .dia-do-calendario-topo b{color:#6B665E!important}
 html body.mundo.mundo-modulo .dia-do-calendario-topo small{color:#6B665E!important}
 html body.mundo.mundo-modulo .dia-do-calendario-fechar{color:#6B665E!important}
 html body.mundo.mundo-modulo .focus-next-quando b{color:#6B665E!important}
@@ -1799,9 +1790,6 @@ html body.mundo.mundo-modulo .mapa-etiqueta small{color:#9E5800!important}
 html body.mundo.mundo-modulo .ofc-acao button{color:#A84F00!important}
 html body.mundo.mundo-modulo .ofc-avisos p{color:#6B665E!important}
 html body.mundo.mundo-modulo .cri-peca span{color:#856242!important}
-html body.mundo.mundo-modulo .tut-passo{color:#B24B00!important}
-html body.mundo.mundo-modulo .tut-cartao p{color:#8B673C!important}
-html body.mundo.mundo-modulo .tut-pular{color:#7D644A!important}
 html body.mundo.mundo-modulo .office-call-mic{color:#806A51!important}
 html body.mundo.mundo-modulo .office-call-mic[data-ligado=true]{color:#167E42!important}
 html body.mundo.mundo-modulo .office-call-pessoa small{color:#806A51!important}
@@ -2273,8 +2261,6 @@ html body.mundo.mundo-modulo .aviso-de b{color:#6B665E!important}
 html body.mundo.mundo-modulo .aviso-cartao h2{color:#6B665E!important}
 html body.mundo.mundo-modulo .aviso-cartao.estilo-obra h2{color:#8A6100!important}
 html body.mundo.mundo-modulo .aviso-cartao p{color:#6B665E!important}
-html body.mundo.mundo-modulo .aviso-form label{color:#6B665E!important}
-html body.mundo.mundo-modulo .aviso-form-nota{color:#6B665E!important}
 html body.mundo.mundo-modulo .lg-turma-titulo{color:#0E7C3A!important}
 html body.mundo.mundo-modulo .ofc-coluna .ofc-missao-xp{color:#0064DB!important}
 html body.mundo.mundo-modulo .ofc-coluna .ofc-missao-moeda{color:#8A6000!important}
@@ -2958,9 +2944,9 @@ html body.mundo dialog.appearance-dialog::backdrop{background:rgba(31,29,26,.28)
 html body.mundo .appearance-dialog :is(h2,label,span,output,strong):not(#vv-x){color:#1F1D1A!important}
 html body.mundo .appearance-dialog :is(p,small):not(#vv-x){color:#6B665E!important}
 html body.mundo .appearance-dialog header button:not(#vv-x){background:#F3EFE8!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
-html body.mundo .appearance-dialog input[type="range"]{accent-color:#C2490C}
-html body.mundo .appearance-dialog input[type="checkbox"]{accent-color:#C2490C}
-html body.mundo .appearance-dialog .appearance-done:not(#vv-x){background:#C2490C!important;color:#fff!important;border:0!important}
+html body.mundo .appearance-dialog input[type="range"]{accent-color:var(--d3-tinta,#1F1D1A)}
+html body.mundo .appearance-dialog input[type="checkbox"]{accent-color:var(--d3-tinta,#1F1D1A)}
+html body.mundo .appearance-dialog .appearance-done:not(#vv-x){background:var(--d3-tinta,#1F1D1A)!important;color:#fff!important;border:0!important}
 
 /* ===== Briefing aberto: folha branca de verdade (o vidro escuro com o texto já escurecido ficava ilegível) ===== */
 html body.mundo .brief-overlay:not(#vv-x){background:rgba(31,29,26,.32)!important;backdrop-filter:blur(8px) saturate(1.05)!important}
@@ -2996,8 +2982,8 @@ html body.mundo .manager-calendar-day.is-today:not(#vv-x){background:linear-grad
 html body.mundo .manager-calendar-day-head:not(#vv-x),html body.mundo .manager-calendar-day-head :is(span,small):not(#vv-x){color:#6B665E!important}
 html body.mundo .manager-calendar-day-head b:not(#vv-x){color:#1F1D1A!important}
 html body.mundo .manager-calendar-day.is-today .manager-calendar-day-head b:not(#vv-x){color:#C2490C!important}
-html body.mundo .manager-calendar-event:not(#vv-x){background:color-mix(in srgb,var(--event-color,#c4c4c4) 11%,#FFFFFF)!important;border:1px solid color-mix(in srgb,var(--event-color,#c4c4c4) 30%,#FFFFFF)!important;color:#1F1D1A!important}
-html body.mundo .manager-calendar-event:hover:not(#vv-x){border-color:var(--event-color,#c4c4c4)!important;box-shadow:0 4px 12px rgba(31,29,26,.08)}
+html body.mundo .manager-calendar-event:not(#vv-x){background:var(--d3-ev-fundo,color-mix(in srgb,var(--event-color,#c4c4c4) 11%,#FFFFFF))!important;border:1px solid var(--d3-ev-borda,color-mix(in srgb,var(--event-color,#c4c4c4) 30%,#FFFFFF))!important;color:#1F1D1A!important}
+html body.mundo .manager-calendar-event:hover:not(#vv-x){border-color:var(--d3-ev-borda,var(--event-color,#c4c4c4))!important;box-shadow:0 4px 12px rgba(31,29,26,.08)}
 html body.mundo .manager-calendar-event :is(.manager-calendar-event-copy,b,strong):not(#vv-x){color:#1F1D1A!important}
 html body.mundo .manager-calendar-event :is(.manager-calendar-event-meta,.manager-calendar-event-status,small,span:not(.manager-calendar-event-bar):not(.manager-calendar-event-copy)):not(#vv-x){color:#6B665E!important}
 html body.mundo :is(.manager-calendar-add,.manager-calendar-more):not(#vv-x){background:#FAF8F4!important;border:1px solid #E6E0D6!important;color:#8A3A08!important}
@@ -3187,7 +3173,7 @@ html body.mundo.mundo-modulo .team-load-chip *:not(img):not([class*="badge"]):no
 html body.mundo.mundo-modulo :is(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input:not([type]),select,textarea):not(:where(.workflow-modal *)):not(#ds-a):not(#ds-b):not(#ds-c){background-color:#FFFFFF!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-botao)!important;color:#1F1D1A!important;box-shadow:none!important;color-scheme:light}
 /* Caixa de texto de várias linhas não é pílula (Paulo, 13/11/2026: o briefing virava um oval que cortava o texto). */
 html body.mundo textarea:not(#ds-a):not(#ds-b):not(#ds-c):not(#ds-d){border-radius:16px!important}
-html body.mundo.mundo-modulo :is(input,select,textarea):focus-visible:not(#ds-a):not(#ds-b):not(#ds-c){border-color:#C2490C!important;box-shadow:var(--ds-foco)!important;outline:0!important}
+html body.mundo.mundo-modulo :is(input,select,textarea):focus-visible:not(#ds-a):not(#ds-b):not(#ds-c){border-color:var(--ds-foco-borda,#C2490C)!important;box-shadow:var(--ds-foco)!important;outline:0!important}
 /* Cartões clicáveis: branco, raio 18, borda e sombra curta. */
 html body.mundo.mundo-modulo :is(.da-capacity-card,.da-command-daily-card,.da-week-rail-day:not(.active),.focus-daily-plan-row):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-cartao)!important;box-shadow:0 1px 2px rgba(31,29,26,.04),0 8px 24px rgba(31,29,26,.05)!important}
 /* Foco de teclado igual em tudo. */
@@ -3344,10 +3330,10 @@ body.mundo-gestao .plj-aviso{visibility:hidden}
 @media (max-width:900px){.vv-gestao{left:0;right:0;top:0;bottom:calc(64px + 2 * var(--vv-m));border-radius:0 0 14px 14px;padding:0 12px 20px}.vv-g-topo{margin:0 -12px 12px;padding-left:12px;padding-right:12px}}
 
 /* ===== Agenda (cartão da captação), Notas, menu "Mais" da peça, pergunta de briefing: padrão claro ===== */
-html body.mundo :is(.ag-cartao,.capt-menu-painel):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:10px!important;box-shadow:0 22px 50px rgba(31,29,26,.2)!important;backdrop-filter:none!important;color-scheme:light}
+html body.mundo :is(.ag-cartao,.capt-menu-painel):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:var(--d3-agc-borda,1px solid var(--ds-linha,#E6E0D6))!important;border-radius:var(--d3-agc-r,10px)!important;box-shadow:0 22px 50px rgba(31,29,26,.2)!important;backdrop-filter:none!important;color-scheme:light}
 html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(h3,h4,b,strong,.capt-detalhe-titulo):not(#ds-a):not(#ds-b){color:#1F1D1A!important}
 html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(p,small,.capt-detalhe-quando,.capt-progresso,.capt-discreto,.capt-menu-rotulo):not(#ds-a):not(#ds-b){color:#6B665E!important}
-html body.mundo :is(.ag-cartao,.capt-menu-painel) .vb-link:not(.capt-gerir > .vb-link):not(#ds-a):not(#ds-b){background:transparent!important;color:#C2490C!important;border:0!important}
+html body.mundo :is(.ag-cartao,.capt-menu-painel) .vb-link:not(.capt-gerir > .vb-link):not(#ds-a):not(#ds-b){background:transparent!important;color:var(--d3-link,#C2490C)!important;border:0!important}
 html body.mundo .ag-cartao-fechar:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:6px!important}
 html body.mundo :is(section.notas-janela,#notas-janela):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;color-scheme:light}
 html body.mundo #notas-janela :is(.notas-caderno,button:not(.workflow-primary):not([role="tab"]):not(.notas-discreto)):not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}

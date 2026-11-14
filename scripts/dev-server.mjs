@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { demoApi } from './fixtures.mjs';
 import { lerCerebroDaCentral, lerAgentesDaCentral } from '../server/vybes.js';
 import { ETAPAS_LEITURA, lerEtapa } from '../server/vybes-agentes.js';
+import { paginaD3Html } from '../server/pagina-d3.js';
 
 const PROJECT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ROOT = process.env.VYBE_DEV_BUILD === '1' || process.argv.includes('--build') ? resolve(PROJECT, 'dist') : PROJECT;
@@ -23,6 +24,12 @@ export function ehLeituraPorPost(url) {
   return url.pathname === '/api/painel'
     && url.searchParams.get('area') === 'automacoes'
     && url.searchParams.get('acao') === 'simular';
+}
+
+// Endereço que não existe: página simples da Direção 3, em UTF-8 (sem o cabeçalho o navegador lia o "ã" quebrado).
+function naoEncontrado(res) {
+  res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(paginaD3Html({ titulo: 'Não encontrado.', rotulo: '404', texto: 'Este endereço não existe no Vybe OS.', acao: { texto: 'Abrir o Vybe OS', href: '/' } }));
 }
 
 export function createDevServer() {
@@ -79,9 +86,10 @@ export function createDevServer() {
         if(up.headers.get('location'))res.setHeader('Location',up.headers.get('location'));
         res.end(Buffer.from(await up.arrayBuffer())); return;
       }
-      const file = decodeURIComponent(['/', '/agenda'].includes(url.pathname) ? 'index.html' : url.pathname.slice(1));
+      // /instalar é a página pública de instalar (no ar vem pelo rewrite do vercel.json); aqui ela também abre.
+      const file = decodeURIComponent(['/', '/agenda'].includes(url.pathname) ? 'index.html' : url.pathname === '/instalar' ? 'instalar.html' : url.pathname.slice(1));
       const html = await readFile(resolve(ROOT,'index.html'),'utf8');
-      const publicFiles = new Set(['index.html','cadastros_governed_v2.js',
+      const publicFiles = new Set(['index.html','cadastros_governed_v2.js','instalar.html',
         ...[...html.matchAll(/(?:src|href)="\/([^"?]+)"/g)].map((m)=>m[1])]);
       // As artes e os sons dos jogos (assets/jogos), o ser do VYBES e as falas dele (assets/vybes-fala) vêm pelo CSS e
       // pelo código, não pelo index.html.
@@ -93,7 +101,7 @@ export function createDevServer() {
         res.writeHead(200, { 'Content-Type': TYPES['.js'] }); res.end(req.method === 'HEAD' ? undefined : r.outputFiles[0].text); return;
       }
       const doMundo = file === 'assets/mundo/irece.json' || file === 'assets/mundo/crm-irece.json';
-      if ((!publicFiles.has(file) && !daArte && !doMundo) || !['GET','HEAD'].includes(req.method)) { res.writeHead(404).end('Não encontrado.'); return; }
+      if ((!publicFiles.has(file) && !daArte && !doMundo) || !['GET','HEAD'].includes(req.method)) { naoEncontrado(res); return; }
       let data=await readFile(resolve(ROOT,file));
       if(file==='index.html') data=Buffer.from(data.toString().replace('</body>',
         '<div style="position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#493700;color:white;text-align:center;font:12px sans-serif;padding:5px">AMBIENTE LOCAL · '+(upstream?'Proxy de inspeção':'Dados fictícios · senha: demo-local')+'</div></body>'));
