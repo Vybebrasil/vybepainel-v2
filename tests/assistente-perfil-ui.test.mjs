@@ -15,7 +15,7 @@ function tela(){
 test('Perfil contém seção própria sem simular vínculo com schema ausente',()=>{
  const {r}=tela();r(`CONTA_AI={carregando:false,disponivel:false,vinculado:false}`);
  const html=r(`blocoPerfil({nome:'Pessoa',email:'p@example.test'})`);
- assert.match(html,/VYBES no WhatsApp/);assert.match(html,/Nome/);assert.match(html,/ainda não disponível/);assert.doesNotMatch(html,/onclick="acaoContaAI/);
+ assert.match(html,/VYBES no WhatsApp/);assert.match(html,/nome e e-mail/i);assert.match(html,/ainda não disponível/);assert.doesNotMatch(html,/onclick="acaoContaAI/);
 });
 test('código é gerado pela sessão, fica só em memória e desaparece ao expirar',async()=>{
  const {r,chamadas,timers}=tela();r(`CONTA_AI={carregando:false,disponivel:true,pode_gerar:true}`);

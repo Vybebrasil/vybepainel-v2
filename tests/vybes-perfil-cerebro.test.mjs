@@ -61,7 +61,9 @@ test('uma coisa só: sem vista Cérebro no voxel, perfil na tela de Agentes, Sin
   assert.match(readFileSync('vybe-mundo-agentes.js', 'utf8'), /etapa=perfil/);
   assert.match(readFileSync('vybe-clientes-cerebro.js', 'utf8'), /\['sinapses','Sinapses'\]/);
   assert.ok(html.indexOf('/vybe-mundo-whatsapp.js') > 0 && html.indexOf('/vybe-mundo-pendencias.js') > html.indexOf('/vybe-mundo-whatsapp.js'));
-  assert.match(mundo, /VybePendencias\?\.paraVoceHtml/);
+  // Direção 3: o Hoje lê as pendências do WhatsApp (o que espera a pessoa) pelo estado de VybePendencias.
+  assert.match(mundo, /window\.VybePendencias, e = P\?\.estado\?\.\(\)/);
+  assert.match(mundo, /para = e\?\.dados\?\.paraVoce/);
   // Padrão v2 (quadro B1): o Hoje da agência não traz mais o bloco de atendimento; a função continua em vybe-mundo-pendencias.js.
   assert.match(readFileSync('vybe-mundo-pendencias.js', 'utf8'), /G\.VybePendencias = \{ atualizar, atendimentoHtml, paraVoceHtml/);
 });

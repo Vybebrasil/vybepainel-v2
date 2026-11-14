@@ -73,12 +73,12 @@
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi.quieto > b{color:#B5AFA5}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi > .v2-barra{background:#EAE6DE}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx.ok{background:#FF7A2F;box-shadow:none}
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx.ok{background:#1F1D1A;box-shadow:none}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp{display:inline-flex;align-items:center;gap:6px;font:400 12.5px/1.3 var(--vv-texto,Inter),sans-serif;color:#4A463F}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.ok{color:#6B665E}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.vez{font-weight:600;color:#1F1D1A}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.vez .pv2-cx{box-shadow:inset 0 0 0 1.5px #FF7A2F}
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-etp.vez .pv2-cx{box-shadow:inset 0 0 0 1.5px #1F1D1A}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-menu{position:relative;flex:none}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-menu > summary{list-style:none;cursor:pointer}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-menu > summary::-webkit-details-marker{display:none}
@@ -267,11 +267,11 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 #pv2-ia .pv2i-dias-caixa{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end}
 #pv2-ia .pv2i-dias{display:flex;align-items:flex-end;gap:3px;height:74px}
 #pv2-ia .pv2i-dias i{display:block;flex:1;min-width:1px;height:var(--h);border-radius:3px 3px 1px 1px;background:#D9D3C8;transform-origin:bottom;animation:pv2i-sobe .9s cubic-bezier(.2,.8,.2,1) both}
-#pv2-ia .pv2i-dias i.pico{background:#FF7A2F}
+#pv2-ia .pv2i-dias i.pico{background:#1F1D1A}
 @keyframes pv2i-sobe{from{transform:scaleY(0)}to{transform:none}}
 #pv2-ia .pv2i-eixo{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
 #pv2-ia .pv2i-eixo span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-#pv2-ia .pv2i-eixo i{display:inline-block;width:8px;height:8px;border-radius:2px;background:#FF7A2F}
+#pv2-ia .pv2i-eixo i{display:inline-block;width:8px;height:8px;border-radius:2px;background:#1F1D1A}
 #pv2-ia .pv2i-baixo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:stretch}
 #pv2-ia .pv2i-baixo > .pv2-card{display:flex;flex-direction:column}
 #pv2-ia .pv2i-cab{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}

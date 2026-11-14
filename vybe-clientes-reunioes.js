@@ -376,20 +376,30 @@
   }
   const quandoTexto = (iso, hoje) => { const d = diasEntre(hoje, iso); return d === 0 ? 'hoje' : d === 1 ? 'amanhã' : d > 1 ? `em ${d} dias` : diaMes(iso); };
 
+  // Direção 3 (moodboard 3, 13/11/2026): a fala do Mateus vira o bloco de ação laranja, numa frase curta com o botão.
   function falaDaTela(n) {
-    const frase = tela.lendo && !n.lista.length ? 'Lendo as reuniões dos clientes…'
-      : !n.lista.length ? 'Nenhuma reunião registrada ainda. Marque a primeira e eu sugiro a pauta com o que já sei do cliente.'
-      : `${n.daSemana.length ? `Esta semana tem <b>${plural(n.daSemana.length, 'reunião', 'reuniões')}</b>.` : 'Nenhuma reunião marcada nesta semana.'} ${n.semAta.length ? `<b>${n.semAta.length === 1 ? '1 já feita está' : `${n.semAta.length} já feitas estão`} sem ata</b>` : 'Todas as feitas têm ata'}${
-        n.sugeridas ? ` e ${n.sugeridas === 1 ? '1 demanda sugerida espera' : `${n.sugeridas} demandas sugeridas esperam`} o seu ok.` : '.'}`;
-    const botao = n.sugeridas ? `<button type="button" class="v2r-btn s" data-v2r-acao="demandas">${n.sugeridas === 1 ? 'Ver a demanda' : `Ver as ${n.sugeridas} demandas`}</button>` : '';
-    return `<span class="v2r-ag" aria-hidden="true">M</span><p class="v2r-fala-texto"><span class="v2r-quem">Mateus · Atendimento ao cliente</span>${frase}</p>${botao}`;
+    const quem = '<small class="d3c-quem">Mateus · Atendimento</small>';
+    const frase = tela.lendo && !n.lista.length ? 'Lendo as reuniões…'
+      : !n.lista.length ? 'Nenhuma reunião registrada ainda.'
+      : `${n.semAta.length ? `${plural(n.semAta.length, 'reunião feita', 'reuniões feitas')} sem ata.` : n.daSemana.length ? `${plural(n.daSemana.length, 'reunião', 'reuniões')} esta semana.` : 'Todas as feitas têm ata.'}${
+        n.sugeridas ? ` ${n.sugeridas === 1 ? '1 demanda espera' : `${n.sugeridas} demandas esperam`} seu ok.` : ''}`;
+    const botao = n.sugeridas ? (n.sugeridas === 1 ? 'Ver a demanda' : `Ver as ${n.sugeridas}`) : n.semAta.length ? (n.semAta.length === 1 ? 'Ver a reunião' : `Ver as ${n.semAta.length}`) : !n.lista.length && !tela.lendo ? 'Marcar a primeira' : '';
+    const attrs = n.sugeridas ? 'data-v2r-acao="demandas"' : n.semAta.length ? 'data-v2r-acao="filtro" data-valor="sem-ata"' : 'data-v2r-acao="nova"';
+    if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: `${quem}${frase}`, agente: 'Mateus', botao, attrs });
+    return `<span class="v2r-ag" aria-hidden="true">M</span><p class="v2r-fala-texto"><span class="v2r-quem">Mateus · Atendimento ao cliente</span>${frase}</p>${botao ? `<button type="button" class="v2r-btn s" ${attrs}>${esc(botao)}</button>` : ''}`;
   }
+  // Direção 3: quatro números; "No mês" traz a linha das reuniões dos últimos meses.
   function kpisDaTela(n) {
-    const kpi = (titulo, valor, sub, ruim, atraso) => `<div class="v2r-card v2r-kpi"><small>${titulo}</small><b${ruim ? ' class="ruim"' : ''}><span class="v2-num"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${valor}</span></b><small>${sub}</small></div>`;
+    const kpi = (titulo, valor, sub, ruim, atraso, linha = '') => `<div class="v2r-card v2r-kpi d3-num${ruim ? ' r' : ''}"><small class="d3-num-rot">${titulo}</small><b class="d3-num-v"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${valor}</b>${linha}<small class="d3c-sub">${sub}</small></div>`;
     const antiga = n.semAta[0];
-    return kpi('Esta semana', n.daSemana.length, n.proxima ? `a próxima é ${quandoTexto(n.proxima.r.data, n.hoje)}` : 'nenhuma marcada pela frente')
-      + kpi('Sem ata', n.semAta.length, antiga ? `a mais antiga, ${diasEntre(antiga.r.data, n.hoje) ? `há ${plural(diasEntre(antiga.r.data, n.hoje), 'dia', 'dias')}` : 'de hoje'}` : 'todas com ata', n.semAta.length > 0, '.12s')
-      + kpi('Demandas sugeridas', n.sugeridas, n.sugeridas ? 'esperando o seu ok' : 'nenhuma esperando', false, '.24s');
+    const mes = n.hoje.slice(0, 7), doMes = n.lista.filter((x) => String(x.r.data).startsWith(mes));
+    const meses = []; for (let i = 5; i >= 0; i -= 1) { const d = new Date(`${mes}-15T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - i); meses.push(d.toISOString().slice(0, 7)); }
+    const serie = meses.map((m) => n.lista.filter((x) => String(x.r.data).startsWith(m)).length);
+    const linha = typeof d3LinhaSvg === 'function' && serie.some(Boolean) ? d3LinhaSvg(serie, { largura: 90, altura: 28, rotulo: `Reuniões por mês: ${serie.join(', ')}` }) : '';
+    return kpi('Esta semana', n.daSemana.length, n.proxima ? `próxima · ${quandoTexto(n.proxima.r.data, n.hoje)}` : 'nenhuma marcada')
+      + kpi('Sem ata', n.semAta.length, antiga ? `a mais antiga · ${diasEntre(antiga.r.data, n.hoje) ? plural(diasEntre(antiga.r.data, n.hoje), 'dia', 'dias') : 'hoje'}` : 'todas com ata', n.semAta.length > 0, '.12s')
+      + kpi('Demandas sugeridas', n.sugeridas, n.sugeridas ? 'esperando ok' : 'nenhuma esperando', false, '.24s')
+      + kpi('No mês', doMes.length, `${doMes.filter((x) => x.r.ata).length} com ata`, false, '.36s', linha);
   }
   function pedeAcaoDaTela(n) {
     const tipoCurto = (r) => String(TIPOS_PADRAO[r.tipo] || 'reunião').split(/\s+/)[0].toLowerCase();
@@ -413,7 +423,7 @@
     const linhas = [...n.semAta.slice(0, 3).map(semAta), ...n.comSugestao.slice(0, 2).map(doVybes)];
     const total = n.semAta.length + n.comSugestao.length;
     const mais = n.semAta.length > 3 ? `<p class="v2r-pe">+ ${n.semAta.length - 3} sem ata · <button type="button" class="v2r-link" data-v2r-acao="filtro" data-valor="sem-ata">mostrar</button></p>` : '';
-    return `<div class="v2r-card-topo"><h3>Pede ação</h3><span class="v2r-sub">${total ? `${plural(total, 'coisa', 'coisas')}, na ordem` : 'nada agora'}</span></div>
+    return `<div class="v2r-card-topo"><h3>Pede ação</h3><span class="v2r-sub">${total ? `${total} · na ordem` : 'nada agora'}</span></div>
       ${linhas.join('') || `<p class="v2r-vazio">${tela.lendo ? 'Lendo as reuniões…' : 'Nenhuma reunião pede ação agora.'}</p>`}${mais}`;
   }
   function linhasDaTela(n) {
@@ -447,12 +457,11 @@
         <div class="v2r-cp"><label for="reu-titulo">Título</label><input class="v2r-inp" id="reu-titulo" type="text" maxlength="160" placeholder="Ex.: Entrada da Lil"></div></div>
       <div class="v2r-cp"><label for="reu-participantes">Participantes</label>
         <div class="v2r-inp v2r-pt"><span class="v2r-avs" data-v2r-avs aria-hidden="true"></span><input class="v2r-nu" id="reu-participantes" type="text" maxlength="600" placeholder="Quem estava" autocomplete="off"></div></div>
-      <div class="v2r-cp"><label for="reu-pauta">Pauta</label><textarea class="v2r-inp" id="reu-pauta" rows="3"></textarea>
-        <span class="v2r-sub">Sugerida com o que o sistema sabe do cliente. Edite à vontade.</span></div>
+      <div class="v2r-cp"><label for="reu-pauta">Pauta <span class="d3r-sugerida" title="Sugerida com o que o sistema sabe do cliente. Edite à vontade.">sugerida</span></label><textarea class="v2r-inp" id="reu-pauta" rows="3"></textarea></div>
       <div class="v2r-cp v2r-cp-ata"><label for="reu-ata">Ata</label><textarea class="v2r-inp" id="reu-ata" rows="3" placeholder="O que foi falado, o que ficou decidido, próximos passos e responsáveis"></textarea></div>
       <p class="ciclo-erro" id="reu-erro" role="alert"></p>
       <div class="v2r-form-pe"><button type="button" class="v2r-btn" data-v2r-acao="fechar-form">Cancelar</button>
-        <button type="button" class="v2r-btn" ${gravando ? 'disabled' : ''} onclick="salvarReuniao('', '', true)">Salvar e gravar</button>
+        <button type="button" class="v2r-btn d3r-gravar" ${gravando ? 'disabled' : ''} title="O áudio vai para a pasta Reuniões do cliente no Drive; o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha." onclick="salvarReuniao('', '', true)">Salvar e gravar</button>
         <button type="button" class="v2r-btn k" onclick="salvarReuniao('', '')">Salvar</button></div>`;
   }
   function pintarForm() {
@@ -470,7 +479,7 @@
       const n = numerosDaTela();
       const abertas = new Set([...j.querySelectorAll('[data-v2r="pede"] .v2-abre[aria-expanded="true"] [data-reu]')].map((b) => b.dataset.reu));
       j.querySelector('[data-v2r="fala"]').innerHTML = falaDaTela(n);
-      const kpis = j.querySelector('[data-v2r="kpis"]'), antes = kpis.dataset.v, agora = `${n.daSemana.length}|${n.semAta.length}|${n.sugeridas}|${n.proxima?.r.data || ''}`;
+      const kpis = j.querySelector('[data-v2r="kpis"]'), antes = kpis.dataset.v, agora = `${n.daSemana.length}|${n.semAta.length}|${n.sugeridas}|${n.proxima?.r.data || ''}|${n.lista.length}`;
       if (antes !== agora) { kpis.dataset.v = agora; kpis.innerHTML = kpisDaTela(n); }
       j.querySelector('[data-v2r="pede"]').innerHTML = pedeAcaoDaTela(n);
       j.querySelectorAll('[data-v2r="pede"] .v2-abre').forEach((b) => { if (abertas.has(b.querySelector('[data-reu]')?.dataset.reu)) { b.setAttribute('aria-expanded', 'true'); b.querySelector('.v2r-abrir')?.setAttribute('aria-expanded', 'true'); } });
@@ -546,22 +555,24 @@
       janela.setAttribute('role', 'dialog');
       janela.setAttribute('aria-modal', 'true');
       janela.setAttribute('aria-labelledby', 'v2r-titulo');
-      janela.innerHTML = `<div class="v2r">
-        <div class="v2r-topo"><h2 id="v2r-titulo">Reuniões</h2><button type="button" class="v2r-btn p" data-v2r-acao="nova">Nova reunião</button>
+      // Direção 3: a data no título, "Nova reunião" em botão branco, Pede ação e a lista em cartões separados.
+      const diaHoje = new Date(`${hojeIso()}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(/-feira/, '').replace(/\.$/, '').replace(' de ', ' ');
+      janela.innerHTML = `<div class="v2r d3r">
+        <div class="v2r-topo"><h2 id="v2r-titulo">Reuniões</h2><span class="d3c-meta">${esc(diaHoje)}</span><button type="button" class="v2r-btn p" data-v2r-acao="nova">Nova reunião</button>
           <button type="button" class="v2r-x" data-v2r-acao="fechar" aria-label="Fechar" title="Fechar (Esc)">${XIS}</button></div>
         <div class="v2r-corpo">
-          <section class="v2r-card v2r-fala" data-v2r="fala" aria-label="Leitura do Mateus"></section>
+          <div class="v2r-fala-d3" data-v2r="fala" aria-label="Leitura do Mateus"></div>
           <div class="v2r-kpis" data-v2r="kpis"></div>
           <div class="v2r-dupla">
-            <section class="v2r-card v2r-lista" aria-label="Reuniões"><div data-v2r="pede"></div>
+            <div class="v2r-col"><section class="v2r-card v2r-pede" aria-label="Pede ação"><div data-v2r="pede"></div></section>
+            <section class="v2r-card v2r-lista" aria-label="Reuniões">
               <div class="v2r-filtros" hidden><label for="v2r-busca" class="v2r-oculto">Buscar reunião por cliente ou título</label>
                 <input id="v2r-busca" class="v2r-busca" type="search" data-v2r-busca placeholder="Buscar reunião" autocomplete="off">
                 <button type="button" class="v2r-chip" data-v2r-acao="filtro" data-valor="todas" aria-pressed="true">Todas</button><button type="button" class="v2r-chip" data-v2r-acao="filtro" data-valor="semana" aria-pressed="false">Esta semana</button><button type="button" class="v2r-chip" data-v2r-acao="filtro" data-valor="sem-ata" aria-pressed="false">Sem ata</button>
                 <button type="button" class="v2r-btn s" data-v2r-acao="tipos" aria-haspopup="listbox" aria-pressed="false">Filtros</button></div>
-              <div data-v2r="linhas"></div></section>
+              <div data-v2r="linhas"></div></section></div>
             <section class="v2r-card v2r-form" data-v2r="form" aria-label="Nova reunião"></section>
           </div>
-          <p class="v2r-sub v2r-rodape">Salvar e gravar manda o áudio para a pasta Reuniões do cliente no Drive; o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha.</p>
         </div></div>`;
       raiz.append(janela);
       raiz.addEventListener('click', aoClicarNaTela);

@@ -122,64 +122,98 @@ const contaIniciais = (nome) => String(nome || '?').trim().split(/\s+/).slice(0,
 const CONTA_VISTO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
 
 // O que a conta de quem está logado ainda pede. Sai do que o painel sabe: o vínculo com o WhatsApp e a foto.
+// `curta` vai para o bloco de ação (Direção 3: uma frase só); `texto` é o rótulo curto da linha do "Pede ação".
 function pendenciasDaConta(eu) {
   const a = CONTA_AI, lista = [];
-  if (a.carregando) lista.push({ chave: 'whatsapp', cor: 'n', selo: 'Conferindo', nome: 'WhatsApp', texto: 'lendo se o seu número já está ligado ao VYBES', frase: '', botao: 'Tentar de novo', acao: 'carregarContaAI()', indo: true });
-  else if (a.erro) lista.push({ chave: 'whatsapp', cor: 'r', selo: 'Não conferido', nome: 'WhatsApp', texto: 'não deu para conferir o vínculo agora', frase: 'não consegui conferir o seu vínculo com o WhatsApp', botao: 'Tentar de novo', acao: 'carregarContaAI()' });
-  else if (!a.disponivel) lista.push({ chave: 'whatsapp', cor: 'n', selo: 'Indisponível', nome: 'WhatsApp', texto: 'a conexão ainda não está disponível neste ambiente', frase: 'a conexão com o WhatsApp ainda não está disponível neste ambiente', botao: 'Conferir', acao: 'carregarContaAI()' });
+  if (a.carregando) lista.push({ chave: 'whatsapp', cor: 'n', selo: 'Conferindo', nome: 'WhatsApp', texto: 'lendo o seu vínculo', frase: '', curta: '', botao: 'Tentar de novo', acao: 'carregarContaAI()', indo: true });
+  else if (a.erro) lista.push({ chave: 'whatsapp', cor: 'r', selo: 'Não conferido', nome: 'WhatsApp', texto: 'vínculo com o seu número', frase: 'não consegui conferir o seu vínculo com o WhatsApp', curta: 'Não conferi seu WhatsApp', botao: 'Tentar de novo', acao: 'carregarContaAI()' });
+  else if (!a.disponivel) lista.push({ chave: 'whatsapp', cor: 'n', selo: 'Indisponível', nome: 'WhatsApp', texto: 'ainda não disponível aqui', frase: 'a conexão com o WhatsApp ainda não está disponível neste ambiente', curta: 'O WhatsApp ainda não está disponível aqui', botao: 'Conferir', acao: 'carregarContaAI()' });
   else if (!a.vinculado) {
     const temCodigo = a.codigo && Date.parse(a.expiraEm) > Date.now();
-    lista.push({ chave: 'whatsapp', cor: 'a', selo: 'Não conectado', nome: 'WhatsApp', texto: temCodigo ? 'envie o código ao VYBES e confira' : 'ligue o VYBES ao seu número', frase: 'o seu WhatsApp ainda não está ligado a mim',
+    lista.push({ chave: 'whatsapp', cor: 'a', selo: 'Não conectado', nome: 'WhatsApp', texto: temCodigo ? 'envie o código ao VYBES' : 'ligue o VYBES ao seu número', frase: 'o seu WhatsApp ainda não está ligado a mim',
+      curta: temCodigo ? 'Falta enviar o código do WhatsApp' : 'Seu WhatsApp não está ligado a mim',
       botao: temCodigo ? 'Já enviei o código' : 'Conectar', acao: temCodigo ? 'carregarContaAI()' : "acaoContaAI('vinculacao_iniciar')", parado: !temCodigo && (!a.pode_gerar || a.ocupado) });
   }
-  if (!eu?.foto_url) lista.push({ chave: 'foto', cor: 'a', selo: 'Sem foto', nome: 'Sua foto', texto: 'é por ela que o time te reconhece nas bolinhas de responsável', frase: 'você ainda não tem foto', botao: 'Escolher imagem', acao: "document.getElementById('conta-foto-arquivo')?.click()" });
+  if (!eu?.foto_url) lista.push({ chave: 'foto', cor: 'a', selo: 'Sem foto', nome: 'Sua foto', texto: 'aparece nas bolinhas de responsável', frase: 'você ainda não tem foto', curta: 'falta sua foto', botao: 'Escolher', acao: "document.getElementById('conta-foto-arquivo')?.click()" });
   return lista;
 }
 
+// Bloco de ação da Direção 3 (d3AcaoHtml, vybe-core.js): a única faixa laranja da tela. Sem o vybe-core (testes),
+// a mesma marcação montada aqui.
+function contaAcaoHtml(frase, botao = '', attrs = '') {
+  const corpo = `<small class="d3c-quem">VYBES · Conta</small>${frase}`;
+  if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: corpo, agente: 'V', botao, attrs });
+  return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">V</span><span class="d3-acao-frase">${corpo}</span>`
+    + `${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${safeText(botao)}</button>` : ''}</section>`;
+}
+
+// "senhor" só com os donos (identidade do VYBES); o resto do time pelo nome, aqui sem tratamento.
 function falaDaConta(eu) {
-  const p = pendenciasDaConta(eu).filter((x) => x.frase);
-  let texto;
-  if (VER_COMO_O_TIME) texto = '<b>Você está vendo o painel como quem não administra.</b> É só um ensaio da tela: suas permissões continuam as mesmas.';
-  else if (CONTA_AI.carregando) texto = 'Estou conferindo a sua conta e o seu vínculo com o WhatsApp.';
-  else if (!p.length) texto = `Nada pendente na sua conta.${CONTA_AI.vinculado ? ' WhatsApp conferido.' : ''}`;
-  else {
-    const quanto = p.length === 1 ? 'uma coisa' : `${p.length} coisas`;
-    const porque = p[0].chave === 'whatsapp' ? ' Sem ele eu não sei que é você quando fala comigo por lá.' : '';
-    texto = `Sua conta está em ordem, menos <b>${quanto}: ${p.map((x) => safeText(x.frase)).join(' e ')}</b>.${porque} O resto do painel segue normal.`;
-  }
-  return `<span class="v2c-ag" aria-hidden="true">V</span><p><span class="v2c-quem-fala">VYBES · Conta</span>${texto}</p>`;
+  const senhor = eu?.dono ? ', senhor' : '';
+  if (VER_COMO_O_TIME) return contaAcaoHtml(`Você vê o painel como o time${senhor}.`, 'Voltar', 'onclick="alternarVisaoDoTime()"');
+  if (CONTA_AI.carregando) return contaAcaoHtml(`Conferindo sua conta${senhor}.`);
+  const p = pendenciasDaConta(eu).filter((x) => x.curta);
+  if (!p.length) return contaAcaoHtml(`Conta em ordem${senhor}.${CONTA_AI.vinculado ? ' WhatsApp conferido.' : ''}`);
+  const [um, dois] = p;
+  const frase = `${um.curta}${senhor}${dois ? `, e ${dois.curta}` : ''}.`;
+  return contaAcaoHtml(safeText(frase.charAt(0).toUpperCase() + frase.slice(1)), um.botao, `onclick="${um.acao}"${um.parado ? ' disabled' : ''}`);
 }
 
 function pedeAcaoDaConta(eu) {
-  const p = pendenciasDaConta(eu), admin = eu.admin && !VER_COMO_O_TIME;
-  const linhas = p.map((x) => `<div class="v2c-lin"><span class="v2c-pill ${x.cor}">${safeText(x.selo)}</span><p><b>${safeText(x.nome)}</b> · ${safeText(x.texto)}</p>
-      <button type="button" class="v2c-btn s v2-estado"${x.indo ? ' data-estado="indo"' : ''}${x.parado ? ' disabled' : ''} onclick="${x.acao}">${safeText(x.botao)}</button></div>`).join('');
+  const p = pendenciasDaConta(eu);
+  const linhas = p.map((x, i) => `<div class="v2c-lin d3c-pend"><span class="v2c-pill ${x.cor}">${safeText(x.selo)}</span><b>${safeText(x.nome)}</b>
+      <span class="d3c-pend-baixo"><span class="d3c-pend-txt">${safeText(x.texto)}</span><button type="button" class="v2c-btn s v2-estado${i === 0 ? ' k' : ''}"${x.indo ? ' data-estado="indo"' : ''}${x.parado ? ' disabled' : ''} onclick="${x.acao}">${safeText(x.botao)}</button></span></div>`).join('');
   const feito = `<p class="v2c-tudo-certo">${CONTA_VISTO}Nada pendente na sua conta.${CONTA_AI.vinculado ? ' WhatsApp conferido.' : ''}</p>`;
-  const operacao = admin ? `<div class="v2c-operacao"><h2>Operação</h2>
-      <div class="v2c-lin"><p><b>Opções das fichas</b> · as listas que aparecem nas fichas</p><button type="button" class="v2c-btn s" onclick="escolherSecaoDaConta('opcoes')">Abrir</button></div>
-      <div class="v2c-lin"><p><b>Manutenção</b> · limpeza e conferência do painel</p><button type="button" class="v2c-btn s" onclick="escolherSecaoDaConta('manutencao')">Abrir</button></div></div>` : '';
-  return `<div class="v2c-card-topo"><h2>Pede ação</h2><span class="v2c-sub">${p.length ? `${p.length} ${p.length === 1 ? 'coisa' : 'coisas'}` : 'nada agora'}</span></div>
-    ${linhas || feito}${operacao}`;
+  return `<div class="v2c-card-topo"><h2>Pede ação</h2><span class="v2c-sub">${p.length || 'nada agora'}</span></div>
+    ${linhas || feito}`;
 }
 
-// Os três números de quem administra. Cada um abre a lista dele.
+// A operação (só quem administra): as partes que abrem no lugar, cada uma com o rótulo curto e o "Abrir".
+function operacaoDaConta() {
+  const ativos = CLIENTES.filter((c) => c.ativo).length, guardadas = ACESSOS.filter((a) => a.tem_documento).length;
+  const linha = (chave, nome, sub) => `<div class="v2c-lin d3c-op"><span><b>${nome}</b><small>${sub}</small></span><button type="button" class="v2c-btn s" onclick="escolherSecaoDaConta('${chave}')">Abrir</button></div>`;
+  return `<div class="v2c-card-topo"><h2>Operação</h2></div>
+    ${linha('opcoes', 'Opções das fichas', 'listas das fichas')}${linha('manutencao', 'Manutenção', 'limpeza e conferência')}
+    ${linha('clientes', 'Clientes', ERROS_DA_CONTA.clientes ? 'não carregou' : `${ativos} ${ativos === 1 ? 'ativo' : 'ativos'}`)}
+    ${linha('acessos', 'Credenciais', ERROS_DA_CONTA.acessos ? 'não carregou' : `${guardadas} ${guardadas === 1 ? 'guardada' : 'guardadas'}`)}`;
+}
+
+const CONTA_CADEADO = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const contaEquipeAtiva = () => EQUIPE.filter((x) => x.ativo !== false && x.pode_entrar);
+// Donos primeiro, depois a coordenação, depois o resto do time (a etiqueta vem do servidor: p.dono, p.coordenacao).
+const contaOrdemDoTime = (l) => [...l].sort((a, b) => (b.dono ? 2 : b.coordenacao ? 1 : 0) - (a.dono ? 2 : a.coordenacao ? 1 : 0));
+
+// Os quatro números de quem administra (Direção 3: cartão de número com o número que chega). Cada um abre a lista dele.
 function numerosDaConta() {
-  const comAcesso = EQUIPE.filter((x) => x.ativo !== false && x.pode_entrar);
+  const comAcesso = contaEquipeAtiva();
   const ativos = CLIENTES.filter((c) => c.ativo);
   const guardadas = ACESSOS.filter((a) => a.tem_documento).length;
-  const rostos = comAcesso.slice(0, 6).map((x) => `<span class="v2c-av">${retratoDaPessoa(x)}</span>`).join('')
-    + (comAcesso.length > 6 ? `<span class="v2c-av"><span>+${comAcesso.length - 6}</span></span>` : '');
+  const donos = comAcesso.filter((x) => x.dono).length, coord = comAcesso.filter((x) => !x.dono && x.coordenacao).length;
+  const rostos = contaOrdemDoTime(comAcesso).slice(0, 4).map((x) => `<span class="v2c-av">${retratoDaPessoa(x)}</span>`).join('')
+    + (comAcesso.length > 4 ? `<span class="v2c-av mais"><span>+${comAcesso.length - 4}</span></span>` : '');
   const nomes = ativos.slice(0, 2).map((c) => `<span class="v2c-cli">${safeText(c.nome)}</span>`).join('')
     + (ativos.length > 2 ? `<span class="v2c-sub">+${ativos.length - 2}</span>` : '');
-  const cartao = (chave, rotulo, n, lado, pe, abrir, atraso) => ERROS_DA_CONTA[chave]
-    ? `<div class="v2c-card v2c-kpi"><small>${rotulo}</small><div class="v2c-kpi-linha"><b>?</b></div><small>não deu para carregar · <button type="button" class="v2c-link" onclick="carregarConta()">tentar de novo</button></small></div>`
-    : `<div class="v2c-card v2c-kpi"><small>${rotulo}</small><div class="v2c-kpi-linha"><b><span class="v2-num"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${n}</span></b>${lado}</div>
-      <small>${pe} · <button type="button" class="v2c-link" onclick="escolherSecaoDaConta('${chave}')">${abrir}</button></small></div>`;
-  return `<div class="v2c-tres">
-    ${cartao('equipe', 'Equipe', comAcesso.length, `<span class="v2c-avs" aria-hidden="true">${rostos}</span>`, comAcesso.length === 1 ? 'pessoa com acesso' : 'pessoas com acesso', 'abrir a equipe', '')}
-    ${cartao('clientes', 'Clientes', ativos.length, `<span class="v2c-clis">${nomes}</span>`, ativos.length === 1 ? 'ativo no painel' : 'ativos no painel', 'abrir os clientes', '.12s')}
-    ${cartao('acessos', 'Credenciais', guardadas, '', 'guardadas, só quem administra vê', 'abrir', '.24s')}
+  const cartao = (chave, rotulo, valor, lado, pe, extra = '') => ERROS_DA_CONTA[chave === 'donos' ? 'equipe' : chave]
+    ? `<div class="d3-num d3c-num"><span class="d3-num-rot">${rotulo}</span><b class="d3-num-v">?</b><span class="d3c-num-pe">não carregou · <button type="button" class="v2c-link" onclick="carregarConta()">tentar de novo</button></span></div>`
+    : `<button type="button" class="d3-num d3c-num" onclick="escolherSecaoDaConta('${chave === 'donos' ? 'equipe' : chave}')"><span class="d3-num-rot">${rotulo}</span><b class="d3-num-v">${valor}</b>${lado ? `<span class="d3c-num-lado">${lado}</span>` : ''}${pe ? `<span class="d3c-num-pe">${pe}</span>` : ''}${extra}</button>`;
+  return `<div class="d3c-nums">
+    ${cartao('equipe', 'Equipe', comAcesso.length, `<span class="v2c-avs" aria-hidden="true">${rostos}</span>`, 'com acesso')}
+    ${cartao('clientes', 'Clientes', ativos.length, `<span class="v2c-clis">${nomes}</span>`, 'ativos no painel')}
+    ${cartao('acessos', 'Credenciais', guardadas, '', `${CONTA_CADEADO}só a gestão vê`)}
+    ${cartao('donos', 'Donos', `${donos}${coord ? `<small> · ${coord} coordenação</small>` : ''}`, '', '', `<span class="d3-barra"><i style="--v:${comAcesso.length ? Math.round(((donos + coord) / comAcesso.length) * 100) : 0}%"></i></span>`)}
   </div>`;
+}
+
+// A equipe à direita, uma linha por pessoa com a etiqueta "dono" ou "coordenação". As ações (liberar, senha,
+// subsolo) continuam na seção Equipe, que abre pelo pé do cartão.
+function equipeDaConta() {
+  if (ERROS_DA_CONTA.equipe) return `<div class="v2c-card-topo"><h2>Equipe</h2></div><p class="v2c-sub d3c-eq-erro">Não carregou · <button type="button" class="v2c-link" onclick="carregarConta()">tentar de novo</button></p>`;
+  const time = contaOrdemDoTime(contaEquipeAtiva()), MAX = 8, resto = Math.max(0, time.length - MAX);
+  const etiqueta = (p) => (p.dono ? '<span class="v2c-pill d3c-dono">dono</span>' : p.coordenacao ? '<span class="v2c-pill n">coordenação</span>' : '');
+  const linhas = time.slice(0, MAX).map((p) => `<div class="v2c-lin d3c-eq"><span class="v2c-av">${retratoDaPessoa(p)}</span>${p.dono || p.coordenacao ? `<b>${safeText(p.nome)}</b>` : `<span>${safeText(p.nome)}</span>`}${etiqueta(p)}</div>`).join('');
+  return `<div class="v2c-card-topo"><h2>Equipe</h2><span class="v2c-sub">${time.length}</span></div>
+    ${linhas || '<p class="v2c-sub d3c-eq-erro">Ninguém com acesso ainda.</p>'}
+    <button type="button" class="d3c-eq-pe" onclick="escolherSecaoDaConta('equipe')">${resto ? `+${resto} · ` : ''}abrir a equipe</button>`;
 }
 
 function pintarConta() {
@@ -194,19 +228,23 @@ function pintarConta() {
   const inicio = ['perfil', 'senha'].includes(SECAO_ATIVA);
 
   raiz.innerHTML = `
-    <div class="v2c" id="v2c">
+    <div class="v2c d3c" id="v2c">
       <div class="v2c-topo">
-        <h1>${admin ? 'Conta e equipe' : 'Sua conta'}</h1>
+        <h1>${admin ? 'Conta e equipe' : 'Sua conta'}</h1>${admin ? '<span class="d3c-onde">Gestão</span>' : ''}
         ${eu.admin ? `<button type="button" class="v2c-btn" onclick="alternarVisaoDoTime()" aria-pressed="${VER_COMO_O_TIME}">${VER_COMO_O_TIME ? 'Voltar à minha visão' : 'Ver como o time vê'}</button>` : ''}
-        <button type="button" class="v2c-btn p" onclick="carregarContaAI()">Conferir o WhatsApp</button>
+        <button type="button" class="v2c-btn k" onclick="carregarContaAI()">Conferir o WhatsApp</button>
       </div>
-      <div class="v2c-card v2c-fala" id="v2c-fala">${falaDaConta(eu)}</div>
+      <div class="d3c-fala" id="v2c-fala">${falaDaConta(eu)}</div>
       ${admin ? numerosDaConta() : ''}
-      ${inicio ? `<div class="v2c-duas">
-        <section class="v2c-card v2c-pede" id="v2c-pede" aria-label="Pede ação">${pedeAcaoDaConta(eu)}</section>
-        <section class="v2c-card v2c-perfil" id="conta-conteudo" aria-label="Seu perfil">${ERROS_DA_CONTA.perfil ? erroDaContaHtml() : blocoPerfil(eu)}</section>
+      ${inicio ? `<div class="d3c-cols${admin ? '' : ' so-eu'}">
+        <div class="d3c-col">
+          <section class="v2c-card v2c-pede d3c-cartao" id="v2c-pede" aria-label="Pede ação">${pedeAcaoDaConta(eu)}</section>
+          ${admin ? `<section class="v2c-card d3c-cartao d3c-operacao" aria-label="Operação">${operacaoDaConta()}</section>` : ''}
+        </div>
+        <section class="v2c-card v2c-perfil d3c-cartao" id="conta-conteudo" aria-label="Seu perfil">${ERROS_DA_CONTA.perfil ? erroDaContaHtml() : blocoPerfil(eu)}</section>
+        ${admin ? `<section class="v2c-card d3c-cartao d3c-equipe" aria-label="Equipe">${equipeDaConta()}</section>` : ''}
       </div>` : `<section class="v2c-card v2c-secao" id="conta-conteudo">${corpoDaSecao(SECAO_ATIVA, eu)}</section>`}
-      <nav class="v2c-abrir" aria-label="Abrir uma parte da conta"><span class="v2c-sub">Abrir:</span>${todas.map((i) =>
+      <nav class="v2c-abrir" aria-label="Abrir uma parte da conta"><span class="v2c-sub">Abrir</span>${todas.map((i) =>
         `<button type="button" class="v2c-chip" data-secao="${i.chave}" aria-pressed="${i.chave === SECAO_ATIVA && i.chave !== 'perfil'}" onclick="escolherSecaoDaConta('${i.chave}')">${safeText(i.rotulo)}</button>`).join('')}</nav>
     </div>`;
 }
@@ -235,6 +273,8 @@ function trocarTemaDaConta(tema) {
   raiz.classList.toggle('tema-escuro', tema === 'escuro');
   raiz.style.colorScheme = tema === 'escuro' ? 'dark' : 'light';
   document.querySelectorAll('[data-tema-conta]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.temaConta === tema)));
+  // A aba preta estica até a escolha (Direção 3: "aba que estica").
+  document.querySelectorAll('.d3c-seg').forEach((s) => { s.dataset.tema = tema; });
 }
 
 // A senha abre no lugar, na própria linha, sem trocar de tela.
@@ -254,27 +294,29 @@ function alternarSenhaDaConta(abrir) {
 function blocoPerfil(eu) {
   const senhaAberta = SECAO_ATIVA === 'senha', tema = temaDaConta();
   const temaBotao = (t, rotulo) => `<button type="button" role="radio" data-tema-conta="${t}" aria-checked="${tema === t}" onclick="trocarTemaDaConta('${t}')">${rotulo}</button>`;
+  // A etiqueta do papel: "dono" (cheia) ou "coordenação" (clara), como o servidor diz; o resto do time, "time".
+  const papel = eu.dono ? ['dono', 'd3c-dono'] : eu.coordenacao ? ['coordenação', 'n'] : eu.admin ? ['gestão', 'n'] : ['time', 'n'];
   return `<div class="v2c-quem">
       <span class="v2c-retrato" id="conta-foto-atual">${eu.foto_url ? `<img src="${safeText(eu.foto_url)}" alt="Sua foto">` : `<span>${safeText(contaIniciais(eu.nome))}</span>`}</span>
       <div><h2>${safeText(eu.nome)}</h2><p class="v2c-sub">${safeText(eu.email)}</p></div>
-      <span class="v2c-pill ${eu.admin ? 'a' : 'n'}">${eu.admin ? 'Administra o painel' : 'Time'}</span>
+      <span class="v2c-pill ${papel[1]}">${papel[0]}</span>
     </div>
-    <div class="v2c-lin v2c-dado"><span>Foto</span><span>PNG, JPG ou WEBP, até 2 MB · fica no Drive próprio da Vybe</span>
+    <div class="v2c-lin v2c-dado"><span>Foto</span><span class="d3c-fichas"><i>PNG · JPG · WEBP</i><i>até 2 MB</i><i>Drive da Vybe</i></span>
       <span><input type="file" id="conta-foto-arquivo" accept="image/png,image/jpeg,image/webp" hidden onchange="enviarMinhaFoto(this)">
-      <button type="button" class="v2c-btn s" onclick="document.getElementById('conta-foto-arquivo').click()">Escolher imagem</button></span></div>
+      <button type="button" class="v2c-btn s" onclick="document.getElementById('conta-foto-arquivo').click()">Escolher</button></span></div>
     <div class="v2-abre" id="v2c-senha" aria-expanded="${senhaAberta}">
-      <div class="v2c-lin v2c-dado"><span>Senha</span><span>Só você troca a sua</span>
-        <button type="button" class="v2c-btn s" data-senha-abre aria-expanded="${senhaAberta}" aria-controls="v2c-senha-campos" onclick="alternarSenhaDaConta()">Trocar senha</button></div>
+      <div class="v2c-lin v2c-dado"><span>Senha</span><span>só você troca</span>
+        <button type="button" class="v2c-btn s" data-senha-abre aria-expanded="${senhaAberta}" aria-controls="v2c-senha-campos" onclick="alternarSenhaDaConta()">Trocar</button></div>
       <div class="v2-mais" id="v2c-senha-campos"${senhaAberta ? '' : ' inert'}><div><div class="v2c-senha-campos">
-        <input id="conta-atual" type="password" autocomplete="current-password" placeholder="Senha atual" aria-label="Senha atual">
-        <input id="conta-nova" type="password" autocomplete="new-password" placeholder="Nova senha" aria-label="Nova senha, mínimo de 8 caracteres" title="Mínimo de 8 caracteres">
+        <input id="conta-atual" type="password" autocomplete="current-password" placeholder="Atual" aria-label="Senha atual">
+        <input id="conta-nova" type="password" autocomplete="new-password" placeholder="Nova" aria-label="Nova senha, mínimo de 8 caracteres" title="Mínimo de 8 caracteres">
         <button type="button" class="v2c-btn s k" onclick="trocarMinhaSenha()">Salvar</button>
       </div></div></div>
     </div>
     ${blocoContaAI()}
-    <div class="v2c-lin v2c-dado"><span>Tema</span><span class="v2c-sub">vale só para você</span>
-      <span class="v2c-seg" role="radiogroup" aria-label="Tema">${temaBotao('claro', 'Claro')}${temaBotao('escuro', 'Escuro')}</span></div>
-    <p class="v2c-sub v2c-nota">Nome e e-mail vêm do cadastro da equipe. Para mudar, fale com quem administra.</p>`;
+    <div class="v2c-lin v2c-dado"><span>Tema</span><span class="v2c-sub">só para você</span>
+      <span class="v2c-seg d3c-seg" role="radiogroup" aria-label="Tema" data-tema="${tema === 'escuro' ? 'escuro' : 'claro'}"><i class="d3c-seg-ind" aria-hidden="true"></i>${temaBotao('claro', 'Claro')}${temaBotao('escuro', 'Escuro')}</span></div>
+    <p class="v2c-sub v2c-nota">nome e e-mail · cadastro da equipe</p>`;
 }
 
 // A conta WhatsApp usa a mesma sessão do Perfil; código fica só em memória.

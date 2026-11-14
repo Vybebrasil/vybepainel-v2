@@ -21,7 +21,7 @@ input.vb-no-lugar{appearance:none;height:28px;max-width:150px;box-sizing:border-
 
 /* 10 · Cor do humor: do vermelho (0) ao verde (100), devagar. A faixa à esquerda leva a cor cheia; o fundo, um véu. */
 .v2-humor:not(#vb-h1):not(#vb-h2){--humor-cor:hsl(calc(var(--humor,50) * 1.2) 62% 42%);--humor-veu:hsl(calc(var(--humor,50) * 1.2) 70% 97%);
-  background-color:var(--humor-veu);box-shadow:inset 4px 0 0 var(--humor-cor),0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);
+  box-shadow:inset 4px 0 0 var(--humor-cor),0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);
   transition:background-color .9s ease,box-shadow .9s ease}
 .v2-humor:not(#vb-h1):not(#vb-h2) .v2-humor-nota{color:var(--humor-cor);transition:color .9s ease}
 @media (prefers-reduced-motion:reduce){.v2-humor,.v2-humor .v2-humor-nota{transition:none}}

@@ -64,10 +64,11 @@ test('Clientes: título com Tabela/Fichas/Cérebro, Cadastros e Novo cliente; fa
   ctx.renderClientesBoard();
   const acoes = pegar('clientes-acoes');
   assert.equal(acoes.className, 'v2f-topo-acoes');
-  assert.match(acoes.innerHTML, /id="clientes-visao-topo"[\s\S]*>Cadastros<[\s\S]*class="v2f-btn p"[^>]*>Novo cliente</);
+  assert.match(acoes.innerHTML, /id="clientes-visao-topo"[\s\S]*>Cadastros<[\s\S]*class="v2f-btn p d3f-novo"[^>]*>Novo cliente</);
   assert.match(pegar('clientes-visao-topo').innerHTML, />Tabela<[\s\S]*>Fichas<[\s\S]*>Cérebro</);
   assert.match(pegar('clientes-aviso').innerHTML, /class="v2f-ag"[\s\S]*Mateus · Atendimento ao cliente/);
-  assert.equal((pegar('kpi-grid-clientes').innerHTML.match(/class="v2f-card v2f-kpi"/g) || []).length, 3, 'no máximo três números');
+  // Direção 3: quatro números (Ativos, Sem reunião registrada, Com NPS, Só na operação).
+  assert.equal((pegar('kpi-grid-clientes').innerHTML.match(/class="v2f-card v2f-kpi d3-num/g) || []).length, 4, 'quatro números');
   assert.match(pegar('clientes-filtros').innerHTML, /Ativos <b>2<\/b>[\s\S]*Inativos[\s\S]*Carteira[\s\S]*Head[\s\S]*Filtros[\s\S]*Colunas/);
   const tabela = ctx.tabelaDeClientesHtml(['Academia Lions', 'Alpha1']);
   assert.match(tabela, /class="v2-abre v2f-linha" data-cliente="Academia Lions" aria-expanded="false"/);
@@ -108,8 +109,11 @@ test('Reuniões: janela própria com fala, três números, Pede ação que abre 
   const fonte = ler('vybe-clientes-reunioes.js');
   assert.match(fonte, /window\.VybeReunioes = \{ reunioesHtml, onboardingHtml, carregar, temOnboarding, abrir, fechar: fecharTela, aberto: \(\) => Boolean\(tela\.raiz\), dadosDe \}/);
   await ctx.VybeReunioes.carregar('1'); await ctx.VybeReunioes.carregar('2');
-  assert.match(fonte, /<h2 id="v2r-titulo">Reuniões<\/h2><button type="button" class="v2r-btn p" data-v2r-acao="nova">Nova reunião<\/button>/);
-  assert.match(fonte, /kpi\('Esta semana'[\s\S]*kpi\('Sem ata'[\s\S]*kpi\('Demandas sugeridas'/);
+  assert.match(fonte, /<h2 id="v2r-titulo">Reuniões<\/h2><span class="d3c-meta">\$\{esc\(diaHoje\)\}<\/span><button type="button" class="v2r-btn p" data-v2r-acao="nova">Nova reunião<\/button>/);
+  assert.match(fonte, /kpi\('Esta semana'[\s\S]*kpi\('Sem ata'[\s\S]*kpi\('Demandas sugeridas'[\s\S]*kpi\('No mês'/);
+  // Direção 3: Pede ação e a lista em cartões separados; a fala é o bloco de ação laranja.
+  assert.match(fonte, /<section class="v2r-card v2r-pede" aria-label="Pede ação"><div data-v2r="pede"><\/div><\/section>/);
+  assert.match(fonte, /d3AcaoHtml\(\{ frase: `\$\{quem\}\$\{frase\}`, agente: 'Mateus', botao, attrs \}\)/);
   assert.match(fonte, /class="v2-abre v2r-abre" aria-expanded="false"><div class="v2r-lin"><span class="v2r-pill r">Sem ata<\/span>/);
   assert.match(fonte, />Usar o resumo<\/button>[\s\S]*Pauta<\/b>[\s\S]*Ata<\/b>[\s\S]*Gravação<\/b>/);
   assert.match(fonte, /data-valor="todas" aria-pressed="true">Todas<[\s\S]*>Esta semana<[\s\S]*>Sem ata<[\s\S]*>Filtros</);

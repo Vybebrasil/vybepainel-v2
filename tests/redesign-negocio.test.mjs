@@ -71,7 +71,8 @@ test('Contratos (quadro do padrão v2): título com as ações, fala do Vorcaro,
   assert.doesNotMatch(html, /class="vc-kicker"|class="vc-resumo"|class="vc-controles"/, 'sem o cabeçalho antigo nem a linha de números');
   assert.match(html, /data-vc-ajuda aria-expanded="false"[^>]*>Como funciona<\/button>[\s\S]*>Registrar contrato<\/button>/);
   assert.match(html, /Vorcaro · Financeiro e contratos/);
-  assert.match(html, /<small>Em contratos ativos<\/small>[\s\S]*<small>Renovam em 30 dias<\/small>[\s\S]*<small>Tempo de casa \(LTV\)<\/small>/);
+  // Direção 3 (13/11/2026): quatro números, o quarto é "Sem contrato".
+  assert.match(html, /<span class="d3-num-rot">Em contratos<\/span>[\s\S]*<span class="d3-num-rot">Renovam em 30 dias<\/span>[\s\S]*<span class="d3-num-rot">Tempo de casa<\/span>[\s\S]*<span class="d3-num-rot">Sem contrato<\/span>/);
   assert.match(html, /data-vc-filtro-ct="sem">Sem contrato · 1<\/button>/);
   assert.match(html, /<span class="v2c-pill r">Sem contrato<\/span><p><b>Antonov<\/b> · ativo, sem valor mensal nem início/);
   assert.doesNotMatch(html, /class="vb-mes"/, 'o mês saiu do alto');
@@ -140,7 +141,7 @@ test('Funil: título "CRM e funil", números numa linha, sem arquivo de migraç�
   let html = time.janela().innerHTML;
   assert.match(topoDe(html), /<h2>CRM e funil<\/h2>/);
   assert.doesNotMatch(html, /class="vc-kpi/);
-  assert.match(html, /<small>Taxa de ganho<\/small>[\s\S]*sem negócio fechado ainda/);
+  assert.match(html, /<span class="d3-num-rot">Taxa de ganho<\/span>[\s\S]*nada encerrado/);
   assert.match(html, /O valor da negociação ainda não foi ligado/);
   assert.doesNotMatch(html, /\.sql|Ver o que falta|Novo lead/);
   const dono = comercial(resp, { souDonoDaSessao: () => true, souAdmin: () => true });
@@ -198,15 +199,15 @@ test('Finanças por cliente (padrão v2): três números, fichas e a lista com o
     souDonoDaSessao: () => true, CADASTRO_CLIENTES: [{ id: '1', nome: 'Antonov' }] });
   ctx.VybeComercial.abrir('financas', { abas: ['financas'] }); await esperar();
   const html = janela().innerHTML;
-  assert.match(topoDe(html), /<p class="v2c-sub">Finanças › Por cliente<\/p><h2>Finanças por cliente<\/h2>/);
+  assert.match(topoDe(html), /<h2>Finanças por cliente<\/h2><span class="d3-selo-donos">só donos<\/span>/);
   assert.doesNotMatch(html, /class="vc-kpi/);
   // 2ª rodada (quadro 59): sem chips acima e sem cartões; uma tabela com o cliente por linha e os totais no rodapé.
   assert.doesNotMatch(html, /class="vb-resumo"|class="vc-cartao|<table/);
-  assert.match(html, /<small>Contratado no mês<\/small>[\s\S]*<small>Custo da carteira<\/small>[\s\S]*<small>Margem<\/small>[\s\S]*sem contrato e pacote informados/, 'sem dado fica escrito, não vira número inventado');
-  assert.match(html, /aria-pressed="true">Todos · 1<\/button>[\s\S]*>Em atraso · 0<\/button>[\s\S]*>Margem baixa · 0<\/button>[\s\S]*>Em dia · 0<\/button>/);
+  assert.match(html, />Contratado<\/span>[\s\S]*>Custo da carteira<\/span>[\s\S]*>Margem<\/span>[\s\S]*sem contrato e pacote/, 'sem dado fica escrito, não vira número inventado');
+  assert.match(html, /aria-pressed="true">Todos <b>1<\/b><\/button>[\s\S]*>Em atraso <b>0<\/b><\/button>[\s\S]*>Margem baixa <b>0<\/b><\/button>[\s\S]*>Em dia <b>0<\/b><\/button>/);
   assert.match(html, /<div class="v2c-tb v2c-tb-cab"><span>Cliente<\/span><span class="v2c-num">Contrato<\/span><span>Margem<\/span><span>Pagamento<\/span>/);
   assert.equal((html.match(/data-v2-linha="fc:/g) || []).length, 1, 'o cliente ativo do cadastro aparece mesmo sem contrato');
-  assert.match(html, /<h3>Clientes · 1<\/h3>[\s\S]*sem valor[\s\S]*sem pacote[\s\S]*<span class="v2c-pill n">sem contrato<\/span>/);
+  assert.match(html, /<h3>Clientes<\/h3><small>1<\/small>[\s\S]*sem valor[\s\S]*sem pacote[\s\S]*<span class="v2c-pill n">sem contrato<\/span>/);
   assert.doesNotMatch(html, /Vybe Finanças/, 'o aviso fala do efeito, sem nome de sistema');
 });
 
@@ -244,17 +245,18 @@ test('Contratos: o mês a mês é um cartão com uma série por vez; a conta fic
   const comDado = carteira({ resposta: semTabelas });
   await comDado.ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'], rotulo: 'Comercial' }); await esperar();
   let html = comDado.janela().innerHTML;
-  assert.match(html, /<h2>Mês a mês<\/h2><span class="v2c-chips" role="group" aria-label="Série"><button type="button" class="v2c-chip" aria-pressed="true" data-vc-serie-ct="ativos">Ativos<\/button>/);
-  assert.match(html, /class="v2k-col agora"/, 'com cliente ativo as colunas aparecem, o mês de agora marcado');
+  // Direção 3: a série em abas que esticam e o gráfico em linha (fora do painel, sem o núcleo, ficam o valor e os meses).
+  assert.match(html, /<h2>Mês a mês<\/h2><span class="v2c-seg" role="group" aria-label="Série"><button type="button" data-vc-serie-ct="ativos" aria-pressed="true">Ativos<\/button>/);
+  assert.match(html, /class="d3k-agora"[\s\S]*<span class="agora">/, 'com cliente ativo o mês a mês aparece, o mês de agora marcado');
   comDado.clicar({ vcSerieCt: 'novos' });
-  assert.match(comDado.janela().innerHTML, /aria-pressed="true" data-vc-serie-ct="novos"/);
+  assert.match(comDado.janela().innerHTML, /data-vc-serie-ct="novos" aria-pressed="true"/);
   comDado.clicar({ vcAjuda: '' });
   assert.match(comDado.janela().innerHTML, /Cada mês na data do último dia[\s\S]*Ticket = receita mensal ativa ÷ clientes ativos com valor/);
   const vazio = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [] } } });
   await vazio.ctx.VybeCarteira.abrir('contratos', { abas: ['contratos'], rotulo: 'Comercial' }); await esperar();
   html = vazio.janela().innerHTML;
-  assert.match(html, /O gráfico aparece com a primeira data de entrada de um cliente ativo\./);
-  assert.doesNotMatch(html, /class="v2k-col(?: agora)?"|<figure|vc-graf/, 'nada de colunas só com zero');
+  assert.match(html, /Sem data de entrada ainda\./);
+  assert.doesNotMatch(html, /class="d3k-agora"|<figure|vc-graf/, 'nada de gráfico só com zero');
 });
 
 test('"Ver o que falta" e "Atualizar" são botões do padrão, não texto clicável (quadro 30)', () => {
@@ -299,10 +301,11 @@ test('Churn (quadro do padrão v2): fala, três números, fichas, Pede ação co
   const vazio = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [] } } });
   await vazio.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
   let html = vazio.janela().innerHTML;
-  assert.match(html, /<div class="v2c" data-tela="churn"><div class="v2c-topo"><h2 id="vc-titulo">Churn<\/h2><span class="v2c-sub">novembro de 2026<\/span>/);
+  assert.match(html, /<div class="v2c" data-tela="churn"><div class="v2c-topo"><h2 id="vc-titulo">Churn<\/h2><span class="d3c-meta">novembro de 2026<\/span>/);
   assert.doesNotMatch(html, /class="vc-controles"|class="vc-resumo"/);
-  assert.match(html, /VYBES · Comercial<\/span><b>Nenhum cliente saiu<\/b> até agora/);
-  assert.match(html, /<small>Taxa de churn<\/small>[\s\S]*<small>Saídas<\/small>[\s\S]*<small>Receita perdida<\/small>/);
+  // Direção 3: a fala é uma frase só (fora do painel, a fala de antes) e são quatro números.
+  assert.match(html, /VYBES · Comercial<\/span>Nenhum cliente saiu até agora\./);
+  assert.match(html, /<span class="d3-num-rot">Taxa de churn<\/span>[\s\S]*<span class="d3-num-rot">Saídas<\/span>[\s\S]*<span class="d3-num-rot">Receita perdida<\/span>[\s\S]*<span class="d3-num-rot">Até sair<\/span>/);
   assert.match(html, /data-vc-filtro-ch="todas">Todas · 0<\/button>/);
   assert.match(html, /<h2>Saídas e retenção<\/h2>[\s\S]*data-vc-vista-ch="motivos" aria-pressed="true">Motivos/);
   assert.match(html, /<b>A classificação das saídas ainda não foi ligada\.<\/b>/);
@@ -318,11 +321,11 @@ test('Churn (quadro do padrão v2): fala, três números, fichas, Pede ação co
   const saiu = carteira({ resposta: { status: 200, corpo: { ...semTabelas.corpo, clientes: [{ id: '1', nome: 'Antonov', ativo: false, entrada: '2025-03-01', saida: '2026-11-05' }] } } });
   await saiu.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
   html = saiu.janela().innerHTML;
-  assert.match(html, /<b>1 cliente saiu<\/b> em novembro de 2026/);
+  assert.match(html, /Antonov saiu em novembro e está sem motivo\./);
   assert.match(html, /<span class="v2c-pill r">Sem motivo<\/span><p><span class="v2k-cli">Antonov<\/span> · desativado em 05\/11/);
   assert.match(html, /<h2>Quem saiu · 1<\/h2>/);
   saiu.clicar({ vcVistaCh: 'meses' });
-  assert.match(saiu.janela().innerHTML, /<figcaption>Clientes que saíram<\/figcaption>\s*<svg/);
+  assert.match(saiu.janela().innerHTML, /<figure class="d3k-graf"><figcaption>Saíram <b>1<\/b><\/figcaption>/);
   const js = ler('vybe-mundo-carteira.js');
   assert.match(js, /const estadoVazio = \(titulo, texto = '', botao = ''\) => \(typeof vbEstadoHtml === 'function' \? vbEstadoHtml\(\{ titulo, texto, acao: botao \}\)/, 'o vazio é a peça do padrão');
 });
@@ -377,7 +380,7 @@ test('Recebimentos, Inadimplência e Orçamentos (quadro 20 e 00 Main, regra 4):
   assert.match(html, /<b>0<\/b> clientes[\s\S]*<b>0<\/b> faturas/);
   ctx.VybeComercial.abrir('orcamentos', { abas: ['pacotes', 'orcamentos'] }); await esperar();
   html = janela().innerHTML;
-  assert.match(html, /os donos cadastram em Pacotes\.<\/p><button type="button" class="v2c-btn s" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
+  assert.match(html, /Falta pacote ativo\.<\/p><button type="button" class="v2c-btn s" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
   assert.doesNotMatch(html.slice(html.indexOf('vc-abas')), /<h3>Orçamentos<\/h3>/, 'o título fica só no cabeçalho');
   assert.match(ler('vybe-mundo-comercial.js'), /'ir-pacotes': \(\) => abrir\('pacotes'/, 'o botão abre a aba Pacotes');
   const css = ler('vybe-mundo.css').split('/* ==== Quadro 20 (Finanças, 11/11/2026)')[1];

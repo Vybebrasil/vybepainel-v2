@@ -81,7 +81,7 @@ test('Funil (padrão v2): uma etapa por fase mesmo vazia, Novo lead no título e
   });
   ctx.VybeComercial.abrir('funil'); await esperar();
   let html = janela().innerHTML;
-  assert.equal((html.match(/class="v2c-et z[ "]/g) || []).length, calc.FASES.length, 'sem resposta do funil, as fases padrão vazias (tracejadas)');
+  assert.equal((html.match(/class="d3c-et(?: g)? z"/g) || []).length, calc.FASES.length, 'sem resposta do funil, as fases padrão vazias (tracejadas)');
   assert.doesNotMatch(html, /Novo lead/, 'só quem edita o comercial vê o botão');
 
   comDados = true; ctx.VybeComercial.abrir('funil'); await esperar();
@@ -91,7 +91,7 @@ test('Funil (padrão v2): uma etapa por fase mesmo vazia, Novo lead no título e
   assert.ok(!html.includes('Pet Feliz'), 'Perdido fica recolhido na etapa');
   clicar({ v2: 'fase', id: 'perdido' });
   html = janela().innerHTML;
-  assert.match(html, /data-vc-motivo="preco"[^>]*>Preço · 1</);
+  assert.match(html, /data-vc-motivo="preco"[^>]*>Preço <b>1<\/b></);
   assert.doesNotMatch(html, /role="tablist" aria-label="Fases do funil"/, 'as fases não são mais abas');
   assert.ok(html.includes('Pet Feliz') && html.includes('Loja Azul'));
   clicar({ vcMotivo: 'preco' });

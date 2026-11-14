@@ -11,13 +11,15 @@ const trecho = (de, ate) => js.slice(js.indexOf(de), js.indexOf(ate, js.indexOf(
 
 test('Contratos segue a ordem do quadro: título com as ações, fala do Vorcaro, três números, busca e fichas, Pede ação e mês a mês ao lado dos clientes', () => {
   const tela = trecho('  function abaContratos() {', '  // ---------- janela ----------');
-  naOrdem(tela, ["botao('Como funciona'", "botao('Registrar contrato'", 'falaDe(AGENTE_CONTRATOS', "rotulo: 'Em contratos ativos'", "rotulo: 'Renovam em 30 dias'", "rotulo: 'Tempo de casa (LTV)'",
-    "['todos', 'Todos os clientes ativos'", "['sem', 'Sem contrato'", "buscaHtml('Buscar contrato por cliente')", "botao('Filtros'", "cartaoTopo('Pede ação'", '<h2>Mês a mês</h2>',
-    'linhaContratoQ', '${ajudaHtml}${registrar}${fala}${numeros}${filtros}', '<div class="v2k-grade2 v2k-contratos"><div class="v2k-col-esq">${pedeAcao}${mesAMes}</div>${clientes}</div>']);
+  // Direção 3 (13/11/2026): bloco de ação, quatro números (com "Sem contrato"), a tabela dos clientes à esquerda com a
+  // trilha "até renovar" e, à direita, Pede ação e o mês a mês em linha.
+  naOrdem(tela, ["botao('Como funciona'", "botao('Registrar contrato'", 'd3AcaoOu(AGENTE_CONTRATOS', "rotulo: 'Em contratos'", "rotulo: 'Renovam em 30 dias'", "rotulo: 'Tempo de casa'", "rotulo: 'Sem contrato'",
+    "['todos', 'Todos os clientes ativos'", "['sem', 'Sem contrato'", "buscaHtml('Buscar contrato por cliente')", "botao('Filtros'", "cartaoTopo('Pede ação'", 'd3Linha(valores', '<h2>Mês a mês</h2>',
+    '<span>Até renovar</span>', 'linhaContratoQ', '${ajudaHtml}${registrar}${fala}${numeros}${filtros}', '<div class="v2k-grade2 v2k-contratos d3k-contratos">${clientes}<div class="v2k-col-esq">${pedeAcao}${mesAMes}</div></div>']);
   assert.match(js, /const AGENTE_CONTRATOS = \{ nome: 'Vorcaro', papel: 'Financeiro e contratos' \};/);
   // A linha: nome e desde quando, a trilha até a renovação, o valor e a data; abre no lugar com o histórico e as ações.
   const linha = trecho('  function linhaContratoQ(', '  function abaContratos() {');
-  naOrdem(linha, ['class="v2-abre v2c-linha v2k-ct"', 'class="v2k-nome"', 'class="v2k-trilha"', 'class="v2k-valor"', '${pilulaRenovacao(l)}', 'class="v2-mais"', 'class="v2k-hist"']);
+  naOrdem(linha, ['class="v2-abre v2c-linha v2k-ct"', 'class="v2k-nome"', 'class="d3k-desde"', 'class="v2k-trilha"', 'class="d3k-trilha-n"', 'class="v2k-valor"', '${pilulaRenovacao(l)}', 'class="v2-mais"', 'class="v2k-hist"']);
   for (const a of ["'Abrir o contrato'", "'Registrar contrato'", "botao('Mudar a data'", "botao('Abrir o cliente'"]) assert.ok(linha.includes(a), a);
   assert.match(linha, /pode = !fc && podeContratos\(\)/, 'contrato do Vybe Finanças continua sem editar aqui');
   // O que saiu do alto continua a um clique: período e ordem em "Filtros"; conta do LTV e do mês a mês em "Como funciona".
@@ -28,13 +30,14 @@ test('Contratos segue a ordem do quadro: título com as ações, fala do Vorcaro
 
 test('Churn segue a ordem do quadro: período, Como funciona e Registrar saída; fala, três números, fichas, Pede ação com quem saiu e Saídas e retenção', () => {
   const tela = trecho('  function abaChurn() {', '  // Como o churn é contado');
-  naOrdem(tela, ['<span class="v2c-sub">${periodo}</span>${como}', "botao('Registrar saída'", 'falaDe(AGENTE_CHURN', "rotulo: 'Taxa de churn'", "rotulo: 'Saídas'", "rotulo: 'Receita perdida'",
+  // Direção 3: bloco de ação, quatro números (com "Até sair"), "Quem saiu" em tabela e os gráficos em linha.
+  naOrdem(tela, ['<span class="d3c-meta">${periodo}</span>${como}', "botao('Registrar saída'", 'd3AcaoOu(AGENTE_CHURN', "rotulo: 'Taxa de churn'", "rotulo: 'Saídas'", "rotulo: 'Receita perdida'", "rotulo: 'Até sair'",
     "['sem', 'Sem motivo'", "buscaHtml('Buscar saída por cliente')", "botao('Filtros'", '<span class="v2c-pill r">Sem motivo</span>', '<span class="v2c-pill a">Pode sair</span>', "cartaoTopo('Pede ação'",
-    "'mostrar o histórico'", "[['motivos', 'Motivos'], ['meses', 'Saídas por mês'], ['retencao', 'Retenção']]", '<h2>Saídas e retenção</h2>',
+    "'mostrar o histórico'", '<span>Motivo</span>', "[['motivos', 'Motivos'], ['meses', 'Por mês'], ['retencao', 'Retenção']]", '<h2>Saídas e retenção</h2>',
     '${ajudaHtml}${registrar}${fala}${numeros}${filtros}', '<div class="v2k-grade2 v2k-churn">']);
   assert.match(js, /const AGENTE_CHURN = \{ nome: 'VYBES', papel: 'Comercial' \};/);
   assert.match(tela, /cohortHtml\(c\)/, 'a retenção por mês de entrada continua, na vista "Retenção"');
-  assert.match(tela, /barrasMes\(serie\.meses, 'saidas'[\s\S]*barrasMes\(serie\.meses, 'novos'/, 'as barras de saídas e entradas continuam, na vista "Saídas por mês"');
+  assert.ok(tela.includes("${linhaMes('saidas', 'Saíram')}${linhaMes('novos', 'Entraram')}"), 'saídas e entradas por mês continuam, agora em linha');
 });
 
 test('o que vai ao servidor não mudou: os mesmos formulários e o mesmo envio; "Por quê?" só escolhe o motivo no formulário', () => {
@@ -89,10 +92,11 @@ const BASE = { ok: true, pode: { contratos: true, churn: true }, onboarding: { d
 test('Contratos na tela: Pede ação com a renovação e quem está sem contrato, a linha com trilha, valor e data; "Renovar" abre o formulário de sempre', async () => {
   const { janela, clicar } = await abrirTela('contratos', BASE);
   let html = janela.innerHTML;
-  assert.match(html, /<b>R\$ 4,2 mil por mês<\/b> em 1 contrato ativo\. <b>1 renova em 30 dias<\/b>\. 1 cliente está sem contrato\./);
+  // Sem o núcleo (vm), o bloco de ação cai na fala de antes com a mesma frase curta.
+  assert.match(html, /Alfa renova em 11 dias\./);
   assert.match(html, /<span class="v2c-pill a">Renova em 11 dias<\/span><p><span class="v2k-cli">Alfa<\/span> · R\$\s4\.200 por mês/);
   assert.match(html, /<span class="v2c-pill r">Sem contrato<\/span><p><b>Beta<\/b> · ativo, sem valor mensal nem início/);
-  assert.match(html, /<span class="v2k-nome"><b>Alfa<\/b><small>desde 11\/2025<\/small><\/span>\s*<span class="v2k-trilha"><span class="v2-barra"><i style="--v:97%;--c:#9A5B00"><\/i><\/span><small>12 de 12 meses<\/small><\/span>\s*<b class="v2k-valor">R\$\s4\.200<\/b><span class="v2c-pill a">23\/11 · 11 dias<\/span>/);
+  assert.match(html, /<span class="v2k-nome"><b>Alfa<\/b><small>desde 11\/2025<\/small><\/span>\s*<span class="d3k-desde">11\/2025<\/span>\s*<span class="v2k-trilha"><span class="v2-barra"><i style="--v:97%;--c:#7A4A00"><\/i><\/span><small>12 de 12 meses<\/small><em class="d3k-trilha-n">12\/12<\/em><\/span>\s*<b class="v2k-valor">R\$\s4\.200<\/b><span class="v2c-pill a">23\/11 · 11 dias<\/span>/);
   clicar({ vcFormAbrir: 'contrato', vcCli: '1', vcOnde: 'acao', vcCampo: 'renovacao' });
   html = janela.innerHTML;
   assert.match(html, /<div class="v2k-acao-form"><form class="vc-form" data-vc-form="contrato" data-vc-cli="1">/);
@@ -102,7 +106,7 @@ test('Contratos na tela: Pede ação com a renovação e quem está sem contrato
 test('Churn na tela: a saída sem motivo pede ação; "Classificar a saída" abre "Por quê?" e o formulário de sempre', async () => {
   const { janela, clicar } = await abrirTela('churn', BASE);
   let html = janela.innerHTML;
-  assert.match(html, /<b>1 cliente saiu<\/b> em novembro de 2026 e levou <b>R\$ 2,2 mil por mês<\/b>\. A saída está sem motivo\./);
+  assert.match(html, /Gama saiu em novembro e está sem motivo\./);
   assert.match(html, /data-vc-filtro-ch="sem">Sem motivo · 1<\/button>/);
   assert.match(html, /<h2>Quem saiu · 1<\/h2>/);
   clicar({ vcFormAbrir: 'churn', vcCli: '3', vcOnde: 'acao' });

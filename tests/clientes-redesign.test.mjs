@@ -81,7 +81,9 @@ test('tabela de clientes (quadro Clientes do padrão v2): Cliente, Head, Saúde,
   assert.match(outra, /<b style="color:#B42318">42<\/b>/);
   assert.match(outra, /faltam 2 de 3/);
   assert.match(outra, /<b>Saúde 42<\/b> · 3 peças atrasadas/);
-  assert.match(html, /o título da coluna muda a ordem · plano, segmento e pedidos seguem em Colunas/);
+  // Direção 3: o pé sem frase explicativa; a ordem segue no título de cada coluna e o resto em Colunas.
+  assert.doesNotMatch(html, /o título da coluna muda a ordem/);
+  assert.match(html, /class="v2f-pe d3f-pe">/);
 });
 
 test('filtros da lista: head, segmento e busca recortam; a barra é Ativos, Inativos, Carteira, Head, Filtros e Colunas', () => {
@@ -114,11 +116,13 @@ test('cabeçalho da lista: a fala do Mateus, três números e Novo cliente como 
   ctx.podeAdministrar = () => true;
   ctx.renderClientesBoard();
   assert.equal(pegar('clientes-frase').textContent, '');
-  assert.match(pegar('clientes-acoes').innerHTML, /class="v2f-btn" onclick="openCadastrosStation\(\)">Cadastros<\/button><button type="button" class="v2f-btn p" onclick="novoClienteNoPainel\(\)">Novo cliente/);
+  assert.match(pegar('clientes-acoes').innerHTML, /class="v2f-btn" onclick="openCadastrosStation\(\)">Cadastros<\/button><button type="button" class="v2f-btn p d3f-novo" onclick="novoClienteNoPainel\(\)">Novo cliente/);
+  // Direção 3: quatro números, com o "de quantos" e a barra em "Sem reunião registrada".
   const kpis = pegar('kpi-grid-clientes').innerHTML;
-  assert.match(kpis, /<small>Ativos<\/small><b><span class="v2-num">2<\/span><\/b><small>1 em dia · 1 em risco alto<\/small>/);
-  assert.match(kpis, /<small>Sem registro de reunião<\/small><b><span class="v2-num" style="animation-delay:.12s">1<\/span>/);
-  assert.match(kpis, /<small>Com NPS<\/small><b><span class="v2-num" style="animation-delay:.24s">1<\/span><\/b><small>média 9,0 · nenhum detrator · ninguém sem contato/);
+  assert.match(kpis, /<small class="d3-num-rot">Ativos<\/small><b class="d3-num-v">2<\/b><small class="d3c-sub">1 em dia · 1 em risco alto<\/small>/);
+  assert.match(kpis, /<small class="d3-num-rot">Sem reunião registrada<\/small><b class="d3-num-v" style="animation-delay:.12s">1<small> \/ 2<\/small><\/b><span class="d3-barra r" style="--v:50%">/);
+  assert.match(kpis, /<small class="d3-num-rot">Com NPS<\/small><b class="d3-num-v" style="animation-delay:.24s">1<small> \/ 2<\/small><\/b><small class="d3c-sub">média 9,0 · 0 detratores · 0 sem contato/);
+  assert.match(kpis, /<small class="d3-num-rot">Só na operação<\/small>/);
   const fala = pegar('clientes-aviso').innerHTML;
   assert.match(fala, /Mateus · Atendimento ao cliente/);
   assert.match(fala, /Um cliente está em dia e 1 em risco alto\./);

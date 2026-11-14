@@ -20,22 +20,24 @@ test('o fragmento de CSS não força nada: sem !important e sem html body.mundo'
   assert.match(css, /#vv-planejamentos\.vv-plj\{gap:16px;padding:26px 30px;border:0;background:#F9F8F5/);
 });
 
-test('Planejamentos: mês e "Novo planejamento" no alto, frase do Augusto, três números, uma barra de filtro e "Pede ação" primeiro', () => {
+test('Planejamentos (Direção 3): mês e Novo planejamento no alto, bloco de ação do Augusto, quatro números, filtro e a tabela com Pede ação primeiro', () => {
   assert.match(plj, /janela\.id = 'vv-planejamentos';/);
   assert.match(plj, /cabecalho\(\{ titulo: 'Planejamentos', acoes: `\$\{seg\}\$\{novo\}\$\{botaoX\('data-plj-fechar'\)\}` \}\)/);
-  assert.match(plj, /<summary class="p2-btn p">Novo planejamento<\/summary>/);
-  assert.match(plj, /<span class="p2-quem">Augusto · Copy e conteúdo<\/span>/);
-  for (const t of ['Com planejamento', 'Pedem ação', 'Sem planejamento']) assert.ok(plj.includes(`<small>${t}</small>`), t);
+  assert.match(plj, /<summary class="p2-btn d3pl-novo">\+ Novo planejamento<\/summary>/);
+  assert.match(plj, /window\.d3AcaoHtml\(\{ agente: 'A'/);
+  assert.match(plj, /<small class="d3pl-quem">Augusto · Copy<\/small>/);
+  for (const t of ['Com planejamento', 'Pedem ação', 'Sem planejamento', 'Peças para aprovar']) assert.ok(plj.includes(`rotulo: '${t}'`), t);
+  assert.match(plj, /<span>Cliente<\/span><span>Versão<\/span><span>Status<\/span><span>Peças<\/span><span>Com OK<\/span>/);
   assert.match(plj, /\$\{ficha\('meus', 'Meus clientes'\)\}\$\{ficha\('acao', 'Pedem ação'\)\}\$\{ficha\('sem', 'Sem planejamento'\)\}\$\{ficha\('todos', 'Todos'\)\}/);
   assert.match(plj, /filtro: 'todos'/, 'abre em Todos, como no quadro');
   assert.match(plj, /const titulo = coisas \? 'Pede ação'/);
   // A linha que pede ação abre no lugar com as etapas e "Abrir como documento"; as outras têm só "Abrir".
-  assert.match(plj, /class="v2-abre p2-abre" data-plj-linha=/);
+  assert.match(plj, /class="v2-abre p2-abre d3pl-abre" data-plj-linha=/);
   assert.match(plj, /data-plj-aba="historico">Histórico<\/button>/);
   assert.match(plj, /class="p2-btn s k" data-plj-abrir="\$\{esc\(pl\.id\)\}" data-plj-aba="editar">Editar e revisar<\/button>/);
   assert.match(plj, />Abrir como documento<\/button>/);
   assert.match(plj, /Criar os \$\{n\}<\/button>/);
-  assert.match(plj, /Abrir mostra o documento; revisar, aprovar e mandar pelo WhatsApp com o aviso do Hub ficam dentro dele\./);
+  assert.doesNotMatch(plj, /Abrir mostra o documento/, 'Direção 3: sem frase explicativa no rodapé');
   // Nada de planejamento novo aqui: as portas são as de sempre.
   assert.match(plj, /window\.abrirPlanejamento\(b\.dataset\.pljAbrir, b\.dataset\.pljAba \|\| 'documento'\)/);
   assert.match(plj, /window\.novoPlanejamento\(b\.dataset\.pljNovo, b\.dataset\.pljNome \|\| ''\)/);
@@ -51,9 +53,10 @@ test('Planejamentos: filtrar e ordenar continuam com a mesma regra', () => {
   assert.deepEqual([...P._filtrar(postos, 'meus')].map((p) => p.cliente), ['A']);
 });
 
-test('Impressões: frase do Nestor, três números, baralho do que espera um ok e uma linha por peça com as etapas', () => {
-  assert.match(imp, /<span class="p2-quem">Nestor · Compras, fornecedores e impressões<\/span>/);
-  for (const t of ['Abertas', 'Atrasadas', 'Sem fornecedor']) assert.ok(imp.includes(`<small>${t}</small>`), t);
+test('Impressões (Direção 3): bloco de ação do Nestor, quatro números, baralho do que espera um ok e a tabela com a trilha', () => {
+  assert.match(imp, /<small class="d3im-quem">Nestor · Compras<\/small>/);
+  for (const t of ['Abertas', 'Atrasadas', 'Sem fornecedor', 'Entregues no mês']) assert.ok(imp.includes(`rotulo: '${t}'`), t);
+  assert.match(imp, /<span>Peça<\/span><span>Etapa<\/span><span>Fornecedor<\/span><span>Prazo<\/span>/);
   assert.match(imp, /<div class="v2-baralho vi2-baralho" aria-live="polite">/);
   assert.match(imp, /data-vi="agora-nao">Agora não<\/button><button type="button" class="p2-btn k v2-estado" data-vi-decidir="atual">Aprovar<\/button>/);
   assert.match(imp, /seta para os lados passa/);
@@ -73,8 +76,8 @@ test('Impressões: frase do Nestor, três números, baralho do que espera um ok 
 test('Toolkit: visão em pílulas com a busca, usados por último em cartões e as três ferramentas com o resultado no lugar', () => {
   assert.match(fer, /<span class="p2-seg" role="tablist" aria-label="Ferramentas do Toolkit">/);
   assert.match(fer, /placeholder="Buscar ferramenta" data-vf-busca/);
-  assert.match(fer, /<span class="p2-quem">VYBES · Ferramentas rápidas<\/span>/);
-  assert.match(fer, /<span class="p2-sub">neste computador · refaz com um clique<\/span>/);
+  assert.match(fer, /<small class="d3tk-quem">VYBES · Ferramentas<\/small>/);
+  assert.match(fer, /<span class="p2-sub">neste computador<\/span>/);
   for (const t of ['data-vf-gerar="qr">Gerar QR<', 'data-vf-gerar="wa">Criar link<', 'data-vf-gerar="roi">Calcular<']) assert.ok(fer.includes(t), t);
   for (const t of ['Baixar de novo', 'Refazer', 'Gerar o primeiro QR', 'Nada usado ainda neste computador.']) assert.ok(fer.includes(t), t);
   const guardado = {};
@@ -88,7 +91,10 @@ test('Toolkit: visão em pílulas com a busca, usados por último em cartões e 
 });
 
 test('Direção de arte: a Fila do Danilo com Delegar, parada em dias e Cobrar; aprovar continua em dois cliques', () => {
-  assert.match(cri, /<b>Fila do Danilo<\/b><small>\$\{plural\(delegacoes\.length, 'delegação', 'delegações'\)\} · \$\{plural\(cobrancas\.length, 'cobrança', 'cobranças'\)\}<\/small>/);
+  // Direção 3 (D3-Criacao): linhas COBRAR/DELEGAR; delegar mostra "→ pessoa N%"; o pé conta cobranças e entregas.
+  assert.match(cri, /<b>Fila do Danilo<\/b><small>\$\{delegacoes\.length \+ cobrancas\.length\} · sugestão<\/small>/);
+  assert.match(cri, /<span class="vcr-q \$\{tipo\}">\$\{tipo === 'delegar' \? 'Delegar' : 'Cobrar'\}<\/span>/);
+  assert.match(cri, /rotulo: `→ \$\{pessoa\(s\.para\)\}/);
   assert.match(cri, /\[`Parada \$\{plural\(s\.parado, 'dia', 'dias'\)\}`, 'r'\]/);
   assert.match(cri, /\$\{tipo === 'delegar' \? 'Deixar como está' : 'Agora não'\}/);
   assert.match(cri, /data-vcr-confirmar="\$\{esc\(chave\)\}"/);

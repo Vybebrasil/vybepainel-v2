@@ -1,39 +1,73 @@
-/* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status". */
-#status-editor .v2-st-op{display:flex;align-items:center;gap:8px}
-#status-editor .v2-st-dica{margin-left:auto;font:500 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
-#status-editor .v2-st-todos{margin-top:4px;border-top:1px solid #F1EDE6;justify-content:flex-start;font-weight:600}
+/* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
+   DIREÇÃO 3 (quadro D3-StatusMenu, 13/11/2026): menu branco de 260, cada status em pílula clara com a bolinha do catálogo
+   (cheia só em Alteração, Atrasada e Finalizado), "Todos os N status" em tinta sublinhada e "Ordem e próximo passo" com o
+   ícone. A lista inteira abre com "Todos · N" e o quadro; o atual leva o visto. */
+body.mundo #status-editor.status-editor{min-width:260px;padding:8px}
+body.mundo #status-editor .status-editor-head{padding:6px 10px 8px;font:600 12px/1.2 var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none}
+body.mundo #status-editor .v2-st-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+body.mundo #status-editor .v2-st-cab small{font:400 12px var(--vv-texto,Inter,sans-serif)}
+#status-editor .v2-st-op{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 10px}
+#status-editor .v2-st-op.current{box-shadow:inset 0 0 0 999px #F3F1EC}
+#status-editor .v2-st-op .status-editor-check{margin-left:auto;display:inline-grid;place-items:center}
+#status-editor .v2-st-op .status-editor-check svg{stroke:#1F1D1A}
+#status-editor .v2-st-dica{margin-left:auto;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#status-editor .v2-st-todos{min-height:40px;margin-top:4px;border-top:1px solid #F1EDE6;justify-content:flex-start;font-weight:600}
+#status-editor .v2-st-op .v2-st-pilula{gap:5px;height:24px;padding:0 10px;background:#F3F1EC;color:#4A463F;font:600 12.5px/24px var(--vv-texto,Inter,system-ui,sans-serif)}
+#status-editor .v2-st-op .v2-st-pilula::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,#8A847A)}
+#status-editor .v2-st-op .v2-st-pilula:is(.a,.r,.g)::before{display:none}
+#status-editor .v2-st-op .v2-st-pilula.n,#status-editor .v2-st-op .v2-st-pilula.b,#status-editor .v2-st-op .v2-st-pilula.v{background:#F3F1EC;color:#4A463F}
+#status-editor .v2-st-todos .v2-st-todos-txt{color:#1F1D1A;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 
 /* Ordem e próximo passo (13/11/2026): o link no pé do menu de status e a janela que escolhe como o botão principal
-   da peça usa a ordem (vybe-status.js, abrirFluxoDoStatus). Padrão das famílias: cartões de escolha com o escolhido
-   preto, lista em linhas, primário preto. */
-#status-editor .v2-st-fluxo{justify-content:flex-start;color:#6B665E;font:500 12.5px var(--vv-texto,Inter,sans-serif)}
-#status-editor .v2-st-fluxo:hover{color:#1F1D1A}
-#workflow-modal .fx-fluxo{display:grid;gap:12px;margin:4px 0 16px}
-#workflow-modal .fx-titulo{margin:0;font:600 20px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;color:#1F1D1A}
-#workflow-modal .fx-nota{margin:0;font:400 13px/1.45 var(--vv-texto,Inter,sans-serif);color:#6B665E}
-#workflow-modal .fx-modos{display:grid;gap:8px}
-#workflow-modal .fx-modo{appearance:none;display:grid;gap:2px;width:100%;margin:0;padding:12px 14px;border:0;border-radius:16px;background:#F3F1EC;color:#1F1D1A;text-align:left;cursor:pointer;
+   da peça usa a ordem (vybe-status.js, abrirFluxoDoStatus). Direção 3: três cartões de escolha com ícone, o escolhido
+   preto; "Depois de cada status" em linhas com número, pílula, seta e destino; pé com "Mudar a ordem da lista". */
+#status-editor .v2-st-fluxo{gap:10px;min-height:40px;justify-content:flex-start;font:600 13px var(--vv-texto,Inter,sans-serif)}
+#status-editor .v2-st-fluxo svg{flex:none}
+#workflow-modal:has(.fx-fluxo){background:#FFFFFF}
+#workflow-modal .workflow-kicker > span:first-child:has(~ .fx-selo){color:#6B665E;font:400 13px var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none}
+#workflow-modal .workflow-kicker > .fx-selo,#workflow-modal .fx-selo{display:inline-flex;align-items:center;height:22px;margin-left:auto;margin-right:10px;padding:0 9px;border-radius:999px;background:#F3F1EC;color:#4A463F;font:600 12px var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#workflow-modal .fx-fluxo{display:grid;gap:14px;margin:4px 0 16px}
+#workflow-modal .fx-titulo{margin:0;font:700 26px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:#1F1D1A}
+#workflow-modal .fx-modos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#workflow-modal .fx-modo{appearance:none;display:flex;align-items:center;gap:12px;width:100%;min-height:58px;margin:0;padding:10px 14px;border:0;border-radius:16px;background:#F3F1EC;color:#1F1D1A;text-align:left;cursor:pointer;
   font:inherit;transition:background-color .15s,color .15s,scale .14s cubic-bezier(.34,1.56,.64,1)}
+#workflow-modal .fx-modo > span:last-child{display:grid;gap:1px;min-width:0}
+#workflow-modal .fx-modo-ic{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#FFFFFF;color:#1F1D1A}
 #workflow-modal .fx-modo:hover{background:#EAE6DE}
 #workflow-modal .fx-modo:active{scale:.98}
 #workflow-modal .fx-modo b{font:600 13.5px/1.3 var(--vv-texto,Inter,sans-serif)}
-#workflow-modal .fx-modo small{font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#workflow-modal .fx-modo small{font:400 12px/1.35 var(--vv-texto,Inter,sans-serif);color:#6B665E}
 #workflow-modal .fx-modo.on{background:#1F1D1A;color:#FFFFFF}
 #workflow-modal .fx-modo.on small{color:#D9D4CB}
 #workflow-modal .fx-modo:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
-#workflow-modal .fx-cor{flex:none;display:inline-block;width:10px;height:10px;margin-right:8px;border-radius:50%;background:var(--c,#8A847A)}
-#workflow-modal .fx-ordem{display:grid;gap:0;margin:0;padding:0 0 0 22px;max-height:300px;overflow:auto;font:400 13.5px/1.4 var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
-#workflow-modal .fx-ordem li{padding:7px 0;border-top:1px solid #F1EDE6}
-#workflow-modal .fx-ordem li:first-child{border-top:0}
-#workflow-modal .fx-lista{display:grid;gap:0;max-height:320px;overflow:auto}
-#workflow-modal .fx-linha{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.2fr);align-items:center;gap:8px;padding:8px 0;border-top:1px solid #F1EDE6;font:400 13.5px/1.35 var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
+#workflow-modal .fx-lista-topo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:4px;border-bottom:1px solid #F1EDE6}
+#workflow-modal .fx-lista-topo b{font:600 15px var(--vv-texto,Inter,sans-serif);color:#1F1D1A}
+#workflow-modal .fx-legenda{display:inline-flex;align-items:center;gap:6px;font:400 12px var(--vv-texto,Inter,sans-serif);color:#6B665E}
+#workflow-modal .fx-legenda i{width:10px;height:10px;margin-left:6px;border-radius:50%;background:#F3F1EC}
+#workflow-modal .fx-legenda i.fx-leg-on{background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #1F1D1A}
+#workflow-modal .fx-lista{display:grid;gap:0;margin:-8px 0 0;padding:0;max-height:min(420px,52vh);overflow:auto;list-style:none}
+#workflow-modal .fx-linha{display:grid;grid-template-columns:28px minmax(0,1fr) auto minmax(0,230px);align-items:center;gap:8px;min-height:46px;padding:0;border-top:1px solid #F1EDE6;font:400 13.5px/1.35 var(--vv-texto,Inter,sans-serif);color:#1F1D1A;animation:d3LinhaNova .35s cubic-bezier(.22,1,.36,1) both}
 #workflow-modal .fx-linha:first-child{border-top:0}
-#workflow-modal .fx-de{display:flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#workflow-modal .fx-n{font:500 12.5px var(--vv-texto,Inter,sans-serif);color:#6B665E;text-align:center}
+#workflow-modal .fx-de{display:flex;align-items:center;min-width:0;overflow:hidden}
+#workflow-modal .fx-pil{display:inline-flex;align-items:center;gap:5px;height:24px;max-width:100%;padding:0 10px;border-radius:999px;background:#F3F1EC;color:#4A463F;font:600 12.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workflow-modal .fx-pil::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,#8A847A)}
+#workflow-modal .fx-pil:is(.a,.r,.g)::before{display:none}
+#workflow-modal .fx-pil.a{background:#FFF4D6;color:#7A4A00}
+#workflow-modal .fx-pil.r{background:#FDECEE;color:#B42318}
+#workflow-modal .fx-pil.g{background:#E8F5EC;color:#11613A}
 #workflow-modal .fx-seta{color:#B5AFA5}
-#workflow-modal .fx-linha select{min-width:0;width:100%;height:34px;padding:0 10px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter,sans-serif)}
-#workflow-modal .fx-ordem-btn{margin-right:auto}
-@media (max-width:520px){
-  #workflow-modal .fx-linha{grid-template-columns:minmax(0,1fr);gap:4px}
-  #workflow-modal .fx-seta{display:none}
+#workflow-modal .fx-para{display:flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;background:#F9F8F5;color:#4A463F;font:500 13px var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workflow-modal .fx-linha select{min-width:0;width:100%;height:36px;padding:0 12px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:500 13px var(--vv-texto,Inter,sans-serif)}
+#workflow-modal .fx-linha select.escolhido{background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #1F1D1A;font-weight:600}
+#workflow-modal .fx-ordem-btn{display:inline-flex;align-items:center;gap:8px;margin-right:auto}
+@media (max-width:720px){
+  #workflow-modal .fx-modos{grid-template-columns:minmax(0,1fr)}
+  #workflow-modal .fx-linha{grid-template-columns:24px minmax(0,1fr) auto minmax(0,1fr)}
 }
-@media (prefers-reduced-motion:reduce){#workflow-modal .fx-modo{transition:none}}
+@media (max-width:520px){
+  #workflow-modal .fx-linha{grid-template-columns:24px minmax(0,1fr);gap:4px;padding:6px 0}
+  #workflow-modal .fx-seta{display:none}
+  #workflow-modal :is(.fx-para,.fx-linha select){grid-column:2}
+}
+@media (prefers-reduced-motion:reduce){#workflow-modal .fx-modo{transition:none}#workflow-modal .fx-linha{animation:none}}

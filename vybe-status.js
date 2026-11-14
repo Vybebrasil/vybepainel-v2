@@ -121,9 +121,14 @@ function openStatusEditor(event, itemId) {
   const colunaDoStatus = `status:${isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID}`;
   const comFerramentas = typeof ferramentasDaEtiquetaHtml === 'function';
   const cabeca = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>`;
-  const listaInteira = () => `${cabeca}${statusOptions.map(o => {
+  // Direção 3 (quadro D3-StatusMenu): a lista inteira abre com "Todos · N" e o quadro; cada status em pílula clara com a
+  // bolinha do catálogo (cheia só em Alteração, Atrasada e Finalizado) e o atual marcado com o visto.
+  const tomDe = (t) => (typeof pv2Tom === 'function' ? pv2Tom(t) : '');
+  const visto = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const cabecaTodos = `<div class="status-editor-head v2-st-cab"><span>Todos · ${statusOptions.length}</span><small>${isRequestItem(item) ? 'Solicitações' : 'Produção'}</small></div>`;
+  const listaInteira = () => `${cabecaTodos}${statusOptions.map(o => {
     const atual = mesmoStatus(o.label, item.status);
-    const linha = `<button type="button" class="status-editor-option ${atual ? 'current' : ''}" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span><span>${safeText(o.label)}${o.ativa === false ? ' (desligada)' : ''}</span>${atual ? '<span class="status-editor-check">✓</span>' : ''}</button>`;
+    const linha = `<button type="button" class="status-editor-option v2-st-op ${atual ? 'current' : ''}" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="v2-st-pilula ${tomDe(o.label)}" style="--c:${o.color}">${safeText(o.label)}${o.ativa === false ? ' (desligada)' : ''}</span>${atual ? `<span class="status-editor-check">${visto}</span>` : ''}</button>`;
     if (!comFerramentas || !o.chave) return linha;
     const etiqueta = { chave: o.chave, rotulo: o.label, cor: o.color, ativa: o.ativa !== false };
     return `<div class="etiqueta-linha ${o.ativa === false ? 'desligada' : ''}">${linha}${ferramentasDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}${chaveDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}</div>`;
@@ -141,7 +146,7 @@ function openStatusEditor(event, itemId) {
   const frente = i < 0 ? [] : [[sugerido, 'próximo'], [ativas[i + 1], ''], [ativas[i + 2], '']].filter(([o]) => novo(o)).slice(0, 2);
   const curto = i < 0 ? [] : [...frente, ...[[ativas[i - 1], 'voltar']].filter(([o]) => novo(o))];
   const fluxoBtn = typeof podeGerirEtiquetas === 'function' && podeGerirEtiquetas()
-    ? `<button type="button" class="status-editor-option v2-st-fluxo" onclick="abrirFluxoDoStatus('${item.id}')"><span>Ordem e próximo passo</span></button>` : '';
+    ? `<button type="button" class="status-editor-option v2-st-fluxo" onclick="abrirFluxoDoStatus('${item.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Ordem e próximo passo</span></button>` : '';
   const opcaoCurta = ([o, dica]) => `<button type="button" class="status-editor-option v2-st-op" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="v2-st-pilula ${typeof pv2Tom === 'function' ? pv2Tom(o.label) : ''}" style="--c:${o.color}">${safeText(o.label)}</span>${dica ? `<small class="v2-st-dica">${dica}</small>` : ''}</button>`;
   menu.innerHTML = curto.length && statusOptions.length > 4
     ? `${cabeca}${curto.map(opcaoCurta).join('')}<button type="button" class="status-editor-option v2-st-todos" data-status-todos><span class="v2-st-todos-txt">Todos os ${statusOptions.length} status</span></button>${fluxoBtn}`
@@ -698,10 +703,11 @@ async function updateFocusStatus(itemId, escolha) { const item=findOperationalIt
 // fluxo-status, server/fluxo-status.js) e vale para todo mundo. O que a gaveta lê está em vybe-gaveta.js
 // (FLUXO_STATUS, fluxoDoQuadro, proximoStatusDaPeca).
 let FLUXO_EM_EDICAO = null;
+// Direção 3 (quadro D3-StatusMenu): três cartões de escolha com ícone, rótulo curto e o efeito em poucas palavras.
 const FLUXO_MODOS = [
-  ['ordem', 'Seguir a ordem da lista', 'O botão envia para o status logo abaixo.'],
-  ['proprio', 'Escolher o próximo de cada status', 'O que ficar sem escolha segue a lista.'],
-  ['perguntar', 'Sempre perguntar', 'O botão abre o menu de status, sem sugerir.'],
+  ['ordem', 'Seguir a lista', 'vai ao de baixo', '<path d="M12 5v14M6 13l6 6 6-6"/>'],
+  ['proprio', 'Escolher o próximo', 'o resto segue a lista', '<path d="M6 4v16M6 12h12M14 8l4 4-4 4"/>'],
+  ['perguntar', 'Sempre perguntar', 'abre o menu', '<path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17.5v.5"/>'],
 ];
 function abrirFluxoDoStatus(itemId) {
   if (typeof closeStatusEditor === 'function') closeStatusEditor();
@@ -717,27 +723,30 @@ function abrirFluxoDoStatus(itemId) {
 function fluxoDoStatusHtml() {
   const f = FLUXO_EM_EDICAO;
   const pedido = typeof BOARD_DEMANDAS_ID !== 'undefined' && String(f.board) === String(BOARD_DEMANDAS_ID);
-  const bolinha = (o) => `<i class="fx-cor" style="--c:${/^#[0-9a-f]{3,8}$/i.test(String(o.color || '')) ? o.color : '#8A847A'}"></i>`;
-  const corpo = f.modo === 'ordem'
-    ? `<ol class="fx-ordem">${f.opcoes.map((o) => `<li>${bolinha(o)}${safeText(o.label)}</li>`).join('')}</ol>`
-    : f.modo === 'proprio'
-      ? `<div class="fx-lista">${f.opcoes.map((o, i) => {
-          const seguinte = f.opcoes[i + 1], escolha = f.proximo[o.chave] || '';
-          const opcoes = [`<option value="">${seguinte ? `Seguinte da lista (${safeText(seguinte.label)})` : 'Fim da lista (pergunta)'}</option>`,
-            ...f.opcoes.filter((x) => x.chave !== o.chave).map((x) => `<option value="${safeText(x.chave)}"${escolha === x.chave ? ' selected' : ''}>${safeText(x.label)}</option>`),
-            `<option value="-"${escolha === '-' ? ' selected' : ''}>Perguntar (abre o menu)</option>`];
-          return `<label class="fx-linha"><span class="fx-de">${bolinha(o)}${safeText(o.label)}</span><span class="fx-seta" aria-hidden="true">→</span>
-            <select aria-label="Depois de ${safeText(o.label)}" onchange="fluxoEscolher('${paraAtributo(o.chave)}', this.value)">${opcoes.join('')}</select></label>`;
-        }).join('')}</div>`
-      : '<p class="fx-nota">Nenhum status é sugerido: o botão principal da peça vira "Trocar status" e abre o menu.</p>';
-  return `<div class="workflow-kicker"><span>Status · ${pedido ? 'Solicitações' : 'Produção'}</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></div>
+  const tom = (t) => (typeof pv2Tom === 'function' ? pv2Tom(t) : '');
+  const pilula = (o) => `<span class="fx-pil ${tom(o.label)}" style="--c:${/^#[0-9a-f]{3,8}$/i.test(String(o.color || '')) ? o.color : '#8A847A'}">${safeText(o.label)}</span>`;
+  const seta = '<svg class="fx-seta" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  // Direção 3: a lista "Depois de cada status" aparece nos três modos (número, pílula, seta e o destino). Só no modo
+  // "Escolher o próximo" o destino é um seletor; nos outros ele mostra o que o botão vai fazer.
+  const corpo = `<div class="fx-lista-topo"><b>Depois de cada status</b>${f.modo === 'proprio' ? '<span class="fx-legenda"><i class="fx-leg-on"></i>escolhido<i></i>da lista</span>' : ''}</div>
+      <ol class="fx-lista fx-${f.modo}">${f.opcoes.map((o, i) => {
+        const seguinte = f.opcoes[i + 1], escolha = f.proximo[o.chave] || '';
+        const destino = f.modo === 'perguntar' ? 'Perguntar' : seguinte ? seguinte.label : 'Perguntar';
+        if (f.modo !== 'proprio') return `<li class="fx-linha"><span class="fx-n">${i + 1}</span><span class="fx-de">${pilula(o)}</span>${seta}<span class="fx-para">${safeText(destino)}</span></li>`;
+        const opcoes = [`<option value="">${seguinte ? `Seguinte · ${safeText(seguinte.label)}` : 'Fim da lista · pergunta'}</option>`,
+          ...f.opcoes.filter((x) => x.chave !== o.chave).map((x) => `<option value="${safeText(x.chave)}"${escolha === x.chave ? ' selected' : ''}>${safeText(x.label)}</option>`),
+          `<option value="-"${escolha === '-' ? ' selected' : ''}>Perguntar</option>`];
+        return `<li class="fx-linha"><span class="fx-n">${i + 1}</span><span class="fx-de">${pilula(o)}</span>${seta}
+          <select class="${escolha ? 'escolhido' : ''}" aria-label="Depois de ${safeText(o.label)}" onchange="fluxoEscolher('${paraAtributo(o.chave)}', this.value);this.classList.toggle('escolhido',!!this.value)">${opcoes.join('')}</select></li>`;
+      }).join('')}</ol>`;
+  const icone = (d) => `<span class="fx-modo-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`;
+  return `<div class="workflow-kicker"><span>Status · ${pedido ? 'Solicitações' : 'Produção'}</span><span class="fx-selo" title="O botão principal de todas as peças deste quadro segue esta escolha">vale para todos</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button></div>
     <div class="fx-fluxo">
       <h3 class="fx-titulo">Ordem e próximo passo</h3>
-      <p class="fx-nota">Como o botão principal da peça escolhe para onde ela vai. Vale para todo mundo.</p>
-      <div class="fx-modos" role="radiogroup" aria-label="Como funciona">${FLUXO_MODOS.map(([v, t, d]) => `<button type="button" role="radio" aria-checked="${f.modo === v}" class="fx-modo${f.modo === v ? ' on' : ''}" onclick="fluxoModo('${v}')"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
+      <div class="fx-modos" role="radiogroup" aria-label="Como funciona">${FLUXO_MODOS.map(([v, t, d, ic]) => `<button type="button" role="radio" aria-checked="${f.modo === v}" class="fx-modo${f.modo === v ? ' on' : ''}" onclick="fluxoModo('${v}')">${icone(ic)}<span><b>${t}</b><small>${d}</small></span></button>`).join('')}</div>
       ${corpo}
     </div>
-    <div class="workflow-actions"><button type="button" class="workflow-secondary fx-ordem-btn" onclick="fluxoMudarOrdem()">Mudar a ordem da lista</button><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary" id="fx-salvar" onclick="salvarFluxoDoStatus()">Salvar</button></div>`;
+    <div class="workflow-actions"><button type="button" class="workflow-secondary fx-ordem-btn" onclick="fluxoMudarOrdem()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></svg>Mudar a ordem da lista</button><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="button" class="workflow-primary v2-estado" id="fx-salvar" onclick="salvarFluxoDoStatus()">Salvar</button></div>`;
 }
 function fluxoRepintar() {
   const modal = document.getElementById('workflow-modal');
@@ -757,11 +766,13 @@ async function salvarFluxoDoStatus() {
   const f = FLUXO_EM_EDICAO;
   if (!f) return;
   const botao = document.getElementById('fx-salvar');
-  if (botao) { botao.disabled = true; botao.textContent = 'Salvando…'; }
+  // O botão conta o estado: gira enquanto grava e fica verde quando gravou (Direção 3, "botão que conta o estado").
+  if (botao) { botao.disabled = true; botao.dataset.estado = 'indo'; }
   try {
     const r = await chamarEtiqueta({ acao: 'fluxo-status', coluna: `status:${f.board}`, modo: f.modo, proximo: f.modo === 'proprio' ? f.proximo : {} });
     if (r?.fluxo?.boards) FLUXO_STATUS = r.fluxo;
     FLUXO_EM_EDICAO = null;
+    if (botao?.isConnected) { botao.dataset.estado = 'feito'; botao.textContent = 'Salvo'; await new Promise((ok) => setTimeout(ok, 650)); }
     closeWorkflowModal();
     showToast('✓ Próximo passo salvo · vale para todo mundo', 'ok', 4500);
     const id = typeof activeWorkspaceItemId !== 'undefined' ? activeWorkspaceItemId : '';
@@ -770,7 +781,7 @@ async function salvarFluxoDoStatus() {
       if (item) renderWorkspaceDrawer(DETALHE_DA_GAVETA, item);
     }
   } catch (e) {
-    if (botao) { botao.disabled = false; botao.textContent = 'Tentar de novo'; }
+    if (botao) { botao.disabled = false; delete botao.dataset.estado; botao.textContent = 'Tentar de novo'; }
     showToast(e.message, 'err', 7000);
   }
 }

@@ -53,7 +53,7 @@ test('gaveta: o botão principal segue o modo do quadro da peça', () => {
 test('menu de status: o "próximo" é o da gaveta e quem administra edita o fluxo ali mesmo', () => {
   assert.ok(status.includes("const sugerido = i < 0 ? null : (typeof proximoStatusDaPeca === 'function' ? proximoStatusDaPeca(item) : ativas[i + 1]);"));
   assert.ok(status.includes("typeof podeGerirEtiquetas === 'function' && podeGerirEtiquetas()") && status.includes('Ordem e próximo passo'));
-  for (const p of ["['ordem', 'Seguir a ordem da lista'", "['proprio', 'Escolher o próximo de cada status'", "['perguntar', 'Sempre perguntar'",
+  for (const p of ["['ordem', 'Seguir a lista'", "['proprio', 'Escolher o próximo'", "['perguntar', 'Sempre perguntar'",
     "organizarEtiquetas(`status:${board}`, 'status', 'Status')", "chamarEtiqueta({ acao: 'fluxo-status', coluna: `status:${f.board}`"]) assert.ok(status.includes(p), p);
 });
 

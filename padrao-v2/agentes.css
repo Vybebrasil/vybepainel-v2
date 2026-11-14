@@ -173,7 +173,7 @@
 #vv-agentes.v2a .v2a-achados-pe > p{flex:1;min-width:0;margin:0}
 #vv-agentes.v2a .v2a-dias{flex:none;display:flex;align-items:flex-end;gap:4px;height:34px}
 #vv-agentes.v2a .v2a-dias > i{display:block;width:10px;height:var(--h,10%);border-radius:3px;background:#D9D3C8}
-#vv-agentes.v2a .v2a-dias > i.hoje{background:#FF7A2F}
+#vv-agentes.v2a .v2a-dias > i.hoje{background:#1F1D1A}
 #vv-agentes.v2a .v2a-ficha{display:flex;flex-direction:column;gap:14px;padding-top:16px;border-top:1px solid #E6E0D6}
 #vv-agentes.v2a .v2a-ficha > *{margin:0}
 @media (max-width:1180px){

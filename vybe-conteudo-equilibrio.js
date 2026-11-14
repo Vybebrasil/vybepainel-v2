@@ -27,7 +27,8 @@
   const ROTULO = Object.freeze({ atracao: 'Atração', educacao: 'Educação', conversao: 'Conversão' });
   const MINUSCULO = Object.freeze({ atracao: 'atração', educacao: 'educação', conversao: 'conversão' });
   // Cores de categoria (identificação, não urgência): ponto colorido, nunca fundo de botão.
-  const COR = Object.freeze({ atracao: '#1F7AE0', educacao: '#0E8F6E', conversao: '#C2490C' });
+  // Um matiz só, em três tons (confere de cor, 13/11/2026): o laranja é da ação e o azul/verde tinham outros sentidos.
+  const COR = Object.freeze({ atracao: '#8A847A', educacao: '#4A463F', conversao: '#1F1D1A' });
   const ETAPAS = Object.freeze([
     ['aprovar_interno', 'Para aprovar (interno)'], ['alteracao_interna', 'Alteração interna'],
     ['aprovado_interno', 'Aprovado internamente'], ['alteracao_cliente', 'Alteração do cliente'],

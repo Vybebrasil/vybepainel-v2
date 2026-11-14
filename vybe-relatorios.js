@@ -34,7 +34,6 @@ const DIARIO_PRONTO = ['finalizado'];
 const DIARIO_ORIGEM = { manual_painel: 'Pelo painel', cron: 'Automático', servico: 'VYBES', resumo_manha: 'Resumo da manhã' };
 const DIARIO_CERTO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
 const DIARIO_PESSOA = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
-const DIARIO_PE = '<p class="v2d-sub">Um registro guarda como os conteúdos estão naquele momento, para comparar com outro dia. Veiculação ou Prazo escolhe a data que conta.</p>';
 let diarioLista = [];
 let diarioComparado = null;   // registro que os números, a fala e "O que mudou" mostram; sem escolha, o mais novo
 let diarioAberto;             // linha aberta no lugar; sem escolha, a do registro comparado
@@ -64,16 +63,17 @@ function diarioNumeros(snap, modo = diarioDateMode) {
   const seg = new Date(q.getFullYear(), q.getMonth(), q.getDate() - ((q.getDay() + 6) % 7));
   const ini = diarioIso(seg), fim = diarioIso(new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6));
   const etapas = {}, pronta = new Set(), atrasada = new Set(), alt = new Set();
-  let prontas = 0;
+  let prontas = 0, semana = 0;
   for (const d of snap.itens) {
     const ref = diarioDataRef(d, modo), id = String(d.id);
+    if (ref >= ini && ref <= fim) semana++;
     if (diarioPronto(d)) { pronta.add(id); if (ref >= ini && ref <= fim) prontas++; continue; }
     const st = String(d.status || '').trim() || 'Sem status';
     etapas[st] = (etapas[st] || 0) + 1;
     if (ref && ref < dia) atrasada.add(id);
     if (/altera/i.test(st)) alt.add(id);
   }
-  return { dia, prontas, atrasadas: atrasada.size, alteracao: alt.size, etapas, pronta, atrasada, alt };
+  return { dia, prontas, semana, atrasadas: atrasada.size, alteracao: alt.size, etapas, pronta, atrasada, alt };
 }
 
 // O que mudou de um registro para o seguinte, peça por peça.
@@ -162,6 +162,14 @@ function diarioCabecalho() {
   });
   const botao = diarioBotao();
   if (botao) { botao.classList.remove('vb-botao', 'principal'); botao.classList.add('v2d-acao', 'v2-estado'); }
+  // Direção 3: o dia de hoje ao lado do título ("sexta, 13 nov").
+  const titulo = document.querySelector('#painel-diario .vb-cabecalho-texto h2');
+  if (titulo && !titulo.querySelector('.d3d-data')) {
+    const hoje = new Date(), data = document.createElement('span');
+    data.className = 'd3d-data';
+    data.textContent = `${hoje.toLocaleDateString('pt-BR', { weekday: 'long' }).replace('-feira', '')}, ${hoje.getDate()} ${hoje.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}`;
+    titulo.append(data);
+  }
 }
 
 function diarioBotao() { return document.querySelector('#painel-diario .vb-cabecalho-acoes > button[onclick^="salvarSnapshot"]'); }
@@ -277,38 +285,73 @@ function diarioMostrarTodos(sim) {
 }
 function diarioMostrarEtapas(sim) { diarioEtapasTodas = Boolean(sim); diarioPintar(); }
 
+// Direção 3 (moodboard 3, 13/11/2026): o bloco de ação laranja do Heitor, quatro números (com a linha dos registros),
+// "Registros" em grade e "O que mudou" com a pílula de status, e "Finalizado na semana" em linha. As peças vêm de
+// vybe-core.js (d3AcaoHtml, d3NumHtml, d3LinhaSvg); fora do painel (testes), o mesmo HTML montado aqui.
+const DIARIO_COR_STATUS = { 'a fazer': '#C4C4C4', 'pode fazer': '#FFCB00', 'em andamento': '#FDAB3D', 'para aprovação': '#579BFC', 'para agendar': '#9D50DD', 'agendado': '#037F4C', 'ag. info cliente': '#9D50DD' };
+function diarioStatusHtml(nome, pronta) {
+  const n = String(nome || '').trim().toLowerCase();
+  const cheia = pronta || n === 'finalizado' ? 'g' : /altera/.test(n) ? 'a' : /atrasad/.test(n) ? 'r' : '';
+  return `<span class="d3d-st${cheia ? ' ' + cheia : ''}"${cheia ? '' : ` style="--c:${DIARIO_COR_STATUS[n] || '#C4C4C4'}"`} title="${diarioEsc(nome)}">${diarioEsc(nome)}</span>`;
+}
+function diarioD3Linha(valores, op) {
+  if (typeof d3LinhaSvg === 'function') return d3LinhaSvg(valores, op);
+  const v = (valores || []).map(Number).filter(Number.isFinite);
+  return v.length < 2 ? '' : `<svg class="d3-graf" viewBox="0 0 ${op?.largura || 120} ${op?.altura || 32}" aria-hidden="true"><polyline points="${v.map((n, i) => `${i},${n}`).join(' ')}"/></svg>`;
+}
+function diarioD3Num({ rotulo, valor, tom = '', serie = null, barra = null, sub = '', subTom = '' }) {
+  const base = typeof d3NumHtml === 'function' ? d3NumHtml({ rotulo, valor, tom, serie, barra })
+    : `<div class="d3-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${diarioEsc(rotulo)}</span><b class="d3-num-v">${valor}</b>${serie ? diarioD3Linha(serie) : barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ''}</div>`;
+  return sub ? base.replace(/<\/div>$/, `<small class="d3d-num-sub${subTom ? ' ' + subTom : ''}">${sub}</small></div>`) : base;
+}
+// Os registros com as peças abertas, do mais antigo para o mais novo (a linha dos números e o gráfico da semana).
+function diarioSerie(lista, ate) {
+  const i = Math.max(0, lista.indexOf(ate));
+  return lista.slice(i, i + 8).filter(diarioTemItens).reverse().map((s) => ({ s, n: diarioNumeros(s) })).filter((x) => x.n);
+}
+
 function diarioFalaHtml(atual, ant, m) {
   const n = diarioNumeros(atual);
-  let frase;
-  if (!n) frase = `Não deu para abrir as peças deste registro. ${diarioEsc(diarioRetratoTexto(atual))}.`;
-  else if (!ant) frase = `Este é o primeiro registro guardado: <b>${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'pronta' : 'prontas'} na semana</b>, ${diarioFmt(n.atrasadas)} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'} e ${diarioFmt(n.alteracao)} em alteração. O próximo registro mostra o que mudou.`;
-  else if (!m) frase = `Não deu para abrir o registro anterior para comparar. Neste, <b>${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'pronta' : 'prontas'} na semana</b>, ${diarioFmt(n.atrasadas)} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'} e ${diarioFmt(n.alteracao)} em alteração.`;
+  const qa = diarioQuando(atual), qb = ant ? diarioQuando(ant) : null;
+  const entre = qa && qb ? (diarioIso(qa) === diarioIso(qb) ? `${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`) : qa ? diarioHora(qa) : '';
+  let frase, botao = '', attrs = '';
+  if (!n) frase = 'Não deu para abrir as peças deste registro.';
+  else if (!ant) frase = `Primeiro registro: <b>${diarioFmt(n.prontas)}</b> Finalizado na semana.`;
+  else if (!m) frase = `${diarioFmt(n.prontas)} Finalizado na semana; sem o registro anterior.`;
   else {
     const p = m.prontas.length, a = m.passaram.length;
-    const prontas = p === 0 ? 'nenhuma peça ficou pronta' : p === 1 ? '1 peça ficou pronta' : `${diarioFmt(p)} peças ficaram prontas`;
-    const passou = a === 0 ? `nenhuma passou ${diarioNomeData()}` : a === 1 ? `1 passou ${diarioNomeData()}` : `${diarioFmt(a)} passaram ${diarioNomeData()}`;
-    const cresceu = diarioEtapas(m).filter((e) => !e.pronta && e.dif > 0).sort((x, y) => y.dif - x.dif)[0];
-    frase = `Do registro ${diarioDe(ant, atual)} para o ${diarioDe(atual, ant)}, <b>${prontas}</b> e <b>${passou}</b>.${cresceu ? ` A etapa que mais cresceu foi ${diarioEsc(cresceu.nome)}: de ${diarioFmt(cresceu.n - cresceu.dif)} para ${diarioFmt(cresceu.n)}.` : ''}`;
+    frase = `${p === 0 ? 'Nenhuma virou' : p === 1 ? '1 virou' : `${diarioFmt(p)} viraram`} Finalizado; ${a === 0 ? `nenhuma passou ${diarioNomeData()}` : a === 1 ? `1 passou ${diarioNomeData()}` : `${diarioFmt(a)} passaram ${diarioNomeData()}`}.`;
+    if (a) { botao = a === 1 ? 'Ver a peça' : `Ver as ${diarioFmt(a)}`; attrs = `onclick="abrirSnapshot(${Number(atual.id)})"`; }
   }
-  return `<div class="v2d-card v2d-fala"><span class="v2d-ag" aria-hidden="true">H</span><p><span class="v2d-quem-fala">Heitor · Coordenação de produção</span>${frase}</p></div>`;
+  const corpo = `<small class="d3d-quem">Heitor · Coordenação${entre ? ` · ${diarioEsc(entre)}` : ''}</small><span class="d3d-frase">${frase}</span>`;
+  if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: corpo, agente: 'H', botao, attrs });
+  return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${corpo}</span>${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${diarioEsc(botao)}</button>` : ''}</section>`;
 }
 
 function diarioNumerosHtml(atual, ant) {
-  const n = diarioNumeros(atual), a = ant ? diarioNumeros(ant) : null;
-  const eram = (v) => (a ? `${v === 1 ? 'era' : 'eram'} ${diarioFmt(v)} no registro ${diarioDe(ant, atual)}` : n ? 'primeiro registro guardado' : 'sem as peças deste registro');
-  const cartao = (rotulo, chave, cls, atraso) => `<div class="v2d-card v2d-kpi${cls ? ` ${cls}` : ''}"><small>${rotulo}</small><b><span class="v2-num"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${n ? diarioFmt(n[chave]) : '·'}</span></b><small>${eram(a ? a[chave] : 0)}</small></div>`;
-  return `<div class="v2d-tres">${cartao('Prontas da semana', 'prontas', '', '')}${cartao('Atrasadas', 'atrasadas', 'ruim', '.12s')}${cartao('Em alteração', 'alteracao', 'atencao', '.24s')}</div>`;
+  const n = diarioNumeros(atual), a = ant ? diarioNumeros(ant) : null, serie = diarioSerie(diarioLista, atual);
+  const quando = ant ? diarioQuando(ant) : null, as = quando ? (diarioIso(quando) === diarioIso(diarioQuando(atual) || new Date()) ? `às ${diarioHora(quando)}` : diarioDiaCurto(quando)) : '';
+  const eram = (chave) => (a ? `${a[chave] === 1 ? 'era' : 'eram'} ${diarioFmt(a[chave])} ${as}` : n ? 'primeiro registro' : 'sem as peças');
+  const linha = (chave) => (serie.length > 1 ? serie.map((x) => x.n[chave]) : null);
+  const qa = diarioQuando(atual);
+  return `<div class="d3d-nums">${[
+    diarioD3Num({ rotulo: 'Finalizadas na semana', valor: n ? diarioFmt(n.prontas) : '·', barra: n && n.semana ? (n.prontas / n.semana) * 100 : null, sub: n && n.semana ? `de ${diarioFmt(n.semana)} da semana` : eram('prontas'), subTom: 'g' }),
+    diarioD3Num({ rotulo: 'Atrasadas', valor: n ? diarioFmt(n.atrasadas) : '·', tom: n && n.atrasadas ? 'r' : '', serie: linha('atrasadas'), sub: eram('atrasadas'), subTom: 'r' }),
+    diarioD3Num({ rotulo: 'Em alteração', valor: n ? diarioFmt(n.alteracao) : '·', tom: n && n.alteracao ? 'a' : '', serie: linha('alteracao'), sub: eram('alteracao'), subTom: 'a' }),
+    diarioD3Num({ rotulo: 'Registros', valor: diarioFmt(diarioLista.length), sub: qa ? `último ${diarioDiaCurto(diarioQuando(diarioLista[0]) || qa)} ${diarioHora(diarioQuando(diarioLista[0]) || qa)}` : '' }),
+  ].join('')}</div>`;
 }
 
 function diarioRegistroHtml(s, ant, comparado) {
   const q = diarioQuando(s), n = diarioNumeros(s), m = ant ? diarioMudanca(ant, s) : null;
   const origem = DIARIO_ORIGEM[s.origem] || '';
   const avatar = s.origem && s.origem !== 'manual_painel' ? 'VY' : DIARIO_PESSOA;
-  const cer = n ? `${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'pronta' : 'prontas'} · ${diarioFmt(n.atrasadas)} ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'} · ${diarioFmt(n.alteracao)} em alteração` : diarioRetratoTexto(s).split(',')[0];
+  const cer = n ? `<span class="d3d-c g"><b>${diarioFmt(n.prontas)}</b> Finalizado</span><span class="d3d-c r"><b>${diarioFmt(n.atrasadas)}</b> ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'}</span><span class="d3d-c a"><b>${diarioFmt(n.alteracao)}</b> alteração</span>`
+    : `<span class="d3d-c">${diarioEsc(diarioRetratoTexto(s).split(',')[0])}</span>`;
   let selo = '';
   if (m) {
     const p = m.prontas.length, dA = m.b.atrasadas - m.a.atrasadas;
-    selo = p > 0 ? `<span class="v2d-pill g">+${diarioFmt(p)} ${p === 1 ? 'pronta' : 'prontas'}</span>`
+    selo = p > 0 ? `<span class="v2d-pill g">+${diarioFmt(p)} Finalizado</span>`
       : dA > 0 ? `<span class="v2d-pill r">+${diarioFmt(dA)} ${dA === 1 ? 'atrasada' : 'atrasadas'}</span>`
       : dA < 0 ? `<span class="v2d-pill g">${diarioSinal(dA)} ${dA === -1 ? 'atrasada' : 'atrasadas'}</span>`
       : '<span class="v2d-pill n">igual</span>';
@@ -316,7 +359,7 @@ function diarioRegistroHtml(s, ant, comparado) {
   const hist = [];
   if (m) {
     const p = m.prontas.length, a = m.passaram.length, v = m.voltaram.length;
-    if (p) hist.push(`<span>${p === 1 ? '1 ficou pronta' : `${diarioFmt(p)} ficaram prontas`}: ${diarioClientesHtml(m.prontas)}</span>`);
+    if (p) hist.push(`<span>${p === 1 ? '1 virou Finalizado' : `${diarioFmt(p)} viraram Finalizado`}: ${diarioClientesHtml(m.prontas)}</span>`);
     if (a) hist.push(`<span>${a === 1 ? '1 passou' : `${diarioFmt(a)} passaram`} ${diarioNomeData()}: ${diarioClientesHtml(m.passaram)}</span>`);
     if (v) hist.push(`<span>${v === 1 ? '1 voltou' : `${diarioFmt(v)} voltaram`} para Alteração</span>`);
     if (!hist.length) hist.push('<span>Nada mudou desde o registro anterior.</span>');
@@ -325,13 +368,11 @@ function diarioRegistroHtml(s, ant, comparado) {
   if (retrato) hist.push(`<span>${diarioEsc(retrato)}</span>`);
   const aberta = Number(diarioAberto) === Number(s.id);
   const id = Number(s.id);
-  return `<div class="v2-abre v2d-reg" data-registro="${id}" aria-expanded="${aberta}">
-    <div class="v2d-lin"><i class="v2d-pt${comparado ? ' on' : ''}" aria-hidden="true"></i><span class="v2d-av" aria-hidden="true">${avatar}</span>
-      <button type="button" class="v2d-quem" aria-expanded="${aberta}" onclick="diarioAbrirLinha(${id})"><span><b>${q ? diarioHora(q) : diarioEsc(s.dataHora || '')}</b>${origem ? ` · ${origem}` : ''}</span><small>${diarioEsc(cer)}</small></button>
-      ${selo}<button type="button" class="v2d-btn" onclick="diarioComparar(${id})">Comparar</button></div>
+  return `<div class="v2-abre v2d-reg d3d-reg${comparado ? ' on' : ''}" data-registro="${id}" aria-expanded="${aberta}">
+    <button type="button" class="v2d-quem d3d-lin" aria-expanded="${aberta}" onclick="diarioAbrirLinha(${id})"><b class="d3d-hora">${q ? diarioHora(q) : diarioEsc(s.dataHora || '')}</b><span class="v2d-av" aria-hidden="true"${origem ? ` title="${diarioEsc(origem)}"` : ''}>${avatar}</span><span class="d3d-cs">${cer}</span>${selo}<i class="d3d-seta" aria-hidden="true"></i></button>
     <div class="v2-mais"><div>
       ${hist.map((h) => `<p class="v2d-hist">${h}</p>`).join('')}
-      <p class="v2d-hist v2d-acoes"><span><button type="button" class="v2d-link" onclick="abrirSnapshot(${id})">Ver as peças</button> · <button type="button" class="v2d-link" onclick="excluirSnapshot(${id})">Apagar registro</button></span></p>
+      <p class="v2d-hist v2d-acoes"><span>${origem ? `${diarioEsc(origem)} · ` : ''}<button type="button" class="v2d-link" onclick="diarioComparar(${id})">Comparar</button> · <button type="button" class="v2d-link" onclick="abrirSnapshot(${id})">Ver as peças</button> · <button type="button" class="v2d-link" onclick="excluirSnapshot(${id})">Apagar registro</button></span></p>
     </div></div>
   </div>`;
 }
@@ -348,19 +389,19 @@ function diarioRegistrosHtml(lista, atual) {
   const resto = lista.length - DIARIO_VISIVEIS;
   const pe = resto <= 0 ? '' : diarioTodos
     ? '<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarTodos(false)">Mostrar menos</button></p>'
-    : `<p class="v2d-pe">+ ${diarioFmt(resto)} ${resto === 1 ? 'registro' : 'registros'} · <button type="button" class="v2d-link" onclick="diarioMostrarTodos(true)">mostrar</button></p>`;
+    : `<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarTodos(true)">+${diarioFmt(resto)} ${resto === 1 ? 'registro' : 'registros'}</button></p>`;
   return `<section class="v2d-card v2d-registros" aria-label="Registros">
-    <div class="v2d-topo"><h3>Registros</h3><small>${diarioFmt(lista.length)} ${lista.length === 1 ? 'guardado' : 'guardados'} · o mais novo em cima</small></div>
+    <div class="v2d-topo"><h3>Registros</h3><small>${diarioFmt(lista.length)}</small></div>
     <div class="v2d-tl">${linhas}</div>${pe}
   </section>`;
 }
 
 function diarioMudouHtml(atual, ant, m) {
   const qa = diarioQuando(atual), qb = ant ? diarioQuando(ant) : null;
-  const entre = !qa || !qb ? '' : diarioIso(qa) === diarioIso(qb) ? `${diarioDiaCurto(qa)}, ${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`;
+  const entre = !qa || !qb ? '' : diarioIso(qa) === diarioIso(qb) ? `${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`;
   let corpo;
-  if (!ant) corpo = '<p class="v2d-nada">Com dois registros guardados, as etapas aparecem aqui lado a lado.</p>';
-  else if (!m) corpo = '<p class="v2d-nada">Não deu para abrir as peças destes dois registros.</p>';
+  if (!ant) corpo = '<p class="v2d-nada">Falta um segundo registro.</p>';
+  else if (!m) corpo = '<p class="v2d-nada">Sem as peças destes registros.</p>';
   else {
     const todas = diarioEtapas(m);
     let visiveis = todas;
@@ -371,12 +412,11 @@ function diarioMudouHtml(atual, ant, m) {
     const maior = Math.max(1, ...todas.map((e) => e.n));
     const linhas = visiveis.map((e) => {
       const subiu = e.dif > 0 && (e.pronta || /altera/i.test(e.nome));
-      const cor = e.pronta ? '#11613A' : subiu ? '#9A5B00' : '#1F1D1A';
-      return `<div class="v2d-et"><span><span class="v2d-pill ${diarioCorEtapa(e.nome, e.pronta)}" title="${diarioEsc(e.nome)}">${diarioEsc(e.nome)}</span></span><div class="v2-barra"><i style="--v:${Math.round((e.n / maior) * 100)}%;--c:${cor}"></i></div><b>${diarioFmt(e.n)}</b><span class="v2d-dt${subiu ? (e.pronta ? ' g' : ' a') : ''}">${diarioSinal(e.dif)}</span></div>`;
+      return `<div class="v2d-et d3d-et">${diarioStatusHtml(e.pronta ? 'Finalizado' : e.nome, e.pronta)}<span class="d3-barra" style="--v:${Math.round((e.n / maior) * 100)}%"><i></i></span><b>${diarioFmt(e.n)}</b><span class="v2d-dt${subiu ? (e.pronta ? ' g' : ' a') : ''}">${diarioSinal(e.dif)}</span></div>`;
     }).join('');
     const fora = todas.filter((e) => !visiveis.includes(e));
     const pe = fora.length
-      ? `<p class="v2d-pe">+ ${fora.length === 1 ? 'outra etapa' : `outras ${fora.length} etapas`}${fora.some((e) => e.dif) ? '' : ', sem mudança'} · <button type="button" class="v2d-link" onclick="diarioMostrarEtapas(true)">mostrar</button></p>`
+      ? `<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarEtapas(true)">+ ${fora.length === 1 ? '1 etapa' : `${fora.length} etapas`}${fora.some((e) => e.dif) ? '' : ' sem mudança'}</button></p>`
       : diarioEtapasTodas && todas.length > DIARIO_ETAPAS ? '<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarEtapas(false)">Mostrar menos</button></p>' : '';
     corpo = `<div class="v2d-ets">${linhas}</div>${pe}`;
   }
@@ -385,12 +425,24 @@ function diarioMudouHtml(atual, ant, m) {
   </section>`;
 }
 
+// Finalizado na semana, registro a registro (linha), contra as peças com data na semana (tracejada).
+function diarioSemanaHtml(atual) {
+  const serie = diarioSerie(diarioLista, atual);
+  if (serie.length < 2) return '';
+  const rot = (s) => { const q = diarioQuando(s); return q ? `${q.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')} ${q.getHours()}h` : ''; };
+  return `<section class="v2d-card d3d-semana" aria-label="Finalizado na semana">
+    <div class="v2d-topo"><h3>Finalizado na semana</h3><small class="d3d-leg"><i></i>Finalizado <i class="meta"></i>da semana</small></div>
+    ${diarioD3Linha(serie.map((x) => x.n.prontas), { meta: serie.map((x) => x.n.semana), largura: 320, altura: 110, rotulo: 'Finalizado na semana, registro a registro' })}
+    <div class="d3d-eixo">${serie.map((x, i) => `<span${i === serie.length - 1 ? ' class="ultimo"' : ''}>${diarioEsc(rot(x.s))}</span>`).join('')}</div>
+  </section>`;
+}
+
 function diarioPintar() {
   const el = document.getElementById('diario-snapshots-list');
   if (!el) return;
   const lista = diarioLista;
   if (!lista.length) {
-    el.innerHTML = `<div class="v2d"><div class="v2d-card v2d-vazio" role="status"><p>Nenhum registro salvo ainda.</p></div>${DIARIO_PE}</div>`;
+    el.innerHTML = '<div class="v2d d3d"><div class="v2d-card v2d-vazio" role="status"><p>Nenhum registro salvo ainda.</p></div></div>';
     return;
   }
   let i = lista.findIndex((s) => Number(s.id) === Number(diarioComparado));
@@ -398,7 +450,7 @@ function diarioPintar() {
   const atual = lista[i], ant = lista[i + 1] || null;
   if (diarioAberto === undefined) diarioAberto = Number(atual.id);
   const m = ant ? diarioMudanca(ant, atual) : null;
-  el.innerHTML = `<div class="v2d">${diarioFalaHtml(atual, ant, m)}${diarioNumerosHtml(atual, ant)}<div class="v2d-dois">${diarioRegistrosHtml(lista, atual)}${diarioMudouHtml(atual, ant, m)}</div>${DIARIO_PE}</div>`;
+  el.innerHTML = `<div class="v2d d3d">${diarioFalaHtml(atual, ant, m)}${diarioNumerosHtml(atual, ant)}<div class="v2d-dois">${diarioRegistrosHtml(lista, atual)}<div class="d3d-dir">${diarioMudouHtml(atual, ant, m)}${diarioSemanaHtml(atual)}</div></div></div>`;
 }
 
 async function abrirSnapshot(id) {

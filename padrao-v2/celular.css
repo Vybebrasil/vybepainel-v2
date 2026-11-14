@@ -55,8 +55,8 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > p{flex:1;min-width:0}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > .gv2-sub{max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.ok{background:#FF7A2F;box-shadow:none}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.vivo{box-shadow:inset 0 0 0 1.5px #FF7A2F;color:#FF7A2F}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.ok{background:#1F1D1A;box-shadow:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.vivo{box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#1F1D1A}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo .gv2-lk{display:inline-flex;align-items:center;min-height:44px;vertical-align:middle}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo{margin-top:-8px}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pe{flex:none;display:flex;gap:8px;margin-top:auto;padding-top:2px}

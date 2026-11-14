@@ -207,7 +207,10 @@ function carregarFluxoStatus(forcar = false) {
 function gavetaPilulaHtml(status, cor, seta = '') {
   const doCatalogo = cor ? null : (typeof corDeStatus === 'function' ? corDeStatus(status) : null);
   const c = /^#[0-9a-f]{3,8}$/i.test(String(cor || doCatalogo?.cor || '')) ? (cor || doCatalogo.cor) : '#8A847A';
-  return `<span class="gv2-st" style="--c:${c}">${safeText(status || 'Sem status')}${seta}</span>`;
+  // Direção 3: pílula clara com a bolinha na cor do catálogo; cheia só em Alteração, Atrasada e Finalizado.
+  const s = String(status || '');
+  const cheia = /altera/i.test(s) ? ' a' : /atrasad/i.test(s) ? ' r' : /finaliz/i.test(s) ? ' g' : '';
+  return `<span class="gv2-st${cheia}" style="--c:${c}">${safeText(status || 'Sem status')}${seta}</span>`;
 }
 function gavetaObjetivoHtml(item) {
   const vc = typeof window !== 'undefined' ? window.VybeConteudo : null;
@@ -365,11 +368,87 @@ function gavetaCelularHtml(detail, item, assets) {
       <h2 class="gv2-cel-titulo">${safeText(item.nome)}</h2>
       <p class="gv2-sub gv2-cel-cli"><span class="gv2-clientes">${clientes.map(cliCor).join(' ') || 'Cliente não informado'}</span><span>${quando}</span>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'gv2-cel-dono') : ''}</p>
       ${previa}
-      <div class="gv2-cel-etapas"><span class="v2-barra" style="--v:${(etapa + 1) * 25}%;--c:#6E56CF"><i></i></span><p class="gv2-sub">${texto}</p></div>
+      <div class="gv2-cel-etapas"><span class="v2-barra" style="--v:${(etapa + 1) * 25}%;--c:#1F1D1A"><i></i></span><p class="gv2-sub">${texto}</p></div>
       <div class="gv2-cel-lista">${lista}</div>
-      <p class="gv2-sub gv2-cel-tudo">Datas, briefing, arquivos, conversa e histórico · <span class="gv2-lk" role="button" tabindex="0" onclick="gavetaInteira(true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gavetaInteira(true)}">ver a peça inteira</span></p>
+      <p class="gv2-sub gv2-cel-tudo" title="Datas, briefing, arquivos, conversa e histórico"><span class="gv2-lk" role="button" tabindex="0" onclick="gavetaInteira(true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gavetaInteira(true)}">ver a peça inteira</span></p>
       <div class="gv2-cel-pe">${pe}</div>
     </div>`;
+}
+// DIREÇÃO 3 (quadro D3-Gaveta): as quatro etapas em barra logo abaixo do título, a etapa atual em negrito.
+function gavetaEtapasHtml(item) {
+  const etapa = etapaDaPeca(item);
+  const nomes = ['Criação', 'Aprovação interna', 'Cliente', 'Pronta'];
+  return `<div class="gv2-etapas" role="img" aria-label="Etapa: ${safeText(nomes[etapa])}">
+      <span class="gv2-etapas-barra">${nomes.map((_, k) => `<i class="${k <= etapa ? 'on' : ''}" style="--k:${k}"></i>`).join('')}</span>
+      <span class="gv2-etapas-nomes">${nomes.map((n, k) => (k === etapa ? `<b>${safeText(n)}</b>` : `<span>${safeText(n)}</span>`)).join('')}</span></div>`;
+}
+// A data que já passou fica em vermelho (só o que venceu é vermelho); peça pronta não vence.
+function gavetaDataVencida(iso, item) {
+  const d = String(iso || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) && etapaDaPeca(item) !== 3 && d < gavetaHojeIso();
+}
+// A pílula de atraso no canto da linha do cliente (a mesma conta da folha do celular).
+function gavetaAtrasoDesktopHtml(item) {
+  return gavetaAtrasoHtml(item).replace('gv2-cel-pill', 'gv2-atraso');
+}
+// Ficha em bloco: grupo, formato, captação e prioridade à vista; um toque abre a ficha inteira (editável) no lugar.
+function gavetaFichaResumoHtml(detail, item) {
+  const fichaInteira = typeof workspaceFichaHtml === 'function' ? workspaceFichaHtml(detail, item.id) : '';
+  if (!fichaInteira) return '';
+  const f = detail.ficha || {};
+  const cat = detail.catalogos || {};
+  const rotulo = (lista, chave) => (lista || []).find((o) => String(o.chave) === String(chave))?.rotulo || '';
+  const daColuna = (coluna, chave) => rotulo((cat.opcoes || []).filter((o) => o.coluna_id === coluna), chave);
+  const grupos = typeof GRUPOS_DA_PRODUCAO !== 'undefined' ? GRUPOS_DA_PRODUCAO : [];
+  const grupo = (grupos.find(([v]) => String(v) === String(f.grupo_id || '')) || [])[1] || '';
+  const prioridade = daColuna('color_mm164yv8', f.prioridade_chave);
+  const campos = [
+    ['Grupo', grupo],
+    ['Formato', daColuna('lista_suspensa0__1', (f.formato_chaves || [])[0])],
+    ['Captação', rotulo(cat.captacao, f.captacao_chave)],
+    ['Prioridade', prioridade, /alta|urgente|crític/i.test(prioridade) ? 'a' : ''],
+  ];
+  return `<details class="gv2-ficha"><summary aria-label="Ficha da peça: abrir todos os campos">${campos.map(([r, v, tom]) => `<span><small>${r}</small><b class="${tom || ''}${v ? '' : ' vazio'}">${safeText(v || '—')}</b></span>`).join('')}</summary>
+      <div class="gv2-ficha-inteira">${fichaInteira}</div></details>`;
+}
+// Coluna da direita do Resumo: arquivos, conversa e histórico em prévia; cada um leva à aba inteira.
+function gavetaIniciais(nome) {
+  return String(nome || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase() || '?';
+}
+function gavetaArquivosPreviaHtml(assets, entrega) {
+  const ehImagem = (a) => /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(a?.name || a?.file_extension || a?.public_url || a?.url || ''));
+  const extensao = (a) => (String(a?.file_extension || a?.name || '').match(/([a-z0-9]{2,5})$/i)?.[1] || 'arquivo').toLowerCase();
+  const tons = ['#FBE3D2', '#DCE7FA', '#E8F5EC', '#EEEAFB'];
+  const mini = assets.slice(0, 2).map((a, k) => {
+    const url = a?.public_url || a?.url || '';
+    const capa = a?.url_thumbnail || (ehImagem(a) ? url : '');
+    const fundo = capa ? `background-color:${tons[k % tons.length]};background-image:url('${safeText(capa)}')` : `background-color:${tons[k % tons.length]}`;
+    return `<a class="gv2-arq" href="${safeText(url || '#')}" target="_blank" rel="noopener" style="${fundo}" title="${safeText(a?.name || 'Arquivo')}"><span>v${k + 1} · ${safeText(extensao(a))}</span></a>`;
+  }).join('');
+  const abre = "document.getElementById('workspace-file-input').click()";
+  return `<section class="gv2-sec" aria-label="Arquivos"><div class="gv2-sec-topo"><h3>Arquivos</h3>${assets.length > 2
+      ? `<span class="gv2-lk" role="button" tabindex="0" onclick="gavetaAba('arquivos')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gavetaAba('arquivos')}">ver ${assets.length}</span>`
+      : '<span class="gv2-sub">Drive do cliente</span>'}</div>
+      <div class="gv2-arqs">${mini}
+        <div class="gv2-arq gv2-entrega" role="button" tabindex="0" aria-label="Entrega: adicionar arquivo" onclick="${abre}"
+          onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();${abre}}"
+          ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="this.classList.remove('dragover');handleWorkspaceDrop(event)">
+          ${GAVETA_ICONE.sobe}<b>${entrega ? 'Entregue' : 'Entrega'}</b>${entrega
+            ? `<a class="gv2-sub" href="${safeText(entrega.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${safeText(entrega.name)}">abrir</a>`
+            : `<span class="gv2-sub">arquivo ou <span class="gv2-lk" role="button" tabindex="0" onclick="event.stopPropagation();focusWorkspaceDeliveryInput()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();focusWorkspaceDeliveryInput()}">link</span></span>`}</div></div></section>`;
+}
+function gavetaConversaPreviaHtml(updates) {
+  // O registro de troca de status já aparece no bloco de contexto; a prévia mostra a conversa.
+  const ultimas = updates.filter((u) => !String(u?.body || '').includes('Vybe OS · Contexto de status')).slice(0, 3);
+  const linha = (u) => {
+    const nome = u?.creator?.name || 'Equipe Vybe';
+    const texto = (typeof workspacePlainText === 'function' ? workspacePlainText(u?.body || '') : String(u?.body || '')).replace(/\s+/g, ' ').trim();
+    const quando = typeof quandoNaBahia === 'function' ? quandoNaBahia(u?.created_at) : String(u?.created_at || '').replace('T', ' ').slice(0, 16);
+    return `<div class="gv2-msg"><span class="gv2-av" aria-hidden="true">${safeText(gavetaIniciais(nome))}</span><p><b>${safeText(nome)}</b> <span class="gv2-sub">${safeText(quando || '')}</span><span class="gv2-msg-txt">${safeText(texto || 'Atualização sem texto.')}</span></p></div>`;
+  };
+  return `<section class="gv2-sec" aria-label="Conversa"><div class="gv2-sec-topo"><h3>Conversa</h3>${updates.length
+      ? `<span class="gv2-lk" role="button" tabindex="0" onclick="gavetaAba('conversa')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gavetaAba('conversa')}">${updates.length}</span>`
+      : ''}</div>${ultimas.length ? ultimas.map(linha).join('') : '<p class="gv2-vazio">Sem conversa ainda.</p>'}</section>`;
 }
 function gavetaLinkHtml() {
   return `<div class="entrega-link gv2-link"><label class="gv2-fora" for="workspace-link-input">Link do material</label><input id="workspace-link-input" class="workspace-input gv2-campo" type="url" placeholder="Cole o link do Drive, Frame.io ou Canva" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWorkspaceLink()}">
@@ -398,22 +477,25 @@ function gavetaLinkHtml() {
   const painel = (qual, html) => `<div class="gv2-painel" data-gv-painel="${qual}"${ABA_DA_GAVETA === qual ? '' : ' hidden'}>${html}</div>`;
   const lk = (rotulo, acao) => `<span class="gv2-lk" role="button" tabindex="0" onclick="${acao}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${acao}}">${rotulo}</span>`;
   const chamada = briefing ? briefing.texto.replace(/\s*\n+\s*/g, ' ').trim() : '';
-  const resumo = `
+  // Direção 3: o Resumo em duas colunas. À esquerda o que orienta o trabalho (briefing, contexto da etapa, checklist e
+  // ficha); à direita a prévia de arquivos (com a entrega), conversa e histórico, cada uma levando à sua aba.
+  const quandoCtx = contexto ? (quandoNaBahia(contexto.created_at) || (contexto.created_at || '').replace('T', ' ').slice(0, 16)) : '';
+  const resumo = `<div class="gv2-resumo"><div class="gv2-col">
       <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Briefing</h3>${briefing
         ? `${lk('abrir', `abrirBriefing('${id}')`)}${lk('editar', `editarBriefing('${id}')`)}`
         : lk('+ adicionar', `editarBriefing('${id}')`)}</div>
         ${briefing ? `<p class="gv2-texto">${safeText(chamada.slice(0, 260))}${chamada.length > 260 ? '…' : ''}</p>`
-          : '<p class="gv2-texto vazio">Sem briefing. Quem produz precisa dele para começar.</p>'}</section>
+          : '<p class="gv2-texto vazio">Sem briefing.</p>'}</section>
       ${faixaDeMaterialBrutoHtml(detail, item)}
+      ${contexto ? `<section class="gv2-contexto" aria-label="Contexto da etapa atual"><div class="gv2-ctx-topo">${contexto.target ? gavetaPilulaHtml(contexto.target) : ''}<span class="gv2-sub">${safeText([contexto.creator || 'Equipe Vybe', quandoCtx].filter(Boolean).join(' · '))}</span></div>
+        <p class="gv2-texto">${safeText(contexto.reason || contexto.text)}</p>${contexto.next ? `<p class="gv2-ctx-prox"><span class="gv2-sub">Próximo</span><b>${safeText(contexto.next)}</b></p>` : ''}</section>` : ''}
       ${subitensHtml(detail, item)}
-      ${contexto ? `<section class="gv2-sec gv2-contexto"><div class="gv2-sec-topo"><h3>Contexto da etapa atual</h3><span class="gv2-sub">${safeText(contexto.creator || 'Equipe Vybe')} · ${safeText(quandoNaBahia(contexto.created_at) || (contexto.created_at || '').replace('T', ' ').slice(0, 16))}</span></div>
-        <p class="gv2-texto">${safeText(contexto.reason || contexto.text)}</p>${contexto.next ? `<p class="gv2-texto"><b>Próximo passo:</b> ${safeText(contexto.next)}</p>` : ''}</section>` : ''}
-      <div class="gv2-solta" role="button" tabindex="0" aria-label="Entregar: adicionar arquivo" onclick="document.getElementById('workspace-file-input').click()"
-        onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();document.getElementById('workspace-file-input').click()}"
-        ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="this.classList.remove('dragover');handleWorkspaceDrop(event)">
-        ${GAVETA_ICONE.sobe}<p><b>Entrega:</b> ${entrega ? `${safeText(entrega.name)} · ` : ''}arraste o arquivo ou <span class="gv2-lk" role="button" tabindex="0" onclick="event.stopPropagation();focusWorkspaceDeliveryInput()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();focusWorkspaceDeliveryInput()}">cole o link</span> · vai para o Drive do cliente</p>
-        ${entrega ? `<a class="gv2-lk" href="${safeText(entrega.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir</a>` : ''}</div>
-      <details class="gv2-rec"><summary>Ficha da peça<small>grupo, formato, captação, prioridade</small></summary>${workspaceFichaHtml(detail, item.id)}</details>`;
+      ${gavetaFichaResumoHtml(detail, item)}
+    </div><div class="gv2-col">
+      ${gavetaArquivosPreviaHtml(assets, entrega)}
+      ${gavetaConversaPreviaHtml(updates)}
+      <section class="gv2-sec gv2-hist" aria-label="Histórico"><div class="gv2-sec-topo"><h3>Histórico</h3>${lk('log', `abrirLogDaPeca('${id}')`)}</div>${etapas || '<p class="gv2-vazio">Sem troca de etapa ainda.</p>'}</section>
+    </div></div>`;
   const arquivos = `
       ${workspaceDeliveryDock(detail, item)}
       ${workspaceRegistrosPendentesHtml()}
@@ -437,11 +519,12 @@ function gavetaLinkHtml() {
         <div class="gv2-linha"><span class="gv2-clientes">${clientes.map(cliCor).join(' ') || 'Cliente não informado'}</span>
           <span class="gv2-status" role="button" tabindex="0" title="Trocar status" aria-label="Status: ${safeText(item.status)}. Trocar" onclick="openStatusEditor(event,'${id}')"
             onkeydown="if(event.key==='Enter'||event.key===' ')openStatusEditor(event,'${id}')">${gavetaPilulaHtml(item.status, item.status_color, GAVETA_ICONE.seta)}</span>
-          ${gavetaObjetivoHtml(item)}</div>
+          ${gavetaObjetivoHtml(item)}<span class="gv2-vao"></span>${gavetaAtrasoDesktopHtml(item)}</div>
       </div>
+      ${gavetaEtapasHtml(item)}
       <div class="gv2-bloco">
-        <div class="gv2-cmp"><small>Prazo interno</small><span class="gv2-dado" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.prazo) || '—')}</span></div>
-        <div class="gv2-cmp"><small>${ehPedido ? 'Conclusão' : 'Veiculação'}</small><span class="gv2-dado" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.veiculacao) || '—')}</span></div>
+        <div class="gv2-cmp"><small>Prazo interno</small><span class="gv2-dado${gavetaDataVencida(item.prazo_iso, item) ? ' r' : ''}" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.prazo) || '—')}</span></div>
+        <div class="gv2-cmp"><small>${ehPedido ? 'Conclusão' : 'Veiculação'}</small><span class="gv2-dado${gavetaDataVencida(item.veiculacao_iso, item) ? ' r' : ''}" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.veiculacao) || '—')}</span></div>
         <div class="gv2-cmp"><small>Responsável</small>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'gv2-dono', { comNome: true }) : ''}</div>
       </div>
       <div class="gv2-seg" role="radiogroup" aria-label="Partes da peça">${aba('resumo', 'Resumo')}${aba('arquivos', 'Arquivos', assets.length)}${aba('conversa', 'Conversa', updates.length)}${aba('historico', 'Histórico')}</div>

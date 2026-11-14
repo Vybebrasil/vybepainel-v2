@@ -289,7 +289,7 @@ test('tela do funil: metas com barra, KPIs espiáveis, gráficos, corrida e bloc
   assert.ok(!h.includes('Não foi possível mostrar'), h.slice(0, 300));
   assert.match(h, /Metas de /); assert.match(h, /vc-metas/); assert.match(h, />50%</); assert.match(h, /fechado \(MRR\)/);
   assert.match(h, /data-espiar="comercial:funil:leads"/); assert.match(h, /data-espiar="comercial:funil:propostas"/);
-  assert.match(h, /<svg viewBox/); assert.match(h, /MRR fechado/); assert.match(h, /class="valor">2 mil</);
+  assert.match(h, /class="d3-graf"/); assert.match(h, /MRR fechado/); // Direção 3: série de meses em linha
   assert.match(h, /Corrida comercial/); assert.match(h, /Taynara/);
   assert.match(h, /Formulário de leads/); assert.ok(h.includes('https://painel.exemplo/lead/' + body.token));
   assert.match(h, /Mercado &lt;i&gt;Bom&lt;\/i&gt;/); assert.ok(!h.includes('<script>x') && !h.includes('<b>A</b>') && !h.includes('<i>Bom'), 'nada de HTML injetado');

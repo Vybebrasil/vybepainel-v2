@@ -410,9 +410,14 @@
     const naAgenda = window.productionV2View === 'captacoes' && typeof captacoesHtml === 'function';
     // No mundo, o cabeçalho é o do quadro do padrão v2: título, as abas e a ação da tela numa linha só.
     const abaV2 = (v, nome) => `<button type="button" role="radio" aria-checked="${window.productionV2View === v}" onclick="setProdV2View('${v}')">${nome}</button>`;
-    const cabecaV2 = typeof pv2Ligado === 'function' && pv2Ligado() ? `<header id="pv2-agenda-topo" class="pv2"><div class="pv2-topo"><h2>Agenda e captações</h2>
-        <span class="pv2-seg" role="radiogroup" aria-label="Agenda">${abaV2('captacoes', 'Captações')}${abaV2('roteiros', 'Roteiros')}${abaV2('feed', 'Feed')}${abaV2('calendar', 'Calendário')}</span>
-        ${naAgenda ? `<button type="button" class="pv2-btn p capt-marcar" onclick="captMarcarCaptacao()" title="Marcar uma captação (ou outro compromisso) no Google Agenda da Vybe (N)">Marcar captação</button>` : `<span class="pv2-seg" role="radiogroup" aria-label="Data de referência">
+    // Direção 3 (quadro D3-Agenda): título curto com a semana ao lado, as quatro partes num segmento discreto e
+    // "Marcar captação" branco com +; o laranja cheio da tela é o bloco de ação do corpo.
+    const semanaAg = (() => { const h = new Date(); const seg = new Date(h.getFullYear(), h.getMonth(), h.getDate() - ((h.getDay() + 6) % 7)), dom = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6);
+      const m = (d) => d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''), dd = (d) => String(d.getDate()).padStart(2, '0');
+      return seg.getMonth() === dom.getMonth() ? `${dd(seg)} a ${dd(dom)} ${m(dom)}` : `${dd(seg)} ${m(seg)} a ${dd(dom)} ${m(dom)}`; })();
+    const cabecaV2 = typeof pv2Ligado === 'function' && pv2Ligado() ? `<header id="pv2-agenda-topo" class="pv2"><div class="pv2-topo"><h2 title="Agenda e captações">Agenda</h2><span class="d3ag-data">${semanaAg}</span>
+        <span class="pv2-seg d3ag-partes" role="radiogroup" aria-label="Agenda">${abaV2('captacoes', 'Captações')}${abaV2('roteiros', 'Roteiros')}${abaV2('feed', 'Feed')}${abaV2('calendar', 'Calendário')}</span>
+        ${naAgenda ? `<button type="button" class="pv2-btn capt-marcar d3ag-marcar" onclick="captMarcarCaptacao()" title="Marcar uma captação (ou outro compromisso) no Google Agenda da Vybe (N)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Marcar captação</button>` : `<span class="pv2-seg" role="radiogroup" aria-label="Data de referência">
           <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'prazo'}" onclick="productionCommandSetDateMode('prazo')" title="Agrupar pelo Prazo de Entrega">Prazo</button>
           <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'veiculacao'}" onclick="productionCommandSetDateMode('veiculacao')" title="Agrupar pela data que vai para o ar">Veiculação</button></span>`}</div></header>` : '';
     root.innerHTML = `

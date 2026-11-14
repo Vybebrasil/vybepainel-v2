@@ -1,0 +1,69 @@
+/* DIREÇÃO 3 · BASE (moodboard 3 aprovado pelo Paulo em 13/11/2026: "tô gostando, pode executar tudo assim nesse novo
+   padrão"). Toda a informação de hoje, com frase virando forma: fundo areia, cartão branco só com título e conteúdo,
+   bloco de ação laranja como único laranja cheio da tela (além do ícone do menu na cor do módulo), gráficos em linha.
+   Este arquivo vem primeiro na junção (nome com 0-): os tokens e as peças valem para todos os fragmentos. */
+
+:root{
+  --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-cartao:#FFFFFF; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
+  --d3-tinta:#1F1D1A; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5;
+  --d3-acao:#C2490C; --d3-acao-texto:#A83D08; --d3-agente:#6E56CF;
+  --d3-mod-hoje:#1F1D1A; --d3-mod-operacao:#C2490C; --d3-mod-negocio:#7C3AED; --d3-mod-time:#0E7490; --d3-mod-vybe:#15803D;
+  --d3-perigo:#B42318; --d3-perigo-veu:#FDECEE; --d3-ajuste:#7A4A00; --d3-ajuste-veu:#FFF4D6;
+  --d3-pronto:#11613A; --d3-pronto-veu:#E8F5EC; --d3-info:#1E4A9A; --d3-info-veu:#E7EEFB;
+  --d3-cart-vinicius:#9A4A1E; --d3-cart-ewerton:#3B5BA9;
+  --d3-r-cartao:20px; --d3-r-janela:28px;
+}
+
+/* Bloco de ação: a única faixa laranja da tela. Frase curta, avatar do agente branco e um botão branco. */
+.d3-acao{display:flex;align-items:center;gap:14px;min-width:0;box-sizing:border-box;padding:14px 16px 14px 18px;border-radius:var(--d3-r-cartao);
+  background:var(--d3-acao);color:#FFFFFF;font:600 15px/1.3 var(--vv-titulo,Inter,sans-serif)}
+.d3-acao > .d3-acao-frase{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.d3-acao > .d3-acao-av{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#FFFFFF;color:var(--d3-agente);font:800 13px var(--vv-titulo,Inter,sans-serif)}
+.d3-acao > .d3-acao-btn{flex:none;height:36px;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:var(--d3-acao-texto);font:700 13px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3-acao > .d3-acao-btn:hover{background:#FFF4EE}
+
+/* Cartão de número: rótulo curto, número grande e uma mini linha ou barra. Sem legenda. */
+.d3-num{display:flex;flex-direction:column;gap:6px;min-width:0;padding:14px 16px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
+.d3-num > .d3-num-rot{font:600 12px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3-num > .d3-num-v{font:700 28px/1 var(--vv-titulo,Inter,sans-serif);color:var(--d3-tinta);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.d3-num.r > .d3-num-v{color:var(--d3-perigo)}
+.d3-num.g > .d3-num-v{color:var(--d3-pronto)}
+.d3-num.a > .d3-num-v{color:var(--d3-ajuste)}
+
+/* Mini gráfico em linha (svg com polyline). Meta tracejada, ponto só no último valor. */
+.d3-graf{display:block;width:100%;height:auto;overflow:visible}
+.d3-graf polyline{fill:none;stroke:var(--d3-tinta);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.d3-graf polyline.meta{stroke:var(--d3-meta);stroke-width:1.5;stroke-dasharray:4 4}
+.d3-graf circle{fill:var(--d3-tinta)}
+.d3-barra{position:relative;height:6px;border-radius:999px;background:var(--d3-linha);overflow:hidden}
+.d3-barra > i{position:absolute;inset:0 auto 0 0;width:var(--v,0%);border-radius:inherit;background:var(--d3-tinta)}
+
+/* Cliente: ponto + nome na cor da carteira. */
+.d3-cli{display:inline-flex;align-items:center;gap:6px;min-width:0;font:600 12.5px var(--vv-texto,Inter,sans-serif);color:var(--cart,var(--d3-tinta));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3-cli::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:currentColor}
+.d3-selo-donos{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-apagado);font:600 11px var(--vv-texto,Inter,sans-serif);vertical-align:middle}
+
+/* MOVIMENTOS · a versão de uma vez só (no quadro rodavam em ciclo de 6s para mostrar; na tela acontecem quando a peça aparece). */
+@keyframes d3NumChega{from{filter:blur(8px);opacity:.15;transform:translateY(8px)}to{filter:none;opacity:1;transform:none}}
+@keyframes d3LinhaDesenha{from{stroke-dashoffset:var(--d3-comp,420)}to{stroke-dashoffset:0}}
+@keyframes d3PontoChega{0%,70%{transform:scale(0)}85%{transform:scale(1.4)}100%{transform:scale(1)}}
+@keyframes d3BarraCresce{from{width:0}}
+@keyframes d3Pulsa{0%,100%{box-shadow:0 0 0 0 rgba(110,86,207,.55)}50%{box-shadow:0 0 0 8px rgba(110,86,207,0)}}
+@keyframes d3PulsaBranco{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.7)}50%{box-shadow:0 0 0 8px rgba(255,255,255,0)}}
+@keyframes d3LinhaNova{from{max-height:0;opacity:0}to{max-height:64px;opacity:1}}
+
+.d3-num > .d3-num-v{animation:d3NumChega .55s cubic-bezier(.22,1,.36,1) both}
+.d3-num:nth-child(2) > .d3-num-v{animation-delay:.15s}
+.d3-num:nth-child(3) > .d3-num-v{animation-delay:.3s}
+.d3-num:nth-child(4) > .d3-num-v{animation-delay:.45s}
+.d3-num:nth-child(5) > .d3-num-v{animation-delay:.6s}
+.d3-graf polyline:not(.meta){stroke-dasharray:var(--d3-comp,420);animation:d3LinhaDesenha 1.1s cubic-bezier(.22,1,.36,1) .1s both}
+.d3-graf circle{transform-box:fill-box;transform-origin:center;animation:d3PontoChega 1.3s cubic-bezier(.34,1.56,.64,1) both}
+.d3-barra > i{animation:d3BarraCresce .9s cubic-bezier(.22,1,.36,1) .1s both}
+.d3-acao > .d3-acao-av{animation:d3PulsaBranco 2.4s ease-in-out infinite}
+.d3-agente-av{animation:d3Pulsa 2.4s ease-in-out infinite}
+.d3-chegou{overflow:hidden;animation:d3LinhaNova .45s cubic-bezier(.22,1,.36,1) both}
+
+@media (prefers-reduced-motion:reduce){
+  .d3-num > .d3-num-v,.d3-graf polyline,.d3-graf circle,.d3-barra > i,.d3-acao > .d3-acao-av,.d3-agente-av,.d3-chegou{animation:none}
+}

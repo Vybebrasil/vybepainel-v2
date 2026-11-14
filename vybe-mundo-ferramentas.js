@@ -85,7 +85,7 @@
   function abaInicio() {
     const recentes = lerRecentes(), q = norm(st.busca).trim();
     const campo = (id, rot, attr, valor, ph, tipo = 'text') => `<div><label class="vf2-rot" for="${id}">${rot}</label><input id="${id}" class="p2-campo" type="${tipo}" ${attr} value="${esc(valor)}" placeholder="${ph}"></div>`;
-    const cabeca = (f) => `<div class="vf2-cab"><span class="vf2-ico">${icone(f.ic, 18)}</span><h3>${esc(f.nome)}</h3><button type="button" class="p2-link vf2-mais" data-vf-aba="${f.aba}">mais opções</button></div><p class="p2-sub">${esc(f.frase)}</p>`;
+    const cabeca = (f) => `<div class="vf2-cab"><span class="vf2-ico">${icone(f.ic, 18)}</span><h3>${esc(f.nome)}</h3><button type="button" class="p2-link vf2-mais" data-vf-aba="${f.aba}">mais opções</button></div>`;
     const cartoes = {
       qr: (f) => `<article class="p2-card vf2-fer">${cabeca(f)}
         ${campo('vf2-qr-texto', 'Link ou texto', 'data-vf-campo="qr.texto" maxlength="300"', st.qr.texto, 'https://')}
@@ -97,7 +97,7 @@
         ${campo('vf2-wa-msg', 'Mensagem pronta', 'data-vf-campo="wa.mensagem" maxlength="500"', st.wa.mensagem, 'Olá! Quero saber mais.')}
         <div><button type="button" class="p2-btn k" data-vf-gerar="wa">Criar link</button></div>
         <div class="vf2-res" data-vf-res="wa" role="status">${resultadoHtml('wa')}</div></article>`,
-      roi: (f) => `<article class="p2-card vf2-fer">${cabeca({ ...f, frase: 'Quanto investiu e quanto voltou viram o retorno da campanha.' })}
+      roi: (f) => `<article class="p2-card vf2-fer">${cabeca(f)}
         ${campo('vf2-roi-inv', 'Investimento', 'data-vf-campo="simples.investimento" inputmode="decimal"', st.simples.investimento, 'R$ 1.500')}
         ${campo('vf2-roi-ret', 'Retorno', 'data-vf-campo="simples.retorno" inputmode="decimal"', st.simples.retorno, 'R$ 6.300')}
         <div><button type="button" class="p2-btn k" data-vf-gerar="roi">Calcular</button></div>
@@ -105,13 +105,18 @@
     };
     const visiveis = FERRAMENTAS.filter((f) => !q || norm(`${f.nome} ${f.frase}`).includes(q));
     const acoes = (r, i) => `${r.tipo === 'qr' ? `<button type="button" class="p2-btn s" data-vf="baixar-uso" data-vf-uso="${i}">Baixar de novo</button>` : r.tipo === 'whatsapp' || r.dados.retorno != null ? `<button type="button" class="p2-btn s" data-vf="copiar-uso" data-vf-uso="${i}">Copiar</button>` : ''}<button type="button" class="p2-btn s" data-vf="refazer" data-vf-uso="${i}">Refazer</button>`;
-    const usados = recentes.length ? `<section class="vf2-usados" aria-labelledby="vf-recentes-titulo"><div class="p2-lista-topo"><h3 class="p2-h" id="vf-recentes-titulo">Usados por último</h3><span class="p2-sub">neste computador · refaz com um clique</span></div>
+    const usados = recentes.length ? `<section class="vf2-usados" aria-labelledby="vf-recentes-titulo"><div class="p2-lista-topo"><h3 class="p2-h" id="vf-recentes-titulo">Usados por último</h3><span class="p2-sub">neste computador</span></div>
         <div class="vf2-tres">${recentes.map((r, i) => { const n = rotuloDoUso(r); return `<div class="p2-card vf2-rec"><p class="vf2-rec-topo"><span class="p2-pill">${esc(n.sub.split(' · ')[0])}</span><span class="p2-sub">${esc(quandoFoi(r.quando))}</span></p>
           <p class="vf2-rec-oq"><b>${esc(n.titulo)}</b>${n.sub.includes(' · ') ? ` · ${esc(n.sub.split(' · ').slice(1).join(' · '))}` : ''}</p><p class="vf2-rec-acoes">${acoes(r, i)}</p></div>`; }).join('')}</div></section>` : '';
-    return `<div class="p2-card p2-fala"><span class="p2-ag" aria-hidden="true">V</span><p><span class="p2-quem">VYBES · Ferramentas rápidas</span><b>${FERRAMENTAS.length} ferramentas</b> para o dia a dia com o cliente. Tudo roda aqui no navegador: nada é enviado para fora.</p></div>
+    // Direção 3 (quadro D3-Toolkit): a frase vira o bloco de ação laranja, com o último uso e o botão que o refaz; sem
+    // uso ainda, o convite para o primeiro QR. Nas ferramentas sai a frase explicativa: o rótulo e o campo bastam.
+    const u0 = recentes[0], n0 = u0 ? rotuloDoUso(u0) : null;
+    const bt0 = !u0 ? ['Gerar o primeiro QR', 'data-vf="primeiro-qr"'] : u0.tipo === 'qr' ? ['Baixar de novo', 'data-vf="baixar-uso" data-vf-uso="0"'] : u0.tipo === 'whatsapp' || u0.dados.retorno != null ? ['Copiar de novo', 'data-vf="copiar-uso" data-vf-uso="0"'] : ['Refazer', 'data-vf="refazer" data-vf-uso="0"'];
+    const acao = typeof window.d3AcaoHtml === 'function' ? window.d3AcaoHtml({ agente: 'V', frase: `<small class="d3tk-quem">VYBES · Ferramentas</small><span>${u0 ? `${esc(n0.titulo)} pronto · ${esc(quandoFoi(u0.quando))}.` : 'Nada usado ainda neste computador.'}</span>`, botao: bt0[0], attrs: bt0[1] }) : '';
+    return `${acao}
       ${usados}
       ${visiveis.length ? `<div class="vf2-tres vf2-fers">${visiveis.map((f) => cartoes[f.aba](f)).join('')}</div>` : '<p class="p2-vazio">Nenhuma ferramenta com esse nome.</p>'}
-      ${recentes.length ? '' : '<p class="p2-sub vf-vazio"><b>Nada usado ainda neste computador.</b> <button type="button" class="p2-link" data-vf="primeiro-qr">Gerar o primeiro QR</button></p>'}`;
+      `;
   }
   // Número brasileiro → só dígitos com 55 na frente. Aceita (74) 99999-9999, 74999999999, +55 74 9…
   function numeroWhatsapp(entrada) {

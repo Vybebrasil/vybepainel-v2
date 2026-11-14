@@ -181,9 +181,15 @@
   const botao = (texto, attrs, cls = '') => `<button type="button" class="v2p-btn${cls ? ' ' + cls : ''}" ${attrs}>${esc(texto)}</button>`;
   const elo = (texto, attrs) => `<button type="button" class="v2p-link" ${attrs}>${esc(texto)}</button>`;
   const cabeca = (titulo, sub = '') => `<div class="v2p-cab"><h3>${esc(titulo)}</h3>${sub ? `<small>${sub}</small>` : ''}</div>`;
-  const falaHtml = (papel, frase, extra = '', quem = 'VYBES') => `<section class="v2p-card v2p-fala" aria-label="${esc(quem)}, ${esc(papel)}"><span class="v2p-ag" aria-hidden="true">${esc(quem.charAt(0))}</span><p><span class="v2p-quem">${esc(quem)} · ${esc(papel)}</span>${frase}</p>${extra}</section>`;
-  // Três números no alto. itens: [{ rotulo, valor, sub (HTML), tom: 'ruim' | 'atencao' | '', barra: 0 a 100, attrs }].
-  const tresHtml = (itens) => `<div class="v2p-tres">${itens.map((k, i) => `<div class="v2p-card v2p-kpi${k.tom ? ' ' + k.tom : ''}"${k.attrs ? ' ' + k.attrs : ''}><small>${esc(k.rotulo)}</small><b><span class="v2-num"${i ? ` style="animation-delay:${(i * .12).toFixed(2)}s"` : ''}>${esc(k.valor ?? 0)}</span></b>${k.barra == null ? '' : `<div class="v2-barra"><i style="--v:${Math.round(k.barra)}%;--c:${k.cor || '#11613A'}"></i></div>`}<small>${k.sub || ''}</small></div>`).join('')}</div>`;
+  // Direção 3: a fala vira o bloco de ação laranja (o único laranja cheio da tela), com o avatar do agente que pulsa,
+  // quem fala em cima e a frase; o botão vem branco à direita.
+  const falaHtml = (papel, frase, extra = '', quem = 'VYBES') => `<section class="v2p-fala d3-acao d3p-acao" aria-label="${esc(quem)}, ${esc(papel)}"><span class="v2p-ag d3-acao-av" aria-hidden="true">${esc(quem.charAt(0))}</span><p class="d3-acao-frase"><span class="v2p-quem">${esc(quem)} · ${esc(papel)}</span>${frase}</p>${extra}</section>`;
+  // Números no alto (Direção 3: rótulo curto, número que chega e, se houver, a barra que cresce ou a linha que se
+  // desenha). itens: [{ rotulo, valor, de (o "/ 18" ao lado), sub (HTML), tom: 'ruim' | 'atencao' | 'bom' | '', barra: 0 a 100, serie, attrs }].
+  const TOM_D3 = { ruim: 'r', atencao: 'a', bom: 'g' };
+  const tresHtml = (itens) => `<div class="v2p-tres" style="--n:${itens.length}">${itens.map((k) => `<div class="v2p-card v2p-kpi d3-num${k.tom ? ' ' + k.tom + ' ' + (TOM_D3[k.tom] || '') : ''}"${k.attrs ? ' ' + k.attrs : ''}><small class="d3-num-rot">${esc(k.rotulo)}</small>`
+    + `<span class="d3p-num-linha"><b class="d3-num-v">${esc(k.valor ?? 0)}${k.de ? `<span class="d3p-de">${esc(k.de)}</span>` : ''}</b>${Array.isArray(k.serie) && typeof d3LinhaSvg === 'function' ? d3LinhaSvg(k.serie, { largura: 90, altura: 28 }) : ''}</span>`
+    + `${k.barra == null ? '' : `<span class="d3-barra"><i style="--v:${Math.max(0, Math.min(100, Math.round(k.barra)))}%"></i></span>`}${k.sub ? `<small class="d3p-num-sub">${k.sub}</small>` : ''}</div>`).join('')}</div>`;
   // Fichas do filtro: [[valor, rótulo, quantos]]; a escolhida fica preta.
   const fichasHtml = (lista, atual, attr = 'data-v2p-filtro') => lista.map(([k, r, n]) => `<button type="button" class="v2p-chip" aria-pressed="${k === atual}" ${attr}="${esc(k)}">${esc(r)}${n == null ? '' : ` <b>${esc(n)}</b>`}</button>`).join('');
   const buscaHtml = (rotulo) => `<input type="search" class="v2p-busca" data-v2p-busca placeholder="${esc(rotulo)}" aria-label="${esc(rotulo)}" value="${esc(estado.v2.busca)}">`;
@@ -212,8 +218,11 @@
       <div><p class="v2p-sub v2p-det-t">Conquistas</p>${(p.conquistas || []).length ? `<p class="v2p-pills v2p-pills-e">${p.conquistas.map((c) => pilula(c.titulo, 'g', c.texto ? `title="${esc(c.texto)}"` : '')).join('')}</p>` : '<p class="v2p-sub">As conquistas do mês aparecem aqui quando chegarem.</p>'}</div></div>`;
   }
   function linhaDoMes(p, comps, fixa = false) {
-    const nome = `${av(p.nome)}<span><b>${esc(primeiroNome(p.nome))}</b> <span class="v2p-sub">· ${esc(subDoMes(p))}</span></span>`;
-    const meio = `<div class="v2-barra v2p-barra-lin"><i style="--v:${p.score ?? 0}%;--c:${COR_SCORE(p.score)}"></i></div><b class="v2p-sc">${p.score ?? '–'}</b>`;
+    // Direção 3: colunas Pessoa · Metas · Conquistas · Score (barra e número); o texto longo fica no detalhe.
+    const nome = `${av(p.nome)}<span><b>${esc(primeiroNome(p.nome))}</b><span class="vp-sr"> · ${esc(subDoMes(p))}</span></span>`;
+    const bateu = p.meta > 0 && (p.entregues || 0) >= p.meta, baixo = p.score != null && p.score < 70;
+    const meio = `<span class="d3p-col-meta${bateu ? ' g' : baixo ? ' a' : ''}">${p.meta ? `${p.entregues ?? 0}/${p.meta}` : esc(String(p.entregues ?? 0))}</span><span class="d3p-col-conq">${(p.conquistas || []).length || '—'}</span>`
+      + `<span class="d3-barra v2p-barra-lin${baixo ? ' a' : ''}"><i style="--v:${p.score ?? 0}%"></i></span><b class="v2p-sc${baixo ? ' a' : ''}">${p.score ?? '–'}</b>`;
     if (fixa) return `<div class="v2p-linha" aria-expanded="true"><div class="v2p-lin"><div class="v2p-nome">${nome}</div>${meio}</div>${detalheDoMes(p, comps)}</div>`;
     return linhaAbre(p.id, nome, meio, detalheDoMes(p, comps), `o mês de ${p.nome}`);
   }
@@ -239,11 +248,18 @@
       const comMeta = time.filter((p) => p.meta > 0), bateram = comMeta.filter((p) => (p.entregues || 0) >= p.meta).length;
       const media = comScore.length ? Math.round(comScore.reduce((s, p) => s + p.score, 0) / comScore.length) : null;
       frase = !topo ? `<b>Ainda sem dado em ${esc(nomeMes)}.</b> Quando as demandas do painel andarem, o mês de cada um aparece aqui.`
-        : `<b>${esc(primeiroNome(topo.nome))} lidera ${esc(nomeMes)} com score ${topo.score}</b>${(topo.conquistas || []).length ? ` e ${plural(topo.conquistas.length, 'conquista', 'conquistas')}` : ''}.${fim && fim.score < 70 ? ` <b>${esc(primeiroNome(fim.nome))}</b> está com ${fim.score}${fim.meta ? `, ${fim.entregues ?? 0} de ${fim.meta} entregas` : ''}: vale uma conversa.` : ''}`;
+        // Direção 3: uma frase só; quem pede conversa vem primeiro, senão quem lidera.
+        : fim && fim.score < 70 ? `<b>${esc(primeiroNome(fim.nome))} está com ${fim.score}</b>${fim.meta ? `, ${fim.entregues ?? 0} de ${fim.meta} entregas` : ''}.`
+          : `<b>${esc(primeiroNome(topo.nome))} lidera ${esc(nomeMes)} com score ${topo.score}</b>${(topo.conquistas || []).length ? ` e ${plural(topo.conquistas.length, 'conquista', 'conquistas')}` : ''}.`;
+      // Direção 3: quatro números. "No prazo do cliente" é a média do componente de prazo de quem tem score.
+      const comPrazo = comScore.filter((p) => p.componentes?.prazo != null);
+      const prazoPct = comPrazo.length ? Math.round(comPrazo.reduce((s, p) => s + p.componentes.prazo, 0) / comPrazo.length * 100) : null;
+      const ultima = conquistas[0];
       numeros = tresHtml([
-        { rotulo: 'Score médio do time', valor: media ?? 'sem dado', sub: comScore.length ? `de ${plural(comScore.length, 'pessoa', 'pessoas')} com entrega no mês` : 'ninguém com entrega ainda' },
-        { rotulo: 'Metas batidas', valor: comMeta.length ? `${bateram} de ${comMeta.length}` : 'sem meta', sub: 'meta de entregas do cargo no mês' },
-        { rotulo: 'Conquistas do mês', valor: conquistas.length, sub: conquistas.length ? `de ${plural(new Set(conquistas.map((x) => x.p.id)).size, 'pessoa', 'pessoas')}` : 'nenhuma por enquanto' },
+        { rotulo: 'Score do time', valor: media ?? '–', sub: comScore.length ? plural(comScore.length, 'pessoa', 'pessoas') : 'sem entrega' },
+        { rotulo: 'Metas batidas', valor: comMeta.length ? bateram : '–', de: comMeta.length ? ` / ${comMeta.length}` : '', barra: comMeta.length ? bateram / comMeta.length * 100 : null, sub: comMeta.length ? '' : 'sem meta' },
+        { rotulo: 'No prazo do cliente', valor: prazoPct == null ? '–' : prazoPct, de: prazoPct == null ? '' : '%', barra: prazoPct, sub: prazoPct == null ? 'sem dado' : '' },
+        { rotulo: 'Conquistas', valor: conquistas.length, sub: ultima ? `última · ${esc(primeiroNome(ultima.p.nome))}` : 'nenhuma' },
       ]);
       const baixo = [...comScore].filter((p) => p.score < 70).sort((a, b) => a.score - b.score).slice(0, 2), alto = topo && topo.score >= 85 && !baixo.includes(topo) ? [topo] : [];
       acaoLinhas = [...baixo, ...alto].map((p) => `<div class="v2p-lin">${pilula(p.meta ? `${p.entregues ?? 0} de ${p.meta} entregas` : `Score ${p.score}`, p.score < 70 ? 'a' : 'g')}<p><b>${esc(primeiroNome(p.nome))}</b> · ${esc(p.score < 70 ? (p.atrasadas ? plural(p.atrasadas, 'peça aberta atrasada', 'peças abertas atrasadas') : `score ${p.score}`) : `score ${p.score}, na frente do time`)}</p>${botao('Ver o mês', `data-v2p-abre="${esc(p.id)}" data-abrir="1"`, 's')}</div>`);
@@ -252,9 +268,9 @@
       frase = !eu || eu.score == null ? `<b>Ainda sem dado em ${esc(nomeMes)}.</b> Quando as demandas do painel com você andarem, o seu mês aparece aqui.`
         : `<b>O seu score de ${esc(nomeMes)} é ${eu.score}.</b> ${esc((eu.frases || []).slice(0, 2).join(' e '))}.`;
       numeros = tresHtml([
-        { rotulo: 'O seu score', valor: eu?.score ?? 'sem dado', sub: 'de 0 a 100' },
-        { rotulo: c0 ? c0.nome : 'Entregas no prazo', valor: v0 == null ? 'sem dado' : `${Math.round(v0 * 100)}%`, sub: esc((eu?.frases || [])[0] || 'pela data do cliente') },
-        { rotulo: 'Conquistas do mês', valor: conquistas.length, sub: conquistas.length ? 'suas, neste mês' : 'nenhuma por enquanto' },
+        { rotulo: 'O seu score', valor: eu?.score ?? '–', barra: eu?.score ?? null, sub: eu?.score == null ? 'sem dado' : '' },
+        { rotulo: c0 ? c0.nome : 'Entregas no prazo', valor: v0 == null ? '–' : Math.round(v0 * 100), de: v0 == null ? '' : '%', barra: v0 == null ? null : v0 * 100, sub: v0 == null ? 'sem dado' : esc((eu?.frases || [])[0] || '') },
+        { rotulo: 'Conquistas', valor: conquistas.length, sub: conquistas.length ? '' : 'nenhuma' },
       ]);
     }
     const conqLinhas = conquistas.map(({ c, p }) => `<div class="v2p-lin">${av(p.nome)}<p><b>${esc(c.titulo)}</b> <span class="v2p-sub">· ${esc(primeiroNome(p.nome))}${c.texto ? ` · ${esc(c.texto)}` : ''}</span></p></div>`);
@@ -264,10 +280,11 @@
         <div class="v2p-col">${d.gestao ? `<section class="v2p-card" aria-label="Pede ação">${cabeca('Pede ação', acaoLinhas.length ? `${plural(acaoLinhas.length, 'coisa', 'coisas')}, na ordem` : '')}${acaoLinhas.join('') || '<p class="v2p-frase">Ninguém pedindo atenção neste mês.</p>'}</section>` : ''}
           <section class="v2p-card" aria-label="Conquistas do mês">${cabeca('Conquistas do mês', conquistas.length ? `${conquistas.length} ${d.gestao ? 'no time' : 'suas'}${conquistas.length > 3 && !estado.v2.mostrar.conq ? ` · ${elo('ver todas', 'data-v2p-mostrar="conq"')}` : ''}` : '')}
             ${conqLinhas.length ? recolhe(conqLinhas, 'conq', 3).join('') : comScore.length ? '<p class="v2p-frase">As conquistas do mês aparecem aqui quando chegarem.</p>' : ''}${comScore.length ? '' : semDado}</section></div>
-        <section class="v2p-card v2p-lista" data-v2p-lista aria-label="${d.gestao ? 'O mês de cada um' : 'O seu mês'}">${cabeca(d.gestao ? 'O mês de cada um' : 'O seu mês', 'score de 0 a 100')}
+        <section class="v2p-card v2p-lista" data-v2p-lista aria-label="${d.gestao ? 'O mês de cada um' : 'O seu mês'}">${cabeca(d.gestao ? 'O mês de cada um' : 'O seu mês', 'score 0–100')}
+          ${time.length ? `<div class="d3p-th" aria-hidden="true"><span>Pessoa</span><span>Metas</span><span>Conquistas</span><span>Score</span></div>` : ''}
           ${time.length ? time.map((p) => linhaDoMes(p, comps, !d.gestao)).join('') : `<p class="v2p-frase">${d.gestao ? 'Ninguém na equipe ainda. Quem pode entrar no painel aparece aqui.' : 'Ainda sem dado neste mês.'}</p>`}</section>
       </div>
-      <p class="v2p-sub v2p-pe">Nada para preencher: o score sai do prazo, do volume e do ritmo de cada um nas demandas do painel.${d.fonte?.ajustes ? ` ${esc(d.fonte.ajustes)}.` : ''} Entregas e gargalos da operação ficam em Performance, na Gestão.</p>
+      <p class="v2p-sub v2p-pe">Da operação ${pilula('Performance · Gestão')}${d.fonte?.ajustes ? ` · ${esc(d.fonte.ajustes)}` : ''}</p>
       ${tambemProdutividade(d)}</div>`;
   }
 
@@ -506,14 +523,15 @@
       <div class="v2p-cal-duas">
         <div class="v2p-cal" role="list" aria-label="${esc(`Calendário do time, ${nomeMes} de ${ano}`)}">${SEMANA_RH.map((s) => `<span class="v2p-ds" aria-hidden="true">${s}</span>`).join('')}${celulas.join('')}</div>
         <div class="v2p-cal-lado">
-          <p class="v2p-sub v2p-leg-t"><b>Próximos aniversários</b></p>
+          <p class="v2p-sub v2p-leg-t"><b>Aniversários</b> <span>só dia e mês</span></p>
           ${aniv.length ? recolhe(aniv, 'aniv', 3).join('') + restoHtml(aniv.length - 3, 'aniv', aniv.length - 3 === 1 ? 'aniversário' : 'aniversários') : '<p class="v2p-sub">Ninguém cadastrou o aniversário ainda.</p>'}
           <p class="v2p-sub v2p-meu">O seu: ${elo(/^\d{4}-\d{2}-\d{2}/.test(meu) ? `${meu.slice(8, 10)}/${meu.slice(5, 7)} · alterar` : 'cadastrar dia e mês', 'data-v2p-mostrar="meuAniv"')}</p>
           ${estado.v2.mostrar.meuAniv ? `<form data-vp-form="meu-aniversario" class="vp-form vp-inline v2p-meu-form">${campoAniversario(meu, 'Seu aniversário')}<button type="submit" class="v2p-btn s k">Salvar</button></form>` : ''}
-          <p class="v2p-sub v2p-leg-t"><b>Férias e folgas aprovadas</b></p>
+          <p class="v2p-sub v2p-leg-t"><b>Férias e folgas</b></p>
           ${ferias.length ? recolhe(ferias, 'ferias', 3).join('') + restoHtml(ferias.length - 3, 'ferias', 'no calendário') : '<p class="v2p-sub">Nenhuma férias ou folga marcada para os próximos dias.</p>'}
           ${passadas.length ? (estado.v2.mostrar.passadas ? passadas.join('') : restoHtml(passadas.length, 'passadas', passadas.length === 1 ? 'que já passou' : 'que já passaram')) : ''}
           ${pend.length ? `<p class="v2p-leg v2p-leg-fim">${[...new Set(pend.map((p) => p.nome))].slice(0, 4).map((nome) => pilula(iniciais(nome), 'mi pd', `title="${esc(nome)}"`)).join('')}<span class="v2p-sub">${pend.length === 1 ? 'espera' : 'esperam'} resposta</span></p>` : ''}
+          <p class="d3p-legenda" aria-hidden="true"><span><i class="g"></i>aprovado</span><span><i class="pd"></i>espera</span><span><i class="an"></i>aniversário</span></p>
         </div>
       </div></section>`;
   }
@@ -629,15 +647,16 @@
     const doHist = atual && (c.historico || []).find((x) => x.id === atual.id), respostas = doHist?.resultado?.respostas;
     const responder = atual?.situacao === 'aberta' && !atual.respondeu ? ` · ${elo('responder', 'data-v2p-ver="clima" data-form="pesquisa"')}` : atual?.respondeu ? ' · você já respondeu' : '';
     const clima = atual?.situacao === 'aberta'
-      ? (respostas != null && c.equipe ? { valor: `${respostas} de ${c.equipe}`, barra: respostas / c.equipe * 100, sub: `responderam · fecha ${dataFalada(atual.fecha, h, true)}${responder}` }
+      ? (respostas != null && c.equipe ? { valor: respostas, de: ` / ${c.equipe} · fecha ${dataFalada(atual.fecha, h)}`, barra: respostas / c.equipe * 100, sub: responder.replace(/^ · /, '') }
         : { valor: atual.respondeu ? 'Respondida' : 'Aberta', sub: `fecha ${dataFalada(atual.fecha, h, true)}${responder}` })
       : atual?.situacao === 'agendada' ? { valor: 'Agendada', sub: `abre ${dataFalada(atual.abre, h, true)} · ${elo('ver', 'data-v2p-ver="clima"')}` }
-        : { valor: 'Sem pesquisa', sub: d.gestao && d.rhPronto !== false ? `nenhuma aberta · ${elo('iniciar pesquisa', 'data-v2p-ver="clima" data-form="pesquisa-abrir"')}` : `nenhuma aberta agora · ${elo('ver', 'data-v2p-ver="clima"')}` };
+        : { valor: '–', sub: d.gestao && d.rhPronto !== false ? `nenhuma · ${elo('iniciar', 'data-v2p-ver="clima" data-form="pesquisa-abrir"')}` : `nenhuma · ${elo('ver', 'data-v2p-ver="clima"')}` };
+    // Direção 3: rótulos curtos; a fila com o 1º que vence (vermelho só no que venceu), o prazo com a barra e o clima.
     const numeros = tresHtml([
-      { rotulo: d.gestao ? 'Pedidos esperando resposta' : 'Seus pedidos esperando resposta', valor: nAbertos, attrs: 'data-espiar="pessoas:abertos" role="button" tabindex="0" title="Ver a lista"',
-        sub: fora ? `<span class="v2p-ruim" data-espiar="pessoas:fora" role="button" tabindex="0">${fora} fora do prazo</span>` : primeiro ? `o primeiro ${vence}` : 'ninguém na fila' },
-      { rotulo: 'Respondidos no prazo', valor: noPrazo == null ? 'nenhum' : `${noPrazo} de ${ind.respondidos}`, attrs: 'data-espiar="pessoas:respondidos" role="button" tabindex="0" title="Ver a lista"', sub: noPrazo == null ? 'nenhum respondido ainda' : tempo || `${ind.noPrazoPct}% no prazo` },
-      { rotulo: 'Pesquisa de clima · anônima', ...clima, ...(d.gestao && (c.historico || []).length ? { attrs: 'data-espiar="pessoas:clima" role="button" tabindex="0" title="Ver as pesquisas"' } : {}) },
+      { rotulo: d.gestao ? 'Esperando resposta' : 'Seus pedidos abertos', valor: nAbertos, attrs: 'data-espiar="pessoas:abertos" role="button" tabindex="0" title="Ver a lista"',
+        sub: fora ? `<span class="v2p-ruim" data-espiar="pessoas:fora" role="button" tabindex="0">${fora} fora do prazo</span>` : primeiro ? `<span class="d3p-aviso">1º ${esc(vence)}</span>` : 'fila vazia' },
+      { rotulo: 'No prazo', valor: noPrazo == null ? '–' : noPrazo, de: noPrazo == null ? '' : ` / ${ind.respondidos}`, barra: noPrazo == null ? null : ind.noPrazoPct, attrs: 'data-espiar="pessoas:respondidos" role="button" tabindex="0" title="Ver a lista"', sub: noPrazo == null ? 'nenhum respondido' : tempo },
+      { rotulo: 'Clima · anônima', ...clima, ...(d.gestao && (c.historico || []).length ? { attrs: 'data-espiar="pessoas:clima" role="button" tabindex="0" title="Ver as pesquisas"' } : {}) },
     ]);
     const i = Math.min(estado.v2.carta, Math.max(0, abertos.length - 1));
     const esquerda = estado.form === 'pedido' ? formPedido(d)
@@ -652,7 +671,6 @@
         <div class="v2p-col v2p-col-baralho">${cabeca(d.gestao ? 'Pede ação' : 'Seus pedidos', 'férias, folga, documento e reembolso')}${esquerda}</div>
         <div class="v2p-col">${htmlCalendario(d)}<section class="v2p-card v2p-meus" aria-label="O seu pedido">${meusHtml}</section></div>
       </div>
-      <p class="v2p-sub v2p-pe">${d.gestao ? 'Decidir passa para o próximo pedido; aprovado, o tracejado do calendário fica verde. ' : ''}Do aniversário, a equipe vê só o dia e o mês.</p>
       ${tambemRh(d)}</div>`;
   }
 
@@ -781,23 +799,40 @@
     if (estado.v2.proj === '') return null;
     return projetosVisiveis(d).find((p) => p.id === estado.v2.proj) || lista[0] || null;
   }
+  // Direção 3 (quadro D3-Projetos): a frase do Heitor vira o bloco de ação laranja, com uma coisa só e o botão que a abre.
+  // Fora do painel (testes), o mesmo bloco montado aqui.
+  const acaoD3 = (frase, botaoTxt = '', attrs = '') => {
+    const corpo = `<small class="d3pj-quem">Heitor · Coordenação</small><span>${frase}</span>`;
+    if (typeof window.d3AcaoHtml === 'function') return window.d3AcaoHtml({ agente: 'H', frase: corpo, botao: botaoTxt, attrs });
+    return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${corpo}</span>${botaoTxt ? `<button type="button" class="d3-acao-btn" ${attrs}>${esc(botaoTxt)}</button>` : ''}</section>`;
+  };
   function falaProjetos(d, ps) {
     const h = d.hoje || hoje(), abertos = ps.filter((p) => p.status !== 'concluido'), com = abertos.filter((p) => vencidasDe(p, h).length);
     const em7 = somarDias(h, 7), vencendo = abertos.flatMap((p) => etapasDe(p).filter((e) => !e.feita && e.fim && e.fim >= h && e.fim <= em7)).length;
-    let frase, extra = '';
-    if (!abertos.length) frase = '<b>Nenhum projeto andando agora.</b> Os que terminaram ficam em “Concluídos”.';
-    else {
-      const andando = `<b><span class="v2-num">${plural(abertos.length, 'projeto', 'projetos')}</span></b> fora do mensal ${abertos.length === 1 ? 'está andando' : 'estão andando'}.`;
-      if (!com.length) frase = `${andando} Nenhum tem etapa vencida${vencendo ? `; ${plural(vencendo, 'etapa vence', 'etapas vencem')} nos próximos 7 dias` : ''}.`;
-      else {
-        const pior = com.map((p) => ({ p, e: vencidasDe(p, h)[0] })).sort((a, b) => (a.e.fim < b.e.fim ? -1 : 1))[0];
-        const dias = entre(pior.e.fim, h), desde = dias === 1 ? 'desde ontem' : `há ${dias} dias`;
-        frase = com.length === 1 ? `${andando} Só o projeto ${esc(pior.p.nome)}${pior.p.cliente ? ` (${esc(pior.p.cliente)})` : ''} tem <b>etapa vencida</b>, ${desde}.`
-          : `${andando} <b>${com.length} têm etapa vencida</b>; a mais antiga é ${esc(pior.e.nome)}, do projeto ${esc(pior.p.nome)}, ${desde}.`;
-        extra = botao('Ver a etapa', `data-v2pj-abre="${esc(pior.p.id)}" data-forcar="1"`, 's');
-      }
-    }
-    return falaHtml('Coordenação de produção', frase, extra, 'Heitor');
+    if (!abertos.length) return acaoD3('Nenhum projeto andando agora.');
+    if (!com.length) return acaoD3(`${plural(abertos.length, 'projeto andando', 'projetos andando')}, nenhuma etapa vencida${vencendo ? ` · ${plural(vencendo, 'vence', 'vencem')} em 7 dias` : ''}.`);
+    const pior = com.map((p) => ({ p, e: vencidasDe(p, h)[0] })).sort((a, b) => (a.e.fim < b.e.fim ? -1 : 1))[0];
+    const dias = entre(pior.e.fim, h), desde = dias === 1 ? 'desde ontem' : `há ${dias} dias`;
+    const frase = com.length === 1 ? `${esc(pior.p.nome)}${pior.p.cliente ? ` da ${esc(pior.p.cliente)}` : ''} com etapa vencida ${desde}.` : `${com.length} projetos com etapa vencida · a mais antiga ${desde}.`;
+    return acaoD3(frase, 'Ver a etapa', `data-v2pj-abre="${esc(pior.p.id)}" data-forcar="1"`);
+  }
+  // Quatro números: em andamento, etapas vencidas, etapas feitas e a próxima entrega.
+  function numerosProjetos(d, ps) {
+    const h = d.hoje || hoje(), abertos = ps.filter((p) => p.status !== 'concluido'), mes = h.slice(0, 7);
+    // Fora do painel (testes), o mesmo cartão montado aqui, sem a mini linha.
+    const base = typeof window.d3NumHtml === 'function' ? window.d3NumHtml : (o) => { const tag = o.attrs ? 'button' : 'div';
+      return `<${tag}${o.attrs ? ` type="button" ${o.attrs}` : ''} class="d3-num${o.tom ? ' ' + o.tom : ''}"><span class="d3-num-rot">${esc(o.rotulo)}</span><b class="d3-num-v">${o.valor}</b>${o.barra != null ? `<span class="d3-barra" style="--v:${Math.round(o.barra)}%"><i></i></span>` : ''}</${tag}>`; };
+    const num = (o, pe = '') => base(o).replace(/<\/(div|button)>$/, `${pe ? `<span class="d3pj-pe">${pe}</span>` : ''}</$1>`);
+    const venc = abertos.flatMap((p) => vencidasDe(p, h).map((e) => ({ p, e }))).sort((a, b) => (a.e.fim < b.e.fim ? -1 : 1));
+    const es = abertos.flatMap(etapasDe), feitas = es.filter((e) => e.feita).length;
+    const prox = abertos.flatMap((p) => etapasDe(p).filter((e) => !e.feita && e.fim && e.fim >= h).map((e) => ({ p, e }))).sort((a, b) => (a.e.fim < b.e.fim ? -1 : 1))[0];
+    const novos = abertos.filter((p) => String(p.inicio || '').slice(0, 7) === mes).length;
+    const dia = (iso) => `${SEMANA_RH[new Date(iso + 'T12:00:00Z').getUTCDay()]} ${Number(iso.slice(8, 10))}`;
+    return `<div class="d3pj-nums">
+      ${num({ rotulo: 'Em andamento', valor: String(abertos.length), attrs: 'data-v2p-filtro="abertos"' }, novos ? `+${novos} no mês` : '')}
+      ${num({ rotulo: 'Etapas vencidas', valor: String(venc.length), tom: venc.length ? 'r' : '' }, venc[0] ? `${esc(venc[0].p.cliente || venc[0].p.nome)} · era ${esc(dm(venc[0].e.fim))}` : 'nenhuma')}
+      ${num({ rotulo: 'Etapas feitas', valor: `${feitas}<small> / ${es.length}</small>`, barra: es.length ? feitas / es.length * 100 : 0 })}
+      ${num({ rotulo: 'Próxima entrega', valor: prox ? esc(dia(prox.e.fim)) : '—', attrs: prox ? `data-v2pj-abre="${esc(prox.p.id)}" data-forcar="1"` : '' }, prox ? `${esc(prox.e.nome)}${prox.p.cliente ? ` · ${esc(prox.p.cliente)}` : ''}` : 'sem data')}</div>`;
   }
   function barraProjetos(d, ps) {
     const v = estado.v2, ab = ps.filter((p) => p.status !== 'concluido').length, painel = v.painel || '';
@@ -883,11 +918,11 @@
     // Sem nenhum projeto: só a fala com o que é a tela; "Novo projeto" fica no alto para quem cria.
     if (!ps.length) {
       const texto = 'Evento, lançamento ou site fora do mensal: crie o projeto com as etapas e veja tudo na linha do tempo.' + (d.gestao ? '' : ' Quem cuida da gestão cria os projetos.');
-      return `${semMigracao(d)}<div class="v2p v2p-proj">${falaHtml('Coordenação de produção', `<b>Nenhum projeto pontual.</b> ${esc(texto)}`, '', 'Heitor')}${form ? formProjeto(d) : ''}</div>`;
+      return `${semMigracao(d)}<div class="v2p v2p-proj">${acaoD3('Nenhum projeto pontual.')}<p class="v2p-sub d3pj-vazio">${esc(texto)}</p>${form ? formProjeto(d) : ''}</div>`;
     }
-    if (estado.v2.vista === 'tempo') return `${semMigracao(d)}<div class="v2p v2p-proj">${falaProjetos(d, ps)}${form ? formProjeto(d) : ''}${tempoProjetos(d, ps)}</div>`;
+    if (estado.v2.vista === 'tempo') return `${semMigracao(d)}<div class="v2p v2p-proj">${falaProjetos(d, ps)}${numerosProjetos(d, ps)}${form ? formProjeto(d) : ''}${tempoProjetos(d, ps)}</div>`;
     const aberto = form ? null : projetoAberto(d, projetosFiltrados(d)), lado = form ? formProjeto(d) : aberto ? paginaProj(aberto, d) : '';
-    return `${semMigracao(d)}<div class="v2p v2p-proj">${falaProjetos(d, ps)}${barraProjetos(d, ps)}
+    return `${semMigracao(d)}<div class="v2p v2p-proj">${falaProjetos(d, ps)}${numerosProjetos(d, ps)}${barraProjetos(d, ps)}
       <div class="v2pj-grade${lado ? '' : ' so-lista'}">${listaProjetos(d)}${lado}</div></div>`;
   }
   // Escolher um projeto: o cartão fica marcado e a página dele abre ao lado. `forcar` (da fala) limpa os filtros.
@@ -1002,10 +1037,11 @@
     else frase = `<b>${plural(todas.length, 'trilha no ar', 'trilhas no ar')}.</b> ${minha ? 'Você terminou a sua.' : 'Nenhuma atribuída a você ainda.'}`;
     const minhasAulas = todas.filter((t) => t.minha).map(progressoDe);
     const numeros = tresHtml([
-      { rotulo: 'Trilhas no ar', valor: todas.length, sub: todas.length ? `${plural(total.videos, 'vídeo', 'vídeos')} e ${plural(total.docs, 'documento', 'documentos')}` : 'nenhuma montada' },
-      d.gestao ? { rotulo: principal && atP.length ? `Terminaram a ${principal.nome}` : 'Terminaram a trilha', valor: atP.length ? `${fimP} de ${atP.length}` : 'ninguém', sub: atP.length ? 'de quem recebeu a trilha' : 'ninguém com trilha atribuída' }
-        : { rotulo: 'Aulas feitas', valor: minhasAulas.length ? `${minhasAulas.reduce((s, p) => s + p.concluidas, 0)} de ${minhasAulas.reduce((s, p) => s + p.total, 0)}` : 'nenhuma', sub: minhasAulas.length ? 'somando as suas trilhas' : 'sem trilha atribuída' },
-      { rotulo: 'A sua trilha', valor: prM ? `${prM.pct}%` : 'nenhuma', sub: !minha ? 'nenhuma atribuída a você' : faltam ? `${faltam === 1 ? 'falta 1 aula' : `faltam ${faltam} aulas`} · ${elo('continuar', `data-v2p-abre="${esc(minha.id)}" data-abrir="1"`)}` : 'concluída' },
+      { rotulo: 'Trilhas no ar', valor: todas.length, sub: todas.length ? `${plural(total.videos, 'vídeo', 'vídeos')} · ${total.docs} ${total.docs === 1 ? 'doc' : 'docs'}` : 'nenhuma' },
+      d.gestao ? { rotulo: principal && atP.length ? `${principal.nome} feita` : 'Trilha feita', valor: atP.length ? fimP : '–', de: atP.length ? ` / ${atP.length}` : '', barra: atP.length ? fimP / atP.length * 100 : null, sub: atP.length ? '' : 'ninguém atribuído' }
+        : (() => { const f = minhasAulas.reduce((s, p) => s + p.concluidas, 0), t = minhasAulas.reduce((s, p) => s + p.total, 0);
+          return { rotulo: 'Aulas feitas', valor: minhasAulas.length ? f : '–', de: minhasAulas.length ? ` / ${t}` : '', barra: t ? f / t * 100 : null, sub: minhasAulas.length ? '' : 'sem trilha' }; })(),
+      { rotulo: 'A sua trilha', valor: prM ? prM.pct : '–', de: prM ? '%' : '', barra: prM ? prM.pct : null, sub: !minha ? 'nenhuma' : faltam ? `${faltam === 1 ? 'falta 1' : `faltam ${faltam}`} · ${elo('continuar', `data-v2p-abre="${esc(minha.id)}" data-abrir="1"`)}` : 'concluída' },
     ]);
     const meu = (k) => { const pr = todas.filter((t) => { const p = progressoDe(t); return k === 'andamento' ? p.pct > 0 && p.pct < 100 : k === 'feitas' ? p.total > 0 && p.pct >= 100 : p.pct === 0; }); return pr.length; };
     const barra = `<div class="v2p-barra-f">${buscaHtml('Buscar trilha, vídeo ou documento')}${fichasHtml([['ar', 'No ar', todas.length], ['minhas', 'Minhas', todas.filter((t) => t.minha).length]], estado.v2.filtro || 'ar')}
@@ -1020,14 +1056,14 @@
       ${!minha ? '<p class="v2p-frase">Nenhuma trilha atribuída a você.</p>' : !aula ? '<p class="v2p-frase">Você terminou esta trilha.</p>'
         : `<div class="v2p-lin"><span class="v2p-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span><p><b>${aula.tipo === 'doc' ? 'Documento' : 'Vídeo'} ${proxima + 1} · ${esc(aula.titulo)}</b><br><span class="v2p-sub">${esc(plural(Number(aula.minutos) || 0, 'minuto', 'minutos'))} · ${faltam > 1 ? `depois ${faltam - 1 === 1 ? 'falta 1 aula' : `faltam ${faltam - 1} aulas`}` : 'é a última'}</span></p>
           ${aula.link ? `<a class="v2p-btn s k" href="${esc(aula.link)}" target="_blank" rel="noopener noreferrer">Continuar</a>` : botao('Continuar', `data-v2p-abre="${esc(minha.id)}" data-abrir="1"`, 's k')}</div>`}
-      ${minha ? `<div class="v2-barra"><i style="--v:${prM.pct}%;--c:#FF7A2F"></i></div>` : ''}</section>`;
+      ${minha ? `<span class="d3-barra"><i style="--v:${prM.pct}%"></i></span>` : ''}</section>`;
     return `${semMigracao(d)}<div class="v2p v2p-academy">${falaHtml('Treinamento', frase, extra)}${numeros}${barra}${estado.form === 'trilha' ? formTrilha() : ''}
       <div class="v2p-grade v2p-grade-13">
         <div class="v2p-col"><section class="v2p-card" aria-label="Pede ação">${cabeca('Pede ação', acaoLinhas.length ? `${plural(acaoLinhas.length, 'coisa', 'coisas')}, na ordem` : '')}
           ${acaoLinhas.length ? recolhe(acaoLinhas, 'acao', 3).join('') + restoHtml(acaoLinhas.length - 3, 'acao', 'na fila') : '<p class="v2p-frase">Nada pendente nas trilhas.</p>'}</section>${suaTrilha}</div>
         ${listaAcademy(d)}
       </div>
-      <p class="v2p-sub v2p-pe">Quem monta as trilhas são os donos e o RH.${d.gestao ? ' A trilha abre no lugar com as aulas; marque a aula quando terminar.' : ' Precisa de uma? Use “Pedir uma trilha”, no alto.'}</p></div>`;
+      <p class="v2p-sub v2p-pe">monta: donos e RH</p></div>`;
   }
 
   // ---------- Recrutamento ----------
@@ -1078,14 +1114,14 @@
       : `<b>${plural(ind.abertas ?? abertas.length, 'vaga aberta', 'vagas abertas')}, ${plural(ind.candidatos ?? todos.length, 'candidato', 'candidatos')}.</b> ${pendentes.length ? `${plural(pendentes.length, 'espera', 'esperam')} retorno há mais de ${DIAS_RETORNO} dias${pendentes[0] ? `, a começar por ${esc(primeiroNome(pendentes[0].nome))} (${esc(nomeVaga[pendentes[0].vaga_id] || '')})` : ''}.` : 'Ninguém parado no funil há mais de 5 dias.'}`;
     const tm = ind.tempoMedio || {}, vs = versus(ind.vs, { menorMelhor: true, unidade: ' dias' }).replace(/<(\/?)small/g, '<$1span');
     const numeros = tresHtml([
-      { rotulo: 'Vagas abertas', valor: ind.abertas ?? abertas.length, sub: antiga ? `a mais antiga há ${plural(Math.max(0, entre(antiga, h)), 'dia', 'dias')}` : fechadas ? `${plural(fechadas, 'fechada', 'fechadas')}` : 'nenhuma por enquanto' },
-      { rotulo: 'Candidatos', valor: ind.candidatos ?? todos.length, sub: `${plural(entraram, 'entrou', 'entraram')} ${anual ? 'neste ano' : ref === h.slice(0, 7) ? 'neste mês' : 'no mês escolhido'}` },
-      { rotulo: 'Tempo médio de contratação', valor: tm.dias == null ? 'sem dado' : plural(tm.dias, 'dia', 'dias'), sub: `${tm.contratacoes ? plural(tm.contratacoes, 'contratação', 'contratações') : 'ninguém contratado'} no período · ${vs}` },
+      { rotulo: 'Vagas abertas', valor: ind.abertas ?? abertas.length, sub: antiga ? `mais antiga · ${plural(Math.max(0, entre(antiga, h)), 'dia', 'dias')}` : fechadas ? `${plural(fechadas, 'fechada', 'fechadas')}` : 'nenhuma' },
+      { rotulo: 'Candidatos', valor: ind.candidatos ?? todos.length, sub: `+${entraram} no ${anual ? 'ano' : 'mês'}` },
+      { rotulo: 'Tempo até contratar', valor: tm.dias == null ? '–' : tm.dias, de: tm.dias == null ? '' : (tm.dias === 1 ? ' dia' : ' dias'), sub: `${tm.contratacoes ? plural(tm.contratacoes, 'contratação', 'contratações') : 'sem contratação'}${tm.dias == null ? '' : ' · ' + vs}` },
     ]);
     const f = estado.v2.filtro || 'abertas';
     let html = `${semMigracao(d)}<div class="v2p v2p-recrutamento">${falaHtml('Recursos Humanos', frase, pendentes.length ? botao(pendentes.length === 1 ? 'Ver quem espera' : `Ver os ${pendentes.length}`, 'data-v2p-filtro="pendente"', 's') : '')}${numeros}
-      <div class="v2p-barra-f">${buscaHtml('Buscar vaga ou candidato')}${fichasHtml([['abertas', 'Abertas', abertas.length], ['pendente', 'Com retorno pendente', pendentes.length], ['fechadas', 'Fechadas', fechadas]], f)}
-        <button type="button" class="v2p-btn s" data-v2p-filtros aria-pressed="${estado.v2.filtros || Boolean(estado.vaga)}">Filtros</button>${botao('Etapas', 'data-vp-abrir-form="etapas"', 's')}</div>
+      <div class="v2p-barra-f">${buscaHtml('Buscar vaga ou candidato')}${fichasHtml([['abertas', 'Abertas', abertas.length], ['pendente', 'Retorno pendente', pendentes.length], ['fechadas', 'Fechadas', fechadas]], f)}
+        <button type="button" class="v2p-btn s" data-v2p-filtros aria-pressed="${estado.v2.filtros || Boolean(estado.vaga)}">Filtros</button>${botao('Etapas', 'data-vp-abrir-form="etapas"', 's')}${seletorPeriodo()}</div>
       ${(estado.v2.filtros || estado.vaga) && vagas.length ? `<div class="v2p-barra-f v2p-barra-mais">${escolha({ rotulo: 'Vaga', valor: estado.vaga || '', vazio: 'Todas', campo: 'data-vp-vaga', opcoes: vagas.map((v) => ({ valor: v.id, nome: v.titulo + (v.status !== 'aberta' ? ` (${v.status})` : ''), n: nCand(v.id) })) })}</div>` : ''}`;
     if (estado.form === 'vaga') {
       const v = estado.editar || {};
@@ -1113,10 +1149,9 @@
         <div class="v2p-col"><section class="v2p-card" aria-label="Pede ação">${cabeca('Pede ação', pendentes.length ? `${plural(pendentes.length, 'coisa', 'coisas')}, na ordem` : '')}
             ${acaoLinhas.length ? recolhe(acaoLinhas, 'acao', 3).join('') + restoHtml(acaoLinhas.length - 3, 'acao', 'esperando retorno') : '<p class="v2p-frase">Ninguém esperando retorno.</p>'}</section>
           <section class="v2p-card v2p-funil" aria-label="Funil">${cabeca(`Funil de ${MESES_RH[Number(h.slice(5, 7)) - 1]}`, `${plural(noFunil.length, 'candidato', 'candidatos')} ${estado.vaga ? 'nesta vaga' : abertas.length === 1 ? 'na vaga aberta' : `nas ${abertas.length} vagas`}`)}
-            ${noFunil.length ? '' : '<p class="v2p-frase">Nenhum candidato no funil.</p>'}${etapas.map((e, i) => { const n = noFunil.filter((c) => c.etapa === e).length; return !n ? '' : `<div class="v2p-fun"><span>${esc(e)}</span><div class="v2-barra"><i style="--v:${Math.round(n / maior * 100)}%;--c:${/^reprovad/i.test(e) ? '#B42318' : COR_ETAPA[i % 4]}"></i></div><b>${n}</b></div>`; }).join('')}</section></div>
+            ${noFunil.length ? '' : '<p class="v2p-frase">Nenhum candidato no funil.</p>'}${etapas.map((e, i) => { const n = noFunil.filter((c) => c.etapa === e).length; return !n ? '' : `<div class="v2p-fun"><span>${esc(e)}</span><div class="v2-barra"><i style="--v:${Math.round(n / maior * 100)}%;--c:${/^reprovad/i.test(e) ? '#B42318' : /^(aprovad|contratad|proposta)/i.test(e) ? '#11613A' : '#1F1D1A'}"></i></div><b>${n}</b></div>`; }).join('')}</section></div>
         ${listaRecrutamento(d)}
-      </div>
-      <p class="v2p-sub v2p-pe">A vaga abre no lugar com os candidatos em cada etapa. O candidato muda de etapa na própria linha.</p></div>`;
+      </div></div>`;
   }
 
   // ---------- Documentos ----------
@@ -1139,8 +1174,9 @@
       const selo = v.length ? pilula(v.length === 1 ? `1 venceu em ${br(v[0].renovacao)}` : `${v.length} vencidos`, 'r') : r.length ? pilula(r.length === 1 ? `1 vence em ${br(r[0].renovacao)}` : `${r.length} a vencer`, 'a') : pilula('Em dia', 'g');
       const detalhe = `<div class="v2p-docs">${g.docs.map((x) => `<p class="v2p-doc"><span class="v2p-doc-nome" title="${esc([(d.tipos || {})[x.tipo] || x.tipo || '', x.inicio ? `desde ${br(x.inicio)}` : ''].filter(Boolean).join(' · '))}">${esc(x.titulo)}</span>${seloDoc(x)}
         ${x.link ? `<a class="v2p-link" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Abrir</a>` : ''}${elo('Editar', `data-vp-editar-documento="${esc(x.id)}"`)}</p>`).join('')}</div>`;
-      return linhaAbre(g.id, `${av(g.nome)}<span><b>${esc(primeiroNome(g.nome))}</b> <span class="v2p-sub">· ${plural(g.docs.length, 'documento', 'documentos')}</span><br><span class="v2p-sub">${esc(g.docs.map((x) => x.titulo).join(', '))}</span></span>`, selo, detalhe, `os documentos de ${g.nome}`); }).join('');
-    return `<section class="v2p-card v2p-lista" data-v2p-lista aria-label="Por colaborador">${cabeca('Por colaborador', 'contratos e documentos de cada um')}
+      return linhaAbre(g.id, `${av(g.nome)}<span><b>${esc(primeiroNome(g.nome))}</b><span class="vp-sr"> · ${esc(g.docs.map((x) => x.titulo).join(', '))}</span></span>`, `<span class="d3p-col-docs">${g.docs.length}</span><span class="d3p-col-sit">${selo}</span>`, detalhe, `os documentos de ${g.nome}`); }).join('');
+    return `<section class="v2p-card v2p-lista" data-v2p-lista aria-label="Por colaborador">${cabeca('Por colaborador', String(visiveis.length))}
+      ${linhas ? '<div class="d3p-th d3p-th-docs" aria-hidden="true"><span>Pessoa</span><span>Docs</span><span>Situação</span></div>' : ''}
       ${linhas || `<p class="v2p-frase">${docs.length ? 'Nenhum documento neste filtro.' : 'Nenhum documento cadastrado.'}</p>`}
       ${emDia ? `<p class="v2p-sub v2p-resto">+ ${plural(emDia, 'colaborador com tudo em dia recolhido', 'colaboradores com tudo em dia recolhidos')} · ${elo('mostrar', 'data-v2p-mostrar="emDia"')}</p>` : ''}</section>`;
   }
@@ -1153,12 +1189,20 @@
     const frase = !docs.length ? '<b>Nenhum documento cadastrado.</b> Registre contratos e documentos da equipe para ser avisado antes de vencer.'
       : pedem.length ? `<b>${[venc.length ? plural(venc.length, 'documento venceu', 'documentos venceram') : '', renovar.length ? `${plural(renovar.length, 'vence', 'vencem')} em até ${dias} dias` : ''].filter(Boolean).join(' e ')}.</b> ${emDia === 1 ? 'O outro documento do time está em dia.' : emDia ? `Os outros ${emDia} documentos do time estão em dia.` : ''}`
         : `<b>Nenhuma renovação nos próximos dias.</b> ${plural(ativos.length, 'documento do time está', 'documentos do time estão')} em dia.`;
-    const numeros = tresHtml([
-      { rotulo: 'Documentos do time', valor: ativos.length, barra: ativos.length ? emDia / ativos.length * 100 : 0, sub: `${emDia} em dia · de ${plural(gente, 'colaborador', 'colaboradores')}` },
-      { rotulo: `Vencem em ${dias} dias`, valor: renovar.length, tom: renovar.length ? 'atencao' : '', sub: renovar.length ? `o primeiro em ${plural(Math.max(0, entre(h, renovar[0].renovacao)), 'dia', 'dias')}` : 'nenhum por enquanto' },
-      { rotulo: 'Vencidos', valor: venc.length, tom: venc.length ? 'ruim' : '', sub: venc.length ? `há ${plural(Math.max(1, entre(venc[0].renovacao, h)), 'dia', 'dias')}` : 'nenhum' },
-    ]);
     const tipos = Object.entries(d.tipos || {}).map(([k, nome]) => [k, nome, ativos.filter((x) => x.tipo === k).length]).filter(([, , n]) => n);
+    const numeros = tresHtml([
+      { rotulo: 'Documentos do time', valor: ativos.length, de: ` · ${emDia} em dia`, barra: ativos.length ? emDia / ativos.length * 100 : 0, sub: plural(gente, 'pessoa', 'pessoas') },
+      { rotulo: `Vencem em ${dias} dias`, valor: renovar.length, tom: renovar.length ? 'atencao' : '', sub: renovar.length ? `1º em ${plural(Math.max(0, entre(h, renovar[0].renovacao)), 'dia', 'dias')}` : 'nenhum' },
+      { rotulo: 'Vencidos', valor: venc.length, tom: venc.length ? 'ruim' : '', sub: venc.length ? `<span class="v2p-ruim">há ${plural(Math.max(1, entre(venc[0].renovacao, h)), 'dia', 'dias')}</span>` : 'nenhum' },
+    ]);
+    // Vencimentos (Direção 3): a linha do tempo de 15 dias atrás até o aviso, com um ponto por renovação e o "hoje".
+    const ini = somarDias(h, -15), fimT = somarDias(h, Math.max(dias, 30)), span = Math.max(1, entre(ini, fimT));
+    const posT = (iso) => Math.max(0, Math.min(100, entre(ini, iso) / span * 100));
+    const naLinha = pedem.filter((x) => x.renovacao >= ini && x.renovacao <= fimT).slice(0, 8);
+    const vencimentos = `<section class="v2p-card d3p-venc" aria-label="Vencimentos">${cabeca('Vencimentos', `aviso ${dias} dias antes`)}
+      <div class="d3p-tl" role="list"><span class="d3p-tl-hoje" style="left:${posT(h).toFixed(1)}%"><b>hoje</b></span>${naLinha.map((x) => `<span class="d3p-tl-pt ${x.situacao === 'vencido' ? 'r' : 'a'}" role="listitem" style="left:${posT(x.renovacao).toFixed(1)}%" title="${esc(x.titulo)}"><i></i><small>${esc(iniciais(x.pessoa_nome))} · ${br(x.renovacao)}</small></span>`).join('')}</div>
+      <p class="d3p-tl-eixo" aria-hidden="true"><span>${br(ini)}</span><span>${br(somarDias(ini, Math.round(span / 3)))}</span><span>${br(somarDias(ini, Math.round(span * 2 / 3)))}</span><span>${br(fimT)}</span></p>
+      ${tipos.length ? `<p class="d3p-tipos"><span class="v2p-sub">Tipos</span>${tipos.map(([k, nome, n]) => `<button type="button" class="v2p-chip" data-v2p-tipo="${esc(k)}" aria-pressed="${estado.v2.tipo === k}">${esc(nome)} <b>${n}</b></button>`).join('')}</p>` : ''}</section>`;
     const barra = `<div class="v2p-barra-f">${buscaHtml('Buscar colaborador ou documento')}${fichasHtml([['todos', 'Todos', ativos.length], ['renovar', 'A vencer', renovar.length], ['vencidos', 'Vencidos', venc.length], ['sem', 'Sem validade', semVal]], estado.v2.filtro || 'todos')}
       <button type="button" class="v2p-btn s" data-v2p-filtros aria-pressed="${estado.v2.filtros}">Filtros</button></div>
       ${estado.v2.filtros ? `<div class="v2p-barra-f v2p-barra-mais"><span class="v2p-sub">Tipo:</span>${fichasHtml([...tipos, ...(encerrados ? [['encerrado', 'Encerrados', encerrados]] : [])], estado.v2.tipo, 'data-v2p-tipo')}</div>` : ''}`;
@@ -1182,12 +1226,12 @@
         : `<div class="v2p-lin">${selo}<p><b>${esc(x.titulo)}</b> · ${esc(primeiroNome(x.pessoa_nome))}</p>${renovarBtn(x)}</div>`; });
     return `${semMigracao(d)}<div class="v2p v2p-documentos">${falaHtml('Recursos Humanos', frase, pedem.length ? botao(pedem.length === 1 ? 'Ver o documento' : `Ver os ${pedem.length}`, 'data-v2p-mostrar="acao"', 's') : '')}${numeros}${barra}${form}
       <div class="v2p-grade v2p-grade-115">
-        <section class="v2p-card v2p-acao" aria-label="Pede ação">${cabeca('Pede ação', pedem.length ? `${plural(pedem.length, 'renovação', 'renovações')}, da mais urgente para a menos` : '')}
+        <div class="v2p-col"><section class="v2p-card v2p-acao" aria-label="Pede ação">${cabeca('Pede ação', pedem.length ? plural(pedem.length, 'renovação', 'renovações') : '')}
           ${acaoLinhas.length ? recolhe(acaoLinhas, 'acao', 4).join('') + restoHtml(acaoLinhas.length - 4, 'acao', 'para renovar') : docs.length ? '<p class="v2p-frase">Nenhuma renovação nos próximos dias.</p>' : ''}
           ${docs.length ? '' : `<div class="v2p-lin v2p-lin-fim">${pilula('Sem documento')}<p class="v2p-sub"><b>Nenhum documento cadastrado.</b></p>${estado.form === 'documento' ? '' : botao('Novo documento', 'data-vp-abrir-form="documento"', 's')}</div>`}</section>
+        ${docs.length ? vencimentos : ''}</div>
         ${listaDocumentos(d)}
-      </div>
-      <p class="v2p-sub v2p-pe">O colaborador abre no lugar com os contratos e documentos dele. O aviso de renovação chega ${dias} dias antes de vencer.</p></div>`;
+      </div></div>`;
   }
 
   // ---------- desenho ----------
@@ -1201,14 +1245,18 @@
   function htmlPainel() {
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const g = gestao(), abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
-    const dAba = estado.dados[estado.aba], periodo = estado.aba === 'recrutamento' && dAba && !dAba.proibido ? seletorPeriodo()
-      : estado.aba === 'projetos' && dAba && projetosVisiveis(dAba).length ? `<div class="vp-periodo"><span class="vp-seg" role="group" aria-label="Como ver os projetos">${[['cartoes', 'Cartões'], ['tempo', 'Linha do tempo']].map(([k, r]) => `<button type="button" data-v2pj-vista="${k}" aria-pressed="${(estado.v2.vista || 'cartoes') === k}">${r}</button>`).join('')}</span></div>`
+    // Direção 3: o período do Recrutamento fica na barra de filtro; no cabeçalho só as abas, a ajuda e a ação.
+    const dAba = estado.dados[estado.aba], periodo = estado.aba === 'projetos' && dAba && projetosVisiveis(dAba).length ? `<div class="vp-periodo"><span class="vp-seg" role="group" aria-label="Como ver os projetos">${[['cartoes', 'Cartões'], ['tempo', 'Linha do tempo']].map(([k, r]) => `<button type="button" data-v2pj-vista="${k}" aria-pressed="${(estado.v2.vista || 'cartoes') === k}">${r}</button>`).join('')}</span></div>`
       : estado.aba === 'produtividade' && dAba ? `<div class="vp-periodo">${mesHtml(estado.mes || dAba.mes || hoje().slice(0, 7), 'data-vp-mes-ir') || `<label class="vp-campo-inline"><span class="vp-sr">Mês</span><input type="month" data-vp-mes value="${esc(estado.mes || dAba.mes || hoje().slice(0, 7))}" max="${esc(hoje().slice(0, 7))}"></label>`}</div>` : '';
-    const botoes = `<div class="vp-topo-botoes">${acaoDoTopo(estado.dados[estado.aba])}${periodo}<button type="button" class="vp-x vb-janela-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
+    // Direção 3: no cabeçalho, as abas em pílula (a escolhida preta), o período, a ajuda e a ação em botão branco com "+".
+    const d3 = V2.has(estado.aba);
+    const abasHtml = `<div class="${d3 ? 'd3p-abas' : 'vp-abas'}" role="tablist" aria-label="Partes do setor de Pessoas"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === estado.aba}" data-vp-aba="${k}">${esc(k === 'rh' ? 'Pedidos' : k === 'projetos' ? 'Projetos' : r)}</button>`).join('')}</div>`;
+    const botoes = `<div class="vp-topo-botoes">${d3 ? abasHtml : ''}${acaoDoTopo(estado.dados[estado.aba])}${periodo}<button type="button" class="vp-x vb-janela-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
         ${botaoX('data-vp-fechar', 'vp-x')}</div>`;
-    return `<div class="vp-topo vb-janela-topo">${cabecalho({ id: 'vp-titulo', titulo: estado.aba === 'projetos' ? 'Projetos' : (ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1], texto: V2.has(estado.aba) ? '' : FRASE[estado.aba] || '', acoes: botoes })}</div>
+    const dia = (() => { try { return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', weekday: 'long', day: 'numeric', month: 'short' }).format(new Date()).replace('-feira', '').replace(/\.$/, '').replace(/ de /g, ' '); } catch { return ''; } })();
+    return `<div class="vp-topo vb-janela-topo">${cabecalho({ id: 'vp-titulo', titulo: estado.aba === 'projetos' ? 'Projetos' : (ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1], texto: d3 ? dia : FRASE[estado.aba] || '', acoes: botoes })}</div>
       ${estado.ajuda ? `<p class="vp-ajuda" role="note">${esc(AJUDA[estado.aba])}</p>` : ''}
-      <div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === estado.aba}" data-vp-aba="${k}">${esc(r)}</button>`).join('')}</div>
+      ${d3 ? '' : abasHtml}
       <p class="vp-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
       <div class="vp-corpo" id="vp-corpo" role="tabpanel" aria-labelledby="vp-aba-${estado.aba}" aria-busy="${estado.carregando}">${htmlCorpo()}</div>`;
   }

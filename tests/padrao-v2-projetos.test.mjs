@@ -46,20 +46,20 @@ function montar({ gestao = true } = {}) {
 const ordem = (h, ...trechos) => { let i = -1; for (const t of trechos) { const j = h.indexOf(t, i + 1); assert.ok(j > i, `"${t}" na ordem do quadro`); i = j; } };
 const espera = () => new Promise((ok) => setImmediate(ok));
 
-test('a tela segue o quadro: título com Cartões e Linha do tempo, a fala do Heitor, a barra e os cartões com o projeto aberto', async () => {
+test('a tela segue o quadro (Direção 3): título com Cartões e Linha do tempo, o bloco de ação do Heitor, quatro números, a barra e os cartões com o projeto aberto', async () => {
   const t = montar();
   await t.P.abrir('projetos');
   const h = t.html();
   assert.equal(t.janela().className, 'vp-janela v2p-janela');
   // no HTML a ação vem antes; o CSS põe na ordem do quadro (vista, ajuda, ação)
   ordem(h, '<h2 id="vp-titulo">Projetos</h2>', 'data-vp-abrir-form="projeto">Novo projeto', 'data-v2pj-vista="cartoes" aria-pressed="true">Cartões', 'data-v2pj-vista="tempo" aria-pressed="false">Linha do tempo',
-    'data-vp-ajuda', 'class="v2p-card v2p-fala"', 'Heitor · Coordenação de produção',
+    'data-vp-ajuda', 'class="d3-acao"', 'Heitor · Coordenação', 'class="d3pj-nums"',
     'placeholder="Buscar projeto"', 'data-v2p-filtro="abertos">Em andamento <b>2</b>', 'data-v2p-filtro="concluidos">Concluídos <b>1</b>', '>Cliente</button>', '>Responsável</button>', '>Filtros</button>',
     'class="v2pj-grade"', 'data-v2pj-abre="10" aria-pressed="true"', 'data-v2pj-abre="11" aria-pressed="false"', 'data-v2pj-pag');
   assert.equal(h.split('<button type="button" class="vp-acao"').length - 1, 1, 'uma ação principal');
   assert.doesNotMatch(h, /vp-nums|Gantt de projetos pontuais|Campanha de verão/, 'sem os quatro números antigos; concluído só no filtro');
   // a fala: quantos andam e a etapa vencida mais antiga, com o botão que abre o projeto
-  assert.match(h, /<b><span class="v2-num">2 projetos<\/span><\/b> fora do mensal estão andando\. Só o projeto Site novo \(Clínica Sol\) tem <b>etapa vencida<\/b>, há 2 dias\./);
+  assert.ok(h.includes('<span>Site novo da Clínica Sol com etapa vencida há 2 dias.</span>'), 'a frase curta do bloco de ação');
   assert.match(h, /data-v2pj-abre="11" data-forcar="1">Ver a etapa</);
   // o cartão: cliente, situação, etapas e a próxima (vencida em vermelho)
   assert.match(h, /class="v2p-pill r">Etapa vencida<\/span><\/span><b class="v2pj-tit">Site novo<\/b>/);
@@ -90,7 +90,7 @@ test('escolher, fechar, filtrar e trocar para a linha do tempo', async () => {
   t.clicar('[data-v2p-filtro]', { v2pFiltro: 'abertos' });
   t.clicar('[data-v2pj-campo]', { v2pjCampo: 'cliente', valor: 'Clínica Sol' });
   h = t.html();
-  assert.match(h, /aria-pressed="true" aria-expanded="true">Cliente: Clínica Sol/); assert.doesNotMatch(h, /data-v2pj-abre="10"/);
+  assert.match(h, /aria-pressed="true" aria-expanded="true">Cliente: Clínica Sol/); assert.doesNotMatch(h, /data-v2pj-abre="10" aria-pressed/);
   t.clicar('[data-v2pj-abre]', { v2pjAbre: '11' });
   t.clicar('[data-v2pj-mais]', { v2pjMais: '11' });
   assert.match(t.html(), /data-v2pj-tempo="11">Ver na linha do tempo/);
@@ -139,7 +139,7 @@ test('sem projeto: a fala do Heitor diz o que é a tela; Novo projeto só no alt
   const t = montar();
   PROJETOS.splice(0);
   await t.P.abrir('projetos');
-  assert.match(t.html(), /Heitor · Coordenação de produção/); assert.match(t.html(), /Nenhum projeto pontual\./); assert.doesNotMatch(t.html(), /data-v2pj-vista/);
+  assert.match(t.html(), /Heitor · Coordenação/); assert.match(t.html(), /Nenhum projeto pontual\./); assert.doesNotMatch(t.html(), /data-v2pj-vista/);
   assert.equal(t.html().split('Novo projeto').length - 1, 1);
 });
 

@@ -238,11 +238,16 @@
   function linhaHtml(i) {
     const et = st.dados.etapas || [], k = et.findIndex((e) => e.id === i.etapa), prox = ABERTAS(i) ? et[k + 1] : null, aberta = String(i.id) === st.sel;
     const podeAvancar = prox && prox.id !== 'cancelado' && !(['arquivo_enviado', 'em_impressao', 'pronto', 'entregue'].includes(prox.id) && !i.fornecedor_id);
-    const forn = i.fornecedor_nome ? esc(i.fornecedor_nome) : `<b class="atencao">sem fornecedor</b>${ABERTAS(i) ? ` · <button type="button" class="p2-link vi-escolher" data-vi-escolher-forn="${esc(i.id)}">escolher</button>` : ''}`;
-    return `<div class="v2-abre p2-abre vi2-item${aberta ? ' sel' : ''}" aria-expanded="${aberta}"><div class="p2-lin"><div class="vi2-meio" data-vi-linha="${esc(i.id)}">
-        <p class="vi2-l1"><span>${cliPonto(i.cliente_nome) || '<span class="p2-sub">interno</span>'} · <button type="button" class="vi2-nome" data-vi-abrir="${esc(i.id)}" aria-expanded="${aberta}">${esc(i.titulo)}</button>${unidades(i) ? ` · ${esc(unidades(i))}` : ''}</span>${i.atrasada ? `<span class="p2-pill r">${diasDeAtraso(i) ? `${diasDeAtraso(i)} ${diasDeAtraso(i) === 1 ? 'dia' : 'dias'}` : 'atrasada'}</span>` : i.previsao ? `<span class="p2-sub">${esc(diaSem(i.previsao))}</span>` : ''}</p>
-        <div class="vi2-l2">${trilhaHtml(i)}<span class="vi2-onde">${esc(etapaNome(i.etapa))} · ${forn}</span>${i.atrasada && podeAvancar ? `<button type="button" class="p2-btn s v2-estado" data-vi-etapa="${esc(prox.id)}" data-vi-id="${esc(i.id)}">Marcar como ${esc(String(prox.nome).toLowerCase())}</button>` : ''}</div>
-      </div></div><div class="v2-mais"><div>${aberta ? ficha() : ''}</div></div></div>`;
+    // Direção 3 (quadro D3-Impressoes): uma linha de tabela por peça, com a trilha curta embaixo do nome, a etapa, o
+    // fornecedor, o prazo e o botão do próximo passo (o mesmo avanço de etapa de sempre; sem gráfica, escolher a gráfica).
+    const forn = i.fornecedor_nome ? esc(i.fornecedor_nome) : '<b class="atencao">sem fornecedor</b>';
+    const prazo = i.atrasada ? `<span class="p2-pill r">${diasDeAtraso(i) ? `${diasDeAtraso(i)} ${diasDeAtraso(i) === 1 ? 'dia' : 'dias'}` : 'atrasada'}</span>` : i.previsao ? `<span class="vi2-prazo">${esc(diaSem(i.previsao))}</span>` : '<span class="p2-sub">sem data</span>';
+    const passo = !i.fornecedor_id && ABERTAS(i) ? `<button type="button" class="p2-btn s vi-escolher" data-vi-escolher-forn="${esc(i.id)}">Escolher gráfica</button>`
+      : podeAvancar ? `<button type="button" class="p2-btn s v2-estado${i.atrasada ? ' k' : ''}" data-vi-etapa="${esc(prox.id)}" data-vi-id="${esc(i.id)}">${prox.id === 'entregue' ? 'Marcar entregue' : esc(prox.nome)}</button>` : '';
+    return `<div class="v2-abre p2-abre vi2-item${aberta ? ' sel' : ''}" aria-expanded="${aberta}"><div class="p2-lin vi2-tab"><div class="vi2-meio" data-vi-linha="${esc(i.id)}">
+        <p class="vi2-l1"><span>${cliPonto(i.cliente_nome) || '<span class="p2-sub">interno</span>'} · <button type="button" class="vi2-nome" data-vi-abrir="${esc(i.id)}" aria-expanded="${aberta}">${esc(i.titulo)}</button>${i.quantidade ? ` · ${esc(Number(i.quantidade).toLocaleString('pt-BR'))} un` : ''}</span></p>
+        ${trilhaHtml(i)}</div><span class="vi2-onde">${esc(etapaNome(i.etapa))}</span><span class="vi2-forn">${forn}</span>${prazo}<span class="vi2-passo">${passo}</span>
+      </div><div class="v2-mais"><div>${aberta ? ficha() : ''}</div></div></div>`;
   }
   function linhasHtml() {
     const q = norm(st.busca).trim(), todas = visiveis().filter((i) => !q || norm(`${i.titulo} ${i.cliente_nome || ''} ${i.fornecedor_nome || ''} ${i.material || ''}`).includes(q));
@@ -255,7 +260,7 @@
     const fora = abertas.length - lista.filter(ABERTAS).length, recolhidas = tudo ? 0 : fechadas.length - (sel && !ABERTAS(sel) ? 1 : 0);
     const pe = [fora > 0 ? `+ ${fora} ${fora === 1 ? 'aberta' : 'abertas'}` : '', recolhidas > 0 ? `${recolhidas} ${recolhidas === 1 ? 'entregue ou cancelada fica recolhida' : 'entregues ou canceladas ficam recolhidas'}` : ''].filter(Boolean).join(' · ');
     if (!lista.length) return `<p class="p2-vazio">${q || st.filtro || st.fornecedor ? 'Nenhuma impressão neste filtro.' : 'Nenhuma impressão aberta agora.'}${fechadas.length && !tudo ? ' <button type="button" class="p2-link" data-vi="mais">mostrar as entregues</button>' : ''}</p>`;
-    return `${lista.map(linhaHtml).join('')}${pe || st.mais ? `<p class="p2-sub p2-pe vi2-pe">${pe}${pe ? ' · ' : ''}<button type="button" class="p2-link" data-vi="mais">${st.mais ? 'recolher' : 'mostrar'}</button></p>` : ''}`;
+    return `<div class="vi2-cab" aria-hidden="true"><span>Peça</span><span>Etapa</span><span>Fornecedor</span><span>Prazo</span><span></span></div>${lista.map(linhaHtml).join('')}${pe || st.mais ? `<p class="p2-sub p2-pe vi2-pe">${pe}${pe ? ' · ' : ''}<button type="button" class="p2-link" data-vi="mais">${st.mais ? 'recolher' : 'mostrar'}</button></p>` : ''}`;
   }
   const vistaHtml = () => (st.vista === 'etapas' ? quadro() + ficha() : st.vista === 'lista' ? listaHtml() + ficha() : linhasHtml());
   function pintarLinhas() { const c = st.janela?.querySelector('.vi2-linhas'); if (c) c.innerHTML = vistaHtml(); }
@@ -271,15 +276,26 @@
     const atrasadas = abertas.filter((i) => i.atrasada), semForn = abertas.filter((i) => !i.fornecedor_id);
     const urgente = atrasadas[0] || abertas.filter((i) => i.previsao).sort((a, b) => String(a.previsao).localeCompare(String(b.previsao)))[0] || null;
     const nA = R.abertas ?? abertas.length, nAt = R.atrasadas ?? atrasadas.length, nS = R.semFornecedor ?? semForn.length;
-    const fala = `<div class="p2-card p2-fala"><span class="p2-ag" aria-hidden="true">N</span>
-      <p><span class="p2-quem">Nestor · Compras, fornecedores e impressões</span><b>${nA} ${nA === 1 ? 'impressão aberta' : 'impressões abertas'}.</b> ${nAt ? `${nAt} ${nAt === 1 ? 'atrasada' : 'atrasadas'} na gráfica` : 'Nenhuma atrasada'}${nS ? ` e <b>${nS} sem fornecedor</b>` : ''}.${urgente ? ` ${esc(urgente.titulo)}${urgente.cliente_nome ? ` de ${esc(urgente.cliente_nome)}` : ''} é a mais urgente: ${urgente.atrasada ? `a entrega era ${esc(diaSem(urgente.previsao))}` : `a entrega é ${esc(diaSem(urgente.previsao))}`}.` : ''}</p>
-      ${urgente ? `<button type="button" class="p2-btn s" data-vi-abrir="${esc(urgente.id)}">Ver ${esc(String(urgente.titulo).length > 22 ? 'a mais urgente' : urgente.titulo)}</button>` : ''}</div>`;
-    const porEtapa = etapasDoCaminho().map((e) => { const n = abertas.filter((i) => i.etapa === e.id).length; return n ? `${n} em ${String(e.nome).toLowerCase()}` : ''; }).filter(Boolean).slice(0, 3).join(' · ');
-    const nomes = (l) => l.slice(0, 2).map((i) => String(i.titulo).toLowerCase()).join(' e ') + (l.length > 2 ? ` e mais ${l.length - 2}` : '');
-    const kpis = `<div class="p2-kpis">
-      <div class="p2-card p2-kpi${nA ? '' : ' quieto'}"><small>Abertas</small><b><span class="v2-num">${nA}</span></b><small>${esc(porEtapa || 'nada em andamento')}</small></div>
-      <div class="p2-card p2-kpi${nAt ? ' ruim' : ' quieto'}"><small>Atrasadas</small><b><span class="v2-num" style="animation-delay:.12s">${nAt}</span></b><small>${atrasadas[0] ? `${esc(String(atrasadas[0].titulo).toLowerCase())}${atrasadas[0].cliente_nome ? ` de ${esc(atrasadas[0].cliente_nome)}` : ''}${diasDeAtraso(atrasadas[0]) ? `, há ${diasDeAtraso(atrasadas[0])} ${diasDeAtraso(atrasadas[0]) === 1 ? 'dia' : 'dias'}` : ''}` : 'tudo dentro da previsão'}</small></div>
-      <div class="p2-card p2-kpi${nS ? ' atencao' : ' quieto'}"><small>Sem fornecedor</small><b><span class="v2-num" style="animation-delay:.24s">${nS}</span></b><small>${semForn.length ? esc(nomes(semForn)) : 'todas com gráfica'}</small></div></div>`;
+    // Direção 3: a frase do Nestor vira o bloco de ação laranja, com uma coisa só (a mais urgente) e o botão que a abre.
+    const quando = (i) => (i.atrasada ? `atrasada ${diasDeAtraso(i) ? `há ${diasDeAtraso(i)} ${diasDeAtraso(i) === 1 ? 'dia' : 'dias'}` : ''}`.trim() : `entrega ${diaSem(i.previsao)}`);
+    const nome = (i) => `${i.titulo}${i.cliente_nome ? ` de ${i.cliente_nome}` : ''}`;
+    const fraseAcao = urgente ? `${esc(nome(urgente))}: ${esc(quando(urgente))}${urgente.fornecedor_id ? '' : ' e sem gráfica'}.` : nS ? `${nS} sem fornecedor.` : `${nA} ${nA === 1 ? 'impressão aberta' : 'impressões abertas'}, nenhuma atrasada.`;
+    const fala = typeof window.d3AcaoHtml === 'function' ? window.d3AcaoHtml({ agente: 'N', frase: `<small class="d3im-quem">Nestor · Compras</small><span>${fraseAcao}</span>`,
+      botao: urgente ? `Ver ${String(urgente.titulo).length > 18 ? 'a peça' : urgente.titulo}` : '', attrs: urgente ? `data-vi-abrir="${esc(urgente.id)}"` : '' }) : '';
+    const porEtapa = etapasDoCaminho().map((e) => { const n = abertas.filter((i) => i.etapa === e.id).length; return n ? `${n} ${String(e.nome).toLowerCase()}` : ''; }).filter(Boolean).slice(0, 3).join(' · ');
+    const nomes = (l) => l.slice(0, 2).map((i) => String(i.titulo).toLowerCase()).join(' · ') + (l.length > 2 ? ` +${l.length - 2}` : '');
+    const num = (o, pe = '') => (typeof window.d3NumHtml === 'function' ? window.d3NumHtml(o).replace(/<\/(div|button)>$/, `${pe ? `<span class="d3im-pe">${pe}</span>` : ''}</$1>`) : '');
+    // Entregues no mês e a linha das entregas das últimas seis semanas (entregue_em das impressões dos últimos 90 dias).
+    const hojeIso = String(d.hoje || new Date().toISOString()).slice(0, 10), mesIso = hojeIso.slice(0, 7);
+    const entregues = todas.filter((i) => i.etapa === 'entregue' && i.entregue_em);
+    const doMes = entregues.filter((i) => String(i.entregue_em).slice(0, 7) === mesIso), noPrazo = doMes.filter((i) => i.previsao && String(i.entregue_em) <= String(i.previsao)).length;
+    const semanas = Array.from({ length: 6 }, (_, k) => { const fim = Date.parse(hojeIso + 'T12:00:00Z') - (5 - k) * 7 * 864e5; return entregues.filter((i) => { const t = Date.parse(String(i.entregue_em).slice(0, 10) + 'T12:00:00Z'); return t <= fim && t > fim - 7 * 864e5; }).length; });
+    const atr0 = atrasadas[0];
+    const kpis = `<div class="d3im-nums">
+      ${num({ rotulo: 'Abertas', valor: String(nA), attrs: 'data-vi-filtro=""' }, esc(porEtapa || 'nada andando'))}
+      ${num({ rotulo: 'Atrasadas', valor: String(nAt), tom: nAt ? 'r' : '', attrs: 'data-vi-filtro="atrasadas"' }, atr0 ? `${esc(atr0.cliente_nome || atr0.titulo)}${diasDeAtraso(atr0) ? ` · ${diasDeAtraso(atr0)} ${diasDeAtraso(atr0) === 1 ? 'dia' : 'dias'}` : ''}` : 'nenhuma')}
+      ${num({ rotulo: 'Sem fornecedor', valor: String(nS), tom: nS ? 'a' : '', attrs: 'data-vi-filtro="semfornecedor"' }, semForn.length ? esc(nomes(semForn)) : 'todas com gráfica')}
+      ${num({ rotulo: 'Entregues no mês', valor: String(doMes.length), serie: entregues.length ? semanas : null }, doMes.length ? `no prazo · ${noPrazo}` : 'nenhuma ainda')}</div>`;
     const dec = decisoes();
     const filtrosMais = st.filtros ? `<div class="vi2-filtros-mais"><div class="p2-filtros"><span class="p2-sub">Ver como</span><span class="p2-seg vi-vista" role="group" aria-label="Ver como">${vista('linhas', 'Linhas')}${vista('etapas', 'Etapas')}${vista('lista', 'Tabela')}</span></div>${porFornecedor()}</div>` : '';
     return `${fala}${kpis}${st.form ? `<div class="p2-card">${formulario()}</div>` : ''}
@@ -298,7 +314,7 @@
     if (!st.janela) return;
     const tinha = st.janela.scrollTop || 0;
     st.janela.innerHTML = `<div class="vi-topo vb-janela-topo">${cabecalho({ id: 'vi-titulo', titulo: 'Impressões',
-      acoes: `<span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="p2-btn p" data-vi="nova">Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
+      acoes: `<span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="p2-btn d3im-nova" data-vi="nova">+ Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
       <p class="vi-aviso" role="status"></p><div class="vi-corpo">${corpo()}</div>`;
     pintarAviso();
     st.janela.scrollTop = tinha;

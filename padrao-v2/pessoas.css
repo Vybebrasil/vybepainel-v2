@@ -8,7 +8,7 @@
    ====================================================================================== */
 
 /* ---------- a janela e o cabeçalho ---------- */
-#vv-pessoas.vp-janela.v2p-janela{border:0;border-radius:28px;background:#F9F8F5;color:#1F1D1A;box-shadow:0 24px 48px -30px rgba(31,29,26,.3)}
+#vv-pessoas.vp-janela.v2p-janela{border:0;border-radius:var(--d3-r-janela,28px);background:var(--d3-areia,#EAE6DE);color:#1F1D1A;box-shadow:0 24px 48px -30px rgba(31,29,26,.3)}
 #vv-pessoas.v2p-janela .vp-topo.vb-janela-topo{padding:26px 30px 0;border-bottom:0;background:transparent}
 #vv-pessoas.v2p-janela .vp-topo.vb-janela-topo > .vb-cabecalho{align-items:center;gap:12px}
 #vv-pessoas.v2p-janela .vp-topo.vb-janela-topo .vb-cabecalho-texto{padding-top:0}
@@ -17,10 +17,11 @@
 /* A ordem do quadro: período, ajuda, a ação da tela e, por último, fechar. */
 #vv-pessoas.v2p-janela .vp-topo-botoes > .vp-periodo{order:1;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 #vv-pessoas.v2p-janela .vp-topo-botoes > [data-vp-ajuda]{order:2}
-#vv-pessoas.v2p-janela .vp-topo-botoes > .vp-acao{order:3;height:38px;min-height:38px;padding:0 16px;border:0;border-radius:999px;background:#C2490C;color:#FFFFFF;font:600 13.5px var(--vv-texto,Inter),sans-serif}
-#vv-pessoas.v2p-janela .vp-topo-botoes > .vp-acao:hover{background:#A83D08}
+#vv-pessoas.v2p-janela .vp-topo-botoes > .vp-acao{order:3;display:inline-flex;align-items:center;gap:6px;height:40px;min-height:40px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-cartao,#FFFFFF);color:var(--d3-tinta,#1F1D1A);font:600 13.5px var(--vv-texto,Inter),sans-serif}
+#vv-pessoas.v2p-janela .vp-topo-botoes > .vp-acao::before{content:"+";font:500 18px/1 var(--vv-texto,Inter),sans-serif}
+#vv-pessoas.v2p-janela .vp-topo-botoes > .vp-acao:hover{background:var(--d3-cartao,#FFFFFF);box-shadow:inset 0 0 0 1px var(--d3-tinta,#1F1D1A)}
 #vv-pessoas.v2p-janela .vp-topo-botoes > [data-vp-fechar]{order:4}
-#vv-pessoas.v2p-janela .vp-topo-botoes > .vp-x.vb-janela-x{width:38px;min-width:38px;height:38px;min-height:38px;padding:0;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 13.5px var(--vv-texto,Inter),sans-serif}
+#vv-pessoas.v2p-janela .vp-topo-botoes > .vp-x.vb-janela-x{width:40px;min-width:40px;height:40px;min-height:40px;padding:0;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none;color:#1F1D1A;font:600 14px var(--vv-texto,Inter),sans-serif}
 #vv-pessoas.v2p-janela .vp-topo-botoes > .vp-x.vb-janela-x:hover{box-shadow:inset 0 0 0 1px #1F1D1A;color:#1F1D1A}
 #vv-pessoas.v2p-janela .vp-topo-botoes > .vp-x[aria-expanded="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
 #vv-pessoas.v2p-janela .vp-periodo .vp-seg{display:inline-flex;gap:0;padding:4px;border:0;border-radius:999px;background:#EAE6DE}
@@ -41,7 +42,7 @@
 #vv-pessoas .v2p b{font-weight:700}
 #vv-pessoas .v2p-sub{font-size:12.5px;color:#6B665E}
 #vv-pessoas .v2p-sub b{color:#1F1D1A}
-#vv-pessoas .v2p-card{min-width:0;margin:0;padding:18px;border:0;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
+#vv-pessoas .v2p-card{min-width:0;margin:0;padding:14px 16px;border:0;border-radius:20px;background:#FFFFFF;box-shadow:none}
 #vv-pessoas .v2p-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;min-height:0;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 13.5px var(--vv-texto,Inter),sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer;list-style:none;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1))}
 #vv-pessoas .v2p-btn::-webkit-details-marker{display:none}
 #vv-pessoas .v2p-btn:active{transform:scale(.96)}
@@ -53,8 +54,8 @@
 #vv-pessoas .v2p .v2p-btn.k.v2-estado[data-estado="feito"]{background:#11613A;color:#FFFFFF}
 #vv-pessoas .v2p :is(.v2p-btn,.v2p-chip,.v2p-link,.v2p-nome,.v2p-seta,.v2p-cx,.v2p-ponto,.v2p-busca,button.v2p-av):focus-visible{outline:2px solid #C2490C;outline-offset:2px;box-shadow:none}
 #vv-pessoas .v2p .v2p-btn:not(.k):focus-visible{box-shadow:inset 0 0 0 1px #E6E0D6}
-#vv-pessoas .v2p-link{appearance:none;display:inline;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
-#vv-pessoas .v2p-link:hover{color:#8A3207}
+#vv-pessoas .v2p-link{appearance:none;display:inline;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta,#1F1D1A);font:inherit;font-weight:500;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+#vv-pessoas .v2p-link:hover{color:#000000}
 #vv-pessoas .v2p-chip{appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
 #vv-pessoas .v2p-chip b{font-weight:700;font-variant-numeric:tabular-nums}
 #vv-pessoas .v2p-chip[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
@@ -73,21 +74,11 @@
 #vv-pessoas .v2p-avs{display:inline-flex;flex-wrap:wrap;row-gap:6px;padding-left:8px}
 #vv-pessoas .v2p-avs > .v2p-av{margin-left:-8px}
 
-/* a fala do VYBES */
-#vv-pessoas .v2p-fala{display:flex;align-items:center;gap:14px}
-#vv-pessoas .v2p-fala > p{flex:1;min-width:0;font-size:15px;line-height:1.45}
-#vv-pessoas .v2p-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#4B36A8}
-#vv-pessoas .v2p-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter),sans-serif}
-#vv-pessoas .v2p-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2p-pulso 3.6s ease-out infinite}
-@keyframes v2p-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
+/* a fala virou o bloco de ação laranja da Direção 3 (padrao-v2/d3-time.css, seção RECURSOS HUMANOS) */
 
-/* três números */
-#vv-pessoas .v2p-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+/* números (Direção 3: o cartão .d3-num de 0-d3-base.css; aqui só a grade) */
+#vv-pessoas .v2p-tres{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:12px}
 #vv-pessoas .v2p-kpi > small{display:block;font-size:12.5px;line-height:1.35;color:#6B665E;overflow-wrap:anywhere}
-#vv-pessoas .v2p-kpi > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1F1D1A}
-#vv-pessoas .v2p-kpi.ruim > b{color:#B42318}
-#vv-pessoas .v2p-kpi.atencao > b{color:#7A4A00}
-#vv-pessoas .v2p-kpi > .v2-barra{margin-bottom:8px;background:#EAE6DE;border-radius:3px}
 #vv-pessoas .v2p-kpi[data-espiar]{cursor:pointer}
 #vv-pessoas .v2p-kpi[data-espiar]:focus-visible{outline:2px solid #C2490C;outline-offset:2px}
 #vv-pessoas .v2p-kpi .vp-vs{font:inherit;color:inherit}
@@ -190,7 +181,7 @@
 #vv-pessoas .v2p-ds{font-size:11.5px;line-height:14px;color:#6B665E;text-align:center}
 #vv-pessoas .v2p-dia{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;height:38px;box-sizing:border-box;padding:3px 5px;border-radius:10px;background:#F6F3EE;color:#4A463F;font:600 11.5px/14px var(--vv-texto,Inter),sans-serif}
 #vv-pessoas .v2p-dia > b{font-weight:600}
-#vv-pessoas .v2p-dia.hoje{background:#FFF1E6;box-shadow:inset 0 0 0 1.5px #FF7A2F;color:#8A3207}
+#vv-pessoas .v2p-dia.hoje{background:#FFF1E6;box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#8A3207}
 #vv-pessoas .v2p-dia.fora{background:none}
 #vv-pessoas .v2p-dia-evs{display:flex;gap:2px;max-width:100%}
 #vv-pessoas .v2p-cal-lado{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -233,12 +224,12 @@
 #vv-pessoas .v2p-cx{appearance:none;flex:none;display:grid;place-items:center;width:18px;height:18px;margin:0;padding:0;border:0;border-radius:50%;background:none;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF;cursor:pointer;transition:background-color .2s,box-shadow .2s}
 #vv-pessoas .v2p-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:0}
 #vv-pessoas .v2p-cx:hover{box-shadow:inset 0 0 0 1.5px #C2490C}
-#vv-pessoas .v2p-cx.ok{background:#FF7A2F;box-shadow:none}
+#vv-pessoas .v2p-cx.ok{background:#1F1D1A;box-shadow:none}
 #vv-pessoas .v2p-cx.ok svg{opacity:1}
 #vv-pessoas .v2p-cx:disabled{cursor:default;opacity:.6}
-#vv-pessoas .v2p-play{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#FFF1E6;color:#8A3207}
+#vv-pessoas .v2p-play{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--d3-info-veu,#E7EEFB);color:var(--d3-tinta,#1F1D1A)}
 #vv-pessoas .v2p-play svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-#vv-pessoas .v2p-sua > .v2-barra{margin-top:4px;background:#EAE6DE;border-radius:3px}
+#vv-pessoas .v2p-sua > .d3-barra{margin-top:8px}
 #vv-pessoas .v2p-atribuir{flex:1 1 220px;min-width:0}
 #vv-pessoas .v2p-atribuir > summary.v2p-btn{display:inline-flex;min-height:0;margin:0;font-weight:600}
 #vv-pessoas .v2p-atribuir[open] > summary.v2p-btn{margin-bottom:10px;background:#1F1D1A;color:#FFFFFF;box-shadow:none}
@@ -252,7 +243,6 @@
 #vv-pessoas .v2p .vp-sec:hover{box-shadow:inset 0 0 0 1px #1F1D1A;color:#1F1D1A}
 
 @media (prefers-reduced-motion:reduce){
-  #vv-pessoas .v2p-ag::after{animation:none}
   #vv-pessoas .v2p-seta svg,#vv-pessoas .v2p-btn,#vv-pessoas .v2p-cx,#vv-pessoas .v2p-ponto > i,#vv-pessoas .v2p-linha[aria-expanded="false"] > .v2-mais{transition:none}
 }
 
@@ -262,11 +252,7 @@
 }
 @container v2p (max-width:620px){
   #vv-pessoas .v2p-tres{grid-template-columns:minmax(0,1fr);gap:10px}
-  #vv-pessoas .v2p-kpi{padding:14px 16px}
-  #vv-pessoas .v2p-kpi > b{font-size:28px}
-  #vv-pessoas .v2p-fala{flex-wrap:wrap}
-  #vv-pessoas .v2p-fala > p{flex:1 1 calc(100% - 60px)}
-  #vv-pessoas .v2p-fala > .v2p-btn{margin-left:54px}
+  #vv-pessoas .v2p-kpi{padding:12px 14px}
   #vv-pessoas .v2p-card{padding:14px}
   #vv-pessoas .v2p-lin{flex-wrap:wrap;gap:8px 10px}
   #vv-pessoas .v2p-lin > p{flex:1 1 60%}

@@ -633,12 +633,12 @@ function faixaDeMaterialBrutoHtml(detail, item, { compacta = false } = {}) {
   const bruto = materialBrutoDaPeca(detail, item);
   if (!bruto) {
     if (!pedeMaterialBruto(item)) return '';
+    // Direção 3: rótulo curto e a ação; a explicação mora no título do botão.
     return `<div class="material-bruto faltando">
       <div class="material-bruto-copy"><span>Material bruto</span>
-        <b>Nenhuma pasta registrada</b>
-        <small>Quem edita não tem o que baixar. Cole aqui o link da pasta com o que foi captado.</small></div>
+        <b>Sem pasta</b></div>
       <div class="material-bruto-acoes">
-        <button type="button" class="material-bruto-add" onclick="pedirMaterialBruto('${safeText(String(item.id))}',event)">REGISTRAR LINK</button>
+        <button type="button" class="material-bruto-add" title="Cole o link da pasta com o que foi captado" onclick="pedirMaterialBruto('${safeText(String(item.id))}',event)">Registrar link</button>
       </div></div>`;
   }
   const quando = String(bruto.quando || '').replace('T', ' ').slice(0, 16);
@@ -647,7 +647,7 @@ function faixaDeMaterialBrutoHtml(detail, item, { compacta = false } = {}) {
       <b>Pasta do material captado</b>
       <small>${safeText(bruto.url.replace(/^https?:\/\//, '').slice(0, 64))}${bruto.url.length > 71 ? '…' : ''}${quando ? ` · ${safeText(quando)}` : ''}</small></div>
     <div class="material-bruto-acoes">
-      <a class="material-bruto-abrir" href="${safeText(bruto.url)}" target="_blank" rel="noopener">ABRIR PASTA ↗</a>
+      <a class="material-bruto-abrir" href="${safeText(bruto.url)}" target="_blank" rel="noopener">Abrir pasta</a>
       <button type="button" class="material-bruto-copiar" onclick="copiarBriefingTexto('${safeText(bruto.url)}','Link do material bruto')">Copiar</button>
       ${compacta ? '' : (bruto.origem === 'histórico'
         // Fixar promove o resgate histórico ao campo explícito da peça.

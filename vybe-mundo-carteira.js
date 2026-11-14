@@ -216,8 +216,10 @@
   function serieHtml(h) {
     if (!estado.servidor?.historico?.disponivel) return nota('A média mês a mês começa a ser guardada quando a Carteira for ativada no banco.');
     if (h.serie.length < 2) return nota('A média mês a mês aparece a partir do segundo mês guardado.');
-    return `<div class="vc-serie" role="img" aria-label="${esc(`Média da carteira: ${h.serie.map((m) => `${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)} ${m.media}`).join(', ')}`)}">${h.serie.map((m) =>
-      `<div class="vc-barra${m.agora ? ' agora' : ''}"><b>${m.media}</b><i class="${NIVEL_RISCO[S().riscoDaNota(m.media)]}" style="height:${Math.max(6, m.media)}%"></i><small>${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)}</small></div>`).join('')}</div>`;
+    // Direção 3: gráfico sempre em linha, com a meta de risco médio tracejada e os meses embaixo.
+    const rotulo = `Média da carteira: ${h.serie.map((m) => `${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)} ${m.media}`).join(', ')}`;
+    return `<div class="d3c-serie">${d3Linha(h.serie.map((m) => m.media), { meta: S().REGRAS?.riscoMedio ?? null, largura: 560, altura: 120, rotulo })}
+      <div class="d3c-meses" aria-hidden="true">${h.serie.map((m) => `<span${m.agora ? ' class="agora"' : ''}><b>${m.media}</b>${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)}</span>`).join('')}</div></div>`;
   }
   // ===== Saúde da carteira e Onboarding pelos quadros do moodboard (Paulo, 12/11/2026: "eu aprovei o DEPOIS") =====
   // As duas telas são os quadros, nesta ordem: título com a visão e a ajuda; a fala do Mateus; três números; uma
@@ -254,19 +256,47 @@
   const ROTULO_DA_ORDEM = { risco: 'pior nota primeiro', melhor: 'melhor nota primeiro', nome: 'por nome' };
   const TITULO_DO_FILTRO = { precisam: 'Quem precisa de você, e por quê', todos: 'Todos os clientes, e por quê', alto: 'Risco alto, e por quê', medio: 'Risco médio, e por quê', baixo: 'Risco baixo, e por quê' };
 
-  // A linha do cliente: a nota, quem é, a barra do que tirou ponto de 100 e a ação. Abre no lugar com cada perda.
+  // Direção 3 (moodboard 3, 13/11/2026): o bloco de ação laranja, o cartão de número e a mini linha vêm de vybe-core.js.
+  const d3Acao = (o) => (typeof d3AcaoHtml === 'function' ? d3AcaoHtml(o) : '');
+  const d3Linha = (v, o) => (typeof d3LinhaSvg === 'function' ? d3LinhaSvg(v, o) : '');
+  // Cartão de número da Direção 3: rótulo, o número que chega, a mini linha ao lado e uma linha curta embaixo.
+  // Com attrs vira botão: o cartão filtra a lista.
+  function numD3({ rotulo, valor, de = '', tom = '', linha = '', sub = '', attrs = '' }) {
+    const tag = attrs ? 'button' : 'div';
+    return `<${tag}${attrs ? ` type="button" ${attrs}` : ''} class="d3-num d3c-num${tom ? ` ${tom}` : ''}"><span class="d3-num-rot">${esc(rotulo)}</span><b class="d3-num-v">${valor}${de ? `<small>${esc(de)}</small>` : ''}</b>${linha}${sub ? `<span class="d3c-sub">${sub}</span>` : ''}</${tag}>`;
+  }
+  const quemD3 = (ag) => `<small class="d3c-quem">${esc(ag.nome)} · ${esc(String(ag.papel).split(' ')[0])}</small>`;
+  const pontoD3 = (tom) => `<i class="d3c-ponto ${tom}" aria-hidden="true"></i>`;
+  // O que tirou ponto em 1 a 3 palavras ("5 vencidas", "3 alteração", "1/3 posts"); o texto inteiro fica na linha aberta.
+  function perdaCurta(m, c) {
+    const t = String(m.texto || ''); let x;
+    if (/vencid/.test(t) && /^\d/.test(t)) { const n = c.numeros?.atrasadas || Number(t.match(/^\d+/)[0]); return n === 1 ? '1 vencida' : `${n} vencidas`; }
+    if ((x = t.match(/^(\d+) peças? com risco de furo/))) return `${x[1]} risco de furo`;
+    if ((x = t.match(/^(\d+) (?:voltas?|peças?) (?:para|em) alteração/))) return `${x[1]} alteração`;
+    if ((x = t.match(/^(\d+\/\d+) posts/))) return `${x[1]} posts`;
+    if ((x = t.match(/^aprovação parada há (\d+) dias/))) return `aprovação ${x[1]} d`;
+    if ((x = t.match(/leva (\d+) dias para aprovar/))) return `aprova em ${x[1]} d`;
+    if ((x = t.match(/^(\d+)% das entregas/))) return `${x[1]}% no prazo`;
+    if (/^sem conteúdo/.test(t)) return 'sem calendário';
+    return t;
+  }
+  const ehVencida = (m) => /vencid/.test(m.texto);
+  // A linha do cliente (quadro D3-Carteira): faixa do risco, nota, cliente, head, risco, o que tirou ponto e a ação.
+  // Abre no lugar com cada perda por inteiro.
   function linhaCliente(c, casa = null) {
     const chave = `c:${c.nome}`, aberto = estado.abertos.has(chave), tempo = c.id && casa ? casa.get(c.id) : null;
     const ruins = ruinsDe(c), bons = c.motivos.filter((m) => m.tom !== 'ruim'), perdeu = ruins.reduce((t, m) => t - m.pontos, 0);
-    const vencidas = c.numeros?.atrasadas || 0;
-    const legenda = ruins.length ? ruins.slice(0, 3).map((m) => `<span style="--c:${corDaPerda(m)}">${esc(motivoCurto(m.texto))}</span>`).join('')
-      : `<span style="--c:#11613A">${esc(bons[0]?.texto || 'sem sinal de alerta')}</span>`;
-    // 10 · Cor do humor: a nota de saúde (0 a 100) pinta a linha do vermelho ao verde.
-    return `<li class="v2-abre v2c-linha${Number.isFinite(Number(c.score)) ? " v2-humor" : ""}" data-vc-linha="${esc(chave)}"${Number.isFinite(Number(c.score)) ? (typeof vbHumorAttr === 'function' ? vbHumorAttr(c.score) : '') : ''} aria-expanded="${aberto}"><div class="v2c-lin">
-        <button type="button" class="v2c-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${c.nome}, nota ${c.score}, ${c.rotuloRisco}`)}">
-          <span class="v2c-nota ${TOM_DO_RISCO[c.risco] || 'a'}">${c.score}</span>
-          <span class="v2c-quemc"><b>${cliCor(c.nome)}</b><small>${esc(c.heads.length ? `Head ${c.heads.map(primeiroNome).join(' e ')}` : 'Sem head')} · ${esc(String(c.rotuloRisco || '').toLowerCase())}</small></span>
-          <span class="v2c-porque"><span class="v2c-perde" role="img" aria-label="${esc(perdeu ? `Perdeu ${perdeu} de 100 pontos` : 'Não perdeu ponto')}">${ruins.map((m) => `<i style="--v:${-m.pontos}%;--c:${corDaPerda(m)}"></i>`).join('')}</span><span class="v2c-leg">${legenda}</span></span>
+    const vencidas = c.numeros?.atrasadas || 0, tom = TOM_DO_RISCO[c.risco] || 'a';
+    const perdas = ruins.length ? ruins.slice(0, 3).map((m) => `<span class="${ehVencida(m) ? 'r' : ''}"><b>−${-m.pontos}</b> · ${esc(perdaCurta(m, c))}</span>`).join('')
+      : `<span class="g">${esc(bons[0]?.texto || 'sem sinal de alerta')}</span>`;
+    const head = c.heads.length ? `${avatarHtml(c.heads[0])}<span>${esc(primeiroNome(c.heads[0]))}${c.heads.length > 1 ? ` +${c.heads.length - 1}` : ''}</span>` : '<span class="d3c-vago">sem head</span>';
+    return `<li class="v2-abre v2c-linha" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><i class="d3c-faixa ${tom}" aria-hidden="true"></i><div class="v2c-lin">
+        <button type="button" class="v2c-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${c.nome}, nota ${c.score}, ${c.rotuloRisco}${perdeu ? `, perdeu ${perdeu} pontos` : ''}`)}">
+          <span class="v2c-nota ${tom}">${c.score}</span>
+          <span class="v2c-quemc"><b>${cliCor(c.nome)}</b></span>
+          <span class="d3c-head">${head}</span>
+          <span class="d3c-risco"><span class="d3c-pill">${pontoD3(tom)}${esc(String(c.rotuloRisco || '').replace(/^Risco /, '').replace(/^./, (l) => l.toUpperCase()))}</span></span>
+          <span class="d3c-perdas">${perdas}</span>
           ${SETA}</button>
         <span class="v2c-ac">${botao(vencidas > 1 ? `Abrir as ${vencidas}` : vencidas === 1 ? 'Abrir a peça' : 'Abrir o cliente', `data-vc-cliente="${esc(c.nome)}"`)}</span></div>
       <div class="v2-mais"><div><div class="v2c-det">
@@ -338,12 +368,17 @@
     const soma = new Map();
     for (const c of r.clientes) for (const m of ruinsDe(c)) { const k = causaDe(m), x = soma.get(k) || { pontos: 0, clientes: new Set() }; x.pontos -= m.pontos; x.clientes.add(c); soma.set(k, x); }
     const [causa, x] = [...soma.entries()].sort((a, b) => b[1].pontos - a[1].pontos)[0] || [];
-    if (!causa) return falaHtml(`A carteira está em <b>${r.resumo.media}</b> e nenhum cliente perdeu ponto.`);
+    // Direção 3: a fala vira o bloco de ação laranja, numa frase só, com o botão que leva ao que pesa.
+    const media = r.resumo.media;
+    if (!causa) return d3Acao({ frase: `Carteira em ${esc(media)} · ninguém perdeu ponto.`, agente: AGENTE.nome });
     const n = x.clientes.size, deAtraso = causa === 'atraso de veiculação' || causa === 'prazo interno vencido', vencidas = deAtraso ? [...x.clientes].reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0) : 0;
     const semEla = Math.round(r.clientes.reduce((t, c) => t + Math.min(100, c.score + ruinsDe(c).filter((m) => causaDe(m) === causa).reduce((s, m) => s - m.pontos, 0)), 0) / r.clientes.length);
-    const quem = deAtraso && vencidas ? `${plural(n, 'cliente soma', 'clientes somam')} ${plural(vencidas, 'peça vencida', 'peças vencidas')}` : `pesa em ${plural(n, 'cliente', 'clientes')}`;
-    return falaHtml(`A carteira está em <b>${r.resumo.media}</b>. Quem puxa para baixo é <b>${esc(causa)}</b>: ${quem}. Resolver ${n === 1 ? 'esse' : `esses ${n}`} leva a média a ${semEla}.`,
-      deAtraso && vencidas ? botao(vencidas === 1 ? 'Ver a peça' : `Ver as ${vencidas} peças`, 'data-vc-atrasadas') : botao(n === 1 ? 'Ver o cliente' : `Ver os ${n} clientes`, 'data-vc-risco="todos" data-vc-limpar'));
+    if (deAtraso && vencidas) {
+      return d3Acao({ frase: `${plural(vencidas, 'vencida', 'vencidas')} em ${plural(n, 'cliente', 'clientes')} · ${vencidas === 1 ? 'resolvida' : 'resolvidas'}, a nota vai de ${esc(media)} a ${semEla}.`,
+        agente: AGENTE.nome, botao: vencidas === 1 ? 'Ver a peça' : `Ver as ${vencidas}`, attrs: 'data-vc-atrasadas' });
+    }
+    return d3Acao({ frase: `${esc(causa.replace(/^./, (l) => l.toUpperCase()))} pesa em ${plural(n, 'cliente', 'clientes')} · resolvido, a nota vai de ${esc(media)} a ${semEla}.`,
+      agente: AGENTE.nome, botao: n === 1 ? 'Ver o cliente' : `Ver os ${n}`, attrs: 'data-vc-risco="todos" data-vc-limpar' });
   }
   function abaSaude() {
     const r = estado.saude;
@@ -364,40 +399,51 @@
     const contas = S().contasPorHead({ clientes: r.clientes, base: estado.servidor?.clientes || [], contratos: listaContratos() });
     espiarCarteira.heads = contas;
     const fonte = r.fonte.sinais === 'servidor' ? 'Alteração e aprovação pelo histórico de status (30 e 60 dias).' : 'Alteração e aprovação pelo que está na tela agora (o histórico do servidor não respondeu).';
-    const topo = `<span class="v2c-seg" role="group" aria-label="Visão">${[['agora', 'Agora'], ['meses', 'Mês a mês']].map(([k, rot]) => `<button type="button" data-vc-visao="${k}" aria-pressed="${estado.visao === k}">${rot}</button>`).join('')}</span>
+    // Direção 3: no título, quantos ativos e a hora da leitura; Agora / Mês a mês e "Como a nota é feita" à direita.
+    const agoraHora = new Date().toTimeString().slice(0, 5);
+    const topo = `<span class="d3c-meta">${plural(r.clientes.length, 'ativo', 'ativos')} · ${agoraHora}</span><span class="v2c-seg" role="group" aria-label="Visão">${[['agora', 'Agora'], ['meses', 'Mês a mês']].map(([k, rot]) => `<button type="button" data-vc-visao="${k}" aria-pressed="${estado.visao === k}">${rot}</button>`).join('')}</span>
       ${botao('Como a nota é feita', `data-vc-ajuda aria-expanded="${estado.ajuda}"`, 'g')}`;
     const ajuda = estado.ajuda ? `<div class="v2c-card v2c-ajuda">${AJUDA}${nota(fonte)}</div>` : '';
     // "Mês a mês": o que saiu do alto da tela (a média guardada de cada mês e as contas por head).
     if (estado.visao === 'meses') {
-      return { topo, corpo: `${ajuda}<section class="v2c-card"><div class="v2c-card-topo"><h2>Média da carteira mês a mês</h2><small>a nota média guardada em cada mês</small></div>${serieHtml(h)}</section>
+      return { topo, corpo: `${ajuda}<section class="v2c-card"><div class="v2c-card-topo"><h2>Média mês a mês</h2></div>${serieHtml(h)}</section>
         ${contas.length ? `<div class="v2c-card v2c-contas">${contasHtml(contas)}</div>` : ''}` };
     }
     const precisam = r.clientes.filter(precisaDeVoce), tranquilos = r.clientes.filter((c) => !precisaDeVoce(c));
-    const v = h.variacao.media, mudou = v && v.direcao !== 'igual' && v.anterior != null ? `<span class="v2c-pill ${v.direcao === 'sobe' ? 'g' : 'a'}">${v.direcao === 'sobe' ? 'subiu' : 'caiu'} ${Math.abs(v.delta)} no mês</span>` : '';
+    const v = h.variacao.media, mudou = v && v.direcao !== 'igual' && v.anterior != null ? `${v.direcao === 'sobe' ? 'subiu' : 'caiu'} ${Math.abs(v.delta)} no mês` : '';
     const riscoDaMedia = S().riscoDaNota(r.resumo.media ?? 0);
-    const numeros = `<div class="v2c-tres">
-        ${kpiHtml({ rotulo: 'Nota média', valor: r.resumo.media ?? '—', extra: mudou ? ` ${mudou}` : '',
-          sub: `<div class="v2-barra"><i style="--v:${r.resumo.media ?? 0}%;--c:${COR_DO_RISCO[riscoDaMedia] || '#E0A21B'}"></i></div><small>de 0 a 100 · ${plural(r.clientes.length, 'cliente ativo', 'clientes ativos')}</small>` })}
-        ${kpiHtml({ rotulo: 'Precisam de você', valor: precisam.length, atraso: 0.12, sub: `<small>risco alto ou nota abaixo de ${LIMITE_PRECISA}</small>` })}
-        ${kpiHtml({ rotulo: 'Tranquilos', valor: tranquilos.length, atraso: 0.24,
-          sub: `<p class="v2c-minis">${[...tranquilos].sort((a, b) => b.score - a.score).slice(0, 3).map((c) => `<span class="v2c-nota mini ${TOM_DO_RISCO[c.risco] || 'a'}" title="${esc(c.nome)}">${c.score}</span>`).join('')}<span>${tranquilos.length ? 'ficam recolhidos' : 'ninguém por enquanto'}${estado.risco === 'precisam' && tranquilos.length ? ` · ${ligacao('mostrar', 'data-vc-risco="todos"')}` : ''}</span></p>` })}
+    const vencidasTotal = r.clientes.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0), vencidasBaixo = precisam.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0);
+    const serieMedia = (h.serie || []).map((m) => m.media);
+    // Quatro números do quadro D3: nota média com a linha mês a mês, quem precisa de você, os tranquilos e as peças vencidas.
+    const numeros = `<div class="v2c-tres d3c-quatro">
+        ${numD3({ rotulo: 'Nota média', valor: esc(r.resumo.media ?? '—'), de: ' / 100', tom: TOM_DO_RISCO[riscoDaMedia] || 'a', linha: d3Linha(serieMedia, { largura: 90, altura: 28, rotulo: 'Nota média mês a mês' }),
+          sub: `${plural(r.clientes.length, 'ativo', 'ativos')}${mudou ? ` · ${mudou}` : ''}` })}
+        ${numD3({ rotulo: 'Precisam de você', valor: precisam.length, de: ` / ${r.clientes.length}`, sub: `risco alto ou nota &lt; ${LIMITE_PRECISA}`, attrs: `data-vc-risco="precisam" aria-pressed="${estado.risco === 'precisam'}"` })}
+        ${numD3({ rotulo: 'Tranquilos', valor: tranquilos.length, attrs: `data-vc-risco="todos" aria-pressed="${estado.risco === 'todos'}"`,
+          sub: `${[...tranquilos].sort((a, b) => b.score - a.score).slice(0, 3).map((c) => `<span class="d3c-mini ${TOM_DO_RISCO[c.risco] || 'a'}" title="${esc(c.nome)}">${c.score}</span>`).join('')}${tranquilos.length ? 'recolhidos' : 'ninguém ainda'}` })}
+        ${numD3({ rotulo: 'Peças vencidas', valor: vencidasTotal, tom: vencidasTotal ? 'r' : '', attrs: vencidasTotal ? 'data-vc-atrasadas' : '',
+          sub: vencidasTotal && precisam.length ? `<span class="d3c-r">${vencidasBaixo} nos ${precisam.length} de baixo</span>` : '' })}
       </div>`;
     const conta = (k) => (k === 'precisam' ? precisam.length : k === 'todos' ? r.clientes.length : r.resumo[k]);
-    const noAlto = heads.filter((x) => x !== S().SEM_HEAD).slice(0, 3);
     const filtros = `<div class="v2c-filtros">
-        <span class="v2c-chips" role="group" aria-label="Filtrar por risco">${[['precisam', 'Precisam de você'], ['todos', 'Todos'], ['alto', 'Risco alto'], ['medio', 'Risco médio'], ['baixo', 'Risco baixo']].map(([k, rot]) => ficha(rot, conta(k), `data-vc-risco="${k}"`, estado.risco === k)).join('')}</span>
+        <span class="v2c-chips" role="group" aria-label="Filtrar por risco">${[['precisam', 'Precisam de você'], ['todos', 'Todos'], ['alto', 'Risco alto'], ['medio', 'Risco médio'], ['baixo', 'Risco baixo']].map(([k, rot]) => ficha(`${TOM_DO_RISCO[k] ? pontoD3(TOM_DO_RISCO[k]) : ''}${rot}`, conta(k), `data-vc-risco="${k}"`, estado.risco === k)).join('')}</span>
         <span class="v2c-espaco"></span>
-        <span class="v2c-chips" role="group" aria-label="Filtrar por head">${noAlto.map((x) => ficha(`${avatarHtml(x)}${esc(primeiroNome(x))}`, null, `data-vc-head-ficha="${esc(x)}" title="${esc(`Só os clientes de ${x}`)}"`, estado.head === x)).join('')}</span>
+        <label class="d3c-sel"><span>Head:</span><select data-vc-head aria-label="Filtrar por head"><option value="todos">todos</option>${heads.map((x) => `<option${estado.head === x ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>
         ${botao('Filtros', `data-vc-filtros aria-expanded="${estado.filtros}"`)}
-      </div>${estado.filtros ? `<div class="v2c-card v2c-painel"><label class="vc-ordem"><span>Head</span><select data-vc-head><option value="todos">Todos</option>${heads.map((x) => `<option${estado.head === x ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>
-        ${ordemHtml('saude', [['risco', 'Pior nota primeiro'], ['melhor', 'Melhor nota primeiro'], ['nome', 'Nome A–Z']])}</div>` : ''}`;
+      </div>${estado.filtros ? `<div class="v2c-card v2c-painel">${ordemHtml('saude', [['risco', 'Pior nota primeiro'], ['melhor', 'Melhor nota primeiro'], ['nome', 'Nome A–Z']])}</div>` : ''}`;
     const limite = estado.limite.saude || PAGINA_QUADRO, resto = lista.length - limite;
     const semNinguem = estado.risco === 'precisam' && estado.head === 'todos' ? 'Ninguém precisa de você agora.' : 'Nenhum cliente neste filtro.';
-    const corpoLista = lista.length ? `<ol class="v2c-lista">${lista.slice(0, limite).map((c) => linhaCliente(c, casa)).join('')}</ol>`
+    const cab = `<div class="d3c-cab" aria-hidden="true"><span>Nota</span><span>Cliente</span><span>Head</span><span>Risco</span><span>O que tirou ponto</span></div>`;
+    const corpoLista = lista.length ? `${cab}<ol class="v2c-lista">${lista.slice(0, limite).map((c) => linhaCliente(c, casa)).join('')}</ol>`
       : `<div class="v2c-vazio"><p>${semNinguem}</p>${botao('Ver todos', 'data-vc-risco="todos" data-vc-limpar')}</div>`;
-    const pe = `<p class="v2c-pe">${resto > 0 ? `+ ${plural(resto, 'cliente', 'clientes')}${estado.risco === 'precisam' ? ` que ${resto === 1 ? 'precisa' : 'precisam'} de você` : ''} · ${ligacao('mostrar', 'data-vc-mais="saude"')} · ` : ''}a barra mostra o que tirou ponto de 100; o verde que sobra é a nota.</p>`;
+    // Rodapé: quanto cada sinal tira (as regras da nota) e o que ficou recolhido.
+    const R = S().REGRAS || {};
+    const tira = [[R.furo, 'vencida', 'r'], [R.prazoVencido, 'prazo interno'], [R.ajuste, 'alteração'], [R.risco, 'risco de furo'], [R.abaixoDaMeta, 'posts da semana']].filter(([p]) => p);
+    const recolhidos = estado.risco === 'precisam' ? tranquilos.length : 0;
+    const pe = `<div class="v2c-pe d3c-pe"><span class="d3c-pe-rot">Tira ponto</span>${tira.map(([p, rot, t]) => `<span class="d3c-tira${t ? ` ${t}` : ''}">−${p} ${rot}</span>`).join('')}<span class="v2c-espaco"></span>
+      ${resto > 0 ? botao(`+${plural(resto, 'cliente', 'clientes')}`, 'data-vc-mais="saude"') : ''}${recolhidos ? botao(`+${recolhidos} ${recolhidos === 1 ? 'tranquilo' : 'tranquilos'}`, 'data-vc-risco="todos"') : ''}</div>`;
     return { topo, corpo: `${ajuda}${falaDaSaude(r)}${numeros}${filtros}
-      <section class="v2c-card v2c-quadro" aria-label="${esc(TITULO_DO_FILTRO[estado.risco] || TITULO_DO_FILTRO.todos)}"><div class="v2c-card-topo"><h2>${esc(TITULO_DO_FILTRO[estado.risco] || TITULO_DO_FILTRO.todos)}</h2><small>${ROTULO_DA_ORDEM[estado.ordem.saude] || ROTULO_DA_ORDEM.risco} · ${ligacao('mudar a ordem', 'data-vc-ordem-gira')}</small></div>
+      <section class="v2c-card v2c-quadro" aria-label="${esc(TITULO_DO_FILTRO[estado.risco] || TITULO_DO_FILTRO.todos)}"><button type="button" class="d3c-ordem" data-vc-ordem-gira title="Mudar a ordem">${ROTULO_DA_ORDEM[estado.ordem.saude] || ROTULO_DA_ORDEM.risco}</button>
         ${corpoLista}${pe}</section>` };
   }
   // Contas por head: quantos clientes cada head tem, a nota média da carteira dele e a receita mensal.
@@ -422,7 +468,7 @@
     const s = o.situacao, d = s.atual?.dias_parada ?? 0;
     if (o.encerrado_em) return { tipo: 'encerrado', tom: 'n', texto: `Encerrado em ${dataCurta(diaDoCarimbo(o.encerrado_em))}` };
     if (s.concluido) return { tipo: 'pronto', tom: 'g', texto: 'Pronto para encerrar', pede: true };
-    if (d > DIAS_PARADO) return { tipo: 'parado', tom: 'r', texto: `Parado há ${plural(d, 'dia', 'dias')}`, pede: true };
+    if (d > DIAS_PARADO) return { tipo: 'parado', tom: 'r', texto: `Parado · ${plural(d, 'dia', 'dias')}`, pede: true };
     if (!s.atual?.responsavel_id) return { tipo: 'sem-dono', tom: 'a', texto: 'Sem responsável', pede: true };
     return { tipo: 'andando', tom: 'g', texto: d ? `Andando · ${plural(d, 'dia', 'dias')}` : 'Andando' };
   }
@@ -438,7 +484,8 @@
     const agora = o.encerrado_em ? '<b>Encerrado</b>' : s.concluido ? '<b>Todas as etapas feitas</b>'
       : `<b>${esc(s.atual?.nome || '')}</b>${faltam.length ? ` · falta ${esc(faltam[0].texto.replace(/^./, (c) => c.toLowerCase()))}${faltam.length > 1 ? ` e mais ${faltam.length - 1}` : ''}` : ''}${parada}`;
     const atual = s.etapas.find((e) => e.id === s.atual?.id), pct = atual?.total ? Math.round((atual.feitos / atual.total) * 100) : s.pct;
-    const progresso = `<span class="v2c-pg"><span class="v2-barra"><i style="--v:${pct}%;--c:#11613A"></i></span><small>${atual ? `${atual.feitos} de ${atual.total}` : `${s.pct}%`} · ${esc(primeiroNome(resp) || 'sem dono')}</small></span>`;
+    // Direção 3: "1/3" embaixo da barra; quem é o dono fica no avatar ao lado (e no rótulo para leitor de tela).
+    const progresso = `<span class="v2c-pg"><span class="v2-barra"><i style="--v:${pct}%;--c:#11613A"></i></span><small>${atual ? `${atual.feitos}/${atual.total}` : `${s.pct}%`}<span class="d3c-so-leitor"> · ${esc(primeiroNome(resp) || 'sem dono')}</span></small></span>`;
     const acaoDaLinha = !podeOnboarding(o.cliente_id) ? botao('Ver etapas', `data-vc-abrir="${esc(chave)}"`)
       : o.encerrado_em ? botao('Reabrir', `data-vc-onb="onboarding_reabrir" data-vc-cli="${esc(o.cliente_id)}"`)
       : sit.tipo === 'pronto' ? botao('Encerrar onboarding', `data-vc-onb="onboarding_encerrar" data-vc-cli="${esc(o.cliente_id)}"`)
@@ -464,7 +511,7 @@
         <button type="button" class="v2c-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${o.cliente || 'Cliente'}: ${sit.texto}`)}">
           <span class="v2c-st"><span class="v2c-pill ${sit.tom}">${esc(sit.texto)}</span></span>
           <span class="v2c-nm">${cliCor(o.cliente || '')}</span>${tri}
-          <span class="v2c-agora">${agora}</span>${progresso}${resp ? avatarHtml(resp) : '<span class="v2c-av vago" aria-hidden="true"></span>'}</button>
+          <span class="v2c-agora">${agora}</span>${progresso}${resp ? avatarHtml(resp).replace('class="v2c-av"', `class="v2c-av" title="${esc(resp)}"`) : '<span class="v2c-av vago" aria-hidden="true">?</span>'}</button>
         <span class="v2c-ac">${acaoDaLinha}</span></div>
       <div class="v2-mais"><div><div class="v2c-det">${detalhe}${atalhos}</div></div></div></li>`;
   }
@@ -507,8 +554,10 @@
     // cliente novo (cadastro → esteira) ou contrato novo de um cliente da casa (renovação, serviço novo: esteira do zero).
     const podeNovo = ligado && typeof window.abrirCadastroCompleto === 'function' && (typeof podeEditarClientes !== 'function' || podeEditarClientes());
     const podeComecar = podeNovo || candidatos.length > 0;
-    const topo = `${botao('Como funciona', `data-vc-ajuda aria-expanded="${estado.ajuda}"`, 'g')}
-      ${botao('Novo onboarding', `data-vc-novo aria-expanded="${Boolean(estado.novoOnb)}"${podeComecar ? '' : ` disabled title="${ligado ? 'Só quem administra, o Atendimento e os heads começam um onboarding' : 'O onboarding ainda não foi ligado'}"`}`, 'p')}`;
+    // Direção 3: a data no título; "Novo onboarding" é botão branco (o único laranja cheio é o bloco de ação).
+    const diaHoje = new Date(`${hoje()}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/-feira/, '').replace(/\.$/, '').replace(' de ', ' ');
+    const topo = `<span class="d3c-meta">${esc(diaHoje)}</span>${botao('Como funciona', `data-vc-ajuda aria-expanded="${estado.ajuda}"`, 'g')}
+      ${botao('Novo onboarding',`data-vc-novo aria-expanded="${Boolean(estado.novoOnb)}"${podeComecar ? '' : ` disabled title="${ligado ? 'Só quem administra, o Atendimento e os heads começam um onboarding' : 'O onboarding ainda não foi ligado'}"`}`, 'g d3c-novo')}`;
     const contrato = estado.contratoNovo ? `<div class="vc-iniciar"><label class="vc-campo"><span>Cliente que fechou contrato novo</span><select data-vc-novo-onb>${candidatos.map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></label>
       ${botao('Cancelar', 'data-vc-contrato-novo')}${botao('Começar a esteira', 'data-vc-iniciar', 'k')}</div>` : '';
     const iniciar = estado.novoOnb && podeComecar ? `<section class="v2c-card v2c-painel vc-onb-comecar" aria-label="Começar um onboarding">
@@ -523,19 +572,24 @@
     const pedem = emAberto.filter((o) => sitDe.get(o).pede), pior = parados[0];
     const duracoes = encerrados.map((o) => (Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5).filter((d) => Number.isFinite(d) && d >= 0);
     const media = duracoes.length ? Math.max(1, Math.round(duracoes.reduce((t, d) => t + d, 0) / duracoes.length)) : null;
-    const numeros = `<div class="v2c-tres">
-        ${kpiHtml({ rotulo: 'Em entrada', valor: emAberto.length, tom: emAberto.length ? '' : 'quieto', sub: `<small>${emAberto.length ? `${plural(pedem.length, 'pede ação', 'pedem ação')} · ${emAberto.length - pedem.length} andando` : 'nenhum cliente em entrada'}</small>` })}
-        ${kpiHtml({ rotulo: `Parados há mais de ${DIAS_PARADO} dias`, valor: parados.length, atraso: 0.12, tom: parados.length ? 'ruim' : 'quieto',
-          sub: `<small>${pior ? `${esc(pior.cliente || '')} · parada desde ${dataCurta(diaDoCarimbo(pior.situacao.atual.parada_desde)).slice(0, 5)}` : 'nada parado'}</small>` })}
-        ${kpiHtml({ rotulo: 'Tempo médio de entrada', valor: media == null ? '—' : plural(media, 'dia', 'dias'), atraso: 0.24, tom: media == null ? 'quieto' : '',
-          sub: `<small>${media == null ? 'aparece quando o primeiro onboarding for encerrado' : `do começo da esteira ao encerramento · ${plural(duracoes.length, 'encerrado', 'encerrados')}`}</small>` })}
+    // Direção 3: quatro números (em entrada, parados, tempo médio com a linha, concluídos no mês).
+    const porFim = encerrados.filter((o) => Number.isFinite(Date.parse(o.encerrado_em)) && Number.isFinite(Date.parse(o.iniciado_em))).sort((a, b) => String(a.encerrado_em).localeCompare(String(b.encerrado_em)));
+    const mesAgora = hoje().slice(0, 7), concluidosMes = encerrados.filter((o) => diaDoCarimbo(o.encerrado_em).startsWith(mesAgora));
+    const numeros = `<div class="v2c-tres d3c-quatro">
+        ${numD3({ rotulo: 'Em entrada', valor: emAberto.length, sub: emAberto.length ? `${plural(pedem.length, 'pede ação', 'pedem ação')} · ${emAberto.length - pedem.length} andando` : 'nenhum agora' })}
+        ${numD3({ rotulo: `Parados +${DIAS_PARADO} dias`, valor: parados.length, tom: parados.length ? 'r' : '',
+          sub: pior ? `<span class="d3c-r">${esc(pior.cliente || '')} · desde ${dataCurta(diaDoCarimbo(pior.situacao.atual.parada_desde)).slice(0, 5)}</span>` : 'nada parado' })}
+        ${numD3({ rotulo: 'Tempo médio', valor: media == null ? '—' : media, de: media == null ? '' : media === 1 ? ' dia' : ' dias',
+          linha: d3Linha(porFim.map((o) => (Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5), { largura: 90, altura: 28, rotulo: 'Dias de cada entrada encerrada' }),
+          sub: media == null ? 'sem encerrado ainda' : plural(duracoes.length, 'encerrado', 'encerrados') })}
+        ${numD3({ rotulo: 'Concluídos no mês', valor: concluidosMes.length, tom: concluidosMes.length ? 'g' : '', sub: concluidosMes.length ? esc(concluidosMes.slice(0, 2).map((o) => o.cliente || '').join(' · ')) + (concluidosMes.length > 2 ? ` +${concluidosMes.length - 2}` : '') : 'nenhum ainda' })}
       </div>`;
-    const fala = !ligado ? falaHtml('<b>Nenhum cliente</b> está em entrada. O onboarding ainda espera ser ligado; os donos já sabem o que falta.')
-      : !emAberto.length ? falaHtml('<b>Nenhum cliente</b> está entrando agora. Quando fechar um cliente ou um contrato novo, comece por <b>Novo onboarding</b>.')
-      : falaHtml(`<b>${plural(emAberto.length, 'cliente', 'clientes')}</b> ${emAberto.length === 1 ? 'está' : 'estão'} entrando.${!pior ? (pedem.length ? ` Nenhum travou, mas ${plural(pedem.length, 'pede', 'pedem')} uma ação sua.` : ' Nenhum travou.')
-        : parados.length === 1 ? ` Só <b>${esc(pior.cliente || '')}</b> travou: ${esc(pior.situacao.atual?.nome || 'etapa')} há ${plural(pior.situacao.atual?.dias_parada ?? 0, 'dia', 'dias')}.`
-        : ` ${parados.length} travaram; o mais parado é <b>${esc(pior.cliente || '')}</b>, há ${plural(pior.situacao.atual?.dias_parada ?? 0, 'dia', 'dias')}.`}`,
-        pior ? botao(`Ver ${pior.cliente || 'o cliente'}`,`data-vc-abrir="o:${esc(pior.cliente_id)}" data-vc-focar="linha"`) : '');
+    const AG = AGENTE;
+    const fala = !ligado ? d3Acao({ frase: `${quemD3(AG)}Onboarding ainda não ligado · nenhum cliente em entrada.`, agente: AG.nome })
+      : !emAberto.length ? d3Acao({ frase: `${quemD3(AG)}Ninguém entrando agora.`, agente: AG.nome, botao: podeComecar ? 'Novo onboarding' : '', attrs: 'data-vc-novo' })
+      : pior ? d3Acao({ frase: `${quemD3(AG)}${esc(pior.cliente || 'Um cliente')} travou: ${esc(String(pior.situacao.atual?.nome || 'etapa').toLowerCase())} há ${plural(pior.situacao.atual?.dias_parada ?? 0, 'dia', 'dias')}${parados.length > 1 ? ` · mais ${parados.length - 1} parados` : ''}.`,
+        agente: AG.nome, botao: `Ver ${pior.cliente || 'o cliente'}`, attrs: `data-vc-abrir="o:${esc(pior.cliente_id)}" data-vc-focar="linha"` })
+      : d3Acao({ frase: `${quemD3(AG)}${plural(emAberto.length, 'cliente entrando', 'clientes entrando')} · ${pedem.length ? `${plural(pedem.length, 'pede', 'pedem')} ação` : 'nenhum travou'}.`, agente: AG.nome });
     // Uma barra de filtro só: a busca, a etapa em que cada cliente está e "Filtros" (encerrados e o editor de etapas).
     const termo = semAcento(estado.buscaOnb).trim();
     const daEtapa = (id) => emAberto.filter((o) => !o.situacao.concluido && o.situacao.atual?.id === id).length;
@@ -553,7 +607,8 @@
     const pedeAcao = emAberto.filter((o) => passa(o) && sitDe.get(o).pede).sort(porParada), andando = emAberto.filter((o) => passa(o) && !sitDe.get(o).pede).sort(porParada);
     const limite = estado.limite.onboarding || PAGINA, cabem = andando.slice(0, Math.max(0, limite - pedeAcao.length)), resto = andando.length - cabem.length;
     const filtrando = Boolean(termo) || estado.etapaOnb !== 'todas';
-    const secao = (titulo, lado, linhas) => `<div class="v2c-card-topo"><h2>${titulo}</h2><small>${lado}</small></div><ol class="v2c-lista">${linhas.map((o) => linhaOnboarding(o, etapas)).join('')}</ol>`;
+    // Direção 3: título do grupo com a contagem ao lado (sem frase); a explicação do lado vai só para o leitor de tela.
+    const secao = (titulo, lado, linhas) => `<div class="v2c-card-topo d3c-grupo"><h2>${titulo}</h2><small>${linhas.length}<span class="d3c-so-leitor"> · ${lado}</span></small></div><ol class="v2c-lista">${linhas.map((o) => linhaOnboarding(o, etapas)).join('')}</ol>`;
     const quadro = !emAberto.length ? `<div class="v2c-card-topo"><h2>Pede ação</h2></div><div class="v2c-vazio"><p>Nenhum cliente em entrada.</p>${podeComecar ? botao('Novo onboarding', 'data-vc-novo', 'k') : ''}</div>`
       : !pedeAcao.length && !andando.length ? `<div class="v2c-card-topo"><h2>Pede ação</h2></div><div class="v2c-vazio"><p>Nenhum cliente neste filtro.</p>${botao('Ver todos', 'data-vc-etapa-onb="todas" data-vc-limpar')}</div>`
       : `${pedeAcao.length ? secao('Pede ação', `${plural(pedeAcao.length, 'coisa', 'coisas')}, na ordem`, pedeAcao) : filtrando ? '' : '<div class="v2c-card-topo"><h2>Pede ação</h2><small>nada pede ação agora</small></div>'}
@@ -561,10 +616,25 @@
         ${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, 'cliente', 'clientes')} andando · ${ligacao('mostrar', 'data-vc-mais="onboarding"')}</p>` : ''}`;
     const fechados = estado.verEncerrados && encerrados.length ? `<section class="v2c-card v2c-quadro" aria-label="Encerrados">${secao('Encerrados', plural(encerrados.length, 'onboarding', 'onboardings'), encerrados.filter((o) => !termo || semAcento(o.cliente).includes(termo)))}</section>` : '';
     // O rodapé do quadro: sem a esteira ligada, a frase do vazio e, para quem administra, o que falta.
-    const pe = ligado ? '' : `<div class="v2c-rodape"><p class="v2c-sub"><b>O onboarding ainda não foi ligado</b> e nenhum cliente está em entrada. Ligado, cada etapa tem checklist e responsável, e "parada desde" mostra há quanto tempo ela não anda.${estado.verFalta && souAdminAqui()
-      ? ` <small class="vc-ativacao-tec">Falta aplicar a migração <code>${esc(sv.migracao || '2026-11-07-carteira.sql')}</code> no banco. Depois disso, esta parte aparece sozinha.</small>` : ''}</p>
-      ${souAdminAqui() ? botao('Para quem administra: ver o que falta', `data-vc-falta aria-expanded="${estado.verFalta}"`) : ''}</div>`;
-    return { topo, corpo: `${ajuda}${iniciar}${fala}${numeros}${filtros}<section class="v2c-card v2c-quadro" aria-label="Clientes em entrada">${quadro}</section>${fechados}${pe}` };
+    // Direção 3: "ainda não ligado" já está no bloco de ação; o detalhe técnico abre pelo "Ver o que falta" do cartão Configuração.
+    const pe = ligado || !(estado.verFalta && souAdminAqui()) ? '' : `<div class="v2c-rodape"><p class="v2c-sub"><small class="vc-ativacao-tec">Falta aplicar a migração <code>${esc(sv.migracao || '2026-11-07-carteira.sql')}</code> no banco. Depois disso, esta parte aparece sozinha.</small></p></div>`;
+    // Direção 3: cabeçalho das colunas no quadro, "Concluídos" no pé e, ao lado, o tempo de entrada em linha, as etapas e a configuração.
+    const cab = emAberto.length ? '<div class="d3c-cab d3c-cab-onb" aria-hidden="true"><span>Situação</span><span>Cliente</span><span>Etapa</span><span>Agora</span><span>Checklist</span></div>' : '';
+    const peQuadro = encerrados.length ? `<div class="v2c-pe d3c-pe">${botao(`Concluídos ${encerrados.length}`, `data-vc-encerrados aria-expanded="${estado.verEncerrados}"`)}</div>` : '';
+    const porMes = new Map();
+    for (const o of porFim) { const m = diaDoCarimbo(o.encerrado_em).slice(0, 7), x = porMes.get(m) || []; x.push((Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5); porMes.set(m, x); }
+    const meses = [...porMes.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
+    const tempoEntrada = `<section class="v2c-card d3c-lado-card" aria-label="Tempo de entrada"><div class="v2c-card-topo"><h2>Tempo de entrada</h2><small>dias</small></div>
+      ${meses.length >= 2 ? `${d3Linha(meses.map(([, x]) => x.reduce((t, d) => t + d, 0) / x.length), { largura: 300, altura: 90, rotulo: `Dias médios de entrada: ${meses.map(([m, x]) => `${mesCurto(m)} ${Math.round(x.reduce((t, d) => t + d, 0) / x.length)}`).join(', ')}` })}
+        <div class="d3c-meses" aria-hidden="true">${meses.map(([m], i) => `<span${i === meses.length - 1 ? ' class="agora"' : ''}>${mesCurto(m)}</span>`).join('')}</div>`
+        : `<p class="v2c-sub">${media == null ? 'sem encerrado ainda' : `${plural(media, 'dia', 'dias')} em média`}</p>`}</section>`;
+    const etapasCard = `<section class="v2c-card d3c-lado-card" aria-label="Etapas"><div class="v2c-card-topo"><h2>Etapas</h2><small>parada média</small></div><ol class="d3c-etapas">${etapasDoFiltro.map((e, i) => {
+      const nelas = emAberto.filter((o) => !o.situacao.concluido && o.situacao.atual?.id === e.id), dias = nelas.length ? Math.round(nelas.reduce((t, o) => t + (o.situacao.atual?.dias_parada || 0), 0) / nelas.length) : null;
+      return `<li><span>${i + 1}</span><b>${esc(e.nome)}</b><em>${nelas.length}</em><small${dias != null && dias > DIAS_PARADO ? ' class="d3c-a"' : ''}>${dias == null ? '—' : `${dias} d`}</small></li>`; }).join('')}</ol></section>`;
+    const config = (sv.pode?.etapas && ligado) || (!ligado && souAdminAqui()) ? `<section class="v2c-card d3c-lado-card d3c-config" aria-label="Configuração"><h2>Configuração</h2><span class="d3c-selo">admin</span>
+      ${ligado ? botao('Configurar etapas', 'data-vc-ed-abrir') : botao('Ver o que falta', `data-vc-falta aria-expanded="${estado.verFalta}"`)}</section>` : '';
+    return { topo, corpo: `${ajuda}${iniciar}${fala}${numeros}${filtros}<div class="d3c-onb-grade"><section class="v2c-card v2c-quadro" aria-label="Clientes em entrada">${cab}${quadro}${peQuadro}</section>
+      <div class="d3c-lado">${tempoEntrada}${etapasCard}${config}</div></div>${fechados}${pe}` };
   }
 
   // ---------- Churn ----------
@@ -576,6 +646,9 @@
   const AGENTE_CONTRATOS = { nome: 'Vorcaro', papel: 'Financeiro e contratos' };
   const AGENTE_CHURN = { nome: 'VYBES', papel: 'Comercial' };
   const falaDe = (ag, frase, acaoHtml = '') => `<section class="v2c-card v2c-fala" aria-label="${esc(`${ag.nome}, ${ag.papel}`)}"><span class="v2c-ag" aria-hidden="true">${esc(ag.nome[0])}</span><p><span class="v2c-quem">${esc(ag.nome)} · ${esc(ag.papel)}</span>${frase}</p>${acaoHtml}</section>`;
+  // Direção 3: o bloco de ação laranja (vybe-core.js); fora do painel (testes sem o núcleo), a fala de antes.
+  const d3AcaoOu = (ag, frase, rotulo = '', attrs = '') => (typeof d3AcaoHtml === 'function' ? d3AcaoHtml({ frase, agente: ag.nome, botao: rotulo, attrs })
+    : falaDe(ag, frase.replace(/<small class="d3c-quem">[\s\S]*?<\/small>/, ''), rotulo ? botao(rotulo, attrs) : ''));
   const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   const mesCurto = (ym) => MES_CURTO[Number(String(ym).slice(5, 7)) - 1] || '';
   const mesAno = (iso) => (iso ? `${String(iso).slice(5, 7)}/${String(iso).slice(0, 4)}` : '');
@@ -634,8 +707,11 @@
     const pode = podeChurn();
     return `<li class="v2-abre v2c-linha v2k-saiu" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="v2c-lin">
         <button type="button" class="v2c-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${s.nome}, ${porque}`)}">
-          <span class="v2k-nome"><b>${cliCor(s.nome)}</b><small>${esc(porque)}</small></span>
-          <span class="v2k-dir"><b>${s.receita == null ? 'sem valor' : `${esc(reais(s.receita))} por mês`}</b><small>${s.meses == null ? 'sem data de entrada' : `${esc(mesesTxt(s.meses))} na casa`}</small></span>
+          <span class="v2k-nome"><b>${cliCor(s.nome)}</b><small>saiu ${esc(diaMes(s.saida))}</small></span>
+          <span class="d3k-tipo">${esc(s.tipo ? TIPOS()[s.tipo] : 'sem tipo')}</span>
+          <span class="d3k-motivo${s.motivo ? '' : ' d3c-r'}">${esc(String(motivoDaSaida(s)).replace(/^./, (l) => (s.motivo ? l.toUpperCase() : l)))}</span>
+          <span class="d3k-casa">${s.meses == null ? '—' : esc(mesesTxt(s.meses))}</span>
+          <span class="v2k-dir"><b>${s.receita == null ? '—' : esc(reais(s.receita))}</b></span>
         </button></div>
       <div class="v2-mais"><div><div class="v2k-det">
         <p class="v2k-hist">Saiu em ${esc(dataCurta(s.saida))}${s.saidaFonte === 'ultima_peca' ? ' (estimada pela última peça)' : ''}${s.tipo ? ` · ${esc(TIPOS()[s.tipo])}` : ''} · ${esc(motivoDaSaida(s))}</p>
@@ -661,7 +737,7 @@
     // Topo: o período escolhido, "Como funciona" e "Registrar saída" (classifica uma saída que já aparece aqui).
     const semClass = r.todas.filter((s) => !s.classificado), saidasParaRegistrar = [...semClass, ...r.todas.filter((s) => s.classificado)];
     const tituloRegistrar = !pode ? (sv.churn?.disponivel ? 'Só quem administra registra a saída' : 'A classificação das saídas ainda não foi ligada') : !r.todas.length ? 'Ninguém saiu ainda: quem é desativado no cadastro aparece aqui' : '';
-    const topo = `<span class="v2c-sub">${periodo}</span>${como}${botao('Registrar saída', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"${tituloRegistrar ? ` disabled title="${esc(tituloRegistrar)}"` : ''}`, 'p')}`;
+    const topo = `<span class="d3c-meta">${periodo}</span>${como}${botao('Registrar saída', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"${tituloRegistrar ? ` disabled title="${esc(tituloRegistrar)}"` : ''}`, 'p')}`;
     const emRegistro = estado.form?.tipo === 'churn' && estado.form.onde === 'registrar' ? r.todas.find((s) => s.id === estado.form.id) : null;
     const registrar = estado.registrar === estado.aba && pode && r.todas.length ? `<section class="v2c-card v2c-painel v2k-registrar" aria-label="Registrar saída">
       ${emRegistro ? `<p class="v2k-registrar-quem"><b>${cliCor(emRegistro.nome)}</b> · saiu em ${esc(dataCurta(emRegistro.saida))}</p>${porQueHtml(emRegistro)}${formChurn(emRegistro)}`
@@ -669,23 +745,29 @@
         ${botao('Cancelar', 'data-vc-registrar')}${botao('Continuar', 'data-vc-registrar-ir="churn"', 'k')}`}</section>` : '';
     // A fala: quantos saíram, quanto levaram e se falta motivo.
     const primeiroSem = r.lista.find((s) => !s.classificado);
+    // Direção 3: a fala do VYBES vira o bloco de ação laranja, numa frase só.
+    const qC = quemD3(AGENTE_CHURN), nomeMes = (iso) => (S().util?.nomeDoMes ? S().util.nomeDoMes(String(iso).slice(0, 7)).split(' ')[0] : diaMes(iso));
     const fala = !r.saidas ? (r.todas.length
-      ? falaDe(AGENTE_CHURN, `Ninguém saiu em <b>${periodo}</b>. No histórico, ${plural(r.todas.length, 'saída', 'saídas')}${semClass.length ? `, ${semClass.length} sem motivo` : ''}.`, botao('Ver o histórico', 'data-vc-hist-ch'))
-      : falaDe(AGENTE_CHURN, '<b>Nenhum cliente saiu</b> até agora. Quem for desativado no cadastro aparece aqui para dizer por quê.'))
-      : falaDe(AGENTE_CHURN, `<b>${plural(r.saidas, 'cliente saiu', 'clientes saíram')}</b> em ${periodo} e ${r.saidas === 1 ? 'levou' : 'levaram'} <b>${esc(reaisCurto(r.receitaPerdida))} por mês</b>.${r.semClassificar
-        ? (r.saidas === 1 ? ' A saída está sem motivo.' : r.semClassificar === 1 ? ' Uma das saídas está sem motivo.' : ` ${r.semClassificar} saídas estão sem motivo.`)
-        : r.principalMotivo ? ` O motivo que mais pesa: <b>${esc(r.principalMotivo.rotulo)}</b>.` : ''}`,
-        primeiroSem && pode ? botao('Classificar agora', `data-vc-form-abrir="churn" data-vc-cli="${esc(primeiroSem.id)}" data-vc-onde="acao"`) : '');
+      ? d3AcaoOu(AGENTE_CHURN, `${qC}Ninguém saiu em ${periodo} · ${plural(r.todas.length, 'saída', 'saídas')} no histórico.`, 'Ver o histórico', 'data-vc-hist-ch')
+      : d3AcaoOu(AGENTE_CHURN, `${qC}Nenhum cliente saiu até agora.`))
+      : primeiroSem ? d3AcaoOu(AGENTE_CHURN, `${qC}${esc(primeiroSem.nome)} saiu em ${esc(nomeMes(primeiroSem.saida))} e está sem motivo.${r.semClassificar > 1 ? ` Mais ${r.semClassificar - 1} sem motivo.` : ''}`,
+        pode ? 'Classificar agora' : '', `data-vc-form-abrir="churn" data-vc-cli="${esc(primeiroSem.id)}" data-vc-onde="acao"`)
+      : d3AcaoOu(AGENTE_CHURN, `${qC}${plural(r.saidas, 'saída', 'saídas')} em ${periodo} · ${esc(reaisCurto(r.receitaPerdida))} por mês${r.principalMotivo ? ` · mais por ${esc(String(r.principalMotivo.rotulo).toLowerCase())}` : ''}.`);
     // Os três números.
     const porTipo = Object.keys(TIPOS()).map((k) => [k, r.lista.filter((s) => s.tipo === k).length]), semTipo = r.lista.filter((s) => !s.tipo).length;
     const vt = r.variacao.taxa, mudou = vt && vt.direcao !== 'igual' ? `<span class="v2c-pill ${vt.direcao === 'sobe' ? 'r' : 'g'}">${vt.direcao === 'sobe' ? 'subiu' : 'caiu'} ${virgula(Math.abs(vt.delta))} p.p.</span>` : '';
-    const numeros = `<div class="v2c-tres">
-        ${kpiHtml({ rotulo: 'Taxa de churn', valor: r.taxa == null ? '—' : `${virgula(r.taxa)}%`, extra: mudou ? ` ${mudou}` : '', tom: r.taxa ? '' : 'quieto',
-          sub: `<small>${r.taxa == null ? 'sem cliente ativo no começo do período' : `${r.saidas} de ${r.ativosNoInicio} clientes no período`} · ${plural(ativosHoje, 'ativo', 'ativos')} hoje</small>` })}
-        ${kpiHtml({ rotulo: 'Saídas', valor: r.saidas, atraso: 0.12, tom: r.saidas ? '' : 'quieto',
-          sub: `<small>${[...porTipo.filter(([, n]) => n).map(([k, n]) => `${n} ${TIPO_CURTO[k] || k}`), semTipo ? `${semTipo} sem tipo` : '', r.tempoMedioMeses != null ? `${virgula(r.tempoMedioMeses)} meses até sair` : ''].filter(Boolean).join(' · ') || 'ninguém saiu no período'}</small>` })}
-        ${kpiHtml({ rotulo: 'Receita perdida', valor: reaisCurto(r.receitaPerdida), atraso: 0.24, tom: r.receitaPerdida ? 'ruim' : 'quieto',
-          sub: `<small>por mês${r.semReceita ? ` · ${plural(r.semReceita, 'saída sem valor', 'saídas sem valor')}` : ''}</small>` })}
+    // Direção 3: quatro números; a taxa com a linha das saídas mês a mês e "Até sair" (tempo médio de casa de quem saiu).
+    void mudou;
+    const serieCh = serieDosMeses();
+    const numeros = `<div class="v2c-tres d3c-quatro">
+        ${numD3({ rotulo: 'Taxa de churn', valor: r.taxa == null ? '—' : `${esc(virgula(r.taxa))}%`,
+          linha: serieCh ? d3Linha(serieCh.meses.slice(-6).map((p) => Number(p.saidas) || 0), { largura: 90, altura: 28, rotulo: 'Saídas mês a mês' }) : '',
+          sub: `${r.taxa == null ? 'sem base no período' : `${r.saidas} de ${r.ativosNoInicio}`} · ${plural(ativosHoje, 'ativo', 'ativos')} hoje${vt && vt.direcao !== 'igual' ? ` · ${vt.direcao === 'sobe' ? '+' : '−'}${esc(virgula(Math.abs(vt.delta)))} p.p.` : ''}` })}
+        ${numD3({ rotulo: 'Saídas', valor: r.saidas,
+          sub: [...porTipo.filter(([, n]) => n).map(([k, n]) => `${n} ${TIPO_CURTO[k] || k}`), semTipo ? `${semTipo} sem tipo` : ''].filter(Boolean).join(' · ') || 'ninguém no período' })}
+        ${numD3({ rotulo: 'Receita perdida', valor: esc(reaisCurto(r.receitaPerdida)), tom: r.receitaPerdida ? 'r' : '',
+          sub: `por mês${r.semReceita ? ` · ${plural(r.semReceita, 'sem valor', 'sem valor')}` : ''}` })}
+        ${numD3({ rotulo: 'Até sair', valor: r.tempoMedioMeses == null ? '—' : esc(virgula(r.tempoMedioMeses)), de: r.tempoMedioMeses == null ? '' : ' meses', sub: r.tempoMedioMeses == null ? 'sem data de entrada' : 'tempo médio de casa' })}
       </div>`;
     // Busca, fichas (tipo e sem motivo) e "Filtros" (período e ordem).
     const base = estado.histCh ? r.todas : r.lista;
@@ -709,7 +791,7 @@
     const itemRisco = ({ x, l }) => `<li class="v2k-acao"><span class="v2c-pill a">Pode sair</span><p><span class="v2k-cli">${cliCor(x.nome)}</span> · nota ${x.score} na Saúde da carteira${l?.vencida ? ` e renovação vencida em ${esc(diaMes(l.renovacao))}` : l?.emBreve ? ` e contrato vencendo em ${plural(l.diasRenovacao, 'dia', 'dias')}` : ''}</p>
         ${botao('Abrir o cliente', `data-vc-cliente="${esc(x.nome)}"`)}</li>`;
     const nAcao = semMotivo.length + risco.length;
-    const pedeAcao = `${cartaoTopo('Pede ação', nAcao ? `${plural(nAcao, 'coisa', 'coisas')}, na ordem` : 'nada pede ação agora')}
+    const pedeAcao = `${cartaoTopo('Pede ação', nAcao ? `${nAcao}` : 'nada agora')}
       ${nAcao ? `<ol class="v2c-lista v2k-acoes">${semMotivo.map(itemSem).join('')}${risco.map(itemRisco).join('')}</ol>` : ''}`;
     // Quem saiu: no período (ou o histórico inteiro), pela ficha e pela busca.
     const passa = FICHAS.find(([k]) => k === estado.filtroCh)[2];
@@ -718,19 +800,21 @@
     else if (estado.ordem.churn === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     const limite = estado.limite.churn || PAGINA_QUADRO, resto = lista.length - limite;
     const quemSaiu = `<div class="v2c-card-topo v2k-quem-saiu"><h2>${estado.histCh ? 'Quem já saiu' : 'Quem saiu'} · ${lista.length}</h2><small>${r.todas.length ? ligacao(estado.histCh ? `só ${r.periodo.rotulo}` : 'mostrar o histórico', 'data-vc-hist-ch') : ''}</small></div>
-      ${lista.length ? `<ol class="v2c-lista">${lista.slice(0, limite).map(linhaSaidaQ).join('')}</ol>${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, 'saída', 'saídas')} · ${ligacao('mostrar', 'data-vc-mais="churn"')}</p>` : ''}`
+      ${lista.length ? `<div class="d3c-cab d3k-cab-saiu" aria-hidden="true"><span>Cliente</span><span>Tipo</span><span>Motivo</span><span>Na casa</span><span>Por mês</span></div><ol class="v2c-lista">${lista.slice(0, limite).map(linhaSaidaQ).join('')}</ol>${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, 'saída', 'saídas')} · ${ligacao('mostrar', 'data-vc-mais="churn"')}</p>` : ''}`
         : `<div class="v2c-vazio"><p>${termo || estado.filtroCh !== 'todas' ? 'Nenhuma saída neste filtro.' : estado.histCh ? 'Ninguém saiu até agora.' : `Ninguém saiu em ${periodo}.`}</p>${termo || estado.filtroCh !== 'todas' ? botao('Ver todas', 'data-vc-filtro-ch="todas" data-vc-limpar') : ''}</div>`}`;
     // Saídas e retenção: motivos, saídas por mês e a retenção por mês de entrada.
     const serie = serieDosMeses();
     if (serie) guardarBase();
-    const VISTAS = [['motivos', 'Motivos'], ['meses', 'Saídas por mês'], ['retencao', 'Retenção']];
+    const VISTAS = [['motivos', 'Motivos'], ['meses', 'Por mês'], ['retencao', 'Retenção']];
     if (!VISTAS.some(([k]) => k === estado.vistaCh)) estado.vistaCh = 'motivos';
     const contagem = [...r.porMotivo.map((m) => ({ rotulo: m.rotulo, vezes: base.filter((s) => s.motivo === m.motivo).length, cor: '#1F1D1A' })).sort((a, b) => b.vezes - a.vezes),
-      { rotulo: 'Sem motivo', vezes: base.filter((s) => !s.motivo).length, cor: '#C9C2B6' }].filter((m) => m.vezes);
-    const vista = estado.vistaCh === 'meses' ? (serie && serie.meses.some((p) => Number(p.saidas) > 0 || Number(p.novos) > 0) ? `<div class="vc-grafs v2k-grafs">
-          ${barrasMes(serie.meses, 'saidas', { titulo: 'Clientes que saíram', cor: '#D93D42', fraca: '#F2C4C6', formato: String, espiar: (p) => `mes:saidas:${p.mes}`, zero: 'Ninguém saiu nestes meses.' })}
-          ${barrasMes(serie.meses, 'novos', { titulo: 'Clientes que entraram', cor: '#18A957', fraca: '#BFE6CF', formato: String, espiar: (p) => `mes:novos:${p.mes}`, zero: 'Ninguém entrou nestes meses.' })}</div>`
-        : '<div class="v2c-vazio"><p>Ninguém saiu nem entrou nestes meses. As barras aparecem quando houver cliente com data de entrada ou de saída.</p></div>')
+      { rotulo: 'Sem motivo', vezes: base.filter((s) => !s.motivo).length, cor: '#B42318' }].filter((m) => m.vezes);
+    // Direção 3: gráficos em linha (saídas e entradas mês a mês), com o mês de cada ponto embaixo.
+    const linhaMes = (campoM, titulo) => `<figure class="d3k-graf"><figcaption>${esc(titulo)} <b>${serie.meses.reduce((t, p) => t + (Number(p[campoM]) || 0), 0)}</b></figcaption>
+      ${d3Linha(serie.meses.map((p) => Number(p[campoM]) || 0), { largura: 420, altura: 90, rotulo: `${titulo}: ${serie.meses.map((p) => `${mesCurto(p.mes)} ${Number(p[campoM]) || 0}`).join(', ')}` })}
+      <div class="d3c-meses" aria-hidden="true">${serie.meses.map((p, i) => `<span${p.agora ? ' class="agora"' : ''}${Number(p[campoM]) ? ` data-espiar="carteira:mes:${campoM}:${esc(p.mes)}"` : ''}>${i % 2 === serie.meses.length % 2 || p.agora ? mesCurto(p.mes) : ''}</span>`).join('')}</div></figure>`;
+    const vista = estado.vistaCh === 'meses' ? (serie && serie.meses.some((p) => Number(p.saidas) > 0 || Number(p.novos) > 0) ? `<div class="d3k-grafs">${linhaMes('saidas', 'Saíram')}${linhaMes('novos', 'Entraram')}</div>`
+        : '<div class="v2c-vazio"><p>Ninguém saiu nem entrou nestes meses.</p></div>')
       : estado.vistaCh === 'retencao' ? cohortHtml(c)
       : contagem.length ? `<div class="v2k-motivos">${contagem.map((m) => `<p class="v2k-mot"><span>${esc(m.rotulo)}</span><span class="v2c-sub">${m.vezes}</span></p><div class="v2-barra"><i style="--v:${Math.round((m.vezes / Math.max(1, base.length)) * 100)}%;--c:${m.cor}"></i></div>`).join('')}</div>`
       : `<div class="v2c-vazio"><p>${estado.histCh ? 'Nenhuma saída até agora.' : `Nenhuma saída em ${periodo}.`}</p></div>`;
@@ -739,7 +823,7 @@
     const peDaVista = serie ? `${totalSerie ? `${plural(totalSerie, 'saída', 'saídas')} em ${serie.meses.length} meses${ultimos.length ? ` (${ultimos.length > 1 ? `${ultimos.slice(0, -1).join(', ')} e ${ultimos.at(-1)}` : ultimos[0]} nos últimos seis)` : ''}.` : `Ninguém saiu nos últimos ${serie.meses.length} meses.`} “Retenção” mostra quantos ficaram, por mês de entrada.` : '“Retenção” mostra quantos ficaram, por mês de entrada.';
     const lado = `<section class="v2c-card v2k-lado" aria-label="Saídas e retenção"><h2>Saídas e retenção</h2>
         <p class="v2k-seg"><span class="v2c-seg" role="group" aria-label="Ver">${VISTAS.map(([k, rot]) => `<button type="button" data-vc-vista-ch="${k}" aria-pressed="${estado.vistaCh === k}">${rot}</button>`).join('')}</span></p>
-        <div class="v2k-vista">${vista}</div><p class="v2c-pe">${esc(peDaVista)}</p></section>`;
+        <div class="v2k-vista">${vista}</div>${serie && estado.vistaCh !== 'meses' ? `<div class="d3k-pe-linha">${linhaMes('saidas', 'Saídas por mês')}</div>` : ''}<p class="d3c-so-leitor">${esc(peDaVista)}</p></section>`;
     const rodape = sv.churn?.disponivel ? '' : rodapeVazio('A classificação das saídas ainda não foi ligada.', 'As saídas já aparecem pela desativação do cliente; o motivo de cada uma passa a ser guardado quando estiver ligada.');
     return { topo, corpo: `${ajudaHtml}${registrar}${fala}${numeros}${filtros}
       <div class="v2k-grade2 v2k-churn"><section class="v2c-card v2c-quadro v2k-esq" aria-label="Pede ação e quem saiu">${pedeAcao}${quemSaiu}</section>${lado}</div>${rodape}` };
@@ -796,7 +880,8 @@
     if (!l.inicio || !l.renovacao) return { pct: 0, cor: '#11613A', texto: l.renovacao ? `renova em ${dataCurta(l.renovacao)}` : 'sem renovação marcada' };
     const total = Math.max(1, mesesDe(l.inicio, l.renovacao)), passou = l.vencida ? total : hoje() < l.inicio ? 0 : Math.min(total, mesesDe(l.inicio, hoje()));
     const pct = l.vencida ? 100 : Math.min(100, Math.max(0, Math.round(((Date.parse(hoje()) - Date.parse(l.inicio)) / Math.max(1, Date.parse(l.renovacao) - Date.parse(l.inicio))) * 100)));
-    return { pct, cor: l.vencida ? '#B42318' : l.emBreve ? '#9A5B00' : '#11613A', texto: `${passou} de ${plural(total, 'mês', 'meses')}` };
+    // Direção 3: a trilha "até renovar" em tinta escura, âmbar quando renova em 30 dias, vermelho só quando venceu.
+    return { pct, cor: l.vencida ? '#B42318' : l.emBreve ? '#7A4A00' : '#1F1D1A', texto: `${passou} de ${plural(total, 'mês', 'meses')}`, curto: `${passou}/${total}` };
   }
   const pilulaRenovacao = (l) => (!l.temContrato ? '<span class="v2c-pill r">Sem contrato</span>'
     : l.status === 'encerrado' ? '<span class="v2c-pill">Encerrado</span>'
@@ -815,7 +900,8 @@
     return `<li class="v2-abre v2c-linha v2k-ct" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="v2c-lin">
         <button type="button" class="v2c-abrir v2k-linha-ct" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${l.nome}, ${l.valor == null ? 'sem valor' : `${reais(l.valor)} por mês`}, ${t.texto}`)}">
           <span class="v2k-nome"><b>${cliCor(l.nome)}</b><small>${l.entrada ? `desde ${esc(mesAno(l.entrada))}` : 'sem data de entrada'}</small></span>
-          <span class="v2k-trilha"><span class="v2-barra"><i style="--v:${t.pct}%;--c:${t.cor}"></i></span><small>${esc(t.texto)}</small></span>
+          <span class="d3k-desde">${l.entrada ? esc(mesAno(l.entrada)) : '—'}</span>
+          <span class="v2k-trilha"><span class="v2-barra"><i style="--v:${t.pct}%;--c:${t.cor}"></i></span><small>${esc(t.texto)}</small><em class="d3k-trilha-n">${esc(t.curto || '')}</em></span>
           <b class="v2k-valor">${l.valor == null ? '—' : esc(reais(l.valor))}</b>${pilulaRenovacao(l)}</button></div>
       <div class="v2-mais"><div><div class="v2k-det">
         ${hist.map((h) => `<p class="v2k-hist">${esc(h)}</p>`).join('')}${daFin}${l.observacao ? `<p class="v2k-hist">“${esc(l.observacao)}”</p>` : ''}
@@ -841,7 +927,7 @@
     const fora = (l) => Boolean(contratoDaFin(l.id));
     const candidatos = [...r.linhas.filter((l) => !l.temContrato && !fora(l)), ...r.linhas.filter((l) => l.temContrato && !fora(l)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))];
     const tituloRegistrar = !pode ? (sv.contratos?.disponivel ? 'Valor e contrato só quem administra altera' : 'Os contratos ainda não foram ligados') : !candidatos.length ? 'Nenhum cliente ativo no cadastro' : '';
-    const topo = `${estado.tipo === 'anual' || estado.mes !== hoje().slice(0, 7) ? `<span class="v2c-sub">${esc(r.periodo.rotulo)}</span>` : ''}${como}${botao('Registrar contrato', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"${tituloRegistrar ? ` disabled title="${esc(tituloRegistrar)}"` : ''}`, 'p')}`;
+    const topo = `<span class="d3c-meta">${esc(r.periodo.rotulo)}</span>${como}${botao('Registrar contrato', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"${tituloRegistrar ? ` disabled title="${esc(tituloRegistrar)}"` : ''}`, 'p')}`;
     const emRegistro = estado.form?.tipo === 'contrato' && estado.form.onde === 'registrar' ? r.linhas.find((l) => l.id === estado.form.id) : null;
     const registrar = estado.registrar === estado.aba && pode && candidatos.length ? `<section class="v2c-card v2c-painel v2k-registrar" aria-label="Registrar contrato">
       ${emRegistro ? `<p class="v2k-registrar-quem"><b>${cliCor(emRegistro.nome)}</b> · ${emRegistro.temContrato ? 'contrato registrado: os campos abaixo substituem o atual' : 'sem contrato ainda'}</p>${formContrato(emRegistro)}`
@@ -851,20 +937,29 @@
     const abertos = r.linhas.filter((l) => l.temContrato && l.status !== 'encerrado').length;
     const semNomes = r.linhas.filter((l) => !l.temContrato).map((l) => l.nome);
     const breve = r.emBreve.length, vencidas = r.vencidas.length;
-    const fala = !r.linhas.length ? falaDe(AGENTE_CONTRATOS, '<b>Nenhum cliente ativo</b> no cadastro. Quem entra no cadastro como ativo aparece aqui com o contrato.')
-      : falaDe(AGENTE_CONTRATOS, `<b>${esc(reaisCurto(r.receita))} por mês</b> ${abertos ? `em ${plural(abertos, 'contrato ativo', 'contratos ativos')}` : `nos ${plural(r.linhas.length, 'cliente ativo', 'clientes ativos')}`}.${vencidas ? ` <b>${plural(vencidas, 'renovação venceu', 'renovações venceram')}</b>${breve ? ` e ${breve} ${breve === 1 ? 'renova' : 'renovam'} em 30 dias` : ''}.` : breve ? ` <b>${breve} ${breve === 1 ? 'renova' : 'renovam'} em 30 dias</b>.` : ' Nenhuma renovação nos próximos 30 dias.'}${semNomes.length ? ` ${semNomes.length === 1 ? '1 cliente está' : `${semNomes.length} clientes estão`} sem contrato.` : ''}`,
-        vencidas + breve ? botao(vencidas + breve === 1 ? 'Ver a renovação' : `Ver os ${vencidas + breve}`, 'data-vc-filtro-ct="breve"') : semNomes.length ? botao(semNomes.length === 1 ? 'Ver quem' : `Ver os ${semNomes.length}`, 'data-vc-filtro-ct="sem"') : '');
+    // Direção 3: a fala do Vorcaro vira o bloco de ação laranja, numa frase só (a renovação mais perto primeiro).
+    const qV = quemD3(AGENTE_CONTRATOS), prox = [...r.vencidas, ...r.emBreve][0];
+    const fala = !r.linhas.length ? d3AcaoOu(AGENTE_CONTRATOS, `${qV}Nenhum cliente ativo no cadastro.`)
+      : prox ? d3AcaoOu(AGENTE_CONTRATOS, `${qV}${esc(prox.nome)} ${prox.vencida ? `venceu em ${esc(diaMes(prox.renovacao))}` : prox.diasRenovacao ? `renova em ${plural(prox.diasRenovacao, 'dia', 'dias')}` : 'renova hoje'}.${vencidas + breve > 1 ? ` Mais ${vencidas + breve - 1} no mês.` : ''}`,
+        vencidas + breve === 1 ? 'Ver a renovação' : `Ver os ${vencidas + breve}`, 'data-vc-filtro-ct="breve"')
+      : semNomes.length ? d3AcaoOu(AGENTE_CONTRATOS, `${qV}${semNomes.length === 1 ? `${esc(semNomes[0])} está` : `${semNomes.length} clientes estão`} sem contrato.`, semNomes.length === 1 ? 'Ver quem' : `Ver os ${semNomes.length}`, 'data-vc-filtro-ct="sem"')
+      : d3AcaoOu(AGENTE_CONTRATOS, `${qV}${esc(reaisCurto(r.receita))} por mês em ${plural(abertos, 'contrato', 'contratos')} · nenhuma renovação em 30 dias.`);
     // Os três números.
     const vr = r.variacao.receita, mudou = vr && vr.direcao !== 'igual' ? `<span class="v2c-pill ${vr.direcao === 'sobe' ? 'g' : 'a'}">${vr.direcao === 'sobe' ? '+' : '−'}${esc(reaisCurto(Math.abs(vr.delta)))} no ${estado.tipo === 'anual' ? 'ano' : 'mês'}</span>` : '';
     const emJogo = [...r.emBreve, ...r.vencidas].reduce((t, l) => t + (l.valor || 0), 0);
     const comLtv = r.linhas.length - r.semReceitaLtv;
-    const numeros = `<div class="v2c-tres">
-        ${kpiHtml({ rotulo: 'Em contratos ativos', valor: reaisCurto(r.receita), extra: mudou ? ` ${mudou}` : '', tom: r.receita ? '' : 'quieto',
-          sub: `<small>por mês · ${plural(r.linhas.length, 'ativo', 'ativos')} · ${r.ticketMedio == null ? 'ticket médio: sem valor' : `ticket médio ${esc(reaisCurto(r.ticketMedio))}`}</small>` })}
-        ${kpiHtml({ rotulo: 'Renovam em 30 dias', valor: breve, atraso: 0.12, tom: breve ? 'amarelo' : 'quieto',
-          sub: `<small>${breve ? `<span class="v2k-espia" data-espiar="carteira:contratos:breve" role="button" tabindex="0">${esc(reaisCurto(emJogo))} por mês em jogo</span>` : 'nenhuma nos próximos 30 dias'}${vencidas ? ` · <span class="v2k-ruim">${plural(vencidas, 'vencida', 'vencidas')}</span>` : ''}</small>` })}
-        ${kpiHtml({ rotulo: 'Tempo de casa (LTV)', valor: r.ltvMedio == null ? '—' : mesesTxt(Math.round(r.ltvMedio)), atraso: 0.24, tom: r.ltvMedio == null ? 'quieto' : '',
-          sub: `<small>${r.receitaLtv == null ? 'receita do LTV: sem valor ou sem data' : `<span class="v2k-espia" data-espiar="carteira:ltv:receita" role="button" tabindex="0">receita do LTV: ${esc(reaisCurto(r.receitaLtv / Math.max(1, comLtv)))} por cliente</span>`}</small>` })}
+    // Direção 3: quatro números; o quarto é "Sem contrato", com a barra de quantos dos ativos faltam.
+    void mudou;
+    const semCt = r.linhas.filter((l) => !l.temContrato).length, ltvMeses = r.ltvMedio == null ? null : Math.round(r.ltvMedio);
+    const numeros = `<div class="v2c-tres d3c-quatro">
+        ${numD3({ rotulo: 'Em contratos', valor: esc(reaisCurto(r.receita)), linha: serie ? d3Linha(serie.meses.slice(-6).map((p) => Number(p.ativos) || 0), { largura: 90, altura: 28, rotulo: 'Clientes ativos mês a mês' }) : '',
+          sub: `por mês · ${r.ticketMedio == null ? 'ticket sem valor' : `ticket ${esc(reaisCurto(r.ticketMedio))}`}${vr && vr.direcao !== 'igual' ? ` · ${vr.direcao === 'sobe' ? '+' : '−'}${esc(reaisCurto(Math.abs(vr.delta)))}` : ''}` })}
+        ${numD3({ rotulo: 'Renovam em 30 dias', valor: breve, tom: breve ? 'a' : '', attrs: `data-vc-filtro-ct="breve"`,
+          sub: `${breve ? `<span class="d3c-a" data-espiar="carteira:contratos:breve">${esc(reaisCurto(emJogo))}/mês em jogo</span>` : 'nenhuma'}${vencidas ? ` · <span class="d3c-r">${plural(vencidas, 'vencida', 'vencidas')}</span>` : ''}` })}
+        ${numD3({ rotulo: 'Tempo de casa', valor: ltvMeses == null ? '—' : ltvMeses, de: ltvMeses == null ? '' : ltvMeses === 1 ? ' mês' : ' meses',
+          sub: r.receitaLtv == null ? 'LTV sem valor' : `<span data-espiar="carteira:ltv:receita">LTV ${esc(reaisCurto(r.receitaLtv / Math.max(1, comLtv)))}</span>` })}
+        ${numD3({ rotulo: 'Sem contrato', valor: semCt, tom: semCt ? 'r' : '', attrs: 'data-vc-filtro-ct="sem"',
+          linha: r.linhas.length ? `<span class="d3-barra d3c-barra-r" style="--v:${Math.round((semCt / r.linhas.length) * 100)}%"><i></i></span>` : '' })}
       </div>`;
     // Busca, fichas e "Filtros" (período e ordem).
     const FICHAS = [['todos', 'Todos os clientes ativos', () => true], ['breve', vencidas ? 'Vencidas e em 30 dias' : 'Renovam em 30 dias', (l) => l.emBreve || l.vencida], ['sem', 'Sem contrato', (l) => !l.temContrato]];
@@ -885,20 +980,22 @@
     const mostra = renova.slice(0, 2), sobra = renova.length - mostra.length, nAcao = renova.length + (semC.length ? 1 : 0);
     const itemSem = semC.length ? `<li class="v2k-acao v2k-acao-ct"><div class="v2k-acao-tx"><span class="v2c-pill r">Sem contrato</span><p>${nomesEm(semC.map((l) => l.nome))} · ${semC.length === 1 ? 'ativo' : 'ativos'}, sem valor mensal nem início</p></div>
         ${botao(pode ? (semC.length === 1 ? 'Registrar o contrato' : `Registrar os ${semC.length}`) : semC.length === 1 ? 'Ver o cliente' : `Ver os ${semC.length}`, 'data-vc-filtro-ct="sem"')}</li>` : '';
-    const pedeAcao = `<section class="v2c-card v2k-pede" aria-label="Pede ação">${cartaoTopo('Pede ação', nAcao ? `${plural(nAcao, 'coisa', 'coisas')}, na ordem` : 'nada pede ação agora')}
+    const pedeAcao = `<section class="v2c-card v2k-pede" aria-label="Pede ação">${cartaoTopo('Pede ação', nAcao ? `${nAcao}` : 'nada agora')}
       ${nAcao ? `<ol class="v2c-lista v2k-acoes">${mostra.map(itemRenova).join('')}${itemSem}</ol>${sobra > 0 ? `<p class="v2c-pe">+ ${plural(sobra, 'renovação', 'renovações')} · ${ligacao('mostrar', 'data-vc-filtro-ct="breve"')}</p>` : ''}`
         : `<div class="v2c-vazio"><p>${r.linhas.length ? 'Nenhuma renovação nos próximos 30 dias e todo cliente ativo tem contrato.' : 'Nenhum cliente ativo no cadastro.'}</p></div>`}</section>`;
     // Mês a mês: uma série de cada vez (ativos, novos, LTV ou ticket), os últimos seis meses, o mês de agora em laranja.
     const SERIES = [['ativos', 'Ativos', String], ['novos', 'Novos', String], ['ltvMedio', 'LTV', (x) => `${virgula(x)} meses`], ['ticketMedio', 'Ticket', (x) => reais(x)]];
     if (!SERIES.some(([k]) => k === estado.serieCt)) estado.serieCt = 'ativos';
     const [campo, rotSerie, fmt] = SERIES.find(([k]) => k === estado.serieCt);
-    const pontos = serie ? serie.meses.slice(-6) : [], maxSerie = Math.max(1, ...pontos.map((p) => Number(p[campo]) || 0));
-    const colunas = !mesAMesTemDado(serie) ? '<div class="v2c-vazio"><p>O gráfico aparece com a primeira data de entrada de um cliente ativo.</p></div>'
-      : `<div class="v2k-cols" role="img" aria-label="${esc(`${rotSerie} mês a mês: ${pontos.map((p) => `${mesCurto(p.mes)} ${p[campo] == null ? 'sem dado' : fmt(p[campo])}`).join(', ')}`)}">${pontos.map((p) => {
-        const v = Number(p[campo]) || 0, espia = campo === 'novos' && v ? ` data-espiar="carteira:mes:novos:${esc(p.mes)}" role="button" tabindex="0"` : '';
-        return `<div class="v2k-col${p.agora ? ' agora' : ''}" title="${esc(`${mesCurto(p.mes)}: ${p[campo] == null ? 'sem dado' : fmt(p[campo])}`)}"${espia}><i style="--h:${v ? Math.max(4, Math.round((v / maxSerie) * 100)) : 2}%"></i><span>${mesCurto(p.mes)}</span></div>`;
-      }).join('')}</div>`;
-    const mesAMes = `<section class="v2c-card v2k-meses" aria-label="Mês a mês"><div class="v2k-meses-topo"><h2>Mês a mês</h2><span class="v2c-chips" role="group" aria-label="Série">${SERIES.map(([k, rot]) => ficha(rot, null, `data-vc-serie-ct="${k}"`, estado.serieCt === k)).join('')}</span></div>${colunas}</section>`;
+    // Direção 3: mês a mês em linha, com o valor de agora em destaque e quanto mudou nos seis meses.
+    const pontos = serie ? serie.meses.slice(-6) : [];
+    const valores = pontos.map((p) => Number(p[campo]) || 0), ultimo = pontos.at(-1), primeiroP = pontos[0];
+    const delta = ultimo && primeiroP ? (Number(ultimo[campo]) || 0) - (Number(primeiroP[campo]) || 0) : 0;
+    const colunas = !mesAMesTemDado(serie) ? '<div class="v2c-vazio"><p>Sem data de entrada ainda.</p></div>'
+      : `<p class="d3k-agora"><b>${esc(ultimo[campo] == null ? '—' : fmt(ultimo[campo]))}</b>${campo === 'ativos' || campo === 'novos' ? `<span class="${delta >= 0 ? 'd3c-g' : 'd3c-r'}">${delta >= 0 ? '+' : '−'}${Math.abs(delta)} em ${pontos.length} meses</span>` : ''}</p>
+        ${d3Linha(valores, { largura: 420, altura: 120, rotulo: `${rotSerie} mês a mês: ${pontos.map((p) => `${mesCurto(p.mes)} ${p[campo] == null ? 'sem dado' : fmt(p[campo])}`).join(', ')}` })}
+        <div class="d3c-meses" aria-hidden="true">${pontos.map((p) => `<span${p.agora ? ' class="agora"' : ''}${campo === 'novos' && Number(p.novos) ? ` data-espiar="carteira:mes:novos:${esc(p.mes)}"` : ''}>${mesCurto(p.mes)}</span>`).join('')}</div>`;
+    const mesAMes = `<section class="v2c-card v2k-meses" aria-label="Mês a mês"><div class="v2k-meses-topo"><h2>Mês a mês</h2><span class="v2c-seg" role="group" aria-label="Série">${SERIES.map(([k, rot]) => `<button type="button" data-vc-serie-ct="${k}" aria-pressed="${estado.serieCt === k}">${rot}</button>`).join('')}</span></div>${colunas}</section>`;
     // Clientes ativos: a lista pela ficha, pela busca e pela ordem de "Filtros".
     const [, rotFicha, passaFicha] = FICHAS.find(([k]) => k === estado.filtroCt);
     let lista = r.linhas.filter((l) => passaFicha(l) && naBusca(l));
@@ -909,15 +1006,16 @@
     const novosTxt = `<span class="v2k-espia" data-espiar="carteira:novos:periodo" role="button" tabindex="0">${plural(r.novos.length, 'novo', 'novos')} no ${estado.tipo === 'anual' ? 'ano' : 'mês'}</span>`;
     const titulo = estado.filtroCt === 'todos' ? 'Clientes ativos' : rotFicha;
     const filtrando = Boolean(termo) || estado.filtroCt !== 'todos';
-    const clientes = `<section class="v2c-card v2c-quadro v2k-clientes" aria-label="${esc(titulo)}">${cartaoTopo(`${esc(titulo)} · ${lista.length}`, `${novosTxt} · ${esc(restante)}`)}
-      ${lista.length ? `<ol class="v2c-lista">${lista.slice(0, limite).map(linhaContratoQ).join('')}</ol>`
+    const cabCt = '<div class="d3c-cab d3k-cab" aria-hidden="true"><span>Cliente</span><span>Desde</span><span>Até renovar</span><span>Por mês</span><span>Renova</span></div>';
+    const clientes = `<section class="v2c-card v2c-quadro v2k-clientes" aria-label="${esc(titulo)}">${cartaoTopo(`${esc(titulo)}`, `${lista.length} · ${novosTxt}<span class="d3c-so-leitor"> · ${esc(restante)}</span>`)}
+      ${lista.length ? `${cabCt}<ol class="v2c-lista">${lista.slice(0, limite).map(linhaContratoQ).join('')}</ol>`
         : `<div class="v2c-vazio"><p>${filtrando ? 'Nenhum cliente neste filtro.' : 'Nenhum cliente ativo no cadastro. Quem entra no cadastro como ativo aparece aqui.'}</p>${filtrando ? botao('Ver todos', 'data-vc-filtro-ct="todos" data-vc-limpar') : ''}</div>`}
       ${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, estado.filtroCt === 'todos' ? 'cliente ativo' : 'cliente', estado.filtroCt === 'todos' ? 'clientes ativos' : 'clientes')} · ${ligacao('mostrar', 'data-vc-mais="contratos"')}</p>` : ''}</section>`;
     const rodape = sv.contratos?.disponivel || f ? '' : rodapeVazio('Os contratos ainda não foram ligados.', 'Quando estiverem ligados, o valor, o início e a renovação de cada cliente ficam guardados aqui. Nada se perde até lá.');
     const pe = `<p class="v2c-sub v2k-nota">${esc(f ? 'Os contratos que estão no Vybe Finanças vêm de lá (início, fim, assinatura, vencimento e PDF) e se alteram no Finanças. Os outros clientes seguem com o registro do Vybe OS, que só quem administra altera.'
       : 'Só o registro do contrato, sem assinatura eletrônica; valor e contrato só quem administra altera. A trilha mostra quanto falta para renovar.')}</p>`;
     return { topo, corpo: `${ajudaHtml}${registrar}${fala}${numeros}${filtros}
-      <div class="v2k-grade2 v2k-contratos"><div class="v2k-col-esq">${pedeAcao}${mesAMes}</div>${clientes}</div>${f ? `<div class="v2c-card v2k-fin">${finContratosHtml(f)}</div>` : ''}${rodape}${pe}` };
+      <div class="v2k-grade2 v2k-contratos d3k-contratos">${clientes}<div class="v2k-col-esq">${pedeAcao}${mesAMes}</div></div>${f ? `<div class="v2c-card v2k-fin">${finContratosHtml(f)}</div>` : ''}${rodape}${estado.ajuda ? pe : ''}` };
   }
 
   // ---------- janela ----------

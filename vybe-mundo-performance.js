@@ -176,7 +176,10 @@
     const ativos = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES.filter((c) => c && c.id && c.nome && c.ativo !== false).length : null;
     const principal = semResp ? btn(semResp === 1 ? 'Distribuir a peça sem dono' : `Distribuir as ${n0(semResp)}`, 'data-espiar="perf:proc|semResponsavel"', 'p')
       : T.atrasadas ? btn(T.atrasadas === 1 ? 'Abrir a atrasada' : `Abrir as ${n0(T.atrasadas)} atrasadas`, 'data-espiar="perf:total|atrasadas"', 'p') : '';
-    const topo = `<div class="g2-topo"><h2>Performance da operação</h2><small class="g2-topo-sub">${!ativos ? '' : `${pl(ativos, 'cliente ativo', 'clientes ativos')} · `}@@HORA@@</small><span class="g2-seg vv-perf-periodo" role="group" aria-label="Período">${PERIODOS.map(([d, r]) => `<button type="button" data-perf-dias="${d}" aria-pressed="${d === dias}">${r}</button>`).join('')}</span>${principal}</div>`;
+    // Direção 3 (quadro D3-Performance): título curto com os clientes ativos e a hora; o botão do que pede ação mora no
+    // bloco laranja, não no topo.
+    const D3 = V.d3;
+    const topo = `<div class="g2-topo"><h2 title="Performance da operação">Performance</h2><small class="g2-topo-sub">${!ativos ? '' : `${pl(ativos, 'cliente ativo', 'clientes ativos')} · `}@@HORA@@</small><span class="g2-seg vv-perf-periodo" role="group" aria-label="Período">${PERIODOS.map(([d, r]) => `<button type="button" data-perf-dias="${d}" aria-pressed="${d === dias}">${r}</button>`).join('')}</span>${D3 ? '' : principal}</div>`;
     // A frase: o gargalo é dono (peça sem responsável) ou etapa (onde a fila está parada).
     const maior = P.etapas[0];
     const gargalo = semResp && semResp * 2 >= T.abertas ? `O gargalo é dono, não etapa: <b>${n0(semResp)} das ${pl(T.abertas, 'peça aberta', 'peças abertas')} ${semResp === 1 ? 'está' : 'estão'} sem responsável</b>`
@@ -243,7 +246,25 @@
       + bloco('Departamentos', 'cada número abre as peças por trás dele', tabela(P.grupos, { chave: 'grupos' }), { icone: 'pessoas' })
       + bloco('Operacionais', 'cada pessoa responsável pelas peças; peça de duas pessoas conta para as duas', tabela(P.pessoas, { chave: 'pessoas' }), { icone: 'pessoas' })
       + bloco('Clientes', 'os com mais atrasos primeiro', tabela(P.clientes, { chave: 'clientes', cli: true }), { icone: 'coracao' });
-    const tudo = topo + `<div class="vs-corpo@@QUIETA@@">${tela(falaHtml, numeros, duas(`<div class="g2-col">${pedeHtml}${entregasHtml}</div>`, filaHtml, 'iguais'), abrir, mais('Tabelas por departamento, formato, pessoa e cliente', antigo))}</div>`;
+    // Direção 3: bloco de ação curto, quatro números e as entregas por semana em linha (entregues cheia, cadastradas
+    // tracejada). A frase longa do Heitor vira a dica do bloco.
+    let corpo = tela(falaHtml, numeros, duas(`<div class="g2-col">${pedeHtml}${entregasHtml}</div>`, filaHtml, 'iguais'), abrir, mais('Tabelas por departamento, formato, pessoa e cliente', antigo));
+    if (D3) {
+      const dono = semResp && semResp * 2 >= T.abertas;
+      const fraseD3 = dono ? `O gargalo é dono: ${pl(semResp, 'peça', 'peças')} sem responsável.` : maior ? `A fila trava em ${esc(maior.status)}: ${pl(maior.qtd, 'peça', 'peças')}.` : 'Nenhuma peça aberta agora.';
+      const [rotBtn, attrs] = semResp ? [semResp === 1 ? 'Distribuir a peça' : `Distribuir as ${n0(semResp)}`, 'data-espiar="perf:proc|semResponsavel"'] : T.atrasadas ? [T.atrasadas === 1 ? 'Abrir a atrasada' : `Abrir as ${n0(T.atrasadas)}`, 'data-espiar="perf:total|atrasadas"'] : ['', ''];
+      const acao = D3.acao({ frase: fraseD3, agente: 'H', botao: rotBtn, attrs: `${attrs} title="${esc(frase.replace(/<[^>]*>/g, ''))}"` })
+        .replace('<span class="d3-acao-frase">', '<span class="d3-acao-frase"><small class="d3s-quem">Heitor · Coordenação</small>');
+      const entPorSem = sem.map((x) => (Number(x.noPrazo) || 0) + (Number(x.atrasadas) || 0)), cad = sem.map((x) => Number(x.criadas) || 0);
+      const nums = `<div class="d3g-nums">${D3.num({ rotulo: 'Abertas', valor: n0(T.abertas), serie: cad.length > 1 && cad.some(Boolean) ? cad : null, attrs: T.abertas ? 'data-espiar="perf:total|abertas"' : '' }, `${n0(T.paradas)} ${T.paradas === 1 ? 'parada' : 'paradas'} 3+ dias`)}
+        ${D3.num({ rotulo: 'Atrasadas', valor: n0(T.atrasadas), tom: T.atrasadas ? 'r' : '', attrs: T.atrasadas ? 'data-espiar="perf:total|atrasadas"' : '' }, T.abertas ? `${pctDe(T.atrasadas, T.abertas)}% da fila` : 'fila vazia', T.atrasadas ? 'r' : '')}
+        ${D3.num({ rotulo: 'Em alteração', valor: n0(T.alteracao), tom: T.alteracao ? 'a' : '' }, 'retrabalho na fila')}
+        ${D3.num({ rotulo: 'Sem responsável', valor: `${n0(semResp)}<small> / ${n0(T.abertas)}</small>`, barra: T.abertas ? (semResp * 100) / T.abertas : 0, attrs: semResp ? 'data-espiar="perf:proc|semResponsavel"' : '' })}</div>`;
+      const grafico = T.entregues && sem.length > 1 ? `<div class="d3g-graf-caixa">${D3.grafico(entPorSem, cad, sem.map((x) => x.rotulo), { atual: sem.length - 1, altura: 110, rotulo: 'Entregues e cadastradas por semana' })}</div>` : '';
+      const entregasD3 = grafico ? entregasHtml.replace(/<p class="g2-pe g2-pe-topo">[\s\S]*?<\/p>|<figure class="vs-grafico">[\s\S]*?<\/figure>/, grafico) : entregasHtml;
+      corpo = `<div class="g2 d3g">${acao}${nums}${duas(`<div class="g2-col">${pedeHtml}${entregasD3}</div>`, filaHtml, 'iguais')}${abrir}${mais('Tabelas por departamento, formato, pessoa e cliente', antigo)}</div>`;
+    }
+    const tudo = topo + `<div class="vs-corpo@@QUIETA@@">${corpo}</div>`;
     alvo.innerHTML = tudo.replace('@@HORA@@', v2.hora()).replace('@@QUIETA@@', tudo === pintado ? ' g2-quieta' : '');
     pintado = tudo;
     alvo.addEventListener?.('click', (ev) => {

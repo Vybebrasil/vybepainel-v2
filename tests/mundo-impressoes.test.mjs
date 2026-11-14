@@ -38,10 +38,13 @@ test('sem fornecedor: escolher na própria peça, sem aviso solto; cartões com 
   const t = await montar(DADOS());
   const h = t.html();
   assert.doesNotMatch(h, /Nenhum fornecedor cadastrado|vi-alerta/);
-  // Padrão v2 (quadro Impressões, 12/11/2026): uma linha por peça, com "sem fornecedor · escolher" e o atraso em dias na pílula.
-  assert.match(h, /<b class="atencao">sem fornecedor<\/b> · <button type="button" class="p2-link vi-escolher" data-vi-escolher-forn="1">escolher<\/button>/);
+  // Direção 3 (quadro D3-Impressoes): uma linha de tabela por peça; sem gráfica, a coluna diz "sem fornecedor" e o botão
+  // do próximo passo é "Escolher gráfica"; o atraso em dias fica na pílula.
+  assert.match(h, /<span class="vi2-forn"><b class="atencao">sem fornecedor<\/b><\/span>/);
+  assert.match(h, /<button type="button" class="p2-btn s vi-escolher" data-vi-escolher-forn="1">Escolher gráfica<\/button>/);
   assert.match(h, /<span class="p2-pill r">\d+ dias?<\/span>/);
-  assert.equal((h.match(/p2-btn p"/g) || []).length, 1, 'um botão principal só');
+  assert.equal((h.match(/p2-btn p"/g) || []).length, 0, 'Direção 3: o único laranja cheio é o bloco de ação');
+  assert.ok(h.includes('class="p2-btn d3im-nova" data-vi="nova">+ Nova impressão</button>'), 'Nova impressão em branco no alto');
   assert.ok(t.pedidos.some((p) => p.url === '/api/painel?area=impressoes' && p.metodo === 'GET'));
 });
 

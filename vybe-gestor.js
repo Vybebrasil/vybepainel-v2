@@ -230,6 +230,8 @@ function hslParaHex(h, s, l) {
 function pillHtml(s, color='', border='') {
   const doCatalogo = color ? null : corDeStatus(s);
   const cor = color || doCatalogo?.cor || '';
+  // No mundo (padrão v2): pílula clara com a bolinha na cor do status; cheia só no que pede atenção (pv2Tom).
+  if (pv2Ligado()) return `<span class="pill vv-st-ponto ${pv2Tom(s)}"${cor ? ` style="--st:${safeText(cor)}"` : ''}><i aria-hidden="true"></i>${s}</span>`;
   const bordaFinal = border || doCatalogo?.borda || '';
   return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(cor, bordaFinal)}><span class="pill-dot"${statusDotInlineStyle(cor)}></span>${s}</span>`;
 }
@@ -1759,16 +1761,15 @@ const PV2_IC = {
   baixo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
 };
 function pv2Ligado() { return typeof document !== 'undefined' && Boolean(document.body?.classList.contains('mundo')); }
-// Cor é significado: vermelho no que voltou ou venceu, verde no que está pronto, lilás no que espera aprovação,
-// azul no que ainda vai começar, neutro no que espera alguém de fora e âmbar no que está em produção.
+// Cor é significado (Paulo, 13/11/2026: "pra não olhar muita informação e tudo parecer a mesma coisa"). Pílula cheia só no
+// que pede atenção: vermelho no que venceu, âmbar no que voltou para ajuste, verde no que está pronto (só Finalizado e
+// equivalentes). O resto fica neutro, com a bolinha na cor do catálogo (a cor do status continua dizendo qual é).
 function pv2Tom(status) {
   const s = String(status || '').toLocaleLowerCase('pt-BR');
-  if (/altera|atras|vencid/.test(s)) return 'r';
-  if (/finaliz|feito|conclu|agendad|para agendar|aprovado|gravad/.test(s)) return 'g';
-  if (/aprova/.test(s)) return 'v';
-  if (/^a fazer|nova/.test(s)) return 'b';
-  if (/aguard|^ag\.|falta|info|sem status|^—$/.test(s)) return 'n';
-  return 'a';
+  if (/atras|vencid/.test(s)) return 'r';
+  if (/altera|ajuste|corre|refaz/.test(s)) return 'a';
+  if (/finaliz|feito|conclu|publicad|postad/.test(s)) return 'g';
+  return 'n';
 }
 function pv2Pill(texto, tom) { return `<span class="pv2-pill ${tom || pv2Tom(texto)}">${safeText(texto || 'Sem status')}</span>`; }
 // O cliente com a bolinha na cor da carteira dele (laranja ou azul do Responsável geral; cinza sem carteira).
@@ -1808,6 +1809,32 @@ function pv2Titulo(d) {
 }
 const pv2DiaMes = (iso) => (iso ? `${Number(iso.slice(8, 10))}/${iso.slice(5, 7)}` : '');
 
+// ----- Direção 3 (moodboard 3, 13/11/2026): as peças que o Painel e Demandas repetem -----
+// Bloco de ação laranja com o agente e a área dele em cima da frase; cartão de número com rótulo, valor, mini linha ou
+// barra e uma linha curta embaixo. Os desenhos-base (d3-acao, d3-num, d3-graf, d3-barra) moram em padrao-v2/0-d3-base.css.
+const D3P_MAIS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+function d3pDataDeHoje() {
+  const iso = (typeof HOJE_ISO !== 'undefined' && HOJE_ISO) || new Date().toISOString().slice(0, 10);
+  const d = new Date(`${iso}T12:00:00Z`);
+  const dia = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' }).replace(/-feira$/, '');
+  return `${dia}, ${d.getUTCDate()} ${d.toLocaleDateString('pt-BR', { month: 'short', timeZone: 'UTC' }).replace('.', '')}`;
+}
+function d3pAcao({ agente = 'H', quem = '', frase = '', botao = '', attrs = '' }) {
+  const corpo = `${quem ? `<small class="d3p-quem">${safeText(quem)}</small>` : ''}<span class="d3p-frase">${frase}</span>`;
+  if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: corpo, agente, botao, attrs }).replace('class="d3-acao"', 'class="d3-acao d3p-acao"');
+  return `<section class="d3-acao d3p-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${safeText(agente)}</span><span class="d3-acao-frase">${corpo}</span>${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${safeText(botao)}</button>` : ''}</section>`;
+}
+// O cartão de número da Direção 3. serie (dois ou mais valores) vira a mini linha; barra (0 a 100) vira a barra que
+// cresce. Com acao, o cartão é botão. tom: r (venceu), a (pede ajuste) ou g (pronto).
+function d3pNum({ rotulo, valor, de = '', tom = '', linhaTom = '', serie = null, barra = null, sub = '', subTom = '', acao = '', dica = '', serieRotulo = '' }) {
+  const graf = serie && typeof d3LinhaSvg === 'function' ? d3LinhaSvg(serie, { largura: 90, altura: 28, rotulo: serieRotulo }) : '';
+  const tag = acao ? `button type="button" onclick="${acao}"` : 'div';
+  return `<${tag} class="d3-num d3p-num${tom ? ' ' + tom : ''}${graf && (linhaTom || tom) ? ' l-' + (linhaTom || tom) : ''}"${dica ? ` title="${safeText(dica)}"` : ''}><span class="d3-num-rot">${safeText(rotulo)}</span>`
+    + `<b class="d3-num-v">${valor}${de ? `<small> / ${de}</small>` : ''}</b>${graf}`
+    + `${barra != null ? `<span class="d3-barra" role="progressbar" aria-label="${safeText(rotulo)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(barra)}" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ''}`
+    + `${sub ? `<span class="d3p-num-sub${subTom ? ' ' + subTom : ''}">${sub}</span>` : ''}</${acao ? 'button' : 'div'}>`;
+}
+
 // ----- o alto da tela: título, vistas, Modos, Novo conteúdo, fala, números, busca, fichas e Filtros -----
 // Vistas, abas e "Por dia" são escolha única (role="radio" com aria-checked): no quadro a ativa é branca; a ficha de
 // filtro é liga e desliga (aria-pressed) e fica preta quando ligada.
@@ -1825,7 +1852,7 @@ function pv2Montar() {
   const casa = cab.parentElement;
   raiz = document.createElement('div');
   raiz.id = 'pv2-painel'; raiz.className = 'pv2 pv2-painel';
-  raiz.innerHTML = `<div class="pv2-topo"><h2>Painel de trabalho</h2>
+  raiz.innerHTML = `<div class="pv2-topo"><h2>Painel de trabalho</h2><span class="d3p-data" id="pv2-data">${safeText(d3pDataDeHoje())}</span>
       <span class="pv2-seg" id="pv2-vistas" role="radiogroup" aria-label="Vista">
         <button type="button" role="radio" data-vista="semana" onclick="mostrarAgendaDaSemana()" title="Agenda da equipe, dia a dia">Semana</button>
         <button type="button" role="radio" data-vista="mes" onclick="toggleAgendaMensal()" title="Calendário do mês por cliente">Mês</button>
@@ -1839,7 +1866,7 @@ function pv2Montar() {
           <button type="button" onclick="openMeetingMode()">Modo Reunião</button>
           <button type="button" onclick="document.getElementById('ops-carga-btn')?.click()">Carga da equipe</button>
         </div></details>
-      <button type="button" class="pv2-btn p" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">Novo conteúdo</button></div>
+      <button type="button" class="pv2-btn d3p-novo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">${D3P_MAIS}Novo conteúdo</button></div>
     <div class="pv2-alto" id="pv2-alto"></div>
     <div class="pv2-filtros" role="group" aria-label="Busca e filtros">
       <label class="pv2-oculto" for="pv2-busca">Buscar peça ou cliente</label>
@@ -1886,15 +1913,23 @@ function pv2Montar() {
 function pv2PintarAlto(n) {
   const raiz = pv2Montar(); if (!raiz || !n) return;
   const pl = (q, um, varios) => (q === 1 ? um : varios);
-  const semana = `A semana está em <b>${n.pct}%</b>.`;
+  // Direção 3: a frase curta do Heitor no bloco laranja, com o botão do que pede ação; embaixo, três números com a mini
+  // linha da semana (quantas publicam e quantas estão pendentes em cada dia) e a barra da semana fechada.
+  const semana = `Semana em ${n.pct}%.`;
   const frase = !n.hoje ? `Hoje não publica nada. ${semana}`
-    : n.hojePendente > 0 ? `Hoje ${pl(n.hoje, 'publica', 'publicam')} <b>${n.hoje}</b> e ${n.hojePendente === n.hoje ? pl(n.hoje, 'ela não está pronta', 'nenhuma está pronta') : `<b>${n.hojePendente}</b> ${pl(n.hojePendente, 'ainda não está pronta', 'ainda não estão prontas')}`}. ${semana}`
-    : `Hoje ${pl(n.hoje, 'publica', 'publicam')} <b>${n.hoje}</b>, ${pl(n.hoje, 'já pronta', 'todas prontas')}. ${semana}`;
-  const kpi = (rotulo, valor, sub, acao, extra = '') => `<${acao ? `button type="button" onclick="${acao}"` : 'div'} class="pv2-card pv2-kpi${valor ? '' : ' quieto'}"><small>${rotulo}</small><b><span class="v2-num">${valor}</span>${extra}</b>${sub}</${acao ? 'button' : 'div'}>`;
-  pv2Trocar(document.getElementById('pv2-alto'), `<section class="pv2-card pv2-fala" aria-label="Fala do Heitor"><span class="pv2-ag" aria-hidden="true">H</span><p><span class="pv2-quem">Heitor · Coordenação de produção</span>${frase}</p></section>
-    ${kpi('Publica hoje', n.hoje, `<small>${!n.hoje ? 'nada publica hoje' : n.hojePendente === n.hoje ? 'sem estar pronto' : n.hojePendente > 0 ? `${n.hojePendente} sem estar pronto` : 'tudo pronto'}</small>`, n.hoje ? "abrirDoResumo('hoje')" : '')}
-    ${kpi('Pendentes', n.pendentes, '<small>a fazer ou falta D.A.</small>', n.pendentes ? "abrirDoResumo('acao')" : '')}
-    ${kpi('Semana fechada', n.feitas, `<div class="v2-barra" role="progressbar" aria-label="Semana fechada" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${n.pct}"><i style="--v:${n.pct}%;--c:#11613A"></i></div>`, '', ` <i>de ${n.total}</i>`)}`);
+    : n.hojePendente > 0 ? `Hoje ${pl(n.hoje, 'publica', 'publicam')} ${n.hoje} e ${n.hojePendente === n.hoje ? pl(n.hoje, 'ela não está pronta', 'nenhuma está pronta') : `${n.hojePendente} não ${pl(n.hojePendente, 'está pronta', 'estão prontas')}`}. ${semana}`
+    : `Hoje ${pl(n.hoje, 'publica', 'publicam')} ${n.hoje}, ${pl(n.hoje, 'já pronta', 'todas prontas')}. ${semana}`;
+  const [botao, acao] = n.hojePendente > 0 ? [n.hojePendente === 1 ? 'Ver a de hoje' : `Ver as ${n.hojePendente}`, "abrirDoResumo('hoje')"]
+    : n.pendentes ? ['Ver pendentes', "abrirDoResumo('acao')"] : n.hoje ? ['Ver as de hoje', "abrirDoResumo('hoje')"] : ['', ''];
+  const dias = typeof getDiasSemana === 'function' && typeof currentWeek !== 'undefined' ? getDiasSemana(currentWeek) : [];
+  const daSemana = (DADOS || []).filter(itemNaCarteira);
+  const porDia = (filtro) => dias.map((dia) => daSemana.filter((d) => d.veiculacao_iso === dia.iso && filtro(d)).length);
+  const kpi = (rotulo, valor, o = {}) => d3pNum({ rotulo, valor, ...o });
+  pv2Trocar(document.getElementById('pv2-alto'), d3pAcao({ agente: 'H', quem: 'Heitor · Coordenação', frase, botao, attrs: `onclick="${acao}"` })
+    + `<div class="d3p-nums">${kpi('Publica hoje', n.hoje, { serie: porDia(() => true), serieRotulo: 'Publicações por dia da semana', acao: n.hoje ? "abrirDoResumo('hoje')" : '',
+      sub: !n.hoje ? 'nada hoje' : n.hojePendente === n.hoje ? 'nenhuma pronta' : n.hojePendente > 0 ? `${n.hojePendente} sem estar pronto` : 'tudo pronto', subTom: n.hojePendente > 0 ? 'r' : '' })}
+    ${kpi('Pendentes', n.pendentes, { linhaTom: 'a', serie: porDia((d) => ['A Fazer', 'Falta D.A'].includes(d.status)), serieRotulo: 'Pendentes por dia da semana', acao: n.pendentes ? "abrirDoResumo('acao')" : '', sub: 'a fazer ou falta D.A.' })}
+    ${kpi('Semana fechada', n.feitas, { de: n.total, barra: n.pct, dica: `${n.pct}% da semana em Finalizado` })}</div>`);
   pv2Totais.poucosPosts = n.poucosPosts;
   pv2PintarControles();
 }
@@ -1927,7 +1962,7 @@ function pv2PintarSemana() {
   const dias = getDiasSemana(currentWeek), rot = document.getElementById('pv2-semana-rot');
   if (rot && dias.length) {
     const a = dias[0].iso, b = dias[dias.length - 1].iso, mes = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' });
-    const texto = a.slice(0, 7) === b.slice(0, 7) ? `Semana de ${a.slice(8, 10)} a ${b.slice(8, 10)} de ${mes(b)}` : `Semana de ${a.slice(8, 10)} de ${mes(a)} a ${b.slice(8, 10)} de ${mes(b)}`;
+    const texto = a.slice(0, 7) === b.slice(0, 7) ? `${a.slice(8, 10)} a ${b.slice(8, 10)} de ${mes(b)}` : `${a.slice(8, 10)} de ${mes(a)} a ${b.slice(8, 10)} de ${mes(b)}`;
     if (rot.textContent !== texto) rot.textContent = texto;
   }
   const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`), i = lista.indexOf(atual);
@@ -1964,7 +1999,7 @@ function pv2PoucosPosts() {
 }
 
 // ----- a semana em colunas de dia, com o cartão que abre no lugar -----
-const PV2_POR_DIA = 3, PV2_JANELA = 4;
+const PV2_POR_DIA = 7, PV2_JANELA = 4;
 const pv2CartoesAbertos = new Set();
 function pv2DiasEl(sem) {
   const grid = document.getElementById(`grid-s${sem}`); if (!grid) return null;
@@ -1992,6 +2027,16 @@ function pv2MostrarDia(sem, iso) {
   if (diasExpandidos.has(iso)) diasExpandidos.delete(iso); else diasExpandidos.add(iso);
   renderByDay(sem, currentFilter, currentDayFilter);
 }
+// O quando da linha: a peça aberta de um dia que já passou diz há quanto tempo venceu (vermelho); a de hoje ou adiante
+// mostra o prazo interno quando ele é outro dia que não o da coluna. Pronta não mostra nada.
+function d3pQuando(d, data) {
+  if (atividadeDoDiaConcluida(d)) return { texto: '', tom: '' };
+  const hoje = (typeof HOJE_ISO !== 'undefined' && HOJE_ISO) || new Date().toISOString().slice(0, 10);
+  const dias = (iso) => Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(iso + 'T12:00:00Z')) / 864e5);
+  if (data && data < hoje) { const n = dias(data); return { texto: n === 1 ? 'ontem' : `há ${n} dias`, tom: 'r' }; }
+  if (d.prazo_iso && d.prazo_iso !== data) return { texto: `prazo ${pv2DiaMes(d.prazo_iso)}`, tom: d.prazo_iso < hoje ? 'r' : d.prazo_iso === hoje ? 'a' : '' };
+  return { texto: '', tom: '' };
+}
 function pv2CartaoHtml(d, aba) {
   const id = safeText(d.id), aberto = pv2CartoesAbertos.has(String(d.id));
   const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
@@ -1999,12 +2044,16 @@ function pv2CartaoHtml(d, aba) {
   const feita = atividadeDoDiaConcluida(d);
   const previa = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d) : '';
   const datas = [d.prazo_iso ? `prazo ${pv2DiaMes(d.prazo_iso)}` : '', d.veiculacao_iso ? `no ar ${pv2DiaMes(d.veiculacao_iso)}` : !isRequestItem(d) ? '' : d.conclusao_iso ? `conclusão ${pv2DiaMes(d.conclusao_iso)}` : ''].filter(Boolean).join(' · ');
+  // Direção 3: a linha do dia é "• Cliente · peça", e embaixo a pílula do status (o menu de sempre) e o quando, em
+  // vermelho só no que já venceu. O dono fica na bolinha da direita.
+  const q = d3pQuando(d, data);
   return `<article class="pv2-pc v2-abre${marcada ? ' marcada' : ''}${feita ? ' feita' : ''}${pv2Chegou(d)}" data-cartao="${id}" aria-expanded="${aberto}" draggable="true"
       ondragstart="managerCalendarDragStart('${isRequestItem(d) ? 'request' : 'content'}','${id}',event)" ondragend="managerCalendarDragEnd()">
     <div class="pv2-pc-lin" role="button" tabindex="0" aria-expanded="${aberto}" title="Abrir no lugar. Arraste para mudar a data"
         onclick="pv2AlternarCartao('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2AlternarCartao('${id}',this)}">
-      <p class="pv2-t">${safeText(titulo)}</p>
-      <div class="pv2-r">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}">+${clientes.length - 1}</span>` : ''}${pv2StatusBotao(d)}<span class="pv2-avs">${pv2Av(d)}</span></div>
+      <p class="pv2-t">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</span>` : ''}<span class="d3p-peca"> · ${safeText(titulo)}</span></p>
+      <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}">${safeText(q.texto)}</span>` : ''}</div>
+      <span class="pv2-avs">${pv2Av(d)}</span>
     </div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
       ${datas || aba === 'pendencias' ? `<p class="pv2-sub">${aba === 'pendencias' ? (data ? `Entrega ${pv2DiaMes(data)}` : 'Sem data') + (datas ? ' · ' : '') : ''}${datas}</p>` : ''}
@@ -2048,17 +2097,18 @@ function pv2RenderDias(sem, filter, dayFilter) {
     const nome = dia.iso === hoje ? `Hoje · ${dia.label.toLowerCase()} ${Number(dia.iso.slice(8, 10))}` : `${dia.label} ${Number(dia.iso.slice(8, 10))}`;
     const dataCurta = dia.iso.slice(8, 10) + '/' + dia.iso.slice(5, 7);
     const vazio = aba === 'social' ? 'Nada marcado neste dia.' : aba === 'demandas' ? 'Nenhuma entrega neste dia.' : 'Nada atrasado ou sem data.';
-    const pe = inteiro ? `<button type="button" class="pv2-link" onclick="pv2MostrarDia(${sem},'${dia.iso}')">recolher o dia</button>`
-      : resto > 0 || concluidas.length ? `${resto > 0 ? `+ ${resto}${dia.iso === hoje ? ' hoje' : ''}` : ''}${concluidas.length ? `${resto > 0 ? ', e ' : ''}${concluidas.length} ${concluidas.length === 1 ? 'pronta recolhida' : 'prontas recolhidas'}` : ''} · <button type="button" class="pv2-link" onclick="pv2MostrarDia(${sem},'${dia.iso}')" aria-label="Mostrar tudo de ${dataCurta}">mostrar</button>` : '';
+    // Direção 3: o pé do dia é um botão só, "+4 · 4 prontas", que abre o dia inteiro no lugar (e recolhe de novo).
+    const pe = inteiro ? `<button type="button" class="d3p-mais" onclick="pv2MostrarDia(${sem},'${dia.iso}')" aria-label="Recolher ${dataCurta}">Recolher</button>`
+      : resto > 0 || concluidas.length ? `<button type="button" class="d3p-mais" onclick="pv2MostrarDia(${sem},'${dia.iso}')" aria-label="Mostrar tudo de ${dataCurta}" title="${resto > 0 ? `${resto} a mais` : ''}${resto > 0 && concluidas.length ? ' e ' : ''}${concluidas.length ? `${concluidas.length} ${concluidas.length === 1 ? 'pronta recolhida' : 'prontas recolhidas'}` : ''}">${resto > 0 ? `+${resto}` : 'Ver'}${concluidas.length ? `<span> · ${concluidas.length} ${concluidas.length === 1 ? 'pronta' : 'prontas'}</span>` : ''}</button>` : '';
     return `<section class="pv2-col${dia.iso === hoje ? ' hoje' : ''}"${naJanela ? ' data-janela' : ''} data-date="${dia.iso}" data-previa-sequencia="${dia.label} · ${dataCurta}" aria-label="${dia.label} ${dataCurta}"
         ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
       <div class="pv2-cab"><details class="pv2-menu pv2-dia-menu"><summary title="Adicionar atividade ou gerar o resumo de ${dataCurta}"><b>${nome}</b></summary>
           <div class="pv2-pop" onclick="if(event.target.closest('button'))this.closest('details').open=false">${gestor ? `<button type="button" onclick="adicionarDemandaNoDia('${dia.iso}','${aba}')">Adicionar atividade</button>` : ''}<button type="button" onclick="openDailySummary('${dia.iso}')">Gerar resumo</button></div></details>
-        <span class="pv2-sub">${concluidas.length} de ${lista.length}</span>${concluidas.length && lista.length ? `<div class="v2-barra" role="progressbar" aria-label="Progresso de ${dataCurta}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="--v:${pct}%;--c:#11613A"></i></div>` : ''}</div>
+        <span class="pv2-sub">${concluidas.length} de ${lista.length}</span>${dia.iso === hoje && lista.length ? `<span class="d3-barra" role="progressbar" aria-label="Progresso de ${dataCurta}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" style="--v:${pct}%"><i></i></span>` : ''}</div>
       ${aba !== 'social' && aviso ? `<p class="pv2-sub" role="status">${aviso} <button type="button" class="pv2-link" onclick="ensureDemandasForOperationalViews(true)">Atualizar</button></p>` : ''}
-      ${aVista.map((d) => pv2CartaoHtml(d, aba)).join('')}
-      ${!abertas.length && !inteiro ? `<p class="pv2-sub pv2-nada">${lista.length ? 'Tudo concluído.' : vazio}</p>` : ''}
-      ${pe ? `<p class="pv2-sub pv2-pe">${pe}</p>` : ''}
+      <div class="d3p-linhas">${aVista.map((d) => pv2CartaoHtml(d, aba)).join('')}
+      ${!abertas.length && !inteiro ? `<p class="pv2-sub pv2-nada">${lista.length ? 'Tudo concluído.' : vazio}</p>` : ''}</div>
+      ${pe}
     </section>`;
   }).join('');
   const emColunas = DIAS_EM_COLUNAS;
@@ -2101,7 +2151,8 @@ function pv2StatusBotao(d) {
   const id = safeText(d?.id ?? ''), rotulo = String(d?.status || 'Sem status'), chegou = pv2StatusChegouAgora(d);
   if (chegou) pv2AgendarAssentar();
   const dica = `Trocar status de ${safeText(d?.nome || 'atividade')}`;
-  return `<button type="button" class="pv2-st ${pv2Tom(rotulo)}${chegou ? ' v2-estado' : ''}" data-v2-st="${id}"${chegou ? ' data-estado="feito"' : ''} aria-haspopup="menu" aria-expanded="false" title="${dica}" aria-label="${safeText(rotulo)}. ${dica}" onclick="event.stopPropagation();openStatusEditor(event,'${id}')">${chegou ? `<i class="pv2-st-ok" aria-hidden="true">${PV2_IC.ok}</i>` : ''}<span class="pv2-st-rot">${safeText(rotulo)}</span><i class="pv2-st-seta" aria-hidden="true">${PV2_IC.baixo}</i></button>`;
+  const corSt = d?.status_color || (typeof corDeStatus === 'function' ? corDeStatus(rotulo)?.cor : '') || '';
+  return `<button type="button" class="pv2-st ${pv2Tom(rotulo)}${chegou ? ' v2-estado' : ''}"${corSt ? ` style="--st:${safeText(corSt)}"` : ''} data-v2-st="${id}"${chegou ? ' data-estado="feito"' : ''} aria-haspopup="menu" aria-expanded="false" title="${dica}" aria-label="${safeText(rotulo)}. ${dica}" onclick="event.stopPropagation();openStatusEditor(event,'${id}')">${chegou ? `<i class="pv2-st-ok" aria-hidden="true">${PV2_IC.ok}</i>` : ''}<span class="pv2-st-rot">${safeText(rotulo)}</span><i class="pv2-st-seta" aria-hidden="true">${PV2_IC.baixo}</i></button>`;
 }
 // Escolheu no menu: a pílula daquela peça gira até a lista voltar desenhada. Se abriu um portão (a caixa de contexto)
 // ou a gravação terminou sem redesenhar (recusada, ou o mesmo status), ela volta a ser a pílula de antes.
