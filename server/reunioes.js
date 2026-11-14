@@ -13,6 +13,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { CAMPOS_CADASTRO, SECOES_CADASTRO, salvarCadastro, valorDoCampo, garantirSchemaDoCadastro } from './clientes-cadastro.js';
 import { ehDonoPessoa } from './donos.js';
+import { umaVez } from './uma-vez.js';
+import { limiteNaMemoria, ipDe } from './comercial-leads.js';
 import { marcarNaEsteira, regrasDoQuestionario } from './onboarding-contexto.js';
 import { paginaD3Html } from './pagina-d3.js';
 
@@ -47,9 +49,9 @@ const erro = (msg, status = 400) => Object.assign(new Error(msg), { status });
 const hash = (t) => createHash('sha256').update(String(t)).digest('hex');
 const txt = (v, max) => String(v ?? '').trim().slice(0, max);
 
-const prontos = new WeakSet();
-export async function garantirSchemaReunioes(db) {
-  if (prontos.has(db)) return;
+// Uma vez por banco em cada instância (server/uma-vez.js): o painel abre um cliente novo por request.
+export function garantirSchemaReunioes(db) { return umaVez('reunioes', db, criarSchemaReunioes); }
+async function criarSchemaReunioes(db) {
   await garantirSchemaDoCadastro(db);
   await db`CREATE TABLE IF NOT EXISTS vybe_cliente_reunioes (id BIGSERIAL PRIMARY KEY, cliente_id BIGINT NOT NULL REFERENCES vybe_clientes(id) ON DELETE CASCADE,
     data DATE NOT NULL, resumo TEXT NOT NULL, autor TEXT, criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW())`;
@@ -68,7 +70,6 @@ export async function garantirSchemaReunioes(db) {
     db`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS onboarding_link_hash TEXT`,
     db`ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS onboarding_link_expira TIMESTAMPTZ`,
   ]) await coluna;
-  prontos.add(db);
 }
 
 // Quem mexe: administração, os quatro donos ou o head do cliente.
@@ -273,7 +274,26 @@ b.onclick=async()=>{const corpo={campos:{},respostas:{},acessos:{}};document.que
 </script></body></html>`;
 }
 
+// Página pública (o segredo é o link): limite por IP na memória da instância (como o formulário de leads) e erro inesperado
+// vira página genérica, sem a mensagem do banco (confere de 14/11/2026).
+export const ONBOARDING_POR_IP = Object.freeze({ GET: { max: 60, janela: 10 * 60 * 1000 }, POST: { max: 12, janela: 10 * 60 * 1000 } });
 export async function paginaDoOnboarding(req, res, db) {
+  const limite = ONBOARDING_POR_IP[req.method === 'POST' ? 'POST' : 'GET'];
+  if (!limiteNaMemoria(`onboarding:${req.method === 'POST' ? 'p' : 'g'}:${ipDe(req)}`, Date.now(), limite)) {
+    res.setHeader('Retry-After', '600');
+    if (req.method === 'POST') return res.status(429).json({ error: 'Muitos envios em pouco tempo. Espere alguns minutos e tente de novo.' });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(429).send(paginaD3Html({ titulo: 'Muitas tentativas', rotulo: 'Onboarding', texto: 'Muitos acessos em pouco tempo. Espere alguns minutos e abra o link de novo.' }));
+  }
+  try { return await atenderOnboarding(req, res, db); }
+  catch (e) {
+    console.error('[onboarding]', e?.stack || e?.message || e);
+    if (req.method === 'POST') return res.status(500).json({ error: 'Não foi possível salvar agora. Tente de novo em instantes.' });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(500).send(paginaD3Html({ titulo: 'Fora do ar agora', rotulo: 'Onboarding', texto: 'Não deu para abrir o questionário agora. Tente de novo em alguns minutos.' }));
+  }
+}
+async function atenderOnboarding(req, res, db) {
   await garantirSchemaReunioes(db);
   const token = String(req.query?.t || '');
   const cliente = await clienteDoToken(db, token);

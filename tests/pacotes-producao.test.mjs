@@ -87,7 +87,8 @@ test('chat propõe pelo conector, VYBES avisa uma vez, dono dá o ok: peças em 
     const r = await executarPacote(sql, 1, 1, segredo, { config: {}, agora, executar, lerDoc: async () => '' });
     assert.equal(r.estado, 'executado');
     assert.deepEqual(criados.map((d) => [d.titulo, d.cliente, d.veiculacao, d.prazo]), [
-      ['Reels - FAQ 03 · Wellhub, TotalPass e diária', 'Antonov', '2026-12-01', '2026-11-29'],
+      // Sem prazo no pacote, o Prazo de Ouro (shared/prazo-interno.js): 7 dias antes da veiculação de 01/12.
+      ['Reels - FAQ 03 · Wellhub, TotalPass e diária', 'Antonov', '2026-12-01', '2026-11-24'],
       ['Reels - FAQ 04 · Tour pela academia', 'Antonov', '2026-12-08', '2026-12-07']]);
     assert.match(criados[0].briefing, /^Perguntas 09 e 10\.\n\n📄 Roteiro\/documento: https:\/\/docs\.google\.com.*\n\n🎬 Captação sugerida: qui 12\/11, das 08:00 às 12:00 · Antonov \(a confirmar com o cliente\)\n\n📦 Pacote de produção #1/s);
     assert.deepEqual(escolhas.map((e) => [e.item, e.para]), [['vybe:500', 'agendar'], ['vybe:501', 'agendar']]);

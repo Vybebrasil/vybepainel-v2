@@ -426,7 +426,8 @@ test('situação de uma peça: a função oficial para todas as telas (auditoria
   assert.equal(s({ status: 'Agendado', veiculacao_iso: '2026-11-10', status_updated_at: '2026-11-09T12:00:00' }), 'andamento');
   assert.equal(s({ status: 'Finalizado', veiculacao_iso: '2026-11-01' }), 'entregue');
   assert.equal(s({ status: 'Feito', veiculacao_iso: '2026-11-01' }), 'entregue'); // "Feito" não contava no Dono
-  assert.equal(s({ status: 'Qualquer', status_final: true, veiculacao_iso: '2026-11-01' }), 'entregue'); // o final do banco manda
+  // Confere de 14/11/2026: o final do banco não decide mais (o espelho marca final também em Para agendar e Agendado).
+  assert.equal(s({ status: 'Qualquer', status_final: true, veiculacao_iso: '2026-11-01' }), 'atrasada');
   assert.equal(s({ status: 'Segurar Post', veiculacao_iso: '2026-11-01' }), 'pausada'); // pausada não é atrasada
   assert.equal(s({ status: 'Em andamento', veiculacao_iso: '2026-09-01' }), 'esquecida');
   assert.equal(s({ status: 'Em andamento', veiculacao_iso: '2026-11-05' }), 'atrasada');

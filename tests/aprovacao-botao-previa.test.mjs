@@ -157,13 +157,15 @@ test('area=arquivos aceita vybe:<id> e devolve a chave do jeito que a tela pediu
     INSERT INTO vybe_conteudo_arquivos(conteudo_id,nome,extensao,drive_file_id,criado_em) VALUES
       (1,'antiga.png','.png','d-a',now()-interval '2 day'),(1,'nova.png','.png','d-n',now()),(77,'treino.mp4','.mp4','d-t',now()),(78,'x.png','.png','d-x',now());`);
   const fonte = fs.readFileSync('api/painel.js', 'utf8');
-  const c = vm.createContext({ sql: () => sql });
+  // A prévia sai pelo proxy autenticado (confere de 14/11/2026: o arquivo não fica público no Drive).
+  const { miniaturaUrl } = await import('../api/painel.js');
+  const c = vm.createContext({ sql: () => sql, miniaturaUrl });
   vm.runInContext(fonte.slice(fonte.indexOf('async function areaArquivos'), fonte.indexOf('// Baixar um arquivo da peca')), c);
   let corpo; const res = { status() { return this; }, json(v) { corpo = v; } };
   await c.areaArquivos({ method: 'GET', query: { itens: '901,vybe:77,vybe:78,vybe:abc' } }, res);
   assert.deepEqual(Object.keys(corpo.itens).sort(), ['901', 'vybe:77']);
   assert.deepEqual([corpo.itens['901'].nome, corpo.itens['901'].total], ['nova.png', 2]);
-  assert.equal(corpo.itens['vybe:77'].thumb, 'https://drive.google.com/thumbnail?id=d-t&sz=w160');
+  assert.equal(corpo.itens['vybe:77'].thumb, '/api/painel?area=miniatura&id=d-t&sz=160');
   // Peça com id do Monday pedida por vybe:<id> volta como vybe:<id>.
   await c.areaArquivos({ method: 'GET', query: { itens: 'vybe:1' } }, res);
   assert.deepEqual(Object.keys(corpo.itens), ['vybe:1']);

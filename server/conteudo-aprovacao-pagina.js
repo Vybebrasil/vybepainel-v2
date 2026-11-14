@@ -15,6 +15,11 @@ const dataBr = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? `${iso.
 const diaHora = (d) => { try { return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(d)); } catch { return ''; } };
 const TETO_ARQUIVO = 60 * 1024 * 1024;
 // "bytes=ini-fim", "bytes=ini-" ou "bytes=-ultimos"; uma faixa só (o player não pede várias). null = arquivo inteiro.
+// Vídeo pelo nome do arquivo (o tipo só se sabe depois de baixar; com o Range, a resposta sai sem baixar o arquivo todo).
+export const TIPO_DE_VIDEO = Object.freeze({ mp4: 'video/mp4', m4v: 'video/x-m4v', mov: 'video/quicktime', webm: 'video/webm' });
+export const tipoDeVideo = (a) => TIPO_DE_VIDEO[String(a?.extensao || a?.nome || '').toLowerCase().replace(/^.*\./, '')] || '';
+// Um pedaço por resposta: cabe no limite de corpo da função (o player pede o próximo).
+export const TRECHO_MAX = 4 * 1024 * 1024;
 export function faixaPedida(cabecalho, total) {
   const m = /^bytes=(\d*)-(\d*)$/.exec(String(cabecalho || '').trim());
   if (!m || (m[1] === '' && m[2] === '')) return null;
@@ -250,7 +255,7 @@ catch(err){c.querySelectorAll('button').forEach(x=>x.disabled=false);saida(c,'er
 </body></html>`;
 }
 
-export async function paginaAprovarPecas(req, res, sql, { baixarDoDrive, fazer } = {}) {
+export async function paginaAprovarPecas(req, res, sql, { baixarDoDrive, baixarTrechoDoDrive, fazer } = {}) {
   const token = String(req.query?.t || '');
   try {
     if (req.method === 'POST') {
@@ -271,6 +276,24 @@ export async function paginaAprovarPecas(req, res, sql, { baixarDoDrive, fazer }
       let a;
       try { a = await arquivoDoLink(sql, token, req.query.arquivo); } catch (e) { return res.status(e.status === 410 ? 410 : 404).json({ error: e.message }); }
       if (Number(a.tamanho_bytes || 0) > TETO_ARQUIVO) return res.status(413).json({ error: 'Arquivo grande demais para abrir por aqui. Peça o link à Vybe.' });
+      // Vídeo com Range e tamanho conhecido: só o trecho pedido sai do Drive (antes, o arquivo inteiro a cada Range).
+      const total = Number(a.tamanho_bytes || 0), video = tipoDeVideo(a);
+      if (video && total > 0 && req.headers?.range && typeof baixarTrechoDoDrive === 'function') {
+        const nome = String(a.nome || `arquivo${a.extensao || ''}`).replace(/["\r\n]/g, '');
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Cache-Control', 'private, no-store');
+        const parte = faixaPedida(req.headers.range, total);
+        if (parte && !parte.invalida) {
+          const fim = Math.min(parte.fim, parte.ini + TRECHO_MAX - 1);
+          const bytes = await baixarTrechoDoDrive(a.drive_file_id, parte.ini, fim);
+          res.setHeader('Content-Type', video);
+          res.setHeader('Content-Disposition', `inline; filename="${nome.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(nome)}`);
+          res.setHeader('Content-Range', `bytes ${parte.ini}-${parte.ini + bytes.length - 1}/${total}`);
+          res.setHeader('Content-Length', String(bytes.length));
+          return res.status(206).end(bytes);
+        }
+        if (parte?.invalida) { res.setHeader('Content-Range', `bytes */${total}`); return res.status(416).end(); }
+      }
       const r = await baixarDoDrive(a.drive_file_id);
       if (!r?.ok) return res.status(502).json({ error: 'Não foi possível abrir o arquivo agora.' });
       const tipo = String(r.headers.get('content-type') || 'application/octet-stream').split(';')[0].trim().toLowerCase();

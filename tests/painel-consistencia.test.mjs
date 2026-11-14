@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {conexao} from './postgres.mjs';
+import {ehDonoPessoa} from '../server/donos.js';
 const fonte=n=>fs.readFileSync(n,'utf8');
 const trecho=(s,a,b)=>s.slice(s.indexOf(a),s.indexOf(b,s.indexOf(a)));
 const safeText=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
@@ -72,7 +73,7 @@ test('responsÃ¡vel geral persiste na ficha sem alterar heads; servidor recusa nÃ
  await db.exec(`CREATE TABLE vybe_clientes(id bigint primary key,nome text,email text,telefone text,endereco text,cnpj text,plano text,segmento text,responsavel text,planejamento_url text,valor numeric,proxima_reuniao date,ultima_reuniao date,nps smallint,nps_em date,dashboard text); ALTER TABLE vybe_clientes ADD COLUMN IF NOT EXISTS nao_e_cliente boolean DEFAULT false;
  INSERT INTO vybe_clientes(id,nome,responsavel) VALUES(1,'Teste','Legado');
  CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint); INSERT INTO vybe_cliente_pessoas VALUES(1,99);`);
- const c=vm.createContext({sql:()=>sql,garantirSchemaDeReunioes:async()=>{},garantirCicloDeVida:async()=>{},garantirSchemaDoCadastro:async()=>{}});
+ const c=vm.createContext({sql:()=>sql,ehDonoPessoa,garantirSchemaDeReunioes:async()=>{},garantirCicloDeVida:async()=>{},garantirSchemaDoCadastro:async()=>{}});
  const s=fonte('api/painel.js');let start=s.indexOf('async function areaClientes');let end=s.indexOf('\nasync function ',start+1);
  vm.runInContext(s.slice(start,end),c);
  let status,corpo;const res={status(v){status=v;return this;},json(v){corpo=v;}};

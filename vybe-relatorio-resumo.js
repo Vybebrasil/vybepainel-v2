@@ -28,7 +28,8 @@
 (function (raiz) {
   'use strict';
 
-  const ENTREGUE = new Set(['finalizado', 'concluido', 'concluida', 'concluidas', 'aprovado', 'publicado', 'postado']);
+  // Só Finalizado/Feito/Concluído (confere de 14/11/2026: Aprovado, Publicado e Postado não fecham a peça).
+  const ENTREGUE = new Set(['finalizado', 'finalizada', 'concluido', 'concluida', 'concluidos', 'concluidas']);
   const PAUSADA = new Set(['segurar post']);
   // A mesma junção dos nomes de solicitação de operationalFlowStatus (vybe-dono-metricas.js).
   const SINONIMOS = new Map([['nova demanda', 'a fazer'], ['em execucao', 'em andamento'], ['feito', 'finalizado'],

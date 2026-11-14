@@ -13,7 +13,8 @@ import { mondayQuery } from '../operational_mirror_store.js';
 //   curl      ".../api/dominio?action=resumo"     -H "Authorization: Bearer $CHAVE"
 
 import { definirSenha, listarPessoas } from '../vybe_sessao.js';
-import { quemChama } from '../vybe_acesso.js';
+import { quemChama, iguais } from '../vybe_acesso.js';
+import { ehDonoPessoa } from '../server/donos.js';
 import { neon } from '@neondatabase/serverless';
 import { indicadoresIndependencia, listarSnapshots, historicoSaude, registrarSnapshotOperacional } from '../vybe_observabilidade.js';
 import { sanearBaseMestre } from '../vybe_saneamento.js';
@@ -31,22 +32,36 @@ function cors(res) {
 
 // Apara espaço e quebra de linha dos dois lados: colar valor no painel da Vercel
 // costuma trazer um \n junto, e a chave passa a nunca bater.
-async function autorizado(req) {
-  const origem = await quemChama(req);
-  if (origem?.tipo === 'servico' || origem?.pessoa?.admin) return true;
+// Chave só no header ou no corpo (nunca na query: a query vai para log de acesso e histórico do navegador).
+function chaveConfere(req) {
   const segredo = String(process.env.MIRROR_ADMIN_KEY || '').trim();
   const manutencao = String(process.env.CUTOVER_MIGRATION_KEY || '').trim();
   const bearer = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
-  const enviado = String(req.query?.key || req.body?.key || bearer || '').trim();
-  return Boolean((segredo && enviado === segredo) || (manutencao && enviado === manutencao));
+  const enviado = String(bearer || req.body?.key || '').trim();
+  return Boolean(enviado && ((segredo && iguais(enviado, segredo)) || (manutencao && iguais(enviado, manutencao))));
 }
+
+// Quem chama e o que pode: { ok, dono } — dono = um dos quatro donos, ou a chave de serviço.
+async function autorizacao(req) {
+  if (chaveConfere(req)) return { ok: true, dono: true };
+  const origem = await quemChama(req);
+  if (origem?.tipo === 'servico') return { ok: true, dono: true };
+  if (origem?.pessoa?.admin) return { ok: true, dono: ehDonoPessoa(origem.pessoa) };
+  return { ok: false, dono: false };
+}
+
+// Senha, acesso e saneamento: só dono ou chave de serviço (confere de 14/11/2026: a coordenação administra e, por aqui,
+// trocava a senha ou bloqueava um dono; é a mesma trava de dono-alvo de api/painel.js areaPessoas).
+const SO_DONO = new Set(['senha', 'acesso', 'sanear']);
 
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!await autorizado(req)) return res.status(401).json({ error: 'Não autorizado.' });
+  const acesso = await autorizacao(req);
+  if (!acesso.ok) return res.status(401).json({ error: 'Não autorizado.' });
 
   const action = String(req.query?.action || req.body?.action || 'resumo');
+  if (SO_DONO.has(action) && !acesso.dono) return res.status(403).json({ error: 'Só um dono mexe em senha, acesso e saneamento.' });
   const encerradas = new Set(['replica','drive_desfazer','drive_migrar','fotos_equipe','cadastro_clientes','acessos','subitens','popular_demandas','catalogo_opcoes','catalogo_captacao','colunas_extra','historico_status','equipe','historico','popular']);
   if (encerradas.has(action)) return res.status(410).json({ error: 'Importação e réplica Monday encerradas.', autoridade: 'vybe' });
 
@@ -155,9 +170,10 @@ export default async function handler(req, res) {
     if (action === 'senha') {
       // Definir/redefinir senha. É o caminho do administrador, e também o que
       // cria a primeira senha — sem ele não haveria como o primeiro entrar.
-      const email = req.query?.email || req.body?.email;
-      const senha = req.query?.senha || req.body?.senha;
-      const admin = (req.query?.admin ?? req.body?.admin);
+      // Senha só no corpo: na query ela ficaria no log de acesso.
+      const email = req.body?.email;
+      const senha = req.body?.senha;
+      const admin = req.body?.admin;
       if (!email || !senha) return res.status(400).json({ error: 'Informe e-mail e senha.' });
       const pessoa = await definirSenha(email, senha, {
         admin: admin === undefined ? null : String(admin) !== 'false',
@@ -168,8 +184,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, action, ...(await sincronizarEquipe()) });
     }
     if (action === 'acesso') {
-      const email = req.query?.email || req.body?.email;
-      const pode = String(req.query?.pode ?? req.body?.pode ?? 'true') !== 'false';
+      const email = req.body?.email;
+      const pode = String(req.body?.pode ?? 'true') !== 'false';
       if (!email) return res.status(400).json({ error: 'Informe o e-mail.' });
       return res.status(200).json({ ok: true, action, pessoa: await definirAcesso(email, pode) });
     }
@@ -188,6 +204,9 @@ export default async function handler(req, res) {
     }
     return res.status(400).json({ error: `Ação desconhecida: ${action}` });
   } catch (erro) {
-    return res.status(500).json({ error: erro.message });
+    // A mensagem do banco fica no log do servidor; quem chama recebe uma genérica (definirSenha manda 400 próprio abaixo).
+    console.error('api/dominio', action, erro);
+    if (erro?.publica) return res.status(400).json({ error: erro.message });
+    return res.status(500).json({ error: 'Falha ao executar a ação.' });
   }
 }

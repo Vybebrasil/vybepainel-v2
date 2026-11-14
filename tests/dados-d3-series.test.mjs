@@ -129,7 +129,10 @@ test('leitura por área: cada tela recebe a sua série; o score é da gestão; l
   const cli = await lerSeries(sql, jady, { para: 'cliente', id: '10' });
   assert.equal(cli.saude.pontos.length, 2); assert.equal(cli.saude.pontos[0].valor, 62);
   assert.equal(cli.clima.pontos[0].valor, -5);
-  const cart = await lerSeries(sql, jady, { para: 'carteira' });
+  // Confere de 14/11/2026: a carteira inteira e o Comercial são da gestão (donos e coordenação; o Comercial também de quem
+  // tem acesso a ele); o head segue vendo o cliente dele em para=cliente.
+  await assert.rejects(lerSeries(sql, jady, { para: 'carteira' }), /donos e da coordenação/);
+  const cart = await lerSeries(sql, paulo, { para: 'carteira' });
   assert.equal(cart.media.pontos.length, 2);
 
   const pg = await lerSeries(sql, paulo, { para: 'pessoas' });
@@ -137,7 +140,8 @@ test('leitura por área: cada tela recebe a sua série; o score é da gestão; l
   const pj = await lerSeries(sql, jady, { para: 'pessoas' });
   assert.equal(pj.gestao, false); assert.deepEqual(Object.keys(pj.score), ['2']);
 
-  const com = await lerSeries(sql, jady, { para: 'comercial' });
+  await assert.rejects(lerSeries(sql, jady, { para: 'comercial' }), /acesso ao Comercial/);
+  const com = await lerSeries(sql, paulo, { para: 'comercial' });
   assert.equal(com.carga.criacao.meses.at(-1).valor, 2);
   assert.ok(com.leads.pontos.length >= 2); assert.ok(com.abertas.pontos.length > 10);
 
@@ -150,9 +154,11 @@ test('leitura por área: cada tela recebe a sua série; o score é da gestão; l
   assert.equal((await lerSeries(sql, jady, { para: 'agentes' })).meta.meta, META_ACERTO_PADRAO);
   await escreverSeries(sql, paulo, { acao: 'meta_acerto', meta: 80 });
   // Acerto dos agentes: a tela manda o que a central calculou; o último do dia vale; setor inválido é recusado.
-  await escreverSeries(sql, jady, { acao: 'acerto', agentes: { comercial: 70, producao: 150 } });
-  await escreverSeries(sql, jady, { acao: 'acerto', agentes: { comercial: 72.5 } });
-  await assert.rejects(escreverSeries(sql, jady, { acao: 'acerto', agentes: { 'x;drop': 1 } }), /Setor inválido/);
+  // Só dono (ou serviço) grava o acerto (confere de 14/11/2026, M6).
+  await assert.rejects(escreverSeries(sql, jady, { acao: 'acerto', agentes: { comercial: 70 } }), /Só um dono grava o acerto/);
+  await escreverSeries(sql, paulo, { acao: 'acerto', agentes: { comercial: 70, producao: 150 } });
+  await escreverSeries(sql, paulo, { acao: 'acerto', agentes: { comercial: 72.5 } });
+  await assert.rejects(escreverSeries(sql, paulo, { acao: 'acerto', agentes: { 'x;drop': 1 } }), /Setor inválido/);
   const ag = await lerSeries(sql, jady, { para: 'agentes' });
   assert.equal(ag.meta.meta, 80);
   assert.deepEqual(ag.acerto.comercial.pontos.map((p) => p.valor), [72.5]);

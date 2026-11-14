@@ -15,11 +15,12 @@
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { ehDonoPessoa, ehAmploPessoa, mondayDaPessoa } from './donos.js';
 import { incluirRoteiro, ligar, docDoLink } from './roteiros.js';
+import { umaVez } from './uma-vez.js';
 
 const MAX_PECAS = 20;
-const prontas = new WeakSet();
-export async function garantirTabelaPacotes(db) {
-  if (prontas.has(db)) return;
+// Uma vez por banco em cada instância (server/uma-vez.js): o painel abre um cliente novo por request.
+export function garantirTabelaPacotes(db) { return umaVez('pacotes', db, criarTabelaPacotes); }
+async function criarTabelaPacotes(db) {
   await db`CREATE TABLE IF NOT EXISTS vybe_pacotes_producao (
     id BIGSERIAL PRIMARY KEY,
     cliente_id BIGINT NOT NULL,
@@ -37,7 +38,6 @@ export async function garantirTabelaPacotes(db) {
     resultado JSONB
   )`;
   await db`CREATE INDEX IF NOT EXISTS vybe_pacotes_producao_estado ON vybe_pacotes_producao (estado, criado_em)`;
-  prontas.add(db);
 }
 
 const publica = (msg) => Object.assign(new Error(msg), { publica: true });

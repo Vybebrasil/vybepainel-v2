@@ -15,14 +15,15 @@
 import vm from 'node:vm';
 import { ehDonoPessoa, ehAmploPessoa } from './donos.js';
 import { BOARD_DEMANDAS, BOARD_PRODUCAO } from './grupos.js';
+import { umaVez } from './uma-vez.js';
 
 export const AGENTES_DA_COBRANCA = Object.freeze({ design: 'Danilo', edicao: 'Lucas' });
 const ESPERA_MAX_H = 12;          // pedido que o bot não pegou nesse tempo não sai mais (cobrança velha não vale)
 const SEM_CONFIRMAR_MIN = 10;     // "enviando" há mais que isso: o bot pegou e não disse o que houve
 
-const prontas = new WeakSet();
-export async function garantirTabelaCobrancas(db) {
-  if (prontas.has(db)) return;
+// Uma vez por banco em cada instância (server/uma-vez.js): o painel abre um cliente novo por request.
+export function garantirTabelaCobrancas(db) { return umaVez('cobrancas', db, criarTabelaCobrancas); }
+async function criarTabelaCobrancas(db) {
   await db`CREATE TABLE IF NOT EXISTS vybe_cobrancas_whatsapp (
     id BIGSERIAL PRIMARY KEY,
     conteudo_id BIGINT NOT NULL,
@@ -44,7 +45,6 @@ export async function garantirTabelaCobrancas(db) {
     UNIQUE (conteudo_id, pessoa_id, dia)
   )`;
   await db`CREATE INDEX IF NOT EXISTS vybe_cobrancas_whatsapp_estado ON vybe_cobrancas_whatsapp (estado, criado_em)`;
-  prontas.add(db);
 }
 
 const falhar = (status, msg) => { throw Object.assign(new Error(msg), { status }); };

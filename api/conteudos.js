@@ -79,7 +79,8 @@ export default async function handler(req, res) {
     // leitura devolveu 500 em producao, o log tinha o 500 e nenhuma pista do
     // motivo. Quem investiga depois nao tem o navegador de quem viu.
     console.error('Leitura de conteúdos falhou:', erro?.stack || erro?.message || erro);
-    return res.status(500).json({ error: erro.message });
+    // A mensagem do banco fica no log; o navegador recebe uma genérica.
+    return res.status(500).json({ error: 'Não foi possível ler os conteúdos agora. Tente de novo.' });
   }
 }
 

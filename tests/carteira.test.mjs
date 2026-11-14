@@ -191,14 +191,15 @@ test('contratos e churn: só quem administra, com validação; base usa contrato
   assert.equal((await chamar(sql, admin, { acao: 'churn_apagar', id })).codigo, 200);
 });
 
-test('nota do mês: qualquer sessão grava; acao=saude devolve a última de cada cliente ativo; clima vem junto', async (t) => {
+// Confere de 14/11/2026: a nota do mês é calculada no servidor e só um dono pede a gravação (tests/confere-back-carteira.test.mjs).
+test('nota do mês: só dono grava (sessão comum recebe 403); acao=saude devolve a última de cada cliente ativo; clima vem junto', async (t) => {
   const { db, sql } = await banco(t);
   const itens = [{ cliente_id: 10, score: 42, risco: 'alto', motivos: ['2 peças com a veiculação vencida'], heads: 'Vinícius' }, { cliente_id: 11, score: 88, risco: 'baixo', motivos: [], heads: '' }];
-  assert.equal((await chamar(sql, outro, { acao: 'saude_registrar', itens: [{ cliente_id: 10, score: 101, risco: 'alto' }] })).codigo, 400);
-  assert.equal((await chamar(sql, outro, { acao: 'saude_registrar', itens: [{ cliente_id: 10, score: 50, risco: 'péssimo' }] })).codigo, 400);
-  let r = await chamar(sql, outro, { acao: 'saude_registrar', itens });
-  assert.equal(r.codigo, 200, JSON.stringify(r.body));
-  r = await chamar(sql, outro, { acao: 'saude_registrar', itens: [{ ...itens[0], score: 45, risco: 'alto' }] });
+  assert.equal((await chamar(sql, outro, { acao: 'saude_registrar', itens })).codigo, 403);
+  assert.equal((await chamar(sql, coordenacao, { acao: 'saude_registrar', itens })).codigo, 403);
+  await db.exec(`INSERT INTO vybe_carteira_saude_mensal (mes,cliente_id,score,risco,motivos,heads) VALUES (date_trunc('month', now())::date,10,45,'alto','["2 peças com a veiculação vencida"]','Vinícius'),
+    (date_trunc('month', now())::date,11,88,'baixo','[]','');`);
+  let r;
   await db.exec(`INSERT INTO vybe_carteira_saude_mensal (mes,cliente_id,score,risco) VALUES ('2026-01-01',10,70,'medio');
     INSERT INTO vybe_carteira_clima (cliente_id,pontos,motivo) VALUES (10,-12,'cliente reclamou do atraso');`);
   r = await chamar(sql, { tipo: 'servico' }, null, { acao: 'saude' });

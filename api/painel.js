@@ -51,11 +51,12 @@ import { lerFluxoStatus, gravarFluxoDoQuadro, normalizarFluxoDoQuadro, conferirF
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { areaDriveVideos } from '../server/drive-videos.js';
-import { pastaDoConteudo, pastaSimples, subpasta, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive } from '../vybe_drive.js';
+import { pastaDoConteudo, pastaSimples, subpasta, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive, baixarTrechoDoDrive, miniaturaDoDrive } from '../vybe_drive.js';
+import { faixaPedida, tipoDeVideo, TRECHO_MAX } from '../server/conteudo-aprovacao-pagina.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
 import { garantirMaterialBruto, BOARD_DEMANDAS } from '../vybe_dominio_store.js';
-import { quemChama } from '../vybe_acesso.js';
+import { quemChama, iguais } from '../vybe_acesso.js';
 import { minhasDemandas } from '../server/assistente-consultas.js';
 import { emitirCodigo, estadoVinculacao, revogarVinculacao, limiteCodigosVinculacao } from '../server/assistente-vinculacao-fluxo.js';
 import { atenderBotAssistente } from '../server/assistente-servico.js';
@@ -68,7 +69,10 @@ import { listarGrupos, gruposProntos, criarGrupo, editarGrupo, moverGrupoNaOrdem
 import { listarNotas, salvarNota, apagarNota, notasProntas,
   listarCadernos, renomearCaderno, apagarCaderno } from '../server/notas.js';
 
-const sql = () => bancoComTransacoes(process.env.DATABASE_URL);
+// Testes trocam o banco por um PGlite (usarBancoDoPainel); em produção, um cliente do Neon por chamada.
+let abrirBanco = null;
+const sql = () => (abrirBanco ? abrirBanco() : bancoComTransacoes(process.env.DATABASE_URL));
+export function usarBancoDoPainel(fabrica) { abrirBanco = typeof fabrica === 'function' ? fabrica : null; }
 
 // ── automações ────────────────────────────────────────────────────────────────
 async function areaAutomacoes(req, res, quem) {
@@ -469,13 +473,8 @@ async function areaPeca(req, res, quem) {
   // abertura da peca libera os dela — poucos por vez, uma vez so na vida do
   // arquivo. Falhar aqui nao pode travar a ficha: no pior caso a previa continua
   // indisponivel e a proxima abertura tenta de novo.
-  const semPrevia = arquivos.filter((a) => a.drive_file_id && !a.previa_liberada_em).slice(0, 8);
-  for (const a of semPrevia) {
-    try {
-      await tornarPublico(String(a.drive_file_id));
-      await db`UPDATE vybe_conteudo_arquivos SET previa_liberada_em=NOW() WHERE id=${a.id}`;
-    } catch (erro) { console.warn('Previa nao liberada agora:', a.nome, erro.message); }
-  }
+  // Confere de 14/11/2026: abrir a gaveta não deixa mais o arquivo público no Drive ("qualquer pessoa com o link"). A
+  // prévia sai pelo proxy autenticado area=miniatura, que baixa a miniatura com a credencial do servidor.
 
   const assets = arquivos.map((a) => ({
     // Arquivo que nasceu no Drive não tem id do Monday; usa o do Drive para a
@@ -484,19 +483,13 @@ async function areaPeca(req, res, quem) {
     // O link que o Drive devolve ao enviar é a PÁGINA de visualização
     // (/file/d/.../view). Num <img> isso dá imagem quebrada — foi o que
     // aconteceu. Para exibir é preciso o endereço de conteúdo.
-    url: a.drive_file_id
-      ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
-      : null,
+    url: a.drive_file_id ? miniaturaUrl(a.drive_file_id, 1920) : null,
     // A miniatura do Monday é uma URL "protected_static": exige sessão do Monday
     // no navegador e devolve 406 sem ela. Ninguém do time está logado lá — esse
     // era o motivo de a prévia aparecer indisponível. A assinada abre para
     // qualquer um, então é ela que vai.
-    url_thumbnail: a.drive_file_id
-      ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w400`
-      : null || null,
-    public_url: a.drive_file_id
-      ? `https://drive.google.com/thumbnail?id=${a.drive_file_id}&sz=w1920`
-      : null,
+    url_thumbnail: a.drive_file_id ? miniaturaUrl(a.drive_file_id, 400) : null,
+    public_url: a.drive_file_id ? miniaturaUrl(a.drive_file_id, 1920) : null,
     // A página de visualização continua útil para abrir e baixar no Drive.
     link_drive: a.url_drive || null,
     onde: a.url_drive ? 'drive' : 'indisponivel',
@@ -875,7 +868,15 @@ async function levarAoFinancas(db, id, { lancar = false } = {}) {
   } catch (erro) { if (lancar) throw erro; return { estado: 'erro', erro: erro.message }; }
 }
 
-async function areaClientes(req, res, quem) {
+// O cliente sem o valor mensal e sem as chaves de dinheiro do cadastro (server/clientes-cadastro.js, dinheiro: true).
+const CHAVES_DE_DINHEIRO = CAMPOS_CADASTRO.filter((c) => c.dinheiro && !c.coluna).map((c) => c.chave);
+export function clienteSemDinheiro(c) {
+  const cadastro = { ...(c.cadastro || {}) };
+  for (const k of CHAVES_DE_DINHEIRO) delete cadastro[k];
+  return { ...c, valor: null, cadastro };
+}
+
+export async function areaClientes(req, res, quem) {
   const ehAdmin = quem.tipo === 'servico' || quem.pessoa?.admin;
   const db = sql();
   await garantirSchemaDeReunioes(db);
@@ -924,8 +925,11 @@ async function areaClientes(req, res, quem) {
     // servidor — e porque a tela de clientes nao lista a equipe sozinha.
     const pessoas = await db`SELECT id, nome, monday_user_id FROM vybe_pessoas
       WHERE ativo AND pode_entrar ORDER BY nome`; // a equipe: regra única (server/pessoas.js)
-    return res.status(200).json({ ok: true, fonte: 'vybe', clientes: linhas, acessos, pessoas,
-      cadastro_def: { secoes: SECOES_CADASTRO, campos: CAMPOS_CADASTRO } });
+    // Dinheiro (valor mensal e vencimento) é só dos quatro donos (Paulo, 13/11/2026), como na carteira
+    // (server/carteira.js): para os outros a lista e a ficha vêm sem esses campos, e o resto segue igual.
+    const veDinheiro = quem.tipo === 'servico' || ehDonoPessoa(quem.pessoa);
+    return res.status(200).json({ ok: true, fonte: 'vybe', clientes: veDinheiro ? linhas : linhas.map(clienteSemDinheiro), acessos, pessoas,
+      cadastro_def: { secoes: SECOES_CADASTRO, campos: veDinheiro ? CAMPOS_CADASTRO : CAMPOS_CADASTRO.filter((c) => !c.dinheiro) } });
   }
   // LER a ata e de todo mundo; escrever e apagar sao de quem administra.
   //
@@ -954,6 +958,8 @@ async function areaClientes(req, res, quem) {
   if (req.method === 'POST') {
     const { acao = 'criar', id, nome } = req.body || {};
     const autor = quem?.pessoa?.nome || 'Vybe OS';
+    // Quem não vê dinheiro não grava dinheiro: os campos de dinheiro que vierem são ignorados.
+    const podeDinheiro = quem.tipo === 'servico' || ehDonoPessoa(quem.pessoa);
     // Entrar, sair, voltar e apagar: o mesmo ciclo de vida da pessoa, num lugar
     // so (server/ciclo-de-vida.js). 'ativar' segue valendo como 'reativar'.
     if (['criar', 'ativar', 'reativar', 'desativar', 'apagar'].includes(acao)) {
@@ -964,7 +970,7 @@ async function areaClientes(req, res, quem) {
           const campos = req.body?.campos;
           if (campos) separarCamposDoCadastro(campos);
           const criado = await criarCliente(db, { nome, autor });
-          if (campos && criado?.cliente?.id) await salvarCadastro(db, criado.cliente.id, campos);
+          if (campos && criado?.cliente?.id) await salvarCadastro(db, criado.cliente.id, campos, { veDinheiro: podeDinheiro });
           return res.status(200).json({ ...criado, financas: await levarAoFinancas(db, criado?.cliente?.id) });
         }
         return res.status(200).json(await cicloCliente(db, { ...req.body, acao: acao === 'ativar' ? 'reativar' : acao, autor }));
@@ -979,7 +985,7 @@ async function areaClientes(req, res, quem) {
       return res.status(r.estado === 'erro' ? 502 : 200).json(r.estado === 'erro' ? { error: r.erro } : { ok: true, financas: r });
     }
     if (acao === 'cadastro') {
-      try { const salvo = await salvarCadastro(db, id, req.body?.campos); return res.status(200).json({ ...salvo, financas: await levarAoFinancas(db, id) }); }
+      try { const salvo = await salvarCadastro(db, id, req.body?.campos, { veDinheiro: podeDinheiro }); return res.status(200).json({ ...salvo, financas: await levarAoFinancas(db, id) }); }
       catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
     }
     if (acao === 'ficha') {
@@ -998,7 +1004,7 @@ async function areaClientes(req, res, quem) {
           segmento=COALESCE(${campos.segmento ?? null}, segmento),
           responsavel=COALESCE(${campos.responsavel ?? null}, responsavel),
           planejamento_url=COALESCE(${campos.planejamento_url ?? null}, planejamento_url),
-          valor=COALESCE(${campos.valor ?? null}::numeric, valor),
+          valor=COALESCE(${podeDinheiro ? campos.valor ?? null : null}::numeric, valor),
           proxima_reuniao=COALESCE(${campos.proxima_reuniao ?? null}::date, proxima_reuniao),
           ultima_reuniao=COALESCE(${campos.ultima_reuniao ?? null}::date, ultima_reuniao),
           -- Nota nova carimba a data sozinha: anotar o NPS e depois lembrar de
@@ -1619,7 +1625,7 @@ async function areaArquivos(req, res) {
       extensao: l.extensao || '',
       // sz=w160 porque a célula tem 56px: pedir a imagem inteira para desenhar
       // um selo seria baixar megabytes por linha.
-      thumb: l.drive_file_id ? `https://drive.google.com/thumbnail?id=${l.drive_file_id}&sz=w160` : null,
+      thumb: l.drive_file_id ? miniaturaUrl(l.drive_file_id, 160) : null,
       abrir: l.drive_file_id ? `https://drive.google.com/file/d/${l.drive_file_id}/view` : null,
     };
   }
@@ -1633,7 +1639,30 @@ async function areaArquivos(req, res) {
 // doze, entao ela entra como mais uma area de /api/painel.
 const TETO_DO_DOWNLOAD = 60 * 1024 * 1024;
 
-async function areaBaixar(req, res) {
+// Prévia de um arquivo da peça pelo proxy autenticado (sem deixar o arquivo público no Drive).
+export const miniaturaUrl = (driveId, sz) => `/api/painel?area=miniatura&id=${encodeURIComponent(String(driveId))}&sz=${Number(sz) || 400}`;
+// GET area=miniatura&id=<drive_file_id>&sz=: só com sessão, só arquivo de peça do Vybe OS; cache curto no navegador.
+export async function areaMiniatura(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  const id = String(req.query?.id || '');
+  if (!/^[\w-]{10,200}$/.test(id)) return res.status(400).json({ error: 'Informe o arquivo.' });
+  const [a] = await sql()`SELECT 1 AS ok FROM vybe_conteudo_arquivos WHERE drive_file_id = ${id} AND ausente_em IS NULL LIMIT 1`;
+  if (!a) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  let m;
+  try { m = await abrirBaixa.miniatura(id, Number(req.query?.sz) || 400); }
+  catch (erro) { console.error('area=miniatura', erro); return res.status(502).json({ error: 'Prévia indisponível agora.' }); }
+  if (!m?.bytes?.length) return res.status(404).json({ error: 'Este arquivo não tem prévia.' });
+  res.setHeader('Content-Type', m.tipo || 'image/jpeg');
+  res.setHeader('Content-Length', String(m.bytes.length));
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  return res.status(200).end(m.bytes);
+}
+
+// O Drive do download (os testes trocam por um dublê).
+const abrirBaixa = { inteiro: (id) => baixarDoDrive(id), trecho: (id, ini, fim) => baixarTrechoDoDrive(id, ini, fim), miniatura: (id, sz) => miniaturaDoDrive(id, sz) };
+export function usarDriveDeTeste(d) { Object.assign(abrirBaixa, d || {}); }
+export async function areaBaixar(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   const alvo = Number(req.query?.arquivo || 0);
   if (!alvo) return res.status(400).json({ error: 'Informe arquivo=<id>.' });
@@ -1653,8 +1682,26 @@ async function areaBaixar(req, res) {
     return res.status(302).end();
   }
 
+  // Range com tamanho conhecido: só o trecho pedido sai do Drive (o player de vídeo pede por partes).
+  const total = Number(a.tamanho_bytes || 0);
+  if (a.drive_file_id && total > 0 && req.headers?.range) {
+    const parte = faixaPedida(req.headers.range, total);
+    if (parte?.invalida) { res.setHeader('Content-Range', `bytes */${total}`); return res.status(416).end(); }
+    if (parte) {
+      const fim = Math.min(parte.fim, parte.ini + TRECHO_MAX - 1);
+      const bytes = await abrirBaixa.trecho(a.drive_file_id, parte.ini, fim);
+      const nome = String(a.nome || `arquivo${a.extensao || ''}`).replace(/["\r\n]/g, '');
+      res.setHeader('Content-Type', tipoDeVideo(a) || 'application/octet-stream');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Range', `bytes ${parte.ini}-${parte.ini + bytes.length - 1}/${total}`);
+      res.setHeader('Content-Length', String(bytes.length));
+      res.setHeader('Content-Disposition', `attachment; filename="${nome.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(nome)}`);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      return res.status(206).end(bytes);
+    }
+  }
   let resposta;
-  if (a.drive_file_id) resposta = await baixarDoDrive(a.drive_file_id);
+  if (a.drive_file_id) resposta = await abrirBaixa.inteiro(a.drive_file_id);
   else return res.status(404).json({ error: 'Este arquivo não tem de onde ser baixado.' });
   if (!resposta.ok) return res.status(502).json({ error: `A origem recusou (${resposta.status}).` });
 
@@ -1669,11 +1716,16 @@ async function areaBaixar(req, res) {
   return res.status(200).end(bytes);
 }
 
-async function areaHistorico(req,res) {
+// Período: os últimos 30 dias por padrão; ?dias= até 365 para mais (o painel pede 90: vybe-core.js fetchActivityLogs).
+export const HISTORICO_DIAS_PADRAO = 30, HISTORICO_DIAS_MAX = 365;
+export async function areaHistorico(req,res) {
   if(req.method!=='GET') return res.status(405).json({error:'Use GET.'});
+  const pedido=Number(req.query?.dias);
+  const dias=Number.isInteger(pedido)&&pedido>0?Math.min(pedido,HISTORICO_DIAS_MAX):HISTORICO_DIAS_PADRAO;
   const eventos=await sql()`SELECT COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS item_id,
     e.tipo,e.de,e.para,e.em,e.autor_id FROM vybe_conteudo_eventos e
-    JOIN vybe_conteudos c ON c.id=e.conteudo_id ORDER BY e.em DESC LIMIT 10000`;
+    JOIN vybe_conteudos c ON c.id=e.conteudo_id WHERE e.em >= now() - make_interval(days => ${dias}::int)
+    ORDER BY e.em DESC LIMIT 10000`;
   const grupos=await sql()`SELECT DISTINCT etapa,grupo_id FROM vybe_conteudos WHERE etapa IS NOT NULL AND grupo_id IS NOT NULL`;
   return res.status(200).json({ok:true,logs:agruparHistorico(eventos,Object.fromEntries(grupos.map(g=>[g.etapa,g.grupo_id])))});
 }
@@ -1950,7 +2002,7 @@ async function areaAprovacoes(req, res, quem) {
 }
 
 const AREAS = { reunioes: areaReunioes, aprovacoes: areaAprovacoes, crm: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCrm(req,res,quem,sql); }, carteira: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCarteira(req,res,quem,sql); }, comercial: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaComercial(req,res,quem,sql); }, conteudo_modulo: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaConteudoModulo(req,res,quem); }, setor_pessoas: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaSetorPessoas(req,res,quem,db); }, impressoes: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaImpressoes(req,res,quem,db); }, cobrancas: (req,res,quem) => areaCobrancas(req,res,quem,sql()), vybe_financas: (req,res,quem) => areaVybeFinancas(req,res,quem,sql), financeiro: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaFinanceiro(req,res,quem,sql); }, assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
-                conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
+                conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, miniatura: areaMiniatura, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
                 vybes: (req, res, quem) => areaVybes(req, res, quem, sql()),
                 // Séries históricas dos quadros D3 (server/series-historicas.js): a carteira_config vem da migração do Irecity.
@@ -1960,6 +2012,15 @@ const AREAS = { reunioes: areaReunioes, aprovacoes: areaAprovacoes, crm: async (
                 metas: async (req, res, quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaMetas(req, res, quem, db); },
                 minha_sala: (req, res, quem) => areaMinhaSala(req, res, quem, sql()),
                 peca_complemento: (req, res, quem) => areaPecaComplemento(req, res, quem, sql()) };
+
+// Erro que não foi tratado na área: a mensagem do banco (nome de tabela, coluna, restrição) fica no log do servidor e quem
+// chama recebe uma genérica. Erro de regra com status 4xx (falhar(..., 400/403/404/409)) continua com a mensagem dele.
+export function falhaInterna(res, onde, erro) {
+  const status = Number(erro?.status);
+  if (Number.isInteger(status) && status >= 400 && status < 500) return res.status(status).json({ error: erro.message });
+  console.error(`[api/painel] ${onde || 'área'}:`, erro?.stack || erro?.message || erro);
+  return res.status(500).json({ error: 'Algo falhou do nosso lado. Tente de novo em instantes.' });
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');
@@ -1989,15 +2050,19 @@ export default async function handler(req, res) {
   if (areaPublica === 'aprovar') return paginaDeAprovacao(req, res, sql());
   // Aprovação de peças pelo cliente (módulo Conteúdo): outro link, outro segredo, só as peças em
   // "Ag. Aprovação Cliente" do cliente do link (server/conteudo-aprovacao.js).
-  if (areaPublica === 'aprovar_pecas') { const db = sql(); await garantirMigracoesIrecity(db); return paginaAprovarPecas(req, res, db, { baixarDoDrive,
+  if (areaPublica === 'aprovar_pecas') { const db = sql(); await garantirMigracoesIrecity(db); return paginaAprovarPecas(req, res, db, { baixarDoDrive, baixarTrechoDoDrive,
     fazer: { trocarStatus, comentar } }); }
   // Formulário de captura de leads do Comercial (/lead/<token>): o token é o segredo; vira oportunidade em Novo
   // (server/comercial-leads.js, com isca, limite por campo e por IP).
   if (areaPublica === 'lead') return paginaFormularioLeads(req, res, sql);
-  if (areaPublica === 'logo') return logoDoCliente(req, res, sql());
+  // Logo do cliente: público; com sessão, procura no Drive quando ainda não há um salvo (server/planejamentos-api.js).
+  if (areaPublica === 'logo') {
+    const comSessao = String(req.headers?.cookie || '').includes('vybe_sessao=') && Boolean(await quemChama(req).catch(() => null));
+    return logoDoCliente(req, res, sql(), { comSessao });
+  }
   if (areaPublica === 'portal') {
     try { return await portalDoCliente(req, res, sql()); }
-    catch (erro) { return res.status(500).json({ error: erro.message }); }
+    catch (erro) { return falhaInterna(res, 'portal', erro); }
   }
   // Convidado do Escritório: entra por um link assinado, sem conta
   // (server/escritorio-convite.js). Do resto do escritório, só a arte do mapa.
@@ -2015,11 +2080,11 @@ export default async function handler(req, res) {
   }
   if (areaPublica === 'agentes') {
     try { const db = sql(); await garantirSchemaDoCadastro(db); return await conectorAgentes(req, res, db, { salvarNoDrive: registroNoDrive(db) }); }
-    catch (erro) { return res.status(500).json({ error: erro.message }); }
+    catch (erro) { return falhaInterna(res, 'agentes', erro); }
   }
 
   const enviado = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
-  const manutencao = process.env.CUTOVER_MIGRATION_KEY && enviado && enviado === String(process.env.CUTOVER_MIGRATION_KEY).trim();
+  const manutencao = process.env.CUTOVER_MIGRATION_KEY && enviado && iguais(enviado, String(process.env.CUTOVER_MIGRATION_KEY).trim());
   const quem = await quemChama(req) || (manutencao ? { tipo:'servico' } : null);
   if (!quem) return res.status(401).json({ error: 'Entre no painel para acessar.' });
 
@@ -2031,6 +2096,6 @@ export default async function handler(req, res) {
   try {
     return await area(req, res, quem);
   } catch (erro) {
-    return res.status(500).json({ error: erro.message });
+    return falhaInterna(res, String(req.query?.area || ''), erro);
   }
 }

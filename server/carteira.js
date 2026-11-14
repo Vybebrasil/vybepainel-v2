@@ -359,15 +359,16 @@ export async function escreverCarteira(sql, quem, b = {}, dia = hojeBahia()) {
   const pessoaId = String(quem.pessoa.id), nomeQuem = String(quem.pessoa.nome || '');
 
   if (acao === 'saude_registrar') {
-    const itens = Array.isArray(b.itens) ? b.itens : falhar('Informe as notas.');
-    if (itens.length > 500) falhar('No máximo 500 clientes por vez.');
-    const lista = itens.map((i) => {
-      const score = Number(i?.score);
-      if (!Number.isInteger(score) || score < 0 || score > 100) falhar('Nota inválida.');
-      if (!['alto', 'medio', 'baixo'].includes(i?.risco)) falhar('Risco inválido.');
-      const motivos = (Array.isArray(i?.motivos) ? i.motivos : []).slice(0, 8).map((m) => texto(String(m ?? ''), 160, 'Motivo'));
-      return { id: idValido(i?.cliente_id, 'Cliente'), score, risco: i.risco, motivos, heads: texto(String(i?.heads ?? ''), 200, 'Heads') };
-    });
+    // A nota do mês é calculada aqui, pela mesma conta da série 'saude' (server/series-historicas.js notasDaCarteira): o que
+    // o navegador manda em `itens` é ignorado (confere de 14/11/2026: qualquer sessão gravava a nota que quisesse). Só um
+    // dono pede a gravação; a tela pode continuar chamando.
+    if (!ehDonoPessoa(quem?.pessoa)) falhar('A nota do mês é calculada pelo servidor; só um dono pede para guardar.', 403);
+    const { notasDaCarteira } = await import('./series-historicas.js');
+    const { r } = await notasDaCarteira(sql, dia);
+    const lista = (r?.clientes || []).filter((c) => /^[1-9]\d{0,15}$/.test(String(c.id || '')) && Number.isFinite(Number(c.score)) && ['alto', 'medio', 'baixo'].includes(c.risco))
+      .slice(0, 500).map((c) => ({ id: Number(c.id), score: Math.max(0, Math.min(100, Math.round(Number(c.score)))), risco: c.risco,
+        motivos: (c.motivos || []).filter((m) => m?.tom === 'ruim').slice(0, 8).map((m) => String(m.texto || '').slice(0, 160)),
+        heads: (Array.isArray(c.heads) ? c.heads.join(', ') : String(c.heads || '')).slice(0, 200) }));
     const mes = `${dia.slice(0, 7)}-01`;
     await sql.comTransacao(async (tx) => {
       for (const i of lista) {

@@ -9,6 +9,7 @@ import { criarConteudoNaTransacao } from '../api/conteudo.js';
 import { BOARD_PRODUCAO, BOARD_DEMANDAS } from './grupos.js';
 import { pecaParaMostrar, assinaturaDaPeca, pecasComRevisao, resumoDaRevisao } from './planejamento-documento.js';
 import { rotuloDaPeca } from './copy-cliente.js';
+import prazoInternoComum from '../shared/prazo-interno.js';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 const ESTADOS = ['revisar', 'enviado', 'aprovado', 'ajustes', 'cadastrado', 'arquivado'];
@@ -288,11 +289,9 @@ const diaUtil = (iso) => { let x = iso; while ([0, 6].includes(new Date(`${x}T12
 // Prazo de Ouro: 7 dias antes da veiculação (PRAZO_OURO_DIAS). Se já passou,
 // hoje, mas nunca depois de 2 dias antes da veiculação (margem mínima do Paulo).
 // Sábado e domingo voltam para a sexta.
+// A regra mora em shared/prazo-interno.js (a mesma do bot e, depois, das telas).
 export function prazoDaPeca(veiculacao, hoje) {
- const ouro = diaUtil(somarDias(veiculacao, -7));
- if (ouro >= hoje) return ouro;
- const limite = diaUtil(somarDias(veiculacao, -2));
- return hoje <= limite ? hoje : limite;
+ return prazoInternoComum.prazoInterno(veiculacao, hoje);
 }
 // O que é conteúdo vai para Produção; "Outro" é pedido avulso e entra em Solicitações.
 const FORMATO_DO_PAINEL = { Card: 'Card', Carrossel: 'Carrossel', Reels: 'Reels', Fotografia: 'Fotografia', 'Vídeo': 'Vídeo', Stories: 'Story', Outro: 'Avulso' };

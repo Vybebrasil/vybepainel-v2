@@ -5,6 +5,9 @@
 //   aprovar:    paradas num status de aprovação (interna ou do cliente)
 // Uma peça com vários clientes aparece em cada um (vínculo em vybe_conteudo_clientes).
 import { diaBahia, somarDias } from './escritorio-pontos.js';
+// "Pronta" é só Finalizado (shared/status-finalizado.js): vybe_status.final vem true também em Para agendar e Agendado.
+import statusFinal from '../shared/status-finalizado.js';
+const FINALIZADO = statusFinal.STATUS_FINALIZADO_SQL;
 
 const SEM_INFO = ['falta_info', 'ag_info_cliente', 'aguardando_info', 'falta_off', 'falta_d_a'];
 const APROVAR = ['para_aprovacao', 'em_aprovacao', 'ag_aprovacao_cliente'];
@@ -18,7 +21,7 @@ export async function alertasDosClientes(sql, { clienteIds = null, agora = new D
     FROM vybe_conteudo_clientes v
     JOIN vybe_conteudos c ON c.id=v.conteudo_id
     LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
-    WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
+    WHERE c.removido_em IS NULL AND NOT (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[]))
       AND (${clienteIds}::bigint[] IS NULL OR v.cliente_id = ANY(${clienteIds}::bigint[]))
     ORDER BY c.prazo NULLS LAST, c.id`;
   const por = new Map();

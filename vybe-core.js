@@ -527,7 +527,8 @@ async function mondayQuery() {
 let ACTIVITY_LOGS_CACHE = null; // cache para não rebuscar a cada render
 async function fetchActivityLogs() {
   if (ACTIVITY_LOGS_CACHE) return ACTIVITY_LOGS_CACHE;
-  const r=await fetch('/api/painel?area=historico',{credentials:'same-origin',cache:'no-store'});
+  // 90 dias: o servidor devolve 30 por padrão (api/painel.js areaHistorico); o SLA, a Taxa OK e a linha do tempo leem mais.
+  const r=await fetch('/api/painel?area=historico&dias=90',{credentials:'same-origin',cache:'no-store'});
   if(!r.ok) throw new Error(`Histórico Vybe indisponível (${r.status})`);
   const dados=await r.json();
   if(!dados.logs) throw new Error('Histórico Vybe sem registros válidos.');

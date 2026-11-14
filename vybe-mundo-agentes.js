@@ -62,6 +62,8 @@
   let acertoTimer = null;
   function guardarAcerto(setor, n) {
     if (typeof n !== 'number' || !Number.isFinite(n) || !/^[a-z]{2,20}$/.test(String(setor))) return;
+    // Só quem é dono grava (o servidor recusa os outros com 403).
+    if (typeof souDonoDaSessao !== 'function' || !souDonoDaSessao()) return;
     const chave = `${setor}:${new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' })}:${Math.round(n * 10)}`;
     if (acertoGuardado.has(chave)) return;
     acertoGuardado.add(chave); acertoFila[setor] = n;

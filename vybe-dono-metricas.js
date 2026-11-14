@@ -182,7 +182,10 @@
     ['falta info', 'Falta Info'], ['para aprovacao', 'Para aprovação'],
   ]);
   const chaveStatus = (status) => { const k = chaveTexto(status); return SINONIMOS.get(k) || k; };
-  const ENTREGUE = new Set(['finalizado', 'concluido', 'concluida', 'concluidas', 'aprovado', 'publicado', 'postado']);
+  // "Pronta" é só Finalizado (Paulo, 13/11/2026): Finalizado, Feito (sinônimo acima) ou Concluído — a mesma lista de
+  // shared/status-finalizado.js, que o servidor usa no SQL. Aprovado, Publicado e Postado não fecham a peça.
+  const ENTREGUE = new Set(['finalizado', 'finalizada', 'concluido', 'concluida', 'concluidos', 'concluidas']);
+  const finalizado = (status) => ENTREGUE.has(chaveStatus(status));
   const AGUARDA_POSTAR = new Set(['para agendar', 'agendado']);
   const PAUSADA = new Set(['segurar post']);
   const NAO_COMECOU = new Set(['a fazer', 'pode fazer']);
@@ -789,7 +792,7 @@
   // A situação de UMA peça, na mesma regra das contas do dono (auditoria 09/11, A4): é a função oficial para as telas,
   // no lugar de situacaoDaPeca (vybe-mundo.js), isFinishedItem/getReferenceDate (vybe-gestor.js) e das listas soltas.
   //   - a data que manda é a do cliente (veiculação); o prazo interno é a segunda;
-  //   - entregue = status final do banco quando vier (d.status_final), senão a lista ENTREGUE;
+  //   - entregue = só Finalizado/Feito/Concluído (a lista ENTREGUE; o status_final do banco não decide);
   //   - pausada (Segurar Post) e esquecida (data de mais de 30 dias) não contam como atrasadas.
   // Devolve { situacao: 'entregue'|'pausada'|'esquecida'|'atrasada'|'risco'|'cliente'|'parada'|'fazer'|'andamento', ... }.
   function situacaoDaPeca(d = {}, { hoje = new Date(), regras = {} } = {}) {
@@ -797,7 +800,8 @@
     const chave = chaveStatus(d.status), veic = soData(d.veiculacao_iso ?? d.veiculacao), prazo = soData(d.prazo_iso ?? d.prazo);
     // Para agendar e Agendado esperam a postagem (Paulo, 13/11/2026): não são entregues nem com status_final do banco.
     const aguardaPostar = AGUARDA_POSTAR.has(chave);
-    const entregue = !aguardaPostar && (typeof d.status_final === 'boolean' ? d.status_final : ENTREGUE.has(chave));
+    // status_final do banco não decide mais: o espelho marca final também em Para agendar e Agendado.
+    const entregue = !aguardaPostar && ENTREGUE.has(chave);
     const referencia = veic || prazo, base = { chave, veic, prazo, referencia, entregue };
     if (entregue) return { ...base, situacao: 'entregue', atrasada: false, emRisco: false };
     if (PAUSADA.has(chave)) return { ...base, situacao: 'pausada', pausada: true, atrasada: false, emRisco: false };
@@ -819,7 +823,8 @@
     REGRAS,
     // entregue: a mesma regra de "Entregue" das contas acima (usada pela Carteira, vybe-carteira-saude.js).
     util: Object.freeze({ diaLocal, diaDe, somarDias, diasEntre, inicioDaSemana, mediana, chaveStatus, ativoNoCadastro, pessoasDe,
-      entregue: (status) => ENTREGUE.has(chaveStatus(status)), headsDe, SEM_HEAD, situacaoDaPeca }),
+      // finalizado: a função única de "pronta" para as telas (a mesma de entregue).
+      entregue: finalizado, finalizado, headsDe, SEM_HEAD, situacaoDaPeca }),
   });
   raiz.VybeDono = api;
   if (raiz.window && typeof raiz.window === 'object' && raiz.window !== raiz) raiz.window.VybeDono = api;

@@ -22,7 +22,8 @@ const PECAS = [
   { id: 5, nome: 'Story enquete', cliente: 'Padaria Sol', formato: '—', status: 'Segurar Post', veiculacao_iso: '2026-10-16' },
   { id: 6, nome: 'Post data comemorativa', cliente: 'Padaria Sol', formato: 'Card', status: 'Ag. Aprovação Cliente', veiculacao_iso: '2026-10-28', objetivo: 'Atração' },
   { id: 7, nome: 'Sem veiculação, prazo no mês', cliente: 'Padaria Sol', formato: 'Card', status: 'Feito', prazo_iso: '2026-10-30', status_updated_at: em('2026-10-18') },
-  { id: 8, nome: 'Entregue sem dia', cliente: 'Padaria Sol', formato: 'Reels', status: 'Publicado', veiculacao_iso: '2026-10-02' },
+  // Confere de 14/11/2026: Publicado não fecha a peça (só Finalizado/Feito/Concluído); a entregue sem dia é Finalizado.
+  { id: 8, nome: 'Entregue sem dia', cliente: 'Padaria Sol', formato: 'Reels', status: 'Finalizado', veiculacao_iso: '2026-10-02' },
   { id: 9, nome: 'Campanha conjunta', clientes: ['Outra Loja', 'Padaria Sol'], formato: 'Reels', status: 'A Fazer', veiculacao_iso: '2026-10-31' },
   { id: 10, nome: 'Outro mês', cliente: 'Padaria Sol', formato: 'Reels', status: 'Finalizado', veiculacao_iso: '2026-11-01' },
   { id: 11, nome: 'Setembro', cliente: 'Padaria Sol', formato: 'Reels', status: 'Finalizado', veiculacao_iso: '2026-09-30' },
@@ -45,7 +46,7 @@ test('entregas: entregues pela lista do painel; no prazo pelo dia da entrega at�
   const r = resumo({ pecas: PECAS, cliente: 'Padaria Sol', mes: '2026-10', hoje: HOJE });
   // Paulo, 13/11/2026: pronta é só Finalizado. A 3 (Para agendar) ainda espera a postagem: não é entregue e, com a
   // veiculação de 12/10 passada, está atrasada.
-  assert.equal(r.entregues, 4); // 1, 2, 7 (Feito) e 8 (Publicado)
+  assert.equal(r.entregues, 4); // 1, 2, 7 (Feito) e 8 (Finalizado, sem dia)
   assert.equal(r.abertas, 5);
   assert.equal(r.noPrazo, 2); // 1 (véspera) e 7 (pelo prazo, sem veiculação)
   assert.equal(r.foraDoPrazo, 1); // 2: entregue um dia depois da veiculação
@@ -86,7 +87,7 @@ test('regras trocáveis, mês vazio e entradas inválidas', () => {
   const r = resumo({ pecas: PECAS, cliente: 'Padaria Sol', mes: '2026-10-15', hoje: HOJE, entregue: (d) => d.status === 'Finalizado', ehSolicitacao: () => false });
   assert.equal(r.mes, '2026-10');
   assert.equal(r.total, 10, 'a solicitação entra quando quem chama diz que não é solicitação');
-  assert.equal(r.entregues, 3); // 1, 2 e 13 (o repetido não conta)
+  assert.equal(r.entregues, 4); // 1, 2, 8 e 13 (o repetido não conta)
   const vazio = resumo({ pecas: [], cliente: 'Padaria Sol', mes: '2026-02', hoje: HOJE });
   assert.equal(vazio.fim, '2026-02-28');
   assert.equal(vazio.noPrazoPct, null);

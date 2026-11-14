@@ -48,7 +48,8 @@ import { garantirMigracoesHistorico } from './migracoes-historico.js';
 import { codigoDoPainel } from './assistente-rotinas.js';
 import { sinaisDaCarteira } from './carteira.js';
 import { scoresDoPeriodo, ehGestao } from './pessoas.js';
-import { ehDonoPessoa } from './donos.js';
+import { ehDonoPessoa, ehAmploPessoa } from './donos.js';
+import { lerMetaAcerto, gravarMetaAcerto, META_ACERTO_PADRAO as META_ACERTO } from './campos-d3.js';
 import { BOARD_PRODUCAO, BOARD_DEMANDAS } from './grupos.js';
 
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
@@ -61,7 +62,12 @@ const json = (v) => (typeof v === 'string' ? (() => { try { return JSON.parse(v)
 const semTabela = (e) => e?.code === '42P01' || e?.code === '42703';
 export const SERIES = Object.freeze(['atrasadas', 'carga', 'saude', 'saude_media', 'clima', 'score_semana', 'acerto_agente', 'carga_cargo', 'funil_abertas', 'leads_semana']);
 export const LIMITE_CARGA_PADRAO = 8;
-export const META_ACERTO_PADRAO = 75;
+export const META_ACERTO_PADRAO = META_ACERTO; // um padrão só (server/campos-d3.js)
+// Peças por dia de cada pessoa (Coordenação): chave própria, separada de limite_carga (peças abertas).
+export const LIMITE_DIA_PADRAO = 5;
+// Quanto tempo a gravação de hoje vale: passou disso, a primeira leitura grava o dia de novo (leve, sem reconstrução).
+export const VALIDADE_HOJE_MS = 2 * 3600 * 1000;
+const RECONFERIR_MS = 10 * 60 * 1000; // a instância pergunta ao banco de novo a cada 10 min (uma consulta que não grava nada)
 
 // ── As contas das telas, num vm (uma vez por instância) ─────────────────────────────────────────────────────────────
 let motor = null;
@@ -74,8 +80,34 @@ export function motorDasContas() {
   // O status de Solicitações passa pela mesma tradução do painel (operationalFlowStatus); sem ela, o rótulo do banco.
   let statusDe = (i) => i.status;
   try { const { ctx: painel } = codigoDoPainel(); if (typeof painel.operationalFlowStatus === 'function') statusDe = (i) => painel.operationalFlowStatus(i) || i.status; } catch { /* rótulo do banco */ }
-  motor = { dono, saude, statusDe };
+  // O risco operacional que a tela põe em cada peça (vybe-risco.js getOperationalRisk; confere de 14/11/2026: sem ele a
+  // série gravava emRisco 0 e nota 100 onde a tela dava 3 e 91). O mesmo código, num vm próprio, com o dia da conta, a
+  // referência de data do painel (vybe-gestor.js getReferenceDate) e a hora da troca de status da própria peça.
+  let risco = null;
+  try {
+    const fonte = (arq, ini, fim) => { const t = readFileSync(join(process.cwd(), arq), 'utf8'), a = t.indexOf(ini), b = a < 0 ? -1 : fim ? t.indexOf(fim, a) : t.indexOf('\n', a);
+      if (a < 0 || b < 0) throw new Error(`trecho de ${arq} não encontrado`); return t.slice(a, b); };
+    const rctx = vm.createContext({ window: { ACTIVITY_LOGS: { statusEvents: {} } }, HOJE_ISO: '', operationalFlowStatus: (d) => d.status });
+    vm.runInContext(fonte('vybe-gestor.js', 'function getReferenceDate', null), rctx, { filename: 'vybe-gestor.js' });
+    vm.runInContext(fonte('vybe-risco.js', 'function getTomorrowIso', '// Toda sinalização crítica'), rctx, { filename: 'vybe-risco.js' });
+    if (vm.runInContext('typeof getOperationalRisk', rctx) === 'function') risco = rctx;
+  } catch (e) { console.error('[series] risco operacional não carregou:', e?.message || e); }
+  motor = { dono, saude, statusDe, risco };
   return motor;
+}
+// Põe operational_risk em cada peça, como a tela faz antes das contas (applyOperationalRisk, vybe-risco.js).
+export function aplicarRisco(pecas, dia) {
+  const { risco } = motorDasContas();
+  if (!risco || !Array.isArray(pecas)) return pecas;
+  const eventos = {};
+  for (const d of pecas) {
+    const ts = d.status_updated_at ? Date.parse(String(d.status_updated_at).slice(0, 16) + ':00-03:00') : NaN;
+    if (Number.isFinite(ts)) eventos[String(d.id)] = [{ status: d.status, tsMs: ts }];
+  }
+  risco.HOJE_ISO = dia; risco.window.ACTIVITY_LOGS = { statusEvents: eventos };
+  const calcular = vm.runInContext('getOperationalRisk', risco);
+  for (const d of pecas) { try { d.operational_risk = limpo(calcular(d)); } catch { /* sem risco nesta peça */ } }
+  return pecas;
 }
 const limpo = (x) => JSON.parse(JSON.stringify(x)); // sai do vm como objeto comum
 
@@ -154,38 +186,59 @@ function contasDeProducao({ pecas, cadastro, eq, dia, comRisco = true }) {
   return linhas;
 }
 
-export async function calcularDia(sql, dia = hojeBahia()) {
-  const linhas = [], erros = [];
-  const parte = async (nome, f) => { try { linhas.push(...(await f())); } catch (e) { erros.push(`${nome}: ${e.message}`); } };
+// As partes do dia; partes=null faz todas. falhas = as partes que não gravaram (a próxima leitura refaz só elas).
+export const PARTES_DO_DIA = Object.freeze(['producao', 'saude', 'score', 'funil']);
+// A nota de saúde de cada cliente (VybeCarteiraSaude.calcular), com as peças, o cadastro, os sinais e o clima do servidor:
+// a mesma conta da série 'saude' e da nota do mês da Carteira (server/carteira.js saude_registrar, que não aceita mais a
+// nota calculada no navegador).
+export async function notasDaCarteira(sql, dia = hojeBahia(), { pecas = null, cadastro = null } = {}) {
+  const { saude } = motorDasContas();
+  if (!pecas) pecas = aplicarRisco(await pecasDoBanco(sql, dia), dia);
+  if (!cadastro) cadastro = await cadastroDeClientes(sql);
+  const [sinais, clima] = await Promise.all([sinaisDaCarteira(sql, dia).catch(() => null), climaAtual(sql)]);
+  const porCliente = Object.fromEntries(clima.map((c) => [c.cliente_id, { pontos: Number(c.pontos), motivo: c.motivo || '', atualizado_em: c.atualizado_em }]));
+  return { r: limpo(saude.calcular({ demandas: pecas, clientes: cadastro, sinais, clima: { porCliente }, hoje: dia })), clima };
+}
+export async function calcularDia(sql, dia = hojeBahia(), { partes = null } = {}) {
+  const linhas = [], erros = [], falhas = [];
+  const quer = (n) => !partes || partes.includes(n);
+  const parte = async (nome, f, contaComo = [nome]) => { try { linhas.push(...(await f())); } catch (e) { erros.push(`${nome}: ${e.message}`); falhas.push(...contaComo); } };
   let pecas = null, cadastro = null, eq = null;
-  await parte('base', async () => { [pecas, cadastro, eq] = await Promise.all([pecasDoBanco(sql, dia), cadastroDeClientes(sql), equipe(sql)]); return []; });
+  const comBase = ['producao', 'saude'].filter(quer);
+  if (comBase.length) await parte('base', async () => { [pecas, cadastro, eq] = await Promise.all([pecasDoBanco(sql, dia), cadastroDeClientes(sql), equipe(sql)]); aplicarRisco(pecas, dia); return []; }, comBase);
   if (pecas) {
-    await parte('producao', async () => {
+    if (quer('producao')) await parte('producao', async () => {
       const prod = pecas.filter((p) => p.origem !== 'solicitacao');
       const l = contasDeProducao({ pecas: prod, cadastro, eq, dia });
       const cap = await capacidades(sql);
       for (const x of l) if (x.serie === 'carga_cargo') x.extra.capacidade = cap[x.sujeito] ?? null;
       return l;
     });
-    await parte('saude', async () => {
-      const { saude } = motorDasContas();
-      const [sinais, clima] = await Promise.all([sinaisDaCarteira(sql, dia).catch(() => null), climaAtual(sql)]);
-      const porCliente = Object.fromEntries(clima.map((c) => [c.cliente_id, { pontos: Number(c.pontos), motivo: c.motivo || '', atualizado_em: c.atualizado_em }]));
-      const r = limpo(saude.calcular({ demandas: pecas, clientes: cadastro, sinais, clima: { porCliente }, hoje: dia }));
+    if (quer('saude')) await parte('saude', async () => {
+      const { r, clima } = await notasDaCarteira(sql, dia, { pecas, cadastro });
       const l = r.clientes.filter((c) => c.id).map((c) => ({ serie: 'saude', sujeito: c.id, valor: c.score, extra: { nome: c.nome, risco: c.risco } }));
       if (r.resumo?.media != null) l.push({ serie: 'saude_media', sujeito: 'carteira', valor: r.resumo.media, extra: { total: r.resumo.total, alto: r.resumo.alto, medio: r.resumo.medio, baixo: r.resumo.baixo } });
       for (const c of clima) if (Number.isFinite(Number(c.pontos))) l.push({ serie: 'clima', sujeito: c.cliente_id, valor: Number(c.pontos), extra: { motivo: c.motivo || '', atualizado_em: c.atualizado_em } });
       return l;
     });
   }
-  await parte('score', async () => linhasDeScore(await scoresDoPeriodo(sql, { de: segundaDe(dia), ate: somarDias(segundaDe(dia), 6), hoje: dia }), segundaDe(dia)));
-  await parte('funil', async () => {
+  if (quer('score')) await parte('score', async () => {
+    const seg = segundaDe(dia);
+    const l = linhasDeScore(await scoresDoPeriodo(sql, { de: seg, ate: somarDias(seg, 6), hoje: dia }), seg);
+    // A semana que acabou de fechar: se a última gravação dela foi antes do fim (no domingo ou antes), regrava uma vez com a
+    // semana inteira. A semana que nunca foi gravada fica para a reconstrução do passado (que não sobrescreve).
+    const antes = somarDias(seg, -7);
+    const [g] = await sql`SELECT max((gravado_em AT TIME ZONE 'America/Bahia')::date)::text AS em FROM vybe_serie_diaria WHERE serie = 'score_semana' AND dia = ${antes}::date`;
+    if (g?.em && g.em < seg) l.push(...linhasDeScore(await scoresDoPeriodo(sql, { de: antes, ate: somarDias(antes, 6), hoje: seg }), antes));
+    return l;
+  });
+  if (quer('funil')) await parte('funil', async () => {
     const [a] = await sql`SELECT count(*)::int AS n FROM vybe_crm_oportunidades WHERE etapa NOT IN ('ganho','perdido') AND encerrado_em IS NULL`;
     const ini = segundaDe(dia);
     const [s] = await sql`SELECT count(*)::int AS n FROM vybe_crm_oportunidades WHERE (criado_em AT TIME ZONE 'America/Bahia')::date BETWEEN ${ini}::date AND ${dia}::date`;
     return [{ serie: 'funil_abertas', sujeito: 'funil', valor: a.n, extra: {} }, { serie: 'leads_semana', sujeito: 'funil', valor: s.n, extra: {}, dia: ini }];
   });
-  return { linhas, erros };
+  return { linhas, erros, falhas: [...new Set(falhas)] };
 }
 function linhasDeScore(lista, segunda) {
   const comScore = lista.filter((p) => p.score != null);
@@ -213,16 +266,22 @@ export async function gravarLinhas(sql, dia, linhas, { origem, sobrescrever = tr
 }
 // A linha-marca: devolve true só para quem conseguiu "pegar" o trabalho (nenhuma marca; ou a anterior falhou; ou ficou
 // presa em 'gravando' há mais de 10 minutos). serie 'gravacao' / 'reconstrucao' ficam fora de SERIES: a leitura não as mostra.
-async function pegarMarca(sql, dia, serie, sujeito, forcar = false) {
+// Também pega quando a anterior ficou 'parcial' (refaz só as partes que falharam) e, com validadeMs, quando a gravação
+// 'ok' é mais velha que isso (o dia de hoje muda depois da meia-noite). Devolve null (não pegou) ou { antes } (a marca anterior).
+async function pegarMarca(sql, dia, serie, sujeito, forcar = false, validadeMs = null) {
   const extra = JSON.stringify({ estado: 'gravando' });
+  const validadeS = validadeMs == null ? null : Math.max(0, Math.round(validadeMs / 1000));
   const r = forcar
     ? await sql`INSERT INTO vybe_serie_diaria (dia, serie, sujeito, valor, extra) VALUES (${dia}::date, ${serie}, ${sujeito}, NULL, ${extra}::jsonb)
-        ON CONFLICT (dia, serie, sujeito) DO UPDATE SET extra = EXCLUDED.extra, gravado_em = now() RETURNING dia`
+        ON CONFLICT (dia, serie, sujeito) DO UPDATE SET extra = EXCLUDED.extra || jsonb_build_object('antes', vybe_serie_diaria.extra - 'antes'), gravado_em = now()
+        RETURNING extra->'antes' AS antes`
     : await sql`INSERT INTO vybe_serie_diaria (dia, serie, sujeito, valor, extra) VALUES (${dia}::date, ${serie}, ${sujeito}, NULL, ${extra}::jsonb)
-        ON CONFLICT (dia, serie, sujeito) DO UPDATE SET extra = EXCLUDED.extra, gravado_em = now()
-        WHERE vybe_serie_diaria.extra->>'estado' = 'erro' OR (vybe_serie_diaria.extra->>'estado' = 'gravando' AND vybe_serie_diaria.gravado_em < now() - interval '10 minutes')
-        RETURNING dia`;
-  return r.length > 0;
+        ON CONFLICT (dia, serie, sujeito) DO UPDATE SET extra = EXCLUDED.extra || jsonb_build_object('antes', vybe_serie_diaria.extra - 'antes'), gravado_em = now()
+        WHERE vybe_serie_diaria.extra->>'estado' IN ('erro', 'parcial')
+          OR (vybe_serie_diaria.extra->>'estado' = 'gravando' AND vybe_serie_diaria.gravado_em < now() - interval '10 minutes')
+          OR (${validadeS}::int IS NOT NULL AND vybe_serie_diaria.extra->>'estado' = 'ok' AND vybe_serie_diaria.gravado_em < now() - make_interval(secs => ${validadeS}::int))
+        RETURNING extra->'antes' AS antes`;
+  return r.length ? { antes: json(r[0].antes) || null } : null;
 }
 const fecharMarca = (sql, dia, serie, sujeito, extra) => sql`UPDATE vybe_serie_diaria SET extra = ${JSON.stringify(extra)}::jsonb, gravado_em = now()
   WHERE dia = ${dia}::date AND serie = ${serie} AND sujeito = ${sujeito}`;
@@ -230,16 +289,24 @@ const fecharMarca = (sql, dia, serie, sujeito, extra) => sql`UPDATE vybe_serie_d
 // A gravação do dia. origem: 'cron' | 'leitura' | 'manual'. Devolve { gravado, ja, linhas, erros, reconstrucao }.
 // reconstruir: true no cron e no POST acao=gravar do dono (um lote do passado, com orçamento de tempo, DEPOIS do dia);
 // false no GET das telas, que só grava o dia (leve).
-export async function gravarSeriesDoDia(sql, { dia = hojeBahia(), origem = 'cron', forcar = false, reconstruir = true, orcamentoMs = 8000 } = {}) {
+// Com erro parcial o estado é 'parcial' e a marca guarda as partes que falharam: a próxima leitura (ou o cron) refaz só
+// elas. Com validadeMs (a leitura), a gravação 'ok' de hoje vale esse tempo; depois, a primeira leitura grava o dia de novo.
+export async function gravarSeriesDoDia(sql, { dia = hojeBahia(), origem = 'cron', forcar = false, reconstruir = true, orcamentoMs = 8000, validadeMs = null } = {}) {
   await garantirMigracoesHistorico(sql);
   let r;
-  if (!(await pegarMarca(sql, dia, 'gravacao', 'dia', forcar))) r = { gravado: false, ja: true, dia };
+  const marca = await pegarMarca(sql, dia, 'gravacao', 'dia', forcar, validadeMs);
+  if (!marca) r = { gravado: false, ja: true, dia };
   else {
     try {
-      const { linhas, erros } = await calcularDia(sql, dia);
+      const antes = marca.antes;
+      const soAs = !forcar && antes?.estado === 'parcial' && Array.isArray(antes.falhas)
+        ? antes.falhas.filter((p) => PARTES_DO_DIA.includes(p)) : [];
+      const partes = soAs.length ? soAs : null;
+      const { linhas, erros, falhas } = await calcularDia(sql, dia, { partes });
       const n = await gravarLinhas(sql, dia, linhas, { origem: 'calculo_diario' });
-      await fecharMarca(sql, dia, 'gravacao', 'dia', { estado: erros.length && !n ? 'erro' : 'ok', origem, linhas: n, erros });
-      r = { gravado: true, dia, linhas: n, erros };
+      const estado = !falhas.length ? 'ok' : n ? 'parcial' : 'erro';
+      await fecharMarca(sql, dia, 'gravacao', 'dia', { estado, origem, linhas: n, erros, falhas, partes: partes || 'todas' });
+      r = { gravado: true, dia, linhas: n, erros, estado, falhas, partes: partes || 'todas' };
     } catch (e) {
       await fecharMarca(sql, dia, 'gravacao', 'dia', { estado: 'erro', origem, erros: [e.message] }).catch(() => {});
       if (!reconstruir) throw e;
@@ -249,16 +316,17 @@ export async function gravarSeriesDoDia(sql, { dia = hojeBahia(), origem = 'cron
   if (reconstruir) r.reconstrucao = await reconstruirPassado(sql, dia, { orcamentoMs }).catch((e) => ({ erro: e.message }));
   return r;
 }
-// O primeiro GET do dia em cada instância confere (e grava só o dia, se o cron não gravou); os seguintes não perguntam.
-let conferido = '';
-export async function garantirGravacaoDoDia(sql) {
+// A leitura confere (e grava só o dia, leve) quando o cron não gravou, quando a gravação ficou parcial ou quando a de hoje
+// passou da validade. Cada instância pergunta ao banco no máximo a cada RECONFERIR_MS; nos outros GETs, não pergunta.
+let conferido = { dia: '', em: 0 };
+export async function garantirGravacaoDoDia(sql, { agora = Date.now } = {}) {
   const dia = hojeBahia();
-  if (conferido === dia) return null;
-  const r = await gravarSeriesDoDia(sql, { dia, origem: 'leitura', reconstruir: false });
-  conferido = dia;
+  if (conferido.dia === dia && agora() - conferido.em < RECONFERIR_MS) return null;
+  const r = await gravarSeriesDoDia(sql, { dia, origem: 'leitura', reconstruir: false, validadeMs: VALIDADE_HOJE_MS });
+  conferido = { dia, em: agora() };
   return r;
 }
-export function esquecerConferencia() { conferido = ''; motor = null; }
+export function esquecerConferencia() { conferido = { dia: '', em: 0 }; motor = null; }
 
 // ── O passado que já está no banco, em lotes ───────────────────────────────────────────────────────────────────────
 // Uma linha-marca por banco (dia 2000-01-01, serie 'reconstrucao', sujeito 'v1') guarda o progresso. Cada chamada pega a
@@ -373,10 +441,14 @@ export async function limiteCarga(sql) {
   const pessoas = {}; for (const [id, n] of Object.entries(v.pessoas || {})) if (/^[1-9]\d{0,15}$/.test(id) && Number(n) > 0) pessoas[id] = Number(n);
   return { padrao, pessoas, configurado: Boolean(v.padrao || Object.keys(pessoas).length) };
 }
-export async function metaAcerto(sql) {
-  const v = await lerConfig(sql, 'meta_acerto_agentes') || {};
-  const meta = Number(v.meta);
-  return { meta: Number.isFinite(meta) && meta > 0 && meta <= 100 ? meta : META_ACERTO_PADRAO, configurado: Number.isFinite(meta) && meta > 0 };
+// A meta de acerto: o mesmo leitor da área de metas (server/campos-d3.js), mesma chave e mesmo padrão.
+export const metaAcerto = (sql) => lerMetaAcerto(sql);
+// Peças por dia (Coordenação): { padrao: 5, pessoas: { "<vybe_pessoas.id>": n } } em vybe_carteira_config 'limite_dia'.
+export async function limiteDia(sql) {
+  const v = await lerConfig(sql, 'limite_dia') || {};
+  const padrao = Number.isInteger(Number(v.padrao)) && Number(v.padrao) > 0 ? Number(v.padrao) : LIMITE_DIA_PADRAO;
+  const pessoas = {}; for (const [id, n] of Object.entries(v.pessoas || {})) if (/^[1-9]\d{0,15}$/.test(id) && Number(n) > 0) pessoas[id] = Number(n);
+  return { padrao, pessoas, configurado: Boolean(v.padrao || Object.keys(pessoas).length) };
 }
 async function gravarConfig(sql, quem, chave, valor) {
   await sql`INSERT INTO vybe_carteira_config (chave, valor, atualizado_em, atualizado_por) VALUES (${chave}, ${JSON.stringify(valor)}::jsonb, now(), ${quem?.pessoa?.id ?? null})
@@ -412,14 +484,16 @@ export async function lerSeries(sql, quem, query = {}) {
   const para = String(query.para || ''), hoje = hojeBahia();
   const base = { ok: true, para, hoje };
   const pessoa = quem?.pessoa || null, servico = quem?.tipo === 'servico';
-  const dono = servico || ehDonoPessoa(pessoa);
+  const dono = servico || ehDonoPessoa(pessoa), amplo = servico || ehAmploPessoa(pessoa);
   switch (para) {
     case 'setor': case 'performance': case 'gestao': {
-      const [atr, carga, limite] = await Promise.all([lerSerie(sql, 'atrasadas', { sujeitos: ['agencia'], desde: somarDias(hoje, -60) }),
-        lerSerie(sql, 'carga', { desde: somarDias(hoje, -30) }), limiteCarga(sql)]);
-      return { ...base, atrasadas: atr.agencia || { sujeito: 'agencia', pontos: [], origens: [] }, carga, limite, pode: { limite: dono } };
+      const [atr, carga, limite, limite_dia] = await Promise.all([lerSerie(sql, 'atrasadas', { sujeitos: ['agencia'], desde: somarDias(hoje, -60) }),
+        lerSerie(sql, 'carga', { desde: somarDias(hoje, -30) }), limiteCarga(sql), limiteDia(sql)]);
+      return { ...base, atrasadas: atr.agencia || { sujeito: 'agencia', pontos: [], origens: [] }, carga, limite, limite_dia, pode: { limite: dono, limite_dia: amplo } };
     }
     case 'carteira': {
+      // A saúde da carteira inteira é da gestão: donos e coordenação (o head vê o cliente dele em para=cliente).
+      if (!amplo) falhar('A série da carteira é dos donos e da coordenação.', 403);
       const [media, saude] = await Promise.all([lerSerie(sql, 'saude_media', { sujeitos: ['carteira'], desde: somarDias(hoje, -365) }),
         lerSerie(sql, 'saude', { desde: somarDias(hoje, -90) })]);
       return { ...base, media: media.carteira || { sujeito: 'carteira', pontos: [], origens: [] }, saude };
@@ -443,6 +517,8 @@ export async function lerSeries(sql, quem, query = {}) {
       return { ...base, acerto: s, meta, pode: { meta: dono } };
     }
     case 'comercial': {
+      // Quem tem acesso ao Comercial (server/comercial.js papeis), além dos donos e da coordenação.
+      if (!amplo) { const { papeis } = await import('./comercial.js'); if (!pessoa?.id || !(await papeis(sql, pessoa)).comercial) falhar('A série do Comercial é de quem tem acesso ao Comercial.', 403); }
       const [cg, ab, ld] = await Promise.all([lerSerie(sql, 'carga_cargo', { desde: somarDias(hoje, -400) }),
         lerSerie(sql, 'funil_abertas', { sujeitos: ['funil'], desde: somarDias(hoje, -90) }), lerSerie(sql, 'leads_semana', { sujeitos: ['funil'], desde: somarDias(hoje, -7 * 26) })]);
       for (const x of Object.values(cg)) x.meses = porMes(x.pontos);
@@ -454,8 +530,22 @@ export async function lerSeries(sql, quem, query = {}) {
 }
 
 export async function escreverSeries(sql, quem, b = {}) {
-  const pessoa = quem?.pessoa || null, servico = quem?.tipo === 'servico', dono = servico || ehDonoPessoa(pessoa);
+  const pessoa = quem?.pessoa || null, servico = quem?.tipo === 'servico', dono = servico || ehDonoPessoa(pessoa), amplo = servico || ehAmploPessoa(pessoa);
   switch (b.acao) {
+    case 'limite_dia': {
+      // Peças por dia de cada pessoa (Coordenação): donos e coordenação.
+      if (!amplo) falhar('Só os donos e a coordenação mudam o limite de peças por dia.', 403);
+      const pessoas = {};
+      const entrada = b.pessoas && typeof b.pessoas === 'object' && !Array.isArray(b.pessoas) ? b.pessoas : {};
+      if (Object.keys(entrada).length > 200) falhar('Pessoas demais.');
+      for (const [id, n] of Object.entries(entrada)) {
+        if (!/^[1-9]\d{0,15}$/.test(id)) falhar('Pessoa inválida.');
+        if (n == null || n === '') continue; // vazio = volta ao padrão
+        pessoas[id] = inteiro(n, 'Limite da pessoa', 1, 50);
+      }
+      await gravarConfig(sql, quem, 'limite_dia', { padrao: inteiro(b.padrao ?? LIMITE_DIA_PADRAO, 'Limite padrão', 1, 50), pessoas });
+      return { ok: true, limite_dia: await limiteDia(sql) };
+    }
     case 'limite_carga': {
       if (!dono) falhar('Só um dono muda o limite de carga.', 403);
       const pessoas = {};
@@ -472,12 +562,14 @@ export async function escreverSeries(sql, quem, b = {}) {
     }
     case 'meta_acerto': {
       if (!dono) falhar('Só um dono muda a meta dos agentes.', 403);
-      await gravarConfig(sql, quem, 'meta_acerto_agentes', { meta: inteiro(b.meta, 'Meta', 1, 100) });
-      return { ok: true, meta: await metaAcerto(sql) };
+      // O mesmo gravador da área de metas (server/campos-d3.js).
+      return { ok: true, meta: await gravarMetaAcerto(sql, pessoa?.id ?? null, inteiro(b.meta, 'Meta', 1, 100)) };
     }
     case 'acerto': {
       // A tela dos Agentes manda o acerto que a central calculou (7 dias). Um valor por agente por dia; o último vale.
+      // Só dono ou a chave de serviço grava (a tela manda só quando quem olha é dono): a série não aceita número de qualquer sessão.
       if (!servico && !pessoa?.id) falhar('Entre no painel.', 401);
+      if (!dono) falhar('Só um dono grava o acerto dos agentes.', 403);
       const ag = b.agentes && typeof b.agentes === 'object' && !Array.isArray(b.agentes) ? b.agentes : null;
       if (!ag) falhar('Envie agentes: { "<setor>": acerto }.');
       const nomes = Object.keys(ag); if (nomes.length > 40) falhar('Agentes demais.');
@@ -509,6 +601,7 @@ export async function areaSeries(req, res, quem, sql) {
     if (req.method === 'POST') return res.status(200).json(await escreverSeries(sql, quem, req.body || {}));
     return res.status(405).json({ error: 'Método não permitido.' });
   } catch (e) {
-    return res.status(e.status || 500).json({ error: e.message });
+    if (!e.status) console.error('[series]', e);
+    return res.status(e.status || 500).json({ error: e.status ? e.message : 'Não foi possível ler as séries agora.' });
   }
 }
