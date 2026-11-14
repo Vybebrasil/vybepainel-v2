@@ -1281,7 +1281,10 @@ function vbArrumarAbas(raiz = document) {
       // Quadro D3-Celular: antes de mandar aba para o "Mais", as abas apertam (texto menor, a lista na largura toda).
       lista.classList.remove('vb-abas-justas');
       if (lista.scrollWidth > larguraUtil() + 1) lista.classList.add('vb-abas-justas');
-      for (let i = abas.length - 1; i >= 0 && lista.scrollWidth > larguraUtil() + 1 && vistas.size > 1; i--) {
+      // Apertadas, as abas encolhem e a lista "cabe", mas o texto de cada uma passa da borda (Aprovação no celular: o
+      // contador de uma aba colava no nome da seguinte). Aba que não cabe no próprio botão também conta como não caber.
+      const naoCabe = () => lista.scrollWidth > larguraUtil() + 1 || abas.some((a) => !a.classList.contains('vb-aba-fora') && a.scrollWidth > a.clientWidth + 1);
+      for (let i = abas.length - 1; i >= 0 && naoCabe() && vistas.size > 1; i--) {
         if (i === sel || !vistas.has(i)) continue;
         vistas.delete(i); aplicar();
       }

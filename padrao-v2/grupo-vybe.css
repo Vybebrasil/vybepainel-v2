@@ -113,8 +113,9 @@
 #office-catalogo .v2l-esc-meio > .v2-barra{margin:7px 0 5px;background:#EAE6DE;border-radius:3px}
 #office-catalogo .v2l-premio{flex:none;text-align:right;font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);color:#6B665E}
 #office-catalogo .v2l-premio > b{color:#1F1D1A}
-#office-catalogo .v2l-niv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:0 0 12px 56px}
-#office-catalogo .v2l-niv > p{padding:6px 8px;border-radius:10px;background:#F6F3EE;font:400 11px/1.35 var(--vv-texto,Inter,sans-serif);color:#4A463F;overflow-wrap:anywhere}
+/* Os quatro degraus cabem lado a lado só com espaço; na coluna estreita (Loja em 1024) eles quebravam "Bron ze". */
+#office-catalogo .v2l-niv{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:0 0 12px 56px}
+#office-catalogo .v2l-niv > p{padding:6px 8px;border-radius:10px;background:#F6F3EE;font:400 11px/1.35 var(--vv-texto,Inter,sans-serif);color:#4A463F;overflow-wrap:break-word}
 #office-catalogo .v2l-niv > p.ok{background:#FBE9DC}
 #office-catalogo .v2l-niv > p > b{display:block;font-size:11.5px;color:#1F1D1A}
 #office-catalogo .v2l-niv > p > small{display:block;font-size:10.5px;color:#6B665E}

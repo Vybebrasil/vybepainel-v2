@@ -76,7 +76,7 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#automacoes-root,#vv-planejamentos,#vv-whatsapp,#vv-reunioes,#vv-ferramentas,.pv2-casa) :is(button,summary,a)[class*="-btn"][class*="-btn"]:not(.vv-trilho-btn){min-height:44px;min-width:44px;box-sizing:border-box}
   body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#automacoes-root,#vv-planejamentos,#vv-whatsapp,#vv-reunioes,#vv-ferramentas,.pv2-casa) input[class*="busca"][class*="busca"]{min-height:44px;box-sizing:border-box}
   /* fechar e ícones soltos: 44 × 44 */
-  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#vv-wa-avisos) :is(.v2c-x,.v2l-x,.v2r-x,.vp-x,.vb-janela-x,.v2c-fechar,.vv-aviso-curto-x):is(button,a,summary){width:44px;height:44px;min-width:44px;min-height:44px;box-sizing:border-box}
+  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#vv-wa-avisos,#vv-ferramentas,#vv-impressoes,#vv-reunioes) :is(.v2c-x,.v2l-x,.v2r-x,.vp-x,.vb-janela-x,.v2c-fechar,.vv-aviso-curto-x):is(button,a,summary){width:44px;height:44px;min-width:44px;min-height:44px;box-sizing:border-box}
   /* o topo do celular (busca, avisos, mais, conta): 44 de altura como no quadro; a busca encolhe para caber */
   body.mundo #mundo-hud :is(button,summary).vv-botao.vv-botao{min-height:44px;min-width:44px;height:44px;box-sizing:border-box}
   body.mundo #mundo-hud :is(button,summary).vv-botao.vv-busca-larga{min-width:0}

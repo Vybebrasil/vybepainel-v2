@@ -10,3 +10,18 @@
   body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn.criar{width:44px;height:44px;border-radius:50%;justify-content:center}
   body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn > svg{width:20px;height:20px;flex:none}
 }
+
+/* PÁGINA QUE NÃO ROLA (confere responsivo, 14/11/2026). Com o palco do mundo aberto (Hoje, as telas do trilho, Centro,
+   Minha sala), cada cartão rola por dentro e a página fica parada. Depois de passar por um painel antigo (Painel de
+   trabalho, Demandas, Clientes), o body perdia o "no-escritorio" e voltava a rolar: o painel antigo, escondido atrás do
+   palco, deixava a página de 800 a 1.600 px e a roda do mouse, o Espaço ou o foco rolavam o fundo. */
+body.mundo.mundo-visivel{overflow:hidden}
+
+/* TABLET (601 a 900, ex.: iPad em pé, 768): o menu vira a barra de baixo, mas herdava a largura de 232 da ilha do
+   computador e só mostrava "Vybe OS · Criar · Hoje"; o resto ficava escondido numa rolagem de lado minúscula. A barra
+   ocupa a largura toda (de margem a margem) e rola de lado só o que não couber. */
+@media (min-width:601px) and (max-width:900px){
+  #mundo-hud .vv-ilha.vv-trilho{width:auto;padding:4px;align-items:stretch}
+  #mundo-hud .vv-ilha.vv-trilho > .vv-trilho-btn{height:auto;min-height:0;justify-content:center}
+  #mundo-hud .vv-ilha.vv-trilho > .vv-trilho-marca{display:none}
+}

@@ -32,6 +32,13 @@
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-rot{font-size:12.5px;font-weight:500}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-v{min-width:0;font-size:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-graf{width:72px;height:28px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-nums > .d3-num{container-type:inline-size}
+/* Cartão estreito (1024 com o menu aberto, quatro por linha): a mini linha saía e o número virava "R..." e "Sem t...".
+   Abaixo de 200 px de cartão a linha some e o número diminui com o cartão, sem cortar. */
+@container (max-width:200px){
+  :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-graf{display:none}
+  :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-v{grid-column:1 / -1;font-size:clamp(18px,16cqi,30px)}
+}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.q > .d3-num-v{color:var(--d3-meta)}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.d3f-verde > .d3-barra > i{background:var(--d3-pronto)}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.r > .d3-graf polyline:not(.meta){stroke:var(--d3-perigo)}
