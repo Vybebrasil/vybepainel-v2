@@ -5,6 +5,7 @@
 // As fases que o time vê (Novo, Primeiro contato…) estão em shared/comercial-calculos.js.
 import calculos from '../shared/comercial-calculos.js';
 import { ehDonoPessoa } from './donos.js';
+import { origemCrmPronta } from './campos-d3.js';
 export const ETAPAS_CRM = [
  ['empresa','Empresa'], ['qualificacao','Qualificação'], ['abordagem_proposta','Abordagem proposta'],
  ['aprovada','Aprovada'], ['contato_feito','Contato feito'], ['reuniao','Reunião'],
@@ -52,8 +53,14 @@ function empresa(b, importacao) {
  const chave = cnpj ? 'cnpj:'+cnpj : 'nome:'+nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ');
  return { nome, cnpj, setor, etapa, chave, legado: importacao ? JSON.stringify(b) : null };
 }
-async function criar(tx, quem, d, importacao = false) {
- const [o] = await tx`INSERT INTO vybe_crm_oportunidades (chave_empresa,cnpj,nome,setor_empresa,etapa,criado_por,legado)
+// comOrigem: a coluna origem existe (server/migracoes-campos.js); importação é o SDR, o resto é cadastro manual.
+async function criar(tx, quem, d, importacao = false, comOrigem = false) {
+ const origem = importacao ? 'sdr' : 'manual';
+ const [o] = comOrigem
+  ? await tx`INSERT INTO vybe_crm_oportunidades (chave_empresa,cnpj,nome,setor_empresa,etapa,criado_por,legado,origem)
+ VALUES (${d.chave},${d.cnpj},${d.nome},${d.setor},${d.etapa},${quem.id},${d.legado}::jsonb,${origem})
+ ON CONFLICT (chave_empresa) DO NOTHING RETURNING *`
+  : await tx`INSERT INTO vybe_crm_oportunidades (chave_empresa,cnpj,nome,setor_empresa,etapa,criado_por,legado)
  VALUES (${d.chave},${d.cnpj},${d.nome},${d.setor},${d.etapa},${quem.id},${d.legado}::jsonb)
  ON CONFLICT (chave_empresa) DO NOTHING RETURNING *`;
  if (o) { await historico(tx,quem,o,null,importacao?'importacao':'criacao',importacao?'Proposta importada do navegador; contato ainda depende de aprovação humana.':''); return { id:o.id, criada:true }; }
@@ -70,11 +77,11 @@ async function dadosDeAcao(tx,b) {
 }
 export async function escreverCrm(sql, quem, b) {
  const acao = b.acao;
- if (acao === 'criar') { const d=empresa(b,false); return sql.comTransacao(tx=>criar(tx,quem,d)); }
+ if (acao === 'criar') { const d=empresa(b,false), comOrigem=await origemCrmPronta(sql); return sql.comTransacao(tx=>criar(tx,quem,d,false,comOrigem)); }
  if (acao === 'importar') {
   if (!Array.isArray(b.propostas) || b.propostas.length > 100) falhar('Importe no máximo 100 propostas por vez.');
-  const lista=b.propostas.map(p=>empresa(p,true));
-  return sql.comTransacao(async tx=>{ const resultados=[]; for(const d of lista) resultados.push(await criar(tx,quem,d,true)); return {resultados}; });
+  const lista=b.propostas.map(p=>empresa(p,true)), comOrigem=await origemCrmPronta(sql);
+  return sql.comTransacao(async tx=>{ const resultados=[]; for(const d of lista) resultados.push(await criar(tx,quem,d,true,comOrigem)); return {resultados}; });
  }
  if (!['mover','atualizar','comentar','valor'].includes(acao)) falhar('Ação desconhecida.');
  // Lido antes da transação: sem a tabela de configuração, a consulta falharia dentro dela.

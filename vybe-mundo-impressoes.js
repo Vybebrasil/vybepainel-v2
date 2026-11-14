@@ -207,21 +207,24 @@
         <p class="vi2-ef"><b>Se aprovar:</b> a edição abre com a ${esc(x.s.nome)} escolhida; só grava quando você salvar.</p>`;
     return `<div class="v2-carta vi2-carta"${pos < 0 ? ' data-pos="fora"' : pos <= 2 ? ` data-pos="${pos}"` : ''} data-vi-carta="${k}">${topo}${corpo}</div>`;
   }
+  // Direção 3 (quadro D3-Impressoes): a coluna "Nestor pede" fica sempre no lugar, num cartão branco à esquerda da
+  // tabela. Sem decisão esperando, o cartão diz isso em uma linha (nada de número inventado).
   function baralhoHtml(lista) {
-    const n = lista.length; st.deck = Math.min(Math.max(0, st.deck), n - 1);
-    const cabeca = `<div class="p2-lista-topo vi2-pede-topo"><h3 class="p2-h">Pede ação</h3><span class="p2-sub">${n} ${n === 1 ? 'decisão espera' : 'decisões esperam'} o seu ok</span></div>`;
-    if (st.deckLista) return `<div class="vi2-pede">${cabeca}<div class="p2-card vi2-deck-lista">${lista.map((x, k) => `<div class="p2-lin"><p><b>${esc(x.i.titulo)}</b><br><span class="p2-sub">${x.tipo === 'cotacao' ? `${esc(x.c.fornecedor_nome || 'Fornecedor')} · ${esc(reais(x.c.valor))}` : `sugerida: ${esc(x.s.nome)}`}</span></p><button type="button" class="p2-btn s k" data-vi-decidir="${k}">Aprovar</button></div>`).join('')}
-        <p class="p2-sub p2-pe"><button type="button" class="p2-link" data-vi="deck-lista">ver um por vez</button></p></div></div>`;
-    return `<div class="vi2-pede">${cabeca}<div class="v2-baralho vi2-baralho" aria-live="polite">${lista.map(cartaHtml).join('')}</div>
-      <div class="vi2-decide"><button type="button" class="p2-btn" data-vi="agora-nao">Agora não</button><button type="button" class="p2-btn k v2-estado" data-vi-decidir="atual">Aprovar</button></div>
-      <div class="vi2-conta"><span class="v2-pontos" aria-hidden="true">${lista.map((_, k) => `<i${k === st.deck ? ' class="on"' : ''}></i>`).join('')}</span><span class="p2-sub"><span data-vi-conta>${st.deck + 1} de ${n}</span>${n > 1 ? ' · seta para os lados passa' : ''} · <button type="button" class="p2-link" data-vi="deck-lista">ver em lista</button></span></div></div>`;
+    const n = lista.length; st.deck = Math.min(Math.max(0, st.deck), Math.max(0, n - 1));
+    const donos = st.dados?.gestao ? '<span class="d3-selo-donos">só donos</span>' : '';
+    const cabeca = `<div class="d3im-pede-topo"><span><b class="p2-h">Nestor pede</b>${donos}</span><span class="p2-sub" data-vi-conta>${n ? `${st.deck + 1} de ${n}` : ''}</span></div>`;
+    if (!n) return `<section class="p2-card vi2-pede d3im-pede" aria-label="Nestor pede">${cabeca}<p class="d3im-pede-vazio">Nada pede seu ok agora.</p></section>`;
+    if (st.deckLista) return `<section class="p2-card vi2-pede d3im-pede" aria-label="Nestor pede">${cabeca}<div class="vi2-deck-lista">${lista.map((x, k) => `<div class="p2-lin"><p><b>${esc(x.i.titulo)}</b><br><span class="p2-sub">${x.tipo === 'cotacao' ? `${esc(x.c.fornecedor_nome || 'Fornecedor')} · ${esc(reais(x.c.valor))}` : `sugerida: ${esc(x.s.nome)}`}</span></p><button type="button" class="p2-btn s k" data-vi-decidir="${k}">Aprovar</button></div>`).join('')}</div>
+        <button type="button" class="p2-link d3im-ver" data-vi="deck-lista">ver um por vez</button></section>`;
+    return `<section class="p2-card vi2-pede d3im-pede" aria-label="Nestor pede">${cabeca}<div class="v2-baralho vi2-baralho" aria-live="polite">${lista.map(cartaHtml).join('')}</div>
+      <div class="vi2-decide"><button type="button" class="p2-btn d3im-seta" data-vi="anterior" aria-label="Anterior">‹</button><button type="button" class="p2-btn d3im-agora" data-vi="agora-nao">Agora não</button><button type="button" class="p2-btn k v2-estado" data-vi-decidir="atual">Aprovar</button><button type="button" class="p2-btn d3im-seta" data-vi="proxima" aria-label="Próxima">›</button></div>
+      <button type="button" class="p2-link d3im-ver" data-vi="deck-lista">ver em lista</button></section>`;
   }
   // As setas só mexem nas posições: o cartão da frente sai e o de trás vem, sem redesenhar a janela.
   function passar(n) {
     const total = decisoes().length; if (!total || st.deckLista) return;
     st.deck = Math.min(Math.max(0, st.deck + n), total - 1);
     st.janela?.querySelectorAll('[data-vi-carta]').forEach((c) => { const pos = Number(c.dataset.viCarta) - st.deck; if (pos < 0) c.dataset.pos = 'fora'; else if (pos <= 2) c.dataset.pos = String(pos); else delete c.dataset.pos; });
-    st.janela?.querySelectorAll('.v2-pontos > i').forEach((p, k) => p.classList.toggle('on', k === st.deck));
     const c = st.janela?.querySelector('[data-vi-conta]'); if (c) c.textContent = `${st.deck + 1} de ${total}`;
   }
   function decidir(qual) {
@@ -299,13 +302,13 @@
     const dec = decisoes();
     const filtrosMais = st.filtros ? `<div class="vi2-filtros-mais"><div class="p2-filtros"><span class="p2-sub">Ver como</span><span class="p2-seg vi-vista" role="group" aria-label="Ver como">${vista('linhas', 'Linhas')}${vista('etapas', 'Etapas')}${vista('lista', 'Tabela')}</span></div>${porFornecedor()}</div>` : '';
     return `${fala}${kpis}${st.form ? `<div class="p2-card">${formulario()}</div>` : ''}
-      <div class="vi2-duas${dec.length ? '' : ' so-lista'}">${dec.length ? baralhoHtml(dec) : ''}
+      <div class="vi2-duas d3im-duas">${baralhoHtml(dec)}
         <div class="p2-card vi2-lista">
-          <div class="p2-filtros"><label class="p2-oculto" for="vi-busca">Buscar peça, cliente ou fornecedor</label><input id="vi-busca" class="p2-busca" type="search" placeholder="Buscar peça, cliente ou fornecedor" data-vi-busca value="${esc(st.busca)}">
-            <button type="button" class="p2-btn s" data-vi="filtros" aria-expanded="${st.filtros}"${st.filtros ? ' aria-pressed="true"' : ''}>Filtros</button></div>
-          <div class="p2-filtros vi-filtros" role="group" aria-label="Filtrar">${chip('', 'Abertas', nA)}${chip('atrasadas', 'Atrasadas', nAt)}${chip('semfornecedor', 'Sem fornecedor', nS)}
+          <div class="p2-filtros vi-filtros d3im-filtros" role="group" aria-label="Filtrar"><label class="p2-oculto" for="vi-busca">Buscar peça, cliente ou gráfica</label><input id="vi-busca" class="p2-busca" type="search" placeholder="Buscar peça, cliente ou gráfica" data-vi-busca value="${esc(st.busca)}">
+            ${chip('', 'Abertas', nA)}${chip('atrasadas', 'Atrasadas', nAt)}${chip('semfornecedor', 'Sem fornecedor', nS)}
             ${fNome ? `<button type="button" class="p2-chip" data-vi-fornecedor="" aria-pressed="true">${esc(fNome)} ✕</button>` : ''}
-            <button type="button" class="p2-chip" data-vi="todas" aria-pressed="${st.todas}" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias">Histórico inteiro</button></div>
+            <button type="button" class="p2-chip" data-vi="todas" aria-pressed="${st.todas}" title="Histórico inteiro: sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias">Histórico</button>
+            <button type="button" class="p2-chip d3im-mais" data-vi="filtros" aria-expanded="${st.filtros}" aria-label="Mais: ver como e gráficas" title="Ver como e gráficas">⋯</button></div>
           ${filtrosMais}
           <div class="vi2-linhas">${vistaHtml()}</div>
         </div></div>`;
@@ -367,6 +370,7 @@
     else if (a === 'filtros') { st.filtros = !st.filtros; pintar(); }
     else if (a === 'mais') { st.mais = !st.mais; pintarLinhas(); }
     else if (a === 'deck-lista') { st.deckLista = !st.deckLista; pintar(); }
+    else if (a === 'anterior' || a === 'proxima') passar(a === 'proxima' ? 1 : -1);
     else if (a === 'agora-nao') { const x = decisoes()[st.deck]; if (x) { st.pulou.add(x.chave); pintar(); } }
   }
   function aoMudar(e) {

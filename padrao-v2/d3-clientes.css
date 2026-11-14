@@ -359,3 +359,20 @@
   #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .d3-acao > .d3-acao-btn{margin-left:50px}
 }#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-corpo .v2c-btn{background:var(--d3-trilho)}
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-corpo .v2c-btn:is(.k,[aria-expanded="true"]){background:var(--d3-tinta);color:#FFFFFF}
+
+/* Fiel ao quadro: Contratos e Churn */
+#vv-carteira .v2c[data-tela="contratos"] .v2k-acao-ct .v2k-acao-tx > p{margin:0 0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-carteira .v2c[data-tela="contratos"] .v2k-acao-ct{padding:10px 0}
+#vv-carteira .v2c[data-tela="churn"] .d3k-esq{gap:14px}
+#vv-carteira .v2c[data-tela="churn"] .d3k-esq > .v2c-card{flex:none}
+#vv-carteira .v2c[data-tela="churn"] .d3k-esq > .d3k-quem{flex:1 1 auto}
+#vv-carteira .v2c[data-tela="churn"] .d3k-quem .v2k-quem-saiu{margin-top:0;padding-top:0;border-top:0}
+#vv-carteira .v2c[data-tela="churn"] .d3k-lado-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#vv-carteira .v2c[data-tela="churn"] .d3k-lado-topo > h2{flex:1 1 auto;margin:0;font:600 16px/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:var(--d3-tinta)}
+#vv-carteira .v2c[data-tela="churn"] .d3k-lado-topo .v2c-seg > button{height:28px;font-size:12.5px}
+#vv-carteira .v2c[data-tela="churn"] .v2k-lado .v2k-motivos{margin-top:4px}
+#vv-carteira .v2c[data-tela="churn"] .v2k-lado .v2k-motivos > .v2k-mot{margin:12px 0 5px}
+#vv-carteira .v2c[data-tela="churn"] .v2k-lado .v2k-motivos > .v2k-mot > .v2c-sub{color:var(--d3-tinta);font-weight:600}
+#vv-carteira .v2c[data-tela="churn"] .v2k-lado .v2k-motivos > .v2k-mot.d3k-sem,#vv-carteira .v2c[data-tela="churn"] .v2k-lado .v2k-motivos > .v2k-mot.d3k-sem > .v2c-sub{color:var(--d3-perigo)}
+#vv-carteira .v2c[data-tela="churn"] .v2k-lado .v2k-motivos > .v2-barra{height:3px}
+#vv-carteira .v2c[data-tela="churn"] .v2k-acao > .d3k-acao-v{font:600 13.5px/1.3 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}

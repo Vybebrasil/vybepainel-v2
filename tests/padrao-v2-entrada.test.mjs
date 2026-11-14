@@ -47,7 +47,7 @@ test('entrada: só logo depois do login, antes do passeio, com a fala, Continuar
   const html = funcao(mundo, 'entradaHtml');
   // Direção 3 (quadro D3-Entrada): faixa laranja, linhas Agora/Depois/Em seguida, três números e a agenda do dia.
   assert.match(html, /class="d3-acao d3en-acao"/);
-  for (const q of ["lin('Agora'", "lin('Depois'", "lin('Em seguida'"]) assert.ok(html.includes(q), q);
+  for (const q of ["lin('Agora'", "lin('Depois'", "lin('Seguir'"]) assert.ok(html.includes(q), q);
   assert.match(html, /aria-label="Agenda do dia"/);
   assert.match(html, /<h2 id="v2en-cont-t">Continuar<\/h2>/);
   assert.match(html, /const cont = c \?/, 'sem nada guardado, o cartão não aparece');

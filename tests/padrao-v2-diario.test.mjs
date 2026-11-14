@@ -69,8 +69,9 @@ test('Diário: o bloco do Heitor, quatro números e "O que mudou" contam as peç
   assert.match(html, /<p class="v2d-dl">Hoje · /);
   assert.match(html, /class="v2-abre v2d-reg d3d-reg on" data-registro="2" aria-expanded="true"/, 'a linha do registro comparado vem aberta no lugar');
   assert.match(html, /<span class="d3d-c g"><b>1<\/b> Finalizado<\/span>/);
-  assert.match(html, /1 virou Finalizado: <span class="v2d-cli" style="--c:#6B665E">Cliente A<\/span> 1/);
-  assert.match(html, /1 voltou para Alteração/);
+  // Direção 3 (quadro D3-Diario): a linha aberta em grade de duas colunas, a contagem à esquerda e os clientes à direita.
+  assert.match(html, /<div class="d3d-grade"><b class="d3d-g-rot g">1 Finalizado<\/b><span class="d3d-g-cli"><span class="v2d-cli" style="--c:#6B665E">Cliente A<\/span> 1<\/span>/);
+  assert.match(html, /<b class="d3d-g-rot a">1 voltou<\/b><span class="d3d-g-cli"><span class="v2d-cli" style="--c:#6B665E">Cliente B<\/span> 1 · para Alteração<\/span>/);
   assert.match(html, /<span class="v2d-pill g">\+1 Finalizado<\/span>/);
   assert.match(html, /onclick="diarioComparar\(2\)">Comparar<\/button>/, 'comparar continua, dentro da linha que abre');
   assert.match(html, /onclick="abrirSnapshot\(2\)">Ver as peças<\/button>/);

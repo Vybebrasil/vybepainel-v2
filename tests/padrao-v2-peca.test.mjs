@@ -30,10 +30,13 @@ test('gaveta: a ordem do quadro (topo, título, bloco, abas, corpo, pé) e as qu
 
 test('gaveta: nada do que existia saiu; cada função continua numa aba ou no menu', () => {
   const desenho = trecho(gaveta, '  function renderWorkspaceDrawer(detail, item) {', 'async function openItemWorkspace(itemId) {');
-  for (const f of ['faixaDeMaterialBrutoHtml(detail, item)', 'subitensHtml(detail, item)', 'gavetaFichaResumoHtml(detail, item)', 'workspaceDeliveryDock(detail, item)',
+  for (const f of ['faixaDeMaterialBrutoHtml(detail, item, { compacta: true })', 'gavetaChecklistHtml(detail, item)','gavetaFichaResumoHtml(detail, item)', 'workspaceDeliveryDock(detail, item)',
     'workspaceRegistrosPendentesHtml()', 'workspaceExecutiveHistoryHtml(updates)', 'updates.map(workspaceTimelineEvent)', 'workspaceHistoryHtml(detail, item)', 'botaoDoLogHtml(item.id)',
     'saveWorkspaceComment()', 'saveWorkspaceLink()', 'openManualHandoff(', 'openPlanningEditor(', 'openStatusEditor(event,', 'renomearPeca(', 'copiarId(', 'uploadWorkspaceFile(this)', 'handleWorkspaceDrop(event)',
     'abrirBriefing(', 'editarBriefing(', 'menuDeAcoesDaPecaHtml(item, { linkELog: true })']) assert.ok((desenho + gaveta.slice(gaveta.indexOf('function gavetaLinkHtml'), gaveta.indexOf('  function renderWorkspaceDrawer'))).includes(f), f);
+  // Quadro D3-Gaveta: as subdemandas aparecem como "Checklist", pelo mesmo bloco de vybe-subitens.js.
+  const checklist = trecho(gaveta, 'function gavetaChecklistHtml', 'function gavetaFichaResumoHtml');
+  assert.ok(checklist.includes('subitensHtml(detail, item)') && checklist.includes('>Checklist'), 'o checklist é o bloco das subdemandas');
   const menu = trecho(gaveta, 'function menuDeAcoesDaPecaHtml', 'function fecharMenusDaGaveta');
   assert.match(menu, /<button type="button" role="menuitem" onclick="fecharMenusDaGaveta\(\);abrirLogDaPeca\('\$\{id\}'\)">Log de atividade<\/button>/, 'o log mora no menu, no computador e no celular');
   assert.ok(menu.includes("removerPeca('${id}')") && menu.includes('moverPecaDeBoard('), 'arquivar e mover continuam no menu');

@@ -167,7 +167,8 @@
   const util = { idsDe, clientesDe, disciplinaDaPeca, tipoDoStatus, perfis, melhorPara, sugerirDelegacoes, sugerirCobrancas, clientesConfirmadoSugestao, mudancas, foto, frasesDoDia };
 
   // ---------- estado (neste navegador) e leitura dos achados do Danilo ----------
-  const st = { confirmando: '', gravando: '', msg: {}, feitas: new Set(), achados: { lista: [], erro: '', em: 0, lendo: null }, cob: { lista: [], erro: '', em: 0, lendo: null, relogio: null, voltas: 0 }, conversa: { texto: '', fala: '', erro: '', enviando: false } };
+  // lote: "Confirmar N" (Direção 3) — pergunta (o OK do lote), rodando (i de n), resultado ({ ok, falhas, n }).
+  const st = { confirmando: '', gravando: '', msg: {}, feitas: new Set(), editando: false, lote: { pergunta: false, rodando: false, chaves: [], i: 0, n: 0, resultado: null }, achados: { lista: [], erro: '', em: 0, lendo: null }, cob: { lista: [], erro: '', em: 0, lendo: null, relogio: null, voltas: 0 }, conversa: { texto: '', fala: '', erro: '', enviando: false } };
   const hojeIso = () => (typeof G.hojeDeVerdade === 'function' ? G.hojeDeVerdade() : new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' }));
   const ler = (k, padrao) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? padrao; } catch { return padrao; } };
   const gravar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fica só nesta tela */ } };
@@ -236,12 +237,46 @@
     const falhou = envios.some((r) => r.estado === 'falhou');
     const acoes = conf ? `<span class="vcr-conf">${aprovar.confirmar}</span><button type="button" class="vc-acao" data-vcr-confirmar="${esc(chave)}" ${grav ? 'disabled' : ''}>${grav ? 'Gravando…' : 'Confirmar'}</button><button type="button" class="vc-sec" data-vcr-voltar ${grav ? 'disabled' : ''}>Voltar</button>`
       : envios.length && !grav ? (falhou ? `<button type="button" class="vc-acao" data-vcr-aprovar="${esc(chave)}">Tentar de novo</button><button type="button" class="vc-sec" data-vcr-copiar="${esc(chave)}" title="Para você mesmo mandar">Copiar</button>` : '<span class="vcr-feito">pedido</span>')
-      : `<button type="button" class="vc-acao${tipo === 'delegar' ? ' para' : ''}" data-vcr-aprovar="${esc(chave)}">${aprovar.rotulo}</button>${verAntes}<button type="button" class="vc-sec vcr-adiar" data-vcr-adiar="${esc(chave)}" title="${tipo === 'delegar' ? 'Deixar como está' : 'Agora não'}: some só hoje, neste navegador" aria-label="${tipo === 'delegar' ? 'Deixar como está' : 'Agora não'}">×</button>`;
+      : `<button type="button" class="vc-acao${tipo === 'delegar' ? ' para' : ''}" data-vcr-aprovar="${esc(chave)}"${st.lote.rodando ? ' disabled' : ''}>${aprovar.rotulo}</button>${st.editando ? `${verAntes}<button type="button" class="vc-sec vcr-adiar" data-vcr-adiar="${esc(chave)}" title="${tipo === 'delegar' ? 'Deixar como está' : 'Agora não'}: some só hoje, neste navegador" aria-label="${tipo === 'delegar' ? 'Deixar como está' : 'Agora não'}">×</button>` : ''}`;
     return `<li class="vcr-sug vcr-lin" data-vcr-tipo="${tipo}" title="${esc(String(titulo).replace(/<[^>]+>/g, '') + ' · ' + det)}"><span class="vcr-q ${tipo}">${tipo === 'delegar' ? 'Delegar' : 'Cobrar'}</span>
       <span class="vcr-lin-meio"><span class="vcr-lin-nome">${cliente ? cli(cliente) + ' · ' : ''}${esc(peca)}</span><small>${esc(det)}</small>${msgs}</span>${pill}${quem ? `<span class="vcr-quem"><i aria-hidden="true">${esc(String(quem).slice(0, 2).toUpperCase())}</i>${esc(quem)}</span>` : ''}
       <span class="vcr-sug-acoes">${acoes}</span></li>`;
   }
-  let ultimas = { delegacoes: [], cobrancas: [], foto: null };
+  let ultimas = { delegacoes: [], cobrancas: [], foto: null, prontas: [] };
+  // O pé da fila: a conta, Editar e o botão do lote, que conta o estado (Confirmar N → Confirmando i/N… → resultado).
+  function peLoteHtml({ cobrancas, delegacoes, prontas }) {
+    const L = st.lote, n = prontas.length;
+    const conta = `<span class="vcr-pe-conta" title="Cobrar manda no WhatsApp da pessoa e fica no histórico da peça.">${plural(cobrancas, 'cobrança', 'cobranças')} · ${plural(delegacoes, 'entrega', 'entregas')} · só com o seu OK</span>`;
+    const R = !L.rodando ? L.resultado : null;
+    const res = R?.falhas ? `<span class="vcr-lote-res erro" role="status">${R.ok} de ${R.n} feitas · ${plural(R.falhas, 'falhou', 'falharam')}</span>` : '';
+    if (L.pergunta && !L.rodando) {
+      const nd = L.chaves.filter((c) => c.startsWith('delegar')).length, nc = L.chaves.length - nd;
+      const frase = [nd ? `passar ${plural(nd, 'peça', 'peças')}` : '', nc ? `mandar ${plural(nc, 'cobrança', 'cobranças')} no WhatsApp` : ''].filter(Boolean).join(' e ');
+      return `<div class="vcr-nota vcr-pe vcr-lote" role="group" aria-label="Confirmar o lote"><span class="vcr-conf">${frase.charAt(0).toUpperCase() + frase.slice(1)}, uma por vez?</span>
+        <button type="button" class="vc-sec" data-vcr-lote-voltar>Voltar</button><button type="button" class="vc-acao v2-estado" data-vcr-lote-ok>Confirmar ${L.chaves.length}</button></div>`;
+    }
+    const feito = R && !R.falhas && !n;
+    const rotulo = L.rodando ? `<i class="vcr-gira" aria-hidden="true"></i>Confirmando ${L.i}/${L.n}…`
+      : feito ? `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Confirmado ${R.ok}` : `Confirmar ${n}`;
+    return `<div class="vcr-nota vcr-pe vcr-lote">${conta}${res}
+      <button type="button" class="vc-sec vcr-editar" data-vcr-editar aria-pressed="${st.editando}"${L.rodando ? ' disabled' : ''}>${st.editando ? 'Pronto' : 'Editar'}</button>
+      <button type="button" class="vc-acao v2-estado vcr-confirmar-lote${L.rodando ? ' rodando' : ''}" data-vcr-lote${feito ? ' data-estado="feito"' : ''}${!n || L.rodando || st.gravando ? ' disabled' : ''} aria-live="polite">${rotulo}</button></div>`;
+  }
+  // Confirmar N: as mesmas confirmações da linha (executar), uma por vez, na ordem da fila; o lote é o que estava na
+  // tela quando o Deivid deu o OK. Nada novo é gravado nem enviado além do que cada confirmação faz sozinha.
+  async function confirmarLote() {
+    const L = st.lote; if (L.rodando || st.gravando || !L.chaves.length) return;
+    const chaves = [...L.chaves];
+    Object.assign(L, { pergunta: false, rodando: true, i: 0, n: chaves.length, resultado: null });
+    let ok = 0;
+    for (const chave of chaves) {
+      L.i += 1; st.confirmando = chave; repintar();
+      if (await executar(chave)) ok += 1;
+    }
+    Object.assign(L, { rodando: false, chaves: [], fotos: null, resultado: { ok, falhas: chaves.length - ok, n: chaves.length } });
+    repintar();
+    return L.resultado;
+  }
   // Pergunta livre: a mesma rota do módulo VYBES (etapa=perguntar → /api/cosmos/sala na central, respondida pelo Qwen).
   function perguntaHtml() {
     const c = st.conversa;
@@ -302,9 +337,13 @@
     const lotados = lista.filter((p) => p.carga > p.limite);
     const semPara = lotados.filter((p) => !delegacoes.some((d) => d.de.id === p.id) && !lista.some((q) => q.disciplina === p.disciplina && q.id !== p.id && q.id !== deivid && q.carga < q.limite));
     const lotadosHtml = semPara.length ? `<p class="vcr-lotado"><b>Acima do limite sem ter para quem passar:</b> ${semPara.map((p) => `${esc(primeiro(p.nome))} (${p.carga} de ${p.limite})`).join(', ')}. Vale renegociar prazo com o head ou segurar peça nova.</p>` : '';
+    // Direção 3 (quadro D3-Criacao): o pé tem "Editar" (mostra Ver antes e tirar da fila em cada linha) e "Confirmar N",
+    // que faz o mesmo que N confirmações uma a uma (executar, em sequência) depois do OK do lote.
+    const prontas = [...delegacoes.map((s) => s.chave), ...cobrancas.filter((s) => { const e = daPeca(s); return !e.length || e.some((r) => r.estado === 'falhou'); }).map((s) => s.chave)];
+    ultimas.prontas = prontas;
     const sugestoes = `<section class="vs-bloco vcr-bloco vcr-fila" aria-label="Fila do Danilo"><div class="vs-bloco-cabeca"><span><i class="vcr-av" aria-hidden="true">D</i><b>Fila do Danilo</b><small>${delegacoes.length + cobrancas.length} · sugestão</small></span></div>
       ${lotadosHtml}${sugHtml ? `<ul class="vcr-sugs">${sugHtml}</ul>` : `<p class="vv-vazio">${lotados.length ? 'Nada parado com a data chegando.' : 'Nada para delegar nem cobrar agora: ninguém acima do limite e nada parado com a data chegando.'}</p>`}
-      <p class="vcr-nota vcr-pe" title="Cobrar manda no WhatsApp da pessoa e fica no histórico da peça.">${plural(cobrancas.length, 'cobrança', 'cobranças')} · ${plural(delegacoes.length, 'entrega', 'entregas')} · só com o seu OK</p></section>`;
+      ${peLoteHtml({ cobrancas: cobrancas.length, delegacoes: delegacoes.length, prontas })}</section>`;
     const clientes = clientesConfirmadoSugestao({ itens: ctx.itens, todas: ctx.todas, achados: st.achados.lista, hoje, finalizada: ctx.finalizada });
     const MAX = 8, cartao = (c) => `<li class="vcr-cli"><div class="vcr-cli-cab">${cli(c.cliente)}<small>${plural(c.confirmadas.length, 'demanda', 'demandas')} · ${plural(c.sugestoes.length, 'sugestão', 'sugestões')}</small></div>
         <div class="vcr-cli-col"><small class="vcr-rot confirmado">Demanda confirmada</small>${c.confirmadas.length ? c.confirmadas.slice(0, 3).map((p) => `<button type="button" class="vcr-peca" data-hoje-acao="peca" data-valor="${esc(p.id)}">${esc(p.nome)}</button>`).join('') + (c.confirmadas.length > 3 ? `<small>e mais ${c.confirmadas.length - 3}</small>` : '') : '<small>Nenhuma aberta com o time.</small>'}</div>
@@ -317,10 +356,13 @@
   }
 
   // ---------- aprovar e gravar (pelas funções do painel) ----------
+  // Devolve true quando a confirmação fez o que devia (o lote conta por aqui). No lote, a sugestão é a da hora do OK.
   async function executar(chave) {
-    const d = ultimas.delegacoes.find((s) => s.chave === chave), c = ultimas.cobrancas.find((s) => s.chave === chave);
+    const foto = st.lote.fotos?.[chave] || null;
+    const d = (foto && chave.startsWith('delegar:') ? foto : null) || ultimas.delegacoes.find((s) => s.chave === chave);
+    const c = (foto && chave.startsWith('cobrar:') ? foto : null) || ultimas.cobrancas.find((s) => s.chave === chave);
     const item = typeof G.findOperationalItem === 'function' ? G.findOperationalItem((d || c)?.id) : null;
-    if (!item) { st.msg[chave] = { erro: true, texto: 'A peça não está carregada agora. Abra as demandas e tente de novo.' }; st.confirmando = ''; repintar(); return; }
+    if (!item) { st.msg[chave] = { erro: true, texto: 'A peça não está carregada agora. Abra as demandas e tente de novo.' }; st.confirmando = ''; repintar(); return false; }
     st.gravando = chave; repintar();
     try {
       if (d) {
@@ -336,21 +378,32 @@
         const resp = await r.json().catch(() => ({}));
         if (!r.ok || !Array.isArray(resp.cobrancas)) throw new Error(resp.error || 'o painel não registrou o pedido de envio');
         // A mesma cobrança já estava na fila (o servidor não manda de novo): avisa e não grava outra nota no histórico.
-        if (resp.repetida) { st.msg[chave] = { erro: false, texto: 'Essa cobrança já tinha sido pedida e ainda está na fila do WhatsApp.' }; st.confirmando = ''; st.gravando = ''; repintar(); return; }
+        if (resp.repetida) { st.msg[chave] = { erro: false, texto: 'Essa cobrança já tinha sido pedida e ainda está na fila do WhatsApp.' }; st.confirmando = ''; st.gravando = ''; repintar(); return true; }
         const ids = new Set(resp.cobrancas.map((x) => x.id));
         st.cob.lista = [...resp.cobrancas, ...st.cob.lista.filter((x) => !ids.has(x.id))]; st.cob.voltas = 0; vigiarCobrancas();
         const agentes = [...new Set(resp.cobrancas.map((x) => x.agente))].join(' e ');
         const ok = typeof G.postItemUpdate === 'function' && await G.postItemUpdate(item.id, `[Vybe OS · Cobrança da Direção de Arte]\nPara: ${c.quem.join(', ')}\nO quê: ${c.oque} (${c.quando})\nPor quê: ${c.por}\nComo destravar: ${c.destravar}\nEnvio: pedido ao VYBES pelo WhatsApp (${agentes})`);
-        if (!ok) { st.msg[chave] = { erro: true, texto: 'O pedido de envio foi registrado, mas a nota no histórico da peça não gravou.' }; return; }
+        if (!ok) { st.msg[chave] = { erro: true, texto: 'O pedido de envio foi registrado, mas a nota no histórico da peça não gravou.' }; return false; }
         G.showToast?.(`Cobrança pedida: ${agentes} manda no WhatsApp.`, 'ok', 4200);
       }
       if (d) st.feitas.add(chave); delete st.msg[chave];
-    } catch (e) { st.msg[chave] = { erro: true, texto: d ? `Não gravou: ${e?.message || 'tente de novo'}. A peça continua como estava.` : `A cobrança não saiu: ${e?.message || 'tente de novo'}. Nada foi enviado.` }; }
+      return true;
+    } catch (e) { st.msg[chave] = { erro: true, texto: d ? `Não gravou: ${e?.message || 'tente de novo'}. A peça continua como estava.` : `A cobrança não saiu: ${e?.message || 'tente de novo'}. Nada foi enviado.` }; return false; }
     finally { st.gravando = ''; st.confirmando = ''; repintar(); }
   }
   document.addEventListener('click', (e) => {
-    const b = e.target.closest?.('[data-vcr-reperguntar],[data-vcr-copiar],[data-vcr-aprovar],[data-vcr-confirmar],[data-vcr-voltar],[data-vcr-adiar],[data-vcr-ver],[data-vcr-visto],[data-vcr-achado]'); if (!b) return;
+    const b = e.target.closest?.('[data-vcr-reperguntar],[data-vcr-copiar],[data-vcr-aprovar],[data-vcr-confirmar],[data-vcr-voltar],[data-vcr-adiar],[data-vcr-ver],[data-vcr-visto],[data-vcr-achado],[data-vcr-lote],[data-vcr-lote-ok],[data-vcr-lote-voltar],[data-vcr-editar]'); if (!b) return;
     if (b.hasAttribute('data-vcr-reperguntar')) { perguntar(st.conversa.texto); return; }
+    // Lote: o 1º clique em "Confirmar N" só pergunta (guarda as sugestões da tela); o OK roda as N, uma por vez.
+    if (b.hasAttribute('data-vcr-lote')) {
+      if (st.lote.rodando || st.gravando || !ultimas.prontas.length) return;
+      const chaves = [...ultimas.prontas];
+      const fotos = Object.fromEntries(chaves.map((k) => [k, ultimas.delegacoes.find((s) => s.chave === k) || ultimas.cobrancas.find((s) => s.chave === k)]));
+      Object.assign(st.lote, { pergunta: true, chaves, fotos, resultado: null }); st.confirmando = ''; repintar(); return;
+    }
+    if (b.hasAttribute('data-vcr-lote-ok')) { confirmarLote(); return; }
+    if (b.hasAttribute('data-vcr-lote-voltar')) { Object.assign(st.lote, { pergunta: false, chaves: [], fotos: null }); repintar(); return; }
+    if (b.hasAttribute('data-vcr-editar')) { if (!st.lote.rodando) { st.editando = !st.editando; repintar(); } return; }
     if (b.dataset.vcrCopiar) {
       // Saída para quando o bot não conseguiu: a mesma mensagem, para o Deivid mandar ele mesmo.
       const s = ultimas.cobrancas.find((x) => x.chave === b.dataset.vcrCopiar), txt = (s ? daPeca(s).filter((r) => r.estado === 'falhou').map((r) => r.texto) : []).join('\n\n') || s?.mensagem || '';

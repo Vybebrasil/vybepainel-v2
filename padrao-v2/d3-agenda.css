@@ -96,6 +96,20 @@
 #pv2-agenda .d3ag-lado-lin .pv2-cli[data-carteira="ewerton"]{color:var(--d3-cart-ewerton)}
 #pv2-agenda .d3ag-lado-lin > b.a{color:var(--d3-ajuste)}
 #pv2-agenda .d3ag-lado-lin.mais{grid-template-columns:1fr;color:var(--d3-apagado);font-weight:600}
+/* Agentes viram: a bolinha lilás do agente, o que ele notou e o dia */
+#pv2-agenda .d3ag-lado-lin.d3ag-viu{grid-template-columns:24px minmax(0,1fr) auto}
+#pv2-agenda .d3ag-viu-av{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-agente);color:#FFFFFF;font:700 11px var(--vv-texto,Inter),sans-serif}
+#pv2-agenda .d3ag-viu-txt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pv2-agenda .d3ag-viu-txt .pv2-cli{display:inline;font-weight:700}
+/* O ⋯ de "Na ordem de fazer": busca, Dia, Anterior, Hoje, Próxima e os filtros (o quadro não tem a linha de busca) */
+#pv2-agenda .d3ag-cab > .d3ag-cab-dir{display:inline-flex;align-items:center;gap:8px}
+#pv2-agenda .d3ag-ferr{position:relative}
+#pv2-agenda .d3ag-ferr > .d3ag-ferr-btn{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-trilho);color:var(--d3-tinta);font:700 14px/1 var(--vv-texto,Inter),sans-serif;list-style:none;cursor:pointer}
+#pv2-agenda .d3ag-ferr > .d3ag-ferr-btn::-webkit-details-marker{display:none}
+#pv2-agenda .d3ag-ferr > .d3ag-ferr-btn.tem{background:var(--d3-tinta);color:#FFFFFF}
+#pv2-agenda .d3ag-ferr > .pv2-pop{right:0;left:auto;width:min(320px,86vw);gap:8px}
+#pv2-agenda .d3ag-ferr .pv2-pop-linha{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#pv2-agenda .d3ag-ferr .pv2-busca{flex:none;width:100%;height:38px;box-sizing:border-box}
 
 /* Agenda no celular: dois números por linha, a semana em sete colunas curtas e a linha em duas */
 @media (max-width:900px){
@@ -125,6 +139,9 @@
 #vv-planejamentos .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:17px}
 #vv-planejamentos .p2-menu > .p2-btn.d3pl-novo{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
 #vv-planejamentos .p2-menu > .p2-btn.d3pl-novo:hover{background:var(--d3-trilho)}
+/* o mês é um segmento com os meses (Direção 3): o escolhido fica escuro, como no quadro */
+#vv-planejamentos .p2-seg[aria-label="Mês"]{background:var(--d3-cartao)}
+#vv-planejamentos .p2-seg[aria-label="Mês"] > button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
 #vv-planejamentos .d3pl-nums{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;min-width:0}
 #vv-planejamentos .d3pl-nums > .d3-num{appearance:none;border:0;margin:0;text-align:left;color:var(--d3-tinta);font-family:inherit}
 #vv-planejamentos .d3pl-nums > button.d3-num{cursor:pointer}
@@ -209,7 +226,31 @@
 #vv-impressoes .p2-lin.vi2-tab > .vi2-passo{display:flex;justify-content:flex-end}
 #vv-impressoes .vi2-linhas > .vi2-pe{padding:0 18px}
 #vv-impressoes .vi2-item > .v2-mais .vi-ficha{margin:0 18px 12px}
+/* Direção 3: "Nestor pede" sempre à esquerda, num cartão branco; a tabela à direita; busca e fichas numa linha só. */
+#vv-impressoes .vi2-duas.d3im-duas{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);align-items:stretch;gap:14px}
+#vv-impressoes .p2-card.vi2-pede.d3im-pede{width:auto;max-width:none;display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:var(--d3-r-cartao);box-shadow:none;overflow:hidden}
+#vv-impressoes .d3im-pede-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#vv-impressoes .d3im-pede-topo > span:first-child{display:inline-flex;align-items:center;gap:8px}
+#vv-impressoes .d3im-pede-topo .p2-h{font-size:15px}
+#vv-impressoes .d3im-pede-vazio{margin:0;padding:18px 14px;border-radius:16px;background:#F9F8F5;font:400 13px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-impressoes .d3im-pede .vi2-baralho.vi2-baralho{width:auto;max-width:none;height:290px;margin-right:30px}
+#vv-impressoes .d3im-pede .vi2-decide.vi2-decide{width:auto}
+#vv-impressoes .d3im-pede .vi2-decide > .d3im-agora,#vv-impressoes .d3im-pede .vi2-decide > .k{flex:1}
+#vv-impressoes .d3im-pede .vi2-decide > :is(.d3im-agora,.d3im-seta){background:var(--d3-trilho);box-shadow:none}
+#vv-impressoes .d3im-pede .vi2-decide > .d3im-seta{width:36px;height:36px;padding:0;font-size:16px}
+#vv-impressoes .d3im-pede .vi2-deck-lista.vi2-deck-lista{width:auto}
+#vv-impressoes .d3im-pede > .d3im-ver{margin-top:auto;align-self:flex-start}
+#vv-impressoes .vi2-lista > .p2-filtros.d3im-filtros{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
+#vv-impressoes .d3im-filtros > .p2-busca{flex:1 1 160px;min-width:0}
+#vv-impressoes .d3im-filtros > .p2-chip{flex:none}
+#vv-impressoes .vi2-cab,#vv-impressoes .vi2-duas .p2-lin.vi2-tab{grid-template-columns:minmax(0,1fr) 108px 112px 80px 128px}
+@media (max-width:1240px){
+  #vv-impressoes .vi2-duas.d3im-duas{grid-template-columns:minmax(0,1fr)}
+}
 @media (max-width:900px){
+  #vv-impressoes .vi2-lista > .p2-filtros.d3im-filtros{flex-wrap:wrap}
+  #vv-impressoes .d3im-filtros > .p2-busca{flex-basis:100%}
+  #vv-impressoes .vi2-duas .p2-lin.vi2-tab{grid-template-columns:minmax(0,1fr) auto}
   #vv-impressoes .d3im-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
   #vv-impressoes .vi2-cab{display:none}
   #vv-impressoes .p2-lin.vi2-tab{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}
@@ -232,6 +273,26 @@
 #vv-pessoas .v2p-proj .v2p-card.v2pj-card,#vv-pessoas .v2p-proj .v2p-card.v2pj-pag{border-radius:var(--d3-r-cartao);box-shadow:none}
 #vv-pessoas .v2p-proj .v2p-card.v2pj-card[aria-pressed="true"]{box-shadow:0 0 0 2px var(--d3-tinta)}
 #vv-pessoas .v2p-proj .v2pj-prog > .v2-barra > i{background:var(--d3-tinta)}
+/* Direção 3: título com o percentual à direita e a linha do tempo com os marcos (pontos) no lugar da barra. */
+#vv-pessoas .v2p-proj .d3pj-tit-linha{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;min-width:0}
+#vv-pessoas .v2p-proj .d3pj-tit-linha > span:first-child{min-width:0}
+#vv-pessoas .v2p-proj .d3pj-pct{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+#vv-pessoas .v2p-proj .d3pj-pct > b{font:700 26px/1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:var(--d3-tinta);letter-spacing:-.01em}
+#vv-pessoas .v2p-proj .d3pj-marcos{display:flex;flex-direction:column;gap:8px;padding:10px 12px 4px}
+#vv-pessoas .v2p-proj .d3pj-trilho{position:relative;height:22px}
+#vv-pessoas .v2p-proj .d3pj-trilho::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;border-radius:1px;background:var(--d3-linha)}
+#vv-pessoas .v2p-proj .d3pj-feito{position:absolute;left:0;top:9px;height:4px;width:var(--x);border-radius:2px;background:var(--d3-tinta);animation:d3BarraCresce .9s var(--vv-suave,cubic-bezier(.22,1,.36,1)) both}
+#vv-pessoas .v2p-proj .d3pj-ponto{position:absolute;left:var(--x);top:11px;width:10px;height:10px;box-sizing:border-box;border:2px solid var(--d3-borda);border-radius:50%;background:var(--d3-cartao);transform:translate(-50%,-50%)}
+#vv-pessoas .v2p-proj .d3pj-ponto.ok{border-color:var(--d3-tinta);background:var(--d3-tinta)}
+#vv-pessoas .v2p-proj .d3pj-ponto.at{width:18px;height:18px;border:3px solid var(--d3-tinta);background:var(--d3-cartao)}
+#vv-pessoas .v2p-proj .d3pj-ponto.venc{border-color:var(--d3-perigo);background:var(--d3-perigo)}
+#vv-pessoas .v2p-proj .d3pj-hoje{position:absolute;left:var(--x);top:0;bottom:0;border-left:2px dotted var(--d3-ajuste)}
+#vv-pessoas .v2p-proj .d3pj-datas{position:relative;height:14px;font:400 11.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-pessoas .v2p-proj .d3pj-datas > span{position:absolute;left:var(--x);transform:translateX(-50%);white-space:nowrap}
+#vv-pessoas .v2p-proj .d3pj-datas > span:first-child{transform:none}
+#vv-pessoas .v2p-proj .d3pj-datas > span:last-child:not(:first-child){transform:translateX(-100%)}
+#vv-pessoas .v2p-proj .d3pj-datas > span.hoje{color:var(--d3-ajuste);font-weight:600}
+@media (prefers-reduced-motion:reduce){#vv-pessoas .v2p-proj .d3pj-feito{animation:none}}
 @media (max-width:900px){
   #vv-pessoas .v2p-proj .d3pj-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -259,6 +320,7 @@
 #vv-ferramentas .p2-card.vf2-fer,#vv-ferramentas .p2-card.vf2-rec{border-radius:var(--d3-r-cartao);box-shadow:none}
 #vv-ferramentas .vf2-fer .vf2-mais{color:var(--d3-tinta);text-decoration:underline;text-underline-offset:2px}
 #vv-ferramentas .vf2-fer .vf2-ico{background:var(--d3-trilho);color:var(--d3-tinta)}
+#vv-ferramentas .p2-card.vf2-rec.d3tk-vazio{display:flex;align-items:flex-start;justify-content:center;min-height:56px;padding:12px 18px;text-align:left}
 
 /* No celular o bloco de ação quebra: a frase inteira em cima e o botão embaixo, alinhado ao texto. */
 @media (max-width:700px){

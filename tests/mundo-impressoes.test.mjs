@@ -67,8 +67,8 @@ test('servidor #549: histórico inteiro, gráficas sugeridas com motivo, cotaç�
   const base = DADOS({ fornecedores: forn, ranking: rk });
   base.impressoes[0] = { ...base.impressoes[0], sugestao: rk, cotacoes: [{ id: 'c1', fornecedor_id: '3', fornecedor_nome: 'Emballar', valor: 180, prazo_dias: 5, escolhida: false }] };
   const t = await montar({ ...base, gestao: true });
-  // Padrão v2: a cotação que espera escolha e a gráfica sugerida vêm no baralho de "Pede ação"; o ranking fica em Filtros.
-  assert.match(t.html(), /Pede ação/); assert.match(t.html(), /Fechar Adesivo com a Emballar por R\$\s180,00/);
+  // Padrão v2: a cotação que espera escolha e a gráfica sugerida vêm no baralho de "Nestor pede"; o ranking fica no ⋯ da linha de filtros.
+  assert.match(t.html(), /Nestor pede/); assert.match(t.html(), /Fechar Adesivo com a Emballar por R\$\s180,00/);
   assert.match(t.html(), /data-vi="filtros"/); assert.match(fonteDe(), /\$\{porFornecedor\(\)\}<\/div>` : ''/, 'o ranking das gráficas abre em Filtros');
   assert.match(t.html(), /data-vi="todas"/);
   const fonte = fonteDe();

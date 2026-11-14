@@ -1174,7 +1174,42 @@ window.fcPreviaDoCriar = function(board) {
           <input type="date" id="fc-prazo" class="nd-prazo" data-item="${n}" data-campo="prazo" value="${esc(it.prazo)}" title="Prazo de entrega interno · clique para mudar" oninput="fcItemCampo(${n},'prazo',this.value)"></label>
         <div class="nd-trilho"><i class="ar"></i><span>${demanda ? 'Entrega ao cliente' : 'No ar'}</span><b id="fc-no-ar">${esc(curto(it.veic))}</b></div>
       </div>
+      <div class="nd-semana" id="fc-semana">${fcSemanaHtml(it)}</div>
       `;
+  }
+
+  // Direção 3 (quadro D3-NovaDemanda): "Semana de dd/mm", as peças marcadas em cada dia da semana da data escolhida
+  // contra a régua do cadastro (server/planejamentos.js, REGUA_CADASTRO: 6 peças por pessoa no dia, ou 4 vídeos).
+  // Conta as peças abertas carregadas (unifiedOperationalItems) de quem vai fazer, pela data do cliente, mais as que
+  // este cadastro vai criar; sem responsável, conta a agência inteira e fica sem régua. O ponto é o dia escolhido.
+  const FC_REGUA = { pecas: 6, videos: 4 };
+  function fcSemanaDados(it, { itens = null, equipe = null, formato = null, novos = null } = {}) {
+    const data = String(it?.veic || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return null;
+    const meio = new Date(`${data}T12:00:00`), dow = meio.getDay();
+    const seg = getOffsetDate(data, dow === 0 ? -6 : 1 - dow);
+    const dias = Array.from({ length: dow === 0 ? 7 : 6 }, (_, i) => getOffsetDate(seg, i));
+    const video = /reels|v[ií]deo/i.test(String(formato ?? state.format ?? ''));
+    const pessoas = (equipe ?? fcEquipeFinal(fcRegraDoFormato().dest)).map(String);
+    const fonte = itens ?? (typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : (typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []));
+    const fim = (d) => (typeof isFinishedItem === 'function' ? isFinishedItem(d) : /finalizad/i.test(String(d?.status || '')));
+    const ehVideo = (d) => /reels|v[ií]deo/i.test(String(d?.formato || d?.tipo || ''));
+    const ids = (d) => [...(Array.isArray(d?.responsavel_ids) ? d.responsavel_ids : []), d?.responsavel_id].filter((x) => x != null && x !== '').map(String);
+    const conta = (d) => !fim(d) && (!video || ehVideo(d)) && (!pessoas.length || ids(d).some((id) => pessoas.includes(id)));
+    const valores = dias.map((dia) => (fonte || []).filter((d) => String(d?.veiculacao_iso || '').slice(0, 10) === dia && conta(d)).length
+      + (novos ?? state.itens).filter((x) => x?.veic === dia).length);
+    const regua = pessoas.length ? (video ? FC_REGUA.videos : FC_REGUA.pecas) * pessoas.length : null;
+    return { seg, dias, valores, regua, ponto: dias.indexOf(data), video };
+  }
+  function fcSemanaHtml(it) {
+    const s = fcSemanaDados(it);
+    if (!s || typeof d3LinhaSvg !== 'function') return '';
+    const nome = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    const dm = `${s.seg.slice(8, 10)}/${s.seg.slice(5, 7)}`;
+    const rot = `${s.video ? 'Vídeos' : 'Peças'} por dia na semana de ${dm}${s.regua != null ? `, com a régua de ${s.regua}` : ''}`;
+    return `<p class="nd-rot">Semana de ${dm}</p>`
+      + d3LinhaSvg(s.valores, { meta: s.regua, largura: 300, altura: 70, rotulo: rot, ponto: s.ponto, desdeZero: true })
+      + `<div class="nd-semana-dias" aria-hidden="true">${s.dias.map((d, i) => (i === s.ponto ? `<b>${nome[new Date(`${d}T12:00:00`).getDay()]}</b>` : `<span>${nome[new Date(`${d}T12:00:00`).getDay()]}</span>`)).join('')}</div>`;
   }
 
   // Mais campos: objetivo, arquivo, grupo e status de entrada, e as ferramentas de lote (o briefing fica no O quê).
@@ -1266,6 +1301,8 @@ window.fcPreviaDoCriar = function(board) {
     const it = state.itens[fcItemAtivo()];
     const alvo = document.getElementById('fc-no-ar');
     if (alvo && it) alvo.textContent = it.veic ? fcDiaCurto(it.veic).toLowerCase() : 'sem data';
+    const semana = document.getElementById('fc-semana');
+    if (semana && it) semana.innerHTML = fcSemanaHtml(it);
   };
   window.fcAlternarMais = function(abrir) {
     state.maisAberto = abrir === undefined ? !state.maisAberto : Boolean(abrir);

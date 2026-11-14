@@ -153,6 +153,23 @@
     filtro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
   };
   const SELO = `<span class="d3-selo-donos">${IC.cadeado}só donos</span>`;
+  // Rodapé "Sócios avisados" dos quadros D3 (Visão geral, Recebimentos e Inadimplência): as iniciais de quem avisou ou foi
+  // avisado nos últimos 30 dias, pelo registro de avisos (vybe_financeiro_avisos, desde 14/11/2026). O aviso é só registro
+  // interno e o sino do Vybe OS: nada sai por WhatsApp. Sem a tabela ainda, o vazio honesto.
+  const iniciais = (nome) => String(nome || '?').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().slice(0, 2).toUpperCase();
+  function sociosAvisados(av) {
+    if (!av?.disponivel) return '<span class="d3f-socios"><span class="fv2-sub">Sócios avisados</span><span class="d3f-vazio">sem registro ainda</span></span>';
+    const desde = new Date(Date.now() - 30 * 864e5).toISOString(), recentes = (av.lista || []).filter((a) => String(a.em || '') >= desde);
+    const nomes = [...new Set(recentes.flatMap((a) => [a.quem_nome, ...(a.para || [])]).filter(Boolean))];
+    return `<span class="d3f-socios"><span class="fv2-sub">Sócios avisados</span>${nomes.length ? nomes.map((n) => `<span class="d3f-av" title="${esc(n)}">${esc(iniciais(n))}</span>`).join('')
+      : '<span class="d3f-vazio">nenhum aviso em 30 dias</span>'}</span>`;
+  }
+  // Os avisos de um cliente (do mais novo para o mais velho) e o botão "Avisar o sócio" / "Avisar de novo".
+  const chaveAviso = (c) => (c.cliente_id != null && c.cliente_id !== '' ? 'id:' + c.cliente_id : 'nome:' + c.cliente_nome);
+  const avisosDe = (av, c) => (av?.lista || []).filter((a) => (a.cliente_id ? 'id:' + a.cliente_id : 'nome:' + a.cliente_nome) === chaveAviso(c));
+  const nAvisos = (av, c) => Number(av?.contagem_por_cliente?.[chaveAviso(c)]) || avisosDe(av, c).length;
+  const botaoAvisar = (av, c) => (!av?.disponivel ? '' : `<button type="button" class="fv2-btn s v2-estado" data-fv="avisar" data-cliente-id="${esc(c.cliente_id ?? '')}" data-cliente-nome="${esc(c.cliente_nome)}" data-atraso="${Number(c.atraso_mais_antigo ?? c.atraso) || 0}">${nAvisos(av, c) ? 'Avisar de novo' : 'Avisar o sócio'}</button>`);
+  const historicoAvisos = (av, c) => avisosDe(av, c).slice(0, 4).map((a) => `${esc(String(a.quem_nome || 'Um dono').split(' ')[0])} avisou ${a.para?.length ? esc(a.para.map((n) => String(n).split(' ')[0]).join(', ')) : 'os sócios'} em ${curta(String(a.em).slice(0, 10))} · régua de ${a.nivel} dias`);
   // Pílula: clara com a bolinha (n, b) ou cheia de cor só no que pede (r venceu, a ajuste, g pago/recebido).
   const pilula = (texto, tom = 'n') => `<span class="fv2-pill ${tom}">${esc(texto)}</span>`;
   // O cliente com a bolinha na cor da carteira dele.
@@ -261,6 +278,14 @@
   // ----- Faturas (Recebimentos e Inadimplência) -----
   const oQueE = (x) => (x.tipo === 'recorrente' ? `${x.ciclo && x.ciclo !== 'mensal' ? 'parcela ' + x.ciclo : 'mensalidade'} de ${mesDe(x.vencimento)}` : String(x.descricao || 'recebimento pontual'));
   const tipoFatura = (x) => (x.tipo === 'recorrente' ? (x.ciclo && x.ciclo !== 'mensal' ? maiuscula(x.ciclo) : 'Recorrente') : maiuscula(x.categoria || 'Pontual'));
+  // Colunas "Contrato" e "Forma" do quadro D3-Recebimentos: o contrato é a categoria lançada (Redes, Tráfego) e, sem ela,
+  // o tipo; a forma de pagamento só vem das faturas que a trazem (as importadas do Vybe Finanças), senão o traço curto.
+  const contratoFatura = (x) => String(x.categoria || '').trim() || tipoFatura(x);
+  const FORMA_NOME = { pix: 'Pix', boleto: 'Boleto', cartao: 'Cartão', transferencia: 'Transferência' };
+  const formaFatura = (x) => { const f = String(x.forma_pagamento || x.forma || '').trim(); return FORMA_NOME[f] || f || '–'; };
+  // A forma de pagamento se escolhe no detalhe (vybe_comercial_recebivel_forma; vale também para a fatura do Finanças).
+  const trocarForma = (x) => (x.cancelado ? '' : `<span class="fv2-seg d3f-formas" role="group" aria-label="Forma de pagamento">${Object.entries(FORMA_NOME).map(([k, n]) =>
+    `<button type="button" data-fv="forma" data-id="${esc(x.id)}" data-valor="${x.forma === k ? '' : k}" aria-pressed="${x.forma === k}">${esc(n)}</button>`).join('')}</span>`);
   const quemFatura = (x, comMes = true) => (x.cliente_nome ? `${cli(x.cliente_nome)}${comMes ? ` · ${esc(x.tipo === 'recorrente' ? mesDe(x.vencimento) : x.descricao || 'pontual')}` : ''}` : `<b>${esc(x.descricao || 'Recebimento')}</b>`);
   function statusFatura(x, hoje) {
     if (x.cancelado) return pilula('Cancelada', 'n');
@@ -285,7 +310,8 @@
       ${dentro && x.tipo === 'recorrente' ? `<button type="button" class="fv2-btn s" data-vc="proximo" data-id="${esc(x.id)}">Próximo ciclo</button>` : ''}
       ${dentro ? `<button type="button" class="fv2-btn s" data-vc="recebivel" data-id="${esc(x.id)}">Editar</button><button type="button" class="fv2-btn s fv2-perigo" data-vc="cancelar-rec" data-id="${esc(x.id)}">Cancelar</button>`
         : `<button type="button" class="fv2-btn s" data-vc-mes-ir="${String(x.vencimento).slice(0, 7)}">Ver em ${esc(mesDe(x.vencimento))}</button>`}`;
-    return `${linhas}${acoes ? `<div class="fv2-det-acoes">${acoes}</div>` : ''}`;
+    const forma = comForm && dentro ? trocarForma(x) : '';
+    return `${linhas}${acoes || forma ? `<div class="fv2-det-acoes">${forma}${acoes}</div>` : ''}`;
   }
   const botaoRecebi = (x) => (doFin(x.id) ? '<small class="fv2-sub fv2-so-la">baixa no Vybe Finanças</small>' : umToque('receber', x.id, 'Recebi', ` data-total="${Number(x.valor) || 0}"`));
   const linhaAtrasada = (tela, x, opc) => linha({ tela, id: 'a' + x.id, pill: pilula(quantos(x.atraso, 'dia', 'dias'), 'r'),
@@ -321,7 +347,7 @@
     const pedem = atrasadas.filter(bate), cabeA = u.acaoInteira || termo ? pedem : pedem.slice(0, 4);
     const acaoCard = cartao({ titulo: 'Pede ação', rotulo: 'acao', cls: 'd3f-pede', sub: atrasadas.length ? `${n0(atrasadas.length)} em atraso` : 'nada em atraso',
       corpo: cabeA.map((x) => linhaAtrasada('rec', x, { dentro: ids.has(String(x.id)) })).join('') || `<p class="fv2-nada">${termo && atrasadas.length ? 'Nenhuma em atraso com esse texto.' : 'Nenhuma fatura em atraso.'}</p>`,
-      pe: maisHtml(pedem.length - cabeA.length, 'em atraso', 'mostrar-acao', 'rec', soma(pedem.slice(cabeA.length), 'aberto')) });
+      pe: maisHtml(pedem.length - cabeA.length, 'em atraso', 'mostrar-acao', 'rec', soma(pedem.slice(cabeA.length), 'aberto')) + (atrasadas.length ? sociosAvisados(d.avisos || jaLida('inadimplencia', () => anfitriao?.repintar?.())?.avisos) : '') });
     // A lista do período, uma linha por fatura. Em "Todas", as em atraso já estão no Pede ação.
     const ordem = (x) => (x.cancelado ? 4 : x.status === 'recebido' ? 3 : emAtraso(x) ? 2 : 1);
     const base = (u.extra ? grupo[u.extra] : u.chip === 'todas' ? vivas.filter((x) => !emAtraso(x)) : grupo[u.chip] || vivas).filter(bate)
@@ -329,9 +355,9 @@
     const cabe = u.inteira || termo ? base : base.slice(0, 8), resto = base.slice(cabe.length), soRecebidas = resto.every((x) => x.status === 'recebido');
     const mesPer = per.tipo === 'anual' ? '' : (/^\d{4}-\d{2}$/.test(per.mes || '') ? per.mes : hoje.slice(0, 7));
     const lista = cartao({ titulo: 'Faturas', rotulo: 'lista', cls: 'd3f-tabela', sub: esc(rot),
-      cab: cabe.length ? cabeca([['fv2-txt', 'Cliente'], ['d3f-meio', 'Tipo'], ['fv2-valor', 'Valor'], ['d3f-dir', 'Situação']]) : '',
+      cab: cabe.length ? cabeca([['fv2-txt', 'Cliente'], ['d3f-meio', 'Contrato'], ['d3f-meio d3f-forma', 'Forma'], ['fv2-valor', 'Valor'], ['d3f-dir', 'Situação']]) : '',
       corpo: cabe.map((x) => linha({ tela: 'rec', id: x.id, texto: `${quemFatura(x, false)}${x.cliente_nome && mesPer && String(x.vencimento).slice(0, 7) !== mesPer ? ` <span class="d3f-mes">· ${esc(mes3(x.vencimento))}</span>` : ''}`,
-        meio: `<span class="d3f-meio">${esc(tipoFatura(x))}</span>`, valor: rs(x.valor), dir: statusFatura(x, hoje), detalhe: detalheFatura(x) })).join('')
+        meio: `<span class="d3f-meio" title="${esc(tipoFatura(x))}">${esc(contratoFatura(x))}</span><span class="d3f-meio d3f-forma">${esc(formaFatura(x))}</span>`, valor: rs(x.valor), dir: statusFatura(x, hoje), detalhe: detalheFatura(x) })).join('')
         || `<p class="fv2-nada">${!vivas.length ? 'Nenhum recebimento neste período.' : termo ? 'Nenhuma fatura com esse texto neste filtro.' : 'Nenhuma fatura neste filtro.'}</p>`,
       pe: maisHtml(resto.length, soRecebidas ? (resto.length === 1 ? 'recebida' : 'recebidas') : '', 'mostrar', 'rec', soma(resto, 'valor')) });
     const semNada = !todas.length && !atrasadas.length;
@@ -448,9 +474,13 @@
     const clientes = [...((real ? real.clientes : d.clientes) || [])].sort((x, z) => z.atraso_mais_antigo - x.atraso_mais_antigo), faturas = d.faturas || [];
     const total = Number(real ? real.total : d.total) || 0, nFat = Number(real ? real.faturas : faturas.length) || soma(clientes, 'faturas'), criticos = clientes.filter((c) => c.atraso_mais_antigo > 30);
     const antigo = clientes[0], termo = semAcento(ctx.filtro?.inad), bate = (c) => !termo || semAcento(c.cliente_nome).includes(termo);
-    const faixa = { todos: () => true, ate7: (c) => c.atraso_mais_antigo <= 7, de8a30: (c) => c.atraso_mais_antigo > 7 && c.atraso_mais_antigo <= 30, criticos: (c) => c.atraso_mais_antigo > 30 };
+    const faixa = { todos: () => true, ate7: (c) => c.atraso_mais_antigo <= 7, de8a30: (c) => c.atraso_mais_antigo > 7 && c.atraso_mais_antigo <= 30, criticos: (c) => c.atraso_mais_antigo > 30,
+      semaviso: (c) => Boolean(d.avisos?.disponivel) && !nAvisos(d.avisos, c) };
     const marcados = d.marcados_a_mao || [], semPar = real ? clientes.filter((c) => c.no_vybe === false && (c.cliente_id || c.cliente_nome !== 'Sem cliente')) : [];
+    const av = d.avisos, semAviso = av?.disponivel ? clientes.filter((c) => !nAvisos(av, c)) : [];
+    const semAvisoJa = av?.disponivel ? clientes.filter((c) => c.atraso_mais_antigo >= 3 && !nAvisos(av, c)).sort((x, z) => x.atraso_mais_antigo - z.atraso_mais_antigo)[0] : null;
     const frase = !clientes.length ? 'Ninguém em atraso.'
+      : semAvisoJa ? `${esc(semAvisoJa.cliente_nome)} atrasou ${quantos(semAvisoJa.atraso_mais_antigo, 'dia', 'dias')} e ninguém avisou o sócio.`
       : `${quantos(clientes.length, 'cliente', 'clientes')} em atraso; ${esc(antigo.cliente_nome)} há ${quantos(antigo.atraso_mais_antigo, 'dia', 'dias')}.${criticos.length ? ` ${quantos(criticos.length, 'passou', 'passaram')} de 30.` : ''}`;
     const numeros = nums([
       { rotulo: 'Em atraso', valor: mil(total), tom: total ? 'r' : 'q', sub: clientes.length ? `${quantos(nFat, 'fatura', 'faturas')} · ${quantos(clientes.length, 'cliente', 'clientes')}` : 'nada em atraso', attrs: real ? 'data-espiar="financas:comercial:inad"' : '' },
@@ -459,20 +489,21 @@
       { rotulo: 'Críticos · +30 dias', valor: n0(criticos.length), tom: criticos.length ? 'r' : 'g', attrs: real ? '' : 'data-espiar="comercial:inadimplencia:criticos"',
         sub: criticos.length ? criticos.slice(0, 3).map((c) => cli(c.cliente_nome)).join(' ') : 'nenhum passou de 30' }]);
     const barra = filtros({ tela: 'ina', busca: { chave: 'inad', rotulo: 'Buscar cliente em atraso', dica: 'Buscar cliente', valor: ctx.filtro?.inad },
-      chips: [['todos', 'Todos', clientes.length], ['ate7', 'Até 7 dias', clientes.filter(faixa.ate7).length], ['de8a30', '8 a 30 dias', clientes.filter(faixa.de8a30).length], ['criticos', 'Críticos', criticos.length, criticos.length ? 'r' : '']],
+      chips: [['todos', 'Todos', clientes.length], ['ate7', 'Até 7 dias', clientes.filter(faixa.ate7).length], ['de8a30', '8 a 30 dias', clientes.filter(faixa.de8a30).length], ['criticos', 'Críticos', criticos.length, criticos.length ? 'r' : ''],
+        ...(av?.disponivel ? [['semaviso', 'Sem aviso', semAviso.length, semAviso.length ? 'a' : '']] : [])],
       extras: [['marcados', 'Marcados à mão', marcados.length], ...(real ? [['sempar', 'Sem par no Vybe OS', semPar.length]] : [])] });
     const doCliente = (c) => faturas.filter((x) => (c.cliente_id != null && String(x.cliente_id) === String(c.cliente_id)) || (c.cliente_id == null && (x.cliente_nome || x.descricao) === c.cliente_nome));
     const meses = (l) => [...new Set(l.map((x) => mesDe(x.vencimento)))].filter(Boolean).join(' e ');
     const linhaCliente = (c) => {
       const l = doCliente(c), uma = l.length === 1 && Number(c.faturas) <= 1 ? l[0] : null;
-      const detalhe = hist([`Venceu em ${extenso(c.vencimento_mais_antigo)}`, c.descricao ? esc(c.descricao) : '', real && c.no_vybe === false ? 'Sem par no Vybe OS: a ligação é pelo CNPJ ou pelo nome' : ''])
+      const detalhe = hist([`Venceu em ${extenso(c.vencimento_mais_antigo)}`, c.descricao ? esc(c.descricao) : '', real && c.no_vybe === false ? 'Sem par no Vybe OS: a ligação é pelo CNPJ ou pelo nome' : '', ...historicoAvisos(av, c)])
         + (l.length ? l.map((x) => `<div class="fv2-mini">${pilula(quantos(x.atraso, 'dia', 'dias'), 'r')}<p>${esc(oQueE(x))} · ${rs(x.aberto ?? x.valor)} em aberto · venceu em ${extenso(x.vencimento)}</p>
             ${doFin(x.id) ? '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>' : `${uma ? '' : botaoRecebi(x)}<button type="button" class="fv2-btn s" data-vc="receber" data-id="${esc(x.id)}">Recebi uma parte</button>`}</div>`).join('')
           : '<p class="fv2-hist">A baixa destes lançamentos é no Vybe Finanças</p>');
       return linha({ tela: 'ina', id: 'k' + (c.cliente_id ?? c.cliente_nome), pill: pilula(quantos(c.atraso_mais_antigo, 'dia', 'dias'), 'r'),
         texto: `${cli(c.cliente_nome)}${l.length ? ' · ' + esc(meses(l)) : ''}${Number(c.faturas) > 1 ? ` <span class="d3f-mes">· ${quantos(c.faturas, 'fatura', 'faturas')}</span>` : ''}`,
-        meio: `<span class="d3f-meio">${socio(c.cliente_nome)}</span>`, valor: rs(c.valor),
-        dir: uma ? botaoRecebi(uma) : `<button type="button" class="fv2-btn s" data-fv="linha" data-tela="ina" data-valor="k${esc(c.cliente_id ?? c.cliente_nome)}">${l.length ? 'Ver as faturas' : 'Ver'}</button>`, detalhe });
+        meio: `<span class="d3f-meio">${socio(c.cliente_nome)}${av?.disponivel ? `<small class="d3f-nav" title="${esc(quantos(nAvisos(av, c), 'aviso', 'avisos'))} aos sócios">${n0(nAvisos(av, c))}×</small>` : ''}</span>`, valor: rs(c.valor),
+        dir: `${uma ? botaoRecebi(uma) : `<button type="button" class="fv2-btn s" data-fv="linha" data-tela="ina" data-valor="k${esc(c.cliente_id ?? c.cliente_nome)}">${l.length ? 'Ver as faturas' : 'Ver'}</button>`}${botaoAvisar(av, c)}`, detalhe });
     };
     const base = (u.extra === 'sempar' ? semPar : clientes.filter(faixa[u.chip] || faixa.todos)).filter(bate), cabe = u.inteira || termo ? base : base.slice(0, 6);
     const STATUS = { atrasado: 'Atrasado', inadimplente: 'Inadimplente' };
@@ -481,16 +512,19 @@
       : cartao({ titulo: 'Clientes em atraso', rotulo: 'acao', cls: 'd3f-tabela', sub: clientes.length ? 'do mais antigo ao mais novo' : '',
         cab: cabe.length ? cabeca([['d3f-cab-pill', 'Atraso'], ['fv2-txt', 'Cliente'], ['d3f-meio', 'Sócio'], ['fv2-valor', 'Valor'], ['d3f-dir', '']]) : '',
         corpo: cabe.map(linhaCliente).join('') || `<p class="fv2-nada">${clientes.length ? 'Nenhum cliente neste filtro.' : 'Ninguém em atraso.'}</p>`,
-        pe: maisHtml(base.length - cabe.length, '', 'mostrar', 'ina') + (clientes.length ? `<span class="d3f-total"><span class="fv2-sub">Total</span><b class="d3f-r">${rs(total)}</b></span>` : '') });
-    // Régua do atraso: cada bolinha é um cliente, na cor dele, no dia em que está (a escala vai até 30 dias).
+        pe: maisHtml(base.length - cabe.length, '', 'mostrar', 'ina') + (clientes.length ? `${sociosAvisados(av)}<span class="d3f-total"><span class="fv2-sub">Total</span><b class="d3f-r">${rs(total)}</b></span>` : '') });
+    // Régua de avisos (quadro D3-Inadimplencia): cada bolinha é um cliente, na cor dele, no dia em que está; as marcas
+    // de 3, 10 e 30 dias dizem a quem levar o atraso. A escala vai até 33 dias. Quem já foi avisado está nas linhas
+    // (N× e "Avisar de novo") e no rodapé "Sócios avisados" (registro de avisos, desde 14/11/2026).
     const pos = (dias) => Math.max(2, Math.min(97, Math.round(Math.min(Number(dias) || 0, 33) / 33 * 100)));
-    const regua = cartao({ titulo: 'Régua do atraso', rotulo: 'regua', cls: 'fv2-regua', sub: clientes.length ? quantos(clientes.length, 'cliente', 'clientes') : '',
+    const de3a9 = clientes.filter((c) => c.atraso_mais_antigo >= 3 && c.atraso_mais_antigo < 10).length, de10a30 = clientes.filter((c) => c.atraso_mais_antigo >= 10 && c.atraso_mais_antigo <= 30).length;
+    const regua = cartao({ titulo: 'Régua de avisos', rotulo: 'regua', cls: 'fv2-regua d3f-avisos', sub: clientes.length ? quantos(clientes.length, 'cliente', 'clientes') : '',
       corpo: `<div class="fv2-tri" role="img" aria-label="${esc(clientes.map((c) => `${c.cliente_nome}: ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}`).join(', ') || 'Ninguém em atraso')}">
           ${clientes.map((c, i) => `<span class="fv2-pt fv2-cli" data-carteira="${esc(carteiraDe(c.cliente_nome))}" style="left:${pos(c.atraso_mais_antigo)}%;animation-delay:${(i * 0.08).toFixed(2)}s" title="${esc(c.cliente_nome)}: ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}"></span>`).join('')}
-          <span class="fv2-mk" style="left:${pos(7)}%">7 d</span><span class="fv2-mk r" style="left:${pos(30)}%">30 d</span></div>
-        <div class="fv2-lin fv2-faixa">${pilula('Até 7 dias', 'n')}<p>Atenção</p><b class="d3f-conta">${n0(clientes.filter(faixa.ate7).length)}</b></div>
-        <div class="fv2-lin fv2-faixa">${pilula('8 a 30 dias', 'a')}<p>Alto</p><b class="d3f-conta">${n0(clientes.filter(faixa.de8a30).length)}</b></div>
-        <div class="fv2-lin fv2-faixa">${pilula('Mais de 30', 'r')}<p>Crítico</p><b class="d3f-conta">${n0(criticos.length)}</b></div>` });
+          <span class="fv2-mk" style="left:${pos(3)}%">3 d</span><span class="fv2-mk" style="left:${pos(10)}%">10 d</span><span class="fv2-mk r" style="left:${pos(30)}%">30 d</span></div>
+        <div class="fv2-lin fv2-faixa">${pilula('3 dias', 'n')}<p>Sócio do cliente</p><b class="d3f-conta">${n0(de3a9)}</b></div>
+        <div class="fv2-lin fv2-faixa">${pilula('10 dias', 'a')}<p>Os quatro sócios</p><b class="d3f-conta">${n0(de10a30)}</b></div>
+        <div class="fv2-lin fv2-faixa">${pilula('30 dias', 'r')}<p>Crítico</p><b class="d3f-conta">${n0(criticos.length)}</b></div>` });
     // Em atraso por mês do vencimento, nos últimos 6 meses: o que segue aberto de cada mês.
     const seis = [5, 4, 3, 2, 1, 0].map((n) => somaMes(hoje.slice(0, 7), -n)), porMes = seis.map((m) => soma(faturas.filter((x) => String(x.vencimento).slice(0, 7) === m), 'aberto'));
     const grafMes = porMes.some((v) => v > 0) ? cartao({ titulo: 'Em atraso · 6 meses', rotulo: 'meses', sub: 'pelo vencimento',
@@ -498,7 +532,8 @@
     const falta = oQueFalta(ctx), semNada = !clientes.length && u.extra !== 'marcados';
     return `<div class="fv2 d3f" data-tela="ina"><div class="fv2-in">
       ${topo({ titulo: 'Inadimplência', acoes: comoFunciona + '<button type="button" class="fv2-btn" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>', extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${real ? '<span class="fv2-pill b">Vybe Finanças</span>' : fonte(d)}` })}
-      ${acao('Vorcaro · Financeiro', frase, clientes.length ? `Ver ${clientes.length === 1 ? 'o cliente' : 'os ' + n0(clientes.length)}` : '', 'data-fv="foco" data-valor="acao"')}
+      ${semAvisoJa ? acao('Vorcaro · Financeiro', frase, `Avisar ${SOCIO[carteiraDe(semAvisoJa.cliente_nome)] ? 'o ' + SOCIO[carteiraDe(semAvisoJa.cliente_nome)][1] : 'o sócio'}`, `data-fv="avisar" data-cliente-id="${esc(semAvisoJa.cliente_id ?? '')}" data-cliente-nome="${esc(semAvisoJa.cliente_nome)}" data-atraso="${Number(semAvisoJa.atraso_mais_antigo) || 0}"`)
+        : acao('Vorcaro · Financeiro', frase, clientes.length ? `Ver ${clientes.length === 1 ? 'o cliente' : 'os ' + n0(clientes.length)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
       ${semNada ? vazioLinha('Ninguém em atraso.', `<button type="button" class="fv2-btn s" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>${falta.botao}`)
         : `<div class="fv2-grade c">${lista}<div class="d3f-coluna">${regua}${grafMes}</div></div>${falta.botao ? `<div class="fv2-rodape">${falta.botao}</div>` : ''}`}
@@ -551,8 +586,8 @@
       const l = faturas.filter((x) => c.cliente_id != null && String(x.cliente_id) === String(c.cliente_id)), uma = l.length === 1 && Number(c.faturas) <= 1 ? l[0] : null;
       itens.push(linha({ tela: 'vis', id: 'k' + (c.cliente_id ?? c.cliente_nome), pill: pilula(quantos(c.atraso_mais_antigo, 'dia', 'dias'), 'r'),
         texto: `${cli(c.cliente_nome)}${uma ? ' · ' + esc(mesDe(uma.vencimento)) : ''}${Number(c.faturas) > 1 ? ` <span class="d3f-mes">· ${quantos(c.faturas, 'fatura', 'faturas')}</span>` : ''}`, valor: rs(c.valor),
-        dir: uma && !doFin(uma.id) ? botaoRecebi(uma) : '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="inadimplencia">Abrir</button>',
-        detalhe: hist([`Venceu em ${extenso(c.vencimento_mais_antigo)}`, Number(c.faturas) > 1 ? `${quantos(c.faturas, 'fatura vencida', 'faturas vencidas')}, a mais antiga há ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}` : '', 'A baixa e o histórico ficam em Inadimplência']) }));
+        dir: `${uma && !doFin(uma.id) ? botaoRecebi(uma) : '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="inadimplencia">Abrir</button>'}${botaoAvisar(L.ina?.avisos, c)}`,
+        detalhe: hist([`Venceu em ${extenso(c.vencimento_mais_antigo)}`, Number(c.faturas) > 1 ? `${quantos(c.faturas, 'fatura vencida', 'faturas vencidas')}, a mais antiga há ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}` : '', ...historicoAvisos(L.ina?.avisos, c), 'A baixa e o histórico ficam em Inadimplência']) }));
     }
     if (L.con) { const p = contasQuePedem(L.con, hoje), nome = (id) => (K.grupos || []).find((g) => g.id === id)?.nome || id;
       for (const c of [...p.vencidas, ...p.sete]) itens.push(linhaConta('vis', c, nome(c.grupo), hoje, { comForm: false })); }
@@ -566,8 +601,12 @@
     const semContrato = (L.porCliente?.clientes || []).filter((c) => !(Number(c.valor_mensal) > 0)).length;
     if (semContrato) itens.push(simples(pilula('Contrato', 'n'), `<b>${quantos(semContrato, 'cliente', 'clientes')}</b> sem contrato informado`, '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Informar</button>'));
     const cabe = u.inteira ? itens : itens.slice(0, 5);
+    // Rodapé do quadro D3-FinVisao: "Sócios avisados" (o sistema ainda não registra aviso aos sócios, então fica o vazio)
+    // e o dia da folha quando o Vybe Finanças manda.
+    const diaFolha = (ligado?.folha?.funcionarios || []).map((f) => Number(f.dia_pagamento)).filter((n) => n > 0).sort((a, b) => a - b)[0];
+    const socios = `${sociosAvisados(L.ina?.avisos)}${diaFolha ? `<span class="fv2-sub d3f-folha">folha · dia ${n0(diaFolha)}</span>` : ''}`;
     const acaoCard = cartao({ titulo: 'Pede ação', rotulo: 'acao', cls: 'd3f-pede', sub: itens.length ? `${quantos(itens.length, 'coisa', 'coisas')}, na ordem` : '', corpo: cabe.join('') || '<p class="fv2-nada">Nada pedindo ação agora.</p>',
-      pe: maisHtml(itens.length - cabe.length, '', 'mostrar', 'vis') });
+      pe: maisHtml(itens.length - cabe.length, '', 'mostrar', 'vis') + socios });
     // Caixa: três meses atrás (o que entrou), o mês de agora e três à frente (projeção dos recorrentes), numa linha só.
     const serie = new Map((ligado?.series || L.vf?.series || []).map((s) => [s.mes, Number(s.faturamento) || 0]));
     const prev = L.cx?.previsao?.meses || [];
@@ -650,6 +689,9 @@
     }
     if (acao === 'receber') return baixa(b, { acao: 'recebivel_receber', id: valor, valor_recebido: Number(b.dataset.total) || 0, recebido_em: hojeBahia() }, 'Recebido');
     if (acao === 'pagar') return baixa(b, { acao: 'conta_pagar', id: valor }, 'Pago');
+    // Forma de pagamento da fatura (tocar na escolhida tira) e o aviso aos sócios: só registro + o sino do Vybe OS.
+    if (acao === 'forma') return baixa(b, { acao: 'recebivel_forma', id: b.dataset.id, forma: valor }, valor ? (FORMA_NOME[valor] || valor) : 'Sem forma');
+    if (acao === 'avisar') return baixa(b, { acao: 'inadimplencia_avisar', cliente_id: b.dataset.clienteId || '', cliente_nome: b.dataset.clienteNome || '', atraso_dias: Number(b.dataset.atraso) || 0 }, 'Avisado');
   }
   if (typeof document !== 'undefined' && document.addEventListener) {
     document.addEventListener('click', aoClicar);

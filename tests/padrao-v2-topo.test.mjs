@@ -13,7 +13,8 @@ const regra = (seletor) => { const i = css.indexOf(seletor + '{'); assert.ok(i >
 test('CSS do grupo: sem !important e sem html body.mundo; as três janelas com 340, branco e raio 24', () => {
   assert.doesNotMatch(css, /!important/);
   assert.doesNotMatch(css, /html body\.mundo/);
-  assert.match(regra('#v2j-busca'), /width:340px/);
+  // D3-Topo: a Busca ganha 420 para as cinco fichas caberem numa linha; Avisos e Conta seguem com 340.
+  assert.match(regra('#v2j-busca'), /width:420px/);
   for (const s of ['#mundo-hud .vv-avisos-painel', '#mundo-hud .vv-menu-conta']) {
     const r = regra(s);
     assert.match(r, /width:340px/); assert.match(r, /border-radius:24px/); assert.match(r, /background:#FFFFFF/);
@@ -29,9 +30,10 @@ test('Busca: cabeçalho com nome, Esc e X; campo, fichas e pé com os atalhos; a
   assert.match(spot, /d\.id = 'v2j-busca';/);
   assert.match(spot, /<div class="v2j-cab"><h2 id="spotlight-titulo">Busca<\/h2><span class="v2j-pill">Esc<\/span>/);
   assert.match(spot, /<label class="v2j-oculto" for="spotlight-input">Buscar peça, cliente ou pessoa<\/label>/);
-  assert.match(spot, /partes\.push\('setas navegam · Enter abre · Tab filtra'\);/);
+  assert.ok(spot.includes('<kbd>↑↓</kbd>navegar<kbd>Enter</kbd>abrir<kbd>Tab</kbd>filtrar'), 'pé com as teclas em pílula');
   assert.match(spot, /querySelectorAll\('\[data-ferr="busca"\]'\)\]\.find\(visivel\)/);
-  assert.match(spot, /const r = botao\.getBoundingClientRect\(\), largura = 340;/);
+  assert.match(spot, /const r = botao\.getBoundingClientRect\(\), largura = 420;/);
+  assert.match(spot, /bloco\('atalhos', 'Atalhos', spotlightAtalhos\(linha\)\) : ''/, 'Atalhos também no fim de "Tudo"');
   assert.match(spot, /bloco\('conteudos', 'Conteúdos',[\s\S]*bloco\('demandas', 'Demandas',[\s\S]*bloco\('pessoas', 'Pessoas',[\s\S]*bloco\('encerradas', 'Finalizadas e antigas'/);
   assert.match(spot, /\+ \$\{lista\.length - SPOTLIGHT_POR_BLOCO\} · mostrar/);
 });

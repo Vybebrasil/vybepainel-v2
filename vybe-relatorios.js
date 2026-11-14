@@ -356,22 +356,25 @@ function diarioRegistroHtml(s, ant, comparado) {
       : dA < 0 ? `<span class="v2d-pill g">${diarioSinal(dA)} ${dA === -1 ? 'atrasada' : 'atrasadas'}</span>`
       : '<span class="v2d-pill n">igual</span>';
   }
-  const hist = [];
+  // Direção 3 (quadro D3-Diario): a linha aberta em grade de duas colunas, a contagem à esquerda (na cor do que mudou)
+  // e os clientes de cada uma à direita.
+  const hist = [], grade = [];
   if (m) {
     const p = m.prontas.length, a = m.passaram.length, v = m.voltaram.length;
-    if (p) hist.push(`<span>${p === 1 ? '1 virou Finalizado' : `${diarioFmt(p)} viraram Finalizado`}: ${diarioClientesHtml(m.prontas)}</span>`);
-    if (a) hist.push(`<span>${a === 1 ? '1 passou' : `${diarioFmt(a)} passaram`} ${diarioNomeData()}: ${diarioClientesHtml(m.passaram)}</span>`);
-    if (v) hist.push(`<span>${v === 1 ? '1 voltou' : `${diarioFmt(v)} voltaram`} para Alteração</span>`);
-    if (!hist.length) hist.push('<span>Nada mudou desde o registro anterior.</span>');
+    if (p) grade.push(['g', `${diarioFmt(p)} Finalizado`, diarioClientesHtml(m.prontas)]);
+    if (a) grade.push(['r', `${diarioFmt(a)} ${a === 1 ? 'passou' : 'passaram'}`, `${diarioClientesHtml(m.passaram)} · ${diarioNomeData()}`]);
+    if (v) grade.push(['a', `${diarioFmt(v)} ${v === 1 ? 'voltou' : 'voltaram'}`, `${diarioClientesHtml(m.voltaram)} · para Alteração`]);
+    if (!grade.length) hist.push('<span>Nada mudou desde o registro anterior.</span>');
   } else if (!ant) hist.push('<span>Primeiro registro guardado.</span>');
   const retrato = diarioRetratoTexto(s);
   if (retrato) hist.push(`<span>${diarioEsc(retrato)}</span>`);
+  const gradeHtml = grade.length ? `<div class="d3d-grade">${grade.map(([tom, rot, cli]) => `<b class="d3d-g-rot ${tom}">${rot}</b><span class="d3d-g-cli">${cli}</span>`).join('')}</div>` : '';
   const aberta = Number(diarioAberto) === Number(s.id);
   const id = Number(s.id);
   return `<div class="v2-abre v2d-reg d3d-reg${comparado ? ' on' : ''}" data-registro="${id}" aria-expanded="${aberta}">
     <button type="button" class="v2d-quem d3d-lin" aria-expanded="${aberta}" onclick="diarioAbrirLinha(${id})"><b class="d3d-hora">${q ? diarioHora(q) : diarioEsc(s.dataHora || '')}</b><span class="v2d-av" aria-hidden="true"${origem ? ` title="${diarioEsc(origem)}"` : ''}>${avatar}</span><span class="d3d-cs">${cer}</span>${selo}<i class="d3d-seta" aria-hidden="true"></i></button>
     <div class="v2-mais"><div>
-      ${hist.map((h) => `<p class="v2d-hist">${h}</p>`).join('')}
+      ${gradeHtml}${hist.map((h) => `<p class="v2d-hist">${h}</p>`).join('')}
       <p class="v2d-hist v2d-acoes"><span>${origem ? `${diarioEsc(origem)} · ` : ''}<button type="button" class="v2d-link" onclick="diarioComparar(${id})">Comparar</button> · <button type="button" class="v2d-link" onclick="abrirSnapshot(${id})">Ver as peças</button> · <button type="button" class="v2d-link" onclick="excluirSnapshot(${id})">Apagar registro</button></span></p>
     </div></div>
   </div>`;

@@ -8,6 +8,16 @@
       window.productionV2View = view;
       if(typeof renderProductionCommand === 'function') renderProductionCommand();
   };
+  // Topo da Agenda (Direção 3): Semana e Mês abrem as Captações nessa visão (a mesma troca do D/S/M de lá, que busca o
+  // período se faltar); Roteiros é a parte de sempre.
+  window.prodAgendaVista = function(v) {
+      if (v === 'roteiros') { window.setProdV2View('roteiros'); return; }
+      window.productionV2View = 'captacoes';
+      const atual = typeof CAPT !== 'undefined' ? CAPT.vista : '';
+      const igual = v === 'mes' ? atual === 'mes' : atual === 'semana' || atual === 'lista';
+      if (!igual && typeof captVista === 'function') captVista(v);
+      else if (typeof renderProductionCommand === 'function') renderProductionCommand();
+  };
 
   function ensureProductionV2Styles() {
     if(document.getElementById('prod-v2-styles-cal')) return;
@@ -415,8 +425,17 @@
     const semanaAg = (() => { const h = new Date(); const seg = new Date(h.getFullYear(), h.getMonth(), h.getDate() - ((h.getDay() + 6) % 7)), dom = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6);
       const m = (d) => d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''), dd = (d) => String(d.getDate()).padStart(2, '0');
       return seg.getMonth() === dom.getMonth() ? `${dd(seg)} a ${dd(dom)} ${m(dom)}` : `${dd(seg)} ${m(seg)} a ${dd(dom)} ${m(dom)}`; })();
+    // Direção 3 (quadro D3-Agenda, 14/11/2026): o topo tem Semana, Mês e Roteiros (Semana e Mês são as visões das
+    // Captações); Feed e Calendário continuam, no menu "Mais" ao lado, que mostra o nome da parte quando ela está aberta.
+    const vistaCapt = typeof CAPT !== 'undefined' ? CAPT.vista : 'semana';
+    const naCapt = window.productionV2View === 'captacoes';
+    const vistaAg = (v, nome) => { const sel = v === 'roteiros' ? window.productionV2View === 'roteiros' : naCapt && (v === 'mes' ? vistaCapt === 'mes' : vistaCapt !== 'mes');
+      return `<button type="button" role="radio" aria-checked="${sel}" onclick="prodAgendaVista('${v}')">${nome}</button>`; };
+    const noMais = { feed: 'Feed', calendar: 'Calendário' }[window.productionV2View] || '';
+    const maisAg = `<details class="pv2-menu d3ag-mais"><summary class="pv2-btn s${noMais ? ' on' : ''}" aria-label="Mais partes da agenda: Feed e Calendário">${noMais || 'Mais'}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="pv2-pop">
+        ${[['feed', 'Feed'], ['calendar', 'Calendário']].map(([v, n]) => `<button type="button" aria-pressed="${window.productionV2View === v}" onclick="this.closest('details').open=false;setProdV2View('${v}')">${n}</button>`).join('')}</div></details>`;
     const cabecaV2 = typeof pv2Ligado === 'function' && pv2Ligado() ? `<header id="pv2-agenda-topo" class="pv2"><div class="pv2-topo"><h2 title="Agenda e captações">Agenda</h2><span class="d3ag-data">${semanaAg}</span>
-        <span class="pv2-seg d3ag-partes" role="radiogroup" aria-label="Agenda">${abaV2('captacoes', 'Captações')}${abaV2('roteiros', 'Roteiros')}${abaV2('feed', 'Feed')}${abaV2('calendar', 'Calendário')}</span>
+        <span class="d3ag-vistas" role="radiogroup" aria-label="O que ver">${vistaAg('semana', 'Semana')}${vistaAg('mes', 'Mês')}${vistaAg('roteiros', 'Roteiros')}</span>${maisAg}
         ${naAgenda ? `<button type="button" class="pv2-btn capt-marcar d3ag-marcar" onclick="captMarcarCaptacao()" title="Marcar uma captação (ou outro compromisso) no Google Agenda da Vybe (N)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Marcar captação</button>` : `<span class="pv2-seg" role="radiogroup" aria-label="Data de referência">
           <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'prazo'}" onclick="productionCommandSetDateMode('prazo')" title="Agrupar pelo Prazo de Entrega">Prazo</button>
           <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'veiculacao'}" onclick="productionCommandSetDateMode('veiculacao')" title="Agrupar pela data que vai para o ar">Veiculação</button></span>`}</div></header>` : '';

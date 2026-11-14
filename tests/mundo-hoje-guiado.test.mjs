@@ -42,7 +42,7 @@ test('ordem do guia: atrasada furando a data do cliente, atrasada, vai ao ar hoj
   assert.ok(js.includes('const { passos: passosGuia, ordem: ordemGuia } = passosDoGuia(abertas, hoje, varios);'), 'Minhas tarefas usa a ordem compartilhada');
   assert.ok(js.includes('const veic = veicDe, desatualizada = (x) => prazoDesatualizado(x, hoje), chaveFila = (x) => chaveDaFila(x, hoje);'), 'sem cópia das regras da fila');
   // Direção 3 (D3-Tarefas): a faixa do guia com os três primeiros passos vem antes dos números e da lista.
-  assert.ok(js.includes('${faixa}\n      ${numeros}\n      <div class="d3h-grade"><div class="d3h-col">${tarefas}</div>'), 'a faixa do guia abre a tela, antes dos números');
+  assert.ok(js.includes('${faixa}\n      ${numeros}\n      <section class="d3h-cartao d3h-cel-resumo"'), 'a faixa do guia abre a tela, antes dos números');
 });
 
 test('Agência: o VYBES guia (alerta mais grave, cliente esperando no WhatsApp, os outros alertas) antes dos números', () => {

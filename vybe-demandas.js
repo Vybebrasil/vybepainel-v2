@@ -6,13 +6,15 @@ let clienteDemandasExato = '';
 // Visões usam o mesmo filtro de grupos, calendário e contagens.
 let visaoRapidaDemandas = 'todas';
 let preferenciasDemandasUsuario = null;
-const VISOES_DEMANDAS = { abertas:'Em aberto', minha:'Minha fila', atrasadas:'Atrasadas', sem:'Sem responsável', concluidas:'Concluídas', todas:'Todas' };
+const VISOES_DEMANDAS = { abertas:'Em aberto', minha:'Minha fila', atrasadas:'Atrasadas', sem:'Sem responsável', semana:'Vencem na semana', concluidas:'Concluídas', todas:'Todas' };
 function pertenceVisaoDemanda(d, visao = visaoRapidaDemandas) {
   const concluida = DEMANDA_CONCLUIDA.includes(d.status);
   if (visao === 'concluidas') return concluida;
   if (visao === 'todas') return true;
   if (concluida) return false;
   if (visao === 'atrasadas') return demandaAtrasada(d);
+  // Vencem na semana (Direção 3): em aberto, com prazo de hoje até daqui a seis dias.
+  if (visao === 'semana') { const hoje = META.today_iso || ''; if (!hoje || !d.prazo_iso) return false; const fim = new Date(hoje + 'T12:00:00Z'); fim.setUTCDate(fim.getUTCDate() + 6); return d.prazo_iso >= hoje && d.prazo_iso <= fim.toISOString().slice(0, 10); }
   const ids = (d.responsavel_ids?.length ? d.responsavel_ids : [d.responsavel_id]).filter(Boolean).map(String);
   if (visao === 'sem') return !ids.length;
   if (visao === 'minha') {
@@ -1382,7 +1384,7 @@ const PV2D_POR_GRUPO = 6;
 const pv2dLinhasAbertas = new Set(), pv2dGruposInteiros = new Set();
 let pv2dMostrarVazios = false;
 let PV2D_ORDEM_VISIVEL = [];
-const PV2D_VISOES = [['atrasadas', 'Atrasadas'], ['minha', 'Minha fila'], ['sem', 'Sem responsável'], ['abertas', 'Todas']];
+const PV2D_VISOES = [['atrasadas', 'Atrasadas'], ['minha', 'Minha fila'], ['sem', 'Sem responsável'], ['semana', 'Vencem na semana'], ['abertas', 'Todas']];
 function pv2dMontar() {
   if (typeof pv2Ligado !== 'function' || !pv2Ligado()) return null;
   let raiz = document.getElementById('pv2-demandas');
@@ -1392,7 +1394,8 @@ function pv2dMontar() {
   raiz = document.createElement('div');
   raiz.id = 'pv2-demandas'; raiz.className = 'pv2 pv2-demandas';
   // Direção 3 (moodboard 3, 13/11/2026): título com a data, Lista ou Calendário e Nova demanda (branco); o bloco laranja
-  // do Heitor; quatro números; a busca com as fichas, Filtros, Ordenar e Colunas; e a lista em colunas num cartão só.
+  // do Heitor; quatro números; a busca com as fichas, Filtros, Ordenar, o interruptor Mostrar ID e o ⋯ (Colunas); e a
+  // lista em colunas num cartão só.
   raiz.innerHTML = `<div class="pv2-topo"><h2>Demandas</h2><span class="d3p-data">${safeText(typeof d3pDataDeHoje === 'function' ? d3pDataDeHoje() : '')}</span>
       <span class="pv2-seg" id="pv2d-vistas" role="radiogroup" aria-label="Vista">
         <button type="button" role="radio" data-vista="lista" onclick="pv2dVista('lista')">Lista</button>
@@ -1408,8 +1411,9 @@ function pv2dMontar() {
         <div class="pv2-pop pv2-pop-filtros" id="pv2d-filtros-pop"><div class="pv2-pop-linha" id="pv2d-visoes"></div><span class="pv2-pop-rot">Recorte</span></div></details>
       <details class="pv2-menu" id="pv2d-ordenar"><summary class="pv2-btn s" title="Ordenar a lista"><span class="d3d-rot">Ordenar</span><b id="pv2d-ordem-rot"></b></summary>
         <div class="pv2-pop"><span class="pv2-pop-rot">Ordenar por</span><div class="pv2-pop-linha" id="pv2d-ordem"></div></div></details>
-      <details class="pv2-menu" id="pv2d-colunas"><summary class="pv2-btn s">Colunas</summary>
-        <div class="pv2-pop"><label class="pv2-lote"><input type="checkbox" data-coluna="dem-coluna-id" onchange="pv2dColuna(this)"> Mostrar ID</label><label class="pv2-lote"><input type="checkbox" data-coluna="dem-coluna-cadastro" onchange="pv2dColuna(this)"> Mostrar cadastro e criação</label></div></details>
+      <label class="d3d-interruptor" title="Mostrar o número de cada demanda"><input type="checkbox" role="switch" data-coluna="dem-coluna-id" onchange="pv2dColuna(this)"><i aria-hidden="true"></i>Mostrar ID</label>
+      <details class="pv2-menu d3d-mais" id="pv2d-colunas"><summary class="pv2-btn s" aria-label="Mais opções" title="Mais opções">⋯</summary>
+        <div class="pv2-pop"><span class="pv2-pop-rot">Colunas</span><label class="pv2-lote"><input type="checkbox" data-coluna="dem-coluna-cadastro" onchange="pv2dColuna(this)"> Mostrar cadastro e criação</label></div></details>
     </div>
     <section class="pv2-card pv2-lista" id="pv2d-lista" aria-label="Demandas por grupo"></section>`;
   casa.prepend(raiz);
@@ -1515,7 +1519,9 @@ function pv2dPintar() {
     + `<div class="d3p-nums quatro">${kpi('Abertas', abertas.length, { serie: novas ? entraram : null, serieRotulo: 'Entradas por dia na semana', sub: novas ? `+${novas} na semana` : 'em aberto', acao: "escolherVisaoDemanda('abertas')" })}
     ${kpi('Vencem hoje', venceHoje.length, { tom: venceHoje.length ? 'a' : '', serie: proximos && proximos.some(Boolean) ? proximos : null, serieRotulo: 'Prazos nos próximos 7 dias', sub: entregueHoje ? `${entregueHoje} já ${pl(entregueHoje, 'entregue', 'entregues')}` : 'nenhuma entregue' })}
     ${kpi('Atrasadas', atrasadas.length, { tom: atrasadas.length ? 'r' : '', sub: maisAntiga ? `a mais antiga · ${pv2dDiasDeAtraso(maisAntiga, hoje)} ${pv2dDiasDeAtraso(maisAntiga, hoje) === 1 ? 'dia' : 'dias'}` : 'nada vencido', subTom: maisAntiga ? 'r' : '', acao: "escolherVisaoDemanda('atrasadas')" })}
-    ${kpi('Sem responsável', sem.length, { de: abertas.length, barra: abertas.length ? (sem.length * 100) / abertas.length : 0, dica: semDeHoje ? `${semDeHoje} ${pl(semDeHoje, 'entrou', 'entraram')} hoje` : sem.length ? 'esperando alguém pegar' : 'todas têm dono', acao: "escolherVisaoDemanda('sem')" })}</div>`);
+    ${kpi('Sem dono', sem.length, { de: abertas.length, barra: abertas.length ? (sem.length * 100) / abertas.length : 0, dica: semDeHoje ? `${semDeHoje} ${pl(semDeHoje, 'entrou', 'entraram')} hoje` : sem.length ? 'esperando alguém pegar' : 'todas têm dono', acao: "escolherVisaoDemanda('sem')" })}</div>`);
+  // O interruptor Mostrar ID e as colunas do ⋯ seguem a preferência guardada nas caixas de sempre.
+  raiz.querySelectorAll('[data-coluna]').forEach((c) => { const antiga = document.getElementById(c.dataset.coluna); if (antiga) c.checked = antiga.checked; });
   // fichas e Filtros
   const conta = (v) => todas.filter((d) => pertenceVisaoDemanda(d, v)).length;
   pv2Trocar(document.getElementById('pv2d-chips'), PV2D_VISOES.map(([id, nome]) => `<button type="button" class="pv2-chip" aria-pressed="${visaoRapidaDemandas === id}" onclick="escolherVisaoDemanda('${id}')">${nome} <b>${conta(id)}</b></button>`).join(''));
@@ -1564,7 +1570,9 @@ try { pv2dMontar(); } catch { /* a tela antiga segue valendo */ }
 // A tela é o quadro, nesta ordem: título com o selo "só donos", o período (7, 30, 90 dias), Atualizar e Definir teto;
 // o bloco de ação do Alex (frase curta e um botão); quatro números (gasto no período, como o mês fecha, pedidos e teto);
 // e três colunas: "Pede ação" com o gasto por dia em linha, "Com quem" e "Em quê". Os números vêm de /api/ia-custos.
-// A API devolve o gasto por pessoa e por modelo: "Em quê" mostra os modelos, que é o recorte que existe.
+// A API devolve o gasto por pessoa, por modelo e, nas gravações desde 14/11/2026, por agente e por cliente
+// (ai_usage_events.agente/cliente): "Em quê" mostra os agentes quando há, senão os modelos; "Com quem" troca para
+// "Por cliente" no botão do pé.
 // As peças d3AcaoHtml, d3NumHtml e d3LinhaSvg são da base (vybe-core.js; CSS em padrao-v2/0-d3-base.css).
 const PV2I_SELO = '<span class="d3-selo-donos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>só donos</span>';
 function pv2iTopoHtml() {
@@ -1601,6 +1609,8 @@ function pv2iNum(o) {
   const h = d3NumHtml(o);
   return o.sub ? h.replace(/<\/(div|button)>$/, `<span class="d3f-sub">${o.sub}</span></$1>`) : h;
 }
+let pv2iRecorte = 'pessoa';
+function pv2iTrocarRecorte() { pv2iRecorte = pv2iRecorte === 'cliente' ? 'pessoa' : 'cliente'; if (aiUsageData) pv2iRender(aiUsageData); }
 function pv2iRender(data) {
   const root = document.getElementById('ai-usage-root');
   if (!root || !data) return;
@@ -1653,7 +1663,12 @@ function pv2iRender(data) {
       <div class="d3f-eixo">${eixo.map((d, i) => (i === eixo.length - 1 ? `<b>${dm(d.chave)}</b>` : `<span>${dm(d.chave)}</span>`)).join('')}</div>` : '<p class="pv2-sub pv2-nada">Sem gasto no período.</p>'}</section>`;
   // Com quem e Em quê
   const gx = (av, nome, sub, valor, max) => `<div class="pv2i-gx"><span class="pv2-av" aria-hidden="true">${safeText(av)}</span><span class="pv2i-nome" title="${safeText(nome + (sub ? ' · ' + sub : ''))}">${safeText(nome)}</span><span class="d3-barra" style="--v:${max > 0 ? Math.max(2, Math.round((aiNumber(valor) / max) * 100)) : 0}%"><i></i></span><b>${aiBrl(valor)}</b></div>`;
+  const agentes = Array.isArray(data.agents) ? data.agents : [], clientesIa = Array.isArray(data.clients) ? data.clients : [];
+  const porCliente = pv2iRecorte === 'cliente';
   const maxPessoa = Math.max(0, ...people.map((p) => aiNumber(p.cost_brl))), maxModelo = Math.max(0, ...providers.map((p) => aiNumber(p.cost_brl)));
+  const maxAgente = Math.max(0, ...agentes.map((p) => aiNumber(p.cost_brl))), maxCliente = Math.max(0, ...clientesIa.map((p) => aiNumber(p.cost_brl)));
+  const deCliente = clientesIa.slice(0, 6).map((c) => gx(String(c.cliente || '?').trim().slice(0, 2).toUpperCase(), String(c.cliente || 'Sem cliente'), `${n0(c.calls)} ${pl(aiNumber(c.calls), 'pedido', 'pedidos')}`, c.cost_brl, maxCliente)).join('');
+  const deAgente = agentes.slice(0, 6).map((a) => gx(String(a.agente || '?').trim().slice(0, 1).toUpperCase(), String(a.agente || 'Agente'), `${n0(a.calls)} ${pl(aiNumber(a.calls), 'pedido', 'pedidos')}`, a.cost_brl, maxAgente)).join('');
   const quem = people.slice(0, 6).map((p) => gx(String(p.profile_name || '?').trim().slice(0, 2).toUpperCase(), String(p.profile_name || 'Não identificado').split(' ')[0], `${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxPessoa)).join('');
   const emQue = providers.slice(0, 6).map((p) => { const rot = aiProviderLabel(p.provider), nome = rot === 'GPT' ? rot : rot.charAt(0) + rot.slice(1).toLowerCase(); return gx(rot.slice(0, 1), nome, `${p.model || 'modelo não identificado'} · ${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxModelo); }).join('');
   const gemini = settings.gemini_billing === 'paid' ? 'API paga: o custo entra na conta' : 'plano gratuito: custo estimado em R$ 0,00';
@@ -1663,9 +1678,11 @@ function pv2iRender(data) {
           <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência (R$ por US$ 1)</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd) || 5.5}"></div>
           <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing === 'free' ? 'selected' : ''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing === 'paid' ? 'selected' : ''}>API paga</option></select></div>
           <button class="ai-setting-save pv2-btn s k" type="button" onclick="saveAiUsageSettings()">Salvar</button></div></details>`;
-  const comQuem = `<section class="pv2-card pv2i-quem" aria-label="Com quem"><div class="pv2i-cab"><h3>Com quem</h3><span class="pv2-sub">quem pediu</span></div>${quem || '<p class="pv2-sub pv2-nada">Sem pessoas identificadas no período.</p>'}
-      ${people.length ? `<p class="pv2-sub pv2i-pe">do maior para o menor${people.length > 6 ? ` · os 6 de ${n0(people.length)}` : ''}</p>` : ''}</section>`;
-  const emQueHtml = `<section class="pv2-card pv2i-que" aria-label="Em quê"><div class="pv2i-cab"><h3>Em quê</h3><span class="pv2-sub">por modelo</span></div>${emQue || '<p class="pv2-sub pv2-nada">Sem modelos usados no período.</p>'}
+  const listaQuem = porCliente ? clientesIa : people;
+  const trocar = `<button type="button" class="pv2-chip pv2i-recorte" aria-pressed="${porCliente}" onclick="pv2iTrocarRecorte()">${porCliente ? 'Por pessoa' : 'Por cliente'}</button>`;
+  const comQuem = `<section class="pv2-card pv2i-quem" aria-label="Com quem"><div class="pv2i-cab"><h3>Com quem</h3><span class="pv2-sub">${porCliente ? 'por cliente' : 'quem pediu'}</span></div>${porCliente ? deCliente || '<p class="pv2-sub pv2-nada">Sem cliente registrado nos pedidos do período (passa a contar nas gravações novas).</p>' : quem || '<p class="pv2-sub pv2-nada">Sem pessoas identificadas no período.</p>'}
+      <p class="pv2-sub pv2i-pe">${listaQuem.length ? `do maior para o menor${listaQuem.length > 6 ? ` · os 6 de ${n0(listaQuem.length)}` : ''}` : ''}${trocar}</p></section>`;
+  const emQueHtml = `<section class="pv2-card pv2i-que" aria-label="Em quê"><div class="pv2i-cab"><h3>Em quê</h3><span class="pv2-sub">${agentes.length ? 'por agente' : 'por modelo'}</span></div>${agentes.length ? deAgente : emQue || '<p class="pv2-sub pv2-nada">Sem modelos usados no período.</p>'}
       <div class="pv2i-pe pv2i-fichas"><span class="pv2i-ficha" title="Valores estimados pelo preço de tabela de cada modelo e pelo dólar de referência; não substituem as faturas da OpenAI, do Google e da Anthropic.">estimado</span><span class="pv2i-ficha">preço de tabela</span>${parametros}</div></section>`;
   root.innerHTML = `<div id="pv2-ia" class="pv2 pv2-ia d3f">${pv2iTopoHtml()}
     ${blocoAcao}

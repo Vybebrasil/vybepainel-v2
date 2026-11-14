@@ -543,8 +543,9 @@ body.mundo.mundo-modulo .plj-aviso.recolhido{left:auto!important;right:calc(var(
 
 /* ===== Janelas (workflow-modal): cartão de vidro claro, como as placas do mundo =====
    Vale para todas as janelas do painel (planejamentos, status, bastão, confirmações…).
-   As mesas de jogo (.ofc-snc-*) e os menus de jogo têm a pele delas e ficam de fora. */
-body.mundo .workflow-backdrop{background:rgba(31,29,26,.28)!important;backdrop-filter:blur(6px) saturate(1.1)!important}
+   As mesas de jogo (.ofc-snc-*) e os menus de jogo têm a pele delas e ficam de fora.
+   O Ranking em página (.rk2-janela) não escurece nem desfoca o que fica ao lado. */
+body.mundo .workflow-backdrop:not(:has(+ .rk2-janela)){background:rgba(31,29,26,.28)!important;backdrop-filter:blur(6px) saturate(1.1)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo){
   background:#FAF8F4!important;background-image:none!important;border:1px solid rgba(255,255,255,.9)!important;border-radius:12px!important;
   box-shadow:0 30px 80px rgba(31,29,26,.22),0 2px 8px rgba(31,29,26,.08)!important;padding:22px 24px!important;color:#1F1D1A!important;font-family:var(--vv-texto)!important}
@@ -3253,7 +3254,7 @@ html body.mundo .dono-pessoa:is(.marcado,.ativo,.on,[aria-pressed="true"],[aria-
 html body.mundo .dono-pessoa *:not(img):not(#ds-a):not(#ds-b){color:inherit!important}
 /* Detalhes da peça: botões do painel lateral no padrão (sem grafite) */
 html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(.ativo):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
-html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--ds-acao)!important;color:#FFFFFF!important;border:0!important;box-shadow:var(--ds-acao-sombra)!important}
+html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:#1F1D1A!important;color:#FFFFFF!important;border:0!important;box-shadow:none!important}
 
 /* HUD do mapa segue o mesmo selecionado (era preto cheio) */
 html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"]:not(#ds-a):not(#ds-b){background:var(--ds-on-fundo)!important;color:var(--ds-on-texto)!important;box-shadow:inset 0 0 0 1px var(--ds-on-borda)!important}

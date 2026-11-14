@@ -1035,10 +1035,13 @@ let producaoRefreshRunning = false;
 // quem usa; o HTML de ação é do chamador (botões prontos).
 const VB_ICONES = {
   vazio: '<path d="M4 7l8-4 8 4v10l-8 4-8-4z"/><path d="M4 7l8 4 8-4M12 11v10"/>',
-  erro: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.5h.01"/>',
+  // Direção 3 (quadro D3-Fam-Estados): o erro do estado é o de conexão, com o wi-fi cortado.
+  erro: '<path d="M2.5 8.8a14 14 0 0 1 19 0M5.8 12.3a9 9 0 0 1 12.4 0M9.1 15.7a4.3 4.3 0 0 1 5.8 0M12 19.2h.01M3.5 3.5l17 17"/>',
   ok: '<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.6"/>',
   calendario: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   documento: '<path d="M6.5 3h7.5l4 4v14h-11.5z"/><path d="M14 3v4h4M9.5 12h5M9.5 16h5"/>',
+  // Direção 3 (quadro D3-Fam-Estados, "Sem acesso"): o cadeado.
+  cadeado: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
 };
 // Rótulo depois do número: "3 atrasadas"; sigla continua sigla ("NPS médio").
 function vbRotulo(texto) { const t = String(texto || ''); return /^[A-ZÀ-Ý]{2}/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1); }
@@ -1097,23 +1100,34 @@ function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icon
   return `<div class="vb-estado ${tipo}" role="${tipo === 'erro' ? 'alert' : 'status'}"><span class="vb-estado-icone">${vbIcone(icone || tipo)}</span>${frase ? `<b>${safeText(frase)}</b>` : ''}${resto ? `<p>${safeText(resto)}</p>` : ''}${acao}</div>`;
 }
 // Confirmação (família 5): ação que dá para desfazer não pergunta (vira "feito" no botão e chama mostrarDesfazer);
-// a janela de confirmação é só para apagar. Cancelar e Apagar (vermelho), Esc ou clique fora cancelam, o foco começa
-// em Cancelar e volta para onde estava. Devolve Promise<boolean>.
-function vbConfirmarApagar({ titulo = 'Apagar?', texto = '', rotulo = 'Apagar' } = {}) {
+// a janela de confirmação é só para apagar. Direção 3 (quadro D3-Fam-Confirmacoes, "Confirmação perigosa"): a lixeira
+// vermelha em cima, o título, o texto, o campo "Digite APAGAR" e Cancelar e Apagar (vermelho), que só libera quando a
+// palavra está escrita (sem diferença de maiúscula). Esc ou clique fora cancelam, o foco começa no campo e volta para
+// onde estava; Enter no campo confirma quando a palavra bate. Devolve Promise<boolean>.
+const VB_APAGAR_LIXEIRA = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+function vbConfirmarApagar({ titulo = 'Apagar?', texto = '', rotulo = 'Apagar', palavra = 'APAGAR' } = {}) {
   if (typeof document === 'undefined' || !document.body) return Promise.resolve(false);
   document.getElementById('vb-apagar')?.vbFechar?.(false);
+  const exigida = String(palavra || '').trim().toUpperCase();
   return new Promise((resolve) => {
     const foco = document.activeElement;
     const fundo = document.createElement('div');
     fundo.id = 'vb-apagar'; fundo.className = 'vb-apagar';
     fundo.innerHTML = `<div class="vb-apagar-caixa" role="alertdialog" aria-modal="true" aria-labelledby="vb-apagar-t"${texto ? ' aria-describedby="vb-apagar-x"' : ''}>`
+      + `<span class="vb-apagar-ic">${VB_APAGAR_LIXEIRA}</span>`
       + `<p class="vb-apagar-t" id="vb-apagar-t">${safeText(titulo)}</p>${texto ? `<p class="vb-apagar-x" id="vb-apagar-x">${safeText(texto)}</p>` : ''}`
-      + `<div class="vb-apagar-acoes"><button type="button" class="vb-apagar-nao">Cancelar</button><button type="button" class="vb-apagar-sim">${safeText(rotulo)}</button></div></div>`;
+      + (exigida ? `<label class="vb-apagar-rot" for="vb-apagar-c">Digite ${safeText(exigida)}</label><input id="vb-apagar-c" class="vb-apagar-c" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">` : '')
+      + `<div class="vb-apagar-acoes"><button type="button" class="vb-apagar-nao">Cancelar</button><button type="button" class="vb-apagar-sim"${exigida ? ' disabled' : ''}>${safeText(rotulo)}</button></div></div>`;
     let fechada = false;
+    const campo = fundo.querySelector('.vb-apagar-c'), sim = fundo.querySelector('.vb-apagar-sim');
+    const liberado = () => !exigida || String(campo?.value || '').trim().toUpperCase() === exigida;
+    campo?.addEventListener('input', () => { sim.disabled = !liberado(); });
+    campo?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (liberado()) fechar(true); } });
     const tecla = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); fechar(false); return; }
       if (e.key !== 'Tab') return;
-      const [a, b] = fundo.querySelectorAll('button');
+      const ordem = [...fundo.querySelectorAll('input, button')].filter((x) => !x.disabled);
+      const a = ordem[0], b = ordem[ordem.length - 1];
       if (e.shiftKey && document.activeElement === a) { e.preventDefault(); b.focus(); } else if (!e.shiftKey && document.activeElement === b) { e.preventDefault(); a.focus(); }
     };
     const fechar = (sim) => {
@@ -1126,11 +1140,11 @@ function vbConfirmarApagar({ titulo = 'Apagar?', texto = '', rotulo = 'Apagar' }
     fundo.vbFechar = fechar;
     fundo.addEventListener('click', (e) => {
       if (e.target === fundo || e.target.closest?.('.vb-apagar-nao')) fechar(false);
-      else if (e.target.closest?.('.vb-apagar-sim')) fechar(true);
+      else if (e.target.closest?.('.vb-apagar-sim') && liberado()) fechar(true);
     });
     window.addEventListener('keydown', tecla, true);
     document.body.append(fundo);
-    fundo.querySelector('.vb-apagar-nao')?.focus();
+    (campo || fundo.querySelector('.vb-apagar-nao'))?.focus();
   });
 }
 // Menu de linha (família 2): três pontos que abrem no lugar, no máximo 5 itens, o que apaga por último e em vermelho.
@@ -1167,7 +1181,7 @@ function vbErroNoCampo(campo, mensagem = '') {
 // que os módulos ainda desenham do jeito antigo: a peça não troca o HTML de ninguém, só marca a lista (.vb-abas), esconde
 // as abas que sobram (.vb-aba-fora) e põe o menu "Mais" no fim, que clica na aba de verdade (os ouvintes são os de sempre).
 const VB_ABAS_FORA = '.v2t-fichas, .ag-faixa, [aria-orientation="vertical"]';
-const VB_ABAS_DONO = '[class*="ofc-"], [class*="snc-"], [class*="prov-"], .spotlight, #spotlight';
+const VB_ABAS_DONO = '[class*="ofc-"], [class*="snc-"], [class*="prov-"], .spotlight, #spotlight, .spotlight-dialog';
 const VB_ABAS_POSICAO = new Map();
 const VB_ABAS_MAX = 6;
 function vbAbaSelecionada(aba) { return aba.getAttribute('aria-selected') === 'true' || aba.classList.contains('ativa') || aba.classList.contains('active'); }
@@ -1225,6 +1239,9 @@ function vbArrumarAbas(raiz = document) {
     aplicar();
     if (lista.getClientRects().length) {
       const larguraUtil = () => Math.min(lista.clientWidth, lista.parentElement ? lista.parentElement.clientWidth : Infinity);
+      // Quadro D3-Celular: antes de mandar aba para o "Mais", as abas apertam (texto menor, a lista na largura toda).
+      lista.classList.remove('vb-abas-justas');
+      if (lista.scrollWidth > larguraUtil() + 1) lista.classList.add('vb-abas-justas');
       for (let i = abas.length - 1; i >= 0 && lista.scrollWidth > larguraUtil() + 1 && vistas.size > 1; i--) {
         if (i === sel || !vistas.has(i)) continue;
         vistas.delete(i); aplicar();
@@ -1430,11 +1447,12 @@ function d3AcaoHtml({ frase = '', agente = 'V', botao = '', attrs = '' } = {}) {
     + `<span class="d3-acao-frase">${frase}</span>${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${d3Esc(botao)}</button>` : ''}</section>`;
 }
 
-// Gráfico em linha: valores (e meta opcional) num svg com polyline, ponto só no último valor.
-function d3LinhaSvg(valores, { meta = null, largura = 120, altura = 32, rotulo = '' } = {}) {
+// Gráfico em linha: valores (e meta opcional) num svg com polyline, ponto só no último valor (ou no índice `ponto`,
+// quando o destaque é outro dia). desdeZero: a escala começa no zero (contagem contra uma régua).
+function d3LinhaSvg(valores, { meta = null, largura = 120, altura = 32, rotulo = '', ponto = null, desdeZero = false } = {}) {
   const v = (valores || []).map(Number).filter(Number.isFinite);
   if (v.length < 2) return '';
-  const todos = meta != null ? [...v, ...[].concat(meta).map(Number)] : v;
+  const todos = [...v, ...(meta != null ? [].concat(meta).map(Number) : []), ...(desdeZero ? [0] : [])];
   const min = Math.min(...todos), max = Math.max(...todos), faixa = max - min || 1, pad = 3;
   const x = (i, n) => pad + (i * (largura - 2 * pad)) / Math.max(1, n - 1);
   const y = (n) => altura - pad - ((n - min) * (altura - 2 * pad)) / faixa;
@@ -1444,7 +1462,8 @@ function d3LinhaSvg(valores, { meta = null, largura = 120, altura = 32, rotulo =
   const m = meta == null ? '' : Array.isArray(meta)
     ? `<polyline class="meta" points="${meta.map((n, i) => `${x(i, meta.length).toFixed(1)},${y(Number(n)).toFixed(1)}`).join(' ')}"/>`
     : `<polyline class="meta" points="${pad},${y(Number(meta)).toFixed(1)} ${largura - pad},${y(Number(meta)).toFixed(1)}"/>`;
-  const [ux, uy] = pts[pts.length - 1].split(',');
+  const iPonto = Number.isInteger(ponto) && ponto >= 0 && ponto < pts.length ? ponto : pts.length - 1;
+  const [ux, uy] = pts[iPonto].split(',');
   return `<svg class="d3-graf" viewBox="0 0 ${largura} ${altura}" style="--d3-comp:${Math.ceil(comp)}"${rotulo ? ` role="img" aria-label="${d3Esc(rotulo)}"` : ' aria-hidden="true"'}>${m}<polyline points="${pts.join(' ')}"/><circle cx="${ux}" cy="${uy}" r="3"/></svg>`;
 }
 
@@ -1455,4 +1474,30 @@ function d3NumHtml({ rotulo = '', valor = '', tom = '', serie = null, meta = nul
   return `<${tag}${attrs ? ` type="button" ${attrs}` : ''} class="d3-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${d3Esc(rotulo)}</span><b class="d3-num-v">${valor}</b>${extra}</${tag}>`;
 }
 
-if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d3LinhaSvg, d3NumHtml });
+// Séries históricas dos quadros D3 (server/series-historicas.js, tabela vybe_serie_diaria): GET /api/painel?area=series&para=…
+// d3Series(para, aoChegar, extra) devolve os dados da área (ou null enquanto lê / sem dado) e lê de novo a cada 5 minutos;
+// quando a leitura chega, chama aoChegar (a tela se redesenha). Falhou: null por 5 minutos, sem novo pedido a cada desenho.
+// d3SerieValores(serie) → os números de { pontos: [{ dia, valor }] } para o d3LinhaSvg (null com menos de 2 pontos).
+const D3_SERIES = {};
+function d3Series(para, aoChegar, extra = '') {
+  const chave = para + (extra ? '&' + extra : '');
+  const c = D3_SERIES[chave] || (D3_SERIES[chave] = { dados: null, lendo: false, em: 0, avisar: null });
+  if (typeof aoChegar === 'function') c.avisar = aoChegar;
+  if (!c.lendo && Date.now() - c.em > 300000 && typeof fetch === 'function') {
+    c.lendo = true;
+    fetch('/api/painel?area=series&para=' + encodeURIComponent(para) + (extra ? '&' + extra : ''), { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((d) => {
+        c.lendo = false; c.em = Date.now();
+        if (d && d.ok) { c.dados = d; if (typeof c.avisar === 'function') { try { c.avisar(d); } catch (e) { console.error('[séries]', e); } } }
+        else if (!c.dados) c.dados = { ok: false };
+      });
+  }
+  return c.dados && c.dados.ok ? c.dados : null;
+}
+function d3SerieValores(serie, { minimo = 2 } = {}) {
+  const v = (serie?.pontos || []).map((p) => p?.valor).filter((n) => n != null && Number.isFinite(Number(n))).map(Number);
+  return v.length >= minimo ? v : null;
+}
+
+if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d3LinhaSvg, d3NumHtml, d3Series, d3SerieValores, D3_SERIES });

@@ -62,7 +62,10 @@ test('Conversas segue o quadro: título, de onde vem e as visões; cartão da li
   assert.match(tela, /<p class="v2w-rot">Já vistas<\/p>/);
   assert.match(tela, /data-wa-todas>mostrar<\/button>/);
   assert.match(tela, /class="v2w-bl\$\{m\.minha \? ' eu' : ''\}\$\{m\.vybes \? ' agt' : ''\}/);
-  assert.match(tela, /data-wa-procurar aria-expanded="\$\{Boolean\(st\.procurando\)\}">Buscar na conversa<\/button>/);
+  assert.match(tela, /data-wa-procurar aria-expanded="\$\{Boolean\(st\.procurando\)\}" aria-label="Buscar na conversa"/);
+  // Direção 3 (D3-Conversas): "Abrir no WhatsApp" no topo da conversa; o convite do grupo ou o WhatsApp Web.
+  assert.match(tela, /class="v2w-btn v2w-abrir-wa" href="\$\{esc\(linkDoWhatsapp\(c\)\)\}" target="_blank" rel="noopener noreferrer">Abrir no WhatsApp<\/a>/);
+  assert.match(wa, /https:\/\/web\.whatsapp\.com\//);
   assert.match(tela, /Só leitura nesta etapa\. Para responder, use o seu WhatsApp\./);
   assert.doesNotMatch(wa, /method: 'POST'|🚫 Mensagem apagada<\/span>/, 'nada envia; o balão apagado não usa emoji');
   assert.doesNotMatch(tela, /vv-wa-topo|vv-wa-abas|vv-wa-item/, 'a tela antiga saiu');
@@ -77,6 +80,6 @@ test('o CSS do grupo ganha pelo id da janela, sem !important nem html body.mundo
   assert.match(css, /#vv-carteira \.v2c-kpi > b\{[^}]*font:700 34px/);
   assert.match(css, /#vv-whatsapp \.v2w-grade\{[^}]*grid-template-columns:380px minmax\(0,1fr\)/);
   assert.match(css, /#vv-whatsapp \.v2w-bl\.eu\{[^}]*background:#FFE9DB/);
-  assert.match(css, /#vv-whatsapp \.v2w-bl\.agt\{background:#EEEAFB\}/);
+  assert.match(css, /#vv-whatsapp \.v2w-bl\.agt\{background:var\(--d3-agente-veu\)\}/, 'balão do agente no véu lilás (token da Direção 3)');
   assert.match(css, /prefers-reduced-motion:reduce/);
 });

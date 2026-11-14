@@ -1309,7 +1309,13 @@ function pv2aAlternar(id, el) {
   if (abrir) pv2aAbertas.add(id); else { pv2aAbertas.delete(id); pv2aAbertas.fechou = true; }
   linha.setAttribute("aria-expanded", String(abrir)); el.setAttribute("aria-expanded", String(abrir));
 }
-function pv2aBuscar(valor) { CAPT.busca = valor; const el = document.getElementById("pv2a-corpo"); if (el) el.innerHTML = pv2aCorpoHtml(); }
+function pv2aBuscar(valor) {
+  CAPT.busca = valor; const el = document.getElementById("pv2a-corpo"); if (!el) return;
+  el.innerHTML = pv2aCorpoHtml();
+  // A busca mora no ⋯ de "Na ordem de fazer", dentro do corpo: ao repintar, o menu fica aberto e o cursor volta ao campo.
+  const campo = document.getElementById("pv2a-busca");
+  if (campo) { campo.closest("details")?.setAttribute("open", ""); campo.focus(); try { campo.setSelectionRange(valor.length, valor.length); } catch { /* campo de busca sem seleção */ } }
+}
 function pv2aGrade() { CAPT.grade = !CAPT.grade; CAPT.sel = ""; agCartaoFechar(); captRender(); }
 function pv2aSemanaEmLista() { return (CAPT.vista === "semana" || CAPT.vista === "lista") && !CAPT.grade; }
 // Direção 3 (quadro D3-Agenda, 13/11/2026): a semana numa faixa de sete dias com a contagem de cada um; embaixo, "Na
@@ -1391,7 +1397,41 @@ function d3agLadoHtml(pend) {
   const roteiros = `<section class="d3ag-card d3ag-lado" aria-label="Roteiros"><div class="d3ag-cab"><h3>Roteiros</h3><span>30 dias</span></div>
     <div class="d3ag-lado-lin fixo"><span>Prontos</span><b>${prontos}</b></div>
     <button type="button" class="d3ag-lado-lin" onclick="captGrupo('roteiro')"><span>Faltam</span><b${faltam ? ' class="a"' : ""}>${faltam}</b></button></section>`;
-  return `<div class="d3ag-col">${espera}${roteiros}</div>`;
+  return `<div class="d3ag-col">${espera}${roteiros}${d3agViramHtml()}</div>`;
+}
+// Agentes viram (quadro D3-Agenda): o que o Lucas nota na semana aberta a partir da própria agenda, sem nada inventado:
+// captação sem cliente e captação marcada em dia de feriado. Sem nada disso, o cartão fica com uma linha curta.
+function d3agViramHtml() {
+  const ini = CAPT.semana, fim = agSomar(CAPT.semana, 6);
+  const sem = captEventos().filter((e) => e.tipo === "captacao" && e.dia >= ini && e.dia <= fim);
+  const vistos = [];
+  for (const e of sem) {
+    const feriado = (window.VybeDatas?.doDia?.(e.dia) || []).find((x) => x.feriado);
+    if (!e.cliente) vistos.push({ e, txt: `“${safeText(e.titulo || "Sem título")}” sem cliente` });
+    else if (feriado) vistos.push({ e, txt: `Captação no feriado · ${pv2Cli(e.cliente)}` });
+  }
+  vistos.sort((a, b) => (a.e.dia + (a.e.inicio || "")).localeCompare(b.e.dia + (b.e.inicio || "")));
+  const MAX = 3;
+  const linhas = vistos.slice(0, MAX).map((v) => `<button type="button" class="d3ag-lado-lin d3ag-viu" onclick="captSelecionar('${safeText(v.e.id)}')"><span class="d3ag-viu-av" aria-hidden="true">L</span><span class="d3ag-viu-txt">${v.txt}</span><span class="d3ag-fim">${safeText(agDiaSemana(v.e.dia))}</span></button>`).join("");
+  return `<section class="d3ag-card d3ag-lado d3ag-viram" aria-label="Agentes viram"><div class="d3ag-cab"><h3>Agentes viram</h3><span>${vistos.length}</span></div>
+    ${linhas || '<p class="d3ag-n d3ag-vazio">Nada fora do lugar nesta semana</p>'}${vistos.length > MAX ? `<span class="d3ag-lado-lin fixo"><span class="d3ag-n">+ ${vistos.length - MAX}</span></span>` : ""}</section>`;
+}
+// O que a linha extra fazia (busca, Dia, Anterior, Hoje, Próxima e Filtros) mora no ⋯ do cartão "Na ordem de fazer":
+// o quadro D3-Agenda não tem essa linha. A busca repinta só o corpo e devolve o foco (pv2aBuscar).
+let pv2aMaisDados = { todos: [], nPend: 0 };
+function d3agMaisHtml() {
+  const { todos, nPend } = pv2aMaisDados;
+  const tipos = Object.entries(AG_TIPOS).map(([t, n]) => `<label class="pv2-lote"><input type="checkbox" ${CAPT.tipos.has(t) ? "checked" : ""} onchange="captTipo('${t}')">${n} <b>${todos.filter((e) => e.tipo === t).length}</b></label>`).join("");
+  const filtrado = CAPT.tipos.size < Object.keys(AG_TIPOS).length || CAPT.grade || Boolean(CAPT.busca.trim());
+  const dia = CAPT_VISTAS.filter(([v]) => v === "dia").map(([v, n, tecla]) => `<button type="button" class="pv2-chip" aria-pressed="${CAPT.vista === v}" onclick="this.closest('details').open=false;captVista('${v}')" title="${n} (${tecla})">${n}</button>`).join("");
+  return `<details class="pv2-menu d3ag-ferr"><summary class="d3ag-ferr-btn${filtrado ? " tem" : ""}" aria-label="Buscar, navegar e filtrar a agenda" title="Buscar, navegar e filtrar">⋯</summary><div class="pv2-pop pv2a-pop">
+      <label class="pv2-oculto" for="pv2a-busca">Buscar cliente ou captação</label>
+      <input id="pv2a-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar cliente ou captação" value="${safeText(CAPT.busca)}" oninput="pv2aBuscar(this.value)">
+      <span class="pv2-pop-rot">Ver</span><div class="pv2-pop-linha">${dia}${pv2aSemanaEmLista() ? d3agNavHtml() : ""}</div>
+      <span class="pv2-pop-rot">Na agenda</span>${tipos}
+      ${CAPT.vista === "semana" || CAPT.vista === "lista" ? `<button type="button" onclick="this.closest('details').open=false;pv2aGrade()">${CAPT.grade ? "Semana em lista por dia" : "Semana em grade por hora"}</button>` : ""}
+      <button type="button" onclick="this.closest('details').open=false;captAlternarInspetor()">${CAPT.inspetor ? "Esconder" : "Mostrar"} o que precisa de você${nPend ? ` (${nPend})` : ""}</button>
+      <span class="pv2-pop-rot">Atalhos</span><p class="pv2-sub">T hoje · ← → navega · D S M visão · N marca · P pendências</p></div></details>`;
 }
 function d3agOrdemHtml(eventos, bate, pend) {
   const hoje = captHoje(), fechar = pend.fechar.filter(bate), ids = new Set(fechar.map((e) => e.id));
@@ -1404,7 +1444,7 @@ function d3agOrdemHtml(eventos, bate, pend) {
   const n = fechar.length + vem.length + foi.length;
   const linhas = fechar.map((e) => d3agLinha(e, { fechar: true })).join("") + vem.map((e) => d3agLinha(e)).join("") + foi.map((e) => d3agLinha(e)).join("");
   const resto = semPecas.length > MAX ? `<button type="button" class="d3ag-mais" onclick="captGrupo('pecas')">+ ${semPecas.length - MAX} sem peças</button>` : "";
-  return `<section class="d3ag-card d3ag-ordem" aria-label="Na ordem de fazer"><div class="d3ag-cab"><h3>Na ordem de fazer</h3><span>${n}</span></div>
+  return `<section class="d3ag-card d3ag-ordem" aria-label="Na ordem de fazer"><div class="d3ag-cab"><h3>Na ordem de fazer</h3><span class="d3ag-cab-dir"><span>${n}</span>${d3agMaisHtml()}</span></div>
     ${linhas || `<p class="d3ag-n d3ag-vazio">${CAPT.busca.trim() ? "Nada com esse texto" : "Nada na agenda"} · <button type="button" class="pv2-link" onclick="captMarcarCaptacao()">Marcar captação</button></p>`}${resto}</section>`;
 }
 function pv2aCorpoHtml() {
@@ -1459,21 +1499,11 @@ function pv2aHtml({ todos, pend, nPend }) {
     ${d3agNum({ rotulo: "Peças sem roteiro", valor: String(pend.roteiro.length), tom: pend.roteiro.length ? "a" : "", attrs: `onclick="captGrupo('roteiro')"` }, rot0 ? `gravam ${safeText(d3agQuando(rot0.e.dia).toLowerCase())} · ${safeText(rot0.e.cliente || "")}` : "")}
     ${d3agNum({ rotulo: "Captações sem peças", valor: String(semPecas.length), attrs: `onclick="captGrupo('pecas')"` }, safeText(diasSem))}
     ${d3agNum({ rotulo: "Captações na semana", valor: `${nCapt}<small> · ${nHoje} hoje</small>`, barra: nCapt ? (feitas / nCapt) * 100 : 0 })}</div>`;
-  const vistas = CAPT_VISTAS.map(([v, n, tecla]) => `<button type="button" class="pv2-chip" aria-pressed="${CAPT.vista === v || (v === "semana" && CAPT.vista === "lista")}" onclick="captVista('${v}')" title="${n} (${tecla})">${n}</button>`).join("");
-  const tipos = Object.entries(AG_TIPOS).map(([t, n]) => `<label class="pv2-lote"><input type="checkbox" ${CAPT.tipos.has(t) ? "checked" : ""} onchange="captTipo('${t}')">${n} <b>${todos.filter((e) => e.tipo === t).length}</b></label>`).join("");
-  const filtrado = CAPT.tipos.size < Object.keys(AG_TIPOS).length || CAPT.grade;
+  // Semana e Mês estão no topo da Agenda (Direção 3, production_governed_v2.js). O quadro não tem a linha de busca: busca,
+  // Dia, Anterior, Hoje, Próxima e Filtros vão para o ⋯ de "Na ordem de fazer" (d3agMaisHtml).
+  pv2aMaisDados = { todos, nPend };
   return `<div id="pv2-agenda" class="pv2 pv2-agenda${CAPT.vista === "mes" && captNoCelular() ? " pv2a-mes-cel" : ""}"><span class="capt-cal" hidden></span>
     ${blocoAcao}${numeros}
-    <div class="pv2-filtros" role="toolbar" aria-label="Captações">
-      <label class="pv2-oculto" for="pv2a-busca">Buscar cliente ou captação</label>
-      <input id="pv2a-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar cliente ou captação" value="${safeText(CAPT.busca)}" oninput="pv2aBuscar(this.value)">
-      ${vistas}${pv2aSemanaEmLista() ? d3agNavHtml() : ""}
-      <details class="pv2-menu"><summary class="pv2-btn s${filtrado ? " tem" : ""}" aria-label="Filtros: escolher o que exibir na agenda">Filtros</summary><div class="pv2-pop pv2a-pop">
-        <span class="pv2-pop-rot">Na agenda</span>${tipos}
-        ${CAPT.vista === "semana" || CAPT.vista === "lista" ? `<button type="button" onclick="this.closest('details').open=false;pv2aGrade()">${CAPT.grade ? "Semana em lista por dia" : "Semana em grade por hora"}</button>` : ""}
-        <button type="button" onclick="this.closest('details').open=false;captAlternarInspetor()">${CAPT.inspetor ? "Esconder" : "Mostrar"} o que precisa de você${nPend ? ` (${nPend})` : ""}</button>
-        <span class="pv2-pop-rot">Atalhos</span><p class="pv2-sub">T hoje · ← → navega · D S M visão · N marca · P pendências</p></div></details>
-    </div>
     ${CAPT.avisoAgenda ? `<p class="pv2-sub pv2a-aviso" role="status">${safeText(CAPT.avisoAgenda)}</p>` : ""}
     <div id="pv2a-corpo" class="pv2a-duas ${pv2aSemanaEmLista() ? "d3ag-corpo" : "larga"}">${pv2aCorpoHtml()}</div>
     ${CAPT.inspetor ? `<aside class="pv2-card capt-lado pv2a-inspetor" aria-label="O que precisa de você">${captPendenciasHtml(pend)}</aside>` : ""}

@@ -304,6 +304,84 @@ function cabecaDaFichaHtml(nome, { f, meta, estado, podeMexer, aspas }) {
     </div>`;
 }
 
+// A carteira lida para a ficha (GET area=carteira, só leitura): o clima do grupo, o onboarding e os sinais do servidor
+// (NPS, reunião, contrato) que entram na nota. Lida uma vez ao abrir a ficha e guardada por 2 minutos; quando chega,
+// a ficha que estiver aberta se redesenha.
+const CARTEIRA_DA_FICHA = { dados: null, lendo: false, em: 0, saude: null };
+function carteiraDaFicha(aoChegar) {
+  const c = CARTEIRA_DA_FICHA;
+  if (c.dados && Date.now() - c.em < 120000) return c.dados;
+  if (!c.lendo && typeof fetch === 'function') {
+    c.lendo = true;
+    fetch('/api/painel?area=carteira', { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((d) => { c.lendo = false; c.em = Date.now(); c.dados = d && typeof d === 'object' ? d : {}; c.saude = null; if (typeof aoChegar === 'function') aoChegar(); });
+  }
+  return c.dados;
+}
+// A nota do cliente com os pontos de cada motivo (a mesma conta da Carteira, com os sinais e o clima do servidor).
+function saudeDaFicha(id, sv) {
+  const S = typeof window !== 'undefined' ? window.VybeCarteiraSaude : null;
+  if (!id || !S || !sv) return null;
+  try {
+    if (!CARTEIRA_DA_FICHA.saude) {
+      const pecas = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() || [] : typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : [];
+      const cad = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
+      CARTEIRA_DA_FICHA.saude = S.calcular({ demandas: pecas, clientes: cad, sinais: sv.sinais || null, clima: sv.clima?.disponivel ? sv.clima : null, hoje: hojeIsoV2() });
+    }
+    return CARTEIRA_DA_FICHA.saude.clientes.find((x) => String(x.id) === String(id)) || null;
+  } catch { return null; }
+}
+// Direção 3 (quadro D3-FichaCliente): a faixa de cima com três cartões, Saúde (número, linha e os motivos com os pontos),
+// Clima do grupo e Onboarding. Sem dado, o cartão fica no lugar com um vazio curto.
+function faixaDaFichaHtml({ id, s, sv, motivosTexto, serie = null }) {
+  const tom = tomDaSaudeV2(s);
+  const dataHora = (v) => { const d = new Date(v); if (!Number.isFinite(d.getTime())) return '';
+    const dia = d.toISOString().slice(0, 10) === hojeIsoV2() ? 'hoje' : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `${dia} ${String(d.getHours()).padStart(2, '0')}h`; };
+  // Saúde: os motivos com os pontos, quando a conta da Carteira está à mão; senão, os textos.
+  const pontos = (s?.motivos || []).filter((m) => typeof m === 'object' && m.tom === 'ruim' && m.pontos);
+  const pilulas = pontos.length
+    ? pontos.slice(0, 3).map((m) => `<span class="v2f-pill d3f-mot" title="${safeText(m.texto)}"><b>${String(m.pontos).replace('-', '−')}</b>${safeText(String(m.texto).replace(/^grupo:.*/, 'grupo'))}</span>`).join('')
+    : motivosTexto;
+  // A nota guardada dia a dia (vybe_serie_diaria, série 'saude'); com menos de dois dias guardados, o vazio honesto.
+  const pontosSaude = (serie?.saude?.pontos || []).filter((p) => p && p.valor != null);
+  const valoresSaude = typeof d3SerieValores === 'function' ? d3SerieValores(serie?.saude) : null;
+  const desdeSaude = pontosSaude.length ? pontosSaude[0].dia.slice(8, 10) + '/' + pontosSaude[0].dia.slice(5, 7) : '';
+  const linha = valoresSaude && typeof d3LinhaSvg === 'function'
+    ? `<div class="d3f-hist" title="Saúde guardada dia a dia desde ${desdeSaude}${(serie.saude.origens || []).includes('saude_mensal') ? ' (antes de 14/11, a nota de cada mês)' : ''}">${d3LinhaSvg(valoresSaude, { largura: 160, altura: 34, meta: 75, rotulo: `Saúde de ${valoresSaude.length} registros desde ${desdeSaude}` })}<small class="v2f-sub">desde ${desdeSaude}</small></div>`
+    : '<p class="d3f-sem-hist">sem histórico ainda</p>';
+  const saude = `<section class="v2f-card v2f-saude d3f-faixa-saude${tom ? ' v2-humor' : ''}"${tom ? (typeof vbHumorAttr === 'function' ? vbHumorAttr(Number(s.score)) : '') : ''} style="--c:${tom ? tom.barra : '#B5AFA5'}" aria-label="Saúde do cliente">
+      <div class="d3f-faixa-num"><span class="v2f-sub">Saúde</span><b class="v2f-nota" style="color:${tom ? tom.texto : '#6B665E'}"><span class="v2-num">${tom ? Number(s.score) : '—'}</span></b>
+        <span class="d3f-faixa-risco" style="color:${tom ? tom.texto : '#6B665E'}">${tom ? ({ alto: 'risco alto', medio: 'risco médio', baixo: 'em dia' }[s.risco] || '') : 'sem nota'}</span></div>
+      <div class="d3f-faixa-meio">${linha}<p class="v2f-pills">${pilulas || '<span class="v2f-sub">nada puxando para baixo</span>'}</p></div>
+    </section>`;
+  // Clima do grupo (vybe_carteira_clima, o bot lê o grupo).
+  const cl = id && sv?.clima?.disponivel ? (sv.clima.porCliente || {})[String(id)] : null;
+  const clima = `<section class="v2f-card d3f-faixa-card" aria-label="Clima do grupo"><div class="d3f-faixa-topo"><b>Clima do grupo</b>${cl?.atualizado_em ? `<span class="v2f-sub d3f-faixa-quando"><span class="d3f-ag" aria-hidden="true">V</span>${safeText(dataHora(cl.atualizado_em))}</span>` : ''}</div>
+      ${cl && Number.isFinite(Number(cl.pontos))
+        ? `<b class="d3f-faixa-v"><span class="v2-num">${Number(cl.pontos) > 0 ? '+' : Number(cl.pontos) < 0 ? '−' : ''}${Math.abs(Number(cl.pontos))}</span><small> pts</small></b>
+           <p class="v2f-pills">${cl.motivo ? `<span class="v2f-pill ${Number(cl.pontos) < 0 ? 'a' : 'g'}">${safeText(cl.motivo)}</span>` : ''}</p>`
+        : `<p class="d3f-faixa-vazio">${!sv ? 'Lendo o grupo…' : 'Sem leitura do grupo ainda.'}</p>`}
+    </section>`;
+  // Onboarding: os itens feitos de todas as etapas, a barra e onde parou.
+  const ob = id && sv?.onboarding?.disponivel ? (sv.onboarding.clientes || []).find((o) => String(o.cliente_id) === String(id)) : null;
+  const sit = ob?.situacao;
+  const totalItens = sit ? (sit.etapas || []).reduce((t, e) => t + (Number(e.total) || 0), 0) : 0;
+  const feitosItens = sit ? (sit.etapas || []).reduce((t, e) => t + (Number(e.feitos) || 0), 0) : 0;
+  const diaBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8)}/${iso.slice(5, 7)}` : ''; };
+  const pe = !sit ? '' : sit.concluido
+    ? [diaBr(ob.encerrado_em), ob.iniciado_em && ob.encerrado_em ? `<b>${Math.max(0, Math.round((Date.parse(String(ob.encerrado_em).slice(0, 10)) - Date.parse(String(ob.iniciado_em).slice(0, 10))) / 864e5))} dias</b>` : ''].filter(Boolean).join(' · ')
+    : [sit.atual?.nome ? safeText(sit.atual.nome) : '', sit.atual?.dias_parada ? `<b>parada há ${sit.atual.dias_parada} ${sit.atual.dias_parada === 1 ? 'dia' : 'dias'}</b>` : ''].filter(Boolean).join(' · ');
+  const onboarding = `<section class="v2f-card d3f-faixa-card" aria-label="Onboarding"><div class="d3f-faixa-topo"><b>Onboarding</b>${sit ? `<span class="v2f-pill ${sit.concluido ? 'g' : 'a'}">${sit.concluido ? 'Concluído' : 'Em andamento'}</span>` : ''}</div>
+      ${sit ? `<b class="d3f-faixa-v"><span class="v2-num">${feitosItens}</span><small> / ${totalItens}</small></b>
+        <span class="d3-barra d3f-faixa-barra" style="--v:${totalItens ? Math.round((feitosItens / totalItens) * 100) : 0}%"><i></i></span>
+        ${pe ? `<p class="d3f-faixa-pe">${pe}</p>` : ''}`
+        : `<p class="d3f-faixa-vazio">${!sv ? 'Lendo o onboarding…' : 'Sem onboarding registrado.'}</p>`}
+    </section>`;
+  return `<div class="d3f-faixa">${saude}${clima}${onboarding}</div>`;
+}
+
 // O corpo da ficha pelo quadro: no alto, a nota de saúde com o porquê e a fala do Mateus (ficam em cima de todas as
 // abas); no Resumo, "Pede ação" e "Próximas entregas" à esquerda, "Última reunião", "Dados e acessos" e os
 // planejamentos à direita. As listas completas (com prazo, status e seleção de vários) ficam nas abas Conteúdo e Demandas.
@@ -367,7 +445,19 @@ function renderClientMasterDetail(cli) {
     ? `<div class="v2f-alto d3f-alto">${d3AcaoHtml({ frase: `<small class="d3c-quem">Mateus · Atendimento</small>${fraseCurta}`, agente: 'Mateus',
       botao: window.VybeCarteira?.abrir ? 'Ver a conta' : '', attrs: `onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })"` })}</div>`
     : `<div class="v2f-alto">${nota}<section class="v2f-card v2f-fala" aria-label="Leitura do Mateus">${falaV2Html('Mateus · Atendimento ao cliente', fraseFala, verConta)}</section></div>`;
-  const notaNoCorpo = typeof d3AcaoHtml === 'function' ? nota : '';
+  // Direção 3: a faixa de três cartões (Saúde, Clima do grupo, Onboarding) no lugar da nota solta.
+  const sv = id && typeof d3AcaoHtml === 'function' ? carteiraDaFicha(() => {
+    const aberto = document.getElementById('client-master-detail');
+    if (aberto && aberto.dataset.cliente === nome && aberto.isConnected) renderClientMasterDetail(nome);
+  }) : null;
+  // A linha da Saúde: a nota guardada dia a dia (server/series-historicas.js, GET area=series&para=cliente).
+  const serieSaude = id && typeof d3Series === 'function' ? d3Series('cliente', () => {
+    const aberto = document.getElementById('client-master-detail');
+    if (aberto && aberto.dataset.cliente === nome && aberto.isConnected) renderClientMasterDetail(nome);
+  }, 'id=' + encodeURIComponent(id)) : null;
+  const notaNoCorpo = typeof d3AcaoHtml === 'function'
+    ? faixaDaFichaHtml({ id, s: saudeDaFicha(id, sv) || s, sv, motivosTexto: motivos, serie: serieSaude }) : '';
+  node.dataset.cliente = nome;
 
   // ── Pede ação ──
   const linhaVencida = (x) => `<p class="v2f-hist">${safeText(String(x.d.nome || x.d.formato || 'Peça').replace(/\s+-\s+/, ' · '))}, era para ${x.quando.slice(8)}/${x.quando.slice(5, 7)}${x.d.responsavel ? `, com ${safeText(primeiroNomeV2(x.d.responsavel))}` : ''}${/info/i.test(String(x.d.status || '')) ? ', espera informação do cliente' : ''}</p>`;
@@ -703,6 +793,9 @@ function renderClientesBoard() {
         botaoAviso ? `<button type="button" class="v2f-btn s cli-aviso-acao" aria-pressed="${focado}" onclick="focarClientes('sem-registro')">${botaoAviso}</button>` : '');
     }
   }
+  // Direção 3 (quadro D3-GestaoClientes): o rótulo "Gestão" ao lado do título, em cinza, como a data do Hoje.
+  const tituloClientes = document.querySelector('#clientes-hero h2');
+  if (tituloClientes && !tituloClientes.nextElementSibling?.classList.contains('d3c-modo')) tituloClientes.insertAdjacentHTML('afterend', '<span class="d3c-modo">Gestão</span>');
   const acoes = document.getElementById('clientes-acoes');
   // Sem a classe antiga do cabeçalho (ela pinta de laranja o texto de todo botão dali); o id continua o mesmo.
   // Direção 3: "Novo cliente" é botão branco com o "+"; o único laranja cheio é o bloco de ação.
@@ -1636,7 +1729,8 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
   const cadastro = semCadastro ? '<span class="v2f-pill n">sem ficha</span>'
     : !c ? vazio
     : c.feitos === c.total ? '<span class="v2f-pill g">completo</span>'
-    : `<span class="v2f-pill a" title="Faltam: ${safeText(c.faltam.join(', '))}">${c.total - c.feitos === 1 ? 'falta' : 'faltam'} ${c.total - c.feitos} de ${c.total}</span>`;
+    // Direção 3 (quadro D3-GestaoClientes): o cadastro é uma pílula clara com o que já está feito ("3 de 12").
+    : `<span class="v2f-pill v2f-cad-n" title="Faltam: ${safeText(c.faltam.join(', '))}">${c.feitos} de ${c.total}</span>`;
   const emAberto = `${plural(conteudos, 'conteúdo', 'conteúdos')}${vencidos ? ` · <b class="v2f-ruim">${plural(vencidos, 'vencido', 'vencidos')}</b>` : ''}`;
 
   // O detalhe que abre no lugar.

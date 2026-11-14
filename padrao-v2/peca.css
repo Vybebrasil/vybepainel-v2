@@ -464,3 +464,20 @@ body.mundo #workspace-drawer .log-hora,body.mundo #workspace-drawer .log-nota{co
 body.mundo #workspace-drawer .log-rosto{background:#EAE6DE;color:#1F1D1A}
 body.mundo #workspace-drawer .log-rosto-sistema{background:#F3F1EC;color:#6B665E}
 body.mundo #workspace-drawer .log-rosto-sistema.automacao{background:#EFE7FD;color:#6D3FD1}
+
+/* Checklist da gaveta (quadro D3-Gaveta, rodada "fiel ao quadro" de 14/11/2026): o bloco das subdemandas com o rótulo
+   do quadro; a marca é um círculo, cheio e com o texto riscado quando o item foi feito. Prazo, responsáveis e remover
+   continuam na linha e aparecem ao passar o mouse ou focar. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem-marca{width:18px;height:18px;box-shadow:inset 0 0 0 1.5px var(--d3-meta,#B5AFA5)}
+/* O fundo do botão é travado pela regra antiga de vybe-mundo.css (linha 3255, o fundo branco forçado dos botões da gaveta):
+   a marca cheia vem da sombra interna e o visto mora no ::after. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem.feito .subitem-marca{position:relative;box-shadow:inset 0 0 0 10px var(--d3-pronto,#11613A)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem.feito .subitem-marca::after{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") no-repeat center/11px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem.feito .subitem-corpo b{color:var(--d3-apagado,#6B665E);text-decoration:line-through;text-decoration-color:var(--d3-meta,#B5AFA5)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem-corpo small{display:none}
+@media (hover:hover){
+  body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem:not(:hover):not(:focus-within) :is(.subitem-tirar,.subitem-donos){opacity:0}
+  body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem:not(:hover):not(:focus-within) .subitem-prazo input[value=""]{opacity:0}
+}
+/* Material bruto saiu do alto do Resumo (o quadro não tem) e fica discreto, embaixo da ficha. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-col > .material-bruto{padding:8px 12px;border-radius:12px}

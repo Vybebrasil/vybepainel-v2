@@ -392,6 +392,18 @@ function gavetaAtrasoDesktopHtml(item) {
   return gavetaAtrasoHtml(item).replace('gv2-cel-pill', 'gv2-atraso');
 }
 // Ficha em bloco: grupo, formato, captação e prioridade à vista; um toque abre a ficha inteira (editável) no lugar.
+// Quadro D3-Gaveta: as subdemandas aparecem como "Checklist" (o mesmo bloco de vybe-subitens.js, com marcar, prazo,
+// responsáveis e adicionar; só o rótulo muda aqui).
+function gavetaChecklistHtml(detail, item) {
+  const html = typeof subitensHtml === 'function' ? subitensHtml(detail, item) : '';
+  if (!html) return '';
+  // O item feito ganha a marca cheia e o texto riscado (a mesma regra de "feito" da contagem de vybe-subitens.js).
+  const feitos = new Set((detail?.subitens || []).filter((s) => /^(feito|conclu|aprovado)/i.test(String(s.status || ''))).map((s) => String(s.ref)));
+  return html.replace('<section class="workspace-section">', '<section class="workspace-section gv2-check">')
+    .replace('<div class="workspace-section-head">Subdemandas', '<div class="workspace-section-head gv2-checklist">Checklist')
+    .replace('placeholder="Nova subdemanda…"', 'placeholder="Novo item…"')
+    .replace(/<li class="subitem" data-subitem="([^"]*)"/g, (m, ref) => (feitos.has(ref) ? `<li class="subitem feito" data-subitem="${ref}"` : m));
+}
 function gavetaFichaResumoHtml(detail, item) {
   const fichaInteira = typeof workspaceFichaHtml === 'function' ? workspaceFichaHtml(detail, item.id) : '';
   if (!fichaInteira) return '';
@@ -486,11 +498,11 @@ function gavetaLinkHtml() {
         : lk('+ adicionar', `editarBriefing('${id}')`)}</div>
         ${briefing ? `<p class="gv2-texto">${safeText(chamada.slice(0, 260))}${chamada.length > 260 ? '…' : ''}</p>`
           : '<p class="gv2-texto vazio">Sem briefing.</p>'}</section>
-      ${faixaDeMaterialBrutoHtml(detail, item)}
-      ${contexto ? `<section class="gv2-contexto" aria-label="Contexto da etapa atual"><div class="gv2-ctx-topo">${contexto.target ? gavetaPilulaHtml(contexto.target) : ''}<span class="gv2-sub">${safeText([contexto.creator || 'Equipe Vybe', quandoCtx].filter(Boolean).join(' · '))}</span></div>
+      ${contexto ?`<section class="gv2-contexto" aria-label="Contexto da etapa atual"><div class="gv2-ctx-topo">${contexto.target ? gavetaPilulaHtml(contexto.target) : ''}<span class="gv2-sub">${safeText([contexto.creator || 'Equipe Vybe', quandoCtx].filter(Boolean).join(' · '))}</span></div>
         <p class="gv2-texto">${safeText(contexto.reason || contexto.text)}</p>${contexto.next ? `<p class="gv2-ctx-prox"><span class="gv2-sub">Próximo</span><b>${safeText(contexto.next)}</b></p>` : ''}</section>` : ''}
-      ${subitensHtml(detail, item)}
+      ${gavetaChecklistHtml(detail, item)}
       ${gavetaFichaResumoHtml(detail, item)}
+      ${faixaDeMaterialBrutoHtml(detail, item, { compacta: true })}
     </div><div class="gv2-col">
       ${gavetaArquivosPreviaHtml(assets, entrega)}
       ${gavetaConversaPreviaHtml(updates)}

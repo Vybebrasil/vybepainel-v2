@@ -70,9 +70,9 @@
 .vv-tour-pular:hover,.vv-tour-link:hover{color:var(--tour-sel)}
 .vv-tour-raiz :is(button,input):focus-visible{outline:0;box-shadow:var(--tour-foco)}
 
-/* ---------- Dica: sem escurecer a tela; um anel em volta do que ela explica, na cor de destaque do padrão (laranja;
-   o lilás parecia um foco de outro sistema, re-auditoria de 10/11/2026) ---------- */
-.vv-tour-anel{position:fixed;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px var(--tour-acao),0 0 0 6px rgba(194,73,12,.2);animation:vv-tour-surge .2s var(--tour-curva) both}
+/* ---------- Dica: sem escurecer a tela; um anel em volta do que ela explica, em tinta (Direção 3: o laranja é só o
+   bloco de ação; antes laranja, e antes ainda lilás) ---------- */
+.vv-tour-anel{position:fixed;border-radius:8px;pointer-events:none;box-shadow:0 0 0 2px var(--tour-tinta),0 0 0 6px rgba(31,29,26,.12);animation:vv-tour-surge .2s var(--tour-curva) both}
 
 /* ---------- Ajuda do VYBES: painel no canto direito, acima do dock (quadro 66, 10/11/2026), sem véu nem blur ---------- */
 .vv-tour-ajuda{display:flex;justify-content:flex-end;align-items:flex-end;box-sizing:border-box;padding:var(--vv-m,14px);padding-bottom:calc(var(--vv-m,14px) + var(--vv-dock-alto,0px));pointer-events:none}

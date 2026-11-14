@@ -5,7 +5,7 @@
 
 :root{
   --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-cartao:#FFFFFF; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
-  --d3-tinta:#1F1D1A; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5;
+  --d3-tinta:#1F1D1A; --d3-agente-texto:#4B36A8; --d3-agente-veu:#EEEAFB; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5;
   --d3-acao:#C2490C; --d3-acao-texto:#A83D08; --d3-agente:#6E56CF;
   --d3-mod-hoje:#1F1D1A; --d3-mod-operacao:#C2490C; --d3-mod-negocio:#7C3AED; --d3-mod-time:#0E7490; --d3-mod-vybe:#15803D;
   --d3-perigo:#B42318; --d3-perigo-veu:#FDECEE; --d3-ajuste:#7A4A00; --d3-ajuste-veu:#FFF4D6;

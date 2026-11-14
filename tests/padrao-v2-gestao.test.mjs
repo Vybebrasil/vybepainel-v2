@@ -43,10 +43,11 @@ test('Visão do setor: cabeçalho do quadro (setores em fichas, Atualizado e um 
   const t = montar();
   t.ctx.VybeSetor.abrir('setor:producao', contexto(numeros()));
   const topo = t.el.innerHTML;
-  assert.match(topo, /class="g2-topo vs-topo"><h2>Produção<\/h2><span class="g2-seg"/);
+  assert.match(topo, /class="g2-topo vs-topo"><h2>Produção<\/h2><small class="d3s-topo-sub">[^<]+ · \d\d:\d\d<\/small><span class="g2-seg"/);
   for (const s of ['Produção', 'Clientes', 'Comercial', 'RH', 'Finanças']) assert.ok(topo.includes(`>${s}</button>`), s);
   assert.match(topo, /data-setor-ir="setor:producao" aria-pressed="true"/);
-  assert.match(topo, /data-setor-atualizar title="Atualizar">.*Atualizado \d\d:\d\d<\/button>/s);
+  // Direção 3 (quadro D3-VisaoSetor): o atualizar fica só no ícone redondo; a hora vai na dica e ao lado do título.
+  assert.match(topo, /class="g2-btn g2-atualizar d3s-atualizar" data-setor-atualizar title="Atualizado \d\d:\d\d" aria-label="Atualizar \(atualizado \d\d:\d\d\)"><svg/);
   assert.doesNotMatch(topo, /vs-atalhos|vv-cb-kicker/, 'sem o rótulo e sem as abas de cima');
   await esperar();
   const h = t.parte('.vs-corpo').innerHTML;
@@ -90,7 +91,7 @@ test('Gestão (quadro D3-Gestao): bloco de ação curto, quatro números, Por se
   assert.deepEqual(linhas, ['Produção', 'Finanças', 'Clientes', 'Comercial'], 'um setor por linha, o mais grave primeiro');
   assert.match(h, /<span class="d3s-pill r">18 dias<\/span><span class="d3g-set-txt">R\$ 10,4 mil em atraso, de 2 clientes<\/span>.*?data-setor-ir="setor:financas">Abrir Finanças/s);
   assert.match(h, /<span class="d3s-pill a">Sem meta<\/span><span class="d3g-set-txt">nenhuma meta definida para novembro<\/span>.*?data-setor-sub="funil">Definir metas/s);
-  assert.match(h, /<span class="d3s-pill n">2 com risco de furo nos próximos 2 dias<\/span>/, 'o detalhe da Produção vira pílula');
+  assert.match(h, /<span class="d3s-pill n">2 risco de furo · 2 d<\/span>/, 'o detalhe da Produção vira pílula');
   assert.match(h, /data-gestao-aba="performance">Ver por etapa/);
   assert.match(h, /class="d3s-ver d3g-abrir"><span>Abrir<\/span><button type="button" class="d3s-chip r" data-espiar="atrasadas">3 atrasadas<\/button>.*?data-gestao-aba="historico">Histórico e projeção<.*?Negócios por mês<.*?data-setor-sub="equipe">Equipe online · 0</s);
   assert.match(h, /Esta semana<\/h3>.*?<svg class="d3-graf d3g-graf"[^>]*><polyline class="meta" points="[^"]+"\/><polyline points="[^"]+"\/><circle/s, 'prontas e previstas em linha');
@@ -133,7 +134,8 @@ test('Performance (quadro D3-Performance): bloco do Heitor, quatro números, ped
   assert.match(h, /Sem responsável<\/span><b class="d3-num-v">3<small> \/ 4<\/small><\/b><span class="d3-barra" style="--v:75%">/);
   assert.match(h, /<span class="g2-pill r">3<\/span><p class="g2-lin-txt"><b>Sem responsável<\/b> · ninguém vai fazer<\/p>.*?Ver quais são/s);
   assert.match(h, /<b>Atrasadas<\/b> · 2 em A Fazer.*?Abrir as 2</s);
-  assert.match(h, /zerados: Solicitações vencidas, Sem briefing, Captação a agendar/);
+  // Direção 3 (quadro D3-Performance): os zerados viram pílulas na linha "Zerados".
+  assert.match(h, /<div class="g2-zerados" aria-label="Zerados"><span>Zerados<\/span><span class="g2-zero"[^>]*>Solicitações vencidas<\/span><span class="g2-zero"[^>]*>Sem briefing<\/span><span class="g2-zero"[^>]*>Captação a agendar/);
   assert.match(h, /Nenhuma entrega registrada em 30 dias\. Com entregas, o gráfico/);
   assert.match(h, /No prazo do cliente<\/span><b>sem dado<\/b><span>0 no prazo · 0 depois/);
   assert.match(h, /data-perf-dias="90">Ver 3 meses/);

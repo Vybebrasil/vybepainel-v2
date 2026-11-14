@@ -62,10 +62,11 @@ test('abas: uma peça para todas as listas de abas do mundo (pílula que desliza
 test('confirmação: janela só para apagar, Cancelar e Apagar vermelho; confirm( de apagar trocado', () => {
   const f = trecho('function vbConfirmarApagar', '// Menu de linha (família 2)');
   assert.match(f, /role="alertdialog" aria-modal="true"/);
-  assert.match(f, /<button type="button" class="vb-apagar-nao">Cancelar<\/button><button type="button" class="vb-apagar-sim">\$\{safeText\(rotulo\)\}<\/button>/);
+  // Direção 3 (D3-Fam-Confirmacoes): Apagar só liga depois de "Digite APAGAR" (tests/d3-faltas.test.mjs).
+  assert.match(f, /<button type="button" class="vb-apagar-nao">Cancelar<\/button><button type="button" class="vb-apagar-sim"\$\{exigida \? ' disabled' : ''\}>\$\{safeText\(rotulo\)\}<\/button>/);
   assert.match(f, /e\.key === 'Escape'/);
   assert.match(f, /e\.target === fundo/, 'clique fora cancela');
-  assert.match(core, /function vbConfirmarApagar\(\{ titulo = 'Apagar\?', texto = '', rotulo = 'Apagar' \} = \{\}\)/);
+  assert.match(core, /function vbConfirmarApagar\(\{ titulo = 'Apagar\?', texto = '', rotulo = 'Apagar', palavra = 'APAGAR' \} = \{\}\)/);
   assert.match(css, /#vb-apagar \.vb-apagar-acoes \.vb-apagar-sim\{background:#B42318;/);
   assert.doesNotMatch(ler('vybe-mundo-agentes.js'), /!confirm\('Remover esta atribuição\?'\)/);
   assert.doesNotMatch(ler('vybe-arquivos.js'), /window\.confirm\(/);

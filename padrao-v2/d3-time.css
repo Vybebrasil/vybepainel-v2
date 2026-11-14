@@ -488,8 +488,10 @@
 #automacoes-root.v2r .v2r-regra[aria-expanded="true"]{margin:0 -16px;padding:0 16px;background:#F9F8F5;box-shadow:inset 3px 0 0 var(--d3-tinta)}
 #automacoes-root.v2r .v2r-regra .v2g-tg[aria-checked="true"]{background:var(--d3-tinta)}
 #automacoes-root.v2r .v2r-regra .v2g-hist{padding-left:48px}
-#automacoes-root.v2r .v2r-pede{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:6px 10px}
-#automacoes-root.v2r .v2r-pede > .v2r-pede-acoes{grid-column:2;justify-content:flex-start}
+/* Pede ação em uma linha (quadro D3-Automacoes): pílula, o texto cortado e os botões à direita. */
+#automacoes-root.v2r .v2r-pede{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px 10px}
+#automacoes-root.v2r .v2r-pede > p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#automacoes-root.v2r .v2r-pede > .v2r-pede-acoes{flex:none;flex-wrap:nowrap;justify-content:flex-end}
 @media (max-width:1180px){
   :is(#vv-agentes,#automacoes-root) .d3t-nums,#automacoes-root.v2r .v2r-kpis.d3t-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
   #vv-agentes.v2a .d3t-perfil{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
@@ -506,7 +508,9 @@
   :is(#vv-agentes,#automacoes-root) .d3t-nums,#automacoes-root.v2r .v2r-kpis.d3t-nums{gap:8px}
   :is(#vv-agentes,#automacoes-root) .d3t-nums .d3-num-v{font-size:28px}
   #vv-agentes.v2a .d3t-agl.v2a-agl{grid-template-columns:28px minmax(0,1fr) auto 30px}
-  #vv-agentes.v2a .d3t-agl > .d3t-ped-n,#vv-agentes.v2a .d3t-agl > .d3-barra{display:none}
+  #vv-agentes.v2a .d3t-agl > .d3t-ped-n,#vv-agentes.v2a .d3t-agl > .d3-barra,#vv-agentes.v2a .d3t-agl > .d3t-serie{display:none}
+  #automacoes-root.v2r .v2r-pede{grid-template-columns:auto minmax(0,1fr)}
+  #automacoes-root.v2r .v2r-pede > .v2r-pede-acoes{grid-column:1 / -1}
   #vv-agentes.v2a .d3t-conta{margin-left:0}
   #automacoes-root.v2r .v2r-lin{flex-wrap:wrap}
   #automacoes-root.v2r .v2r-nome{flex:1 1 calc(100% - 60px)}
@@ -516,4 +520,69 @@
   #automacoes-root.v2r .ar-abas.v2g-seg > button{transition:none}
 }
 
+/* Rodada "fiel ao quadro" (14/11/2026). Agentes: a linha das execuções por dia no lugar da barra; o aviso dos pedidos
+   sem leitura numa pílula discreta; o perfil com cinco números ("Sair da sombra"). */
+#vv-agentes.v2a .d3t-serie{display:block;min-width:0}
+#vv-agentes.v2a .d3t-serie > .d3-graf{display:block;width:100%;height:20px}
+#vv-agentes.v2a .d3t-serie.parada .d3-graf *{animation:none}
+#vv-agentes.v2a .v2a-corpo > .vga-nota.d3t-aviso-leve{display:flex;margin:-4px 0 0;color:var(--d3-apagado)}
+#vv-agentes.v2a .d3t-nums.d3t-nums-ag{grid-template-columns:repeat(5,minmax(0,1fr))}
+#vv-agentes.v2a .d3t-nums-ag .d3-num-v{font-size:30px}
+@media (max-width:1180px){#vv-agentes.v2a .d3t-nums.d3t-nums-ag{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){#vv-agentes.v2a .d3t-nums.d3t-nums-ag{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 /* ===== FIM AGENTES · PERFIL DO AGENTE · AUTOMAÇÕES ===== */
+
+/* ===== RH · rodada "fiel ao quadro" (14/11/2026) ===== */
+/* Pedidos: a coluna da esquerda com o Pede ação e, embaixo, "Seus pedidos" com o "Também" no pé (D3-RhPedidos). */
+#vv-pessoas.v2p-janela .v2p-col-esq > .v2p-col-baralho{display:flex;flex-direction:column;align-items:flex-start}
+#vv-pessoas.v2p-janela .v2p-col-esq > .v2p-col-baralho > .v2p-cab{width:100%}
+#vv-pessoas.v2p-janela .v2p-meus.v2p-meus{justify-content:flex-start;padding:14px 18px 12px}
+#vv-pessoas.v2p-janela .v2p-meus > .v2p-lin{border-top:1px solid var(--d3-linha)}
+#vv-pessoas.v2p-janela .v2p-meus > .v2p-cab + .v2p-lin{border-top:0}
+#vv-pessoas.v2p-janela .v2p-meus .v2p-lin > p{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-pessoas.v2p-janela .v2p-meus-pe{margin-top:auto;padding-top:10px;border-top:1px solid var(--d3-linha)}
+#vv-pessoas.v2p-janela .v2p-meus-pe .v2p-chip{height:28px;padding:0 10px;background:var(--d3-trilho)}
+/* Produtividade: "Score por semana" na coluna da esquerda e o pé "Da operação" dentro do cartão da lista. */
+#vv-pessoas.v2p-janela .v2p-semana .v2p-vazio-curto{margin:6px 0 0;color:var(--d3-apagado)}
+#vv-pessoas.v2p-janela .v2p-pe.v2p-pe-card{margin-top:auto;padding-top:10px;border-top:1px solid var(--d3-linha)}
+/* Recrutamento: colunas Vaga · Aberta · Conduz · Etapas e os cartões de etapa ao abrir a vaga (D3-Recrutamento). */
+#vv-pessoas.v2p-janela .d3p-th.d3p-th-vg{grid-template-columns:minmax(0,1fr) 70px 64px 220px 22px}
+#vv-pessoas.v2p-janela .d3p-th.d3p-th-vg > span:last-child{grid-column:4}
+#vv-pessoas.v2p-janela .d3p-vagas .v2p-lin > .d3p-vg-aberta{flex:none;width:70px;font-size:13px;font-variant-numeric:tabular-nums}
+#vv-pessoas.v2p-janela .d3p-vagas .v2p-lin > .d3p-vg-aberta.r{font-weight:600;color:var(--d3-perigo)}
+#vv-pessoas.v2p-janela .d3p-vagas .v2p-lin > .d3p-vg-conduz{flex:none;width:64px}
+#vv-pessoas.v2p-janela .d3p-vagas .v2p-lin > .v2p-pills{flex:none;width:220px;justify-content:flex-start}
+#vv-pessoas.v2p-janela .v2p-etp .v2p-etp-card{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:12px;background:var(--d3-cartao)}
+#vv-pessoas.v2p-janela .v2p-etp-nome{appearance:none;padding:2px 0;border:0;background:none;color:var(--d3-tinta);font:400 13px var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
+#vv-pessoas.v2p-janela .v2p-etp-nome:hover{text-decoration:underline;text-underline-offset:3px}
+#vv-pessoas.v2p-janela .v2p-etp-nome.at{font-weight:600;color:var(--d3-perigo)}
+/* Academy: coluna "Para" com as iniciais, a miniatura da aula e os traços das aulas (D3-Academy). */
+#vv-pessoas.v2p-janela .d3p-th.d3p-th-tr{grid-template-columns:minmax(0,1fr) 88px 200px 22px}
+#vv-pessoas.v2p-janela .d3p-th.d3p-th-tr > span:last-child{grid-column:3}
+#vv-pessoas.v2p-janela .d3p-trilhas .v2p-lin > .d3p-para{flex:none;display:inline-flex;align-items:center;width:88px}
+#vv-pessoas.v2p-janela .d3p-para-av{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:-6px;border-radius:50%;background:var(--d3-trilho);box-shadow:0 0 0 2px #FFFFFF;font:700 10px var(--vv-texto,Inter),sans-serif}
+#vv-pessoas.v2p-janela .d3p-para-av:first-child{margin-left:0}
+#vv-pessoas.v2p-janela .d3p-para > small{margin-left:4px;font-size:11.5px;color:var(--d3-apagado)}
+#vv-pessoas.v2p-janela .d3p-trilhas .v2p-lin > .v2p-conta{flex:none;width:52px;font-weight:600;text-align:right}
+#vv-pessoas.v2p-janela .v2p-sua-aula{display:flex;align-items:stretch;gap:14px;padding:4px 0 10px}
+#vv-pessoas.v2p-janela .v2p-mini{position:relative;flex:0 0 46%;max-width:220px;aspect-ratio:16 / 9;display:grid;place-items:center;border-radius:14px;background:var(--d3-info-veu)}
+#vv-pessoas.v2p-janela .v2p-mini > .v2p-play{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#FFFFFF}
+#vv-pessoas.v2p-janela .v2p-mini > .v2p-play svg{width:14px;height:14px;fill:var(--d3-tinta)}
+#vv-pessoas.v2p-janela .v2p-mini > small{position:absolute;right:8px;bottom:8px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.85);font:600 11px var(--vv-texto,Inter),sans-serif}
+#vv-pessoas.v2p-janela .v2p-sua-txt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+#vv-pessoas.v2p-janela .v2p-sua-txt > b{font:600 15px/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;overflow-wrap:anywhere}
+#vv-pessoas.v2p-janela .v2p-sua-txt > .v2p-btn{margin-top:6px}
+#vv-pessoas.v2p-janela .v2p-tracos{display:flex;gap:4px;margin-top:2px}
+#vv-pessoas.v2p-janela .v2p-tracos > i{flex:1;height:4px;border-radius:999px;background:var(--d3-linha)}
+#vv-pessoas.v2p-janela .v2p-tracos > i.ok{background:var(--d3-pronto)}
+#vv-pessoas.v2p-janela .v2p-tracos > i.at{background:var(--d3-tinta)}
+@container v2p (max-width:900px){
+  #vv-pessoas.v2p-janela .d3p-vagas .v2p-lin > :is(.d3p-vg-conduz,.d3p-vg-aberta),#vv-pessoas.v2p-janela .d3p-trilhas .v2p-lin > .d3p-para{display:none}
+  #vv-pessoas.v2p-janela .d3p-vagas .v2p-lin > .v2p-pills{width:auto}
+}
+@media (max-width:640px){
+  #vv-pessoas.v2p-janela .v2p-sua-aula{flex-direction:column}
+  #vv-pessoas.v2p-janela .v2p-mini{flex-basis:auto;max-width:none}
+}
+/* ===== FIM RH · rodada "fiel ao quadro" ===== */

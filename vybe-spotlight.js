@@ -266,7 +266,7 @@ function spotlightPosicionar(d) {
   const visivel = (b) => b.getBoundingClientRect().width > 0;
   const botao = [...document.querySelectorAll('[data-ferr="busca"]')].find(visivel) || [...document.querySelectorAll('[data-open-spotlight]')].find(visivel);
   if (!botao) return limpar();
-  const r = botao.getBoundingClientRect(), largura = 340;
+  const r = botao.getBoundingClientRect(), largura = 420;
   const esquerda = Math.min(Math.max(8, r.width >= largura ? r.left : r.right - largura), innerWidth - largura - 8);
   const topo = Math.round(r.bottom + 8);
   d.style.margin = '0'; d.style.top = `${topo}px`; d.style.left = `${Math.round(esquerda)}px`;
@@ -382,6 +382,7 @@ function spotlightPintar() {
       'ver atividades · Enter'))),
     bloco('encerradas', 'Finalizadas e antigas', cortar('encerradas', r.encerradas)),
   ].join('');
+  const comAtalhos = html && SPOTLIGHT.aba === 'tudo' && !SPOTLIGHT.escopo ? bloco('atalhos', 'Atalhos', spotlightAtalhos(linha)) : '';
 
   SPOTLIGHT.opcoes = opcoes;
   if (SPOTLIGHT.ativo >= opcoes.length) SPOTLIGHT.ativo = Math.max(0, opcoes.length - 1);
@@ -389,7 +390,7 @@ function spotlightPintar() {
   const precisaDeTexto = !SPOTLIGHT.escopo && spotlightNormalizar(q).length < 2;
   // Busca vazia útil (quadro 09): o que a pessoa abriu por último e os atalhos do dia, antes de digitar.
   const inicio = !html && precisaDeTexto ? spotlightInicioHtml({ bloco, linha, atividade }) : '';
-  lista.innerHTML = html || inicio || `<div class="spotlight-vazio">${precisaDeTexto
+  lista.innerHTML = (html && html + comAtalhos) || inicio || `<div class="spotlight-vazio">${precisaDeTexto
     ? 'Digite o nome de um cliente, conteúdo, demanda ou pessoa.'
     : `Nada encontrado para “${safeText(q.trim() || (SPOTLIGHT.escopo?.rotulo || ''))}”.`}</div>`;
   spotlightMarcarAtivo();
@@ -398,8 +399,9 @@ function spotlightPintar() {
   const partes = [];
   if (SPOTLIGHT.carregando) partes.push('carregando solicitações…');
   else if (!spotlightItens().length) partes.push('as atividades ainda estão carregando');
-  partes.push('setas navegam · Enter abre · Tab filtra');
-  d.querySelector('.spotlight-rodape').innerHTML = `<span>${partes.join(' · ')}</span>`;
+  // Pé do quadro D3-Topo: as teclas em pílula, cada uma com a palavra do que faz.
+  const teclas = '<span class="spotlight-teclas"><kbd>↑↓</kbd>navegar<kbd>Enter</kbd>abrir<kbd>Tab</kbd>filtrar</span>';
+  d.querySelector('.spotlight-rodape').innerHTML = partes.length ? `<span>${partes.join(' · ')}</span>${teclas}` : teclas;
 }
 
 function spotlightInicioHtml({ bloco, linha, atividade }) {
@@ -410,6 +412,11 @@ function spotlightInicioHtml({ bloco, linha, atividade }) {
       `<span class="spotlight-titulo">${typeof cliCor === 'function' ? cliCor(rc.valor) : safeText(rc.valor)}</span><span class="spotlight-sub">cliente</span>`, 'ver o que é dele · Enter');
     return '';
   }).filter(Boolean);
+  return bloco('recentes', 'Continuar de onde parou', recentes) + bloco('atalhos', 'Atalhos', spotlightAtalhos(linha));
+}
+
+// Os atalhos do dia: na busca vazia e, no quadro D3-Topo, também no fim dos resultados de "Tudo".
+function spotlightAtalhos(linha) {
   let hoje = null;
   try { hoje = typeof kpisDoTopo === 'function' ? kpisDoTopo() : null; } catch { hoje = null; }
   const atalhos = [];
@@ -417,8 +424,7 @@ function spotlightInicioHtml({ bloco, linha, atividade }) {
     `<span class="spotlight-titulo">Minhas tarefas de hoje</span>${hoje ? `<span class="spotlight-sub">${hoje.hoje} para hoje</span>` : ''}`, 'abrir · Enter'));
   if (typeof openCadastrosGoverned === 'function') atalhos.push(linha({ tipo: 'atalho', fazer: () => openCadastrosGoverned() },
     '<span class="spotlight-titulo">Criar conteúdo ou demanda</span>', 'abrir · Enter'));
-  const blocos = bloco('recentes', 'Continuar de onde parou', recentes) + bloco('atalhos', 'Atalhos', atalhos);
-  return blocos;
+  return atalhos;
 }
 
 function spotlightMarcarAtivo() {

@@ -170,3 +170,28 @@
   .vv-gestao .g2-abrir-fim{margin-left:0;flex:1 1 100%}
   .vv-gestao .g2-card-topo{flex-wrap:wrap}
 }
+
+/* Fiel ao quadro */
+/* Performance (D3-Performance): os zerados numa linha de pílulas verdes claras, no pé de "Pede ação". */
+.vv-gestao .g2-pede .g2-zerados{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 16px 12px;border-top:1px solid var(--d3-linha,#F1EDE6)}
+.vv-gestao .g2-pede .g2-zerados > span:first-child{margin-right:4px;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado,#6B665E)}
+.vv-gestao .g2-pede .g2-zerados > .g2-zero{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-pronto-veu,#E8F5EC);color:var(--d3-pronto,#11613A);font:500 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+/* Gestão (D3-Gestao): o ícone de cada setor na cor do grupo do menu; o detalhe da Produção em pílulas lado a lado; o
+   selo "só donos" no canto do número da sobra. */
+.vv-gestao .d3g-set .d3g-set-nome{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.vv-gestao .d3g-set .d3g-set-ic{display:inline-flex;flex:none;width:16px;height:16px;color:var(--d3-mod-operacao)}
+.vv-gestao .d3g-set .d3g-set-ic.negocio{color:var(--d3-mod-negocio)}
+.vv-gestao .d3g-set .d3g-set-ic > svg{width:16px;height:16px}
+.vv-gestao .d3g-set .d3g-set-pills{flex-direction:row;flex-wrap:wrap}
+.vv-gestao .d3g-set .d3g-set-pills .d3s-pill{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-gestao .d3g-nums > .d3-num .d3g-sub .d3g-selo{position:absolute;top:12px;right:14px;margin:0}
+/* Visão do setor (D3-VisaoSetor): a carga de cada pessoa em linha (peças por dia na semana), o atualizar só no ícone
+   redondo e o dia com a hora ao lado do título. */
+.vv-gestao.vv-setor-visao .d3s-pes > .d3-graf{width:100%;max-width:120px;height:24px;justify-self:end}
+.vv-gestao.vv-setor-visao .d3s-pes.r > .d3-graf polyline{stroke:var(--d3-perigo)}
+.vv-gestao.vv-setor-visao .d3s-pes.r > .d3-graf circle{fill:var(--d3-perigo)}
+.vv-gestao.vv-setor-visao .d3s-leg{font-size:12px;color:var(--d3-apagado)}
+.vv-gestao.vv-setor-visao .g2-topo .g2-btn.g2-atualizar.d3s-atualizar{width:36px;height:36px;min-width:36px;padding:0;border-radius:50%;justify-content:center}
+.vv-gestao.vv-setor-visao .g2-topo .g2-btn.d3s-atualizar > svg{margin:0}
+.vv-gestao.vv-setor-visao .g2-topo .d3s-topo-sub{font:400 14px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);text-transform:none;white-space:nowrap;margin-right:auto}
+.vv-gestao.vv-setor-visao .g2-topo > h2{flex:none}

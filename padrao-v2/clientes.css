@@ -34,6 +34,9 @@
 #vv-carteira .v2c-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 #vv-carteira .v2c-link{appearance:none;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 #vv-carteira .v2c-link:hover{color:#8A3207}
+/* Meta da nota média (14/11/2026): o campo curto no lugar do "meta N", só para os donos */
+#vv-carteira .d3c-meta-ed{display:inline-flex;align-items:center;gap:6px}
+#vv-carteira .d3c-meta-ed input{width:56px;height:24px;padding:0 6px;border:1px solid #E7E2D9;border-radius:6px;font:inherit}
 #vv-carteira .v2c :is(.v2c-btn,.v2c-x,.v2c-link,.v2c-chip,.v2c-abrir,.v2c-busca,.v2c-seg > button):focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 #vv-carteira .v2c-seg{flex:none;display:inline-flex;padding:4px;border-radius:999px;background:#EAE6DE}
 #vv-carteira .v2c-seg > button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
@@ -54,7 +57,7 @@
 #vv-carteira .v2c-fala{display:flex;align-items:center;gap:14px}
 #vv-carteira .v2c-fala > p{flex:1;min-width:0;font:400 15px/1.45 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
 #vv-carteira .v2c-fala b{font-weight:700}
-#vv-carteira .v2c-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:#4B36A8}
+#vv-carteira .v2c-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-agente-texto)}
 #vv-carteira .v2c-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter),sans-serif}
 #vv-carteira .v2c-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2c-pulso 3.6s ease-out infinite}
 @keyframes v2c-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
@@ -226,11 +229,11 @@
 #vv-whatsapp .v2w-dir{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font:400 11.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
 #vv-whatsapp .v2w-marcas{display:inline-flex;align-items:center;gap:4px}
 #vv-whatsapp .v2w-nl{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#C2490C;color:#FFFFFF;font:700 11px/18px var(--vv-texto,Inter),sans-serif;text-align:center}
-#vv-whatsapp .v2w-arroba{font:700 12px var(--vv-texto,Inter),sans-serif;font-style:normal;color:#4B36A8}
+#vv-whatsapp .v2w-arroba{font:700 12px var(--vv-texto,Inter),sans-serif;font-style:normal;color:var(--d3-agente-texto)}
 #vv-whatsapp .v2w-av{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 10.5px var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
 #vv-whatsapp .v2w-av.gr{width:36px;height:36px;font-size:11.5px;box-shadow:none}
 #vv-whatsapp .v2w-av.cliente{background:color-mix(in srgb,var(--c,#C2490C) 14%,#FFFFFF);color:var(--c,#C2490C)}
-#vv-whatsapp .v2w-av.mencao{background:#EEEAFB;color:#4B36A8}
+#vv-whatsapp .v2w-av.mencao{background:var(--d3-agente-veu);color:var(--d3-agente-texto)}
 #vv-whatsapp .v2w-avs{flex:none;display:inline-flex;padding-left:8px}
 #vv-whatsapp .v2w-avs > .v2w-av{margin-left:-8px}
 #vv-whatsapp .v2w-avs > .v2w-av:last-child{animation:v2-pop .45s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)) both}
@@ -266,8 +269,8 @@
 #vv-whatsapp .v2w-bl > small > em{font-style:normal;color:#C2490C}
 #vv-whatsapp .v2w-bl > span{display:block;white-space:pre-wrap}
 #vv-whatsapp .v2w-bl.eu{align-self:flex-end;background:#FFE9DB;border-radius:18px 18px 6px 18px}
-#vv-whatsapp .v2w-bl.agt{background:#EEEAFB}
-#vv-whatsapp .v2w-bl.agt > small{color:#4B36A8}
+#vv-whatsapp .v2w-bl.agt{background:var(--d3-agente-veu)}
+#vv-whatsapp .v2w-bl.agt > small{color:var(--d3-agente-texto)}
 #vv-whatsapp .v2w-bl.para-voce{box-shadow:inset 0 0 0 1.5px #C2490C}
 #vv-whatsapp .v2w-bl.piscar{animation:v2w-pisca 1.4s ease-out 1}
 #vv-whatsapp .v2w-bl.novo{transform-origin:0 100%;animation:v2w-chega .5s cubic-bezier(.34,1.4,.64,1) both}
@@ -299,3 +302,18 @@
   #vv-whatsapp .v2w-bl{max-width:86%}
   #vv-whatsapp .v2w-rodape,#vv-whatsapp .v2w-procura{padding-left:14px;padding-right:14px}
 }
+
+/* Fiel ao quadro */
+/* Conversas (D3-Conversas): balões cheios (claro para os outros, lilás claro para o agente, escuro para os seus), sem
+   contorno; quem marcou você continua no rótulo "marcou você". No topo da conversa, "N aqui", a lupa e "Abrir no WhatsApp". */
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl{background:#F3F1EC;box-shadow:none;padding:9px 14px}
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl.agt{background:var(--d3-agente-veu)}
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl.eu{background:#1F1D1A;color:#FFFFFF}
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl.para-voce{box-shadow:none}
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl > .v2w-citada{background:rgba(31,29,26,.06);box-shadow:none}
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl.eu > .v2w-citada{background:rgba(255,255,255,.14);color:#FFFFFF}
+#vv-whatsapp .v2w-cab > .v2w-aqui{flex:none;font:600 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-agente-texto)}
+#vv-whatsapp .v2w-cab > .v2w-lupa{width:30px;padding:0}
+#vv-whatsapp .v2w-cab > .v2w-lupa > svg{width:15px;height:15px}
+#vv-whatsapp .v2w-cab > .v2w-abrir-wa{text-decoration:none}
+@container wa (max-width:720px){#vv-whatsapp .v2w-cab > .v2w-aqui{display:none}}

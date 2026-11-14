@@ -18,7 +18,16 @@
   const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = { balao: svg('<path d="M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5z"/>'), fechar: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
     voltar: svg('<path d="M15 18l-6-6 6-6"/>'), cadeado: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
-    sino: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>') };
+    sino: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'), lupa: svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>') };
+  // "Abrir no WhatsApp" (quadro D3-Conversas): o convite do grupo guardado no cadastro do cliente (grupo_whatsapp), quando é
+  // um link chat.whatsapp.com; sem ele, o WhatsApp Web. O espelho não traz número nem link do grupo.
+  function linkDoWhatsapp(c) {
+    const cad = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
+    const chave = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    const f = c?.cliente ? cad.find((x) => x && chave(x.nome) === chave(c.cliente)) : null;
+    const g = String(f?.grupo_whatsapp || '').trim();
+    return /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/.test(g) ? g : 'https://web.whatsapp.com/';
+  }
   const fmt = (o) => { try { return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', ...o }); } catch { return new Intl.DateTimeFormat('pt-BR', o); } };
   const F_HORA = fmt({ hour: '2-digit', minute: '2-digit' }), F_DIA = fmt({ day: '2-digit', month: '2-digit' }), F_SEMANA = fmt({ weekday: 'short', day: '2-digit', month: '2-digit' }), F_ISO = fmt({ year: 'numeric', month: '2-digit', day: '2-digit' });
   const diaDe = (ms) => F_ISO.format(new Date(ms));
@@ -309,7 +318,9 @@
       ${avatarDe(c)}
       <div class="v2w-quem"><h3>${esc(c?.nome || 'Conversa')}</h3><p class="v2w-sub">${tipo}${autores.length ? ` · ${autores.length} ${autores.length === 1 ? 'pessoa escreveu' : 'pessoas escreveram'} aqui` : ''}</p></div>
       ${autores.length ? `<span class="v2w-avs" aria-hidden="true">${autores.slice(-3).map((a) => `<span class="v2w-av" title="${esc(a)}">${esc(iniciais(a))}</span>`).join('')}</span>` : ''}
-      ${carregada?.length ? `<button type="button" class="v2w-btn" data-wa-procurar aria-expanded="${Boolean(st.procurando)}">Buscar na conversa</button>` : ''}</div>`;
+      ${autores.length ? `<span class="v2w-aqui">${autores.length} aqui</span>` : ''}
+      ${carregada?.length ? `<button type="button" class="v2w-btn v2w-lupa" data-wa-procurar aria-expanded="${Boolean(st.procurando)}" aria-label="Buscar na conversa" title="Buscar na conversa">${IC.lupa}</button>` : ''}
+      <a class="v2w-btn v2w-abrir-wa" href="${esc(linkDoWhatsapp(c))}" target="_blank" rel="noopener noreferrer">Abrir no WhatsApp</a></div>`;
     if (st.erroConversa) return cab + vazio(st.erroConversa);
     if (!carregada) return cab + vazio('Carregando as mensagens…');
     const termo = st.procurando ? semAcento(st.procura).trim() : '';

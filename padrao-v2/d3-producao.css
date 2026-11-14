@@ -56,6 +56,19 @@ button.d3-num.d3p-num:active{transform:scale(.98)}
 :is(#pv2-painel,#pv2-demandas).pv2 .pv2-chip:hover{box-shadow:inset 0 0 0 1px var(--d3-borda)}
 :is(#pv2-painel,#pv2-demandas).pv2 .pv2-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
 :is(#pv2-painel,#pv2-demandas).pv2 .pv2-filtros .pv2-menu > .pv2-btn{height:38px;background:var(--d3-cartao);box-shadow:none}
+/* Demandas (Direção 3): o interruptor Mostrar ID como no quadro; Colunas fica no ⋯ discreto. */
+#pv2-demandas.pv2 .d3d-interruptor{flex:none;position:relative;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px 0 10px;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:500 13px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#pv2-demandas.pv2 .d3d-interruptor > input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+#pv2-demandas.pv2 .d3d-interruptor > i{position:relative;width:26px;height:16px;border-radius:999px;background:var(--d3-borda);transition:background .2s}
+#pv2-demandas.pv2 .d3d-interruptor > i::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--d3-cartao);transition:transform .2s cubic-bezier(.22,1,.36,1)}
+#pv2-demandas.pv2 .d3d-interruptor > input:checked + i{background:var(--d3-tinta)}
+#pv2-demandas.pv2 .d3d-interruptor > input:checked + i::after{transform:translateX(10px)}
+#pv2-demandas.pv2 .d3d-interruptor > input:focus-visible + i{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#pv2-demandas.pv2 .pv2-filtros .d3d-mais > .pv2-btn{width:38px;padding:0;justify-content:center;font-size:16px}
+#pv2-demandas.pv2 .pv2-filtros .d3d-mais > .pv2-btn::after{content:none}
+/* Status em pílula como no quadro: a seta do menu só aparece ao passar o mouse ou com o foco; o status segue trocável. */
+:is(#pv2-demandas.pv2,.pv2.pv2-dias:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6)) .pv2-st > .pv2-st-seta{display:none}
+:is(#pv2-demandas.pv2,.pv2.pv2-dias:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6)) .pv2-st:is(:hover,:focus-visible,[aria-expanded="true"]) > .pv2-st-seta{display:inline-grid}
 
 /* ---------- Painel de trabalho ---------- */
 #pv2-painel.pv2{gap:14px;margin-bottom:14px}
@@ -98,6 +111,10 @@ button.d3-num.d3p-num:active{transform:scale(.98)}
 .d3p-quando{flex:none;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap}
 .d3p-quando.r{color:var(--d3-perigo)}
 .d3p-quando.a{color:var(--d3-ajuste)}
+/* Hora de publicação (14/11/2026, vybe_peca_complemento): "10h" ao lado do quando; o campo no cartão aberto */
+.d3p-hora{flex:none;font:600 11.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2,#4A463F);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3p-hora-campo{display:inline-flex;align-items:center;gap:6px;margin:4px 0;font-size:12px;color:var(--d3-apagado)}
+.d3p-hora-campo input{height:28px;padding:0 6px;border:1px solid var(--d3-linha);border-radius:8px;font:500 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta,#1F1D1A);background:var(--d3-cartao,#FFFFFF)}
 .d3p-mais{appearance:none;flex:none;display:block;width:100%;height:38px;margin:auto 0 0;padding:0 14px;border:0;border-top:1px solid var(--d3-linha);border-radius:0;background:transparent;color:var(--d3-texto2);font:600 12.5px var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
 .d3p-mais:hover{background:#FBFAF7}
 .d3p-mais > span{font-weight:500;color:var(--d3-apagado)}
@@ -413,15 +430,10 @@ button.d3s-lin-txt{cursor:pointer}
 #pv2-agenda-topo.pv2 .pv2-topo{gap:10px}
 #pv2-agenda-topo.pv2 .pv2-topo h2{flex:0 1 auto;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em}
 #pv2-agenda-topo.pv2 .d3ag-data{flex:1 1 auto;min-width:0;font:400 14px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap}
-#pv2-agenda-topo.pv2 .pv2-seg.d3ag-partes{padding:0;background:transparent}
-#pv2-agenda-topo.pv2 .d3ag-partes button{height:30px;padding:0 10px;background:transparent;color:var(--d3-apagado);font-weight:500;box-shadow:none}
-#pv2-agenda-topo.pv2 .d3ag-partes button:hover{color:var(--d3-tinta)}
-#pv2-agenda-topo.pv2 .d3ag-partes button[aria-checked="true"]{background:transparent;color:var(--d3-tinta);font-weight:600;box-shadow:inset 0 -2px 0 var(--d3-tinta);border-radius:0}
 #pv2-agenda-topo.pv2 .pv2-btn.d3ag-marcar{height:40px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
 #pv2-agenda-topo.pv2 .pv2-btn.d3ag-marcar svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 @media (max-width:640px){
   #pv2-agenda-topo.pv2 .d3ag-data{flex-basis:100%;order:1}
-  #pv2-agenda-topo.pv2 .pv2-seg.d3ag-partes{flex-wrap:wrap}
 }
 
 /* ---------- Gestão · visão geral e Performance (quadros D3-Gestao e D3-Performance) ---------- */

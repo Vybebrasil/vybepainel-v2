@@ -398,6 +398,9 @@
 #pv2-ia.d3f .pv2i-gx > .pv2-av{width:26px;height:26px;font-size:10.5px}
 #pv2-ia.d3f .pv2i-quem,#pv2-ia.d3f .pv2i-que{display:flex;flex-direction:column;min-height:100%}
 #pv2-ia.d3f .pv2i-pe{margin-top:auto;padding-top:10px}
+/* "Por cliente" / "Por pessoa" no pé do Com quem (D3-IaCustos, 14/11/2026) */
+#pv2-ia.d3f .pv2i-quem .pv2i-pe{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#pv2-ia.d3f .pv2i-recorte{margin-left:auto}
 @media (prefers-reduced-motion:reduce){#pv2-ia.d3f .pv2-seg button[aria-checked="true"]{animation:none}}
 @media (max-width:1100px){#pv2-ia.d3f.d3f .pv2i-baixo{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#pv2-ia.d3f.d3f .pv2i-baixo > .d3f-coluna{grid-column:1 / -1}}
 @media (max-width:900px){#pv2-ia.d3f.d3f .d3f-nums{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -410,4 +413,47 @@
   #pv2-ia.d3f.d3f .d3-num > .d3-graf{grid-column:1 / -1;width:100%;height:22px}
   #pv2-ia.d3f.d3f .d3-num{padding:10px 12px;overflow:hidden}
   #pv2-ia.d3f.d3f .d3f-sub{white-space:normal}
+}
+
+/* ---------- Rodada "fiel ao quadro" (14/11/2026) ---------- */
+/* Rodapé "Sócios avisados" (D3-FinVisao, D3-Recebimentos): o rótulo e o vazio honesto; o dia da folha à direita */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-socios{display:inline-flex;align-items:center;gap:8px;min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-vazio{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-apagado);font-size:12px;white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-folha{margin-left:auto}
+/* Avisos aos sócios (14/11/2026): as iniciais no rodapé se sobrepõem um pouco; o "N×" ao lado do sócio na linha */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-socios .d3f-av{width:24px;height:24px;margin-left:-6px;box-shadow:0 0 0 2px var(--d3-cartao,#FFFFFF)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-socios .fv2-sub + .d3f-av{margin-left:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-nav{margin-left:6px;font-size:12px;color:var(--d3-apagado);font-variant-numeric:tabular-nums}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="ina"] .d3f-tabela .d3f-meio{display:inline-flex;align-items:center}
+/* "Recebi" e "Avisar de novo" lado a lado na linha (D3-Inadimplencia, D3-FinVisao) */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f:is([data-tela="ina"],[data-tela="vis"]) .d3f-tabela .d3f-dir,
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="vis"] .d3f-pede .d3f-dir{width:204px;display:inline-flex;justify-content:flex-end;gap:6px}
+@media (max-width:760px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f:is([data-tela="ina"],[data-tela="vis"]) .d3f-tabela .d3f-dir,
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="vis"] .d3f-pede .d3f-dir{width:auto;flex-wrap:wrap}
+}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-formas{flex-wrap:wrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-pede{min-height:100%}
+/* Recebimentos: Contrato e Forma lado a lado (D3-Recebimentos) */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="rec"] .fv2-grade.a{grid-template-columns:minmax(0,.74fr) minmax(0,1fr)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="rec"] [data-fv-card="lista"] .d3f-meio{width:72px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="rec"] [data-fv-card="lista"] .d3f-dir{width:120px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="rec"] [data-fv-card="lista"] .d3f-forma{width:56px}
+/* Inadimplência: a régua de avisos com as faixas de 3, 10 e 30 dias (posições da escala de 33 dias) */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-avisos .fv2-tri::before{background:linear-gradient(90deg,var(--d3-linha) 0 9%,var(--d3-trilho) 9% 30%,var(--d3-ajuste-veu) 30% 91%,var(--d3-perigo-veu,#FDECEE) 91%)}
+/* Extrato: título, fichas, Categoria e busca numa linha só (D3-Extrato); a busca abre ao focar */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo{flex-wrap:nowrap;align-items:center;gap:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-duas.fx-duas-extrato{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo > h2{flex:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo > .fx-filtros{flex:1 1 auto;flex-wrap:wrap;gap:6px 3px;min-width:0;margin:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo .fv2-fichas{display:contents}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo .fv2-chip{flex:none;height:28px;padding:0 8px;gap:4px;font-size:12px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo .fv2-filtros > .fx-sel-chip{flex:none;max-width:86px;height:28px;padding:0 20px 0 9px;font-size:12px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo .fv2-filtros > .fx-busca{flex:0 0 28px;width:28px;min-width:28px;height:28px;padding:0 0 0 28px;box-sizing:border-box;border-radius:999px;background:var(--d3-trilho) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B665E' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 7px center/14px;transition:flex-basis .2s ease}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo .fv2-filtros > .fx-busca:is(:focus,:not(:placeholder-shown)){flex-basis:150px;padding-right:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo .fv2-filtros > .fx-busca::placeholder{color:transparent}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo .fv2-filtros > .fx-busca:focus::placeholder{color:var(--d3-apagado)}
+@media (max-width:900px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo{flex-wrap:wrap}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo > .fx-filtros{flex:1 1 100%}
 }

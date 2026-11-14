@@ -3,6 +3,7 @@ import { varrerAgenda, recalcularPrioridades } from '../vybe_automacoes.js';
 import { registrarSnapshotOperacional, registrarSaude } from '../vybe_observabilidade.js';
 import { fecharPontosEscritorio } from '../server/escritorio-pontos.js';
 import { conferirMarcosDaEquipe } from '../server/escritorio-marcos.js';
+import { gravarSeriesDoDia } from '../server/series-historicas.js';
 
 function isCronAuthorized(req) {
   const secret = process.env.CRON_SECRET;
@@ -35,9 +36,16 @@ export default async function handler(req, res) {
     try { escritorio = await fecharPontosEscritorio(sql); escritorio.marcos = await conferirMarcosDaEquipe(sql); }
     catch (erro) { console.error('Fechamento dos pontos do Escritório falhou:', erro.message); escritorio = { ...(escritorio || {}), erro: erro.message }; }
 
+    // Séries históricas dos quadros D3 (server/series-historicas.js): grava o dia uma vez (00:00 de Irecê). Falha aqui
+    // não derruba o ciclo; o primeiro GET de area=series do dia tenta de novo.
+    let series = null;
+    try { series = await gravarSeriesDoDia(sql, { origem: 'cron' }); }
+    catch (erro) { console.error('Gravação das séries do dia falhou:', erro.message); series = { erro: erro.message }; }
+
     await registrarSaude(sql, 'automacoes', agenda?.erro ? 'erro' : 'ok', agenda || {});
     await registrarSaude(sql, 'escritorio', escritorio?.erro ? 'erro' : 'ok', escritorio || {});
     await registrarSaude(sql, 'prioridades', prioridades?.erro ? 'erro' : 'ok', prioridades || {});
+    await registrarSaude(sql, 'series', series?.erro ? 'erro' : 'ok', series || {});
     const snapshot = await registrarSnapshotOperacional(sql, 'cron_integridade');
 
     return res.status(200).json({
@@ -45,6 +53,7 @@ export default async function handler(req, res) {
       agenda,
       prioridades,
       escritorio,
+      series,
       snapshot: { id: snapshot.id, data_referencia: snapshot.data_referencia, atualizado_em: snapshot.atualizado_em },
       autoridade: 'vybe',
     });

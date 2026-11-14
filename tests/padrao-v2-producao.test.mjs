@@ -59,13 +59,13 @@ test('Impressões (Direção 3): bloco de ação do Nestor, quatro números, bar
   assert.match(imp, /<span>Peça<\/span><span>Etapa<\/span><span>Fornecedor<\/span><span>Prazo<\/span>/);
   assert.match(imp, /<div class="v2-baralho vi2-baralho" aria-live="polite">/);
   assert.match(imp, /data-vi="agora-nao">Agora não<\/button><button type="button" class="p2-btn k v2-estado" data-vi-decidir="atual">Aprovar<\/button>/);
-  assert.match(imp, /seta para os lados passa/);
+  assert.match(imp, /data-vi="anterior" aria-label="Anterior">‹<\/button>/, 'as setas do quadro passam o baralho');
   assert.match(imp, /data-vi="deck-lista">ver em lista<\/button>/);
   // O baralho só leva decisão que o sistema já tem: cotação sem escolha (gestão) e gráfica sugerida.
   assert.match(imp, /const cots = d\.gestao && Array\.isArray\(i\.cotacoes\) \? i\.cotacoes : \[\];/);
   assert.match(imp, /gravar\(\{ acao: 'cotacao_escolher', id: x\.c\.id \}/);
   assert.match(imp, /st\.form = \{ \.\.\.x\.i, fornecedor_id: x\.s\.fornecedor_id \}; pintar\(\);/, 'a sugerida abre a edição; só grava ao salvar');
-  assert.match(imp, /placeholder="Buscar peça, cliente ou fornecedor" data-vi-busca/);
+  assert.match(imp, /placeholder="Buscar peça, cliente ou gráfica" data-vi-busca/);
   assert.match(imp, /\$\{chip\('', 'Abertas', nA\)\}\$\{chip\('atrasadas', 'Atrasadas', nAt\)\}\$\{chip\('semfornecedor', 'Sem fornecedor', nS\)\}/);
   assert.match(imp, /<span class="vi2-tri" role="img" aria-label="Etapa \$\{k \+ 1\} de \$\{et\.length\}/);
   assert.match(imp, /\$\{aberta \? ficha\(\) : ''\}/, 'a ficha de sempre abre no lugar da linha');

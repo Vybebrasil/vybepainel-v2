@@ -94,7 +94,7 @@ test('36 e 37 · Ranking e Conquistas numa janela do tamanho da Loja, fora do do
   assert.match(antigo, /:where\(body:not\(\.mundo\)\) #workflow-modal\.ofc-menu-jogo \{width:min\(1480px/);
   assert.match(antigo, /:where\(body:not\(\.mundo\)\) #workflow-modal\.rk2-janela \{width:min\(820px/);
   assert.match(antigo, /:where\(body:not\(\.mundo\)\) #workflow-modal\.ofc-ranking-janela \{width:min\(640px/);
-  assert.match(antigo, /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\):not\(body\.mundo \.ofc-menu-jogo\)\)\{width:min\(940px,94vw\)!important\}/);
+  assert.match(antigo, /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\):not\(body\.mundo \.ofc-menu-jogo\):not\(\.vb-sem-acesso-janela\)\)\{width:min\(940px,94vw\)!important\}/);
   const css = ler('vybe-mundo.css');
   assert.match(css, /body\.mundo #workflow-modal\.ofc-menu-jogo\{width:min\(1120px,calc\(100vw - var\(--vv-palco-esq,0px\) - var\(--vv-m\)\)\);left:calc\(50% \+/);
 });
