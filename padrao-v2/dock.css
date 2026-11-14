@@ -166,6 +166,9 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
   #vv-dock-salas-faixa .vq-dock .vq-item{width:50px}
   #vv-dock-salas-faixa .vq-dock .vq-voz{max-width:100%}
 }
+/* Celular fora das salas: o Entrar do cartão é preto (Direção 3: o laranja cheio é só o bloco de ação). */
+#vv-dock-salas-faixa .vq-cartao .vc-acao{background:var(--d3-tinta);color:var(--d3-cartao);box-shadow:none}
+#vv-dock-salas-faixa .vq-cartao .vc-acao:hover:not(:disabled){background:var(--d3-tinta);color:var(--d3-cartao);opacity:.88}
 /* Celular dentro de uma sala (quadro D3-Celular): o dock abre recolhido numa linha (Voltar, a sala, o microfone e Mais);
    o "Mais" (body.cel-dock-aberto) mostra o resto no lugar. Sem ele, o painel cobria os cartões da Minha sala. */
 body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock{flex-wrap:nowrap;justify-content:flex-start;gap:2px}

@@ -93,7 +93,7 @@
   body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses{display:flex;flex:1 1 auto;flex-wrap:wrap;align-items:center;gap:4px;min-width:0;overflow:visible;padding:2px}
   body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses::-webkit-scrollbar{display:none}
   body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button{flex:none;height:30px;padding:0 10px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
-  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button[aria-current]{background:#C2490C;color:#FFFFFF}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button[aria-current]{background:var(--d3-tinta);border-color:var(--d3-tinta);color:#FFFFFF}
   body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses-ano{flex:none;padding:0 2px;font:700 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
   body.mundo #pv2-agenda .pv2a-cab-meses > .pv2-btn{flex:none;order:-1;align-self:flex-start}
 
@@ -3811,7 +3811,7 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 #mundo-hud .vv-menu-conta .vv-menu-selo.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
 #mundo-hud .vv-menu-conta .vv-menu-selo.g > i{background:var(--d3-pronto)}
 #mundo-hud .vv-menu-conta .vv-menu-selo.a > i{background:var(--d3-ajuste)}
-#mundo-hud .vv-menu-conta > .vv-menu-mais{display:flex;flex-direction:column;margin:8px -12px 0;padding:8px 12px 10px;border-top:8px solid var(--d3-areia)}
+#mundo-hud .vv-menu-conta > .vv-menu-mais{order:4;flex:0 0 calc(100% + 24px);display:flex;flex-direction:column;margin:8px -12px 0;padding:8px 12px 10px;border-top:8px solid var(--d3-areia)}
 /* Equipe online: busca e filtros no cabeçalho de "No prédio agora"; o Escritório no pé de Missões do dia. */
 #vv-placa .v2e .v2n-cab.d3e-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 #vv-placa .v2e .d3e-cab > .v2e-busca{flex:1 1 160px;max-width:240px;margin-left:auto}
@@ -3864,6 +3864,9 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 #mundo-hud .vv-topo-sala-dentro{padding:0 10px;color:var(--d3-pronto)}
 @media (max-width:1100px){#mundo-hud .vv-topo-sala-nome{max-width:110px}}
 @media (max-width:600px){#mundo-hud .vv-ferramentas > .vv-topo-sala{display:none}}
+/* Menu lateral: o título de grupo que ficou sem item à vista (NEGÓCIO para quem não é dono) some; a regra do trilho com id
+   ganhava do [hidden]. */
+#mundo-hud .vv-trilho .vv-trilho-grupo[hidden]{display:none}
 
 /* ===== padrao-v2/d3-pecas.css ===== */
 /* DIREÇÃO 3 · PEÇAS COMUNS (quadros D3-Gaveta, D3-StatusMenu, D3-NovaDemanda, D3-Entrada, D3-Topo, D3-Celular e as famílias
@@ -5433,6 +5436,9 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
   #vv-dock-salas-faixa .vq-dock .vq-item{width:50px}
   #vv-dock-salas-faixa .vq-dock .vq-voz{max-width:100%}
 }
+/* Celular fora das salas: o Entrar do cartão é preto (Direção 3: o laranja cheio é só o bloco de ação). */
+#vv-dock-salas-faixa .vq-cartao .vc-acao{background:var(--d3-tinta);color:var(--d3-cartao);box-shadow:none}
+#vv-dock-salas-faixa .vq-cartao .vc-acao:hover:not(:disabled){background:var(--d3-tinta);color:var(--d3-cartao);opacity:.88}
 /* Celular dentro de uma sala (quadro D3-Celular): o dock abre recolhido numa linha (Voltar, a sala, o microfone e Mais);
    o "Mais" (body.cel-dock-aberto) mostra o resto no lugar. Sem ele, o painel cobria os cartões da Minha sala. */
 body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock{flex-wrap:nowrap;justify-content:flex-start;gap:2px}
@@ -5925,6 +5931,14 @@ body.mundo .vb-estado:not(#vb-a) > p{max-width:46ch;margin:-4px 0 0;font:400 12.
 body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:auto;height:36px;min-height:0;margin:2px 0 0;padding:0 16px;border:0;border-radius:999px;background:#1F1D1A;box-shadow:none;color:#FFFFFF;font:600 13.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);text-decoration:none;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
 body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child:hover{background:#000000}
 body.mundo .vb-estado:not(#vb-a) > :is(button,a):last-child:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
+/* Sem acesso (D3-Fam-Estados): o nome da área com o selo "só donos" e Voltar em pílula clara; a janela é pequena e a tela
+   de baixo fica onde estava. */
+body.mundo .vb-estado.sem-acesso:not(#vb-a) > b{display:inline-flex;align-items:center;gap:8px}
+body.mundo .vb-estado.sem-acesso:not(#vb-a) .vb-estado-selo{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);font:600 11.5px var(--vv-texto,Inter,system-ui,sans-serif)}
+body.mundo .vb-estado.sem-acesso:not(#vb-a) .vb-estado-selo svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child{background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A)}
+body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child:hover{background:#EAE6DE}
+body.mundo #workflow-modal.vb-sem-acesso-janela{width:min(380px,calc(100vw - 32px))}
 /* Esqueleto: a forma da tela (linha de lista, cartão ou parágrafo), com o brilho que passa. */
 body.mundo .vb-esq.vb-esq:not(#vb-a){display:flex;flex-direction:column;gap:0;padding:4px 0}
 body.mundo .vb-esq.cartoes:not(#vb-a){display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}

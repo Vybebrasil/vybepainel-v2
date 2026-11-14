@@ -460,7 +460,7 @@
     // Minhas tarefas (quadro 31 do redesign, 10/11/2026): o item do dock e a aba do Hoje levam ao mesmo lugar, o Hoje na
     // aba Minhas tarefas. O Modo Foco antigo continua a um clique ("Abrir o dia completo").
     if (id === 'tarefas') { visaoHoje = 'tarefas'; try { localStorage.setItem('vybe.mundo.visaoHoje', 'tarefas'); } catch { /* fica nesta tela */ } usarTrilho.tarefas = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
-    if (trancadoPara(id)) { const b = hud.querySelector(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`); if (b) avisarTrancado(b); else chamar('showToast', 'Só os donos veem esta área.', 'info', 3500); return; }
+    if (trancadoPara(id)) { mostrarSemAcesso(id); return; }
     const fora = TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.url);
     if (fora) { window.open(fora.url, '_blank', 'noopener'); return; } // sistema irmão (VybeHub): abre ao lado, sem mexer na tela
     if (String(id).startsWith('setor:')) {
@@ -737,8 +737,26 @@
     usarTrilho(id); if (!x.url) marcarTrilho(id);
   }
   function avisarTrancado(b) {
-    chamar('showToast', verComo ? `${pessoaVista()?.name || 'Esta pessoa'} não abre isto: só os donos veem.` : 'Só os donos veem esta área.', 'info', 3500);
     b.classList.remove('tremer'); void b.offsetWidth; b.classList.add('tremer');
+    mostrarSemAcesso(b.dataset.trilho || b.dataset.submodulo || (b.dataset.visaoSetor ? 'visao:' + b.dataset.visaoSetor : ''), b);
+  }
+  // Área trancada (quadro D3-Fam-Estados, "Sem acesso"): a tela de agora fica onde está e uma janela pequena diz de quem é
+  // a área, com o cadeado. Não muda quem vê o quê (TRANCADOS e SO_DINHEIRO acima); só o que aparece ao tentar abrir.
+  const NOME_TRANCADO = { 'setor:comercial': 'Comercial', 'setor:financas': 'Finanças', 'setor:gestao': 'Gestão', agentes: 'Agentes', recrutamento: 'Recrutamento', documentos: 'Documentos', 'visao:setor:pessoas': 'Recursos Humanos', 'ai-usage': 'IA e custos' };
+  function mostrarSemAcesso(id, b = null) {
+    const botao = b || hud.querySelector(`.vv-trilho [data-trilho="${CSS.escape(id)}"], .vv-trilho [data-submodulo="${CSS.escape(id)}"]`);
+    const nome = NOME_TRANCADO[id] || botao?.querySelector('span')?.textContent.trim() || botao?.dataset.rotuloAberto || (SO_DINHEIRO.has(id) ? 'Finanças' : 'Esta área');
+    const quem = verComo ? `${pessoaVista()?.name || 'Esta pessoa'} não abre esta área.` : '';
+    if (typeof openWorkflowModal !== 'function') { chamar('showToast', `${nome}: só os donos veem esta área.`, 'info', 3500); return; }
+    openWorkflowModal(`<div class="vb-estado sem-acesso" role="status"><span class="vb-estado-icone">${typeof vbIcone === 'function' ? vbIcone('cadeado') : ''}</span>`
+      + `<b>${esc(nome)} <span class="vb-estado-selo">${typeof vbIcone === 'function' ? vbIcone('cadeado') : ''}só donos</span></b>${quem ? `<p>${esc(quem)}</p>` : ''}`
+      + '<button type="button" data-sem-acesso-voltar>Voltar</button></div>');
+    const m = document.getElementById('workflow-modal'); if (!m) return;
+    m.classList.add('vb-sem-acesso-janela'); m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', `${nome}: sem acesso`);
+    const voltar = m.querySelector('[data-sem-acesso-voltar]');
+    voltar?.addEventListener('click', () => (typeof closeWorkflowModal === 'function' ? closeWorkflowModal() : m.remove()));
+    m.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') voltar?.click(); });
+    voltar?.focus?.();
   }
   // Faixa no topo enquanto o dono vê como outra pessoa, com o botão de voltar.
   function marcarVerComo() {
@@ -2469,7 +2487,10 @@
     const dir = celular ? 0 : !placa().hidden ? placa().offsetWidth + 20 : body.classList.contains('agenda-fixa') && visivelEl(agenda) ? agenda.offsetWidth + 20 : 0;
     // As medidas valem para o HUD mesmo antes do mapa montar (o topo do Centro começa depois do Hoje).
     body.style.setProperty('--vv-livre-esq', Math.round(esq) + 'px'); body.style.setProperty('--vv-livre-dir', Math.round(dir) + 'px');
-    mundo?.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
+    // Centro em painel (quadro D3-Centro): o mapa mora num cartão e nada o cobre; descontar o Hoje, a placa ou a folha do
+    // celular empurrava a cidade para fora do cartão (no celular, o cartão ficava vazio).
+    if (body.classList.contains('d3c-painel')) mundo?.areaLivre(0, 0, 0);
+    else mundo?.areaLivre(esq, dir, celular ? innerHeight * .5 : 0);
   }
 
   // ---------- Portas: cada sala abre o módulo que já existe ----------
@@ -4503,6 +4524,7 @@
     }
     const painel = noPainelDoCentro(), antes = body.classList.contains('d3c-painel');
     body.classList.toggle('d3c-painel', painel);
+    if (painel !== antes) ajustarAreaLivre();
     // Mudou o tamanho do mapa (cartão ↔ tela cheia): a câmera reenquadra a cidade toda no novo retângulo.
     if (painel !== antes && !body.classList.contains('mundo-predio')) setTimeout(() => { if (centroAberto && !body.classList.contains('mundo-predio')) mundo?.verCidade?.(); }, 160);
     body.classList.toggle('d3c-cheio', centroAberto && centroCheio);

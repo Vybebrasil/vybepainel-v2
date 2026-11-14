@@ -124,6 +124,14 @@ body.mundo .vb-estado:not(#vb-a) > p{max-width:46ch;margin:-4px 0 0;font:400 12.
 body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:auto;height:36px;min-height:0;margin:2px 0 0;padding:0 16px;border:0;border-radius:999px;background:#1F1D1A;box-shadow:none;color:#FFFFFF;font:600 13.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);text-decoration:none;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
 body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child:hover{background:#000000}
 body.mundo .vb-estado:not(#vb-a) > :is(button,a):last-child:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
+/* Sem acesso (D3-Fam-Estados): o nome da área com o selo "só donos" e Voltar em pílula clara; a janela é pequena e a tela
+   de baixo fica onde estava. */
+body.mundo .vb-estado.sem-acesso:not(#vb-a) > b{display:inline-flex;align-items:center;gap:8px}
+body.mundo .vb-estado.sem-acesso:not(#vb-a) .vb-estado-selo{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);font:600 11.5px var(--vv-texto,Inter,system-ui,sans-serif)}
+body.mundo .vb-estado.sem-acesso:not(#vb-a) .vb-estado-selo svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child{background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A)}
+body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child:hover{background:#EAE6DE}
+body.mundo #workflow-modal.vb-sem-acesso-janela{width:min(380px,calc(100vw - 32px))}
 /* Esqueleto: a forma da tela (linha de lista, cartão ou parágrafo), com o brilho que passa. */
 body.mundo .vb-esq.vb-esq:not(#vb-a){display:flex;flex-direction:column;gap:0;padding:4px 0}
 body.mundo .vb-esq.cartoes:not(#vb-a){display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}

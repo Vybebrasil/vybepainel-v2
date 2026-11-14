@@ -12,7 +12,9 @@ test('área só dos donos some do dock para quem não tem acesso (sem borrão ne
   assert.match(css, /body\.trilho-largo \.vv-trilho-grupo\[hidden\]/, 'o título do grupo vazio some no dock largo');
   assert.match(js, /const vazio = itens\.length > 0 && itens\.every\(\(b\) => b\.classList\.contains\('trancado'\)\);/);
   // Paulo, 13/11/2026: a guarda do atalho e da busca passou a ser trancadoPara (dono/coordenação e, para o dinheiro, só dono).
-  assert.match(js, /if \(trancadoPara\(id\)\) \{ const b = hud\.querySelector/, 'atalho e busca continuam barrados');
+  // Rodada final D3 (14/11/2026): barrado, fica na tela e abre o estado "Sem acesso" (D3-Fam-Estados), sem ir a outro módulo.
+  assert.match(js, /if \(trancadoPara\(id\)\) \{ mostrarSemAcesso\(id\); return; \}/, 'atalho e busca continuam barrados');
+  assert.match(js, /<span class="vb-estado-selo">\$\{typeof vbIcone === 'function' \? vbIcone\('cadeado'\) : ''\}só donos<\/span>/, 'Sem acesso: o nome da área com o selo "só donos"');
   assert.match(js, /const tranca = trancadoPara\(id\);/, 'o dock usa a mesma regra');
   assert.match(js, /b\.hidden \|\| b\.classList\.contains\('trancado'\)\) continue;/, 'o Mais do celular também não mostra');
 });

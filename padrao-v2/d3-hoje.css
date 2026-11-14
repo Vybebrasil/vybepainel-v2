@@ -837,7 +837,7 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 #mundo-hud .vv-menu-conta .vv-menu-selo.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
 #mundo-hud .vv-menu-conta .vv-menu-selo.g > i{background:var(--d3-pronto)}
 #mundo-hud .vv-menu-conta .vv-menu-selo.a > i{background:var(--d3-ajuste)}
-#mundo-hud .vv-menu-conta > .vv-menu-mais{display:flex;flex-direction:column;margin:8px -12px 0;padding:8px 12px 10px;border-top:8px solid var(--d3-areia)}
+#mundo-hud .vv-menu-conta > .vv-menu-mais{order:4;flex:0 0 calc(100% + 24px);display:flex;flex-direction:column;margin:8px -12px 0;padding:8px 12px 10px;border-top:8px solid var(--d3-areia)}
 /* Equipe online: busca e filtros no cabeçalho de "No prédio agora"; o Escritório no pé de Missões do dia. */
 #vv-placa .v2e .v2n-cab.d3e-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 #vv-placa .v2e .d3e-cab > .v2e-busca{flex:1 1 160px;max-width:240px;margin-left:auto}
@@ -890,3 +890,6 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 #mundo-hud .vv-topo-sala-dentro{padding:0 10px;color:var(--d3-pronto)}
 @media (max-width:1100px){#mundo-hud .vv-topo-sala-nome{max-width:110px}}
 @media (max-width:600px){#mundo-hud .vv-ferramentas > .vv-topo-sala{display:none}}
+/* Menu lateral: o título de grupo que ficou sem item à vista (NEGÓCIO para quem não é dono) some; a regra do trilho com id
+   ganhava do [hidden]. */
+#mundo-hud .vv-trilho .vv-trilho-grupo[hidden]{display:none}

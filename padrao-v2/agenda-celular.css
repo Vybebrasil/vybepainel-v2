@@ -20,7 +20,7 @@
   body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses{display:flex;flex:1 1 auto;flex-wrap:wrap;align-items:center;gap:4px;min-width:0;overflow:visible;padding:2px}
   body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses::-webkit-scrollbar{display:none}
   body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button{flex:none;height:30px;padding:0 10px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
-  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button[aria-current]{background:#C2490C;color:#FFFFFF}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button[aria-current]{background:var(--d3-tinta);border-color:var(--d3-tinta);color:#FFFFFF}
   body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses-ano{flex:none;padding:0 2px;font:700 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
   body.mundo #pv2-agenda .pv2a-cab-meses > .pv2-btn{flex:none;order:-1;align-self:flex-start}
 
