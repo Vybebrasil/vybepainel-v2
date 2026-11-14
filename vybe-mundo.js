@@ -904,21 +904,30 @@
   // "Para você decidir" (quadro B1): as peças em aprovação interna como baralho, na ordem da data do cliente. A lista é a
   // de VybeAprovacoes (a mesma do módulo Conteúdo); decidir abre os portões de sempre, nada grava direto daqui.
   let decidirEm = 0;
-  const previasDecidir = {};
+  // A peça, a decisão e a prévia são as do módulo Conteúdo (window.VybeConteudo, vybe-mundo-conteudo.js): conteúdo,
+  // solicitação ou peça só do Vybe, com o status de destino do quadro dela e a prévia de onde a gaveta tira os arquivos.
+  const VC = () => window.VybeConteudo;
+  const pedidasDecidir = new Set();
+  let ouvindoPrevias = false;
   function filaDecidir() {
     const d = window.VybeAprovacoes?.estado?.().dados; if (!d) return null;
     const painel = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) ? DADOS_ALL : [];
-    return (d.pecas || []).filter((i) => i.etapa === 'interna').map((i) => ({ ...i, item: i.quadro === 'demandas' ? null : painel.find((x) => String(x.id) === String(i.ref)) || null }))
+    const achar = VC()?.itemDaFila || ((i) => (i.quadro === 'demandas' ? null : painel.find((x) => String(x.id) === String(i.ref)) || null));
+    return (d.pecas || []).filter((i) => i.etapa === 'interna').map((i) => ({ ...i, item: achar(i) }))
       .filter((i) => !i.item || /aprova/i.test(String(i.item.status || '')))
       .sort((a, b) => String(a.veiculacao || a.prazo || '9').localeCompare(String(b.veiculacao || b.prazo || '9')) || (b.horas ?? -1) - (a.horas ?? -1));
   }
+  // undefined enquanto busca; null sem arquivo; senão { tipo, thumb, nome, n }.
   function previaDecidir(ref) {
-    if (ref in previasDecidir) return previasDecidir[ref];
-    previasDecidir[ref] = undefined;
-    if (String(ref).startsWith('vybe:')) { previasDecidir[ref] = null; return null; }
-    fetch(`/api/painel?area=arquivos&itens=${encodeURIComponent(ref)}`, { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
-      .then((j) => { previasDecidir[ref] = j?.itens?.[ref]?.thumb || null; }).catch(() => { previasDecidir[ref] = null; }).finally(() => { if (visaoHoje !== 'tarefas') pintarHoje(); });
-    return undefined;
+    const vc = VC(); if (!vc?.previaDe) return null;
+    if (!ouvindoPrevias) { ouvindoPrevias = true; vc.ouvirPrevia((r) => { if (pedidasDecidir.has(r) && visaoHoje !== 'tarefas') pintarHoje(); }); }
+    pedidasDecidir.add(String(ref));
+    return vc.previaDe(String(ref));
+  }
+  const previaJaVeio = (ref) => VC()?.previaDe ? pedidasDecidir.has(String(ref)) && VC().previaDe(String(ref)) !== undefined : true;
+  function arteDecidir(i, t) {
+    const visual = t && VC()?.arteHtml ? VC().arteHtml(String(i.ref), t, `Prévia de ${i.titulo || 'peça'}`) : '';
+    return `${visual}<span>${esc(i.formato || 'Peça')}${t === null ? ' · sem arquivo' : t === undefined ? ' · buscando' : ''}</span>`;
   }
   const posDecidir = (k) => (k < decidirEm ? 'fora' : k - decidirEm <= 2 ? String(k - decidirEm) : '');
   function quandoVeiculaTxt(i) {
@@ -942,8 +951,8 @@
     // Paulo, 13/11/2026: "em qual grupo tá? qual status tá?" — o status na pílula de cor e o grupo do quadro ao lado.
     const pilulas = (i) => { const grupo = String(i.item?.grupo || i.grupo || '').trim(), st = String(i.item?.status || i.status || '').trim();
       return grupo || st ? `<span class="d3h-pills">${st ? (i.item && typeof statusCor === 'function' ? statusCor(i.item) : `<span class="d3h-pill"><i></i>${esc(st)}</span>`) : ''}${grupo ? `<span class="d3h-pill so">${esc(grupo)}</span>` : ''}</span>` : ''; };
-    const carta = (i, k) => { const pos = posDecidir(k), t = pos && pos !== 'fora' ? previaDecidir(String(i.ref)) : previasDecidir[String(i.ref)];
-      return `<article class="v2-carta d3h-carta"${pos ? ` data-pos="${pos}"` : ''} data-carta="${k}" aria-hidden="${pos !== '0'}"><div class="d3h-arte">${t ? `<img src="${esc(t)}" alt="Prévia de ${esc(i.titulo)}" loading="lazy">` : ''}<span>${esc(i.formato || 'Peça')}${t === null ? ' · sem arquivo' : t === undefined ? ' · buscando' : ''}</span></div>
+    const carta = (i, k) => { const pos = posDecidir(k), t = pos && pos !== 'fora' ? previaDecidir(String(i.ref)) : pedidasDecidir.has(String(i.ref)) ? previaDecidir(String(i.ref)) : undefined;
+      return `<article class="v2-carta d3h-carta"${pos ? ` data-pos="${pos}"` : ''} data-carta="${k}" aria-hidden="${pos !== '0'}"><div class="d3h-arte">${arteDecidir(i, t)}</div>
         <div class="d3h-carta-txt"><b>${esc(i.titulo)}</b>${i.cliente ? `<span class="d3h-carta-cli">${cliCor(i.cliente)}</span>` : ''}${pilulas(i)}<small>${esc(quandoVeiculaTxt(i))}${i.heads?.length ? ' · head ' + esc(i.heads.map((h) => h.nome).join(', ')) : ''}${i.horas != null && i.horas >= 1 ? ` · parada ${i.horas < 48 ? i.horas + ' h' : Math.round(i.horas / 24) + ' d'}` : ''}</small></div></article>`; };
     const porCli = new Map(); for (const i of fila) porCli.set(i.cliente || 'Sem cliente', (porCli.get(i.cliente || 'Sem cliente') || 0) + 1);
     return `<section class="d3h-cartao d3h-decidir" data-decidir aria-label="${esc(titulo)}">${cab(`<span data-decidir-conta>${decidirEm + 1} de ${fila.length}</span> · ${lista}`)}
@@ -955,7 +964,7 @@
     const fila = filaDecidir() || [], novo = Math.max(0, Math.min(para, fila.length - 1));
     if (!fila.length || novo === decidirEm) return;
     decidirEm = novo;
-    if (fila.slice(novo, novo + 3).some((i) => !(String(i.ref) in previasDecidir))) { pintarHoje(); return; }
+    if (fila.slice(novo, novo + 3).some((i) => !previaJaVeio(i.ref))) { pintarHoje(); return; }
     const raiz = hud.querySelector('#vv-hoje [data-decidir]'); if (!raiz) return;
     raiz.querySelectorAll('[data-carta]').forEach((c) => { const pos = posDecidir(Number(c.dataset.carta)); if (pos) c.dataset.pos = pos; else delete c.dataset.pos; c.setAttribute('aria-hidden', String(pos !== '0')); });
     const conta = raiz.querySelector('[data-decidir-conta]'); if (conta) conta.textContent = `${novo + 1} de ${fila.length}`;
@@ -963,12 +972,11 @@
   }
   function decidirPeca(acao) {
     const i = (filaDecidir() || [])[decidirEm]; if (!i) return;
-    const alvo = acao === 'aprovar' ? 'para agendar' : 'alteração';
-    const opcoes = i.item && typeof operationalStatusOptions === 'function' ? operationalStatusOptions(i.item) : [];
-    const opcao = opcoes.find((o) => String(o.label || '').trim().toLowerCase() === alvo);
-    const portao = acao === 'aprovar' ? globalThis.openQualityGate : globalThis.openStatusContextGate;
-    if (!i.item || !opcao || typeof portao !== 'function') { chamar('showToast', 'Abri a peça: a decisão dela é por lá.', 'info'); chamar(i.quadro === 'demandas' ? 'openDemandaWorkspace' : 'openItemWorkspace', String(i.ref)); return; }
-    portao(i.item, opcao);
+    // A mesma decisão do baralho do Conteúdo: o destino do quadro da peça e o portão de sempre. Só sem como decidir
+    // daqui a peça abre, com o motivo.
+    const d = VC()?.decisaoDaFila ? VC().decisaoDaFila(i, acao) : { motivo: 'a aprovação ainda não carregou' };
+    if (!d.opcao) { chamar('showToast', `Abri a peça: ${d.motivo}.`, 'info'); chamar(i.quadro === 'demandas' ? 'openDemandaWorkspace' : 'openItemWorkspace', String(i.ref)); return; }
+    d.portao(d.item, d.opcao);
   }
   document.addEventListener('vybe:aprovacoes', () => { if (visaoHoje !== 'tarefas') pintarHoje(); });
   function olhoHtml(itens) {

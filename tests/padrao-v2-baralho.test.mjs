@@ -19,11 +19,11 @@ test('a fila é a aprovação interna, pela data do cliente, e larga a peça que
   assert.match(js, /String\(a\.veiculacao \|\| a\.prazo \|\| '9'\)\.localeCompare\(String\(b\.veiculacao \|\| b\.prazo \|\| '9'\)\)/);
 });
 
-test('a decisão passa pelos portões de sempre; sem peça, status ou portão, abre a peça', () => {
-  assert.match(js, /alvo = acao === 'aprovar' \? 'para agendar' : 'alteração';/);
+test('a decisão passa pelos portões de sempre; sem peça, destino ou portão, abre a peça com o motivo', () => {
+  assert.match(js, /normal\(o\.label\) === 'para agendar'\) \|\| \(serve\(seguinte\) \? seguinte : null\)/);
   assert.match(js, /const portao = acao === 'aprovar' \? globalThis\.openQualityGate : globalThis\.openStatusContextGate;/);
-  assert.match(js, /if \(!item \|\| !opcao \|\| typeof portao !== 'function'\) \{ st\.lote = \[\]; toast\('Abri a peça: a decisão dela é por lá\.', 'info'\); return abrirDaFila\(i\); \}/);
-  assert.match(js, /portao\(item, opcao\);/);
+  assert.match(js, /if \(!d\.opcao\) \{ st\.lote = \[\]; toast\(`Abri a peça: \$\{d\.motivo\}\.`, 'info'\); return abrirDaFila\(i\); \}/);
+  assert.match(js, /d\.portao\(d\.item, d\.opcao\);/);
   // Nada grava status direto daqui.
   const trecho = js.slice(js.indexOf('// ---------- Para aprovar'), js.indexOf('// ---------- Equilíbrio ----------'));
   assert.doesNotMatch(trecho, /fetch\(|updateFocusStatus|commitStatusChange/);

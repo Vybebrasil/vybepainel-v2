@@ -184,7 +184,44 @@
   // carteira; sócio vê tudo; o diretor de arte vê toda peça em "Para aprovação"). A data do cliente manda: primeiro o
   // que veicula antes. Peça que o painel já mostra fora de aprovação (o portão acabou de gravar) sai na hora.
   const A = () => window.VybeAprovacoes;
-  const itemDoPainel = (i) => (i.quadro === 'demandas' ? null : pecasDoPainel().find((d) => String(d.id) === String(i.ref)) || null);
+  // A peça da fila no painel, no formato que os portões e a gaveta usam: conteúdo (DADOS_ALL), solicitação
+  // (DADOS_DEMANDAS) ou peça que nasceu no Vybe (vybe:<id>). O quadro dela desempata um id repetido.
+  const ehSolicitacao = (x) => (typeof isRequestItem === 'function' ? isRequestItem(x) : x?.origem === 'solicitacao');
+  function itemDoPainel(i) {
+    const ref = String(i?.ref ?? ''); if (!ref) return null;
+    const demandas = typeof DADOS_DEMANDAS !== 'undefined' && Array.isArray(DADOS_DEMANDAS) ? DADOS_DEMANDAS : [];
+    const conteudo = pecasDoPainel().find((x) => String(x?.id) === ref && !ehSolicitacao(x)), pedido = demandas.find((x) => String(x?.id) === ref);
+    const comoPedido = i.quadro === 'demandas' ? Boolean(pedido) || !conteudo : !conteudo && Boolean(pedido);
+    const bruto = comoPedido ? pedido : conteudo;
+    if (!bruto) return null;
+    // O mesmo formato de findOperationalItem (vybe-demandas.js): é ele que diz ao portão de qual quadro é a peça.
+    const norm = comoPedido ? globalThis.normalizeRequestForOperational : globalThis.normalizeContentForOperational;
+    return typeof norm === 'function' ? norm(bruto) : bruto;
+  }
+  // Para onde Aprovar e Pedir alteração levam a peça, no quadro dela. Aprovar: "Para agendar"; o quadro que não tem esse
+  // status (Solicitações) segue o fluxo dele (proximoStatusDaPeca, server/fluxo-status.js), desde que o próximo não seja
+  // outra aprovação interna nem alteração. Pedir alteração: "Alteração".
+  const INTERNAS = ['para aprovacao', 'em aprovacao'];
+  function destinosDaDecisao(item) {
+    const opcoes = ((typeof operationalStatusOptions === 'function' ? operationalStatusOptions(item) : (typeof STATUS_OPTIONS !== 'undefined' ? STATUS_OPTIONS : [])) || [])
+      .filter((o) => o && o.label && o.ativa !== false);
+    const seguinte = typeof proximoStatusDaPeca === 'function' ? proximoStatusDaPeca(item) : null;
+    const serve = (o) => o && !/altera/.test(normal(o.label)) && !INTERNAS.includes(normal(o.label)) && normal(o.label) !== normal(item?.status);
+    const aprovar = opcoes.find((o) => normal(o.label) === 'para agendar') || (serve(seguinte) ? seguinte : null);
+    const alterar = opcoes.find((o) => normal(o.label) === 'alteracao') || opcoes.find((o) => /^altera/.test(normal(o.label))) || null;
+    return { aprovar, alterar };
+  }
+  // A decisão de uma peça da fila: a peça, o status de destino e o portão de sempre (openQualityGate para aprovar,
+  // openStatusContextGate para alteração). Sem um dos três, o motivo curto que o aviso mostra.
+  function decisaoDaFila(i, acao) {
+    const item = itemDoPainel(i);
+    if (!item) return { motivo: 'ela ainda não carregou no painel' };
+    const portao = acao === 'aprovar' ? globalThis.openQualityGate : globalThis.openStatusContextGate;
+    if (typeof portao !== 'function') return { item, motivo: 'a conferência ainda não carregou' };
+    const d = destinosDaDecisao(item), opcao = acao === 'aprovar' ? d.aprovar : d.alterar;
+    if (!opcao) return { item, motivo: acao === 'aprovar' ? 'o quadro dela não tem o status depois da aprovação' : 'o quadro dela não tem Alteração' };
+    return { item, opcao, portao };
+  }
   function filaParaAprovar() {
     const d = A()?.estado?.().dados;
     if (!d) return null;
@@ -244,7 +281,7 @@
     if (perto && thumb === undefined) buscarThumb(String(i.ref));
     const o = objetivoDe(i.ref), q = quando(i), item = itemDoPainel(i);
     const carteira = typeof carteiraDoCliente === 'function' ? carteiraDoCliente(String(i.cliente || '').split(',')[0].trim()) : '';
-    const arte = thumb ? `<img src="${esc(thumb.thumb)}" alt="Prévia de ${esc(i.titulo)}" loading="lazy">` : `<span>${thumb === null ? 'Sem arquivo anexado' : perto ? 'Buscando a prévia…' : ''}</span>`;
+    const arte = arteHtml(String(i.ref), thumb, `Prévia de ${i.titulo || 'peça'}`, perto);
     const legenda = String(item?.legenda || '').trim();
     const fez = quemFez(i), heads = (i.heads || []).map((h) => h.nome).filter(Boolean);
     const noAr = quandoNoAr(i), corSt = (typeof corDeStatus === 'function' ? corDeStatus(i.status || '')?.cor : '') || '';
@@ -253,7 +290,7 @@
       fez.length && fez[0].papel === 'Fez a peça' ? ['arte', esc(fez.map((p) => p.nome).join(', '))] : null,
       heads.length ? ['head', esc(heads.join(', '))] : null].filter(Boolean);
     return `<article class="v2-carta v2c-carta"${pos ? ` data-pos="${pos}"` : ''} data-vc-carta="${k}" data-carteira="${esc(carteira || '')}" aria-hidden="${pos !== '0'}">
-      <span class="d3a-arte-caixa"><button type="button" class="v2c-arte${thumb ? '' : ' vazia'}" data-vc-apr-ver="${k}" title="Abrir a peça" aria-label="Abrir a peça: ${esc(i.titulo)}"${pos === '0' ? '' : ' tabindex="-1"'}>${i.formato ? `<span class="d3a-selo">${esc(i.formato)}</span>` : ''}${arte}</button></span>
+      <span class="d3a-arte-caixa"><button type="button" class="v2c-arte${thumb?.thumb ? '' : ' vazia'}" data-vc-apr-ver="${k}" title="Abrir a peça" aria-label="Abrir a peça: ${esc(i.titulo)}"${pos === '0' ? '' : ' tabindex="-1"'}>${i.formato ? `<span class="d3a-selo">${esc(i.formato)}</span>` : ''}${arte}</button></span>
       <div class="d3a-info"><p class="v2c-nome"><b>${esc(nomeDaPeca(i))}</b></p>
         <p class="v2c-meta">${cliHtml(i.cliente)}${avsHtml(fez)}</p>
         <p class="d3a-pills"><span class="d3a-pill"${corSt ? ` style="--d3-st:${esc(corSt)}"` : ''}><i aria-hidden="true"></i>${esc(i.status || 'Para aprovação')}</span>${i.formato ? `<span class="d3a-pill">${esc(i.formato)}</span>` : ''}${o ? `<span class="d3a-pill v2c-pill ${PILULA_OBJETIVO[o]}">${E.ROTULO[o]}</span>` : ''}</p>
@@ -407,6 +444,8 @@
       if (pos) c.dataset.pos = pos; else delete c.dataset.pos;
       c.setAttribute('aria-hidden', String(pos !== '0')); const b = c.querySelector('[data-vc-apr-ver]'); if (b) { if (pos === '0') b.removeAttribute('tabindex'); else b.tabIndex = -1; } });
     el.querySelectorAll('.v2c-mesa .v2-pontos > i').forEach((p, k) => p.classList.toggle('on', k === novo));
+    // A linha destacada da Fila acompanha a carta da frente.
+    el.querySelectorAll('.v2c-fila [data-vc-apr-ir]').forEach((l) => { if (Number(l.dataset.vcAprIr) === novo) l.setAttribute('aria-current', 'true'); else l.removeAttribute('aria-current'); });
     const conta = el.querySelector('[data-vc-apr-conta]'); if (conta) conta.textContent = `${novo + 1} de ${fila.length}`;
     el.querySelectorAll('[data-vc-apr-passo]').forEach((b) => { b.disabled = Number(b.dataset.vcAprPasso) < 0 ? novo <= 0 : novo >= fila.length - 1; });
   }
@@ -414,13 +453,11 @@
   function decidir(acao, doLote = false) {
     if (!doLote) st.lote = [];
     const i = (filaParaAprovar()?.fila || [])[st.apr]; if (!i) return;
-    const item = itemDoPainel(i), alvo = acao === 'aprovar' ? 'para agendar' : 'alteração';
-    const opcoes = item && typeof operationalStatusOptions === 'function' ? operationalStatusOptions(item) : (typeof STATUS_OPTIONS !== 'undefined' ? STATUS_OPTIONS : []);
-    const opcao = (opcoes || []).find((o) => String(o.label || '').trim().toLowerCase() === alvo);
-    const portao = acao === 'aprovar' ? globalThis.openQualityGate : globalThis.openStatusContextGate;
-    // Sem a peça no painel, sem o status no quadro dela ou sem o portão: a decisão é na própria peça, como sempre foi.
-    if (!item || !opcao || typeof portao !== 'function') { st.lote = []; toast('Abri a peça: a decisão dela é por lá.', 'info'); return abrirDaFila(i); }
-    portao(item, opcao);
+    const d = decisaoDaFila(i, acao);
+    // Só quando não há como decidir daqui (a peça não está no painel, o quadro não tem o destino ou o portão não
+    // carregou) a peça abre, com o motivo.
+    if (!d.opcao) { st.lote = []; toast(`Abri a peça: ${d.motivo}.`, 'info'); return abrirDaFila(i); }
+    d.portao(d.item, d.opcao);
   }
   // "Aprovar as de amanhã": a primeira abre o portão; quando ela sai da fila (o portão gravou), abre o da seguinte.
   // Passar de carta, trocar de aba ou decidir outra peça encerra a sequência.
@@ -502,28 +539,84 @@
     if (thumb === undefined) buscarThumb(String(p.id));
     const olho = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(p, 'vc-sec vc-olho') : '';
     return `<div class="vc-previa-topo"><b>${esc(p.nome || 'Peça')}</b><button type="button" class="vc-icone" data-vc-fechar-previa aria-label="Fechar prévia">${IC.fechar}</button></div>
-      ${thumb ? `<a class="vc-thumb" href="${esc(thumb.abrir || '#')}" target="_blank" rel="noopener"><img src="${esc(thumb.thumb)}" alt="Prévia de ${esc(p.nome || 'peça')}" loading="lazy"></a>` : `<div class="vc-thumb vazio">${thumb === null ? 'Sem arquivo anexado' : 'Buscando a prévia…'}</div>`}
+      ${thumb?.abrir ? `<a class="vc-thumb vc-previa-arte" href="${esc(thumb.abrir)}" target="_blank" rel="noopener">${arteHtml(String(p.id), thumb, `Prévia de ${p.nome || 'peça'}`)}</a>` : `<div class="vc-thumb vc-previa-arte${thumb?.thumb ? '' : ' vazio'}">${arteHtml(String(p.id), thumb, `Prévia de ${p.nome || 'peça'}`)}</div>`}
       <dl class="vc-ficha"><div><dt>Data</dt><dd>${data ? `${data.slice(8)}/${data.slice(5, 7)}` : '—'}</dd></div><div><dt>Status</dt><dd>${p.status ? statusCor(p) : '—'}</dd></div>
       <div><dt>Aprovação</dt><dd>${et ? `<span class="vc-etiqueta ${et}">${E.ROTULO_ETAPA[et]}</span>` : 'Em produção'}</dd></div>
       ${resp ? `<div><dt>Cliente</dt><dd>${resp.acao === 'aprovar' ? 'Aprovou' : 'Pediu ajuste'} · ${esc(resp.nome)}</dd></div>` : ''}</dl>
       <div class="vc-previa-obj"><span>Objetivo</span>${campoObjetivoHtml(p)}</div>
       <div class="vc-previa-acoes"><button type="button" class="vc-acao" data-vc-abrir-peca="${esc(p.id)}">Abrir peça</button>${olho}</div>`;
   }
-  // Prévia: a miniatura do Drive que a tela de arquivos já usa (/api/painel?area=arquivos). Peça só do Vybe
-  // (vybe:<id>) não passa por essa leitura: a prévia completa fica no olhinho e em "Abrir peça".
-  const buscandoThumb = new Set();
-  function buscarThumb(id) {
-    if (buscandoThumb.has(id)) return;
-    buscandoThumb.add(id);
-    setTimeout(async () => {
-      if (id.startsWith('vybe:')) st.thumbs[id] = null;
-      else {
-        try { const d = await lerJson(`/api/painel?area=arquivos&itens=${encodeURIComponent(id)}`); st.thumbs[id] = d.itens?.[id]?.thumb ? d.itens[id] : null; }
-        catch { st.thumbs[id] = null; }
-      }
-      if (st.aberto && (st.peca === id || st.aba === 'aprovar')) pintar();
-    }, 0);
+  // ---------- Prévia da peça (o baralho daqui, a prévia do Equilíbrio e o "Para você decidir" do Hoje) ----------
+  // Vem de onde a gaveta tira os arquivos. Primeiro a miniatura de /api/painel?area=arquivos (o arquivo mais novo, pelo
+  // id do Monday ou por vybe:<id>). Quando ela não basta (sem miniatura, mais de um arquivo, ou a imagem não abriu
+  // porque o Drive ainda não liberou a prévia), o detalhe da peça (/api/painel?area=peca), a mesma leitura da gaveta:
+  // ele libera a prévia no Drive (tornarPublico) para quem já pode abrir a peça e traz todos os arquivos.
+  // O resultado: { tipo: imagem | video | arquivo, thumb, abrir, nome, n } (n = imagens do carrossel) ou null sem arquivo.
+  const EXT_VIDEO = /^(mp4|mov|m4v|webm|avi|mkv|wmv|mpe?g|3gp)$/i, EXT_IMAGEM = /^(png|jpe?g|gif|webp|heic|heif|avif|bmp|svg|tiff?)$/i;
+  function tipoDoArquivo(nome, ext) {
+    const e = String(ext || '').replace(/^\./, '') || (String(nome || '').includes('.') ? String(nome).split('.').pop() : '');
+    return EXT_VIDEO.test(e) ? 'video' : EXT_IMAGEM.test(e) ? 'imagem' : 'arquivo';
   }
+  // Os arquivos do detalhe: 2 ou mais imagens é carrossel (a 1ª pelo nome, "1/N"); senão o vídeo; senão a imagem; senão
+  // o primeiro arquivo, pelo nome.
+  function previaDoDetalhe(det) {
+    const lista = (Array.isArray(det?.assets) ? det.assets : []).filter((a) => a && (a.name || a.url_thumbnail || a.public_url))
+      .map((a) => ({ a, tipo: tipoDoArquivo(a.name, a.file_extension) }));
+    if (!lista.length) return null;
+    const pelaOrdem = (x, y) => String(x.a.name || '').localeCompare(String(y.a.name || ''), 'pt-BR', { numeric: true }) || String(x.a.created_at || '').localeCompare(String(y.a.created_at || ''));
+    const imagens = lista.filter((x) => x.tipo === 'imagem').sort(pelaOrdem), video = lista.find((x) => x.tipo === 'video');
+    const escolha = imagens.length > 1 || (!video && imagens.length) ? imagens[0] : video || lista.slice().sort(pelaOrdem)[0];
+    const a = escolha.a;
+    return { tipo: escolha.tipo, thumb: a.url_thumbnail || (escolha.tipo === 'imagem' ? a.public_url || '' : '') || null,
+      abrir: a.link_drive || a.public_url || a.url || null, nome: String(a.name || ''), n: imagens.length > 1 ? imagens.length : 0, detalhe: true };
+  }
+  const previas = st.thumbs, buscandoPrevia = new Map(), avisosPrevia = new Set();
+  async function lerPrevia(ref) {
+    let curta = null;
+    try {
+      const d = await lerJson(`/api/painel?area=arquivos&itens=${encodeURIComponent(ref)}`), x = d.itens?.[ref];
+      if (x) curta = { tipo: tipoDoArquivo(x.nome, x.extensao), thumb: x.thumb ? String(x.thumb).replace(/sz=w\d+/, 'sz=w480') : null, abrir: x.abrir || null, nome: String(x.nome || ''), n: 0, total: Number(x.total) || 1 };
+    } catch { /* o detalhe ainda pode responder */ }
+    if (curta && curta.thumb && curta.total === 1) return curta;
+    return lerDetalhe(ref, curta);
+  }
+  async function lerDetalhe(ref, reserva = null) {
+    try { return previaDoDetalhe(await lerJson(`/api/painel?area=peca&item=${encodeURIComponent(ref)}`)) || reserva; }
+    catch { return reserva; }
+  }
+  function avisarPrevia(ref) {
+    if (st.aberto && (st.peca === ref || st.aba === 'aprovar')) pintar();
+    for (const f of avisosPrevia) { try { f(ref); } catch { /* quem ouve cuida de si */ } }
+  }
+  function buscarPrevia(ref, ler = lerPrevia) {
+    ref = String(ref || '');
+    if (!ref || buscandoPrevia.has(ref)) return;
+    buscandoPrevia.set(ref, setTimeout(async () => {
+      previas[ref] = await ler(ref);
+      buscandoPrevia.delete(ref);
+      avisarPrevia(ref);
+    }, 0));
+  }
+  const buscarThumb = (id) => buscarPrevia(id);
+  // O valor de agora (undefined enquanto busca) e a busca, se ainda não houve.
+  function previaDe(ref) { const r = String(ref || ''); if (previas[r] === undefined) buscarPrevia(r); return previas[r]; }
+  // A arte do cartão: a imagem com ▶ (vídeo) ou "1/N" (carrossel); sem miniatura, um quadro com ▶ e o nome do arquivo.
+  function arteHtml(ref, p, alt, perto = true) {
+    if (p === undefined) return perto ? '<span class="vc-previa-msg">Buscando a prévia…</span>' : '';
+    if (!p) return '<span class="vc-previa-msg">Sem arquivo anexado</span>';
+    const selo = p.tipo === 'video' ? '<i class="vc-previa-selo vc-previa-play" aria-label="Vídeo">▶</i>' : p.n > 1 ? `<i class="vc-previa-selo vc-previa-n" aria-label="Carrossel com ${p.n} imagens">1/${p.n}</i>` : '';
+    if (p.thumb) return `<img src="${esc(p.thumb)}" alt="${esc(alt)}" loading="lazy" data-vc-previa="${esc(ref)}">${selo}`;
+    return `<span class="vc-previa-quadro">${p.tipo === 'video' ? '<i class="vc-previa-play" aria-hidden="true">▶</i>' : ''}<b>${esc(p.nome || 'Arquivo anexado')}</b></span>${p.tipo === 'video' ? '' : selo}`;
+  }
+  // A miniatura não abriu (o Drive ainda não liberou a prévia do arquivo): o detalhe da peça libera e traz de novo;
+  // se nem assim, fica o quadro com o nome do arquivo.
+  document.addEventListener('error', (e) => {
+    const img = e.target; if (img?.tagName !== 'IMG' || !img.dataset?.vcPrevia) return;
+    const ref = img.dataset.vcPrevia, p = previas[ref];
+    if (!p || buscandoPrevia.has(ref)) return;
+    if (!p.detalhe) return buscarPrevia(ref, (r) => lerDetalhe(r, { ...p, thumb: null, detalhe: true }).then((x) => (x && x.thumb === p.thumb ? { ...x, thumb: null } : x)));
+    previas[ref] = { ...p, thumb: null }; avisarPrevia(ref);
+  }, true);
 
   // ---------- Links de aprovação ----------
   async function carregarLinks() {
@@ -638,6 +731,9 @@
   function ciclo() { clearTimeout(st.timer); st.timer = setTimeout(async () => { if (!document.hidden) await carregarObjetivos(); ciclo(); }, 120e3); }
   setTimeout(() => { carregarObjetivos(); ciclo(); }, 3000);
 
+  // O "Para você decidir" do Hoje (vybe-mundo.js) usa as mesmas peças: a peça da fila, a decisão e a prévia.
+  const ouvirPrevia = (f) => { if (typeof f === 'function') avisosPrevia.add(f); };
   window.VybeConteudo = Object.freeze({ abrir, fechar, aberto: () => st.aberto, atualizar: carregarObjetivos, bolinhaHtml, campoObjetivoHtml, definirObjetivo, objetivoDe,
+    itemDaFila: itemDoPainel, decisaoDaFila, previaDe, arteHtml, ouvirPrevia,
     estado: () => ({ aberto: st.aberto, aba: st.aba, mes: st.mes, cliente: st.cliente, pronto: st.pronto, objetivos: { ...st.objetivos } }) });
 })();
