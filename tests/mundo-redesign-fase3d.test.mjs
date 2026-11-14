@@ -133,7 +133,9 @@ test('celular: topo com busca, avisos e conta; cinco lugares embaixo com Criar n
   assert.ok(js.includes("const FERR_NO_TOPO_CEL = ['busca', 'avisos', 'conta'];"));
   assert.ok(js.includes("const NA_BARRA_CEL = ['hoje', 'criar', 'setor:producao'];"));
   assert.ok(js.includes('orig.click();'), 'cada item do "Mais" chama o mesmo botão de antes (cadeado e destino iguais)');
-  assert.ok(js.includes('<b>Fora das salas</b>') && js.includes('data-dock="entrar" title="Entrar na chamada'), 'fora de uma sala, o cartão com Entrar');
+  // Estados da voz (14/11/2026): o título do cartão sai da fase ("Fora das salas" só quando está fora) e o botão vem de
+  // botaoVozHtml (Entrar só na fase "fora"; a prova por fase está em tests/voz-estados.test.mjs).
+  assert.ok(js.includes("|| 'Fora das salas';") && js.includes('${botaoVozHtml(st, \'vc-acao\')}') && js.includes('data-dock="entrar" title="Entrar na chamada'), 'fora de uma sala, o cartão com Entrar');
   assert.ok(js.includes('data-dock-extra'), 'o resto do dock vai para o "Mais", sem sumir');
   assert.ok(js.includes("body.classList.toggle('cel-na-sala'"), 'dentro de uma sala o dock toma o lugar da barra de baixo');
   assert.ok(js.includes("Math.ceil(innerHeight - topo - margem)"), 'a altura do dock é medida na tela estreita');

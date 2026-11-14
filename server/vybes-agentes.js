@@ -69,6 +69,23 @@ export async function lerPerfilAgente(urlEntrada, setor, opcoes = {}) {
   return { ok: true, fonte: 'central-vybes', lidoEm: Date.now(), geradoEm: String(d.geradoEm || ''), perfil: limparJson(d.perfil) };
 }
 
+// Vários perfis numa chamada do navegador (fila da tela Agentes): o mesmo lerPerfilAgente para cada setor, com o mesmo
+// crachá, quatro de cada vez na central. Cada setor volta com o perfil ou com o erro dele.
+export const PERFIS_LOTE_MAX = 40;
+export async function lerPerfisAgentes(urlEntrada, setoresTexto, opcoes = {}) {
+  const setores = [...new Set(String(setoresTexto || '').split(',').map((x) => x.trim()).filter(Boolean))];
+  if (!setores.length) throw erro('Informe os agentes.', 400);
+  if (setores.length > PERFIS_LOTE_MAX) throw erro(`No máximo ${PERFIS_LOTE_MAX} agentes por vez.`, 400);
+  if (setores.some((s) => !SETOR.test(s))) throw erro('Agente inválido.', 400);
+  const perfis = {};
+  let i = 0;
+  const fila = async () => { while (i < setores.length) { const s = setores[i++];
+    try { perfis[s] = await lerPerfilAgente(urlEntrada, s, opcoes); }
+    catch (e) { perfis[s] = { ok: false, status: e.status || 502, error: e.status ? e.message : 'Não foi possível ler o perfil do agente.' }; } } };
+  await Promise.all(Array.from({ length: Math.min(4, setores.length) }, fila));
+  return { ok: true, fonte: 'central-vybes', perfis };
+}
+
 export async function lerMapaCerebro(urlEntrada, opcoes = {}) {
   const { status, d } = await chamarCentral(urlEntrada, '/api/cosmos/cerebro/mapa', { limite: 1024 * 1024, ...opcoes });
   if (status >= 400 || d?.ok !== true || !Array.isArray(d.nos) || !Array.isArray(d.ligacoes)) throw erro('Não foi possível ler o mapa do cérebro.', 502);

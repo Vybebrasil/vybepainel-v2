@@ -356,6 +356,25 @@ export async function enviarArteEscritorio(res, arquivo) {
   res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
   return res.status(200).send(dados);
 }
+// Os .json de vários móveis numa chamada (acao=artes&classes=a,b): mesma validação de nome e mesma origem da arte de um
+// (pasta do painel, senão o catálogo do Habbo). A imagem .png continua uma por móvel, com o cache do navegador.
+// O móvel que não deu para ler volta em "faltam" e a tela pede esse sozinho.
+export const ARTES_LOTE_MAX = 80;
+export async function enviarArtesEscritorio(res, classesTexto) {
+  const classes = [...new Set(String(classesTexto || "").split(",").map((x) => x.trim()).filter(Boolean))];
+  if (!classes.length || classes.length > ARTES_LOTE_MAX || classes.some((c) => !/^[A-Za-z0-9_]+$/.test(c)))
+    return res.status(400).json({ error: "Móveis inválidos." });
+  const artes = {}, faltam = [];
+  let i = 0;
+  const fila = async () => { while (i < classes.length) { const c = classes[i++];
+    let dados;
+    try { dados = await readFile(join(PASTA_ARTE_ESCRITORIO, c + ".json")); }
+    catch { try { dados = await arteRemotaEscritorio(c, "json"); } catch { faltam.push(c); continue; } }
+    try { artes[c] = JSON.parse(String(dados)); } catch { faltam.push(c); } } };
+  await Promise.all(Array.from({ length: Math.min(6, classes.length) }, fila));
+  res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+  return res.status(200).json({ ok: true, artes, faltam });
+}
 // Ficha (economia) e missões de outra pessoa: só quem administra vê; a própria,
 // todos. Devolve o id a ler ou o erro (403 antes de 400) para a rota responder.
 function pessoaDaConsulta(req, pessoa, oque) {
@@ -375,6 +394,8 @@ export async function areaEscritorio(req, res, quem, sql) {
   // como arquivo público do site. O nome é validado; nada fora da pasta.
   if (req.method === "GET" && req.query?.acao === "arte")
     return enviarArteEscritorio(res, String(req.query.arquivo || ""));
+  if (req.method === "GET" && req.query?.acao === "artes")
+    return enviarArtesEscritorio(res, String(req.query.classes || ""));
   if (req.method === "GET" && req.query?.acao === "boneco") {
     try {
       const png = await bonecoEscritorio(sql, String(req.query.figura || ""), req.query.dir);

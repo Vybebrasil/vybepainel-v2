@@ -435,7 +435,7 @@ function renderClientMasterDetail(cli) {
   const fraseFala = !id ? 'Este nome aparece na operação, mas ainda não tem ficha. Eu começaria criando a ficha.'
     : `${vencidas.length ? `<b>${vencidas.length === 1 ? '1 peça passou' : `${vencidas.length} peças passaram`} da veiculação</b> e ` : 'Nenhuma peça vencida e '}${fraseReuniao}. ${conselho}`;
   const verConta = window.VybeCarteira?.abrir
-    ? `<button type="button" class="v2f-btn s" onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })">Ver a conta</button>` : '';
+    ? `<button type="button" class="v2f-btn s" onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })" aria-label="Ver a conta da nota na Saúde da carteira">Ver a conta</button>` : '';
   // Direção 3 (moodboard 3, 13/11/2026): no alto só o bloco de ação laranja, numa frase curta; as abas entram logo
   // depois dele e a nota com o porquê abre o Resumo.
   const fraseCurta = !id ? 'Sem ficha no cadastro ainda.'
@@ -466,7 +466,7 @@ function renderClientMasterDetail(cli) {
   if (vencidas.length) pede.push(`<div class="v2-abre v2f-abre" aria-expanded="false">
       <div class="v2f-lin"><span class="v2f-pill r">${plural(vencidas.length, 'vencida', 'vencidas')}</span>
         <p><button type="button" class="v2f-abrir" aria-expanded="false" onclick="alternarLinhaV2(this)">${vencidas.length === 1 ? 'Peça' : 'Peças'} com a <b>veiculação vencida</b></button></p>
-        <button type="button" class="v2f-btn s" title="Abre a aba Conteúdo, onde a data troca na linha" onclick="trocarAbaDaFicha('conteudo')">Reagendar</button></div>
+        <button type="button" class="v2f-btn s" title="Abre a aba Conteúdo, onde a data troca na linha" aria-label="Reagendar na aba Conteúdo" onclick="trocarAbaDaFicha('conteudo')">Reagendar</button></div>
       <div class="v2-mais"><div>${vencidas.slice(0, 2).map(linhaVencida).join('')}
         ${vencidas.length > 2 ? `<p class="v2f-hist"><span>+ ${plural(vencidas.length - 2, 'peça', 'peças')} · <button type="button" class="v2f-link" onclick="trocarAbaDaFicha('conteudo')">ver todas</button></span></p>` : ''}</div></div>
     </div>`);
@@ -475,7 +475,7 @@ function renderClientMasterDetail(cli) {
   ((plj && plj.lista) || []).filter((p) => ['ajustes', 'revisar'].includes(p.estado)).forEach((p) => pede.push(
     `<div class="v2f-lin"><span class="v2f-pill a">${p.estado === 'ajustes' ? 'Ajustes pedidos' : 'Para revisar'}</span>
       <p><b>Planejamento de ${safeText(mesPlj(p).toLowerCase())}</b> · ${safeText(String(p.titulo || '').replace(/^planejamento de\s*/i, ''))}, versão ${safeText(p.versao)}</p>
-      <button type="button" class="v2f-btn s" onclick="abrirPlanejamento('${safeText(p.id)}')">Abrir</button></div>`));
+      <button type="button" class="v2f-btn s" aria-label="Abrir o planejamento" onclick="abrirPlanejamento('${safeText(p.id)}')">Abrir</button></div>`));
   if (id && !reuniao) pede.push(`<div class="v2f-lin"><span class="v2f-pill a">Sem data</span><p><b>Próxima reunião</b> ainda não marcada</p>${podeMexer
     ? `<button type="button" class="v2f-btn s" onclick="editarCampoDaFicha({ currentTarget: this.closest('.v2f-lin') }, '${aspas}', 'proxima_reuniao')">Marcar reunião</button>` : ''}</div>`);
   const cartaoPede = `<section class="v2f-card v2f-pede"><div class="v2f-card-topo"><h3>Pede ação</h3><span class="v2f-sub">${pede.length ? `${plural(pede.length, 'coisa', 'coisas')}, na ordem` : 'nada agora'}</span></div>
@@ -506,7 +506,7 @@ function renderClientMasterDetail(cli) {
     : !ultima ? `<p class="v2f-vazio">Nenhuma reunião registrada ainda.</p>${reu.pode ? `<p class="v2f-botoes"><button type="button" class="v2f-btn s" onclick="abrirReuniao('${aspas}')">Nova reunião</button></p>` : ''}`
     : `<p class="v2f-reu-linha">${participantes.length ? `<span class="v2f-avs" role="img" aria-label="Participantes: ${safeText(participantes.join(', '))}">${participantes.slice(0, 3).map((p) => `<span class="v2f-av">${safeText(iniciaisV2(p))}</span>`).join('')}</span>` : ''}${safeText(ultima.titulo)}</p>
       ${decisoes}${!decisoes && !ultima.ata ? '<p class="v2f-vazio">Ainda sem ata.</p>' : ''}
-      <p class="v2f-botoes"><button type="button" class="v2f-btn s" onclick="trocarAbaDaFicha('reunioes')">Resumo e decisões</button>${ultima.transcricao ? `<button type="button" class="v2f-btn s" onclick="trocarAbaDaFicha('reunioes')">Transcrição</button>` : ''}</p>`;
+      <p class="v2f-botoes"><button type="button" class="v2f-btn s" aria-label="Ver o resumo e as decisões da reunião" onclick="trocarAbaDaFicha('reunioes')">Resumo e decisões</button>${ultima.transcricao ? `<button type="button" class="v2f-btn s" aria-label="Ver a transcrição da reunião" onclick="trocarAbaDaFicha('reunioes')">Transcrição</button>` : ''}</p>`;
   const cartaoReuniao = `<section class="v2f-card v2f-reuniao"><div class="v2f-card-topo"><h3>Última reunião</h3><span class="v2f-sub">${ultima ? `${dataPorExtensoV2(ultima.data)}${ultima.gravacao ? ' · gravada' : ''}` : ''}</span></div>
       ${corpoReuniao}
       ${reuniao ? `<p class="v2f-pe">Próxima reunião em <b>${safeText(reuniao)}</b>${podeMexer ? ` · <button type="button" class="v2f-link" onclick="editarCampoDaFicha({ currentTarget: this.closest('.v2f-pe') }, '${aspas}', 'proxima_reuniao')">trocar a data</button>` : ''}</p>` : ''}</section>`;
@@ -517,7 +517,7 @@ function renderClientMasterDetail(cli) {
   const ehManus = /(^|\.)manus\.im$/i.test((() => { try { return new URL(outroLink).hostname; } catch { return ''; } })());
   const planejamentoUrl = linkDeCliente(f.planejamento_url || meta.planning);
   const falta = '<span class="v2f-pill a">Falta</span>';
-  const abrirLink = (url) => `<a class="v2f-btn s" href="${safeText(url)}" target="_blank" rel="noopener">Abrir</a>`;
+  const abrirLink = (url) => `<a class="v2f-btn s" href="${safeText(url)}" target="_blank" rel="noopener" aria-label="Abrir o link numa aba nova">Abrir</a>`;
   const guardar = (campo, rotulo) => (podeMexer ? `<button type="button" class="v2f-btn s" onclick="editarAcessoDaFicha(event, '${aspas}', '${campo}')">${rotulo}</button>` : '');
   const temDoc = Boolean(meta.acessoId && meta.doc);
   const docBotao = meta.acessoId || podeMexer

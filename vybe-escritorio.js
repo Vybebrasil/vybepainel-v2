@@ -228,6 +228,8 @@ function escritorioReconectar(motivo) {
   const n = (escritorio.tentativasReconexao = (escritorio.tentativasReconexao || 0) + 1);
   if (n > 8) {
     escritorio.tentativasReconexao = 0;
+    escritorio.socketCaiu = false;
+    escritorio.erroConexao = "a conexão caiu";
     escritorio.conectado = false;
     escritorio.online = [];
     sairChamadaEscritorio();
@@ -822,7 +824,8 @@ async function conectarEscritorio({ reconexao = false } = {}) {
   const geracao = escritorio.geracao;
   if (!reconexao) { escritorioEtapaEntrada("acesso"); renderEscritorio(); }
   try {
-    const base = await escritorioApi("entrada");
+    // Com prazo: antes, um servidor mudo deixava "Conectando…" para sempre.
+    const base = await escritorioComPrazo(escritorioApi("entrada"), ESCRITORIO_VOZ_PRAZO, "o escritório não respondeu");
     // Saiu (ou tentou de novo) enquanto a resposta não chegava: esta tentativa morre aqui.
     if (geracao !== escritorio.geracao) return;
     // Primeira base desta aba (celular, Minha sala aberta direto): a chegada monta o perfil, as salas e o quarto,
@@ -837,6 +840,18 @@ async function conectarEscritorio({ reconexao = false } = {}) {
     url.protocol = "wss:";
     const socket = new WebSocket(url);
     escritorio.socket = socket;
+    // O socket abriu mas a sessão não ficou pronta em 15 s: fecha e diz o motivo (ou, numa reconexão, tenta de novo).
+    clearTimeout(escritorio.timerConectar);
+    escritorio.timerConectar = setTimeout(() => {
+      if (escritorio.socket !== socket || !escritorio.conectando) return;
+      escritorio.socket = null;
+      try { socket.close(); } catch {}
+      escritorio.conectando = false;
+      if (reconexao && escritorio.conectado) { escritorioReconectar(true); return; }
+      escritorio.erroConexao = "o escritório não respondeu";
+      if (escritorio.entrada) escritorioErroEntrada("O escritório não respondeu. Confira a internet e tente de novo.");
+      atualizarDockEscritorio();
+    }, ESCRITORIO_VOZ_PRAZO);
     socket.onopen = () => {
       if (!reconexao) escritorioEtapaEntrada("sessao");
       socket.send(
@@ -855,7 +870,10 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         return;
       }
       if (e.type === "session:ready") {
+        clearTimeout(escritorio.timerConectar);
         escritorio.conectando = false;
+        escritorio.socketCaiu = false;
+        escritorio.erroConexao = "";
         const jaEstava = escritorio.conectado;
         // Entrou: se a conexão cair depois (rede, aba no fundo), volta sozinho.
         escritorio.querConectado = true;
@@ -921,6 +939,11 @@ async function conectarEscritorio({ reconexao = false } = {}) {
         escritorio.onlineTodos = e.payload;
         const visiveis = escritorioPresencaVisivel(e.payload);
         avisarEntradasEscritorio(escritorio.online, visiveis);
+        // Quem entrou ou saiu da sua sala de voz. Só com a lista anterior desta mesma sala: quando é você que troca de
+        // sala, todo mundo "entraria" de uma vez.
+        if (escritorio.conectado && escritorio.online?.length && escritorio.avisoSalaZona === escritorio.zona && escritorioCanal())
+          escritorioAvisoNaSala(escritorioMudancaNaSala(escritorio.online, visiveis, { eu: escritorio.base?.eu, zona: escritorio.zona }));
+        escritorio.avisoSalaZona = escritorio.zona;
         if (typeof convidadoPresenca === "function") convidadoPresenca(escritorio.online, visiveis);
         const canalAntesDaLista = escritorioCanal();
         escritorio.online = visiveis;
@@ -961,9 +984,11 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       if (escritorio.socket !== socket) return;
       clearInterval(escritorio.ping);
       clearTimeout(escritorio.renovar);
+      clearTimeout(escritorio.timerConectar);
       escritorio.conectando = false;
-      // Queda inesperada: tenta de novo sem sair da conversa nem voltar à entrada.
-      if (escritorio.conectado) { escritorioReconectar(true); return; }
+      // Queda inesperada: tenta de novo sem sair da conversa nem voltar à entrada (a voz mostra "Reconectando…").
+      if (escritorio.conectado) { escritorio.socketCaiu = true; escritorioReconectar(true); return; }
+      escritorio.erroConexao = "a conexão caiu antes de entrar";
       escritorio.online = [];
       atualizarPessoasEscritorio();
       if (escritorio.entrada) escritorioErroEntrada("A conexão com o escritório caiu antes de entrar. Confira a internet e tente de novo.");
@@ -974,8 +999,10 @@ async function conectarEscritorio({ reconexao = false } = {}) {
       escritorioAviso("Falha na conexão. Confira o acesso e tente novamente.");
   } catch (e) {
     if (geracao !== escritorio.geracao) return;
+    clearTimeout(escritorio.timerConectar);
     escritorio.conectando = false;
     if (reconexao && escritorio.conectado) { escritorioReconectar(true); return; }
+    escritorio.erroConexao = String(e?.message || "sem conexão").replace(/^A conversa não abriu \((.*)\)\. Tente de novo\.$/, "$1");
     await sairChamadaEscritorio();
     if (!reconexao) escritorioErroEntrada(e.message);
     else escritorioAviso(e.message);
@@ -988,7 +1015,10 @@ function desconectarEscritorio(sairChamada = true) {
   // Saiu de propósito: não reconecta sozinho.
   if (sairChamada) { escritorio.querConectado = false; try { localStorage.removeItem("vybe-escritorio-dentro"); } catch {} }
   clearTimeout(escritorio.timerReconexao);
+  clearTimeout(escritorio.timerConectar);
   escritorio.tentativasReconexao = 0;
+  escritorio.socketCaiu = false;
+  if (sairChamada) escritorio.erroConexao = "";
   try { escritorio.socketAntigo?.close(); } catch {}
   escritorio.socketAntigo = null;
   escritorio.geracao++;
@@ -2564,6 +2594,145 @@ function escritorioEstadoVozTexto() {
   if (!escritorio.conectado) return "Zona de conversa · entre para falar";
   if (escritorio.chamada && escritorio.canalChamada === escritorioCanal()) return "Na conversa da sala";
   return escritorio.falhaConversa ? "Voz indisponível · reconectando" : "Conectando à conversa da sala…";
+}
+// Estado único da chamada (Paulo, 14/11/2026: "ainda não tá claro quando tá conectando, quando tá off, quando buga... às
+// vezes tá conectando mas fica o nome ENTRAR lá e a pessoa fica clicando"). Tudo que mostra a voz (dock, barra de cima,
+// painel Salas, cartão do celular) lê daqui, e o "Entrar" só aparece na fase "fora".
+//   fora          · fora da chamada de verdade: Entrar
+//   conectando    · abrindo o escritório ou a voz da sala: girando, botão travado
+//   na-sala       · na chamada da sala
+//   reconectando  · caiu e está voltando sozinho (rede, servidor de mídia, sem internet)
+//   caiu          · não conectou ou passou do prazo: motivo curto e Tentar de novo
+//   sem-voz       · Foco ou Praça, lugares sem voz
+//   outra-aba     · a voz está em outra aba deste navegador
+//   indisponivel  · sem servidor de voz (demonstração)
+const ESCRITORIO_VOZ_PRAZO = 15000;
+function escritorioFaseChamada(e = escritorio, { online = true, outraAba = false } = {}) {
+  if (outraAba || e.emOutraAba) return { fase: "outra-aba", motivo: "A voz está aberta em outra aba" };
+  if (e.base?.demo) return { fase: "indisponivel", motivo: "Sem servidor de voz nesta demonstração" };
+  if (!online) return { fase: "reconectando", motivo: "Sem internet", semRede: true };
+  if (!e.conectado) {
+    if (e.conectando) return { fase: "conectando", etapa: "abrindo o escritório" };
+    if (e.erroConexao) return { fase: "caiu", motivo: e.erroConexao };
+    return { fase: "fora" };
+  }
+  if (e.socketCaiu) return { fase: "reconectando", motivo: "A conexão oscilou" };
+  if (e.vozPausada) return { fase: "fora" };
+  const canal = escritorioCanal(e.zona);
+  if (!canal) return { fase: "sem-voz", motivo: e.zona === "foco" ? "Foco: sem voz" : "Sem voz aqui" };
+  if (e.chamada && e.canalChamada === canal) return { fase: "na-sala" };
+  if (e.falhaConversa && !e.entrandoChamada) return { fase: "caiu", motivo: e.falhaConversa };
+  if (e.vozCaiu) return { fase: "reconectando", motivo: "A voz caiu", etapa: e.etapaVoz || "" };
+  return { fase: "conectando", etapa: e.etapaVoz || "preparando a voz" };
+}
+// O que cada botão de mídia mostra. "fora" = sem chamada (o botão fica apagado, com a dica de onde liga).
+function escritorioMidiaChamada(fase, e = escritorio) {
+  const s = e.chamada?.self, dentro = fase === "na-sala";
+  const telaPossivel = typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia);
+  const transmitindo = [];
+  if (s?.screenShareEnabled && e.base?.eu != null) transmitindo.push(String(e.base.eu));
+  if (dentro) {
+    try { for (const p of escritorioOutrosNaChamada(e.chamada)) if (p.screenShareEnabled) transmitindo.push(String(p.customParticipantId || "").split(":")[0]); } catch { /* lista ainda não chegou */ }
+  }
+  return {
+    mic: s?.audioEnabled ? "ligado" : dentro && e.erroMic ? "bloqueado" : dentro ? "mudo" : "fora",
+    camera: s?.videoEnabled ? "ligada" : dentro && e.erroCamera ? "bloqueada" : dentro ? "desligada" : "fora",
+    tela: s?.screenShareEnabled ? "transmitindo" : !telaPossivel ? "sem-suporte" : dentro ? "parada" : "fora",
+    som: dentro && e.somBloqueado ? "bloqueado" : "ouvindo",
+    transmitindo,
+  };
+}
+// Aviso de mudança de fase: só o que ninguém mais avisa (a voz voltou, não conectou). jaCaiu: o "não conectou" já saiu
+// desde a última vez na sala; as novas tentativas sozinhas (que voltam a cair) não repetem o aviso.
+function escritorioTextoTransicao(antes, depois, motivo = "", { jaCaiu = false } = {}) {
+  if (antes === depois || (!antes && depois !== "caiu")) return "";
+  if (depois === "na-sala" && (antes === "reconectando" || antes === "caiu" || jaCaiu)) return "A voz voltou: você está na sala de novo.";
+  if (depois === "caiu" && !jaCaiu) return `A voz não conectou${motivo ? ": " + String(motivo).replace(/[.\s]+$/, "") : ""}. Use Tentar de novo.`;
+  return "";
+}
+// A fase de agora, com o prazo: "conectando" ou "reconectando" por mais de 15 s vira "caiu" (com Tentar de novo), mesmo
+// que a tentativa siga por trás; se ela der certo depois, a fase passa sozinha para "na-sala".
+function escritorioEstadoChamada(agora = Date.now()) {
+  const online = typeof navigator === "undefined" || navigator.onLine !== false;
+  const outraAba = !escritorio.conectado && !escritorio.conectando && Boolean(escritorio.emOutraAba || escritorioOutraAbaConectada());
+  const base = escritorioFaseChamada(escritorio, { online, outraAba });
+  if (!escritorio.vozMarca || escritorio.vozMarca.fase !== base.fase) escritorio.vozMarca = { fase: base.fase, em: agora };
+  let r = { ...base, desde: escritorio.vozMarca.em };
+  if ((base.fase === "conectando" || base.fase === "reconectando") && !base.semRede && agora - escritorio.vozMarca.em > ESCRITORIO_VOZ_PRAZO)
+    r = { fase: "caiu", motivo: base.fase === "conectando" ? "demorou demais para conectar" : (base.motivo || "a conexão não voltou"), atrasado: true, etapa: base.etapa || "", desde: escritorio.vozMarca.em };
+  const antes = escritorio.vozVista;
+  escritorio.vozVista = r.fase;
+  const aviso = escritorioTextoTransicao(antes, r.fase, r.motivo, { jaCaiu: Boolean(escritorio.vozCaiuAvisado) });
+  if (aviso && (r.fase === "caiu" || agora - (escritorio.vozAvisoEm || 0) > 4000)) { escritorio.vozAvisoEm = agora; escritorioAviso(aviso); if (r.fase === "caiu") escritorio.vozCaiuAvisado = true; }
+  if (r.fase === "na-sala" || r.fase === "fora" || r.fase === "sem-voz") escritorio.vozCaiuAvisado = false;
+  r.midia = escritorioMidiaChamada(r.fase);
+  return r;
+}
+// "Tentar de novo": refaz o passo em que parou (o escritório ou a voz da sala), zerando a espera. Uma tentativa presa
+// no meio é aposentada (geracaoVoz) para não haver duas entrando juntas.
+function escritorioTentarChamadaDeNovo() {
+  escritorio.vozMarca = null; escritorio.erroConexao = "";
+  if (!escritorio.conectado) {
+    if (escritorio.conectando) { tentarEntrarDeNovoEscritorio(); return; }
+    if (escritorio.base) conectarEscritorio(); else abrirEscritorio();
+    return;
+  }
+  // O socket do escritório é que caiu (e a volta passou do prazo): reconecta já, sem esperar o intervalo crescente.
+  if (escritorio.socketCaiu && !escritorio.conectando) { clearTimeout(escritorio.timerReconexao); escritorio.tentativasReconexao = 0; conectarEscritorio({ reconexao: true }); return; }
+  escritorio.vozPausada = false; escritorio.falhaConversa = ""; escritorio.tentativasVoz = 0;
+  clearTimeout(escritorio.timerVoz);
+  if (escritorio.entrandoChamada) { escritorio.geracaoVoz = (escritorio.geracaoVoz || 0) + 1; escritorio.entrandoChamada = false; }
+  escritorioConversaAutomatica();
+  atualizarControlesEscritorio();
+}
+// Som bloqueado pelo navegador (autoplay): o clique no botão já libera.
+async function escritorioLiberarSom() {
+  try { await escritorio.chamada?.self?.playAudio?.(); escritorio.somBloqueado = false; } catch { /* segue bloqueado: o próximo clique tenta */ }
+  renderMidiaEscritorio();
+}
+// A tela parou sem a pessoa mandar (o "Parar de compartilhar" do navegador, a janela fechou): avisa uma vez.
+function escritorioTelaParou(meeting) {
+  const ligada = Boolean(meeting?.self?.screenShareEnabled), antes = escritorio.telaLigada;
+  escritorio.telaLigada = ligada;
+  if (meeting !== escritorio.chamada || ligada || !antes) return false;
+  if (Date.now() - (escritorio.telaParadaAqui || 0) < 3000) return false;
+  escritorioAviso("A transmissão da sua tela parou.");
+  return true;
+}
+// Quem entrou ou saiu da sala onde você está (sem contar você). Junta o que chega em 1,5 s num aviso só.
+function escritorioMudancaNaSala(antes = [], depois = [], { eu, zona } = {}) {
+  if (!zona) return { entraram: [], sairam: [] };
+  const da = (l) => new Map(l.filter((p) => p.zona === zona && String(p.id) !== String(eu)).map((p) => [String(p.id), p.nome || "Alguém"]));
+  const a = da(antes), d = da(depois);
+  return { entraram: [...d].filter(([id]) => !a.has(id)).map(([, n]) => n), sairam: [...a].filter(([id]) => !d.has(id)).map(([, n]) => n) };
+}
+function escritorioTextoMudancaSala({ entraram = [], sairam = [] } = {}) {
+  const nomes = (l) => { const n = l.map((x) => String(x || "Alguém").split(" ")[0]); return n.length <= 2 ? n.join(" e ") : `${n[0]}, ${n[1]} e mais ${n.length - 2}`; };
+  const partes = [];
+  if (entraram.length) partes.push(`${nomes(entraram)} ${entraram.length === 1 ? "entrou" : "entraram"} na sala`);
+  if (sairam.length) partes.push(`${nomes(sairam)} ${sairam.length === 1 ? "saiu" : "saíram"} da sala`);
+  return partes.join(" · ");
+}
+function escritorioAvisoNaSala(mudou) {
+  if (!mudou.entraram.length && !mudou.sairam.length) return;
+  const f = (escritorio.filaSala ||= { entraram: [], sairam: [] });
+  for (const n of mudou.entraram) { const i = f.sairam.indexOf(n); if (i >= 0) f.sairam.splice(i, 1); else f.entraram.push(n); }
+  for (const n of mudou.sairam) { const i = f.entraram.indexOf(n); if (i >= 0) f.entraram.splice(i, 1); else f.sairam.push(n); }
+  clearTimeout(escritorio.timerFilaSala);
+  escritorio.timerFilaSala = setTimeout(() => {
+    const texto = escritorioTextoMudancaSala(escritorio.filaSala || {});
+    escritorio.filaSala = null;
+    if (texto) escritorioAviso(texto);
+  }, 1500);
+}
+// Voltou à aba ou a internet voltou: o som do navegador é retomado e a voz tenta já, sem esperar o intervalo.
+function escritorioAoVoltar() {
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+  try { escritorioNivelAudio.ctx?.resume?.(); } catch {}
+  if (escritorio.vozMarca && (escritorio.vozMarca.fase === "conectando" || escritorio.vozMarca.fase === "reconectando")) escritorio.vozMarca.em = Date.now();
+  if (escritorio.conectado && !escritorio.chamada && !escritorio.entrandoChamada && !escritorio.vozPausada && !escritorio.base?.demo && escritorioCanal()) {
+    escritorio.tentativasVoz = 0; escritorioConversaAutomatica();
+  }
 }
 function escritorioEnviarPosicao(forcar) {
   const agora = performance.now();
@@ -4729,7 +4898,7 @@ async function escritorioSincronizarVoz() {
     if (ativa) { escritorio.erroMic = await escritorioDiagnosticarMic(); escritorio.callAberta = true; }
   }
   if (!ativa && m.self.videoEnabled) await m.self.disableVideo().catch(() => {});
-  if (!ativa && m.self.screenShareEnabled) await m.self.disableScreenShare().catch(() => {});
+  if (!ativa && m.self.screenShareEnabled) { escritorio.telaParadaAqui = Date.now(); await m.self.disableScreenShare().catch(() => {}); }
   escritorioTocarVozes();
   renderMidiaEscritorio();
   atualizarControlesEscritorio();
@@ -4749,10 +4918,15 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     escritorioAviso("Entre no escritório antes de abrir uma conversa.");
     return;
   }
-  escritorio.entrandoChamada = true;
+  // A marca é desta tentativa: uma tentativa aposentada (Tentar de novo, troca de sala) que termina depois não apaga a
+  // marca da nova no finally (antes, as duas ficavam "entrando" e uma terceira podia começar).
+  const marca = {};
+  escritorio.entrandoChamada = marca;
+  const voltando = Boolean(escritorio.vozCaiu);
   const geracao = escritorio.geracao, geracaoVoz = escritorio.geracaoVoz || 0;
   const cancelada = () => geracao !== escritorio.geracao || geracaoVoz !== (escritorio.geracaoVoz || 0) || escritorio.vozPausada || !escritorio.conectado;
-  escritorioAviso("Preparando conversa…");
+  // Só na primeira tentativa: as novas tentativas sozinhas (até 30 s entre elas) repetiam o aviso a cada vez.
+  if (!escritorio.tentativasVoz && !voltando) escritorioAviso("Preparando conversa…");
   let meeting;
   try {
     escritorio.etapaVoz = "pedindo acesso à conversa";
@@ -4789,6 +4963,9 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     escritorio.tentativasVoz = 0;
     escritorio.etapaVoz = "";
     escritorio.falhaConversa = "";
+    escritorio.vozCaiu = false;
+    escritorio.erroCamera = null;
+    escritorio.telaLigada = false;
     for (const evento of [
       "participantJoined",
       "participantLeft",
@@ -4800,6 +4977,7 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     for (const evento of ["audioUpdate", "videoUpdate", "screenShareUpdate"])
       meeting.self.on(evento, renderMidiaEscritorio);
     meeting.self.on("audioUpdate", () => escritorioMicDesligouSozinho(meeting));
+    meeting.self.on("screenShareUpdate", () => escritorioTelaParou(meeting));
     // O navegador bloqueou o som até a pessoa interagir: o próximo clique ou
     // tecla em qualquer lugar já libera (o botão fica como atalho visível).
     // A conversa caiu sozinha (rede, servidor de mídia): entra de novo na
@@ -4807,6 +4985,7 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     meeting.self.on("roomLeft", () => {
       if (escritorio.chamada !== meeting) return;
       escritorio.chamada = null;
+      escritorio.vozCaiu = true;
       escritorioFiltroVoz.geracao++;
       escritorioNivelAudio.parar();
       escritorioPararVozes();
@@ -4814,14 +4993,22 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
       atualizarDockEscritorio();
       escritorioTentarVozDeNovo();
     });
+    // Um par de ouvintes por chamada: o erro de autoplay repete, e antes cada repetição somava mais dois.
+    let liberarArmado = false;
     meeting.self.on("autoplayError", () => {
       escritorio.somBloqueado = true;
       renderMidiaEscritorio();
+      if (liberarArmado) return;
+      liberarArmado = true;
       const liberar = async () => {
+        document.removeEventListener("pointerdown", liberar, true);
+        document.removeEventListener("keydown", liberar, true);
+        liberarArmado = false;
+        if (meeting !== escritorio.chamada) return;
         try { await meeting.self.playAudio(); escritorio.somBloqueado = false; renderMidiaEscritorio(); } catch {}
       };
-      document.addEventListener("pointerdown", liberar, { once: true, capture: true });
-      document.addEventListener("keydown", liberar, { once: true, capture: true });
+      document.addEventListener("pointerdown", liberar, true);
+      document.addEventListener("keydown", liberar, true);
     });
     // Mudou de lugar enquanto entrava: a conversa geral só acerta microfone e
     // som; a de uma sala trancada que ficou para trás é deixada.
@@ -4837,19 +5024,23 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     renderEscritorio();
     escritorioTocarVozes();
     if (!escritorioCanal()) return;
+    // Voltou de uma queda: o aviso "A voz voltou" sai da mudança de fase (escritorioEstadoChamada).
+    if (voltando && !semMicrofone) return;
     escritorioAviso(!microfone ? "Conversa aberta. Microfone e câmera estão desligados."
       : semMicrofone ? "Você está ouvindo, mas seu microfone não ligou: " + (escritorio.erroMic?.titulo || "veja o motivo na conversa").toLowerCase() + "."
       : "Você entrou na conversa da sala: quem está aqui ouve você. Clique no microfone para silenciar.");
   } catch (e) {
     console.warn("Conversa do escritório:", e);
     await meeting?.leave().catch(() => {});
+    // O medidor de volume nasce antes de entrar: sem chamada, ele não fica medindo 10 vezes por segundo à toa.
+    if (!escritorio.chamada) escritorioNivelAudio.parar();
     if (cancelada()) return;
-    escritorio.falhaConversa = e.message;
+    escritorio.falhaConversa = String(e?.message || "erro desconhecido").replace(/^A conversa não abriu \((.*)\)\. Tente de novo\.$/, "parou em: $1");
     escritorio.etapaVoz = "";
-    escritorioAviso(e.message + " Tentando de novo…");
+    // O aviso "A voz não conectou" sai uma vez, da mudança de fase; as novas tentativas (até 30 s) não repetem.
     escritorioTentarVozDeNovo();
   } finally {
-    escritorio.entrandoChamada = false;
+    if (escritorio.entrandoChamada === marca) escritorio.entrandoChamada = false;
     atualizarDockEscritorio();
     atualizarControlesEscritorio();
   }
@@ -5192,9 +5383,11 @@ async function alternarMidiaEscritorio(tipo) {
     if (tipo === "video") {
       if (!self.videoEnabled && (!escritorioCanal() || escritorio.canalChamada !== escritorioCanal())) return escritorioAviso("Entre na conversa de uma sala para ligar a câmera.");
       await self[self.videoEnabled ? "disableVideo" : "enableVideo"]();
+      escritorio.erroCamera = null;
     }
     if (tipo === "screen") {
       if (!self.screenShareEnabled && (!escritorioCanal() || escritorio.canalChamada !== escritorioCanal())) return escritorioAviso("Entre na conversa de uma sala para mostrar a tela.");
+      if (self.screenShareEnabled) escritorio.telaParadaAqui = Date.now();
       await self[
         self.screenShareEnabled ? "disableScreenShare" : "enableScreenShare"
       ]();
@@ -5203,6 +5396,17 @@ async function alternarMidiaEscritorio(tipo) {
     await escritorioSincronizarVoz();
   } catch (e) {
     if (tipo === "audio") { escritorio.erroMic = await escritorioDiagnosticarMic(); renderMidiaEscritorio(); escritorioAviso(escritorio.erroMic.titulo); return; }
+    const negado = /NotAllowed|Permission|denied|SecurityError/i.test(`${e?.name || ""} ${e?.message || ""}`);
+    // Tela: fechar a escolha do navegador também chega como "negado"; não é erro, só não começou.
+    if (tipo === "screen") { escritorioAviso(negado ? "A tela não foi compartilhada." : "Não foi possível mostrar a tela: " + e.message); return; }
+    if (tipo === "video") {
+      escritorio.erroCamera = negado
+        ? { titulo: "O navegador bloqueou a câmera", dica: "Clique no cadeado ao lado do endereço do site, escolha Câmera: Permitir e tente de novo. No Mac, confira Ajustes do Sistema › Privacidade e Segurança › Câmera." }
+        : { titulo: "A câmera não ligou", dica: (e?.message || "Erro desconhecido") + ". Feche outro programa que esteja usando a câmera e tente de novo." };
+      renderMidiaEscritorio();
+      escritorioAviso(escritorio.erroCamera.titulo);
+      return;
+    }
     escritorioAviso("Não foi possível ativar o dispositivo: " + e.message);
   }
 }
@@ -5362,22 +5566,22 @@ function renderMidiaEscritorio() {
 // Por que o microfone não liga: pergunta direto ao navegador e traduz o erro.
 async function escritorioDiagnosticarMic() {
   if (!navigator.mediaDevices?.getUserMedia)
-    return { titulo: "Este navegador não dá acesso ao microfone", dica: "Use o Chrome, o Edge ou o Safari atualizados, pelo endereço https do painel." };
+    return { tipo: "sem-suporte", titulo: "Este navegador não dá acesso ao microfone", dica: "Use o Chrome, o Edge ou o Safari atualizados, pelo endereço https do painel." };
   let permissao = "";
   try { permissao = (await navigator.permissions?.query({ name: "microphone" }))?.state || ""; } catch {}
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
     s.getTracks().forEach((t) => t.stop());
-    return { titulo: "O microfone funciona, mas a conversa não o ligou", dica: "Clique em Liberar microfone para tentar de novo.", podeTentar: true };
+    return { tipo: "falhou", titulo: "O microfone funciona, mas a conversa não o ligou", dica: "Clique em Liberar microfone para tentar de novo.", podeTentar: true };
   } catch (e) {
     const n = e?.name || "";
     if (n === "NotAllowedError" || n === "SecurityError" || permissao === "denied")
-      return { titulo: "O navegador bloqueou o microfone", dica: "Clique no cadeado ao lado do endereço do site, escolha Microfone: Permitir e depois em Liberar microfone. No Mac, confira também Ajustes do Sistema › Privacidade e Segurança › Microfone e ative o navegador.", podeTentar: true };
+      return { tipo: "negado", titulo: "O navegador bloqueou o microfone", dica: "Clique no cadeado ao lado do endereço do site, escolha Microfone: Permitir e depois em Liberar microfone. No Mac, confira também Ajustes do Sistema › Privacidade e Segurança › Microfone e ative o navegador.", podeTentar: true };
     if (n === "NotFoundError" || n === "OverconstrainedError")
-      return { titulo: "Nenhum microfone encontrado", dica: "Conecte um fone com microfone ou ative o microfone do computador e clique em Liberar microfone.", podeTentar: true };
+      return { tipo: "ausente", titulo: "Nenhum microfone encontrado", dica: "Conecte um fone com microfone ou ative o microfone do computador e clique em Liberar microfone.", podeTentar: true };
     if (n === "NotReadableError" || n === "AbortError")
-      return { titulo: "O microfone está sendo usado por outro programa", dica: "Feche Meet, Zoom, Teams, WhatsApp ou outra aba que esteja usando o microfone e clique em Liberar microfone.", podeTentar: true };
-    return { titulo: "O microfone não ligou", dica: (e?.message || n || "Erro desconhecido") + ". Tente Liberar microfone ou escolha outro em Ajustes de áudio.", podeTentar: true };
+      return { tipo: "ocupado", titulo: "O microfone está sendo usado por outro programa", dica: "Feche Meet, Zoom, Teams, WhatsApp ou outra aba que esteja usando o microfone e clique em Liberar microfone.", podeTentar: true };
+    return { tipo: "falhou", titulo: "O microfone não ligou", dica: (e?.message || n || "Erro desconhecido") + ". Tente Liberar microfone ou escolha outro em Ajustes de áudio.", podeTentar: true };
   }
 }
 // Botão "Liberar microfone": pede o acesso de novo (abre o aviso do navegador)
@@ -5487,6 +5691,7 @@ async function trocarTelaEscritorio() {
   const self = escritorio.chamada?.self;
   if (!self) return;
   try {
+    escritorio.telaParadaAqui = Date.now();
     await self.disableScreenShare();
     await self.enableScreenShare();
     await aplicarQualidadeTelaEscritorio();
@@ -5497,7 +5702,8 @@ async function trocarTelaEscritorio() {
 }
 async function sairChamadaEscritorio({ manual = false } = {}) {
   // Trocas internas podem reconectar; uma saída manual espera a pessoa entrar novamente.
-  if (manual) escritorio.vozPausada = true;
+  if (manual) { escritorio.vozPausada = true; escritorio.vozCaiu = false; escritorio.falhaConversa = ""; }
+  escritorio.telaLigada = false;
   escritorio.geracaoVoz = (escritorio.geracaoVoz || 0) + 1;
   clearTimeout(escritorio.timerConversa); clearTimeout(escritorio.timerVoz);
   const m = escritorio.chamada;
@@ -5978,7 +6184,8 @@ function escritorioVoltarSeQueria() {
 }
 if (typeof document !== "undefined" && document.addEventListener && typeof setInterval === "function") {
   document.addEventListener("visibilitychange", escritorioVoltarSeQueria);
-  if (typeof window !== "undefined") window.addEventListener?.("online", escritorioVoltarSeQueria);
+  document.addEventListener("visibilitychange", escritorioAoVoltar);
+  if (typeof window !== "undefined") { window.addEventListener?.("online", escritorioVoltarSeQueria); window.addEventListener?.("online", escritorioAoVoltar); }
   setInterval(escritorioVoltarSeQueria, 60000);
 }
 

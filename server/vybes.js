@@ -13,7 +13,7 @@ import { validarAgentes } from '../mundo/atividade-agentes.mjs';
 import { createHmac } from 'node:crypto';
 import { prepararAcao, confirmarAcao } from './assistente-acoes.js';
 import { lerWhatsappDaCentral } from './vybes-whatsapp.js';
-import { ETAPAS_LEITURA, ETAPAS_DE_DONO, lerEtapa, mudarNaCentral } from './vybes-agentes.js';
+import { ETAPAS_LEITURA, ETAPAS_DE_DONO, lerEtapa, lerPerfisAgentes, mudarNaCentral } from './vybes-agentes.js';
 import { ehDonoPessoa, ehAmploPessoa, mondayDaPessoa } from './donos.js';
 
 const TUNEL = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
@@ -250,6 +250,11 @@ export async function areaVybes(req, res, quem, sql) {
     if (req.method === 'GET' && ETAPAS_LEITURA.includes(req.query?.etapa)) {
       const { url } = await entradaVybes(sql, quem);
       return res.status(200).json(await lerEtapa(req.query.etapa, url, req.query));
+    }
+    // Vários perfis numa chamada (etapa=perfis&setores=a,b): a mesma permissão e a mesma leitura do perfil de um.
+    if (req.method === 'GET' && req.query?.etapa === 'perfis') {
+      const { url } = await entradaVybes(sql, quem);
+      return res.status(200).json(await lerPerfisAgentes(url, req.query.setores));
     }
     if (req.method === 'GET') return res.status(200).json({ ok: true, ...(await estadoVybes(sql, quem)) });
     if (req.method === 'POST' && req.body?.etapa === 'entrar') return res.status(200).json({ ok: true, ...(await entradaVybes(sql, quem)) });

@@ -57,7 +57,8 @@
     });
     // A busca refaz só o cartão da lista: o campo fica onde está e o cursor não pula.
     janela.addEventListener('input', (ev) => { if (ev.target.matches?.('[data-plj-busca]')) { estado.busca = ev.target.value; pintarLista(); } });
-    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && janela && !janela.hidden && !document.getElementById('workflow-modal')?.classList.contains('open')) fechar(); });
+    // O planejamento aberto por cima (#workflow-modal, que não ganha a classe "open") fecha primeiro com o próprio Esc.
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !ev.defaultPrevented && janela && !janela.hidden && !document.querySelector('#workflow-modal, #cli-pergunta, #vb-apagar')) fechar(); });
   }
 
   // Ordem: o que pede ação primeiro (ajustes do cliente, depois para revisar), com planejamento antes de sem.
@@ -111,7 +112,9 @@
       <div class="p2-lin d3pl-lin">${meio}<span class="d3pl-bts"><button type="button" class="p2-btn s" data-plj-abrir="${esc(pl.id)}" data-plj-aba="historico">Histórico</button>${edita ? `<button type="button" class="p2-btn s k" data-plj-abrir="${esc(pl.id)}" data-plj-aba="editar">Editar e revisar</button>` : ''}</span></div>
       <div class="v2-mais"><div><div class="p2-det">${etapasHtml(pl)}<span class="p2-vao"></span><button type="button" class="p2-btn s" data-plj-abrir="${esc(pl.id)}">Abrir como documento</button></div></div></div></div>`;
   }
-  const comecar = (p) => `<button type="button" class="p2-btn s" data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}">Começar planejamento</button>`;
+  // Todo botão que começa um planejamento diz o verbo e o cliente no nome acessível.
+  const rotuloNovo = (p) => `aria-label="Começar o planejamento de ${esc(p.cliente)}"`;
+  const comecar = (p) => `<button type="button" class="p2-btn s" data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}" ${rotuloNovo(p)}>Começar planejamento</button>`;
   const linhaSem = (p, mes) => `<div class="p2-lin d3pl-lin">${cliente(p)}<span class="p2-c2">${esc(mesTxt(mes))}</span><span class="p2-c3">${pilula('Sem planejamento', 'n')}</span><p class="d3pl-pecas"><span class="d3pl-n">não publicado</span></p><span class="p2-c5 d3pl-ok"></span><span class="d3pl-bts">${comecar(p)}</span></div>`;
   // Todos os clientes sem planejamento numa linha só; "Criar" abre ali mesmo a lista, um "Começar planejamento" por cliente.
   function linhaSemResumo(sem, mes) {
@@ -162,7 +165,7 @@
     const ficha = (id, t) => `<button type="button" class="p2-chip" data-plj-filtro="${id}" aria-pressed="${estado.filtro === id}">${t} <b>${contar[id]}</b></button>`;
     const prim = todos.find(pedeAcao), semLista = todos.filter((p) => !p.planejamento);
     const novo = `<details class="p2-menu"><summary class="p2-btn d3pl-novo">+ Novo planejamento</summary><div class="p2-menu-pop" role="menu" aria-label="Para qual cliente">
-        ${[...semLista, ...todos.filter((p) => p.planejamento)].map((p) => `<button type="button" role="menuitem" data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}">${esc(p.cliente)}${p.planejamento ? '' : '<small>sem planejamento</small>'}</button>`).join('') || '<p class="p2-sub">Nenhum cliente carregado.</p>'}</div></details>`;
+        ${[...semLista, ...todos.filter((p) => p.planejamento)].map((p) => `<button type="button" role="menuitem" data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}" ${rotuloNovo(p)}>${esc(p.cliente)}${p.planejamento ? '' : '<small>sem planejamento</small>'}</button>`).join('') || '<p class="p2-sub">Nenhum cliente carregado.</p>'}</div></details>`;
     const seg = meses.length ? `<span class="p2-seg" role="group" aria-label="Mês">${meses.map((m) => `<button type="button" data-plj-mes="${m}" aria-pressed="${m === mes}">${maiuscula(mesNome(m))}</button>`).join('')}</span>` : '';
     const pronto = !estado.carregando && !estado.erro && todos.length;
     // Direção 3: a frase do Augusto vira o bloco de ação laranja, com o botão que abre o primeiro que pede ação.
@@ -172,7 +175,7 @@
     const semUm = !prim && contar.sem === 1 ? todos.find((p) => !p.planejamento) : null;
     const fala = !pronto || typeof window.d3AcaoHtml !== 'function' ? '' : window.d3AcaoHtml({ agente: 'A', frase: `${quem}<span>${frase}</span>`,
       botao: prim ? `Abrir o ${prim.cliente}` : semUm ? 'Começar' : contar.sem ? `Criar os ${contar.sem}` : '',
-      attrs: prim ? `data-plj-abrir="${esc(prim.planejamento.id)}"` : semUm ? `data-plj-novo="${esc(semUm.cliente_id)}" data-plj-nome="${esc(semUm.cliente)}"` : 'data-plj-criar' });
+      attrs: prim ? `data-plj-abrir="${esc(prim.planejamento.id)}"` : semUm ? `data-plj-novo="${esc(semUm.cliente_id)}" data-plj-nome="${esc(semUm.cliente)}" ${rotuloNovo(semUm)}` : 'data-plj-criar' });
     const ajustes = todos.filter((p) => p.planejamento?.estado === 'ajustes').length, revisar = contar.acao - ajustes;
     const num = (o, pe = '') => (typeof window.d3NumHtml === 'function' ? window.d3NumHtml(o).replace(/<\/(div|button)>$/, `${pe ? `<span class="d3pl-pe">${pe}</span>` : ''}</$1>`) : '');
     const aprovar = todos.filter((p) => (p.alertas?.aprovar || []).length), nAprovar = aprovar.reduce((s, p) => s + p.alertas.aprovar.length, 0);
@@ -212,7 +215,19 @@
   function fechar() { if (janela) janela.hidden = true; document.body.classList.remove('mundo-plj'); }
   // Fechar a janela do planejamento devolve a lista atualizada (estado e placar mudam ao aprovar/enviar).
   const fecharModal = window.pljFecharModal;
-  if (typeof fecharModal === 'function') window.pljFecharModal = async function (...a) { const r = await fecharModal.apply(this, a); if (janela && !janela.hidden) carregar(); return r; };
+  // A lista repintada devolve o foco ao mesmo botão que abriu o planejamento (o antigo saiu da tela com a repintura).
+  if (typeof fecharModal === 'function') window.pljFecharModal = async function (...a) {
+    const m = document.getElementById('workflow-modal'), id = m?.dataset.pljId, origem = m?.returnFocus;
+    const r = await fecharModal.apply(this, a);
+    if (!janela || janela.hidden || document.getElementById('workflow-modal')) return r;
+    await carregar();
+    const ativo = document.activeElement;
+    if (id && (!ativo || ativo === document.body || !ativo.isConnected)) {
+      const botoes = [...janela.querySelectorAll('[data-plj-abrir]')].filter((b) => b.dataset.pljAbrir === id && b.getClientRects().length);
+      (botoes.find((b) => b.className === origem?.className && b.dataset.pljAba === origem?.dataset?.pljAba) || botoes[0])?.focus({ preventScroll: true });
+    }
+    return r;
+  };
 
   // "Ir ao Centro de Operação" (aviso de planejamentos) levava à sala do Habbo: no Irecity abre este módulo.
   const irSala = window.irParaSalaEscritorio;

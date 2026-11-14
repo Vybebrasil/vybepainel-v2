@@ -323,9 +323,10 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
         r.el.classList.toggle('colide', r.oculto);
         // O número e, por extenso, o que ele quer dizer (quadro 32: o pino não fica com um "+2" solto).
         const mais = r.junto ? '+' + r.junto : undefined;
-        if (mais !== r.el.dataset.mais) mudouMais = true; // a linha muda a altura do pino: confere as colisões de novo
-        if (r.junto) { r.el.dataset.mais = mais; r.el.dataset.maisTexto = `+${r.junto} ${r.junto === 1 ? 'cliente' : 'clientes'} aqui perto`; }
-        else { delete r.el.dataset.mais; delete r.el.dataset.maisTexto; }
+        const mudou = mais !== r.el.dataset.mais; // só grava quando o número muda: o mesmo valor ainda gera mutação no DOM
+        if (mudou) mudouMais = true; // a linha muda a altura do pino: confere as colisões de novo
+        if (r.junto) { if (mudou) { r.el.dataset.mais = mais; r.el.dataset.maisTexto = `+${r.junto} ${r.junto === 1 ? 'cliente' : 'clientes'} aqui perto`; } }
+        else if (mudou) { delete r.el.dataset.mais; delete r.el.dataset.maisTexto; }
       }
       // Até 3 conferências seguidas (sem ficar trocando para sempre): o motor só desenha quando algo muda.
       if (mudouMais && !refeitas) { recolidir = 3; refeitas = true; invalidar(); } else if (!mudouMais) refeitas = false;

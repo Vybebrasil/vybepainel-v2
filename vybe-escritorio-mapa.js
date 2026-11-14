@@ -27,12 +27,45 @@ function mapaArquivo(nome) {
   const versao = typeof ESCRITORIO_ARTE_VERSAO !== "undefined" && ESCRITORIO_ARTE_VERSAO;
   return MAPA_BASE + encodeURIComponent(nome) + (versao ? "&v=" + versao : "");
 }
+// Os .json dos móveis pedidos juntos vão numa chamada só (acao=artes&classes=);
+// o que o servidor não devolver, ou um servidor sem essa leitura, sai um a um.
+const MAPA_LOTE = { fila: new Map(), timer: null, semLote: false };
+async function mapaDadosUmMovel(classe) {
+  const r = await fetch(mapaArquivo(classe + ".json"), { credentials: "same-origin" });
+  if (!r.ok) throw new Error("Móvel indisponível: " + classe);
+  return r.json();
+}
+function mapaDadosDoMovel(classe) {
+  if (MAPA_LOTE.semLote || typeof fetch !== "function") return mapaDadosUmMovel(classe);
+  return new Promise((ok, falha) => {
+    MAPA_LOTE.fila.set(classe, { ok, falha });
+    if (!MAPA_LOTE.timer) MAPA_LOTE.timer = setTimeout(mapaPedirLote, 0);
+  });
+}
+async function mapaPedirLote() {
+  const fila = MAPA_LOTE.fila;
+  MAPA_LOTE.fila = new Map(); MAPA_LOTE.timer = null;
+  const classes = [...fila.keys()];
+  const umAum = (lista) => { for (const c of lista) mapaDadosUmMovel(c).then(fila.get(c).ok, fila.get(c).falha); };
+  for (let k = 0; k < classes.length; k += 80) {
+    const parte = classes.slice(k, k + 80);
+    if (parte.length === 1 || MAPA_LOTE.semLote) { umAum(parte); continue; }
+    const versao = typeof ESCRITORIO_ARTE_VERSAO !== "undefined" && ESCRITORIO_ARTE_VERSAO;
+    let d = null;
+    try {
+      const r = await fetch("/api/painel?area=escritorio&acao=artes&classes=" + parte.map(encodeURIComponent).join(",") + (versao ? "&v=" + versao : ""), { credentials: "same-origin" });
+      d = r.ok ? await r.json().catch(() => null) : null;
+    } catch { d = null; }
+    if (!d || !d.artes || typeof d.artes !== "object") { MAPA_LOTE.semLote = true; umAum(parte); continue; }
+    const resto = [];
+    for (const c of parte) { if (d.artes[c] && typeof d.artes[c] === "object") fila.get(c).ok(d.artes[c]); else resto.push(c); }
+    umAum(resto);
+  }
+}
 function mapaCarregarMovel(classe) {
   if (!MAPA_MOVEIS.has(classe))
     MAPA_MOVEIS.set(classe, (async () => {
-      const r = await fetch(mapaArquivo(classe + ".json"), { credentials: "same-origin" });
-      if (!r.ok) throw new Error("Móvel indisponível: " + classe);
-      const dados = await r.json();
+      const dados = await mapaDadosDoMovel(classe);
       const imagem = new Image();
       // Pelo load da imagem: o decode() às vezes não termina (aba ao fundo,
       // tela redimensionada) e a peça ficava presa sem nunca aparecer.

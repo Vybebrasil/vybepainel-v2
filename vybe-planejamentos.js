@@ -107,15 +107,31 @@ i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,
 </style></head><body><main role="status" aria-label="Abrindo o documento"><i class="capa"></i><i class="t"></i><i class="l"></i><div class="n"><i></i><i></i><i></i><i></i></div><i class="t"></i><i class="c"></i><i class="c"></i></main></body></html>`;
 const pljMolduraHtml = () => `<iframe class="plj-previa" title="Documento do planejamento" sandbox="allow-scripts allow-forms allow-popups allow-modals" srcdoc="${pljEsc(PLJ_ESQUELETO)}"></iframe>`;
 async function abrirPlanejamento(id, aba = 'documento') {
+  const origem = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
   openWorkflowModal(aba === 'documento' ? pljMolduraHtml() : vbEstadoHtml({ tipo: 'carregando', titulo: 'Abrindo o planejamento' }));
-  document.getElementById('workflow-modal')?.classList.add('plj-janela');
-  document.getElementById('workflow-modal')?.classList.toggle('plj-modo-doc', aba === 'documento');
+  const janela = document.getElementById('workflow-modal');
+  if (janela) {
+    janela.classList.add('plj-janela');
+    janela.classList.toggle('plj-modo-doc', aba === 'documento');
+    // Janela de verdade: anuncia como diálogo, recebe o foco e devolve a quem abriu (closeWorkflowModal usa returnFocus).
+    janela.setAttribute('role', 'dialog');
+    janela.setAttribute('aria-modal', 'true');
+    janela.setAttribute('aria-label', 'Planejamento');
+    janela.tabIndex = -1;
+    janela.returnFocus = origem;
+    janela.dataset.pljId = String(id);
+    janela.focus({ preventScroll: true });
+  }
   try {
     const d = await pljPedir(`acao=detalhe&id=${encodeURIComponent(id)}`);
     PLJ_ABERTO = d.planejamento;
     PLJ_RASCUNHO = JSON.parse(JSON.stringify(PLJ_ABERTO.conteudo || {}));
     PLJ_SUJO = false;
     pintarPlanejamento(aba);
+    if (janela?.isConnected) {
+      janela.setAttribute('aria-label', `Planejamento de ${PLJ_ABERTO.cliente || ''}`.trim());
+      if (janela.contains(document.activeElement) || document.activeElement === document.body) janela.querySelector('.plj-flut-x, .workflow-close')?.focus({ preventScroll: true });
+    }
   } catch (e) {
     const m = document.getElementById('workflow-modal');
     if (m) m.innerHTML = `<div class="workflow-kicker"><span>Planejamento</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
@@ -161,7 +177,7 @@ function pintarPlanejamento(aba) {
     // e marcado na peça (redesign, 10/11/2026), não num balão por cima dele.
     m.innerHTML = `${pljMolduraHtml()}
     ${barra}
-    <div class="plj-flut plj-flut-base">${revisando ? '<small class="plj-flut-dica">Em cada peça: <b>Peça OK</b>, <b>Ajustar</b> ou <b>Editar peça</b>.</small>' : ''}${pljDemandasCriadasHtml(p)}<div class="workflow-actions plj-acoes">${pljAcoesHtml(aba)}</div></div>`;
+    <div class="plj-flut plj-flut-base">${revisando ? '<small class="plj-flut-dica">Em cada peça: <b>Peça OK</b>, <b>Ajustar</b> ou <b>Editar peça</b>.</small>' : ''}${pljDemandasCriadasHtml(p)}<div class="plj-acoes plj-acoes-flut">${pljAcoesHtml(aba)}</div></div>`;
     m.dataset.aba = aba;
     pljCarregarPrevia(p);
     return;
@@ -186,14 +202,48 @@ async function pljCarregarPrevia(p) {
     const r = await fetch(`/api/painel?area=planejamentos&acao=previa&id=${encodeURIComponent(p.id)}&v=${p.versao}`, { credentials: 'same-origin', cache: 'no-store' });
     const html = await r.text();
     if (!r.ok) throw new Error((() => { try { return JSON.parse(html).error; } catch { return ''; } })() || 'Não foi possível montar o documento.');
-    if (moldura.isConnected) moldura.srcdoc = html;
+    if (moldura.isConnected) moldura.srcdoc = pljPreparaDocumento(html);
   } catch (e) {
     if (moldura.isConnected) moldura.srcdoc = `<p style="font:14px system-ui;padding:24px;color:#444">${pljEsc(e.message)}</p>`;
   }
 }
+// Direção 3 no documento aberto no painel: a escolha "Como você quer revisar?" vem clara (areia, cartões brancos canto
+// 20, botão preto) e o Esc dado com o foco lá dentro fecha a janela. Só a cópia do painel muda; o link do cliente não.
+const PLJ_DOC_D3 = `<style id="plj-d3">
+body.no-painel{--d3-areia:#EAE6DE;--d3-trilho:#F3F1EC;--d3-cartao:#FFFFFF;--d3-linha:#F1EDE6;--d3-borda:#E6E0D6;--d3-tinta:#1F1D1A;--d3-texto2:#4A463F;--d3-apagado:#6B665E}
+body.no-painel .escolha{padding:100px 16px 104px;background:var(--d3-areia);backdrop-filter:none}
+@media(max-width:720px){body.no-painel .escolha{padding:224px 12px 160px}body.no-painel main{padding-top:224px;padding-bottom:160px}}
+body.no-painel .escolha-caixa{color:var(--d3-tinta)}
+body.no-painel .escolha-kicker{color:var(--d3-apagado);font:600 12px Manrope,sans-serif;letter-spacing:0;text-transform:none}
+body.no-painel .escolha h2{color:var(--d3-tinta)}
+body.no-painel .escolha-sub{color:var(--d3-texto2)}
+body.no-painel .escolha .op{border:1px solid var(--d3-borda);border-radius:20px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:0 1px 2px rgba(31,29,26,.05)}
+body.no-painel .escolha .op:hover,body.no-painel .escolha .op:focus-visible{transform:translateY(-2px);border-color:var(--d3-tinta);box-shadow:0 14px 28px -18px rgba(31,29,26,.45);outline:none}
+body.no-painel .escolha .op:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+body.no-painel .escolha .op > b{color:var(--d3-tinta)}
+body.no-painel .escolha .op > span:not(.op-previa){color:var(--d3-texto2)}
+body.no-painel .op-previa{background:var(--d3-trilho);border-bottom:1px solid var(--d3-linha)}
+body.no-painel .op-previa .ln{background:#1F1D1A1f}
+body.no-painel .pilha .c,body.no-painel .pagina{box-shadow:0 10px 24px -12px rgba(31,29,26,.4)}
+body.no-painel .pilha .c1 .img,body.no-painel .pagina .mini{background:linear-gradient(135deg,#C9C1B3,#E6E0D6)}
+body.no-painel .ficha-sis{background:var(--d3-cartao);border:1px solid var(--d3-borda);box-shadow:0 10px 24px -12px rgba(31,29,26,.4)}
+body.no-painel .ficha-sis .lin{background:#1F1D1A33}
+body.no-painel .ficha-sis .campo{background:var(--d3-trilho);border-color:var(--d3-borda)}
+body.no-painel .op-sistema:hover .ficha-sis .campo:nth-of-type(2){border-color:var(--d3-tinta);box-shadow:none}
+body.no-painel .op-ir{border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta)}
+body.no-painel .escolha .op:hover .op-ir,body.no-painel .escolha .op:focus-visible .op-ir{background:var(--d3-tinta);color:#FFFFFF}
+</style><script>document.addEventListener('keydown',function(e){if(e.key!=='Escape'||e.defaultPrevented||document.querySelector('dialog[open]'))return;var c=e.target&&e.target.closest&&e.target.closest('input,textarea,select,[contenteditable="true"]');if(c){c.blur();return;}parent.postMessage({vybe:'planejamento-esc'},'*');});<\/script>`;
+function pljPreparaDocumento(html) {
+  const s = String(html || '');
+  return /<\/head>/i.test(s) ? s.replace(/<\/head>/i, `${PLJ_DOC_D3}</head>`) : PLJ_DOC_D3 + s;
+}
 // A prévia (sem acesso ao painel) pede a revisão de cada peça por mensagem; quem grava é esta janela.
 window.addEventListener('message', async (e) => {
   const quadro = document.querySelector('#workflow-modal .plj-previa');
+  if (quadro && e.source === quadro.contentWindow && e.data?.vybe === 'planejamento-esc') {
+    if (!document.querySelector('#cli-pergunta, #vb-apagar')) pljFecharModal();
+    return;
+  }
   // "Editar no sistema" na escolha do head abre a edição completa (Paulo, 21/10/2026).
   if (quadro && e.source === quadro.contentWindow && e.data?.vybe === 'planejamento-head-editar' && PLJ_ABERTO) { pljTrocarAba('editar'); return; }
   if (quadro && e.source === quadro.contentWindow && e.data?.vybe === 'planejamento-head-salvar' && PLJ_ABERTO && PLJ_SUJO) {
@@ -282,8 +332,27 @@ async function pljFecharModal() {
   if (PLJ_SUJO && !await confirmarNoPainel('Sair sem salvar as alterações?')) return;
   PLJ_SUJO = false;
   PLJ_ULTIMO_EDITADO = null;
+  const id = document.getElementById('workflow-modal')?.dataset.pljId;
   closeWorkflowModal();
+  // A lista pode ter sido repintada enquanto a janela estava aberta: o foco volta ao botão do mesmo planejamento.
+  if (id && (!document.activeElement || document.activeElement === document.body)) {
+    const gatilho = [...document.querySelectorAll(`[data-plj-abrir="${CSS.escape(id)}"]`)].find((b) => b.getClientRects().length);
+    gatilho?.focus({ preventScroll: true });
+  }
 }
+// Esc fecha o planejamento aberto (com a pergunta de sempre se há alteração sem salvar). No campo, o primeiro Esc
+// só tira o foco dele; uma pergunta por cima recebe o Esc antes. Com o foco dentro do documento, o Esc chega pela
+// mensagem 'planejamento-esc' (pljPreparaDocumento).
+function pljEscFecha(e) {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  const m = document.getElementById('workflow-modal');
+  if (!m?.classList.contains('plj-janela') || document.querySelector('#cli-pergunta, #vb-apagar')) return;
+  e.preventDefault(); e.stopPropagation();
+  const campo = e.target?.closest?.('input, textarea, select, [contenteditable="true"]');
+  if (campo && m.contains(campo)) { campo.blur(); m.focus({ preventScroll: true }); return; }
+  pljFecharModal();
+}
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('keydown', pljEscFecha, true);
 async function pljTrocarAba(aba) {
   const atual = document.getElementById('workflow-modal')?.dataset.aba;
   if (PLJ_SUJO && aba !== atual && !(atual === 'documento' && aba === 'editar')) {

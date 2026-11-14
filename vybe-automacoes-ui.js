@@ -618,7 +618,11 @@ const ACOES_DISPONIVEIS = [
   { tipo: 'notificar',    rotulo: 'Avisar quem é responsável' },
 ];
 
+// Quem abriu o construtor recebe o foco de volta quando ele fecha (Esc, ×, Cancelar ou salvar).
+let ORIGEM_DO_CONSTRUTOR = null;
 function editarAutomacao(id) {
+  const ativo = document.activeElement;
+  if (!RASCUNHO || !ativo?.closest?.('.auto-construtor')) ORIGEM_DO_CONSTRUTOR = ativo && ativo !== document.body ? ativo : null;
   trocarAbaAutomacoes('regras'); // o construtor mora na aba Regras
   automacaoEmEdicao = id ? AUTOMACOES.find((a) => Number(a.id) === Number(id)) : null;
   const a = automacaoEmEdicao
@@ -633,12 +637,36 @@ function editarAutomacao(id) {
     acoes: JSON.parse(JSON.stringify(a.acoes || [])),
   };
   pintarConstrutor();
+  document.querySelector('#auto-editor .auto-construtor')?.focus({ preventScroll: true });
 }
 
-function fecharConstrutor() {
+function fecharConstrutor({ devolverFoco = true } = {}) {
+  const aberto = Boolean(document.querySelector('#auto-editor .auto-construtor'));
   RASCUNHO = null;
   const caixa = document.getElementById('auto-editor');
   if (caixa) caixa.innerHTML = '';
+  const origem = ORIGEM_DO_CONSTRUTOR;
+  ORIGEM_DO_CONSTRUTOR = null;
+  if (!aberto || !devolverFoco) return;
+  const volta = origem?.isConnected && origem.getClientRects().length ? origem : document.querySelector('#automacoes-root .auto-novo');
+  volta?.focus?.({ preventScroll: true });
+}
+// Esc fecha o construtor (no campo, o primeiro Esc só tira o foco dele); uma janela por cima recebe o Esc antes.
+// Trocar de tela pelo trilho também fecha: o rascunho não fica escondido esperando a volta.
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !RASCUNHO) return;
+    const construtor = document.querySelector('#auto-editor .auto-construtor');
+    if (!construtor?.getClientRects().length || document.querySelector('#cli-pergunta, #vb-apagar, #workflow-modal, dialog[open]')) return;
+    e.preventDefault(); e.stopPropagation();
+    const campo = e.target?.closest?.('input, textarea, select');
+    if (campo && construtor.contains(campo)) { campo.blur(); construtor.focus({ preventScroll: true }); return; }
+    fecharConstrutor();
+  }, true);
+  document.addEventListener('click', (e) => {
+    const item = e.target?.closest?.('.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor]');
+    if (item && RASCUNHO && item.dataset.submodulo !== 'automacoes') fecharConstrutor({ devolverFoco: false });
+  }, true);
 }
 
 // Toda mudança no rascunho passa por aqui: guarda e redesenha, para a frase
@@ -715,14 +743,14 @@ function problemaDoRascunho() {
   const g = RASCUNHO.gatilho || {};
   if (g.tipo !== 'data' && !g.para) return 'Falta escolher o que precisa acontecer para a regra disparar.';
   if (g.tipo !== 'data' && g.de && String(g.de) === String(g.para)) {
-    return 'O “vindo de” e o “virar” estão no mesmo valor — assim nada muda e a regra nunca dispara.';
+    return 'O “vindo de” e o “virar” estão no mesmo valor: assim nada muda e a regra nunca dispara.';
   }
   if (!(RASCUNHO.acoes || []).length) return 'Uma regra sem ação não faz nada. Escolha pelo menos uma.';
   const vazia = (RASCUNHO.acoes || []).find((a) => (
     (a.tipo === 'responsaveis' && !(a.pessoas || []).length)
     || (['grupo', 'status', 'captacao'].includes(a.tipo) && !a.para)));
-  if (vazia) return 'Uma das ações está sem escolha — complete ou tire ela.';
-  if (!String(RASCUNHO.nome || '').trim()) return 'Falta dar um nome à regra — é ele que aparece quando ela dispara.';
+  if (vazia) return 'Uma das ações está sem escolha. Complete ou tire ela.';
+  if (!String(RASCUNHO.nome || '').trim()) return 'Falta dar um nome à regra: é ele que aparece quando ela dispara.';
   return '';
 }
 
@@ -790,7 +818,7 @@ function pintarConstrutor() {
         <div class="auto-fichas">${fichasDeEscolha(lista, g.para, `mexerNoRascunho('gatilho.para','{chave}')`)}</div>
       </div>
       <div class="auto-campo">
-        <span class="auto-campo-rotulo">Vindo de qual? <small>opcional — deixe em branco para valer de qualquer um</small></span>
+        <span class="auto-campo-rotulo">Vindo de qual? <small>opcional, em branco vale qualquer um</small></span>
         <div class="auto-fichas">
           <button type="button" class="auto-ficha ${!g.de ? 'marcada' : ''}"
             onclick="mexerNoRascunho('gatilho.de','')" aria-pressed="${!g.de}">qualquer um</button>
@@ -825,7 +853,7 @@ function pintarConstrutor() {
   const problema = problemaDoRascunho();
 
   caixa.innerHTML = `
-    <section class="auto-construtor" role="dialog" aria-label="${r.id ? 'Editar regra' : 'Nova regra'}">
+    <section class="auto-construtor" role="dialog" tabindex="-1" aria-label="${r.id ? 'Editar regra' : 'Nova regra'}">
       <header class="auto-construtor-topo">
         <div>
           <span class="auto-kicker">${r.id ? 'Editando' : 'Montando'}</span>
@@ -835,7 +863,7 @@ function pintarConstrutor() {
       </header>
 
       <div class="auto-bloco">
-        <span class="auto-bloco-numero">1</span>
+        <span class="auto-bloco-numero"><i>1</i></span>
         <div class="auto-bloco-corpo">
           <h4>Quando isto acontecer</h4>
           <div class="auto-abas">${abas}</div>
@@ -844,7 +872,7 @@ function pintarConstrutor() {
       </div>
 
       <div class="auto-bloco">
-        <span class="auto-bloco-numero">2</span>
+        <span class="auto-bloco-numero"><i>2</i></span>
         <div class="auto-bloco-corpo">
           <h4>Só se… <small>opcional</small></h4>
           <div class="auto-campo">
@@ -859,17 +887,17 @@ function pintarConstrutor() {
       </div>
 
       <div class="auto-bloco">
-        <span class="auto-bloco-numero">3</span>
+        <span class="auto-bloco-numero"><i>3</i></span>
         <div class="auto-bloco-corpo">
           <h4>Faça isto</h4>
-          ${acoes || '<p class="auto-dica">Nenhuma ação ainda — escolha a primeira abaixo.</p>'}
+          ${acoes || '<p class="auto-dica">Nenhuma ação ainda. Escolha a primeira abaixo.</p>'}
           <div class="auto-fichas auto-add">${ACOES_DISPONIVEIS.map((m, i) =>
             `<button type="button" class="auto-ficha somar" onclick="adicionarAcao(${i})">+ ${safeText(m.rotulo)}</button>`).join('')}</div>
         </div>
       </div>
 
       <div class="auto-bloco">
-        <span class="auto-bloco-numero">4</span>
+        <span class="auto-bloco-numero"><i>4</i></span>
         <div class="auto-bloco-corpo">
           <h4>Como ela vai se chamar</h4>
           <input type="text" class="auto-texto" id="auto-f-nome" value="${safeText(r.nome)}"
@@ -886,17 +914,18 @@ function pintarConstrutor() {
         </div>
       </div>
 
-      <div class="auto-frase-final ${frase ? '' : 'incompleta'}">
-        <span>A regra vai ficar assim</span>
-        <b>${frase ? safeText(frase) : 'Escolha o gatilho e pelo menos uma ação para ver a frase.'}</b>
-        ${problema ? `<em class="auto-problema">${safeText(problema)}</em>` : ''}
-      </div>
-
-      <div class="auto-construtor-botoes">
-        <button type="button" class="auto-cancelar" onclick="fecharConstrutor()">Cancelar</button>
-        <button type="button" class="auto-salvar" onclick="salvarAutomacao()" ${problema ? 'disabled' : ''}>
-          ${r.id ? 'Salvar alterações' : 'Criar regra'}</button>
-      </div>
+      <aside class="auto-lado" aria-label="Prévia da regra">
+        <div class="auto-previa ${frase ? '' : 'incompleta'}" aria-live="polite">
+          <span>A regra vai ficar assim</span>
+          <b>${frase ? safeText(frase) : 'Escolha o gatilho e pelo menos uma ação para ver a frase.'}</b>
+          ${problema ? `<em class="auto-problema">${safeText(problema)}</em>` : ''}
+        </div>
+        <div class="auto-c-botoes">
+          <button type="button" class="v2g-btn" onclick="fecharConstrutor()">Cancelar</button>
+          <button type="button" class="v2g-btn k auto-criar" onclick="salvarAutomacao()" ${problema ? `disabled title="${safeText(problema)}"` : ''}>
+            ${r.id ? 'Salvar alterações' : 'Criar regra'}</button>
+        </div>
+      </aside>
     </section>`;
   caixa.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
