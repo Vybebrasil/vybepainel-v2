@@ -9,7 +9,10 @@ const ler = (f) => readFileSync(f, 'utf8');
 const fonte = ler('vybe-relatorios.js');
 const trecho = (de, ate) => { const a = fonte.indexOf(de), b = fonte.indexOf(ate, a); assert.ok(a >= 0 && b > a, `trecho ${de}`); return fonte.slice(a, b); };
 
-const dia = (d, h) => { const x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + d); x.setHours(h); return x; };
+// O relógio fica parado numa sexta (13/11/2026, 15h): a conta "da semana" depende do dia, e o teste não pode virar no sábado.
+const AGORA = new Date(2026, 10, 13, 15, 0, 0).getTime();
+class Relogio extends Date { constructor(...a) { super(...(a.length ? a : [AGORA])); } static now() { return AGORA; } }
+const dia = (d, h) => { const x = new Relogio(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + d); x.setHours(h); return x; };
 const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
 const ontem = iso(dia(-1, 12)), antes = iso(dia(-5, 12));
 const peca = (id, status, ref = ontem, cliente = 'Cliente A') => ({ id, status, veiculacao_iso: ref, prazo_iso: ref, clientes: [cliente], cliente });
@@ -26,7 +29,7 @@ function montar({ lista = registros(), post } = {}) {
   const els = {}, el = (id) => (els[id] ||= { id, innerHTML: '', style: {}, classList: { add() {}, remove() {} }, setAttribute() {}, querySelector: () => null, querySelectorAll: () => [] });
   const botao = { dataset: {}, innerHTML: 'Registrar agora', classList: { add() {}, remove() {} } };
   const pedidos = [];
-  const ctx = { console, Date, Math, JSON, Number, String, Array, Set, Map, Object, Promise, Error, Boolean, encodeURIComponent, setTimeout: () => 0,
+  const ctx = { console, Date: Relogio, Math, JSON, Number, String, Array, Set, Map, Object, Promise, Error, Boolean, encodeURIComponent, setTimeout: () => 0,
     localStorage: { getItem: () => null }, showToast() {}, STATUS_OPTIONS: [{ label: 'A Fazer' }, { label: 'Pode Fazer' }, { label: 'Em Andamento' }, { label: 'Alteração' }],
     document: { getElementById: el, querySelector: (s) => (s.includes('salvarSnapshot') ? botao : null), querySelectorAll: () => [] },
     fetch: async (url, op = {}) => {
