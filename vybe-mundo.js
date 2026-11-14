@@ -3029,6 +3029,58 @@
         <button type="button" class="v2n-btn p" data-quarto-acao="salvar"${podeSalvar ? '' : ' disabled'} title="${decorando ? (ed.salvando ? 'Salvando…' : ed.mudou ? 'Salvar a decoração' : 'Nada para salvar') : 'Entre em Decorar para mudar a sala'}">${ed.salvando ? 'Salvando…' : 'Salvar a sala'}</button>` : ''}</span>` : ''}`;
     if (cab.vvHtml !== html) { cab.innerHTML = html; cab.vvHtml = html; }
   }
+  // ===== Minha sala pelo quadro D3-MinhaSala, por cima do quarto 3D (Paulo, 14/11/2026: o 3D fica) =====
+  // Uma coluna de cartões brancos à direita do quarto: os números (feitas hoje, XP, VybeCoins e troféus), "Agora" com a
+  // primeira peça da fila e o humor (o status do Escritório), "Seu dia" com as peças de hoje e as conquistas mais perto do
+  // próximo troféu. O Hoje estreito continua à esquerda. No celular vira uma folha de baixo recolhida.
+  let salaFolhaAberta = false;
+  function pintarSalaD3(andar, zona) {
+    if (!andar?.isConnected || zona !== minhaSalaDaConta()) { andar?.querySelector?.('#d3-sala')?.remove(); return; }
+    if (pintarSalaD3.em && Date.now() - pintarSalaD3.em < 2500 && andar.querySelector('#d3-sala')) return;
+    pintarSalaD3.em = Date.now();
+    let el = andar.querySelector('#d3-sala');
+    if (!el) {
+      el = document.createElement('aside'); el.id = 'd3-sala'; el.setAttribute('aria-label', 'Minha sala: o dia, o humor e as conquistas'); andar.append(el);
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return;
+        if (b.dataset.d3Humor) { fn('escritorioTrocarStatus')?.(b.dataset.d3Humor); pintarSalaD3.em = 0; setTimeout(() => pintarSalaD3(andar, zona), 150); return; }
+        if (b.hasAttribute('data-d3-folha')) { salaFolhaAberta = !salaFolhaAberta; pintarSalaD3.em = 0; pintarSalaD3(andar, zona); return; }
+        if (b.dataset.hojeAcao) acaoDoHoje(b.dataset.hojeAcao, b.dataset.valor);
+        else if (b.dataset.trilho) usarTrilho(b.dataset.trilho);
+      });
+    }
+    const e = typeof escritorio !== 'undefined' ? escritorio : null, eco = e?.base?.economia || null, pts = eco?.pontos || null, marcos = Array.isArray(eco?.marcos) ? eco.marcos : [];
+    const fila = minhaFila(), hoje = hojeIso();
+    const dataDe = (x) => veicDe(x) || x.ref || '';
+    const abertas = fila ? fila.itens.filter((x) => x.sit !== 'concluida') : [];
+    const deHoje = fila ? fila.itens.filter((x) => dataDe(x) === hoje || (x.sit === 'atrasada' && !prazoDesatualizado(x, hoje))) : [];
+    const feitasHoje = deHoje.filter((x) => x.sit === 'concluida').length;
+    const degraus = marcos.flatMap((m) => m.degraus || []), trofeus = degraus.filter((d) => d.ok).length;
+    const num = (rot, v, de, sub, barra = null) => `<div class="d3-num d3s-num"><span class="d3-num-rot">${rot}</span><b class="d3-num-v">${v}${de ? `<small> / ${de}</small>` : ''}</b>${barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ''}${sub ? `<small class="d3s-sub">${sub}</small>` : ''}</div>`;
+    const nums = `<div class="d3s-nums">${num('Feitas hoje', fila ? n0(feitasHoje) : '–', fila ? n0(deHoje.length) : '', fila ? '' : 'escolha o dia no Hoje', fila && deHoje.length ? feitasHoje / deHoje.length * 100 : null)}
+      ${num('XP', pts ? n0(pts.xp || 0) : '–', pts?.xpProximo ? n0(pts.xpProximo) : '', pts?.nivel != null ? `nível ${n0(pts.nivel)}` : 'entre no Escritório', pts?.xpProximo ? (pts.xp || 0) / pts.xpProximo * 100 : null)}
+      ${num('VybeCoins', eco?.saldo != null ? n0(eco.saldo) : '–', '', '')}
+      ${num('Troféus', degraus.length ? n0(trofeus) : '–', degraus.length ? n0(degraus.length) : '', '', degraus.length ? trofeus / degraus.length * 100 : null)}</div>`;
+    const { ordem } = passosDoGuia(abertas, hoje, false), x0 = ordem[0];
+    const cli = (x) => (typeof clientesDoItem === 'function' ? clientesDoItem(x.d)[0] : x.d.cliente) || '';
+    const status = e?.conectado ? e.status || 'disponivel' : 'ausente';
+    const HUMOR = [['disponivel', 'Livre'], ['foco', 'Focado'], ['reuniao', 'Reunião'], ['ausente', 'Fora']];
+    const agora = `<section class="d3s-cartao d3s-agora" aria-label="Agora"><div class="d3s-cab"><h3>Agora</h3>${x0 ? `<small>${esc(motivoNoGuia(x0, hoje))}</small>` : ''}</div>
+      ${x0 ? `<button type="button" class="d3s-peca" data-hoje-acao="peca" data-valor="${esc(x0.d.id)}"><span><b>${esc(semGrito(String(x0.d.nome || 'Peça')))}</b>${cli(x0) ? `<span>${cliCor(cli(x0))}</span>` : ''}</span>${x0.d.status ? statusCor(x0.d) : ''}</button>` : `<p class="d3s-vazio">${fila ? 'Fila limpa' : 'Escolha de quem é o dia no Hoje'}</p>`}
+      <p class="d3s-rot">Humor</p><div class="d3s-humor" role="group" aria-label="Humor">${HUMOR.map(([k, r]) => `<button type="button" data-d3-humor="${k}" aria-pressed="${status === k}"${e?.conectado ? '' : ' disabled title="Entre no Escritório para mudar o humor"'}><i class="${k}"></i>${r}</button>`).join('')}</div></section>`;
+    const dia = deHoje.slice().sort((a, b) => (a.sit === 'concluida') - (b.sit === 'concluida'));
+    const seuDia = `<section class="d3s-cartao d3s-dia" aria-label="Seu dia"><div class="d3s-cab"><h3>Seu dia</h3><small>${fila ? `${n0(feitasHoje)} de ${n0(deHoje.length)}` : ''}</small></div>
+      ${dia.slice(0, 3).map((x) => `<button type="button" class="d3s-lin${x.sit === 'concluida' ? ' feita' : ''}" data-hoje-acao="peca" data-valor="${esc(x.d.id)}"><i aria-hidden="true"></i><span class="v2-risca${x.sit === 'concluida' ? ' feita' : ''}">${esc(semGrito(String(x.d.nome || 'Peça')))}</span>${cli(x) ? cliCor(cli(x)) : ''}</button>`).join('') || '<p class="d3s-vazio">Nada para hoje</p>'}
+      ${dia.length > 3 ? `<button type="button" class="d3s-mais" data-trilho="tarefas">+ ${n0(dia.length - 3)}</button>` : ''}</section>`;
+    const perto = marcos.filter((m) => m.proximo).sort((a, b) => b.valor / b.proximo.meta - a.valor / a.proximo.meta).slice(0, 2);
+    const conq = `<section class="d3s-cartao d3s-conq" aria-label="Conquistas"><div class="d3s-cab"><h3>Conquistas</h3><small>${degraus.length ? n0(trofeus) : ''}</small></div>
+      ${perto.map((m) => `<div class="d3s-marco"><p><b>${esc(m.nome)}</b><small>${n0(m.valor)} / ${n0(m.proximo.meta)}</small></p><span class="d3-barra" style="--v:${Math.round(Math.min(1, m.valor / Math.max(1, m.proximo.meta)) * 100)}%"><i></i></span></div>`).join('') || `<p class="d3s-vazio">${eco ? 'Nenhuma perto do próximo troféu' : 'Entre no Escritório para ver'}</p>`}
+      <button type="button" class="d3s-mais" data-trilho="conquistas">ver todas</button></section>`;
+    const alca = `<button type="button" class="d3c-alca" data-d3-folha aria-expanded="${salaFolhaAberta}"><i aria-hidden="true"></i><b>Seu dia</b><span>${x0 ? esc(semGrito(String(x0.d.nome || ''))) : fila ? 'fila limpa' : ''}</span></button>`;
+    el.classList.toggle('aberta', salaFolhaAberta);
+    const html = `${alca}${nums}${agora}${seuDia}${conq}`;
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
+  }
   async function abrirMinhaSala(zona = minhaSalaDaConta()) {
     if (andarAberto && zona && andarAbertoId === 'quarto:' + zona) return; // já está nela
     fecharAndarVoxel(false);
@@ -3050,7 +3102,7 @@
       else if (b.dataset.quartoAcao === 'salvar') Promise.resolve(D?.salvar?.()).finally(() => pintarCabDaSala(el, zona, null));
       else if (b.dataset.quartoAcao === 'convidar') fn('convidarParaMinhaSalaEscritorio')?.();
     });
-    pintarCabDaSala(el, zona, null);
+    pintarCabDaSala(el, zona, null); pintarSalaD3(el, zona || minhaSalaDaConta());
     const estado = el.querySelector('.quarto-estado');
     const mostrarEstado = (tipo, texto) => {
       estado.hidden = !tipo;
@@ -3099,6 +3151,7 @@
       const minha = typeof escritorio !== 'undefined' && escritorio?.conectado ? escritorio.zona : '';
       andarAberto.pessoas(genteDoAndar(), minha);
       pintarCabDaSala(el, zona, quarto);
+      pintarSalaD3(el, zona);
       // A decoração mudou no Escritório (salvou pelo editor): o quarto acompanha.
       let itens = null; try { itens = fn('escritorioItensDaCamada')?.(zona) || []; } catch { /* segue com o que tem */ }
       const a = itens && JSON.stringify(itens); if (itens && a !== assinItens) { assinItens = a; quarto.itens = itens; andarAberto.itens(itens); }
@@ -4293,6 +4346,43 @@
     if (sel !== undefined) el.dataset.sel = sel;
     const predio = body.classList.contains('mundo-predio');
     el.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.vista === 'predio') === predio)));
+    pintarCentroD3(lista);
+  }
+  // ===== Centro pelos quadros D3-Centro e D3-Loja, por cima do mapa 3D (Paulo, 14/11/2026: "Minha sala continua o 3D e o
+  // Centro também; o moodboard só tava o 2D representando") =====
+  // Cartões brancos que não escondem o mapa além do necessário: os quatro números numa faixa baixa sob a faixa laranja,
+  // a lista de lojas por atraso à direita (o cartão da loja aberta ocupa o mesmo lugar) e os módulos embaixo à esquerda.
+  // No celular, tudo vai numa folha de baixo recolhida (só a alça à vista); aberta, a lista é curta e o mapa continua atrás.
+  let centroFolhaAberta = false;
+  function pintarCentroD3(lista = []) {
+    let el = hud.querySelector('#d3-centro');
+    if (!el) {
+      el = document.createElement('section'); el.id = 'd3-centro'; el.setAttribute('aria-label', 'Centro comercial: números, lojas e módulos'); hud.append(el);
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return;
+        if (b.dataset.d3Loja) { mostrarCliente(b.dataset.d3Loja); return; }
+        if (b.hasAttribute('data-d3-folha')) { centroFolhaAberta = !centroFolhaAberta; pintarCentroD3(naTela); }
+      });
+    }
+    const L = lista || [], n = { atraso: 0, atencao: 0, dia: 0 };
+    for (const c of L) n[grupoDaCidade(c)]++;
+    const soma = (k) => L.reduce((s, c) => s + (Number(c.por?.[k]) || 0), 0);
+    const atrasadas = soma('atrasada'), aprovar = soma('aprovar'), aberto = L.reduce((s, c) => s + (Number(c.total) || 0), 0);
+    const comAtraso = L.filter((c) => c.por?.atrasada > 0).length;
+    const num = (rot, v, de, sub, tom = '', barra = null) => `<div class="d3-num d3c-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rot}</span><b class="d3-num-v">${v}${de ? `<small> / ${de}</small>` : ''}</b>${barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ''}${sub ? `<small class="d3c-sub">${sub}</small>` : ''}</div>`;
+    const nums = `<div class="d3c-nums">${num('Lojas com atraso', n0(comAtraso), n0(L.length), `${n0(n.dia)} em dia · ${n0(n.atencao)} em atenção`, comAtraso ? 'r' : '')}${num('Peças atrasadas', n0(atrasadas), '', `em ${plural(comAtraso, 'loja', 'lojas')}`, atrasadas ? 'r' : '')}${num('Para aprovar', n0(aprovar), '', 'nas lojas')}${num('Em aberto', n0(aberto), '', `${plural(L.length, 'cliente', 'clientes')} ativos`)}</div>`;
+    const ord = L.slice().sort((a, b) => (b.por?.atrasada || 0) - (a.por?.atrasada || 0) || (b.total || 0) - (a.total || 0));
+    const max = Math.max(1, ...ord.map((c) => c.por?.atrasada || 0));
+    const MAX = Math.max(3, Math.min(14, Math.floor(((typeof innerHeight === 'number' ? innerHeight : 900) - 560) / 33))), linha = (c) => { const a = c.por?.atrasada || 0;
+      return `<button type="button" class="d3c-loja" data-d3-loja="${esc(c.nome)}" title="${esc(`${c.nome}: ${plural(a, 'atrasada', 'atrasadas')}, ${n0(c.total || 0)} em aberto`)}"><span class="d3c-loja-nome">${cliCor(c.nome)}</span><span class="d3-barra${a ? ' r' : ''}" style="--v:${Math.round(a / max * 100)}%"><i></i></span><b class="${a ? 'r' : ''}">${n0(a)}</b></button>`; };
+    const lojas = `<section class="d3c-cartao d3c-lojas" aria-label="Lojas por atraso"><div class="d3c-cab"><h3>Lojas</h3><small>por atraso</small></div>${ord.slice(0, MAX).map(linha).join('') || '<p class="d3c-vazio">As lojas aparecem quando a produção carregar</p>'}${ord.length > MAX ? `<p class="d3c-pe">+${n0(ord.length - MAX)}</p>` : ''}</section>`;
+    const online = presencaDoEscritorio().length;
+    const mod = (id, nome, sub = '', tom = '') => `<button type="button" class="d3c-mod" data-trilho="${id}"><b>${nome}</b>${sub ? `<small class="${tom}">${sub}</small>` : ''}</button>`;
+    const modulos = `<section class="d3c-cartao d3c-modulos" aria-label="Módulos"><div class="d3c-cab"><h3>Módulos</h3><small>8</small></div><div class="d3c-mods">${mod('centro', 'Centro comercial', comAtraso ? `${n0(comAtraso)} com atraso` : 'em dia', comAtraso ? 'r' : '')}${mod('predio', 'Prédio')}${mod('minha-sala', 'Minha sala')}${mod('equipe', 'Equipe online', `${n0(online)} agora`, online ? 'g' : '')}${mod('jogos', 'Jogos')}${mod('loja', 'Loja')}${mod('ranking', 'Ranking')}${mod('conquistas', 'Conquistas')}</div></section>`;
+    const alca = `<button type="button" class="d3c-alca" data-d3-folha aria-expanded="${centroFolhaAberta}"><i aria-hidden="true"></i><b>Lojas</b><span>${n0(comAtraso)} com atraso · ${n0(aberto)} em aberto</span></button>`;
+    const html = `${alca}${nums}${lojas}${modulos}`;
+    el.classList.toggle('aberta', centroFolhaAberta);
+    if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
   }
   function filtrarCidade(k) {
     filtroCidade = filtroCidade === k ? '' : k;

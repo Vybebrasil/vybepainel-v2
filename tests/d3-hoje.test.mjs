@@ -74,5 +74,16 @@ test('folha d3-hoje.css: tokens --d3-*, sem !important, sem html body.mundo, pre
   assert.match(css, /#vv-hoje\.d3h-tela\{background:var\(--d3-areia\)\}/);
   assert.match(css, /#vv-hoje \.d3h-cartao\{[^}]*border-radius:var\(--d3-r-cartao\);background:var\(--d3-cartao\)/);
   assert.match(css, /@container hoje \(max-width:760px\)/, 'uma coluna na Minha sala e no celular');
-  for (const linha of css.split('\n').filter((l) => /^[#.a-z:]/i.test(l) && l.includes('{'))) assert.ok(/^(#vv-hoje|#vv-placa|#vv-entrada|#ofc-ranking|#mundo-hud|body\.mundo|@)/.test(linha), linha.slice(0, 80));
+  for (const linha of css.split('\n').filter((l) => /^[#.a-z:]/i.test(l) && l.includes('{'))) assert.ok(/^(#vv-hoje|#vv-placa|#vv-entrada|#ofc-ranking|#d3-centro|#d3-sala|#mundo-hud|#mundo-andar|body\.mundo|@)/.test(linha), linha.slice(0, 80));
+});
+
+test('Centro e Minha sala por cima do 3D: números, lojas por atraso, módulos, Agora com humor, Seu dia e conquistas', () => {
+  const c = trecho('  function pintarCentroD3(', '  function filtrarCidade(');
+  for (const t of ["num('Lojas com atraso'", "num('Peças atrasadas'", "num('Para aprovar'", "num('Em aberto'", 'class="d3c-cartao d3c-lojas"', 'data-d3-loja=', 'cliCor(c.nome)', 'class="d3c-cartao d3c-modulos"', "mod('predio'", "mod('minha-sala'", 'data-d3-folha']) assert.ok(c.includes(t), t);
+  assert.ok(js.includes('pintarCentroD3(lista);'));
+  const s = trecho('  function pintarSalaD3(', '  async function abrirMinhaSala(');
+  for (const t of ["num('Feitas hoje'", "num('XP'", "num('VybeCoins'", "num('Troféus'", 'aria-label="Agora"', 'data-d3-humor=', "fn('escritorioTrocarStatus')", 'aria-label="Seu dia"', 'aria-label="Conquistas"', 'class="v2-risca']) assert.ok(s.includes(t), t);
+  assert.ok(js.includes('pintarSalaD3(el, zona);'), 'repinta com a presença da sala');
+  assert.ok(css.includes('#mundo-andar > #d3-sala{position:absolute'));
+  assert.ok(css.includes('  #mundo-andar > #d3-sala{top:auto'), 'no celular vira folha de baixo');
 });
