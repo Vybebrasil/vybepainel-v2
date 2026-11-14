@@ -14,6 +14,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { CAMPOS_CADASTRO, SECOES_CADASTRO, salvarCadastro, valorDoCampo, garantirSchemaDoCadastro } from './clientes-cadastro.js';
 import { ehDonoPessoa } from './donos.js';
 import { marcarNaEsteira, regrasDoQuestionario } from './onboarding-contexto.js';
+import { paginaD3Html } from './pagina-d3.js';
 
 export const TIPOS_REUNIAO = Object.freeze({ rotina: 'Rotina com o cliente', onboarding: 'Onboarding / kickoff', alinhamento: 'Alinhamento', comercial: 'Comercial', interna: 'Interna' });
 
@@ -278,7 +279,7 @@ export async function paginaDoOnboarding(req, res, db) {
   const cliente = await clienteDoToken(db, token);
   if (!cliente) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(404).send('<!doctype html><meta charset="utf-8"><title>Link expirado</title><p style="font:16px system-ui;padding:32px">Este link de onboarding não vale mais. Peça um novo para a Vybe.</p>');
+    return res.status(404).send(paginaD3Html({ titulo: 'Link expirado', rotulo: 'Onboarding', texto: 'Este link de onboarding não vale mais. Peça um novo para a Vybe.' }));
   }
   if (req.method === 'POST') {
     // ?junto=1: aberto pela Vybe para preencher com o cliente na reunião (fica registrado assim no cofre).

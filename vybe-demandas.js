@@ -742,6 +742,12 @@ function pillHtmlDemanda(s, color='', border='') {
     const c = typeof corDeStatus === 'function' ? corDeStatus(s) : null;
     if (c) { color = c.cor; border = border || c.borda; }
   }
+  // Direção 3 (no mundo): a mesma pílula da produção, clara com a bolinha na cor do catálogo; cheia só em Alteração,
+  // Atrasada e Finalizado (pv2Tom). A cor do quadro continua na bolinha, e o tema antigo segue com a pílula de antes.
+  if (typeof pv2Ligado === 'function' && pv2Ligado() && typeof pv2Tom === 'function') {
+    const cor = /^#[0-9a-f]{3,8}$/i.test(String(color || '')) ? color : '';
+    return `<span class="pill vv-st-ponto ${pv2Tom(s)}"${cor ? ` style="--st:${cor}"` : ''}><i aria-hidden="true"></i>${s}</span>`;
+  }
   return `<span class="pill pill-${statusClsDemanda(s)}"${statusInlineStyle(color, border)}><span class="pill-dot"${statusDotInlineStyle(color)}></span>${s}</span>`;
 }
 

@@ -481,3 +481,53 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 .gv2-check .subitem-corpo small{dis
 }
 /* Material bruto saiu do alto do Resumo (o quadro não tem) e fica discreto, embaixo da ficha. */
 body.mundo #workspace-drawer.gv2-gaveta .gv2-col > .material-bruto{padding:8px 12px;border-radius:12px}
+
+/* ===== 4. DIREÇÃO 3 NAS PARTES COMUNS DAS GAVETAS (rodada "legado fim", 14/11/2026) ===== */
+/* Área de arquivo: cartão #F9F8F5 com tracejado, título em tinta e a linha de formatos apagada (todas as gavetas). */
+body.mundo #workspace-drawer .workspace-dropzone{display:flex;align-items:center;justify-content:center;gap:10px;min-height:84px;box-sizing:border-box;padding:16px;border:1.5px dashed #C9C2B6;border-radius:16px;background:#F9F8F5;text-align:center;cursor:pointer;transition:border-color .2s,background-color .2s}
+body.mundo #workspace-drawer .workspace-dropzone:is(:hover,.dragover){border-color:var(--d3-tinta,#1F1D1A);background:var(--d3-cartao,#FFFFFF)}
+body.mundo #workspace-drawer .workspace-dropzone > svg{flex:none;color:var(--d3-texto2,#4A463F)}
+body.mundo #workspace-drawer .workspace-dropzone .gv2-solta-txt b{display:block;font:600 13.5px/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta,#1F1D1A)}
+body.mundo #workspace-drawer .workspace-dropzone .gv2-solta-txt span{display:block;margin-top:3px;font:400 12px/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado,#6B665E)}
+body.mundo #workspace-drawer .workspace-dropzone + .gv2-sub{margin-top:-6px}
+/* Histórico (workspaceTimelineEvent): bolinha tinta para gente e apagada para o sistema, o tipo em pílula clara, quem e
+   quando, e o texto em #4A463F. Fora as regras antigas de linha laranja e ponto laranja (vybe-styles.css). */
+body.mundo #workspace-drawer .gv2-ev{position:relative;display:grid;grid-template-columns:10px minmax(0,1fr);gap:0 8px;margin:0;padding:0;border:0;background:none}
+body.mundo #workspace-drawer .gv2-ev::before{content:none}
+body.mundo #workspace-drawer .gv2-ev-ponto{width:7px;height:7px;margin-top:7px;border-radius:50%;background:var(--d3-tinta,#1F1D1A)}
+body.mundo #workspace-drawer .gv2-ev.sis .gv2-ev-ponto{background:var(--d3-meta,#B5AFA5)}
+body.mundo #workspace-drawer .gv2-ev-corpo{min-width:0}
+body.mundo #workspace-drawer .gv2-ev-meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin:0;font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado,#6B665E)}
+body.mundo #workspace-drawer .gv2-ev-tipo{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-trilho,#F3F1EC);color:var(--d3-texto2,#4A463F);font:600 11.5px var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+body.mundo #workspace-drawer .gv2-ev-meta > b{font-weight:600;color:var(--d3-tinta,#1F1D1A)}
+body.mundo #workspace-drawer .gv2-ev-txt{margin:3px 0 0;font:400 13px/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-texto2,#4A463F);white-space:pre-line;overflow-wrap:anywhere}
+body.mundo #workspace-drawer .gv2-ev .workspace-update-tools{position:absolute;top:-3px;right:0;margin:0;padding-left:8px;background:var(--d3-cartao,#FFFFFF)}
+body.mundo #workspace-drawer .gv2-ev .workspace-update-tools button{height:24px;padding:0 9px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);font:500 11.5px var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer .gv2-ev .workspace-update-editado{font:italic 400 11.5px var(--vv-texto,Inter,sans-serif)}
+
+/* Gaveta da Solicitação (renderDemandaWorkspace): o contexto em bloco, como a ficha da peça de Conteúdo. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol-ctx{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;padding:10px 14px;border-radius:16px;background:#F9F8F5;font-size:13px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol-ctx small{display:block;font:400 11.5px/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado,#6B665E)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol-ctx b{display:block;font-weight:700;color:var(--d3-tinta,#1F1D1A);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol-ctx b.a{color:var(--d3-ajuste,#7A4A00)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-cmp > b.r{color:var(--d3-perigo,#B42318)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol .gv2-arq.sem-capa{background-color:var(--d3-trilho,#F3F1EC)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol .gv2-entrega > svg{color:var(--d3-texto2,#4A463F)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol .gv2-linha .pill.vv-st-ponto{flex:none}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol .gv2-pill.n{cursor:default}
+
+/* Prévia da entrega (abrirPreviaDaEntrega): sem o palco preto atrás da peça, ação principal preta e as outras claras. */
+body.mundo #previa-grande{--ds-acao:var(--d3-tinta,#1F1D1A);--ds-acao-hover:var(--d3-texto2,#4A463F);--ds-acao-sombra:none}
+body.mundo #previa-grande.com-ficha .previa-grande-palco{background:var(--d3-trilho,#F3F1EC)}
+body.mundo #previa-grande #previa-peca-onde{color:var(--d3-apagado,#6B665E)}
+body.mundo #previa-grande #previa-peca-nome{color:var(--d3-tinta,#1F1D1A)}
+body.mundo #previa-grande .previa-ficha-acoes .vc-acao{border:0;background:var(--d3-tinta,#1F1D1A);color:var(--d3-cartao,#FFFFFF)}
+body.mundo #previa-grande .previa-ficha-acoes .vc-acao:hover{background:var(--d3-texto2,#4A463F)}
+body.mundo #previa-grande .previa-ficha-acoes .vc-sec{border:0;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);box-shadow:none}
+body.mundo #previa-grande .previa-ficha-acoes .vc-sec:hover{background:var(--d3-borda,#E6E0D6)}
+
+/* Editor de responsável (#dono-editor): Salvar preto e a busca com foco em tinta, não em laranja. */
+body.mundo #dono-editor{--ds-acao:var(--d3-tinta,#1F1D1A);--ds-acao-hover:var(--d3-texto2,#4A463F);--ds-acao-sombra:none;--ds-foco:0 0 0 3px rgba(31,29,26,.12)}
+
+/* Portão do motivo da troca de status (openStatusContextGate): o foco do campo em tinta, sem o contorno laranja. */
+body.mundo #workflow-modal.status-context-dialog{--vybe-orange-soft:var(--d3-tinta,#1F1D1A)}

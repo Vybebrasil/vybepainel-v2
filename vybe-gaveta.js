@@ -77,8 +77,15 @@ function workspaceRegistrosPendentesHtml() {
 }
 function workspaceUploadHtml(mostrarPendencias = true) {
   return `${mostrarPendencias ? workspaceRegistrosPendentesHtml() : ''}<input id="workspace-file-input" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf" onchange="uploadWorkspaceFile(this)">
-          <div class="workspace-dropzone" role="button" tabindex="0" aria-label="Adicionar arquivos" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('workspace-file-input').click()}" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)"><div><strong>Arraste o arquivo aqui ou clique</strong>Card, arte ou PDF · PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
-          <p class="workspace-note">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos”.</p>`;
+          <div class="workspace-dropzone" role="button" tabindex="0" aria-label="Adicionar arquivos" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('workspace-file-input').click()}" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)">${workspaceDropzoneTextoHtml()}</div>
+          <p class="${gavetaNoMundo() ? 'gv2-sub' : 'workspace-note'}">Vai para a pasta do cliente no Drive da Vybe e aparece em “Arquivos”.</p>`;
+}
+// O texto da área de arquivo. Direção 3 (no mundo): o título em <b> tinta e a linha de formatos num <span> apagado,
+// fora das classes antigas que pintavam o texto de marrom.
+function gavetaNoMundo() { return typeof document !== 'undefined' && Boolean(document.body?.classList?.contains('mundo')); }
+function workspaceDropzoneTextoHtml() {
+  const titulo = 'Arraste o arquivo aqui ou clique', formatos = 'Card, arte ou PDF · PNG, JPG, WEBP ou PDF · até 200 MB';
+  return gavetaNoMundo() ?`<div class="gv2-solta-txt"><b>${titulo}</b><span>${formatos}</span></div>` : `<div><strong>${titulo}</strong>${formatos}</div>`;
 }
 function escolherCaminhoDeEntrega(qual) {
   const caixa = document.querySelector('#workspace-drawer .entrega-caminhos');
@@ -511,7 +518,7 @@ function gavetaLinkHtml() {
   const arquivos = `
       ${workspaceDeliveryDock(detail, item)}
       ${workspaceRegistrosPendentesHtml()}
-      <div class="workspace-dropzone gv2-solta alta" role="button" tabindex="0" aria-label="Adicionar arquivos" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('workspace-file-input').click()}" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)">${GAVETA_ICONE.sobe}<div><strong>Arraste o arquivo aqui ou clique</strong>Card, arte ou PDF · PNG, JPG, WEBP ou PDF · até 200 MB</div></div>
+      <div class="workspace-dropzone gv2-solta alta" role="button" tabindex="0" aria-label="Adicionar arquivos" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('workspace-file-input').click()}" onclick="document.getElementById('workspace-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleWorkspaceDrop(event)">${GAVETA_ICONE.sobe}${workspaceDropzoneTextoHtml()}</div>
       <p class="gv2-sub">Vai para a pasta do cliente no Drive da Vybe.</p>
       ${gavetaLinkHtml()}
       ${assets.length ? `<div class="workspace-assets">${assets.map(workspaceAssetCard).join('')}</div>` : '<p class="gv2-vazio">Nenhum arquivo anexado ainda.</p>'}`;
@@ -593,6 +600,7 @@ async function openDemandaWorkspace(itemId) {
   const item = (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : []).find(d => String(d.id) === String(itemId));
   if (!item) return showToast('Solicitação não encontrada no contexto atual.', 'err');
   activeWorkspaceItemId = '';
+  ABA_DA_SOLICITACAO = 'resumo';
   const backdrop = document.createElement('div');
   backdrop.id = 'workspace-backdrop'; backdrop.className = 'workspace-backdrop'; backdrop.onclick = closeItemWorkspace;
   const drawer = document.createElement('aside');
@@ -620,22 +628,125 @@ function renderDemandaWorkspace(detail, item) {
     const fechar = typeof GAVETA_ICONE !== 'undefined' ? GAVETA_ICONE.fechar : '×';
     const cliente = item.cliente ? (typeof cliCor === 'function' ? cliCor(item.cliente) : safeText(item.cliente)) : 'Cliente não informado';
     const pega = typeof gavetaPegaHtml === 'function' ? gavetaPegaHtml() : '';
+    const id = safeText(String(item.id));
+    // Direção 3: a mesma gaveta da peça de Conteúdo (topo com ícones, título, linha do cliente com a pílula de status,
+    // bloco das datas, abas Resumo · Arquivos · Histórico). A solicitação não tem o pé de atualização rápida nem o
+    // próximo passo: o fluxo dela é o da Central de Demandas.
+    const abaAtual = ['resumo', 'arquivos', 'historico'].includes(ABA_DA_SOLICITACAO) ? ABA_DA_SOLICITACAO : 'resumo';
+    const aba = (qual, rotulo, n) => `<span role="radio" class="gv2-aba" data-gv-aba="${qual}" aria-checked="${abaAtual === qual}" tabindex="${abaAtual === qual ? 0 : -1}"
+      onclick="solicitacaoAba('${qual}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();solicitacaoAba('${qual}')}else solicitacaoTeclaNaAba(event)">${rotulo}${n ? ` · ${n}` : ''}</span>`;
+    const painel = (qual, html) => `<div class="gv2-painel" data-gv-painel="${qual}"${abaAtual === qual ? '' : ' hidden'}>${html}</div>`;
+    const lk = (rotulo, acao) => `<span class="gv2-lk" role="button" tabindex="0" onclick="${acao}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${acao}}">${rotulo}</span>`;
+    const editaDatas = typeof openDemandaPlanningEditor === 'function';
+    const dado = (valor, iso) => {
+      const vencida = solicitacaoVencida(iso, item);
+      return editaDatas
+        ? `<span class="gv2-dado${vencida ? ' r' : ''}" role="button" tabindex="0" onclick="openDemandaPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openDemandaPlanningEditor('${id}')" title="Editar prazo e conclusão">${safeText(valor || '—')}</span>`
+        : `<b class="${vencida ? 'r' : ''}">${safeText(valor || '—')}</b>`;
+    };
+    const briefing = typeof briefingDaPeca === 'function' ? briefingDaPeca(detail) : null;
+    const chamada = briefing ? String(briefing.texto || '').replace(/\s*\n+\s*/g, ' ').trim() : '';
+    const etapas = typeof workspaceHistoryHtml === 'function' ? workspaceHistoryHtml(detail, item) : '';
+    const monday = podeVerMonday() && item.url ? `<a class="gv2-lk" data-external-monday="true" href="${safeText(item.url)}" target="_blank" rel="noopener">Abrir no Monday</a>` : '';
+    const resumo = `<div class="gv2-resumo"><div class="gv2-col">
+        <section class="gv2-sec" aria-label="Briefing"><div class="gv2-sec-topo"><h3>Briefing</h3>${briefing
+          ? `${lk('abrir', `abrirBriefing('${id}')`)}${lk('editar', `editarBriefing('${id}')`)}`
+          : lk('+ adicionar', `editarBriefing('${id}')`)}</div>
+          ${briefing ? `<p class="gv2-texto">${safeText(chamada.slice(0, 260))}${chamada.length > 260 ? '…' : ''}</p>` : '<p class="gv2-texto vazio">Sem briefing.</p>'}</section>
+        <section class="gv2-sec" aria-label="Contexto da solicitação"><div class="gv2-sec-topo"><h3>Contexto da solicitação</h3></div>${solicitacaoContextoHtml(item)}</section>
+        ${monday ? `<p class="gv2-sub">${monday}</p>` : ''}
+      </div><div class="gv2-col">
+        ${solicitacaoArquivosPreviaHtml(assets)}
+        <section class="gv2-sec" aria-label="Histórico"><div class="gv2-sec-topo"><h3>Histórico</h3>${updates.length > 4 ? lk(`ver ${updates.length}`, "solicitacaoAba('historico')") : ''}</div>
+          ${updates.length ? `<div class="gv2-conversa gv2-hist-curto">${updates.slice(0, 4).map(workspaceTimelineEvent).join('')}</div>` : '<p class="gv2-vazio">Sem atualizações registradas ainda.</p>'}</section>
+      </div></div>`;
+    const arquivos = `${workspaceUploadHtml()}<div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<p class="gv2-vazio">Nenhum arquivo anexado ainda.</p>'}</div>`;
+    const historico = `<div class="gv2-conversa">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<p class="gv2-vazio">Sem atualizações registradas ainda.</p>'}</div>
+        ${etapas ? `<section class="gv2-sec gv2-hist" aria-label="Tempo em cada etapa"><div class="gv2-sec-topo"><h3>Tempo em cada etapa</h3></div>${etapas}</section>` : ''}`;
     drawer.innerHTML = `<div class="gv2 gv2-sol">${pega}
-      <div class="gv2-topo"><p class="gv2-sub gv2-onde">Solicitação · nº ${safeText(String(item.id).replace(/^vybe:/, ''))}</p>${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { demanda: true, icone: true })}<button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${fechar}</button></div>
+      <div class="gv2-topo"><button type="button" class="workspace-voltar" onclick="closeItemWorkspace()" aria-label="Voltar" title="Voltar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><p class="gv2-sub gv2-onde">Solicitação · nº ${safeText(String(item.id).replace(/^vybe:/, ''))}</p>${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { demanda: true, icone: true })}<button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${fechar}</button></div>
       <div class="gv2-cab"><h2 class="gv2-titulo">${safeText(item.nome)}</h2>
-        <div class="gv2-linha"><span class="gv2-clientes">${cliente}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}<span class="gv2-sub">${safeText(item.tipo || 'Solicitação')}</span></div></div>
+        <div class="gv2-linha"><span class="gv2-clientes">${cliente}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}${item.tipo && item.tipo !== '—' ? `<span class="gv2-pill n">${safeText(item.tipo)}</span>` : ''}<span class="gv2-vao"></span>${solicitacaoAtrasoHtml(item)}</div></div>
       <div class="gv2-bloco">
-        <div class="gv2-cmp"><small>Prazo</small><b>${safeText(item.prazo || 'não definido')}</b></div>
-        <div class="gv2-cmp"><small>Conclusão</small><b>${safeText(item.conclusao || 'não definida')}</b></div>
-        <div class="gv2-cmp"><small>Responsável</small><b>${safeText(item.responsavel || 'não definido')}</b></div>
+        <div class="gv2-cmp"><small>Prazo</small>${dado(item.prazo, item.prazo_iso)}</div>
+        <div class="gv2-cmp"><small>Conclusão</small>${dado(item.conclusao, item.conclusao_iso)}</div>
+        <div class="gv2-cmp"><small>Responsável</small><b>${safeText(item.responsavel || '—')}</b></div>
       </div>
-      <div class="gv2-corpo"><div class="gv2-painel">
-        ${blocoDoBriefingHtml(detail, item)}
-        <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Contexto da solicitação</h3></div><p class="gv2-texto">Esta solicitação pertence à Central de Demandas. A atualização completa permanece no fluxo próprio dela.</p></section>
-        <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Arquivos</h3></div>${workspaceUploadHtml()}<div class="workspace-assets">${assets.length ? assets.map(workspaceAssetCard).join('') : '<p class="gv2-vazio">Nenhum arquivo anexado ainda.</p>'}</div></section>
-        <section class="gv2-sec"><div class="gv2-sec-topo"><h3>Histórico recente</h3></div><div class="gv2-conversa">${updates.length ? updates.map(workspaceTimelineEvent).join('') : '<p class="gv2-vazio">Sem atualizações registradas ainda.</p>'}</div></section>
-        ${podeVerMonday() ? `<a class="gv2-lk" data-external-monday="true" href="${item.url}" target="_blank" rel="noopener">Abrir no Monday</a>` : ''}
-      </div></div></div>`;
+      <div class="gv2-seg" role="radiogroup" aria-label="Partes da solicitação">${aba('resumo', 'Resumo')}${aba('arquivos', 'Arquivos', assets.length)}${aba('historico', 'Histórico', updates.length)}</div>
+      <div class="gv2-corpo">${painel('resumo', resumo)}${painel('arquivos', arquivos)}${painel('historico', historico)}</div></div>`;
+}
+// As abas da solicitação (Resumo, Arquivos, Histórico): as mesmas peças das abas da gaveta de Conteúdo.
+let ABA_DA_SOLICITACAO = 'resumo';
+const SOLICITACAO_ABAS = ['resumo', 'arquivos', 'historico'];
+function solicitacaoAba(qual) {
+  if (!SOLICITACAO_ABAS.includes(qual)) return;
+  ABA_DA_SOLICITACAO = qual;
+  const caixa = document.querySelector('#workspace-drawer .gv2-sol');
+  if (!caixa) return;
+  caixa.querySelectorAll('[data-gv-aba]').forEach((b) => { const on = b.dataset.gvAba === qual; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; });
+  caixa.querySelectorAll('[data-gv-painel]').forEach((p) => { p.hidden = p.dataset.gvPainel !== qual; });
+  const corpo = caixa.querySelector('.gv2-corpo');
+  if (corpo) corpo.scrollTop = 0;
+}
+function solicitacaoTeclaNaAba(evento) {
+  const passo = evento.key === 'ArrowRight' ? 1 : evento.key === 'ArrowLeft' ? -1 : 0;
+  if (!passo) return;
+  evento.preventDefault();
+  const n = (SOLICITACAO_ABAS.indexOf(ABA_DA_SOLICITACAO) + passo + SOLICITACAO_ABAS.length) % SOLICITACAO_ABAS.length;
+  solicitacaoAba(SOLICITACAO_ABAS[n]);
+  document.querySelector(`#workspace-drawer [data-gv-aba="${SOLICITACAO_ABAS[n]}"]`)?.focus();
+}
+// Só o que venceu fica vermelho; solicitação concluída não vence (a mesma lista de concluídas da Central de Demandas).
+function solicitacaoConcluida(item) {
+  return /^(feito|aprovado|conclu[ií]d[oa]s?|finalizado)$/i.test(String(item?.status || '').trim());
+}
+function solicitacaoHojeIso() {
+  return (typeof META !== 'undefined' && META?.today_iso) || (typeof HOJE_ISO === 'string' && HOJE_ISO) || new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10);
+}
+function solicitacaoVencida(iso, item) {
+  const d = String(iso || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) && !solicitacaoConcluida(item) && d < solicitacaoHojeIso();
+}
+function solicitacaoAtrasoHtml(item) {
+  const p = String(item?.prazo_iso || '').slice(0, 10);
+  if (!solicitacaoVencida(p, item)) return '';
+  const dias = Math.round((Date.parse(solicitacaoHojeIso()) - Date.parse(p)) / 864e5);
+  return dias > 0 ? `<span class="gv2-atraso r">Atrasada ${dias} ${dias === 1 ? 'dia' : 'dias'}</span>` : '';
+}
+// Contexto da solicitação em bloco (como a ficha da peça): só os campos que a solicitação tem, rótulo curto e valor.
+function solicitacaoContextoHtml(item) {
+  const quando = String(item?.criado_em || '').slice(0, 10);
+  const aberta = /^\d{4}-\d{2}-\d{2}$/.test(quando) ? `${quando.slice(8, 10)}/${quando.slice(5, 7)}` : '';
+  const tarefas = Number(item?.tarefas) > 0 ? `${Number(item.tarefas_feitas) || 0} de ${Number(item.tarefas)}` : '';
+  const vazio = (v) => !v || v === '—';
+  const campos = [
+    ['Grupo', item?.grupo],
+    ['Tipo', item?.tipo],
+    ['Prioridade', item?.prioridade, /alta|urgente|crític/i.test(String(item?.prioridade || '')) ? 'a' : ''],
+    ['Aberta', [aberta, item?.cadastrado_por].filter(Boolean).join(' · ')],
+    ['Tarefas', tarefas],
+  ].filter(([, v]) => !vazio(v));
+  if (!campos.length) return '<p class="gv2-texto vazio">Sem dados de cadastro.</p>';
+  return `<div class="gv2-sol-ctx">${campos.map(([r, v, tom]) => `<span><small>${r}</small><b class="${tom || ''}">${safeText(v)}</b></span>`).join('')}</div>`;
+}
+// Prévia dos arquivos no Resumo: até duas miniaturas e o quadrado de enviar (o mesmo envio da aba Arquivos).
+function solicitacaoArquivosPreviaHtml(assets) {
+  const ehImagem = (a) => /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(a?.name || a?.file_extension || a?.public_url || a?.url || ''));
+  const extensao = (a) => (String(a?.file_extension || a?.name || '').match(/([a-z0-9]{2,5})$/i)?.[1] || 'arquivo').toLowerCase();
+  const mini = (assets || []).slice(0, 2).map((a, k) => {
+    const url = a?.public_url || a?.url || a?.link_drive || '';
+    const capa = a?.url_thumbnail || (ehImagem(a) ? url : '');
+    return `<a class="gv2-arq${capa ? '' : ' sem-capa'}" href="${safeText(url || '#')}" target="_blank" rel="noopener"${capa ? ` style="background-image:url('${safeText(capa)}')"` : ''} title="${safeText(a?.name || 'Arquivo')}"><span>${safeText(extensao(a))}</span></a>`;
+  }).join('');
+  const abre = "document.getElementById('workspace-file-input').click()";
+  const sobe = typeof GAVETA_ICONE !== 'undefined' ? GAVETA_ICONE.sobe : '';
+  return `<section class="gv2-sec" aria-label="Arquivos"><div class="gv2-sec-topo"><h3>Arquivos</h3>${(assets || []).length
+      ? `<span class="gv2-lk" role="button" tabindex="0" onclick="solicitacaoAba('arquivos')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();solicitacaoAba('arquivos')}">ver ${assets.length}</span>`
+      : '<span class="gv2-sub">Drive do cliente</span>'}</div>
+      <div class="gv2-arqs">${mini}
+        <div class="gv2-arq gv2-entrega" role="button" tabindex="0" aria-label="Enviar arquivo" onclick="${abre}"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${abre}}"
+          ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="this.classList.remove('dragover');handleWorkspaceDrop(event)">${sobe}<b>Enviar</b><span class="gv2-sub">arquivo</span></div></div></section>`;
 }
 
 // Regra Vybe OS: clique em atividade abre contexto interno; Monday é um atalho deliberado dentro do workspace.
