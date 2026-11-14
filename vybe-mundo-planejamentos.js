@@ -76,6 +76,7 @@
   // Meses que têm planejamento, do mais antigo ao mais novo; a janela abre no mais novo. Cliente com planejamento de
   // outro mês conta como sem planejamento no mês escolhido.
   const mesesDe = (postos) => [...new Set(postos.map((p) => String(p.planejamento?.mes || '').slice(0, 7)).filter(Boolean))].sort();
+  const mesesVizinhos = (agora = new Date()) => [0, 1].map((n) => { const d = new Date(agora.getFullYear(), agora.getMonth() + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; });
   const noMes = (postos, mes) => postos.map((p) => (p.planejamento && mes && String(p.planejamento.mes || '').slice(0, 7) !== mes ? { ...p, planejamento: null, alertas: null } : p));
 
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -122,8 +123,11 @@
   }
 
   function contas() {
-    const meses = mesesDe(estado.postos);
-    if (!meses.includes(estado.mes)) estado.mes = meses[meses.length - 1] || '';
+    const comPlano = mesesDe(estado.postos);
+    // Direção 3: o seletor é um segmento com os meses. Entram o mês corrente e o próximo, além dos que já têm
+    // planejamento; a janela continua abrindo no mês mais novo que tem planejamento.
+    const meses = [...new Set([...comPlano, ...mesesVizinhos()])].sort();
+    if (!meses.includes(estado.mes)) estado.mes = comPlano[comPlano.length - 1] || meses[meses.length - 1] || '';
     const todos = ordenar(noMes(estado.postos, estado.mes));
     return { meses, todos, contar: { acao: todos.filter(pedeAcao).length, sem: todos.filter((p) => !p.planejamento).length, meus: todos.filter((p) => p.meu).length, todos: todos.length } };
   }

@@ -73,7 +73,7 @@ test('Ranking: título com período e porquê numa linha, fichas, pódio, você,
   assert.match(pinta, /resto\.slice\(0, 2\)/, 'duas linhas à vista; o resto em "mostrar"');
   for (const fica of ['Tesouros', 'Agência', 'Como funciona', 'Semana passada', 'Copa Vybe de ', 'abrirDetalheRankingEscritorio(']) assert.ok(pinta.includes(fica), 'continua a um clique: ' + fica);
   const jogos = fatia(ficha, 'const V2R_JOGOS = [', '\n// O detalhe abre num cartão ao lado da pessoa');
-  for (const texto of ['Sinuca', 'Xadrez', 'Pôquer', 'Dominó', 'Dama', 'Velha', 'Truco', 'Jogos · no terraço do prédio', 'online agora', 'Quem pode jogar agora', '>Chamar<']) assert.ok(jogos.includes(texto), texto);
+  for (const texto of ['Sinuca', 'Xadrez', 'Pôquer', 'Dominó', 'Dama', 'Velha', 'Truco', 'Jogos · terraço', ' online', 'Online: ', '>Chamar<']) assert.ok(jogos.includes(texto), texto);
   assert.match(jogos, /window\.mundoVoxel\.jogar\(id\)/, 'a partida abre pela mesma função do mundo');
 });
 

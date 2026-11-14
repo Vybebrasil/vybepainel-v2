@@ -10,6 +10,7 @@
 //   regra_remover { id }
 //   fixo_salvar  { fixo } / fixo_remover { id }
 //   cartao_salvar { item } / cartao_remover { id }
+//   cartao_vencimento { cartao, dia }   o dia do mês em que a fatura do cartão vence (chave financeiro_cartoes)
 //   cenario_salvar { cenario } / cenario_remover { id }
 //
 // Quem: só os quatro donos (server/donos.js), sempre. Dinheiro da Vybe não passa por "quem administra".
@@ -20,8 +21,10 @@ import X from '../shared/financeiro-extrato.js';
 import { ehDonoPessoa } from './donos.js';
 import { autenticarAssistente } from './assistente-servico.js';
 
-export const CHAVES = Object.freeze({ extrato: 'financeiro_extrato', regras: 'financeiro_regras', fixos: 'financeiro_fixos', cartao: 'financeiro_cartao', cenarios: 'financeiro_cenarios', vorcaro: 'financeiro_vorcaro' });
-const VAZIO = { extrato: { transacoes: [], importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], vorcaro: { propostas: [] } };
+export const CHAVES = Object.freeze({ extrato: 'financeiro_extrato', regras: 'financeiro_regras', fixos: 'financeiro_fixos', cartao: 'financeiro_cartao', cenarios: 'financeiro_cenarios', vorcaro: 'financeiro_vorcaro',
+  // Vencimento da fatura por cartão (14/11/2026): { 'Cartão da agência': { dia: 20 } }, editável pelos donos.
+  cartoes: 'financeiro_cartoes' });
+const VAZIO = { extrato: { transacoes: [], importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], vorcaro: { propostas: [] }, cartoes: {} };
 const LIMITE_CSV = 2_000_000;
 
 const erro = (status, message) => Object.assign(new Error(message), { status });
@@ -36,6 +39,7 @@ async function lerTudo(sql) {
   if (!Array.isArray(out.extrato?.transacoes)) out.extrato = structuredClone(VAZIO.extrato);
   for (const k of ['regras', 'fixos', 'cartao', 'cenarios']) if (!Array.isArray(out[k])) out[k] = [];
   if (!Array.isArray(out.vorcaro?.propostas)) out.vorcaro = { propostas: [] };
+  if (!out.cartoes || typeof out.cartoes !== 'object' || Array.isArray(out.cartoes)) out.cartoes = {};
   return out;
 }
 // Lê uma chave travada, aplica a mudança e grava (uma transação).
@@ -110,7 +114,12 @@ export function montar(base, clientes, { mes, hoje }) {
     clientes: clientes.map((c) => ({ id: c.cliente_id, nome: c.cliente_nome, mensalidade: c.valor_mensal, ativo: c.ativo })),
     por_cliente: { meses: mesesCliente, desde: meses[0] || '', linhas: X.porCliente(lista, contratos, mesesCliente, { desde: meses[0] || '9999-12', mesAtual: hoje.slice(0, 7) }) },
     fixos: base.fixos, fixos_analise: X.analisarFixos(base.fixos, lista, mesAtual, base.cartao),
-    cartao: { itens: base.cartao, faturas: X.cartao(base.cartao, lista), pagamentos_sem_fatura: X.pagamentosSemFatura(lista) },
+    cartao: (() => {
+      // O dia do vencimento de cada cartão; a fatura de AAAA-MM vence no dia dele nesse mês (dia 31 em mês curto = último dia).
+      const venc = Object.fromEntries(Object.entries(base.cartoes || {}).map(([k, v]) => [k, Number(v?.dia) || null]).filter(([, d]) => d >= 1 && d <= 31));
+      const vence = (cartao, fatura) => { const d = venc[cartao]; if (!d || !/^\d{4}-\d{2}$/.test(fatura)) return null; const ult = new Date(Date.UTC(Number(fatura.slice(0, 4)), Number(fatura.slice(5, 7)), 0)).getUTCDate(); return `${fatura}-${String(Math.min(d, ult)).padStart(2, '0')}`; };
+      return { itens: base.cartao, faturas: X.cartao(base.cartao, lista).map((f) => ({ ...f, vence: vence(f.cartao, f.fatura) })), pagamentos_sem_fatura: X.pagamentosSemFatura(lista), vencimentos: venc };
+    })(),
     projecao: { base: projBase, cenarios: base.cenarios },
     vorcaro: (() => {
       const propostas = base.vorcaro?.propostas || [];
@@ -223,6 +232,18 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
       const r = X.normalizarItemCartao(b.item || {});
       if (r.erro) throw erro(400, r.erro);
       return mudar(sql, 'cartao', pid, (atual) => ({ valor: salvarNaLista(Array.isArray(atual) ? atual : [], r.item), resposta: { item: r.item } }));
+    }
+    case 'cartao_vencimento': {
+      // { cartao, dia }: o dia do mês em que a fatura desse cartão vence (1 a 31); dia vazio tira.
+      const nome = String(b.cartao || 'Cartão da agência').trim().slice(0, 60);
+      if (!nome) throw erro(400, 'Qual cartão?');
+      const dia = b.dia == null || b.dia === '' ? null : Number(b.dia);
+      if (dia != null && (!Number.isInteger(dia) || dia < 1 || dia > 31)) throw erro(400, 'O vencimento é um dia de 1 a 31.');
+      return mudar(sql, 'cartoes', pid, (atual) => {
+        const v = atual && typeof atual === 'object' && !Array.isArray(atual) ? { ...atual } : {};
+        if (dia == null) delete v[nome]; else v[nome] = { dia };
+        return { valor: v, resposta: { cartao: nome, dia } };
+      });
     }
     case 'cartao_remover':
       return mudar(sql, 'cartao', pid, (atual) => { const l = (atual || []).filter((x) => x.id !== String(b.id || '')); return { valor: l, resposta: { removido: (atual || []).length - l.length } }; });

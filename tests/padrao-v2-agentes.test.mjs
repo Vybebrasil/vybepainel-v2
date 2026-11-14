@@ -84,8 +84,8 @@ test('Automações: cabeçalho com Regras/Falhas, Mais e Nova regra; fala do age
   assert.match(no('auto-kpis').innerHTML, /Por tipo · 30 dias/);
   assert.match(no('auto-pede').innerHTML, /Conferindo as falhas…|Desligada/);
   const lista = no('auto-regras-lista').innerHTML;
-  assert.equal((lista.match(/class="v2-abre v2r-regra/g) || []).length, 4, 'quatro regras na frente');
-  assert.match(lista, /\+ 2 regras recolhidas · <a href="#" role="button" class="v2g-link" onclick="mostrarTodasAsRegras\(true\);return false">mostrar<\/a> · clicar na regra abre e edita/);
+  assert.equal((lista.match(/class="v2-abre v2r-regra/g) || []).length, 6, 'a lista inteira, como o quadro D3-Automacoes (até 8 na frente)');
+  assert.doesNotMatch(lista, /regras recolhidas/); assert.match(lista, /clicar na regra abre e edita/);
   assert.match(lista, /role="switch" aria-checked="true"[\s\S]*?<em>Quando<\/em> o status virar “aprovado”[\s\S]*?<em>então<\/em> move para Saída de Publicações<\/span><\/button>[\s\S]*?<span class="v2g-sub v2r-n">88 ações<\/span>[\s\S]*?aria-label="Testar regra Aprovado vira Saída"[^>]*>Testar</);
   assert.match(no('auto-regras-chips').innerHTML, /Todas <b>6<\/b>[\s\S]*Ligadas <b>5<\/b>[\s\S]*Desligadas <b>1<\/b>[\s\S]*>Filtros</);
 
@@ -120,10 +120,10 @@ test('Automações: sem regra, uma frase e o botão; quem não administra não l
 
 test('Automações: o registro vira uma linha por ação, com o selo do que a regra fez', () => {
   const { c, no } = telaDeAutomacoes({ regras: [regra(1, 'Aprovado vira Saída', true, 88, 61)] });
-  c.execs = [['grupo → saida'], ['responsáveis replace'], ['notificação'], ['status → aprovado'], [], ['grupo → saida']].map((feitas, i) => ({ em: '2026-11-10T12:00:00Z', titulo: 'Peça ' + i, automacao: 'Aprovado vira Saída', feitas, evento: { tipo: 'status', de: 'a', para: 'b' } }));
+  c.execs = [['grupo → saida'], ['responsáveis replace'], ['notificação'], ['status → aprovado'], [], ['grupo → saida'], ['notificação'], ['grupo → saida']].map((feitas, i) => ({ em: '2026-11-10T12:00:00Z', titulo: 'Peça ' + i, automacao: 'Aprovado vira Saída', feitas, evento: { tipo: 'status', de: 'a', para: 'b' } }));
   vm.runInContext('EXECUCOES = execs; pintarHistorico();', c);
   const h = no('auto-historico').innerHTML;
-  assert.deepEqual([...h.matchAll(/class="v2g-pill \w">(\w+)</g)].map((m) => m[1]), ['Moveu', 'Atribuiu', 'Avisou', 'Mudou'], 'quatro na frente');
+  assert.deepEqual([...h.matchAll(/class="v2g-pill \w">(\w+)</g)].map((m) => m[1]), ['Moveu', 'Atribuiu', 'Avisou', 'Mudou', 'Rodou', 'Moveu'], 'seis na frente');
   assert.match(h, /\+ 2 ações · <a href="#" role="button" class="v2g-link" onclick="mostrarHistoricoInteiro\(true\);return false">mostrar</);
   assert.match(no('auto-regras-lista').innerHTML, /A última ação foi em Peça 0,/, 'a regra aberta diz a última ação dela');
 });

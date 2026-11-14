@@ -105,9 +105,12 @@
     };
     const visiveis = FERRAMENTAS.filter((f) => !q || norm(`${f.nome} ${f.frase}`).includes(q));
     const acoes = (r, i) => `${r.tipo === 'qr' ? `<button type="button" class="p2-btn s" data-vf="baixar-uso" data-vf-uso="${i}">Baixar de novo</button>` : r.tipo === 'whatsapp' || r.dados.retorno != null ? `<button type="button" class="p2-btn s" data-vf="copiar-uso" data-vf-uso="${i}">Copiar</button>` : ''}<button type="button" class="p2-btn s" data-vf="refazer" data-vf-uso="${i}">Refazer</button>`;
-    const usados = recentes.length ? `<section class="vf2-usados" aria-labelledby="vf-recentes-titulo"><div class="p2-lista-topo"><h3 class="p2-h" id="vf-recentes-titulo">Usados por último</h3><span class="p2-sub">neste computador</span></div>
-        <div class="vf2-tres">${recentes.map((r, i) => { const n = rotuloDoUso(r); return `<div class="p2-card vf2-rec"><p class="vf2-rec-topo"><span class="p2-pill">${esc(n.sub.split(' · ')[0])}</span><span class="p2-sub">${esc(quandoFoi(r.quando))}</span></p>
-          <p class="vf2-rec-oq"><b>${esc(n.titulo)}</b>${n.sub.includes(' · ') ? ` · ${esc(n.sub.split(' · ').slice(1).join(' · '))}` : ''}</p><p class="vf2-rec-acoes">${acoes(r, i)}</p></div>`; }).join('')}</div></section>` : '';
+    // Direção 3: o bloco "Usados por último" fica sempre no lugar do quadro; sem histórico neste navegador, um cartão
+    // diz isso em uma linha.
+    const usados = `<section class="vf2-usados" aria-labelledby="vf-recentes-titulo"><div class="p2-lista-topo"><h3 class="p2-h" id="vf-recentes-titulo">Usados por último</h3><span class="p2-sub">neste computador</span></div>
+        ${recentes.length ? `<div class="vf2-tres">${recentes.map((r, i) => { const n = rotuloDoUso(r); return `<div class="p2-card vf2-rec"><p class="vf2-rec-topo"><span class="p2-pill">${esc(n.sub.split(' · ')[0])}</span><span class="p2-sub">${esc(quandoFoi(r.quando))}</span></p>
+          <p class="vf2-rec-oq"><b>${esc(n.titulo)}</b>${n.sub.includes(' · ') ? ` · ${esc(n.sub.split(' · ').slice(1).join(' · '))}` : ''}</p><p class="vf2-rec-acoes">${acoes(r, i)}</p></div>`; }).join('')}</div>`
+        : '<div class="p2-card vf2-rec d3tk-vazio"><p class="p2-sub">Sem histórico ainda.</p></div>'}</section>`;
     // Direção 3 (quadro D3-Toolkit): a frase vira o bloco de ação laranja, com o último uso e o botão que o refaz; sem
     // uso ainda, o convite para o primeiro QR. Nas ferramentas sai a frase explicativa: o rótulo e o campo bastam.
     const u0 = recentes[0], n0 = u0 ? rotuloDoUso(u0) : null;

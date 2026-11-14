@@ -145,7 +145,7 @@ body.vybe-desktop {
   backdrop-filter: blur(28px) saturate(1.4); -webkit-backdrop-filter: blur(28px) saturate(1.4);
 }
 .vybe-desktop .workspace-drawer { top: 12px; bottom: 12px; right: 12px; width: min(660px,calc(100vw - 24px)); }
-.vybe-desktop :is(.workspace-backdrop,.workflow-backdrop,.production-sheet-overlay,.cadastros-preview-overlay) {
+.vybe-desktop :is(.workspace-backdrop,.workflow-backdrop:not(:has(+ .rk2-janela)),.production-sheet-overlay,.cadastros-preview-overlay) {
   background: #090a104d !important; backdrop-filter: blur(5px) !important;
 }
 .vybe-desktop :is(.workspace-close,.workflow-close,.fc-close,.p-draw-close) {

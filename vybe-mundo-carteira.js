@@ -212,13 +212,29 @@
   const cortar = (lista, nome) => lista.slice(0, estado.limite[nome] || PAGINA);
   const nota = (texto) => `<p class="vc-nota">${esc(texto)}</p>`;
 
+  // Meta da nota da carteira (14/11/2026, vybe_carteira_config 'meta_carteira', GET/POST /api/painel?area=metas): os donos
+  // definem; vira a linha tracejada. Sem meta gravada, a tracejada é a de sempre (o limite do risco médio).
+  let metas = null, metasLendo = null;
+  function lerMetas() {
+    if (metas || metasLendo || typeof fetch !== 'function') return metas;
+    metasLendo = fetch('/api/painel?area=metas', { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+      .then((j) => { metas = j || {}; if (j?.carteira_nota != null) pintar(); }).catch(() => { metas = {}; }).finally(() => { metasLendo = null; });
+    return null;
+  }
+  const metaNota = () => { lerMetas(); const m = Number(metas?.carteira_nota); return Number.isFinite(m) && m > 0 ? m : null; };
+  function metaSub() {
+    const m = metaNota();
+    if (estado.metaEditar && metas?.pode_editar) return ` · <span class="d3c-meta-ed"><input type="number" min="1" max="100" step="1" inputmode="numeric" value="${m ?? ''}" aria-label="Meta da nota média (1 a 100)" data-vc-meta-campo><button type="button" class="v2c-link" data-vc-meta-salvar>Salvar</button></span>`;
+    if (metas?.pode_editar) return ` · <button type="button" class="v2c-link" data-vc-meta>${m != null ? `meta ${m}` : 'definir meta'}</button>`;
+    return m != null ? ` · meta ${m}` : '';
+  }
   // ---------- Saúde ----------
   function serieHtml(h) {
     if (!estado.servidor?.historico?.disponivel) return nota('A média mês a mês começa a ser guardada quando a Carteira for ativada no banco.');
     if (h.serie.length < 2) return nota('A média mês a mês aparece a partir do segundo mês guardado.');
     // Direção 3: gráfico sempre em linha, com a meta de risco médio tracejada e os meses embaixo.
     const rotulo = `Média da carteira: ${h.serie.map((m) => `${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)} ${m.media}`).join(', ')}`;
-    return `<div class="d3c-serie">${d3Linha(h.serie.map((m) => m.media), { meta: S().REGRAS?.riscoMedio ?? null, largura: 560, altura: 120, rotulo })}
+    return `<div class="d3c-serie">${d3Linha(h.serie.map((m) => m.media), { meta: metaNota() ?? S().REGRAS?.riscoMedio ?? null, largura: 560, altura: 120, rotulo })}
       <div class="d3c-meses" aria-hidden="true">${h.serie.map((m) => `<span${m.agora ? ' class="agora"' : ''}><b>${m.media}</b>${m.mes.slice(5, 7)}/${m.mes.slice(2, 4)}</span>`).join('')}</div></div>`;
   }
   // ===== Saúde da carteira e Onboarding pelos quadros do moodboard (Paulo, 12/11/2026: "eu aprovei o DEPOIS") =====
@@ -413,11 +429,13 @@
     const v = h.variacao.media, mudou = v && v.direcao !== 'igual' && v.anterior != null ? `${v.direcao === 'sobe' ? 'subiu' : 'caiu'} ${Math.abs(v.delta)} no mês` : '';
     const riscoDaMedia = S().riscoDaNota(r.resumo.media ?? 0);
     const vencidasTotal = r.clientes.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0), vencidasBaixo = precisam.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0);
-    const serieMedia = (h.serie || []).map((m) => m.media);
+    // A média guardada dia a dia (server/series-historicas.js, série saude_media); com menos de 2 dias, a média mês a mês.
+    const diaria = typeof d3Series === 'function' && typeof d3SerieValores === 'function' ? d3SerieValores(d3Series('carteira', () => pintar())?.media) : null;
+    const serieMedia = diaria || (h.serie || []).map((m) => m.media);
     // Quatro números do quadro D3: nota média com a linha mês a mês, quem precisa de você, os tranquilos e as peças vencidas.
     const numeros = `<div class="v2c-tres d3c-quatro">
-        ${numD3({ rotulo: 'Nota média', valor: esc(r.resumo.media ?? '—'), de: ' / 100', tom: TOM_DO_RISCO[riscoDaMedia] || 'a', linha: d3Linha(serieMedia, { largura: 90, altura: 28, rotulo: 'Nota média mês a mês' }),
-          sub: `${plural(r.clientes.length, 'ativo', 'ativos')}${mudou ? ` · ${mudou}` : ''}` })}
+        ${numD3({ rotulo: 'Nota média', valor: esc(r.resumo.media ?? '—'), de: ' / 100', tom: TOM_DO_RISCO[riscoDaMedia] || 'a', linha: d3Linha(serieMedia, { meta: metaNota(), largura: 90, altura: 28, rotulo: diaria ? `Nota média dia a dia, ${diaria.length} dias` : 'Nota média mês a mês' }),
+          sub: `${plural(r.clientes.length, 'ativo', 'ativos')}${mudou ? ` · ${mudou}` : ''}${metaSub()}` })}
         ${numD3({ rotulo: 'Precisam de você', valor: precisam.length, de: ` / ${r.clientes.length}`, sub: `risco alto ou nota &lt; ${LIMITE_PRECISA}`, attrs: `data-vc-risco="precisam" aria-pressed="${estado.risco === 'precisam'}"` })}
         ${numD3({ rotulo: 'Tranquilos', valor: tranquilos.length, attrs: `data-vc-risco="todos" aria-pressed="${estado.risco === 'todos'}"`,
           sub: `${[...tranquilos].sort((a, b) => b.score - a.score).slice(0, 3).map((c) => `<span class="d3c-mini ${TOM_DO_RISCO[c.risco] || 'a'}" title="${esc(c.nome)}">${c.score}</span>`).join('')}${tranquilos.length ? 'recolhidos' : 'ninguém ainda'}` })}
@@ -784,7 +802,7 @@
       .sort((a, b) => Number(Boolean(b.l?.emBreve || b.l?.vencida)) - Number(Boolean(a.l?.emBreve || a.l?.vencida)) || a.x.score - b.x.score).slice(0, 2);
     const itemSem = (s) => {
       const formAqui = estado.form?.tipo === 'churn' && estado.form.id === s.id && estado.form.onde === 'acao';
-      return `<li class="v2k-acao"><span class="v2c-pill r">Sem motivo</span><p><span class="v2k-cli">${cliCor(s.nome)}</span> · desativado em ${esc(diaMes(s.saida))}${s.receita != null ? `, ${esc(reais(s.receita))} por mês` : ''} · falta o motivo</p>
+      return `<li class="v2k-acao"><span class="v2c-pill r">Sem motivo</span><p><span class="v2k-cli">${cliCor(s.nome)}</span> · saiu ${esc(diaMes(s.saida))}</p>${s.receita != null ? `<b class="d3k-acao-v">${esc(reais(s.receita))}</b>` : ''}
         ${pode && !formAqui ? botao('Classificar a saída', `data-vc-form-abrir="churn" data-vc-cli="${esc(s.id)}" data-vc-onde="acao"`) : ''}
         ${formAqui ? `<div class="v2k-acao-form">${porQueHtml(s)}${formChurn(s)}</div>` : ''}</li>`;
     };
@@ -799,7 +817,7 @@
     if (estado.ordem.churn === 'receita') lista = [...lista].sort((a, b) => (b.receita ?? -1) - (a.receita ?? -1));
     else if (estado.ordem.churn === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     const limite = estado.limite.churn || PAGINA_QUADRO, resto = lista.length - limite;
-    const quemSaiu = `<div class="v2c-card-topo v2k-quem-saiu"><h2>${estado.histCh ? 'Quem já saiu' : 'Quem saiu'} · ${lista.length}</h2><small>${r.todas.length ? ligacao(estado.histCh ? `só ${r.periodo.rotulo}` : 'mostrar o histórico', 'data-vc-hist-ch') : ''}</small></div>
+    const quemSaiu = `<div class="v2c-card-topo v2k-quem-saiu"><h2>${estado.histCh ? 'Quem já saiu' : 'Quem saiu'}</h2><small>${lista.length}${r.todas.length ? ' · ' : ''}${r.todas.length ? ligacao(estado.histCh ? `só ${r.periodo.rotulo}` : 'mostrar o histórico', 'data-vc-hist-ch') : ''}</small></div>
       ${lista.length ? `<div class="d3c-cab d3k-cab-saiu" aria-hidden="true"><span>Cliente</span><span>Tipo</span><span>Motivo</span><span>Na casa</span><span>Por mês</span></div><ol class="v2c-lista">${lista.slice(0, limite).map(linhaSaidaQ).join('')}</ol>${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, 'saída', 'saídas')} · ${ligacao('mostrar', 'data-vc-mais="churn"')}</p>` : ''}`
         : `<div class="v2c-vazio"><p>${termo || estado.filtroCh !== 'todas' ? 'Nenhuma saída neste filtro.' : estado.histCh ? 'Ninguém saiu até agora.' : `Ninguém saiu em ${periodo}.`}</p>${termo || estado.filtroCh !== 'todas' ? botao('Ver todas', 'data-vc-filtro-ch="todas" data-vc-limpar') : ''}</div>`}`;
     // Saídas e retenção: motivos, saídas por mês e a retenção por mês de entrada.
@@ -808,7 +826,7 @@
     const VISTAS = [['motivos', 'Motivos'], ['meses', 'Por mês'], ['retencao', 'Retenção']];
     if (!VISTAS.some(([k]) => k === estado.vistaCh)) estado.vistaCh = 'motivos';
     const contagem = [...r.porMotivo.map((m) => ({ rotulo: m.rotulo, vezes: base.filter((s) => s.motivo === m.motivo).length, cor: '#1F1D1A' })).sort((a, b) => b.vezes - a.vezes),
-      { rotulo: 'Sem motivo', vezes: base.filter((s) => !s.motivo).length, cor: '#B42318' }].filter((m) => m.vezes);
+      { rotulo: 'Sem motivo', vezes: base.filter((s) => !s.motivo).length, cor: '#B42318', semMotivo: true }].filter((m) => m.vezes);
     // Direção 3: gráficos em linha (saídas e entradas mês a mês), com o mês de cada ponto embaixo.
     const linhaMes = (campoM, titulo) => `<figure class="d3k-graf"><figcaption>${esc(titulo)} <b>${serie.meses.reduce((t, p) => t + (Number(p[campoM]) || 0), 0)}</b></figcaption>
       ${d3Linha(serie.meses.map((p) => Number(p[campoM]) || 0), { largura: 420, altura: 90, rotulo: `${titulo}: ${serie.meses.map((p) => `${mesCurto(p.mes)} ${Number(p[campoM]) || 0}`).join(', ')}` })}
@@ -816,17 +834,18 @@
     const vista = estado.vistaCh === 'meses' ? (serie && serie.meses.some((p) => Number(p.saidas) > 0 || Number(p.novos) > 0) ? `<div class="d3k-grafs">${linhaMes('saidas', 'Saíram')}${linhaMes('novos', 'Entraram')}</div>`
         : '<div class="v2c-vazio"><p>Ninguém saiu nem entrou nestes meses.</p></div>')
       : estado.vistaCh === 'retencao' ? cohortHtml(c)
-      : contagem.length ? `<div class="v2k-motivos">${contagem.map((m) => `<p class="v2k-mot"><span>${esc(m.rotulo)}</span><span class="v2c-sub">${m.vezes}</span></p><div class="v2-barra"><i style="--v:${Math.round((m.vezes / Math.max(1, base.length)) * 100)}%;--c:${m.cor}"></i></div>`).join('')}</div>`
+      : contagem.length ? `<div class="v2k-motivos">${contagem.map((m) => `<p class="v2k-mot${m.semMotivo ? ' d3k-sem' : ''}"><span>${esc(m.rotulo)}</span><span class="v2c-sub">${m.vezes}</span></p><div class="v2-barra"><i style="--v:${Math.round((m.vezes / Math.max(1, base.length)) * 100)}%;--c:${m.cor}"></i></div>`).join('')}</div>`
       : `<div class="v2c-vazio"><p>${estado.histCh ? 'Nenhuma saída até agora.' : `Nenhuma saída em ${periodo}.`}</p></div>`;
     const ultimos = serie ? serie.meses.slice(-6).filter((p) => Number(p.saidas) > 0).map((p) => mesCurto(p.mes)) : [];
     const totalSerie = serie ? serie.meses.reduce((t, p) => t + (Number(p.saidas) || 0), 0) : 0;
     const peDaVista = serie ? `${totalSerie ? `${plural(totalSerie, 'saída', 'saídas')} em ${serie.meses.length} meses${ultimos.length ? ` (${ultimos.length > 1 ? `${ultimos.slice(0, -1).join(', ')} e ${ultimos.at(-1)}` : ultimos[0]} nos últimos seis)` : ''}.` : `Ninguém saiu nos últimos ${serie.meses.length} meses.`} “Retenção” mostra quantos ficaram, por mês de entrada.` : '“Retenção” mostra quantos ficaram, por mês de entrada.';
-    const lado = `<section class="v2c-card v2k-lado" aria-label="Saídas e retenção"><h2>Saídas e retenção</h2>
-        <p class="v2k-seg"><span class="v2c-seg" role="group" aria-label="Ver">${VISTAS.map(([k, rot]) => `<button type="button" data-vc-vista-ch="${k}" aria-pressed="${estado.vistaCh === k}">${rot}</button>`).join('')}</span></p>
+    // Direção 3 (quadro D3-Churn): as abas Motivos / Por mês / Retenção no canto direito do título.
+    const lado = `<section class="v2c-card v2k-lado" aria-label="Saídas e retenção"><div class="d3k-lado-topo"><h2>Saídas e retenção</h2>
+        <span class="v2c-seg" role="group" aria-label="Ver">${VISTAS.map(([k, rot]) => `<button type="button" data-vc-vista-ch="${k}" aria-pressed="${estado.vistaCh === k}">${rot}</button>`).join('')}</span></div>
         <div class="v2k-vista">${vista}</div>${serie && estado.vistaCh !== 'meses' ? `<div class="d3k-pe-linha">${linhaMes('saidas', 'Saídas por mês')}</div>` : ''}<p class="d3c-so-leitor">${esc(peDaVista)}</p></section>`;
     const rodape = sv.churn?.disponivel ? '' : rodapeVazio('A classificação das saídas ainda não foi ligada.', 'As saídas já aparecem pela desativação do cliente; o motivo de cada uma passa a ser guardado quando estiver ligada.');
     return { topo, corpo: `${ajudaHtml}${registrar}${fala}${numeros}${filtros}
-      <div class="v2k-grade2 v2k-churn"><section class="v2c-card v2c-quadro v2k-esq" aria-label="Pede ação e quem saiu">${pedeAcao}${quemSaiu}</section>${lado}</div>${rodape}` };
+      <div class="v2k-grade2 v2k-churn"><div class="v2k-col-esq d3k-esq"><section class="v2c-card v2c-quadro v2k-esq" aria-label="Pede ação">${pedeAcao}</section><section class="v2c-card v2c-quadro d3k-quem" aria-label="Quem saiu">${quemSaiu}</section></div>${lado}</div>${rodape}` };
   }
   // Como o churn é contado: vai para "Como funciona".
   const COMO_CONTA_CHURN = 'Saída = desativação no cadastro (a data do registro de churn, quando houver). Entrada = início do contrato; sem ele, a data do cadastro.';
@@ -971,14 +990,16 @@
     // Pede ação: renovação vencida ou em 30 dias (na ordem da data) e, num item só, quem está sem contrato.
     const itemRenova = (l) => {
       const formAqui = estado.form?.tipo === 'contrato' && estado.form.id === l.id && estado.form.onde === 'acao', fc = contratoDaFin(l.id);
-      const pilula = l.vencida ? `<span class="v2c-pill r">Renovação vencida em ${esc(diaMes(l.renovacao))}</span>` : `<span class="v2c-pill a">${l.diasRenovacao ? `Renova em ${plural(l.diasRenovacao, 'dia', 'dias')}` : 'Renova hoje'}</span>`;
-      return `<li class="v2k-acao v2k-acao-ct"><div class="v2k-acao-tx">${pilula}<p><span class="v2k-cli">${cliCor(l.nome)}</span>${l.valor != null ? ` · ${esc(reais(l.valor))} por mês` : ''}${l.mesesLtv != null ? ` · na casa há ${esc(mesesTxt(l.mesesLtv))}` : ''}</p></div>
+      const pilula = l.vencida ? `<span class="v2c-pill r">Venceu em ${esc(diaMes(l.renovacao))}</span>` : `<span class="v2c-pill a">${l.diasRenovacao ? `Renova em ${plural(l.diasRenovacao, 'dia', 'dias')}` : 'Renova hoje'}</span>`;
+      // Direção 3 (quadro D3-Contratos): o nome e o valor numa linha curta, a etiqueta embaixo.
+      return `<li class="v2k-acao v2k-acao-ct"${l.mesesLtv != null ? ` title="${esc(`na casa há ${mesesTxt(l.mesesLtv)}`)}"` : ''}><div class="v2k-acao-tx"><p><span class="v2k-cli">${cliCor(l.nome)}</span>${l.valor != null ? ` · ${esc(reais(l.valor))}` : ''}</p>${pilula}</div>
         ${formAqui ? '' : !fc && pode ? botao('Renovar', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}" data-vc-onde="acao" data-vc-campo="renovacao"`) : botao('Abrir o cliente', `data-vc-cliente="${esc(l.nome)}"`)}
         ${formAqui ? `<div class="v2k-acao-form">${formContrato(l)}</div>` : ''}</li>`;
     };
     const renova = [...r.vencidas, ...r.emBreve].filter(naBusca), semC = r.linhas.filter((l) => !l.temContrato && naBusca(l));
-    const mostra = renova.slice(0, 2), sobra = renova.length - mostra.length, nAcao = renova.length + (semC.length ? 1 : 0);
-    const itemSem = semC.length ? `<li class="v2k-acao v2k-acao-ct"><div class="v2k-acao-tx"><span class="v2c-pill r">Sem contrato</span><p>${nomesEm(semC.map((l) => l.nome))} · ${semC.length === 1 ? 'ativo' : 'ativos'}, sem valor mensal nem início</p></div>
+    // Direção 3: Pede ação curto (a renovação mais perto e quem está sem contrato), para o Mês a mês ficar acima da dobra.
+    const mostra = renova.slice(0, 1), sobra = renova.length - mostra.length, nAcao = renova.length + (semC.length ? 1 : 0);
+    const itemSem = semC.length ? `<li class="v2k-acao v2k-acao-ct" title="sem valor mensal nem início"><div class="v2k-acao-tx"><p>${nomesEm(semC.map((l) => l.nome))}</p><span class="v2c-pill r">Sem contrato</span></div>
         ${botao(pode ? (semC.length === 1 ? 'Registrar o contrato' : `Registrar os ${semC.length}`) : semC.length === 1 ? 'Ver o cliente' : `Ver os ${semC.length}`, 'data-vc-filtro-ct="sem"')}</li>` : '';
     const pedeAcao = `<section class="v2c-card v2k-pede" aria-label="Pede ação">${cartaoTopo('Pede ação', nAcao ? `${nAcao}` : 'nada agora')}
       ${nAcao ? `<ol class="v2c-lista v2k-acoes">${mostra.map(itemRenova).join('')}${itemSem}</ol>${sobra > 0 ? `<p class="v2c-pe">+ ${plural(sobra, 'renovação', 'renovações')} · ${ligacao('mostrar', 'data-vc-filtro-ct="breve"')}</p>` : ''}`
@@ -993,7 +1014,7 @@
     const delta = ultimo && primeiroP ? (Number(ultimo[campo]) || 0) - (Number(primeiroP[campo]) || 0) : 0;
     const colunas = !mesAMesTemDado(serie) ? '<div class="v2c-vazio"><p>Sem data de entrada ainda.</p></div>'
       : `<p class="d3k-agora"><b>${esc(ultimo[campo] == null ? '—' : fmt(ultimo[campo]))}</b>${campo === 'ativos' || campo === 'novos' ? `<span class="${delta >= 0 ? 'd3c-g' : 'd3c-r'}">${delta >= 0 ? '+' : '−'}${Math.abs(delta)} em ${pontos.length} meses</span>` : ''}</p>
-        ${d3Linha(valores, { largura: 420, altura: 120, rotulo: `${rotSerie} mês a mês: ${pontos.map((p) => `${mesCurto(p.mes)} ${p[campo] == null ? 'sem dado' : fmt(p[campo])}`).join(', ')}` })}
+        ${d3Linha(valores, { largura: 420, altura: 84, rotulo: `${rotSerie} mês a mês: ${pontos.map((p) => `${mesCurto(p.mes)} ${p[campo] == null ? 'sem dado' : fmt(p[campo])}`).join(', ')}` })}
         <div class="d3c-meses" aria-hidden="true">${pontos.map((p) => `<span${p.agora ? ' class="agora"' : ''}${campo === 'novos' && Number(p.novos) ? ` data-espiar="carteira:mes:novos:${esc(p.mes)}"` : ''}>${mesCurto(p.mes)}</span>`).join('')}</div>`;
     const mesAMes = `<section class="v2c-card v2k-meses" aria-label="Mês a mês"><div class="v2k-meses-topo"><h2>Mês a mês</h2><span class="v2c-seg" role="group" aria-label="Série">${SERIES.map(([k, rot]) => `<button type="button" data-vc-serie-ct="${k}" aria-pressed="${estado.serieCt === k}">${rot}</button>`).join('')}</span></div>${colunas}</section>`;
     // Clientes ativos: a lista pela ficha, pela busca e pela ordem de "Filtros".
@@ -1109,6 +1130,15 @@
       fechar({ foco: false });
       if (typeof chooseManagerMode === 'function') chooseManagerMode('demandas');
       setTimeout(() => { try { if (typeof focarAtrasadas === 'function' && typeof currentDemandaAtrasadas !== 'undefined' && !currentDemandaAtrasadas) focarAtrasadas(); } catch { /* Demandas abre sem o filtro */ } }, 160);
+      return;
+    }
+    if ('vcMeta' in d) { estado.metaEditar = !estado.metaEditar; pintar(); estado.janela?.querySelector?.('[data-vc-meta-campo]')?.focus?.(); return; }
+    if ('vcMetaSalvar' in d) { // a meta da nota (só donos: a rota confere)
+      const campo = estado.janela?.querySelector?.('[data-vc-meta-campo]'), v = String(campo?.value || '').trim();
+      b.disabled = true;
+      fetch('/api/painel?area=metas', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ carteira_nota: v === '' ? null : Number(v) }) })
+        .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Não foi possível gravar a meta.'); metas = j; estado.metaEditar = false; pintar(); })
+        .catch((e) => { b.disabled = false; if (typeof showToast === 'function') showToast(e.message); });
       return;
     }
     if ('vcRecarregar' in d) return carregar();

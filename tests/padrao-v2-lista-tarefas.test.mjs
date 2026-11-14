@@ -9,7 +9,7 @@ const tela = js.slice(js.indexOf('// ===== Minhas tarefas pelo quadro D3-Tarefas
 
 test('a tela segue a ordem do quadro D3-Tarefas: topo, faixa do guia, números, lista e as duas colunas', () => {
   assert.ok(tela.length > 2000);
-  const ordem = ['<div class="d3h d3h-tf">', 'dir: `${diaDe}${segDono}${criarHtml}`', '${faixa}', '${numeros}', '<div class="d3h-col">${tarefas}</div>', 'decidirHtml()', 'agentesD3Html(', 'compromissosD3Html()', "whatsappD3Html('tarefas')", 'aprovacoesD3Html()'];
+  const ordem = ['<div class="d3h d3h-tf">', 'dir: `${diaDe}${segDono}`', '${faixa}', '${numeros}', '<div class="d3h-col">${tarefas}</div>', 'decidirHtml()', 'agentesD3Html(', 'compromissosD3Html()', "whatsappD3Html('tarefas')", 'aprovacoesD3Html()'];
   let p = -1; for (const parte of ordem) { const i = tela.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; }
   // O que o quadro não tem saiu da tela.
   for (const velho of ['vv-hoje-dias', 'vv-anel', 'data-pergunta', 'vv-chips', 'vv-blocos-prio', 'guiaHtml(']) assert.ok(!tela.includes(velho), `saiu ${velho}`);

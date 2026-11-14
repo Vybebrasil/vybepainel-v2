@@ -18,7 +18,7 @@ test('o CSS do grupo fica no fim do vybe-mundo.css, sem !important e sem html bo
 
 test('Equipe online: a ordem do quadro e as ações que já existiam', () => {
   const m = trecho('function mostrarEquipe()', 'const naEquipe =');
-  const ordem = ['<h1>Equipe online</h1>', 'data-equipe="conversa">Conversa da equipe', 'VYBES · Escritório', "kpi('Online agora'", "kpi('Recados sem ler'", "kpi('Missões do dia'", '<h2>Pede ação</h2>', '<h2>Missões do dia</h2>', '<h2>No prédio agora</h2>', 'Do Escritório:'];
+  const ordem = ['<h1>Equipe online</h1>', 'data-equipe="conversa">Conversa da equipe', 'VYBES · Escritório', "kpi('Online agora'", "kpi('Recados sem ler'", "kpi('Missões do dia'", '<h2>Pede ação</h2>', '<h2>Missões do dia</h2>', 'class="v2n-sub">Escritório</span>', '<h2>No prédio agora</h2>'];
   let ultimo = -1; for (const t of ordem) { const i = m.indexOf(t); assert.ok(i > ultimo, t); ultimo = i; }
   const predio = trecho('function predioAgoraHtml(D)', 'function mostrarEquipe()');
   assert.match(predio, /class="v2-abre v2e-sala" aria-expanded=/, 'a sala com mais de uma pessoa abre no lugar');

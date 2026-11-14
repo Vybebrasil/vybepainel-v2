@@ -14,6 +14,9 @@ import { configComercial, salvarMetas, gerarFormulario, desligarFormulario, ulti
 import { lancamentosDoFinancas } from './vybe-financas-api.js';
 import { ehDonoPessoa, ehAmploPessoa } from './donos.js';
 import { fonteLocal } from './financas-local.js';
+// Campos dos quadros D3 (14/11/2026): aviso aos sócios, forma do recebimento e campanhas dos creators (server/campos-d3.js).
+import { registrarAviso, avisosRecentes, salvarForma, formasDe, salvarCampanha, statusCampanha, campanhasDosCreators } from './campos-d3.js';
+import { garantirMigracoesCampos } from './migracoes-campos.js';
 
 export const ABAS_COMERCIAL = ['funil', 'pacotes', 'orcamentos', 'financas', 'creators', 'recebimentos', 'contas', 'inadimplencia', 'fornecedores', 'caixa'];
 // Dinheiro (Paulo, 13/11/2026): só os quatro donos. Fornecedores e o ajuste do funil (etapas, metas, capacidade, formulário)
@@ -22,10 +25,10 @@ export const ABAS_SO_DONOS = new Set(['financas', 'recebimentos', 'contas', 'ina
 export const ABAS_AMPLO = new Set(['fornecedores']);
 // Metas (MRR e avulso), capacidade, etapas e formulário do funil ficam com os donos: a tela só mostra a eles, e salvar
 // metas sem os valores do mês (que a coordenação não recebe) zerava as metas de dinheiro (confere de 13/11/2026).
-const ACOES_SO_DONOS = new Set(['pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'recebivel_receber', 'recebivel_proximo', 'recebivel_cancelar',
+const ACOES_SO_DONOS = new Set(['recebivel_forma', 'inadimplencia_avisar', 'pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'recebivel_receber', 'recebivel_proximo', 'recebivel_cancelar',
   'conta_salvar', 'conta_pagar', 'conta_cancelar', 'capacidade_salvar', 'etapas_salvar', 'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
 const ACOES_AMPLO = new Set(['fornecedor_salvar', 'fornecedor_arquivar']);
-const ACOES_COMERCIAL = new Set(['orcamento_criar', 'orcamento_status', 'creator_salvar', 'creator_arquivar']);
+const ACOES_COMERCIAL = new Set(['orcamento_criar', 'orcamento_status', 'creator_salvar', 'creator_arquivar', 'creator_campanha_salvar', 'creator_campanha_status']);
 // O financeiro (Paulo, 11/11/2026): com a fonte no banco do Vybe OS (VYBE_FINANCAS_FONTE=local), estas abas e ações são
 // só dos quatro donos; administração sem ser dono fica de fora. Pela ponte vale a regra de antes.
 export const ABAS_FINANCEIRO = new Set(['financas', 'recebimentos', 'contas', 'inadimplencia', 'caixa']);
@@ -92,20 +95,25 @@ async function oportunidadesDoFunil(sql) {
   try {
     linhas = await sql`SELECT o.id::text, o.nome, o.etapa, o.versao::text, o.valor_mensal::float8 AS valor_mensal, o.valor_avulso::float8 AS valor_avulso,
       o.pacote_id::text, o.proxima_acao, to_char(o.proxima_acao_data,'YYYY-MM-DD') AS proxima_acao_data, p.nome AS responsavel_nome, o.aprovada_por::text,
-      o.criado_em, o.encerrado_em, c.nome AS criado_por_nome, o.legado->>'origem' AS origem
+      o.criado_em, o.encerrado_em, c.nome AS criado_por_nome, o.legado->>'origem' AS origem, to_jsonb(o)->>'origem' AS origem_gravada,
+      EXISTS (SELECT 1 FROM vybe_crm_historico h WHERE h.oportunidade_id=o.id AND h.tipo='importacao') AS importada
       FROM vybe_crm_oportunidades o LEFT JOIN vybe_pessoas p ON p.id=o.responsavel LEFT JOIN vybe_pessoas c ON c.id=o.criado_por
       ORDER BY o.atualizado_em DESC, o.id DESC LIMIT 2000`;
   } catch (e) {
     if (e.code !== '42703') throw e; // sem as colunas novas: funil sem valor, ainda útil
     comValor = false;
     linhas = await sql`SELECT o.id::text, o.nome, o.etapa, o.versao::text, o.proxima_acao, to_char(o.proxima_acao_data,'YYYY-MM-DD') AS proxima_acao_data,
-      p.nome AS responsavel_nome, o.aprovada_por::text, o.criado_em, o.encerrado_em, c.nome AS criado_por_nome, o.legado->>'origem' AS origem
+      p.nome AS responsavel_nome, o.aprovada_por::text, o.criado_em, o.encerrado_em, c.nome AS criado_por_nome, o.legado->>'origem' AS origem, to_jsonb(o)->>'origem' AS origem_gravada,
+      EXISTS (SELECT 1 FROM vybe_crm_historico h WHERE h.oportunidade_id=o.id AND h.tipo='importacao') AS importada
       FROM vybe_crm_oportunidades o LEFT JOIN vybe_pessoas p ON p.id=o.responsavel LEFT JOIN vybe_pessoas c ON c.id=o.criado_por
       ORDER BY o.atualizado_em DESC, o.id DESC LIMIT 2000`;
   }
   for (const o of linhas) {
     o.criado_dia = diaNaBahia(o.criado_em); o.ganho_dia = o.etapa === 'ganho' ? diaNaBahia(o.encerrado_em) : null;
     delete o.criado_em; delete o.encerrado_em;
+    // De onde veio (14/11/2026): o gravado na criação; as antigas pelo legado (formulário) ou pelo histórico (importação do SDR).
+    o.origem_tipo = ['sdr', 'manual', 'formulario'].includes(o.origem_gravada) ? o.origem_gravada : o.origem === 'formulario' ? 'formulario' : o.importada ? 'sdr' : 'manual';
+    delete o.origem_gravada; delete o.importada;
     if (o.origem !== 'formulario') o.origem = null;
   }
   const perdas = await sql`SELECT DISTINCT ON (oportunidade_id) oportunidade_id::text, de_etapa, detalhes FROM vybe_crm_historico
@@ -158,20 +166,30 @@ async function lerFunil(sql, r, query = {}, hoje = hojeNaBahia()) {
     produtos: calc.produtoCampeao(linhas, lista), pacotes: lista.filter((p) => p.ativo).map(({ id, nome, tipo, preco, carga }) => ({ id, nome, tipo, preco, carga })),
     valor_disponivel: comValor, capacidade: await capacidadeOuNada(sql), mes: await mesComercial(sql, r, linhas, query, hoje) };
 }
+// Quando o orçamento virou aprovado (status 'aceito'): o registrado desde 14/11/2026 (aprovado_em) e, nos de antes, o
+// atualizado_em de quem está aceito (o orçamento só muda pelo status, então é a hora em que ele foi aceito).
+function comAprovacao(o) {
+  const { aprovado_registrado, aprovado_provavel, ...resto } = o;
+  const quando = o.status !== 'aceito' ? null : aprovado_registrado || aprovado_provavel;
+  const d = quando ? new Date(quando) : null, ok = d && Number.isFinite(d.getTime());
+  return { ...resto, aprovado_em: ok ? d.toISOString() : null, aprovado_dia: ok ? hojeNaBahia(d) : null,
+    aprovado_fonte: !ok ? null : aprovado_registrado ? 'registro' : 'atualizado_em' };
+}
 async function lerOrcamentos(sql, query) {
   if (query.id) {
     const [o] = await sql`SELECT o.id::text, o.cliente_nome, o.oportunidade_id::text, o.itens, o.desconto_percentual::float8 AS desconto_percentual,
-      to_char(o.validade,'YYYY-MM-DD') AS validade, o.observacoes, o.status, o.criado_em, p.nome AS criado_por_nome
+      to_char(o.validade,'YYYY-MM-DD') AS validade, o.observacoes, o.status, o.criado_em, p.nome AS criado_por_nome, to_jsonb(o)->>'aprovado_em' AS aprovado_registrado, CASE WHEN o.status='aceito' THEN o.atualizado_em END AS aprovado_provavel
       FROM vybe_comercial_orcamentos o LEFT JOIN vybe_pessoas p ON p.id=o.criado_por WHERE o.id=${idValido(query.id)}`;
     if (!o) falhar('Orçamento não encontrado.', 404);
-    return { orcamento: { ...o, totais: calc.totalOrcamento(o) } };
+    return { orcamento: { ...comAprovacao(o), totais: calc.totalOrcamento(o) } };
   }
   const lista = await sql`SELECT o.id::text, o.cliente_nome, o.itens, o.desconto_percentual::float8 AS desconto_percentual,
-    to_char(o.validade,'YYYY-MM-DD') AS validade, o.status, o.criado_em, p.nome AS criado_por_nome
+    to_char(o.validade,'YYYY-MM-DD') AS validade, o.status, o.criado_em, p.nome AS criado_por_nome,
+    to_jsonb(o)->>'aprovado_em' AS aprovado_registrado, CASE WHEN o.status='aceito' THEN o.atualizado_em END AS aprovado_provavel
     FROM vybe_comercial_orcamentos o LEFT JOIN vybe_pessoas p ON p.id=o.criado_por ORDER BY o.criado_em DESC, o.id DESC LIMIT 200`;
   // Oportunidades abertas do funil, para o orçamento nascer ligado a uma delas (auditoria 09/11, A2).
   const abertas = await Promise.resolve(sql`SELECT id::text, nome, etapa FROM vybe_crm_oportunidades WHERE etapa NOT IN ('ganho','perdido') ORDER BY nome LIMIT 500`).catch(() => []);
-  return { orcamentos: lista.map((o) => ({ ...o, totais: calc.totalOrcamento(o) })), oportunidades: abertas, pacotes: (await pacotes(sql, false)).filter((p) => p.ativo), capacidade: await capacidade(sql) };
+  return { orcamentos: lista.map((o) => ({ ...comAprovacao(o), totais: calc.totalOrcamento(o) })), oportunidades: abertas, pacotes: (await pacotes(sql, false)).filter((p) => p.ativo), capacidade: await capacidade(sql) };
 }
 async function lerFinancas(sql, hoje = hojeNaBahia(), pessoa = null) {
   const linhas = await sql`SELECT c.id::text AS cliente_id, c.nome AS cliente_nome, f.valor_mensal::float8 AS valor_mensal, f.pacote_id::text,
@@ -216,8 +234,11 @@ async function lerRecebimentos(sql, query, hoje, pessoa) {
   const fin = await doFinancas(sql, hoje, pessoa);
   const p = periodoDaConsulta(query, hoje), todos = fin ? fin.recebiveis : await RECEBIVEIS(sql);
   const clientes = await sql`SELECT id::text, nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;
-  const lista = todos.filter((r) => dentro(r.vencimento, p)).map((r) => ({ ...r, ...calc.statusRecebivel(r, hoje) }));
-  return { periodo: p, hoje, fonte: fin ? 'Vybe Finanças' : 'Vybe OS', resumo: calc.resumoRecebimentos(todos, p, hoje), recebiveis: lista, clientes, ciclos: Object.keys(calc.CICLOS) };
+  // Forma de pagamento (pix, boleto, cartão, transferência) e os avisos aos sócios: do nosso lado (server/campos-d3.js).
+  const doPeriodo = todos.filter((r) => dentro(r.vencimento, p)), formas = await formasDe(sql, doPeriodo.map((r) => r.id));
+  const lista = doPeriodo.map((r) => ({ ...r, forma: formas[String(r.id)] || null, ...calc.statusRecebivel(r, hoje) }));
+  return { periodo: p, hoje, fonte: fin ? 'Vybe Finanças' : 'Vybe OS', resumo: calc.resumoRecebimentos(todos, p, hoje), recebiveis: lista, clientes, ciclos: Object.keys(calc.CICLOS),
+    formas: ['pix', 'boleto', 'cartao', 'transferencia'], avisos: await avisosRecentes(sql) };
 }
 async function lerContas(sql, query, hoje, pessoa) {
   const fin = await doFinancas(sql, hoje, pessoa);
@@ -234,7 +255,7 @@ async function lerInadimplencia(sql, hoje, pessoa) {
   // Junta o status de pagamento informado à mão em Finanças por cliente (não muda as faturas).
   const manuais = await sql`SELECT f.cliente_id::text, c.nome AS cliente_nome, f.status_pagamento FROM vybe_comercial_financas_cliente f
     JOIN vybe_clientes c ON c.id=f.cliente_id WHERE f.status_pagamento <> 'em_dia' ORDER BY c.nome`;
-  return { hoje, fonte: fin ? 'Vybe Finanças' : 'Vybe OS', ...r, marcados_a_mao: manuais };
+  return { hoje, fonte: fin ? 'Vybe Finanças' : 'Vybe OS', ...r, marcados_a_mao: manuais, avisos: await avisosRecentes(sql) };
 }
 async function lerCaixa(sql, hoje, pessoa) {
   const fin = await doFinancas(sql, hoje, pessoa);
@@ -262,10 +283,14 @@ async function lerFornecedores(sql) {
   const vazio = { abertas: 0, atrasadas: 0, entregues: 0 };
   return { fornecedores: lista.map((f) => ({ ...f, impressoes: (({ id, ...r }) => r)(porId.get(f.id) || { id: null, ...vazio }) })), categorias: calc.CATEGORIAS_FORNECEDOR };
 }
-async function lerCreators(sql) {
+async function lerCreators(sql, hoje = hojeNaBahia()) {
   const lista = await sql`SELECT id::text, nome, arroba, seguidores, engajamento::float8 AS engajamento, nicho, cidade, contato, observacoes
     FROM vybe_comercial_creators WHERE ativo ORDER BY seguidores DESC, nome LIMIT 2000`;
-  return { creators: lista, opcoes: calc.opcoesCreators(lista) };
+  // Campanhas (14/11/2026): cada creator leva as dele e se está em campanha hoje.
+  const k = await campanhasDosCreators(sql, hoje), por = new Map();
+  for (const c of k.campanhas) { if (!por.has(c.creator_id)) por.set(c.creator_id, []); por.get(c.creator_id).push(c); }
+  const creators = lista.map((c) => { const cs = por.get(c.id) || []; return { ...c, campanhas: cs, em_campanha: cs.some((x) => x.em_campanha) }; });
+  return { creators, opcoes: calc.opcoesCreators(lista), campanhas_disponivel: k.disponivel };
 }
 
 export async function lerComercial(sql, pessoa, query = {}, { hoje = hojeNaBahia() } = {}) {
@@ -284,7 +309,7 @@ export async function lerComercial(sql, pessoa, query = {}, { hoje = hojeNaBahia
     : aba === 'inadimplencia' ? await lerInadimplencia(sql, hoje, pessoa)
     : aba === 'fornecedores' ? await lerFornecedores(sql)
     : aba === 'caixa' ? await lerCaixa(sql, hoje, pessoa)
-    : await lerCreators(sql);
+    : await lerCreators(sql, hoje);
   return { aba, pode: { ver_dinheiro: r.dono, editar_comercial: r.comercial, editar_pacotes: r.dono }, ...dados };
 }
 
@@ -492,6 +517,19 @@ async function salvarCapacidade(sql, quem, b) {
     return { cargos: linhas.length };
   });
 }
+// Status do orçamento; virar aprovado grava quando e quem (aprovado_em, 14/11/2026). Sair de aprovado limpa os dois.
+async function statusOrcamento(sql, pessoa, status, oid) {
+  await garantirMigracoesCampos(sql);
+  try {
+    return await marcar(sql, sql`UPDATE vybe_comercial_orcamentos SET status=${status}, atualizado_em=now(),
+      aprovado_em = CASE WHEN ${status}='aceito' THEN (CASE WHEN status='aceito' THEN COALESCE(aprovado_em, now()) ELSE now() END) ELSE NULL END,
+      aprovado_por = CASE WHEN ${status}='aceito' THEN (CASE WHEN status='aceito' THEN COALESCE(aprovado_por, ${pessoa.id}::bigint) ELSE ${pessoa.id}::bigint END) ELSE NULL END
+      WHERE id=${oid} RETURNING id::text`);
+  } catch (e) {
+    if (e?.code !== '42703') throw e; // sem a coluna ainda: o status grava como antes
+    return marcar(sql, sql`UPDATE vybe_comercial_orcamentos SET status=${status},atualizado_em=now() WHERE id=${oid} RETURNING id::text`);
+  }
+}
 async function marcar(sql, consulta, id) { const [r] = await consulta; if (!r) falhar('Registro não encontrado.', 404); return { id: r.id }; }
 
 export async function escreverComercial(sql, pessoa, b = {}, { hoje = hojeNaBahia() } = {}) {
@@ -501,6 +539,9 @@ export async function escreverComercial(sql, pessoa, b = {}, { hoje = hojeNaBahi
   if (ACOES_SO_DONOS.has(acao) && !r.dono) falhar('O financeiro é só dos donos.', 403);
   if (ACOES_AMPLO.has(acao) && !ehAmploPessoa(pessoa)) falhar('Só os donos e a coordenação mexem aqui.', 403);
   if (ACOES_COMERCIAL.has(acao) && !r.comercial) falhar('Só a administração, os donos e a equipe comercial editam aqui.', 403);
+  // Forma do recebimento e aviso aos sócios são do nosso lado (valem também para o lançamento que vem do Finanças).
+  if (acao === 'recebivel_forma') return salvarForma(sql, pessoa, b);
+  if (acao === 'inadimplencia_avisar') return registrarAviso(sql, pessoa, b);
   // Lançamento que veio do Vybe Finanças (id "fin:…") só se mexe lá: aqui ele é leitura.
   if (ACOES_FINANCEIRO.has(acao) && fonteLocal() && !ehDonoPessoa(pessoa)) falhar('O financeiro é só dos donos.', 403);
   if (ehDoFinancas(b.id)) falhar('Este lançamento vem do Vybe Finanças: dê baixa ou edite lá. O Vybe OS só mostra.', 409);
@@ -510,9 +551,11 @@ export async function escreverComercial(sql, pessoa, b = {}, { hoje = hojeNaBahi
   switch (acao) {
     case 'pacote_salvar': return salvarPacote(sql, pessoa, b);
     case 'orcamento_criar': return criarOrcamento(sql, pessoa, b);
-    case 'orcamento_status': return marcar(sql, sql`UPDATE vybe_comercial_orcamentos SET status=${umDe(b.status, ['rascunho', 'enviado', 'aceito', 'recusado'], 'Status')},atualizado_em=now() WHERE id=${id()} RETURNING id::text`);
+    case 'orcamento_status': return statusOrcamento(sql, pessoa, umDe(b.status, ['rascunho', 'enviado', 'aceito', 'recusado'], 'Status'), id());
     case 'financas_salvar': return salvarFinancas(sql, pessoa, b);
     case 'creator_salvar': return salvarCreator(sql, pessoa, b);
+    case 'creator_campanha_salvar': return salvarCampanha(sql, pessoa, b);
+    case 'creator_campanha_status': return statusCampanha(sql, b);
     case 'creator_arquivar': return marcar(sql, sql`UPDATE vybe_comercial_creators SET ativo=false,atualizado_em=now() WHERE id=${id()} RETURNING id::text`);
     case 'recebivel_salvar': return salvarRecebivel(sql, pessoa, b);
     case 'recebivel_receber': return receber(sql, b);

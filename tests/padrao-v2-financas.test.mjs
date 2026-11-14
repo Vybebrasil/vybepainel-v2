@@ -49,7 +49,9 @@ test('Recebimentos: ordem do quadro D3, selo, bloco de ação, três números, f
   assert.match(acao, /Ver em outubro/, 'a de outro mês leva ao mês dela, sem editar por aqui');
   assert.match(acao, /data-vc="cancelar-rec" data-id="1"/, 'a do período continua com editar e cancelar');
   const lista = html.slice(html.indexOf('data-fv-card="lista"'));
-  assert.match(lista, /class="d3f-cab"[\s\S]*Cliente[\s\S]*Tipo[\s\S]*Valor[\s\S]*Situação/);
+  assert.match(lista, /class="d3f-cab"[\s\S]*Cliente[\s\S]*Contrato[\s\S]*Forma[\s\S]*Valor[\s\S]*Situação/, 'colunas do quadro D3-Recebimentos');
+  assert.match(lista, /class="d3f-meio d3f-forma">–</, 'sem forma de pagamento na fatura, o traço curto');
+  assert.match(acao, /Sócios avisados[\s\S]*sem registro ainda/, 'o rodapé do quadro com o vazio honesto');
   assert.doesNotMatch(lista, /data-linha="1"/, 'a atrasada do período está só no Pede ação');
   assert.match(lista, /Vence 24\/11/); assert.match(lista, /Recebido · 05\/11/); assert.doesNotMatch(lista, /Cliente E/, 'cancelada só em Filtros');
   assert.doesNotMatch(html, /A baixa é manual|uma linha por fatura/, 'sem frase explicativa');
@@ -100,9 +102,21 @@ test('Inadimplência: três números, cliente com Recebi de um toque, a régua p
   assert.match(html, /quinta, 12 nov/, 'a data ao lado do título');
   assert.match(html, /O mais antigo[\s\S]*18<small class="d3f-de"> \/ 30 dias[\s\S]*--v:60%[\s\S]*venceu 25\/10/); assert.match(html, /Até 7 dias <b>0</); assert.match(html, /8 a 30 dias <b>2</);
   assert.match(html, /Clientes em atraso[\s\S]*data-fv="receber" data-valor="9"[\s\S]*data-vc="receber" data-id="9">Recebi uma parte/);
-  assert.match(html, /Régua do atraso/); assert.equal(html.match(/class="fv2-pt /g).length, 2, 'uma bolinha por cliente');
+  assert.match(html, /Régua de avisos/); assert.equal(html.match(/class="fv2-pt /g).length, 2, 'uma bolinha por cliente');
+  assert.match(html, />3 d<[\s\S]*>10 d<[\s\S]*>30 d</, 'as marcas de 3, 10 e 30 dias do quadro');
+  assert.match(html, /10 dias<\/span><p>Os quatro sócios<\/p><b class="d3f-conta">1</);
+  assert.match(html, /d3f-total[\s\S]*Total/, 'o total no rodapé');
   assert.match(html, /Em atraso · 6 meses[\s\S]*class="d3-graf"/, 'o atraso por mês do vencimento em linha');
-  assert.doesNotMatch(html, /Avisar o sócio|Régua de avisos|Sem aviso/, 'o aviso aos sócios não existe no sistema: a tela não promete');
+  // Sem o registro de avisos (servidor antigo, sem a tabela): nenhum botão de aviso e o rodapé com o vazio honesto.
+  assert.doesNotMatch(html, /Avisar o sócio|Avisar de novo|Sem aviso/, 'sem o registro, a régua conta as faixas e não promete aviso');
+  assert.match(html, /Sócios avisados<\/span><span class="d3f-vazio">sem registro ainda/);
+  // Com o registro (vybe_financeiro_avisos, 14/11/2026): N× ao lado do sócio, "Avisar de novo" / "Avisar o sócio", "Sem aviso" e as iniciais.
+  const av = { disponivel: true, lista: [{ id: 'a1', cliente_id: faturas[0].cliente_id, cliente_nome: faturas[0].cliente_nome, nivel: 10, quem_nome: 'Paulo Martins', para: ['Vinícius'], em: new Date().toISOString() }],
+    contagem_por_cliente: { ['id:' + faturas[0].cliente_id]: 1 } };
+  const comAviso = F.telas.inadimplencia({ d: { ...d, avisos: av }, filtro: {}, admin: false });
+  assert.match(comAviso, /<small class="d3f-nav"[^>]*>1×<\/small>/); assert.match(comAviso, />Avisar de novo<\/button>/); assert.match(comAviso, />Avisar o sócio<\/button>/);
+  assert.match(comAviso, />Sem aviso <b[^>]*>1</); assert.match(comAviso, /Sócios avisados<\/span><span class="d3f-av" title="Paulo Martins">PA<\/span><span class="d3f-av" title="Vinícius">VI</);
+  assert.match(comAviso, /data-fv="avisar" data-cliente-id="[^"]*" data-cliente-nome="Cliente B" data-atraso="9">Avisar o Ewerton|data-fv="avisar"[^>]*>Avisar o (sócio|Vinícius|Ewerton)/, 'o bloco de ação pede o aviso de quem ninguém avisou');
   assert.doesNotMatch(html, /ver o que falta/, 'o que falta ligar é só para quem administra');
   assert.match(html, /data-vc="ajuda">Como funciona/); assert.match(html, /data-fv="ir" data-valor="recebimentos">Ver recebimentos/);
   assert.match(F.telas.inadimplencia({ d: { hoje: HOJE, clientes: [], faturas: [], marcados_a_mao: [] }, filtro: {} }), /fv2-vz[\s\S]*Ninguém em atraso/);

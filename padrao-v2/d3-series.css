@@ -1,0 +1,42 @@
+/* Séries históricas nos quadros D3 (14/11/2026): as linhas que antes ficavam em "sem histórico ainda" e agora vêm de
+   vybe_serie_diaria (server/series-historicas.js). Só o que é novo: a linha da Saúde na ficha, o Score por semana, a
+   carga com o limite na Visão do setor e a carga por mês do Comercial. As cores são as do 0-d3-base.css. */
+
+/* Ficha do cliente · Saúde: a linha no lugar do tracejado, com o "desde" embaixo. */
+#painel-clientes .d3f-hist{display:grid;gap:2px;min-height:28px}
+#painel-clientes .d3f-hist .d3-graf{max-height:40px}
+#painel-clientes .d3f-hist > small{font-size:11.5px;color:var(--d3-apagado,#6B665E)}
+
+/* Pessoas · Produtividade · Score por semana: linha larga, a do mês anterior tracejada, as semanas embaixo. */
+#vv-pessoas.v2p-janela .v2p-semana .d3p-leg{display:inline-flex;gap:10px;font-size:12px;color:var(--d3-apagado)}
+#vv-pessoas.v2p-janela .v2p-semana .d3p-semana-g{margin:10px 0 0}
+#vv-pessoas.v2p-janela .v2p-semana .d3p-semana-g .d3-graf{height:96px;width:100%}
+#vv-pessoas.v2p-janela .v2p-semana .d3p-semana-x{display:flex;justify-content:space-between;gap:6px;margin-top:8px;font-size:12px;color:var(--d3-apagado);font-variant-numeric:tabular-nums}
+#vv-pessoas.v2p-janela .v2p-semana .d3p-semana-x .agora b{color:var(--d3-tinta)}
+
+/* Visão do setor · Pessoas e carga: o limite tracejado; passou do limite, linha e número em vermelho. */
+.d3s-leg.meta{margin-left:10px}
+.d3s-leg.meta::before{content:'- - ';letter-spacing:-1px}
+.d3s-pes.acima .d3-graf polyline:not(.meta){stroke:var(--d3-perigo)}
+.d3s-pes.acima .d3-graf circle{fill:var(--d3-perigo)}
+.d3s-pes.acima .d3s-pes-n{color:var(--d3-perigo)}
+.d3s-limite-btn{margin-left:8px;padding:0;border:0;background:none;font:inherit;font-size:12px;color:var(--d3-tinta);text-decoration:underline;cursor:pointer}
+.d3s-limite{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;border-top:1px solid var(--d3-linha);font-size:13px}
+.d3s-limite[hidden]{display:none}
+.d3s-limite input{width:64px;margin-left:6px;padding:4px 6px;border:1px solid var(--d3-borda,#D8D2C6);border-radius:8px;font:inherit}
+.d3s-limite-msg{color:var(--d3-apagado)}
+
+/* Comercial · Pacotes · Carga do cargo: a linha por mês com a capacidade tracejada. */
+#vv-comercial.v2c.d3c .d3c-carga-g.d3c-carga-linha{display:grid;place-items:stretch;height:auto;padding:8px 0;gap:4px}
+#vv-comercial.v2c.d3c .d3c-carga-linha svg.d3-graf{width:100%;height:64px}
+#vv-comercial.v2c.d3c .d3c-carga-x{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--d3-apagado)}
+
+/* Agentes · cabeçalho: a meta de acerto (só os donos) abre num cartão pequeno embaixo do botão. */
+.d3t-meta{position:relative}
+.d3t-meta > summary{list-style:none;cursor:pointer}
+.d3t-meta > summary::-webkit-details-marker{display:none}
+.d3t-meta-form{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:240px;padding:10px 12px;border:1px solid var(--d3-linha,#E6E0D6);border-radius:12px;background:var(--d3-cartao,#fff);box-shadow:0 8px 24px rgba(0,0,0,.08);font-size:13px}
+.d3t-meta-form input{width:60px;margin:0 4px 0 6px;padding:4px 6px;border:1px solid var(--d3-borda,#D8D2C6);border-radius:8px;font:inherit}
+.d3t-meta-msg{flex-basis:100%;color:var(--d3-apagado)}
+/* Visão do setor · limite por pessoa: um campo por pessoa ao lado do padrão. */
+.d3s-limite label{display:inline-flex;align-items:center;white-space:nowrap}

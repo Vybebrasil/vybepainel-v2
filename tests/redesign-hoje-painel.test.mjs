@@ -44,7 +44,7 @@ test('Hoje sem fila: pergunta de quem é o dia, guia do VYBES, agenda de hoje e 
   // Com a fila, o lado continua com os atalhos e ganha a agenda (quando não há compromissos) e os agentes.
   // Direção 3: compromissosD3Html cai na agenda de hoje quando a pessoa não tem compromisso.
   assert.match(pintar, /compromissosD3Html\(\)/);
-  assert.match(funcao(src, 'compromissosD3Html'), /if \(!lista\.length\) return agendaD3Html\(\);/);
+  assert.match(funcao(src, 'compromissosD3Html'), /if \(!lista\.length\) return agendaD3Html\(\{ titulo: 'Compromissos' \}\);/);
   // Quadro B2 do moodboard (12/11/2026): a tela com a fila não tem mais a fileira de atalhos; a ação continua existindo.
   assert.match(src, /if \(acao === 'pedido_rh'\)/, 'a solicitação ao RH continua atendida (abre pelo módulo de RH)');
   assert.match(pintar, /botaoDeBriefingHtml\(x\.d\)/, 'as peças seguem com briefing, material, entrega e roteiro na linha aberta');

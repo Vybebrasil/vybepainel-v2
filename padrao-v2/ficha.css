@@ -293,3 +293,35 @@
   :is(#painel-clientes,#vv-reunioes) :is(.v2f-ag,.v2r-ag)::after{animation:none}
   :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn),#painel-clientes .v2f-vai > svg{transition:none}
 }
+
+/* Fiel ao quadro */
+/* Ficha do cliente (D3-FichaCliente): a faixa de cima com Saúde, Clima do grupo e Onboarding. */
+#painel-clientes .v2f-corpo > .d3f-faixa{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);gap:12px}
+#painel-clientes .d3f-faixa > .v2f-card{margin:0;padding:14px 16px;border-radius:20px;min-width:0}
+#painel-clientes .d3f-faixa > .v2f-saude.d3f-faixa-saude{display:flex;align-items:center;gap:16px;padding-left:22px}
+#painel-clientes .d3f-faixa-num{flex:none;display:flex;flex-direction:column;gap:2px}
+#painel-clientes .d3f-faixa-num > .v2f-sub{font-size:12.5px}
+#painel-clientes .d3f-faixa-num > .v2f-nota{font-size:52px}
+#painel-clientes .d3f-faixa-risco{font:600 12.5px var(--vv-texto,Inter),sans-serif}
+#painel-clientes .d3f-faixa-meio{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+#painel-clientes .d3f-sem-hist{margin:0;height:40px;display:flex;align-items:center;border-top:1.5px dashed #B5AFA5;font-size:12px;color:var(--d3-apagado,#6B665E)}
+#painel-clientes .d3f-faixa .v2f-pills{gap:5px}
+#painel-clientes .v2f-pill.d3f-mot{background:#F3F1EC;color:#4A463F}
+#painel-clientes .v2f-pill.d3f-mot > b{color:#B42318}
+#painel-clientes .d3f-faixa-card{display:flex;flex-direction:column;gap:8px}
+#painel-clientes .d3f-faixa-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#painel-clientes .d3f-faixa-topo > b{font:600 15px var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#painel-clientes .d3f-faixa-quando{display:inline-flex;align-items:center;gap:6px}
+#painel-clientes .d3f-ag{width:20px;height:20px;border-radius:999px;background:#6E56CF;color:#FFFFFF;display:inline-flex;align-items:center;justify-content:center;font:700 10px Inter,sans-serif}
+#painel-clientes .d3f-faixa-v{font:700 36px/1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;color:#1F1D1A}
+#painel-clientes .d3f-faixa-v > small{font-size:17px;font-weight:600;color:#6B665E}
+#painel-clientes .d3f-faixa-barra{display:block}
+#painel-clientes .d3f-faixa-barra > i{background:#11613A}
+#painel-clientes :is(.d3f-faixa-pe,.d3f-faixa-vazio){margin:0;font-size:12.5px;color:#4A463F}
+#painel-clientes .d3f-faixa-vazio{color:#6B665E}
+@container v2f (max-width:900px){#painel-clientes .v2f-corpo > .d3f-faixa{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#painel-clientes .d3f-faixa > .d3f-faixa-saude{grid-column:1 / -1}}
+@media (max-width:720px){#painel-clientes .v2f-corpo > .d3f-faixa{grid-template-columns:minmax(0,1fr)}#painel-clientes .d3f-faixa > .v2f-saude.d3f-faixa-saude{flex-wrap:wrap}}
+#painel-clientes .d3f-faixa .v2f-pill{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .d3f-faixa-meio > .d3f-sem-hist{height:28px}
+#painel-clientes .d3f-faixa .v2f-pill.d3f-mot{display:inline-block;line-height:22px}
+#painel-clientes .d3f-faixa .v2f-pill.d3f-mot > b{margin-right:5px}

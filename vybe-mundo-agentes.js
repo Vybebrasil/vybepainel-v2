@@ -51,10 +51,45 @@
     if (p.lendo || (!forcar && Date.now() - p.em < 30e3)) return p.lendo || Promise.resolve();
     p.em = Date.now();
     p.lendo = fetch(`/api/painel?area=vybes&etapa=perfil&setor=${encodeURIComponent(setor)}`, { credentials: 'same-origin', cache: 'no-store' })
-      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok || !d.perfil) throw new Error(d.error || 'Sem perfil da central agora.'); p.dados = d; p.erro = ''; })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok || !d.perfil) throw new Error(d.error || 'Sem perfil da central agora.'); p.dados = d; p.erro = ''; guardarAcerto(setor, d.perfil?.numeros?.acerto); })
       .catch((e) => { p.erro = e.message; }).finally(() => { p.lendo = null; if (st.aberto && st.setor === setor) pintar(); });
     return p.lendo;
   }
+  // O acerto mora na central do VYBES, não no banco do Vybe OS: o que a tela leu vai para a série acerto_agente
+  // (server/series-historicas.js, POST area=series acao=acerto), um valor por agente por dia. Junta as leituras de 1,5 s
+  // num pedido só e não repete o mesmo valor no mesmo dia.
+  const acertoGuardado = new Set(), acertoFila = {};
+  let acertoTimer = null;
+  function guardarAcerto(setor, n) {
+    if (typeof n !== 'number' || !Number.isFinite(n) || !/^[a-z]{2,20}$/.test(String(setor))) return;
+    const chave = `${setor}:${new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' })}:${Math.round(n * 10)}`;
+    if (acertoGuardado.has(chave)) return;
+    acertoGuardado.add(chave); acertoFila[setor] = n;
+    clearTimeout(acertoTimer);
+    acertoTimer = setTimeout(() => {
+      const agentes = { ...acertoFila }; for (const k of Object.keys(acertoFila)) delete acertoFila[k];
+      fetch('/api/painel?area=series', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'acerto', agentes }) }).catch(() => {});
+    }, 1500);
+  }
+  // A meta de acerto (vybe_carteira_config 'meta_acerto_agentes'): no cabeçalho da fila, só para os donos; o servidor também
+  // recusa quem não é dono (POST area=series acao=meta_acerto). A linha de cada agente desenha a meta tracejada.
+  function metaHtml() {
+    if (st.vista !== 'fila' || !souDono()) return '';
+    const S = seriesAg(), meta = S?.meta?.meta;
+    if (meta == null) return '';
+    return `<details class="d3t-meta"><summary class="v2g-btn s">Meta de acerto · ${esc(meta)}%</summary><form class="d3t-meta-form" data-vga-meta>
+      <label>Meta <input type="number" name="meta" min="1" max="100" step="1" inputmode="numeric" value="${esc(meta)}" required>%</label><button type="submit" class="v2g-btn s k">Salvar</button><small class="d3t-meta-msg" role="status"></small></form></details>`;
+  }
+  function salvarMeta(f) {
+    const msg = f.querySelector('.d3t-meta-msg'), b = f.querySelector('button'); if (b) b.disabled = true; if (msg) msg.textContent = 'Salvando…';
+    fetch('/api/painel?area=series', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ acao: 'meta_acerto', meta: Number(new FormData(f).get('meta')) }) })
+      .then((r) => r.json().catch(() => ({})).then((d) => { if (!r.ok) throw new Error(d.error || 'Não deu para salvar a meta.'); }))
+      .then(() => { if (G.D3_SERIES?.agentes) G.D3_SERIES.agentes.em = 0; seriesAg(); })
+      .catch((e) => { if (msg) msg.textContent = e.message; if (b) b.disabled = false; });
+  }
+  // A série do acerto guardada (dia a dia) e a meta dos donos; lida uma vez a cada 5 minutos (d3Series, vybe-core.js).
+  const seriesAg = () => (typeof G.d3Series === 'function' ? G.d3Series('agentes', () => { if (st.aberto) pintar(); }) : null);
+  function serieDoAcerto(setor) { const S = seriesAg(); const v = S && typeof G.d3SerieValores === 'function' ? G.d3SerieValores(S.acerto?.[setor]) : null; return v ? { valores: v.slice(-30), meta: S.meta?.meta ?? null } : null; }
   // "hoje 19:31", "amanhã 08:00", "qua 08:00": cabe na coluna da hora.
   const horaCurta = (iso) => { const d = new Date(iso); if (isNaN(d)) return ''; const dia = (x) => x.toLocaleDateString('sv-SE', { timeZone: 'America/Bahia' }), hoje = dia(new Date()), am = dia(new Date(Date.now() + 864e5));
     const h = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }); return `${dia(d) === hoje ? 'hoje' : dia(d) === am ? 'amanhã' : d.toLocaleDateString('pt-BR', { timeZone: 'America/Bahia', weekday: 'short' }).replace('.', '')} ${h}`; };
@@ -422,6 +457,18 @@
     const base = typeof G.d3NumHtml === 'function' ? G.d3NumHtml(o) : `<div class="d3-num"><span class="d3-num-rot">${esc(o.rotulo)}</span><b class="d3-num-v">${o.valor}</b></div>`;
     return sub ? base.replace(/<\/(div|button)>$/, `<span class="d3t-sub">${sub}</span></$1>`) : base;
   }
+  // "Sair da sombra" (quadro D3-PerfilAgente): as decisões dos donos em 14 dias contra a régua de 20 que a central usa
+  // (core/perfil-agente.js: 20 decisões e aceitação de 70% para sugerir autonomia). Quem já age sozinho ou ainda é
+  // planejado não tem régua a cumprir.
+  const REGUA_SOMBRA = 20;
+  function sairDaSombra(modo, n) {
+    const rotulo = 'Sair da sombra';
+    if (modo?.id !== 'sombra') return { rotulo, valor: '—', sub: modo?.id === 'planejado' ? 'planejado' : 'já age sozinho' };
+    const dec = Number(n?.decididas14d);
+    if (!Number.isFinite(dec)) return { rotulo, valor: '—', sub: 'sem decisão contada' };
+    return { rotulo, valor: `${dec}<small> / ${REGUA_SOMBRA} decisões</small>`, barra: Math.min(100, dec / REGUA_SOMBRA * 100),
+      sub: n.aceitacao != null ? `aceitação ${Math.round(n.aceitacao)}%` : '14 dias' };
+  }
   // "há 6 h", "há 2 dias": a idade do pedido mais antigo.
   const idade = (iso) => { const ms = Date.now() - Date.parse(iso); if (!(ms >= 0)) return ''; const h = Math.round(ms / 3600e3); return h < 1 ? 'há menos de 1 h' : h < 48 ? `há ${h} h` : `há ${Math.round(h / 24)} dias`; };
   const maisAntigo = (itens) => itens.map((it) => String(it.em || '')).filter(Boolean).sort()[0] || '';
@@ -463,15 +510,20 @@
     const meus = F.decidir.filter((it) => (it.vistos || [it]).some((v) => v.setor === s.id));
     const aperta = meus.some((it) => it.tipo === 'falha' || (it.tipo === 'aprovacao' && horasAte(it.p.expiraEm) <= 6));
     // 10 · Cor do humor: a taxa de acerto do agente pinta o cartão (sem nota, fica neutro).
-    // Direção 3: a linha do agente é bolinha lilás, nome e área, a pílula do estado, os pedidos e o acerto; a barra
-    // fina do acerto cresce ao abrir (a central não manda a série diária do acerto para desenhar a linha).
+    // Direção 3 (quadro D3-Agentes): a linha do agente é bolinha lilás, nome e área, a pílula do estado, os pedidos, a
+    // linha das execuções concluídas por dia (o histórico de 14 dias do perfil) e o acerto. Sem histórico, a barra do acerto.
     void barra;
+    // O acerto guardado dia a dia (série acerto_agente, com a meta dos donos) vem primeiro; sem ele, as execuções por dia.
+    const sa = serieDoAcerto(s.id);
+    const hist = Object.entries(st.perfis[s.id]?.dados?.perfil?.historico || {}).sort().slice(-14).map(([, v]) => Number(v?.concluidas) || 0);
+    const serie = !sa ? (hist.length > 1 ? d3Linha(hist, { largura: 72, altura: 20, rotulo: `Execuções concluídas por dia de ${s.agente} em ${hist.length} dias` }) : '')
+      : d3Linha(sa.valores, { meta: sa.meta, largura: 72, altura: 20, rotulo: `Acerto de ${s.agente} dia a dia em ${sa.valores.length} dias${sa.meta != null ? `, meta ${sa.meta}%` : ''}` });
     return `<button type="button" class="v2a-agl d3t-agl${nota != null ? ' v2-humor' : ''}"${nota != null && typeof vbHumorAttr === 'function' ? vbHumorAttr(nota) : ''} data-vga-setor="${esc(s.id)}" title="Abrir ${esc(s.agente)}${m.ate ? ` · volta ${esc(quando(m.ate))}` : ''}">
       <span class="v2g-av lil" aria-hidden="true">${esc(iniciais(s.agente))}</span>
       <span class="v2a-agl-nome"><b>${esc(s.agente)}</b> <span class="v2g-sub">${esc(s.nome)}</span></span>
       <span class="d3t-pil"><i style="--c:${rotuloDoModo(m)[2]}"></i>${esc(rot)}</span>
       <span class="d3t-ped-n${aperta ? ' r' : ''}">${meus.length ? `${meus.length} ped.` : '—'}</span>
-      <span class="d3-barra${anima ? '' : ' parada'}" style="--v:${nota ?? 0}%"><i></i></span>
+      ${serie ? `<span class="d3t-serie${anima ? '' : ' parada'}">${serie}</span>` : `<span class="d3-barra${anima ? '' : ' parada'}" style="--v:${nota ?? 0}%"><i></i></span>`}
       <b class="v2a-nt" style="color:${nota != null && nota < 60 ? tinta : 'var(--d3-tinta)'}">${nota == null ? '—' : `<span${anima ? ' class="v2-num"' : ''}>${nota}</span>`}</b></button>`;
   }
   // "Como cada um está indo": os agentes que já rodam, com a nota; os demais, por andar e os planejados ficam a um clique.
@@ -518,7 +570,8 @@
       ${d3Num({ rotulo: 'Agentes', valor: `${rodam.length}${planejados ? `<small> + ${planejados} planejados</small>` : ''}`, sub: `<span class="d3t-pil"><i style="--c:${MODO.ativo[2]}"></i>${conta('ativo')} ativos</span><span class="d3t-pil"><i style="--c:${MODO.sombra[2]}"></i>${conta('sombra')} sombra</span>` })}
       ${d3Num({ rotulo: 'Acerto · 7 dias', valor: media == null ? '—' : `${media}<small>%</small>`, tom: media != null && media < 60 ? 'r' : '', barra: media, sub: notas.length ? `${notas.length} com nota` : 'sem nota ainda' })}
       ${d3Num({ rotulo: 'Achados de olho', valor: String(acompanhar), sub: 'sem urgência · vigiando', attrs: acompanhar ? 'data-vga-lista="1"' : '' })}</div>`;
-    const avisoPedidos = dono && st.estados.erro ? `<p class="vga-nota">Os pedidos de aprovação não vieram da central agora (${esc(st.estados.erro)}).</p>` : '';
+    // Discreto (o quadro não tem faixa de aviso): uma pílula pequena com o motivo na dica.
+    const avisoPedidos = dono && st.estados.erro ? `<p class="vga-nota d3t-aviso-leve" title="${esc(st.estados.erro)}"><span class="d3t-pil"><i style="--c:var(--d3-ajuste)"></i>Pedidos de aprovação sem leitura agora</span></p>` : '';
     const aviso = avisoPedidos + (lendo ? `<p class="vga-nota vga-lendo" role="status">Lendo ${F.lidos} de ${F.de} agentes na central do VYBES…</p>`
       : F.lidos < F.de ? `<p class="vga-nota">A central não respondeu por ${F.de - F.lidos} agente${F.de - F.lidos > 1 ? 's' : ''}: a fila pode estar incompleta. <button type="button" class="vga-link" data-vga-recarregar>Tentar de novo</button></p>` : '');
     const leitura = fonte().atualizadoEm ? new Date(fonte().atualizadoEm).toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }) : '';
@@ -626,10 +679,13 @@
     const nota = notaDe(s.id), [, tinta] = corDaNota(nota), n = P?.numeros || {};
     const horas = n.horasAteResolver == null ? null : String(n.horasAteResolver).replace('.', ',');
     void tinta;
-    const numerosHtml = `<div class="d3t-nums d3t-nums-ag">${d3Num({ rotulo: 'Acerto · 7 dias', valor: nota == null ? '—' : `${nota}<small>%</small>`, tom: nota != null && nota < 60 ? 'r' : '', barra: nota, sub: !P ? esc(pf.erro || 'lendo a central…') : nota == null ? 'sem retorno ainda' : `${n.errados7d ?? 0} errado${n.errados7d === 1 ? '' : 's'}` })}
+    // A linha do acerto guardado dia a dia (série acerto_agente) com a meta dos donos tracejada; sem 2 dias, a barra.
+    const sa = serieDoAcerto(s.id);
+    const numerosHtml = `<div class="d3t-nums d3t-nums-ag">${d3Num({ rotulo: 'Acerto · 7 dias', valor: nota == null ? '—' : `${nota}<small>%</small>`, tom: nota != null && nota < 60 ? 'r' : '', ...(sa ? { serie: sa.valores, meta: sa.meta } : { barra: nota }), sub: !P ? esc(pf.erro || 'lendo a central…') : nota == null ? 'sem retorno ainda' : `${n.errados7d ?? 0} errado${n.errados7d === 1 ? '' : 's'}` })}
       ${d3Num({ rotulo: 'Em aberto', valor: String(n.abertos ?? 0), sub: n.altas ? `<span class="d3t-a">${n.altas} urgente${n.altas > 1 ? 's' : ''}</span>` : 'sem urgência' })}
       ${d3Num({ rotulo: 'Resolvidos · 7 dias', valor: String(n.resolvidos7d ?? 0), sub: P?.projecao?.tendencia ? esc(P.projecao.tendencia) : 'em 7 dias' })}
-      ${d3Num({ rotulo: 'Até resolver', valor: horas == null ? '—' : `${horas}<small> h</small>`, sub: 'média' })}</div>`;
+      ${d3Num({ rotulo: 'Até resolver', valor: horas == null ? '—' : `${horas}<small> h</small>`, sub: 'média' })}
+      ${d3Num(sairDaSombra(modo, n))}</div>`;
     const faz = (s.skills || []).length ? s.skills.slice(0, 4) : [s.papel].filter(Boolean);
     const fazHtml = `<div class="v2g-card v2a-faz"${s.papel ? ` title="${esc(s.papel)}"` : ''}><div class="v2g-cab"><h3 class="v2g-h2">O que faz</h3></div>
       ${faz.map((k) => `<p class="v2a-fazl">${esc(k)}</p>`).join('') || `<p class="v2g-sub v2a-nada">${s.estado === 'planejado' ? 'Ferramentas não ligadas' : 'Sem atribuição'}</p>`}
@@ -705,7 +761,7 @@
       const f = fonte(), semSinal = st.vista === 'fila' && f.erro && !f.dados;
       const central = st.vista !== 'fila' ? '' : semSinal ? `<span class="d3t-sinal" role="status">Central sem sinal<button type="button" data-vga-recarregar>Tentar de novo</button></span>` : centralHtml();
       return `<div class="vga-topo vb-janela-topo d3t-topo">${cabecalho({ titulo: st.vista === 'cerebro' ? 'Como o VYBES pensa' : 'Agentes', texto: st.vista === 'fila' ? dia : '',
-        acoes: (st.vista === 'cerebro' ? '<button type="button" class="v2g-btn s" data-vga-fila>‹ Agentes</button>' : central + (varios > 1 ? `<button type="button" class="v2g-btn" data-vga-aprovar-todos${st.enviando ? ' disabled' : ''}>Aprovar os ${varios}</button>` : '') + (temDiagnostico() ? '<button type="button" class="v2g-btn d3t-pensa" data-vga-cerebro><span aria-hidden="true">?</span>Como o VYBES pensa</button>' : '')) + x })}</div>`;
+        acoes: (st.vista === 'cerebro' ? '<button type="button" class="v2g-btn s" data-vga-fila>‹ Agentes</button>' : central + metaHtml() + (varios > 1 ? `<button type="button" class="v2g-btn" data-vga-aprovar-todos${st.enviando ? ' disabled' : ''}>Aprovar os ${varios}</button>` : '') + (temDiagnostico() ? '<button type="button" class="v2g-btn d3t-pensa" data-vga-cerebro><span aria-hidden="true">?</span>Como o VYBES pensa</button>' : '')) + x })}</div>`;
     }
     const s = setores().find((y) => y.id === st.setor) || setores()[0];
     if (!s) return `<div class="vga-topo vb-janela-topo">${cabecalho({ titulo: 'Agentes', acoes: x })}</div>`;
@@ -888,6 +944,8 @@
     }
   }
   function aoEnviar(e) {
+    const fm = e.target.closest('[data-vga-meta]');
+    if (fm) { e.preventDefault(); salvarMeta(fm); return; }
     const fe = e.target.closest('[data-vga-estado-form]');
     if (fe) {
       e.preventDefault();

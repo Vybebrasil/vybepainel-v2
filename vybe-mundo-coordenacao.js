@@ -90,7 +90,8 @@
   }
 
   // ---------- tela ----------
-  const st = { periodo: 'semana', aberta: '', confirmando: '', gravando: '', msg: '' };
+  // lote: "Confirmar N" (Direção 3) — pergunta (o OK do lote), rodando (i de n), resultado ({ ok, falhas, n }).
+  const st = { periodo: 'semana', aberta: '', confirmando: '', gravando: '', msg: '', lote: { pergunta: false, rodando: false, chaves: [], i: 0, n: 0, resultado: null } };
   try { st.periodo = localStorage.getItem('vybe.coordenacao.periodo') || 'semana'; } catch { /* padrão */ }
   let ultima = null;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -190,7 +191,8 @@
         ${r.trocas.length ? `<ul class="d3h-corpo">${r.trocas.map((t) => { const chave = `trocar:${t.d.id}:${t.de}:${t.para}`, de = pessoaDe(t.de), para = pessoaDe(t.para);
           return `<li>${linhaPeca(t.d, `${n0(pw(t.d, t.para))} pt · `)}<span class="v2o-porque"><span class="v2o-de">${quem(t.de)} ${pilulaPct(de)}</span><i aria-hidden="true">→</i>${confirmarHtml(chave, '') ? '' : `<button type="button" class="v2o-chip sugerido" data-coord-trocar="${esc(t.d.id)}" data-de="${esc(t.de)}" data-para="${esc(t.para)}">${quem(t.para)} <small>${n0(para.pct)}%</small></button>`}</span>
             ${confirmarHtml(chave, `Passar para ${quem(t.para)}?`)}</li>`; }).join('')}</ul>`
-          : `<p class="d3h-vazio">${acima.length ? 'Quem passou do limite só tem peças já começadas ou de mais de uma pessoa: troque abrindo a pessoa' : 'A carga está dentro do limite de todo mundo'}</p>`}</section>`;
+          : `<p class="d3h-vazio">${acima.length ? 'Quem passou do limite só tem peças já começadas ou de mais de uma pessoa: troque abrindo a pessoa' : 'A carga está dentro do limite de todo mundo'}</p>`}
+        ${loteHtml(r)}</section>`;
     const lims = [...new Map(r.pessoas.map((p) => [p.disciplina, p])).values()];
     const tiles = `<div class="d3h-co-tiles">${lims.map((p) => `<span><small>Limite ${p.disciplina === 'audiovisual' ? 'audiovisual' : 'design'}</small><b>${n0(p.limite)}</b> pt/${r.periodo === 'dia' ? 'dia' : r.periodo === 'mes' ? 'mês' : 'sem'}</span>`).join('')}
         <span><small>Sem data</small><b>${n0(r.semData)}</b> fora da conta</span><span><small>Peças no período</small><b>${n0(new Set(r.pessoas.flatMap((p) => p.pecas.map((d) => String(d.id)))).size + r.semDono.length)}</b></span></div>`;
@@ -212,27 +214,69 @@
       <div class="d3h-grade"><div class="d3h-col">${semDono}${trocas}</div><div class="d3h-col">${carga}</div><div class="d3h-col">${pessoas}</div></div></div>`;
   }
 
+  // Devolve true quando gravou (o lote conta por aqui).
   async function gravar(chave) {
-    const [tipo, id, a, b] = chave.split(':');
+    // O id da peça pode ter ":" (as do Vybe OS vêm como "vybe:123"): as pessoas são as últimas partes da chave.
+    const partes = chave.split(':'), tipo = partes[0], nPessoas = tipo === 'trocar' ? 2 : 1;
+    const id = partes.slice(1, -nPessoas).join(':'), [a, b] = partes.slice(-nPessoas);
     const item = typeof G.findOperationalItem === 'function' ? G.findOperationalItem(id) : null;
-    if (!item) { st.msg = 'A peça não está carregada agora. Abra as demandas e tente de novo.'; st.confirmando = ''; repintar(); return; }
-    if (typeof G.gravarResponsaveisDaPeca !== 'function') { st.msg = 'O painel ainda não carregou a edição de responsáveis.'; st.confirmando = ''; repintar(); return; }
+    if (!item) { st.msg = 'A peça não está carregada agora. Abra as demandas e tente de novo.'; st.confirmando = ''; repintar(); return false; }
+    if (typeof G.gravarResponsaveisDaPeca !== 'function') { st.msg = 'O painel ainda não carregou a edição de responsáveis.'; st.confirmando = ''; repintar(); return false; }
     const para = tipo === 'atribuir' ? a : b, de = tipo === 'trocar' ? a : '';
     const novos = [...new Set([...idsDe(item).filter((i) => i !== de), para])];
     st.gravando = chave; st.confirmando = ''; repintar();
+    let ok = false;
     try {
       await G.gravarResponsaveisDaPeca(item, novos);
       G.saveProductionCache?.(); G.renderIntegratedOperationalViews?.();
-      const nome = (G.TEAM_USERS || []).find((u) => String(u.id) === para)?.name || 'a pessoa';
-      st.msg = ''; G.showToast?.(`${item.nome || 'Peça'} ficou com ${primeiro(nome)}.`, 'ok', 4200);
+      const nome = (G.TEAM_USERS || (typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [])).find((u) => String(u.id) === para)?.name;
+      st.msg = ''; G.showToast?.(`${item.nome || 'Peça'} ficou com ${nome ? primeiro(nome) : 'a pessoa'}.`, 'ok', 4200); ok = true;
     } catch (e) { st.msg = `Não gravou: ${e?.message || e}`; }
     st.gravando = ''; repintar();
+    return ok;
+  }
+
+  // Direção 3 (quadro D3-Coordenacao): "Confirmar N" no pé de Para equilibrar faz o mesmo que N confirmações da linha
+  // (gravar, uma por vez, na ordem da tela): as atribuições sugeridas (o contorno) e as trocas. O 1º clique só pergunta e
+  // guarda o que está na tela; o OK roda. O botão conta o estado: Confirmar N → Confirmando i/N… → Confirmado.
+  const chavesDoLote = (r) => [...r.semDono.filter((x) => x.sugerido).map((x) => `atribuir:${x.d.id}:${x.sugerido}`), ...r.trocas.map((t) => `trocar:${t.d.id}:${t.de}:${t.para}`)];
+  function loteHtml(r) {
+    const L = st.lote, chaves = chavesDoLote(r), n = chaves.length, R = !L.rodando ? L.resultado : null;
+    if (!n && !L.rodando && !R) return '';
+    const na = chaves.filter((c) => c.startsWith('atribuir:')).length, nt = n - na;
+    if (L.pergunta && !L.rodando) {
+      const qa = L.chaves.filter((c) => c.startsWith('atribuir:')).length, qt = L.chaves.length - qa;
+      const frase = [qa ? `atribuir ${plural(qa, 'peça', 'peças')}` : '', qt ? `fazer ${plural(qt, 'troca', 'trocas')}` : ''].filter(Boolean).join(' e ');
+      return `<div class="v2o-lote" role="group" aria-label="Confirmar o lote"><span class="v2o-lote-conta">${frase.charAt(0).toUpperCase() + frase.slice(1)}, uma por vez?</span>
+        <button type="button" class="v2o-btn" data-coord-lote-voltar>Voltar</button><button type="button" class="v2o-btn k v2-estado" data-coord-lote-ok>Confirmar ${L.chaves.length}</button></div>`;
+    }
+    const feito = R && !R.falhas && !n;
+    const rotulo = L.rodando ? `<i class="v2o-gira" aria-hidden="true"></i>Confirmando ${L.i}/${L.n}…`
+      : feito ? `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Confirmado ${R.ok}` : `Confirmar ${n}`;
+    const conta = R?.falhas ? `<span class="v2o-lote-conta erro" role="status">${R.ok} de ${R.n} feitas · ${plural(R.falhas, 'falhou', 'falharam')}</span>`
+      : `<span class="v2o-lote-conta">${[na ? plural(na, 'entrega', 'entregas') : '', nt ? plural(nt, 'troca', 'trocas') : ''].filter(Boolean).join(' + ') || 'nada pendente'} · só com o seu OK</span>`;
+    return `<div class="v2o-lote">${conta}<button type="button" class="v2o-btn k v2-estado${L.rodando ? ' rodando' : ''}" data-coord-lote${feito ? ' data-estado="feito"' : ''}${!n || L.rodando || st.gravando ? ' disabled' : ''} aria-live="polite">${rotulo}</button></div>`;
+  }
+  async function confirmarLote() {
+    const L = st.lote; if (L.rodando || st.gravando || !L.chaves.length) return null;
+    const chaves = [...L.chaves];
+    Object.assign(L, { pergunta: false, rodando: true, i: 0, n: chaves.length, resultado: null });
+    let ok = 0;
+    for (const chave of chaves) { L.i += 1; if (await gravar(chave)) ok += 1; }
+    Object.assign(L, { rodando: false, chaves: [], resultado: { ok, falhas: chaves.length - ok, n: chaves.length } });
+    if (L.resultado.falhas) st.msg = `${plural(L.resultado.falhas, 'confirmação não gravou', 'confirmações não gravaram')}; as outras ficaram.`;
+    repintar();
+    return L.resultado;
   }
 
   function aoClicar(ev) {
-    const b = ev.target.closest?.('#vv-hoje .v2o [data-coord-periodo],#vv-hoje .v2o [data-coord-pessoa],#vv-hoje .v2o [data-coord-atribuir],#vv-hoje .v2o [data-coord-trocar],#vv-hoje .v2o [data-coord-ok],#vv-hoje .v2o [data-coord-cancelar]');
+    const b = ev.target.closest?.('#vv-hoje .v2o [data-coord-periodo],#vv-hoje .v2o [data-coord-pessoa],#vv-hoje .v2o [data-coord-atribuir],#vv-hoje .v2o [data-coord-trocar],#vv-hoje .v2o [data-coord-ok],#vv-hoje .v2o [data-coord-cancelar],#vv-hoje .v2o [data-coord-lote],#vv-hoje .v2o [data-coord-lote-ok],#vv-hoje .v2o [data-coord-lote-voltar]');
     if (!b) return;
     ev.stopPropagation();
+    if (st.lote.rodando) return;
+    if (b.hasAttribute('data-coord-lote')) { if (st.gravando || !ultima) return; Object.assign(st.lote, { pergunta: true, chaves: chavesDoLote(ultima.r), resultado: null }); st.confirmando = ''; st.msg = ''; repintar(); return; }
+    if (b.hasAttribute('data-coord-lote-ok')) { confirmarLote(); return; }
+    if (b.hasAttribute('data-coord-lote-voltar')) { Object.assign(st.lote, { pergunta: false, chaves: [] }); repintar(); return; }
     if (b.dataset.coordPeriodo) { st.periodo = b.dataset.coordPeriodo; st.aberta = ''; st.confirmando = ''; try { localStorage.setItem('vybe.coordenacao.periodo', st.periodo); } catch { /* fica nesta tela */ } }
     else if (b.dataset.coordPessoa) { st.aberta = st.aberta === b.dataset.coordPessoa ? '' : b.dataset.coordPessoa; st.confirmando = ''; }
     else if (b.dataset.coordAtribuir) st.confirmando = `atribuir:${b.dataset.coordAtribuir}:${b.dataset.para}`;

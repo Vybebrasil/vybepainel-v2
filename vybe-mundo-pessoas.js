@@ -237,6 +237,31 @@
     return `<div class="v2p-tambem"><span class="v2p-sub">Também aqui, só para os donos:</span>${fichasHtml([['carga', 'Carga da semana'], ['pesos', 'Pesos do score'], ['metas', 'Metas por cargo']], v, 'data-v2p-ver')}</div>
       ${corpo ? `<section class="v2p-card v2p-secao" data-v2p-secao>${corpo}<div class="vp-botoes">${botao('Fechar', 'data-v2p-ver=""', 's')}</div></section>` : ''}`;
   }
+  // "Score por semana" (quadro D3-Produtividade, coluna da esquerda): o score guardado a cada semana (server/series-historicas.js,
+  // série score_semana, a mesma conta do mês com a meta proporcional à semana). Gestão: a média do time ('equipe'); os
+  // outros: o próprio. As semanas do mês escolhido em linha cheia; as do mês anterior, tracejadas. Sem duas semanas, o vazio.
+  const MES3 = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  function semanasDoScore(d) {
+    const S = typeof d3Series === 'function' ? d3Series('pessoas', () => pintar()) : null;
+    if (!S) return null;
+    const pontos = ((d.gestao ? S.score?.equipe : S.score?.[String(S.eu || d.detalhe?.id || '')])?.pontos || []).filter((p) => p.valor != null);
+    const mes = estado.mes || d.mes || hoje().slice(0, 7), ant = (() => { const [a, m] = mes.split('-').map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, '0')}`; })();
+    return { deste: pontos.filter((p) => p.dia.slice(0, 7) === mes), anterior: pontos.filter((p) => p.dia.slice(0, 7) === ant), todos: pontos, mes, ant };
+  }
+  function scorePorSemana(d = {}) {
+    const s = semanasDoScore(d), vazio = `<section class="v2p-card v2p-semana" aria-label="Score por semana">${cabeca('Score por semana', '')}<p class="v2p-frase v2p-vazio-curto">Sem histórico por semana ainda.</p></section>`;
+    if (!s || typeof d3LinhaSvg !== 'function') return vazio;
+    // Com só uma semana no mês, a linha usa as últimas semanas guardadas (o mês anterior junto).
+    const linha = s.deste.length >= 2 ? s.deste : s.todos.slice(-6);
+    if (linha.length < 2) return vazio;
+    const meta = s.deste.length >= 2 && s.anterior.length >= 2 ? s.anterior.map((p) => p.valor).slice(0, linha.length) : null;
+    const nomeMes = (m) => MES3[Number(m.slice(5, 7)) - 1] || '';
+    const leg = `<small class="d3p-leg"><span>— ${esc(nomeMes(s.deste.length >= 2 ? s.mes : linha.at(-1).dia.slice(0, 7)))}</span>${meta ? `<span>- - ${esc(nomeMes(s.ant))}</span>` : ''}</small>`;
+    const rot = (p, i) => `<span${i === linha.length - 1 ? ' class="agora"' : ''}>${i === linha.length - 1 ? `<b>sem ${i + 1} · ${Math.round(p.valor)}</b>` : `sem ${i + 1}`}</span>`;
+    return `<section class="v2p-card v2p-semana" aria-label="Score por semana">${cabeca('Score por semana', leg)}
+      <div class="d3p-semana-g">${d3LinhaSvg(linha.map((p) => p.valor), { meta, largura: 520, altura: 96, rotulo: `Score ${d.gestao ? 'do time' : 'seu'} por semana: ${linha.map((p) => `${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)} ${Math.round(p.valor)}`).join(', ')}` })}</div>
+      <div class="d3p-semana-x" aria-hidden="true">${linha.map(rot).join('')}</div></section>`;
+  }
   function htmlProdutividade(d) {
     const comps = d.componentes || [], eu = d.detalhe, mes = estado.mes || d.mes || hoje().slice(0, 7), nomeMes = MESES_RH[Number(mes.slice(5, 7)) - 1] || 'mês';
     const time = d.gestao ? (d.ranking || []) : eu ? [eu] : [], comScore = time.filter((p) => p.score != null);
@@ -256,7 +281,7 @@
       const prazoPct = comPrazo.length ? Math.round(comPrazo.reduce((s, p) => s + p.componentes.prazo, 0) / comPrazo.length * 100) : null;
       const ultima = conquistas[0];
       numeros = tresHtml([
-        { rotulo: 'Score do time', valor: media ?? '–', sub: comScore.length ? plural(comScore.length, 'pessoa', 'pessoas') : 'sem entrega' },
+        { rotulo: 'Score do time', valor: media ?? '–', serie: (() => { const s = semanasDoScore(d); const v = s ? s.todos.slice(-8).map((p) => p.valor) : []; return v.length >= 2 ? v : null; })(), sub: comScore.length ? plural(comScore.length, 'pessoa', 'pessoas') : 'sem entrega' },
         { rotulo: 'Metas batidas', valor: comMeta.length ? bateram : '–', de: comMeta.length ? ` / ${comMeta.length}` : '', barra: comMeta.length ? bateram / comMeta.length * 100 : null, sub: comMeta.length ? '' : 'sem meta' },
         { rotulo: 'No prazo do cliente', valor: prazoPct == null ? '–' : prazoPct, de: prazoPct == null ? '' : '%', barra: prazoPct, sub: prazoPct == null ? 'sem dado' : '' },
         { rotulo: 'Conquistas', valor: conquistas.length, sub: ultima ? `última · ${esc(primeiroNome(ultima.p.nome))}` : 'nenhuma' },
@@ -278,13 +303,14 @@
     return `<div class="v2p v2p-produtividade">${falaHtml('Análise e números', frase, como, 'Alex')}${numeros}
       <div class="v2p-grade v2p-grade-12">
         <div class="v2p-col">${d.gestao ? `<section class="v2p-card" aria-label="Pede ação">${cabeca('Pede ação', acaoLinhas.length ? `${plural(acaoLinhas.length, 'coisa', 'coisas')}, na ordem` : '')}${acaoLinhas.join('') || '<p class="v2p-frase">Ninguém pedindo atenção neste mês.</p>'}</section>` : ''}
+          ${scorePorSemana(d)}
           <section class="v2p-card" aria-label="Conquistas do mês">${cabeca('Conquistas do mês', conquistas.length ? `${conquistas.length} ${d.gestao ? 'no time' : 'suas'}${conquistas.length > 3 && !estado.v2.mostrar.conq ? ` · ${elo('ver todas', 'data-v2p-mostrar="conq"')}` : ''}` : '')}
             ${conqLinhas.length ? recolhe(conqLinhas, 'conq', 3).join('') : comScore.length ? '<p class="v2p-frase">As conquistas do mês aparecem aqui quando chegarem.</p>' : ''}${comScore.length ? '' : semDado}</section></div>
         <section class="v2p-card v2p-lista" data-v2p-lista aria-label="${d.gestao ? 'O mês de cada um' : 'O seu mês'}">${cabeca(d.gestao ? 'O mês de cada um' : 'O seu mês', 'score 0–100')}
           ${time.length ? `<div class="d3p-th" aria-hidden="true"><span>Pessoa</span><span>Metas</span><span>Conquistas</span><span>Score</span></div>` : ''}
-          ${time.length ? time.map((p) => linhaDoMes(p, comps, !d.gestao)).join('') : `<p class="v2p-frase">${d.gestao ? 'Ninguém na equipe ainda. Quem pode entrar no painel aparece aqui.' : 'Ainda sem dado neste mês.'}</p>`}</section>
+          ${time.length ? time.map((p) => linhaDoMes(p, comps, !d.gestao)).join('') : `<p class="v2p-frase">${d.gestao ? 'Ninguém na equipe ainda. Quem pode entrar no painel aparece aqui.' : 'Ainda sem dado neste mês.'}</p>`}
+          <p class="v2p-sub v2p-pe v2p-pe-card">Da operação ${pilula('Performance · Gestão')}${d.fonte?.ajustes ? ` · ${esc(d.fonte.ajustes)}` : ''}</p></section>
       </div>
-      <p class="v2p-sub v2p-pe">Da operação ${pilula('Performance · Gestão')}${d.fonte?.ajustes ? ` · ${esc(d.fonte.ajustes)}` : ''}</p>
       ${tambemProdutividade(d)}</div>`;
   }
 
@@ -621,12 +647,15 @@
       ${campoAniversario('', 'Aniversário')}<label><span>Entrada na Vybe</span><input type="date" name="entrada"></label><label><span>Saída</span><input type="date" name="saida"></label>
       <div class="vp-botoes"><button type="submit" class="vp-acao">Salvar datas</button></div></form>`;
   }
-  function tambemRh(d) {
+  // Direção 3 (quadro D3-RhPedidos): as fichas do "Também" ficam no pé do cartão "Seus pedidos"; o que elas abrem entra
+  // embaixo da grade, inteiro.
+  function tambemRh(d, { soFichas = false, soCorpo = false } = {}) {
     const itens = [['lista', 'Pedidos em lista'], ['clima', 'Pesquisa de clima'], ...(d.gestao ? [['prazos', 'Prazos de resposta'], d.visao ? ['visao', 'Visão geral'] : null, ['datas', 'Datas de RH'], htmlFolha() ? ['folha', 'Folha'] : null] : [])].filter(Boolean);
     const v = estado.v2.ver;
     const corpo = v === 'lista' ? htmlPedidos(d) : v === 'clima' ? htmlClima(d) : !d.gestao ? '' : v === 'prazos' ? formPrazos(d) : v === 'visao' && d.visao ? visaoGeralHtml(d) : v === 'datas' ? datasRhHtml(d) : v === 'folha' ? htmlFolha() : '';
-    return `<div class="v2p-tambem"><span class="v2p-sub">Também no RH:</span>${fichasHtml(itens, v, 'data-v2p-ver')}</div>
-      ${corpo ? `<section class="v2p-card v2p-secao" data-v2p-secao>${corpo}<div class="vp-botoes">${botao('Fechar', 'data-v2p-ver=""', 's')}</div></section>` : ''}`;
+    const fichas = `<div class="v2p-tambem"><span class="v2p-sub">Também</span>${fichasHtml(itens, v, 'data-v2p-ver')}</div>`;
+    const secao = corpo ? `<section class="v2p-card v2p-secao" data-v2p-secao>${corpo}<div class="vp-botoes">${botao('Fechar', 'data-v2p-ver=""', 's')}</div></section>` : '';
+    return soFichas ? fichas : soCorpo ? secao : fichas + secao;
   }
   function htmlRh(d) {
     const h = d.hoje || hoje(), abertos = pedidosAbertos(d), ind = d.indicadores || {}, c = d.pesquisa || {}, atual = c.atual;
@@ -662,16 +691,23 @@
     const esquerda = estado.form === 'pedido' ? formPedido(d)
       : abertos.length ? `<div class="v2-baralho v2p-baralho" role="group" aria-label="${d.gestao ? 'Pedidos para decidir' : 'Seus pedidos'}">${abertos.map((p, k) => cartaPedido(p, d, posDaCarta(k, i))).join('')}</div><div class="v2p-decide" data-v2p-decide>${decideHtml(d)}</div>`
         : `<div class="v2p-card v2p-sem"><p><b>${d.gestao ? 'Nenhum pedido esperando resposta.' : 'Nenhum pedido por aqui.'}</b></p><p class="v2p-sub">${d.gestao ? 'Quando alguém pedir férias, folga, documento ou reembolso, o pedido aparece aqui para decidir.' : 'Precisa de férias, de uma declaração ou de um reembolso? Peça e acompanhe o prazo.'}</p>${botao('Nova solicitação', 'data-vp-abrir-form="pedido"', 's')}</div>`;
-    // O seu pedido já respondido (o de quem está olhando, mesmo na gestão).
-    const meus = (d.pedidos || []).filter((p) => ['resolvido', 'recusado'].includes(p.status) && (!d.gestao || String(p.pessoa_id) === String(d.eu?.id))).slice(0, 2);
-    const meusHtml = meus.length ? meus.map((p) => `<div class="v2p-lin">${pilula(p.status === 'recusado' ? 'Recusado' : p.tipo === 'ferias' ? 'Aprovado' : 'Respondido', p.status === 'recusado' ? 'r' : 'g')}<p><b>O seu pedido</b> · ${esc(p.titulo)}${p.respondido_dia ? `, respondido em ${br(p.respondido_dia)}` : ''}${p.resposta ? `<br><span class="v2p-sub">${esc(p.resposta)}</span>` : ''}</p>${botao('Ver', 'data-v2p-ver="lista" data-filtro="respondidos"', 's')}</div>`).join('')
-      : `<div class="v2p-lin">${pilula('Sem pedido')}<p class="v2p-sub"><b>${abertos.length && !d.gestao ? 'Nenhum pedido respondido ainda.' : 'Nenhum pedido seu por aqui.'}</b></p>${estado.form === 'pedido' ? '' : botao('Nova solicitação', 'data-vp-abrir-form="pedido"', 's')}</div>`;
+    // "Seus pedidos" (quadro D3-RhPedidos, embaixo do Pede ação): os pedidos de quem está olhando, mesmo na gestão, os
+    // que esperam e os já respondidos, com as fichas do "Também" no pé.
+    const respondido = (p) => ['resolvido', 'recusado'].includes(p.status);
+    const meus = (d.pedidos || []).filter((p) => !d.gestao || String(p.pessoa_id) === String(d.eu?.id))
+      .sort((a, b) => Number(respondido(a)) - Number(respondido(b)) || String(b.respondido_dia || b.prazo || '').localeCompare(String(a.respondido_dia || a.prazo || '')));
+    const linhaMeu = (p) => (respondido(p)
+      ? `<div class="v2p-lin">${pilula(p.status === 'recusado' ? 'Recusado' : p.tipo === 'ferias' ? 'Aprovado' : 'Respondido', p.status === 'recusado' ? 'r' : 'g')}<p><b>${esc(p.titulo)}</b>${p.respondido_dia ? ` <span class="v2p-sub">· ${br(p.respondido_dia)}</span>` : ''}${p.resposta ? `<br><span class="v2p-sub">${esc(p.resposta)}</span>` : ''}</p>${botao('Ver', 'data-v2p-ver="lista" data-filtro="respondidos"', 's')}</div>`
+      : `<div class="v2p-lin">${pilula('Esperando', 'b')}<p><b>${esc(p.titulo)}</b></p>${p.prazo ? `<span class="v2p-sub">até ${br(p.prazo)}</span>` : ''}</div>`);
+    const meusHtml = meus.length ? recolhe(meus.map(linhaMeu), 'meus', 3).join('') + restoHtml(meus.length - 3, 'meus', meus.length - 3 === 1 ? 'pedido' : 'pedidos')
+      : `<div class="v2p-lin">${pilula('Sem pedido')}<p class="v2p-sub"><b>Nenhum pedido seu por aqui.</b></p>${estado.form === 'pedido' ? '' : botao('Nova solicitação', 'data-vp-abrir-form="pedido"', 's')}</div>`;
+    const seusPedidos = `<section class="v2p-card v2p-meus" aria-label="Seus pedidos">${cabeca('Seus pedidos', 'férias · folga · documento · reembolso')}${meusHtml}<div class="v2p-meus-pe">${tambemRh(d, { soFichas: true })}</div></section>`;
     return `${semMigracao(d)}<div class="v2p v2p-rh">${falaHtml('Recursos Humanos', frase, verTodos)}${numeros}
       <div class="v2p-grade v2p-grade-rh">
-        <div class="v2p-col v2p-col-baralho">${cabeca(d.gestao ? 'Pede ação' : 'Seus pedidos', 'férias, folga, documento e reembolso')}${esquerda}</div>
-        <div class="v2p-col">${htmlCalendario(d)}<section class="v2p-card v2p-meus" aria-label="O seu pedido">${meusHtml}</section></div>
+        <div class="v2p-col v2p-col-esq"><div class="v2p-col-baralho">${cabeca(d.gestao ? 'Pede ação' : 'Esperando o RH', 'férias, folga, documento e reembolso')}${esquerda}</div>${seusPedidos}</div>
+        <div class="v2p-col">${htmlCalendario(d)}</div>
       </div>
-      ${tambemRh(d)}</div>`;
+      ${tambemRh(d, { soCorpo: true })}</div>`;
   }
 
   // Mini painel dos números da fila e do clima (data-espiar="pessoas:…", desenhado por vybe-mundo.js).
@@ -865,6 +901,34 @@
     return `<div class="v2pj-lista" data-v2p-lista role="group" aria-label="Projetos">${mostra.map((p) => cartaoProj(p, d, aberto?.id === p.id)).join('') || '<p class="v2p-card v2p-frase">Nenhum projeto neste filtro.</p>'}
       ${resto.length ? `<p class="v2p-sub v2pj-resto">+ ${plural(resto.length, 'projeto', 'projetos')} ${de} · ${elo('mostrar', 'data-v2p-mostrar="proj"')}</p>` : ''}</div>`;
   }
+  // Direção 3 (quadro D3-Projetos): a linha do tempo do projeto com os marcos. Cada etapa é um ponto na data em que
+  // termina (cheio se feita, anel grande na próxima, vermelho se venceu), a linha escura vai até onde o trabalho chegou e
+  // o tracejado marca hoje. Sem datas para medir, volta a barra simples.
+  function marcosProj(p, es, h, prox) {
+    const ok = (iso) => /^\d{4}-\d{2}-\d{2}/.test(iso || '');
+    const datas = es.filter((e) => ok(e.fim)).map((e) => e.fim.slice(0, 10));
+    const ini = ok(p.inicio) ? p.inicio.slice(0, 10) : [...datas, ...es.filter((e) => ok(e.inicio)).map((e) => e.inicio.slice(0, 10))].sort()[0];
+    const fim = ok(p.fim) ? p.fim.slice(0, 10) : datas.slice().sort().pop();
+    if (!datas.length || !ini || !fim || fim <= ini) return '';
+    const t = (iso) => Date.parse(iso + 'T12:00:00Z'), total = t(fim) - t(ini);
+    const x = (iso) => Math.max(0, Math.min(100, Math.round(((t(iso) - t(ini)) / total) * 1000) / 10));
+    const marcos = es.filter((e) => ok(e.fim)).map((e) => {
+      const f = e.fim.slice(0, 10), venc = !e.feita && f < h, eh = prox && e.id === prox.id;
+      return { x: x(f), f, nome: e.nome, cls: e.feita ? 'ok' : eh ? 'at' : venc ? 'venc' : '' };
+    });
+    const feitos = marcos.filter((m) => m.cls === 'ok').map((m) => m.x), xHoje = h >= ini && h <= fim ? x(h) : null;
+    const xAt = marcos.find((m) => m.cls === 'at')?.x;
+    const ate = Math.max(feitos.length ? Math.max(...feitos) : 0, xAt != null && xHoje != null ? Math.min(xAt, xHoje) : 0);
+    // Rótulos embaixo: início, cada marco, hoje e fim, sem dois colados (o mais perto do anterior sai).
+    const rotulos = [{ x: 0, r: dm(ini) }, ...marcos.map((m) => ({ x: m.x, r: dm(m.f) })), ...(xHoje != null ? [{ x: xHoje, r: 'hoje', hoje: true }] : []), { x: 100, r: dm(fim) }]
+      .sort((a, b) => a.x - b.x || (b.hoje ? 1 : 0) - (a.hoje ? 1 : 0));
+    const vistos = []; for (const r of rotulos) { const ant = vistos[vistos.length - 1]; if (!ant || r.x - ant.x >= 7 || r.hoje) { if (ant && r.hoje && r.x - ant.x < 7) vistos.pop(); vistos.push(r); } }
+    const desc = marcos.map((m) => `${m.nome} ${m.cls === 'ok' ? 'feita' : m.cls === 'venc' ? 'vencida' : ''} ${dm(m.f)}`.replace(/\s+/g, ' ').trim()).join('; ');
+    return `<div class="d3pj-marcos" role="img" aria-label="Linha do tempo: ${esc(desc)}"><div class="d3pj-trilho"><i class="d3pj-feito" style="--x:${ate}%"></i>
+        ${marcos.map((m) => `<span class="d3pj-ponto${m.cls ? ' ' + m.cls : ''}" style="--x:${m.x}%" title="${esc(m.nome)} · ${esc(dm(m.f))}"></span>`).join('')}
+        ${xHoje != null ? `<span class="d3pj-hoje" style="--x:${xHoje}%"></span>` : ''}</div>
+      <div class="d3pj-datas" aria-hidden="true">${vistos.map((r) => `<span class="${r.hoje ? 'hoje' : ''}" style="--x:${r.x}%">${esc(r.r)}</span>`).join('')}</div></div>`;
+  }
   function paginaProj(p, d) {
     const h = d.hoje || hoje(), es = etapasDe(p), pct = pctEtapas(es), [sit, tom] = situacaoProj(p, h), cor = corCli(p.cliente), prox = proximaDe(p), nomes = pessoasDe(p);
     const pode = (e) => Boolean(d.gestao || (e.responsavel && String(e.responsavel) === String(d.eu?.id)));
@@ -886,10 +950,11 @@
         <span class="v2pj-mais"><button type="button" class="v2p-btn s" data-v2pj-mais="${esc(p.id)}" aria-expanded="${mais}" aria-label="Mais opções">${PONTOS}</button>
           ${mais ? `<span class="v2pj-menu v2-pop" role="menu"><button type="button" role="menuitem" data-v2pj-tempo="${esc(p.id)}">Ver na linha do tempo</button></span>` : ''}</span>
         ${botao('Fechar', 'data-v2pj-abre=""', 's')}</div>
-      <h3 class="v2pj-pag-tit">${esc(p.nome)}</h3>
-      <p class="v2p-sub v2pj-quem">${esc([periodoProj(p), nomes.length ? `com ${juntar(nomes.map(primeiroNome))}` : ''].filter(Boolean).join(' · '))}</p>
+      <div class="d3pj-tit-linha"><span><h3 class="v2pj-pag-tit">${esc(p.nome)}</h3>
+      <p class="v2p-sub v2pj-quem">${esc([periodoProj(p), nomes.length ? `com ${juntar(nomes.map(primeiroNome))}` : ''].filter(Boolean).join(' · '))}</p></span>
+      <span class="d3pj-pct"><b>${pct}%</b><span class="v2p-sub">${contaEtapas(es)}</span></span></div>
       ${p.descricao ? `<p class="v2p-sub v2pj-desc">${esc(p.descricao)}</p>` : ''}
-      <div class="v2pj-prog v2pj-prog-g"><span class="v2-barra"><i style="--v:${pct}%;--c:${cor}"></i></span><b>${pct}%</b><span class="v2p-sub">${contaEtapas(es)}</span></div>
+      ${marcosProj(p, es, h, prox) || `<div class="v2pj-prog v2pj-prog-g"><span class="v2-barra"><i style="--v:${pct}%;--c:${cor}"></i></span></div>`}
       <div class="v2pj-etapas">${linhas || '<p class="v2p-frase">Nenhuma etapa ainda.</p>'}${demandas}</div>
       <div class="v2pj-rodape">${avsProj(nomes)}<p class="v2p-sub">${nomes.length ? `${plural(nomes.length, 'pessoa', 'pessoas')} nas etapas` : 'Ninguém nas etapas ainda'}</p>
         ${d.gestao ? botao('Nova etapa', `data-v2pj-nova-etapa="${esc(p.id)}"`, 's') : ''}
@@ -1012,10 +1077,14 @@
     const linhas = lista.map((t) => { const pr = progressoDe(t), at = t.atribuidas || [], fim = at.filter((a) => a.progresso?.pct >= 100).length;
       const doTime = d.gestao && !t.modelo, pct = doTime ? (at.length ? fim / at.length * 100 : 0) : pr.pct;
       const texto = doTime ? (at.length ? `${fim} de ${at.length} ${fim === 1 ? 'terminou' : 'terminaram'}` : 'ninguém atribuído') : `${pr.concluidas} de ${plural(pr.total, 'aula', 'aulas')}`;
+      // Coluna "Para" do quadro D3-Academy: a quem a trilha foi atribuída (as iniciais); sem ninguém, "–".
+      const para = at.length ? `<span class="d3p-para" title="${esc(at.map((a) => a.nome).join(', '))}">${at.slice(0, 3).map((a) => `<span class="d3p-para-av">${esc(iniciais(a.nome))}</span>`).join('')}${at.length > 3 ? `<small>+${at.length - 3}</small>` : ''}</span>` : '<span class="d3p-para v2p-sub">–</span>';
+      const conta = doTime && at.length ? `${fim}/${at.length}` : texto;
       return linhaAbre(t.id, `<b>${esc(t.nome)}</b><br><span class="v2p-sub">${esc(aulasTexto(t.aulas))}${t.minha ? ' · atribuída a você' : t.modelo ? ' · modelo' : ''}</span>`,
-        `<div class="v2-barra v2p-barra-lin"><i style="--v:${Math.round(pct)}%;--c:${pct >= 60 ? '#11613A' : '#9A5B00'}"></i></div><span class="v2p-conta">${esc(texto)}</span>`, detalheTrilha(t, d), `a trilha ${t.nome}`); }).join('');
+        `${para}<div class="v2-barra v2p-barra-lin"><i style="--v:${Math.round(pct)}%;--c:${pct >= 60 ? '#11613A' : '#9A5B00'}"></i></div><span class="v2p-conta" title="${esc(texto)}">${esc(conta)}</span>`, detalheTrilha(t, d), `a trilha ${t.nome}`); }).join('');
     const vazioHtml = `<div class="v2p-lin v2p-lin-fim">${pilula('Sem trilha')}<p class="v2p-sub"><b>Nenhuma trilha ainda.</b>${d.gestao ? ' Monte a primeira com os vídeos e documentos que todo mundo que chega precisa ver.' : ''}</p>${d.gestao ? acao('Montar a primeira trilha', 'data-vp-trilha-modelo') : ''}</div>${d.gestao ? '' : '<p class="vp-nota">Quem monta as trilhas são os donos e o RH: peça a eles a sua.</p>'}`;
-    return `<section class="v2p-card v2p-lista" data-v2p-lista aria-label="Trilhas">${cabeca(estado.v2.filtro === 'minhas' ? 'Minhas trilhas' : 'Trilhas no ar', d.gestao ? 'quantos do time já terminaram' : 'o seu avanço em cada uma')}
+    return `<section class="v2p-card v2p-lista d3p-trilhas" data-v2p-lista aria-label="Trilhas">${cabeca(estado.v2.filtro === 'minhas' ? 'Minhas trilhas' : 'Trilhas no ar', String(lista.length))}
+      ${linhas ? `<div class="d3p-th d3p-th-tr" aria-hidden="true"><span>Trilha</span><span>Para</span><span>${d.gestao ? 'Terminaram' : 'O seu avanço'}</span></div>` : ''}
       ${linhas || (todas.length ? '<p class="v2p-frase">Nenhuma trilha neste filtro.</p>' : estado.form === 'trilha' ? '' : vazioHtml)}</section>`;
   }
   function htmlAcademy(d) {
@@ -1036,9 +1105,14 @@
     } else if (minha && faltam) { frase = `<b>${plural(faltam, 'aula falta', 'aulas faltam')}</b> para você terminar a ${esc(minha.nome)}.`; extra = botao('Continuar', `data-v2p-abre="${esc(minha.id)}" data-abrir="1"`, 's'); }
     else frase = `<b>${plural(todas.length, 'trilha no ar', 'trilhas no ar')}.</b> ${minha ? 'Você terminou a sua.' : 'Nenhuma atribuída a você ainda.'}`;
     const minhasAulas = todas.filter((t) => t.minha).map(progressoDe);
+    // Direção 3 (quadro D3-Academy): quatro números na gestão; "Aulas feitas" soma as aulas concluídas por quem recebeu
+    // trilha (o painel não guarda a data de cada aula feita, então a conta é do time, não do mês).
+    const feitasTime = reais.reduce((s, t) => s + (t.atribuidas || []).reduce((x, a) => x + (Number(a.progresso?.concluidas) || 0), 0), 0);
+    const aulasTime = reais.reduce((s, t) => s + (t.atribuidas || []).reduce((x, a) => x + (Number(a.progresso?.total) || 0), 0), 0);
     const numeros = tresHtml([
       { rotulo: 'Trilhas no ar', valor: todas.length, sub: todas.length ? `${plural(total.videos, 'vídeo', 'vídeos')} · ${total.docs} ${total.docs === 1 ? 'doc' : 'docs'}` : 'nenhuma' },
-      d.gestao ? { rotulo: principal && atP.length ? `${principal.nome} feita` : 'Trilha feita', valor: atP.length ? fimP : '–', de: atP.length ? ` / ${atP.length}` : '', barra: atP.length ? fimP / atP.length * 100 : null, sub: atP.length ? '' : 'ninguém atribuído' }
+      ...(d.gestao ? [{ rotulo: 'Aulas feitas', valor: aulasTime ? feitasTime : '–', de: aulasTime ? ` / ${aulasTime}` : '', barra: aulasTime ? feitasTime / aulasTime * 100 : null, sub: aulasTime ? 'do time' : 'ninguém atribuído' }] : []),
+      d.gestao ?{ rotulo: principal && atP.length ? `${principal.nome} feita` : 'Trilha feita', valor: atP.length ? fimP : '–', de: atP.length ? ` / ${atP.length}` : '', barra: atP.length ? fimP / atP.length * 100 : null, sub: atP.length ? '' : 'ninguém atribuído' }
         : (() => { const f = minhasAulas.reduce((s, p) => s + p.concluidas, 0), t = minhasAulas.reduce((s, p) => s + p.total, 0);
           return { rotulo: 'Aulas feitas', valor: minhasAulas.length ? f : '–', de: minhasAulas.length ? ` / ${t}` : '', barra: t ? f / t * 100 : null, sub: minhasAulas.length ? '' : 'sem trilha' }; })(),
       { rotulo: 'A sua trilha', valor: prM ? prM.pct : '–', de: prM ? '%' : '', barra: prM ? prM.pct : null, sub: !minha ? 'nenhuma' : faltam ? `${faltam === 1 ? 'falta 1' : `faltam ${faltam}`} · ${elo('continuar', `data-v2p-abre="${esc(minha.id)}" data-abrir="1"`)}` : 'concluída' },
@@ -1054,9 +1128,12 @@
     const aula = proxima >= 0 ? minha.aulas[proxima] : null;
     const suaTrilha = `<section class="v2p-card v2p-sua" aria-label="A sua trilha">${cabeca('A sua trilha', minha ? `${esc(minha.nome)} · ${prM.concluidas} de ${plural(prM.total, 'aula', 'aulas')}` : '')}
       ${!minha ? '<p class="v2p-frase">Nenhuma trilha atribuída a você.</p>' : !aula ? '<p class="v2p-frase">Você terminou esta trilha.</p>'
-        : `<div class="v2p-lin"><span class="v2p-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span><p><b>${aula.tipo === 'doc' ? 'Documento' : 'Vídeo'} ${proxima + 1} · ${esc(aula.titulo)}</b><br><span class="v2p-sub">${esc(plural(Number(aula.minutos) || 0, 'minuto', 'minutos'))} · ${faltam > 1 ? `depois ${faltam - 1 === 1 ? 'falta 1 aula' : `faltam ${faltam - 1} aulas`}` : 'é a última'}</span></p>
-          ${aula.link ? `<a class="v2p-btn s k" href="${esc(aula.link)}" target="_blank" rel="noopener noreferrer">Continuar</a>` : botao('Continuar', `data-v2p-abre="${esc(minha.id)}" data-abrir="1"`, 's k')}</div>`}
-      ${minha ? `<span class="d3-barra"><i style="--v:${prM.pct}%"></i></span>` : ''}</section>`;
+        // Quadro D3-Academy: a miniatura da aula (com o play e os minutos) ao lado do nome e do Continuar; embaixo, um
+        // traço por aula (feita, a da vez, as que faltam).
+        : `<div class="v2p-sua-aula"><span class="v2p-mini" aria-hidden="true"><span class="v2p-play"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span><small>${esc(Number(aula.minutos) || 0)} min</small></span>
+          <div class="v2p-sua-txt"><p class="v2p-sub">${aula.tipo === 'doc' ? 'Documento' : 'Vídeo'} ${proxima + 1}</p><b>${esc(aula.titulo)}</b><p class="v2p-sub">${faltam > 1 ? `depois ${faltam - 1 === 1 ? 'falta 1' : `faltam ${faltam - 1}`}` : 'é a última'}</p>
+          ${aula.link ? `<a class="v2p-btn s k" href="${esc(aula.link)}" target="_blank" rel="noopener noreferrer">Continuar</a>` : botao('Continuar', `data-v2p-abre="${esc(minha.id)}" data-abrir="1"`, 's k')}</div></div>`}
+      ${minha ? `<span class="v2p-tracos" role="img" aria-label="${prM.concluidas} de ${prM.total} aulas">${(minha.aulas || []).map((a, k) => `<i class="${feitas.has(String(a.id)) ? 'ok' : k === proxima ? 'at' : ''}"></i>`).join('')}</span>` : ''}</section>`;
     return `${semMigracao(d)}<div class="v2p v2p-academy">${falaHtml('Treinamento', frase, extra)}${numeros}${barra}${estado.form === 'trilha' ? formTrilha() : ''}
       <div class="v2p-grade v2p-grade-13">
         <div class="v2p-col"><section class="v2p-card" aria-label="Pede ação">${cabeca('Pede ação', acaoLinhas.length ? `${plural(acaoLinhas.length, 'coisa', 'coisas')}, na ordem` : '')}
@@ -1090,14 +1167,19 @@
     const linhas = lista.map((v) => { const cs = daVaga(v), comGente = etapas.map((e, i) => [e, i, cs.filter((c) => c.etapa === e)]).filter(([, , l]) => l.length);
       const ha2 = v.aberta_em ? `aberta há ${plural(Math.max(0, entre(v.aberta_em, h)), 'dia', 'dias')}` : '';
       const sub = [v.status === 'aberta' ? ha2 : v.status === 'pausada' ? 'pausada' : `fechada${v.fechada_em ? ' em ' + br(v.fechada_em) : ''}`, v.cargo || ''].filter(Boolean).join(' · ');
-      const detalhe = `<div class="v2p-det">${comGente.length ? `<div class="v2p-etp">${comGente.map(([e, , l]) => `<div><p class="v2p-sub">${esc(e)}${l.some((c) => pendIds.has(c.id)) ? ' · sem retorno' : ''}</p><span class="v2p-avs">${l.map((c) => `<button type="button" class="v2p-av${pendIds.has(c.id) ? ' at' : ''}" data-vp-editar-candidato="${esc(c.id)}" title="${esc(c.nome)}: abrir e mover de etapa" aria-label="${esc(c.nome)}, em ${esc(e)}: abrir">${esc(iniciais(c.nome))}</button>`).join('')}</span></div>`).join('')}</div>` : '<p class="v2p-sub">Nenhum candidato nesta vaga ainda.</p>'}
+      // Ao abrir a vaga, um cartão por etapa com o nome de cada candidato (quadro D3-Recrutamento); o nome abre o candidato.
+      const detalhe = `<div class="v2p-det">${comGente.length ? `<div class="v2p-etp">${comGente.map(([e, , l]) => `<div class="v2p-etp-card"><p class="v2p-sub">${esc(e)}${l.some((c) => pendIds.has(c.id)) ? ' · <span class="v2p-ruim">sem retorno</span>' : ''}</p>${l.map((c) => `<button type="button" class="v2p-etp-nome${pendIds.has(c.id) ? ' at' : ''}" data-vp-editar-candidato="${esc(c.id)}" title="${esc(c.nome)}: abrir e mover de etapa" aria-label="${esc(c.nome)}, em ${esc(e)}: abrir">${esc(c.nome)}</button>`).join('')}</div>`).join('')}</div>` : '<p class="v2p-sub">Nenhum candidato nesta vaga ainda.</p>'}
         ${v.descricao ? `<p class="v2p-sub">${esc(v.descricao)}</p>` : ''}
         <div class="v2p-det-acoes">${botao('Novo candidato', `data-vp-abrir-form="candidato" data-vaga="${esc(v.id)}"`, 's')}${botao('Editar vaga', `data-vp-editar-vaga="${esc(v.id)}"`, 's')}</div></div>`;
-      return linhaAbre(v.id, `<b>${esc(v.titulo)}</b> <span class="v2p-sub">· ${plural(cs.length, 'candidato', 'candidatos')}</span><br><span class="v2p-sub">${esc(sub)}</span>`,
-        `<span class="v2p-pills">${comGente.map(([e, i, l]) => pilula(`${e} ${l.length}`, tomEtapa(e, i))).join('')}</span>`, detalhe, `a vaga ${v.titulo}`); }).join('');
+      // Colunas do quadro: Vaga · candidatos, Aberta (dias), Conduz e Etapas. A vaga não guarda quem conduz: "–".
+      const dias = v.aberta_em ? Math.max(0, entre(v.aberta_em, h)) : null;
+      const aberta = v.status === 'aberta' ? (dias == null ? '–' : plural(dias, 'dia', 'dias')) : v.status === 'pausada' ? 'pausada' : 'fechada';
+      return linhaAbre(v.id, `<b>${esc(v.titulo)}</b> <span class="v2p-sub">· ${cs.length}</span>${v.cargo ? `<span class="vp-sr"> · ${esc(v.cargo)}</span>` : ''}<span class="vp-sr"> · ${esc(sub)}</span>`,
+        `<span class="d3p-vg-aberta${dias != null && dias > 30 && v.status === 'aberta' ? ' r' : ''}" title="${esc(sub)}">${esc(aberta)}</span><span class="d3p-vg-conduz v2p-sub" title="A vaga não registra quem conduz">–</span><span class="v2p-pills">${comGente.map(([e, i, l]) => pilula(`${e} ${l.length}`, tomEtapa(e, i))).join('')}</span>`, detalhe, `a vaga ${v.titulo}`); }).join('');
     const titulo = f === 'fechadas' ? 'Vagas fechadas' : f === 'pendente' ? 'Com retorno pendente' : 'Vagas abertas';
     const semVaga = `<div class="v2p-lin v2p-lin-fim">${pilula('Sem vaga')}<p class="v2p-sub"><b>Nenhuma vaga aberta.</b></p>${estado.form === 'vaga' ? '' : botao('Nova vaga', 'data-vp-abrir-form="vaga"', 's')}</div>`;
-    return `<section class="v2p-card v2p-lista" data-v2p-lista aria-label="${titulo}">${cabeca(titulo, 'etapa sem candidato não aparece')}
+    return `<section class="v2p-card v2p-lista d3p-vagas" data-v2p-lista aria-label="${titulo}">${cabeca(titulo, String(lista.length))}
+      ${linhas ? '<div class="d3p-th d3p-th-vg" aria-hidden="true"><span>Vaga</span><span>Aberta</span><span>Conduz</span><span>Etapas</span></div>' : ''}
       ${linhas || (vagas.some((v) => v.status === 'aberta') || f === 'fechadas' ? `<p class="v2p-frase">${f === 'fechadas' ? 'Nenhuma vaga fechada.' : 'Nenhuma vaga neste filtro.'}</p>` : '')}
       ${f !== 'fechadas' && fechadas ? `<p class="v2p-sub v2p-resto">+ ${plural(fechadas, 'vaga fechada recolhida', 'vagas fechadas recolhidas')} · ${elo('mostrar', 'data-v2p-filtro="fechadas"')}</p>` : ''}
       ${vagas.some((v) => v.status === 'aberta') ? '' : semVaga}</section>`;

@@ -127,6 +127,21 @@ async function fatosDoMes(sql, { de, ate, hoje }) {
   } catch (e) { if (!semTabela(e) && e?.code !== '42703') throw e; }
   return { porPessoa: new Map(linhas.map((l) => [l.pessoa_id, l])), ajustes };
 }
+// O score de cada pessoa num período curto (a semana do "Score por semana", server/series-historicas.js): a MESMA conta
+// do mês (fatosDoMes + calc.ranking com os pesos da gestão), com a meta do cargo proporcional aos dias do período que já
+// passaram (meta do mês × dias ÷ dias do mês). Devolve [{ id, nome, score, entregues, meta }].
+export async function scoresDoPeriodo(sql, { de, ate, hoje = hojeBahia() }) {
+  const estado = { provisionado: true };
+  const [cfg, pessoas, fatos] = await Promise.all([config(sql, estado), pessoasAtivas(sql, estado), fatosDoMes(sql, { de, ate, hoje })]);
+  const fim = hoje < ate ? hoje : ate, diasPeriodo = Math.max(1, calc.util.diasEntre(de, fim) + 1), diasMes = calc.util.limitesDoMes(de.slice(0, 7)).dias;
+  const linhas = pessoas.map((p) => {
+    const f = fatos.porPessoa.get(p.id) || {}, metaMes = Number(cfg.metas[p.cargo] ?? cfg.metas.padrao) || 0;
+    return { id: p.id, nome: p.nome, cargo: p.cargo, entregues: Number(f.entregues || 0), comData: Number(f.com_data || 0), noPrazo: Number(f.no_prazo || 0),
+      atrasadas: Number(f.atrasadas || 0), ajustes: fatos.ajustes ? (fatos.ajustes.get(p.id) || 0) : null,
+      meta: metaMes > 0 ? Math.max(1, Math.round(metaMes * diasPeriodo / diasMes)) : 0 };
+  });
+  return calc.ranking(linhas, cfg.pesos).map((p) => ({ id: p.id, nome: p.nome, score: p.score ?? null, entregues: p.entregues, meta: p.meta }));
+}
 async function produtividade(sql, quem, query, estado) {
   const hoje = hojeBahia(), mes = query.mes ? String(query.mes) : hoje.slice(0, 7);
   if (!calc.util.mesValido(mes) || mes > hoje.slice(0, 7)) falhar('Mês inválido.');

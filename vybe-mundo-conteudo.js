@@ -160,10 +160,10 @@
     const mesAtual = st.mes === hoje().slice(0, 7);
     // Direção 3 (quadro D3-Aprovacao): o título com o mês ao lado, as abas à direita (Para aprovar com quantas esperam),
     // a ajuda e o fechar.
-    const nFila = filaParaAprovar()?.fila?.length;
+    const nFila = filaParaAprovar()?.fila?.length, nCliente = filaParaAprovar()?.comCliente;
     const topo = `<div class="v2c-topo"><h2>Aprovação</h2>
       <span class="v2c-mes" role="group" aria-label="Mês"><button type="button" data-vc-mes="-1" aria-label="Mês anterior">‹</button><button type="button" class="v2c-mes-nome" data-vc-mes="0" title="${esc(nomeDoMes(st.mes))}${mesAtual ? '' : ': voltar para este mês'}">${esc(mesCurto(st.mes))}</button><button type="button" data-vc-mes="1" aria-label="Próximo mês">›</button></span>
-      <span class="v2c-seg" role="tablist"><button type="button" role="tab" data-vc-aba="aprovar" aria-selected="${st.aba === 'aprovar'}">Para aprovar${nFila ? ` <span class="d3a-n">${nFila}</span>` : ''}</button><button type="button" role="tab" data-vc-aba="equilibrio" aria-selected="${st.aba === 'equilibrio'}">Equilíbrio do mês</button><button type="button" role="tab" data-vc-aba="links" aria-selected="${st.aba === 'links'}" title="Links de aprovação">Links</button></span>
+      <span class="v2c-seg" role="tablist"><button type="button" role="tab" data-vc-aba="aprovar" aria-selected="${st.aba === 'aprovar'}">Para aprovar${nFila ? ` <span class="d3a-n">${nFila}</span>` : ''}</button><button type="button" role="tab" data-vc-aba="cliente" aria-selected="${st.aba === 'cliente'}">Com o cliente${nCliente ? ` <span class="d3a-n">${nCliente}</span>` : ''}</button><button type="button" role="tab" data-vc-aba="equilibrio" aria-selected="${st.aba === 'equilibrio'}">Equilíbrio do mês</button><button type="button" role="tab" data-vc-aba="links" aria-selected="${st.aba === 'links'}" title="Links de aprovação">Links</button></span>
       <button type="button" class="v2c-btn" data-vc-ajuda aria-expanded="${st.ajuda}" aria-label="O que é este módulo?" title="O que é este módulo?">?</button>
       <button type="button" class="v2c-btn v2c-x" data-vc-fechar aria-label="Fechar (Esc)" title="Fechar (Esc)">${IC.fechar}</button></div>`;
     const ajuda = st.ajuda ? `<div class="vc-ajuda" role="note"><b>Como funciona</b>
@@ -173,7 +173,7 @@
       <p>Em <b>Links de aprovação</b>, o head gera um link com validade para o cliente aprovar ou pedir ajuste sem login. Ele só vê as peças dele em "Ag. Aprovação Cliente".</p>
       <p>Em <b>Para aprovar</b>, Aprovar manda a peça para Para agendar e Pedir alteração devolve com o seu recado. As duas pedem confirmação antes de gravar. Se o quadro da peça não tiver esses status, ela abre para você decidir por lá. Tocar na arte abre a peça; as setas do teclado, ou arrastar o cartão, passam para a próxima.</p></div>` : '';
     const aviso = st.pronto === false && st.aviso ? `<div class="vc-aviso" role="status">${esc(st.aviso)}</div>` : '';
-    el.innerHTML = topo + ajuda + aviso + `<div class="vc-corpo">${st.aba === 'links' ? corpoLinks() : st.aba === 'aprovar' ? corpoAprovar() : corpoEquilibrio()}</div>`;
+    el.innerHTML = topo + ajuda + aviso + `<div class="vc-corpo">${st.aba === 'links' ? corpoLinks() : st.aba === 'cliente' ? corpoCliente() : st.aba === 'aprovar' ? corpoAprovar() : corpoEquilibrio()}</div>`;
     if (st.aba === 'aprovar') st.aprAss = assinaturaDaFila();
   }
 
@@ -191,7 +191,8 @@
     const pecas = Array.isArray(d.pecas) ? d.pecas : [];
     const fila = pecas.filter((i) => i.etapa === 'interna').filter((i) => { const p = itemDoPainel(i); return !p || /aprova/i.test(String(p.status || '')); })
       .sort((a, b) => String(a.veiculacao || a.prazo || '9').localeCompare(String(b.veiculacao || b.prazo || '9')) || (b.horas ?? -1) - (a.horas ?? -1));
-    return { fila, comCliente: pecas.filter((i) => i.etapa === 'cliente').length };
+    const comO = pecas.filter((i) => i.etapa === 'cliente');
+    return { fila, comCliente: comO.length, comO };
   }
   const assinaturaDaFila = () => (filaParaAprovar()?.fila || []).map((i) => i.ref).join(',');
   function conferirFila() { if (st.aberto && st.aba === 'aprovar' && assinaturaDaFila() !== st.aprAss) { pintar(); tentarLote(); } }
@@ -313,7 +314,7 @@
     const h = antiga?.horas;
     return `<div class="d3a-nums">${num({ rotulo: 'Esperando você', valor: fila.length, sub: esc(nomes.slice(0, 4).join(' · ')) + (nomes.length > 4 ? ` +${nomes.length - 4}` : ''), attrs: fila.length ? 'data-vc-apr-lista' : '' })}
       ${num({ rotulo: 'Mais antiga', valor: h == null ? '0' : h < 48 ? h : Math.round(h / 24), de: h == null ? '' : h < 48 ? ' h' : ' dias', tom: (h ?? 0) >= 24 ? 'a' : '', sub: antiga ? esc([quandoNoAr(antiga) ? `ar ${quandoNoAr(antiga)}` : quando(antiga).frase, String(antiga.cliente || '').split(',')[0].trim()].filter(Boolean).join(' · ')) : 'fila limpa' })}
-      ${num({ rotulo: 'Com o cliente', valor: f?.comCliente || 0, sub: abertos == null ? '' : plural(abertos, 'link aberto', 'links abertos'), attrs: 'data-vc-aba="links"' })}
+      ${num({ rotulo: 'Com o cliente', valor: f?.comCliente || 0, sub: abertos == null ? '' : plural(abertos, 'link aberto', 'links abertos'), attrs: 'data-vc-aba="cliente"' })}
       ${num({ rotulo: 'Aprovadas pelo cliente', valor: d ? d.aprovadasAgora : 0, de: d ? ` / ${d.atual.geral.total}` : '', barra: d && d.atual.geral.total ? (d.aprovadasAgora * 100) / d.atual.geral.total : 0 })}</div>`;
   }
   // Coluna esquerda: o baralho, os dois botões e os pontos; "ver em lista" troca o baralho pela fila inteira.
@@ -530,6 +531,15 @@
     catch (e) { st.erroLinks = e.message; }
     if (st.aberto) pintar();
   }
+  // Com o cliente (Direção 3, aba do quadro D3-Aprovacao): as peças que esperam a resposta do cliente, pela data dele,
+  // e embaixo os links de aprovação de cada cliente (a mesma lista da aba Links).
+  function corpoCliente() {
+    const f = filaParaAprovar(), l = f?.comO || [];
+    const lin = l.slice().sort((a, b) => String(a.veiculacao || a.prazo || '9').localeCompare(String(b.veiculacao || b.prazo || '9')))
+      .map((i) => `<div class="v2c-lin d3a-fila-lin"><span class="v2c-lin-txt">${cliHtml(String(i.cliente || 'Sem cliente').split(',')[0].trim())}<span>· ${esc(String(i.titulo || 'Sem título').trim())}</span></span>${i.formato ? `<span class="d3a-pill">${esc(i.formato)}</span>` : ''}<span class="d3a-horas${(i.horas ?? 0) >= 48 ? ' a' : ''}">${i.horas == null ? esc(quando(i).curto) : i.horas < 1 ? 'agora' : esc(esperaHa(i.horas))}</span></div>`).join('');
+    return `<section class="d3a-card v2c-fila d3a-cliente" aria-label="Com o cliente"><div class="d3a-topo"><h3>Com o cliente</h3><span>${!f ? '' : l.length ? plural(l.length, 'espera resposta', 'esperam resposta') : 'nada esperando'}</span></div>
+      <div class="d3a-fila">${lin || `<p class="d3a-vazio">${f ? 'Nenhuma peça esperando o cliente.' : 'As peças ainda estão carregando.'}</p>`}</div></section>${corpoLinks()}`;
+  }
   function corpoLinks() {
     if (st.erroLinks) return vazio(st.erroLinks, 'Tente de novo em instantes.', '<button type="button" class="vc-sec" data-vc-recarregar-links>Tentar de novo</button>');
     if (!st.links) return vazio('Carregando os clientes…');
@@ -578,7 +588,7 @@
     if (!t.closest('#vv-conteudo')) return;
     if (t.matches('[data-vc-fechar]')) return fechar();
     if (t.matches('[data-vc-ajuda]')) { st.ajuda = !st.ajuda; return pintar(); }
-    if (t.dataset.vcAba) { st.aba = t.dataset.vcAba; st.lote = []; if (st.aba === 'links' && !st.links) carregarLinks(); if (st.aba === 'aprovar') relerFila(); return pintar(); }
+    if (t.dataset.vcAba) { st.aba = t.dataset.vcAba; st.lote = []; if (['links', 'cliente'].includes(st.aba) && !st.links) carregarLinks(); if (st.aba === 'aprovar') relerFila(); return pintar(); }
     if (t.dataset.vcEqCliente !== undefined) { st.aba = 'equilibrio'; st.cliente = t.dataset.vcEqCliente; st.peca = ''; st.lote = []; return pintar(); }
     if (t.matches('[data-vc-apr-lista]')) { st.aprLista = t.closest('.v2c-fila') ? true : !st.aprLista; st.lote = []; return pintar(); }
     if (t.matches('[data-vc-apr-lote]')) { st.lote = deAmanha(filaParaAprovar()?.fila || []).map((i) => String(i.ref)); return seguirLote(); }
@@ -612,7 +622,7 @@
   }, true);
 
   function abrir({ aba = 'aprovar', cliente = '', mes = '' } = {}) {
-    st.aberto = true; st.aba = ['links', 'equilibrio'].includes(aba) ? aba : 'aprovar';
+    st.aberto = true; st.aba = ['links', 'equilibrio', 'cliente'].includes(aba) ? aba : 'aprovar';
     if (st.aba === 'aprovar') { relerFila(); st.aprLista = false; st.falaN = -1; if (!st.links && !st.erroLinks) carregarLinks(); }
     st.lote = [];
     st.mes = /^\d{4}-\d{2}$/.test(mes) ? mes : (st.mes || hoje().slice(0, 7));
@@ -620,7 +630,7 @@
     st.novoLink = null;
     pintar();
     carregarObjetivos();
-    if (st.aba === 'links') carregarLinks();
+    if (st.aba === 'links' || st.aba === 'cliente') carregarLinks();
     janela().querySelector('[data-vc-fechar]')?.focus();
   }
   function fechar() { st.aberto = false; st.peca = ''; st.ajuda = false; st.novoLink = null; st.lote = []; pintar(); }

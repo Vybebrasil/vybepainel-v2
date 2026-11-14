@@ -74,7 +74,7 @@ test('Contratos (quadro do padrão v2): título com as ações, fala do Vorcaro,
   // Direção 3 (13/11/2026): quatro números, o quarto é "Sem contrato".
   assert.match(html, /<span class="d3-num-rot">Em contratos<\/span>[\s\S]*<span class="d3-num-rot">Renovam em 30 dias<\/span>[\s\S]*<span class="d3-num-rot">Tempo de casa<\/span>[\s\S]*<span class="d3-num-rot">Sem contrato<\/span>/);
   assert.match(html, /data-vc-filtro-ct="sem">Sem contrato · 1<\/button>/);
-  assert.match(html, /<span class="v2c-pill r">Sem contrato<\/span><p><b>Antonov<\/b> · ativo, sem valor mensal nem início/);
+  assert.match(html, /<p><b>Antonov<\/b><\/p><span class="v2c-pill r">Sem contrato<\/span>/);
   assert.doesNotMatch(html, /class="vb-mes"/, 'o mês saiu do alto');
   clicar({ vcFiltros: '' });
   assert.match(janela().innerHTML, /class="vb-mes"[\s\S]*novembro de 2026/);
@@ -322,8 +322,8 @@ test('Churn (quadro do padrão v2): fala, três números, fichas, Pede ação co
   await saiu.ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
   html = saiu.janela().innerHTML;
   assert.match(html, /Antonov saiu em novembro e está sem motivo\./);
-  assert.match(html, /<span class="v2c-pill r">Sem motivo<\/span><p><span class="v2k-cli">Antonov<\/span> · desativado em 05\/11/);
-  assert.match(html, /<h2>Quem saiu · 1<\/h2>/);
+  assert.match(html, /<span class="v2c-pill r">Sem motivo<\/span><p><span class="v2k-cli">Antonov<\/span> · saiu 05\/11<\/p>/);
+  assert.match(html, /<h2>Quem saiu<\/h2><small>1 · /);
   saiu.clicar({ vcVistaCh: 'meses' });
   assert.match(saiu.janela().innerHTML, /<figure class="d3k-graf"><figcaption>Saíram <b>1<\/b><\/figcaption>/);
   const js = ler('vybe-mundo-carteira.js');

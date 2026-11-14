@@ -166,6 +166,15 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
   #vv-dock-salas-faixa .vq-dock .vq-item{width:50px}
   #vv-dock-salas-faixa .vq-dock .vq-voz{max-width:100%}
 }
+/* Celular dentro de uma sala (quadro D3-Celular): o dock abre recolhido numa linha (Voltar, a sala, o microfone e Mais);
+   o "Mais" (body.cel-dock-aberto) mostra o resto no lugar. Sem ele, o painel cobria os cartões da Minha sala. */
+body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock{flex-wrap:nowrap;justify-content:flex-start;gap:2px}
+body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock > .vq-item:not(.vq-voltar):not(.vq-mic):not(.vq-cel-mais){display:none}
+body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock > .vq-voz{flex:1 1 auto;min-width:0;gap:6px;padding:0 4px 0 6px}
+body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock > .vq-voz > span:not(.vq-rostos){white-space:nowrap}
+body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock > .vq-voz .vq-rostos:empty{display:none}
+body.cel-na-sala:not(.cel-dock-aberto) #vv-dock-salas-faixa .vq-dock > .vq-voz button{flex:none}
+body.cel-na-sala.cel-dock-aberto #vv-dock-salas-faixa .vq-dock > .vq-cel-mais{order:99}
 @media (prefers-reduced-motion:reduce){#vv-dock-salas-faixa .vq-dock .vq-item,#vv-dock-salas-faixa .vq-dock .vq-voz button{transition:none}}
 
 /* ---------- Salas: o mesmo painel (o lugar dele, em cima do dock, já é o do quadro) ---------- */

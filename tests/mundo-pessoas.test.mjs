@@ -127,12 +127,12 @@ test('RH 08/11: fila com números clicáveis, fora do prazo em vermelho, respost
   assert.equal(prov('clima').itens.length, 2); assert.equal(prov('nada'), null);
   fora.clicar(fora.itens[0]);
   h = g.html();
-  assert.match(h, /Mostrando: <b>Fora do prazo<\/b> \(1\)/); assert.doesNotMatch(h, /<b>Férias<\/b>/);
+  assert.match(h, /Mostrando: <b>Fora do prazo<\/b> \(1\)/); assert.doesNotMatch(h.slice(h.indexOf('data-v2p-secao')), /<b>Férias<\/b>/, 'a lista filtrada (o cartão Seus pedidos fica no alto, com os pedidos de quem olha)');
   // Quem pediu: vê os próprios pedidos e a resposta, não vê a tabela de prazos nem resultado.
   const a = montar();
   await a.P.abrir('rh');
   h = a.html();
-  assert.match(h, /Seus pedidos/); assert.match(h, /Cancelar pedido/); assert.match(h, /O seu pedido<\/b> · Declaração/); assert.match(h, /Já enviamos por e-mail/);
+  assert.match(h, /Seus pedidos/); assert.match(h, /Cancelar pedido/); assert.match(h, /<p><b>Declaração/); assert.match(h, /Já enviamos por e-mail/);
   assert.doesNotMatch(h, /data-v2p-decidir|data-v2p-ver="prazos"|data-v2p-ver="visao"/, 'quem pediu não decide nem vê as partes da gestão');
   a.P._teste.ver('lista'); h = a.html();
   assert.match(h, /Seus pedidos ao RH/); assert.match(h, /Resposta do RH:<\/b> Já enviamos por e-mail/);

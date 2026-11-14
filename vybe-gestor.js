@@ -2037,8 +2037,38 @@ function d3pQuando(d, data) {
   if (d.prazo_iso && d.prazo_iso !== data) return { texto: `prazo ${pv2DiaMes(d.prazo_iso)}`, tom: d.prazo_iso < hoje ? 'r' : d.prazo_iso === hoje ? 'a' : '' };
   return { texto: '', tom: '' };
 }
+// Hora de publicação da peça (14/11/2026): o Monday não tem o campo, então ela fica do nosso lado
+// (vybe_peca_complemento, GET/POST /api/painel?area=peca_complemento) e é opcional. Lida uma vez; sem a rota, nada aparece.
+let pv2Horas = null, pv2HorasLendo = null;
+const PV2_ITEM_HORA = /^(vybe:)?[0-9]{1,20}$/;
+function pv2CarregarHoras() {
+  if (pv2Horas || pv2HorasLendo || typeof fetch !== 'function') return;
+  pv2HorasLendo = fetch('/api/painel?area=peca_complemento', { credentials: 'same-origin', cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null)).then((j) => { pv2Horas = j?.horas || {}; pv2PintarHoras(); })
+    .catch(() => { pv2Horas = {}; }).finally(() => { pv2HorasLendo = null; });
+}
+function pv2PintarHoras() {
+  if (typeof document === 'undefined') return;
+  for (const el of document.querySelectorAll('[data-hora-de]')) { const h = pv2Horas?.[el.dataset.horaDe] || ''; el.textContent = h ? pv2HoraCurta(h) : ''; el.hidden = !h; }
+  for (const el of document.querySelectorAll('input[data-hora-campo]')) if (document.activeElement !== el) el.value = pv2Horas?.[el.dataset.horaCampo] || '';
+}
+const pv2HoraCurta = (h) => (/^\d{2}:00$/.test(h) ? `${Number(h.slice(0, 2))}h` : h.replace(':', 'h'));
+async function pv2SalvarHora(item, campo) {
+  if (!PV2_ITEM_HORA.test(String(item))) return;
+  const hora = String(campo?.value || '');
+  try {
+    const r = await fetch('/api/painel?area=peca_complemento', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, publicar_hora: hora || null }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Não foi possível gravar a hora.');
+    pv2Horas = { ...(pv2Horas || {}) }; if (hora) pv2Horas[item] = hora; else delete pv2Horas[item];
+    pv2PintarHoras();
+    if (typeof showToast === 'function') showToast(hora ? `Publica às ${pv2HoraCurta(hora)}.` : 'Hora de publicação tirada.');
+  } catch (e) { if (typeof showToast === 'function') showToast(e.message); }
+}
 function pv2CartaoHtml(d, aba) {
   const id = safeText(d.id), aberto = pv2CartoesAbertos.has(String(d.id));
+  const comHora = !isRequestItem(d) && PV2_ITEM_HORA.test(String(d.id)), hora = comHora ? pv2Horas?.[String(d.id)] || '' : '';
+  if (comHora) pv2CarregarHoras();
   const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
   const clientes = clientesDoItem(d), data = dataDoCartaoDia(d), titulo = pv2Titulo(d);
   const feita = atividadeDoDiaConcluida(d);
@@ -2052,11 +2082,12 @@ function pv2CartaoHtml(d, aba) {
     <div class="pv2-pc-lin" role="button" tabindex="0" aria-expanded="${aberto}" title="Abrir no lugar. Arraste para mudar a data"
         onclick="pv2AlternarCartao('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2AlternarCartao('${id}',this)}">
       <p class="pv2-t">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</span>` : ''}<span class="d3p-peca"> · ${safeText(titulo)}</span></p>
-      <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}">${safeText(q.texto)}</span>` : ''}</div>
+      <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}">${safeText(q.texto)}</span>` : ''}${comHora ? `<span class="d3p-hora" data-hora-de="${id}"${hora ? '' : ' hidden'} title="Hora de publicação">${safeText(hora ? pv2HoraCurta(hora) : '')}</span>` : ''}</div>
       <span class="pv2-avs">${pv2Av(d)}</span>
     </div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
       ${datas || aba === 'pendencias' ? `<p class="pv2-sub">${aba === 'pendencias' ? (data ? `Entrega ${pv2DiaMes(data)}` : 'Sem data') + (datas ? ' · ' : '') : ''}${datas}</p>` : ''}
+      ${comHora ? `<label class="d3p-hora-campo" onclick="event.stopPropagation()">Publica às <input type="time" step="900" value="${safeText(hora)}" data-hora-campo="${id}" aria-label="Hora de publicação (opcional)" onchange="pv2SalvarHora('${id}',this)"></label>` : ''}
       <div class="pv2-det-acoes"><button type="button" class="pv2-btn s k" onclick="openItemWorkspace('${id}')">Abrir a peça</button>${previa}
         <label class="pv2-lote" title="Marcar para ação em lote"><input type="checkbox" ${marcada ? 'checked' : ''} data-day-item="${id}" aria-label="Marcar ${safeText(d.nome || '')}" onclick="alternarSelecao('${id}',this.checked,event,ORDEM_VISIVEL_DO_DIA)">Marcar</label></div>
     </div></div></div>

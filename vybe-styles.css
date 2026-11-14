@@ -2656,7 +2656,7 @@ header:where(:not(.tema-sinuca)){position:relative}
 
 /* Workspace e modais: plano de decisão limpo e prévia protagonista. */
 
-.workspace-backdrop,.workflow-backdrop,.production-sheet-overlay,.meeting-mode-overlay,.cadastros-preview-overlay{background:rgba(4,5,9,.68)!important;backdrop-filter:blur(18px) saturate(1.08)!important}
+.workspace-backdrop,.workflow-backdrop:not(:has(+ .rk2-janela)),.production-sheet-overlay,.meeting-mode-overlay,.cadastros-preview-overlay{background:rgba(4,5,9,.68)!important;backdrop-filter:blur(18px) saturate(1.08)!important}
 
 .workspace-drawer,.workflow-modal,.production-sheet,.meeting-mode-sheet,.cadastros-preview-modal,.da-member-workload-modal{
 

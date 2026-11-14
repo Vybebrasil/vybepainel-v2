@@ -194,3 +194,13 @@
   #painel-diario .vb-cabecalho-texto h2{flex-wrap:wrap;gap:4px 10px}
   #painel-diario .vb-cabecalho-texto{padding-right:92px}
 }
+/* Fiel ao quadro */
+/* Diário (D3-Diario): a linha aberta em grade de duas colunas, a contagem à esquerda na cor do que mudou e os clientes
+   de cada uma à direita. */
+#painel-diario .d3d .d3d-grade{display:grid;grid-template-columns:minmax(96px,max-content) minmax(0,1fr);gap:6px 24px;align-items:baseline;padding:2px 18px 12px 64px;font:400 12.5px/1.4 var(--vv-texto,Inter),sans-serif}
+#painel-diario .d3d .d3d-grade .d3d-g-rot{font-weight:600;white-space:nowrap}
+#painel-diario .d3d .d3d-grade .d3d-g-rot.g{color:var(--d3-pronto)}
+#painel-diario .d3d .d3d-grade .d3d-g-rot.r{color:var(--d3-perigo)}
+#painel-diario .d3d .d3d-grade .d3d-g-rot.a{color:var(--d3-ajuste)}
+#painel-diario .d3d .d3d-grade .d3d-g-cli{min-width:0;color:var(--d3-texto2);overflow-wrap:anywhere}
+@media (max-width:640px){#painel-diario .d3d .d3d-grade{padding-left:24px;gap:4px 14px}}

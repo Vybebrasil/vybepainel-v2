@@ -94,8 +94,8 @@ test('Contratos na tela: Pede ação com a renovação e quem está sem contrato
   let html = janela.innerHTML;
   // Sem o núcleo (vm), o bloco de ação cai na fala de antes com a mesma frase curta.
   assert.match(html, /Alfa renova em 11 dias\./);
-  assert.match(html, /<span class="v2c-pill a">Renova em 11 dias<\/span><p><span class="v2k-cli">Alfa<\/span> · R\$\s4\.200 por mês/);
-  assert.match(html, /<span class="v2c-pill r">Sem contrato<\/span><p><b>Beta<\/b> · ativo, sem valor mensal nem início/);
+  assert.match(html, /<p><span class="v2k-cli">Alfa<\/span> · R\$\s4\.200<\/p><span class="v2c-pill a">Renova em 11 dias<\/span>/);
+  assert.match(html, /<p><b>Beta<\/b><\/p><span class="v2c-pill r">Sem contrato<\/span>/);
   assert.match(html, /<span class="v2k-nome"><b>Alfa<\/b><small>desde 11\/2025<\/small><\/span>\s*<span class="d3k-desde">11\/2025<\/span>\s*<span class="v2k-trilha"><span class="v2-barra"><i style="--v:97%;--c:#7A4A00"><\/i><\/span><small>12 de 12 meses<\/small><em class="d3k-trilha-n">12\/12<\/em><\/span>\s*<b class="v2k-valor">R\$\s4\.200<\/b><span class="v2c-pill a">23\/11 · 11 dias<\/span>/);
   clicar({ vcFormAbrir: 'contrato', vcCli: '1', vcOnde: 'acao', vcCampo: 'renovacao' });
   html = janela.innerHTML;
@@ -108,7 +108,7 @@ test('Churn na tela: a saída sem motivo pede ação; "Classificar a saída" abr
   let html = janela.innerHTML;
   assert.match(html, /Gama saiu em novembro e está sem motivo\./);
   assert.match(html, /data-vc-filtro-ch="sem">Sem motivo · 1<\/button>/);
-  assert.match(html, /<h2>Quem saiu · 1<\/h2>/);
+  assert.match(html, /<section class="v2c-card v2c-quadro d3k-quem" aria-label="Quem saiu"><div class="v2c-card-topo v2k-quem-saiu"><h2>Quem saiu<\/h2><small>1 · /);
   clicar({ vcFormAbrir: 'churn', vcCli: '3', vcOnde: 'acao' });
   html = janela.innerHTML;
   assert.match(html, /<p class="v2k-porque"><span class="v2c-sub">Por quê\?<\/span><button type="button" class="v2c-chip" aria-pressed="false" data-vc-motivo-ch="preco">Preço<\/button>/);

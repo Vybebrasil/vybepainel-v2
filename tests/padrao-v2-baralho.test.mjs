@@ -6,10 +6,11 @@ import fs from 'node:fs';
 const js = fs.readFileSync('vybe-mundo-conteudo.js', 'utf8');
 const css = fs.readFileSync('vybe-mundo-conteudo.css', 'utf8');
 
-test('Conteúdo abre em Para aprovar, com as três abas', () => {
+test('Conteúdo abre em Para aprovar, com as quatro abas do quadro D3 (Com o cliente entre Para aprovar e Equilíbrio)', () => {
   assert.match(js, /function abrir\(\{ aba = 'aprovar', cliente = '', mes = '' \} = \{\}\)/);
-  assert.match(js, /st\.aba = \['links', 'equilibrio'\]\.includes\(aba\) \? aba : 'aprovar';/);
-  for (const aba of ['aprovar', 'equilibrio', 'links']) assert.ok(js.includes(`role="tab" data-vc-aba="${aba}"`), aba);
+  assert.match(js, /st\.aba = \['links', 'equilibrio', 'cliente'\]\.includes\(aba\) \? aba : 'aprovar';/);
+  for (const aba of ['aprovar', 'cliente', 'equilibrio', 'links']) assert.ok(js.includes(`role="tab" data-vc-aba="${aba}"`), aba);
+  assert.match(js, /st\.aba === 'cliente' \? corpoCliente\(\)/);
 });
 
 test('a fila é a aprovação interna, pela data do cliente, e larga a peça que o painel já mostra fora de aprovação', () => {

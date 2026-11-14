@@ -1,0 +1,64 @@
+/* DIREÇÃO 3 · O QUE FALTOU DOS QUADROS (14/11/2026, aprovado pelo Paulo). Cinco peças:
+   1 confirmação perigosa (#vb-apagar, vbConfirmarApagar em vybe-core.js; quadro D3-Fam-Confirmacoes),
+   2 "Semana de dd/mm" na Nova demanda (#fc-overlay .nd-semana; quadro D3-NovaDemanda),
+   3 topo da Agenda com Semana, Mês, Roteiros e Mais (#pv2-agenda-topo .d3ag-vistas; quadro D3-Agenda),
+   4 "Editar" e "Confirmar N" em lote na Fila do Danilo e na Coordenação (quadros D3-Criacao e D3-Coordenacao),
+   5 rótulo "Gestão" ao lado do título de Clientes (quadro D3-GestaoClientes).
+   Sem regra com importância: a força vem do id da janela. */
+
+/* ===== 1. CONFIRMAÇÃO PERIGOSA ===== */
+#vb-apagar .vb-apagar-caixa.vb-apagar-caixa{display:flex;flex-direction:column;gap:12px;width:min(340px,100%)}
+#vb-apagar .vb-apagar-caixa .vb-apagar-ic{flex:none;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:999px;background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#vb-apagar .vb-apagar-caixa .vb-apagar-t{font-size:16px}
+#vb-apagar .vb-apagar-caixa .vb-apagar-x{margin:0;font-size:13px;color:var(--d3-texto2)}
+#vb-apagar .vb-apagar-caixa .vb-apagar-rot{margin-bottom:-6px;font:600 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vb-apagar .vb-apagar-caixa .vb-apagar-c{appearance:none;width:100%;height:40px;box-sizing:border-box;margin:0;padding:0 14px;border:0;border-radius:12px;background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-borda);color:var(--d3-tinta);font:500 14px var(--vv-texto,Inter,sans-serif);letter-spacing:.04em;outline:0;transition:box-shadow .15s}
+#vb-apagar .vb-apagar-caixa .vb-apagar-c:focus{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+#vb-apagar .vb-apagar-caixa .vb-apagar-acoes{margin-top:0}
+#vb-apagar .vb-apagar-caixa .vb-apagar-acoes .vb-apagar-sim:disabled{opacity:.35;cursor:not-allowed;transform:none}
+#vb-apagar .vb-apagar-caixa .vb-apagar-acoes .vb-apagar-sim:disabled:hover{background:var(--d3-perigo)}
+
+/* ===== 2. NOVA DEMANDA · SEMANA DE DD/MM ===== */
+#fc-overlay .nd .nd-semana{display:flex;flex-direction:column;gap:8px;min-width:0}
+#fc-overlay .nd .nd-semana:empty{display:none}
+#fc-overlay .nd .nd-semana > .d3-graf{width:100%;height:auto;max-height:90px}
+#fc-overlay .nd .nd-semana-dias{display:flex;justify-content:space-between;margin-top:-4px;font:400 11.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+#fc-overlay .nd .nd-semana-dias > b{font-weight:700;color:var(--d3-tinta)}
+
+/* ===== 3. AGENDA · SEMANA, MÊS, ROTEIROS E MAIS ===== */
+#pv2-agenda-topo.pv2 .d3ag-vistas{flex:none;display:inline-flex;align-items:center;gap:0;padding:4px;border-radius:999px;background:var(--d3-trilho)}
+#pv2-agenda-topo.pv2 .d3ag-vistas > button{appearance:none;height:32px;margin:0;padding:0 14px;border:0;border-radius:999px;background:transparent;box-shadow:none;color:var(--d3-texto2);font:500 13.5px var(--vv-texto,Inter),sans-serif;cursor:pointer;transition:background-color .25s cubic-bezier(.32,.72,0,1),color .25s}
+#pv2-agenda-topo.pv2 .d3ag-vistas > button:hover{color:var(--d3-tinta)}
+#pv2-agenda-topo.pv2 .d3ag-vistas > button[aria-checked="true"]{background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+#pv2-agenda-topo.pv2 .d3ag-vistas > button:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#pv2-agenda-topo.pv2 .d3ag-mais > summary{gap:4px;height:40px;padding:0 14px;background:transparent;color:var(--d3-texto2);box-shadow:none}
+#pv2-agenda-topo.pv2 .d3ag-mais > summary:hover{color:var(--d3-tinta);box-shadow:inset 0 0 0 1px var(--d3-borda)}
+#pv2-agenda-topo.pv2 .d3ag-mais > summary.on{background:var(--d3-cartao);color:var(--d3-tinta);font-weight:600}
+#pv2-agenda-topo.pv2 .d3ag-mais > summary svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+#pv2-agenda-topo.pv2 .d3ag-mais .pv2-pop{min-width:160px}
+@media (max-width:640px){
+  #pv2-agenda-topo.pv2 .d3ag-vistas{order:2}
+  #pv2-agenda-topo.pv2 .d3ag-vistas > button{padding:0 12px}
+  #pv2-agenda-topo.pv2 .d3ag-mais{order:2}
+}
+
+/* ===== 4. CONFIRMAR N EM LOTE (Fila do Danilo e Coordenação) ===== */
+#vv-hoje .d3h-danilo .vcr-pe.vcr-lote,#vv-hoje .d3h-co .v2o-lote{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:auto;padding:12px 0 0;border-top:1px solid var(--d3-linha);font:400 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+#vv-hoje .d3h-danilo .vcr-lote > :is(.vcr-pe-conta,.vcr-conf,.vcr-lote-res),#vv-hoje .d3h-co .v2o-lote > .v2o-lote-conta{flex:1 1 120px;min-width:0}
+#vv-hoje .d3h-danilo .vcr-lote > .vcr-conf{font-weight:500;color:var(--d3-tinta)}
+#vv-hoje .d3h-danilo .vcr-lote > .vcr-lote-res.erro,#vv-hoje .d3h-co .v2o-lote > .v2o-lote-conta.erro{color:var(--d3-perigo)}
+#vv-hoje .d3h-danilo .vcr-lote > button,#vv-hoje .d3h-co .v2o-lote > button{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;min-width:0;padding:0 16px;border:0;border-radius:999px;box-shadow:none;font:500 13.5px var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:background-color .2s,color .2s,transform .14s cubic-bezier(.34,1.56,.64,1)}
+#vv-hoje .d3h-danilo .vcr-lote > .vc-sec{background:var(--d3-trilho);color:var(--d3-tinta)}
+#vv-hoje .d3h-danilo .vcr-lote > .vc-sec[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+#vv-hoje .d3h-danilo .vcr-lote > .vc-acao,#vv-hoje .d3h-co .v2o-lote > .v2o-btn.k{min-width:120px;background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+#vv-hoje .d3h-danilo .vcr-lote > button:active,#vv-hoje .d3h-co .v2o-lote > button:active{transform:scale(.96)}
+#vv-hoje .d3h-danilo .vcr-lote > button:disabled,#vv-hoje .d3h-co .v2o-lote > button:disabled{cursor:default;opacity:.45;transform:none}
+#vv-hoje .d3h-danilo .vcr-lote > button.rodando:disabled,#vv-hoje .d3h-co .v2o-lote > button.rodando:disabled{opacity:1}
+#vv-hoje .d3h-danilo .vcr-lote > .vc-acao.v2-estado[data-estado="feito"],#vv-hoje .d3h-co .v2o-lote > .v2o-btn.k[data-estado="feito"]{opacity:1;background:var(--d3-pronto);color:#FFFFFF}
+#vv-hoje :is(.d3h-danilo .vcr-gira,.d3h-co .v2o-gira){flex:none;width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#FFFFFF;animation:v2-giro .7s linear infinite}
+@media (prefers-reduced-motion:reduce){#vv-hoje :is(.d3h-danilo .vcr-gira,.d3h-co .v2o-gira){animation-duration:1.6s}}
+
+/* ===== 5. CLIENTES · RÓTULO GESTÃO AO LADO DO TÍTULO ===== */
+#painel-clientes #clientes-hero .pv-cabeca > div{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:14px;min-width:0}
+#painel-clientes #clientes-hero .d3c-modo{font:400 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap}
+#vv-hoje .d3h-co .d3h-cartao > .v2o-lote{padding:12px 18px 6px}

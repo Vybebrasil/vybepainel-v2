@@ -15,6 +15,9 @@ body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:hover{color:#1F1D1A;backg
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:var(--d3-tinta,#1F1D1A);color:#FFFFFF;font-weight:600;box-shadow:none}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:1px}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"].vb-aba-fora{display:none}
+/* Abas que não cabem (quadro D3-Celular): primeiro apertam na largura toda, com texto de 12; só depois vão para o "Mais". */
+body.mundo .vb-abas.vb-abas-justas.vb-abas:not(#vb-a):not(#vb-b){display:flex;width:100%}
+body.mundo .vb-abas.vb-abas-justas:not(#vb-a):not(#vb-b) [role="tab"]{flex:1 1 auto;padding:0 8px;font-size:12px}
 /* A pílula que desliza: desenhada pela lista, na posição da aba selecionada (--vb-aba-x/--vb-aba-w, postas por vbArrumarAbas). */
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b){--ds-on-fundo:transparent}
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:transparent;box-shadow:none;color:#FFFFFF}
@@ -70,13 +73,21 @@ body.mundo .prod-v2-drawer:not(#vb-a) .p-draw-close{width:34px;height:34px;borde
 body.mundo .manager-command-drawer.manager-command-drawer.open:not(#vb-a){left:auto;top:12px;right:12px;bottom:12px;z-index:640;box-shadow:-14px 0 40px -18px rgba(31,29,26,.45);height:auto;width:520px;max-width:calc(100vw - 24px);border-radius:24px;overflow:auto}
 body.mundo .manager-command-drawer:not(#vb-a) .manager-command-close{width:34px;height:34px;border:0;border-radius:50%;background:#F3F1EC;color:#1F1D1A}
 
-/* ===== 4. FORMULÁRIO: etapas "1 de N" em pílula, "obrigatório" no rótulo, erro embaixo do campo ===== */
-body.mundo .vb-etapas{display:flex;align-items:center;gap:6px;min-width:0;margin:6px 0 14px;font:600 12px/1 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
-body.mundo .vb-etapas > i{flex:1 1 12px;min-width:8px;height:2px;border-radius:1px;background:#E6E0D6}
-body.mundo .vb-etapas > .vb-etapa{flex:none;display:inline-flex;align-items:center;gap:6px;height:26px;white-space:nowrap}
-body.mundo .vb-etapas > .vb-etapa > b,body.mundo .vb-etapas > .vb-etapa > em{font:inherit;font-style:normal;color:inherit}
-body.mundo .vb-etapas > .vb-etapa.atual{padding:0 10px;border-radius:999px;background:#1F1D1A;color:#FFFFFF}
-body.mundo .vb-etapas > .vb-etapa.feito{color:#11613A}
+/* ===== 4. FORMULÁRIO: etapas como barra (quadro D3-Fam-Gavetas, "Nova demanda"), "obrigatório" no rótulo, erro embaixo do campo ===== */
+/* Os nomes numa linha (o primeiro à esquerda, o último à direita) e a barra de 4px embaixo: feita e atual em tinta, o resto no trilho. */
+body.mundo .vb-etapas{display:flex;align-items:stretch;gap:0;min-width:0;margin:6px 0 14px;font:600 12.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
+body.mundo .vb-etapas > i{display:none}
+body.mundo .vb-etapas > .vb-etapa{position:relative;flex:1 1 0;display:flex;justify-content:center;gap:4px;min-width:0;height:auto;padding:0 0 10px;white-space:nowrap}
+body.mundo .vb-etapas > .vb-etapa:first-of-type{justify-content:flex-start}
+body.mundo .vb-etapas > .vb-etapa:last-of-type{justify-content:flex-end}
+body.mundo .vb-etapas > .vb-etapa::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--d3-linha)}
+body.mundo .vb-etapas > .vb-etapa:first-of-type::after{border-radius:999px 0 0 999px}
+body.mundo .vb-etapas > .vb-etapa:last-of-type::after{border-radius:0 999px 999px 0}
+body.mundo .vb-etapas > .vb-etapa:is(.feito,.atual){color:#1F1D1A}
+body.mundo .vb-etapas > .vb-etapa:is(.feito,.atual)::after{background:#1F1D1A;transform-origin:left center;animation:vbEtapaCresce .6s cubic-bezier(.32,.72,0,1) both}
+@keyframes vbEtapaCresce{from{transform:scaleX(0)}}
+body.mundo .vb-etapas > .vb-etapa:not(.feito):not(.atual){font-weight:400}
+body.mundo .vb-etapas > .vb-etapa > b,body.mundo .vb-etapas > .vb-etapa > em{font:inherit;font-style:normal;color:inherit;overflow:hidden;text-overflow:ellipsis}
 body.mundo .vb-etapas.muitas > .vb-etapa:not(.atual) > em{display:none}
 body.mundo .vb-obrig.vb-obrig:not(#vb-a){display:inline;margin-left:6px;font:500 11.5px var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;color:var(--d3-ajuste,#7A4A00)}
 body.mundo .vb-erro,body.mundo #context-step-error.vb-erro{display:flex;align-items:center;gap:6px;margin:4px 0 0 4px;font:500 12px/1.3 var(--vv-texto,Inter,system-ui,sans-serif);color:#B42318}
@@ -147,6 +158,7 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
   body.mundo :is(.vb-menu-linha,.vb-abas-mais) > .vb-menu{max-width:calc(100vw - 32px)}
 }
 @media (prefers-reduced-motion:reduce){
+  body.mundo .vb-etapas > .vb-etapa::after{animation:none}
   body.mundo .vb-abas.vb-abas-desliza::before,body.mundo .vb-abas [role="tab"]{transition:none}
   body.mundo .vb-abas:not(.vb-abas-desliza):not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){animation:none}
   body.mundo .vb-menu,#vb-apagar,#vb-apagar .vb-apagar-caixa{animation:none}
@@ -183,3 +195,11 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 #status-editor .v2-st-op .v2-st-pilula.v{background:#EEEAFB;color:#4B36A8}
 #status-editor .v2-st-op .v2-st-pilula.n{background:#EFEBE4;color:#4A463F}
 #status-editor .v2-st-todos .v2-st-todos-txt{color:#1F1D1A;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+
+/* ===== Escolha (vbEscolhaHtml) na Direção 3: pílula clara #F3F1EC também quando há valor escolhido (o tom de pêssego
+   de vybe-mundo.css, .vb-escolha > summary.vb-escolha-com, era do padrão antigo). ===== */
+body.mundo .vb-escolha > summary.vb-chip{height:32px;min-height:0;padding:0 10px 0 12px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none;color:var(--d3-tinta,#1F1D1A)}
+body.mundo .vb-escolha > summary.vb-chip.vb-escolha-com{border:0;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A)}
+body.mundo .vb-escolha > summary.vb-chip:hover{background:var(--d3-borda,#E6E0D6)}
+body.mundo .vb-escolha > summary.vb-chip .vb-escolha-rotulo{color:var(--d3-apagado,#6B665E);opacity:1}
+body.mundo .vb-escolha[open] > summary.vb-chip{background:#FFFFFF;box-shadow:inset 0 0 0 1.5px var(--d3-tinta,#1F1D1A)}

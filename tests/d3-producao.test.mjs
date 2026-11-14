@@ -51,7 +51,7 @@ test('a pílula cheia só no que venceu, voltou para ajuste ou ficou pronta', ()
 
 test('Visão do setor Produção: bloco do Heitor, quatro números, Pede ação, Pessoas, Por status e Módulos', () => {
   const p = setor.slice(setor.indexOf("async 'setor:producao'()"), setor.indexOf("async 'setor:pessoas'()"));
-  const ordem = ['d3Acao({ agente: \'heitor\'', 'd3s-nums', 'd3Pede(curtas', 'd3Pessoas(time, semDono)', 'd3PorStatus(itens)', 'd3Modulos('].map((x) => p.indexOf(x));
+  const ordem = ['d3Acao({ agente: \'heitor\'', 'd3s-nums', 'd3Pede(curtas', 'd3Pessoas(time, semDono, itens, H.dia)', 'd3PorStatus(itens)', 'd3Modulos('].map((x) => p.indexOf(x));
   assert.ok(ordem.every((x) => x >= 0), ordem.join(','));
   assert.match(p, /principal = '';/, 'o botão sai do topo e vai para o bloco laranja');
   assert.match(p, /mais\('Entregas por semana, carga do time, onde trava, cobertura e agenda'/, 'os blocos de baixo continuam');

@@ -278,3 +278,88 @@
 @media (prefers-reduced-motion:reduce){
   #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag,.vv-gestao.vv-gestao .g2-fala .g2-ag{animation:none}
 }
+
+/* ===== Fiel ao quadro (rodada de 14/11/2026): Funil, Pacotes, Orçamentos, Por cliente, Fornecedores e Creators ===== */
+/* menu ⋯ do topo: o que a tela tem e o quadro não mostra */
+#vv-comercial.v2c.d3c .d3c-menu{position:relative;flex:none}
+#vv-comercial.v2c.d3c .d3c-menu > summary{display:grid;place-items:center;width:40px;height:40px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:700 18px/1 var(--vv-texto,Inter,sans-serif);list-style:none;cursor:pointer}
+#vv-comercial.v2c.d3c .d3c-menu > summary::-webkit-details-marker{display:none}
+#vv-comercial.v2c.d3c .d3c-menu > summary:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#vv-comercial.v2c.d3c .d3c-menu-l{position:absolute;right:0;top:46px;z-index:30;display:flex;flex-direction:column;min-width:240px;padding:6px;border-radius:16px;background:var(--d3-cartao);box-shadow:0 12px 32px rgba(31,29,26,.16)}
+#vv-comercial.v2c.d3c .d3c-menu-i{appearance:none;padding:10px 12px;border:0;border-radius:10px;background:none;color:var(--d3-tinta);font:500 13.5px var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-comercial.v2c.d3c .d3c-menu-i:hover{background:var(--d3-trilho)}
+
+/* Funil: "Dono: todos" no fim da faixa e o rodapé do SDR na coluna Novo */
+#vv-comercial.v2c.d3c .d3c-dono{position:relative;flex:none;display:inline-flex;margin-left:auto}
+#vv-comercial.v2c.d3c .d3c-dono .vb-chip{height:32px;background:var(--d3-cartao);box-shadow:none}
+#vv-comercial.v2c.d3c .d3cr-nicho{margin-left:0}
+#vv-comercial.v2c.d3c .d3cr-nicho .vb-chip{height:38px}
+#vv-comercial.v2c.d3c .d3c-colu{display:flex;flex-direction:column}
+#vv-comercial.v2c.d3c .d3c-sdr{display:inline-flex;align-items:center;gap:6px;margin-top:auto;padding:8px 4px 0;font-size:12px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-sdr > i{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--d3-agente);color:#FFFFFF;font:700 9px var(--vv-texto,Inter,sans-serif);font-style:normal}
+
+/* Pacotes: coluna Vendidos e a coluna da direita (Pede ação e Carga) */
+#vv-comercial.v2c.d3c .d3c-pk{grid-template-columns:minmax(0,1fr) 72px 72px 70px 96px 150px}
+#vv-comercial.v2c.d3c .d3c-pk.sem-margem{grid-template-columns:minmax(0,1fr) 72px 72px 70px 96px}
+#vv-comercial.v2c.d3c .d3c-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+#vv-comercial.v2c.d3c .d3c-carga,#vv-comercial.v2c.d3c .d3c-aprov{display:flex;flex-direction:column;gap:10px;padding:16px 18px}
+#vv-comercial.v2c.d3c .d3c-carga-n{display:flex;align-items:baseline;gap:6px;margin:0}
+#vv-comercial.v2c.d3c .d3c-carga-n > b{font:700 28px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em}
+#vv-comercial.v2c.d3c .d3c-carga-n > small{font-size:12.5px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-carga-g{display:grid;place-items:center;height:96px;border-top:1px dashed var(--d3-borda);border-bottom:1px dashed var(--d3-borda);font-size:12.5px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-carga-vz{margin:0;font-size:13px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-carga-pe{display:flex;justify-content:space-between;gap:8px;margin:0;font-size:12.5px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-carga-pe > b.a{color:var(--d3-ajuste)}
+#vv-comercial.v2c.d3c .d3c-carga-pe > b.g{color:var(--d3-pronto)}
+
+/* Orçamentos: Aprovado por mês em linha */
+#vv-comercial.v2c.d3c .d3-num.d3c-longo > .d3-graf{align-self:stretch;width:auto;height:22px;margin-top:0}
+#vv-comercial.v2c.d3c .d3c-leg2{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-leg2 > i{width:14px;height:0;border-top:2.5px solid var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-leg2 > i.t{margin-left:8px;border-top:1.5px dashed var(--d3-meta)}
+#vv-comercial.v2c.d3c .d3c-aprov-g > .d3-graf{display:block;width:100%;height:96px}
+#vv-comercial.v2c.d3c .d3c-aprov .d3c-mes{cursor:default}
+
+/* Finanças por cliente: Mensal/Anual e o mês no topo; Pede ação com a grade paga · custa · horas */
+#vv-comercial.v2c.d3c .d3c-mesv{display:inline-flex;align-items:center}
+#vv-comercial.v2c.d3c .d3c-pede-fin .d3c-pf{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .d3c-pede-fin .d3c-pf:last-of-type{border-bottom:0}
+#vv-comercial.v2c.d3c .d3c-pf-t{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13.5px;font-weight:600}
+#vv-comercial.v2c.d3c .d3c-pf-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+#vv-comercial.v2c.d3c .d3c-pf-g dt{font-size:11.5px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-pf-g dd{margin:0;font-size:13px;font-weight:700;color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-pf .v2c-acoes{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0}
+
+/* Fornecedores: seis colunas com a Entrega média */
+#vv-comercial.v2c.d3c .d3fo-tab .v2c-lin.v2c-fr{grid-template-columns:minmax(0,1.35fr) minmax(0,1.1fr) 90px 104px 104px 150px}
+#vv-comercial.v2c.d3c .d3fo-ent{font-size:13px;color:var(--d3-texto2);white-space:nowrap}
+
+/* Creators: cartões como o quadro e o oitavo lugar com o resto */
+#vv-comercial.v2c.d3c .d3cr-grade{align-items:stretch}
+#vv-comercial.v2c.d3c .d3cr-c{display:flex;flex-direction:column;gap:8px;min-height:150px;padding:14px 16px}
+#vv-comercial.v2c.d3c .d3cr-topo{appearance:none;display:flex;align-items:center;gap:10px;width:100%;min-width:0;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#vv-comercial.v2c.d3c .d3cr-topo:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#vv-comercial.v2c.d3c .d3cr-n{flex:1;min-width:0}
+#vv-comercial.v2c.d3c .d3cr-n > b{display:block;font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3cr-n > small{display:block;font-size:12px;color:var(--d3-apagado);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3cr-seg{flex:none;font:700 15px var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+#vv-comercial.v2c.d3c .d3cr-tags{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+#vv-comercial.v2c.d3c .d3cr-tags > span{padding:2px 8px;border-radius:999px;background:var(--d3-trilho);font-size:12px;color:var(--d3-texto2)}
+/* Em campanha · Cliente (quadro D3-Creators): a pílula verde clara do que está no ar. */
+#vv-comercial.v2c.d3c .d3cr-tags > span.d3cr-camp{background:var(--d3-pronto-veu);color:var(--d3-pronto);font-weight:600}
+#vv-comercial.v2c.d3c .d3cr-k{display:flex;align-items:center;gap:6px;flex-wrap:wrap}#vv-comercial.v2c.d3c .d3cr-ct{margin:0;font-size:12.5px;color:var(--d3-apagado);overflow-wrap:anywhere}
+#vv-comercial.v2c.d3c .d3cr-ct.a{color:var(--d3-ajuste);font-weight:600}
+#vv-comercial.v2c.d3c .d3cr-pe{margin:auto 0 0}
+#vv-comercial.v2c.d3c .d3cr-eng{display:inline-flex;padding:2px 8px;border-radius:999px;background:var(--d3-trilho);font-size:12px;color:var(--d3-texto2)}
+#vv-comercial.v2c.d3c .d3cr-eng.z{color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3cr-mais{appearance:none;display:grid;place-items:center;min-height:150px;border:0;background:var(--d3-trilho);color:var(--d3-tinta);font:600 14px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-comercial.v2c.d3c .d3cr-mais:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+@media (max-width:760px){
+  #vv-comercial.v2c.d3c .d3c-dono{margin-left:0}
+  #vv-comercial.v2c.d3c .d3c-pk,#vv-comercial.v2c.d3c .d3c-pk.sem-margem{grid-template-columns:minmax(0,1fr) auto}
+  #vv-comercial.v2c.d3c .d3c-pk > .d3c-pk-vd,#vv-comercial.v2c.d3c .d3c-cab.d3c-pk > .d3c-pk-vd{display:none}
+  #vv-comercial.v2c.d3c .d3fo-tab .v2c-lin.v2c-fr{grid-template-columns:minmax(0,1fr)}
+  #vv-comercial.v2c.d3c .d3c-menu-l{right:auto;left:0}
+  #vv-comercial.v2c.d3c .d3c-cab.d3c-pk > span:nth-child(5){display:block}
+  #vv-comercial.v2c.d3c .d3c-cab.d3c-pk > span:nth-child(6){display:none}
+}

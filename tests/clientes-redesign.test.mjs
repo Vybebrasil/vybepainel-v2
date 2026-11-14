@@ -79,7 +79,7 @@ test('tabela de clientes (quadro Clientes do padrão v2): Cliente, Head, Saúde,
   assert.match(linha, /class="v2f-btn s k" onclick="abrirClienteDetalhe\('Academia Lions'\)">Abrir a ficha/);
   const outra = html.slice(html.indexOf('data-cliente="Alpha1"'), html.indexOf('data-cliente="Academia Lions"'));
   assert.match(outra, /<b style="color:#B42318">42<\/b>/);
-  assert.match(outra, /faltam 2 de 3/);
+  assert.match(outra, /class="v2f-pill v2f-cad-n"[^>]*>1 de 3</, 'Direção 3: o cadastro em pílula clara com o que já está feito');
   assert.match(outra, /<b>Saúde 42<\/b> · 3 peças atrasadas/);
   // Direção 3: o pé sem frase explicativa; a ordem segue no título de cada coluna e o resto em Colunas.
   assert.doesNotMatch(html, /o título da coluna muda a ordem/);

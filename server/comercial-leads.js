@@ -16,6 +16,7 @@
 // as respostas não trazem id, nome de quem gerou nem erro do banco.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import calc from '../shared/comercial-calculos.js';
+import { origemCrmPronta } from './campos-d3.js';
 
 export const CHAVE_METAS = 'comercial_metas';
 export const CHAVE_FORMULARIO = 'comercial_formulario';
@@ -136,9 +137,15 @@ export async function registrarLead(sql, f, dados, ip) {
   const proxima = `Retornar pelo WhatsApp ${zap}${dados.interesse ? ' · interesse: ' + dados.interesse : ''}`.slice(0, 2000);
   const obs = [`Chegou pelo formulário de leads: ${dados.nome}${dados.empresa ? ' (' + dados.empresa + ')' : ''}${dados.cidade ? ', ' + dados.cidade : ''}.`,
     `WhatsApp: ${zap}.`, dados.interesse ? `Interesse: ${dados.interesse}.` : '', dados.mensagem ? `Mensagem: ${dados.mensagem}` : ''].filter(Boolean).join(' ').slice(0, 4000);
+  // A origem também na coluna nova (server/migracoes-campos.js), quando ela já existe; o legado.origem continua.
+  const comOrigem = await origemCrmPronta(sql);
   return sql.comTransacao(async (tx) => {
-    const [o] = await tx`INSERT INTO vybe_crm_oportunidades (chave_empresa, nome, setor_empresa, etapa, criado_por, proxima_acao, legado)
-      VALUES (${'form:' + randomBytes(9).toString('hex')}, ${nome}, '', 'empresa', ${f.criado_por}, ${proxima}, ${legado}::jsonb) RETURNING id, etapa`;
+    const chave = 'form:' + randomBytes(9).toString('hex');
+    const [o] = comOrigem
+      ? await tx`INSERT INTO vybe_crm_oportunidades (chave_empresa, nome, setor_empresa, etapa, criado_por, proxima_acao, legado, origem)
+      VALUES (${chave}, ${nome}, '', 'empresa', ${f.criado_por}, ${proxima}, ${legado}::jsonb, 'formulario') RETURNING id, etapa`
+      : await tx`INSERT INTO vybe_crm_oportunidades (chave_empresa, nome, setor_empresa, etapa, criado_por, proxima_acao, legado)
+      VALUES (${chave}, ${nome}, '', 'empresa', ${f.criado_por}, ${proxima}, ${legado}::jsonb) RETURNING id, etapa`;
     await tx`INSERT INTO vybe_crm_historico (oportunidade_id, quem, quem_nome, de_etapa, para_etapa, tipo, observacao, detalhes)
       VALUES (${o.id}, ${f.criado_por}, 'Formulário de leads', NULL, ${o.etapa}, 'criacao', ${obs}, ${JSON.stringify({ origem: 'formulario' })}::jsonb)`;
     return { id: String(o.id) };

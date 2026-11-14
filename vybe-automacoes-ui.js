@@ -204,7 +204,8 @@ const DICA_REGRAS_DE_DATA = 'As regras por data rodam numa varredura por dia, de
 // frase de quem cuida (Cícero); os números; "Pede ação" e "Últimas ações" à esquerda; à direita as regras,
 // cada uma numa linha com a chave, o nome com a frase "Quando… então…", as ações e "Testar"; a linha abre no lugar.
 const ICONE_SETA_REGRA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-const REGRAS_NA_FRENTE = 4, ACOES_NA_FRENTE = 4, PEDIDOS_NA_FRENTE = 3;
+// O quadro D3-Automacoes mostra a lista de regras inteira (8); passa disso, o resto recolhe.
+const REGRAS_NA_FRENTE = 8, ACOES_NA_FRENTE = 6, PEDIDOS_NA_FRENTE = 3;
 let FALHAS_DE_AUTOMACOES = null;   // null enquanto a consulta não volta
 let BUSCA_DE_REGRAS = '';
 let REGRA_ABERTA = null, TODAS_AS_REGRAS = false, FILTROS_DE_SAUDE = false, HISTORICO_INTEIRO = false, PEDE_ACAO_INTEIRO = false;
@@ -320,10 +321,16 @@ function pintarResumoDasAutomacoes() {
     + porTipo
     + num('Falhas', lendo ? '…' : String(pendentes.length), lendo ? 'consultando' : pendentes.length ? 'esperando alguém' : 'nenhuma', { tom: pendentes.length ? 'r' : '' });
 
+  // Quadro D3-Automacoes: as falhas do mesmo motivo numa linha só ("2 falhas · motivo · 2 peças · clientes"); com uma
+  // falha, o diagnóstico e o "Tentar de novo" ficam na linha; com várias, "Ver as N" leva à aba Falhas.
+  const porMotivo = new Map();
+  for (const f of pendentes) { const k = String(f.motivo || '').trim() || 'sem motivo'; if (!porMotivo.has(k)) porMotivo.set(k, []); porMotivo.get(k).push(f); }
   const itens = [
-    ...pendentes.map((f) => `<div class="v2g-lin v2r-pede"><span class="v2g-pill r">Falhou</span><p><b>${safeText(f.titulo)}</b> · ${safeText(f.motivo)}${f.clientes ? ` · ${safeText(f.clientes)}` : ''}</p>
-      <span class="v2r-pede-acoes"><button type="button" class="v2g-btn s" data-item="${safeText(f.item)}" onclick="diagnosticarAutomacao(this.dataset.item,this)">Ver diagnóstico</button>
-      <button type="button" class="v2g-btn s" data-item="${safeText(f.item)}" data-evento="${safeText(f.ocorrencia)}" onclick="retomarEncaminhamentoDaPeca(this.dataset.item,this.dataset.evento,this)">Tentar de novo</button></span></div>`),
+    ...[...porMotivo].map(([motivo, fs]) => { const f = fs[0], clientes = [...new Set(fs.map((x) => String(x.clientes || '').trim()).filter(Boolean))].join(', ');
+      return `<div class="v2g-lin v2r-pede"><span class="v2g-pill r">${fs.length === 1 ? 'Falhou' : `${fs.length} falhas`}</span><p><b>${safeText(fs.length === 1 ? f.titulo : motivo)}</b> · ${safeText(fs.length === 1 ? motivo : `${fs.length} peças`)}${clientes ? ` · ${safeText(clientes)}` : ''}</p>
+      <span class="v2r-pede-acoes">${fs.length === 1 ? `<button type="button" class="v2g-btn s" data-item="${safeText(f.item)}" onclick="diagnosticarAutomacao(this.dataset.item,this)">Ver diagnóstico</button>
+      <button type="button" class="v2g-btn s k v2-estado" data-item="${safeText(f.item)}" data-evento="${safeText(f.ocorrencia)}" onclick="retomarEncaminhamentoDaPeca(this.dataset.item,this.dataset.evento,this)">Tentar de novo</button>`
+        : `<button type="button" class="v2g-btn s k" onclick="trocarAbaAutomacoes('falhas')">Ver as ${fs.length}</button>`}</span></div>`; }),
     ...comSaude.filter((a) => a.saude.chave === 'desligada').map((a) => `<div class="v2g-lin"><span class="v2g-pill a">Desligada</span><p><b>${safeText(a.nome)}</b> · ${safeText(a.saude.detalhe)}</p>
       ${admin ? `<button type="button" class="v2g-btn s" onclick="alternarAutomacao(${a.id})">Ligar</button>` : ''}</div>`),
     ...comSaude.filter((a) => a.saude.chave === 'parada').map((a) => `<div class="v2g-lin"><span class="v2g-pill a">Parada</span><p><b>${safeText(a.nome)}</b> · ${safeText(a.saude.detalhe)}</p>

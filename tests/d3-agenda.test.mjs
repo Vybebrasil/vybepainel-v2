@@ -42,5 +42,7 @@ test('Fornecedores e Creators entram na Direção 3 da janela do Comercial, com 
   assert.match(com, /const D3 = new Set\(\[[^\]]*'fornecedores', 'creators'[^\]]*\]\);/);
   assert.match(com, /SUB_D3 = \{ fornecedores: 'gráficas, estúdios e parceiros', creators: 'Irecê e região' \}/);
   assert.match(com, /quem: 'Nestor · Compras', agente: 'N'/); assert.match(com, /quem: 'VYBES · Agência', agente: 'V'/);
-  assert.doesNotMatch(com, /Em campanha/, 'campanha não tem fonte de dado');
+  // Campanhas gravadas desde 14/11/2026 (vybe_creator_campanhas): o número e a ficha "Em campanha" vêm do servidor.
+  assert.match(com, /rotulo: 'Em campanha', valor: num\(nCamp\.length\)/); assert.match(com, /campanha: \['Em campanha', emCamp\]/);
+  assert.match(com, /d\.campanhas_disponivel === false \? \{ rotulo: 'Em campanha', valor: '—', sub: 'sem registro ainda' \}/, 'sem a tabela, o vazio honesto');
 });

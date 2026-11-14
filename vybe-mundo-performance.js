@@ -209,8 +209,10 @@
     const ordem = comNumero.sort((a, b) => (a.tom === b.tom ? b.n - a.n : a.tom === 'r' ? -1 : 1));
     const zerados = PROC.filter(([q, , , tom]) => !nProc(q) && tom !== 'n'), informa = PROC.filter(([, , , tom]) => tom === 'n');
     const foraN = Math.max(0, ordem.length - 3);
-    const pedeHtml = pede(ordem, { sub: 'onde a fila trava antes de produzir', vazio: 'Nada travando a fila agora.', mostra: 3, resto: [...zerados, ...informa].map(linhaProc).map((l) => ({ ...l, tom: 'n' })),
-      pe: [foraN ? `+ ${n0(foraN)} com número` : '', zerados.length ? `${foraN ? '' : '+ '}${pl(zerados.length, 'zerado', 'zerados')}: ${zerados.map((z) => esc(z[1])).join(', ')}` : '', !foraN && !zerados.length ? 'Solicitações abertas e pausadas' : ''].filter(Boolean).join(' · ') });
+    // Direção 3 (quadro D3-Performance): os zerados viram uma linha de pílulas verdes claras ("Zerados"), no pé do cartão.
+    const zeradosHtml = zerados.length ? `<div class="g2-zerados" aria-label="Zerados"><span>Zerados</span>${zerados.map((z) => `<span class="g2-zero" title="${esc(z[2])}">${esc(z[1])}</span>`).join('')}</div>` : '';
+    const pedeHtml = pede(ordem, { sub: 'trava antes de produzir', vazio: 'Nada travando a fila agora.', mostra: 3, resto: informa.map(linhaProc).map((l) => ({ ...l, tom: 'n' })),
+      pe: [foraN ? `+ ${n0(foraN)} com número` : '', 'Solicitações abertas e pausadas'].filter(Boolean).join(' · ') }).replace(/<\/section>$/, `${zeradosHtml}</section>`);
     // Entregas por semana: o gráfico só com entrega no período; os três números ficam sempre.
     const outro = dias === 90 ? [180, 'Ver 6 meses'] : dias === 180 ? [30, 'Ver 30 dias'] : [90, 'Ver 3 meses'];
     const entregasHtml = cartao('Entregas por semana', '', (T.entregues
@@ -256,8 +258,11 @@
       const acao = D3.acao({ frase: fraseD3, agente: 'H', botao: rotBtn, attrs: `${attrs} title="${esc(frase.replace(/<[^>]*>/g, ''))}"` })
         .replace('<span class="d3-acao-frase">', '<span class="d3-acao-frase"><small class="d3s-quem">Heitor · Coordenação</small>');
       const entPorSem = sem.map((x) => (Number(x.noPrazo) || 0) + (Number(x.atrasadas) || 0)), cad = sem.map((x) => Number(x.criadas) || 0);
+      // A linha das atrasadas: o número da agência guardado dia a dia (server/series-historicas.js, série atrasadas, últimos 30 dias).
+      const serieAtr = typeof raiz.d3Series === 'function' && typeof raiz.d3SerieValores === 'function'
+        ? raiz.d3SerieValores(raiz.d3Series('performance', () => { if (alvo.isConnected) html(alvo); })?.atrasadas)?.slice(-30) || null : null;
       const nums = `<div class="d3g-nums">${D3.num({ rotulo: 'Abertas', valor: n0(T.abertas), serie: cad.length > 1 && cad.some(Boolean) ? cad : null, attrs: T.abertas ? 'data-espiar="perf:total|abertas"' : '' }, `${n0(T.paradas)} ${T.paradas === 1 ? 'parada' : 'paradas'} 3+ dias`)}
-        ${D3.num({ rotulo: 'Atrasadas', valor: n0(T.atrasadas), tom: T.atrasadas ? 'r' : '', attrs: T.atrasadas ? 'data-espiar="perf:total|atrasadas"' : '' }, T.abertas ? `${pctDe(T.atrasadas, T.abertas)}% da fila` : 'fila vazia', T.atrasadas ? 'r' : '')}
+        ${D3.num({ rotulo: 'Atrasadas', valor: n0(T.atrasadas), tom: T.atrasadas ? 'r' : '', serie: serieAtr, attrs: T.atrasadas ? 'data-espiar="perf:total|atrasadas"' : '' }, T.abertas ? `${pctDe(T.atrasadas, T.abertas)}% da fila` : 'fila vazia', T.atrasadas ? 'r' : '')}
         ${D3.num({ rotulo: 'Em alteração', valor: n0(T.alteracao), tom: T.alteracao ? 'a' : '' }, 'retrabalho na fila')}
         ${D3.num({ rotulo: 'Sem responsável', valor: `${n0(semResp)}<small> / ${n0(T.abertas)}</small>`, barra: T.abertas ? (semResp * 100) / T.abertas : 0, attrs: semResp ? 'data-espiar="perf:proc|semResponsavel"' : '' })}</div>`;
       const grafico = T.entregues && sem.length > 1 ? `<div class="d3g-graf-caixa">${D3.grafico(entPorSem, cad, sem.map((x) => x.rotulo), { atual: sem.length - 1, altura: 110, rotulo: 'Entregues e cadastradas por semana' })}</div>` : '';

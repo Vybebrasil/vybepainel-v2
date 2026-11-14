@@ -58,10 +58,10 @@ test('a semana em colunas: quatro dias à vista, cartão compacto que abre no lu
   assert.match(painel, /class="pv2-av sd" onclick="event\.stopPropagation\(\);openOwnerEditor\(event,'\$\{id\}'\)"/);
 });
 
-test('Demandas na ordem do quadro: título, Lista ou Calendário, Nova demanda, fala e dois números, fichas, Filtros, Colunas e a lista', () => {
-  naOrdem(dem, ['<h2>Demandas</h2>', 'class="d3p-data"', '>Lista</button>', '>Calendário</button>', 'Nova demanda</button>', 'id="pv2d-alto"', 'placeholder="Buscar cliente ou demanda"', 'id="pv2d-chips"', 'id="pv2d-filtros-rot">Filtros</summary>', 'id="pv2d-ordenar"', '>Colunas</summary>', 'id="pv2d-lista"']);
-  assert.match(dem, /const PV2D_VISOES = \[\['atrasadas', 'Atrasadas'\], \['minha', 'Minha fila'\], \['sem', 'Sem responsável'\], \['abertas', 'Todas'\]\];/);
-  naOrdem(dem, ["kpi('Abertas'", "kpi('Vencem hoje'", "kpi('Atrasadas'", "kpi('Sem responsável'"]);
+test('Demandas na ordem do quadro: título, Lista ou Calendário, Nova demanda, fala e dois números, fichas, Filtros, Mostrar ID, o ⋯ com Colunas e a lista', () => {
+  naOrdem(dem, ['<h2>Demandas</h2>', 'class="d3p-data"', '>Lista</button>', '>Calendário</button>', 'Nova demanda</button>', 'id="pv2d-alto"', 'placeholder="Buscar cliente ou demanda"', 'id="pv2d-chips"', 'id="pv2d-filtros-rot">Filtros</summary>', 'id="pv2d-ordenar"', 'Mostrar ID</label>', 'id="pv2d-colunas"', '>Colunas</span>', 'id="pv2d-lista"']);
+  assert.match(dem, /const PV2D_VISOES = \[\['atrasadas', 'Atrasadas'\], \['minha', 'Minha fila'\], \['sem', 'Sem responsável'\], \['semana', 'Vencem na semana'\], \['abertas', 'Todas'\]\];/);
+  naOrdem(dem, ["kpi('Abertas'", "kpi('Vencem hoje'", "kpi('Atrasadas'", "kpi('Sem dono'"]);
   assert.match(dem, /Distribuir \$\{sem\.length === 1 \? 'a 1' : 'as ' \+ sem\.length\}/);
   const linha = bloco(dem, 'function pv2dLinhaHtml(', 'function pv2dPintar(');
   naOrdem(linha, ['class="d3d-tipo"', 'class="pv2-nome"', 'class="d3d-cli"', 'class="pv2-cs"', 'class="pv2-cp"', 'class="d3d-conc"', 'class="pv2-cr"', 'class="d3d-tar', 'class="pv2-seta"', 'class="v2-mais"', 'pv2EtapasHtml(d)', "'Trocar responsável'", '>Abrir a peça</button>']);
@@ -76,13 +76,19 @@ test('Demandas na ordem do quadro: título, Lista ou Calendário, Nova demanda, 
   assert.equal((dem.match(/class="pv2-btn p"/g) || []).length, 0, 'o laranja cheio é o bloco de ação');
 });
 
-test('Agenda e captações (Direção 3): cabeçalho com abas e Marcar captação, bloco de ação do Lucas, quatro números, busca e Dia, Semana, Mês, a faixa da semana e Na ordem de fazer', () => {
-  // Direção 3 (quadro D3-Agenda): título curto com a semana, as quatro partes num segmento discreto e Marcar captação branco.
-  naOrdem(prod, ['id="pv2-agenda-topo"', '<h2 title="Agenda e captações">Agenda</h2>', 'class="d3ag-data"', "abaV2('captacoes', 'Captações')", "abaV2('roteiros', 'Roteiros')", "abaV2('feed', 'Feed')", "abaV2('calendar', 'Calendário')", 'class="pv2-btn capt-marcar d3ag-marcar" onclick="captMarcarCaptacao()"']);
+test('Agenda e captações (Direção 3): cabeçalho com abas e Marcar captação, bloco de ação do Lucas, quatro números, a faixa da semana, Na ordem de fazer (com o ⋯ da busca, Dia e Filtros) e Agentes viram', () => {
+  // Direção 3 (quadro D3-Agenda): título curto com a semana, Semana, Mês e Roteiros, o menu Mais (Feed e Calendário) e
+  // Marcar captação branco.
+  naOrdem(prod, ['id="pv2-agenda-topo"', '<h2 title="Agenda e captações">Agenda</h2>', 'class="d3ag-data"', "vistaAg('semana', 'Semana')", "vistaAg('mes', 'Mês')", "vistaAg('roteiros', 'Roteiros')", '${maisAg}', 'class="pv2-btn capt-marcar d3ag-marcar" onclick="captMarcarCaptacao()"']);
+  assert.match(prod, /\[\['feed', 'Feed'\], \['calendar', 'Calendário'\]\]/);
   const tela = bloco(agenda, 'function pv2aHtml(');
   naOrdem(tela, ['d3AcaoHtml({ agente: "L", ...acao })', 'rotulo: "Gravações para fechar"', 'rotulo: "Peças sem roteiro"', 'rotulo: "Captações sem peças"', 'rotulo: "Captações na semana"',
-    '${blocoAcao}${numeros}', 'placeholder="Buscar cliente ou captação"', '${vistas}', 'aria-label="Filtros: escolher o que exibir na agenda">Filtros</summary>', 'id="pv2a-corpo"']);
-  assert.match(agenda, /<h3>Na ordem de fazer<\/h3>/);
+    '${blocoAcao}${numeros}', 'id="pv2a-corpo"']);
+  assert.doesNotMatch(tela, /class="pv2-filtros" role="toolbar"/, 'o quadro não tem a linha de busca');
+  naOrdem(bloco(agenda, 'function d3agMaisHtml('), ['aria-label="Buscar, navegar e filtrar a agenda"', 'placeholder="Buscar cliente ou captação"', '${dia}', 'd3agNavHtml()', '>Na agenda</span>${tipos}']);
+  assert.match(agenda, /<h3>Na ordem de fazer<\/h3><span class="d3ag-cab-dir"><span>\$\{n\}<\/span>\$\{d3agMaisHtml\(\)\}<\/span>/);
+  assert.match(agenda, /<h3>Agentes viram<\/h3>/);
+  assert.match(agenda, /\$\{espera\}\$\{roteiros\}\$\{d3agViramHtml\(\)\}/);
   assert.match(agenda, /<h3>Esperando captação<\/h3>/);
   assert.match(agenda, /<h3>Roteiros<\/h3>/);
   assert.match(agenda, /class="d3ag-card d3ag-faixa" aria-label="Semana"/);
@@ -98,7 +104,7 @@ test('Agenda e captações (Direção 3): cabeçalho com abas e Marcar captaçã
 // cheio), quatro números e três colunas; o gasto por dia é uma linha (d3LinhaSvg) e os parâmetros ficam em "Em quê".
 test('IA e custos na ordem do quadro D3: período, Atualizar, Definir teto, bloco do Alex, quatro números, Pede ação com o gasto por dia, Com quem e Em quê', () => {
   naOrdem(ia, ['<h2>IA e custos</h2>', 'PV2I_SELO', '[7, 30, 90].map', '>Atualizar</button>', 'class="pv2-btn d3f-escuro" onclick="pv2iAbrirParametros(true)">Definir teto</button>']);
-  naOrdem(ia, ['d3LinhaSvg(lista.map((d) => d.custo), { meta: media', '>Parâmetros</summary>', 'id="ai-budget-input"', 'id="ai-usd-input"', 'id="ai-gemini-billing"', 'onclick="saveAiUsageSettings()"', '<h3>Com quem</h3>', '<h3>Em quê</h3><span class="pv2-sub">por modelo</span>', '${parametros}']);
+  naOrdem(ia, ['d3LinhaSvg(lista.map((d) => d.custo), { meta: media', '>Parâmetros</summary>', 'id="ai-budget-input"', 'id="ai-usd-input"', 'id="ai-gemini-billing"', 'onclick="saveAiUsageSettings()"', '<h3>Com quem</h3>', "<h3>Em quê</h3><span class=\"pv2-sub\">${agentes.length ? 'por agente' : 'por modelo'}</span>", '${parametros}']);
   const tela = bloco(ia, 'root.innerHTML = `<div id="pv2-ia"');
   naOrdem(tela, ['${pv2iTopoHtml()}', '${blocoAcao}', 'Gasto em ${dias} dias', '${Mes} fecha perto de', 'Pedidos em ${dias} dias', "'Teto mensal'", '${pedeAcao}${porDiaHtml}', '${comQuem}${emQueHtml}']);
   assert.match(ia, /d3AcaoHtml\(\{ frase: `<small class="d3f-quem">Alex · Análise e números<\/small>\$\{acao\.frase\}`, agente: 'A'/);
