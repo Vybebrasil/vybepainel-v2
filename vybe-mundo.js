@@ -37,7 +37,9 @@
   const pedeLegado = (() => { try { return new URLSearchParams(location.search).get('legado') === '1'; } catch { return false; } })();
   let ligado = !pedeLegado;
   const semWebGL = (() => { try { const c = document.createElement('canvas'); return !(c.getContext('webgl2') || c.getContext('webgl')); } catch { return true; } })();
-  if (semWebGL) ligado = false;
+  // Sem WebGL (no app do Mac isso acontece às vezes: o Safari nega o contexto 3D), o Vybe OS continua no padrão novo,
+  // com menu, topo, dock e todas as telas; só o 3D do Centro e da Minha sala mostra o aviso de que não carregou
+  // (Paulo, 14/11/2026: os módulos abriam sem o menu e com a cara do sistema antigo).
 
   // ---------- Situação: a cor de cada peça (a mesma regra em todo o mundo) ----------
   const SITUACOES = [
@@ -3277,7 +3279,8 @@
     if (e?.conectado && e.mapa && e.zona !== zona) irParaSala(zona);
     let m; try { m = await import(MUNDO_JS); } catch (err) { console.error('[mundo] minha sala', err); mostrarEstado('erro', 'Não deu para carregar o 3D. Confira a conexão.'); return; }
     if (geracao !== geracaoAndar || !el.isConnected) return;
-    andarAberto = m.abrirQuarto(el.querySelector('canvas'), { quarto });
+    // Sem WebGL (às vezes no app do Mac), o quarto não monta: avisa no próprio cartão em vez de ficar em "Montando".
+    try { andarAberto = m.abrirQuarto(el.querySelector('canvas'), { quarto }); } catch (err) { console.error('[mundo] minha sala 3D', err); andarAberto = null; mostrarEstado('erro', 'O 3D não abriu neste aparelho agora. Os cartões ao lado continuam valendo.'); return; }
     window.VybeDecorar?.ligarCena?.(andarAberto, m); // o painel de decorar edita este quarto
     mostrarEstado('', '');
     andarAberto.aoClicarPiso((x, y) => {
@@ -5538,7 +5541,7 @@
     return modulo3d;
   }
   function ligar(sim) {
-    ligado = !!sim && !semWebGL;
+    ligado = !!sim;
     try { localStorage.setItem(CHAVE, JSON.stringify({ ligado })); } catch { /* sem armazenamento */ }
     sincronizar();
   }
