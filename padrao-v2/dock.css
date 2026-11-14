@@ -274,3 +274,24 @@ body.cel-na-sala.cel-dock-aberto #vv-dock-salas-faixa .vq-dock > .vq-cel-mais{or
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-item{min-width:40px;padding:0 2px}
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-sep{margin:0 2px}
 #vv-dock-salas-faixa.dock-compacto .vq-dock .vq-voz{max-width:160px;gap:6px}
+/* Dock no estilo do Mac (Paulo, 14/11/2026: "deixa os botões no estilo do dock do Mac; os nossos são meio retangular
+   grandão"). O botão não pinta mais um retângulo: o estado vai num quadradinho arredondado só atrás do ícone (como o ícone
+   de um app), o nome fica embaixo em tinta, e o hover sobe e aumenta um pouco o ícone. Laranja = painel aberto ou a sua
+   sala; verde = microfone, câmera ou tela transmitindo; vermelho claro = bloqueado. O "Entrar" preto da voz não muda. */
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar){gap:2px;background:none;color:#1F1D1A}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar):disabled{color:#6B665E}
+#vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar) .vq-icone{width:32px;height:32px;border-radius:10px;
+  transition:background-color .15s,color .15s,transform .2s cubic-bezier(.34,1.56,.64,1)}
+#vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar):not(:disabled):hover .vq-icone{background:#F3F1EC;transform:translateY(-2px) scale(1.1)}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.on) .vq-icone,
+:root body.ver-voz #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="salas"] .vq-icone,
+:root body[data-som-aba="audio"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="audio"] .vq-icone,
+:root body[data-som-aba="musica"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="musica"] .vq-icone,
+:root body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"] .vq-icone{background:#C2490C;color:#FFFFFF}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item.vq-mic.on .vq-icone,
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:is([data-dock="camera"],[data-dock="tela"]).vq-ligado .vq-icone{background:var(--d3-pronto);color:#FFFFFF}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq .vq-icone{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item.vq-bloq{color:var(--d3-perigo)}
+:root body #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.on,.vq-mic.on) .vq-rotulo{font-weight:600}
+#vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar) .vq-conta{top:-2px;right:2px}
+@media (prefers-reduced-motion:reduce){#vv-dock-salas-faixa .vq-dock .vq-item .vq-icone{transition:none}#vv-dock-salas-faixa .vq-dock .vq-item:hover .vq-icone{transform:none}}
