@@ -18,6 +18,7 @@ import { completude, valorDoCampo, CAMPOS_CADASTRO } from './clientes-cadastro.j
 import { tabelaRegras } from './assistente-regras.js';
 import { respostasDoCliente, respostasEmLinhas } from './onboarding-contexto.js';
 import { proporPacote, dataCurta } from './pacotes-producao.js';
+import { umaVez } from './uma-vez.js';
 
 export const VERSAO_PROTOCOLO = '2025-06-18';
 const TIPOS = ['conteudo', 'planejamento', 'roteiro', 'decisao', 'regra_de_marca', 'aprendizado'];
@@ -164,9 +165,10 @@ export function registroEmMarkdown({ cliente, conta, em, r }) {
     + (r.conteudo ? `\n## Conteúdo\n${r.conteudo}\n` : '');
 }
 
-const tabelaPronta = new WeakSet();
-export async function garantirTabelaDeRegistros(db) {
-  if (tabelaPronta.has(db)) return;
+// Uma vez por banco em cada instância (server/uma-vez.js), junto com a conversão das regras pendentes: o painel abre um
+// cliente novo por request, e a conversão rodava a cada chamada.
+export function garantirTabelaDeRegistros(db) { return umaVez('registros', db, criarTabelaDeRegistros); }
+async function criarTabelaDeRegistros(db) {
   await db`CREATE TABLE IF NOT EXISTS vybe_cliente_registros (
     id BIGSERIAL PRIMARY KEY,
     cliente_id BIGINT NOT NULL REFERENCES vybe_clientes(id) ON DELETE CASCADE,
@@ -179,7 +181,6 @@ export async function garantirTabelaDeRegistros(db) {
   // Quando as linhas do registro viraram regras do cliente. Vazio = ainda não: os registros de regra de marca feitos antes
   // desta coluna existir (retrospectiva de 09/11) são convertidos uma vez, sem repetir regra igual.
   await db`ALTER TABLE vybe_cliente_registros ADD COLUMN IF NOT EXISTS regras_em TIMESTAMPTZ`;
-  tabelaPronta.add(db);
   await converterRegrasPendentes(db).catch((e) => console.error('[mcp-ecossistema] regras pendentes', e));
 }
 

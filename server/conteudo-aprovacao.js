@@ -46,14 +46,14 @@ export async function painelDeAprovacao(sql, pessoa) {
   const ids = clientes.map((c) => c.id);
   const pendentes = new Map((ids.length ? await sql`SELECT cc.cliente_id::text AS id, COUNT(DISTINCT c.id)::int AS n
       FROM vybe_conteudos c JOIN vybe_conteudo_clientes cc ON cc.conteudo_id = c.id
-      WHERE c.status_chave = ${STATUS_EM_APROVACAO} AND c.removido_em IS NULL AND cc.cliente_id::text = ANY(${ids})
+      WHERE c.status_chave = ${STATUS_EM_APROVACAO} AND c.removido_em IS NULL AND cc.cliente_id = ANY(${ids}::bigint[])
       GROUP BY cc.cliente_id` : []).map((l) => [l.id, l.n]));
   const links = new Map();
   if (pronto && ids.length) {
     for (const l of await sql`SELECT l.id::text AS id, l.cliente_id::text AS cliente_id, l.criado_em, l.expira_em, l.ultimo_acesso_em,
         p.nome AS criado_por, (SELECT COUNT(*)::int FROM vybe_aprovacao_respostas r WHERE r.link_id = l.id) AS respostas
       FROM vybe_aprovacao_links l LEFT JOIN vybe_pessoas p ON p.id = l.criado_por
-      WHERE l.revogado_em IS NULL AND l.expira_em > NOW() AND l.cliente_id::text = ANY(${ids})
+      WHERE l.revogado_em IS NULL AND l.expira_em > NOW() AND l.cliente_id = ANY(${ids}::bigint[])
       ORDER BY l.criado_em DESC`) {
       if (!links.has(l.cliente_id)) links.set(l.cliente_id, []);
       links.get(l.cliente_id).push(l);
@@ -119,7 +119,7 @@ export async function vistasProntas(sql) {
 async function vistasDoLink(sql, linkId, ids) {
   if (!ids.length || !await vistasProntas(sql) || !await arquivosProntos(sql)) return new Set();
   const linhas = await sql`SELECT v.conteudo_id::text AS id FROM vybe_aprovacao_vistas v
-    WHERE v.link_id = ${linkId} AND v.conteudo_id::text = ANY(${ids})
+    WHERE v.link_id = ${linkId} AND v.conteudo_id = ANY(${ids}::bigint[])
       AND v.visto_em >= COALESCE((SELECT MAX(a.criado_em) FROM vybe_conteudo_arquivos a WHERE a.conteudo_id = v.conteudo_id
         AND a.ausente_em IS NULL AND a.drive_file_id IS NOT NULL), '-infinity'::timestamptz)`;
   return new Set(linhas.map((v) => v.id));
@@ -136,7 +136,7 @@ export async function pecasDoLink(sql, token) {
   const arquivos = new Map();
   if (pecas.length && await arquivosProntos(sql)) {
     for (const a of await sql`SELECT id::text AS id, conteudo_id::text AS conteudo_id, nome, extensao
-        FROM vybe_conteudo_arquivos WHERE conteudo_id::text = ANY(${pecas.map((p) => p.id)}) AND ausente_em IS NULL
+        FROM vybe_conteudo_arquivos WHERE conteudo_id = ANY(${pecas.map((p) => p.id)}::bigint[]) AND ausente_em IS NULL
           AND drive_file_id IS NOT NULL ORDER BY criado_em DESC NULLS LAST, id DESC`) {
       if (!arquivos.has(a.conteudo_id)) arquivos.set(a.conteudo_id, []);
       const lista = arquivos.get(a.conteudo_id);
@@ -204,12 +204,23 @@ const textoDeAprovado = (nome, comentario = '', lote = '') =>
 
 // A resposta do cliente. `fazer` traz trocarStatus e comentar de api/conteudo.js (o mesmo caminho do
 // painel); entra por parâmetro para os testes e para não carregar o módulo de escrita sem precisar.
+// Numa transação, com a peça travada (FOR UPDATE, como o lote em aprovarVistas): duas respostas ao mesmo tempo (outra aba,
+// outra pessoa) não respondem a mesma peça duas vezes — a segunda espera e já encontra o status novo.
 export async function responderPeca(sql, token, corpo, fazer) {
   const r = lerResposta(corpo);
   const l = await abrirLink(sql, token);
+  if (typeof sql.comTransacao !== 'function') return responderNaTransacao(sql, l, r, fazer);
+  try { return await sql.comTransacao((tx) => responderNaTransacao(dentroDoLote(tx), l, r, fazer)); }
+  catch (e) {
+    if (e?.status) throw e;
+    throw erro('Nada foi registrado: não foi possível responder agora. Tente de novo.', 500);
+  }
+}
+async function responderNaTransacao(sql, l, r, fazer) {
   const [c] = await sql`SELECT c.id, c.titulo, c.status_chave FROM vybe_conteudos c
     WHERE c.id = ${r.conteudoId} AND c.removido_em IS NULL
-      AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${l.cliente_id})`;
+      AND EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${l.cliente_id})
+    FOR UPDATE OF c`;
   if (!c) throw erro('Peça não encontrada neste link.', 404);
   if (c.status_chave !== STATUS_EM_APROVACAO) throw erro('Esta peça já foi respondida ou não está mais esperando sua aprovação.', 409);
   // Sem arte, sem aprovar (redesign, 10/11/2026): o cliente só aprova o que viu. A página já esconde
@@ -225,7 +236,8 @@ export async function responderPeca(sql, token, corpo, fazer) {
     ? textoDeAprovado(r.nome, r.comentario)
     : `🔧 Ajuste pedido pelo cliente (${r.nome}) pelo link de aprovação em ${quandoNaBahia()}:\n${r.comentario}`;
   let aviso = null;
-  try { await fazer.comentar(sql, quem, { item: `vybe:${c.id}`, texto }); }
+  // O comentário num ponto de salvamento próprio (quando há transação): se falhar, a resposta continua valendo.
+  try { await (sql.comTransacao ? sql.comTransacao((t) => fazer.comentar(t, quem, { item: `vybe:${c.id}`, texto })) : fazer.comentar(sql, quem, { item: `vybe:${c.id}`, texto })); }
   catch { aviso = 'Resposta registrada; o comentário na peça não pôde ser gravado.'; }
   return { conteudo_id: String(c.id), titulo: c.titulo, acao: r.acao, status: mudou?.para || null, ...(aviso ? { aviso } : {}) };
 }
@@ -306,10 +318,10 @@ export async function aprovarVistas(sql, token, corpo, fazer) {
       // FOR UPDATE: duas respostas ao mesmo tempo (outra aba, outra pessoa) não aprovam a mesma peça duas vezes.
       const linhas = await s`SELECT c.id::text AS id, c.titulo, c.status_chave,
           EXISTS (SELECT 1 FROM vybe_conteudo_clientes cc WHERE cc.conteudo_id = c.id AND cc.cliente_id = ${l.cliente_id}) AS do_cliente
-        FROM vybe_conteudos c WHERE c.id::text = ANY(${r.ids}) AND c.removido_em IS NULL FOR UPDATE OF c`;
+        FROM vybe_conteudos c WHERE c.id = ANY(${r.ids}::bigint[]) AND c.removido_em IS NULL FOR UPDATE OF c`;
       const porId = new Map(linhas.map((c) => [c.id, c]));
       const comArte = new Set(comArquivos ? (await s`SELECT DISTINCT conteudo_id::text AS id FROM vybe_conteudo_arquivos
-        WHERE conteudo_id::text = ANY(${r.ids}) AND ausente_em IS NULL AND drive_file_id IS NOT NULL`).map((a) => a.id) : []);
+        WHERE conteudo_id = ANY(${r.ids}::bigint[]) AND ausente_em IS NULL AND drive_file_id IS NOT NULL`).map((a) => a.id) : []);
       const vistas = comVistas ? await vistasDoLink(s, l.id, r.ids) : null;
       const aprovar = [], recusadas = [];
       for (const id of r.ids) {

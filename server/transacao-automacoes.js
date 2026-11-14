@@ -1,4 +1,5 @@
 import { neon, Pool } from '@neondatabase/serverless';
+import { createHash } from 'node:crypto';
 
 // Mantém HTTP nas consultas comuns. O motor precisa de uma única conexão
 // durante as leituras e decisões entre escritas (Node >=22 fornece WebSocket).
@@ -13,6 +14,8 @@ export function sqlDaConexao(conexao) {
 export function bancoComTransacoes(url) {
   if (!url) throw new Error('DATABASE_URL não configurada.');
   const sql = neon(url);
+  // O mesmo banco com a mesma marca, para as migrações aditivas rodarem uma vez por instância (server/uma-vez.js).
+  sql.identidadeDoBanco = 'neon:' + createHash('sha256').update(String(url)).digest('hex').slice(0, 16);
   sql.comTransacao = executar => executarTransacaoDeAutomacao(
     new Pool({ connectionString: url, max: 1, connectionTimeoutMillis: 10000 }), executar);
   return sql;

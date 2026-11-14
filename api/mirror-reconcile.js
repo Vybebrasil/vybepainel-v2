@@ -4,12 +4,13 @@ import { registrarSnapshotOperacional, registrarSaude } from '../vybe_observabil
 import { fecharPontosEscritorio } from '../server/escritorio-pontos.js';
 import { conferirMarcosDaEquipe } from '../server/escritorio-marcos.js';
 import { gravarSeriesDoDia } from '../server/series-historicas.js';
+import { iguais } from '../vybe_acesso.js';
 
 function isCronAuthorized(req) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
   const supplied = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '');
-  return supplied === secret;
+  return iguais(supplied.trim(), String(secret).trim());
 }
 
 export default async function handler(req, res) {

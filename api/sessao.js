@@ -13,8 +13,13 @@
 // Sem CORS aberto aqui: cookie de sessão só faz sentido na própria origem, e
 // deixar '*' com credenciais é justamente o que não se deve fazer.
 
-import { autenticar, autenticarPorId, listarRostos, assinarSessao, sessaoDoPedido, cabecalhoDeCookie }
+import { autenticar, autenticarPorId, listarRostos, assinarSessao, sessaoDoPedido, cabecalhoDeCookie, encerrarSessao }
   from '../vybe_sessao.js';
+import { limiteNaMemoria, ipDe } from '../server/comercial-leads.js';
+
+// Tentativas de login por IP (memória da instância, como o formulário de leads): o bloqueio por pessoa já existe; este
+// segura quem varre várias pessoas do mesmo lugar. Um escritório inteiro atrás do mesmo IP cabe folgado.
+export const LOGIN_POR_IP = { max: 20, janela: 10 * 60 * 1000 };
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -35,6 +40,8 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      // A versão sobe: o mesmo cookie, se alguém o guardou, não entra mais.
+      await encerrarSessao(req);
       res.setHeader('Set-Cookie', cabecalhoDeCookie(''));
       return res.status(200).json({ ok: true, encerrada: true });
     }
@@ -44,6 +51,8 @@ export default async function handler(req, res) {
       if (!senha || (!email && !pessoaId)) {
         return res.status(400).json({ error: 'Informe quem é você e a senha.' });
       }
+      if (!limiteNaMemoria('login:' + ipDe(req), Date.now(), LOGIN_POR_IP))
+        return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em alguns minutos.' });
       const pessoa = pessoaId ? await autenticarPorId(pessoaId, senha) : await autenticar(email, senha);
       res.setHeader('Set-Cookie', cabecalhoDeCookie(assinarSessao(pessoa)));
       return res.status(200).json({ ok: true, pessoa });
@@ -53,6 +62,8 @@ export default async function handler(req, res) {
   } catch (erro) {
     // Erro de credencial é 401; o resto é falha nossa.
     const credencial = /incorretos|tentativas/i.test(erro.message);
-    return res.status(credencial ? 401 : 500).json({ error: erro.message });
+    if (credencial) return res.status(401).json({ error: erro.message });
+    console.error('api/sessao', erro);
+    return res.status(500).json({ error: 'Não foi possível entrar agora. Tente de novo.' });
   }
 }

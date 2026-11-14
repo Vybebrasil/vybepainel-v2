@@ -313,6 +313,19 @@ export async function baixarTrechoDoDrive(fileId, inicio, fim) {
   return Buffer.from(await r.arrayBuffer());
 }
 
+// A miniatura de um arquivo, baixada com a credencial do servidor (o arquivo continua privado no Drive). O thumbnailLink do
+// Drive termina em "=s220"; troca pelo tamanho pedido. Devolve { bytes, tipo } ou null quando o Drive não tem miniatura.
+export async function miniaturaDoDrive(fileId, tamanho = 400) {
+  const d = await drive(`files/${encodeURIComponent(fileId)}?fields=thumbnailLink&supportsAllDrives=true`);
+  if (!d?.thumbnailLink) return null;
+  const sz = Math.max(64, Math.min(2000, Number(tamanho) || 400));
+  const url = String(d.thumbnailLink).replace(/=s\d+(-[a-z0-9-]+)?$/i, '') + `=s${sz}`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${await token()}` } });
+  if (!r.ok) throw new Error(`Drive ${r.status} ao baixar a miniatura.`);
+  const tipo = String(r.headers.get('content-type') || 'image/jpeg').split(';')[0].trim().toLowerCase();
+  return { bytes: Buffer.from(await r.arrayBuffer()), tipo: /^image\/(png|jpe?g|webp|gif)$/.test(tipo) ? tipo : 'image/jpeg' };
+}
+
 export async function tornarPublico(fileId) {
   await drive(`files/${fileId}/permissions?supportsAllDrives=true`, {
     method: 'POST',

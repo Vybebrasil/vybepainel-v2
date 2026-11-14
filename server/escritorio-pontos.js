@@ -2,6 +2,10 @@
 // semanal e a leitura que a ficha usa. Os eventos instantâneos ficam no gatilho
 // do banco e os valores na tabela vybe_escritorio_regras
 // (migrations/2026-10-17-escritorio-pontos.sql; plano em docs/escritorio-pontos.md).
+// "Pronta" é só Finalizado (shared/status-finalizado.js): vybe_status.final vem true também em Para agendar e Agendado.
+// Vale daqui para frente: o dia e a semana já fechados ficam marcados em vybe_escritorio_fechamentos e não se recalculam.
+import statusFinal from '../shared/status-finalizado.js';
+const FINALIZADO = statusFinal.STATUS_FINALIZADO_SQL;
 export function diaBahia(valor = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(valor);
 }
@@ -90,7 +94,7 @@ async function fecharDia(tx, dia) {
   const [{ n: furos }] = await tx`SELECT count(*) AS n FROM vybe_conteudos c
     JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
     WHERE c.board_id=7829537690 AND c.removido_em IS NULL AND c.veiculacao=${dia}::date
-      AND NOT COALESCE(s.final,false) AND c.status_chave<>'segurar_post'`;
+      AND NOT (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[])) AND c.status_chave<>'segurar_post'`;
   r.paraAgendarVencidos = Number(paraAgendar); r.furos = Number(furos);
   const equipe = await tx`SELECT pessoa_id,funcao FROM vybe_escritorio_funcoes WHERE funcao IN ('agendamento','gestao') ORDER BY pessoa_id`;
   for (const p of equipe) {
@@ -305,12 +309,12 @@ export async function missoesDaPessoa(sql, pessoaId, agora = new Date()) {
     ? await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.etapa,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,vybe_peso_conteudo(c.id) AS peso
         FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id=c.id AND r.pessoa_id=${pessoaId}
         LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
-        WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
+        WHERE c.removido_em IS NULL AND NOT (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[]))
         ORDER BY COALESCE(c.prazo,c.veiculacao) NULLS LAST, c.id LIMIT 40`
     : await sql`SELECT c.id,c.monday_item_id,c.board_id,c.titulo,c.formato,c.etapa,c.clientes_texto,TO_CHAR(c.prazo,'YYYY-MM-DD') AS prazo,TO_CHAR(c.veiculacao,'YYYY-MM-DD') AS veiculacao,s.rotulo AS status,1 AS peso
         FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id=c.id AND r.pessoa_id=${pessoaId}
         LEFT JOIN vybe_status s ON s.board_id=c.board_id AND s.chave=c.status_chave
-        WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false)
+        WHERE c.removido_em IS NULL AND NOT (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[]))
         ORDER BY COALESCE(c.prazo,c.veiculacao) NULLS LAST, c.id LIMIT 40`;
   // Foto ou vídeo (a Produção entra no bolo e a fatia da Criação muda).
   // Foto, vídeo ou normal (muda a fatia de cada papel).

@@ -10,12 +10,22 @@
 // deixaria o painel de fora. Os dois passam, mais ninguém.
 
 import { sessaoDoPedido } from './vybe_sessao.js';
+import { createHash, timingSafeEqual } from 'node:crypto';
+
+// Compara dois segredos em tempo constante (o tempo de resposta não entrega quantos caracteres bateram). O hash iguala
+// os tamanhos, que o timingSafeEqual exige.
+export function iguais(a, b) {
+  const x = String(a ?? ''), y = String(b ?? '');
+  if (!x || !y) return false;
+  const h = (s) => createHash('sha256').update(s).digest();
+  return timingSafeEqual(h(x), h(y));
+}
 
 export async function quemChama(req) {
   const chave = process.env.MIRROR_ADMIN_KEY;
   if (chave) {
     const enviado = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '').trim();
-    if (enviado && enviado === String(chave).trim()) return { tipo: 'servico' };
+    if (enviado && iguais(enviado, String(chave).trim())) return { tipo: 'servico' };
   }
   const sessao = await sessaoDoPedido(req);
   if (sessao) return { tipo: 'sessao', pessoa: sessao };

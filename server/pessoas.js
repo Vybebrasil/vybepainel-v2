@@ -25,6 +25,9 @@
 // produtividade funciona com os pesos padrão); as gravações respondem 503.
 import calc from '../shared/pessoas-calculos.js';
 import { ehDonoPessoa } from './donos.js';
+// "Pronta" é só Finalizado (shared/status-finalizado.js): vybe_status.final vem true também em Para agendar e Agendado.
+import statusFinal from '../shared/status-finalizado.js';
+const FINALIZADO = statusFinal.STATUS_FINALIZADO_SQL;
 
 // Gestão = quem administra e os quatro donos, pela regra única de server/donos.js (nunca pelo primeiro nome).
 export const ehGestao = (pessoa) => Boolean(pessoa && (pessoa.admin || ehDonoPessoa(pessoa)));
@@ -83,12 +86,12 @@ async function pessoasAtivas(sql, estado) {
 async function fatosDoMes(sql, { de, ate, hoje }) {
   const corte = hoje < ate ? hoje : calc.util.somarDias(ate, 1);
   const linhas = await sql`SELECT r.pessoa_id::text AS pessoa_id,
-      count(*) FILTER (WHERE COALESCE(s.final,false) AND (c.status_em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date)::int AS entregues,
-      count(*) FILTER (WHERE COALESCE(s.final,false) AND (c.status_em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date
+      count(*) FILTER (WHERE (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[])) AND (c.status_em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date)::int AS entregues,
+      count(*) FILTER (WHERE (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[])) AND (c.status_em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date
         AND COALESCE(c.veiculacao, c.prazo) IS NOT NULL)::int AS com_data,
-      count(*) FILTER (WHERE COALESCE(s.final,false) AND (c.status_em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date
+      count(*) FILTER (WHERE (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[])) AND (c.status_em AT TIME ZONE 'America/Bahia')::date BETWEEN ${de}::date AND ${ate}::date
         AND (c.status_em AT TIME ZONE 'America/Bahia')::date <= COALESCE(c.veiculacao, c.prazo))::int AS no_prazo,
-      count(*) FILTER (WHERE NOT COALESCE(s.final,false) AND c.status_chave IS DISTINCT FROM 'segurar_post'
+      count(*) FILTER (WHERE NOT (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[])) AND c.status_chave IS DISTINCT FROM 'segurar_post'
         AND LEAST(c.prazo, c.veiculacao) >= ${de}::date AND LEAST(c.prazo, c.veiculacao) < ${corte}::date)::int AS atrasadas
     FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id = c.id
     LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
@@ -290,8 +293,8 @@ async function projetos(sql, quem, query, estado) {
     FROM vybe_projetos WHERE status <> 'cancelado' OR fim >= ${calc.util.somarDias(hoje, -30)}::date ORDER BY inicio, id`);
   // A etapa ligada a uma demanda mostra a situação dela na esteira e conta como feita quando a demanda chega ao fim.
   const etapas = await ler(estado, sql`SELECT e.id::text AS id, e.projeto_id::text AS projeto_id, e.nome, e.responsavel::text AS responsavel, p.nome AS responsavel_nome,
-      e.inicio::text AS inicio, e.fim::text AS fim, e.esforco, (e.feita OR COALESCE(s.final, false)) AS feita, e.ordem,
-      c.id::text AS demanda_id, s.rotulo AS demanda_status, c.prazo::text AS demanda_prazo, COALESCE(s.final, false) AS demanda_final
+      e.inicio::text AS inicio, e.fim::text AS fim, e.esforco, (e.feita OR (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[]))) AS feita, e.ordem,
+      c.id::text AS demanda_id, s.rotulo AS demanda_status, c.prazo::text AS demanda_prazo, (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[])) AS demanda_final
     FROM vybe_projeto_etapas e LEFT JOIN vybe_pessoas p ON p.id = e.responsavel
       LEFT JOIN vybe_conteudos c ON c.id = e.conteudo_id AND c.removido_em IS NULL
       LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
@@ -302,7 +305,7 @@ async function projetos(sql, quem, query, estado) {
   const pecas = await sql`SELECT r.pessoa_id::text AS pessoa_id, LEAST(c.prazo, c.veiculacao)::text AS data
     FROM vybe_conteudos c JOIN vybe_conteudo_responsaveis r ON r.conteudo_id = c.id
     LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
-    WHERE c.removido_em IS NULL AND NOT COALESCE(s.final,false) AND c.status_chave IS DISTINCT FROM 'segurar_post'
+    WHERE c.removido_em IS NULL AND NOT (lower(trim(COALESCE(s.rotulo, c.status_chave, ''))) = ANY(${FINALIZADO}::text[])) AND c.status_chave IS DISTINCT FROM 'segurar_post'
       AND LEAST(c.prazo, c.veiculacao) BETWEEN ${calc.util.somarDias(semana, -14)}::date AND ${fim}::date`;
   const ativos = comEtapas.filter((p) => !['concluido', 'cancelado'].includes(p.status));
   // Clientes ativos para a escolha do projeto (a mesma regra única: ativo e não marcado "não é cliente").

@@ -193,7 +193,16 @@ test('8 · Minha sala: cor e foco por pessoa, guardados no servidor; visita vê 
 });
 
 test('9 · peça: hora de publicação do nosso lado, pelo id da peça', async (t) => {
-  const { sql } = await banco(t);
+  const { db, sql } = await banco(t);
+  // Confere de 14/11/2026: grava quem é responsável pela peça ou head do cliente dela (além de donos e coordenação).
+  await db.exec(`CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, monday_item_id text);
+    CREATE TABLE vybe_conteudo_responsaveis (conteudo_id bigint, pessoa_id bigint);
+    CREATE TABLE vybe_conteudo_clientes (conteudo_id bigint, cliente_id bigint);
+    CREATE TABLE vybe_cliente_pessoas (cliente_id bigint, pessoa_id bigint, ordem int DEFAULT 0);
+    INSERT INTO vybe_conteudos VALUES (50,'2101'),(77,NULL);
+    INSERT INTO vybe_conteudo_responsaveis VALUES (50,3);
+    INSERT INTO vybe_conteudo_clientes VALUES (77,10);
+    INSERT INTO vybe_cliente_pessoas (cliente_id, pessoa_id) VALUES (10,3);`);
   const chamar = async (body = null, query = {}) => { const r = resposta(); await areaPecaComplemento({ method: body ? 'POST' : 'GET', body, query }, r, sessao(BIA), sql); return r; };
   assert.equal((await chamar({ item: '2101', publicar_hora: '10:00' })).codigo, 200);
   assert.equal((await chamar({ item: 'vybe:77', publicar_hora: '18:30' })).codigo, 200);
@@ -208,7 +217,8 @@ test('10 · metas: nota da carteira e acerto dos agentes em vybe_carteira_config
   const { sql } = await banco(t);
   const chamar = async (quem, body = null) => { const r = resposta(); await areaMetas({ method: body ? 'POST' : 'GET', body, query: {} }, r, quem, sql); return r; };
   const antes = await chamar(sessao(BIA));
-  assert.deepEqual([antes.body.carteira_nota, antes.body.agentes_acerto, antes.body.pode_editar], [null, null, false], 'sem meta gravada, nada inventado');
+  // A de acerto tem um leitor só com a área de séries (confere de 14/11/2026, B4): sem meta gravada, o padrão 75 nos dois.
+  assert.deepEqual([antes.body.carteira_nota, antes.body.agentes_acerto, antes.body.pode_editar], [null, 75, false], 'sem meta da carteira, nada inventado');
   assert.equal((await chamar(sessao(BIA), { carteira_nota: 70 })).codigo, 403);
   assert.equal((await chamar(sessao(PAULO), { carteira_nota: 170 })).codigo, 400);
   const ok = await chamar(sessao(PAULO), { carteira_nota: 70, agentes_acerto: 90 });

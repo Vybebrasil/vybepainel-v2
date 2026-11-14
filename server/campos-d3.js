@@ -8,7 +8,7 @@
 //  - Metas (nota da carteira, acerto dos agentes): areaMetas                    → area=metas
 //  - Minha sala (cor e foco): areaMinhaSala                                     → area=minha_sala
 //  - Hora de publicação da peça: areaPecaComplemento                            → area=peca_complemento
-import { ehDonoPessoa, DONOS_MONDAY } from './donos.js';
+import { ehDonoPessoa, ehCoordenacaoPessoa, DONOS_MONDAY } from './donos.js';
 import { garantirMigracoesCampos } from './migracoes-campos.js';
 
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
@@ -140,7 +140,24 @@ export async function campanhasDosCreators(sql, hoje) {
 // meta_carteira        { nota: n }  — a meta da nota média de saúde da carteira (0–100)
 // meta_acerto_agentes  { meta: n }  — a meta de acerto dos agentes: a MESMA chave de server/series-historicas.js
 //                                     (area=series acao meta_acerto); aqui só se lê e grava o mesmo valor.
-// Sem meta gravada, null: a tela não desenha linha tracejada inventada.
+// Sem meta da carteira gravada, null: a tela não desenha linha tracejada inventada. A de acerto dos agentes tem um leitor e
+// um gravador só (lerMetaAcerto / gravarMetaAcerto, usados também por server/series-historicas.js), com o padrão 75.
+export const META_ACERTO_PADRAO = 75;
+export async function lerMetaAcerto(sql) {
+  let v = {};
+  try { const [l] = await sql`SELECT valor FROM vybe_carteira_config WHERE chave = 'meta_acerto_agentes'`; v = (l && (typeof l.valor === 'string' ? JSON.parse(l.valor) : l.valor)) || {}; }
+  catch (e) { if (!semTabela(e)) throw e; }
+  const meta = Number(v.meta), ok = v.meta != null && v.meta !== '' && Number.isFinite(meta) && meta > 0 && meta <= 100;
+  return { meta: ok ? meta : META_ACERTO_PADRAO, configurado: ok };
+}
+// meta null apaga (volta ao padrão). Quem chama confere a permissão (só dono ou serviço).
+export async function gravarMetaAcerto(sql, autorId, meta) {
+  const v = meta == null || meta === '' ? null : Number(meta);
+  if (v != null && (!Number.isInteger(v) || v < 1 || v > 100)) falhar('Meta: um número inteiro de 1 a 100.');
+  await sql`INSERT INTO vybe_carteira_config (chave, valor, atualizado_por, atualizado_em) VALUES ('meta_acerto_agentes', ${JSON.stringify({ meta: v })}::jsonb, ${autorId ?? null}, now())
+    ON CONFLICT (chave) DO UPDATE SET valor = vybe_carteira_config.valor || EXCLUDED.valor, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`;
+  return lerMetaAcerto(sql);
+}
 export const CHAVES_METAS = Object.freeze({ carteira_nota: ['meta_carteira', 'nota'], agentes_acerto: ['meta_acerto_agentes', 'meta'] });
 export async function lerMetasD3(sql) {
   try {
@@ -149,6 +166,7 @@ export async function lerMetasD3(sql) {
     const n = (x) => { const v = Number(x); return x != null && x !== '' && Number.isFinite(v) && v > 0 && v <= 100 ? v : null; };
     const out = { disponivel: true };
     for (const [k, [chave, campo]] of Object.entries(CHAVES_METAS)) out[k] = n(por.get(chave)?.[campo]);
+    out.agentes_acerto = (await lerMetaAcerto(sql)).meta;
     return out;
   } catch (e) { if (semTabela(e)) return { disponivel: false, carteira_nota: null, agentes_acerto: null }; throw e; }
 }
@@ -157,6 +175,7 @@ export async function salvarMetasD3(sql, quem, b = {}) {
   const mudou = Object.keys(CHAVES_METAS).filter((k) => k in b);
   if (!mudou.length) falhar('Informe a meta da carteira ou a de acerto dos agentes.');
   for (const k of mudou) {
+    if (k === 'agentes_acerto') { await gravarMetaAcerto(sql, quem.id, b[k]); continue; }
     const [chave, campo] = CHAVES_METAS[k];
     let v = null;
     if (b[k] != null && b[k] !== '') { v = Number(b[k]); if (!Number.isInteger(v) || v < 1 || v > 100) falhar('Meta: um número inteiro de 1 a 100.'); }
@@ -242,8 +261,20 @@ export async function horasDasPecas(sql, itens = null) {
     return Object.fromEntries(linhas.map((l) => [l.item, l.hora]));
   } catch (e) { if (semTabela(e)) return {}; throw e; }
 }
+// Quem grava a hora de uma peça: os donos, a coordenação, um responsável da peça ou um head de um cliente dela.
+export async function podeMexerNaPeca(sql, quem, item) {
+  if (ehDonoPessoa(quem) || ehCoordenacaoPessoa(quem)) return true;
+  const eu = Number(quem?.id); if (!Number.isSafeInteger(eu) || eu <= 0) return false;
+  const local = item.startsWith('vybe:') ? Number(item.slice(5)) : null;
+  const [r] = await sql`SELECT EXISTS (SELECT 1 FROM vybe_conteudos c WHERE (c.id = ${local} OR (${local}::bigint IS NULL AND c.monday_item_id = ${item}))
+      AND (EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id AND r.pessoa_id = ${eu})
+        OR EXISTS (SELECT 1 FROM vybe_conteudo_clientes v JOIN vybe_cliente_pessoas h ON h.cliente_id = v.cliente_id
+                   WHERE v.conteudo_id = c.id AND h.pessoa_id = ${eu}))) AS ok`;
+  return Boolean(r?.ok);
+}
 export async function salvarHoraDaPeca(sql, quem, b = {}) {
   const item = String(b.item ?? ''); if (!ITEM.test(item)) falhar('Peça inválida.');
+  if (!await podeMexerNaPeca(sql, quem, item)) falhar('Só quem é responsável pela peça, o head do cliente, a coordenação ou um dono muda a hora de publicação.', 403);
   const hora = b.publicar_hora == null || b.publicar_hora === '' ? null : String(b.publicar_hora);
   if (hora && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) falhar('Hora no formato HH:MM.');
   await sql`INSERT INTO vybe_peca_complemento (item, publicar_hora, atualizado_por) VALUES (${item}, ${hora}::time, ${quem.id})

@@ -7,6 +7,7 @@
 // ou Vinícius e Ewerton; o resto: Deivid), a mesma regra dos avisos; administração pode tudo.
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import vm from 'node:vm';
+import prazoInternoComum from '../shared/prazo-interno.js';
 import { codigoDoPainel, linkDaAtividade } from './assistente-rotinas.js';
 import { tabelaRegras } from './assistente-regras.js';
 import { marcarEncaixe } from './assistente-encaixe.js';
@@ -237,7 +238,7 @@ async function prazoRealista(sql, d, agora) {
 }
 
 // Criar demanda na Produção, pelo mesmo cadastro do painel. Nome no padrão "Formato - Título" (vybe-nomenclatura);
-// prazo da equipe 2 dias antes da veiculação (nunca antes de hoje). Cliente e responsável pelo nome, sem ambiguidade.
+// prazo da equipe pelo Prazo de Ouro (shared/prazo-interno.js). Cliente e responsável pelo nome, sem ambiguidade.
 const FORMATOS = ['Card', 'Carrossel', 'Reels', 'Story', 'Fotografia', 'Feed', 'Vídeo', 'Motion'];
 // Solicitações de Demandas (Taynara e Deivid, 29/10/2026: "arte para backdrop" não é conteúdo): o mesmo cadastro, no
 // quadro de Solicitações, com o "Tipo de demanda" dele, sem veiculação e com o prazo de entrega obrigatório.
@@ -262,8 +263,9 @@ async function montarCriacao(sql, pedido, agora) {
   if (!demandas && (!/^\d{4}-\d{2}-\d{2}$/.test(veiculacao) || veiculacao < hoje)) throw invalido('Diga a data de veiculação (hoje ou depois).');
   if (demandas && veiculacao && (!/^\d{4}-\d{2}-\d{2}$/.test(veiculacao) || veiculacao < hoje)) throw invalido('A data de veiculação tem que ser hoje ou depois.');
   if (demandas && !pedido.prazo) throw invalido('Diga o prazo de entrega da demanda.');
-  const menos2 = veiculacao ? new Date(Date.parse(veiculacao + 'T12:00:00Z') - 2 * 864e5).toISOString().slice(0, 10) : hoje;
-  const prazo = menos2 < hoje ? hoje : menos2;
+  // Prazo de Ouro, a regra oficial (shared/prazo-interno.js, a mesma do cadastro do planejamento): 7 dias antes da
+  // veiculação (sexta, no fim de semana), hoje se já passou, e no máximo 2 dias antes.
+  const prazo = veiculacao ? prazoInternoComum.prazoInterno(veiculacao, hoje) : hoje;
   const clientes = await sql`SELECT nome FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) AND nome ILIKE ${'%' + String(pedido.cliente || '').trim() + '%'} ORDER BY nome LIMIT 5`;
   const cliente = clientes.length === 1 ? clientes[0] : clientes.find((c) => normal(c.nome) === normal(pedido.cliente));
   if (!String(pedido.cliente || '').trim() || !cliente) throw invalido(clientes.length ? `Mais de um cliente com esse nome: ${clientes.map((c) => c.nome).join(', ')}.` : 'Não achei esse cliente.');

@@ -21,8 +21,16 @@ const DIAS_DE_SESSAO = 30;
 const TENTATIVAS_MAX = 8;
 const JANELA_BLOQUEIO_MIN = 15;
 let schemaSessao;
+let bancoDeTeste = null;
+
+// Testes trocam o banco por um PGlite (tests/postgres.mjs); em produção fica null e vale o DATABASE_URL.
+export function usarBancoDaSessao(db) { bancoDeTeste = db || null; schemaSessao = null; }
+
+// Erro que pode ir à tela como está (o resto vira mensagem genérica na rota).
+const publico = (mensagem) => Object.assign(new Error(mensagem), { publica: true });
 
 function database() {
+  if (bancoDeTeste) return bancoDeTeste;
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
   return neon(process.env.DATABASE_URL);
 }
@@ -59,7 +67,7 @@ async function derivar(senha, salHex) {
 
 export async function definirSenha(email, senha, { admin = null } = {}) {
   if (!senha || String(senha).length < 8) {
-    throw new Error('A senha precisa de pelo menos 8 caracteres.');
+    throw publico('A senha precisa de pelo menos 8 caracteres.');
   }
   await garantirSchemaSessao();
   const sql = database();
@@ -71,7 +79,7 @@ export async function definirSenha(email, senha, { admin = null } = {}) {
         admin = COALESCE(${admin}::boolean, admin), sessao_versao = sessao_versao + 1
     WHERE LOWER(email) = LOWER(${String(email)})
     RETURNING id, nome, email, admin, pode_entrar, sessao_versao AS versao`;
-  if (!linhas.length) throw new Error(`Ninguém cadastrado com o e-mail ${email}.`);
+  if (!linhas.length) throw publico(`Ninguém cadastrado com o e-mail ${email}.`);
   return linhas[0];
 }
 
@@ -129,11 +137,12 @@ async function entrar(quem, senha) {
   const confere = esperado.length === recebido.length && timingSafeEqual(esperado, recebido);
 
   if (!confere) {
-    const n = Number(pessoa.tentativas || 0) + 1;
-    await sql`UPDATE vybe_pessoas SET tentativas = ${n},
-        bloqueado_ate = CASE WHEN ${n} >= ${TENTATIVAS_MAX}
-          THEN NOW() + (${JANELA_BLOQUEIO_MIN} || ' minutes')::interval ELSE bloqueado_ate END
-      WHERE id = ${pessoa.id}`;
+    // Atômico no banco: duas tentativas ao mesmo tempo liam o mesmo número e, com o contador calculado aqui, uma
+    // sobrescrevia a outra (o bloqueio não chegava). No SET, `tentativas` é o valor de antes da soma.
+    await sql`UPDATE vybe_pessoas SET tentativas = tentativas + 1,
+        bloqueado_ate = CASE WHEN tentativas + 1 >= ${TENTATIVAS_MAX}
+          THEN NOW() + make_interval(mins => ${JANELA_BLOQUEIO_MIN}::int) ELSE bloqueado_ate END
+      WHERE id = ${pessoa.id} RETURNING tentativas`;
     throw recusa;
   }
 
@@ -207,6 +216,21 @@ async function pessoaAtual(id) {
   return (await database()`SELECT id, nome, email, ativo, pode_entrar, admin, senha_hash, sessao_versao,
     to_jsonb(p) ->> 'monday_user_id' AS monday_user_id
     FROM vybe_pessoas p WHERE id=${id}`)[0];
+}
+
+// Sair encerra a sessão de verdade: a versão sobe e o cookie antigo (copiado, ou esquecido em outro aparelho) deixa de
+// valer, porque sessaoDoPedido confere a versão em toda requisição.
+export async function encerrarSessao(req) {
+  const cookie = String(req.headers?.cookie || '');
+  const achado = cookie.split(';').map((p) => p.trim()).find((p) => p.startsWith('vybe_sessao='));
+  if (!achado) return false;
+  let sessao;
+  try { sessao = lerSessao(decodeURIComponent(achado.slice('vybe_sessao='.length))); } catch { return false; }
+  if (!sessao || !Number.isSafeInteger(Number(sessao.id))) return false;
+  await garantirSchemaSessao();
+  const linhas = await database()`UPDATE vybe_pessoas SET sessao_versao = sessao_versao + 1
+    WHERE id = ${Number(sessao.id)} AND sessao_versao = ${Number(sessao.versao || 0)} RETURNING id`;
+  return linhas.length > 0;
 }
 
 export function cabecalhoDeCookie(token) {
