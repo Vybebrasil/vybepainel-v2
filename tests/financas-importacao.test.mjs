@@ -307,13 +307,13 @@ test('Comercial com a chave em "local": abas e ações de dinheiro só para os d
     for (const aba of ['recebimentos', 'contas']) assert.equal((await chamar(pessoa, null, { aba, mes: '2026-11' })).codigo, 403, `${pessoa.nome} ${aba}`);
   }
 
-  // Chave em "local": o histórico importado aparece para o dono, como leitura.
+  // Chave em "local": desde 14/11/2026 (Paulo: "os dados são só o histórico dos 3 meses que mandei do banco") as abas
+  // não leem mais o histórico importado do Finanças; sem extrato importado, só o lançado à mão no Vybe OS.
   process.env.VYBE_FINANCAS_FONTE = 'local';
   const rec = await chamar(dono, null, { aba: 'recebimentos', mes: '2026-11' });
-  assert.equal(rec.codigo, 200, JSON.stringify(rec.body)); assert.equal(rec.body.fonte, 'Vybe Finanças');
-  assert.deepEqual(rec.body.recebiveis.map((x) => x.id).sort(), [`fin:${U(103)}`, `fin:${U(109)}`]);
-  const inad = await chamar(dono, null, { aba: 'inadimplencia' });
-  assert.equal(inad.body.total, 6700);
+  assert.equal(rec.codigo, 200, JSON.stringify(rec.body)); assert.equal(rec.body.fonte, 'Vybe OS');
+  assert.deepEqual(rec.body.recebiveis.map((x) => x.descricao), ['Lançado à mão']);
+  assert.ok(!rec.body.recebiveis.some((x) => String(x.id).startsWith('fin:')));
   for (const aba of ['financas', 'recebimentos', 'contas', 'inadimplencia', 'caixa']) {
     assert.equal((await chamar(dono, null, { aba })).codigo, 200, aba);
     // A recusa agora sai na primeira barreira (papeis().dono = só os quatro donos), antes da do financeiro local.

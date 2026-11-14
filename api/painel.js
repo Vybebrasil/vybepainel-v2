@@ -31,8 +31,7 @@ import { areaComercial } from '../server/comercial-api.js';
 // Vybe Finanças (Supabase do app de finanças), só leitura: GET area=vybe_financas&parte=comercial|carteira|rh.
 import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { areaFinanceiro, areaFinanceiroBot } from '../server/financeiro.js';
-import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema, parNoFinancas } from '../server/clientes-cadastro.js';
-import { conectorPadrao as conectorDoFinancas } from '../server/vybe-financas.js';
+import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema } from '../server/clientes-cadastro.js';
 import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
 import { cadastrarDemandasDaReuniao, garantirSchemaReunioes, listarReunioes, salvarReuniao, registrarGravacao, sugerirPauta, linkDoOnboarding, respostasDoOnboarding, podeMexer, paginaDoOnboarding, salvarOnboarding, TIPOS_REUNIAO, QUESTOES, ACESSOS_PEDIDOS } from '../server/reunioes.js';
 import { aprovacoesDaPessoa } from '../server/aprovacoes.js';
@@ -819,20 +818,10 @@ async function ecossistemaDoCliente(db, idBruto) {
   // O último envio ao Drive deste cliente: se falhou por "não encontrado", a pasta ligada não abre para o sistema.
   let driveErro = '';
   try { const [g] = await db`SELECT drive_id, drive_erro FROM vybe_cliente_registros WHERE cliente_id=${id} AND (drive_id IS NOT NULL OR drive_erro IS NOT NULL) ORDER BY criado_em DESC LIMIT 1`; driveErro = g && !g.drive_id ? String(g.drive_erro || '') : ''; } catch { /* sem a tabela */ }
-  let financas = { estado: 'desligado' };
-  const conector = conectorDoFinancas();
-  if (conector.configurado()) {
-    try {
-      const ano = new Date().getFullYear() - 1;
-      const [base, vybe] = await Promise.all([
-        conector.lerBase({ desde: `${ano}-01-01` }),
-        db`SELECT id::text, nome, COALESCE(cnpj,'') AS cnpj FROM vybe_clientes WHERE apagado_em IS NULL AND COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)`,
-      ]);
-      financas = { estado: 'lido', ligacao: parNoFinancas(base.clientes, vybe, id) };
-    } catch { financas = { estado: 'erro' }; }
-  }
+  // O Vybe Finanças saiu do ecossistema (Paulo, 14/11/2026: o financeiro é só o extrato do banco, no Vybe OS): a ficha
+  // não lê nem mostra mais o par lá (financas: null tira a linha).
   return { ok: true, cliente: { id: String(cliente.id), nome: cliente.nome },
-    sistemas: estadoNoEcossistema({ cliente, acesso, financas, hubUrl: process.env.VYBE_AI_HUB_URL || '', criaNoFinancas: cadastroFinancasPadrao().configurado(), driveErro }) };
+    sistemas: estadoNoEcossistema({ cliente, acesso, financas: null, hubUrl: process.env.VYBE_AI_HUB_URL || '', criaNoFinancas: false, driveErro }) };
 }
 
 // Cópia .md do registro do chat: na pasta do cliente ligada no cadastro (Acessos) ou, sem ela, na pasta com o
@@ -971,7 +960,8 @@ export async function areaClientes(req, res, quem) {
           if (campos) separarCamposDoCadastro(campos);
           const criado = await criarCliente(db, { nome, autor });
           if (campos && criado?.cliente?.id) await salvarCadastro(db, criado.cliente.id, campos, { veDinheiro: podeDinheiro });
-          return res.status(200).json({ ...criado, financas: await levarAoFinancas(db, criado?.cliente?.id) });
+          // O cadastro não vai mais ao Vybe Finanças (14/11/2026); levarAoFinancas fica sem uso, para remover depois.
+          return res.status(200).json({ ...criado, financas: { estado: 'desligado' } });
         }
         return res.status(200).json(await cicloCliente(db, { ...req.body, acao: acao === 'ativar' ? 'reativar' : acao, autor }));
       } catch (erro) {
@@ -985,7 +975,7 @@ export async function areaClientes(req, res, quem) {
       return res.status(r.estado === 'erro' ? 502 : 200).json(r.estado === 'erro' ? { error: r.erro } : { ok: true, financas: r });
     }
     if (acao === 'cadastro') {
-      try { const salvo = await salvarCadastro(db, id, req.body?.campos, { veDinheiro: podeDinheiro }); return res.status(200).json({ ...salvo, financas: await levarAoFinancas(db, id) }); }
+      try { const salvo = await salvarCadastro(db, id, req.body?.campos, { veDinheiro: podeDinheiro }); return res.status(200).json({ ...salvo, financas: { estado: 'desligado' } }); }
       catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
     }
     if (acao === 'ficha') {

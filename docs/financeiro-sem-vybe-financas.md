@@ -89,6 +89,26 @@ automática por integração bancária (o BB exige convênio; o CSV resolve), ag
    Vorcaro começar a lançar todo dia), vira tabela própria com migração revisada pelo Paulo; o formato de cada
    transação já é o de uma linha.
 
+## 4b. Telas só do extrato (Paulo, 14/11/2026)
+
+"O financeiro você não vai puxar os dados do Vybe Finanças; os dados são só o histórico dos 3 meses que mandei do banco."
+
+- `server/financeiro-fonte.js` transforma o extrato (lado real), os gastos fixos, o cartão e a mensalidade do contrato do
+  Vybe OS no formato que as telas antigas já mostravam. `GET area=financeiro&parte=comercial|rh` substitui
+  `area=vybe_financas` (Visão geral, Gestão, Folha do RH); `server/comercial.js` (`doFinancas`) usa
+  `lancamentosDoExtrato` nas abas Recebimentos, Contas a pagar, Inadimplência, Caixa e Por cliente (ids `ext:…`, só
+  leitura; confere-se no Extrato). Sem extrato importado: só o lançado à mão no Vybe OS e a Visão pede para importar.
+- Previsto a receber = mensalidade do contrato (vencimento no último dia do mês, do primeiro mês do extrato até hoje). A
+  pagar = gastos fixos que ainda não saíram e o que falta das faturas do cartão. Folha = salário e pró-labore que
+  saíram no extrato. Sem fonte (fica vazio): faturas emitidas, assinaturas e contratos do Finanças, salário combinado.
+- Saiu da interface: o item "Vybe Finanças ↗" do menu, os links do prédio (o Financeiro abre Finanças), a linha do
+  Finanças no Ecossistema da ficha, os textos "com o Vybe Finanças ligado" e o envio do cadastro ao Finanças.
+- Ficou sem uso (remover depois): `server/vybe-financas-api.js` (rota `area=vybe_financas`), `server/vybe-financas.js`,
+  `server/financas-local.js`, `levarAoFinancas` e a ação `financas` em `api/painel.js`, `server/vybe-financas-cadastro.js`,
+  `parNoFinancas` e o ramo do Finanças em `estadoNoEcossistema`, os blocos de contratos do Finanças em
+  `vybe-mundo-carteira.js` e o envio ao Finanças em `vybe-clientes-ficha.js`. O importador (`financas-importacao.js`,
+  `scripts/financas-importar.mjs`) e `shared/financas-calculos.js` continuam (as contas são reaproveitadas).
+
 ## 5. Vorcaro (Tesouraria) e o grupo Vybe Financeiro
 
 Pedido do Paulo no mesmo dia: "executar a tela dele junto, pra ele ajudar a controlar esse setor todo".

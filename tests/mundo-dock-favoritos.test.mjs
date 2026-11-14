@@ -55,7 +55,7 @@ test('cadeados: dono vê tudo, coordenação vê tudo menos o dinheiro, equipe n
     return ctx.trancadoPara;
   };
   const NEGOCIO = ['setor:comercial', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas'];
-  const DINHEIRO = ['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vybe-financas', 'ai-usage'];
+  const DINHEIRO = ['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'extrato', 'projecao', 'ai-usage'];
   const dono = regra({ dono: true }), beatriz = regra({ coordenacao: true }), equipe = regra();
   for (const id of [...NEGOCIO, ...DINHEIRO, 'tarefas']) assert.equal(dono(id), false, 'dono vê ' + id);
   for (const id of NEGOCIO) assert.equal(beatriz(id), false, 'coordenação vê ' + id);

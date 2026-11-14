@@ -90,7 +90,7 @@
     try { estado.dados[aba] = await pedir('GET', consultaDa(aba)); }
     catch (e) { estado.erro = e.message; if (e.status === 403 && SO_GESTAO.has(aba)) estado.dados[aba] = { proibido: true }; }
     finally { estado.carregando = false; pintar(); }
-    // Folha do Vybe Finanças (só leitura, só donos; o servidor recusa os outros): chega depois e repinta.
+    // Folha pelo extrato do banco (só leitura, só donos; o servidor recusa os outros): chega depois e repinta.
     // Carga da semana (auditoria 09/11: saiu de Projetos pontuais e veio para a Produtividade, que é dos donos).
     if (aba === 'produtividade' && estado.dados.produtividade?.gestao) await carregarCarga();
     if (aba === 'rh' && gestao() && window.VybeFinancas?.carregar) await window.VybeFinancas.carregar('rh', mesFolha()).then(() => { if (estado.aba === 'rh') pintar(); });
@@ -469,22 +469,22 @@
   function htmlFolha() {
     const e = window.VybeFinancas?.estado?.('rh', mesFolha());
     if (!e || e.status === 403) return '';
-    const titulo = '<h3 class="vp-titulo">Folha <small>só os donos veem · fonte: Vybe Finanças</small></h3>';
-    if (e.carregando && !e.dados) return titulo + '<p class="vp-nota">Lendo o Vybe Finanças…</p>';
-    if (e.erro) return titulo + `<p class="vp-nota">Vybe Finanças: ${esc(e.erro)}</p>`;
+    const titulo = '<h3 class="vp-titulo">Folha <small>só os donos veem · fonte: extrato do banco</small></h3>';
+    if (e.carregando && !e.dados) return titulo + '<p class="vp-nota">Lendo o extrato…</p>';
+    if (e.erro) return titulo + `<p class="vp-nota">Extrato: ${esc(e.erro)}</p>`;
     const d = e.dados; if (!d) return '';
-    if (!d.conectado) return d.passos ? titulo + `<div class="vp-cartao"><span class="vp-kicker">${esc(d.motivo)}</span><p class="vp-nota">Ligado, aparecem aqui os funcionários do Finanças com cargo, salário, bônus, dia de pagamento, o total do mês e a variação.</p>
+    if (!d.conectado) return d.passos ? titulo + `<div class="vp-cartao"><span class="vp-kicker">${esc(d.motivo)}</span><p class="vp-nota">Com o extrato importado, aparece aqui o que saiu como salário e pró-labore no mês, por pessoa, com o dia e a variação.</p>
       <ol class="vp-simples">${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>` : '';
     const f = d.folha; if (!f) return '';
     const vs = (v, p) => (v ? `<small class="vp-vs ${v > 0 ? 'ruim' : 'bom'}">${esc(pct(p))} (${esc(din(v))}) vs mês anterior</small>` : '<small class="vp-vs">igual ao mês anterior</small>');
     return titulo + `<div class="vp-kpis">
         <div class="vp-kpi espiavel" data-espiar="financas:rh:folha" role="button" tabindex="0" title="Ver a lista"><span>Total de ${esc(MESES_RH[Number(f.mes.slice(5)) - 1])}</span><b>${esc(din(f.total))}</b>${vs(f.variacao, f.variacao_percentual)}</div>
-        ${kpi('Funcionários', f.quantidade)}${kpi('Mês anterior', din(f.total_anterior))}</div>
+        ${kpi('Pessoas pagas', f.quantidade)}${kpi('Mês anterior', din(f.total_anterior))}</div>
       ${f.funcionarios.length ? `<ul class="vp-lista">${f.funcionarios.map((p) => `<li class="vp-item"><div class="vp-meio"><b>${esc(p.nome)}</b>
-        <small>${esc([p.cargo, 'salário ' + din(p.salario), p.bonus ? 'bônus ' + din(p.bonus) : '', p.dia_pagamento ? 'paga dia ' + p.dia_pagamento : 'sem dia de pagamento', p.vigente_desde ? 'valor desde ' + p.vigente_desde.slice(5) + '/' + p.vigente_desde.slice(0, 4) : ''].filter(Boolean).join(' · '))}</small></div>
+        <small>${esc([p.cargo, p.bonus ? 'bônus ' + din(p.bonus) : '', p.dia_pagamento ? 'saiu dia ' + p.dia_pagamento : '', p.vigente_desde ? 'valor desde ' + p.vigente_desde.slice(5) + '/' + p.vigente_desde.slice(0, 4) : ''].filter(Boolean).join(' · '))}</small></div>
         <div class="vp-lado"><b>${esc(din(p.total))}</b>${p.variacao ? chip([pct(p.variacao_percentual) || (p.variacao > 0 ? 'subiu' : 'caiu'), p.variacao > 0 ? 'u2' : 'u4']) : ''}</div></li>`).join('')}</ul>`
-        : vazio('Nenhum funcionário no Finanças', 'Cadastre a equipe em Funcionários no Vybe Finanças.')}
-      <p class="vp-nota">Salário + bônus vigentes no mês pelo histórico de remuneração do Finanças (sem histórico, o valor atual). Variação contra o mês anterior. Para mudar, edite no Finanças.</p>`;
+        : vazio('Nenhum salário no extrato do mês', 'Classifique no Extrato as saídas de salário e pró-labore, com quem recebeu.')}
+      <p class="vp-nota">O que saiu no extrato como salário e pró-labore no mês (pelo dia em que saiu), por quem recebeu. Variação contra o mês anterior. Para corrigir, reclassifique no Extrato.</p>`;
   }
   // ---------- Calendário do time (quadro 61 do moodboard) ----------
   // Aniversários (só dia e mês) e férias e folgas aprovadas num mês de verdade, com as listas dos próximos ao lado para

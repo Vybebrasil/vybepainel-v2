@@ -427,7 +427,7 @@
       const mes = String(per.mes).slice(0, 7);
       // Dinheiro só para os donos (Paulo, 13/11/2026): para quem não é dono nem se pede (antes, a coordenação pedia e levava 403).
       const veDinheiro = typeof souDonoDaSessao !== 'function' || souDonoDaSessao(), negado = Promise.resolve({ falha: 'negado' });
-      const [vf, fin, rec, com, cart, ina, fx] = await Promise.all([veDinheiro ? ler('/api/painel?area=vybe_financas&parte=comercial&mes=' + mes) : negado, veDinheiro ? ler('/api/painel?area=comercial&aba=financas') : negado,
+      const [vf, fin, rec, com, cart, ina, fx] = await Promise.all([veDinheiro ? ler('/api/painel?area=financeiro&parte=comercial&mes=' + mes) : negado, veDinheiro ? ler('/api/painel?area=comercial&aba=financas') : negado,
         veDinheiro ? ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()) : negado, ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=carteira'), veDinheiro ? ler('/api/painel?area=comercial&aba=inadimplencia') : negado,
         // Sobra do mês pelo financeiro do próprio Vybe OS (extrato, vybe-mundo-financeiro.js), só os quatro donos.
         veDinheiro ? ler('/api/painel?area=financeiro') : negado]);
@@ -523,7 +523,7 @@
       const antigo = `${grade(kpis)}`
         + (metas.length ? bloco('Metas do comercial', nomeMes(per.mes), progresso(metas), { icone: 'meta', cls: 'vs-destaque', acao: ir('setor:comercial', 'Comercial') }) : '')
         + linha(temVF
-            ? bloco('Faturamento × custos', 'recebido e gasto nos últimos meses (Vybe Finanças)', barras(caixa, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais }), { icone: 'dinheiro', acao: ir('setor:financas', 'Finanças') })
+            ? bloco('Faturamento × custos', 'recebido e gasto nos últimos meses (extrato do banco)', barras(caixa, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais }), { icone: 'dinheiro', acao: ir('setor:financas', 'Finanças') })
             : bloco(val ? 'Vendas por mês' : 'Negócios por mês', val ? 'MRR e avulso fechados' : 'negócios fechados', com.falha ? aviso(falhaTexto(com)) : val ? barras(vendas, [{ chave: 'mrr', rotulo: 'MRR', cls: 'c1' }, { chave: 'avulso', rotulo: 'Avulso', cls: 'c2' }], { fmt: reais }) : barras(vendas, [{ chave: 'negocios', rotulo: 'Negócios', cls: 'c1' }]), { icone: 'dinheiro', acao: ir('setor:comercial', 'Comercial') })
           + bloco('Entregas por semana', `previstas e entregues · mediana ${num(Hi.medianaEntregues)} por semana`, barras(semanas, [{ chave: 'previstas', rotulo: 'Previstas', cls: 'c5' }, { chave: 'entregues', rotulo: 'Entregues', cls: 'c1' }]), { icone: 'alta', acao: ir('setor:producao', 'Produção') }))
         + linha(bloco('Clientes prioritários', 'a menor nota de saúde primeiro', deitadas(piores.map((c) => ({ cli: true, nome: c.cliente, valor: c.score, cls: c.score < 50 ? 'ruim' : c.score < 70 ? 'atencao' : 'ok', sub: (c.motivos || []).slice(0, 2).join(' · ') })), { vazio: 'A saúde ainda está sendo calculada.' }), { icone: 'coracao', acao: ir('setor:clientes', 'Clientes') })
@@ -636,9 +636,8 @@
     async 'setor:financas'() {
       // Padrão v2: a Visão geral de Finanças é a tela do quadro (VybeFinancas.telas.visao, em vybe-mundo-financas.js).
       if (window.VybeFinancas?.telas?.visao) return window.VybeFinancas.telas.visao({ subs: ctx.subs, abrirSub: ctx.abrirSub });
-      // Com o Vybe Finanças ligado, o dinheiro vem dele (Paulo, 08/11: "o que for gasto, finança, salários puxa do Vybe Finanças");
-      // as tabelas de dinheiro do próprio Vybe OS estão vazias e deixavam o painel todo em R$ 0.
-      const vf = await ler('/api/painel?area=vybe_financas&parte=comercial&mes=' + String(per.mes).slice(0, 7));
+      // O dinheiro vem do extrato do banco (Paulo, 14/11/2026: "os dados são só o histórico dos 3 meses que mandei do banco").
+      const vf = await ler('/api/painel?area=financeiro&parte=comercial&mes=' + String(per.mes).slice(0, 7));
       // Próximos passos e meta do mês (redesign, quadro 57: o mesmo desenho do Comercial), das leituras das abas.
       const [fin, ina, con, funil, cart] = await Promise.all([ler('/api/painel?area=comercial&aba=financas'), ler('/api/painel?area=comercial&aba=inadimplencia'),
         ler('/api/painel?area=comercial&aba=contas' + qPeriodo()), ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=carteira')]);
@@ -653,7 +652,7 @@
         if (atraso) lista.push({ tom: 'r', pill: pl(atraso, 'em atraso', 'em atraso'), texto: `<b>${num(atraso)} cliente${atraso === 1 ? '' : 's'} em atraso</b> · cobrar antes de virar inadimplência`, botao: irAba('inadimplencia', 'Inadimplência'),
           det: [emAtraso.slice(0, 4).map((c) => `${cliCor(c.cliente_nome)} ${num(c.atraso_mais_antigo)} d`).join(' · ')] });
         if (!fin.falha && semContrato) lista.push({ tom: 'a', pill: 'Sem contrato', texto: `<b>${num(semContrato)} cliente${semContrato === 1 ? '' : 's'} sem contrato informado</b> · sem o valor do contrato não há margem`, botao: irAba('financas', 'Informar') });
-        if (!ligado && !vf.falha) lista.push({ tom: 'n', pill: 'Estimado', texto: '<b>Ligar o Vybe Finanças</b> · até lá, a margem é estimada pelo contrato e pelas horas do time', botao: irAba('financas', 'Ver como') });
+        if (!ligado && !vf.falha) lista.push({ tom: 'n', pill: 'Estimado', texto: '<b>Importar o extrato do banco</b> · até lá, a margem é estimada pelo contrato e pelas horas do time', botao: irAba('extrato', 'Importar') });
         if (Number(con.resumo?.a_pagar)) lista.push({ tom: 'n', pill: 'A pagar', texto: `<b>${reais(con.resumo.a_pagar)} a pagar no período</b> · contas lançadas ainda em aberto`, botao: irAba('contas', 'Contas') });
         if (renovam.length) lista.push({ tom: 'n', pill: '30 dias', texto: `<b>${num(renovam.length)} contrato${renovam.length === 1 ? ' renova' : 's renovam'} em 30 dias</b>`, det: [renovam.slice(0, 4).map((c) => `${cliCor(nomeDoCliente(c.cliente_id))} ${diaMes(c.renovacao)}`).join(' · ')] });
         const ordem = porGravidade(lista);
@@ -682,15 +681,15 @@
           { rotulo: 'Resultado', valor: rs(R.resultado), tom: Number(R.resultado) < 0 ? 'ruim' : '', sub: 'recebido − despesas pagas' },
         ]);
         const modsL = modulosDoSetor({ recebimentos: [rs(R.pendente), 'pendente'], contas: [rs(R.despesas_pendentes), 'a pagar'], inadimplencia: [num((I.clientes || []).length), 'em atraso'] });
-        return tela(fala('vorcaro', fraseL, { conta: ['<b>Fonte</b>: Vybe Finanças.', `<b>Resultado</b>: recebido (${reais(R.recebido)}) menos as despesas pagas (${reais(R.despesas_pagas)}).`, `<b>Pendente</b>: ${reais(R.pendente)} a receber e ${reais(R.despesas_pendentes)} a pagar.`] }), numerosL, duas(passosFin(), modsL, 'mods'),
-          mais('Todos os números, meta de vendas, despesas, margem por cliente e inadimplência', `<p class="vs-fonte">fonte: Vybe Finanças</p>${grade(kpis)}` + metaFin()
+        return tela(fala('vorcaro', fraseL, { conta: ['<b>Fonte</b>: extrato do banco.', `<b>Resultado</b>: recebido (${reais(R.recebido)}) menos as despesas pagas (${reais(R.despesas_pagas)}).`, `<b>Pendente</b>: ${reais(R.pendente)} a receber e ${reais(R.despesas_pendentes)} a pagar.`] }), numerosL, duas(passosFin(), modsL, 'mods'),
+          mais('Todos os números, meta de vendas, despesas, margem por cliente e inadimplência', `<p class="vs-fonte">fonte: extrato do banco</p>${grade(kpis)}` + metaFin()
           + linha(bloco('Faturamento × custos', 'recebido e gasto nos últimos meses', barras(serie, [{ chave: 'faturamento', rotulo: 'Faturamento', cls: 'c3' }, { chave: 'custos', rotulo: 'Custos', cls: 'c4' }], { fmt: reais, curtoFmt: milInteiro }), { icone: 'caixa', acao: abrirAba('financas') })
             + bloco('Despesas por categoria', D.total ? `${reais(D.total)} no mês` : '', deitadas((D.categorias || []).slice(0, 6).map((c) => ({ nome: c.categoria, valor: c.total, rotulo: `${reais(c.total)} <small>${pct(c.percentual)}</small>` })), { vazio: 'Nenhuma despesa lançada no mês.' }), { icone: 'caixa', acao: abrirAba('contas') }))
           + linha(bloco('Margem real por cliente', 'recebido − gasto com o cliente no mês, os menores primeiro', deitadas(margens.map((c) => ({ cli: true, nome: c.cliente_nome, valor: Math.max(0, c.mes.margem_percentual ?? 0), cls: (c.mes.margem_percentual ?? 0) < 20 ? 'ruim' : 'ok', rotulo: pct(c.mes.margem_percentual), sub: `${reais(c.mes.receita)} recebido · ${reais(c.mes.despesas)} gasto` })), { vazio: 'Nenhum cliente com receita lançada no mês.' }), { icone: 'dinheiro', acao: abrirAba('financas') })
             + bloco('Inadimplência', 'receitas vencidas e não pagas', deitadas((I.clientes || []).slice(0, 6).map((c) => ({ cli: true, nome: c.cliente_nome, valor: c.valor, cls: c.atraso_mais_antigo > 30 ? 'ruim' : 'atencao', rotulo: reais(c.valor), sub: `${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} · ${num(c.faturas)} lançamento${c.faturas === 1 ? '' : 's'}` })), { vazio: 'Ninguém em atraso.' }), { icone: 'alerta', acao: abrirAba('inadimplencia') }))));
       }
       const [rec, cx] = await Promise.all([ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()), ler('/api/painel?area=comercial&aba=caixa')]);
-      if (fin.falha === 'negado') return aviso('O painel de Finanças é dos donos e da administração.');
+      if (fin.falha === 'negado') return aviso('O painel de Finanças é só dos donos.');
       if (fin.falha && rec.falha) return aviso(falhaTexto(fin));
       // Sem dados no mês, os números aparecem com traço (não um zero inventado), cada um com o caminho para a aba.
       const F = fin.resumo || {}, A = rec.resumo?.atual || {}, VR = rec.resumo?.variacao || {}, K = con.resumo || {}, semNumeros = !fin.resumo && !rec.resumo;
@@ -705,7 +704,7 @@
         + kpi({ icone: 'alerta', titulo: 'Em atraso', valor: reais(ina.total), sub: `${num((ina.clientes || []).length)} cliente${(ina.clientes || []).length === 1 ? '' : 's'} · ${num(ina.criticos ?? 0)} crítico${Number(ina.criticos ?? 0) === 1 ? '' : 's'}`, cls: Number(ina.total) > 0 ? 'ruim' : '', ir: ['inadimplencia', 'Inadimplência'] });
       const prev = (cx.previsao?.meses || []).map((m) => ({ ...m, rotulo: mesCurto(m.mes) }));
       const piores = [...(fin.clientes || [])].filter((c) => c.margem_percentual != null && c.valor_mensal > 0).sort((a, b) => a.margem_percentual - b.margem_percentual).slice(0, 6);
-      const fraseD = semNumeros ? `<b>Os números de ${esc(periodoNome)} ainda não chegaram.</b>${!vf.falha ? ' Com o Vybe Finanças ligado, o dinheiro vem de lá; até lá, a margem é estimada pelo contrato.' : ''}`
+      const fraseD = semNumeros ? `<b>Os números de ${esc(periodoNome)} ainda não chegaram.</b>${!vf.falha ? ' Com o extrato do banco importado, o dinheiro vem dele; até lá, a margem é estimada pelo contrato.' : ''}`
         : `<b>${reais(A.recebido)} recebidos</b> de ${reais(A.a_receber)} a receber em ${esc(periodoNome)}${Number(ina.total) > 0 ? ` e <b>${reais(ina.total)} em atraso</b>, de ${pl((ina.clientes || []).length, 'cliente', 'clientes')}` : ''}.`;
       const numerosD = tres([
         { rotulo: 'Receita contratada', valor: reais(F.receita), sub: fin.resumo ? `margem ${pct(F.margem_percentual)} · custo ${reais(F.custo)}` : 'sem contrato informado ainda' },

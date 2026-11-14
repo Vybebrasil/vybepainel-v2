@@ -20,6 +20,7 @@
 import X from '../shared/financeiro-extrato.js';
 import { ehDonoPessoa } from './donos.js';
 import { autenticarAssistente } from './assistente-servico.js';
+import { FONTE, baseDoExtrato, lancamentosDaBase, parteDaBase } from './financeiro-fonte.js';
 
 export const CHAVES = Object.freeze({ extrato: 'financeiro_extrato', regras: 'financeiro_regras', fixos: 'financeiro_fixos', cartao: 'financeiro_cartao', cenarios: 'financeiro_cenarios', vorcaro: 'financeiro_vorcaro',
   // Vencimento da fatura por cartão (14/11/2026): { 'Cartão da agência': { dia: 20 } }, editável pelos donos.
@@ -31,7 +32,7 @@ const erro = (status, message) => Object.assign(new Error(message), { status });
 const hojeNaBahia = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 const json = (v) => { if (typeof v === 'string') { try { return JSON.parse(v); } catch { return null; } } return v ?? null; };
 
-async function lerTudo(sql) {
+export async function lerTudo(sql) {
   const linhas = await sql`SELECT chave, valor FROM vybe_carteira_config WHERE chave LIKE 'financeiro\_%'`;
   const por = new Map(linhas.map((l) => [l.chave, json(l.valor)]));
   const out = {};
@@ -73,7 +74,7 @@ async function mudarVarias(sql, partes, pessoaId, fn) {
 }
 
 // Clientes ativos com a mensalidade (o "previsto" do mês a mês): contrato do Vybe OS, senão o valor de Finanças por cliente.
-async function clientesComMensalidade(sql) {
+export async function clientesComMensalidade(sql) {
   let linhas;
   try {
     linhas = await sql`SELECT c.id::text AS cliente_id, c.nome AS cliente_nome,
@@ -137,11 +138,35 @@ function pegarDono(quem) {
 }
 const nomeDe = (p) => String(p?.nome || p?.name || p?.id || '');
 
-export async function lerFinanceiro(sql, quem, q = {}) {
+export async function lerFinanceiro(sql, quem, q = {}, { hoje = hojeNaBahia() } = {}) {
   pegarDono(quem);
   const mes = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(q.mes || '')) ? q.mes : '';
   const [base, clientes] = await Promise.all([lerTudo(sql), clientesComMensalidade(sql)]);
-  return montar(base, clientes, { mes, hoje: hojeNaBahia() });
+  if (q.parte) return parteDoExtrato(String(q.parte), base, clientes, { mes: mes || hoje.slice(0, 7), hoje });
+  return montar(base, clientes, { mes, hoje });
+}
+
+// As partes que as telas antigas pediam ao Vybe Finanças (area=vybe_financas&parte=comercial|rh), agora tiradas do
+// extrato (server/financeiro-fonte.js). Sem extrato importado: conectado false e o passo para importar.
+export const PARTES_EXTRATO = Object.freeze(['comercial', 'rh']);
+export const PASSOS_EXTRATO = Object.freeze(['Abra Finanças › Extrato e conciliação.', 'Importe o CSV do extrato da conta PJ do Banco do Brasil (prévia antes de gravar).']);
+export function parteDoExtrato(parte, base, clientes, { mes, hoje }) {
+  if (!PARTES_EXTRATO.includes(parte)) throw erro(400, 'Parte desconhecida.');
+  const pode = { ver_dinheiro: true, ver_salarios: true };
+  const b = baseDoExtrato(base, clientes, { hoje });
+  if (!b.lancamentos) return { parte, mes, hoje, conectado: false, fonte: FONTE, motivo: 'Importe o extrato do banco', passos: PASSOS_EXTRATO, faltando: [], pode };
+  return { parte, mes, hoje, conectado: true, fonte: FONTE, origem_dados: 'extrato', pode, ...parteDaBase(parte, b, { mes, hoje }) };
+}
+
+// Recebíveis e contas do extrato para as abas de dinheiro do Comercial (server/comercial.js). Só os quatro donos:
+// quem não é dono recebe null (nada), nunca uma lista vazia que pareça zero. Sem nenhum lançamento importado também
+// null: as abas mostram só o que foi lançado à mão no Vybe OS (nunca o Vybe Finanças) e a Visão pede o extrato.
+export async function lancamentosDoExtrato(sql, { pessoa = null, hoje = hojeNaBahia() } = {}) {
+  if (!ehDonoPessoa(pessoa)) return null;
+  const [base, clientes] = await Promise.all([lerTudo(sql), clientesComMensalidade(sql)]);
+  const b = baseDoExtrato(base, clientes, { hoje });
+  if (!b.lancamentos) return null;
+  return { ...lancamentosDaBase(b), lancamentos: b.lancamentos, meses: b.meses, projecao: X.baseDaProjecao(base.extrato.transacoes) };
 }
 
 function lerCsv(b) {

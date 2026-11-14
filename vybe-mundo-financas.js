@@ -1,6 +1,7 @@
-// vybe-mundo-financas.js — o Vybe Finanças dentro das janelas do Irecity (Paulo, 08/11/2026). SÓ LEITURA.
-//
-// Lê /api/painel?area=vybe_financas (server/vybe-financas-api.js) e guarda a resposta por parte e mês, para o
+// vybe-mundo-financas.js — as telas de Finanças das janelas do Irecity, com o dinheiro do extrato do banco. SÓ LEITURA.
+// Paulo, 14/11/2026: "o financeiro você não vai puxar os dados do Vybe Finanças; os dados são só o histórico dos 3 meses
+// que mandei do banco". Lê /api/painel?area=financeiro&parte=… (server/financeiro.js → server/financeiro-fonte.js, o
+// extrato no formato que estas telas já sabiam mostrar) e guarda a resposta por parte e mês, para o
 // Comercial (abas de dinheiro), a Carteira (Contratos) e o setor de Pessoas (RH → Folha). Cada módulo desenha com as
 // próprias classes (vc-* / vp-*); aqui ficam a leitura, a junção dos contratos, o mini painel dos números e as telas de
 // Finanças no padrão v2 (classes fv2-*, CSS em padrao-v2/financas.css).
@@ -24,10 +25,12 @@
   const nomeMes = (m) => (/^\d{4}-\d{2}$/.test(m || '') ? `${MESES[Number(m.slice(5)) - 1]} de ${m.slice(0, 4)}` : '');
 
   async function pedir(parte, mes) {
-    const r = await fetch(`/api/painel?area=vybe_financas&parte=${encodeURIComponent(parte)}${mes ? `&mes=${encodeURIComponent(mes)}` : ''}`,
+    // Contratos da Carteira: só os do Vybe OS (o extrato não tem contrato); nada a pedir.
+    if (parte === 'carteira') return { ok: true, parte, conectado: false, contratos: [] };
+    const r = await fetch(`/api/painel?area=financeiro&parte=${encodeURIComponent(parte)}${mes ? `&mes=${encodeURIComponent(mes)}` : ''}`,
       { credentials: 'same-origin', cache: 'no-store' });
     let d = {}; try { d = await r.json(); } catch { /* sem corpo */ }
-    if (!r.ok || !d.ok) throw Object.assign(new Error(d.error || 'O Vybe Finanças não respondeu agora.'), { status: r.status, indisponivel: Boolean(d.financas_indisponivel) });
+    if (!r.ok || !d.ok) throw Object.assign(new Error(d.error || 'O financeiro não respondeu agora.'), { status: r.status, indisponivel: Boolean(d.financas_indisponivel) });
     return d;
   }
   function carregar(parte, mes = '', { forcar = false } = {}) {
@@ -71,14 +74,14 @@
     const [parte, tipo, extra = ''] = String(resto).split(':');
     const d = ultimo[parte] ? guardados.get(ultimo[parte])?.dados : null;
     if (!d?.conectado) return null;
-    const rodape = 'fonte: Vybe Finanças';
+    const rodape = 'fonte: extrato do banco';
     if (parte === 'comercial') {
       if (tipo === 'despesas') return { titulo: `Despesas de ${nomeMes(d.mes)} por categoria`, rodape, vazio: 'Nenhuma despesa no mês.',
         itens: d.despesas.categorias.map((c) => ({ nome: c.categoria, sub: `${c.quantidade} lançamento${c.quantidade === 1 ? '' : 's'}${c.pendente ? ` · ${din(c.pendente)} pendente` : ''}`, dir: din(c.total) })) };
-      if (tipo === 'fixos') return { titulo: 'Custos fixos (assinaturas ativas)', rodape, vazio: 'Nenhuma assinatura ativa.',
+      if (tipo === 'fixos') return { titulo: 'Gastos fixos', rodape, vazio: 'Nenhum gasto fixo cadastrado.',
         itens: d.custos_fixos.itens.map((s) => ({ nome: s.nome, sub: s.dia_renovacao ? `renova dia ${s.dia_renovacao}` : '', dir: din(s.custo) + '/mês' })) };
-      if (tipo === 'inad') return { titulo: 'Receitas vencidas e não pagas', cls: 'u1', rodape, vazio: 'Ninguém em atraso no Finanças.',
-        itens: d.inadimplencia.clientes.map((c) => ({ nome: c.cliente_nome, sub: `${c.faturas} lançamento${c.faturas === 1 ? '' : 's'} · ${c.atraso_mais_antigo} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} de atraso${c.no_vybe ? '' : ' · sem par no Vybe OS'}`, dir: din(c.valor), cls: c.atraso_mais_antigo > 30 ? 'u1' : '' })) };
+      if (tipo === 'inad') return { titulo: 'Receitas vencidas e não pagas', cls: 'u1', rodape, vazio: 'Ninguém em atraso.',
+        itens: d.inadimplencia.clientes.map((c) => ({ nome: c.cliente_nome, sub: `${c.faturas} lançamento${c.faturas === 1 ? '' : 's'} · ${c.atraso_mais_antigo} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} de atraso`, dir: din(c.valor), cls: c.atraso_mais_antigo > 30 ? 'u1' : '' })) };
       if (tipo === 'margem') {
         const lista = extra === 'negativa' ? d.margens.filter((m) => m.periodo.margem < 0) : d.margens;
         return { titulo: extra === 'negativa' ? 'Clientes com margem negativa (3 meses)' : 'Margem real por cliente (3 meses)', cls: extra === 'negativa' ? 'u1' : '', rodape, vazio: 'Nenhum cliente.',
@@ -89,19 +92,8 @@
         return { titulo: nomeMes(m.mes), rodape, itens: [{ nome: 'Faturamento recebido', dir: din(m.faturamento) }, { nome: 'Custos pagos', dir: din(m.custos) },
           { nome: 'Resultado', dir: din(m.resultado), cls: m.resultado < 0 ? 'u1' : '' }, { nome: 'Ticket médio', sub: `${m.clientes_pagantes} cliente${m.clientes_pagantes === 1 ? '' : 's'} pagaram`, dir: din(m.ticket_medio) }] };
       }
-      if (tipo === 'sempar') return { titulo: 'No Finanças, sem par no Vybe OS', rodape: 'Ligação pelo CNPJ ou pelo nome', vazio: 'Todos ligados.',
-        itens: d.ligacao.sem_par.map((c) => ({ nome: c.nome, sub: c.status })) };
     }
-    if (parte === 'carteira') {
-      if (tipo === 'sempar') return { titulo: 'No Finanças, sem par no Vybe OS', rodape: 'Ligação pelo CNPJ ou pelo nome', vazio: 'Todos ligados.',
-        itens: d.ligacao.sem_par.map((c) => ({ nome: c.nome, sub: c.status })) };
-      if (tipo === 'faltafin') return { titulo: 'Ativos no Vybe OS, sem cadastro no Finanças', rodape: 'Cadastre no Vybe Finanças com o mesmo nome ou CNPJ', vazio: 'Todos os ativos estão no Finanças.',
-        itens: (d.ligacao.vybe_sem_par || []).map((c) => ({ nome: c.nome, sub: 'falta no Vybe Finanças' })) };
-      if (tipo === 'contratos') return { titulo: 'Contratos no Vybe Finanças', rodape, vazio: 'Nenhum contrato no Finanças.',
-        itens: d.contratos.map((c) => ({ nome: c.cliente_nome, sub: [c.titulo, c.status, c.fim ? `até ${dataBr(c.fim)}` : 'sem fim', c.tem_pdf ? 'com PDF' : ''].filter(Boolean).join(' · '),
-          dir: c.valor != null ? din(c.valor) + '/mês' : '', cls: c.dias_restantes != null && c.dias_restantes < 0 && c.status_carteira !== 'encerrado' ? 'u1' : '' })) };
-    }
-    if (parte === 'rh' && tipo === 'folha' && d.folha) return { titulo: `Folha de ${nomeMes(d.folha.mes)}`, rodape, vazio: 'Nenhum funcionário no Finanças.',
+    if (parte === 'rh' && tipo === 'folha' && d.folha) return { titulo: `Folha de ${nomeMes(d.folha.mes)}`, rodape, vazio: 'Nenhum salário no extrato do mês.',
       itens: d.folha.funcionarios.map((f) => ({ nome: f.nome, sub: [f.cargo, f.dia_pagamento ? `paga dia ${f.dia_pagamento}` : ''].filter(Boolean).join(' · '), dir: din(f.total),
         cls: f.variacao > 0 ? 'u2' : '' })) };
     return null;
@@ -143,7 +135,10 @@
   const extenso = (iso) => (ehDia(iso) ? `${Number(String(iso).slice(8, 10)) === 1 ? '1º' : Number(String(iso).slice(8, 10))} de ${mesDe(iso)}` : 'sem data');
   const curta = (iso) => (ehDia(iso) ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : 'sem data');
   const maiuscula = (s) => String(s).replace(/^./, (c) => c.toUpperCase());
-  const doFin = (id) => String(id || '').startsWith('fin:');
+  // Lançamento do extrato (ext:…) ou antigo do Finanças (fin:…): leitura aqui; confere-se no Extrato.
+  const doFin = (id) => /^(fin|ext):/.test(String(id || ''));
+  const NO_EXTRATO = '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Conferir no Extrato</button>';
+  const doExtrato = (d) => d?.fonte === 'Extrato do banco';
   const emAtraso = (x) => x.status === 'atrasado' || x.status === 'inadimplente';
   const SETA = { esq: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>', dir: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' };
   const IC = {
@@ -213,6 +208,8 @@
   function topo({ titulo, trilha = true, meio = '', acoes = '', extra = '' }) {
     return `<div class="fv2-topo"><div class="fv2-ola">${trilha ? `<p class="fv2-sub"><button type="button" class="fv2-link" data-fv="ir" data-valor="setor:financas">Finanças</button> › ${esc(titulo)}</p>` : ''}<div class="d3f-tit"><h1>${esc(titulo)}</h1>${SELO}${extra}</div></div>${meio}${acoes}</div>`;
   }
+  // Com o extrato como fonte, lançar à mão é pelo Vorcaro (vira lançamento do extrato, sem saldo).
+  const lancarMao = (nome) => `<button type="button" class="fv2-btn p" data-fv="ir" data-valor="vorcaro">${IC.mais}${esc(nome)}</button>`;
   const novo = (vc, nome) => `<button type="button" class="fv2-btn p" data-vc="${vc}">${IC.mais}${esc(nome)}</button>`;
   const comoFunciona = '<button type="button" class="fv2-btn d3f-cinza" data-vc="ajuda">Como funciona</button>';
   function periodoHtml(per, hoje) {
@@ -273,17 +270,17 @@
     return { botao: `<button type="button" class="fv2-btn s" data-vc="falta" aria-expanded="${Boolean(ctx.verFalta)}">Para quem administra: ver o que falta</button>`,
       nota: ctx.verFalta ? `<div class="fv2-nota" role="note"><p>${esc(d.motivo || 'O controle financeiro ainda não está ligado.')}${d.aviso ? ' · ' + esc(d.aviso) : ''}</p>${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}</div>` : '' };
   }
-  const fonte = (d) => (d?.fonte === 'Vybe Finanças' ? '<span class="fv2-pill b">Vybe Finanças</span>' : '');
+  const fonte = (d) => (doExtrato(d) ? '<span class="fv2-pill b">Extrato</span>' : '');
 
   // ----- Faturas (Recebimentos e Inadimplência) -----
   const oQueE = (x) => (x.tipo === 'recorrente' ? `${x.ciclo && x.ciclo !== 'mensal' ? 'parcela ' + x.ciclo : 'mensalidade'} de ${mesDe(x.vencimento)}` : String(x.descricao || 'recebimento pontual'));
   const tipoFatura = (x) => (x.tipo === 'recorrente' ? (x.ciclo && x.ciclo !== 'mensal' ? maiuscula(x.ciclo) : 'Recorrente') : maiuscula(x.categoria || 'Pontual'));
   // Colunas "Contrato" e "Forma" do quadro D3-Recebimentos: o contrato é a categoria lançada (Redes, Tráfego) e, sem ela,
-  // o tipo; a forma de pagamento só vem das faturas que a trazem (as importadas do Vybe Finanças), senão o traço curto.
+  // o tipo; a forma de pagamento só vem das faturas que a trazem (as do extrato ou lançadas à mão), senão o traço curto.
   const contratoFatura = (x) => String(x.categoria || '').trim() || tipoFatura(x);
   const FORMA_NOME = { pix: 'Pix', boleto: 'Boleto', cartao: 'Cartão', transferencia: 'Transferência' };
   const formaFatura = (x) => { const f = String(x.forma_pagamento || x.forma || '').trim(); return FORMA_NOME[f] || f || '–'; };
-  // A forma de pagamento se escolhe no detalhe (vybe_comercial_recebivel_forma; vale também para a fatura do Finanças).
+  // A forma de pagamento se escolhe no detalhe (vybe_comercial_recebivel_forma; vale também para a fatura do extrato).
   const trocarForma = (x) => (x.cancelado ? '' : `<span class="fv2-seg d3f-formas" role="group" aria-label="Forma de pagamento">${Object.entries(FORMA_NOME).map(([k, n]) =>
     `<button type="button" data-fv="forma" data-id="${esc(x.id)}" data-valor="${x.forma === k ? '' : k}" aria-pressed="${x.forma === k}">${esc(n)}</button>`).join('')}</span>`);
   const quemFatura = (x, comMes = true) => (x.cliente_nome ? `${cli(x.cliente_nome)}${comMes ? ` · ${esc(x.tipo === 'recorrente' ? mesDe(x.vencimento) : x.descricao || 'pontual')}` : ''}` : `<b>${esc(x.descricao || 'Recebimento')}</b>`);
@@ -304,7 +301,7 @@
       x.recebido_em ? `Recebido em ${extenso(x.recebido_em)}` : '', x.cancelado ? 'Cancelada: fora dos totais' : '']);
     let acoes = '';
     if (x.cancelado) acoes = '';
-    else if (doFin(x.id)) acoes = '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>';
+    else if (doFin(x.id)) acoes = NO_EXTRATO;
     else if (!comForm) acoes = '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="recebimentos">Abrir em Recebimentos</button>';
     else acoes = `${x.status !== 'recebido' ? `<button type="button" class="fv2-btn s" data-vc="receber" data-id="${esc(x.id)}">Recebi uma parte</button>` : ''}
       ${dentro && x.tipo === 'recorrente' ? `<button type="button" class="fv2-btn s" data-vc="proximo" data-id="${esc(x.id)}">Próximo ciclo</button>` : ''}
@@ -313,7 +310,7 @@
     const forma = comForm && dentro ? trocarForma(x) : '';
     return `${linhas}${acoes || forma ? `<div class="fv2-det-acoes">${forma}${acoes}</div>` : ''}`;
   }
-  const botaoRecebi = (x) => (doFin(x.id) ? '<small class="fv2-sub fv2-so-la">baixa no Vybe Finanças</small>' : umToque('receber', x.id, 'Recebi', ` data-total="${Number(x.valor) || 0}"`));
+  const botaoRecebi = (x) => (doFin(x.id) ? '<small class="fv2-sub fv2-so-la">pelo extrato</small>' : umToque('receber', x.id, 'Recebi', ` data-total="${Number(x.valor) || 0}"`));
   const linhaAtrasada = (tela, x, opc) => linha({ tela, id: 'a' + x.id, pill: pilula(quantos(x.atraso, 'dia', 'dias'), 'r'),
     texto: quemFatura(x), valor: rs(x.aberto ?? x.valor), dir: botaoRecebi(x), detalhe: detalheFatura(x, opc) });
 
@@ -362,10 +359,10 @@
       pe: maisHtml(resto.length, soRecebidas ? (resto.length === 1 ? 'recebida' : 'recebidas') : '', 'mostrar', 'rec', soma(resto, 'valor')) });
     const semNada = !todas.length && !atrasadas.length;
     return `<div class="fv2 d3f" data-tela="rec"><div class="fv2-in">
-      ${topo({ titulo: 'Recebimentos', meio: periodoHtml(per, hoje), acoes: comoFunciona + novo('recebivel', 'Novo recebimento'), extra: fonte(d) })}
+      ${topo({ titulo: 'Recebimentos', meio: periodoHtml(per, hoje), acoes: comoFunciona + (doExtrato(d) ? lancarMao('Lançar à mão') : novo('recebivel', 'Novo recebimento')), extra: fonte(d) })}
       ${acao('Vorcaro · Financeiro', frase, atrasadas.length ? `Ver ${atrasadas.length === 1 ? 'a fatura' : 'as ' + n0(atrasadas.length)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
-      ${semNada ? vazioLinha('Nenhum recebimento neste período.', '<button type="button" class="fv2-btn s" data-vc="recebivel">Lançar o primeiro</button>')
+      ${semNada ? vazioLinha('Nenhum recebimento neste período.', doExtrato(d) ? '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Abrir o Extrato</button>' : '<button type="button" class="fv2-btn s" data-vc="recebivel">Lançar o primeiro</button>')
         : `<div class="fv2-grade a">${acaoCard}${lista}</div>`}</div></div>`;
   }
 
@@ -382,13 +379,13 @@
   function detalheConta(c, nomeGrupo, hoje, { dentro = true, comForm = true } = {}) {
     const v = String(c.vencimento).slice(0, 10), aberta = !c.pago_em && !c.cancelada;
     const linhas = hist([`${esc(nomeGrupo)}${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''}`, `${v < hoje || c.pago_em ? 'Venceu' : 'Vence'} em ${extenso(v)}`, c.pago_em ? `Paga em ${extenso(c.pago_em)}` : '', c.cancelada ? 'Cancelada: fora dos totais' : '']);
-    const acoes = !aberta ? '' : doFin(c.id) ? '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>'
+    const acoes = !aberta ? '' : doFin(c.id) ? NO_EXTRATO
       : !comForm ? '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="contas">Abrir em Contas a pagar</button>'
       : dentro ? `<button type="button" class="fv2-btn s" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="fv2-btn s fv2-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button>`
       : `<button type="button" class="fv2-btn s" data-vc-mes-ir="${v.slice(0, 7)}">Ver em ${esc(mesDe(v))}</button>`;
     return `${linhas}${acoes ? `<div class="fv2-det-acoes">${acoes}</div>` : ''}`;
   }
-  const botaoPaguei = (c) => (c.pago_em || c.cancelada ? '' : doFin(c.id) ? '<small class="fv2-sub fv2-so-la">baixa no Vybe Finanças</small>' : umToque('pagar', c.id, 'Paguei'));
+  const botaoPaguei = (c) => (c.pago_em || c.cancelada ? '' : doFin(c.id) ? '<small class="fv2-sub fv2-so-la">pelo extrato</small>' : umToque('pagar', c.id, 'Paguei'));
   const SINGULAR = { fixa: 'fixa', variavel: 'variável', folha: 'folha', imposto: 'imposto', investimento: 'investimento' };
   const linhaConta = (tela, c, nomeGrupo, hoje, opc) => linha({ tela, id: 'c' + c.id, pill: quandoConta(c, hoje),
     texto: `<b>${esc(c.descricao || 'Conta')}</b> · ${esc(SINGULAR[c.grupo] || nomeGrupo.toLowerCase())}`, valor: rs(c.valor), dir: botaoPaguei(c), detalhe: detalheConta(c, nomeGrupo, hoje, opc) });
@@ -446,22 +443,22 @@
           <span class="fv2-sub">${falta ? parteDe(pago, total) : mil(pago)}</span>${falta ? pilula(mil(falta), 'a') : total ? pilula('Tudo pago', 'g') : pilula('Nada lançado', 'n')}</div>
         <div class="v2-mais"><div><div class="fv2-det fv2-det-contas">${hist([g.percentual_faturamento != null && fat ? `${String(g.percentual_faturamento).replace('.', ',')}% do faturamento${variou(g.variacao, contra) ? ' · ' + variou(g.variacao, contra) : ''}` : variou(g.variacao, contra)])}
           ${dentro.map((c) => `<div class="fv2-mini">${quandoConta(c, hoje)}<p><b>${esc(c.descricao || 'Conta')}</b>${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''} · ${rs(c.valor)}${c.pago_em || c.cancelada ? '' : ' · vence ' + curta(c.vencimento)}</p>
-            ${c.cancelada || c.pago_em ? '' : doFin(c.id) ? '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>' : `${umToque('pagar', c.id, 'Paguei')}<button type="button" class="fv2-btn s" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="fv2-btn s fv2-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button>`}</div>`).join('') || '<p class="fv2-hist">Nenhuma conta deste grupo neste filtro.</p>'}</div></div></div></div>`;
+            ${c.cancelada || c.pago_em ? '' : doFin(c.id) ? NO_EXTRATO : `${umToque('pagar', c.id, 'Paguei')}<button type="button" class="fv2-btn s" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="fv2-btn s fv2-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button>`}</div>`).join('') || '<p class="fv2-hist">Nenhuma conta deste grupo neste filtro.</p>'}</div></div></div></div>`;
     };
     // Grupo sem nada lançado fica na tabela, apagado e sem abrir (a divisão inteira à vista).
     const linhaZerada = (g) => `<div class="fv2-lin fv2-gr d3f-zero" data-grupo="${esc(g.id)}"><span class="fv2-txt"><b>${esc(g.nome)}</b> <span class="d3f-mes">· 0</span></span><span class="d3-barra" style="--v:0%"><i></i></span><b class="fv2-valor">0%</b><span class="fv2-sub">nada lançado</span><span aria-hidden="true"></span></div>`;
     const visiveis = doFiltro.filter(comConta), zerados = termo || u.extra || !vivas.length ? [] : doFiltro.filter((g) => !comConta(g));
-    const doFinancas = f?.conectado ? `<div class="fv2-lin fv2-fin"><span class="fv2-pill b">Vybe Finanças</span><p>${mil(f.resumo?.despesas_sem_folha ?? f.despesas?.total)} em despesas de ${esc(nomeMes(f.mes))}${f.folha?.total ? ` · folha ${mil(f.folha.total)}` : ''}</p>
+    const doFinancas = f?.conectado ? `<div class="fv2-lin fv2-fin"><span class="fv2-pill b">Extrato</span><p>${mil(f.resumo?.despesas_sem_folha ?? f.despesas?.total)} em despesas de ${esc(nomeMes(f.mes))}${f.folha?.total ? ` · folha ${mil(f.folha.total)}` : ''}</p>
         <span class="fv2-btn s espiavel" data-espiar="financas:comercial:despesas" role="button" tabindex="0">Por categoria</span><span class="fv2-btn s espiavel" data-espiar="financas:comercial:fixos" role="button" tabindex="0">Custos fixos</span></div>` : '';
     const paraOnde = cartao({ titulo: 'Para onde vai', rotulo: 'grupos', cls: 'd3f-tabela', sub: Number(r.total) ? `${parteDe(r.pago, r.total)} pagos` : '',
       cab: visiveis.length ? cabeca([['fv2-txt', 'Grupo'], ['d3f-cab-barra', 'Já saiu'], ['fv2-valor', '%'], ['fv2-sub', 'Pago'], ['d3f-cab-falta', 'Falta']]) : '',
       corpo: (visiveis.map(linhaGrupo).join('') + zerados.map(linhaZerada).join('') || `<p class="fv2-nada">${termo || u.extra ? 'Nenhuma conta neste filtro.' : 'A divisão aparece com a primeira conta lançada.'}</p>`) + doFinancas });
     const falta = oQueFalta(ctx), semNada = !todas.length && !pedem.length;
     return `<div class="fv2 d3f" data-tela="con"><div class="fv2-in">
-      ${topo({ titulo: 'Contas a pagar', meio: periodoHtml(per, hoje), acoes: comoFunciona + novo('conta', 'Nova conta'), extra: fonte(d) })}
+      ${topo({ titulo: 'Contas a pagar', meio: periodoHtml(per, hoje), acoes: comoFunciona + (doExtrato(d) ? lancarMao('Lançar à mão') : novo('conta', 'Nova conta')), extra: fonte(d) })}
       ${acao('Vorcaro · Financeiro', frase, nVenc + nSete ? `Ver ${nVenc + nSete === 1 ? 'a conta' : 'as ' + n0(nVenc + nSete)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
-      ${semNada ? vazioLinha('Nenhuma conta neste período.', `<button type="button" class="fv2-btn s" data-vc="conta">Lançar a primeira</button>${falta.botao}`)
+      ${semNada ? vazioLinha('Nenhuma conta neste período.', `${doExtrato(d) ? '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Abrir o Extrato</button>' : '<button type="button" class="fv2-btn s" data-vc="conta">Lançar a primeira</button>'}${falta.botao}`)
         : `<div class="fv2-grade b">${acaoCard}${paraOnde}</div>${falta.botao ? `<div class="fv2-rodape">${falta.botao}</div>` : ''}`}
       ${falta.nota}</div></div>`;
   }
@@ -470,7 +467,7 @@
   function inadimplencia(ctx) {
     anfitriao = ctx;
     const u = ui.ina, d = ctx.d || {}, hoje = d.hoje || hojeBahia(), f = estado('comercial', hoje.slice(0, 7))?.dados, real = f?.conectado ? f.inadimplencia : null;
-    // Com o Vybe Finanças ligado, os números e os clientes vêm dele; as faturas com baixa no Vybe OS continuam nas linhas.
+    // Os números e os clientes vêm do extrato (mensalidade do contrato × o que entrou, por competência).
     const clientes = [...((real ? real.clientes : d.clientes) || [])].sort((x, z) => z.atraso_mais_antigo - x.atraso_mais_antigo), faturas = d.faturas || [];
     const total = Number(real ? real.total : d.total) || 0, nFat = Number(real ? real.faturas : faturas.length) || soma(clientes, 'faturas'), criticos = clientes.filter((c) => c.atraso_mais_antigo > 30);
     const antigo = clientes[0], termo = semAcento(ctx.filtro?.inad), bate = (c) => !termo || semAcento(c.cliente_nome).includes(termo);
@@ -498,8 +495,8 @@
       const l = doCliente(c), uma = l.length === 1 && Number(c.faturas) <= 1 ? l[0] : null;
       const detalhe = hist([`Venceu em ${extenso(c.vencimento_mais_antigo)}`, c.descricao ? esc(c.descricao) : '', real && c.no_vybe === false ? 'Sem par no Vybe OS: a ligação é pelo CNPJ ou pelo nome' : '', ...historicoAvisos(av, c)])
         + (l.length ? l.map((x) => `<div class="fv2-mini">${pilula(quantos(x.atraso, 'dia', 'dias'), 'r')}<p>${esc(oQueE(x))} · ${rs(x.aberto ?? x.valor)} em aberto · venceu em ${extenso(x.vencimento)}</p>
-            ${doFin(x.id) ? '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>' : `${uma ? '' : botaoRecebi(x)}<button type="button" class="fv2-btn s" data-vc="receber" data-id="${esc(x.id)}">Recebi uma parte</button>`}</div>`).join('')
-          : '<p class="fv2-hist">A baixa destes lançamentos é no Vybe Finanças</p>');
+            ${doFin(x.id) ? NO_EXTRATO : `${uma ? '' : botaoRecebi(x)}<button type="button" class="fv2-btn s" data-vc="receber" data-id="${esc(x.id)}">Recebi uma parte</button>`}</div>`).join('')
+          : '<p class="fv2-hist">Estes lançamentos se conferem no Extrato</p>');
       return linha({ tela: 'ina', id: 'k' + (c.cliente_id ?? c.cliente_nome), pill: pilula(quantos(c.atraso_mais_antigo, 'dia', 'dias'), 'r'),
         texto: `${cli(c.cliente_nome)}${l.length ? ' · ' + esc(meses(l)) : ''}${Number(c.faturas) > 1 ? ` <span class="d3f-mes">· ${quantos(c.faturas, 'fatura', 'faturas')}</span>` : ''}`,
         meio: `<span class="d3f-meio">${socio(c.cliente_nome)}${av?.disponivel ? `<small class="d3f-nav" title="${esc(quantos(nAvisos(av, c), 'aviso', 'avisos'))} aos sócios">${n0(nAvisos(av, c))}×</small>` : ''}</span>`, valor: rs(c.valor),
@@ -531,7 +528,7 @@
       corpo: `${globalThis.d3LinhaSvg(porMes, { largura: 320, altura: 90, rotulo: `Valor em atraso por mês de vencimento: ${seis.map((m, i) => `${mesDe(m + '-01')} ${mil(porMes[i])}`).join(', ')}` })}<div class="d3f-eixo">${seis.map((m, i) => (i === 5 ? `<b>${esc(mes3(m + '-01'))}</b>` : `<span>${esc(mes3(m + '-01'))}</span>`)).join('')}</div>` }) : '';
     const falta = oQueFalta(ctx), semNada = !clientes.length && u.extra !== 'marcados';
     return `<div class="fv2 d3f" data-tela="ina"><div class="fv2-in">
-      ${topo({ titulo: 'Inadimplência', acoes: comoFunciona + '<button type="button" class="fv2-btn" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>', extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${real ? '<span class="fv2-pill b">Vybe Finanças</span>' : fonte(d)}` })}
+      ${topo({ titulo: 'Inadimplência', acoes: comoFunciona + '<button type="button" class="fv2-btn" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>', extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${real ? '<span class="fv2-pill b">Extrato</span>' : fonte(d)}` })}
       ${semAvisoJa ? acao('Vorcaro · Financeiro', frase, `Avisar ${SOCIO[carteiraDe(semAvisoJa.cliente_nome)] ? 'o ' + SOCIO[carteiraDe(semAvisoJa.cliente_nome)][1] : 'o sócio'}`, `data-fv="avisar" data-cliente-id="${esc(semAvisoJa.cliente_id ?? '')}" data-cliente-nome="${esc(semAvisoJa.cliente_nome)}" data-atraso="${Number(semAvisoJa.atraso_mais_antigo) || 0}"`)
         : acao('Vorcaro · Financeiro', frase, clientes.length ? `Ver ${clientes.length === 1 ? 'o cliente' : 'os ' + n0(clientes.length)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
@@ -567,10 +564,10 @@
       ...(atrasoPeriodo ? [['Em atraso no período', rs(atrasoPeriodo)], ['Sem os atrasados', rs(semEles)]] : []), ['Em atraso, de qualquer mês', rs(totalAtraso)],
       ...(Number(A.pendente) ? [['Pendente de receber', rs(A.pendente)]] : []),
       ...(Number(F.receita) ? [['Receita contratada por mês', `${rs(F.receita)}${F.margem_percentual != null ? ` · margem estimada ${String(F.margem_percentual).replace('.', ',')}%` : ''}`]] : []),
-      ...(ligado ? [['Folha do mês (Vybe Finanças)', rs(ligado.folha?.total)], ['Custos fixos (Vybe Finanças)', rs(ligado.custos_fixos?.total)], ['Outras despesas (Vybe Finanças)', rs(R.despesas_sem_folha ?? ligado.despesas?.total)]] : [])];
+      ...(ligado ? [['Folha do mês (extrato)', rs(ligado.folha?.total)], ['Gastos fixos por mês', rs(ligado.custos_fixos?.total)], ['Outras saídas (extrato)', rs(R.despesas_sem_folha ?? ligado.despesas?.total)]] : [])];
     const acaoHtml = `<div class="v2-abre fv2-conta" data-linha="conta" aria-expanded="${u.conta}">${acao('Vorcaro · Tesouraria', frase, semDado ? '' : 'Ver a conta', `data-fv="conta" aria-expanded="${u.conta}"`)}
       <div class="v2-mais"><div><dl class="fv2-dl">${conta.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></div></div></div>`;
-    // Para onde saiu: os grupos de contas (ou as categorias do Vybe Finanças), do maior para o menor.
+    // Para onde saiu: os grupos de contas (as categorias do extrato), do maior para o menor.
     const grupos = ligado ? (ligado.despesas?.categorias || []).map((c) => ({ nome: c.categoria, total: Number(c.total) || 0, fatia: Math.round(Number(c.percentual) || 0) }))
       : [...(K.grupos || [])].filter((g) => Number(g.total) > 0).map((g) => ({ nome: g.nome, total: Number(g.total) || 0, fatia: pc(g.total, K.total) }));
     grupos.sort((x, z) => z.total - x.total);
@@ -597,26 +594,28 @@
     const aConferir = (X?.transacoes || []).filter((t) => !t.real?.conferido).length, aDividir = (X?.transacoes || []).filter((t) => t.real?.categoria === 'receita_boleto' && !t.real?.partes?.length).length;
     if (pendentes.length) itens.push(simples('<span class="fv2-pill n d3f-ag">Do grupo</span>', `<b>${quantos(pendentes.length, 'lançamento', 'lançamentos')}</b> · Vybe Financeiro`, curta(pendentes[0].recebido_em), '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="vorcaro">Conferir</button>'));
     if (aConferir) itens.push(simples(pilula('Extrato', 'n'), `<b>${n0(aConferir)} a conferir</b>${aDividir ? ` · ${quantos(aDividir, 'boleto a dividir', 'boletos a dividir')}` : ''}`, X?.importacoes?.length ? curta(X.importacoes[X.importacoes.length - 1].ate) : '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Conferir</button>'));
-    if (L.vf && L.vf.conectado === false) itens.push(simples(pilula('Ligar', 'n'), '<b>Controle financeiro</b> · valores reais', '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Ver como</button>'));
+    if (L.vf && L.vf.conectado === false) itens.push(simples(pilula('Extrato', 'n'), '<b>Nenhum extrato importado</b>', '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Importar</button>'));
     const semContrato = (L.porCliente?.clientes || []).filter((c) => !(Number(c.valor_mensal) > 0)).length;
     if (semContrato) itens.push(simples(pilula('Contrato', 'n'), `<b>${quantos(semContrato, 'cliente', 'clientes')}</b> sem contrato informado`, '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Informar</button>'));
     const cabe = u.inteira ? itens : itens.slice(0, 5);
     // Rodapé do quadro D3-FinVisao: "Sócios avisados" (o sistema ainda não registra aviso aos sócios, então fica o vazio)
-    // e o dia da folha quando o Vybe Finanças manda.
+    // e o dia em que a folha saiu no extrato.
     const diaFolha = (ligado?.folha?.funcionarios || []).map((f) => Number(f.dia_pagamento)).filter((n) => n > 0).sort((a, b) => a - b)[0];
     const socios = `${sociosAvisados(L.ina?.avisos)}${diaFolha ? `<span class="fv2-sub d3f-folha">folha · dia ${n0(diaFolha)}</span>` : ''}`;
     const acaoCard = cartao({ titulo: 'Pede ação', rotulo: 'acao', cls: 'd3f-pede', sub: itens.length ? `${quantos(itens.length, 'coisa', 'coisas')}, na ordem` : '', corpo: cabe.join('') || '<p class="fv2-nada">Nada pedindo ação agora.</p>',
       pe: maisHtml(itens.length - cabe.length, '', 'mostrar', 'vis') + socios });
-    // Caixa: três meses atrás (o que entrou), o mês de agora e três à frente (projeção dos recorrentes), numa linha só.
+    // Caixa: três meses atrás (o que entrou), o mês de agora (o que já entrou) e três à frente (projeção), numa linha só.
     const serie = new Map((ligado?.series || L.vf?.series || []).map((s) => [s.mes, Number(s.faturamento) || 0]));
-    const prev = L.cx?.previsao?.meses || [];
+    // Projeção: a do extrato (média dos meses fechados, sem cenário); sem extrato, a dos recorrentes.
+    const PX = window.VybeFinanceiroExtrato, projX = L.fx?.projecao?.base && typeof PX?.projetar === 'function' && (L.fx.transacoes || []).length ? PX.projetar(L.fx.projecao.base, {}, 4).meses : null;
+    const prev = projX || L.cx?.previsao?.meses || [];
     const colunas = [...L.passados.map((p) => ({ mes: p.mes, valor: serie.has(p.mes) ? serie.get(p.mes) : Number(p.dados?.resumo?.atual?.recebido) || 0, tipo: 'antes' })),
-      ...[0, 1, 2, 3].map((n) => { const m = somaMes(atual, n), x = prev.find((y) => y.mes === m); return { mes: m, valor: Number(x?.entradas) || 0, tipo: n ? 'depois' : 'agora' }; })];
+      ...[0, 1, 2, 3].map((n) => { const m = somaMes(atual, n), x = prev.find((y) => y.mes === m); return { mes: m, valor: !n && serie.has(m) ? serie.get(m) : Number(x?.entradas) || 0, tipo: n ? 'depois' : 'agora' }; })];
     const temCaixa = colunas.some((c) => c.valor > 0), agora = colunas[3];
     const caixa = cartao({ titulo: 'Caixa', rotulo: 'caixa', cls: 'fv2-caixa', sub: temCaixa ? `<b class="d3f-caixa-v">${mil(agora.valor)}</b><span class="d3f-leg"><i></i>realizado</span><span class="d3f-leg proj"><i></i>projeção</span>` : '',
       corpo: temCaixa ? `${linhaDupla(colunas.slice(0, 4).map((c) => c.valor), colunas.slice(3).map((c) => c.valor), { rotulo: `Entradas de ${colunas.map((c) => `${mesDe(c.mes + '-01')} ${mil(c.valor)}`).join(', ')}; de ${mesDe(colunas[4].mes + '-01')} em diante é projeção` })}
           <div class="d3f-eixo">${colunas.map((c) => (c.tipo === 'agora' ? `<b>${esc(mes3(c.mes + '-01'))}</b>` : `<span>${esc(mes3(c.mes + '-01'))}</span>`)).join('')}</div>`
-        : '<p class="fv2-nada">O caixa aparece com o primeiro recebimento recorrente.</p>' });
+        : '<p class="fv2-nada">O caixa aparece com o extrato importado.</p>' });
     const saiuPor = grupos.length ? cartao({ titulo: 'Saiu por grupo', rotulo: 'grupos', sub: mil(aSair), corpo: grupos.slice(0, 5).map((g) => barraGrupo(`<b>${esc(g.nome)}</b>`, g.fatia, mil(g.total))).join('') }) : '';
     // Atalhos com a contagem do que pede ação em cada tela.
     const contagem = { recebimentos: [(L.rec?.recebiveis || []).filter((x) => !x.cancelado).length, ''], contas: [(L.con?.contas || []).filter((c) => !c.cancelada).length, ''],
@@ -624,8 +623,8 @@
     const subs = (ctx.subs || []).map((s) => { const [n, tom] = contagem[s.id] || [0, '']; return `<button type="button" class="fv2-chip" data-fv="ir" data-valor="${esc(s.id)}">${esc(s.nome)}${s.url ? ' ↗' : ''}${n ? ` <b${tom ? ` class="${tom}"` : ''}>${n0(n)}</b>` : ''}</button>`; }).join('');
     const seg = [['anterior', maiuscula(mesDe(somaMes(atual, -1) + '-01'))], ['atual', maiuscula(mesDe(atual + '-01'))], ['ano', 'Ano']];
     return `<div class="fv2 d3f" data-tela="vis"><div class="fv2-in">
-      ${topo({ titulo: 'Finanças', trilha: false, extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${ligado ? '<span class="fv2-pill b">Vybe Finanças</span>' : ''}`, meio: `<span class="fv2-seg" role="group" aria-label="Período">${seg.map(([k, n]) => `<button type="button" data-fv="per" data-valor="${k}" aria-pressed="${u.per === k}">${esc(n)}</button>`).join('')}</span>`,
-        acoes: `<span class="fv2-lancar"><button type="button" class="fv2-btn p" data-fv="lancar" aria-expanded="${u.lancar}">${IC.mais}Lançar</button>${u.lancar ? '<span class="fv2-menu" role="menu"><button type="button" role="menuitem" data-fv="novo" data-valor="recebimentos">Recebimento</button><button type="button" role="menuitem" data-fv="novo" data-valor="contas">Conta a pagar</button></span>' : ''}</span>` })}
+      ${topo({ titulo: 'Finanças', trilha: false, extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${ligado ? '<span class="fv2-pill b">Extrato</span>' : ''}`, meio: `<span class="fv2-seg" role="group" aria-label="Período">${seg.map(([k, n]) => `<button type="button" data-fv="per" data-valor="${k}" aria-pressed="${u.per === k}">${esc(n)}</button>`).join('')}</span>`,
+        acoes: `<span class="fv2-lancar"><button type="button" class="fv2-btn p" data-fv="lancar" aria-expanded="${u.lancar}">${IC.mais}Lançar</button>${u.lancar ? '<span class="fv2-menu" role="menu"><button type="button" role="menuitem" data-fv="ir" data-valor="vorcaro">Lançar à mão</button><button type="button" role="menuitem" data-fv="ir" data-valor="extrato">Importar extrato</button></span>' : ''}</span>` })}
       ${acaoHtml}${numeros}
       <div class="fv2-grade a">${acaoCard}<div class="d3f-coluna">${caixa}${saiuPor}</div></div>
       <div class="fv2-abrir"><span class="fv2-sub">Abrir</span>${subs}<button type="button" class="fv2-chip" data-fv="ir" data-valor="caixa">Caixa</button><button type="button" class="fv2-chip" data-fv="ir" data-valor="rh">Folha</button></div></div></div>`;
