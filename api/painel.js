@@ -1597,19 +1597,23 @@ async function areaArquivos(req, res) {
   // máximo o que uma pessoa tem em aberto, bem abaixo disso.
   if (!itens.length) return res.status(200).json({ ok: true, itens: {} });
   const ids = [...new Set(itens)].slice(0, 300);
+  // Peça que nasceu no Vybe não tem id do Monday: a tela pede por vybe:<id> (o id do banco), como a gaveta.
+  const locais = ids.filter((s) => /^vybe:\d+$/.test(s)).map((s) => Number(s.slice(5)));
 
   const linhas = await sql()`
-    SELECT DISTINCT ON (c.monday_item_id)
-           c.monday_item_id AS item, a.nome, a.extensao, a.drive_file_id,
-           COUNT(*) OVER (PARTITION BY c.monday_item_id)::int AS total
+    SELECT DISTINCT ON (c.id)
+           c.id AS conteudo_id, c.monday_item_id AS item, a.nome, a.extensao, a.drive_file_id,
+           COUNT(*) OVER (PARTITION BY c.id)::int AS total
       FROM vybe_conteudos c
       JOIN vybe_conteudo_arquivos a ON a.conteudo_id = c.id AND a.ausente_em IS NULL
-     WHERE c.monday_item_id = ANY(${ids}) AND c.removido_em IS NULL
-     ORDER BY c.monday_item_id, a.criado_em DESC NULLS LAST`;
+     WHERE (c.monday_item_id = ANY(${ids}) OR c.id = ANY(${locais}::bigint[])) AND c.removido_em IS NULL
+     ORDER BY c.id, a.criado_em DESC NULLS LAST`;
 
   const mapa = {};
   for (const l of linhas) {
-    mapa[String(l.item)] = {
+    // A chave volta do jeito que a tela pediu: o id do Monday quando foi por ele, senão vybe:<id>.
+    const chave = l.item && ids.includes(String(l.item)) ? String(l.item) : `vybe:${l.conteudo_id}`;
+    mapa[chave] = {
       total: Number(l.total) || 1,
       nome: l.nome || '',
       extensao: l.extensao || '',
