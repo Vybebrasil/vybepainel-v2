@@ -185,6 +185,7 @@
       { id: 'clientes_mes', nome: 'Clientes mês a mês', dica: 'Quem pagou e quem está em aberto, mês a mês', mod: ['VybeComercial', 'clientes_mes'] },
       { id: 'cartao', nome: 'Cartão de crédito', dica: 'Cada item da fatura, pago ou não', mod: ['VybeComercial', 'cartao'] },
       { id: 'fixos', nome: 'Gastos fixos', dica: 'Programas, assinaturas, aluguel e o que sai todo mês', mod: ['VybeComercial', 'fixos'] },
+      { id: 'vales', nome: 'Pessoas e vales', dica: 'Salário combinado × o que cada pessoa recebeu; o que passou vira vale', mod: ['VybeComercial', 'vales'] },
       { id: 'projecao', nome: 'Relatórios e projeção', dica: 'Caixa realizado e projetado em 3, 6 e 12 meses, com cenários', mod: ['VybeComercial', 'projecao'] },
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
@@ -664,7 +665,7 @@
   // itens do Time que são de todos: Produtividade (o próprio mês), Pedidos e calendário, Equipe online e Academy.
   const TRANCADOS = new Set(['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas']);
   // Só dos donos de verdade (a coordenação não vê): o setor Finanças, as abas dele e IA e custos.
-  const SO_DINHEIRO = new Set(['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'ai-usage']);
+  const SO_DINHEIRO = new Set(['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'ai-usage']);
   const trancadoPara = (id) => (TRANCADOS.has(id) && !souDono()) || (SO_DINHEIRO.has(id) && !souDonoDoDinheiro());
   function aplicarCadeados() {
     hud.querySelectorAll?.('.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor]').forEach((b) => {

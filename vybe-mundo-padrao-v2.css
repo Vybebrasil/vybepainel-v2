@@ -3140,6 +3140,35 @@ body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .
   :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs-topo > .fx-filtros{flex:1 1 100%}
 }
 
+/* ===== padrao-v2/d3-financeiro-vales.css ===== */
+/* Pessoas e vales (Paulo, 14/11/2026): o combinado de cada pessoa × o que ela recebeu × o vale, mês a mês. Direção 3. */
+#vv-comercial .fv2.d3f .fx-pessoa{display:grid;gap:10px}
+#vv-comercial .fv2.d3f .fx-pm-rolo{overflow-x:auto}
+#vv-comercial .fv2.d3f .fx-pm{display:grid;grid-template-columns:minmax(70px,.8fr) repeat(3,minmax(88px,1fr)) minmax(92px,1fr);align-items:center;gap:6px;min-width:460px;padding:7px 0;border-top:1px solid var(--d3-linha);font-size:13px;font-variant-numeric:tabular-nums}
+#vv-comercial .fv2.d3f .fx-pm > :not(:first-child){text-align:right}
+#vv-comercial .fv2.d3f .fx-pm small{color:var(--d3-apagado);font-size:11px}
+#vv-comercial .fv2.d3f .fx-pm-cab{border-top:0;color:var(--d3-apagado);font-size:12px}
+#vv-comercial .fv2.d3f .fx-h3{margin:6px 0 0;font-size:13px;font-weight:700}
+#vv-comercial .fv2.d3f .fx-mini .fx-in{max-width:140px}
+#vv-comercial .fv2.d3f .fx-editor .fx-linha-acoes .fv2-seg{flex-wrap:wrap;max-width:100%}
+/* Nada cobre, nada rola (regra do Paulo): no celular, o detalhe da linha, a forma de pagamento, as barras de grupo e a
+   tabela da projeção cabem na largura do cartão. */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-det{min-width:0;max-width:100%}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-det .fv2-seg{flex-wrap:wrap;max-width:100%}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-det .fv2-seg > button{flex:1 1 auto;min-width:0}
+@media (max-width:640px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-gx{grid-template-columns:minmax(0,1fr) 44px 32px auto;gap:6px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tab-proj .fx-tr{grid-template-columns:64px repeat(var(--n,6),minmax(0,1fr));min-width:0;gap:4px;font-size:11px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tab-proj .fx-tr > *{min-width:0;overflow-wrap:anywhere}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-editor .fx-grade{grid-template-columns:minmax(0,1fr)}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-editor :is(.fx-sel,.fx-in){min-width:0;max-width:100%}
+}
+/* As grades de duas colunas do Extrato e de Recebimentos tinham regra mais forte que a do celular: empilham aqui. */
+@media (max-width:760px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-duas.fx-duas-extrato,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f[data-tela="rec"] .fv2-grade.a{grid-template-columns:minmax(0,1fr)}
+}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-gx > span:first-child > small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* ===== padrao-v2/d3-hoje.css ===== */
 /* DIREÇÃO 3 · HOJE (moodboard 3, 13/11/2026). As quatro abas do Hoje (Agência, Criação, Coordenação e Minhas tarefas)
    pelos quadros D3-Agencia, D3-Criacao, D3-Coordenacao e D3-Tarefas: fundo areia, "Hoje" com a data e as abas em pílula,

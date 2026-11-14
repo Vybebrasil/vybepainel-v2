@@ -24,8 +24,11 @@ import { FONTE, baseDoExtrato, lancamentosDaBase, parteDaBase } from './financei
 
 export const CHAVES = Object.freeze({ extrato: 'financeiro_extrato', regras: 'financeiro_regras', fixos: 'financeiro_fixos', cartao: 'financeiro_cartao', cenarios: 'financeiro_cenarios', vorcaro: 'financeiro_vorcaro',
   // Vencimento da fatura por cartão (14/11/2026): { 'Cartão da agência': { dia: 20 } }, editável pelos donos.
-  cartoes: 'financeiro_cartoes' });
-const VAZIO = { extrato: { transacoes: [], importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], vorcaro: { propostas: [] }, cartoes: {} };
+  cartoes: 'financeiro_cartoes',
+  // Salário/pró-labore combinado por pessoa (14/11/2026): { '<pessoa_id>': { valor, desde: 'AAAA-MM' } }, e os ajustes do
+  // vale lançados à mão ("devolveu", "abater"): [{ id, pessoa_id, mes, tipo, valor, nota }]. Chaves novas, sem migração.
+  salarios: 'financeiro_salarios', vales: 'financeiro_vales' });
+const VAZIO = { extrato: { transacoes: [], importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], vorcaro: { propostas: [] }, cartoes: {}, salarios: {}, vales: [] };
 const LIMITE_CSV = 2_000_000;
 
 const erro = (status, message) => Object.assign(new Error(message), { status });
@@ -41,6 +44,8 @@ export async function lerTudo(sql) {
   for (const k of ['regras', 'fixos', 'cartao', 'cenarios']) if (!Array.isArray(out[k])) out[k] = [];
   if (!Array.isArray(out.vorcaro?.propostas)) out.vorcaro = { propostas: [] };
   if (!out.cartoes || typeof out.cartoes !== 'object' || Array.isArray(out.cartoes)) out.cartoes = {};
+  if (!out.salarios || typeof out.salarios !== 'object' || Array.isArray(out.salarios)) out.salarios = {};
+  if (!Array.isArray(out.vales)) out.vales = [];
   return out;
 }
 // Lê uma chave travada, aplica a mudança e grava (uma transação).
@@ -98,7 +103,23 @@ export async function clientesComMensalidade(sql) {
   return linhas.map((l) => ({ ...l, valor_mensal: Number(l.valor_mensal) || 0, inicio: dia(l.inicio), fim: '', renovacao: dia(l.fim) }));
 }
 
-export function montar(base, clientes, { mes, hoje }) {
+// O time (sócios incluídos) para o "Para quem" do extrato e a conta de cada pessoa. Sem a tabela: ninguém.
+export async function pessoasDoTime(sql) {
+  try { return await sql`SELECT id::text, nome FROM vybe_pessoas WHERE COALESCE(ativo, true) ORDER BY nome`; }
+  catch (e) { if (e.code !== '42P01' && e.code !== '42703') throw e; try { return await sql`SELECT id::text, nome FROM vybe_pessoas ORDER BY nome`; } catch { return []; } }
+}
+// A conta de cada pessoa (combinado × pago × vale), para quem tem salário combinado ou lançamento atribuído.
+export function contasDasPessoas(base, pessoas = [], { hoje }) {
+  const lista = base.extrato.transacoes, ate = hoje.slice(0, 7);
+  const ids = new Set(Object.keys(base.salarios || {}));
+  for (const t of lista) for (const p of X.pedacos(t)) if (p.pessoa_id) ids.add(String(p.pessoa_id));
+  const nome = new Map(pessoas.map((p) => [String(p.id), p.nome]));
+  for (const t of lista) for (const p of X.pedacos(t)) if (p.pessoa_id && !nome.has(String(p.pessoa_id))) nome.set(String(p.pessoa_id), p.pessoa_nome || 'Pessoa');
+  return [...ids].map((id) => ({ nome: nome.get(id) || 'Pessoa', ...X.contaPessoa(lista, id, { salario: base.salarios?.[id] || null, ajustes: (base.vales || []).filter((a) => String(a.pessoa_id) === id), ate }) }))
+    .sort((a, b) => b.vale - a.vale || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+export function montar(base, clientes, { mes, hoje, pessoas = [] }) {
   const lista = base.extrato.transacoes;
   const meses = X.mesesDa(lista);
   const mesAtual = mes || meses[meses.length - 1] || hoje.slice(0, 7);
@@ -122,6 +143,8 @@ export function montar(base, clientes, { mes, hoje }) {
       return { itens: base.cartao, faturas: X.cartao(base.cartao, lista).map((f) => ({ ...f, vence: vence(f.cartao, f.fatura) })), pagamentos_sem_fatura: X.pagamentosSemFatura(lista), vencimentos: venc };
     })(),
     projecao: { base: projBase, cenarios: base.cenarios },
+    pessoas: pessoas.map((p) => ({ id: String(p.id), nome: p.nome })), salarios: base.salarios || {}, vales: base.vales || [],
+    contas_pessoas: contasDasPessoas(base, pessoas, { hoje }),
     vorcaro: (() => {
       const propostas = base.vorcaro?.propostas || [];
       const juntadas = new Set(propostas.filter((p) => p.estado === 'juntada').map((p) => p.transacao_id));
@@ -141,21 +164,38 @@ const nomeDe = (p) => String(p?.nome || p?.name || p?.id || '');
 export async function lerFinanceiro(sql, quem, q = {}, { hoje = hojeNaBahia() } = {}) {
   pegarDono(quem);
   const mes = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(q.mes || '')) ? q.mes : '';
-  const [base, clientes] = await Promise.all([lerTudo(sql), clientesComMensalidade(sql)]);
-  if (q.parte) return parteDoExtrato(String(q.parte), base, clientes, { mes: mes || hoje.slice(0, 7), hoje });
-  return montar(base, clientes, { mes, hoje });
+  const [base, clientes, pessoas] = await Promise.all([lerTudo(sql), clientesComMensalidade(sql), pessoasDoTime(sql)]);
+  if (q.parte) return parteDoExtrato(String(q.parte), base, clientes, { mes: mes || hoje.slice(0, 7), hoje, pessoas });
+  // A conta de uma pessoa (o cartão "Financeiro" da pessoa): combinado × pago × vale, mês a mês, e os Pix que compõem.
+  if (q.pessoa) {
+    const id = String(q.pessoa);
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) throw erro(400, 'Pessoa inválida.');
+    const c = contasDasPessoas({ ...base, salarios: base.salarios?.[id] ? { [id]: base.salarios[id] } : {}, vales: base.vales.filter((a) => String(a.pessoa_id) === id) }, pessoas, { hoje }).find((x) => x.pessoa_id === id)
+      || { nome: pessoas.find((p) => String(p.id) === id)?.nome || 'Pessoa', ...X.contaPessoa(base.extrato.transacoes, id, { ate: hoje.slice(0, 7) }) };
+    return { hoje, conta: c, ajustes: base.vales.filter((a) => String(a.pessoa_id) === id) };
+  }
+  return montar(base, clientes, { mes, hoje, pessoas });
 }
 
 // As partes que as telas antigas pediam ao Vybe Finanças (area=vybe_financas&parte=comercial|rh), agora tiradas do
 // extrato (server/financeiro-fonte.js). Sem extrato importado: conectado false e o passo para importar.
 export const PARTES_EXTRATO = Object.freeze(['comercial', 'rh']);
 export const PASSOS_EXTRATO = Object.freeze(['Abra Finanças › Extrato e conciliação.', 'Importe o CSV do extrato da conta PJ do Banco do Brasil (prévia antes de gravar).']);
-export function parteDoExtrato(parte, base, clientes, { mes, hoje }) {
+export function parteDoExtrato(parte, base, clientes, { mes, hoje, pessoas = [] }) {
   if (!PARTES_EXTRATO.includes(parte)) throw erro(400, 'Parte desconhecida.');
   const pode = { ver_dinheiro: true, ver_salarios: true };
   const b = baseDoExtrato(base, clientes, { hoje });
   if (!b.lancamentos) return { parte, mes, hoje, conectado: false, fonte: FONTE, motivo: 'Importe o extrato do banco', passos: PASSOS_EXTRATO, faltando: [], pode };
-  return { parte, mes, hoje, conectado: true, fonte: FONTE, origem_dados: 'extrato', pode, ...parteDaBase(parte, b, { mes, hoje }) };
+  const r = { parte, mes, hoje, conectado: true, fonte: FONTE, origem_dados: 'extrato', pode, ...parteDaBase(parte, b, { mes, hoje }) };
+  // RH › Folha: o vale acumulado e o combinado de cada pessoa (a conta da pessoa), na mesma linha.
+  if (parte === 'rh') {
+    const contas = contasDasPessoas({ salarios: {}, vales: [], ...base }, pessoas, { hoje });
+    const porId = new Map(contas.map((c) => [c.pessoa_id, c]));
+    r.folha.funcionarios = r.folha.funcionarios.map((f) => { const c = f.pessoa_id ? porId.get(String(f.pessoa_id)) : null;
+      return { ...f, vale: c ? c.vale : null, combinado: c?.salario?.valor ?? null, a_pagar: c ? c.a_pagar : null }; });
+    r.vales = contas.map(({ pessoa_id, nome, vale, a_pagar, salario }) => ({ pessoa_id, nome, vale, a_pagar, combinado: salario?.valor ?? null }));
+  }
+  return r;
 }
 
 // Recebíveis e contas do extrato para as abas de dinheiro do Comercial (server/comercial.js). Só os quatro donos:
@@ -285,6 +325,26 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
         ajuste_entradas_pct: Math.max(-100, Math.min(300, Number(c.ajuste_entradas_pct) || 0)) };
       return mudar(sql, 'cenarios', pid, (atual) => ({ valor: salvarNaLista(Array.isArray(atual) ? atual : [], limpo), resposta: { cenario: limpo } }));
     }
+    case 'salario_salvar': {
+      // O combinado de uma pessoa ({ pessoa_id, valor, desde }); valor vazio tira.
+      const pessoaId = String(b.pessoa_id || '').trim();
+      if (!/^[A-Za-z0-9_-]{1,40}$/.test(pessoaId)) throw erro(400, 'Qual pessoa?');
+      const tirar = b.valor == null || b.valor === '';
+      const r = tirar ? { salario: null } : X.normalizarSalario({ valor: b.valor, desde: b.desde });
+      if (r.erro) throw erro(400, r.erro);
+      return mudar(sql, 'salarios', pid, (atual) => {
+        const v = atual && typeof atual === 'object' && !Array.isArray(atual) ? { ...atual } : {};
+        if (tirar) delete v[pessoaId]; else v[pessoaId] = { ...r.salario, por: nomeDe(pessoa), em: new Date().toISOString() };
+        return { valor: v, resposta: { pessoa_id: pessoaId, salario: v[pessoaId] || null } };
+      });
+    }
+    case 'vale_ajuste_salvar': {
+      const r = X.normalizarAjusteVale(b.ajuste || {});
+      if (r.erro) throw erro(400, r.erro);
+      return mudar(sql, 'vales', pid, (atual) => ({ valor: salvarNaLista(Array.isArray(atual) ? atual : [], { ...r.ajuste, por: nomeDe(pessoa) }), resposta: { ajuste: r.ajuste } }));
+    }
+    case 'vale_ajuste_remover':
+      return mudar(sql, 'vales', pid, (atual) => { const l = (atual || []).filter((x) => x.id !== String(b.id || '')); return { valor: l, resposta: { removido: (atual || []).length - l.length } }; });
     case 'cenario_remover':
       return mudar(sql, 'cenarios', pid, (atual) => { const l = (atual || []).filter((x) => x.id !== String(b.id || '')); return { valor: l, resposta: { removido: (atual || []).length - l.length } }; });
     case 'lancar_mao': {

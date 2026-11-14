@@ -476,13 +476,15 @@
     if (!d.conectado) return d.passos ? titulo + `<div class="vp-cartao"><span class="vp-kicker">${esc(d.motivo)}</span><p class="vp-nota">Com o extrato importado, aparece aqui o que saiu como salário e pró-labore no mês, por pessoa, com o dia e a variação.</p>
       <ol class="vp-simples">${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>` : '';
     const f = d.folha; if (!f) return '';
+    // Vale (14/11/2026): o que a pessoa recebeu acima do combinado, acumulado; abre a conta dela em Finanças › Pessoas e vales.
+    const valeDe = (p) => (p.pessoa_id && /^[A-Za-z0-9_-]{1,40}$/.test(String(p.pessoa_id)) ? `<button type="button" class="vp-link" onclick="window.VybeFinanceiro?.abrirPessoa?.('${esc(p.pessoa_id)}')">${p.vale ? 'vale ' + esc(din(p.vale)) : 'sem vale'}</button>` : '');
     const vs = (v, p) => (v ? `<small class="vp-vs ${v > 0 ? 'ruim' : 'bom'}">${esc(pct(p))} (${esc(din(v))}) vs mês anterior</small>` : '<small class="vp-vs">igual ao mês anterior</small>');
     return titulo + `<div class="vp-kpis">
         <div class="vp-kpi espiavel" data-espiar="financas:rh:folha" role="button" tabindex="0" title="Ver a lista"><span>Total de ${esc(MESES_RH[Number(f.mes.slice(5)) - 1])}</span><b>${esc(din(f.total))}</b>${vs(f.variacao, f.variacao_percentual)}</div>
         ${kpi('Pessoas pagas', f.quantidade)}${kpi('Mês anterior', din(f.total_anterior))}</div>
       ${f.funcionarios.length ? `<ul class="vp-lista">${f.funcionarios.map((p) => `<li class="vp-item"><div class="vp-meio"><b>${esc(p.nome)}</b>
-        <small>${esc([p.cargo, p.bonus ? 'bônus ' + din(p.bonus) : '', p.dia_pagamento ? 'saiu dia ' + p.dia_pagamento : '', p.vigente_desde ? 'valor desde ' + p.vigente_desde.slice(5) + '/' + p.vigente_desde.slice(0, 4) : ''].filter(Boolean).join(' · '))}</small></div>
-        <div class="vp-lado"><b>${esc(din(p.total))}</b>${p.variacao ? chip([pct(p.variacao_percentual) || (p.variacao > 0 ? 'subiu' : 'caiu'), p.variacao > 0 ? 'u2' : 'u4']) : ''}</div></li>`).join('')}</ul>`
+        <small>${esc([p.cargo, p.combinado ? 'combinado ' + din(p.combinado) : '', p.bonus ? 'bônus ' + din(p.bonus) : '', p.dia_pagamento ? 'saiu dia ' + p.dia_pagamento : '', p.vigente_desde ? 'valor desde ' + p.vigente_desde.slice(5) + '/' + p.vigente_desde.slice(0, 4) : ''].filter(Boolean).join(' · '))}</small></div>
+        <div class="vp-lado"><b>${esc(din(p.total))}</b>${p.variacao ? chip([pct(p.variacao_percentual) || (p.variacao > 0 ? 'subiu' : 'caiu'), p.variacao > 0 ? 'u2' : 'u4']) : ''}${valeDe(p)}</div></li>`).join('')}</ul>`
         : vazio('Nenhum salário no extrato do mês', 'Classifique no Extrato as saídas de salário e pró-labore, com quem recebeu.')}
       <p class="vp-nota">O que saiu no extrato como salário e pró-labore no mês (pelo dia em que saiu), por quem recebeu. Variação contra o mês anterior. Para corrigir, reclassifique no Extrato.</p>`;
   }

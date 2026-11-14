@@ -45,6 +45,9 @@
     { id: 'salario', nome: 'Salário', tipo: 'saida', grupo: 'Pessoas' },
     { id: 'freela', nome: 'Freela / prestador', tipo: 'saida', grupo: 'Pessoas' },
     { id: 'pro_labore', nome: 'Pró-labore', tipo: 'saida', grupo: 'Sócios' },
+    // Paulo, 14/11/2026: dinheiro adiantado à pessoa (o que passa do salário do mês vira vale) e a devolução dele.
+    { id: 'adiantamento', nome: 'Adiantamento / vale', tipo: 'saida', grupo: 'Pessoas' },
+    { id: 'devolucao_vale', nome: 'Devolução de vale', tipo: 'entrada', grupo: 'Pessoas' },
     { id: 'retirada_socio', nome: 'Retirada de sócio', tipo: 'saida', grupo: 'Sócios' },
     { id: 'combustivel', nome: 'Combustível', tipo: 'saida', grupo: 'Operação' },
     { id: 'alimentacao', nome: 'Alimentação', tipo: 'saida', grupo: 'Operação' },
@@ -76,7 +79,7 @@
       nota: 'boleto pago — pode ser de mais de um cliente: divida entre eles' },
     { id: 'fatura-cartao', quando: { contem: 'fat.cartao', sinal: 'saida' }, categoria: 'cartao_agencia', nota: 'débito automático da fatura do cartão' },
     { id: 'pix-vinicius', quando: { contem: 'pix enviado vinicius', sinal: 'saida' }, categoria: 'cartao_agencia', quem: 'Vinícius', revisar: true,
-      nota: 'o cartão da agência é o do Vinícius: Pix para ele costuma ser para pagar a fatura' },
+      opcoes: ['cartao_agencia', 'pro_labore'], nota: 'pagar o cartão da agência ou pró-labore do Vinícius? Escolha; vira regra só se você marcar "Sempre assim"' },
     { id: 'pix-paulo', quando: { contem: 'pix enviado paulo', sinal: 'saida' }, categoria: 'alimentacao', quem: 'Paulo', revisar: true,
       nota: 'pode ter sido alimentação na viagem — confira' },
     { id: 'pix-ewerton', quando: { contem: 'pix enviado ewerton', sinal: 'saida' }, categoria: 'pro_labore', quem: 'Ewerton', revisar: true },
@@ -176,7 +179,8 @@
     const r = todas.find((x) => regraBate(x, l));
     if (!r) return { categoria: l.valor < 0 ? 'outra_saida' : 'receita_outra', quem: '', revisar: true, regra: '', nota: 'nenhuma regra bateu' };
     return { categoria: CAT.has(r.categoria) ? r.categoria : 'a_classificar', quem: r.quem || '', revisar: Boolean(r.revisar), regra: r.id, nota: r.nota || '',
-      cliente_id: r.cliente_id || '', cliente_nome: r.cliente_nome || '' };
+      cliente_id: r.cliente_id || '', cliente_nome: r.cliente_nome || '', pessoa_id: r.pessoa_id || '', pessoa_nome: r.pessoa_nome || '', fixo_id: r.fixo_id || '',
+      ...(Array.isArray(r.opcoes) ? { opcoes: r.opcoes.filter((c) => CAT.has(c)) } : {}) };
   }
   // Quem recebeu/mandou, tirado do histórico ("Pix Enviado Fulano de Tal" → "Fulano de Tal"), só para mostrar.
   function contraparte(historico) {
@@ -204,7 +208,9 @@
       sugestao: s,
       real: {
         categoria: s.categoria, quem: s.quem, descricao: '', cliente_id: s.cliente_id || '', cliente_nome: s.cliente_nome || '', fatura: '',
-        partes: [], // [{ valor, categoria, cliente_id, cliente_nome, quem, descricao, competencia }] quando dividido
+        // Para quem foi (pessoa do time, sócio incluído) e o gasto fixo que este lançamento paga (14/11/2026).
+        pessoa_id: s.pessoa_id || '', pessoa_nome: s.pessoa_nome || '', fixo_id: s.fixo_id || '',
+        partes: [], // [{ valor, categoria, cliente_id, cliente_nome, quem, pessoa_id, pessoa_nome, descricao, competencia }] quando dividido
         status: 'pago', // o banco só mostra o que já entrou/saiu: no extrato, nasce pago
         competencia: l.data.slice(0, 7), // mês a que se refere (a mensalidade de outubro paga em novembro)
         conferido: !s.revisar, conferido_por: '', conferido_em: '',
@@ -232,7 +238,8 @@
       const s = sugerir({ historico: t.banco.historico, valor: t.banco.valor }, regras);
       if (s.regra === t.sugestao?.regra && s.categoria === t.real.categoria) return t;
       mudou++;
-      return { ...t, sugestao: s, real: { ...t.real, categoria: s.categoria, quem: s.quem || t.real.quem, cliente_id: s.cliente_id || t.real.cliente_id, cliente_nome: s.cliente_nome || t.real.cliente_nome } };
+      return { ...t, sugestao: s, real: { ...t.real, categoria: s.categoria, quem: s.quem || t.real.quem, cliente_id: s.cliente_id || t.real.cliente_id, cliente_nome: s.cliente_nome || t.real.cliente_nome,
+        pessoa_id: s.pessoa_id || t.real.pessoa_id || '', pessoa_nome: s.pessoa_nome || t.real.pessoa_nome || '', fixo_id: s.fixo_id || t.real.fixo_id || '' } };
     });
     return { lista: out, mudou };
   }
@@ -245,7 +252,9 @@
     const sinal = ['entrada', 'saida'].includes(sinalPedido) ? sinalPedido : '';
     const id = /^[a-z0-9-]{3,60}$/.test(String(r.id || '')) ? r.id : 'p-' + hash(semAcento(contem) + '|' + sinal);
     return { regra: { id, quando: { contem, sinal }, categoria: r.categoria, quem: String(r.quem || '').slice(0, 80), revisar: Boolean(r.revisar),
-      cliente_id: String(r.cliente_id || '').slice(0, 80), cliente_nome: String(r.cliente_nome || '').slice(0, 160), nota: String(r.nota || '').slice(0, 160) } };
+      cliente_id: String(r.cliente_id || '').slice(0, 80), cliente_nome: String(r.cliente_nome || '').slice(0, 160),
+      pessoa_id: String(r.pessoa_id || '').slice(0, 40), pessoa_nome: String(r.pessoa_nome || '').slice(0, 120), fixo_id: String(r.fixo_id || '').slice(0, 60),
+      nota: String(r.nota || '').slice(0, 160) } };
   }
 
   // ---------- Gastos fixos (programas, assinaturas, aluguel…) ----------
@@ -272,10 +281,16 @@
     const vig = fixos.filter((f) => fixoVigente(f, mes));
     const doMes = lista.filter((t) => t.banco.data.startsWith(mes) && t.banco.valor < 0);
     const usados = new Set();
+    // Lançamento ligado a um fixo ("Ligar a um gasto fixo", 14/11/2026) é o pagamento dele no mês a que se refere.
+    const ligados = new Map();
+    for (const t of lista) if (t.real?.fixo_id && (t.real.competencia || t.banco.data.slice(0, 7)) === mes && !ligados.has(t.real.fixo_id)) ligados.set(t.real.fixo_id, t);
+    for (const t of ligados.values()) usados.add(t.id);
     const perto = (a, b) => Math.abs(Math.abs(centavos(a)) - centavos(b)) <= centavos(b) * 0.05;
     const linhas = vig.map((f) => {
       let achado = null;
-      if (f.forma === 'cartao') {
+      const lig = ligados.get(f.id);
+      if (lig) achado = { onde: 'extrato', id: lig.id, data: lig.banco.data, valor: Math.abs(lig.banco.valor), status: lig.real.status, ligado: true };
+      else if (f.forma === 'cartao') {
         const it = itensCartao.find((i) => i.fatura === mes && !usados.has('c:' + i.id) && (f.contem ? semAcento(i.descricao).includes(semAcento(f.contem)) : perto(i.valor, f.valor)));
         if (it) { usados.add('c:' + it.id); achado = { onde: 'cartao', data: it.data, valor: Math.abs(Number(it.valor)), status: it.status }; }
       } else {
@@ -311,13 +326,14 @@
     const real = { ...t.real };
     if ('categoria' in mudanca) { if (!CAT.has(mudanca.categoria)) return { erro: 'Categoria desconhecida.' }; real.categoria = mudanca.categoria; }
     if ('status' in mudanca) { if (!STATUS.includes(mudanca.status)) return { erro: 'Status deve ser pago, nao_pago ou em_aberto.' }; real.status = mudanca.status; }
-    for (const k of ['quem', 'descricao', 'cliente_id', 'cliente_nome', 'fatura']) if (k in mudanca) real[k] = String(mudanca[k] ?? '').slice(0, 160);
+    for (const k of ['quem', 'descricao', 'cliente_id', 'cliente_nome', 'fatura', 'pessoa_id', 'pessoa_nome', 'fixo_id']) if (k in mudanca) real[k] = String(mudanca[k] ?? '').slice(0, 160);
     if ('competencia' in mudanca) { if (mudanca.competencia && !ehMes(mudanca.competencia)) return { erro: 'Competência no formato AAAA-MM.' }; real.competencia = mudanca.competencia || t.banco.data.slice(0, 7); }
     if ('partes' in mudanca) {
       const partes = (Array.isArray(mudanca.partes) ? mudanca.partes : []).slice(0, 30).map((p) => ({
         valor: Math.abs(reais(centavos(p.valor))), categoria: CAT.has(p.categoria) ? p.categoria : real.categoria,
         cliente_id: String(p.cliente_id ?? '').slice(0, 80), cliente_nome: String(p.cliente_nome ?? '').slice(0, 160),
         quem: String(p.quem ?? '').slice(0, 80), descricao: String(p.descricao ?? '').slice(0, 160),
+        pessoa_id: String(p.pessoa_id ?? '').slice(0, 40), pessoa_nome: String(p.pessoa_nome ?? '').slice(0, 120),
         competencia: ehMes(p.competencia) ? p.competencia : '' }));
       const erro = partesValidas({ partes }, t.banco.valor);
       if (erro) return { erro };
@@ -331,11 +347,12 @@
   // Cada transação vira 1 ou N pedaços com sinal (o que os relatórios somam).
   function pedacos(t) {
     const sinal = t.banco.valor < 0 ? -1 : 1;
-    const base = { id: t.id, data: t.banco.data, status: t.real.status, conferido: t.real.conferido };
+    const base = { id: t.id, data: t.banco.data, status: t.real.status, conferido: t.real.conferido, fixo_id: t.real.fixo_id || '' };
     if (t.real.partes?.length) return t.real.partes.map((p, i) => ({ ...base, parte: i, valor: sinal * Math.abs(Number(p.valor)), categoria: p.categoria || t.real.categoria,
-      cliente_id: p.cliente_id || '', cliente_nome: p.cliente_nome || '', quem: p.quem || t.real.quem || '', competencia: p.competencia || t.real.competencia || t.banco.data.slice(0, 7) }));
+      cliente_id: p.cliente_id || '', cliente_nome: p.cliente_nome || '', quem: p.quem || t.real.quem || '', competencia: p.competencia || t.real.competencia || t.banco.data.slice(0, 7),
+      pessoa_id: p.pessoa_id || '', pessoa_nome: p.pessoa_nome || '' }));
     return [{ ...base, parte: 0, valor: t.banco.valor, categoria: t.real.categoria, cliente_id: t.real.cliente_id || '', cliente_nome: t.real.cliente_nome || '',
-      quem: t.real.quem || '', competencia: t.real.competencia || t.banco.data.slice(0, 7) }];
+      quem: t.real.quem || '', competencia: t.real.competencia || t.banco.data.slice(0, 7), pessoa_id: t.real.pessoa_id || '', pessoa_nome: t.real.pessoa_nome || '' }];
   }
 
   // ---------- Resumo do mês ----------
@@ -553,7 +570,76 @@
         status: p.status || 'pago', competencia: p.data.slice(0, 7), conferido: true, conferido_por: quem, conferido_em: new Date().toISOString() } };
   }
 
-  const api = Object.freeze({ CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
+  // ---------- Conta da pessoa: salário combinado × pago × vale (Paulo, 14/11/2026) ----------
+  // "Na ficha da pessoa ficar o que passou do salário do mês dela; o excedente fica como vale (o que a pessoa deve à Vybe
+  // porque pegou mais do que o salário)."
+  //   salario  = { valor, desde: 'AAAA-MM' } (o combinado; antes de "desde" não há combinado)
+  //   ajustes  = [{ id, pessoa_id, mes, tipo: 'devolveu' | 'abater', valor, nota }] lançados à mão
+  // Pago no mês = pedaços pagos atribuídos à pessoa nas categorias de salário, pró-labore e adiantamento/vale, pelo mês a
+  // que se referem ("Referente a"). Devolução = entradas "Devolução de vale" da pessoa + ajustes à mão.
+  // Mês a mês, do primeiro mês com extrato (ou do "desde") até o mês atual:
+  //   pago > combinado → a diferença é vale do mês e soma no vale acumulado;
+  //   pago < combinado → a diferença abate o vale acumulado; o que sobrar fica "a pagar" à pessoa. No mês atual (ainda
+  //   aberto) nada é abatido: a diferença é "falta pagar".
+  //   devolução e ajustes tiram do vale acumulado (nunca abaixo de zero).
+  const CAT_PAGO_PESSOA = Object.freeze(['salario', 'pro_labore', 'adiantamento']);
+  function contaPessoa(lista = [], pessoaId, { salario = null, ajustes = [], ate = '', desde = '' } = {}) {
+    const pid = String(pessoaId || '');
+    const pago = new Map(), devolvido = new Map(), itens = [];
+    for (const t of lista) for (const p of pedacos(t)) {
+      if (String(p.pessoa_id || '') !== pid || !pid) continue;
+      const m = ehMes(p.competencia) ? p.competencia : p.data.slice(0, 7);
+      const v = Math.abs(centavos(p.valor));
+      if (CAT_PAGO_PESSOA.includes(p.categoria) && p.valor < 0 && p.status === 'pago') pago.set(m, (pago.get(m) || 0) + v);
+      else if (p.categoria === 'devolucao_vale' && p.valor > 0 && p.status === 'pago') devolvido.set(m, (devolvido.get(m) || 0) + v);
+      else continue;
+      itens.push({ id: t.id, data: t.banco.data, historico: t.banco.historico, mes: m, categoria: p.categoria, nome: CAT.get(p.categoria)?.nome || p.categoria, valor: reais(p.valor < 0 ? -v : v) });
+    }
+    for (const a of ajustes || []) {
+      if (String(a.pessoa_id) !== pid || !ehMes(a.mes)) continue;
+      devolvido.set(a.mes, (devolvido.get(a.mes) || 0) + Math.abs(centavos(a.valor)));
+    }
+    const combinadoEm = (m) => (salario && Number(salario.valor) > 0 && (!salario.desde || salario.desde <= m) ? Math.abs(centavos(salario.valor)) : 0);
+    const todosMeses = [...pago.keys(), ...devolvido.keys(), ...mesesDa(lista)].filter(ehMes).sort();
+    const fim = ate || todosMeses[todosMeses.length - 1] || '';
+    let inicio = desde || mesesDa(lista)[0] || todosMeses[0] || '';
+    if (salario?.desde && salario.desde > inicio && !todosMeses.some((m) => m < salario.desde && (pago.get(m) || devolvido.get(m)))) inicio = salario.desde;
+    const meses = [];
+    let vale = 0;
+    for (let m = inicio; m && fim && m <= fim && meses.length < 120; m = somarMeses(m, 1)) {
+      const comb = combinadoEm(m), pg = pago.get(m) || 0, dev = devolvido.get(m) || 0, aberto = m === fim && Boolean(ate);
+      let valeMes = 0, abatido = 0, aPagar = 0, faltaPagar = 0;
+      if (pg > comb) { valeMes = pg - comb; vale += valeMes; }
+      else if (pg < comb) {
+        const falta = comb - pg;
+        if (aberto) faltaPagar = falta;
+        else { abatido = Math.min(falta, vale); vale -= abatido; aPagar = falta - abatido; }
+      }
+      const devolveu = Math.min(dev, vale); vale -= devolveu;
+      meses.push({ mes: m, combinado: reais(comb), pago: reais(pg), vale_do_mes: reais(valeMes), abatido: reais(abatido), devolvido: reais(devolveu),
+        a_pagar: reais(aPagar), falta_pagar: reais(faltaPagar), vale_acumulado: reais(vale), aberto });
+    }
+    return { pessoa_id: pid, salario: salario ? { valor: Number(salario.valor) || 0, desde: salario.desde || '' } : null, meses, vale: reais(vale),
+      a_pagar: reais(meses.reduce((t, x) => t + centavos(x.a_pagar), 0)), itens: itens.sort((a, b) => b.data.localeCompare(a.data)) };
+  }
+  function normalizarSalario(s = {}) {
+    const valor = Math.abs(reais(centavos(s.valor)));
+    if (!(valor >= 0)) return { erro: 'Informe o valor combinado.' };
+    if (s.desde && !ehMes(s.desde)) return { erro: 'Desde no formato AAAA-MM.' };
+    return { salario: { valor, desde: s.desde || '' } };
+  }
+  function normalizarAjusteVale(a = {}) {
+    const pessoa_id = String(a.pessoa_id || '').trim();
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(pessoa_id)) return { erro: 'Qual pessoa?' };
+    if (!ehMes(a.mes)) return { erro: 'Mês no formato AAAA-MM.' };
+    const valor = Math.abs(reais(centavos(a.valor)));
+    if (!(valor > 0)) return { erro: 'Informe o valor.' };
+    const tipo = a.tipo === 'abater' ? 'abater' : 'devolveu';
+    const id = /^[a-z0-9-]{3,60}$/.test(String(a.id || '')) ? a.id : 'vl-' + hash(pessoa_id + '|' + a.mes + '|' + Date.now() + '|' + Math.random());
+    return { ajuste: { id, pessoa_id, mes: a.mes, tipo, valor, nota: String(a.nota || '').slice(0, 160) } };
+  }
+
+  const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
     clienteDoHistorico, transacoesDoCsv, mesclar, reaplicarRegras, normalizarRegra, FORMAS, normalizarFixo, fixoVigente, analisarFixos, normalizarItemCartao, partesValidas, aplicarEdicao, pedacos, resumo, mesesDa, porCliente, cartao, pagamentosSemFatura, baseDaProjecao, projetar, somarMeses });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeFinanceiroExtrato = api;

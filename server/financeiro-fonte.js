@@ -72,7 +72,7 @@ export function baseDoExtrato(base, clientes = [], { hoje }) {
       amount: reais(v), type, category: c.nome, categoria_id: c.id,
       // Mensalidade: o mês a que ela se refere manda no "previsto"; o dia em que entrou manda no "recebido".
       date: ct ? fimDoMes(competencia) : p.data, paid_date: status === 'PAID' ? p.data : null, status,
-      client_id: cliente && type !== 'TRANSFER' ? idCli(cliente) : null, employee_id: null, quem: p.quem || '',
+      client_id: cliente && type !== 'TRANSFER' ? idCli(cliente) : null, employee_id: null, quem: p.pessoa_nome || p.quem || '', pessoa_id: p.pessoa_id || '',
     });
   }
 
@@ -146,9 +146,9 @@ export function folhaDaBase(b, mes) {
     const por = new Map();
     for (const t of b.transacoes) {
       if (t.type !== 'EXPENSE' || t.status !== 'PAID' || calc.grupoDaDespesa(t) !== 'folha' || calc.dataCaixa(t).slice(0, 7) !== m) continue;
-      const nome = t.quem || 'Sem nome';
-      const x = por.get(nome) || { nome, cargo: t.category, total: 0, dia: null };
-      x.total += centavos(t.amount); x.dia = Number(calc.dataCaixa(t).slice(8, 10)); por.set(nome, x);
+      const nome = t.quem || 'Sem nome', chave = t.pessoa_id ? 'p:' + t.pessoa_id : 'n:' + nome;
+      const x = por.get(chave) || { nome, pessoa_id: t.pessoa_id || '', cargo: t.category, total: 0, dia: null };
+      x.total += centavos(t.amount); x.dia = Number(calc.dataCaixa(t).slice(8, 10)); por.set(chave, x);
     }
     return por;
   };
@@ -156,8 +156,8 @@ export function folhaDaBase(b, mes) {
   const tot = (m) => [...m.values()].reduce((s, x) => s + x.total, 0);
   const total = tot(atual), anterior = tot(antes);
   const funcionarios = [...atual.values()].map((x) => {
-    const tb = antes.get(x.nome)?.total || 0;
-    return { id: x.nome, nome: x.nome, cargo: x.cargo, salario: reais(x.total), bonus: 0, total: reais(x.total), dia_pagamento: x.dia, vigente_desde: null,
+    const tb = antes.get(x.pessoa_id ? 'p:' + x.pessoa_id : 'n:' + x.nome)?.total || 0;
+    return { id: x.pessoa_id || x.nome, pessoa_id: x.pessoa_id || null, nome: x.nome, cargo: x.cargo, salario: reais(x.total), bonus: 0, total: reais(x.total), dia_pagamento: x.dia, vigente_desde: null,
       total_anterior: reais(tb), variacao: reais(x.total - tb), variacao_percentual: tb ? Math.round(((x.total - tb) / tb) * 1000) / 10 : null };
   }).sort((a, z) => z.total - a.total || a.nome.localeCompare(z.nome, 'pt-BR'));
   return { mes, mes_anterior: X.somarMeses(mes, -1), total: reais(total), total_anterior: reais(anterior), variacao: reais(total - anterior),
