@@ -18,6 +18,10 @@ body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"].vb-aba-fora{display:none}
 /* Abas que não cabem (quadro D3-Celular): primeiro apertam na largura toda, com texto de 12; só depois vão para o "Mais". */
 body.mundo .vb-abas.vb-abas-justas.vb-abas:not(#vb-a):not(#vb-b){display:flex;width:100%}
 body.mundo .vb-abas.vb-abas-justas:not(#vb-a):not(#vb-b) [role="tab"]{flex:1 1 auto;padding:0 8px;font-size:12px}
+/* Confere responsivo (14/11/2026): apertadas (Aprovação no celular), o contador de uma aba encostava no nome da
+   seguinte ("2 Com o cliente"). Um respiro entre as abas e dentro delas mantém cada contador com a sua aba. */
+body.mundo .vb-abas.vb-abas-justas.vb-abas:not(#vb-a):not(#vb-b){gap:3px}
+body.mundo .vb-abas.vb-abas-justas:not(#vb-a):not(#vb-b) [role="tab"]{gap:4px;padding:0 7px}
 /* A pílula que desliza: desenhada pela lista, na posição da aba selecionada (--vb-aba-x/--vb-aba-w, postas por vbArrumarAbas). */
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b){--ds-on-fundo:transparent}
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:transparent;box-shadow:none;color:#FFFFFF}

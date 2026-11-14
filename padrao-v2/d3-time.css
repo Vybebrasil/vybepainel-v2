@@ -193,6 +193,17 @@
 /* Três colunas; quem não administra fica com duas (Pede ação · Seu perfil). */
 #conta-root #v2c.d3c .d3c-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:stretch}
 #conta-root #v2c.d3c .d3c-cols.so-eu{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+/* Confere responsivo (14/11/2026): no painel estreito (1024 com o menu aberto) as três colunas ficavam com 200 px e o
+   perfil empilhava "PNG · JPG · até 2 MB" letra sobre letra. No painel estreito: Pede ação e perfil lado a
+   lado e a Equipe embaixo, na largura toda (abaixo de 900 px de painel). */
+#conta-root #v2c.d3c{container:d3conta / inline-size}
+@container d3conta (max-width:900px){
+  #conta-root #v2c.d3c .d3c-cols{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+  #conta-root #v2c.d3c .d3c-cols > .d3c-equipe{grid-column:1 / -1}
+}
+@container d3conta (max-width:620px){
+  #conta-root #v2c.d3c .d3c-cols,#conta-root #v2c.d3c .d3c-cols.so-eu{grid-template-columns:minmax(0,1fr)}
+}
 #conta-root #v2c.d3c .d3c-col{display:flex;flex-direction:column;gap:12px;min-width:0}
 #conta-root #v2c.d3c .d3c-cartao{display:flex;flex-direction:column;padding:14px 0 6px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:none}
 #conta-root #v2c.d3c .d3c-operacao{flex:1}

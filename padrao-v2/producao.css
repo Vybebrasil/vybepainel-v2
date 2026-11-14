@@ -226,9 +226,10 @@
 #vv-ferramentas .vf2-rec-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
 #vv-ferramentas .vf2-fer{display:flex;flex-direction:column;gap:12px}
 #vv-ferramentas .vf2-fer > .p2-sub{min-height:31px}
-#vv-ferramentas .vf2-cab{display:flex;align-items:center;gap:10px}
-#vv-ferramentas .vf2-cab > h3{flex:1;min-width:0}
-#vv-ferramentas .vf2-mais{font:600 12px var(--vv-texto);text-decoration:none}
+/* "mais opções" desce para baixo do nome quando o cartão é estreito (1024: "Link do WhatsApp" passava por cima dele). */
+#vv-ferramentas .vf2-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+#vv-ferramentas .vf2-cab > h3{flex:1 1 auto;min-width:0}
+#vv-ferramentas .vf2-mais{margin-left:auto;font:600 12px var(--vv-texto);text-decoration:none;white-space:nowrap}
 #vv-ferramentas .vf2-ico{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#FFF1E6;color:#8A3207}
 #vv-ferramentas .vf2-ico svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #vv-ferramentas .vf2-rot{display:block;margin:0 0 4px 4px;font:600 12px var(--vv-texto);color:#4A463F}
@@ -246,6 +247,10 @@
 @media (max-width:1000px){
   #vv-ferramentas .vf2-tres{grid-template-columns:minmax(0,1fr)}
   #vv-ferramentas .vf2-fer > .p2-sub{min-height:0}
+}
+/* Em 1024 o fechar caía sozinho numa linha embaixo das abas (a busca não encolhia antes de quebrar a linha). */
+@media (min-width:761px){
+  #vv-ferramentas .vb-janela-topo.vb-janela-topo .vb-cabecalho-acoes{flex-wrap:nowrap;min-width:0;max-width:100%}
 }
 @media (max-width:760px){
   #vv-ferramentas .vb-janela-topo .vf2-busca{flex:1 1 120px;width:auto}

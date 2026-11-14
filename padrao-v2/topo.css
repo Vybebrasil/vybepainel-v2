@@ -51,6 +51,14 @@
 #v2j-busca .v2j-pe kbd:first-child{margin-left:0}
 @media (max-width:599px){
   #v2j-busca{--v2j-topo:8px;width:auto;max-width:none;margin:8px 8px auto}
+  /* Confere responsivo (14/11/2026): no celular a busca descia até o pé da tela, por cima da barra de baixo; termina
+     acima dela, como as outras janelas. O toque vai a 44 (fechar e campo) e 36 (abas); "Esc" e as teclas de atalho
+     não servem no telefone e saem. */
+  #v2j-busca{max-height:calc(100dvh - 84px - env(safe-area-inset-bottom))}
+  #v2j-busca .v2j-x.spotlight-fechar{width:44px;height:44px}
+  #v2j-busca #spotlight-input{height:44px}
+  #v2j-busca .spotlight-abas button{height:36px}
+  #v2j-busca .v2j-cab .v2j-pill,#v2j-busca .v2j-pe{display:none}
 }
 
 /* ---------- Avisos ---------- */

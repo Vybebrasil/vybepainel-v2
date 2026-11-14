@@ -407,6 +407,21 @@ body.mundo #ag-cartao .capt-novo-tipo input:checked + span{background:transparen
   body:not(.trilho-largo) #mundo-hud .vv-trilho .vv-trilho-btn > svg{width:20px;height:20px;flex:none}
 }
 
+/* PÁGINA QUE NÃO ROLA (confere responsivo, 14/11/2026). Com o palco do mundo aberto (Hoje, as telas do trilho, Centro,
+   Minha sala), cada cartão rola por dentro e a página fica parada. Depois de passar por um painel antigo (Painel de
+   trabalho, Demandas, Clientes), o body perdia o "no-escritorio" e voltava a rolar: o painel antigo, escondido atrás do
+   palco, deixava a página de 800 a 1.600 px e a roda do mouse, o Espaço ou o foco rolavam o fundo. */
+body.mundo.mundo-visivel{overflow:hidden}
+
+/* TABLET (601 a 900, ex.: iPad em pé, 768): o menu vira a barra de baixo, mas herdava a largura de 232 da ilha do
+   computador e só mostrava "Vybe OS · Criar · Hoje"; o resto ficava escondido numa rolagem de lado minúscula. A barra
+   ocupa a largura toda (de margem a margem) e rola de lado só o que não couber. */
+@media (min-width:601px) and (max-width:900px){
+  #mundo-hud .vv-ilha.vv-trilho{width:auto;padding:4px;align-items:stretch}
+  #mundo-hud .vv-ilha.vv-trilho > .vv-trilho-btn{height:auto;min-height:0;justify-content:center}
+  #mundo-hud .vv-ilha.vv-trilho > .vv-trilho-marca{display:none}
+}
+
 /* ===== padrao-v2/celular.css ===== */
 /* Padrão v2 · grupo celular (quadro "No celular": barra de 4 itens, toque de 44 px, tudo abre em folha).
    1. A gaveta da peça vira folha de baixo para cima abaixo de 600 px (vybe-gaveta.js: gavetaCelularHtml).
@@ -486,7 +501,7 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#automacoes-root,#vv-planejamentos,#vv-whatsapp,#vv-reunioes,#vv-ferramentas,.pv2-casa) :is(button,summary,a)[class*="-btn"][class*="-btn"]:not(.vv-trilho-btn){min-height:44px;min-width:44px;box-sizing:border-box}
   body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#automacoes-root,#vv-planejamentos,#vv-whatsapp,#vv-reunioes,#vv-ferramentas,.pv2-casa) input[class*="busca"][class*="busca"]{min-height:44px;box-sizing:border-box}
   /* fechar e ícones soltos: 44 × 44 */
-  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#vv-wa-avisos) :is(.v2c-x,.v2l-x,.v2r-x,.vp-x,.vb-janela-x,.v2c-fechar,.vv-aviso-curto-x):is(button,a,summary){width:44px;height:44px;min-width:44px;min-height:44px;box-sizing:border-box}
+  body.mundo :is(#mundo-hud,#vv-conteudo,#vv-comercial,#vv-pessoas,#vv-carteira,#office-catalogo,#workflow-modal,#vv-wa-avisos,#vv-ferramentas,#vv-impressoes,#vv-reunioes) :is(.v2c-x,.v2l-x,.v2r-x,.vp-x,.vb-janela-x,.v2c-fechar,.vv-aviso-curto-x):is(button,a,summary){width:44px;height:44px;min-width:44px;min-height:44px;box-sizing:border-box}
   /* o topo do celular (busca, avisos, mais, conta): 44 de altura como no quadro; a busca encolhe para caber */
   body.mundo #mundo-hud :is(button,summary).vv-botao.vv-botao{min-height:44px;min-width:44px;height:44px;box-sizing:border-box}
   body.mundo #mundo-hud :is(button,summary).vv-botao.vv-busca-larga{min-width:0}
@@ -1396,6 +1411,13 @@ body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .
 #pv2-agenda .d3ag-selo{display:inline-flex;align-items:center;flex:none;height:18px;padding:0 6px;border-radius:999px;font:700 10.5px var(--vv-texto,Inter),sans-serif}
 #pv2-agenda .d3ag-selo.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
 #pv2-agenda .d3ag-selo.b{background:var(--d3-info-veu);color:var(--d3-info)}
+/* Confere responsivo (14/11/2026): com a faixa abaixo de ~1.000 px (1366, 1280 e o app do Mac) o selo "fechar" e
+   "Feriado" passavam por cima de "hoje 14" e "dom 15". O dia fica em cima e o selo com o número embaixo. */
+#pv2-agenda .d3ag-faixa{container:d3agfaixa / inline-size;width:100%;box-sizing:border-box}
+@container d3agfaixa (max-width:1000px){
+  #pv2-agenda .d3ag-dia{flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px}
+  #pv2-agenda .d3ag-dia > .d3ag-dia-n{align-self:stretch;justify-content:space-between}
+}
 
 /* cartões */
 #pv2-agenda .pv2a-duas.d3ag-corpo{display:flex;flex-direction:column;gap:14px}
@@ -1548,6 +1570,17 @@ body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .
 #vv-planejamentos .d3pl-bts{display:flex;justify-content:flex-end;gap:6px}
 #vv-planejamentos .d3pl-nomes{display:flex;flex-wrap:nowrap;gap:10px;overflow:hidden;white-space:nowrap}
 #vv-planejamentos .d3pl-nomes > *{flex:none}
+/* Confere responsivo (14/11/2026): com o menu aberto em 1024 a lista mede ~680 px; as cinco colunas fixas comiam tudo,
+   o nome do cliente virava "Clie..." e "Peças" encostava em "Com OK". Abaixo de 820 px de lista, a linha empilha. */
+#vv-planejamentos .p2-card.p2-lista{container:d3pl / inline-size}
+@container d3pl (max-width:820px){
+  #vv-planejamentos .d3pl-cab{display:none}
+  #vv-planejamentos .p2-lin.d3pl-lin{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px}
+  #vv-planejamentos .p2-lin.d3pl-lin > p{grid-column:1 / 2}
+  #vv-planejamentos .p2-lin.d3pl-lin > .d3pl-bts{grid-column:2 / -1}
+  #vv-planejamentos .p2-lin.d3pl-lin > .d3pl-ok{grid-column:1 / -1}
+  #vv-planejamentos .d3pl-ok:empty{display:none}
+}
 @media (max-width:900px){
   #vv-planejamentos .d3pl-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
   #vv-planejamentos .d3pl-cab{display:none}
@@ -2247,6 +2280,12 @@ body.mundo #ops-clear-btn.ops-clear-btn{height:32px;padding:0 12px;border:0;bord
 #vv-comercial.v2c.d3c .d3-num > .d3-num-rot{font-size:12.5px;font-weight:400}
 #vv-comercial.v2c.d3c .d3-num > .d3-num-v{font-size:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #vv-comercial.v2c.d3c .d3-num.d3c-longo > .d3-num-v{font-size:26px;line-height:36px}
+/* Cartão estreito (celular, dois por linha): "Sem campeão" virava "Sem cam...". O número diminui com o cartão. */
+#vv-comercial.v2c.d3c .d3c-nums > .d3-num{container-type:inline-size}
+@container (max-width:200px){
+  #vv-comercial.v2c.d3c .d3c-nums > .d3-num > .d3-num-v{font-size:clamp(18px,15cqi,26px);line-height:1.15}
+  #vv-comercial.v2c.d3c .d3-num > .d3-graf{display:none}
+}
 #vv-comercial.v2c.d3c .d3-num > .d3-graf{width:80px;height:28px;align-self:flex-end;margin-top:-34px}
 #vv-comercial.v2c.d3c .d3-num > .d3-barra{margin-top:2px}
 #vv-comercial.v2c.d3c .d3c-num-sub{font:400 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2836,6 +2875,13 @@ body.mundo #ops-clear-btn.ops-clear-btn{height:32px;padding:0 12px;border:0;bord
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-rot{font-size:12.5px;font-weight:500}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-v{min-width:0;font-size:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-graf{width:72px;height:28px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-nums > .d3-num{container-type:inline-size}
+/* Cartão estreito (1024 com o menu aberto, quatro por linha): a mini linha saía e o número virava "R..." e "Sem t...".
+   Abaixo de 200 px de cartão a linha some e o número diminui com o cartão, sem cortar. */
+@container (max-width:200px){
+  :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-graf{display:none}
+  :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-v{grid-column:1 / -1;font-size:clamp(18px,16cqi,30px)}
+}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.q > .d3-num-v{color:var(--d3-meta)}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.d3f-verde > .d3-barra > i{background:var(--d3-pronto)}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.r > .d3-graf polyline:not(.meta){stroke:var(--d3-perigo)}
@@ -3448,7 +3494,7 @@ body.mundo #ops-clear-btn.ops-clear-btn{height:32px;padding:0 12px;border:0;bord
 #vv-hoje .d3h-pills{display:flex;flex-wrap:wrap;gap:5px}
 #vv-hoje .d3h-carta-txt > small{font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
 #vv-hoje .d3h-decidir-acoes{display:flex;align-items:center;gap:8px}
-#vv-hoje .d3h-decidir-acoes > .d3h-btn{flex:1}
+#vv-hoje .d3h-decidir-acoes > .d3h-btn{flex:1 1 auto;padding:0 10px;white-space:nowrap}
 #vv-hoje .d3h-decidir-acoes > .d3h-passo{flex:none;width:36px;padding:0;font:600 16px var(--vv-texto,Inter,sans-serif)}
 #vv-hoje .d3h-fila{display:flex;flex-wrap:wrap;gap:4px 12px;font:400 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
 #vv-hoje .d3h-fila b{color:var(--d3-tinta)}
@@ -3600,10 +3646,24 @@ body.mundo #ops-clear-btn.ops-clear-btn{height:32px;padding:0 12px;border:0;bord
 #vv-hoje .d3h-co .v2o-lista{margin:0 0 8px}
 #vv-hoje .d3h-co .v2o-lista > li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-top:1px solid var(--d3-linha)}
 
+/* O cartão de tarefas estreito (Minhas tarefas no app do Mac, 1135: a coluna fica com ~380 px): o nome da peça virava
+   "Academia L" e o status "Em pro". Abaixo de 480 px de cartão, a linha quebra como no celular. */
+#vv-hoje .d3h-tarefas{container:d3htf / inline-size}
+@container d3htf (max-width:480px){
+  #vv-hoje .d3h-tarefas .v2t-lin{flex-wrap:wrap;row-gap:4px;padding:9px 14px}
+  #vv-hoje .d3h-tarefas .v2t-nome{flex:1 1 calc(100% - 120px)}
+  #vv-hoje .d3h-tarefas .v2t-st{max-width:none}
+  #vv-hoje .d3h-tarefas .d3h-q{width:auto;min-width:0}
+}
 /* A coluna do Hoje estreita (Minha sala) e o celular: duas colunas, depois uma; números em duas por linha. */
 @container hoje (max-width:1100px){
   #vv-hoje .d3h-grade,#vv-hoje .d3h-tf .d3h-grade{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
   #vv-hoje .d3h-grade > .d3h-col:nth-child(3){grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));align-items:start}
+  /* O guia do dia com os três passos: em 1366 e 1135 a frase virava "2 peças suas vã..." espremida pelos passos. Os
+     passos descem para a linha de baixo e a frase fica inteira. */
+  #vv-hoje .d3h-acao:has(> .d3h-acao-passos){flex-wrap:wrap}
+  #vv-hoje .d3h-acao:has(> .d3h-acao-passos) > .d3-acao-frase{flex:1 1 calc(100% - 200px);white-space:normal}
+  #vv-hoje .d3h-acao:has(> .d3h-acao-passos) > .d3h-acao-passos{order:3;flex:1 1 100%;flex-wrap:wrap}
 }
 @container hoje (max-width:760px){
   #vv-hoje .d3h-grade,#vv-hoje .d3h-tf .d3h-grade{grid-template-columns:minmax(0,1fr)}
@@ -3847,7 +3907,7 @@ body.mundo.d3c-painel #mundo > .mundo-vinheta{display:none}
 body.mundo.d3c-painel #mundo > .mundo-fonte{display:none}
 body.mundo.d3c-painel #mundo > .mundo-carregando{left:calc(var(--d3c-mx,0px) + var(--d3c-mw,100vw) / 2);top:calc(var(--d3c-my,0px) + var(--d3c-mh,100vh) / 2)}
 #mundo-hud > #d3-centro{display:none}
-body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:var(--vv-livre-esq,250px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:var(--vv-livre-esq,250px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
 #d3-centro > *,#d3-centro .d3c-grade > *,#d3-centro .d3c-col1 > *{pointer-events:auto}
 #d3-centro :is(h3,p){margin:0}
 /* Título: Vybelândia e a data à esquerda; a busca e Centro/Prédio à direita. */
@@ -3976,7 +4036,7 @@ body.mundo.mundo-quarto.d3s-painel #mundo-hud > #vv-hoje.vv-hoje{display:none}
 body.mundo.d3s-painel #mundo-andar.quarto{background:var(--d3-areia)}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .andar-palco{inset:auto;left:var(--d3s-qx,0px);top:var(--d3s-qy,0px);width:var(--d3s-qw,100%);height:var(--d3s-qh,100%);border-radius:var(--d3-r-cartao);overflow:hidden}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .quarto-estado{position:absolute;left:var(--d3s-qx,0px);top:var(--d3s-qy,0px);width:var(--d3s-qw,100%);height:var(--d3s-qh,100%)}
-#mundo-andar > #d3-sala{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:calc(var(--vv-palco-esq,244px) + 8px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+#mundo-andar > #d3-sala{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:calc(var(--vv-palco-esq,244px) + 8px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
 #d3-sala > *,#d3-sala .d3s-grade > *{pointer-events:auto}
 /* A grade em si deixa passar o toque: o cartão do quarto é um buraco, e arrastar, girar e dar zoom chegam ao 3D por
    baixo, como antes (Paulo, 14/11/2026: "deixa mexer a tela do 3D no lugar de fixa"). */
@@ -4031,6 +4091,20 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{posi
 #d3-sala .d3s-lin > i{flex:none;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-borda)}
 #d3-sala .d3s-lin.feita > i{background:var(--d3-pronto);box-shadow:none}
 #d3-sala .d3s-lin > .v2-risca{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Coluna do meio estreita (1024 com o menu aberto, ~230 px): "Agora" mostrava "Ca..." e o cliente sumia, e no "Seu dia"
+   o nome da peça virava "Car...". Abaixo de 300 px o nome ganha duas linhas e a data e o cliente descem. */
+#d3-sala .d3s-col2{container:d3sc2 / inline-size}
+@container d3sc2 (max-width:300px){
+  #d3-sala .d3s-peca{flex-wrap:wrap;row-gap:6px}
+  #d3-sala .d3s-thumb{width:40px;height:40px}
+  #d3-sala .d3s-peca-txt{flex:1 1 calc(100% - 52px)}
+  #d3-sala .d3s-peca-txt > b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  #d3-sala .d3s-peca > :last-child:not(.d3s-peca-txt){margin-left:52px}
+  #d3-sala .d3s-lin{flex-wrap:wrap;row-gap:2px}
+  #d3-sala .d3s-lin > .v2-risca{flex:1 1 calc(100% - 28px)}
+  #d3-sala .d3s-lin > .cliente-carteira{max-width:calc(100% - 28px);margin-left:28px}
+  #d3-sala .d3s-peca-txt > span > .cliente-carteira{max-width:100%}
+}
 #d3-sala .d3s-venc{flex:none;font-style:normal;font:600 12px var(--vv-texto,Inter,sans-serif);color:var(--d3-perigo)}
 #d3-sala .cliente-carteira{display:inline-flex;align-items:center;gap:5px;max-width:40%;padding:0;border:0;background:none;box-shadow:none;color:var(--carteira-texto,var(--d3-tinta));font:inherit;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #d3-sala .cliente-carteira::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
@@ -4682,6 +4756,11 @@ button.d3-num.d3s-num:active{transform:scale(.98)}
 .d3-num.d3s-num > .d3-num-v{font-size:34px}
 .d3-num.d3s-num > .d3-num-v small{font-size:18px;font-weight:600;color:var(--d3-apagado)}
 .d3-num.d3s-num > .d3-graf{width:90px;height:28px}
+/* Cartão estreito (1024 com o menu aberto): a mini linha de 90 px deixava o número com 26 px ("38" cortado). */
+.d3s-nums > .d3-num.d3s-num{container-type:inline-size}
+@container (max-width:200px){
+  .d3-num.d3s-num > .d3-graf{display:none}
+}
 .d3-num.d3s-num > .d3-barra{grid-column:1/-1;margin-top:4px}
 .d3-num.d3s-num > .d3s-sub{grid-column:1/-1;min-width:0;font-size:12.5px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d3s-tres{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr) minmax(0,.96fr);gap:14px;align-items:stretch}
@@ -4738,6 +4817,13 @@ button.d3s-lin-txt{cursor:pointer}
 .d3s-mod > span{font:600 12px/1.25 var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis}
 .d3s-mod > b{font:700 17px var(--vv-titulo,"Inter Tight"),Inter,sans-serif;font-variant-numeric:tabular-nums}
 .d3s-mod > b.r{color:var(--d3-perigo)}
+/* Confere responsivo (14/11/2026): a regra acima olha a janela, mas o painel é que aperta (menu aberto em 1135, no app do
+   Mac, deixa ~850 px): com três colunas os nomes em Pessoas · carga viravam "P...". Pelo tamanho do painel: */
+.d3s{container:d3setor / inline-size}
+@container d3setor (max-width:940px){
+  .d3s-tres{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d3s-lado{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media (max-width:1100px){
   .d3s-tres{grid-template-columns:repeat(2,minmax(0,1fr))}
   .d3s-lado{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -4945,6 +5031,17 @@ button.d3s-lin-txt{cursor:pointer}
 .vv-gestao .d3g-minis b small{font-size:12px;font-weight:500;color:var(--d3-apagado)}
 @media (max-width:1000px){
   .vv-gestao .d3g-duas{grid-template-columns:minmax(0,1fr)}
+}
+/* Pelo tamanho do painel (confere responsivo, 14/11/2026): em 1024 com o menu aberto a Gestão mede ~700 px e o "Por
+   setor" cortava as pílulas ("11 ao ar hoje se"). Abaixo de 900 px de painel, uma coluna; abaixo de 640, o nome do setor
+   sobe. */
+.vv-gestao .d3g{container:d3gestao / inline-size}
+@container d3gestao (max-width:900px){
+  .vv-gestao .d3g-duas{grid-template-columns:minmax(0,1fr)}
+}
+@container d3gestao (max-width:640px){
+  .vv-gestao .d3g-set{grid-template-columns:minmax(0,1fr) auto}
+  .vv-gestao .d3g-set-nome{grid-column:1/-1}
 }
 @media (max-width:720px){
   .vv-gestao .d3g-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -5197,6 +5294,17 @@ button.d3s-lin-txt{cursor:pointer}
 /* Três colunas; quem não administra fica com duas (Pede ação · Seu perfil). */
 #conta-root #v2c.d3c .d3c-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:stretch}
 #conta-root #v2c.d3c .d3c-cols.so-eu{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+/* Confere responsivo (14/11/2026): no painel estreito (1024 com o menu aberto) as três colunas ficavam com 200 px e o
+   perfil empilhava "PNG · JPG · até 2 MB" letra sobre letra. No painel estreito: Pede ação e perfil lado a
+   lado e a Equipe embaixo, na largura toda (abaixo de 900 px de painel). */
+#conta-root #v2c.d3c{container:d3conta / inline-size}
+@container d3conta (max-width:900px){
+  #conta-root #v2c.d3c .d3c-cols{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+  #conta-root #v2c.d3c .d3c-cols > .d3c-equipe{grid-column:1 / -1}
+}
+@container d3conta (max-width:620px){
+  #conta-root #v2c.d3c .d3c-cols,#conta-root #v2c.d3c .d3c-cols.so-eu{grid-template-columns:minmax(0,1fr)}
+}
 #conta-root #v2c.d3c .d3c-col{display:flex;flex-direction:column;gap:12px;min-width:0}
 #conta-root #v2c.d3c .d3c-cartao{display:flex;flex-direction:column;padding:14px 0 6px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:none}
 #conta-root #v2c.d3c .d3c-operacao{flex:1}
@@ -6018,7 +6126,9 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 /* Dentro: estado, não ação. Verde claro com texto verde (o verde escuro com o cinza do disabled não se lia). */
 #vv-dock-salas-faixa .vq-dock .vq-voz button.dentro,#vv-dock-salas-faixa .vq-dock .vq-voz button.dentro:disabled{background:#E8F5EC;color:#11613A}
 @media (max-width:900px){
-  #vv-dock-salas-faixa > .vq-dock.vv-dock-salas{border-radius:24px;row-gap:4px}
+  /* Tablet (601 a 900) dentro da Minha sala: com Voltar e Decorar o dock passava da tela e rolava de lado, cortando o
+     último botão. Quebra em duas linhas, como no celular numa chamada. */
+  #vv-dock-salas-faixa > .vq-dock.vv-dock-salas{border-radius:24px;row-gap:4px;flex-wrap:wrap;justify-content:center}
   #vv-dock-salas-faixa .vq-dock .vq-item{width:50px}
   #vv-dock-salas-faixa .vq-dock .vq-voz{max-width:100%}
 }
@@ -6151,6 +6261,10 @@ body.cel-na-sala.cel-dock-aberto #vv-dock-salas-faixa .vq-dock > .vq-cel-mais{or
 :root body #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.on,.vq-mic.on) .vq-rotulo{font-weight:600}
 #vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar) .vq-conta{top:-2px;right:2px}
 @media (prefers-reduced-motion:reduce){#vv-dock-salas-faixa .vq-dock .vq-item .vq-icone{transition:none}#vv-dock-salas-faixa .vq-dock .vq-item:hover .vq-icone{transform:none}}
+
+/* Minha sala no quadro (d3s-painel, confere responsivo de 14/11/2026): o 3D fica dentro do cartão e não há mais coluna
+   à esquerda; o dock herdava o recuo do quarto antigo (left = coluna + vão) e, em 1024, passava da borda direita. */
+@media (min-width:901px){body.mundo.mundo-quarto.d3s-painel #vv-dock-salas-faixa{left:var(--vv-palco-esq,0px)}}
 
 /* ===== padrao-v2/entrada.css ===== */
 /* PADRÃO V2 · LOGIN E ENTRADA, VYBES E CRIAR (quadros EntradaDepois e VybesCriarDepois do moodboard, 13/11/2026).
@@ -6432,6 +6546,10 @@ body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"].vb-aba-fora{display:none}
 /* Abas que não cabem (quadro D3-Celular): primeiro apertam na largura toda, com texto de 12; só depois vão para o "Mais". */
 body.mundo .vb-abas.vb-abas-justas.vb-abas:not(#vb-a):not(#vb-b){display:flex;width:100%}
 body.mundo .vb-abas.vb-abas-justas:not(#vb-a):not(#vb-b) [role="tab"]{flex:1 1 auto;padding:0 8px;font-size:12px}
+/* Confere responsivo (14/11/2026): apertadas (Aprovação no celular), o contador de uma aba encostava no nome da
+   seguinte ("2 Com o cliente"). Um respiro entre as abas e dentro delas mantém cada contador com a sua aba. */
+body.mundo .vb-abas.vb-abas-justas.vb-abas:not(#vb-a):not(#vb-b){gap:3px}
+body.mundo .vb-abas.vb-abas-justas:not(#vb-a):not(#vb-b) [role="tab"]{gap:4px;padding:0 7px}
 /* A pílula que desliza: desenhada pela lista, na posição da aba selecionada (--vb-aba-x/--vb-aba-w, postas por vbArrumarAbas). */
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b){--ds-on-fundo:transparent}
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:transparent;box-shadow:none;color:#FFFFFF}
@@ -7631,8 +7749,9 @@ body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:va
 #office-catalogo .v2l-esc-meio > .v2-barra{margin:7px 0 5px;background:#EAE6DE;border-radius:3px}
 #office-catalogo .v2l-premio{flex:none;text-align:right;font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);color:#6B665E}
 #office-catalogo .v2l-premio > b{color:#1F1D1A}
-#office-catalogo .v2l-niv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:0 0 12px 56px}
-#office-catalogo .v2l-niv > p{padding:6px 8px;border-radius:10px;background:#F6F3EE;font:400 11px/1.35 var(--vv-texto,Inter,sans-serif);color:#4A463F;overflow-wrap:anywhere}
+/* Os quatro degraus cabem lado a lado só com espaço; na coluna estreita (Loja em 1024) eles quebravam "Bron ze". */
+#office-catalogo .v2l-niv{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:0 0 12px 56px}
+#office-catalogo .v2l-niv > p{padding:6px 8px;border-radius:10px;background:#F6F3EE;font:400 11px/1.35 var(--vv-texto,Inter,sans-serif);color:#4A463F;overflow-wrap:break-word}
 #office-catalogo .v2l-niv > p.ok{background:#FBE9DC}
 #office-catalogo .v2l-niv > p > b{display:block;font-size:11.5px;color:#1F1D1A}
 #office-catalogo .v2l-niv > p > small{display:block;font-size:10.5px;color:#6B665E}
@@ -9439,9 +9558,10 @@ body.mundo #workflow-modal.status-context-dialog{--vybe-orange-soft:var(--d3-tin
 #vv-ferramentas .vf2-rec-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
 #vv-ferramentas .vf2-fer{display:flex;flex-direction:column;gap:12px}
 #vv-ferramentas .vf2-fer > .p2-sub{min-height:31px}
-#vv-ferramentas .vf2-cab{display:flex;align-items:center;gap:10px}
-#vv-ferramentas .vf2-cab > h3{flex:1;min-width:0}
-#vv-ferramentas .vf2-mais{font:600 12px var(--vv-texto);text-decoration:none}
+/* "mais opções" desce para baixo do nome quando o cartão é estreito (1024: "Link do WhatsApp" passava por cima dele). */
+#vv-ferramentas .vf2-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+#vv-ferramentas .vf2-cab > h3{flex:1 1 auto;min-width:0}
+#vv-ferramentas .vf2-mais{margin-left:auto;font:600 12px var(--vv-texto);text-decoration:none;white-space:nowrap}
 #vv-ferramentas .vf2-ico{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#FFF1E6;color:#8A3207}
 #vv-ferramentas .vf2-ico svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #vv-ferramentas .vf2-rot{display:block;margin:0 0 4px 4px;font:600 12px var(--vv-texto);color:#4A463F}
@@ -9459,6 +9579,10 @@ body.mundo #workflow-modal.status-context-dialog{--vybe-orange-soft:var(--d3-tin
 @media (max-width:1000px){
   #vv-ferramentas .vf2-tres{grid-template-columns:minmax(0,1fr)}
   #vv-ferramentas .vf2-fer > .p2-sub{min-height:0}
+}
+/* Em 1024 o fechar caía sozinho numa linha embaixo das abas (a busca não encolhia antes de quebrar a linha). */
+@media (min-width:761px){
+  #vv-ferramentas .vb-janela-topo.vb-janela-topo .vb-cabecalho-acoes{flex-wrap:nowrap;min-width:0;max-width:100%}
 }
 @media (max-width:760px){
   #vv-ferramentas .vb-janela-topo .vf2-busca{flex:1 1 120px;width:auto}
@@ -9741,6 +9865,14 @@ body.mundo #status-editor .v2-st-cab small{font:400 12px var(--vv-texto,Inter,sa
 #v2j-busca .v2j-pe kbd:first-child{margin-left:0}
 @media (max-width:599px){
   #v2j-busca{--v2j-topo:8px;width:auto;max-width:none;margin:8px 8px auto}
+  /* Confere responsivo (14/11/2026): no celular a busca descia até o pé da tela, por cima da barra de baixo; termina
+     acima dela, como as outras janelas. O toque vai a 44 (fechar e campo) e 36 (abas); "Esc" e as teclas de atalho
+     não servem no telefone e saem. */
+  #v2j-busca{max-height:calc(100dvh - 84px - env(safe-area-inset-bottom))}
+  #v2j-busca .v2j-x.spotlight-fechar{width:44px;height:44px}
+  #v2j-busca #spotlight-input{height:44px}
+  #v2j-busca .spotlight-abas button{height:36px}
+  #v2j-busca .v2j-cab .v2j-pill,#v2j-busca .v2j-pe{display:none}
 }
 
 /* ---------- Avisos ---------- */

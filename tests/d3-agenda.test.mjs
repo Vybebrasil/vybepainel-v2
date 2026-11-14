@@ -10,8 +10,8 @@ const css = ler('padrao-v2/d3-agenda.css'), semComentario = css.replace(/\/\*[\s
 
 test('o fragmento d3-agenda.css não força nada, usa os tokens e prende cada regra ao id da janela', () => {
   assert.doesNotMatch(semComentario, /!important|html body\.mundo/);
-  const regras = semComentario.split('}').map((r) => r.trim()).filter((r) => r && !r.startsWith('@media') && /\{/.test(r));
-  for (const r of regras) assert.match(r.replace(/^@media[^{]*\{\s*/, ''), /^(:is\()?#(pv2-agenda|vv-planejamentos|vv-impressoes|vv-pessoas|vv-comercial|vv-ferramentas)/, r.slice(0, 80));
+  const regras = semComentario.split('}').map((r) => r.trim()).filter((r) => r && !/^@(media|container)/.test(r) && /\{/.test(r));
+  for (const r of regras) assert.match(r.replace(/^@(media|container)[^{]*\{\s*/, ''), /^(:is\()?#(pv2-agenda|vv-planejamentos|vv-impressoes|vv-pessoas|vv-comercial|vv-ferramentas)/, r.slice(0, 80));
   assert.ok((semComentario.match(/var\(--d3-/g) || []).length > 100, 'as cores vêm dos tokens --d3-*');
   assert.match(ler('vybe-mundo-padrao-v2.css'), /padrao-v2\/d3-agenda\.css/, 'o juntador levou o fragmento');
 });

@@ -223,6 +223,11 @@ button.d3-num.d3s-num:active{transform:scale(.98)}
 .d3-num.d3s-num > .d3-num-v{font-size:34px}
 .d3-num.d3s-num > .d3-num-v small{font-size:18px;font-weight:600;color:var(--d3-apagado)}
 .d3-num.d3s-num > .d3-graf{width:90px;height:28px}
+/* Cartão estreito (1024 com o menu aberto): a mini linha de 90 px deixava o número com 26 px ("38" cortado). */
+.d3s-nums > .d3-num.d3s-num{container-type:inline-size}
+@container (max-width:200px){
+  .d3-num.d3s-num > .d3-graf{display:none}
+}
 .d3-num.d3s-num > .d3-barra{grid-column:1/-1;margin-top:4px}
 .d3-num.d3s-num > .d3s-sub{grid-column:1/-1;min-width:0;font-size:12.5px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d3s-tres{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr) minmax(0,.96fr);gap:14px;align-items:stretch}
@@ -279,6 +284,13 @@ button.d3s-lin-txt{cursor:pointer}
 .d3s-mod > span{font:600 12px/1.25 var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis}
 .d3s-mod > b{font:700 17px var(--vv-titulo,"Inter Tight"),Inter,sans-serif;font-variant-numeric:tabular-nums}
 .d3s-mod > b.r{color:var(--d3-perigo)}
+/* Confere responsivo (14/11/2026): a regra acima olha a janela, mas o painel é que aperta (menu aberto em 1135, no app do
+   Mac, deixa ~850 px): com três colunas os nomes em Pessoas · carga viravam "P...". Pelo tamanho do painel: */
+.d3s{container:d3setor / inline-size}
+@container d3setor (max-width:940px){
+  .d3s-tres{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d3s-lado{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media (max-width:1100px){
   .d3s-tres{grid-template-columns:repeat(2,minmax(0,1fr))}
   .d3s-lado{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -486,6 +498,17 @@ button.d3s-lin-txt{cursor:pointer}
 .vv-gestao .d3g-minis b small{font-size:12px;font-weight:500;color:var(--d3-apagado)}
 @media (max-width:1000px){
   .vv-gestao .d3g-duas{grid-template-columns:minmax(0,1fr)}
+}
+/* Pelo tamanho do painel (confere responsivo, 14/11/2026): em 1024 com o menu aberto a Gestão mede ~700 px e o "Por
+   setor" cortava as pílulas ("11 ao ar hoje se"). Abaixo de 900 px de painel, uma coluna; abaixo de 640, o nome do setor
+   sobe. */
+.vv-gestao .d3g{container:d3gestao / inline-size}
+@container d3gestao (max-width:900px){
+  .vv-gestao .d3g-duas{grid-template-columns:minmax(0,1fr)}
+}
+@container d3gestao (max-width:640px){
+  .vv-gestao .d3g-set{grid-template-columns:minmax(0,1fr) auto}
+  .vv-gestao .d3g-set-nome{grid-column:1/-1}
 }
 @media (max-width:720px){
   .vv-gestao .d3g-nums{grid-template-columns:repeat(2,minmax(0,1fr))}

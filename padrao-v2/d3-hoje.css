@@ -154,7 +154,7 @@
 #vv-hoje .d3h-pills{display:flex;flex-wrap:wrap;gap:5px}
 #vv-hoje .d3h-carta-txt > small{font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
 #vv-hoje .d3h-decidir-acoes{display:flex;align-items:center;gap:8px}
-#vv-hoje .d3h-decidir-acoes > .d3h-btn{flex:1}
+#vv-hoje .d3h-decidir-acoes > .d3h-btn{flex:1 1 auto;padding:0 10px;white-space:nowrap}
 #vv-hoje .d3h-decidir-acoes > .d3h-passo{flex:none;width:36px;padding:0;font:600 16px var(--vv-texto,Inter,sans-serif)}
 #vv-hoje .d3h-fila{display:flex;flex-wrap:wrap;gap:4px 12px;font:400 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
 #vv-hoje .d3h-fila b{color:var(--d3-tinta)}
@@ -306,10 +306,24 @@
 #vv-hoje .d3h-co .v2o-lista{margin:0 0 8px}
 #vv-hoje .d3h-co .v2o-lista > li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-top:1px solid var(--d3-linha)}
 
+/* O cartão de tarefas estreito (Minhas tarefas no app do Mac, 1135: a coluna fica com ~380 px): o nome da peça virava
+   "Academia L" e o status "Em pro". Abaixo de 480 px de cartão, a linha quebra como no celular. */
+#vv-hoje .d3h-tarefas{container:d3htf / inline-size}
+@container d3htf (max-width:480px){
+  #vv-hoje .d3h-tarefas .v2t-lin{flex-wrap:wrap;row-gap:4px;padding:9px 14px}
+  #vv-hoje .d3h-tarefas .v2t-nome{flex:1 1 calc(100% - 120px)}
+  #vv-hoje .d3h-tarefas .v2t-st{max-width:none}
+  #vv-hoje .d3h-tarefas .d3h-q{width:auto;min-width:0}
+}
 /* A coluna do Hoje estreita (Minha sala) e o celular: duas colunas, depois uma; números em duas por linha. */
 @container hoje (max-width:1100px){
   #vv-hoje .d3h-grade,#vv-hoje .d3h-tf .d3h-grade{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
   #vv-hoje .d3h-grade > .d3h-col:nth-child(3){grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));align-items:start}
+  /* O guia do dia com os três passos: em 1366 e 1135 a frase virava "2 peças suas vã..." espremida pelos passos. Os
+     passos descem para a linha de baixo e a frase fica inteira. */
+  #vv-hoje .d3h-acao:has(> .d3h-acao-passos){flex-wrap:wrap}
+  #vv-hoje .d3h-acao:has(> .d3h-acao-passos) > .d3-acao-frase{flex:1 1 calc(100% - 200px);white-space:normal}
+  #vv-hoje .d3h-acao:has(> .d3h-acao-passos) > .d3h-acao-passos{order:3;flex:1 1 100%;flex-wrap:wrap}
 }
 @container hoje (max-width:760px){
   #vv-hoje .d3h-grade,#vv-hoje .d3h-tf .d3h-grade{grid-template-columns:minmax(0,1fr)}
@@ -553,7 +567,7 @@ body.mundo.d3c-painel #mundo > .mundo-vinheta{display:none}
 body.mundo.d3c-painel #mundo > .mundo-fonte{display:none}
 body.mundo.d3c-painel #mundo > .mundo-carregando{left:calc(var(--d3c-mx,0px) + var(--d3c-mw,100vw) / 2);top:calc(var(--d3c-my,0px) + var(--d3c-mh,100vh) / 2)}
 #mundo-hud > #d3-centro{display:none}
-body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:var(--vv-livre-esq,250px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:var(--vv-livre-esq,250px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
 #d3-centro > *,#d3-centro .d3c-grade > *,#d3-centro .d3c-col1 > *{pointer-events:auto}
 #d3-centro :is(h3,p){margin:0}
 /* Título: Vybelândia e a data à esquerda; a busca e Centro/Prédio à direita. */
@@ -682,7 +696,7 @@ body.mundo.mundo-quarto.d3s-painel #mundo-hud > #vv-hoje.vv-hoje{display:none}
 body.mundo.d3s-painel #mundo-andar.quarto{background:var(--d3-areia)}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .andar-palco{inset:auto;left:var(--d3s-qx,0px);top:var(--d3s-qy,0px);width:var(--d3s-qw,100%);height:var(--d3s-qh,100%);border-radius:var(--d3-r-cartao);overflow:hidden}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .quarto-estado{position:absolute;left:var(--d3s-qx,0px);top:var(--d3s-qy,0px);width:var(--d3s-qw,100%);height:var(--d3s-qh,100%)}
-#mundo-andar > #d3-sala{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:calc(var(--vv-palco-esq,244px) + 8px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+#mundo-andar > #d3-sala{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:calc(var(--vv-palco-esq,244px) + 8px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
 #d3-sala > *,#d3-sala .d3s-grade > *{pointer-events:auto}
 /* A grade em si deixa passar o toque: o cartão do quarto é um buraco, e arrastar, girar e dar zoom chegam ao 3D por
    baixo, como antes (Paulo, 14/11/2026: "deixa mexer a tela do 3D no lugar de fixa"). */
@@ -737,6 +751,20 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{posi
 #d3-sala .d3s-lin > i{flex:none;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-borda)}
 #d3-sala .d3s-lin.feita > i{background:var(--d3-pronto);box-shadow:none}
 #d3-sala .d3s-lin > .v2-risca{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Coluna do meio estreita (1024 com o menu aberto, ~230 px): "Agora" mostrava "Ca..." e o cliente sumia, e no "Seu dia"
+   o nome da peça virava "Car...". Abaixo de 300 px o nome ganha duas linhas e a data e o cliente descem. */
+#d3-sala .d3s-col2{container:d3sc2 / inline-size}
+@container d3sc2 (max-width:300px){
+  #d3-sala .d3s-peca{flex-wrap:wrap;row-gap:6px}
+  #d3-sala .d3s-thumb{width:40px;height:40px}
+  #d3-sala .d3s-peca-txt{flex:1 1 calc(100% - 52px)}
+  #d3-sala .d3s-peca-txt > b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  #d3-sala .d3s-peca > :last-child:not(.d3s-peca-txt){margin-left:52px}
+  #d3-sala .d3s-lin{flex-wrap:wrap;row-gap:2px}
+  #d3-sala .d3s-lin > .v2-risca{flex:1 1 calc(100% - 28px)}
+  #d3-sala .d3s-lin > .cliente-carteira{max-width:calc(100% - 28px);margin-left:28px}
+  #d3-sala .d3s-peca-txt > span > .cliente-carteira{max-width:100%}
+}
 #d3-sala .d3s-venc{flex:none;font-style:normal;font:600 12px var(--vv-texto,Inter,sans-serif);color:var(--d3-perigo)}
 #d3-sala .cliente-carteira{display:inline-flex;align-items:center;gap:5px;max-width:40%;padding:0;border:0;background:none;box-shadow:none;color:var(--carteira-texto,var(--d3-tinta));font:inherit;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #d3-sala .cliente-carteira::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}

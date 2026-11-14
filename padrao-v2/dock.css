@@ -162,7 +162,9 @@ body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{b
 /* Dentro: estado, não ação. Verde claro com texto verde (o verde escuro com o cinza do disabled não se lia). */
 #vv-dock-salas-faixa .vq-dock .vq-voz button.dentro,#vv-dock-salas-faixa .vq-dock .vq-voz button.dentro:disabled{background:#E8F5EC;color:#11613A}
 @media (max-width:900px){
-  #vv-dock-salas-faixa > .vq-dock.vv-dock-salas{border-radius:24px;row-gap:4px}
+  /* Tablet (601 a 900) dentro da Minha sala: com Voltar e Decorar o dock passava da tela e rolava de lado, cortando o
+     último botão. Quebra em duas linhas, como no celular numa chamada. */
+  #vv-dock-salas-faixa > .vq-dock.vv-dock-salas{border-radius:24px;row-gap:4px;flex-wrap:wrap;justify-content:center}
   #vv-dock-salas-faixa .vq-dock .vq-item{width:50px}
   #vv-dock-salas-faixa .vq-dock .vq-voz{max-width:100%}
 }
@@ -295,3 +297,7 @@ body.cel-na-sala.cel-dock-aberto #vv-dock-salas-faixa .vq-dock > .vq-cel-mais{or
 :root body #vv-dock-salas-faixa .vq-dock .vq-item:is(.aberta,.vq-ligado,.on,.vq-mic.on) .vq-rotulo{font-weight:600}
 #vv-dock-salas-faixa .vq-dock .vq-item:not(.vq-entrar) .vq-conta{top:-2px;right:2px}
 @media (prefers-reduced-motion:reduce){#vv-dock-salas-faixa .vq-dock .vq-item .vq-icone{transition:none}#vv-dock-salas-faixa .vq-dock .vq-item:hover .vq-icone{transform:none}}
+
+/* Minha sala no quadro (d3s-painel, confere responsivo de 14/11/2026): o 3D fica dentro do cartão e não há mais coluna
+   à esquerda; o dock herdava o recuo do quarto antigo (left = coluna + vão) e, em 1024, passava da borda direita. */
+@media (min-width:901px){body.mundo.mundo-quarto.d3s-painel #vv-dock-salas-faixa{left:var(--vv-palco-esq,0px)}}
