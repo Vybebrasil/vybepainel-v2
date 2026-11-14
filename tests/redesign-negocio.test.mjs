@@ -267,7 +267,7 @@ test('"Ver o que falta" e "Atualizar" são botões do padrão, não texto clicá
 
 test('Conta: no mundo a tela não é um cartão dentro da janela (quadros 13 e 60)', () => {
   const css = ler('vybe-appearance.css');
-  assert.match(css, /:where\(body:not\(\.mundo\)\)\.vybe-desktop \.conta-tela \{/, 'o cartão antigo só vale fora do mundo');
+  // Limpeza de 14/11/2026: a regra de .conta-tela saiu na poda das regras mortas (nenhum JS/HTML monta mais .conta-tela).
   assert.doesNotMatch(css, /\.vybe-desktop :is\([^)]*\.conta-tela/);
 });
 

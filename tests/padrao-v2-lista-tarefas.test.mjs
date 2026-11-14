@@ -58,7 +58,7 @@ test('o CSS entra no fim, com as medidas do quadro e sem forçar nada', () => {
   const fim = css.slice(css.indexOf('PADRÃO V2 · MINHAS TAREFAS EM LISTA ÚNICA'));
   assert.ok(fim.length > 2000);
   assert.doesNotMatch(fim, /!important|html body\.mundo|overflow-x:auto/);
-  assert.match(fim, /#vv-hoje \.v2t-grade\{display:grid;grid-template-columns:minmax\(0,1fr\) 330px;gap:14px/);
+  // Limpeza de 14/11/2026: a regra de .v2t-grade saiu na poda das regras mortas (nenhum JS/HTML monta mais .v2t-grade).
   assert.match(fim, /#vv-hoje \.v2t-fichas \.v2t-ficha\[aria-selected="true"\]\{background:#1F1D1A;color:#FFFFFF/);
   assert.match(fim, /#vv-hoje \.v2t-st\{flex:none;width:150px/);
   assert.match(fim, /#vv-hoje \.v2t-det\{[^}]*margin:0 0 12px 30px;padding:12px 14px;border-radius:14px;background:#F9F8F5\}/);

@@ -116,9 +116,7 @@ body.vybe-desktop {
 .vybe-desktop .client-name { letter-spacing: -.015em; font-weight: 600 !important; }
 .vybe-desktop .day-header-actions { flex-wrap: wrap; gap: 8px; }
 .vybe-desktop .day-summary-btn { border-radius: 6px !important; min-height: 30px; padding: 5px 9px !important; font-weight: 500 !important; }
-.vybe-desktop .day-add-btn { background: #ff984f15 !important; border-color: #ffb57945 !important; color: #ffc798 !important; }
 .vybe-desktop .dia-vazio { background: #ffffff03 !important; border-style: dashed !important; box-shadow: none !important; }
-.vybe-desktop .dia-vazio-recado { color: #a1a6b2 !important; }
 .vybe-desktop :is(.item-row,.dia-item) { border-bottom-color: #ffffff0b !important; transition: background-color .16s !important; }
 .vybe-desktop :is(.item-row,.dia-item):hover { background-color: #ffffff07 !important; }
 .vybe-desktop :is(#compact-summary,.ops-toolbar,.ops-hub) {
@@ -181,7 +179,6 @@ body.vybe-desktop {
   box-shadow: inset 0 1px 0 #ffffff25,0 4px 12px #0002 !important;
 }
 .vybe-desktop #mode-gate .focus-picker { background: #ffffff03 !important; border-radius: 12px !important; }
-.vybe-desktop #mode-gate .focus-user-card { border-radius: 17px !important; box-shadow: inset 0 1px 0 #ffffff15 !important; }
 .identity-appearance-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 
 /* Meu Dia: cabeçalho editorial, indicadores agrupados e uma ação principal.
@@ -294,24 +291,19 @@ body.vybe-desktop {
 .appearance-done { min-height: 38px; border: 1px solid #ffc18a66; border-radius: 6px; background: #a74d20; color: white; font: 600 13px var(--mac-ui); cursor: pointer; }
 .vybe-desktop .appearance-dialog > form > header { background: transparent !important; border: 0 !important; box-shadow: none !important; }
 /* A conta só vira cartão no tema antigo: no mundo ela é a própria janela (quadros 13 e 60, sem cartão sobre cartão). */
-.vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head,.login-caixa),
-:where(body:not(.mundo)).vybe-desktop .conta-tela {
+.vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head,.login-caixa) {
   background: linear-gradient(125deg,#ffffff07,transparent),var(--surface) !important;
   border: 1px solid var(--glass-edge) !important; border-radius: var(--radius-window) !important;
   box-shadow: var(--glass-highlight),0 8px 28px #0002 !important;
 }
 .vybe-desktop :is(.client-module-hero,.ai-usage-head,.prod-v2-head) { padding: 22px !important; }
 :where(body:not(.mundo)).vybe-desktop .conta-barra { background: #ffffff05 !important; border-color: #ffffff18 !important; border-radius: 12px 0 0 12px; }
-.vybe-desktop .conta-aba { border-radius: 6px !important; }
-:where(body:not(.mundo)).vybe-desktop .conta-aba.ativa { background: #ffffff13 !important; box-shadow: var(--glass-highlight); }
 .vybe-desktop :is(.auto-sub,.conta-secao-topo p,.client-module-hero p,.workspace-empty,.workspace-section-body p) { color: var(--text-muted) !important; }
 /* A barra de ações é grudada no rodapé (position: sticky). Com fundo quase
    transparente o conteúdo rolava por trás e aparecia através dela, com os textos
    sobrepostos — o problema que vybe-styles.css já tinha resolvido com fundo
    sólido. O fundo volta a ser sólido. */
-.vybe-desktop .workspace-actions { background: var(--surface) !important; border-radius: 8px; }
 .vybe-desktop #login-gate { background: linear-gradient(180deg, #F1EEE8 0%, #E6E0D6 100%) !important; }
-.vybe-desktop .login-caixa { background: var(--glass) !important; backdrop-filter: blur(24px); }
 .vybe-desktop :is(.workspace-drawer,.appearance-dialog[open],.spotlight-dialog[open],.fc-modal,.p-create-modal) { animation: glass-window-in .28s var(--curva) both; }
 @keyframes glass-window-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
 /* Movimento (Paulo, 21/10/2026: "usa a mesma tecnologia [da prévia de
@@ -451,8 +443,6 @@ body.vybe-desktop {
 .spotlight-dialog::backdrop { background: #0708103d; backdrop-filter: blur(3px); }
 .spotlight-campo { display: flex; align-items: center; gap: 12px; padding: 18px 22px 16px; border-bottom: 1px solid var(--glass-edge); }
 .spotlight-campo:focus-within { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--workspace-accent) 75%, transparent); }
-.spotlight-lupa { display: grid; place-items: center; color: var(--workspace-accent); }
-.spotlight-lupa svg { width: 26px; height: 26px; }
 .spotlight-dialog #spotlight-input { flex: 1; min-width: 0; padding: 2px 0; border: 0; background: none; box-shadow: none; color: var(--text); font: 400 26px/1.25 var(--mac-ui); letter-spacing: -.02em; }
 /* A janela inteira é o campo: o foco aparece na linha de baixo do campo, e o
    contorno padrão desenharia uma caixa dentro de outra. */
@@ -463,7 +453,7 @@ body.vybe-desktop {
 .spotlight-escopo[hidden] { display: none; }
 .spotlight-escopo b { overflow: hidden; text-overflow: ellipsis; }
 .spotlight-escopo button { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #ffffff1f; color: var(--text); font-size: 15px; cursor: pointer; }
-.spotlight-tecla, .spotlight-dialog kbd { padding: 1px 6px; border: 1px solid #ffffff2e; border-radius: 6px; background: #ffffff10; color: var(--text-muted); font: 500 11px var(--mac-ui); }
+.spotlight-dialog kbd { padding: 1px 6px; border: 1px solid #ffffff2e; border-radius: 6px; background: #ffffff10; color: var(--text-muted); font: 500 11px var(--mac-ui); }
 .spotlight-abas { display: flex; gap: 8px; padding: 12px 18px 6px; overflow-x: auto; scrollbar-width: none; }
 .spotlight-abas button { flex: 0 0 auto; min-height: 32px; padding: 6px 14px; border: 1px solid transparent; border-radius: 8px; background: #ffffff12; color: var(--text); font: 500 13px var(--mac-ui); cursor: pointer; }
 .spotlight-abas button:hover { background: #ffffff1f; }
@@ -472,17 +462,10 @@ body.vybe-desktop {
 .spotlight-grupo { padding: 14px 12px 6px; color: var(--text-muted); font: 600 12px var(--mac-ui); letter-spacing: .02em; }
 .spotlight-linha { display: grid; grid-template-columns: 40px minmax(0,1fr) auto auto; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
 .spotlight-linha[aria-selected=true] { background: color-mix(in srgb, var(--workspace-accent) 24%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--workspace-accent) 40%, transparent); }
-.spotlight-icone { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(160deg, #ffb070, #e2692a); color: #fff; box-shadow: inset 0 1px 0 #ffffff55; }
-.spotlight-icone.is-demanda { background: linear-gradient(160deg, #7fe0f0, #2f9fb8); }
-.spotlight-icone.is-cliente { background: linear-gradient(160deg, #8cc8ff, #3e8ee0); }
-.spotlight-icone svg { width: 22px; height: 22px; }
 .spotlight-avatar { display: grid; place-items: center; width: 40px; height: 40px; }
 .spotlight-avatar :is(img, .owner-avatar-fallback) { width: 36px; height: 36px; margin: 0; border: 0; font-size: 13px; }
-.spotlight-textos { display: grid; gap: 2px; min-width: 0; }
-.spotlight-titulo, .spotlight-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spotlight-titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .spotlight-titulo { font: 600 15px/1.3 var(--mac-ui); }
-.spotlight-meta { color: var(--text-muted); font-size: 12.5px; }
-.spotlight-origem { color: var(--text); font-weight: 500; }
 .spotlight-dialog mark { background: none; color: #fff; font-weight: 700; box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--workspace-accent) 70%, transparent); }
 .spotlight-dica { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; white-space: nowrap; visibility: hidden; }
 .spotlight-linha[aria-selected=true] .spotlight-dica { visibility: visible; }
@@ -490,15 +473,14 @@ body.vybe-desktop {
 .spotlight-linha:has(.spotlight-mais) { min-height: 40px; }
 .spotlight-vazio { padding: 34px 20px; color: var(--text-muted); font-size: 14px; text-align: center; }
 .spotlight-rodape { display: flex; justify-content: space-between; gap: 12px; padding: 10px 18px; border-top: 1px solid var(--glass-edge); color: var(--text-muted); font-size: 12px; }
-.spotlight-atalhos { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 @media (max-width: 760px) {
   .spotlight-dialog { margin: 8px auto auto; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
   .spotlight-campo { padding: 14px 16px 12px; gap: 10px; }
   .spotlight-dialog #spotlight-input { font-size: 20px; }
-  .spotlight-tecla, .spotlight-atalhos, .spotlight-dica, .spotlight-button kbd { display: none; }
+  .spotlight-dica, .spotlight-button kbd { display: none; }
   .spotlight-linha { grid-template-columns: 36px minmax(0,1fr); row-gap: 6px; }
   .spotlight-linha > .pill { grid-column: 2; justify-self: start; }
-  .spotlight-icone, .spotlight-avatar { width: 36px; height: 36px; }
+  .spotlight-avatar { width: 36px; height: 36px; }
   .spotlight-escopo { max-width: 55%; }
 }
 
@@ -565,15 +547,7 @@ body.vybe-desktop {
 
 /* Barra do topo da gaveta: o que a janela é, à esquerda; ações e fechar, à direita.
    Na ordem do Mac, a ação que apaga mora no menu "…". */
-.vybe-desktop .workspace-barra { position: relative; min-height: 36px; font: 600 12px var(--mac-ui) !important; letter-spacing: 0 !important; color: var(--text-muted) !important; }
-.workspace-barra-acoes { display: flex; align-items: center; gap: 8px; }
-@media (max-width: 600px) {
-  .workspace-kicker { position:relative; flex-wrap:wrap; padding-right:40px; }
-  .workspace-barra-acoes { flex-wrap:wrap; min-width:0; }
-  .workspace-kicker .workspace-close { position:absolute; top:0; right:0; }
-}
 
-.vybe-desktop .workspace-barra .vybe-link { margin: 0; min-height: 32px; padding: 0 12px; border-radius: 6px; font: 500 13px var(--mac-ui); }
 .vybe-desktop .vybe-link .icone-linha { width: 15px; height: 15px; }
 .workspace-mais { position: relative; }
 .workspace-mais > summary { list-style: none; display: grid; place-items: center; width: 34px; height: 32px; border: 1px solid #ffffff24; border-radius: 6px; background: #ffffff0a; color: var(--text); cursor: pointer; }
@@ -590,8 +564,6 @@ body.vybe-desktop {
 /* Topo da gaveta: título no tamanho de painel do Mac (era 30 px em negrito e
    ocupava um terço da tela), status e datas numa linha de resumo. */
 .vybe-desktop .workspace-drawer .workspace-title { font: 600 24px/1.22 var(--mac-ui) !important; letter-spacing: -.02em !important; margin: 4px 0 10px; }
-.vybe-desktop .workspace-drawer .workspace-meta { align-items: center; gap: 10px; }
-.workspace-meta-datas { color: var(--text-muted); font: 500 13px var(--mac-ui); }
 
 /* Ficha da peça no estilo das listas de Ajustes do Sistema: linhas na mesma
    superfície da seção, separadas por traço fino, rótulo à esquerda em texto
@@ -614,15 +586,8 @@ body.vybe-desktop {
 
 /* Entrega numa seção só: primeiro o estado, depois a escolha Arquivo | Link, e
    só o caminho escolhido aparece. */
-.vybe-desktop .workspace-entrega .entrega-caminhos { display: block; margin-top: 12px; }
-.vybe-desktop .workspace-entrega .entrega-caminho { margin-top: 12px; padding: 0; border: 0; background: none; }
-.vybe-desktop .workspace-entrega .entrega-caminho[hidden] { display: none !important; }
-.entrega-escolha { display: inline-flex; padding: 2px; border-radius: 6px; background: #ffffff0f; box-shadow: inset 0 0 0 1px #ffffff14; }
-.entrega-escolha button { min-height: 28px; min-width: 88px; padding: 4px 16px; border: 0; border-radius: 7px; background: none; color: var(--text-muted); font: 500 13px var(--mac-ui); cursor: pointer; }
-.entrega-escolha button[aria-selected=true] { background: #ffffff26; color: var(--text); box-shadow: 0 1px 2px #0005, inset 0 1px 0 #ffffff1c; }
 .entrega-link { display: flex; gap: 8px; align-items: stretch; }
 .entrega-link .workspace-input { flex: 1; min-width: 0; }
-.vybe-desktop .workspace-entrega .workspace-delivery-dock { margin: 0 !important; }
 .entrega-estado { display: grid; gap: 2px; padding: 10px 12px 10px 28px; position: relative; border-radius: 6px; background: #ffffff08; }
 .entrega-estado::before { content: ''; position: absolute; left: 12px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: #ffbd2e; }
 .entrega-estado b { font: 600 13px var(--mac-ui); color: var(--text); }
@@ -788,11 +753,7 @@ body.vybe-desktop {
    direita. Sem caixa alta e sem o nome inteiro de quem responde. */
 .manager-command-content .command-row { gap: 12px; padding: 10px 12px; }
 .command-client { color: #c5adff !important; font: 500 12px var(--mac-ui) !important; letter-spacing: 0 !important; }
-.command-item > button { font: 600 13px/1.35 var(--mac-ui); letter-spacing: -.01em; }
-.command-detail { display: flex; align-items: center; gap: 8px; margin-top: 3px; color: #8b8b90; font: 500 11.5px var(--mac-ui); }
 .command-owner { gap: 0; }
-.command-next { color: #b4b4ba !important; font: 400 12px/1.4 var(--mac-ui) !important; }
-.command-context { color: #8b8b90; font: 400 11.5px/1.4 var(--mac-ui); }
 .risk-action-owner { letter-spacing: 0 !important; font-size: 11.5px !important; }
 .risk-action-owner b { color: #ffbd2e; font-size: 11.5px !important; font-weight: 600; text-transform: none; }
 .command-open, .command-copy { height: 28px; padding: 0 12px; border-radius: 8px; font: 500 12px var(--mac-ui) !important; letter-spacing: 0 !important; }
@@ -800,7 +761,6 @@ body.vybe-desktop {
 @media (max-width: 760px) {
   .manager-command-content .command-row { grid-template-columns: minmax(0, 1fr) auto; }
   .manager-command-content .command-client { grid-column: 1 / -1; }
-  .command-next { grid-column: 1 / -1; }
   .manager-command-tab { height: 28px; font-size: 12px !important; }
 }
 /* O cartão da decisão prioritária: mesma família dos outros cartões, sem
@@ -1039,7 +999,6 @@ body.vybe-desktop {
 .nota-entrada:focus { outline: none; }
 .nota-linha.m-titulo { font: 600 16px/1.4 var(--mac-ui); letter-spacing: -.015em; margin-top: 6px; }
 .nota-linha.m-titulo2 { font: 600 14.5px/1.4 var(--mac-ui); margin-top: 4px; }
-.nota-linha.m-check-feito .nota-entrada { color: var(--text-muted); }
 
 /* Busca da demanda dentro da nota: é a mesma função que ranqueia o ⌘K, então a
    lista aqui tem a cara da lista de lá. */
@@ -1058,7 +1017,6 @@ body.vybe-desktop {
 .nota-busca-item b { color: var(--text); font: 600 13px var(--mac-ui); letter-spacing: -.01em; }
 .nota-busca-item small { color: var(--text-muted); font: 400 12px var(--mac-ui); }
 .nota-busca-dica { margin: 0; padding: 4px 2px; color: #7d7f89; font: 500 12px var(--mac-ui); }
-.notas-placeholder { color: #7d7f89; }
 .notas-pe { margin: 0; color: #7d7f89; font: 500 11.5px var(--mac-ui); }
 .notas-canto { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize;
   background: linear-gradient(135deg, transparent 50%, #ffffff2e 50%); touch-action: none; }
@@ -1083,9 +1041,6 @@ body.vybe-desktop {
    baixo, duplicada. */
 /* A veiculação virou campo de data, como o prazo: dá para mudar na linha e,
    com várias marcadas, em todas. Parece texto até o mouse passar. */
-.da-planning-airdate input[type="date"] { width:100%; max-width:118px; padding:2px 4px; border:1px solid transparent; border-radius:6px; background:transparent; color:#c9d8ff; font:700 11px var(--mac-ui); cursor:pointer; }
-.da-planning-airdate input[type="date"]:hover { border-color:#ffffff26; background:#ffffff08; }
-.da-planning-airdate input[type="date"]:focus-visible { outline:2px solid var(--accent,#ff6b00); outline-offset:1px; }
 
 /* ─── Mesa de planejamento do DA ──────────────────────────────────────────────
    Janela no material do painel (vidro, canto de 16px, sombra de janela) e a
@@ -1447,8 +1402,6 @@ body.vybe-desktop {
 #painel-demandas .quadro-toolbar { position:sticky; top:0; z-index:30; align-items:center; padding:14px; border:1px solid #ffffff16; border-radius:10px; background:#20232ded; backdrop-filter:blur(20px); margin-bottom:16px; }
 #painel-demandas .quadro-busca { max-width:none; order:-1; }
 #painel-demandas .kpi-grid { gap:12px; margin-bottom:16px; }
-#painel-demandas .kpi-card { padding:16px 20px; min-height:0; border-radius:10px; box-shadow:none; }
-#painel-demandas .kpi-card:last-child { opacity:.85; }
 #painel-demandas .dem-controles { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px; position:relative; z-index:25; }
 #painel-demandas .dem-filtro, #painel-demandas .dem-colunas { position:relative; }
 #painel-demandas summary { cursor:pointer; list-style:none; padding:9px 14px; border-radius:6px; background:#ffffff08; border:1px solid #ffffff16; font:500 13px var(--mac-ui); color:#e0e3eb; }
@@ -1456,7 +1409,6 @@ body.vybe-desktop {
 #painel-demandas details[open]>summary { background:#ff984f18; border-color:#ff984f70; }
 #painel-demandas .dem-colunas { order:5; }
 #painel-demandas .dem-colunas .dem-filtro-popover { left:auto; right:0; }
-#painel-demandas .kpi-card:last-child::before { background:#8993a3; }
 #painel-demandas .dem-filtro-popover { position:absolute; top:calc(100% + 8px); left:0; width:300px; max-width:calc(100vw - 48px); padding:14px; background:#252832; border:1px solid #ffffff25; border-radius:10px; box-shadow:0 16px 48px #0008; z-index:40; }
 #painel-demandas .dem-filtro-popover>input { width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:12px; border:1px solid #ffffff26; border-radius:6px; background:#161820; color:var(--text); }
 #painel-demandas .dem-filtro-popover :is(.legend,.dem-clientes,.person-filter-bar) { display:flex; flex-wrap:wrap; gap:8px; max-height:280px; overflow:auto; margin:0; }
@@ -1500,7 +1452,6 @@ body.vybe-desktop {
  #painel-demandas .grupo-tabela .grupo-nome { max-width:210px; }
 }
 #painel-demandas .dem-filtro-popover .person-wrap { border:0; padding:4px; border-radius:50%; background:transparent; cursor:pointer; }
-#painel-demandas .kpi-value { font-size:28px; line-height:1.2; }
 
 /* BARRA DE FILTROS DA AGENDA (Paulo, 04/11/2026).
    Era a gaveta escondida no canto de baixo. Fica à vista, logo acima da agenda,
@@ -1581,7 +1532,7 @@ body.vybe-desktop {
 .header-utilities-menu {position:absolute;right:0;top:calc(100% + 8px);z-index:150;min-width:215px;padding:10px;display:grid;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 12px 32px #0005}
 .vybe-desktop > .app-header .header-utilities-menu .appearance-button {color:var(--text)!important;background:var(--surface2)!important}
 .workspace-heading {display:flex;justify-content:space-between;align-items:center;gap:16px;margin:20px 0 14px}
-.workspace-eyebrow,.toolbar-label {font:600 10px var(--mac-ui);color:var(--text-muted);letter-spacing:.06em}
+.toolbar-label {font:600 10px var(--mac-ui);color:var(--text-muted);letter-spacing:.06em}
 .workspace-heading h2,.agenda-navigation h2 {font:600 18px var(--mac-ui);color:var(--text);margin:3px 0}
 .workspace-heading .filtro-carteira {margin:0}
 .ops-command-bar .global-search-wrap {flex:1 1 100%;max-width:none}
@@ -1723,8 +1674,6 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 .vybe-desktop :is(.date-mode-bar, .perf-period-bar, .ai-usage-periods, .manager-calendar-segmento) > button.active { background: #fff !important; color: #14151b !important; }
 /* Nova demanda: a pergunta desliza ao avançar ou voltar de passo; a resposta
    vem um instante depois. */
-.fc-entra-frente :is(.fc-pergunta, .fc-sub, .fc-resposta) { animation: fc-desliza-frente .34s var(--curva) both; }
-.fc-entra-tras :is(.fc-pergunta, .fc-sub, .fc-resposta) { animation: fc-desliza-tras .34s var(--curva) both; }
 :is(.fc-entra-frente, .fc-entra-tras) .fc-resposta { animation-delay: .05s; }
 @keyframes fc-desliza-frente { from { opacity: 0; translate: 28px 0; } }
 @keyframes fc-desliza-tras { from { opacity: 0; translate: -28px 0; } }
@@ -1779,7 +1728,7 @@ button.vb-resumo-item:hover { border-color: #ffffff30; }
 /* Placa dourada (campeão, destaque raro). */
 .vb-jogo-placa { display: grid; justify-items: center; padding: 5px 14px 6px; border-radius: 6px; background: linear-gradient(180deg, #3b2a12f2, #1c140af2); border: 1px solid #ffd16699; box-shadow: inset 0 1px 0 #fff3c255, 0 3px 0 #000a, 0 0 18px #ffc94a55; }
 /* Cor do nível (Bronze, Prata, Ouro, Diamante): só no ícone, na borda ou no texto pequeno. */
-.vb-n1 { --vb-nivel: var(--vb-n1); } .vb-n2 { --vb-nivel: var(--vb-n2); } .vb-n3 { --vb-nivel: var(--vb-n3); } .vb-n4 { --vb-nivel: var(--vb-n4); }
+.vb-n1 { --vb-nivel: var(--vb-n1); }   .vb-n4 { --vb-nivel: var(--vb-n4); }
 /* Dica ao passar o mouse ou focar: data-dica="…" em qualquer linha. */
 .vb-jogo-dica { position: relative; }
 .vb-jogo-dica[data-dica]::after { content: attr(data-dica); position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px); z-index: 5; padding: 8px 10px; border-radius: 6px; background: #05060af2; border: 1px solid #ffffff1f; box-shadow: 0 8px 20px #000a; color: #fff; font: 600 12px/1.4 var(--mac-ui); opacity: 0; translate: 0 4px; pointer-events: none; transition: opacity .15s, translate .15s var(--curva); }

@@ -154,6 +154,6 @@ test('CSS: o redesign entra no fim, sem !important; o tema escuro da conta vale 
   assert.match(funil, /#vv-comercial \.vc-nota\{/);
   const ap = ler('vybe-appearance.css');
   assert.ok(ap.includes(':where(body:not(.mundo)).vybe-desktop .conta-barra {'));
-  assert.ok(ap.includes(':where(body:not(.mundo)).vybe-desktop .conta-aba.ativa {'));
+  // Limpeza de 14/11/2026: a regra de .conta-aba saiu na poda das regras mortas (nenhum JS/HTML monta mais .conta-aba).
   assert.doesNotMatch(ler('vybe-conta.js'), /--tom:/, 'ícones do menu neutros');
 });

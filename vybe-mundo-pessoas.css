@@ -27,8 +27,9 @@
 #vv-pessoas .vp-abas::-webkit-scrollbar{display:none}
 #vv-pessoas .vp-abas [role="tab"]{flex:none;height:34px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:#5B574F;font:600 12.5px var(--vv-texto,system-ui),sans-serif;cursor:pointer;white-space:nowrap;scroll-snap-align:start}
 #vv-pessoas .vp-abas [role="tab"]:hover{color:#1F1D1A}
-/* Selecionado = laranja 13% e texto #C2490C (vence a regra geral de módulo aberto com ids extras, como em vybe-mundo-missoes.css). */
-#vv-pessoas .vp-abas [role="tab"][aria-selected="true"]:not(#vp-a):not(#vp-b):not(#vp-c){background:rgba(194,73,12,.13)!important;color:#C2490C!important;box-shadow:none!important;border-color:transparent!important}
+/* Selecionado = pílula preta, como as abas da Direção 3 (limpeza de 14/11/2026; antes laranja 13% e texto #C2490C). Vence a
+   regra geral de módulo aberto com ids extras, como em vybe-mundo-missoes.css. */
+#vv-pessoas .vp-abas [role="tab"][aria-selected="true"]:not(#vp-a):not(#vp-b):not(#vp-c){background:#1F1D1A!important;color:#FFFFFF!important;box-shadow:none!important;border-color:transparent!important}
 
 #vv-pessoas .vp-aviso{flex:none;margin:8px 12px 0;padding:8px 12px;border-radius:8px;background:#FFF1CC;border:1px solid #F3D48B;color:#8A5A00;font-size:12px;font-weight:600}
 #vv-pessoas .vp-aviso:empty{display:none}

@@ -27,8 +27,8 @@ test('entradas só com movimento (nunca começam transparentes) e tudo dentro de
 test('o legado sem os vícios: sem ícone colorido no título, rótulo neutro, sem manchas, sem atalhos repetindo o dock', () => {
   assert.match(bloco, /html body\.mundo :is\(\.workspace-heading,\.pv-cabeca\) > \.pv-ic,html body\.mundo \.pv-ic-aba\{display:none\}/);
   assert.match(bloco, /html body\.mundo \.pv-kpi::after\{display:none\}/);
-  assert.match(bloco, /html body\.mundo\.trilho-largo \.vs-atalhos\{display:none\}/);
-  assert.ok(padrao.includes(':where(body:not(.mundo)) .workspace-heading .workspace-eyebrow{color:#ee83b7!important}'), 'rosa só no tema antigo');
+  // Limpeza de 14/11/2026: a regra de .vs-atalhos saiu na poda das regras mortas (nenhum JS/HTML monta mais .vs-atalhos).
+  // Limpeza de 14/11/2026: a regra de .workspace-eyebrow saiu na poda das regras mortas (nenhum JS/HTML monta mais .workspace-eyebrow).
   assert.ok(padrao.includes(':where(body:not(.mundo)) :is(.auto-kicker,.ai-usage-kicker){color:#ff8f4f!important}'));
   assert.ok(padrao.includes(':where(body:not(.mundo)) .client-module-hero .client-module-kicker{color:#7aa7ff!important}'));
 });
