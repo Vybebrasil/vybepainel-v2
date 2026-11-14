@@ -45,5 +45,6 @@ test('D3 · Automações: bloco de ação com o agente, quatro números com Por 
   assert.match(auto, /class="v2g-btn k auto-novo"/);
   assert.match(auto, /<span class="v2g-sub v2r-n">/);
   assert.match(auto, /botao\.textContent = 'Testar'; return;/, 'o botão que conta o estado volta ao rótulo curto');
-  assert.ok(/\r\n/.test(auto) && !/[^\r]\n/.test(auto), 'fim de linha CRLF preservado');
+  // O fim de linha não entra na conta: o git guarda LF e a cópia local no Windows tem CRLF (o CI lê LF).
+  assert.ok(!/\r(?!\n)/.test(auto), 'sem \\r solto');
 });
