@@ -215,6 +215,8 @@ export function estadoNoEcossistema({ cliente, acesso = null, financas = null, h
   linhas.push({ id: 'hub', nome: 'Vybe Hub', estado: 'conferir',
     detalhe: ativo ? 'O Hub lista os clientes ativos daqui. O portal (endereço e senha) se cria lá, no admin.' : 'O Hub segue o Vybe OS: inativo aqui some de lá.',
     acao: hubUrl ? 'abrir_hub' : '', link: hubUrl ? new URL('/admin', hubUrl).href : '' });
+  // financas null: o Vybe Finanças saiu do ecossistema (14/11/2026) e a linha não aparece.
+  if (financas === null) return linhas;
   if (!financas || financas.estado === 'desligado') {
     linhas.push({ id: 'financas', nome: 'Vybe Finanças', estado: 'conferir',
       detalhe: 'A leitura do Finanças não está ligada neste ambiente.', acao: 'abrir_financas', link: 'https://vybe-financas.vercel.app/' });

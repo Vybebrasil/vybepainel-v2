@@ -57,7 +57,7 @@ test('Comercial e Finanças: sem dados, a visão geral mostra os números, os pr
   await esperar();
   const fin = visao.querySelector('.vs-corpo').innerHTML;
   assert.doesNotMatch(fin, /Sem números de Finanças agora/);
-  for (const t of ['Receita contratada', 'Recebido', 'Em atraso', 'Pede ação', 'Ligar o Vybe Finanças', 'Meta de vendas do mês']) assert.ok(fin.includes(t), t);
+  for (const t of ['Receita contratada', 'Recebido', 'Em atraso', 'Pede ação', 'Importar o extrato do banco', 'Meta de vendas do mês']) assert.ok(fin.includes(t), t);
   assert.match(fin, /data-setor-ir="setor:comercial"/, 'a meta mora no Funil: o botão leva ao Comercial');
 });
 

@@ -17,9 +17,9 @@
     ['funil', 'Funil'], ['pacotes', 'Pacotes'], ['orcamentos', 'Orçamentos'], ['financas', 'Finanças por cliente', 1], ['recebimentos', 'Recebimentos', 1],
     ['contas', 'Contas a pagar', 1], ['inadimplencia', 'Inadimplência', 1], ['caixa', 'Caixa', 1], ['fornecedores', 'Fornecedores'], ['creators', 'Creators'],
     // Financeiro do próprio Vybe OS (13/11/2026, vybe-mundo-financeiro.js → area=financeiro, só os quatro donos).
-    ['vorcaro', 'Vorcaro', 1], ['extrato', 'Extrato', 1], ['clientes_mes', 'Clientes mês a mês', 1], ['cartao', 'Cartão', 1], ['fixos', 'Gastos fixos', 1], ['projecao', 'Projeção', 1],
+    ['vorcaro', 'Vorcaro', 1], ['extrato', 'Extrato', 1], ['clientes_mes', 'Clientes mês a mês', 1], ['cartao', 'Cartão', 1], ['fixos', 'Gastos fixos', 1], ['projecao', 'Projeção', 1], ['vales', 'Pessoas e vales', 1],
   ];
-  const ABAS_FINANCEIRO = new Set(['vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao']);
+  const ABAS_FINANCEIRO = new Set(['vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales']);
   // Frase do cabeçalho quando a janela abre num item só do dock (auditoria 09/11: Fornecedores e Creators mostravam o texto do Comercial).
   const FRASE = {
     funil: 'Oportunidades por etapa, metas do mês e a corrida comercial', pacotes: 'Os produtos da Vybe, com preço, entregas e carga do time',
@@ -28,7 +28,7 @@
     inadimplencia: 'Faturas vencidas e não recebidas, por cliente', caixa: 'Previsão do caixa no mês e nos 3 seguintes',
     fornecedores: 'Gráficas, estúdios e parceiros, com BV e contato', creators: 'Influenciadores de Irecê e região para as campanhas',
     vorcaro: 'A Tesouraria: o que pede atenção no financeiro e o que chegou pelo WhatsApp', extrato: 'O extrato do banco e para onde foi cada lançamento de verdade', clientes_mes: 'Cada cliente, mês a mês: pago ou em aberto',
-    cartao: 'As faturas do cartão da agência, item por item', fixos: 'Programas, assinaturas, aluguel e o que sai todo mês', projecao: 'Fluxo de caixa realizado e projetado, com cenários',
+    cartao: 'As faturas do cartão da agência, item por item', fixos: 'Programas, assinaturas, aluguel e o que sai todo mês', projecao: 'Fluxo de caixa realizado e projetado, com cenários', vales: 'O combinado de cada pessoa, o que ela recebeu e o vale',
   };
   // Título da janela aberta por um item do dock: o nome do item (quadros 19 e 58: "CRM e funil", não "Funil").
   const TITULO = { funil: 'CRM e funil', pacotes: 'Produtos e pacotes', financas: 'Finanças por cliente' };
@@ -36,11 +36,11 @@
     funil: 'O funil é o mesmo CRM do 1º andar. Novo junta as etapas do SDR (empresa, qualificação, abordagem e aprovação humana). Avance uma etapa por vez; Follow-up é opcional. Para marcar Perdido, o motivo é obrigatório e vira o relatório de motivos. Conversão = quantos chegaram à fase seguinte ÷ quantos chegaram a esta. Em negociação soma o valor mensal (recorrente) e o avulso das oportunidades abertas. O selo Cabe/Aperta/Estoura diz se o time aguenta o pacote vendido. Os donos podem acrescentar e reordenar etapas do meio do funil. No topo, o mês (ou o ano): metas de MRR, avulso, negócios fechados e leads (só os donos editam; no anual, soma dos meses), leads novos (oportunidades que entraram no funil), propostas enviadas (entradas na etapa Proposta comercial) e negócios fechados (foram para Ganho), comparados com o período anterior; a corrida comercial (quem fechou mais: o responsável da oportunidade, ou quem cadastrou quando não há responsável) e os gráficos dos últimos 6 meses. Os valores em reais aparecem só para os donos. O formulário de leads é um link público para a bio e o site: quem preenche entra em Novo com a etiqueta Formulário.',
     pacotes: 'A esteira de produtos da Vybe. Cada pacote tem tipo (recorrente ou avulso), preço, entregas e a carga por cargo (demandas por mês) usada no Capacidade × vendas. Os donos veem o custo estimado (horas × custo/hora + captações × custo) e a margem; abaixo de 20% é zona crítica. Produto campeão e ticket médio saem dos negócios ganhos.',
     orcamentos: 'Monte a proposta a partir dos pacotes: itens, quantidade, desconto e validade. O preço fica guardado como estava no dia (mudar o pacote depois não muda a proposta). Antes de fechar, confira se o time aguenta. "Imprimir" abre uma página limpa para salvar em PDF.',
-    financas: 'Só donos e administração. Com o Vybe Finanças ligado (só leitura), o topo mostra o mês de lá: recebido × previsto, despesas, folha, custos fixos (assinaturas), resultado, os gráficos de faturamento × custos e ticket médio, e a margem real de cada cliente (recebido − despesas ligadas a ele). Embaixo, o valor mensal do contrato, o pacote (de onde sai o custo estimado) e a margem estimada; abaixo de 20% é zona crítica. O status de pagamento é informado à mão.',
-    recebimentos: 'Só donos e administração. Uma linha por fatura. Recorrente: escolha o cliente e o ciclo; depois de lançar, "Próximo ciclo" cria a fatura seguinte. Pontual: descrição e categoria. Atrasado = venceu há até 30 dias; inadimplente = mais de 30. Os cartões comparam com o mês (ou ano) anterior.',
-    contas: 'Só donos e administração. Fixas, variáveis, folha, impostos e investimentos, cada grupo com o total e o % do faturamento (o "a receber" do período). Fixo = fixas + folha; variável = o resto. "A pagar em 7 dias" olha de hoje até daqui a 7 dias.',
-    inadimplencia: 'Só donos e administração. Faturas vencidas e não recebidas, por cliente, com o atraso mais antigo. Vermelho: mais de 30 dias; âmbar: 8 a 30; rosa: até 7. Também lista quem foi marcado à mão como atrasado ou inadimplente em Finanças por cliente.',
-    caixa: 'Só donos e administração. Previsão do mês atual e dos 3 seguintes: recebimentos recorrentes (os lançados e a projeção de cada contrato pelo ciclo) menos contas fixas e folha. Mês sem conta lançada repete o fixo do mês atual (estimado). Se a Carteira indicar risco alto de churn num cliente que pesa mais de 15% do faturamento, aparece o alerta.',
+    financas: 'Só os donos. O dinheiro vem do extrato do banco (Finanças › Extrato e conciliação): o topo mostra o mês pelo extrato, recebido × previsto (a mensalidade do contrato), saídas, folha, gastos fixos, resultado, os gráficos de faturamento × custos e ticket médio, e a margem real de cada cliente (recebido − saídas ligadas a ele). Embaixo, o valor mensal do contrato, o pacote (de onde sai o custo estimado) e a margem estimada; abaixo de 20% é zona crítica. O status de pagamento é informado à mão.',
+    recebimentos: 'Só os donos. Com o extrato importado, cada mensalidade do contrato é uma fatura do mês e o que entrou no banco dá a baixa (pelo mês a que se refere); o resto é recebimento pontual. A baixa e a reclassificação são no Extrato. Uma linha por fatura. Recorrente: escolha o cliente e o ciclo; depois de lançar, "Próximo ciclo" cria a fatura seguinte. Pontual: descrição e categoria. Atrasado = venceu há até 30 dias; inadimplente = mais de 30. Os cartões comparam com o mês (ou ano) anterior.',
+    contas: 'Só os donos. Com o extrato importado, cada saída do banco é uma conta paga; os gastos fixos que ainda não saíram e o que falta das faturas do cartão ficam a pagar. Fixas, variáveis, folha, impostos e investimentos, cada grupo com o total e o % do faturamento (o "a receber" do período). Fixo = fixas + folha; variável = o resto. "A pagar em 7 dias" olha de hoje até daqui a 7 dias.',
+    inadimplencia: 'Só os donos. Com o extrato importado, é a mensalidade do contrato que não entrou no banco no mês a que se refere. Faturas vencidas e não recebidas, por cliente, com o atraso mais antigo. Vermelho: mais de 30 dias; âmbar: 8 a 30; rosa: até 7. Também lista quem foi marcado à mão como atrasado ou inadimplente em Finanças por cliente.',
+    caixa: 'Só os donos. Com o extrato importado, o saldo de hoje é o do banco e a projeção do extrato usa a média dos meses fechados (Finanças › Projeção). Previsão do mês atual e dos 3 seguintes: recebimentos recorrentes (os lançados e a projeção de cada contrato pelo ciclo) menos contas fixas e folha. Mês sem conta lançada repete o fixo do mês atual (estimado). Se a Carteira indicar risco alto de churn num cliente que pesa mais de 15% do faturamento, aparece o alerta.',
     fornecedores: 'Só donos e administração. Cadastro por categoria, com BV (% de bonificação de volume) e contato.',
     creators: 'Influenciadores locais de Irecê e região: @, seguidores, engajamento, nicho, cidade e contato. Filtre por nicho e cidade.',
     vorcaro: 'Só os quatro donos. O Vorcaro olha o setor inteiro (extrato, clientes, cartão, fixos e projeção), lista o que pede atenção e recebe o que vocês mandam no grupo Vybe Financeiro. Nada é lançado sem um dono confirmar.',
@@ -167,9 +167,9 @@
   const comercial = (corpo) => pedir('comercial', corpo);
   const crm = (corpo) => pedir('crm', corpo);
 
-  // ---------- Vybe Finanças (só leitura; vybe-mundo-financas.js → area=vybe_financas) ----------
-  // Conectado, o Finanças é a fonte do dinheiro destas abas (a tela diz "fonte: Vybe Finanças") e os números lançados à
-  // mão no Vybe OS saem dos cartões do topo (as listas e os botões ficam). Desconectado ou fora do ar, tudo como antes.
+  // ---------- Extrato do banco (só leitura; vybe-mundo-financas.js → area=financeiro&parte=comercial) ----------
+  // Paulo, 14/11/2026: o dinheiro destas abas é só o extrato da conta PJ (a tela diz "fonte: extrato do banco"). Sem
+  // extrato importado, o aviso leva ao Extrato para importar.
   const ABAS_FIN = new Set(['financas', 'contas', 'inadimplencia', 'caixa']);
   const mesFin = () => st.periodo.mes || hojeIso().slice(0, 7);
   const finEstado = () => window.VybeFinancas?.estado?.('comercial', mesFin()) || null;
@@ -178,11 +178,11 @@
     if (!window.VybeFinancas || !veDinheiro()) return;
     window.VybeFinancas.carregar('comercial', mesFin(), { forcar }).then(() => { if (st.aberto && ABAS_FIN.has(st.aba)) pintar(); });
   }
-  const fonteFin = () => pill('fonte: Vybe Finanças', 'u4');
-  // Lançamento que veio do Vybe Finanças (id fin:…): o servidor recusa editar e dar baixa (409); a baixa é lá.
-  const doFinancas = (id) => String(id || '').startsWith('fin:');
-  const soNoFinancas = '<div class="vc-linha-acoes"><small class="vc-dica">Dê baixa no Vybe Finanças</small></div>';
-  const fonteDa = (d) => (d?.fonte === 'Vybe Finanças' ? fonteFin() : '');
+  const fonteFin = () => pill('fonte: extrato do banco', 'u4');
+  // Lançamento do extrato (ext:…) ou antigo do Finanças (fin:…): o servidor recusa editar e dar baixa (409); confere-se no Extrato.
+  const doFinancas = (id) => /^(fin|ext):/.test(String(id || ''));
+  const soNoFinancas = '<div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="ir-extrato">Conferir no Extrato</button></div>';
+  const fonteDa = (d) => (d?.fonte === 'Extrato do banco' ? fonteFin() : '');
   function avisoFin(completo) {
     const e = finEstado(); if (!e) return '';
     if (e.carregando && !e.dados) return '<p class="vc-dica">Lendo os valores reais…</p>';
@@ -190,10 +190,10 @@
     const d = e.dados; if (!d || d.conectado) return '';
     // Redesign (quadros 20, 56 e 59): a equipe vê o efeito em caixa neutra (não é erro), sem documentação nem passo a
     // passo; o motivo técnico e como ligar ficam em "Ver o que falta", só para quem administra.
-    const tecnico = `${esc(d.motivo || 'O Vybe Finanças ainda não está ligado')}${d.aviso ? ' · ' + esc(d.aviso) : ''}${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}`;
+    const tecnico = `${esc(d.motivo || 'Nenhum extrato importado')}${d.aviso ? ' · ' + esc(d.aviso) : ''}${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}`;
     if (!completo) return ativacao('', '', tecnico);
     // Quadro 59: o aviso explica o efeito para quem usa, sem nome de sistema (o nome fica no "Ver o que falta").
-    return ativacao('Os valores reais chegam quando o controle financeiro for ligado', 'Até lá, a margem é estimada pelo contrato e pelas horas do time. Ligado, estas abas mostram o recebido × previsto, despesas, custos fixos, folha, margem real e inadimplência.', tecnico, IC.dinheiro);
+    return ativacao('Os valores reais chegam com o extrato do banco', 'Até lá, a margem é estimada pelo contrato e pelas horas do time. Com o extrato importado, estas abas mostram o recebido × previsto, saídas, gastos fixos, folha, margem real e inadimplência.', tecnico, IC.dinheiro);
   }
   // Parte ainda não ligada (quadro 56): caixa neutra para todos; "Ver o que falta" (o técnico, já em HTML) só para quem
   // administra. Sem título, só a linha de quem administra (as outras abas de dinheiro).
@@ -228,12 +228,11 @@
   }
   function finMargens(f) {
     const lista = f.margens.slice(0, 12);
-    const sem = f.ligacao.sem_par.length;
     return `<div class="vc-secao"><h3>Margem real por cliente</h3>${fonteFin()}</div>
-      <p class="vc-dica">Recebido do cliente − despesas ligadas a ele no Finanças, no mês e nos 3 meses até ele.${sem ? ` <span class="vc-link espiavel" data-espiar="financas:comercial:sempar" role="button" tabindex="0">${num(sem)} no Finanças sem par no Vybe OS</span>` : ''}</p>
+      <p class="vc-dica">Recebido do cliente − saídas ligadas a ele no extrato, no mês e nos 3 meses até ele.</p>
       <div class="vc-lista">${lista.map((m) => `<article class="vc-cartao${m.periodo.margem < 0 ? ' critico' : ''}"><div class="vc-cartao-topo"><b>${esc(m.cliente_nome)}</b>${m.no_vybe ? '' : pill('Sem par no Vybe OS', 'u5')}${m.periodo.margem < 0 ? pill('Margem negativa', 'u1') : ''}</div>
         <p class="vc-grande">${din(m.periodo.margem)}<small> em 3 meses${m.periodo.margem_percentual != null ? ' · ' + pc(m.periodo.margem_percentual) : ''}</small></p>
-        <small>No mês: recebido ${din(m.mes.receita)} − despesas ${din(m.mes.despesas)} = ${din(m.mes.margem)}</small></article>`).join('') || vazio('Nenhuma receita ou despesa ligada a cliente no Finanças nesses 3 meses.')}</div>
+        <small>No mês: recebido ${din(m.mes.receita)} − despesas ${din(m.mes.despesas)} = ${din(m.mes.margem)}</small></article>`).join('') || vazio('Nenhuma entrada ou saída ligada a cliente no extrato nesses 3 meses.')}</div>
       ${f.margens.length > lista.length ? `<span class="vc-link espiavel" data-espiar="financas:comercial:margem" role="button" tabindex="0">Ver os ${num(f.margens.length)} clientes</span>` : ''}`;
   }
   const margemFinDe = (f, clienteId) => f?.margens.find((m) => m.cliente_id && String(m.cliente_id) === String(clienteId)) || null;
@@ -1124,7 +1123,7 @@
   // Finanças por cliente pelo quadro DEPOIS: fala do Vorcaro, três números, busca com fichas, "Pede ação" (margem
   // baixa) ao lado da lista em que a linha abre no lugar com contrato, custo e pagamento. "Recebi" marca em dia.
   function abaFinancas(d) {
-    const r = d.resumo, f = fin(), v = st.v2, doFin = d.fonte === 'Vybe Finanças', zona = Number(d.zona_critica) || 20;
+    const r = d.resumo, f = fin(), v = st.v2, doFin = d.fonte === 'Extrato do banco', zona = Number(d.zona_critica) || 20;
     const todos = clientesDaAba(d), atrasado = (c) => ['atrasado', 'inadimplente'].includes(c.status_pagamento), semContrato = (c) => !c.valor_mensal && !atrasado(c);
     const GRUPOS = { todos: ['Todos', () => true], atraso: ['Em atraso', atrasado], baixa: ['Margem baixa', (c) => c.zona_critica], emdia: ['Em dia', (c) => !atrasado(c) && !semContrato(c)],
       sem: ['Sem contrato', semContrato], inad: ['Inadimplentes', (c) => c.status_pagamento === 'inadimplente'] };
@@ -1170,7 +1169,7 @@
       { titulo: 'Margem', valor: r.margem_percentual != null ? pc(Math.round(r.margem_percentual)) : '0%', tom: r.margem_percentual == null ? 'quieto' : r.margem_percentual < zona ? 'ruim' : 'bom',
         sub: r.margem_percentual != null ? `${esc(milhar(r.margem))} · zona crítica abaixo de ${num(zona)}%` : 'sem contrato e pacote informados' },
     ]);
-    const tecnico = (() => { const e = finEstado()?.dados; return e && !e.conectado ? `${esc(e.motivo || 'O Vybe Finanças ainda não está ligado')}${e.aviso ? ' · ' + esc(e.aviso) : ''}${(e.passos || []).length ? `<ol>${e.passos.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}` : ''; })();
+    const tecnico = (() => { const e = finEstado()?.dados; return e && !e.conectado ? `${esc(e.motivo || 'Nenhum extrato importado')}${e.aviso ? ' · ' + esc(e.aviso) : ''}${(e.passos || []).length ? `<ol>${e.passos.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}` : ''; })();
     const erroFin = finEstado()?.erro;
     if (ehD3()) {
       // Direção 3 (quadro D3-PorCliente, só donos): o bloco do Vorcaro com quem custa quase o que paga, quatro números,
@@ -1269,10 +1268,10 @@
           numero(f.folha.total, din(f.folha.total), ' de folha do mês', { semDado: 'folha: sem dado' }),
           numero(cf.total, din(cf.total), ' por mês em custos fixos (assinaturas)', { espiar: 'financas:comercial:fixos', semDado: 'custos fixos: sem dado' })])}
         ${dsp.categorias.length ? `<ul class="vc-barras espiavel" data-espiar="financas:comercial:despesas" role="button" tabindex="0">${dsp.categorias.map((c) => `<li><span>${esc(c.categoria)}</span><span class="vc-barra"><i class="u2" style="width:${(c.total / max) * 100}%"></i></span><small>${din(c.total)} · ${pc(c.percentual)}</small></li>`).join('')}</ul>`
-          : vazio('Nenhuma despesa lançada no Finanças neste mês.')}
+          : vazio('Nenhuma saída no extrato neste mês.')}
         ${cf.itens.length ? `<div class="vc-secao"><h3>Custos fixos</h3><small>${num(cf.quantidade)} assinatura${cf.quantidade === 1 ? '' : 's'} ativa${cf.quantidade === 1 ? '' : 's'}</small></div>
           <ul class="vc-grupos">${cf.itens.slice(0, 8).map((s) => `<li><b>${esc(s.nome)}</b><span>${din(s.custo)}</span><small>${s.dia_renovacao ? 'renova dia ' + num(s.dia_renovacao) : 'sem dia de renovação'}</small></li>`).join('')}</ul>` : ''}
-        <p class="vc-dica">Os números acima vêm do Vybe Finanças. Abaixo, as contas lançadas à mão no Vybe OS (continuam editáveis).</p>`;
+        <p class="vc-dica">Os números acima vêm do extrato do banco. Abaixo, as contas do período (as do extrato se conferem no Extrato).</p>`;
     }
     return `${seletorPeriodo()}${f ? doFin : avisoFin(false) + doVybe}
       <div class="vc-secao"><h3>${f ? 'Contas lançadas no Vybe OS' : 'Contas'}</h3></div>
@@ -1315,7 +1314,7 @@
           numero(Number(i.faturas) || 0, num(i.faturas), Number(i.faturas) === 1 ? ' lançamento' : ' lançamentos')])}
         <div class="vc-lista">${i.clientes.map((c) => { const s = C().severidade(c.atraso_mais_antigo); return `<article class="vc-cartao barra-${s.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(s.nome, s.nivel)}${c.no_vybe || !c.cliente_id && c.cliente_nome === 'Sem cliente' ? '' : pill('Sem par no Vybe OS', 'u5')}</div>
           <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} lançamento${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} (venceu ${data(c.vencimento_mais_antigo)})${c.descricao ? ' · ' + esc(c.descricao) : ''}</small></article>`; }).join('')
-          || vazio('Ninguém em atraso no Vybe Finanças.')}</div>`;
+          || vazio('Ninguém em atraso pelo extrato.')}</div>`;
     }
     return `${f ? doFin : avisoFin(false) + doVybe}
       ${d.faturas.length ? `<div class="vc-secao"><h3>${f ? 'Faturas atrasadas lançadas no Vybe OS' : 'Faturas atrasadas'}</h3></div><div class="vc-lista">${d.faturas.map((f) => `<article class="vc-cartao barra-${f.severidade.nivel}"><div class="vc-cartao-topo"><b>${esc(f.cliente_nome || f.descricao)}</b>${pill(num(f.atraso) + ' dias', f.severidade.nivel)}</div><small>${din(f.aberto)} em aberto · venceu ${data(f.vencimento)}</small>
@@ -1324,6 +1323,15 @@
   }
   function churnDaCarteira() {
     try { const d = window.VybeCarteira?.dados?.(); const l = Array.isArray(d) ? d : Array.isArray(d?.clientes) ? d.clientes : null; return l; } catch { return null; }
+  }
+  // Caixa pelo extrato: o saldo do banco hoje e a projeção sem cenário (média dos meses fechados), como em Finanças › Projeção.
+  function caixaDoExtrato(d) {
+    const b = d.extrato?.projecao, PX = window.VybeFinanceiroExtrato;
+    if (!b || !d.extrato?.lancamentos || typeof PX?.projetar !== 'function') return '';
+    const p = PX.projetar(b, {}, 4);
+    return `<div class="vc-secao"><h3>Pelo extrato</h3>${fonteFin()}</div><div class="vc-lista"><article class="vc-cartao"><div class="vc-cartao-topo"><b>Saldo no banco</b></div><p class="vc-grande">${din(b.saldo_hoje)}</p><small>último saldo do extrato</small></article>
+      ${p.meses.map((m) => `<article class="vc-cartao${m.saldo < 0 ? ' barra-u1' : ''}"><div class="vc-cartao-topo"><b>${esc(nomeMes(m.mes))}</b>${m.saldo < 0 ? pill('Saldo negativo', 'u1') : pill('Projeção', 'u6')}</div><p class="vc-grande">${din(m.saldo)}</p><small>Entradas ${din(m.entradas)} · Saídas ${din(m.saidas)}</small></article>`).join('')}</div>
+      <div class="vc-linha-acoes"><button type="button" class="vc-sec" data-vc="ir-projecao">Abrir a projeção</button></div>`;
   }
   function abaCaixa(d) {
     const churn = churnDaCarteira();
@@ -1334,14 +1342,14 @@
     const barras = prev.meses.map((m, i) => { const x = i * passo + passo / 2, he = (m.entradas / max) * 120, hs = (m.saidas / max) * 120;
       return `<rect x="${x - bw - 2}" y="${140 - he}" width="${bw}" height="${he}" rx="4" class="ent"/><rect x="${x + 2}" y="${140 - hs}" width="${bw}" height="${hs}" rx="4" class="sai${m.saidas_estimadas ? ' est' : ''}"/>
         <text x="${x}" y="158" text-anchor="middle">${esc(MESES[Number(m.mes.slice(5)) - 1].slice(0, 3))}</text>`; }).join('');
-    return `${prev.alertas.map((a) => `<p class="vc-alerta u1">Risco de churn alto: <b>${esc(a.cliente_nome || 'cliente ' + a.cliente_id)}</b> é ${pc(a.percentual)} do faturamento recorrente do mês (${din(a.valor)}).</p>`).join('')}
+    return `${caixaDoExtrato(d)}${prev.alertas.map((a) => `<p class="vc-alerta u1">Risco de churn alto: <b>${esc(a.cliente_nome || 'cliente ' + a.cliente_id)}</b> é ${pc(a.percentual)} do faturamento recorrente do mês (${din(a.valor)}).</p>`).join('')}
       <figure class="vc-grafico"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Entradas e saídas previstas por mês">${barras}<line x1="0" x2="${W}" y1="140" y2="140" class="eixo"/></svg>
         <figcaption><span><i class="ent"></i>Entradas recorrentes</span><span><i class="sai"></i>Fixas + folha</span><span><i class="sai est"></i>Estimado</span></figcaption></figure>
       <div class="vc-lista">${prev.meses.map((m) => `<article class="vc-cartao${m.saldo < 0 ? ' barra-u1' : ''}"><div class="vc-cartao-topo"><b>${esc(nomeMes(m.mes))}</b>${m.saldo < 0 ? pill('Saldo negativo', 'u1') : pill('Saldo positivo', 'u6')}</div>
         <p class="vc-grande">${din(m.saldo)}</p><small>Entradas ${din(m.entradas)} · Saídas ${din(m.saidas)}${m.saidas_estimadas ? ' (estimadas pelo mês atual)' : ''}</small></article>`).join('')}</div>
       ${!d.recebiveis.length && !d.contas.length ? vazio('Sem recebimentos recorrentes nem contas fixas lançados: a previsão sai deles.', 'Lançar recebimento', 'ir-recebimentos') : ''}
       <p class="vc-dica">${churn ? 'Risco de churn lido da Carteira.' : 'Risco de churn: a Carteira não está carregada neste painel; sem alerta de concentração.'}</p>
-      ${fin() ? `<p class="vc-dica">A previsão usa os recebimentos recorrentes e as contas fixas lançados no Vybe OS. O realizado mês a mês (faturamento × custos, fonte: Vybe Finanças) está em Finanças por cliente.</p>` : avisoFin(false)}`;
+      ${fin() ? `<p class="vc-dica">A previsão acima usa as mensalidades dos contratos e as contas fixas. O realizado mês a mês (faturamento × custos, fonte: extrato do banco) está em Finanças por cliente.</p>` : avisoFin(false)}`;
   }
   // Fornecedores pelo quadro DEPOIS: fala do Nestor, três números e um cartão só: "Pede ação" (cadastro sem BV ou
   // sem contato, com o campo para completar ali mesmo), a busca com as fichas por tipo e a lista que abre no lugar.
@@ -1765,6 +1773,8 @@
       'arquivar-forn': () => confirm('Arquivar este fornecedor?') && executar(() => comercial({ acao: 'fornecedor_arquivar', id }), 'Fornecedor arquivado.'),
       'arquivar-creator': () => confirm('Arquivar este creator?') && executar(() => comercial({ acao: 'creator_arquivar', id }), 'Creator arquivado.'),
       'ir-recebimentos': () => abrir('recebimentos'),
+      'ir-extrato': () => abrir('extrato'),
+      'ir-projecao': () => abrir('projecao'),
       'ir-pacotes': () => abrir('pacotes', st.soAbas?.has('pacotes') ? { abas: [...st.soAbas], rotulo: st.rotulo } : {}),
       metas: formMetas,
       'form-copiar': copiarLinkFormulario,

@@ -41,7 +41,7 @@ test('ecossistema: nada vira ok sem prova', () => {
   assert.equal(s.bots.estado, 'falta');      // sem grupo do WhatsApp
   assert.equal(s.drive.estado, 'falta');     // sem pasta ligada
   assert.equal(s.hub.estado, 'conferir');    // daqui não se vê o portal
-  assert.equal(s.financas.estado, 'conferir'); // leitura desligada
+  assert.equal(s.financas, undefined); // o Vybe Finanças saiu do ecossistema (14/11/2026): sem a linha
 });
 
 test('ecossistema: com grupo, pasta e par no Finanças', () => {

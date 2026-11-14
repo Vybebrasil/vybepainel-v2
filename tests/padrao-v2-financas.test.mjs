@@ -57,13 +57,15 @@ test('Recebimentos: ordem do quadro D3, selo, bloco de ação, três números, f
   assert.doesNotMatch(html, /A baixa é manual|uma linha por fatura/, 'sem frase explicativa');
 });
 
-test('Recebimentos: mês vazio fica uma linha com o botão de lançar; lançamento do Vybe Finanças não ganha Recebi', () => {
+test('Recebimentos: mês vazio fica uma linha com o botão de lançar; lançamento do extrato não ganha Recebi', () => {
   const F = carregar(), vazio = F.telas.recebimentos({ d: { hoje: HOJE, periodo: { tipo: 'mensal', mes: '2026-11' }, resumo: { atual: {} }, recebiveis: [] }, filtro: {}, atrasadas: [] });
   assert.match(vazio, /fv2-vz[\s\S]*Nenhum recebimento neste período[\s\S]*data-vc="recebivel">Lançar o primeiro/); assert.doesNotMatch(vazio, /fv2-grade/);
   assert.match(vazio, /Nada lançado em novembro\./);
-  const d = RECEBIMENTOS(); d.recebiveis[0].id = 'fin:77';
+  // Do extrato (ext:…), a baixa é no Extrato: sem o Recebi, com o caminho para conferir; o botão de lançar vai ao Vorcaro.
+  const d = { ...RECEBIMENTOS(), fonte: 'Extrato do banco' }; d.recebiveis[0].id = 'ext:77';
   const html = F.telas.recebimentos({ d, filtro: {}, atrasadas: [d.recebiveis[0]] });
-  assert.doesNotMatch(html, /data-fv="receber" data-valor="fin:77"/); assert.match(html, /baixa no Vybe Finanças/);
+  assert.doesNotMatch(html, /data-fv="receber" data-valor="ext:77"/); assert.match(html, /pelo extrato/); assert.match(html, /Conferir no Extrato/);
+  assert.match(html, /data-fv="ir" data-valor="vorcaro">[\s\S]*Lançar à mão/); assert.match(html, /fv2-pill b">Extrato/); assert.doesNotMatch(html, /Vybe Finanças/);
 });
 
 const CONTAS = () => {
@@ -131,7 +133,7 @@ test('Finanças (Visão geral): bloco de ação com a conta, quatro números, Pe
     cx: { previsao: { meses: [{ mes: '2026-11', entradas: 12000 }, { mes: '2026-12', entradas: 13000 }, { mes: '2027-01', entradas: 11000 }, { mes: '2027-02', entradas: 14000 }] } },
     passados: [['2026-08', 9000], ['2026-09', 10000], ['2026-10', 9500]].map(([mes, recebido]) => ({ mes, dados: { resumo: { atual: { recebido } } } })) };
   F.telas._teste.ui.vis.inteira = true;
-  const html = F.telas._teste.visaoHtml(L, { subs: [{ id: 'recebimentos', nome: 'Recebimentos' }, { id: 'extrato', nome: 'Extrato' }, { id: 'vybe-financas', nome: 'Vybe Finanças', url: 'https://exemplo.invalid' }] });
+  const html = F.telas._teste.visaoHtml(L, { subs: [{ id: 'recebimentos', nome: 'Recebimentos' }, { id: 'extrato', nome: 'Extrato' }, ] });
   assert.match(html, /Vorcaro · Tesouraria<\/small>Novembro fica <b>R\$ 2,4 mil<\/b> no vermelho se o atrasado pagar\./);
   assert.match(html, /data-fv="conta" aria-expanded="false">Ver a conta</);
   assert.equal(html.match(/class="d3-num[ "]/g).length, 4);
@@ -139,14 +141,14 @@ test('Finanças (Visão geral): bloco de ação com a conta, quatro números, Pe
   assert.match(html, /Resultado[\s\S]*sem atrasos · -R\$ 6,2 mil/);
   assert.match(html, /data-fv="per" data-valor="anterior" aria-pressed="false">Outubro</); assert.match(html, /aria-pressed="true">Novembro</); assert.match(html, /data-fv="lancar"[^>]*>.*Lançar</);
   const acao = html.slice(html.indexOf('data-fv-card="acao"'), html.indexOf('data-fv-card="caixa"'));
-  assert.match(acao, /data-fv="receber" data-valor="1"/); assert.match(acao, /data-fv="pagar" data-valor="4"/); assert.match(acao, /Controle financeiro/); assert.match(acao, /<b>1 cliente<\/b> sem contrato informado/);
+  assert.match(acao, /data-fv="receber" data-valor="1"/); assert.match(acao, /data-fv="pagar" data-valor="4"/); assert.match(acao, /Nenhum extrato importado/); assert.match(acao, /<b>1 cliente<\/b> sem contrato informado/);
   assert.match(acao, /Do grupo[\s\S]*1 lançamento<\/b> · Vybe Financeiro[\s\S]*data-valor="vorcaro">Conferir/); assert.match(acao, /1 a conferir<\/b> · 1 boleto a dividir/);
   assert.doesNotMatch(acao, /data-vc=/, 'fora da janela do Comercial não há formulário: a linha leva à tela');
   const caixa = html.slice(html.indexOf('data-fv-card="caixa"'));
   assert.match(caixa, /<svg class="d3-graf d3f-graf"[\s\S]*<polyline class="meta"[\s\S]*<polyline points=/, 'o caixa é uma linha: o realizado cheio e a projeção tracejada');
   assert.doesNotMatch(html, /fv2-col/, 'sem colunas: gráfico em linha');
   assert.match(html, /Saiu por grupo[\s\S]*Folha[\s\S]*63%/);
-  assert.match(html, /Abrir<\/span>[\s\S]*data-valor="recebimentos">Recebimentos <b>3<\/b>[\s\S]*data-valor="extrato">Extrato <b class="a">1<\/b>[\s\S]*Vybe Finanças ↗[\s\S]*data-valor="caixa">Caixa[\s\S]*data-valor="rh">Folha/);
+  assert.match(html, /Abrir<\/span>[\s\S]*data-valor="recebimentos">Recebimentos <b>3<\/b>[\s\S]*data-valor="extrato">Extrato <b class="a">1<\/b>[\s\S]*data-valor="caixa">Caixa[\s\S]*data-valor="rh">Folha/);
   assert.match(html, /Previsto para entrar<\/dt><dd>R\$ 12\.000[\s\S]*Resultado previsto<\/dt><dd>-R\$ 2\.389/);
 });
 

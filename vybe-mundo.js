@@ -185,8 +185,8 @@
       { id: 'clientes_mes', nome: 'Clientes mês a mês', dica: 'Quem pagou e quem está em aberto, mês a mês', mod: ['VybeComercial', 'clientes_mes'] },
       { id: 'cartao', nome: 'Cartão de crédito', dica: 'Cada item da fatura, pago ou não', mod: ['VybeComercial', 'cartao'] },
       { id: 'fixos', nome: 'Gastos fixos', dica: 'Programas, assinaturas, aluguel e o que sai todo mês', mod: ['VybeComercial', 'fixos'] },
+      { id: 'vales', nome: 'Pessoas e vales', dica: 'Salário combinado × o que cada pessoa recebeu; o que passou vira vale', mod: ['VybeComercial', 'vales'] },
       { id: 'projecao', nome: 'Relatórios e projeção', dica: 'Caixa realizado e projetado em 3, 6 e 12 meses, com cenários', mod: ['VybeComercial', 'projecao'] },
-      { id: 'vybe-financas', nome: 'Vybe Finanças', dica: 'Abrir o app financeiro da Vybe', url: 'https://vybe-financas.vercel.app/' },
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
       { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
@@ -665,7 +665,7 @@
   // itens do Time que são de todos: Produtividade (o próprio mês), Pedidos e calendário, Equipe online e Academy.
   const TRANCADOS = new Set(['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas']);
   // Só dos donos de verdade (a coordenação não vê): o setor Finanças, as abas dele e IA e custos.
-  const SO_DINHEIRO = new Set(['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vybe-financas', 'ai-usage']);
+  const SO_DINHEIRO = new Set(['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'ai-usage']);
   const trancadoPara = (id) => (TRANCADOS.has(id) && !souDono()) || (SO_DINHEIRO.has(id) && !souDonoDoDinheiro());
   function aplicarCadeados() {
     hud.querySelectorAll?.('.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor]').forEach((b) => {
@@ -2507,7 +2507,9 @@
   function abrirModulo(mod) {
     if (!mod) return;
     const chamar = (nome, ...a) => (typeof window[nome] === 'function' ? window[nome](...a) : undefined);
-    if (mod.tipo === 'link' && /^https:\/\//.test(mod.url || '')) { window.open(mod.url, '_blank', 'noopener'); return; } // sistema irmão (ex.: Vybe Finanças)
+    if (mod.tipo === 'link' && /^https:\/\//.test(mod.url || '')) { window.open(mod.url, '_blank', 'noopener'); return; } // sistema irmão (ex.: VybeHub)
+    // Setor do próprio Vybe OS pelo menu lateral (o Financeiro do prédio abre Finanças, 14/11/2026).
+    if (mod.tipo === 'setor') { document.querySelector(`.vv-trilho [data-trilho="${mod.alvo}"], .vv-trilho [data-visao-setor="${mod.alvo}"]`)?.click(); return; }
     if (mod.tipo === 'modo') {
       ({ vybes: () => chamar('chooseVybesMode'), escritorio: () => chamar('chooseOfficeMode'), clientes: () => chamar('chooseClientMode'),
         controler: () => chamar('chooseDaControllerMode'), producao: () => chamar('chooseProductionMode'), gestor: () => chamar('chooseManagerMode') })[mod.alvo]?.();
@@ -2516,7 +2518,7 @@
     // Quadro: o mesmo caminho do Modo Gestor, já na aba pedida (sem desenhar o Painel de trabalho antes).
     chamar('chooseManagerMode', mod.alvo);
   }
-  const NOME_MODULO = { financas: 'Abrir o Vybe Finanças', vybehub: 'Abrir o VybeHub', vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
+  const NOME_MODULO = { financas: 'Abrir Finanças', 'setor:financas': 'Abrir Finanças', vybehub: 'Abrir o VybeHub', vybes: 'Abrir o VYBES', escritorio: 'Entrar no Escritório', clientes: 'Abrir Clientes', controler: 'Abrir Direção de arte', producao: 'Abrir Produção',
     gestor: 'Abrir Gestor', automacoes: 'Abrir Automações', performance: 'Abrir Performance', 'ai-usage': 'Abrir IA e custos' };
 
   // ---------- Números de cada setor (o que o painel sabe de verdade; sem número inventado) ----------

@@ -104,7 +104,7 @@
     if (!sv?.clientes || !S()?.serieMensal) return null;
     return S().serieMensal({ clientes: sv.clientes, contratos: listaContratos(), hoje: hoje(), ate: estado.mes, meses: 12, minimo: 6 });
   }
-  // Contratos: os do Vybe OS com os do Vybe Finanças por cima, quando ligado (vybe-mundo-financas.js).
+  // Contratos: só os do Vybe OS (14/11/2026: o Vybe Finanças saiu; VybeFinancas.contratosDaCarteira devolve a lista como está).
   const finCarteira = () => { const d = window.VybeFinancas?.estado?.('carteira')?.dados; return d?.conectado ? d : null; };
   const listaContratos = () => { const l = estado.servidor?.contratos?.lista || []; return window.VybeFinancas?.contratosDaCarteira ? window.VybeFinancas.contratosDaCarteira(l) : l; };
   const contratosAgora = () => {
@@ -154,8 +154,7 @@
     if (!cadastro().length && typeof ensureClientMasterSources === 'function') { try { await ensureClientMasterSources(); } catch { /* o cadastro avisa */ } }
     try { estado.servidor = await pedir(); }
     catch (e) { if (e.aguardando) estado.servidor = { aguardando: true }; else estado.erro = e.message; }
-    // Contratos do Vybe Finanças (só leitura): chegam depois e repintam; sem o Finanças, nada muda.
-    window.VybeFinancas?.carregar?.('carteira').then(() => { if (estado.raiz && finCarteira()) { estado.saude = calcularSaude(); pintar(); } });
+    // Os contratos do Vybe Finanças não são mais lidos (14/11/2026): a Carteira segue só com o registro do Vybe OS.
     estado.saude = calcularSaude();
     estado.carregando = false;
     pintar();

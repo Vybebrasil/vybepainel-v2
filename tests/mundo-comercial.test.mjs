@@ -72,7 +72,7 @@ test('dono: todas as abas pintam com dados reais, com o dinheiro e sem HTML inje
   const { ctx, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } });
   const espera = { funil: 'Loja X', pacotes: 'Zona crítica', orcamentos: 'Padaria', financas: 'Hebravet', recebimentos: 'inadimplente', contas: 'Aluguel',
     inadimplencia: 'Crítico', caixa: 'Entradas recorrentes', fornecedores: 'Gráfica', creators: 'Ana',
-    vorcaro: 'Sem extrato ainda', extrato: 'Importar extrato', clientes_mes: 'Hebravet', cartao: 'Colar fatura', fixos: 'Novo gasto fixo', projecao: 'Sem mês fechado' };
+    vorcaro: 'Sem extrato ainda', extrato: 'Importar extrato', clientes_mes: 'Hebravet', cartao: 'Colar fatura', fixos: 'Novo gasto fixo', projecao: 'Sem mês fechado', vales: 'Pessoas e vales' };
   for (const aba of ctx.VybeComercial.ABAS.map((a) => a.id)) {
     ctx.VybeComercial.abrir(aba); await esperar();
     const html = janela().innerHTML;

@@ -295,98 +295,75 @@ async function respostaDaArea(quem, q, conector = conectorFalso()) {
   const r = await chamar(quem, q, { conector }); return { codigo: r.codigo, corpo: r.body };
 }
 
-test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra margem real e o mini painel abre', async () => {
+// Paulo, 14/11/2026: as telas não leem mais o Vybe Finanças; o dinheiro vem do extrato (area=financeiro&parte=…,
+// tests/financeiro-so-extrato.test.mjs). Aqui fica a prova de que nenhuma tela pede area=vybe_financas.
+test('tela do Comercial: a aba de dinheiro pede o extrato, nunca o Vybe Finanças', async () => {
   const comercialVazio = { ok: true, aba: 'financas', pode: { ver_dinheiro: true, editar_comercial: true, editar_pacotes: true },
     clientes: [{ cliente_id: '10', cliente_nome: 'Hebravet', valor_mensal: 2000, status_pagamento: 'em_dia', custo: 0, margem_percentual: null }],
     resumo: { receita: 2000, custo: 0, margem_percentual: null, criticas: 0, pagamento: { atrasado: 0, inadimplente: 0 } }, pacotes: [], zona_critica: 20, status: [] };
-  for (const [conector, espera, naoEspera] of [[conectorFalso(), /margem real R\$\s?1\.700,00 no mês[\s\S]*Mês a mês e margem real · mostrar/, /Os valores reais chegam quando/],
-    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /<h2>Finanças por cliente<\/h2>[\s\S]*<span class="d3-num-rot">Custo da carteira<\/span>/, /Mês a mês e margem real|fonte: Vybe Finanças/]]) {
-    const respostas = (q) => (q.area === 'vybe_financas' ? null : { codigo: 200, corpo: comercialVazio });
-    const t = contexto((q) => respostas(q) || { codigo: 0, corpo: null });
-    // A área de verdade, com o conector falso (as permissões do servidor valem também aqui).
-    t.ctx.fetch = async (url) => { const q = Object.fromEntries(new URL(url, 'http://x').searchParams);
-      const r = q.area === 'vybe_financas' ? await respostaDaArea(paulo, q, conector) : { codigo: 200, corpo: comercialVazio };
-      return { ok: r.codigo === 200, status: r.codigo, json: async () => r.corpo }; };
-    t.ctx.operadorDoTopo = () => ({ nome: 'Paulo Henrique' });
-    t.ctx.souDonoDaSessao = () => true; // palpite pela sessão antes da resposta do servidor (que confirma)
-    vm.runInContext(readFileSync('shared/comercial-calculos.js', 'utf8'), t.ctx);
-    vm.runInContext(readFileSync('vybe-mundo-financas.js', 'utf8'), t.ctx);
-    vm.runInContext(readFileSync('vybe-mundo-comercial.js', 'utf8'), t.ctx);
-    t.ctx.VybeComercial.abrir('financas'); await esperar();
-    const html = t.criados.find((e) => e.id === 'vv-comercial').innerHTML;
-    assert.match(html, espera); assert.doesNotMatch(html, naoEspera);
-    if (conector.lerBase) {
-      const p = t.ctx.VybeEspiarProvedores.financas('comercial:despesas');
-      assert.equal(p.itens[0].nome, 'Salário/Prolabore');
-      assert.equal(t.ctx.VybeEspiarProvedores.financas('comercial:inad').itens[0].nome, 'Dia Lab');
-      // A tela de Contas (Direção 3) usa as peças de vybe-core.js (d3AcaoHtml, d3NumHtml, d3LinhaSvg), que o navegador carrega antes.
-      const core = readFileSync('vybe-core.js', 'utf8');
-      vm.runInContext(core.slice(core.indexOf('const d3Esc'), core.indexOf('if (typeof globalThis !== \'undefined\') Object.assign(globalThis, { d3AcaoHtml'))
-        + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', t.ctx);
-      t.ctx.VybeComercial.abrir('contas'); await esperar();
-      assert.match(t.criados.find((e) => e.id === 'vv-comercial').innerHTML, /data-tela="con"[\s\S]*<h1>Contas a pagar<\/h1>[\s\S]*novembro de 2026/);
-    }
-  }
+  const t = contexto(() => ({ codigo: 0 }));
+  t.ctx.fetch = async (url) => { t.pedidos.push(url); const q = Object.fromEntries(new URL(url, 'http://x').searchParams);
+    const r = q.area === 'financeiro' ? { codigo: 200, corpo: { ok: true, parte: q.parte, conectado: false, fonte: 'Extrato do banco', motivo: 'Importe o extrato do banco', passos: ['Abra o Extrato.'] } } : { codigo: 200, corpo: comercialVazio };
+    return { ok: r.codigo === 200, status: r.codigo, json: async () => r.corpo }; };
+  t.ctx.operadorDoTopo = () => ({ nome: 'Paulo Henrique' });
+  t.ctx.souDonoDaSessao = () => true;
+  vm.runInContext(readFileSync('shared/comercial-calculos.js', 'utf8'), t.ctx);
+  vm.runInContext(readFileSync('vybe-mundo-financas.js', 'utf8'), t.ctx);
+  vm.runInContext(readFileSync('vybe-mundo-comercial.js', 'utf8'), t.ctx);
+  t.ctx.VybeComercial.abrir('financas'); await esperar();
+  const html = t.criados.find((e) => e.id === 'vv-comercial').innerHTML;
+  assert.match(html, /<h2>Finanças por cliente<\/h2>/); assert.doesNotMatch(html, /Vybe Finanças/);
+  assert.ok(t.pedidos.some((u) => u.includes('area=financeiro&parte=comercial')));
+  assert.ok(!t.pedidos.some((u) => u.includes('vybe_financas')));
 });
 
-test('tela do RH: a Folha aparece para o dono e some para quem não é', async () => {
+test('tela do RH: a Folha vem do extrato para o dono e some para quem não é', async () => {
   const rh = (gestao) => ({ ok: true, aba: 'rh', gestao, eu: { id: '1' }, pedidos: [], tipos: [], status: {}, aniversarios: [], ferias: [], pesquisa: { atual: null, dimensoes: [], minimo: 3, historico: [] } });
-  for (const [quem, gestao] of [[paulo, true], [suporte, true], [bia, false]]) {
+  const folha = { ok: true, parte: 'rh', conectado: true, fonte: 'Extrato do banco', folha: { mes: '2026-11', total: 3000, total_anterior: 3000, variacao: 0, variacao_percentual: 0, quantidade: 1,
+    funcionarios: [{ id: 'Ana Souza', nome: 'Ana Souza', cargo: 'Salário', salario: 3000, bonus: 0, total: 3000, dia_pagamento: 5, variacao: 0 }] } };
+  for (const [quem, gestao] of [[paulo, true], [bia, false]]) {
     const t = contexto(() => ({ codigo: 0 }));
-    t.ctx.fetch = async (url) => { const q = Object.fromEntries(new URL(url, 'http://x').searchParams);
-      const r = q.area === 'vybe_financas' ? await respostaDaArea(quem, q) : { codigo: 200, corpo: rh(gestao) };
+    t.ctx.fetch = async (url) => { t.pedidos.push(url); const q = Object.fromEntries(new URL(url, 'http://x').searchParams);
+      const r = q.area === 'financeiro' ? (quem === paulo ? { codigo: 200, corpo: folha } : { codigo: 403, corpo: { error: 'só dos donos' } }) : { codigo: 200, corpo: rh(gestao) };
       return { ok: r.codigo === 200, status: r.codigo, json: async () => r.corpo }; };
     vm.runInContext(readFileSync('vybe-mundo-financas.js', 'utf8'), t.ctx);
     vm.runInContext(readFileSync('vybe-mundo-pessoas.js', 'utf8'), t.ctx);
     await t.ctx.VybePessoas.abrir('rh'); await esperar();
-    t.ctx.VybePessoas._teste.ver('folha'); // padrão v2: a Folha saiu do alto da tela e abre em "Também no RH"
+    t.ctx.VybePessoas._teste.ver('folha');
     const html = (function achar(e) { return [e.innerHTML || '', ...(e.filhos || []).map(achar)].join(''); })(t.corpo);
-    if (quem === paulo) { assert.match(html, /Folha[\s\S]*Ana Souza[\s\S]*salário R\$\s?3\.000,00/); assert.equal(t.ctx.VybeEspiarProvedores.financas('rh:folha').itens.length, 2); }
-    else assert.doesNotMatch(html, /Ana Souza|só os donos veem/);
-    if (quem === bia) assert.ok(!t.pedidos.some((u) => u.includes('vybe_financas')), 'quem não é gestão nem pede');
+    if (quem === paulo) { assert.match(html, /Folha[\s\S]*fonte: extrato do banco[\s\S]*Ana Souza[\s\S]*saiu dia 5/); assert.equal(t.ctx.VybeEspiarProvedores.financas('rh:folha').itens.length, 1); }
+    else { assert.doesNotMatch(html, /Ana Souza|só os donos veem/); assert.ok(!t.pedidos.some((u) => u.includes('area=financeiro')), 'quem não é gestão nem pede'); }
+    assert.ok(!t.pedidos.some((u) => u.includes('vybe_financas')));
   }
 });
 
-test('tela da Carteira: contratos do Finanças entram no lugar do registro do Vybe OS', async () => {
+test('tela da Carteira: só os contratos do Vybe OS, sem pedir nada ao Vybe Finanças', async () => {
   const t = contexto(() => ({ codigo: 0 }));
-  t.ctx.fetch = async (url) => { const q = Object.fromEntries(new URL(url, 'http://x').searchParams);
-    const r = await respostaDaArea(paulo, q); return { ok: r.codigo === 200, status: r.codigo, json: async () => r.corpo }; };
   vm.runInContext(readFileSync('vybe-mundo-financas.js', 'utf8'), t.ctx);
   await t.ctx.VybeFinancas.carregar('carteira');
-  const lista = t.ctx.VybeFinancas.contratosDaCarteira([{ cliente_id: '10', valor_mensal: 999, inicio: '2024-01-01', renovacao: '2024-12-31', status: 'ativo', observacao: 'nota' },
-    { cliente_id: '12', valor_mensal: 500, inicio: '2025-05-01', renovacao: null, status: 'ativo', observacao: '' }]);
-  const heb = lista.find((c) => c.cliente_id === '10');
-  assert.deepEqual([heb.valor_mensal, heb.inicio, heb.renovacao, heb.status, heb.observacao, heb.fonte], [2000, '2026-01-01', '2026-12-31', 'ativo', 'nota', 'financas']);
-  assert.equal(lista.find((c) => c.cliente_id === '12').valor_mensal, 500, 'sem contrato no Finanças: fica o do Vybe OS');
-  assert.equal(t.ctx.VybeFinancas.contratoDoCliente('10').tem_pdf, true);
-  assert.equal(t.ctx.VybeEspiarProvedores.financas('carteira:sempar').itens.length, 2);
+  const locais = [{ cliente_id: '10', valor_mensal: 999, inicio: '2024-01-01', renovacao: '2024-12-31', status: 'ativo', observacao: 'nota' }];
+  assert.deepEqual(JSON.parse(JSON.stringify(t.ctx.VybeFinancas.contratosDaCarteira(locais))), locais);
+  assert.equal(t.ctx.VybeFinancas.contratoDoCliente('10'), null);
+  assert.equal(t.pedidos.length, 0);
 });
 
-test('tela da Carteira → Contratos: fonte do Finanças, sem par e o contrato de lá sem botão de editar', async () => {
+test('tela da Carteira → Contratos: sem "Vybe Finanças" e todo contrato editável pelo registro do Vybe OS', async () => {
   const carteira = { ok: true, dia: HOJE, eu: '1', admin: true, atendimento: false, meus_clientes: [], pode: { contratos: true, churn: true, etapas: true, onboarding_todos: true },
     pessoas: [], sinais: null, clima: { disponivel: false }, etapas: [], etapas_padrao: [], onboarding: { disponivel: true, clientes: [] }, churn: { disponivel: true, registros: [] },
     historico: { disponivel: true, meses: [] }, contratos: { disponivel: true, lista: [{ cliente_id: '12', valor_mensal: 500, inicio: '2025-05-01', renovacao: null, status: 'ativo', observacao: '' }] },
     clientes: [{ id: '10', nome: 'Hebravet', ativo: true, entrada: '2025-01-01', entrada_fonte: 'cadastro', saida: null, valor: null }, { id: '12', nome: 'Antonov', ativo: true, entrada: '2025-05-01', entrada_fonte: 'contrato', saida: null, valor: 500 }],
     opcoes: { contrato_status: [], churn_tipos: [], churn_motivos: [] } };
-  const t = contexto(() => ({ codigo: 0 }));
-  t.ctx.fetch = async (url) => { const q = Object.fromEntries(new URL(url, 'http://x').searchParams);
-    const r = q.area === 'vybe_financas' ? await respostaDaArea(paulo, q) : { codigo: 200, corpo: carteira };
-    return { ok: r.codigo === 200, status: r.codigo, json: async () => r.corpo }; };
+  const t = contexto(() => ({ codigo: 200, corpo: carteira }));
   t.ctx.localStorage = { getItem: () => '1', setItem() {} };
   vm.runInContext(readFileSync('vybe-carteira-saude.js', 'utf8'), t.ctx);
   vm.runInContext(readFileSync('vybe-mundo-financas.js', 'utf8'), t.ctx);
   vm.runInContext(readFileSync('vybe-mundo-carteira.js', 'utf8'), t.ctx);
   await t.ctx.VybeCarteira.abrir('contratos'); await esperar();
   const html = t.criados.find((e) => e.id === 'vv-carteira').innerHTML;
-  assert.match(html, /Contratos do Vybe Finanças[\s\S]*fonte: Vybe Finanças/);
-  assert.match(html, /Vybe Finanças: Social mídia · assinado em 20\/12\/25 · vence dia 10 · Ativo · com PDF/);
-  assert.match(html, /no Finanças sem par no Vybe OS/);
-  assert.doesNotMatch(html, /Aguardando ativação/);
-  // Hebravet (contrato do Finanças) sem "Editar"; Antonov (registro do Vybe OS) continua editável.
-  const heb = html.slice(html.indexOf('data-vc-linha="k:10"'), html.indexOf('</li>', html.indexOf('data-vc-linha="k:10"')));
-  assert.ok(heb.includes('Hebravet'));
-  assert.doesNotMatch(heb, /data-vc-form-abrir/);
+  assert.doesNotMatch(html, /Vybe Finanças|no Finanças/);
   assert.match(html, /Antonov[\s\S]*?data-vc-form-abrir="contrato" data-vc-cli="12"/);
+  assert.match(html, /data-vc-form-abrir="contrato" data-vc-cli="10"/, 'Hebravet: registrar o contrato no Vybe OS');
+  assert.ok(!t.pedidos.some((u) => u.includes('vybe_financas')));
 });
 
 // As consultas de verdade do conector num Postgres em memória (PGlite) com as tabelas do Finanças

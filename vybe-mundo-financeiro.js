@@ -52,6 +52,7 @@
     cartao: { fatura: '', novo: false, colar: false, editando: '', chip: 'todos', aberta: '', inteira: false },
     fixos: { mes: '', novo: false, editando: '' },
     vorcaro: { mao: false, frente: '' },
+    vales: { aberta: '', chip: 'todos', ajuste: '' },
     projecao: { horizonte: 6, cenario: { cortes: {}, economias: {}, clientes_novos: [], clientes_perdidos: {}, gastos_novos: [], ajuste_entradas_pct: 0 }, nome: '', base: null },
   };
   let anfitriao = {}; // { d, repintar, recarregar } da última pintura (janela do Comercial)
@@ -100,6 +101,11 @@
   }
   const opcoesCliente = (d, sel) => `<option value="">sem cliente</option>${(d.clientes || []).filter((c) => c.ativo !== false || String(c.id) === String(sel)).map((c) => `<option value="${esc(c.id)}"${String(c.id) === String(sel) ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}`;
   const nomeCliente = (d, id) => (d.clientes || []).find((c) => String(c.id) === String(id))?.nome || '';
+  // Para quem foi (14/11/2026): a pessoa do time, sócio incluído (Pix para Lusolimar → Paulo).
+  const opcoesPessoa = (d, sel) => `<option value="">ninguém do time</option>${(d.pessoas || []).map((p) => `<option value="${esc(p.id)}"${String(p.id) === String(sel) ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}`;
+  const nomePessoa = (d, id) => (d.pessoas || []).find((p) => String(p.id) === String(id))?.nome || '';
+  // Ligar a um gasto fixo: o lançamento conta como o pagamento daquele fixo no mês a que se refere.
+  const opcoesFixo = (d, sel) => `<option value="">nenhum</option>${(d.fixos || []).filter((f) => f.ativo !== false || f.id === sel).map((f) => `<option value="${esc(f.id)}"${f.id === sel ? ' selected' : ''}>${esc(f.nome)} · ${esc(rs(f.valor))}</option>`).join('')}`;
   const campo = (rot, html, cls = '') => `<label class="fx-campo${cls ? ' ' + cls : ''}"><span>${esc(rot)}</span>${html}</label>`;
   // Barra de grupo: nome, a barra, (a fatia) e o valor.
   const gx = (nome, pct, valor, { tom = '', fatia = null, attrs = '', on = null } = {}) => {
@@ -173,12 +179,13 @@
   function linhaExtrato(d, t) {
     const u = ui.extrato, aberta = u.aberta === t.id, entrada = t.banco.valor > 0;
     const cat = t.real.partes?.length ? `dividido em ${t.real.partes.length}` : nomeCat(d, t.real.categoria);
-    const quem = t.real.partes?.length ? t.real.partes.map((p) => p.cliente_nome || p.quem).filter(Boolean).join(', ') : (t.real.cliente_nome || t.real.quem || '');
+    const quem = t.real.partes?.length ? [...new Set(t.real.partes.map((p) => p.cliente_nome || p.pessoa_nome || p.quem).filter(Boolean))].join(', ') : (t.real.cliente_nome || t.real.pessoa_nome || t.real.quem || '');
+    const fixo = t.real.fixo_id ? (d.fixos || []).find((f) => f.id === t.real.fixo_id) : null;
     const tomCat = t.real.categoria === 'a_classificar' ? 'r' : t.real.conferido && !t.real.partes?.length ? 'n' : 'a';
     const status = (t.real.status !== 'pago' ? pill(STATUS_NOME[t.real.status], STATUS_TOM[t.real.status]) : '') + (t.banco.origem ? pill(t.banco.origem === 'mao' ? 'à mão' : 'WhatsApp', 'b') : '');
     return `<div class="v2-abre fv2-linha fx-lanc${t.real.conferido ? ' ok' : ''}" data-linha="${esc(t.id)}" aria-expanded="${aberta}">
       <div class="fv2-lin"><span class="fx-dia">${dataCurta(t.banco.data)}</span><button type="button" class="fv2-txt" data-fx="abrir" data-alvo="extrato" data-valor="${esc(t.id)}" aria-expanded="${aberta}">
-        <span class="fx-banco">${esc(t.banco.historico)}</span><span class="fx-real">${pill(cat, tomCat)}${quem ? `<span class="fx-quem">${esc(quem)}</span>` : ''}${status}</span></button>
+        <span class="fx-banco">${esc(t.banco.historico)}</span><span class="fx-real">${pill(cat, tomCat)}${quem ? `<span class="fx-quem">${esc(quem)}</span>` : ''}${fixo ? pill('fixo · ' + fixo.nome, 'n') : ''}${status}</span></button>
         <b class="fx-valor ${entrada ? 'e' : 's'}">${esc(comSinal(t.banco.valor))}</b>
         <button type="button" class="fx-ok" data-fx="conferir" data-valor="${esc(t.id)}" aria-pressed="${t.real.conferido}" title="${t.real.conferido ? 'Conferido' + (t.real.conferido_por ? ' por ' + esc(t.real.conferido_por) : '') : 'Marcar como conferido'}">${IC.ok}<span class="fv2-sr">Conferido</span></button></div>
       <div class="v2-mais"><div>${aberta ? editorExtrato(d, t) : ''}</div></div></div>`;
@@ -191,14 +198,17 @@
     const somaPartes = (partes || []).reduce((s, p) => s + Math.round(numero(p.valor) * 100), 0) / 100;
     const falta = Math.round((Math.abs(t.banco.valor) - somaPartes) * 100) / 100;
     const faturas = [...new Set([...(d.cartao?.itens || []).map((i) => `${i.cartao}|${i.fatura}`), `Cartão da agência|${t.banco.data.slice(0, 7)}`, `Cartão da agência|${X().somarMeses(t.banco.data.slice(0, 7), -1)}`])].sort().reverse();
-    const sug = t.sugestao?.nota ? `<p class="fx-sug">${pill('Sugestão', 'b')}${esc(t.sugestao.nota)}${t.sugestao.regra ? ` · regra ${esc(t.sugestao.regra)}` : ''}</p>` : '';
+    const opcoes = (t.sugestao?.opcoes || []).length ? `<span class="fv2-seg" role="group" aria-label="O que foi">${t.sugestao.opcoes.map((c) => `<button type="button" data-fx="escolher-cat" data-id="${esc(t.id)}" data-valor="${c}" aria-pressed="${t.real.categoria === c}">${esc(nomeCat(d, c))}</button>`).join('')}</span>` : '';
+    const sug = t.sugestao?.nota ? `<p class="fx-sug">${pill('Sugestão', 'b')}${esc(t.sugestao.nota)}${t.sugestao.regra ? ` · regra ${esc(t.sugestao.regra)}` : ''}</p>${opcoes ? `<div class="fx-linha-acoes"><span class="fv2-sub">O que foi</span>${opcoes}</div>` : ''}` : '';
     const contra = t.banco.contraparte || '';
     return `<div class="fv2-det fx-editor" data-fx-editor="${esc(t.id)}">
       <div class="fx-lados"><p class="fx-comobanco"><small>Como está no banco</small><span>${esc(dataCurta(t.banco.data))} · ${esc(t.banco.historico)}${t.banco.documento ? ` · doc ${esc(t.banco.documento)}` : ''} · <b>${esc(comSinal(t.banco.valor))}</b>${t.banco.saldo != null ? ` · saldo ${esc(rs(t.banco.saldo))}` : ''}</span></p>
       <div class="fx-real-lado"><small>Para onde foi de verdade</small><div class="fx-grade">
         ${campo('Categoria', `<select name="categoria" class="fx-sel">${opcoesCat(d, t.real.categoria, { tipo })}</select>`)}
         ${campo('Cliente', `<select name="cliente_id" class="fx-sel">${opcoesCliente(d, t.real.cliente_id)}</select>`)}
+        ${campo('Para quem', `<select name="pessoa_id" class="fx-sel">${opcoesPessoa(d, t.real.pessoa_id)}</select>`)}
         ${campo('Quem', `<input name="quem" class="fx-in" value="${esc(t.real.quem)}" placeholder="${esc(contra || 'posto, gráfica, Adobe')}">`)}
+        ${entrada ? '' : campo('Gasto fixo', `<select name="fixo_id" class="fx-sel">${opcoesFixo(d, t.real.fixo_id)}</select>`)}
         ${campo('Referente a', `<input name="competencia" type="month" class="fx-in" value="${esc(t.real.competencia)}">`)}
         ${campo('Observação', `<input name="descricao" class="fx-in" value="${esc(t.real.descricao)}" placeholder="o que foi">`, 'largo')}
         ${t.real.categoria === 'cartao_agencia' || (!entrada && /cart/i.test(t.real.categoria)) ? campo('Fatura quitada', `<select name="fatura" class="fx-sel"><option value="">escolher</option>${faturas.map((f) => `<option value="${esc(f)}"${t.real.fatura === f ? ' selected' : ''}>${esc(f.split('|')[0])} · ${esc(nomeMes(f.split('|')[1]))}</option>`).join('')}</select>`) : ''}
@@ -209,7 +219,7 @@
           <input name="p_valor" class="fx-in fx-num" inputmode="decimal" value="${esc(p.valor === '' || p.valor == null ? '' : String(p.valor).replace('.', ','))}" placeholder="valor" aria-label="Valor da parte ${i + 1}">
           ${entrada ? `<select name="p_cliente" class="fx-sel" aria-label="Cliente da parte ${i + 1}">${opcoesCliente(d, p.cliente_id)}</select>` : `<select name="p_categoria" class="fx-sel" aria-label="Categoria da parte ${i + 1}">${opcoesCat(d, p.categoria || t.real.categoria, { tipo })}</select>`}
           ${entrada ? `<input name="p_competencia" type="month" class="fx-in" value="${esc(p.competencia || t.real.competencia)}" aria-label="Mês a que se refere a parte ${i + 1}">`
-            : `<input name="p_quem" class="fx-in" value="${esc(p.quem || p.descricao || '')}" placeholder="quem / o quê" aria-label="Quem ou o quê na parte ${i + 1}">`}
+            : `<select name="p_pessoa" class="fx-sel" aria-label="Para quem na parte ${i + 1}">${opcoesPessoa(d, p.pessoa_id)}</select><input name="p_quem" class="fx-in" value="${esc(p.quem || p.descricao || '')}" placeholder="quem / o quê" aria-label="Quem ou o quê na parte ${i + 1}">`}
           <button type="button" class="fv2-btn s fv2-seta" data-fx="parte-tirar" data-id="${esc(t.id)}" data-valor="${i}" aria-label="Tirar parte ${i + 1}">×</button></div>`).join('')}</div>` : ''}
       <div class="fx-linha-acoes fx-fim">${partes ? (falta === 0 ? pill('fechou', 'g') : pill(`${falta > 0 ? 'faltam' : 'passou'} ${rs(Math.abs(falta))}`, 'r')) : ''}
         <span class="fv2-seg" role="group" aria-label="Situação">${['pago', 'nao_pago', 'em_aberto'].map((s) => `<button type="button" data-fx="status" data-valor="${s}" data-id="${esc(t.id)}" aria-pressed="${t.real.status === s}">${STATUS_NOME[s]}</button>`).join('')}</span>
@@ -236,7 +246,7 @@
   }
   function regrasHtml(d) {
     const minhas = d.regras || [], prontas = d.regras_padrao || [];
-    const corpo = `${minhas.length ? minhas.map((r) => `<div class="fx-mini"><span><b>“${esc(r.quando?.contem)}”</b> → ${esc(nomeCat(d, r.categoria))}${r.quem ? ` · ${esc(r.quem)}` : ''}${r.cliente_nome ? ` · ${esc(r.cliente_nome)}` : ''}</span><button type="button" class="fv2-link" data-fx="regra-tirar" data-valor="${esc(r.id)}">tirar</button></div>`).join('') : '<p class="fv2-sub">Nenhuma regra sua ainda.</p>'}
+    const corpo = `${minhas.length ? minhas.map((r) => `<div class="fx-mini"><span><b>“${esc(r.quando?.contem)}”</b> → ${esc(nomeCat(d, r.categoria))}${r.pessoa_nome ? ` · para ${esc(r.pessoa_nome)}` : ''}${r.quem ? ` · ${esc(r.quem)}` : ''}${r.cliente_nome ? ` · ${esc(r.cliente_nome)}` : ''}${r.fixo_id ? ` · fixo ${esc((d.fixos || []).find((f) => f.id === r.fixo_id)?.nome || '')}` : ''}</span><button type="button" class="fv2-link" data-fx="regra-tirar" data-valor="${esc(r.id)}">tirar</button></div>`).join('') : '<p class="fv2-sub">Nenhuma regra sua ainda.</p>'}
       <details class="fx-det"><summary>Prontas · ${n0(prontas.length)}</summary>${prontas.map((r) => `<p class="fv2-sub">“${esc(r.quando.contem || r.quando.comeca)}” → ${esc(nomeCat(d, r.categoria))}${r.revisar ? ' (você confere)' : ''}</p>`).join('')}</details>`;
     return card('Regras', corpo);
   }
@@ -724,6 +734,60 @@
       </div><div class="fx-linha-acoes fx-fim"><button type="button" class="fv2-btn s" data-fx="mao-abrir">Cancelar</button><button type="button" class="fv2-btn s d3f-escuro v2-estado" data-fx="mao-salvar">Lançar</button></div>`, '', 'fx-form-caixa');
   }
 
+  // =====================================================================================================
+  // PESSOAS E VALES (Paulo, 14/11/2026): o combinado de cada pessoa × o que ela recebeu no extrato; o que passou vira vale
+  // (o que a pessoa deve à Vybe), que vai abatendo quando ela recebe menos que o combinado.
+  // =====================================================================================================
+  function cartaoPessoa(d, c) {
+    const meses = c.meses.slice().reverse();
+    const linhaMes = (m) => `<div class="fx-pm"><span>${esc(mesCurto(m.mes))}${m.aberto ? ' <small>aberto</small>' : ''}</span><span>${m.combinado ? esc(rs(m.combinado)) : '·'}</span><span>${m.pago ? esc(rs(m.pago)) : '·'}</span>
+      <span class="${m.vale_do_mes ? 'fx-neg' : ''}">${m.vale_do_mes ? '+' + esc(rs(m.vale_do_mes)) : m.abatido || m.devolvido ? '−' + esc(rs(m.abatido + m.devolvido)) : m.a_pagar ? esc(rs(m.a_pagar)) + ' a pagar' : m.falta_pagar ? esc(rs(m.falta_pagar)) + ' falta' : '·'}</span><b class="${m.vale_acumulado ? 'fx-neg' : ''}">${esc(rs(m.vale_acumulado))}</b></div>`;
+    const tabela = `<div class="fx-pm fx-pm-cab" aria-hidden="true"><span>Mês</span><span>Combinado</span><span>Pago</span><span>No mês</span><span>Vale</span></div>${meses.map(linhaMes).join('') || '<p class="fv2-sub">Nenhum mês com extrato ainda.</p>'}`;
+    const pix = c.itens.slice(0, 12).map((i) => `<div class="fx-mini"><span>${esc(dataCurta(i.data))} · ${esc(i.historico)} <small>${esc(i.nome)} · ref. ${esc(mesCurto(i.mes))}</small></span><b class="${i.valor < 0 ? 'fx-neg' : ''}">${esc(comSinal(i.valor))}</b><button type="button" class="fv2-link" data-fx="ir-lanc" data-valor="${esc(i.id)}" data-mes="${esc(i.data.slice(0, 7))}">abrir</button></div>`).join('')
+      || '<p class="fv2-sub">Nenhum Pix atribuído a esta pessoa. No Extrato, escolha "Para quem".</p>';
+    const ajustes = (d.vales || []).filter((a) => String(a.pessoa_id) === String(c.pessoa_id));
+    const formAjuste = ui.vales.ajuste === c.pessoa_id ? `<div class="fx-grade" data-fx-form="ajuste">${campo('Mês', `<input name="mes" type="month" class="fx-in" value="${esc((d.hoje || '').slice(0, 7))}">`)}${campo('O quê', '<select name="tipo" class="fx-sel"><option value="devolveu">Devolveu</option><option value="abater">Abater do vale</option></select>')}
+      ${campo('Valor', '<input name="valor" class="fx-in fx-num" inputmode="decimal">')}${campo('Nota', '<input name="nota" class="fx-in" placeholder="como foi">', 'largo')}
+      <div class="fx-linha-acoes"><button type="button" class="fv2-btn s d3f-escuro v2-estado" data-fx="pessoa-ajuste" data-valor="${esc(c.pessoa_id)}">Lançar</button></div></div>` : '';
+    return `<div class="fv2-det fx-pessoa" data-fx-pessoa="${esc(c.pessoa_id)}">
+      <div class="fx-grade" data-fx-form="salario">${campo('Salário / pró-labore combinado', `<input name="valor" class="fx-in fx-num" inputmode="decimal" value="${c.salario ? esc(String(c.salario.valor).replace('.', ',')) : ''}" placeholder="por mês">`)}${campo('Desde', `<input name="desde" type="month" class="fx-in" value="${esc(c.salario?.desde || '')}">`)}
+        <div class="fx-linha-acoes"><button type="button" class="fv2-btn s d3f-escuro v2-estado" data-fx="pessoa-salario" data-valor="${esc(c.pessoa_id)}">Salvar combinado</button></div></div>
+      <div class="fx-pm-rolo">${tabela}</div>
+      <p class="fv2-sub fx-legenda">Vale = o que passou do combinado (a pessoa deve à Vybe). Quando recebe menos que o combinado, a diferença abate o vale; sem vale, fica a pagar à pessoa.</p>
+      <h3 class="fx-h3">Pix que compõem</h3>${pix}
+      <h3 class="fx-h3">Devolveu ou abateu à mão</h3>${ajustes.map((a) => `<div class="fx-mini"><span>${esc(mesCurto(a.mes))} · ${a.tipo === 'abater' ? 'abatido' : 'devolveu'}${a.nota ? ' · ' + esc(a.nota) : ''}</span><b>${esc(rs(a.valor))}</b><button type="button" class="fv2-link" data-fx="pessoa-ajuste-tirar" data-valor="${esc(a.id)}">desfazer</button></div>`).join('') || '<p class="fv2-sub">Nenhum.</p>'}
+      <div class="fx-linha-acoes"><button type="button" class="fv2-btn s" data-fx="pessoa-ajuste-abrir" data-valor="${esc(c.pessoa_id)}" aria-expanded="${ui.vales.ajuste === c.pessoa_id}">Devolveu / abater</button></div>${formAjuste}</div>`;
+  }
+  function vales(ctx) {
+    anfitriao = ctx;
+    const d = ctx.d, u = ui.vales, contas = d.contas_pessoas || [];
+    const comVale = contas.filter((c) => c.vale > 0), aPagar = contas.filter((c) => c.a_pagar > 0), semComb = contas.filter((c) => !c.salario?.valor);
+    const totalVale = comVale.reduce((s, c) => s + c.vale, 0);
+    const partes = [topo('Pessoas e vales')];
+    partes.push(comVale.length ? acao(`${esc(rs(totalVale))} em vale${comVale[0] ? `; o maior é ${esc(comVale[0].nome)}` : ''}.`, 'Ver quem', 'data-fx="chip" data-alvo="vales" data-valor="vale"')
+      : !contas.length ? acao('Nenhum Pix atribuído a alguém do time ainda.', 'Ir ao extrato', 'data-fx="ir-aba" data-valor="extrato"')
+      : acao('Ninguém com vale.'));
+    partes.push(nums([
+      { rotulo: 'Em vale', valor: mil(totalVale), tom: totalVale ? 'r' : '', sub: quantos(comVale.length, 'pessoa', 'pessoas') },
+      { rotulo: 'A pagar às pessoas', valor: mil(aPagar.reduce((s, c) => s + c.a_pagar, 0)), sub: quantos(aPagar.length, 'pessoa', 'pessoas') },
+      { rotulo: 'Sem combinado', valor: n0(semComb.length), tom: semComb.length ? 'a' : '', sub: 'salário não informado' },
+    ]));
+    const vis = contas.filter((c) => (u.chip === 'vale' ? c.vale > 0 : u.chip === 'semcomb' ? !c.salario?.valor : true));
+    const ultimo = (c) => c.meses[c.meses.length - 1] || {};
+    const corpo = vis.map((c) => {
+      const aberta = u.aberta === c.pessoa_id, m = ultimo(c);
+      return `<div class="v2-abre fv2-linha" data-linha="${esc(c.pessoa_id)}" aria-expanded="${aberta}"><div class="fv2-lin"><button type="button" class="fv2-txt" data-fx="abrir" data-alvo="vales" data-valor="${esc(c.pessoa_id)}" aria-expanded="${aberta}"><b>${esc(c.nome)}</b> <small class="fv2-sub">${c.salario?.valor ? esc(rs(c.salario.valor)) + '/mês' : 'sem combinado'}</small></button>
+        <span class="fv2-sub">pago em ${esc(soMes(m.mes))}: ${esc(rs(m.pago || 0))}</span>${c.a_pagar ? pill(`${rs(c.a_pagar)} a pagar`, 'a') : ''}<b class="fv2-valor ${c.vale ? 'fx-neg' : ''}">${c.vale ? esc(rs(c.vale)) + ' de vale' : 'sem vale'}</b></div>
+        <div class="v2-mais"><div>${aberta ? cartaoPessoa(d, c) : ''}</div></div></div>`;
+    }).join('');
+    // Quem do time ainda não tem conta: escolher para informar o combinado.
+    const semConta = (d.pessoas || []).filter((p) => !contas.some((c) => c.pessoa_id === String(p.id)));
+    const novo = semConta.length ? `<details class="fx-det"><summary>Informar o combinado de outra pessoa · ${n0(semConta.length)}</summary>${semConta.map((p) => `<div class="fx-mini" data-fx-form="salario"><span>${esc(p.nome)}</span><input name="valor" class="fx-in fx-num" inputmode="decimal" placeholder="combinado" aria-label="Combinado de ${esc(p.nome)}"><input name="desde" type="month" class="fx-in" aria-label="Desde"><button type="button" class="fv2-btn s v2-estado" data-fx="pessoa-salario" data-valor="${esc(p.id)}">Salvar</button></div>`).join('')}</details>` : '';
+    partes.push(card('Por pessoa', `<div class="fv2-filtros">${chips('vales', [['todos', 'Todos', contas.length], ['vale', 'Com vale', comVale.length, 'r'], ['semcomb', 'Sem combinado', semComb.length]], u.chip)}</div>${corpo || vazio('Ninguém com esse filtro.')}${novo}`, 'combinado × pago × vale'));
+    return casca(partes, 'vales');
+  }
+  // Abrir a conta de uma pessoa de outra tela (RH › Folha).
+  function abrirPessoa(id) { ui.vales.aberta = String(id || ''); window.VybeComercial?.abrir?.('vales', { abas: ['vales'], rotulo: 'Finanças' }); }
   function casca(partes, tela) { return `<div class="fv2 fx d3f" data-tela="fx-${tela}"><div class="fv2-in">${partes.join('')}</div></div>`; }
 
   // =====================================================================================================
@@ -747,6 +811,7 @@
       p.valor = q('p_valor') ?? p.valor; p.competencia = q('p_competencia') ?? p.competencia; p.quem = q('p_quem') ?? p.quem;
       if (q('p_cliente') != null) { p.cliente_id = q('p_cliente'); p.cliente_nome = nomeCliente(dadosAtuais(), p.cliente_id); }
       if (q('p_categoria') != null) p.categoria = q('p_categoria');
+      if (q('p_pessoa') != null) { p.pessoa_id = q('p_pessoa'); p.pessoa_nome = nomePessoa(dadosAtuais(), p.pessoa_id); }
     }
   }
   function lerArquivo(arquivo) {
@@ -826,20 +891,43 @@
         const ed = b.closest('[data-fx-editor]'); if (!ed) return;
         lerPartes(valor);
         const v = valoresDe(ed);
-        const mudanca = { categoria: v.categoria, cliente_id: v.cliente_id, cliente_nome: nomeCliente(d, v.cliente_id), quem: v.quem, competencia: v.competencia, descricao: v.descricao, conferido: true };
+        const mudanca = { categoria: v.categoria, cliente_id: v.cliente_id, cliente_nome: nomeCliente(d, v.cliente_id), quem: v.quem, competencia: v.competencia, descricao: v.descricao, conferido: true,
+          pessoa_id: v.pessoa_id || '', pessoa_nome: nomePessoa(d, v.pessoa_id) };
         if ('fatura' in v) mudanca.fatura = v.fatura;
+        if ('fixo_id' in v) mudanca.fixo_id = v.fixo_id;
         const partes = ue.partes[valor];
-        mudanca.partes = partes ? partes.map((p) => ({ valor: numero(p.valor), cliente_id: p.cliente_id || '', cliente_nome: p.cliente_nome || nomeCliente(d, p.cliente_id), categoria: p.categoria || v.categoria, competencia: p.competencia || v.competencia, quem: p.quem || '' })) : [];
+        mudanca.partes = partes ? partes.map((p) => ({ valor: numero(p.valor), cliente_id: p.cliente_id || '', cliente_nome: p.cliente_nome || nomeCliente(d, p.cliente_id), categoria: p.categoria || v.categoria, competencia: p.competencia || v.competencia, quem: p.quem || '', pessoa_id: p.pessoa_id || '', pessoa_nome: p.pessoa_nome || nomePessoa(d, p.pessoa_id) })) : [];
         indo(b);
         const r = await gravar({ acao: 'editar', id: valor, mudanca });
         if (r) { delete ue.partes[valor]; const prox = proximoAConferir(d, valor); ue.aberta = prox || ''; repintar(); } else voltou(b);
         return;
       }
       case 'regra-de': ue.regra = valor; return repintar();
+      case 'escolher-cat': { // a pergunta da regra pronta: só troca a categoria no formulário (grava no "Salvar e conferir")
+        const ed = b.closest('[data-fx-editor]'), sel = ed?.querySelector('select[name="categoria"]'); if (sel) sel.value = valor;
+        for (const x of b.parentElement.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+        return;
+      }
+      // Pessoas e vales
+      case 'pessoa-salario': {
+        const f = b.closest('[data-fx-form="salario"]'); if (!f) return;
+        const v = valoresDe(f); indo(b);
+        const r = await gravar({ acao: 'salario_salvar', pessoa_id: valor, valor: v.valor === '' ? '' : numero(v.valor), desde: v.desde || '' }, v.valor === '' ? 'Combinado tirado.' : 'Combinado salvo.');
+        if (!r) voltou(b); return;
+      }
+      case 'pessoa-ajuste-abrir': ui.vales.ajuste = ui.vales.ajuste === valor ? '' : valor; return repintar();
+      case 'pessoa-ajuste': {
+        const f = b.closest('[data-fx-form="ajuste"]'); if (!f) return;
+        const v = valoresDe(f); indo(b);
+        const r = await gravar({ acao: 'vale_ajuste_salvar', ajuste: { pessoa_id: valor, mes: v.mes, tipo: v.tipo, valor: numero(v.valor), nota: v.nota } }, 'Lançado no vale.');
+        if (r) { ui.vales.ajuste = ''; repintar(); } else voltou(b); return;
+      }
+      case 'pessoa-ajuste-tirar': await gravar({ acao: 'vale_ajuste_remover', id: valor }, 'Ajuste desfeito.'); return;
       case 'regra-salvar': {
         const ed = b.closest('[data-fx-editor]'); if (!ed) return;
         const v = valoresDe(ed);
-        const r = await gravar({ acao: 'regra_salvar', regra: { contem: v.r_contem, sinal: v.r_sinal, revisar: Boolean(v.r_revisar), categoria: v.categoria, quem: v.quem, cliente_id: v.cliente_id, cliente_nome: nomeCliente(d, v.cliente_id) } });
+        const r = await gravar({ acao: 'regra_salvar', regra: { contem: v.r_contem, sinal: v.r_sinal, revisar: Boolean(v.r_revisar), categoria: v.categoria, quem: v.quem, cliente_id: v.cliente_id, cliente_nome: nomeCliente(d, v.cliente_id),
+          pessoa_id: v.pessoa_id || '', pessoa_nome: nomePessoa(d, v.pessoa_id), fixo_id: v.fixo_id || '' } });
         if (r) { avisar(`Regra criada; ${r.reaplicadas} lançamento(s) mudaram.`, 'success'); ue.regra = ''; repintar(); }
         return;
       }
@@ -998,6 +1086,6 @@
     document.addEventListener('change', aoMudar);
   }
 
-  const telas = Object.freeze({ vorcaro, extrato, clientes_mes: clientesMes, cartao, fixos, projecao });
-  window.VybeFinanceiro = Object.freeze({ telas, _teste: { ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise } });
+  const telas = Object.freeze({ vorcaro, extrato, clientes_mes: clientesMes, cartao, fixos, projecao, vales });
+  window.VybeFinanceiro = Object.freeze({ telas, abrirPessoa, _teste: { cartaoPessoa, ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise } });
 })();

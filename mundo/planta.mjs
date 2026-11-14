@@ -8,7 +8,7 @@
 //         'sombra'   → existe a base; o agente só PROPÕE, alguém aprova
 //         'planejado'→ falta ligar as ferramentas; a sala existe e mostra o que falta
 //
-// modulo: a porta para o que o Vybe OS já faz naquele setor (tipo 'link' abre um sistema irmão, como o Vybe Finanças). Nada aqui recria
+// modulo: a porta para o que o Vybe OS já faz naquele setor (tipo 'link' abre um sistema irmão, como o VybeHub; 'setor' abre um setor do menu lateral). Nada aqui recria
 // uma tela: a sala abre o módulo existente (switchBoard / choose*Mode).
 
 export const PLANTA = [
@@ -51,11 +51,11 @@ export const PLANTA = [
     cor: '#18A957',
     setores: [
       { id: 'receber', nome: 'Cobrança', agente: 'Renato', funcao: 'Contas a Receber', papel: 'Garante a entrada e cuida da inadimplência com tom corporativo.',
-        skills: ['Consultar pagamentos', 'Link Pix/Boleto atualizado', 'Régua de cobrança'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
+        skills: ['Consultar pagamentos', 'Link Pix/Boleto atualizado', 'Régua de cobrança'], estado: 'planejado', modulo: { tipo: 'setor', alvo: 'setor:financas' } },
       { id: 'tesouraria', nome: 'Tesouraria', agente: 'Vorcaro', funcao: 'Contas a Pagar', papel: 'Controla SaaS e freelancers.',
-        skills: ['OCR de faturas', 'Cruzar com orçamento aprovado'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
+        skills: ['OCR de faturas', 'Cruzar com orçamento aprovado'], estado: 'planejado', modulo: { tipo: 'setor', alvo: 'setor:financas' } },
       { id: 'controladoria', nome: 'Controladoria e Fiscal', agente: 'Moreira', funcao: 'Controller', papel: 'Ponte com a contabilidade e documentos fiscais.',
-        skills: ['Emitir NFS-e', 'DRE por projeto', 'Pacote contábil do mês'], estado: 'planejado', modulo: { tipo: 'link', alvo: 'financas', url: 'https://vybe-financas.vercel.app/' } },
+        skills: ['Emitir NFS-e', 'DRE por projeto', 'Pacote contábil do mês'], estado: 'planejado', modulo: { tipo: 'setor', alvo: 'setor:financas' } },
       // Compras (Paulo, 09/11/2026; bot core/agentes.js): cotação com as gráficas, impressões paradas e a base de fornecedores.
       { id: 'compras', nome: 'Compras e Fornecedores', agente: 'Nestor', funcao: 'Comprador', papel: 'Cota com as gráficas, cobra impressão parada e cuida da base de fornecedores.',
         skills: ['Pedido de orçamento pronto', 'Impressões atrasadas e paradas', 'Base de fornecedores (completa, sem duplicada)'], estado: 'sombra', modulo: { tipo: 'janela', alvo: 'impressoes' } },
