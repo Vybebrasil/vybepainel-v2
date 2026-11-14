@@ -684,6 +684,9 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .andar-palco{inset:auto
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .quarto-estado{position:absolute;left:var(--d3s-qx,0px);top:var(--d3s-qy,0px);width:var(--d3s-qw,100%);height:var(--d3s-qh,100%)}
 #mundo-andar > #d3-sala{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:calc(var(--vv-palco-esq,244px) + 8px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 13px/1.35 var(--vv-texto,Inter,sans-serif)}
 #d3-sala > *,#d3-sala .d3s-grade > *{pointer-events:auto}
+/* A grade em si deixa passar o toque: o cartão do quarto é um buraco, e arrastar, girar e dar zoom chegam ao 3D por
+   baixo, como antes (Paulo, 14/11/2026: "deixa mexer a tela do 3D no lugar de fixa"). */
+#d3-sala > .d3s-grade{pointer-events:none}
 #d3-sala :is(h3,p){margin:0}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{position:static;inset:auto;display:flex;align-items:center;gap:12px;min-height:0;margin:0;padding:0;border:0;background:none;box-shadow:none}
 #d3-sala .quarto-cab .quarto-cab-nome{display:flex;align-items:baseline;gap:10px;flex-direction:row-reverse;justify-content:flex-end}
