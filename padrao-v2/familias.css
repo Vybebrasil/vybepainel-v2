@@ -7,24 +7,27 @@
    Os :not(#vb-a) só sobem a força acima das regras antigas de cada módulo (com id da janela); nada aqui força regra com importância. */
 
 /* ===== 1. ABAS ===== */
-body.mundo .vb-abas.vb-abas:not(#vb-a):not(#vb-b){--ds-on-fundo:#FFFFFF;--ds-on-texto:#1F1D1A;--ds-on-borda:transparent;position:relative;isolation:isolate;display:inline-flex;flex-wrap:nowrap;align-items:center;align-self:flex-start;gap:0;width:auto;max-width:100%;min-width:0;height:auto;box-sizing:border-box;margin-left:0;padding:4px;border:0;border-radius:999px;background:#EAE6DE;box-shadow:none;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+body.mundo .vb-abas.vb-abas:not(#vb-a):not(#vb-b){--ds-on-fundo:#1F1D1A;--ds-on-texto:#FFFFFF;--ds-on-borda:transparent;position:relative;isolation:isolate;display:inline-flex;flex-wrap:nowrap;align-items:center;align-self:flex-start;gap:0;width:auto;max-width:100%;min-width:0;height:auto;box-sizing:border-box;margin-left:0;padding:4px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 body.mundo .vb-abas.vb-abas:not(#vb-a):not(#vb-b)::-webkit-scrollbar{display:none}
 body.mundo .vb-abas.vb-abas-com-mais:not(#vb-a):not(#vb-b){overflow:visible}
-body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{position:relative;z-index:1;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;height:30px;min-height:0;min-width:0;margin:0;padding:0 14px;border:0;border-radius:999px;background:transparent;box-shadow:none;color:#6B665E;font:600 12.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:0;text-transform:none;white-space:nowrap;cursor:pointer;transition:color .2s,background-color .2s}
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{position:relative;z-index:1;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;height:32px;min-height:0;min-width:0;margin:0;padding:0 14px;border:0;border-radius:999px;background:transparent;box-shadow:none;color:var(--d3-texto2,#4A463F);font:500 13px/1 var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:0;text-transform:none;white-space:nowrap;cursor:pointer;transition:color .2s,background-color .2s}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:hover{color:#1F1D1A;background:transparent}
-body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:var(--d3-tinta,#1F1D1A);color:#FFFFFF;font-weight:600;box-shadow:none}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:1px}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"].vb-aba-fora{display:none}
 /* A pílula que desliza: desenhada pela lista, na posição da aba selecionada (--vb-aba-x/--vb-aba-w, postas por vbArrumarAbas). */
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b){--ds-on-fundo:transparent}
-body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:transparent;box-shadow:none}
-body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b)::before{content:"";position:absolute;z-index:0;left:0;top:4px;bottom:4px;width:var(--vb-aba-w,0px);transform:translateX(var(--vb-aba-x,0px));border-radius:999px;background:#FFFFFF;box-shadow:0 1px 3px rgba(31,29,26,.18);transition:transform .32s cubic-bezier(.3,.8,.2,1),width .32s cubic-bezier(.3,.8,.2,1);pointer-events:none}
-/* Contador: pílula laranja de 18; o zero some (vbArrumarAbas põe hidden). */
-body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"] .vb-aba-n{display:inline-block;flex:none;min-width:18px;height:18px;box-sizing:border-box;margin:0;padding:0 6px;border:0;border-radius:9px;background:#C2490C;color:#FFFFFF;font:700 11px/18px var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;text-align:center;opacity:1}
+body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:transparent;box-shadow:none;color:#FFFFFF}
+body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b)::before{content:"";position:absolute;z-index:0;left:0;top:4px;bottom:4px;width:var(--vb-aba-w,0px);transform:translateX(var(--vb-aba-x,0px));border-radius:999px;background:var(--d3-tinta,#1F1D1A);box-shadow:none;transition:transform .32s cubic-bezier(.32,.72,0,1),width .32s cubic-bezier(.32,.72,0,1);pointer-events:none}
+/* Contador (Direção 3): pílula branca de 18 sobre o trilho; na aba escolhida, translúcida sobre o preto. O zero some (vbArrumarAbas põe hidden). */
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"] .vb-aba-n{display:inline-block;flex:none;min-width:18px;height:18px;box-sizing:border-box;margin:0;padding:0 6px;border:0;border-radius:9px;background:#FFFFFF;color:var(--d3-tinta,#1F1D1A);font:700 11px/18px var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;text-align:center;opacity:1}
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active) .vb-aba-n{background:rgba(255,255,255,.18);color:#FFFFFF}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"] .vb-aba-n[hidden]{display:none}
+/* A aba escolhida estica ao chegar (Direção 3, "aba que estica"); na lista que desliza quem anda é a pílula. */
+body.mundo .vb-abas:not(.vb-abas-desliza):not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){animation:d3AbaEstica .34s cubic-bezier(.32,.72,0,1) both}
 /* "Mais": as abas da sétima em diante, num menu do mesmo desenho do menu de linha. */
 body.mundo .vb-abas .vb-abas-mais{position:relative;z-index:2;flex:none}
-body.mundo .vb-abas .vb-abas-mais > summary{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 12px;border-radius:999px;color:#6B665E;font:600 12.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap;cursor:pointer;list-style:none}
+body.mundo .vb-abas .vb-abas-mais > summary{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;color:var(--d3-texto2,#4A463F);font:500 13px/1 var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap;cursor:pointer;list-style:none}
 body.mundo .vb-abas .vb-abas-mais > summary::-webkit-details-marker{display:none}
 body.mundo .vb-abas .vb-abas-mais > summary svg{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 body.mundo .vb-abas .vb-abas-mais > summary:hover,body.mundo .vb-abas .vb-abas-mais[open] > summary{color:#1F1D1A}
@@ -33,14 +36,17 @@ body.mundo .vb-abas .vb-abas-mais > summary:hover,body.mundo .vb-abas .vb-abas-m
 body.mundo .vb-menu-linha{position:relative;display:inline-block;flex:none}
 body.mundo .vb-menu-linha > summary{list-style:none}
 body.mundo .vb-menu-linha > summary::-webkit-details-marker{display:none}
-body.mundo .vb-pt3{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;box-sizing:border-box;padding:0;border:0;border-radius:50%;background:#1F1D1A;color:#FFFFFF;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+body.mundo .vb-pt3{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;box-sizing:border-box;padding:0;border:0;border-radius:50%;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .2s,color .2s}
 body.mundo .vb-pt3:active{transform:scale(.92)}
+body.mundo .vb-pt3:hover{background:var(--d3-borda,#E6E0D6)}
+body.mundo .vb-menu-linha[open] > .vb-pt3{background:var(--d3-tinta,#1F1D1A);color:#FFFFFF}
 body.mundo .vb-pt3:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 body.mundo :is(.vb-menu-linha,.vb-abas-mais) > .vb-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60}
 body.mundo .vb-menu.vb-menu:not(#vb-a){display:flex;flex-direction:column;width:max-content;min-width:190px;max-width:min(320px,86vw);box-sizing:border-box;margin:0;padding:6px;border:0;border-radius:16px;background:#FFFFFF;color:#1F1D1A;box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45);transform-origin:100% 0;animation:vb-menu .22s cubic-bezier(.34,1.3,.64,1) both}
 @keyframes vb-menu{from{transform:scale(.6)}to{transform:none}}
-body.mundo .vb-menu:not(#vb-a) .vb-mi{appearance:none;display:flex;align-items:center;gap:8px;width:100%;height:30px;min-height:0;box-sizing:border-box;margin:0;padding:0 12px;border:0;border-radius:10px;background:transparent;box-shadow:none;color:#1F1D1A;font:500 13px/1 var(--vv-texto,Inter,system-ui,sans-serif);text-align:left;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
+body.mundo .vb-menu:not(#vb-a) .vb-mi{appearance:none;display:flex;align-items:center;gap:8px;width:100%;height:34px;min-height:0;box-sizing:border-box;margin:0;padding:0 12px;border:0;border-radius:10px;background:transparent;box-shadow:none;color:#1F1D1A;font:500 13.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);text-align:left;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
 body.mundo .vb-menu:not(#vb-a) .vb-mi:hover,body.mundo .vb-menu:not(#vb-a) .vb-mi:focus-visible{background:#F3F1EC;outline:none}
+body.mundo .vb-menu:not(#vb-a) .vb-mi > svg{flex:none;color:var(--d3-apagado,#6B665E)}
 body.mundo .vb-menu:not(#vb-a) .vb-mi[disabled]{opacity:.4;cursor:default;background:transparent}
 body.mundo .vb-menu:not(#vb-a) .vb-mi.vb-mi-apaga{margin-top:5px;border-radius:0 0 10px 10px;box-shadow:0 -1px 0 #F1EDE6;color:#B42318}
 body.mundo .vb-menu:not(#vb-a) .vb-mi.vb-mi-apaga:hover{background:#FDECEE}
@@ -52,7 +58,7 @@ body.mundo .vb-menu:not(#vb-a) .vb-mi-par > .vb-mi{width:auto;padding:0 10px;col
 body.mundo #grupo-menu.vb-menu:not(#vb-a){position:fixed;z-index:9000;animation-name:vb-menu}
 body.mundo #grupo-menu .vb-menu-titulo{margin:4px 12px 6px;font:600 12px/1.3 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.mundo #grupo-menu .grupo-menu-cores{margin:0 0 4px;padding:6px 12px 8px;border:0}
-body.mundo :is(#grupos-board,#grupos-board-demandas) .grupo-menu-btn:not(#vb-a){appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:#1F1D1A;color:#FFFFFF;box-shadow:none;cursor:pointer}
+body.mundo :is(#grupos-board,#grupos-board-demandas) .grupo-menu-btn:not(#vb-a){appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);box-shadow:none;cursor:pointer}
 body.mundo :is(#grupos-board,#grupos-board-demandas) .grupo-menu-btn:not(#vb-a) svg{width:16px;height:16px}
 body.mundo #grupo-menu-fundo{position:fixed;inset:0;z-index:8999;background:transparent}
 
@@ -72,7 +78,7 @@ body.mundo .vb-etapas > .vb-etapa > b,body.mundo .vb-etapas > .vb-etapa > em{fon
 body.mundo .vb-etapas > .vb-etapa.atual{padding:0 10px;border-radius:999px;background:#1F1D1A;color:#FFFFFF}
 body.mundo .vb-etapas > .vb-etapa.feito{color:#11613A}
 body.mundo .vb-etapas.muitas > .vb-etapa:not(.atual) > em{display:none}
-body.mundo .vb-obrig.vb-obrig:not(#vb-a){display:inline;margin-left:6px;font:500 11.5px var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;color:#C2490C}
+body.mundo .vb-obrig.vb-obrig:not(#vb-a){display:inline;margin-left:6px;font:500 11.5px var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;color:var(--d3-ajuste,#7A4A00)}
 body.mundo .vb-erro,body.mundo #context-step-error.vb-erro{display:flex;align-items:center;gap:6px;margin:4px 0 0 4px;font:500 12px/1.3 var(--vv-texto,Inter,system-ui,sans-serif);color:#B42318}
 body.mundo .vb-erro[hidden]{display:none}
 body.mundo .vb-erro svg{flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
@@ -85,10 +91,11 @@ body.mundo .vb-campo-erro[role="group"]:not(#vb-a),body.mundo .workflow-field.vb
 #vb-apagar .vb-apagar-t{margin:0;font:600 15px/1.3 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A;overflow-wrap:anywhere}
 #vb-apagar .vb-apagar-x{margin:4px 0 0;font:400 12.5px/1.45 var(--vv-texto,Inter,sans-serif);color:#6B665E;white-space:pre-line;overflow-wrap:anywhere}
 #vb-apagar .vb-apagar-acoes{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
-#vb-apagar .vb-apagar-acoes button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:600 13.5px/1 var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+#vb-apagar .vb-apagar-acoes > button{flex:1 1 0}
+#vb-apagar .vb-apagar-acoes button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none;color:#1F1D1A;font:500 13.5px/1 var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
 #vb-apagar .vb-apagar-acoes button:active{transform:scale(.96)}
-#vb-apagar .vb-apagar-acoes .vb-apagar-nao:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
-#vb-apagar .vb-apagar-acoes .vb-apagar-sim{background:#B42318;box-shadow:none;color:#FFFFFF}
+#vb-apagar .vb-apagar-acoes .vb-apagar-nao:hover{background:var(--d3-borda,#E6E0D6)}
+#vb-apagar .vb-apagar-acoes .vb-apagar-sim{background:#B42318;box-shadow:none;color:#FFFFFF;font-weight:600}
 #vb-apagar .vb-apagar-acoes .vb-apagar-sim:hover{background:#951C13}
 #vb-apagar .vb-apagar-acoes button:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 @keyframes vb-apagar-fundo{from{opacity:0}to{opacity:1}}
@@ -96,13 +103,14 @@ body.mundo .vb-campo-erro[role="group"]:not(#vb-a),body.mundo .workflow-field.vb
 
 /* ===== 6. VAZIO E CARREGANDO ===== */
 body.mundo .vb-estado.vb-estado:not(#vb-a){display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 12px 20px;text-align:center}
-body.mundo .vb-estado:not(#vb-a) .vb-estado-icone{display:grid;place-items:center;width:auto;height:auto;border-radius:0;background:none;color:#C2490C}
-body.mundo .vb-estado.erro:not(#vb-a) .vb-estado-icone{background:none;color:#B42318}
-body.mundo .vb-estado:not(#vb-a) .vb-estado-icone svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-body.mundo .vb-estado:not(#vb-a) > b{max-width:46ch;font:600 14px/1.35 var(--vv-texto,Inter,system-ui,sans-serif);color:#1F1D1A}
+/* Direção 3: o ícone num círculo #F3F1EC de 52, a frase em 17 e a ação preta; o laranja fica só para o bloco de ação. */
+body.mundo .vb-estado:not(#vb-a) .vb-estado-icone{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A)}
+body.mundo .vb-estado.erro:not(#vb-a) .vb-estado-icone{background:var(--d3-perigo-veu,#FDECEE);color:#B42318}
+body.mundo .vb-estado:not(#vb-a) .vb-estado-icone svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body.mundo .vb-estado:not(#vb-a) > b{max-width:46ch;font:600 17px/1.3 var(--vv-titulo,"Inter Tight",Inter,system-ui,sans-serif);color:#1F1D1A}
 body.mundo .vb-estado:not(#vb-a) > p{max-width:46ch;margin:-4px 0 0;font:400 12.5px/1.45 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
 /* A ação do vazio é um botão pequeno preto em pílula, venha com a classe que vier. */
-body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:auto;height:30px;min-height:0;margin:2px 0 0;padding:0 12px;border:0;border-radius:999px;background:#1F1D1A;box-shadow:none;color:#FFFFFF;font:600 12.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);text-decoration:none;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
+body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:auto;height:36px;min-height:0;margin:2px 0 0;padding:0 16px;border:0;border-radius:999px;background:#1F1D1A;box-shadow:none;color:#FFFFFF;font:600 13.5px/1 var(--vv-texto,Inter,system-ui,sans-serif);text-decoration:none;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
 body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child:hover{background:#000000}
 body.mundo .vb-estado:not(#vb-a) > :is(button,a):last-child:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 /* Esqueleto: a forma da tela (linha de lista, cartão ou parágrafo), com o brilho que passa. */
@@ -110,7 +118,8 @@ body.mundo .vb-esq.vb-esq:not(#vb-a){display:flex;flex-direction:column;gap:0;pa
 body.mundo .vb-esq.cartoes:not(#vb-a){display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
 body.mundo .vb-esq.texto:not(#vb-a){gap:9px}
 body.mundo .vb-esq .vb-sk{display:block;flex:none;border-radius:6px;background:linear-gradient(90deg,#EFEBE4 0,#F8F5EF 40%,#EFEBE4 80%);background-size:200% 100%;animation:vb-sk-brilho 1.6s linear infinite}
-body.mundo .vb-esq .vb-esq-lin{display:flex;align-items:center;gap:10px;padding:7px 0}
+body.mundo .vb-esq .vb-esq-lin + .vb-esq-lin{border-top:1px solid var(--d3-linha,#F1EDE6)}
+body.mundo .vb-esq .vb-esq-lin{display:flex;align-items:center;gap:10px;padding:10px 0}
 body.mundo .vb-esq .vb-esq-av{width:28px;height:28px;border-radius:50%}
 body.mundo .vb-esq .vb-esq-txt{flex:0 1 100%;height:10px}
 body.mundo .vb-esq .vb-esq-lin:nth-child(3n+2) .vb-esq-txt{flex-basis:70%;margin-right:auto}
@@ -139,6 +148,7 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 }
 @media (prefers-reduced-motion:reduce){
   body.mundo .vb-abas.vb-abas-desliza::before,body.mundo .vb-abas [role="tab"]{transition:none}
+  body.mundo .vb-abas:not(.vb-abas-desliza):not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){animation:none}
   body.mundo .vb-menu,#vb-apagar,#vb-apagar .vb-apagar-caixa{animation:none}
   body.mundo .vb-esq .vb-sk{animation:none}
 }
@@ -172,4 +182,4 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 #status-editor .v2-st-op .v2-st-pilula.b{background:#E7EEFB;color:#1E4A9A}
 #status-editor .v2-st-op .v2-st-pilula.v{background:#EEEAFB;color:#4B36A8}
 #status-editor .v2-st-op .v2-st-pilula.n{background:#EFEBE4;color:#4A463F}
-#status-editor .v2-st-todos .v2-st-todos-txt{color:#C2490C;font-weight:600}
+#status-editor .v2-st-todos .v2-st-todos-txt{color:#1F1D1A;font-weight:600;text-decoration:underline;text-underline-offset:3px}

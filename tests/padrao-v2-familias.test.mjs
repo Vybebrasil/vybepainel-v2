@@ -53,9 +53,9 @@ test('abas: uma peça para todas as listas de abas do mundo (pílula que desliza
   assert.match(abas, /lista\.scrollWidth > larguraUtil\(\) \+ 1/, 'no celular, o que não cabe também vai para o Mais');
   assert.match(abas, /alvo\?\.click\(\)/, 'o Mais clica na aba de verdade');
   assert.match(core, /new MutationObserver\(pedirAbas\)\.observe\(document\.body/);
-  assert.match(css, /\.vb-abas\.vb-abas:not\(#vb-a\):not\(#vb-b\)\{--ds-on-fundo:#FFFFFF;[^}]*border-radius:999px;background:#EAE6DE/);
-  assert.match(css, /\.vb-abas\.vb-abas-desliza:not\(#vb-a\):not\(#vb-b\)::before\{[^}]*transform:translateX\(var\(--vb-aba-x,0px\)\);[^}]*background:#FFFFFF/);
-  assert.match(css, /\.vb-aba-n\{[^}]*background:#C2490C/);
+  assert.match(css, /\.vb-abas\.vb-abas:not\(#vb-a\):not\(#vb-b\)\{--ds-on-fundo:#1F1D1A;[^}]*border-radius:999px;background:var\(--d3-trilho,#F3F1EC\)/, 'Direção 3: trilho #F3F1EC e a escolhida preta');
+  assert.match(css, /\.vb-abas\.vb-abas-desliza:not\(#vb-a\):not\(#vb-b\)::before\{[^}]*transform:translateX\(var\(--vb-aba-x,0px\)\);[^}]*background:var\(--d3-tinta,#1F1D1A\)/);
+  assert.match(css, /\.vb-aba-n\{[^}]*background:#FFFFFF;color:var\(--d3-tinta,#1F1D1A\)/, 'Direção 3: o contador não é laranja');
   assert.match(css, /@media \(max-width:640px\)\{[^@]*\.vb-abas:not\(#vb-a\):not\(#vb-b\) \[role="tab"\]\{height:36px/);
 });
 
@@ -88,10 +88,10 @@ test('portões e contexto de status: etapas em pílula, botões em pílula, prim
   assert.match(css, /\.vb-erro,body\.mundo #context-step-error\.vb-erro\{[^}]*color:#B42318/);
 });
 
-test('status: menu curto em pílula na cor do status, "Todos os N" em laranja, um aviso só na recusa; Grupos com a pílula das listas', () => {
+test('status: menu curto em pílula na cor do status, "Todos os N" em tinta, um aviso só na recusa; Grupos com a pílula das listas', () => {
   const status = ler('vybe-status.js'), agenda = ler('vybe-agenda.js'), dominio = ler('vybe-dominio.js');
   assert.match(status, /<span class="v2-st-pilula \$\{typeof pv2Tom === 'function' \? pv2Tom\(o\.label\) : ''\}" style="--c:\$\{o\.color\}">/);
-  assert.match(css, /#status-editor \.v2-st-todos \.v2-st-todos-txt\{color:#C2490C/);
+  assert.match(css, /#status-editor \.v2-st-todos \.v2-st-todos-txt\{color:#1F1D1A;[^}]*text-decoration:underline/, 'Direção 3: link em tinta sublinhada');
   assert.match(dominio, /erro\.vbAvisado = true;/);
   assert.match(status, /else if \(!e\?\.vbAvisado\) showToast\(recadoDeStatusRecusado\(e, option\), 'err', 9000\);/);
   assert.match(agenda, /\$\{pv2 \? pv2StatusBotao\(item\) : `<button type="button" class="grupo-pill-btn"/);

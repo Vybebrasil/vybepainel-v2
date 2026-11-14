@@ -18,8 +18,10 @@
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):active{transform:scale(.96)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):disabled{opacity:.5;cursor:default}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p{background:#C2490C;color:#FFFFFF;box-shadow:0 8px 16px -10px #C2490C}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p:hover{background:#A93F0A}
+/* Direção 3: a ação principal do título é botão branco com "+"; o único laranja cheio da tela é o bloco de ação. */
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p{background:var(--d3-cartao,#FFFFFF);color:var(--d3-tinta,#1F1D1A);box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p::before{content:"+";margin-right:2px;font-size:16px;font-weight:500}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p:hover{background:var(--d3-trilho,#F3F1EC)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).k{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).k:hover{background:#34312C}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).s{height:30px;padding:0 12px;font-size:12.5px}
@@ -82,7 +84,7 @@
 
 /* ===== Gestão de clientes (#painel-clientes, renderClientesBoard em vybe-clientes.js) ===== */
 /* O fundo #F9F8F5 da janela do quadro: a sombra enche a janela inteira (que recorta pelo próprio canto). */
-#painel-clientes{background:#F9F8F5;box-shadow:0 0 0 100vmax #F9F8F5;color:#1F1D1A}
+#painel-clientes{background:var(--d3-areia,#EAE6DE);box-shadow:0 0 0 100vmax var(--d3-areia,#EAE6DE);color:#1F1D1A}
 #painel-clientes > .container{display:flex;flex-direction:column;gap:16px;max-width:none;padding:26px 30px;container:v2f / inline-size}
 #painel-clientes > .container > *{margin-top:0;margin-bottom:0}
 #painel-clientes #clientes-hero{order:1;gap:12px}

@@ -107,21 +107,25 @@
     return null;
   };
 
-  // ---------- Telas do padrão v2 (quadros Finanças, Recebimentos, Contas a pagar e Inadimplência) ----------
-  // Cada tela é o quadro, nesta ordem: cabeçalho com a ação, a fala do Vorcaro, três números, a barra de filtro, o
-  // "Pede ação" com o botão na linha e o cartão do lado. Quem hospeda é a janela do Comercial (as três abas) e a Visão
-  // geral do setor (Finanças):
+  // ---------- Telas de Finanças na Direção 3 (moodboard 3, aprovado pelo Paulo em 13/11/2026) ----------
+  // Cada tela é o quadro D3 dela, nesta ordem: cabeçalho com o selo "só donos", o bloco de ação laranja do Vorcaro
+  // (frase curta e um botão), os números (d3NumHtml, com a barra ou a mini linha), as fichas com a contagem e,
+  // embaixo, o "Pede ação" ao lado do cartão da tela. A frase explicativa virou forma: o que era legenda está no número,
+  // na pílula ou na linha que abre. Quem hospeda é a janela do Comercial (as três abas) e a Visão geral do setor:
   //   VybeFinancas.telas.recebimentos|contas|inadimplencia({ d, filtro, verFalta, admin, repintar, recarregar }) → HTML
   //   VybeFinancas.telas.visao({ subs, abrirSub }) → Promise<HTML>
   // d = a resposta de /api/painel?area=comercial&aba=…; filtro = o objeto das buscas da janela (rec, conta, inad).
   // Os botões que já existiam (formulários, período, busca, ajuda) saem com os mesmos data-vc da janela; o que é só
   // destas telas (fichas, linha que abre, "Recebi" e "Paguei" de um toque) usa data-fv e é tratado aqui.
+  // As peças d3AcaoHtml, d3NumHtml e d3LinhaSvg são da base (vybe-core.js; CSS em padrao-v2/0-d3-base.css).
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const n0 = (v) => Math.round(Number(v) || 0).toLocaleString('pt-BR');
   const mil = (v) => { const n = Number(v) || 0, a = Math.abs(n); return `${n < 0 ? '-' : ''}R$ ${a >= 1000 ? (a / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil' : n0(a)}`; };
   const rs = (v) => { const n = Number(v) || 0; return `${n < 0 ? '-' : ''}R$ ${Math.abs(n).toLocaleString('pt-BR', Number.isInteger(n) ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; };
   // "R$ 5,7 de 9,6 mil": os dois em mil, a unidade uma vez só.
   const parteDe = (a, b) => (Math.abs(Number(a)) >= 1000 && Math.abs(Number(b)) >= 1000 ? `${mil(a).replace(' mil', '')} de ${mil(b).replace('R$ ', '')}` : `${mil(a)} de ${mil(b)}`);
+  // O número com o total ao lado, mais apagado: "R$ 38,2 mil / 48,6".
+  const sobre = (a, b) => (Number(b) ? `${mil(a)}<small class="d3f-de"> / ${Math.abs(Number(a)) >= 1000 && Math.abs(Number(b)) >= 1000 ? mil(b).replace('R$ ', '').replace(' mil', '') : mil(b).replace('R$ ', '')}</small>` : mil(a));
   const soma = (l, campo) => l.reduce((t, x) => t + (Number(x[campo]) || 0), 0);
   const pc = (a, b) => (Number(b) > 0 ? Math.max(0, Math.min(100, Math.round((Number(a) || 0) / Number(b) * 100))) : 0);
   const quantos = (n, um, varios) => `${n0(n)} ${Number(n) === 1 ? um : varios}`;
@@ -132,18 +136,33 @@
   const somaDia = (iso, n) => new Date(Date.parse(iso + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
   const somaMes = (ym, n) => { const [a, m] = String(ym).split('-').map(Number), d = new Date(Date.UTC(a, m - 1 + n, 1)); return d.toISOString().slice(0, 7); };
   const mesDe = (iso) => MESES[Number(String(iso || '').slice(5, 7)) - 1] || '';
+  const MES3 = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const mes3 = (iso) => MES3[Number(String(iso || '').slice(5, 7)) - 1] || '';
+  const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  const diaDeHoje = (iso) => { const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z'); return Number.isNaN(d.getTime()) ? '' : `${DIAS[d.getUTCDay()]}, ${d.getUTCDate()} ${MES3[d.getUTCMonth()]}`; };
   const extenso = (iso) => (ehDia(iso) ? `${Number(String(iso).slice(8, 10)) === 1 ? '1º' : Number(String(iso).slice(8, 10))} de ${mesDe(iso)}` : 'sem data');
   const curta = (iso) => (ehDia(iso) ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : 'sem data');
   const maiuscula = (s) => String(s).replace(/^./, (c) => c.toUpperCase());
   const doFin = (id) => String(id || '').startsWith('fin:');
   const emAtraso = (x) => x.status === 'atrasado' || x.status === 'inadimplente';
   const SETA = { esq: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>', dir: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' };
+  const IC = {
+    cadeado: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+    lupa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
+    filtro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
+  };
+  const SELO = `<span class="d3-selo-donos">${IC.cadeado}só donos</span>`;
+  // Pílula: clara com a bolinha (n, b) ou cheia de cor só no que pede (r venceu, a ajuste, g pago/recebido).
   const pilula = (texto, tom = 'n') => `<span class="fv2-pill ${tom}">${esc(texto)}</span>`;
   // O cliente com a bolinha na cor da carteira dele.
   function carteiraDe(nome) {
     try { return typeof carteiraDoCliente === 'function' ? String(carteiraDoCliente(nome) || '') : ''; } catch { return ''; }
   }
   const cli = (nome) => `<span class="fv2-cli" data-carteira="${esc(carteiraDe(nome))}">${esc(nome)}</span>`;
+  // O sócio do cliente pela carteira (VI, EW): é quem fala com ele.
+  const SOCIO = { vinicius: ['VI', 'Vinícius'], ewerton: ['EW', 'Ewerton'] };
+  const socio = (nome) => { const s = SOCIO[carteiraDe(nome)]; return s ? `<span class="d3f-av" title="${esc(s[1])}">${s[0]}</span>` : '<span class="d3f-av vazio" aria-hidden="true"></span>'; };
   // O que cada tela lembra entre uma pintura e outra: ficha escolhida, linha aberta, "mostrar" e o período da Visão geral.
   const ui = {
     rec: { chip: 'todas', extra: '', filtros: false, aberta: '', inteira: false, acaoInteira: false },
@@ -155,60 +174,81 @@
 
   // Leituras das outras abas (o que está em atraso hoje, o caixa), guardadas por 1 minuto.
   const lidas = new Map();
-  function buscar(q) {
-    const c = lidas.get(q);
+  function buscar(q, area = 'comercial') {
+    const k = `${area}|${q}`, c = lidas.get(k);
     if (c && (c.promessa || Date.now() - c.em < 60000)) return c.promessa || Promise.resolve(c.dados);
     if (typeof fetch !== 'function') return Promise.resolve(null);
     const e = { em: Date.now(), dados: c?.dados || null, promessa: null };
-    lidas.set(q, e);
-    e.promessa = fetch(`/api/painel?area=comercial&aba=${q}`, { credentials: 'same-origin', cache: 'no-store' })
+    lidas.set(k, e);
+    e.promessa = fetch(`/api/painel?area=${area}${q ? `&aba=${q}` : ''}`, { credentials: 'same-origin', cache: 'no-store' })
       .then((r) => r.json().then((d) => (r.ok && d && d.ok !== false ? d : null))).catch(() => null)
       .then((d) => { e.dados = d || e.dados; e.em = Date.now(); e.promessa = null; return e.dados; });
     return e.promessa;
   }
   // Na pintura (que não espera): devolve o que já chegou e, quando chegar o resto, pede para pintar de novo.
   function jaLida(q, aoChegar) {
-    const c = lidas.get(q);
+    const c = lidas.get(`comercial|${q}`);
     if (!c || (!c.promessa && Date.now() - c.em >= 60000)) buscar(q).then(() => aoChegar?.());
-    return lidas.get(q)?.dados || null;
+    return lidas.get(`comercial|${q}`)?.dados || null;
   }
 
   // ----- Peças -----
-  function topo({ titulo, trilha = true, meio = '', acoes = '' }) {
-    return `<div class="fv2-topo"><div class="fv2-ola">${trilha ? `<p class="fv2-sub"><button type="button" class="fv2-link" data-fv="ir" data-valor="setor:financas">Finanças</button> › ${esc(titulo)}</p>` : ''}<h1>${esc(titulo)}</h1></div>${meio}${acoes}</div>`;
+  function topo({ titulo, trilha = true, meio = '', acoes = '', extra = '' }) {
+    return `<div class="fv2-topo"><div class="fv2-ola">${trilha ? `<p class="fv2-sub"><button type="button" class="fv2-link" data-fv="ir" data-valor="setor:financas">Finanças</button> › ${esc(titulo)}</p>` : ''}<div class="d3f-tit"><h1>${esc(titulo)}</h1>${SELO}${extra}</div></div>${meio}${acoes}</div>`;
   }
+  const novo = (vc, nome) => `<button type="button" class="fv2-btn p" data-vc="${vc}">${IC.mais}${esc(nome)}</button>`;
+  const comoFunciona = '<button type="button" class="fv2-btn d3f-cinza" data-vc="ajuda">Como funciona</button>';
   function periodoHtml(per, hoje) {
     const anual = per.tipo === 'anual', mes = /^\d{4}-\d{2}$/.test(per.mes || '') ? per.mes : hoje.slice(0, 7), passo = anual ? 12 : 1, corte = anual ? 4 : 7;
     const antes = somaMes(mes, -passo), depois = somaMes(mes, passo), fim = depois.slice(0, corte) > hoje.slice(0, corte), nome = anual ? 'ano' : 'mês';
     return `<span class="fv2-seg" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, n]) => `<button type="button" data-vc-periodo="${k}" aria-pressed="${(per.tipo || 'mensal') === k}">${n}</button>`).join('')}</span>
-      <span class="fv2-mes" role="group" aria-label="${anual ? 'Ano' : 'Mês'}"><button type="button" class="fv2-btn s fv2-seta" data-vc-mes-ir="${antes}" aria-label="${maiuscula(nome)} anterior">${SETA.esq}</button><span class="fv2-chip" aria-live="polite">${anual ? mes.slice(0, 4) : esc(nomeMes(mes))}</span><button type="button" class="fv2-btn s fv2-seta" data-vc-mes-ir="${depois}" aria-label="Próximo ${nome}"${fim ? ' disabled' : ''}>${SETA.dir}</button></span>`;
+      <span class="fv2-mes" role="group" aria-label="${anual ? 'Ano' : 'Mês'}"><button type="button" class="fv2-btn s fv2-seta" data-vc-mes-ir="${antes}" aria-label="${maiuscula(nome)} anterior">${SETA.esq}</button><b class="d3f-mes" aria-live="polite">${anual ? mes.slice(0, 4) : esc(nomeMes(mes))}</b><button type="button" class="fv2-btn s fv2-seta" data-vc-mes-ir="${depois}" aria-label="Próximo ${nome}"${fim ? ' disabled' : ''}>${SETA.dir}</button></span>`;
   }
   const rotuloFala = (per, hoje) => { const r = rotuloPeriodo(per, hoje); return per.tipo !== 'anual' && r.endsWith(' de ' + hoje.slice(0, 4)) ? r.slice(0, -8) : r; };
   const rotuloPeriodo = (per, hoje) => (per.tipo === 'anual' ? String(per.mes || hoje).slice(0, 4) : nomeMes(/^\d{4}-\d{2}$/.test(per.mes || '') ? per.mes : hoje.slice(0, 7)));
-  const fala = (quem, frase, botao = '') => `<section class="fv2-fala" aria-label="${esc(quem)}"><span class="fv2-ag" aria-hidden="true">V</span><p><span class="fv2-quem">${esc(quem)}</span>${frase}</p>${botao}</section>`;
-  function kpi({ rotulo, valor, tom = '', barra = null, sub = '', i = 0, dica = '', espiar = '' }) {
-    return `<div class="fv2-kpi${tom ? ' ' + tom : ''}"${dica ? ` title="${esc(dica)}"` : ''}><small>${esc(rotulo)}</small><b${espiar ? ` class="espiavel" data-espiar="${esc(espiar)}" role="button" tabindex="0"` : ''}><span class="v2-num"${i ? ` style="animation-delay:${(i * 0.12).toFixed(2)}s"` : ''}>${esc(valor)}</span></b>${barra ? `<div class="v2-barra"><i style="--v:${barra.v}%;--c:${barra.cor || '#11613A'}"></i></div>` : ''}${sub ? `<small class="fv2-kpi-sub">${sub}</small>` : ''}</div>`;
+  // Bloco de ação (a única faixa laranja): quem fala, a frase curta e um botão.
+  const acao = (quem, frase, botao = '', attrs = '') => globalThis.d3AcaoHtml({ frase: `<small class="d3f-quem">${esc(quem)}</small>${frase}`, agente: 'V', botao, attrs });
+  // Número da Direção 3 com a linha de baixo: o que era legenda vira um dado curto.
+  function num({ rotulo, valor, tom = '', serie = null, meta = null, barra = null, sub = '', attrs = '' }) {
+    const h = globalThis.d3NumHtml({ rotulo, valor, tom, serie, meta, barra, attrs });
+    return sub ? h.replace(/<\/(div|button)>$/, `<span class="d3f-sub">${sub}</span></$1>`) : h;
   }
-  const kpis = (lista) => `<div class="fv2-kpis">${lista.map((k, i) => kpi({ ...k, i })).join('')}</div>`;
+  const nums = (lista) => `<div class="d3f-nums" style="--n:${lista.length}">${lista.map((k) => num(k)).join('')}</div>`;
   const variou = (v, contra) => (v == null || !Number.isFinite(Number(v)) ? '' : `${Number(v) > 0 ? 'subiu' : Number(v) < 0 ? 'caiu' : 'igual'} ${String(Math.abs(Number(v))).replace('.', ',')}% ${contra}`);
   function filtros({ tela, busca, chips, extras = [] }) {
     const u = ui[tela], id = 'fv2-busca-' + tela;
-    return `<div class="fv2-filtros"><label class="fv2-sr" for="${id}">${esc(busca.rotulo)}</label><input class="fv2-busca" id="${id}" type="search" data-vc-busca="${busca.chave}" placeholder="${esc(busca.dica)}" value="${esc(busca.valor || '')}">
-      <span class="fv2-fichas" role="group" aria-label="Filtrar a lista">${chips.map(([k, nome, n]) => `<button type="button" class="fv2-chip" data-fv="chip" data-tela="${tela}" data-valor="${k}" aria-pressed="${!u.extra && u.chip === k}">${esc(nome)} · ${n0(n)}</button>`).join('')}</span>
-      ${extras.length ? `<button type="button" class="fv2-btn s" data-fv="filtros" data-tela="${tela}" aria-expanded="${u.filtros}">Filtros</button>` : ''}</div>
-      ${extras.length && u.filtros ? `<div class="fv2-filtros fv2-extras" role="group" aria-label="Mais filtros">${extras.map(([k, nome, n]) => `<button type="button" class="fv2-chip" data-fv="extra" data-tela="${tela}" data-valor="${k}" aria-pressed="${u.extra === k}">${esc(nome)} · ${n0(n)}</button>`).join('')}</div>` : ''}`;
+    const ficha = (acaoFv, [k, nome, n, tom = ''], on) => `<button type="button" class="fv2-chip" data-fv="${acaoFv}" data-tela="${tela}" data-valor="${k}" aria-pressed="${on}">${esc(nome)} <b${tom ? ` class="${tom}"` : ''}>${n0(n)}</b></button>`;
+    return `<div class="fv2-filtros"><label class="fv2-sr" for="${id}">${esc(busca.rotulo)}</label><span class="d3f-busca">${IC.lupa}<input class="fv2-busca" id="${id}" type="search" data-vc-busca="${busca.chave}" placeholder="${esc(busca.dica)}" value="${esc(busca.valor || '')}"></span>
+      <span class="fv2-fichas" role="group" aria-label="Filtrar a lista">${chips.map((c) => ficha('chip', c, !u.extra && u.chip === c[0])).join('')}</span>
+      ${extras.length ? `<button type="button" class="fv2-chip d3f-filtros" data-fv="filtros" data-tela="${tela}" aria-expanded="${u.filtros}">${IC.filtro}Filtros</button>` : ''}</div>
+      ${extras.length && u.filtros ? `<div class="fv2-filtros fv2-extras" role="group" aria-label="Mais filtros">${extras.map((c) => ficha('extra', c, u.extra === c[0])).join('')}</div>` : ''}`;
   }
-  // Linha que abre no lugar: o texto é o botão que abre; à direita, o que a linha pede (valor, status, botão).
-  function linha({ tela, id, pill = '', texto, dir = '', detalhe = '' }) {
+  // Linha que abre no lugar: pílula, o texto (o botão que abre), uma coluna do meio, o valor e o que a linha pede.
+  function linha({ tela, id, pill = '', texto, meio = '', valor = '', dir = '', detalhe = '' }) {
     const aberta = ui[tela].aberta === String(id);
-    return `<div class="v2-abre fv2-linha" data-linha="${esc(id)}" aria-expanded="${aberta}"><div class="fv2-lin">${pill}<button type="button" class="fv2-txt" data-fv="linha" data-tela="${tela}" data-valor="${esc(id)}" aria-expanded="${aberta}">${texto}</button>${dir}</div>
+    return `<div class="v2-abre fv2-linha" data-linha="${esc(id)}" aria-expanded="${aberta}"><div class="fv2-lin">${pill}<button type="button" class="fv2-txt" data-fv="linha" data-tela="${tela}" data-valor="${esc(id)}" aria-expanded="${aberta}">${texto}</button>${meio}${valor ? `<b class="fv2-valor">${valor}</b>` : ''}${dir ? `<span class="d3f-dir">${dir}</span>` : ''}</div>
       <div class="v2-mais"><div><div class="fv2-det">${detalhe}</div></div></div></div>`;
   }
   const hist = (frases) => frases.filter(Boolean).map((f) => `<p class="fv2-hist">${f}</p>`).join('');
-  const umToque = (acao, id, texto, extra = '') => `<button type="button" class="fv2-btn s v2-estado" data-fv="${acao}" data-valor="${esc(id)}"${extra}>${texto}</button>`;
-  const cartao = ({ titulo, sub = '', corpo, pe = '', cls = '', rotulo = '' }) => `<section class="fv2-card${cls ? ' ' + cls : ''}"${rotulo ? ` data-fv-card="${rotulo}"` : ''}><div class="fv2-card-topo"><h2>${esc(titulo)}</h2>${sub ? `<span class="fv2-sub">${sub}</span>` : ''}</div>${corpo}${pe ? `<p class="fv2-sub fv2-pe">${pe}</p>` : ''}</section>`;
+  const umToque = (acaoFv, id, texto, extra = '') => `<button type="button" class="fv2-btn s v2-estado" data-fv="${acaoFv}" data-valor="${esc(id)}"${extra}>${texto}</button>`;
+  const cartao = ({ titulo, sub = '', corpo, pe = '', cls = '', rotulo = '', cab = '' }) => `<section class="fv2-card${cls ? ' ' + cls : ''}"${rotulo ? ` data-fv-card="${rotulo}"` : ''}><div class="fv2-card-topo"><h2>${esc(titulo)}</h2>${sub ? `<span class="fv2-sub">${sub}</span>` : ''}</div>${cab}${corpo}${pe ? `<div class="fv2-pe">${pe}</div>` : ''}</section>`;
+  const cabeca = (cols) => `<div class="d3f-cab" aria-hidden="true">${cols.map(([cls, t]) => `<span class="${cls}">${esc(t)}</span>`).join('')}</div>`;
   const vazioLinha = (frase, botoes = '') => `<div class="fv2-vz"><p>${frase}</p>${botoes}</div>`;
-  const maisHtml = (resto, nome, acao, tela) => (resto > 0 ? `+ ${n0(resto)}${nome ? ' ' + nome : ''} · <button type="button" class="fv2-link" data-fv="${acao}" data-tela="${tela}">mostrar</button>` : '');
+  const maisHtml = (resto, nome, acaoFv, tela, total = null) => (resto > 0 ? `<button type="button" class="d3f-mais" data-fv="${acaoFv}" data-tela="${tela}">+${n0(resto)}${nome ? ' ' + esc(nome) : ''}${total != null ? ` <span>· ${mil(total)}</span>` : ''}</button>` : '');
+  // Gráfico em linha de duas partes: o realizado (cheio, com o ponto no fim) e a projeção (tracejada).
+  function linhaDupla(real, proj, { largura = 400, altura = 140, rotulo = '' } = {}) {
+    const todos = [...real, ...proj].map(Number).filter(Number.isFinite);
+    if (todos.length < 2) return '';
+    const alto = Math.max(...todos), baixo = Math.min(...todos), folga = (alto - baixo) * 0.25 || alto * 0.1 || 1, min = Math.max(0, baixo - folga), max = alto + folga * 0.2, faixa = max - min || 1, pad = 8, n = real.length + Math.max(0, proj.length - 1);
+    const x = (i) => pad + (i * (largura - 2 * pad)) / Math.max(1, n - 1), y = (v) => altura - pad - ((v - min) * (altura - 2 * pad)) / faixa;
+    const pts = real.map((v, i) => [x(i), y(v)]), pp = proj.map((v, i) => [x(real.length - 1 + i), y(v)]);
+    let comp = 0; for (let i = 1; i < pts.length; i++) comp += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    const fmt = (l) => l.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(' ');
+    const fim = pts[pts.length - 1] || pp[0];
+    return `<svg class="d3-graf d3f-graf" viewBox="0 0 ${largura} ${altura}" style="--d3-comp:${Math.ceil(comp) || 1}"${rotulo ? ` role="img" aria-label="${esc(rotulo)}"` : ' aria-hidden="true"'}><line class="d3f-base" x1="0" x2="${largura}" y1="${y(min).toFixed(1)}" y2="${y(min).toFixed(1)}"/>${pp.length > 1 ? `<polyline class="meta" points="${fmt(pp)}"/>` : ''}${pts.length > 1 ? `<polyline points="${fmt(pts)}"/>` : ''}<circle cx="${fim[0].toFixed(1)}" cy="${fim[1].toFixed(1)}" r="4.5"/></svg>`;
+  }
+  // Barra de grupo: nome, a barra, a fatia e o valor.
+  const barraGrupo = (nome, fatia, valor, tom = '') => `<div class="d3f-gx${tom ? ' ' + tom : ''}"><span>${nome}</span><span class="d3-barra" style="--v:${fatia}%"><i></i></span><b>${fatia}%</b><span class="d3f-gx-v">${valor}</span></div>`;
   // O controle financeiro ainda não ligado: o motivo técnico fica a um clique, só para quem administra.
   function oQueFalta(ctx) {
     const d = estado('comercial', ctx.d?.periodo?.mes || hojeBahia().slice(0, 7))?.dados;
@@ -216,17 +256,18 @@
     return { botao: `<button type="button" class="fv2-btn s" data-vc="falta" aria-expanded="${Boolean(ctx.verFalta)}">Para quem administra: ver o que falta</button>`,
       nota: ctx.verFalta ? `<div class="fv2-nota" role="note"><p>${esc(d.motivo || 'O controle financeiro ainda não está ligado.')}${d.aviso ? ' · ' + esc(d.aviso) : ''}</p>${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}</div>` : '' };
   }
-  const fonte = (d) => (d?.fonte === 'Vybe Finanças' ? ' Fonte: Vybe Finanças.' : '');
+  const fonte = (d) => (d?.fonte === 'Vybe Finanças' ? '<span class="fv2-pill b">Vybe Finanças</span>' : '');
 
   // ----- Faturas (Recebimentos e Inadimplência) -----
   const oQueE = (x) => (x.tipo === 'recorrente' ? `${x.ciclo && x.ciclo !== 'mensal' ? 'parcela ' + x.ciclo : 'mensalidade'} de ${mesDe(x.vencimento)}` : String(x.descricao || 'recebimento pontual'));
-  const nomeFatura = (x) => (x.cliente_nome ? `${cli(x.cliente_nome)} · ${esc(oQueE(x))}` : `<b>${esc(x.descricao || 'Recebimento')}</b>`);
+  const tipoFatura = (x) => (x.tipo === 'recorrente' ? (x.ciclo && x.ciclo !== 'mensal' ? maiuscula(x.ciclo) : 'Recorrente') : maiuscula(x.categoria || 'Pontual'));
+  const quemFatura = (x, comMes = true) => (x.cliente_nome ? `${cli(x.cliente_nome)}${comMes ? ` · ${esc(x.tipo === 'recorrente' ? mesDe(x.vencimento) : x.descricao || 'pontual')}` : ''}` : `<b>${esc(x.descricao || 'Recebimento')}</b>`);
   function statusFatura(x, hoje) {
-    if (x.cancelado) return pilula('Cancelado', 'n');
-    if (x.status === 'recebido') return pilula(x.recebido_em ? 'Recebido em ' + curta(x.recebido_em) : 'Recebido', 'g');
-    if (emAtraso(x)) return pilula(quantos(x.atraso, 'dia', 'dias'), 'r');
+    if (x.cancelado) return pilula('Cancelada', 'n');
+    if (x.status === 'recebido') return pilula(x.recebido_em ? 'Recebido · ' + curta(x.recebido_em) : 'Recebido', 'g');
+    if (emAtraso(x)) return pilula('Atrasada · ' + curta(x.vencimento), 'r');
     if (x.status === 'parcial') return pilula('Parcial', 'a');
-    return pilula(String(x.vencimento).slice(0, 7) === hoje.slice(0, 7) ? 'vence dia ' + Number(String(x.vencimento).slice(8, 10)) : 'vence ' + curta(x.vencimento), 'b');
+    return pilula('Vence ' + curta(x.vencimento), 'n');
   }
   // dentro = a fatura está na lista da janela (os formulários de editar e cancelar a encontram); comForm = há janela com formulário.
   function detalheFatura(x, { dentro = true, comForm = true } = {}) {
@@ -235,7 +276,7 @@
       x.tipo === 'recorrente' ? `Recorrente ${esc(x.ciclo || 'mensal')}${x.descricao ? ' · ' + esc(x.descricao) : ''}` : `Pontual${x.categoria ? ' · ' + esc(x.categoria) : ''}`,
       `${venceu ? 'Venceu' : 'Vence'} em ${extenso(x.vencimento)}${emAtraso(x) ? ', há ' + quantos(x.atraso, 'dia', 'dias') : ''}`,
       Number(x.valor_recebido) > 0 && x.status !== 'recebido' ? `Recebido até agora ${rs(x.valor_recebido)} de ${rs(x.valor)}` : '',
-      x.recebido_em ? `Recebido em ${extenso(x.recebido_em)}` : '', x.cancelado ? 'Cancelado: fora dos totais' : '']);
+      x.recebido_em ? `Recebido em ${extenso(x.recebido_em)}` : '', x.cancelado ? 'Cancelada: fora dos totais' : '']);
     let acoes = '';
     if (x.cancelado) acoes = '';
     else if (doFin(x.id)) acoes = '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>';
@@ -248,7 +289,7 @@
   }
   const botaoRecebi = (x) => (doFin(x.id) ? '<small class="fv2-sub fv2-so-la">baixa no Vybe Finanças</small>' : umToque('receber', x.id, 'Recebi', ` data-total="${Number(x.valor) || 0}"`));
   const linhaAtrasada = (tela, x, opc) => linha({ tela, id: 'a' + x.id, pill: pilula(quantos(x.atraso, 'dia', 'dias'), 'r'),
-    texto: `${nomeFatura(x)}, ${rs(x.aberto ?? x.valor)}`, dir: botaoRecebi(x), detalhe: detalheFatura(x, opc) });
+    texto: quemFatura(x), valor: rs(x.aberto ?? x.valor), dir: botaoRecebi(x), detalhe: detalheFatura(x, opc) });
 
   function recebimentos(ctx) {
     anfitriao = ctx;
@@ -262,49 +303,51 @@
     const deFora = atrasadas.filter((x) => !ids.has(String(x.id))), totalAtraso = soma(atrasadas, 'aberto');
     const termo = semAcento(ctx.filtro?.rec), bate = (x) => !termo || semAcento(`${x.cliente_nome || ''} ${x.descricao || ''} ${x.categoria || ''} ${oQueE(x)}`).includes(termo);
     const proxima = [...grupo.vencer].sort((x, z) => String(x.vencimento).localeCompare(String(z.vencimento)))[0];
-    const mesesFora = [...new Set(deFora.map((x) => String(x.vencimento).slice(0, 7)))];
-    const frase = !vivas.length && !atrasadas.length ? `Nenhum recebimento lançado em ${esc(rotuloFala(per, hoje))}.`
-      : `Entraram <b>${mil(a.recebido)}</b> dos ${mil(a.a_receber)} de ${esc(rotuloFala(per, hoje))}. ${atrasadas.length ? `<b>${atrasadas.length === 1 ? '1 fatura está' : n0(atrasadas.length) + ' faturas estão'} em atraso</b>${deFora.length ? `, ${deFora.length === 1 ? 'uma' : n0(deFora.length)} de ${mesesFora.length === 1 ? esc(mesDe(mesesFora[0] + '-01')) : 'meses anteriores'}` : ''}.` : 'Nada em atraso.'}`;
-    const numeros = kpis([
-      { rotulo: 'Recebido', valor: mil(a.recebido), barra: { v: pc(a.recebido, a.a_receber) }, dica: variou(v.recebido, contra),
-        sub: Number(a.a_receber) ? `${pc(a.recebido, a.a_receber)}% dos ${mil(a.a_receber)} previstos · ${quantos(vivas.length, 'fatura', 'faturas')}` : 'nenhum recebimento lançado no período', tom: Number(a.recebido) ? '' : 'quieto' },
-      { rotulo: 'A vencer', valor: mil(soma(grupo.vencer, 'aberto')), dica: variou(v.pendente, contra), tom: grupo.vencer.length ? '' : 'quieto',
-        sub: grupo.vencer.length ? `${quantos(grupo.vencer.length, 'fatura', 'faturas')}${proxima ? ` · ${proxima.cliente_nome ? cli(proxima.cliente_nome) : esc(proxima.descricao || '')}, dia ${Number(String(proxima.vencimento).slice(8, 10))}` : ''}` : 'nada a vencer no período' },
-      { rotulo: 'Em atraso', valor: mil(totalAtraso), tom: totalAtraso ? 'ruim' : 'quieto', dica: variou(v.inadimplente, contra),
-        sub: atrasadas.length ? `${quantos(atrasadas.length, 'fatura', 'faturas')}${deFora.length ? ` · ${mil(soma(deFora, 'aberto'))} ${deFora.length === 1 ? 'vem' : 'vêm'} de ${mesesFora.length === 1 ? esc(mesDe(mesesFora[0] + '-01')) : 'meses anteriores'}` : ''} · <button type="button" class="fv2-link" data-fv="ir" data-valor="inadimplencia">ver inadimplência</button>` : 'ninguém em atraso' }]);
+    const mesesFora = [...new Set(deFora.map((x) => String(x.vencimento).slice(0, 7)))], deQuando = mesesFora.length === 1 ? esc(mesDe(mesesFora[0] + '-01')) : 'meses anteriores';
+    const frase = !vivas.length && !atrasadas.length ? `Nada lançado em ${esc(rotuloFala(per, hoje))}.`
+      : atrasadas.length ? `${atrasadas.length === 1 ? '1 fatura em atraso' : n0(atrasadas.length) + ' faturas em atraso'}${deFora.length ? `, ${deFora.length === 1 ? 'uma' : n0(deFora.length)} ainda de ${deQuando}` : ''}.`
+      : `Nada em atraso; ${pc(a.recebido, a.a_receber)}% já entrou.`;
+    const numeros = nums([
+      { rotulo: 'Recebido', valor: sobre(a.recebido, a.a_receber), barra: pc(a.recebido, a.a_receber), tom: Number(a.recebido) ? 'd3f-verde' : 'q d3f-verde',
+        sub: Number(a.a_receber) ? `${quantos(grupo.recebidas.length, 'fatura', 'faturas')} · ${pc(a.recebido, a.a_receber)}%` : 'nada previsto', attrs: `data-fv="chip" data-tela="rec" data-valor="recebidas" title="${esc(variou(v.recebido, contra))}"` },
+      { rotulo: 'A vencer', valor: mil(soma(grupo.vencer, 'aberto')), tom: grupo.vencer.length ? '' : 'q', attrs: `data-fv="chip" data-tela="rec" data-valor="vencer" title="${esc(variou(v.pendente, contra))}"`,
+        sub: grupo.vencer.length ? `${quantos(grupo.vencer.length, 'fatura', 'faturas')}${proxima ? ` · ${proxima.cliente_nome ? cli(proxima.cliente_nome) : esc(proxima.descricao || '')} · ${curta(proxima.vencimento)}` : ''}` : 'nada a vencer' },
+      { rotulo: 'Em atraso', valor: mil(totalAtraso), tom: totalAtraso ? 'r' : 'q', attrs: `data-fv="ir" data-valor="inadimplencia" title="${esc(variou(v.inadimplente, contra))}"`,
+        sub: atrasadas.length ? `<span class="d3f-r">${quantos(atrasadas.length, 'fatura', 'faturas')}${deFora.length ? ` · ${mil(soma(deFora, 'aberto'))} de ${deQuando}` : ''}</span>` : 'ninguém em atraso' }]);
     const barra = filtros({ tela: 'rec', busca: { chave: 'rec', rotulo: 'Buscar fatura por cliente', dica: 'Buscar cliente ou fatura', valor: ctx.filtro?.rec },
-      chips: [['todas', 'Todas', vivas.length], ['atraso', 'Em atraso', grupo.atraso.length], ['vencer', 'A vencer', grupo.vencer.length], ['recebidas', 'Recebidas', grupo.recebidas.length], ['recorrentes', 'Recorrentes', grupo.recorrentes.length], ['pontuais', 'Pontuais', grupo.pontuais.length]],
+      chips: [['todas', 'Todas', vivas.length], ['atraso', 'Em atraso', grupo.atraso.length, 'r'], ['vencer', 'A vencer', grupo.vencer.length], ['recebidas', 'Recebidas', grupo.recebidas.length, 'g'], ['recorrentes', 'Recorrentes', grupo.recorrentes.length], ['pontuais', 'Pontuais', grupo.pontuais.length]],
       extras: [['parciais', 'Parciais', grupo.parciais.length], ['canceladas', 'Canceladas', grupo.canceladas.length]] });
     // Pede ação: as faturas em atraso, da mais antiga à mais nova, com o Recebi na linha.
     const pedem = atrasadas.filter(bate), cabeA = u.acaoInteira || termo ? pedem : pedem.slice(0, 4);
-    const acao = cartao({ titulo: 'Pede ação', rotulo: 'acao', sub: atrasadas.length ? `${quantos(atrasadas.length, 'fatura', 'faturas')} em atraso` : 'nada em atraso',
-      corpo: cabeA.map((x) => linhaAtrasada('rec', x, { dentro: ids.has(String(x.id)) })).join('') || `<p class="fv2-nada">${termo && atrasadas.length ? 'Nenhuma fatura em atraso com esse texto.' : 'Nenhuma fatura em atraso.'}</p>`,
-      pe: [maisHtml(pedem.length - cabeA.length, 'em atraso', 'mostrar-acao', 'rec'), 'A baixa é manual: quem viu o dinheiro entrar toca em Recebi.'].filter(Boolean).join(' · ') });
+    const acaoCard = cartao({ titulo: 'Pede ação', rotulo: 'acao', cls: 'd3f-pede', sub: atrasadas.length ? `${n0(atrasadas.length)} em atraso` : 'nada em atraso',
+      corpo: cabeA.map((x) => linhaAtrasada('rec', x, { dentro: ids.has(String(x.id)) })).join('') || `<p class="fv2-nada">${termo && atrasadas.length ? 'Nenhuma em atraso com esse texto.' : 'Nenhuma fatura em atraso.'}</p>`,
+      pe: maisHtml(pedem.length - cabeA.length, 'em atraso', 'mostrar-acao', 'rec', soma(pedem.slice(cabeA.length), 'aberto')) });
     // A lista do período, uma linha por fatura. Em "Todas", as em atraso já estão no Pede ação.
     const ordem = (x) => (x.cancelado ? 4 : x.status === 'recebido' ? 3 : emAtraso(x) ? 2 : 1);
     const base = (u.extra ? grupo[u.extra] : u.chip === 'todas' ? vivas.filter((x) => !emAtraso(x)) : grupo[u.chip] || vivas).filter(bate)
       .sort((x, z) => ordem(x) - ordem(z) || (ordem(x) === 3 ? String(z.recebido_em || '').localeCompare(String(x.recebido_em || '')) : String(x.vencimento).localeCompare(String(z.vencimento))));
-    const cabe = u.inteira || termo ? base : base.slice(0, 6), resto = base.length - cabe.length, soRecebidas = base.slice(cabe.length).every((x) => x.status === 'recebido');
-    const lista = cartao({ titulo: rot, sub: 'uma linha por fatura',
-      corpo: cabe.map((x) => linha({ tela: 'rec', id: x.id, texto: x.cliente_nome ? `${cli(x.cliente_nome)} · ${esc(x.tipo === 'recorrente' ? mesDe(x.vencimento) : x.descricao || 'pontual')}` : `<b>${esc(x.descricao || 'Recebimento')}</b>`,
-        dir: `<b class="fv2-valor">${rs(x.valor)}</b>${statusFatura(x, hoje)}`, detalhe: detalheFatura(x) })).join('')
+    const cabe = u.inteira || termo ? base : base.slice(0, 8), resto = base.slice(cabe.length), soRecebidas = resto.every((x) => x.status === 'recebido');
+    const mesPer = per.tipo === 'anual' ? '' : (/^\d{4}-\d{2}$/.test(per.mes || '') ? per.mes : hoje.slice(0, 7));
+    const lista = cartao({ titulo: 'Faturas', rotulo: 'lista', cls: 'd3f-tabela', sub: esc(rot),
+      cab: cabe.length ? cabeca([['fv2-txt', 'Cliente'], ['d3f-meio', 'Tipo'], ['fv2-valor', 'Valor'], ['d3f-dir', 'Situação']]) : '',
+      corpo: cabe.map((x) => linha({ tela: 'rec', id: x.id, texto: `${quemFatura(x, false)}${x.cliente_nome && mesPer && String(x.vencimento).slice(0, 7) !== mesPer ? ` <span class="d3f-mes">· ${esc(mes3(x.vencimento))}</span>` : ''}`,
+        meio: `<span class="d3f-meio">${esc(tipoFatura(x))}</span>`, valor: rs(x.valor), dir: statusFatura(x, hoje), detalhe: detalheFatura(x) })).join('')
         || `<p class="fv2-nada">${!vivas.length ? 'Nenhum recebimento neste período.' : termo ? 'Nenhuma fatura com esse texto neste filtro.' : 'Nenhuma fatura neste filtro.'}</p>`,
-      pe: maisHtml(resto, soRecebidas ? (resto === 1 ? 'recebida' : 'recebidas') : '', 'mostrar', 'rec') });
+      pe: maisHtml(resto.length, soRecebidas ? (resto.length === 1 ? 'recebida' : 'recebidas') : '', 'mostrar', 'rec', soma(resto, 'valor')) });
     const semNada = !todas.length && !atrasadas.length;
-    return `<div class="fv2" data-tela="rec"><div class="fv2-in">
-      ${topo({ titulo: 'Recebimentos', meio: periodoHtml(per, hoje), acoes: '<button type="button" class="fv2-btn" data-vc="ajuda">Como funciona</button><button type="button" class="fv2-btn p" data-vc="recebivel">Novo recebimento</button>' })}
-      ${fala('Vorcaro · Financeiro', frase, atrasadas.length ? `<button type="button" class="fv2-btn s" data-fv="foco" data-valor="acao">Ver ${atrasadas.length === 1 ? 'a fatura' : 'as ' + n0(atrasadas.length)}</button>` : '')}
+    return `<div class="fv2 d3f" data-tela="rec"><div class="fv2-in">
+      ${topo({ titulo: 'Recebimentos', meio: periodoHtml(per, hoje), acoes: comoFunciona + novo('recebivel', 'Novo recebimento'), extra: fonte(d) })}
+      ${acao('Vorcaro · Financeiro', frase, atrasadas.length ? `Ver ${atrasadas.length === 1 ? 'a fatura' : 'as ' + n0(atrasadas.length)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
-      ${semNada ? vazioLinha('Nenhum recebimento neste período; lance os contratos recorrentes e os pontuais.', '<button type="button" class="fv2-btn s" data-vc="recebivel">Lançar o primeiro</button>')
-        : `<div class="fv2-grade a">${acao}${lista}</div>`}
-      <p class="fv2-sub">Faturas recorrentes e pontuais, uma linha por fatura. A fatura abre no lugar com os detalhes.${fonte(d)}</p></div></div>`;
+      ${semNada ? vazioLinha('Nenhum recebimento neste período.', '<button type="button" class="fv2-btn s" data-vc="recebivel">Lançar o primeiro</button>')
+        : `<div class="fv2-grade a">${acaoCard}${lista}</div>`}</div></div>`;
   }
 
   // ----- Contas a pagar -----
   function quandoConta(c, hoje) {
     const v = String(c.vencimento).slice(0, 10);
     if (c.cancelada) return pilula('Cancelada', 'n');
-    if (c.pago_em) return pilula('Paga em ' + curta(c.pago_em), 'g');
+    if (c.pago_em) return pilula('Paga · ' + curta(c.pago_em), 'g');
     if (v < hoje) return pilula(quantos(diasEntre(v, hoje), 'dia', 'dias'), 'r');
     if (v === hoje) return pilula('Hoje', 'a');
     if (v === somaDia(hoje, 1)) return pilula('Amanhã', 'a');
@@ -322,7 +365,7 @@
   const botaoPaguei = (c) => (c.pago_em || c.cancelada ? '' : doFin(c.id) ? '<small class="fv2-sub fv2-so-la">baixa no Vybe Finanças</small>' : umToque('pagar', c.id, 'Paguei'));
   const SINGULAR = { fixa: 'fixa', variavel: 'variável', folha: 'folha', imposto: 'imposto', investimento: 'investimento' };
   const linhaConta = (tela, c, nomeGrupo, hoje, opc) => linha({ tela, id: 'c' + c.id, pill: quandoConta(c, hoje),
-    texto: `<b>${esc(c.descricao || 'Conta')}</b> · ${esc(SINGULAR[c.grupo] || nomeGrupo.toLowerCase())}, ${rs(c.valor)}`, dir: botaoPaguei(c), detalhe: detalheConta(c, nomeGrupo, hoje, opc) });
+    texto: `<b>${esc(c.descricao || 'Conta')}</b> · ${esc(SINGULAR[c.grupo] || nomeGrupo.toLowerCase())}`, valor: rs(c.valor), dir: botaoPaguei(c), detalhe: detalheConta(c, nomeGrupo, hoje, opc) });
   // O que pede ação nas contas: as vencidas sem pagar e as que vencem em 7 dias, na ordem do vencimento.
   function contasQuePedem(d, hoje) {
     const r = d.resumo || {}, doPeriodo = (d.contas || []).filter((c) => !c.pago_em && !c.cancelada && String(c.vencimento).slice(0, 10) < hoje);
@@ -333,61 +376,68 @@
 
   function contas(ctx) {
     anfitriao = ctx;
-    const u = ui.con, d = ctx.d || {}, hoje = d.hoje || hojeBahia(), per = d.periodo || {}, r = d.resumo || {}, rot = rotuloPeriodo(per, hoje), f = estado('comercial', per.mes || hoje.slice(0, 7))?.dados;
+    const u = ui.con, d = ctx.d || {}, hoje = d.hoje || hojeBahia(), per = d.periodo || {}, r = d.resumo || {}, f = estado('comercial', per.mes || hoje.slice(0, 7))?.dados;
     const todas = d.contas || [], vivas = todas.filter((c) => !c.cancelada), ids = new Set(todas.map((c) => String(c.id))), contra = per.tipo === 'anual' ? 'contra o ano anterior' : 'contra o mês anterior';
     const grupos = (r.grupos || []).length ? r.grupos : (d.grupos || []).map((g) => ({ ...g, total: 0 })), nomeGrupo = (id) => grupos.find((g) => g.id === id)?.nome || id;
     const { vencidas, sete } = contasQuePedem(d, hoje), nVenc = Number(r.vencidas?.quantidade) || vencidas.length, nSete = sete.length;
     const termo = semAcento(ctx.filtro?.conta), bate = (c) => !termo || semAcento(`${c.descricao || ''} ${c.fornecedor_nome || ''} ${nomeGrupo(c.grupo)}`).includes(termo);
     const extra = { pagas: (c) => Boolean(c.pago_em), abertas: (c) => !c.pago_em, vencidas: (c) => !c.pago_em && String(c.vencimento).slice(0, 10) < hoje };
-    const frase = !vivas.length ? `Nenhuma conta lançada em ${esc(rotuloFala(per, hoje))}.`
-      : `Já saíram <b>${mil(r.pago)}</b> dos ${mil(r.total)} de ${esc(rotuloFala(per, hoje))}. ${nVenc ? `<b>${quantos(nVenc, 'conta venceu', 'contas venceram')} sem pagar</b>${nSete ? ` e ${quantos(nSete, 'vence', 'vencem')} em 7 dias` : ''}.` : nSete ? `<b>${quantos(nSete, 'conta vence', 'contas vencem')} em 7 dias</b>.` : 'Nada vence nos próximos 7 dias.'}`;
+    const logo = sete[0] && [hoje, somaDia(hoje, 1)].includes(String(sete[0].vencimento).slice(0, 10)) ? ` ${esc(sete[0].descricao || 'Uma conta')} vence ${String(sete[0].vencimento).slice(0, 10) === hoje ? 'hoje' : 'amanhã'}.` : '';
+    const frase = !vivas.length ? `Nenhuma conta em ${esc(rotuloFala(per, hoje))}.`
+      : nVenc ? `${quantos(nVenc, 'conta venceu', 'contas venceram')} sem pagar.${nSete ? ` ${quantos(nSete, 'vence', 'vencem')} em 7 dias.` : ''}`
+      : nSete ? `${quantos(nSete, 'conta vence', 'contas vencem')} em 7 dias.${logo}` : 'Nada vence nos próximos 7 dias.';
     // O faturamento do período é o "a receber"; se não vier como número, sai da conta do próprio resultado.
     const fat = typeof d.faturamento === 'number' ? d.faturamento : (Number(r.resultado) || 0) + (Number(r.total) || 0), temNumero = Number(r.total) || fat;
-    const numeros = kpis([
-      { rotulo: 'Pago', valor: mil(r.pago), barra: { v: pc(r.pago, r.total), cor: '#1F1D1A' }, tom: Number(r.pago) ? '' : 'quieto', dica: variou(r.variacao_total, contra),
-        sub: Number(r.total) ? `${pc(r.pago, r.total)}% dos ${mil(r.total)} lançados` : 'nenhuma conta lançada no período' },
-      { rotulo: 'A pagar', valor: mil(r.a_pagar), tom: nVenc ? 'ruim' : Number(r.a_pagar) ? '' : 'quieto',
-        sub: `${nVenc ? `${quantos(nVenc, 'vencida', 'vencidas')} (${mil(r.vencidas?.total)})` : 'nenhuma vencida'} · ${nSete ? quantos(nSete, 'vence', 'vencem') + ' em 7 dias' : 'nada vence em 7 dias'}` },
-      { rotulo: per.tipo === 'anual' ? 'Resultado do ano' : 'Resultado do mês', valor: temNumero ? mil(r.resultado) : 'R$ 0', tom: !temNumero ? 'quieto' : Number(r.resultado) < 0 ? 'ruim' : 'bom',
-        sub: temNumero ? `faturamento a receber ${mil(fat)}, menos as contas` : 'sem faturamento nem contas no período' }]);
+    const numeros = nums([
+      { rotulo: 'Pago', valor: sobre(r.pago, r.total), barra: pc(r.pago, r.total), tom: Number(r.pago) ? '' : 'q', attrs: `data-fv="extra" data-tela="con" data-valor="pagas" title="${esc(variou(r.variacao_total, contra))}"`,
+        sub: Number(r.total) ? `${pc(r.pago, r.total)}%${variou(r.variacao_total, contra) ? ' · ' + variou(r.variacao_total, '').trim() : ''}` : 'nada lançado' },
+      { rotulo: 'A pagar', valor: mil(r.a_pagar), tom: nVenc ? 'r' : Number(r.a_pagar) ? '' : 'q', attrs: 'data-fv="extra" data-tela="con" data-valor="abertas"',
+        sub: `${nVenc ? `<span class="d3f-r">${quantos(nVenc, 'vencida', 'vencidas')}</span>` : '0 vencidas'} · ${nSete ? `<b class="d3f-a">${n0(nSete)} em 7 dias</b>` : 'nada em 7 dias'}` },
+      { rotulo: per.tipo === 'anual' ? 'Resultado do ano' : 'Resultado do mês', valor: temNumero ? mil(r.resultado) : 'R$ 0', tom: !temNumero ? 'q' : Number(r.resultado) < 0 ? 'r' : 'g',
+        sub: temNumero ? `${mil(fat)} − contas` : 'sem faturamento' }]);
     const barra = filtros({ tela: 'con', busca: { chave: 'conta', rotulo: 'Buscar conta', dica: 'Buscar conta', valor: ctx.filtro?.conta },
       chips: [['todas', 'Todas', vivas.length], ...grupos.map((g) => [g.id, g.nome, vivas.filter((c) => c.grupo === g.id).length])],
-      extras: [['pagas', 'Pagas', vivas.filter(extra.pagas).length], ['abertas', 'A pagar', vivas.filter(extra.abertas).length], ['vencidas', 'Vencidas', vivas.filter(extra.vencidas).length], ['canceladas', 'Canceladas', todas.length - vivas.length]] });
+      extras: [['pagas', 'Pagas', vivas.filter(extra.pagas).length, 'g'], ['abertas', 'A pagar', vivas.filter(extra.abertas).length], ['vencidas', 'Vencidas', vivas.filter(extra.vencidas).length, 'r'], ['canceladas', 'Canceladas', todas.length - vivas.length]] });
     const pedem = [...vencidas, ...sete].filter(bate), cabeA = u.acaoInteira || termo ? pedem : pedem.slice(0, 5);
-    const acao = cartao({ titulo: 'Pede ação', rotulo: 'acao', sub: [nVenc ? quantos(nVenc, 'vencida', 'vencidas') : '', nSete ? quantos(nSete, 'vence', 'vencem') + ' em 7 dias' : ''].filter(Boolean).join(' · ') || 'nada vence em 7 dias',
+    // As já pagas do período, em fichas verdes: a última primeiro.
+    const pagas = vivas.filter((c) => c.pago_em).sort((x, z) => String(z.pago_em).localeCompare(String(x.pago_em)));
+    const jaPagas = pagas.length ? `<div class="d3f-pagas"><span class="fv2-sub">Já pagas</span>${pagas.slice(0, 3).map((c) => pilula(`${c.descricao || 'Conta'} · ${curta(c.pago_em)}`, 'g')).join('')}${pagas.length > 3 ? `<button type="button" class="fv2-chip" data-fv="extra" data-tela="con" data-valor="pagas">+${n0(pagas.length - 3)}</button>` : ''}</div>` : '';
+    const acaoCard = cartao({ titulo: 'Pede ação', rotulo: 'acao', cls: 'd3f-pede', sub: pedem.length ? `${mil(soma(pedem, 'valor'))}${nVenc ? ` · ${quantos(nVenc, 'vencida', 'vencidas')}` : ' em 7 dias'}` : 'nada vence em 7 dias',
       corpo: cabeA.map((c) => linhaConta('con', c, nomeGrupo(c.grupo), hoje, { dentro: ids.has(String(c.id)) })).join('') || `<p class="fv2-nada">${termo && vencidas.length + sete.length ? 'Nenhuma conta com esse texto vencendo.' : 'Nenhuma conta vencida nem vencendo em 7 dias.'}</p>`,
-      pe: [maisHtml(pedem.length - cabeA.length, '', 'mostrar-acao', 'con'), 'A baixa é manual: quem pagou toca em Paguei.'].filter(Boolean).join(' · ') });
+      pe: maisHtml(pedem.length - cabeA.length, '', 'mostrar-acao', 'con') + jaPagas });
     // Para onde vai o dinheiro: um grupo por linha; a barra é a fatia do que já saiu; o grupo abre com as contas dele.
     const pagoTotal = Number(r.pago) || 0, somaGrupo = (g, so) => soma(vivas.filter((c) => c.grupo === g.id && (!so || c.pago_em)), 'valor');
     const filtradas = (g) => (u.extra === 'canceladas' ? todas.filter((c) => c.cancelada) : vivas.filter(u.extra ? extra[u.extra] : () => true)).filter((c) => c.grupo === g.id).filter(bate)
       .sort((x, z) => String(x.vencimento).localeCompare(String(z.vencimento)));
-    const visiveis = grupos.filter((g) => (u.chip === 'todas' || u.extra ? true : g.id === u.chip)).filter((g) => (termo || u.extra ? filtradas(g).length : somaGrupo(g) > 0 || g.id === u.chip));
+    const comConta = (g) => (termo || u.extra ? filtradas(g).length : somaGrupo(g) > 0 || g.id === u.chip);
+    const doFiltro = grupos.filter((g) => (u.chip === 'todas' || u.extra ? true : g.id === u.chip));
     const linhaGrupo = (g) => {
       const total = somaGrupo(g), pago = somaGrupo(g, true), n = vivas.filter((c) => c.grupo === g.id).length, falta = Math.max(0, total - pago), fatia = pc(pago, pagoTotal);
       const aberto = u.aberta === 'g' + g.id || (u.chip === g.id && !u.extra) || Boolean(termo) || Boolean(u.extra), dentro = filtradas(g);
       return `<div class="v2-abre fv2-linha" data-linha="g${esc(g.id)}" aria-expanded="${aberto}"><div class="fv2-lin fv2-gr">
-          <button type="button" class="fv2-txt" data-fv="linha" data-tela="con" data-valor="g${esc(g.id)}" aria-expanded="${aberto}"><b>${esc(g.nome)}</b> · ${quantos(n, 'conta', 'contas')}</button>
-          <div class="v2-barra"><i style="--v:${fatia}%;--c:#1F1D1A"></i></div><b class="fv2-valor">${fatia}%</b>
-          <span class="fv2-sub">${falta ? `${parteDe(pago, total)} pagos` : `${mil(pago)} pagos`}</span>${falta ? pilula('falta ' + mil(falta), 'a') : total ? pilula('tudo pago', 'g') : pilula('nada lançado', 'n')}</div>
+          <button type="button" class="fv2-txt" data-fv="linha" data-tela="con" data-valor="g${esc(g.id)}" aria-expanded="${aberto}"><b>${esc(g.nome)}</b> <span class="d3f-mes">· ${quantos(n, 'conta', 'contas')}</span></button>
+          <span class="d3-barra" style="--v:${fatia}%"><i></i></span><b class="fv2-valor">${fatia}%</b>
+          <span class="fv2-sub">${falta ? parteDe(pago, total) : mil(pago)}</span>${falta ? pilula(mil(falta), 'a') : total ? pilula('Tudo pago', 'g') : pilula('Nada lançado', 'n')}</div>
         <div class="v2-mais"><div><div class="fv2-det fv2-det-contas">${hist([g.percentual_faturamento != null && fat ? `${String(g.percentual_faturamento).replace('.', ',')}% do faturamento${variou(g.variacao, contra) ? ' · ' + variou(g.variacao, contra) : ''}` : variou(g.variacao, contra)])}
           ${dentro.map((c) => `<div class="fv2-mini">${quandoConta(c, hoje)}<p><b>${esc(c.descricao || 'Conta')}</b>${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''} · ${rs(c.valor)}${c.pago_em || c.cancelada ? '' : ' · vence ' + curta(c.vencimento)}</p>
             ${c.cancelada || c.pago_em ? '' : doFin(c.id) ? '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>' : `${umToque('pagar', c.id, 'Paguei')}<button type="button" class="fv2-btn s" data-vc="conta" data-id="${esc(c.id)}">Editar</button><button type="button" class="fv2-btn s fv2-perigo" data-vc="cancelar-conta" data-id="${esc(c.id)}">Cancelar</button>`}</div>`).join('') || '<p class="fv2-hist">Nenhuma conta deste grupo neste filtro.</p>'}</div></div></div></div>`;
     };
-    const zerados = grupos.filter((g) => !somaGrupo(g)).map((g) => g.nome);
+    // Grupo sem nada lançado fica na tabela, apagado e sem abrir (a divisão inteira à vista).
+    const linhaZerada = (g) => `<div class="fv2-lin fv2-gr d3f-zero" data-grupo="${esc(g.id)}"><span class="fv2-txt"><b>${esc(g.nome)}</b> <span class="d3f-mes">· 0</span></span><span class="d3-barra" style="--v:0%"><i></i></span><b class="fv2-valor">0%</b><span class="fv2-sub">nada lançado</span><span aria-hidden="true"></span></div>`;
+    const visiveis = doFiltro.filter(comConta), zerados = termo || u.extra || !vivas.length ? [] : doFiltro.filter((g) => !comConta(g));
     const doFinancas = f?.conectado ? `<div class="fv2-lin fv2-fin"><span class="fv2-pill b">Vybe Finanças</span><p>${mil(f.resumo?.despesas_sem_folha ?? f.despesas?.total)} em despesas de ${esc(nomeMes(f.mes))}${f.folha?.total ? ` · folha ${mil(f.folha.total)}` : ''}</p>
         <span class="fv2-btn s espiavel" data-espiar="financas:comercial:despesas" role="button" tabindex="0">Por categoria</span><span class="fv2-btn s espiavel" data-espiar="financas:comercial:fixos" role="button" tabindex="0">Custos fixos</span></div>` : '';
-    const paraOnde = cartao({ titulo: 'Para onde vai o dinheiro', sub: Number(r.total) ? `${parteDe(r.pago, r.total)} pagos` : '',
-      corpo: (visiveis.map(linhaGrupo).join('') || `<p class="fv2-nada">${termo || u.extra ? 'Nenhuma conta neste filtro.' : 'A divisão aparece com a primeira conta lançada.'}</p>`) + doFinancas,
-      pe: `A barra é a fatia do que já saiu.${zerados.length && vivas.length ? ` ${zerados.join(', ')}: nada lançado.` : ''} A folha entra como um grupo só, sem valor por pessoa.` });
+    const paraOnde = cartao({ titulo: 'Para onde vai', rotulo: 'grupos', cls: 'd3f-tabela', sub: Number(r.total) ? `${parteDe(r.pago, r.total)} pagos` : '',
+      cab: visiveis.length ? cabeca([['fv2-txt', 'Grupo'], ['d3f-cab-barra', 'Já saiu'], ['fv2-valor', '%'], ['fv2-sub', 'Pago'], ['d3f-cab-falta', 'Falta']]) : '',
+      corpo: (visiveis.map(linhaGrupo).join('') + zerados.map(linhaZerada).join('') || `<p class="fv2-nada">${termo || u.extra ? 'Nenhuma conta neste filtro.' : 'A divisão aparece com a primeira conta lançada.'}</p>`) + doFinancas });
     const falta = oQueFalta(ctx), semNada = !todas.length && !pedem.length;
-    return `<div class="fv2" data-tela="con"><div class="fv2-in">
-      ${topo({ titulo: 'Contas a pagar', meio: periodoHtml(per, hoje), acoes: '<button type="button" class="fv2-btn" data-vc="ajuda">Como funciona</button><button type="button" class="fv2-btn p" data-vc="conta">Nova conta</button>' })}
-      ${fala('Vorcaro · Financeiro', frase, nVenc + nSete ? `<button type="button" class="fv2-btn s" data-fv="foco" data-valor="acao">Ver ${nVenc + nSete === 1 ? 'a conta' : 'as ' + n0(nVenc + nSete)}</button>` : '')}
+    return `<div class="fv2 d3f" data-tela="con"><div class="fv2-in">
+      ${topo({ titulo: 'Contas a pagar', meio: periodoHtml(per, hoje), acoes: comoFunciona + novo('conta', 'Nova conta'), extra: fonte(d) })}
+      ${acao('Vorcaro · Financeiro', frase, nVenc + nSete ? `Ver ${nVenc + nSete === 1 ? 'a conta' : 'as ' + n0(nVenc + nSete)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
-      ${semNada ? vazioLinha('Nenhuma conta neste período; a divisão aparece com a primeira conta lançada.', `<button type="button" class="fv2-btn s" data-vc="conta">Lançar a primeira</button>${falta.botao}`)
-        : `<div class="fv2-grade b">${acao}${paraOnde}</div>${falta.botao ? `<div class="fv2-rodape">${falta.botao}</div>` : ''}`}
-      ${falta.nota}
-      <p class="fv2-sub">Fixas, variáveis, folha, impostos e investimentos do período. O grupo abre no lugar com as contas dele.${fonte(d)}</p></div></div>`;
+      ${semNada ? vazioLinha('Nenhuma conta neste período.', `<button type="button" class="fv2-btn s" data-vc="conta">Lançar a primeira</button>${falta.botao}`)
+        : `<div class="fv2-grade b">${acaoCard}${paraOnde}</div>${falta.botao ? `<div class="fv2-rodape">${falta.botao}</div>` : ''}`}
+      ${falta.nota}</div></div>`;
   }
 
   // ----- Inadimplência -----
@@ -400,15 +450,16 @@
     const antigo = clientes[0], termo = semAcento(ctx.filtro?.inad), bate = (c) => !termo || semAcento(c.cliente_nome).includes(termo);
     const faixa = { todos: () => true, ate7: (c) => c.atraso_mais_antigo <= 7, de8a30: (c) => c.atraso_mais_antigo > 7 && c.atraso_mais_antigo <= 30, criticos: (c) => c.atraso_mais_antigo > 30 };
     const marcados = d.marcados_a_mao || [], semPar = real ? clientes.filter((c) => c.no_vybe === false && (c.cliente_id || c.cliente_nome !== 'Sem cliente')) : [];
-    const frase = !clientes.length ? 'Ninguém em atraso. As faturas vencidas e não recebidas aparecem aqui.'
-      : `<b>${mil(total)}</b> em atraso de ${quantos(clientes.length, 'cliente', 'clientes')}; o mais antigo há ${quantos(antigo.atraso_mais_antigo, 'dia', 'dias')}. ${criticos.length ? `<b>${quantos(criticos.length, 'passou', 'passaram')} de 30 dias</b>.` : 'Ninguém passou de 30 dias.'}`;
-    const numeros = kpis([
-      { rotulo: 'Em atraso', valor: mil(total), tom: total ? 'ruim' : 'quieto', sub: clientes.length ? `${quantos(nFat, 'fatura', 'faturas')} de ${quantos(clientes.length, 'cliente', 'clientes')}` : 'nada em atraso', espiar: real ? 'financas:comercial:inad' : '' },
-      { rotulo: 'O mais antigo', valor: antigo ? quantos(antigo.atraso_mais_antigo, 'dia', 'dias') : '0 dias', tom: antigo ? '' : 'quieto', sub: antigo ? `${cli(antigo.cliente_nome)} · venceu em ${extenso(antigo.vencimento_mais_antigo)}` : 'nenhuma fatura vencida' },
-      { rotulo: 'Críticos (mais de 30 dias)', valor: n0(criticos.length), tom: criticos.length ? 'ruim' : 'quieto', espiar: real ? '' : 'comercial:inadimplencia:criticos',
-        sub: criticos.length ? criticos.slice(0, 3).map((c) => cli(c.cliente_nome)).join(' ') : 'ninguém passou de 30 dias' }]);
+    const frase = !clientes.length ? 'Ninguém em atraso.'
+      : `${quantos(clientes.length, 'cliente', 'clientes')} em atraso; ${esc(antigo.cliente_nome)} há ${quantos(antigo.atraso_mais_antigo, 'dia', 'dias')}.${criticos.length ? ` ${quantos(criticos.length, 'passou', 'passaram')} de 30.` : ''}`;
+    const numeros = nums([
+      { rotulo: 'Em atraso', valor: mil(total), tom: total ? 'r' : 'q', sub: clientes.length ? `${quantos(nFat, 'fatura', 'faturas')} · ${quantos(clientes.length, 'cliente', 'clientes')}` : 'nada em atraso', attrs: real ? 'data-espiar="financas:comercial:inad"' : '' },
+      { rotulo: 'O mais antigo', valor: antigo ? `${n0(antigo.atraso_mais_antigo)}<small class="d3f-de"> / 30 dias</small>` : '0 dias', tom: antigo ? (antigo.atraso_mais_antigo > 30 ? 'r' : '') : 'q', barra: antigo ? Math.min(100, antigo.atraso_mais_antigo / 30 * 100) : null,
+        sub: antigo ? `${cli(antigo.cliente_nome)} · venceu ${curta(antigo.vencimento_mais_antigo)}` : 'nenhuma vencida' },
+      { rotulo: 'Críticos · +30 dias', valor: n0(criticos.length), tom: criticos.length ? 'r' : 'g', attrs: real ? '' : 'data-espiar="comercial:inadimplencia:criticos"',
+        sub: criticos.length ? criticos.slice(0, 3).map((c) => cli(c.cliente_nome)).join(' ') : 'nenhum passou de 30' }]);
     const barra = filtros({ tela: 'ina', busca: { chave: 'inad', rotulo: 'Buscar cliente em atraso', dica: 'Buscar cliente', valor: ctx.filtro?.inad },
-      chips: [['todos', 'Todos', clientes.length], ['ate7', 'Até 7 dias', clientes.filter(faixa.ate7).length], ['de8a30', '8 a 30 dias', clientes.filter(faixa.de8a30).length], ['criticos', 'Críticos', criticos.length]],
+      chips: [['todos', 'Todos', clientes.length], ['ate7', 'Até 7 dias', clientes.filter(faixa.ate7).length], ['de8a30', '8 a 30 dias', clientes.filter(faixa.de8a30).length], ['criticos', 'Críticos', criticos.length, criticos.length ? 'r' : '']],
       extras: [['marcados', 'Marcados à mão', marcados.length], ...(real ? [['sempar', 'Sem par no Vybe OS', semPar.length]] : [])] });
     const doCliente = (c) => faturas.filter((x) => (c.cliente_id != null && String(x.cliente_id) === String(c.cliente_id)) || (c.cliente_id == null && (x.cliente_nome || x.descricao) === c.cliente_nome));
     const meses = (l) => [...new Set(l.map((x) => mesDe(x.vencimento)))].filter(Boolean).join(' e ');
@@ -419,45 +470,48 @@
             ${doFin(x.id) ? '<small class="fv2-sub">Dê baixa no Vybe Finanças</small>' : `${uma ? '' : botaoRecebi(x)}<button type="button" class="fv2-btn s" data-vc="receber" data-id="${esc(x.id)}">Recebi uma parte</button>`}</div>`).join('')
           : '<p class="fv2-hist">A baixa destes lançamentos é no Vybe Finanças</p>');
       return linha({ tela: 'ina', id: 'k' + (c.cliente_id ?? c.cliente_nome), pill: pilula(quantos(c.atraso_mais_antigo, 'dia', 'dias'), 'r'),
-        texto: `${cli(c.cliente_nome)} · ${l.length ? esc(meses(l)) + ', ' : ''}${rs(c.valor)}${Number(c.faturas) > 1 ? ' · ' + quantos(c.faturas, 'fatura', 'faturas') : ''}`,
+        texto: `${cli(c.cliente_nome)}${l.length ? ' · ' + esc(meses(l)) : ''}${Number(c.faturas) > 1 ? ` <span class="d3f-mes">· ${quantos(c.faturas, 'fatura', 'faturas')}</span>` : ''}`,
+        meio: `<span class="d3f-meio">${socio(c.cliente_nome)}</span>`, valor: rs(c.valor),
         dir: uma ? botaoRecebi(uma) : `<button type="button" class="fv2-btn s" data-fv="linha" data-tela="ina" data-valor="k${esc(c.cliente_id ?? c.cliente_nome)}">${l.length ? 'Ver as faturas' : 'Ver'}</button>`, detalhe });
     };
     const base = (u.extra === 'sempar' ? semPar : clientes.filter(faixa[u.chip] || faixa.todos)).filter(bate), cabe = u.inteira || termo ? base : base.slice(0, 6);
     const STATUS = { atrasado: 'Atrasado', inadimplente: 'Inadimplente' };
     const lista = u.extra === 'marcados'
-      ? cartao({ titulo: 'Marcados à mão', rotulo: 'acao', sub: 'em Finanças por cliente', corpo: marcados.filter(bate).map((m) => `<div class="fv2-lin">${pilula(STATUS[m.status_pagamento] || 'Marcado', m.status_pagamento === 'inadimplente' ? 'r' : 'a')}<p class="fv2-txt">${cli(m.cliente_nome)}</p><button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Abrir</button></div>`).join('') || '<p class="fv2-nada">Ninguém marcado à mão.</p>',
-        pe: 'O status marcado à mão não muda as faturas.' })
-      : cartao({ titulo: 'Clientes em atraso', rotulo: 'acao', sub: clientes.length ? `${quantos(clientes.length, 'pede', 'pedem')} ação, do mais antigo ao mais novo` : '',
+      ? cartao({ titulo: 'Marcados à mão', rotulo: 'acao', sub: 'em Finanças por cliente', corpo: marcados.filter(bate).map((m) => `<div class="fv2-lin">${pilula(STATUS[m.status_pagamento] || 'Marcado', m.status_pagamento === 'inadimplente' ? 'r' : 'a')}<p class="fv2-txt">${cli(m.cliente_nome)}</p><button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Abrir</button></div>`).join('') || '<p class="fv2-nada">Ninguém marcado à mão.</p>' })
+      : cartao({ titulo: 'Clientes em atraso', rotulo: 'acao', cls: 'd3f-tabela', sub: clientes.length ? 'do mais antigo ao mais novo' : '',
+        cab: cabe.length ? cabeca([['d3f-cab-pill', 'Atraso'], ['fv2-txt', 'Cliente'], ['d3f-meio', 'Sócio'], ['fv2-valor', 'Valor'], ['d3f-dir', '']]) : '',
         corpo: cabe.map(linhaCliente).join('') || `<p class="fv2-nada">${clientes.length ? 'Nenhum cliente neste filtro.' : 'Ninguém em atraso.'}</p>`,
-        pe: [maisHtml(base.length - cabe.length, '', 'mostrar', 'ina'), 'A linha abre no lugar com as faturas do cliente.'].filter(Boolean).join(' · ') });
+        pe: maisHtml(base.length - cabe.length, '', 'mostrar', 'ina') + (clientes.length ? `<span class="d3f-total"><span class="fv2-sub">Total</span><b class="d3f-r">${rs(total)}</b></span>` : '') });
     // Régua do atraso: cada bolinha é um cliente, na cor dele, no dia em que está (a escala vai até 30 dias).
     const pos = (dias) => Math.max(2, Math.min(97, Math.round(Math.min(Number(dias) || 0, 33) / 33 * 100)));
     const regua = cartao({ titulo: 'Régua do atraso', rotulo: 'regua', cls: 'fv2-regua', sub: clientes.length ? quantos(clientes.length, 'cliente', 'clientes') : '',
       corpo: `<div class="fv2-tri" role="img" aria-label="${esc(clientes.map((c) => `${c.cliente_nome}: ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}`).join(', ') || 'Ninguém em atraso')}">
-          ${clientes.map((c) => `<span class="fv2-pt fv2-cli" data-carteira="${esc(carteiraDe(c.cliente_nome))}" style="left:${pos(c.atraso_mais_antigo)}%" title="${esc(c.cliente_nome)}: ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}"></span>`).join('')}
-          <span class="fv2-mk" style="left:${pos(7)}%">7 dias</span><span class="fv2-mk" style="left:${pos(30)}%">30 dias</span></div>
-        <div class="fv2-lin fv2-faixa">${pilula('Até 7 dias', 'n')}<p>atenção: ${quantos(clientes.filter(faixa.ate7).length, 'cliente', 'clientes')}</p></div>
-        <div class="fv2-lin fv2-faixa">${pilula('8 a 30 dias', 'a')}<p>alto: ${quantos(clientes.filter(faixa.de8a30).length, 'cliente', 'clientes')}</p></div>
-        <div class="fv2-lin fv2-faixa">${pilula('Mais de 30', 'r')}<p>crítico: ${quantos(criticos.length, 'cliente', 'clientes')}</p></div>`,
-      pe: 'A cobrança é com o cliente e quem fala com ele é o sócio; aqui fica só o registro do que entrou.' });
+          ${clientes.map((c, i) => `<span class="fv2-pt fv2-cli" data-carteira="${esc(carteiraDe(c.cliente_nome))}" style="left:${pos(c.atraso_mais_antigo)}%;animation-delay:${(i * 0.08).toFixed(2)}s" title="${esc(c.cliente_nome)}: ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}"></span>`).join('')}
+          <span class="fv2-mk" style="left:${pos(7)}%">7 d</span><span class="fv2-mk r" style="left:${pos(30)}%">30 d</span></div>
+        <div class="fv2-lin fv2-faixa">${pilula('Até 7 dias', 'n')}<p>Atenção</p><b class="d3f-conta">${n0(clientes.filter(faixa.ate7).length)}</b></div>
+        <div class="fv2-lin fv2-faixa">${pilula('8 a 30 dias', 'a')}<p>Alto</p><b class="d3f-conta">${n0(clientes.filter(faixa.de8a30).length)}</b></div>
+        <div class="fv2-lin fv2-faixa">${pilula('Mais de 30', 'r')}<p>Crítico</p><b class="d3f-conta">${n0(criticos.length)}</b></div>` });
+    // Em atraso por mês do vencimento, nos últimos 6 meses: o que segue aberto de cada mês.
+    const seis = [5, 4, 3, 2, 1, 0].map((n) => somaMes(hoje.slice(0, 7), -n)), porMes = seis.map((m) => soma(faturas.filter((x) => String(x.vencimento).slice(0, 7) === m), 'aberto'));
+    const grafMes = porMes.some((v) => v > 0) ? cartao({ titulo: 'Em atraso · 6 meses', rotulo: 'meses', sub: 'pelo vencimento',
+      corpo: `${globalThis.d3LinhaSvg(porMes, { largura: 320, altura: 90, rotulo: `Valor em atraso por mês de vencimento: ${seis.map((m, i) => `${mesDe(m + '-01')} ${mil(porMes[i])}`).join(', ')}` })}<div class="d3f-eixo">${seis.map((m, i) => (i === 5 ? `<b>${esc(mes3(m + '-01'))}</b>` : `<span>${esc(mes3(m + '-01'))}</span>`)).join('')}</div>` }) : '';
     const falta = oQueFalta(ctx), semNada = !clientes.length && u.extra !== 'marcados';
-    return `<div class="fv2" data-tela="ina"><div class="fv2-in">
-      ${topo({ titulo: 'Inadimplência', acoes: '<button type="button" class="fv2-btn" data-vc="ajuda">Como funciona</button><button type="button" class="fv2-btn" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>' })}
-      ${fala('Vorcaro · Financeiro', frase, clientes.length ? '<button type="button" class="fv2-btn s" data-fv="foco" data-valor="regua">Ver a régua</button>' : '')}
+    return `<div class="fv2 d3f" data-tela="ina"><div class="fv2-in">
+      ${topo({ titulo: 'Inadimplência', acoes: comoFunciona + '<button type="button" class="fv2-btn" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>', extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${real ? '<span class="fv2-pill b">Vybe Finanças</span>' : fonte(d)}` })}
+      ${acao('Vorcaro · Financeiro', frase, clientes.length ? `Ver ${clientes.length === 1 ? 'o cliente' : 'os ' + n0(clientes.length)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
-      ${semNada ? vazioLinha('Ninguém em atraso; as faturas vencidas e não recebidas aparecem aqui.', `<button type="button" class="fv2-btn s" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>${falta.botao}`)
-        : `<div class="fv2-grade c">${lista}${regua}</div>${falta.botao ? `<div class="fv2-rodape">${falta.botao}</div>` : ''}`}
-      ${falta.nota}
-      <p class="fv2-sub">Faturas vencidas e não recebidas, por cliente. Cada bolinha na régua é um cliente, na cor dele, no dia em que está.${real ? ' Fonte: Vybe Finanças.' : fonte(d)}</p></div></div>`;
+      ${semNada ? vazioLinha('Ninguém em atraso.', `<button type="button" class="fv2-btn s" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>${falta.botao}`)
+        : `<div class="fv2-grade c">${lista}<div class="d3f-coluna">${regua}${grafMes}</div></div>${falta.botao ? `<div class="fv2-rodape">${falta.botao}</div>` : ''}`}
+      ${falta.nota}</div></div>`;
   }
 
   // ----- Finanças (Visão geral do setor) -----
   async function lerVisao() {
     const hoje = hojeBahia(), atual = hoje.slice(0, 7), u = ui.vis, mes = u.per === 'anterior' ? somaMes(atual, -1) : atual, tipo = u.per === 'ano' ? 'anual' : 'mensal', q = `&mes=${mes}&periodo=${tipo}`;
     const passados = [3, 2, 1].map((n) => somaMes(atual, -n));
-    const [vf, rec, con, ina, cx, porCliente, ...antes] = await Promise.all([carregar('comercial', mes), buscar('recebimentos' + q), buscar('contas' + q), buscar('inadimplencia'), buscar('caixa'), buscar('financas'),
-      ...passados.map((m) => buscar(`recebimentos&mes=${m}&periodo=mensal`))]);
-    return { hoje, atual, mes, tipo, vf: vf?.dados || null, rec, con, ina, cx, porCliente, passados: passados.map((m, i) => ({ mes: m, dados: antes[i] })) };
+    const [vf, rec, con, ina, cx, porCliente, fx, ...antes] = await Promise.all([carregar('comercial', mes), buscar('recebimentos' + q), buscar('contas' + q), buscar('inadimplencia'), buscar('caixa'), buscar('financas'),
+      buscar('', 'financeiro'), ...passados.map((m) => buscar(`recebimentos&mes=${m}&periodo=mensal`))]);
+    return { hoje, atual, mes, tipo, vf: vf?.dados || null, rec, con, ina, cx, porCliente, fx, passados: passados.map((m, i) => ({ mes: m, dados: antes[i] })) };
   }
   function visaoHtml(L, ctx = {}) {
     const u = ui.vis, { hoje, atual, mes, tipo } = L, ligado = tipo === 'mensal' && L.vf?.conectado && L.vf.resumo ? L.vf : null;
@@ -466,62 +520,76 @@
     const saiu = Number(ligado ? R.despesas_pagas : K.pago) || 0, aSair = Number(ligado ? (Number(R.despesas_pagas) || 0) + (Number(R.despesas_pendentes) || 0) : K.total) || 0;
     const I = ligado?.inadimplencia || L.ina || {}, atrasados = [...(I.clientes || [])].sort((x, z) => z.atraso_mais_antigo - x.atraso_mais_antigo), totalAtraso = Number(I.total) || 0;
     const noPeriodo = (L.rec?.recebiveis || []).filter((x) => !x.cancelado && emAtraso(x)), atrasoPeriodo = Math.min(previsto, soma(noPeriodo, 'aberto'));
-    const resultado = previsto - aSair, semEles = resultado - atrasoPeriodo, verbo = u.per === 'anterior' ? 'fechou' : 'fecha';
-    const nomeP = tipo === 'anual' ? mes.slice(0, 4) : maiuscula(mesDe(mes + '-01')), sobra = (v) => (v >= 0 ? `<b>${mil(v)} de sobra</b>` : `<b>${mil(-v)} no vermelho</b>`);
+    const resultado = previsto - aSair, semEles = resultado - atrasoPeriodo, passou = u.per === 'anterior';
+    const nomeP = tipo === 'anual' ? mes.slice(0, 4) : maiuscula(mesDe(mes + '-01'));
+    const sobra = (v) => (v >= 0 ? `${passou ? 'sobrou' : 'sobra'} <b>${mil(v)}</b>` : `${passou ? 'ficou' : 'fica'} <b>${mil(-v)}</b> no vermelho`);
     const semDado = !previsto && !aSair && !entrou && !saiu;
-    const frase = semDado ? `Sem lançamentos em ${esc(tipo === 'anual' ? mes.slice(0, 4) : nomeMes(mes))}. Lance os recebimentos e as contas para ver como o período fecha.`
-      : noPeriodo.length ? `${esc(nomeP)} ${verbo} com ${sobra(resultado)} se ${noPeriodo.length === 1 ? 'a fatura em atraso for paga' : `as ${n0(noPeriodo.length)} faturas em atraso forem pagas`}. Sem ${noPeriodo.length === 1 ? 'ela' : 'elas'}, ${semEles >= 0 ? `sobra <b>${mil(semEles)}</b>` : `faltam <b>${mil(-semEles)}</b>`}.${ligado?.folha?.total ? ` A folha do mês é de ${mil(ligado.folha.total)}.` : ''}`
-      : `${esc(nomeP)} ${verbo} com ${sobra(resultado)}: ${mil(previsto)} previstos para entrar e ${mil(aSair)} em contas.${ligado?.folha?.total ? ` A folha do mês é de ${mil(ligado.folha.total)}.` : ''}`;
+    const frase = semDado ? `Sem lançamentos em ${esc(tipo === 'anual' ? mes.slice(0, 4) : nomeMes(mes))}.`
+      : noPeriodo.length ? `${esc(nomeP)} ${sobra(resultado)} se ${noPeriodo.length === 1 ? 'o atrasado pagar' : `os ${n0(noPeriodo.length)} atrasados pagarem`}.`
+      : `${esc(nomeP)} ${sobra(resultado)}.`;
     // "Ver a conta": de onde sai a frase, e os números que não têm cartão próprio.
     const F = L.porCliente?.resumo || {}, conta = [['Previsto para entrar', rs(previsto)], ['Já entrou', rs(entrou)], ['Contas do período', rs(aSair)], ['Já saiu', rs(saiu)], ['Resultado previsto', rs(resultado)],
-      ...(atrasoPeriodo ? [['Em atraso no período', rs(atrasoPeriodo)]] : []), ['Em atraso, de qualquer mês', rs(totalAtraso)],
+      ...(atrasoPeriodo ? [['Em atraso no período', rs(atrasoPeriodo)], ['Sem os atrasados', rs(semEles)]] : []), ['Em atraso, de qualquer mês', rs(totalAtraso)],
       ...(Number(A.pendente) ? [['Pendente de receber', rs(A.pendente)]] : []),
       ...(Number(F.receita) ? [['Receita contratada por mês', `${rs(F.receita)}${F.margem_percentual != null ? ` · margem estimada ${String(F.margem_percentual).replace('.', ',')}%` : ''}`]] : []),
       ...(ligado ? [['Folha do mês (Vybe Finanças)', rs(ligado.folha?.total)], ['Custos fixos (Vybe Finanças)', rs(ligado.custos_fixos?.total)], ['Outras despesas (Vybe Finanças)', rs(R.despesas_sem_folha ?? ligado.despesas?.total)]] : [])];
-    const falaHtml = `<div class="v2-abre fv2-conta" data-linha="conta" aria-expanded="${u.conta}">${fala('Vorcaro · Tesouraria', frase, semDado ? '' : `<button type="button" class="fv2-btn s" data-fv="conta" aria-expanded="${u.conta}">Ver a conta</button>`)}
+    const acaoHtml = `<div class="v2-abre fv2-conta" data-linha="conta" aria-expanded="${u.conta}">${acao('Vorcaro · Tesouraria', frase, semDado ? '' : 'Ver a conta', `data-fv="conta" aria-expanded="${u.conta}"`)}
       <div class="v2-mais"><div><dl class="fv2-dl">${conta.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></div></div></div>`;
-    const fatias = ligado ? (ligado.despesas?.categorias || []).slice(0, 3).map((c) => `${esc(c.categoria)} ${Math.round(Number(c.percentual) || 0)}%`)
-      : [...(K.grupos || [])].filter((g) => Number(g.total) > 0).sort((x, z) => z.total - x.total).slice(0, 3).map((g) => `${esc(g.nome)} ${pc(g.total, K.total)}%`);
-    const numeros = kpis([
-      { rotulo: 'Entrou', valor: mil(entrou), barra: { v: pc(entrou, previsto) }, tom: entrou ? '' : 'quieto', sub: previsto ? `${pc(entrou, previsto)}% dos ${mil(previsto)} previstos` : 'nada previsto no período' },
-      { rotulo: 'Saiu', valor: mil(saiu), barra: { v: pc(saiu, aSair), cor: '#1F1D1A' }, tom: saiu ? '' : 'quieto', sub: aSair ? `${fatias.join(' · ')}${fatias.length ? ' · ' : ''}${pc(saiu, aSair)}% dos ${mil(aSair)} do período` : 'nenhuma conta lançada no período' },
-      { rotulo: 'Em atraso', valor: mil(totalAtraso), tom: totalAtraso ? 'ruim' : 'quieto',
-        sub: atrasados.length ? `<span class="fv2-clis">${atrasados.slice(0, 3).map((c) => cli(c.cliente_nome)).join('')}</span>o mais antigo há ${quantos(atrasados[0].atraso_mais_antigo, 'dia', 'dias')} · <button type="button" class="fv2-link" data-fv="ir" data-valor="inadimplencia">ver quem</button>` : 'ninguém em atraso' }]);
-    // Pede ação: quem está em atraso, as contas vencendo e o que falta ligar ou informar.
+    // Para onde saiu: os grupos de contas (ou as categorias do Vybe Finanças), do maior para o menor.
+    const grupos = ligado ? (ligado.despesas?.categorias || []).map((c) => ({ nome: c.categoria, total: Number(c.total) || 0, fatia: Math.round(Number(c.percentual) || 0) }))
+      : [...(K.grupos || [])].filter((g) => Number(g.total) > 0).map((g) => ({ nome: g.nome, total: Number(g.total) || 0, fatia: pc(g.total, K.total) }));
+    grupos.sort((x, z) => z.total - x.total);
+    const numeros = nums([
+      { rotulo: 'Entrou', valor: mil(entrou), barra: pc(entrou, previsto), tom: entrou ? 'd3f-verde' : 'q d3f-verde', sub: previsto ? `${pc(entrou, previsto)}% de ${mil(previsto)}` : 'nada previsto', attrs: 'data-fv="ir" data-valor="recebimentos"' },
+      { rotulo: 'Saiu', valor: mil(saiu), barra: pc(saiu, aSair), tom: saiu ? '' : 'q', sub: aSair ? `de ${mil(aSair)}${grupos[0] ? ` · ${esc(grupos[0].nome)} ${grupos[0].fatia}%` : ''}` : 'nada lançado', attrs: 'data-fv="ir" data-valor="contas"' },
+      { rotulo: 'Em atraso', valor: mil(totalAtraso), tom: totalAtraso ? 'r' : 'q', attrs: 'data-fv="ir" data-valor="inadimplencia"',
+        sub: atrasados.length ? `<span class="d3f-r">${quantos(atrasados.length, 'cliente', 'clientes')} · o mais antigo há ${quantos(atrasados[0].atraso_mais_antigo, 'dia', 'dias')}</span>` : 'ninguém em atraso' },
+      { rotulo: 'Resultado', valor: mil(resultado), tom: semDado ? 'q' : resultado < 0 ? 'r' : 'g', sub: atrasoPeriodo ? `sem atrasos · ${mil(semEles)}` : `${mil(previsto)} − ${mil(aSair)}` }]);
+    // Pede ação: quem está em atraso, as contas vencendo, o que chegou do grupo, o extrato a conferir e o que falta informar.
     const faturas = L.ina?.faturas || [], itens = [];
     for (const c of atrasados) {
       const l = faturas.filter((x) => c.cliente_id != null && String(x.cliente_id) === String(c.cliente_id)), uma = l.length === 1 && Number(c.faturas) <= 1 ? l[0] : null;
       itens.push(linha({ tela: 'vis', id: 'k' + (c.cliente_id ?? c.cliente_nome), pill: pilula(quantos(c.atraso_mais_antigo, 'dia', 'dias'), 'r'),
-        texto: `${cli(c.cliente_nome)} · ${uma ? esc(oQueE(uma)) + ', ' : ''}${rs(c.valor)}${Number(c.faturas) > 1 ? ' · ' + quantos(c.faturas, 'fatura', 'faturas') : ''}`,
+        texto: `${cli(c.cliente_nome)}${uma ? ' · ' + esc(mesDe(uma.vencimento)) : ''}${Number(c.faturas) > 1 ? ` <span class="d3f-mes">· ${quantos(c.faturas, 'fatura', 'faturas')}</span>` : ''}`, valor: rs(c.valor),
         dir: uma && !doFin(uma.id) ? botaoRecebi(uma) : '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="inadimplencia">Abrir</button>',
         detalhe: hist([`Venceu em ${extenso(c.vencimento_mais_antigo)}`, Number(c.faturas) > 1 ? `${quantos(c.faturas, 'fatura vencida', 'faturas vencidas')}, a mais antiga há ${quantos(c.atraso_mais_antigo, 'dia', 'dias')}` : '', 'A baixa e o histórico ficam em Inadimplência']) }));
     }
     if (L.con) { const p = contasQuePedem(L.con, hoje), nome = (id) => (K.grupos || []).find((g) => g.id === id)?.nome || id;
       for (const c of [...p.vencidas, ...p.sete]) itens.push(linhaConta('vis', c, nome(c.grupo), hoje, { comForm: false })); }
-    if (L.vf && L.vf.conectado === false) itens.push(`<div class="fv2-lin">${pilula('Ligar', 'n')}<p class="fv2-txt"><b>Controle financeiro</b> · os valores reais chegam quando ele for ligado</p><button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Ver como</button></div>`);
+    const simples = (pill, texto, dir, botao) => `<div class="fv2-lin">${pill}<p class="fv2-txt">${texto}</p>${dir ? `<span class="fv2-sub fv2-valor">${dir}</span>` : ''}<span class="d3f-dir">${botao}</span></div>`;
+    // Do Financeiro do Vybe OS (só os donos leem): o que chegou do grupo Vybe Financeiro e o extrato a conferir.
+    const X = L.fx, pendentes = (X?.vorcaro?.propostas || []).filter((p) => p.estado === 'pendente');
+    const aConferir = (X?.transacoes || []).filter((t) => !t.real?.conferido).length, aDividir = (X?.transacoes || []).filter((t) => t.real?.categoria === 'receita_boleto' && !t.real?.partes?.length).length;
+    if (pendentes.length) itens.push(simples('<span class="fv2-pill n d3f-ag">Do grupo</span>', `<b>${quantos(pendentes.length, 'lançamento', 'lançamentos')}</b> · Vybe Financeiro`, curta(pendentes[0].recebido_em), '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="vorcaro">Conferir</button>'));
+    if (aConferir) itens.push(simples(pilula('Extrato', 'n'), `<b>${n0(aConferir)} a conferir</b>${aDividir ? ` · ${quantos(aDividir, 'boleto a dividir', 'boletos a dividir')}` : ''}`, X?.importacoes?.length ? curta(X.importacoes[X.importacoes.length - 1].ate) : '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Conferir</button>'));
+    if (L.vf && L.vf.conectado === false) itens.push(simples(pilula('Ligar', 'n'), '<b>Controle financeiro</b> · valores reais', '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Ver como</button>'));
     const semContrato = (L.porCliente?.clientes || []).filter((c) => !(Number(c.valor_mensal) > 0)).length;
-    if (semContrato) itens.push(`<div class="fv2-lin">${pilula('Contrato', 'n')}<p class="fv2-txt"><b>${quantos(semContrato, 'cliente', 'clientes')}</b> sem contrato informado: sem o valor não há margem</p><button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Informar</button></div>`);
+    if (semContrato) itens.push(simples(pilula('Contrato', 'n'), `<b>${quantos(semContrato, 'cliente', 'clientes')}</b> sem contrato informado`, '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Informar</button>'));
     const cabe = u.inteira ? itens : itens.slice(0, 5);
-    const acao = cartao({ titulo: 'Pede ação', rotulo: 'acao', sub: itens.length ? `${quantos(itens.length, 'coisa', 'coisas')}, na ordem` : '', corpo: cabe.join('') || '<p class="fv2-nada">Nada pedindo ação agora.</p>',
-      pe: [maisHtml(itens.length - cabe.length, '', 'mostrar', 'vis'), 'A linha abre no lugar com o detalhe. A baixa é manual, de quem viu o dinheiro entrar ou sair.'].filter(Boolean).join(' · ') });
-    // Caixa: três meses atrás (o que entrou), o mês de agora e três à frente (projeção).
+    const acaoCard = cartao({ titulo: 'Pede ação', rotulo: 'acao', cls: 'd3f-pede', sub: itens.length ? `${quantos(itens.length, 'coisa', 'coisas')}, na ordem` : '', corpo: cabe.join('') || '<p class="fv2-nada">Nada pedindo ação agora.</p>',
+      pe: maisHtml(itens.length - cabe.length, '', 'mostrar', 'vis') });
+    // Caixa: três meses atrás (o que entrou), o mês de agora e três à frente (projeção dos recorrentes), numa linha só.
     const serie = new Map((ligado?.series || L.vf?.series || []).map((s) => [s.mes, Number(s.faturamento) || 0]));
     const prev = L.cx?.previsao?.meses || [];
     const colunas = [...L.passados.map((p) => ({ mes: p.mes, valor: serie.has(p.mes) ? serie.get(p.mes) : Number(p.dados?.resumo?.atual?.recebido) || 0, tipo: 'antes' })),
       ...[0, 1, 2, 3].map((n) => { const m = somaMes(atual, n), x = prev.find((y) => y.mes === m); return { mes: m, valor: Number(x?.entradas) || 0, tipo: n ? 'depois' : 'agora' }; })];
-    const teto = Math.max(1, ...colunas.map((c) => c.valor)), temCaixa = colunas.some((c) => c.valor > 0);
-    const caixa = cartao({ titulo: 'Caixa', rotulo: 'caixa', cls: 'fv2-caixa', sub: '3 meses atrás, 3 à frente',
-      corpo: temCaixa ? `<div class="fv2-cols" role="img" aria-label="${esc(colunas.map((c) => `${mesDe(c.mes + '-01')}: ${mil(c.valor)}`).join(', '))}">${colunas.map((c) => `<div class="fv2-col ${c.tipo}" title="${esc(mesDe(c.mes + '-01'))}: ${mil(c.valor)}"><i style="--h:${c.valor ? Math.max(4, Math.round(c.valor / teto * 100)) : 0}%"></i><span>${esc(mesDe(c.mes + '-01').slice(0, 3))}</span></div>`).join('')}</div>`
-        : '<p class="fv2-nada">O caixa aparece com o primeiro recebimento recorrente lançado.</p>',
-      pe: 'Cinza é o que entrou; laranja, o previsto do mês; listrado é projeção dos recebimentos recorrentes e do ciclo de cada contrato.' });
-    const subs = (ctx.subs || []).map((s) => `<button type="button" class="fv2-chip" data-fv="ir" data-valor="${esc(s.id)}">${esc(s.nome)}${s.url ? ' ↗' : ''}</button>`).join('');
+    const temCaixa = colunas.some((c) => c.valor > 0), agora = colunas[3];
+    const caixa = cartao({ titulo: 'Caixa', rotulo: 'caixa', cls: 'fv2-caixa', sub: temCaixa ? `<b class="d3f-caixa-v">${mil(agora.valor)}</b><span class="d3f-leg"><i></i>realizado</span><span class="d3f-leg proj"><i></i>projeção</span>` : '',
+      corpo: temCaixa ? `${linhaDupla(colunas.slice(0, 4).map((c) => c.valor), colunas.slice(3).map((c) => c.valor), { rotulo: `Entradas de ${colunas.map((c) => `${mesDe(c.mes + '-01')} ${mil(c.valor)}`).join(', ')}; de ${mesDe(colunas[4].mes + '-01')} em diante é projeção` })}
+          <div class="d3f-eixo">${colunas.map((c) => (c.tipo === 'agora' ? `<b>${esc(mes3(c.mes + '-01'))}</b>` : `<span>${esc(mes3(c.mes + '-01'))}</span>`)).join('')}</div>`
+        : '<p class="fv2-nada">O caixa aparece com o primeiro recebimento recorrente.</p>' });
+    const saiuPor = grupos.length ? cartao({ titulo: 'Saiu por grupo', rotulo: 'grupos', sub: mil(aSair), corpo: grupos.slice(0, 5).map((g) => barraGrupo(`<b>${esc(g.nome)}</b>`, g.fatia, mil(g.total))).join('') }) : '';
+    // Atalhos com a contagem do que pede ação em cada tela.
+    const contagem = { recebimentos: [(L.rec?.recebiveis || []).filter((x) => !x.cancelado).length, ''], contas: [(L.con?.contas || []).filter((c) => !c.cancelada).length, ''],
+      inadimplencia: [atrasados.length, 'r'], extrato: [aConferir, 'a'], vorcaro: [pendentes.length, 'a'] };
+    const subs = (ctx.subs || []).map((s) => { const [n, tom] = contagem[s.id] || [0, '']; return `<button type="button" class="fv2-chip" data-fv="ir" data-valor="${esc(s.id)}">${esc(s.nome)}${s.url ? ' ↗' : ''}${n ? ` <b${tom ? ` class="${tom}"` : ''}>${n0(n)}</b>` : ''}</button>`; }).join('');
     const seg = [['anterior', maiuscula(mesDe(somaMes(atual, -1) + '-01'))], ['atual', maiuscula(mesDe(atual + '-01'))], ['ano', 'Ano']];
-    return `<div class="fv2" data-tela="vis"><div class="fv2-in">
-      ${topo({ titulo: 'Finanças', trilha: false, meio: `<span class="fv2-seg" role="group" aria-label="Período">${seg.map(([k, n]) => `<button type="button" data-fv="per" data-valor="${k}" aria-pressed="${u.per === k}">${esc(n)}</button>`).join('')}</span>`,
-        acoes: `<span class="fv2-lancar"><button type="button" class="fv2-btn p" data-fv="lancar" aria-expanded="${u.lancar}">Lançar</button>${u.lancar ? '<span class="fv2-menu" role="menu"><button type="button" role="menuitem" data-fv="novo" data-valor="recebimentos">Recebimento</button><button type="button" role="menuitem" data-fv="novo" data-valor="contas">Conta a pagar</button></span>' : ''}</span>` })}
-      ${falaHtml}${numeros}
-      <div class="fv2-grade a">${acao}${caixa}</div>
-      <div class="fv2-abrir"><span class="fv2-sub">Abrir:</span>${subs}<button type="button" class="fv2-chip" data-fv="ir" data-valor="caixa">Caixa</button><button type="button" class="fv2-chip" data-fv="ir" data-valor="rh">Folha</button></div></div></div>`;
+    return `<div class="fv2 d3f" data-tela="vis"><div class="fv2-in">
+      ${topo({ titulo: 'Finanças', trilha: false, extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${ligado ? '<span class="fv2-pill b">Vybe Finanças</span>' : ''}`, meio: `<span class="fv2-seg" role="group" aria-label="Período">${seg.map(([k, n]) => `<button type="button" data-fv="per" data-valor="${k}" aria-pressed="${u.per === k}">${esc(n)}</button>`).join('')}</span>`,
+        acoes: `<span class="fv2-lancar"><button type="button" class="fv2-btn p" data-fv="lancar" aria-expanded="${u.lancar}">${IC.mais}Lançar</button>${u.lancar ? '<span class="fv2-menu" role="menu"><button type="button" role="menuitem" data-fv="novo" data-valor="recebimentos">Recebimento</button><button type="button" role="menuitem" data-fv="novo" data-valor="contas">Conta a pagar</button></span>' : ''}</span>` })}
+      ${acaoHtml}${numeros}
+      <div class="fv2-grade a">${acaoCard}<div class="d3f-coluna">${caixa}${saiuPor}</div></div>
+      <div class="fv2-abrir"><span class="fv2-sub">Abrir</span>${subs}<button type="button" class="fv2-chip" data-fv="ir" data-valor="caixa">Caixa</button><button type="button" class="fv2-chip" data-fv="ir" data-valor="rh">Folha</button></div></div></div>`;
   }
   async function visao(ctx = {}) { visita = ctx; return visaoHtml(await lerVisao(), ctx); }
 

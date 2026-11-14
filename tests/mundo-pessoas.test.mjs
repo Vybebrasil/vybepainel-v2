@@ -110,7 +110,7 @@ test('RH 08/11: fila com números clicáveis, fora do prazo em vermelho, respost
   // Padrão v2: os três números do quadro continuam clicáveis (mini painel) e o fora do prazo fica em vermelho na linha de baixo.
   assert.match(h, /data-espiar="pessoas:abertos"/); assert.match(h, /data-espiar="pessoas:fora"/); assert.match(h, /data-espiar="pessoas:respondidos"/);
   assert.match(h, /class="v2p-ruim" data-espiar="pessoas:fora"[^>]*>1 fora do prazo</);
-  assert.match(h, /1 de 1/); assert.match(h, /tempo médio de 1,5 dias úteis/);
+  assert.match(h, /d3-num-v">1<span class="d3p-de"> \/ 1</); assert.match(h, /tempo médio de 1,5 dias úteis/);
   assert.match(h, /Fora do prazo há 2 dias úteis/, 'no cartão do baralho'); assert.match(h, /aberto há 6 dias/); assert.match(h, /para 04\/11/);
   assert.doesNotMatch(h, /data-vp-form="responder"|Prazos de resposta por tipo|Clima de agosto|Encerrar agora/, 'lista, prazos e clima a um clique');
   g.P._teste.ver('lista'); h = g.html();

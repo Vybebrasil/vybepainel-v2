@@ -123,38 +123,93 @@
     return `<span class="v2o-conf" role="group" aria-label="Confirmar"><span>${texto}</span><button type="button" class="v2o-btn k" data-coord-ok="${esc(chave)}">Confirmar</button><button type="button" class="v2o-btn" data-coord-cancelar>Cancelar</button></span>`;
   }
 
+  // Direção 3 (quadro D3-Coordenacao): "Hoje" com o período ao lado e as abas; a faixa do Heitor com o mais urgente (a
+  // primeira atribuição ou troca, que pede o OK na própria linha); quatro números; "Sem ninguém atribuído" (contorno =
+  // sugerido) e "Para equilibrar" (de quem → para quem); a carga do time em linha contra o limite, com os limites e o
+  // que fica fora da conta; "Por pessoa" com agora → depois (depois = aplicando as sugestões), que abre a pessoa no lugar.
+  const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const faixaDe = (r) => { const a = `${r.inicio.slice(8, 10)}`, b = `${r.fim.slice(8, 10)} ${MESES[Number(r.fim.slice(5, 7)) - 1]}`;
+    return r.inicio === r.fim ? b : r.inicio.slice(5, 7) === r.fim.slice(5, 7) ? `${a} a ${b}` : `${a} ${MESES[Number(r.inicio.slice(5, 7)) - 1]} a ${b}`; };
+  const pilulaPct = (p, pct = p.pct) => `<span class="d3h-pct ${pct > 100 ? 'a' : pct < 80 ? 'g' : ''}">${n0(pct)}%</span>`;
+
+  function linhaCarga(r, itens, peso, hoje) {
+    if (r.periodo === 'dia') return '';
+    const dias = []; for (let d = r.inicio; d <= r.fim; d = somarDias(d, 1)) dias.push(d);
+    const limite = r.pessoas.reduce((s, p) => s + p.limite, 0), doTime = new Set(r.pessoas.map((p) => p.id));
+    const pts = (d) => idsDe(d).filter((i) => doTime.has(i)).reduce((s, id) => s + Number(peso(d, { id }) || 1), 0);
+    const pecas = r.pessoas.flatMap((p) => p.pecas); const unicas = [...new Map(pecas.map((d) => [String(d.id), d])).values()];
+    let ac = 0; const serie = dias.map((dia) => { ac += unicas.filter((d) => (dataDe(d) < r.inicio ? r.inicio : dataDe(d)) === dia).reduce((s, d) => s + pts(d), 0); return ac; });
+    const ateHoje = serie.slice(0, Math.max(1, dias.filter((d) => d <= hoje).length));
+    const W = 400, H = 150, P = 8, max = Math.max(1, limite * 1.1, ...serie), X = (i) => P + (i * (W - 2 * P)) / Math.max(1, dias.length - 1), Y = (v) => H - P - (v / max) * (H - 2 * P);
+    const pl = (l) => l.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    let comp = 0; for (let i = 1; i < ateHoje.length; i++) comp += Math.hypot(X(i) - X(i - 1), Y(ateHoje[i]) - Y(ateHoje[i - 1]));
+    const u = ateHoje.length - 1;
+    const rot = dias.length <= 7 ? dias.map((d) => `<span class="${d === hoje ? 'hoje' : ''}">${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(`${d}T12:00:00`).getDay()]}</span>`).join('')
+      : [dias[0], dias[Math.floor(dias.length / 2)], dias[dias.length - 1]].map((d) => `<span>${diaBr(d)}</span>`).join('');
+    return `<svg class="d3-graf d3h-co-graf" viewBox="0 0 ${W} ${H}" style="--d3-comp:${Math.ceil(comp) || 1}" role="img" aria-label="Carga do time: ${n0(serie[serie.length - 1])} de ${n0(limite)} pontos"><polyline class="meta" points="${P},${Y(limite).toFixed(1)} ${W - P},${Y(limite).toFixed(1)}"/>${u > 0 ? `<polyline class="previsto" points="${pl(serie.slice(u))}" transform="translate(${(X(u) - X(0)).toFixed(1)} 0)"/>` : ''}<polyline points="${pl(ateHoje)}"/><circle cx="${X(u).toFixed(1)}" cy="${Y(ateHoje[u]).toFixed(1)}" r="4.5"/></svg><div class="d3h-sem-dias">${rot}</div>`;
+  }
+
   function html({ itens, time, hoje, peso, data, abas = '', nome = (id) => id, cliente = (d) => d.cliente || '' }) {
     const r = calcular({ itens, time, hoje, periodo: st.periodo, peso });
     ultima = { r, itens };
     const quem = (id) => esc(primeiro(nome(id)));
-    const linhaPeca = (d) => `<span class="v2o-peca"><b>${esc(String(d.nome || 'Peça').trim())}</b><small>${esc(cliente(d))}${cliente(d) ? ' · ' : ''}${esc(d.status || 'Sem status')} · ${dataDe(d) < hoje ? `<em class="ruim">ia ao ar ${diaBr(dataDe(d))}</em>` : dataDe(d) === hoje ? 'hoje' : diaBr(dataDe(d))}</small></span>`;
     const pessoaDe = (id) => r.pessoas.find((p) => p.id === id);
-    const fala = `<section class="v2t-fala" aria-label="Heitor, coordenação de produção"><span class="vg-av" aria-hidden="true">H</span><p><span class="v2t-quem">Heitor · Coordenação de produção</span>${frasesDoHeitor(r, nome)}</p></section>`;
+    const pw = (d, id) => Number(peso(d, { id }) || 1);
+    // Depois: a carga de cada um aplicando as atribuições sugeridas e as trocas.
+    const depois = Object.fromEntries(r.pessoas.map((p) => [p.id, p.pontos]));
+    for (const x of r.semDono) if (x.sugerido) depois[x.sugerido] += pw(x.d, x.sugerido);
+    for (const t of r.trocas) { depois[t.de] -= pw(t.d, t.de); depois[t.para] += pw(t.d, t.para); }
+    const pctDepois = (p) => Math.round(depois[p.id] / p.limite * 100);
+    const cli = (d) => (cliente(d) ? `${typeof G.cliCor === 'function' ? G.cliCor(cliente(d)) : esc(cliente(d))} · ` : '');
+    const linhaPeca = (d, extra = '') => `<span class="v2o-peca" title="${esc(String(d.nome || 'Peça') + ' · ' + (d.status || 'Sem status'))}"><b>${cli(d)}${esc(String(d.nome || 'Peça').trim())}</b><small>${extra}${dataDe(d) < hoje ? `<em class="ruim">venceu ${diaBr(dataDe(d))}</em>` : dataDe(d) === hoje ? 'hoje' : diaBr(dataDe(d))}</small></span>`;
+    const acima = r.pessoas.filter((p) => p.pct > 100).sort((a, b) => b.pct - a.pct);
+    // A faixa: quem passou do limite e quantas estão sem ninguém; o botão abre o OK da primeira sugestão.
+    const partes = [acima.length ? `${acima.slice(0, 2).map((p) => esc(primeiro(nome(p.id)))).join(' e ')} acima do limite` : 'Ninguém acima do limite', r.semDono.length ? `${plural(r.semDono.length, 'sem ninguém', 'sem ninguém')}` : ''].filter(Boolean);
+    const s1 = r.semDono.find((x) => x.sugerido), t1 = r.trocas[0];
+    const botao = s1 ? `<button type="button" class="d3-acao-btn" data-coord-atribuir="${esc(s1.d.id)}" data-para="${esc(s1.sugerido)}">Atribuir a 1ª</button>`
+      : t1 ? `<button type="button" class="d3-acao-btn" data-coord-trocar="${esc(t1.d.id)}" data-de="${esc(t1.de)}" data-para="${esc(t1.para)}">Passar a 1ª</button>` : '';
+    const faixa = `<section class="d3-acao d3h-acao" aria-label="Heitor, coordenação de produção"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase" title="${esc(frasesDoHeitor(r, nome).replace(/<[^>]+>/g, ''))}">${partes.join(' · ')}.</span>${botao}</section>`;
     const periodos = `<div class="v2o-periodo" role="tablist" aria-label="Período">${['dia', 'semana', 'mes'].map((p) => `<button type="button" role="tab" aria-selected="${st.periodo === p}" data-coord-periodo="${p}">${ROT[p]}</button>`).join('')}</div>`;
-    const semDono = r.semDono.length ? `<section class="v2o-cartao v2o-semdono" aria-label="Sem ninguém atribuído"><div class="v2a-cab"><h3>Sem ninguém atribuído</h3><small>${plural(r.semDono.length, 'demanda', 'demandas')} · atribuir para quem?</small></div>
-        <ul>${r.semDono.slice(0, 8).map((x) => { const chave = `atribuir:${x.d.id}:`;
-          return `<li>${linhaPeca(x.d)}<span class="v2o-quem">${x.ordem.map((id) => { const p = pessoaDe(id);
-            return `<button type="button" class="v2o-chip${id === x.sugerido ? ' sugerido' : ''}" data-coord-atribuir="${esc(x.d.id)}" data-para="${esc(id)}" title="${quem(id)}: ${n0(p.pontos)} de ${n0(p.limite)} pontos">${quem(id)} <small>${n0(p.pct)}%</small></button>`; }).join('') || '<small>ninguém da disciplina</small>'}</span>
-            ${x.ordem.map((id) => confirmarHtml(chave + id, `Atribuir a ${quem(id)}?`)).join('')}</li>`; }).join('')}</ul>
-        ${r.semDono.length > 8 ? `<p class="v2o-nota">e mais ${n0(r.semDono.length - 8)} no Painel de trabalho, em "Sem dono".</p>` : ''}</section>` : '';
-    const trocas = `<section class="v2o-cartao" aria-label="Sugestões para equilibrar"><div class="v2a-cab"><h3>Para equilibrar</h3><small>${r.trocas.length ? 'sugestões do Heitor' : 'nada a trocar'}</small></div>
-        ${r.trocas.length ? `<ul>${r.trocas.map((t) => { const chave = `trocar:${t.d.id}:${t.de}:${t.para}`, de = pessoaDe(t.de), para = pessoaDe(t.para);
-          return `<li>${linhaPeca(t.d)}<span class="v2o-porque">de <b>${quem(t.de)}</b> (${n0(de.pct)}%) para <b>${quem(t.para)}</b> (${n0(para.pct)}%)</span>
-            ${confirmarHtml(chave, `Passar para ${quem(t.para)}?`) || `<button type="button" class="v2o-btn" data-coord-trocar="${esc(t.d.id)}" data-de="${esc(t.de)}" data-para="${esc(t.para)}">Passar</button>`}</li>`; }).join('')}</ul>`
-          : `<p class="v2o-nota">${r.pessoas.some((p) => p.pct > 100) ? 'Quem passou do limite só tem peças já começadas ou de mais de uma pessoa: troque à mão abrindo a pessoa.' : 'A carga está dentro do limite de todo mundo.'}</p>`}</section>`;
-    const time2 = `<section class="v2o-cartao v2o-time" aria-label="Carga do time"><div class="v2a-cab"><h3>Carga do time</h3><small>${esc(ROT[r.periodo])} · ${diaBr(r.inicio)}${r.fim !== r.inicio ? ' a ' + diaBr(r.fim) : ''}</small></div>
-        ${r.pessoas.map((p) => { const aberta = st.aberta === p.id;
-          return `<div class="v2o-pes${aberta ? ' aberta' : ''}"><button type="button" class="v2o-pes-linha" data-coord-pessoa="${esc(p.id)}" aria-expanded="${aberta}"><i aria-hidden="true">${esc(primeiro(nome(p.id)).slice(0, 2).toUpperCase())}</i>
-              <span><span><b>${quem(p.id)}</b> · ${esc(p.papel || '')}</span><span class="v2-barra" style="--v:${Math.min(100, p.pct)}%;--c:${COR[p.nivel]}"><i></i></span>
-              <small>${n0(p.pontos)} de ${n0(p.limite)} pontos · ${plural(p.pecas.length, 'peça', 'peças')}${p.atrasadas ? ` · <b class="ruim">${plural(p.atrasadas, 'atrasada', 'atrasadas')}</b>` : ''} · <em style="color:${COR[p.nivel]}">${NIVEL[p.nivel]}</em></small></span></button>
-            ${aberta ? `<ul class="v2o-lista">${p.pecas.map((d) => { const outros = r.pessoas.filter((o) => o.id !== p.id && o.disciplina === disciplinaDe(d));
-                return `<li>${linhaPeca(d)}${outros.map((o) => confirmarHtml(`trocar:${d.id}:${p.id}:${o.id}`, `Passar para ${quem(o.id)}?`)).join('') || `<span class="v2o-quem">${outros.map((o) => `<button type="button" class="v2o-chip" data-coord-trocar="${esc(d.id)}" data-de="${esc(p.id)}" data-para="${esc(o.id)}">${quem(o.id)} <small>${n0(o.pct)}%</small></button>`).join('') || '<small>ninguém mais da disciplina</small>'}</span>`}</li>`; }).join('') || '<li class="v2o-nota">Nada neste período.</li>'}</ul>` : ''}</div>`; }).join('')}
-        ${r.semData ? `<p class="v2o-nota">${plural(r.semData, 'demanda sem data e sem ninguém', 'demandas sem data e sem ninguém')} fora da conta.</p>` : ''}</section>`;
+    const porDisc = (l) => { const m = {}; for (const x of l) m[x.disciplina] = (m[x.disciplina] || 0) + 1; return Object.entries(m).map(([k, n]) => `${n} ${k === 'audiovisual' ? 'motion' : k}`).join(' · '); };
+    const totPontos = r.pessoas.reduce((s, p) => s + p.pontos, 0), totLimite = r.pessoas.reduce((s, p) => s + p.limite, 0), pctTime = totLimite ? Math.round(totPontos / totLimite * 100) : 0;
+    const num = (rot, v, { de = '', sub = '', tom = '', subTom = '', barra = null } = {}) => `<div class="d3-num d3h-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rot}</span><span class="d3h-num-linha"><b class="d3-num-v">${v}${de ? `<small>${de}</small>` : ''}</b></span>${barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, barra))}%"><i></i></span>` : ''}${sub ? `<span class="d3h-num-sub${subTom ? ' ' + subTom : ''}">${sub}</span>` : ''}</div>`;
+    const numeros = `<div class="d3h-nums" role="group" aria-label="Os números da carga">${[
+      num('Sem ninguém', n0(r.semDono.length), { tom: r.semDono.length ? 'a' : '', sub: r.semDono.length ? porDisc(r.semDono) : 'todas com alguém' }),
+      num('Acima do limite', n0(acima.length), { de: ` / ${n0(r.pessoas.length)}`, tom: acima.length ? 'a' : '', sub: acima[0] ? `${quem(acima[0].id)} ${n0(acima[0].pontos)} / ${n0(acima[0].limite)} · ${n0(acima[0].pct)}%` : 'ninguém', subTom: acima.length ? 'a' : '' }),
+      num('Carga do time', `${n0(pctTime)}%`, { sub: `${n0(totPontos)} / ${n0(totLimite)} pontos`, barra: pctTime }),
+      num('Trocas sugeridas', n0(r.trocas.length), { sub: r.trocas.length || r.semDono.length ? `depois: ${r.pessoas.every((p) => pctDepois(p) <= 100) ? 'todos ≤ 100%' : 'ainda acima'}` : 'nada a trocar', subTom: r.trocas.length && r.pessoas.every((p) => pctDepois(p) <= 100) ? 'g' : '' }),
+    ].join('')}</div>`;
+    const cab = (t, aux) => `<div class="d3h-cab"><h3>${t}</h3><span class="d3h-aux">${aux}</span></div>`;
+    const semDono = `<section class="d3h-cartao v2o-semdono" aria-label="Sem ninguém atribuído">${cab('Sem ninguém atribuído', r.semDono.length ? 'contorno = sugerido' : '0')}
+        <ul class="d3h-corpo">${r.semDono.slice(0, 8).map((x) => { const chave = `atribuir:${x.d.id}:`;
+          return `<li>${linhaPeca(x.d, `${x.disciplina === 'audiovisual' ? 'motion' : 'design'} · ${n0(pw(x.d, x.sugerido || ''))} pt · `)}<span class="v2o-quem">${x.ordem.map((id) => { const p = pessoaDe(id), pct = Math.round((p.pontos + pw(x.d, id)) / p.limite * 100);
+            return `<button type="button" class="v2o-chip${id === x.sugerido ? ' sugerido' : ''}${pct > 100 ? ' a' : ''}" data-coord-atribuir="${esc(x.d.id)}" data-para="${esc(id)}" title="${quem(id)}: ${n0(p.pontos)} de ${n0(p.limite)} pontos agora">${quem(id)} <small>${n0(pct)}%</small></button>`; }).join('') || '<small>ninguém da disciplina</small>'}</span>
+            ${x.ordem.map((id) => confirmarHtml(chave + id, `Atribuir a ${quem(id)}?`)).join('')}</li>`; }).join('') || '<li class="d3h-vazio">Todas as peças têm alguém</li>'}</ul>
+        ${r.semDono.length > 8 ? `<p class="v2o-nota">+ ${n0(r.semDono.length - 8)} no Painel de trabalho, em "Sem dono".</p>` : ''}</section>`;
+    const trocas = `<section class="d3h-cartao" aria-label="Para equilibrar">${cab('Para equilibrar', r.trocas.length ? 'não começadas' : 'nada a trocar')}
+        ${r.trocas.length ? `<ul class="d3h-corpo">${r.trocas.map((t) => { const chave = `trocar:${t.d.id}:${t.de}:${t.para}`, de = pessoaDe(t.de), para = pessoaDe(t.para);
+          return `<li>${linhaPeca(t.d, `${n0(pw(t.d, t.para))} pt · `)}<span class="v2o-porque"><span class="v2o-de">${quem(t.de)} ${pilulaPct(de)}</span><i aria-hidden="true">→</i>${confirmarHtml(chave, '') ? '' : `<button type="button" class="v2o-chip sugerido" data-coord-trocar="${esc(t.d.id)}" data-de="${esc(t.de)}" data-para="${esc(t.para)}">${quem(t.para)} <small>${n0(para.pct)}%</small></button>`}</span>
+            ${confirmarHtml(chave, `Passar para ${quem(t.para)}?`)}</li>`; }).join('')}</ul>`
+          : `<p class="d3h-vazio">${acima.length ? 'Quem passou do limite só tem peças já começadas ou de mais de uma pessoa: troque abrindo a pessoa' : 'A carga está dentro do limite de todo mundo'}</p>`}</section>`;
+    const lims = [...new Map(r.pessoas.map((p) => [p.disciplina, p])).values()];
+    const tiles = `<div class="d3h-co-tiles">${lims.map((p) => `<span><small>Limite ${p.disciplina === 'audiovisual' ? 'audiovisual' : 'design'}</small><b>${n0(p.limite)}</b> pt/${r.periodo === 'dia' ? 'dia' : r.periodo === 'mes' ? 'mês' : 'sem'}</span>`).join('')}
+        <span><small>Sem data</small><b>${n0(r.semData)}</b> fora da conta</span><span><small>Peças no período</small><b>${n0(new Set(r.pessoas.flatMap((p) => p.pecas.map((d) => String(d.id)))).size + r.semDono.length)}</b></span></div>`;
+    const carga = `<section class="d3h-cartao d3h-co-carga" aria-label="Carga do time">${cab('Carga do time', '<span class="d3h-leg"><i></i>carga</span><span class="d3h-leg m"><i></i>limite</span>')}
+        <div class="d3h-corpo"><p class="d3h-co-total"><b>${n0(totPontos)}</b> / ${n0(totLimite)} pontos · ${n0(pctTime)}%</p>${linhaCarga(r, itens, peso, hoje)}${tiles}</div></section>`;
+    const pessoas = `<section class="d3h-cartao v2o-time" aria-label="Por pessoa">${cab('Por pessoa', `${esc(ROT[r.periodo])} · agora → depois`)}<div class="d3h-corpo">
+        ${r.pessoas.map((p) => { const aberta = st.aberta === p.id, escala = Math.max(p.pontos, depois[p.id], p.limite * 1.25, 1), pd = pctDepois(p);
+          return `<div class="v2-abre v2o-pes${aberta ? ' aberta' : ''}" aria-expanded="${aberta}"><button type="button" class="v2o-pes-linha" data-coord-pessoa="${esc(p.id)}" aria-expanded="${aberta}">
+              <span class="d3h-pes-top"><b>${quem(p.id)}</b><small>${esc(p.papel || '')}</small><span class="d3h-pes-n"><b class="${p.pct > 100 ? 'a' : ''}">${n0(p.pontos)}</b> / ${n0(p.limite)}${depois[p.id] !== p.pontos ? ` → <b class="${pd > 100 ? 'a' : 'g'}">${n0(depois[p.id])}</b>` : ''}</span></span>
+              <span class="d3h-carga${p.pct > 100 ? ' passou' : ''}" style="--v:${Math.round(p.pontos / escala * 100)}%;--lim:${Math.round(p.limite / escala * 100)}%"><i></i><u></u></span>
+              <span class="d3h-pes-pe">${pilulaPct(p)}<small>${plural(p.pecas.length, 'peça', 'peças')}</small>${p.atrasadas ? `<span class="d3h-pill r">${plural(p.atrasadas, 'atrasada', 'atrasadas')}</span>` : ''}<small class="v2o-nivel" style="color:${COR[p.nivel]}">${NIVEL[p.nivel]}</small></span></button>
+            <div class="v2-mais"><div><ul class="v2o-lista">${aberta ? p.pecas.map((d) => { const outros = r.pessoas.filter((o) => o.id !== p.id && o.disciplina === disciplinaDe(d));
+                return `<li>${linhaPeca(d, `${esc(d.status || 'Sem status')} · `)}${outros.map((o) => confirmarHtml(`trocar:${d.id}:${p.id}:${o.id}`, `Passar para ${quem(o.id)}?`)).join('') || `<span class="v2o-quem">${outros.map((o) => `<button type="button" class="v2o-chip" data-coord-trocar="${esc(d.id)}" data-de="${esc(p.id)}" data-para="${esc(o.id)}">${quem(o.id)} <small>${n0(o.pct)}%</small></button>`).join('') || '<small>ninguém mais da disciplina</small>'}</span>`}</li>`; }).join('') || '<li class="v2o-nota">Nada neste período.</li>' : ''}</ul></div></div></div>`; }).join('')}</div>
+        <div class="d3h-pe"><span class="d3h-leg"><i></i>pontos</span><span class="d3h-leg t"><i></i>limite</span></div></section>`;
     const aviso = st.msg ? `<p class="v2o-msg" role="status">${esc(st.msg)}</p>` : '';
-    return `<div class="v2t v2c v2o"><div class="v2t-topo"><span class="v2t-ola"><small class="vv-data">${esc(data)}</small><h2>Coordenação</h2></span>${periodos}${abas}</div>
-      ${fala}${aviso}
-      <div class="v2o-corpo"><div class="v2o-esq">${semDono}${trocas}</div><div class="v2o-dir">${time2}</div></div>
-      <p class="v2t-pe">Nada muda sem o seu OK: cada troca pede confirmação e fica no histórico da peça.</p></div>`;
+    return `<div class="d3h d3h-co v2o"><div class="d3h-topo"><div class="d3h-ola"><h2>Hoje</h2><small>${esc(faixaDe(r))}</small>${periodos}</div><div class="d3h-topo-dir">${abas}</div></div>
+      ${faixa}${aviso}
+      ${numeros}
+      <div class="d3h-grade"><div class="d3h-col">${semDono}${trocas}</div><div class="d3h-col">${carga}</div><div class="d3h-col">${pessoas}</div></div></div>`;
   }
 
   async function gravar(chave) {

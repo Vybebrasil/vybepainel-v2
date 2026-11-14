@@ -6,7 +6,7 @@
    vybe-mundo.css. Nada aqui força regra antiga.
    ====================================================================================== */
 /* A janela: o cabeçalho antigo da Gestão (título, abas em cima) dá lugar ao cabeçalho do quadro, que vem no painel. */
-.vv-gestao.vv-gestao:has(> .g2-topo),.vv-gestao.vv-gestao:has(> .vv-g-corpo > .g2-topo){padding:26px 30px 30px;border-radius:28px;background:#F9F8F5}
+.vv-gestao.vv-gestao:has(> .g2-topo),.vv-gestao.vv-gestao:has(> .vv-g-corpo > .g2-topo){padding:28px 36px 30px;border-radius:28px;background:var(--d3-areia,#EAE6DE)}
 .vv-gestao:has(> .vv-g-corpo > .g2-topo) > :is(.vv-g-topo,.vv-g-abas){display:none}
 .vv-gestao .g2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 16px;padding:0;border:0;background:none;position:static}
 .vv-gestao .g2-topo > h2{flex:1 1 auto;min-width:0;margin:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}

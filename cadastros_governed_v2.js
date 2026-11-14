@@ -1003,7 +1003,7 @@ window.fcPreviaDoCriar = function(board) {
   // grupo e status de entrada ficam em "Mais campos". O que é conferido antes de criar não mudou: FC_PASSOS e fcRespondido são os de sempre,
   // e quando falta algo a tela leva para o cartão (ou para Mais campos) onde a resposta mora.
   const FC_ETAPAS = ['O quê', 'Para quem', 'Quando'];
-  const FC_ETAPA_SUB = ['formato, título e briefing', 'um ou mais clientes', 'a data do cliente manda'];
+  const FC_ETAPA_SUB = ['formato e título', '1 ou mais', 'data do cliente'];
   const FC_FALTA_ETAPA = ['Escolha o formato e escreva o título e o briefing.', 'Escolha o cliente.', 'Escolha a data.'];
   let fcEtapa = 0;
   const fcTemTexto = (v) => Boolean(String(v || '').trim());
@@ -1089,7 +1089,7 @@ window.fcPreviaDoCriar = function(board) {
       ${['producao', 'demandas'].map((q) => `
         <button type="button" role="radio" aria-checked="${state.board === q}" class="nd-tipo${state.board === q ? ' on' : ''}" onclick="fcEscolherQuadro('${q}')">
           <span class="nd-ico">${FC_ICONE[q]}</span>
-          <span class="nd-tipo-txt"><b>${esc(FC_QUADROS[q].nome)}</b><span class="nd-sub">${q === 'producao' ? 'o que a Vybe produz e publica' : 'pedido que chega e passa pela triagem'}</span></span></button>`).join('')}
+          <span class="nd-tipo-txt" title="${q === 'producao' ? 'o que a Vybe produz e publica' : 'pedido que chega e passa pela triagem'}"><b>${esc(FC_QUADROS[q].nome)}</b></span></button>`).join('')}
       <p class="nd-rot" id="fc-label-formato">${esc(fcQuadro().rotuloFormato)}</p>
       <div class="nd-fileira" role="radiogroup" aria-labelledby="fc-label-formato">${lista.map((f) => `
         <button type="button" role="radio" aria-checked="${state.format === f}" class="nd-chip${state.format === f ? ' on' : ''}"
@@ -1126,14 +1126,14 @@ window.fcPreviaDoCriar = function(board) {
       <div class="nd-fala">
         <span class="nd-ag" aria-hidden="true">R</span>
         <div class="nd-fala-txt">
-          <p><span class="nd-quem">Regra de entrada · ${esc(state.format)}</span>Sugiro ${sugeridos.length > 1 ? '' : 'o responsável '}<b>${esc(nomes.join(', '))}</b>: é quem a regra do formato escolhe.</p>
+          <p title="É quem a regra do formato escolhe"><span class="nd-quem">Regra de entrada · sugere</span><b class="nd-sugerido">${esc(nomes.join(', '))}</b></p>
           <div class="nd-fala-acoes">
             <span class="nd-avs">${sugeridos.slice(0, 3).map((u) => `<span class="nd-av v2-pop" title="${esc(u.name)}">${esc(fcIniciais(u.name))}</span>`).join('')}</span>
             <button type="button" class="nd-btn s${aceita ? ' feito' : ''}" onclick="fcAceitarRegra(${aceita ? 'false' : 'true'})"
               title="${aceita ? 'Clique para tirar da demanda' : 'Clique para pôr na demanda'}">${aceita ? `${FC_ICONE.visto}${esc(nomes.join(', '))}` : 'Aceitar'}</button>
           </div>
         </div>
-      </div>` : `<p class="nd-sub">${state.format ? 'A regra deste formato não indica ninguém.' : 'Escolha o formato para ver quem a regra de entrada indica.'}</p>`;
+      </div>` : `<p class="nd-sub">${state.format ? 'sem sugestão' : 'escolha o formato'}</p>`;
     return `
       <label class="nd-fora" for="fc-busca-cliente">Buscar cliente</label>
       <input type="search" class="nd-busca" id="fc-busca-cliente" placeholder="Buscar cliente" autocomplete="off"
@@ -1151,7 +1151,7 @@ window.fcPreviaDoCriar = function(board) {
       <div class="nd-ou">${sugeridos.length ? '<span class="nd-sub">ou</span>' : ''}<span class="nd-avs">${outros.map((u) => `<span class="nd-av" title="${esc(u.name)}">${esc(fcIniciais(u.name))}</span>`).join('')}</span>
         <button type="button" class="nd-lk escuro" aria-expanded="${Boolean(state.pessoasAbertas)}" aria-controls="fc-persons-container" onclick="fcAbrirPessoas()">escolher outra pessoa</button></div>
       <div class="nd-fileira nd-pessoas" id="fc-persons-container"${state.pessoasAbertas ? '' : ' hidden'}></div>
-      <p class="nd-sub nd-fim">Sem responsável, a demanda entra na triagem.</p>`;
+      <p class="nd-sub nd-fim nd-triagem" title="Sem responsável, a demanda entra na triagem"><span class="nd-pill">sem dono</span><span aria-hidden="true">→</span><span class="nd-pill">triagem</span></p>`;
   }
 
   function fcCartaoQuandoHtml(n, it) {
@@ -1168,13 +1168,13 @@ window.fcPreviaDoCriar = function(board) {
       <label class="nd-data"${outra ? '' : ' hidden'}><span class="nd-sub">${demanda ? 'Conclusão' : 'Veiculação'}</span>
         <input type="date" id="fc-veic" class="nd-campo" data-item="${n}" data-campo="veic" value="${esc(it.veic)}" oninput="fcItemCampo(${n},'veic',this.value);fcPintarTrilho()"></label>
       ${fcErroHtml('fc-erro-data', 'Escolha a data.')}
-      <p class="nd-rot">O sistema calcula o resto</p>
+      <p class="nd-rot">Calculado</p>
       <div class="nd-trilhos">
         <label class="nd-trilho"><i></i><span>Prazo interno <span class="nd-sub">7 dias antes</span></span>
           <input type="date" id="fc-prazo" class="nd-prazo" data-item="${n}" data-campo="prazo" value="${esc(it.prazo)}" title="Prazo de entrega interno · clique para mudar" oninput="fcItemCampo(${n},'prazo',this.value)"></label>
         <div class="nd-trilho"><i class="ar"></i><span>${demanda ? 'Entrega ao cliente' : 'No ar'}</span><b id="fc-no-ar">${esc(curto(it.veic))}</b></div>
       </div>
-      <p class="nd-sub nd-fim">${demanda ? 'Conclusão vale para o que não vai ao ar: o prazo é a entrega ao cliente.' : 'Veiculação é o dia em que a peça vai ao ar. Conclusão vale para a solicitação de demanda.'}</p>`;
+      `;
   }
 
   // Mais campos: objetivo, arquivo, grupo e status de entrada, e as ferramentas de lote (o briefing fica no O quê).
@@ -1774,8 +1774,8 @@ window.fcPreviaDoCriar = function(board) {
     if (nota) {
       const soFaltaBriefing = semBriefing && [0, 1, 2].every((n) => fcEtapaFeita(n));
       nota.classList.toggle('falta', soFaltaBriefing);
-      nota.textContent = soFaltaBriefing ? 'Falta o briefing: ele fica no cartão O quê, embaixo do título.'
-        : `Mais campos guarda ${state.board === 'demandas' ? 'prioridade' : 'objetivo'}, arquivo, grupo e status de entrada.`;
+      nota.textContent = soFaltaBriefing ? 'Falta o briefing.'
+        : '';
     }
   };
 

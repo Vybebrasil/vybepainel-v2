@@ -206,22 +206,26 @@
     const conta = (n) => (n ? `<b class="v2w-q">${n > 99 ? '99+' : n}</b>` : '');
     const leitura = st.erro && d ? `${esc(st.erro)} · mostrando a última leitura` : d ? `atualizado às ${hora(Date.parse(d.geradoEm) || Date.now())}` : st.erro ? esc(st.erro) : 'lendo as conversas';
     const pedirAvisos = typeof Notification !== 'undefined' && Notification.permission === 'default';
-    const html = `<div class="v2w">
+    // Direção 3 (moodboard 3, 13/11/2026): título com "WhatsApp · hora" e as visões; o bloco de ação laranja leva à
+    // menção não lida mais recente ou à conversa com mais mensagens novas.
+    const alcance = d && !d.eu?.socio ? 'os grupos de que você participa' : 'grupos internos e de clientes';
+    const html = `<div class="v2w d3w">
       <div class="v2w-topo">
         <h2>Conversas</h2>
-        <p class="v2w-sub">WhatsApp da Vybe · ${d && !d.eu?.socio ? 'os grupos de que você participa' : 'grupos internos e de clientes'} · ${leitura}</p>
+        <p class="v2w-sub" title="WhatsApp da Vybe · ${alcance}">WhatsApp da Vybe · ${d ? hora(Date.parse(d.geradoEm) || Date.now()) : leitura}${st.erro && d ? ` · ${esc(st.erro)}` : ''}</p>
         <span class="v2w-seg" role="tablist" aria-label="Visão">
           <button type="button" role="tab" data-wa-aba="conversas" aria-selected="${st.aba === 'conversas'}">Conversas${conta(naoLidas)}</button>
-          <button type="button" role="tab" data-wa-aba="mencoes" aria-selected="${st.aba === 'mencoes'}">Menções a você${conta(mencoesNaoLidas)}</button>
+          <button type="button" role="tab" data-wa-aba="mencoes" aria-selected="${st.aba === 'mencoes'}" aria-label="Menções a você">Menções${conta(mencoesNaoLidas)}</button>
         </span>
         <button type="button" class="v2w-x" data-wa-fechar aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button>
       </div>
+      ${acaoD3(porConversa)}
       <div class="v2w-grade">
         <div class="v2w-card v2w-lista" role="region" aria-label="Conversas">
           ${st.aba === 'conversas' ? `<input type="search" class="v2w-busca" data-wa-busca placeholder="Buscar grupo ou cliente" value="${esc(st.busca)}" aria-label="Buscar grupo ou cliente">
           <div class="v2w-chips" role="group" aria-label="Filtrar">${[['todos', 'Todos'], ['interno', 'Internos'], ['cliente', 'Clientes'], ['naolidas', 'Não lidas']].map(([k, n]) => `<button type="button" class="v2w-chip" data-wa-filtro="${k}" aria-pressed="${st.filtro === k}">${n}${k === 'naolidas' && naoLidas ? ` <b>${naoLidas > 99 ? '99+' : naoLidas}</b>` : ''}</button>`).join('')}</div>` : ''}
           <div class="v2w-itens" id="vv-wa-itens" role="list">${st.aba === 'conversas' ? itensConversas(porConversa) : itensMencoes()}</div>
-          ${pedirAvisos ? `<p class="v2w-pe">Quer aviso quando chegar mensagem ou alguém marcar você? <button type="button" class="v2w-link" data-wa-notificar>Ativar avisos</button></p>` : ''}
+          ${pedirAvisos ? `<p class="v2w-pe d3w-avisos"><button type="button" class="v2w-btn" data-wa-notificar title="Aviso quando chegar mensagem ou alguém marcar você">Ativar avisos</button></p>` : ''}
         </div>
         <div class="v2w-card v2w-conversa" role="region" aria-label="Mensagens">${painelConversa()}</div>
       </div></div>`;
@@ -234,6 +238,23 @@
     if (msgs && st.foco) { const alvo = msgs.querySelector(`[data-seq="${Number(st.foco)}"]`); if (alvo) { alvo.scrollIntoView({ block: 'center' }); alvo.classList.add('piscar'); st.foco = null; } }
     else if (msgs && rolar) msgs.scrollTop = msgs.scrollHeight;
     else if (msgs && antigas) msgs.scrollTop = scrollMsgs;
+  }
+  // Bloco de ação da Direção 3: a menção não lida mais recente (quem marcou, onde e o quê) ou, sem menção, a conversa
+  // com mais mensagens novas. Sem nada novo, o bloco não aparece.
+  function acaoD3(porConversa) {
+    const d = st.dados;
+    if (!d || typeof d3AcaoHtml !== 'function') return '';
+    const mencao = (d.mencoes || []).filter(mencaoNaoLida).sort((a, b) => String(b.em).localeCompare(String(a.em)))[0];
+    if (mencao) {
+      return d3AcaoHtml({ frase: `<small class="d3w-quem">${esc(String(mencao.autor || '').split(' ')[0])} · ${esc(mencao.grupo || '')}</small>${esc(resumoNaLista(mencao).slice(0, 140))}`,
+        agente: mencao.autor || '@', botao: 'Abrir', attrs: `data-wa-conversa="${esc(mencao.conversa)}" data-wa-seq="${Number(mencao.seq)}"` });
+    }
+    const [id, n] = Object.entries(porConversa || {}).sort((a, b) => b[1] - a[1])[0] || [];
+    const c = id ? d.conversas?.find((x) => String(x.id) === String(id)) : null;
+    if (!c || !n) return '';
+    const total = Object.values(porConversa).reduce((t, x) => t + x, 0), grupos = Object.values(porConversa).filter(Boolean).length;
+    return d3AcaoHtml({ frase: `<small class="d3w-quem">${grupos === 1 ? '1 conversa' : `${grupos} conversas`} · ${total} ${total === 1 ? 'nova' : 'novas'}</small>${esc(c.nome)}: ${n} ${n === 1 ? 'mensagem nova' : 'mensagens novas'}.`,
+      agente: 'V', botao: `Abrir ${nomeCurto(c)}`, attrs: `data-wa-conversa="${esc(c.id)}"` });
   }
   function vazio(texto, detalhe = '') { return `<div class="v2w-vazio"><b>${esc(texto)}</b>${detalhe ? `<span>${esc(detalhe)}</span>` : ''}</div>`; }
   const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

@@ -57,7 +57,8 @@ test('05 no padrão v2: a fala do Mateus pede o cadastro e "Completar cadastros"
   assert.match(aviso.innerHTML, /onclick="focarClientes\('sem-registro'\)">Completar cadastros</);
   const chips = pegar('clientes-filtros').innerHTML;
   assert.doesNotMatch(chips, /Sem registro|Detratores|Painel a atualizar|Sem contato/, 'os recortes ficam em Filtros');
-  assert.match(pegar('kpi-grid-clientes').innerHTML, /nenhum detrator · ninguém sem contato/);
+  // Direção 3: os zeros ficam como número curto no cartão Com NPS ("0 detratores · 0 sem contato").
+  assert.match(pegar('kpi-grid-clientes').innerHTML, /0 detratores · 0 sem contato/);
 });
 
 test('05 no padrão v2: Ativos (ligado ao abrir), Inativos e Carteira como fichas; carteira e situação recortam a lista', () => {

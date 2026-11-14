@@ -184,6 +184,87 @@
   const duas = (a, b, cls = '') => `<div class="g2-duas ${cls}">${a}${b}</div>`;
   const mais = (rotulo, corpo) => (corpo ? `<details class="g2-mais"><summary><span>${esc(rotulo)}</span><u>mostrar</u></summary><div class="g2-mais-corpo vs-corpo">${corpo}</div></details>` : '');
   const tela = (...partes) => `<div class="g2">${partes.filter(Boolean).join('')}</div>`;
+
+  // ---------- Direção 3 (moodboard 3, 13/11/2026): a Visão do setor Produção pelo quadro D3-VisaoSetor ----------
+  // O bloco laranja do agente com o botão do que pede ação; quatro números; e três colunas: Pede ação (a linha abre no
+  // lugar, os atalhos "Ver" no pé abrem os blocos de baixo), Pessoas e carga, e Por status com os Módulos. O desenho
+  // mora em padrao-v2/d3-producao.css; as peças d3-* são de padrao-v2/0-d3-base.css.
+  const d3Acao = ({ agente = 'heitor', frase = '', botao = '' }) => {
+    const [nome, papel] = AGENTE[agente] || AGENTE.vybes, area = String(papel).split(' ')[0];
+    return `<section class="d3-acao d3s-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${esc(nome.charAt(0))}</span><span class="d3-acao-frase"><small class="d3s-quem">${esc(nome)} · ${esc(area)}</small><span class="d3s-frase">${frase}</span></span>${botao}</section>`;
+  };
+  const d3Linha = (valores, { largura = 90, altura = 28, rotulo = '' } = {}) => (typeof window.d3LinhaSvg === 'function' ? window.d3LinhaSvg(valores, { largura, altura, rotulo }) : '');
+  function d3Num({ rotulo, valor, de = '', tom = '', serie = null, serieRotulo = '', barra = null, sub = '', subTom = '', espiar = '', dica = '' }) {
+    const graf = serie ? d3Linha(serie, { rotulo: serieRotulo }) : '';
+    const tag = espiar ? `button type="button" data-espiar="${esc(espiar)}"` : 'div';
+    return `<${tag} class="d3-num d3s-num${tom ? ' ' + tom : ''}"${dica ? ` title="${esc(dica)}"` : ''}><span class="d3-num-rot">${esc(rotulo)}</span><b class="d3-num-v">${valor}${de ? `<small> / ${de}</small>` : ''}</b>${graf}`
+      + `${barra == null ? '' : `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(Number(barra) || 0)))}%"><i></i></span>`}${sub ? `<span class="d3s-sub${subTom ? ' ' + subTom : ''}">${sub}</span>` : ''}</${espiar ? 'button' : 'div'}>`;
+  }
+  // Gestão e Performance (quadros D3-Gestao e D3-Performance): o bloco de ação e os números pelas peças de vybe-core.js
+  // (d3AcaoHtml, d3NumHtml), com a linha curta embaixo do número; e o gráfico de duas linhas (a feita cheia, a prevista
+  // tracejada) com os rótulos embaixo.
+  const d3gAcao = (o) => (typeof window.d3AcaoHtml === 'function' ? window.d3AcaoHtml(o)
+    : `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${esc(String(o.agente || 'V').charAt(0))}</span><span class="d3-acao-frase">${o.frase}</span>${o.botao ? `<button type="button" class="d3-acao-btn" ${o.attrs || ''}>${esc(o.botao)}</button>` : ''}</section>`);
+  function d3gNum(o, sub = '', subTom = '') {
+    const tag = o.attrs ? 'button' : 'div';
+    const base = typeof window.d3NumHtml === 'function' ? window.d3NumHtml(o) : `<${tag}${o.attrs ? ` type="button" ${o.attrs}` : ''} class="d3-num${o.tom ? ' ' + o.tom : ''}"><span class="d3-num-rot">${esc(o.rotulo)}</span><b class="d3-num-v">${o.valor}</b>${o.barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(o.barra)))}%"><i></i></span>` : ''}</${tag}>`;
+    return sub ? base.replace(/<\/(div|button)>$/, `<span class="d3g-sub${subTom ? ' ' + subTom : ''}">${sub}</span></$1>`) : base;
+  }
+  function d3gGrafico(feitas, previstas, rotulos, { atual = -1, largura = 520, altura = 150, rotulo = '' } = {}) {
+    const n = Math.max(previstas.length, feitas.length); if (n < 2) return '';
+    const max = Math.max(1, ...feitas.map(Number), ...previstas.map(Number)), pad = 6;
+    const x = (i) => pad + (i * (largura - 2 * pad)) / (n - 1), y = (v) => altura - pad - ((Number(v) || 0) * (altura - 2 * pad)) / max;
+    const pts = (l) => l.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    let comp = 0; for (let i = 1; i < feitas.length; i++) comp += Math.hypot(x(i) - x(i - 1), y(feitas[i]) - y(feitas[i - 1]));
+    const fim = feitas.length - 1;
+    return `<svg class="d3-graf d3g-graf" viewBox="0 0 ${largura} ${altura}" preserveAspectRatio="none" style="--d3-comp:${Math.ceil(comp) || 1}"${rotulo ? ` role="img" aria-label="${esc(rotulo)}"` : ' aria-hidden="true"'}>${previstas.length > 1 ? `<polyline class="meta" points="${pts(previstas)}"/>` : ''}${feitas.length > 1 ? `<polyline points="${pts(feitas)}"/>` : ''}${fim >= 0 ? `<circle cx="${x(fim).toFixed(1)}" cy="${y(feitas[fim]).toFixed(1)}" r="4"/>` : ''}</svg>`
+      + `<p class="d3g-eixo">${rotulos.map((r, i) => `<span${i === atual ? ' class="on"' : ''}>${esc(r)}</span>`).join('')}</p>`;
+  }
+  // Pede ação: pílula curta, número em negrito e o botão claro; a primeira com detalhe já vem aberta com as peças.
+  function d3Pede(linhas, { mostra = 6, ver = [], vazio = 'Nada pedindo ação agora.' } = {}) {
+    let abriu = false;
+    const linha = (l, podeAbrir) => {
+      const det = (l.det || []).filter(Boolean), aberta = podeAbrir && !abriu && det.length > 0; if (aberta) abriu = true;
+      const pill = l.pill ? `<span class="d3s-pill ${l.tom || 'n'}">${l.pill}</span>` : '';
+      const dica = l.dica ? ` title="${esc(l.dica)}"` : '';
+      const txt = det.length ? `<button type="button" class="d3s-lin-txt" data-g2-abre aria-expanded="${aberta}"${dica}>${l.texto}</button>` : `<p class="d3s-lin-txt"${dica}>${l.texto}</p>`;
+      const lin = `<div class="d3s-lin">${pill}${txt}${l.botao || ''}</div>`;
+      return det.length ? `<div class="v2-abre d3s-linha" aria-expanded="${aberta}">${lin}<div class="v2-mais"><div><div class="d3s-pecas">${det.map((d) => `<p>${d}</p>`).join('')}</div></div></div></div>` : `<div class="d3s-linha">${lin}</div>`;
+    };
+    const vis = linhas.slice(0, mostra), fora = linhas.slice(mostra);
+    const corpo = vis.length ? vis.map((l) => linha(l, true)).join('') : `<p class="d3s-vazio">${esc(vazio)}</p>`;
+    const resto = fora.length ? `<div class="v2-abre d3s-resto" aria-expanded="false"><div class="v2-mais"><div>${fora.map((l) => linha(l, false)).join('')}</div></div><button type="button" class="d3s-mais" data-g2-abre data-g2-troca="Recolher" aria-expanded="false">+${num(fora.length)}</button></div>` : '';
+    const pe = ver.length ? `<div class="d3s-ver"><span>Ver</span>${ver.map(([rotulo, attrs]) => `<button type="button" class="d3s-chip" ${attrs}>${esc(rotulo)}</button>`).join('')}</div>` : '';
+    return `<section class="d3s-card d3s-pede" aria-label="Pede ação"><div class="d3s-topo"><h3>Pede ação</h3><small>na ordem</small></div><div class="d3s-rolo">${corpo}${resto}</div>${pe}</section>`;
+  }
+  // Pessoas e carga: as peças abertas de cada um numa barra que cresce (a maior fila é o cheio), atrasadas em vermelho.
+  function d3Pessoas(time, semDono) {
+    const max = Math.max(1, ...time.map((t) => Number(t.abertas) || 0), Number(semDono) || 0);
+    const ini = (n) => String(n || '?').trim().split(/\s+/)[0].slice(0, 2).toUpperCase();
+    const linhas = time.map((t) => `<div class="d3s-pes${t.atrasadas ? ' r' : ''}" title="${esc(`${t.pessoa}: ${num(t.abertas)} abertas, ${num(t.atrasadas)} atrasadas, ${num(t.entregues7d)} entregues em 7 dias`)}"><span class="d3s-av">${esc(ini(t.pessoa))}</span><span class="d3s-pes-nome"><b>${esc(t.pessoa)}</b><small>${t.atrasadas ? `${num(t.atrasadas)} ${Number(t.atrasadas) === 1 ? 'atrasada' : 'atrasadas'}` : `${num(t.entregues7d)} em 7 dias`}</small></span><span class="d3-barra" style="--v:${Math.round(((Number(t.abertas) || 0) / max) * 100)}%"><i></i></span><b class="d3s-pes-n">${num(t.abertas)}</b></div>`).join('');
+    const sd = semDono == null ? '' : `<div class="d3s-pes sd"><span class="d3s-av">?</span><span class="d3s-pes-nome"><b>Sem dono</b><small>a distribuir</small></span><span class="d3-barra" style="--v:${Math.round(((Number(semDono) || 0) / max) * 100)}%"><i></i></span><b class="d3s-pes-n">${num(semDono)}</b></div>`;
+    return `<section class="d3s-card d3s-pessoas" aria-label="Pessoas e carga"><div class="d3s-topo"><h3>Pessoas · carga</h3><small>abertas</small></div><div class="d3s-rolo">${linhas || '<p class="d3s-vazio">Sem números do time.</p>'}${sd}</div>${temAba('tarefas') ? `<div class="d3s-ver">${btn('Minhas tarefas', 'data-setor-sub="tarefas"')}</div>` : ''}</section>`;
+  }
+  // Por status: as peças abertas por status, na ordem do catálogo, com a pílula do sistema e a barra.
+  function d3PorStatus(itens) {
+    const fim = (s) => /finaliz|conclu|publicad|postad/i.test(s);
+    const conta = new Map();
+    for (const d of itens) { const s = String(d.status || '').trim(); if (s && !fim(s)) conta.set(s, (conta.get(s) || 0) + 1); }
+    const ordem = (typeof STATUS_OPTIONS !== 'undefined' && Array.isArray(STATUS_OPTIONS) ? STATUS_OPTIONS : []).map((o) => String(o.label || '').trim());
+    const lista = [...conta].sort((a, b) => { const ia = ordem.indexOf(a[0]), ib = ordem.indexOf(b[0]); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || b[1] - a[1]; });
+    const total = lista.reduce((s, [, n]) => s + n, 0), max = Math.max(1, ...lista.map(([, n]) => n));
+    // A pílula da Direção 3 desenhada aqui (clara com a bolinha na cor do catálogo; cheia em Alteração, Atrasada e
+    // Finalizado): a .pill do sistema leva por cima a cor do status por uma regra antiga com !important.
+    const tomDe = (st) => (typeof window.pv2Tom === 'function' ? window.pv2Tom(st) : 'n');
+    const corDe = (st) => (typeof window.corDeStatus === 'function' ? window.corDeStatus(st)?.cor : '') || '';
+    const pilula = (st) => { const t = tomDe(st), c = corDe(st); return `<span class="d3s-pill ${t}"${c && t === 'n' ? ` style="--d3-st:${esc(c)}"` : ''}>${t === 'n' ? '<i aria-hidden="true"></i>' : ''}${esc(st)}</span>`; };
+    return `<section class="d3s-card d3s-status" aria-label="Por status"><div class="d3s-topo"><h3>Por status</h3><small>${num(total)} em aberto</small></div><div class="d3s-rolo">${lista.map(([s, n]) => `<div class="d3s-st"><span class="d3s-st-p">${pilula(s)}</span><span class="d3-barra" style="--v:${Math.round((n / max) * 100)}%"><i></i></span><b>${num(n)}</b></div>`).join('') || '<p class="d3s-vazio">Nada em aberto.</p>'}</div></section>`;
+  }
+  // Módulos: um botão por aba do setor com o número dela (sem número, só o nome).
+  function d3Modulos(numeros = {}, extras = []) {
+    const itens = [...(ctx.subs || []).map((s) => ({ nome: s.nome, dica: s.dica, url: s.url, attrs: `data-setor-sub="${esc(s.id)}"`, ...(numeros[s.id] || {}) })), ...extras];
+    return `<section class="d3s-card d3s-mods" aria-label="Módulos de ${esc(ctx.nome)}"><div class="d3s-topo"><h3>Módulos</h3><small>${num(itens.length)}</small></div><div class="d3s-mods-grade">${itens.map((m) => `<button type="button" class="d3s-mod" ${m.attrs || ''} title="${esc([m.dica, m.rotulo ? `${m.n} ${m.rotulo}` : ''].filter(Boolean).join(' · '))}"><span>${esc(m.curto || m.nome)}${m.url ? ' ↗' : ''}</span><b class="${m.tom || ''}">${m.n != null && m.n !== '—' ? m.n : ''}</b></button>`).join('')}</div></section>`;
+  }
   // Cliques do molde: a linha que abre no lugar e o atalho que abre o "mostrar" do pé. Devolve true quando tratou.
   function cliqueV2(b) {
     if (!b?.hasAttribute) return false;
@@ -379,7 +460,40 @@
             { nome: 'Renovam em 30 dias', valor: (cart.contratos.lista || []).filter((c) => c.renovacao && c.renovacao >= new Date().toISOString().slice(0, 10) && c.renovacao <= new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)).length, cls: 'atencao' },
             { nome: 'Saídas no mês', valor: (cart.churn?.registros || []).filter((r) => String(r.saiu_em || '').startsWith(mesAtual())).length, cls: 'ruim' }]), { icone: 'calendario', acao: ir('setor:clientes', 'Clientes') })
           + bloco('Cobertura da semana', `meta de ${num(C.meta || 3)} posts por cliente`, deitadas([{ nome: `Abaixo de ${num(C.meta || 3)} posts`, valor: (C.sem3 || []).length, cls: 'atencao' }, { nome: 'Sem nenhum post', valor: (C.semConteudo || []).length, cls: 'ruim' }, { nome: 'Sem planejamento', valor: (C.semPlanejamento || []).length, cls: 'atencao' }]), { icone: 'doc', acao: ir('setor:producao', 'Produção') })) : '');
-      return tela(fala('vybes', frase, { conta: contaL }), numerosHtml, duas(pedeHtml, semanaHtml), abrir, mais('Dinheiro, comercial, clientes e time em números e gráficos', antigo));
+      // ---- Direção 3 (quadro D3-Gestao): bloco de ação curto, quatro números, Por setor com o "Abrir" no pé e Esta semana
+      // em linha (prontas cheia, previstas tracejada, acumuladas no dia). "Pronta" é só o que chegou em Finalizado.
+      principal = '';
+      const iHoje = AL.findIndex((a) => /ao ar hoje|veiculação hoje/.test(String(a.texto || '')));
+      const fraseD3 = falt ? `Produção pesa: ${pl(falt, 'vai', 'vão')} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : atr ? `${pl(atr, 'peça passou', 'peças passaram')} da data do cliente.` : 'Nada atrasado agora.';
+      const acaoD3 = d3gAcao({ frase: fraseD3, agente: 'V', botao: falt ? (falt === 1 ? 'Abrir a de hoje' : `Abrir as ${num(falt)}`) : atr ? (atr === 1 ? 'Abrir a atrasada' : `Abrir as ${num(atr)}`) : '', attrs: falt && iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : 'data-espiar="atrasadas"' });
+      const prevHoje = Number(H.previstas) || 0, prontasHoje = Math.max(0, prevHoje - falt);
+      const sobra = veDinheiro && temVF && VR.resultado != null;
+      const quarto = sobra
+        ? d3gNum({ rotulo: 'Sobra do mês', valor: `${esc(rs(VR.resultado))}`, tom: Number(VR.resultado) < 0 ? 'r' : '' }, `+${esc(curto(VR.recebido))} · −${esc(curto(VR.despesas ?? (Number(VR.recebido) - Number(VR.resultado))))} · Vorcaro <span class="d3-selo-donos">só donos</span>`)
+        : d3gNum({ rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: media == null ? null : Math.round(media), attrs: 'data-setor-sub="carteira"' }, `saúde ${media == null ? 'sem dado' : num(media)} · ${pl(criticos, 'crítico', 'críticos')}`, criticos ? 'r' : '');
+      const numerosD3 = `<div class="d3g-nums">${d3gNum({ rotulo: 'Atrasadas', valor: num(atr), tom: atr ? 'r' : '', attrs: atr ? 'data-espiar="atrasadas" title="' + esc(contaL[0].replace(/<[^>]*>/g, '')) + '"' : '' }, `${num(H.emRisco)} risco de furo · 2 d`, Number(H.emRisco) ? 'a' : '')}
+        ${d3gNum({ rotulo: 'Vão ao ar hoje', valor: `${num(prontasHoje)}<small> / ${num(prevHoje)} prontas</small>`, barra: pctDe(prontasHoje, prevHoje) ?? 0, attrs: falt && iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : '' })}
+        ${d3gNum({ rotulo: 'Semana · prontas', valor: `${num(prontas)}<small> / ${num(S.previstas)}</small>`, barra: pctDe(prontas, S.previstas) ?? 0 }, `semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}`)}
+        ${quarto}</div>`;
+      // Por setor: uma linha por setor, com a pílula do que pesa, o texto e o botão; o que era detalhe vira pílulas.
+      const setorD3 = ordem.map((l) => {
+        const t = String(l.texto || ''), i = t.indexOf(' · '), nome = i > 0 ? t.slice(0, i) : t, resto = i > 0 ? t.slice(i + 3) : '';
+        return `<div class="d3g-set"><span class="d3g-set-nome">${nome}</span><div class="d3g-set-corpo"><p><span class="d3s-pill ${l.tom || 'n'}">${l.pill}</span><span class="d3g-set-txt">${resto}</span></p>${(l.det || []).length ? `<p class="d3g-set-pills">${l.det.map((d) => `<span class="d3s-pill n">${d}</span>`).join('')}</p>` : ''}</div>${l.botao || ''}</div>`;
+      }).join('') || '<p class="d3s-vazio">Nada pede ação agora.</p>';
+      const abrirD3 = `<div class="d3s-ver d3g-abrir"><span>Abrir</span>${atr ? `<button type="button" class="d3s-chip r" data-espiar="atrasadas">${pl(atr, 'atrasada', 'atrasadas')}</button>` : ''}${ABAS.map(([id, n]) => `<button type="button" class="d3s-chip" data-gestao-aba="${id}">${n}</button>`).join('')}<button type="button" class="d3s-chip" data-g2-mais>${temVF ? 'Faturamento e custos' : val ? 'Vendas por mês' : 'Negócios por mês'}</button><button type="button" class="d3s-chip" data-setor-sub="equipe">Equipe online · ${num(online.length)}</button></div>`;
+      const porSetor = `<section class="d3s-card d3g-setores" aria-label="Por setor"><div class="d3s-topo"><h3>Por setor</h3><small>mais grave primeiro</small></div><div class="d3s-rolo">${setorD3}</div>${abrirD3}</section>`;
+      // Esta semana: prontas e previstas acumuladas por dia; a linha das prontas para em hoje.
+      const dias7 = (S.porDia || []).slice(0, 7), iHojeDia = dias7.findIndex((d) => d.dia === H.dia);
+      let a1 = 0, a2 = 0;
+      const prevAc = dias7.map((d) => (a2 += Number(d.previstas) || 0)), feitAc = dias7.map((d) => (a1 += Number(d.entregues) || 0)).slice(0, iHojeDia >= 0 ? iHojeDia + 1 : dias7.length);
+      const DIAC = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+      const hojeD = dias7[iHojeDia] || {};
+      const semanaD3 = `<section class="d3s-card d3g-semana" aria-label="Esta semana"><div class="d3s-topo"><h3>Esta semana</h3><small class="d3g-leg"><span class="ch">prontas</span><span class="tr">previstas</span></small></div>
+        <div class="d3g-graf-caixa">${dias7.length > 1 ? d3gGrafico(feitAc, prevAc, dias7.map((d) => DIAC[diaDe(d.dia)]), { atual: iHojeDia, rotulo: 'Prontas e previstas da semana, acumuladas por dia' }) : '<p class="d3s-vazio">Os dias da semana aparecem quando a produção carregar.</p>'}</div>
+        <div class="d3g-minis"><p><span>Hoje</span><b>${num(hojeD.entregues || 0)}<small> / ${num(hojeD.previstas || 0)}</small></b></p><p><span>Prontas</span><b>${num(prontas)}<small> / ${num(S.previstas)}</small></b></p><p><span>Próxima</span><b>${num(prox.previstas)}<small> previstas</small></b></p></div>
+        <div class="d3s-ver"><span class="d3s-pill n"><i></i>capacidade: ${Number(prox.capacidadeMediana) ? `${num(prox.capacidadeMediana)} por semana` : 'sem dado'}</span><button type="button" class="d3s-chip" data-gestao-aba="historico">12 sem. · mediana ${num(Hi.medianaEntregues ?? 0)}${Hi.mediaNoPrazoPct == null ? '' : ` · no prazo ${pct(Hi.mediaNoPrazoPct)}`}</button>${btn('Ver a semana', 'data-gestao-aba="semana"')}</div></section>`;
+      return `<div class="g2 d3g">${acaoD3}${numerosD3}<div class="d3g-duas">${porSetor}${semanaD3}</div>`
+        + mais('Dinheiro, comercial, clientes e time em números e gráficos', antigo) + '</div>';
     },
     // Redesign (quadro 57, 10/11/2026): sem dados no mês, a visão geral era uma frase solta. Agora os números do setor
     // aparecem mesmo zerados (cada um com o caminho para a aba), "Próximos passos" diz o que destrava o setor e a meta do
@@ -602,37 +716,48 @@
       const gargalos = (N.gargalos || []).slice(0, 6);
       const ag = ctx.agenda?.();
       const tipoAg = (t) => (t === 'captacao' ? 'Captação' : t === 'reuniao' ? 'Reunião' : 'Compromisso');
-      // ---- Padrão v2 (quadro "Visão do setor"): a frase do Heitor, três números, o que pede ação e os módulos ----
       const abertas = abertasAgora(itens, H.dia), solic = abertasAgora(typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS : null, H.dia), falt = Number(H.faltam) || 0, gar = gargalos[0];
-      principal = atrasadas ? btn(atrasadas === 1 ? 'Resolver a atrasada' : `Resolver as ${num(atrasadas)}`, 'data-espiar="atrasadas"', 'p') : '';
-      const frase = (atrasadas ? `<b>${pl(atrasadas, 'peça já passou', 'peças já passaram')} da data do cliente</b>${falt ? ` e ${pl(falt, 'vai', 'vão')} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}` : ''}.` : falt ? `<b>${pl(falt, 'peça vai', 'peças vão')} ao ar hoje</b> sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : '<b>Nada atrasado agora.</b>')
-        + (S.previstas ? ` Da semana, ${num(prontas)} de ${num(S.previstas)} ${Number(prontas) === 1 ? 'está pronta' : 'estão prontas'}${gar ? `; quem segura a fila é a etapa de ${esc(gar.status)}, com ${pl(gar.qtd, 'parada', 'paradas')}` : ''}.` : ' Nenhuma peça prevista nesta semana.');
-      const numerosHtml = tres([
-        { rotulo: 'Prontas da semana', valor: num(prontas), de: `de ${num(S.previstas)}`, barra: pctDe(prontas, S.previstas) ?? 0, cor: '#11613A', sub: `${S.previstas ? pct((Number(prontas) / S.previstas) * 100) : 'nenhuma prevista'} · semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')} · ${elo('por semana', 'data-g2-mais')}` },
-        { rotulo: 'Atrasadas agora', valor: num(atrasadas), tom: atrasadas ? 'ruim' : '', barra: pctDe(atrasadas, abertas), cor: '#B42318', espiar: atrasadas ? 'atrasadas' : '', sub: `veiculação vencida · no prazo: ${Hi.mediaNoPrazoPct == null ? 'sem histórico ainda' : pct(Hi.mediaNoPrazoPct)}` },
-        { rotulo: 'Com risco de furo', valor: num(emRisco), barra: pctDe(emRisco, abertas), cor: '#9A5B00', espiar: emRisco ? 'emRisco' : '', sub: `nos próximos 2 dias · ${num(emAprov)} em aprovação` },
-      ]);
       const acoes = (N.alertas || []).map((a, i) => ({ a, i })).filter(({ a }) => a && a.nivel <= 4).map(({ a, i }) => linhaDoAlerta(a, i, L));
       if (minhasAtr) acoes.push({ tom: 'r', pill: 'Sua fila', texto: `<b>${num(minhasAtr)} ${minhasAtr === 1 ? 'peça atrasada' : 'peças atrasadas'}</b> na sua fila`, botao: irAba('tarefas', 'Abrir a fila'), curto: `${num(minhasAtr)} na sua fila` });
-      const fora = acoes.slice(4);
-      const pedeHtml = pede(acoes, { sub: acoes.length ? `${pl(acoes.length, 'coisa', 'coisas')}, da mais grave à menos grave` : '', vazio: 'Nada pedindo ação na produção agora.',
-        pe: fora.length ? `+ ${num(fora.length)} · ${fora.slice(0, 2).map((x) => esc(x.curto || '')).filter(Boolean).join(' e ')}` : '' });
       const maiorFila = Math.max(0, ...(N.time || []).map((t) => Number(t.abertas) || 0)), pedem = new Set((N.alertas || []).filter((a) => a.nivel <= 4 && a.ref?.tipo === 'pecas').flatMap((a) => a.ref.ids || []).map(String)).size;
-      const mods = modulosDoSetor({
-        gestor: [num(pedem), pedem === 1 ? 'pede ação' : 'pedem ação'], tarefas: [num(minhas.length), 'na sua fila'], demandas: solic == null ? null : [num(solic), 'em aberto'],
-        agenda: Array.isArray(ag) ? [num(ag.length), 'nos próximos 7 dias'] : null, conteudo: [num(emAprov), 'em aprovação'], planejamentos: [num((C.semPlanejamento || []).length), (C.semPlanejamento || []).length === 1 ? 'cliente sem' : 'clientes sem'],
+      // Direção 3: o bloco laranja do Heitor leva o botão (sai do topo), os números são quatro e o corpo tem três colunas.
+      // As contas que a fala antiga abria em "Ver a conta" ficam na dica de cada número.
+      principal = '';
+      const espera = itens.filter((d) => /ag\.? ?(aprova[cç][aã]o|info) cliente/i.test(String(d.status || ''))).length;
+      const semDono = itens.filter((d) => !/finaliz|conclu|publicad|postad/i.test(String(d.status || '')) && !String(d.responsavel || '').replace('—', '').trim()).length;
+      const fraseD3 = (atrasadas ? `${pl(atrasadas, 'passou', 'passaram')} da data do cliente.` : falt ? `${pl(falt, 'vai', 'vão')} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : 'Nada atrasado agora.')
+        + (gar ? ` ${esc(gar.status)} segura ${num(gar.qtd)}.` : S.previstas ? ` Semana em ${pct((Number(prontas) / S.previstas) * 100)}.` : '');
+      const botaoD3 = atrasadas ? `<button type="button" class="d3-acao-btn" data-espiar="atrasadas">${atrasadas === 1 ? 'Resolver a atrasada' : `Resolver as ${num(atrasadas)}`}</button>`
+        : falt ? irAba('gestor', 'Ver a semana').replace('class="g2-btn s"', 'class="d3-acao-btn"') : '';
+      const conta = {
+        prontas: `Prontas da semana: das ${num(S.previstas)} peças com data nesta semana, ${num(prontas)} já foram entregues (${pl(S.entregues, 'entrega registrada', 'entregas registradas')} na semana). Semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}.`,
+        atrasadas: `Atrasada: a data do cliente (veiculação; sem ela, o prazo) já passou e a peça não foi entregue. Pausadas e esquecidas ficam fora. Agora: ${num(H.furos ?? atrasadas)} com a veiculação vencida e ${num(H.prazoInternoVencido ?? 0)} só com o prazo interno. No prazo: ${Hi.mediaNoPrazoPct == null ? 'sem histórico ainda' : pct(Hi.mediaNoPrazoPct)}.`,
+        risco: 'Risco de furo: vão ao ar nos próximos 2 dias e ainda não estão prontas.',
+      };
+      const entregues = semanas.map((x) => Number(x.entregues) || 0);
+      const numerosD3 = `<div class="d3s-nums">${d3Num({ rotulo: 'Prontas da semana', valor: num(prontas), de: num(S.previstas), barra: pctDe(prontas, S.previstas) ?? 0, dica: conta.prontas })}
+        ${d3Num({ rotulo: 'Atrasadas agora', valor: num(atrasadas), tom: atrasadas ? 'r' : '', sub: 'data do cliente vencida', espiar: atrasadas ? 'atrasadas' : '', dica: conta.atrasadas })}
+        ${d3Num({ rotulo: 'Risco de furo', valor: num(emRisco), tom: emRisco ? 'a' : '', sub: 'próximos 2 dias', espiar: emRisco ? 'emRisco' : '', dica: conta.risco })}
+        ${d3Num({ rotulo: 'Em aprovação', valor: num(emAprov), serie: comHistorico ? entregues : null, serieRotulo: 'Entregues por semana', sub: `${num(espera)} ${espera === 1 ? 'espera' : 'esperam'} o cliente`, dica: 'Peças em Para aprovação ou com o cliente' })}</div>`;
+      // No quadro a linha é curta: o número fica na pílula e o texto diz o que é.
+      const encurta = (t) => String(t || '').replace(/<b>(\d[\d.]*) peças?<\/b>/, '<b>$1</b>').replace(/\s*\([^)]*\)\s*$/, '')
+        .replace('vão ao ar hoje sem estar prontas', 'no ar sem estar prontas').replace('vai ao ar hoje sem estar pronta', 'no ar sem estar pronta')
+        .replace(/ sem nenhum conteúdo nesta semana/, ' sem conteúdo').replace(/ na janela de produção/, ' na produção').replace(/ esperando aprovação ou informação/, ' esperando o cliente');
+      const curtas = acoes.map((l) => ({ ...l, dica: String(l.texto || '').replace(/<[^>]*>/g, ''), ...(/furando a data/i.test(String(l.texto || '')) ? { pill: String(l.pill || '').replace(/ atrasadas?$/, ''), texto: 'Furando a data' } : { texto: encurta(l.texto) }) }));
+      const pedeD3 = d3Pede(curtas, { vazio: 'Nada pedindo ação na produção agora.', ver: [['Por semana', 'data-g2-mais'], ['Onde trava', 'data-g2-mais'], ['Cobertura', 'data-g2-mais'], ['Agenda', 'data-g2-mais']] });
+      const modsD3 = d3Modulos({
+        gestor: { curto: 'Painel', n: num(pedem), rotulo: pedem === 1 ? 'pede ação' : 'pedem ação' }, tarefas: { n: num(minhas.length), rotulo: 'na sua fila', tom: minhasAtr ? 'r' : '' },
+        demandas: solic == null ? {} : { n: num(solic), rotulo: 'em aberto' }, projetos: { curto: 'Projetos' }, agenda: Array.isArray(ag) ? { curto: 'Agenda', n: num(ag.length), rotulo: 'nos próximos 7 dias' } : { curto: 'Agenda' },
+        conteudo: { curto: 'Aprovação', n: num(emAprov), rotulo: 'em aprovação' }, planejamentos: (C.semPlanejamento || []).length ? { n: `${num((C.semPlanejamento || []).length)} sem`, rotulo: 'sem planejamento', tom: 'r' } : { n: '0' },
       }, [{ nome: 'Carga do time', attrs: 'data-g2-mais', n: num(maiorFila), rotulo: 'na maior fila' }]);
-      return tela(fala('heitor', frase, { conta: [
-        `<b>Atrasada</b>: a data do cliente (veiculação; sem ela, o prazo) já passou e a peça não foi entregue. Pausadas e esquecidas ficam fora. Agora: ${num(H.furos ?? atrasadas)} com a veiculação vencida e ${num(H.prazoInternoVencido ?? 0)} só com o prazo interno.`,
-        `<b>Prontas da semana</b>: das ${num(S.previstas)} peças com data nesta semana, ${num(prontas)} já foram entregues (${pl(S.entregues, 'entrega registrada', 'entregas registradas')} na semana).`,
-        `<b>Risco de furo</b>: vão ao ar nos próximos 2 dias e ainda não estão prontas.`] }), numerosHtml, duas(pedeHtml, mods, 'mods'),
-        mais('Entregas por semana, carga do time, onde trava, cobertura e agenda', resumo
+      return `<div class="g2 d3s">${d3Acao({ agente: 'heitor', frase: fraseD3, botao: botaoD3 })}${numerosD3}<div class="d3s-tres">${pedeD3}${d3Pessoas(time, semDono)}<div class="d3s-lado">${d3PorStatus(itens)}${modsD3}</div></div>`
+        + mais('Entregas por semana, carga do time, onde trava, cobertura e agenda', resumo
         + linha(bloco('Entregas por semana', `previstas e entregues · mediana ${num(Hi.medianaEntregues)} por semana`, entregasHtml, { icone: 'alta', acao: abrirAba('gestor', 'Painel de trabalho') })
           + bloco('Carga do time', 'peças abertas por pessoa', deitadas(time.map((t) => ({ nome: t.pessoa, valor: t.abertas, cls: t.atrasadas ? 'atencao' : '', rotulo: `${num(t.abertas)}${t.atrasadas ? ` <small class="t-ruim">${num(t.atrasadas)} atras.</small>` : ''}`, sub: `${num(t.entregues7d)} entregue${Number(t.entregues7d) === 1 ? '' : 's'} em 7 dias` })), { vazio: 'Sem números do time.' }), { icone: 'pessoas', acao: abrirAba('tarefas', 'Minhas tarefas') }))
         + linha(bloco('Onde trava', 'peças paradas por status, a pior primeiro', deitadas(gargalos.map((g) => ({ st: true, nome: g.status, valor: g.qtd, cls: g.idadeMedianaDias >= 3 ? 'ruim' : 'atencao', rotulo: `${num(g.qtd)} <small>${num(g.idadeMedianaDias)} d</small>`, sub: `${num(g.qtd)} ${Number(g.qtd) === 1 ? 'peça parada' : 'peças paradas'} há ${num(g.idadeMedianaDias)} ${Number(g.idadeMedianaDias) === 1 ? 'dia' : 'dias'} (mediana)` })), { vazio: 'Nada parado na janela de produção.' }), { icone: 'relogio', acao: abrirAba('direcao') })
           + bloco('Clientes com atraso', 'atrasadas e risco de furo por cliente', deitadas(porCliente.map((c) => ({ cli: true, nome: c.cliente, valor: (c.atrasadas || 0) + (c.emRisco || 0), cls: c.atrasadas ? 'ruim' : 'atencao', rotulo: `${num(c.atrasadas)} <small>+${num(c.emRisco)} risco</small>` })), { vazio: 'Nenhum cliente com atraso ou risco.' }), { icone: 'alerta' }))
         + linha(bloco('Cobertura da semana', `meta de ${num(C.meta || 3)} posts por cliente`, deitadas([{ nome: `Abaixo de ${num(C.meta || 3)} posts`, valor: (C.sem3 || []).length, cls: 'atencao' }, { nome: 'Sem nenhum post', valor: (C.semConteudo || []).length, cls: 'ruim' }, { nome: 'Próxima semana abaixo', valor: (C.proximaSemanaSem3 || []).length, cls: 'atencao' }, { nome: 'Sem planejamento', valor: (C.semPlanejamento || []).length, cls: 'atencao' }]), { icone: 'doc', acao: abrirAba('conteudo') })
-          + bloco('Próximos compromissos', 'agenda dos próximos 7 dias', Array.isArray(ag) && ag.length ? `<ul class="vs-agenda">${ag.slice(0, 6).map((e) => `<li><time>${esc(diaMes(e.dia))}${e.inicio ? ' · ' + esc(e.inicio) : ''}</time><b>${esc(e.cliente || e.titulo || 'Compromisso')}</b><small>${esc(tipoAg(e.tipo))}</small></li>`).join('')}</ul>` : aviso(Array.isArray(ag) ? 'Nada na agenda dos próximos 7 dias.' : 'A agenda ainda está carregando.'), { icone: 'calendario', acao: abrirAba('agenda') }))));
+          + bloco('Próximos compromissos', 'agenda dos próximos 7 dias', Array.isArray(ag) && ag.length ? `<ul class="vs-agenda">${ag.slice(0, 6).map((e) => `<li><time>${esc(diaMes(e.dia))}${e.inicio ? ' · ' + esc(e.inicio) : ''}</time><b>${esc(e.cliente || e.titulo || 'Compromisso')}</b><small>${esc(tipoAg(e.tipo))}</small></li>`).join('')}</ul>` : aviso(Array.isArray(ag) ? 'Nada na agenda dos próximos 7 dias.' : 'A agenda ainda está carregando.'), { icone: 'calendario', acao: abrirAba('agenda') }))) + '</div>';
     },
 
     async 'setor:pessoas'() {
@@ -675,6 +800,8 @@
   async function pintar() {
     if (el.hidden || !ctx) return;
     el.classList?.toggle?.('fv2-casa', atual === 'setor:financas' && Boolean(window.VybeFinancas?.telas?.visao));
+    // Direção 3: a Visão da Produção é o quadro D3-VisaoSetor (fundo areia, cartões brancos); os outros setores seguem.
+    el.classList?.toggle?.('d3s-casa', atual === 'setor:producao');
     const g = ++geracao, montar = PAINEIS[atual], comPeriodo = atual === 'setor:comercial' || atual === 'setor:financas';
     el.innerHTML = `<div class="g2-topo vs-topo"><h2>${esc(ctx.nome)}</h2><span class="g2-seg" role="group" aria-label="Setores">${SETORES.map(([id, n]) => `<button type="button" data-setor-ir="${id}" aria-pressed="${id === atual}">${n}</button>`).join('')}</span>${comPeriodo ? barraPeriodo() : ''}
       <button type="button" class="g2-btn g2-atualizar" data-setor-atualizar title="Atualizar">${I_VOLTA}Atualizado ${hora()}</button><span class="g2-vaga"></span><button type="button" class="g2-btn g2-fechar" data-setor-fechar aria-label="Fechar">${traco('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
@@ -754,6 +881,7 @@
   }
   // As peças do painel, para as abas da Gestão usarem o mesmo desenho (sem uma segunda versão delas).
   const pecas = Object.freeze({ kpi: (o) => kpi({ ...o, cartao: true }), kpiLinha: kpi, grade, bloco, barras, deitadas, linha, progresso,
-    v2: Object.freeze({ fala, tres, pede, cartao, duas, mais, tela, btn, elo, pl, pctDe, hora, traco, clique: cliqueV2 }) });
+    v2: Object.freeze({ fala, tres, pede, cartao, duas, mais, tela, btn, elo, pl, pctDe, hora, traco, clique: cliqueV2 }),
+    d3: Object.freeze({ acao: d3gAcao, num: d3gNum, grafico: d3gGrafico }) });
   window.VybeSetor = Object.freeze({ abrir, fechar, aberto: () => (el.hidden ? '' : atual), atualizar: () => pintar(), pintarEm, pecas });
 })();

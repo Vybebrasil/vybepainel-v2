@@ -1418,3 +1418,41 @@ function vbAnimarContagens(raiz = document) {
     requestAnimationFrame(passo);
   }
 }
+
+// Direção 3 (moodboard 3, aprovado em 13/11/2026): as três peças que se repetem em todas as telas. O CSS mora em
+// padrao-v2/0-d3-base.css. Toda tela monta o bloco de ação, os números e os gráficos por aqui, para ficarem iguais.
+const d3Esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+// Bloco de ação laranja: frase curta (até 12 palavras), letra do agente e um botão. attrs vai cru no botão.
+function d3AcaoHtml({ frase = '', agente = 'V', botao = '', attrs = '' } = {}) {
+  if (!frase) return '';
+  return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${d3Esc(String(agente).slice(0, 1).toUpperCase())}</span>`
+    + `<span class="d3-acao-frase">${frase}</span>${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${d3Esc(botao)}</button>` : ''}</section>`;
+}
+
+// Gráfico em linha: valores (e meta opcional) num svg com polyline, ponto só no último valor.
+function d3LinhaSvg(valores, { meta = null, largura = 120, altura = 32, rotulo = '' } = {}) {
+  const v = (valores || []).map(Number).filter(Number.isFinite);
+  if (v.length < 2) return '';
+  const todos = meta != null ? [...v, ...[].concat(meta).map(Number)] : v;
+  const min = Math.min(...todos), max = Math.max(...todos), faixa = max - min || 1, pad = 3;
+  const x = (i, n) => pad + (i * (largura - 2 * pad)) / Math.max(1, n - 1);
+  const y = (n) => altura - pad - ((n - min) * (altura - 2 * pad)) / faixa;
+  const pts = v.map((n, i) => `${x(i, v.length).toFixed(1)},${y(n).toFixed(1)}`);
+  let comp = 0;
+  for (let i = 1; i < pts.length; i++) { const [a, b] = pts[i - 1].split(',').map(Number), [c, d] = pts[i].split(',').map(Number); comp += Math.hypot(c - a, d - b); }
+  const m = meta == null ? '' : Array.isArray(meta)
+    ? `<polyline class="meta" points="${meta.map((n, i) => `${x(i, meta.length).toFixed(1)},${y(Number(n)).toFixed(1)}`).join(' ')}"/>`
+    : `<polyline class="meta" points="${pad},${y(Number(meta)).toFixed(1)} ${largura - pad},${y(Number(meta)).toFixed(1)}"/>`;
+  const [ux, uy] = pts[pts.length - 1].split(',');
+  return `<svg class="d3-graf" viewBox="0 0 ${largura} ${altura}" style="--d3-comp:${Math.ceil(comp)}"${rotulo ? ` role="img" aria-label="${d3Esc(rotulo)}"` : ' aria-hidden="true"'}>${m}<polyline points="${pts.join(' ')}"/><circle cx="${ux}" cy="${uy}" r="3"/></svg>`;
+}
+
+// Cartão de número: rótulo curto, valor e, se vier, a mini linha (serie) ou a barra (barra, 0 a 100). tom: r, g ou a.
+function d3NumHtml({ rotulo = '', valor = '', tom = '', serie = null, meta = null, barra = null, attrs = '' } = {}) {
+  const tag = attrs ? 'button' : 'div';
+  const extra = serie ? d3LinhaSvg(serie, { meta }) : barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : '';
+  return `<${tag}${attrs ? ` type="button" ${attrs}` : ''} class="d3-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${d3Esc(rotulo)}</span><b class="d3-num-v">${valor}</b>${extra}</${tag}>`;
+}
+
+if (typeof globalThis !== 'undefined') Object.assign(globalThis, { d3AcaoHtml, d3LinhaSvg, d3NumHtml });

@@ -1391,19 +1391,23 @@ function pv2dMontar() {
   if (!casa || !controles) return null;
   raiz = document.createElement('div');
   raiz.id = 'pv2-demandas'; raiz.className = 'pv2 pv2-demandas';
-  raiz.innerHTML = `<div class="pv2-topo"><h2>Demandas</h2>
+  // Direção 3 (moodboard 3, 13/11/2026): título com a data, Lista ou Calendário e Nova demanda (branco); o bloco laranja
+  // do Heitor; quatro números; a busca com as fichas, Filtros, Ordenar e Colunas; e a lista em colunas num cartão só.
+  raiz.innerHTML = `<div class="pv2-topo"><h2>Demandas</h2><span class="d3p-data">${safeText(typeof d3pDataDeHoje === 'function' ? d3pDataDeHoje() : '')}</span>
       <span class="pv2-seg" id="pv2d-vistas" role="radiogroup" aria-label="Vista">
         <button type="button" role="radio" data-vista="lista" onclick="pv2dVista('lista')">Lista</button>
         <button type="button" role="radio" data-vista="calendario" onclick="pv2dVista('calendario')" title="Agenda mensal das demandas">Calendário</button>
       </span>
-      <button type="button" class="pv2-btn p" onclick="cadastrarNoGrupo('demandas','')">Nova demanda</button></div>
+      <button type="button" class="pv2-btn d3p-novo" onclick="cadastrarNoGrupo('demandas','')">${typeof D3P_MAIS === 'string' ? D3P_MAIS : ''}Nova demanda</button></div>
     <div class="pv2-alto" id="pv2d-alto"></div>
     <div class="pv2-filtros" role="group" aria-label="Busca e filtros">
       <label class="pv2-oculto" for="pv2d-busca">Buscar cliente ou demanda</label>
       <input id="pv2d-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar cliente ou demanda" oninput="buscarClienteDemandas(this.value)">
       <span class="pv2-fichas" id="pv2d-chips"></span>
       <details class="pv2-menu" id="pv2d-filtros-menu"><summary class="pv2-btn s" id="pv2d-filtros-rot">Filtros</summary>
-        <div class="pv2-pop pv2-pop-filtros" id="pv2d-filtros-pop"><div class="pv2-pop-linha" id="pv2d-visoes"></div><span class="pv2-pop-rot">Ordenar por</span><div class="pv2-pop-linha" id="pv2d-ordem"></div><span class="pv2-pop-rot">Recorte</span></div></details>
+        <div class="pv2-pop pv2-pop-filtros" id="pv2d-filtros-pop"><div class="pv2-pop-linha" id="pv2d-visoes"></div><span class="pv2-pop-rot">Recorte</span></div></details>
+      <details class="pv2-menu" id="pv2d-ordenar"><summary class="pv2-btn s" title="Ordenar a lista"><span class="d3d-rot">Ordenar</span><b id="pv2d-ordem-rot"></b></summary>
+        <div class="pv2-pop"><span class="pv2-pop-rot">Ordenar por</span><div class="pv2-pop-linha" id="pv2d-ordem"></div></div></details>
       <details class="pv2-menu" id="pv2d-colunas"><summary class="pv2-btn s">Colunas</summary>
         <div class="pv2-pop"><label class="pv2-lote"><input type="checkbox" data-coluna="dem-coluna-id" onchange="pv2dColuna(this)"> Mostrar ID</label><label class="pv2-lote"><input type="checkbox" data-coluna="dem-coluna-cadastro" onchange="pv2dColuna(this)"> Mostrar cadastro e criação</label></div></details>
     </div>
@@ -1443,12 +1447,13 @@ function pv2dGrupoInteiro(id) { if (pv2dGruposInteiros.has(id)) pv2dGruposInteir
 function pv2dVazios() { pv2dMostrarVazios = !pv2dMostrarVazios; pv2dPintar(); }
 function pv2dOrdenar(campo) { ordenarPor(campo); pv2dPintar(); }
 function pv2dDiasDeAtraso(iso, hoje) { return Math.max(1, Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(iso + 'T12:00:00Z')) / 864e5)); }
+// Direção 3: o prazo é a data em texto; vermelho só no que venceu (com os dias de atraso na dica), âmbar no de hoje.
 function pv2dPrazoHtml(d, hoje) {
   if (DEMANDA_CONCLUIDA.includes(d.status)) return pv2Pill('feita', 'g');
-  if (!d.prazo_iso) return '<span class="pv2-sub">sem prazo</span>';
-  if (hoje && d.prazo_iso < hoje) { const n = pv2dDiasDeAtraso(d.prazo_iso, hoje); return `<span class="pv2-pill r" title="O prazo era ${pv2DiaMes(d.prazo_iso)}">${n} ${n === 1 ? 'dia' : 'dias'}</span>`; }
-  if (d.prazo_iso === hoje) return pv2Pill('hoje', 'a');
-  return `<span class="pv2-pill n" title="Prazo">${pv2DiaMes(d.prazo_iso)}</span>`;
+  if (!d.prazo_iso) return '<span class="d3d-data vazio">sem prazo</span>';
+  if (hoje && d.prazo_iso < hoje) { const n = pv2dDiasDeAtraso(d.prazo_iso, hoje); return `<span class="d3d-data r" title="${n} ${n === 1 ? 'dia' : 'dias'} de atraso">${pv2DiaMes(d.prazo_iso)}</span>`; }
+  if (d.prazo_iso === hoje) return '<span class="d3d-data a" title="Prazo hoje">hoje</span>';
+  return `<span class="d3d-data" title="Prazo">${pv2DiaMes(d.prazo_iso)}</span>`;
 }
 function pv2dLinhaHtml(d, hoje) {
   const id = safeText(d.id), aberta = pv2dLinhasAbertas.has(String(d.id)), clientes = clientesDoItem(d);
@@ -1461,11 +1466,18 @@ function pv2dLinhaHtml(d, hoje) {
     Number(d.tarefas) ? `${Number(d.tarefas_feitas || 0)} de ${Number(d.tarefas)} tarefas feitas` : ''].filter(Boolean).join(' · ');
   const tipo = String(d.tipo || d.formato || '').trim(), selos = [tipo && tipo !== '—' ? pv2Pill(tipo, 'n') : '', d.prioridade ? pv2Pill('Prioridade ' + String(d.prioridade).toLocaleLowerCase('pt-BR'), /alta|urgent|crít/i.test(d.prioridade) ? 'r' : 'n') : ''].join('');
   const cadastro = [d.cadastrado_por ? `cadastrada por ${safeText(firstName(d.cadastrado_por))}` : '', d.criado_em ? `criada em ${pv2DiaMes(String(d.criado_em).slice(0, 10))}` : ''].filter(Boolean).join(' · ');
+  // Direção 3: a linha em colunas, como no quadro: Tipo, Demanda, Cliente, Status (o menu de sempre), Prazo (toca e
+  // muda no lugar), Conclusão, Responsável, Tarefas e a seta; o resto abre no lugar.
+  const nTar = Number(d.tarefas) || 0, nFeitas = Number(d.tarefas_feitas) || 0;
   return `<div class="pv2-linha v2-abre${marcada ? ' marcada' : ''}${pv2Chegou(d)}" data-linha="${id}" data-vt="peca-${id}" aria-expanded="${aberta}">
-    <div class="pv2-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2dAlternarLinha('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2dAlternarLinha('${id}',this)}">
-      <p class="pv2-nome">${clientes[0] ? pv2Cli(clientes[0]) + ' · ' : ''}${safeText(d.nome || '')}<small class="pv2-id">#${id}</small></p>
+    <div class="pv2-lin d3d-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2dAlternarLinha('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2dAlternarLinha('${id}',this)}">
+      <span class="d3d-tipo">${tipo && tipo !== '—' ? safeText(tipo) : ''}</span>
+      <p class="pv2-nome">${safeText(d.nome || '')}<small class="pv2-id">#${id}</small></p>
+      <span class="d3d-cli">${clientes[0] ? pv2Cli(clientes[0]) : '<span class="d3d-data vazio">sem cliente</span>'}${clientes.length > 1 ? `<small title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</small>` : ''}</span>
       <span class="pv2-cs">${pv2StatusBotao(d)}</span><span class="pv2-cp"${feita ? '' : ` data-editar-data="prazo" data-peca="${id}" title="Tocar para mudar o prazo"`}>${pv2dPrazoHtml(d, hoje)}</span>
+      <span class="d3d-conc">${conclusao ? `<span class="d3d-data">${pv2DiaMes(conclusao)}</span>` : ''}</span>
       <span class="pv2-cr">${pv2Av(d, { comNome: true })}</span>
+      <span class="d3d-tar${nTar && nFeitas >= nTar ? ' ok' : ''}" title="${nTar ? `${nFeitas} de ${nTar} tarefas feitas` : 'Sem tarefas'}">${nTar ? `${nFeitas}/${nTar}` : '0'}</span>
       <i class="pv2-seta" aria-hidden="true">${PV2_IC.depois}</i></div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
       <div class="pv2-det-linha"><p>${frase}${cadastro ? `<span class="pv2-cadastro"> · ${cadastro}</span>` : ''}</p>${selos}
@@ -1480,23 +1492,30 @@ function pv2dPintar() {
   const todas = (DADOS_DEMANDAS || []).filter(itemNaCarteira), abertas = todas.filter((d) => !DEMANDA_CONCLUIDA.includes(d.status));
   const atrasadas = abertas.filter(demandaAtrasada), sem = abertas.filter((d) => pertenceVisaoDemanda(d, 'sem'));
   const semDeHoje = sem.filter((d) => hoje && String(d.criado_em || '').slice(0, 10) === hoje).length;
-  // a fala: o que está atrasado, quanto disso é de um cliente só, e o que entrou sem responsável
-  const porCliente = new Map(); atrasadas.forEach((d) => { const c = clientesDoItem(d)[0] || ''; if (c) porCliente.set(c, (porCliente.get(c) || 0) + 1); });
-  const maior = Math.max(0, ...porCliente.values());
+  // Direção 3: a frase curta do Heitor no bloco laranja (o que venceu, o que está sem dono e o que vence hoje) e o botão
+  // do que pede ação; embaixo, quatro números com a mini linha onde há série de verdade.
+  const venceHoje = abertas.filter((d) => hoje && d.prazo_iso === hoje), entregueHoje = todas.filter((d) => hoje && d.prazo_iso === hoje && DEMANDA_CONCLUIDA.includes(d.status)).length;
   const partes = [];
   if (!abertas.length) partes.push('Nenhuma demanda em aberto.');
   else {
-    partes.push(atrasadas.length ? `<b>${atrasadas.length} ${pl(atrasadas.length, 'atrasada', 'atrasadas')}</b>${atrasadas.length > 2 && maior === atrasadas.length ? ', todas de um cliente só' : maior > 1 && maior < atrasadas.length ? `, ${maior} delas de um cliente só` : ''}.` : 'Nada atrasado.');
-    if (sem.length) partes.push(`<b>${sem.length} sem responsável</b>${semDeHoje === sem.length ? ` ${pl(sem.length, 'entrou', 'entraram')} hoje` : semDeHoje ? `, ${semDeHoje} de hoje` : ''}.`);
-    const resto = abertas.length - new Set([...atrasadas, ...sem]).size;
-    if (resto > 0) partes.push(atrasadas.length || sem.length ? 'O resto está no prazo.' : `${pl(resto, 'A demanda em aberto está', `As ${resto} em aberto estão`)} no prazo.`);
+    const ruins = [atrasadas.length ? `${atrasadas.length} ${pl(atrasadas.length, 'atrasada', 'atrasadas')}` : '', sem.length ? `${sem.length} sem dono` : ''].filter(Boolean);
+    partes.push(ruins.length ? `${ruins.join(' e ')}.` : 'Nada atrasado e tudo com dono.');
+    if (venceHoje.length === 1) { const v = venceHoje[0], tipo = String(v.tipo || '').trim(), cli = clientesDoItem(v)[0] || ''; partes.push(`${safeText([tipo && tipo !== '—' ? tipo : 'Demanda', cli].filter(Boolean).join(' '))} vence hoje.`); }
+    else if (venceHoje.length > 1) partes.push(`${venceHoje.length} vencem hoje.`);
   }
-  const acao = sem.length ? `<button type="button" class="pv2-btn s" onclick="escolherVisaoDemanda('sem')" title="Ver as sem responsável para escolher quem faz">Distribuir ${sem.length === 1 ? 'a 1' : 'as ' + sem.length}</button>`
-    : atrasadas.length ? `<button type="button" class="pv2-btn s" onclick="escolherVisaoDemanda('atrasadas')">Ver as atrasadas</button>` : '';
-  const kpi = (rotulo, valor, sub, visao, tom) => `<button type="button" class="pv2-card pv2-kpi${valor ? (tom ? ' ' + tom : '') : ' quieto'}" onclick="escolherVisaoDemanda('${visao}')"><small>${rotulo}</small><b><span class="v2-num">${valor}</span></b><small>${sub}</small></button>`;
-  pv2Trocar(document.getElementById('pv2d-alto'), `<section class="pv2-card pv2-fala" aria-label="Fala do Heitor"><span class="pv2-ag" aria-hidden="true">H</span><p><span class="pv2-quem">Heitor · Coordenação de produção</span>${partes.join(' ')}</p>${acao}</section>
-    ${kpi('Atrasadas', atrasadas.length, `de ${abertas.length} em aberto`, 'atrasadas', 'ruim')}
-    ${kpi('Sem responsável', sem.length, semDeHoje ? `${semDeHoje} ${pl(semDeHoje, 'entrou', 'entraram')} hoje` : sem.length ? 'esperando alguém pegar' : 'todas têm dono', 'sem', '')}`);
+  const [botao, attrs] = atrasadas.length ? [atrasadas.length === 1 ? 'Ver a atrasada' : `Ver as ${atrasadas.length}`, `onclick="escolherVisaoDemanda('atrasadas')"`]
+    : sem.length ? [`Distribuir ${sem.length === 1 ? 'a 1' : 'as ' + sem.length}`, `onclick="escolherVisaoDemanda('sem')" title="Ver as sem responsável para escolher quem faz"`] : ['', ''];
+  const dia = (iso, n) => { const x = new Date(`${iso}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const semana = hoje ? [-6, -5, -4, -3, -2, -1, 0].map((n) => dia(hoje, n)) : [];
+  const entraram = semana.map((iso) => todas.filter((d) => String(d.criado_em || '').slice(0, 10) === iso).length), novas = entraram.reduce((a, b) => a + b, 0);
+  const proximos = hoje ? [0, 1, 2, 3, 4, 5, 6].map((n) => abertas.filter((d) => d.prazo_iso === dia(hoje, n)).length) : null;
+  const maisAntiga = atrasadas.reduce((m, d) => (d.prazo_iso && (!m || d.prazo_iso < m) ? d.prazo_iso : m), '');
+  const kpi = (rotulo, valor, o = {}) => (typeof d3pNum === 'function' ? d3pNum({ rotulo, valor, ...o }) : `<div class="pv2-card pv2-kpi"><small>${rotulo}</small><b>${valor}</b></div>`);
+  pv2Trocar(document.getElementById('pv2d-alto'), (typeof d3pAcao === 'function' ? d3pAcao({ agente: 'H', quem: 'Heitor · Coordenação', frase: partes.join(' '), botao, attrs }) : '')
+    + `<div class="d3p-nums quatro">${kpi('Abertas', abertas.length, { serie: novas ? entraram : null, serieRotulo: 'Entradas por dia na semana', sub: novas ? `+${novas} na semana` : 'em aberto', acao: "escolherVisaoDemanda('abertas')" })}
+    ${kpi('Vencem hoje', venceHoje.length, { tom: venceHoje.length ? 'a' : '', serie: proximos && proximos.some(Boolean) ? proximos : null, serieRotulo: 'Prazos nos próximos 7 dias', sub: entregueHoje ? `${entregueHoje} já ${pl(entregueHoje, 'entregue', 'entregues')}` : 'nenhuma entregue' })}
+    ${kpi('Atrasadas', atrasadas.length, { tom: atrasadas.length ? 'r' : '', sub: maisAntiga ? `a mais antiga · ${pv2dDiasDeAtraso(maisAntiga, hoje)} ${pv2dDiasDeAtraso(maisAntiga, hoje) === 1 ? 'dia' : 'dias'}` : 'nada vencido', subTom: maisAntiga ? 'r' : '', acao: "escolherVisaoDemanda('atrasadas')" })}
+    ${kpi('Sem responsável', sem.length, { de: abertas.length, barra: abertas.length ? (sem.length * 100) / abertas.length : 0, dica: semDeHoje ? `${semDeHoje} ${pl(semDeHoje, 'entrou', 'entraram')} hoje` : sem.length ? 'esperando alguém pegar' : 'todas têm dono', acao: "escolherVisaoDemanda('sem')" })}</div>`);
   // fichas e Filtros
   const conta = (v) => todas.filter((d) => pertenceVisaoDemanda(d, v)).length;
   pv2Trocar(document.getElementById('pv2d-chips'), PV2D_VISOES.map(([id, nome]) => `<button type="button" class="pv2-chip" aria-pressed="${visaoRapidaDemandas === id}" onclick="escolherVisaoDemanda('${id}')">${nome} <b>${conta(id)}</b></button>`).join(''));
@@ -1504,6 +1523,8 @@ function pv2dPintar() {
   const campos = (typeof COLUNAS_DA_TABELA !== 'undefined' && COLUNAS_DA_TABELA.demandas || []).filter((c) => typeof CAMPOS_ORDENAVEIS !== 'undefined' && CAMPOS_ORDENAVEIS[c]);
   pv2Trocar(document.getElementById('pv2d-ordem'), campos.map((c) => { const cfg = CAMPOS_ORDENAVEIS[c], ativa = ORDEM.campo === c;
     return `<button type="button" class="pv2-chip" aria-pressed="${ativa}" onclick="pv2dOrdenar('${c}')" title="Ordenar por ${safeText(cfg.rotuloDemandas || cfg.rotulo)}">${safeText(cfg.rotuloDemandas || cfg.rotulo)}${ativa ? (ORDEM.desc ? ' ↓' : ' ↑') : ''}</button>`; }).join(''));
+  const ordemRot = document.getElementById('pv2d-ordem-rot'), campoAtivo = campos.includes(ORDEM.campo) ? CAMPOS_ORDENAVEIS[ORDEM.campo] : null;
+  if (ordemRot) ordemRot.textContent = campoAtivo ? `${campoAtivo.rotuloDemandas || campoAtivo.rotulo}${ORDEM.desc ? ' ↓' : ''}` : 'Padrão';
   const recortado = filtroCarteira !== 'all' || Boolean(buscaClienteDemandas.trim()) || currentDemandaAtrasadas || currentDemandaStatusFilter !== 'all' || currentDemandaTipoFilter !== 'all' || currentDemandaPersonFilter !== 'all' || Boolean(currentDemandaDayFilter) || ['concluidas', 'todas'].includes(visaoRapidaDemandas);
   document.getElementById('pv2d-filtros-rot')?.classList.toggle('tem', recortado);
   const busca = document.getElementById('pv2d-busca');
@@ -1525,29 +1546,32 @@ function pv2dPintar() {
     const atras = g.itens.filter(demandaAtrasada).length, doGrupo = abertasPorGrupo.get(String(g.id)) || g.itens.length;
     const conta = atras ? `${atras} ${pl(atras, 'atrasada', 'atrasadas')} de ${Math.max(doGrupo, g.itens.length)}` : `${g.itens.length} ${pl(g.itens.length, 'demanda', 'demandas')}`;
     return `<div class="pv2-grupo" data-grupo="${safeText(g.id)}"><div class="pv2-grp"><i style="background:${safeText(corDeQualquerGrupo(g.id))}" aria-hidden="true"></i><h3>${safeText(g.nome)}</h3><span class="pv2-sub">${g.itens.length ? conta : 'nada neste filtro'}</span>
-        ${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo('demandas', g.id, g.nome) : ''}<button type="button" class="pv2-btn s" onclick="cadastrarNoGrupo('demandas','${safeText(g.id)}')" aria-label="Nova demanda em ${safeText(g.nome)}">Nova aqui</button></div>
+        ${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo('demandas', g.id, g.nome) : ''}<button type="button" class="pv2-btn s d3d-nova" onclick="cadastrarNoGrupo('demandas','${safeText(g.id)}')" aria-label="Nova demanda em ${safeText(g.nome)}">+ Nova aqui</button></div>
       ${aVista.map((d) => pv2dLinhaHtml(d, hoje)).join('')}
-      ${resto > 0 ? `<p class="pv2-sub pv2-pe">+ ${resto} neste grupo · <button type="button" class="pv2-link" onclick="pv2dGrupoInteiro('${safeText(g.id)}')">ver todas</button></p>` : inteiro && g.itens.length > PV2D_POR_GRUPO ? `<p class="pv2-sub pv2-pe"><button type="button" class="pv2-link" onclick="pv2dGrupoInteiro('${safeText(g.id)}')">mostrar menos</button></p>` : ''}</div>`;
+      ${resto > 0 ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${safeText(g.id)}')" aria-label="Ver todas as ${g.itens.length} de ${safeText(g.nome)}" title="+ ${resto} neste grupo · ver todas">+${resto}</button>` : inteiro && g.itens.length > PV2D_POR_GRUPO ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${safeText(g.id)}')">Mostrar menos</button>` : ''}</div>`;
   };
   const nomesVazios = vazios.slice(0, 1).map((g) => g.nome).join('') + (vazios.length > 1 ? ` e mais ${vazios.length - 1}` : '');
   const peVazios = vazios.length ? `<p class="pv2-sub pv2-pe-geral">${vazios.length} ${pl(vazios.length, 'grupo sem nada neste filtro', 'grupos sem nada neste filtro')} (${safeText(nomesVazios)}) ${pl(vazios.length, 'fica recolhido', 'ficam recolhidos')} · <button type="button" class="pv2-link" onclick="pv2dVazios()">${pv2dMostrarVazios ? 'recolher' : 'mostrar'}</button></p>` : '';
   const semNada = !comItens.length ? `<p class="pv2-sub pv2-nada">${(DADOS_DEMANDAS || []).length ? 'Nenhuma demanda neste filtro.' : 'Nenhuma demanda carregada ainda.'} ${recortado || visaoRapidaDemandas !== 'abertas' ? '<button type="button" class="pv2-link" onclick="clearDemandaFilters();escolherVisaoDemanda(\'abertas\')">Ver todas em aberto</button>' : '<button type="button" class="pv2-link" onclick="cadastrarNoGrupo(\'demandas\',\'\')">Criar a primeira</button>'}</p>` : '';
-  lista.innerHTML = comItens.map(blocoDoGrupo).join('') + semNada + (pv2dMostrarVazios ? vazios.map(blocoDoGrupo).join('') : '') + peVazios
+  const cab = comItens.length ? '<div class="d3d-cab" aria-hidden="true"><span>Tipo</span><span>Demanda</span><span>Cliente</span><span>Status</span><span>Prazo</span><span>Conclusão</span><span>Responsável</span><span>Tarefas</span><span></span></div>' : '';
+  lista.innerHTML = cab + comItens.map(blocoDoGrupo).join('') + semNada + (pv2dMostrarVazios ? vazios.map(blocoDoGrupo).join('') : '') + peVazios
     + (typeof botaoNovoGrupoNoFim === 'function' && pv2dMostrarVazios ? botaoNovoGrupoNoFim('demandas') : '');
   PV2D_ORDEM_VISIVEL = ordemVisivel;
 }
 try { pv2dMontar(); } catch { /* a tela antiga segue valendo */ }
 
-// ─── Padrão v2 · IA e custos pelo quadro DEPOIS do moodboard (12/11/2026) ────────────────────
-// A tela é o quadro, nesta ordem: título com o período (7, 30, 90 dias), Atualizar e Definir teto; a fala do Alex;
-// três cartões (gasto no mês com o gasto por dia, pedidos no período, teto mensal); "Pede ação" ao lado de
-// "Com quem" e "Em quê"; e os parâmetros da estimativa no rodapé. Os números vêm de /api/ia-custos, como antes.
+// ─── Padrão v2 · IA e custos pelo quadro D3-IaCustos (Direção 3, 13/11/2026) ─────────────────────
+// A tela é o quadro, nesta ordem: título com o selo "só donos", o período (7, 30, 90 dias), Atualizar e Definir teto;
+// o bloco de ação do Alex (frase curta e um botão); quatro números (gasto no período, como o mês fecha, pedidos e teto);
+// e três colunas: "Pede ação" com o gasto por dia em linha, "Com quem" e "Em quê". Os números vêm de /api/ia-custos.
 // A API devolve o gasto por pessoa e por modelo: "Em quê" mostra os modelos, que é o recorte que existe.
+// As peças d3AcaoHtml, d3NumHtml e d3LinhaSvg são da base (vybe-core.js; CSS em padrao-v2/0-d3-base.css).
+const PV2I_SELO = '<span class="d3-selo-donos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>só donos</span>';
 function pv2iTopoHtml() {
-  return `<div class="pv2-topo"><h2>IA e custos</h2>
+  return `<div class="pv2-topo"><div class="d3f-tit"><h2>IA e custos</h2><span class="d3f-data">Gestão</span>${PV2I_SELO}</div>
     <span class="pv2-seg ia-periodos" role="radiogroup" aria-label="Período">${[7, 30, 90].map((d) => `<button type="button" role="radio" data-days="${d}" aria-checked="${aiUsageDays === d}" onclick="setAiUsageDays(${d},this)">${d} dias</button>`).join('')}</span>
     <button type="button" class="pv2-btn" onclick="loadAiUsage(true)">Atualizar</button>
-    <button type="button" class="pv2-btn p" onclick="pv2iAbrirParametros(true)">Definir teto</button></div>`;
+    <button type="button" class="pv2-btn d3f-escuro" onclick="pv2iAbrirParametros(true)">Definir teto</button></div>`;
 }
 function pv2iAbrirParametros(focarTeto) {
   const d = document.getElementById('pv2i-parametros'); if (!d) return;
@@ -1572,6 +1596,11 @@ async function pv2iUsarTeto(valor, botao) {
     if (typeof showToast === 'function') showToast(error.message || 'Falha ao salvar o teto.');
   }
 }
+// Número da Direção 3 com a linha de baixo (o que era legenda vira um dado curto).
+function pv2iNum(o) {
+  const h = d3NumHtml(o);
+  return o.sub ? h.replace(/<\/(div|button)>$/, `<span class="d3f-sub">${o.sub}</span></$1>`) : h;
+}
 function pv2iRender(data) {
   const root = document.getElementById('ai-usage-root');
   if (!root || !data) return;
@@ -1586,58 +1615,67 @@ function pv2iRender(data) {
   const agora = new Date(), diaDoMes = agora.getDate(), diasNoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate();
   const previsto = noMes > 0 ? (noMes / diaDoMes) * diasNoMes : 0;
   const sugerido = previsto > 0 ? Math.max(50, Math.ceil((previsto * 1.4) / 50) * 50) : 0;
-  const nomeDoMes = agora.toLocaleDateString('pt-BR', { month: 'long' });
+  const nomeDoMes = agora.toLocaleDateString('pt-BR', { month: 'long' }), Mes = nomeDoMes.charAt(0).toUpperCase() + nomeDoMes.slice(1);
   // gasto por dia, com os dias sem pedido
   const porDia = new Map(daily.map((row) => [String(row.day || ''), row])), lista = [];
   for (let i = dias - 1; i >= 0; i -= 1) { const chave = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10), row = porDia.get(chave) || {}; lista.push({ chave, custo: aiNumber(row.cost_brl), pedidos: aiNumber(row.calls) }); }
-  const maior = Math.max(0.00001, ...lista.map((d) => d.custo)), pico = lista.reduce((a, b) => (b.custo > a.custo ? b : a), lista[0]);
+  const pico = lista.reduce((a, b) => (b.custo > a.custo ? b : a), lista[0]), media = lista.length ? lista.reduce((s, d) => s + d.custo, 0) / lista.length : 0;
   const dm = (chave) => `${chave.slice(8, 10)}/${chave.slice(5, 7)}`;
-  const barras = lista.map((d) => `<i class="${d === pico && d.custo > 0 ? 'pico' : ''}" style="--h:${d.custo > 0 ? Math.max(4, Math.round((d.custo / maior) * 100)) : d.pedidos ? 3 : 0}%" title="${dm(d.chave)} · ${aiBrl(d.custo)} · ${d.pedidos} ${pl(d.pedidos, 'pedido', 'pedidos')}"></i>`).join('');
+  // o mês acumulado dia a dia, para a mini linha de "como o mês fecha"
+  const doMes = lista.filter((d) => d.chave.slice(0, 7) === agora.toISOString().slice(0, 7)), acumulado = [];
+  doMes.reduce((s, d) => { acumulado.push(s + d.custo); return s + d.custo; }, 0);
   const semCusto = providers.filter((p) => aiNumber(p.cost_brl) === 0).reduce((s, p) => s + aiNumber(p.calls), 0), pctSemCusto = pedidos ? Math.round((semCusto / pedidos) * 100) : 0;
-  // a fala
-  const fala = !pedidos ? `Nenhum pedido ao VYBES nos últimos ${dias} dias. Os gastos aparecem aqui assim que alguém usar.`
-    : `O VYBES gastou <b>${aiBrl(gasto)} em ${dias} dias</b>, em ${n0(pedidos)} ${pl(pedidos, 'pedido', 'pedidos')}.${previsto > 0 ? ` No ritmo de hoje o mês fecha perto de <b>${redondo(previsto)}</b>.` : ''} ${teto > 0 ? `O teto é de ${aiBrl(teto)} e ${usado.toFixed(0)}% dele já foi usado.` : sugerido ? `Ainda não existe teto mensal: com ${redondo(sugerido)} eu aviso antes de estourar.` : 'Ainda não existe teto mensal.'}`;
+  // o bloco de ação do Alex: uma frase e um botão
+  const acao = !pedidos ? { frase: `Nenhum pedido ao VYBES em ${dias} dias.`, botao: dias < 90 ? 'Ver 90 dias' : '', attrs: 'onclick="setAiUsageDays(90,this)"' }
+    : teto <= 0 && sugerido ? { frase: `Sem teto mensal. Com ${redondo(sugerido)}, aviso antes de estourar.`, botao: `Usar ${redondo(sugerido)}`, attrs: `onclick="pv2iUsarTeto(${sugerido},this)"` }
+    : teto <= 0 ? { frase: 'Sem teto mensal definido.', botao: 'Definir teto', attrs: 'onclick="pv2iAbrirParametros(true)"' }
+    : usado >= 80 ? { frase: `${usado.toFixed(0)}% do teto usado; ${nomeDoMes} fecha perto de ${redondo(previsto)}.`, botao: 'Rever o teto', attrs: 'onclick="pv2iAbrirParametros(true)"' }
+    : { frase: `${Mes} fecha perto de ${redondo(previsto)}, dentro do teto.`, botao: 'Ver a conta', attrs: 'onclick="pv2iAbrirParametros(false)"' };
+  const blocoAcao = d3AcaoHtml({ frase: `<small class="d3f-quem">Alex · Análise e números</small>${acao.frase}`, agente: 'A', botao: acao.botao, attrs: acao.attrs });
   // Pede ação: só o que os números sustentam
-  const acoes = [];
-  if (teto <= 0) acoes.push({ pill: pv2Pill('Sem teto', 'a'), texto: '<b>Teto mensal</b> não definido',
-    botao: sugerido ? `<button type="button" class="pv2-btn s v2-estado" onclick="event.stopPropagation();pv2iUsarTeto(${sugerido},this)">Usar ${redondo(sugerido)}</button>` : `<button type="button" class="pv2-btn s" onclick="event.stopPropagation();pv2iAbrirParametros(true)">Definir</button>`,
-    mais: [previsto > 0 ? `No ritmo de hoje, ${nomeDoMes} fecha perto de ${redondo(previsto)}` : '', `${nomeDoMes.charAt(0).toUpperCase() + nomeDoMes.slice(1)} está em ${aiBrl(noMes)}, com ${n0(pedidosDoMes)} ${pl(pedidosDoMes, 'pedido', 'pedidos')}`, sugerido ? `Com ${redondo(sugerido)}, o aviso acende em 80% e fica vermelho em 100%` : 'O aviso acende em 80% do teto e fica vermelho em 100%'].filter(Boolean) });
-  else if (usado >= 80) acoes.push({ pill: pv2Pill(`${usado.toFixed(0)}% do teto`, usado >= 100 ? 'r' : 'a'), texto: usado >= 100 ? `<b>Teto estourado</b>: ${aiBrl(noMes)} de ${aiBrl(teto)}` : `<b>Perto do teto</b>: ${aiBrl(noMes)} de ${aiBrl(teto)}`,
-    botao: `<button type="button" class="pv2-btn s" onclick="event.stopPropagation();pv2iAbrirParametros(true)">Rever o teto</button>`, mais: [previsto > 0 ? `No ritmo de hoje, ${nomeDoMes} fecha perto de ${redondo(previsto)}` : ''].filter(Boolean) });
-  if (pedidos && gasto > 0 && pico.custo / gasto >= 0.2 && lista.filter((d) => d.custo > 0).length > 2) acoes.push({ pill: pv2Pill(aiBrl(pico.custo), 'a'), texto: `<b>${dm(pico.chave)}</b> foi o dia mais caro: ${Math.round((pico.custo / gasto) * 100)}% do gasto, em ${n0(pico.pedidos)} ${pl(pico.pedidos, 'pedido', 'pedidos')}`, botao: '' });
+  const pv2iAcoes = [];
+  if (teto <= 0) pv2iAcoes.push({ pill: pv2Pill('Sem teto', 'a'), texto: '<b>Teto mensal</b> não definido',
+    botao: sugerido ? `<button type="button" class="pv2-btn s d3f-escuro v2-estado" onclick="event.stopPropagation();pv2iUsarTeto(${sugerido},this)">Usar ${redondo(sugerido)}</button>` : `<button type="button" class="pv2-btn s" onclick="event.stopPropagation();pv2iAbrirParametros(true)">Definir</button>`,
+    mais: [previsto > 0 ? `${nomeDoMes.slice(0, 3)} ~${redondo(previsto)}` : '', `${nomeDoMes.slice(0, 3)} até hoje ${aiBrl(noMes)}`, 'aviso em 80%', 'vermelho em 100%'].filter(Boolean) });
+  else if (usado >= 80) pv2iAcoes.push({ pill: pv2Pill(`${usado.toFixed(0)}% do teto`, usado >= 100 ? 'r' : 'a'), texto: usado >= 100 ? `<b>Teto estourado</b> · ${aiBrl(noMes)} de ${aiBrl(teto)}` : `<b>Perto do teto</b> · ${aiBrl(noMes)} de ${aiBrl(teto)}`,
+    botao: `<button type="button" class="pv2-btn s" onclick="event.stopPropagation();pv2iAbrirParametros(true)">Rever o teto</button>`, mais: [previsto > 0 ? `${nomeDoMes.slice(0, 3)} ~${redondo(previsto)}` : ''].filter(Boolean) });
+  if (pedidos && gasto > 0 && pico.custo / gasto >= 0.2 && lista.filter((d) => d.custo > 0).length > 2) pv2iAcoes.push({ pill: pv2Pill(aiBrl(pico.custo), 'a'), texto: `<b>${dm(pico.chave)}</b> · ${Math.round((pico.custo / gasto) * 100)}% do gasto, ${n0(pico.pedidos)} ${pl(pico.pedidos, 'pedido', 'pedidos')}`, botao: '' });
   const topo = people[0], mediaPessoas = people.length > 1 ? people.slice(1).reduce((s, p) => s + aiNumber(p.cost_brl), 0) / (people.length - 1) : 0;
-  if (topo && mediaPessoas > 0 && aiNumber(topo.cost_brl) >= mediaPessoas * 2) acoes.push({ pill: pv2Pill(`${(aiNumber(topo.cost_brl) / mediaPessoas).toFixed(0)}x a média`, 'b'), texto: `<b>${safeText(topo.profile_name)}</b> gasta bem mais que as outras pessoas`, botao: '' });
+  if (topo && mediaPessoas > 0 && aiNumber(topo.cost_brl) >= mediaPessoas * 2) pv2iAcoes.push({ pill: pv2Pill(`${(aiNumber(topo.cost_brl) / mediaPessoas).toFixed(0)}× a média`, 'b'), texto: `<b>${safeText(topo.profile_name)}</b> · pedidos por pessoa`, botao: '' });
   const linhaAcao = (a, i) => `<div class="pv2-linha v2-abre" aria-expanded="${i === 0 && a.mais?.length ? 'true' : 'false'}"><div class="pv2-lin"${a.mais?.length ? ` role="button" tabindex="0" onclick="const l=this.parentElement;l.setAttribute('aria-expanded',String(l.getAttribute('aria-expanded')!=='true'))"` : ''}>${a.pill}<p>${a.texto}</p>${a.botao}</div>
-      ${a.mais?.length ? `<div class="v2-mais"><div>${a.mais.map((m) => `<p class="pv2-hist">${m}</p>`).join('')}</div></div>` : ''}</div>`;
-  const pedeAcao = `<section class="pv2-card pv2i-acao" aria-label="Pede ação"><div class="pv2i-cab"><h3>Pede ação</h3><span class="pv2-sub">${acoes.length ? `${acoes.length} ${pl(acoes.length, 'coisa', 'coisas, na ordem')}` : 'nada agora'}</span></div>
-      ${acoes.length ? acoes.map(linhaAcao).join('') : `<p class="pv2-sub pv2-nada">${pedidos ? 'Nada pede ação: o gasto está dentro do teto.' : 'Sem uso no período, nada a decidir.'}</p>`}
-      ${!pedidos ? `<div class="pv2i-vazio"><p><b>Período sem uso:</b> nenhum pedido ao VYBES nos últimos ${dias} dias.</p>${dias < 90 ? '<button type="button" class="pv2-btn s" onclick="setAiUsageDays(90,this)">Ver 90 dias</button>' : ''}</div>` : ''}</section>`;
+      ${a.mais?.length ? `<div class="v2-mais"><div><div class="pv2i-mais">${a.mais.map((m) => `<span class="pv2i-ficha">${m}</span>`).join('')}</div></div></div>` : ''}</div>`;
+  const pedeAcao = `<section class="pv2-card pv2i-acao" aria-label="Pede ação"><div class="pv2i-cab"><h3>Pede ação</h3><span class="pv2-sub">${pv2iAcoes.length ? `${pv2iAcoes.length}${pv2iAcoes.length > 1 ? ', na ordem' : ''}` : 'nada agora'}</span></div>
+      ${pv2iAcoes.length ? pv2iAcoes.map(linhaAcao).join('') : `<p class="pv2-sub pv2-nada">${pedidos ? 'Nada pede ação: o gasto está dentro do teto.' : 'Sem uso no período.'}</p>`}</section>`;
+  // Por dia: o gasto de cada dia em linha, com a média tracejada e o dia mais caro marcado
+  const eixo = [0, 0.25, 0.5, 0.75, 1].map((f) => lista[Math.min(lista.length - 1, Math.round(f * (lista.length - 1)))]);
+  const porDiaHtml = `<section class="pv2-card pv2i-dia" aria-label="Gasto por dia"><div class="pv2i-cab"><h3>Por dia</h3><span class="pv2-sub"><span class="d3f-leg"><i></i>gasto</span><span class="d3f-leg proj"><i></i>média ${aiBrl(media)}</span></span></div>
+      ${pedidos ? `<div class="pv2i-graf">${d3LinhaSvg(lista.map((d) => d.custo), { meta: media, largura: 320, altura: 96, rotulo: `Gasto por dia de ${dm(lista[0].chave)} a ${dm(lista[lista.length - 1].chave)}${pico.custo > 0 ? `; o dia mais caro foi ${dm(pico.chave)}, com ${aiBrl(pico.custo)}` : ''}` })}${pico.custo > 0 ? `<span class="pv2i-pico">${dm(pico.chave)} · ${aiBrl(pico.custo)}</span>` : ''}</div>
+      <div class="d3f-eixo">${eixo.map((d, i) => (i === eixo.length - 1 ? `<b>${dm(d.chave)}</b>` : `<span>${dm(d.chave)}</span>`)).join('')}</div>` : '<p class="pv2-sub pv2-nada">Sem gasto no período.</p>'}</section>`;
   // Com quem e Em quê
-  const gx = (av, lil, nome, sub, valor, max, cor) => `<div class="pv2i-gx"><span class="pv2-av${lil ? ' lil' : ''}" aria-hidden="true">${safeText(av)}</span><span class="pv2i-nome" title="${safeText(nome + (sub ? ' · ' + sub : ''))}">${safeText(nome)}${sub ? `<small>${safeText(sub)}</small>` : ''}</span><div class="v2-barra"><i style="--v:${max > 0 ? Math.max(2, Math.round((aiNumber(valor) / max) * 100)) : 0}%;--c:${cor}"></i></div><b>${aiBrl(valor)}</b></div>`;
+  const gx = (av, nome, sub, valor, max) => `<div class="pv2i-gx"><span class="pv2-av" aria-hidden="true">${safeText(av)}</span><span class="pv2i-nome" title="${safeText(nome + (sub ? ' · ' + sub : ''))}">${safeText(nome)}</span><span class="d3-barra" style="--v:${max > 0 ? Math.max(2, Math.round((aiNumber(valor) / max) * 100)) : 0}%"><i></i></span><b>${aiBrl(valor)}</b></div>`;
   const maxPessoa = Math.max(0, ...people.map((p) => aiNumber(p.cost_brl))), maxModelo = Math.max(0, ...providers.map((p) => aiNumber(p.cost_brl)));
-  const quem = people.slice(0, 6).map((p) => gx(String(p.profile_name || '?').trim().slice(0, 2), false, String(p.profile_name || 'Não identificado').split(' ')[0], `${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxPessoa, '#1F1D1A')).join('');
-  const emQue = providers.slice(0, 6).map((p) => { const rot = aiProviderLabel(p.provider), nome = rot === 'GPT' ? rot : rot.charAt(0) + rot.slice(1).toLowerCase(); return gx(rot.slice(0, 1) + rot.slice(1, 2).toLowerCase(), true, nome, `${p.model || 'modelo não identificado'} · ${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxModelo, '#6E56CF'); }).join('');
-  const lados = `<section class="pv2-card pv2i-lados" aria-label="Com quem e em quê"><div class="pv2i-duas">
-        <div><div class="pv2i-cab"><h3>Com quem</h3><span class="pv2-sub">quem pediu</span></div>${quem || '<p class="pv2-sub pv2-nada">Sem pessoas identificadas no período.</p>'}</div>
-        <div><div class="pv2i-cab"><h3>Em quê</h3><span class="pv2-sub">por modelo</span></div>${emQue || '<p class="pv2-sub pv2-nada">Sem modelos usados no período.</p>'}</div>
-      </div><p class="pv2-sub pv2i-pe">Do maior gasto para o menor, em ${dias} dias.${people.length > 6 || providers.length > 6 ? ' Aparecem os seis maiores de cada lado.' : ''}</p></section>`;
+  const quem = people.slice(0, 6).map((p) => gx(String(p.profile_name || '?').trim().slice(0, 2).toUpperCase(), String(p.profile_name || 'Não identificado').split(' ')[0], `${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxPessoa)).join('');
+  const emQue = providers.slice(0, 6).map((p) => { const rot = aiProviderLabel(p.provider), nome = rot === 'GPT' ? rot : rot.charAt(0) + rot.slice(1).toLowerCase(); return gx(rot.slice(0, 1), nome, `${p.model || 'modelo não identificado'} · ${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxModelo); }).join('');
   const gemini = settings.gemini_billing === 'paid' ? 'API paga: o custo entra na conta' : 'plano gratuito: custo estimado em R$ 0,00';
-  root.innerHTML = `<div id="pv2-ia" class="pv2 pv2-ia">${pv2iTopoHtml()}
-    <section class="pv2-card pv2-fala" aria-label="Fala do Alex"><span class="pv2-ag" aria-hidden="true">A</span><p><span class="pv2-quem">Alex · Análise e números</span>${fala}</p><button type="button" class="pv2-btn s" onclick="pv2iAbrirParametros(false)">Ver a conta</button></section>
-    <div class="pv2i-tres">
-      <div class="pv2-card pv2i-gasto"><div class="pv2-kpi"><small>Gasto no mês</small><b><span class="v2-num">${aiBrl(noMes)}</span></b><small>${aiUsd(month.cost_usd)}${pedidosDoMes ? ` · ${aiBrl(noMes / pedidosDoMes)} por pedido` : ''}</small></div>
-        <div class="pv2i-dias-caixa"><div class="pv2i-dias" role="img" aria-label="Gasto por dia nos últimos ${dias} dias${pico.custo > 0 ? `; o dia mais caro foi ${dm(pico.chave)}, com ${aiBrl(pico.custo)}` : ''}">${barras}</div>
-          <div class="pv2-sub pv2i-eixo"><span>${dm(lista[0].chave)}</span>${pico.custo > 0 ? `<span><i aria-hidden="true"></i>mais caro: ${dm(pico.chave)} · ${aiBrl(pico.custo)}</span>` : ''}<span>${dm(lista[lista.length - 1].chave)}</span></div></div></div>
-      <div class="pv2-card pv2-kpi"><small>Pedidos em ${dias} dias</small><b><span class="v2-num">${n0(pedidos)}</span></b><div class="v2-barra"><i style="--v:${pctSemCusto}%;--c:#11613A"></i></div><small class="pv2i-sob">${pedidos ? `${pctSemCusto}% sem custo estimado` : 'nenhum pedido no período'}</small></div>
-      <div class="pv2-card pv2-kpi${teto > 0 ? (usado >= 100 ? ' ruim' : '') : ' atencao'}"><small>Teto mensal</small><b><span class="v2-num">${teto > 0 ? `${usado.toFixed(0)}%` : 'Sem teto'}</span></b><small>${teto > 0 ? `${aiBrl(noMes)} de ${aiBrl(teto)} neste mês` : 'nenhum limite definido'} · <button type="button" class="pv2-link" onclick="pv2iAbrirParametros(true)">${teto > 0 ? 'mudar' : 'definir'}</button></small></div>
-    </div>
-    <div class="pv2i-baixo">${pedeAcao}${lados}</div>
-    <div class="pv2i-rodape"><p class="pv2-sub">Valores estimados pelo preço de tabela de cada modelo e pelo dólar de referência; não substituem as faturas da OpenAI, do Google e da Anthropic.</p>
-      <details class="pv2-menu" id="pv2i-parametros"><summary class="pv2-chip">Parâmetros da estimativa</summary>
+  const parametros = `<details class="pv2-menu" id="pv2i-parametros"><summary class="pv2-chip">Parâmetros</summary>
         <div class="pv2-pop pv2i-pop"><p class="pv2-sub">O teto acende o aviso a partir de 80% e fica vermelho ao chegar a 100%. O Gemini está no ${safeText(gemini)}.</p>
           <div class="ai-setting-field"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
           <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência (R$ por US$ 1)</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd) || 5.5}"></div>
           <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing === 'free' ? 'selected' : ''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing === 'paid' ? 'selected' : ''}>API paga</option></select></div>
-          <button class="ai-setting-save pv2-btn s k" type="button" onclick="saveAiUsageSettings()">Salvar</button></div></details></div>
+          <button class="ai-setting-save pv2-btn s k" type="button" onclick="saveAiUsageSettings()">Salvar</button></div></details>`;
+  const comQuem = `<section class="pv2-card pv2i-quem" aria-label="Com quem"><div class="pv2i-cab"><h3>Com quem</h3><span class="pv2-sub">quem pediu</span></div>${quem || '<p class="pv2-sub pv2-nada">Sem pessoas identificadas no período.</p>'}
+      ${people.length ? `<p class="pv2-sub pv2i-pe">do maior para o menor${people.length > 6 ? ` · os 6 de ${n0(people.length)}` : ''}</p>` : ''}</section>`;
+  const emQueHtml = `<section class="pv2-card pv2i-que" aria-label="Em quê"><div class="pv2i-cab"><h3>Em quê</h3><span class="pv2-sub">por modelo</span></div>${emQue || '<p class="pv2-sub pv2-nada">Sem modelos usados no período.</p>'}
+      <div class="pv2i-pe pv2i-fichas"><span class="pv2i-ficha" title="Valores estimados pelo preço de tabela de cada modelo e pelo dólar de referência; não substituem as faturas da OpenAI, do Google e da Anthropic.">estimado</span><span class="pv2i-ficha">preço de tabela</span>${parametros}</div></section>`;
+  root.innerHTML = `<div id="pv2-ia" class="pv2 pv2-ia d3f">${pv2iTopoHtml()}
+    ${blocoAcao}
+    <div class="d3f-nums" style="--n:4">${[
+      { rotulo: `Gasto em ${dias} dias`, valor: aiBrl(gasto), tom: gasto ? '' : 'q', sub: `${overview.cost_usd != null ? aiUsd(overview.cost_usd) : aiUsd(month.cost_usd)}${pedidos ? ` · ${aiBrl(gasto / pedidos)} por pedido` : ''}` },
+      { rotulo: `${Mes} fecha perto de`, valor: previsto > 0 ? redondo(previsto) : 'R$ 0', tom: previsto > 0 ? '' : 'q', serie: acumulado.length > 1 ? acumulado : null, sub: `até hoje · ${aiBrl(noMes)}${pedidosDoMes ? ` · ${n0(pedidosDoMes)} ${pl(pedidosDoMes, 'pedido', 'pedidos')}` : ''}` },
+      { rotulo: `Pedidos em ${dias} dias`, valor: n0(pedidos), tom: pedidos ? '' : 'q', barra: pctSemCusto, sub: pedidos ? `${pctSemCusto}% sem custo` : 'nenhum no período' },
+      { rotulo: 'Teto mensal', valor: teto > 0 ? `${usado.toFixed(0)}%` : 'Sem teto', tom: teto > 0 ? (usado >= 100 ? 'r' : usado >= 80 ? 'a' : '') : 'a', barra: teto > 0 ? Math.min(100, usado) : null,
+        sub: `${teto > 0 ? `${aiBrl(noMes)} de ${aiBrl(teto)}` : 'aviso 80% · vermelho 100%'} · <button type="button" class="pv2-link" onclick="pv2iAbrirParametros(true)">${teto > 0 ? 'mudar' : 'definir'}</button>` },
+    ].map(pv2iNum).join('')}</div>
+    <div class="pv2i-baixo"><div class="d3f-coluna">${pedeAcao}${porDiaHtml}</div>${comQuem}${emQueHtml}</div>
   </div>`;
 }

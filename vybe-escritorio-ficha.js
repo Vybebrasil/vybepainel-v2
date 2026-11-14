@@ -1503,7 +1503,7 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
   const av = (p, tam) => { const u = escritorioCabecaUrl(p.id); return `<span class="v2r-av" style="--t:${tam}px">${u ? `<img src="${safeText(u)}" alt="" loading="lazy">` : iniciais(p)}</span>`; };
   const mexeu = (p) => { if (per === "total" || !p.posicao || !p.antes) return p.posicao && !p.antes && per !== "total" ? "entrou agora" : ""; const n = p.antes - p.posicao; return !n ? "mesma posição" : `${n > 0 ? "subiu" : "caiu"} ${Math.abs(n)}`; };
   const funcao = (p) => safeText(ESCRITORIO_FUNCAO_NOME[p.funcao] || "");
-  let esquerda = "";
+  let esquerda = "", d3cima = "", linhaXp = "";
   if (cat) {
     const geral = cat.k === "geral";
     const ord = ordenar(cat), vivos = ord.filter((x) => x.v > 0);
@@ -1533,7 +1533,32 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
     const nota = geral ? "conquistas e prêmios da Copa não contam no XP" : safeText(cat.nome.toLowerCase()) + " no período";
     const lista = mostra.length || faltam_ > 0 ? `<div class="v2r-card v2r-lista">${mostra.map(linha).join("")}<p class="v2r-sub v2r-pe">${faltam_ > 0 ? `+ ${faltam_} ${faltam_ === 1 ? "pessoa" : "pessoas"} · <button type="button" class="v2r-link" onclick="escritorioRanking.todos=true;pintarRankingEscritorio()">mostrar</button> · ` : escritorioRanking.todos && resto.length > 2 ? '<button type="button" class="v2r-link" onclick="escritorioRanking.todos=false;pintarRankingEscritorio()">mostrar menos</button> · ' : ""}${nota}</p></div>` : "";
     const copaMes = per === "mes" && geral ? `<div class="v2r-card v2r-copa">${escritorio.copaArte ? `<img src="${escritorio.copaArte}" alt="" width="36" height="42">` : ""}<p><b>Copa Vybe de ${safeText(new Date((d.inicio || hoje) + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }))}</b><span class="v2r-sub">Quem tiver mais XP do trabalho no fim do mês leva a taça, o título "Campeão da Copa" e ${(() => { const r = d.premios?.find((x) => x.chave === "copa_1"); return r ? `+${r.moedas} moedas e +${r.pontos} XP` : "o prêmio"; })()}. ${safeText(fecha)}.</span></p></div>` : "";
-    esquerda = copaMes + podio + voce + lista;
+    // Direção 3 (quadro D3-Ranking): a faixa com o que falta para passar quem está na frente, quatro números, a equipe em
+    // tabela (posição, pessoa, entregas, meta, o valor da categoria e o prêmio; "Você" em preto) e o XP do período em linha.
+    // O pódio, a faixa "Você" e a lista curta do padrão v2 viraram a tabela; a linha continua abrindo o detalhe da pessoa.
+    void podio; void voce; void lista;
+    const lider = vivos[0], ag = d.agencia;
+    const numR = (rot, v, de, sub, barra) => `<div class="d3-num d3r-num"><span class="d3-num-rot">${rot}</span><b class="d3-num-v">${v}${de ? `<small> / ${de}</small>` : ""}</b>${barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ""}${sub ? `<small class="d3r-sub">${sub}</small>` : ""}</div>`;
+    d3cima = (dica ? `<section class="d3-acao d3r-acao" aria-label="O que falta"><span class="d3-acao-av" aria-hidden="true">V</span><span class="d3-acao-frase"><small>VYBES · Ranking</small>${dica.replace(/^./, (c) => c.toUpperCase())}.</span><button type="button" class="d3-acao-btn" onclick="closeWorkflowModal();window.mundoVoxel?.irPara?.('tarefas')">Ver minha fila</button></section>` : "")
+      + `<div class="d3r-nums">${[
+        eu_ ? numR("Seu lugar", posDe(eu_) ? posDe(eu_) + "º" : "–", String(ord.length), safeText(geral ? mexeu(eu_.p) : ""), null) : "",
+        eu_ ? numR(geral ? "Seu XP" : "Você", safeText(cat.fmt(eu_.v, eu_.p)), "", geral && per !== "total" ? `${eu_.p.pct}% da sua meta` : safeText(cat.sub(eu_.p)), geral && per !== "total" ? eu_.p.pct : null) : "",
+        ag && per !== "total" ? numR("Entregas da equipe", String(ag.pecas), String(ag.meta), ag.bateu ? "meta batida" : "", ag.pct) : "",
+        lider ? numR("Líder", safeText(cat.fmt(lider.v, lider.p)), "", `${safeText(nome(lider.p))}${geral && per !== "total" ? ` · ${lider.p.pct}% da meta` : ""}`, null) : "",
+      ].join("")}</div>`;
+    const tabela = `<div class="v2r-card d3r-tab"><div class="d3r-cab" aria-hidden="true"><span></span><span>Pessoa</span><span>Entregas</span><span>Meta</span><span>${safeText(cat.nome)}</span><span>Prêmio</span></div>${ord.map((x) => { const pos = posDe(x), pr = geral && per === "semana" && pos && pos <= 3 ? premio("ranking_" + pos) : null;
+      return `<button type="button" data-pid="${x.p.id}" class="d3r-lin${x.p.id === eu ? " eu" : ""}" onclick="abrirDetalheRankingEscritorio('${x.p.id}', this)"><span class="d3r-pos${pos && pos <= 3 ? " p" + pos : ""}">${pos || "–"}</span>${av(x.p, 30)}<span class="d3r-nome"><b>${x.p.id === eu ? "Você" : safeText(nome(x.p))}</b><small>${[funcao(x.p), geral ? mexeu(x.p) : ""].filter(Boolean).join(" · ")}</small></span><span class="d3r-n">${Number(x.p.entregas || 0).toLocaleString("pt-BR")}</span><span class="d3r-meta">${per === "total" ? "" : `<span class="d3-barra" style="--v:${Math.min(100, Number(x.p.pct) || 0)}%"><i></i></span><small>${Number(x.p.pct) || 0}%</small>`}</span><b class="d3r-v">${safeText(cat.fmt(x.v, x.p))}</b><span class="d3r-pr">${pr ? "+" + pr.moedas : "–"}</span></button>`; }).join("")}
+      ${geral && per === "semana" && premio("ranking_1") ? `<p class="d3r-pe"><span>Prêmio</span>${[1, 2, 3].map((i) => premio("ranking_" + i)).filter(Boolean).map((pr, i) => `<span class="d3r-ficha">${i + 1}º · +${pr.moedas} moedas · +${pr.pontos} XP</span>`).join("")}</p>` : ""}</div>`;
+    const eixo = rkEixo(d), acum = (p) => { let a = 0; return eixo.map((dia) => (a += Number((p.ritmo || []).find(([x]) => x === dia)?.[1] || 0))); };
+    if (eu_ && eixo.length > 1 && per !== "total") {
+      const meu = acum(eu_.p), lid = lider && lider.p.id !== eu ? acum(lider.p) : null, ate = Math.max(1, eixo.filter((x) => String(x).slice(0, 10) <= hoje).length);
+      const W = 400, H = 110, P = 6, mx = Math.max(1, ...meu, ...(lid || [])), X = (i) => P + (i * (W - 2 * P)) / (eixo.length - 1), Y = (v) => H - P - (v / mx) * (H - 2 * P);
+      const pl = (l) => l.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" "), mine = meu.slice(0, ate);
+      let comp = 0; for (let i = 1; i < mine.length; i++) comp += Math.hypot(X(i) - X(i - 1), Y(mine[i]) - Y(mine[i - 1]));
+      const rot = eixo.length <= 7 ? eixo.map((x) => `<span>${safeText(["dom", "seg", "ter", "qua", "qui", "sex", "sáb"][new Date(String(x).slice(0, 10) + "T12:00:00Z").getUTCDay()] || "")}</span>`).join("") : [eixo[0], eixo[eixo.length - 1]].map((x) => `<span>${dataBr(String(x))}</span>`).join("");
+      linhaXp = `<div class="v2r-card d3r-xp"><div class="d3r-cab2"><b>XP ${per === "dia" ? "de hoje" : per === "mes" ? "no mês" : "na semana"}</b><span><i></i>você${lid ? ` <i class="m"></i>${safeText(nome(lider.p))}` : ""}</span></div><svg class="d3-graf" viewBox="0 0 ${W} ${H}" style="--d3-comp:${Math.ceil(comp) || 1}" role="img" aria-label="Seu XP no período">${lid ? `<polyline class="meta" points="${pl(lid)}"/>` : ""}<polyline points="${pl(mine)}"/><circle cx="${X(mine.length - 1).toFixed(1)}" cy="${Y(mine[mine.length - 1]).toFixed(1)}" r="4.5"/></svg><div class="d3r-dias">${rot}</div></div>`;
+    }
+    esquerda = copaMes + tabela;
   }
   let corpo = "";
   if (!cat && aba === "tesouros") {
@@ -1553,7 +1578,7 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
   const porque = `<button type="button" class="v2r-btn" aria-expanded="${porqueAberto}" aria-controls="v2r-porque" onclick="escritorioRanking.porque=!escritorioRanking.porque;const p=document.getElementById('v2r-porque');p.setAttribute('aria-expanded',escritorioRanking.porque);this.setAttribute('aria-expanded',escritorioRanking.porque)">Por que essa ordem?</button>`;
   el.innerHTML = `<div class="v2r${escritorioRanking.carregando === per ? " atualizando" : ""}">${topoDe(porque)}
 <div class="v2-abre v2r-porque" id="v2r-porque" aria-expanded="${porqueAberto}"><i hidden></i><div class="v2-mais"><div><div class="v2r-card v2r-porque-dentro"><p>${safeText(cat?.dica || (aba === "tesouros" ? "Tesouros mostra a carteira e a coleção de cada um, de todos os tempos." : "A meta da agência é a média de peças por semana nas últimas 8 semanas, na proporção do período."))}</p>${anterior}${como}</div></div></div></div>
-<div class="v2r-corpo"><div class="v2r-esq">${fichas}<div class="v2r-rola">${esquerda}</div></div>${jogos}</div></div>`;
+${d3cima}<div class="v2r-corpo"><div class="v2r-esq">${fichas}<div class="v2r-rola">${esquerda}</div></div>${linhaXp ? `<div class="d3r-dir">${linhaXp}${jogos}</div>` : jogos}</div></div>`;
   const rola = el.querySelector(".v2r-rola"); if (rola && chaveAntes.split(":")[0] === per) rola.scrollTop = rolagem;
   el.dataset.rkChave = per + ":" + aba;
 }

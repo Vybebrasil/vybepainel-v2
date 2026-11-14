@@ -19,7 +19,8 @@ test('Diário: "Registrar agora" uma vez só, no topo, sem o ícone rosa', () =>
   const tela = trecho(ler('vybe-relatorios.js'), 'async function renderDiarioLista', 'async function abrirSnapshot');
   assert.doesNotMatch(tela, /salvarSnapshot()/, 'o estado vazio não repete o botão');
   assert.match(tela, /Nenhum registro salvo ainda./);
-  assert.match(ler('vybe-relatorios.js'), /const DIARIO_PE = .*para comparar com outro dia/);
+  // Direção 3: sem a frase de pé que explicava a tela.
+  assert.doesNotMatch(ler('vybe-relatorios.js'), /const DIARIO_PE = /);
 });
 
 test('Diário: o retrato do registro usa os números dele e não chama prazo passado de atrasado', () => {

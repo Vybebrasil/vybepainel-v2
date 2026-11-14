@@ -1,0 +1,280 @@
+/* DIREÇÃO 3 · COMERCIAL (moodboard 3 aprovado pelo Paulo em 13/11/2026). Quadros D3-Funil, D3-Pacotes, D3-Orcamentos,
+   D3-Contratos, D3-Churn, D3-Diario, D3-Performance e D3-Gestao. Fundo areia, cartão branco de canto 20 só com título e
+   conteúdo, o bloco de ação laranja como único laranja cheio, quatro números com rótulo curto, fichas com a contagem em
+   negrito, listas em grade com linha de 1 px e gráficos em linha. Os tokens e as peças (.d3-acao, .d3-num, .d3-graf,
+   .d3-barra) vêm de padrao-v2/0-d3-base.css; aqui só o que estes quadros têm de próprio, sempre pelo id da janela. */
+
+/* ===== CRM e funil, Produtos e pacotes e Orçamentos (#vv-comercial com a classe d3c) ===== */
+#vv-comercial.v2c.d3c{background:var(--d3-areia);color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .v2c-corpo{gap:18px;padding:18px 36px 28px}
+#vv-comercial.v2c.d3c .vc-ajuda{margin:16px 36px 0}
+
+/* cabeçalho: título de 30 com o mês ao lado, a visão em pílula, "Como funciona" claro e a ação em branco */
+#vv-comercial.v2c.d3c .d3c-topo{gap:10px;padding:calc(28px + env(safe-area-inset-top)) 36px 0}
+#vv-comercial.v2c.d3c .d3c-topo > h2{flex:0 1 auto;font:700 30px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em}
+#vv-comercial.v2c.d3c .d3c-sub{flex:1 1 auto;min-width:0;align-self:flex-end;padding-bottom:4px;font:400 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .v2c-seg{background:var(--d3-trilho)}
+#vv-comercial.v2c.d3c .v2c-seg button{height:32px;font-size:13.5px;color:var(--d3-texto2)}
+#vv-comercial.v2c.d3c .v2c-seg button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+#vv-comercial.v2c.d3c .v2c-btn{box-shadow:none}
+#vv-comercial.v2c.d3c .d3c-topo > .v2c-btn{height:40px;gap:7px}
+#vv-comercial.v2c.d3c .d3c-ajuda{background:var(--d3-trilho)}
+#vv-comercial.v2c.d3c .d3c-q{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-meta);font:700 11px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-novo{background:var(--d3-cartao)}
+#vv-comercial.v2c.d3c .d3c-novo svg{width:15px;height:15px}
+#vv-comercial.v2c.d3c .v2c-btn:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+#vv-comercial.v2c.d3c .v2c-btn.s{background:var(--d3-trilho)}
+#vv-comercial.v2c.d3c .v2c-btn.k{background:var(--d3-tinta);color:#FFFFFF}
+#vv-comercial.v2c.d3c .v2c-btn[data-estado="feito"]{background:var(--d3-pronto);color:#FFFFFF}
+#vv-comercial.v2c.d3c .v2c-link{color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .v2c-card,#vv-comercial.v2c.d3c .v2c-resto{border-radius:var(--d3-r-cartao);box-shadow:none}
+
+/* bloco de ação do quadro: avatar de 36, frase de 19 e o nome de quem fala em cima */
+#vv-comercial.v2c.d3c .d3-acao{gap:14px;padding:16px 20px;border-radius:22px}
+#vv-comercial.v2c.d3c .d3-acao > .d3-acao-av{width:36px;height:36px;font-size:14px}
+#vv-comercial.v2c.d3c .d3-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px;white-space:normal}
+#vv-comercial.v2c.d3c .d3c-quem{font:700 12px var(--vv-texto,Inter,sans-serif);opacity:.82}
+#vv-comercial.v2c.d3c .d3c-frase{font:600 19px/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif);overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .d3-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:14px}
+
+/* quatro números: cartão de 18, rótulo de 12,5, número de 36 e a linha curta embaixo */
+#vv-comercial.v2c.d3c .d3c-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#vv-comercial.v2c.d3c .d3-num{border:0;border-radius:18px;text-align:left;font:inherit;color:inherit}
+#vv-comercial.v2c.d3c button.d3-num{cursor:pointer}
+#vv-comercial.v2c.d3c button.d3-num:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3-num > .d3-num-rot{font-size:12.5px;font-weight:400}
+#vv-comercial.v2c.d3c .d3-num > .d3-num-v{font-size:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3-num.d3c-longo > .d3-num-v{font-size:26px;line-height:36px}
+#vv-comercial.v2c.d3c .d3-num > .d3-graf{width:80px;height:28px;align-self:flex-end;margin-top:-34px}
+#vv-comercial.v2c.d3c .d3-num > .d3-barra{margin-top:2px}
+#vv-comercial.v2c.d3c .d3c-num-sub{font:400 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .d3c-num-sub.r{color:var(--d3-perigo)}
+#vv-comercial.v2c.d3c .d3c-num-sub.a{color:var(--d3-ajuste)}
+#vv-comercial.v2c.d3c .d3c-num-sub.g{color:var(--d3-pronto);font-weight:600}
+#vv-comercial.v2c.d3c .d3c-nums.ja :is(.d3-num-v,.d3-barra > i,.d3-graf polyline,.d3-graf circle){animation:none}
+
+/* fichas: pílula clara de 32 com bolinha, a escolhida preta, Ganho em verde claro */
+#vv-comercial.v2c.d3c .d3c-etapas{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#vv-comercial.v2c.d3c :is(.d3c-et,.v2c-chip){appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-trilho);box-shadow:none;color:var(--d3-tinta);font:500 13px var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-comercial.v2c.d3c .v2c-chip{background:var(--d3-cartao)}
+#vv-comercial.v2c.d3c :is(.d3c-et,.v2c-chip) > b{font-weight:700}
+#vv-comercial.v2c.d3c .d3c-et > i{width:7px;height:7px;border-radius:50%;background:var(--c,#C4C4C4)}
+#vv-comercial.v2c.d3c .d3c-et.g{background:var(--d3-pronto-veu);color:var(--d3-pronto);font-weight:600}
+#vv-comercial.v2c.d3c .d3c-et.z{color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c :is(.d3c-et,.v2c-chip)[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+#vv-comercial.v2c.d3c :is(.d3c-et,.v2c-chip)[aria-pressed="true"] > i{box-shadow:0 0 0 1.5px #FFFFFF}
+#vv-comercial.v2c.d3c :is(.d3c-et,.v2c-chip){transition:background-color .25s,color .25s}
+
+/* selos: pílula clara; cheia só no que venceu (vermelho), no que pede ajuste (âmbar) e no pronto (verde) */
+#vv-comercial.v2c.d3c .v2c-pill{height:22px;padding:0 8px;font:600 12px var(--vv-texto,Inter,sans-serif)}
+#vv-comercial.v2c.d3c .v2c-pill.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#vv-comercial.v2c.d3c .v2c-pill.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+#vv-comercial.v2c.d3c .v2c-pill.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+#vv-comercial.v2c.d3c :is(.v2c-pill.b,.v2c-pill.n){background:var(--d3-trilho);color:var(--d3-texto2);font-weight:500}
+
+/* colunas do funil: cartão branco de 20; o negócio em #F9F8F5 de 14 com nome, quem cuida, valor, selo e o passo */
+#vv-comercial.v2c.d3c .d3c-quadro{gap:12px;align-items:stretch}
+#vv-comercial.v2c.d3c .d3c-colu{gap:8px;min-height:300px;padding:14px 12px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
+#vv-comercial.v2c.d3c .d3c-colu > h3{display:flex;align-items:center;gap:7px;padding:0 4px 2px;font:400 14px var(--vv-texto,Inter,sans-serif)}
+#vv-comercial.v2c.d3c .d3c-colu > h3 > i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,#C4C4C4)}
+#vv-comercial.v2c.d3c .d3c-colu > h3 > b{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-colu > h3 > span{flex:none;font-size:12.5px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-colu > .v2c-chips{gap:6px}
+#vv-comercial.v2c.d3c .d3c-colu > .v2c-chips .v2c-chip{height:28px;padding:0 10px;background:var(--d3-trilho);font-size:12px}
+#vv-comercial.v2c.d3c .d3c-nada{padding:4px}
+#vv-comercial.v2c.d3c .d3c-op{padding:0;border-radius:14px;background:#F9F8F5;box-shadow:none}
+#vv-comercial.v2c.d3c .d3c-op[aria-expanded="true"]{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-op-lin{display:flex;flex-direction:column;gap:6px;padding:10px 12px;font-size:13px}
+#vv-comercial.v2c.d3c .d3c-op-t{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+#vv-comercial.v2c.d3c .d3c-op-t > b{min-width:0;font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-av{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-linha);font:700 10px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-op-m{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;min-width:0}
+#vv-comercial.v2c.d3c .d3c-op-v{min-width:0;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .d3c-op-v > b{color:var(--d3-tinta);font-weight:700}
+#vv-comercial.v2c.d3c .d3c-passo{color:var(--d3-texto2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .d3c-op .v2-mais > div{padding:0 12px}
+#vv-comercial.v2c.d3c .d3c-op .v2c-acoes{gap:6px}
+#vv-comercial.v2c.d3c .d3c-fim{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .d3c-fim-b{appearance:none;display:flex;align-items:center;justify-content:space-between;gap:8px;height:30px;padding:0 10px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:600 12.5px var(--vv-texto,Inter,sans-serif);cursor:pointer;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-fim-b.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+#vv-comercial.v2c.d3c .d3c-fim-b > span:last-child{overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .d3c-quadro.foco .d3c-colu{min-height:0}
+#vv-comercial.v2c.d3c .d3c-lista > .d3c-op{border-radius:0;background:none;border-top:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .d3c-lista > .d3c-op[aria-expanded="true"]{box-shadow:none;background:#F9F8F5}
+
+/* tabelas de Pacotes e Orçamentos: cabeçalho de 11,5, linha de 13,5 com 1 px, a aberta com a faixa preta à esquerda */
+#vv-comercial.v2c.d3c .d3c-grade{grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:14px;align-items:start}
+#vv-comercial.v2c.d3c .d3c-grade > .v2c-card{min-height:0}
+#vv-comercial.v2c.d3c .d3c-tabela{padding:16px 0 8px;min-height:420px}
+#vv-comercial.v2c.d3c .d3c-tabela > .v2c-card-topo{padding:0 18px 8px;border-bottom:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .v2c-card-topo h3{font:600 16px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+#vv-comercial.v2c.d3c .d3c-cab{padding:8px 18px;font:600 11.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);border-bottom:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .d3c-tabela > .v2c-abre > button.v2c-lin{padding:11px 18px;border-top:0;border-bottom:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .d3c-tabela > .v2c-abre[aria-expanded="true"] > button.v2c-lin{background:#F9F8F5;box-shadow:inset 3px 0 0 var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-tabela > .v2c-abre .v2-mais > div{padding:0 18px}
+#vv-comercial.v2c.d3c .d3c-tabela > :is(.v2c-nada,.v2c-card-pe){padding-left:18px;padding-right:18px}
+#vv-comercial.v2c.d3c .d3c-pk{display:grid;grid-template-columns:minmax(0,1fr) 80px 80px 96px 150px;align-items:center;gap:0 12px}
+#vv-comercial.v2c.d3c .d3c-pk.sem-margem{grid-template-columns:minmax(0,1fr) 80px 80px 96px}
+#vv-comercial.v2c.d3c .d3c-pk-n{display:flex;align-items:center;gap:8px;min-width:0}
+#vv-comercial.v2c.d3c .d3c-pk-n > b{min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-ent{min-width:0;font-size:12px;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .d3c-pk > span:not(.d3c-pk-n){font-size:13px;color:var(--d3-texto2);white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-pk .d3c-pk-p{text-align:right;font-weight:700;color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-pk .d3c-pk-p.r{color:var(--d3-perigo);font-weight:600}
+#vv-comercial.v2c.d3c .d3c-pk-m{display:flex;align-items:center;gap:8px}
+#vv-comercial.v2c.d3c .d3c-pk-m > .d3-barra{flex:1}
+#vv-comercial.v2c.d3c .d3c-pk-m > b{width:34px;text-align:right;font-weight:600;color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-pk-m > b.a{color:var(--d3-ajuste)}
+#vv-comercial.v2c.d3c .d3c-pk-m > b.r{color:var(--d3-perigo)}
+#vv-comercial.v2c.d3c .d3c-orc{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 92px 64px 130px;align-items:center;gap:0 12px}
+#vv-comercial.v2c.d3c .d3c-orc > .v2c-cli{min-width:0;overflow:hidden;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-orc .cliente-carteira{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#vv-comercial.v2c.d3c .d3c-orc-i{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-orc .d3c-orc-v{text-align:right;font-weight:700;white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-orc .d3c-orc-v small{font-weight:400;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-orc-d,#vv-comercial.v2c.d3c .d3c-ate{font-size:12.5px;color:var(--d3-apagado);white-space:nowrap}
+#vv-comercial.v2c.d3c .d3c-orc-s{min-width:0;display:flex}
+#vv-comercial.v2c.d3c .d3c-cab.d3c-orc > span:nth-child(3){text-align:right}
+
+/* Pede ação e a busca */
+#vv-comercial.v2c.d3c .v2c-pede{padding:16px 18px 8px}
+#vv-comercial.v2c.d3c .v2c-pede > .v2c-card-topo{padding-bottom:8px;border-bottom:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .v2c-pede .v2c-lin{align-items:center;padding:11px 0;border-top:0;border-bottom:1px solid var(--d3-linha)}
+#vv-comercial.v2c.d3c .v2c-pede .v2c-lin:last-of-type{border-bottom:0}
+#vv-comercial.v2c.d3c .v2c-pede .v2c-lin-txt{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+#vv-comercial.v2c.d3c .v2c-pede .v2c-lin-txt > p{margin:0;font-size:13.5px}
+#vv-comercial.v2c.d3c .v2c-busca{height:38px;background:var(--d3-cartao);box-shadow:none;padding-left:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B665E' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:16px center}
+#vv-comercial.v2c.d3c .v2c-filtro > .v2c-btn{height:38px;background:var(--d3-cartao)}
+#vv-comercial.v2c.d3c .v2c-filtro .v2c-chip{height:38px}
+
+/* Finanças por cliente: "Recebi" é o botão que conclui (preto, conta o estado) */
+#vv-comercial.v2c.d3c .v2c-tb > .v2c-btn.v2-estado{background:var(--d3-tinta);color:#FFFFFF}
+#vv-comercial.v2c.d3c .v2c-tb .cliente-carteira{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* o que fica a um clique (metas, capacidade, ROI): links discretos numa linha */
+#vv-comercial.v2c.d3c .d3c-mais{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12.5px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .v2c-vz{border-color:var(--d3-borda);background:none}
+#vv-comercial.v2c.d3c .v2c-resto{background:var(--d3-cartao)}
+
+/* gráfico de linha do mês (leads, MRR × avulso): legenda, a linha e os meses embaixo */
+#vv-comercial.v2c.d3c .d3c-graf{display:flex;flex-direction:column;gap:8px;margin:0;padding:14px 16px;border-radius:18px;background:var(--d3-trilho)}
+#vv-comercial.v2c.d3c .d3c-graf > figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:12px;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3c-graf > figcaption > span{display:inline-flex;align-items:center;gap:6px}
+#vv-comercial.v2c.d3c .d3c-graf > figcaption > b{margin-left:auto;font:700 18px var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-leg{width:14px;height:0;border-top:2.5px solid var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3c-leg.meta{border-top:1.5px dashed var(--d3-meta)}
+#vv-comercial.v2c.d3c .d3c-graf > .d3-graf{height:110px}
+#vv-comercial.v2c.d3c .d3c-meses{display:flex;justify-content:space-between}
+#vv-comercial.v2c.d3c .d3c-mes{appearance:none;padding:2px 4px;border:0;border-radius:6px;background:none;color:var(--d3-apagado);font:400 12px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-comercial.v2c.d3c .d3c-mes.ultimo{color:var(--d3-tinta);font-weight:700}
+
+#vv-comercial.v2c.d3c :is(.d3c-et,.d3c-fim-b,.d3c-mes,.d3-num,.d3-acao-btn):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+@container v2c (max-width:1000px){
+  #vv-comercial.v2c.d3c .d3c-quadro{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #vv-comercial.v2c.d3c .d3c-grade{grid-template-columns:minmax(0,1fr)}
+  #vv-comercial.v2c.d3c .d3c-tabela{min-height:0}
+}
+@container v2c (max-width:760px){
+  #vv-comercial.v2c.d3c .d3c-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #vv-comercial.v2c.d3c .d3c-quadro{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #vv-comercial.v2c.d3c .d3c-pk,#vv-comercial.v2c.d3c .d3c-pk.sem-margem{grid-template-columns:minmax(0,1fr) auto}
+  #vv-comercial.v2c.d3c .d3c-pk > span:nth-child(2),#vv-comercial.v2c.d3c .d3c-pk > span:nth-child(3){display:none}
+  #vv-comercial.v2c.d3c .d3c-pk-m{grid-column:1 / -1;margin-top:6px}
+  #vv-comercial.v2c.d3c .d3c-cab.d3c-pk > span:nth-child(5){display:none}
+  #vv-comercial.v2c.d3c .d3c-orc{grid-template-columns:minmax(0,1fr) auto}
+  #vv-comercial.v2c.d3c .d3c-orc > .d3c-orc-i{grid-column:1 / -1;grid-row:2}
+  #vv-comercial.v2c.d3c .d3c-orc > :is(.d3c-orc-d){display:none}
+  #vv-comercial.v2c.d3c .d3c-orc > .d3c-orc-s{grid-column:1 / -1;grid-row:3;margin-top:4px}
+  #vv-comercial.v2c.d3c .d3c-cab.d3c-orc{display:none}
+}
+@container v2c (max-width:520px){
+  #vv-comercial.v2c.d3c .d3c-quadro{grid-template-columns:minmax(0,1fr)}
+  #vv-comercial.v2c.d3c .d3c-colu{min-height:0}
+  #vv-comercial.v2c.d3c .d3-num > .d3-num-v{font-size:26px}
+  #vv-comercial.v2c.d3c .d3-num.d3c-longo > .d3-num-v{font-size:20px;line-height:1.15;white-space:normal}
+  #vv-comercial.v2c.d3c .d3-num > .d3-graf{display:none}
+  #vv-comercial.v2c.d3c .d3-acao{flex-wrap:wrap;padding:14px 16px}
+  #vv-comercial.v2c.d3c .d3-acao > .d3-acao-frase{flex:1 1 200px}
+  #vv-comercial.v2c.d3c .d3c-frase{font-size:16px}
+  #vv-comercial.v2c.d3c .d3-acao > .d3-acao-btn{margin-left:50px}
+}
+@media (max-width:640px){
+  #vv-comercial.v2c.d3c .d3c-topo{padding:calc(16px + env(safe-area-inset-top)) 16px 0}
+  #vv-comercial.v2c.d3c .d3c-topo > h2{font-size:24px}
+  #vv-comercial.v2c.d3c .d3c-sub{flex-basis:auto}
+  #vv-comercial.v2c.d3c .v2c-corpo{padding:14px 16px 24px}
+  #vv-comercial.v2c.d3c .vc-ajuda{margin:14px 16px 0}
+  #vv-comercial.v2c.d3c .d3c-topo > .v2c-btn{height:36px;padding:0 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  #vv-comercial.v2c.d3c :is(.d3c-et,.v2c-chip){transition:none}
+}
+
+/* ===== Contratos e Churn (#vv-carteira, HTML de vybe-mundo-carteira.js): a pele da Direção 3 só pelo CSS ===== */
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]){gap:18px;padding:28px 36px 0;border-radius:inherit;background:var(--d3-areia)}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-corpo.vc-corpo{gap:18px;margin:0 -36px;padding:0 36px 28px}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-topo > h2{font-size:30px;letter-spacing:-.02em}
+#vv-carteira .v2c[data-tela="contratos"] .v2c-topo > h2::after{content:"só donos";display:inline-flex;align-items:center;height:22px;margin-left:12px;padding:0 9px;border-radius:999px;background:var(--d3-tinta);color:#FFFFFF;font:600 11.5px var(--vv-texto,Inter),sans-serif;letter-spacing:0;vertical-align:middle}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-card{border-radius:var(--d3-r-cartao);box-shadow:none}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-btn{box-shadow:none}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-topo .v2c-btn{height:40px;background:var(--d3-trilho)}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-topo .v2c-btn.p{background:var(--d3-cartao);color:var(--d3-tinta)}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-topo .v2c-btn.p:disabled{opacity:.5}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-x{background:var(--d3-cartao);box-shadow:none}
+/* a fala do agente vira o bloco de ação laranja */
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala{gap:14px;padding:16px 20px;border-radius:22px;background:var(--d3-acao);color:#FFFFFF}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala > p{font:600 19px/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala b{font-weight:600}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-quem{display:block;margin-bottom:2px;font:700 12px var(--vv-texto,Inter),sans-serif;color:#FFFFFF;opacity:.82}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);animation:d3PulsaBranco 2.4s ease-in-out infinite}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag::after{display:none}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-btn{height:40px;padding:0 20px;background:#FFFFFF;color:var(--d3-acao-texto);font-weight:700}
+/* números: cartão de 18, rótulo de 12,5 e número de 36 */
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-kpi{border-radius:18px;padding:14px 16px}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-kpi > b{font-size:36px;letter-spacing:-.02em}
+/* fichas, busca e selos */
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-chip{height:38px;background:var(--d3-cartao);box-shadow:none}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-busca{height:38px;background:var(--d3-cartao);box-shadow:none}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-seg{background:var(--d3-trilho)}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-seg > button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-link{color:var(--d3-tinta)}
+@media (max-width:640px){
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]){padding:16px 16px 0}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-corpo.vc-corpo{margin:0 -16px;padding:0 16px 24px}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala{flex-wrap:wrap;padding:14px 16px}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala > p{flex:1 1 200px;font-size:16px}
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-kpi > b{font-size:26px}
+}
+
+/* ===== Gestão · visão geral e Performance (.vv-gestao, HTML de vybe-mundo-setor.js e vybe-mundo-performance.js) ===== */
+.vv-gestao.vv-gestao .g2-topo > h2{font-size:30px;letter-spacing:-.02em}
+.vv-gestao.vv-gestao .g2-card{border-radius:var(--d3-r-cartao);box-shadow:none}
+.vv-gestao.vv-gestao .g2-btn{background:var(--d3-trilho);box-shadow:none}
+.vv-gestao.vv-gestao .g2-topo .g2-btn{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
+.vv-gestao.vv-gestao .g2-topo .g2-btn.p:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+.vv-gestao.vv-gestao .g2-seg{background:var(--d3-trilho)}
+.vv-gestao.vv-gestao .g2-seg > button:is([aria-pressed="true"],[aria-selected="true"],[aria-checked="true"]){background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+/* a fala do agente vira o bloco de ação laranja (a linha que abre continua abrindo) */
+.vv-gestao.vv-gestao .g2-fala{padding:16px 20px;border-radius:22px;background:var(--d3-acao);color:#FFFFFF}
+.vv-gestao.vv-gestao .g2-fala-lin > p{font:600 19px/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF}
+.vv-gestao.vv-gestao .g2-fala b{font-weight:600}
+.vv-gestao.vv-gestao .g2-fala .g2-quem{display:block;margin-bottom:2px;font:700 12px var(--vv-texto,Inter),sans-serif;color:#FFFFFF;opacity:.82}
+.vv-gestao.vv-gestao .g2-fala .g2-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);animation:d3PulsaBranco 2.4s ease-in-out infinite}
+.vv-gestao.vv-gestao .g2-fala .g2-ag::after{display:none}
+.vv-gestao.vv-gestao .g2-fala .g2-btn{height:40px;padding:0 20px;background:#FFFFFF;color:var(--d3-acao-texto);font-weight:700}
+.vv-gestao.vv-gestao .g2-fala :is(.g2-hist,.g2-link,.g2-mais-corpo){color:#FFFFFF}
+/* números: cartão de 18 e número de 36 */
+.vv-gestao.vv-gestao .g2-tres > .g2-card{border-radius:18px;padding:14px 16px}
+.vv-gestao.vv-gestao .g2-kpi-v{font-size:36px;letter-spacing:-.02em}
+.vv-gestao.vv-gestao .g2-chip{box-shadow:none;background:var(--d3-trilho)}
+.vv-gestao.vv-gestao .g2-link{color:var(--d3-tinta)}
+@media (max-width:640px){
+  .vv-gestao.vv-gestao .g2-fala{padding:14px 16px}
+  .vv-gestao.vv-gestao .g2-fala-lin{flex-wrap:wrap}
+  .vv-gestao.vv-gestao .g2-fala-lin > p{flex:1 1 200px;font-size:16px}
+  .vv-gestao.vv-gestao .g2-kpi-v{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){
+  #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag,.vv-gestao.vv-gestao .g2-fala .g2-ag{animation:none}
+}

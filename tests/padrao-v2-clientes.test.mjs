@@ -10,25 +10,30 @@ const naOrdem = (texto, partes) => { let p = -1; for (const parte of partes) { c
 test('Saúde da carteira segue a ordem do quadro: visão e ajuda no título, fala, três números, filtros e a lista', () => {
   const tela = carteira.slice(carteira.indexOf('  function abaSaude() {'), carteira.indexOf('  // Contas por head: quantos'));
   assert.ok(tela.length > 2000);
-  naOrdem(tela, ["[['agora', 'Agora'], ['meses', 'Mês a mês']]", "botao('Como a nota é feita'", "rotulo: 'Nota média'", "rotulo: 'Precisam de você'", "rotulo: 'Tranquilos'",
-    "['precisam', 'Precisam de você'], ['todos', 'Todos'], ['alto', 'Risco alto'], ['medio', 'Risco médio'], ['baixo', 'Risco baixo']", "botao('Filtros'", '${ajuda}${falaDaSaude(r)}${numeros}${filtros}', 'class="v2c-card v2c-quadro"']);
+  // Direção 3: quatro números (com Peças vencidas), o head como seletor na barra e a lista com cabeçalho e rodapé "Tira ponto".
+  naOrdem(tela, ["[['agora', 'Agora'], ['meses', 'Mês a mês']]", "botao('Como a nota é feita'", "rotulo: 'Nota média'", "rotulo: 'Precisam de você'", "rotulo: 'Tranquilos'", "rotulo: 'Peças vencidas'",
+    "['precisam', 'Precisam de você'], ['todos', 'Todos'], ['alto', 'Risco alto'], ['medio', 'Risco médio'], ['baixo', 'Risco baixo']", '<select data-vc-head', "botao('Filtros'", 'class="d3c-cab"', 'Tira ponto', '${ajuda}${falaDaSaude(r)}${numeros}${filtros}', 'class="v2c-card v2c-quadro"']);
   assert.match(carteira, /precisam: 'Quem precisa de você, e por quê'/);
-  assert.match(carteira, /a barra mostra o que tirou ponto de 100; o verde que sobra é a nota\./);
-  // O que saiu do alto continua a um clique: média mês a mês e contas por head em "Mês a mês"; head e ordem em "Filtros".
+  assert.doesNotMatch(tela, /a barra mostra o que tirou ponto/, 'sem legenda');
+  // O que saiu do alto continua a um clique: média mês a mês (em linha) e contas por head em "Mês a mês"; a ordem em "Filtros".
   assert.match(tela, /if \(estado\.visao === 'meses'\) \{[\s\S]{0,300}serieHtml\(h\)[\s\S]{0,200}contasHtml\(contas\)/);
-  assert.match(tela, /estado\.filtros \? `<div class="v2c-card v2c-painel"><label class="vc-ordem"><span>Head<\/span><select data-vc-head>/);
+  assert.match(tela, /estado\.filtros \? `<div class="v2c-card v2c-painel">\$\{ordemHtml\('saude'/);
+  assert.match(carteira, /function serieHtml\(h\) \{[\s\S]{0,700}d3Linha\(/, 'gráfico em linha');
   for (const velho of ['vc-resumo', 'Clientes prioritários', 'vc-chips']) assert.ok(!tela.includes(velho), `saiu ${velho}`);
 });
 
 test('a fala é do Mateus e diz a causa que mais tira ponto; "Ver as N peças" leva às Demandas atrasadas', () => {
   assert.match(carteira, /const AGENTE = \{ nome: 'Mateus', papel: 'Atendimento ao cliente' \};/);
-  assert.match(carteira, /Quem puxa para baixo é <b>\$\{esc\(causa\)\}<\/b>: \$\{quem\}\. Resolver/);
+  // Direção 3: a fala é o bloco de ação laranja numa frase só.
+  assert.match(carteira, /d3Acao\(\{ frase: `\$\{plural\(vencidas, 'vencida', 'vencidas'\)\} em \$\{plural\(n, 'cliente', 'clientes'\)\}[\s\S]{0,200}a nota vai de/);
+  assert.match(carteira, /botao: vencidas === 1 \? 'Ver a peça' : `Ver as \$\{vencidas\}`, attrs: 'data-vc-atrasadas'/);
   assert.match(carteira, /if \('vcAtrasadas' in d\) \{[\s\S]{0,260}chooseManagerMode\('demandas'\)[\s\S]{0,260}focarAtrasadas\(\)/);
 });
 
 test('a linha do cliente: nota, quem é, a barra do que tirou ponto e a ação; abre no lugar sem redesenhar', () => {
   const linha = carteira.slice(carteira.indexOf('  function linhaCliente('), carteira.indexOf('  // Mini painel dos números'));
-  naOrdem(linha, ['class="v2-abre v2c-linha', 'class="v2c-nota ', 'class="v2c-quemc"', 'class="v2c-perde"', 'class="v2c-leg"', 'class="v2c-ac"', 'class="v2-mais"', 'class="v2c-mot"']);
+  // Direção 3: faixa do risco, nota, cliente, head, risco em pílula com bolinha e o que tirou ponto em texto curto.
+  naOrdem(linha, ['class="v2-abre v2c-linha', 'class="d3c-faixa ', 'class="v2c-nota ', 'class="v2c-quemc"', 'class="d3c-head"', 'class="d3c-pill"', 'class="d3c-perdas"', 'class="v2c-ac"', 'class="v2-mais"', 'class="v2c-mot"']);
   assert.match(linha, /`Abrir as \$\{vencidas\}`/);
   assert.match(carteira, /function alternarLinha\(chave, focar = ''\) \{[\s\S]{0,420}linha\.setAttribute\('aria-expanded', String\(abrindo\)\);/);
   assert.match(carteira, /if \(d\.vcAbrir\) return alternarLinha\(d\.vcAbrir, d\.vcFocar \|\| ''\);/);
@@ -36,8 +41,10 @@ test('a linha do cliente: nota, quem é, a barra do que tirou ponto e a ação; 
 
 test('Onboarding segue o quadro: Como funciona e Novo onboarding, fala, três números, busca e etapas, Pede ação antes de Andando', () => {
   const tela = carteira.slice(carteira.indexOf('  function abaOnboarding() {'), carteira.indexOf('  // ---------- Churn ----------'));
-  naOrdem(tela, ["botao('Como funciona'", "botao('Novo onboarding'", "rotulo: 'Em entrada'", 'rotulo: `Parados há mais de ${DIAS_PARADO} dias`', "rotulo: 'Tempo médio de entrada'",
-    'data-vc-busca-onb', "ficha('Todas as etapas'", "botao('Filtros'", "secao('Pede ação'", "secao('Andando'", '${ajuda}${iniciar}${fala}${numeros}${filtros}<section class="v2c-card v2c-quadro"']);
+  // Direção 3: quatro números, quadro com colunas e, ao lado, tempo de entrada em linha, etapas e configuração.
+  naOrdem(tela, ["botao('Como funciona'", "botao('Novo onboarding'", "rotulo: 'Em entrada'", 'rotulo: `Parados +${DIAS_PARADO} dias`', "rotulo: 'Tempo médio'", "rotulo: 'Concluídos no mês'",
+    'data-vc-busca-onb', "ficha('Todas as etapas'", "botao('Filtros'", "secao('Pede ação'", "secao('Andando'", 'Tempo de entrada', '<h2>Etapas</h2>',
+    '${ajuda}${iniciar}${fala}${numeros}${filtros}<div class="d3c-onb-grade"><section class="v2c-card v2c-quadro"']);
   const linha = carteira.slice(carteira.indexOf('  function linhaOnboarding('), carteira.indexOf('  function editorEtapasHtml() {'));
   naOrdem(linha, ['class="v2c-st"', 'class="v2c-nm"', '${tri}', 'class="v2c-agora"', '${progresso}', 'class="v2c-ac"', 'class="v2-mais"']);
   // Nada some: encerrados e o editor de etapas em "Filtros"; os dois caminhos em "Novo onboarding"; kickoff, questionário e ficha na linha aberta.

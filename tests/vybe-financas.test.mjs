@@ -300,7 +300,7 @@ test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra m
     clientes: [{ cliente_id: '10', cliente_nome: 'Hebravet', valor_mensal: 2000, status_pagamento: 'em_dia', custo: 0, margem_percentual: null }],
     resumo: { receita: 2000, custo: 0, margem_percentual: null, criticas: 0, pagamento: { atrasado: 0, inadimplente: 0 } }, pacotes: [], zona_critica: 20, status: [] };
   for (const [conector, espera, naoEspera] of [[conectorFalso(), /margem real R\$\s?1\.700,00 no mês[\s\S]*Mês a mês e margem real · mostrar/, /Os valores reais chegam quando/],
-    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /<h2>Finanças por cliente<\/h2>[\s\S]*<small>Custo da carteira<\/small>/, /Mês a mês e margem real|fonte: Vybe Finanças/]]) {
+    [{ configurado: () => false, urlValida: () => true, faltando: () => [VARIAVEL] }, /<h2>Finanças por cliente<\/h2>[\s\S]*<span class="d3-num-rot">Custo da carteira<\/span>/, /Mês a mês e margem real|fonte: Vybe Finanças/]]) {
     const respostas = (q) => (q.area === 'vybe_financas' ? null : { codigo: 200, corpo: comercialVazio });
     const t = contexto((q) => respostas(q) || { codigo: 0, corpo: null });
     // A área de verdade, com o conector falso (as permissões do servidor valem também aqui).
@@ -319,6 +319,10 @@ test('tela do Comercial: com o Finanças a aba de dinheiro diz a fonte, mostra m
       const p = t.ctx.VybeEspiarProvedores.financas('comercial:despesas');
       assert.equal(p.itens[0].nome, 'Salário/Prolabore');
       assert.equal(t.ctx.VybeEspiarProvedores.financas('comercial:inad').itens[0].nome, 'Dia Lab');
+      // A tela de Contas (Direção 3) usa as peças de vybe-core.js (d3AcaoHtml, d3NumHtml, d3LinhaSvg), que o navegador carrega antes.
+      const core = readFileSync('vybe-core.js', 'utf8');
+      vm.runInContext(core.slice(core.indexOf('const d3Esc'), core.indexOf('if (typeof globalThis !== \'undefined\') Object.assign(globalThis, { d3AcaoHtml'))
+        + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', t.ctx);
       t.ctx.VybeComercial.abrir('contas'); await esperar();
       assert.match(t.criados.find((e) => e.id === 'vv-comercial').innerHTML, /data-tela="con"[\s\S]*<h1>Contas a pagar<\/h1>[\s\S]*novembro de 2026/);
     }

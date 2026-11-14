@@ -133,14 +133,14 @@ test('um cabeçalho de janela: vbCabecalhoHtml com o X único, sem rótulo de se
 test('zeros em linha discreta, plural certo, mês no seletor e agenda no Hoje da Cidade', () => {
   const mundo = ler('vybe-mundo.js'), pessoas = ler('vybe-mundo-pessoas.js');
   assert.match(mundo, /function radarHtml\(V, itens\)/);
-  // Padrão v2 (12/11/2026): a Agência abre com três números (o zerado fica no lugar, apagado) e a linha Também de olho.
-  assert.match(mundo, /function tresNumerosHtml\(itens\)/);
-  assert.match(mundo, /titulo: 'Atrasadas', valor: n0\(H\.atrasadas\), sub: .{0,90}quieto: !H\.atrasadas, attrs: 'data-espiar="atrasadas"'/);
-  assert.match(mundo, /Também de olho:/);
+  // Direção 3 (13/11/2026): a Agência abre com quatro números (o zerado fica no lugar) e as fichas "De olho".
+  assert.match(mundo, /function numD3\(/);
+  assert.match(mundo, /numD3\(\{ rotulo: 'Atrasadas', valor: n0\(H\.atrasadas\), tom: H\.atrasadas \? 'r' : ''.{0,160}attrs: 'data-espiar="atrasadas"' \}\)/);
+  assert.match(mundo, /<div class="d3h-olho"><span>De olho<\/span>/);
   assert.match(mundo, /'peças em aberto', 'peça em aberto'\]/);
   assert.match(ler('vybe-mundo-agentes.js'), /x\.n === 1 \? 'Ver o achado' : `Ver os \$\{x\.n\}`/);
-  assert.match(mundo, /<section class="v2a-cartao v2a-agenda">\$\{agendaDeHojeHtml\(\)\}/);
-  assert.match(mundo, /class="v2t-btn" data-abrir-gestao="semana">Abrir a semana<\/button>/);
+  assert.match(mundo, /<div class="d3h-col">\$\{agendaD3Html\(\)\}\$\{agentesD3Html\(\)\}\$\{whatsappD3Html\('agencia'\)\}<\/div>/);
+  assert.match(mundo, /class="d3h-link" data-abrir-gestao="semana">abrir<\/button>/);
   assert.match(pessoas, /mesHtml\(ref, 'data-vp-ref-ir', estado\.periodo === 'anual'\)/);
   // Padrão v2 (12/11/2026): o Recrutamento abre com três números fixos, como no quadro; o zerado fica no lugar.
   assert.match(pessoas, /tresHtml\(\[\s*\{ rotulo: 'Vagas abertas', valor: ind\.abertas \?\? abertas\.length/);

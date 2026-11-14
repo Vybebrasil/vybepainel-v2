@@ -41,7 +41,10 @@ test('ligações: troca de visão, chip que voa, edita no lugar e cor do humor n
   assert.ok(ag.includes("vbTransicao(redesenhar, { raiz: '#workspace-drawer', tipo: 'chip' })") && gest.includes('data-vt="dono-${safeText(String(u.id))}"'), 'gaveta: responsáveis');
   assert.ok(mundo.includes('data-editar-data="veiculacao" data-peca="${id}"') && dem.includes('data-editar-data="prazo" data-peca="${id}"'), 'datas editáveis nas linhas');
   assert.ok(core.includes('await moverDataDoItem(item, campo, iso, { request: pedido });') && core.includes('mostrarDesfazer('), 'grava pela função de sempre, com Desfazer');
-  for (const f of ['vybe-mundo-carteira.js', 'vybe-mundo-agentes.js', 'vybe-clientes.js']) assert.ok(ler(f).includes('vbHumorAttr('), f);
+  // Direção 3 (13/11/2026): na Saúde da carteira a cor do humor deu lugar à faixa do risco à esquerda da linha
+  // (vermelho só no que venceu); o humor segue nas outras telas.
+  for (const f of ['vybe-mundo-agentes.js', 'vybe-clientes.js']) assert.ok(ler(f).includes('vbHumorAttr('), f);
+  assert.match(ler('vybe-mundo-carteira.js'), /<i class="d3c-faixa \$\{tom\}" aria-hidden="true"><\/i>/);
   const css = ler('padrao-v2/movimentos.css');
   assert.match(css, /prefers-reduced-motion:reduce\)\{::view-transition-group/);
   assert.doesNotMatch(css, /!important|html body\.mundo/);

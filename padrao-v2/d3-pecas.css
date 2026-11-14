@@ -1,0 +1,56 @@
+/* DIREÇÃO 3 · PEÇAS COMUNS (quadros D3-Gaveta, D3-StatusMenu, D3-NovaDemanda, D3-Entrada, D3-Topo, D3-Celular e as famílias
+   D3-Fam-Abas, -Formularios, -Confirmacoes, -Estados e -Gavetas; 13/11/2026). O que já tinha fragmento próprio foi trocado
+   no lugar (peca.css, status.css, familias.css, entrada.css, topo.css, casca.css, celular.css); aqui fica o que é novo e
+   vale para várias telas. Ganha por especificidade com o id da janela; nada aqui força regra antiga. */
+
+/* aba que estica: a escolhida chega esticando (gaveta, famílias de abas) */
+@keyframes d3AbaEstica{0%{transform:scaleX(.82)}60%{transform:scaleX(1.04)}100%{transform:none}}
+
+/* ===== DESFAZER EM TOAST (quadro D3-Fam-Confirmacoes): pílula preta de 40, Desfazer em pílula translúcida ===== */
+body.mundo #v2-desfazer{gap:12px;min-height:40px;box-sizing:border-box;padding:0 6px 0 16px;border-radius:999px;background:var(--d3-tinta,#1F1D1A);color:#FFFFFF;font:500 13px/1.3 var(--vv-texto,Inter,sans-serif);box-shadow:0 2px 4px rgba(31,29,26,.12),0 18px 30px -16px rgba(31,29,26,.5)}
+body.mundo #v2-desfazer button{height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.16);color:#FFFFFF;font:600 12.5px var(--vv-texto,Inter,sans-serif);text-decoration:none}
+body.mundo #v2-desfazer button:is(:hover,:focus-visible){background:rgba(255,255,255,.28);color:#FFFFFF;text-decoration:none}
+
+/* ===== MATERIAL BRUTO NA GAVETA E NO BRIEFING: bloco #F9F8F5, rótulo curto, ação em pílula ===== */
+body.mundo :is(#workspace-drawer,#brief-overlay) .material-bruto{display:flex;align-items:center;gap:10px;margin:0;padding:12px 14px;border:0;border-radius:16px;background:#F9F8F5;box-shadow:none}
+body.mundo :is(#workspace-drawer,#brief-overlay) .material-bruto-copy{flex:1 1 auto;gap:2px}
+body.mundo :is(#workspace-drawer,#brief-overlay) .material-bruto-copy span{font:600 12px var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none;color:var(--d3-apagado,#6B665E)}
+body.mundo :is(#workspace-drawer,#brief-overlay) .material-bruto-copy b{font:700 13.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta,#1F1D1A)}
+body.mundo :is(#workspace-drawer,#brief-overlay) .material-bruto-copy small{font:400 12px/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado,#6B665E)}
+body.mundo :is(#workspace-drawer,#brief-overlay) :is(.material-bruto-abrir,.material-bruto-add,.material-bruto-copiar){display:inline-flex;align-items:center;height:30px;padding:0 12px;border:0;border-radius:999px;font:600 12.5px var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-decoration:none;cursor:pointer}
+body.mundo :is(#workspace-drawer,#brief-overlay) :is(.material-bruto-abrir,.material-bruto-add){background:var(--d3-tinta,#1F1D1A);color:#FFFFFF}
+body.mundo :is(#workspace-drawer,#brief-overlay) :is(.material-bruto-abrir,.material-bruto-add):hover{background:#000000}
+body.mundo :is(#workspace-drawer,#brief-overlay) .material-bruto-copiar{background:#FFFFFF;box-shadow:inset 0 0 0 1px var(--d3-borda,#E6E0D6);color:var(--d3-tinta,#1F1D1A)}
+
+/* ===== MENU LATERAL (quadro D3-Topo): trilho #F3F1EC sem sombra; ícone na cor do módulo; Criar branco (o laranja
+   cheio fica para o bloco de ação); Hoje ativo em preto; módulo ativo em branco com o ícone na cor do módulo ===== */
+@media (min-width:901px){
+  body.mundo #mundo-hud .vv-ilha.vv-trilho{background:var(--d3-trilho,#F3F1EC);box-shadow:none}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-grupo="Operação"]{--d3-mod:var(--d3-mod-operacao,#C2490C)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-grupo="Negócio"]{--d3-mod:var(--d3-mod-negocio,#7C3AED)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-grupo="Time"]{--d3-mod:var(--d3-mod-time,#0E7490)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-grupo="Vybe"]{--d3-mod:var(--d3-mod-vybe,#15803D)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-grupo]:not(.criar):not([data-grupo=""]) > svg{color:var(--d3-mod,#1F1D1A)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar{background:#FFFFFF;color:var(--d3-tinta,#1F1D1A);box-shadow:none}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar:hover{background:var(--d3-borda,#E6E0D6);color:var(--d3-tinta,#1F1D1A)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar > svg{color:var(--d3-tinta,#1F1D1A);stroke:var(--d3-tinta,#1F1D1A)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar):not([data-trilho="hoje"]){background:#FFFFFF;color:var(--d3-tinta,#1F1D1A);font-weight:600}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar):not([data-trilho="hoje"]) > svg{color:var(--d3-mod,#C2490C);stroke:var(--d3-mod,#C2490C)}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-trilho="hoje"][aria-current]{background:var(--d3-tinta,#1F1D1A);color:#FFFFFF}
+  body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-trilho="vybes"] > svg{color:var(--d3-agente,#6E56CF)}
+
+  /* TOPO (quadro D3-Topo): barra branca de 56, botões redondos #F3F1EC de 40, ligado preto, contador vermelho */
+  body.mundo #mundo-hud .vv-topo .vv-ilha.vv-barra-topo{background:#FFFFFF;box-shadow:none}
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:not(.vv-busca-larga):not([data-ferr="conta"]),body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu > summary.vv-botao{background:var(--d3-trilho,#F3F1EC);box-shadow:none}
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:not(.vv-busca-larga):not([data-ferr="conta"]):hover,body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu > summary.vv-botao:hover{background:var(--d3-borda,#E6E0D6);box-shadow:none}
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:is([aria-pressed="true"],[aria-expanded="true"]),body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu[open] > summary.vv-botao{background:var(--d3-tinta,#1F1D1A);color:#FFFFFF}
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao > .vv-badge{background:var(--d3-perigo,#B42318);box-shadow:0 0 0 2px #FFFFFF}
+  body.mundo #mundo-hud .vv-barra-topo .vv-botao.vv-busca-larga{box-shadow:inset 0 0 0 1px var(--d3-borda,#E6E0D6)}
+  body.mundo #mundo-hud .vv-barra-topo .vv-botao.vv-busca-larga:focus-visible{box-shadow:inset 0 0 0 2px var(--d3-tinta,#1F1D1A);outline:0}
+}
+
+/* ===== CELULAR (quadro D3-Celular): barra de baixo branca e o + preto redondo ===== */
+@media (max-width:900px){
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar{background:var(--d3-tinta,#1F1D1A);box-shadow:0 10px 20px -10px rgba(31,29,26,.6)}
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar > svg{color:#FFFFFF;stroke:#FFFFFF}
+}

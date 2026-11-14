@@ -218,6 +218,7 @@
   function finGraficos(f) {
     if (!f.series.length) return '';
     const esp = (mes) => 'financas:comercial:serie:' + mes;
+    const grafico = ehD3() ? graficoLinha : graficoBarras; // Direção 3: série de meses em linha
     return `<div class="vc-secao"><h3>Mês a mês</h3>${fonteFin()}</div><div class="vc-graficos">
       ${grafico({ meses: f.series, aria: 'Faturamento recebido e custos pagos por mês', espiar: esp,
         series: [{ chave: 'faturamento', cls: 'ent', rotulo: 'Faturamento (recebido)', fmt: din, curto }, { chave: 'custos', cls: 'sai', rotulo: 'Custos (pagos)', fmt: din, curto }] })}
@@ -311,17 +312,59 @@
   const chegando = () => !st.v2.visto[st.aba];
   const tresHtml = (lista) => `<div class="v2c-tres">${lista.map((k, i) => `<div class="v2c-card v2c-kpi${k.tom ? ' ' + k.tom : ''}${String(k.valor).length > 18 ? ' longo' : ''}"><small>${esc(k.titulo)}</small><b><span${chegando() ? ` class="v2-num"${i ? ` style="animation-delay:${(i * 0.12).toFixed(2)}s"` : ''}` : ''}>${esc(k.valor)}</span></b>${k.barra != null ? `<div class="v2-barra${chegando() ? '' : ' ja'}"><i style="--v:${Math.max(0, Math.min(100, Number(k.barra) || 0))}%;--c:#11613A"></i></div>` : ''}${k.sub ? `<small>${k.sub}</small>` : ''}</div>`).join('')}</div>`;
   const vazioV2 = (frase, acoes = '') => `<div class="v2c-vz"><p>${frase}</p>${acoes}</div>`;
+  // ===== Direção 3 (moodboard 3, 13/11/2026): CRM e funil, Produtos e pacotes e Orçamentos =====
+  // Fundo areia, o bloco de ação laranja como único laranja cheio, quatro números com rótulo curto (barra ou linha), as
+  // fichas com a contagem em negrito e a lista em grade. As peças vêm de vybe-core.js (d3AcaoHtml, d3NumHtml, d3LinhaSvg);
+  // fora do painel (testes), o mesmo HTML montado aqui.
+  // Fornecedores e Creators (quadros D3-Fornecedores e D3-Creators) entram com o subtítulo curto deles e "Ajuda".
+  // Finanças por cliente (quadro D3-PorCliente) também: selo "só donos" no título e o mês ao lado.
+  const D3 = new Set(['funil', 'pacotes', 'orcamentos', 'fornecedores', 'creators', 'financas']);
+  const SUB_D3 = { fornecedores: 'gráficas, estúdios e parceiros', creators: 'Irecê e região' };
+  const ehD3 = () => D3.has(st.aba);
+  const g3 = (nome) => (typeof globalThis[nome] === 'function' ? globalThis[nome] : null);
+  // Bloco de ação: frase curta (com o nome de quem fala em cima, quando houver) e um botão; attrs vai cru no botão.
+  function acaoD3(frase, { texto = '', attrs = '', quem = 'VYBES · Comercial', agente = 'V' } = {}) {
+    const corpo = `${quem ? `<small class="d3c-quem">${esc(quem)}</small>` : ''}<span class="d3c-frase">${frase}</span>`;
+    const f = g3('d3AcaoHtml');
+    if (f) return f({ frase: corpo, agente, botao: texto, attrs });
+    return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${esc(agente)}</span><span class="d3-acao-frase">${corpo}</span>${texto ? `<button type="button" class="d3-acao-btn" ${attrs}>${esc(texto)}</button>` : ''}</section>`;
+  }
+  function linhaD3(valores, op = {}) {
+    const f = g3('d3LinhaSvg'); if (f) return f(valores, op);
+    const v = (valores || []).map(Number).filter(Number.isFinite); if (v.length < 2) return '';
+    const L = op.largura || 120, A = op.altura || 32, max = Math.max(...v), min = Math.min(...v), fx = max - min || 1;
+    const pts = v.map((n, i) => `${(3 + (i * (L - 6)) / (v.length - 1)).toFixed(1)},${(A - 3 - ((n - min) * (A - 6)) / fx).toFixed(1)}`), [ux, uy] = pts[pts.length - 1].split(',');
+    return `<svg class="d3-graf" viewBox="0 0 ${L} ${A}" aria-hidden="true"><polyline points="${pts.join(' ')}"/><circle cx="${ux}" cy="${uy}" r="3"/></svg>`;
+  }
+  // Quatro números: rótulo de 1 a 3 palavras, o valor, uma linha curta embaixo e a barra ou a mini linha, quando houver.
+  function numerosD3(lista) {
+    const f = g3('d3NumHtml'), ja = chegando() ? '' : ' ja';
+    const um = (k) => {
+      const v = esc(k.valor), tom = [k.tom, String(k.valor).length > 11 ? 'd3c-longo' : ''].filter(Boolean).join(' ');
+      const base = f ? f({ rotulo: k.rotulo, valor: v, tom, serie: k.serie || null, barra: k.barra ?? null, attrs: k.attrs || '' })
+        : `<div class="d3-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${esc(k.rotulo)}</span><b class="d3-num-v">${v}</b>${k.serie ? linhaD3(k.serie) : k.barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(k.barra)))}%"><i></i></span>` : ''}</div>`;
+      return k.sub ? base.replace(/<\/(div|button)>$/, `<small class="d3c-num-sub${k.subTom ? ' ' + k.subTom : ''}">${k.sub}</small></$1>`) : base;
+    };
+    return `<div class="d3c-nums${ja}">${lista.map(um).join('')}</div>`;
+  }
+  const subtituloD3 = () => { const m = st.periodo.mes || hojeIso().slice(0, 7); return MESES[Number(m.slice(5)) - 1] + (st.periodo.tipo === 'anual' ? ' · ' + m.slice(0, 4) : ''); };
+  // Iniciais de quem cuida (o avatar do cartão do funil); o agente que propôs, em lilás.
+  const iniciais = (nome) => { const p = String(nome || '').trim().split(/\s+/).filter(Boolean); return (p.length > 1 ? p[0][0] + p[1][0] : (p[0] || '').slice(0, 2)).toUpperCase(); };
+  const COR_FASE = { novo: '#B5AFA5', primeiro_contato: '#6B665E', apresentacao: '#579BFC', proposta: '#9D50DD', follow_up: '#FDAB3D', ganho: '#11613A', perdido: '#B5AFA5' };
   // "Pede ação": o que espera alguém, na ordem, com o botão na linha; mostra três e o resto a um clique.
   function pedeHtml(itens, chave, { sub = '', pe = '' } = {}) {
     const cabe = st.v2.mostra[chave] ? itens : itens.slice(0, 3), resto = itens.length - cabe.length;
-    return `<section class="v2c-card v2c-pede" aria-label="Pede ação"><div class="v2c-card-topo"><h3>Pede ação</h3><small>${sub || (itens.length ? `${plural(itens.length, 'coisa', 'coisas')}, na ordem` : 'nada agora')}</small></div>
-      ${cabe.map((x) => `<div class="v2c-lin"><div class="v2c-lin-txt">${selo(x.selo)}<p>${x.texto}</p></div>${x.acao || ''}</div>`).join('') || '<p class="v2c-sub v2c-nada">Nada pede ação agora.</p>'}
+    // Direção 3: o título com a contagem; na linha, o texto e o selo embaixo.
+    const d3 = ehD3();
+    return `<section class="v2c-card v2c-pede" aria-label="Pede ação"><div class="v2c-card-topo"><h3>Pede ação</h3><small>${d3 ? num(itens.length) : sub || (itens.length ? `${plural(itens.length, 'coisa', 'coisas')}, na ordem` : 'nada agora')}</small></div>
+      ${cabe.map((x) => `<div class="v2c-lin"><div class="v2c-lin-txt">${d3 ? `<p>${x.texto}</p>${selo(x.selo)}` : `${selo(x.selo)}<p>${x.texto}</p>`}</div>${x.acao || ''}</div>`).join('') || `<p class="v2c-sub v2c-nada">${d3 ? 'Nada agora.' : 'Nada pede ação agora.'}</p>`}
       ${resto > 0 || pe ? `<p class="v2c-sub v2c-card-pe">${[resto > 0 ? `+ ${num(resto)} · ${elo('mostrar', `data-v2="mostra" data-id="${chave}"`)}` : '', pe].filter(Boolean).join(' · ')}</p>` : ''}</section>`;
   }
   // Barra de filtro única: busca, fichas com a contagem e "Filtros" (abre as fichas extras).
   function filtroHtml({ aba, busca = aba, rotulo, fichas, extras, antes = '', depois = '' }) {
     const sel = st.v2.chip[aba] || '', aberto = Boolean(st.v2.filtros[aba]) || extras.some((x) => x[0] === sel);
-    const ficha = ([id, nome, n]) => `<button type="button" class="v2c-chip" data-v2="chip" data-id="${id}" aria-pressed="${sel === id}">${esc(nome)} · ${num(n)}</button>`;
+    // Direção 3: a contagem em negrito ao lado do nome ("Ativos 4"), sem o ponto.
+    const ficha = ([id, nome, n]) => `<button type="button" class="v2c-chip" data-v2="chip" data-id="${id}" aria-pressed="${sel === id}">${ehD3() ? `${esc(nome)} <b>${num(n)}</b>` : `${esc(nome)} · ${num(n)}`}</button>`;
     return `<div class="v2c-filtro"><input type="search" class="v2c-busca" data-vc-busca="${busca}" placeholder="${esc(rotulo)}" aria-label="${esc(rotulo)}" value="${esc(st.filtro[busca] || '')}">
       <span class="v2c-chips" role="group" aria-label="Filtrar a lista">${fichas.map(ficha).join('')}</span>
       ${antes}${extras.length ? `<button type="button" class="v2c-btn s" data-v2="filtros" aria-expanded="${aberto}">Filtros</button>` : ''}${depois}
@@ -413,6 +456,17 @@
       pacotes: ['Novo pacote', 'data-vc="pacote"', Boolean(d) && podeFazer(d, 'editar_pacotes') && d.pacotes.length > 0],
       orcamentos: ['Novo orçamento', 'data-vc="orcamento"', Boolean(d) && podeFazer(d, 'editar_comercial') && d.pacotes.length > 0 && d.orcamentos.length > 0],
       financas: ['Lançar', 'data-v2="lancar"', Boolean(d)], fornecedores: ['Novo fornecedor', 'data-vc="fornecedor"', Boolean(d)], creators: ['Novo creator', 'data-vc="creator"', Boolean(d?.pode?.editar_comercial)] }[aba];
+    // Direção 3: título com o mês ao lado; "Como funciona" com o "?" e a ação do topo em branco (o laranja é do bloco de ação).
+    if (D3.has(aba)) {
+      const hora = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }).format(new Date());
+      const fc = aba === 'financas';
+      return `<div class="v2c-topo d3c-topo"><h2>${esc(titulo)}</h2>${fc ? '<span class="d3-selo-donos">só donos</span>' : ''}<span class="d3c-sub">${fc && fin() ? '' : esc(SUB_D3[aba] || subtituloD3())}${aba === 'funil' ? ' · ' + hora : ''}</span>
+        ${aba === 'funil' ? `<span class="v2c-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${st.v2.visao === k}">${n}</button>`).join('')}</span>` : ''}
+        ${fc && fin() ? `<span class="v2c-mes">${mesHtml(mesFin(), false)}</span>` : ''}
+        ${fc ? '' : `<button type="button" class="v2c-btn d3c-ajuda" data-vc="ajuda" aria-expanded="${st.ajuda}">${SUB_D3[aba] ? 'Ajuda' : '<span class="d3c-q" aria-hidden="true">?</span>Como funciona'}</button>`}
+        ${pode ? `<button type="button" class="v2c-btn d3c-novo" ${acao}>${IC.mais}${texto}</button>` : ''}
+        <button type="button" class="v2c-fechar" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>`;
+    }
     const ajuda = aba === 'financas' ? '' : `<button type="button" class="v2c-btn" data-vc="ajuda" aria-expanded="${st.ajuda}">${['fornecedores', 'creators'].includes(aba) ? 'Ajuda' : 'Como funciona'}</button>`;
     return `<div class="v2c-topo">${aba === 'financas' ? `<div class="v2c-titulo"><p class="v2c-sub">Finanças › Por cliente</p><h2>${esc(titulo)}</h2></div>${fin() ? `<span class="v2c-mes">${mesHtml(mesFin(), false)}</span>` : ''}` : `<h2>${esc(titulo)}</h2>`}
         ${aba === 'funil' ? `<span class="v2c-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${st.v2.visao === k}">${n}</button>`).join('')}</span>` : ''}
@@ -525,6 +579,7 @@
     const linhaVazia = !d.oportunidades.length ? vazioV2(`<b>Nenhuma oportunidade ainda.</b> As ${num(r.fases.length)} etapas ficam em 0.${val ? '' : ' O valor da negociação ainda não foi ligado.'}`, (podeLead ? botao('Cadastrar o primeiro lead', 'data-vc="lead"') : '') + falta)
       : !val ? vazioV2('<b>O valor da negociação ainda não foi ligado.</b> O funil já funciona; valor e follow-up aparecem quando estiverem ligados.', falta) : '';
     const campeao = d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos) · ticket médio ${din(d.produtos.ticket_medio_mensal)}/mês${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : '';
+    if (ehD3()) return funilD3({ p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, encerradas, meta, editaMeta, linhaVazia, falta, tecnico, campeao, podeLead });
     return `${falaHtml(frase, paradas.length ? botao(paradas.length === 1 ? 'Ver a proposta' : `Ver as ${num(paradas.length)}`, `data-v2="paradas" data-id="${esc(paradas[0].id)}"`) : '')}
       ${numeros}
       <div class="v2c-etapas" role="group" aria-label="Etapas do funil">${r.fases.map(etapa).join('')}</div>
@@ -532,6 +587,81 @@
       <p class="v2c-sub v2c-pe">O SDR propõe empresas pelo CRM do 1º andar. O cartão abre no lugar com o próximo passo; Ganho e Perdido abrem a lista ao clicar${p.editar_comercial ? '; arrastar o cartão também avança a etapa' : ''}.${[m && m.periodo ? elo(`Metas, corrida e formulário de leads · ${v.mes ? 'recolher' : 'mostrar'}`, `data-v2="mes" aria-expanded="${v.mes}"`) : '', p.editar_pacotes ? elo('Configurar etapas', 'data-vc="etapas"') : ''].filter(Boolean).map((x) => ' ' + x).join(' ·')}</p>
       ${v.mes ? `<div class="v2c-resto">${campeao}${blocoMes(d)}</div>` : ''}`;
   }
+  // CRM e funil pela Direção 3: o bloco de ação com a proposta mais parada, quatro números, as etapas em fichas com a
+  // contagem, as colunas de todas as fases abertas (até três cartões, o resto em "mostrar") e Ganho e Perdido no pé da
+  // última coluna. O cartão abre no lugar com o próximo passo e os botões, como antes.
+  function funilD3(x) {
+    const { p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, encerradas, meta, editaMeta, linhaVazia, falta, tecnico, campeao, podeLead } = x;
+    const somaMes = (ops) => ops.reduce((s, o) => s + (Number(o.valor_mensal) || 0), 0);
+    const quanto = (ops) => `${num(ops.length)}${val && somaMes(ops) ? ' · ' + milhar(somaMes(ops)) : ''}`;
+    const cor = (id) => COR_FASE[id] || '#C4C4C4';
+    // O selo curto do cartão (o próximo passo já vai escrito embaixo): parado, enviada, o dia ou há quanto chegou.
+    const hoje = d3Dados()?.hoje || hojeIso();
+    const seloCurto = (o) => {
+      const s = seloDe(o); if (!s) return null;
+      const n = parada(o);
+      if (n != null) return n > 5 ? ['a', `parado ${num(n)} d`] : ['n', n ? `${num(n)} d` : 'hoje'];
+      if (ehDia(o.proxima_acao_data) && !['ganho', 'perdido'].includes(o.etapa)) {
+        const k = diasEntre(hoje, o.proxima_acao_data);
+        return k < 0 ? ['r', 'desde ' + dm(o.proxima_acao_data)] : ['n', k === 0 ? 'hoje' : k === 1 ? 'amanhã' : k < 7 ? DIAS_SEM[new Date(o.proxima_acao_data + 'T12:00:00Z').getUTCDay()].slice(0, 3) + ' ' + dm(o.proxima_acao_data).slice(0, 2) : dm(o.proxima_acao_data)];
+      }
+      if (/^há \d+/.test(s[1])) return ['n', s[1].replace(/^há (\d+) dias?$/, '$1 d')];
+      if (s[1] === 'chegou hoje') return ['n', 'hoje'];
+      return s;
+    };
+    const cartao = (o, naLista) => {
+      const id = esc(o.id), ab = v.aberta === 'op:' + o.id, fim = ['ganho', 'perdido'].includes(o.etapa);
+      const av = o.responsavel_nome ? `<span class="d3c-av" title="${esc(o.responsavel_nome)}">${esc(iniciais(o.responsavel_nome))}</span>` : '';
+      const valor = val && (o.valor_mensal || o.valor_avulso) ? `<span class="d3c-op-v"><b>${esc(reais(o.valor_mensal || o.valor_avulso))}</b> ${o.valor_mensal ? '/mês' : 'avulso'}</span>` : `<span class="d3c-op-v">${esc(o.responsavel_nome || 'Sem responsável')}</span>`;
+      const passo = naLista ? etapaNome(o.etapa) : !fim && String(o.proxima_acao || '').trim() ? '→ ' + o.proxima_acao : '';
+      return `<article class="v2c-op d3c-op v2-abre" data-v2-linha="op:${id}" data-vt="op-${id}" aria-expanded="${ab}"${p.editar_comercial && !fim ? ` draggable="true" data-v2-arrasta="${id}"` : ''}>
+        <button type="button" class="v2c-op-lin d3c-op-lin" data-v2="abre" data-id="op:${id}" aria-expanded="${ab}"><span class="d3c-op-t"><b>${esc(o.nome)}</b>${av}</span>
+          <span class="d3c-op-m">${valor}${selo(seloCurto(o))}</span>${passo ? `<span class="d3c-passo">${esc(passo)}</span>` : ''}</button>
+        <div class="v2-mais"><div>${detalhe(o)}</div></div></article>`;
+    };
+    const ganhos = opsDa('ganho'), perdidas = opsDa('perdido');
+    const fimHtml = `<div class="d3c-fim"><button type="button" class="d3c-fim-b g" data-v2="fase" data-id="ganho" aria-pressed="${v.fase === 'ganho'}"><span>Ganho</span><span>${esc(quanto(ganhos))}</span></button>
+      <button type="button" class="d3c-fim-b" data-v2="fase" data-id="perdido" aria-pressed="${v.fase === 'perdido'}"><span>Perdido</span><span>${num(perdidas.length)}${maiorMotivo ? ' · ' + esc(maiorMotivo.nome.toLowerCase()) + ' ' + num(maiorMotivo.quantidade) : ''}</span></button></div>`;
+    const coluna = (f, max, ultima = false) => {
+      const ops = opsDa(f.id), cabe = max && !v.mostra['f:' + f.id] ? ops.slice(0, max) : ops, resto = ops.length - cabe.length;
+      const filtro = f.id === 'perdido' && comMotivo.length ? `<div class="v2c-chips" role="group" aria-label="Filtrar perdidas por motivo">
+          <button type="button" class="v2c-chip" data-vc-motivo="" aria-pressed="${!motivoSel}">Todos <b>${num(f.atual)}</b></button>
+          ${comMotivo.map((y) => `<button type="button" class="v2c-chip" data-vc-motivo="${esc(y.id)}" aria-pressed="${motivoSel === y.id}" title="${esc(pc(y.percentual))} das perdas">${esc(y.nome)} <b>${num(y.quantidade)}</b></button>`).join('')}</div>` : '';
+      return `<section class="v2c-colu d3c-colu" data-v2-solta="${esc(f.id)}" aria-label="${esc(f.nome)}: ${num(ops.length)}"><h3><i style="--c:${cor(f.id)}"></i><b>${esc(f.nome)}</b><span>${esc(quanto(ops))}</span></h3>${filtro}
+        <div class="v2c-colu-ops">${cabe.map((o) => cartao(o)).join('') || '<p class="v2c-sub d3c-nada">Vazia</p>'}</div>
+        ${resto > 0 ? `<p class="v2c-sub">+ ${num(resto)} · ${elo('mostrar', `data-v2="mostra" data-id="f:${esc(f.id)}"`)}</p>` : ''}${ultima ? fimHtml : ''}</section>`;
+    };
+    const abertasF = r.fases.filter((f) => !['ganho', 'perdido'].includes(f.id));
+    const emFoco = r.fases.find((f) => f.id === v.fase);
+    const corpo = emFoco ? `<div class="v2c-quadro d3c-quadro foco">${coluna(emFoco, 0)}</div>`
+      : v.visao === 'lista' ? (emAberto.length ? `<section class="v2c-card v2c-lista d3c-lista" aria-label="Oportunidades abertas"><div class="v2c-card-topo"><h3>Abertas</h3><small>${num(emAberto.length)}</small></div>${emAberto.map((o) => cartao(o, true)).join('')}</section>` : '')
+        : d3Tem(emAberto, ganhos, perdidas) ? `<div class="v2c-quadro d3c-quadro" style="--n:${abertasF.length}" aria-label="Fases do funil">${abertasF.map((f, i) => coluna(f, 3, i === abertasF.length - 1)).join('')}</div>` : '';
+    // As fichas das etapas: Abertas (todas) e uma por fase, com a bolinha da cor da fase e a contagem.
+    const chip = (f) => {
+      const n = Number(f.atual) || 0, chegaram = Number(f.alcancaram) || 0;
+      const dica = [f.conversao != null ? pc(f.conversao) + ' seguem' : '', f.id === 'perdido' && maiorMotivo ? 'motivo: ' + maiorMotivo.nome.toLowerCase() : '', !['ganho', 'perdido'].includes(f.id) && chegaram ? `${num(chegaram)} ${chegaram === 1 ? 'chegou' : 'chegaram'}` : ''].filter(Boolean).join(' · ');
+      return `<button type="button" class="d3c-et${f.id === 'ganho' ? ' g' : ''}${n ? '' : ' z'}" data-v2="fase" data-id="${esc(f.id)}" data-v2-solta="${esc(f.id)}" aria-pressed="${v.fase === f.id}"${dica ? ` title="${esc(dica)}"` : ''}>${f.id === 'ganho' ? '' : `<i style="--c:${cor(f.id)}"></i>`}${esc(f.nome)} <b>${num(n)}</b></button>`;
+    };
+    const etapas = `<div class="d3c-etapas" role="group" aria-label="Etapas do funil"><button type="button" class="d3c-et" data-v2="fase" data-id="" aria-pressed="${!v.fase}">Abertas <b>${num(abertas)}</b></button>${r.fases.map(chip).join('')}</div>`;
+    const maisParada = paradas[0];
+    const acao = maisParada ? acaoD3(`${esc(maisParada.nome)} · proposta sem resposta há ${plural(parada(maisParada), 'dia', 'dias')}.`, { texto: 'Ver a proposta', attrs: `data-v2="paradas" data-id="${esc(maisParada.id)}"`, quem: '' })
+      : abertas ? acaoD3(`${val && neg.mensal ? esc(milhar(neg.mensal)) + ' por mês' : plural(abertas, 'oportunidade aberta', 'oportunidades abertas')} em negociação.`, { texto: v.visao === 'lista' ? 'Ver o quadro' : 'Ver a lista', attrs: `data-v2="visao" data-id="${v.visao === 'lista' ? 'quadro' : 'lista'}"`, quem: '' })
+        : acaoD3('Nenhuma oportunidade em negociação.', podeLead ? { texto: 'Cadastrar lead', attrs: 'data-vc="lead"', quem: '' } : { quem: '' });
+    const numeros = numerosD3([
+      { rotulo: 'Em negociação', valor: num(abertas), sub: val && neg.mensal ? `abertas · ${esc(reais(neg.mensal))}/mês${neg.avulso ? ' + ' + esc(reais(neg.avulso)) + ' avulso' : ''}` : abertas === 1 ? 'aberta' : 'abertas' },
+      { rotulo: m ? (m.periodo.tipo === 'anual' ? 'Meta do ano' : 'Meta do mês') : 'Meta do mês', valor: meta ? (meta.tipo === 'dinheiro' ? `R$ ${curto(meta.realizado)} de ${curto(meta.meta)}` : `${num(meta.realizado)} de ${num(meta.meta)}`) : 'Sem meta',
+        barra: meta ? meta.barra : null, sub: meta ? (meta.id === 'mrr' ? 'MRR novo' : esc(meta.nome.toLowerCase())) : editaMeta ? elo('Definir a meta', 'data-vc="metas"') : 'sem meta' },
+      { rotulo: 'Taxa de ganho', valor: r.taxa_ganho == null ? '0%' : pc(r.taxa_ganho), sub: encerradas ? `de ${plural(encerradas, 'encerrado', 'encerrados')}` : 'nada encerrado' },
+      { rotulo: 'Paradas 5+ dias', valor: num(paradas.length), tom: paradas.length ? 'a' : '', attrs: maisParada ? `data-v2="paradas" data-id="${esc(maisParada.id)}"` : '',
+        sub: maisParada ? `a mais antiga · ${num(parada(maisParada))} d` : 'nenhuma', subTom: maisParada ? 'a' : '' },
+    ]);
+    const links = [m && m.periodo ? elo(`Metas, corrida e formulário · ${v.mes ? 'recolher' : 'mostrar'}`, `data-v2="mes" aria-expanded="${v.mes}"`) : '', p.editar_pacotes ? elo('Configurar etapas', 'data-vc="etapas"') : ''].filter(Boolean);
+    return `${acao}${numeros}${etapas}${corpo}${linhaVazia}${st.verFalta && falta ? `<p class="v2c-sub v2c-tec">${tecnico}</p>` : ''}
+      ${links.length ? `<p class="d3c-mais">${links.join('<span aria-hidden="true">·</span>')}</p>` : ''}
+      ${v.mes ? `<div class="v2c-resto">${campeao}${blocoMes(d3Dados())}</div>` : ''}`;
+  }
+  const d3Tem = (...listas) => listas.some((l) => l.length);
+  const d3Dados = () => st.dados.funil;
   // ---------- Funil: o mês (metas, KPIs × mês anterior, gráficos, corrida comercial, formulário de leads) ----------
   const curto = (v) => { const n = Number(v) || 0, f = (x) => x.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
     return n >= 1e6 ? f(n / 1e6) + ' mi' : n >= 1e3 ? f(n / 1e3) + ' mil' : f(Math.round(n)); };
@@ -563,6 +693,14 @@
     return `<figure class="vc-grafico"><svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(aria)}">${barras}<line x1="0" x2="${W}" y1="${base}" y2="${base}" class="eixo"/></svg>
       <figcaption>${series.map((s) => `<span><i class="${s.cls}"></i>${esc(s.rotulo)}</span>`).join('')}</figcaption></figure>`;
   }
+  const graficoBarras = (x) => grafico(x);
+  function graficoLinha({ meses, series, aria, espiar }) {
+    const [a, b] = series, vals = (s) => meses.map((m) => Number(m[s.chave]) || 0);
+    const svg = linhaD3(vals(a), { meta: b ? vals(b) : null, largura: 320, altura: 110, rotulo: aria });
+    const ult = meses[meses.length - 1];
+    return `<figure class="vc-grafico d3c-graf"><figcaption><span><i class="d3c-leg"></i>${esc(a.rotulo)}</span>${b ? `<span><i class="d3c-leg meta"></i>${esc(b.rotulo)}</span>` : ''}<b>${esc(a.fmt(Number(ult?.[a.chave]) || 0))}</b></figcaption>${svg}
+      <div class="d3c-meses">${meses.map((m, i) => `<button type="button" class="d3c-mes${i === meses.length - 1 ? ' ultimo' : ''}"${espiar ? ` data-espiar="${String(espiar(m.mes, a.chave)).startsWith('financas:') ? '' : 'comercial:'}${esc(espiar(m.mes, a.chave))}"` : ''} title="${esc(series.map((s) => s.rotulo + ': ' + s.fmt(Number(m[s.chave]) || 0)).join(' · '))}">${esc(MESES[Number(m.mes.slice(5)) - 1].slice(0, 3))}</button>`).join('')}</div></figure>`;
+  }
   function blocoMes(d) {
     const m = d.mes; if (!m || !m.periodo) return '';
     const p = d.pode || {}, val = Boolean(m.valores), k = m.kpis, rv = m.periodo.tipo === 'anual' ? 'vs ano anterior' : 'vs mês anterior';
@@ -578,6 +716,8 @@
       numero(k.atual.negocios ?? 0, num(k.atual.negocios), Number(k.atual.negocios) === 1 ? ' negócio fechado' : ' negócios fechados', { variacao: k.variacao.negocios, rotuloVar: rv, espiar: 'comercial:funil:fechados' }),
       val ? numero(k.atual.mrr ?? 0, din(k.atual.mrr ?? 0), ' por mês fechado (MRR)', { variacao: k.variacao.mrr, rotuloVar: rv, espiar: 'comercial:funil:fechados' }) : null,
       val ? numero(k.atual.avulso ?? 0, din(k.atual.avulso ?? 0), ' fechado avulso', { variacao: k.variacao.avulso, rotuloVar: rv, espiar: 'comercial:funil:fechados' }) : null]);
+    // Direção 3: série de meses vira linha (a segunda série, tracejada, para comparar).
+    const grafico = ehD3() ? graficoLinha : graficoBarras;
     const graficos = m.series.length ? grafico({ meses: m.series, aria: 'Leads novos por mês, últimos 6 meses', espiar: (mes) => 'funil:leads:' + mes,
         series: [{ chave: 'leads', cls: 'lead', rotulo: 'Leads novos', fmt: num }] })
       + (val ? grafico({ meses: m.series, aria: 'Valor fechado por mês (MRR e avulso), últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes,
@@ -676,22 +816,22 @@
       if (r.estado === 'cabe') return null;
       return { estado: r.estado, cargo: r.cargos.filter((c) => c.acrescimo > 0).sort((a, b) => (b.uso ?? 999) - (a.uso ?? 999))[0] };
     };
-    const pede = [];
+    const pede = [], curtoD3 = ehD3(); // Direção 3: a linha curta (nome e o número que pesa)
     for (const x of d.pacotes) {
       const id = esc(x.id), nome = `<b>${esc(x.nome)}</b>`;
-      if (!(Number(x.preco) > 0)) pede.push({ selo: ['r', 'Sem preço'], texto: `${nome} · ${x.ativo ? 'ativo' : 'inativo'}; sem preço, o orçamento sai zerado`, acao: edita ? botao('Definir preço', `data-vc="pacote" data-id="${id}"`) : '' });
-      else if (x.ativo && x.zona_critica) pede.push({ selo: ['r', 'Zona crítica'], texto: `${nome} · margem de ${pc(x.margem_percentual)}, abaixo de ${num(d.zona_critica || 20)}%`, acao: edita ? botao('Rever o pacote', `data-vc="pacote" data-id="${id}"`) : '' });
+      if (!(Number(x.preco) > 0)) pede.push({ selo: ['r', 'Sem preço'], texto: curtoD3 ? `${nome}${x.ativo ? '' : ' · inativo'}` : `${nome} · ${x.ativo ? 'ativo' : 'inativo'}; sem preço, o orçamento sai zerado`, acao: edita ? botao('Definir preço', `data-vc="pacote" data-id="${id}"`) : '' });
+      else if (x.ativo && x.zona_critica) pede.push({ selo: ['r', 'Zona crítica'], texto: curtoD3 ? `${nome} · margem ${pc(x.margem_percentual)}` : `${nome} · margem de ${pc(x.margem_percentual)}, abaixo de ${num(d.zona_critica || 20)}%`, acao: edita ? botao('Rever o pacote', `data-vc="pacote" data-id="${id}"`) : '' });
       const a = aperto(x);
-      if (a) pede.push({ selo: ['a', 'Carga alta'], texto: `${nome} · mais uma venda ${a.estado === 'estoura' ? 'passa do que' : 'encosta no que'} ${esc(a.cargo?.nome || 'o time')} dá conta${a.cargo ? `: ${num(a.cargo.total)} de ${a.cargo.capacidade ? num(a.cargo.capacidade) : 'nenhuma'} por mês` : ''}`, acao: edita ? botao('Rever a carga', 'data-vc="capacidade"') : '' });
+      if (a) pede.push({ selo: ['a', 'Carga alta'], texto: curtoD3 ? `${nome} · ${esc(a.cargo?.nome || 'time')}${a.cargo ? ` ${num(a.cargo.total)}/${a.cargo.capacidade ? num(a.cargo.capacidade) : '0'}` : ''}` : `${nome} · mais uma venda ${a.estado === 'estoura' ? 'passa do que' : 'encosta no que'} ${esc(a.cargo?.nome || 'o time')} dá conta${a.cargo ? `: ${num(a.cargo.total)} de ${a.cargo.capacidade ? num(a.cargo.capacidade) : 'nenhuma'} por mês` : ''}`, acao: edita ? botao('Rever a carga', 'data-vc="capacidade"') : '' });
     }
-    if (edita && cap && !capOk && ativos.length) pede.push({ selo: ['n', 'Sem capacidade'], texto: 'A capacidade mensal por cargo ainda não foi configurada; sem ela não dá para saber se o time aguenta.', acao: botao('Configurar', 'data-vc="capacidade"') });
+    if (edita && cap && !capOk && ativos.length) pede.push({ selo: ['n', 'Sem capacidade'], texto: curtoD3 ? '<b>Capacidade do time</b>' : 'A capacidade mensal por cargo ainda não foi configurada; sem ela não dá para saber se o time aguenta.', acao: botao('Configurar', 'data-vc="capacidade"') });
     // Fichas: ativos, mensal, avulso e inativos; em "Filtros", todos e zona crítica (só quem vê o custo).
     const GRUPOS = { ativos: ['Ativos', (x) => x.ativo], mensal: ['Mensal', (x) => x.ativo && x.tipo === 'recorrente'], avulso: ['Avulso', (x) => x.ativo && x.tipo !== 'recorrente'], inativos: ['Inativos', (x) => !x.ativo],
       todos: ['Todos', () => true], ...(comCusto ? { critica: ['Zona crítica', (x) => x.ativo && x.zona_critica] } : {}) };
     if (!GRUPOS[v.chip.pacotes]) v.chip.pacotes = 'ativos';
     const ficha = (k) => [k, GRUPOS[k][0], d.pacotes.filter(GRUPOS[k][1]).length];
     const termo = norm(st.filtro.pacotes), lista = d.pacotes.filter(GRUPOS[v.chip.pacotes][1]).filter((x) => !termo || norm(`${x.nome} ${(x.entregas || []).join(' ')}`).includes(termo));
-    const cabe = v.mostra.pacotes || termo ? lista : lista.slice(0, 3), resto = lista.length - cabe.length;
+    const cabe = v.mostra.pacotes || termo ? lista : lista.slice(0, ehD3() ? 6 : 3), resto = lista.length - cabe.length;
     const linha = (x) => {
       const id = esc(x.id), ab = v.aberta === 'pk:' + x.id, rec = x.tipo === 'recorrente', carga = Object.entries(x.carga || {}).filter(([, n]) => Number(n) > 0);
       const sub = [rec ? 'Mensal' : 'Avulso', Number(x.horas) > 0 ? `${num(x.horas)} h${rec ? ' por mês' : ''}` : '', camp && String(camp.pacote_id) === String(x.id) ? plural(camp.ganhos, 'ganho', 'ganhos') : '',
@@ -708,6 +848,48 @@
           ${acoes ? `<p class="v2c-acoes recuo">${acoes}</p>` : ''}</div></div></div>`;
     };
     const escondidos = d.pacotes.length - lista.length;
+    if (ehD3()) {
+      // Direção 3: a tabela dos pacotes à esquerda (pacote, tipo, horas, preço e margem) e "Pede ação" à direita.
+      const linhaD3Pk = (x) => {
+        const id = esc(x.id), ab = v.aberta === 'pk:' + x.id, rec = x.tipo === 'recorrente', carga = Object.entries(x.carga || {}).filter(([, n]) => Number(n) > 0);
+        const m = Math.round(Number(x.margem_percentual) || 0), tom = x.zona_critica ? 'r' : m < 40 ? 'a' : '';
+        const extra = [!x.ativo ? '<span class="v2c-pill n">Inativo</span>' : '', !rec && x.entregas?.length ? `<span class="d3c-ent">${esc(x.entregas.slice(0, 3).join(', '))}</span>` : ''].join('');
+        const acoes = [orca && x.ativo && Number(x.preco) > 0 ? botao('Usar em orçamento', `data-v2="usar" data-id="${id}"`, 'k') : '', edita ? botao('Editar pacote', `data-vc="pacote" data-id="${id}"`) : ''].join('');
+        return `<div class="v2c-abre v2-abre${x.ativo ? '' : ' apagado'}" data-v2-linha="pk:${id}" aria-expanded="${ab}">
+          <button type="button" class="v2c-lin d3c-pk${comCusto ? '' : ' sem-margem'}" data-v2="abre" data-id="pk:${id}" aria-expanded="${ab}"><span class="d3c-pk-n"><b>${esc(x.nome)}</b>${extra}</span>
+            <span>${rec ? 'Mensal' : 'Avulso'}</span><span>${Number(x.horas) > 0 ? `${num(x.horas)} h${rec ? '/mês' : ''}` : '—'}</span>
+            <span class="d3c-pk-p${Number(x.preco) > 0 ? '' : ' r'}">${Number(x.preco) > 0 ? esc(reais(x.preco)) : 'sem preço'}</span>
+            ${comCusto ? `<span class="d3c-pk-m">${x.custo != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, m))}%"><i></i></span><b class="${tom}">${pc(m)}</b>` : '—'}</span>` : ''}</button>
+          <div class="v2-mais"><div>
+            <p class="v2c-hist">${x.entregas?.length ? 'Entra: ' + x.entregas.map(esc).join(', ') : 'Sem entregas cadastradas'}</p>
+            ${carga.length ? `<p class="v2c-hist">Carga: ${carga.map(([k, n]) => `${esc(cargoNome(k))} ${num(n)} por mês`).join(' · ')}</p>` : ''}
+            ${x.custo != null ? `<p class="v2c-hist">Custo R$ ${num(Math.round(x.custo))} · margem ${pc(m)}</p>` : ''}
+            ${acoes ? `<p class="v2c-acoes recuo">${acoes}</p>` : ''}</div></div></div>`;
+      };
+      const mensais = ativos.filter((x) => x.tipo === 'recorrente').length;
+      const semPreco = d.pacotes.find((x) => !(Number(x.preco) > 0)), critico = d.pacotes.find((x) => x.ativo && x.zona_critica && Number(x.preco) > 0), alvo = semPreco || critico;
+      const acao = alvo
+        ? acaoD3(`${esc(alvo.nome)} ${alvo === semPreco ? 'está sem preço e fora dos orçamentos.' : 'está com a margem abaixo de ' + num(d.zona_critica || 20) + '%.'}`,
+          edita ? { texto: alvo === semPreco ? 'Definir preço' : 'Rever o pacote', attrs: `data-vc="pacote" data-id="${esc(alvo.id)}"` } : {})
+        : camp ? acaoD3(`${esc(camp.nome)} lidera: ${plural(camp.ganhos, 'negócio ganho', 'negócios ganhos')}.`, ganhos ? { texto: ganhos === 1 ? 'Ver o negócio' : 'Ver os negócios', attrs: 'data-v2="ver-ganhos"' } : {})
+          : acaoD3(d.pacotes.length ? `${plural(ativos.length, 'pacote ativo', 'pacotes ativos')} na esteira.` : 'Nenhum pacote cadastrado ainda.');
+      const numeros = numerosD3([
+        { rotulo: 'Produto campeão', valor: camp ? camp.nome : 'Sem campeão', barra: camp && ganhos ? (camp.ganhos / ganhos) * 100 : null, sub: camp ? `${num(camp.ganhos)} de ${plural(ganhos, 'ganho', 'ganhos')}` : 'nenhum ganho' },
+        { rotulo: 'Ticket mensal', valor: pr.ticket_medio_mensal != null ? milhar(pr.ticket_medio_mensal) : 'R$ 0', sub: pr.ticket_medio_mensal != null ? 'média dos ganhos' : 'sem ganho mensal' },
+        { rotulo: 'Ticket avulso', valor: pr.ticket_medio_avulso != null ? milhar(pr.ticket_medio_avulso) : 'R$ 0', sub: pr.ticket_medio_avulso != null ? 'média dos ganhos' : 'sem ganho avulso' },
+        { rotulo: 'Pacotes ativos', valor: num(ativos.length), sub: `${plural(mensais, 'mensal', 'mensais')} · ${plural(ativos.length - mensais, 'avulso', 'avulsos')}` },
+      ]);
+      const cab = `<div class="d3c-cab d3c-pk${comCusto ? '' : ' sem-margem'}" aria-hidden="true"><span>Pacote</span><span>Tipo</span><span>Horas</span><span class="d3c-pk-p">Preço</span>${comCusto ? '<span>Margem</span>' : ''}</div>`;
+      const corpoD3 = d.pacotes.length ? `${filtroHtml({ aba: 'pacotes', rotulo: 'Buscar pacote', fichas: ['ativos', 'mensal', 'avulso', 'inativos'].map(ficha), extras: ['todos', ...(comCusto ? ['critica'] : [])].map(ficha) })}
+        <div class="v2c-grade d3c-grade pacotes"><section class="v2c-card v2c-lista d3c-tabela" aria-label="Pacotes"><div class="v2c-card-topo"><h3>Pacotes</h3><small>${num(lista.length)}</small></div>${cab}
+            ${cabe.map(linhaD3Pk).join('') || `<p class="v2c-sub v2c-nada">${termo ? 'Nenhum pacote com esse texto.' : 'Nenhum pacote neste filtro.'}</p>`}
+            ${resto > 0 || escondidos > 0 ? `<p class="v2c-sub v2c-card-pe">${[resto > 0 ? `+ ${num(resto)} · ${elo('mostrar', 'data-v2="mostra" data-id="pacotes"')}` : '', escondidos > 0 ? `${num(escondidos)} fora do filtro` : ''].filter(Boolean).join(' · ')}</p>` : ''}</section>
+          ${pedeHtml(pede, 'pede-pacotes')}</div>`
+        : vazioV2('<b>Nenhum pacote ainda.</b>', podeFazer(d, 'editar_pacotes') ? botao('Cadastrar o primeiro pacote', 'data-vc="pacote"') : '');
+      return `${acao}${numeros}${corpoD3}
+        ${edita ? `<p class="d3c-mais">${elo(`Capacidade do time · ${v.cap ? 'recolher' : 'mostrar'}`, `data-v2="cap" aria-expanded="${v.cap}"`)}</p>` : ''}
+        ${edita && v.cap ? `<div class="v2c-resto"><div class="vc-secao"><h3>Capacidade do time</h3><button type="button" class="vc-link" data-vc="capacidade">Configurar</button></div>${capacidadeHtml(d.capacidade, {}) || '<p class="vc-dica">Sem capacidade configurada.</p>'}</div>` : ''}`;
+    }
     const frase = camp ? `O campeão é o <b>${esc(camp.nome)}</b>: ${num(camp.ganhos)} ${ganhos === 1 ? 'do' : 'dos'} ${plural(ganhos, 'negócio ganho', 'negócios ganhos')}.${pr.ticket_medio_mensal != null ? ` Ticket médio mensal em <b>${esc(milhar(pr.ticket_medio_mensal))}</b>.` : ''}`
       : d.pacotes.length ? `<b>${plural(ativos.length, 'pacote ativo', 'pacotes ativos')}</b> na esteira. O produto campeão e o ticket médio aparecem com o primeiro negócio ganho.` : 'Nenhum pacote cadastrado ainda. Os orçamentos e a carga do time saem daqui.';
     const numeros = tresHtml([
@@ -764,17 +946,19 @@
     const valor = (o) => [o.totais?.total_recorrente ? reais(o.totais.total_recorrente) + ' por mês' : '', o.totais?.total_avulso ? reais(o.totais.total_avulso) + ' avulso' : ''].filter(Boolean).join(' + ') || 'R$ 0';
     const prazo = (o) => { const n = falta(o); return n == null ? null : n < 0 ? ['r', `venceu há ${plural(-n, 'dia', 'dias')}`] : n === 0 ? ['r', 'vence hoje'] : n === 1 ? ['r', 'vence amanhã'] : n <= 7 ? ['a', `vence em ${num(n)} dias`] : null; };
     const maiuscula = (s) => [s[0], s[1].replace(/^./, (c) => c.toUpperCase())];
+    // Direção 3: a linha do "Pede ação" fica curta (cliente e valor ou o que falta); o resto está na linha que abre.
+    const curtoD3 = ehD3();
     const pede = [
-      ...[...vencidos, ...vencendo].sort((a, b) => String(a.validade).localeCompare(String(b.validade))).map((o) => ({ selo: maiuscula(prazo(o)), texto: `${cli(o)} · ${itens(o)}, ${esc(valor(o))} · sem resposta${ha(o) ? ', ' + ha(o) : ''}`, acao: botao('Ver a proposta', `data-vc="imprimir" data-id="${esc(o.id)}"`) })),
+      ...[...vencidos, ...vencendo].sort((a, b) => String(a.validade).localeCompare(String(b.validade))).map((o) => ({ selo: maiuscula(prazo(o)), texto: curtoD3 ? `${cli(o)} · ${esc(valor(o))}` : `${cli(o)} · ${itens(o)}, ${esc(valor(o))} · sem resposta${ha(o) ? ', ' + ha(o) : ''}`, acao: botao(curtoD3 ? 'Ver' : 'Ver a proposta', `data-vc="imprimir" data-id="${esc(o.id)}"`) })),
       // Aprovado há pouco: o contrato é registrado em Contratos (a tela não sabe se já foi; por isso só os dos últimos 30 dias).
-      ...(window.VybeCarteira ? aprovados.filter((o) => { const c = criado(o); return c && diasEntre(c, hoje) <= 30; }).map((o) => ({ selo: ['g', 'Aprovado'], texto: `${cli(o)} · ${itens(o)}, ${esc(valor(o))} · confira o contrato`, acao: botao('Registrar contrato', 'data-v2="contratos"') })) : []),
-      ...rascunhos.map((o) => ({ selo: ['n', 'Rascunho'], texto: `${cli(o)} · ${itens(o)} · pronto para sair`, acao: edita ? botao('Marcar como enviado', `data-v2="orc-status" data-id="${esc(o.id)}" data-status="enviado" data-feito="Enviado"`, 'v2-estado') : '' })),
+      ...(window.VybeCarteira ? aprovados.filter((o) => { const c = criado(o); return c && diasEntre(c, hoje) <= 30; }).map((o) => ({ selo: ['g', 'Aprovado'], texto: curtoD3 ? `${cli(o)} · falta contrato` : `${cli(o)} · ${itens(o)}, ${esc(valor(o))} · confira o contrato`, acao: botao('Registrar contrato', 'data-v2="contratos"') })) : []),
+      ...rascunhos.map((o) => ({ selo: ['n', 'Rascunho'], texto: curtoD3 ? `${cli(o)} · ${itens(o)}` : `${cli(o)} · ${itens(o)} · pronto para sair`, acao: edita ? botao(curtoD3 ? 'Enviar' : 'Marcar como enviado', `data-v2="orc-status" data-id="${esc(o.id)}" data-status="enviado" data-feito="Enviado"`, curtoD3 ? 'k v2-estado' : 'v2-estado') : '' })),
     ];
     const GRUPOS = { abertos: ['Abertos', abertos], rascunho: ['Rascunho', rascunhos], aprovados: ['Aprovados', aprovados], recusados: ['Recusados', recusados], todos: ['Todos', todos], vencendo: ['Vencem em 7 dias', vencendo], vencidos: ['Vencidos', vencidos] };
     if (!GRUPOS[v.chip.orcamentos]) v.chip.orcamentos = 'abertos';
     const ficha = (k) => [k, GRUPOS[k][0], GRUPOS[k][1].length];
     const termo = norm(st.filtro.orcamentos), lista = GRUPOS[v.chip.orcamentos][1].filter((o) => !termo || norm(`${o.cliente_nome} ${(o.itens || []).map((i) => i.nome).join(' ')}`).includes(termo));
-    const cabe = v.mostra.orcamentos || termo ? lista : lista.slice(0, 3), resto = lista.length - cabe.length;
+    const cabe = v.mostra.orcamentos || termo ? lista : lista.slice(0, ehD3() ? 6 : 3), resto = lista.length - cabe.length;
     const MUDAR = { enviado: 'Marcar como enviado', aceito: 'Marcar aprovado', recusado: 'Marcar recusado', rascunho: 'Voltar a rascunho' };
     const linha = (o) => {
       const id = esc(o.id), ab = v.aberta === 'orc:' + o.id, c = criado(o);
@@ -787,6 +971,47 @@
           <p class="v2c-acoes recuo">${botao('Ver a proposta', `data-vc="imprimir" data-id="${id}"`, 'k')}${edita && !semPacote ? botao('Duplicar', `data-v2="duplicar" data-id="${id}"`) : ''}
             ${edita ? Object.entries(MUDAR).filter(([k]) => k !== o.status).map(([k, n]) => botao(n, `data-v2="orc-status" data-id="${id}" data-status="${k}"`)).join('') : ''}</p></div></div></div>`;
     };
+    if (ehD3()) {
+      // Direção 3: a tabela (cliente, pacote, por mês, enviado e validade) à esquerda e "Pede ação" à direita.
+      const linhaO = (o) => {
+        const id = esc(o.id), ab = v.aberta === 'orc:' + o.id, c = criado(o), pz = o.status === 'enviado' ? prazo(o) : null;
+        const situacao = pz ? selo(pz) : o.status === 'enviado' ? (ehDia(o.validade) ? `<span class="d3c-ate">até ${esc(dm(o.validade))}</span>` : '') : selo(o.status === 'aceito' ? ['g', 'aprovado'] : o.status === 'recusado' ? ['n', 'recusado'] : ['n', 'rascunho']);
+        const porMes = o.totais?.total_recorrente ? reais(o.totais.total_recorrente) : o.totais?.total_avulso ? reais(o.totais.total_avulso) : 'R$ 0';
+        return `<div class="v2c-abre v2-abre" data-v2-linha="orc:${id}" aria-expanded="${ab}">
+          <button type="button" class="v2c-lin d3c-orc" data-v2="abre" data-id="orc:${id}" aria-expanded="${ab}">${cli(o)}<span class="d3c-orc-i">${itens(o)}</span><b class="d3c-orc-v">${esc(porMes)}${!o.totais?.total_recorrente && o.totais?.total_avulso ? '<small> avulso</small>' : ''}</b><span class="d3c-orc-d">${c ? esc(dm(c)) : '—'}</span><span class="d3c-orc-s">${situacao}</span></button>
+          <div class="v2-mais"><div>
+            <p class="v2c-hist">Itens: ${(o.itens || []).map((i) => `${num(i.quantidade)}× ${esc(i.nome)}`).join(', ') || 'nenhum'}${o.desconto_percentual ? ' · desconto ' + pc(o.desconto_percentual) : ''} · ${esc(valor(o))}</p>
+            <p class="v2c-hist">${c ? `Criado em ${esc(porExtenso(c))}` : 'Criado'}${o.criado_por_nome ? ' por ' + esc(o.criado_por_nome) : ''} · válido até ${data(o.validade)}${ehDia(o.validade) && o.validade < hoje ? ' (vencido)' : ''}</p>
+            <p class="v2c-acoes recuo">${botao('Ver a proposta', `data-vc="imprimir" data-id="${id}"`, 'k')}${edita && !semPacote ? botao('Duplicar', `data-v2="duplicar" data-id="${id}"`) : ''}
+              ${edita ? Object.entries(MUDAR).filter(([k]) => k !== o.status).map(([k, n]) => botao(n, `data-v2="orc-status" data-id="${id}" data-status="${k}"`)).join('') : ''}</p></div></div></div>`;
+      };
+      const urgente = [...vencidos, ...vencendo].sort((a, b) => String(a.validade).localeCompare(String(b.validade)))[0];
+      const semResp = (o) => { const c = criado(o); return c ? Math.max(0, diasEntre(c, hoje)) : null; };
+      const acao = urgente ? acaoD3(`${esc(urgente.cliente_nome)} ${esc(prazo(urgente)[1])}${semResp(urgente) ? `, sem resposta há ${plural(semResp(urgente), 'dia', 'dias')}` : ''}.`, { texto: 'Ver a proposta', attrs: `data-vc="imprimir" data-id="${esc(urgente.id)}"` })
+        : rascunhos.length ? acaoD3(`${plural(rascunhos.length, 'rascunho pronto', 'rascunhos prontos')} para sair.`, { texto: 'Ver os rascunhos', attrs: 'data-v2="chip" data-id="rascunho"' })
+          : abertos.length ? acaoD3(`${mensal(abertos) ? esc(milhar(mensal(abertos))) + ' por mês' : plural(abertos.length, 'orçamento', 'orçamentos')} em aberto; nada vence na semana.`)
+            : acaoD3(todos.length ? 'Nenhum orçamento aberto agora.' : 'Nenhum orçamento ainda.', edita && !semPacote ? { texto: 'Novo orçamento', attrs: 'data-vc="orcamento"' } : {});
+      const fechados = aprovados.length + recusados.length;
+      const numeros = numerosD3([
+        { rotulo: 'Em aberto', valor: milhar(mensal(abertos)), sub: `por mês · ${plural(abertos.length, 'enviado', 'enviados')}` },
+        { rotulo: 'Vencem em 7 dias', valor: num(vencendo.length), tom: vencendo.length ? 'r' : '', attrs: vencendo.length ? 'data-v2="chip" data-id="vencendo"' : '',
+          sub: vencendo.length ? `${esc(milhar(mensal(vencendo)))}/mês sem resposta` : vencidos.length ? `${num(vencidos.length)} já ${vencidos.length === 1 ? 'venceu' : 'venceram'}` : 'nenhum', subTom: vencendo.length || vencidos.length ? 'r' : '' },
+        { rotulo: 'Aprovados', valor: num(aprovados.length), sub: aprovados.length ? `+${esc(milhar(mensal(aprovados)))}/mês` : 'nenhum ainda', subTom: aprovados.length ? 'g' : '' },
+        { rotulo: 'Ticket médio', valor: abertos.length ? milhar(mensal(abertos) / abertos.length) : 'R$ 0', barra: fechados ? (aprovados.length / fechados) * 100 : null, sub: fechados ? `${num(aprovados.length)} de ${num(fechados)} fechados` : 'nada fechado' },
+      ]);
+      const cab = '<div class="d3c-cab d3c-orc" aria-hidden="true"><span>Cliente</span><span>Pacote</span><span class="d3c-orc-v">Por mês</span><span>Enviado</span><span>Validade</span></div>';
+      const corpoD3 = todos.length ? `${semPacote ? vazioV2('<b>Sem pacotes ativos.</b>', botao('Ir para Pacotes', 'data-vc="ir-pacotes"')) : ''}
+        ${filtroHtml({ aba: 'orcamentos', rotulo: 'Buscar cliente ou pacote', fichas: ['abertos', 'rascunho', 'aprovados', 'recusados'].map(ficha), extras: ['todos', 'vencendo', 'vencidos'].map(ficha) })}
+        <div class="v2c-grade d3c-grade orcamentos"><section class="v2c-card v2c-lista d3c-tabela" aria-label="Orçamentos"><div class="v2c-card-topo"><h3>${GRUPOS[v.chip.orcamentos][0]}</h3><small>${num(lista.length)}</small></div>${cab}
+            ${cabe.map(linhaO).join('') || `<p class="v2c-sub v2c-nada">${termo ? 'Nenhum orçamento com esse texto.' : 'Nenhum orçamento neste filtro.'}</p>`}
+            ${resto > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${num(resto)} · ${elo('mostrar', 'data-v2="mostra" data-id="orcamentos"')}</p>` : ''}</section>
+          ${pedeHtml(pede, 'pede-orcamentos')}</div>`
+        : semPacote ? vazioV2('<b>Nenhum orçamento ainda.</b> Falta pacote ativo.', botao('Ir para Pacotes', 'data-vc="ir-pacotes"'))
+          : vazioV2('<b>Nenhum orçamento ainda.</b>', edita ? botao('Novo orçamento', 'data-vc="orcamento"') : '');
+      return `${acao}${numeros}${corpoD3}
+        ${todos.length ? `<p class="d3c-mais">${elo(`ROI na proposta · ${v.roi ? 'recolher' : 'mostrar'}`, `data-v2="roi" aria-expanded="${v.roi}"`)}</p>` : ''}
+        ${todos.length && v.roi ? `<div class="v2c-resto">${roiHtml(d)}</div>` : ''}`;
+    }
     const n7 = vencendo.length, frase = abertos.length
       ? `Há ${mensal(abertos) ? `<b>${esc(milhar(mensal(abertos)))} por mês</b> em ${plural(abertos.length, 'orçamento aberto', 'orçamentos abertos')}` : `<b>${plural(abertos.length, 'orçamento aberto', 'orçamentos abertos')}</b>`}. ${n7 ? `<b>${n7 === 1 ? '1 vence' : num(n7) + ' vencem'} esta semana</b> sem resposta.` : vencidos.length ? `<b>${vencidos.length === 1 ? '1 está' : num(vencidos.length) + ' estão'} com a validade vencida</b>.` : 'Nenhum vence esta semana.'}`
       : todos.length ? `Nenhum orçamento aberto agora.${rascunhos.length ? ` <b>${plural(rascunhos.length, 'rascunho', 'rascunhos')}</b> ${rascunhos.length === 1 ? 'espera' : 'esperam'} para sair.` : ''}` : 'Nenhum orçamento ainda. As propostas saem dos pacotes.';
@@ -865,6 +1090,37 @@
     ]);
     const tecnico = (() => { const e = finEstado()?.dados; return e && !e.conectado ? `${esc(e.motivo || 'O Vybe Finanças ainda não está ligado')}${e.aviso ? ' · ' + esc(e.aviso) : ''}${(e.passos || []).length ? `<ol>${e.passos.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}` : ''; })();
     const erroFin = finEstado()?.erro;
+    if (ehD3()) {
+      // Direção 3 (quadro D3-PorCliente, só donos): o bloco do Vorcaro com quem custa quase o que paga, quatro números,
+      // "Pede ação" curto ao lado da lista de clientes; o resto (mês a mês, margem real, o que falta) a um clique.
+      const nomes = criticos.slice(0, 2).map((c) => esc(c.cliente_nome));
+      const acao = nCrit ? acaoD3(`${nomes.join(' e ')}${nCrit > 2 ? ` e mais ${num(nCrit - 2)}` : ''} ${nCrit === 1 ? 'custa' : 'custam'} quase o que ${nCrit === 1 ? 'paga' : 'pagam'}.`, { texto: 'Rever contrato', attrs: `data-vc="financas" data-id="${esc(criticos[0].cliente_id)}"`, quem: 'Vorcaro · Financeiro' })
+        : nAtraso ? acaoD3(`${plural(nAtraso, 'cliente em atraso', 'clientes em atraso')}.`, { texto: nAtraso === 1 ? 'Ver o cliente' : `Ver os ${num(nAtraso)}`, attrs: 'data-v2="chip" data-id="atraso"', quem: 'Vorcaro · Financeiro' })
+          : acaoD3(r.margem_percentual != null ? `A carteira rende ${pc(Math.round(r.margem_percentual))} de margem.` : todos.length ? `${plural(todos.length, 'cliente ativo', 'clientes ativos')}, ${num(comContrato)} com contrato.` : 'Nenhum cliente ativo no cadastro.', { texto: 'Ver a conta', attrs: `data-vc="ajuda" aria-expanded="${st.ajuda}"`, quem: 'Vorcaro · Financeiro' });
+      const atrasoTotal = f?.inadimplencia?.total;
+      const numerosF = numerosD3([
+        { rotulo: 'Contratado', valor: milhar(r.receita || 0), barra: fr && fr.previsto ? (Number(fr.recebido) || 0) / fr.previsto * 100 : null,
+          sub: fr ? `${esc(milhar(fr.recebido || 0))} recebidos` : plural(comContrato, 'com contrato', 'com contrato'), subTom: fr ? 'g' : '' },
+        { rotulo: 'Em atraso', valor: atrasoTotal ? milhar(atrasoTotal) : num(nAtraso), tom: nAtraso || atrasoTotal ? 'r' : '', attrs: nAtraso ? 'data-v2="chip" data-id="atraso"' : '',
+          sub: nAtraso ? plural(nAtraso, 'cliente', 'clientes') : 'ninguém', subTom: nAtraso ? 'r' : '' },
+        { rotulo: 'Custo da carteira', valor: milhar(r.custo || 0), sub: `horas dos pacotes${semPacote ? ` · ${num(semPacote)} sem pacote` : ''}` },
+        { rotulo: 'Margem', valor: r.margem_percentual != null ? pc(Math.round(r.margem_percentual)) : '0%', tom: r.margem_percentual != null && r.margem_percentual < zona ? 'r' : r.margem_percentual != null ? 'g' : '',
+          sub: r.margem_percentual != null ? `${esc(milhar(r.margem))} · crítica abaixo de ${num(zona)}%` : 'sem contrato e pacote' },
+      ]);
+      const pedeD3 = criticos.map((c) => ({ selo: pede.find((x) => x.acao.includes(`data-id="${esc(c.cliente_id)}"`))?.selo || ['a', 'Margem'], texto: `${cli(c)} · paga ${esc(reais(c.valor_mensal))} · custa R$ ${num(Math.round(c.custo))}`, acao: botao('Rever contrato', `data-vc="financas" data-id="${esc(c.cliente_id)}"`) }));
+      const cabeD3 = v.mostra.financas || termo ? lista : lista.slice(0, 6), restoD3 = lista.length - cabeD3.length;
+      const links = [elo('Como é calculado', 'data-vc="ajuda"'), f ? elo(`Mês a mês e margem real · ${v.fin ? 'recolher' : 'mostrar'}`, `data-v2="fin" aria-expanded="${Boolean(v.fin)}"`) : '', souAdminAqui() && tecnico ? elo('O que falta', `data-vc="falta" aria-expanded="${st.verFalta}"`) : ''].filter(Boolean);
+      return `${acao}${numerosF}
+        ${filtroHtml({ aba: 'financas', rotulo: 'Buscar cliente', fichas: ['todos', 'atraso', 'baixa', 'emdia'].map(ficha), extras: ['sem', 'inad'].map(ficha), antes: `<button type="button" class="v2c-btn s" data-v2="colunas" aria-expanded="${Boolean(v.colunas)}">Colunas</button>` })}
+        <div class="v2c-grade pacotes d3c-fin">${pedeHtml(pedeD3, 'pede-financas')}
+          <section class="v2c-card v2c-lista" aria-label="Clientes"><div class="v2c-card-topo"><h3>Clientes</h3><small>${num(lista.length)}</small></div>
+            <div class="v2c-tb v2c-tb-cab${v.colunas ? ' com-custo' : ''}"><span>Cliente</span><span class="v2c-num">Contrato</span>${v.colunas ? '<span class="v2c-num">Custo</span>' : ''}<span>Margem</span><span>Pagamento</span><span></span></div>
+            ${cabeD3.map(linha).join('') || `<p class="v2c-sub v2c-nada">${todos.length ? (termo ? `Nenhum cliente com "${esc(st.filtro.financas)}".` : 'Nenhum cliente neste filtro.') : 'Nenhum cliente ativo no cadastro.'}</p>`}
+            ${restoD3 > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${num(restoD3)} · ${elo('mostrar', 'data-v2="mostra" data-id="financas"')}</p>` : ''}</section></div>
+        <p class="d3c-mais">${links.join('<span aria-hidden="true">·</span>')}</p>
+        ${erroFin ? `<p class="v2c-sub v2c-tec">Os valores reais não vieram agora: ${esc(erroFin)}</p>` : ''}${st.verFalta && souAdminAqui() && tecnico ? `<div class="v2c-sub v2c-tec">${tecnico}</div>` : ''}
+        ${f && v.fin ? `<div class="v2c-resto">${finTopo(f)}${finGraficos(f)}${finMargens(f)}</div>` : ''}`;
+    }
     return `${falaHtml(frase, botao('Ver a conta', `data-vc="ajuda" aria-expanded="${st.ajuda}"`), 'Vorcaro · Financeiro', 'V')}
       ${numeros}
       ${filtroHtml({ aba: 'financas', rotulo: 'Buscar cliente', fichas: ['todos', 'atraso', 'baixa', 'emdia'].map(ficha), extras: ['sem', 'inad'].map(ficha), antes: `<button type="button" class="v2c-btn s" data-v2="colunas" aria-expanded="${Boolean(v.colunas)}">Colunas</button>` })}
@@ -1030,22 +1286,27 @@
     const nBv = ativos.filter(semBv).length, nCt = ativos.filter(semContato).length, comImp = ativos.filter((f) => abertas(f) > 0), totalImp = comImp.reduce((s, f) => s + abertas(f), 0);
     const maior = [...cats].sort((a, b) => porCat(b.id) - porCat(a.id))[0];
     const faltam = [nBv ? `${num(nBv)} BV` : '', nCt ? plural(nCt, 'contato', 'contatos') : ''].filter(Boolean).join(' e ');
-    const frase = ativos.length ? `<b>${plural(ativos.length, 'fornecedor', 'fornecedores')}</b>${maior ? `, ${num(porCat(maior.id))} em ${esc(maior.nome)}` : ''}. ${faltam ? `${nBv + nCt === 1 ? 'Falta' : 'Faltam'} <b>${faltam}</b> para as Impressões puxarem tudo certo.` : 'Todos com BV e contato: as Impressões puxam tudo certo.'}`
-      : 'Nenhum fornecedor ainda. Gráficas, estúdios e parceiros ficam aqui com BV e contato.';
-    const numeros = tresHtml([
-      { titulo: 'Fornecedores', valor: num(ativos.length), tom: ativos.length ? '' : 'quieto', sub: cats.map((c) => `${esc(c.nome)} ${num(porCat(c.id))}`).join(' · ') || 'nenhum cadastrado' },
-      { titulo: 'Com BV combinado', valor: `${num(ativos.length - nBv)} de ${num(ativos.length)}`, tom: ativos.length ? '' : 'quieto', barra: ativos.length ? (ativos.length - nBv) / ativos.length * 100 : 0,
-        sub: nBv === 1 ? `falta ${esc(ativos.find(semBv).nome)}` : nBv ? `faltam ${num(nBv)}` : ativos.length ? 'todos com BV' : '' },
-      { titulo: 'Impressões em andamento', valor: num(totalImp), tom: totalImp ? '' : 'quieto', sub: totalImp ? `em ${plural(comImp.length, 'fornecedor', 'fornecedores')}` : 'nenhuma agora' },
+    // Direção 3 (quadro D3-Fornecedores): a frase do Nestor vira o bloco de ação laranja; quatro números; a busca com
+    // as fichas por cima da tabela; "Pede ação" e "Completos" viram faixas de seção, com o cabeçalho das colunas.
+    const frase = !ativos.length ? 'Nenhum fornecedor ainda.' : faltam ? `${nBv + nCt === 1 ? 'Falta' : 'Faltam'} ${faltam} para as Impressões.` : 'Todos com BV e contato.';
+    const numeros = numerosD3([
+      { rotulo: 'Fornecedores', valor: num(ativos.length), sub: cats.map((c) => `${num(porCat(c.id))} ${esc(String(c.nome).toLowerCase())}`).join(' · ') || 'nenhum' },
+      { rotulo: 'Com BV', valor: `${num(ativos.length - nBv)} / ${num(ativos.length)}`, barra: ativos.length ? (ativos.length - nBv) / ativos.length * 100 : 0,
+        sub: nBv === 1 ? `falta ${esc(ativos.find(semBv).nome)}` : nBv ? `faltam ${num(nBv)}` : ativos.length ? 'todos com BV' : '', subTom: nBv ? 'a' : '' },
+      { rotulo: 'Impressões andando', valor: num(totalImp), sub: totalImp ? `em ${plural(comImp.length, 'gráfica', 'gráficas')}` : 'nenhuma agora' },
+      { rotulo: 'Sem contato', valor: num(nCt), tom: nCt ? 'a' : '', attrs: nCt ? 'data-v2="chip" data-id="+contato"' : '', sub: nCt === 1 ? esc(ativos.find(semContato).nome) : nCt ? `faltam ${num(nCt)}` : 'todos com contato' },
     ]);
-    const vazioLinha = `<div class="v2c-vz"><p><b>Nenhum fornecedor ainda.</b> Gráficas, estúdios e parceiros ficam aqui com BV e contato; as Impressões puxam o fornecedor daqui.</p>${botao('Cadastrar o primeiro', 'data-vc="fornecedor"')}</div>`;
-    return `${falaHtml(frase, pede.length ? botao(pede.length === 1 ? 'Completar o cadastro' : `Completar os ${num(pede.length)}`, `data-v2="abre-um" data-id="fo:${esc(pede[0].id)}"`) : '', 'Nestor · Compras, fornecedores e impressões', 'N')}
+    const vazioLinha = `<div class="v2c-vz"><p><b>Nenhum fornecedor ainda.</b></p>${botao('Cadastrar o primeiro', 'data-vc="fornecedor"')}</div>`;
+    const cab = '<div class="v2c-lin v2c-fr d3fo-cab" aria-hidden="true"><p>Fornecedor</p><span>Contato</span><span>BV</span><span>Em andamento</span><span></span></div>';
+    const secao = (nome, n, tom) => `<div class="d3fo-sec ${tom}"><h3>${nome}</h3><small>${n}</small></div>`;
+    return `${acaoD3(esc(frase), { texto: pede.length ? (pede.length === 1 ? 'Completar o cadastro' : `Completar os ${num(pede.length)}`) : '', attrs: pede.length ? `data-v2="abre-um" data-id="fo:${esc(pede[0].id)}"` : '', quem: 'Nestor · Compras', agente: 'N' })}
       ${numeros}
-      ${d.fornecedores.length ? `<section class="v2c-card v2c-lista v2c-forn" aria-label="Fornecedores">
-        ${pede.length && !filtrando ? `<div class="v2c-card-topo"><h3>Pede ação</h3><small>${plural(pede.length, 'cadastro incompleto', 'cadastros incompletos')}</small></div>${pede.map((f) => linha(f, true)).join('')}` : ''}
-        ${filtroHtml({ aba: 'fornecedores', busca: 'forn', rotulo: 'Buscar fornecedor ou contato', fichas: ['', ...cats.map((c) => c.id)].map(ficha), extras: ['+imp', '+bv', '+contato'].map(ficha) })}
-        ${cabe.map((f) => linha(f, false)).join('') || `<p class="v2c-sub v2c-nada">${filtrando ? 'Nenhum fornecedor com esse filtro.' : 'Todos os fornecedores estão em Pede ação.'}</p>`}
-        ${resto > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${plural(resto, 'fornecedor', 'fornecedores')} · quem pede cadastro vem primeiro · ${elo('mostrar', 'data-v2="mostra" data-id="fornecedores"')}</p>` : ''}</section>` : vazioLinha}`;
+      ${d.fornecedores.length ? `${filtroHtml({ aba: 'fornecedores', busca: 'forn', rotulo: 'Buscar fornecedor ou contato', fichas: ['', ...cats.map((c) => c.id)].map(ficha), extras: ['+imp', '+bv', '+contato'].map(ficha) })}
+        <section class="v2c-card v2c-lista v2c-forn d3fo-tab" aria-label="Fornecedores">${cab}
+        ${pede.length && !filtrando ? `${secao('Pede ação', `${num(pede.length)} ${pede.length === 1 ? 'incompleto' : 'incompletos'}`, 'a')}${pede.map((f) => linha(f, true)).join('')}` : ''}
+        ${cabe.length && pede.length && !filtrando ? secao('Completos', num(lista.length), 'g') : ''}
+        ${cabe.map((f) => linha(f, false)).join('') || `<p class="v2c-sub v2c-nada">${filtrando ? 'Nenhum fornecedor com esse filtro.' : 'Todos em Pede ação.'}</p>`}
+        ${resto > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${plural(resto, 'fornecedor', 'fornecedores')} · ${elo('mostrar', 'data-v2="mostra" data-id="fornecedores"')}</p>` : ''}</section>` : vazioLinha}`;
   }
   // Creators pelo quadro DEPOIS: fala, três números, "Pede ação" (sem contato, com o campo ali), busca com fichas
   // por cidade e os cartões das pessoas, quatro por vez.
@@ -1072,17 +1333,22 @@
         <p>${selo(['n', Number(c.engajamento) > 0 ? pc(c.engajamento) + ' de engajamento' : 'engajamento não informado'])}</p>
         <div class="v2-mais"><div>${c.observacoes ? `<p class="v2c-sub">${esc(c.observacoes)}</p>` : ''}${edita ? `<p class="v2c-acoes">${botao('Editar', `data-vc="creator" data-id="${id}"`)}${botao('Arquivar', `data-vc="arquivar-creator" data-id="${id}"`, 'ruim')}</p>` : ''}</div></div></article>`; };
     const alcance = todos.reduce((s, c) => s + (Number(c.seguidores) || 0), 0), comEng = todos.filter((c) => Number(c.engajamento) > 0);
-    const frase = todos.length ? `<b>${plural(todos.length, 'creator', 'creators')}</b>, ${num(nIrece)} de Irecê e ${num(nRegiao)} da região. ${pede.length ? `<b>${plural(pede.length, 'sem contato guardado', 'sem contato guardado')}</b>: não dá para chamar para campanha.` : 'Todos com contato guardado.'}`
-      : 'Nenhum creator cadastrado. Monte a lista de influenciadores de Irecê e região com nicho, cidade e contato.';
-    const numeros = tresHtml([
-      { titulo: 'Creators', valor: num(todos.length), tom: todos.length ? '' : 'quieto', sub: todos.length ? `${num(nIrece)} de Irecê · ${num(nRegiao)} da região` : 'nenhum cadastrado' },
-      { titulo: 'Seguidores somados', valor: curto(alcance), tom: alcance ? '' : 'quieto', sub: comEng.length ? `engajamento médio de ${pc(Math.round(comEng.reduce((s, c) => s + Number(c.engajamento), 0) / comEng.length * 10) / 10)}` : 'engajamento não informado' },
-      { titulo: 'Sem contato', valor: num(pede.length), tom: pede.length ? 'atencao' : 'quieto', sub: pede.length ? 'não dá para chamar para campanha' : 'todos com contato' },
+    // Direção 3 (quadro D3-Creators): o bloco de ação laranja, quatro números, "Pede ação" com o campo no lugar, a busca
+    // com as fichas e os cartões das pessoas.
+    const frase = !todos.length ? 'Nenhum creator cadastrado.' : pede.length ? `${plural(pede.length, 'creator sem contato', 'creators sem contato')}. Não dá para chamar.` : 'Todos com contato.';
+    const engMedio = comEng.length ? Math.round(comEng.reduce((s, c) => s + Number(c.engajamento), 0) / comEng.length * 10) / 10 : null;
+    const numeros = numerosD3([
+      { rotulo: 'Creators', valor: num(todos.length), barra: todos.length ? nIrece / todos.length * 100 : 0, sub: todos.length ? `${num(nIrece)} Irecê · ${num(nRegiao)} região` : 'nenhum' },
+      { rotulo: 'Seguidores somados', valor: curto(alcance), sub: engMedio != null ? `engajamento ${pc(engMedio)}` : 'sem engajamento' },
+      { rotulo: 'Nichos', valor: num(nichos.length), sub: `em ${plural(cidades.length + (nIrece ? 1 : 0), 'cidade', 'cidades')}` },
+      { rotulo: 'Sem contato', valor: `${num(pede.length)} / ${num(todos.length)}`, tom: pede.length ? 'a' : '', attrs: pede.length ? 'data-v2="chip" data-id="sem"' : '', barra: todos.length ? pede.length / todos.length * 100 : 0 },
     ]);
-    if (!todos.length) return `${falaHtml(frase, '', 'VYBES · Agência inteira', 'VY')}${numeros}<div class="v2c-vz"><p><b>Nenhum creator cadastrado.</b> Monte a lista de influenciadores de Irecê e região com nicho, cidade e contato.</p>${edita ? botao('Cadastrar o primeiro', 'data-vc="creator"') : ''}</div>`;
-    return `${falaHtml(frase, pede.length && edita ? botao(pede.length === 1 ? 'Completar o contato' : `Completar os ${num(pede.length)}`, `data-v2="abre-um" data-id="cr:${esc(pede[0].id)}"`) : '', 'VYBES · Agência inteira', 'VY')}
+    const bloco = acaoD3(esc(frase), { texto: pede.length && edita ? (pede.length === 1 ? 'Completar o contato' : `Completar os ${num(pede.length)}`) : !todos.length && edita ? 'Cadastrar o primeiro' : '',
+      attrs: pede.length && edita ? `data-v2="abre-um" data-id="cr:${esc(pede[0].id)}"` : 'data-vc="creator"', quem: 'VYBES · Agência', agente: 'V' });
+    if (!todos.length) return `${bloco}${numeros}`;
+    return `${bloco}
       ${numeros}
-      ${pede.length ? `<section class="v2c-card v2c-lista" aria-label="Pede ação"><div class="v2c-card-topo"><h3>Pede ação</h3><small>${plural(pede.length, 'cadastro incompleto', 'cadastros incompletos')}</small></div>${(v.mostra['pede-creators'] ? pede : pede.slice(0, 3)).map(linhaPede).join('')}
+      ${pede.length ? `<section class="v2c-card v2c-lista" aria-label="Pede ação"><div class="v2c-card-topo"><h3>Pede ação</h3><small>${plural(pede.length, 'incompleto', 'incompletos')}</small></div>${(v.mostra['pede-creators'] ? pede : pede.slice(0, 3)).map(linhaPede).join('')}
         ${pede.length > 3 && !v.mostra['pede-creators'] ? `<p class="v2c-sub v2c-card-pe">+ ${num(pede.length - 3)} · ${elo('mostrar', 'data-v2="mostra" data-id="pede-creators"')}</p>` : ''}</section>` : ''}
       ${filtroHtml({ aba: 'creators', busca: 'creator', rotulo: 'Buscar nome ou @', fichas: ['', 'irece', 'regiao', 'sem'].map(ficha), extras: [...nichos.map((n) => 'n:' + n), ...cidades.map((n) => 'c:' + n)].map(ficha),
         depois: resto > 0 ? `<span class="v2c-sub">${num(cabe.length)} de ${num(lista.length)} · ${elo(resto === 1 ? 'mostrar o outro' : `mostrar os outros ${num(resto)}`, 'data-v2="mostra" data-id="creators"')}</span>` : '' })}
@@ -1315,7 +1581,7 @@
     const dinheiro = veDinheiro(), abas = ABAS.filter((a) => (!a[2] || dinheiro) && (!st.soAbas || st.soAbas.has(a[0])));
     if (!abas.some((a) => a[0] === st.aba)) st.aba = 'funil';
     const d = st.dados[st.aba], erro = st.erro[st.aba], v2 = V2.has(st.aba);
-    el.className = v2 ? 'vc v2c' : 'vc';
+    el.className = v2 ? (D3.has(st.aba) ? 'vc v2c d3c' : 'vc v2c') : 'vc';
     let conteudo, telaFin = false;
     if (erro) conteudo = `<div class="vc-vazio"><p>${esc(erro)}</p><button type="button" class="vc-sec" data-vc="recarregar">Tentar de novo</button></div>`;
     else if (!d) conteudo = '<div class="vc-vazio"><p>Carregando…</p></div>';

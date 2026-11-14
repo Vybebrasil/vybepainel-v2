@@ -55,7 +55,9 @@ test('trocou o status: a linha chega (v2-chegou) e a pílula vem verde com o vis
 test('as listas do Painel de trabalho e de Demandas usam a pílula, e o "Trocar status" de dentro da linha sai', () => {
   const cartao = funcao(gestor, 'pv2CartaoHtml'), linha = funcao(demandas, 'pv2dLinhaHtml');
   assert.match(cartao, /class="pv2-pc v2-abre\$\{marcada \? ' marcada' : ''\}\$\{feita \? ' feita' : ''\}\$\{pv2Chegou\(d\)\}"/);
-  assert.match(cartao, /\$\{pv2StatusBotao\(d\)\}<span class="pv2-avs">/);
+  // Direção 3: a pílula abre a segunda linha do cartão, com o quando ao lado; o dono fica na bolinha da direita.
+  assert.match(cartao, /<div class="pv2-r">\$\{pv2StatusBotao\(d\)\}/);
+  assert.match(cartao, /<span class="pv2-avs">\$\{pv2Av\(d\)\}<\/span>/);
   assert.match(linha, /class="pv2-linha v2-abre\$\{marcada \? ' marcada' : ''\}\$\{pv2Chegou\(d\)\}"/);
   assert.match(linha, /<span class="pv2-cs">\$\{pv2StatusBotao\(d\)\}<\/span>/);
   for (const html of [cartao, linha]) { assert.doesNotMatch(html, />Trocar status</); assert.doesNotMatch(html, /pv2Pill\(d\.status\)/); }

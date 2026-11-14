@@ -1,0 +1,413 @@
+/* DIREÇÃO 3 · FINANÇAS (moodboard 3, aprovado pelo Paulo em 13/11/2026: quadros D3-FinVisao, D3-Recebimentos,
+   D3-ContasPagar, D3-Inadimplencia, D3-Extrato, D3-Cartao, D3-GastosFixos, D3-Projecao, D3-Vorcaro e D3-IaCustos).
+   As telas (vybe-mundo-financas.js, vybe-mundo-financeiro.js e o bloco pv2i de vybe-demandas.js) ganham a classe d3f
+   na raiz; tudo aqui fica atrás dela. Este fragmento entra na junção antes de financas.css, financeiro.css e
+   paineis.css: ganha pela especificidade (.fv2.d3f e #pv2-ia.d3f), sem forçar regra. Fundo areia, cartão branco de raio
+   20 só com título e conteúdo, o bloco de ação como único laranja cheio, gráficos em linha, rótulos curtos. */
+
+/* ---------- peças comuns às telas de Finanças e à de IA e custos ---------- */
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-tit{flex:1 1 280px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-tit > :is(h1,h2){flex:none;max-width:100%}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-selo-donos{gap:5px;height:24px;padding:0 10px;background:var(--d3-cartao);color:var(--d3-texto2)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-selo-donos svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-data{font:400 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-escuro{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-escuro:hover{background:#000000;box-shadow:none}
+/* o bloco de ação: quem fala em cima, a frase maior */
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao{padding:14px 20px;border-radius:22px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao > .d3-acao-av{width:36px;height:36px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao-frase{font:600 18px/1.3 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao-frase b{font-weight:700}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter,sans-serif);opacity:.85}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:14px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao > label.d3-acao-btn{display:inline-flex;align-items:center;cursor:pointer}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao > .d3-acao-btn:focus-visible{outline:2px solid #FFFFFF;outline-offset:2px}
+/* os números: rótulo, número com a mini linha ao lado, barra e a linha de baixo */
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-nums{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:12px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:6px 10px;margin:0;padding:12px 16px;border:0;border-radius:18px;box-shadow:none;text-align:left;font:inherit;color:var(--d3-tinta)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) button.d3-num{cursor:pointer;transition:box-shadow .15s}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) button.d3-num:hover{box-shadow:inset 0 0 0 1.5px var(--d3-borda)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) button.d3-num:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > :is(.d3-num-rot,.d3-barra,.d3f-sub){grid-column:1 / -1}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-rot{font-size:12.5px;font-weight:500}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-num-v{min-width:0;font-size:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num > .d3-graf{width:72px;height:28px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.q > .d3-num-v{color:var(--d3-meta)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.d3f-verde > .d3-barra > i{background:var(--d3-pronto)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.r > .d3-graf polyline:not(.meta){stroke:var(--d3-perigo)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-num.r > .d3-graf circle{fill:var(--d3-perigo)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-de{font-size:16px;font-weight:600;color:var(--d3-apagado)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-sub{min-width:0;font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-sub :is(.fv2-cli,.fv2-pill,.fv2-link,.pv2-link){vertical-align:middle}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) :is(.d3f-r){color:var(--d3-perigo)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) :is(.d3f-a){color:var(--d3-ajuste)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) :is(.d3f-g){color:var(--d3-pronto)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-duas{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-duas > .d3-barra{width:34px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-barra.cinza > i{background:var(--d3-meta)}
+/* gráfico, eixo, legenda e coluna */
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) svg.d3f-graf{width:100%;height:auto;margin-top:6px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-graf .d3f-base{stroke:var(--d3-linha);stroke-width:1}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-eixo{display:flex;justify-content:space-between;gap:4px;margin-top:4px;font:400 11.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-eixo > b{color:var(--d3-tinta);font-weight:700}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-leg{display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:12px;color:var(--d3-apagado);white-space:nowrap}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-leg > i{display:inline-block;width:14px;height:0;border-top:2.5px solid var(--d3-tinta)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-leg.proj > i{border-top:1.5px dashed var(--d3-meta)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-leg.cen > i{border-top-color:var(--d3-pronto)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-leg.cinza > i{border-top:6px solid var(--d3-meta);border-radius:3px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-coluna{display:flex;flex-direction:column;gap:14px;min-width:0}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-av{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--d3-linha);color:var(--d3-tinta);font:700 10.5px var(--vv-texto,Inter,sans-serif)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-av.vazio{background:none;box-shadow:inset 0 0 0 1.5px var(--d3-linha)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx{appearance:none;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(56px,1fr) 40px auto;align-items:center;gap:10px;width:100%;margin:0;padding:8px 0;border:0;border-top:1px solid var(--d3-linha);border-radius:0;background:none;color:inherit;font:400 13px/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx.sem-fatia{grid-template-columns:minmax(0,1fr) 72px auto}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx > span:first-child{display:flex;flex-direction:column;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx small{font-size:11.5px;color:var(--d3-apagado)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx > .d3f-gx-v{font-weight:700;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx.g > .d3-barra > i{background:var(--d3-pronto)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx.g > .d3f-gx-v{color:var(--d3-pronto)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx.r{color:var(--d3-perigo)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-gx.r > .d3-barra > i{background:var(--d3-perigo)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) button.d3f-gx{cursor:pointer;border-radius:10px}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) button.d3f-gx:hover,:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) button.d3f-gx[aria-pressed="true"]{background:var(--d3-trilho)}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .fv2-card-topo + .d3f-gx{border-top:0}
+
+/* ---------- Finanças: a casa, o cabeçalho e os controles ---------- */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-in{gap:14px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-topo{gap:8px 10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-ola{flex:1 1 320px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-ola > .fv2-sub{margin-bottom:2px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-link{color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn{box-shadow:none;background:var(--d3-cartao);height:40px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn:hover{box-shadow:inset 0 0 0 1px var(--d3-borda)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.s{height:30px;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.p{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.p:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.d3f-cinza{background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.d3f-escuro{background:var(--d3-tinta);color:#FFFFFF}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.fv2-seta{width:32px;height:32px;background:var(--d3-cartao)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.fv2-perigo{background:var(--d3-cartao);color:var(--d3-perigo)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-mes > .d3f-mes{font:700 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+/* aba que estica: a escolhida fica preta e o fundo abre do meio para as pontas */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg{background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg button{height:32px;font-size:13.5px;color:var(--d3-texto2)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none;animation:d3fAba .4s cubic-bezier(.22,1,.36,1) both}
+@keyframes d3fAba{from{clip-path:inset(0 32% 0 32% round 999px)}to{clip-path:inset(0 0 0 0 round 999px)}}
+/* fichas e busca */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip{height:32px;background:var(--d3-cartao);box-shadow:none;font-size:13px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f button.fv2-chip:hover{box-shadow:inset 0 0 0 1px var(--d3-borda)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip > b{font-weight:700}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip > b.r{color:var(--d3-perigo)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip > b.g{color:var(--d3-pronto)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip > b.a{color:var(--d3-ajuste)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip[aria-pressed="true"] > b{color:#FFFFFF}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-busca{flex:0 1 240px;display:inline-flex;align-items:center;gap:6px;min-width:150px;height:36px;padding:0 4px 0 14px;border-radius:999px;background:var(--d3-cartao);color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-busca > .fv2-busca{flex:1;min-width:0;height:34px;padding:0 8px 0 0;background:none;box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-busca:focus-within{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-busca > .fv2-busca:focus-visible{outline:0}
+/* pílula: clara com a bolinha; cheia só no que venceu (r), no ajuste (a) e no pago (g) */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-pill{height:22px;font-size:12px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-pill:is(.n,.b){background:var(--d3-trilho);color:var(--d3-texto2)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-pill:is(.n,.b)::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#C4C4C4}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-pill.b::before{background:var(--d3-info)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-pill.d3f-ag::before{background:var(--d3-agente)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-cli{white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-cli[data-carteira="vinicius"]{--c:var(--d3-cart-vinicius);color:var(--d3-cart-vinicius)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-cli[data-carteira="ewerton"]{--c:var(--d3-cart-ewerton);color:var(--d3-cart-ewerton)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-cli::before{width:7px;height:7px}
+
+/* ---------- Finanças: cartões e linhas ---------- */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card{min-height:0;padding:14px 18px 10px;border-radius:var(--d3-r-cartao);box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card-topo{align-items:center;gap:4px 10px;margin-bottom:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card-topo h2{flex:1 0 auto;font:700 15px/1.2 var(--vv-texto,Inter,sans-serif)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card.fv2-olha{animation:fv2-olha 1.2s ease-out}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-pe{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:auto;padding:10px 0 4px;border-top:1px solid var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-mais{appearance:none;padding:4px 0;border:0;background:none;color:var(--d3-texto2);font:600 13px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-mais > span{font-weight:400;color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-mais:hover{color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-total{display:inline-flex;align-items:baseline;gap:8px;margin-left:auto}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-pagas{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-pagas > .fv2-chip{height:22px;padding:0 9px;background:var(--d3-trilho)}
+/* a linha: pílula, texto, coluna do meio, valor e o que pede */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-lin{gap:10px;padding:10px 0;border-top:1px solid var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fv2-card-topo,.d3f-cab) + :is(.fv2-lin,.fv2-linha > .fv2-lin){border-top:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-lin > .fv2-pill:first-child{min-width:70px;justify-content:center}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-lin > .fv2-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-meio{flex:none;width:84px;color:var(--d3-texto2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-lin > .fv2-valor{min-width:76px;text-align:right}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-dir{flex:none;display:flex;justify-content:flex-end;min-width:96px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-tabela .d3f-dir{width:132px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-mes{font-weight:400;color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-txt .d3f-mes{font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-cab{display:flex;align-items:center;gap:10px;padding:2px 0 6px;font:600 11.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-cab > .fv2-txt{flex:1;min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-cab > .fv2-valor{min-width:76px;text-align:right}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-cab > .d3f-cab-pill{flex:none;width:70px}
+/* a linha aberta: o histórico numa caixa clara, em linha, com as ações */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-linha[aria-expanded="true"]{background:var(--d3-trilho);margin:0 -10px;padding:0 10px;border-radius:14px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-det{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:var(--d3-cartao)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-hist{padding:0;font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-det-acoes{flex:1 1 100%;padding:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-mini{flex:1 1 100%;margin:0}
+/* contas: o grupo com a barra (a tabela inteira na mesma grade) */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f [data-fv-card="grupos"] :is(.fv2-gr,.d3f-cab){display:grid;grid-template-columns:minmax(0,1.1fr) minmax(48px,1fr) 40px 116px 96px;gap:10px;align-items:center}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f [data-fv-card="grupos"] .d3f-cab > .fv2-valor{min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-gr > .fv2-pill{justify-self:start}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-gr > .fv2-valor{min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-zero{opacity:.6}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-traco{color:var(--d3-meta)}
+/* inadimplência: a régua e as faixas */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-mk.r{color:var(--d3-perigo);font-weight:600}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-faixa > p{color:var(--d3-texto2)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-conta{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:50%;background:var(--d3-linha);font-size:12px}
+/* visão geral: o caixa em linha e os atalhos */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-caixa .fv2-card-topo > .fv2-sub{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-caixa-v{margin-right:4px;font:700 20px var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-abrir{gap:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-abrir > .fv2-chip > b.a{color:var(--d3-ajuste)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-conta > .v2-mais .fv2-dl{margin-top:8px;padding:6px 18px 10px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
+
+/* ---------- Financeiro do Vybe OS (fx) ---------- */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-duas{grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tres{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.25fr) minmax(0,.8fr);gap:14px;align-items:start}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-par{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px;align-items:start}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-rot{margin:12px 0 4px;font:600 12.5px var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none;color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fx-in,.fx-sel){height:34px;border-radius:10px;background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-filtros{gap:6px;margin-bottom:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-filtros .fv2-chip{height:30px;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-filtros .fv2-chip[aria-pressed="true"]{background:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-filtros > .fx-sel-chip{width:auto;max-width:180px;height:30px;border-radius:999px;background:var(--d3-trilho);box-shadow:none;font-size:13px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-filtros > .fx-busca{flex:0 1 150px;height:30px;background:var(--d3-trilho);box-shadow:none}
+/* extrato: dia, no banco, de verdade, valor e o check */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lancs .d3f-cab{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1.25fr) 104px 24px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lanc > .fv2-lin{display:grid;grid-template-columns:44px minmax(0,2.25fr) 104px 24px;gap:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lanc .fv2-txt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:10px;align-items:center;white-space:normal}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-banco{font:400 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-real{flex-wrap:nowrap;margin:0;overflow:hidden;white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-real > *{flex:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-quem{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-valor{text-align:right;font-size:13.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-dia{width:auto;font-weight:500;color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-ok{width:22px;height:22px;transition:background-color .25s,box-shadow .25s}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-ok svg{width:12px;height:12px;stroke-width:3}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-ok[aria-pressed="true"]{background:var(--d3-pronto)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-editor{display:block;margin:0 0 10px;padding:12px;border-radius:12px;background:var(--d3-cartao);box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lados{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:10px;align-items:start}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-comobanco{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:10px;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fx-comobanco,.fx-real-lado) > small{font:600 11.5px var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none;color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-real-lado{padding:10px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--d3-borda)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-real-lado > .fx-grade{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:6px 0 0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-sug{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:var(--d3-texto2)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-partes{margin-top:10px;padding:4px 10px 10px;border-radius:10px;box-shadow:none;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-regra{background:var(--d3-trilho);box-shadow:none;border-radius:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-linha-acoes.fx-fim{border-top-color:var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-linha-acoes.fx-fim > .fv2-btn:last-child{margin-left:auto}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-linha-acoes .fv2-seg button{height:28px;font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-mini{border-top-color:var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card-topo + .fx-mini{border-top:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-det > summary{color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-previa{box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+/* cartão e fixos: dia, item, situação, valor (e editar) */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item{display:block;padding:0;border-top:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fx-itens,.fx-fixos) .d3f-cab,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item > .fv2-lin{display:grid;grid-template-columns:40px minmax(0,1fr) 132px 96px;gap:10px;align-items:center}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fixos .d3f-cab,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fixos .fx-item > .fv2-lin{grid-template-columns:36px minmax(0,1fr) 150px 96px 44px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fx-itens,.fx-fixos) .d3f-cab > .fv2-txt{flex:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fx-itens,.fx-fixos) .d3f-cab > :is(.fx-valor){text-align:right}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fx-itens,.fx-fixos) .d3f-dir{width:auto;min-width:0;justify-content:flex-start}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item-txt{display:flex;flex-direction:column;gap:1px;min-width:0;overflow:hidden}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item-txt > *{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fixos .fx-item-txt{display:block}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fixos .fx-item-txt > *{display:inline;overflow:visible}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item-txt small.d3f-r{color:var(--d3-perigo)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-editar{justify-self:end;color:var(--d3-texto2);text-decoration:none;font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-alerta{margin:0 -10px;padding:0 10px;border-radius:12px;background:color-mix(in srgb,var(--d3-perigo-veu) 55%,var(--d3-cartao))}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-alerta .fx-dia{color:var(--d3-perigo)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-form-caixa .fx-grade{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:4px 0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item .fv2-det{display:block}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-card-meio{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-card-meio .fv2-chip{height:28px;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-card-meio .fv2-chip[aria-pressed="true"]{background:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-pag{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:10px;justify-content:stretch}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-pag > span:nth-child(2){color:var(--d3-apagado);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-criterios{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-provavel{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-provavel small{color:var(--d3-apagado)}
+/* chip que voa: o provável sobe para o formulário que abre no topo */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-voa.voando{animation:d3fVoa .38s cubic-bezier(.32,.72,0,1) forwards}
+@keyframes d3fVoa{to{transform:translate(-120px,-170px) scale(.9);opacity:0}}
+/* clientes mês a mês */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-mm{border-top-color:var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-mm-cab{text-transform:none;letter-spacing:0;color:var(--d3-apagado)}
+/* projeção: o caixa em linha (realizado, como está, cenário), a tabela, o fluxo e o resultado por grupo */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-graf-caixa{position:relative;padding-right:84px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f svg.fx-graf{margin-top:4px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-graf polyline.com{stroke:var(--d3-pronto);stroke-width:2.5;stroke-dasharray:none;animation:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-graf .zero{stroke:var(--d3-borda)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-rot{position:absolute;right:0;transform:translateY(-50%);font:700 12px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-rot.cen{color:var(--d3-pronto)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-rot.hoje{right:auto;transform:translate(-50%,-170%);padding:2px 8px;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font-weight:600;font-size:11.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-caixa .d3f-eixo{padding-right:84px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-rolo{overflow-x:auto;margin-top:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tab{margin-top:0;overflow:visible}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tab-proj .fx-tr{grid-template-columns:118px repeat(var(--n,6),minmax(46px,1fr));min-width:calc(118px + var(--n,6) * 54px);gap:8px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tr{border-top-color:var(--d3-linha);font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tr > :first-child{color:var(--d3-texto2)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-th > span{color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-th > .fx-agora{color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-apagado > span{color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tot{border-top:1px solid var(--d3-borda);font-weight:700}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tot > span:first-child{color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-dre .fx-tr{grid-template-columns:minmax(0,1fr) repeat(var(--n,4),46px);min-width:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-saida{color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-neg{color:var(--d3-ajuste)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fluxo{grid-template-columns:34px minmax(0,1fr) 46px;gap:2px 10px;border-top-color:var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fluxo > b:last-of-type{text-align:right}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fluxo-sub{grid-column:2 / -1}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fluxo-b > i{width:var(--v,0%);height:6px;border-radius:3px;background:var(--d3-tinta);animation:d3BarraCresce .9s cubic-bezier(.22,1,.36,1) .1s both}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fluxo-b > i.s{background:var(--d3-meta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-corte{display:grid;grid-template-columns:minmax(0,1fr) 64px 92px;gap:10px;border-top-color:var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-corte > small{margin:0;text-align:right}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-corte > .fx-sel{width:auto}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-corte.fx-corte-linha{grid-template-columns:minmax(0,1fr) auto}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-corte > .fx-rot{margin:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-frase{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--d3-texto2);font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-cenario .fx-frase > .fx-in{width:auto;flex:1 1 50px;min-width:44px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-escolha > summary{display:flex;justify-content:space-between;align-items:center;gap:8px;list-style:none;color:inherit}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-escolha > summary::-webkit-details-marker{display:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-escolha > summary > .fx-rot{margin:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-escolha > summary > .fv2-chip{height:28px;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-checks > .fx-check{gap:6px;padding:4px 10px;border-radius:999px;background:var(--d3-trilho);font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-check input{accent-color:var(--d3-pronto)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-salvos{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-salvo{display:inline-flex;align-items:center;gap:2px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-salvo .fv2-chip{height:28px;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-cenario > .fv2-btn{align-self:flex-start}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card > svg.d3-graf{width:100%;height:auto;margin-top:4px}
+/* Vorcaro: o que viu, o baralho do WhatsApp, onde mexer e como trabalha */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-achado{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top-color:var(--d3-linha)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-sinal{width:8px;height:8px;background:#C4C4C4;box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-achado.g2 .fx-sinal{background:var(--d3-ajuste);box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-achado.g3 .fx-sinal{background:var(--d3-perigo);box-shadow:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-clis{display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:4px;font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-decidida{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--d3-linha);font-size:13px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card-topo + .fx-decidida{border-top:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-dec-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-decidida.fora{color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-decidida.fora .fx-valor{color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-baralho{position:relative;isolation:isolate;margin:6px 0 8px;padding-right:calc(var(--atras,0) * 12px)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-carta-atras{position:absolute;top:0;bottom:0;left:calc(var(--i) * 12px);right:calc((var(--atras,0) - var(--i)) * 12px);z-index:-1;border-radius:16px;background:var(--d3-trilho);transform:scaleY(calc(1 - var(--i) * .05));opacity:calc(1 - var(--i) * .3)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-carta{margin:0;padding:14px 16px;border-radius:16px;background:var(--d3-cartao);box-shadow:0 1px 2px rgba(31,29,26,.06),0 18px 32px -22px rgba(31,29,26,.35);transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .45s}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-carta.fx-sai{transform:translateX(-115%) rotate(-9deg);opacity:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-carta > .fx-comobanco{flex-direction:row;align-items:center;gap:8px;padding:0;background:none}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-carta > .fx-comobanco > .fx-valor{margin-left:auto}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-prop-txt{margin:8px 0 0;font:600 15px/1.35 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-grade-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-ja{margin-top:4px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila{display:flex;flex-direction:column}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-l{appearance:none;display:grid;grid-template-columns:26px minmax(0,1fr) auto auto;align-items:center;gap:10px;margin:0;padding:9px 8px;border:0;border-top:1px solid var(--d3-linha);border-radius:0;background:none;color:inherit;font:400 13px var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-l.on,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-l:hover{background:var(--d3-trilho);border-radius:10px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-l small{color:var(--d3-apagado);white-space:nowrap}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-atalho{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) auto 12px;align-items:center;gap:8px;width:100%;margin:0;padding:9px 0;border:0;border-top:1px solid var(--d3-linha);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card-topo + .fx-atalho{border-top:0}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-atalho > span:first-child{display:flex;flex-direction:column;min-width:0;font-size:13px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-atalho small{font-size:11.5px;color:var(--d3-apagado)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-atalho > i{font-style:normal;color:var(--d3-meta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-atalho:hover > i{color:var(--d3-tinta)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos{display:flex;flex-direction:column;align-items:stretch;gap:4px;font-size:12.5px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos > span{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--d3-trilho)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos > span.on{background:var(--d3-tinta);color:#FFFFFF}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos > i{font-style:normal;text-align:center;color:var(--d3-meta);line-height:1}
+
+@media (prefers-reduced-motion:reduce){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fv2-seg button,.fx-fluxo-b > i,.d3f-voa.voando){animation:none}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-carta{transition:none}
+}
+/* telas estreitas: uma coluna, os números dois a dois, a linha quebra sem vazar */
+@container fv2 (max-width:1000px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tres{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tres > .fx-col:first-child{grid-column:1 / -1}
+}
+@container fv2 (max-width:860px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-duas,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-tres,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-par{grid-template-columns:minmax(0,1fr)}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lados{grid-template-columns:minmax(0,1fr)}
+}
+@container fv2 (max-width:560px){
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-acao{flex-wrap:wrap;padding:12px 14px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-acao-frase{flex-basis:calc(100% - 50px);font-size:16px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-acao > .d3-acao-btn{margin-left:50px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-nums{gap:8px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-nums > .d3-num:first-child:nth-last-child(odd){grid-column:1 / -1}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-num{padding:10px 12px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-num > .d3-num-v{font-size:22px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-num > .d3-graf{grid-column:1 / -1;width:100%;height:22px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-duas{flex-wrap:wrap;white-space:normal}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-sub{white-space:normal}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-card{padding:12px 14px 8px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-busca{flex:1 1 100%}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-cab,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f :is(.fx-itens,.fx-fixos,.fx-lancs,[data-fv-card="grupos"]) .d3f-cab{display:none}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-ja .fv2-pill{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-lin:not(.fv2-gr){flex-wrap:wrap;gap:6px 8px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-lin:not(.fv2-gr) > .fv2-txt{flex:1 1 calc(100% - 90px)}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-meio{display:none}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-lin > .fv2-valor{margin-left:auto;min-width:0}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-dir,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-tabela .d3f-dir{width:auto;min-width:0}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f [data-fv-card="grupos"] .fv2-gr{grid-template-columns:minmax(0,1fr) 40px auto}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f [data-fv-card="grupos"] .fv2-gr > .d3-barra{grid-column:1 / -1;grid-row:3}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f [data-fv-card="grupos"] .fv2-gr > .fv2-sub{grid-column:1 / -1;grid-row:2}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f [data-fv-card="grupos"] .fv2-gr > :is(.fv2-pill,.d3f-traco){grid-column:3;grid-row:1}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lanc > .fv2-lin{grid-template-columns:40px minmax(0,1fr) 24px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lanc .fv2-txt{grid-template-columns:minmax(0,1fr);gap:2px}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-lanc .fx-valor{grid-column:2;grid-row:2;margin:0;text-align:left}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item > .fv2-lin,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fixos .fx-item > .fv2-lin{grid-template-columns:40px minmax(0,1fr) auto}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item .d3f-dir{grid-column:2;grid-row:2}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item .fx-valor{grid-column:3;grid-row:1}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item .fx-editar{grid-column:3;grid-row:2}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-grade-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-graf-caixa,:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-caixa .d3f-eixo{padding-right:0}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-rot:not(.hoje){display:none}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-baralho{padding-right:0}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-l{grid-template-columns:26px minmax(0,1fr) auto}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-l small{display:none}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-provavel{grid-template-columns:minmax(0,1fr) auto}
+  :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-provavel > .fv2-btn{grid-column:1 / -1;justify-self:start}
+}
+
+/* ---------- IA e custos (#pv2-ia, desenhada por vybe-demandas.js) ---------- */
+#pv2-ia.d3f{display:flex;flex-direction:column;gap:14px}
+#pv2-ia.d3f .pv2-topo{gap:8px 10px}
+#pv2-ia.d3f .pv2-topo .d3f-tit > h2{flex:none}
+#pv2-ia.d3f .pv2-seg button[aria-checked="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none;animation:d3fAba .4s cubic-bezier(.22,1,.36,1) both}
+#pv2-ia.d3f .pv2-btn{box-shadow:none}
+#pv2-ia.d3f .pv2-btn.d3f-escuro{background:var(--d3-tinta);color:#FFFFFF}
+#pv2-ia.d3f .pv2i-baixo{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+#pv2-ia.d3f .pv2-card{padding:14px 18px 10px;border-radius:var(--d3-r-cartao);box-shadow:none}
+#pv2-ia.d3f .pv2i-cab h3{font:700 15px/1.2 var(--vv-texto,Inter,sans-serif)}
+#pv2-ia.d3f .pv2-lin{gap:10px;padding:10px 0;border-top-color:var(--d3-linha)}
+#pv2-ia.d3f .pv2-linha[aria-expanded="true"]{margin:0 -10px;padding:0 10px;border-radius:14px;background:var(--d3-trilho)}
+#pv2-ia.d3f .pv2i-mais{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 10px}
+#pv2-ia.d3f .pv2i-ficha{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:var(--d3-cartao);font:500 12px var(--vv-texto,Inter,sans-serif);color:var(--d3-texto2)}
+#pv2-ia.d3f .pv2i-fichas{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:auto;padding-top:10px;border-top:1px solid var(--d3-linha)}
+#pv2-ia.d3f .pv2i-fichas > .pv2i-ficha{background:var(--d3-trilho)}
+#pv2-ia.d3f .pv2i-fichas > .pv2-menu{margin-left:auto}
+#pv2-ia.d3f .pv2i-graf{position:relative;padding-top:16px}
+#pv2-ia.d3f .pv2i-pico{position:absolute;top:0;right:0;font:600 11.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-ajuste)}
+#pv2-ia.d3f .pv2i-gx{grid-template-columns:26px 70px minmax(0,1fr) 72px;gap:10px;padding:8px 0;border-top-color:var(--d3-linha)}
+#pv2-ia.d3f .pv2i-gx > .pv2-av{width:26px;height:26px;font-size:10.5px}
+#pv2-ia.d3f .pv2i-quem,#pv2-ia.d3f .pv2i-que{display:flex;flex-direction:column;min-height:100%}
+#pv2-ia.d3f .pv2i-pe{margin-top:auto;padding-top:10px}
+@media (prefers-reduced-motion:reduce){#pv2-ia.d3f .pv2-seg button[aria-checked="true"]{animation:none}}
+@media (max-width:1100px){#pv2-ia.d3f.d3f .pv2i-baixo{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#pv2-ia.d3f.d3f .pv2i-baixo > .d3f-coluna{grid-column:1 / -1}}
+@media (max-width:900px){#pv2-ia.d3f.d3f .d3f-nums{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){
+  #pv2-ia.d3f.d3f .pv2i-baixo{grid-template-columns:minmax(0,1fr)}
+  #pv2-ia.d3f.d3f .d3-acao{flex-wrap:wrap}
+  #pv2-ia.d3f.d3f .d3-acao-frase{flex-basis:calc(100% - 50px);font-size:16px}
+  #pv2-ia.d3f.d3f .d3-acao > .d3-acao-btn{margin-left:50px}
+  #pv2-ia.d3f.d3f .d3-num > .d3-num-v{font-size:22px}
+  #pv2-ia.d3f.d3f .d3-num > .d3-graf{grid-column:1 / -1;width:100%;height:22px}
+  #pv2-ia.d3f.d3f .d3-num{padding:10px 12px;overflow:hidden}
+  #pv2-ia.d3f.d3f .d3f-sub{white-space:normal}
+}

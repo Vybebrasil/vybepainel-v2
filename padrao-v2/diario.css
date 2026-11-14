@@ -11,13 +11,13 @@
 #painel-diario .vb-cabecalho-texto h2{margin:0;font:700 30px/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
 #painel-diario .vb-cabecalho-texto p{display:none}
 #painel-diario .vb-cabecalho-acoes{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0}
-#painel-diario .v2d-seg{display:inline-flex;margin:0;padding:4px;border:0;border-radius:999px;background:#EAE6DE;box-shadow:none}
+#painel-diario .v2d-seg{display:inline-flex;margin:0;padding:4px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none}
 #painel-diario .v2d-seg > button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 12.5px var(--vv-texto,Inter),sans-serif;letter-spacing:0;text-transform:none;cursor:pointer}
-#painel-diario .v2d-seg > button[aria-checked="true"]{background:#FFFFFF;color:#1F1D1A;box-shadow:0 1px 3px rgba(31,29,26,.18)}
-#painel-diario .v2d-acao{appearance:none;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;min-width:138px;margin:0;padding:0 16px;border:0;border-radius:999px;background:#C2490C;color:#FFFFFF;font:600 13.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 8px 16px -10px #C2490C;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),background-color .2s}
-#painel-diario .v2d-acao:hover{background:#A83D08}
+#painel-diario .v2d-seg > button[aria-checked="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+#painel-diario .v2d-acao{appearance:none;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;min-width:138px;margin:0;padding:0 18px;border:0;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:600 13.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:none;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),background-color .2s}
+#painel-diario .v2d-acao:hover{background:#000000}
 #painel-diario .v2d-acao:active{transform:scale(.96)}
-#painel-diario .v2d-acao.v2-estado[data-estado="indo"]{background:#C2490C;color:transparent}
+#painel-diario .v2d-acao.v2-estado[data-estado="indo"]{background:#1F1D1A;color:transparent}
 #painel-diario .v2d-acao.v2-estado[data-estado="indo"]::after{border-color:rgba(255,255,255,.45);border-top-color:#FFFFFF}
 #painel-diario .v2d-acao.v2-estado.v2-estado[data-estado="feito"]{background:#11613A;color:#FFFFFF;box-shadow:none}
 #painel-diario :is(.v2d-seg > button,.v2d-acao,.v2d-btn,.v2d-quem,.v2d-link):focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
@@ -109,4 +109,88 @@
   #painel-diario .v2d-lin > .v2d-btn{margin-left:auto}
   #painel-diario .v2d-hist{padding-left:24px}
   #painel-diario .v2d-ets{grid-template-columns:minmax(96px,max-content) minmax(0,1fr) 30px 34px;column-gap:8px}
+}
+
+/* DIREÇÃO 3 (moodboard 3, 13/11/2026; quadro D3-Diario): fundo areia, o bloco de ação laranja do Heitor, quatro números
+   com a linha dos registros, "Registros" em grade (hora, quem, os três números e o selo), "O que mudou" com a pílula de
+   status e "Finalizado na semana" em linha. As peças .d3-* vêm de padrao-v2/0-d3-base.css. */
+#painel-diario:has(.d3d){background:var(--d3-areia)}
+#painel-diario .vb-cabecalho-texto h2{display:flex;align-items:baseline;gap:14px;font-size:30px;letter-spacing:-.02em}
+#painel-diario .d3d-data{font:400 14px var(--vv-texto,Inter),sans-serif;letter-spacing:0;color:var(--d3-apagado)}
+#painel-diario .d3d.v2d{gap:18px}
+#painel-diario .d3d .v2d-card{border-radius:var(--d3-r-cartao);box-shadow:none}
+#painel-diario .d3d .d3-acao{gap:14px;padding:16px 20px;border-radius:22px}
+#painel-diario .d3d .d3-acao > .d3-acao-av{width:36px;height:36px;font-size:14px}
+#painel-diario .d3d .d3-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px;white-space:normal}
+#painel-diario .d3d .d3d-quem{font:700 12px var(--vv-texto,Inter),sans-serif;opacity:.82}
+#painel-diario .d3d .d3d-frase{font:600 19px/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+#painel-diario .d3d .d3-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:14px}
+#painel-diario .d3d-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#painel-diario .d3d .d3-num{border-radius:18px}
+#painel-diario .d3d .d3-num > .d3-num-rot{font-size:12.5px;font-weight:400}
+#painel-diario .d3d .d3-num > .d3-num-v{font-size:36px}
+#painel-diario .d3d .d3-num > .d3-graf{width:90px;height:28px;align-self:flex-end;margin-top:-34px}
+#painel-diario .d3d .d3-num.r > .d3-graf polyline:not(.meta){stroke:var(--d3-perigo)}
+#painel-diario .d3d .d3-num.r > .d3-graf circle{fill:var(--d3-perigo)}
+#painel-diario .d3d .d3-num.a > .d3-graf polyline:not(.meta){stroke:var(--d3-ajuste)}
+#painel-diario .d3d .d3-num.a > .d3-graf circle{fill:var(--d3-ajuste)}
+#painel-diario .d3d-num-sub{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-diario .d3d-num-sub.r{color:var(--d3-perigo)}
+#painel-diario .d3d-num-sub.a{color:var(--d3-ajuste)}
+#painel-diario .d3d .v2d-dois{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px}
+#painel-diario .d3d-dir{display:flex;flex-direction:column;gap:14px;min-width:0}
+#painel-diario .d3d .v2d-registros{padding:16px 0 8px}
+#painel-diario .d3d .v2d-registros > .v2d-topo{padding:0 18px 8px;border-bottom:1px solid var(--d3-linha)}
+#painel-diario .d3d .v2d-tl::before{display:none}
+#painel-diario .d3d .v2d-dl{padding:6px 18px;background:#F9F8F5;border-bottom:1px solid var(--d3-linha);font-weight:600;color:var(--d3-texto2)}
+#painel-diario .d3d .d3d-reg{border-bottom:1px solid var(--d3-linha)}
+#painel-diario .d3d .d3d-lin{flex-direction:row;align-items:center;gap:12px;width:100%;padding:12px 18px;font:400 13px var(--vv-texto,Inter),sans-serif}
+#painel-diario .d3d .d3d-reg.on > .d3d-lin{background:#F9F8F5;box-shadow:inset 3px 0 0 var(--d3-tinta)}
+#painel-diario .d3d .d3d-hora{flex:none;width:44px;font:700 14px var(--vv-titulo,"Inter Tight"),Inter,sans-serif}
+#painel-diario .d3d .v2d-av{width:24px;height:24px;font-size:10px;background:var(--d3-linha);box-shadow:none}
+#painel-diario .d3d .d3d-cs{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--d3-texto2)}
+#painel-diario .d3d .d3d-c > b{font-weight:700}
+#painel-diario .d3d .d3d-c.g > b{color:var(--d3-pronto)}
+#painel-diario .d3d .d3d-c.r > b{color:var(--d3-perigo)}
+#painel-diario .d3d .d3d-c.a > b{color:var(--d3-ajuste)}
+#painel-diario .d3d .d3d-seta{flex:none;width:7px;height:7px;border-right:1.5px solid var(--d3-meta);border-bottom:1.5px solid var(--d3-meta);transform:rotate(-45deg);transition:transform .2s}
+#painel-diario .d3d .d3d-reg[aria-expanded="true"] .d3d-seta{transform:rotate(45deg)}
+#painel-diario .d3d .v2d-hist{padding-left:74px}
+#painel-diario .d3d .v2d-registros > .v2d-pe{padding:10px 18px 4px}
+#painel-diario .d3d :is(.v2d-link){color:var(--d3-tinta);font-weight:600;text-decoration:none}
+#painel-diario .d3d .v2d-acoes .v2d-link{text-decoration:underline;font-weight:400}
+#painel-diario .d3d .v2d-mudou{padding:16px 18px 8px}
+#painel-diario .d3d .v2d-mudou > .v2d-topo{padding-bottom:8px;border-bottom:1px solid var(--d3-linha)}
+#painel-diario .d3d .v2d-ets{grid-template-columns:minmax(118px,max-content) minmax(0,1fr) 34px 34px}
+#painel-diario .d3d .d3d-et{padding:10px 0;border-top:1px solid var(--d3-linha)}
+#painel-diario .d3d .d3d-et:first-child{border-top:0}
+#painel-diario .d3d .d3d-et > .d3-barra{background:var(--d3-linha)}
+#painel-diario .d3d-st{display:inline-flex;align-items:center;gap:6px;max-width:170px;height:24px;padding:0 10px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-texto2);font:500 12.5px var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-diario .d3d-st::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,#C4C4C4)}
+#painel-diario .d3d-st:is(.g,.a,.r)::before{display:none}
+#painel-diario .d3d-st.g{background:var(--d3-pronto-veu);color:var(--d3-pronto);font-weight:600}
+#painel-diario .d3d-st.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste);font-weight:600}
+#painel-diario .d3d-st.r{background:var(--d3-perigo-veu);color:var(--d3-perigo);font-weight:600}
+#painel-diario .d3d-semana{display:flex;flex-direction:column;gap:10px}
+#painel-diario .d3d-leg{display:inline-flex;align-items:center;gap:6px}
+#painel-diario .d3d-leg > i{width:14px;height:0;border-top:2.5px solid var(--d3-tinta)}
+#painel-diario .d3d-leg > i.meta{margin-left:8px;border-top:1.5px dashed var(--d3-meta)}
+#painel-diario .d3d-semana > .d3-graf{height:110px}
+#painel-diario .d3d-eixo{display:flex;justify-content:space-between;gap:6px;font:400 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#painel-diario .d3d-eixo > .ultimo{color:var(--d3-tinta);font-weight:700}
+@media (max-width:900px){
+  #painel-diario .d3d .v2d-dois{grid-template-columns:minmax(0,1fr)}
+  #painel-diario .d3d-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:560px){
+  #painel-diario .d3d .d3-acao{flex-wrap:wrap;padding:14px 16px}
+  #painel-diario .d3d .d3-acao > .d3-acao-frase{flex:1 1 200px}
+  #painel-diario .d3d .d3d-frase{font-size:16px}
+  #painel-diario .d3d .d3-num > .d3-num-v{font-size:26px}
+  #painel-diario .d3d .d3-num > .d3-graf{display:none}
+  #painel-diario .d3d .d3d-lin{flex-wrap:wrap;padding:12px 14px}
+  #painel-diario .d3d .d3d-cs{flex:1 1 100%;order:5}
+  #painel-diario .d3d .v2d-hist{padding-left:24px}
+  #painel-diario .vb-cabecalho-texto h2{flex-wrap:wrap;gap:4px 10px}
+  #painel-diario .vb-cabecalho-texto{padding-right:92px}
 }

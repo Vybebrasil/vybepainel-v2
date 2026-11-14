@@ -57,6 +57,10 @@ async function montar(t, quem) {
   ctx.window = ctx; ctx.window.addEventListener = (tipo, f, cap) => (doc.ouvintes['w' + tipo] ||= []).push({ f, cap });
   vm.runInContext(readFileSync('shared/comercial-calculos.js', 'utf8'), ctx);
   vm.runInContext(readFileSync('vybe-mundo-comercial.js', 'utf8'), ctx);
+  // As peças da Direção 3 (d3AcaoHtml, d3NumHtml, d3LinhaSvg) vêm de vybe-core.js, que no navegador carrega antes.
+  const core = readFileSync('vybe-core.js', 'utf8');
+  vm.runInContext(core.slice(core.indexOf('const d3Esc'), core.indexOf('if (typeof globalThis !== \'undefined\') Object.assign(globalThis, { d3AcaoHtml'))
+    + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
   vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
   vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
   const janela = () => criados.find((e) => e.id === 'vv-comercial');
@@ -68,7 +72,7 @@ test('dono: todas as abas pintam com dados reais, com o dinheiro e sem HTML inje
   const { ctx, janela, esperar } = await montar(t, { tipo: 'sessao', pessoa: { id: 1, nome: 'Paulo', admin: false, dono: true } });
   const espera = { funil: 'Loja X', pacotes: 'Zona crítica', orcamentos: 'Padaria', financas: 'Hebravet', recebimentos: 'inadimplente', contas: 'Aluguel',
     inadimplencia: 'Crítico', caixa: 'Entradas recorrentes', fornecedores: 'Gráfica', creators: 'Ana',
-    vorcaro: 'Ainda não tenho o extrato', extrato: 'Importar extrato', clientes_mes: 'Hebravet', cartao: 'Colar fatura', fixos: 'Novo gasto fixo', projecao: 'A projeção nasce' };
+    vorcaro: 'Sem extrato ainda', extrato: 'Importar extrato', clientes_mes: 'Hebravet', cartao: 'Colar fatura', fixos: 'Novo gasto fixo', projecao: 'Sem mês fechado' };
   for (const aba of ctx.VybeComercial.ABAS.map((a) => a.id)) {
     ctx.VybeComercial.abrir(aba); await esperar();
     const html = janela().innerHTML;

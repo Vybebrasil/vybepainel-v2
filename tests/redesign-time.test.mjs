@@ -41,17 +41,20 @@ test('17 e 49: ação principal no cabeçalho, sem título repetido no corpo, fi
   assert.match(c, /fornecedores: \['Novo fornecedor', 'data-vc="fornecedor"', Boolean\(d\)\], creators: \['Novo creator', 'data-vc="creator"', Boolean\(d\?\.pode\?\.editar_comercial\)\]/);
   assert.doesNotMatch(c, /<h3>Fornecedores<\/h3>|<h3>Creators de Irecê<\/h3>/);
   assert.match(trecho('vybe-mundo-comercial.js', 'function abaFornecedores', 'function abaCreators'), /fichas: \['', \.\.\.cats\.map\(\(c\) => c\.id\)\]\.map\(ficha\)/, 'Todos e os tipos, com a contagem');
-  assert.match(c, /botao\('Cadastrar o primeiro', 'data-vc="creator"'\)/);
+  // Direção 3: sem creator, o "Cadastrar o primeiro" é o botão do bloco de ação (acaoD3), que abre o mesmo formulário.
+  const cr = trecho('vybe-mundo-comercial.js', 'function abaCreators', 'const PINTOR');
+  assert.match(cr, /'Cadastrar o primeiro'/);
+  assert.match(cr, /'data-vc="creator"'/);
   const i = ler('vybe-mundo-impressoes.js');
   assert.doesNotMatch(i, /vi-alerta|<small>Produção<\/small>/, 'sem o aviso solto de fornecedor e sem o setor no título');
-  assert.match(i, /\$\{st\.dados && !st\.form \? '<button type="button" class="p2-btn p" data-vi="nova">Nova impressão<\/button>'/, 'padrão v2: a ação da tela é a pílula laranja do cabeçalho');
+  assert.match(i, /\$\{st\.dados && !st\.form \? '<button type="button" class="p2-btn d3im-nova" data-vi="nova">\+ Nova impressão<\/button>'/, 'Direção 3: a ação da tela fica no cabeçalho, em pílula branca com + (o laranja é só do bloco de ação)');
   assert.match(i, /data-vi-escolher-forn=/, 'sem fornecedor · escolher na própria peça');
   assert.match(i, /data-vi-vista="\$\{k\}"/, 'Linhas | Etapas | Tabela, dentro de Filtros');
 });
 
 test('21, 40, 61: a ação da aba fica no cabeçalho uma vez só; pedidos e clima lado a lado', () => {
   const p = ler('vybe-mundo-pessoas.js');
-  assert.match(p, /<div class="vp-topo-botoes">\$\{acaoDoTopo\(estado\.dados\[estado\.aba\]\)\}/);
+  assert.match(p, /<div class="vp-topo-botoes">\$\{d3 \? abasHtml : ''\}\$\{acaoDoTopo\(estado\.dados\[estado\.aba\]\)\}/);
   for (const t of ['Nova vaga', 'Novo documento', 'Nova trilha', 'Nova solicitação']) assert.equal(p.split(`acao('${t}'`).length - 1, 1, `${t} uma vez só`);
   assert.doesNotMatch(p, /acao\('Abrir vaga'|acao\('Cadastrar o primeiro'|sec\('Começar do zero'/);
   // Padrão v2 (12/11/2026): o quadro põe o baralho de pedidos e o calendário lado a lado; a lista e o clima ficam a um clique.
@@ -77,7 +80,7 @@ test('22: Equipe online com "visto há", moedas num selo e atalhos com ícone', 
 test('48: cada linha diz quantas peças tem e os avisos viram uma frase', () => {
   const m = ler('vybe-mundo-planejamentos.js');
   assert.doesNotMatch(m, /vv-plj-aviso \$\{c\}/);
-  assert.match(m, /`\$\{n\} \$\{n === 1 \? 'peça' : 'peças'\}`/, 'padrão v2: o número de peças sem negrito, como no quadro');
+  assert.match(m, /\$\{n\} \$\{n === 1 \? 'peça' : 'peças'\}/, 'o número de peças na linha (Direção 3: numa pílula clara, sem negrito)');
   assert.match(m, /\.filter\(Boolean\)\.join\(' · '\)/);
 });
 

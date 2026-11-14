@@ -45,11 +45,14 @@ test('entrada: só logo depois do login, antes do passeio, com a fala, Continuar
   assert.match(mundo, /if \(window\.VYBE_ACABOU_DE_ENTRAR && !APP_AGENDA\) \{ window\.VYBE_ACABOU_DE_ENTRAR = false; vigiarContinuar\(\); mostrarEntrada\(\); \}/);
   assert.match(mundo, /if \(entradaAberta\) tourDepoisDaEntrada = true; else window\.VybeTutorial\?\.iniciar\?\.\(\);/);
   const html = funcao(mundo, 'entradaHtml');
-  assert.match(html, /VYBES · guia da agência/);
-  assert.match(html, /Continuar de onde parou/);
+  // Direção 3 (quadro D3-Entrada): faixa laranja, linhas Agora/Depois/Em seguida, três números e a agenda do dia.
+  assert.match(html, /class="d3-acao d3en-acao"/);
+  for (const q of ["lin('Agora'", "lin('Depois'", "lin('Em seguida'"]) assert.ok(html.includes(q), q);
+  assert.match(html, /aria-label="Agenda do dia"/);
+  assert.match(html, /<h2 id="v2en-cont-t">Continuar<\/h2>/);
   assert.match(html, /const cont = c \?/, 'sem nada guardado, o cartão não aparece');
-  assert.match(html, /\$\{c\.total \? `<span class="v2-barra"/, 'barra só com o dado de progresso');
-  for (const a of ["at('hoje'", "at('tarefas'", "at('aprovacoes'"]) assert.ok(html.includes(a), a);
+  assert.match(html, /\$\{c\.total \? `<span class="d3-barra"/, 'barra só com o dado de progresso');
+  for (const a of ["num('hoje'", "num('tarefas'", "num('aprovacoes'"]) assert.ok(html.includes(a), a);
   const acao = funcao(mundo, 'acaoDaEntrada');
   assert.match(acao, /fecharEntrada\(\);/);
   assert.match(acao, /usarTrilho\('tarefas'\)/);
@@ -118,7 +121,7 @@ test('CSS: fragmento sem !important nem html body.mundo, com as medidas dos quad
   assert.match(css, /#login-gate \.v2lg\{[^}]*width:380px;[^}]*padding:28px;border-radius:28px;background:#FFFFFF/);
   assert.match(css, /#login-gate \.v2lg-campo > input\{[^}]*height:46px;[^}]*border-radius:999px;background:#F9F8F5;box-shadow:inset 0 0 0 1\.5px #1F1D1A/);
   assert.match(css, /#login-gate \.v2lg-entrar\{[^}]*height:46px;[^}]*background:#1F1D1A/);
-  assert.match(css, /#vv-entrada \.v2en-btn\{[^}]*height:44px;padding:0 22px;[^}]*background:#C2490C/);
+  assert.match(css, /#vv-entrada \.v2en-btn\{[^}]*height:44px;padding:0 22px;[^}]*background:#1F1D1A/, 'Direção 3: o laranja cheio fica só para o bloco de ação');
   assert.match(css, /:is\(#vv-hoje,#vv-criar\) \.v2cr-det\{display:grid;grid-template-columns:minmax\(0,1fr\) 190px;gap:12px/);
   assert.match(css, /:is\(#vv-hoje,#vv-criar\) \.v2cr-tipo\{[^}]*height:128px;/);
   assert.match(css, /#vv-hoje \.v2vb-bal\{[^}]*border-radius:6px 18px 18px 18px;background:#F4F1FB/);

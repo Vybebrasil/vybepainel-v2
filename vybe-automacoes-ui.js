@@ -201,8 +201,8 @@ const DICA_PRIORIDADE = 'A coluna Prioridade não é escrita à mão: é o espel
 const DICA_REGRAS_DE_DATA = 'As regras por data rodam numa varredura por dia, de madrugada, e não na hora que estiver escrita nelas.';
 
 // Quadro "Automações" do padrão v2 (moodboard aprovado, 12/11/2026): título com Regras/Falhas, Mais e Nova regra; a
-// frase de quem cuida (Cícero); três números; "Pede ação" e "O que as regras fizeram" à esquerda; à direita as regras,
-// cada uma numa linha com a chave, o nome, "Testar regra" e a frase "Quando… então…", que abre no lugar.
+// frase de quem cuida (Cícero); os números; "Pede ação" e "Últimas ações" à esquerda; à direita as regras,
+// cada uma numa linha com a chave, o nome com a frase "Quando… então…", as ações e "Testar"; a linha abre no lugar.
 const ICONE_SETA_REGRA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const REGRAS_NA_FRENTE = 4, ACOES_NA_FRENTE = 4, PEDIDOS_NA_FRENTE = 3;
 let FALHAS_DE_AUTOMACOES = null;   // null enquanto a consulta não volta
@@ -239,7 +239,8 @@ function pintarAutomacoes() {
         <button type="button" onclick="this.closest('details').open=false;sincronizarRegrasDoSistema(this)"
           title="Traz para o painel as regras que vieram do Monday, corrigindo as que mudaram. Regra criada aqui não é tocada.">Sincronizar regras do sistema</button>
       </div></details>` : '';
-  const novo = admin ? '<button type="button" class="v2g-btn p auto-novo" onclick="editarAutomacao(null)">Nova regra</button>' : '';
+  // Direção 3: o único laranja cheio é o bloco de ação; "Nova regra" fica preta, com o +.
+  const novo = admin ? '<button type="button" class="v2g-btn k auto-novo" onclick="editarAutomacao(null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova regra</button>' : '';
   const regras = ABA_DE_AUTOMACOES !== 'falhas';
   // Regras/Falhas como par de opções (aria-checked): o "selecionado é preto" do painel antigo vale para aria-pressed.
   const abas = `<div class="v2g-seg ar-abas" role="radiogroup" aria-label="Regras ou falhas">
@@ -249,21 +250,21 @@ function pintarAutomacoes() {
   const semRegra = !comSaude.length;
 
   raiz.innerHTML = `
-    ${vbCabecalhoHtml({ titulo: 'Automações', acoes: abas + mais + novo })}
+    ${vbCabecalhoHtml({ titulo: 'Automações', texto: 'Gestão', acoes: abas + mais + novo })}
     <section class="ar-aba v2r-tela" data-aba="regras" aria-label="Regras" ${regras ? '' : 'hidden'}>
-      ${semRegra ? '' : '<div class="v2g-card v2g-fala" id="auto-fala"></div><div class="v2r-kpis" id="auto-kpis"></div>'}
+      ${semRegra ? '' : '<div class="d3t-auto-acao" id="auto-fala"></div><div class="v2r-kpis d3t-nums" id="auto-kpis"></div>'}
       <div id="auto-editor"></div>
       ${semRegra ? `<div class="v2g-card v2r-vazio"><p>Nenhuma regra ainda. Uma regra move, atribui ou avisa sozinha quando uma peça muda.${admin ? '' : ' Quando quem administra criar uma regra, ela aparece aqui.'}</p>${novo}</div>
       <div id="auto-historico" hidden></div>` : `<div class="v2r-grade">
         <div class="v2r-col">
           <div class="v2g-card" id="auto-pede"></div>
           <div class="v2g-card v2r-fez">
-            <div class="v2g-cab"><h3 class="v2g-h2">O que as regras fizeram</h3><span class="v2g-sub" id="auto-historico-n"></span></div>
+            <div class="v2g-cab"><h3 class="v2g-h2">Últimas ações</h3><span class="v2g-sub" id="auto-historico-n"></span></div>
             <div id="auto-historico" class="v2r-hist">${vbEstadoHtml({ tipo: 'carregando', titulo: 'Carregando o registro' })}</div>
           </div>
         </div>
         <div class="v2g-card v2r-regras">
-          <div class="v2g-cab"><h3 class="v2g-h2">Regras</h3><span class="v2r-dicas">${temRegraDeData ? dica('Regras por data rodam de madrugada', DICA_REGRAS_DE_DATA) : ''}${dica('Prioridade é automática', DICA_PRIORIDADE)}</span></div>
+          <div class="v2g-cab"><h3 class="v2g-h2">Regras</h3><span class="v2r-dicas">${temRegraDeData ? dica('por data, de madrugada', DICA_REGRAS_DE_DATA) : ''}${dica('prioridade automática', DICA_PRIORIDADE)}</span></div>
           <div class="v2r-filtros">
             <label for="auto-busca" class="v2g-fora">Buscar regra</label>
             <input class="v2g-busca" id="auto-busca" type="search" placeholder="Buscar regra" autocomplete="off" value="${safeText(BUSCA_DE_REGRAS)}" oninput="buscarRegras(this.value)">
@@ -298,19 +299,26 @@ function pintarResumoDasAutomacoes() {
     .filter(([q]) => q).map(([q, rotulo]) => `${n(q)} ${rotulo}`).join(' · ');
   const agente = nomeDoAgenteDeAutomacao();
 
-  const fez = !ligadas ? 'Nenhuma regra está ligada: nada se move sozinho agora.'
-    : `${ligadas === 1 ? 'A regra ligada fez' : `As ${ligadas} regras ligadas fizeram`} <b>${n(acoes)} ${acoes === 1 ? 'ação' : 'ações'} em 30 dias</b> sem ninguém tocar.`;
-  const falhou = lendo ? '' : pendentes.length
-    ? ` <b>${pendentes.length === 1 ? '1 encaminhamento falhou' : `${pendentes.length} encaminhamentos falharam`}</b> e ${pendentes.length === 1 ? 'espera' : 'esperam'} alguém: dá para ver o diagnóstico e tentar de novo.`
-    : ' Nenhuma falha esperando.';
-  fala.innerHTML = `<span class="v2g-ag" aria-hidden="true">${safeText(agente.slice(0, 1).toUpperCase())}</span>
-    <p><span class="v2g-quem">${safeText(agente)} · Automação</span>${fez}${falhou}</p>
-    ${pendentes.length ? `<button type="button" class="v2g-btn s" onclick="trocarAbaAutomacoes('falhas')">${pendentes.length === 1 ? 'Ver a falha' : `Ver as ${pendentes.length}`}</button>` : ''}`;
+  // Direção 3 (quadro D3-Automacoes): o bloco de ação laranja com a frase do agente e "Ver as N" quando há falha; quatro
+  // números (ligadas com a barra, ações, por tipo em barras e falhas). Sem falha, a frase diz o que as regras fizeram.
+  const fez = !ligadas ? 'Nenhuma regra ligada: nada se move sozinho.'
+    : `${ligadas === 1 ? 'A regra ligada fez' : `${ligadas} regras ligadas fizeram`} ${n(acoes)} ${acoes === 1 ? 'ação' : 'ações'} em 30 dias.`;
+  const motivos = [...new Set(pendentes.map((f) => String(f.motivo || '').trim()).filter(Boolean))];
+  const falhou = pendentes.length
+    ? `${pendentes.length === 1 ? '1 falha espera' : `${pendentes.length} falhas esperam`} alguém${motivos.length === 1 ? `: ${safeText(motivos[0])}` : ''}.` : '';
+  const agenteLetra = safeText(agente.slice(0, 1).toUpperCase());
+  fala.innerHTML = `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${agenteLetra}</span>
+    <span class="d3-acao-frase"><small class="d3t-quem">${safeText(agente)} · Automação</small>${falhou || fez}</span>
+    ${pendentes.length ? `<button type="button" class="d3-acao-btn" onclick="trocarAbaAutomacoes('falhas')">${pendentes.length === 1 ? 'Ver a falha' : `Ver as ${pendentes.length}`}</button>` : ''}</section>`;
 
-  kpis.innerHTML = `
-    <div class="v2g-card v2g-kpi"><small>Regras ligadas</small><b><span class="v2-num">${ligadas}</span> <i>de ${comSaude.length}</i></b><small>${admin ? 'mudar aqui vale na hora' : 'só quem administra altera'}</small></div>
-    <div class="v2g-card v2g-kpi"><small>Ações em 30 dias</small><b><span class="v2-num">${n(acoes)}</span></b><small>${partes || 'nenhuma regra rodou no período'}</small></div>
-    <div class="v2g-card v2g-kpi${pendentes.length ? ' ruim' : ''}"><small>Falhas</small><b><span class="v2-num">${lendo ? '…' : pendentes.length}</span></b><small>${lendo ? 'consultando' : pendentes.length ? 'esperando alguém' : 'nenhuma esperando'}</small></div>`;
+  const num = (rotulo, valor, sub, { tom = '', barra = null, extra = '' } = {}) => `<div class="d3-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rotulo}</span><b class="d3-num-v">${valor}</b>${barra == null ? '' : `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>`}${extra}${sub ? `<span class="d3t-sub">${sub}</span>` : ''}</div>`;
+  const tipos = [[rodaram(['grupo']), 'moveram'], [rodaram(['responsaveis']), 'atribuíram'], [rodaram(['notificar', 'update']), 'avisaram'], [rodaram(['status', 'captacao']), 'etiqueta']];
+  const maxTipo = Math.max(1, ...tipos.map(([q]) => q));
+  const porTipo = `<div class="d3-num d3t-tipos"><span class="d3-num-rot">Por tipo · 30 dias</span>${tipos.filter(([q], i) => q || i < 3).map(([q, rotulo]) => `<span class="d3t-tipo"><span>${rotulo}</span><span class="d3-barra" style="--v:${Math.round(q / maxTipo * 100)}%"><i></i></span><b>${n(q)}</b></span>`).join('')}</div>`;
+  kpis.innerHTML = num('Regras ligadas', `${ligadas}<small> / ${comSaude.length}</small>`, admin ? '' : 'só quem administra altera', { barra: comSaude.length ? ligadas / comSaude.length * 100 : 0 })
+    + num('Ações em 30 dias', n(acoes), partes ? 'sem ninguém tocar' : 'nenhuma no período')
+    + porTipo
+    + num('Falhas', lendo ? '…' : String(pendentes.length), lendo ? 'consultando' : pendentes.length ? 'esperando alguém' : 'nenhuma', { tom: pendentes.length ? 'r' : '' });
 
   const itens = [
     ...pendentes.map((f) => `<div class="v2g-lin v2r-pede"><span class="v2g-pill r">Falhou</span><p><b>${safeText(f.titulo)}</b> · ${safeText(f.motivo)}${f.clientes ? ` · ${safeText(f.clientes)}` : ''}</p>
@@ -347,11 +355,12 @@ function linhaDaRegraHtml(a, admin) {
     <div class="v2-abre v2r-regra${a.ativa ? '' : ' desligada'}" data-regra="${Number(a.id)}" aria-expanded="${aberta}">
       <div class="v2r-lin">
         ${liga}
-        <button type="button" class="v2r-nome" aria-expanded="${aberta}" title="Abrir a regra" onclick="abrirRegra(${a.id})"><b>${nome}</b></button>
+        <button type="button" class="v2r-nome" aria-expanded="${aberta}" title="Abrir a regra" onclick="abrirRegra(${a.id})"><b>${nome}</b>
+          <span class="v2r-qe"><em>Quando</em> ${safeText(frasearGatilho(a.gatilho))}${condicao
+          ? ` <em>só se</em> ${safeText(condicao)}` : ''} ${ICONE_SETA_REGRA}<em>então</em> ${acoes}</span></button>
         ${selo && (admin || s.chave !== 'desligada') ? `<span class="v2g-pill ${selo[0]}">${selo[1]}</span>` : ''}
-        ${admin ? `<button type="button" class="v2g-btn s v2-estado" title="Ver o que ela faria, sem mexer em nada" onclick="ensaiarAutomacao(${a.id},this)">Testar regra</button>` : ''}
-        <p class="v2r-qe"><em>Quando</em> ${safeText(frasearGatilho(a.gatilho))}${condicao
-          ? ` <em>só se</em> ${safeText(condicao)}` : ''} ${ICONE_SETA_REGRA}<em>então</em> ${acoes}<span class="v2g-sub">${total.toLocaleString('pt-BR')} ${total === 1 ? 'ação' : 'ações'}</span></p>
+        <span class="v2g-sub v2r-n">${total.toLocaleString('pt-BR')} ${total === 1 ? 'ação' : 'ações'}</span>
+        ${admin ? `<button type="button" class="v2g-btn s v2-estado" title="Ver o que ela faria, sem mexer em nada" aria-label="Testar regra ${nome}" onclick="ensaiarAutomacao(${a.id},this)">Testar</button>` : ''}
       </div>
       <div class="v2-mais"><div>
         <p class="v2g-hist">${safeText(saude)}</p>
@@ -546,7 +555,7 @@ function traduzirFeita(texto) {
 // O botão "Testar regra" conta o estado: gira enquanto o ensaio roda e fica "Passou" quando volta.
 function estadoDoBotaoDeTeste(botao, estado) {
   if (!botao?.dataset) return;
-  if (!estado) { delete botao.dataset.estado; botao.textContent = 'Testar regra'; return; }
+  if (!estado) { delete botao.dataset.estado; botao.textContent = 'Testar'; return; }
   botao.dataset.estado = estado;
   if (estado === 'feito') { botao.textContent = 'Passou'; setTimeout(() => estadoDoBotaoDeTeste(botao, ''), 2600); }
 }

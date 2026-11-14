@@ -5,26 +5,27 @@ import fs from 'node:fs';
 // Padrão v2 (12/11/2026): Minhas tarefas é o quadro B2 do moodboard aprovado, elemento por elemento.
 const js = fs.readFileSync('vybe-mundo.js', 'utf8').replace(/\r\n/g, '\n');
 const css = fs.readFileSync('vybe-mundo.css', 'utf8').replace(/\r\n/g, '\n');
-const tela = js.slice(js.indexOf('// ===== Minhas tarefas pelo quadro B2'), js.indexOf('  function acaoDoHoje('));
+const tela = js.slice(js.indexOf('// ===== Minhas tarefas pelo quadro D3-Tarefas'), js.indexOf('  function acaoDoHoje('));
 
-test('a tela segue a ordem do quadro: topo, fala e números, filtros, lista e coluna direita', () => {
+test('a tela segue a ordem do quadro D3-Tarefas: topo, faixa do guia, números, lista e as duas colunas', () => {
   assert.ok(tela.length > 2000);
-  const ordem = ['<div class="v2t"><div class="v2t-topo">', '${segDono}${diaDe}${criarHtml}</div>', '<div class="v2t-alto">${fala}${numeros}</div>', '${filtros}', '<div class="v2t-grade">${listaHtml()}${lado}</div></div>'];
+  const ordem = ['<div class="d3h d3h-tf">', 'dir: `${diaDe}${segDono}${criarHtml}`', '${faixa}', '${numeros}', '<div class="d3h-col">${tarefas}</div>', 'decidirHtml()', 'agentesD3Html(', 'compromissosD3Html()', "whatsappD3Html('tarefas')", 'aprovacoesD3Html()'];
   let p = -1; for (const parte of ordem) { const i = tela.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; }
   // O que o quadro não tem saiu da tela.
   for (const velho of ['vv-hoje-dias', 'vv-anel', 'data-pergunta', 'vv-chips', 'vv-blocos-prio', 'guiaHtml(']) assert.ok(!tela.includes(velho), `saiu ${velho}`);
 });
 
-test('fala do guia em uma frase com Começar, e os três números com a barra em Feitas na semana', () => {
-  assert.match(tela, /Comece por <b>\$\{esc\(semGrito\(titulo\(primeira\)\)\)\}<\/b>/);
-  assert.match(tela, /<button type="button" class="v2t-btn" \$\{passosGuia\[0\]\.attrs\}>Começar<\/button>/);
-  assert.match(tela, /titulo: 'Para hoje'[\s\S]{0,400}titulo: 'Atrasadas'[\s\S]{0,400}titulo: 'Feitas na semana', valor: n0\(feitas\.length\), sub: '', barra:/);
+test('faixa do guia com os três primeiros passos e Começar, e os quatro números com barra', () => {
+  assert.match(tela, /const passosFaixa = ordemGuia\.slice\(0, 3\)/);
+  assert.match(tela, /botao: passosGuia\[0\] \? 'Começar' : '', attrs: passosGuia\[0\]\?\.attrs/);
+  assert.match(tela, /rotulo: 'Para hoje'[\s\S]{0,400}rotulo: 'Atrasadas'[\s\S]{0,500}rotulo: 'Feitas na semana', valor: n0\(feitas\.length\)[^\n]{0,80}barra:/);
 });
 
 test('filtros Hoje, Semana, Todas, Atrasadas e Feitas, a busca e Filtros', () => {
   // Todas (13/11/2026) fica entre Semana e Atrasadas: a fila inteira, na ordem.
   assert.match(tela, /const GRUPOS = \{ hoje: \['Hoje', hojeP, 'Hoje, na ordem'[^\]]*\], semana: \['Semana', semanaP[^\]]*\], todas: \['Todas', naFila, 'Todas, na ordem', 'Nada aberto\.'\], atrasadas: \['Atrasadas', atrasadasP[^\]]*\], feitas: \['Feitas', feitas[^\]]*\] \};/);
   assert.match(tela, /class="v2t-busca" data-busca-tarefas placeholder="Buscar nas minhas tarefas"/);
+  assert.match(tela, /<div class="v2-lista d3h-lista" aria-label="Minha fila">/, "a busca repinta só a lista; fichas e campo ficam fora dela");
   assert.match(tela, /aria-pressed="\$\{hojeVerTodas\}">Filtros<\/button>/);
   // A busca redesenha só a lista: o campo não perde o foco.
   assert.match(js, /if \(!e\.target\.matches\?\.\('\[data-busca-tarefas\]'\)\) return;\n    buscaTarefas = e\.target\.value; linhaAberta = ''; soListaAgora = true; pintarHoje\(\); soListaAgora = false;/);
@@ -42,7 +43,7 @@ test('a linha: bolinha que conclui, cliente e peça, status que troca ali, quand
 test('a linha abre no lugar com etapas, o motivo, Passar bastão e Abrir; abrir não redesenha a tela', () => {
   assert.match(tela, /\['Briefing', 'Texto', 'Arte', 'Aprovação', 'Publicar'\]/);
   assert.match(tela, /<div class="v2-mais"><div><div class="v2t-det">\$\{etapasHtml\(x\.d\)\}/);
-  assert.match(tela, />Passar bastão<\/button>`\}<button type="button" class="v2t-btn k" data-hoje-acao="peca" data-valor="\$\{id\}">Abrir<\/button>/);
+  assert.match(tela, />Passar bastão<\/button>`\}<button type="button" class="d3h-btn s k" data-hoje-acao="peca" data-valor="\$\{id\}">Abrir<\/button>/);
   assert.match(js, /if \(acao === 'linha'\) \{ linhaAberta = linhaAberta === String\(valor\) \? '' : String\(valor\); aplicarLinhaAberta\(\); return; \}/);
 });
 

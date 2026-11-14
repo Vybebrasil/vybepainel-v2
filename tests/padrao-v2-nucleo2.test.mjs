@@ -31,9 +31,11 @@ test('Equipe online: a ordem do quadro e as ações que já existiam', () => {
 
 test('Centro: barra Vybelândia, cartão da loja, fala do VYBES e controles em pílula', () => {
   const barra = trecho('function pintarLegendaCidade(lista', 'function filtrarCidade(');
-  for (const t of ['<h1>Vybelândia</h1>', 'data-vista="cidade"', 'data-vista="predio"', 'data-busca-loja', "'em dia'", "'em atenção'", "'com atraso'", 'data-loja-apertada>Ir à mais apertada', 'VYBES · Agência inteira', 'data-seu-dia']) assert.ok(barra.includes(t), t);
+  for (const t of ['<h1>Vybelândia</h1>', 'data-vista="cidade"', 'data-vista="predio"', 'data-busca-loja', "'em dia'", "'em atenção'", "'com atraso'", 'class="d3-acao-btn" data-loja-apertada', 'VYBES · Agência inteira', 'data-seu-dia']) assert.ok(barra.includes(t), t);
+  // Direção 3 (D3-Centro e D3-Loja): a fala vira a faixa laranja e o cartão da loja ganha ladrilhos, lista e semana.
+  assert.ok(barra.includes("fala.className = 'd3-acao d3h-acao v2m-fala'"));
   const loja = trecho('  function mostrarCliente(nome) {', '// ---------- Hora do mundo');
-  for (const t of ["num('atrasada', 'atrasadas'", "num('aprovar', 'para aprovar'", "num('fazer', 'a fazer'", 'data-loja-abre=', 'data-trilho="criar">Nova demanda', 'data-abrir-cliente=', 'data-cerebro-cliente=', 'VybeClientePlaca?.html(c.nome)']) assert.ok(loja.includes(t), t);
+  for (const t of ['class="v2m-loja d3m-loja"', 'class="d3m-semana"', "tile('atrasada', 'atrasadas'", "tile('aprovar', 'para aprovar'", "tile('fazer', 'a fazer'", 'data-loja-abre=', 'data-trilho="criar">Nova demanda', 'data-abrir-cliente=', 'data-cerebro-cliente=', 'VybeClientePlaca?.html(c.nome)']) assert.ok(loja.includes(t), t);
   assert.ok(js.includes('<span class="v2m-dica">arraste para girar · clique na loja para abrir</span>'));
   assert.ok(bloco.includes('body.mundo.mundo-centro:not(.v2m-dia) #mundo-hud > #vv-hoje{display:none}'), 'o Hoje fica atrás de "Seu dia"');
 });

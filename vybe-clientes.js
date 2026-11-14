@@ -358,7 +358,16 @@ function renderClientMasterDetail(cli) {
     : `${vencidas.length ? `<b>${vencidas.length === 1 ? '1 peça passou' : `${vencidas.length} peças passaram`} da veiculação</b> e ` : 'Nenhuma peça vencida e '}${fraseReuniao}. ${conselho}`;
   const verConta = window.VybeCarteira?.abrir
     ? `<button type="button" class="v2f-btn s" onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })">Ver a conta</button>` : '';
-  const alto = `<div class="v2f-alto">${nota}<section class="v2f-card v2f-fala" aria-label="Leitura do Mateus">${falaV2Html('Mateus · Atendimento ao cliente', fraseFala, verConta)}</section></div>`;
+  // Direção 3 (moodboard 3, 13/11/2026): no alto só o bloco de ação laranja, numa frase curta; as abas entram logo
+  // depois dele e a nota com o porquê abre o Resumo.
+  const fraseCurta = !id ? 'Sem ficha no cadastro ainda.'
+    : `${vencidas.length ? `${vencidas.length === 1 ? '1 peça passou' : `${vencidas.length} peças passaram`} da veiculação.` : 'Nenhuma peça vencida.'} ${
+      semConversa === null ? 'Sem reunião registrada.' : semConversa === 0 ? 'Última reunião hoje.' : `Última reunião há ${plural(semConversa, 'dia', 'dias')}.`}`;
+  const alto = typeof d3AcaoHtml === 'function'
+    ? `<div class="v2f-alto d3f-alto">${d3AcaoHtml({ frase: `<small class="d3c-quem">Mateus · Atendimento</small>${fraseCurta}`, agente: 'Mateus',
+      botao: window.VybeCarteira?.abrir ? 'Ver a conta' : '', attrs: `onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })"` })}</div>`
+    : `<div class="v2f-alto">${nota}<section class="v2f-card v2f-fala" aria-label="Leitura do Mateus">${falaV2Html('Mateus · Atendimento ao cliente', fraseFala, verConta)}</section></div>`;
+  const notaNoCorpo = typeof d3AcaoHtml === 'function' ? nota : '';
 
   // ── Pede ação ──
   const linhaVencida = (x) => `<p class="v2f-hist">${safeText(String(x.d.nome || x.d.formato || 'Peça').replace(/\s+-\s+/, ' · '))}, era para ${x.quando.slice(8)}/${x.quando.slice(5, 7)}${x.d.responsavel ? `, com ${safeText(primeiroNomeV2(x.d.responsavel))}` : ''}${/info/i.test(String(x.d.status || '')) ? ', espera informação do cliente' : ''}</p>`;
@@ -450,7 +459,7 @@ function renderClientMasterDetail(cli) {
       !plj.lista.length && !plj.podeCriar ? `<span class="v2f-sub">${plj.erro ? safeText(plj.erro) : 'nenhum ainda'}</span>` : ''}`;
   const planejamentos = id ? `<div class="v2f-plj"><span class="v2f-sub">Planejamentos:</span>${fichasPlj}</div>` : '';
 
-  node.innerHTML = `${alto}<div class="v2f-corpo"><div class="v2f-dupla"><div class="v2f-col">${cartaoPede}${cartaoEntregas}</div><div class="v2f-col">${cartaoReuniao}${cartaoDados}${planejamentos}</div></div></div>`;
+  node.innerHTML = `${alto}<div class="v2f-corpo">${notaNoCorpo}<div class="v2f-dupla"><div class="v2f-col">${cartaoPede}${cartaoEntregas}</div><div class="v2f-col">${cartaoReuniao}${cartaoDados}${planejamentos}</div></div></div>`;
 }
 // Linha que abre no lugar (peça .v2-abre do padrão): o botão e o bloco contam o estado.
 function alternarLinhaV2(botao) {
@@ -645,12 +654,16 @@ function renderClientesBoard() {
   if (frase) frase.textContent = '';
   const gradeKpi = document.getElementById('kpi-grid-clientes');
   if (gradeKpi) {
-    const numero = (titulo, valor, sub, atraso) => `<div class="v2f-card v2f-kpi"><small>${titulo}</small><b><span class="v2-num"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${valor}</span></b><small>${sub}</small></div>`;
-    gradeKpi.className = 'kpi-grid v2f-kpis';
+    // Direção 3 (moodboard 3, 13/11/2026): quatro números; "Sem reunião registrada" mostra a barra do quanto falta.
+    const numero = (titulo, valor, sub, atraso, { de = '', tom = '', barra = null } = {}) => `<div class="v2f-card v2f-kpi d3-num${tom ? ` ${tom}` : ''}"><small class="d3-num-rot">${titulo}</small><b class="d3-num-v"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${valor}${de ? `<small>${de}</small>` : ''}</b>${
+      barra == null ? '' : `<span class="d3-barra${tom === 'r' ? ' r' : ''}" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>`}${sub ? `<small class="d3c-sub">${sub}</small>` : ''}</div>`;
+    gradeKpi.className = 'kpi-grid v2f-kpis d3f-kpis';
     gradeKpi.hidden = visaoDeClientes() === 'sinapses';
-    gradeKpi.innerHTML = numero('Ativos', numeros.ativos, [...porRisco, numeros.inativos ? plural(numeros.inativos, 'inativo', 'inativos') : ''].filter(Boolean).join(' · ') || 'sem nota de saúde ainda')
-      + numero('Sem registro de reunião', semRegistro, [numeros.sem ? `${numeros.sem} só na operação` : 'todos com ficha', painelVelho ? plural(painelVelho, 'painel a atualizar', 'painéis a atualizar') : 'nenhum painel a atualizar'].join(' · '), '.12s')
-      + numero('Com NPS', comNota.length, [comNota.length ? `média ${npsMedio}` : '', detratores ? plural(detratores, 'detrator', 'detratores') : 'nenhum detrator', semContato ? `${semContato} sem contato` : 'ninguém sem contato'].filter(Boolean).join(' · '), '.24s');
+    gradeKpi.innerHTML = numero('Ativos', numeros.ativos, [...porRisco, numeros.inativos ? plural(numeros.inativos, 'inativo', 'inativos') : ''].filter(Boolean).join(' · ') || 'sem nota ainda')
+      + numero('Sem reunião registrada', semRegistro, '', '.12s',
+        { de: numeros.ativos ? ` / ${numeros.ativos}` : '', tom: semRegistro ? 'r' : '', barra: numeros.ativos ? (semRegistro / numeros.ativos) * 100 : null })
+      + numero('Com NPS', comNota.length, [comNota.length ? `média ${npsMedio}` : '', plural(detratores, 'detrator', 'detratores'), `${semContato} sem contato`].filter(Boolean).join(' · '), '.24s', { de: numeros.ativos ? ` / ${numeros.ativos}` : '' })
+      + numero('Só na operação', numeros.sem || 0, `sem ficha · ${plural(painelVelho, 'painel', 'painéis')}`, '.36s');
   }
   // A fala do Mateus: como está a carteira, o item que mais falta no cadastro e quem está sem ficha. "Completar
   // cadastros" recorta a lista para quem não tem reunião registrada (o mesmo recorte do aviso antigo).
@@ -672,17 +685,30 @@ function renderClientesBoard() {
       maisFalta ? `O que mais falta no cadastro é <b>${safeText(minuscula(maisFalta.rotulo))}</b>: ${maisFalta.n >= maisFalta.de ? `nenhum dos ${maisFalta.de} tem` : `${maisFalta.n} de ${maisFalta.de} não ${maisFalta.n === 1 ? 'tem' : 'têm'}`}.` : '',
       numeros.sem ? `E ${numeros.sem} ${numeros.sem === 1 ? 'está' : 'estão'} sem ficha.` : '',
     ].filter(Boolean);
-    aviso.className = 'cli-aviso v2f-card v2f-fala';
-    aviso.hidden = (!partes.length && !focado) || visaoDeClientes() === 'sinapses';
-    aviso.innerHTML = aviso.hidden ? '' : falaV2Html('Mateus · Atendimento ao cliente',
-      focado ? 'Mostrando só quem não tem reunião registrada.' : partes.join(' '),
-      semRegistro || focado ? `<button type="button" class="v2f-btn s cli-aviso-acao" aria-pressed="${focado}" onclick="focarClientes('sem-registro')">${focado ? 'Ver todos' : 'Completar cadastros'}</button>` : '');
+    // Direção 3: a fala vira o bloco de ação laranja, numa frase curta (o risco da carteira está no cartão Ativos).
+    const curta = [
+      maisFalta ? `${maisFalta.n >= maisFalta.de ? `Nenhum dos ${maisFalta.de} tem` : `${maisFalta.n} de ${maisFalta.de} sem`} ${safeText(minuscula(maisFalta.rotulo))}.` : '',
+      numeros.sem ? `${numeros.sem} ${numeros.sem === 1 ? 'está' : 'estão'} sem ficha.` : '',
+    ].filter(Boolean).join(' ') || (partes.length ? partes[0] : '');
+    const textoAviso = focado ? 'Só quem não tem reunião registrada.' : curta;
+    const botaoAviso = semRegistro || focado ? (focado ? 'Ver todos' : 'Completar cadastros') : '';
+    aviso.hidden = (!textoAviso && !focado) || visaoDeClientes() === 'sinapses';
+    if (typeof d3AcaoHtml === 'function') {
+      aviso.className = 'cli-aviso d3f-acao';
+      aviso.innerHTML = aviso.hidden ? '' : d3AcaoHtml({ frase: `<small class="d3c-quem">Mateus · Atendimento</small>${textoAviso}`, agente: 'Mateus', botao: botaoAviso,
+        attrs: `aria-pressed="${focado}" onclick="focarClientes('sem-registro')"` });
+    } else {
+      aviso.className = 'cli-aviso v2f-card v2f-fala';
+      aviso.innerHTML = aviso.hidden ? '' : falaV2Html('Mateus · Atendimento ao cliente', focado ? 'Mostrando só quem não tem reunião registrada.' : partes.join(' '),
+        botaoAviso ? `<button type="button" class="v2f-btn s cli-aviso-acao" aria-pressed="${focado}" onclick="focarClientes('sem-registro')">${botaoAviso}</button>` : '');
+    }
   }
   const acoes = document.getElementById('clientes-acoes');
   // Sem a classe antiga do cabeçalho (ela pinta de laranja o texto de todo botão dali); o id continua o mesmo.
+  // Direção 3: "Novo cliente" é botão branco com o "+"; o único laranja cheio é o bloco de ação.
   if (acoes) acoes.className = 'v2f-topo-acoes';
   if (acoes) acoes.innerHTML = `<span class="clientes-visao" id="clientes-visao-topo"></span><button type="button" class="v2f-btn" onclick="openCadastrosStation()">Cadastros</button>${
-    podeEditarClientes() ? '<button type="button" class="v2f-btn p" onclick="novoClienteNoPainel()">Novo cliente</button>' : ''}`;
+    podeEditarClientes() ? '<button type="button" class="v2f-btn p d3f-novo" onclick="novoClienteNoPainel()">Novo cliente</button>' : ''}`;
   RECORTES_DE_CLIENTES = recortes;
   pintarFiltrosDeClientes(recortes);
   // "Conteúdos em aberto" e "Solicitações em aberto" sairam daqui: sao numeros
@@ -1751,17 +1777,19 @@ function tabelaDeClientesHtml(clientes) {
   const marcarTodos = cols.marcar && podeEditarClientes()
     ? `<input type="checkbox" class="v2f-marcar" aria-label="Marcar todos da lista" onclick="marcarBlocoDeClientes('', this.checked)">` : '';
   const ordemPadrao = ORDEM_DE_CLIENTES.coluna === 'saude' && ORDEM_DE_CLIENTES.sentido > 0;
-  const pe = [
-    resto > 0 ? `+ ${resto} ${resto === 1 ? 'cliente' : 'clientes'}${ordemPadrao ? ', quem precisa de você primeiro' : ''} · <button type="button" class="v2f-link" onclick="mostrarListaInteiraDeClientes()">mostrar</button>`
-      : LISTA_INTEIRA_DE_CLIENTES && ordenada.length > CLIENTES_NA_FRENTE + 1 ? `${ordenada.length} clientes · <button type="button" class="v2f-link" onclick="mostrarListaInteiraDeClientes(false)">mostrar menos</button>` : '',
-    'o título da coluna muda a ordem',
-    'plano, segmento e pedidos seguem em Colunas',
-  ].filter(Boolean).join(' · ');
+  // Direção 3: o pé tem só o botão que conta o resto e quantos clientes cada carteira tem, sem frase explicativa
+  // (a ordem continua no título de cada coluna; plano, segmento e pedidos em Colunas).
+  const porCarteira = {};
+  ordenada.forEach((n) => { const k = carteiraDaLinhaDeCliente(n); porCarteira[k] = (porCarteira[k] || 0) + 1; });
+  const carteiras = Object.entries(porCarteira).filter(([k]) => k !== SEM_CARTEIRA).map(([k, q]) => `<span class="d3f-cart d3f-cart-${safeText(k)}">${safeText(ROTULO_DA_CARTEIRA[k] || k)} ${q}</span>`).join('');
+  void ordemPadrao;
+  const pe = `${resto > 0 ? `<button type="button" class="v2f-btn s d3f-mais" title="Quem precisa de você primeiro" onclick="mostrarListaInteiraDeClientes()">+${resto} ${resto === 1 ? 'cliente' : 'clientes'}</button>`
+      : LISTA_INTEIRA_DE_CLIENTES && ordenada.length > CLIENTES_NA_FRENTE + 1 ? `<button type="button" class="v2f-btn s d3f-mais" onclick="mostrarListaInteiraDeClientes(false)">Mostrar menos</button>` : ''}<span class="d3f-espaco"></span>${carteiras}`;
   return `<section class="v2f-card v2f-tabela" aria-label="Clientes" style="--v2f-extras:${extras.map(() => '112px').join(' ')}">
       <div class="v2f-th">${`<span class="v2f-th-nome">${marcarTodos}${titulo('cliente', 'Cliente')}</span>`}${titulo('head', 'Head')}${titulo('saude', 'Saúde', 'Nota de 0 a 100 da Saúde da carteira')}${titulo('abertos', 'Em aberto')}${titulo('cadastro', 'Cadastro', 'Itens essenciais do cadastro preenchidos')}${
         extras.map((k) => `<span class="v2f-h-extra">${ROTULO_EXTRA[k]}</span>`).join('')}<span></span></div>
       ${naFrente.map((n) => { const estado = situacaoDaLinhaDeCliente(n); return linhaDeClienteHtml(n, estado === 'sem', estado, cols, saudeDe); }).join('')}
-      <p class="v2f-pe">${pe}</p>
+      <div class="v2f-pe d3f-pe">${pe}</div>
     </section>`;
 }
 
