@@ -1433,6 +1433,7 @@ function renderOperationalTools() {
   renderTodayQueue();
   renderDailyClose();
   renderVisaoDeGrupos();
+  if (typeof renderFeedDoCliente === 'function') renderFeedDoCliente();
   pintarBarraDeComando();
 }
 
@@ -1504,6 +1505,12 @@ const PAINEIS_DA_BARRA = {
     grupo: 'visao', botao: 'ops-agenda-btn', lembra: () => AGENDA_ABERTA, alvo: 'manager-calendar',
     aberto: () => agendaMensalAberta,
     definir: (v) => { agendaMensalAberta = v; renderManagerCalendar(); },
+  },
+  // Feed do cliente (vybe-feed.js, Paulo 15/11/2026): a grade do Instagram de cada cliente com o que vai sair.
+  feed: {
+    grupo: 'visao', botao: 'ops-feed-btn', lembra: () => FEED_LEMBRA, alvo: 'feed-board',
+    aberto: () => (typeof feedAberto !== 'undefined' ? feedAberto : false),
+    definir: (v) => { if (typeof feedAberto === 'undefined') return; feedAberto = v; renderFeedDoCliente(); },
   },
 };
 
@@ -1871,6 +1878,7 @@ function pv2Montar() {
       <span class="pv2-seg" id="pv2-vistas" role="radiogroup" aria-label="Vista">
         <button type="button" role="radio" data-vista="semana" onclick="mostrarAgendaDaSemana()" title="Agenda da equipe, dia a dia">Semana</button>
         <button type="button" role="radio" data-vista="mes" onclick="toggleAgendaMensal()" title="Calendário do mês por cliente">Mês</button>
+        <button type="button" role="radio" data-vista="feed" onclick="toggleFeedDoCliente()" title="A grade do Instagram de cada cliente: o que está no ar e o que vai sair">Feed</button>
         <button type="button" role="radio" data-vista="grupos" onclick="toggleVisaoDeGrupos()" title="Conteúdos divididos pelos grupos do quadro">Grupos</button>
         <button type="button" role="radio" data-vista="equipe" onclick="mostrarEquipeDaSemana(document.getElementById('ops-equipe-btn'))" title="Carga de cada pessoa e distribuição por formato na semana">Equipe</button>
       </span>
@@ -1951,7 +1959,7 @@ function pv2PintarAlto(n) {
 function pv2PintarControles() {
   const raiz = pv2Montar(); if (!raiz) return;
   const P = PAINEIS_DA_BARRA;
-  const vista = P.calendario.aberto() ? 'mes' : P.grupos.aberto() ? 'grupos' : equipeNaTela() ? 'equipe' : 'semana';
+  const vista = P.calendario.aberto() ? 'mes' : P.feed.aberto() ? 'feed' : P.grupos.aberto() ? 'grupos' : equipeNaTela() ? 'equipe' : 'semana';
   raiz.querySelectorAll('#pv2-vistas [data-vista]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.vista === vista)));
   const conta = (id) => Number(document.getElementById(id)?.textContent) || 0;
   const semDono = typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira).filter((d) => !atividadeDoDiaConcluida(d) && pv2SemDono(d)).length : 0;
