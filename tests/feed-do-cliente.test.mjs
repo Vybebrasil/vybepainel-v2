@@ -111,3 +111,36 @@ test('filtros do feed: carteira, head e cliente, como o calendário', () => {
   assert.deepEqual([...nomes("FEED.head = 'all'; FEED.cliente = 'Voa'")], ['Voa']);
   assert.equal(vm.runInContext("feedClientes().find((x) => x.nome === 'Lions').usuario", c), 'lions');
 });
+
+test('o feed acha as peças pelo nome do cadastro (como o calendário) e inclui as solicitações de feed pela conclusão', () => {
+  const c = ambiente([{ id: '7', cliente: 'Academia Lions', formato: 'Reels', veiculacao_iso: '2026-11-18', status: 'A Fazer' }]);
+  vm.runInContext(`clientMasterResolveName = (n) => (n === 'Academia Lions' ? 'Lions' : n);
+    DADOS_DEMANDAS = [{ id: 's1', cliente: 'Academia Lions', tipo: 'Carrossel', conclusao_iso: '2026-11-20', status: 'Aberta' },
+                      { id: 's2', cliente: 'Academia Lions', tipo: 'Story', conclusao_iso: '2026-11-21', status: 'Aberta' }];
+    solicitacaoVaiProFeed = (i) => !/story/i.test(i.tipo);`, c);
+  const g = vm.runInContext("feedMontar({ nome: 'Lions', usuario: '' })", c);
+  assert.deepEqual([...g.futuras].map((x) => [x.item.id, Boolean(x.request), x.iso]).sort(), [['7', false, '2026-11-18'], ['s1', true, '2026-11-20']]);
+  assert.match(ler('vybe-feed.js'), /moverDataDoItem\(x\.it, 'veiculacao', iso, \{ request: x\.request, renderizar: false, avisar: false \}\)/);
+});
+
+test('a foto do Instagram passa pelo servidor e só vem do CDN do Instagram', async () => {
+  const res = () => { const r = { codigo: 0, h: {}, status(c) { r.codigo = c; return r; }, json(b) { r.corpo = b; return r; }, end(b) { r.bytes = b; return r; }, setHeader(k, v) { r.h[k] = v; } }; return r; };
+  const quem = { tipo: 'sessao', pessoa: { id: 1 } };
+  const buscar = async () => ({ ok: true, headers: { get: () => 'image/jpeg' }, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer });
+  let r = res(); await areaFeedInstagram({ method: 'GET', query: { foto: 'https://scontent-gru1-1.cdninstagram.com/v/a.jpg?x=1' } }, r, quem, { buscar });
+  assert.equal(r.codigo, 200); assert.equal(r.h['Content-Type'], 'image/jpeg'); assert.equal(r.bytes.length, 3);
+  r = res(); await areaFeedInstagram({ method: 'GET', query: { foto: 'https://exemplo.com/a.jpg' } }, r, quem, { buscar }); assert.equal(r.codigo, 400);
+  r = res(); await areaFeedInstagram({ method: 'GET', query: { foto: 'https://x.fbcdn.net/a' } }, r, quem, { buscar: async () => ({ ok: true, headers: { get: () => 'text/html' }, arrayBuffer: async () => new ArrayBuffer(1) }) });
+  assert.equal(r.codigo, 404, 'só imagem');
+  r = res(); await areaFeedInstagram({ method: 'GET', query: { foto: 'https://x.fbcdn.net/a' } }, r, null, { buscar }); assert.equal(r.codigo, 401);
+  const lido = lerPaginaDoPerfil(pagina({ usuario: 'um', posts: [post('A', 1)] }));
+  assert.equal(lido.total_posts, null); assert.equal(lido.verificado, false);
+});
+
+test('capa do feed: o pedido de arquivos com capa=1 prefere imagem, depois vídeo (frame do Drive), e o feed marca o vídeo', () => {
+  const painel = ler('api/painel.js'), feed = ler('vybe-feed.js');
+  assert.match(painel, /const capa = String\(req\.query\?\.capa \|\| ''\) === '1';/);
+  assert.match(painel, /WHEN lower\(coalesce\(a\.extensao,''\)\) IN \('jpg','jpeg','png','webp','gif','heic'\) THEN 0\s*WHEN lower\(coalesce\(a\.extensao,''\)\) IN \('mp4','mov','m4v','webm','avi'\) THEN 1 ELSE 2 END,/);
+  assert.match(feed, /area=arquivos&capa=1&itens=/);
+  assert.match(feed, /aria-label="Vídeo: frame do Drive"/);
+});

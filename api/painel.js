@@ -1602,6 +1602,10 @@ async function areaArquivos(req, res) {
   // Peça que nasceu no Vybe não tem id do Monday: a tela pede por vybe:<id> (o id do banco), como a gaveta.
   const locais = ids.filter((s) => /^vybe:\d+$/.test(s)).map((s) => Number(s.slice(5)));
 
+  // capa=1 (Feed do cliente, Paulo 15/11/2026: "a arte, a capa, o frame do vídeo... você já mostra"): entre os
+  // arquivos da peça vale primeiro a imagem, depois o vídeo (o Drive dá o frame), e só então o resto (PDF, legenda).
+  // Sem capa=1, o de sempre: o mais recente.
+  const capa = String(req.query?.capa || '') === '1';
   const linhas = await sql()`
     SELECT DISTINCT ON (c.id)
            c.id AS conteudo_id, c.monday_item_id AS item, a.nome, a.extensao, a.drive_file_id,
@@ -1609,7 +1613,11 @@ async function areaArquivos(req, res) {
       FROM vybe_conteudos c
       JOIN vybe_conteudo_arquivos a ON a.conteudo_id = c.id AND a.ausente_em IS NULL
      WHERE (c.monday_item_id = ANY(${ids}) OR c.id = ANY(${locais}::bigint[])) AND c.removido_em IS NULL
-     ORDER BY c.id, a.criado_em DESC NULLS LAST`;
+     ORDER BY c.id,
+       CASE WHEN NOT ${capa} THEN 0
+            WHEN lower(coalesce(a.extensao,'')) IN ('jpg','jpeg','png','webp','gif','heic') THEN 0
+            WHEN lower(coalesce(a.extensao,'')) IN ('mp4','mov','m4v','webm','avi') THEN 1 ELSE 2 END,
+       a.criado_em DESC NULLS LAST`;
 
   const mapa = {};
   for (const l of linhas) {

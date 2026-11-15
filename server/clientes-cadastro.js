@@ -52,6 +52,9 @@ export const CAMPOS_CADASTRO = Object.freeze([
   { chave: 'contrato_url', rotulo: 'Contrato (link do PDF no Drive)', secao: 'contrato', tipo: 'url', largo: true },
 
   { chave: 'instagram', rotulo: 'Instagram', secao: 'canais', tipo: 'texto', max: 120, obrigatorio: true },
+  // A bio não vem na página pública do Instagram: o Feed do Painel mostra a daqui (Paulo, 15/11/2026).
+  { chave: 'bio_instagram', rotulo: 'Bio do Instagram', secao: 'canais', tipo: 'longo', max: 300, largo: true,
+    dica: 'Como está no perfil. Aparece no Feed do Painel de trabalho, em cima da grade.' },
   { chave: 'site', rotulo: 'Site', secao: 'canais', tipo: 'url' },
   { chave: 'grupo_whatsapp', rotulo: 'Grupo do WhatsApp com o cliente', secao: 'canais', tipo: 'texto', max: 160, largo: true,
     dica: 'O nome do grupo como aparece no WhatsApp. É por ele que o VYBES reconhece o cliente.', obrigatorio: true },

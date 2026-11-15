@@ -6955,6 +6955,32 @@ body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:va
 .vfd-sel select{appearance:none;padding:0 10px;background:var(--d3-trilho)}
 .vfd-topo{padding-right:52px}
 @media (min-width:768px){.vfd-topo{padding-right:112px}}
+/* Cabeçalho de perfil do Instagram (Paulo, 15/11/2026: "é pra ficar tipo o feed mesmo do Insta, bio, tudo certinho"):
+   foto redonda, os números ao lado, o @ com o selo, o nome, a bio e o link; a barra da grade; a grade colada. */
+.vfd-cliente{padding:16px 14px 12px}
+.vfd-ig{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vfd-ig-topo{display:flex;align-items:center;gap:18px}
+.vfd-ig-foto{flex:none;display:grid;place-items:center;width:78px;height:78px;border-radius:50%;padding:3px;box-sizing:border-box;background:var(--d3-acao);overflow:hidden}
+.vfd-ig-foto > img,.vfd-ig-foto > span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;border:3px solid var(--d3-cartao);box-sizing:border-box;object-fit:cover;background:var(--d3-trilho);font:700 var(--d3-fs-destaque) var(--vv-titulo,Inter),sans-serif;color:var(--d3-texto2)}
+.vfd-ig-nums{flex:1;display:flex;justify-content:space-around;gap:6px;min-width:0}
+.vfd-ig-nums > span{display:flex;flex-direction:column;align-items:center;min-width:0;font-size:var(--d3-fs-apoio);color:var(--d3-texto2)}
+.vfd-ig-nums b{font:700 var(--d3-fs-destaque)/1.2 var(--vv-titulo,Inter),sans-serif;color:var(--d3-tinta)}
+.vfd-ig-linha{display:flex;align-items:center;gap:4px;min-width:0;margin-top:4px}
+.vfd-ig-user{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 var(--d3-fs-destaque) var(--vv-titulo,Inter),sans-serif;color:var(--d3-tinta);text-decoration:none}
+.vfd-ig-user:hover{text-decoration:underline}
+.vfd-ig-user.vfd-sem-insta{font-weight:600;font-size:var(--d3-fs-apoio);color:var(--d3-ajuste)}
+.vfd-ig-selo{flex:none;width:14px;height:14px;border-radius:50%;background:var(--d3-info);position:relative}
+.vfd-ig-selo::after{content:"";position:absolute;left:4px;top:2px;width:4px;height:7px;border:solid var(--d3-cartao);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.vfd-ig-nome{margin:0;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
+.vfd-ig-bio{margin:0;white-space:pre-line;font-size:var(--d3-fs-texto);line-height:1.4;color:var(--d3-tinta);overflow-wrap:anywhere}
+.vfd-ig-bio.vazia{font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
+.vfd-ig-site{font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-info);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vfd-ig-aba{display:flex;justify-content:center;margin:6px -14px 0;padding:10px 0;border-top:1px solid var(--d3-borda)}
+.vfd-ig-aba > i{width:16px;height:16px;background:linear-gradient(var(--d3-tinta),var(--d3-tinta)) 0 0/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 9px 0/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 0 9px/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 9px 9px/7px 7px no-repeat}
+.vfd-cliente .vfd-grade{gap:2px;margin:0 -14px;border-radius:0}
+.vfd-embed{display:flex;flex-direction:column;gap:6px;margin:8px -14px 0}
+.vfd-embed p{margin:0 14px;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
+.vfd-embed iframe{display:block;width:100%;height:520px;border:0;background:var(--d3-cartao)}
 
 /* ===== padrao-v2/ficha.css ===== */
 /* PADRÃO V2 · FICHA (12/11/2026): Gestão de clientes, Ficha do cliente e Reuniões iguais aos quadros DEPOIS do

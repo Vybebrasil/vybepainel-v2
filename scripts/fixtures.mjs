@@ -36,7 +36,7 @@ const CLIENTES_DEMO=['Academia Lions','Alpha1','Antonov','Brussolo Ristorante','
     segmento:['Academia','Solução empresarial','Academia','Restaurante','Provedor de internet'][i%5],plano:i%3?'Plus':'',
     cnpj:i%4===0?'12.345.678/0001-'+String(10+i).padStart(2,'0'):'',endereco:i%2?'':'Rua São Francisco, '+(100+i)+', Centro',email:'',telefone:'',valor:null,
     cadastro:i===0?{razao_social:'Lions Top Academia LTDA',cidade:'Irecê',uf:'BA',contato_nome:'Carla (fictícia)',contato_cargo:'Sócia',contato_whatsapp:'(74) 99999-0001',
-      tipo_contrato:'Mensal recorrente',contrato_inicio:'2026-02-01',instagram:'@academialions',grupo_whatsapp:'Lions x Vybe',escopo:'12 posts e 8 stories por mês, 2 reels, tráfego no Instagram.'}
+      tipo_contrato:'Mensal recorrente',contrato_inicio:'2026-02-01',instagram:'@academialions',bio_instagram:'🏋️ A academia mais completa de Irecê\nMusculação · Funcional · Lutas\n📍 Rua São Francisco, 100',site:'academialions.com.br',grupo_whatsapp:'Lions x Vybe',escopo:'12 posts e 8 stories por mês, 2 reels, tráfego no Instagram.'}
       :i%3===0?{cidade:'Irecê',uf:'BA',instagram:'@cliente'+i}:{}}));
 const ACESSOS_DEMO=[{id:'a1',nome:'Dados & Acessos - Academia Lions',cliente_id:1,cliente:'Academia Lions',grupo:'',drive:'https://drive.google.com/drive/folders/demo-lions',link:'',manus:false,documento:true,atualizado_em:new Date().toISOString()}];
 function clientesDemo(req,res,url,body,reply){
@@ -149,6 +149,18 @@ export async function demoApi(req,res,url,body) {
       {id:'2',nome:'Segundo cliente demonstração',ativo:true,selecionado:false}]});
   }
   if(url.pathname==='/api/painel' && url.searchParams.get('area')==='notas') return notasDemo(req,url,body,reply);
+  // Arquivos das peças em lote (area=arquivos): metade das peças com arte (imagem ou frame de vídeo) desenhada aqui,
+  // para o Feed e a mesa mostrarem a arte de verdade ao lado das que ainda não têm.
+  if(url.pathname==='/api/painel' && url.searchParams.get('area')==='arquivos' && req.method==='GET' && sessao){
+    const itens={};
+    for(const id of String(url.searchParams.get('itens')||'').split(',').map((s)=>s.trim()).filter(Boolean).slice(0,300)){
+      const n=[...id].reduce((s,c)=>s+c.charCodeAt(0),0); if(n%2) continue;
+      const video=n%3===0, cor=['#1E4A9A','#11613A','#7A4A00','#6E56CF','#C2490C'][n%5];
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect width="400" height="500" fill="${cor}"/><circle cx="200" cy="230" r="90" fill="#ffffff" opacity=".25"/><text x="200" y="420" font-family="Arial" font-size="26" fill="#fff" text-anchor="middle">${video?'frame do vídeo':'arte pronta'}</text></svg>`;
+      itens[id]={total:1+(n%3),nome:video?'peca.mp4':'arte.png',extensao:video?'mp4':'png',thumb:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)+'#sz=160',abrir:null};
+    }
+    return reply(200,{ok:true,itens});
+  }
   // Feed do Instagram fictício (server/instagram-feed.js na operação): 6 posts por perfil, com imagem desenhada aqui,
   // e um perfil "privado" para a tela mostrar o caso sem posts.
   if(url.pathname==='/api/painel' && url.searchParams.get('area')==='feed_instagram' && sessao){
@@ -156,7 +168,8 @@ export async function demoApi(req,res,url,body) {
     const perfis={};
     for(const u of String(url.searchParams.get('usuarios')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean).slice(0,40)){
       if(u==='cliente9'){perfis[u]={usuario:u,erro:'Perfil privado ou sem posts públicos.'};continue;}
-      perfis[u]={usuario:u,nome:u,seguidores:1200+u.length*137,posts:Array.from({length:6},(_,i)=>{
+      const av=`<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='${cores[u.length%cores.length]}'/><text x='60' y='74' font-family='Arial' font-size='44' fill='#fff' text-anchor='middle'>${u.slice(0,2).toUpperCase()}</text></svg>`;
+      perfis[u]={usuario:u,nome:u.replace(/[._]/g,' '),foto:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(av),verificado:u.length%2===0,total_posts:40+u.length*9,seguidores:1200+u.length*137,posts:Array.from({length:6},(_,i)=>{
         const d=new Date(Date.now()-(i*2+1)*86400000), cor=cores[(i+u.length)%cores.length];
         const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect width="400" height="500" fill="${cor}"/><text x="200" y="260" font-family="Arial" font-size="34" fill="#fff" text-anchor="middle">@${u}</text><text x="200" y="310" font-family="Arial" font-size="22" fill="#fff" text-anchor="middle">post ${i+1}</text></svg>`;
         return {codigo:`demo${i}`,tipo:['foto','carrossel','video'][i%3],data:d.toISOString(),imagem:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),link:`https://www.instagram.com/${u}/`,fixado:false};

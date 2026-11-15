@@ -53,7 +53,7 @@ function feedClientes() {
   let nomes = linhas.filter(ativo).map((c) => c.nome).filter(Boolean);
   if (!nomes.length) {
     const vistos = new Set();
-    for (const it of feedItens()) for (const n of (typeof clientesDoItem === 'function' ? clientesDoItem(it) : [it.cliente])) if (n) vistos.add(n);
+    for (const x of feedItens()) for (const n of feedClientesDoItem(x.it)) if (n) vistos.add(n);
     nomes = [...vistos];
   }
   if (typeof clienteApareceNaLista === 'function') nomes = nomes.filter((n) => { try { return clienteApareceNaLista(n); } catch { return true; } });
@@ -64,7 +64,8 @@ function feedClientes() {
     const dossie = base.find((d) => feedNorm(d.nome) === n || (d.apelidos || []).some((a) => feedNorm(a) === n) || feedNorm(d.nome).startsWith(n) || n.startsWith(feedNorm(d.nome)));
     const insta = linha.cadastro?.instagram || linha.instagram || dossie?.instagram || '';
     const heads = typeof headsDoClienteNaLista === 'function' ? headsDoClienteNaLista(nome) : String(linha.heads || '').split(',').map((h) => h.trim()).filter(Boolean);
-    return { nome, usuario: feedUsuario(insta), carteira: typeof carteiraDoCliente === 'function' ? carteiraDoCliente(nome) : '', heads };
+    const bio = String(linha.cadastro?.bio_instagram || '').trim(), site = String(linha.cadastro?.site || '').trim();
+    return { nome, usuario: feedUsuario(insta), carteira: typeof carteiraDoCliente === 'function' ? carteiraDoCliente(nome) : '', heads, bio, site };
   });
 }
 function feedUsuario(v) {
@@ -73,13 +74,33 @@ function feedUsuario(v) {
   return /^[a-z0-9._]{1,30}$/.test(s) ? s : '';
 }
 
+// O nome do cliente como o calendário o vê: o do Monday passa pelo cadastro (clientMasterResolveName), senão
+// "Academia Lions" do quadro não acha "Academia Lions Top" do cadastro (Paulo, 15/11/2026: "não apareceu o que já tá
+// cadastrado no feed").
+function feedNomeCliente(n) {
+  const bruto = String(n || '').trim(); if (!bruto) return '';
+  try { if (typeof clientMasterResolveName === 'function') return clientMasterResolveName(bruto) || bruto; } catch { /* segue */ }
+  return typeof normalizarCliente === 'function' ? normalizarCliente(bruto) : bruto;
+}
+function feedClientesDoItem(it) {
+  const brutos = typeof clientesDoItem === 'function' ? clientesDoItem(it) : (Array.isArray(it?.clientes) ? it.clientes : [it?.cliente]);
+  return [...new Set(brutos.filter(Boolean).map(feedNomeCliente).filter(Boolean))];
+}
+// As mesmas peças do calendário: produção pela veiculação e solicitações de feed pela conclusão.
 function feedItens() {
-  const fonte = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) && DADOS_ALL.length ? DADOS_ALL : (typeof DADOS !== 'undefined' && Array.isArray(DADOS) ? DADOS : []);
-  return fonte.filter((it) => it && !/cancel/i.test(String(it.status || '')));
+  const prod = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) && DADOS_ALL.length ? DADOS_ALL : (typeof DADOS !== 'undefined' && Array.isArray(DADOS) ? DADOS : []);
+  const pedidos = typeof DADOS_DEMANDAS !== 'undefined' && Array.isArray(DADOS_DEMANDAS) ? DADOS_DEMANDAS : [];
+  const vivo = (it) => it && !/cancel/i.test(String(it.status || ''));
+  return [
+    ...prod.filter(vivo).map((it) => ({ it, request: false, iso: String(it.veiculacao_iso || '') })),
+    ...pedidos.filter(vivo).filter((it) => (typeof solicitacaoVaiProFeed === 'function' ? solicitacaoVaiProFeed(it) : true))
+      .map((it) => ({ it, request: true, iso: String(it.conclusao_iso || it.veiculacao_iso || '') })),
+  ];
 }
 function feedDoCliente(nome) {
-  const doCliente = feedItens().filter((it) => (typeof clientesDoItem === 'function' ? clientesDoItem(it) : [it.cliente]).includes(nome))
-    .map((it) => ({ item: it, iso: String(it.veiculacao_iso || ''), fmt: feedFormato(it) }))
+  const alvo = feedNorm(feedNomeCliente(nome));
+  const doCliente = feedItens().filter((x) => feedClientesDoItem(x.it).some((n) => feedNorm(n) === alvo))
+    .map((x) => ({ item: x.it, request: x.request, iso: x.iso, fmt: x.request ? feedFormato({ formato: x.it.tipo || x.it.formato }) : feedFormato(x.it) }))
     .filter((x) => x.fmt.feed && /^\d{4}-\d{2}-\d{2}$/.test(x.iso));
   return doCliente;
 }
@@ -122,32 +143,48 @@ function feedFiltrados() {
     && (FEED.cliente === 'all' || c.nome === FEED.cliente));
 }
 
+// A imagem do Instagram passa pelo servidor (o endereço assinado do CDN nem sempre abre direto no navegador).
+function feedFotoIg(url) {
+  const u = String(url || '');
+  if (!u) return '';
+  return /^data:image\//.test(u) ? u : `/api/painel?area=feed_instagram&foto=${encodeURIComponent(u)}`;
+}
+function feedNumeroIg(n) {
+  const v = Number(n); if (!Number.isFinite(v)) return '–';
+  if (v >= 1e6) return `${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
+  if (v >= 1e4) return `${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`;
+  return v.toLocaleString('pt-BR');
+}
+
 function feedTileHtml(t, cli) {
   if (t.buraco) {
     return `<div class="vfd-t vfd-x" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}" title="Sem post para ${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}: arraste uma peça para cá">
-      <span class="vfd-x-marca" aria-hidden="true"></span><span class="vfd-data">${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}</span><span class="vfd-x-txt">sem post</span></div>`;
+      <span class="vfd-x-marca" aria-hidden="true"></span><span class="vfd-x-txt">sem post</span><span class="vfd-data vfd-futuro">${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}</span></div>`;
   }
   if (t.ig) {
     const p = t.ig, icone = p.tipo === 'carrossel' ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Carrossel"></i>' : p.tipo === 'video' ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo"></i>' : '';
     return `<a class="vfd-t vfd-ig" href="${feedEsc(p.link)}" target="_blank" rel="noopener noreferrer" title="No ar desde ${feedEsc(feedDm(String(p.data || '').slice(0, 10)))}: abrir no Instagram">
-      <img src="${feedEsc(p.imagem)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${icone}<span class="vfd-data">${feedEsc(feedDm(String(p.data || '').slice(0, 10)))}</span></a>`;
+      <img src="${feedEsc(feedFotoIg(p.imagem))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${icone}</a>`;
   }
-  const it = t.item, id = String(it.id), arte = FEED.artes.get(id);
-  const nome = String(it.nome || 'Peça');
+  const it = t.item, id = String(it.id), arte = t.request ? null : FEED.artes.get(id);
+  const nome = String(it.nome || it.titulo || 'Peça');
   const status = typeof statusEmFrase === 'function' ? statusEmFrase(it.status || '') : String(it.status || '');
   const quando = `${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}`;
   const corpo = arte?.thumb
-    ? `<img src="${feedEsc(String(arte.thumb).replace(/sz=\d+/, 'sz=480'))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${arte.total > 1 ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Mais de um arquivo"></i>' : ''}`
+    ? `<img src="${feedEsc(String(arte.thumb).replace(/sz=\d+/, 'sz=480'))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${/^(mp4|mov|m4v|webm|avi)$/i.test(String(arte.extensao || '')) ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo: frame do Drive"></i>' : arte.total > 1 ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Mais de um arquivo"></i>' : ''}`
     : `<span class="vfd-prov vfd-prov-${feedEsc(t.fmt.chave)}"><b>${feedEsc(t.fmt.nome)}</b><small>${feedEsc(nome)}</small></span>`;
-  if (t.passado) return `<div class="vfd-t vfd-passado" title="${feedEsc(nome)} · veiculada em ${feedEsc(feedDm(t.iso))}">${corpo}<span class="vfd-data">${feedEsc(feedDm(t.iso))}</span></div>`;
+  if (t.passado) return `<div class="vfd-t vfd-passado" title="${feedEsc(nome)} · veiculada em ${feedEsc(feedDm(t.iso))}">${corpo}</div>`;
   return `<button type="button" class="vfd-t vfd-peca${arte?.thumb ? '' : ' vfd-sem-arte'}" draggable="true" data-vfd-item="${feedEsc(id)}" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}"
-      title="${feedEsc(nome)} · ${feedEsc(t.fmt.nome)} · ${feedEsc(quando)}${status ? ' · ' + feedEsc(status) : ''}${arte?.thumb ? '' : ' · arte ainda não enviada'}. Arraste para trocar o dia; clique para abrir."
+      title="${feedEsc(nome)} · ${feedEsc(t.fmt.nome)} · ${feedEsc(quando)}${status ? ' · ' + feedEsc(status) : ''}${arte?.thumb || t.request ? '' : ' · arte ainda não enviada'}. Arraste para trocar o dia; clique para abrir."
       onclick="feedAbrirPeca('${jsArg(id)}')">${corpo}<span class="vfd-data vfd-futuro">${feedEsc(quando)}</span></button>`;
 }
 
+// O cartão de cada cliente é o perfil do Instagram (Paulo, 15/11/2026: "é pra ficar tipo o feed mesmo do Insta, bio,
+// tudo certinho"): foto, números, nome, bio e link; depois a grade única, com o que vai sair em cima (marcado com o
+// dia) e o que já está no ar embaixo, como vai ficar quando tudo for publicado.
 function feedClienteHtml(cli) {
   const g = feedMontar(cli);
-  const p = g.perfil;
+  const p = g.perfil && !g.perfil.erro ? g.perfil : null;
   const futuro = g.futuro.slice(0, FEED_GRADE_MAX);
   const resto = g.futuro.length - futuro.length;
   const avisos = [
@@ -156,20 +193,30 @@ function feedClienteHtml(cli) {
     g.repetido ? `<span class="vfd-aviso a" title="Três ${feedEsc(g.repetido)} seguidos deixam a grade repetida: arraste para intercalar formatos">3 ${feedEsc(g.repetido)} seguidos</span>` : '',
     g.depois ? `<span class="vfd-aviso">${feedPlural(g.depois, 'peça depois', 'peças depois')} de ${feedDm(feedSomar(feedSegunda(feedHoje()), FEED_SEMANAS * 7 - 1))}</span>` : '',
   ].filter(Boolean).join('');
-  const perfilHtml = cli.usuario
-    ? `<a class="vfd-arroba" href="https://www.instagram.com/${feedEsc(cli.usuario)}/" target="_blank" rel="noopener noreferrer">@${feedEsc(cli.usuario)}</a>${p?.seguidores != null ? `<small>${Number(p.seguidores).toLocaleString('pt-BR')} seguidores</small>` : ''}`
-    : '<small class="vfd-sem-insta">sem Instagram no cadastro</small>';
-  const estadoAr = !cli.usuario ? 'Sem o @ no cadastro: abaixo, as últimas peças veiculadas pelo Vybe OS.'
-    : FEED.pedindo.has(cli.usuario) && !p ? 'Lendo o perfil…'
-    : p?.erro ? `${feedEsc(p.erro)} Abaixo, as últimas peças veiculadas pelo Vybe OS.`
-    : '';
+  const iniciais = cli.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
+  const foto = p?.foto ? `<img src="${feedEsc(feedFotoIg(p.foto))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${jsArg(iniciais)}'}))">` : `<span>${feedEsc(iniciais)}</span>`;
+  const usuario = cli.usuario ? `<a class="vfd-ig-user" href="https://www.instagram.com/${feedEsc(cli.usuario)}/" target="_blank" rel="noopener noreferrer">${feedEsc(cli.usuario)}</a>${p?.verificado ? '<i class="vfd-ig-selo" aria-label="Verificado"></i>' : ''}` : '<span class="vfd-ig-user vfd-sem-insta">sem Instagram no cadastro</span>';
+  const nums = `<span><b>${feedNumeroIg(p?.total_posts)}</b> posts</span><span><b>${feedNumeroIg(p?.seguidores)}</b> seguidores</span><span><b>${g.futuras.length}</b> a sair</span>`;
+  const site = cli.site ? `<a class="vfd-ig-site" href="${feedEsc(/^https?:\/\//i.test(cli.site) ? cli.site : 'https://' + cli.site)}" target="_blank" rel="noopener noreferrer">${feedEsc(cli.site.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}</a>` : '';
+  const bio = cli.bio ? `<p class="vfd-ig-bio">${feedEsc(cli.bio)}</p>` : '<p class="vfd-ig-bio vazia">Sem bio no cadastro do cliente.</p>';
+  // O que está no ar: os posts lidos pelo servidor; sem eles e com o @, o perfil oficial incorporado (abre do navegador
+  // de quem vê, como no E aí Primos); sem o @, as últimas peças veiculadas pelo Vybe OS.
+  const noAr = g.perfil?.posts?.length ? g.noAr.map((t) => feedTileHtml(t, cli)).join('')
+    : !cli.usuario || FEED.pedindo.has(cli.usuario) ? g.noAr.map((t) => feedTileHtml(t, cli)).join('') : '';
+  const embed = cli.usuario && !FEED.pedindo.has(cli.usuario) && !g.perfil?.posts?.length
+    ? `<div class="vfd-embed"><p>O feed atual vem direto do Instagram:</p><iframe title="Instagram de ${feedEsc(cli.nome)}" src="https://www.instagram.com/${feedEsc(cli.usuario)}/embed/" loading="lazy"></iframe></div>` : '';
   return `<section class="vfd-cliente" aria-label="Feed de ${feedEsc(cli.nome)}">
-    <header class="vfd-cab"><h3>${feedEsc(cli.nome)}</h3><span class="vfd-perfil">${perfilHtml}</span><span class="vfd-avisos">${avisos}</span></header>
-    <p class="vfd-linha"><b>Vai sair</b><small>arraste para rediagramar · o calendário muda junto</small></p>
-    <div class="vfd-grade" data-vfd-grade="${feedEsc(cli.nome)}">${futuro.map((t) => feedTileHtml(t, cli)).join('') || '<p class="vfd-vazio">Nada programado nas próximas semanas.</p>'}</div>
+    <header class="vfd-ig">
+      <div class="vfd-ig-topo"><span class="vfd-ig-foto">${foto}</span><div class="vfd-ig-nums">${nums}</div></div>
+      <div class="vfd-ig-linha">${usuario}</div>
+      <p class="vfd-ig-nome">${feedEsc(p?.nome || cli.nome)}</p>
+      ${bio}${site}
+      <div class="vfd-avisos">${avisos}</div>
+    </header>
+    <div class="vfd-ig-aba" aria-hidden="true"><i></i></div>
+    <div class="vfd-grade" data-vfd-grade="${feedEsc(cli.nome)}">${futuro.map((t) => feedTileHtml(t, cli)).join('')}${noAr}${!futuro.length && !noAr ? '<p class="vfd-vazio">Nada programado nem no ar.</p>' : ''}</div>
     ${resto > 0 ? `<p class="vfd-mais">+ ${feedPlural(resto, 'item', 'itens')} mais longe</p>` : ''}
-    <p class="vfd-linha"><b>No ar</b>${estadoAr ? `<small>${estadoAr}</small>` : p?.posts?.length ? '<small>do perfil público, mais novo primeiro</small>' : ''}</p>
-    <div class="vfd-grade vfd-grade-ar">${g.noAr.map((t) => feedTileHtml(t, cli)).join('') || '<p class="vfd-vazio">Nada no ar ainda.</p>'}</div>
+    ${FEED.pedindo.has(cli.usuario) ? '<p class="vfd-mais">Lendo o perfil…</p>' : ''}${embed}
   </section>`;
 }
 
@@ -236,12 +283,12 @@ async function feedPedirPerfis(lista) {
 }
 
 async function feedPedirArtes(lista) {
-  const ids = [...new Set(lista.flatMap((c) => feedMontar(c).futuras.map((x) => String(x.item.id))))]
+  const ids = [...new Set(lista.flatMap((c) => feedMontar(c).futuras.filter((x) => !x.request).map((x) => String(x.item.id))))]
     .filter((id) => !FEED.artes.has(id) && !FEED.pedindoArtes.has(id)).slice(0, 300);
   if (!ids.length) return;
   ids.forEach((id) => FEED.pedindoArtes.add(id));
   try {
-    const r = await fetch(`/api/painel?area=arquivos&itens=${encodeURIComponent(ids.join(','))}`, { credentials: 'same-origin', cache: 'no-store' });
+    const r = await fetch(`/api/painel?area=arquivos&capa=1&itens=${encodeURIComponent(ids.join(','))}`, { credentials: 'same-origin', cache: 'no-store' });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d?.ok) throw new Error(d?.error || `HTTP ${r.status}`);
     for (const id of ids) FEED.artes.set(id, d.itens?.[id] || null);
@@ -258,7 +305,7 @@ function feedAbrirPeca(id) {
   if (typeof window.openItemWorkspace === 'function') window.openItemWorkspace(id);
 }
 
-function feedAcharItem(id) { return feedItens().find((it) => String(it.id) === String(id)) || null; }
+function feedAcharItem(id) { return feedItens().find((x) => String(x.it.id) === String(id)) || null; }
 
 // Arrastar: peça sobre peça troca as datas; peça sobre X leva a peça para o dia do X. Só dentro do mesmo cliente.
 function feedLigarArrasto(wrap) {
@@ -281,21 +328,24 @@ function feedLigarArrasto(wrap) {
 }
 
 async function feedSoltar(origem, idAlvo, isoAlvo) {
-  const item = feedAcharItem(origem.id); if (!item || !isoAlvo || isoAlvo === origem.iso) return;
-  const outro = idAlvo ? feedAcharItem(idAlvo) : null;
+  const a = feedAcharItem(origem.id); if (!a || !isoAlvo || isoAlvo === origem.iso) return;
+  const b = idAlvo ? feedAcharItem(idAlvo) : null;
+  const item = a.it, outro = b?.it || null;
+  // Solicitação de feed muda a conclusão (como no calendário); peça de produção, a veiculação.
+  const mover = (x, iso) => moverDataDoItem(x.it, 'veiculacao', iso, { request: x.request, renderizar: false, avisar: false });
   if (typeof moverDataDoItem !== 'function') { showToast?.('Não foi possível mover a data agora.', 'err', 6000); return; }
   FEED.salvando = true; document.getElementById('feed-board')?.classList.add('vfd-salvando');
   try {
-    await moverDataDoItem(item, 'veiculacao', isoAlvo, { renderizar: false, avisar: false });
-    if (outro) {
-      try { await moverDataDoItem(outro, 'veiculacao', origem.iso, { renderizar: false, avisar: false }); }
+    await mover(a, isoAlvo);
+    if (b) {
+      try { await mover(b, origem.iso); }
       catch (erro) {
         // A segunda não gravou: desfaz a primeira para as duas não caírem no mesmo dia.
-        try { await moverDataDoItem(item, 'veiculacao', origem.iso, { renderizar: false, avisar: false }); } catch { /* fica o aviso */ }
+        try { await mover(a, origem.iso); } catch { /* fica o aviso */ }
         throw erro;
       }
     }
-    const nome = (it) => String(it.nome || 'Peça');
+    const nome = (it) => String(it.nome || it.titulo || 'Peça');
     if (typeof showToast === 'function') showToast(outro ? `Trocadas: ${nome(item)} vai para ${feedDm(isoAlvo)} e ${nome(outro)} para ${feedDm(origem.iso)}.` : `${nome(item)} vai ao ar em ${feedDm(isoAlvo)}.`, 'ok', 5000);
   } catch (erro) {
     if (typeof showToast === 'function') showToast(`Não foi possível mover a data: ${erro.message}`, 'err', 7000);
