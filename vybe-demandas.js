@@ -849,7 +849,7 @@ function demandaItemRow(d, showCliente = true) {
   ].filter(Boolean).join('');
 
   return `<article class="item-row dem-cartao abre-resumo"
-      onclick="abrirCartaoRapido('${safeText(d.id)}',event,'request')"
+      onclick="abrirCartaoRapido('${jsArg(d.id)}',event,'request')"
       title="Abrir o resumo de ${safeText(d.nome || '')}">
     <div class="dem-cartao-topo">
       ${showCliente ? vybeTagCliente(d) : ''}
@@ -1063,7 +1063,7 @@ function pintarTiposDeDemanda() {
   };
   const chip = (chave, rotulo, quantos, extra = '') => `<button type="button"
     class="tipo-chip ${currentDemandaTipoFilter === chave ? 'ativo' : ''} ${extra}" ${extra ? '' : cor(rotulo)}
-    onclick="filtrarDemandaPorTipo('${String(chave).replace(/'/g, "\\'")}')"
+    onclick="filtrarDemandaPorTipo('${jsArg(chave)}')"
     title="${extra ? 'Solicitações que ainda não têm tipo' : `Ver só ${safeText(rotulo)}`}">${
     safeText(rotulo)}<span>${quantos}</span></button>`;
   const tipos = [...conta.entries()].sort((a, b) => b[1] - a[1]);
@@ -1558,9 +1558,9 @@ function pv2dPintar() {
     const atras = g.itens.filter(demandaAtrasada).length, doGrupo = abertasPorGrupo.get(String(g.id)) || g.itens.length;
     const conta = atras ? `${atras} ${pl(atras, 'atrasada', 'atrasadas')} de ${Math.max(doGrupo, g.itens.length)}` : `${g.itens.length} ${pl(g.itens.length, 'demanda', 'demandas')}`;
     return `<div class="pv2-grupo" data-grupo="${safeText(g.id)}"><div class="pv2-grp"><i style="background:${safeText(corDeQualquerGrupo(g.id))}" aria-hidden="true"></i><h3>${safeText(g.nome)}</h3><span class="pv2-sub">${g.itens.length ? conta : 'nada neste filtro'}</span>
-        ${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo('demandas', g.id, g.nome) : ''}<button type="button" class="pv2-btn s d3d-nova" onclick="cadastrarNoGrupo('demandas','${safeText(g.id)}')" aria-label="Nova demanda em ${safeText(g.nome)}">+ Nova aqui</button></div>
+        ${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo('demandas', g.id, g.nome) : ''}<button type="button" class="pv2-btn s d3d-nova" onclick="cadastrarNoGrupo('demandas','${jsArg(g.id)}')" aria-label="Nova demanda em ${safeText(g.nome)}">+ Nova aqui</button></div>
       ${aVista.map((d) => pv2dLinhaHtml(d, hoje)).join('')}
-      ${resto > 0 ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${safeText(g.id)}')" aria-label="Ver todas as ${g.itens.length} de ${safeText(g.nome)}" title="+ ${resto} neste grupo · ver todas">+${resto}</button>` : inteiro && g.itens.length > PV2D_POR_GRUPO ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${safeText(g.id)}')">Mostrar menos</button>` : ''}</div>`;
+      ${resto > 0 ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${jsArg(g.id)}')" aria-label="Ver todas as ${g.itens.length} de ${safeText(g.nome)}" title="+ ${resto} neste grupo · ver todas">+${resto}</button>` : inteiro && g.itens.length > PV2D_POR_GRUPO ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${jsArg(g.id)}')">Mostrar menos</button>` : ''}</div>`;
   };
   const nomesVazios = vazios.slice(0, 1).map((g) => g.nome).join('') + (vazios.length > 1 ? ` e mais ${vazios.length - 1}` : '');
   const peVazios = vazios.length ? `<p class="pv2-sub pv2-pe-geral">${vazios.length} ${pl(vazios.length, 'grupo sem nada neste filtro', 'grupos sem nada neste filtro')} (${safeText(nomesVazios)}) ${pl(vazios.length, 'fica recolhido', 'ficam recolhidos')} · <button type="button" class="pv2-link" onclick="pv2dVazios()">${pv2dMostrarVazios ? 'recolher' : 'mostrar'}</button></p>` : '';

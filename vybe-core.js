@@ -45,7 +45,7 @@ function tagClienteHtml(nome, { dentroDeBotao = false } = {}) {
 // status sem a cor do status"). pillHtml (vybe-gestor.js) usa status_color e, sem ela, a cor do catálogo pelo nome.
 function statusCor(d) {
   const s = String(d?.status || "Sem status");
-  return typeof pillHtml === "function" ? pillHtml(safeText(s), d?.status_color || "", d?.status_border || "") : safeText(s);
+  return typeof pillHtml === "function" ? pillHtml(s, d?.status_color || "", d?.status_border || "") : safeText(s);
 }
 function cliCor(nome) { return nome ? tagClienteHtml(String(nome), { dentroDeBotao: true }) : ""; }
 // Prazo (entrega interna da equipe) e veiculação (dia em que vai ao ar) sempre com o nome, nunca uma data solta
@@ -1224,8 +1224,15 @@ const VB_ABAS_DONO = '[class*="ofc-"], [class*="snc-"], [class*="prov-"], .spotl
 const VB_ABAS_POSICAO = new Map();
 const VB_ABAS_MAX = 6;
 function vbAbaSelecionada(aba) { return aba.getAttribute('aria-selected') === 'true' || aba.classList.contains('ativa') || aba.classList.contains('active'); }
+// Listas de abas com observador de largura. A tela redesenha a lista e o pai continua na página: sem soltar, cada volta
+// deixava o observador vivo segurando a lista velha (7 nós e 3 ouvintes por volta, auditoria 15/11/2026).
+const VB_ABAS_OBSERVADAS = new Set();
+function vbSoltarAbasForaDaTela() {
+  for (const l of VB_ABAS_OBSERVADAS) if (!l.isConnected) { l.vbAbasRO?.disconnect(); l.vbAbasRO = null; VB_ABAS_OBSERVADAS.delete(l); }
+}
 function vbArrumarAbas(raiz = document) {
   if (typeof document === 'undefined' || !document.body?.classList?.contains('mundo')) return;
+  vbSoltarAbasForaDaTela();
   for (const lista of raiz.querySelectorAll('[role="tablist"]')) {
     if (lista.matches(VB_ABAS_FORA) || lista.closest(VB_ABAS_DONO)) continue;
     const abas = [...lista.querySelectorAll('[role="tab"]')].filter((a) => !a.closest('.vb-abas-mais'));
@@ -1241,11 +1248,12 @@ function vbArrumarAbas(raiz = document) {
     if (!lista.vbAbasRO && typeof ResizeObserver === 'function' && lista.parentElement) {
       let larguraVista = 0;
       lista.vbAbasRO = new ResizeObserver(([e]) => {
+        if (!lista.isConnected) { vbSoltarAbasForaDaTela(); return; }
         const w = Math.round(e.contentRect.width); if (!w || w === larguraVista) return;
         const primeira = !larguraVista; larguraVista = w; if (primeira) return;
         lista.vbAbasAssinatura = ''; requestAnimationFrame(() => { try { vbArrumarAbas(lista.parentElement || document); } catch { /* segue */ } });
       });
-      lista.vbAbasRO.observe(lista.parentElement);
+      lista.vbAbasRO.observe(lista.parentElement); VB_ABAS_OBSERVADAS.add(lista);
     }
     // Contador: só o número que existe; zero não é o que ver.
     for (const aba of abas) for (const n of aba.querySelectorAll('b, em, small, span, i')) {

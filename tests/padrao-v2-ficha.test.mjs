@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 
 const ler = (f) => fs.readFileSync(f, 'utf8');
 
@@ -22,7 +23,7 @@ function carregar({ reunioes = [] } = {}) {
     localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)) },
     document: { getElementById: pegar, querySelector: () => null, querySelectorAll: () => [], addEventListener() {}, body: { append() {} } },
     addEventListener() {}, requestAnimationFrame: (f) => f(), cancelAnimationFrame() {},
-    safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
+    jsArg: JS_ARG, safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     showToast() {}, DADOS_DEMANDAS: [{}], TEAM_USERS: [], ownerAvatarHtml: () => '', firstName: (n) => String(n).split(/\s+/)[0],
     tagClienteHtml: (n) => n, cliCor: (n) => n, clienteAtivo: (c) => c.ativo !== false, descricaoCarteiraCliente: () => '',
     carteiraDoCliente: (n) => ({ 'Academia Lions': 'vinicius', Alpha1: 'ewerton' })[n] || '',

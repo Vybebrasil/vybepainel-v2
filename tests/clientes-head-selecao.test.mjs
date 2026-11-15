@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 
 test('head: alternar reflete seleção acessível e envia os IDs escolhidos', async () => {
   const fonte = fs.readFileSync('vybe-clientes.js', 'utf8');
@@ -12,7 +13,7 @@ test('head: alternar reflete seleção acessível e envia os IDs escolhidos', as
     HEADS_ESCOLHIDOS:new Set(['1']), HEADS_DO_CLIENTE:{id:4},
     PESSOAS_DO_CADASTRO:[{id:1,nome:'Pessoa A'},{id:2,nome:'Pessoa B'}],
     document:{getElementById:()=>caixa,querySelectorAll:()=>[]},
-    safeText:String, pessoaPeloNome:n=>({name:n}), ownerAvatarHtml:()=>'',
+    jsArg: JS_ARG, safeText:String, pessoaPeloNome:n=>({name:n}), ownerAvatarHtml:()=>'',
     gravarCadastroDeCliente:async d=>{enviado=d;}, closeWorkflowModal:()=>{},
     showToast:()=>{},
   });

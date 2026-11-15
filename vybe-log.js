@@ -138,7 +138,7 @@ function logRotuloDoDia(dia, agora = Date.now()) {
 // icone: só o desenho, com o nome para o leitor de tela e a dica ao passar o mouse (gaveta, quadro 06 do redesign).
 function botaoDoLogHtml(itemId, { demanda = false, icone = false } = {}) {
   return `<button type="button" class="vybe-link log-botao${icone ? ' so-icone' : ''}"${icone ? ' aria-label="Log de atividade"' : ''}
-    onclick="event.stopPropagation();abrirLogDaPeca('${safeText(itemId)}',{demanda:${demanda}})"
+    onclick="event.stopPropagation();abrirLogDaPeca('${jsArg(itemId)}',{demanda:${demanda}})"
     title="Log de atividade: quem fez o quê nesta peça, com dia e hora"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg><span${icone ? ' class="sr-only"' : ''}>Log de atividade</span></button>`;
 }
 
@@ -165,7 +165,7 @@ async function abrirLogDaPeca(itemId, { demanda = false } = {}) {
   } catch (e) {
     const corpo = painel.querySelector('.log-corpo');
     if (corpo) corpo.innerHTML = `<div class="workspace-empty">Não foi possível carregar o log. ${safeText(e.message)}
-      <button type="button" class="workspace-action" onclick="abrirLogDaPeca('${safeText(itemId)}',{demanda:${demanda}})">Tentar de novo</button></div>`;
+      <button type="button" class="workspace-action" onclick="abrirLogDaPeca('${jsArg(itemId)}',{demanda:${demanda}})">Tentar de novo</button></div>`;
   }
   painel.querySelector('.log-voltar')?.focus();
 }

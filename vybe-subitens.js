@@ -31,25 +31,25 @@ function subitensHtml(detail, item) {
     return `<button type="button" class="subitem-donos owner-editor-trigger"
       title="${pessoas.length ? safeText(pessoas.map((u) => u.name).join(', ')) : 'Sem responsável'} — clique para escolher"
       aria-label="Responsáveis da subdemanda"
-      onclick="abrirDonosDaSubdemanda(event,'${safeText(s.ref || '')}','${safeText(item.id)}')">${conteudo}</button>`;
+      onclick="abrirDonosDaSubdemanda(event,'${jsArg(s.ref || '')}','${jsArg(item.id)}')">${conteudo}</button>`;
   };
   const linhas = itens.map((s) => `
     <li class="subitem" data-subitem="${safeText(s.ref)}" data-donos="${safeText((s.responsavel_ids || []).join(','))}">
       <button type="button" class="subitem-marca" style="--cor:${s.status_cor || '#7c8797'}"
         title="Trocar status desta subdemanda"
-        onclick="abrirStatusDaTarefa(event,'${safeText(s.ref || '')}','${safeText(item.id)}')"></button>
+        onclick="abrirStatusDaTarefa(event,'${jsArg(s.ref || '')}','${jsArg(item.id)}')"></button>
       <span class="subitem-corpo">
         <b title="Clique para renomear"
-           onclick="renomearTarefa('${safeText(s.ref || '')}','${safeText(item.id)}',this)">${safeText(s.titulo)}</b>
+           onclick="renomearTarefa('${jsArg(s.ref || '')}','${jsArg(item.id)}',this)">${safeText(s.titulo)}</b>
         <small>${[s.status, s.tipo, s.prioridade].filter(Boolean).map(safeText).join(' · ') || 'sem status'}</small>
       </span>
       ${donos(s)}
       <label class="subitem-prazo" title="Prazo desta subdemanda">
         <input type="date" value="${safeText(iso(s.prazo))}"
-          onchange="mudarPrazoDaSubdemanda('${safeText(s.ref || '')}','${safeText(item.id)}',this)"
+          onchange="mudarPrazoDaSubdemanda('${jsArg(s.ref || '')}','${jsArg(item.id)}',this)"
           aria-label="Prazo da subdemanda ${safeText(s.titulo)}"></label>
       <button type="button" class="subitem-tirar" title="Remover subdemanda"
-        onclick="removerTarefa('${safeText(s.ref || '')}','${safeText(item.id)}','${safeText(s.titulo).replace(/'/g, "\\'")}')">×</button>
+        onclick="removerTarefa('${jsArg(s.ref || '')}','${jsArg(item.id)}','${jsArg(s.titulo)}')">×</button>
     </li>`).join('');
   return `<section class="workspace-section">
     <div class="workspace-section-head">Subdemandas
@@ -59,8 +59,8 @@ function subitensHtml(detail, item) {
       <div class="subitem-nova">
         <input id="subitem-nova-${safeText(item.id)}" class="workspace-input" type="text"
                placeholder="Nova subdemanda…" maxlength="255"
-               onkeydown="if(event.key==='Enter'){event.preventDefault();criarTarefa('${safeText(item.id)}')}">
-        <button type="button" class="workspace-action" onclick="criarTarefa('${safeText(item.id)}')">Adicionar</button>
+               onkeydown="if(event.key==='Enter'){event.preventDefault();criarTarefa('${jsArg(item.id)}')}">
+        <button type="button" class="workspace-action" onclick="criarTarefa('${jsArg(item.id)}')">Adicionar</button>
       </div>
     </div>
   </section>`;
@@ -179,7 +179,7 @@ function abrirStatusDaTarefa(event, subitemId, itemId) {
   menu.className = 'status-editor';
   menu.innerHTML = `<div class="status-editor-head">Status da tarefa</div>
     ${opcoes.map((o) => `<button type="button" class="status-editor-option"
-        onclick="escolherStatusDaTarefa('${safeText(subitemId)}','${safeText(itemId)}','${safeText(chaveDeStatus(o.label))}')">
+        onclick="escolherStatusDaTarefa('${jsArg(subitemId)}','${jsArg(itemId)}','${jsArg(chaveDeStatus(o.label))}')">
         <span class="status-editor-dot" style="background:${o.color};color:${o.color}"></span>
         <span>${safeText(o.label)}</span></button>`).join('')}`;
   document.body.append(fundo, menu);

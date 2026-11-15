@@ -251,7 +251,7 @@ function pastaDaPrevia(a) {
     const nome = (v) => `${v.caminho ? `${v.caminho} / ` : ''}${v.nome}`;
     caixa.innerHTML = `${videoDaPrevia({ tipo: 'video', name: escolhido.nome, abrir: `https://drive.google.com/file/d/${escolhido.id}/view` }).replace('class="previa-video"', 'class="previa-video previa-video-pasta"')}
       ${ordem.length > 1 ? `<details class="previa-pasta-lista"${notaDoVideo(escolhido, peca) ? '' : ' open'}><summary>${notaDoVideo(escolhido, peca) ? 'Não é este?' : 'Qual é o vídeo desta peça?'} ${ordem.length} vídeos na pasta</summary>
-        <ul>${ordem.map((v) => `<li><button type="button" aria-pressed="${v.id === escolhido.id}" onclick="escolherVideoDaPasta(${PREVIA_GRANDE_INDICE},'${safeText(v.id)}')">▶ ${safeText(nome(v))}</button></li>`).join('')}</ul></details>` : ''}`;
+        <ul>${ordem.map((v) => `<li><button type="button" aria-pressed="${v.id === escolhido.id}" onclick="escolherVideoDaPasta(${PREVIA_GRANDE_INDICE},'${jsArg(v.id)}')">▶ ${safeText(nome(v))}</button></li>`).join('')}</ul></details>` : ''}`;
   }).catch((erro) => {
     const caixa = document.getElementById(id);
     if (caixa) caixa.innerHTML = vbEstadoHtml({ tipo: 'erro', titulo: 'Não deu para ler a pasta do vídeo', texto: erro.message,
@@ -622,7 +622,7 @@ function botaoDeMaterialBrutoHtml(item, proxima = false) {
   const tem = Boolean(String(item.material_bruto || '').trim());
   const rotulo = !conhecido ? 'Consultar bruto' : tem ? (proxima ? 'Material bruto' : 'Bruto') : 'Sem bruto';
   return `<button type="button" class="${proxima ? 'focus-next-btn brief' : 'focus-brief-btn bruto'}${conhecido && !tem ? ' faltando' : ''}"
-    onclick="abrirMaterialBruto('${safeText(String(item.id))}',event)"
+    onclick="abrirMaterialBruto('${jsArg(String(item.id))}',event)"
     title="${!conhecido ? 'Consultar material da atividade' : tem ? 'Abrir a pasta com o material captado' : 'Nenhum material bruto registrado · clique para colar o link da pasta'}"
     aria-label="${rotulo}">${ICONE_LINHA.bruto}<span>${rotulo}</span></button>`;
 }
@@ -638,7 +638,7 @@ function faixaDeMaterialBrutoHtml(detail, item, { compacta = false } = {}) {
       <div class="material-bruto-copy"><span>Material bruto</span>
         <b>Sem pasta</b></div>
       <div class="material-bruto-acoes">
-        <button type="button" class="material-bruto-add" title="Cole o link da pasta com o que foi captado" onclick="pedirMaterialBruto('${safeText(String(item.id))}',event)">Registrar link</button>
+        <button type="button" class="material-bruto-add" title="Cole o link da pasta com o que foi captado" onclick="pedirMaterialBruto('${jsArg(String(item.id))}',event)">Registrar link</button>
       </div></div>`;
   }
   const quando = String(bruto.quando || '').replace('T', ' ').slice(0, 16);
@@ -648,11 +648,11 @@ function faixaDeMaterialBrutoHtml(detail, item, { compacta = false } = {}) {
       <small>${safeText(bruto.url.replace(/^https?:\/\//, '').slice(0, 64))}${bruto.url.length > 71 ? '…' : ''}${quando ? ` · ${safeText(quando)}` : ''}</small></div>
     <div class="material-bruto-acoes">
       <a class="material-bruto-abrir" href="${safeText(bruto.url)}" target="_blank" rel="noopener">Abrir pasta</a>
-      <button type="button" class="material-bruto-copiar" onclick="copiarBriefingTexto('${safeText(bruto.url)}','Link do material bruto')">Copiar</button>
+      <button type="button" class="material-bruto-copiar" onclick="copiarBriefingTexto('${jsArg(bruto.url)}','Link do material bruto')">Copiar</button>
       ${compacta ? '' : (bruto.origem === 'histórico'
         // Fixar promove o resgate histórico ao campo explícito da peça.
-        ? `<button type="button" class="material-bruto-copiar" onclick="fixarMaterialBruto('${safeText(String(item.id))}','${safeText(bruto.url)}',event)"
+        ? `<button type="button" class="material-bruto-copiar" onclick="fixarMaterialBruto('${jsArg(String(item.id))}','${jsArg(bruto.url)}',event)"
              title="Guardar este link no campo da peça">Fixar</button>`
-        : `<button type="button" class="material-bruto-copiar" onclick="pedirMaterialBruto('${safeText(String(item.id))}',event)">Trocar</button>`)}
+        : `<button type="button" class="material-bruto-copiar" onclick="pedirMaterialBruto('${jsArg(String(item.id))}',event)">Trocar</button>`)}
     </div></div>`;
 }

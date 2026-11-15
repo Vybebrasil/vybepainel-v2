@@ -168,7 +168,7 @@ function mostrarDesfazerArquivamentoEmLote(pecas) {
   barra.id = 'desfazer-arquivo';
   barra.className = 'desfazer-arquivo';
   barra.innerHTML = `<span>${dito}</span>
-    <button type="button" onclick="restaurarVarias('${safeText(ids)}',this)">Desfazer</button>
+    <button type="button" onclick="restaurarVarias('${jsArg(ids)}',this)">Desfazer</button>
     <button type="button" class="fechar" onclick="this.parentElement.remove()" aria-label="Fechar">×</button>`;
   document.body.append(barra);
   // setTimeout e nao requestAnimationFrame: rAF nao dispara em aba fora de foco,

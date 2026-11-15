@@ -53,7 +53,7 @@ function agendaSemanaHtml({ inicio, eventos = [], dia = "", sel = "", acoes = {}
   // A grade abre no primeiro compromisso do período (quadro 04): sem as manhãs vazias empurrando tudo para baixo.
   const primeiro = comHora.length ? Math.min(...comHora.map((e) => Math.floor(agMin(e.inicio) / 60) * 60)) : 7 * 60;
   const rotulo = (e) => `${AG_TIPOS[e.tipo] || "Compromisso"}: ${e.titulo}, ${agDiaSemana(e.dia, "long")} ${agHorario(e)}${e.cliente ? `, ${e.cliente}` : ""}${e.estado ? `, ${e.estado.texto}` : ""}`;
-  const clicar = (e) => acoes.evento ? ` onclick="event.stopPropagation();agPreviaSair(true);${acoes.evento}('${safeText(e.id)}')"` : "";
+  const clicar = (e) => acoes.evento ? ` onclick="event.stopPropagation();agPreviaSair(true);${acoes.evento}('${jsArg(e.id)}')"` : "";
   // Passar o mouse mostra a prévia (Paulo, 26/10/2026); clicar abre o cartão.
   const passar = (e) => acoes.previa ? ` onmouseenter="agPreviaEntrar(this,'${acoes.previa}')" onmouseleave="agPreviaSair()" onfocus="agPreviaEntrar(this,'${acoes.previa}')" onblur="agPreviaSair()"` : "";
   // O que já passou recua, como no calendário; o que pede ação não.
@@ -509,7 +509,7 @@ function captPecaHtml(p, { marcar = "", data = "" } = {}) {
   ].join("");
   const rot = p.sem_material && p.tipo === "foto" ? "" : p.roteiro_doc ? `<a class="capt-sinal ok" href="${safeText(p.roteiro_doc.link)}" target="_blank" rel="noopener" title="${safeText(p.roteiro_doc.titulo)}">Roteiro no Docs</a>`
     : roteiro ? `<span class="capt-sinal ok">Roteiro no briefing</span>` : `<span class="capt-sinal alerta">Sem roteiro</span>`;
-  return `<li class="capt-peca${p.gravado ? " gravada" : ""}">${marcar}<span class="capt-peca-texto"><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button><small>${sinais}${rot}</small>
+  return `<li class="capt-peca${p.gravado ? " gravada" : ""}">${marcar}<span class="capt-peca-texto"><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${jsArg(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button><small>${sinais}${rot}</small>
     ${roteiro ? `<details class="capt-roteiro"><summary>Ler o roteiro</summary><p>${safeText(roteiro)}</p></details>` : ""}</span></li>`;
 }
 
@@ -520,13 +520,13 @@ function captAcaoPrincipal(e) {
   const k = e.nossa;
   if (e.tipo !== "captacao" || k?.fechada_em) return "";
   if (captFechavel(e) && e.dia <= captHoje())
-    return `<button type="button" class="vb-botao principal capt-fechar-btn" onclick="captAbrirFechar('${safeText(e.id)}')">${ICONE_CHECK}Fechar gravação</button>`;
+    return `<button type="button" class="vb-botao principal capt-fechar-btn" onclick="captAbrirFechar('${jsArg(e.id)}')">${ICONE_CHECK}Fechar gravação</button>`;
   if (k) return "";
   // Com o cliente reconhecido, sempre dá para escolher: a janela mostra a fila
   // e as outras peças dele ainda não finalizadas (e o botão de cadastrar).
   if (e.cliente_id)
-    return `<button type="button" class="vb-botao principal" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Escolher o que vai ser gravado</button>`;
-  if (e.cliente) return `<button type="button" class="vb-botao principal" onclick="captCadastrar('${safeText(e.cliente)}')">Cadastrar peça de ${cliCor(e.cliente)}</button>`;
+    return `<button type="button" class="vb-botao principal" onclick="captAbrirMontar('${jsArg(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Escolher o que vai ser gravado</button>`;
+  if (e.cliente) return `<button type="button" class="vb-botao principal" onclick="captCadastrar('${jsArg(e.cliente)}')">Cadastrar peça de ${cliCor(e.cliente)}</button>`;
   return "";
 }
 
@@ -535,7 +535,7 @@ function captRoteiroDoCartao(k) {
   const docs = [...new Map(k.pecas.filter((p) => p.roteiro_doc).map((p) => [p.roteiro_doc.link, p.roteiro_doc])).values()];
   if (docs.length) return `<p class="capt-roteiro-doc">Roteiro: ${docs.map((d) => `<a class="vb-link" href="${safeText(d.link)}" target="_blank" rel="noopener">${safeText(d.titulo)}</a>`).join(", ")}</p>`;
   if (!k.pecas.length) return "";
-  return `<form class="capt-roteiro-form" onsubmit="event.preventDefault();captLigarRoteiro(this,'${safeText(k.id)}')"><label><span class="sr-only">Link do roteiro no Google Docs</span><input type="url" name="roteiro" placeholder="Link do roteiro no Google Docs" required></label><button type="submit" class="vb-botao">Ligar roteiro</button></form>`;
+  return `<form class="capt-roteiro-form" onsubmit="event.preventDefault();captLigarRoteiro(this,'${jsArg(k.id)}')"><label><span class="sr-only">Link do roteiro no Google Docs</span><input type="url" name="roteiro" placeholder="Link do roteiro no Google Docs" required></label><button type="submit" class="vb-botao">Ligar roteiro</button></form>`;
 }
 
 // O cartão do evento, ao lado do bloco clicado (versão sóbria, 26/10/2026):
@@ -547,7 +547,7 @@ function captPecaCompactaHtml(p, k) {
   const fechada = Boolean(k?.fechada_em);
   const marcar = k && !fechada ? `<label class="capt-gravado" title="Gravado"><input type="checkbox" ${p.gravado ? "checked" : ""} onchange="captGravado('${k.id}','${p.id}',!this.checked)"><span class="sr-only">Gravado: ${safeText(p.titulo)}</span></label>` : "";
   const falta = !p.gravado && p.tipo !== "foto" && !captTemRoteiro(p) ? '<small class="capt-falta">sem roteiro</small>' : "";
-  return `<li class="capt-peca-curta${p.gravado ? " gravada" : ""}">${marcar}<button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>${falta}</li>`;
+  return `<li class="capt-peca-curta${p.gravado ? " gravada" : ""}">${marcar}<button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${jsArg(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>${falta}</li>`;
 }
 // As peças do cliente que esperam captação, no cartão de um evento ainda sem peças ligadas (quadro 65: "As peças
 // aparecem no cartão, não só '4 peças'"). Ficam sob o selo "N peças esperando", que diz que ainda não são desta
@@ -557,7 +557,7 @@ function captPecasEsperandoHtml(pendentes) {
   if (!pendentes.length) return "";
   const ordem = [...pendentes].sort((a, b) => String(a.prazo || a.veiculacao || "9999").localeCompare(String(b.prazo || b.veiculacao || "9999")));
   const linha = (p) => { const prazo = captPrazo(p);
-    return `<li class="capt-esperando-item"><i class="capt-esperando-ponto ${prazo.tom || (p.prazo || p.veiculacao ? "ok" : "sem")}" aria-hidden="true"></i><span><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.formato && !captSemSinais(p.titulo).includes(captSemSinais(p.formato)) ? `${p.formato} · ${p.titulo}` : p.titulo)}</button><small>${safeText(prazo.texto)}${p.sem_material ? ` · ${captFaltaRotulo(p)}` : ""}</small></span></li>`; };
+    return `<li class="capt-esperando-item"><i class="capt-esperando-ponto ${prazo.tom || (p.prazo || p.veiculacao ? "ok" : "sem")}" aria-hidden="true"></i><span><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${jsArg(p.id)}')" title="Abrir a peça">${safeText(p.formato && !captSemSinais(p.titulo).includes(captSemSinais(p.formato)) ? `${p.formato} · ${p.titulo}` : p.titulo)}</button><small>${safeText(prazo.texto)}${p.sem_material ? ` · ${captFaltaRotulo(p)}` : ""}</small></span></li>`; };
   const resto = ordem.length - CAPT_ESPERANDO_NO_CARTAO;
   return `<ul class="capt-esperando" aria-label="Peças do cliente esperando captação">${ordem.slice(0, CAPT_ESPERANDO_NO_CARTAO).map(linha).join("")}</ul>${resto > 0 ? `<p class="capt-discreto">e mais ${captPlural(resto, "peça", "peças")} no "Escolher o que vai ser gravado"</p>` : ""}`;
 }
@@ -605,18 +605,18 @@ function captFilaHtml(grupos) {
   return fila.map((g) => {
     const aberto = CAPT.abertos.has(g.cliente.id);
     const proxima = g.proxima ? `<span class="capt-chip ok">captação ${safeText(captQuando(g.proxima).toLowerCase())}</span>` : '<span class="capt-chip">sem captação marcada</span>';
-    const arrastar = g.cliente.id ? ` draggable="true" ondragstart="event.dataTransfer.setData('text/vybe-cliente','${safeText(g.cliente.id)}');event.dataTransfer.effectAllowed='copy';document.body.classList.add('ag-arrastando')" ondragend="document.body.classList.remove('ag-arrastando')"` : "";
-    return `<details class="capt-cliente"${aberto ? " open" : ""}${arrastar} ontoggle="CAPT.abertos[this.open?'add':'delete']('${safeText(g.cliente.id)}')">
+    const arrastar = g.cliente.id ? ` draggable="true" ondragstart="event.dataTransfer.setData('text/vybe-cliente','${jsArg(g.cliente.id)}');event.dataTransfer.effectAllowed='copy';document.body.classList.add('ag-arrastando')" ondragend="document.body.classList.remove('ag-arrastando')"` : "";
+    return `<details class="capt-cliente"${aberto ? " open" : ""}${arrastar} ontoggle="CAPT.abertos[this.open?'add':'delete']('${jsArg(g.cliente.id)}')">
       <summary title="${g.cliente.id ? "Arraste para um horário da agenda para marcar a captação" : ""}"><span class="capt-cliente-nome"><b>${safeText(g.cliente.nome)}</b>
         <span class="capt-chips"><small>${captPlural(g.pecas.length, "peça", "peças")}</small>${g.vencidas ? `<span class="capt-chip alerta">${g.vencidas} ${g.vencidas === 1 ? "vencida" : "vencidas"}</span>` : ""}${g.semRoteiro ? `<span class="capt-chip atencao">${g.semRoteiro} sem roteiro</span>` : ""}${g.semMaterial ? `<span class="capt-chip atencao">${captPlural(g.semMaterial, "peça", "peças")} fora da Captação</span>` : ""}${proxima}</span></span>
-        ${g.cliente.id ? `<button type="button" class="vb-botao" onclick="event.preventDefault();captAbrirMontar('${safeText(g.cliente.id)}')" aria-label="Marcar captação de ${safeText(g.cliente.nome)}">Marcar</button>` : ""}</summary>
+        ${g.cliente.id ? `<button type="button" class="vb-botao" onclick="event.preventDefault();captAbrirMontar('${jsArg(g.cliente.id)}')" aria-label="Marcar captação de ${safeText(g.cliente.nome)}">Marcar</button>` : ""}</summary>
       <ul class="capt-lista">${g.pecas.map((p) => captPecaHtml(p, { data: g.proxima ? `captação ${captDia(g.proxima.dia)}, não ligada` : "" })).join("")}</ul></details>`;
   }).join("");
 }
 
 // Uma captação da lista de pendências (ligar e cadastrar).
 function captPendenciaEventoHtml(e, acao) {
-  return `<li class="capt-pend"><button type="button" class="capt-pend-texto" onclick="captSelecionar('${safeText(e.id)}')"><b>${safeText(e.cliente || e.titulo)}</b>
+  return `<li class="capt-pend"><button type="button" class="capt-pend-texto" onclick="captSelecionar('${jsArg(e.id)}')"><b>${safeText(e.cliente || e.titulo)}</b>
       <small>${safeText(captQuando(e))}${e.cliente ? ` · ${safeText(e.titulo)}` : ""}</small><span class="capt-estado tom-${e.estado.tom}">${safeText(e.estado.texto)}</span></button>${acao}</li>`;
 }
 function captPendenciasHtml(pend) {
@@ -634,9 +634,9 @@ function captPendenciasHtml(pend) {
       : vbEstadoHtml({ icone: "ok", titulo: "Toda peça com captação marcada tem roteiro" });
   } else {
     const lista = listas[grupo];
-    const acao = (e) => grupo === "fechar" ? `<button type="button" class="vb-botao principal" onclick="captAbrirFechar('${safeText(e.id)}')">Fechar</button>`
-      : e.cliente_id && captPendentesDo(e.cliente_id, e).length ? `<button type="button" class="vb-botao principal" onclick="captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Escolher</button>`
-      : e.cliente ? `<button type="button" class="vb-botao" onclick="captCadastrar('${safeText(e.cliente)}')">Cadastrar</button>` : `<button type="button" class="vb-botao" onclick="captSelecionar('${safeText(e.id)}')">Ver</button>`;
+    const acao = (e) => grupo === "fechar" ? `<button type="button" class="vb-botao principal" onclick="captAbrirFechar('${jsArg(e.id)}')">Fechar</button>`
+      : e.cliente_id && captPendentesDo(e.cliente_id, e).length ? `<button type="button" class="vb-botao principal" onclick="captAbrirMontar('${jsArg(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Escolher</button>`
+      : e.cliente ? `<button type="button" class="vb-botao" onclick="captCadastrar('${jsArg(e.cliente)}')">Cadastrar</button>` : `<button type="button" class="vb-botao" onclick="captSelecionar('${jsArg(e.id)}')">Ver</button>`;
     corpo = lista.length ? `<ul class="capt-lista">${lista.map((e) => captPendenciaEventoHtml(e, acao(e))).join("")}</ul>`
       : vbEstadoHtml({ icone: "ok", titulo: grupo === "fechar" ? "Toda gravação está fechada" : "Toda captação da agenda tem peças" });
   }
@@ -655,7 +655,7 @@ function captPendenciasHtml(pend) {
 // A semana em lista: cada dia com o título inteiro, a hora, o cliente e o estado.
 function captListaHtml(eventos) {
   const hoje = captHoje(), dias = Array.from({ length: 7 }, (_, i) => agSomar(CAPT.semana, i));
-  const linha = (e) => `<li><button type="button" class="capt-linha t-${safeText(e.tipo)}${e.id === CAPT.sel ? " sel" : ""}" onclick="captSelecionar('${safeText(e.id)}')" aria-pressed="${e.id === CAPT.sel}">
+  const linha = (e) => `<li><button type="button" class="capt-linha t-${safeText(e.tipo)}${e.id === CAPT.sel ? " sel" : ""}" onclick="captSelecionar('${jsArg(e.id)}')" aria-pressed="${e.id === CAPT.sel}">
       <span class="capt-linha-hora">${safeText(agHorario(e))}</span><span class="capt-linha-texto"><b>${safeText(e.titulo || "Sem título")}</b><small>${safeText([AG_TIPOS[e.tipo], e.cliente, e.local].filter(Boolean).join(" · "))}</small></span>
       ${e.estado ? `<span class="capt-estado tom-${e.estado.tom}">${safeText(e.estado.texto)}</span>` : ""}</button></li>`;
   const algum = dias.some((d) => eventos.some((e) => e.dia === d));
@@ -676,7 +676,7 @@ function captGeradoHtml(k) {
     ${k.drive_link ? `<a class="vb-botao capt-drive" href="${safeText(k.drive_link)}" target="_blank" rel="noopener">Material bruto no Drive</a>` : '<p class="capt-aviso">Fechada sem a pasta do Drive: cole o link do material em cada peça.</p>'}
     ${k.observacao_final ? `<p class="capt-discreto">${safeText(k.observacao_final)}</p>` : ""}
     <h5>O que esta gravação gerou <small>${captPlural(gravadas.length, "peça", "peças")}</small></h5>
-    <ul class="capt-gerado">${gravadas.map((p) => `<li><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>
+    <ul class="capt-gerado">${gravadas.map((p) => `<li><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${jsArg(p.id)}')" title="Abrir a peça">${safeText(p.titulo)}</button>
       ${p.status ? `<span class="capt-gerado-status" style="--cor:${safeText(p.status_cor || "#8b93a3")}">${safeText(p.status)}</span>` : ""}</li>`).join("")}</ul>`;
 }
 
@@ -741,7 +741,7 @@ function captMesHtml(eventos, { semMeses = false } = {}) {
   const ini = agSegunda(captPrimeiroDoMes(d)), dias = Array.from({ length: 42 }, (_, i) => agSomar(ini, i));
   const chip = (e) => { const p = agPartesDoTitulo(e);
     return `<button type="button" class="ag-chip t-${safeText(e.tipo || "outro")}${e.estado ? ` tom-${e.estado.tom}` : ""}${e.estado?.chave ? ` est-${e.estado.chave}` : ""}${e.dia < hoje ? " passou" : ""}${e.id === CAPT.sel ? " sel" : ""}" data-ev="${safeText(e.id)}"
-      onclick="event.stopPropagation();agPreviaSair(true);captSelecionar('${safeText(e.id)}')" onmouseenter="agPreviaEntrar(this,'captPreviaHtml')" onmouseleave="agPreviaSair()" onfocus="agPreviaEntrar(this,'captPreviaHtml')" onblur="agPreviaSair()"
+      onclick="event.stopPropagation();agPreviaSair(true);captSelecionar('${jsArg(e.id)}')" onmouseenter="agPreviaEntrar(this,'captPreviaHtml')" onmouseleave="agPreviaSair()" onfocus="agPreviaEntrar(this,'captPreviaHtml')" onblur="agPreviaSair()"
       aria-label="${safeText(`${AG_TIPOS[e.tipo] || "Compromisso"}: ${e.titulo}, ${agHorario(e)}${e.estado ? `, ${e.estado.texto}` : ""}`)}"><i aria-hidden="true"></i><span>${e.inicio ? `<em>${safeText(e.inicio)}</em> ` : ""}${safeText(p.nome)}</span></button>`; };
   // No celular, as letras dos dias (S T Q Q S S D) e até 5 por dia, como no Google Agenda; no computador, 3 e o "+N outras".
   const cel = captNoCelular(), max = cel ? 5 : 3;
@@ -768,7 +768,7 @@ function captRoteiroDoDiaHtml(dia, eventos) {
     const peca = (x) => { const roteiro = String(x.briefing || "").trim();
       const gravado = k && !fechada ? `<button type="button" class="capt-gravado-btn" aria-pressed="${Boolean(x.gravado)}" onclick="captGravado('${k.id}','${x.id}',${x.gravado ? "true" : "false"})">${x.gravado ? `${ICONE_CHECK}Gravado` : "Marcar gravado"}</button>`
         : x.gravado ? `<span class="capt-estado tom-ok">Gravado</span>` : "";
-      return `<li class="capt-rd-peca${x.gravado ? " gravada" : ""}"><div class="capt-rd-peca-topo"><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${safeText(x.id)}')">${safeText(x.titulo)}</button>${gravado}</div>
+      return `<li class="capt-rd-peca${x.gravado ? " gravada" : ""}"><div class="capt-rd-peca-topo"><button type="button" class="capt-peca-nome" onclick="captAbrirPeca('${jsArg(x.id)}')">${safeText(x.titulo)}</button>${gravado}</div>
         ${x.roteiro_doc ? `<a class="capt-sinal ok" href="${safeText(x.roteiro_doc.link)}" target="_blank" rel="noopener">Roteiro no Docs</a>` : ""}
         ${roteiro ? `<details class="capt-roteiro"${k && !x.gravado ? " open" : ""}><summary>Roteiro</summary><p>${safeText(roteiro)}</p></details>` : x.tipo === "foto" || x.roteiro_doc ? "" : '<span class="capt-sinal alerta">Sem roteiro</span>'}</li>`; };
     const acao = captAcaoPrincipal(e);
@@ -940,10 +940,10 @@ async function captCriarEvento(form) {
 function captVinculoHtml(e) {
   if (e.nossa) return "";
   const opcoes = (sel) => (CAPT.clientes || []).map((c) => `<option value="${safeText(c.id)}"${c.id === sel ? " selected" : ""}>${safeText(c.nome)}</option>`).join("");
-  const form = (sel, rotulo) => `<form class="capt-vinculo" onsubmit="event.preventDefault();captVincular(this,'${safeText(e.id)}')"><select name="cliente" aria-label="Cliente" required><option value="">Escolha o cliente</option>${opcoes(sel)}</select><button type="submit" class="vb-botao">${rotulo}</button></form>`;
+  const form = (sel, rotulo) => `<form class="capt-vinculo" onsubmit="event.preventDefault();captVincular(this,'${jsArg(e.id)}')"><select name="cliente" aria-label="Cliente" required><option value="">Escolha o cliente</option>${opcoes(sel)}</select><button type="submit" class="vb-botao">${rotulo}</button></form>`;
   if (!e.cliente) return `<div class="capt-vinculo-caixa"><p class="capt-discreto">De qual cliente é este evento? O painel guarda o vínculo; o evento no Google não muda.</p>${form("", "Vincular")}</div>`;
   // "Trocar cliente" é botão (quadro 65), ao lado das peças esperando; o cliente escolhido à mão continua dito ao lado.
-  return `<details class="capt-trocar"><summary class="vb-botao" title="${e.cliente_manual ? "Cliente escolhido à mão; trocar por outro" : "Não é este cliente? Escolha o certo"}">Trocar cliente</summary><div class="capt-trocar-caixa">${e.cliente_manual ? '<p class="capt-discreto">Cliente escolhido à mão.</p>' : ""}${form(e.cliente_id, "Trocar")}${e.cliente_manual ? `<button type="button" class="vb-botao" onclick="captVincular(null,'${safeText(e.id)}')">Voltar a ler pelo título</button>` : ""}</div></details>`;
+  return `<details class="capt-trocar"><summary class="vb-botao" title="${e.cliente_manual ? "Cliente escolhido à mão; trocar por outro" : "Não é este cliente? Escolha o certo"}">Trocar cliente</summary><div class="capt-trocar-caixa">${e.cliente_manual ? '<p class="capt-discreto">Cliente escolhido à mão.</p>' : ""}${form(e.cliente_id, "Trocar")}${e.cliente_manual ? `<button type="button" class="vb-botao" onclick="captVincular(null,'${jsArg(e.id)}')">Voltar a ler pelo título</button>` : ""}</div></details>`;
 }
 async function captVincular(form, eventoId) {
   const cliente_id = form ? String(new FormData(form).get("cliente") || "") : "";
@@ -980,7 +980,7 @@ function captAbrirMontar(clienteId, { dia = "", inicio = "", evento = "" } = {})
       ${g ? `<input type="hidden" name="cliente" value="${safeText(g.cliente.id)}"><p class="capt-detalhe-cliente">${safeText(g.cliente.nome)}</p>`
         : `<label>Cliente<select name="cliente" required onchange="captPecasDoForm(this.form,this.value)"><option value="">Escolha o cliente</option>${fila.map((x) => `<option value="${safeText(x.cliente.id)}">${safeText(x.cliente.nome)} (${captPlural(x.pecas.length, "peça", "peças")})</option>`).join("")}${outrosClientes.map((c) => `<option value="${safeText(c.id)}">${safeText(c.nome)}</option>`).join("")}</select></label>`}
       <fieldset class="capt-pecas-form"${g ? ` data-cliente="${safeText(g.cliente.id)}" data-nome="${safeText(g.cliente.nome)}"` : " hidden"}>${g ? captPecasFieldset(g, ev) : ""}</fieldset>
-      ${g ? `<button type="button" class="vb-botao capt-add-nova" onclick="closeWorkflowModal();captCadastrar('${safeText(g.cliente.nome)}')"><span aria-hidden="true">+</span> Cadastrar peça nova de ${safeText(g.cliente.nome)}</button>` : ""}
+      ${g ? `<button type="button" class="vb-botao capt-add-nova" onclick="closeWorkflowModal();captCadastrar('${jsArg(g.cliente.nome)}')"><span aria-hidden="true">+</span> Cadastrar peça nova de ${safeText(g.cliente.nome)}</button>` : ""}
       ${quando}
       <label>Observação<textarea name="observacao" rows="2" maxlength="2000" placeholder="O que levar, quem acompanha…"></textarea></label>
       <p class="capt-erro" role="alert" hidden></p>
@@ -1086,7 +1086,7 @@ function captAbrirReagendar(id) {
   captAbrirFolha(`<div class="workflow-kicker"><span>${e.tipo === "captacao" ? "Captação" : "Agenda"}</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
     <h2 class="workflow-title">Reagendar</h2>
     <p class="capt-quando-fixo">${safeText(agPartesDoTitulo(e).nome)} · estava em ${safeText(captDiaLongo(e.dia).toLowerCase())}${e.inicio ? `, ${safeText(agHorario(e))}` : ""}</p>
-    <form class="capt-form" onsubmit="event.preventDefault();captReagendar(this,'${safeText(e.id)}')">
+    <form class="capt-form" onsubmit="event.preventDefault();captReagendar(this,'${jsArg(e.id)}')">
       <label>Novo dia<input type="date" name="dia" value="${safeText(e.dia)}" required></label>
       <div class="capt-novo-quando"><input type="time" name="inicio" value="${safeText(ini)}" aria-label="Começa"><span aria-hidden="true">–</span><input type="time" name="fim" value="${safeText(fim)}" aria-label="Termina"></div>
       <p class="capt-discreto">${e.nossa?.pecas?.length ? "As peças continuam ligadas a esta captação. " : ""}Muda também no Google Agenda.</p>
@@ -1119,8 +1119,8 @@ function captAbrirNaoGravou(id) {
     <h2 class="workflow-title">A gravação não aconteceu</h2>
     <p class="capt-quando-fixo">${safeText(agPartesDoTitulo(e).nome)} · ${safeText(captDiaLongo(e.dia))}${e.inicio ? ` · ${safeText(agHorario(e))}` : ""}</p>
     <div class="pv-opcoes">
-      <button type="button" class="pv-opcao" style="--c:#7aa7ff" onclick="captAbrirReagendar('${safeText(e.id)}')">${ic('<rect x="3.5" y="4.5" width="13" height="12" rx="2"/><path d="M3.5 8.5h13M7 3v3M13 3v3"/>')}<span><b>Remarcar para outro dia</b><small class="capt-discreto">${e.nossa?.pecas?.length ? "As peças continuam ligadas." : "Muda o evento no Google Agenda."}</small></span><i>→</i></button>
-      <button type="button" class="pv-opcao" style="--c:#ff6b8a" onclick="captApagar('${safeText(e.id)}',true)">${ic('<path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6"/>')}<span><b>Tirar da agenda</b><small class="capt-discreto">Caiu a pauta. ${e.nossa?.pecas?.length ? 'As peças não gravadas voltam para "Agendar Captação".' : "O evento sai do Google Agenda."}</small></span><i>→</i></button>
+      <button type="button" class="pv-opcao" style="--c:#7aa7ff" onclick="captAbrirReagendar('${jsArg(e.id)}')">${ic('<rect x="3.5" y="4.5" width="13" height="12" rx="2"/><path d="M3.5 8.5h13M7 3v3M13 3v3"/>')}<span><b>Remarcar para outro dia</b><small class="capt-discreto">${e.nossa?.pecas?.length ? "As peças continuam ligadas." : "Muda o evento no Google Agenda."}</small></span><i>→</i></button>
+      <button type="button" class="pv-opcao" style="--c:#ff6b8a" onclick="captApagar('${jsArg(e.id)}',true)">${ic('<path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6"/>')}<span><b>Tirar da agenda</b><small class="capt-discreto">Caiu a pauta. ${e.nossa?.pecas?.length ? 'As peças não gravadas voltam para "Agendar Captação".' : "O evento sai do Google Agenda."}</small></span><i>→</i></button>
     </div>`);
 }
 async function captApagar(id, decidido = false) {
@@ -1343,8 +1343,8 @@ function d3agDireita(e, fechar) {
   const id = safeText(e.id);
   if (fechar) { const dias = -captDiasAte(e.dia); return `<span class="d3ag-fim${dias >= 1 ? " r" : ""}">${dias >= 1 ? `há ${captPlural(dias, "dia", "dias")}` : "hoje"}</span>`; }
   if (e.tipo === "captacao" && !e.nossa && e.dia >= captHoje()) {
-    if (e.cliente_id && captPendentesDo(e.cliente_id, e).length) return `<button type="button" class="d3ag-mini" onclick="event.stopPropagation();captAbrirMontar('${safeText(e.cliente_id)}',{evento:'${id}'})">Escolher peças</button>`;
-    if (e.cliente) return `<button type="button" class="d3ag-mini" onclick="event.stopPropagation();captCadastrar('${safeText(e.cliente)}')">+ peça</button>`;
+    if (e.cliente_id && captPendentesDo(e.cliente_id, e).length) return `<button type="button" class="d3ag-mini" onclick="event.stopPropagation();captAbrirMontar('${jsArg(e.cliente_id)}',{evento:'${id}'})">Escolher peças</button>`;
+    if (e.cliente) return `<button type="button" class="d3ag-mini" onclick="event.stopPropagation();captCadastrar('${jsArg(e.cliente)}')">+ peça</button>`;
     return `<button type="button" class="d3ag-mini" onclick="event.stopPropagation();captSelecionar('${id}')">Cliente</button>`;
   }
   if (e.estado?.chave === "gravada") return '<span class="d3ag-fim">gravada</span>';
@@ -1387,7 +1387,7 @@ function d3agFaixaHtml(lista, fechar) {
 function d3agLadoHtml(pend) {
   const marcar = pend.marcar, MAXC = 5;
   const linhaCli = (g) => { const venc = g.vencidas, prazo = g.pecas[0]?.prazo || g.pecas[0]?.veiculacao;
-    return `<button type="button" class="d3ag-lado-lin" onclick="captAbrirMontar('${safeText(g.cliente.id)}')" title="Marcar captação de ${safeText(g.cliente.nome)}">${pv2Cli(g.cliente.nome)}<span class="d3ag-n">${captPlural(g.pecas.length, "peça", "peças")}</span><span class="d3ag-fim${venc ? " r" : ""}">${venc ? `${venc} venc.` : prazo ? `${Number(prazo.slice(8))}/${prazo.slice(5, 7)}` : ""}</span></button>`; };
+    return `<button type="button" class="d3ag-lado-lin" onclick="captAbrirMontar('${jsArg(g.cliente.id)}')" title="Marcar captação de ${safeText(g.cliente.nome)}">${pv2Cli(g.cliente.nome)}<span class="d3ag-n">${captPlural(g.pecas.length, "peça", "peças")}</span><span class="d3ag-fim${venc ? " r" : ""}">${venc ? `${venc} venc.` : prazo ? `${Number(prazo.slice(8))}/${prazo.slice(5, 7)}` : ""}</span></button>`; };
   const espera = `<section class="d3ag-card d3ag-lado" aria-label="Esperando captação"><div class="d3ag-cab"><h3>Esperando captação</h3><span>${captPlural(marcar.length, "cliente", "clientes")}</span></div>
     ${marcar.slice(0, MAXC).map(linhaCli).join("") || '<p class="d3ag-n d3ag-vazio">Todos com captação marcada</p>'}${marcar.length > MAXC ? `<button type="button" class="d3ag-lado-lin mais" onclick="CAPT.inspetor||captAlternarInspetor()">+ ${marcar.length - MAXC}</button>` : ""}</section>`;
   const hoje = captHoje(), futuras = captComNossas(CAPT.proximas || []).filter((e) => e.dia >= hoje && e.dia <= agSomar(hoje, 30));
@@ -1412,7 +1412,7 @@ function d3agViramHtml() {
   }
   vistos.sort((a, b) => (a.e.dia + (a.e.inicio || "")).localeCompare(b.e.dia + (b.e.inicio || "")));
   const MAX = 3;
-  const linhas = vistos.slice(0, MAX).map((v) => `<button type="button" class="d3ag-lado-lin d3ag-viu" onclick="captSelecionar('${safeText(v.e.id)}')"><span class="d3ag-viu-av" aria-hidden="true">L</span><span class="d3ag-viu-txt">${v.txt}</span><span class="d3ag-fim">${safeText(agDiaSemana(v.e.dia))}</span></button>`).join("");
+  const linhas = vistos.slice(0, MAX).map((v) => `<button type="button" class="d3ag-lado-lin d3ag-viu" onclick="captSelecionar('${jsArg(v.e.id)}')"><span class="d3ag-viu-av" aria-hidden="true">L</span><span class="d3ag-viu-txt">${v.txt}</span><span class="d3ag-fim">${safeText(agDiaSemana(v.e.dia))}</span></button>`).join("");
   return `<section class="d3ag-card d3ag-lado d3ag-viram" aria-label="Agentes viram"><div class="d3ag-cab"><h3>Agentes viram</h3><span>${vistos.length}</span></div>
     ${linhas || '<p class="d3ag-n d3ag-vazio">Nada fora do lugar nesta semana</p>'}${vistos.length > MAX ? `<span class="d3ag-lado-lin fixo"><span class="d3ag-n">+ ${vistos.length - MAX}</span></span>` : ""}</section>`;
 }
@@ -1482,11 +1482,11 @@ function pv2aHtml({ todos, pend, nPend }) {
   const nomeDe = (e) => safeText(e.cliente || e.titulo || "captação");
   const quandoDe = (e) => safeText(d3agQuando(e.dia).toLowerCase());
   const prim = pend.fechar[0], sp = semPecas[0], nPecas = prim?.nossa?.pecas?.length || 0;
-  const acao = prim ? { frase: `${nFechar > 1 ? `${nFechar} gravações sem fechar · a mais antiga, ` : "Gravação de "}${nomeDe(prim)}${nFechar > 1 ? `, de ${quandoDe(prim)}` : ` de ${quandoDe(prim)} sem fechar`}${nPecas ? ` · ${captPlural(nPecas, "peça espera", "peças esperam")}` : ""}.`, botao: "Fechar gravação", attrs: `onclick="captAbrirFechar('${safeText(prim.id)}')"` }
+  const acao = prim ? { frase: `${nFechar > 1 ? `${nFechar} gravações sem fechar · a mais antiga, ` : "Gravação de "}${nomeDe(prim)}${nFechar > 1 ? `, de ${quandoDe(prim)}` : ` de ${quandoDe(prim)} sem fechar`}${nPecas ? ` · ${captPlural(nPecas, "peça espera", "peças esperam")}` : ""}.`, botao: "Fechar gravação", attrs: `onclick="captAbrirFechar('${jsArg(prim.id)}')"` }
     : sp ? { frase: `${nomeDe(sp)} grava ${quandoDe(sp)} sem peças ligadas.`, botao: sp.cliente_id && captPendentesDo(sp.cliente_id, sp).length ? "Escolher peças" : sp.cliente ? "Cadastrar peça" : "Ver",
-      attrs: sp.cliente_id && captPendentesDo(sp.cliente_id, sp).length ? `onclick="captAbrirMontar('${safeText(sp.cliente_id)}',{evento:'${safeText(sp.id)}'})"` : sp.cliente ? `onclick="captCadastrar('${safeText(sp.cliente)}')"` : `onclick="captSelecionar('${safeText(sp.id)}')"` }
+      attrs: sp.cliente_id && captPendentesDo(sp.cliente_id, sp).length ? `onclick="captAbrirMontar('${jsArg(sp.cliente_id)}',{evento:'${safeText(sp.id)}'})"` : sp.cliente ? `onclick="captCadastrar('${jsArg(sp.cliente)}')"` : `onclick="captSelecionar('${jsArg(sp.id)}')"` }
     : pend.roteiro.length ? { frase: `${captPlural(pend.roteiro.length, "peça vai ser gravada", "peças vão ser gravadas")} sem roteiro.`, botao: "Ver", attrs: `onclick="captGrupo('roteiro')"` }
-    : naSemanaAtual && deHoje ? { frase: `Hoje tem ${nomeDe(deHoje)}${deHoje.inicio ? ` às ${safeText(deHoje.inicio)}` : ""}.`, botao: "Ver", attrs: `onclick="captSelecionar('${safeText(deHoje.id)}')"` }
+    : naSemanaAtual && deHoje ? { frase: `Hoje tem ${nomeDe(deHoje)}${deHoje.inicio ? ` às ${safeText(deHoje.inicio)}` : ""}.`, botao: "Ver", attrs: `onclick="captSelecionar('${jsArg(deHoje.id)}')"` }
     : { frase: `${nCapt ? captPlural(nCapt, "captação", "captações") : "Nenhuma captação"} ${naSemanaAtual ? "nesta semana" : "na semana aberta"}${feriado ? ` · ${safeText(agDiaSemana(feriado.d))} é feriado` : ""}.` };
   const blocoAcao = typeof d3AcaoHtml === "function" ? d3AcaoHtml({ agente: "L", ...acao }) : "";
   // Quatro números, cada um abre o que conta.

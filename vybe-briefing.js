@@ -38,7 +38,7 @@ function botaoDeBriefingHtml(item, proxima = false) {
   const falta = item.tem_briefing === false;
   const rotulo = falta ? 'Sem briefing' : item.tem_briefing === true ? (proxima ? 'Ver briefing' : 'Briefing') : 'Consultar briefing';
   return `<button type="button" class="${proxima ? 'focus-next-btn brief' : 'focus-brief-btn'}${falta ? ' faltando' : ''}"
-    onclick="event.stopPropagation();abrirBriefing('${safeText(String(item.id))}',this)"
+    onclick="event.stopPropagation();abrirBriefing('${jsArg(String(item.id))}',this)"
     title="${falta ? 'Adicionar o briefing desta atividade' : 'Consultar o briefing desta atividade'}" aria-label="${rotulo}">${ICONE_LINHA.briefing}<span>${rotulo}</span></button>`;
 }
 
@@ -153,7 +153,7 @@ function blocoDoBriefingHtml(detail, item) {
     return `<div class="brief-atalho brief-vazio">
       <span class="brief-abrir-icone">${ICONE_LINHA.briefing}</span>
       <span class="brief-abrir-copy"><b>Sem briefing</b><small>Quem produz precisa dele para começar.</small></span>
-      <button type="button" class="workspace-action brief-adicionar" onclick="editarBriefing('${safeText(String(item.id))}')">+ Adicionar briefing</button>
+      <button type="button" class="workspace-action brief-adicionar" onclick="editarBriefing('${jsArg(String(item.id))}')">+ Adicionar briefing</button>
     </div>`;
   }
   const secoes = briefingEmSecoes(briefing.texto);
@@ -164,7 +164,7 @@ function blocoDoBriefingHtml(detail, item) {
   // mostra o começo e abre o resto.
   const origem = `${partes ? `${partes} parte${partes === 1 ? '' : 's'} · ` : ''}briefing de produção${briefing.origem === 'histórico' ? ' · do histórico' : ''}`;
   return `<div class="brief-atalho">
-    <button type="button" class="brief-abrir" onclick="abrirBriefing('${safeText(String(item.id))}')">
+    <button type="button" class="brief-abrir" onclick="abrirBriefing('${jsArg(String(item.id))}')">
       <span class="brief-abrir-icone">${ICONE_LINHA.briefing}</span>
       <span class="brief-abrir-copy"><b>Briefing</b><small>${safeText(origem)}</small>${chamada ? `<span class="brief-abrir-trecho">${safeText(chamada.slice(0, 240))}${chamada.length > 240 ? '…' : ''}</span>` : ''}</span>
       <span class="brief-abrir-seta">→</span>
@@ -237,7 +237,7 @@ async function abrirBriefing(itemId, gatilho) {
         <small>${safeText(item.cliente || 'Cliente não informado')}${item.formato ? ` · ${safeText(item.formato)}` : ''}${item.veiculacao_iso ? ` · veicula ${safeText(typeof planningDateBr === 'function' ? planningDateBr(item.veiculacao_iso) : item.veiculacao_iso)}` : ''}</small>
       </div>
       <div class="brief-topo-acoes">
-        <button type="button" class="brief-copiar" onclick="editarBriefing('${safeText(String(itemId))}')">Editar</button>
+        <button type="button" class="brief-copiar" onclick="editarBriefing('${jsArg(String(itemId))}')">Editar</button>
         <button type="button" class="brief-copiar" onclick="copiarBriefingInteiro()">Copiar tudo</button>
         <button type="button" class="brief-fechar" onclick="fecharBriefing()" aria-label="Fechar">×</button>
       </div>

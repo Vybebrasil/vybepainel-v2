@@ -115,7 +115,22 @@ test('funil: follow-up opcional, motivo de perda obrigatório, valor e relatóri
   assert.equal(resumo.fases.find((f) => f.id === 'novo').conversao, 66.7);
   assert.equal(resumo.motivos_perda.find((m) => m.id === 'preco').quantidade, 1);
   assert.equal(resumo.taxa_ganho, 66.7);
-  assert.equal(produtos.campeao.nome, 'Social'); assert.equal(produtos.ticket_medio_mensal, 1500);
+  // Quem não é dono vê o campeão e as quantidades, sem dinheiro nenhum (auditoria 15/11/2026).
+  assert.equal(produtos.campeao.nome, 'Social'); assert.equal(produtos.ticket_medio_mensal, undefined); assert.equal(produtos.campeao.receita, undefined);
+  assert.equal(resumo.em_negociacao.mensal, undefined);
+  assert.ok(r.body.oportunidades.length && r.body.oportunidades.every((o) => !('valor_mensal' in o) && !('valor_avulso' in o)));
+  assert.equal(r.body.pode.ver_dinheiro, false);
+  r = await chamar(sql, criacao, null, { aba: 'pacotes' }); assert.equal(r.body.produtos.ticket_medio_mensal, undefined);
+  r = await chamar(sql, paulo, null, { aba: 'funil' });
+  assert.equal(r.body.produtos.ticket_medio_mensal, 1500); assert.equal(r.body.oportunidades.find((o) => o.id === ids[0]).valor_mensal, 1500);
+  // O CRM direto também tira os valores de quem não é dono, inclusive do histórico; e só dono grava valor.
+  r = await crm(sql, criacao); assert.equal(r.body.ver_dinheiro, false);
+  assert.ok(r.body.oportunidades.every((o) => !('valor_mensal' in o) && !('valor_avulso' in o)));
+  r = await crm(sql, criacao, null, { id: ids[0] }); assert.equal(r.body.oportunidade.valor_mensal, undefined);
+  assert.ok(r.body.historico.every((h) => !h.detalhes || (!('valor_mensal' in (h.detalhes.depois || {})) && !('valor_mensal' in (h.detalhes.antes || {})))));
+  r = await crm(sql, paulo, null, { id: ids[0] });
+  assert.equal(Number(r.body.oportunidade.valor_mensal), 1500);
+  assert.equal((await crm(sql, atendimento, { acao: 'valor', id: ids[0], versao: r.body.oportunidade.versao, valor_mensal: 9 })).codigo, 403);
   // O CRM antigo continua: etapa nova aparece entre Proposta comercial e Ganho.
   r = await crm(sql, criacao); assert.deepEqual(r.body.etapas.map((e) => e.id).slice(6, 9), ['proposta_comercial', 'follow_up', 'ganho']);
 });

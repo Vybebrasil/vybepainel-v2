@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 function ambiente(){
  const drawer={innerHTML:''}, chamadas=[], avisos=[];
  const item={id:'vybe:2',origem:'solicitacao',nome:'Demanda'};
  const detail={assets:[{id:'drive:8',local_id:8,name:'Arte.png',removable:true,onde:'drive'}]};
- const c=vm.createContext({document:{getElementById:()=>drawer},COLUNAS:{producao:{arquivos:'files'}},safeText:String,workspaceBytes:()=>'1 KB',
+ const c=vm.createContext({document:{getElementById:()=>drawer},COLUNAS:{producao:{arquivos:'files'}},jsArg: JS_ARG, safeText:String,workspaceBytes:()=>'1 KB',
  activeWorkspaceAssets:[],activeWorkspaceItemId:'',DETALHE_DA_GAVETA:null,ATUALIZACOES_DA_GAVETA:[],
  workspaceUploadHtml:()=>'<button>Adicionar arquivos</button>',botaoDoLogHtml:()=>'',botaoDeLinkHtml:()=>'',pillHtmlDemanda:()=>'',blocoDoBriefingHtml:()=>'',podeVerMonday:()=>false,
  workspaceTimelineEvent:()=>'',findOperationalItem:()=>item,DADOS:[],isRequestItem:()=>true,

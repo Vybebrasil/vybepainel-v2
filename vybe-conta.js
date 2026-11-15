@@ -546,7 +546,7 @@ function blocoClientes() {
       <div class="eq-quem"><b>${safeText(c.nome)}</b><span class="eq-email">${c.conteudos} conteúdo${c.conteudos === 1 ? '' : 's'}</span></div>
       <div class="eq-estado">${c.ativo ? 'aparece no painel' : 'fora do painel'}</div>
       <div class="eq-acoes">
-        <button onclick="renomearCliente(${c.id},'${safeText(c.nome).replace(/'/g, "\\'")}')">renomear</button>
+        <button onclick="renomearCliente(${c.id},'${jsArg(c.nome)}')">renomear</button>
         <button onclick="acaoCliente(${c.id},'${c.ativo ? 'desativar' : 'ativar'}')">${c.ativo ? 'tirar do painel' : 'trazer de volta'}</button>
       </div>
     </div>`).join('');
@@ -601,10 +601,10 @@ function blocoOpcoes() {
       <div class="op-grupo">
         <div class="op-grupo-topo">
           <b>${safeText(titulo)}</b>
-          ${OPCOES.colunas?.[coluna] ? `<button onclick="criarOpcao('${coluna}','${safeText(titulo)}')">+ nova opção</button>` : '<small>catálogo interno</small>'}
+          ${OPCOES.colunas?.[coluna] ? `<button onclick="criarOpcao('${coluna}','${jsArg(titulo)}')">+ nova opção</button>` : '<small>catálogo interno</small>'}
         </div>
         <div class="op-lista">${itens.map((o) => `
-          <button class="op-chip ${o.ativa ? 'ativa' : ''}" onclick="alternarOpcao('${coluna}','${safeText(o.chave)}')" title="${o.ativa ? 'Clique para desligar' : 'Clique para ligar'}">
+          <button class="op-chip ${o.ativa ? 'ativa' : ''}" onclick="alternarOpcao('${coluna}','${jsArg(o.chave)}')" title="${o.ativa ? 'Clique para desligar' : 'Clique para ligar'}">
             ${safeText(o.rotulo)}${o.so_vybe ? ' <i>só Vybe</i>' : ''}
           </button>`).join('')}</div>
       </div>`).join('')}`;

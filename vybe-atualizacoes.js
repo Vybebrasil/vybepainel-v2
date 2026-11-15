@@ -42,7 +42,7 @@ function ferramentasDaAtualizacaoHtml(update) {
   // conserto de quem escreveu o briefing no lugar errado, e fica no log.
   const comoBriefing = update?.update_id && !atualizacaoDoSistema(update)
     && workspacePlainText(String(update.body || '')).length >= 40
-    ? `<button type="button" onclick="usarComentarioComoBriefing('${safeText(String(update.update_id))}')"
+    ? `<button type="button" onclick="usarComentarioComoBriefing('${jsArg(String(update.update_id))}')"
         title="Guardar este texto como o briefing da peça">Usar como briefing</button>` : '';
   if (!possoMexerNaAtualizacao(update)) return comoBriefing ? `<span class="workspace-update-tools">${comoBriefing}</span>` : '';
   const id = safeText(String(update.update_id));

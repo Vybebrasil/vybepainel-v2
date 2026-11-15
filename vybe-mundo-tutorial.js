@@ -316,9 +316,18 @@
   function aoMudarTela() {
     if (quadro) return; quadro = true;
     const prox = G.requestAnimationFrame ? (f) => G.requestAnimationFrame(f) : (f) => G.setTimeout(f, 16);
-    prox(() => { quadro = false; reposicionar(); });
+    prox(() => { quadro = false; reposicionar(true); });
   }
-  function reposicionar() { if (passeio) posicionarPasseio(); if (dicaAtual) posicionarDica(); }
+  // A dica que espera escondida (sem vaga, coberta ou com a gaveta aberta) confere a cada 2 s, não a cada 400 ms: cada
+  // conferência mede todos os controles da tela e mostra e esconde o balão para medir. Parado na Agenda com a dica
+  // esperando, eram 1.780 ms de recálculo de estilo em 10 s contra 127 ms sem ela (auditoria 15/11/2026). Mudar o
+  // tamanho da tela confere na hora.
+  let tique = 0;
+  function reposicionar(agora) {
+    tique++;
+    if (passeio) posicionarPasseio();
+    if (dicaAtual && (agora === true || !dicaAtual.balao.hidden || tique % 5 === 0)) posicionarDica();
+  }
   const engolir = (e) => { e.preventDefault?.(); e.stopPropagation?.(); e.stopImmediatePropagation?.(); };
   const ehCampo = (el) => Boolean(el?.closest?.('input, textarea, select, [contenteditable="true"]'));
   function prenderFoco(e, lista) {
@@ -509,6 +518,8 @@
     // Não tira o foco de quem está digitando (busca do módulo que acabou de abrir): o aria-live avisa.
     if (!ehCampo(doc.activeElement)) balao.focus?.({ preventScroll: true });
   }
+  // Só escreve hidden quando muda: escrever o mesmo valor a cada conferência também invalida o estilo.
+  function esconderDica(d, sim) { if (d.balao.hidden !== sim) d.balao.hidden = sim; if (d.anel && d.anel.hidden !== sim) d.anel.hidden = sim; }
   function posicionarDica() {
     const d = dicaAtual; const def = CONTEUDO.dicas[d.id];
     const alvo = def?.alvo ? acharAlvo(def.alvo) : null;
@@ -517,7 +528,7 @@
     // quando a gaveta fecha (o relógio de reposicionar passa aqui a cada 400 ms).
     const gaveta = doc.getElementById?.('workspace-drawer');
     const comGaveta = Boolean(gaveta && gaveta.getClientRects?.().length);
-    d.balao.hidden = comGaveta; if (d.anel) d.anel.hidden = comGaveta;
+    esconderDica(d, comGaveta);
     if (comGaveta) return;
     const c = alvo ? caixaDe(alvo) : null;
     if (d.anel && c) estilo(d.anel, { left: px(c.left), top: px(c.top), width: px(c.width), height: px(c.height) });
@@ -525,8 +536,8 @@
     if (def?.compacta) {
       const ra = alvo ? alvo.getBoundingClientRect() : null;
       const coberto = Boolean(ra) && !soOsDaFrente([{ left: ra.left, top: ra.top, right: ra.right ?? ra.left + ra.width, bottom: ra.bottom ?? ra.top + ra.height, el: alvo }]).length;
-      d.balao.hidden = coberto; if (d.anel) d.anel.hidden = coberto;
-      if (!coberto && colocarCompacta(d.balao, c, alvo, c && def?.evitar ? caixasAEvitar(def.evitar) : []) === 'espera') { d.balao.hidden = true; if (d.anel) d.anel.hidden = true; }
+      esconderDica(d, coberto);
+      if (!coberto && colocarCompacta(d.balao, c, alvo, c && def?.evitar ? caixasAEvitar(def.evitar) : []) === 'espera') esconderDica(d, true);
     }
     else {
       // Auditoria de 14/11/2026 ("nada cobre"): a dica grande também não fica sobre controle (a busca e os cabeçalhos
@@ -540,7 +551,7 @@
         if (!embaixo.length || !soOsDaFrente(embaixo).length) return;
       }
       const posto = colocarCompacta(d.balao, c, alvo, evitar);
-      d.balao.hidden = posto === 'espera'; if (d.anel) d.anel.hidden = d.balao.hidden;
+      esconderDica(d, posto === 'espera');
     }
   }
   // ---------- dica compacta: nunca em cima de controle ----------

@@ -682,7 +682,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   // O campo de data nativo aparecia como "17 /09/2026" e salvava uma data de cada
   // vez, sem conferir o Prazo de Ouro. Vira a data no formato do painel e abre o
   // editor de planejamento — o mesmo da ficha da gaveta e das linhas do Foco.
-  const data = (iso) => `<button type="button" class="cr-data" onclick="event.stopPropagation();openPlanningEditor('${safeText(item.id)}')"
+  const data = (iso) => `<button type="button" class="cr-data" onclick="event.stopPropagation();openPlanningEditor('${jsArg(item.id)}')"
       title="Editar prazo e ${source === 'request' ? 'conclusão' : 'veiculação'}">${safeText(planningDateBr(iso) === 'não definido' ? '—' : planningDateBr(iso))}</button>`;
   const ehDemanda = source === 'request';
 
@@ -692,13 +692,13 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       <div class="cr-topo-acoes">${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item, { mover: !ehDemanda })}<button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button></div>
     </div>
     <div class="cr-titulo" role="button" tabindex="0"
-      onclick="event.stopPropagation();renomearPeca('${safeText(item.id)}',event)"
-      onkeydown="if(this.dataset.editando!=='1'&&(event.key==='Enter'||event.key===' ')){event.preventDefault();renomearPeca('${safeText(item.id)}',event)}"
+      onclick="event.stopPropagation();renomearPeca('${jsArg(item.id)}',event)"
+      onkeydown="if(this.dataset.editando!=='1'&&(event.key==='Enter'||event.key===' ')){event.preventDefault();renomearPeca('${jsArg(item.id)}',event)}"
       title="Clique para renomear aqui mesmo">${safeText(item.nome || 'Sem título')}</div>
     <!-- Redesign do legado, fase 2 (Paulo, 09/11/2026): o essencial em cima (status, quem faz, prazo e veiculação);
          o resto em "Mais campos", aberto do mesmo jeito na próxima vez. Os botões são os mesmos de antes. -->
     <div class="cr-campos cr-essenciais">
-      ${linha('Status', typeof pv2Ligado === 'function' && pv2Ligado() && typeof pv2StatusBotao === 'function' ? pv2StatusBotao(item) : `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${safeText(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
+      ${linha('Status', typeof pv2Ligado === 'function' && pv2Ligado() && typeof pv2StatusBotao === 'function' ? pv2StatusBotao(item) : `<button type="button" class="grupo-pill-btn" onclick="openStatusEditor(event,'${jsArg(item.id)}')">${pillHtml(item.status || 'Sem status', item.status_color, item.status_border)}</button>`)}
       ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${linha('Prazo', data(item.prazo_iso))}
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
@@ -719,9 +719,9 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
     ${ehDemanda ? `<div class="cr-recursos" id="cr-recursos-${safeText(item.id)}" role="status">Carregando briefing e material…</div>` : ''}
     ${ehDemanda ? `<div class="cr-subs" id="cr-subs-${safeText(item.id)}"><div class="cr-subs-carregando">Carregando subdemandas…</div></div>` : ''}
     <div class="cr-rodape">
-      ${jaTemMaterial(item) ? `<button type="button" class="cr-previa" onclick="verPreviaDoCartao('${safeText(item.id)}')"
+      ${jaTemMaterial(item) ? `<button type="button" class="cr-previa" onclick="verPreviaDoCartao('${jsArg(item.id)}')"
         title="Ver o material entregue">${ICONE_LINHA.previa}<span>Ver prévia</span></button>` : ''}
-      <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${safeText(item.id)}')` : `openItemWorkspace('${safeText(item.id)}')`}"
+      <button type="button" class="cr-abrir" onclick="fecharCartaoRapido();${ehDemanda ? `openDemandaWorkspace('${jsArg(item.id)}')` : `openItemWorkspace('${jsArg(item.id)}')`}"
         title="Arquivos, histórico e entrega">${ehDemanda ? 'Abrir a demanda' : 'Abrir a peça'}</button>
     </div>`;
   document.body.append(fundo, cartao);
@@ -1670,7 +1670,7 @@ function pillEditavel(item, campo) {
     ? 'Prioridade calculada pela veiculação · muda sozinha quando a data muda'
     : `Trocar ${rotuloDoCampo(campo, item)}`;
   return `<button type="button" class="grupo-pill-btn"
-    onclick="abrirEscolha(event,'${safeText(item.id)}','${campo}')"
+    onclick="abrirEscolha(event,'${jsArg(item.id)}','${campo}')"
     title="${safeText(dica)}">${dentro}</button>`;
 }
 
@@ -1709,14 +1709,14 @@ function abrirEscolha(event, itemId, campo) {
     emLote ? ` · <b>${SELECIONADAS.size} marcadas</b>` : ''}</div>
     ${opcoes.map((o) => `<div class="etiqueta-linha ${o.ativa ? '' : 'desligada'}">
         <button type="button" class="status-editor-option ${o.rotulo === atual ? 'current' : ''}"
-          onclick="escolherValor('${safeText(item.id)}','${campo}','${safeText(o.chave)}')">
+          onclick="escolherValor('${jsArg(item.id)}','${campo}','${jsArg(o.chave)}')">
           <span class="status-editor-dot" style="background:${o.cor || '#7c8797'};color:${o.cor || '#7c8797'}"></span>
           <span>${safeText(o.rotulo)}${o.ativa ? '' : ' (desligada)'}</span>
           ${o.rotulo === atual ? '<span class="status-editor-check">✓</span>' : ''}</button>
         ${ferramentas(o)}${chave(o)}
       </div>`).join('')}
     <div class="etiqueta-linha">
-      <button type="button" class="status-editor-option" onclick="escolherValor('${safeText(item.id)}','${campo}','')">
+      <button type="button" class="status-editor-option" onclick="escolherValor('${jsArg(item.id)}','${campo}','')">
         <span class="status-editor-dot" style="background:#4a5464;color:#4a5464"></span><span>Deixar em branco</span></button>
     </div>
     ${campo === 'prioridade' ? `<div class="escolha-nota">Esta coluna se refaz sozinha
@@ -2053,11 +2053,11 @@ function linhaDeGrupoHtml(item, compacta = false) {
          : isRequestItem(item) ? 'Data de conclusão' : 'Data de veiculação'}">`;
   const escolha = (campo) => `<td onclick="${parar}">${pillEditavel(item, campo)}</td>`;
   const pv2 = typeof pv2Ligado === 'function' && pv2Ligado() && typeof pv2StatusBotao === 'function';
-  return `<tr class="${marcada ? 'marcada' : ''}${pv2 && typeof pv2Chegou === 'function' ? pv2Chegou(item) : ''}" onclick="openItemWorkspace('${safeText(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
+  return `<tr class="${marcada ? 'marcada' : ''}${pv2 && typeof pv2Chegou === 'function' ? pv2Chegou(item) : ''}" onclick="openItemWorkspace('${jsArg(item.id)}')" title="Abrir ${safeText(item.nome || '')}">
     <td class="grupo-marcar" onclick="${parar}">
       <input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(item.nome || '')}"
-             onclick="${parar};alternarSelecao('${safeText(item.id)}',this.checked,event)"></td>
-    ${compacta ? '' : `<td class="grupo-id" onclick="${parar};copiarId('${safeText(item.id)}')"
+             onclick="${parar};alternarSelecao('${jsArg(item.id)}',this.checked,event)"></td>
+    ${compacta ? '' : `<td class="grupo-id" onclick="${parar};copiarId('${jsArg(item.id)}')"
         title="ID da atividade · clique para copiar">${safeText(item.id)}</td>`}
     <td class="grupo-nome">${safeText(item.nome || 'Sem título')}${
       isRequestItem(item) && Number(item.tarefas) > 0
@@ -2476,8 +2476,8 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     return `<section class="grupo-bloco ${recolhido ? 'recolhido' : ''}${controles ? ' editavel' : ''}" data-grupo="${safeText(grupo.id)}" data-previa-sequencia="${safeText(grupo.nome)}" data-quadro="${quadro}" style="--cor-grupo:${corDeQualquerGrupo(grupo.id)}">
       <div class="grupo-cabecalho">${controles}<button type="button" class="grupo-cabeca" onclick="toggleGrupo('${grupo.id}')" aria-expanded="${!recolhido}">
         <span class="grupo-seta chevron ${recolhido ? 'fechado' : ''}"></span>
-        <span class="grupo-titulo"><b${controles ? ` ondblclick="renomearGrupoPeloNome(event,'${quadro}','${safeText(grupo.id)}')" title="Clique duplo para renomear"` : ''}>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
-      </button>${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome) : ''}<button type="button" class="grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${safeText(grupo.id)}')" aria-label="Adicionar ${quadro==='demandas'?'demanda':'conteúdo'} em ${safeText(grupo.nome)}">+ ${quadro==='demandas'?'Nova demanda':'Novo conteúdo'}</button></div>${corpo}</section>`;
+        <span class="grupo-titulo"><b${controles ? ` ondblclick="renomearGrupoPeloNome(event,'${quadro}','${jsArg(grupo.id)}')" title="Clique duplo para renomear"` : ''}>${safeText(grupo.nome)}</b><small title="${total} ${peca(total)}">${total}</small></span>
+      </button>${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome) : ''}<button type="button" class="grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${jsArg(grupo.id)}')" aria-label="Adicionar ${quadro==='demandas'?'demanda':'conteúdo'} em ${safeText(grupo.nome)}">+ ${quadro==='demandas'?'Nova demanda':'Novo conteúdo'}</button></div>${corpo}</section>`;
   }).join('');
 
   const totalGeral = grupos.reduce((soma, g) => soma + g.itens.length, 0);
@@ -2741,7 +2741,7 @@ const corDeQualquerGrupo = (id) => CORES_GRUPOS_DEMANDAS[id] || corDoGrupo(id);
 function botaoDeGrupo(item) {
   const id = String(item.group_id || '');
   const cor = corDeQualquerGrupo(id);
-  return `<button type="button" class="cr-grupo-pill" onclick="abrirSeletorDeGrupo(event,'${safeText(item.id)}')"
+  return `<button type="button" class="cr-grupo-pill" onclick="abrirSeletorDeGrupo(event,'${jsArg(item.id)}')"
     style="--g:${cor}" title="Mover de grupo"><span class="status-editor-dot" style="background:${cor}"></span>${
     safeText(tituloDoGrupo(id))}</button>`;
 }
@@ -2773,7 +2773,7 @@ function abrirSeletorDeGrupo(event, itemId) {
     + gruposDoItem(item).map((id) => {
         const cor = corDeQualquerGrupo(id);
         return `<button type="button" class="status-editor-option ${id === atual ? 'current' : ''}"
-          onclick="moverPecaDeGrupo('${safeText(item.id)}','${id}')">
+          onclick="moverPecaDeGrupo('${jsArg(item.id)}','${id}')">
           <span class="status-editor-dot" style="background:${cor}"></span>${safeText(tituloDoGrupo(id))}
           <span class="status-editor-check">${id === atual ? '✓' : ''}</span></button>`;
       }).join('');
@@ -2853,7 +2853,7 @@ function loteResponsavel(event) {
       autocomplete="off" oninput="buscarResponsavelEmLote(this.value)" onkeydown="teclaNaBuscaDoLote(event)">
     <div class="dono-fichas">${equipe.map((u) => `<button type="button" class="dono-ficha"
       data-nome="${safeText(semAcentoDoLote(u.name))}"
-      onclick="aplicarResponsavelEmLote('${safeText(String(u.id))}')" title="${safeText(u.name)}">
+      onclick="aplicarResponsavelEmLote('${jsArg(String(u.id))}')" title="${safeText(u.name)}">
       ${ownerAvatarHtml(u)}<span><b>${safeText(firstName(u.name))}</b></span></button>`).join('')}</div>
     <div id="lote-dono-vazio" class="dono-vazio" hidden></div>
     <p class="lote-dono-nota">A disciplina de cada peça continua valendo: quem ficar fora dela entra
@@ -3112,7 +3112,7 @@ function pintarArquivadas() {
       </div>
       <span class="arquivada-prazo">${safeText(prazo)}</span>
       <button type="button" class="arquivada-voltar"
-        onclick="restaurarPeca('${safeText(String(a.id))}',this)">Trazer de volta</button>
+        onclick="restaurarPeca('${jsArg(String(a.id))}',this)">Trazer de volta</button>
     </article>`;
   }).join('');
 }
@@ -3177,7 +3177,7 @@ async function loteArquivar() {
 // Cliente usa vínculos do banco, não opções de uma coluna externa.
 function botaoClientesDoItem(item) {
   const nomes = clientesDoItem(item);
-  return `<button type="button" class="clientes-vinculo-btn" onclick="abrirClientesDoItem('${safeText(item.id)}',event)" aria-label="Editar clientes de ${safeText(item.nome || 'atividade')}">${nomes.map(n => tagClienteHtml(n, { dentroDeBotao: true })).join('') || '<span>Selecionar cliente</span>'}<i aria-hidden="true">⌄</i></button>`;
+  return `<button type="button" class="clientes-vinculo-btn" onclick="abrirClientesDoItem('${jsArg(item.id)}',event)" aria-label="Editar clientes de ${safeText(item.nome || 'atividade')}">${nomes.map(n => tagClienteHtml(n, { dentroDeBotao: true })).join('') || '<span>Selecionar cliente</span>'}<i aria-hidden="true">⌄</i></button>`;
 }
 async function abrirClientesDoItem(itemId, event) {
   event?.stopPropagation();

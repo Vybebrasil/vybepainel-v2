@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 
 function elemento(id) {
   return { id, innerHTML: '', textContent: '', className: '', hidden: false, style: {}, dataset: {},
@@ -19,7 +20,7 @@ function carregar() {
     console, Intl, URL, Map, Set, Promise, setTimeout, Math, Number, String, JSON, Date,
     localStorage: { getItem: () => null, setItem() {} },
     document: { getElementById: pegar, querySelector: () => null, querySelectorAll: () => [], addEventListener() {} },
-    safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
+    jsArg: JS_ARG, safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     showToast() {}, DADOS_DEMANDAS: [{}], TEAM_USERS: [{ name: 'Vinícius', photo: 'https://www.habbo.com/habbo-imaging/avatarimage?figure=hd-180-1&headonly=1' }],
     ownerAvatarHtml: (u) => (u.photo ? `<img src="${u.photo}" alt="${u.name}">` : `<span class="owner-avatar-fallback">${u.name}</span>`),
     firstName: (n) => String(n).split(/\s+/)[0],

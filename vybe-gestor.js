@@ -89,13 +89,13 @@ async function copiarLinkDaAtividade(id, botao) {
 // icone: só o desenho, com o nome para o leitor de tela e a dica ao passar o mouse (gaveta, quadro 06 do redesign).
 function botaoDeLinkHtml(item, { icone = false } = {}) {
   if (!item?.id) return '';
-  return `<button type="button" class="vybe-link${icone ? ' so-icone' : ''}" onclick="event.stopPropagation();copiarLinkDaAtividade('${safeText(item.id)}',this)"
+  return `<button type="button" class="vybe-link${icone ? ' so-icone' : ''}" onclick="event.stopPropagation();copiarLinkDaAtividade('${jsArg(item.id)}',this)"
     title="Copiar o link desta atividade para mandar no grupo"${icone ? ' aria-label="Copiar link"' : ''}>${ICONE_LINHA.link}<span${icone ? ' class="sr-only"' : ''}>Copiar link</span></button>`;
 }
 
 function vybeChipId(item) {
   if (!item?.id) return '';
-  return `<button type="button" class="vybe-id" onclick="event.stopPropagation();copiarId('${safeText(item.id)}')"
+  return `<button type="button" class="vybe-id" onclick="event.stopPropagation();copiarId('${jsArg(item.id)}')"
     title="ID da atividade · clique para copiar">#${safeText(item.id)}</button>`;
 }
 
@@ -112,7 +112,7 @@ function vybeStatus(item) {
   const rotulo = item?.status || 'Sem status';
   const pill = pillHtml(rotulo, item?.status_color, item?.status_border);
   return `<button type="button" class="vybe-status-btn"
-    onclick="openStatusEditor(event,'${safeText(item.id)}')"
+    onclick="openStatusEditor(event,'${jsArg(item.id)}')"
     title="Trocar status de ${safeText(item.nome || 'atividade')}">${pill}</button>`;
 }
 
@@ -145,7 +145,7 @@ function vybeData(item) {
 }
 
 function vybeNome(item) {
-  return `<button type="button" class="vybe-nome" onclick="openItemWorkspace('${safeText(item.id)}')"
+  return `<button type="button" class="vybe-nome" onclick="openItemWorkspace('${jsArg(item.id)}')"
     title="${safeText(item.nome || '')}">${safeText(item.nome || 'Sem título')}</button>`;
 }
 
@@ -231,9 +231,9 @@ function pillHtml(s, color='', border='') {
   const doCatalogo = color ? null : corDeStatus(s);
   const cor = color || doCatalogo?.cor || '';
   // No mundo (padrão v2): pílula clara com a bolinha na cor do status; cheia só no que pede atenção (pv2Tom).
-  if (pv2Ligado()) return `<span class="pill vv-st-ponto ${pv2Tom(s)}"${cor ? ` style="--st:${safeText(cor)}"` : ''}><i aria-hidden="true"></i>${s}</span>`;
+  if (pv2Ligado()) return `<span class="pill vv-st-ponto ${pv2Tom(s)}"${cor ? ` style="--st:${safeText(cor)}"` : ''}><i aria-hidden="true"></i>${safeText(s)}</span>`;
   const bordaFinal = border || doCatalogo?.borda || '';
-  return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(cor, bordaFinal)}><span class="pill-dot"${statusDotInlineStyle(cor)}></span>${s}</span>`;
+  return `<span class="pill pill-${statusCls(s)}"${statusInlineStyle(cor, bordaFinal)}><span class="pill-dot"${statusDotInlineStyle(cor)}></span>${safeText(s)}</span>`;
 }
 function managerStatusControl(item, { comTempo = true } = {}) {
     const label = `Alterar status de ${safeText(item.nome || 'atividade')} no Vybe OS`;
@@ -281,7 +281,7 @@ function fmtHtml(f) {
   // Sem formato não existe etiqueta: '—' dentro de uma cápsula parece um valor.
   if (!f || String(f).trim() === '' || String(f).trim() === '—') return '<span class="fmt-vazio">—</span>';
   const c = corDeOpcao(f, 'lista_suspensa0__1') || corDeOpcao(f, 'dropdown_mkv8d52z');
-  return `<span class="fmt fmt-${fmtCls(f)}"${statusInlineStyle(c?.cor || '', c?.borda || '')}>${f}</span>`;
+  return `<span class="fmt fmt-${fmtCls(f)}"${statusInlineStyle(c?.cor || '', c?.borda || '')}>${safeText(f)}</span>`;
 }
 function firstName(n) { if(!n||n==="—") return "—"; return n.split(",")[0].trim().split(" ")[0]; }
 function respBadgeHtml(name) {
@@ -972,9 +972,9 @@ function renderByDay(sem, filter, dayFilter) {
       const data=dataDoCartaoDia(d);
       const emAberto=d.status!=='Finalizado'&&grupoDoDiaPorStatus(d.status)===0;
       return `<div class="item-row day-activity-row${marcada?' marcada':''}${aba==='pendencias'?' day-pending-row':''}${emAberto?' day-row-aberta':''}" data-grupo="${grupoDoDiaPorStatus(d.status)}" draggable="true"
-        ondragstart="managerCalendarDragStart('${isRequestItem(d)?'request':'content'}','${safeText(d.id)}',event)" ondragend="managerCalendarDragEnd()" title="Arraste para mudar a data">
+        ondragstart="managerCalendarDragStart('${isRequestItem(d)?'request':'content'}','${jsArg(d.id)}',event)" ondragend="managerCalendarDragEnd()" title="Arraste para mudar a data">
         <label class="dia-marcar" onclick="event.stopPropagation()" title="Marcar para ação em lote"><input type="checkbox" ${marcada?'checked':''} data-day-item="${safeText(d.id)}" aria-label="Marcar ${safeText(d.nome||'')}"
-          onclick="event.stopPropagation();alternarSelecao('${safeText(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
+          onclick="event.stopPropagation();alternarSelecao('${jsArg(d.id)}',this.checked,event,ORDEM_VISIVEL_DO_DIA)"></label>
         <div class="day-activity-content"><div class="day-activity-main">
           <button type="button" class="item-name item-workspace-link" onclick="openItemWorkspace('${d.id}')" title="Abrir detalhes da atividade">${safeText(d.nome)}</button>
           <div class="day-activity-caption"><span class="day-activity-clients">${clientesDoItem(d).map(nome=>cliCor(nome)).join(' ')||'Sem cliente'}${clientesDoItem(d).length>1?`<span class="dia-mais-clientes" title="${safeText(clientesDoItem(d).join(', '))}">+${clientesDoItem(d).length-1}</span>`:''}</span>${aba==='pendencias'?`<span class="day-pending-date">${data?'Entrega '+data.split('-').reverse().join('/'):'Sem data'}</span>`:''}</div>
@@ -1304,6 +1304,12 @@ function renderDaySummary() {
 let showAllActionItems = false;
 const ACTION_STATUSES = ['A Fazer','Falta D.A','Falta Info','Alteração','Aguardo','Pode Fazer','Em andamento','Para aprovação','Ag. Aprovação Cliente','Ag. Info Cliente','Ag. Interno'];
 
+// Texto que entra num argumento '...' de onclick/onchange: escapa barra, aspas e quebras para o JS e depois o HTML
+// (auditoria 15/11/2026: com só safeText, a aspa vira &#039; e o navegador devolve a aspa ao JS antes de rodar).
+const JS_ARG_RE = new RegExp('[\\\\\'"\\x00-\\x1f' + String.fromCharCode(0x2028, 0x2029) + ']', 'g');
+function jsArg(value) {
+  return safeText(String(value ?? '').replace(JS_ARG_RE, (c) => (c === '\\' || c === "'" || c === '"' ? '\\' + c : '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))));
+}
 function safeText(value) {
   return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 }
@@ -1628,14 +1634,14 @@ function filaLinhaHtml(d, motivo, { rotulo = false } = {}) {
     ? `<span class="acao-motivo m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}"><i aria-hidden="true"></i>${safeText(motivo.rotulo)}</span>`
     : `<span class="acao-marca m-${motivo.chave}" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}" aria-label="${safeText(motivo.rotulo)}"></span>`;
   return `<article class="acao-linha${marcada ? ' marcada' : ''}${rotulo ? ' com-rotulo' : ''}${pv2Ligado() ? pv2Chegou(d) : ''}" data-id="${safeText(String(d.id))}"
-      onclick="acaoAbrirPeca('${safeText(String(d.id))}',event)" title="Abrir ${safeText(d.nome || 'a atividade')}">
+      onclick="acaoAbrirPeca('${jsArg(String(d.id))}',event)" title="Abrir ${safeText(d.nome || 'a atividade')}">
       <label class="acao-marcar" onclick="event.stopPropagation()"><input type="checkbox" ${marcada ? 'checked' : ''}
         data-id="${safeText(String(d.id))}" onclick="filaMarcar(this,event)" aria-label="Marcar ${safeText(d.nome || 'atividade')}"></label>
       ${marca}
       <span class="acao-copy"><b>${safeText(d.nome || 'Sem título')}</b><small>${safeText(apoio)}</small></span>
       <span class="acao-status" onclick="event.stopPropagation()">${vybeStatus(d)}</span>
       <span class="acao-data">${safeText(planningDateBr(getDateIso(d)).slice(0, 5) || '—')}<small>${dateMode === 'prazo' ? 'Prazo' : 'Veiculação'}</small></span>
-      <button type="button" class="acao-abrir" onclick="event.stopPropagation();openItemWorkspace('${safeText(String(d.id))}')">Contexto</button>
+      <button type="button" class="acao-abrir" onclick="event.stopPropagation();openItemWorkspace('${jsArg(String(d.id))}')">Contexto</button>
     </article>`;
 }
 
