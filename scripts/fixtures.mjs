@@ -149,6 +149,21 @@ export async function demoApi(req,res,url,body) {
       {id:'2',nome:'Segundo cliente demonstração',ativo:true,selecionado:false}]});
   }
   if(url.pathname==='/api/painel' && url.searchParams.get('area')==='notas') return notasDemo(req,url,body,reply);
+  // Feed do Instagram fictício (server/instagram-feed.js na operação): 6 posts por perfil, com imagem desenhada aqui,
+  // e um perfil "privado" para a tela mostrar o caso sem posts.
+  if(url.pathname==='/api/painel' && url.searchParams.get('area')==='feed_instagram' && sessao){
+    const cores=['#C2490C','#1E4A9A','#11613A','#6E56CF','#7A4A00','#1F1D1A'];
+    const perfis={};
+    for(const u of String(url.searchParams.get('usuarios')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean).slice(0,40)){
+      if(u==='cliente9'){perfis[u]={usuario:u,erro:'Perfil privado ou sem posts públicos.'};continue;}
+      perfis[u]={usuario:u,nome:u,seguidores:1200+u.length*137,posts:Array.from({length:6},(_,i)=>{
+        const d=new Date(Date.now()-(i*2+1)*86400000), cor=cores[(i+u.length)%cores.length];
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect width="400" height="500" fill="${cor}"/><text x="200" y="260" font-family="Arial" font-size="34" fill="#fff" text-anchor="middle">@${u}</text><text x="200" y="310" font-family="Arial" font-size="22" fill="#fff" text-anchor="middle">post ${i+1}</text></svg>`;
+        return {codigo:`demo${i}`,tipo:['foto','carrossel','video'][i%3],data:d.toISOString(),imagem:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),link:`https://www.instagram.com/${u}/`,fixado:false};
+      })};
+    }
+    return reply(200,{ok:true,perfis});
+  }
   // Os grupos de partida, os mesmos que a conferência do banco semeia.
   if(url.pathname==='/api/painel' && url.searchParams.get('area')==='grupos' && req.method==='GET')
     return reply(200,{ok:true,pronto:true,grupos:GRUPOS_PADRAO,cores:CORES_DE_GRUPO});
