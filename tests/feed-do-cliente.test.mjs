@@ -58,10 +58,12 @@ test('a rota exige sessão, só aceita GET e devolve os perfis', async () => {
   const res = () => { const r = { codigo: 0, corpo: null, status(c) { r.codigo = c; return r; }, json(b) { r.corpo = b; return r; }, setHeader() {} }; return r; };
   const buscar = async () => ({ ok: true, status: 200, text: async () => pagina({ usuario: 'um', posts: [post('X', 1)] }) });
   let r = res(); await areaFeedInstagram({ method: 'GET', query: { usuarios: 'um' } }, r, null, { buscar }); assert.equal(r.codigo, 401);
-  r = res(); await areaFeedInstagram({ method: 'POST', query: {} }, r, { tipo: 'sessao', pessoa: { id: 1 } }, { buscar }); assert.equal(r.codigo, 405);
+  r = res(); await areaFeedInstagram({ method: 'PUT', query: {} }, r, { tipo: 'sessao', pessoa: { id: 1 } }, { buscar }); assert.equal(r.codigo, 405);
+  // Gravar a captura do feed é só dos donos (tests/feed-captura.test.mjs).
+  r = res(); await areaFeedInstagram({ method: 'POST', query: {}, body: { acao: 'captura' } }, r, { tipo: 'sessao', pessoa: { id: 1 } }, { buscar }); assert.equal(r.codigo, 403);
   r = res(); await areaFeedInstagram({ method: 'GET', query: { usuarios: 'um' } }, r, { tipo: 'sessao', pessoa: { id: 1 } }, { buscar });
   assert.equal(r.codigo, 200); assert.equal(r.corpo.perfis.um.posts[0].codigo, 'X');
-  assert.match(ler('api/painel.js'), /const AREAS = \{ feed_instagram: areaFeedInstagram,/);
+  assert.ok(ler('api/painel.js').includes('const AREAS = { feed_instagram: (req,res,quem) => areaFeedInstagram(req,res,quem,{ db: sql() }),'));
 });
 
 test('a vista Feed entra no Painel como as outras: botão entre Mês e Grupos, painel da barra e seção própria', () => {

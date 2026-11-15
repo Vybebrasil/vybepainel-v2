@@ -130,8 +130,14 @@ function feedMontar(cli) {
   }
   const futuro = [...futuras, ...buracos].sort((a, b) => b.iso.localeCompare(a.iso) || Number(Boolean(a.buraco)) - Number(Boolean(b.buraco)));
   const perfil = cli.usuario ? FEED.perfis.get(cli.usuario) : null;
-  const noAr = perfil?.posts?.length ? perfil.posts.map((p) => ({ ig: p }))
-    : todas.filter((x) => x.iso < hoje).sort((a, b) => b.iso.localeCompare(a.iso)).slice(0, 9).map((x) => ({ ...x, passado: true }));
+  const publicadas = todas.filter((x) => x.iso < hoje).sort((a, b) => b.iso.localeCompare(a.iso)).map((x) => ({ ...x, passado: true }));
+  // Com a captura (o feed lido uma vez no navegador da Vybe), o que a Vybe publicou depois dela entra na frente dos
+  // posts capturados: a grade vai se atualizando sozinha (Paulo, 15/11/2026: "depois o que for saindo o sistema vai
+  // atualizando"). Com a Meta ligada, os posts já vêm atualizados do próprio Instagram.
+  const desde = perfil?.fonte === 'captura' ? String(perfil.capturado_em || '').slice(0, 10) : '';
+  const noAr = perfil?.posts?.length
+    ? [...(desde ? publicadas.filter((x) => x.iso > desde) : []), ...perfil.posts.map((p) => ({ ig: p }))]
+    : publicadas.slice(0, 9);
   // Três do mesmo formato em seguida, na ordem em que vão ao ar: a grade fica repetida.
   const seq = futuras.slice().sort((a, b) => a.iso.localeCompare(b.iso));
   let repetido = null;
@@ -151,7 +157,9 @@ function feedFiltrados() {
 function feedFotoIg(url) {
   const u = String(url || '');
   if (!u) return '';
-  return /^data:image\//.test(u) ? u : `/api/painel?area=feed_instagram&foto=${encodeURIComponent(u)}`;
+  // A captura gravada já vem com o endereço do próprio Vybe OS.
+  if (/^data:image\//.test(u) || u.startsWith('/api/painel?area=feed_instagram&captura=')) return u;
+  return `/api/painel?area=feed_instagram&foto=${encodeURIComponent(u)}`;
 }
 function feedNumeroIg(n) {
   const v = Number(n); if (!Number.isFinite(v)) return '–';
@@ -167,7 +175,7 @@ function feedTileHtml(t, cli) {
   }
   if (t.ig) {
     const p = t.ig, icone = p.tipo === 'carrossel' ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Carrossel"></i>' : p.tipo === 'video' ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo"></i>' : '';
-    return `<a class="vfd-t vfd-ig" href="${feedEsc(p.link)}" target="_blank" rel="noopener noreferrer" title="No ar desde ${feedEsc(feedDm(String(p.data || '').slice(0, 10)))}: abrir no Instagram">
+    return `<a class="vfd-t vfd-ig" href="${feedEsc(p.link)}" target="_blank" rel="noopener noreferrer" title="${p.data ? `No ar desde ${feedEsc(feedDm(String(p.data).slice(0, 10)))}` : 'No ar'}${p.fixado ? ' (fixado)' : ''}: abrir no Instagram">
       <img src="${feedEsc(feedFotoIg(p.imagem))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${icone}</a>`;
   }
   const it = t.item, id = String(it.id), arte = t.request ? null : FEED.artes.get(id);
@@ -198,6 +206,7 @@ function feedClienteHtml(cli) {
     g.semArte ? `<span class="vfd-aviso a">${feedPlural(g.semArte, 'peça sem arte', 'peças sem arte')}</span>` : '',
     g.repetido ? `<span class="vfd-aviso a" title="Três ${feedEsc(g.repetido)} seguidos deixam a grade repetida: arraste para intercalar formatos">3 ${feedEsc(g.repetido)} seguidos</span>` : '',
     resto > 0 ? `<span class="vfd-aviso" title="A grade mostra as ${FEED_GRADE_MAX} mais próximas">+ ${feedPlural(resto, 'item mais longe', 'itens mais longe')}</span>` : '',
+    p?.fonte === 'captura' ? `<span class="vfd-aviso" title="O feed atual foi lido uma vez no Instagram; o que a Vybe publica depois entra na frente sozinho">feed lido em ${feedDm(String(p.capturado_em || '').slice(0, 10))}</span>` : '',
     g.depois ? `<span class="vfd-aviso">${feedPlural(g.depois, 'peça depois', 'peças depois')} de ${feedDm(feedSomar(feedSegunda(feedHoje()), FEED_SEMANAS * 7 - 1))}</span>` : '',
   ].filter(Boolean).join('');
   const iniciais = cli.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
@@ -209,7 +218,7 @@ function feedClienteHtml(cli) {
   const siteTxt = String(p?.site || cli.site || '').trim();
   const site = siteTxt ? `<a class="vfd-ig-site" href="${feedEsc(/^https?:\/\//i.test(siteTxt) ? siteTxt : 'https://' + siteTxt)}" target="_blank" rel="noopener noreferrer">${feedEsc(siteTxt.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}</a>` : '';
   const bioTxt = String(p?.bio || cli.bio || '').trim();
-  const bio = bioTxt ? `<p class="vfd-ig-bio">${feedEsc(bioTxt)}</p>` : `<p class="vfd-ig-bio vazia">${p?.fonte === 'meta' ? 'Perfil sem bio.' : 'Bio aparece com a conta da Meta ligada (ou no cadastro do cliente).'}</p>`;
+  const bio = bioTxt ? `<p class="vfd-ig-bio">${feedEsc(bioTxt)}</p>` : `<p class="vfd-ig-bio vazia">${p?.fonte === 'meta' || p?.fonte === 'captura' ? 'Perfil sem bio.' : 'Bio aparece com a conta da Meta ligada (ou no cadastro do cliente).'}</p>`;
   // Uma grade só, contínua (Paulo, 15/11/2026: "insta de cliente aparece 2, 3 vezes... separando o perfil do que tá
   // pronto... tem que ter continuidade"): o que vai sair em cima e, colado, o que está no ar: os posts do Instagram
   // quando o servidor os lê (Meta ligada), senão as peças que a Vybe já publicou, com a arte. O perfil incorporado
