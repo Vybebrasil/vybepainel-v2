@@ -29,7 +29,7 @@ async function abrirMesaDeJogosEscritorio(m) {
   const mesa = { camada: escritorio.quarto || "praca", movel: escritorio.mapa.chaveMovel(m) };
   let d;
   try { d = await escritorioApi("mesa", null, { ...mesa, jogo: "todos" }); } catch (e) { return escritorioAviso(e.message); }
-  if (!d.disponivel) return escritorioAviso("A Mesa de Jogos aguarda a migração do banco.");
+  if (!d.disponivel) return escritorioAviso("A Mesa de Jogos ainda não está disponível.");
   xadrezPoeSprite();
   const x = escritorioXadrez();
   x.mesa = mesa;

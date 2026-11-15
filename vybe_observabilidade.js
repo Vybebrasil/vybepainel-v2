@@ -1,9 +1,14 @@
 // vybe_observabilidade.js — snapshots e saúde do domínio próprio.
 // Não armazena credenciais nem corpo de documentos; registra apenas indicadores.
+import { umaVez } from './server/uma-vez.js';
 
+// As tabelas nascem uma vez por banco em cada instância (server/uma-vez.js), e não a cada leitura do Diário: eram três
+// instruções de DDL em cada função daqui. Se falhar, a promessa é esquecida e a próxima chamada tenta de novo.
+export function garantirObservabilidade(sql) {
+  return umaVez('observabilidade', sql, criarTabelasDeObservabilidade);
+}
 
-
-export async function garantirObservabilidade(sql) {
+async function criarTabelasDeObservabilidade(sql) {
   await sql`CREATE TABLE IF NOT EXISTS vybe_operational_snapshots (
     id BIGSERIAL PRIMARY KEY,
     data_referencia DATE NOT NULL UNIQUE,

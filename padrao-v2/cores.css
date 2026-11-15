@@ -5,7 +5,7 @@
 
 /* A pílula de status nas listas e cartões do mundo (pillHtml em vybe-gestor.js). */
 body.mundo .pill.vv-st-ponto{display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;box-sizing:border-box;padding:0 9px;border:0;border-radius:999px;
-  background:#F3F1EC;color:#4A463F;font:600 11.5px/1 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:none}
+  background:#F3F1EC;color:#4A463F;font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:none}
 body.mundo .pill.vv-st-ponto > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,#B5AFA5)}
 body.mundo .pill.vv-st-ponto.r{background:#FDECEE;color:#B42318}
 body.mundo .pill.vv-st-ponto.a{background:#FFF4D6;color:#7A4A00}
@@ -23,3 +23,9 @@ body.mundo .pill.vv-st-ponto.g{background:#E8F5EC;color:#11613A}
 /* Links do mundo em tinta sublinhada (o laranja fica só no botão de ação). */
 body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .vg-link{color:#1F1D1A;text-decoration:underline;text-decoration-color:#C9C2B6;text-underline-offset:3px}
 body.mundo :is(#vv-hoje,#mundo-hud,.vv-setor-visao,#vv-carteira,#vv-comercial) .vg-link:hover{text-decoration-color:#1F1D1A}
+
+/* Acabamento premium (15/11/2026, item 10): a peça sem dono aparecia como uma bolinha com "?" (Hoje, Painel, Produção),
+   que parece dúvida, não falta de responsável. A bolinha tracejada fica e o "?" vira um traço; o nome acessível
+   ("Sem dono", "Sem responsável") continua no title e no aria-label de cada uma. */
+:is(.pv2-av.sd,.d3h-av.sd,.d3s-pes.sd .d3s-av,#vv-carteira .v2c-av.vago):not(#v2-sd-a):not(#v2-sd-b){font-size:0;line-height:0}
+:is(.pv2-av.sd,.d3h-av.sd,.d3s-pes.sd .d3s-av,#vv-carteira .v2c-av.vago):not(#v2-sd-a):not(#v2-sd-b)::before{content:"";display:block;width:10px;height:2px;border-radius:1px;background:var(--d3-apagado)}

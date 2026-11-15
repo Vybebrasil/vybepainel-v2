@@ -181,7 +181,7 @@ test('versão antiga do Finanças: sem paid_date, sem histórico e sem contratos
 
 test('sem SELECT numa tabela obrigatória: erro de permissão claro', async () => {
   const { c } = conectorCom(sqlFalso({ colunas: { ...COLUNAS, employees: [] } }));
-  await assert.rejects(c.lerBase({ desde: '2025-12-01' }), (e) => e instanceof ErroFinancas && e.codigo === 'permissao' && /SQL de acesso/.test(e.message));
+  await assert.rejects(c.lerBase({ desde: '2025-12-01' }), (e) => e instanceof ErroFinancas && e.codigo === 'permissao' && /sendo ligada/.test(e.message) && !/\.sql|docs\//.test(e.message));
 });
 
 test('erro do Postgres vira frase segura e fica 30 s guardado; tempo esgotado também', async () => {

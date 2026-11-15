@@ -161,7 +161,7 @@ function diarioCabecalho() {
     b.setAttribute('aria-checked', String(b.id === `diario-mode-${diarioDateMode}`));
   });
   const botao = diarioBotao();
-  if (botao) { botao.classList.remove('vb-botao', 'principal'); botao.classList.add('v2d-acao', 'v2-estado'); }
+  if (botao) { botao.classList.remove('vb-botao', 'principal'); botao.classList.add('v2d-acao', 'v2-estado'); if (!diarioPodeRegistrar()) { botao.hidden = true; if (botao.style) botao.style.display = 'none'; } }
   // Direção 3: o dia de hoje ao lado do título ("sexta, 13 nov").
   const titulo = document.querySelector('#painel-diario .vb-cabecalho-texto h2');
   if (titulo && !titulo.querySelector('.d3d-data')) {
@@ -173,6 +173,10 @@ function diarioCabecalho() {
 }
 
 function diarioBotao() { return document.querySelector('#painel-diario .vb-cabecalho-acoes > button[onclick^="salvarSnapshot"]'); }
+// Registrar é só de dono ou de quem administra (o servidor responde 403 aos outros, auditoria 15/11): o botão nem aparece.
+function diarioPodeRegistrar() {
+  try { return (typeof souDonoDaSessao === 'function' && souDonoDaSessao()) || (typeof souAdmin === 'function' && souAdmin()); } catch { return false; }
+}
 
 function setDiarioDateMode(mode) {
   diarioDateMode = mode === 'prazo' ? 'prazo' : 'veiculacao';
@@ -316,16 +320,19 @@ function diarioFalaHtml(atual, ant, m) {
   const entre = qa && qb ? (diarioIso(qa) === diarioIso(qb) ? `${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`) : qa ? diarioHora(qa) : '';
   let frase, botao = '', attrs = '';
   if (!n) frase = 'Não deu para abrir as peças deste registro.';
-  else if (!ant) frase = `Primeiro registro: <b>${diarioFmt(n.prontas)}</b> Finalizado na semana.`;
-  else if (!m) frase = `${diarioFmt(n.prontas)} Finalizado na semana; sem o registro anterior.`;
+  // Status no meio da frase em minúscula (acabamento 15/11): "finalizada", não "Finalizado"; pronta continua sendo só Finalizado.
+  else if (!ant) frase = `Primeiro registro: <b>${diarioFmt(n.prontas)}</b> ${n.prontas === 1 ? 'finalizada' : 'finalizadas'} na semana.`;
+  else if (!m) frase = `${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'finalizada' : 'finalizadas'} na semana; sem o registro anterior.`;
   else {
     const p = m.prontas.length, a = m.passaram.length;
-    frase = `${p === 0 ? 'Nenhuma virou' : p === 1 ? '1 virou' : `${diarioFmt(p)} viraram`} Finalizado; ${a === 0 ? `nenhuma passou ${diarioNomeData()}` : a === 1 ? `1 passou ${diarioNomeData()}` : `${diarioFmt(a)} passaram ${diarioNomeData()}`}.`;
+    frase = `${p === 0 ? 'Nenhuma foi finalizada' : p === 1 ? '1 foi finalizada' : `${diarioFmt(p)} foram finalizadas`}; ${a === 0 ? `nenhuma passou ${diarioNomeData()}` : a === 1 ? `1 passou ${diarioNomeData()}` : `${diarioFmt(a)} passaram ${diarioNomeData()}`}.`;
     if (a) { botao = a === 1 ? 'Ver a peça' : `Ver as ${diarioFmt(a)}`; attrs = `onclick="abrirSnapshot(${Number(atual.id)})"`; }
   }
   const corpo = `<small class="d3d-quem">Heitor · Coordenação${entre ? ` · ${diarioEsc(entre)}` : ''}</small><span class="d3d-frase">${frase}</span>`;
+  // Laranja só com ação (acabamento 15/11): sem botão, a frase vai na nota branca.
+  if (!botao) return typeof d3NotaHtml === 'function' ? d3NotaHtml({ frase: corpo, agente: 'H' }) : `<section class="d3-nota" role="status"><span class="d3-nota-av" aria-hidden="true">H</span><span class="d3-nota-frase">${corpo}</span></section>`;
   if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: corpo, agente: 'H', botao, attrs });
-  return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${corpo}</span>${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${diarioEsc(botao)}</button>` : ''}</section>`;
+  return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${corpo}</span><button type="button" class="d3-acao-btn" ${attrs}>${diarioEsc(botao)}</button></section>`;
 }
 
 function diarioNumerosHtml(atual, ant) {
@@ -444,8 +451,16 @@ function diarioPintar() {
   const el = document.getElementById('diario-snapshots-list');
   if (!el) return;
   const lista = diarioLista;
+  // Vazio (acabamento 15/11): uma frase e uma ação, no bloco laranja; o "Registrar agora" do topo some enquanto não há
+  // registro, para a mesma ação não aparecer duas vezes.
+  const topo = diarioBotao();
+  const pode = diarioPodeRegistrar();
+  // style.display, não só hidden: o CSS do botão (display:inline-flex) passa por cima do atributo.
+  if (topo) { topo.hidden = !lista.length || !pode; if (topo.style) topo.style.display = topo.hidden ? 'none' : ''; }
   if (!lista.length) {
-    el.innerHTML = '<div class="v2d d3d"><div class="v2d-card v2d-vazio" role="status"><p>Nenhum registro salvo ainda.</p></div></div>';
+    const frase = '<small class="d3d-quem">Heitor · Coordenação</small><span class="d3d-frase">Nenhum registro salvo ainda. O registro guarda a foto do dia da produção.</span>';
+    if (!pode) { el.innerHTML = `<div class="v2d d3d">${typeof d3NotaHtml === 'function' ? d3NotaHtml({ frase: frase.replace(' O registro guarda', ' Quem registra são os donos; o registro guarda'), agente: 'H' }) : '<div class="v2d-card v2d-vazio" role="status"><p>Nenhum registro salvo ainda.</p></div>'}</div>`; return; }
+    el.innerHTML = `<div class="v2d d3d">${typeof d3AcaoHtml === 'function' ? d3AcaoHtml({ frase, agente: 'H', botao: 'Registrar agora', attrs: 'onclick="salvarSnapshot()"' }) : `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${frase}</span><button type="button" class="d3-acao-btn" onclick="salvarSnapshot()">Registrar agora</button></section>`}</div>`;
     return;
   }
   let i = lista.findIndex((s) => Number(s.id) === Number(diarioComparado));

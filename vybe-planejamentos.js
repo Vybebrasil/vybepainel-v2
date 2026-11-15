@@ -50,7 +50,7 @@ async function carregarPlanejamentosDoCliente(clienteId, nome, raiz = document) 
   try {
     const d = await pljPedir(`cliente_id=${encodeURIComponent(clienteId)}`);
     if (!caixa.isConnected) return;
-    if (!d.disponivel) { caixa.innerHTML = '<p class="plj-vazio">Os planejamentos ainda não foram ligados no banco.</p>'; return; }
+    if (!d.disponivel) { caixa.innerHTML = '<p class="plj-vazio">Os planejamentos ainda não estão disponíveis.</p>'; return; }
     const lista = d.planejamentos || [];
     const podeCriar = lista.some((p) => p.pode_editar) || (typeof podeEditarClientes === 'function' && podeEditarClientes());
     caixa.innerHTML = `${lista.length ? `<ul class="plj-meses">${lista.map((p) => `<li>

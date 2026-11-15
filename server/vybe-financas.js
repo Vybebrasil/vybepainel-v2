@@ -26,12 +26,20 @@ export class ErroFinancas extends Error {
 }
 const MENSAGENS = {
   tempo: 'O Vybe Finanças demorou para responder. Tente de novo em instantes.',
-  login: 'O Vybe OS não conseguiu entrar no banco do Vybe Finanças: confira usuário e senha em VYBE_FINANCAS_DB_URL na Vercel.',
-  permissao: 'O papel de leitura do Vybe OS não tem acesso a alguma tabela do Finanças: rode de novo o SQL de acesso (docs/vybe-financas-acesso-leitura.sql).',
+  login: 'Esta parte ainda está sendo ligada.',
+  permissao: 'Esta parte ainda está sendo ligada.',
   leitura: 'O Vybe Finanças não respondeu a leitura agora. Tente de novo em instantes.',
   rede: 'Não deu para falar com o banco do Vybe Finanças agora (rede). Tente de novo em instantes.',
 };
-const erro = (codigo) => new ErroFinancas(codigo, MENSAGENS[codigo] || MENSAGENS.leitura);
+// O que fazer em cada caso fica no log do servidor, não na tela.
+const DETALHE = {
+  login: 'confira usuário e senha em VYBE_FINANCAS_DB_URL na Vercel',
+  permissao: 'o papel de leitura não enxerga alguma tabela do Finanças: rode de novo docs/vybe-financas-acesso-leitura.sql',
+};
+const erro = (codigo) => {
+  if (DETALHE[codigo]) console.warn(`[vybe-financas] ${codigo}: ${DETALHE[codigo]}.`);
+  return new ErroFinancas(codigo, MENSAGENS[codigo] || MENSAGENS.leitura);
+};
 // Erro do Postgres/rede → código seguro (a mensagem original nunca sai daqui).
 // Diagnóstico seguro: só o código SQLSTATE e uma etiqueta de frases conhecidas (nunca a mensagem, a URL ou a senha).
 export function diagnostico(e) {

@@ -104,7 +104,7 @@
     const r = pl.revisao || {}, n = Number(r.total) || 0, ok = Number(r.head_ok) || 0, avisos = avisosHtml(p);
     const pecas = r.total == null ? '' : `<span class="d3pl-n">${n} ${n === 1 ? 'peça' : 'peças'}</span>`;
     const emDia = !avisos && p.alertas ? '<span class="d3pl-n">em dia</span>' : '';
-    const barra = n ? `<span class="p2-c5 d3pl-ok"><span class="d3-barra" role="img" aria-label="${ok} de ${n} peças com OK" style="--v:${Math.round(ok / n * 100)}%"><i class="${ok === n ? 'g' : ''}"></i></span><small>${ok}/${n}</small></span>` : '<span class="p2-c5 d3pl-ok"></span>';
+    const barra = n ? `<span class="p2-c5 d3pl-ok"><span class="d3-barra" role="img" aria-label="${ok} de ${n} peças com o OK do head" style="--v:${Math.round(ok / n * 100)}%"><i class="${ok === n ? 'g' : ''}"></i></span><small>${ok}/${n}</small></span>` : '<span class="p2-c5 d3pl-ok"></span>';
     const edita = !['aprovado', 'cadastrado'].includes(pl.estado);
     const meio = `${cliente(p)}<span class="p2-c2">${esc(mesTxt(pl.mes))} · v${esc(pl.versao || 1)}</span><span class="p2-c3">${pilula(rot, cor)}</span><p class="d3pl-pecas">${pecas}${avisos || emDia}</p>${barra}`;
     if (!acao) return `<div class="p2-lin d3pl-lin">${meio}<span class="d3pl-bts"><button type="button" class="p2-btn s" data-plj-abrir="${esc(pl.id)}">Abrir</button></span></div>`;
@@ -150,7 +150,7 @@
     const fora2 = fora && prim ? ` · ${esc(prim.cliente)}${fora > 1 ? '…' : ''}` : '';
     const mostrar = fora || estado.todos ? `<p class="p2-sub p2-pe">${fora ? `+${fora}${fora2} · ` : ''}<button type="button" class="p2-link" data-plj-mostrar>${estado.todos ? 'recolher' : 'mostrar'}</button></p>` : '';
     const secao = (nome, n, tom, sub = '') => `<div class="d3pl-sec ${tom}"><h3>${nome}</h3><span>${n}${sub}</span></div>`;
-    const cab = '<div class="d3pl-cab" aria-hidden="true"><span>Cliente</span><span>Versão</span><span>Status</span><span>Peças</span><span>Com OK</span><span></span></div>';
+    const cab = '<div class="d3pl-cab" aria-hidden="true"><span>Cliente</span><span>Versão</span><span>Status</span><span>Peças</span><span>OK do head</span><span></span></div>';
     const com = [...visiveis.map((p) => linha(p)), ...(soSem ? sem.map((p) => linhaSem(p, estado.mes)) : [])];
     return `${cab}${acao.length ? `${secao(titulo, acao.length, 'a', ' na ordem')}${acao.map((p) => linha(p, { acao: true, aberta: String(p.planejamento.id) === aberta })).join('')}` : ''}
       ${sem.length && !soSem ? linhaSemResumo(sem, estado.mes) : ''}

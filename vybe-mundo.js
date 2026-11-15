@@ -463,6 +463,10 @@
     // aba Minhas tarefas. O Modo Foco antigo continua a um clique ("Abrir o dia completo").
     if (id === 'tarefas') { visaoHoje = 'tarefas'; try { localStorage.setItem('vybe.mundo.visaoHoje', 'tarefas'); } catch { /* fica nesta tela */ } usarTrilho.tarefas = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
     if (trancadoPara(id)) { mostrarSemAcesso(id); return; }
+    // Saiu da Direção de arte para outra tela (Prédio, Centro, Loja, Gestão, um painel): a Criação deixa de valer como
+    // Direção de arte, e o dock não volta a marcá-la ao fechar (auditoria 15/11, item 34). Janela de módulo por cima do
+    // Hoje (sub.mod), Criar e VYBES não tiram a pessoa de lá.
+    if (!['hoje', 'criar', 'vybes'].includes(id) && !(SUBMODULOS.find((x) => x.id === id) || TRILHO.find((t) => t && typeof t === 'object' && t.id === id))?.mod) criacaoPeloDock = false;
     const fora = TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.url);
     if (fora) { window.open(fora.url, '_blank', 'noopener'); return; } // sistema irmão (VybeHub): abre ao lado, sem mexer na tela
     if (String(id).startsWith('setor:')) {
@@ -861,7 +865,13 @@
       ${passos.length ? `<ol class="vg-passos">${passos.map((p, i) => `<li${i === 0 ? ' class="agora"' : ''}><button type="button" class="vg-passo" ${p.attrs}><span class="vg-num" aria-hidden="true">${i + 1}</span><span class="vg-meio"><small>${quando[i] || 'Depois'}</small><b>${p.titulo}</b><em>${p.motivo}</em></span><span class="vg-ir" aria-hidden="true">→</span></button></li>`).join('')}</ol>` : ''}
       ${depois ? `<p class="vg-depois">${depois}</p>` : ''}</section>`;
   }
-  function trocarVisaoHoje(v) { visaoHoje = v; try { localStorage.setItem('vybe.mundo.visaoHoje', v); } catch {} pintarHoje(); }
+  // Título e dock andam com a aba (auditoria 15/11, item 34): saindo da Criação aberta pela Direção de arte, o dock volta
+  // a marcar o Hoje (ou Minhas tarefas) e o título volta a ser "Hoje".
+  function trocarVisaoHoje(v) {
+    visaoHoje = v; try { localStorage.setItem('vybe.mundo.visaoHoje', v); } catch {}
+    if (criacaoPeloDock && v !== 'criacao') { criacaoPeloDock = false; marcarTrilho(v === 'tarefas' ? 'tarefas' : 'hoje'); }
+    pintarHoje();
+  }
   let cacheDono = { chave: '', valor: null };
   // dia: o dia escolhido no gráfico "Semana da agência" do Hoje ('' = a semana toda).
   const semanaAgencia = { campo: 'veiculacao', referencia: '', dia: '' };
@@ -1206,8 +1216,15 @@
   const fichaD3 = (txt, attrs, tom = '') => `<button type="button" class="d3h-ficha${tom ? ' ' + tom : ''}" ${attrs}><i aria-hidden="true"></i>${txt}</button>`;
   // Texto curto de um alerta: o número e até quatro palavras (sem parênteses nem palavra solta no fim); o inteiro vai no title.
   const VAZIAS_D3 = /^(a|o|as|os|de|do|da|dos|das|e|com|sem|para|no|na|em|que|peça|peças)$/i;
+  // Os alertas conhecidos têm a versão curta escrita (o corte em quatro palavras dava "16 agendadas com a data" e
+  // "1 sem nenhum conteúdo nesta"); o resto cai no corte.
+  const CURTOS_D3 = [[/agendadas? com a data passada/, 'agendadas a conferir'], [/em Para agendar com a veiculação vencida/, 'para agendar vencidas'],
+    [/sem nenhum conteúdo nesta semana/, 'sem conteúdo na semana'], [/com o prazo interno vencido/, 'com o prazo interno vencido'], [/travadas? na janela de produção/, 'travadas na produção'],
+    [/com risco de furo/, 'com risco de furo'], [/esperando o cliente/, 'esperando o cliente'], [/sem responsável/, 'sem responsável'], [/sem briefing/, 'sem briefing']];
   function curtoD3(t) {
     const base = String(t || '').split(':')[0].replace(/\([^)]*\)/g, '').trim(), m = base.match(/^(\d[\d.]*)\s+(.*)$/);
+    const pronto = m && CURTOS_D3.find(([re]) => re.test(base));
+    if (pronto) return `${m[1]} ${pronto[1]}`;
     const resto = (m ? m[2] : base).split(/\s+/).filter(Boolean); if (resto.length && /^(peças?|clientes?)$/i.test(resto[0]) && m) resto.shift();
     const p = resto.slice(0, 4); while (p.length > 1 && VAZIAS_D3.test(p[p.length - 1])) p.pop();
     return (m ? m[1] + ' ' : '') + p.join(' ');
@@ -1310,7 +1327,11 @@
       el.innerHTML = `<div class="d3h">${topoD3({ sub: diaD3(), dir: seg })}${acaoD3({ frase: 'Juntando os números da agência.' })}</div>`;
       return;
     }
-    const H = N.hoje || {}, S = N.semana || {}, C = N.cobertura || {}, prevHoje = H.previstas || 0, feitasHoje = H.feitas || 0;
+    // Os mesmos números da Gestão e da Produção (auditoria 15/11, itens 30 e 31): "Vão ao ar hoje" = das previstas para
+    // hoje, as que já estão em Finalizado (não as entregues hoje de qualquer data); "Prontas da semana" = das previstas da
+    // semana, as prontas; "furando a data" = o alerta (furos da produção), e as que esperam postar vêm à parte.
+    const H = N.hoje || {}, S = N.semana || {}, C = N.cobertura || {}, prevHoje = H.previstas || 0, feitasHoje = H.previstasFeitas ?? H.feitas ?? 0;
+    const prontasSemana = S.previstasEntregues ?? S.entregues ?? 0, furosProd = H.furosProducao ?? H.furos ?? 0, semPostar = H.semPostar || 0;
     const sem3 = C.sem3 || [], hoje = hojeIso();
     const emAtencao = (N.clientes || []).filter((c) => c.saude !== 'ok').length;
     // ===== Hoje · Agência pelo quadro D3-Agencia (Direção 3) =====
@@ -1353,9 +1374,9 @@
     const serieAtrasadas = typeof d3Series === 'function' && typeof d3SerieValores === 'function'
       ? d3SerieValores(d3Series('setor', () => { if (!body.classList.contains('mundo-modulo')) pintarHoje(); })?.atrasadas) : null;
     const numeros = numerosD3([
-      numD3({ rotulo: 'Atrasadas', valor: n0(H.atrasadas), tom: H.atrasadas ? 'r' : '', sub: H.atrasadas ? `${n0(H.furos)} furando a data` : 'nada atrasado', subTom: H.furos ? 'r' : '', serie: serieAtrasadas, attrs: 'data-espiar="atrasadas"' }),
+      numD3({ rotulo: 'Atrasadas', valor: n0(H.atrasadas), tom: H.atrasadas ? 'r' : '', sub: H.atrasadas ? `${n0(furosProd)} furando a data${semPostar ? ` · ${n0(semPostar)} a conferir` : ''}` : 'nada atrasado', subTom: furosProd ? 'r' : '', serie: serieAtrasadas, attrs: 'data-espiar="atrasadas"' }),
       numD3({ rotulo: 'Vão ao ar hoje', valor: n0(feitasHoje), de: prevHoje ? ` / ${n0(prevHoje)} ${rotuloDe(prevHoje, 'pronta', 'prontas')}` : '', barra: prevHoje ? feitasHoje / prevHoje * 100 : 0, sub: prevHoje ? '' : 'nada previsto', attrs: 'data-espiar="faltam"' }),
-      numD3({ rotulo: 'Semana', valor: n0(S.entregues), de: S.previstas ? ` / ${n0(S.previstas)}` : '', barra: S.previstas ? S.entregues / S.previstas * 100 : 0, sub: S.previstas ? '' : 'nada previsto', attrs: 'data-abrir-gestao="semana"' }),
+      numD3({ rotulo: 'Prontas da semana', valor: n0(prontasSemana), de: S.previstas ? ` / ${n0(S.previstas)}` : '', barra: S.previstas ? prontasSemana / S.previstas * 100 : 0, sub: S.previstas ? '' : 'nada previsto', attrs: 'data-abrir-gestao="semana"' }),
       numD3({ rotulo: 'Para você decidir', valor: n0(fila.length), sub: fila.length && antigaH >= 1 ? `a mais antiga · ${antigaH < 48 ? antigaH + ' h' : Math.round(antigaH / 24) + ' d'}` : fila.length ? 'chegou agora' : 'nada esperando', attrs: 'data-hoje-acao="decidir-lista"' }),
     ]);
     const online = presencaDoEscritorio();
@@ -1419,11 +1440,11 @@
     if (gestaoAba === 'agora') {
       const L = H.lista || {}, T = N.time || [], CL = N.clientes || [];
       corpo = `${G(`
-          ${k({ icone: 'aperto', titulo: 'Produção de hoje', valor: `${n0(H.feitas)}<i>/${n0(H.previstas)}</i>`, sub: H.previstas ? `${n0(Math.round((H.feitas / H.previstas) * 100))}% das previstas para hoje` : 'nada previsto para hoje', cls: H.previstas && H.feitas < H.previstas ? 'atencao' : '' })}
-          ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furos)} furando a data do cliente`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
+          ${k({ icone: 'aperto', titulo: 'Vão ao ar hoje', valor: `${n0(H.previstasFeitas ?? H.feitas)}<i>/${n0(H.previstas)}</i>`, sub: H.previstas ? `${n0(Math.round(((H.previstasFeitas ?? H.feitas) / H.previstas) * 100))}% prontas` : 'nada previsto para hoje', cls: H.previstas && (H.previstasFeitas ?? H.feitas) < H.previstas ? 'atencao' : '' })}
+          ${k({ icone: 'alerta', titulo: 'Atrasadas', valor: n0(H.atrasadas), sub: `${n0(H.furosProducao ?? H.furos)} furando a data do cliente${H.semPostar ? ` · ${n0(H.semPostar)} prontas a conferir se saíram` : ''}`, cls: H.atrasadas ? 'ruim' : '', espiar: 'atrasadas' })}
           ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(H.emRisco), sub: 'nos próximos 2 dias', cls: H.emRisco ? 'atencao' : '', espiar: 'emRisco' })}
           ${k({ icone: 'calendario', titulo: 'Ainda não feitas hoje', valor: n0(H.faltam), sub: `${n0(H.paraAgendar?.hoje)} para agendar hoje`, espiar: 'faltam' })}
-          ${k({ icone: 'alta', titulo: 'Entregues na semana', valor: `${n0(S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: Hi.medianaEntregues ? `mediana de ${n0(Hi.medianaEntregues)} por semana` : '' })}
+          ${k({ icone: 'alta', titulo: 'Prontas da semana', valor: `${n0(S.previstasEntregues ?? S.entregues)}<i>/${n0(S.previstas)}</i>`, sub: `${plural(S.entregues, 'entrega registrada', 'entregas registradas')}${Hi.medianaEntregues ? ` · mediana de ${n0(Hi.medianaEntregues)} por semana` : ''}` })}
           ${k({ icone: 'doc', titulo: 'Clientes sem 3 posts', valor: n0((C.sem3 || []).length), sub: `de ${n0(C.clientesAtivos)} ativos`, cls: (C.sem3 || []).length ? 'atencao' : '', espiar: 'sem3' })}
         `)}
         ${linha(bloco('O que pede ação agora', 'alertas da operação, do mais grave ao menos grave', (N.alertas || []).length ? `<ul class="vs-alertas">${(N.alertas || []).slice(0, 10).map((a, i) => `<li class="${a.nivel === 1 ? 'ruim' : a.nivel <= 3 ? 'atencao' : ''}"><button type="button" class="vs-alerta" data-espiar="alerta:${i}"><i aria-hidden="true"></i><span>${esc(a.texto)}</span></button></li>`).join('')}</ul>` : '<p class="vs-aviso">Sem alertas agora.</p>', { icone: 'alerta', cls: 'vs-destaque' })
@@ -1451,12 +1472,12 @@
       const CL = N.clientes || [], conta = (s) => CL.filter((c) => c.saude === s).length;
       corpo = `${G(`
           ${k({ icone: 'pessoas', titulo: 'Clientes ativos', valor: n0(CL.length), sub: `${n0(CL.filter((c) => c.temPlanejamento).length)} com planejamento` })}
-          ${k({ icone: 'alerta', titulo: 'Críticos', valor: n0(conta('critico')), sub: 'furo, 3+ atrasadas ou sem conteúdo', cls: conta('critico') ? 'ruim' : '', espiar: 'atencao' })}
+          ${k({ icone: 'alerta', titulo: 'Produção crítica', valor: n0(conta('critico')), sub: 'furo, 3 ou mais atrasadas ou sem conteúdo', cls: conta('critico') ? 'ruim' : '', espiar: 'atencao' })}
           ${k({ icone: 'relogio', titulo: 'Em atenção', valor: n0(conta('atencao')), sub: 'atraso, risco ou abaixo da meta', cls: conta('atencao') ? 'atencao' : '' })}
           ${k({ icone: 'coracao', titulo: 'Em dia', valor: n0(conta('ok')), sub: CL.length ? `${n0(Math.round((conta('ok') / CL.length) * 100))}% da carteira` : '' })}
           ${k({ icone: 'doc', titulo: 'Peças abertas', valor: n0(CL.reduce((a, c) => a + (c.abertas || 0), 0)), sub: plural(CL.reduce((a, c) => a + (c.atrasadas || 0), 0), 'atrasada', 'atrasadas') })}
         `)}
-        ${linha(bloco('Saúde da carteira', 'quantos clientes em cada faixa', deitadas([{ nome: 'Em dia', valor: conta('ok'), cls: 'ok' }, { nome: 'Em atenção', valor: conta('atencao'), cls: 'atencao' }, { nome: 'Críticos', valor: conta('critico'), cls: 'ruim' }]), { icone: 'coracao' })
+        ${linha(bloco('Produção por cliente', 'em dia, em atenção ou crítica pela fila de peças (a nota de 0 a 100 fica na Saúde da carteira)', deitadas([{ nome: 'Em dia', valor: conta('ok'), cls: 'ok' }, { nome: 'Em atenção', valor: conta('atencao'), cls: 'atencao' }, { nome: 'Críticos', valor: conta('critico'), cls: 'ruim' }]), { icone: 'coracao' })
           + bloco('Peças abertas por cliente', 'os que mais têm peça em aberto', deitadas([...CL].sort((a, b) => b.abertas - a.abertas).slice(0, 8).map((c) => ({ cli: true, nome: c.cliente, valor: c.abertas, cls: SAUDE_CLS[c.saude] || '', rotulo: `${n0(c.abertas)}${c.atrasadas ? ` <small class="t-ruim">${n0(c.atrasadas)} atras.</small>` : ''}` }))), { icone: 'doc' }))}
         ${bloco('Todos os clientes', 'clique na linha para abrir o cérebro do cliente; nos números, a lista por trás', tabela(`<table class="vv-g-tabela"><thead><tr><th>Cliente</th><th>Saúde</th><th class="n">Abertas</th><th class="n">Atrasadas</th><th class="n">Risco</th><th class="n">Semana</th><th class="n">Próx.</th><th>Planej.</th><th>Por quê</th></tr></thead><tbody>
         ${CL.map((c) => `<tr data-cerebro-cliente="${esc(c.cliente)}"><td><b>${cliCor(c.cliente)}</b></td><td><span class="pill ${SAUDE[c.saude]?.[1] || ''}">${SAUDE[c.saude]?.[0] || c.saude}</span></td><td class="n">${n0(c.abertas)}</td><td class="n ${c.atrasadas ? 't-u1' : ''}">${c.atrasadas ? `<button type="button" class="vv-num" data-espiar="atrasadas|cliente:${esc(c.cliente)}">${n0(c.atrasadas)}</button>` : '0'}</td><td class="n ${c.emRisco ? 't-u2' : ''}">${c.emRisco ? `<button type="button" class="vv-num" data-espiar="emRisco|cliente:${esc(c.cliente)}">${n0(c.emRisco)}</button>` : '0'}</td><td class="n ${c.semana < 3 ? 't-u2' : ''}">${n0(c.semana)}/3</td><td class="n">${n0(c.proximaSemana)}</td><td>${c.temPlanejamento ? '<span class="ok">Sim</span>' : '<span class="nao">Não</span>'}</td><td class="mot">${esc((c.motivos || []).join(' · '))}</td></tr>`).join('')}
@@ -1473,7 +1494,7 @@
           ${k({ icone: 'pessoas', titulo: 'Heads', valor: n0(comHead.length), sub: `${plural(heads.reduce((a, h) => a + (h.contas || 0), 0), 'conta', 'contas')} nas carteiras` })}
           ${k({ icone: 'alerta', titulo: 'Atrasadas nas carteiras', valor: n0(heads.reduce((a, h) => a + (h.atrasadas || 0), 0)), cls: heads.some((h) => h.atrasadas) ? 'ruim' : '' })}
           ${k({ icone: 'relogio', titulo: 'Risco de furo', valor: n0(heads.reduce((a, h) => a + (h.emRisco || 0), 0)), cls: heads.some((h) => h.emRisco) ? 'atencao' : '' })}
-          ${k({ icone: 'coracao', titulo: 'Clientes críticos', valor: n0(heads.reduce((a, h) => a + (h.saude?.critico || 0), 0)), cls: heads.some((h) => h.saude?.critico) ? 'ruim' : '' })}
+          ${k({ icone: 'coracao', titulo: 'Produção crítica', valor: n0(heads.reduce((a, h) => a + (h.saude?.critico || 0), 0)), cls: heads.some((h) => h.saude?.critico) ? 'ruim' : '' })}
         `)}
         ${linha(bloco('Entregas da semana por head', 'previstas da semana já entregues', heads.length ? progresso(heads.map((h) => ({ nome: h.head, texto: `${n0(h.semana?.entregues)} de ${n0(h.semana?.previstas)} · ${plural(h.contas, 'conta', 'contas')}`, barra: Math.max(0, Math.min(100, Number(h.semana?.pct) || 0)), percentual: h.semana?.pct, batida: h.semana?.pct === 100 }))) : '<p class="vs-aviso">Sem carteiras.</p>', { icone: 'meta' })
           + bloco('Peças por head', 'abertas, atrasadas e risco de furo', barras(heads.map((h) => ({ rotulo: h.semHead ? 'Sem head' : String(h.head).split(' ')[0], abertas: h.abertas, atrasadas: h.atrasadas, risco: h.emRisco })), [{ chave: 'abertas', rotulo: 'Abertas', cls: 'c5' }, { chave: 'atrasadas', rotulo: 'Atrasadas', cls: 'c4' }, { chave: 'risco', rotulo: 'Risco', cls: 'c1' }]), { icone: 'alta' }))}
@@ -1772,7 +1793,7 @@
       pe: '<span class="d3h-leg"><i></i>pontos</span><span class="d3h-leg t"><i></i>limite</span>' });
     const ideias = A?.clientesHtml ? `<section class="d3h-cartao d3h-ideias" aria-label="Ideias dos clientes"><div class="d3h-cab"><h3>Ideias dos clientes</h3><span class="d3h-aux"><button type="button" class="d3h-link" data-criacao-atalho="sugestoes" aria-expanded="false">abrir</button></span></div><div class="v2c-sugestoes" hidden>${A.clientesHtml}</div></section>` : '';
     const avs = `<span class="d3h-online" title="${esc(membros.map(curto).join(', '))}"><span class="d3h-avs" aria-hidden="true">${membros.slice(0, 5).map((u) => `<i>${esc(iniciaisD3(curto(u)))}</i>`).join('')}</span><small>${plural(itens.length, 'peça aberta', 'peças abertas')}</small></span>`;
-    const html = `<div class="d3h d3h-cr">${topoD3({ sub: diaD3(), meio: avs, dir: `${dono && !verComo ? segHoje('criacao') : ''}${conversaBtn || agenteBtn ? `<details class="d3h-mais-menu"><summary aria-label="Mais ações da Criação">⋯</summary><div class="d3h-mais-pop">${conversaBtn}${agenteBtn}</div></details>` : ''}` })}
+    const html = `<div class="d3h d3h-cr">${topoD3({ titulo: criacaoPeloDock ? 'Direção de arte' : 'Hoje', sub: diaD3(), meio: avs, dir: `${dono && !verComo ? segHoje('criacao') : ''}${conversaBtn || agenteBtn ? `<details class="d3h-mais-menu"><summary aria-label="Mais ações da Criação">⋯</summary><div class="d3h-mais-pop">${conversaBtn}${agenteBtn}</div></details>` : ''}` })}
       ${acaoD3({ ...faixa, agente: 'D' })}
       ${A?.conversa ? `<div class="d3h-cartao v2c-conversa" hidden>${A.conversa}</div>` : ''}
       ${numeros}
@@ -2141,8 +2162,8 @@
     // estar pronto e o que espera decisão); para a equipe, a própria fila. Linha zerada fica, apagada.
     const N0 = dono ? numerosDoDono() : null, H0 = N0?.hoje || null;
     const linhas = H0 ? [
-      lin('Agora', 'r', `<b>${plural(H0.atrasadas || 0, 'peça', 'peças')}</b> passaram da data`, `${n0(H0.furos || 0)} furando`, 'hoje'),
-      lin('Depois', 'a', `<b>${plural(Math.max(0, (H0.previstas || 0) - (H0.feitas || 0)), 'peça vai', 'peças vão')}</b> ao ar sem estar prontas`, 'hoje', 'hoje'),
+      lin('Agora', 'r', `<b>${plural(H0.atrasadas || 0, 'peça', 'peças')}</b> passaram da data`, `${n0(H0.furosProducao ?? H0.furos ?? 0)} furando`, 'hoje'),
+      lin('Depois', 'a', `<b>${plural(H0.faltam ?? Math.max(0, (H0.previstas || 0) - (H0.previstasFeitas || 0)), 'peça vai', 'peças vão')}</b> ao ar sem estar prontas`, 'hoje', 'hoje'),
       lin('Seguir', '', `<b>${plural(fila.length, 'peça', 'peças')}</b> para você decidir`, antigaH >= 1 ? `a mais antiga · ${hrs(antigaH)}` : '', 'aprovacoes'),
     ].join('') : r && !r.semFila ? [
       lin('Agora', 'r', `<b>${plural(r.atrasadas, 'peça', 'peças')}</b> passaram da data`, 'atrasadas', 'tarefas'),

@@ -287,18 +287,23 @@
       || `<span class="d3-barra" style="--v:${Math.round(((Number(abertas) || 0) / max) * 100)}%"><i></i></span>`;
     // Com a carga guardada (série 'carga', 7 dias) a linha é a das peças abertas dia a dia com o limite tracejado; passou
     // do limite, a linha e o número ficam vermelhos. Sem ela, as peças por dia na semana (ou a barra) de antes.
-    const guardada = new Map(time.map((t) => [t.pessoa, cargaGuardada(t.pessoa, t.pessoaId)]));
+    // Chave pelo id: duas pessoas "Sem cadastro" (ids do Monday sem pessoa ligada) não se misturam.
+    const chaveP = (t) => String(t.pessoaId ?? t.pessoa);
+    const guardada = new Map(time.map((t) => [chaveP(t), t.semCadastro ? null : cargaGuardada(t.pessoa, t.pessoaId)]));
     const comCarga = [...guardada.values()].some(Boolean), limitePadrao = seriesSetor()?.limite?.padrao;
     const graficoDe = (t) => {
-      const cg = guardada.get(t.pessoa);
+      const cg = guardada.get(chaveP(t));
       if (cg) return d3Linha(cg.valores, { largura: 90, altura: 24, meta: cg.limite, rotulo: `${t.pessoa}: peças abertas nos últimos ${cg.valores.length} dias${cg.limite ? `, limite ${cg.limite}` : ''}` });
       return grafico(comSerie ? d3SeriePessoa(itens, t.pessoa, hoje) : null, t.abertas);
     };
-    const acima = (t) => { const cg = guardada.get(t.pessoa); return Boolean(cg?.limite) && Number(t.abertas) > cg.limite; };
-    const linhas = time.map((t) => `<div class="d3s-pes${t.atrasadas ? ' r' : ''}${acima(t) ? ' acima' : ''}" title="${esc(`${t.pessoa}: ${num(t.abertas)} abertas, ${num(t.atrasadas)} atrasadas, ${num(t.entregues7d)} entregues em 7 dias${guardada.get(t.pessoa)?.limite ? `; limite ${guardada.get(t.pessoa).limite}` : ''}`)}"><span class="d3s-av">${esc(ini(t.pessoa))}</span><span class="d3s-pes-nome"><b>${esc(t.pessoa)}</b><small>${t.atrasadas ? `${num(t.atrasadas)} ${Number(t.atrasadas) === 1 ? 'atrasada' : 'atrasadas'}` : `${num(t.entregues7d)} em 7 dias`}</small></span>${graficoDe(t)}<b class="d3s-pes-n">${num(t.abertas)}</b></div>`).join('');
-    const serieSemDono = comSerie ? d3SeriePessoa(itens.filter((d) => !String(d.responsavel || '').replace('—', '').trim()).map((d) => ({ ...d, responsavel: '?' })), '?', hoje) : null;
-    const sd = semDono == null ? '' : `<div class="d3s-pes sd"><span class="d3s-av">?</span><span class="d3s-pes-nome"><b>Sem dono</b><small>a distribuir</small></span>${grafico(serieSemDono, semDono)}<b class="d3s-pes-n">${num(semDono)}</b></div>`;
-    return `<section class="d3s-card d3s-pessoas" aria-label="Pessoas e carga"><div class="d3s-topo"><h3>Pessoas · carga</h3><small>${comCarga ? `<span class="d3s-leg">7 dias</span>${limitePadrao ? `<span class="d3s-leg meta">limite ${num(limitePadrao)}</span>` : ''}${seriesSetor()?.pode?.limite ? `<button type="button" class="d3s-limite-btn" data-setor-limite aria-label="Mudar o limite de carga">mudar</button>` : ''}` : comSerie ? '<span class="d3s-leg">por dia na semana</span>' : 'abertas'}</small></div>${comCarga && seriesSetor()?.pode?.limite ? `<div class="d3s-limite" hidden><label>Limite padrão <input type="number" data-limite-padrao min="1" max="100" step="1" inputmode="numeric" value="${esc(limitePadrao ?? '')}"></label>${time.filter((t) => guardada.get(t.pessoa)?.sujeito && !/^monday:/.test(guardada.get(t.pessoa).sujeito)).map((t) => { const cg = guardada.get(t.pessoa); return `<label>${esc(String(t.pessoa).split(' ')[0])} <input type="number" data-limite-pessoa="${esc(cg.sujeito)}" min="1" max="100" step="1" inputmode="numeric" placeholder="${esc(limitePadrao ?? '')}" value="${cg.proprio ? esc(cg.limite) : ''}" aria-label="Limite de ${esc(t.pessoa)} (vazio = o padrão)"></label>`; }).join('')}<button type="button" class="d3s-chip" data-setor-limite-salvar>Salvar</button><small class="d3s-limite-msg" role="status">vazio = o padrão</small></div>` : ''}<div class="d3s-rolo">${linhas || '<p class="d3s-vazio">Sem números do time.</p>'}${sd}</div>${temAba('tarefas') ? `<div class="d3s-ver">${btn('Minhas tarefas', 'data-setor-sub="tarefas"')}</div>` : ''}</section>`;
+    const acima = (t) => { const cg = guardada.get(chaveP(t)); return Boolean(cg?.limite) && Number(t.abertas) > cg.limite; };
+    // Id do Monday sem pessoa ligada (auditoria 15/11, item 19): "Sem cadastro", com o porquê na dica, nunca "Pessoa 6803…".
+    const quemE = (t) => (t.semCadastro ? `Sem cadastro (id ${t.pessoaId} do Monday sem pessoa ligada)` : t.pessoa);
+    const linhas = time.map((t) => `<div class="d3s-pes${t.atrasadas ? ' r' : ''}${acima(t) ? ' acima' : ''}${t.semCadastro ? ' sc' : ''}" title="${esc(`${quemE(t)}: ${num(t.abertas)} abertas, ${num(t.atrasadas)} atrasadas, ${num(t.entregues7d)} entregues em 7 dias${guardada.get(chaveP(t))?.limite ? `; limite ${guardada.get(chaveP(t)).limite}` : ''}`)}"><span class="d3s-av">${t.semCadastro ? '–' : esc(ini(t.pessoa))}</span><span class="d3s-pes-nome"><b>${esc(t.pessoa)}</b><small>${t.atrasadas ? `${num(t.atrasadas)} ${Number(t.atrasadas) === 1 ? 'atrasada' : 'atrasadas'}` : `${num(t.entregues7d)} em 7 dias`}</small></span>${graficoDe(t)}<b class="d3s-pes-n">${num(t.abertas)}</b></div>`).join('');
+    const semDonoDe = window.VybeDono?.util?.semDono || ((d) => !String(d.responsavel || '').replace('—', '').trim());
+    const serieSemDono = comSerie ? d3SeriePessoa(itens.filter(semDonoDe).map((d) => ({ ...d, responsavel: '?' })), '?', hoje) : null;
+    const sd = semDono == null ? '' : `<div class="d3s-pes sd"><span class="d3s-av">–</span><span class="d3s-pes-nome"><b>Sem dono</b><small>a distribuir</small></span>${grafico(serieSemDono, semDono)}<b class="d3s-pes-n">${num(semDono)}</b></div>`;
+    return `<section class="d3s-card d3s-pessoas" aria-label="Pessoas e carga"><div class="d3s-topo"><h3>Pessoas · carga</h3><small>${comCarga ? `<span class="d3s-leg">7 dias</span>${limitePadrao ? `<span class="d3s-leg meta">limite ${num(limitePadrao)}</span>` : ''}${seriesSetor()?.pode?.limite ? `<button type="button" class="d3s-limite-btn" data-setor-limite aria-label="Mudar o limite de carga">mudar</button>` : ''}` : comSerie ? '<span class="d3s-leg">por dia na semana</span>' : 'abertas'}</small></div>${comCarga && seriesSetor()?.pode?.limite ? `<div class="d3s-limite" hidden><label>Limite padrão <input type="number" data-limite-padrao min="1" max="100" step="1" inputmode="numeric" value="${esc(limitePadrao ?? '')}"></label>${time.filter((t) => guardada.get(chaveP(t))?.sujeito && !/^monday:/.test(guardada.get(chaveP(t)).sujeito)).map((t) => { const cg = guardada.get(chaveP(t)); return `<label>${esc(String(t.pessoa).split(' ')[0])} <input type="number" data-limite-pessoa="${esc(cg.sujeito)}" min="1" max="100" step="1" inputmode="numeric" placeholder="${esc(limitePadrao ?? '')}" value="${cg.proprio ? esc(cg.limite) : ''}" aria-label="Limite de ${esc(t.pessoa)} (vazio = o padrão)"></label>`; }).join('')}<button type="button" class="d3s-chip" data-setor-limite-salvar>Salvar</button><small class="d3s-limite-msg" role="status">vazio = o padrão</small></div>` : ''}<div class="d3s-rolo">${linhas || '<p class="d3s-vazio">Sem números do time.</p>'}${sd}</div>${temAba('tarefas') ? `<div class="d3s-ver">${btn('Minhas tarefas', 'data-setor-sub="tarefas"')}</div>` : ''}</section>`;
   }
   // Por status: as peças abertas por status, na ordem do catálogo, com a pílula do sistema e a barra.
   function d3PorStatus(itens) {
@@ -453,10 +458,13 @@
       const saude = typeof window.VybeCarteira?.dados === 'function' ? window.VybeCarteira.dados() : [];
       const media = saude.length ? saude.reduce((a, c) => a + (Number(c.score) || 0), 0) / saude.length : null;
       const cl = N?.clientes || [], conta = (k) => cl.filter((c) => c.saude === k).length;
+      // A saúde do cliente é a nota da Saúde da carteira (auditoria 15/11, item 32): "em risco alto" aqui é o mesmo número
+      // do filtro Risco alto da carteira. A saúde da produção de cada cliente (N.clientes) continua nas abas da Gestão.
+      const riscoAlto = saude.filter((c) => c.risco === 'alto').length;
       const pctSemana = S.previstas ? ((S.previstasEntregues ?? S.entregues) / S.previstas) * 100 : null;
       const e = typeof escritorio !== 'undefined' ? escritorio : null, online = (e?.conectado ? e.onlineTodos || e.online : e?.lobbyOnline) || [];
       const kpis = dinheiro + comercial
-        + kpi({ icone: 'coracao', titulo: 'Clientes ativos', valor: num(C.clientesAtivos), sub: `saúde média ${media == null ? '—' : num(media)} · ${num(conta('critico'))} críticos`, cls: conta('critico') ? 'atencao' : '' })
+        + kpi({ icone: 'coracao', titulo: 'Clientes ativos', valor: num(C.clientesAtivos), sub: `saúde média ${media == null ? '—' : num(media)} · ${num(riscoAlto)} em risco alto`, cls: riscoAlto ? 'atencao' : '' })
         + kpi({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${num(S.previstasEntregues ?? S.entregues)}<i>/${num(S.previstas)}</i>`, sub: pctSemana != null ? pct(pctSemana) : 'nenhuma prevista' })
         + kpi({ icone: 'alerta', titulo: 'Atrasadas agora', valor: num(H.atrasadas), sub: `${num(H.emRisco)} com risco de furo`, cls: H.atrasadas ? 'ruim' : '' })
         + kpi({ icone: 'relogio', titulo: 'No prazo', valor: pct(Hi.mediaNoPrazoPct), sub: 'últimas 12 semanas', cls: Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'atencao' : '' })
@@ -471,8 +479,8 @@
       const time = [...(N?.time || [])].sort((a, b) => (b.abertas || 0) - (a.abertas || 0)).slice(0, 6);
       const ir = (setor, rotulo) => `<button type="button" class="vs-abrir" data-setor-ir="${esc(setor)}" aria-label="Abrir ${esc(rotulo)}">${esc(rotulo)} →</button>`;
       // ---- Padrão v2 (quadro "Gestão"): a frase do VYBES, três números, o que pede ação por setor e a semana por dia ----
-      const prontas = S.previstasEntregues ?? S.entregues, falt = Number(H.faltam) || 0, atr = Number(H.atrasadas) || 0, furos = Number(H.furos ?? atr) || 0, prox = P.proximaSemana || {};
-      const criticos = conta('critico'), abertas = abertasAgora(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : null, H.dia);
+      const prontas = S.previstasEntregues ?? S.entregues, falt = Number(H.faltam) || 0, atr = Number(H.atrasadas) || 0, furos = Number(H.furosProducao ?? H.furos ?? atr) || 0, prox = P.proximaSemana || {};
+      const criticos = riscoAlto, abertas = abertasAgora(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : null, H.dia);
       const inaL = temVF ? vf.inadimplencia?.clientes || [] : ina.clientes || [], inaTotal = Number(temVF ? vf.inadimplencia?.total : ina.total) || 0;
       const mesNome = per.tipo === 'anual' ? mes.slice(0, 4) : MESES[Number(mes.slice(5, 7)) - 1] || '';
       principal = atr ? btn(atr === 1 ? 'Abrir a atrasada' : `Abrir as ${num(atr)} atrasadas`, 'data-espiar="atrasadas"', 'p') : '';
@@ -480,7 +488,7 @@
         + (S.previstas ? ` e, ${S.previstas === 1 ? 'da 1 prevista' : `das ${num(S.previstas)} previstas`} para a semana, ${Number(prontas) < S.previstas ? 'só ' : ''}<b>${pl(prontas, 'está pronta', 'estão prontas')}</b>.` : '. Nenhuma peça prevista nesta semana.')
         + (falt ? ` O que pesa hoje é a Produção: ${pl(falt, 'vai', 'vão')} ao ar sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : '');
       const contaL = [
-        `<b>Atrasada</b>: a data do cliente (veiculação; sem ela, o prazo) já passou e a peça não foi entregue. Pausadas e esquecidas ficam fora. Agora: ${num(furos)} com a veiculação vencida e ${num(H.prazoInternoVencido ?? 0)} só com o prazo interno.`,
+        `<b>Atrasada</b>: a data do cliente (veiculação; sem ela, o prazo) já passou e a peça não foi entregue. Pausadas e esquecidas ficam fora. Agora: ${num(H.furos ?? furos)} com a veiculação vencida (${num(furos)} sem estar prontas e ${num(H.semPostar ?? 0)} prontas, a conferir se saíram) e ${num(H.prazoInternoVencido ?? 0)} só com o prazo interno.`,
         `<b>Prontas da semana</b>: das ${num(S.previstas)} peças com data nesta semana, ${num(prontas)} já foram entregues.`,
         `<b>Ao ar hoje</b>: ${num(H.previstas ?? 0)} previstas para hoje, ${num(falt)} ainda sem estar ${falt === 1 ? 'pronta' : 'prontas'}.`,
       ];
@@ -488,12 +496,12 @@
       const numerosHtml = tres([
         { rotulo: 'Prontas da semana', valor: num(prontas), de: `de ${num(S.previstas)}`, barra: pctDe(prontas, S.previstas) ?? 0, cor: '#11613A', sub: `${pctSemana != null ? pct(pctSemana) : 'nenhuma prevista'} · semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}` },
         { rotulo: 'Atrasadas agora', valor: num(atr), tom: atr ? 'ruim' : '', barra: pctDe(atr, abertas), cor: '#B42318', espiar: atr ? 'atrasadas' : '', sub: `${num(H.emRisco)} com risco de furo em 2 dias${Number(H.emRisco) ? ` · ${elo('ver quais', 'data-espiar="emRisco"')}` : ''}` },
-        { rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: media == null ? null : Math.round(media), cor: corSaude, sub: `saúde média ${media == null ? 'sem dado' : num(media)} · ${pl(criticos, 'crítico', 'críticos')} · ${elo('abrir a carteira', 'data-setor-sub="carteira"')}` },
+        { rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: media == null ? null : Math.round(media), cor: corSaude, sub: `saúde média ${media == null ? 'sem dado' : num(media)} · ${num(criticos)} em risco alto · ${elo('abrir a carteira', 'data-setor-sub="carteira"')}` },
       ]);
       // O que pede ação, um setor por linha, do mais grave ao menos grave. Setor sem dado diz "sem números agora".
       const AL = N?.alertas || [], cabeca = (a) => { const t = String(a.texto || ''), p = t.indexOf(':'); return (p > 0 ? t.slice(0, p) : t).replace(/\s*\(veiculação vencida\)/, '').trim(); };
       // Direção 3: o detalhe da Produção vira pílulas curtas, lado a lado (o texto inteiro fica na dica do alerta).
-      const curtaPilula = (t) => String(t || '').replace(/^(\d+) peças? /, '$1 ').replace(/\s*\([^)]*\)/g, '').replace(/ com a data passada e sem /, ' sem ')
+      const curtaPilula = (t) => String(t || '').replace(/^(\d+) peças? /, '$1 ').replace(/\s*\([^)]*\)/g, '').replace(/ com a data passada e sem Finalizado/, ' a conferir se saíram')
         .replace(/ vão ao ar hoje sem estar prontas| vai ao ar hoje sem estar pronta/, ' ao ar hoje sem prontas').replace(/ com risco de furo nos próximos 2 dias/, ' risco de furo · 2 d').replace(/ na janela de produção/, '').trim();
       const daProducao = AL.filter((a) => a.nivel <= 3 && a.ref?.tipo !== 'clientes');
       const acoes = [];
@@ -506,7 +514,7 @@
       const semCont = (C.semConteudo || []).map(nomeCli).filter(Boolean), iSemCont = AL.findIndex((a) => a.nivel === 2 && a.ref?.tipo === 'clientes');
       if (semCont.length) acoes.push({ tom: 'a', pill: 'Esta semana', texto: `<b>Clientes</b> · ${semCont.length === 1 ? cliCor(semCont[0]) : pl(semCont.length, 'cliente', 'clientes')} sem nenhum conteúdo nesta semana`,
         botao: iSemCont >= 0 ? btn(semCont.length === 1 ? 'Ver o cliente' : 'Ver quais', `data-espiar="alerta:${iSemCont}"`) : '', det: semCont.length > 1 ? [semCont.slice(0, 6).map((c) => cliCor(c)).join(' · ') + (semCont.length > 6 ? ` e mais ${num(semCont.length - 6)}` : '')] : [] });
-      else if (criticos) acoes.push({ tom: 'r', pill: pl(criticos, 'crítico', 'críticos'), texto: '<b>Clientes</b> · saúde crítica na carteira', botao: btn('Abrir a carteira', 'data-setor-sub="carteira"') });
+      else if (criticos) acoes.push({ tom: 'r', pill: `${num(criticos)} em risco alto`, texto: '<b>Clientes</b> · risco alto na Saúde da carteira', botao: btn('Abrir a carteira', 'data-setor-sub="carteira"') });
       if (com.falha) acoes.push({ tom: 'n', pill: 'Sem dado', texto: `<b>Comercial</b> · ${com.falha === 'negado' ? 'só os donos veem' : 'sem números agora'}`, botao: irSetor('setor:comercial', 'Abrir Comercial') });
       else if (!metas.length) acoes.push({ tom: 'a', pill: 'Sem meta', texto: `<b>Comercial</b> · nenhuma meta definida para ${esc(mesNome)}`, botao: btn('Definir metas', 'data-setor-sub="funil"') });
       else if (metas.some((m) => !m.batida)) acoes.push({ tom: 'n', pill: `${num(metas.filter((m) => m.batida).length)} de ${num(metas.length)}`, texto: `<b>Comercial</b> · metas batidas em ${esc(mesNome)}`, botao: irSetor('setor:comercial', 'Abrir Comercial'), det: metas.map((m) => `${esc(m.nome)}: ${m.texto}`) });
@@ -541,16 +549,16 @@
       const iHoje = AL.findIndex((a) => /ao ar hoje|veiculação hoje/.test(String(a.texto || '')));
       const fraseD3 = falt ? `Produção pesa: ${pl(falt, 'vai', 'vão')} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : atr ? `${pl(atr, 'peça passou', 'peças passaram')} da data do cliente.` : 'Nada atrasado agora.';
       const acaoD3 = d3gAcao({ frase: fraseD3, agente: 'V', botao: falt ? (falt === 1 ? 'Abrir a de hoje' : `Abrir as ${num(falt)}`) : atr ? (atr === 1 ? 'Abrir a atrasada' : `Abrir as ${num(atr)}`) : '', attrs: falt && iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : 'data-espiar="atrasadas"' });
-      const prevHoje = Number(H.previstas) || 0, prontasHoje = Math.max(0, prevHoje - falt);
+      const prevHoje = Number(H.previstas) || 0, prontasHoje = Number(H.previstasFeitas ?? Math.max(0, prevHoje - falt)) || 0; // pausada não é pronta
       // Direção 3 (quadro D3-Gestao): o 4º número é a sobra do mês (entrou − saiu no extrato), com o selo "só donos".
       const X = window.VybeFinanceiroExtrato, fxR = veDinheiro && !fx.falha && Array.isArray(fx.transacoes) && typeof X?.resumo === 'function' ? X.resumo(fx.transacoes, { mes }) : null;
       const quarto = fxR
         ? d3gNum({ rotulo: 'Sobra do mês', valor: `${esc(rs(fxR.resultado))}`, tom: Number(fxR.resultado) < 0 ? 'r' : '', attrs: 'data-setor-ir="setor:financas"' },
           `<span class="d3g-selo d3-selo-donos">só donos</span>${fxR.lancamentos ? `+${esc(curto(fxR.entradas))} · −${esc(curto(fxR.saidas + fxR.cartao_e_transferencias))} · Vorcaro` : 'sem extrato no mês · Vorcaro'}`, Number(fxR.resultado) < 0 ? 'r' : '')
-        : d3gNum({ rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: media == null ? null : Math.round(media), attrs: 'data-setor-sub="carteira"' }, `saúde ${media == null ? 'sem dado' : num(media)} · ${pl(criticos, 'crítico', 'críticos')}`, criticos ? 'r' : '');
+        : d3gNum({ rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: media == null ? null : Math.round(media), attrs: 'data-setor-sub="carteira"' }, `saúde ${media == null ? 'sem dado' : num(media)} · ${num(criticos)} em risco alto`, criticos ? 'r' : '');
       const numerosD3 = `<div class="d3g-nums">${d3gNum({ rotulo: 'Atrasadas', valor: num(atr), tom: atr ? 'r' : '', serie: serieAtrasadas(), attrs: atr ? 'data-espiar="atrasadas" title="' + esc(contaL[0].replace(/<[^>]*>/g, '')) + '"' : '' }, `${num(H.emRisco)} risco de furo · 2 d`, Number(H.emRisco) ? 'a' : '')}
         ${d3gNum({ rotulo: 'Vão ao ar hoje', valor: `${num(prontasHoje)}<small> / ${num(prevHoje)} prontas</small>`, barra: pctDe(prontasHoje, prevHoje) ?? 0, attrs: falt && iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : '' })}
-        ${d3gNum({ rotulo: 'Semana · prontas', valor: `${num(prontas)}<small> / ${num(S.previstas)}</small>`, barra: pctDe(prontas, S.previstas) ?? 0 }, `semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}`)}
+        ${d3gNum({ rotulo: 'Prontas da semana', valor: `${num(prontas)}<small> / ${num(S.previstas)}</small>`, barra: pctDe(prontas, S.previstas) ?? 0 }, `semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}`)}
         ${quarto}</div>`;
       // Por setor: uma linha por setor, com o ícone do setor na cor do grupo do menu, a pílula do que pesa, o texto e o
       // botão; o que era detalhe vira pílulas lado a lado.
@@ -571,7 +579,7 @@
       const semanaD3 = `<section class="d3s-card d3g-semana" aria-label="Esta semana"><div class="d3s-topo"><h3>Esta semana</h3><small class="d3g-leg"><span class="ch">prontas</span><span class="tr">previstas</span></small></div>
         <div class="d3g-graf-caixa">${dias7.length > 1 ? d3gGrafico(feitAc, prevAc, dias7.map((d) => DIAC[diaDe(d.dia)]), { atual: iHojeDia, rotulo: 'Prontas e previstas da semana, acumuladas por dia' }) : '<p class="d3s-vazio">Os dias da semana aparecem quando a produção carregar.</p>'}</div>
         <div class="d3g-minis"><p><span>Hoje</span><b>${num(hojeD.entregues || 0)}<small> / ${num(hojeD.previstas || 0)}</small></b></p><p><span>Prontas</span><b>${num(prontas)}<small> / ${num(S.previstas)}</small></b></p><p><span>Próxima</span><b>${num(prox.previstas)}<small> previstas</small></b></p></div>
-        <div class="d3s-ver"><span class="d3s-pill n"><i></i>capacidade: ${Number(prox.capacidadeMediana) ? `${num(prox.capacidadeMediana)} por semana` : 'sem dado'}</span><button type="button" class="d3s-chip" data-gestao-aba="historico">12 sem. · mediana ${num(Hi.medianaEntregues ?? 0)}${Hi.mediaNoPrazoPct == null ? '' : ` · no prazo ${pct(Hi.mediaNoPrazoPct)}`}</button>${btn('Ver a semana', 'data-gestao-aba="semana"')}</div></section>`;
+        <div class="d3s-ver"><span class="d3s-pill n"><i></i>capacidade: ${Number(prox.capacidadeMediana) ? `${num(prox.capacidadeMediana)} por semana` : 'sem dado'}</span><button type="button" class="d3s-chip" data-gestao-aba="historico">12 semanas · mediana de ${num(Hi.medianaEntregues ?? 0)}${Hi.mediaNoPrazoPct == null ? '' : ` · no prazo ${pct(Hi.mediaNoPrazoPct)}`}</button>${btn('Ver a semana', 'data-gestao-aba="semana"')}</div></section>`;
       return `<div class="g2 d3g">${acaoD3}${numerosD3}<div class="d3g-duas">${porSetor}${semanaD3}</div>`
         + mais('Dinheiro, comercial, clientes e time em números e gráficos', antigo) + '</div>';
     },
@@ -734,10 +742,12 @@
       const saidasMes = churn.filter((r) => String(r.saiu_em || '').startsWith(mes));
       const media = saude.length ? saude.reduce((s, c) => s + (Number(c.score) || 0), 0) / saude.length : null;
       const conta = (k) => cl.filter((c) => c.saude === k).length;
+      // Saúde do cliente = a nota da Saúde da carteira (auditoria 15/11, item 32): os mesmos alto/médio/baixo dos filtros dela.
+      const risco = (k) => saude.filter((c) => c.risco === k).length;
       const meses = Array.from({ length: 6 }, (_, i) => somarMes(mes, i - 5));
       const fluxo = meses.map((m) => ({ rotulo: mesCurto(m), entradas: contratos.filter((c) => String(c.inicio || '').startsWith(m)).length, saidas: churn.filter((r) => String(r.saiu_em || '').startsWith(m)).length }));
       const semCart = cart.falha ? falhaTexto(cart) : !cart.contratos ? 'Sem dados de contratos agora.' : '';
-      const kpis = kpi({ icone: 'pessoas', titulo: 'Clientes ativos', valor: num(C.clientesAtivos), sub: `${num(conta('critico'))} críticos · ${num(conta('atencao'))} em atenção` })
+      const kpis = kpi({ icone: 'pessoas', titulo: 'Clientes ativos', valor: num(C.clientesAtivos), sub: `${num(risco('alto'))} em risco alto · ${num(risco('medio'))} em risco médio` })
         + kpi({ icone: 'coracao', titulo: 'Saúde média', valor: media == null ? '—' : num(media), sub: 'nota de 0 a 100', cls: media != null && media < 60 ? 'atencao' : '' })
         + kpi({ icone: 'dinheiro', titulo: 'MRR em contratos', valor: semCart ? '—' : reais(mrr), sub: semCart || `${num(contratos.length)} contrato${contratos.length === 1 ? '' : 's'} · ticket ${reais(contratos.length ? mrr / contratos.length : null)}` })
         + kpi({ icone: 'calendario', titulo: 'Renovam em 30 dias', valor: semCart ? '—' : num(renov.length), sub: semCart ? '' : renov.length ? reais(renov.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)) + ' por mês' : 'nenhuma agora', cls: renov.length ? 'atencao' : '' })
@@ -745,31 +755,31 @@
         + kpi({ icone: 'doc', titulo: 'Sem planejamento', valor: num((C.semPlanejamento || []).length), sub: 'do mês atual ou seguinte', cls: (C.semPlanejamento || []).length ? 'atencao' : '' });
       const piores = [...saude].sort((a, b) => (a.score ?? 999) - (b.score ?? 999)).slice(0, 6);
       // ---- Padrão v2: o mesmo molde da Produção ----
-      const criticosL = cl.filter((c) => c.saude === 'critico'), AL = N?.alertas || [], iSemCont = AL.findIndex((a) => a.nivel === 2 && a.ref?.tipo === 'clientes');
+      const criticosL = saude.filter((c) => c.risco === 'alto'), AL = N?.alertas || [], iSemCont = AL.findIndex((a) => a.nivel === 2 && a.ref?.tipo === 'clientes');
       const semCont = (C.semConteudo || []).map(nomeCli).filter(Boolean), semPlan = (C.semPlanejamento || []).map(nomeCli).filter(Boolean);
-      principal = criticosL.length && temAba('carteira') ? btn(criticosL.length === 1 ? 'Ver o cliente crítico' : `Ver os ${num(criticosL.length)} críticos`, 'data-setor-sub="carteira"', 'p') : '';
-      const frase = `<b>${pl(criticosL.length, 'cliente crítico', 'clientes críticos')}</b> entre os ${num(C.clientesAtivos)} ativos${media != null ? `, com saúde média de ${num(media)}` : ''}.`
+      principal = criticosL.length && temAba('carteira') ? btn(criticosL.length === 1 ? 'Ver o cliente em risco alto' : `Ver os ${num(criticosL.length)} em risco alto`, 'data-setor-sub="carteira"', 'p') : '';
+      const frase = `<b>${pl(criticosL.length, 'cliente em risco alto', 'clientes em risco alto')}</b> entre os ${num(C.clientesAtivos)} ativos${media != null ? `, com saúde média de ${num(media)}` : ''}.`
         + (semCart ? '' : ` ${renov.length ? `${pl(renov.length, 'contrato renova', 'contratos renovam')} em 30 dias` : 'Nenhuma renovação nos próximos 30 dias'}${saidasMes.length ? ` e ${pl(saidasMes.length, 'cliente saiu', 'clientes saíram')} neste mês` : ''}.`);
       const corSaude = media == null ? '' : media < 50 ? '#B42318' : media < 70 ? '#9A5B00' : '#11613A';
       const numerosHtml = tres([
-        { rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: pctDe(conta('ok'), cl.length), cor: '#11613A', sub: `${pl(conta('critico'), 'crítico', 'críticos')} · ${num(conta('atencao'))} em atenção · ${num(conta('ok'))} em dia` },
+        { rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: pctDe(risco('baixo'), saude.length), cor: '#11613A', sub: `${num(risco('alto'))} em risco alto · ${num(risco('medio'))} em risco médio · ${num(risco('baixo'))} em risco baixo` },
         { rotulo: 'Saúde média', valor: media == null ? '—' : num(media), barra: media == null ? null : Math.round(media), cor: corSaude, tom: media != null && media < 50 ? 'ruim' : '', sub: 'nota de 0 a 100' },
         { rotulo: 'Renovam em 30 dias', valor: semCart ? '—' : num(renov.length), sub: semCart || (renov.length ? reais(renov.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)) + ' por mês' : 'nenhuma agora') },
       ]);
       const acoes = [];
-      if (criticosL.length) acoes.push({ tom: 'r', pill: pl(criticosL.length, 'crítico', 'críticos'), texto: '<b>Saúde crítica</b> na carteira', botao: irAba('carteira', 'Ver a saúde'),
-        det: criticosL.slice(0, 3).map((c) => `${cliCor(c.cliente)} · ${pl(c.atrasadas, 'atrasada', 'atrasadas')}${c.emRisco ? `, ${num(c.emRisco)} com risco de furo` : ''}`) });
+      if (criticosL.length) acoes.push({ tom: 'r', pill: `${num(criticosL.length)} em risco alto`, texto: '<b>Risco alto</b> na Saúde da carteira', botao: irAba('carteira', 'Ver a saúde'),
+        det: criticosL.slice(0, 3).map((c) => `${cliCor(c.cliente)} · nota ${num(c.score)}${c.motivos?.[0] ? ` · ${esc(c.motivos[0])}` : ''}`) });
       if (saidasMes.length) acoes.push({ tom: 'r', pill: 'Saiu', texto: `<b>${pl(saidasMes.length, 'saída', 'saídas')} neste mês</b> · receita perdida ${reais(saidasMes.reduce((s, r) => s + (Number(r.receita_mensal) || 0), 0))}`, botao: irSetor('setor:comercial', 'Ver no Comercial') });
       if (renov.length) acoes.push({ tom: 'a', pill: '30 dias', texto: `<b>${pl(renov.length, 'contrato renova', 'contratos renovam')}</b> em 30 dias`, botao: irSetor('setor:comercial', 'Contratos'), det: [renov.slice(0, 4).map((c) => `${cliCor(nomeDe.get(String(c.cliente_id)) || 'Cliente')} ${diaMes(c.renovacao)}`).join(' · ')] });
       if (semCont.length) acoes.push({ tom: 'a', pill: 'Esta semana', texto: `<b>${semCont.length === 1 ? cliCor(semCont[0]) : pl(semCont.length, 'cliente', 'clientes')}</b> sem nenhum conteúdo nesta semana`, botao: iSemCont >= 0 ? btn('Ver quais', `data-espiar="alerta:${iSemCont}"`) : '' });
       if (semPlan.length) acoes.push({ tom: 'a', pill: 'Sem planejamento', texto: `<b>${pl(semPlan.length, 'cliente', 'clientes')}</b> sem planejamento do mês atual ou seguinte`, botao: irSetor('setor:producao', 'Produção') });
       const ordem = porGravidade(acoes);
       const mods = modulosDoSetor({ clientes: [num(C.clientesAtivos), 'ativos'], carteira: media == null ? null : [num(media), 'de saúde média'] });
-      return tela(fala('mateus', frase, { conta: [`<b>Saúde</b>: ${num(conta('ok'))} em dia, ${num(conta('atencao'))} em atenção e ${num(conta('critico'))} críticos, pela nota de 0 a 100 da Saúde da carteira.`, semCart ? '' : `<b>Contratos</b>: ${pl(contratos.length, 'contrato vigente', 'contratos vigentes')}, ${reais(mrr)} por mês.`] }), numerosHtml,
+      return tela(fala('mateus', frase, { conta: [`<b>Saúde</b>: ${num(risco('baixo'))} em risco baixo, ${num(risco('medio'))} em risco médio e ${num(risco('alto'))} em risco alto, pela nota de 0 a 100 da Saúde da carteira.`, semCart ? '' : `<b>Contratos</b>: ${pl(contratos.length, 'contrato vigente', 'contratos vigentes')}, ${reais(mrr)} por mês.`] }), numerosHtml,
         duas(pede(ordem, { sub: ordem.length ? `${pl(ordem.length, 'coisa', 'coisas')}, da mais grave à menos grave` : '', vazio: 'Nada pede ação na carteira agora.' }), mods, 'mods'),
         mais('Todos os números, entradas e saídas, clientes prioritários e renovações', `${grade(kpis)}`
         + linha(bloco('Entradas e saídas', 'clientes que começaram e que saíram, últimos 6 meses', semCart ? aviso(semCart) : barras(fluxo, [{ chave: 'entradas', rotulo: 'Entradas', cls: 'c3' }, { chave: 'saidas', rotulo: 'Saídas', cls: 'c4' }]), { icone: 'alta', acao: abrirAba('churn') })
-          + bloco('Saúde da carteira', 'quantos clientes em cada faixa', cl.length ? deitadas([{ nome: 'Em dia', valor: conta('ok'), cls: 'ok' }, { nome: 'Em atenção', valor: conta('atencao'), cls: 'atencao' }, { nome: 'Críticos', valor: conta('critico'), cls: 'ruim' }]) : aviso('As demandas ainda estão carregando.'), { icone: 'coracao', acao: abrirAba('carteira') }))
+          + bloco('Saúde da carteira', 'quantos clientes em cada risco, pela nota de 0 a 100', saude.length ? deitadas([{ nome: 'Risco baixo', valor: risco('baixo'), cls: 'ok' }, { nome: 'Risco médio', valor: risco('medio'), cls: 'atencao' }, { nome: 'Risco alto', valor: risco('alto'), cls: 'ruim' }]) : aviso('A nota da carteira ainda está sendo calculada.'), { icone: 'coracao', acao: abrirAba('carteira') }))
         + linha(bloco('Clientes prioritários', 'a menor nota de saúde primeiro', deitadas(piores.map((c) => ({ cli: true, nome: c.cliente, valor: c.score, cls: c.score < 50 ? 'ruim' : c.score < 70 ? 'atencao' : 'ok', sub: (c.motivos || []).slice(0, 2).join(' · ') })), { vazio: 'A saúde ainda está sendo calculada.' }), { icone: 'alerta', acao: abrirAba('clientes', 'Todos os clientes') })
           + bloco('Renovações próximas', 'contratos que renovam em 30 dias', semCart ? aviso(semCart) : deitadas(renov.slice(0, 6).map((c) => ({ cli: true, nome: nomeDe.get(String(c.cliente_id)) || 'Cliente', valor: c.valor_mensal, rotulo: diaMes(c.renovacao), sub: reais(c.valor_mensal) + ' por mês' })), { vazio: 'Nenhuma renovação nos próximos 30 dias.' }), { icone: 'calendario', acao: abrirAba('contratos') }))));
     },
@@ -803,7 +813,8 @@
       // As contas que a fala antiga abria em "Ver a conta" ficam na dica de cada número.
       principal = '';
       const espera = itens.filter((d) => /ag\.? ?(aprova[cç][aã]o|info) cliente/i.test(String(d.status || ''))).length;
-      const semDono = itens.filter((d) => !/finaliz|conclu|publicad|postad/i.test(String(d.status || '')) && !String(d.responsavel || '').replace('—', '').trim()).length;
+      // Sem dono pela regra única (VybeDono.util.semDono, auditoria 15/11, item 31): id do Monday sem pessoa no cadastro tem dono.
+      const semDono = Number(H.semDono ?? 0) || 0;
       const fraseD3 = (atrasadas ? `${pl(atrasadas, 'passou', 'passaram')} da data do cliente.` : falt ? `${pl(falt, 'vai', 'vão')} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : 'Nada atrasado agora.')
         + (gar ? ` ${esc(gar.status)} segura ${num(gar.qtd)}.` : S.previstas ? ` Semana em ${pct((Number(prontas) / S.previstas) * 100)}.` : '');
       const botaoD3 = atrasadas ? `<button type="button" class="d3-acao-btn" data-espiar="atrasadas">${atrasadas === 1 ? 'Resolver a atrasada' : `Resolver as ${num(atrasadas)}`}</button>`
@@ -821,7 +832,7 @@
       // No quadro a linha é curta: o número fica na pílula e o texto diz o que é.
       const encurta = (t) => String(t || '').replace(/<b>(\d[\d.]*) peças?<\/b>/, '<b>$1</b>').replace(/\s*\([^)]*\)\s*$/, '')
         .replace('vão ao ar hoje sem estar prontas', 'no ar sem estar prontas').replace('vai ao ar hoje sem estar pronta', 'no ar sem estar pronta')
-        .replace(/ sem nenhum conteúdo nesta semana/, ' sem conteúdo').replace(/ na janela de produção/, ' na produção').replace(/ esperando aprovação ou informação/, ' esperando o cliente');
+        .replace(/ sem nenhum conteúdo nesta semana/, ' sem conteúdo').replace(/ com a data passada e sem Finalizado/, ' a conferir').replace(/ na janela de produção/, ' na produção').replace(/ esperando aprovação ou informação/, ' esperando o cliente');
       const curtas = acoes.map((l) => ({ ...l, dica: String(l.texto || '').replace(/<[^>]*>/g, ''), ...(/furando a data/i.test(String(l.texto || '')) ? { pill: String(l.pill || '').replace(/ atrasadas?$/, ''), texto: 'Furando a data' } : { texto: encurta(l.texto) }) }));
       const pedeD3 = d3Pede(curtas, { vazio: 'Nada pedindo ação na produção agora.', ver: [['Por semana', 'data-g2-mais'], ['Onde trava', 'data-g2-mais'], ['Cobertura', 'data-g2-mais'], ['Agenda', 'data-g2-mais']] });
       const modsD3 = d3Modulos({

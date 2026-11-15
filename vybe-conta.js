@@ -142,6 +142,8 @@ function pendenciasDaConta(eu) {
 // a mesma marcação montada aqui.
 function contaAcaoHtml(frase, botao = '', attrs = '') {
   const corpo = `<small class="d3c-quem">VYBES · Conta</small>${frase}`;
+  // Laranja só com ação (acabamento 15/11): sem botão, a frase vai na nota branca.
+  if (!botao) return typeof d3NotaHtml === 'function' ? d3NotaHtml({ frase: corpo, agente: 'V' }) : `<section class="d3-nota" role="status"><span class="d3-nota-av" aria-hidden="true">V</span><span class="d3-nota-frase">${corpo}</span></section>`;
   if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: corpo, agente: 'V', botao, attrs });
   return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">V</span><span class="d3-acao-frase">${corpo}</span>`
     + `${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${safeText(botao)}</button>` : ''}</section>`;
@@ -162,7 +164,7 @@ function falaDaConta(eu) {
 function pedeAcaoDaConta(eu) {
   const p = pendenciasDaConta(eu);
   const linhas = p.map((x, i) => `<div class="v2c-lin d3c-pend"><span class="v2c-pill ${x.cor}">${safeText(x.selo)}</span><b>${safeText(x.nome)}</b>
-      <span class="d3c-pend-baixo"><span class="d3c-pend-txt">${safeText(x.texto)}</span><button type="button" class="v2c-btn s v2-estado${i === 0 ? ' k' : ''}"${x.indo ? ' data-estado="indo"' : ''}${x.parado ? ' disabled' : ''} onclick="${x.acao}">${safeText(x.botao)}</button></span></div>`).join('');
+      <span class="d3c-pend-baixo"><span class="d3c-pend-txt">${safeText(x.texto)}</span><button type="button" class="v2c-btn s v2-estado"${x.indo ? ' data-estado="indo"' : ''}${x.parado ? ' disabled' : ''} onclick="${x.acao}">${safeText(x.botao)}</button></span></div>`).join('');
   const feito = `<p class="v2c-tudo-certo">${CONTA_VISTO}Nada pendente na sua conta.${CONTA_AI.vinculado ? ' WhatsApp conferido.' : ''}</p>`;
   return `<div class="v2c-card-topo"><h2>Pede ação</h2><span class="v2c-sub">${p.length || 'nada agora'}</span></div>
     ${linhas || feito}`;
@@ -232,7 +234,7 @@ function pintarConta() {
       <div class="v2c-topo">
         <h1>${admin ? 'Conta e equipe' : 'Sua conta'}</h1>${admin ? '<span class="d3c-onde">Gestão</span>' : ''}
         ${eu.admin ? `<button type="button" class="v2c-btn" onclick="alternarVisaoDoTime()" aria-pressed="${VER_COMO_O_TIME}">${VER_COMO_O_TIME ? 'Voltar à minha visão' : 'Ver como o time vê'}</button>` : ''}
-        <button type="button" class="v2c-btn k" onclick="carregarContaAI()">Conferir o WhatsApp</button>
+        ${pendenciasDaConta(eu).some((x) => x.chave === 'whatsapp') ? '' : '<button type="button" class="v2c-btn" onclick="carregarContaAI()">Conferir o WhatsApp</button>'}
       </div>
       <div class="d3c-fala" id="v2c-fala">${falaDaConta(eu)}</div>
       ${admin ? numerosDaConta() : ''}
@@ -714,7 +716,7 @@ function blocoAcessos() {
 
   const semDoc = ACESSOS.filter((a) => !a.tem_documento).length;
   return cabecaDaSecao('Credenciais dos clientes',
-    `Preservadas no domínio próprio da Vybe.${semDoc ? ` ${semDoc} clientes estão sem documento — a lacuna é do cadastro, não da migração.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.`)
+    `Guardadas no sistema da própria Vybe.${semDoc ? ` ${semDoc === 1 ? '1 cliente está' : `${semDoc} clientes estão`} sem documento: falta preencher no cadastro.` : ''} O conteúdo só é buscado quando você clica, um de cada vez.`)
     + `<div class="eq-lista">${linhas || '<div class="auto-carregando">Nenhum acesso cadastrado.</div>'}</div>
     <div id="acesso-aberto"></div>`;
 }

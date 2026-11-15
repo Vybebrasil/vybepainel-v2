@@ -424,6 +424,8 @@
     // "Marcar captação" branco com +; o laranja cheio da tela é o bloco de ação do corpo.
     const semanaAg = (() => { const h = new Date(); const seg = new Date(h.getFullYear(), h.getMonth(), h.getDate() - ((h.getDay() + 6) % 7)), dom = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6);
       const m = (d) => d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''), dd = (d) => String(d.getDate()).padStart(2, '0');
+      // Na visão Mês, o mês que está na tela ("novembro de 2026"), não a semana de hoje (acabamento 15/11).
+      if (window.productionV2View === 'captacoes' && typeof CAPT !== 'undefined' && CAPT.vista === 'mes') { const x = new Date(`${CAPT.dia || h.toISOString().slice(0, 10)}T12:00:00Z`); return `${x.toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' })} de ${x.getUTCFullYear()}`; }
       return seg.getMonth() === dom.getMonth() ? `${dd(seg)} a ${dd(dom)} ${m(dom)}` : `${dd(seg)} ${m(seg)} a ${dd(dom)} ${m(dom)}`; })();
     // Direção 3 (quadro D3-Agenda, 14/11/2026): o topo tem Semana, Mês e Roteiros (Semana e Mês são as visões das
     // Captações); Feed e Calendário continuam, no menu "Mais" ao lado, que mostra o nome da parte quando ela está aberta.

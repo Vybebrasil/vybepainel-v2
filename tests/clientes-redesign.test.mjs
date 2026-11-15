@@ -73,10 +73,10 @@ test('tabela de clientes (quadro Clientes do padrão v2): Cliente, Head, Saúde,
   assert.ok(html.indexOf('data-cliente="Alpha1"') < html.indexOf('data-cliente="Academia Lions"'));
   const linha = html.slice(html.indexOf('data-cliente="Academia Lions"'));
   assert.match(linha, /<b style="color:#11613A">88<\/b><div class="v2-barra"><i style="--v:88%;--c:#11613A">/);
-  assert.match(linha, /1 conteúdo<\/span>/, 'o finalizado não conta como em aberto');
+  assert.match(linha, /1 peça<\/span>/, 'o finalizado não conta como em aberto');
   assert.match(linha, /class="v2f-pill g">completo</);
   assert.match(linha, /class="v2f-seg2">· Academia · Plus</);
-  assert.match(linha, /<b>Em aberto<\/b> · 1 conteúdo · 1 pedido/, 'o pedido vai para o detalhe que abre');
+  assert.match(linha, /<b>Em aberto<\/b> · 1 peça · 1 pedido/, 'o pedido vai para o detalhe que abre');
   assert.match(linha, /class="v2f-btn s k" onclick="abrirClienteDetalhe\('Academia Lions'\)">Abrir a ficha/);
   const outra = html.slice(html.indexOf('data-cliente="Alpha1"'), html.indexOf('data-cliente="Academia Lions"'));
   assert.match(outra, /<b style="color:#B42318">42<\/b>/);

@@ -27,7 +27,7 @@ test('sem a tabela, valem os grupos de hoje, na ordem de hoje', async () => {
   const sql = await banco({ comTabela: false });
   assert.deepEqual(nomes(await gruposDoQuadro(sql, DEMANDAS)),
     ['Novas Demandas/Ideias', 'A Fazer', 'Em Execução', 'Concluídas']);
-  await assert.rejects(criarGrupo(sql, { board: DEMANDAS, titulo: 'Orçamento' }), /Conferir estrutura do banco/);
+  await assert.rejects(criarGrupo(sql, { board: DEMANDAS, titulo: 'Orçamento' }), (e) => e.status === 409 && /ainda está sendo ligada/.test(e.message));
 });
 
 test('a conferência semeia uma vez e não desfaz o que foi editado', async () => {

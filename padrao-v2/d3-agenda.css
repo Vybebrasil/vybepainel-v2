@@ -8,8 +8,8 @@
 #pv2-agenda .d3ag-nums > button.d3-num{cursor:pointer;transition:box-shadow .2s}
 #pv2-agenda .d3ag-nums > button.d3-num:hover{box-shadow:0 0 0 1px var(--d3-borda)}
 #pv2-agenda .d3ag-nums > button.d3-num:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
-#pv2-agenda .d3-num > .d3-num-v small{font-size:18px;font-weight:600;color:var(--d3-apagado);letter-spacing:0}
-#pv2-agenda .d3ag-pe{font:400 12.5px/1.3 var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pv2-agenda .d3-num > .d3-num-v small{font-size:var(--d3-fs-titulo);font-weight:600;color:var(--d3-apagado);letter-spacing:0}
+#pv2-agenda .d3ag-pe{font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pv2-agenda .d3ag-pe .r{color:var(--d3-perigo)}
 
 /* a faixa da semana */
@@ -18,15 +18,15 @@
 #pv2-agenda .d3ag-seta{appearance:none;display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--d3-texto2);cursor:pointer}
 #pv2-agenda .d3ag-seta:hover{background:var(--d3-trilho)}
 #pv2-agenda .d3ag-seta svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#pv2-agenda .d3ag-dia{appearance:none;display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;padding:8px 12px;border:0;border-radius:14px;background:transparent;color:var(--d3-apagado);font:400 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer;transition:background .2s}
+#pv2-agenda .d3ag-dia{appearance:none;display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;padding:8px 12px;border:0;border-radius:14px;background:transparent;color:var(--d3-apagado);font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;cursor:pointer;transition:background .2s}
 #pv2-agenda .d3ag-dia:hover{background:var(--d3-trilho)}
 #pv2-agenda .d3ag-dia > span{display:inline-flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}
 #pv2-agenda .d3ag-dia b{color:var(--d3-tinta);font-weight:700}
-#pv2-agenda .d3ag-dia .d3ag-dia-n > b{font-size:16px}
+#pv2-agenda .d3ag-dia .d3ag-dia-n > b{font-size:var(--d3-fs-destaque)}
 #pv2-agenda .d3ag-dia .d3ag-dia-n > b.zero{color:var(--d3-meta)}
 #pv2-agenda .d3ag-dia.hj{background:var(--d3-tinta);color:#FFFFFF}
 #pv2-agenda .d3ag-dia.hj b{color:#FFFFFF}
-#pv2-agenda .d3ag-selo{display:inline-flex;align-items:center;flex:none;height:18px;padding:0 6px;border-radius:999px;font:700 10.5px var(--vv-texto,Inter),sans-serif}
+#pv2-agenda .d3ag-selo{display:inline-flex;align-items:center;flex:none;height:18px;padding:0 6px;border-radius:999px;font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif}
 #pv2-agenda .d3ag-selo.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
 #pv2-agenda .d3ag-selo.b{background:var(--d3-info-veu);color:var(--d3-info)}
 /* Confere responsivo (14/11/2026): com a faixa abaixo de ~1.000 px (1366, 1280 e o app do Mac) o selo "fechar" e
@@ -44,58 +44,58 @@
 #pv2-agenda .pv2a-duas.larga + .d3ag-ordem,#pv2-agenda .pv2a-duas.larga > .d3ag-ordem{margin-top:0}
 #pv2-agenda .d3ag-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 #pv2-agenda .d3ag-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 18px 8px}
-#pv2-agenda .d3ag-cab > h3{margin:0;font:700 15px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
-#pv2-agenda .d3ag-cab > span{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
-#pv2-agenda .d3ag-n{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#pv2-agenda .d3ag-cab > h3{margin:0;font:700 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
+#pv2-agenda .d3ag-cab > span{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#pv2-agenda .d3ag-n{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #pv2-agenda .d3ag-vazio{margin:0;padding:12px 18px;border-top:1px solid var(--d3-linha)}
 
 /* Na ordem de fazer */
 #pv2-agenda .d3ag-ordem{padding:14px 0 8px}
-#pv2-agenda .d3ag-lin{display:grid;grid-template-columns:56px 44px 80px minmax(0,1fr) auto 104px;align-items:center;gap:10px;padding:9px 18px;border-top:1px solid var(--d3-linha);font:400 13.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:background .2s}
+#pv2-agenda .d3ag-lin{display:grid;grid-template-columns:56px 44px 80px minmax(0,1fr) auto 104px;align-items:center;gap:10px;padding:9px 18px;border-top:1px solid var(--d3-linha);font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:background .2s}
 #pv2-agenda .d3ag-lin:hover,#pv2-agenda .d3ag-lin.sel,#pv2-agenda .d3ag-lin.fechar{background:#F9F8F5}
 #pv2-agenda .d3ag-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
 #pv2-agenda .d3ag-lin.passou{color:var(--d3-apagado)}
 #pv2-agenda .d3ag-lin.passou .pv2-cli{opacity:.7}
-#pv2-agenda .d3ag-q{font:700 11.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);text-transform:uppercase}
+#pv2-agenda .d3ag-q{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);text-transform:uppercase}
 #pv2-agenda .d3ag-q.hj{color:var(--d3-tinta)}
 #pv2-agenda .d3ag-q.r{color:var(--d3-perigo)}
-#pv2-agenda .d3ag-h{font-size:13px}
+#pv2-agenda .d3ag-h{font-size:var(--d3-fs-texto)}
 #pv2-agenda .d3ag-t{color:var(--d3-texto2)}
 #pv2-agenda .d3ag-c{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pv2-agenda .d3ag-c .pv2-cli{font-weight:700}
 #pv2-agenda .d3ag-c .pv2-cli[data-carteira="vinicius"]{color:var(--d3-cart-vinicius)}
 #pv2-agenda .d3ag-c .pv2-cli[data-carteira="ewerton"]{color:var(--d3-cart-ewerton)}
 #pv2-agenda .d3ag-sem{font-weight:600}
-#pv2-agenda .d3ag-pill{justify-self:start;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-texto2);font:600 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#pv2-agenda .d3ag-pill{justify-self:start;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-texto2);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;white-space:nowrap}
 #pv2-agenda .d3ag-pill > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,var(--d3-meta))}
 #pv2-agenda .d3ag-pill.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
-#pv2-agenda .d3ag-fim{justify-self:end;font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);text-align:right;white-space:nowrap}
+#pv2-agenda .d3ag-fim{justify-self:end;font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);text-align:right;white-space:nowrap}
 #pv2-agenda .d3ag-fim.r{color:var(--d3-perigo);font-weight:600}
-#pv2-agenda .d3ag-mini{appearance:none;justify-self:end;height:28px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:600 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:background .2s,transform .14s}
+#pv2-agenda .d3ag-mini{appearance:none;justify-self:end;height:28px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:background .2s,transform .14s}
 #pv2-agenda .d3ag-mini:hover{background:var(--d3-borda)}
 #pv2-agenda .d3ag-mini:active{transform:scale(.96)}
 #pv2-agenda .d3ag-mini[aria-current]{background:var(--d3-tinta);color:#FFFFFF}
 #pv2-agenda .d3ag-mini.b{background:#FFFFFF}
 #pv2-agenda .d3ag-mini.k{background:var(--d3-tinta);color:#FFFFFF}
-#pv2-agenda .d3ag-mais{appearance:none;display:block;margin:4px 18px 0;padding:6px 0;border:0;background:transparent;color:var(--d3-apagado);font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#pv2-agenda .d3ag-mais{appearance:none;display:block;margin:4px 18px 0;padding:6px 0;border:0;background:transparent;color:var(--d3-apagado);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;cursor:pointer}
 #pv2-agenda .d3ag-abre > .v2-mais > div{min-height:0;overflow:hidden}
 #pv2-agenda .d3ag-det{display:flex;flex-direction:column;gap:8px;margin:0 18px 8px 128px;padding:10px 12px;border-radius:14px;background:var(--d3-trilho)}
 #pv2-agenda .d3ag-etapas{display:flex;flex-wrap:wrap;gap:6px 16px}
-#pv2-agenda .d3ag-etp{display:inline-flex;align-items:center;gap:6px;font:500 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#pv2-agenda .d3ag-etp{display:inline-flex;align-items:center;gap:6px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #pv2-agenda .d3ag-etp > i{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #C9C2B6}
 #pv2-agenda .d3ag-etp.ok{color:var(--d3-tinta)}
 #pv2-agenda .d3ag-etp.ok > i{background:var(--d3-pronto);box-shadow:none}
 #pv2-agenda .d3ag-etp.ok > i svg{width:10px;height:10px;fill:none;stroke:#FFFFFF;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
 #pv2-agenda .d3ag-etp.vez{color:var(--d3-tinta);font-weight:700}
 #pv2-agenda .d3ag-chips{display:flex;flex-wrap:wrap;gap:6px}
-#pv2-agenda .d3ag-chip{display:inline-flex;align-items:center;height:24px;max-width:220px;padding:0 9px;border-radius:999px;background:#FFFFFF;font:600 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pv2-agenda .d3ag-chip{display:inline-flex;align-items:center;height:24px;max-width:220px;padding:0 9px;border-radius:999px;background:#FFFFFF;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pv2-agenda .d3ag-chip.ok{text-decoration:line-through;color:var(--d3-apagado)}
 #pv2-agenda .d3ag-acoes{display:flex;justify-content:flex-end;gap:8px}
 
 /* lado: esperando captação e roteiros */
 #pv2-agenda .d3ag-lado{padding:14px 16px 6px}
 #pv2-agenda .d3ag-lado > .d3ag-cab{padding:0 0 6px}
-#pv2-agenda .d3ag-lado-lin{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;margin:0;padding:8px 0;border:0;border-top:1px solid var(--d3-linha);background:transparent;color:var(--d3-tinta);font:400 13px var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
+#pv2-agenda .d3ag-lado-lin{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;margin:0;padding:8px 0;border:0;border-top:1px solid var(--d3-linha);background:transparent;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
 #pv2-agenda .d3ag-lado-lin.fixo{grid-template-columns:minmax(0,1fr) auto;cursor:default}
 #pv2-agenda button.d3ag-lado-lin:hover{color:var(--d3-acao-texto)}
 #pv2-agenda .d3ag-lado-lin .pv2-cli{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -105,13 +105,13 @@
 #pv2-agenda .d3ag-lado-lin.mais{grid-template-columns:1fr;color:var(--d3-apagado);font-weight:600}
 /* Agentes viram: a bolinha lilás do agente, o que ele notou e o dia */
 #pv2-agenda .d3ag-lado-lin.d3ag-viu{grid-template-columns:24px minmax(0,1fr) auto}
-#pv2-agenda .d3ag-viu-av{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-agente);color:#FFFFFF;font:700 11px var(--vv-texto,Inter),sans-serif}
+#pv2-agenda .d3ag-viu-av{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-agente);color:#FFFFFF;font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif}
 #pv2-agenda .d3ag-viu-txt{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pv2-agenda .d3ag-viu-txt .pv2-cli{display:inline;font-weight:700}
 /* O ⋯ de "Na ordem de fazer": busca, Dia, Anterior, Hoje, Próxima e os filtros (o quadro não tem a linha de busca) */
 #pv2-agenda .d3ag-cab > .d3ag-cab-dir{display:inline-flex;align-items:center;gap:8px}
 #pv2-agenda .d3ag-ferr{position:relative}
-#pv2-agenda .d3ag-ferr > .d3ag-ferr-btn{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-trilho);color:var(--d3-tinta);font:700 14px/1 var(--vv-texto,Inter),sans-serif;list-style:none;cursor:pointer}
+#pv2-agenda .d3ag-ferr > .d3ag-ferr-btn{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-trilho);color:var(--d3-tinta);font:700 var(--d3-fs-destaque)/1 var(--vv-texto,Inter),sans-serif;list-style:none;cursor:pointer}
 #pv2-agenda .d3ag-ferr > .d3ag-ferr-btn::-webkit-details-marker{display:none}
 #pv2-agenda .d3ag-ferr > .d3ag-ferr-btn.tem{background:var(--d3-tinta);color:#FFFFFF}
 #pv2-agenda .d3ag-ferr > .pv2-pop{right:0;left:auto;width:min(320px,86vw);gap:8px}
@@ -125,7 +125,7 @@
 @media (max-width:700px){
   #pv2-agenda .d3ag-nums{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   #pv2-agenda .d3ag-faixa{grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;padding:6px}
-  #pv2-agenda .d3ag-dia{flex-direction:column;gap:2px;padding:6px 2px;font-size:11px}
+  #pv2-agenda .d3ag-dia{flex-direction:column;gap:2px;padding:6px 2px;font-size:var(--d3-fs-mini)}
   #pv2-agenda .d3ag-dia > span{flex-direction:column;gap:0}
   #pv2-agenda .d3ag-dia .d3ag-selo{display:none}
   #pv2-agenda .d3ag-lin{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"q c f" "h p f";row-gap:4px;padding:10px 14px}
@@ -142,8 +142,8 @@
 /* ===================== Planejamentos (#vv-planejamentos) ===================== */
 #vv-planejamentos.vv-plj.vv-plj{background:var(--d3-areia)}
 #vv-planejamentos .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-planejamentos .d3-acao .d3pl-quem{overflow:hidden;text-overflow:ellipsis;font:600 11.5px var(--vv-texto,Inter),sans-serif;opacity:.85}
-#vv-planejamentos .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:17px}
+#vv-planejamentos .d3-acao .d3pl-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.85}
+#vv-planejamentos .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:var(--d3-fs-titulo)}
 #vv-planejamentos .p2-menu > .p2-btn.d3pl-novo{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
 #vv-planejamentos .p2-menu > .p2-btn.d3pl-novo:hover{background:var(--d3-trilho)}
 /* o mês é um segmento com os meses (Direção 3): o escolhido fica escuro, como no quadro */
@@ -153,30 +153,30 @@
 #vv-planejamentos .d3pl-nums > .d3-num{appearance:none;border:0;margin:0;text-align:left;color:var(--d3-tinta);font-family:inherit}
 #vv-planejamentos .d3pl-nums > button.d3-num{cursor:pointer}
 #vv-planejamentos .d3pl-nums > button.d3-num:hover{box-shadow:0 0 0 1px var(--d3-borda)}
-#vv-planejamentos .d3-num > .d3-num-v small{font-size:18px;font-weight:600;color:var(--d3-apagado);letter-spacing:0}
-#vv-planejamentos .d3pl-pe{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-planejamentos .d3-num > .d3-num-v small{font-size:var(--d3-fs-titulo);font-weight:600;color:var(--d3-apagado);letter-spacing:0}
+#vv-planejamentos .d3pl-pe{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vv-planejamentos .d3-num.a > .d3pl-pe{color:var(--d3-ajuste)}
 #vv-planejamentos .d3-num.r > .d3pl-pe{color:var(--d3-perigo)}
 
 /* a tabela */
 #vv-planejamentos .p2-card.p2-lista{padding:6px 0 10px;border-radius:var(--d3-r-cartao);box-shadow:none}
 #vv-planejamentos .d3pl-cab,#vv-planejamentos .p2-lin.d3pl-lin{display:grid;grid-template-columns:minmax(0,250px) 76px 136px minmax(0,1fr) 120px auto;align-items:center;gap:12px;padding:10px 18px}
-#vv-planejamentos .d3pl-cab{padding-top:8px;padding-bottom:8px;font:500 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-planejamentos .d3pl-cab{padding-top:8px;padding-bottom:8px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #vv-planejamentos .p2-lin.d3pl-lin > :is(.p2-c1,.p2-c2,.p2-c3,.p2-c5){width:auto}
 #vv-planejamentos .p2-lin.d3pl-lin > p{margin:0;min-width:0}
 #vv-planejamentos .d3pl-sec{display:flex;align-items:baseline;gap:8px;padding:9px 18px;border-top:1px solid var(--d3-linha);background:#F9F8F5}
-#vv-planejamentos .d3pl-sec > h3{margin:0;padding-left:10px;border-left:3px solid var(--d3-pronto);font:700 14px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
+#vv-planejamentos .d3pl-sec > h3{margin:0;padding-left:10px;border-left:3px solid var(--d3-pronto);font:700 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
 #vv-planejamentos .d3pl-sec.a > h3{border-left-color:var(--d3-ajuste)}
-#vv-planejamentos .d3pl-sec > span{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-planejamentos .d3pl-sec > span{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #vv-planejamentos .d3pl-abre[data-plj-linha] > .d3pl-lin{background:#F9F8F5}
 #vv-planejamentos .d3pl-abre[data-plj-linha][aria-expanded="true"]{box-shadow:inset 3px 0 0 var(--d3-tinta)}
 #vv-planejamentos .d3pl-abre .p2-det{margin:0 18px 12px;background:var(--d3-cartao);box-shadow:0 0 0 1px var(--d3-linha)}
 #vv-planejamentos .d3pl-abre .p2-cx.ok{background:var(--d3-pronto)}
 #vv-planejamentos .d3pl-pecas{display:flex;flex-wrap:wrap;align-items:center;gap:6px;overflow:hidden}
-#vv-planejamentos .d3pl-n{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2)}
-#vv-planejamentos .d3pl-av{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--d3-trilho);font:600 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);white-space:nowrap}
+#vv-planejamentos .d3pl-n{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2)}
+#vv-planejamentos .d3pl-av{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--d3-trilho);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);white-space:nowrap}
 #vv-planejamentos .d3pl-av.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
-#vv-planejamentos .d3pl-pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-texto2);font:600 12px var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#vv-planejamentos .d3pl-pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-texto2);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;white-space:nowrap}
 #vv-planejamentos .d3pl-pill > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c)}
 #vv-planejamentos .d3pl-pill.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
 #vv-planejamentos .d3pl-pill.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
@@ -184,10 +184,16 @@
 #vv-planejamentos .d3pl-ok{display:flex;align-items:center;gap:8px}
 #vv-planejamentos .d3pl-ok > .d3-barra{flex:1;min-width:30px}
 #vv-planejamentos .d3pl-ok > .d3-barra > i.g{background:var(--d3-pronto)}
-#vv-planejamentos .d3pl-ok > small{font:500 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);font-variant-numeric:tabular-nums}
+#vv-planejamentos .d3pl-ok > small{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);font-variant-numeric:tabular-nums}
 #vv-planejamentos .d3pl-bts{display:flex;justify-content:flex-end;gap:6px}
 #vv-planejamentos .d3pl-nomes{display:flex;flex-wrap:nowrap;gap:10px;overflow:hidden;white-space:nowrap}
 #vv-planejamentos .d3pl-nomes > *{flex:none}
+/* Acabamento premium (15/11/2026, item 11): o último nome da fila ("Cliente ⊦") era cortado no meio da letra. A fila vira
+   uma linha de texto: cada cliente é um trecho na linha (a bolinha num bloquinho antes do nome) e a linha termina em "…". */
+#vv-planejamentos .d3pl-nomes.d3pl-nomes{display:block;text-overflow:ellipsis}
+#vv-planejamentos .d3pl-nomes > .cliente-carteira{display:inline;margin-right:10px}
+#vv-planejamentos .d3pl-nomes > .cliente-carteira::before{display:inline-block;margin-right:6px;vertical-align:1px}
+#vv-planejamentos .d3pl-nomes > .cliente-carteira > .p2-nome{display:inline;overflow:visible}
 /* Confere responsivo (14/11/2026): com o menu aberto em 1024 a lista mede ~680 px; as cinco colunas fixas comiam tudo,
    o nome do cliente virava "Clie..." e "Peças" encostava em "Com OK". Abaixo de 820 px de lista, a linha empilha. */
 #vv-planejamentos .p2-card.p2-lista{container:d3pl / inline-size}
@@ -212,8 +218,8 @@
 /* ===================== Impressões (#vv-impressoes) ===================== */
 #vv-impressoes.vc-janela.vc-janela{background:var(--d3-areia)}
 #vv-impressoes .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-impressoes .d3-acao .d3im-quem{overflow:hidden;text-overflow:ellipsis;font:600 11.5px var(--vv-texto,Inter),sans-serif;opacity:.85}
-#vv-impressoes .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:17px}
+#vv-impressoes .d3-acao .d3im-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.85}
+#vv-impressoes .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:var(--d3-fs-titulo)}
 #vv-impressoes .p2-btn.d3im-nova{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
 #vv-impressoes .p2-btn.d3im-nova:hover{background:var(--d3-trilho)}
 #vv-impressoes .d3im-nums{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;min-width:0}
@@ -221,7 +227,7 @@
 #vv-impressoes .d3im-nums > button.d3-num{cursor:pointer}
 #vv-impressoes .d3im-nums > button.d3-num:hover{box-shadow:0 0 0 1px var(--d3-borda)}
 #vv-impressoes .d3im-nums > .d3-num > .d3-graf{position:absolute;right:16px;top:26px;width:96px}
-#vv-impressoes .d3im-pe{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-impressoes .d3im-pe{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vv-impressoes .d3-num.r > .d3im-pe{color:var(--d3-perigo)}
 #vv-impressoes .d3-num.a > .d3im-pe{color:var(--d3-ajuste)}
 
@@ -229,7 +235,7 @@
 #vv-impressoes .p2-card.vi2-lista{padding:16px 0 10px;border-radius:var(--d3-r-cartao);box-shadow:none}
 #vv-impressoes .vi2-lista > .p2-filtros{padding:0 18px}
 #vv-impressoes .vi2-cab,#vv-impressoes .p2-lin.vi2-tab{display:grid;grid-template-columns:minmax(0,1fr) 130px 130px 92px 150px;align-items:center;gap:12px;padding:10px 18px}
-#vv-impressoes .vi2-cab{padding-top:6px;padding-bottom:6px;font:500 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-impressoes .vi2-cab{padding-top:6px;padding-bottom:6px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #vv-impressoes .vi2-cab + .vi2-item > .p2-lin{border-top:1px solid var(--d3-linha)}
 #vv-impressoes .p2-lin.vi2-tab > .vi2-meio{display:flex;flex-direction:column;gap:6px}
 #vv-impressoes .p2-lin.vi2-tab .vi2-tri{gap:3px}
@@ -237,9 +243,9 @@
 #vv-impressoes .p2-lin.vi2-tab .vi2-tri > .p2-cx.ok{background:var(--d3-pronto)}
 #vv-impressoes .p2-lin.vi2-tab .vi2-tri > .p2-cx.at{background:var(--d3-tinta)}
 #vv-impressoes .p2-lin.vi2-tab .vi2-tri > .p2-cx svg,#vv-impressoes .p2-lin.vi2-tab .vi2-tri > .p2-cx + .p2-cx::before{display:none}
-#vv-impressoes .p2-lin.vi2-tab > :is(.vi2-onde,.vi2-forn){min-width:0;font:400 13px var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-impressoes .p2-lin.vi2-tab > :is(.vi2-onde,.vi2-forn){min-width:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #vv-impressoes .p2-lin.vi2-tab > .vi2-forn b.atencao{color:var(--d3-ajuste);font-weight:600}
-#vv-impressoes .p2-lin.vi2-tab > .vi2-prazo{font:400 13px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
+#vv-impressoes .p2-lin.vi2-tab > .vi2-prazo{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
 #vv-impressoes .p2-lin.vi2-tab > .p2-pill{justify-self:start}
 #vv-impressoes .p2-lin.vi2-tab > .vi2-passo{display:flex;justify-content:flex-end}
 #vv-impressoes .vi2-linhas > .vi2-pe{padding:0 18px}
@@ -249,13 +255,13 @@
 #vv-impressoes .p2-card.vi2-pede.d3im-pede{width:auto;max-width:none;display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:var(--d3-r-cartao);box-shadow:none;overflow:hidden}
 #vv-impressoes .d3im-pede-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #vv-impressoes .d3im-pede-topo > span:first-child{display:inline-flex;align-items:center;gap:8px}
-#vv-impressoes .d3im-pede-topo .p2-h{font-size:15px}
-#vv-impressoes .d3im-pede-vazio{margin:0;padding:18px 14px;border-radius:16px;background:#F9F8F5;font:400 13px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-impressoes .d3im-pede-topo .p2-h{font-size:var(--d3-fs-destaque)}
+#vv-impressoes .d3im-pede-vazio{margin:0;padding:18px 14px;border-radius:16px;background:#F9F8F5;font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #vv-impressoes .d3im-pede .vi2-baralho.vi2-baralho{width:auto;max-width:none;height:290px;margin-right:30px}
 #vv-impressoes .d3im-pede .vi2-decide.vi2-decide{width:auto}
 #vv-impressoes .d3im-pede .vi2-decide > .d3im-agora,#vv-impressoes .d3im-pede .vi2-decide > .k{flex:1}
 #vv-impressoes .d3im-pede .vi2-decide > :is(.d3im-agora,.d3im-seta){background:var(--d3-trilho);box-shadow:none}
-#vv-impressoes .d3im-pede .vi2-decide > .d3im-seta{width:36px;height:36px;padding:0;font-size:16px}
+#vv-impressoes .d3im-pede .vi2-decide > .d3im-seta{width:36px;height:36px;padding:0;font-size:var(--d3-fs-destaque)}
 #vv-impressoes .d3im-pede .vi2-deck-lista.vi2-deck-lista{width:auto}
 #vv-impressoes .d3im-pede > .d3im-ver{margin-top:auto;align-self:flex-start}
 #vv-impressoes .vi2-lista > .p2-filtros.d3im-filtros{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
@@ -278,14 +284,14 @@
 
 /* ===================== Projetos (#vv-pessoas, aba Projetos: .v2p-proj) ===================== */
 #vv-pessoas .v2p-proj .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-pessoas .v2p-proj .d3-acao .d3pj-quem{overflow:hidden;text-overflow:ellipsis;font:600 11.5px var(--vv-texto,Inter),sans-serif;opacity:.85}
-#vv-pessoas .v2p-proj .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:17px}
+#vv-pessoas .v2p-proj .d3-acao .d3pj-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.85}
+#vv-pessoas .v2p-proj .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:var(--d3-fs-titulo)}
 #vv-pessoas .v2p-proj .d3pj-nums{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;min-width:0}
 #vv-pessoas .v2p-proj .d3pj-nums > .d3-num{appearance:none;border:0;margin:0;text-align:left;color:var(--d3-tinta);font-family:inherit}
 #vv-pessoas .v2p-proj .d3pj-nums > button.d3-num{cursor:pointer}
 #vv-pessoas .v2p-proj .d3pj-nums > button.d3-num:hover{box-shadow:0 0 0 1px var(--d3-borda)}
-#vv-pessoas .v2p-proj .d3-num > .d3-num-v small{font-size:18px;font-weight:600;color:var(--d3-apagado);letter-spacing:0}
-#vv-pessoas .v2p-proj .d3pj-pe{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-pessoas .v2p-proj .d3-num > .d3-num-v small{font-size:var(--d3-fs-titulo);font-weight:600;color:var(--d3-apagado);letter-spacing:0}
+#vv-pessoas .v2p-proj .d3pj-pe{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vv-pessoas .v2p-proj .d3-num.r > .d3pj-pe{color:var(--d3-perigo)}
 #vv-pessoas .v2p-proj .d3pj-vazio{margin:0}
 #vv-pessoas .v2p-proj .v2p-card.v2pj-card,#vv-pessoas .v2p-proj .v2p-card.v2pj-pag{border-radius:var(--d3-r-cartao);box-shadow:none}
@@ -305,7 +311,7 @@
 #vv-pessoas .v2p-proj .d3pj-ponto.at{width:18px;height:18px;border:3px solid var(--d3-tinta);background:var(--d3-cartao)}
 #vv-pessoas .v2p-proj .d3pj-ponto.venc{border-color:var(--d3-perigo);background:var(--d3-perigo)}
 #vv-pessoas .v2p-proj .d3pj-hoje{position:absolute;left:var(--x);top:0;bottom:0;border-left:2px dotted var(--d3-ajuste)}
-#vv-pessoas .v2p-proj .d3pj-datas{position:relative;height:14px;font:400 11.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-pessoas .v2p-proj .d3pj-datas{position:relative;height:14px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #vv-pessoas .v2p-proj .d3pj-datas > span{position:absolute;left:var(--x);transform:translateX(-50%);white-space:nowrap}
 #vv-pessoas .v2p-proj .d3pj-datas > span:first-child{transform:none}
 #vv-pessoas .v2p-proj .d3pj-datas > span:last-child:not(:first-child){transform:translateX(-100%)}
@@ -318,12 +324,12 @@
 /* ===================== Fornecedores (#vv-comercial, aba Fornecedores: .d3fo-tab) ===================== */
 #vv-comercial.v2c.d3c .v2c-card.d3fo-tab{padding:6px 0 10px}
 #vv-comercial.v2c.d3c .d3fo-tab .v2c-fr{padding:10px 18px}
-#vv-comercial.v2c.d3c .d3fo-tab .v2c-fr.d3fo-cab{padding-top:8px;padding-bottom:8px;font:500 12px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3fo-tab .v2c-fr.d3fo-cab{padding-top:8px;padding-bottom:8px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #vv-comercial.v2c.d3c .d3fo-tab .v2c-fr.d3fo-cab > p{margin:0;font:inherit;color:inherit}
 #vv-comercial.v2c.d3c .d3fo-sec{display:flex;align-items:baseline;gap:8px;padding:9px 18px;border-top:1px solid var(--d3-linha);background:#F9F8F5}
-#vv-comercial.v2c.d3c .d3fo-sec > h3{margin:0;padding-left:10px;border-left:3px solid var(--d3-pronto);font:700 14px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
+#vv-comercial.v2c.d3c .d3fo-sec > h3{margin:0;padding-left:10px;border-left:3px solid var(--d3-pronto);font:700 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
 #vv-comercial.v2c.d3c .d3fo-sec.a > h3{border-left-color:var(--d3-ajuste)}
-#vv-comercial.v2c.d3c .d3fo-sec > small{font:400 12.5px var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+#vv-comercial.v2c.d3c .d3fo-sec > small{font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #vv-comercial.v2c.d3c .d3fo-tab .v2c-abre > .v2-mais .v2c-dt{margin:0 18px 10px}
 #vv-comercial.v2c.d3c .d3fo-tab > .v2c-card-pe,#vv-comercial.v2c.d3c .d3fo-tab > .v2c-nada{padding:0 18px}
 @media (max-width:900px){
@@ -333,8 +339,8 @@
 /* ===================== Toolkit (#vv-ferramentas) ===================== */
 #vv-ferramentas.vc-janela.vc-janela{background:var(--d3-areia)}
 #vv-ferramentas .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-ferramentas .d3-acao .d3tk-quem{overflow:hidden;text-overflow:ellipsis;font:600 11.5px var(--vv-texto,Inter),sans-serif;opacity:.85}
-#vv-ferramentas .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:17px}
+#vv-ferramentas .d3-acao .d3tk-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.85}
+#vv-ferramentas .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:var(--d3-fs-titulo)}
 #vv-ferramentas .p2-card.vf2-fer,#vv-ferramentas .p2-card.vf2-rec{border-radius:var(--d3-r-cartao);box-shadow:none}
 #vv-ferramentas .vf2-fer .vf2-mais{color:var(--d3-tinta);text-decoration:underline;text-underline-offset:2px}
 #vv-ferramentas .vf2-fer .vf2-ico{background:var(--d3-trilho);color:var(--d3-tinta)}
@@ -344,6 +350,6 @@
 @media (max-width:700px){
   :is(#pv2-agenda,#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .d3-acao,#vv-pessoas .v2p-proj .d3-acao{flex-wrap:wrap;row-gap:10px}
   :is(#pv2-agenda,#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .d3-acao > .d3-acao-frase,#vv-pessoas .v2p-proj .d3-acao > .d3-acao-frase{flex:1 1 calc(100% - 46px);white-space:normal}
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .d3-acao .d3-acao-frase > span,#vv-pessoas .v2p-proj .d3-acao .d3-acao-frase > span{white-space:normal;font-size:16px}
+  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .d3-acao .d3-acao-frase > span,#vv-pessoas .v2p-proj .d3-acao .d3-acao-frase > span{white-space:normal;font-size:var(--d3-fs-destaque)}
   :is(#pv2-agenda,#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .d3-acao > .d3-acao-btn,#vv-pessoas .v2p-proj .d3-acao > .d3-acao-btn{margin-left:46px;max-width:calc(100% - 46px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }

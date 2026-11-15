@@ -3,7 +3,7 @@
    Listas: Painel de trabalho (colunas de dia, Por cliente, Requer ação, Vence hoje, Fechamento do dia) e Demandas. */
 :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st{
   appearance:none;border:0;margin:0;flex:none;display:inline-flex;align-items:center;gap:5px;height:22px;max-width:100%;min-width:0;box-sizing:border-box;
-  padding:0 7px 0 9px;border-radius:999px;font:600 11.5px/22px var(--vv-texto,Inter),system-ui,sans-serif;letter-spacing:0;white-space:nowrap;
+  padding:0 7px 0 9px;border-radius:999px;font:600 var(--d3-fs-apoio)/22px var(--vv-texto,Inter),system-ui,sans-serif;letter-spacing:0;white-space:nowrap;
   cursor:pointer;box-shadow:none;position:relative;transition:background-color .2s,color .2s,box-shadow .15s,transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1))}
 :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st .pv2-st-rot{min-width:0;overflow:hidden;text-overflow:ellipsis}
 :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st :is(.pv2-st-seta,.pv2-st-ok){flex:none;display:inline-grid;place-items:center;width:10px;height:10px}
@@ -29,7 +29,7 @@
 :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st[data-estado="feito"]{pointer-events:none;background:#11613A;color:#FFFFFF;box-shadow:none}
 /* o tempo no status (Por cliente), discreto ao lado da pílula */
 :is(#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6) .pv2-st-com-tempo{flex:none;display:inline-flex;align-items:center;gap:6px;min-width:0}
-:is(#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6) .pv2-st-tempo{font:500 11px/1 var(--vv-texto,Inter),system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#6B665E;cursor:default}
+:is(#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6) .pv2-st-tempo{font:500 var(--d3-fs-mini)/1 var(--vv-texto,Inter),system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#6B665E;cursor:default}
 @media (prefers-reduced-motion:reduce){
   :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st,
   :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#grid-s1,#grid-s2,#grid-s3,#grid-s4,#grid-s5,#grid-s6,#ops-action-panel,#ops-today-panel,#ops-daily-panel) .pv2-st svg{transition:none}

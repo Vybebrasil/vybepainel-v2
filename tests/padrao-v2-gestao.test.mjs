@@ -84,9 +84,10 @@ test('Gestão (quadro D3-Gestao): bloco de ação curto, quatro números, Por se
   assert.match(h, /<span class="d3-acao-frase">Produção pesa: 1 vai ao ar hoje sem estar pronta\.<\/span><button type="button" class="d3-acao-btn" data-espiar="alerta:1">Abrir a de hoje<\/button>/);
   const ordem = ['d3-acao', 'd3g-nums', 'd3g-setores', 'd3g-abrir', 'd3g-semana', '<details class="g2-mais"'].map((c) => h.indexOf(c));
   assert.ok(ordem.every((p, i) => p >= 0 && (i === 0 || p > ordem[i - 1])), ordem.join(','));
-  for (const r of ['Atrasadas', 'Vão ao ar hoje', 'Semana · prontas', 'Clientes ativos']) assert.ok(h.includes(`<span class="d3-num-rot">${r}</span>`), r);
+  // O mesmo rótulo do Hoje e da Produção (auditoria 15/11, item 31): "Prontas da semana".
+  for (const r of ['Atrasadas', 'Vão ao ar hoje', 'Prontas da semana', 'Clientes ativos']) assert.ok(h.includes(`<span class="d3-num-rot">${r}</span>`), r);
   assert.match(h, /title="Atrasada: a data do cliente/, 'a conta da fala antiga fica na dica do número');
-  assert.match(h, /Semana · prontas<\/span><b class="d3-num-v">4<small> \/ 10<\/small><\/b><span class="d3-barra" style="--v:40%">/);
+  assert.match(h, /Prontas da semana<\/span><b class="d3-num-v">4<small> \/ 10<\/small><\/b><span class="d3-barra" style="--v:40%">/);
   const linhas = [...h.slice(h.indexOf('d3g-setores'), h.indexOf('d3g-abrir')).matchAll(/<b>(Produção|Finanças|Clientes|Comercial)<\/b>/g)].map((m) => m[1]);
   assert.deepEqual(linhas, ['Produção', 'Finanças', 'Clientes', 'Comercial'], 'um setor por linha, o mais grave primeiro');
   assert.match(h, /<span class="d3s-pill r">18 dias<\/span><span class="d3g-set-txt">R\$ 10,4 mil em atraso, de 2 clientes<\/span>.*?data-setor-ir="setor:financas">Abrir Finanças/s);
@@ -128,7 +129,7 @@ test('Performance (quadro D3-Performance): bloco do Heitor, quatro números, ped
   const h = alvo.innerHTML;
   assert.match(h, /<h2 title="Performance da operação">Performance<\/h2>.*?data-perf-dias="30" aria-pressed="true">30 dias</s);
   assert.doesNotMatch(h.slice(0, h.indexOf('vs-corpo')), /g2-btn p/, 'o botão do que pede ação sai do topo');
-  assert.match(h, /<small class="d3s-quem">Heitor · Coordenação<\/small>O gargalo é dono: 3 peças sem responsável\.<\/span><button type="button" class="d3-acao-btn" data-espiar="perf:proc\|semResponsavel" title="O gargalo é dono, não etapa: 3 das 4 peças abertas estão sem responsável e 2 já passaram da data\. Nada saiu em 30 dias[^"]*">Distribuir as 3<\/button>/);
+  assert.match(h, /<small class="d3s-quem">Heitor · Coordenação<\/small>O gargalo é a distribuição: 3 peças sem responsável\.<\/span><button type="button" class="d3-acao-btn" data-espiar="perf:proc\|semResponsavel" title="O gargalo é a distribuição, não a etapa: 3 das 4 peças abertas estão sem responsável e 2 já passaram da data\. Nada saiu em 30 dias[^"]*">Distribuir as 3<\/button>/);
   for (const r of ['Abertas', 'Atrasadas', 'Em alteração', 'Sem responsável']) assert.ok(h.includes(`<span class="d3-num-rot">${r}</span>`), r);
   assert.match(h, /50% da fila/);
   assert.match(h, /Sem responsável<\/span><b class="d3-num-v">3<small> \/ 4<\/small><\/b><span class="d3-barra" style="--v:75%">/);

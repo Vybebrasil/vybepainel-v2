@@ -271,7 +271,10 @@
     if (!st.dados && !st.erro) return estado('carregando', 'Carregando as impressões', '');
     if (st.erro && !st.dados) return estado('erro', 'Não deu para abrir Impressões', st.erro, '<button type="button" class="p2-btn s" data-vi="recarregar">Tentar de novo</button>');
     const d = st.dados, R = d.resumo || {}, todas = d.impressoes || [], abertas = todas.filter(ABERTAS);
-    if (!todas.length) return `${st.form ? `<div class="p2-card">${formulario()}</div>` : ''}<div class="p2-card vi2-vazio"><p><b>Nenhuma impressão ainda.</b> <span class="p2-sub">Adesivo, banner, cardápio, embalagem: acompanhe da arte à entrega na gráfica.</span></p>${st.form ? '' : '<button type="button" class="p2-btn s" data-vi="nova">Nova impressão</button>'}</div>`;
+    // Vazio (acabamento 15/11): uma frase e uma ação, no bloco laranja do Nestor; o "+ Nova impressão" do topo só
+    // aparece quando já há impressão.
+    const fraseVazia = '<small class="d3im-quem">Nestor · Compras</small><span>Nenhuma impressão ainda. Acompanhe aqui da arte à entrega na gráfica.</span>';
+    if (!todas.length) return `${st.form ? `<div class="p2-card">${formulario()}</div>` : typeof window.d3AcaoHtml === 'function' ? window.d3AcaoHtml({ agente: 'N', frase: fraseVazia, botao: 'Cadastrar a primeira', attrs: 'data-vi="nova"' }) : `<div class="p2-card vi2-vazio"><p>${fraseVazia}</p><button type="button" class="p2-btn s" data-vi="nova">Cadastrar a primeira</button></div>`}`;
     const chip = (k, rot, n) => `<button type="button" class="p2-chip vi-chip" data-vi-filtro="${k}" aria-pressed="${st.filtro === k}">${rot}${n != null ? ` <b>${n}</b>` : ''}</button>`;
     const fNome = st.fornecedor ? (d.fornecedores || []).find((f) => String(f.id) === st.fornecedor)?.nome || 'fornecedor' : '';
     const vista = (k, r) => `<button type="button" data-vi-vista="${k}" aria-pressed="${st.vista === k}">${r}</button>`;
@@ -283,7 +286,8 @@
     const quando = (i) => (i.atrasada ? `atrasada ${diasDeAtraso(i) ? `há ${diasDeAtraso(i)} ${diasDeAtraso(i) === 1 ? 'dia' : 'dias'}` : ''}`.trim() : `entrega ${diaSem(i.previsao)}`);
     const nome = (i) => `${i.titulo}${i.cliente_nome ? ` de ${i.cliente_nome}` : ''}`;
     const fraseAcao = urgente ? `${esc(nome(urgente))}: ${esc(quando(urgente))}${urgente.fornecedor_id ? '' : ' e sem gráfica'}.` : nS ? `${nS} sem fornecedor.` : `${nA} ${nA === 1 ? 'impressão aberta' : 'impressões abertas'}, nenhuma atrasada.`;
-    const fala = typeof window.d3AcaoHtml === 'function' ? window.d3AcaoHtml({ agente: 'N', frase: `<small class="d3im-quem">Nestor · Compras</small><span>${fraseAcao}</span>`,
+    // Sem urgente não há botão: a frase vai na nota branca (o laranja é só para ação).
+    const fala = typeof window.d3AcaoHtml === 'function' ? (urgente ? window.d3AcaoHtml : window.d3NotaHtml || window.d3AcaoHtml)({ agente: 'N', frase: `<small class="d3im-quem">Nestor · Compras</small><span>${fraseAcao}</span>`,
       botao: urgente ? `Ver ${String(urgente.titulo).length > 18 ? 'a peça' : urgente.titulo}` : '', attrs: urgente ? `data-vi-abrir="${esc(urgente.id)}"` : '' }) : '';
     const porEtapa = etapasDoCaminho().map((e) => { const n = abertas.filter((i) => i.etapa === e.id).length; return n ? `${n} ${String(e.nome).toLowerCase()}` : ''; }).filter(Boolean).slice(0, 3).join(' · ');
     const nomes = (l) => l.slice(0, 2).map((i) => String(i.titulo).toLowerCase()).join(' · ') + (l.length > 2 ? ` +${l.length - 2}` : '');
@@ -317,7 +321,7 @@
     if (!st.janela) return;
     const tinha = st.janela.scrollTop || 0;
     st.janela.innerHTML = `<div class="vi-topo vb-janela-topo">${cabecalho({ id: 'vi-titulo', titulo: 'Impressões',
-      acoes: `<span class="vi-topo-acoes">${st.dados && !st.form ? '<button type="button" class="p2-btn d3im-nova" data-vi="nova">+ Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
+      acoes: `<span class="vi-topo-acoes">${st.dados && !st.form && (st.dados.impressoes || []).length ? '<button type="button" class="p2-btn d3im-nova" data-vi="nova">+ Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
       <p class="vi-aviso" role="status"></p><div class="vi-corpo">${corpo()}</div>`;
     pintarAviso();
     st.janela.scrollTop = tinha;

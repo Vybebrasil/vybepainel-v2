@@ -99,8 +99,20 @@
         texto: 'Aqui ficam a conversa da sala em que você está e os recados que deixaram para você. Nas duas abas dá para escrever.' },
       'ferr:whatsapp': { grupo: 'Topo', titulo: 'WhatsApp da Vybe', alvo: ['#vv-whatsapp', '[data-ferr="whatsapp"]'], lado: 'esquerda',
         texto: 'Aqui estão os grupos internos e os dos clientes de que você participa, com as menções a você numa aba só, e eu aviso quando chega mensagem nova. Por enquanto é só para ler: para responder, use o seu WhatsApp.' },
-      pessoas: { grupo: 'Topo', titulo: 'Pessoas', alvo: '#vv-pessoas .vp-abas', lado: 'esquerda',
+      // porAba (auditoria 15/11, item 35): a dica do setor só vale com a barra de abas à vista (a janela com o setor
+      // inteiro). Aberta por um item do dock (uma aba só, sem barra), vale a dica da aba que está na tela
+      // ('pessoas:<aba>'); aba sem dica própria não mostra nada.
+      pessoas: { grupo: 'Topo', titulo: 'Pessoas', alvo: ['#vv-pessoas .d3p-abas', '#vv-pessoas .vp-abas'], lado: 'esquerda',
+        porAba: { selecionada: '#vv-pessoas [role="tab"][aria-selected="true"]', atributo: 'data-vp-aba' },
         texto: 'Aqui fica o setor de Pessoas: o seu mês de produtividade, o RH, os projetos pontuais e a Academy. O score sai das demandas do painel, sem nada para preencher, e no botão de interrogação eu explico cada aba.' },
+      'pessoas:produtividade': { grupo: 'Telas', titulo: 'Produtividade', alvo: '#vv-pessoas .vp-topo', lado: 'baixo',
+        texto: 'Aqui fica o seu mês de produtividade: entregas no prazo, volume contra a meta do cargo e o que está atrasado na fila. O score sai das demandas do painel, sem nada para preencher.' },
+      'pessoas:rh': { grupo: 'Telas', titulo: 'Pedidos e calendário', alvo: '#vv-pessoas .vp-topo', lado: 'baixo',
+        texto: 'Aqui você pede ao RH férias, folga, documento ou reembolso, com o prazo de resposta de cada tipo, e vê os aniversários e as férias do time.' },
+      'pessoas:projetos': { grupo: 'Telas', titulo: 'Projetos pontuais', alvo: '#vv-pessoas .vp-topo', lado: 'baixo',
+        texto: 'Aqui ficam os projetos fora do mensal (evento, lançamento, site), com etapas, responsáveis e datas. Dá para ver em cartões ou na linha do tempo.' },
+      'pessoas:academy': { grupo: 'Telas', titulo: 'Academy', alvo: '#vv-pessoas .vp-topo', lado: 'baixo',
+        texto: 'Aqui ficam as trilhas de aprendizado do time: as aulas de cada uma e o que foi atribuído a você.' },
       'ferr:aparencia': { grupo: 'Topo', titulo: 'Aparência', alvo: '.vv-menu-tema-linha', lado: 'esquerda',
         texto: 'Claro, escuro ou automático, que segue o seu computador. Em Mais ajustes dá para reduzir o movimento da tela.' },
       'ferr:conta': { grupo: 'Topo', titulo: 'Sua conta', alvo: '.vv-menu-conta:not(.vv-menu-tema)', lado: 'esquerda',
@@ -470,25 +482,51 @@
     if (CONTEUDO.passeios[PRIMEIRO_PASSEIO] && !e.passeios[PRIMEIRO_PASSEIO]) return false;
     return !(e.semDicas || e.dicas[id] || adiadas.has(id));
   }
-  function agendar(id, ms) {
-    cancelarPendente(); pendenteId = id;
-    dicaPendente = G.setTimeout?.(() => { dicaPendente = null; pendenteId = ''; mostrarDica(id); }, ms);
+  function podeMostrarAlguma() {
+    const e = ler();
+    return !(CONTEUDO.passeios[PRIMEIRO_PASSEIO] && !e.passeios[PRIMEIRO_PASSEIO]) && !e.semDicas;
+  }
+  let forcarPendente = false;
+  function agendar(id, ms, forcar = false) {
+    cancelarPendente(); pendenteId = id; forcarPendente = forcar;
+    dicaPendente = G.setTimeout?.(() => { dicaPendente = null; pendenteId = ''; mostrarDica(id, forcarPendente); }, ms);
   }
   function proximaDaFila() { while (fila.length) { const id = fila.shift(); if (podeMostrar(id)) { agendar(id, 300); return; } } }
+  // Dica com porAba: a barra de abas à vista vale a dica do setor (id); sem ela, a da aba selecionada ('id:aba'), se
+  // existir. Devolve o id que vale ou '' (nenhuma dica para esta tela).
+  function dicaDaAba(id) {
+    const d = CONTEUDO.dicas[id];
+    if (!d?.porAba) return id;
+    if (d.alvo && acharAlvo(d.alvo)) return id;
+    let el = null;
+    try { el = doc.querySelector(d.porAba.selecionada); } catch { el = null; }
+    const aba = el?.getAttribute?.(d.porAba.atributo) || '';
+    return aba && CONTEUDO.dicas[`${id}:${aba}`] ? `${id}:${aba}` : '';
+  }
   function dica(id, { forcar = false } = {}) {
     const d = CONTEUDO.dicas[id];
     if (!d || passeio || ajudaAtual || !doc?.body) return false;
     if (!forcar) {
       if (dicaAtual?.id === id || pendenteId === id || fila.includes(id)) return true;
-      if (!podeMostrar(id)) return false;
+      // Com porAba, a que já foi vista é decidida na hora de mostrar (a da aba pode ser outra).
+      if (!(d.porAba ? podeMostrarAlguma() : podeMostrar(id))) return false;
       if (dicaAtual || pendenteId) { fila.push(id); return true; }
     }
-    agendar(id, forcar ? 0 : ATRASO_DICA);
+    agendar(id, forcar ? 0 : ATRASO_DICA, forcar);
     return true;
   }
-  function mostrarDica(id) {
-    const d = CONTEUDO.dicas[id];
+  function mostrarDica(id, forcar = false) {
+    let d = CONTEUDO.dicas[id];
     if (!d || passeio || ajudaAtual) return;
+    if (d.porAba) {
+      // A aba à vista decide (item 35). Pedida pela Ajuda (forcar) sem a tela aberta, vale a do setor.
+      const qual = dicaDaAba(id);
+      if (!qual && !forcar) { proximaDaFila(); return; }
+      if (qual && qual !== id) {
+        if (!forcar && !podeMostrar(qual)) { proximaDaFila(); return; }
+        id = qual; d = CONTEUDO.dicas[id];
+      } else if (qual === id && !forcar && !podeMostrar(id)) { proximaDaFila(); return; }
+    }
     fecharDica('depois', false);
     const eu = quem();
     const alvo = d.alvo ? acharAlvo(d.alvo) : null;

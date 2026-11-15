@@ -64,5 +64,5 @@ test('rota crm: permissões, funil, histórico atômico e importação sem dupli
  r=await chamar(sql,admin);assert.equal(r.body.total,2);
 });
 test('CRM não cria tabelas: sem migração responde 503 explicitamente',async t=>{
- const {db,sql}=conexao();t.after(()=>db.close());const r=await chamar(sql,admin);assert.equal(r.codigo,503);assert.match(r.body.error,/migração/);
+ const {db,sql}=conexao();t.after(()=>db.close());const r=await chamar(sql,admin);assert.equal(r.codigo,503);assert.match(r.body.error,/sendo ligad/);
 });

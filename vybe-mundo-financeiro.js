@@ -290,9 +290,10 @@
       : aberto > 0 ? acao(`${esc(rs(aberto))} em aberto${maior?.total_aberto ? `; o maior é ${esc(maior.cliente_nome)}` : ''}.`, 'Ver quem deve', 'data-fx="chip" data-alvo="clientes_mes" data-valor="aberto"')
       : acao(`Todos em dia desde ${esc(soMes(pc2.desde))}.`));
     partes.push(nums([
-      { rotulo: `Recebido em ${soMes(atual)}`, valor: mil(recebido), tom: 'g' },
+      // Sem meses no extrato, o rótulo não fica pela metade ("Recebido em"): vira "no mês" (auditoria 15/11, item 22).
+      { rotulo: atual ? `Recebido em ${soMes(atual)}` : 'Recebido no mês', valor: mil(recebido), tom: 'g' },
       { rotulo: 'Em aberto', valor: mil(aberto), tom: aberto > 0 ? 'r' : '', sub: aReceber ? `${esc(mil(aReceber))} a receber no mês` : 'meses passados' },
-      { rotulo: `Pagaram em ${soMes(atual)}`, valor: `${n0(pagos)}<small class="d3f-de"> / ${n0(cobrados)}</small>`, barra: pc(pagos, cobrados) },
+      { rotulo: atual ? `Pagaram em ${soMes(atual)}` : 'Pagaram no mês', valor: `${n0(pagos)}<small class="d3f-de"> / ${n0(cobrados)}</small>`, barra: pc(pagos, cobrados) },
     ]));
     const filtro = `<div class="fv2-filtros"><label class="fv2-sr" for="fx-busca-cli">Buscar cliente</label><input class="fv2-busca" id="fx-busca-cli" type="search" data-vc-busca="fx_clientes" placeholder="Buscar cliente" value="${esc(ctx.filtro?.fx_clientes || '')}">
       ${chips('clientes_mes', [['todos', 'Todos', linhas.length], ['aberto', 'Em aberto', linhas.filter((l) => l.total_aberto > 0).length, 'r'], ['pagos', 'Em dia', linhas.filter((l) => !l.total_aberto).length, 'g']], u.chip)}</div>`;

@@ -73,6 +73,9 @@
     // Dinheiro só dos donos (Paulo, 13/11/2026): a marca de admin (que inclui a coordenação) não conta para o palpite.
     try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao(); } catch { return false; } // dono pelo servidor (server/donos.js)
   }
+  // Detalhe técnico das metas e do formulário de leads (o servidor manda só a frase curta, auditoria 15/11): fixo aqui e
+  // mostrado só a quem administra, atrás do "Para quem administra: o que falta".
+  const TECNICO_CONFIG = 'Falta aplicar a migração <code>2026-11-07-carteira.sql</code> (tabela vybe_carteira_config) no banco: metas do mês e formulário de leads.';
   const souAdminAqui = () => { try { return typeof souAdmin === 'function' && Boolean(souAdmin()); } catch { return false; } };
   // O servidor diz o que a pessoa pode; sem essa resposta (banco sem as tabelas), o palpite de dono só desenha o botão.
   const podeFazer = (d, chave) => (d?.pode && chave in d.pode ? Boolean(d.pode[chave]) : palpiteDono());
@@ -317,7 +320,8 @@
   // Fundo areia, o bloco de ação laranja como único laranja cheio, quatro números com rótulo curto (barra ou linha), as
   // fichas com a contagem em negrito e a lista em grade. As peças vêm de vybe-core.js (d3AcaoHtml, d3NumHtml, d3LinhaSvg);
   // fora do painel (testes), o mesmo HTML montado aqui.
-  // Fornecedores e Creators (quadros D3-Fornecedores e D3-Creators) entram com o subtítulo curto deles e "Ajuda".
+  // Fornecedores e Creators (quadros D3-Fornecedores e D3-Creators) entram com o subtítulo curto deles; a ajuda é
+  // "Como funciona" em todas as telas (acabamento 15/11).
   // Finanças por cliente (quadro D3-PorCliente) também: selo "só donos" no título e o mês ao lado.
   const D3 = new Set(['funil', 'pacotes', 'orcamentos', 'fornecedores', 'creators', 'financas']);
   const SUB_D3 = { fornecedores: 'gráficas, estúdios e parceiros', creators: 'Irecê e região' };
@@ -326,6 +330,8 @@
   // Bloco de ação: frase curta (com o nome de quem fala em cima, quando houver) e um botão; attrs vai cru no botão.
   function acaoD3(frase, { texto = '', attrs = '', quem = 'VYBES · Comercial', agente = 'V' } = {}) {
     const corpo = `${quem ? `<small class="d3c-quem">${esc(quem)}</small>` : ''}<span class="d3c-frase">${frase}</span>`;
+    // Laranja só com ação (acabamento 15/11): sem botão, a frase vai na nota branca.
+    if (!texto) { const n = g3('d3NotaHtml'); return n ? n({ frase: corpo, agente }) : `<section class="d3-nota" role="status"><span class="d3-nota-av" aria-hidden="true">${esc(agente)}</span><span class="d3-nota-frase">${corpo}</span></section>`; }
     const f = g3('d3AcaoHtml');
     if (f) return f({ frase: corpo, agente, botao: texto, attrs });
     return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${esc(agente)}</span><span class="d3-acao-frase">${corpo}</span>${texto ? `<button type="button" class="d3-acao-btn" ${attrs}>${esc(texto)}</button>` : ''}</section>`;
@@ -478,10 +484,12 @@
   // Cabeçalho do quadro: título, a visão (só no funil), "Como funciona" e a única ação cheia da tela.
   function topoV2(d) {
     const aba = st.aba, titulo = TITULO[aba] || (ABAS.find((a) => a[0] === aba) || [0, 'Comercial'])[1];
-    const [texto, acao, pode] = { funil: ['Novo lead', 'data-vc="lead"', d?.pode && 'editar_comercial' in d.pode ? Boolean(d.pode.editar_comercial) : Boolean(d) && palpiteDono()],
+    // Funil: sem oportunidade aberta, "Cadastrar lead" mora no bloco laranja; o "Novo lead" do topo não repete (acabamento 15/11).
+    const temAberta = (d?.oportunidades || []).some((o) => !['ganho', 'perdido'].includes(o.etapa));
+    const [texto, acao, pode] = { funil: ['Novo lead', 'data-vc="lead"', (d?.pode && 'editar_comercial' in d.pode ? Boolean(d.pode.editar_comercial) : Boolean(d) && palpiteDono()) && (!D3.has('funil') || temAberta)],
       pacotes: ['Novo pacote', 'data-vc="pacote"', Boolean(d) && podeFazer(d, 'editar_pacotes') && d.pacotes.length > 0],
       orcamentos: ['Novo orçamento', 'data-vc="orcamento"', Boolean(d) && podeFazer(d, 'editar_comercial') && d.pacotes.length > 0 && d.orcamentos.length > 0],
-      financas: ['Lançar', 'data-v2="lancar"', Boolean(d)], fornecedores: ['Novo fornecedor', 'data-vc="fornecedor"', Boolean(d)], creators: ['Novo creator', 'data-vc="creator"', Boolean(d?.pode?.editar_comercial)] }[aba];
+      financas: ['Lançar', 'data-v2="lancar"', Boolean(d)], fornecedores: ['Novo fornecedor', 'data-vc="fornecedor"', Boolean(d) && (d.fornecedores || []).some((f) => f.ativo)], creators: ['Novo creator', 'data-vc="creator"', Boolean(d?.pode?.editar_comercial) && (d.creators || []).length > 0] }[aba];
     // Direção 3: título com o mês ao lado; "Como funciona" com o "?" e a ação do topo em branco (o laranja é do bloco de ação).
     if (D3.has(aba)) {
       const hora = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }).format(new Date());
@@ -497,11 +505,11 @@
       return `<div class="v2c-topo d3c-topo"><h2>${esc(titulo)}</h2>${fc ? '<span class="d3-selo-donos">só donos</span>' : ''}<span class="d3c-sub">${fc ? '' : esc(SUB_D3[aba] || subtituloD3())}${aba === 'funil' ? ' · ' + hora : ''}</span>
         ${aba === 'funil' ? `<span class="v2c-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${st.v2.visao === k}">${n}</button>`).join('')}</span>` : ''}
         ${perFin}
-        ${fc ? '' : `<button type="button" class="v2c-btn d3c-ajuda" data-vc="ajuda" aria-expanded="${st.ajuda}">${SUB_D3[aba] ? 'Ajuda' : '<span class="d3c-q" aria-hidden="true">?</span>Como funciona'}</button>`}
+        ${fc ? '' : `<button type="button" class="v2c-btn d3c-ajuda" data-vc="ajuda" aria-expanded="${st.ajuda}"><span class="d3c-q" aria-hidden="true">?</span>Como funciona</button>`}
         ${menu}${pode ? `<button type="button" class="v2c-btn d3c-novo" ${acao}>${IC.mais}${texto}</button>` : ''}
         <button type="button" class="v2c-fechar" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>`;
     }
-    const ajuda = aba === 'financas' ? '' : `<button type="button" class="v2c-btn" data-vc="ajuda" aria-expanded="${st.ajuda}">${['fornecedores', 'creators'].includes(aba) ? 'Ajuda' : 'Como funciona'}</button>`;
+    const ajuda = aba === 'financas' ? '' : `<button type="button" class="v2c-btn" data-vc="ajuda" aria-expanded="${st.ajuda}">Como funciona</button>`;
     return `<div class="v2c-topo">${aba === 'financas' ? `<div class="v2c-titulo"><p class="v2c-sub">Finanças › Por cliente</p><h2>${esc(titulo)}</h2></div>${fin() ? `<span class="v2c-mes">${mesHtml(mesFin(), false)}</span>` : ''}` : `<h2>${esc(titulo)}</h2>`}
         ${aba === 'funil' ? `<span class="v2c-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${st.v2.visao === k}">${n}</button>`).join('')}</span>` : ''}
         ${ajuda}
@@ -583,8 +591,8 @@
     const coluna = (f, max) => {
       const ops = opsDa(f.id), cabe = max && !v.mostra['f:' + f.id] ? ops.slice(0, max) : ops, resto = ops.length - cabe.length;
       const filtro = f.id === 'perdido' && comMotivo.length ? `<div class="v2c-chips" role="group" aria-label="Filtrar perdidas por motivo">
-          <button type="button" class="v2c-chip" data-vc-motivo="" aria-pressed="${!motivoSel}">Todos · ${num(f.atual)}</button>
-          ${comMotivo.map((x) => `<button type="button" class="v2c-chip" data-vc-motivo="${esc(x.id)}" aria-pressed="${motivoSel === x.id}" title="${esc(pc(x.percentual))} das perdas">${esc(x.nome)} · ${num(x.quantidade)}</button>`).join('')}</div>` : '';
+          <button type="button" class="v2c-chip" data-vc-motivo="" aria-pressed="${!motivoSel}">Todos <b>${num(f.atual)}</b></button>
+          ${comMotivo.map((x) => `<button type="button" class="v2c-chip" data-vc-motivo="${esc(x.id)}" aria-pressed="${motivoSel === x.id}" title="${esc(pc(x.percentual))} das perdas">${esc(x.nome)} <b>${num(x.quantidade)}</b></button>`).join('')}</div>` : '';
       const nada = f.id === 'novo' ? 'Nenhuma empresa nova. O SDR propõe pelo CRM do 1º andar.' : f.id === 'perdido' ? (motivoSel ? 'Nenhuma perda com este motivo.' : 'Nenhuma perda registrada. O motivo de cada uma aparece aqui.') : 'Nenhuma oportunidade nesta fase.';
       return `<section class="v2c-colu" data-v2-solta="${esc(f.id)}" aria-label="${esc(f.nome)}: ${num(ops.length)}"><h3>${esc(f.nome)} · ${num(ops.length)}</h3>${filtro}
         <div class="v2c-colu-ops">${cabe.map((o) => cartao(o)).join('') || `<p class="v2c-sub">${esc(nada)}</p>`}</div>
@@ -606,16 +614,16 @@
       { titulo: 'Em negociação', valor: val ? milhar(neg.mensal) : num(abertas), tom: abertas ? '' : 'quieto',
         sub: val ? `por mês · ${plural(abertas, 'aberta', 'abertas')}${neg.avulso ? ' · avulso: ' + esc(milhar(neg.avulso)) : ''}` : abertas === 1 ? 'oportunidade aberta' : 'oportunidades abertas' },
       { titulo: m ? 'Meta ' + (m.periodo.tipo === 'anual' ? 'de ' + m.periodo.rotulo : 'de ' + MESES[Number(String(m.periodo.mes).slice(5)) - 1]) : 'Meta do mês', tom: meta ? '' : 'quieto',
-        valor: meta ? (meta.tipo === 'dinheiro' ? `R$ ${curto(meta.realizado)} de ${curto(meta.meta)}` : `${num(meta.realizado)} de ${num(meta.meta)}`) : 'Sem meta', barra: meta ? meta.barra : null,
-        sub: meta ? (meta.id === 'mrr' ? '' : esc(meta.nome.toLowerCase())) : editaMeta ? elo('Definir a meta', 'data-vc="metas"') : 'os donos definem a meta' },
+        valor: meta ? (meta.tipo === 'dinheiro' ? `R$ ${curto(meta.realizado)} de ${curto(meta.meta)}` : `${num(meta.realizado)} de ${num(meta.meta)}`) : '—', barra: meta ? meta.barra : null,
+        sub: meta ? (meta.id === 'mrr' ? '' : esc(meta.nome.toLowerCase())) : editaMeta ? `sem meta · ${elo('definir', 'data-vc="metas"')}` : 'sem meta: os donos definem' },
       { titulo: 'Taxa de ganho', valor: r.taxa_ganho == null ? '0%' : pc(r.taxa_ganho), tom: r.taxa_ganho == null ? 'quieto' : '', sub: encerradas ? `de ${plural(encerradas, 'negócio encerrado', 'negócios encerrados')}` : 'sem negócio fechado ainda' },
     ]);
     // Vazio e o que ainda não foi ligado: uma linha, com o técnico só para quem administra.
-    const tecnico = [ligado ? '' : 'Falta aplicar a migração <code>2026-11-07-comercial.sql</code> no banco.', m && m.config_disponivel === false ? esc(m.aviso_config || 'Falta a migração das metas e do formulário de leads.') : ''].filter(Boolean).join(' ');
+    const tecnico = [ligado ? '' : 'Falta aplicar a migração <code>2026-11-07-comercial.sql</code> no banco.', m && m.config_disponivel === false ? TECNICO_CONFIG : ''].filter(Boolean).join(' ');
     const falta = souAdminAqui() && tecnico ? botao('Para quem administra: o que falta', `data-vc="falta" aria-expanded="${st.verFalta}"`) : '';
     const podeLead = d.pode && 'editar_comercial' in d.pode ? Boolean(d.pode.editar_comercial) : palpiteDono();
-    const linhaVazia = !d.oportunidades.length ? vazioV2(`<b>Nenhuma oportunidade ainda.</b> As ${num(r.fases.length)} etapas ficam em 0.${ligado ? '' : ' O valor da negociação ainda não foi ligado.'}`, (podeLead ? botao('Cadastrar o primeiro lead', 'data-vc="lead"') : '') + falta)
-      : !ligado ? vazioV2('<b>O valor da negociação ainda não foi ligado.</b> O funil já funciona; valor e follow-up aparecem quando estiverem ligados.', falta) : '';
+    const linhaVazia = !d.oportunidades.length ? vazioV2(`<b>Nenhuma oportunidade ainda.</b> As ${num(r.fases.length)} etapas ficam em 0.${ligado ? '' : ' O valor da negociação ainda não está disponível.'}`, (podeLead && !ehD3() ? botao('Cadastrar o primeiro lead', 'data-vc="lead"') : '') + falta)
+      : !ligado ? vazioV2('<b>O valor da negociação ainda não está disponível.</b> O funil já funciona; valor e follow-up aparecem aqui assim que estiverem disponíveis.', falta) : '';
     const campeao = d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos)${d.produtos.ticket_medio_mensal != null ? ' · ticket médio ' + din(d.produtos.ticket_medio_mensal) + '/mês' : ''}${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : '';
     if (ehD3()) return funilD3({ p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, encerradas, meta, editaMeta, linhaVazia, falta, tecnico, campeao, podeLead, donoSel, faseDe, todas: d.oportunidades });
     return `${falaHtml(frase, paradas.length ? botao(paradas.length === 1 ? 'Ver a proposta' : `Ver as ${num(paradas.length)}`, `data-v2="paradas" data-id="${esc(paradas[0].id)}"`) : '')}
@@ -696,14 +704,15 @@
     const maisParada = paradas[0];
     const acao = maisParada ? acaoD3(`${esc(maisParada.nome)} · proposta sem resposta há ${plural(parada(maisParada), 'dia', 'dias')}.`, { texto: 'Ver a proposta', attrs: `data-v2="paradas" data-id="${esc(maisParada.id)}"`, quem: '' })
       : abertas ? acaoD3(`${val && neg.mensal ? esc(milhar(neg.mensal)) + ' por mês' : plural(abertas, 'oportunidade aberta', 'oportunidades abertas')} em negociação.`, { texto: v.visao === 'lista' ? 'Ver o quadro' : 'Ver a lista', attrs: `data-v2="visao" data-id="${v.visao === 'lista' ? 'quadro' : 'lista'}"`, quem: '' })
-        : acaoD3('Nenhuma oportunidade em negociação.', podeLead ? { texto: 'Cadastrar lead', attrs: 'data-vc="lead"', quem: '' } : { quem: '' });
+        : acaoD3(todas.length ? 'Nenhuma oportunidade em negociação.' : 'Nenhuma oportunidade ainda.', podeLead ? { texto: todas.length ? 'Cadastrar lead' : 'Cadastrar o primeiro lead', attrs: 'data-vc="lead"', quem: '' } : { quem: '' });
     const numeros = numerosD3([
       { rotulo: 'Em negociação', valor: num(abertas), serie: serieAbertas(), sub: val && neg.mensal ? `abertas · ${esc(reais(neg.mensal))}/mês${neg.avulso ? ' + ' + esc(reais(neg.avulso)) + ' avulso' : ''}` : abertas === 1 ? 'aberta' : 'abertas' },
-      { rotulo: m ? (m.periodo.tipo === 'anual' ? 'Meta do ano' : 'Meta do mês') : 'Meta do mês', valor: meta ? (meta.tipo === 'dinheiro' ? `R$ ${curto(meta.realizado)} de ${curto(meta.meta)}` : `${num(meta.realizado)} de ${num(meta.meta)}`) : 'Sem meta',
-        barra: meta ? meta.barra : null, sub: meta ? (meta.id === 'mrr' ? 'MRR novo' : esc(meta.nome.toLowerCase())) : editaMeta ? elo('Definir a meta', 'data-vc="metas"') : 'sem meta' },
+      { rotulo: m ? (m.periodo.tipo === 'anual' ? 'Meta do ano' : 'Meta do mês') : 'Meta do mês', valor: meta ? (meta.tipo === 'dinheiro' ? `R$ ${curto(meta.realizado)} de ${curto(meta.meta)}` : `${num(meta.realizado)} de ${num(meta.meta)}`) : '—',
+        // Sem meta: o número é "—" e a frase vai embaixo (acabamento 15/11), não "Sem meta" no lugar do número.
+        barra: meta ? meta.barra : null, sub: meta ? (meta.id === 'mrr' ? 'MRR novo' : esc(meta.nome.toLowerCase())) : editaMeta ? `sem meta · ${elo('definir', 'data-vc="metas"')}` : 'sem meta ainda' },
       { rotulo: 'Taxa de ganho', valor: r.taxa_ganho == null ? '0%' : pc(r.taxa_ganho), sub: encerradas ? `de ${plural(encerradas, 'encerrado', 'encerrados')}` : 'nada encerrado' },
       { rotulo: 'Paradas 5+ dias', valor: num(paradas.length), tom: paradas.length ? 'a' : '', attrs: maisParada ? `data-v2="paradas" data-id="${esc(maisParada.id)}"` : '',
-        sub: maisParada ? `a mais antiga · ${num(parada(maisParada))} d` : 'nenhuma', subTom: maisParada ? 'a' : '' },
+        sub: maisParada ? `a mais antiga há ${plural(parada(maisParada), 'dia', 'dias')}` : 'nenhuma', subTom: maisParada ? 'a' : '' },
     ]);
     // "Metas, corrida e formulário" e "Configurar etapas" ficam no menu ⋯ do topo (topoV2).
     return `${acao}${numeros}${etapas}${corpo}${linhaVazia}${st.verFalta && falta ? `<p class="v2c-sub v2c-tec">${tecnico}</p>` : ''}
@@ -772,7 +781,7 @@
       + (val ? grafico({ meses: m.series, aria: 'Valor fechado por mês (MRR e avulso), últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes,
         series: [{ chave: 'mrr', cls: 'mrr', rotulo: 'MRR fechado (R$/mês)', fmt: din, curto }, { chave: 'avulso', cls: 'avu', rotulo: 'Avulso fechado (R$)', fmt: din, curto }] })
         : grafico({ meses: m.series, aria: 'Negócios fechados por mês, últimos 6 meses', espiar: (mes) => 'funil:fechados:' + mes, series: [{ chave: 'negocios', cls: 'mrr', rotulo: 'Negócios fechados', fmt: num }] })) : '';
-    return `${seletorPeriodo()}${m.config_disponivel === false ? ativacao('As metas e o formulário de leads ainda não foram ligados', 'Quando estiverem ligados, as metas do mês e o link do formulário aparecem aqui.', esc(m.aviso_config || 'Falta a migração das metas e do formulário de leads.')) : ''}
+    return `${seletorPeriodo()}${m.config_disponivel === false ? ativacao('As metas e o formulário de leads ainda não estão disponíveis', 'Assim que estiverem, as metas do mês e o link do formulário aparecem aqui.', TECNICO_CONFIG) : ''}
       <div class="vc-secao"><h3>Metas ${esc(m.periodo.tipo === 'anual' ? 'de ' + m.periodo.rotulo + ' (soma dos meses)' : 'de ' + nomeMes(m.periodo.mes))}</h3>${p.editar_pacotes && m.config_disponivel !== false ? '<button type="button" class="vc-link" data-vc="metas">Editar metas</button>' : ''}</div>
       ${metas}${val ? '' : '<p class="vc-dica">Os valores em reais (MRR e avulso) aparecem só para os donos.</p>'}${kp}
       <div class="vc-secao"><h3>Últimos 6 meses</h3></div><div class="vc-graficos">${graficos}</div>
@@ -793,7 +802,7 @@
     const link = f.ativo && f.token ? `${typeof location !== 'undefined' ? location.origin : ''}/lead/${f.token}` : '';
     const doPeriodo = C().leadsDoPeriodo(d.oportunidades.filter((o) => o.origem === 'formulario'), m.periodo).length;
     let topo;
-    if (m.config_disponivel === false) topo = '<p class="vc-dica">O formulário depende da mesma migração das metas.</p>';
+    if (m.config_disponivel === false) topo = '<p class="vc-dica">O formulário fica disponível junto com as metas.</p>';
     else if (p.editar_pacotes) topo = link
       ? `<div class="vc-form-link"><input type="text" readonly value="${esc(link)}" aria-label="Link público do formulário" data-vc-link-form><button type="button" class="vc-sec" data-vc="form-copiar">Copiar link</button></div>
         <div class="vc-linha-acoes"><a class="vc-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Abrir o formulário</a><button type="button" class="vc-link" data-vc="form-gerar">Trocar link</button><button type="button" class="vc-perigo" data-vc="form-desligar">Desligar</button></div>
@@ -1061,7 +1070,9 @@
       const acao = urgente ? acaoD3(`${esc(urgente.cliente_nome)} ${esc(prazo(urgente)[1])}${semResp(urgente) ? `, sem resposta há ${plural(semResp(urgente), 'dia', 'dias')}` : ''}.`, { texto: 'Ver a proposta', attrs: `data-vc="imprimir" data-id="${esc(urgente.id)}"` })
         : rascunhos.length ? acaoD3(`${plural(rascunhos.length, 'rascunho pronto', 'rascunhos prontos')} para sair.`, { texto: 'Ver os rascunhos', attrs: 'data-v2="chip" data-id="rascunho"' })
           : abertos.length ? acaoD3(`${mensal(abertos) ? esc(milhar(mensal(abertos))) + ' por mês' : plural(abertos.length, 'orçamento', 'orçamentos')} em aberto; nada vence na semana.`)
-            : acaoD3(todos.length ? 'Nenhum orçamento aberto agora.' : 'Nenhum orçamento ainda.', edita && !semPacote ? { texto: 'Novo orçamento', attrs: 'data-vc="orcamento"' } : {});
+            // Vazio (acabamento 15/11): uma frase e uma ação, no bloco laranja; sem pacote ativo, a ação é ir aos Pacotes.
+            : !todos.length && semPacote ? acaoD3('Nenhum orçamento ainda: falta um pacote ativo.', { texto: 'Ir para Pacotes', attrs: 'data-vc="ir-pacotes"' })
+            : acaoD3(todos.length ? 'Nenhum orçamento aberto agora.' : 'Nenhum orçamento ainda.', edita && !semPacote ? { texto: todos.length ? 'Novo orçamento' : 'Fazer o primeiro', attrs: 'data-vc="orcamento"' } : {});
       const fechados = aprovados.length + recusados.length;
       // Os últimos 6 meses, em R$/mês: enviados (tudo menos rascunho) pelo mês em que o orçamento foi criado e aprovados pelo
       // mês da aprovação (aprovado_dia, gravado desde 14/11/2026; o de antes vem do atualizado_em do aceito, pelo servidor).
@@ -1086,10 +1097,10 @@
             ${cabe.map(linhaO).join('') || `<p class="v2c-sub v2c-nada">${termo ? 'Nenhum orçamento com esse texto.' : 'Nenhum orçamento neste filtro.'}</p>`}
             ${resto > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${num(resto)} · ${elo('mostrar', 'data-v2="mostra" data-id="orcamentos"')}</p>` : ''}</section>
           <div class="d3c-col">${pedeHtml(pede, 'pede-orcamentos')}${aprovadoMes}</div></div>`
-        : semPacote ? vazioV2('<b>Nenhum orçamento ainda.</b> Falta pacote ativo.', botao('Ir para Pacotes', 'data-vc="ir-pacotes"'))
-          : vazioV2('<b>Nenhum orçamento ainda.</b>', edita ? botao('Novo orçamento', 'data-vc="orcamento"') : '');
+        : '';
       // "ROI na proposta" fica no menu ⋯ do topo.
-      return `${acao}${numeros}${corpoD3}
+      // Sem nenhum orçamento, os quatro números zerados não dizem nada: fica só a frase com a ação.
+      return `${acao}${todos.length ? numeros : ''}${corpoD3}
         ${todos.length && v.roi ? `<div class="v2c-resto">${roiHtml(d)}</div>` : ''}`;
     }
     const n7 = vencendo.length, frase = abertos.length
@@ -1300,7 +1311,7 @@
     const nCli = d.clientes.length, nFat = d.faturas.length, crit = Number(d.criticos) || 0;
     const doVybe = `${resumo([numero(d.total, din(d.total), ' em atraso', { tom: d.total ? 'alerta' : '', semDado: 'nada em atraso' }),
         numero(nCli, num(nCli), nCli === 1 ? ' cliente' : ' clientes'),
-        numero(crit, num(crit), crit === 1 ? ' crítico (+30 dias)' : ' críticos (+30 dias)', { tom: crit ? 'alerta' : '', espiar: 'comercial:inadimplencia:criticos' }),
+        numero(crit, num(crit), crit === 1 ? ' crítico (30+ dias)' : ' críticos (30+ dias)', { tom: crit ? 'alerta' : '', espiar: 'comercial:inadimplencia:criticos' }),
         numero(nFat, num(nFat), nFat === 1 ? ' fatura' : ' faturas')])}
       <div class="vc-secao"><h3>Clientes em atraso</h3></div>
       <div class="vc-lista">${d.clientes.map((c) => `<article class="vc-cartao barra-${c.severidade.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(c.severidade.nome, c.severidade.nivel)}</div>
@@ -1312,7 +1323,7 @@
       doFin = `<div class="vc-secao"><h3>Receitas vencidas e não pagas</h3>${fonteFin()}</div>
         ${resumo([numero(i.total, din(i.total), ' em atraso', { tom: i.total ? 'alerta' : '', espiar: 'financas:comercial:inad', semDado: 'nada em atraso' }),
           numero(i.clientes.length, num(i.clientes.length), i.clientes.length === 1 ? ' cliente' : ' clientes', { espiar: 'financas:comercial:inad' }),
-          numero(Number(i.criticos) || 0, num(i.criticos), Number(i.criticos) === 1 ? ' crítico (+30 dias)' : ' críticos (+30 dias)', { tom: i.criticos ? 'alerta' : '', espiar: 'financas:comercial:inad' }),
+          numero(Number(i.criticos) || 0, num(i.criticos), Number(i.criticos) === 1 ? ' crítico (30+ dias)' : ' críticos (30+ dias)', { tom: i.criticos ? 'alerta' : '', espiar: 'financas:comercial:inad' }),
           numero(Number(i.faturas) || 0, num(i.faturas), Number(i.faturas) === 1 ? ' lançamento' : ' lançamentos')])}
         <div class="vc-lista">${i.clientes.map((c) => { const s = C().severidade(c.atraso_mais_antigo); return `<article class="vc-cartao barra-${s.nivel}"><div class="vc-cartao-topo"><b>${cliCor(c.cliente_nome)}</b>${pill(s.nome, s.nivel)}${c.no_vybe || !c.cliente_id && c.cliente_nome === 'Sem cliente' ? '' : pill('Sem par no Vybe OS', 'u5')}</div>
           <p class="vc-grande">${din(c.valor)}</p><small>${num(c.faturas)} lançamento${c.faturas > 1 ? 's' : ''} · atraso mais antigo ${num(c.atraso_mais_antigo)} dia${Number(c.atraso_mais_antigo) === 1 ? '' : 's'} (venceu ${data(c.vencimento_mais_antigo)})${c.descricao ? ' · ' + esc(c.descricao) : ''}</small></article>`; }).join('')
@@ -1416,9 +1427,11 @@
       mediaEnt != null ? { rotulo: 'Entrega média', valor: plural(mediaEnt, 'dia', 'dias'), sub: 'pedido à entrega' }
         : { rotulo: 'Sem contato', valor: num(nCt), tom: nCt ? 'a' : '', attrs: nCt ? 'data-v2="chip" data-id="+contato"' : '', sub: nCt === 1 ? esc(ativos.find(semContato).nome) : nCt ? `faltam ${num(nCt)}` : 'todos com contato' },
     ]);
-    const vazioLinha = `<div class="v2c-vz"><p><b>Nenhum fornecedor ainda.</b></p>${botao('Cadastrar o primeiro', 'data-vc="fornecedor"')}</div>`;
     const cab = '<div class="v2c-lin v2c-fr d3fo-cab" aria-hidden="true"><p>Fornecedor</p><span>Contato</span><span>BV</span><span>Em andamento</span><span>Entrega média</span><span></span></div>';
     const secao = (nome, n, tom) => `<div class="d3fo-sec ${tom}"><h3>${nome}</h3><small>${n}</small></div>`;
+    // Vazio (acabamento 15/11): uma frase e uma ação no bloco laranja, sem os quatro números zerados; "Novo fornecedor"
+    // do topo só aparece quando já há fornecedor.
+    if (!ativos.length) return acaoD3(esc(frase), { texto: 'Cadastrar o primeiro', attrs: 'data-vc="fornecedor"', quem: 'Nestor · Compras', agente: 'N' });
     return `${acaoD3(esc(frase), { texto: pede.length ? (pede.length === 1 ? 'Completar o cadastro' : `Completar os ${num(pede.length)}`) : '', attrs: pede.length ? `data-v2="abre-um" data-id="fo:${esc(pede[0].id)}"` : '', quem: 'Nestor · Compras', agente: 'N' })}
       ${numeros}
       ${d.fornecedores.length ? `${filtroHtml({ aba: 'fornecedores', busca: 'forn', rotulo: 'Buscar fornecedor ou contato', fichas: ['', ...cats.map((c) => c.id)].map(ficha), extras: ['+imp', '+bv', '+contato'].map(ficha) })}
@@ -1426,7 +1439,7 @@
         ${pede.length && !filtrando ? `${secao('Pede ação', `${num(pede.length)} ${pede.length === 1 ? 'incompleto' : 'incompletos'}`, 'a')}${pede.map((f) => linha(f, true)).join('')}` : ''}
         ${cabe.length && pede.length && !filtrando ? secao('Completos', num(lista.length), 'g') : ''}
         ${cabe.map((f) => linha(f, false)).join('') || `<p class="v2c-sub v2c-nada">${filtrando ? 'Nenhum fornecedor com esse filtro.' : 'Todos em Pede ação.'}</p>`}
-        ${resto > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${plural(resto, 'fornecedor', 'fornecedores')} · ${elo('mostrar', 'data-v2="mostra" data-id="fornecedores"')}</p>` : ''}</section>` : vazioLinha}`;
+        ${resto > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${plural(resto, 'fornecedor', 'fornecedores')} · ${elo('mostrar', 'data-v2="mostra" data-id="fornecedores"')}</p>` : ''}</section>` : ''}`;
   }
   // Creators pelo quadro DEPOIS: fala, três números, "Pede ação" (sem contato, com o campo ali), busca com fichas
   // por cidade e os cartões das pessoas, quatro por vez.
@@ -1477,7 +1490,7 @@
     ]);
     const bloco = acaoD3(esc(frase), { texto: pede.length && edita ? (pede.length === 1 ? 'Completar o contato' : `Completar os ${num(pede.length)}`) : !todos.length && edita ? 'Cadastrar o primeiro' : '',
       attrs: pede.length && edita ? `data-v2="abre-um" data-id="cr:${esc(pede[0].id)}"` : 'data-vc="creator"', quem: 'VYBES · Agência', agente: 'V' });
-    if (!todos.length) return `${bloco}${numeros}`;
+    if (!todos.length) return bloco;
     return `${bloco}
       ${numeros}
       ${pede.length ? `<section class="v2c-card v2c-lista" aria-label="Pede ação"><div class="v2c-card-topo"><h3>Pede ação</h3><small>${plural(pede.length, 'incompleto', 'incompletos')}</small></div>${(v.mostra['pede-creators'] ? pede : pede.slice(0, 3)).map(linhaPede).join('')}
@@ -1734,7 +1747,7 @@
     else { try { const tela = window.VybeFinancas?.telas?.[st.aba] || window.VybeFinanceiro?.telas?.[st.aba]; telaFin = Boolean(tela); conteudo = tela ? tela({ d, filtro: st.filtro, verFalta: st.verFalta, admin: souAdminAqui(), repintar: pintar, recarregar: () => carregar() }) : PINTOR[st.aba](d); } catch (e) { console.error('[comercial]', e); conteudo = vazio('Não foi possível mostrar esta aba.'); } }
     el.innerHTML = `${v2 ? topoV2(erro ? null : d) : `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? TITULO[st.aba] || (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
         ${acaoDoTopo(d)}
-        <button type="button" class="vc-icone" data-vc="ajuda" aria-label="O que é este módulo" aria-pressed="${st.ajuda}" title="O que é isto?">${IC.ajuda}</button>
+        <button type="button" class="vc-icone" data-vc="ajuda" aria-label="Como funciona" aria-pressed="${st.ajuda}" title="Como funciona">${IC.ajuda}</button>
         <button type="button" class="vc-icone" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>`}
       <nav class="vc-abas" role="tablist" aria-label="Abas do Comercial"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([id, nome]) => `<button type="button" role="tab" data-vc-aba="${id}" aria-selected="${st.aba === id}">${esc(nome)}</button>`).join('')}</nav>
       ${st.ajuda ? `<div class="vc-ajuda" role="note"><b>${esc(abas.find((a) => a[0] === st.aba)?.[1])}</b><p>${esc(AJUDA[st.aba])}</p></div>` : ''}

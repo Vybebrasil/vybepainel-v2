@@ -68,7 +68,9 @@ test('Conta e equipe: a ordem do quadro D3 (cabeçalho, bloco de ação, quatro 
     equipe: [{ id: 1, nome: 'Ana Lima', pode_entrar: true, ativo: true }, { id: 2, nome: 'Fora', pode_entrar: false, ativo: true }],
     clientes: [{ id: 1, nome: 'Cliente A', ativo: true }, { id: 2, nome: 'Cliente B', ativo: true }, { id: 3, nome: 'Cliente C', ativo: true }, { id: 4, nome: 'Saiu', ativo: false }],
     acessos: [{ id: 1, tem_documento: true }, { id: 2, tem_documento: false }] });
-  const ordem = ['<h1>Conta e equipe</h1>', '>Gestão<', '>Ver como o time vê</button>', 'class="v2c-btn k" onclick="carregarContaAI()">Conferir o WhatsApp</button>',
+  // Acabamento 15/11: com o WhatsApp pendente, o "Conferir o WhatsApp" do topo some (a ação mora no bloco laranja).
+  assert.doesNotMatch(html, />Conferir o WhatsApp<\/button>/);
+  const ordem = ['<h1>Conta e equipe</h1>', '>Gestão<', '>Ver como o time vê</button>',
     'class="d3-acao"', 'VYBES · Conta', 'class="d3c-nums"', '<h2>Pede ação</h2>', '<h2>Operação</h2>', 'id="conta-conteudo"', '<h2>Equipe</h2>', 'class="v2c-abrir"'];
   let i = -1; for (const p of ordem) { const j = html.indexOf(p, i + 1); assert.ok(j > i, 'fora de ordem ou faltando: ' + p); i = j; }
   assert.doesNotMatch(html, /class="v2c-btn p"/, 'o laranja cheio é só o bloco de ação');

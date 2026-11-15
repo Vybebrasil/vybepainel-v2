@@ -3,15 +3,15 @@
    com "1/N" no canto e, sem miniatura, um quadro com o ▶ (vídeo) e o nome do arquivo. */
 #vv-conteudo.vc .vc-previa-arte{position:relative}
 :is(#vv-conteudo, #vv-hoje) .vc-previa-selo{position:absolute;z-index:2;font-style:normal;pointer-events:none}
-:is(#vv-conteudo, #vv-hoje) .vc-previa-selo.vc-previa-play{left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;display:grid;place-items:center;border-radius:50%;background:var(--d3-cartao);color:var(--d3-tinta);font-size:15px;line-height:1;padding-left:3px;box-sizing:border-box;box-shadow:0 4px 14px rgba(31,29,26,.18)}
-:is(#vv-conteudo, #vv-hoje) .vc-previa-selo.vc-previa-n{right:10px;top:10px;padding:3px 9px;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:600 11.5px var(--vv-texto,Inter),sans-serif}
+:is(#vv-conteudo, #vv-hoje) .vc-previa-selo.vc-previa-play{left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;display:grid;place-items:center;border-radius:50%;background:var(--d3-cartao);color:var(--d3-tinta);font-size:var(--d3-fs-destaque);line-height:1;padding-left:3px;box-sizing:border-box;box-shadow:0 4px 14px rgba(31,29,26,.18)}
+:is(#vv-conteudo, #vv-hoje) .vc-previa-selo.vc-previa-n{right:10px;top:10px;padding:3px 9px;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 :is(#vv-conteudo, #vv-hoje) .vc-previa-quadro{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;max-width:100%;padding:12px;box-sizing:border-box;text-align:center;color:var(--d3-tinta)}
-:is(#vv-conteudo, #vv-hoje) .vc-previa-quadro > b{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 12px var(--vv-texto,Inter),sans-serif}
-:is(#vv-conteudo, #vv-hoje) .vc-previa-quadro > .vc-previa-play{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:var(--d3-cartao);font-style:normal;font-size:14px;padding-left:3px;box-sizing:border-box}
+:is(#vv-conteudo, #vv-hoje) .vc-previa-quadro > b{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
+:is(#vv-conteudo, #vv-hoje) .vc-previa-quadro > .vc-previa-play{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:var(--d3-cartao);font-style:normal;font-size:var(--d3-fs-destaque);padding-left:3px;box-sizing:border-box}
 #vv-conteudo.vc .vc-previa-msg{position:relative}
 /* No Hoje a pílula do formato é o span da arte; o quadro do arquivo ocupa a arte inteira, acima dela. */
 #vv-hoje .d3h-arte > span.vc-previa-quadro{position:absolute;inset:0 0 28px 0;max-width:none;padding:8px;border-radius:0;background:transparent;white-space:normal;font:inherit}
-#vv-hoje .d3h-arte > span.vc-previa-quadro > b{font-size:11px}
+#vv-hoje .d3h-arte > span.vc-previa-quadro > b{font-size:var(--d3-fs-mini)}
 #vv-hoje .d3h-arte > .vc-previa-selo.vc-previa-n{right:8px;top:8px}
 /* Fila do Para aprovar: o nome do cliente encolhe com reticências e não cobre o título da peça (nada cobre). */
 #vv-conteudo.vc.vc .d3a-fila-lin .v2c-lin-txt > .v2c-cli{flex:0 1 auto;display:block;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

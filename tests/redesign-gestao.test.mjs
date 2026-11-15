@@ -17,7 +17,8 @@ test('Diário: "Registrar agora" uma vez só, no topo, sem o ícone rosa', () =>
   assert.doesNotMatch(painel, /pv-ic-aba|#ee83b7/);
   // Padrão v2 (quadro "Diário de produção", 12/11/2026): o vazio é uma frase só e a explicação vai para o pé da tela.
   const tela = trecho(ler('vybe-relatorios.js'), 'async function renderDiarioLista', 'async function abrirSnapshot');
-  assert.doesNotMatch(tela, /salvarSnapshot()/, 'o estado vazio não repete o botão');
+  // Acabamento 15/11: no vazio a ação é a do bloco laranja e o botão do topo some (um botão por ação).
+  assert.ok(tela.includes('if (topo) { topo.hidden = !lista.length || !pode;'), 'o estado vazio não repete o botão');
   assert.match(tela, /Nenhum registro salvo ainda./);
   // Direção 3: sem a frase de pé que explicava a tela.
   assert.doesNotMatch(ler('vybe-relatorios.js'), /const DIARIO_PE = /);

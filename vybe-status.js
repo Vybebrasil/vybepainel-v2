@@ -15,6 +15,38 @@
 // Carrega DEPOIS de vybe-risco.js e de vybe-portoes.js: lê DADOS, HOJE_ISO,
 // findOperationalItem e pendingWorkflowChange, e chama os portões.
 
+// Status do Monday dentro de uma frase. O Monday grava "A Fazer", "Ag. Info
+// Cliente"; no meio de uma frase isso lê como título. Esta tabela muda SÓ a
+// exibição: o valor gravado, enviado ao Monday, filtrado e comparado continua o
+// original (use statusEmFrase apenas na hora de escrever o texto na tela).
+const STATUS_EM_FRASE = Object.freeze({
+  'a fazer': 'a fazer',
+  'pode fazer': 'pode fazer',
+  'em andamento': 'em andamento',
+  'em produção': 'em produção',
+  'para aprovação': 'para aprovação',
+  'em aprovação': 'em aprovação',
+  'aguardando aprovação': 'esperando aprovação',
+  'ag. aprovação cliente': 'esperando aprovação do cliente',
+  'ag. info cliente': 'esperando info do cliente',
+  'aguardando info.': 'esperando informação',
+  'ag. interno': 'esperando a equipe',
+  'alteração': 'alteração',
+  'agendado': 'agendado',
+  'finalizado': 'finalizado',
+  'pausado': 'pausado',
+  'cancelado': 'cancelado',
+  'publicado': 'publicado',
+});
+// No meio da frase: "22 em pode fazer". No começo (inicio=true): "Pode fazer".
+function statusEmFrase(status, inicio = false) {
+  const original = String(status ?? '').trim();
+  if (!original) return '';
+  const frase = STATUS_EM_FRASE[original.toLowerCase()];
+  if (!frase) return original;
+  return inicio ? frase.charAt(0).toUpperCase() + frase.slice(1) : frase;
+}
+
 let statusEditorItemId = '';
 function closeStatusEditor() {
   document.getElementById('status-editor-backdrop')?.remove();
@@ -349,7 +381,7 @@ const STATUS_CONTEXT_RULES = Object.freeze({
   // sua, com o que precisa ser respondido para ela voltar a andar.
   'segurar post': { question:'Por que a publicação está sendo segurada?', helper:'Diga quem pediu para segurar e o que precisa acontecer para liberar.', requester:true }
 });
-function contextRuleFor(option) { return STATUS_CONTEXT_RULES[normalizedWorkflowStatus(option?.label)] || { question:`Por que esta demanda entra em ${option?.label || 'esta etapa'}?`, helper:'Registre o motivo da mudança e o próximo passo necessário.' }; }
+function contextRuleFor(option) { return STATUS_CONTEXT_RULES[normalizedWorkflowStatus(option?.label)] || { question:`Por que esta demanda entra em ${option?.label ? statusEmFrase(option.label) : 'esta etapa'}?`, helper:'Registre o motivo da mudança e o próximo passo necessário.' }; }
 function updateStatusContextState() { const form=document.getElementById('status-context-form'); const button=document.getElementById('status-context-submit'); if(!form || !button) return; const checks=[...form.querySelectorAll('input[data-quality-check]')]; button.disabled=form.dataset.step != null && Number(form.dataset.step)<form.querySelectorAll('[data-context-step]').length-1 ? false : checks.some(check=>!check.checked); }
 function statusContextIsCard(item){ return /card/i.test(String(daTacticalFormat(item)||item?.formato||'')) || /(^|\W)card\b/i.test(String(item?.nome||'')); }
 // Escolher responsavel e sempre pela bolinha com foto, como no resto do painel.

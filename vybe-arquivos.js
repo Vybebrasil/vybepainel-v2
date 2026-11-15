@@ -202,7 +202,7 @@ function explicarFalhaDeArquivo(json, status, file) {
     return `A ligação com o Drive está sem configuração no servidor. (${cru})`;
   }
   if (tem('não encontrado', 'nao encontrado', '404')) {
-    return `Esta peça não existe no banco — recarregue a página e tente de novo. (${cru})`;
+    return `Não encontrei esta peça. Recarregue a página e tente de novo. (${cru})`;
   }
   if (status === 413 || tem('payload', 'too large', 'request entity')) {
     return 'O arquivo é grande demais para esta via. Tente de novo — acima de 3 MB '

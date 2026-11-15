@@ -406,6 +406,8 @@
         n.sugeridas ? ` ${n.sugeridas === 1 ? '1 demanda espera' : `${n.sugeridas} demandas esperam`} seu ok.` : ''}`;
     const botao = n.sugeridas ? (n.sugeridas === 1 ? 'Ver a demanda' : `Ver as ${n.sugeridas}`) : n.semAta.length ? (n.semAta.length === 1 ? 'Ver a reunião' : `Ver as ${n.semAta.length}`) : !n.lista.length && !tela.lendo ? 'Marcar a primeira' : '';
     const attrs = n.sugeridas ? 'data-v2r-acao="demandas"' : n.semAta.length ? 'data-v2r-acao="filtro" data-valor="sem-ata"' : 'data-v2r-acao="nova"';
+    // Laranja só com ação (acabamento 15/11): sem botão ("Todas as feitas têm ata."), a frase vai na nota branca.
+    if (!botao && typeof d3NotaHtml === 'function') return d3NotaHtml({ frase: `${quem}${frase}`, agente: 'Mateus' });
     if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: `${quem}${frase}`, agente: 'Mateus', botao, attrs });
     return `<span class="v2r-ag" aria-hidden="true">M</span><p class="v2r-fala-texto"><span class="v2r-quem">Mateus · Atendimento ao cliente</span>${frase}</p>${botao ? `<button type="button" class="v2r-btn s" ${attrs}>${esc(botao)}</button>` : ''}`;
   }
@@ -500,9 +502,14 @@
       const n = numerosDaTela();
       const abertas = new Set([...j.querySelectorAll('[data-v2r="pede"] .v2-abre[aria-expanded="true"] [data-reu]')].map((b) => b.dataset.reu));
       j.querySelector('[data-v2r="fala"]').innerHTML = falaDaTela(n);
+      // Sem reunião, "Marcar a primeira" do bloco é a ação; o "Nova reunião" do topo some para não repetir (acabamento 15/11).
+      const novaTopo = j.querySelector('.v2r-topo [data-v2r-acao="nova"]'); if (novaTopo) { novaTopo.hidden = !n.lista.length && !tela.lendo; novaTopo.style.display = novaTopo.hidden ? 'none' : ''; }
       const kpis = j.querySelector('[data-v2r="kpis"]'), antes = kpis.dataset.v, agora = `${n.daSemana.length}|${n.semAta.length}|${n.sugeridas}|${n.proxima?.r.data || ''}|${n.lista.length}`;
       if (antes !== agora) { kpis.dataset.v = agora; kpis.innerHTML = kpisDaTela(n); }
-      j.querySelector('[data-v2r="pede"]').innerHTML = pedeAcaoDaTela(n);
+      const pedeHtml = pedeAcaoDaTela(n), caixaPede = j.querySelector('[data-v2r="pede"]');
+      caixaPede.innerHTML = pedeHtml;
+      // Vazio é uma frase (a do Mateus, acima); o cartão "Pede ação" sem nada dentro some (acabamento 15/11).
+      const cartaoPede = caixaPede.closest?.('section'); if (cartaoPede) cartaoPede.style.display = /class="v2r-vazio"/.test(pedeHtml) && !tela.lendo ? 'none' : '';
       j.querySelectorAll('[data-v2r="pede"] .v2-abre').forEach((b) => { if (abertas.has(b.querySelector('[data-reu]')?.dataset.reu)) { b.setAttribute('aria-expanded', 'true'); b.querySelector('.v2r-abrir')?.setAttribute('aria-expanded', 'true'); } });
       j.querySelector('[data-v2r="linhas"]').innerHTML = linhasDaTela(n);
       j.querySelector('.v2r-filtros').hidden = !n.lista.length;

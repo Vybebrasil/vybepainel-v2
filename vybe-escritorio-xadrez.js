@@ -66,7 +66,7 @@ async function abrirMesaEscritorio(m, cfg) {
   const mesa = { camada: escritorio.quarto || "praca", movel: escritorio.mapa.chaveMovel(m) };
   let d;
   try { d = await escritorioApi(cfg.lista, null, { ...mesa, ...cfg.extra }); } catch (e) { return escritorioAviso(e.message); }
-  if (!d.disponivel) return escritorioAviso(`${cfg.artigo[0].toUpperCase() + cfg.artigo.slice(1)} aguarda a migração do banco.`);
+  if (!d.disponivel) return escritorioAviso(`${cfg.artigo[0].toUpperCase() + cfg.artigo.slice(1)} ainda não está disponível.`);
   xadrezPoeSprite();
   const x = escritorioXadrez();
   x.mesa = mesa; x.cfg = cfg;

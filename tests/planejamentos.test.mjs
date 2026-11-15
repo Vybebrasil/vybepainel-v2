@@ -28,7 +28,7 @@ const conteudo={resumo:'Novembro com presença constante',pecas:[{data:'2026-11-
 
 test('agente publica, head edita e envia, cliente aprova pelo link',async t=>{
  const {db,sql}=await banco(t);
- await assert.rejects(P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo}),/migração/);
+ await assert.rejects(P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'2026-11',conteudo}),/sendo ligad/);
  await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
  await assert.rejects(P.publicarDoAgente(sql,{cliente:'Mangab',mes:'2026-11',conteudo}),/Mais de um cliente/);
  await assert.rejects(P.publicarDoAgente(sql,{cliente:'Serra Grande',mes:'novembro',conteudo}),/AAAA-MM/);

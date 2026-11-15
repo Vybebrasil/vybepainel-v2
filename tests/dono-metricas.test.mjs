@@ -437,3 +437,33 @@ test('situação de uma peça: a função oficial para todas as telas (auditoria
   assert.equal(r.referencia, '2026-11-20'); // a data do cliente vem primeiro
   assert.equal(r.prazoVencido, true); assert.equal(r.furo, false);
 });
+
+test('auditoria 15/11: furos da produção × sem postar, sem dono pela regra única e "Sem cadastro" no lugar do id', () => {
+  const demandas = [
+    peca({ nome: 'Furo de produção', status: 'Em andamento', veiculacao_iso: '2026-11-02', responsavel_ids: ['10'] }),
+    peca({ nome: 'Agendada vencida', status: 'Agendado', veiculacao_iso: '2026-11-03', responsavel_ids: ['10'] }),
+    peca({ nome: 'Para agendar vencida', status: 'Para agendar', veiculacao_iso: '2026-11-01', responsavel_ids: ['10'] }),
+    // Id do Monday sem pessoa no mapa e sem nome no campo: tem dono (falta o cadastro), não é "sem dono".
+    peca({ nome: 'Id sem cadastro', status: 'A Fazer', veiculacao_iso: '2026-11-06', responsavel_ids: ['999'], responsavel: '' }),
+    // Nome no campo Responsável sem id: tem dono.
+    peca({ nome: 'Só o nome', status: 'A Fazer', veiculacao_iso: '2026-11-06', responsavel: 'Bia' }),
+    peca({ nome: 'Ninguém', status: 'A Fazer', veiculacao_iso: '2026-11-06', responsavel: '—' }),
+    peca({ nome: 'Ninguém e pronta', status: 'Finalizado', veiculacao_iso: '2026-11-06' }),
+  ];
+  const r = calcular({ demandas, clientes: CLIENTES, pessoas: PESSOAS, hoje: HOJE });
+  assert.equal(r.hoje.furos, 3);
+  assert.equal(r.hoje.furosProducao, 1, 'o alerta "furando a data" conta só a produção');
+  assert.equal(r.hoje.semPostar, 2, 'Para agendar e Agendado vencidos esperam postar');
+  assert.equal(r.hoje.furosProducao + r.hoje.semPostar, r.hoje.furos);
+  assert.match(r.alertas[0].texto, /^1 peça furando a data do cliente/);
+  assert.equal(r.hoje.semDono, 1);
+  assert.deepEqual(r.hoje.lista.semDono.map((p) => p.nome), ['Ninguém']);
+  assert.equal(D.util.semDono({ responsavel_ids: ['999'] }), false);
+  assert.equal(D.util.semDono({ responsavel: 'Bia' }), false);
+  assert.equal(D.util.semDono({ responsavel: '—', responsavel_ids: [] }), true);
+  const sc = r.time.find((t) => t.pessoaId === '999');
+  assert.equal(sc.pessoa, 'Sem cadastro');
+  assert.equal(sc.semCadastro, true);
+  assert.ok(!JSON.stringify(r).includes('Pessoa 999'), 'o id do Monday não aparece como nome');
+  assert.ok(r.time.filter((t) => t.pessoa !== 'Sem cadastro').every((t) => t.semCadastro === false));
+});

@@ -75,7 +75,7 @@ test('CRM e funil: bloco de ação com a proposta parada, quatro números, ficha
   assert.match(html, /<span class="d3c-sdr"><i aria-hidden="true">S<\/i>SDR · nada para aprovar<\/span>/);
   assert.ok(!/class="v2c-btn p"/.test(html), 'o único laranja cheio é o bloco de ação');
   assert.match(html, /Academia E · proposta sem resposta há 8 dias\.<\/span><\/span><button type="button" class="d3-acao-btn" data-v2="paradas" data-id="6">Ver a proposta<\/button>/);
-  naOrdem(html, ['>Em negociação</span>', 'abertas · R$ 9.900/mês', '>Meta do mês</span>', 'R$ 3,8 mil de 10 mil', 'class="d3-barra"', '>Taxa de ganho</span>', '50%', '>Paradas 5+ dias</span>', 'a mais antiga · 8 d']);
+  naOrdem(html, ['>Em negociação</span>', 'abertas · R$ 9.900/mês', '>Meta do mês</span>', 'R$ 3,8 mil de 10 mil', 'class="d3-barra"', '>Taxa de ganho</span>', '50%', '>Paradas 5+ dias</span>', 'a mais antiga há 8 dias']);
   // Fichas: Abertas e uma por fase, com a contagem em negrito; a vazia apagada.
   assert.match(html, /data-v2="fase" data-id="" aria-pressed="true">Abertas <b>6<\/b><\/button>/);
   assert.equal((html.match(/class="d3c-et[^"]*" data-v2="fase" data-id="[a-z_]+" data-v2-solta/g) || []).length, fases.length);
@@ -114,8 +114,10 @@ test('funil vazio: as fichas em 0, o bloco de ação e a linha tracejada com "Ca
   const html = janela().innerHTML;
   assert.equal((html.match(/class="d3c-et(?: g)? z"/g) || []).length, calc.FASES.length);
   assert.doesNotMatch(html, /class="v2c-quadro/);
-  assert.match(html, /Nenhuma oportunidade em negociação\.<\/span><\/span><button type="button" class="d3-acao-btn" data-vc="lead">Cadastrar lead<\/button>/);
-  assert.match(html, /<div class="v2c-vz"><p><b>Nenhuma oportunidade ainda\.<\/b> As 7 etapas ficam em 0\.<\/p><button type="button" class="v2c-btn s" data-vc="lead">Cadastrar o primeiro lead<\/button><\/div>/);
+  // Acabamento 15/11: um botão por ação; "Cadastrar o primeiro lead" mora no bloco laranja e a linha tracejada só explica.
+  assert.match(html, /Nenhuma oportunidade ainda\.<\/span><\/span><button type="button" class="d3-acao-btn" data-vc="lead">Cadastrar o primeiro lead<\/button>/);
+  assert.match(html, /<div class="v2c-vz"><p><b>Nenhuma oportunidade ainda\.<\/b> As 7 etapas ficam em 0\.<\/p><\/div>/);
+  assert.equal((html.match(/data-vc="lead"/g) || []).length, 1);
 });
 
 test('Produtos e pacotes: bloco de ação do sem preço, quatro números, fichas, a tabela e "Pede ação"', async () => {
@@ -187,7 +189,7 @@ test('as outras abas da janela seguem como eram; o CSS do grupo não força regr
   // Medidas do quadro: cartão branco de raio 20 sem borda, pílula de 38 e de 30, ficha selecionada preta, ação #C2490C, número de 34.
   assert.match(css, /\.v2c-card\{[^}]*padding:18px;border-radius:20px;background:#FFFFFF;box-shadow:/);
   assert.match(css, /\.v2c-btn\{[^}]*height:38px;padding:0 16px;border:0;border-radius:999px/);
-  assert.match(css, /\.v2c-btn\.s\{height:30px;padding:0 12px;font-size:12\.5px\}/);
+  assert.match(css, /\.v2c-btn\.s\{height:30px;padding:0 12px;font-size:var\(--d3-fs-texto\)\}/);
   assert.match(css, /\.v2c-btn\.p\{background:#C2490C;color:#FFFFFF/);
   assert.match(css, /\.v2c-chip\[aria-pressed="true"\]\{background:#1F1D1A;color:#FFFFFF;box-shadow:none\}/);
   assert.match(css, /\.v2c-kpi > b\{[^}]*font:700 34px\/1\.05/);
@@ -238,7 +240,7 @@ test('Fornecedores (Direção 3): bloco de ação do Nestor, quatro números, a 
   ctx.VybeComercial.abrir('fornecedores', { abas: ['fornecedores'] }); await esperar();
   assert.equal(janela().className, 'vc v2c d3c');
   let html = janela().innerHTML;
-  naOrdem(html, ['<h2>Fornecedores</h2>', 'gráficas, estúdios e parceiros', '>Ajuda</button>', 'class="v2c-btn d3c-novo" data-vc="fornecedor">', '<small class="d3c-quem">Nestor · Compras</small><span class="d3c-frase">Faltam 1 BV e 1 contato para as Impressões.</span>',
+  naOrdem(html, ['<h2>Fornecedores</h2>', 'gráficas, estúdios e parceiros', 'Como funciona</button>', 'class="v2c-btn d3c-novo" data-vc="fornecedor">', '<small class="d3c-quem">Nestor · Compras</small><span class="d3c-frase">Faltam 1 BV e 1 contato para as Impressões.</span>',
     'data-v2="abre-um" data-id="fo:2">Completar os 2</button>', '<span class="d3-num-rot">Fornecedores</span>', '2 gráfica · 1 audiovisual', '<span class="d3-num-rot">Com BV</span><b class="d3-num-v">2 / 3</b>', 'falta Gráfica B',
     '<span class="d3-num-rot">Impressões andando</span>', 'em 2 gráficas', '<span class="d3-num-rot">Sem contato</span>', 'placeholder="Buscar fornecedor ou contato"', 'aria-pressed="true">Todos <b>3</b></button>', '>Gráfica <b>2</b></button>',
     'class="v2c-lin v2c-fr d3fo-cab"', '<div class="d3fo-sec a"><h3>Pede ação</h3><small>2 incompletos</small>', 'data-v2-linha="fo:2"', '<span class="v2c-pill a">Sem BV</span>', '>Registrar BV</button>', 'data-v2-campo="forn:bv:2"', 'data-feito="BV salvo">Salvar BV</button>',
@@ -252,7 +254,7 @@ test('Creators (Direção 3): bloco de ação, quatro números, Pede ação sem 
   const { ctx, janela, clicar } = comercial(respostas2, dono);
   ctx.VybeComercial.abrir('creators', { abas: ['creators'] }); await esperar();
   let html = janela().innerHTML;
-  naOrdem(html, ['<h2>Creators</h2>', 'Irecê e região', '>Ajuda</button>', 'class="v2c-btn d3c-novo" data-vc="creator">', '<small class="d3c-quem">VYBES · Agência</small><span class="d3c-frase">1 creator sem contato. Não dá para chamar.</span>',
+  naOrdem(html, ['<h2>Creators</h2>', 'Irecê e região', 'Como funciona</button>', 'class="v2c-btn d3c-novo" data-vc="creator">', '<small class="d3c-quem">VYBES · Agência</small><span class="d3c-frase">1 creator sem contato. Não dá para chamar.</span>',
     'data-v2="abre-um" data-id="cr:2">Completar o contato</button>', '<span class="d3-num-rot">Creators</span>', '4 Irecê · 1 região', '<span class="d3-num-rot">Seguidores somados</span>', '<span class="d3-num-rot">Em campanha</span>',
     '<span class="d3-num-rot">Sem contato</span><b class="d3-num-v">1 / 5</b>', '<h3>Pede ação</h3><small>1 incompleto</small>', '<span class="v2c-pill a">Sem contato</span>', '>Completar contato</button>', 'data-v2-campo="creator:contato:2"', '>Salvar contato</button>',
     'placeholder="Buscar nome ou @"', 'aria-pressed="true">Todos <b>5</b></button>', '>Irecê <b>4</b></button>', '>Região <b>1</b></button>', '<span class="d3c-dono d3cr-nicho">', 'data-vc-filtro="nicho"', '>Filtros</button>', '<div class="v2c-pessoas d3cr-grade">']);

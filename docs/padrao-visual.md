@@ -42,6 +42,31 @@ Regras de tela do v2: no máximo três cartões de número; "pede ação" antes 
 linha; uma barra de filtro só; o detalhe abre no lugar; vazio é uma frase e uma ação; tudo que espera
 decisão aparece em baralho, com a lista a um clique.
 
+### 0.1 Textos, formatos e o laranja (acabamento premium, 15/11/2026)
+
+O bloco laranja (`.d3-acao`, `d3AcaoHtml`) é sempre uma ação: tem botão, e o botão faz o que a frase pede (uma frase
+por bloco). Sem nada para pedir, a mesma frase do agente vai na nota branca (`.d3-nota`, `d3NotaHtml` em
+`vybe-core.js`; CSS em `padrao-v2/z-acab-textos.css`). `d3AcaoOuNotaHtml` escolhe pelo botão.
+
+Vazio é uma frase e uma ação, no bloco laranja, sem cartões de número zerados. A mesma ação aparece uma vez só:
+quando o vazio tem "Cadastrar o primeiro", o "Novo…" do topo some até existir o primeiro. A ação do topo é branca
+(nunca preta como a aba selecionada). Número que não existe é "—", com a frase embaixo ("sem meta", "sem teto
+ainda"), nunca a frase no lugar do número.
+
+| O quê | Assim | Não assim |
+|---|---|---|
+| Ajuda da tela | "Como funciona" (pílula de 40, `casca.css`) | "?", "Ajuda", "O que é este módulo" |
+| Unidade da produção | peça / peças | conteúdo / conteúdos |
+| Status do Monday dentro da frase | `statusEmFrase()` (`vybe-status.js`): "22 em pode fazer", "esperando info do cliente". O valor gravado, filtrado e enviado ao Monday continua o original | "22 em Pode Fazer", "Ag. Info Cliente" |
+| Tempo parado | "Paradas 5+ dias" (rótulo); "a mais antiga há 8 dias" (frase) | "+5 dias", "8 d" |
+| Contagem em ficha de filtro | `Todos <b>15</b>` | "Todos · 15", "Todas 0" |
+| Mês | "novembro de 2026" no meio da frase; "Novembro de 2026" em título e seletor; "nov" só em eixo de gráfico | "nov 2026", "Novembro 2026", "set." |
+| Dinheiro na mesma tela | um formato só: R$ 1.234,56 nos valores medidos (zero é "R$ 0,00"); arredondado só em estimativa, com "perto de" ou "~" | "R$ 0" e "R$ 0,00" lado a lado |
+| Plural | sempre condicionado ao número (`plural()` do arquivo); radical inteiro: "atualiza${n === 1 ? 'ção' : 'ções'}" | "1 peças", "alteraçãoões" |
+| Parte ainda sem banco | "Esta parte ainda está sendo ligada." / "… ainda não está disponível."; o detalhe técnico (migração, tabela) só atrás de "Para quem administra: o que falta", para quem administra | nome de arquivo .sql, "Peça ao Paulo", "ainda não foi ligado" |
+| Abreviação | por extenso ("falta direção de arte", "nota abaixo de 52"); "Head" é cargo e fica | "D.A.", "< 52", "sem.", "12 d" |
+| Semana | começa na segunda (Agenda e RH) | domingo primeiro |
+
 ## 1. Ideia
 
 Uma maquete de Irecê viva, vista de cima, com a Vybe no meio. Por cima dela, janelas de vidro

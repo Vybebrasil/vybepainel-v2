@@ -131,13 +131,14 @@
     if (a === 'rh' && f !== 'pedido') return acao('Nova solicitação', 'data-vp-abrir-form="pedido"');
     if (a === 'recrutamento' && f !== 'vaga') return acao('Nova vaga', 'data-vp-abrir-form="vaga"');
     if (a === 'documentos' && f !== 'documento') return acao('Novo documento', 'data-vp-abrir-form="documento"');
-    if (a === 'projetos' && d.gestao && f !== 'projeto') return acao('Novo projeto', 'data-vp-abrir-form="projeto"');
+    // Sem nenhum projeto, a ação mora no bloco laranja do vazio ("Criar o primeiro projeto"), não no topo.
+    if (a === 'projetos' && d.gestao && f !== 'projeto' && projetosVisiveis(d).length) return acao('Novo projeto', 'data-vp-abrir-form="projeto"');
     if (a === 'academy' && d.gestao && d.provisionado !== false && f !== 'trilha') return acao('Nova trilha', 'data-vp-abrir-form="trilha"');
     // Quem não monta trilhas pede uma ao RH (quadro da Academy): abre a solicitação já com o assunto.
     if (a === 'academy' && d.gestao === false) return acao('Pedir uma trilha', 'data-v2p-pedir-trilha');
     return '';
   }
-  const semMigracao = (d) => (d?.provisionado === false ? '<p class="vp-nota">Esta parte ainda não foi ligada: o que você vê é o começo. Os donos já sabem o que falta.</p>' : '');
+  const semMigracao = (d) => (d?.provisionado === false ? '<p class="vp-nota">Esta parte ainda não está disponível por completo: o que você vê é o começo. Os donos já sabem o que falta.</p>' : '');
   function versus(v, { menorMelhor = false, unidade = '' } = {}) {
     if (!v || v.delta == null) return '<small class="vp-vs">sem base no período anterior</small>';
     if (v.delta === 0) return '<small class="vp-vs">igual ao período anterior</small>';
@@ -183,7 +184,8 @@
   const cabeca = (titulo, sub = '') => `<div class="v2p-cab"><h3>${esc(titulo)}</h3>${sub ? `<small>${sub}</small>` : ''}</div>`;
   // Direção 3: a fala vira o bloco de ação laranja (o único laranja cheio da tela), com o avatar do agente que pulsa,
   // quem fala em cima e a frase; o botão vem branco à direita.
-  const falaHtml = (papel, frase, extra = '', quem = 'VYBES') => `<section class="v2p-fala d3-acao d3p-acao" aria-label="${esc(quem)}, ${esc(papel)}"><span class="v2p-ag d3-acao-av" aria-hidden="true">${esc(quem.charAt(0))}</span><p class="d3-acao-frase"><span class="v2p-quem">${esc(quem)} · ${esc(papel)}</span>${frase}</p>${extra}</section>`;
+  // Laranja só com ação (acabamento 15/11): sem botão (extra vazio), a mesma frase vai na nota branca (.d3-nota).
+  const falaHtml = (papel, frase, extra = '', quem = 'VYBES') => !extra ? `<section class="v2p-fala d3-nota" role="status" aria-label="${esc(quem)}, ${esc(papel)}"><span class="d3-nota-av" aria-hidden="true">${esc(quem.charAt(0))}</span><p class="d3-nota-frase"><small>${esc(quem)} · ${esc(papel)}</small>${frase}</p></section>` : `<section class="v2p-fala d3-acao d3p-acao" aria-label="${esc(quem)}, ${esc(papel)}"><span class="v2p-ag d3-acao-av" aria-hidden="true">${esc(quem.charAt(0))}</span><p class="d3-acao-frase"><span class="v2p-quem">${esc(quem)} · ${esc(papel)}</span>${frase}</p>${extra}</section>`;
   // Números no alto (Direção 3: rótulo curto, número que chega e, se houver, a barra que cresce ou a linha que se
   // desenha). itens: [{ rotulo, valor, de (o "/ 18" ao lado), sub (HTML), tom: 'ruim' | 'atencao' | 'bom' | '', barra: 0 a 100, serie, attrs }].
   const TOM_D3 = { ruim: 'r', atencao: 'a', bom: 'g' };
@@ -372,7 +374,7 @@
       <div class="vp-grade vp-ferias"${ferias ? '' : ' hidden'}><label><span>Primeiro dia</span><input type="date" name="inicio"${ferias ? ' required' : ''}></label><label><span>Último dia</span><input type="date" name="fim"${ferias ? ' required' : ''}></label>
         <p class="vp-nota">Folga de um dia: repita a mesma data.</p></div>
       <div class="vp-grade vp-desejada"${ferias ? ' hidden' : ''}><label><span>Data desejada (opcional)</span><input type="date" name="data_desejada" min="${esc(hoje())}"></label></div>
-      ${d.rhPronto === false ? `<p class="vp-nota">Reembolso e prazos ajustados pelos donos estão aguardando a migração ${esc(d.migracaoRh || '')}.</p>` : ''}
+      ${d.rhPronto === false ? `<p class="vp-nota">Reembolso e prazos ajustados pelos donos ainda não estão disponíveis.</p>` : ''}
       <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Enviar ao RH</button></div></form>`;
   }
   function formPrazos(d) {
@@ -440,7 +442,7 @@
     const c = d.pesquisa || {}, atual = c.atual;
     let html = `<div class="vp-linha-topo"><h3 class="vp-titulo">Pesquisa de clima <small>anônima</small></h3>
       ${d.gestao && atual ? sec('Encerrar agora', `data-vp-encerrar-pesquisa="${esc(atual.id)}"`) : ''}${d.gestao && !atual && d.rhPronto !== false && estado.form !== 'pesquisa-abrir' ? acao('Iniciar pesquisa', 'data-vp-abrir-form="pesquisa-abrir"') : ''}</div>`;
-    if (d.rhPronto === false) html += `<p class="vp-nota">A pesquisa de clima com período ainda não foi ligada. Os donos já sabem o que falta.</p>`;
+    if (d.rhPronto === false) html += `<p class="vp-nota">A pesquisa de clima com período ainda não está disponível. Os donos já sabem o que falta.</p>`;
     if (estado.form === 'pesquisa-abrir') html += formAbrirPesquisa();
     if (atual?.situacao === 'aberta') {
       if (atual.respondeu) html += vazio('Obrigado por responder', `A sua resposta entrou sem nome nem hora. "${atual.titulo}" fica aberta até ${br(atual.fecha)}.`);
@@ -525,7 +527,8 @@
     const h = d.hoje || hoje(), ym = /^\d{4}-\d{2}$/.test(estado.calMes) ? estado.calMes : h.slice(0, 7), [ano, mes] = ym.split('-').map(Number);
     const pend = pedidosAbertos(d).filter((p) => p.tipo === 'ferias' && p.inicio).map((p) => ({ nome: p.pessoa_nome || d.eu?.nome || 'Você', inicio: p.inicio, fim: p.fim || p.inicio }));
     const por = eventosDoMes(ym, d.aniversarios, d.ferias), porPend = eventosDoMes(ym, [], pend);
-    const n = diasNoMes(ano, mes), vazios = new Date(Date.UTC(ano, mes - 1, 1)).getUTCDay(), nomeMes = MESES_RH[mes - 1], celulas = [];
+    // A semana começa na segunda, como na Agenda (acabamento 15/11).
+    const n = diasNoMes(ano, mes), vazios = (new Date(Date.UTC(ano, mes - 1, 1)).getUTCDay() + 6) % 7, nomeMes = MESES_RH[mes - 1], celulas = [];
     const mini = (e) => pilula(iniciais(e.nome), `mi ${TOM_CAL[e.tipo]}`, `title="${esc(maiuscula(FALA_CAL[e.tipo](e.nome)))}"`);
     for (let i = 0; i < vazios; i++) celulas.push('<span class="v2p-dia fora" aria-hidden="true"></span>');
     for (let dia = 1; dia <= n; dia++) {
@@ -549,7 +552,7 @@
       <div class="v2p-cab v2p-cab-meio"><h3>Calendário do time</h3>${ym === h.slice(0, 7) ? '' : botao('Este mês', 'data-vp-cal="0"', 's')}
         <span class="v2p-mes" role="group" aria-label="Mês"><button type="button" data-vp-cal="-1" aria-label="Mês anterior" title="Mês anterior">${seta('M15 6l-6 6 6 6')}</button><b aria-live="polite">${esc(maiuscula(nomeMes))} de ${ano}</b><button type="button" data-vp-cal="1" aria-label="Próximo mês" title="Próximo mês">${seta('M9 6l6 6-6 6')}</button></span></div>
       <div class="v2p-cal-duas">
-        <div class="v2p-cal" role="list" aria-label="${esc(`Calendário do time, ${nomeMes} de ${ano}`)}">${SEMANA_RH.map((s) => `<span class="v2p-ds" aria-hidden="true">${s}</span>`).join('')}${celulas.join('')}</div>
+        <div class="v2p-cal" role="list" aria-label="${esc(`Calendário do time, ${nomeMes} de ${ano}`)}">${[...SEMANA_RH.slice(1), SEMANA_RH[0]].map((s) => `<span class="v2p-ds" aria-hidden="true">${s}</span>`).join('')}${celulas.join('')}</div>
         <div class="v2p-cal-lado">
           <p class="v2p-sub v2p-leg-t"><b>Aniversários</b> <span>só dia e mês</span></p>
           ${aniv.length ? recolhe(aniv, 'aniv', 3).join('') + restoHtml(aniv.length - 3, 'aniv', aniv.length - 3 === 1 ? 'aniversário' : 'aniversários') : '<p class="v2p-sub">Ninguém cadastrou o aniversário ainda.</p>'}
@@ -692,7 +695,7 @@
     const i = Math.min(estado.v2.carta, Math.max(0, abertos.length - 1));
     const esquerda = estado.form === 'pedido' ? formPedido(d)
       : abertos.length ? `<div class="v2-baralho v2p-baralho" role="group" aria-label="${d.gestao ? 'Pedidos para decidir' : 'Seus pedidos'}">${abertos.map((p, k) => cartaPedido(p, d, posDaCarta(k, i))).join('')}</div><div class="v2p-decide" data-v2p-decide>${decideHtml(d)}</div>`
-        : `<div class="v2p-card v2p-sem"><p><b>${d.gestao ? 'Nenhum pedido esperando resposta.' : 'Nenhum pedido por aqui.'}</b></p><p class="v2p-sub">${d.gestao ? 'Quando alguém pedir férias, folga, documento ou reembolso, o pedido aparece aqui para decidir.' : 'Precisa de férias, de uma declaração ou de um reembolso? Peça e acompanhe o prazo.'}</p>${botao('Nova solicitação', 'data-vp-abrir-form="pedido"', 's')}</div>`;
+        : `<div class="v2p-card v2p-sem"><p><b>${d.gestao ? 'Nenhum pedido esperando resposta.' : 'Nenhum pedido por aqui.'}</b></p><p class="v2p-sub">${d.gestao ? 'Quando alguém pedir férias, folga, documento ou reembolso, o pedido aparece aqui para decidir.' : 'Precisa de férias, de uma declaração ou de um reembolso? Peça em “Nova solicitação”, no alto, e acompanhe o prazo.'}</p></div>`;
     // "Seus pedidos" (quadro D3-RhPedidos, embaixo do Pede ação): os pedidos de quem está olhando, mesmo na gestão, os
     // que esperam e os já respondidos, com as fichas do "Também" no pé.
     const respondido = (p) => ['resolvido', 'recusado'].includes(p.status);
@@ -702,7 +705,7 @@
       ? `<div class="v2p-lin">${pilula(p.status === 'recusado' ? 'Recusado' : p.tipo === 'ferias' ? 'Aprovado' : 'Respondido', p.status === 'recusado' ? 'r' : 'g')}<p><b>${esc(p.titulo)}</b>${p.respondido_dia ? ` <span class="v2p-sub">· ${br(p.respondido_dia)}</span>` : ''}${p.resposta ? `<br><span class="v2p-sub">${esc(p.resposta)}</span>` : ''}</p>${botao('Ver', 'data-v2p-ver="lista" data-filtro="respondidos"', 's')}</div>`
       : `<div class="v2p-lin">${pilula('Esperando', 'b')}<p><b>${esc(p.titulo)}</b></p>${p.prazo ? `<span class="v2p-sub">até ${br(p.prazo)}</span>` : ''}</div>`);
     const meusHtml = meus.length ? recolhe(meus.map(linhaMeu), 'meus', 3).join('') + restoHtml(meus.length - 3, 'meus', meus.length - 3 === 1 ? 'pedido' : 'pedidos')
-      : `<div class="v2p-lin">${pilula('Sem pedido')}<p class="v2p-sub"><b>Nenhum pedido seu por aqui.</b></p>${estado.form === 'pedido' ? '' : botao('Nova solicitação', 'data-vp-abrir-form="pedido"', 's')}</div>`;
+      : `<div class="v2p-lin">${pilula('Sem pedido')}<p class="v2p-sub"><b>Nenhum pedido seu por aqui.</b></p></div>`;
     const seusPedidos = `<section class="v2p-card v2p-meus" aria-label="Seus pedidos">${cabeca('Seus pedidos', 'férias · folga · documento · reembolso')}${meusHtml}<div class="v2p-meus-pe">${tambemRh(d, { soFichas: true })}</div></section>`;
     return `${semMigracao(d)}<div class="v2p v2p-rh">${falaHtml('Recursos Humanos', frase, verTodos)}${numeros}
       <div class="v2p-grade v2p-grade-rh">
@@ -841,6 +844,8 @@
   // Fora do painel (testes), o mesmo bloco montado aqui.
   const acaoD3 = (frase, botaoTxt = '', attrs = '') => {
     const corpo = `<small class="d3pj-quem">Heitor · Coordenação</small><span>${frase}</span>`;
+    // Laranja só com ação (acabamento 15/11): sem botão, a frase vai na nota branca.
+    if (!botaoTxt) return typeof window.d3NotaHtml === 'function' ? window.d3NotaHtml({ agente: 'H', frase: corpo }) : `<section class="d3-nota" role="status"><span class="d3-nota-av" aria-hidden="true">H</span><span class="d3-nota-frase">${corpo}</span></section>`;
     if (typeof window.d3AcaoHtml === 'function') return window.d3AcaoHtml({ agente: 'H', frase: corpo, botao: botaoTxt, attrs });
     return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${corpo}</span>${botaoTxt ? `<button type="button" class="d3-acao-btn" ${attrs}>${esc(botaoTxt)}</button>` : ''}</section>`;
   };
@@ -985,7 +990,7 @@
     // Sem nenhum projeto: só a fala com o que é a tela; "Novo projeto" fica no alto para quem cria.
     if (!ps.length) {
       const texto = 'Evento, lançamento ou site fora do mensal: crie o projeto com as etapas e veja tudo na linha do tempo.' + (d.gestao ? '' : ' Quem cuida da gestão cria os projetos.');
-      return `${semMigracao(d)}<div class="v2p v2p-proj">${acaoD3('Nenhum projeto pontual.')}<p class="v2p-sub d3pj-vazio">${esc(texto)}</p>${form ? formProjeto(d) : ''}</div>`;
+      return `${semMigracao(d)}<div class="v2p v2p-proj">${d.gestao && !form ? acaoD3('Nenhum projeto pontual ainda.', 'Criar o primeiro projeto', 'data-vp-abrir-form="projeto"') : acaoD3('Nenhum projeto pontual ainda.')}<p class="v2p-sub d3pj-vazio">${esc(texto)}</p>${form ? formProjeto(d) : ''}</div>`;
     }
     if (estado.v2.vista === 'tempo') return `${semMigracao(d)}<div class="v2p v2p-proj">${falaProjetos(d, ps)}${numerosProjetos(d, ps)}${form ? formProjeto(d) : ''}${tempoProjetos(d, ps)}</div>`;
     const aberto = form ? null : projetoAberto(d, projetosFiltrados(d)), lado = form ? formProjeto(d) : aberto ? paginaProj(aberto, d) : '';
@@ -1335,7 +1340,7 @@
     // Direção 3: no cabeçalho, as abas em pílula (a escolhida preta), o período, a ajuda e a ação em botão branco com "+".
     const d3 = V2.has(estado.aba);
     const abasHtml = `<div class="${d3 ? 'd3p-abas' : 'vp-abas'}" role="tablist" aria-label="Partes do setor de Pessoas"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === estado.aba}" data-vp-aba="${k}">${esc(k === 'rh' ? 'Pedidos' : k === 'projetos' ? 'Projetos' : r)}</button>`).join('')}</div>`;
-    const botoes = `<div class="vp-topo-botoes">${d3 ? abasHtml : ''}${acaoDoTopo(estado.dados[estado.aba])}${periodo}<button type="button" class="vp-x vb-janela-x" data-vp-ajuda aria-expanded="${estado.ajuda}" aria-label="O que é esta aba" title="O que é esta aba">?</button>
+    const botoes = `<div class="vp-topo-botoes">${d3 ? abasHtml : ''}${acaoDoTopo(estado.dados[estado.aba])}${periodo}<button type="button" class="vp-ajuda-btn" data-vp-ajuda aria-expanded="${estado.ajuda}">Como funciona</button>
         ${botaoX('data-vp-fechar', 'vp-x')}</div>`;
     const dia = (() => { try { return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Bahia', weekday: 'long', day: 'numeric', month: 'short' }).format(new Date()).replace('-feira', '').replace(/\.$/, '').replace(/ de /g, ' '); } catch { return ''; } })();
     return `<div class="vp-topo vb-janela-topo">${cabecalho({ id: 'vp-titulo', titulo: estado.aba === 'projetos' ? 'Projetos' : (ABAS.find(([k]) => k === estado.aba) || ABAS[0])[1], texto: d3 ? dia : FRASE[estado.aba] || '', acoes: botoes })}</div>

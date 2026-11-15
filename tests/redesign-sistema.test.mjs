@@ -135,7 +135,7 @@ test('zeros em linha discreta, plural certo, mês no seletor e agenda no Hoje da
   assert.match(mundo, /function radarHtml\(V, itens\)/);
   // Direção 3 (13/11/2026): a Agência abre com quatro números (o zerado fica no lugar) e as fichas "De olho".
   assert.match(mundo, /function numD3\(/);
-  assert.match(mundo, /numD3\(\{ rotulo: 'Atrasadas', valor: n0\(H\.atrasadas\), tom: H\.atrasadas \? 'r' : ''.{0,160}attrs: 'data-espiar="atrasadas"' \}\)/);
+  assert.match(mundo, /numD3\(\{ rotulo: 'Atrasadas', valor: n0\(H\.atrasadas\), tom: H\.atrasadas \? 'r' : ''.{0,260}attrs: 'data-espiar="atrasadas"' \}\)/); // o sub ganhou "· N a conferir" (auditoria 15/11, item 30)
   assert.match(mundo, /<div class="d3h-olho"><span>De olho<\/span>/);
   assert.match(mundo, /'peças em aberto', 'peça em aberto'\]/);
   assert.match(ler('vybe-mundo-agentes.js'), /x\.n === 1 \? 'Ver o achado' : `Ver os \$\{x\.n\}`/);

@@ -19,7 +19,7 @@ const MESA={camada:'jogos',movel:'CF_250_goldenchessboard@3,4'};
 test('xadrez: aposta guardada, xeque-mate paga, lance conferido e sem repetir',async t=>{
  const {db,sql}=await banco(t);
  const x=await import('../server/escritorio-xadrez.js');
- await assert.rejects(x.desafiarXadrez(sql,{id:1},[],{para:'3',...MESA,chave:'xadrez-0001'}),/migração/);
+ await assert.rejects(x.desafiarXadrez(sql,{id:1},[],{para:'3',...MESA,chave:'xadrez-0001'}),/sendo ligad/);
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-xadrez.sql','utf8'));
  const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'},{id:7,nome:'Bia'}]);

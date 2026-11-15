@@ -20,7 +20,10 @@ import { origemCrmPronta } from './campos-d3.js';
 
 export const CHAVE_METAS = 'comercial_metas';
 export const CHAVE_FORMULARIO = 'comercial_formulario';
-export const AVISO_CONFIG = 'Metas e formulário de leads aguardando a migração 2026-11-07-carteira.sql (tabela vybe_carteira_config). O Paulo aplica.';
+// O que a tela mostra quando falta a tabela; o nome da migração (2026-11-07-carteira.sql) fica só no log do servidor.
+export const AVISO_CONFIG = 'Esta parte ainda está sendo ligada.';
+const MIGRACAO_CONFIG = '2026-11-07-carteira.sql (tabela vybe_carteira_config)';
+const avisarSemConfig = (e) => console.warn(`[comercial] metas e formulário de leads: falta a migração ${MIGRACAO_CONFIG}:`, e?.message || e);
 export const LIMITE_IP_MINUTO = 3;
 export const LIMITE_IP_DIA = 20;
 export const LIMITE_GERAL_10MIN = 40;
@@ -28,6 +31,7 @@ const TETO_CORPO = 8000;
 
 const falhar = (mensagem, status = 400) => { throw Object.assign(new Error(mensagem), { status }); };
 const semTabela = (e) => e?.code === '42P01';
+const semConfig = (e) => { if (!semTabela(e)) return false; avisarSemConfig(e); return true; };
 export const tokenComFormato = (t) => /^[A-Za-z0-9_-]{32}$/.test(String(t || ''));
 const hash = (s) => createHash('sha256').update(String(s)).digest();
 
@@ -45,7 +49,7 @@ export async function configComercial(sql, { dono = false } = {}) {
     const formulario = form && form.token ? { ativo: Boolean(form.ativo), gerado_em: form.gerado_em || null, ...(dono && form.ativo ? { token: form.token } : {}) } : { ativo: false, gerado_em: null };
     return { disponivel: true, metas: metas && typeof metas === 'object' && !Array.isArray(metas) ? metas : {}, formulario };
   } catch (e) {
-    if (!semTabela(e)) throw e;
+    if (!semConfig(e)) throw e;
     return { disponivel: false, aviso: AVISO_CONFIG, metas: {}, formulario: { ativo: false, gerado_em: null } };
   }
 }
@@ -62,7 +66,7 @@ export async function salvarMetas(sql, quem, b) {
     // Junta no JSON que já existe (outro mês salvo por outra pessoa não se perde).
     await sql`INSERT INTO vybe_carteira_config (chave, valor, atualizado_por, atualizado_em) VALUES (${CHAVE_METAS}, ${JSON.stringify(novo)}::jsonb, ${quem.id}, now())
       ON CONFLICT (chave) DO UPDATE SET valor = vybe_carteira_config.valor || EXCLUDED.valor, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`;
-  } catch (e) { if (semTabela(e)) falhar(AVISO_CONFIG, 503); throw e; }
+  } catch (e) { if (semConfig(e)) falhar(AVISO_CONFIG, 503); throw e; }
   return { meses, metas };
 }
 
@@ -73,13 +77,13 @@ export async function gerarFormulario(sql, quem) {
   try {
     await sql`INSERT INTO vybe_carteira_config (chave, valor, atualizado_por, atualizado_em) VALUES (${CHAVE_FORMULARIO}, ${JSON.stringify(valor)}::jsonb, ${quem.id}, now())
       ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`;
-  } catch (e) { if (semTabela(e)) falhar(AVISO_CONFIG, 503); throw e; }
+  } catch (e) { if (semConfig(e)) falhar(AVISO_CONFIG, 503); throw e; }
   return { token, ativo: true };
 }
 export async function desligarFormulario(sql, quem) {
   try {
     await sql`UPDATE vybe_carteira_config SET valor = valor || '{"ativo":false}'::jsonb, atualizado_por = ${quem.id}, atualizado_em = now() WHERE chave = ${CHAVE_FORMULARIO}`;
-  } catch (e) { if (semTabela(e)) falhar(AVISO_CONFIG, 503); throw e; }
+  } catch (e) { if (semConfig(e)) falhar(AVISO_CONFIG, 503); throw e; }
   return { ativo: false };
 }
 

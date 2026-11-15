@@ -119,7 +119,7 @@ export async function historicoDaLoja(sql, pessoaId) {
  });
 }
 export async function carregarEconomia(sql, pessoaId, { agora = new Date(), loja = true, marcos = true } = {}) {
- if (!await economiaPronta(sql)) return {disponivel:false, motivo:'A loja aguarda a migração revisada do banco.'};
+ if (!await economiaPronta(sql)) return {disponivel:false, motivo:'A loja ainda está sendo ligada.'};
  // Marcos primeiro: o móvel de um marco recém-conquistado já aparece no inventário.
  const lista = marcos ? await conferirMarcos(sql, pessoaId, agora) : null;
  const [[carteira], inventario, conquistas] = await Promise.all([
@@ -237,7 +237,7 @@ export async function comprarMovel(sql, pessoaId, {classe,chave,quantidade=1,pre
  if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1500) throw Object.assign(new Error("Quantidade entre 1 e 1500."),{status:400});
  if (!/^[a-f0-9-]{36}$/i.test(String(chave || ''))) throw Object.assign(new Error('Identificador da compra inválido.'),{status:400});
  if (!precoBase) throw Object.assign(new Error('Os móveis essenciais já são gratuitos.'),{status:400});
- if (!await economiaPronta(sql)) throw Object.assign(new Error('Loja indisponível: migração pendente.'),{status:503});
+ if (!await economiaPronta(sql)) throw Object.assign(new Error('A loja ainda está sendo ligada.'),{status:503});
  return sql.comTransacao(async tx => {
   await tx`INSERT INTO vybe_escritorio_carteiras(pessoa_id) VALUES(${pessoaId}) ON CONFLICT DO NOTHING`;
   const [c] = await tx`SELECT saldo FROM vybe_escritorio_carteiras WHERE pessoa_id=${pessoaId} FOR UPDATE`;
@@ -313,7 +313,7 @@ export async function venderMovel(sql, pessoa, salas, { classe, chave, quantidad
  if (typeof classe !== 'string' || !/^[a-z0-9_]{1,64}$/i.test(classe) || MOVEIS_ESSENCIAIS.includes(classe)) throw Object.assign(new Error('Este móvel não se vende.'), { status: 400 });
  if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1500) throw Object.assign(new Error('Quantidade entre 1 e 1500.'), { status: 400 });
  if (!/^[a-f0-9-]{36}$/i.test(String(chave || ''))) throw Object.assign(new Error('Identificador da venda inválido.'), { status: 400 });
- if (!await economiaPronta(sql) || !await vendasProntas(sql)) throw Object.assign(new Error('A venda à loja aguarda a migração do banco.'), { status: 503 });
+ if (!await economiaPronta(sql) || !await vendasProntas(sql)) throw Object.assign(new Error('A venda à loja ainda está sendo ligada.'), { status: 503 });
  const pessoaId = pessoa.id;
  return sql.comTransacao(async (tx) => {
   // Mesma ordem da compra: carteira, depois o inventário.

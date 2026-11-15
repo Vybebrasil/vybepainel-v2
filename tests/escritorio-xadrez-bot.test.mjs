@@ -35,7 +35,7 @@ test('xadrez contra bot: começa na hora, o bot joga, desistir, mate com prêmio
  const x = await import('../server/escritorio-xadrez.js');
  // Sem a migração do bot, a lista vem vazia e o desafio explica.
  assert.deepEqual((await x.botsDoXadrez(sql, { id: 1 })).bots, []);
- await assert.rejects(x.desafiarBotXadrez(sql, { id: 1 }, { nivel: 'facil', chave: 'xbot-00000001' }), /migração/);
+ await assert.rejects(x.desafiarBotXadrez(sql, { id: 1 }, { nivel: 'facil', chave: 'xbot-00000001' }), /sendo ligad/);
  await db.exec(readFileSync('migrations/2026-10-28-escritorio-xadrez-bot.sql', 'utf8'));
  assert.equal((await x.botsDoXadrez(sql, { id: 1 })).bots.length, 3);
  await assert.rejects(x.desafiarBotXadrez(sql, { id: 1 }, { nivel: 'impossivel', chave: 'xbot-00000001' }), /não existe/);

@@ -185,7 +185,7 @@ test('RH 08/11 sem a migração nova: pedido continua (data desejada vai na desc
   assert.equal(r.body.rhPronto, false); assert.equal(r.body.provisionado, true, 'o RH antigo segue ligado');
   assert.match(r.body.pedidos[0].descricao, /Data desejada: 01\/12\/2026/);
   assert.equal(r.body.pesquisa.atual, null);
-  r = await chamar(sql, ana, { body: { acao: 'pedido_criar', tipo: 'reembolso', titulo: 'Uber' } }); assert.equal(r.codigo, 503); assert.match(r.body.error, /2026-11-08-rh-pedidos-clima/);
+  r = await chamar(sql, ana, { body: { acao: 'pedido_criar', tipo: 'reembolso', titulo: 'Uber' } }); assert.equal(r.codigo, 503); assert.match(r.body.error, /reembolso ainda está sendo ligado/); assert.doesNotMatch(r.body.error, /\.sql|Paulo/);
   r = await chamar(sql, paulo, { body: { acao: 'prazos_rh', prazos: { ferias: 5, documento: 4, reembolso: 1, equipamento: 3, outro: 3 } } }); assert.equal(r.codigo, 503);
   r = await chamar(sql, paulo, { body: { acao: 'pesquisa_abrir', titulo: 'Clima', fecha: dia(7) } }); assert.equal(r.codigo, 503);
   r = await chamar(sql, paulo, { query: { aba: 'rh' } }); assert.equal(r.codigo, 200); assert.equal(r.body.pesquisa.historico.length, 0);

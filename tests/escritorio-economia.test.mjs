@@ -412,7 +412,7 @@ test('sala comum antes da migração das cenas: erro claro, nada gravado',async 
  for(const f of ['2026-10-17-escritorio-mapa-versoes.sql','2026-10-17-escritorio-andares.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
  const {salvarCamadaEscritorio,salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'}]);
- await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'cafe',itens:[['shelves_norja',1,1,0]],versao:0}),/aguarda a migração/);
+ await assert.rejects(salvarCamadaEscritorio(sql,{id:1,admin:true},salas,{camada:'cafe',itens:[['shelves_norja',1,1,0]],versao:0}),/ainda está sendo ligado/);
  assert.equal((await sql`SELECT count(*)::int AS n FROM vybe_escritorio_mapa WHERE camada='cafe'`)[0].n,0);
 });
 

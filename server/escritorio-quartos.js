@@ -85,7 +85,7 @@ export async function andaresProntos(sql) {
 export async function configurarQuarto(sql,pessoa,perfil,{planta,modelo,preservar=true,reformar=false,versao,andar=0,limparPintura=false}={}) {
  const m=QUARTOS.modelos.find(x=>x.id===modelo);
  if (!plantaQuarto(planta)||!m || ![0,1].includes(andar)) throw Object.assign(new Error('Planta, modelo ou andar inválido.'),{status:400});
- if (!await economiaPronta(sql)) throw Object.assign(new Error('Seu quarto aguarda a migração revisada do banco.'),{status:503});
+ if (!await economiaPronta(sql)) throw Object.assign(new Error('Seu quarto ainda está sendo ligado.'),{status:503});
  if((andar || reformar===true) && !await andaresProntos(sql)) throw Object.assign(new Error('O segundo andar aguarda a atualização revisada do banco.'),{status:503});
  return sql.comTransacao(async tx=>{
   const equipe=await tx`SELECT id,nome FROM vybe_pessoas WHERE ativo=TRUE AND pode_entrar=TRUE`;

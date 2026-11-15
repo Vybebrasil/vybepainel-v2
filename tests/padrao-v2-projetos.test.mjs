@@ -139,8 +139,10 @@ test('sem projeto: a fala do Heitor diz o que é a tela; Novo projeto só no alt
   const t = montar();
   PROJETOS.splice(0);
   await t.P.abrir('projetos');
-  assert.match(t.html(), /Heitor · Coordenação/); assert.match(t.html(), /Nenhum projeto pontual\./); assert.doesNotMatch(t.html(), /data-v2pj-vista/);
-  assert.equal(t.html().split('Novo projeto').length - 1, 1);
+  assert.match(t.html(), /Heitor · Coordenação/); assert.match(t.html(), /Nenhum projeto pontual ainda\./); assert.doesNotMatch(t.html(), /data-v2pj-vista/);
+  // Acabamento 15/11: no vazio a ação é do bloco laranja ("Criar o primeiro projeto"); o "Novo projeto" do topo some.
+  assert.equal(t.html().split('Criar o primeiro projeto').length - 1, 1);
+  assert.equal(t.html().split('Novo projeto').length - 1, 0);
 });
 
 test('o CSS de Projetos fica no fragmento, pelo id da janela e sem forçar regra antiga', () => {

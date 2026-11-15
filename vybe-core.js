@@ -438,7 +438,7 @@ function ajustarAvisosCurtos() {
   const filhos = [...caixa.children];
   filhos.forEach((x, i) => { if (i > 0 && !x.hidden) { x.hidden = true; x.vvPausar?.(); } });
   const toda = { l: esquerda, r: W - margem, t: margem, b: H - margem };
-  for (const w of [Math.min(r.width, 300), 220, 170, 140, 120]) {
+  for (const w of [Math.min(r.width, 300), 220, 170]) { // abaixo de 170 o nome do grupo some cortado: vai para o sino (acabamento 15/11/2026)
     v = procurar(w, 34, toda, { x: W - margem - w, y: H - margem - 34 });
     if (v && !v.n) { por(v.x, v.y, w); return; }
   }
@@ -1496,6 +1496,16 @@ function d3AcaoHtml({ frase = '', agente = 'V', botao = '', attrs = '' } = {}) {
   return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${d3Esc(String(agente).slice(0, 1).toUpperCase())}</span>`
     + `<span class="d3-acao-frase">${frase}</span>${botao ? `<button type="button" class="d3-acao-btn" ${attrs}>${d3Esc(botao)}</button>` : ''}</section>`;
 }
+
+// Frase sem ação (acabamento premium, 15/11/2026): laranja é só para ação. Quando a tela não tem o que pedir, a mesma
+// frase do agente vai num cartão branco neutro, sem botão. CSS em padrao-v2/z-acab-textos.css.
+function d3NotaHtml({ frase = '', agente = 'V' } = {}) {
+  if (!frase) return '';
+  return `<section class="d3-nota" role="status"><span class="d3-nota-av" aria-hidden="true">${d3Esc(String(agente).slice(0, 1).toUpperCase())}</span>`
+    + `<span class="d3-nota-frase">${frase}</span></section>`;
+}
+// O bloco certo para a frase: com botão, o laranja; sem botão, a nota branca.
+function d3AcaoOuNotaHtml(o = {}) { return o.botao ? d3AcaoHtml(o) : d3NotaHtml(o); }
 
 // Gráfico em linha: valores (e meta opcional) num svg com polyline, ponto só no último valor (ou no índice `ponto`,
 // quando o destaque é outro dia). desdeZero: a escala começa no zero (contagem contra uma régua).

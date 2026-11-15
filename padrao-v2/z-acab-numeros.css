@@ -1,0 +1,9 @@
+/* Acabamento premium, frente Números e lógica (15/11/2026).
+   Saúde da carteira: o que tirou ponto não corta no meio da letra; o que passa da coluna ganha reticências
+   (o texto inteiro fica na linha aberta). As fichas com teto mostram o porquê ao passar o mouse. */
+#vv-carteira .v2c .d3c-perdas{gap:10px}
+#vv-carteira .v2c .d3c-perdas > span{flex:0 0 auto}
+#vv-carteira .v2c .d3c-perdas > span:last-child{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#vv-carteira .v2c .d3c-pe .d3c-tira[title],#vv-carteira .v2c .d3c-perdas > span[title]{cursor:help}
+/* Produção › Pessoas · carga: a linha "Sem cadastro" (id do Monday sem pessoa ligada) fica apagada como o "Sem dono". */
+.d3s-pes.sc .d3s-pes-nome b{color:var(--d3-texto2)}

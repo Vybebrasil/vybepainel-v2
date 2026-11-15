@@ -28,7 +28,7 @@ test('chama só a função do Finanças e traduz o erro sem vazar a conexão', a
   assert.match(chamadas[0][0], /public\.vybe_os_salvar_cliente\(/);
   assert.doesNotMatch(chamadas[0][0], /INSERT|UPDATE|DELETE/i);
   const ruim = criarCadastroFinancas({ env: { VYBE_FINANCAS_CADASTRO_URL: 'postgresql://u:senha@h/db' }, criarSql: () => () => Promise.reject(new Error('permission denied for function vybe_os_salvar_cliente')) });
-  await assert.rejects(() => ruim.salvar(linha), (e) => /rode o SQL/.test(e.message) && !/senha/.test(e.message));
+  await assert.rejects(() => ruim.salvar(linha), (e) => /sendo ligada/.test(e.message) && !/senha|\.sql/.test(e.message));
 });
 
 test('ecossistema oferece "Criar no Finanças" só com o cadastro do Finanças ligado', () => {

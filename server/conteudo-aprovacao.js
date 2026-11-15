@@ -12,7 +12,7 @@
 // planejamentos (server/planejamentos-api.js), que aprova o planejamento do mês antes da produção.
 import { createHash, randomBytes } from 'node:crypto';
 import { podeEditarCliente } from './planejamentos.js';
-import { AVISO_MIGRACAO } from './conteudo-objetivo.js';
+import { avisoMigracao } from './conteudo-objetivo.js';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 export const STATUS_EM_APROVACAO = 'ag_aprovacao_cliente';
@@ -30,7 +30,7 @@ export async function aprovacaoPronta(sql) {
   const [r] = await sql`SELECT (to_regclass('vybe_aprovacao_links') IS NOT NULL AND to_regclass('vybe_aprovacao_respostas') IS NOT NULL) AS existe`;
   return Boolean(r?.existe);
 }
-const exigirTabelas = async (sql) => { if (!await aprovacaoPronta(sql)) throw erro(AVISO_MIGRACAO, 503); };
+const exigirTabelas = async (sql) => { if (!await aprovacaoPronta(sql)) throw erro(avisoMigracao(), 503); };
 const idValido = (v) => (/^\d{1,18}$/.test(String(v ?? '')) ? String(v) : null);
 
 // ── Painel (sessão) ─────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export async function painelDeAprovacao(sql, pessoa) {
       links.get(l.cliente_id).push(l);
     }
   }
-  return { pronto, ...(pronto ? {} : { aviso: AVISO_MIGRACAO }),
+  return { pronto, ...(pronto ? {} : { aviso: avisoMigracao() }),
     clientes: clientes.map((c) => ({ ...c, pendentes: pendentes.get(c.id) || 0, links: links.get(c.id) || [] })) };
 }
 

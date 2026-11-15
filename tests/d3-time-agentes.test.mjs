@@ -40,9 +40,12 @@ test('D3 · Perfil do agente: bloco de ação do agente, números, três colunas
 });
 
 test('D3 · Automações: bloco de ação com o agente, quatro números com Por tipo e regras com "Testar" no fim da linha', () => {
-  assert.match(auto, /<section class="d3-acao" aria-label="O que pede ação agora">/);
+  // Acabamento 15/11: com falha, o bloco laranja; sem falha (nada a fazer), a nota branca.
+  assert.match(auto, /const tipoFala = pendentes\.length \? 'd3-acao' : 'd3-nota';/);
   assert.match(auto, /class="d3-num d3t-tipos"><span class="d3-num-rot">Por tipo · 30 dias<\/span>/);
-  assert.match(auto, /class="v2g-btn k auto-novo"/);
+  // "Nova regra" do topo é branca (não igual à aba selecionada) e só aparece quando já há regra.
+  assert.match(auto, /class="v2g-btn auto-novo"/);
+  assert.match(auto, /const novo = admin && !semRegra \?/);
   assert.match(auto, /<span class="v2g-sub v2r-n">/);
   assert.match(auto, /botao\.textContent = 'Testar'; return;/, 'o botão que conta o estado volta ao rótulo curto');
   // O fim de linha não entra na conta: o git guarda LF e a cópia local no Windows tem CRLF (o CI lê LF).

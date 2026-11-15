@@ -39,7 +39,8 @@ test('17, 21, 30, 39, 49, 61: os selects nativos que o quadro pedia viraram o ch
 test('17 e 49: ação principal no cabeçalho, sem título repetido no corpo, filtro com contagem e vazio com botão', () => {
   const c = ler('vybe-mundo-comercial.js');
   // Padrão v2 (quadros Fornecedores e Creators): a ação cheia fica no cabeçalho do quadro (topoV2).
-  assert.match(c, /fornecedores: \['Novo fornecedor', 'data-vc="fornecedor"', Boolean\(d\)\], creators: \['Novo creator', 'data-vc="creator"', Boolean\(d\?\.pode\?\.editar_comercial\)\]/);
+  // Acabamento 15/11: o do topo só aparece quando já há fornecedor ou creator; no vazio a ação é a do bloco.
+  assert.match(c, /fornecedores: \['Novo fornecedor', 'data-vc="fornecedor"', Boolean\(d\) && \(d\.fornecedores \|\| \[\]\)\.some\(\(f\) => f\.ativo\)\], creators: \['Novo creator', 'data-vc="creator"', Boolean\(d\?\.pode\?\.editar_comercial\) && \(d\.creators \|\| \[\]\)\.length > 0\]/);
   assert.doesNotMatch(c, /<h3>Fornecedores<\/h3>|<h3>Creators de Irecê<\/h3>/);
   assert.match(trecho('vybe-mundo-comercial.js', 'function abaFornecedores', 'function abaCreators'), /fichas: \['', \.\.\.cats\.map\(\(c\) => c\.id\)\]\.map\(ficha\)/, 'Todos e os tipos, com a contagem');
   // Direção 3: sem creator, o "Cadastrar o primeiro" é o botão do bloco de ação (acaoD3), que abre o mesmo formulário.
@@ -48,7 +49,7 @@ test('17 e 49: ação principal no cabeçalho, sem título repetido no corpo, fi
   assert.match(cr, /'data-vc="creator"'/);
   const i = ler('vybe-mundo-impressoes.js');
   assert.doesNotMatch(i, /vi-alerta|<small>Produção<\/small>/, 'sem o aviso solto de fornecedor e sem o setor no título');
-  assert.match(i, /\$\{st\.dados && !st\.form \? '<button type="button" class="p2-btn d3im-nova" data-vi="nova">\+ Nova impressão<\/button>'/, 'Direção 3: a ação da tela fica no cabeçalho, em pílula branca com + (o laranja é só do bloco de ação)');
+  assert.match(i, /\$\{st\.dados && !st\.form && \(st\.dados\.impressoes \|\| \[\]\)\.length \? '<button type="button" class="p2-btn d3im-nova" data-vi="nova">\+ Nova impressão<\/button>'/, 'Direção 3 (acabamento 15/11: só com impressão; no vazio a ação é do bloco): a ação da tela fica no cabeçalho, em pílula branca com + (o laranja é só do bloco de ação)');
   assert.match(i, /data-vi-escolher-forn=/, 'sem fornecedor · escolher na própria peça');
   assert.match(i, /data-vi-vista="\$\{k\}"/, 'Linhas | Etapas | Tabela, dentro de Filtros');
 });

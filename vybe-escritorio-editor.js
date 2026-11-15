@@ -56,7 +56,7 @@ function gradeEditorEscritorio(alternar = false) {
 }
 async function abrirEditorEscritorio(camada = escritorioCamadaParaEditar()) {
   if (!camada || !escritorioPodeEditar(camada)) {
-    escritorioAviso(escritorio.base?.mapa?.editavel === false && !escritorio.base?.demo ? "O mapa editável aguarda a mudança no banco." : "Você pode editar a sua sala; o mapa, só quem administra.");
+    escritorioAviso(escritorio.base?.mapa?.editavel === false && !escritorio.base?.demo ? "O mapa editável ainda não está disponível." : "Você pode editar a sua sala; o mapa, só quem administra.");
     return;
   }
   // Uma sala só se edita de dentro do quarto dela: entra primeiro (direto

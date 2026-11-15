@@ -476,3 +476,21 @@ test('sem vaga nem cabeçalho livre (um menu cheio por cima), a dica compacta es
   assert.equal(b.hidden, true);
   assert.equal(t.salvo?.dicas?.modulo, undefined, 'não conta como vista');
 });
+
+// Auditoria 15/11, item 35: a dica de Pessoas falava do setor inteiro dentro de Produção › Projetos pontuais.
+test('dica por aba: com a barra de abas, a do setor; janela de uma aba só, a dica daquela aba (ou nenhuma)', () => {
+  const abaNaTela = (aba) => (sel) => (sel === '#vv-pessoas [role="tab"][aria-selected="true"]' ? { getAttribute: (k) => (k === 'data-vp-aba' ? aba : null) } : null);
+  const so = montar({ armazenamento: passeioVisto(), alvos: { ...HUD(), '#vv-pessoas .vp-topo': [alvo(200, 40, 900, 80)] } });
+  so.doc.querySelector = abaNaTela('projetos');
+  assert.equal(so.T.dica('pessoas'), true); so.rodar();
+  assert.equal(so.balao()?.getAttribute('data-dica'), 'pessoas:projetos');
+  assert.equal(so.titulo(), 'Projetos pontuais');
+  const setor = montar({ armazenamento: passeioVisto(), alvos: { ...HUD(), '#vv-pessoas .d3p-abas': [alvo(300, 40, 600, 40)] } });
+  setor.doc.querySelector = abaNaTela('projetos');
+  setor.T.dica('pessoas'); setor.rodar();
+  assert.equal(setor.balao()?.getAttribute('data-dica'), 'pessoas', 'a barra de abas à vista: a dica do setor');
+  const semDica = montar({ armazenamento: passeioVisto(), alvos: HUD() });
+  semDica.doc.querySelector = abaNaTela('recrutamento');
+  semDica.T.dica('pessoas'); semDica.rodar();
+  assert.equal(semDica.balao(), undefined, 'aba sem dica própria: nada no lugar errado');
+});

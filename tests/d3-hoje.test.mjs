@@ -20,7 +20,7 @@ test('peças comuns: topo "Hoje" com a data, faixa laranja, quatro números, car
 test('Agência: faixa com o alerta mais grave, Pede ação em Agora/Depois/Em seguida, De olho, baralho, semana com dia escolhido, agenda, agentes e WhatsApp', () => {
   const ag = trecho('  function pintarAgencia(el', '  // ---------- Módulo Gestão');
   naOrdem(ag, ['topoD3({ sub: diaD3(), meio: quemOnline, dir: seg })', 'acaoD3({ ...faixa', '${numeros}', '${pede}', 'decidirHtml()', 'semanaD3Html(N.graficoSemana)', 'agendaD3Html()', 'agentesD3Html()', "whatsappD3Html('agencia')"]);
-  for (const r of ["rotulo: 'Atrasadas'", "rotulo: 'Vão ao ar hoje'", "rotulo: 'Semana'", "rotulo: 'Para você decidir'"]) assert.ok(ag.includes(r), r);
+  for (const r of ["rotulo: 'Atrasadas'", "rotulo: 'Vão ao ar hoje'", "rotulo: 'Prontas da semana'", "rotulo: 'Para você decidir'"]) assert.ok(ag.includes(r), r);
   assert.match(ag, /data-espiar="atencao"/); assert.match(ag, /data-espiar="sem3"/); assert.match(ag, /data-hoje-acao="decidir-lista"/);
   const sem = trecho('  function semanaD3Html(', '  function pintarAgencia(');
   assert.match(sem, /data-semana-dia="\$\{x\.dia\}" aria-pressed=/, 'tocar num dia escolhe o dia');

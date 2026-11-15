@@ -3,6 +3,7 @@ import { substituirClientes } from '../server/clientes-conteudo.js';
 import { substituirResponsaveis } from '../server/responsaveis.js';
 import { trocarObjetivo } from '../server/conteudo-objetivo.js';
 import { garantirMigracoesIrecity } from '../server/migracoes-irecity.js';
+import { falhaDeRegra } from '../server/falha-interna.js';
 // api/conteudo.js — escrita dupla: banco da Vybe primeiro, Monday depois.
 //
 // Hoje o painel grava só no Monday e o banco copia por webhook. Isso mantém o
@@ -30,7 +31,7 @@ const BOARD_PRODUCAO = 7829537690;
 const BOARD_DEMANDAS_ID = 8385559107;
 
 function database() {
-  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL não configurada.');
+  if (!process.env.DATABASE_URL) throw Object.assign(new Error('DATABASE_URL não configurada.'), { code: 'SEM_BANCO' });
   return bancoComTransacoes(process.env.DATABASE_URL);
 }
 
@@ -1029,7 +1030,7 @@ export default async function handler(req, res) {
       try {
         await garantirMigracoesIrecity(sql);
         return res.status(200).json({ ok: true, acao, ...(await trocarObjetivo(sql, quem, { item, objetivo: corpo.objetivo })) });
-      } catch (erro) { return res.status(erro.status || 500).json({ error: erro.message }); }
+      } catch (erro) { return falhaDeRegra(res, 'conteudo.objetivo', erro); }
     }
     if (ESCOLHAS[acao]) {
       return res.status(200).json({ ok: true, acao,
@@ -1050,13 +1051,18 @@ export default async function handler(req, res) {
       let aviso_objetivo;
       if (corpo.objetivo && criado?.conteudo_id) {
         try { await garantirMigracoesIrecity(sql); await trocarObjetivo(sql, quem, { item: `vybe:${criado.conteudo_id}`, objetivo: corpo.objetivo }); }
-        catch (erro) { aviso_objetivo = erro.message; }
+        catch (erro) {
+          // Regra (objetivo inválido, parte ainda sendo ligada) vem com status e frase própria; erro do banco fica no log.
+          if (erro?.status) aviso_objetivo = erro.message;
+          else { console.error('[api/conteudo] criar: objetivo', erro?.stack || erro?.message || erro); aviso_objetivo = 'O objetivo não foi gravado agora. Escolha de novo na peça.'; }
+        }
       }
       return res.status(200).json({ ok: true, acao, ...criado, ...(aviso_objetivo ? { aviso_objetivo } : {}) });
     }
     return res.status(400).json({ error: `Ação desconhecida: ${acao}` });
   } catch (erro) {
-    return res.status(500).json({ error: erro.message });
+    // A regra deste arquivo (new Error('...') sem status) volta 400 com a frase; erro do banco vira 500 genérico com o log.
+    return falhaDeRegra(res, `conteudo.${acao || 'post'}`, erro);
   }
 }
 

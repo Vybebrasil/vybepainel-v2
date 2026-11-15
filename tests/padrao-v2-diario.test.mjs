@@ -25,12 +25,12 @@ const itens = {
   2: [peca('a', 'Finalizado'), peca('b', 'Alteração', iso(dia(3, 12)), 'Cliente B'), peca('c', 'Pode Fazer', antes), peca('d', 'Em Andamento', iso(dia(0, 12)))],
 };
 
-function montar({ lista = registros(), post } = {}) {
+function montar({ lista = registros(), post, dono = true } = {}) {
   const els = {}, el = (id) => (els[id] ||= { id, innerHTML: '', style: {}, classList: { add() {}, remove() {} }, setAttribute() {}, querySelector: () => null, querySelectorAll: () => [] });
   const botao = { dataset: {}, innerHTML: 'Registrar agora', classList: { add() {}, remove() {} } };
   const pedidos = [];
   const ctx = { console, Date: Relogio, Math, JSON, Number, String, Array, Set, Map, Object, Promise, Error, Boolean, encodeURIComponent, setTimeout: () => 0,
-    localStorage: { getItem: () => null }, showToast() {}, STATUS_OPTIONS: [{ label: 'A Fazer' }, { label: 'Pode Fazer' }, { label: 'Em Andamento' }, { label: 'Alteração' }],
+    localStorage: { getItem: () => null }, showToast() {}, souDonoDaSessao: () => dono, souAdmin: () => false, STATUS_OPTIONS: [{ label: 'A Fazer' }, { label: 'Pode Fazer' }, { label: 'Em Andamento' }, { label: 'Alteração' }],
     document: { getElementById: el, querySelector: (s) => (s.includes('salvarSnapshot') ? botao : null), querySelectorAll: () => [] },
     fetch: async (url, op = {}) => {
       pedidos.push(`${op.method || 'GET'} ${url}`);
@@ -44,12 +44,25 @@ function montar({ lista = registros(), post } = {}) {
   return { ctx, el, botao, pedidos };
 }
 
-test('Diário: sem registro, uma frase só (Direção 3: sem o pé que explicava); o botão fica só no topo', async () => {
-  const { ctx, el } = montar({ lista: [] });
+// Acabamento 15/11: vazio é uma frase e uma ação, no bloco laranja; o "Registrar agora" do topo some enquanto não há
+// registro (a mesma ação não aparece duas vezes) e volta com o primeiro.
+test('Diário: sem registro, uma frase e o "Registrar agora" no bloco laranja; o do topo some', async () => {
+  const { ctx, el, botao } = montar({ lista: [] });
   await ctx.renderDiarioLista(true);
   const html = el('diario-snapshots-list').innerHTML;
-  assert.match(html, /class="v2d-card v2d-vazio" role="status"><p>Nenhum registro salvo ainda\.<\/p>/);
-  assert.doesNotMatch(html, /v2d-sub|salvarSnapshot|d3d-nums|v2d-registros/);
+  assert.match(html, /<section class="d3-acao"[^>]*>[\s\S]*Nenhum registro salvo ainda\.[\s\S]*<button type="button" class="d3-acao-btn" onclick="salvarSnapshot\(\)">Registrar agora<\/button><\/section>/);
+  assert.doesNotMatch(html, /v2d-sub|d3d-nums|v2d-registros/);
+  assert.equal(botao.hidden, true, 'o botão do topo some no vazio');
+});
+
+// Registrar é só de dono ou de quem administra (o servidor responde 403 aos outros): sem botão nenhum, a frase na nota.
+test('Diário: quem não é dono nem administra não vê "Registrar agora"', async () => {
+  const { ctx, el, botao } = montar({ lista: [], dono: false });
+  await ctx.renderDiarioLista(true);
+  const html = el('diario-snapshots-list').innerHTML;
+  assert.doesNotMatch(html, /salvarSnapshot|d3-acao-btn/);
+  assert.match(html, /Nenhum registro salvo ainda\./);
+  assert.equal(botao.hidden, true);
 });
 
 // Direção 3 (moodboard 3, 13/11/2026; quadro D3-Diario): o bloco de ação laranja do Heitor, quatro números, "Registros" em
@@ -59,7 +72,8 @@ test('Diário: o bloco do Heitor, quatro números e "O que mudou" contam as peç
   await ctx.renderDiarioLista(true);
   const html = el('diario-snapshots-list').innerHTML;
   assert.ok(pedidos.includes('GET /api/painel?area=diario&id=1') && pedidos.includes('GET /api/painel?area=diario&id=2'), 'abre as peças dos registros à vista');
-  assert.match(html, /<section class="d3-acao"[^>]*><span class="d3-acao-av" aria-hidden="true">H<\/span><span class="d3-acao-frase"><small class="d3d-quem">Heitor · Coordenação · 09:00 → 14:00<\/small><span class="d3d-frase">1 virou Finalizado; nenhuma passou da data de veiculação\.<\/span>/);
+  // Sem peça que passou da data não há ação: a frase vai na nota branca (acabamento 15/11).
+  assert.match(html, /<section class="d3-nota"[^>]*><span class="d3-nota-av" aria-hidden="true">H<\/span><span class="d3-nota-frase"><small class="d3d-quem">Heitor · Coordenação · 09:00 → 14:00<\/small><span class="d3d-frase">1 foi finalizada; nenhuma passou da data de veiculação\.<\/span>/);
   assert.equal((html.match(/class="d3-num[ "]/g) || []).length, 4);
   assert.match(html, /Finalizadas na semana<\/span><b class="d3-num-v">1<\/b><span class="d3-barra" style="--v:50%"><i><\/i><\/span><small class="d3d-num-sub g">de 2 da semana<\/small>/);
   assert.match(html, /class="d3-num r"><span class="d3-num-rot">Atrasadas<\/span><b class="d3-num-v">1<\/b>[\s\S]*?eram 2 às 09:00/);

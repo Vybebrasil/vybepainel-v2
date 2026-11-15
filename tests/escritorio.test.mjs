@@ -902,7 +902,7 @@ test("permissões e versão ao salvar camadas do mapa", async (t) => {
   t.after(() => db.close());
   const salas = salasDoEscritorio([{ id: 1, nome: "Paulo" }, { id: 2, nome: "Jady" }]);
   // Sem a migração: recusa com aviso, não quebra a entrada.
-  await assert.rejects(salvarCamadaEscritorio(sql, { id: 1, admin: true }, salas, { camada: "geral", itens: [], versao: 0 }), /migração/);
+  await assert.rejects(salvarCamadaEscritorio(sql, { id: 1, admin: true }, salas, { camada: "geral", itens: [], versao: 0 }), /sendo ligad/);
   assert.deepEqual(await carregarMapaEscritorio(sql), { editavel: false, camadas: {} });
   await db.exec(readFileSync("migrations/2026-10-16-escritorio-mapa.sql", "utf8"));
   const jady = { id: 2, admin: false }, paulo = { id: 1, admin: true };
@@ -1061,7 +1061,7 @@ test("recados: só os dois leem, idempotente por chave, contagem e leitura", asy
   t.after(() => db.close());
   const chave = "11111111-2222-3333-4444-555555555555";
   // Sem a migração: avisa, não quebra.
-  await assert.rejects(resumoRecadosEscritorio(sql, "1"), /migração/);
+  await assert.rejects(resumoRecadosEscritorio(sql, "1"), /sendo ligad/);
   await db.exec(readFileSync("migrations/2026-10-16-escritorio-recados.sql", "utf8"));
   const id = await enviarRecadoEscritorio(sql, "1", { para: "2", texto: "  Oi Jady  ", chave });
   assert.equal(await enviarRecadoEscritorio(sql, "1", { para: "2", texto: "Oi Jady", chave }), id);
@@ -1123,7 +1123,7 @@ test("imagens da equipe: só a própria sala, só imagem de verdade, quadro na p
   const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(20)]).toString("base64");
   await db.exec(readFileSync("migrations/2026-10-16-escritorio-mapa.sql", "utf8"));
   // Sem a migração das imagens: recusa com aviso.
-  await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: salaJady, tipo: "quadro", largura: 2, altura: 2, dados: png }), /migração/);
+  await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: salaJady, tipo: "quadro", largura: 2, altura: 2, dados: png }), /sendo ligad/);
   await db.exec(readFileSync("migrations/2026-10-17-escritorio-imagens.sql", "utf8"));
   await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: "sala-0", tipo: "quadro", largura: 2, altura: 2, dados: png }), /sua sala/);
   await assert.rejects(enviarImagemEscritorio(sql, jady, salas, { camada: salaJady, tipo: "quadro", largura: 2, altura: 2, dados: Buffer.from("<svg onload=x>").toString("base64") }), /PNG, JPG ou WEBP/);
@@ -1307,7 +1307,7 @@ test("mapa: cada salvamento guarda a versão anterior e só quem edita vê o his
   const paulo = { id: 1, admin: true }, jady = { id: 2, admin: false };
   // Sem a migração do histórico, salvar continua funcionando.
   await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [["exe_plant", 1, 1, 2]], versao: 0 });
-  await assert.rejects(versoesDaCamada(sql, paulo, salas, "geral"), /migração/);
+  await assert.rejects(versoesDaCamada(sql, paulo, salas, "geral"), /sendo ligad/);
   await db.exec(readFileSync("migrations/2026-10-17-escritorio-mapa-versoes.sql", "utf8"));
   await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [["exe_plant", 2, 2, 2]], versao: 1 });
   await salvarCamadaEscritorio(sql, paulo, salas, { camada: "geral", itens: [], versao: 2 });

@@ -20,7 +20,7 @@ export async function planejamentosProntos(sql) {
  const [r] = await sql`SELECT (to_regclass('public.vybe_planejamentos') IS NOT NULL AND to_regclass('public.vybe_planejamento_eventos') IS NOT NULL) AS existe`;
  return Boolean(r?.existe);
 }
-const exigir = async (sql) => { if (!await planejamentosProntos(sql)) throw erro('Os planejamentos aguardam a migração do banco.', 503); };
+const exigir = async (sql) => { if (!await planejamentosProntos(sql)) throw erro('Os planejamentos ainda estão sendo ligados.', 503); };
 
 // --- Conteúdo padrão ---------------------------------------------------------
 // Todos os clientes usam a mesma estrutura (o documento sai sempre igual); a

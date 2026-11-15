@@ -104,7 +104,7 @@ test('Onboarding sem ativação (quadro do padrão v2): a tela do quadro vazia, 
   await a.ctx.VybeCarteira.abrir('onboarding', { abas: ['onboarding'], rotulo: 'Clientes' });
   await esperar();
   let html = a.janela().innerHTML;
-  assert.match(html, /O onboarding ainda não foi ligado/);
+  assert.match(html, /O onboarding ainda não está disponível/); // sem jargão (auditoria 15/11, item 21)
   assert.match(html, /<h2>Pede ação<\/h2><\/div><div class="v2c-vazio"><p>Nenhum cliente em entrada\.<\/p>/);
   assert.doesNotMatch(html, /vc-esteira-previa|ver o que falta/, 'a esteira saiu do alto; quem não administra não vê o botão');
   a.clicar({ vcAjuda: '' });
@@ -142,12 +142,15 @@ test('Funil: título "CRM e funil", números numa linha, sem arquivo de migraç�
   assert.match(topoDe(html), /<h2>CRM e funil<\/h2>/);
   assert.doesNotMatch(html, /class="vc-kpi/);
   assert.match(html, /<span class="d3-num-rot">Taxa de ganho<\/span>[\s\S]*nada encerrado/);
-  assert.match(html, /O valor da negociação ainda não foi ligado/);
+  assert.match(html, /O valor da negociação ainda não está disponível/);
   assert.doesNotMatch(html, /\.sql|Ver o que falta|Novo lead/);
   const dono = comercial(resp, { souDonoDaSessao: () => true, souAdmin: () => true });
   dono.ctx.VybeComercial.abrir('funil', { abas: ['funil'] }); await esperar();
   html = dono.janela().innerHTML;
-  assert.match(topoDe(html), /data-vc="lead">.*Novo lead/, 'sem resposta de permissão, o palpite de dono desenha o botão');
+  // Acabamento 15/11: sem oportunidade, a ação é o "Cadastrar o primeiro lead" do bloco laranja; o topo não repete.
+  assert.match(html, /class="d3-acao-btn" data-vc="lead">Cadastrar o primeiro lead</, 'sem resposta de permissão, o palpite de dono desenha o botão');
+  assert.doesNotMatch(topoDe(html), /Novo lead/);
+  assert.equal((html.match(/data-vc="lead"/g) || []).length, 1, 'um botão por ação');
   assert.doesNotMatch(html, /2026-11-07-comercial\.sql/);
   dono.clicar({ vc: 'falta' });
   assert.match(dono.janela().innerHTML, /migração <code>2026-11-07-comercial\.sql<\/code>/);
@@ -308,7 +311,7 @@ test('Churn (quadro do padrão v2): fala, três números, fichas, Pede ação co
   assert.match(html, /<span class="d3-num-rot">Taxa de churn<\/span>[\s\S]*<span class="d3-num-rot">Saídas<\/span>[\s\S]*<span class="d3-num-rot">Receita perdida<\/span>[\s\S]*<span class="d3-num-rot">Até sair<\/span>/);
   assert.match(html, /data-vc-filtro-ch="todas">Todas · 0<\/button>/);
   assert.match(html, /<h2>Saídas e retenção<\/h2>[\s\S]*data-vc-vista-ch="motivos" aria-pressed="true">Motivos/);
-  assert.match(html, /<b>A classificação das saídas ainda não foi ligada\.<\/b>/);
+  assert.match(html, /<b>A classificação das saídas ainda não está disponível\.<\/b>/); // auditoria 15/11, item 21
   assert.doesNotMatch(html, /Saída = desativação/, 'a conta mora em "Como funciona"');
   vazio.clicar({ vcAjuda: '' });
   assert.match(vazio.janela().innerHTML, /Saída = desativação no cadastro[^<]*Entrada = início do contrato/);
@@ -376,11 +379,13 @@ test('Recebimentos, Inadimplência e Orçamentos (quadro 20 e 00 Main, regra 4):
   ctx.VybeComercial.abrir('inadimplencia', { abas: ['inadimplencia'] }); await esperar();
   html = janela().innerHTML;
   assert.doesNotMatch(html, /class="vc-kpi/);
-  assert.match(html, /class="vb-resumo-item zero espiavel" data-espiar="comercial:inadimplencia:criticos"[^>]*><b>0<\/b> críticos \(\+30 dias\)/, 'o zero continua abrindo quem está nele');
+  assert.match(html, /class="vb-resumo-item zero espiavel" data-espiar="comercial:inadimplencia:criticos"[^>]*><b>0<\/b> críticos \(30\+ dias\)/, 'o zero continua abrindo quem está nele');
   assert.match(html, /<b>0<\/b> clientes[\s\S]*<b>0<\/b> faturas/);
   ctx.VybeComercial.abrir('orcamentos', { abas: ['pacotes', 'orcamentos'] }); await esperar();
   html = janela().innerHTML;
-  assert.match(html, /Falta pacote ativo\.<\/p><button type="button" class="v2c-btn s" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
+  // Acabamento 15/11: vazio é uma frase e uma ação, no bloco laranja (sem os quatro números zerados).
+  assert.match(html, /Nenhum orçamento ainda: falta um pacote ativo\.<\/span><\/span><button type="button" class="d3-acao-btn" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
+  assert.equal((html.match(/Ir para Pacotes/g) || []).length, 1);
   assert.doesNotMatch(html.slice(html.indexOf('vc-abas')), /<h3>Orçamentos<\/h3>/, 'o título fica só no cabeçalho');
   assert.match(ler('vybe-mundo-comercial.js'), /'ir-pacotes': \(\) => abrir\('pacotes'/, 'o botão abre a aba Pacotes');
   const css = ler('vybe-mundo.css').split('/* ==== Quadro 20 (Finanças, 11/11/2026)')[1];

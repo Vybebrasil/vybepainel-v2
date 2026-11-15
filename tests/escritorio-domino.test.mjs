@@ -77,7 +77,7 @@ test('mesa de dominó: aposta guardada, mão escondida, batida paga e desistênc
  const {db,sql}=await banco(t);
  const x=await import('../server/escritorio-mesas.js');
  assert.equal((await x.listarMesa(sql,{id:1},MESA)).disponivel,false);
- await assert.rejects(x.desafiarMesa(sql,{id:1},[],{para:'3',...MESA,chave:'domino-0001'}),/migração/);
+ await assert.rejects(x.desafiarMesa(sql,{id:1},[],{para:'3',...MESA,chave:'domino-0001'}),/sendo ligad/);
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-mesas.sql','utf8'));
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-poker-mesa-cheia.sql','utf8'));
  await db.exec(readFileSync('migrations/2026-10-27-escritorio-bots-temporadas.sql','utf8'));

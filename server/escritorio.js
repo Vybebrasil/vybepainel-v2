@@ -293,7 +293,7 @@ export async function enviarMensagemEscritorio(
 // tabela (migração ainda não aplicada), a área avisa em vez de quebrar.
 async function recadosProntos(sql) {
   const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_recados') IS NOT NULL AS existe`;
-  if (!r?.existe) throw Object.assign(new Error("Os recados aguardam a migração revisada do banco."), { status: 503 });
+  if (!r?.existe) throw Object.assign(new Error("Os recados ainda estão sendo ligados."), { status: 503 });
 }
 const idPessoa = (v) => {
   const s = String(v ?? "");
@@ -421,7 +421,7 @@ export async function areaEscritorio(req, res, quem, sql) {
   }
   if (!(await escritorioPronto(sql)))
     return res.status(503).json({
-      error: "O escritório aguarda a migração revisada do banco.",
+      error: "O escritório ainda está sendo ligado.",
       code: "escritorio_setup",
     });
   const pessoa = quem.pessoa;
