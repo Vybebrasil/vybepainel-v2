@@ -3062,7 +3062,10 @@
     if (!body.classList.contains('dock-cartao') && body.classList.contains('cel-voz-aberta')) { body.classList.remove('cel-voz-aberta'); hud.querySelector('[data-cel="voz"]')?.setAttribute('aria-expanded', 'false'); }
     hud.querySelector('[data-cel="voz"]')?.classList.toggle('na-chamada', cel && !nav.querySelector('.vq-cartao'));
     body.classList.toggle('cel-na-sala', cel && String(andarAbertoId || '').startsWith('quarto:'));
-    if (!body.classList.contains('cel-na-sala')) body.classList.remove('cel-dock-aberto');
+    // Só tira a classe se ela estiver lá: classList.remove reescreve o atributo mesmo sem a classe, e o observador da
+    // classe do body rodava sincronizar() inteiro (Hoje, agenda, área livre com recálculo de estilo da página) a cada
+    // 1,5 s, com a pessoa parada (confere de otimização, 14/11/2026).
+    if (!body.classList.contains('cel-na-sala') && body.classList.contains('cel-dock-aberto')) body.classList.remove('cel-dock-aberto');
     const estreita = typeof matchMedia === 'function' && matchMedia('(max-width:900px)').matches;
     const chave = [tela, estreita, html, ...['dock-cartao', 'cel-na-sala', 'cel-voz-aberta', 'cel-dock-aberto'].map((c) => body.classList.contains(c))].join('|');
     if (chave === medidaDock.chave) return;
@@ -3388,11 +3391,14 @@
   // ---------- Agenda (a mesma das Captações: /api/painel?area=captacoes, só leitura) ----------
   const TIPO_COR = { captacao: '#0E9A45', reuniao: '#1A8FA0', outro: '#6B7A72' };
   const TIPO_NOME = { captacao: 'Captação', reuniao: 'Reunião', outro: 'Compromisso' };
-  let agendaEm = 0, agendaEventos = null, agendaErro = '';
+  let agendaEm = 0, agendaEventos = null, agendaErro = '', agendaIndo = null;
   async function carregarAgenda(forcar = false) {
     const fixa = agendaFixa();
     if (body.classList.contains('agenda-fixa') !== fixa) { body.classList.toggle('agenda-fixa', fixa); ajustarAreaLivre(); }
     if (!forcar && agendaEventos && Date.now() - agendaEm < 5 * 60e3) return pintarAgenda();
+    // Uma leitura por vez: na entrada duas chamadas seguidas (antes da primeira voltar) pediam a mesma rota duas vezes.
+    if (!forcar && agendaIndo) return agendaIndo;
+    const ida = (async () => {
     const hoje = mundo?.diaNaBahia?.() || hojeIso();
     try {
       const r = await fetch(`/api/painel?area=captacoes&semana=${hoje}&dias=7`, { credentials: 'same-origin', cache: 'no-store' });
@@ -3404,6 +3410,9 @@
     const hoje2 = mundo?.diaNaBahia?.() || hojeIso();
     mundo?.definirCaptacoes?.(agendaEventos.filter((e) => e.dia === hoje2 && e.tipo === 'captacao' && e.cliente)
       .map((e) => ({ cliente: e.cliente, dia: e.dia, inicio: e.inicio || '', fim: e.fim || '' })));
+    })();
+    agendaIndo = ida;
+    try { return await ida; } finally { if (agendaIndo === ida) agendaIndo = null; }
   }
   document.addEventListener('vybe-datas-prontas', () => pintarAgenda());
   function pintarAgenda() {
