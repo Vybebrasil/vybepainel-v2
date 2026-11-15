@@ -521,7 +521,7 @@ export async function areaCarteira(req, res, quem, criarBanco) {
     if (req.query?.acao === 'onboarding') return res.status(200).json({ ok: true, dia: hojeBahia(), etapas: await onboardingsAbertos(sql) });
     return res.status(200).json({ ok: true, ...(await lerCarteira(sql, quem)) });
   } catch (e) {
-    if (semTabela(e)) return res.status(503).json({ error: `Carteira aguardando ativação: falta aplicar a migração ${MIGRACAO}.`, aguardando: true });
+    if (semTabela(e)) { console.warn(`[carteira] falta a migração ${MIGRACAO}:`, e.message); return res.status(503).json({ error: 'Esta parte ainda está sendo ligada.', aguardando: true }); }
     return res.status(e.status || 500).json({ error: e.status ? e.message : 'Não foi possível acessar a Carteira. Tente novamente.' });
   }
 }

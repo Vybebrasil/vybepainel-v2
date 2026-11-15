@@ -9,6 +9,9 @@
 // A nota aponta para a peça pelo MESMO id que a tela usa ('12672877622' ou
 // 'vybe:10659'), guardado como texto: sem isso, cada leitura teria que traduzir
 // o id do banco para o id da tela e vice-versa.
+// Erro de regra (nota vazia, caderno que não existe): status 4xx com a mensagem para quem usa; o resto é erro interno.
+const regra = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
+
 export const NOTA_CORPO_MAX = 20000;
 export const NOTA_TITULO_MAX = 200;
 export const CADERNO_PADRAO = 'Notas do dia';
@@ -45,10 +48,10 @@ export async function listarCadernos(sql, pessoaId) {
 export async function renomearCaderno(sql, pessoaId, de, para) {
   const antigo = String(de ?? '').trim();
   const novo = String(para ?? '').replace(/\s+/g, ' ').trim().slice(0, CADERNO_MAX);
-  if (!antigo || !novo) throw new Error('Informe o caderno e o nome novo.');
+  if (!antigo || !novo) throw regra('Informe o caderno e o nome novo.');
   const linhas = await sql`UPDATE vybe_notas SET caderno = ${novo}
     WHERE pessoa_id = ${pessoaId} AND caderno = ${antigo} RETURNING id`;
-  if (!linhas.length) throw new Error('Caderno não encontrado.');
+  if (!linhas.length) throw regra('Caderno não encontrado.');
   return { de: antigo, para: novo, notas: linhas.length };
 }
 
@@ -56,28 +59,28 @@ export async function renomearCaderno(sql, pessoaId, de, para) {
 // etiqueta não pode apagar o que estava escrito sem alguém pedir.
 export async function apagarCaderno(sql, pessoaId, nome, { mover = CADERNO_PADRAO, apagarNotas = false } = {}) {
   const alvo = String(nome ?? '').trim();
-  if (!alvo) throw new Error('Informe o caderno.');
+  if (!alvo) throw regra('Informe o caderno.');
   if (apagarNotas) {
     const linhas = await sql`DELETE FROM vybe_notas
       WHERE pessoa_id = ${pessoaId} AND caderno = ${alvo} RETURNING id`;
-    if (!linhas.length) throw new Error('Caderno não encontrado.');
+    if (!linhas.length) throw regra('Caderno não encontrado.');
     return { caderno: alvo, apagadas: linhas.length };
   }
   const destino = String(mover || CADERNO_PADRAO).trim().slice(0, CADERNO_MAX) || CADERNO_PADRAO;
-  if (destino === alvo) throw new Error('Escolha outro caderno para as notas.');
+  if (destino === alvo) throw regra('Escolha outro caderno para as notas.');
   const linhas = await sql`UPDATE vybe_notas SET caderno = ${destino}
     WHERE pessoa_id = ${pessoaId} AND caderno = ${alvo} RETURNING id`;
-  if (!linhas.length) throw new Error('Caderno não encontrado.');
+  if (!linhas.length) throw regra('Caderno não encontrado.');
   return { caderno: alvo, movidas: linhas.length, para: destino };
 }
 
 export async function salvarNota(sql, pessoaId, { id = null, titulo = '', corpo = '', item_ref = null, caderno = CADERNO_PADRAO } = {}) {
   const t = String(titulo ?? '').replace(/\s+/g, ' ').trim().slice(0, NOTA_TITULO_MAX);
   const c = String(corpo ?? '').replace(/\r\n/g, '\n');
-  if (c.length > NOTA_CORPO_MAX) throw new Error(`Nota muito longa (máximo ${NOTA_CORPO_MAX} caracteres).`);
+  if (c.length > NOTA_CORPO_MAX) throw regra(`Nota muito longa (máximo ${NOTA_CORPO_MAX} caracteres).`);
   const ref = item_ref ? String(item_ref).slice(0, 60) : null;
   const cad = String(caderno || CADERNO_PADRAO).replace(/\s+/g, ' ').trim().slice(0, CADERNO_MAX) || CADERNO_PADRAO;
-  if (!t && !c.trim() && !id) throw new Error('Escreva algo antes de salvar a nota.');
+  if (!t && !c.trim() && !id) throw regra('Escreva algo antes de salvar a nota.');
   if (id) {
     // O pessoa_id entra no WHERE: nota de outra pessoa não se edita nem se
     // descobre que existe.
@@ -85,7 +88,7 @@ export async function salvarNota(sql, pessoaId, { id = null, titulo = '', corpo 
         SET titulo = ${t || null}, corpo = ${c}, item_ref = ${ref}, caderno = ${cad}, atualizado_em = NOW()
       WHERE id = ${Number(id)} AND pessoa_id = ${pessoaId}
       RETURNING id, titulo, corpo, item_ref, caderno, criado_em, atualizado_em`;
-    if (!nota) throw new Error('Nota não encontrada.');
+    if (!nota) throw regra('Nota não encontrada.');
     return formatar(nota);
   }
   const [nota] = await sql`INSERT INTO vybe_notas (pessoa_id, titulo, corpo, item_ref, caderno)
@@ -97,7 +100,7 @@ export async function salvarNota(sql, pessoaId, { id = null, titulo = '', corpo 
 export async function apagarNota(sql, pessoaId, id) {
   const [nota] = await sql`DELETE FROM vybe_notas
     WHERE id = ${Number(id)} AND pessoa_id = ${pessoaId} RETURNING id`;
-  if (!nota) throw new Error('Nota não encontrada.');
+  if (!nota) throw regra('Nota não encontrada.');
   return Number(nota.id);
 }
 

@@ -1,0 +1,20 @@
+/* ACABAMENTO PREMIUM · TEXTOS E TELAS (15/11/2026). Fragmento da frente de textos; vem por último na junção.
+   Regra D3: o laranja (.d3-acao) é sempre uma ação. Quando a tela não tem o que pedir, a frase do agente vai na nota
+   branca (.d3-nota, montada por d3NotaHtml em vybe-core.js): mesmo lugar e mesmo tamanho do bloco, sem cor cheia e sem
+   botão. */
+.d3-nota{display:flex;align-items:center;gap:14px;min-width:0;box-sizing:border-box;padding:14px 16px 14px 18px;border-radius:var(--d3-r-cartao);
+  background:var(--d3-cartao);color:var(--d3-tinta);font:600 var(--d3-fs-destaque)/1.3 var(--vv-titulo,Inter,sans-serif)}
+.d3-nota > .d3-nota-frase{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.d3-nota > .d3-nota-frase small{display:block;font:600 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
+.d3-nota > .d3-nota-av{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--d3-agente-veu);color:var(--d3-agente-texto);font:800 var(--d3-fs-texto) var(--vv-titulo,Inter,sans-serif)}
+
+/* Aviso de parte que ainda não está pronta: a frase neutra para todos; o detalhe técnico só para quem administra. */
+.vc-aviso .vc-nota-tec{display:block;margin-top:6px;font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
+
+/* IA e custos sem pedido no período: o "Pede ação" e um cartão só com a frase (no lugar de três cartões vazios). */
+#pv2-ia.d3f .pv2i-baixo.pv2i-sem-uso{grid-template-columns:minmax(0,1.2fr) minmax(0,2fr)}
+@media (max-width:1100px){#pv2-ia.d3f.d3f .pv2i-baixo.pv2i-sem-uso{grid-template-columns:minmax(0,1fr)}}
+
+/* A margem negativa da Conta passava 3 px da tela no celular depois de algumas telas (confere de 15/11/2026): o contêiner
+   corta de lado sem virar área de rolagem. */
+#conta-root{overflow-x:clip}

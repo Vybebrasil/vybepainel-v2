@@ -180,7 +180,7 @@ export async function salvarCamadaEscritorio(sql, pessoa, salas, { camada, itens
 }
 async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao,celdas,decoracao}) {
   conferirEdicao(pessoa, salas, camada);
-  if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável aguarda a migração revisada do banco."), { status: 503 });
+  if (!(await mapaPronto(sql))) throw Object.assign(new Error("O mapa editável ainda está sendo ligado."), { status: 503 });
   const limpos = itensValidos(camada, itens);
   const comum = camada === "geral" || CENAS_COMUNS.has(camada);
   if (celdas !== undefined && (comum || !CELDAS_LIVRES.test(String(celdas)))) throw Object.assign(new Error("Planta do quarto inválida."), { status: 400 });
@@ -233,7 +233,10 @@ async function salvarCamadaTransacional(sql, pessoa, salas, {camada,itens,versao
       RETURNING versao`;
   } catch (e) {
     // Sala comum antes da migração das cenas: o banco ainda não aceita a chave.
-    if (e?.code === "23514" && CENAS_COMUNS.has(camada)) throw Object.assign(new Error("Salvar as salas comuns aguarda a migração do banco (2026-10-18-escritorio-cenas-editaveis.sql)."), { status: 503 });
+    if (e?.code === "23514" && CENAS_COMUNS.has(camada)) {
+      console.warn("[escritorio] salas comuns: falta a migração 2026-10-18-escritorio-cenas-editaveis.sql:", e.message);
+      throw Object.assign(new Error("Salvar as salas comuns ainda está sendo ligado."), { status: 503 });
+    }
     throw e;
   }
   if (!r) throw Object.assign(new Error("Alguém salvou esta área antes. Recarregue para ver a versão nova."), { status: 409 });
@@ -331,7 +334,7 @@ export function tipoDaImagem(buf) {
 }
 export async function enviarImagemEscritorio(sql, pessoa, salas, { camada, tipo, largura, altura, nome = "", dados } = {}) {
   conferirEdicao(pessoa, salas, camada);
-  if (!(await imagensProntas(sql))) throw Object.assign(new Error("Quadros e tapetes aguardam a migração do banco."), { status: 503 });
+  if (!(await imagensProntas(sql))) throw Object.assign(new Error("Quadros e tapetes ainda estão sendo ligados."), { status: 503 });
   if (!["quadro", "tapete"].includes(tipo)) throw Object.assign(new Error("Escolha quadro ou tapete."), { status: 400 });
   if (tipo === "quadro" && camada === "geral") throw Object.assign(new Error("Quadro vai na parede de uma sala."), { status: 400 });
   const w = Number(largura), h = Number(altura);
@@ -380,7 +383,7 @@ export async function apagarImagemEscritorio(sql, pessoa, salas, { id } = {}) {
 async function conferirImagensDaCamada(sql, camada, itens) {
   const usadas = itens.filter(([c]) => IMAGEM_ITEM.test(c));
   if (!usadas.length) return;
-  if (!(await imagensProntas(sql))) throw Object.assign(new Error("Quadros e tapetes aguardam a migração do banco."), { status: 503 });
+  if (!(await imagensProntas(sql))) throw Object.assign(new Error("Quadros e tapetes ainda estão sendo ligados."), { status: 503 });
   const ids = [...new Set(usadas.map(([c]) => c.match(IMAGEM_ITEM)[1]))];
   const linhas = await sql`SELECT id, camada, tipo FROM vybe_escritorio_imagens WHERE id = ANY(${ids}::bigint[])`;
   const por = new Map(linhas.map((l) => [String(l.id), l]));
@@ -406,7 +409,7 @@ async function guardarVersaoAnterior(sql, camada, versao) {
 }
 export async function versoesDaCamada(sql, pessoa, salas, camada) {
   conferirEdicao(pessoa, salas, camada);
-  if (!(await versoesProntas(sql))) throw Object.assign(new Error("O histórico do mapa aguarda a migração do banco."), { status: 503 });
+  if (!(await versoesProntas(sql))) throw Object.assign(new Error("O histórico do mapa ainda está sendo ligado."), { status: 503 });
   const linhas = await sql`SELECT v.id, v.versao, v.salvo_em, jsonb_array_length(v.itens) AS itens, p.nome
     FROM vybe_escritorio_mapa_versoes v LEFT JOIN vybe_pessoas p ON p.id = v.atualizado_por
     WHERE v.camada = ${camada} ORDER BY v.id DESC LIMIT 30`;

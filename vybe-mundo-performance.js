@@ -21,6 +21,8 @@
   const segunda = (iso) => { const x = new Date(`${iso}T12:00:00Z`), w = (x.getUTCDay() + 6) % 7; return somarDias(iso, -w); };
   const mediana = (l) => { const v = l.filter((n) => Number.isFinite(n)).sort((a, b) => a - b); if (!v.length) return null; const m = Math.floor(v.length / 2); return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
   const pctDe = (a, b) => (b ? Math.round((a / b) * 100) : null);
+  // Status no meio da frase ("22 em pode fazer"); o valor de comparação continua o do Monday.
+  const stFrase = (s, inicio = false) => (typeof raiz.statusEmFrase === 'function' ? raiz.statusEmFrase(s, inicio) : s);
   const nomesDe = (d, pessoas) => {
     const ids = Array.isArray(d.responsavel_ids) ? d.responsavel_ids.map(String) : d.responsavel_id ? [String(d.responsavel_id)] : [];
     const porId = ids.map((id) => pessoas?.[id]).filter(Boolean);
@@ -88,7 +90,7 @@
         if (alteracao) g.alteracao += 1;
       }
       if (d.tem_briefing === false) processos.semBriefing.push(id);
-      if (!nomesDe(d, pessoas).length) processos.semResponsavel.push(id);
+      if (raiz.VybeDono?.util?.semDono ? raiz.VybeDono.util.semDono(d) : !nomesDe(d, pessoas).length) processos.semResponsavel.push(id);
       if (/agendar capta/i.test(String(d.captacao || ''))) processos.captacaoAgendar.push(id);
       if (!s.referencia) processos.semData.push(id);
     }
@@ -141,8 +143,8 @@
     const P = ultimo; if (!P) return null;
     const [tipo, qual = '', nome = ''] = String(resto).split('|');
     const TIT = { entregues: 'entregues no período', abertas: 'abertas agora', atrasadas: 'atrasadas agora' };
-    if (tipo === 'etapaAtr') { const e = P.etapas.find((x) => x.status === qual); return e ? { titulo: `atrasadas em ${e.status}`, itens: itensDe(e.idsAtrasadas || []), clicar: abrirPeca } : null; }
-    if (tipo === 'etapa') { const e = P.etapas.find((x) => x.status === qual); return e ? { titulo: `em ${e.status}`, itens: itensDe(e.ids), clicar: abrirPeca } : null; }
+    if (tipo === 'etapaAtr') { const e = P.etapas.find((x) => x.status === qual); return e ? { titulo: `atrasadas em ${stFrase(e.status)}`, itens: itensDe(e.idsAtrasadas || []), clicar: abrirPeca } : null; }
+    if (tipo === 'etapa') { const e = P.etapas.find((x) => x.status === qual); return e ? { titulo: `em ${stFrase(e.status)}`, itens: itensDe(e.ids), clicar: abrirPeca } : null; }
     if (tipo === 'proc') { const ids = P.processos[qual] || []; const T = { semBriefing: 'sem briefing', semResponsavel: 'sem responsável', captacaoAgendar: 'com captação a agendar', esquecidas: 'esquecidas (data vencida há 30+ dias)', pausadas: 'pausadas', semData: 'sem data', solicitacoesAbertas: 'solicitações abertas', solicitacoesVencidas: 'solicitações com conclusão vencida' }; return { titulo: T[qual] || qual, itens: itensDe(ids), clicar: abrirPeca }; }
     const fonte = tipo === 'total' ? P.total : (P[tipo] || []).find((x) => x.nome === nome);
     if (!fonte?.ids?.[qual]) return null;
@@ -182,8 +184,8 @@
     const topo = `<div class="g2-topo"><h2 title="Performance da operação">Performance</h2><small class="g2-topo-sub">${!ativos ? '' : `${pl(ativos, 'cliente ativo', 'clientes ativos')} · `}@@HORA@@</small><span class="g2-seg vv-perf-periodo" role="group" aria-label="Período">${PERIODOS.map(([d, r]) => `<button type="button" data-perf-dias="${d}" aria-pressed="${d === dias}">${r}</button>`).join('')}</span>${D3 ? '' : principal}</div>`;
     // A frase: o gargalo é dono (peça sem responsável) ou etapa (onde a fila está parada).
     const maior = P.etapas[0];
-    const gargalo = semResp && semResp * 2 >= T.abertas ? `O gargalo é dono, não etapa: <b>${n0(semResp)} das ${pl(T.abertas, 'peça aberta', 'peças abertas')} ${semResp === 1 ? 'está' : 'estão'} sem responsável</b>`
-      : maior ? `A fila está mais cheia em <b>${esc(maior.status)}</b>, com ${pl(maior.qtd, 'peça', 'peças')}${semResp ? `, e ${n0(semResp)} ${semResp === 1 ? 'está' : 'estão'} sem responsável` : ''}` : '<b>Nenhuma peça aberta agora</b>';
+    const gargalo = semResp && semResp * 2 >= T.abertas ? `O gargalo é a distribuição, não a etapa: <b>${n0(semResp)} das ${pl(T.abertas, 'peça aberta', 'peças abertas')} ${semResp === 1 ? 'está' : 'estão'} sem responsável</b>`
+      : maior ? `A fila está mais cheia em <b>${esc(stFrase(maior.status))}</b>, com ${pl(maior.qtd, 'peça', 'peças')}${semResp ? `, e ${n0(semResp)} ${semResp === 1 ? 'está' : 'estão'} sem responsável` : ''}` : '<b>Nenhuma peça aberta agora</b>';
     const frase = `${gargalo}${T.atrasadas ? ` e <b>${pl(T.atrasadas, 'já passou', 'já passaram')} da data</b>` : ''}. `
       + (T.entregues ? `Em ${esc(rotDias)} ${T.entregues === 1 ? 'saiu' : 'saíram'} ${n0(T.entregues)}${T.noPrazoPct != null ? `, ${T.noPrazoPct}% no prazo do cliente` : ''}${T.tempoMediano != null ? `, em ${dd(T.tempoMediano)} do cadastro à entrega (mediana)` : ''}.`
         : `Nada saiu em ${esc(rotDias)}, então ainda não dá para medir prazo nem tempo de entrega.`);
@@ -204,8 +206,8 @@
     ];
     const linhaProc = ([q, t, s, tom]) => ({ q, n: nProc(q), tom, pill: n0(nProc(q)), texto: `<b>${esc(t)}</b> · ${esc(s)}`, botao: nProc(q) ? btn('Ver quais são', `data-espiar="perf:proc|${q}"`) : '' });
     const comNumero = PROC.filter(([q, , , tom]) => nProc(q) && tom !== 'n').map(linhaProc);
-    if (T.atrasadas) comNumero.push({ n: T.atrasadas, tom: 'r', pill: n0(T.atrasadas), texto: `<b>Atrasadas</b>${porAtraso.length ? ' · ' + porAtraso.slice(0, 2).map((e) => `${n0(e.atrasadas)} em ${esc(e.status)}`).join(', ') : ''}`, botao: btn(T.atrasadas === 1 ? 'Abrir a atrasada' : `Abrir as ${n0(T.atrasadas)}`, 'data-espiar="perf:total|atrasadas"') });
-    if (aprov) comNumero.push({ n: aprov.atrasadas, tom: 'a', pill: n0(aprov.atrasadas), texto: `<b>${esc(aprov.status)}</b> ${aprov.atrasadas === 1 ? 'vencida' : 'vencidas'}, esperando o cliente`, botao: btn('Ver quais são', `data-espiar="perf:etapaAtr|${esc(aprov.status)}"`) });
+    if (T.atrasadas) comNumero.push({ n: T.atrasadas, tom: 'r', pill: n0(T.atrasadas), texto: `<b>Atrasadas</b>${porAtraso.length ? ' · ' + porAtraso.slice(0, 2).map((e) => `${n0(e.atrasadas)} em ${esc(stFrase(e.status))}`).join(', ') : ''}`, botao: btn(T.atrasadas === 1 ? 'Abrir a atrasada' : `Abrir as ${n0(T.atrasadas)}`, 'data-espiar="perf:total|atrasadas"') });
+    if (aprov) comNumero.push({ n: aprov.atrasadas, tom: 'a', pill: n0(aprov.atrasadas), texto: `<b>${esc(stFrase(aprov.status, true))}</b> ${aprov.atrasadas === 1 ? 'vencida' : 'vencidas'}, esperando o cliente`, botao: btn('Ver quais são', `data-espiar="perf:etapaAtr|${esc(aprov.status)}"`) });
     const ordem = comNumero.sort((a, b) => (a.tom === b.tom ? b.n - a.n : a.tom === 'r' ? -1 : 1));
     const zerados = PROC.filter(([q, , , tom]) => !nProc(q) && tom !== 'n'), informa = PROC.filter(([, , , tom]) => tom === 'n');
     const foraN = Math.max(0, ordem.length - 3);
@@ -253,7 +255,7 @@
     let corpo = tela(falaHtml, numeros, duas(`<div class="g2-col">${pedeHtml}${entregasHtml}</div>`, filaHtml, 'iguais'), abrir, mais('Tabelas por departamento, formato, pessoa e cliente', antigo));
     if (D3) {
       const dono = semResp && semResp * 2 >= T.abertas;
-      const fraseD3 = dono ? `O gargalo é dono: ${pl(semResp, 'peça', 'peças')} sem responsável.` : maior ? `A fila trava em ${esc(maior.status)}: ${pl(maior.qtd, 'peça', 'peças')}.` : 'Nenhuma peça aberta agora.';
+      const fraseD3 = dono ? `O gargalo é a distribuição: ${pl(semResp, 'peça', 'peças')} sem responsável.` : maior ? `A fila trava em ${esc(stFrase(maior.status))}: ${pl(maior.qtd, 'peça', 'peças')}.` : 'Nenhuma peça aberta agora.';
       const [rotBtn, attrs] = semResp ? [semResp === 1 ? 'Distribuir a peça' : `Distribuir as ${n0(semResp)}`, 'data-espiar="perf:proc|semResponsavel"'] : T.atrasadas ? [T.atrasadas === 1 ? 'Abrir a atrasada' : `Abrir as ${n0(T.atrasadas)}`, 'data-espiar="perf:total|atrasadas"'] : ['', ''];
       const acao = D3.acao({ frase: fraseD3, agente: 'H', botao: rotBtn, attrs: `${attrs} title="${esc(frase.replace(/<[^>]*>/g, ''))}"` })
         .replace('<span class="d3-acao-frase">', '<span class="d3-acao-frase"><small class="d3s-quem">Heitor · Coordenação</small>');

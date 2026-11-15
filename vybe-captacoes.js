@@ -792,9 +792,10 @@ function captTituloDaVista() {
   const mes = (x) => x.toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" });
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   if (CAPT.vista === "dia") return { titulo: cap(data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).replace("-feira", "")), sub: String(data.getUTCFullYear()) };
-  if (CAPT.vista === "mes") return { titulo: `${cap(mes(data))} ${data.getUTCFullYear()}`, sub: "" };
+  // Mês por extenso com "de" (padrão de datas, docs/padrao-visual.md): "Novembro de 2026".
+  if (CAPT.vista === "mes") return { titulo: `${cap(mes(data))} de ${data.getUTCFullYear()}`, sub: "" };
   const ini = new Date(`${CAPT.semana}T12:00:00Z`), fim = new Date(`${agSomar(CAPT.semana, 6)}T12:00:00Z`);
-  return { titulo: cap(ini.getUTCMonth() === fim.getUTCMonth() ? `${mes(ini)} ${ini.getUTCFullYear()}` : `${mes(ini)} – ${mes(fim)} ${fim.getUTCFullYear()}`), sub: agPeriodo(CAPT.semana) };
+  return { titulo: cap(ini.getUTCMonth() === fim.getUTCMonth() ? `${mes(ini)} de ${ini.getUTCFullYear()}` : `${mes(ini)} a ${mes(fim)} de ${fim.getUTCFullYear()}`), sub: agPeriodo(CAPT.semana) };
 }
 
 function captacoesHtml() {

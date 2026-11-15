@@ -31,7 +31,7 @@ test('Painel de trabalho na ordem do quadro D3: título com a data, vistas, Modo
   assert.match(painel, /d3pAcao\(\{ agente: 'H', quem: 'Heitor · Coordenação', frase, botao, attrs: `onclick="\$\{acao\}"` \}\)/);
   naOrdem(painel, ["kpi('Publica hoje'", "kpi('Pendentes'", "kpi('Semana fechada'"]);
   assert.match(painel, /serie: porDia\(\(\) => true\)/, 'a mini linha vem das publicações de cada dia da semana');
-  naOrdem(painel, ["ficha('Requer ação'", "ficha('Vence hoje'", "ficha('Sem dono'", "ficha('Menos de 3 posts'"]);
+  naOrdem(painel, ["ficha('Requer ação'", "ficha('Vencidas e de hoje'", "ficha('Sem dono na semana'", "ficha('Menos de 3 posts'"]);
   assert.equal((painel.match(/class="pv2-btn p"/g) || []).length, 0);
 });
 
@@ -103,7 +103,9 @@ test('Agenda e captações (Direção 3): cabeçalho com abas e Marcar captaçã
 // IA e custos segue o quadro D3-IaCustos (Direção 3, 13/11/2026): selo "só donos", bloco de ação do Alex (o único laranja
 // cheio), quatro números e três colunas; o gasto por dia é uma linha (d3LinhaSvg) e os parâmetros ficam em "Em quê".
 test('IA e custos na ordem do quadro D3: período, Atualizar, Definir teto, bloco do Alex, quatro números, Pede ação com o gasto por dia, Com quem e Em quê', () => {
-  naOrdem(ia, ['<h2>IA e custos</h2>', 'PV2I_SELO', '[7, 30, 90].map', '>Atualizar</button>', 'class="pv2-btn d3f-escuro" onclick="pv2iAbrirParametros(true)">Definir teto</button>']);
+  naOrdem(ia, ['<h2>IA e custos</h2>', 'PV2I_SELO', '[7, 30, 90].map', '>Atualizar</button>']);
+  // Acabamento 15/11: o "Definir teto" preto saiu do topo (ficava igual à aba selecionada); a ação mora no bloco do Alex.
+  assert.ok(!ia.includes('class="pv2-btn d3f-escuro" onclick="pv2iAbrirParametros(true)">Definir teto</button>'));
   naOrdem(ia, ['d3LinhaSvg(lista.map((d) => d.custo), { meta: media', '>Parâmetros</summary>', 'id="ai-budget-input"', 'id="ai-usd-input"', 'id="ai-gemini-billing"', 'onclick="saveAiUsageSettings()"', '<h3>Com quem</h3>', "<h3>Em quê</h3><span class=\"pv2-sub\">${agentes.length ? 'por agente' : 'por modelo'}</span>", '${parametros}']);
   const tela = bloco(ia, 'root.innerHTML = `<div id="pv2-ia"');
   naOrdem(tela, ['${pv2iTopoHtml()}', '${blocoAcao}', 'Gasto em ${dias} dias', '${Mes} fecha perto de', 'Pedidos em ${dias} dias', "'Teto mensal'", '${pedeAcao}${porDiaHtml}', '${comQuem}${emQueHtml}']);

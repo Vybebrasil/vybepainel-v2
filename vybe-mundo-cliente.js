@@ -462,7 +462,7 @@
     try {
       const d = await pljPedir(`cliente_id=${encodeURIComponent(id)}`);
       if (!caixa.isConnected) return;
-      caixa.innerHTML = d?.disponivel ? planejamentosHtml(lista(d.planejamentos)) : nota('Os planejamentos ainda não foram ligados no banco.');
+      caixa.innerHTML = d?.disponivel ? planejamentosHtml(lista(d.planejamentos)) : nota('Os planejamentos ainda não estão disponíveis.');
     } catch (erro) {
       if (caixa.isConnected) caixa.innerHTML = nota(`Não foi possível buscar os planejamentos: ${erro?.message || 'o painel não respondeu'}`, 'erro');
     }

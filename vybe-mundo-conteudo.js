@@ -24,17 +24,22 @@
   if (!E) return;
   const ROTA = '/api/painel?area=conteudo_modulo';
   const st = { objetivos: {}, respostas: {}, pronto: null, aviso: '', carregado: false, aberto: false, aba: 'aprovar', apr: 0, aprAss: '', aprLista: false, lote: [], loteRef: '', falaN: -1,
-    mes: '', cliente: '', peca: '', ajuda: false, links: null, erroLinks: '', novoLink: null, gerando: false, timer: 0, thumbs: {} };
+    mes: '', cliente: '', peca: '', ajuda: false, verFalta: false, links: null, erroLinks: '', novoLink: null, gerando: false, timer: 0, thumbs: {} };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = { fechar: svg('<path d="M6 6l12 12M18 6 6 18"/>'), esq: svg('<path d="M15 18l-6-6 6-6"/>'), dir: svg('<path d="M9 18l6-6-6-6"/>'),
     marca: svg('<circle cx="7" cy="12" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="17" cy="17" r="3"/>'), link: svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>') };
   const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   const nomeDoMes = (m) => { const n = MESES[Number(m.slice(5)) - 1]; return `${n[0].toUpperCase()}${n.slice(1)} de ${m.slice(0, 4)}`; };
-  const mesCurto = (m) => `${MESES[Number(m.slice(5)) - 1].slice(0, 3)} ${m.slice(0, 4)}`;
+  // Mês no seletor por extenso (padrão de datas, docs/padrao-visual.md): "Novembro de 2026", não "nov 2026".
+  const mesCurto = (m) => nomeDoMes(m);
   const hoje = () => (typeof hojeDeVerdade === 'function' ? hojeDeVerdade() : new Date().toISOString().slice(0, 10));
   const normal = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   const toast = (t, tipo = 'info') => (typeof showToast === 'function' ? showToast(t, tipo) : null);
+  // Parte que ainda não está pronta no banco: uma frase neutra para todos; o detalhe técnico (o que o servidor mandou)
+  // só atrás do "Para quem administra: o que falta", e só para quem administra.
+  const souAdminAqui = () => { try { return typeof souAdmin === 'function' && Boolean(souAdmin()); } catch { return false; } };
+  const avisoParte = (tecnico) => `<div class="vc-aviso" role="status">Esta parte ainda está sendo ligada.${souAdminAqui() && tecnico ? ` <button type="button" class="vc-sec" data-vc-falta aria-expanded="${st.verFalta}">Para quem administra: o que falta</button>${st.verFalta ? `<small class="vc-nota-tec">${esc(tecnico)}</small>` : ''}` : ''}</div>`;
   const mesSeguinte = (m) => { const [a, n] = m.split('-').map(Number); return n === 12 ? `${a + 1}-01` : `${a}-${String(n + 1).padStart(2, '0')}`; };
 
   // ---------- Dados ----------
@@ -74,7 +79,7 @@
   }
   function campoObjetivoHtml(item) {
     const id = String(item?.id || ''), atual = objetivoDe(id);
-    if (st.pronto === false) return `<span class="vc-objetivo-campo vc-indisponivel" title="${esc(st.aviso)}">Aguardando migração</span>`;
+    if (st.pronto === false) return `<span class="vc-objetivo-campo vc-indisponivel" title="Esta parte ainda está sendo ligada.">Ainda indisponível</span>`;
     return `<span class="vc-objetivo-campo" role="radiogroup" aria-label="Objetivo da peça" data-vc-item="${esc(id)}">${E.OBJETIVOS.map((o) =>
       `<button type="button" role="radio" aria-checked="${atual === o}" class="${atual === o ? 'ativo' : ''}" data-vc-objetivo="${o}" title="${atual === o ? 'Tirar o objetivo' : 'Marcar como ' + E.ROTULO[o]}"><i style="--c:${E.COR[o]}"></i>${E.ROTULO[o]}</button>`).join('')}</span>`;
   }
@@ -164,7 +169,7 @@
     const topo = `<div class="v2c-topo"><h2>Aprovação</h2>
       <span class="v2c-mes" role="group" aria-label="Mês"><button type="button" data-vc-mes="-1" aria-label="Mês anterior">‹</button><button type="button" class="v2c-mes-nome" data-vc-mes="0" title="${esc(nomeDoMes(st.mes))}${mesAtual ? '' : ': voltar para este mês'}">${esc(mesCurto(st.mes))}</button><button type="button" data-vc-mes="1" aria-label="Próximo mês">›</button></span>
       <span class="v2c-seg" role="tablist"><button type="button" role="tab" data-vc-aba="aprovar" aria-selected="${st.aba === 'aprovar'}">Para aprovar${nFila ? ` <span class="d3a-n">${nFila}</span>` : ''}</button><button type="button" role="tab" data-vc-aba="cliente" aria-selected="${st.aba === 'cliente'}">Com o cliente${nCliente ? ` <span class="d3a-n">${nCliente}</span>` : ''}</button><button type="button" role="tab" data-vc-aba="equilibrio" aria-selected="${st.aba === 'equilibrio'}">Equilíbrio do mês</button><button type="button" role="tab" data-vc-aba="links" aria-selected="${st.aba === 'links'}" title="Links de aprovação">Links</button></span>
-      <button type="button" class="v2c-btn" data-vc-ajuda aria-expanded="${st.ajuda}" aria-label="O que é este módulo?" title="O que é este módulo?">?</button>
+      <button type="button" class="v2c-btn" data-vc-ajuda aria-expanded="${st.ajuda}" aria-label="Como funciona" title="Como funciona">Como funciona</button>
       <button type="button" class="v2c-btn v2c-x" data-vc-fechar aria-label="Fechar (Esc)" title="Fechar (Esc)">${IC.fechar}</button></div>`;
     const ajuda = st.ajuda ? `<div class="vc-ajuda" role="note"><b>Como funciona</b>
       <p>Cada peça tem um <b>objetivo</b>: <i style="--c:${E.COR.atracao}"></i>Atração traz gente nova, <i style="--c:${E.COR.educacao}"></i>Educação explica e gera confiança, <i style="--c:${E.COR.conversao}"></i>Conversão chama para comprar. Marque no cadastro ou na peça (gaveta → Objetivo).</p>
@@ -172,7 +177,7 @@
       <p>No calendário, a marca ao lado da bolinha mostra a <b>aprovação</b>: para aprovar internamente, alteração interna, aprovado internamente, alteração do cliente e aprovado pelo cliente (status do painel + resposta pelo link).</p>
       <p>Em <b>Links de aprovação</b>, o head gera um link com validade para o cliente aprovar ou pedir ajuste sem login. Ele só vê as peças dele em "Ag. Aprovação Cliente".</p>
       <p>Em <b>Para aprovar</b>, Aprovar manda a peça para Para agendar e Pedir alteração devolve com o seu recado. As duas pedem confirmação antes de gravar. Se o quadro da peça não tiver esses status, ela abre para você decidir por lá. Tocar na arte abre a peça; as setas do teclado, ou arrastar o cartão, passam para a próxima.</p></div>` : '';
-    const aviso = st.pronto === false && st.aviso ? `<div class="vc-aviso" role="status">${esc(st.aviso)}</div>` : '';
+    const aviso = st.pronto === false ? avisoParte(st.aviso) : '';
     el.innerHTML = topo + ajuda + aviso + `<div class="vc-corpo">${st.aba === 'links' ? corpoLinks() : st.aba === 'cliente' ? corpoCliente() : st.aba === 'aprovar' ? corpoAprovar() : corpoEquilibrio()}</div>`;
     if (st.aba === 'aprovar') st.aprAss = assinaturaDaFila();
   }
@@ -333,15 +338,19 @@
     if (!f) frase = esc(A()?.estado?.().erro || 'Carregando o que espera a sua aprovação…');
     else {
       const n = f.fila.length, am = deAmanha(f.fila).length;
-      frase = n ? `<span${st.falaN === n ? '' : ' class="v2-num"'}>${plural(n, 'peça', 'peças')}</span> ${n === 1 ? 'espera' : 'esperam'} você` : 'Nada esperando você';
+      // Uma frase por bloco e o botão faz o que a frase pede (acabamento 15/11): com peça de amanhã, a frase diz quantas
+      // vão ao ar amanhã e o botão aprova; sem fila, o que falta no equilíbrio do mês e o botão abre os clientes.
+      frase = n ? `<span${st.falaN === n ? '' : ' class="v2-num"'}>${plural(n, 'peça', 'peças')}</span> ${n === 1 ? 'espera' : 'esperam'} você${am ? `; ${am === 1 ? '1 vai' : `${am} vão`} ao ar amanhã` : ''}` : 'Nada esperando você';
       st.falaN = n;
       if (am) botao = `<button type="button" class="d3-acao-btn" data-vc-apr-lote>${am === 1 ? 'Aprovar a de amanhã' : `Aprovar as ${am} de amanhã`}</button>`;
+      if (!n && pecasDoPainel().length) {
+        const cl = dadosDoMes().atual.clientes;
+        const falta = E.OBJETIVOS.map((o) => [o, cl.filter((c) => (c.falta || []).includes(o)).length]).sort((a, b) => b[1] - a[1])[0];
+        if (falta?.[1]) { frase = `Nada esperando você; falta ${E.ROTULO[falta[0]].toLowerCase()} em ${plural(falta[1], 'cliente', 'clientes')} neste mês`; botao = `<button type="button" class="d3-acao-btn" data-vc-aba="equilibrio">${falta[1] === 1 ? 'Ver o cliente' : `Ver os ${falta[1]} clientes`}</button>`; }
+      }
     }
-    if (f && pecasDoPainel().length) {
-      const cl = dadosDoMes().atual.clientes;
-      const falta = E.OBJETIVOS.map((o) => [o, cl.filter((c) => (c.falta || []).includes(o)).length]).sort((a, b) => b[1] - a[1])[0];
-      if (falta?.[1]) { frase += ` · falta ${E.ROTULO[falta[0]].toLowerCase()} em ${plural(falta[1], 'cliente', 'clientes')}`; if (!botao) botao = `<button type="button" class="d3-acao-btn" data-vc-aba="equilibrio">${falta[1] === 1 ? 'Ver qual' : `Ver os ${falta[1]}`}</button>`; }
-    }
+    // Sem botão, a frase vai na nota branca: o laranja é só para ação.
+    if (!botao) return `<section class="d3-nota d3a-acao" role="status"><span class="d3-nota-av" aria-hidden="true">A</span><span class="d3-nota-frase"><small class="d3a-quem">Augusto · Copy</small><span class="d3a-frase">${frase}${f ? '.' : ''}</span></span></section>`;
     return `<section class="d3-acao d3a-acao" aria-label="Augusto · Copy e conteúdo"><span class="d3-acao-av" aria-hidden="true">A</span><span class="d3-acao-frase"><small class="d3a-quem">Augusto · Copy</small><span class="d3a-frase">${frase}${f ? '.' : ''}</span></span>${botao}</section>`;
   }
   // Os quatro números: quantas esperam (e de quem), a mais antiga, as que estão com o cliente e as aprovadas pelo cliente.
@@ -413,16 +422,16 @@
   function cartaoEquilibrio() {
     const topo = (sub) => `<div class="d3a-topo"><h3>Equilíbrio do mês</h3><span>${sub}</span></div>`;
     if (!pecasDoPainel().length) return `<section class="d3a-card v2c-eq" aria-label="Equilíbrio do mês">${topo('')}<p class="d3a-vazio">As peças ainda estão carregando.</p></section>`;
-    const d = dadosDoMes(), g = d.atual.geral, cl = d.atual.clientes, ant = MESES[Number(E.mesAnterior(st.mes).slice(5)) - 1].slice(0, 3);
+    const d = dadosDoMes(), g = d.atual.geral, cl = d.atual.clientes, ant = MESES[Number(E.mesAnterior(st.mes).slice(5)) - 1];
     const abrirAba = '<button type="button" class="d3a-chip" data-vc-aba="equilibrio">Abrir</button>';
-    if (!cl.length) return `<section class="d3a-card v2c-eq" aria-label="Equilíbrio do mês">${topo(`${ant} ${d.anterior.geral.total}`)}<p class="d3a-vazio">Nenhuma peça com data em ${esc(nomeDoMes(st.mes).toLowerCase())}.</p><div class="d3a-pe">${abrirAba}</div></section>`;
+    if (!cl.length) return `<section class="d3a-card v2c-eq" aria-label="Equilíbrio do mês">${topo(`${d.anterior.geral.total} em ${ant}`)}<p class="d3a-vazio">Nenhuma peça com data em ${esc(nomeDoMes(st.mes).toLowerCase())}.</p><div class="d3a-pe">${abrirAba}</div></section>`;
     const pontos = [...E.OBJETIVOS.map((o) => [g[o] || 0, E.ROTULO[o].toLowerCase(), o]), [g.sem || 0, 'sem objetivo', 'sem']];
     const linhas = cl.slice(0, 4).map((c) => {
       const r = E.resumoCurto(c), falta = c.falta || [];
-      return `<button type="button" class="v2c-eq-lin d3a-eq-lin" data-vc-eq-cliente="${esc(c.cliente)}" title="${esc(c.frase)}">${cliHtml(c.cliente)}<span class="d3a-faltas">${falta.length ? falta.map((o) => `<span class="d3a-pill">− ${esc(E.ROTULO[o].toLowerCase())}</span>`).join('') : `<span class="d3a-pill${r.tom === 'ok' ? ' g' : ''}">${esc(r.texto)}</span>`}</span></button>`;
+      return `<button type="button" class="v2c-eq-lin d3a-eq-lin" data-vc-eq-cliente="${esc(c.cliente)}" title="${esc(c.frase)}">${cliHtml(c.cliente)}<span class="d3a-faltas">${falta.length ? falta.map((o) => `<span class="d3a-pill">falta ${esc(E.ROTULO[o].toLowerCase())}</span>`).join('') : `<span class="d3a-pill${r.tom === 'ok' ? ' g' : ''}">${esc(r.texto)}</span>`}</span></button>`;
     }).join('');
     const resto = cl.length - Math.min(4, cl.length), media = Math.round(g.total / cl.length);
-    return `<section class="d3a-card v2c-eq" aria-label="Equilíbrio do mês">${topo(`${plural(g.total, 'peça', 'peças')} · ${ant} ${d.anterior.geral.total}`)}
+    return `<section class="d3a-card v2c-eq" aria-label="Equilíbrio do mês">${topo(`${plural(g.total, 'peça', 'peças')} · ${d.anterior.geral.total} em ${ant}`)}
       <p class="d3a-leg">${pontos.map(([n, r, o]) => `<span class="d3a-l-${o}"><i aria-hidden="true"></i><b>${n}</b> ${r}</span>`).join('')}</p>
       <div class="d3a-linhas">${linhasDoMes(d)}</div>
       <div class="d3a-eq-lista">${linhas}</div>
@@ -640,7 +649,7 @@
     if (st.erroLinks) return vazio(st.erroLinks, 'Tente de novo em instantes.', '<button type="button" class="vc-sec" data-vc-recarregar-links>Tentar de novo</button>');
     if (!st.links) return vazio('Carregando os clientes…');
     const d = st.links;
-    const aviso = d.pronto === false ? `<div class="vc-aviso">${esc(d.aviso || 'Os links aguardam a migração do banco.')}</div>` : '';
+    const aviso = d.pronto === false && !(st.pronto === false) ? avisoParte(d.aviso) : '';
     if (!d.clientes?.length) return aviso + vazio('Você ainda não é head de nenhum cliente.', 'O link de aprovação é gerado pelo head do cliente ou por quem administra.');
     const novo = st.novoLink ? `<div class="vc-novo-link" role="status"><b>Link de ${esc(st.novoLink.cliente)} pronto</b><span>Copie e mande para o cliente pelo canal de sempre. Ele aparece só agora.</span>
       <span class="vc-novo-linha"><input readonly value="${esc(st.novoLink.link)}" aria-label="Link de aprovação" data-vc-link-campo><button type="button" class="vc-acao" data-vc-copiar>Copiar</button></span></div>` : '';
@@ -684,6 +693,7 @@
     if (!t.closest('#vv-conteudo')) return;
     if (t.matches('[data-vc-fechar]')) return fechar();
     if (t.matches('[data-vc-ajuda]')) { st.ajuda = !st.ajuda; return pintar(); }
+    if (t.matches('[data-vc-falta]')) { st.verFalta = !st.verFalta; return pintar(); }
     if (t.dataset.vcAba) { st.aba = t.dataset.vcAba; st.lote = []; if (['links', 'cliente'].includes(st.aba) && !st.links) carregarLinks(); if (st.aba === 'aprovar') relerFila(); return pintar(); }
     if (t.dataset.vcEqCliente !== undefined) { st.aba = 'equilibrio'; st.cliente = t.dataset.vcEqCliente; st.peca = ''; st.lote = []; return pintar(); }
     if (t.matches('[data-vc-apr-lista]')) { st.aprLista = t.closest('.v2c-fila') ? true : !st.aprLista; st.lote = []; return pintar(); }

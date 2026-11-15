@@ -19,7 +19,7 @@ export async function roteirosProntos(sql) {
   return Boolean(r?.existe);
 }
 async function exigirTabelas(sql) {
-  if (!(await roteirosProntos(sql))) throw erro('Os roteiros aguardam a migração do banco.', 503);
+  if (!(await roteirosProntos(sql))) throw erro('Os roteiros ainda estão sendo ligados.', 503);
 }
 
 // Aceita o link do Docs (…/document/d/<id>/edit) ou o próprio id.

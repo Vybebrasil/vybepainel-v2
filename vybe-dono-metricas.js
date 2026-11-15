@@ -67,7 +67,10 @@
 // - previstasFeitas = previstas de hoje já entregues; faltam = previstas de hoje
 //   abertas e não pausadas; pausadas = previstas de hoje em Segurar Post.
 //   (previstas = previstasFeitas + faltam + pausadas.)
-// - atrasadas e emRisco como acima; furos = atrasadas com a veiculação vencida.
+// - atrasadas e emRisco como acima; furos = atrasadas com a veiculação vencida, que se dividem em
+//   furosProducao (a peça não ficou pronta) e semPostar (Para agendar ou Agendado sem Finalizado).
+// - semDono = abertas, não pausadas nem esquecidas, sem responsável nenhum (util.semDono: nem id nem
+//   nome). Id do Monday sem pessoa no cadastro tem dono: no Time ela aparece como "Sem cadastro".
 // - paraAgendar = peças em "Para agendar" com veiculação hoje ou vencida (pronta e
 //   ainda não agendada: o mesmo aviso das cobranças do Escritório).
 //
@@ -230,6 +233,11 @@
   const compararNomes = (a, b) => String(a).localeCompare(String(b), 'pt-BR');
   // Heads do cadastro: lista ou texto separado por vírgula (a mesma regra de vybe-carteira-saude.js).
   const SEM_HEAD = 'Sem head';
+  const SEM_CADASTRO = 'Sem cadastro';
+  // Peça sem dono = sem responsável nenhum: nem id (responsavel_ids/responsavel_id) nem nome no campo Responsável. Id do
+  // Monday sem pessoa ligada no cadastro TEM dono (só falta o cadastro): conta como "Sem cadastro", não como sem dono.
+  // A mesma regra para o Painel, a Produção e a Performance (auditoria 15/11, item 31).
+  const semDono = (d) => !idsDe(d || {}).length && !String(d?.responsavel || '').replace(/[—-]/g, '').trim();
   const headsDe = (c) => {
     const lista = Array.isArray(c?.heads) ? c.heads : String(c?.heads || '').split(',');
     const nomes = [];
@@ -346,7 +354,8 @@
         const partes = String(d.responsavel || '').split(',').map((x) => x.trim()).filter(Boolean);
         if (partes.length === ids.length) nome = partes[i];
       }
-      if (!nome) return `Pessoa ${id}`;
+      // Id do Monday sem pessoa ligada no cadastro (auditoria 15/11, item 19): a tela diz "Sem cadastro", não o número.
+      if (!nome) return SEM_CADASTRO;
       nomesResolvidos.set(id, nome);
       return nome;
     };
@@ -411,7 +420,7 @@
 
     // ── Contas ───────────────────────────────────────────────────────────────────
     const previstasHoje = [], feitasHoje = [], atrasadas = [], emRisco = [], esquecidas = [];
-    const paraAgendarHoje = [], paraAgendarVencidas = [], agendadasVencidas = [], travadas = [], esperando = [], semResponsavel = [], semBriefing = [];
+    const paraAgendarHoje = [], paraAgendarVencidas = [], agendadasVencidas = [], travadas = [], esperando = [], semResponsavel = [], semBriefing = [], semDonoAbertas = [];
     let previstasEntreguesSemana = 0;
     const entreguesPorStatusSemana = new Map();
     const gargalos = new Map();
@@ -422,7 +431,7 @@
         t = { pessoaId: pid, pessoa: '', abertas: 0, entregues7d: 0, atrasadas: [], emRisco: [], paradas: [], semBriefing: [], idades: [] };
         porPessoa.set(pid, t);
       }
-      if (!t.pessoa || t.pessoa.startsWith('Pessoa ')) t.pessoa = nomeDoResponsavel(pid, p.d, i, p.ids);
+      if (!t.pessoa || t.pessoa === SEM_CADASTRO) t.pessoa = nomeDoResponsavel(pid, p.d, i, p.ids);
       return t;
     };
 
@@ -433,6 +442,8 @@
       if (p.atrasada) atrasadas.push(p);
       if (p.emRisco) emRisco.push(p);
       if (p.esquecida) esquecidas.push(p);
+      p.semDono = semDono(p.d);
+      if (p.semDono && !p.entregue && !p.pausada && !p.esquecida) semDonoAbertas.push(p);
       if (p.chave === 'para agendar' && p.veic) {
         if (p.veic === dia) paraAgendarHoje.push(p);
         else if (p.veic < dia && p.veic >= limiteEsquecida) paraAgendarVencidas.push(p);
@@ -441,7 +452,7 @@
       if (p.naJanela) {
         if (TRAVADA.has(p.chave)) travadas.push(p);
         if (p.esperaCliente) esperando.push(p);
-        if (!p.ids.length) semResponsavel.push(p);
+        if (p.semDono) semResponsavel.push(p);
         if (p.d.tem_briefing === false) semBriefing.push(p);
         let g = gargalos.get(p.chave);
         if (!g) { g = { status: rotuloDe(p), qtd: 0, idades: [], maisAntiga: null, pecas: [] }; gargalos.set(p.chave, g); }
@@ -523,11 +534,19 @@
       previstasFeitas: previstasHoje.filter((p) => p.entregue).length,
       pausadas: previstasHoje.filter((p) => !p.entregue && p.pausada).length,
       furos: furos.length,
+      // Os furos se dividem em dois (auditoria 15/11, item 30): os da produção (a peça não ficou pronta) e os que já
+      // acabaram e esperam postar (Para agendar ou Agendado com a veiculação vencida, sem Finalizado). O alerta
+      // "peças furando a data do cliente" conta só os da produção; furos = furosProducao + semPostar.
+      furosProducao: furos.filter((p) => !p.aguardaPostar).length,
+      semPostar: furos.filter((p) => p.aguardaPostar).length,
       prazoInternoVencido: soPrazoInterno.length,
+      // Sem dono: abertas, não pausadas nem esquecidas, sem responsável nenhum (util.semDono). A janela de produção
+      // (o alerta) é um recorte disso.
+      semDono: semDonoAbertas.length,
       esquecidas: esquecidas.length,
       paraAgendar: { hoje: paraAgendarHoje.length, vencidas: paraAgendarVencidas.length, agendadasVencidas: agendadasVencidas.length },
       feitasPorStatus: contarPorStatus(feitasHoje),
-      lista: { faltam: faltam.map(peca), emRisco: emRisco.map(peca), atrasadas: atrasadas.map(peca) },
+      lista: { faltam: faltam.map(peca), emRisco: emRisco.map(peca), atrasadas: atrasadas.map(peca), semDono: semDonoAbertas.sort(porData).map(peca) },
     };
 
     // ── Semana ───────────────────────────────────────────────────────────────────
@@ -627,7 +646,7 @@
       if (t.paradas.length) cobrar.push(`${plural(t.paradas.length, 'peça parada', 'peças paradas')} há ${R.paradaDias}+ dias: ${nomesDasPecas(t.paradas)}`);
       if (t.semBriefing.length) cobrar.push(`${t.semBriefing.length} sem briefing`);
       return {
-        pessoaId: t.pessoaId, pessoa: t.pessoa, abertas: t.abertas, atrasadas: t.atrasadas.length, emRisco: t.emRisco.length,
+        pessoaId: t.pessoaId, pessoa: t.pessoa, semCadastro: t.pessoa === SEM_CADASTRO, abertas: t.abertas, atrasadas: t.atrasadas.length, emRisco: t.emRisco.length,
         paradas: t.paradas.length, semBriefing: t.semBriefing.length, entregues7d: t.entregues7d,
         idadeMedianaDias: umaCasa(mediana(t.idades)), cobrar,
         lista: { atrasadas: t.atrasadas.map(peca), emRisco: t.emRisco.map(peca), paradas: t.paradas.map(peca) },
@@ -761,7 +780,7 @@
         : 'O cadastro de clientes ainda não carregou: valem os clientes das próprias peças',
       finalizado: typeof finalizado === 'function'
         ? 'Regra de entrega informada por quem chamou'
-        : 'Entregue = Finalizado, Feito, Concluído, Aprovado, Para agendar, Agendado, Publicado ou Postado',
+        : 'Entregue (pronta) = Finalizado, Feito ou Concluído; Para agendar e Agendado esperam postar',
       pessoas: mapaPessoas.size ? 'Nomes do mapa de pessoas (TEAM_USERS)' : 'Nomes do campo Responsável das peças',
       planejamento: planos
         ? 'Planejamentos do banco: um não arquivado do mês atual ou seguinte'
@@ -824,7 +843,9 @@
     // entregue: a mesma regra de "Entregue" das contas acima (usada pela Carteira, vybe-carteira-saude.js).
     util: Object.freeze({ diaLocal, diaDe, somarDias, diasEntre, inicioDaSemana, mediana, chaveStatus, ativoNoCadastro, pessoasDe,
       // finalizado: a função única de "pronta" para as telas (a mesma de entregue).
-      entregue: finalizado, finalizado, headsDe, SEM_HEAD, situacaoDaPeca }),
+      entregue: finalizado, finalizado, headsDe, SEM_HEAD, situacaoDaPeca,
+      // semDono(d): a regra única de "peça sem dono" (o Painel e a Performance devem usar esta, não a própria).
+      semDono, SEM_CADASTRO }),
   });
   raiz.VybeDono = api;
   if (raiz.window && typeof raiz.window === 'object' && raiz.window !== raiz) raiz.window.VybeDono = api;

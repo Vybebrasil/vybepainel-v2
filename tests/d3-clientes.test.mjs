@@ -16,7 +16,8 @@ test('Saúde da carteira: bloco de ação, quatro números com linha, lista com 
   assert.match(tela, /class="d3c-pe-rot">Tira ponto/);
   assert.match(carteira, /<i class="d3c-faixa \$\{tom\}" aria-hidden="true"><\/i>/);
   // Vermelho só no que venceu.
-  assert.match(carteira, /<span class="\$\{ehVencida\(m\) \? 'r' : ''\}"><b>−\$\{-m\.pontos\}<\/b>/);
+  // (o title do teto, auditoria 15/11 item 33, fica entre a classe e o número)
+  assert.match(carteira, /<span class="\$\{ehVencida\(m\) \? 'r' : ''\}"\$\{noTeto\(m\)[^\n]*?><b>−\$\{-m\.pontos\}<\/b>/);
 });
 
 test('Onboarding: quatro números, colunas no quadro e, ao lado, tempo de entrada em linha, etapas e configuração', () => {

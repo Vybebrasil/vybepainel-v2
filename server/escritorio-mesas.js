@@ -45,7 +45,7 @@ export async function mesasProntas(sql) {
  const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_partidas') IS NOT NULL AS existe`;
  return Boolean(r?.existe);
 }
-const exigirTabela = async (sql) => { if (!await mesasProntas(sql)) throw erro('As mesas de jogo aguardam a migração do banco.', 503); };
+const exigirTabela = async (sql) => { if (!await mesasProntas(sql)) throw erro('As mesas de jogo ainda estão sendo ligadas.', 503); };
 const motorDe = (jogo) => { const m = MOTORES[jogo]; if (!m) throw erro('Jogo inválido.'); return m; };
 // Os clientes sentados (pôquer): lugares depois das pessoas, com id 'c<id do cliente>'.
 const clientesDe = (j) => (j.clientes || []).map(String);

@@ -16,7 +16,7 @@ test('troca: guarda, aceita uma vez, recusa, cancela e confere de novo na aceita
  CREATE TABLE vybe_conteudo_eventos(id bigserial PRIMARY KEY,conteudo_id bigint,tipo text,para text);`);
  for(const f of ['2026-10-15-escritorio.sql','2026-10-16-escritorio-mapa.sql','2026-10-17-escritorio-vybecoins.sql','2026-10-18-escritorio-postits-presentes.sql']) await db.exec(readFileSync('migrations/'+f,'utf8'));
  const {proporTroca,responderTroca,listarTrocas}=await import('../server/escritorio-social.js');
- await assert.rejects(proporTroca(sql,{id:1},[],{para:'3',oferece:[['shelves_norja',1]],pede:[],chave:'troca-0001'}),/migração/);
+ await assert.rejects(proporTroca(sql,{id:1},[],{para:'3',oferece:[['shelves_norja',1]],pede:[],chave:'troca-0001'}),/sendo ligad/);
  await db.exec(readFileSync('migrations/2026-10-19-escritorio-trocas.sql','utf8'));
  const {salasDoEscritorio}=await import('../server/escritorio-mapa.js');
  const salas=salasDoEscritorio([{id:1,nome:'Paulo'},{id:3,nome:'Vinícius'}]);

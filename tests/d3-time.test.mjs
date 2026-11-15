@@ -50,8 +50,9 @@ test('RH na Direção 3: abas no cabeçalho, o dia ao lado do título, um bloco 
     const h = t.html();
     assert.match(h, /class="vp-topo-botoes"><div class="d3p-abas" role="tablist"/, `${aba}: abas dentro do cabeçalho`);
     assert.doesNotMatch(h, /class="vp-abas"/, `${aba}: sem a fileira de abas antiga`);
-    assert.equal(h.split('class="v2p-fala d3-acao d3p-acao"').length - 1, 1, `${aba}: um bloco de ação`);
-    assert.match(h, /class="v2p-ag d3-acao-av"/, `${aba}: avatar do agente no bloco`);
+    // Acabamento 15/11: um bloco só, laranja quando há ação e a nota branca (d3-nota) quando não há.
+    assert.equal(h.split('class="v2p-fala d3-acao d3p-acao"').length - 1 + h.split('class="v2p-fala d3-nota"').length - 1, 1, `${aba}: um bloco de ação ou nota`);
+    assert.match(h, /class="(v2p-ag d3-acao-av|d3-nota-av)"/, `${aba}: avatar do agente no bloco`);
     assert.ok(h.split('class="v2p-card v2p-kpi d3-num').length - 1 >= 3, `${aba}: números d3-num`);
     assert.doesNotMatch(h, /v2p-card v2p-fala/, `${aba}: a fala branca saiu`);
   }

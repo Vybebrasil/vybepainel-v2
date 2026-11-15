@@ -27,7 +27,7 @@ test('Planejamentos (Direção 3): mês e Novo planejamento no alto, bloco de a�
   assert.match(plj, /window\.d3AcaoHtml\(\{ agente: 'A'/);
   assert.match(plj, /<small class="d3pl-quem">Augusto · Copy<\/small>/);
   for (const t of ['Com planejamento', 'Pedem ação', 'Sem planejamento', 'Peças para aprovar']) assert.ok(plj.includes(`rotulo: '${t}'`), t);
-  assert.match(plj, /<span>Cliente<\/span><span>Versão<\/span><span>Status<\/span><span>Peças<\/span><span>Com OK<\/span>/);
+  assert.match(plj, /<span>Cliente<\/span><span>Versão<\/span><span>Status<\/span><span>Peças<\/span><span>OK do head<\/span>/);
   assert.match(plj, /\$\{ficha\('meus', 'Meus clientes'\)\}\$\{ficha\('acao', 'Pedem ação'\)\}\$\{ficha\('sem', 'Sem planejamento'\)\}\$\{ficha\('todos', 'Todos'\)\}/);
   assert.match(plj, /filtro: 'todos'/, 'abre em Todos, como no quadro');
   assert.match(plj, /const titulo = coisas \? 'Pede ação'/);

@@ -17,24 +17,34 @@
   /* 1 · o cartão do mês vai de borda a borda da tela (os 22 px são o vão do body, 10, mais o da .container, 12, no celular); a faixa única tem meses e anos rolando para os lados e o Hoje parado à direita */
   body.mundo #pv2-agenda .pv2a-mes-cartao{margin-left:0;margin-right:0;padding:8px 0 0;border-radius:var(--d3-r-cartao);box-shadow:none;overflow:hidden}
   body.mundo #pv2-agenda .pv2a-cab-meses{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:6px;margin:0 0 4px;padding:0 8px}
-  body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses{display:flex;flex:1 1 auto;flex-wrap:wrap;align-items:center;gap:4px;min-width:0;overflow:visible;padding:2px}
+  /* Acabamento premium (15/11/2026, item 14): os meses quebravam em duas linhas, com o "2027" solto entre as pílulas; agora
+     são um seletor numa linha só, que rola de lado (o ano fica na mesma linha, antes do primeiro mês dele). */
+  body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses{display:flex;flex:1 1 auto;flex-wrap:nowrap;align-items:center;gap:4px;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:2px}
   body.mundo #pv2-agenda .pv2a-cab-meses > .capt-meses::-webkit-scrollbar{display:none}
-  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button{flex:none;height:30px;padding:0 10px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:600 12.5px var(--vv-texto,Inter),sans-serif;cursor:pointer}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button{flex:none;height:30px;padding:0 10px;border:0;border-radius:999px;background:#F3F1EC;color:#1F1D1A;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;cursor:pointer}
   body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses button[aria-current]{background:var(--d3-tinta);border-color:var(--d3-tinta);color:#FFFFFF}
-  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses-ano{flex:none;padding:0 2px;font:700 12.5px var(--vv-texto,Inter),sans-serif;color:#6B665E}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses-ano{flex:none;padding:0 2px;font:700 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:#6B665E}
   body.mundo #pv2-agenda .pv2a-cab-meses > .pv2-btn{flex:none;order:-1;align-self:flex-start}
 
   /* 2 · grade de ponta a ponta; seis semanas cabem numa tela (o cabeçalho dos dias e a faixa ficam fora da conta) */
   body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes{margin:0;border:0;border-top:1px solid #ECE6DC;border-radius:0;background:#FFFFFF;box-shadow:none}
-  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-cab{padding:4px 0;border-bottom:1px solid #ECE6DC;background:#FFFFFF;color:#6B665E;font:600 10.5px var(--vv-texto,Inter),sans-serif;text-align:center}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-cab{padding:4px 0;border-bottom:1px solid #ECE6DC;background:#FFFFFF;color:#6B665E;font:600 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;text-align:center}
   body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-dia{min-height:max(78px,calc((100dvh - 190px) / 6));padding:2px 1px 1px;gap:1px;overflow:hidden;border-right:1px solid #ECE6DC;border-bottom:1px solid #ECE6DC}
   body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-dia:nth-child(7n){border-right:0}
-  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-num{flex:none;min-width:22px;height:22px;font:600 11.5px var(--vv-texto,Inter),sans-serif}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-num{flex:none;min-width:22px;height:22px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 
   /* 3 · barrinha de uma linha (15 px), o nome cortado no fim da célula, sem reticências, como no Google Agenda. Sai o toque
      mínimo de 44 px do grupo celular: quem recebe o toque é o dia inteiro (abre o dia), como no Google Agenda. */
   body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip{display:block;flex:none;width:100%;min-width:0;height:15px;min-height:0;padding:0 3px;border-radius:3px;box-shadow:none;font:600 10px/15px var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:clip}
   body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip.sel{box-shadow:0 0 0 2px #C2490C}
+  /* Acabamento premium (item 14): a barrinha vinha cheia na cor do tipo (o azul #4f8df7 da agenda escura, fora da
+     paleta). Agora usa os véus do D3 com o texto escuro: captação no azul do D3, reunião no âmbar, o resto no trilho.
+     A cor da carteira do cliente não chega à barrinha (vybe-captacoes.js não a escreve no chip): fica anotado. */
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip{background:var(--d3-trilho);color:var(--d3-texto2)}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip.t-captacao{background:var(--d3-info-veu);color:var(--d3-info)}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip.t-reuniao{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip span{color:inherit}
+  body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip.passou{opacity:.7}
   body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes .ag-chip span{display:block;-webkit-line-clamp:none;overflow:hidden;white-space:nowrap;text-overflow:clip;overflow-wrap:normal;hyphens:manual;-webkit-hyphens:manual}
   body.mundo #pv2-agenda .pv2a-mes-cartao .capt-cal.vista-mes .capt-mes-mais{flex:none;height:14px;min-height:0;min-width:0;padding:0 2px;font:600 10px/14px var(--vv-texto,Inter),sans-serif}
 

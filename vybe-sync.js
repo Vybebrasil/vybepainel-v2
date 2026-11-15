@@ -269,7 +269,7 @@ function applyMirrorChanges(changes = [], version = 0) {
   saveProductionCache();
   cacheSyncLabel(`Espelho central ao vivo · ${changes.length} mudança${changes.length===1?'':'s'} aplicada${changes.length===1?'':'s'}`);
   setSyncHealth('healthy', `Espelho central aplicou ${changes.length} mudança${changes.length===1?'':'s'} às ${syncHealthClock(Date.now())}`);
-  showToast(`↻ ${changes.length} atualização${changes.length===1?'':'ões'} recebida${changes.length===1?'':'s'} da operação.`, 'ok');
+  showToast(`↻ ${changes.length} atualiza${changes.length===1?'ção':'ções'} recebida${changes.length===1?'':'s'} da operação.`, 'ok');
   return true;
 }
 async function mirrorRequest(path = '') {
@@ -414,9 +414,9 @@ async function reconcileProductionCache() {
     changedProcessed.forEach(item=>merged.set(String(item.id),item));
     applyCachedProductionDataset([...merged.values()], STATUS_OPTIONS);
     saveProductionCache();
-    cacheSyncLabel(`Dados reconciliados agora · ${changedIds.length} alteração${changedIds.length===1?'':'ões'} aplicada${changedIds.length===1?'':'s'}`);
+    cacheSyncLabel(`Dados reconciliados agora · ${changedIds.length} altera${changedIds.length===1?'ção':'ções'} aplicada${changedIds.length===1?'':'s'}`);
     setSyncHealth('healthy', `Monday reconciliado às ${syncHealthClock(Date.now())} · ${changedIds.length} mudança${changedIds.length===1?'':'s'} aplicada${changedIds.length===1?'':'s'}`);
-    showToast(`✓ ${changedIds.length} alteração${changedIds.length===1?'':'ões'} sincronizada${changedIds.length===1?'':'s'} sem recarregar a tela.`, 'ok');
+    showToast(`✓ ${changedIds.length} altera${changedIds.length===1?'ção':'ções'} sincronizada${changedIds.length===1?'':'s'} sem recarregar a tela.`, 'ok');
   } catch(error) {
     console.warn('Reconciliação em segundo plano indisponível:', error);
     setSyncHealth('error', `Não foi possível confirmar o Monday. Última base segura: ${syncHealthClock(syncHealthLastConfirmedAt)}.`);

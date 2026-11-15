@@ -49,8 +49,9 @@ export function criarCadastroFinancas({ env = process.env, criarSql = (url, op) 
       } catch (e) {
         // Nunca a URL, a senha ou a mensagem crua do Postgres para a tela.
         const permissao = /permission denied|does not exist/i.test(String(e?.message || ''));
+        if (permissao) console.warn('[vybe-financas] cadastro: falta liberar o cadastro para o Vybe OS (docs/vybe-financas-cadastro-cliente.sql).');
         throw Object.assign(new Error(permissao
-          ? 'O Finanças ainda não liberou o cadastro para o Vybe OS (rode o SQL de docs/vybe-financas-cadastro-cliente.sql).'
+          ? 'Esta parte ainda está sendo ligada.'
           : 'O Finanças não respondeu agora. Tente de novo em instantes.'), { status: 502 });
       }
     },

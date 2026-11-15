@@ -29,7 +29,7 @@ export async function captacoesProntas(sql) {
   return Boolean(r?.existe);
 }
 async function exigirTabelas(sql) {
-  if (!(await captacoesProntas(sql))) throw erro('As captações aguardam a migração do banco.', 503);
+  if (!(await captacoesProntas(sql))) throw erro('As captações ainda estão sendo ligadas.', 503);
 }
 
 // Peças prontas para captar: na Produção, em "Agendar Captação" e fora de uma
@@ -394,7 +394,7 @@ export async function roteiroDaCaptacao(sql, quem, { captacao_id, link } = {}) {
 
 export async function fecharGravacao(sql, quem, dados, { trocar, criar = null, prazo = null, painel = null } = {}) {
   await exigirTabelas(sql);
-  if (!(await fechamentoPronto(sql))) throw erro('Fechar gravação aguarda a migração do banco.', 503);
+  if (!(await fechamentoPronto(sql))) throw erro('Fechar gravação ainda está sendo ligado.', 503);
   const d = validarFechamento(dados);
   const pessoaId = quem?.pessoa?.id ? String(quem.pessoa.id) : null;
   const r = await sql.comTransacao(async (tx) => {
@@ -668,7 +668,7 @@ async function vinculosProntos(sql) {
 }
 const eventoValido = (id) => /^[A-Za-z0-9_-]{5,1024}$/.test(String(id || ''));
 export async function vincularCliente(sql, quem, { evento, cliente_id } = {}) {
-  if (!(await vinculosProntos(sql))) throw erro('Vincular cliente aguarda a migração do banco.', 503);
+  if (!(await vinculosProntos(sql))) throw erro('Vincular cliente ainda está sendo ligado.', 503);
   if (!eventoValido(evento)) throw erro('Evento da agenda inválido.');
   if (!cliente_id) { await sql`DELETE FROM vybe_agenda_clientes WHERE evento_google = ${evento}`; return { cliente: null }; }
   if (!/^\d{1,18}$/.test(String(cliente_id))) throw erro('Cliente inválido.');

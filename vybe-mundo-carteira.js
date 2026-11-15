@@ -170,7 +170,7 @@
       estado.servidor = await pedir();
       estado.saude = calcularSaude();
       estado.aviso = ok || 'Salvo.';
-    } catch (e) { estado.aviso = e.aguardando ? 'Esta parte ainda não foi ligada. Os donos já sabem o que falta.' : e.message; }
+    } catch (e) { estado.aviso = e.aguardando ? 'Esta parte ainda está sendo ligada.' : e.message; }
     estado.salvando = false;
     pintar();
   }
@@ -286,8 +286,8 @@
   function perdaCurta(m, c) {
     const t = String(m.texto || ''); let x;
     if (/vencid/.test(t) && /^\d/.test(t)) { const n = c.numeros?.atrasadas || Number(t.match(/^\d+/)[0]); return n === 1 ? '1 vencida' : `${n} vencidas`; }
-    if ((x = t.match(/^(\d+) peças? com risco de furo/))) return `${x[1]} risco de furo`;
-    if ((x = t.match(/^(\d+) (?:voltas?|peças?) (?:para|em) alteração/))) return `${x[1]} alteração`;
+    if ((x = t.match(/^(\d+) peças? com risco de furo/))) return Number(x[1]) === 1 ? '1 risco de furo' : `${x[1]} riscos de furo`;
+    if ((x = t.match(/^(\d+) (?:voltas?|peças?) (?:para|em) alteração/))) return Number(x[1]) === 1 ? '1 alteração' : `${x[1]} alterações`;
     if ((x = t.match(/^(\d+\/\d+) posts/))) return `${x[1]} posts`;
     if ((x = t.match(/^aprovação parada há (\d+) dias/))) return `aprovação ${x[1]} d`;
     if ((x = t.match(/leva (\d+) dias para aprovar/))) return `aprova em ${x[1]} d`;
@@ -296,13 +296,18 @@
     return t;
   }
   const ehVencida = (m) => /vencid/.test(m.texto);
+  // O teto de cada sinal (auditoria 15/11, item 33): 5 e 12 vencidas tiram os mesmos −35 porque o atraso para no teto.
+  const tetoDa = (m) => { const R = S()?.REGRAS || {}, k = causaDe(m);
+    return k === 'atraso de veiculação' || k === 'prazo interno vencido' ? R.tetoAtraso : k === 'risco de furo' ? R.tetoRisco
+      : k === 'peça voltando para alteração' ? R.tetoAjuste : k === 'entrega fora do prazo' ? R.tetoPrazo : null; };
+  const noTeto = (m) => { const t = tetoDa(m); return t != null && -m.pontos >= t; };
   // A linha do cliente (quadro D3-Carteira): faixa do risco, nota, cliente, head, risco, o que tirou ponto e a ação.
   // Abre no lugar com cada perda por inteiro.
   function linhaCliente(c, casa = null) {
     const chave = `c:${c.nome}`, aberto = estado.abertos.has(chave), tempo = c.id && casa ? casa.get(c.id) : null;
     const ruins = ruinsDe(c), bons = c.motivos.filter((m) => m.tom !== 'ruim'), perdeu = ruins.reduce((t, m) => t - m.pontos, 0);
     const vencidas = c.numeros?.atrasadas || 0, tom = TOM_DO_RISCO[c.risco] || 'a';
-    const perdas = ruins.length ? ruins.slice(0, 3).map((m) => `<span class="${ehVencida(m) ? 'r' : ''}"><b>−${-m.pontos}</b> · ${esc(perdaCurta(m, c))}</span>`).join('')
+    const perdas = ruins.length ? ruins.slice(0, 3).map((m) => `<span class="${ehVencida(m) ? 'r' : ''}"${noTeto(m) ? ` title="${esc(`O teto deste sinal é −${tetoDa(m)}: mais peças não tiram mais ponto`)}"` : ''}><b>−${-m.pontos}</b> · ${esc(perdaCurta(m, c))}</span>`).join('')
       : `<span class="g">${esc(bons[0]?.texto || 'sem sinal de alerta')}</span>`;
     const head = c.heads.length ? `${avatarHtml(c.heads[0])}<span>${esc(primeiroNome(c.heads[0]))}${c.heads.length > 1 ? ` +${c.heads.length - 1}` : ''}</span>` : '<span class="d3c-vago">sem head</span>';
     return `<li class="v2-abre v2c-linha" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><i class="d3c-faixa ${tom}" aria-hidden="true"></i><div class="v2c-lin">
@@ -315,7 +320,7 @@
           ${SETA}</button>
         <span class="v2c-ac">${botao(vencidas > 1 ? `Abrir as ${vencidas}` : vencidas === 1 ? 'Abrir a peça' : 'Abrir o cliente', `data-vc-cliente="${esc(c.nome)}"`)}</span></div>
       <div class="v2-mais"><div><div class="v2c-det">
-        ${ruins.map((m) => `<p class="v2c-mot" style="--c:${corDaPerda(m)}"><b>−${-m.pontos}</b>${esc(m.texto)}</p>`).join('')}
+        ${ruins.map((m) => `<p class="v2c-mot" style="--c:${corDaPerda(m)}"><b>−${-m.pontos}</b>${esc(m.texto)}${noTeto(m) ? ` (no teto de −${tetoDa(m)})` : ''}</p>`).join('')}
         ${bons.map((m) => `<p class="v2c-mot" style="--c:#11613A"><b>ok</b>${esc(m.texto)}</p>`).join('')}
         <p class="v2c-mot v2c-mot-nota">Head: ${esc(c.heads.join(', ') || 'sem head')}${c.carteira ? ` · Carteira: ${esc(c.carteira)}` : ''}${tempo ? ` · ${esc(casaTxt(tempo))}${tempo.temContrato ? ` · ${esc(contratoTxt(tempo))}` : ' · sem contrato registrado'}` : ''}</p>
       </div></div></div></li>`;
@@ -385,7 +390,8 @@
     const [causa, x] = [...soma.entries()].sort((a, b) => b[1].pontos - a[1].pontos)[0] || [];
     // Direção 3: a fala vira o bloco de ação laranja, numa frase só, com o botão que leva ao que pesa.
     const media = r.resumo.media;
-    if (!causa) return d3Acao({ frase: `Carteira em ${esc(media)} · ninguém perdeu ponto.`, agente: AGENTE.nome });
+    // Sem nada tirando ponto não há ação: a frase fica neutra, no cartão branco (regra D3: laranja = ação).
+    if (!causa) return falaHtml(`Carteira em <b>${esc(media)}</b> · ninguém perdeu ponto.`);
     const n = x.clientes.size, deAtraso = causa === 'atraso de veiculação' || causa === 'prazo interno vencido', vencidas = deAtraso ? [...x.clientes].reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0) : 0;
     const semEla = Math.round(r.clientes.reduce((t, c) => t + Math.min(100, c.score + ruinsDe(c).filter((m) => causaDe(m) === causa).reduce((s, m) => s - m.pontos, 0)), 0) / r.clientes.length);
     if (deAtraso && vencidas) {
@@ -424,7 +430,9 @@
       return { topo, corpo: `${ajuda}<section class="v2c-card"><div class="v2c-card-topo"><h2>Média mês a mês</h2></div>${serieHtml(h)}</section>
         ${contas.length ? `<div class="v2c-card v2c-contas">${contasHtml(contas)}</div>` : ''}` };
     }
-    const precisam = r.clientes.filter(precisaDeVoce), tranquilos = r.clientes.filter((c) => !precisaDeVoce(c));
+    // Três grupos que somam o total (auditoria 15/11, item 33): precisam de você (risco alto ou nota abaixo de 52), em atenção
+    // (o resto do risco médio) e tranquilos = risco baixo (nota 75 ou mais), o mesmo número do filtro "Risco baixo".
+    const precisam = r.clientes.filter(precisaDeVoce), tranquilos = r.clientes.filter((c) => c.risco === 'baixo'), foraDaLista = r.clientes.filter((c) => !precisaDeVoce(c));
     const v = h.variacao.media, mudou = v && v.direcao !== 'igual' && v.anterior != null ? `${v.direcao === 'sobe' ? 'subiu' : 'caiu'} ${Math.abs(v.delta)} no mês` : '';
     const riscoDaMedia = S().riscoDaNota(r.resumo.media ?? 0);
     const vencidasTotal = r.clientes.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0), vencidasBaixo = precisam.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0);
@@ -436,8 +444,8 @@
         ${numD3({ rotulo: 'Nota média', valor: esc(r.resumo.media ?? '—'), de: ' / 100', tom: TOM_DO_RISCO[riscoDaMedia] || 'a', linha: d3Linha(serieMedia, { meta: metaNota(), largura: 90, altura: 28, rotulo: diaria ? `Nota média dia a dia, ${diaria.length} dias` : 'Nota média mês a mês' }),
           sub: `${plural(r.clientes.length, 'ativo', 'ativos')}${mudou ? ` · ${mudou}` : ''}${metaSub()}` })}
         ${numD3({ rotulo: 'Precisam de você', valor: precisam.length, de: ` / ${r.clientes.length}`, sub: `risco alto ou nota &lt; ${LIMITE_PRECISA}`, attrs: `data-vc-risco="precisam" aria-pressed="${estado.risco === 'precisam'}"` })}
-        ${numD3({ rotulo: 'Tranquilos', valor: tranquilos.length, attrs: `data-vc-risco="todos" aria-pressed="${estado.risco === 'todos'}"`,
-          sub: `${[...tranquilos].sort((a, b) => b.score - a.score).slice(0, 3).map((c) => `<span class="d3c-mini ${TOM_DO_RISCO[c.risco] || 'a'}" title="${esc(c.nome)}">${c.score}</span>`).join('')}${tranquilos.length ? 'recolhidos' : 'ninguém ainda'}` })}
+        ${numD3({ rotulo: 'Tranquilos', valor: tranquilos.length, de: ` / ${r.clientes.length}`, attrs: `data-vc-risco="baixo" aria-pressed="${estado.risco === 'baixo'}"`,
+          sub: `${[...tranquilos].sort((a, b) => b.score - a.score).slice(0, 3).map((c) => `<span class="d3c-mini ${TOM_DO_RISCO[c.risco] || 'a'}" title="${esc(c.nome)}">${c.score}</span>`).join('')}${tranquilos.length ? `risco baixo · nota ${S().REGRAS?.riscoMedio ?? 75} ou mais` : `ninguém com nota ${S().REGRAS?.riscoMedio ?? 75} ou mais`}` })}
         ${numD3({ rotulo: 'Peças vencidas', valor: vencidasTotal, tom: vencidasTotal ? 'r' : '', attrs: vencidasTotal ? 'data-vc-atrasadas' : '',
           sub: vencidasTotal && precisam.length ? `<span class="d3c-r">${vencidasBaixo} nos ${precisam.length} de baixo</span>` : '' })}
       </div>`;
@@ -455,10 +463,12 @@
       : `<div class="v2c-vazio"><p>${semNinguem}</p>${botao('Ver todos', 'data-vc-risco="todos" data-vc-limpar')}</div>`;
     // Rodapé: quanto cada sinal tira (as regras da nota) e o que ficou recolhido.
     const R = S().REGRAS || {};
-    const tira = [[R.furo, 'vencida', 'r'], [R.prazoVencido, 'prazo interno'], [R.ajuste, 'alteração'], [R.risco, 'risco de furo'], [R.abaixoDaMeta, 'posts da semana']].filter(([p]) => p);
-    const recolhidos = estado.risco === 'precisam' ? tranquilos.length : 0;
-    const pe = `<div class="v2c-pe d3c-pe"><span class="d3c-pe-rot">Tira ponto</span>${tira.map(([p, rot, t]) => `<span class="d3c-tira${t ? ` ${t}` : ''}">−${p} ${rot}</span>`).join('')}<span class="v2c-espaco"></span>
-      ${resto > 0 ? botao(`+${plural(resto, 'cliente', 'clientes')}`, 'data-vc-mais="saude"') : ''}${recolhidos ? botao(`+${recolhidos} ${recolhidos === 1 ? 'tranquilo' : 'tranquilos'}`, 'data-vc-risco="todos"') : ''}</div>`;
+    // Cada sinal com o teto (item 33): o atraso para em −35, a alteração em −16 (a primeira não conta), o risco em −9.
+    const tira = [[R.furo, 'vencida', 'r', `Somando vencidas e prazo interno, o atraso tira no máximo ${R.tetoAtraso}`], [R.prazoVencido, 'prazo interno', '', `Somando vencidas e prazo interno, o atraso tira no máximo ${R.tetoAtraso}`],
+      [R.ajuste, 'alteração', '', `A primeira não conta; tira no máximo ${R.tetoAjuste}`], [R.risco, 'risco de furo', '', `Tira no máximo ${R.tetoRisco}`], [R.abaixoDaMeta, 'posts da semana']].filter(([p]) => p);
+    const recolhidos = estado.risco === 'precisam' ? foraDaLista.length : 0;
+    const pe = `<div class="v2c-pe d3c-pe"><span class="d3c-pe-rot">Tira ponto</span>${tira.map(([p, rot, t, dica]) => `<span class="d3c-tira${t ? ` ${t}` : ''}"${dica ? ` title="${esc(dica)}"` : ''}>−${p} ${rot}</span>`).join('')}${R.tetoAtraso ? `<span class="d3c-tira" title="Por isso 5 e 12 vencidas tiram os mesmos ${R.tetoAtraso} pontos">atraso para em −${R.tetoAtraso}</span>` : ''}<span class="v2c-espaco"></span>
+      ${resto > 0 ? botao(`+${plural(resto, 'cliente', 'clientes')}`, 'data-vc-mais="saude"') : ''}${recolhidos ? botao(`+${recolhidos} sem urgência`, 'data-vc-risco="todos"') : ''}</div>`;
     return { topo, corpo: `${ajuda}${falaDaSaude(r)}${numeros}${filtros}
       <section class="v2c-card v2c-quadro" aria-label="${esc(TITULO_DO_FILTRO[estado.risco] || TITULO_DO_FILTRO.todos)}"><button type="button" class="d3c-ordem" data-vc-ordem-gira title="Mudar a ordem">${ROTULO_DA_ORDEM[estado.ordem.saude] || ROTULO_DA_ORDEM.risco}</button>
         ${corpoLista}${pe}</section>` };
@@ -574,7 +584,8 @@
     // Direção 3: a data no título; "Novo onboarding" é botão branco (o único laranja cheio é o bloco de ação).
     const diaHoje = new Date(`${hoje()}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/-feira/, '').replace(/\.$/, '').replace(' de ', ' ');
     const topo = `<span class="d3c-meta">${esc(diaHoje)}</span>${botao('Como funciona', `data-vc-ajuda aria-expanded="${estado.ajuda}"`, 'g')}
-      ${botao('Novo onboarding',`data-vc-novo aria-expanded="${Boolean(estado.novoOnb)}"${podeComecar ? '' : ` disabled title="${ligado ? 'Só quem administra, o Atendimento e os heads começam um onboarding' : 'O onboarding ainda não foi ligado'}"`}`, 'g d3c-novo')}`;
+      ${podeComecar ? botao('Novo onboarding', `data-vc-novo aria-expanded="${Boolean(estado.novoOnb)}"`, 'g d3c-novo') : ligado ? '<span class="d3c-meta">Só quem administra, o Atendimento e os heads começam um onboarding</span>' : ''}`;
+    // Botão desativado sem motivo à vista (auditoria 15/11, item 36): sem poder começar, o botão sai e o motivo fica escrito.
     const contrato = estado.contratoNovo ? `<div class="vc-iniciar"><label class="vc-campo"><span>Cliente que fechou contrato novo</span><select data-vc-novo-onb>${candidatos.map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></label>
       ${botao('Cancelar', 'data-vc-contrato-novo')}${botao('Começar a esteira', 'data-vc-iniciar', 'k')}</div>` : '';
     const iniciar = estado.novoOnb && podeComecar ? `<section class="v2c-card v2c-painel vc-onb-comecar" aria-label="Começar um onboarding">
@@ -594,7 +605,7 @@
     const mesAgora = hoje().slice(0, 7), concluidosMes = encerrados.filter((o) => diaDoCarimbo(o.encerrado_em).startsWith(mesAgora));
     const numeros = `<div class="v2c-tres d3c-quatro">
         ${numD3({ rotulo: 'Em entrada', valor: emAberto.length, sub: emAberto.length ? `${plural(pedem.length, 'pede ação', 'pedem ação')} · ${emAberto.length - pedem.length} andando` : 'nenhum agora' })}
-        ${numD3({ rotulo: `Parados +${DIAS_PARADO} dias`, valor: parados.length, tom: parados.length ? 'r' : '',
+        ${numD3({ rotulo: `Parados ${DIAS_PARADO}+ dias`, valor: parados.length, tom: parados.length ? 'r' : '',
           sub: pior ? `<span class="d3c-r">${esc(pior.cliente || '')} · desde ${dataCurta(diaDoCarimbo(pior.situacao.atual.parada_desde)).slice(0, 5)}</span>` : 'nada parado' })}
         ${numD3({ rotulo: 'Tempo médio', valor: media == null ? '—' : media, de: media == null ? '' : media === 1 ? ' dia' : ' dias',
           linha: d3Linha(porFim.map((o) => (Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5), { largura: 90, altura: 28, rotulo: 'Dias de cada entrada encerrada' }),
@@ -602,11 +613,14 @@
         ${numD3({ rotulo: 'Concluídos no mês', valor: concluidosMes.length, tom: concluidosMes.length ? 'g' : '', sub: concluidosMes.length ? esc(concluidosMes.slice(0, 2).map((o) => o.cliente || '').join(' · ')) + (concluidosMes.length > 2 ? ` +${concluidosMes.length - 2}` : '') : 'nenhum ainda' })}
       </div>`;
     const AG = AGENTE;
-    const fala = !ligado ? d3Acao({ frase: `${quemD3(AG)}Onboarding ainda não ligado · nenhum cliente em entrada.`, agente: AG.nome })
-      : !emAberto.length ? d3Acao({ frase: `${quemD3(AG)}Ninguém entrando agora.`, agente: AG.nome, botao: podeComecar ? 'Novo onboarding' : '', attrs: 'data-vc-novo' })
+    // Laranja só com ação (auditoria 15/11, itens 3 e 27): sem botão, a frase fica no cartão branco.
+    const fala = !ligado ? falaHtml('O onboarding ainda não está disponível. Quando estiver, quem está entrando aparece aqui.')
+      : !emAberto.length ? (podeComecar ? d3Acao({ frase: `${quemD3(AG)}Ninguém entrando agora.`, agente: AG.nome, botao: 'Novo onboarding', attrs: 'data-vc-novo' }) : falaHtml('Ninguém entrando agora.'))
       : pior ? d3Acao({ frase: `${quemD3(AG)}${esc(pior.cliente || 'Um cliente')} travou: ${esc(String(pior.situacao.atual?.nome || 'etapa').toLowerCase())} há ${plural(pior.situacao.atual?.dias_parada ?? 0, 'dia', 'dias')}${parados.length > 1 ? ` · mais ${parados.length - 1} parados` : ''}.`,
         agente: AG.nome, botao: `Ver ${pior.cliente || 'o cliente'}`, attrs: `data-vc-abrir="o:${esc(pior.cliente_id)}" data-vc-focar="linha"` })
-      : d3Acao({ frase: `${quemD3(AG)}${plural(emAberto.length, 'cliente entrando', 'clientes entrando')} · ${pedem.length ? `${plural(pedem.length, 'pede', 'pedem')} ação` : 'nenhum travou'}.`, agente: AG.nome });
+      : pedem.length ? d3Acao({ frase: `${quemD3(AG)}${plural(emAberto.length, 'cliente entrando', 'clientes entrando')} · ${plural(pedem.length, 'pede', 'pedem')} ação.`, agente: AG.nome,
+        botao: pedem.length === 1 ? `Ver ${pedem[0].cliente || 'o cliente'}` : `Ver os ${pedem.length}`, attrs: `data-vc-abrir="o:${esc(pedem[0].cliente_id)}" data-vc-focar="linha"` })
+      : falaHtml(`${plural(emAberto.length, 'cliente entrando', 'clientes entrando')} · nenhum travou.`);
     // Uma barra de filtro só: a busca, a etapa em que cada cliente está e "Filtros" (encerrados e o editor de etapas).
     const termo = semAcento(estado.buscaOnb).trim();
     const daEtapa = (id) => emAberto.filter((o) => !o.situacao.concluido && o.situacao.atual?.id === id).length;
@@ -626,7 +640,8 @@
     const filtrando = Boolean(termo) || estado.etapaOnb !== 'todas';
     // Direção 3: título do grupo com a contagem ao lado (sem frase); a explicação do lado vai só para o leitor de tela.
     const secao = (titulo, lado, linhas) => `<div class="v2c-card-topo d3c-grupo"><h2>${titulo}</h2><small>${linhas.length}<span class="d3c-so-leitor"> · ${lado}</span></small></div><ol class="v2c-lista">${linhas.map((o) => linhaOnboarding(o, etapas)).join('')}</ol>`;
-    const quadro = !emAberto.length ? `<div class="v2c-card-topo"><h2>Pede ação</h2></div><div class="v2c-vazio"><p>Nenhum cliente em entrada.</p>${podeComecar ? botao('Novo onboarding', 'data-vc-novo', 'k') : ''}</div>`
+    // Vazio = uma frase; o "Novo onboarding" já está no topo e no bloco de ação (auditoria 15/11, itens 4 e 7).
+    const quadro = !emAberto.length ? `<div class="v2c-card-topo"><h2>Pede ação</h2></div><div class="v2c-vazio"><p>Nenhum cliente em entrada.</p></div>`
       : !pedeAcao.length && !andando.length ? `<div class="v2c-card-topo"><h2>Pede ação</h2></div><div class="v2c-vazio"><p>Nenhum cliente neste filtro.</p>${botao('Ver todos', 'data-vc-etapa-onb="todas" data-vc-limpar')}</div>`
       : `${pedeAcao.length ? secao('Pede ação', `${plural(pedeAcao.length, 'coisa', 'coisas')}, na ordem`, pedeAcao) : filtrando ? '' : '<div class="v2c-card-topo"><h2>Pede ação</h2><small>nada pede ação agora</small></div>'}
         ${cabem.length ? secao('Andando', `${cabem.length + resto} sem pendência${encerrados.length ? ` · ${plural(encerrados.length, 'encerrado', 'encerrados')}` : ''}`, cabem) : ''}
@@ -743,18 +758,22 @@
       <p>Quem saiu (pela desativação no cadastro), com tipo e motivo. Taxa = saídas ÷ clientes ativos no começo do período. Receita perdida = a receita mensal de quem saiu.</p>
       <p>${esc(COMO_CONTA_CHURN)} A retenção mostra quantos de cada mês de entrada seguiam ativos depois de 1, 2, 3, 6 e 12 meses.</p></div></div>` : '';
     const como = botao('Como funciona', `data-vc-ajuda aria-expanded="${estado.ajuda}" aria-label="Como funciona e como a taxa e a retenção são calculadas"`, 'g');
-    if (sv?.aguardando) return { topo: `${como}${botao('Registrar saída', 'disabled title="O churn ainda não foi ligado"', 'p')}`,
-      corpo: `${ajudaHtml}${falaDe(AGENTE_CHURN, '<b>O churn ainda não foi ligado.</b> Quando estiver, quem saiu, por quê e a receita perdida aparecem aqui.')}${rodapeVazio('O churn ainda não foi ligado.', 'Quando estiver ligado, quem saiu, por quê e a receita perdida aparecem aqui.')}` };
+    if (sv?.aguardando) return { topo: como,
+      corpo: `${ajudaHtml}${falaDe(AGENTE_CHURN, '<b>O churn ainda não está disponível.</b> Quando estiver, quem saiu, por quê e a receita perdida aparecem aqui.')}${rodapeVazio('O churn ainda não está disponível.', 'Quando estiver, quem saiu, por quê e a receita perdida aparecem aqui.')}` };
     if (!sv?.clientes) return { topo: como, corpo: vazio(estado.erro || 'A base de clientes não carregou.', secundario('Tentar de novo', 'data-vc-recarregar')) };
     const r = S().churn({ clientes: sv.clientes, registros: sv.churn?.registros || [], contratos: listaContratos(), tipo: estado.tipo, mes: estado.mes });
     const c = S().cohort({ clientes: sv.clientes, hoje: hoje() });
     const pode = podeChurn(), periodo = esc(r.periodo.rotulo);
-    const ativosHoje = sv.clientes.filter((x) => x && x.id != null && x.ativo).length;
+    // Ativos hoje = os mesmos ativos das outras telas (auditoria 15/11, item 38): o cadastro com a regra única; sem cadastro
+    // carregado, a base do servidor.
+    const ativoCad = window.VybeDono?.util?.ativoNoCadastro || ((x) => x && x.ativo);
+    const ativosHoje = cadastro().length ? cadastro().filter((x) => x && ativoCad(x)).length : sv.clientes.filter((x) => x && x.id != null && x.ativo).length;
     const termo = termoDaBusca(), naBusca = (s) => !termo || semAcento(s.nome).includes(termo);
     // Topo: o período escolhido, "Como funciona" e "Registrar saída" (classifica uma saída que já aparece aqui).
     const semClass = r.todas.filter((s) => !s.classificado), saidasParaRegistrar = [...semClass, ...r.todas.filter((s) => s.classificado)];
-    const tituloRegistrar = !pode ? (sv.churn?.disponivel ? 'Só quem administra registra a saída' : 'A classificação das saídas ainda não foi ligada') : !r.todas.length ? 'Ninguém saiu ainda: quem é desativado no cadastro aparece aqui' : '';
-    const topo = `<span class="d3c-meta">${periodo}</span>${como}${botao('Registrar saída', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"${tituloRegistrar ? ` disabled title="${esc(tituloRegistrar)}"` : ''}`, 'p')}`;
+    // Sem poder registrar, o botão sai (auditoria 15/11, item 36); quem não é admin lê o motivo ao lado.
+    const motivoSemRegistrar = !pode && sv.churn?.disponivel ? 'Só quem administra registra a saída' : '';
+    const topo = `<span class="d3c-meta">${periodo}</span>${como}${pode && r.todas.length ? botao('Registrar saída', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"`, 'p') : motivoSemRegistrar ? `<span class="d3c-meta">${esc(motivoSemRegistrar)}</span>` : ''}`;
     const emRegistro = estado.form?.tipo === 'churn' && estado.form.onde === 'registrar' ? r.todas.find((s) => s.id === estado.form.id) : null;
     const registrar = estado.registrar === estado.aba && pode && r.todas.length ? `<section class="v2c-card v2c-painel v2k-registrar" aria-label="Registrar saída">
       ${emRegistro ? `<p class="v2k-registrar-quem"><b>${cliCor(emRegistro.nome)}</b> · saiu em ${esc(dataCurta(emRegistro.saida))}</p>${porQueHtml(emRegistro)}${formChurn(emRegistro)}`
@@ -764,12 +783,18 @@
     const primeiroSem = r.lista.find((s) => !s.classificado);
     // Direção 3: a fala do VYBES vira o bloco de ação laranja, numa frase só.
     const qC = quemD3(AGENTE_CHURN), nomeMes = (iso) => (S().util?.nomeDoMes ? S().util.nomeDoMes(String(iso).slice(0, 7)).split(' ')[0] : diaMes(iso));
-    const fala = !r.saidas ? (r.todas.length
-      ? d3AcaoOu(AGENTE_CHURN, `${qC}Ninguém saiu em ${periodo} · ${plural(r.todas.length, 'saída', 'saídas')} no histórico.`, 'Ver o histórico', 'data-vc-hist-ch')
-      : d3AcaoOu(AGENTE_CHURN, `${qC}Nenhum cliente saiu até agora.`))
-      : primeiroSem ? d3AcaoOu(AGENTE_CHURN, `${qC}${esc(primeiroSem.nome)} saiu em ${esc(nomeMes(primeiroSem.saida))} e está sem motivo.${r.semClassificar > 1 ? ` Mais ${r.semClassificar - 1} sem motivo.` : ''}`,
-        pode ? 'Classificar agora' : '', `data-vc-form-abrir="churn" data-vc-cli="${esc(primeiroSem.id)}" data-vc-onde="acao"`)
-      : d3AcaoOu(AGENTE_CHURN, `${qC}${plural(r.saidas, 'saída', 'saídas')} em ${periodo} · ${esc(reaisCurto(r.receitaPerdida))} por mês${r.principalMotivo ? ` · mais por ${esc(String(r.principalMotivo.rotulo).toLowerCase())}` : ''}.`);
+    // O bloco laranja diz o que o "Pede ação" pede, com o botão que faz isso (auditoria 15/11, itens 3 e 27): primeiro a
+    // saída sem motivo (quem pode classificar), depois o cliente que pode sair (risco alto na Saúde); sem ação, frase neutra.
+    const neutra = (frase) => falaDe(AGENTE_CHURN, frase);
+    const riscoSaida = (estado.saude?.clientes || []).filter((x) => x.risco === 'alto' && x.id).sort((a, b) => a.score - b.score);
+    const resumoSaidas = !r.saidas ? (r.todas.length ? `Ninguém saiu em ${periodo} · ${plural(r.todas.length, 'saída', 'saídas')} no histórico.` : 'Nenhum cliente saiu até agora.')
+      : `${plural(r.saidas, 'saída', 'saídas')} em ${periodo} · ${esc(reaisCurto(r.receitaPerdida))} por mês${r.principalMotivo ? ` · mais por ${esc(String(r.principalMotivo.rotulo).toLowerCase())}` : ''}.`;
+    const fala = primeiroSem && pode ? d3AcaoOu(AGENTE_CHURN, `${qC}${esc(primeiroSem.nome)} saiu em ${esc(nomeMes(primeiroSem.saida))} e está sem motivo.${r.semClassificar > 1 ? ` Mais ${r.semClassificar - 1} sem motivo.` : ''}`,
+        'Classificar agora', `data-vc-form-abrir="churn" data-vc-cli="${esc(primeiroSem.id)}" data-vc-onde="acao"`)
+      : riscoSaida.length ? d3AcaoOu(AGENTE_CHURN, `${qC}${esc(riscoSaida[0].nome)} pode sair: nota ${riscoSaida[0].score} na Saúde da carteira.${riscoSaida.length > 1 ? ` Mais ${plural(riscoSaida.length - 1, 'cliente', 'clientes')} em risco alto.` : ''}`,
+        'Abrir o cliente', `data-vc-cliente="${esc(riscoSaida[0].nome)}"`)
+      : !r.saidas && r.todas.length ? d3AcaoOu(AGENTE_CHURN, `${qC}${resumoSaidas}`, 'Ver o histórico', 'data-vc-hist-ch')
+      : neutra(primeiroSem ? `${esc(primeiroSem.nome)} saiu em ${esc(nomeMes(primeiroSem.saida))} e está sem motivo.` : resumoSaidas);
     // Os três números.
     const porTipo = Object.keys(TIPOS()).map((k) => [k, r.lista.filter((s) => s.tipo === k).length]), semTipo = r.lista.filter((s) => !s.tipo).length;
     const vt = r.variacao.taxa, mudou = vt && vt.direcao !== 'igual' ? `<span class="v2c-pill ${vt.direcao === 'sobe' ? 'r' : 'g'}">${vt.direcao === 'sobe' ? 'subiu' : 'caiu'} ${virgula(Math.abs(vt.delta))} p.p.</span>` : '';
@@ -842,7 +867,7 @@
     const lado = `<section class="v2c-card v2k-lado" aria-label="Saídas e retenção"><div class="d3k-lado-topo"><h2>Saídas e retenção</h2>
         <span class="v2c-seg" role="group" aria-label="Ver">${VISTAS.map(([k, rot]) => `<button type="button" data-vc-vista-ch="${k}" aria-pressed="${estado.vistaCh === k}">${rot}</button>`).join('')}</span></div>
         <div class="v2k-vista">${vista}</div>${serie && estado.vistaCh !== 'meses' ? `<div class="d3k-pe-linha">${linhaMes('saidas', 'Saídas por mês')}</div>` : ''}<p class="d3c-so-leitor">${esc(peDaVista)}</p></section>`;
-    const rodape = sv.churn?.disponivel ? '' : rodapeVazio('A classificação das saídas ainda não foi ligada.', 'As saídas já aparecem pela desativação do cliente; o motivo de cada uma passa a ser guardado quando estiver ligada.');
+    const rodape = sv.churn?.disponivel ? '' : rodapeVazio('A classificação das saídas ainda não está disponível.', 'As saídas já aparecem pela desativação do cliente; o motivo de cada uma passa a ser guardado quando estiver.');
     return { topo, corpo: `${ajudaHtml}${registrar}${fala}${numeros}${filtros}
       <div class="v2k-grade2 v2k-churn"><div class="v2k-col-esq d3k-esq"><section class="v2c-card v2c-quadro v2k-esq" aria-label="Pede ação">${pedeAcao}</section><section class="v2c-card v2c-quadro d3k-quem" aria-label="Quem saiu">${quemSaiu}</section></div>${lado}</div>${rodape}` };
   }

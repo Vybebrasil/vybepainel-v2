@@ -464,7 +464,7 @@
         aria-label="${esc(livre ? `Pôr ${m.nome} na sala, ${conta}` : `${m.nome}: todas as unidades já estão na sala`)}" title="${esc(livre ? `Pôr na sala · ${conta}` : 'Todas as unidades já estão na sala')}">
         ${iconeHtml(m.classe, 56)}<b>${esc(m.nome)}</b><small>${livre ? conta : 'todas na sala'}</small></button></li>`;
     };
-    const guardados = eco && eco.disponivel === false ? vazio('A loja ainda não está ligada', eco.motivo || 'O inventário aguarda o banco do Escritório.')
+    const guardados = eco && eco.disponivel === false ? vazio('A loja ainda não está disponível', 'Os itens guardados aparecem aqui assim que ela estiver.')
       : !lista.length ? vazio('Nada guardado no inventário', 'Os móveis que você compra na Loja aparecem aqui para pôr na sala.', botaoLoja())
       : `<ul class="vv-decorar-grade">${lista.map(peca).join('')}${typeof abrirCatalogoEscritorio === 'function' ? `<li><button type="button" class="vv-decorar-peca v2s-loja" data-vd-acao="loja" aria-label="Comprar na Loja">${ICONE.loja}<b>Loja</b></button></li>` : ''}</ul>`;
     const naSala = estado.itens.map((it, i) => `<li><button type="button" class="vv-decorar-item" data-vd-item="${i}" aria-pressed="${estado.sel === i}">${iconeHtml(it[0], 28)}<span>${esc(nomeDe(it[0]))}</span></button></li>`);

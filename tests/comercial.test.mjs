@@ -52,7 +52,7 @@ test('rota comercial: 401 sem login, 403 sem sessão pessoal, 503 sem migração
   const s = resposta(); await areaComercial({ method: 'GET', query: {} }, s, { tipo: 'servico' }, () => { throw Error('não deve abrir o banco'); }); assert.equal(s.codigo, 403);
   const { sql } = await banco(t, { comercial: false });
   for (const aba of ['pacotes', 'financas', 'recebimentos']) {
-    const x = await chamar(sql, paulo, null, { aba }); assert.equal(x.codigo, 503, aba); assert.match(x.body.error, /2026-11-07-comercial\.sql/);
+    const x = await chamar(sql, paulo, null, { aba }); assert.equal(x.codigo, 503, aba); assert.equal(x.body.error, 'Esta parte ainda está sendo ligada.'); assert.equal(x.body.migracao_pendente, true);
   }
   // O funil funciona sem a migração nova (sem valor); Follow-up e valor respondem 503 explicado.
   const f = await chamar(sql, criacao, null, { aba: 'funil' }); assert.equal(f.codigo, 200); assert.equal(f.body.valor_disponivel, false);

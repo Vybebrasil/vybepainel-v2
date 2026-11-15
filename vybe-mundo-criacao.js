@@ -108,7 +108,7 @@
       const destravar = tipo === 'esperando' ? 'Falta informação: puxe com o head do cliente antes de cobrar o time.'
         : tipo === 'ajuste' ? 'Confira se o pedido de ajuste está claro na peça.'
           : parado >= 4 ? 'Parada há muito tempo: pergunte se está travada em algo (briefing, material, outra peça na frente).' : 'Combine a hora da prévia.';
-      const por = [parado != null && parado >= diasParado ? `parada há ${plural(parado, 'dia', 'dias')} em ${d.status || 'sem status'}` : '', prazoVencido ? `prazo venceu em ${dm(d.prazo_iso)}` : '', v ? `vai ao ar ${v === hoje ? 'hoje' : v < hoje ? 'em ' + dm(v) + ' (já passou)' : dm(v)}` : ''].filter(Boolean).join(' · ');
+      const por = [parado != null && parado >= diasParado ? `parada há ${plural(parado, 'dia', 'dias')} em ${d.status ? (typeof statusEmFrase === 'function' ? statusEmFrase(d.status) : d.status) : 'sem status'}` : '', prazoVencido ? `prazo venceu em ${dm(d.prazo_iso)}` : '', v ? `vai ao ar ${v === hoje ? 'hoje' : v < hoje ? 'em ' + dm(v) + ' (já passou)' : dm(v)}` : ''].filter(Boolean).join(' · ');
       out.push({ chave: `cobrar:${d.id}:${hoje}`, id: String(d.id), nome: String(d.nome || 'Peça'), cliente: clientesDe(d)[0] || '', quem: x.quem, para: (Array.isArray(x.para) ? x.para : x.ids || []).map(String), oque, quando, destravar, parado, por, vaiAoAr: v,
         mensagem: `${x.quem.join(' e ')}, sobre "${String(d.nome || 'a peça').trim()}"${clientesDe(d)[0] ? ' (' + clientesDe(d)[0] + ')' : ''}: ${por}. Consegue ${oque} ${quando}?` });
     }
@@ -256,6 +256,9 @@
         <button type="button" class="vc-sec" data-vcr-lote-voltar>Voltar</button><button type="button" class="vc-acao v2-estado" data-vcr-lote-ok>Confirmar ${L.chaves.length}</button></div>`;
     }
     const feito = R && !R.falhas && !n;
+    // Nada a confirmar (acabamento 15/11): sem o "Confirmar 0" desativado, a frase diz o porquê.
+    if (!n && !feito && !L.rodando) return `<div class="vcr-nota vcr-pe vcr-lote"><span class="vcr-pe-conta">Nada marcado para confirmar agora.</span>${res}
+      <button type="button" class="vc-sec vcr-editar" data-vcr-editar aria-pressed="${st.editando}">${st.editando ? 'Pronto' : 'Editar'}</button></div>`;
     const rotulo = L.rodando ? `<i class="vcr-gira" aria-hidden="true"></i>Confirmando ${L.i}/${L.n}…`
       : feito ? `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Confirmado ${R.ok}` : `Confirmar ${n}`;
     return `<div class="vcr-nota vcr-pe vcr-lote">${conta}${res}

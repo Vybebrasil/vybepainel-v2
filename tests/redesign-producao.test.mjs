@@ -145,7 +145,8 @@ test('Projetos sem nenhum projeto: um vazio só, com "Novo projeto" para quem cr
   let t = montarPessoas({ gestao: true });
   await t.P.abrir('projetos');
   let h = t.html();
-  assert.match(h, /Nenhum projeto pontual/); assert.match(h, /data-vp-abrir-form="projeto"[^>]*>Novo projeto/);
+  // Acabamento 15/11: no vazio, a ação de quem cria é o botão do bloco laranja ("Criar o primeiro projeto").
+  assert.match(h, /Nenhum projeto pontual/); assert.match(h, /data-vp-abrir-form="projeto"[^>]*>Criar o primeiro projeto/);
   assert.doesNotMatch(h, /Gantt de projetos pontuais|Linha do tempo da semana|vp-nums|vp-dia-vazio/, 'sem os zeros, o Gantt vazio e as sete caixas');
   t = montarPessoas({ gestao: false });
   await t.P.abrir('projetos');

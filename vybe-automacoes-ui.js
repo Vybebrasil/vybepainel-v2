@@ -240,22 +240,23 @@ function pintarAutomacoes() {
         <button type="button" onclick="this.closest('details').open=false;sincronizarRegrasDoSistema(this)"
           title="Traz para o painel as regras que vieram do Monday, corrigindo as que mudaram. Regra criada aqui não é tocada.">Sincronizar regras do sistema</button>
       </div></details>` : '';
-  // Direção 3: o único laranja cheio é o bloco de ação; "Nova regra" fica preta, com o +.
-  const novo = admin ? '<button type="button" class="v2g-btn k auto-novo" onclick="editarAutomacao(null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova regra</button>' : '';
+  // Direção 3: o único laranja cheio é o bloco de ação. "Nova regra" no topo é branca (acabamento 15/11: preta, ficava
+  // igual à aba selecionada "Regras") e só aparece quando já há regra; sem nenhuma, a ação mora no bloco laranja.
+  const semRegra = !comSaude.length;
+  const novo = admin && !semRegra ? '<button type="button" class="v2g-btn auto-novo" onclick="editarAutomacao(null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova regra</button>' : '';
   const regras = ABA_DE_AUTOMACOES !== 'falhas';
   // Regras/Falhas como par de opções (aria-checked): o "selecionado é preto" do painel antigo vale para aria-pressed.
   const abas = `<div class="v2g-seg ar-abas" role="radiogroup" aria-label="Regras ou falhas">
         <button type="button" role="radio" aria-checked="${regras}" onclick="trocarAbaAutomacoes('regras')">Regras <span class="ar-n">${comSaude.length}</span></button>
         <button type="button" role="radio" aria-checked="${!regras}" onclick="trocarAbaAutomacoes('falhas')">Falhas <span class="ar-n" id="auto-aba-falhas-n">…</span></button>
       </div>`;
-  const semRegra = !comSaude.length;
 
   raiz.innerHTML = `
     ${vbCabecalhoHtml({ titulo: 'Automações', texto: 'Gestão', acoes: abas + mais + novo })}
     <section class="ar-aba v2r-tela" data-aba="regras" aria-label="Regras" ${regras ? '' : 'hidden'}>
       ${semRegra ? '' : '<div class="d3t-auto-acao" id="auto-fala"></div><div class="v2r-kpis d3t-nums" id="auto-kpis"></div>'}
       <div id="auto-editor"></div>
-      ${semRegra ? `<div class="v2g-card v2r-vazio"><p>Nenhuma regra ainda. Uma regra move, atribui ou avisa sozinha quando uma peça muda.${admin ? '' : ' Quando quem administra criar uma regra, ela aparece aqui.'}</p>${novo}</div>
+      ${semRegra ? `<div class="d3t-auto-acao">${vazioDasAutomacoesHtml(admin)}</div>
       <div id="auto-historico" hidden></div>` : `<div class="v2r-grade">
         <div class="v2r-col">
           <div class="v2g-card" id="auto-pede"></div>
@@ -284,6 +285,17 @@ function pintarAutomacoes() {
   pintarListaDeRegras();
 }
 
+// Sem regra nenhuma (acabamento 15/11): uma frase e uma ação. Quem administra vê o bloco laranja com "Criar a primeira
+// regra"; quem não administra, a mesma frase na nota branca (sem ação). Fora do painel (testes), a mesma marcação.
+function vazioDasAutomacoesHtml(admin) {
+  const agente = nomeDoAgenteDeAutomacao(), letra = safeText(agente.slice(0, 1).toUpperCase());
+  const frase = `<small class="d3t-quem">${safeText(agente)} · Automação</small>Nenhuma regra ainda. Uma regra move, atribui ou avisa sozinha quando uma peça muda.${admin ? '' : ' Quando quem administra criar uma, ela aparece aqui.'}`;
+  if (admin) return typeof d3AcaoHtml === 'function' ? d3AcaoHtml({ agente, frase, botao: 'Criar a primeira regra', attrs: 'onclick="editarAutomacao(null)"' })
+    : `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${letra}</span><span class="d3-acao-frase">${frase}</span><button type="button" class="d3-acao-btn" onclick="editarAutomacao(null)">Criar a primeira regra</button></section>`;
+  return typeof d3NotaHtml === 'function' ? d3NotaHtml({ agente, frase })
+    : `<section class="d3-nota" role="status"><span class="d3-nota-av" aria-hidden="true">${letra}</span><span class="d3-nota-frase">${frase}</span></section>`;
+}
+
 // A frase do agente, os três números e o "Pede ação": repintam quando as falhas chegam, sem mexer na lista nem na busca.
 function pintarResumoDasAutomacoes() {
   const fala = document.getElementById('auto-fala'), kpis = document.getElementById('auto-kpis'), pede = document.getElementById('auto-pede');
@@ -308,8 +320,10 @@ function pintarResumoDasAutomacoes() {
   const falhou = pendentes.length
     ? `${pendentes.length === 1 ? '1 falha espera' : `${pendentes.length} falhas esperam`} alguém${motivos.length === 1 ? `: ${safeText(motivos[0])}` : ''}.` : '';
   const agenteLetra = safeText(agente.slice(0, 1).toUpperCase());
-  fala.innerHTML = `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">${agenteLetra}</span>
-    <span class="d3-acao-frase"><small class="d3t-quem">${safeText(agente)} · Automação</small>${falhou || fez}</span>
+  // Sem falha não há ação: a frase vai na nota branca (o laranja é só para ação, acabamento 15/11).
+  const tipoFala = pendentes.length ? 'd3-acao' : 'd3-nota';
+  fala.innerHTML = `<section class="${tipoFala}" ${pendentes.length ? 'aria-label="O que pede ação agora"' : 'role="status"'}><span class="${tipoFala}-av" aria-hidden="true">${agenteLetra}</span>
+    <span class="${tipoFala}-frase"><small class="d3t-quem">${safeText(agente)} · Automação</small>${falhou || fez}</span>
     ${pendentes.length ? `<button type="button" class="d3-acao-btn" onclick="trocarAbaAutomacoes('falhas')">${pendentes.length === 1 ? 'Ver a falha' : `Ver as ${pendentes.length}`}</button>` : ''}</section>`;
 
   const num = (rotulo, valor, sub, { tom = '', barra = null, extra = '' } = {}) => `<div class="d3-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rotulo}</span><b class="d3-num-v">${valor}</b>${barra == null ? '' : `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>`}${extra}${sub ? `<span class="d3t-sub">${sub}</span>` : ''}</div>`;
@@ -1007,14 +1021,14 @@ async function recalcularPrioridadesAgora(botao) {
   try {
     const previa = await chamar(true);
     if (!previa.mudancas) {
-      showToast(`✓ Nada a mudar · ${previa.consideradas} peças já estão com a prioridade que a veiculação pede`, 'ok', 6000);
+      showToast(`✓ Nada a mudar · ${previa.consideradas === 1 ? '1 peça já está' : `${previa.consideradas} peças já estão`} com a prioridade que a veiculação pede`, 'ok', 6000);
       return;
     }
     const faixas = Object.entries(previa.distribuicao || {})
       .map(([rotulo, quantas]) => `${quantas} ${rotulo}`).join(' · ');
     const sim = await perguntarNoPainel({
       titulo: `Recalcular a prioridade de ${previa.mudancas} peça${previa.mudancas === 1 ? '' : 's'}?`,
-      texto: `De ${previa.consideradas} peças abertas com data de veiculação, ${previa.ja_certas} já estão certas. Como fica o quadro depois: ${faixas}. O Monday recebe a cópia pela fila.`,
+      texto: `De ${previa.consideradas === 1 ? '1 peça aberta' : `${previa.consideradas} peças abertas`} com data de veiculação, ${previa.ja_certas} já estão certas. Como fica o quadro depois: ${faixas}. O Monday recebe a cópia pela fila.`,
       confirmar: 'Recalcular',
     });
     if (!sim) return;

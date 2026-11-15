@@ -126,9 +126,10 @@ async function fechar(sql, nome, { mensal = 0, avulso = 0, responsavel = null } 
 test('metas: sem a tabela de configuração o funil abre com aviso e salvar explica a migração', async (t) => {
   const { sql } = await banco(t, { config: false });
   const f = await chamar(sql, paulo, null, { aba: 'funil' });
-  assert.equal(f.codigo, 200); assert.equal(f.body.mes.config_disponivel, false); assert.match(f.body.mes.aviso_config, /2026-11-07-carteira\.sql/);
+  assert.equal(f.codigo, 200); assert.equal(f.body.mes.config_disponivel, false); assert.equal(f.body.mes.aviso_config, 'Esta parte ainda está sendo ligada.');
   const s = await chamar(sql, paulo, { acao: 'metas_salvar', mes: '2026-11', metas: { leads: 10 } });
-  assert.equal(s.codigo, 503); assert.match(s.body.error, /2026-11-07-carteira\.sql/);
+  // O nome da migração fica só no log do servidor; quem usa lê a frase curta.
+  assert.equal(s.codigo, 503); assert.equal(s.body.error, 'Esta parte ainda está sendo ligada.'); assert.doesNotMatch(JSON.stringify([f.body, s.body]), /\.sql|Paulo aplica/);
 });
 
 test('metas, KPIs, corrida e séries pelo servidor; só donos editam e só donos veem reais', async (t) => {

@@ -14,7 +14,7 @@ export async function socialPronto(sql) {
  const [r] = await sql`SELECT (to_regclass('public.vybe_escritorio_postits') IS NOT NULL AND to_regclass('public.vybe_escritorio_presentes') IS NOT NULL) AS existe`;
  return Boolean(r?.existe);
 }
-const exigirTabelas = async (sql) => { if (!await socialPronto(sql)) throw erro('Post-its e presentes aguardam a migração do banco.', 503); };
+const exigirTabelas = async (sql) => { if (!await socialPronto(sql)) throw erro('Post-its e presentes ainda estão sendo ligados.', 503); };
 
 export async function listarPostits(sql, camada) {
  if (!CAMADA.test(String(camada))) throw erro('Sala inválida.');
@@ -115,7 +115,7 @@ export async function trocasProntas(sql) {
  const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_trocas') IS NOT NULL AS existe`;
  return Boolean(r?.existe);
 }
-const exigirTrocas = async (sql) => { if (!await trocasProntas(sql)) throw erro('A troca de móveis aguarda a migração do banco.', 503); };
+const exigirTrocas = async (sql) => { if (!await trocasProntas(sql)) throw erro('A troca de móveis ainda está sendo ligada.', 503); };
 // Lista [[classe, quantidade]] limpa: só móveis que se trocam, sem repetir classe.
 export function itensDaTroca(lista) {
  if (!Array.isArray(lista) || lista.length > 12) throw erro('Escolha até 12 móveis de cada lado.');

@@ -41,10 +41,10 @@
 #automacoes-root .auto-bloco-numero > i{font-style:normal;color:var(--d3-tinta)}
 #automacoes-root .auto-construtor > .auto-lado{grid-column:2;grid-row:2 / span 4;align-self:start;position:sticky;top:90px;display:grid;gap:12px;margin:20px 22px 20px 0}
 #automacoes-root .auto-previa{display:grid;gap:8px;padding:16px 18px;border-radius:var(--d3-r-cartao);border:1px solid var(--d3-borda);background:var(--d3-trilho)}
-#automacoes-root .auto-previa > span{color:var(--d3-apagado);font:600 12px var(--vv-texto,Inter),sans-serif}
-#automacoes-root .auto-previa > b{color:var(--d3-tinta);font:600 15px/1.45 var(--vv-texto,Inter),sans-serif}
-#automacoes-root .auto-previa.incompleta > b{color:var(--d3-apagado);font-weight:500;font-size:14px}
-#automacoes-root .auto-previa > .auto-problema{margin:0;font:500 12.5px/1.5 var(--vv-texto,Inter),sans-serif;font-style:normal}
+#automacoes-root .auto-previa > span{color:var(--d3-apagado);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
+#automacoes-root .auto-previa > b{color:var(--d3-tinta);font:600 var(--d3-fs-destaque)/1.45 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .auto-previa.incompleta > b{color:var(--d3-apagado);font-weight:500;font-size:var(--d3-fs-destaque)}
+#automacoes-root .auto-previa > .auto-problema{margin:0;font:500 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter),sans-serif;font-style:normal}
 #automacoes-root .auto-c-botoes{display:flex;justify-content:flex-end;gap:8px}
 #automacoes-root .auto-c-botoes > .v2g-btn{height:40px;padding:0 18px;border-radius:999px}
 #automacoes-root .auto-c-botoes > .v2g-btn.k:disabled{opacity:1;background:var(--d3-linha);color:var(--d3-apagado);box-shadow:none;cursor:not-allowed}

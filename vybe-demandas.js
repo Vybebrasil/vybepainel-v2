@@ -1573,7 +1573,8 @@ function pv2dPintar() {
 try { pv2dMontar(); } catch { /* a tela antiga segue valendo */ }
 
 // ─── Padrão v2 · IA e custos pelo quadro D3-IaCustos (Direção 3, 13/11/2026) ─────────────────────
-// A tela é o quadro, nesta ordem: título com o selo "só donos", o período (7, 30, 90 dias), Atualizar e Definir teto;
+// A tela é o quadro, nesta ordem: título com o selo "só donos", o período (7, 30, 90 dias) e Atualizar (o "Definir
+// teto" saiu do topo no acabamento de 15/11: a ação principal mora no bloco laranja, e o cartão do teto tem o "definir");
 // o bloco de ação do Alex (frase curta e um botão); quatro números (gasto no período, como o mês fecha, pedidos e teto);
 // e três colunas: "Pede ação" com o gasto por dia em linha, "Com quem" e "Em quê". Os números vêm de /api/ia-custos.
 // A API devolve o gasto por pessoa, por modelo e, nas gravações desde 14/11/2026, por agente e por cliente
@@ -1584,8 +1585,7 @@ const PV2I_SELO = '<span class="d3-selo-donos"><svg viewBox="0 0 24 24" aria-hid
 function pv2iTopoHtml() {
   return `<div class="pv2-topo"><div class="d3f-tit"><h2>IA e custos</h2><span class="d3f-data">Gestão</span>${PV2I_SELO}</div>
     <span class="pv2-seg ia-periodos" role="radiogroup" aria-label="Período">${[7, 30, 90].map((d) => `<button type="button" role="radio" data-days="${d}" aria-checked="${aiUsageDays === d}" onclick="setAiUsageDays(${d},this)">${d} dias</button>`).join('')}</span>
-    <button type="button" class="pv2-btn" onclick="loadAiUsage(true)">Atualizar</button>
-    <button type="button" class="pv2-btn d3f-escuro" onclick="pv2iAbrirParametros(true)">Definir teto</button></div>`;
+    <button type="button" class="pv2-btn" onclick="loadAiUsage(true)">Atualizar</button></div>`;
 }
 function pv2iAbrirParametros(focarTeto) {
   const d = document.getElementById('pv2i-parametros'); if (!d) return;
@@ -1694,11 +1694,16 @@ function pv2iRender(data) {
     ${blocoAcao}
     <div class="d3f-nums" style="--n:4">${[
       { rotulo: `Gasto em ${dias} dias`, valor: aiBrl(gasto), tom: gasto ? '' : 'q', sub: `${overview.cost_usd != null ? aiUsd(overview.cost_usd) : aiUsd(month.cost_usd)}${pedidos ? ` · ${aiBrl(gasto / pedidos)} por pedido` : ''}` },
-      { rotulo: `${Mes} fecha perto de`, valor: previsto > 0 ? redondo(previsto) : 'R$ 0', tom: previsto > 0 ? '' : 'q', serie: acumulado.length > 1 ? acumulado : null, sub: `até hoje · ${aiBrl(noMes)}${pedidosDoMes ? ` · ${n0(pedidosDoMes)} ${pl(pedidosDoMes, 'pedido', 'pedidos')}` : ''}` },
+      { rotulo: `${Mes} fecha perto de`, valor: previsto > 0 ? redondo(previsto) : aiBrl(0), tom: previsto > 0 ? '' : 'q', serie: acumulado.length > 1 ? acumulado : null, sub: `até hoje · ${aiBrl(noMes)}${pedidosDoMes ? ` · ${n0(pedidosDoMes)} ${pl(pedidosDoMes, 'pedido', 'pedidos')}` : ''}` },
       { rotulo: `Pedidos em ${dias} dias`, valor: n0(pedidos), tom: pedidos ? '' : 'q', barra: pctSemCusto, sub: pedidos ? `${pctSemCusto}% sem custo` : 'nenhum no período' },
-      { rotulo: 'Teto mensal', valor: teto > 0 ? `${usado.toFixed(0)}%` : 'Sem teto', tom: teto > 0 ? (usado >= 100 ? 'r' : usado >= 80 ? 'a' : '') : 'a', barra: teto > 0 ? Math.min(100, usado) : null,
-        sub: `${teto > 0 ? `${aiBrl(noMes)} de ${aiBrl(teto)}` : 'aviso 80% · vermelho 100%'} · <button type="button" class="pv2-link" onclick="pv2iAbrirParametros(true)">${teto > 0 ? 'mudar' : 'definir'}</button>` },
+      // Sem teto: o número é "—" e a frase vai embaixo (acabamento 15/11), não "Sem teto" no lugar do número.
+      { rotulo: 'Teto mensal', valor: teto > 0 ? `${usado.toFixed(0)}%` : '—', tom: teto > 0 ? (usado >= 100 ? 'r' : usado >= 80 ? 'a' : '') : 'q', barra: teto > 0 ? Math.min(100, usado) : null,
+        sub: `${teto > 0 ? `${aiBrl(noMes)} de ${aiBrl(teto)}` : 'sem teto ainda'} · <button type="button" class="pv2-link" onclick="pv2iAbrirParametros(true)">${teto > 0 ? 'mudar' : 'definir'}</button>` },
     ].map(pv2iNum).join('')}</div>
-    <div class="pv2i-baixo"><div class="d3f-coluna">${pedeAcao}${porDiaHtml}</div>${comQuem}${emQueHtml}</div>
+    ${pedidos ? `<div class="pv2i-baixo"><div class="d3f-coluna">${pedeAcao}${porDiaHtml}</div>${comQuem}${emQueHtml}</div>`
+      // Sem pedido no período (acabamento 15/11): no lugar de três cartões vazios, uma frase só; o "Pede ação" (o teto)
+      // e os Parâmetros continuam.
+      : `<div class="pv2i-baixo pv2i-sem-uso"><div class="d3f-coluna">${pedeAcao}</div><section class="pv2-card pv2i-que" aria-label="Com quem e em quê"><div class="pv2i-cab"><h3>Com quem e em quê</h3><span class="pv2-sub">${dias} dias</span></div><p class="pv2-sub pv2-nada">Sem pedidos ao VYBES no período. Quem pediu, em qual modelo e o gasto de cada dia aparecem aqui quando houver uso.</p>
+      <div class="pv2i-pe pv2i-fichas">${parametros}</div></section></div>`}
   </div>`;
 }

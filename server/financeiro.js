@@ -421,7 +421,7 @@ export async function areaFinanceiro(req, res, quem, criarBanco) {
     if (req.method === 'POST') return res.status(200).json({ ok: true, ...await escreverFinanceiro(sql, quem, req.body || {}) });
     return res.status(200).json({ ok: true, ...await lerFinanceiro(sql, quem, req.query || {}) });
   } catch (e) {
-    if (e.code === '42P01') return res.status(503).json({ error: 'Falta a tabela vybe_carteira_config (migração 2026-11-07-carteira.sql).', migracao_pendente: true });
+    if (e.code === '42P01') { console.warn('[financeiro] falta a tabela vybe_carteira_config (migração 2026-11-07-carteira.sql):', e.message); return res.status(503).json({ error: 'Esta parte ainda está sendo ligada.', migracao_pendente: true }); }
     return res.status(e.status || 500).json({ error: e.status ? e.message : 'Não foi possível acessar o Financeiro. Tente novamente.' });
   }
 }

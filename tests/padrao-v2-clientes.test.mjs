@@ -42,7 +42,7 @@ test('a linha do cliente: nota, quem é, a barra do que tirou ponto e a ação; 
 test('Onboarding segue o quadro: Como funciona e Novo onboarding, fala, três números, busca e etapas, Pede ação antes de Andando', () => {
   const tela = carteira.slice(carteira.indexOf('  function abaOnboarding() {'), carteira.indexOf('  // ---------- Churn ----------'));
   // Direção 3: quatro números, quadro com colunas e, ao lado, tempo de entrada em linha, etapas e configuração.
-  naOrdem(tela, ["botao('Como funciona'", "botao('Novo onboarding'", "rotulo: 'Em entrada'", 'rotulo: `Parados +${DIAS_PARADO} dias`', "rotulo: 'Tempo médio'", "rotulo: 'Concluídos no mês'",
+  naOrdem(tela, ["botao('Como funciona'", "botao('Novo onboarding'", "rotulo: 'Em entrada'", 'rotulo: `Parados ${DIAS_PARADO}+ dias`', "rotulo: 'Tempo médio'", "rotulo: 'Concluídos no mês'",
     'data-vc-busca-onb', "ficha('Todas as etapas'", "botao('Filtros'", "secao('Pede ação'", "secao('Andando'", 'Tempo de entrada', '<h2>Etapas</h2>',
     '${ajuda}${iniciar}${fala}${numeros}${filtros}<div class="d3c-onb-grade"><section class="v2c-card v2c-quadro"']);
   const linha = carteira.slice(carteira.indexOf('  function linhaOnboarding('), carteira.indexOf('  function editorEtapasHtml() {'));

@@ -74,7 +74,7 @@ test('Clientes: título com Tabela/Fichas/Cérebro, Cadastros e Novo cliente; fa
   const tabela = ctx.tabelaDeClientesHtml(['Academia Lions', 'Alpha1']);
   assert.match(tabela, /class="v2-abre v2f-linha" data-cliente="Academia Lions" aria-expanded="false"/);
   assert.ok(tabela.indexOf('"Academia Lions"') < tabela.indexOf('"Alpha1"'), 'pior nota primeiro');
-  assert.match(tabela, /2 conteúdos · <b class="v2f-ruim">1 vencido<\/b>/);
+  assert.match(tabela, /2 peças · <b class="v2f-ruim">1 vencida<\/b>/);
 });
 
 test('Ficha: linha do alto, nota com o porquê, fala, abas com contagem, Pede ação, entregas e Dados e acessos', () => {

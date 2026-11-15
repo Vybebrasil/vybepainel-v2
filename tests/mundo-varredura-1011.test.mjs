@@ -30,7 +30,8 @@ test('cartão, prévia e balões param acima do dock das salas', () => {
 test('plural e vírgula: 1 atrasada, 1 conteúdo, 3,5 h', () => {
   assert.ok(ler('vybe-mundo-planejamentos.js').includes("['atrasadas', ['atrasada', 'atrasadas']]"));
   assert.ok(ler('vybe-dominio.js').includes("${todos.length === 1 ? 'conteúdo' : 'conteúdos'}"));
-  assert.ok(ler('vybe-gestor.js').includes("${total === 1 ? 'conteúdo' : 'conteúdos'}"));
+  // Acabamento 15/11: a unidade é peça em todo o sistema.
+  assert.ok(ler('vybe-gestor.js').includes("${total === 1 ? 'peça' : 'peças'}"));
   assert.ok(ler('vybe-mundo-agentes.js').includes("String(n.horasAteResolver).replace('.', ',') + ' h'"));
 });
 

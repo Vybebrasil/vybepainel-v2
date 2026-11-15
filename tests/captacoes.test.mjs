@@ -259,7 +259,7 @@ test('fechar recusa peça de outro cliente, link que não é endereço e evento 
 test('antes da migração, fechar avisa e a lista continua funcionando', async (t) => {
   const { sql, trocar, agenda } = await banco(t);
   await montarCaptacao(sql, quem, { cliente_id: '1', dia: '2026-10-26', pecas: ['10'] }, { trocar, agenda });
-  await assert.rejects(fecharGravacao(sql, quem, { captacao_id: '1', gravadas: ['10'] }, { trocar }), (e) => e.status === 503 && /migração/.test(e.message));
+  await assert.rejects(fecharGravacao(sql, quem, { captacao_id: '1', gravadas: ['10'] }, { trocar }), (e) => e.status === 503 && /sendo ligad/.test(e.message));
   const [k] = (await listarCaptacoes(sql, { de: '2026-10-01', ate: '2026-11-30' })).captacoes;
   assert.equal(k.drive_link, undefined);
 });

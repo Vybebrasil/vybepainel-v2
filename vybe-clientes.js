@@ -491,7 +491,7 @@ function renderClientMasterDetail(cli) {
   const restoEntregas = abertos.length - Math.min(NA_FRENTE, proximas.length);
   const cartaoEntregas = `<section class="v2f-card v2f-entregas"><div class="v2f-card-topo"><h3>Próximas entregas</h3><span class="v2f-sub">${plural(conteudos, 'conteúdo em aberto', 'conteúdos em aberto')} · ${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}</span></div>
       ${proximas.slice(0, NA_FRENTE).map(entrega).join('') || `<p class="v2f-vazio">${abertos.length ? 'Nenhuma entrega com data pela frente.' : 'Nenhum conteúdo em aberto.'}</p>`}
-      ${abertos.length ? `<p class="v2f-pe">${restoEntregas > 0 ? `+ ${plural(restoEntregas, 'conteúdo', 'conteúdos')} · ` : ''}<button type="button" class="v2f-link" onclick="trocarAbaDaFicha('conteudo')">mostrar</button> · prazo, status e seleção de vários ficam na aba Conteúdo</p>` : ''}</section>`;
+      ${abertos.length ? `<p class="v2f-pe">${restoEntregas > 0 ? `+ ${plural(restoEntregas, 'peça', 'peças')} · ` : ''}<button type="button" class="v2f-link" onclick="trocarAbaDaFicha('conteudo')">mostrar</button> · prazo, status e seleção de vários ficam na aba Conteúdo</p>` : ''}</section>`;
 
   // ── Última reunião ──
   const reu = id && window.VybeReunioes?.dadosDe ? window.VybeReunioes.dadosDe(id) : null;
@@ -753,7 +753,7 @@ function renderClientesBoard() {
       + numero('Sem reunião registrada', semRegistro, '', '.12s',
         { de: numeros.ativos ? ` / ${numeros.ativos}` : '', tom: semRegistro ? 'r' : '', barra: numeros.ativos ? (semRegistro / numeros.ativos) * 100 : null })
       + numero('Com NPS', comNota.length, [comNota.length ? `média ${npsMedio}` : '', plural(detratores, 'detrator', 'detratores'), `${semContato} sem contato`].filter(Boolean).join(' · '), '.24s', { de: numeros.ativos ? ` / ${numeros.ativos}` : '' })
-      + numero('Só na operação', numeros.sem || 0, `sem ficha · ${plural(painelVelho, 'painel', 'painéis')}`, '.36s');
+      + numero('Só na operação', numeros.sem || 0, `sem ficha no cadastro${painelVelho ? ` · ${plural(painelVelho, 'painel a atualizar', 'painéis a atualizar')}` : ''}`, '.36s');
   }
   // A fala do Mateus: como está a carteira, o item que mais falta no cadastro e quem está sem ficha. "Completar
   // cadastros" recorta a lista para quem não tem reunião registrada (o mesmo recorte do aviso antigo).
@@ -1619,7 +1619,7 @@ function abertosDoCliente(nome) {
 }
 function abertosHtml({ conteudos, pedidos }) {
   const parte = (n, um, varios, classe = '') => `<span class="${n ? classe : 'zero'}"><b>${n}</b> ${n === 1 ? um : varios}</span>`;
-  return `<span class="cli-abertos">${parte(conteudos, 'conteúdo', 'conteúdos')}<i aria-hidden="true">·</i>${
+  return `<span class="cli-abertos">${parte(conteudos, 'peça', 'peças')}<i aria-hidden="true">·</i>${
     parte(pedidos, 'pedido', 'pedidos', 'atencao')}</span>`;
 }
 // A nota da Saúde da carteira (vybe-carteira-saude.js pelo VybeCarteira.dados): a mesma conta da aba Saúde.
@@ -1731,7 +1731,8 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
     : c.feitos === c.total ? '<span class="v2f-pill g">completo</span>'
     // Direção 3 (quadro D3-GestaoClientes): o cadastro é uma pílula clara com o que já está feito ("3 de 12").
     : `<span class="v2f-pill v2f-cad-n" title="Faltam: ${safeText(c.faltam.join(', '))}">${c.feitos} de ${c.total}</span>`;
-  const emAberto = `${plural(conteudos, 'conteúdo', 'conteúdos')}${vencidos ? ` · <b class="v2f-ruim">${plural(vencidos, 'vencido', 'vencidos')}</b>` : ''}`;
+  // "peça" é o nome da unidade em todo o sistema (acabamento 15/11), não "conteúdo".
+  const emAberto = `${plural(conteudos, 'peça', 'peças')}${vencidos ? ` · <b class="v2f-ruim">${plural(vencidos, 'vencida', 'vencidas')}</b>` : ''}`;
 
   // O detalhe que abre no lugar.
   const feitos = c && typeof CADASTRO_DEF !== 'undefined' && CADASTRO_DEF
@@ -1746,7 +1747,7 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
     : (podeMexer ? `<button type="button" class="v2f-btn s" onclick="abrirFichaDeCliente('${aspas}')">Completar cadastro</button>` : '');
   const detalhe = `<div class="v2f-ficha"><div class="v2f-ficha-texto">
         <p><b>Saúde${tom ? ` ${Number(s.score)}` : ''}</b> · ${tom ? safeText((s.motivos || []).slice(0, 2).join(' · ') || 'sem nada puxando para baixo') : 'sem nota: cliente inativo ou sem peças para medir'}</p>
-        <p><b>Em aberto</b> · ${plural(conteudos, 'conteúdo', 'conteúdos')}${vencidos ? `, ${vencidos} com a veiculação vencida` : ''} · ${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}</p>
+        <p><b>Em aberto</b> · ${plural(conteudos, 'peça', 'peças')}${vencidos ? `, ${vencidos} com a veiculação vencida` : ''} · ${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}</p>
         <p class="v2f-cad"><b>Cadastro${c ? ` ${c.feitos} de ${c.total}` : ''}</b>${c ? itens : ' · sem ficha no cadastro'}</p>
       </div>${botoes}<button type="button" class="v2f-btn s k" onclick="abrirClienteDetalhe('${aspas}')">Abrir a ficha</button></div>`;
 

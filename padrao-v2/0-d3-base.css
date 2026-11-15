@@ -12,20 +12,25 @@
   --d3-pronto:#11613A; --d3-pronto-veu:#E8F5EC; --d3-info:#1E4A9A; --d3-info-veu:#E7EEFB;
   --d3-cart-vinicius:#9A4A1E; --d3-cart-ewerton:#3B5BA9;
   --d3-r-cartao:20px; --d3-r-janela:28px;
+  /* Escala de fonte (acabamento premium, 15/11/2026): seis tamanhos inteiros no lugar dos 14 a 19 por tela e dos meios
+     pixels (10,5 / 11,5 / 12,5 / 13,5 / 14,5). mini: selo, contador, legenda miúda · apoio: rótulo, chip, sublinha ·
+     texto: texto e botão · destaque: nome na linha, frase do bloco de ação · titulo: título de cartão e janela ·
+     numero: título de tela e número de cartão. Tamanho de vitrine (34, 36, 52) e clamp() ficam onde estão. */
+  --d3-fs-mini:11px; --d3-fs-apoio:12px; --d3-fs-texto:13px; --d3-fs-destaque:15px; --d3-fs-titulo:18px; --d3-fs-numero:28px;
 }
 
 /* Bloco de ação: a única faixa laranja da tela. Frase curta, avatar do agente branco e um botão branco. */
 .d3-acao{display:flex;align-items:center;gap:14px;min-width:0;box-sizing:border-box;padding:14px 16px 14px 18px;border-radius:var(--d3-r-cartao);
-  background:var(--d3-acao);color:#FFFFFF;font:600 15px/1.3 var(--vv-titulo,Inter,sans-serif)}
+  background:var(--d3-acao);color:#FFFFFF;font:600 var(--d3-fs-destaque)/1.3 var(--vv-titulo,Inter,sans-serif)}
 .d3-acao > .d3-acao-frase{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.d3-acao > .d3-acao-av{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#FFFFFF;color:var(--d3-agente);font:800 13px var(--vv-titulo,Inter,sans-serif)}
-.d3-acao > .d3-acao-btn{flex:none;height:36px;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:var(--d3-acao-texto);font:700 13px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3-acao > .d3-acao-av{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#FFFFFF;color:var(--d3-agente);font:800 var(--d3-fs-texto) var(--vv-titulo,Inter,sans-serif)}
+.d3-acao > .d3-acao-btn{flex:none;height:36px;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:var(--d3-acao-texto);font:700 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
 .d3-acao > .d3-acao-btn:hover{background:#FFF4EE}
 
 /* Cartão de número: rótulo curto, número grande e uma mini linha ou barra. Sem legenda. */
 .d3-num{display:flex;flex-direction:column;gap:6px;min-width:0;padding:14px 16px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
-.d3-num > .d3-num-rot{font:600 12px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.d3-num > .d3-num-v{font:700 28px/1 var(--vv-titulo,Inter,sans-serif);color:var(--d3-tinta);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.d3-num > .d3-num-rot{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3-num > .d3-num-v{font:700 var(--d3-fs-numero)/1 var(--vv-titulo,Inter,sans-serif);color:var(--d3-tinta);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .d3-num.r > .d3-num-v{color:var(--d3-perigo)}
 .d3-num.g > .d3-num-v{color:var(--d3-pronto)}
 .d3-num.a > .d3-num-v{color:var(--d3-ajuste)}
@@ -39,9 +44,9 @@
 .d3-barra > i{position:absolute;inset:0 auto 0 0;width:var(--v,0%);border-radius:inherit;background:var(--d3-tinta)}
 
 /* Cliente: ponto + nome na cor da carteira. */
-.d3-cli{display:inline-flex;align-items:center;gap:6px;min-width:0;font:600 12.5px var(--vv-texto,Inter,sans-serif);color:var(--cart,var(--d3-tinta));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3-cli{display:inline-flex;align-items:center;gap:6px;min-width:0;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--cart,var(--d3-tinta));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d3-cli::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:currentColor}
-.d3-selo-donos{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-apagado);font:600 11px var(--vv-texto,Inter,sans-serif);vertical-align:middle}
+.d3-selo-donos{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-apagado);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);vertical-align:middle}
 
 /* MOVIMENTOS · a versão de uma vez só (no quadro rodavam em ciclo de 6s para mostrar; na tela acontecem quando a peça aparece). */
 @keyframes d3NumChega{from{filter:blur(8px);opacity:.15;transform:translateY(8px)}to{filter:none;opacity:1;transform:none}}

@@ -74,11 +74,12 @@ const regra = (id, nome, ativa, total, mes) => ({ id, nome, ativa, gatilho: { ti
 test('Automações: cabeçalho com Regras/Falhas, Mais e Nova regra; fala do agente, três números, "Pede ação" e regras em linha', () => {
   const { c, no, raiz } = telaDeAutomacoes({ regras: [regra(1, 'Aprovado vira Saída', true, 88, 61), regra(2, 'Outra', true, 5, 3), regra(3, 'Parada de vez', false, 12, 0), regra(4, 'Quarta', true, 1, 1), regra(5, 'Quinta', true, 1, 1), regra(6, 'Sexta', true, 1, 1)] });
   assert.match(raiz.innerHTML, /<h2>Automações<\/h2><div class="v2g-seg ar-abas" role="radiogroup"/);
-  // Direção 3: "Nova regra" preta; o único laranja cheio é o bloco de ação.
-  assert.match(raiz.innerHTML, /class="v2g-btn k auto-novo" onclick="editarAutomacao\(null\)">.*Nova regra</);
+  // Acabamento 15/11: "Nova regra" branca (preta ficava igual à aba selecionada); o único laranja cheio é o bloco de ação.
+  assert.match(raiz.innerHTML, /class="v2g-btn auto-novo" onclick="editarAutomacao\(null\)">.*Nova regra</);
   assert.doesNotMatch(raiz.innerHTML, /class="v2g-btn p/, 'nenhum botão laranja fora do bloco de ação');
   assert.ok(raiz.innerHTML.indexOf('id="auto-fala"') < raiz.innerHTML.indexOf('id="auto-kpis"') && raiz.innerHTML.indexOf('id="auto-kpis"') < raiz.innerHTML.indexOf('id="auto-pede"'), 'ação, números, pede ação');
-  assert.match(no('auto-fala').innerHTML, /class="d3-acao"[\s\S]*5 regras ligadas fizeram 67 ações em 30 dias\./);
+  // Sem falha não há ação: a frase do agente vai na nota branca.
+  assert.match(no('auto-fala').innerHTML, /class="d3-nota"[\s\S]*5 regras ligadas fizeram 67 ações em 30 dias\./);
   assert.equal((no('auto-kpis').innerHTML.match(/class="d3-num[ "]/g) || []).length, 4, 'quatro números');
   assert.match(no('auto-kpis').innerHTML, /Regras ligadas<\/span><b class="d3-num-v">5<small> \/ 6<\/small><\/b><span class="d3-barra" style="--v:83%">/);
   assert.match(no('auto-kpis').innerHTML, /Por tipo · 30 dias/);
@@ -108,7 +109,9 @@ test('Automações: cabeçalho com Regras/Falhas, Mais e Nova regra; fala do age
 
 test('Automações: sem regra, uma frase e o botão; quem não administra não liga, não testa e não cria', () => {
   const vazia = telaDeAutomacoes({ regras: [] }).raiz.innerHTML;
-  assert.match(vazia, /Nenhuma regra ainda\. Uma regra move, atribui ou avisa sozinha quando uma peça muda\.<\/p><button type="button" class="v2g-btn k auto-novo"/);
+  // Acabamento 15/11: a ação do vazio mora no bloco laranja; o "Nova regra" do topo não repete.
+  assert.match(vazia, /Nenhuma regra ainda\. Uma regra move, atribui ou avisa sozinha quando uma peça muda\.<\/span><button type="button" class="d3-acao-btn" onclick="editarAutomacao\(null\)">Criar a primeira regra<\/button>/);
+  assert.doesNotMatch(vazia, /Nova regra<\/button>/);
   assert.doesNotMatch(vazia, /id="auto-kpis"|id="auto-pede"/);
   const { raiz, no } = telaDeAutomacoes({ admin: false, regras: [regra(1, 'Uma', true, 2, 1), regra(2, 'Duas', false, 0, 0)] });
   assert.doesNotMatch(raiz.innerHTML, /Nova regra|Recalcular prioridades/);

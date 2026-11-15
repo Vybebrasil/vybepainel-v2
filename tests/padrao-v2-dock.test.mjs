@@ -122,7 +122,7 @@ test('fragmento do dock: medidas do quadro, sem !important e sem html body.mundo
   // painel: inteiro na tela, em cima do botão
   assert.match(css, /#office-ajustes-audio\.v2k-som\{--v2k-l:360px;position:fixed;[^}]*left:clamp\(12px,calc\(var\(--v2k-x,50vw\) - var\(--v2k-l\) \/ 2\),calc\(100vw - var\(--v2k-l\) - 12px\)\);[^}]*bottom:var\(--v2k-pe,[^}]*border-radius:24px/);
   assert.match(css, /#office-ajustes-audio \.v2k-seg button:is\(\[aria-selected="true"\],\[aria-pressed="true"\]\)\{background:#FFFFFF;color:#1F1D1A/);
-  assert.match(css, /#office-ajustes-audio \.v2k-btn\.s\{height:30px;padding:0 12px;font-size:12\.5px\}/);
+  assert.match(css, /#office-ajustes-audio \.v2k-btn\.s\{height:30px;padding:0 12px;font-size:var\(--d3-fs-texto\)\}/);
   assert.match(css, /#office-ajustes-audio \.v2k-btn\.k\{background:#1F1D1A;color:#FFFFFF/);
   // dock: pílula branca, botão 54×48 raio 16, ligado preto, desligado cinza, contador verde
   assert.match(css, /#vv-dock-salas-faixa > \.vq-dock\.vv-dock-salas\{align-items:center;gap:4px;padding:8px;border:0;border-radius:999px;background:#FFFFFF/);

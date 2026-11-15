@@ -49,7 +49,7 @@ const resposta = () => {
 test('sem a migração: nada quebra, tudo avisa', async (t) => {
   const { sql } = await banco(t, { migrar: false });
   const o = await listarObjetivos(sql);
-  assert.equal(o.pronto, false); assert.match(o.aviso, /migração/); assert.deepEqual(o.objetivos, {});
+  assert.equal(o.pronto, false); assert.match(o.aviso, /sendo ligad/); assert.deepEqual(o.objetivos, {});
   await assert.rejects(trocarObjetivo(sql, { pessoa: { id: 3 } }, { item: 'vybe:100', objetivo: 'atracao' }), (e) => e.status === 503);
   await assert.rejects(A.gerarLink(sql, { id: 3 }, { cliente_id: 10 }), (e) => e.status === 503);
   const p = await A.painelDeAprovacao(sql, { id: 3 });

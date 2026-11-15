@@ -1171,7 +1171,7 @@ function renderManagerCalendar(forcar = false) {
     </div>
     <div class="manager-calendar-toolbar">
       <div class="manager-calendar-month"><button type="button" onclick="managerCalendarGoMonth(-1)" aria-label="Mês anterior">‹</button><span class="manager-calendar-month-label">${safeText(managerCalendarLabel(meta))}</span><button type="button" onclick="managerCalendarGoMonth(1)" aria-label="Próximo mês">›</button>${noMesAtual ? '' : '<button type="button" class="manager-calendar-hoje" onclick="managerCalendarGoToday()">Hoje</button>'}</div>
-      <div class="manager-calendar-status" title="${dateMode==='prazo'?'Pelo prazo de produção':'Pela data de veiculação'} · clique numa peça para abrir, arraste para mudar a data"><span><i></i>${sourceCount.content} ${sourceCount.content===1?'conteúdo':'conteúdos'}</span><span><i class="request"></i>${sourceCount.request} ${sourceCount.request===1?'solicitação':'solicitações'}</span></div>
+      <div class="manager-calendar-status" title="${dateMode==='prazo'?'Pelo prazo de produção':'Pela data de veiculação'} · clique numa peça para abrir, arraste para mudar a data"><span><i></i>${sourceCount.content} ${sourceCount.content===1?'peça':'peças'}</span><span><i class="request"></i>${sourceCount.request} ${sourceCount.request===1?'solicitação':'solicitações'}</span></div>
       <div class="manager-calendar-clients">${clientButtons}</div>
     </div>${demandNote}<div class="manager-calendar-grid">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d => `<div class="manager-calendar-weekday">${d}</div>`).join('')}${cells}</div><div class="manager-calendar-footer"><span><strong>${monthItems.length}</strong> itens no mês · <strong>${clients.length}</strong> clientes com atividade</span><button type="button" onclick="managerCalendarSetClient('all');managerCalendarSetSource('all')">Limpar visão do calendário</button></div>`;
 }
@@ -2114,7 +2114,7 @@ function alternarSelecao(id, marcada, event, ordemVisivel) {
       ULTIMA_MARCADA = alvo;
       repintarOndeHaSelecao();
       const n = fim - ini + 1;
-      showToast(`${marcada ? 'Marcadas' : 'Desmarcadas'} ${n} peças`, 'info', 2500);
+      showToast(n === 1 ? `${marcada ? 'Marcada' : 'Desmarcada'} 1 peça` : `${marcada ? 'Marcadas' : 'Desmarcadas'} ${n} peças`, 'info', 2500);
       return;
     }
   }
@@ -2451,7 +2451,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
 
   const peca = (n) => quadro === 'demandas'
     ? (n === 1 ? 'solicitação' : 'solicitações')
-    : (n === 1 ? 'conteúdo' : 'conteúdos');
+    : (n === 1 ? 'peça' : 'peças');
 
   const blocos = grupos.map(grupo => {
     const recolhido = (quadro==='demandas'?gruposDemandasRecolhidos:gruposRecolhidos).has(grupo.id);
@@ -2487,7 +2487,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   // pessoa marcava sem ver que havia o que fazer com aquilo.
   wrap.innerHTML = `<div class="grupos-head">
       <div><div class="grupos-titulo" title="Clique num grupo para recolher, numa linha para abrir a atividade">${quadro === 'demandas' ? 'Demandas' : 'Conteúdos'} por grupo</div></div>
-      <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'conteúdos'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
+      <div class="grupos-total"><b>${totalGeral}</b><span>${quadro === 'demandas' ? 'solicitações' : 'peças'}${selectedPersonIds.size ? ' no filtro atual' : ''}</span></div>
     </div>${quadro==='producao' ? `<div class="quadro-toolbar"><label class="quadro-busca">Buscar por cliente<input id="busca-cliente-conteudos" type="search" placeholder="Nome do cliente…" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label><button type="button" class="quadro-novo" onclick="openCadastrosGoverned({board:'producao'})">+ Novo conteúdo</button></div>` : ''}${blocos ? blocos + (typeof botaoNovoGrupoNoFim === 'function' ? botaoNovoGrupoNoFim(quadro) : '') : `<div class="grupos-vazio">Nenhum${quadro === 'demandas' ? 'a solicitação carregada' : ' conteúdo carregado'} ainda.</div>`}`;
 }
 
@@ -2585,7 +2585,7 @@ function loteStatus(event) {
       if (resposta.automacao_pendente) throw new Error('Status salvo, mas encaminhamento pendente. Abra “por que não rodou?” para retomar.');
     },
     aviso: /aprova|agendad|finalizad|feito/i.test(String(o.label))
-      ? `Em lote a conferência da arte não acontece — ${SELECIONADAS.size} peças vão direto para "${o.label}".`
+      ? `Em lote a conferência da arte não acontece — ${SELECIONADAS.size === 1 ? '1 peça vai' : `${SELECIONADAS.size} peças vão`} direto para "${o.label}".`
       : '',
   })), 'status');
 }

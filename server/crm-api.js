@@ -14,9 +14,10 @@ export async function areaCrm(req,res,quem,criarBanco) {
   const ver_dinheiro=ehDonoPessoa(quem.pessoa), dados=ver_dinheiro ? lidos : semValoresCrm(lidos);
   return res.status(200).json({ok:true,pessoa_id:String(quem.pessoa.id),pode_editar,ver_dinheiro,...dados});
  } catch(e) {
-  if(e.code==='42P01') return res.status(503).json({error:'CRM ainda não provisionado. Peça ao Paulo para aplicar a migração 2026-11-07-crm-prospeccao.sql.'});
+  // O nome da migração fica no log do servidor; quem usa lê só que a parte ainda está sendo ligada.
+  if(e.code==='42P01') { console.warn('[crm] falta a migração 2026-11-07-crm-prospeccao.sql:', e.message); return res.status(503).json({error:'Esta parte ainda está sendo ligada.',migracao_pendente:true}); }
   // Follow-up e valor da negociação dependem da migração do Comercial.
-  if(e.code==='42703' || (e.code==='23514' && /etapa/.test(String(e.constraint || e.message)))) return res.status(503).json({error:'Esta parte do CRM depende da migração 2026-11-07-comercial.sql. Peça ao Paulo para aplicá-la.'});
+  if(e.code==='42703' || (e.code==='23514' && /etapa/.test(String(e.constraint || e.message)))) { console.warn('[crm] falta a migração 2026-11-07-comercial.sql:', e.message); return res.status(503).json({error:'Esta parte ainda está sendo ligada.',migracao_pendente:true}); }
   return res.status(e.status || 500).json({error:e.status?e.message:'Não foi possível acessar o CRM. Tente novamente.'});
  }
 }

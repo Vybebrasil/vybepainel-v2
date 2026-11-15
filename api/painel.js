@@ -1,4 +1,5 @@
 import { ehDonoPessoa } from '../server/donos.js';
+import { falhaInterna, falhaDeRegra } from '../server/falha-interna.js';
 import { pessoaLiberadaAssistente } from '../server/assistente-ativacao.js';
 import { areaEscritorio } from '../server/escritorio.js';
 import { areaConvite, convidadoDoCookie } from '../server/escritorio-convite.js';
@@ -1541,7 +1542,7 @@ async function areaDiario(req, res, quem) {
   if (req.method === 'GET') {
     if(req.query?.base_resumo) {
       try { return res.status(200).json({ok:true,base:await obterBaseResumo(db,req.query.base_resumo)}); }
-      catch { return res.status(400).json({error:'Não foi possível consultar a base da manhã.'}); }
+      catch (erro) { return falhaInterna(res, 'diario.base_resumo', erro); }
     }
     const id = Number(req.query?.id || 0);
     if (id) {
@@ -1556,6 +1557,10 @@ async function areaDiario(req, res, quem) {
       if(quem.tipo!=='servico' && !quem.pessoa?.admin) return res.status(403).json({error:'Só quem administra registra a base da manhã.'});
       return res.status(200).json({ok:true,base:await registrarBaseResumo(db)});
     }
+    // Registrar o retrato do dia é dos donos e de quem administra; a credencial de serviço (rotinas) segue podendo.
+    // O cron das 7h grava pelo api/mirror-reconcile.js, que não passa por aqui.
+    if (quem.tipo !== 'servico' && !quem.pessoa?.admin && !ehDonoPessoa(quem.pessoa))
+      return res.status(403).json({ error: 'Só os donos e quem administra registram o diário.' });
     const snapshot = await registrarSnapshotOperacional(db, quem.tipo === 'servico' ? 'servico' : 'manual_painel');
     return res.status(200).json({ ok: true, snapshot });
   }
@@ -1715,10 +1720,28 @@ export async function areaHistorico(req,res) {
   const eventos=await sql()`SELECT COALESCE(c.monday_item_id, 'vybe:' || c.id::text) AS item_id,
     e.tipo,e.de,e.para,e.em,e.autor_id FROM vybe_conteudo_eventos e
     JOIN vybe_conteudos c ON c.id=e.conteudo_id WHERE e.em >= now() - make_interval(days => ${dias}::int)
-    ORDER BY e.em DESC LIMIT 10000`;
-  const grupos=await sql()`SELECT DISTINCT etapa,grupo_id FROM vybe_conteudos WHERE etapa IS NOT NULL AND grupo_id IS NOT NULL`;
-  return res.status(200).json({ok:true,logs:agruparHistorico(eventos,Object.fromEntries(grupos.map(g=>[g.etapa,g.grupo_id])))});
+    ORDER BY e.em DESC LIMIT ${HISTORICO_EVENTOS_MAX}`;
+  return res.status(200).json({ok:true,logs:agruparHistorico(eventos,await mapaEtapaGrupo(sql()))});
 }
+
+// O mapa etapa → grupo varre vybe_conteudos inteira (SELECT DISTINCT) e quase nunca muda: fica em memória por 60 s, por
+// banco (a marca identidadeDoBanco do cliente do Neon, como em server/uma-vez.js; sem ela, o próprio objeto). Falhou, esquece.
+export const HISTORICO_EVENTOS_MAX = 10000, HISTORICO_MAPA_VALIDADE_MS = 60e3;
+const mapaPorBanco = new Map(), mapaPorObjeto = new WeakMap();
+function mapaEtapaGrupo(db) {
+  const identidade = typeof db?.identidadeDoBanco === 'string' ? db.identidadeDoBanco : null;
+  const ler = () => (identidade ? mapaPorBanco.get(identidade) : mapaPorObjeto.get(db));
+  const gravar = (v) => (identidade ? (v ? mapaPorBanco.set(identidade, v) : mapaPorBanco.delete(identidade)) : (v ? mapaPorObjeto.set(db, v) : mapaPorObjeto.delete(db)));
+  const guardado = ler();
+  if (guardado && Date.now() - guardado.em < HISTORICO_MAPA_VALIDADE_MS) return guardado.mapa;
+  const entrada = { em: Date.now(), mapa: null };
+  entrada.mapa = db`SELECT DISTINCT etapa,grupo_id FROM vybe_conteudos WHERE etapa IS NOT NULL AND grupo_id IS NOT NULL`
+    .then((grupos) => Object.fromEntries(grupos.map((g) => [g.etapa, g.grupo_id])))
+    .catch((erro) => { if (ler() === entrada) gravar(null); throw erro; });
+  gravar(entrada);
+  return entrada.mapa;
+}
+export function esquecerMapaDoHistorico() { mapaPorBanco.clear(); }
 
 // O caderno é de quem está na sessão: sem pessoa identificada não há nota.
 async function areaNotas(req, res, quem) {
@@ -1726,7 +1749,9 @@ async function areaNotas(req, res, quem) {
   if (!pessoaId) return res.status(403).json({ error: 'Entre com sua conta para usar as notas.' });
   const db = sql();
   if (!await notasProntas(db)) {
-    return res.status(409).json({ error: 'A estrutura das notas ainda não existe no banco. Em Conta & Equipe, clique em "Conferir estrutura do banco".' });
+    // A tabela nasce pela conferência administrativa (Conta & Equipe › Conferir estrutura do banco): isso vai para o log.
+    console.warn('[api/painel] notas: a tabela vybe_notas ainda não existe; falta a conferência do banco.');
+    return res.status(409).json({ error: 'Esta parte ainda está sendo ligada.' });
   }
   try {
     if (req.method === 'GET') {
@@ -1751,7 +1776,8 @@ async function areaNotas(req, res, quem) {
       return res.status(200).json({ ok: true, apagada: await apagarNota(db, pessoaId, id) });
     }
   } catch (erro) {
-    return res.status(400).json({ error: erro.message });
+    // Regra (server/notas.js, status 400) mantém a mensagem; erro do banco vira 500 genérico com o detalhe no log.
+    return falhaInterna(res, 'notas', erro);
   }
   return res.status(405).json({ error: 'Método não permitido.' });
 }
@@ -1776,7 +1802,8 @@ async function areaGrupos(req, res, quem) {
     const resultado = await fazer(db, corpo);
     return res.status(200).json({ ok: true, resultado, grupos: await listarGrupos(db) });
   } catch (erro) {
-    return res.status(400).json({ error: erro.message });
+    // Regra (server/grupos.js, status 4xx) mantém a mensagem; erro do banco vira 500 genérico com o detalhe no log.
+    return falhaInterna(res, 'grupos', erro);
   }
 }
 
@@ -1848,7 +1875,7 @@ async function areaCaptacoes(req,res,quem) {
     if(acao==='reagendar') return res.status(200).json({ok:true,...await reagendarCaptacao(banco,quem,corpo)});
     if(acao==='apagar') return res.status(200).json({ok:true,...await apagarCaptacao(banco,quem,corpo,{trocar:trocarEscolha})});
     return res.status(400).json({error:'Ação desconhecida.'});
-  } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
+  } catch(erro) { return falhaDeRegra(res, 'captacoes', erro); }
 }
 
 // Biblioteca de roteiros da Produção (server/roteiros.js): toda a equipe vê,
@@ -1872,7 +1899,7 @@ async function areaRoteiros(req,res,quem) {
       catch(e) { if(e.status) throw e; return res.status(502).json({error:'Não deu para buscar no Drive agora. Tente de novo em instantes.'}); }
     }
     return res.status(400).json({error:'Ação desconhecida.'});
-  } catch(erro) { return res.status(erro.status || 400).json({error:erro.message}); }
+  } catch(erro) { return falhaDeRegra(res, 'roteiros', erro); }
 }
 
 // Módulo Conteúdo (vybe-mundo-conteudo.js): objetivos das peças (leitura; a escrita é api/conteudo.js,
@@ -1892,7 +1919,7 @@ async function areaConteudoModulo(req, res, quem) {
     }
     if (req.method === 'POST' && acao === 'revogar_link') return res.status(200).json({ ok: true, ...(await revogarLink(db, pessoa, req.body || {})) });
     return res.status(400).json({ error: 'Ação inválida.' });
-  } catch (e) { return res.status(e.status || 500).json({ error: e.message }); }
+  } catch (e) { return falhaDeRegra(res, 'conteudo_modulo', e); }
 }
 
 // Primeira consulta da Vybe AI: somente usuário autenticado por sessão.
@@ -2023,14 +2050,9 @@ const AREAS = { reunioes: areaReunioes, aprovacoes: areaAprovacoes, crm: async (
                 minha_sala: (req, res, quem) => areaMinhaSala(req, res, quem, sql()),
                 peca_complemento: (req, res, quem) => areaPecaComplemento(req, res, quem, sql()) };
 
-// Erro que não foi tratado na área: a mensagem do banco (nome de tabela, coluna, restrição) fica no log do servidor e quem
-// chama recebe uma genérica. Erro de regra com status 4xx (falhar(..., 400/403/404/409)) continua com a mensagem dele.
-export function falhaInterna(res, onde, erro) {
-  const status = Number(erro?.status);
-  if (Number.isInteger(status) && status >= 400 && status < 500) return res.status(status).json({ error: erro.message });
-  console.error(`[api/painel] ${onde || 'área'}:`, erro?.stack || erro?.message || erro);
-  return res.status(500).json({ error: 'Algo falhou do nosso lado. Tente de novo em instantes.' });
-}
+// Erro que não foi tratado na área: log no servidor, frase genérica para quem chama; 4xx de regra mantém a mensagem
+// (server/falha-interna.js, que o api/conteudo.js também usa).
+export { falhaInterna };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'null');
@@ -2100,7 +2122,8 @@ export default async function handler(req, res) {
 
   const area = AREAS[String(req.query?.area || '')];
   if (!area) {
-    return res.status(400).json({ error: 'Informe area=' + Object.keys(AREAS).join('|') });
+    // A lista das áreas não sai para quem chama (era um mapa do servidor); fica só a recusa.
+    return res.status(400).json({ error: 'Área inválida.' });
   }
 
   try {

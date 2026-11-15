@@ -5,7 +5,14 @@
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
 export const OBJETIVOS = Object.freeze(['atracao', 'educacao', 'conversao']);
 export const ROTULO_OBJETIVO = Object.freeze({ atracao: 'Atração', educacao: 'Educação', conversao: 'Conversão' });
-export const AVISO_MIGRACAO = 'O objetivo das peças e os links de aprovação aguardam a migração 2026-11-07-conteudo-objetivo-aprovacao.sql (aplicação manual do Paulo).';
+// Para quem usa, uma frase curta; o nome da migração vai para o log do servidor (uma vez por processo).
+export const AVISO_MIGRACAO = 'Esta parte ainda está sendo ligada.';
+export const MIGRACAO_OBJETIVO = '2026-11-07-conteudo-objetivo-aprovacao.sql';
+let migracaoAvisada = false;
+export const avisoMigracao = () => {
+  if (!migracaoAvisada) { migracaoAvisada = true; console.warn(`[conteudo] objetivo das peças e links de aprovação: falta a migração ${MIGRACAO_OBJETIVO}.`); }
+  return AVISO_MIGRACAO;
+};
 
 export async function objetivoPronto(sql) {
   const [r] = await sql`SELECT EXISTS(SELECT 1 FROM information_schema.columns
@@ -24,7 +31,7 @@ export async function trocarObjetivo(sql, quem, { item, objetivo }) {
   const alvo = objetivo === null || objetivo === undefined || objetivo === '' ? null : String(objetivo);
   if (alvo !== null && !OBJETIVOS.includes(alvo)) throw erro('Objetivo inválido. Use atração, educação ou conversão.');
   if (!String(item || '').trim()) throw erro('Informe a peça.');
-  if (!await objetivoPronto(sql)) throw erro(AVISO_MIGRACAO, 503);
+  if (!await objetivoPronto(sql)) throw erro(avisoMigracao(), 503);
   const [c] = await sql`SELECT id, titulo, objetivo FROM vybe_conteudos
     WHERE (monday_item_id::text = ${String(item)} OR id = ${referenciaLocal(item)}) AND removido_em IS NULL LIMIT 1`;
   if (!c) throw erro('Peça não encontrada.', 404);
@@ -57,5 +64,5 @@ export async function listarObjetivos(sql) {
       ORDER BY r.conteudo_id, r.em DESC`;
     for (const l of linhas) respostas[l.id] = { acao: l.acao, nome: l.nome, em: l.em };
   }
-  return { pronto, ...(pronto ? {} : { aviso: AVISO_MIGRACAO }), objetivos, respostas };
+  return { pronto, ...(pronto ? {} : { aviso: avisoMigracao() }), objetivos, respostas };
 }

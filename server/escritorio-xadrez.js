@@ -47,7 +47,7 @@ export async function xadrezPronto(sql) {
  const [r] = await sql`SELECT to_regclass('public.vybe_escritorio_xadrez') IS NOT NULL AS existe`;
  return Boolean(r?.existe);
 }
-const exigirTabela = async (sql) => { if (!await xadrezPronto(sql)) throw erro('O xadrez aguarda a migração do banco.', 503); };
+const exigirTabela = async (sql) => { if (!await xadrezPronto(sql)) throw erro('O xadrez ainda está sendo ligado.', 503); };
 
 // A posição sai dos lances, do começo: assim repetição e 50 lances valem.
 function partida(lances) {
@@ -318,7 +318,7 @@ export async function botsDoXadrez(sql, pessoa) {
 // pede o primeiro lance dele.
 export async function desafiarBotXadrez(sql, pessoa, { nivel, camada, movel, chave } = {}) {
  await exigirTabela(sql);
- if (!await comBot(sql)) throw erro('O bot do xadrez aguarda a migração do banco.', 503);
+ if (!await comBot(sql)) throw erro('O bot do xadrez ainda está sendo ligado.', 503);
  if (!botValido('xadrez', nivel)) throw erro('Esse bot não existe.');
  if (!/^[A-Za-z0-9_-]{8,64}$/.test(String(chave))) throw erro('Pedido inválido.');
  const lugar = /^[A-Za-z0-9_]{1,64}@\d{1,2},\d{1,2}$/.test(String(movel || '')) ? String(movel) : 'bot@0,0';

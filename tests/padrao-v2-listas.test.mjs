@@ -88,7 +88,7 @@ test('o CSS do grupo segue o quadro e não força regra antiga', () => {
   assert.doesNotMatch(css, /!important/);
   assert.doesNotMatch(css, /html body\.mundo/);
   for (const id of ['#pv2-dias-s1', '#pv2-demandas', '#grid-s1', '#ops-action-panel', '#ops-today-panel', '#ops-daily-panel']) assert.ok(css.includes(id), id);
-  assert.match(css, /\.pv2-st\{[^}]*height:22px;[^}]*border-radius:999px;font:600 11\.5px\/22px/);
+  assert.match(css, /\.pv2-st\{[^}]*height:22px;[^}]*border-radius:999px;font:600 var\(--d3-fs-apoio\)\/22px/);
   assert.match(css, /\.pv2-st\.v\{background:#EEEAFB;color:#4B36A8\}/);
   assert.match(css, /\.pv2-st\[aria-expanded="true"\]\{box-shadow:0 0 0 2px #1F1D1A\}/);
   assert.match(css, /\.pv2-st\[data-estado="feito"\]\{pointer-events:none;background:#11613A;color:#FFFFFF;box-shadow:none\}/);

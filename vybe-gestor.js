@@ -1251,7 +1251,7 @@ function renderCompactSummary() {
     : `<span class="pv-kpi-linha-item"><b>${valor}</b> ${rotulo}</span>`;
   document.getElementById('compact-summary').innerHTML =
     cartao('pv-kpi-semana', `<span class="pv-anel" style="--p:${pct}"><i>${done}/${total}</i></span>
-      <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} ${total === 1 ? 'conteúdo' : 'conteúdos'}</span></div>`) +
+      <div><small>Semana fechada</small><span><b>${pct}%</b> ${done} de ${total} ${total === 1 ? 'peça' : 'peças'}</span></div>`) +
     cartao(todayPending > 0 ? 'pv-kpi-risco' : '', `<b>${todayItems.length}</b><div><small>Publica hoje</small>
       <span>${todayItems.length === 0 ? 'nada publica hoje' : todayPending > 0 ? `<em>${todayPending} sem estar pronto</em>` : 'tudo pronto'}</span>
       ${todayPending > 0 ? acao('Resolver', "abrirDoResumo('hoje')") : todayItems.length ? acao('Ver', "abrirDoResumo('hoje')") : ''}</div>`) +
@@ -1794,7 +1794,8 @@ function pv2Cli(nome) {
   return `<span class="pv2-cli" data-carteira="${safeText(carteira)}" title="${safeText(dica)}">${safeText(nome)}</span>`;
 }
 function pv2Iniciais(nome) { return String(firstName(nome || '') || '?').slice(0, 2).toUpperCase(); }
-function pv2SemDono(item) { return !ownerUsersFor(item).length && !String(item?.responsavel || '').replace('—', '').trim(); }
+// Regra única de "sem dono" (vybe-dono-metricas.js: id do Monday fora de TEAM_USERS tem dono); sem ela, a de antes.
+function pv2SemDono(item) { return window.VybeDono?.util?.semDono ? window.VybeDono.util.semDono(item) : !ownerUsersFor(item).length && !String(item?.responsavel || '').replace('—', '').trim(); }
 // Quem faz, em bolinha de duas letras. O "?" vermelho é peça sem dono: clicar escolhe o responsável (o mesmo editor de sempre).
 function pv2Av(item, { comNome = false } = {}) {
   const donos = ownerUsersFor(item), id = safeText(item.id);
@@ -1942,8 +1943,8 @@ function pv2PintarAlto(n) {
   pv2Trocar(document.getElementById('pv2-alto'), d3pAcao({ agente: 'H', quem: 'Heitor · Coordenação', frase, botao, attrs: `onclick="${acao}"` })
     + `<div class="d3p-nums">${kpi('Publica hoje', n.hoje, { serie: porDia(() => true), serieRotulo: 'Publicações por dia da semana', acao: n.hoje ? "abrirDoResumo('hoje')" : '',
       sub: !n.hoje ? 'nada hoje' : n.hojePendente === n.hoje ? 'nenhuma pronta' : n.hojePendente > 0 ? `${n.hojePendente} sem estar pronto` : 'tudo pronto', subTom: n.hojePendente > 0 ? 'r' : '' })}
-    ${kpi('Pendentes', n.pendentes, { linhaTom: 'a', serie: porDia((d) => ['A Fazer', 'Falta D.A'].includes(d.status)), serieRotulo: 'Pendentes por dia da semana', acao: n.pendentes ? "abrirDoResumo('acao')" : '', sub: 'a fazer ou falta D.A.' })}
-    ${kpi('Semana fechada', n.feitas, { de: n.total, barra: n.pct, dica: `${n.pct}% da semana em Finalizado` })}</div>`);
+    ${kpi('Pendentes', n.pendentes, { linhaTom: 'a', serie: porDia((d) => ['A Fazer', 'Falta D.A'].includes(d.status)), serieRotulo: 'Pendentes por dia da semana', acao: n.pendentes ? "abrirDoResumo('acao')" : '', sub: 'a fazer ou falta direção de arte' })}
+    ${kpi('Semana fechada', n.feitas, { de: n.total, barra: n.pct, dica: `${n.pct}% da semana finalizada` })}</div>`);
   pv2Totais.poucosPosts = n.poucosPosts;
   pv2PintarControles();
 }
@@ -1956,8 +1957,10 @@ function pv2PintarControles() {
   const semDono = typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira).filter((d) => !atividadeDoDiaConcluida(d) && pv2SemDono(d)).length : 0;
   const ficha = (rotulo, n, ligada, acao, dica) => `<button type="button" class="pv2-chip" aria-pressed="${Boolean(ligada)}" onclick="${acao}" title="${dica}">${rotulo} <b>${n}</b></button>`;
   pv2Trocar(document.getElementById('pv2-chips'), ficha('Requer ação', conta('ops-action-count'), P.acao.aberto(), 'toggleActionQueue()', 'A fila do que pede ação, com o motivo')
-    + ficha('Vence hoje', conta('ops-today-count'), P.hoje.aberto(), 'toggleTodayQueue()', 'O que vence hoje')
-    + ficha('Sem dono', semDono, pv2SoSemDono, 'pv2AlternarSemDono()', 'Só as peças abertas da semana sem responsável')
+    // O recorte diz o que conta (acabamento 15/11): a fila de hoje traz as vencidas e as de hoje (data até hoje), e o
+    // "sem dono" é o da semana; assim os números não brigam com "Publica hoje" nem com o Sem dono da Produção.
+    + ficha('Vencidas e de hoje', conta('ops-today-count'), P.hoje.aberto(), 'toggleTodayQueue()', 'Peças com a data vencida ou de hoje')
+    + ficha('Sem dono na semana', semDono, pv2SoSemDono, 'pv2AlternarSemDono()', 'Só as peças abertas da semana sem responsável')
     + ficha('Menos de 3 posts', pv2Totais.poucosPosts || 0, typeof sortCritico !== 'undefined' && sortCritico, 'pv2PoucosPosts()', 'Clientes com menos de 3 posts em alguma semana, primeiro'));
   pv2PintarFiltroAtivo();
   const comando = document.getElementById('pv2-comando-n'), nComando = document.getElementById('manager-command-count')?.textContent || '';

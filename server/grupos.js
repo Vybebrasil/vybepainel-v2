@@ -58,9 +58,12 @@ export async function gruposProntos(sql) {
   return Boolean(r?.existe);
 }
 
+// Erro de regra (nome repetido, grupo que sumiu): status 4xx com a mensagem para quem usa; o resto é erro interno.
+const regra = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
+
 function quadroValido(board) {
   const b = Number(board);
-  if (b !== BOARD_PRODUCAO && b !== BOARD_DEMANDAS) throw new Error('Quadro desconhecido.');
+  if (b !== BOARD_PRODUCAO && b !== BOARD_DEMANDAS) throw regra('Quadro desconhecido.');
   return b;
 }
 
@@ -83,19 +86,20 @@ export async function gruposDoQuadro(sql, board) {
 
 function tituloLimpo(titulo) {
   const t = String(titulo ?? '').replace(/\s+/g, ' ').trim().slice(0, GRUPO_TITULO_MAX);
-  if (!t) throw new Error('Dê um nome ao grupo.');
+  if (!t) throw regra('Dê um nome ao grupo.');
   return t;
 }
 
 function corValida(cor) {
   const c = String(cor || '').toLowerCase();
-  if (!CORES_DE_GRUPO.includes(c)) throw new Error('Escolha uma cor da paleta.');
+  if (!CORES_DE_GRUPO.includes(c)) throw regra('Escolha uma cor da paleta.');
   return c;
 }
 
 async function exigirTabela(sql) {
   if (!await gruposProntos(sql)) {
-    throw new Error('A estrutura dos grupos ainda não existe no banco. Em Conta & Equipe, clique em "Conferir estrutura do banco".');
+    console.warn('[grupos] a tabela vybe_grupos ainda não existe: falta a conferência do banco (criarSchema).');
+    throw regra('Esta parte ainda está sendo ligada.', 409);
   }
 }
 
@@ -118,7 +122,7 @@ export async function criarGrupo(sql, { board, titulo, cor, depois_de = null } =
     ) INSERT INTO vybe_grupos (board_id,grupo_id,titulo,cor,ordem)
       SELECT ${b},${id},${t},${c},n FROM posicao RETURNING *`,
   ]);
-  if (!linhas.length) throw new Error(`Já existe um grupo chamado "${t}" neste quadro.`);
+  if (!linhas.length) throw regra(`Já existe um grupo chamado "${t}" neste quadro.`);
   return formatar(linhas[0]);
 }
 
@@ -141,7 +145,7 @@ export async function editarGrupo(sql, { board, grupo_id, titulo, cor } = {}) {
         AND etapa IS DISTINCT FROM e.titulo
     ) SELECT e.*, e.titulo IS DISTINCT FROM a.titulo AS renomeado FROM editado e, anterior a`,
   ]);
-  if (!linhas.length) throw new Error('Grupo não encontrado ou já existe um grupo chamado assim neste quadro.');
+  if (!linhas.length) throw regra('Grupo não encontrado ou já existe um grupo chamado assim neste quadro.');
   return { ...formatar(linhas[0]), renomeado: linhas[0].renomeado };
 }
 
@@ -160,14 +164,14 @@ export async function moverGrupoNaOrdem(sql, { board, grupo_id, direcao } = {}) 
       RETURNING g.grupo_id)
     SELECT EXISTS(SELECT 1 FROM alvo) AS existe, EXISTS(SELECT 1 FROM movidos) AS mudou`,
   ]);
-  if (!linhas[0].existe) throw new Error('Grupo não encontrado.');
+  if (!linhas[0].existe) throw regra('Grupo não encontrado.');
   return { board_id:b, grupos:await gruposDoQuadro(sql,b), sem_mudanca:!linhas[0].mudou };
 }
 
 export async function ordenarGrupos(sql, { board, ordem } = {}) {
   await exigirTabela(sql);
   const b=quadroValido(board), ids=Array.isArray(ordem)?ordem.map(String):[];
-  if (!ids.length || new Set(ids).size!==ids.length) throw new Error('A lista de grupos mudou. Recarregue a página.');
+  if (!ids.length || new Set(ids).size!==ids.length) throw regra('A lista de grupos mudou. Recarregue a página.');
   const [, linhas] = await sql.transaction([
     travaEstrutura(sql),
     sql`WITH lista AS (SELECT id,n FROM UNNEST(${ids}::text[]) WITH ORDINALITY AS x(id,n)), valido AS (
@@ -177,14 +181,14 @@ export async function ordenarGrupos(sql, { board, ordem } = {}) {
     UPDATE vybe_grupos g SET ordem=l.n,atualizado_em=NOW() FROM lista l
       WHERE g.board_id=${b} AND g.grupo_id=l.id AND EXISTS(SELECT 1 FROM valido) RETURNING g.grupo_id`,
   ]);
-  if (linhas.length!==ids.length) throw new Error('A lista de grupos mudou enquanto você arrastava. Recarregue a página e tente de novo.');
+  if (linhas.length!==ids.length) throw regra('A lista de grupos mudou enquanto você arrastava. Recarregue a página e tente de novo.');
   return { board_id:b, grupos:await gruposDoQuadro(sql,b) };
 }
 
 export async function apagarGrupo(sql, { board, grupo_id } = {}) {
   await exigirTabela(sql);
   const b=quadroValido(board), id=String(grupo_id);
-  if (GRUPO_DE_ENTRADA[b]===id) throw new Error('Este é o grupo de entrada do cadastro e não pode ser apagado.');
+  if (GRUPO_DE_ENTRADA[b]===id) throw regra('Este é o grupo de entrada do cadastro e não pode ser apagado.');
   // Tabela ausente é diferente de falha: qualquer erro real aborta a exclusão.
   const [{ existe }] = await sql`SELECT to_regclass('public.vybe_automacoes') IS NOT NULL AS existe`;
   const aspas=JSON.stringify(id);
@@ -206,10 +210,10 @@ export async function apagarGrupo(sql, { board, grupo_id } = {}) {
     sql`SELECT COUNT(*)::int AS n FROM vybe_conteudos WHERE board_id=${b} AND grupo_id=${id}`,
     regras, apagar,
   ]);
-  if (!grupos.some(g=>g.grupo_id===id)) throw new Error('Grupo não encontrado.');
-  if (atividades[0].n>0) throw new Error(`O grupo tem ${atividades[0].n} atividades, incluindo arquivadas ou removidas. Mova ou restaure as atividades antes de apagar.`);
-  if (dependencias.length) throw new Error(`A automação "${dependencias[0].nome}" usa este grupo. Ajuste a automação antes de apagar.`);
-  if (!apagados.length) throw new Error('O quadro precisa de pelo menos um grupo.');
+  if (!grupos.some(g=>g.grupo_id===id)) throw regra('Grupo não encontrado.');
+  if (atividades[0].n>0) throw regra(`O grupo tem ${atividades[0].n} atividades, incluindo arquivadas ou removidas. Mova ou restaure as atividades antes de apagar.`);
+  if (dependencias.length) throw regra(`A automação "${dependencias[0].nome}" usa este grupo. Ajuste a automação antes de apagar.`);
+  if (!apagados.length) throw regra('O quadro precisa de pelo menos um grupo.');
   return {board_id:b,grupo_id:id,apagado:true};
 }
 

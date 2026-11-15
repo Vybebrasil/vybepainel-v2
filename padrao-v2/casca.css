@@ -25,3 +25,36 @@ body.mundo.mundo-visivel{overflow:hidden}
   #mundo-hud .vv-ilha.vv-trilho > .vv-trilho-btn{height:auto;min-height:0;justify-content:center}
   #mundo-hud .vv-ilha.vv-trilho > .vv-trilho-marca{display:none}
 }
+
+/* CONTORNO PRETO DAS CONVERSAS (acabamento premium, 15/11/2026, item 38). Não era foco: era o anel da dica do VYBES
+   (.vv-tour-anel, vybe-mundo-tutorial.css), que abraça o que a dica explica. Na dica das Conversas o alvo é a janela
+   inteira e o anel de 2 px em tinta virava uma moldura preta grossa, com canto de 8 numa janela de 28. O anel fica
+   discreto (tinta a 28%, sem o halo) e com o raio do cartão. Contêiner que recebe foco por script (tabindex -1) não
+   desenha contorno: o foco visível é dos controles, com :focus-visible. */
+.vv-tour-anel{border-radius:var(--d3-r-cartao);box-shadow:0 0 0 2px rgba(31,29,26,.28)}
+:is(#vv-whatsapp,.vv-placa,[role="dialog"],section,main,article)[tabindex="-1"]:focus{outline:none}
+
+/* PEÇA ÚNICA DO CANTO (acabamento premium, 15/11/2026). Fechar, Tela cheia e Ajuda vinham em três famílias: quadrado de
+   34 com borda (telas antigas, Gestão), redondo cinza de 40 (Pessoas, Impressões, Toolkit) e "×" solto de 30 (Comercial,
+   Finanças, Carteira, Reuniões, Conversas, Loja). Agora é uma peça só: redonda de 40, branca, com a borda do D3 (a da
+   caixa das telas antigas, que vem com !important em vybe-mundo.css e não sai), hover com a borda laranja como a caixa.
+   O "?" e o "Como funciona" são a mesma peça em pílula de 40. Os dois :not(#…) só sobem a especificidade acima das
+   regras de cada grupo (que vêm depois deste arquivo na junção); no celular o toque continua em 44. */
+:is(.vv-canto-modulo .vv-botao,.vv-g-acoes .vv-botao,.vb-janela-x,.v2c-fechar,.v2c-x,.v2r-x,.v2w-x,.v2l-x,.v2n-x,.v2cr-x,.vv-placa > .vv-fechar):is(button,a,summary):not(#v2-canto-a):not(#v2-canto-b){
+  display:inline-grid;place-items:center;flex:none;width:40px;height:40px;min-width:40px;min-height:40px;padding:0;box-sizing:border-box;
+  border:1px solid var(--d3-borda);border-radius:50%;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none;
+  font:600 var(--d3-fs-destaque)/1 var(--vv-texto,Inter,sans-serif);cursor:pointer}
+:is(.vv-canto-modulo .vv-botao,.vv-g-acoes .vv-botao,.vb-janela-x,.v2c-fechar,.v2c-x,.v2r-x,.v2w-x,.v2l-x,.v2n-x,.v2cr-x,.vv-placa > .vv-fechar):is(button,a,summary):not(#v2-canto-a):not(#v2-canto-b) > svg{width:16px;height:16px}
+:is(.vv-canto-modulo .vv-botao,.vv-g-acoes .vv-botao,.vb-janela-x,.v2c-fechar,.v2c-x,.v2r-x,.v2w-x,.v2l-x,.v2n-x,.v2cr-x,.vv-placa > .vv-fechar):is(button,a,summary):not(#v2-canto-a):not(#v2-canto-b):hover{border-color:var(--d3-acao);background:var(--d3-cartao);color:var(--d3-tinta)}
+:is([data-vc="ajuda"],[data-vc-ajuda],[data-vp-ajuda]):is(button,a,summary):not(.vb-janela-x):not(#v2-canto-a):not(#v2-canto-b){
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;height:40px;min-height:40px;min-width:40px;padding:0 15px;box-sizing:border-box;
+  border:1px solid var(--d3-borda);border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none;
+  font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+:is([data-vc="ajuda"],[data-vc-ajuda],[data-vp-ajuda]):is(button,a,summary):not(.vb-janela-x):not(#v2-canto-a):not(#v2-canto-b):is(:hover,[aria-expanded="true"]){border-color:var(--d3-acao);background:var(--d3-cartao);color:var(--d3-tinta)}
+:is(.vv-canto-modulo .vv-botao,.vv-g-acoes .vv-botao,.vb-janela-x,.v2c-fechar,.v2c-x,.v2r-x,.v2w-x,.v2l-x,.v2n-x,.v2cr-x,.vv-placa > .vv-fechar,[data-vc="ajuda"],[data-vc-ajuda],[data-vp-ajuda]):is(button,a,summary):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+@media (max-width:600px){
+  :is(.vv-canto-modulo .vv-botao,.vv-g-acoes .vv-botao,.vb-janela-x,.v2c-fechar,.v2c-x,.v2r-x,.v2w-x,.v2l-x,.v2n-x,.v2cr-x,.vv-placa > .vv-fechar):is(button,a,summary):not(#v2-canto-a):not(#v2-canto-b){width:44px;height:44px;min-width:44px;min-height:44px}
+  :is([data-vc="ajuda"],[data-vc-ajuda],[data-vp-ajuda]):is(button,a,summary):not(.vb-janela-x):not(#v2-canto-a):not(#v2-canto-b){height:44px;min-height:44px;min-width:44px}
+  /* Tela cheia não serve no celular (a janela já ocupa a tela): só o Fechar fica no canto (itens 13 e 38). */
+  :is(.vv-canto-modulo .vv-botao[data-modulo-acao="cheia"],.vv-g-acoes .vv-botao[data-gestao-cheia]):not(#v2-canto-a):not(#v2-canto-b):not(#v2-canto-c){display:none}
+}

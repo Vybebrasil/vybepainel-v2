@@ -245,7 +245,8 @@ export async function areaMinhaSala(req, res, quem, sql) {
     if (req.method === 'POST') return res.status(200).json({ ok: true, ...await escreverSala(sql, eu, req.body || {}), minha: true });
     return res.status(405).json({ error: 'Método não permitido.' });
   } catch (e) {
-    if (semTabela(e)) return res.status(503).json({ error: 'A sala ainda não foi provisionada (migração 2026-11-14-campos-d3.sql).', migracao_pendente: true });
+    if (semTabela(e)) { console.warn('[minha_sala] falta a migração 2026-11-14-campos-d3.sql:', e.message); return res.status(503).json({ error: 'Esta parte ainda está sendo ligada.', migracao_pendente: true }); }
+    if (!e.status) console.error('[minha_sala]', e?.stack || e?.message || e);
     return res.status(e.status || 500).json({ error: e.status ? e.message : 'Não foi possível acessar a sala.' });
   }
 }
@@ -292,7 +293,8 @@ export async function areaPecaComplemento(req, res, quem, sql) {
     if (req.method === 'POST') return res.status(200).json({ ok: true, ...await salvarHoraDaPeca(sql, quem.pessoa, req.body || {}) });
     return res.status(405).json({ error: 'Método não permitido.' });
   } catch (e) {
-    if (semTabela(e)) return res.status(503).json({ error: 'A hora de publicação ainda não foi provisionada (migração 2026-11-14-campos-d3.sql).', migracao_pendente: true });
+    if (semTabela(e)) { console.warn('[peca_complemento] falta a migração 2026-11-14-campos-d3.sql:', e.message); return res.status(503).json({ error: 'Esta parte ainda está sendo ligada.', migracao_pendente: true }); }
+    if (!e.status) console.error('[peca_complemento]', e?.stack || e?.message || e);
     return res.status(e.status || 500).json({ error: e.status ? e.message : 'Não foi possível gravar a hora.' });
   }
 }

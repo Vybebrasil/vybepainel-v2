@@ -172,7 +172,9 @@ async function produtividade(sql, quem, query, estado) {
 // Migração 2026-11-08-rh-pedidos-clima.sql: prazos configuráveis, data desejada, hora da resposta e a
 // pesquisa de clima com período. Sem ela, o RH antigo segue e a tela avisa "aguardando a migração".
 const MIGRACAO_RH = '2026-11-08-rh-pedidos-clima.sql';
-const AGUARDANDO_RH = `Esta parte do RH está aguardando a migração ${MIGRACAO_RH}. Peça ao Paulo para aplicar.`;
+// Para quem usa, uma frase curta; o nome da migração vai para o log do servidor.
+const AGUARDANDO_RH = 'Esta parte do RH ainda está sendo ligada.';
+const rhAguardando = (e, mensagem = AGUARDANDO_RH) => { console.warn(`[pessoas] RH: falta a migração ${MIGRACAO_RH}:`, e?.message || e); falhar(mensagem, 503); };
 const DIMS_PESQUISA = calc.DIMENSOES_PESQUISA.map(([k]) => k);
 async function prazosRh(sql, estadoRh) {
   const linhas = await ler(estadoRh, sql`SELECT tipo, dias_uteis FROM vybe_rh_prazos`);
@@ -402,9 +404,9 @@ async function escrever(sql, quem, b) {
         return r;
       } catch (e) {
         // Antes da migração de 08/11: sem a coluna da data desejada (vai na descrição) e sem o tipo reembolso.
-        if (e?.code === '23514' && tipo === 'reembolso') falhar('Reembolso ' + AGUARDANDO_RH.charAt(0).toLowerCase() + AGUARDANDO_RH.slice(1), 503);
+        if (e?.code === '23514' && tipo === 'reembolso') rhAguardando(e, 'O pedido de reembolso ainda está sendo ligado.');
         if (e?.code !== '42703') throw e;
-        if (tipo === 'reembolso') falhar(AGUARDANDO_RH, 503);
+        if (tipo === 'reembolso') rhAguardando(e, 'O pedido de reembolso ainda está sendo ligado.');
         const desc = desejada ? `${descricao}${descricao ? '\n' : ''}Data desejada: ${desejada.slice(8, 10)}/${desejada.slice(5, 7)}/${desejada.slice(0, 4)}`.slice(0, 2000) : descricao;
         const [r] = await sql`INSERT INTO vybe_rh_pedidos (pessoa_id, tipo, titulo, descricao, inicio, fim, prazo)
           VALUES (${eu}, ${tipo}, ${titulo}, ${desc}, ${inicio}::date, ${fim}::date, ${prazo}::date) RETURNING id::text AS id, prazo::text AS prazo`;
@@ -440,7 +442,7 @@ async function escrever(sql, quem, b) {
           for (const [tipo, dias] of Object.entries(v)) await tx`INSERT INTO vybe_rh_prazos (tipo, dias_uteis, atualizado_por, atualizado_em) VALUES (${tipo}, ${dias}, ${eu}, now())
             ON CONFLICT (tipo) DO UPDATE SET dias_uteis = EXCLUDED.dias_uteis, atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`;
         });
-      } catch (e) { if (semTabela(e)) falhar(AGUARDANDO_RH, 503); throw e; }
+      } catch (e) { if (semTabela(e)) rhAguardando(e); throw e; }
       // Vale para os pedidos novos; quem já pediu mantém o prazo que recebeu.
       return { prazos: v };
     }
@@ -456,7 +458,7 @@ async function escrever(sql, quem, b) {
           const [r] = await tx`INSERT INTO vybe_clima_pesquisas (titulo, abre, fecha, criada_por) VALUES (${p.titulo}, ${p.abre}::date, ${p.fecha}::date, ${eu}) RETURNING id::text AS id`;
           return r;
         });
-      } catch (e) { if (semTabela(e)) falhar(AGUARDANDO_RH, 503); throw e; }
+      } catch (e) { if (semTabela(e)) rhAguardando(e); throw e; }
     }
     case 'pesquisa_encerrar': {
       soGestao(); const id = idValido(b.id, 'Pesquisa');
@@ -464,7 +466,7 @@ async function escrever(sql, quem, b) {
         const [ok] = await sql`UPDATE vybe_clima_pesquisas SET encerrada_em = COALESCE(encerrada_em, now()) WHERE id = ${id} RETURNING id::text AS id`;
         if (!ok) falhar('Pesquisa não encontrada.', 404);
         return ok;
-      } catch (e) { if (semTabela(e)) falhar(AGUARDANDO_RH, 503); throw e; }
+      } catch (e) { if (semTabela(e)) rhAguardando(e); throw e; }
     }
     case 'pesquisa_responder': {
       // Anônima: a resposta vai sem pessoa e sem hora; a participação (para não votar duas vezes)
@@ -484,7 +486,7 @@ async function escrever(sql, quem, b) {
         });
       } catch (e) {
         if (e?.code === '23505') falhar('Você já respondeu esta pesquisa. Obrigado!', 409);
-        if (semTabela(e)) falhar(AGUARDANDO_RH, 503);
+        if (semTabela(e)) rhAguardando(e);
         throw e;
       }
       return { pesquisa_id: id };
@@ -703,7 +705,7 @@ export async function areaSetorPessoas(req, res, quem, sql) {
     const dados = await ler(sql, pessoa, req.query || {}, estado);
     return res.status(200).json({ ok: true, aba, eu: { id: String(pessoa.id), nome: pessoa.nome }, gestao, provisionado: estado.provisionado, ...dados });
   } catch (e) {
-    if (semTabela(e)) return res.status(503).json({ error: 'O setor de Pessoas ainda não foi ligado no banco. Peça ao Paulo para aplicar a migração 2026-11-07-pessoas.sql.' });
+    if (semTabela(e)) { console.warn('[pessoas] falta a migração 2026-11-07-pessoas.sql:', e.message); return res.status(503).json({ error: 'Esta parte ainda está sendo ligada.' }); }
     if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('[pessoas]', e);
     return res.status(500).json({ error: 'Não foi possível acessar Pessoas. Tente novamente.' });

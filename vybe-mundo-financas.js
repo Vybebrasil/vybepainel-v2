@@ -268,7 +268,7 @@
     const d = estado('comercial', ctx.d?.periodo?.mes || hojeBahia().slice(0, 7))?.dados;
     if (!d || d.conectado || !ctx.admin) return { botao: '', nota: '' };
     return { botao: `<button type="button" class="fv2-btn s" data-vc="falta" aria-expanded="${Boolean(ctx.verFalta)}">Para quem administra: ver o que falta</button>`,
-      nota: ctx.verFalta ? `<div class="fv2-nota" role="note"><p>${esc(d.motivo || 'O controle financeiro ainda não está ligado.')}${d.aviso ? ' · ' + esc(d.aviso) : ''}</p>${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}</div>` : '' };
+      nota: ctx.verFalta ? `<div class="fv2-nota" role="note"><p>${esc(d.motivo || 'O controle financeiro ainda não está disponível.')}${d.aviso ? ' · ' + esc(d.aviso) : ''}</p>${(d.passos || []).length ? `<ol>${d.passos.map((p) => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}</div>` : '' };
   }
   const fonte = (d) => (doExtrato(d) ? '<span class="fv2-pill b">Extrato</span>' : '');
 
@@ -483,7 +483,7 @@
       { rotulo: 'Em atraso', valor: mil(total), tom: total ? 'r' : 'q', sub: clientes.length ? `${quantos(nFat, 'fatura', 'faturas')} · ${quantos(clientes.length, 'cliente', 'clientes')}` : 'nada em atraso', attrs: real ? 'data-espiar="financas:comercial:inad"' : '' },
       { rotulo: 'O mais antigo', valor: antigo ? `${n0(antigo.atraso_mais_antigo)}<small class="d3f-de"> / 30 dias</small>` : '0 dias', tom: antigo ? (antigo.atraso_mais_antigo > 30 ? 'r' : '') : 'q', barra: antigo ? Math.min(100, antigo.atraso_mais_antigo / 30 * 100) : null,
         sub: antigo ? `${cli(antigo.cliente_nome)} · venceu ${curta(antigo.vencimento_mais_antigo)}` : 'nenhuma vencida' },
-      { rotulo: 'Críticos · +30 dias', valor: n0(criticos.length), tom: criticos.length ? 'r' : 'g', attrs: real ? '' : 'data-espiar="comercial:inadimplencia:criticos"',
+      { rotulo: 'Críticos · 30+ dias', valor: n0(criticos.length), tom: criticos.length ? 'r' : 'g', attrs: real ? '' : 'data-espiar="comercial:inadimplencia:criticos"',
         sub: criticos.length ? criticos.slice(0, 3).map((c) => cli(c.cliente_nome)).join(' ') : 'nenhum passou de 30' }]);
     const barra = filtros({ tela: 'ina', busca: { chave: 'inad', rotulo: 'Buscar cliente em atraso', dica: 'Buscar cliente', valor: ctx.filtro?.inad },
       chips: [['todos', 'Todos', clientes.length], ['ate7', 'Até 7 dias', clientes.filter(faixa.ate7).length], ['de8a30', '8 a 30 dias', clientes.filter(faixa.de8a30).length], ['criticos', 'Críticos', criticos.length, criticos.length ? 'r' : ''],

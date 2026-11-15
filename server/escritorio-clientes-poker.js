@@ -75,7 +75,7 @@ export async function conferirClientes(tx, lista) {
  const ids = [...new Set((Array.isArray(lista) ? lista : []).map(String))];
  if (!ids.length) return [];
  if (ids.some((id) => !/^\d{1,18}$/.test(id))) throw erro('Escolha clientes da lista.');
- if (!await clientesProntos(tx)) throw erro('Os clientes na mesa aguardam a migração do banco.', 503);
+ if (!await clientesProntos(tx)) throw erro('Os clientes na mesa ainda estão sendo ligados.', 503);
  const achados = await tx`SELECT id FROM vybe_clientes WHERE id = ANY(${ids}::bigint[]) AND (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false))`;
  if (achados.length !== ids.length) throw erro('Algum cliente escolhido não está ativo.', 404);
  return ids;
