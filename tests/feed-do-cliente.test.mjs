@@ -144,3 +144,39 @@ test('capa do feed: o pedido de arquivos com capa=1 prefere imagem, depois víde
   assert.match(feed, /area=arquivos&capa=1&itens=/);
   assert.match(feed, /aria-label="Vídeo: frame do Drive"/);
 });
+
+test('API da Meta (Business Discovery): bio, site, seguindo e posts; token no cabeçalho; sem ela ou recusada, a página pública', async () => {
+  const { metaConfigurada, lerPerfilDaMeta } = await import('../server/instagram-feed.js');
+  assert.equal(metaConfigurada({}), false);
+  assert.equal(metaConfigurada({ META_IG_TOKEN: 'x', META_IG_USER_ID: 'abc' }), false);
+  const env = { META_IG_TOKEN: 'tok-secreto', META_IG_USER_ID: '1789' };
+  assert.equal(metaConfigurada(env), true);
+  const meta = { business_discovery: { username: 'lions', name: 'Lions Academia', biography: 'Treino\nIrecê', website: 'https://lions.com', profile_picture_url: 'https://x.fbcdn.net/p.jpg',
+    followers_count: 1500, follows_count: 300, media_count: 210, media: { data: [
+      { id: '1', media_type: 'IMAGE', media_url: 'https://x.cdninstagram.com/1.jpg', permalink: 'https://www.instagram.com/p/1/', timestamp: '2026-11-10T12:00:00+0000' },
+      { id: '2', media_type: 'VIDEO', media_url: 'https://x.cdninstagram.com/2.mp4', thumbnail_url: 'https://x.cdninstagram.com/2.jpg', permalink: 'https://www.instagram.com/reel/2/', timestamp: '2026-11-12T12:00:00+0000' },
+      { id: '3', media_type: 'CAROUSEL_ALBUM', children: { data: [{ media_type: 'IMAGE', media_url: 'https://x.cdninstagram.com/3a.jpg' }] }, permalink: 'https://www.instagram.com/p/3/', timestamp: '2026-11-11T12:00:00+0000' },
+    ] } } };
+  const p = lerPerfilDaMeta(meta, 'lions');
+  assert.deepEqual([p.bio, p.site, p.seguidores, p.seguindo, p.total_posts, p.fonte], ['Treino\nIrecê', 'https://lions.com', 1500, 300, 210, 'meta']);
+  assert.deepEqual(p.posts.map((x) => [x.codigo, x.tipo, x.imagem.split('/').pop()]), [['2', 'video', '2.jpg'], ['3', 'carrossel', '3a.jpg'], ['1', 'foto', '1.jpg']]);
+
+  limparCacheDoFeed();
+  const pedidos = [];
+  const buscar = async (url, op) => {
+    pedidos.push({ url, auth: op?.headers?.authorization });
+    if (url.startsWith('https://graph.facebook.com/')) {
+      if (url.includes('pessoal')) return { ok: false, status: 400, json: async () => ({ error: { code: 110, message: 'Invalid user id' } }) };
+      return { ok: true, status: 200, json: async () => meta };
+    }
+    return { ok: true, status: 200, text: async () => pagina({ usuario: 'pessoal', posts: [post('E', 1)] }) };
+  };
+  const r = await feedsDoInstagram(['lions', 'pessoal'], { buscar, env });
+  assert.equal(r.lions.fonte, 'meta'); assert.equal(r.lions.bio, 'Treino\nIrecê');
+  assert.equal(r.pessoal.fonte, undefined); assert.equal(r.pessoal.posts[0].codigo, 'E', 'perfil recusado pela Meta cai na página pública');
+  const daMeta = pedidos.filter((x) => x.url.startsWith('https://graph.facebook.com/v23.0/1789?fields='));
+  assert.equal(daMeta.length, 2);
+  assert.ok(daMeta.every((x) => x.auth === 'Bearer tok-secreto' && !x.url.includes('tok-secreto')), 'token só no cabeçalho');
+  assert.match(decodeURIComponent(daMeta[0].url), /business_discovery\.username\(lions\)\{username,name,biography,website/);
+  assert.match(ler('vybe-feed.js'), /const bioTxt = String\(p\?\.bio \|\| cli\.bio \|\| ''\)\.trim\(\);/);
+});
