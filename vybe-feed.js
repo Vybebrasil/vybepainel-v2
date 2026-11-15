@@ -65,13 +65,38 @@ function feedClientes() {
     const insta = linha.cadastro?.instagram || linha.instagram || dossie?.instagram || '';
     const heads = typeof headsDoClienteNaLista === 'function' ? headsDoClienteNaLista(nome) : String(linha.heads || '').split(',').map((h) => h.trim()).filter(Boolean);
     const bio = String(linha.cadastro?.bio_instagram || '').trim(), site = String(linha.cadastro?.site || '').trim();
-    return { nome, usuario: feedUsuario(insta), carteira: typeof carteiraDoCliente === 'function' ? carteiraDoCliente(nome) : '', heads, bio, site };
+    return { nome, id: linha.id ?? null, usuario: feedUsuario(insta), carteira: typeof carteiraDoCliente === 'function' ? carteiraDoCliente(nome) : '', heads, bio, site,
+      ...feedRegraDoCadastro(linha.cadastro) };
   }).filter((c, i, l) => {
     // Um cliente, um perfil: o mesmo nome (com ou sem acento) ou o mesmo @ em dois cadastros aparece uma vez só.
     const antes = l.slice(0, i);
     return !antes.some((o) => feedNorm(o.nome) === feedNorm(c.nome) || (c.usuario && o.usuario === c.usuario));
   });
 }
+// A regra do feed de cada cliente (Paulo, 15/11/2026: "tem cliente que tem 5, 6... pode ter um botão em cada
+// cliente?"): vem do cadastro (feed_por_semana e feed_dias, server/clientes-cadastro.js). Sem nada, 3 por semana em
+// seg, qua, sex (e ter, qui, sáb, dom se a meta pedir mais). "Seguir o calendário" não marca buraco nenhum.
+const FEED_DIAS_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']; // a partir da segunda (feedSegunda)
+const FEED_DIAS_PADRAO = [0, 2, 4, 1, 3, 5, 6];
+function feedRegraDoCadastro(cad) {
+  const bruto = String(cad?.feed_por_semana || '').trim();
+  const soCalendario = /calend/i.test(bruto);
+  const n = Number(bruto);
+  const porSemana = soCalendario ? 0 : (Number.isInteger(n) && n >= 1 && n <= 7 ? n : FEED_POR_SEMANA);
+  const dias = String(cad?.feed_dias || '').split(',').map((d) => FEED_DIAS_SEMANA.indexOf(d.trim())).filter((i) => i >= 0);
+  return { porSemana, soCalendario, dias };
+}
+// A regra em uso: o rascunho do painel "Ajustar feed" aberto, senão a do cadastro.
+function feedRegra(cli) {
+  const r = FEED.ajuste && FEED.ajuste.cliente === cli.nome ? FEED.ajuste : cli;
+  return { porSemana: r.porSemana ?? FEED_POR_SEMANA, soCalendario: Boolean(r.soCalendario), dias: Array.isArray(r.dias) ? r.dias : [] };
+}
+function feedRegraTexto(regra) {
+  if (regra.soCalendario) return 'segue o calendário';
+  const dias = regra.dias.length ? regra.dias.map((i) => FEED_DIAS_SEMANA[i].replace('sab', 'sáb')).join(', ') : '';
+  return `${feedPlural(regra.porSemana, 'post', 'posts')} por semana${dias ? ` · ${dias}` : ''}`;
+}
+
 function feedUsuario(v) {
   let s = String(v || '').trim(); const url = s.match(/instagram\.com\/([^/?#\s]+)/i); if (url) s = url[1];
   s = s.replace(/^@+/, '').replace(/\/+$/, '').toLowerCase();
@@ -116,13 +141,15 @@ function feedMontar(cli) {
   const futuras = todas.filter((x) => x.iso >= hoje && x.iso <= fim);
   const depois = todas.filter((x) => x.iso > fim).length;
   const buracos = [];
-  for (let s = 0; s < FEED_SEMANAS; s += 1) {
+  const regra = feedRegra(cli);
+  const ordemDias = regra.dias.length ? regra.dias : FEED_DIAS_PADRAO;
+  for (let s = 0; s < FEED_SEMANAS && !regra.soCalendario; s += 1) {
     const ini = feedSomar(seg0, s * 7), fimS = feedSomar(ini, 6);
     const n = futuras.filter((x) => x.iso >= ini && x.iso <= fimS).length;
-    let falta = FEED_POR_SEMANA - n; if (falta <= 0) continue;
-    // Dias bons para um post: seg, qua, sex; depois ter, qui; só de hoje em diante e sem peça no dia.
+    let falta = regra.porSemana - n; if (falta <= 0) continue;
+    // Os dias da regra do cliente (ou seg, qua, sex, ter, qui, sáb, dom); só de hoje em diante e sem peça no dia.
     const ocupados = new Set(futuras.map((x) => x.iso));
-    for (const d of [0, 2, 4, 1, 3, 5]) {
+    for (const d of ordemDias) {
       if (!falta) break; const iso = feedSomar(ini, d);
       if (iso < hoje || ocupados.has(iso) || buracos.some((b) => b.iso === iso)) continue;
       buracos.push({ iso, buraco: true }); falta -= 1;
@@ -170,8 +197,9 @@ function feedNumeroIg(n) {
 
 function feedTileHtml(t, cli) {
   if (t.buraco) {
-    return `<div class="vfd-t vfd-x" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}" title="Sem post para ${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}: arraste uma peça para cá">
-      <span class="vfd-x-marca" aria-hidden="true"></span><span class="vfd-x-txt">sem post</span><span class="vfd-data vfd-futuro">${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}</span></div>`;
+    return `<div class="vfd-t vfd-x" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}" title="Sem post para ${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}: clique no + para cadastrar ou arraste uma peça para cá">
+      <span class="vfd-x-marca" aria-hidden="true"></span><span class="vfd-x-txt">sem post</span><span class="vfd-data vfd-futuro">${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}</span>
+      <button type="button" class="vfd-x-criar" aria-label="Cadastrar post de ${feedEsc(cli.nome)} para ${FEED_DIAS[feedDiaSemana(t.iso)]} ${feedDm(t.iso)}" onclick="feedCriarNoDia('${jsArg(cli.nome)}','${jsArg(t.iso)}')"><i aria-hidden="true"></i></button></div>`;
   }
   if (t.ig) {
     const p = t.ig, icone = p.tipo === 'carrossel' ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Carrossel"></i>' : p.tipo === 'video' ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo"></i>' : '';
@@ -198,14 +226,18 @@ function feedClienteHtml(cli) {
   const g = feedMontar(cli);
   const p = g.perfil && !g.perfil.erro ? g.perfil : null;
   // Corta pelo mais longe, nunca pelo mais perto: o que sai primeiro encosta no que já está no ar.
-  const futuro = g.futuro.slice(-FEED_GRADE_MAX);
+  // Quem posta 5, 6, 7 por semana precisa ver as 4 semanas: a grade cresce com a regra (de 3 em 3, como o Instagram).
+  const regra = feedRegra(cli);
+  const gradeMax = Math.max(FEED_GRADE_MAX, Math.ceil((regra.porSemana * FEED_SEMANAS) / 3) * 3);
+  const futuro = g.futuro.slice(-gradeMax);
   const resto = g.futuro.length - futuro.length;
   const avisos = [
+    `<span class="vfd-aviso" title="A regra do feed deste cliente (Ajustar feed)">${feedEsc(feedRegraTexto(regra))}</span>`,
     p?.seguindo != null ? `<span class="vfd-aviso">${feedPlural(g.futuras.length, 'post a sair', 'posts a sair')}</span>` : '',
-    g.buracos.length ? `<span class="vfd-aviso r">${feedPlural(g.buracos.length, 'post faltando', 'posts faltando')} em ${FEED_SEMANAS} semanas</span>` : `<span class="vfd-aviso g">${FEED_SEMANAS} semanas completas</span>`,
+    regra.soCalendario ? '' : g.buracos.length ? `<span class="vfd-aviso r">${feedPlural(g.buracos.length, 'post faltando', 'posts faltando')} em ${FEED_SEMANAS} semanas</span>` : `<span class="vfd-aviso g">${FEED_SEMANAS} semanas completas</span>`,
     g.semArte ? `<span class="vfd-aviso a">${feedPlural(g.semArte, 'peça sem arte', 'peças sem arte')}</span>` : '',
     g.repetido ? `<span class="vfd-aviso a" title="Três ${feedEsc(g.repetido)} seguidos deixam a grade repetida: arraste para intercalar formatos">3 ${feedEsc(g.repetido)} seguidos</span>` : '',
-    resto > 0 ? `<span class="vfd-aviso" title="A grade mostra as ${FEED_GRADE_MAX} mais próximas">+ ${feedPlural(resto, 'item mais longe', 'itens mais longe')}</span>` : '',
+    resto > 0 ? `<span class="vfd-aviso" title="A grade mostra as ${gradeMax} mais próximas">+ ${feedPlural(resto, 'item mais longe', 'itens mais longe')}</span>` : '',
     p?.fonte === 'captura' ? `<span class="vfd-aviso" title="O feed atual foi lido uma vez no Instagram; o que a Vybe publica depois entra na frente sozinho">feed lido em ${feedDm(String(p.capturado_em || '').slice(0, 10))}</span>` : '',
     g.depois ? `<span class="vfd-aviso">${feedPlural(g.depois, 'peça depois', 'peças depois')} de ${feedDm(feedSomar(feedSegunda(feedHoje()), FEED_SEMANAS * 7 - 1))}</span>` : '',
   ].filter(Boolean).join('');
@@ -230,6 +262,11 @@ function feedClienteHtml(cli) {
       <div class="vfd-ig-linha">${usuario}</div>
       <p class="vfd-ig-nome">${feedEsc(p?.nome || cli.nome)}</p>
       ${bio}${site}
+      <div class="vfd-acoes">
+        <button type="button" class="vfd-acao" aria-expanded="${FEED.ajuste?.cliente === cli.nome}" onclick="feedAjustar('${jsArg(cli.nome)}')">Ajustar feed</button>
+        <button type="button" class="vfd-acao" onclick="feedCriarNoDia('${jsArg(cli.nome)}','')">+ Novo post</button>
+      </div>
+      ${FEED.ajuste?.cliente === cli.nome ? feedAjusteHtml(cli) : ''}
       <div class="vfd-avisos">${avisos}</div>
     </header>
     <div class="vfd-ig-aba" aria-hidden="true"><i></i></div>
@@ -266,7 +303,7 @@ function renderFeedDoCliente() {
   const totalBuracos = lista.reduce((s, c) => s + feedMontar(c).buracos.length, 0);
   wrap.innerHTML = `<div class="vfd">
     <div class="vfd-topo"><div><h2>Feed dos clientes</h2><p>${lista.length === 1 ? 'O feed de agora e o que vai sair, como na grade do Instagram.' : `${feedPlural(lista.length, 'cliente', 'clientes')} · ${totalBuracos ? `<b class="vfd-r">${feedPlural(totalBuracos, 'post faltando', 'posts faltando')}</b> nas próximas ${FEED_SEMANAS} semanas` : `nenhum buraco nas próximas ${FEED_SEMANAS} semanas`}`}</p></div>
-      <p class="vfd-legenda"><span class="vfd-l vfd-l-arte"></span>arte pronta <span class="vfd-l vfd-l-prov"></span>sem arte <span class="vfd-l vfd-l-x"></span>sem post (meta de ${FEED_POR_SEMANA} por semana)</p></div>
+      <p class="vfd-legenda"><span class="vfd-l vfd-l-arte"></span>arte pronta <span class="vfd-l vfd-l-prov"></span>sem arte <span class="vfd-l vfd-l-x"></span>sem post (pela regra de cada cliente)</p></div>
     ${feedFiltrosHtml(todos)}
     <div class="vfd-lista">${ordenada.map(feedClienteHtml).join('') || '<p class="vfd-vazio">Nenhum cliente neste filtro.</p>'}</div></div>`;
   feedLigarArrasto(wrap);
@@ -317,6 +354,84 @@ async function feedPedirArtes(lista) {
     ids.forEach((id) => FEED.pedindoArtes.delete(id));
     if (feedAberto) renderFeedDoCliente();
   }
+}
+
+// O + do "sem post" (Paulo, 15/11/2026: "já podia ter o + pra eu cadastrar a demanda direto no feed"): abre o mesmo
+// cadastro do + do calendário, já com o cliente e o dia do buraco como veiculação (prazo de ouro calculado).
+function feedCriarNoDia(cliente, iso) {
+  if (typeof window.openCadastrosGoverned !== 'function') {
+    if (typeof showToast === 'function') showToast('O cadastro ainda não carregou. Tente de novo em instantes.', 'info');
+    return;
+  }
+  const prazo = iso && typeof goldenDeadlineIso === 'function' ? goldenDeadlineIso(iso) : '';
+  window.openCadastrosGoverned({ board: 'producao', client: cliente, ...(iso ? { veic: iso } : {}), ...(prazo ? { prazo } : {}) });
+}
+
+// "Ajustar feed" (Paulo, 15/11/2026: "um botão em cada cliente pra reorganizar o feed... seguir o que tá no
+// calendário certinho"): quantos posts por semana, em que dias, ou só o calendário. A grade se refaz na hora com o
+// rascunho; "Salvar" grava no cadastro do cliente, e a regra vale para toda a equipe.
+function feedAjustar(nome) {
+  if (FEED.ajuste?.cliente === nome) { FEED.ajuste = null; renderFeedDoCliente(); return; }
+  const cli = feedClientes().find((c) => c.nome === nome); if (!cli) return;
+  FEED.ajuste = { cliente: nome, porSemana: cli.soCalendario ? FEED_POR_SEMANA : cli.porSemana, soCalendario: cli.soCalendario, dias: [...cli.dias], salvando: false };
+  renderFeedDoCliente();
+}
+function feedAjusteMudar(campo, valor) {
+  const a = FEED.ajuste; if (!a) return;
+  if (campo === 'ritmo') {
+    if (valor === 'calendario') a.soCalendario = true;
+    else { const n = Number(valor); if (Number.isInteger(n) && n >= 1 && n <= 7) { a.porSemana = n; a.soCalendario = false; } }
+  } else if (campo === 'dia') {
+    const i = Number(valor); if (!(i >= 0 && i <= 6)) return;
+    a.dias = a.dias.includes(i) ? a.dias.filter((d) => d !== i) : [...a.dias, i].sort((x, y) => x - y);
+  } else if (campo === 'dias-padrao') a.dias = [];
+  renderFeedDoCliente();
+}
+function feedAjusteHtml(cli) {
+  const a = FEED.ajuste;
+  const chip = (rot, ativo, onclick, titulo = '') => `<button type="button" class="vfd-chip" aria-pressed="${ativo}" ${titulo ? `title="${feedEsc(titulo)}"` : ''} onclick="${onclick}">${feedEsc(rot)}</button>`;
+  const ritmos = chip('Seguir o calendário', a.soCalendario, "feedAjusteMudar('ritmo','calendario')", 'Sem X: mostra só o que está cadastrado')
+    + [1, 2, 3, 4, 5, 6, 7].map((n) => chip(String(n), !a.soCalendario && a.porSemana === n, `feedAjusteMudar('ritmo','${n}')`, `${feedPlural(n, 'post', 'posts')} por semana`)).join('');
+  const dias = chip('Qualquer dia', !a.dias.length, "feedAjusteMudar('dias-padrao')", 'seg, qua, sex primeiro; depois ter, qui, sáb, dom')
+    + FEED_DIAS_SEMANA.map((d, i) => chip(d.replace('sab', 'sáb'), a.dias.includes(i), `feedAjusteMudar('dia','${i}')`)).join('');
+  const poucos = !a.soCalendario && a.dias.length && a.dias.length < a.porSemana;
+  return `<div class="vfd-ajuste" role="group" aria-label="Ajustar o feed de ${feedEsc(cli.nome)}">
+    <p class="vfd-ajuste-tit">Posts por semana</p><div class="vfd-ajuste-op">${ritmos}</div>
+    ${a.soCalendario ? '' : `<p class="vfd-ajuste-tit">Dias do post</p><div class="vfd-ajuste-op">${dias}</div>`}
+    ${poucos ? `<p class="vfd-ajuste-nota">Com ${a.dias.length} ${a.dias.length === 1 ? 'dia' : 'dias'} marcados, cabem só ${a.dias.length} por semana.</p>` : ''}
+    <p class="vfd-ajuste-nota">A grade abaixo já mostra como fica. Salvar grava no cadastro do cliente, para toda a equipe.</p>
+    <div class="vfd-ajuste-pe">
+      <button type="button" class="vfd-acao" onclick="feedAjustar('${jsArg(cli.nome)}')">Cancelar</button>
+      <button type="button" class="vfd-acao vfd-acao-p" ${a.salvando || cli.id == null ? 'disabled' : ''} onclick="feedAjusteSalvar()">${a.salvando ? 'Salvando…' : 'Salvar'}</button>
+    </div>
+    ${cli.id == null ? '<p class="vfd-ajuste-nota">Este cliente ainda não tem cadastro no Vybe OS: dá para ver a prévia, mas não salvar.</p>' : ''}
+  </div>`;
+}
+async function feedAjusteSalvar() {
+  const a = FEED.ajuste; if (!a || a.salvando) return;
+  const cli = feedClientes().find((c) => c.nome === a.cliente); if (!cli?.id) return;
+  const campos = {
+    feed_por_semana: a.soCalendario ? 'Seguir o calendário' : String(a.porSemana),
+    feed_dias: a.soCalendario ? '' : a.dias.map((i) => FEED_DIAS_SEMANA[i]).join(','),
+  };
+  a.salvando = true; renderFeedDoCliente();
+  try {
+    const r = await fetch('/api/painel?area=clientes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao: 'cadastro', id: cli.id, campos }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(r.status === 403 ? 'Só quem administra muda a regra do feed.' : (d?.error || 'Não deu para salvar agora.'));
+    const linha = (typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : []).find((c) => String(c.id) === String(cli.id));
+    if (linha) {
+      linha.cadastro = { ...(linha.cadastro || {}) };
+      for (const [k, v] of Object.entries(campos)) { if (v) linha.cadastro[k] = v; else delete linha.cadastro[k]; }
+    }
+    FEED.ajuste = null;
+    if (typeof showToast === 'function') showToast(`Feed de ${cli.nome}: ${feedRegraTexto(feedRegraDoCadastro(linha?.cadastro || campos))}.`, 'success');
+  } catch (erro) {
+    a.salvando = false;
+    if (typeof showToast === 'function') showToast(erro.message, 'warning', 6000);
+  }
+  renderFeedDoCliente();
 }
 
 function feedAbrirPeca(id) {

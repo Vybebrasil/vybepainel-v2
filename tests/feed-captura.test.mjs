@@ -128,3 +128,27 @@ test('a tela junta, na frente da captura, o que a Vybe publicou depois dela', ()
   assert.match(src, /publicadas\.filter\(\(x\) => x\.iso > desde\)/);
   assert.match(src, /u\.startsWith\('\/api\/painel\?area=feed_instagram&captura='\)/);
 });
+
+test('o + do "sem post" abre o cadastro do calendário com o cliente e o dia (Paulo, 15/11/2026)', () => {
+  const src = readFileSync(new URL('../vybe-feed.js', import.meta.url), 'utf8');
+  assert.match(src, /class="vfd-x-criar"[^>]*onclick="feedCriarNoDia\('\$\{jsArg\(cli\.nome\)\}','\$\{jsArg\(t\.iso\)\}'\)"/);
+  assert.ok(src.includes("openCadastrosGoverned({ board: 'producao', client: cliente, ...(iso ? { veic: iso } : {})"));
+  const css = readFileSync(new URL('../padrao-v2/feed.css', import.meta.url), 'utf8');
+  assert.match(css, /\.vfd-x-criar\{position:absolute;inset:0/);
+});
+
+test('regra do feed por cliente: posts por semana, dias e seguir o calendário (Paulo, 15/11/2026)', async () => {
+  const { limparCampo, CAMPOS_CADASTRO } = await import('../server/clientes-cadastro.js');
+  const campo = (k) => CAMPOS_CADASTRO.find((c) => c.chave === k);
+  assert.equal(limparCampo(campo('feed_dias'), 'Sex, segunda e Quarta'), 'seg,qua,sex');
+  assert.equal(limparCampo(campo('feed_dias'), 'sábado,dom'), 'sab,dom');
+  assert.throws(() => limparCampo(campo('feed_dias'), 'todo dia'), /use seg/);
+  assert.equal(limparCampo(campo('feed_por_semana'), '6'), '6');
+  assert.equal(limparCampo(campo('feed_por_semana'), 'Seguir o calendário'), 'Seguir o calendário');
+  assert.throws(() => limparCampo(campo('feed_por_semana'), '9'), /escolha/);
+  const src = readFileSync(new URL('../vybe-feed.js', import.meta.url), 'utf8');
+  assert.match(src, /for \(let s = 0; s < FEED_SEMANAS && !regra\.soCalendario; s \+= 1\)/);
+  assert.match(src, /let falta = regra\.porSemana - n;/);
+  assert.match(src, /body: JSON\.stringify\(\{ acao: 'cadastro', id: cli\.id, campos \}\)/);
+  assert.match(src, /onclick="feedAjustar\('\$\{jsArg\(cli\.nome\)\}'\)">Ajustar feed<\/button>/);
+});
