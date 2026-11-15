@@ -3196,19 +3196,23 @@
   const relogioFoco = (inicio) => { const s = Math.max(0, Math.floor((Date.now() - Date.parse(inicio)) / 1000)); return Number.isFinite(s) ? `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : '00:00'; };
   function pintarSalaD3(andar, zona) {
     pintarSalaD3.ultimo = [andar, zona];
-    const minha = zona && zona === minhaSalaDaConta();
-    body.classList.toggle('d3s-painel', Boolean(andar?.isConnected && minha));
-    if (!andar?.isConnected || !minha) { andar?.querySelector?.('#d3-sala')?.remove(); body.classList.remove('d3s-com-cor'); return; }
+    // Paulo, 15/11/2026: "quando tô na sala de alguém, mantém aquele mesmo HUD que fica quando tô em minha sala".
+    // O painel é o SEU dia (fila, números, humor, foco, semana, datas) em volta do quarto; vale em qualquer sala.
+    // Só a cor da sala é do dono do quarto: visitando, nem aplica a sua nem mostra o seletor.
+    const minha = Boolean(zona) && zona === minhaSalaDaConta();
+    body.classList.toggle('d3s-painel', Boolean(andar?.isConnected && zona));
+    if (!andar?.isConnected || !zona) { andar?.querySelector?.('#d3-sala')?.remove(); body.classList.remove('d3s-com-cor'); return; }
     let el = andar.querySelector('#d3-sala');
-    if (el && pintarSalaD3.em && Date.now() - pintarSalaD3.em < 2500) { medirQuartoD3(andar); return; }
+    const trocouDeSala = pintarSalaD3.zona !== zona; pintarSalaD3.zona = zona;
+    if (el && !trocouDeSala && pintarSalaD3.em && Date.now() - pintarSalaD3.em < 2500) { medirQuartoD3(andar); return; }
     pintarSalaD3.em = Date.now();
     if (!el) {
-      el = document.createElement('div'); el.id = 'd3-sala'; el.setAttribute('aria-label', 'Minha sala');
+      el = document.createElement('div'); el.id = 'd3-sala';
       el.innerHTML = '<div class="d3s-tit"></div><div class="d3s-faixa"></div><div class="d3s-nums"></div><div class="d3s-grade"><section class="d3s-cartao d3s-quarto" aria-label="O quarto"></section><div class="d3s-col2"></div><div class="d3s-col3"></div></div>';
       andar.append(el);
       el.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b || b.closest('.quarto-cab')) return;
-        if (b.dataset.d3Humor) { fn('escritorioTrocarStatus')?.(b.dataset.d3Humor); pintarSalaD3.em = 0; setTimeout(() => pintarSalaD3(andar, zona), 150); return; }
+        if (b.dataset.d3Humor) { fn('escritorioTrocarStatus')?.(b.dataset.d3Humor); setTimeout(repintarSalaD3, 150); return; }
         if (b.hasAttribute('data-d3-sazonal')) { chamar('abrirCalendarioSazonal'); return; }
         if (b.dataset.d3Cor) { gravarSalaSrv({ acao: 'cor', cor: b.getAttribute('aria-pressed') === 'true' ? null : b.dataset.d3Cor }); return; }
         if (b.dataset.d3Foco === 'parar') { gravarSalaSrv({ acao: 'foco_parar' }); return; }
@@ -3248,13 +3252,13 @@
     const HUMOR = [['disponivel', 'Livre'], ['foco', 'Focado'], ['reuniao', 'Reunião'], ['ausente', 'Fora']];
     // Cor da sala e foco (quadro D3-MinhaSala), só quando o servidor respondeu.
     lerSalaSrv();
-    const S = salaSrv.dados, cor = S?.cor ? String(S.cor).toLowerCase() : '', foco = S?.foco || null, ocupado = salaSrv.gravando ? ' disabled' : '';
+    const S = salaSrv.dados, cor = minha && S?.cor ? String(S.cor).toLowerCase() : '', foco = S?.foco || null, ocupado = salaSrv.gravando ? ' disabled' : '';
     document.documentElement.style[cor ? 'setProperty' : 'removeProperty']('--d3s-cor', cor || undefined);
     body.classList.toggle('d3s-com-cor', Boolean(cor));
     const focoHtml = !S ? '' : foco
       ? `<span class="d3s-foco on">foco · <b data-d3-foco-inicio="${esc(foco.inicio || '')}">${relogioFoco(foco.inicio)}</b><button type="button" class="d3s-btn" data-d3-foco="parar"${ocupado}>Parar</button></span>`
       : `<span class="d3s-foco">${S.hoje?.segundos ? `${n0(Math.round(S.hoje.segundos / 60))} min hoje · ` : ''}<button type="button" class="d3s-btn" data-d3-foco="iniciar"${x0 ? ` data-item="${esc(x0.d.id)}" data-rotulo="${esc(nomeDe(x0))}"` : ''}${ocupado}>Iniciar foco</button></span>`;
-    const corHtml = S ? `<div class="d3s-cor"><span class="d3s-rot">Cor da sala</span><span class="d3s-cores" role="group" aria-label="Cor da sala">${SALA_CORES.map(([c, n]) => `<button type="button" data-d3-cor="${c}" aria-pressed="${cor === c}" style="--c:${c}" title="${n}" aria-label="Cor ${n}"${ocupado}></button>`).join('')}</span></div>` : '';
+    const corHtml = S && minha ? `<div class="d3s-cor"><span class="d3s-rot">Cor da sala</span><span class="d3s-cores" role="group" aria-label="Cor da sala">${SALA_CORES.map(([c, n]) => `<button type="button" data-d3-cor="${c}" aria-pressed="${cor === c}" style="--c:${c}" title="${n}" aria-label="Cor ${n}"${ocupado}></button>`).join('')}</span></div>` : '';
     const agora = `<section class="d3s-cartao d3s-agora" aria-label="Agora"><div class="d3s-cab"><h3>Agora</h3>${focoHtml}</div>
       ${x0 ? `<button type="button" class="d3s-peca" data-hoje-acao="peca" data-valor="${esc(x0.d.id)}"><span class="d3s-thumb" aria-hidden="true"></span><span class="d3s-peca-txt"><b>${esc(nomeDe(x0))}</b>${cli(x0) ? `<span>${cliCor(cli(x0))}</span>` : ''}</span>${quandoD3(x0.d.veiculacao_iso || x0.d.prazo_iso, hoje)}</button>` : `<p class="d3s-vazio">${fila ? 'Fila limpa' : 'Escolha de quem é o dia no Hoje'}</p>`}
       <p class="d3s-rot">Humor</p><div class="d3s-humor" role="group" aria-label="Humor">${HUMOR.map(([k, r]) => `<button type="button" data-d3-humor="${k}" aria-pressed="${status === k}"${e?.conectado ? '' : ' disabled title="Entre no Escritório para mudar o humor"'}><i class="${k}"></i>${r}</button>`).join('')}</div>${corHtml}</section>`;
