@@ -232,8 +232,10 @@
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala > p{font:600 19px/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF}
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala b{font-weight:600}
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-quem{display:block;margin-bottom:2px;font:700 12px var(--vv-texto,Inter),sans-serif;color:#FFFFFF;opacity:.82}
-#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);animation:d3PulsaBranco 2.4s ease-in-out infinite}
-#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag::after{display:none}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);isolation:isolate}
+/* o pulso branco no compositor (como o do bloco de ação em 0-d3-base.css): um ::after branco por baixo, que cresce 8 px e some */
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag::after{display:block;content:"";inset:0;z-index:-1;border:0;border-radius:50%;background:inherit;pointer-events:none;animation:d3PulsaBrancoAnel 2.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag::after{display:none}}
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-btn{height:40px;padding:0 20px;background:#FFFFFF;color:var(--d3-acao-texto);font-weight:700}
 /* números: cartão de 18, rótulo de 12,5 e número de 36 */
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-kpi{border-radius:18px;padding:14px 16px}
@@ -266,8 +268,11 @@
 .vv-gestao.vv-gestao .g2-fala-lin > p{font:600 19px/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF}
 .vv-gestao.vv-gestao .g2-fala b{font-weight:600}
 .vv-gestao.vv-gestao .g2-fala .g2-quem{display:block;margin-bottom:2px;font:700 12px var(--vv-texto,Inter),sans-serif;color:#FFFFFF;opacity:.82}
-.vv-gestao.vv-gestao .g2-fala .g2-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);animation:d3PulsaBranco 2.4s ease-in-out infinite}
-.vv-gestao.vv-gestao .g2-fala .g2-ag::after{display:none}
+.vv-gestao.vv-gestao .g2-fala .g2-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);isolation:isolate}
+.vv-gestao.vv-gestao .g2-fala .g2-ag::after{display:block;content:"";inset:0;z-index:-1;border:0;border-radius:50%;background:inherit;pointer-events:none;animation:d3PulsaBrancoAnel 2.4s ease-in-out infinite}
+/* a fala quieta (cartão branco, avatar roxo): o pulso branco de antes não aparecia no branco; continua sem pulso */
+.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-ag::after{display:none}
+@media (prefers-reduced-motion:reduce){.vv-gestao.vv-gestao .g2-fala .g2-ag::after{display:none}}
 .vv-gestao.vv-gestao .g2-fala .g2-btn{height:40px;padding:0 20px;background:#FFFFFF;color:var(--d3-acao-texto);font-weight:700}
 .vv-gestao.vv-gestao .g2-fala :is(.g2-hist,.g2-link,.g2-mais-corpo){color:#FFFFFF}
 /* números: cartão de 18 e número de 36 */

@@ -6,7 +6,7 @@
 // 2) A agenda do Hoje pedia /api/painel?area=captacoes duas vezes na entrada (duas chamadas antes da primeira voltar).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const fonte = (arq) => readFileSync(arq, 'utf8').replace(/\r\n/g, '\n');
 function funcao(src, nome) {
@@ -50,4 +50,18 @@ test('A agenda do Hoje não pede a mesma leitura duas vezes enquanto a primeira 
   assert.match(ag, /if \(!forcar && agendaIndo\) return agendaIndo;/, 'quem chega com uma leitura no caminho espera a mesma');
   assert.match(ag, /finally \{ if \(agendaIndo === ida\) agendaIndo = null; \}/, 'a leitura terminada libera a próxima (inclusive com erro)');
   assert.ok(ag.indexOf('agendaIndo) return') < ag.indexOf('area=captacoes'), 'a guarda vem antes do fetch');
+});
+
+test('Nenhum avatar pulsa mais em box-shadow: os pulsos dos agentes (roxo e branco) vão no ::after com transform e opacity', () => {
+  // Paulo, 15/11/2026 ("sim, troca"). Medido parado por 10 s (Chromium): Hoje 42,4% → 7,6% de CPU, Equipe online 72,8% → 12,5%,
+  // Criação 56,9% → 8,7%.
+  for (const arq of readdirSync('padrao-v2').filter((a) => a.endsWith('.css'))) {
+    assert.doesNotMatch(fonte(`padrao-v2/${arq}`), /animation:d3Pulsa(Branco)? /, `${arq}: um pulso em box-shadow voltou`);
+  }
+  const base = fonte('padrao-v2/0-d3-base.css');
+  const quadros = base.match(/@keyframes d3PulsaAnel\{(.*)\}\n/)?.[1] || '';
+  assert.ok(quadros, 'keyframes d3PulsaAnel');
+  for (const prop of quadros.matchAll(/(?:^|[{;])([a-z-]+):/g)) assert.ok(['opacity', 'transform'].includes(prop[1]), `d3PulsaAnel anima ${prop[1]}`);
+  assert.match(base, /\.d3-agente-av::after\{[^}]*z-index:-1[^}]*animation:d3PulsaAnel /);
+  assert.match(base, /prefers-reduced-motion:reduce\)\{[^@]*\.d3-agente-av::after\{display:none\}/);
 });

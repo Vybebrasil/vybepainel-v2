@@ -95,8 +95,10 @@
 #vv-entrada .v2en-fala > p{flex:1;min-width:0;font:600 15px/1.35 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF}
 #vv-entrada .v2en-fala b{font-weight:700}
 #vv-entrada .v2en-quem{display:block;margin-bottom:2px;font:600 12px var(--vv-texto,Inter),sans-serif;color:rgba(255,255,255,.78)}
-#vv-entrada .v2en-fala > .v2en-ag{width:32px;height:32px;background:#FFFFFF;color:var(--d3-agente,#6E56CF);font-size:13px;animation:d3PulsaBranco 2.4s ease-in-out infinite}
-#vv-entrada .v2en-fala > .v2en-ag::after{display:none}
+#vv-entrada .v2en-fala > .v2en-ag{width:32px;height:32px;background:#FFFFFF;color:var(--d3-agente,#6E56CF);font-size:13px;isolation:isolate}
+/* o pulso branco no compositor (como o do bloco de ação em 0-d3-base.css): avatar de 32, então 1.5 = (32 + 16) / 32 */
+#vv-entrada .v2en-fala > .v2en-ag::after{display:block;content:"";inset:0;z-index:-1;border:0;border-radius:50%;background:inherit;pointer-events:none;--d3-anel-o:.7;--d3-anel-k:1.5;animation:d3PulsaAnel 2.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){#vv-entrada .v2en-fala > .v2en-ag::after{display:none}}
 #vv-entrada .v2en-ag,#vv-hoje .v2vb-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 14px var(--vv-texto,Inter),sans-serif}
 #vv-entrada .v2en-ag::after,#vv-hoje .v2vb-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2en-pulso 3.6s ease-out infinite}
 @keyframes v2en-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
