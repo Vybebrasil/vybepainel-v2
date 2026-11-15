@@ -87,6 +87,12 @@ test('Centro e Minha sala pelos quadros: o 3D dentro de um cartão da grade, nú
   assert.ok(js.includes('pintarSalaD3(el, zona);'), 'repinta com a presença da sala');
   assert.ok(css.includes('#mundo-andar.quarto > .andar-palco{inset:auto;left:var(--d3s-qx'), 'o quarto desenha no cartão');
   assert.ok(css.includes('body.mundo.mundo-quarto.d3s-painel #mundo-hud > #vv-hoje.vv-hoje{display:none}'), 'sem o Hoje estreito');
+  // Paulo, 15/11/2026: na sala de outra pessoa, o mesmo painel; só a cor da sala fica com o dono do quarto.
+  assert.match(s, /body\.classList\.toggle\('d3s-painel', Boolean\(andar\?\.isConnected && zona\)\);/);
+  assert.match(s, /if \(!andar\?\.isConnected \|\| !zona\) \{/);
+  assert.match(s, /cor = minha && S\?\.cor \?/);
+  assert.match(s, /const corHtml = S && minha \?/);
+  assert.match(s, /const trocouDeSala = pintarSalaD3\.zona !== zona;/);
 });
 
 test('Minha sala: a grade deixa o toque passar para o quarto 3D (arrastar, girar e zoom como antes)', () => {
