@@ -509,7 +509,10 @@ body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loj
 #vv-hoje .d3h-danilo .vcr-fila .vs-bloco-cabeca{display:flex;align-items:center;justify-content:space-between;padding:0 0 8px}
 #vv-hoje .d3h-danilo .vcr-fila .vs-bloco-cabeca > span{display:flex;align-items:center;gap:8px;width:100%}
 #vv-hoje .d3h-danilo .vcr-fila .vs-bloco-cabeca small{margin-left:auto;font:400 12.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
-#vv-hoje .d3h-danilo .vcr-fila .vcr-av{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-agente);color:#FFFFFF;font:700 11px var(--vv-texto,Inter,sans-serif);font-style:normal;animation:d3Pulsa 2.4s ease-in-out infinite}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-av{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-agente);color:#FFFFFF;font:700 11px var(--vv-texto,Inter,sans-serif);font-style:normal;position:relative;isolation:isolate}
+/* O pulso do Danilo no compositor (0-d3-base.css): o anel roxo cobre o fundo da mesma cor e cresce 8 px para fora. */
+#vv-hoje .d3h-danilo .vcr-fila .vcr-av::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:50%;background:var(--d3-agente);pointer-events:none;--d3-anel-k:1.667;animation:d3PulsaAnel 2.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){#vv-hoje .d3h-danilo .vcr-fila .vcr-av::after{display:none}}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-sugs{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-sug.vcr-lin{display:flex;align-items:center;gap:10px;min-width:0;margin:0;padding:10px 0;border:0;border-top:1px solid var(--d3-linha);border-radius:0;background:none;box-shadow:none}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-q{flex:0 0 64px;font:700 11.5px var(--vv-texto,Inter,sans-serif);letter-spacing:.02em;text-transform:uppercase;color:var(--d3-texto2)}

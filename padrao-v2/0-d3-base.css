@@ -52,6 +52,9 @@
 @keyframes d3PulsaBranco{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.7)}50%{box-shadow:0 0 0 8px rgba(255,255,255,0)}}
 /* O mesmo pulso branco por transform e opacity (o compositor anima sozinho): 1.444 = (36 + 2 × 8) / 36, o anel de 8 px do avatar de 36. */
 @keyframes d3PulsaBrancoAnel{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:0;transform:scale(1.444)}}
+/* O mesmo pulso com a cor e o tamanho de cada avatar: --d3-anel-o é a opacidade do começo e --d3-anel-k = (lado + 16) / lado
+   (o anel de 8 px do box-shadow de antes); o padrão é o roxo .55 do avatar de 28. */
+@keyframes d3PulsaAnel{0%,100%{opacity:var(--d3-anel-o,.55);transform:scale(1)}50%{opacity:0;transform:scale(var(--d3-anel-k,1.571))}}
 @keyframes d3LinhaNova{from{max-height:0;opacity:0}to{max-height:64px;opacity:1}}
 
 .d3-num > .d3-num-v{animation:d3NumChega .55s cubic-bezier(.22,1,.36,1) both}
@@ -67,10 +70,20 @@
    cada quadro recalculava o estilo e repintava: no Clientes parado, 32% de CPU contra 5% assim (Chromium). */
 .d3-acao > .d3-acao-av{position:relative;isolation:isolate}
 .d3-acao > .d3-acao-av::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:inherit;pointer-events:none;animation:d3PulsaBrancoAnel 2.4s ease-in-out infinite}
-.d3-agente-av{animation:d3Pulsa 2.4s ease-in-out infinite}
+/* Pulso roxo dos agentes (Hoje, Agentes, Coordenação) pelo mesmo caminho (Paulo, 15/11/2026: "sim, troca"): o anel roxo num
+   ::after por baixo do avatar. Nos avatares roxos o anel cobre o fundo da mesma cor e não aparece por dentro. O de Agentes
+   (.v2g-av.lil) tem fundo claro: lá quem isola é o pai, e o anel fica entre o fundo do pai e o avatar. O box-shadow próprio
+   do avatar ficava sempre debaixo do pulso; continua sem. */
+.d3-agente-av{position:relative;isolation:isolate;box-shadow:none}
+.d3-agente-av::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:50%;background:var(--d3-agente);pointer-events:none;animation:d3PulsaAnel 2.4s ease-in-out infinite}
+.d3-agente-av.v2g-av.lil{isolation:auto}
+.d3t-ped-cab{isolation:isolate}
+:is(#vv-agentes,#automacoes-root) .v2g-av.d3-agente-av{box-shadow:none}
+.d3-agente-av.d3h-av{--d3-anel-k:1.667}
 .d3-chegou{overflow:hidden;animation:d3LinhaNova .45s cubic-bezier(.22,1,.36,1) both}
 
 @media (prefers-reduced-motion:reduce){
   .d3-num > .d3-num-v,.d3-graf polyline,.d3-graf circle,.d3-barra > i,.d3-acao > .d3-acao-av,.d3-agente-av,.d3-chegou{animation:none}
   .d3-acao > .d3-acao-av::after{display:none}
+  .d3-agente-av::after{display:none}
 }
