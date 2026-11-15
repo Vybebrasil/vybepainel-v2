@@ -59,13 +59,20 @@ export function lerCabecalho(texto, usuario = '') {
   const iSite = corpo.findIndex((l) => /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?(\s+e mais \d+)?$/i.test(l));
   if (iSite >= 0) { site = corpo[iSite].replace(/\s+e mais \d+$/i, ''); corpo = corpo.filter((_, i) => i !== iSite); }
   return {
-    nome: nome.slice(0, 150),
-    bio: corpo.join('\n').slice(0, 300),
-    site: site.slice(0, 200),
+    nome: cortar(nome, 150),
+    bio: cortar(corpo.join('\n'), 300),
+    site: cortar(site, 200),
     total_posts: num(iPosts, /\s*(publicações|publicação|posts?)$/i),
     seguidores: num(iSeg, /\s*seguidor(es)?$/i),
     seguindo: iSeguindo < 0 ? null : numeroDoInstagram(linhas[iSeguindo].replace(/^(A seguir|Seguindo)\s+/i, '').replace(/\s*seguindo$/i, '')),
   };
+}
+
+// Corta pelo caractere, nunca pela metade de um emoji: metade de emoji (surrogate solto) o Postgres recusa no JSONB
+// (a legenda da ConectaSim, 15/11/2026, veio cortada no meio de um emoji pelo navegador).
+export function cortar(v, max) {
+  const limpo = String(v ?? '').replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
+  return [...limpo].slice(0, max).join('');
 }
 
 function jpegDoDataUrl(v) {
@@ -96,7 +103,7 @@ export function validarCaptura(bruto = {}, { agora = Date.now() } = {}) {
     if (!CODIGO.test(codigo) || !img || imagens.has(codigo)) continue;
     imagens.set(codigo, img);
     const tipo = p.tipo === 'reel' || p.tipo === 'video' ? 'video' : p.tipo === 'carrossel' ? 'carrossel' : 'foto';
-    posts.push({ codigo, tipo, fixado: Boolean(p.fixado), legenda: String(p.legenda || '').slice(0, 300), link: `https://www.instagram.com/${tipo === 'video' ? 'reel' : 'p'}/${codigo}/` });
+    posts.push({ codigo, tipo, fixado: Boolean(p.fixado), legenda: cortar(p.legenda, 300), link: `https://www.instagram.com/${tipo === 'video' ? 'reel' : 'p'}/${codigo}/` });
   }
   if (!posts.length && !foto) throw erroDeUso('A captura veio sem imagens.');
   return { usuario, capturado_em: new Date(quando).toISOString(), perfil: { ...cab, posts }, imagens };
