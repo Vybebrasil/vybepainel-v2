@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 const fonte=fs.readFileSync('vybe-status.js','utf8');
 test('seletor preserva todos os responsáveis atuais e sincroniza estado acessível',()=>{
  const campo={value:'1,2'};const botoes=[1,2,3].map(id=>({dataset:{dono:String(id)},classList:{toggle(){}},setAttribute(k,v){this[k]=v;}}));
- const c=vm.createContext({TEAM_USERS:[{id:1,name:'Ana Silva'},{id:2,name:'Ana Souza'},{id:3,name:'Bia'}],ownerEligibility:()=>({users:[]}),assignedIds:()=>['1','2'],safeText:String,ownerAvatarHtml:()=>'',document:{getElementById:()=>campo,querySelectorAll:()=>botoes}});
+ const c=vm.createContext({TEAM_USERS:[{id:1,name:'Ana Silva'},{id:2,name:'Ana Souza'},{id:3,name:'Bia'}],ownerEligibility:()=>({users:[]}),assignedIds:()=>['1','2'],jsArg: JS_ARG, safeText:String,ownerAvatarHtml:()=>'',document:{getElementById:()=>campo,querySelectorAll:()=>botoes}});
  vm.runInContext(fonte.slice(fonte.indexOf('function statusContextResponsibleOptions'),fonte.indexOf('// Todas as imagens da peça')),c);
  const html=c.statusContextResponsibleOptions({});assert.match(html,/value="1,2"/);assert.match(html,/Ana Silva/);assert.match(html,/Ana Souza/);
  c.escolherResponsavelDoStatus('3');assert.equal(campo.value,'1,2,3');assert.equal(botoes[2]['aria-pressed'],'true');
@@ -35,7 +36,7 @@ test('origem por foto preserva contato externo e não altera responsáveis',()=>
  const pessoas=[{id:1,name:'Ana Silva'},{id:2,name:'Ana Souza'}];
  const elementos={'status-context-requester':{value:'Ana Silva'},'context-origin-name':{value:'Cliente externo',focus(){this.focado=true;}},'context-origin-external':{hidden:true},'status-context-next-owner':{value:'1,2'}};
  const botoes=['1','2',''].map(id=>({dataset:{originId:id},setAttribute(k,v){this[k]=v;}}));
- const c=vm.createContext({TEAM_USERS:pessoas,safeText:String,ownerAvatarHtml:u=>`<img alt="${u.name}">`,document:{getElementById:id=>elementos[id],querySelectorAll:()=>botoes}});
+ const c=vm.createContext({TEAM_USERS:pessoas,jsArg: JS_ARG, safeText:String,ownerAvatarHtml:u=>`<img alt="${u.name}">`,document:{getElementById:id=>elementos[id],querySelectorAll:()=>botoes}});
  vm.runInContext(fonte.slice(fonte.indexOf('function statusContextOriginHtml'),fonte.indexOf('function openStatusContextGate')),c);
  assert.match(c.statusContextOriginHtml('Ana Silva'),/data-origin-id="1" aria-pressed="true"/);
  assert.match(c.statusContextOriginHtml('Contato externo'),/value="Contato externo"/);

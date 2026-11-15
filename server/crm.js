@@ -111,6 +111,8 @@ export async function escreverCrm(sql, quem, b) {
     perda ? { motivo_perda: perda.motivo, motivo_texto: perda.texto } : {});
   } else if (acao==='valor') {
    // Valor da negociação: precisa das colunas da migração 2026-11-07-comercial.sql (sem ela, 503 explicado na API).
+   // É dinheiro: só os quatro donos gravam (auditoria 15/11/2026; quem não é dono nem vê o valor atual).
+   if (!ehDonoPessoa(quem)) falhar('O valor da negociação é só dos donos.',403);
    if (String(b.versao)!==String(o.versao)) falhar('Oportunidade alterada por outra pessoa. Atualize antes de salvar.',409);
    const d={ valor_mensal:valorReais(b.valor_mensal,'Valor mensal'), valor_avulso:valorReais(b.valor_avulso,'Valor avulso'),
     pacote_id: b.pacote_id == null || b.pacote_id === '' ? null : idValido(b.pacote_id) };
@@ -126,6 +128,20 @@ export async function escreverCrm(sql, quem, b) {
   if(acao==='comentar') await tx`UPDATE vybe_crm_oportunidades SET atualizado_em=now(),versao=versao+1 WHERE id=${id}`;
   return {id};
  });
+}
+// Quem não é dono lê o CRM sem os valores das negociações, nem no histórico de edição (auditoria 15/11/2026).
+const SEM_VALOR=['valor_mensal','valor_avulso'];
+const tirarValor=(o)=>{ if(!o || typeof o!=='object') return o; const c={...o}; for(const k of SEM_VALOR) delete c[k]; return c; };
+export function semValoresCrm(dados) {
+ const d={...dados};
+ if(Array.isArray(d.oportunidades)) d.oportunidades=d.oportunidades.map(tirarValor);
+ if(d.oportunidade) d.oportunidade=tirarValor(d.oportunidade);
+ if(Array.isArray(d.historico)) d.historico=d.historico.map(h=>{
+  let det=h?.detalhes; if(typeof det==='string'){ try{ det=JSON.parse(det); }catch{ return h; } }
+  if(!det || typeof det!=='object') return h;
+  return {...h,detalhes:{...tirarValor(det),...(det.antes?{antes:tirarValor(det.antes)}:{}),...(det.depois?{depois:tirarValor(det.depois)}:{})}};
+ });
+ return d;
 }
 export async function listarCrm(sql, query) {
  const pagina=Math.max(1,Math.min(100000,Number.parseInt(query.pagina,10)||1)), limite=100;

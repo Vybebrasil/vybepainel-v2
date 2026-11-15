@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 
 const ler = (f) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
 const captJs = ler('vybe-captacoes.js'), mundoJs = ler('vybe-mundo.js'), css = ler('vybe-mundo.css');
@@ -14,7 +15,7 @@ const bloco = css.slice(css.indexOf('/* ===== Frente operação do redesign'));
 function contextoCaptacoes(hoje = '2026-11-10') {
   const doc = { addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], getElementById: () => null, createElement: () => ({}) };
   const ctx = { document: doc, console, Intl, Date, Math, Number, String, Set, Map, Array, Object, JSON, RegExp, setTimeout: () => 0,
-    hojeDeVerdade: () => hoje, safeText: (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`),
+    hojeDeVerdade: () => hoje, jsArg: JS_ARG, safeText: (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`),
     cliCor: (n) => `<span class="cli">${n}</span>`, vbEstadoHtml: () => '', showToast() {}, CSS: { escape: (s) => s } };
   ctx.window = ctx; ctx.globalThis = ctx; ctx.addEventListener = () => {}; ctx.matchMedia = () => ({ matches: false });
   vm.createContext(ctx);

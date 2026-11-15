@@ -119,7 +119,7 @@ function podeEditarGrupos() {
 
 function botaoDoMenuDoGrupo(quadro, grupoId, nome) {
   if (!podeEditarGrupos() || !gruposDoQuadroNaTela(quadro).some((g) => g.grupo_id === grupoId)) return '';
-  return `<button type="button" class="grupo-menu-btn" onclick="abrirMenuDoGrupo(event,'${quadro}','${safeText(grupoId)}')"
+  return `<button type="button" class="grupo-menu-btn" onclick="abrirMenuDoGrupo(event,'${quadro}','${jsArg(grupoId)}')"
     aria-label="Opções do grupo ${safeText(nome)}" aria-haspopup="menu" title="Renomear, cor, ordem">
     <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="currentColor"><circle cx="3.5" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="12.5" cy="8" r="1.4"/></svg></button>`;
 }

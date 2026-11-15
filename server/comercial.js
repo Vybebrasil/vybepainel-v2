@@ -162,9 +162,19 @@ async function lerFunil(sql, r, query = {}, hoje = hojeNaBahia()) {
   const etapas = await etapasCrm(sql), fases = calc.montarFases(etapas);
   let lista = [];
   try { lista = await pacotes(sql, r.dono); } catch (e) { if (e.code !== '42P01') throw e; }
-  return { etapas, fases, motivos: calc.MOTIVOS_PERDA, oportunidades: linhas, resumo: calc.resumoFunil(linhas, fases),
-    produtos: calc.produtoCampeao(linhas, lista), pacotes: lista.filter((p) => p.ativo).map(({ id, nome, tipo, preco, carga }) => ({ id, nome, tipo, preco, carga })),
-    valor_disponivel: comValor, capacidade: await capacidadeOuNada(sql), mes: await mesComercial(sql, r, linhas, query, hoje) };
+  const resumo = calc.resumoFunil(linhas, fases), produtos = calc.produtoCampeao(linhas, lista);
+  const mes = await mesComercial(sql, r, linhas, query, hoje);
+  // Quem não é dono vê o funil sem o valor de cada negociação, sem o total em negociação e sem receita e ticket médio
+  // (auditoria 15/11/2026: a rota mandava tudo e a tela mostrava; o dinheiro é só dos quatro donos).
+  return { etapas, fases, motivos: calc.MOTIVOS_PERDA, oportunidades: r.dono ? linhas : linhas.map(semValorNegocio),
+    resumo: r.dono ? resumo : { ...resumo, em_negociacao: { quantidade: resumo.em_negociacao.quantidade } },
+    produtos: r.dono ? produtos : semReceita(produtos), pacotes: lista.filter((p) => p.ativo).map(({ id, nome, tipo, preco, carga }) => ({ id, nome, tipo, preco, carga })),
+    valor_disponivel: comValor, capacidade: await capacidadeOuNada(sql), mes };
+}
+export const semValorNegocio = (o) => { const { valor_mensal, valor_avulso, ...resto } = o || {}; return resto; };
+export function semReceita(p) {
+  const { ticket_medio_mensal, ticket_medio_avulso, ...resto } = p || {};
+  return { ...resto, campeao: resto.campeao ? (({ receita, ...c }) => c)(resto.campeao) : null };
 }
 // Quando o orçamento virou aprovado (status 'aceito'): o registrado desde 14/11/2026 (aprovado_em) e, nos de antes, o
 // atualizado_em de quem está aceito (o orçamento só muda pelo status, então é a hora em que ele foi aceito).
@@ -306,7 +316,7 @@ export async function lerComercial(sql, pessoa, query = {}, { hoje = hojeNaBahia
   if (ABAS_AMPLO.has(aba) && !ehAmploPessoa(pessoa)) falhar('Só os donos e a coordenação veem os fornecedores.', 403);
   if (ABAS_FINANCEIRO.has(aba) && !ehDonoPessoa(pessoa)) falhar('O financeiro é só dos donos.', 403);
   const dados = aba === 'funil' ? await lerFunil(sql, r, query, hoje)
-    : aba === 'pacotes' ? { pacotes: await pacotes(sql, r.dono), capacidade: await capacidade(sql), produtos: calc.produtoCampeao((await oportunidadesDoFunil(sql).catch((e) => { if (e.code === '42P01') return { linhas: [] }; throw e; })).linhas, await pacotes(sql, false)) }
+    : aba === 'pacotes' ? { pacotes: await pacotes(sql, r.dono), capacidade: await capacidade(sql), produtos: (r.dono ? (x) => x : semReceita)(calc.produtoCampeao((await oportunidadesDoFunil(sql).catch((e) => { if (e.code === '42P01') return { linhas: [] }; throw e; })).linhas, await pacotes(sql, false))) }
     : aba === 'orcamentos' ? await lerOrcamentos(sql, query)
     : aba === 'financas' ? await lerFinancas(sql, hoje, pessoa)
     : aba === 'recebimentos' ? await lerRecebimentos(sql, query, hoje, pessoa)

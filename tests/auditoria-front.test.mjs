@@ -29,7 +29,10 @@ test('aviso curto no computador: a janela aberta conta inteira; sem vaga vira p�
 test('dica grande do tour: cobrindo controle, procura vaga como a compacta e, sem vaga, espera escondida', () => {
   const fn = tutorial.slice(tutorial.indexOf('function posicionarDica'), tutorial.indexOf('// ---------- dica compacta'));
   assert.match(fn, /if \(!embaixo\.length \|\| !soOsDaFrente\(embaixo\)\.length\) return;/);
-  assert.match(fn, /const posto = colocarCompacta\(d\.balao, c, alvo, evitar\);\s*d\.balao\.hidden = posto === 'espera';/);
+  assert.match(fn, /const posto = colocarCompacta\(d\.balao, c, alvo, evitar\);\s*esconderDica\(d, posto === 'espera'\);/);
+  // Esperando escondida, confere a cada 2 s (5 voltas do relógio de 400 ms) e só escreve hidden quando muda (auditoria 15/11/2026).
+  assert.match(tutorial, /if \(dicaAtual && \(agora === true \|\| !dicaAtual\.balao\.hidden \|\| tique % 5 === 0\)\) posicionarDica\(\);/);
+  assert.match(tutorial, /function esconderDica\(d, sim\) \{ if \(d\.balao\.hidden !== sim\) d\.balao\.hidden = sim;/);
 });
 
 test('espiar: Esc na janela em captura (antes do Esc das telas) e o foco volta ao número', () => {

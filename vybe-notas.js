@@ -646,7 +646,7 @@ function pintarNotaGrande(janela) {
     ? findOperationalItem(NOTA_ABERTA.item_ref) : null;
   const sobre = NOTA_ABERTA.item_ref
     ? `<div class="notas-sobre"><span>sobre</span><b>${safeText(peca?.nome || NOTA_ABERTA.item_ref)}</b>
-        <button type="button" onclick="openItemWorkspace('${safeText(NOTA_ABERTA.item_ref)}')">Abrir a peça</button>
+        <button type="button" onclick="openItemWorkspace('${jsArg(NOTA_ABERTA.item_ref)}')">Abrir a peça</button>
         <button type="button" onclick="mandarNotaParaPeca()">Mandar para a peça</button>
         <button type="button" onclick="ligarNotaAPeca('')" title="Desligar desta peça">×</button></div>`
     : `<div class="notas-sobre"><span>${safeText(NOTA_ABERTA.caderno || CADERNO_PADRAO_TELA)}</span>
@@ -894,7 +894,7 @@ function notasResultadosHtml() {
   const achados = notasPecasDaBusca();
   if (!achados.length) return '<p class="nota-busca-dica">Nenhuma demanda com essas palavras.</p>';
   return achados.map((d) => `<button type="button" class="nota-busca-item"
-      onclick="ligarNotaAPeca('${safeText(String(d.id))}')">
+      onclick="ligarNotaAPeca('${jsArg(String(d.id))}')">
       <b>${safeText(d.nome || 'Sem título')}</b>
       <small>${safeText(d.cliente || 'Sem cliente')}${d.status ? ` ${typeof statusCor === 'function' ? statusCor(d) : safeText(d.status)}` : ''}</small>
     </button>`).join('');

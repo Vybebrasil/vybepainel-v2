@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {resolverBriefing} from '../server/briefing.js';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 const nota = {corpo:`<p>BRIEFING</p><p>${'Objetivo e roteiro da campanha. '.repeat(8)}</p>`,criado_em:'2026-08-28',autor:'Paulo'};
 test('briefing histórico e campo explícito têm uma leitura; remoção não ressuscita nota',()=>{
  assert.equal(resolverBriefing({historico_briefing:[nota]}).origem,'histórico');
@@ -13,7 +14,7 @@ test('briefing histórico e campo explícito têm uma leitura; remoção não re
 });
 test('indicador distingue briefing presente, ausente e ainda desconhecido',()=>{
  const source=fs.readFileSync('vybe-briefing.js','utf8');
- const c=vm.createContext({safeText:String,ICONE_LINHA:{briefing:'icone'}});
+ const c=vm.createContext({jsArg: JS_ARG, safeText:String,ICONE_LINHA:{briefing:'icone'}});
  vm.runInContext(source.slice(source.indexOf('function briefingDaPeca'),source.indexOf('// Titulo de secao')),c);
  assert.match(c.botaoDeBriefingHtml({id:'1',tem_briefing:false}),/Sem briefing/);
  assert.match(c.botaoDeBriefingHtml({id:'1',tem_briefing:true},true),/Ver briefing/);

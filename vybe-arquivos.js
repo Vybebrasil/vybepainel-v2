@@ -69,7 +69,7 @@ function workspaceAssetCard(asset) {
     ? `<span class="workspace-asset-locked">${safeText(asset.source || 'ARQUIVO')}</span>`
     : (asset.no_drive || asset.column_asset_count === 1)
       ? `<button type="button" class="workspace-asset-remove"
-          onclick="event.preventDefault();event.stopPropagation();requestWorkspaceFileRemoval('${safeText(asset.id)}')">Remover</button>`
+          onclick="event.preventDefault();event.stopPropagation();requestWorkspaceFileRemoval('${jsArg(asset.id)}')">Remover</button>`
       : `<span class="workspace-asset-locked" title="Este arquivo ainda mora na coluna do Monday, que só permite limpar todos de uma vez.">Arquivo de coluna</span>`;
     const openAction = isImage
       ? `<a class="workspace-asset-open" href="${safeText(href)}" onclick="event.preventDefault(); event.stopPropagation(); openVybeLightbox(${safeText(JSON.stringify(href))}, ${safeText(JSON.stringify(String(asset.name || '')))})">ABRIR ↗</a>`

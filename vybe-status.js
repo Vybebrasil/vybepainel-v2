@@ -459,7 +459,7 @@ function statusContextResponsibleOptions(item){
     const naRegra=eligible.some(c=>String(c.id)===id);
     const papel=current.has(id)?'Está com a peça':naRegra?(rule?.label||'Equipe'):(user.role||'Equipe');
     return `<button type="button" class="dono-ficha ${current.has(id)?'marcada':''}" data-dono="${safeText(id)}" aria-pressed="${current.has(id)}"
-      onclick="escolherResponsavelDoStatus('${safeText(id)}')" title="${safeText(user.name)} · ${safeText(papel)}">
+      onclick="escolherResponsavelDoStatus('${jsArg(id)}')" title="${safeText(user.name)} · ${safeText(papel)}">
       ${ownerAvatarHtml(user)}<span><b>${safeText(user.name)}</b><small>${safeText(papel)}</small></span></button>`;
   }).join('');
   // O dono atual entra como PADRAO, nao como escolha: o historico chega logo

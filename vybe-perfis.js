@@ -945,7 +945,7 @@ function daPlanningDonosHtml(item) {
   const equipe = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
   const ids = (typeof assignedIds === 'function' ? assignedIds(item) : []).map(String);
   const donos = ids.map((id) => equipe.find((u) => String(u.id) === id)).filter(Boolean);
-  const abrir = `onclick="openOwnerEditor(event,'${safeText(String(item.id))}')"`;
+  const abrir = `onclick="openOwnerEditor(event,'${jsArg(String(item.id))}')"`;
   if (!donos.length) {
     return `<button type="button" class="owner-editor-trigger da-planning-donos" ${abrir}
       title="Sem responsável — clique para escolher"
@@ -975,7 +975,7 @@ function daPlanningPrioridadeTag(item) {
 }
 
 function daPlanningArquivoVazioHtml(itemId) {
-  return `<button type="button" class="da-planning-file-vazio" onclick="daPlanningEscolherArquivo('${safeText(String(itemId))}')"
+  return `<button type="button" class="da-planning-file-vazio" onclick="daPlanningEscolherArquivo('${jsArg(String(itemId))}')"
     title="Sem entrega anexada — clique para enviar. O arquivo vai para a pasta do cliente no Drive da Vybe.">+</button>`;
 }
 
@@ -985,12 +985,12 @@ function daPlanningArquivoHtml(itemId, info) {
   const nome = safeText(String(info.nome || 'arquivo'));
   if (info.thumb) {
     return `<button type="button" class="da-planning-file-tem" title="${nome}${Number(info.total) > 1 ? ` · ${info.total} arquivos` : ''} · abrir no Drive"
-      onclick="window.open('${safeText(String(info.abrir || info.thumb))}','_blank','noopener')"><img src="${safeText(String(info.thumb))}" alt="" loading="lazy">${mais}</button>`;
+      onclick="window.open('${jsArg(String(info.abrir || info.thumb))}','_blank','noopener')"><img src="${safeText(String(info.thumb))}" alt="" loading="lazy">${mais}</button>`;
   }
   // Arquivo que ainda mora no Monday não tem miniatura estável: a tela diz que
   // existe e leva para a peça, em vez de mostrar uma imagem quebrada.
   return `<button type="button" class="da-planning-file-tem sem-previa" title="${nome} — ainda no Monday, sem prévia. Abrir a peça."
-    onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${safeText(String(itemId))}')">▣${mais}</button>`;
+    onclick="closeDaIndividualPlanningDesk();openItemWorkspace('${jsArg(String(itemId))}')">▣${mais}</button>`;
 }
 
 // O que ja foi perguntado ao servidor fica guardado aqui. Sem isso, cada clique
@@ -1136,7 +1136,7 @@ function daPlanningCabecalho(rotulo, chave, userId) {
   const seta = ativa ? (DA_PLANNING_SORT_DESC ? icones.desce : icones.sobe) : icones.ordenar;
   const comoEsta = ativa ? (DA_PLANNING_SORT_DESC ? ' — hoje: maior para menor' : ' — hoje: menor para maior') : '';
   return `<span><button type="button" class="mesa-th ${ativa ? 'ordenando' : ''}"
-    onclick="daPlanningSetSort('${chave}','${safeText(String(userId || ''))}')"
+    onclick="daPlanningSetSort('${chave}','${jsArg(String(userId || ''))}')"
     title="Ordenar por ${safeText(rotulo)}${comoEsta}">${safeText(rotulo)}<i>${seta || ''}</i></button></span>`;
 }
 function daPlanningControlsHtml(userId,visible,total){
@@ -1205,7 +1205,7 @@ function daPlanningStatusEditavel(item) {
     ? `<span class="da-risk-mini ${escalada.level}">${safeText(escalada.label || '')}</span>`
     : (risco?.mini || '');
   return `<span class="da-status-tags"><button type="button" class="grupo-pill-btn"
-    onclick="openStatusEditor(event,'${safeText(String(item.id))}')"
+    onclick="openStatusEditor(event,'${jsArg(String(item.id))}')"
     title="Trocar o status de ${safeText(item.nome || '')}">${
       pillHtml(item.status, item.status_color, item.status_border)}</button>${alerta}</span>`;
 }

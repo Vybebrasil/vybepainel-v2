@@ -257,15 +257,15 @@ const STATUS_JA_ENTREGUE = new Set(['para aprovação','para aprovacao','em apro
 function botaoDePreviaNaLinha(item, classe = 'linha-previa') {
   if (!item || !jaTemMaterial(item)) return '';
   return `<button type="button" class="${classe}" data-previa-id="${safeText(String(item.id))}"
-    onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(item.id))}',this)"
+    onclick="event.stopPropagation();abrirPreviaDaEntrega('${jsArg(String(item.id))}',this)"
     title="Ver o material entregue" aria-label="Ver prévia de ${safeText(item.nome || 'atividade')}">${ICONE_LINHA.previa}</button>`;
 }
 
 // Entregar (enviar o arquivo ou colar o link) ou, já entregue, ver a prévia. Minhas tarefas e o Hoje usam o mesmo botão.
 function botaoDeEntregaHtml(d) {
   return jaTemMaterial(d)
-      ? `<button type="button" class="focus-brief-btn previa" data-previa-id="${safeText(String(d.id))}" onclick="event.stopPropagation();abrirPreviaDaEntrega('${safeText(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">${ICONE_LINHA.previa}<span>Prévia</span></button>`
-      : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${safeText(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">${ICONE_LINHA.entregar}<span>Entregar</span></button>`;
+      ? `<button type="button" class="focus-brief-btn previa" data-previa-id="${safeText(String(d.id))}" onclick="event.stopPropagation();abrirPreviaDaEntrega('${jsArg(String(d.id))}',this)" title="Ver o material entregue · dá para trocar por dentro" aria-label="Ver prévia">${ICONE_LINHA.previa}<span>Prévia</span></button>`
+      : `<button type="button" class="focus-brief-btn entregar" onclick="abrirEntregaRapida('${jsArg(String(d.id))}',event)" title="Enviar o arquivo pronto ou colar o link do material" aria-label="Entregar">${ICONE_LINHA.entregar}<span>Entregar</span></button>`;
 }
 
 function jaTemMaterial(item) {
@@ -294,10 +294,10 @@ function abrirEntregaRapida(itemId, event) {
   const menu = document.createElement('div');
   menu.id = 'entrega-rapida'; menu.className = 'status-editor';
   menu.innerHTML = `<div class="status-editor-head">Entregar</div>
-    <button type="button" class="status-editor-option" onclick="escolherArquivoDaEntrega('${safeText(String(itemId))}')">
+    <button type="button" class="status-editor-option" onclick="escolherArquivoDaEntrega('${jsArg(String(itemId))}')">
       <span class="status-editor-dot" style="background:#3de8a2;color:#3de8a2"></span>
       <span>Enviar arquivo <small>card, arte ou PDF</small></span></button>
-    <button type="button" class="status-editor-option" onclick="colarLinkDaEntrega('${safeText(String(itemId))}')">
+    <button type="button" class="status-editor-option" onclick="colarLinkDaEntrega('${jsArg(String(itemId))}')">
       <span class="status-editor-dot" style="background:#579bfc;color:#579bfc"></span>
       <span>Colar link <small>vídeo, ou arquivo grande demais</small></span></button>`;
   document.body.append(fundo, menu);

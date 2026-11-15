@@ -392,7 +392,7 @@ function renderClientMasterDetail(cli) {
   const nome = record.name;
   const meta = record.meta || {};
   const f = cadastroDoCliente(nome) || {};
-  const aspas = String(nome).replace(/'/g, "\\'");
+  const aspas = jsArg(nome); // nome em argumento de onclick (auditoria 15/11/2026)
   const id = idDoCliente(nome);
   const podeMexer = Boolean(id) && podeEditorClientesNaFicha();
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
@@ -475,7 +475,7 @@ function renderClientMasterDetail(cli) {
   ((plj && plj.lista) || []).filter((p) => ['ajustes', 'revisar'].includes(p.estado)).forEach((p) => pede.push(
     `<div class="v2f-lin"><span class="v2f-pill a">${p.estado === 'ajustes' ? 'Ajustes pedidos' : 'Para revisar'}</span>
       <p><b>Planejamento de ${safeText(mesPlj(p).toLowerCase())}</b> · ${safeText(String(p.titulo || '').replace(/^planejamento de\s*/i, ''))}, versão ${safeText(p.versao)}</p>
-      <button type="button" class="v2f-btn s" aria-label="Abrir o planejamento" onclick="abrirPlanejamento('${safeText(p.id)}')">Abrir</button></div>`));
+      <button type="button" class="v2f-btn s" aria-label="Abrir o planejamento" onclick="abrirPlanejamento('${jsArg(p.id)}')">Abrir</button></div>`));
   if (id && !reuniao) pede.push(`<div class="v2f-lin"><span class="v2f-pill a">Sem data</span><p><b>Próxima reunião</b> ainda não marcada</p>${podeMexer
     ? `<button type="button" class="v2f-btn s" onclick="editarCampoDaFicha({ currentTarget: this.closest('.v2f-lin') }, '${aspas}', 'proxima_reuniao')">Marcar reunião</button>` : ''}</div>`);
   const cartaoPede = `<section class="v2f-card v2f-pede"><div class="v2f-card-topo"><h3>Pede ação</h3><span class="v2f-sub">${pede.length ? `${plural(pede.length, 'coisa', 'coisas')}, na ordem` : 'nada agora'}</span></div>
@@ -485,7 +485,7 @@ function renderClientMasterDetail(cli) {
   const proximas = abertos.filter((x) => !x.quando || x.quando >= hoje).sort((a, b) => (a.quando || '9999').localeCompare(b.quando || '9999'));
   const NA_FRENTE = 3;
   const olho = (d) => (typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d, 'v2f-olho') : '');
-  const entrega = (x) => `<div class="v2f-lin v2f-entrega" role="button" tabindex="0" title="Abrir ${safeText(x.d.nome || '')}" onclick="if(typeof openItemWorkspace==='function')openItemWorkspace('${safeText(String(x.d.id))}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();this.click()}">
+  const entrega = (x) => `<div class="v2f-lin v2f-entrega" role="button" tabindex="0" title="Abrir ${safeText(x.d.nome || '')}" onclick="if(typeof openItemWorkspace==='function')openItemWorkspace('${jsArg(String(x.d.id))}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();this.click()}">
       <span class="v2f-pill ${tomDoStatusV2(x.d.status)}">${safeText(x.d.status || 'Sem status')}</span><p><b>${safeText(String(x.d.nome || '').replace(/\s+-\s+/, ' · '))}</b></p>${olho(x.d)}
       <span class="v2f-sub">${quandoVeiculaV2(x.quando)}</span>${x.d.responsavel ? `<span class="v2f-av" title="${safeText(x.d.responsavel)}" aria-hidden="true">${safeText(iniciaisV2(x.d.responsavel))}</span>` : ''}</div>`;
   const restoEntregas = abertos.length - Math.min(NA_FRENTE, proximas.length);
@@ -521,7 +521,7 @@ function renderClientMasterDetail(cli) {
   const guardar = (campo, rotulo) => (podeMexer ? `<button type="button" class="v2f-btn s" onclick="editarAcessoDaFicha(event, '${aspas}', '${campo}')">${rotulo}</button>` : '');
   const temDoc = Boolean(meta.acessoId && meta.doc);
   const docBotao = meta.acessoId || podeMexer
-    ? `<button type="button" class="v2f-btn s" onclick="abrirDocumentoDoCliente('${safeText(String(meta.acessoId || ''))}', '${aspas}', '${safeText(id)}')">${temDoc ? 'Abrir' : 'Escrever'}</button>` : '';
+    ? `<button type="button" class="v2f-btn s" onclick="abrirDocumentoDoCliente('${jsArg(String(meta.acessoId || ''))}', '${aspas}', '${jsArg(id)}')">${temDoc ? 'Abrir' : 'Escrever'}</button>` : '';
   const linhaAcesso = (rotulo, valorHtml, chamada, acao) => `<div class="clf-acesso client-master-detail-field">
       <small>${rotulo}</small><b>${valorHtml}</b>${podeMexer && chamada ? `<button type="button" class="v2f-link" onclick="${chamada}">${acao}</button>` : ''}</div>`;
   const rotuloLink = ehManus || meta.temManus ? 'Manus' : 'Link do projeto';
@@ -544,8 +544,8 @@ function renderClientMasterDetail(cli) {
 
   // ── Planejamentos: uma ficha por mês e "Começar um planejamento". ──
   const fichasPlj = !id ? '' : !plj ? '<span class="v2f-sub">buscando…</span>'
-    : `${plj.lista.map((p) => `<button type="button" class="v2f-chip" title="${safeText((typeof PLJ_ESTADOS !== 'undefined' && PLJ_ESTADOS[p.estado]?.rotulo) || p.estado || '')}" onclick="abrirPlanejamento('${safeText(p.id)}')">${safeText(mesPlj(p))} · v${safeText(p.versao)}</button>`).join('')}${
-      plj.podeCriar && typeof novoPlanejamento === 'function' ? `<button type="button" class="v2f-chip" onclick="novoPlanejamento('${safeText(id)}', '${aspas}')">Começar um planejamento</button>` : ''}${
+    : `${plj.lista.map((p) => `<button type="button" class="v2f-chip" title="${safeText((typeof PLJ_ESTADOS !== 'undefined' && PLJ_ESTADOS[p.estado]?.rotulo) || p.estado || '')}" onclick="abrirPlanejamento('${jsArg(p.id)}')">${safeText(mesPlj(p))} · v${safeText(p.versao)}</button>`).join('')}${
+      plj.podeCriar && typeof novoPlanejamento === 'function' ? `<button type="button" class="v2f-chip" onclick="novoPlanejamento('${jsArg(id)}', '${aspas}')">Começar um planejamento</button>` : ''}${
       !plj.lista.length && !plj.podeCriar ? `<span class="v2f-sub">${plj.erro ? safeText(plj.erro) : 'nenhum ainda'}</span>` : ''}`;
   const planejamentos = id ? `<div class="v2f-plj"><span class="v2f-sub">Planejamentos:</span>${fichasPlj}</div>` : '';
 
@@ -1215,7 +1215,7 @@ function pintarHeadsDoCliente() {
     const doTime = (typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS)
       .find((u) => String(u.id) === String(p.monday_user_id)) || pessoaPeloNome(p.nome);
     return `<button type="button" class="dono-pessoa ${escolhida ? 'selected' : ''}" aria-pressed="${escolhida}"
-      onclick="escolherHeadDoCliente('${safeText(String(p.id))}')"
+      onclick="escolherHeadDoCliente('${jsArg(String(p.id))}')"
       title="${safeText(p.nome)}">${ownerAvatarHtml(doTime)}<span>${safeText(p.nome)}</span><span class="owner-editor-person-check" aria-hidden="true">${escolhida ? '✓' : ''}</span></button>`;
   }).join('');
 }
@@ -1243,7 +1243,7 @@ function situacaoDoClienteHtml(nome, estado) {
   const rotulo = estado === 'inativos' ? 'Inativo' : estado === 'sem' ? 'Sem cadastro' : 'Ativo';
   const classe = estado === 'inativos' ? 'inativo' : estado === 'sem' ? 'nenhum' : 'ativo';
   if (!podeEditarClientes()) return `<span class="cli-situacao ${classe}">${rotulo}</span>`;
-  const aspas = String(nome).replace(/'/g, "\\'");
+  const aspas = jsArg(nome); // nome em argumento de onclick (auditoria 15/11/2026)
   // "Sem cadastro" nao era clicavel, entao o clique subia para a linha e abria o
   // cliente — justamente quando a pessoa queria era torna-lo ativo. Agora a
   // etiqueta faz o que promete: cadastra e ja deixa ativo.
@@ -1315,11 +1315,11 @@ function pintarSegmentos() {
     ? '<div class="auto-carregando">Nenhuma etiqueta ainda. Crie a primeira abaixo.</div>'
     : lista.map(({ rotulo, quantos }) => `<div class="cli-tag ${rotulo.toLowerCase() === atual ? 'ativa' : ''}">
         <button type="button" class="cli-tag-nome" title="Aplicar em ${safeText(SEGMENTO_DO_CLIENTE.nome)}"
-          onclick="aplicarSegmento('${safeText(rotulo.replace(/'/g, "\\'"))}')">${safeText(rotulo)}<small>${quantos}</small></button>
+          onclick="aplicarSegmento('${jsArg(rotulo)}')">${safeText(rotulo)}<small>${quantos}</small></button>
         <button type="button" class="cli-tag-acao" title="Renomear em todos os clientes"
-          onclick="renomearSegmento('${safeText(rotulo.replace(/'/g, "\\'"))}')">renomear</button>
+          onclick="renomearSegmento('${jsArg(rotulo)}')">renomear</button>
         <button type="button" class="cli-tag-acao apagar" title="Apagar de todos os clientes"
-          onclick="apagarSegmento('${safeText(rotulo.replace(/'/g, "\\'"))}')">apagar</button>
+          onclick="apagarSegmento('${jsArg(rotulo)}')">apagar</button>
       </div>`).join('');
 }
 async function aplicarSegmento(rotulo) {
@@ -1688,7 +1688,7 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
     return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
-  const aspas = String(nome).replace(/'/g, "\\'");
+  const aspas = jsArg(nome); // nome em argumento de onclick (auditoria 15/11/2026)
   const idNoCadastro = semCadastro ? '' : idDoCliente(nome);
   const podeMexer = !semCadastro && podeEditarClientes();
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
@@ -1719,7 +1719,7 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
     mostrar.drive ? `<span class="v2f-extra" onclick="event.stopPropagation()">${urlDrive ? `<a class="v2f-link" href="${safeText(urlDrive)}" target="_blank" rel="noopener" title="${safeText(urlDrive)}">Abrir</a>`
       : podeMexer ? `<button type="button" class="v2f-link" onclick="editarAcessoDoCliente(event, '${aspas}', 'pasta_drive')">Colar o link</button>` : vazio}</span>` : '',
     mostrar.documento ? `<span class="v2f-extra" onclick="event.stopPropagation()">${ligado.acessoId || podeMexer
-      ? `<button type="button" class="v2f-link" onclick="abrirDocumentoDoCliente('${safeText(String(ligado.acessoId || ''))}', '${aspas}', '${safeText(idNoCadastro)}')">${ligado.acessoId && ligado.doc ? 'Abrir' : 'Escrever'}</button>` : vazio}</span>` : '',
+      ? `<button type="button" class="v2f-link" onclick="abrirDocumentoDoCliente('${jsArg(String(ligado.acessoId || ''))}', '${aspas}', '${jsArg(idNoCadastro)}')">${ligado.acessoId && ligado.doc ? 'Abrir' : 'Escrever'}</button>` : vazio}</span>` : '',
   ].join('');
 
   const caixa = mostrar.marcar && podeEditarClientes()
@@ -2212,7 +2212,7 @@ function abrirFichaDeCliente(nome) {
     </div>
     <div class="workflow-actions cli-acoes-modal">
       <button type="button" class="workflow-secondary quieto"
-        onclick="alternarAtivoDoCliente('${safeText(id)}', ${ativoAgora})">${ativoAgora ? 'Tirar do painel' : 'Voltar ao painel'}</button>
+        onclick="alternarAtivoDoCliente('${jsArg(id)}', ${ativoAgora})">${ativoAgora ? 'Tirar do painel' : 'Voltar ao painel'}</button>
       <span class="cli-espaco"></span>
       <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
       <button type="button" class="workflow-primary" onclick="salvarFichaDeCliente()">Salvar cadastro →</button>
@@ -2289,7 +2289,7 @@ function renderClientesLista(clientes) {
     const alertCls = atrasadas > 0 ? 'alert-low' : nProd > 0 ? 'alert-ok' : 'alert-empty';
     // Ficha em cartão (Paulo, 08/11/2026: "tem painel que ainda tá uma merda"): o nome na cor da carteira e os números
     // com o que são (antes: nome cru e dois números soltos).
-    return `<div class="client-card cli-ficha-card ${alertCls}" role="button" tabindex="0" onclick="abrirClienteDetalhe('${cli.replace(/'/g,"\\'")}')" onkeydown="if(event.key==='Enter')this.click()">
+    return `<div class="client-card cli-ficha-card ${alertCls}" role="button" tabindex="0" onclick="abrirClienteDetalhe('${jsArg(cli)}')" onkeydown="if(event.key==='Enter')this.click()">
       <div class="client-header">
         <div class="client-name">${typeof cliCor === 'function' ? cliCor(cli) : safeText(cli)}</div>
       </div>

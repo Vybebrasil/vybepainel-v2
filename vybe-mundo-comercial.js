@@ -512,7 +512,9 @@
   // laranja), as colunas das fases abertas que têm oportunidade (duas por coluna, o resto em "mostrar") e o cartão que
   // abre no lugar com o próximo passo. Ganho e Perdido abrem a lista ao clicar na etapa.
   function abaFunil(d) {
-    const p = d.pode || {}, cap = d.capacidade, v = st.v2, hoje = d.hoje, val = Boolean(d.valor_disponivel), m = d.mes;
+    const p = d.pode || {}, cap = d.capacidade, v = st.v2, hoje = d.hoje, m = d.mes;
+    // ligado: a migração do valor existe; val: e quem vê é dono (o servidor já tira os valores de quem não é, auditoria 15/11/2026).
+    const ligado = Boolean(d.valor_disponivel), val = ligado && p.ver_dinheiro !== false;
     // Sem resposta do funil (banco sem as tabelas, demonstração), as fases padrão zeradas: o funil aparece como funil.
     const padrao = (() => { try { return { fases: C().FASES, resumo: C().resumoFunil([]) }; } catch { return { fases: [], resumo: { fases: [], motivos_perda: [] } }; } })();
     const fases = d.fases.length ? d.fases : padrao.fases;
@@ -609,12 +611,12 @@
       { titulo: 'Taxa de ganho', valor: r.taxa_ganho == null ? '0%' : pc(r.taxa_ganho), tom: r.taxa_ganho == null ? 'quieto' : '', sub: encerradas ? `de ${plural(encerradas, 'negócio encerrado', 'negócios encerrados')}` : 'sem negócio fechado ainda' },
     ]);
     // Vazio e o que ainda não foi ligado: uma linha, com o técnico só para quem administra.
-    const tecnico = [val ? '' : 'Falta aplicar a migração <code>2026-11-07-comercial.sql</code> no banco.', m && m.config_disponivel === false ? esc(m.aviso_config || 'Falta a migração das metas e do formulário de leads.') : ''].filter(Boolean).join(' ');
+    const tecnico = [ligado ? '' : 'Falta aplicar a migração <code>2026-11-07-comercial.sql</code> no banco.', m && m.config_disponivel === false ? esc(m.aviso_config || 'Falta a migração das metas e do formulário de leads.') : ''].filter(Boolean).join(' ');
     const falta = souAdminAqui() && tecnico ? botao('Para quem administra: o que falta', `data-vc="falta" aria-expanded="${st.verFalta}"`) : '';
     const podeLead = d.pode && 'editar_comercial' in d.pode ? Boolean(d.pode.editar_comercial) : palpiteDono();
-    const linhaVazia = !d.oportunidades.length ? vazioV2(`<b>Nenhuma oportunidade ainda.</b> As ${num(r.fases.length)} etapas ficam em 0.${val ? '' : ' O valor da negociação ainda não foi ligado.'}`, (podeLead ? botao('Cadastrar o primeiro lead', 'data-vc="lead"') : '') + falta)
-      : !val ? vazioV2('<b>O valor da negociação ainda não foi ligado.</b> O funil já funciona; valor e follow-up aparecem quando estiverem ligados.', falta) : '';
-    const campeao = d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos) · ticket médio ${din(d.produtos.ticket_medio_mensal)}/mês${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : '';
+    const linhaVazia = !d.oportunidades.length ? vazioV2(`<b>Nenhuma oportunidade ainda.</b> As ${num(r.fases.length)} etapas ficam em 0.${ligado ? '' : ' O valor da negociação ainda não foi ligado.'}`, (podeLead ? botao('Cadastrar o primeiro lead', 'data-vc="lead"') : '') + falta)
+      : !ligado ? vazioV2('<b>O valor da negociação ainda não foi ligado.</b> O funil já funciona; valor e follow-up aparecem quando estiverem ligados.', falta) : '';
+    const campeao = d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos)${d.produtos.ticket_medio_mensal != null ? ' · ticket médio ' + din(d.produtos.ticket_medio_mensal) + '/mês' : ''}${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : '';
     if (ehD3()) return funilD3({ p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, encerradas, meta, editaMeta, linhaVazia, falta, tecnico, campeao, podeLead, donoSel, faseDe, todas: d.oportunidades });
     return `${falaHtml(frase, paradas.length ? botao(paradas.length === 1 ? 'Ver a proposta' : `Ver as ${num(paradas.length)}`, `data-v2="paradas" data-id="${esc(paradas[0].id)}"`) : '')}
       ${numeros}
@@ -944,8 +946,8 @@
           : acaoD3(d.pacotes.length ? `${plural(ativos.length, 'pacote ativo', 'pacotes ativos')} na esteira.` : 'Nenhum pacote cadastrado ainda.');
       const numeros = numerosD3([
         { rotulo: 'Produto campeão', valor: camp ? camp.nome : 'Sem campeão', barra: camp && ganhos ? (camp.ganhos / ganhos) * 100 : null, sub: camp ? `${num(camp.ganhos)} de ${plural(ganhos, 'ganho', 'ganhos')}` : 'nenhum ganho' },
-        { rotulo: 'Ticket mensal', valor: pr.ticket_medio_mensal != null ? milhar(pr.ticket_medio_mensal) : 'R$ 0', sub: pr.ticket_medio_mensal != null ? 'média dos ganhos' : 'sem ganho mensal' },
-        { rotulo: 'Ticket avulso', valor: pr.ticket_medio_avulso != null ? milhar(pr.ticket_medio_avulso) : 'R$ 0', sub: pr.ticket_medio_avulso != null ? 'média dos ganhos' : 'sem ganho avulso' },
+        ...(veDinheiro() ? [{ rotulo: 'Ticket mensal', valor: pr.ticket_medio_mensal != null ? milhar(pr.ticket_medio_mensal) : 'R$ 0', sub: pr.ticket_medio_mensal != null ? 'média dos ganhos' : 'sem ganho mensal' },
+        { rotulo: 'Ticket avulso', valor: pr.ticket_medio_avulso != null ? milhar(pr.ticket_medio_avulso) : 'R$ 0', sub: pr.ticket_medio_avulso != null ? 'média dos ganhos' : 'sem ganho avulso' }] : []),
         { rotulo: 'Pacotes ativos', valor: num(ativos.length), sub: `${plural(mensais, 'mensal', 'mensais')} · ${plural(ativos.length - mensais, 'avulso', 'avulsos')}` },
       ]);
       const cab = `<div class="d3c-cab d3c-pk${comCusto ? '' : ' sem-margem'}" aria-hidden="true"><span>Pacote</span><span>Tipo</span><span>Horas</span><span class="d3c-pk-vd">Vendidos</span><span class="d3c-pk-p">Preço</span>${comCusto ? '<span>Margem</span>' : ''}</div>`;
@@ -963,8 +965,8 @@
       : d.pacotes.length ? `<b>${plural(ativos.length, 'pacote ativo', 'pacotes ativos')}</b> na esteira. O produto campeão e o ticket médio aparecem com o primeiro negócio ganho.` : 'Nenhum pacote cadastrado ainda. Os orçamentos e a carga do time saem daqui.';
     const numeros = tresHtml([
       { titulo: 'Produto campeão', valor: camp ? camp.nome : 'Sem campeão', tom: camp ? '' : 'quieto', sub: camp ? `${num(camp.ganhos)} de ${plural(ganhos, 'negócio ganho', 'negócios ganhos')}` : 'sem negócio ganho ainda' },
-      { titulo: 'Ticket médio mensal', valor: pr.ticket_medio_mensal != null ? milhar(pr.ticket_medio_mensal) : 'R$ 0', tom: pr.ticket_medio_mensal != null ? '' : 'quieto', sub: pr.ticket_medio_mensal != null ? 'média dos negócios ganhos em pacote mensal' : 'sem negócio mensal ganho' },
-      { titulo: 'Ticket médio avulso', valor: pr.ticket_medio_avulso != null ? milhar(pr.ticket_medio_avulso) : 'R$ 0', tom: pr.ticket_medio_avulso != null ? '' : 'quieto', sub: pr.ticket_medio_avulso != null ? 'média dos negócios ganhos em pacote avulso' : 'sem negócio avulso ganho' },
+      ...(veDinheiro() ? [{ titulo: 'Ticket médio mensal', valor: pr.ticket_medio_mensal != null ? milhar(pr.ticket_medio_mensal) : 'R$ 0', tom: pr.ticket_medio_mensal != null ? '' : 'quieto', sub: pr.ticket_medio_mensal != null ? 'média dos negócios ganhos em pacote mensal' : 'sem negócio mensal ganho' },
+      { titulo: 'Ticket médio avulso', valor: pr.ticket_medio_avulso != null ? milhar(pr.ticket_medio_avulso) : 'R$ 0', tom: pr.ticket_medio_avulso != null ? '' : 'quieto', sub: pr.ticket_medio_avulso != null ? 'média dos negócios ganhos em pacote avulso' : 'sem negócio avulso ganho' }] : []),
     ]);
     const corpo = d.pacotes.length ? `${filtroHtml({ aba: 'pacotes', rotulo: 'Buscar pacote', fichas: ['ativos', 'mensal', 'avulso', 'inativos'].map(ficha), extras: ['todos', ...(comCusto ? ['critica'] : [])].map(ficha) })}
       <div class="v2c-grade pacotes">${pedeHtml(pede, 'pede-pacotes')}

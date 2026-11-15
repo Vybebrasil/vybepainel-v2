@@ -15,7 +15,9 @@
 //    "Orçamento" sozinha.
 //  - Mandar o arquivo, imprimir, ficar pronto ou entregar pede fornecedor. O primeiro envio grava o dia do pedido;
 //    "Entregue" grava o dia da entrega. Atrasada = previsão vencida e ainda não entregue.
-import { ehGestao } from './pessoas.js';
+import { ehDonoPessoa } from './donos.js';
+// Valor da impressão e cotações são dinheiro: só os quatro donos (auditoria 15/11/2026; antes ehGestao, que inclui a coordenação).
+const ehGestao = (pessoa) => ehDonoPessoa(pessoa);
 
 export const ETAPAS = Object.freeze([
   ['arte', 'Arte'], ['orcamento', 'Orçamento'], ['aprovado', 'Aprovado pelo cliente'], ['arquivo_enviado', 'Arquivo enviado'],
@@ -103,7 +105,7 @@ async function ler(sql, pessoa, query = {}) {
       ROUND(AVG(entregue_em - pedido_em) FILTER (WHERE etapa = 'entregue' AND pedido_em IS NOT NULL AND entregue_em IS NOT NULL))::int AS prazo_medio_dias
     FROM vybe_impressoes WHERE fornecedor_id IS NOT NULL GROUP BY fornecedor_id`;
   const ranking = rankingFornecedores(fornecedores, historico);
-  // Cotações: só a gestão vê (têm valor). Quem está antes da gráfica sem fornecedor recebe a sugestão de para quem pedir.
+  // Cotações: só os donos veem (têm valor). Quem está antes da gráfica sem fornecedor recebe a sugestão de para quem pedir.
   const cotacoes = gestao && ids.length ? await sql`SELECT k.id::text, k.impressao_id::text, k.fornecedor_id::text, f.nome AS fornecedor_nome,
       k.valor::float8 AS valor, k.prazo_dias, k.observacao, k.escolhida, k.criado_em
     FROM vybe_impressao_cotacoes k JOIN vybe_comercial_fornecedores f ON f.id = k.fornecedor_id
@@ -265,7 +267,7 @@ async function salvar(sql, pessoa, b) {
 // Cotação: a gestão registra o que cada fornecedor pediu (valor e prazo) e escolhe uma. Escolher grava o fornecedor,
 // o valor e, se ainda não houver, a previsão (hoje + prazo da cotação) na impressão.
 async function salvarCotacao(sql, pessoa, b) {
-  if (!ehGestao(pessoa)) falhar('Cotação é só dos donos e de quem administra.', 403);
+  if (!ehGestao(pessoa)) falhar('Cotação é só dos donos.', 403);
   const impressao = idValido(b.impressao_id, 'Impressão'), fornecedor = idValido(b.fornecedor_id, 'Fornecedor');
   const valor = b.valor == null || b.valor === '' ? NaN : Number(b.valor);
   const prazo = b.prazo_dias == null || b.prazo_dias === '' ? null : Number(b.prazo_dias);
@@ -286,7 +288,7 @@ async function salvarCotacao(sql, pessoa, b) {
   });
 }
 async function escolherCotacao(sql, pessoa, b) {
-  if (!ehGestao(pessoa)) falhar('Cotação é só dos donos e de quem administra.', 403);
+  if (!ehGestao(pessoa)) falhar('Cotação é só dos donos.', 403);
   const id = idValido(b.id, 'Cotação'), hoje = hojeBahia();
   return sql.comTransacao(async (tx) => {
     const [k] = await tx`SELECT k.impressao_id::text AS impressao_id, k.fornecedor_id::text AS fornecedor_id, k.valor, k.prazo_dias, f.nome

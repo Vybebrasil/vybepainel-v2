@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
+import { jsArg as JS_ARG } from './apoio-js-arg.mjs';
 
 const ler = (f) => fs.readFileSync(f, 'utf8');
 
@@ -19,7 +20,7 @@ function carregarClientes() {
     console, Intl, URL, Map, Set, Promise, setTimeout, Math, Number, String, JSON, Date,
     localStorage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)) },
     document: { getElementById: pegar, querySelector: () => null, querySelectorAll: () => [], addEventListener() {} },
-    safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
+    jsArg: JS_ARG, safeText: (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     showToast() {}, DADOS_DEMANDAS: [{}], TEAM_USERS: [{ name: 'Vinícius', photo: 'https://x/v.png' }, { name: 'Ewerton', photo: 'https://x/e.png' }],
     ownerAvatarHtml: (u) => `<img src="${u.photo}" alt="${u.name}">`, firstName: (n) => String(n).split(/\s+/)[0],
     tagClienteHtml: (n) => `<span class="cliente-carteira">${n}</span>`, cliCor: (n) => n,
