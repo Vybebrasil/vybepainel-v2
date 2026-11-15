@@ -6,6 +6,8 @@
 //
 //   GET /api/painel?area=feed_instagram&usuarios=a,b,c   (até 40 por vez; qualquer sessão da equipe)
 
+import { capturasGuardadas, gravarCaptura, servirImagemCapturada, podeGravarCaptura } from './instagram-captura.js';
+
 const VALIDADE_MS = 60 * 60 * 1000;
 const ESPERA_MS = 7000;
 const MAX_POR_VEZ = 40;
@@ -138,11 +140,13 @@ async function buscarNaMeta(usuario, { buscar, env }) {
   }
 }
 
-async function buscarPerfil(usuario, { buscar = fetch, agora = Date.now(), env = process.env } = {}) {
+async function buscarPerfil(usuario, { buscar = fetch, agora = Date.now(), env = process.env, captura = null } = {}) {
   const guardado = CACHE.get(usuario);
-  if (guardado && agora - guardado.quando < VALIDADE_MS) return guardado.dados;
+  // A captura gravada (server/instagram-captura.js) vale mais que a página pública guardada; só a Meta passa na frente.
+  if (guardado && agora - guardado.quando < VALIDADE_MS && (!captura || guardado.dados.fonte === 'meta')) return guardado.dados;
   let dados = metaConfigurada(env) ? await buscarNaMeta(usuario, { buscar, env }) : null;
   if (dados) { CACHE.set(usuario, { quando: agora, dados }); return dados; }
+  if (captura) return captura;
   try {
     const r = await buscar(`https://www.instagram.com/${encodeURIComponent(usuario)}/embed/`, {
       headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36', 'accept-language': 'pt-BR,pt;q=0.9' },
@@ -165,19 +169,44 @@ async function buscarPerfil(usuario, { buscar = fetch, agora = Date.now(), env =
 export async function feedsDoInstagram(lista, opcoes = {}) {
   const usuarios = [...new Set((lista || []).map(usuarioDoInstagram).filter(Boolean))].slice(0, MAX_POR_VEZ);
   const saida = {};
+  let capturas = {};
+  if (opcoes.db) {
+    try { capturas = await capturasGuardadas(opcoes.db, usuarios); } catch (erro) { console.warn('[feed_instagram] captura', erro?.message || erro); }
+  }
   let i = 0;
   await Promise.all(Array.from({ length: Math.min(AO_MESMO_TEMPO, usuarios.length) }, async () => {
-    while (i < usuarios.length) { const u = usuarios[i++]; saida[u] = await buscarPerfil(u, opcoes); }
+    while (i < usuarios.length) { const u = usuarios[i++]; saida[u] = await buscarPerfil(u, { ...opcoes, captura: capturas[u] || null }); }
   }));
   return saida;
 }
 
 export async function areaFeedInstagram(req, res, quem, opcoes = {}) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   if (!quem || (quem.tipo !== 'servico' && !quem.pessoa)) return res.status(401).json({ error: 'Entre no painel para acessar.' });
+  const db = opcoes.db || null;
+  if (req.method === 'POST') {
+    // Gravar a captura do feed (só os donos): o perfil público lido no navegador da Vybe, uma vez.
+    if (!podeGravarCaptura(quem)) return res.status(403).json({ error: 'Só os donos gravam a captura do feed.' });
+    if (!db) return res.status(503).json({ error: 'Banco indisponível agora.' });
+    const b = req.body || {};
+    if (b.acao !== 'captura') return res.status(400).json({ error: 'Ação inválida.' });
+    try {
+      const r = await gravarCaptura(db, b.perfil, { pessoaId: quem.pessoa?.id ?? null });
+      CACHE.delete(r.usuario);
+      return res.status(200).json({ ok: true, ...r });
+    } catch (erro) {
+      if (erro?.publica) return res.status(400).json({ error: erro.message });
+      console.warn('[feed_instagram] gravar captura', erro?.message || erro);
+      return res.status(500).json({ error: 'Não deu para gravar a captura agora.' });
+    }
+  }
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  if (req.query?.captura) {
+    if (!db) return res.status(503).json({ error: 'Banco indisponível agora.' });
+    return servirImagemCapturada(db, String(req.query.captura), String(req.query.img || ''), res);
+  }
   if (req.query?.foto) return repassarFoto(String(req.query.foto), res, opcoes);
   const lista = String(req.query?.usuarios || '').split(',');
-  const perfis = await feedsDoInstagram(lista, opcoes);
+  const perfis = await feedsDoInstagram(lista, { ...opcoes, db });
   res.setHeader?.('Cache-Control', 'private, max-age=300');
   return res.status(200).json({ ok: true, perfis });
 }

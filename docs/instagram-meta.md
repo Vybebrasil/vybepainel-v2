@@ -44,3 +44,15 @@ prefixo `[feed_instagram] meta`, sem o token.
 - Versão da Graph API: `v23.0`. O token vai no cabeçalho `Authorization`, nunca na URL.
 - Cada perfil fica guardado 1 hora na memória do servidor; a Meta limita as chamadas por hora da conta da Vybe.
 - As imagens passam pelo servidor (`area=feed_instagram&foto=`), só do CDN do Instagram.
+
+## Sem a Meta: a captura do feed (15/11/2026)
+
+Enquanto o token da Meta não está na Vercel, o Feed usa a **captura**: o perfil público de cada cliente lido uma vez no
+navegador da Vybe (cabeçalho e os 12 primeiros quadros, reduzidos a 360 px). As imagens ficam no banco
+(`vybe_feed_captura` e `vybe_feed_captura_imagem`, criadas sozinhas na primeira chamada), porque o endereço do CDN do
+Instagram vence. Na tela, o que a Vybe publica depois da data da captura entra na frente dos posts capturados; o que o
+cliente postar por conta própria só aparece numa nova captura (ou com a Meta ligada, que passa na frente da captura).
+
+- Código: `server/instagram-captura.js`; gravar é `POST /api/painel?area=feed_instagram` com `{ acao: 'captura', perfil }`,
+  só os donos. A imagem sai em `GET ...&captura=<usuario>&img=<foto|código>`.
+- O cabeçalho guardado não leva quem segue a conta que capturou ("Seguidores: fulano...") nem botões e destaques.
