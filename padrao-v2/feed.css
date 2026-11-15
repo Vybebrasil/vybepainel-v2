@@ -60,6 +60,13 @@
 .vfd-x-marca::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .vfd-x-txt{font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .vfd-x .vfd-data{background:var(--d3-cartao);color:var(--d3-perigo)}
+/* O + do sem post: o quadro inteiro é o alvo do clique; o + fica no canto, como o + do dia no calendário. */
+.vfd-x-criar{position:absolute;inset:0;z-index:1;display:block;margin:0;padding:0;border:0;background:transparent;cursor:pointer}
+.vfd-x-criar i{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:var(--d3-perigo);transition:transform .15s ease}
+.vfd-x-criar i::before,.vfd-x-criar i::after{content:"";position:absolute;left:50%;top:50%;width:12px;height:2px;border-radius:1px;background:var(--d3-cartao);transform:translate(-50%,-50%)}
+.vfd-x-criar i::after{transform:translate(-50%,-50%) rotate(90deg)}
+.vfd-x:hover .vfd-x-criar i,.vfd-x-criar:focus-visible i{transform:scale(1.12)}
+.vfd-x-criar:focus-visible{outline:2px solid var(--d3-perigo);outline-offset:-2px}
 .vfd-sem-img::after{content:"sem imagem";position:absolute;inset:0;display:grid;place-items:center;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
 .vfd-passado{filter:saturate(.85)}
 .vfd-vazio{grid-column:1 / -1;margin:0;padding:14px;text-align:center;color:var(--d3-apagado);background:var(--d3-trilho)}
@@ -98,3 +105,18 @@
 .vfd-ig-aba{display:flex;justify-content:center;margin:6px -14px 0;padding:10px 0;border-top:1px solid var(--d3-borda)}
 .vfd-ig-aba > i{width:16px;height:16px;background:linear-gradient(var(--d3-tinta),var(--d3-tinta)) 0 0/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 9px 0/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 0 9px/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 9px 9px/7px 7px no-repeat}
 .vfd-cliente .vfd-grade{gap:2px;margin:0 -14px;border-radius:0}
+/* Ações do cliente (Ajustar feed, + Novo post) e o painel de ajuste, como os botões do perfil do Instagram. */
+.vfd-acoes{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+.vfd-acao{height:32px;padding:0 12px;border:0;border-radius:8px;background:var(--d3-trilho);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
+.vfd-acao:hover{background:var(--d3-linha)}
+.vfd-acao[aria-expanded="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
+.vfd-acao-p{background:var(--d3-acao);color:var(--d3-cartao)}
+.vfd-acao-p:hover{background:var(--d3-acao);filter:brightness(.95)}
+.vfd-acao:disabled{opacity:.5;cursor:default}
+.vfd-ajuste{display:flex;flex-direction:column;gap:6px;width:100%;padding:10px;box-sizing:border-box;border:1px solid var(--d3-borda);border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
+.vfd-ajuste-tit{margin:2px 0 0;font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;text-transform:uppercase;letter-spacing:.04em;color:var(--d3-apagado)}
+.vfd-ajuste-op{display:flex;flex-wrap:wrap;gap:4px}
+.vfd-ajuste-op .vfd-chip{height:30px;padding:0 10px;font-size:var(--d3-fs-apoio);background:var(--d3-trilho)}
+.vfd-ajuste-op .vfd-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
+.vfd-ajuste-nota{margin:0;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
+.vfd-ajuste-pe{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}

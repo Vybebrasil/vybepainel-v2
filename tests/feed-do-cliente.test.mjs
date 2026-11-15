@@ -186,7 +186,7 @@ test('API da Meta (Business Discovery): bio, site, seguindo e posts; token no ca
 test('grade contínua: sem o perfil incorporado, o corte pelo mais longe, o no ar com as peças publicadas e cliente sem repetição', () => {
   const feed = ler('vybe-feed.js');
   assert.doesNotMatch(feed, /<iframe/, 'o perfil incorporado repetia o cabeçalho e quebrava a grade');
-  assert.match(feed, /const futuro = g\.futuro\.slice\(-FEED_GRADE_MAX\);/);
+  assert.ok(feed.includes('const futuro = g.futuro.slice(-gradeMax);'));
   const itens = [];
   for (let d = 0; d < 20; d += 1) itens.push({ id: `f${d}`, cliente: 'Lions', formato: 'Card', veiculacao_iso: `2026-12-${String(1 + d).padStart(2, '0')}`, status: 'A Fazer' });
   for (let d = 1; d <= 12; d += 1) itens.push({ id: `p${d}`, cliente: 'Lions', formato: 'Card', veiculacao_iso: `2026-11-${String(d).padStart(2, '0')}`, status: 'Finalizado' });
