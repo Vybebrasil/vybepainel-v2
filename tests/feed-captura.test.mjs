@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { lerCabecalho, numeroDoInstagram, validarCaptura, gravarCaptura, capturasGuardadas } from '../server/instagram-captura.js';
+import { lerCabecalho, numeroDoInstagram, validarCaptura, gravarCaptura, capturasGuardadas, cortar } from '../server/instagram-captura.js';
 import { areaFeedInstagram, limparCacheDoFeed } from '../server/instagram-feed.js';
 
 const AGORA = Date.parse('2026-11-15T18:00:00Z');
@@ -109,6 +109,17 @@ test('na rota: só dono grava, a lista usa a captura no lugar da página públic
   const fora = resposta();
   await areaFeedInstagram({ method: 'GET', query: { captura: 'loja.exemplo', img: '../x' } }, fora, equipe, { db: sql });
   assert.equal(fora.code, 400);
+});
+
+test('legenda cortada no meio de um emoji grava sem a metade solta (ConectaSim, 15/11/2026)', async (t) => {
+  const { db, sql } = conexao(); t.after(() => db.close());
+  const metade = 'Promoção 🚀'.slice(0, -1); // termina na primeira metade do emoji
+  const c = captura({ posts: [{ codigo: 'EMOJI1', tipo: 'imagem', legenda: metade, imagem: JPEG }] });
+  const r = await gravarCaptura(sql, c, { agora: AGORA });
+  assert.equal(r.posts, 1);
+  const g = await capturasGuardadas(sql, ['loja.exemplo']);
+  assert.equal(g['loja.exemplo'].posts[0].legenda, 'Promoção ');
+  assert.equal(cortar('ab🚀cd', 3), 'ab🚀');
 });
 
 test('a tela junta, na frente da captura, o que a Vybe publicou depois dela', () => {
