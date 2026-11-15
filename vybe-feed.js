@@ -66,6 +66,10 @@ function feedClientes() {
     const heads = typeof headsDoClienteNaLista === 'function' ? headsDoClienteNaLista(nome) : String(linha.heads || '').split(',').map((h) => h.trim()).filter(Boolean);
     const bio = String(linha.cadastro?.bio_instagram || '').trim(), site = String(linha.cadastro?.site || '').trim();
     return { nome, usuario: feedUsuario(insta), carteira: typeof carteiraDoCliente === 'function' ? carteiraDoCliente(nome) : '', heads, bio, site };
+  }).filter((c, i, l) => {
+    // Um cliente, um perfil: o mesmo nome (com ou sem acento) ou o mesmo @ em dois cadastros aparece uma vez só.
+    const antes = l.slice(0, i);
+    return !antes.some((o) => feedNorm(o.nome) === feedNorm(c.nome) || (c.usuario && o.usuario === c.usuario));
   });
 }
 function feedUsuario(v) {
@@ -127,7 +131,7 @@ function feedMontar(cli) {
   const futuro = [...futuras, ...buracos].sort((a, b) => b.iso.localeCompare(a.iso) || Number(Boolean(a.buraco)) - Number(Boolean(b.buraco)));
   const perfil = cli.usuario ? FEED.perfis.get(cli.usuario) : null;
   const noAr = perfil?.posts?.length ? perfil.posts.map((p) => ({ ig: p }))
-    : todas.filter((x) => x.iso < hoje).sort((a, b) => b.iso.localeCompare(a.iso)).slice(0, 6).map((x) => ({ ...x, passado: true }));
+    : todas.filter((x) => x.iso < hoje).sort((a, b) => b.iso.localeCompare(a.iso)).slice(0, 9).map((x) => ({ ...x, passado: true }));
   // Três do mesmo formato em seguida, na ordem em que vão ao ar: a grade fica repetida.
   const seq = futuras.slice().sort((a, b) => a.iso.localeCompare(b.iso));
   let repetido = null;
@@ -185,13 +189,15 @@ function feedTileHtml(t, cli) {
 function feedClienteHtml(cli) {
   const g = feedMontar(cli);
   const p = g.perfil && !g.perfil.erro ? g.perfil : null;
-  const futuro = g.futuro.slice(0, FEED_GRADE_MAX);
+  // Corta pelo mais longe, nunca pelo mais perto: o que sai primeiro encosta no que já está no ar.
+  const futuro = g.futuro.slice(-FEED_GRADE_MAX);
   const resto = g.futuro.length - futuro.length;
   const avisos = [
     p?.seguindo != null ? `<span class="vfd-aviso">${feedPlural(g.futuras.length, 'post a sair', 'posts a sair')}</span>` : '',
     g.buracos.length ? `<span class="vfd-aviso r">${feedPlural(g.buracos.length, 'post faltando', 'posts faltando')} em ${FEED_SEMANAS} semanas</span>` : `<span class="vfd-aviso g">${FEED_SEMANAS} semanas completas</span>`,
     g.semArte ? `<span class="vfd-aviso a">${feedPlural(g.semArte, 'peça sem arte', 'peças sem arte')}</span>` : '',
     g.repetido ? `<span class="vfd-aviso a" title="Três ${feedEsc(g.repetido)} seguidos deixam a grade repetida: arraste para intercalar formatos">3 ${feedEsc(g.repetido)} seguidos</span>` : '',
+    resto > 0 ? `<span class="vfd-aviso" title="A grade mostra as ${FEED_GRADE_MAX} mais próximas">+ ${feedPlural(resto, 'item mais longe', 'itens mais longe')}</span>` : '',
     g.depois ? `<span class="vfd-aviso">${feedPlural(g.depois, 'peça depois', 'peças depois')} de ${feedDm(feedSomar(feedSegunda(feedHoje()), FEED_SEMANAS * 7 - 1))}</span>` : '',
   ].filter(Boolean).join('');
   const iniciais = cli.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
@@ -204,12 +210,11 @@ function feedClienteHtml(cli) {
   const site = siteTxt ? `<a class="vfd-ig-site" href="${feedEsc(/^https?:\/\//i.test(siteTxt) ? siteTxt : 'https://' + siteTxt)}" target="_blank" rel="noopener noreferrer">${feedEsc(siteTxt.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}</a>` : '';
   const bioTxt = String(p?.bio || cli.bio || '').trim();
   const bio = bioTxt ? `<p class="vfd-ig-bio">${feedEsc(bioTxt)}</p>` : `<p class="vfd-ig-bio vazia">${p?.fonte === 'meta' ? 'Perfil sem bio.' : 'Bio aparece com a conta da Meta ligada (ou no cadastro do cliente).'}</p>`;
-  // O que está no ar: os posts lidos pelo servidor; sem eles e com o @, o perfil oficial incorporado (abre do navegador
-  // de quem vê, como no E aí Primos); sem o @, as últimas peças veiculadas pelo Vybe OS.
-  const noAr = g.perfil?.posts?.length ? g.noAr.map((t) => feedTileHtml(t, cli)).join('')
-    : !cli.usuario || FEED.pedindo.has(cli.usuario) ? g.noAr.map((t) => feedTileHtml(t, cli)).join('') : '';
-  const embed = cli.usuario && !FEED.pedindo.has(cli.usuario) && !g.perfil?.posts?.length
-    ? `<div class="vfd-embed"><p>O feed atual vem direto do Instagram:</p><iframe title="Instagram de ${feedEsc(cli.nome)}" src="https://www.instagram.com/${feedEsc(cli.usuario)}/embed/" loading="lazy"></iframe></div>` : '';
+  // Uma grade só, contínua (Paulo, 15/11/2026: "insta de cliente aparece 2, 3 vezes... separando o perfil do que tá
+  // pronto... tem que ter continuidade"): o que vai sair em cima e, colado, o que está no ar: os posts do Instagram
+  // quando o servidor os lê (Meta ligada), senão as peças que a Vybe já publicou, com a arte. O perfil incorporado
+  // do Instagram saiu: repetia o cabeçalho e quebrava a grade.
+  const noAr = g.noAr.map((t) => feedTileHtml(t, cli)).join('');
   return `<section class="vfd-cliente" aria-label="Feed de ${feedEsc(cli.nome)}">
     <header class="vfd-ig">
       <div class="vfd-ig-topo"><span class="vfd-ig-foto">${foto}</span><div class="vfd-ig-nums">${nums}</div></div>
@@ -220,8 +225,6 @@ function feedClienteHtml(cli) {
     </header>
     <div class="vfd-ig-aba" aria-hidden="true"><i></i></div>
     <div class="vfd-grade" data-vfd-grade="${feedEsc(cli.nome)}">${futuro.map((t) => feedTileHtml(t, cli)).join('')}${noAr}${!futuro.length && !noAr ? '<p class="vfd-vazio">Nada programado nem no ar.</p>' : ''}</div>
-    ${resto > 0 ? `<p class="vfd-mais">+ ${feedPlural(resto, 'item', 'itens')} mais longe</p>` : ''}
-    ${FEED.pedindo.has(cli.usuario) ? '<p class="vfd-mais">Lendo o perfil…</p>' : ''}${embed}
   </section>`;
 }
 
@@ -288,7 +291,9 @@ async function feedPedirPerfis(lista) {
 }
 
 async function feedPedirArtes(lista) {
-  const ids = [...new Set(lista.flatMap((c) => feedMontar(c).futuras.filter((x) => !x.request).map((x) => String(x.item.id))))]
+  // As capas do que vai sair e, sem os posts do Instagram, também das peças já publicadas (o "no ar" da grade).
+  const ids = [...new Set(lista.flatMap((c) => { const g = feedMontar(c); return [...g.futuras, ...g.noAr.filter((x) => x.passado)]; })
+    .filter((x) => !x.request).map((x) => String(x.item.id)))]
     .filter((id) => !FEED.artes.has(id) && !FEED.pedindoArtes.has(id)).slice(0, 300);
   if (!ids.length) return;
   ids.forEach((id) => FEED.pedindoArtes.add(id));

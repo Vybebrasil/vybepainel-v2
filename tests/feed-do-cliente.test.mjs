@@ -180,3 +180,23 @@ test('API da Meta (Business Discovery): bio, site, seguindo e posts; token no ca
   assert.match(decodeURIComponent(daMeta[0].url), /business_discovery\.username\(lions\)\{username,name,biography,website/);
   assert.match(ler('vybe-feed.js'), /const bioTxt = String\(p\?\.bio \|\| cli\.bio \|\| ''\)\.trim\(\);/);
 });
+
+test('grade contínua: sem o perfil incorporado, o corte pelo mais longe, o no ar com as peças publicadas e cliente sem repetição', () => {
+  const feed = ler('vybe-feed.js');
+  assert.doesNotMatch(feed, /<iframe/, 'o perfil incorporado repetia o cabeçalho e quebrava a grade');
+  assert.match(feed, /const futuro = g\.futuro\.slice\(-FEED_GRADE_MAX\);/);
+  const itens = [];
+  for (let d = 0; d < 20; d += 1) itens.push({ id: `f${d}`, cliente: 'Lions', formato: 'Card', veiculacao_iso: `2026-12-${String(1 + d).padStart(2, '0')}`, status: 'A Fazer' });
+  for (let d = 1; d <= 12; d += 1) itens.push({ id: `p${d}`, cliente: 'Lions', formato: 'Card', veiculacao_iso: `2026-11-${String(d).padStart(2, '0')}`, status: 'Finalizado' });
+  const c = ambiente(itens);
+  const g = vm.runInContext("feedMontar({ nome: 'Lions', usuario: '' })", c);
+  assert.equal(g.noAr.length, 9, 'as 9 últimas publicadas');
+  assert.deepEqual([...g.noAr].slice(0, 2).map((x) => x.item.id), ['p12', 'p11']);
+  const html = vm.runInContext("feedClienteHtml({ nome: 'Lions', usuario: '', heads: [], carteira: '', bio: '', site: '' })", c);
+  const datas = [...html.matchAll(/data-vfd-alvo="(\d{4}-\d{2}-\d{2})"/g)].map((m) => m[1]);
+  assert.equal(datas[datas.length - 1] <= '2026-11-20', true, 'a mais próxima de hoje fica na grade, encostada no que está no ar');
+  const repetidos = vm.runInContext(`CADASTRO_CLIENTES = [{ nome: 'Copirecê', ativo: true, cadastro: { instagram: '@copirece' } },
+    { nome: 'Copirece', ativo: true, cadastro: { instagram: '@copirece' } }, { nome: 'Copirecê Puro Milho', ativo: true, cadastro: { instagram: 'copirece' } }];
+    feedClientes().map((x) => x.nome)`, c);
+  assert.equal(repetidos.length, 1, 'um cliente, um perfil');
+});

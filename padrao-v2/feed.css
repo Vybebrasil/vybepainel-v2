@@ -98,6 +98,3 @@
 .vfd-ig-aba{display:flex;justify-content:center;margin:6px -14px 0;padding:10px 0;border-top:1px solid var(--d3-borda)}
 .vfd-ig-aba > i{width:16px;height:16px;background:linear-gradient(var(--d3-tinta),var(--d3-tinta)) 0 0/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 9px 0/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 0 9px/7px 7px no-repeat,linear-gradient(var(--d3-tinta),var(--d3-tinta)) 9px 9px/7px 7px no-repeat}
 .vfd-cliente .vfd-grade{gap:2px;margin:0 -14px;border-radius:0}
-.vfd-embed{display:flex;flex-direction:column;gap:6px;margin:8px -14px 0}
-.vfd-embed p{margin:0 14px;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
-.vfd-embed iframe{display:block;width:100%;height:520px;border:0;background:var(--d3-cartao)}
