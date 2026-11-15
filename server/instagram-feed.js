@@ -71,9 +71,15 @@ export function lerPaginaDoPerfil(html) {
     for (const v of Object.values(o)) andar(v, fundo + 1);
   })(ctx, 0);
   const seguidores = Number(perfil.followers_count ?? acharChave(ctx, 'edge_followed_by')?.count);
+  const total = Number(perfil.posts_count ?? acharChave(ctx, 'edge_owner_to_timeline_media')?.count);
   return {
     usuario: String(perfil.username || ''),
     nome: String(perfil.full_name || ''),
+    // O cabeçalho do perfil (Paulo, 15/11/2026: "é pra ficar tipo o feed mesmo do Insta... tudo certinho"): foto, selo e
+    // número de posts. A bio e o "seguindo" não vêm na página pública; a bio sai do cadastro do cliente.
+    foto: typeof perfil.profile_pic_url === 'string' ? perfil.profile_pic_url : null,
+    verificado: Boolean(perfil.is_verified || perfil.verified),
+    total_posts: Number.isFinite(total) ? total : null,
     seguidores: Number.isFinite(seguidores) ? seguidores : null,
     // A grade do Instagram vem do mais novo para o mais antigo; fixado fica no topo lá, mas aqui conta pela data.
     posts: posts.sort((a, b) => String(b.data).localeCompare(String(a.data))),
@@ -116,10 +122,35 @@ export async function feedsDoInstagram(lista, opcoes = {}) {
 export async function areaFeedInstagram(req, res, quem, opcoes = {}) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   if (!quem || (quem.tipo !== 'servico' && !quem.pessoa)) return res.status(401).json({ error: 'Entre no painel para acessar.' });
+  if (req.query?.foto) return repassarFoto(String(req.query.foto), res, opcoes);
   const lista = String(req.query?.usuarios || '').split(',');
   const perfis = await feedsDoInstagram(lista, opcoes);
   res.setHeader?.('Cache-Control', 'private, max-age=300');
   return res.status(200).json({ ok: true, perfis });
+}
+
+// A imagem do post e a foto do perfil passam pelo servidor (o endereço do CDN do Instagram é assinado e, aberto direto
+// no navegador da equipe, nem sempre carrega: Paulo, 15/11/2026, "o que é do insta não carregou os previews").
+// Só o CDN do Instagram, só imagem, até 6 MB.
+export const FOTO_DO_INSTAGRAM = /^https:\/\/[a-z0-9.-]+\.(cdninstagram\.com|fbcdn\.net)\//i;
+const FOTO_MAX = 6 * 1024 * 1024;
+async function repassarFoto(url, res, { buscar = fetch } = {}) {
+  if (!FOTO_DO_INSTAGRAM.test(url)) return res.status(400).json({ error: 'Imagem inválida.' });
+  try {
+    const r = await buscar(url, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(ESPERA_MS) });
+    const tipo = String(r.headers?.get?.('content-type') || '');
+    if (!r.ok || !/^image\//i.test(tipo)) return res.status(404).json({ error: 'Imagem indisponível.' });
+    const bytes = Buffer.from(await r.arrayBuffer());
+    if (bytes.length > FOTO_MAX) return res.status(413).json({ error: 'Imagem grande demais.' });
+    res.setHeader('Content-Type', tipo);
+    res.setHeader('Content-Length', String(bytes.length));
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    return res.status(200).end(bytes);
+  } catch (erro) {
+    console.warn('[feed_instagram] foto', erro?.message || erro);
+    return res.status(502).json({ error: 'Imagem indisponível agora.' });
+  }
 }
 
 export function limparCacheDoFeed() { CACHE.clear(); }
