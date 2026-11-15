@@ -86,10 +86,63 @@ export function lerPaginaDoPerfil(html) {
   };
 }
 
-async function buscarPerfil(usuario, { buscar = fetch, agora = Date.now() } = {}) {
+// API oficial da Meta pela conta da Vybe (Paulo, 15/11/2026: "sim, pela Meta"). O Business Discovery devolve, de
+// qualquer perfil comercial ou de criador, a bio, o site, seguidores, seguindo, posts, a foto e os posts com imagem
+// (vídeo pela capa), data e link. Liga com duas variáveis na Vercel (docs/instagram-meta.md):
+//   META_IG_TOKEN   token de acesso da conta da Vybe (de preferência de usuário do sistema, que não vence)
+//   META_IG_USER_ID id da conta profissional do Instagram da Vybe
+// Sem elas, ou se a Meta recusar o perfil (pessoal, privado), vale a página pública de incorporação, como antes.
+const META_VERSAO = 'v23.0';
+const META_CAMPOS = 'username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count,'
+  + 'media.limit(12){id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,children{media_type,media_url,thumbnail_url}}';
+export function metaConfigurada(env = process.env) { return Boolean(String(env.META_IG_TOKEN || '').trim() && /^\d+$/.test(String(env.META_IG_USER_ID || '').trim())); }
+export function lerPerfilDaMeta(json, usuario) {
+  const b = json?.business_discovery;
+  if (!b || typeof b !== 'object') return null;
+  const tipo = (m) => (m.media_type === 'CAROUSEL_ALBUM' ? 'carrossel' : m.media_type === 'VIDEO' ? 'video' : 'foto');
+  const imagem = (m) => {
+    if (m.media_type === 'VIDEO') return m.thumbnail_url || null;
+    if (m.media_url) return m.media_url;
+    const f = (m.children?.data || [])[0]; return f ? (f.media_type === 'VIDEO' ? f.thumbnail_url : f.media_url) || null : null;
+  };
+  const posts = (b.media?.data || []).map((m) => ({
+    codigo: String(m.id), tipo: tipo(m), data: m.timestamp ? new Date(m.timestamp).toISOString() : null, imagem: imagem(m),
+    link: typeof m.permalink === 'string' ? m.permalink : `https://www.instagram.com/${encodeURIComponent(usuario)}/`, fixado: false,
+    legenda: typeof m.caption === 'string' ? m.caption.slice(0, 300) : '',
+  })).filter((p) => p.imagem);
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  return {
+    usuario: String(b.username || usuario), nome: String(b.name || ''), foto: b.profile_picture_url || null, verificado: false,
+    bio: typeof b.biography === 'string' ? b.biography : '', site: typeof b.website === 'string' ? b.website : '',
+    total_posts: n(b.media_count), seguidores: n(b.followers_count), seguindo: n(b.follows_count),
+    posts: posts.sort((a, z) => String(z.data).localeCompare(String(a.data))), fonte: 'meta',
+  };
+}
+async function buscarNaMeta(usuario, { buscar, env }) {
+  const token = String(env.META_IG_TOKEN || '').trim(), conta = String(env.META_IG_USER_ID || '').trim();
+  const url = `https://graph.facebook.com/${META_VERSAO}/${conta}?fields=${encodeURIComponent(`business_discovery.username(${usuario}){${META_CAMPOS}}`)}`;
+  try {
+    // O token vai no cabeçalho, não na URL: assim não aparece em log de erro nem em rastreio de rede.
+    const r = await buscar(url, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(ESPERA_MS) });
+    const json = await r.json().catch(() => null);
+    if (!r.ok) {
+      // Perfil pessoal ou inexistente vem como erro da Meta (código 110/100); o resto (token vencido, limite) vai ao log.
+      const e = json?.error || {};
+      if (![100, 110].includes(Number(e.code))) console.warn('[feed_instagram] meta', usuario, r.status, e.code || '', e.error_subcode || '', String(e.message || '').slice(0, 160));
+      return null;
+    }
+    return lerPerfilDaMeta(json, usuario);
+  } catch (erro) {
+    console.warn('[feed_instagram] meta', usuario, erro?.name || '', String(erro?.message || '').slice(0, 120));
+    return null;
+  }
+}
+
+async function buscarPerfil(usuario, { buscar = fetch, agora = Date.now(), env = process.env } = {}) {
   const guardado = CACHE.get(usuario);
   if (guardado && agora - guardado.quando < VALIDADE_MS) return guardado.dados;
-  let dados;
+  let dados = metaConfigurada(env) ? await buscarNaMeta(usuario, { buscar, env }) : null;
+  if (dados) { CACHE.set(usuario, { quando: agora, dados }); return dados; }
   try {
     const r = await buscar(`https://www.instagram.com/${encodeURIComponent(usuario)}/embed/`, {
       headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36', 'accept-language': 'pt-BR,pt;q=0.9' },

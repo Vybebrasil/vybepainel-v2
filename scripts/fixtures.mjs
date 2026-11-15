@@ -169,7 +169,9 @@ export async function demoApi(req,res,url,body) {
     for(const u of String(url.searchParams.get('usuarios')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean).slice(0,40)){
       if(u==='cliente9'){perfis[u]={usuario:u,erro:'Perfil privado ou sem posts públicos.'};continue;}
       const av=`<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='${cores[u.length%cores.length]}'/><text x='60' y='74' font-family='Arial' font-size='44' fill='#fff' text-anchor='middle'>${u.slice(0,2).toUpperCase()}</text></svg>`;
-      perfis[u]={usuario:u,nome:u.replace(/[._]/g,' '),foto:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(av),verificado:u.length%2===0,total_posts:40+u.length*9,seguidores:1200+u.length*137,posts:Array.from({length:6},(_,i)=>{
+      perfis[u]={usuario:u,nome:u.replace(/[._]/g,' '),foto:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(av),verificado:u.length%2===0,total_posts:40+u.length*9,seguidores:1200+u.length*137,
+        // Como a API da Meta responde (docs/instagram-meta.md): bio, site e seguindo do próprio perfil.
+        fonte:'meta',seguindo:180+u.length*7,bio:`Perfil oficial de ${u}\nAtendimento de seg a sáb · Irecê, BA\nPeça pelo link 👇`,site:`${u.replace(/[^a-z0-9]/g,'')}.com.br`,posts:Array.from({length:6},(_,i)=>{
         const d=new Date(Date.now()-(i*2+1)*86400000), cor=cores[(i+u.length)%cores.length];
         const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect width="400" height="500" fill="${cor}"/><text x="200" y="260" font-family="Arial" font-size="34" fill="#fff" text-anchor="middle">@${u}</text><text x="200" y="310" font-family="Arial" font-size="22" fill="#fff" text-anchor="middle">post ${i+1}</text></svg>`;
         return {codigo:`demo${i}`,tipo:['foto','carrossel','video'][i%3],data:d.toISOString(),imagem:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),link:`https://www.instagram.com/${u}/`,fixado:false};

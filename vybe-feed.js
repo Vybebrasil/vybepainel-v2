@@ -188,6 +188,7 @@ function feedClienteHtml(cli) {
   const futuro = g.futuro.slice(0, FEED_GRADE_MAX);
   const resto = g.futuro.length - futuro.length;
   const avisos = [
+    p?.seguindo != null ? `<span class="vfd-aviso">${feedPlural(g.futuras.length, 'post a sair', 'posts a sair')}</span>` : '',
     g.buracos.length ? `<span class="vfd-aviso r">${feedPlural(g.buracos.length, 'post faltando', 'posts faltando')} em ${FEED_SEMANAS} semanas</span>` : `<span class="vfd-aviso g">${FEED_SEMANAS} semanas completas</span>`,
     g.semArte ? `<span class="vfd-aviso a">${feedPlural(g.semArte, 'peça sem arte', 'peças sem arte')}</span>` : '',
     g.repetido ? `<span class="vfd-aviso a" title="Três ${feedEsc(g.repetido)} seguidos deixam a grade repetida: arraste para intercalar formatos">3 ${feedEsc(g.repetido)} seguidos</span>` : '',
@@ -196,9 +197,13 @@ function feedClienteHtml(cli) {
   const iniciais = cli.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
   const foto = p?.foto ? `<img src="${feedEsc(feedFotoIg(p.foto))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${jsArg(iniciais)}'}))">` : `<span>${feedEsc(iniciais)}</span>`;
   const usuario = cli.usuario ? `<a class="vfd-ig-user" href="https://www.instagram.com/${feedEsc(cli.usuario)}/" target="_blank" rel="noopener noreferrer">${feedEsc(cli.usuario)}</a>${p?.verificado ? '<i class="vfd-ig-selo" aria-label="Verificado"></i>' : ''}` : '<span class="vfd-ig-user vfd-sem-insta">sem Instagram no cadastro</span>';
-  const nums = `<span><b>${feedNumeroIg(p?.total_posts)}</b> posts</span><span><b>${feedNumeroIg(p?.seguidores)}</b> seguidores</span><span><b>${g.futuras.length}</b> a sair</span>`;
-  const site = cli.site ? `<a class="vfd-ig-site" href="${feedEsc(/^https?:\/\//i.test(cli.site) ? cli.site : 'https://' + cli.site)}" target="_blank" rel="noopener noreferrer">${feedEsc(cli.site.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}</a>` : '';
-  const bio = cli.bio ? `<p class="vfd-ig-bio">${feedEsc(cli.bio)}</p>` : '<p class="vfd-ig-bio vazia">Sem bio no cadastro do cliente.</p>';
+  // Com a API da Meta ligada vêm a bio, o site e o "seguindo" do próprio perfil; sem ela, a bio e o site do cadastro.
+  const nums = `<span><b>${feedNumeroIg(p?.total_posts)}</b> posts</span><span><b>${feedNumeroIg(p?.seguidores)}</b> seguidores</span>`
+    + (p?.seguindo != null ? `<span><b>${feedNumeroIg(p.seguindo)}</b> seguindo</span>` : `<span><b>${g.futuras.length}</b> a sair</span>`);
+  const siteTxt = String(p?.site || cli.site || '').trim();
+  const site = siteTxt ? `<a class="vfd-ig-site" href="${feedEsc(/^https?:\/\//i.test(siteTxt) ? siteTxt : 'https://' + siteTxt)}" target="_blank" rel="noopener noreferrer">${feedEsc(siteTxt.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}</a>` : '';
+  const bioTxt = String(p?.bio || cli.bio || '').trim();
+  const bio = bioTxt ? `<p class="vfd-ig-bio">${feedEsc(bioTxt)}</p>` : `<p class="vfd-ig-bio vazia">${p?.fonte === 'meta' ? 'Perfil sem bio.' : 'Bio aparece com a conta da Meta ligada (ou no cadastro do cliente).'}</p>`;
   // O que está no ar: os posts lidos pelo servidor; sem eles e com o @, o perfil oficial incorporado (abre do navegador
   // de quem vê, como no E aí Primos); sem o @, as últimas peças veiculadas pelo Vybe OS.
   const noAr = g.perfil?.posts?.length ? g.noAr.map((t) => feedTileHtml(t, cli)).join('')
