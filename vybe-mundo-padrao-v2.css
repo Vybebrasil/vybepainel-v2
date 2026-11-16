@@ -16438,6 +16438,98 @@ body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.
   .d3m-f-andar{flex:none;height:44px}
 }
 
+/* ===== padrao-v2/zm-f-sala.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO F · MINHA SALA (prancha V2-M-Minha-Sala, aprovada pelo Paulo em 16/11/2026). A janela de vidro fumê do
+   quarto: o nome da sala no vidro com Convidar, Decorar e Entrar na voz; as quatro tiras do trabalho; o cartão com o
+   quarto 3D (o motor desenha no retângulo dele, medido em pintarSalaD3) com o humor e o foco por cima; e a coluna de
+   consulta com o cartão laranja do seu dia, a semana, as datas e os atalhos. O HTML sai de pintarSalaD3 e de
+   pintarCabDaSala (vybe-mundo.js). A cena 3D não muda: só o que fica por cima e ao lado dela.
+   SOBRE O QUADRO ANTERIOR (d3-hoje.css, sem editar): a sala é presa pelos quatro lados no #mundo-andar; os seletores
+   aqui levam .d3m-f-mundo para vencer os de #d3-sala de lá.
+   =================================================================================================================== */
+
+/* O fundo é o ambiente de sempre e, por cima, a janela fumê (atrás do quarto e do painel). */
+body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto{background:var(--d3-ambiente)}
+body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto::before{content:"";position:absolute;left:var(--vv-livre-esq,88px);top:var(--vv-m,14px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);pointer-events:none}
+/* O cartão do quarto é um rebaixo escuro no vidro (a cor escolhida da sala continua valendo, pela regra de d3-hoje). */
+body.mundo.mundo-quarto.d3s-painel:not(.d3s-com-cor) #mundo-andar.quarto > .andar-palco{background:var(--d3-fume-escuro)}
+body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .andar-palco{border-radius:16px}
+
+/* A tela: presa nos quatro lados da janela; deixa o toque passar para o quarto, menos no que é botão. */
+body.mundo #mundo-andar > #d3-sala.d3m-f-mundo{position:absolute;z-index:3;top:var(--vv-m,14px);left:var(--vv-livre-esq,88px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:flex;flex-direction:column;gap:0;height:auto;padding:16px;box-sizing:border-box;pointer-events:none;color:var(--d3-fume-texto)}
+#d3-sala.d3m-f-mundo > .d3m-f-topo{padding-right:0;pointer-events:auto}
+/* O título vem de pintarCabDaSala (.quarto-cab, com os seus próprios cliques): ocupa o topo, nome à esquerda e ações à direita. */
+body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala.d3m-f-mundo .quarto-cab{flex:1 1 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;padding:0;-webkit-backdrop-filter:none;backdrop-filter:none}
+#d3-sala.d3m-f-mundo .quarto-cab > .d3m-e-tit{min-width:0}
+#d3-sala.d3m-f-mundo .quarto-cab > .d3m-e-acoes{flex:none}
+#d3-sala.d3m-f-mundo .d3m-f-topo-mais:empty{display:none}
+/* Os rostos de quem está na sala, ao lado das ações. */
+#d3-sala.d3m-f-mundo .d3m-f-rostos{display:inline-flex;margin-right:4px}
+#d3-sala.d3m-f-mundo .d3m-f-rostos > i{display:grid;place-items:center;width:26px;height:26px;margin-left:-6px;border-radius:50%;background:var(--d3-fume-veu-forte);box-shadow:0 0 0 2px var(--d3-fume-painel);color:var(--d3-fume-texto);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
+#d3-sala.d3m-f-mundo .d3m-f-rostos > i:first-child{margin-left:0}
+#d3-sala.d3m-f-mundo .d3m-f-rostos > i.fala{box-shadow:0 0 0 2px var(--d3-pronto-claro)}
+#d3-sala.d3m-f-mundo .d3v-btn.d3m-f-claro:disabled{background:var(--d3-fume-veu);color:var(--d3-fume-texto);box-shadow:none}
+
+/* Corpo: as tiras e o quarto à esquerda; a consulta de 316 à direita. */
+#d3-sala.d3m-f-mundo > .d3m-f-corpo{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 316px;grid-template-rows:72px minmax(0,1fr);gap:12px 16px;pointer-events:none}
+#d3-sala.d3m-f-mundo .d3m-f-resto{display:contents}
+#d3-sala.d3m-f-mundo .d3m-f-tiras{grid-column:1;grid-row:1;pointer-events:auto}
+#d3-sala.d3m-f-mundo .d3s-quarto.d3m-f-cena{grid-column:1;grid-row:2;min-height:0;border-radius:16px;box-shadow:var(--d3-folha-sombra);pointer-events:none}
+#d3-sala.d3m-f-mundo .d3m-f-lado{grid-column:2;grid-row:1 / span 2;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--d3-fume-borda) transparent;pointer-events:auto}
+#d3-sala.d3m-f-mundo .d3m-f-tira.on .d3m-f-tira-v > span{color:var(--d3-rotulo-fixo)}
+
+/* Por cima do quarto: o humor à esquerda e o foco à direita. */
+#d3-sala.d3m-f-mundo .d3m-f-chips{justify-content:space-between}
+#d3-sala.d3m-f-mundo :is(.d3m-f-humor,.d3m-f-foco){display:flex;flex-wrap:wrap;gap:6px}
+#d3-sala.d3m-f-mundo button.d3m-f-chip:disabled{cursor:default}
+#d3-sala.d3m-f-mundo button.d3m-f-chip:disabled:not([aria-pressed="true"]){color:var(--d3-fume-apagado)}
+#d3-sala.d3m-f-mundo .d3m-f-foco > .d3m-f-chip.on > b{font-variant-numeric:tabular-nums}
+#d3-sala.d3m-f-mundo .d3m-f-chip .d3m-f-ap{color:inherit;opacity:.8}
+
+/* A cor da sala no "Mais" do topo: a bolinha da cor antes do nome. */
+#d3-sala.d3m-f-mundo .d3m-f-mais > .d3m-e-pop{min-width:180px}
+#d3-sala.d3m-f-mundo .d3m-f-mais .d3m-f-cor{flex:none;width:14px;height:14px;margin-right:8px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px var(--d3-linha)}
+
+/* Sua semana: três quadradinhos no vidro (hoje, amanhã, na semana). */
+.d3m-f-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.d3m-f-mini{appearance:none;display:flex;flex-direction:column;gap:3px;min-width:0;margin:0;padding:10px;box-sizing:border-box;border:0;border-radius:10px;background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-f-mini:hover{background:var(--d3-fume-veu-forte)}
+.d3m-f-mini:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+.d3m-f-mini > b{font:600 15px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);font-variant-numeric:tabular-nums;white-space:nowrap}
+.d3m-f-mini > span{color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-f-mini.r > b{color:var(--d3-perigo-claro)}
+
+/* Datas: o dia em 38 de largura, o nome e, quando falta, "N sem peça" em âmbar. */
+.d3m-vlin.d3m-f-data > .d3m-f-dm{flex:none;width:38px;font-weight:600;font-variant-numeric:tabular-nums}
+.d3m-vlin.d3m-f-data > .d3m-vnome{flex:1 1 auto;max-width:none}
+.d3m-vlin.d3m-f-data > .d3m-f-falta{flex:none;font-size:var(--d3-fs-apoio);font-weight:600;color:var(--d3-ajuste-claro);white-space:nowrap}
+
+@media (min-width:901px){
+  /* A barra de cima sai: a sala tem o próprio topo no vidro. */
+  body.mundo.mundo-quarto.d3s-painel #mundo-hud > .vv-topo{display:none}
+}
+/* Telas baixas (1366 × 768): os quadradinhos da semana um degrau menores. */
+@media (min-width:901px) and (max-height:820px){
+  .d3m-f-mini{padding:7px 10px}
+}
+
+/* Celular: o quarto fica preso no alto, no cartão; as tiras e a consulta rolam embaixo dele. */
+@media (max-width:900px){
+  body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:76px}
+  body.mundo #mundo-andar > #d3-sala.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-height:0;padding:12px;overflow:hidden;pointer-events:none}
+  #d3-sala.d3m-f-mundo > .d3m-f-topo{flex-wrap:nowrap;gap:8px;min-height:0;margin-bottom:12px}
+  body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala.d3m-f-mundo .quarto-cab{flex-wrap:wrap;gap:8px}
+  #d3-sala.d3m-f-mundo .quarto-cab .d3m-e-h{font-size:20px}
+  #d3-sala.d3m-f-mundo .quarto-cab > .d3m-e-acoes{flex-wrap:wrap}
+  #d3-sala.d3m-f-mundo > .d3m-f-corpo{display:flex;flex-direction:column;gap:12px}
+  #d3-sala.d3m-f-mundo .d3s-quarto.d3m-f-cena{position:relative;inset:auto;flex:none;width:auto;height:210px;min-height:0}
+  #d3-sala.d3m-f-mundo .d3m-f-resto{flex:1 1 0;display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;overscroll-behavior:contain;pointer-events:auto}
+  #d3-sala.d3m-f-mundo .d3m-f-tiras{flex:none}
+  #d3-sala.d3m-f-mundo .d3m-f-lado{flex:none;overflow:visible}
+  #d3-sala.d3m-f-mundo .d3m-f-mais > .d3m-e-pop{position:fixed;left:16px;right:16px;top:auto}
+}
+
 /* ===== padrao-v2/zt-temas.css ===== */
 /* TEMAS E TUTORIAL DO VYBES (Paulo, 16/11/2026: "criar um tema white e um dark"; o VYBES recebe quem chega, mostra os três
    temas e explica cada tela na primeira vez). Última folha da junção (zt- vem depois de z-direcao e dos zm-*).

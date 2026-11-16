@@ -90,7 +90,8 @@ test('Centro e Minha sala pelos quadros: o 3D dentro de um cartão da grade, nú
   assert.ok(js.includes("set('--d3c-mx', r.left)"), 'o mapa desenha no retângulo do cartão');
   assert.ok(css.includes('body.mundo.d3c-painel #mundo > :is(canvas,.mundo-rotulos,.mundo-vinheta){inset:auto;left:var(--d3c-mx'));
   const s = trecho('  function pintarSalaD3(', '  async function abrirMinhaSala(');
-  for (const t of ['class="d3s-cartao d3s-quarto"', 'VYBES · Seu dia', "num('Feitas hoje'", "num('Vencidas'", "num('Próximos 7 dias'", "num('Para aprovar'", 'aria-label="Agora"', 'data-d3-humor=', "fn('escritorioTrocarStatus')", 'aria-label="Seu dia"', 'para aprovar', 'aria-label="Sua semana"', 'Para adiantar', 'aria-label="Datas"', 'class="v2-risca']) assert.ok(s.includes(t), t);
+  // V2 (prancha V2-M-Minha-Sala, 16/11/2026): tiras, o quarto no cartão com o humor e o foco, e a consulta no vidro.
+  for (const t of ['class="d3s-quarto d3m-f-cena"', 'VYBES · seu dia', "tira('Feitas hoje'", "tira('Vencidas'", "tira('Próximos 7 dias'", "tira('Para aprovar'", 'aria-label="Humor"', 'data-d3-humor=', "fn('escritorioTrocarStatus')", 'data-d3-foco="iniciar"', 'data-d3-foco="parar"', 'data-hoje-acao="decidir-lista"', 'aria-label="Sua semana"', 'aria-label="Datas"', 'data-d3-sazonal', 'aria-label="Abrir"', 'data-trilho="loja"', 'data-d3-cor=']) assert.ok(s.includes(t), t);
   assert.ok(js.includes('pintarSalaD3(el, zona);'), 'repinta com a presença da sala');
   assert.ok(css.includes('#mundo-andar.quarto > .andar-palco{inset:auto;left:var(--d3s-qx'), 'o quarto desenha no cartão');
   assert.ok(css.includes('body.mundo.mundo-quarto.d3s-painel #mundo-hud > #vv-hoje.vv-hoje{display:none}'), 'sem o Hoje estreito');

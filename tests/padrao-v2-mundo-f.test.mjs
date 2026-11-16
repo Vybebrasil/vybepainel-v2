@@ -43,3 +43,15 @@ test('Prédio (V2-M-Predio): o prédio 3D no cartão, a folha do elevador e a co
   assert.match(css, /\[data-vista="predio"\] > \.d3m-f-corpo\{grid-template-columns:minmax\(0,1fr\) 400px 316px/);
   assert.match(css, /#vv-placa:has\(> \.vv-elevador-lista\)\{display:none\}/, 'a lista de andares é a folha do elevador');
 });
+
+test('Minha sala (V2-M-Minha-Sala): o nome no vidro, tiras, o quarto no cartão com humor e foco, e a consulta com o laranja', () => {
+  const s = trecho('  function pintarSalaD3(', '  async function abrirMinhaSala(');
+  for (const t of ['class="d3m-e-topo d3m-f-topo"', 'class="d3s-quarto d3m-f-cena"', 'class="d3m-f-tiras"', 'class="d3m-lado d3m-f-lado d3s-lado"', 'class="d3m-laranja d3m-f-lar"', 'peças esperam', 'data-hoje-acao="decidir-lista">Aprovar', 'data-trilho="tarefas">Abrir o dia', 'class="d3m-f-minis"', 'data-d3-humor=', 'data-d3-foco="iniciar"', 'data-d3-cor=', 'data-d3-sazonal', 'data-trilho="loja"']) assert.ok(s.includes(t), t);
+  const cab = trecho('  function pintarCabDaSala(', '  function medirQuartoD3(');
+  for (const t of ['class="d3m-e-h" role="heading" aria-level="1"', 'data-quarto-acao="convidar"', 'data-quarto-acao="decorar"', 'data-quarto-acao="usar"', 'data-quarto-acao="salvar"', 'data-sala-voz']) assert.ok(cab.includes(t), t);
+  assert.ok(mundo.includes("if (ev.target.closest('[data-sala-voz]:not(:disabled)')) { entrarPeloTopo();"), 'Entrar na voz usa a mesma entrada do topo');
+  const css = ler('padrao-v2/zm-f-sala.css');
+  assert.match(css, /#mundo-andar\.quarto::before\{[^}]*background:var\(--d3-fume\)/, 'a janela fumê fica atrás do quarto');
+  assert.match(css, /#d3-sala\.d3m-f-mundo > \.d3m-f-corpo\{[^}]*pointer-events:none/, 'o toque passa para o 3D');
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /backdrop-filter:\s*blur|animation/, 'nada de blur nem animação por cima da cena');
+});

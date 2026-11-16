@@ -24,22 +24,23 @@ function faixa({ zona = 'sala-1', minha = 'sala-1', online = [], conectado = tru
 
 test('faixa da sala: nome, quem está (você primeiro) e a voz dita em texto', () => {
   const h = faixa({ online: [{ id: '2', nome: 'Vinícius L', zona: 'sala-1' }, { id: '1', nome: 'Paulo M', zona: 'sala-1' }, { id: '3', nome: 'Bia', zona: 'recepcao' }] });
-  assert.match(h, /<small>Minha sala<\/small><b>Sala do Paulo<\/b>/);
-  assert.match(h, /<b>Você e Vinícius<\/b>/, 'só quem está nesta sala, você primeiro');
-  assert.match(h, /Voz ligada, você está mudo/);
+  assert.match(h, /<span class="d3m-e-h" role="heading" aria-level="1">Sala do Paulo<\/span>/);
+  assert.match(h, /o seu quarto do Escritório · você e Vinícius · voz ligada, você está mudo/);
+  assert.match(h, /· você e Vinícius ·/, 'só quem está nesta sala, você primeiro');
+  
   assert.match(h, /class=" fala" title="Vinícius L \(falando\)"/, 'quem fala fica marcado');
-  assert.ok(faixa({ mic: true }).includes('Voz ligada, microfone aberto'));
-  assert.ok(faixa({ ezona: 'recepcao' }).includes('Sua voz está em Convivência'));
+  assert.ok(faixa({ mic: true }).includes('voz ligada, microfone aberto'));
+  assert.ok(faixa({ ezona: 'recepcao' }).includes('sua voz está em Convivência'));
   // Estados da voz (14/11/2026): fora diz onde entrar; conectando/caiu vêm da fase (tests/voz-estados.test.mjs).
-  assert.ok(faixa({ conectado: false }).includes('Fora da voz: use Entrar no dock'));
-  assert.ok(faixa({ conectado: false }).includes('Ninguém na sala agora'));
+  assert.ok(faixa({ conectado: false }).includes('fora da voz: use Entrar no dock'));
+  assert.ok(faixa({ conectado: false }).includes('ninguém na sala agora'));
 });
 
 test('Convidar só na própria sala e Decorar só para quem pode, pelos fluxos que já existem', () => {
   assert.ok(faixa({}).includes('data-quarto-acao="convidar"'));
   assert.ok(faixa({}).includes('data-quarto-acao="decorar"'));
   const visitando = faixa({ zona: 'sala-2', minha: 'sala-1', podeDecorar: false });
-  assert.ok(visitando.includes('<small>Visitando</small>'));
+  assert.ok(visitando.includes('visitando · '));
   assert.ok(!visitando.includes('data-quarto-acao'), 'na sala dos outros, sem Convidar nem Decorar');
   assert.ok(js.includes("else if (b.dataset.quartoAcao === 'convidar') fn('convidarParaMinhaSalaEscritorio')?.();"), 'o convite do Escritório, não outro');
   assert.ok(js.includes("if (a === 'decorar') { alternarDecorar(); return; }"), 'o dock continua com o Decorar, pela mesma função');
