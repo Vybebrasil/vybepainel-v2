@@ -33,7 +33,7 @@ test('Clientes na Direção V2: cartão laranja do Mateus, o pé "De olho" no lu
   assert.match(clientes, /class="d3-acao d3m-laranja cv2-laranja"/);
   for (const r of ['sem próxima reunião', 'com cadastro incompleto', 'com NPS']) assert.ok(clientes.includes(r), r);
   assert.match(clientes, /class="cv2-novo d3f-novo" onclick="novoClienteNoPainel\(\)"/);
-  assert.match(clientes, /<div class="v2f-alto d3f-alto">\$\{d3AcaoHtml\(/);
+  assert.match(clientes, /class="d3-acao d3m-laranja cv2-laranja fv2-laranja"/, 'a ficha usa o mesmo cartão laranja');
   assert.match(ler('padrao-v2/zm-b-clientes.css'), /#painel-clientes \.cv2-novo\{[^}]*background:var\(--d3-fume-texto\)/);
 });
 

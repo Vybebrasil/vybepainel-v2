@@ -75,29 +75,36 @@ test('Clientes: Lista/Fichas/Cérebro, Mais e Novo cliente no alto; cartão lara
   assert.match(tabela, /2 peças <b class="cv2-ruim">· 1 vencida<\/b>/);
 });
 
-test('Ficha: linha do alto, nota com o porquê, fala, abas com contagem, Pede ação, entregas e Dados e acessos', () => {
+test('Ficha (prancha V2-M-Cliente-Ficha): o alto com as abas, o cartão laranja, As vencidas, Próximas entregas e a consulta', () => {
   const { ctx, pegar } = carregar();
   ctx.renderClientMasterDetail('Academia Lions');
-  assert.match(pegar('cliente-detalhe-cabeca').innerHTML, /‹<\/span> Clientes[\s\S]*style="color:#C2490C">Academia Lions<[\s\S]*Editar cadastro[\s\S]*Nova demanda/);
+  const cabeca = pegar('cliente-detalhe-cabeca').innerHTML;
+  assert.match(cabeca, /clf-voltar" onclick="voltarClientesLista\(\)"[\s\S]*class="clf-nome fv2-nome">Academia Lions<[\s\S]*id="ficha-abas-topo"[\s\S]*Editar cadastro[\s\S]*Nova demanda/);
   const corpo = pegar('client-master-detail').innerHTML;
-  const ordem = ['v2f-saude', 'v2f-fala', '<h3>Pede ação', '<h3>Próximas entregas', '<h3>Última reunião', '<h3>Dados e acessos'].map((x) => corpo.indexOf(x));
-  assert.ok(ordem.every((v, i) => v > -1 && (i === 0 || v > ordem[i - 1])), `ordem do quadro: ${ordem}`);
-  // A barra de abas entra logo depois da nota e da fala (insertAdjacentHTML('afterend') no .v2f-alto).
-  assert.match(ler('vybe-clientes-ficha.js'), /if \(alto\) alto\.insertAdjacentHTML\('afterend', barra\)/);
-  assert.match(corpo, /style="color:#B42318"><span class="v2-num">46</);
-  assert.match(corpo, /class="v2f-pill r">1 peça com a veiculação vencida</);
-  assert.match(corpo, /reunião há 21 dias/);
-  assert.match(corpo, /<b>1 peça passou da veiculação<\/b> e a última reunião foi há 21 dias\. Eu começaria pelas vencidas\./);
-  assert.match(corpo, /class="v2-abre v2f-abre" aria-expanded="false"[\s\S]*1 vencida[\s\S]*Card · Dia do cliente, era para 02\/11, com Deivid/);
-  assert.match(corpo, /Reels · Novidade do mês<\/b><\/p>[\s\S]*veicula amanhã/);
-  assert.match(corpo, />Conteúdo<b class="v2f-q">2<\/b>/);
-  assert.doesNotMatch(corpo, /role="tab"[^>]*>Cadastro</, 'Cadastro abre pela nota e por Editar cadastro');
+  const ordem = ['<h3>Próximas entregas', '<h3>Depois das vencidas', 'fv2-laranja', '<h3>As vencidas', '<b>Saúde</b>', '<b>Última reunião</b>', '<b>Dados e acessos</b>'].map((x) => corpo.indexOf(x));
+  assert.ok(ordem.every((v, i) => v > -1 && (i === 0 || v > ordem[i - 1])), `ordem da prancha: ${ordem}`);
+  // As abas ficam no alto (vybe-clientes-ficha.js as põe em #ficha-abas-topo).
+  assert.match(ler('vybe-clientes-ficha.js'), /const topo = document\.getElementById\('ficha-abas-topo'\);\r?\n\s*if \(topo\) topo\.innerHTML = barra;/);
+  assert.match(corpo, /class="fv2-nota r"[\s\S]*?<b>46<\/b>/);
+  assert.match(corpo, /<b class="d3m-lar-num">1<\/b><span class="d3-acao-frase">peça passou da veiculação<\/span><small>A mais antiga era para 02\/11\.<\/small>/);
+  assert.match(corpo, /onclick="trocarAbaDaFicha\('conteudo'\)">Reagendar</);
+  assert.match(corpo, /class="fv2-venc"[^>]*><i class="fv2-pt"[^>]*><\/i><span class="fv2-venc-t"><b>Card<\/b> · Dia do cliente<\/span><span class="fv2-venc-q">era 02\/11<\/span><i class="cv2-pes" title="Deivid"/);
+  assert.match(corpo, /class="fv2-peca-tipo">Reels · 13\/11<\/span>[\s\S]*?<b>Novidade do mês<\/b>/);
+  assert.match(corpo, /<b>Próxima reunião<\/b> · a última foi há 21 dias/);
 });
 
-test('Ficha: as listas completas viram as abas Conteúdo e Demandas', () => {
+test('Ficha: as listas completas viram as abas Conteúdo e Demandas; Financeiro e Ecossistema entram como abas', () => {
   const { ctx } = carregar();
-  assert.deepEqual([...vm.runInContext('FICHA_ABAS.map(([id]) => id)', ctx)], ['geral', 'demandas', 'conteudo', 'reunioes', 'onboarding', 'cadastro', 'ecossistema', 'cerebro']);
-  assert.match(ler('vybe-clientes-ficha.js'), /if \(conteudos\) conteudos\.hidden = FICHA_ABA !== 'conteudo';/);
+  assert.deepEqual([...vm.runInContext('FICHA_ABAS.map(([id]) => id)', ctx)], ['geral', 'demandas', 'conteudo', 'reunioes', 'onboarding', 'financeiro', 'ecossistema', 'cerebro', 'cadastro']);
+  const fonte = ler('vybe-clientes-ficha.js');
+  assert.match(fonte, /if \(conteudos\) conteudos\.hidden = FICHA_ABA !== 'conteudo';/);
+  // Financeiro da ficha: só a conta do cliente, só para donos. Quem não é dono não vê a aba nem o valor.
+  assert.match(fonte, /\.filter\(\(\[id\]\) => id !== 'financeiro' \|\| fichaEhDono\(\)\)/);
+  assert.match(fonte, /if \(FICHA_ABA === 'financeiro' && !fichaEhDono\(\)\) FICHA_ABA = 'geral';/);
+  ctx.souDonoDaSessao = () => false;
+  assert.equal(ctx.financeiroDaFichaHtml('Academia Lions'), '<p class="d3v-estado"><b>Só os donos veem o financeiro do cliente.</b></p>');
+  ctx.trocarAbaDaFicha('financeiro');
+  assert.equal(vm.runInContext('FICHA_ABA', ctx), 'geral', 'quem não é dono volta para o Resumo');
 });
 
 test('Reuniões: janela própria com fala, três números, Pede ação que abre no lugar, lista e Nova reunião ao lado', async () => {

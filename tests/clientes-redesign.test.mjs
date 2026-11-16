@@ -158,28 +158,30 @@ test('alto e coluna de consulta: a frase da carteira, o cartão laranja de quem 
   assert.match(pegar('clientes-aviso').innerHTML, /onclick="focarClientes\('sem-registro'\)">Completar cadastros</);
 });
 
-test('ficha (quadro Ficha do cliente): uma linha no alto, a nota com o porquê, a fala, Pede ação, entregas e Dados e acessos', () => {
+test('ficha (prancha V2-M-Cliente-Ficha): o alto numa linha, as abas, o cartão laranja, as folhas e a consulta', () => {
   const { ctx, pegar } = carregar();
   ctx.podeAdministrar = () => true;
   ctx.renderClientMasterDetail('Academia Lions');
   const cabeca = pegar('cliente-detalhe-cabeca').innerHTML;
-  assert.match(cabeca, /clf-voltar" onclick="voltarClientesLista\(\)">/);
-  assert.match(cabeca, /class="clf-nome v2f-nome"[^>]*>Academia Lions<\/h2><button[^>]*cli-situacao ativo/);
-  assert.match(cabeca, /Academia[\s\S]*Plus[\s\S]*head[\s\S]*Vinícius/);
-  assert.match(cabeca, /Editar cadastro[\s\S]*class="v2f-btn p" onclick="openCadastrosGoverned\(\{ client: 'Academia Lions' \}\)">Nova demanda/);
+  assert.match(cabeca, /clf-voltar" onclick="voltarClientesLista\(\)"/);
+  assert.match(cabeca, /class="clf-nome fv2-nome">Academia Lions<\/h2>/);
+  assert.match(cabeca, /Academia[\s\S]*Plus[\s\S]*head[\s\S]*Vinícius[\s\S]*class="fv2-sit ativo"/);
+  assert.match(cabeca, /aria-label="Editar cadastro"[\s\S]*class="cv2-novo" onclick="openCadastrosGoverned\(\{ client: 'Academia Lions' \}\)">[\s\S]*Nova demanda/);
   const corpo = pegar('client-master-detail').innerHTML;
-  assert.match(corpo, /class="v2f-nota" style="color:#11613A"><span class="v2-num">88</);
-  assert.match(corpo, /reunião há 9 dias/);
-  assert.match(corpo, /onclick="trocarAbaDaFicha\('cadastro'\)">cadastro 3 de 3</);
-  assert.match(corpo, /Mateus · Atendimento ao cliente/);
-  assert.match(corpo, /<h3>Pede ação<\/h3>[\s\S]*Próxima reunião<\/b> ainda não marcada[\s\S]*>Marcar reunião</);
-  assert.match(corpo, /<h3>Próximas entregas<\/h3><span class="v2f-sub">1 conteúdo em aberto · 1 pedido/);
-  assert.match(corpo, /<h3>Última reunião<\/h3>/);
-  assert.match(corpo, /<h3>Dados e acessos<\/h3>[\s\S]*Drive<\/b> do cliente[\s\S]*Documento de acessos[\s\S]*>Ver acessos<[\s\S]*Link do projeto/);
-  assert.match(corpo, /Painel do cliente[\s\S]*Atualizado/, 'o estado do painel continua na ficha, em Ver acessos');
-  assert.match(corpo, /class="ficha-abas v2f-seg"[\s\S]*>Resumo<[\s\S]*>Demandas<b class="v2f-q">1<\/b>[\s\S]*>Conteúdo<b class="v2f-q">1<\/b>[\s\S]*>Reuniões</);
-  assert.match(corpo, /class="v2f-chip"[^>]*>Ecossistema<[\s\S]*>Cérebro</);
-  assert.doesNotMatch(corpo, /class="cli-mais"/, 'sem os "+" soltos');
+  assert.match(corpo, /class="fv2-nota g"[\s\S]*?<b>88<\/b>/);
+  // Sem peça vencida e com reunião recente, o laranja sai: a leitura fica calma, no vidro.
+  assert.doesNotMatch(corpo, /fv2-laranja/);
+  assert.match(corpo, /class="fv2-calmo"[^>]*><b>A conta está em ordem\.<\/b><span>Nenhuma peça vencida e a última reunião foi há 9 dias\./);
+  assert.match(corpo, /<h3>Pede ação<\/h3>[\s\S]*<b>Próxima reunião<\/b> · a última foi há 9 dias[\s\S]*>Marcar reunião</);
+  assert.match(corpo, /<h3>Próximas entregas<\/h3><span class="fv2-cab-lado">1 em aberto · 1 pedido/);
+  assert.match(corpo, /<h3>As vencidas<\/h3>[\s\S]*Nenhuma peça vencida\./);
+  assert.match(corpo, /<b>Última reunião<\/b>/);
+  assert.match(corpo, /<b>Dados e acessos<\/b>[\s\S]*<b>Drive do cliente<\/b>[\s\S]*<b>Documento de acessos<\/b>[\s\S]*<b>Acessos<\/b> · links, senhas e painel[\s\S]*<b>Link do projeto<\/b>/);
+  assert.match(corpo, /Painel do cliente[\s\S]*Atualizado/, 'o estado do painel continua na ficha, em Acessos');
+  const abas = pegar('ficha-abas-topo').innerHTML;
+  assert.match(abas, /class="ficha-abas cv2-seg fv2-abas"[\s\S]*>Resumo<[\s\S]*>Demandas<span class="v2f-q">1<\/span>[\s\S]*>Conteúdo<span class="v2f-q">1<\/span>[\s\S]*>Reuniões[\s\S]*>Ecossistema<[\s\S]*>Cérebro</);
+  assert.doesNotMatch(abas, />Financeiro</, 'sem sessão de dono, a aba Financeiro não aparece');
+  assert.doesNotMatch(abas, />Cadastro</, 'Cadastro abre pelo lápis e por Completar');
 });
 
 test('ecossistema: selo com texto à esquerda, barra "n de 6" e laranja só no que falta', () => {

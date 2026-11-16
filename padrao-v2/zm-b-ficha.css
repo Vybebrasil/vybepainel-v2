@@ -1,0 +1,182 @@
+/* A FICHA DO CLIENTE NA DIREÇÃO V2 (prancha V2-M-Cliente-Ficha, aprovada pelo Paulo em 16/11/2026). Fragmento do grupo B.
+   A janela é vidro fumê. O alto fica no vidro, numa linha (voltar, a foto, o nome com a linha do cadastro, as abas, o
+   lápis e Nova demanda). O Resumo tem três colunas: as folhas "Próximas entregas" e "Depois das vencidas"; o cartão
+   laranja do Mateus com a folha "As vencidas"; e a consulta direto no vidro (Saúde, Última reunião, Dados e acessos,
+   Planejamentos). Fora do Resumo, a aba mora numa folha que rola por dentro. Peças locais: fv2-*; as comuns vêm de
+   z-direcao.css (d3m-*, d3v-*) e de zm-b-clientes.css (cv2-cab, cv2-chip, cv2-seg, cv2-novo, cv2-foto, cv2-laranja). */
+
+/* 1 · A janela e o esqueleto (data-cv2="ficha" é posto por marcarTelaDeClientes). */
+body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
+body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes{box-sizing:border-box;height:calc(100% + 4px);margin:0 -16px 0 -2px;background:none;box-shadow:none}
+body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes > .container{display:flex;flex-direction:column;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:480px;margin:0;color:var(--d3-tinta)}
+/* A folha de antes prende o espaçamento da casa (22px 30px 36px, forçado): a ficha volta para a borda de 16 px por margem. */
+body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe{order:0;flex:1 1 0;display:flex;flex-direction:column;gap:16px;min-height:0;margin:-14px -30px -36px}
+#painel-clientes #panel-cliente-detalhe > #cliente-detalhe-cabeca{flex:none;margin:0;padding:0;border:0;background:none;container:fv2topo / inline-size}
+#painel-clientes #panel-cliente-detalhe > #client-master-detail{flex:1 1 0;display:block;min-height:0;margin:0;padding:0;background:none}
+#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="conteudo"],#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="demandas"]{display:none}
+
+/* 2 · O alto. */
+#painel-clientes .fv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:48px;margin:0;padding:0 96px 0 0;border:0;background:none;color:var(--d3-fume-texto)}
+#painel-clientes .fv2-topo > .cv2-foto.g{width:44px;height:44px;font-size:var(--d3-fs-destaque)}
+#painel-clientes .fv2-tit{flex:1 1 140px;display:flex;flex-direction:column;gap:3px;min-width:140px;margin:0}
+#painel-clientes .fv2-nome{margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-meta{display:flex;align-items:center;gap:5px;min-width:0;margin:0;font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden}
+#painel-clientes .fv2-meta > .clf-ponto{font-style:normal}
+#painel-clientes .fv2-meta > .clf-meta-item{color:inherit;border-radius:4px}
+#painel-clientes .fv2-meta > .clf-meta-item.editavel{cursor:pointer}
+#painel-clientes .fv2-meta > .clf-meta-item.editavel:hover{color:var(--d3-fume-texto);text-decoration:underline;text-underline-offset:3px}
+#painel-clientes .fv2-meta > .clf-meta-item:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+#painel-clientes .fv2-meta > .fv2-sit{appearance:none;height:auto;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-fume-apagado);font:inherit;text-transform:lowercase;cursor:pointer}
+#painel-clientes .fv2-meta > button.fv2-sit:hover{color:var(--d3-fume-texto);text-decoration:underline;text-underline-offset:3px}
+#painel-clientes .fv2-abas-topo{flex:0 1 auto;display:flex;min-width:0}
+#painel-clientes .fv2-abas{order:0;max-width:100%;overflow-x:auto;scrollbar-width:none}
+#painel-clientes .fv2-abas > button{flex:none;display:inline-flex;align-items:center;gap:6px}
+#painel-clientes .fv2-abas > button > svg{flex:none}
+#painel-clientes .fv2-abas .v2f-q{min-width:0;height:auto;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font-size:inherit;font-weight:400;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-abas > button[aria-checked="true"] .v2f-q{color:var(--d3-rotulo)}
+#painel-clientes .fv2-acoes{flex:none;display:inline-flex;align-items:center;gap:8px;margin:0}
+/* Sem largura para tudo numa linha (janela estreita ou muitas abas), as abas descem para uma linha só delas. */
+@container fv2topo (max-width:1480px){
+  #painel-clientes .fv2-abas-topo{order:9;flex:1 1 100%}
+}
+
+/* 3 · O Resumo: três colunas da altura da janela; só as listas rolam por dentro. */
+#painel-clientes .fv2-resumo{display:grid;grid-template-columns:minmax(0,1fr) 340px 300px;gap:16px;height:100%;min-height:0;margin:0;padding:0}
+#painel-clientes .fv2-col{display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0}
+#painel-clientes .fv2-folha{display:flex;flex-direction:column;min-width:0;min-height:0;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#painel-clientes .fv2-cab-lado{flex:none;display:inline-flex;align-items:center;gap:8px;margin-left:auto;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#painel-clientes .fv2-cab-lado > .cv2-chip{color:var(--d3-tinta);font-weight:500}
+#painel-clientes .fv2-entregas{flex:none}
+#painel-clientes .fv2-pecas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:0 16px 16px}
+#painel-clientes .fv2-peca{appearance:none;position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:8px;min-width:0;height:176px;margin:0;padding:10px;box-sizing:border-box;border:0;border-radius:12px;overflow:hidden;background:linear-gradient(180deg,hsl(var(--h,28) 46% 30%) 0%,hsl(var(--h,28) 40% 14%) 100%);color:var(--d3-escuro-texto);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#painel-clientes .fv2-peca:hover{box-shadow:0 0 0 2px var(--d3-tinta)}
+#painel-clientes .fv2-peca:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#painel-clientes .fv2-peca-tipo{max-width:100%;height:20px;padding:0 8px;box-sizing:border-box;border-radius:999px;background:var(--d3-folha);color:var(--d3-tinta);font:500 var(--d3-fs-mini)/20px var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-peca-pe{display:flex;flex-direction:column;gap:2px;min-width:0;max-width:100%}
+#painel-clientes .fv2-peca-pe > b{font:600 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-escuro-texto);-webkit-text-fill-color:var(--d3-escuro-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-peca-st{display:inline-flex;align-items:center;gap:6px;min-width:0;color:var(--d3-escuro-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-peca-st > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-fume-apagado)}
+#painel-clientes .fv2-peca-st.a > i{background:var(--d3-ajuste-claro)}
+#painel-clientes .fv2-peca-st.b > i{background:var(--d3-info-claro)}
+#painel-clientes .fv2-peca-st.g > i{background:var(--d3-pronto-claro)}
+#painel-clientes .fv2-pede,#painel-clientes .fv2-vencidas{flex:1 1 0}
+#painel-clientes .fv2-linhas{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+#painel-clientes .fv2-lin{display:flex;align-items:center;gap:10px;min-height:44px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);background:none}
+#painel-clientes .fv2-lin-rot{flex:0 0 104px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-lin-rot.a{color:var(--d3-ambar)}
+#painel-clientes .fv2-lin > p{flex:1 1 auto;min-width:0;margin:0;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-lin > p > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-lin > .d3v-btn{flex:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+#painel-clientes .fv2-lin > input{flex:1 1 auto;min-width:0;height:28px}
+#painel-clientes .fv2-alto{display:block;margin:0}
+#painel-clientes .fv2-laranja{min-height:252px}
+#painel-clientes .fv2-calmo{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;border-radius:var(--d3-r-ilha);background:var(--d3-fume-veu);color:var(--d3-fume-apagado);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+#painel-clientes .fv2-calmo > b{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#painel-clientes .fv2-venc{appearance:none;display:flex;align-items:center;gap:10px;width:100%;height:38px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#painel-clientes .fv2-venc:hover{background:var(--d3-veu)}
+#painel-clientes .fv2-venc:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#painel-clientes .fv2-pt{flex:none;width:7px;height:7px;border-radius:50%;background:none}
+#painel-clientes .fv2-pt.a{background:var(--d3-ambar)}
+#painel-clientes .fv2-venc-t{flex:1 1 auto;min-width:0;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-venc-t > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-venc-q{flex:none;font-size:var(--d3-fs-apoio);color:var(--d3-perigo);font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-venc > .cv2-pes.vazio{background:none}
+#painel-clientes .fv2-legenda{flex:none;display:flex;align-items:center;gap:6px;min-height:44px;margin:0;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+
+/* 4 · A consulta, direto no vidro. */
+#painel-clientes .fv2-lado{min-height:0;overflow-y:auto;scrollbar-width:none}
+#painel-clientes .fv2-lado :is(.d3m-cons-cab > b,.d3m-vlin b,.fv2-mot b,.fv2-nota b){-webkit-text-fill-color:currentColor}
+#painel-clientes .fv2-lado .d3m-vlin{color:var(--d3-fume-texto)}
+#painel-clientes .fv2-lado .d3m-vlin > span:not(.d3m-vbarra){flex:1 1 auto;min-width:0;color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-lado .d3m-vlin > span > b{font-weight:600;color:var(--d3-fume-texto)}
+#painel-clientes .fv2-lado .d3m-vlin > .d3m-vbarra{flex:0 0 56px}
+#painel-clientes .fv2-lado div.d3m-vlin{cursor:default}
+#painel-clientes #client-master-detail .fv2-lado .fv2-campo{display:flex;flex-direction:row;align-items:center;gap:10px;height:36px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+#painel-clientes #client-master-detail .fv2-lado .fv2-campo > span > b{display:inline;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#painel-clientes .fv2-lado .d3m-pt.g{background:var(--d3-pronto-claro)}
+#painel-clientes .fv2-apoio{flex:none;font-style:normal;font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
+#painel-clientes .fv2-mini{appearance:none;flex:none;margin:0;padding:0 2px;border:0;border-radius:4px;background:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#painel-clientes .fv2-mini:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+#painel-clientes .fv2-campo > input{flex:1 1 auto;min-width:0;height:26px}
+#painel-clientes .fv2-saude{appearance:none;display:flex;align-items:center;gap:14px;width:100%;margin:0;padding:12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+#painel-clientes button.fv2-saude{cursor:pointer}
+#painel-clientes button.fv2-saude:hover{background:var(--d3-fume-veu-forte)}
+#painel-clientes button.fv2-saude:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+#painel-clientes .fv2-nota{position:relative;flex:none;display:grid;place-items:center;width:56px;height:56px;--fv2-tom:var(--d3-fume-apagado)}
+#painel-clientes .fv2-nota.r{--fv2-tom:var(--d3-perigo-claro)}
+#painel-clientes .fv2-nota.a{--fv2-tom:var(--d3-ajuste-claro)}
+#painel-clientes .fv2-nota.g{--fv2-tom:var(--d3-pronto-claro)}
+#painel-clientes .fv2-nota > svg{position:absolute;inset:0;width:100%;height:100%}
+#painel-clientes .fv2-nota > svg > circle{fill:none;stroke:var(--d3-fume-veu-forte);stroke-width:5}
+#painel-clientes .fv2-nota > svg > circle.v{stroke:var(--fv2-tom);stroke-linecap:round}
+#painel-clientes .fv2-nota > b{position:relative;font:600 20px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-mots{display:flex;flex-direction:column;gap:3px;min-width:0}
+#painel-clientes .fv2-mot{display:flex;gap:8px;min-width:0;color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-mot > b{flex:0 0 26px;font-weight:600;color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-acessos{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-escuro);color:var(--d3-fume-texto)}
+#painel-clientes .fv2-acessos[hidden]{display:none}
+#painel-clientes .fv2-acessos > .clf-acesso{display:flex;align-items:center;gap:8px;min-width:0;margin:0;padding:0;border:0;background:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#painel-clientes .fv2-acessos > .clf-acesso > small{flex:0 0 96px;font:inherit;color:var(--d3-fume-apagado)}
+#painel-clientes .fv2-acessos > .clf-acesso > b{flex:1 1 auto;min-width:0;font-weight:500;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-acessos a{color:var(--d3-fume-texto)}
+
+/* 5 · As outras abas: uma folha que rola por dentro. Conteúdo e Demandas usam as listas da operação (.cliente-listas). */
+#painel-clientes .fv2-aba{height:100%;min-height:0;margin:0;padding:0}
+#painel-clientes .fv2-aba-folha{height:100%;padding:16px;overflow-y:auto;scrollbar-width:thin}
+#painel-clientes .fv2-aba-folha[data-aba="financeiro"]{padding:0}
+body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe > .cliente-listas{flex:1 1 0;min-height:0;margin:0;padding:16px;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:auto;scrollbar-width:thin;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
+/* O status na lista da operação dentro da ficha: o ponto na cor do status e o texto (a peça da Produção só era desenhada lá). */
+#painel-clientes .cliente-listas .pv2-st{appearance:none;display:inline-flex;align-items:center;gap:6px;height:26px;max-width:100%;margin:0;padding:0 8px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#painel-clientes .cliente-listas .pv2-st::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-meta))}
+#painel-clientes .cliente-listas .pv2-st:hover{background:var(--d3-veu-forte)}
+#painel-clientes .cliente-listas .pv2-st:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#painel-clientes .cliente-listas .pv2-st-rot{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .cliente-listas .pv2-st-seta{flex:none;display:grid}
+#painel-clientes .cliente-listas .pv2-st-seta > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-fin{display:flex;flex-direction:column;min-height:100%}
+#painel-clientes .fv2-fin > .cv2-cab{flex-wrap:wrap;row-gap:8px;padding-top:8px;padding-bottom:8px}
+#painel-clientes .fv2-fin-alto{display:flex;flex-direction:column;gap:6px;padding:20px 16px;border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-fin-valor{font:600 44px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.03em;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-fin-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-fin-campo{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-right:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-fin-campo > b{font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+
+/* 6 · Janela baixa: o laranja deita o número e as peças encolhem. */
+@media (max-height:820px) and (min-width:1181px){
+  #painel-clientes .fv2-peca{height:128px}
+  #painel-clientes .fv2-laranja{min-height:0}
+  #painel-clientes .fv2-lado .d3m-vlin{height:32px}
+  #painel-clientes .fv2-lado{gap:10px}
+  #painel-clientes .fv2-saude{padding:8px 12px}
+  #painel-clientes .fv2-semdado{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+/* 7 · Telas menores: uma coluna, e a ficha rola por dentro da janela. */
+@media (max-width:1180px){
+  #painel-clientes #panel-cliente-detalhe > #client-master-detail{overflow-y:auto;scrollbar-width:none}
+  #painel-clientes .fv2-resumo{grid-template-columns:minmax(0,1fr);height:auto}
+  #painel-clientes .fv2-meio{order:-1}
+  #painel-clientes .fv2-laranja{min-height:0}
+  #painel-clientes .fv2-pede,#painel-clientes .fv2-vencidas{flex:none}
+  #painel-clientes .fv2-linhas{flex:none;max-height:320px}
+  #painel-clientes .fv2-lado{overflow:visible}
+}
+@media (max-width:900px){
+  body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes{height:100%;margin:0}
+  body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes > .container{min-height:0}
+  body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe{gap:12px;margin:-6px -24px -20px}
+  #painel-clientes .fv2-topo{padding:0}
+  #painel-clientes .fv2-tit{padding-right:52px}
+  #painel-clientes .fv2-nome{font-size:20px}
+  #painel-clientes .fv2-meta{white-space:nowrap;overflow:hidden}
+  #painel-clientes .fv2-abas-topo{order:9;flex:1 1 100%}
+  #painel-clientes .fv2-acoes{order:8;flex:1 1 100%;justify-content:flex-end}
+  #painel-clientes .fv2-meta > .clf-ponto{display:inline}
+  #painel-clientes .fv2-pecas{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #painel-clientes .fv2-peca{height:128px}
+  #painel-clientes .fv2-lin{flex-wrap:wrap;row-gap:4px;padding:8px 14px}
+  #painel-clientes .fv2-lin-rot{flex:1 1 100%}
+  #painel-clientes .fv2-lin > p{white-space:normal}
+}
+@media (max-width:760px){
+  body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe{margin:0 -6px -54px}
+}
