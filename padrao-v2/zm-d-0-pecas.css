@@ -147,3 +147,4 @@ svg.d3m-d-anel > .fio{fill:none;stroke:currentColor;stroke-width:4;stroke-lineca
   .d3m-d-nums > .d3m-d-num:not(:first-child:nth-last-child(odd)) .d3m-d-num-pe > :is(svg,.d3m-d-barrinhas,.d3m-d-fx-duas){display:none}
   .d3m-d-nums > .d3m-d-num:not(:first-child:nth-last-child(odd)) .d3m-d-num-v{font-size:22px}
 }
+.d3m-d-selo.i{background:var(--d3-info)}

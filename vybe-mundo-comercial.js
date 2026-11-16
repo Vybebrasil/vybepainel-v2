@@ -427,8 +427,9 @@
     if (a === 'usar') { v.usar = id; return irPara('orcamentos'); }
     if (a === 'contratos') { fechar(); window.VybeCarteira?.abrir?.('contratos'); return; }
     if (a === 'ir') return irMod(id);
+    if (a === 'ajuda') { st.ajuda = !st.ajuda; pintar(); return; }
     if (a === 'motivo') { st.filtro.motivo = id; v.fase = 'perdido'; v.mes = false; pintar(); return; }
-    if (a === 'busca') { v.busca = !v.busca; if (!v.busca) st.filtro.funil = ''; pintar(); if (v.busca) raiz()?.querySelector?.('[data-vc-busca="funil"]')?.focus?.(); return; }
+    if (a === 'busca') { v.busca = !v.busca; if (!v.busca) st.filtro[st.aba] = ''; pintar(); if (v.busca) raiz()?.querySelector?.(`[data-vc-busca="${st.aba}"]`)?.focus?.(); return; }
     if (a === 'duplicar') {
       const d = st.dados.orcamentos, o = d?.orcamentos.find((x) => String(x.id) === id); if (!o) return;
       const qtd = {}; for (const i of o.itens || []) if (d.pacotes.some((p) => String(p.id) === String(i.pacote_id))) qtd[i.pacote_id] = (qtd[i.pacote_id] || 0) + (Number(i.quantidade) || 1);
@@ -457,7 +458,7 @@
     if (a === 'visao') { v.visao = id === 'lista' ? 'lista' : 'quadro'; v.fase = ''; v.mes = false; }
     else if (a === 'fase') { v.fase = v.fase === id ? '' : id; v.mes = false; }
     else if (a === 'mostra') v.mostra[id] = true;
-    else if (['mes', 'cap', 'roi', 'colunas', 'fin'].includes(a)) v[a] = !v[a];
+    else if (['mes', 'cap', 'roi', 'colunas', 'fin'].includes(a)) { v[a] = !v[a]; if (v[a] && st.ajuda && M.has(st.aba)) st.ajuda = false; }
     else if (a === 'chip') { v.chip[st.aba] = id; v.mostra = {}; v.aberta = ''; }
     else if (a === 'filtros') v.filtros[st.aba] = !v.filtros[st.aba];
     else if (a === 'paradas') { v.visao = 'quadro'; v.fase = 'proposta'; v.mes = false; v.aberta = id ? 'op:' + id : ''; }
@@ -490,7 +491,7 @@
   // direita), números em folha com o selo e o gráfico na cor do que dizem, o trabalho no meio e a coluna de consulta no
   // vidro, com o cartão laranja em cima. As peças são .d3m-* (z-direcao.css) e .d3m-d-* (zm-d-0-pecas.css); o desenho
   // de cada tela mora em padrao-v2/zm-d-comercial.css. A tela diz o que vai no topo em topoDaVez, ao ser pintada.
-  const M = new Set(['funil']);
+  const M = new Set(['funil', 'pacotes']);
   let topoDaVez = null;
   const ICM = { seta: svg('<path d="M9 6l6 6-6 6"/>'), busca: svg('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svg('<path d="M5 12h.01M12 12h.01M19 12h.01"/>'),
     ok: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'), alerta: svg('<path d="M12 7v6M12 17h.01"/>'), zap: svg('<path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.2A8 8 0 1 1 20 11.5z"/>') };
@@ -505,13 +506,16 @@
   // O topo no vidro. Sem os dados (carregando ou erro), só o título com o menu e o "Mais".
   function topoM(t) {
     const nome = (VISTAS_COM.find((x) => x[0] === st.aba) || [0, 'Comercial'])[1];
-    const itens = [`<button type="button" role="menuitem" data-vc="ajuda" aria-expanded="${st.ajuda}">Como funciona</button>`, ...(t?.mais || []), '<button type="button" role="menuitem" data-vc="fechar">Fechar</button>'];
-    return `<div class="d3m-d-topo d3m-d-cm-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="Comercial: ir a outra tela"><h2>Comercial</h2>${IC.baixo}</summary>
+    const itens = [`<button type="button" role="menuitem" data-v2="ajuda" aria-expanded="${st.ajuda}">Como funciona</button>`, ...(t?.mais || []), '<button type="button" role="menuitem" data-vc="fechar">Fechar</button>'];
+    return `<div class="d3m-d-topo d3m-d-cm-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="${esc(t?.titulo || 'Comercial')}: ir a outra tela do Comercial"><h2>${esc(t?.titulo || (st.aba === 'funil' ? 'Comercial' : nome))}</h2>${IC.baixo}</summary>
         <div class="d3m-d-pop">${VISTAS_COM.map(([id, n]) => `<button type="button" data-v2="ir" data-id="${id}"${id === st.aba ? ' aria-current="page"' : ''}>${esc(n)}</button>`).join('')}</div></details>
         <span class="d3m-d-sub">${t?.sub || esc(nome)}</span></div>
       <div class="d3m-d-ferr">${t?.ferr || ''}<details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais opções" title="Mais opções">${ICM.pontos}</summary><div class="d3m-d-pop" role="menu">${itens.join('')}</div></details>${t?.acao || ''}</div></div>`;
   }
   // Número em folha: rótulo e selo em cima; embaixo o número de 28 (na cor do que diz), a linha de apoio e o gráfico.
+  // O cartão laranja: quem fala e sobre o quê, o número grande, a frase, a linha de apoio e até dois botões.
+  const larM = (cls, rot, n, frase, apoio, bts) => `<section class="d3m-laranja ${cls}" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${esc(rot)}</span>
+      <div class="d3m-lar-txt">${n ? `<b class="d3m-lar-num">${esc(n)}</b>` : ''}<span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div></section>`;
   function numM({ rotulo, selo: s = '', ic = '', valor, de = '', tom = '', sub = '', graf = '', attrs = '' }) {
     const tag = attrs ? 'button' : 'div';
     return `<${tag}${attrs ? ` type="button" ${attrs}` : ''} class="d3m-d-folha d3m-d-num"><span class="d3m-d-num-cab"><span>${esc(rotulo)}</span><span class="d3m-d-selo${s ? ' ' + s : ''}">${ic}</span></span>
@@ -745,8 +749,7 @@
         sub: metaV ? `${num(Math.round(metaV.percentual ?? metaV.barra ?? 0))}% da meta${metaV.id === 'mrr' ? (nGanhoMes != null ? `, com ${plural(nGanhoMes, 'ganho', 'ganhos')}` : '') : ' · ' + esc(metaV.nome.toLowerCase())}` : editaMeta ? `sem meta · ${`<button type="button" class="d3m-d-elo" data-vc="metas">definir</button>`}` : 'sem meta ainda', graf: metaV ? anelM(metaV.barra, 'g') : '' })}
       ${numM({ rotulo: 'Paradas há mais de 5 dias', selo: paradas.length ? 'r' : '', ic: ICM.alerta, valor: num(paradas.length), tom: paradas.length ? 'r' : '', sub: maisParada ? `a mais antiga há ${plural(parada(maisParada), 'dia', 'dias')}` : 'nenhuma proposta parada', graf: barrasM(paradas.slice(0, 5).map(parada).reverse(), 'r'), attrs: maisParada ? `data-v2="paradas" data-id="${esc(maisParada.id)}"` : '' })}</div>`;
     // O laranja: a proposta mais parada; sem ela, o que há em negociação ou o primeiro lead.
-    const lar = (rot, n, frase, apoio, bts) => `<section class="d3m-laranja d3m-d-cm-pesa" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${esc(rot)}</span>
-      <div class="d3m-lar-txt">${n ? `<b class="d3m-lar-num">${esc(n)}</b>` : ''}<span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div></section>`;
+    const lar = (...partes) => larM('d3m-d-cm-pesa', ...partes);
     const laranja = maisParada ? lar('proposta parada', plural(parada(maisParada), 'dia', 'dias'), `sem resposta de ${esc(maisParada.nome)}`,
       `${val && maisParada.valor_mensal ? `Proposta de ${esc(reais(maisParada.valor_mensal))} por mês.` : 'Proposta enviada e sem retorno.'}${ehDia(maisParada.proxima_acao_data) && maisParada.proxima_acao_data < hoje ? ` O retorno era para ${esc(dm(maisParada.proxima_acao_data))}.` : ''}`,
       `<button type="button" class="d3m-btn l" data-v2="ir" data-id="conversas">Retomar a conversa</button><button type="button" class="d3m-btn l s" data-v2="paradas" data-id="${esc(maisParada.id)}">Ver a proposta</button>`)
@@ -924,7 +927,7 @@
   function abaPacotes(d) {
     const p = d.pode || {}, v = st.v2, edita = Boolean(p.editar_pacotes), orca = podeFazer(d, 'editar_comercial');
     const pr = d.produtos || {}, ganhos = Number(pr.ganhos) || 0, camp = pr.campeao || null;
-    const comCusto = d.pacotes.some((x) => x.custo != null), ativos = d.pacotes.filter((x) => x.ativo);
+    const comCusto = veDinheiro() && d.pacotes.some((x) => x.custo != null), ativos = d.pacotes.filter((x) => x.ativo);
     const cargoNome = (id) => C().CARGOS.find((c) => c.id === id)?.nome || id;
     const cap = d.capacidade, capOk = Boolean(cap) && Object.values(cap.capacidades || {}).some((n) => n > 0), dem = demandasAbertas();
     // Mais uma venda deste pacote cabe no time? (a mesma conta do "O time aguenta?")
@@ -938,7 +941,7 @@
     for (const x of d.pacotes) {
       const id = esc(x.id), nome = `<b>${esc(x.nome)}</b>`;
       if (!(Number(x.preco) > 0)) pede.push({ selo: ['r', 'Sem preço'], texto: curtoD3 ? nome : `${nome} · ${x.ativo ? 'ativo' : 'inativo'}; sem preço, o orçamento sai zerado`, acao: edita ? botao('Definir preço', `data-vc="pacote" data-id="${id}"`) : '' });
-      else if (x.ativo && x.zona_critica) pede.push({ selo: ['r', 'Zona crítica'], texto: curtoD3 ? `${nome} · margem ${pc(x.margem_percentual)}` : `${nome} · margem de ${pc(x.margem_percentual)}, abaixo de ${num(d.zona_critica || 20)}%`, acao: edita ? botao('Rever o pacote', `data-vc="pacote" data-id="${id}"`) : '' });
+      else if (comCusto && x.ativo && x.zona_critica) pede.push({ selo: ['r', 'Zona crítica'], texto: curtoD3 ? `${nome} · margem ${pc(x.margem_percentual)}` : `${nome} · margem de ${pc(x.margem_percentual)}, abaixo de ${num(d.zona_critica || 20)}%`, acao: edita ? botao('Rever o pacote', `data-vc="pacote" data-id="${id}"`) : '' });
       const a = aperto(x);
       if (a) pede.push({ selo: ['a', 'Carga alta'], texto: curtoD3 ? `${nome} · ${esc(a.cargo?.nome || 'time')}${a.cargo ? ` ${num(a.cargo.total)}/${a.cargo.capacidade ? num(a.cargo.capacidade) : '0'}` : ''}` : `${nome} · mais uma venda ${a.estado === 'estoura' ? 'passa do que' : 'encosta no que'} ${esc(a.cargo?.nome || 'o time')} dá conta${a.cargo ? `: ${num(a.cargo.total)} de ${a.cargo.capacidade ? num(a.cargo.capacidade) : 'nenhuma'} por mês` : ''}`, acao: edita ? botao('Rever a carga', 'data-vc="capacidade"') : '' });
     }
@@ -968,67 +971,81 @@
           ${acoes ? `<p class="v2c-acoes recuo">${acoes}</p>` : ''}</div></div></div>`;
     };
     const escondidos = d.pacotes.length - lista.length;
-    if (ehD3()) {
-      // Vendidos (quadro D3-Pacotes): negócios ganhos de cada pacote no funil; sem o funil carregado, "—".
+    if (M.has('pacotes')) {
+      // Prancha V2-M-Pacotes: os números em folha (o campeão e, para quem vê dinheiro, os tickets), a esteira numa folha
+      // só (pacote e o que entra nele, tipo, preço, custo em horas, margem e vendidos; a linha abre no lugar) com o "De
+      // olho" no pé, e a coluna de consulta com o laranja do que pesa, o "Pede ação", a carga do time e o "Abrir".
+      // Custo e margem só existem na resposta de quem é dono; sem eles, as colunas não são montadas.
+      // Vendidos: negócios ganhos de cada pacote no funil; sem o funil carregado, "—".
       const fu = st.dados.funil;
       if (!fu && !st.carregando.funil && !st.erro.funil) setTimeout(() => { if (!st.dados.funil && !st.carregando.funil) carregarQuieto('funil'); }, 0);
       const vendidos = fu ? fu.oportunidades.filter((o) => o.etapa === 'ganho' && o.pacote_id != null && o.pacote_id !== '').reduce((m, o) => m.set(String(o.pacote_id), (m.get(String(o.pacote_id)) || 0) + 1), new Map()) : null;
-      // "Carga do design" (quadro D3-Pacotes): a capacidade × vendas do cargo mais apertado, desenhada como cartão.
-      const cargaHtml = () => {
-        const topo = (t) => `<div class="v2c-card-topo"><h3>${esc(t)}</h3></div>`;
-        if (!capOk) return `<section class="v2c-card d3c-carga" aria-label="Carga do time">${topo('Carga do time')}<p class="d3c-carga-vz">Sem capacidade configurada.</p>${edita ? `<p class="v2c-acoes">${botao('Configurar', 'data-vc="capacidade"')}</p>` : ''}</section>`;
-        const ref = camp ? d.pacotes.find((x) => String(x.id) === String(camp.pacote_id)) : ativos.find((x) => Object.keys(x.carga || {}).length);
-        const acr = ref ? C().cargaDosItens([{ carga: ref.carga, quantidade: 1 }]) : {};
-        const r = C().capacidadeTime({ capacidades: cap.capacidades, pessoas: cap.pessoas, demandas: dem || [], acrescimo: acr });
-        const cg = [...r.cargos].filter((c) => c.capacidade > 0).sort((a, b) => (b.uso ?? 0) - (a.uso ?? 0))[0];
-        if (!cg) return '';
-        const atual = cg.carga_atual, passa = cg.total - cg.capacidade;
-        return `<section class="v2c-card d3c-carga" aria-label="Carga de ${esc(cg.nome)}">${topo('Carga · ' + cg.nome)}
-          <p class="d3c-carga-n"><b>${num(atual)}</b><small>de ${num(cg.capacidade)} por mês</small></p>
-          ${cargaSerieHtml(cg)}
-          ${ref ? `<p class="d3c-carga-pe"><span>mais 1 ${esc(ref.nome)}</span>${passa > 0 ? `<b class="a">passa ${num(passa)}</b>` : `<b class="g">cabe</b>`}</p>` : ''}
-          ${dem ? '' : '<p class="v2c-sub">a carga atual ainda não carregou</p>'}</section>`;
-      };
-      // Direção 3: a tabela dos pacotes à esquerda (pacote, tipo, horas, preço e margem) e "Pede ação" à direita.
-      const linhaD3Pk = (x) => {
+      const zona = Number(d.zona_critica) || 20, mensais = ativos.filter((x) => x.tipo === 'recorrente').length;
+      const linhaPk = (x) => {
         const id = esc(x.id), ab = v.aberta === 'pk:' + x.id, rec = x.tipo === 'recorrente', carga = Object.entries(x.carga || {}).filter(([, n]) => Number(n) > 0);
-        const m = Math.round(Number(x.margem_percentual) || 0), tom = x.zona_critica ? 'r' : m < 40 ? 'a' : '';
-        const extra = [semPrecoPk(x) ? '<span class="v2c-pill n">Rascunho</span>' : !x.ativo ? '<span class="v2c-pill n">Inativo</span>' : '', !rec && x.entregas?.length ? `<span class="d3c-ent">${esc(x.entregas.slice(0, 3).join(', '))}</span>` : ''].join('');
+        const m = Math.round(Number(x.margem_percentual) || 0), tom = x.zona_critica ? 'r' : m < 40 ? 'a' : 'g', nv = vendidos && !semPrecoPk(x) ? vendidos.get(String(x.id)) || 0 : null;
         const acoes = [orca && x.ativo && Number(x.preco) > 0 ? botao('Usar em orçamento', `data-v2="usar" data-id="${id}"`, 'k') : '', edita ? botao('Editar pacote', `data-vc="pacote" data-id="${id}"`) : ''].join('');
-        return `<div class="v2c-abre v2-abre${x.ativo ? '' : ' apagado'}" data-v2-linha="pk:${id}" aria-expanded="${ab}">
-          <button type="button" class="v2c-lin d3c-pk${comCusto ? '' : ' sem-margem'}" data-v2="abre" data-id="pk:${id}" aria-expanded="${ab}"><span class="d3c-pk-n"><b>${esc(x.nome)}</b>${extra}</span>
-            <span>${rec ? 'Mensal' : 'Avulso'}</span><span>${Number(x.horas) > 0 ? `${num(x.horas)} h${rec ? '/mês' : ''}` : '—'}</span><span class="d3c-pk-vd">${vendidos && !semPrecoPk(x) ? num(vendidos.get(String(x.id)) || 0) : '—'}</span>
-            <span class="d3c-pk-p${Number(x.preco) > 0 ? '' : ' r'}">${Number(x.preco) > 0 ? esc(reais(x.preco)) : 'sem preço'}</span>
-            ${comCusto ? `<span class="d3c-pk-m">${x.custo != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, m))}%"><i></i></span><b class="${tom}">${pc(m)}</b>` : '—'}</span>` : ''}</button>
-          <div class="v2-mais"><div>
-            <p class="v2c-hist">${x.entregas?.length ? 'Entra: ' + x.entregas.map(esc).join(', ') : 'Sem entregas cadastradas'}</p>
-            ${carga.length ? `<p class="v2c-hist">Carga: ${carga.map(([k, n]) => `${esc(cargoNome(k))} ${num(n)} por mês`).join(' · ')}</p>` : ''}
-            ${x.custo != null ? `<p class="v2c-hist">Custo R$ ${num(Math.round(x.custo))} · margem ${pc(m)}</p>` : ''}
-            ${acoes ? `<p class="v2c-acoes recuo">${acoes}</p>` : ''}</div></div></div>`;
+        return `<article class="d3m-d-pk-li${x.ativo ? '' : ' apagado'}" data-v2-linha="pk:${id}" aria-expanded="${ab}">
+          <button type="button" class="d3m-d-pk-lin${comCusto ? '' : ' sem-margem'}" data-v2="abre" data-id="pk:${id}" aria-expanded="${ab}"><span class="d3m-d-pk-n"><b>${esc(x.nome)}</b>${x.entregas?.length ? ` · ${esc(x.entregas.slice(0, 3).join(', '))}` : ''}</span>
+            <span><i class="d3m-d-pk-tipo">${semPrecoPk(x) ? 'rascunho' : !x.ativo ? 'inativo' : rec ? 'mensal' : 'avulso'}</i></span><b class="d3m-d-pk-p${Number(x.preco) > 0 ? '' : ' r'}">${Number(x.preco) > 0 ? esc(reais(x.preco)) : 'sem preço'}</b>
+            ${comCusto ? `<span class="d3m-d-pk-c">${x.custo != null ? 'R$ ' + num(Math.round(x.custo)) : '—'}</span><span class="d3m-d-pk-m">${x.custo != null ? `<span class="d3m-d-pk-barra ${tom}"><i style="--v:${Math.max(0, Math.min(100, m))}%"></i></span><b class="${tom}">${pc(m)}</b>` : '—'}</span>` : ''}
+            <span class="d3m-d-pk-vd">${nv == null ? '—' : rec ? plural(nv, 'cliente', 'clientes') : plural(nv, 'venda', 'vendas')}</span>${ICM.seta}</button>
+          <div class="d3m-d-cm-mais">
+            <p class="v2c-pas">${x.entregas?.length ? 'Entra: ' + x.entregas.map(esc).join(', ') : 'Sem entregas cadastradas'}</p>
+            ${Number(x.horas) > 0 ? `<p class="v2c-pas">${num(x.horas)} h${rec ? ' por mês' : ''}${carga.length ? ' · Carga: ' + carga.map(([k, n]) => `${esc(cargoNome(k))} ${num(n)} por mês`).join(' · ') : ''}</p>` : carga.length ? `<p class="v2c-pas">Carga: ${carga.map(([k, n]) => `${esc(cargoNome(k))} ${num(n)} por mês`).join(' · ')}</p>` : ''}
+            ${comCusto && x.custo != null ? `<p class="v2c-pas">Custo R$ ${num(Math.round(x.custo))} · margem ${pc(m)}</p>` : ''}
+            ${acoes ? `<p class="v2c-acoes">${acoes}</p>` : ''}</div></article>`;
       };
-      const mensais = ativos.filter((x) => x.tipo === 'recorrente').length;
-      const semPreco = d.pacotes.find((x) => !(Number(x.preco) > 0)), critico = d.pacotes.find((x) => x.ativo && x.zona_critica && Number(x.preco) > 0), alvo = semPreco || critico;
-      const acao = alvo
-        ? acaoD3(`${esc(alvo.nome)} ${alvo === semPreco ? 'está sem preço e fora dos orçamentos.' : 'está com a margem abaixo de ' + num(d.zona_critica || 20) + '%.'}`,
-          edita ? { texto: alvo === semPreco ? 'Definir preço' : 'Rever o pacote', attrs: `data-vc="pacote" data-id="${esc(alvo.id)}"` } : {})
-        : camp ? acaoD3(`${esc(camp.nome)} lidera: ${plural(camp.ganhos, 'negócio ganho', 'negócios ganhos')}.`, ganhos ? { texto: ganhos === 1 ? 'Ver o negócio' : 'Ver os negócios', attrs: 'data-v2="ver-ganhos"' } : {})
-          : acaoD3(d.pacotes.length ? `${plural(ativos.length, 'pacote ativo', 'pacotes ativos')} na esteira.` : 'Nenhum pacote cadastrado ainda.');
-      const numeros = numerosD3([
-        { rotulo: 'Produto campeão', valor: camp ? camp.nome : 'Sem campeão', barra: camp && ganhos ? (camp.ganhos / ganhos) * 100 : null, sub: camp ? `${num(camp.ganhos)} de ${plural(ganhos, 'ganho', 'ganhos')}` : 'nenhum ganho' },
-        ...(veDinheiro() ? [{ rotulo: 'Ticket mensal', valor: pr.ticket_medio_mensal != null ? milhar(pr.ticket_medio_mensal) : 'R$ 0', sub: pr.ticket_medio_mensal != null ? 'média dos ganhos' : 'sem ganho mensal' },
-        { rotulo: 'Ticket avulso', valor: pr.ticket_medio_avulso != null ? milhar(pr.ticket_medio_avulso) : 'R$ 0', sub: pr.ticket_medio_avulso != null ? 'média dos ganhos' : 'sem ganho avulso' }] : []),
-        { rotulo: 'Pacotes ativos', valor: num(ativos.length), sub: `${plural(mensais, 'mensal', 'mensais')} · ${plural(ativos.length - mensais, 'avulso', 'avulsos')}` },
-      ]);
-      const cab = `<div class="d3c-cab d3c-pk${comCusto ? '' : ' sem-margem'}" aria-hidden="true"><span>Pacote</span><span>Tipo</span><span>Horas</span><span class="d3c-pk-vd">Vendidos</span><span class="d3c-pk-p">Preço</span>${comCusto ? '<span>Margem</span>' : ''}</div>`;
-      const corpoD3 = d.pacotes.length ? `${filtroHtml({ aba: 'pacotes', rotulo: 'Buscar pacote', fichas: ['ativos', 'mensal', 'avulso', 'rascunho'].map(ficha), extras: ['inativos', 'todos', ...(comCusto ? ['critica'] : [])].map(ficha) })}
-        <div class="v2c-grade d3c-grade pacotes"><section class="v2c-card v2c-lista d3c-tabela" aria-label="Pacotes"><div class="v2c-card-topo"><h3>Pacotes</h3><small>${num(lista.length)}</small></div>${cab}
-            ${cabe.map(linhaD3Pk).join('') || `<p class="v2c-sub v2c-nada">${termo ? 'Nenhum pacote com esse texto.' : 'Nenhum pacote neste filtro.'}</p>`}
-            ${resto > 0 || escondidos > 0 ? `<p class="v2c-sub v2c-card-pe">${[resto > 0 ? `+ ${num(resto)} · ${elo('mostrar', 'data-v2="mostra" data-id="pacotes"')}` : '', escondidos > 0 ? `${num(escondidos)} fora do filtro` : ''].filter(Boolean).join(' · ')}</p>` : ''}</section>
-          <div class="d3c-col">${pedeHtml(pede, 'pede-pacotes')}${cargaHtml()}</div></div>`
-        : vazioV2('<b>Nenhum pacote ainda.</b>', podeFazer(d, 'editar_pacotes') ? botao('Cadastrar o primeiro pacote', 'data-vc="pacote"') : '');
-      // A lista por cargo (o "O time aguenta?" inteiro) fica no menu ⋯ do topo.
-      return `${acao}${numeros}${corpoD3}
-        ${edita && v.cap ? `<div class="v2c-resto"><div class="vc-secao"><h3>Capacidade do time</h3><button type="button" class="vc-link" data-vc="capacidade">Configurar</button></div>${capacidadeHtml(d.capacidade, {}) || '<p class="vc-dica">Sem capacidade configurada.</p>'}</div>` : ''}`;
+      // As fichas da esteira (as mesmas de antes): o que está à venda, por tipo, o rascunho, os inativos e a zona crítica.
+      const fichas = ['ativos', 'mensal', 'avulso', 'rascunho', 'inativos', 'todos', ...(comCusto ? ['critica'] : [])].map(ficha).filter(([k, , n]) => n > 0 || ['ativos', 'mensal', 'avulso'].includes(k) || k === v.chip.pacotes);
+      const seg = `<span class="d3m-d-pk-seg" role="group" aria-label="Filtrar a esteira">${fichas.map(([k, nome, n]) => `<button type="button" data-v2="chip" data-id="${k}" aria-pressed="${v.chip.pacotes === k}">${esc(nome)} <b>${num(n)}</b></button>`).join('')}</span>`;
+      const abaixo = comCusto ? d.pacotes.filter((x) => x.ativo && x.zona_critica && Number(x.preco) > 0) : [], semP = d.pacotes.filter(semPrecoPk);
+      const olho = [comCusto ? `<span><b>${num(zona)}%</b> é a margem mínima da casa</span>` : '', comCusto ? `<span><b class="${abaixo.length ? 'a' : ''}">${num(abaixo.length)}</b> abaixo dela</span>` : '', `<span><b class="${semP.length ? 'r' : ''}">${num(semP.length)}</b> sem preço</span>`, `<span><b>${num(mensais)}</b> ${mensais === 1 ? 'mensal' : 'mensais'} e <b>${num(ativos.length - mensais)}</b> ${ativos.length - mensais === 1 ? 'avulso' : 'avulsos'}</span>`].filter(Boolean).join('');
+      const cab = `<div class="d3m-d-pk-lin d3m-d-pk-cab${comCusto ? '' : ' sem-margem'}" aria-hidden="true"><span>Pacote</span><span>Tipo</span><span class="d3m-d-pk-p">Preço</span>${comCusto ? '<span class="d3m-d-pk-c">Custo em horas</span><span>Margem</span>' : ''}<span class="d3m-d-pk-vd">Vendidos</span><span></span></div>`;
+      const capAberta = edita && v.cap;
+      // "Capacidade do time" (o "O time aguenta?" inteiro, com o histórico do cargo mais apertado) abre no lugar da esteira.
+      const cgTopo = (() => {
+        if (!capOk) return null;
+        const ref = camp ? d.pacotes.find((x) => String(x.id) === String(camp.pacote_id)) : ativos.find((x) => Object.keys(x.carga || {}).length);
+        const r = C().capacidadeTime({ capacidades: cap.capacidades, pessoas: cap.pessoas, demandas: dem || [], acrescimo: ref ? C().cargaDosItens([{ carga: ref.carga, quantidade: 1 }]) : {} });
+        const cg = [...r.cargos].filter((c) => c.capacidade > 0).sort((a, b) => (b.uso ?? 0) - (a.uso ?? 0))[0];
+        return cg ? { cg, ref, passa: cg.total - cg.capacidade } : null;
+      })();
+      const folha = capAberta
+        ? `<section class="d3m-d-folha d3m-d-cm-folha" aria-label="Capacidade do time"><div class="d3m-d-cab"><h3>Capacidade do time</h3><button type="button" class="d3m-d-elo" data-vc="capacidade">configurar</button><button type="button" class="d3m-d-elo" data-v2="cap" aria-expanded="true">voltar à esteira</button></div>
+            <div class="d3m-d-cm-rolo"><div class="d3m-d-cm-resto">${capacidadeHtml(d.capacidade, {}) || '<p class="vc-dica">Sem capacidade configurada.</p>'}${cgTopo ? `<div class="d3m-d-pk-serie"><b>Carga · ${esc(cgTopo.cg.nome)}</b>${cargaSerieHtml(cgTopo.cg)}</div>` : ''}</div></div></section>`
+        : `<section class="d3m-d-folha d3m-d-cm-folha d3m-d-pk" aria-label="A esteira"><div class="d3m-d-cab"><h3>A esteira <small>· ${plural(ativos.length, 'pacote ativo', 'pacotes ativos')}</small></h3>${seg}</div>${cab}
+            <div class="d3m-d-cm-rolo">${lista.map(linhaPk).join('') || `<p class="d3m-d-cm-nada">${!d.pacotes.length ? 'Nenhum pacote ainda. Os orçamentos e a carga do time saem daqui.' : termo ? 'Nenhum pacote com esse texto.' : 'Nenhum pacote neste filtro.'}</p>`}</div>
+            <div class="d3m-d-pk-olho"><small>De olho</small>${olho}</div></section>`;
+      // Os números: o campeão e, para quem vê dinheiro, os tickets; sem dinheiro, os pacotes ativos.
+      const numeros = `<div class="d3m-d-nums">${numM({ rotulo: 'Produto campeão', selo: 'vybe', ic: ICM.ok, valor: camp ? camp.nome : 'Sem campeão', sub: camp ? `${num(camp.ganhos)} de ${plural(ganhos, 'negócio ganho', 'negócios ganhos')}` : 'nenhum negócio ganho ainda', graf: camp && ganhos ? anelM((camp.ganhos / ganhos) * 100, 'g') : '', attrs: camp && ganhos ? 'data-v2="ver-ganhos"' : '' })}
+        ${veDinheiro() ? numM({ rotulo: 'Ticket mensal', selo: 'negocio', ic: IC.marca, valor: pr.ticket_medio_mensal != null ? reais(Math.round(pr.ticket_medio_mensal)) : '—', sub: pr.ticket_medio_mensal != null ? 'média dos negócios ganhos em pacote mensal' : 'sem negócio mensal ganho' })
+          + numM({ rotulo: 'Ticket avulso', selo: 'i', ic: IC.dinheiro, valor: pr.ticket_medio_avulso != null ? reais(Math.round(pr.ticket_medio_avulso)) : '—', sub: pr.ticket_medio_avulso != null ? 'média dos negócios ganhos em pacote avulso' : 'sem negócio avulso ganho' })
+          : numM({ rotulo: 'Pacotes ativos', selo: 'negocio', ic: IC.marca, valor: num(ativos.length), sub: `${plural(mensais, 'mensal', 'mensais')} · ${plural(ativos.length - mensais, 'avulso', 'avulsos')}` })}</div>`;
+      // O laranja: o pacote sem preço, a margem abaixo do mínimo ou, sem nada pedindo, o campeão.
+      const semPreco = semP[0], critico = abaixo[0];
+      const laranja = critico && comCusto && critico.custo != null && !semPreco ? larM('d3m-d-cm-pesa', 'margem baixa', pc(Math.round(Number(critico.margem_percentual) || 0)), `de margem no ${esc(critico.nome)}`, `O custo em horas está em R$ ${num(Math.round(critico.custo))}. O mínimo da casa é ${num(zona)}%.`,
+        `${edita ? `<button type="button" class="d3m-btn l" data-vc="pacote" data-id="${esc(critico.id)}">Rever o preço</button>` : ''}<button type="button" class="d3m-btn l${edita ? ' s' : ''}" data-v2="abre-um" data-id="pk:${esc(critico.id)}">Ver o custo</button>`)
+        : semPreco ? larM('d3m-d-cm-pesa', 'pacote sem preço', '', `${esc(semPreco.nome)} está sem preço`, 'Fica fora dos orçamentos até ter preço.', edita ? `<button type="button" class="d3m-btn l" data-vc="pacote" data-id="${esc(semPreco.id)}">Definir preço</button>` : '')
+          : camp ? larM('d3m-d-cm-pesa', 'produto campeão', num(camp.ganhos), `${camp.ganhos === 1 ? 'negócio ganho' : 'negócios ganhos'} com o ${esc(camp.nome)}`, '', ganhos ? `<button type="button" class="d3m-btn l" data-v2="ver-ganhos">${ganhos === 1 ? 'Ver o negócio' : 'Ver os negócios'}</button>` : '')
+            : larM('d3m-d-cm-pesa', 'esteira', d.pacotes.length ? num(ativos.length) : '', d.pacotes.length ? `${ativos.length === 1 ? 'pacote ativo' : 'pacotes ativos'} na esteira` : 'Nenhum pacote cadastrado ainda', d.pacotes.length ? 'O campeão aparece com o primeiro negócio ganho.' : 'Os orçamentos e a carga do time saem daqui.', !d.pacotes.length && edita ? '<button type="button" class="d3m-btn l" data-vc="pacote">Cadastrar o primeiro pacote</button>' : '');
+      // Pede ação: sem preço, zona crítica e carga alta, com o botão na linha.
+      const cabePede = v.mostra['pede-pacotes'] ? pede : pede.slice(0, 3);
+      const pedeM = `<section class="d3m-cons d3m-d-pk-pede" aria-label="Pede ação"><div class="d3m-cons-cab"><b>Pede ação</b><span>${pede.length ? num(pede.length) : 'nada agora'}</span></div>
+        ${cabePede.map((y) => `<div class="d3m-d-pk-ped"><span><small class="${y.selo[0]}">${esc(y.selo[1])}</small><em>${y.texto}</em></span>${y.acao || ''}</div>`).join('')}${pede.length > cabePede.length ? `<button type="button" class="d3m-vlin" data-v2="mostra" data-id="pede-pacotes"><span>+ ${num(pede.length - cabePede.length)} · mostrar</span></button>` : ''}</section>`;
+      const cargaM = cgTopo ? `<section class="d3m-cons" aria-label="Carga de ${esc(cgTopo.cg.nome)}"><div class="d3m-cons-cab"><b>Carga · ${esc(cgTopo.cg.nome)}</b><span>${dem ? 'por mês' : 'a carga atual ainda não carregou'}</span></div>
+        <${edita ? 'button type="button" data-v2="cap" aria-expanded="' + Boolean(v.cap) + '"' : 'div'} class="d3m-vlin"><span><b>${num(cgTopo.cg.carga_atual)} de ${num(cgTopo.cg.capacidade)}</b>${cgTopo.ref ? ` · mais 1 ${esc(cgTopo.ref.nome)}` : ''}</span><b class="d3m-vn">${cgTopo.passa > 0 ? `passa ${num(cgTopo.passa)}` : 'cabe'}</b>${edita ? ICM.seta : ''}</${edita ? 'button' : 'div'}></section>`
+        : edita && ativos.length ? `<section class="d3m-cons" aria-label="Carga do time"><div class="d3m-cons-cab"><b>Carga do time</b><span>sem capacidade configurada</span></div><button type="button" class="d3m-vlin" data-vc="capacidade"><span><b>Configurar a capacidade</b></span>${ICM.seta}</button></section>` : '';
+      const nInativos = d.pacotes.filter((x) => !x.ativo).length;
+      const abrirM = `<nav class="d3m-cons d3m-d-cm-abrir" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div><button type="button" class="d3m-vlin" data-v2="ir" data-id="orcamentos"><span><b>Orçamentos</b> · propostas a partir dos pacotes</span>${ICM.seta}</button>
+        <button type="button" class="d3m-vlin" data-v2="ajuda" aria-expanded="${st.ajuda}"><span><b>${comCusto ? "Como o custo é calculado" : "Como funciona"}</b></span>${ICM.seta}</button>
+        ${nInativos ? `<button type="button" class="d3m-vlin" data-v2="chip" data-id="inativos" aria-pressed="${v.chip.pacotes === 'inativos'}"><span><b>Pacotes desativados</b> · ${num(nInativos)}</span>${ICM.seta}</button>` : ''}</nav>`;
+      topoDaVez = { titulo: 'Produtos e pacotes', sub: `a esteira de produtos da Vybe · ${plural(ativos.length, 'ativo', 'ativos')}${comCusto ? ' · custo e margem de cada um' : ''}`,
+        ferr: `${v.busca ? `<input type="search" class="d3m-d-cm-busca" data-vc-busca="pacotes" placeholder="Buscar pacote" aria-label="Buscar pacote" value="${esc(st.filtro.pacotes || '')}">` : ''}<button type="button" class="d3m-d-ico" data-v2="busca" aria-expanded="${Boolean(v.busca)}" aria-label="Buscar" title="Buscar">${ICM.busca}</button>`,
+        mais: edita ? [`<button type="button" role="menuitem" data-v2="cap" aria-expanded="${Boolean(v.cap)}">Capacidade por cargo</button>`, '<button type="button" role="menuitem" data-vc="capacidade">Configurar a capacidade</button>'] : [],
+        acao: edita && d.pacotes.length ? `<button type="button" class="d3m-d-vbtn p" data-vc="pacote">${IC.mais}Novo pacote</button>` : '' };
+      return `<div class="d3m-d-cm" data-tela="cm-pacotes"><div class="d3m-d-cm-main">${numeros}${folha}</div>
+        <aside class="d3m-lado d3m-d-cm-lado" aria-label="Consulta">${laranja}${pedeM}${cargaM}${abrirM}</aside></div>`;
     }
     const frase = camp ? `O campeão é o <b>${esc(camp.nome)}</b>: ${num(camp.ganhos)} ${ganhos === 1 ? 'do' : 'dos'} ${plural(ganhos, 'negócio ganho', 'negócios ganhos')}.${pr.ticket_medio_mensal != null ? ` Ticket médio mensal em <b>${esc(milhar(pr.ticket_medio_mensal))}</b>.` : ''}`
       : d.pacotes.length ? `<b>${plural(ativos.length, 'pacote ativo', 'pacotes ativos')}</b> na esteira. O produto campeão e o ticket médio aparecem com o primeiro negócio ganho.` : 'Nenhum pacote cadastrado ainda. Os orçamentos e a carga do time saem daqui.';

@@ -165,7 +165,9 @@ test('Pacotes: título do dock e vazio com o botão de começar (uma vez); com p
   let html = janela().innerHTML;
   assert.match(topoDe(html), /<h2>Produtos e pacotes<\/h2>/);
   assert.equal((html.match(/data-vc="pacote"/g) || []).length, 1);
-  assert.match(html, /class="v2c-vz"[\s\S]*Cadastrar o primeiro pacote/);
+  // Prancha V2-M-Pacotes (16/11): o vazio é o mesmo esqueleto; o botão de começar mora no cartão laranja.
+  assert.match(html, /class="d3m-btn l" data-vc="pacote">Cadastrar o primeiro pacote</);
+  assert.match(html, /Nenhum pacote ainda\. Os orçamentos e a carga do time saem daqui\./);
   pacotes = [{ id: '1', nome: 'Social', tipo: 'recorrente', preco: 2000, ativo: true, entregas: [], carga: {} }];
   ctx.VybeComercial.abrir('pacotes', { abas: ['pacotes'] }); await esperar();
   html = janela().innerHTML;

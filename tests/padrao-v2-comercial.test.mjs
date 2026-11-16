@@ -69,7 +69,7 @@ test('CRM e funil: topo no vidro, três números, o quadro de todas as fases, Ga
   let html = janela().innerHTML;
   assert.equal(janela().className, 'vc d3m-d-m');
   naOrdem(html, ['<div class="d3m-d-topo d3m-d-cm-topo">', '<details class="d3m-d-troca">', '<h2>Comercial</h2>', 'data-v2="ir" data-id="funil" aria-current="page">CRM e funil</button>', 'data-v2="ir" data-id="conversas">', 'data-v2="ir" data-id="pacotes">', 'data-v2="ir" data-id="orcamentos">', 'data-v2="ir" data-id="contratos">', 'data-v2="ir" data-id="churn">',
-    '<span class="d3m-d-sub">CRM e funil · ', ' · 6 abertas · taxa de ganho de 50%</span>', 'aria-label="Visão do funil"', '<select class="d3m-d-sel" data-vc-filtro="dono"', '<option value="">Dono: todos</option>', 'data-v2="busca"', '<details class="d3m-d-mais">', 'data-vc="ajuda"', 'data-v2="mes"', 'data-vc="etapas">Configurar etapas</button>', 'data-vc="fechar">Fechar</button>', 'class="d3m-d-vbtn p" data-vc="lead">',
+    '<span class="d3m-d-sub">CRM e funil · ', ' · 6 abertas · taxa de ganho de 50%</span>', 'aria-label="Visão do funil"', '<select class="d3m-d-sel" data-vc-filtro="dono"', '<option value="">Dono: todos</option>', 'data-v2="busca"', '<details class="d3m-d-mais">', 'data-v2="ajuda"', 'data-v2="mes"', 'data-vc="etapas">Configurar etapas</button>', 'data-vc="fechar">Fechar</button>', 'class="d3m-d-vbtn p" data-vc="lead">',
     '<div class="d3m-d-cm" data-tela="cm-funil">', '<div class="d3m-d-nums">', '<div class="d3m-d-cm-quadro"', '<div class="d3m-d-cm-fim">', '<aside class="d3m-lado d3m-d-cm-lado"', '<section class="d3m-laranja d3m-d-cm-pesa"', 'aria-label="Conversas"', 'aria-label="Por que se perde"', '<nav class="d3m-cons d3m-d-cm-abrir"']);
   assert.doesNotMatch(html, /v2c-topo|d3c-|class="d3-acao"/, 'nada do esqueleto anterior');
   // O laranja é a proposta mais parada, com o valor (quem vê é dono) e os dois botões.
@@ -140,34 +140,44 @@ test('funil vazio: o mesmo esqueleto, com as colunas vazias e "Cadastrar o prime
   assert.doesNotMatch(html, /class="d3m-d-vbtn p" data-vc="lead"/);
 });
 
-// Direção 3 (moodboard 3, 13/11/2026): Produtos e pacotes e Orçamentos pelos quadros D3: título com o mês, "Como funciona" e a
-// ação em branco; o bloco de ação laranja; quatro números; as fichas; a tabela ao lado de "Pede ação".
-test('Produtos e pacotes: bloco de ação do sem preço, quatro números, fichas, a tabela e "Pede ação"', async () => {
+// Módulos V2 (prancha V2-M-Pacotes, 16/11/2026): os números em folha, a esteira numa folha só com o "De olho" no pé e a
+// coluna de consulta com o laranja, o "Pede ação", a carga do time e o "Abrir".
+test('Produtos e pacotes: topo no vidro, os números, a esteira em colunas com a linha que abre e a coluna de consulta', async () => {
   const { ctx, janela, clicar } = comercial(respostas);
   ctx.VybeComercial.abrir('pacotes', { abas: ['pacotes'] }); await esperar();
   let html = janela().innerHTML;
-  naOrdem(html, ['<h2>Produtos e pacotes</h2>', 'Como funciona</button>', 'class="v2c-btn d3c-novo" data-vc="pacote">', '<section class="d3-acao"', '>Produto campeão</span>', '>Ticket mensal</span>', '>Ticket avulso</span>', '>Pacotes ativos</span>',
-    'class="v2c-busca" data-vc-busca="pacotes" placeholder="Buscar pacote"', 'aria-pressed="true">Ativos <b>4</b></button>', '>Mensal <b>1</b></button>', '>Avulso <b>3</b></button>', '>Rascunho <b>1</b></button>', '>Filtros</button>',
-    '<div class="v2c-grade d3c-grade pacotes">', '<h3>Pacotes</h3>', '<span>Pacote</span><span>Tipo</span><span>Horas</span><span class="d3c-pk-vd">Vendidos</span>', '<div class="d3c-col">', '<h3>Pede ação</h3>', '<section class="v2c-card d3c-carga"']);
-  // Fiel ao quadro (14/11): o rascunho (sem preço) aparece com Ativos; a capacidade por cargo vai para o menu ⋯.
-  assert.match(html, /<b>Tráfego<\/b><span class="v2c-pill n">Rascunho<\/span>/);
-  assert.match(html, /data-v2="cap" aria-expanded="false">Capacidade por cargo · mostrar<\/button>/);
-  assert.doesNotMatch(html, /class="d3c-mais"/);
-  assert.match(html, /VYBES · Comercial<\/small><span class="d3c-frase">Tráfego está sem preço e fora dos orçamentos\.<\/span><\/span><button type="button" class="d3-acao-btn" data-vc="pacote" data-id="5">Definir preço<\/button>/);
+  assert.equal(janela().className, 'vc d3m-d-m');
+  naOrdem(html, ['<div class="d3m-d-topo d3m-d-cm-topo">', '<h2>Produtos e pacotes</h2>', 'data-v2="ir" data-id="pacotes" aria-current="page">', '<span class="d3m-d-sub">a esteira de produtos da Vybe · 4 ativos · custo e margem de cada um</span>', 'data-v2="busca"', 'data-v2="ajuda"', 'data-v2="cap" aria-expanded="false">Capacidade por cargo</button>', 'data-vc="capacidade">Configurar a capacidade</button>', 'class="d3m-d-vbtn p" data-vc="pacote">',
+    '<div class="d3m-d-cm" data-tela="cm-pacotes">', '<span>Produto campeão</span>', '<span>Ticket mensal</span>', '<span>Ticket avulso</span>', '<section class="d3m-d-folha d3m-d-cm-folha d3m-d-pk" aria-label="A esteira">', '<h3>A esteira <small>· 4 pacotes ativos</small></h3>',
+    'aria-pressed="true">Ativos <b>4</b></button>', '>Mensal <b>1</b></button>', '>Avulso <b>3</b></button>', '>Rascunho <b>1</b></button>', '>Inativos <b>1</b></button>',
+    '<span>Pacote</span><span>Tipo</span><span class="d3m-d-pk-p">Preço</span><span class="d3m-d-pk-c">Custo em horas</span><span>Margem</span><span class="d3m-d-pk-vd">Vendidos</span>', '<div class="d3m-d-pk-olho"><small>De olho</small>',
+    '<aside class="d3m-lado d3m-d-cm-lado"', '<section class="d3m-laranja d3m-d-cm-pesa"', 'aria-label="Pede ação"', '<nav class="d3m-cons d3m-d-cm-abrir"']);
+  assert.doesNotMatch(html, /v2c-topo|d3c-|class="d3-acao"/, 'nada do esqueleto anterior');
+  // O rascunho (sem preço) aparece com os ativos e é o que o laranja pede primeiro.
+  assert.match(html, /<b>Tráfego<\/b><\/span>\s*<span><i class="d3m-d-pk-tipo">rascunho<\/i><\/span><b class="d3m-d-pk-p r">sem preço<\/b>/);
+  naOrdem(html, ['VYBES · pacote sem preço</span>', '<span class="d3-acao-frase">Tráfego está sem preço</span>', 'class="d3m-btn l" data-vc="pacote" data-id="5">Definir preço</button>']);
   assert.ok(!html.includes('<b>Completo</b>'), 'nome do pacote escapado');
-  assert.match(html, /<p><b>Vídeo Institucional<\/b> · margem 7,2%<\/p><span class="v2c-pill r">Zona crítica<\/span><\/div><button type="button" class="v2c-btn s" data-vc="pacote" data-id="2">Rever o pacote<\/button>/);
-  // A tabela mostra até seis: os quatro ativos e o rascunho.
-  assert.equal((html.match(/class="v2c-lin d3c-pk"/g) || []).length, 5);
+  // Pede ação: o selo, a frase e o botão na linha.
+  assert.match(html, /<small class="r">Zona crítica<\/small><em><b>Vídeo Institucional<\/b> · margem 7,2%<\/em><\/span><button type="button" class="v2c-btn s" data-vc="pacote" data-id="2">Rever o pacote<\/button>/);
+  naOrdem(html.slice(html.indexOf('d3m-d-pk-olho')), ['<b>20%</b> é a margem mínima da casa', '<b class="a">1</b> abaixo dela', '<b class="r">1</b> sem preço']);
+  // A esteira inteira (os quatro ativos e o rascunho), cada linha abrindo no lugar com o que entra, o custo e os botões.
+  assert.equal((html.match(/<article class="d3m-d-pk-li/g) || []).length, 5);
   const linha = html.slice(html.indexOf('data-v2-linha="pk:1"'), html.indexOf('data-v2-linha="pk:2"'));
-  naOrdem(linha, ['data-v2="abre" data-id="pk:1"', '<span>Mensal</span><span>46 h/mês</span><span class="d3c-pk-vd">1</span>', 'R$ 3.800', 'class="d3-barra"', '46%', 'Entra: 12 posts, 8 stories', 'Carga: ', 'Custo R$ 2.070 · margem 46%', 'data-v2="usar" data-id="1">Usar em orçamento</button>', 'data-vc="pacote" data-id="1">Editar pacote</button>']);
+  naOrdem(linha, ['data-v2="abre" data-id="pk:1"', '<i class="d3m-d-pk-tipo">mensal</i>', '<b class="d3m-d-pk-p">R$ 3.800</b>', '<span class="d3m-d-pk-c">R$ 2.070</span>', 'class="d3m-d-pk-barra g"', '<b class="g">46%</b>', '<span class="d3m-d-pk-vd">', 'Entra: 12 posts, 8 stories', '46 h por mês · Carga: ', 'Custo R$ 2.070 · margem 46%', 'data-v2="usar" data-id="1">Usar em orçamento</button>', 'data-vc="pacote" data-id="1">Editar pacote</button>']);
+  assert.match(html, /<b class="r">7%<\/b>/);
   clicar({ v2: 'chip', id: 'inativos' }); html = janela().innerHTML;
   assert.match(html, /aria-pressed="true">Inativos <b>1<\/b><\/button>/); assert.ok(html.includes('sem preço') && !html.includes('data-v2-linha="pk:1"'));
-  // Quem não é dono não recebe custo: a tabela perde a coluna da margem.
+  // "Capacidade por cargo" abre em folha, no lugar da esteira.
+  clicar({ v2: 'chip', id: 'ativos' }); clicar({ v2: 'cap' }); html = janela().innerHTML;
+  assert.match(html, /aria-label="Capacidade do time">[\s\S]*data-vc="capacidade">configurar<\/button>[\s\S]*data-v2="cap" aria-expanded="true">voltar à esteira<\/button>/);
+  assert.doesNotMatch(html, /aria-label="A esteira"/);
+  // Quem não é dono não recebe custo: a esteira não monta custo nem margem, e os tickets dão lugar aos pacotes ativos.
   const equipe = comercial((url) => (url.includes('aba=pacotes') ? { ok: true, pode: {}, hoje, pacotes: [{ id: '1', nome: 'Social', tipo: 'recorrente', preco: 2000, entregas: ['8 posts'], carga: {}, ativo: true }] } : { ok: true }));
   equipe.ctx.VybeComercial.abrir('pacotes', { abas: ['pacotes'] }); await esperar();
   const h = equipe.janela().innerHTML;
-  assert.match(h, /class="v2c-lin d3c-pk sem-margem"/);
-  assert.ok(!h.includes('Custo R$') && !h.includes('<span>Margem</span>') && !h.includes('Novo pacote') && !h.includes('Editar pacote'));
+  assert.match(h, /class="d3m-d-pk-lin sem-margem" data-v2="abre"/);
+  assert.match(h, /<span>Pacotes ativos<\/span>/);
+  assert.ok(!h.includes('Custo') && !h.includes('<span>Margem</span>') && !/[^-]margem/.test(h) && !h.includes('Ticket') && !h.includes('Novo pacote') && !h.includes('Editar pacote'));
 });
 
 test('Orçamentos: bloco de ação do que vence, quatro números, fichas, a tabela e "Pede ação"', async () => {
