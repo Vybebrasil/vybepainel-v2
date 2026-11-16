@@ -144,3 +144,38 @@ test('Feed V2: a grade do meio usa as mesmas peças da camada (o X com o +, a pe
   assert.match(html, /data-vfd-item="1" data-vfd-alvo="2026-11-17"/);
   assert.match(html, /vfd-passado/);
 });
+
+test('Aprovação V2: no mundo a janela troca o topo e o corpo de cada aba; Links mostra a tela de Com o cliente', () => {
+  const src = ler('vybe-mundo-conteudo.js');
+  assert.ok(src.includes("const v2 = () => typeof document !== 'undefined' && Boolean(document.body?.classList.contains('mundo'));"));
+  assert.ok(src.includes("el.classList.toggle('d3m-a-v2', emV2);"));
+  assert.ok(src.includes("${st.aba === 'equilibrio' ? corpoEquilibrioV2() : st.aba === 'aprovar' ? corpoAprovarV2() : corpoClienteV2()}"), 'Links e Com o cliente são a mesma tela');
+  // O esqueleto de antes continua para o tema antigo.
+  assert.ok(src.includes("el.innerHTML = topo + ajuda + aviso + `<div class=\"vc-corpo\">"));
+  const topo = src.slice(src.indexOf('function topoV2'), src.indexOf('function mesV2'));
+  for (const f of ['data-vc-aba="${id}"', 'data-vc-mes="-1"', 'data-vc-mes="1"', 'data-vc-mes="0"', 'data-vc-como', 'data-vc-fechar']) assert.ok(topo.includes(f), `o topo mantém ${f}`);
+  assert.ok(src.includes("if (t.matches('[data-vc-ajuda],[data-vc-como]')) { st.ajuda = !st.ajuda; return pintar(); }"), 'o Como funciona do topo V2 abre a mesma ajuda');
+  assert.match(topo, /role="radio" data-vc-aba="\$\{id\}" aria-checked=/, 'as abas V2 são escolha única, fora do alcance da folha antiga');
+  assert.doesNotMatch(topo.split(/\r?\n/).filter((l) => !l.trim().startsWith('//')).join('\n'), /aria-selected|role="tab"/);
+});
+
+test('Aprovação V2 · Para aprovar: a fila, a arte da vez e o cartão com a decisão levam os mesmos comandos de antes', () => {
+  const src = ler('vybe-mundo-conteudo.js');
+  const v = src.slice(src.indexOf('function esquerdaV2'), src.indexOf('function corpoClienteV2'));
+  for (const f of ['data-vc-apr-ir="${k}"', 'data-vc-apr-lote', 'data-vc-aba="cliente"', 'data-vc-leque="${k}"', 'data-vc-carta="${k}" data-pos="${pos}"', 'data-vc-apr="aprovar"', 'data-vc-apr="alterar"',
+    'data-vc-apr-ver="${k}"', 'data-vc-apr-passo="-1"', 'data-vc-apr-passo="1"', 'data-vc-apr-conta', 'data-vc-apr-lista', 'data-vc-im-abrir', 'data-vc-apr-reler', 'class="v2c-fila d3m-a-ap-fila"', 'class="v2-pontos"', 'vc-apr-baralho']) assert.ok(v.includes(f), `Para aprovar mantém ${f}`);
+  // Passar de peça continua só trocando as posições; a próxima (atrás da arte da vez) acompanha.
+  assert.ok(src.includes("c.classList.toggle('vez', d === 0); c.classList.toggle('prox', d === 1); });"));
+  // A e R decidem a peça da vez pelo mesmo caminho dos botões (o portão confirma antes de gravar).
+  assert.match(src, /\/\^\[ar\]\$\/i\.test\(e\.key\)[^\n]*return decidir\(\/a\/i\.test\(e\.key\) \? 'aprovar' : 'alterar'\); \}/);
+  const css = ler('padrao-v2/zm-a-3-aprovacao.css');
+  assert.match(css, /\.d3m-a-ap-carta:not\(\[data-pos="0"\]\)\{display:none\}/, 'só a peça da vez mostra o cartão');
+});
+
+test('Aprovação V2 · Com o cliente e Equilíbrio: gerar, desligar, copiar, validade, o calendário do cliente e o novo conteúdo continuam', () => {
+  const src = ler('vybe-mundo-conteudo.js');
+  const cli = src.slice(src.indexOf('function corpoClienteV2'), src.indexOf('function corpoEquilibrioV2'));
+  for (const f of ['data-vc-gerar="${esc(c.id)}"', 'data-vc-revogar="${esc(x.id)}"', 'data-vc-dias="${esc(c.id)}"', 'data-vc-copiar', 'data-vc-link-campo', 'data-vc-recarregar-links']) assert.ok(cli.includes(f), `Com o cliente mantém ${f}`);
+  const eq = src.slice(src.indexOf('function corpoEquilibrioV2'), src.indexOf('// Passar de carta mexe só nas posições'));
+  for (const f of ['data-vc-cliente="${esc(c.cliente)}"', 'calendario(d)', 'previa(d)', 'data-vc-novo', 'E.resumoCurto(c)']) assert.ok(eq.includes(f), `Equilíbrio mantém ${f}`);
+});
