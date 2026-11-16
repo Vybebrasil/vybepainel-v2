@@ -454,38 +454,42 @@
     const entradaMedia = Object.values(d.projecao?.base?.entradas_por_categoria || {}).reduce((s, v) => s + Number(v || 0), 0);
     const pct = entradaMedia ? Math.round(a.total / entradaMedia * 100) : null;
     const provaveis = fixosProvaveis(d.transacoes || [], lista);
-    const partes = [topo('Gastos fixos', `<button type="button" class="fv2-btn p" data-fx="fixo-novo">${IC.mais}Novo gasto fixo</button>`, mesNav(meses, u.mes, 'fixos'))];
+    // Padrão V2 (prancha V2-M-Financas-Fixos): o molde. Os fixos do mês pelo dia no cartão principal (o que já saiu e o
+    // que não apareceu), o "De olho" com o mês, o ano e a fatia do que entra; "Onde pesa" e "Parecem fixos" embaixo; o
+    // laranja do Vorcaro só quando um fixo venceu e não saiu (ou, sem cadastro, quando o extrato mostra os prováveis).
     const faltam = a.fixos.filter((f) => !f.achado && f.vence <= hoje);
-    partes.push(!lista.length ? acao(provaveis.length ? `${quantos(provaveis.length, 'gasto parece fixo', 'gastos parecem fixos')} pelo extrato.` : 'Nenhum gasto fixo cadastrado.', provaveis.length ? 'Ver' : 'Cadastrar', provaveis.length ? 'data-fx="foco" data-valor="provaveis"' : 'data-fx="fixo-novo"')
-      : faltam.length === 1 ? acao(`${esc(faltam[0].nome)} venceu dia ${n0(faltam[0].dia)} e não saiu no extrato.`, 'Ver no extrato', 'data-fx="ir-aba" data-valor="extrato" data-chip="saidas"')
-      : faltam.length ? acao(`${n0(faltam.length)} fixos venceram e não saíram no extrato.`, 'Ver no extrato', 'data-fx="ir-aba" data-valor="extrato" data-chip="saidas"')
-      : acao('Tudo que venceu já saiu no extrato.'));
-    partes.push(nums([
-      { rotulo: 'Por mês', valor: mil(a.total), sub: quantos(a.quantidade, 'fixo', 'fixos') },
-      { rotulo: 'No ano', valor: mil(a.anual), sub: `${esc(rs(a.total))} × 12` },
-      { rotulo: `Já saíram em ${soMes(u.mes)}`, valor: `${n0(a.achados)}<small class="d3f-de"> / ${n0(a.quantidade)}</small>`, barra: pc(a.achados, a.quantidade), tom: a.quantidade && a.achados === a.quantidade ? 'g' : '' },
-      { rotulo: 'Do que entra', valor: pct != null ? `${pct}%` : '0%', barra: pct != null ? pct : null, tom: pct == null ? 'q' : '', sub: pct == null ? 'sem média ainda' : '' },
-    ]));
-    if (u.novo) partes.push(card('Novo gasto fixo', fixoCampos(d, u.rascunho || {}), '', 'fx-form-caixa'));
+    const COLS = [[48, 'Dia'], [0, 'Gasto'], [150, 'No extrato'], [110, 'Valor', 'r'], [60, '', 'r']];
     const linhas = a.fixos.map((f) => {
       const editando = u.editando === f.id, naoVeio = !f.achado && f.vence <= hoje;
-      const onde = f.achado ? pill(`saiu ${dataCurta(f.achado.data)}${f.diferenca ? ` · ${f.diferenca > 0 ? '+' : '−'}${rs(Math.abs(f.diferenca))}` : ''}`, f.diferenca > 0 ? 'a' : 'g') : naoVeio ? pill('não apareceu', 'r') : pill(`vence ${dataCurta(f.vence)}`, 'n');
-      return `<div class="v2-abre fv2-linha fx-item${naoVeio ? ' d3f-alerta' : ''}" data-linha="${esc(f.id)}" aria-expanded="${editando}"><div class="fv2-lin"><b class="fx-dia">${String(f.dia).padStart(2, '0')}</b>
-          <span class="fv2-txt fx-item-txt"><b>${esc(f.nome)}</b> <small>· ${esc(nomeCat(d, f.categoria))} · ${esc(FORMA_NOME[f.forma] || f.forma)}${f.observacao ? ` · ${esc(f.observacao)}` : ''}</small></span>
-          <span class="d3f-dir">${onde}</span><b class="fx-valor s">${esc(rs(f.valor))}</b><button type="button" class="fv2-link fx-editar" data-fx="fixo-editar" data-valor="${esc(f.id)}" aria-expanded="${editando}">${editando ? 'fechar' : 'editar'}</button></div>
-        <div class="v2-mais"><div>${editando ? `<div class="fv2-det fx-form-caixa">${fixoCampos(d, f)}</div>` : ''}</div></div></div>`;
+      const onde = f.achado ? `<span class="${f.diferenca > 0 ? 'a' : 'g'}">saiu em ${esc(dataCurta(f.achado.data))}${f.diferenca ? ` · ${f.diferenca > 0 ? '+' : '−'}${esc(rs(Math.abs(f.diferenca)))}` : ''}</span>` : naoVeio ? '<span class="r">não apareceu</span>' : `vence em ${esc(dataCurta(f.vence))}`;
+      return `<div class="v2-abre d3m-d-fm-linha d3m-d-fm-alta fx-item${naoVeio ? ' d3m-d-fm-naoveio' : ''}" data-linha="${esc(f.id)}" aria-expanded="${editando}">${M().tr(COLS, [`<b>${String(f.dia).padStart(2, '0')}</b>`,
+        `<span class="d3m-d-fm-nome"><b>${esc(f.nome)}</b><small>${esc(nomeCat(d, f.categoria))} · ${esc(FORMA_NOME[f.forma] || f.forma)}${f.observacao ? ` · ${esc(f.observacao)}` : ''}</small></span>`, onde, esc(rs(f.valor)),
+        `<button type="button" class="d3m-d-fm-elo fx-editar" data-fx="fixo-editar" data-valor="${esc(f.id)}" aria-expanded="${editando}">${editando ? 'fechar' : 'editar'}</button>`])}
+        <div class="v2-mais"><div>${editando ? `<div class="fv2-det d3m-d-fm-det fx-form-caixa">${fixoCampos(d, f)}</div>` : ''}</div></div></div>`;
     }).join('');
     const inativos = lista.filter((f) => !X().fixoVigente(f, u.mes));
-    const pe = `${inativos.length ? `<details class="fx-det"><summary>${quantos(inativos.length, 'parado', 'parados')}</summary>${inativos.map((f) => `<div class="fx-mini"><span>${esc(f.nome)} · ${esc(rs(f.valor))}${f.fim ? ` · até ${esc(mesCurto(f.fim))}` : ''}</span><button type="button" class="fv2-link" data-fx="fixo-editar" data-valor="${esc(f.id)}">editar</button></div>`).join('')}</details>` : ''}${a.quantidade ? `<span class="d3f-total"><span class="fv2-sub">total</span><b>${esc(rs(a.total))}</b></span>` : ''}`;
     const edInativo = inativos.find((f) => f.id === u.editando);
-    const lado = [card('Onde pesa', a.por_categoria.map((c) => gx(esc(c.nome), c.total / Math.max(1, a.por_categoria[0]?.total || 1) * 100, esc(rs(c.total)), { fatia: c.pct })).join('') || '<p class="fv2-sub">Cadastre para ver.</p>', 'dos fixos'),
-      provaveis.length ? card('Parecem fixos', provaveis.slice(0, 8).map((p, i) => `<div class="fx-mini fx-provavel"><span><b>${esc(p.nome)}</b> <small>· ${esc(nomeCat(d, p.categoria))} · ${n0(p.meses)} meses · dia ~${n0(p.dia)}</small></span><b>${esc(rs(p.valor))}</b><button type="button" class="fv2-btn s${i ? '' : ' d3f-escuro'} d3f-voa" data-fx="fixo-provavel" data-valor="${i}">cadastrar</button></div>`).join('')
-        + `<div class="fx-criterios">${pill('mesmo destino')}${pill('valor ±10%')}${pill('2+ meses')}</div>`, `pelo extrato · ${n0(provaveis.length)}`, '', 'provaveis') : ''].join('');
-    partes.push(`<div class="fx-duas"><div class="fx-col"><section class="fv2-card d3f-tabela fx-fixos" data-fx-card="fixos"><div class="fv2-card-topo"><h2>Fixos de ${esc(soMes(u.mes))}</h2><span class="fv2-sub">pelo dia</span></div>
-      ${linhas ? cabeca([['fx-dia', 'Dia'], ['fv2-txt', 'Gasto'], ['d3f-dir', 'No extrato'], ['fx-valor', 'Valor'], ['fx-editar', '']]) + linhas : vazio('Nenhum gasto fixo cadastrado.')}
-      ${edInativo ? `<div class="fv2-det fx-form-caixa">${fixoCampos(d, edInativo)}</div>` : ''}${pe ? `<div class="fv2-pe">${pe}</div>` : ''}</section></div>
-      <div class="fx-col fx-lado">${lado}</div></div>`);
-    return casca(partes, 'fixos');
+    const pe = inativos.length ? `<div class="d3m-d-fm-pe"><details class="fx-det"><summary>${quantos(inativos.length, 'parado', 'parados')}</summary>${inativos.map((f) => `<div class="fx-mini"><span>${esc(f.nome)} · ${esc(rs(f.valor))}${f.fim ? ` · até ${esc(mesCurto(f.fim))}` : ''}</span><button type="button" class="fv2-link" data-fx="fixo-editar" data-valor="${esc(f.id)}">editar</button></div>`).join('')}</details></div>` : '';
+    const corpo = (linhas || `<div class="d3m-d-fm-vazio"><p>Nenhum gasto fixo cadastrado.</p><button type="button" class="fv2-btn s d3f-escuro" data-fx="fixo-novo">Novo gasto fixo</button></div>`)
+      + (edInativo ? `<div class="fv2-det d3m-d-fm-det fx-form-caixa">${fixoCampos(d, edInativo)}</div>` : '') + pe;
+    const olho = a.quantidade ? M().olho([[esc(rs(a.total)), 'por mês'], [esc(rs(a.anual)), 'no ano'], [pct != null ? `${pct}%` : '0%', pct != null ? 'do que entra' : 'do que entra, sem média ainda']]) : '';
+    const principal = M().folha({ titulo: `Fixos de ${soMes(u.mes)}`, sub: 'pelo dia', dir: a.quantidade ? `${n0(a.achados)} de ${n0(a.quantidade)} já ${a.achados === 1 ? 'saiu' : 'saíram'}` : '', cab: linhas ? M().cab(COLS) : '', corpo, olho, rotulo: 'fixos', cls: 'fx-fixos d3m-d-fm-curta' });
+    const maxCat = Math.max(1, a.por_categoria[0]?.total || 1);
+    const pesa = M().folha({ titulo: 'Onde pesa', dir: 'dos fixos', rotulo: 'pesa', corpo: `<div class="d3m-d-fm-painel d3m-d-fm-pesa">${a.por_categoria.map((c) => gx(esc(c.nome), c.total / maxCat * 100, esc(rs(c.total)), { fatia: c.pct })).join('') || '<p class="fv2-sub">Cadastre para ver.</p>'}</div>` });
+    const COLS_P = [[0, ''], [100, '', 'r'], [80, '', 'r']];
+    const parecem = M().folha({ titulo: 'Parecem fixos', sub: `${n0(provaveis.length)}, pelo extrato`, rotulo: 'provaveis', olho: provaveis.length ? '<p class="d3m-d-fm-nota">mesmo destino, valor parecido, 2 meses ou mais</p>' : '',
+      corpo: provaveis.slice(0, 8).map((p, i) => M().tr(COLS_P, [`<b>${esc(p.nome)}</b> <small>· ${n0(p.meses)} meses, perto do dia ${n0(p.dia)}</small>`, esc(rs(p.valor)), `<button type="button" class="d3m-d-fm-elo d3f-voa" data-fx="fixo-provavel" data-valor="${i}">cadastrar</button>`])).join('') || '<p class="d3m-d-fm-vazio">Nada se repete no extrato.</p>' });
+    const novo = u.novo ? M().folha({ titulo: 'Novo gasto fixo', dir: '<button type="button" class="d3m-d-fm-elo" data-fx="fixo-fechar">fechar</button>', corpo: `<div class="d3m-d-fm-painel">${fixoCampos(d, u.rascunho || {})}</div>`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: 'novo' }) : '';
+    const f0 = faltam[0];
+    const laranja = f0 ? M().laranja({ rot: 'fixo que não apareceu', frase: faltam.length === 1 ? `${esc(f0.nome)} venceu dia ${n0(f0.dia)} e não saiu no extrato` : `${n0(faltam.length)} fixos venceram e não saíram no extrato`,
+      apoio: faltam.length === 1 ? `São ${esc(rs(f0.valor))}. Pode ter sido pago por fora da conta.` : `${faltam.slice(0, 3).map((f) => esc(f.nome)).join(', ')}${faltam.length > 3 ? '…' : '.'}`,
+      bts: [['Ver no extrato', 'data-fx="ir-aba" data-valor="extrato" data-chip="saidas"'], ['Lançar à mão', 'data-fx="ir-aba" data-valor="vorcaro" data-mao="pago"']] })
+      : !lista.length && provaveis.length ? M().laranja({ rot: 'parecem fixos', num: n0(provaveis.length), frase: provaveis.length === 1 ? 'gasto parece fixo pelo extrato' : 'gastos parecem fixos pelo extrato', apoio: 'Cadastre para o Vorcaro avisar quando não saírem.', bts: [['Ver', 'data-fx="foco" data-valor="provaveis"']] }) : '';
+    return M().molde({ tela: 'fx-fixos', aba: 'fixos', titulo: 'Gastos fixos', d, repintar,
+      sub: `${esc(nomeMes(u.mes))} · ${quantos(a.quantidade, 'fixo', 'fixos')}${a.quantidade ? ` · ${esc(mil(a.total))} por mês` : ''}`,
+      ferr: M().setas(meses[meses.indexOf(u.mes) - 1] ? `data-fx="mes" data-alvo="fixos" data-valor="${meses[meses.indexOf(u.mes) - 1]}"` : '', meses[meses.indexOf(u.mes) + 1] ? `data-fx="mes" data-alvo="fixos" data-valor="${meses[meses.indexOf(u.mes) + 1]}"` : ''),
+      acao: M().acao('Novo gasto fixo', `data-fx="fixo-novo" aria-expanded="${Boolean(u.novo)}"`), laranja,
+      corpo: novo + principal + `<div class="d3m-d-fm-par">${pesa}${parecem}</div>` });
   }
   // O que se repete no extrato: mesma contraparte (ou mesmo histórico) e valor parecido (±10%) em 2+ meses diferentes.
   function fixosProvaveis(lista, cadastrados) {
@@ -1204,6 +1208,7 @@
       case 'ir-aba': {
         if (valor === 'extrato') { ue.chip = b.dataset.chip || (b.dataset.cat ? 'todos' : ue.chip); ue.cat = b.dataset.cat || ''; if (b.dataset.mes) ue.mes = b.dataset.mes; ue.aberta = ''; }
         if (valor === 'clientes_mes' && b.dataset.chip) ui.clientes_mes.chip = b.dataset.chip;
+        if (valor === 'vorcaro' && b.dataset.mao) abrirLancarMao({ status: b.dataset.mao });
         const el = document.querySelector(`.vv-trilho [data-submodulo="${valor}"]`);
         if (el && el.getClientRects().length) el.click(); else window.VybeComercial?.abrir?.(valor, { abas: [valor], rotulo: 'Finanças' });
         return;

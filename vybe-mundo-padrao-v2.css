@@ -16223,7 +16223,8 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
 .d3m-d-fm-c small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
 .d3m-d-fm-c > b{font-weight:600}
 .d3m-d-fm-tr > .d3m-d-fm-c:first-child{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
-.d3m-d-fm-rolo{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-fm-rolo{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-fm-nota{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--d3-divisa);font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
 .d3m-d-fm-nome{appearance:none;display:block;width:100%;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:inherit;font:inherit;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .d3m-d-fm-nome:hover > b{text-decoration:underline;text-underline-offset:3px}
 .d3m-d-fm-nome:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
@@ -16307,7 +16308,8 @@ label.d3m-d-vbtn{cursor:pointer}
 .d3m-d-fm-vazio-bts{display:inline-flex;gap:8px}
 .d3m-d-fm-ficha > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 /* Dois cartões lado a lado embaixo do principal. */
-.d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
+.d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:150px}
+.d3m-d-fm-pesa{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-height:100%;box-sizing:border-box}
 
 /* Tela baixa (1366 × 768). */
 @media (max-height:820px){

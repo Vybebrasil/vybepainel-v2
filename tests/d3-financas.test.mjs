@@ -143,10 +143,12 @@ test('Cartão: total, pago pelo extrato, falta e itens; itens com situação, fi
 test('Gastos fixos: o que não apareceu no extrato pede ação, editar no lugar e os prováveis com os critérios', () => {
   const V = telas(), d = dados();
   let html = V.telas.fixos({ d, filtro: {} });
-  comum(html, 'fixos', 4);
-  assert.match(html, /Contador venceu dia 10 e não saiu no extrato\./);
-  assert.match(html, /d3f-alerta" data-linha="fx-contador"[\s\S]*não apareceu/);
-  assert.match(html, /Do que entra[\s\S]*--v:/); assert.match(html, /× 12/);
+  // Padrão V2 (prancha V2-M-Financas-Fixos): o molde; o mês, o ano e a fatia do que entra no "De olho".
+  molde(html, 'fixos');
+  assert.match(html, /Vorcaro · fixo que não apareceu<\/span>[\s\S]*Contador venceu dia 10 e não saiu no extrato/);
+  assert.match(html, /d3m-d-fm-naoveio" data-linha="fx-contador"[\s\S]*não apareceu/);
+  assert.match(html, /class="d3m-d-fm-olho"[\s\S]*por mês[\s\S]*no ano[\s\S]*do que entra/);
+  assert.match(html, /<h3>Onde pesa<\/h3>[\s\S]*class="d3f-gx/); assert.match(html, /data-fx-card="provaveis"/);
   V._teste.ui.fixos.editando = 'fx-aluguel';
   html = V.telas.fixos({ d, filtro: {} });
   assert.match(html, /data-linha="fx-aluguel" aria-expanded="true"[\s\S]*data-fx-form="fixo" data-id="fx-aluguel"[\s\S]*data-fx="fixo-salvar"/);
