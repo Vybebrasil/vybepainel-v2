@@ -215,11 +215,11 @@
       </div></div></div>
       ${sug}
       ${partes ? `<div class="fx-partes">
-        ${partes.map((p, i) => `<div class="fx-parte" data-parte="${i}">
+        ${partes.map((p, i) => `<div class="fx-parte${entrada ? '' : ' fx-parte-saida'}" data-parte="${i}">
           <input name="p_valor" class="fx-in fx-num" inputmode="decimal" value="${esc(p.valor === '' || p.valor == null ? '' : String(p.valor).replace('.', ','))}" placeholder="valor" aria-label="Valor da parte ${i + 1}">
           ${entrada ? `<select name="p_cliente" class="fx-sel" aria-label="Cliente da parte ${i + 1}">${opcoesCliente(d, p.cliente_id)}</select>` : `<select name="p_categoria" class="fx-sel" aria-label="Categoria da parte ${i + 1}">${opcoesCat(d, p.categoria || t.real.categoria, { tipo })}</select>`}
           ${entrada ? `<input name="p_competencia" type="month" class="fx-in" value="${esc(p.competencia || t.real.competencia)}" aria-label="Mês a que se refere a parte ${i + 1}">`
-            : `<select name="p_pessoa" class="fx-sel" aria-label="Para quem na parte ${i + 1}">${opcoesPessoa(d, p.pessoa_id)}</select><input name="p_quem" class="fx-in" value="${esc(p.quem || p.descricao || '')}" placeholder="quem / o quê" aria-label="Quem ou o quê na parte ${i + 1}">`}
+            : `<select name="p_pessoa" class="fx-sel" aria-label="Para quem na parte ${i + 1}">${opcoesPessoa(d, p.pessoa_id)}</select><input name="p_quem" class="fx-in" value="${esc(p.quem || p.descricao || '')}" placeholder="quem / o quê" aria-label="Quem ou o quê na parte ${i + 1}"><input name="p_competencia" type="month" class="fx-in" value="${esc(p.competencia || t.real.competencia)}" title="Referente a" aria-label="Mês a que se refere a parte ${i + 1}">`}
           <button type="button" class="fv2-btn s fv2-seta" data-fx="parte-tirar" data-id="${esc(t.id)}" data-valor="${i}" aria-label="Tirar parte ${i + 1}">×</button></div>`).join('')}</div>` : ''}
       <div class="fx-linha-acoes fx-fim">${partes ? (falta === 0 ? pill('fechou', 'g') : pill(`${falta > 0 ? 'faltam' : 'passou'} ${rs(Math.abs(falta))}`, 'r')) : ''}
         <span class="fv2-seg" role="group" aria-label="Situação">${['pago', 'nao_pago', 'em_aberto'].map((s) => `<button type="button" data-fx="status" data-valor="${s}" data-id="${esc(t.id)}" aria-pressed="${t.real.status === s}">${STATUS_NOME[s]}</button>`).join('')}</span>
