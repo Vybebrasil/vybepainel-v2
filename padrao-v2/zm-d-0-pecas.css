@@ -12,7 +12,7 @@
 /* Topo da janela, direto no vidro: título de 24, apoio de 12 e as ferramentas à direita. */
 .d3m-d-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;margin:0;padding:0;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 .d3m-d-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
-.d3m-d-tit h2{margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
+.d3m-d-tit :is(h1,h2){margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
 .d3m-d-sub{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d3m-d-ferr{flex:none;display:flex;align-items:center;gap:8px;min-width:0}
 /* O título abre o menu das outras vistas; o "Mais" abre o resto. Os dois são <details> com a mesma caixa escura. */

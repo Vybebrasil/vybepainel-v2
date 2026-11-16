@@ -114,20 +114,47 @@ test('Projeção: caixa em linha com o ponto no hoje, a tabela à vista e o "E s
   assert.match(html, /Fluxo realizado[\s\S]*fx-fluxo-b[\s\S]*Resultado por grupo/);
 });
 
-test('Vorcaro: o que viu em rótulo curto, o baralho do WhatsApp com a fila, onde mexer com contagem e as decididas', () => {
+test('Vorcaro (prancha V2-M-Financeiro): três números, Pede decisão, o laranja com o lançamento do WhatsApp e as telas de Finanças no vidro', () => {
   const V = telas(), d = dados();
   let html = V.telas.vorcaro({ d, filtro: {} });
-  comum(html, 'vorcaro', 4);
-  assert.match(html, /coisas pedem atenção; 2 chegaram pelo WhatsApp\./);
-  assert.match(html, /data-fx="foco" data-valor="whats">Ver os 2</);
-  assert.match(html, /class="fx-baralho" style="--atras:1"><span class="fx-carta-atras"[\s\S]*data-fx-proposta="wa-1"/);
-  assert.match(html, /data-fx="proposta-frente" data-valor="wa-2"/);
-  assert.match(html, /<b>Banco sem conferir<\/b> · 4/);
-  assert.match(html, /class="fx-atalho" data-fx="ir-aba" data-valor="extrato"><span><b>Extrato<\/b>[\s\S]*?<b class="d3f-a">4<\/b>/);
-  assert.match(html, /fx-dec-txt v2-risca feita">Print repetido/, 'a descartada risca');
-  V._teste.ui.vorcaro.frente = 'wa-2';
+  assert.match(html, /class="fv2 fx d3f d3m-d-fx" data-tela="fx-vorcaro"/);
+  assert.match(html, /<h1>Vorcaro · Tesouraria<\/h1>[\s\S]*class="d3-selo-donos"[^>]*>[\s\S]*só donos[\s\S]*data-fx="ir" data-valor="setor:financas">Finanças<\/button> · novembro de 2026 · \d+ coisas pedem decisão/);
+  assert.match(html, /data-fx="buscar"[\s\S]*data-fx="foco" data-valor="como"[\s\S]*data-fx="mao-abrir"[^>]*>[\s\S]*?Lançar à mão/);
+  assert.equal((html.match(/class="d3m-laranja/g) || []).length, 1, 'um cartão laranja só');
+  assert.equal((html.match(/class="d3m-d-folha d3m-d-fx-num"/g) || []).length, 3, 'três números');
+  assert.doesNotMatch(html, /—/, 'sem travessão');
+  for (const r of ['Caixa hoje', 'Resultado de novembro', 'Em 6 meses, no ritmo de hoje']) assert.ok(html.includes(`<span>${r}</span>`), r);
+  // Pede decisão: cada achado com o rótulo, o detalhe e o botão que leva à tela.
+  assert.match(html, /data-fx-card="vi" aria-label="Pede decisão">[\s\S]*o mais sério primeiro · \d+ daqui e 2 do WhatsApp/);
+  assert.match(html, /<b>Banco sem conferir<\/b> <span>· 4<\/span>[\s\S]*?data-fx="ir-aba" data-valor="extrato" data-chip="conferir"/);
+  assert.match(html, /<b>WhatsApp<\/b> <span>· 2 esperando<\/span>[\s\S]*?data-fx="foco" data-valor="whats">Ver</);
+  // O laranja é o lançamento do WhatsApp da frente, com os campos para corrigir e as decisões.
+  assert.match(html, /class="d3m-laranja d3m-d-fx-prop" data-fx-proposta="wa-1" data-fx-card="whats"[\s\S]*chegou pelo WhatsApp, 1 de 2[\s\S]*<b>Ewerton<\/b> mandou um print em 12\/11[\s\S]*class="d3m-lar-num">\+R\$ 1\.800,00<\/b><span class="d3-acao-frase">Pix do Cliente Teste/);
+  for (const n of ['tipo', 'valor', 'categoria', 'cliente_id', 'quem', 'data']) assert.match(html, new RegExp(`data-fx-proposta="wa-1"[\\s\\S]*name="${n}"`), `campo ${n} continua editável`);
+  assert.match(html, /data-fx="proposta-lancar" data-valor="wa-1"[\s\S]*data-fx="proposta-descartar" data-valor="wa-1">Descartar/);
+  assert.match(html, /aria-label="A seguir">[\s\S]*1 de 2[\s\S]*data-fx="proposta-frente" data-valor="wa-2"/);
+  // A coluna de consulta: cada tela de Finanças com o que espera nela, e as decididas a um clique.
+  for (const a of ['financas', 'recebimentos', 'contas', 'inadimplencia', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'vales', 'projecao']) assert.match(html, new RegExp(`class="d3m-vlin" data-fx="ir-aba" data-valor="${a}"`), a);
+  assert.match(html, /data-fx="ir-aba" data-valor="extrato"><span><b>Extrato e conciliação<\/b><\/span><b class="d3m-vn">4<\/b>/);
+  assert.match(html, /aria-label="Entrou e saiu"/);
+  assert.match(html, /data-fx="vorcaro-baixo" data-valor="decididas"/);
+  V._teste.ui.vorcaro.baixo = 'decididas';
   html = V.telas.vorcaro({ d, filtro: {} });
-  assert.match(html, /class="fx-baralho"[\s\S]*?data-fx-proposta="wa-2"/, 'a escolhida vem para a frente');
+  assert.match(html, /fx-dec-txt v2-risca feita">10\/11 · Print repetido/, 'a descartada risca');
+  assert.doesNotMatch(html, /aria-label="Entrou e saiu"/, 'as decididas abrem no lugar do gráfico');
+  V._teste.ui.vorcaro.baixo = ''; V._teste.ui.vorcaro.mao = true;
+  html = V.telas.vorcaro({ d, filtro: {} });
+  assert.match(html, /data-fx-form="mao"[\s\S]*data-fx="mao-salvar"/, 'lançar à mão abre no lugar do gráfico');
+  V._teste.ui.vorcaro.mao = false; V._teste.ui.vorcaro.frente = 'wa-2';
+  html = V.telas.vorcaro({ d, filtro: {} });
+  assert.match(html, /class="d3m-laranja d3m-d-fx-prop" data-fx-proposta="wa-2"[\s\S]*2 de 2/, 'a escolhida vem para o laranja');
+  // Sem nada do WhatsApp, o laranja é o item mais sério do "Pede decisão".
+  V._teste.ui.vorcaro.frente = '';
+  const semZap = { ...d, vorcaro: { propostas: [] } };
+  html = V.telas.vorcaro({ d: semZap, filtro: {} });
+  const serio = V._teste.analise(semZap)[0];
+  assert.ok(html.includes(`Vorcaro · o mais sério agora</span>`) && html.includes(`<span class="d3-acao-frase">${serio.rot}`), 'o mais sério no laranja');
+  assert.doesNotMatch(html, /data-fx-proposta=|aria-label="A seguir"/);
   assert.equal(V._teste.analise(d).every((a) => a.rot && a.texto), true, 'cada achado tem o rótulo curto e o texto inteiro');
 });
 

@@ -12143,7 +12143,7 @@ body.mundo #v2j-busca{--glass:var(--d3-fume-painel)}
 /* Topo da janela, direto no vidro: título de 24, apoio de 12 e as ferramentas à direita. */
 .d3m-d-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;margin:0;padding:0;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 .d3m-d-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
-.d3m-d-tit h2{margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
+.d3m-d-tit :is(h1,h2){margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
 .d3m-d-sub{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d3m-d-ferr{flex:none;display:flex;align-items:center;gap:8px;min-width:0}
 /* O título abre o menu das outras vistas; o "Mais" abre o resto. Os dois são <details> com a mesma caixa escura. */
@@ -12217,6 +12217,176 @@ button.d3m-d-numero:focus-visible{outline:2px solid var(--d3-acao);outline-offse
 .d3m-d-numero.r{color:var(--d3-perigo)}
 .d3m-d-numero.g{color:var(--d3-pronto)}
 .d3m-d-numero.a{color:var(--d3-ambar)}
+
+/* ===== padrao-v2/zm-d-financeiro.css ===== */
+/* ===================================================================================================================
+   FINANCEIRO · VORCARO (TESOURARIA) NA PRANCHA V2-M-Financeiro (16/11/2026). Só os donos. A janela é vidro fumê: três
+   números em folha, "Pede decisão" e "Entrou e saiu", o cartão laranja (o lançamento que chegou pelo WhatsApp, com os
+   campos para corrigir; sem ele, o item mais sério do "Pede decisão") e a coluna de consulta direto no vidro. "Lançar à
+   mão" e "Decididas" abrem no lugar do gráfico. O HTML vem de vybe-mundo-financeiro.js (vorcaro e propostaHtml); as
+   peças .d3m-d-* são de zm-d-0-pecas.css e as .d3m-* de z-direcao.css.
+   =================================================================================================================== */
+body.mundo #vv-comercial.fv2-casa:has(> .vc-corpo > .d3m-d-fx){border:0;border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);backdrop-filter:none;-webkit-backdrop-filter:none;color:var(--d3-fume-texto)}
+#vv-comercial.fv2-casa > .vc-corpo:has(> .d3m-d-fx){padding:16px;overflow:hidden}
+#vv-comercial .vc-corpo > .fv2.d3m-d-fx{display:flex;flex-direction:column;gap:16px;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:0;margin:0;padding:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* Topo: o selo "só donos" vira texto com o cadeado; "Finanças" leva à visão do setor. */
+#vv-comercial .fv2.d3m-d-fx .d3m-d-fx-topo .d3-selo-donos{display:inline-flex;align-items:center;gap:5px;height:auto;padding:0;border-radius:0;background:none;color:inherit;font:inherit;vertical-align:baseline}
+#vv-comercial .fv2.d3m-d-fx .d3m-d-fx-topo .d3-selo-donos > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-fx-elo{appearance:none;margin:0;padding:0;border:0;border-radius:3px;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.d3m-d-fx-elo:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+.d3m-d-fx-grade{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;min-height:0}
+.d3m-d-fx-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+/* Os três números. */
+.d3m-d-fx-nums{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.d3m-d-fx .d3m-d-fx-num{appearance:none;justify-content:space-between;width:auto;height:116px;padding:14px;text-align:left}
+.d3m-d-fx button.d3m-d-fx-num{cursor:pointer}
+.d3m-d-fx button.d3m-d-fx-num:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-d-fx-num-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-d-fx-num-cab > span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-fx-num-cab > .d3m-d-selo{width:24px;height:24px}
+#vv-comercial .fv2.d3m-d-fx .d3m-d-selo > svg{width:12px;height:12px;stroke-width:2.4}
+#vv-comercial .fv2.d3m-d-fx .d3m-d-ico > svg,#vv-comercial .fv2.d3m-d-fx .d3m-d-troca > summary > svg{width:16px;height:16px}
+.d3m-d-fx-num-pe{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.d3m-d-fx-num-pe > span:first-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-d-fx-v{font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-fx-v.g{color:var(--d3-pronto)}
+.d3m-d-fx-v.r{color:var(--d3-perigo)}
+.d3m-d-fx-num-pe small{font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-comercial .fv2.d3m-d-fx svg.d3m-d-fx-mini{flex:none;display:block;width:84px;height:40px;overflow:visible;color:var(--d3-tinta)}
+.d3m-d-fx-mini.r{color:var(--d3-perigo)}
+.d3m-d-fx-mini.l{color:var(--d3-agente)}
+.d3m-d-fx-mini > .veu{fill:currentColor;stroke:none;opacity:.14}
+.d3m-d-fx-mini > .fio{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.d3m-d-fx-mini.l > .fio{stroke-dasharray:4 4}
+.d3m-d-fx-duas{flex:none;display:flex;align-items:flex-end;gap:6px;width:84px;height:40px}
+.d3m-d-fx-duas > i{flex:1 1 0;height:var(--v,0%);min-height:3px;border-radius:3px;background:var(--d3-mod-vybe)}
+.d3m-d-fx-duas > i + i{background:var(--d3-meta)}
+
+/* O meio: à esquerda "Pede decisão" e o lugar de baixo; à direita o laranja e a fila. */
+.d3m-d-fx-meio{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;min-height:0}
+.d3m-d-fx-esq,.d3m-d-fx-dir{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-d-fx-pede{flex:0 1 auto;max-height:66%}
+.d3m-d-fx-pede > .d3m-d-cab,.d3m-d-fx-baixo > .d3m-d-cab{height:44px;justify-content:space-between}
+.d3m-d-fx .d3m-d-cab > h3{flex:0 1 auto;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);letter-spacing:0}
+.d3m-d-fx .d3m-d-tit h1{font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em}
+.d3m-d-fx .d3m-d-cab > small{margin-left:auto}
+.d3m-d-fx-rolo{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-fx-ach{display:flex;align-items:center;gap:10px;height:52px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa)}
+.d3m-d-fx-ach > .d3m-d-selo.a{background:var(--d3m-d-ambar)}
+.d3m-d-fx-ach > .d3m-d-selo.n{background:var(--d3-meta)}
+.d3m-d-fx-ach-txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-fx-ach-txt > b{font-weight:600}
+.d3m-d-fx-ach-txt > span{color:var(--d3-rotulo)}
+.d3m-d-fx-ach-v{flex:none;min-width:96px;text-align:right;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-fx-ach-v:empty{display:none}
+.d3m-d-fx-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;width:76px;height:28px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-fx-btn:hover{background:var(--d3-veu)}
+.d3m-d-fx-btn:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-d-fx-baixo{flex:1 1 0;min-height:150px}
+.d3m-d-fx-leg{display:inline-flex;align-items:center;gap:10px}
+.d3m-d-fx-leg > span{display:inline-flex;align-items:center;gap:5px;color:var(--d3-tinta)}
+.d3m-d-fx-leg i{width:10px;height:10px;border-radius:3px;background:var(--d3-meta)}
+.d3m-d-fx-leg i.e{background:var(--d3-mod-vybe)}
+/* Entrou e saiu: um par de barras por mês, o valor em cima e o resultado embaixo. */
+.d3m-d-fx-meses{flex:1 1 0;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:20px;min-height:0;padding:0 24px 14px}
+.d3m-d-fx-mes{display:flex;flex-direction:column;gap:6px;min-height:0}
+.d3m-d-fx-par{flex:1 1 0;display:flex;align-items:flex-end;gap:6px;min-height:0}
+.d3m-d-fx-par > span{flex:1 1 0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;min-width:0;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-d-fx-par b{font-weight:600}
+.d3m-d-fx-par i{flex:0 1 auto;width:100%;height:calc((100% - 20px) * var(--k,0));min-height:3px;border-radius:4px;background:var(--d3-meta)}
+.d3m-d-fx-par i.e{background:var(--d3-mod-vybe)}
+.d3m-d-fx-mes-pe{flex:none;display:flex;justify-content:space-between;font-size:var(--d3-fs-apoio)}
+.d3m-d-fx-mes-pe > b{font-weight:500;font-variant-numeric:tabular-nums}
+.d3m-d-fx-mes-pe > b.g{color:var(--d3-pronto)}
+.d3m-d-fx-mes-pe > b.r{color:var(--d3-perigo)}
+
+/* O cartão laranja com o lançamento do WhatsApp. */
+.d3m-d-fx .d3m-d-fx-prop{flex:0 1 auto;gap:12px;min-height:0;margin:0;overflow-y:auto;scrollbar-width:none;transform:none}
+.d3m-d-fx-quem{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--d3-fs-apoio)}
+.d3m-d-fx-quem > i{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--d3-fume-escuro);color:var(--d3-escuro-texto);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
+.d3m-d-fx-quem b{font-weight:600}
+.d3m-d-fx-val{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-d-fx-prop .d3m-lar-num{font-size:52px;color:var(--d3-escuro-texto);white-space:nowrap}
+.d3m-d-fx-prop .d3-acao-frase{flex:none;overflow:visible;white-space:normal;font:600 19px/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-escuro-texto)}
+.d3m-d-fx-campos{display:flex;flex-direction:column;padding:2px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-escuro)}
+.d3m-d-fx-campos > label{display:flex;align-items:center;justify-content:space-between;gap:12px;height:30px;margin:0;font-size:var(--d3-fs-apoio);color:var(--d3-escuro-texto)}
+.d3m-d-fx-campos > label + label{border-top:1px solid var(--d3-fume-veu-forte)}
+.d3m-d-fx-campos > label > span{flex:none}
+.d3m-d-fx-campos :is(select,input){appearance:none;flex:0 1 190px;width:190px;min-width:0;height:24px;margin:0;padding:0 4px;box-sizing:border-box;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-escuro-texto);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-align:right;text-align-last:right;color-scheme:dark;cursor:pointer}
+.d3m-d-fx-campos input{cursor:text}
+.d3m-d-fx-campos :is(select,input):hover{background:var(--d3-fume-veu)}
+.d3m-d-fx-campos :is(select,input):focus-visible{outline:2px solid var(--d3-escuro-texto);outline-offset:1px}
+.d3m-d-fx-campos option{background:var(--d3-cartao);color:var(--d3-tinta)}
+.d3m-d-fx-ja{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-fx-prop .d3m-lar-bts{align-items:center;margin-top:0}
+.d3m-d-fx-descartar{appearance:none;height:34px;margin:0 0 0 auto;padding:0 4px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-escuro-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-fx-descartar:hover{text-decoration:underline;text-underline-offset:3px}
+.d3m-d-fx-descartar:focus-visible{outline:2px solid var(--d3-escuro-texto);outline-offset:2px}
+/* A seguir: os outros lançamentos do grupo, no vidro. */
+.d3m-d-fx-seguir{flex:0 0 auto;min-height:0;color:var(--d3-fume-texto)}
+.d3m-d-fx-seguir > .d3m-d-fx-rolo{display:flex;flex-direction:column;gap:6px;max-height:86px}
+.d3m-d-fx-seguir .d3m-vlin{flex:none;height:40px}
+.d3m-d-fx-seguir .d3m-vlin > .d3m-vnome{flex:1 1 auto;max-width:none}
+.d3m-d-fx-seguir .d3m-vlin small,.d3m-d-fx-lado .d3m-vlin small{font-size:inherit;color:var(--d3-fume-apagado)}
+.d3m-d-fx-seguir .d3m-vlin b{font-weight:600}
+
+/* A coluna de consulta. */
+.d3m-d-fx-lado{min-height:0;overflow-y:auto;scrollbar-width:none}
+.d3m-d-fx-lado .d3m-cons{flex:none}
+.d3m-d-fx-lado .d3m-vlin{flex:none;height:34px}
+.d3m-d-fx-lado .d3m-vlin > .d3m-vn{min-width:0;color:var(--d3-fume-texto)}
+.d3m-d-fx-como{margin:0;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.d3m-d-fx .d3m-cons.fv2-olha{outline:2px solid var(--d3-fume-texto);outline-offset:6px;border-radius:6px}
+
+/* "Lançar à mão" no lugar do gráfico: o formulário de antes, em folha, com a rolagem por dentro. */
+.d3m-d-fx .d3m-d-fx-esq > .fx-form-caixa{flex:1 1 0;min-height:150px;margin:0;padding:14px 16px;box-sizing:border-box;border-radius:16px;overflow-y:auto;scrollbar-width:thin;background:var(--d3-cartao);box-shadow:var(--d3-folha-sombra)}
+
+/* Tela baixa (1366 × 768): os números e o laranja encolhem um degrau. */
+@media (max-height:820px){
+  .d3m-d-fx .d3m-d-fx-num{height:92px;padding:12px 14px}
+  .d3m-d-fx-v{font-size:24px}
+  .d3m-d-fx-ach{height:40px}
+  .d3m-d-fx-pede{max-height:72%}
+  .d3m-d-fx-pede > .d3m-d-cab,.d3m-d-fx-baixo > .d3m-d-cab{height:40px}
+  .d3m-d-fx .d3m-d-fx-prop{gap:6px;padding:12px 16px}
+  .d3m-d-fx-prop .d3m-lar-num{font-size:32px}
+  .d3m-d-fx-prop .d3-acao-frase{font-size:16px}
+  .d3m-d-fx-campos > label{height:24px}
+  .d3m-d-fx-campos :is(select,input){height:20px}
+  .d3m-d-fx-lado .d3m-vlin{height:30px}
+  .d3m-d-fx-lado,.d3m-d-fx-lado .d3m-cons{gap:4px}
+  .d3m-d-fx-lado{gap:10px}
+}
+@media (max-width:1320px){
+  .d3m-d-fx-grade{grid-template-columns:minmax(0,1fr) 248px}
+  .d3m-d-fx-meio{grid-template-columns:minmax(0,1fr) 340px}
+}
+/* Celular e janela estreita: uma coluna, o laranja logo depois dos números, e a janela rola. */
+@media (max-width:1100px){
+  #vv-comercial.fv2-casa > .vc-corpo:has(> .d3m-d-fx){overflow:hidden auto;padding:12px}
+  #vv-comercial .vc-corpo > .fv2.d3m-d-fx{height:auto}
+  .d3m-d-fx-topo{flex-wrap:wrap;gap:8px}
+  .d3m-d-fx-topo .d3m-d-sub{white-space:normal}
+  .d3m-d-fx-grade,.d3m-d-fx-meio{display:flex;flex-direction:column}
+  .d3m-d-fx-main,.d3m-d-fx-grade,.d3m-d-fx-meio,.d3m-d-fx-esq,.d3m-d-fx-dir,.d3m-d-fx-lado,.d3m-d-fx-seguir{flex:none;min-height:auto}
+  .d3m-d-fx .d3m-d-fx-prop,.d3m-d-fx-pede{flex:none}
+  .d3m-d-fx-rolo,.d3m-d-fx-seguir > .d3m-d-fx-rolo{max-height:none;overflow:visible}
+  .d3m-d-fx-dir{order:-1}
+  .d3m-d-fx-pede{max-height:none}
+  .d3m-d-fx-baixo{flex:none;height:260px}
+  .d3m-d-fx .d3m-d-fx-prop,.d3m-d-fx-lado{overflow:visible}
+}
+@media (max-width:640px){
+  .d3m-d-fx-nums{grid-template-columns:minmax(0,1fr)}
+  .d3m-d-fx-pede > .d3m-d-cab > small{display:none}
+  .d3m-d-fx-ach{height:auto;min-height:52px;flex-wrap:wrap;padding:8px 16px}
+  .d3m-d-fx-ach-txt{flex-basis:calc(100% - 40px);white-space:normal}
+  .d3m-d-fx-ach-v{min-width:0;margin-left:32px;text-align:left}
+  .d3m-d-fx-ach > .d3m-d-fx-btn{margin-left:auto}
+  .d3m-d-fx-prop .d3m-lar-num{font-size:40px}
+  .d3m-d-fx-campos :is(select,input){flex-basis:160px;width:160px}
+}
 
 /* ===== padrao-v2/zm-d-gestao.css ===== */
 /* ===================================================================================================================
