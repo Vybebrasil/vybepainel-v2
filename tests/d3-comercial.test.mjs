@@ -33,7 +33,8 @@ test('as telas do grupo montam as peças da Direção 3 e as séries de meses em
   assert.match(com, /g3\('d3AcaoHtml'\)/); assert.match(com, /g3\('d3NumHtml'\)/); assert.match(com, /g3\('d3LinhaSvg'\)/);
   assert.match(com, /const grafico = ehD3\(\) \? graficoLinha : graficoBarras;/);
   const rel = ler('vybe-relatorios.js');
-  assert.match(rel, /d3AcaoHtml\(\{ frase: corpo, agente: 'H'/);
+  // Direção V2 (prancha V2-M-Diario, 16/11/2026): a ação do Heitor é o cartão laranja da coluna de consulta (.d3m-laranja).
+  assert.match(rel, /<section class="d3m-laranja d3m-e-diario-lar/);
   assert.match(rel, /diarioD3Linha\(serie\.map\(\(x\) => x\.n\.prontas\)/, 'Finalizado na semana em linha');
   // Pronta continua sendo só Finalizado.
   assert.match(rel, /const DIARIO_PRONTO = \['finalizado'\];/);

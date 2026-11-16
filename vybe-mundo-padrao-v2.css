@@ -14476,6 +14476,99 @@ body.mundo.mundo-modulo:is([data-quadro="diario"]) #mundo-moldura{border-radius:
   .d3m-e-pe{flex-wrap:wrap;padding:10px 16px}
 }
 
+/* ===== padrao-v2/zm-e-diario.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · DIÁRIO (prancha V2-M-Diario, aprovada pelo Paulo em 16/11/2026). O HTML sai de vybe-relatorios.js
+   (diarioPintar): a casca .d3m-e-* (zm-e-casca.css), duas folhas à esquerda ("A foto de agora" e "Registros salvos")
+   e, direto no vidro, o cartão laranja do Heitor, "O que mudou", a semana em linha e os atalhos. O cabeçalho antigo do
+   index.html (título, alternador com os ids de sempre e o botão do topo) fica guardado: os ids e os handlers continuam.
+   =================================================================================================================== */
+
+/* O quadro ocupa a janela inteira, com 16 de respiro, sem a rolagem da página (só a lista de registros rola). No
+   computador o quadro prende-se ao body (que no Irecity já é a própria janela, position:fixed) e a tela e a vista das
+   peças prendem-se ao quadro: o .container antigo tem padding com !important em três larguras e o cabeçalho antigo
+   ocupa 8 px acima, e assim nenhum dos dois entra na conta. Sem rolagem de página, a calha da barra de rolagem sai. */
+#painel-diario > .container > .vb-cabecalho{display:none}
+body.mundo #painel-diario{background:none}
+@media (min-width:901px){
+  body.mundo.mundo-modulo[data-quadro="diario"]{scrollbar-gutter:auto}
+  body.mundo.mundo-modulo[data-quadro="diario"] #painel-diario{position:absolute;inset:0;max-width:none;height:auto;margin:0}
+  body.mundo.mundo-modulo[data-quadro="diario"] :is(#diario-snapshots-list,#diario-detalhe){position:absolute;inset:16px;box-sizing:border-box}
+  body.mundo.mundo-modulo[data-quadro="diario"] #diario-detalhe > div:first-child{padding-right:104px}
+}
+/* O cartão laranja: a frase de apoio é branca (a folha antiga apaga todo small sem classe dentro dos quadros). */
+.d3m-laranja .d3m-lar-txt > small.d3m-lar-sub{color:var(--d3-escuro-texto)}
+
+/* O cartão laranja: 200 de altura, como na prancha. */
+.d3m-e-diario-lar{flex:none}
+.d3m-e-diario-lar.vazio{min-height:200px}
+.d3m-e-diario-lar .v2-estado[data-estado="feito"]{gap:6px}
+
+/* Registros: o dia, a linha (hora, quem registrou, as três contagens, o selo do que mudou e a seta) e o que abre no lugar. */
+.d3m-e-reg-dia{margin:0;padding:10px 16px 4px;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-reg{border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-reg-lin{appearance:none;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;margin:0;padding:0 16px;box-sizing:border-box;border:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-e-reg-lin:hover{background:var(--d3-veu)}
+.d3m-e-reg-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-e-reg.on > .d3m-e-reg-lin{box-shadow:inset 3px 0 0 var(--d3-tinta)}
+.d3m-e-reg-hora{flex:none;min-width:42px;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-e-reg-av{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--d3-veu-forte);color:var(--d3-texto2);font:600 10px var(--vv-texto,Inter,sans-serif)}
+.d3m-e-reg-cs{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:2px 14px;min-width:0;color:var(--d3-rotulo)}
+.d3m-e-reg-cs > span{white-space:nowrap}
+.d3m-e-reg-cs b{font-weight:600;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-e-reg-cs > .g > b{color:var(--d3-pronto)}
+.d3m-e-reg-cs > .r > b{color:var(--d3-perigo)}
+.d3m-e-reg-cs > .a > b{color:var(--d3-ambar)}
+.d3m-e-reg-selo{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+.d3m-e-reg-selo.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+.d3m-e-reg-selo.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+.d3m-e-reg-seta{flex:none;display:grid;place-items:center;width:16px;height:16px;transition:transform .2s}
+.d3m-e-reg-seta > svg{width:14px;height:14px;fill:none;stroke:var(--d3-rotulo);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-reg[aria-expanded="true"] .d3m-e-reg-seta{transform:rotate(90deg)}
+.d3m-e-reg-mais{display:flex;flex-direction:column;gap:6px;padding:0 16px 0 92px;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-reg[aria-expanded="true"] .d3m-e-reg-mais{padding-top:2px;padding-bottom:12px}
+.d3m-e-reg-grade{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px}
+.d3m-e-reg-grade > b{font-weight:600;color:var(--d3-tinta);white-space:nowrap}
+.d3m-e-reg-grade > b.g{color:var(--d3-pronto)}
+.d3m-e-reg-grade > b.r{color:var(--d3-perigo)}
+.d3m-e-reg-grade > b.a{color:var(--d3-ambar)}
+.d3m-e-reg-grade .v2d-cli{font-weight:600;color:var(--d3-tinta)}
+.d3m-e-reg-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
+.d3m-e-reg-acoes > span{margin-right:auto;font-size:var(--d3-fs-apoio)}
+.d3m-e-reg-pe{margin:0;padding:8px 12px}
+
+/* "O que mudou", no vidro: etapa (ponto na cor do status), barra, quantas e a diferença. */
+.d3m-e-ets{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-e-et{display:grid;grid-template-columns:118px minmax(20px,1fr) 30px 34px;align-items:center;gap:8px;min-height:26px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+.d3m-e-et-nome{display:inline-flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-et-nome > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,var(--d3-fume-apagado))}
+.d3m-e-et-nome.g > i{background:var(--d3-pronto-claro)}
+.d3m-e-et-nome.a > i{background:var(--d3-ajuste-claro)}
+.d3m-e-et-nome.r > i{background:var(--d3-perigo-claro)}
+.d3m-e-et > .d3m-vn{min-width:0}
+.d3m-e-et-dif{text-align:right;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
+.d3m-e-et-dif:is(.g,.a){color:var(--d3-fume-texto);font-weight:600}
+
+/* A semana em linha, no vidro: a linha clara, a meta tracejada e o eixo dos registros. */
+.d3m-e-graf{padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-e-graf .d3-graf polyline{stroke:var(--d3-fume-texto)}
+.d3m-e-graf .d3-graf polyline.meta{stroke:var(--d3-fume-apagado)}
+.d3m-e-graf .d3-graf circle{fill:var(--d3-fume-texto)}
+.d3m-e-eixo{display:flex;justify-content:space-between;gap:4px;margin-top:6px;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.d3m-e-eixo > .ultimo{color:var(--d3-fume-texto);font-weight:600}
+.d3m-e-leg{display:inline-flex;align-items:center;gap:5px}
+.d3m-e-leg > i{width:10px;height:2px;border-radius:1px;background:var(--d3-fume-texto)}
+.d3m-e-leg > i.meta{margin-left:6px;background:none;border-top:2px dashed var(--d3-fume-apagado);height:0}
+
+/* As peças de um registro (a vista que abre com "Ver as peças") numa folha só, que rola por dentro. */
+#painel-diario #diario-detalhe .person-chip.active{background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+#painel-diario #diario-detalhe{overflow-y:auto;padding:16px;border-radius:16px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
+
+@media (max-width:900px){
+  .d3m-e-reg-lin{flex-wrap:wrap;padding:8px 12px}
+  .d3m-e-reg-mais{padding-left:16px}
+}
+
 /* ===== padrao-v2/zm-e-estados.css ===== */
 /* ===================================================================================================================
    V2 · GRUPO E · ESTADOS (prancha V2-M-Estados, aprovada pelo Paulo em 16/11/2026): vazio, carregando e erro, para

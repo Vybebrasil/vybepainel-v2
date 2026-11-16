@@ -188,10 +188,13 @@ function setDiarioDateMode(mode) {
 // O botão conta o estado: gira enquanto grava e fica verde, "Registrado", quando o registro entra.
 function diarioBotaoEstado(estado) {
   const botao = diarioBotao();
-  if (!botao) return null;
-  if (estado) botao.dataset.estado = estado; else delete botao.dataset.estado;
-  botao.innerHTML = estado === 'feito' ? `${DIARIO_CERTO}Registrado` : 'Registrar agora';
-  return botao;
+  // Os botões à vista (na folha "A foto de agora" e no cartão laranja) contam o mesmo estado do botão guardado do topo.
+  const todos = [botao, ...document.querySelectorAll('#painel-diario [data-diario-registrar]')].filter(Boolean);
+  for (const b of todos) {
+    if (estado) b.dataset.estado = estado; else delete b.dataset.estado;
+    b.innerHTML = estado === 'feito' ? `${DIARIO_CERTO}Registrado` : 'Registrar agora';
+  }
+  return botao || null;
 }
 
 async function salvarSnapshot() {
@@ -249,21 +252,27 @@ function diarioPrecisos() {
 }
 
 async function renderDiarioLista(forcar=false) {
+  const el = document.getElementById('diario-snapshots-list');
+  if (el) {
+    document.getElementById('diario-lista').style.display = 'block';
+    document.getElementById('diario-detalhe').style.display = 'none';
+    diarioCabecalho();
+    // Primeira vez (ou "Tentar de novo"): o esqueleto da tela com a lista carregando.
+    if (!diarioSnapshotsCarregados || forcar) { diarioCarregando = true; if (!diarioLista.length) diarioPintar(); }
+  }
   let lista = [];
+  diarioErro = '';
   try { lista = await carregarSnapshots(forcar); }
   catch (erro) {
     const legado = (() => { try { return JSON.parse(localStorage.getItem(DIARIO_KEY) || '[]'); } catch { return []; } })();
     lista = Array.isArray(legado) ? legado : [];
+    diarioErro = String(erro?.message || 'erro');
     showToast(`Diário central indisponível: ${erro.message}`, 'err', 5000);
   }
-  const el = document.getElementById('diario-snapshots-list');
   if (!el) return;
-  document.getElementById('diario-lista').style.display = 'block';
-  document.getElementById('diario-detalhe').style.display = 'none';
-  diarioCabecalho();
   diarioLista = lista;
-  if (lista.length && !el.querySelector('.v2d-dois') && typeof vbEstadoHtml === 'function') el.innerHTML = vbEstadoHtml({ tipo: 'carregando', titulo: 'Abrindo os registros' });
   if (lista.length) await diarioGarantirItens(diarioPrecisos());
+  diarioCarregando = false;
   diarioPintar();
 }
 
@@ -276,10 +285,10 @@ function diarioComparar(id) {
 // A linha abre no lugar, sem redesenhar a tela.
 function diarioAbrirLinha(id) {
   diarioAberto = Number(diarioAberto) === Number(id) ? null : Number(id);
-  document.querySelectorAll('#diario-snapshots-list .v2d-reg').forEach((linha) => {
+  document.querySelectorAll('#diario-snapshots-list .d3m-e-reg').forEach((linha) => {
     const aberta = Number(linha.dataset.registro) === Number(diarioAberto);
     linha.setAttribute('aria-expanded', String(aberta));
-    linha.querySelector('.v2d-quem')?.setAttribute('aria-expanded', String(aberta));
+    linha.querySelector('.d3m-e-reg-lin')?.setAttribute('aria-expanded', String(aberta));
   });
 }
 function diarioMostrarTodos(sim) {
@@ -289,24 +298,11 @@ function diarioMostrarTodos(sim) {
 }
 function diarioMostrarEtapas(sim) { diarioEtapasTodas = Boolean(sim); diarioPintar(); }
 
-// Direção 3 (moodboard 3, 13/11/2026): o bloco de ação laranja do Heitor, quatro números (com a linha dos registros),
-// "Registros" em grade e "O que mudou" com a pílula de status, e "Finalizado na semana" em linha. As peças vêm de
-// vybe-core.js (d3AcaoHtml, d3NumHtml, d3LinhaSvg); fora do painel (testes), o mesmo HTML montado aqui.
 const DIARIO_COR_STATUS = { 'a fazer': '#C4C4C4', 'pode fazer': '#FFCB00', 'em andamento': '#FDAB3D', 'para aprovação': '#579BFC', 'para agendar': '#9D50DD', 'agendado': '#037F4C', 'ag. info cliente': '#9D50DD' };
-function diarioStatusHtml(nome, pronta) {
-  const n = String(nome || '').trim().toLowerCase();
-  const cheia = pronta || n === 'finalizado' ? 'g' : /altera/.test(n) ? 'a' : /atrasad/.test(n) ? 'r' : '';
-  return `<span class="d3d-st${cheia ? ' ' + cheia : ''}"${cheia ? '' : ` style="--c:${DIARIO_COR_STATUS[n] || '#C4C4C4'}"`} title="${diarioEsc(nome)}">${diarioEsc(nome)}</span>`;
-}
 function diarioD3Linha(valores, op) {
   if (typeof d3LinhaSvg === 'function') return d3LinhaSvg(valores, op);
   const v = (valores || []).map(Number).filter(Number.isFinite);
   return v.length < 2 ? '' : `<svg class="d3-graf" viewBox="0 0 ${op?.largura || 120} ${op?.altura || 32}" aria-hidden="true"><polyline points="${v.map((n, i) => `${i},${n}`).join(' ')}"/></svg>`;
-}
-function diarioD3Num({ rotulo, valor, tom = '', serie = null, barra = null, sub = '', subTom = '' }) {
-  const base = typeof d3NumHtml === 'function' ? d3NumHtml({ rotulo, valor, tom, serie, barra })
-    : `<div class="d3-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${diarioEsc(rotulo)}</span><b class="d3-num-v">${valor}</b>${serie ? diarioD3Linha(serie) : barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>` : ''}</div>`;
-  return sub ? base.replace(/<\/div>$/, `<small class="d3d-num-sub${subTom ? ' ' + subTom : ''}">${sub}</small></div>`) : base;
 }
 // Os registros com as peças abertas, do mais antigo para o mais novo (a linha dos números e o gráfico da semana).
 function diarioSerie(lista, ate) {
@@ -314,95 +310,145 @@ function diarioSerie(lista, ate) {
   return lista.slice(i, i + 8).filter(diarioTemItens).reverse().map((s) => ({ s, n: diarioNumeros(s) })).filter((x) => x.n);
 }
 
-function diarioFalaHtml(atual, ant, m) {
-  const n = diarioNumeros(atual);
-  const qa = diarioQuando(atual), qb = ant ? diarioQuando(ant) : null;
-  const entre = qa && qb ? (diarioIso(qa) === diarioIso(qb) ? `${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`) : qa ? diarioHora(qa) : '';
-  let frase, botao = '', attrs = '';
-  if (!n) frase = 'Não deu para abrir as peças deste registro.';
-  // Status no meio da frase em minúscula (acabamento 15/11): "finalizada", não "Finalizado"; pronta continua sendo só Finalizado.
-  else if (!ant) frase = `Primeiro registro: <b>${diarioFmt(n.prontas)}</b> ${n.prontas === 1 ? 'finalizada' : 'finalizadas'} na semana.`;
-  else if (!m) frase = `${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'finalizada' : 'finalizadas'} na semana; sem o registro anterior.`;
-  else {
-    const p = m.prontas.length, a = m.passaram.length;
-    frase = `${p === 0 ? 'Nenhuma foi finalizada' : p === 1 ? '1 foi finalizada' : `${diarioFmt(p)} foram finalizadas`}; ${a === 0 ? `nenhuma passou ${diarioNomeData()}` : a === 1 ? `1 passou ${diarioNomeData()}` : `${diarioFmt(a)} passaram ${diarioNomeData()}`}.`;
-    if (a) { botao = a === 1 ? 'Ver a peça' : `Ver as ${diarioFmt(a)}`; attrs = `onclick="abrirSnapshot(${Number(atual.id)})"`; }
-  }
-  const corpo = `<small class="d3d-quem">Heitor · Coordenação${entre ? ` · ${diarioEsc(entre)}` : ''}</small><span class="d3d-frase">${frase}</span>`;
-  // Laranja só com ação (acabamento 15/11): sem botão, a frase vai na nota branca.
-  if (!botao) return typeof d3NotaHtml === 'function' ? d3NotaHtml({ frase: corpo, agente: 'H' }) : `<section class="d3-nota" role="status"><span class="d3-nota-av" aria-hidden="true">H</span><span class="d3-nota-frase">${corpo}</span></section>`;
-  if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: corpo, agente: 'H', botao, attrs });
-  return `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${corpo}</span><button type="button" class="d3-acao-btn" ${attrs}>${diarioEsc(botao)}</button></section>`;
+// ─── Diário na direção V2 (prancha V2-M-Diario, aprovada pelo Paulo em 16/11/2026) ───────────────────────────
+// O esqueleto novo da tela: no vidro, o título (com a seta das telas da Gestão); à esquerda, duas folhas: "A foto de
+// agora" (os números de hoje, contados nas peças do painel, com Veiculação ou Prazo) e "Registros salvos" (cada registro
+// numa linha que abre no lugar; só a lista rola); à direita, direto no vidro, o cartão laranja do Heitor (a única ação
+// cheia), "O que mudou" entre o registro escolhido e o anterior, a semana em linha e os atalhos. As peças .d3m-e-* e os
+// estados (vazio, carregando, erro) vêm de vybe-core.js (d3mETopo, d3mEEstado); o CSS, de padrao-v2/zm-e-*.css.
+let diarioCarregando = false;
+let diarioErro = '';
+const DIARIO_SETA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+function diarioEstado(op) {
+  if (typeof d3mEEstado === 'function') return d3mEEstado(op);
+  return op.tipo === 'carregando' ? `<div class="d3m-e-estado-carregando" role="status" aria-busy="true" aria-label="${diarioEsc(op.titulo || 'Carregando')}"></div>`
+    : `<div class="d3m-e-estado d3m-e-estado-${op.tipo === 'erro' ? 'erro' : 'vazio'}" role="${op.tipo === 'erro' ? 'alert' : 'status'}"><b>${diarioEsc(op.titulo || '')}</b><span>${diarioEsc(op.texto || '')}</span>${op.acao || ''}</div>`;
 }
+// Os números de agora: as peças do painel, com a data escolhida. Publicam hoje = com a data de hoje; prontas = as de
+// hoje já em Finalizado; atrasada = não pronta com a data antes de hoje; em alteração = não pronta em status de alteração.
+function diarioAgora(modo = diarioDateMode) {
+  const todas = typeof DADOS_ALL !== 'undefined' && Array.isArray(DADOS_ALL) && DADOS_ALL.length ? DADOS_ALL : (typeof DADOS !== 'undefined' && Array.isArray(DADOS) ? DADOS : null);
+  if (!todas) return null;
+  const hoje = diarioIso(new Date());
+  let publicam = 0, prontas = 0, atrasadas = 0, alteracao = 0;
+  for (const d of todas) {
+    const ref = diarioDataRef(d, modo), pronta = diarioPronto(d);
+    if (ref === hoje) { publicam++; if (pronta) prontas++; }
+    if (pronta) continue;
+    if (ref && ref < hoje) atrasadas++;
+    if (/altera/i.test(String(d.status || ''))) alteracao++;
+  }
+  return { publicam, prontas, atrasadas, alteracao };
+}
+function diarioIr(id) {
+  if (typeof window !== 'undefined' && window.mundoVoxel?.irPara) window.mundoVoxel.irPara(id);
+  else if (typeof switchBoard === 'function') { const quadro = id === 'gestor' ? 'producao' : id, bt = document.querySelector(`.board-switch-btn[onclick*="'${quadro}'"]`); if (bt) switchBoard(quadro, bt); }
+}
+function diarioRegistrarBtn(classe) { return `<button type="button" class="${classe} v2-estado" data-diario-registrar onclick="salvarSnapshot()">Registrar agora</button>`; }
 
-function diarioNumerosHtml(atual, ant) {
-  const n = diarioNumeros(atual), a = ant ? diarioNumeros(ant) : null, serie = diarioSerie(diarioLista, atual);
-  const quando = ant ? diarioQuando(ant) : null, as = quando ? (diarioIso(quando) === diarioIso(diarioQuando(atual) || new Date()) ? `às ${diarioHora(quando)}` : diarioDiaCurto(quando)) : '';
-  const eram = (chave) => (a ? `${a[chave] === 1 ? 'era' : 'eram'} ${diarioFmt(a[chave])} ${as}` : n ? 'primeiro registro' : 'sem as peças');
-  const linha = (chave) => (serie.length > 1 ? serie.map((x) => x.n[chave]) : null);
-  const qa = diarioQuando(atual);
-  return `<div class="d3d-nums">${[
-    diarioD3Num({ rotulo: 'Finalizadas na semana', valor: n ? diarioFmt(n.prontas) : '·', barra: n && n.semana ? (n.prontas / n.semana) * 100 : null, sub: n && n.semana ? `de ${diarioFmt(n.semana)} da semana` : eram('prontas'), subTom: 'g' }),
-    diarioD3Num({ rotulo: 'Atrasadas', valor: n ? diarioFmt(n.atrasadas) : '·', tom: n && n.atrasadas ? 'r' : '', serie: linha('atrasadas'), sub: eram('atrasadas'), subTom: 'r' }),
-    diarioD3Num({ rotulo: 'Em alteração', valor: n ? diarioFmt(n.alteracao) : '·', tom: n && n.alteracao ? 'a' : '', serie: linha('alteracao'), sub: eram('alteracao'), subTom: 'a' }),
-    diarioD3Num({ rotulo: 'Registros', valor: diarioFmt(diarioLista.length), sub: qa ? `último ${diarioDiaCurto(diarioQuando(diarioLista[0]) || qa)} ${diarioHora(diarioQuando(diarioLista[0]) || qa)}` : '' }),
-  ].join('')}</div>`;
+// "A foto de agora": os quatro números de hoje e, embaixo de cada um, como estava no registro escolhido.
+function diarioFotoHtml(atual) {
+  const n = diarioAgora(), hoje = new Date(), pode = diarioPodeRegistrar();
+  const dia = hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).replace('-feira', '');
+  const reg = atual ? diarioNumeros(atual) : null, q = atual ? diarioQuando(atual) : null;
+  const quando = q ? (diarioIso(q) === diarioIso(hoje) ? `às ${diarioHora(q)}` : `em ${diarioDiaCurto(q)}`) : '';
+  const era = (v) => (reg && quando ? `<small class="d3m-e-era">${v === 1 ? 'era' : 'eram'} ${diarioFmt(v)} ${quando}</small>` : '');
+  const num = (valor, rotulo, tom, sub = '') => `<span${tom ? ` class="${tom}"` : ''}><b>${n ? diarioFmt(valor) : '·'}</b><span>${rotulo}</span>${sub}</span>`;
+  const seg = ['veiculacao', 'prazo'].map((m) => `<button type="button" role="radio" aria-checked="${m === diarioDateMode}" data-diario-modo="${m}" onclick="setDiarioDateMode('${m}')">${m === 'prazo' ? 'Prazo' : 'Veiculação'}</button>`).join('');
+  return `<section class="d3m-e-folha d3m-e-diario-foto" aria-label="A foto de agora">
+    <div class="d3m-e-cab"><b>A foto de agora <span>· ${diarioEsc(dia)}</span></b><span class="d3m-e-cab-dir"><span class="d3m-e-seg" role="radiogroup" aria-label="Data que conta">${seg}</span></span></div>
+    <div class="d3m-e-nums">${num(n?.publicam, 'publicam hoje', '')}${num(n?.prontas, 'prontas até agora', n && n.publicam ? (n.prontas >= n.publicam ? 'g' : n.prontas ? '' : 'r') : '', reg ? `<small class="d3m-e-era">${diarioFmt(reg.prontas)} de ${diarioFmt(reg.semana)} da semana ${quando}</small>` : '')}${num(n?.atrasadas, 'atrasadas', n && n.atrasadas ? 'r' : '', era(reg?.atrasadas))}${num(n?.alteracao, 'em alteração', n && n.alteracao ? 'a' : '', era(reg?.alteracao))}</div>
+    <div class="d3m-e-pe"><span>${pode ? 'Registrar guarda estes números como eram hoje, para comparar depois.' : 'Quem registra são os donos; o registro guarda estes números como eram no dia.'}</span>${pode ? diarioRegistrarBtn('d3v-btn s') : ''}</div>
+  </section>`;
 }
 
 function diarioRegistroHtml(s, ant, comparado) {
   const q = diarioQuando(s), n = diarioNumeros(s), m = ant ? diarioMudanca(ant, s) : null;
   const origem = DIARIO_ORIGEM[s.origem] || '';
   const avatar = s.origem && s.origem !== 'manual_painel' ? 'VY' : DIARIO_PESSOA;
-  const cer = n ? `<span class="d3d-c g"><b>${diarioFmt(n.prontas)}</b> Finalizado</span><span class="d3d-c r"><b>${diarioFmt(n.atrasadas)}</b> ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'}</span><span class="d3d-c a"><b>${diarioFmt(n.alteracao)}</b> alteração</span>`
-    : `<span class="d3d-c">${diarioEsc(diarioRetratoTexto(s).split(',')[0])}</span>`;
+  const cer = n ? `<span class="g"><b>${diarioFmt(n.prontas)}</b> Finalizado</span><span class="r"><b>${diarioFmt(n.atrasadas)}</b> ${n.atrasadas === 1 ? 'atrasada' : 'atrasadas'}</span><span class="a"><b>${diarioFmt(n.alteracao)}</b> alteração</span>`
+    : `<span>${diarioEsc(diarioRetratoTexto(s).split(',')[0])}</span>`;
   let selo = '';
   if (m) {
     const p = m.prontas.length, dA = m.b.atrasadas - m.a.atrasadas;
-    selo = p > 0 ? `<span class="v2d-pill g">+${diarioFmt(p)} Finalizado</span>`
-      : dA > 0 ? `<span class="v2d-pill r">+${diarioFmt(dA)} ${dA === 1 ? 'atrasada' : 'atrasadas'}</span>`
-      : dA < 0 ? `<span class="v2d-pill g">${diarioSinal(dA)} ${dA === -1 ? 'atrasada' : 'atrasadas'}</span>`
-      : '<span class="v2d-pill n">igual</span>';
+    selo = p > 0 ? `<span class="d3m-e-reg-selo g">+${diarioFmt(p)} Finalizado</span>`
+      : dA > 0 ? `<span class="d3m-e-reg-selo r">+${diarioFmt(dA)} ${dA === 1 ? 'atrasada' : 'atrasadas'}</span>`
+      : dA < 0 ? `<span class="d3m-e-reg-selo g">${diarioSinal(dA)} ${dA === -1 ? 'atrasada' : 'atrasadas'}</span>`
+      : '<span class="d3m-e-reg-selo">igual</span>';
   }
-  // Direção 3 (quadro D3-Diario): a linha aberta em grade de duas colunas, a contagem à esquerda (na cor do que mudou)
-  // e os clientes de cada uma à direita.
+  // A linha aberta: a contagem à esquerda (na cor do que mudou) e os clientes de cada uma à direita.
   const hist = [], grade = [];
   if (m) {
     const p = m.prontas.length, a = m.passaram.length, v = m.voltaram.length;
     if (p) grade.push(['g', `${diarioFmt(p)} Finalizado`, diarioClientesHtml(m.prontas)]);
     if (a) grade.push(['r', `${diarioFmt(a)} ${a === 1 ? 'passou' : 'passaram'}`, `${diarioClientesHtml(m.passaram)} · ${diarioNomeData()}`]);
     if (v) grade.push(['a', `${diarioFmt(v)} ${v === 1 ? 'voltou' : 'voltaram'}`, `${diarioClientesHtml(m.voltaram)} · para Alteração`]);
-    if (!grade.length) hist.push('<span>Nada mudou desde o registro anterior.</span>');
-  } else if (!ant) hist.push('<span>Primeiro registro guardado.</span>');
+    if (!grade.length) hist.push('Nada mudou desde o registro anterior.');
+  } else if (!ant) hist.push('Primeiro registro guardado.');
   const retrato = diarioRetratoTexto(s);
-  if (retrato) hist.push(`<span>${diarioEsc(retrato)}</span>`);
-  const gradeHtml = grade.length ? `<div class="d3d-grade">${grade.map(([tom, rot, cli]) => `<b class="d3d-g-rot ${tom}">${rot}</b><span class="d3d-g-cli">${cli}</span>`).join('')}</div>` : '';
+  if (retrato) hist.push(diarioEsc(retrato));
+  const gradeHtml = grade.length ? `<div class="d3m-e-reg-grade">${grade.map(([tom, rot, cli]) => `<b class="${tom}">${rot}</b><span>${cli}</span>`).join('')}</div>` : '';
   const aberta = Number(diarioAberto) === Number(s.id);
   const id = Number(s.id);
-  return `<div class="v2-abre v2d-reg d3d-reg${comparado ? ' on' : ''}" data-registro="${id}" aria-expanded="${aberta}">
-    <button type="button" class="v2d-quem d3d-lin" aria-expanded="${aberta}" onclick="diarioAbrirLinha(${id})"><b class="d3d-hora">${q ? diarioHora(q) : diarioEsc(s.dataHora || '')}</b><span class="v2d-av" aria-hidden="true"${origem ? ` title="${diarioEsc(origem)}"` : ''}>${avatar}</span><span class="d3d-cs">${cer}</span>${selo}<i class="d3d-seta" aria-hidden="true"></i></button>
-    <div class="v2-mais"><div>
-      ${gradeHtml}${hist.map((h) => `<p class="v2d-hist">${h}</p>`).join('')}
-      <p class="v2d-hist v2d-acoes"><span>${origem ? `${diarioEsc(origem)} · ` : ''}<button type="button" class="v2d-link" onclick="diarioComparar(${id})">Comparar</button> · <button type="button" class="v2d-link" onclick="abrirSnapshot(${id})">Ver as peças</button> · <button type="button" class="v2d-link" onclick="excluirSnapshot(${id})">Apagar registro</button></span></p>
+  return `<div class="v2-abre d3m-e-reg${comparado ? ' on' : ''}" data-registro="${id}" aria-expanded="${aberta}">
+    <button type="button" class="d3m-e-reg-lin" aria-expanded="${aberta}" onclick="diarioAbrirLinha(${id})"><b class="d3m-e-reg-hora">${q ? diarioHora(q) : diarioEsc(s.dataHora || '')}</b><span class="d3m-e-reg-av" aria-hidden="true"${origem ? ` title="${diarioEsc(origem)}"` : ''}>${avatar}</span><span class="d3m-e-reg-cs">${cer}</span>${selo}<i class="d3m-e-reg-seta" aria-hidden="true">${DIARIO_SETA}</i></button>
+    <div class="v2-mais"><div class="d3m-e-reg-mais">
+      ${gradeHtml}${hist.map((h) => `<p class="d3m-e-reg-p">${h}</p>`).join('')}
+      <p class="d3m-e-reg-acoes">${origem ? `<span>${diarioEsc(origem)}</span>` : ''}<button type="button" class="d3v-btn sec s" onclick="diarioComparar(${id})">Comparar</button><button type="button" class="d3v-btn sec s" onclick="abrirSnapshot(${id})">Ver as peças</button><button type="button" class="d3v-btn txt s" onclick="excluirSnapshot(${id})">Apagar registro</button></p>
     </div></div>
   </div>`;
 }
 
+// "Registros salvos": a lista (só ela rola) ou o estado dela (carregando, erro, vazio).
 function diarioRegistrosHtml(lista, atual) {
-  const visiveis = diarioTodos ? lista : lista.slice(0, DIARIO_VISIVEIS);
-  let dia = '';
-  const linhas = visiveis.map((s, i) => {
-    const q = diarioQuando(s), rotulo = q ? diarioRotuloDia(q) : '';
-    const cab = rotulo && rotulo !== dia ? `<p class="v2d-dl">${rotulo}</p>` : '';
-    dia = rotulo || dia;
-    return cab + diarioRegistroHtml(s, lista[i + 1] || null, s === atual);
-  }).join('');
-  const resto = lista.length - DIARIO_VISIVEIS;
-  const pe = resto <= 0 ? '' : diarioTodos
-    ? '<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarTodos(false)">Mostrar menos</button></p>'
-    : `<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarTodos(true)">+${diarioFmt(resto)} ${resto === 1 ? 'registro' : 'registros'}</button></p>`;
-  return `<section class="v2d-card v2d-registros" aria-label="Registros">
-    <div class="v2d-topo"><h3>Registros</h3><small>${diarioFmt(lista.length)}</small></div>
-    <div class="v2d-tl">${linhas}</div>${pe}
+  let corpo, pe = '';
+  if (diarioCarregando && !lista.length) corpo = diarioEstado({ tipo: 'carregando', forma: 'lista', linhas: 6, titulo: 'Abrindo os registros' });
+  else if (diarioErro && !lista.length) corpo = diarioEstado({ tipo: 'erro', forma: 'lista', grande: true, titulo: 'Os registros não vieram', texto: 'Não foi possível falar com o servidor.', acao: typeof d3mEEstadoBtn === 'function' ? d3mEEstadoBtn('Tentar de novo', 'onclick="renderDiarioLista(true)"', true) : '' });
+  else if (!lista.length) corpo = diarioEstado({ tipo: 'vazio', forma: 'lista', grande: true, icone: 'relogio', titulo: 'Nenhum registro salvo ainda', texto: 'Cada registro vira uma linha aqui, com a data e os números do dia. Com dois ou mais, aparece a comparação.' });
+  else {
+    const visiveis = diarioTodos ? lista : lista.slice(0, DIARIO_VISIVEIS);
+    let dia = '';
+    corpo = visiveis.map((s, i) => {
+      const q = diarioQuando(s), rotulo = q ? diarioRotuloDia(q) : '';
+      const cab = rotulo && rotulo !== dia ? `<p class="d3m-e-reg-dia">${rotulo}</p>` : '';
+      dia = rotulo || dia;
+      return cab + diarioRegistroHtml(s, lista[i + 1] || null, s === atual);
+    }).join('');
+    const resto = lista.length - DIARIO_VISIVEIS;
+    pe = resto <= 0 ? '' : diarioTodos
+      ? '<p class="d3m-e-reg-pe"><button type="button" class="d3v-btn txt s" onclick="diarioMostrarTodos(false)">Mostrar menos</button></p>'
+      : `<p class="d3m-e-reg-pe"><button type="button" class="d3v-btn txt s" onclick="diarioMostrarTodos(true)">+${diarioFmt(resto)} ${resto === 1 ? 'registro' : 'registros'}</button></p>`;
+  }
+  const q0 = lista.length ? diarioQuando(lista[0]) : null;
+  return `<section class="d3m-e-folha cresce d3m-e-diario-regs" aria-label="Registros salvos">
+    <div class="d3m-e-cab"><b>Registros salvos</b><span class="d3m-e-cab-dir">${q0 ? `último ${diarioDiaCurto(q0)} ${diarioHora(q0)} · ` : ''}${diarioFmt(lista.length)}</span></div>
+    <div class="d3m-e-rola">${corpo}${pe}</div>
+  </section>`;
+}
+
+// O cartão laranja do Heitor: a frase do que mudou e a ação (registrar, ou abrir as peças do registro).
+function diarioLaranjaHtml(atual, ant, m) {
+  const pode = diarioPodeRegistrar();
+  let rot = 'diário vazio', frase = 'Nenhum dia foi registrado ainda', sub = pode ? 'O registro guarda a foto do dia da produção.' : 'Quem registra são os donos; o registro guarda a foto do dia da produção.', bts = pode ? diarioRegistrarBtn('d3m-btn l') : '';
+  if (atual) {
+    const n = diarioNumeros(atual), qa = diarioQuando(atual), qb = ant ? diarioQuando(ant) : null;
+    rot = qa && qb ? (diarioIso(qa) === diarioIso(qb) ? `${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`) : qa ? `${diarioDiaCurto(qa)} ${diarioHora(qa)}` : 'registro';
+    sub = n ? `${diarioFmt(n.prontas)} de ${diarioFmt(n.semana)} da semana em Finalizado.` : '';
+    let ver = 'Ver as peças';
+    if (!n) frase = 'Não deu para abrir as peças deste registro';
+    // Status no meio da frase em minúscula: "finalizada", não "Finalizado"; pronta continua sendo só Finalizado.
+    else if (!ant) frase = `Primeiro registro: ${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'finalizada' : 'finalizadas'} na semana`;
+    else if (!m) frase = `${diarioFmt(n.prontas)} ${n.prontas === 1 ? 'finalizada' : 'finalizadas'} na semana; sem o registro anterior`;
+    else {
+      const p = m.prontas.length, a = m.passaram.length;
+      frase = `${p === 0 ? 'Nenhuma foi finalizada' : p === 1 ? '1 foi finalizada' : `${diarioFmt(p)} foram finalizadas`}; ${a === 0 ? `nenhuma passou ${diarioNomeData()}` : a === 1 ? `1 passou ${diarioNomeData()}` : `${diarioFmt(a)} passaram ${diarioNomeData()}`}`;
+      if (a) ver = a === 1 ? 'Ver a peça' : `Ver as ${diarioFmt(a)}`;
+    }
+    bts = n ? `<button type="button" class="d3m-btn l" onclick="abrirSnapshot(${Number(atual.id)})">${ver}</button>` : '';
+  }
+  return `<section class="d3m-laranja d3m-e-diario-lar${atual ? '' : ' vazio'}" aria-label="O que pede ação agora">
+    <div class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span><span>Heitor · ${diarioEsc(rot)}</span></div>
+    <div class="d3m-lar-txt"><span class="d3-acao-frase">${diarioEsc(frase)}</span>${sub ? `<small class="d3m-lar-sub">${diarioEsc(sub)}</small>` : ''}${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div>
   </section>`;
 }
 
@@ -410,8 +456,8 @@ function diarioMudouHtml(atual, ant, m) {
   const qa = diarioQuando(atual), qb = ant ? diarioQuando(ant) : null;
   const entre = !qa || !qb ? '' : diarioIso(qa) === diarioIso(qb) ? `${diarioHora(qb)} → ${diarioHora(qa)}` : `${diarioDiaCurto(qb)} → ${diarioDiaCurto(qa)}`;
   let corpo;
-  if (!ant) corpo = '<p class="v2d-nada">Falta um segundo registro.</p>';
-  else if (!m) corpo = '<p class="v2d-nada">Sem as peças destes registros.</p>';
+  if (!ant) corpo = '<p class="d3m-vvazio">Falta um segundo registro.</p>';
+  else if (!m) corpo = '<p class="d3m-vvazio">Sem as peças destes registros.</p>';
   else {
     const todas = diarioEtapas(m);
     let visiveis = todas;
@@ -421,18 +467,18 @@ function diarioMudouHtml(atual, ant, m) {
     }
     const maior = Math.max(1, ...todas.map((e) => e.n));
     const linhas = visiveis.map((e) => {
+      const nome = e.pronta ? 'Finalizado' : e.nome, k = String(nome).trim().toLowerCase();
+      const tom = e.pronta || k === 'finalizado' ? 'g' : /altera/.test(k) ? 'a' : /atrasad/.test(k) ? 'r' : '';
       const subiu = e.dif > 0 && (e.pronta || /altera/i.test(e.nome));
-      return `<div class="v2d-et d3d-et">${diarioStatusHtml(e.pronta ? 'Finalizado' : e.nome, e.pronta)}<span class="d3-barra" style="--v:${Math.round((e.n / maior) * 100)}%"><i></i></span><b>${diarioFmt(e.n)}</b><span class="v2d-dt${subiu ? (e.pronta ? ' g' : ' a') : ''}">${diarioSinal(e.dif)}</span></div>`;
+      return `<div class="d3m-e-et"><span class="d3m-e-et-nome${tom ? ' ' + tom : ''}"${tom ? '' : ` style="--c:${DIARIO_COR_STATUS[k] || '#C4C4C4'}"`} title="${diarioEsc(nome)}"><i aria-hidden="true"></i>${diarioEsc(nome)}</span><span class="d3m-vbarra" style="--v:${Math.round((e.n / maior) * 100)}%"><i></i></span><b class="d3m-vn">${diarioFmt(e.n)}</b><span class="d3m-e-et-dif${subiu ? (e.pronta ? ' g' : ' a') : ''}">${diarioSinal(e.dif)}</span></div>`;
     }).join('');
     const fora = todas.filter((e) => !visiveis.includes(e));
     const pe = fora.length
-      ? `<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarEtapas(true)">+ ${fora.length === 1 ? '1 etapa' : `${fora.length} etapas`}${fora.some((e) => e.dif) ? '' : ' sem mudança'}</button></p>`
-      : diarioEtapasTodas && todas.length > DIARIO_ETAPAS ? '<p class="v2d-pe"><button type="button" class="v2d-link" onclick="diarioMostrarEtapas(false)">Mostrar menos</button></p>' : '';
-    corpo = `<div class="v2d-ets">${linhas}</div>${pe}`;
+      ? `<button type="button" class="d3m-vlin" onclick="diarioMostrarEtapas(true)"><span>+ ${fora.length === 1 ? '1 etapa' : `${fora.length} etapas`}${fora.some((e) => e.dif) ? '' : ' sem mudança'}</span>${DIARIO_SETA}</button>`
+      : diarioEtapasTodas && todas.length > DIARIO_ETAPAS ? `<button type="button" class="d3m-vlin" onclick="diarioMostrarEtapas(false)"><span>Mostrar menos</span>${DIARIO_SETA}</button>` : '';
+    corpo = `<div class="d3m-e-ets">${linhas}</div>${pe}`;
   }
-  return `<section class="v2d-card v2d-mudou" aria-label="O que mudou">
-    <div class="v2d-topo"><h3>O que mudou</h3>${entre ? `<small>${entre}</small>` : ''}</div>${corpo}
-  </section>`;
+  return `<section class="d3m-cons d3m-e-diario-mudou" aria-label="O que mudou"><div class="d3m-cons-cab"><b>O que mudou</b><span>${entre}</span></div>${corpo}</section>`;
 }
 
 // Finalizado na semana, registro a registro (linha), contra as peças com data na semana (tracejada).
@@ -440,10 +486,9 @@ function diarioSemanaHtml(atual) {
   const serie = diarioSerie(diarioLista, atual);
   if (serie.length < 2) return '';
   const rot = (s) => { const q = diarioQuando(s); return q ? `${q.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')} ${q.getHours()}h` : ''; };
-  return `<section class="v2d-card d3d-semana" aria-label="Finalizado na semana">
-    <div class="v2d-topo"><h3>Finalizado na semana</h3><small class="d3d-leg"><i></i>Finalizado <i class="meta"></i>da semana</small></div>
-    ${diarioD3Linha(serie.map((x) => x.n.prontas), { meta: serie.map((x) => x.n.semana), largura: 320, altura: 110, rotulo: 'Finalizado na semana, registro a registro' })}
-    <div class="d3d-eixo">${serie.map((x, i) => `<span${i === serie.length - 1 ? ' class="ultimo"' : ''}>${diarioEsc(rot(x.s))}</span>`).join('')}</div>
+  return `<section class="d3m-cons d3m-e-diario-semana" aria-label="Finalizado na semana"><div class="d3m-cons-cab"><b>Finalizado na semana</b><span class="d3m-e-leg"><i></i>Finalizado <i class="meta"></i>da semana</span></div>
+    <div class="d3m-e-graf">${diarioD3Linha(serie.map((x) => x.n.prontas), { meta: serie.map((x) => x.n.semana), largura: 300, altura: 56, rotulo: 'Finalizado na semana, registro a registro' })}
+    <div class="d3m-e-eixo">${serie.map((x, i) => `<span${i === serie.length - 1 ? ' class="ultimo"' : ''}>${diarioEsc(rot(x.s))}</span>`).join('')}</div></div>
   </section>`;
 }
 
@@ -451,24 +496,27 @@ function diarioPintar() {
   const el = document.getElementById('diario-snapshots-list');
   if (!el) return;
   const lista = diarioLista;
-  // Vazio (acabamento 15/11): uma frase e uma ação, no bloco laranja; o "Registrar agora" do topo some enquanto não há
-  // registro, para a mesma ação não aparecer duas vezes.
+  // O botão antigo do topo fica guardado (o cabeçalho do index.html some no esqueleto novo); a ação está na folha e no laranja.
   const topo = diarioBotao();
-  const pode = diarioPodeRegistrar();
-  // style.display, não só hidden: o CSS do botão (display:inline-flex) passa por cima do atributo.
-  if (topo) { topo.hidden = !lista.length || !pode; if (topo.style) topo.style.display = topo.hidden ? 'none' : ''; }
-  if (!lista.length) {
-    const frase = '<small class="d3d-quem">Heitor · Coordenação</small><span class="d3d-frase">Nenhum registro salvo ainda. O registro guarda a foto do dia da produção.</span>';
-    if (!pode) { el.innerHTML = `<div class="v2d d3d">${typeof d3NotaHtml === 'function' ? d3NotaHtml({ frase: frase.replace(' O registro guarda', ' Quem registra são os donos; o registro guarda'), agente: 'H' }) : '<div class="v2d-card v2d-vazio" role="status"><p>Nenhum registro salvo ainda.</p></div>'}</div>`; return; }
-    el.innerHTML = `<div class="v2d d3d">${typeof d3AcaoHtml === 'function' ? d3AcaoHtml({ frase, agente: 'H', botao: 'Registrar agora', attrs: 'onclick="salvarSnapshot()"' }) : `<section class="d3-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${frase}</span><button type="button" class="d3-acao-btn" onclick="salvarSnapshot()">Registrar agora</button></section>`}</div>`;
-    return;
+  if (topo) { topo.hidden = true; if (topo.style) topo.style.display = 'none'; }
+  let atual = null, ant = null, m = null;
+  if (lista.length) {
+    let i = lista.findIndex((s) => Number(s.id) === Number(diarioComparado));
+    if (i < 0) i = 0;
+    atual = lista[i]; ant = lista[i + 1] || null;
+    if (diarioAberto === undefined) diarioAberto = Number(atual.id);
+    m = ant ? diarioMudanca(ant, atual) : null;
   }
-  let i = lista.findIndex((s) => Number(s.id) === Number(diarioComparado));
-  if (i < 0) i = 0;
-  const atual = lista[i], ant = lista[i + 1] || null;
-  if (diarioAberto === undefined) diarioAberto = Number(atual.id);
-  const m = ant ? diarioMudanca(ant, atual) : null;
-  el.innerHTML = `<div class="v2d d3d">${diarioFalaHtml(atual, ant, m)}${diarioNumerosHtml(atual, ant)}<div class="v2d-dois">${diarioRegistrosHtml(lista, atual)}<div class="d3d-dir">${diarioMudouHtml(atual, ant, m)}${diarioSemanaHtml(atual)}</div></div></div>`;
+  const cabeca = typeof d3mETopo === 'function' ? d3mETopo({ titulo: 'Diário', sub: 'o diário da operação · a foto de cada dia da produção', setor: 'gestao', atual: 'diario' })
+    : '<div class="d3m-e-topo"><div class="d3m-e-tit"><span class="d3m-e-h" role="heading" aria-level="2">Diário</span></div></div>';
+  const abrir = `<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+    <button type="button" class="d3m-vlin" onclick="diarioIr('performance')"><span><b>Performance</b> · a operação em 30 dias</span>${DIARIO_SETA}</button>
+    <button type="button" class="d3m-vlin" onclick="diarioIr('gestor')"><span><b>Produção</b> · a semana de hoje</span>${DIARIO_SETA}</button></section>`;
+  const serve = '<section class="d3m-cons" aria-label="Para que serve"><div class="d3m-cons-cab"><b>Para que serve</b><span></span></div><p class="d3m-e-lado-txt">Para saber se a semana melhorou: quantas publicavam, quantas estavam prontas e quantas atrasadas em cada dia.</p></section>';
+  el.innerHTML = `<div class="d3m-e-tela d3m-e-diario"${diarioCarregando && !lista.length ? ' aria-busy="true"' : ''}>${cabeca}<div class="d3m-e-corpo">
+    <div class="d3m-e-main">${diarioFotoHtml(atual)}${diarioRegistrosHtml(lista, atual)}</div>
+    <aside class="d3m-lado" aria-label="Consulta">${diarioLaranjaHtml(atual, ant, m)}${atual ? diarioMudouHtml(atual, ant, m) + diarioSemanaHtml(atual) : serve}${abrir}</aside>
+  </div></div>`;
 }
 
 async function abrirSnapshot(id) {
