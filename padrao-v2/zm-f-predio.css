@@ -1,0 +1,38 @@
+/* ===================================================================================================================
+   V2 · GRUPO F · PRÉDIO (prancha V2-M-Predio, aprovada pelo Paulo em 16/11/2026). A mesma janela da Vybelândia, na
+   vista Prédio: o cartão com o prédio 3D, a folha do elevador (400 px: cada andar com o número que mais importa e a
+   cor da situação) e a consulta com quem está online, as salas e os atalhos. O andar aberto (placa) ocupa o lugar do
+   elevador; "Entrar no andar" segue abrindo o andar em voxel na tela inteira, como antes.
+   =================================================================================================================== */
+
+#d3-centro.d3m-f-mundo[data-vista="predio"] > .d3m-f-corpo{grid-template-columns:minmax(0,1fr) 400px 316px;grid-template-rows:minmax(0,1fr)}
+#d3-centro.d3m-f-mundo[data-vista="predio"] .d3m-f-tiras{display:none}
+#d3-centro.d3m-f-mundo[data-vista="predio"] .d3m-f-cena{grid-column:1;grid-row:1}
+#d3-centro.d3m-f-mundo[data-vista="predio"] .d3m-f-elev{grid-column:2;grid-row:1;min-height:0;pointer-events:auto}
+#d3-centro.d3m-f-mundo[data-vista="predio"] .d3m-f-lado{grid-column:3;grid-row:1}
+
+/* O elevador: linhas de 52 com o selo do andar, o nome, o número e o ponto da situação. */
+.d3m-f-elev > .d3m-e-cab{min-height:46px}
+.d3m-f-andares{scrollbar-color:var(--d3-veu-forte) transparent}
+.d3m-f-andar{appearance:none;flex:1 1 0;display:flex;align-items:center;gap:12px;width:100%;min-height:36px;max-height:52px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-bottom:1px solid var(--d3-divisa);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-f-andar:hover{background:var(--d3-veu)}
+.d3m-f-andar:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-f-andar-n{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:var(--d3-veu);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+.d3m-f-andar > b{flex:1 1 auto;min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-f-andar-v{flex:none;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-f-andar-v.r{color:var(--d3-perigo)}
+.d3m-f-andar > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--s,var(--d3-meta))}
+.d3m-f-elev-pe > span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-f-elev-pe > span > b{margin-right:6px;font-weight:600;color:var(--d3-tinta)}
+.d3m-f-pt{display:inline-block;width:7px;height:7px;margin-right:10px;border-radius:50%;background:var(--d3-ambar);vertical-align:1px}
+
+@media (min-width:901px){
+  /* A lista de andares é a folha do elevador; a placa só aparece com um andar, um agente ou as camadas, no lugar dela. */
+  body.mundo.mundo-centro.mundo-predio.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .vv-elevador-lista){display:none}
+  body.mundo.mundo-centro.mundo-predio.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa{z-index:4;left:var(--d3c-px,0px);top:var(--d3c-py,0px);right:auto;bottom:auto;width:var(--d3c-pw,400px);max-width:none;height:var(--d3c-ph,60vh);max-height:none;box-sizing:border-box;overflow:auto;border:0;border-radius:16px;background:var(--d3-cartao);box-shadow:var(--d3-folha-sombra)}
+}
+@media (max-width:900px){
+  #d3-centro.d3m-f-mundo[data-vista="predio"] .d3m-f-elev{flex:none}
+  #d3-centro.d3m-f-mundo[data-vista="predio"] .d3m-f-elev > .d3m-e-rola{flex:none;max-height:none;overflow:visible}
+  .d3m-f-andar{flex:none;height:44px}
+}

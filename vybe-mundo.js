@@ -2957,7 +2957,7 @@
         <span class="andar-voz" id="andar-voz"></span>
         ${zonas.some((z) => z.dono) || minhaSala ? `<span class="andar-acoes">${zonas.some((z) => z.dono) ? '<button type="button" class="vv-botao" data-arrumar aria-pressed="false" title="Esconde a decoração das salas e mostra só a planta">Vista arrumada</button>' : ''}${minhaSala ? `<button type="button" class="vv-botao acao" data-decorar="${esc(minhaSala)}">Decorar minha sala</button>` : ''}</span>` : ''}
         <small class="andar-dica">${zonas.length ? 'Todo mundo do andar aparece aqui. Clique numa sala para entrar: a voz liga só com quem está nela.' : 'Os agentes do setor nas mesas. Clique numa mesa para ver o dia do agente.'}</small></header>`;
-    body.append(el); body.classList.add('mundo-andar');
+    body.append(el); body.classList.add('mundo-andar'); if (centroAberto) pintarCentroD3(naTela); // o andar em voxel ocupa a tela: o painel do Prédio sai
     window.VybeTutorial?.dica?.('andar');
     const m = await import(MUNDO_JS);
     if (geracao !== geracaoAndar || el.isConnected === false) return;
@@ -3012,7 +3012,7 @@
     clearInterval(timerAndar); timerAndar = null;
     window.VybeDecorar?.ligarCena?.(null);
     andarAberto?.destruir(); andarAberto = null;
-    document.getElementById('mundo-andar')?.remove(); body.classList.remove('mundo-andar', 'mundo-quarto', 'd3s-painel', 'd3s-com-cor');
+    document.getElementById('mundo-andar')?.remove(); body.classList.remove('mundo-andar', 'mundo-quarto', 'd3s-painel', 'd3s-com-cor'); if (centroAberto) pintarCentroD3(naTela);
     trocarBotaoDoAndar();
     if (voltar && typeof openModeGate === 'function' && !document.getElementById('mode-gate')?.classList.contains('open')) openModeGate();
     sincronizar();
@@ -4786,7 +4786,7 @@
   // "Entrar no mapa" volta o mapa à tela inteira, como antes; "Painel" volta para cá. A placa (loja aberta, andar,
   // agente, camadas) ocupa a coluna de consulta; no Prédio, o lugar do elevador.
   let centroCheio = false, centroLojas = false;
-  const noPainelDoCentro = () => centroAberto && !centroCheio && !body.classList.contains('mundo-predio') && !body.classList.contains('mundo-modulo') && !body.classList.contains('mundo-andar');
+  const noPainelDoCentro = () => centroAberto && !centroCheio && !body.classList.contains('mundo-modulo') && !body.classList.contains('mundo-andar');
   const IC_F = { lupa: svg('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svg('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>'), seta: svg('<path d="M9 6l6 6-6 6"/>') };
   function medirMapaD3() {
     const card = hud.querySelector('#d3-centro .d3c-mapa'), raizEl = document.documentElement;
@@ -4809,7 +4809,7 @@
         const b = e.target.closest('button'); if (!b) return;
         if (b.closest('.d3m-e-pop')) b.closest('details')?.removeAttribute('open');
         if (b.dataset.d3Loja) { mostrarCliente(b.dataset.d3Loja); return; }
-        if (b.hasAttribute('data-d3-cheio')) { centroCheio = true; pintarCentroD3(naTela); return; }
+        if (b.hasAttribute('data-d3-cheio')) { centroCheio = true; pintarCentroD3(naTela); if (body.classList.contains('mundo-predio') && placa().hidden) mostrarAndares(); return; }
         if (b.hasAttribute('data-d3-lojas')) { centroLojas = !centroLojas; pintarCentroD3(naTela); return; }
         if (b.hasAttribute('data-d3-agentes-tentar')) { b.disabled = true; Promise.resolve(carregarAgentes(true)).catch(() => {}).then(() => pintarCentroD3(naTela)); }
       });
@@ -4825,17 +4825,18 @@
     body.classList.toggle('d3c-painel', painel);
     if (painel !== antes) ajustarAreaLivre();
     // Mudou o tamanho do mapa (cartão ↔ tela cheia): a câmera reenquadra a cidade toda no novo retângulo.
-    if (painel !== antes && !noPredio) setTimeout(() => { if (centroAberto && !body.classList.contains('mundo-predio')) mundo?.verCidade?.(); }, 160);
+    if (painel !== antes) setTimeout(() => { if (!centroAberto) return; if (body.classList.contains('mundo-predio')) { if (placa().hidden || placa().querySelector('.vv-elevador-lista')) mundo?.verPredio?.(); } else mundo?.verCidade?.(); }, 160);
     body.classList.toggle('d3c-cheio', centroAberto && centroCheio);
     // No mapa em tela cheia continuam a barra "Vybelândia" e a fala do VYBES de sempre, com o botão "Painel".
     const bar0 = hud.querySelector('.vv-legenda-cidade');
     if (bar0 && !bar0.querySelector('[data-d3-painel]')) {
       bar0.querySelector('.v2m-nome h1')?.insertAdjacentHTML('afterend', `<small class="d3c-data">${esc(diaD3())}</small>`);
       bar0.insertAdjacentHTML('beforeend', '<button type="button" class="v2n-btn s d3c-voltar" data-d3-painel>Painel</button>');
-      bar0.addEventListener('click', (ev) => { if (ev.target.closest('[data-d3-painel]')) { centroCheio = false; if (body.classList.contains('mundo-predio')) hud.querySelector('[data-vista="cidade"]')?.click(); pintarCentroD3(naTela); } });
+      bar0.addEventListener('click', (ev) => { if (ev.target.closest('[data-d3-painel]')) { centroCheio = false; pintarCentroD3(naTela); } });
     }
     if (!painel) return;
-    el.dataset.vista = noPredio ? 'predio' : 'cidade';
+    el.dataset.vista = noPredio ? 'predio' : 'cidade'; el.querySelector('.d3m-f-elev').hidden = !noPredio;
+    el.querySelector('.d3c-mapa').setAttribute('aria-label', noPredio ? 'Prédio da Vybe' : 'Mapa do centro'); el.querySelector('.d3m-f-entrar').textContent = noPredio ? 'Tela cheia' : 'Entrar no mapa';
     const L = lista || [], gente = presencaDoEscritorio(), Z = zonas3d(), e = typeof escritorio !== 'undefined' ? escritorio : null;
     const time = e?.base?.equipe || [], total = Math.max(time.length, gente.length);
     const emSala = gente.filter((g) => g.zona && Z[g.zona] && g.zona !== 'recepcao');
@@ -4863,7 +4864,8 @@
       + tira('Online agora', n0(gente.length), total ? `de ${n0(total)}` : 'agora', 'data-trilho="equipe" title="Abrir a Equipe online"')
       + tira('Em salas', n0(emSala.length), maior ? esc(Z[maior[0]]?.nome || 'sala') : 'ninguém', 'data-trilho="equipe" title="Abrir a Equipe online"');
     // --- Por cima do mapa: quantas lojas e o filtro das que têm atraso (ou atenção) ---
-    const chips = noPredio ? `<span class="d3m-f-chip">${mundo?.planta ? plural(mundo.planta.length, 'andar', 'andares') : 'prédio da Vybe'}</span>`
+    const piorAndar = noPredio ? (mundo?.planta || []).find((a) => SIT_COR[numerosDoAndar(a).sit] === SIT_COR.vermelho) : null;
+    const chips = noPredio ? (piorAndar ? `<button type="button" class="d3m-f-chip" data-andar="${esc(piorAndar.id)}" title="O andar que mais pede atenção"><i class="r"></i>${piorAndar.nivel === 0 ? 'térreo' : piorAndar.id === 'terraco' ? 'terraço' : 'andar ' + piorAndar.nivel} · ${esc(piorAndar.nome.replace(/^Terraço · /, ''))}</button>` : `<span class="d3m-f-chip">${mundo?.planta ? plural(mundo.planta.length, 'andar', 'andares') : 'prédio da Vybe'}</span>`)
       : `<span class="d3m-f-chip">${plural(L.length, 'loja', 'lojas')}</span>${n.atraso ? `<button type="button" class="d3m-f-chip" data-filtro-cidade="atraso" aria-pressed="${filtroCidade === 'atraso'}"><i class="r"></i>${n0(n.atraso)} com atraso</button>` : ''}${n.atencao ? `<button type="button" class="d3m-f-chip" data-filtro-cidade="atencao" aria-pressed="${filtroCidade === 'atencao'}"><i class="a"></i>${n0(n.atencao)} em atenção</button>` : ''}`;
     // --- O cartão laranja: a loja mais apertada, com o caminho até ela e a lista das que têm atraso ---
     const top = maisApertada(L);
@@ -4895,7 +4897,18 @@
       return `<button type="button" class="d3m-vlin d3m-f-loja" data-d3-loja="${esc(c.nome)}"><span class="d3m-vnome">${cliCor(c.nome)}</span><span class="d3m-vbarra${a ? ' r' : ''}" style="--v:${Math.round(a / max * 100)}%"><i></i></span><b class="d3m-vn">${n0(a)}</b></button>`; }).join('')}</div></section>`;
     const pinta = (sel, html) => { const x = el.querySelector(sel); if (x && x.vvHtml !== html) { x.innerHTML = html; x.vvHtml = html; } };
     pinta('.d3m-f-topo', topo); pinta('.d3m-f-tiras', lojaAberta ? tirasLoja : tirasCentro); pinta('.d3c-chips', chips);
-    pinta('.d3m-f-lado', laranja + (centroLojas ? lojas : online + salas));
+    // --- Prédio (prancha V2-M-Predio): a folha do elevador, com o número que mais importa e a cor da situação de cada
+    // andar (tocar abre o andar, no lugar do elevador), e a consulta com quem está online, as salas e os atalhos ---
+    const planta = noPredio && mundo?.planta ? [...mundo.planta].reverse() : [];
+    const fAg = fonteAgentes?.ler(), semCentral = Boolean(fAg?.erro);
+    const andares = planta.map((a) => { const { n: ns, sit, motivo } = numerosDoAndar(a); const [v, r] = ns[0] || [0, '']; const corS = SIT_COR[sit] || SIT_COR.cinza;
+      return `<button type="button" class="d3m-f-andar" data-andar="${esc(a.id)}" style="--s:${corS}" title="${esc((motivo ? motivo + ' · ' : '') + ns.map(([x, y]) => n0(x) + ' ' + y).join(' · '))}"><span class="d3m-f-andar-n">${a.nivel === 0 ? 'T' : a.id === 'terraco' ? 'E' : a.nivel}</span><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b><span class="d3m-f-andar-v${corS === SIT_COR.vermelho ? ' r' : ''}">${n0(v)} ${esc(r)}</span><i aria-hidden="true"></i></button>`; }).join('');
+    const elev = `<div class="d3m-e-cab"><b>Elevador${planta.length ? ` <span>· ${plural(planta.length, 'andar', 'andares')}</span>` : ''}</b><span class="d3m-e-cab-dir">toque no andar para subir</span></div>
+      <div class="d3m-e-rola d3m-f-andares">${andares || (typeof d3mEEstado === 'function' ? d3mEEstado({ tipo: 'carregando', forma: 'lista', linhas: 8, titulo: 'Montando o prédio' }) : '')}</div>
+      <div class="d3m-e-pe d3m-f-elev-pe">${semCentral ? `<span><i class="d3m-f-pt" aria-hidden="true"></i><b>Agentes sem sinal</b> central desligada</span><button type="button" class="d3v-btn s d3m-e-fio" data-d3-agentes-tentar>Tentar de novo</button>` : `<span>${esc(avisoDosAgentes())}</span>`}</div>`;
+    const abrir = `<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b></div><button type="button" class="d3m-vlin" data-trilho="agentes"><span><b>Agentes</b> <span class="d3m-f-ap">· quem é quem</span></span>${IC_F.seta}</button><button type="button" class="d3m-vlin" data-trilho="equipe"><span><b>Equipe online</b></span>${IC_F.seta}</button></section>`;
+    if (noPredio) pinta('.d3m-f-elev', elev);
+    pinta('.d3m-f-lado', noPredio ? online + salas + abrir : laranja + (centroLojas ? lojas : online + salas));
     el.querySelectorAll('.d3m-f-topo [data-vista]').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.vista === 'predio') === noPredio)));
     requestAnimationFrame(() => medirMapaD3());
   }
