@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 // Padrão v2 (12/11/2026): Painel de trabalho, Demandas, Agenda e captações e IA e custos são os quadros DEPOIS do
 // moodboard aprovado. Cada tela nova vive num bloco "Padrão v2" no fim do arquivo dela e só vale no mundo.
@@ -105,19 +106,114 @@ test('Agenda e captações (Direção 3): cabeçalho com abas e Marcar captaçã
   assert.match(agenda, /CAPT\.vista === "dia" \? captDiaHtml\(eventos\)/);
 });
 
-// IA e custos segue o quadro D3-IaCustos (Direção 3, 13/11/2026): selo "só donos", bloco de ação do Alex (o único laranja
-// cheio), quatro números e três colunas; o gasto por dia é uma linha (d3LinhaSvg) e os parâmetros ficam em "Em quê".
-test('IA e custos na ordem do quadro D3: período, Atualizar, Definir teto, bloco do Alex, quatro números, Pede ação com o gasto por dia, Com quem e Em quê', () => {
-  naOrdem(ia, ['<h2>IA e custos</h2>', 'PV2I_SELO', '[7, 30, 90].map', '>Atualizar</button>']);
-  // Acabamento 15/11: o "Definir teto" preto saiu do topo (ficava igual à aba selecionada); a ação mora no bloco do Alex.
-  assert.ok(!ia.includes('class="pv2-btn d3f-escuro" onclick="pv2iAbrirParametros(true)">Definir teto</button>'));
-  naOrdem(ia, ['d3LinhaSvg(lista.map((d) => d.custo), { meta: media', '>Parâmetros</summary>', 'id="ai-budget-input"', 'id="ai-usd-input"', 'id="ai-gemini-billing"', 'onclick="saveAiUsageSettings()"', '<h3>Com quem</h3>', "<h3>Em quê</h3><span class=\"pv2-sub\">${agentes.length ? 'por agente' : 'por modelo'}</span>", '${parametros}']);
-  const tela = bloco(ia, 'root.innerHTML = `<div id="pv2-ia"');
-  naOrdem(tela, ['${pv2iTopoHtml()}', '${blocoAcao}', 'Gasto em ${dias} dias', '${Mes} fecha perto de', 'Pedidos em ${dias} dias', "'Teto mensal'", '${pedeAcao}${porDiaHtml}', '${comQuem}${emQueHtml}']);
-  assert.match(ia, /d3AcaoHtml\(\{ frase: `<small class="d3f-quem">Alex · Análise e números<\/small>\$\{acao\.frase\}`, agente: 'A'/);
-  assert.match(ia, /class="pv2-btn s d3f-escuro v2-estado" onclick="event\.stopPropagation\(\);pv2iUsarTeto\(\$\{sugerido\},this\)">Usar \$\{redondo\(sugerido\)\}<\/button>/);
-  assert.equal((ia.match(/class="pv2-btn p"/g) || []).length, 0, 'o laranja cheio é só o bloco de ação');
-  assert.doesNotMatch(ia, /pv2i-dias/, 'gasto por dia em linha, sem barras');
+/// IA e custos na direção V2 (prancha V2-M-IA-Custos, 16/11/2026): o esqueleto novo na casca do grupo E. SAFE: vm com DOM
+// de mentira e fetch dublê; nada grava nem envia.
+function telaIa({ fetch: busca } = {}) {
+  const root = { innerHTML: '' }, pedidos = [];
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const ctx = vm.createContext({ console, Date, Math, JSON, Number, String, Array, Map, Set, Object, Promise, Error, Intl, safeText: esc, AI_USAGE_API: '/api/ia-custos', pv2Ligado: () => true, showToast() {}, setTimeout: (f) => { f(); return 0; },
+    d3LinhaSvg: (v) => `<svg class="d3-graf" data-pontos="${v.length}"></svg>`,
+    document: { getElementById: (id) => (id === 'ai-usage-root' ? root : null), querySelector: () => null, querySelectorAll: () => [] },
+    fetch: async (url, op = {}) => { pedidos.push(`${op.method || 'GET'} ${url}`); return busca ? busca(url, op) : { ok: true, json: async () => ({}) }; } });
+  const core = ler('vybe-core.js'), k0 = core.indexOf('const D3ME_IC'), k1 = core.indexOf('// Confirmação (família 5)', k0);
+  assert.ok(k0 >= 0 && k1 > k0, 'peças do grupo E em vybe-core.js');
+  vm.runInContext(core.slice(k0, k1), ctx);
+  vm.runInContext(bloco(demandas, '// ─── Monitoramento de uso e custo de IA', 'async function saveAiUsageSettings') + '\n' + ia, ctx);
+  return { ctx, root, pedidos };
+}
+// Como em loadAiUsage: os números ficam guardados (as escolhas da tela redesenham a partir deles).
+const pintarIa = (ctx, d) => { ctx.dadosDoTeste = d; vm.runInContext('aiUsageData = dadosDoTeste; renderAiUsageBoard(aiUsageData)', ctx); };
+const semUso = (o = {}) => ({ period_days: 30, settings: { monthly_budget_brl: 0, brl_per_usd: 5.5, gemini_billing: 'free' }, overview: { calls: 0 }, month: {}, providers: [], daily: [], people: [], ...o });
+
+test('IA e custos (prancha V2-M-IA-Custos): sem uso e sem teto, o topo no vidro, três números, o teto do mês, o vazio e o laranja do Alex', () => {
+  const { ctx, root } = telaIa();
+  pintarIa(ctx, semUso());
+  const h = root.innerHTML;
+  assert.match(h, /^<div class="d3m-e-tela d3m-e-ia"><div class="d3m-e-topo">/);
+  assert.match(h, /d3mETroca\(this,'gestao','ai-usage'\)/, 'a seta do título troca de tela dentro da Gestão');
+  assert.match(h, /<span class="d3m-e-h" role="heading" aria-level="2">IA e custos<\/span>/);
+  assert.match(h, /<span class="d3m-e-sub"><span class="d3m-e-so-donos"><svg[^>]*>.*?<\/svg>só donos<\/span> · uso e custo da IA · últimos 30 dias<\/span>/);
+  naOrdem(h, ['class="d3m-e-per ia-periodos" role="radiogroup"', 'data-days="7" aria-checked="false" onclick="setAiUsageDays(7,this)">7 dias', 'data-days="30" aria-checked="true"', 'data-days="90"', 'onclick="loadAiUsage(true)">Atualizar</button>', 'aria-label="Buscar"', 'aria-label="Como funciona"']);
+  // Três números (o teto saiu dos cartões e ganhou a folha dele).
+  naOrdem(h, ['<div class="d3m-e-kpis" style="--n:3">', '<span>Gasto em 30 dias</span>', '<b class="d3m-e-kpi-v">R$', '<span>', 'fecha perto de</span>', '<span>Pedidos em 30 dias</span>', '<b class="d3m-e-kpi-v">0</b><small class="d3m-e-kpi-sub">nenhum no período</small>']);
+  assert.equal((h.match(/class="d3m-e-kpi"/g) || []).length, 3);
+  // Teto do mês: sem teto, o botão Definir e as duas linhas automáticas.
+  naOrdem(h, ['<section class="d3m-e-folha d3m-e-ia-teto" aria-label="Teto do mês">', '<b>Teto do mês</b><span class="d3m-e-cab-dir">não definido</span>', '<span class="d3v-st d3m-e-ia-st a"><i aria-hidden="true"></i>Sem teto</span>', '<b>Teto mensal</b> <span>· o limite de gasto com IA</span>', 'onclick="pv2iAbrirParametros(true)">Definir</button>',
+    '>80%</b><span class="d3m-e-ia-txt">aviso aos donos</span><span class="d3m-e-ia-auto">automático</span>', '>100%</b><span class="d3m-e-ia-txt">fica vermelho aqui e no Hoje</span><span class="d3m-e-ia-auto">automático</span>']);
+  // Com quem e em quê: sem pedido, o estado vazio (a peça de estados) com o botão dos parâmetros.
+  naOrdem(h, ['<section class="d3m-e-folha cresce d3m-e-ia-uso" aria-label="Com quem e em quê">', '<span class="d3m-e-cab-dir">30 dias</span>', 'class="d3m-e-estado d3m-e-estado-vazio grande"', '<b>Sem pedidos ao VYBES no período</b>', 'onclick="pv2iAbrirParametros(false)">Parâmetros</button>']);
+  assert.doesNotMatch(h, /d3m-e-ia-cols|id="ai-budget-input"/, 'sem uso não há colunas; o formulário só abre com Parâmetros');
+  // A consulta no vidro: o laranja do Alex (a única ação cheia), o que entra na conta e os atalhos.
+  naOrdem(h, ['<aside class="d3m-lado" aria-label="Consulta">', '<section class="d3m-laranja d3m-e-ia-lar"', '<span>Alex · falta o teto</span>', '<span class="d3-acao-frase">O teto mensal de IA ainda não foi definido</span>', 'Sem teto não há aviso em 80% nem vermelho em 100%.', 'class="d3m-btn l v2-estado" onclick="pv2iAbrirParametros(true)">Definir o teto</button>', 'class="d3m-btn l s" onclick="pv2iAbrirParametros(false)">Parâmetros</button>',
+    '<b>O que entra na conta</b>', '<b>Abrir</b>', `onclick="pv2iIr('agentes')"><span><b>Agentes</b> · quem pede e quem age</span>`, `onclick="pv2iIr('automacoes')"><span><b>Automações</b></span>`]);
+  assert.equal((h.match(/class="d3m-laranja/g) || []).length, 1, 'um laranja cheio só');
+  // "Parâmetros": o formulário entra no lugar da folha de baixo, com os ids que saveAiUsageSettings lê, e o Voltar devolve.
+  ctx.pv2iAbrirParametros(true);
+  naOrdem(root.innerHTML, ['aria-label="Parâmetros">', 'id="pv2i-parametros"', 'id="ai-budget-input"', 'id="ai-usd-input"', 'id="ai-gemini-billing"', 'class="ai-setting-save d3v-btn s" type="button" onclick="saveAiUsageSettings()"', 'onclick="pv2iFecharParametros()">Voltar</button>']);
+  ctx.pv2iFecharParametros();
+  assert.doesNotMatch(root.innerHTML, /id="ai-budget-input"/);
+});
+
+test('IA e custos: com uso, o teto usado, o gasto por dia em linha, com quem (pessoa ou cliente) e em quê (agente ou modelo)', () => {
+  const { ctx, root } = telaIa();
+  const hoje = new Date().toISOString().slice(0, 10), ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10), antes = new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10);
+  const dados = { period_days: 7, settings: { monthly_budget_brl: 100, brl_per_usd: 5.5, gemini_billing: 'paid' }, overview: { calls: 12, cost_brl: 85, cost_usd: 15.45 }, month: { cost_brl: 85, cost_usd: 15.45, calls: 12 },
+    providers: [{ provider: 'claude', model: 'm', calls: 10, cost_brl: 85 }, { provider: 'gemini', model: 'g', calls: 2, cost_brl: 0 }],
+    daily: [{ day: hoje, calls: 6, cost_brl: 60 }, { day: ontem, calls: 3, cost_brl: 15 }, { day: antes, calls: 3, cost_brl: 10 }],
+    people: [{ profile_name: 'Paulo Martins', calls: 9, cost_brl: 70 }, { profile_name: 'Bia', calls: 2, cost_brl: 10 }, { profile_name: 'Lia', calls: 1, cost_brl: 5 }], clients: [{ cliente: 'Cliente A', calls: 4, cost_brl: 30 }] };
+  pintarIa(ctx, dados);
+  let h = root.innerHTML;
+  assert.match(h, /<b>Teto do mês<\/b><span class="d3m-e-cab-dir">R\$\s85,00 de R\$\s100,00<\/span>/);
+  assert.match(h, /<span class="d3v-st d3m-e-ia-st a"><i aria-hidden="true"><\/i>85% usado<\/span>.*?<span class="d3m-e-ia-barra a" aria-hidden="true"><i style="--v:85%"><\/i><\/span><button type="button" class="d3v-btn s" onclick="pv2iAbrirParametros\(true\)">Mudar<\/button>/s);
+  assert.match(h, /d3m-e-ia-pct a">80%<\/b><span class="d3m-e-ia-txt">aviso aos donos<\/span><span class="d3m-e-ia-auto">avisado<\/span>/);
+  assert.match(h, /<span>Alex · perto do teto<\/span>.*?<b class="d3m-lar-num">85%<\/b>.*?onclick="pv2iAbrirParametros\(true\)">Rever o teto<\/button>/s);
+  assert.match(h, /US\$ 15,45 · R\$\s7,08 por pedido/);
+  assert.match(h, /<b class="d3m-e-kpi-v">12<\/b><small class="d3m-e-kpi-sub">17% sem custo<\/small>.*?<svg class="d3m-e-anel"/s);
+  naOrdem(h, ['<div class="d3m-e-ia-cols">', 'aria-label="Gasto por dia"', '<svg class="d3-graf" data-pontos="7">', 'aria-label="Com quem"', `aria-checked="true" onclick="pv2iTrocarRecorte('pessoa')">Pessoa</button>`, '<span class="d3m-e-ia-nome">Paulo</span>', 'aria-label="Em quê"', '<span>por modelo</span>', '<span class="d3m-e-ia-nome">Claude</span>', '>estimado</span>', 'onclick="pv2iAbrirParametros(false)">Parâmetros</button>']);
+  // De olho: o dia que pesou e a pessoa muito acima da média.
+  assert.match(h, /<section class="d3m-cons" aria-label="De olho">.*?71% do gasto, 6 pedidos.*?<b>Paulo Martins<\/b> · 9× a média por pessoa/s);
+  // O recorte por cliente e, com agentes na resposta, "Em quê" por agente.
+  ctx.pv2iTrocarRecorte('cliente');
+  assert.match(root.innerHTML, /aria-checked="true" onclick="pv2iTrocarRecorte\('cliente'\)">Cliente<\/button>.*?<span class="d3m-e-ia-nome">Cliente A<\/span>/s);
+  ctx.pv2iTrocarRecorte('pessoa');
+  pintarIa(ctx, { ...dados, agents: [{ agente: 'Heitor', calls: 5, cost_brl: 40 }] });
+  assert.match(root.innerHTML, /<span>por agente<\/span><\/div><div class="d3m-e-ia-gx"[^>]*><i class="d3v-foto" aria-hidden="true">H<\/i><span class="d3m-e-ia-nome">Heitor<\/span>/);
+  assert.doesNotMatch(root.innerHTML, /token|comandos/i);
+});
+
+test('IA e custos: carregando é o esqueleto parado, o erro deixa tentar de novo e "Usar R$" grava o teto sugerido', async () => {
+  let responder = () => new Promise(() => {});
+  const { ctx, root, pedidos } = telaIa({ fetch: (url, op) => responder(url, op) });
+  ctx.loadAiUsage(true);
+  assert.match(root.innerHTML, /^<div class="d3m-e-tela d3m-e-ia" aria-busy="true">.*?<b>Consultando uso e custos<\/b>.*?class="d3m-e-estado-carregando" data-forma="lista"/s);
+  const falha = telaIa({ fetch: async () => ({ ok: false, json: async () => ({ error: 'Sem acesso ao banco.' }) }) });
+  await falha.ctx.loadAiUsage(true);
+  assert.match(falha.root.innerHTML, /class="d3m-e-estado d3m-e-estado-erro grande"[^>]*role="alert">.*?<b>Não foi possível ler os gastos da IA<\/b><span>Sem acesso ao banco\.<\/span><button type="button" class="d3m-e-estado-btn sec" onclick="loadAiUsage\(true\)">Tentar de novo<\/button>/s);
+  // Com gasto no mês e sem teto, o Alex sugere um teto e o botão grava pelo mesmo POST de "Salvar".
+  const hoje = new Date().toISOString().slice(0, 10);
+  const comGasto = { period_days: 30, settings: { monthly_budget_brl: 0, brl_per_usd: 5.5, gemini_billing: 'free' }, overview: { calls: 4, cost_brl: 20 }, month: { cost_brl: 20, calls: 4 }, providers: [{ provider: 'gpt', model: 'x', calls: 4, cost_brl: 20 }], daily: [{ day: hoje, calls: 4, cost_brl: 20 }], people: [{ profile_name: 'Paulo', calls: 4, cost_brl: 20 }] };
+  const salvo = telaIa({ fetch: async (url, op) => ({ ok: true, json: async () => (op.method === 'POST' ? { dashboard: { ...comGasto, settings: { ...comGasto.settings, monthly_budget_brl: JSON.parse(op.body).monthly_budget_brl } } } : comGasto) }) });
+  await salvo.ctx.loadAiUsage(true);
+  const usar = salvo.root.innerHTML.match(/class="d3m-btn l v2-estado" onclick="pv2iUsarTeto\((\d+),this\)">Usar R\$ (\d+)<\/button>/);
+  assert.ok(usar && usar[1] === usar[2] && Number(usar[1]) >= 50, 'o teto sugerido no laranja');
+  assert.match(salvo.root.innerHTML, /class="d3v-btn s d3m-e-fio v2-estado" onclick="pv2iUsarTeto\(\d+,this\)">Usar R\$ \d+<\/button><button type="button" class="d3v-btn s" onclick="pv2iAbrirParametros\(true\)">Definir<\/button>/);
+  const botao = { dataset: {}, textContent: '' };
+  await salvo.ctx.pv2iUsarTeto(Number(usar[1]), botao);
+  assert.equal(botao.dataset.estado, 'feito');
+  assert.ok(salvo.pedidos.includes('POST /api/ia-custos'));
+  assert.match(salvo.root.innerHTML, /<b>Teto mensal<\/b> <span>· R\$\s\d+,00 por mês/);
+  assert.equal(pedidos.length, 1);
+});
+
+test('IA e custos: o CSS da tela é um fragmento do grupo E, com tokens, sem !important e sem html body.mundo', () => {
+  const tela = ler('padrao-v2/zm-e-ia.css').replace(/\/\*[\s\S]*?\*\//g, ''), casca = ler('padrao-v2/zm-e-casca.css'); // sem os comentários
+  assert.doesNotMatch(tela, /!important|html body\.mundo|#[0-9A-Fa-f]{3,8}\b|:has\([^)]*\[style/);
+  assert.doesNotMatch(tela.replace(/box-shadow:[^;}]*/g, ''), /rgba?\(/, 'rgba só em sombra');
+  assert.match(casca, /body\.mundo\.mundo-modulo:is\(\[data-quadro="diario"\],\[data-quadro="ai-usage"\][^)]*\) #mundo-moldura\{[^}]*background:var\(--d3-fume\)/, 'a janela da IA é vidro fumê');
+  assert.match(tela, /body\.mundo\.mundo-modulo\[data-quadro="ai-usage"\] #painel-ai-usage\{position:absolute;inset:0;/);
+  for (const sel of ['.d3m-e-ia-lin', '.d3m-e-ia-cols', '.d3m-e-ia-gx', '.d3m-e-ia-form', '.d3m-e-ia-lar']) assert.ok(tela.includes(sel), sel);
+  assert.match(tela, /@media \(max-width:900px\)/);
+  assert.ok(ler('vybe-mundo-padrao-v2.css').includes('.d3m-e-ia-cols'), 'o fragmento entra na folha junta');
 });
 
 test('escolha única usa role="radio" com aria-checked (a visão ativa é branca) e a ficha ligada fica preta', () => {

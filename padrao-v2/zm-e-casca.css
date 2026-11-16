@@ -7,7 +7,7 @@
    =================================================================================================================== */
 
 /* A janela dos quadros deste grupo é vidro fumê. O quadro aberto fica no body (data-quadro, de switchBoard). */
-body.mundo.mundo-modulo:is([data-quadro="diario"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
+body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 
 /* A tela: uma coluna da altura da janela. Fora do Irecity (?legado=1) ela mesma faz o fundo escuro. */
 .d3m-e-tela{display:flex;flex-direction:column;min-width:0;height:100%;box-sizing:border-box;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
@@ -82,7 +82,7 @@ body.mundo.mundo-modulo:is([data-quadro="diario"]) #mundo-moldura{border-radius:
 /* "Como funciona": o botão de ícone que abre uma nota (a mesma caixa da seta do título, presa à direita). */
 .d3m-e-ajuda{align-self:center}
 .d3m-e-ajuda > summary.d3m-e-ico{display:grid}
-.d3m-e-ajuda > summary.d3m-e-ico > svg{stroke:currentColor}
+.d3m-e-ajuda > summary.d3m-e-ico > svg{stroke:var(--d3-fume-texto)}
 .d3m-e-ajuda-pop{left:auto;right:0;width:300px;gap:6px;padding:12px}
 .d3m-e-ajuda-t{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 .d3m-e-ajuda-p{margin:0;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:normal}
@@ -92,6 +92,11 @@ body.mundo.mundo-modulo:is([data-quadro="diario"]) #mundo-moldura{border-radius:
 .d3m-e-elo:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
 .d3v-btn.d3m-e-fio{flex:none;background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font-weight:500}
 .d3v-btn.d3m-e-fio:hover{background:var(--d3-veu)}
+.d3v-btn.vidro.d3m-e-fio{box-shadow:inset 0 0 0 1px var(--d3-escuro-apagado);color:var(--d3-fume-texto)}
+.d3v-btn.vidro.d3m-e-fio:hover{background:var(--d3-fume-veu)}
+/* O selo "só donos" na linha de apoio do título. */
+.d3m-e-so-donos{display:inline-flex;align-items:center;gap:4px;color:var(--d3-fume-texto);vertical-align:bottom}
+.d3m-e-so-donos > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* Cartões de número (116 de altura): rótulo e selo de 24 em cima; embaixo o número de 28, a nota e, se houver, o anel. */
 .d3m-e-kpis{flex:none;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:12px}
@@ -116,6 +121,8 @@ button.d3m-e-kpi:focus-visible{outline:2px solid var(--d3-fume-texto);outline-of
 .d3m-e-kpi.a .d3m-e-anel{color:var(--d3-ambar)}
 .d3m-e-anel > circle{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round}
 .d3m-e-anel > circle:first-child{opacity:.16}
+.d3m-e-kpi-graf{flex:none;display:block;width:84px;height:36px}
+.d3m-e-kpi-graf > svg{display:block;width:100%;height:100%}
 
 /* Telas menores: uma coluna; a consulta desce para depois do trabalho e a janela rola (como no Hoje). */
 @media (max-width:900px){
@@ -134,5 +141,7 @@ button.d3m-e-kpi:focus-visible{outline:2px solid var(--d3-fume-texto);outline-of
   .d3m-e-acoes{flex:1 1 100%;flex-wrap:wrap;min-width:0}
   .d3m-e-per{max-width:100%;overflow-x:auto;scrollbar-width:none}
   .d3m-e-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .d3m-e-ajuda-pop{width:min(300px,80vw)}
+  .d3m-e-acoes{position:relative}
+  .d3m-e-ajuda{position:static}
+  .d3m-e-ajuda-pop{left:0;right:0;width:auto}
 }

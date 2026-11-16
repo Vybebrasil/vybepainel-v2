@@ -1140,7 +1140,8 @@ function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icon
 }
 // V2 · grupo E (pranchas V2-M-Estados e V2-M-*, 16/11/2026): as peças locais .d3m-e-* (CSS em padrao-v2/zm-e-casca.css e
 // zm-e-estados.css). Ficam aqui, ao lado de vbEstadoHtml, até subirem para a família comum (.d3m-*).
-const D3ME_IC = { vazio: '<path d="M5 12l4 4 10-10"/>', erro: '<path d="M12 7v6M12 17h.01"/>', relogio: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', baixo: '<path d="M6 9l6 6 6-6"/>', depois: '<path d="M9 6l6 6-6 6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>' };
+const D3ME_IC = { vazio: '<path d="M5 12l4 4 10-10"/>', erro: '<path d="M12 7v6M12 17h.01"/>', relogio: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', baixo: '<path d="M6 9l6 6 6-6"/>', depois: '<path d="M9 6l6 6-6 6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>', bot: '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9.5 13h.01M14.5 13h.01"/>',
+  cifrao: '<path d="M12 4v16M16 8.5c0-1.4-1.8-2.5-4-2.5s-4 1.1-4 2.5 1.8 2.5 4 3 4 1.6 4 3-1.8 2.5-4 2.5-4-1.1-4-2.5"/>', agenda: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', alerta: '<path d="M12 7v6M12 17h.01"/>', lapis: '<path d="M4 20l1-4L16 5l3 3L8 19z"/>', certo: '<path d="M5 12l4 4 10-10"/>' };
 function d3mEIc(nome) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${D3ME_IC[nome] || D3ME_IC.vazio}</svg>`; }
 function d3mEEsc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 // Botão do estado: cheio (o primeiro passo do vazio) ou de contorno (sec: "Tentar de novo" do erro). attrs: onclick, data-*.
@@ -1160,6 +1161,17 @@ function d3mEEstado({ tipo = 'vazio', forma = 'lista', titulo = '', texto = '', 
   }
   const t = tipo === 'erro' ? 'erro' : 'vazio';
   return `<div class="d3m-e-estado d3m-e-estado-${t}${vidro ? ' vidro' : ''}${grande ? ' grande' : ''}" data-forma="${f}" role="${t === 'erro' ? 'alert' : 'status'}"><span class="d3m-e-estado-ic">${d3mEIc(icone || t)}</span>${titulo ? `<b>${d3mEEsc(titulo)}</b>` : ''}${texto ? `<span>${d3mEEsc(texto)}</span>` : ''}${acao}</div>`;
+}
+// Cartão de número (pranchas V2-M-Performance e V2-M-IA-Custos): o rótulo e o selo de 24 em cima; embaixo o número de 28
+// (com o "/ total" menor em de), a nota curta e, ao lado, o anel (parte do total, 0 a 100) ou a linha (serie).
+// tom: 'r' | 'a' | 'g' pinta o número. selo: 't' (tinta) | 'r' | 'a' | 'g' | 'roxo' | 'i' (azul). attrs: vira botão.
+function d3mEKpi({ rotulo = '', valor = '0', de = '', sub = '', tom = '', selo = 't', icone = 'agenda', anel = null, serie = null, attrs = '' } = {}) {
+  const tag = attrs ? 'button' : 'div';
+  const pct = anel == null ? null : Math.max(0, Math.min(100, Math.round(anel)));
+  const graf = pct != null ? `<svg class="d3m-e-anel" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17"/><circle cx="22" cy="22" r="17" stroke-dasharray="${(106.8 * pct / 100).toFixed(1)} 106.8"/></svg>`
+    : Array.isArray(serie) && serie.length > 1 && typeof d3LinhaSvg === 'function' ? `<span class="d3m-e-kpi-graf">${d3LinhaSvg(serie, { largura: 84, altura: 36 })}</span>` : '';
+  return `<${tag}${attrs ? ` type="button" ${attrs}` : ''} class="d3m-e-kpi${tom ? ' ' + tom : ''}"><span class="d3m-e-kpi-topo"><span>${d3mEEsc(rotulo)}</span><span class="d3v-selo" data-k="${d3mEEsc(selo)}">${d3mEIc(icone)}</span></span>`
+    + `<span class="d3m-e-kpi-baixo"><span class="d3m-e-kpi-txt"><b class="d3m-e-kpi-v">${valor}${de ? `<small class="d3m-e-kpi-de">${de}</small>` : ''}</b><small class="d3m-e-kpi-sub">${sub}</small></span>${graf}</span></${tag}>`;
 }
 // Topo da tela no vidro: o título (com a seta que troca de tela dentro do setor, quando há setor), a linha de apoio e as
 // ações. setor e atual são os ids do menu lateral ("gestao", "diario"): a lista é a do próprio submenu (d3mETroca).
