@@ -4778,14 +4778,16 @@
     el.querySelectorAll('[data-vista]').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.vista === 'predio') === predio)));
     pintarCentroD3(lista);
   }
-  // ===== Centro pelos quadros D3-Centro e D3-Loja (Paulo, 14/11/2026: "o 3D não ocupa a tela toda: ele fica DENTRO de
-  // um cartão, numa grade igual à do quadro") =====
-  // O painel: "Vybelândia" com a data, a busca e Centro/Prédio; a faixa laranja; quatro números; embaixo, à esquerda, o
-  // cartão com o mapa 3D (o motor desenha no tamanho do cartão: canvas e rótulos vão para o retângulo dele) e os módulos;
-  // no meio o prédio pelo elevador; à direita quem está online e as salas. A loja aberta (D3-Loja) ocupa o meio e a lista
-  // de lojas por atraso, a direita. "Entrar no mapa" volta o mapa à tela inteira, como antes; "Painel" volta para cá.
-  let centroCheio = false;
+  // ===== Centro e Prédio pelas pranchas V2-M-Centro e V2-M-Predio (aprovadas pelo Paulo em 16/11/2026) =====
+  // A janela de vidro fumê com o título direto no vidro; à esquerda o trabalho (os quatro números em tiras e o cartão
+  // com o mapa 3D: o motor desenha no retângulo do cartão, canvas e rótulos vão para ele) e, à direita, a coluna de
+  // consulta de 316 px: o cartão laranja com a loja mais apertada, quem está online e as salas. Os oito cartões de
+  // módulo saíram (já estão no menu). No Prédio, o cartão do 3D divide o trabalho com a folha do elevador.
+  // "Entrar no mapa" volta o mapa à tela inteira, como antes; "Painel" volta para cá. A placa (loja aberta, andar,
+  // agente, camadas) ocupa a coluna de consulta; no Prédio, o lugar do elevador.
+  let centroCheio = false, centroLojas = false;
   const noPainelDoCentro = () => centroAberto && !centroCheio && !body.classList.contains('mundo-predio') && !body.classList.contains('mundo-modulo') && !body.classList.contains('mundo-andar');
+  const IC_F = { lupa: svg('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svg('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>'), seta: svg('<path d="M9 6l6 6-6 6"/>') };
   function medirMapaD3() {
     const card = hud.querySelector('#d3-centro .d3c-mapa'), raizEl = document.documentElement;
     if (!card || !body.classList.contains('d3c-painel')) return;
@@ -4793,41 +4795,47 @@
     const set = (k, v) => raizEl.style.setProperty(k, Math.round(v) + 'px');
     set('--d3c-mx', r.left); set('--d3c-my', r.top); set('--d3c-mw', r.width); set('--d3c-mh', r.height);
     set('--d3c-cr', W - r.right + 12); set('--d3c-cb', H - r.bottom + 12);
-    const meio = hud.querySelector('#d3-centro .d3c-col2'); if (meio) { const m = meio.getBoundingClientRect(); set('--d3c-px', m.left); set('--d3c-py', m.top); set('--d3c-pw', m.width); set('--d3c-ph', m.height); }
+    const elev = hud.querySelector('#d3-centro .d3m-f-elev'), lado = hud.querySelector('#d3-centro .d3m-f-lado');
+    const alvo = elev && elev.getClientRects().length ? elev : lado;
+    if (alvo) { const m = alvo.getBoundingClientRect(); set('--d3c-px', m.left); set('--d3c-py', m.top); set('--d3c-pw', m.width); set('--d3c-ph', m.height); }
   }
   function pintarCentroD3(lista = []) {
     let el = hud.querySelector('#d3-centro');
     if (!el) {
-      el = document.createElement('section'); el.id = 'd3-centro'; el.setAttribute('aria-label', 'Vybelândia: painel do centro');
-      el.innerHTML = '<div class="d3c-tit"></div><div class="d3c-faixa"></div><div class="d3c-nums"></div><div class="d3c-grade"><div class="d3c-col1"><section class="d3c-cartao d3c-mapa" aria-label="Mapa do centro"><div class="d3c-chips"></div><button type="button" class="d3c-entrar" data-d3-cheio>Entrar no mapa</button></section><div class="d3c-mods-slot"></div></div><div class="d3c-col2"></div><div class="d3c-col3"></div></div>';
+      el = document.createElement('section'); el.id = 'd3-centro'; el.className = 'd3m-e-tela d3m-f-mundo'; el.setAttribute('aria-label', 'Vybelândia: painel do centro');
+      el.innerHTML = '<div class="d3m-e-topo d3m-f-topo"></div><div class="d3m-f-corpo"><section class="d3c-mapa d3m-f-cena" aria-label="Mapa do centro"><div class="d3c-chips d3m-f-chips"></div><button type="button" class="d3v-btn d3m-f-claro d3m-f-entrar" data-d3-cheio>Entrar no mapa</button></section><div class="d3m-f-resto"><div class="d3m-f-tiras" role="group" aria-label="Números do centro"></div><section class="d3m-e-folha d3m-f-elev" aria-label="Prédio · elevador" hidden></section><aside class="d3m-lado d3m-f-lado" aria-label="Consulta"></aside></div></div>';
       hud.append(el);
       el.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return;
+        if (b.closest('.d3m-e-pop')) b.closest('details')?.removeAttribute('open');
         if (b.dataset.d3Loja) { mostrarCliente(b.dataset.d3Loja); return; }
         if (b.hasAttribute('data-d3-cheio')) { centroCheio = true; pintarCentroD3(naTela); return; }
+        if (b.hasAttribute('data-d3-lojas')) { centroLojas = !centroLojas; pintarCentroD3(naTela); return; }
+        if (b.hasAttribute('data-d3-agentes-tentar')) { b.disabled = true; Promise.resolve(carregarAgentes(true)).catch(() => {}).then(() => pintarCentroD3(naTela)); }
       });
+      // A busca de cliente abre com o cursor no campo; achou, fecha.
+      el.addEventListener('toggle', (e) => { if (e.target.open && e.target.classList?.contains('d3m-f-busca')) e.target.querySelector('input')?.focus(); }, true);
+      el.addEventListener('change', (e) => { if (e.target.matches?.('[data-busca-loja]')) e.target.closest('details')?.removeAttribute('open'); });
       if (typeof ResizeObserver === 'function') new ResizeObserver(() => medirMapaD3()).observe(el.querySelector('.d3c-mapa'));
-      el.addEventListener('scroll', () => medirMapaD3(), { passive: true });
+      el.querySelector('.d3m-f-resto').addEventListener('scroll', () => medirMapaD3(), { passive: true });
       addEventListener('resize', () => medirMapaD3());
     }
+    const noPredio = body.classList.contains('mundo-predio');
     const painel = noPainelDoCentro(), antes = body.classList.contains('d3c-painel');
     body.classList.toggle('d3c-painel', painel);
     if (painel !== antes) ajustarAreaLivre();
     // Mudou o tamanho do mapa (cartão ↔ tela cheia): a câmera reenquadra a cidade toda no novo retângulo.
-    if (painel !== antes && !body.classList.contains('mundo-predio')) setTimeout(() => { if (centroAberto && !body.classList.contains('mundo-predio')) mundo?.verCidade?.(); }, 160);
+    if (painel !== antes && !noPredio) setTimeout(() => { if (centroAberto && !body.classList.contains('mundo-predio')) mundo?.verCidade?.(); }, 160);
     body.classList.toggle('d3c-cheio', centroAberto && centroCheio);
+    // No mapa em tela cheia continuam a barra "Vybelândia" e a fala do VYBES de sempre, com o botão "Painel".
     const bar0 = hud.querySelector('.vv-legenda-cidade');
     if (bar0 && !bar0.querySelector('[data-d3-painel]')) {
       bar0.querySelector('.v2m-nome h1')?.insertAdjacentHTML('afterend', `<small class="d3c-data">${esc(diaD3())}</small>`);
       bar0.insertAdjacentHTML('beforeend', '<button type="button" class="v2n-btn s d3c-voltar" data-d3-painel>Painel</button>');
       bar0.addEventListener('click', (ev) => { if (ev.target.closest('[data-d3-painel]')) { centroCheio = false; if (body.classList.contains('mundo-predio')) hud.querySelector('[data-vista="cidade"]')?.click(); pintarCentroD3(naTela); } });
     }
-    // A barra e a faixa do VYBES entram no painel (no lugar do título e da faixa do quadro); no mapa cheio voltam ao HUD.
-    const barra = hud.querySelector('.vv-legenda-cidade'), fala = hud.querySelector('.v2m-fala');
-    const tit = el.querySelector('.d3c-tit'), fx = el.querySelector('.d3c-faixa');
-    if (painel) { if (barra && barra.parentNode !== tit) tit.append(barra); if (fala && fala.parentNode !== fx) fx.append(fala); }
-    else { if (barra && barra.parentNode !== hud) hud.append(barra); if (fala && fala.parentNode !== hud) hud.append(fala); }
     if (!painel) return;
+    el.dataset.vista = noPredio ? 'predio' : 'cidade';
     const L = lista || [], gente = presencaDoEscritorio(), Z = zonas3d(), e = typeof escritorio !== 'undefined' ? escritorio : null;
     const time = e?.base?.equipe || [], total = Math.max(time.length, gente.length);
     const emSala = gente.filter((g) => g.zona && Z[g.zona] && g.zona !== 'recepcao');
@@ -4835,47 +4843,60 @@
     const maior = [...porSala.entries()].sort((a, b) => b[1].length - a[1].length)[0];
     const comAtraso = L.filter((c) => c.por?.atrasada > 0).length, aberto = L.reduce((s, c) => s + (Number(c.total) || 0), 0);
     const n = { atraso: 0, atencao: 0, dia: 0 }; for (const c of L) n[grupoDaCidade(c)]++;
-    const av = (nome) => `<i>${esc(iniciais(nome === 'Você' ? 'Eu' : nome))}</i>`;
-    const num = (rot, v, de, sub, tom = '', extra = '') => `<div class="d3-num d3c-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rot}</span><span class="d3c-num-linha"><b class="d3-num-v">${v}${de ? `<small> / ${de}</small>` : ''}</b>${extra}</span>${sub}</div>`;
-    // D3-Loja: com a loja aberta, a página vira "Centro comercial" e os números passam a ser os das lojas.
+    const primeiro = (nome) => esc(String(nome || '').split(' ')[0]);
+    const eLista = (nomes) => (nomes.length > 1 ? nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1] : nomes[0] || '');
+    // D3-Loja: com a loja aberta, os números passam a ser os das lojas.
     const lojaAberta = Boolean(!placa().hidden && placa().querySelector('.d3m-loja'));
-    const h1 = hud.querySelector('#d3-centro .v2m-barra h1'); if (h1) h1.textContent = lojaAberta ? 'Centro comercial' : 'Vybelândia';
+    // --- Topo no vidro: o nome, a linha de apoio, Centro/Prédio, a busca de cliente e o "Mais" (filtros do mapa) ---
+    const filtro = (k, rot) => `<button type="button" data-filtro-cidade="${k}"${filtroCidade === k ? ' class="on"' : ''} aria-pressed="${filtroCidade === k}"${n[k] ? '' : ' disabled'}>${rot} · ${n0(n[k])}</button>`;
+    const sub = noPredio ? 'prédio da Vybe · setores e agentes de cada andar' : lojaAberta ? 'centro comercial · a loja aberta ao lado' : L.length ? `centro comercial · a Vybe no meio e ${L.length === 1 ? 'o cliente' : `os ${n0(L.length)} clientes`} ao redor` : 'centro comercial · a Vybe no meio e os clientes ao redor';
+    const topo = `<div class="d3m-e-tit"><span class="d3m-e-h" role="heading" aria-level="1">Vybelândia</span><span class="d3m-e-sub">${sub}</span></div>
+      <div class="d3m-e-acoes"><span class="d3m-e-per" role="group" aria-label="Vista"><button type="button" data-vista="cidade" aria-pressed="${!noPredio}">Centro</button><button type="button" data-vista="predio" aria-pressed="${noPredio}">Prédio</button></span>
+      <details class="d3m-e-troca d3m-f-menu d3m-f-busca"><summary class="d3m-e-ico" title="Buscar cliente no mapa" aria-label="Buscar cliente no mapa">${IC_F.lupa}</summary><div class="d3m-e-pop d3m-f-pop"><input type="search" class="d3m-f-campo" data-busca-loja placeholder="Buscar cliente no mapa" aria-label="Buscar cliente no mapa" list="d3mf-lojas"><datalist id="d3mf-lojas">${L.map((c) => `<option value="${esc(c.nome)}"></option>`).join('')}</datalist></div></details>
+      <details class="d3m-e-troca d3m-f-menu d3m-f-mais"><summary class="d3m-e-ico" title="Mais" aria-label="Mais">${IC_F.pontos}</summary><div class="d3m-e-pop d3m-f-pop"><span>Mostrar no mapa</span>${filtro('atraso', 'Só com atraso')}${filtro('atencao', 'Só em atenção')}${filtro('dia', 'Só em dia')}<span>Mapa</span><button type="button" data-d3-cheio>${noPredio ? 'Prédio em tela cheia' : 'Entrar no mapa'}</button></div></details></div>`;
+    // --- As quatro tiras: a primeira (clara) é o número que mais importa; tocar filtra o mapa ou abre a equipe ---
+    const tira = (rot, v, apoio, attrs = '', on = false) => `<${attrs ? 'button type="button" ' + attrs : 'div'} class="d3m-f-tira${on ? ' on' : ''}"><span class="d3m-f-tira-r">${rot}</span><span class="d3m-f-tira-v"><b>${v}</b><span>${apoio}</span></span></${attrs ? 'button' : 'div'}>`;
     const somaPor = (k) => L.reduce((t, c) => t + (Number(c.por?.[k]) || 0), 0), atrasadasL = somaPor('atrasada'), comCliente = somaPor('aprovar') + somaPor('briefing');
-    const numsLoja = num('Lojas com atraso', n0(comAtraso), n0(L.length), `<small class="d3c-sub">${n0(n.dia)} em dia · ${n0(n.atencao)} em atenção</small>`, comAtraso ? 'r' : '')
-      + num('Peças atrasadas', n0(atrasadasL), '', `<small class="d3c-sub">em ${plural(comAtraso, 'loja', 'lojas')}</small>`, atrasadasL ? 'r' : '')
-      + num('Com o cliente', n0(comCliente), '', '<small class="d3c-sub">aprovar ou informar</small>')
-      + num('Em aberto', n0(aberto), '', `<span class="d3-barra" style="--v:${aberto ? 100 : 0}%"><i></i></span>`);
-    const numsCentro = num('Online agora', n0(gente.length), total ? n0(total) : '', total ? `<span class="d3-barra" style="--v:${Math.round(gente.length / Math.max(1, total) * 100)}%"><i></i></span>` : '')
-      + num('Em salas', n0(emSala.length), '', `<small class="d3c-sub">${maior ? esc(Z[maior[0]]?.nome || 'sala') : 'ninguém em sala'}</small>`, '', emSala.length ? `<span class="d3c-avs">${emSala.slice(0, 3).map((g) => av(g.nome)).join('')}</span>` : '')
-      + num('Lojas com atraso', n0(comAtraso), n0(L.length), `<small class="d3c-sub">${n0(n.dia)} em dia · ${n0(n.atencao)} em atenção</small>`, comAtraso ? 'r' : '')
-      + num('Peças em aberto', n0(aberto), '', `<small class="d3c-sub">${plural(L.length, 'cliente ativo', 'clientes ativos')}</small>`);
-    const chips = `<span class="d3c-chip">${plural(L.length, 'loja', 'lojas')}</span>${n.atraso ? `<button type="button" class="d3c-chip r" data-filtro-cidade="atraso" aria-pressed="${filtroCidade === 'atraso'}">${n0(n.atraso)} com atraso</button>` : ''}${n.atencao ? `<button type="button" class="d3c-chip" data-filtro-cidade="atencao" aria-pressed="${filtroCidade === 'atencao'}">${n0(n.atencao)} em atenção</button>` : ''}`;
-    const mod = (id, nome, sub = '', tom = '') => `<button type="button" class="d3c-mod" data-trilho="${id}"><b>${nome}</b>${sub ? `<small class="${tom}">${sub}</small>` : ''}</button>`;
-    const modulos = `<section class="d3c-cartao d3c-modulos" aria-label="Módulos"><div class="d3c-cab"><h3>Módulos</h3><small>8</small></div><div class="d3c-mods">${mod('centro', 'Centro comercial', comAtraso ? `${n0(comAtraso)} com atraso` : 'em dia', comAtraso ? 'r' : '')}${mod('predio', 'Prédio', mundo?.planta ? plural(mundo.planta.length, 'andar', 'andares') : '')}${mod('minha-sala', 'Minha sala')}${mod('equipe', 'Equipe online', `${n0(gente.length)} agora`, gente.length ? 'g' : '')}${mod('jogos', 'Jogos')}${mod('loja', 'Loja', e?.base?.economia?.saldo != null ? `${n0(e.base.economia.saldo)} moedas` : '')}${mod('ranking', 'Ranking')}${mod('conquistas', 'Conquistas')}</div></section>`;
-    // O prédio pelo elevador: cada andar com o número que mais importa e a cor da situação; tocar abre o andar.
-    const planta = mundo?.planta ? [...mundo.planta].reverse() : [];
-    const f = fonteAgentes?.ler(), semCentral = Boolean(f?.erro);
-    const predio = `<section class="d3c-cartao d3c-predio" aria-label="Prédio · elevador"><div class="d3c-cab"><h3>Prédio · elevador</h3><small>${planta.length ? plural(planta.length, 'andar', 'andares') : ''}</small></div>
-      ${planta.map((a) => { const { n: ns, sit } = numerosDoAndar(a); const [v, r] = ns[0] || [0, ''];
-        return `<button type="button" class="d3c-andar" data-andar="${esc(a.id)}" style="--s:${SIT_COR[sit] || '#B5AFA5'}"><span class="d3c-andar-n">${a.nivel === 0 ? 'T' : a.id === 'terraco' ? 'E' : a.nivel}</span><b>${esc(a.nome.replace(/^Terraço · /, ''))}</b><small>${n0(v)} ${esc(r)}</small><i aria-hidden="true"></i></button>`; }).join('') || '<p class="d3c-vazio">O prédio aparece quando o 3D terminar de montar</p>'}
-      <p class="d3c-pe${semCentral ? ' a' : ''}">${semCentral ? '<span class="d3c-pill a">Agentes sem sinal</span> central desligada' : esc(avisoDosAgentes())}</p></section>`;
+    const tAtraso = tira('Lojas com atraso', n0(comAtraso), `de ${n0(L.length)}`, `data-filtro-cidade="atraso" aria-pressed="${filtroCidade === 'atraso'}" title="Mostrar no mapa só as lojas com atraso"${n.atraso ? '' : ' disabled'}`, true);
+    const tirasLoja = tAtraso + tira('Peças atrasadas', n0(atrasadasL), `em ${plural(comAtraso, 'loja', 'lojas')}`) + tira('Com o cliente', n0(comCliente), 'aprovar ou informar') + tira('Em aberto', n0(aberto), plural(L.length, 'cliente', 'clientes'));
+    const tirasCentro = tAtraso + tira('Peças em aberto', n0(aberto), plural(L.length, 'cliente', 'clientes'))
+      + tira('Online agora', n0(gente.length), total ? `de ${n0(total)}` : 'agora', 'data-trilho="equipe" title="Abrir a Equipe online"')
+      + tira('Em salas', n0(emSala.length), maior ? esc(Z[maior[0]]?.nome || 'sala') : 'ninguém', 'data-trilho="equipe" title="Abrir a Equipe online"');
+    // --- Por cima do mapa: quantas lojas e o filtro das que têm atraso (ou atenção) ---
+    const chips = noPredio ? `<span class="d3m-f-chip">${mundo?.planta ? plural(mundo.planta.length, 'andar', 'andares') : 'prédio da Vybe'}</span>`
+      : `<span class="d3m-f-chip">${plural(L.length, 'loja', 'lojas')}</span>${n.atraso ? `<button type="button" class="d3m-f-chip" data-filtro-cidade="atraso" aria-pressed="${filtroCidade === 'atraso'}"><i class="r"></i>${n0(n.atraso)} com atraso</button>` : ''}${n.atencao ? `<button type="button" class="d3m-f-chip" data-filtro-cidade="atencao" aria-pressed="${filtroCidade === 'atencao'}"><i class="a"></i>${n0(n.atencao)} em atenção</button>` : ''}`;
+    // --- O cartão laranja: a loja mais apertada, com o caminho até ela e a lista das que têm atraso ---
+    const top = maisApertada(L);
+    const lar = (rot, num, frase, apoio, bts) => `<section class="d3m-laranja d3m-f-lar" aria-label="VYBES sobre as lojas"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>${rot}</span><div class="d3m-lar-txt">${num !== '' ? `<b class="d3m-lar-num">${num}</b>` : ''}<span class="d3-acao-frase">${frase}</span><small class="d3m-f-lar-ap">${apoio}</small>${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div></section>`;
+    const btLojas = (rot) => `<button type="button" class="d3m-btn l s" data-d3-lojas aria-pressed="${centroLojas}">${centroLojas ? 'Voltar às salas' : rot}</button>`;
+    const laranja = !L.length ? lar('VYBES · as lojas', '', 'Os clientes aparecem no mapa assim que a produção carregar.', 'Enquanto isso, o prédio e as salas já funcionam.', '')
+      : top ? lar('VYBES · a loja mais apertada', n0(top.por.atrasada), `${rotuloDe(top.por.atrasada, 'peça atrasada', 'peças atrasadas')} na ${esc(top.nome)}`, n.atraso === L.length ? `As ${n0(L.length)} lojas têm atraso. Esta é a pior.` : `${plural(n.atraso, 'loja tem', 'lojas têm')} atraso. Esta é a pior.`,
+        `<button type="button" class="d3m-btn l" data-loja-apertada title="${esc(top.nome)}: ${plural(top.por.atrasada, 'peça atrasada', 'peças atrasadas')}">Ir à ${primeiro(top.nome)}</button>${btLojas(`Ver as ${n0(n.atraso)}`)}`)
+      : n.atencao ? lar('VYBES · as lojas', n0(n.atencao), `${rotuloDe(n.atencao, 'loja pede', 'lojas pedem')} atenção hoje`, 'Nenhuma loja com atraso.', btLojas('Ver as lojas'))
+      : lar('VYBES · as lojas', n0(L.length), `${rotuloDe(L.length, 'loja em dia', 'lojas em dia')}`, 'Nada atrasado nem esperando o cliente.', btLojas('Ver as lojas'));
+    // --- Online agora e as salas, direto no vidro ---
     const falando = fn('escritorioPessoasFalando')?.() || new Set();
     const onlineIds = new Set(gente.map((g) => g.id)), fora = time.filter((t) => !onlineIds.has(String(t.id)));
-    const online = `<section class="d3c-cartao d3c-online" aria-label="Online agora"><div class="d3c-cab"><h3>Online agora</h3><span class="d3c-pill g">${n0(gente.length)}</span></div>
-      ${gente.slice(0, 5).map((g) => `<div class="d3c-pes">${av(g.nome)}<b>${esc(g.nome)}</b>${falando.has(g.id) ? '<em>falando</em>' : ''}<small>${esc(Z[g.zona]?.nome || (g.zona ? 'no prédio' : 'recepção'))}</small></div>`).join('') || '<p class="d3c-vazio">Ninguém online agora</p>'}
-      ${gente.length > 5 ? `<p class="d3c-pe">+ ${n0(gente.length - 5)}</p>` : ''}
-      ${fora.length ? `<p class="d3c-fora"><span>Fora</span>${fora.slice(0, 4).map((t) => `<span class="d3c-pill">${esc(String(t.nome || '').split(' ')[0])}</span>`).join('')}${fora.length > 4 ? `<span class="d3c-pill">+${n0(fora.length - 4)}</span>` : ''}</p>` : ''}</section>`;
+    const foraTxt = fora.length ? ` Fora: ${eLista([...fora.slice(0, 4).map((t) => primeiro(t.nome)), ...(fora.length > 4 ? [`mais ${n0(fora.length - 4)}`] : [])])}.` : '';
+    const online = `<section class="d3m-cons" aria-label="Online agora"><div class="d3m-cons-cab"><b>Online agora</b><span>${n0(gente.length)}${total ? ` de ${n0(total)}` : ''}</span></div>
+      ${gente.slice(0, 3).map((g) => `<div class="d3m-vlin d3m-f-pes"><i class="d3m-pes">${esc(iniciais(g.nome === 'Você' ? 'Eu' : g.nome))}</i><span class="d3m-vnome"><b>${esc(g.nome)}</b>${falando.has(g.id) ? ' <span class="d3m-f-ap">· falando</span>' : ''}</span><span class="d3m-vn">${esc(Z[g.zona]?.nome || (g.zona ? 'no prédio' : 'recepção'))}</span></div>`).join('')
+        || `<p class="d3m-e-lado-txt">Ninguém online.${foraTxt}</p>`}
+      ${gente.length > 3 ? `<button type="button" class="d3m-vlin" data-trilho="equipe"><span><b>Mais ${n0(gente.length - 3)} online</b></span>${IC_F.seta}</button>` : ''}</section>`;
     const zonas = Object.entries(Z).map(([id, z]) => ({ id, z, n: (porSala.get(id) || []).length })).sort((a, b) => b.n - a.n || String(a.z.nome).localeCompare(String(b.z.nome)));
-    const minha = minhaSalaDaConta();
-    const salas = `<section class="d3c-cartao d3c-salas" aria-label="Salas"><div class="d3c-cab"><h3>Salas</h3><small>${n0(zonas.length)}</small></div>
-      ${zonas.slice(0, 5).map((s) => `<div class="d3c-sala"><b>${esc(s.z.nome || s.id)}</b><small>${s.n ? `· ${n0(s.n)}` : '· vazia'}</small>${e?.zona === s.id ? '<span class="d3c-pill g">dentro</span>' : `<button type="button" class="d3c-btn" data-entrar-zona="${esc(s.id)}">Entrar</button>`}</div>`).join('') || '<p class="d3c-vazio">As salas aparecem com o Escritório</p>'}
-      ${zonas.length > 5 ? `<button type="button" class="d3c-link" data-trilho="equipe">+ ${n0(zonas.length - 5)}${minha ? '' : ''}</button>` : ''}</section>`;
-    // D3-Loja: com a loja aberta, a direita vira a lista de lojas por atraso.
+    const comGente = zonas.filter((s) => s.n).length, cabem = gente.length ? 4 : 5;
+    const salas = `<section class="d3m-cons" aria-label="Salas"><div class="d3m-cons-cab"><b>Salas</b><span>${zonas.length ? `${n0(zonas.length)}, ${comGente ? `${n0(comGente)} com gente` : 'todas vazias'}` : ''}</span></div>
+      ${zonas.slice(0, cabem).map((s) => { const nome = `<span><b>${esc(s.z.nome || s.id)}</b> <span class="d3m-f-ap">· ${s.n ? plural(s.n, 'pessoa', 'pessoas') : 'vazia'}</span></span>`;
+        return e?.zona === s.id ? `<div class="d3m-vlin d3m-f-dentro">${nome}<span class="d3m-f-vai">dentro</span></div>` : `<button type="button" class="d3m-vlin" data-entrar-zona="${esc(s.id)}">${nome}<span class="d3m-f-vai">Entrar</span></button>`; }).join('')
+        || (typeof d3mEEstado === 'function' ? d3mEEstado({ tipo: 'vazio', vidro: true, titulo: 'Sem salas ainda', texto: 'As salas aparecem com o Escritório.' }) : '<p class="d3m-vvazio">As salas aparecem com o Escritório.</p>')}
+      ${zonas.length > cabem ? `<button type="button" class="d3m-vlin" data-trilho="equipe"><span><b>Mais ${plural(zonas.length - cabem, 'sala', 'salas')}</b></span>${IC_F.seta}</button>` : ''}</section>`;
+    // "Ver as 15": a coluna troca as salas pela lista de lojas por atraso (tocar abre a loja).
     const ord = L.slice().sort((a, b) => (b.por?.atrasada || 0) - (a.por?.atrasada || 0) || (b.total || 0) - (a.total || 0)), max = Math.max(1, ...ord.map((c) => c.por?.atrasada || 0));
-    const lojas = `<section class="d3c-cartao d3c-lojas" aria-label="Lojas por atraso"><div class="d3c-cab"><h3>Lojas</h3><small>por atraso</small></div>${ord.slice(0, 11).map((c) => { const a = c.por?.atrasada || 0;
-      return `<button type="button" class="d3c-loja" data-d3-loja="${esc(c.nome)}"><span class="d3c-loja-nome">${cliCor(c.nome)}</span><span class="d3-barra${a ? ' r' : ''}" style="--v:${Math.round(a / max * 100)}%"><i></i></span><b class="${a ? 'r' : ''}">${n0(a)}</b></button>`; }).join('')}${ord.length > 11 ? `<p class="d3c-pe">+${n0(ord.length - 11)}</p>` : ''}</section>`;
+    const lojas = `<section class="d3m-cons d3m-f-cresce d3m-f-lojas" aria-label="Lojas por atraso"><div class="d3m-cons-cab"><b>Lojas</b><span>por atraso</span></div><div class="d3m-f-lista">${ord.map((c) => { const a = c.por?.atrasada || 0;
+      return `<button type="button" class="d3m-vlin d3m-f-loja" data-d3-loja="${esc(c.nome)}"><span class="d3m-vnome">${cliCor(c.nome)}</span><span class="d3m-vbarra${a ? ' r' : ''}" style="--v:${Math.round(a / max * 100)}%"><i></i></span><b class="d3m-vn">${n0(a)}</b></button>`; }).join('')}</div></section>`;
     const pinta = (sel, html) => { const x = el.querySelector(sel); if (x && x.vvHtml !== html) { x.innerHTML = html; x.vvHtml = html; } };
-    pinta('.d3c-nums', lojaAberta ? numsLoja : numsCentro); pinta('.d3c-chips', chips); pinta('.d3c-mods-slot', modulos); pinta('.d3c-col2', predio); pinta('.d3c-col3', online + salas + lojas);
+    pinta('.d3m-f-topo', topo); pinta('.d3m-f-tiras', lojaAberta ? tirasLoja : tirasCentro); pinta('.d3c-chips', chips);
+    pinta('.d3m-f-lado', laranja + (centroLojas ? lojas : online + salas));
+    el.querySelectorAll('.d3m-f-topo [data-vista]').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.vista === 'predio') === noPredio)));
     requestAnimationFrame(() => medirMapaD3());
   }
   function filtrarCidade(k) {
