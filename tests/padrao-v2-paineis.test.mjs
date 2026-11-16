@@ -23,14 +23,19 @@ test('o padrão v2 só vale no mundo, e as funções antigas seguem sozinhas sem
   assert.match(capt, /if \(typeof pv2Ligado === "function" && pv2Ligado\(\)\) return pv2aHtml\(\{ todos, pend, nPend \}\);/);
 });
 
-test('Painel de trabalho na ordem do quadro D3: título com a data, vistas, Modos, Novo conteúdo, bloco de ação e números, busca e fichas, semana', () => {
-  naOrdem(painel, ['<h2>Painel de trabalho</h2>', 'id="pv2-data"', 'data-vista="semana"', 'data-vista="mes"', 'data-vista="grupos"', 'data-vista="equipe"', '>Modos</summary>', 'Novo conteúdo</button>',
-    'id="pv2-alto"', 'placeholder="Buscar peça ou cliente"', 'id="pv2-chips"', 'id="pv2-filtros-rot">Filtros</summary>',
-    'aria-label="Semana anterior"', 'id="pv2-semana-rot"', 'aria-label="Próxima semana"', '>Hoje</button>', 'id="pv2-abas"', '>Por dia</button>', '>Por cliente</button>', '>Grade</button>']);
-  // Direção 3: o laranja cheio é o bloco de ação do Heitor; Novo conteúdo fica branco.
-  assert.match(painel, /d3pAcao\(\{ agente: 'H', quem: 'Heitor · Coordenação', frase, botao, attrs: `onclick="\$\{acao\}"` \}\)/);
-  naOrdem(painel, ["kpi('Publica hoje'", "kpi('Pendentes'", "kpi('Semana fechada'"]);
-  assert.match(painel, /serie: porDia\(\(\) => true\)/, 'a mini linha vem das publicações de cada dia da semana');
+// Direção V2 (prancha V2-M-Producao, aprovada em 16/11/2026): o título vira "Produção" com a seta que troca de tela; os três
+// números saem (o de hoje vai para o laranja e a régua, a semana fechada para a linha do topo); a busca vira ícone; a coluna
+// de consulta traz o laranja, a carga de hoje, onde a semana trava e os Modos; a régua tem as setas e o Hoje.
+test('Produção na prancha V2: título com a seta e a linha do dia, vistas, busca, Novo conteúdo, coluna de consulta, régua, cabeça do cartão e De olho', () => {
+  naOrdem(painel, ['<h2>Produção</h2>', 'id="pv2-data"', 'data-vista="semana"', 'data-vista="mes"', 'data-vista="grupos"', 'data-vista="equipe"', 'placeholder="Buscar peça ou cliente"', 'id="pv2-busca-bt"', 'Novo conteúdo</button>',
+    'id="pv2-lado"', 'id="pv2-alto"', 'id="pv2-carga"', 'id="pv2-trava"', '<b>Modos</b>',
+    'id="pv2-semana-rot"', 'id="pv2-abas"', '>Por dia</button>', '>Por cliente</button>', '>Grade</button>', 'id="pv2-filtros-rot">Filtros</summary>', "regua.id = 'pv2-regua'", 'id="pv2-chips"']);
+  naOrdem(painel, ['aria-label="Semana anterior"', 'class="d3m-dia', 'aria-label="Próxima semana"', '>Hoje</button>']);
+  // O laranja cheio é o do Heitor (o que trava hoje), com o número grande; Novo conteúdo fica branco.
+  assert.match(painel, /class="d3-acao d3p-acao d3m-laranja"/);
+  assert.match(painel, /Heitor · o que trava hoje/);
+  assert.match(painel, /function pv2EscolherDia\(iso\)/, 'a régua escolhe o dia');
+  assert.match(painel, /const umDia = DIAS_EM_COLUNAS && !dayFilter && dias\.length > 1;/, 'Por dia abre em um dia só');
   naOrdem(painel, ["ficha('Requer ação'", "ficha('Vencidas e de hoje'", "ficha('Sem dono na semana'", "ficha('Menos de 3 posts'"]);
   assert.equal((painel.match(/class="pv2-btn p"/g) || []).length, 0);
 });

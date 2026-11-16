@@ -450,9 +450,10 @@ body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dial
   --vybe-text:#1F1D1A;--vybe-muted:#6B665E;--pv-vidro:linear-gradient(180deg,#FFFFFF,#FAF8F4);--pv-tile:#FFFFFF;--pv-borda:rgba(31,29,26,.12);
   --pv-linha:rgba(31,29,26,.08);--pv-campo:#F3F1EC;--pv-brilho:none;color:#1F1D1A}
 body.mundo #workspace-drawer{background:#FAF8F4!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none;border-left:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra)!important}
-body.mundo .spotlight-dialog{background:#FFFFFF!important;backdrop-filter:none;-webkit-backdrop-filter:none;border:0!important;border-radius:24px!important;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35)!important;color:#1F1D1A!important}
+body.mundo .spotlight-dialog{background:#FFFFFF;backdrop-filter:none;-webkit-backdrop-filter:none;border:0!important;border-radius:24px;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);color:#1F1D1A}
 body.mundo #notif-caixa{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;backdrop-filter:var(--vv-desfoque)!important}
-body.mundo :is(#workspace-drawer,.spotlight-dialog,#notif-caixa) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
+body.mundo :is(#workspace-drawer,#notif-caixa) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
+body.mundo .spotlight-dialog :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px;color:#1F1D1A;border:1px solid #E6E0D6;box-shadow:none}
 /* Direção 3 (quadros D3-Fam-Formularios e D3-Fam-Confirmacoes, limpeza de 14/11/2026): na janela de confirmação o campo
    é o trilho claro, sem borda, e não o branco forçado. */
 body.mundo :is(#workflow-modal,.workflow-modal) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#F3F1EC var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:#1F1D1A!important;border:1px solid transparent!important;border-radius:999px!important;box-shadow:none!important}
@@ -3400,7 +3401,7 @@ html.tema-escuro body.mundo .mundo-vinheta{background:radial-gradient(ellipse at
 .vv-dono-linha em.ok{color:#11613A}
 
 /* Conversa da equipe: cabeçalho claro (a regra antiga pinta todo <header> de grafite) e ao lado do "Seu dia" */
-html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;border-bottom:1px solid #EFEAE2!important;box-shadow:none!important;color:#1F1D1A!important}
+html body.mundo .vv-conversa header:not(#ds-a):not(#ds-b){background:#FFFFFF;background-image:none!important;border-bottom:1px solid #EFEAE2;box-shadow:none!important;color:#1F1D1A}
 @media (min-width:901px){html body.mundo .vv-conversa:not(#ds-a){left:calc(max(var(--vv-livre-esq, 0px), 90px) + 12px)!important}}
 
 /* ===== Palco do Irecity: vídeos da chamada (espelho), TV da sala e recado rápido por cima do mapa ===== */
@@ -3615,7 +3616,8 @@ body.mundo,body.mundo button,body.mundo input,body.mundo select,body.mundo texta
 body.mundo h1,body.mundo h2,body.mundo h3{font-family:var(--vv-titulo);letter-spacing:-.015em}
 .vv-hoje h2,body.mundo:not(.mundo-centro) .vv-hoje h2{font:600 28px/1.15 var(--vv-titulo);letter-spacing:-.02em}
 .vv-hoje h2 em{background:none!important;-webkit-background-clip:initial!important;background-clip:initial!important;color:var(--vv-tinta)!important;font-style:normal}
-.vv-cb-kicker,.abr-kicker,.vd-agenda-rotulo,.vv-agenda-topo b,.vv-setor-topo b{text-transform:none!important;letter-spacing:0!important;font:600 12px/1.3 var(--vv-texto)!important;color:#6B665E!important}
+.vv-cb-kicker,.abr-kicker,.vv-agenda-topo b{text-transform:none!important;letter-spacing:0!important;font:600 12px/1.3 var(--vv-texto)!important;color:#6B665E!important}
+.vd-agenda-rotulo,.vv-setor-topo b{text-transform:none;letter-spacing:0;font:600 12px/1.3 var(--vv-texto);color:#6B665E}
 .vv-rotulo-secao{text-transform:none!important;letter-spacing:0!important;font:600 13px/1.3 var(--vv-titulo)!important;color:#2B2925!important}
 .vv-rotulo-secao i{width:6px!important;height:6px!important;border-radius:2px!important}
 .vv-evento small,.vv-g-kpi small{text-transform:none!important;letter-spacing:0!important;font-weight:500!important}
@@ -4063,11 +4065,11 @@ body.mundo:not(.mundo-modulo) :is(.da-barra,.capt-toolbar,.capt-menu-painel,.cli
    A Agenda (fixa só para o Mizinho, body.agenda-fixa) e a barra da sala de voz abrem pelos botões da barra de cima,
    como janelinha embaixo dela. São os mesmos elementos de antes. */
 html body.mundo:not(.agenda-fixa) #mundo-hud .vv-agenda{display:none!important}
-html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{display:block!important;top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:var(--vv-m)!important;width:340px;max-height:min(72vh,600px)!important;overflow:auto;z-index:720;background:#fff!important;border:1px solid #E6E0D6;box-shadow:0 22px 50px rgba(31,29,26,.22)!important;animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
+html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{display:block!important;top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:var(--vv-m)!important;width:340px;max-height:min(72vh,600px)!important;overflow:auto;z-index:720;background:#fff;border:1px solid #E6E0D6;box-shadow:0 22px 50px rgba(31,29,26,.22);animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
 html body.mundo:not(.mundo-modulo):not(.ver-voz) #mundo-hud .vv-chamada{display:none!important}
 html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada{top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;left:auto!important;right:var(--vv-m)!important;width:380px!important;max-width:calc(100vw - 2 * var(--vv-m))!important;z-index:720;animation:vv-surge .18s cubic-bezier(.2,.8,.2,1) both}
 html body.mundo:not(.mundo-modulo) #office-musica.vv-musica-janela{top:calc(var(--vv-m) + 60px)!important;bottom:auto!important;right:calc(var(--vv-m) + 392px)!important}
-.vv-ferramentas [aria-expanded="true"]{background:color-mix(in srgb,var(--vv-laranja) 14%,#fff)!important;color:var(--vv-laranja-escuro,#C2410C)!important}
+.vv-ferramentas [aria-expanded="true"]{background:color-mix(in srgb,var(--vv-laranja) 14%,#fff);color:var(--vv-laranja-escuro,#C2410C)}
 .vv-compromissos{display:grid;gap:6px;margin:8px 0}
 @media (max-width:900px){html body.mundo.ver-voz:not(.mundo-modulo) #mundo-hud .vv-chamada,html body.mundo:not(.agenda-fixa).ver-agenda #mundo-hud .vv-agenda{left:var(--vv-m)!important;right:var(--vv-m)!important;width:auto!important}}
 @media (prefers-reduced-motion:reduce){html body.mundo #mundo-hud :is(.vv-agenda,.vv-chamada){animation:none!important}}
@@ -4329,10 +4331,10 @@ html body.mundo.mundo-modulo .client-card.cli-ficha-card .client-name{font:700 1
 html body.mundo .plj-aviso.recolhido{display:none!important}
 @media (min-width:901px){
   html body.mundo:not(.mundo-centro) #mundo-hud > .vv-topo{left:var(--vv-palco-esq)!important;right:var(--vv-m)!important;width:auto!important;top:var(--vv-m)!important;height:52px}
-  html body.mundo:not(.mundo-centro) .vv-barra-topo{width:100%;height:56px;padding:0 8px!important;justify-content:flex-start!important;border-radius:999px!important}
+  html body.mundo:not(.mundo-centro) .vv-barra-topo{width:100%;height:56px;padding:0 8px;justify-content:flex-start!important;border-radius:999px}
   html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferramentas{display:flex!important;flex:1;align-items:center;justify-content:flex-start!important;gap:4px}
   html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-botao{width:36px;height:36px}
-  html body.mundo:not(.mundo-centro) .vv-busca-larga{width:min(340px,32vw)!important;min-width:0;justify-content:flex-start!important;gap:10px;padding:0 16px!important;margin-right:auto;border-radius:999px!important;background:#F3F1EC!important;border:0!important;color:#6B665E!important}
+  html body.mundo:not(.mundo-centro) .vv-busca-larga{width:min(340px,32vw);min-width:0;justify-content:flex-start!important;gap:10px;padding:0 16px;margin-right:auto;border-radius:999px;background:#F3F1EC;border:0!important;color:#6B665E}
   html body.mundo:not(.mundo-centro) .vv-busca-larga:hover{border-color:var(--vv-laranja,#F26B1D)!important}
   html body.mundo:not(.mundo-centro) .vv-busca-larga .vv-busca-texto{display:inline;flex:1;text-align:left;font:500 13px var(--vv-texto)}
   html body.mundo:not(.mundo-centro) .vv-busca-larga kbd{display:inline;font:600 11px var(--vv-texto);color:#8A847A;background:#fff;border:1px solid #E6E0D6;border-radius:6px;padding:1px 6px}

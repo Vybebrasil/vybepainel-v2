@@ -150,7 +150,7 @@
     return `<svg class="d3-graf d3h-co-graf" viewBox="0 0 ${W} ${H}" style="--d3-comp:${Math.ceil(comp) || 1}" role="img" aria-label="Carga do time: ${n0(serie[serie.length - 1])} de ${n0(limite)} pontos"><polyline class="meta" points="${P},${Y(limite).toFixed(1)} ${W - P},${Y(limite).toFixed(1)}"/>${u > 0 ? `<polyline class="previsto" points="${pl(serie.slice(u))}" transform="translate(${(X(u) - X(0)).toFixed(1)} 0)"/>` : ''}<polyline points="${pl(ateHoje)}"/><circle cx="${X(u).toFixed(1)}" cy="${Y(ateHoje[u]).toFixed(1)}" r="4.5"/></svg><div class="d3h-sem-dias">${rot}</div>`;
   }
 
-  function html({ itens, time, hoje, peso, data, abas = '', nome = (id) => id, cliente = (d) => d.cliente || '' }) {
+  function html({ itens, time, hoje, peso, data, abas = '', titulo = 'Hoje', nome = (id) => id, cliente = (d) => d.cliente || '' }) {
     const r = calcular({ itens, time, hoje, periodo: st.periodo, peso });
     ultima = { r, itens };
     const quem = (id) => esc(primeiro(nome(id)));
@@ -169,11 +169,12 @@
     const s1 = r.semDono.find((x) => x.sugerido), t1 = r.trocas[0];
     const botao = s1 ? `<button type="button" class="d3-acao-btn" data-coord-atribuir="${esc(s1.d.id)}" data-para="${esc(s1.sugerido)}">Atribuir a 1ª</button>`
       : t1 ? `<button type="button" class="d3-acao-btn" data-coord-trocar="${esc(t1.d.id)}" data-de="${esc(t1.de)}" data-para="${esc(t1.para)}">Passar a 1ª</button>` : '';
-    const faixa = `<section class="d3-acao d3h-acao" aria-label="Heitor, coordenação de produção"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase" title="${esc(frasesDoHeitor(r, nome).replace(/<[^>]+>/g, ''))}">${partes.join(' · ')}.</span>${botao}</section>`;
+    // Direção V2 (16/11/2026): o laranja com a composição fixa (rótulo de quem fala, a frase e o botão), ao lado dos indicadores.
+    const faixa = `<section class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa" aria-label="Heitor, coordenação de produção"><span class="d3v-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span>Heitor · coordenação</span><span class="d3v-lar-txt"><span class="d3-acao-frase" title="${esc(frasesDoHeitor(r, nome).replace(/<[^>]+>/g, ''))}">${partes.join(' · ')}.</span></span>${botao ? `<span class="d3v-lar-bts">${botao}</span>` : ''}</section>`;
     const periodos = `<div class="v2o-periodo" role="tablist" aria-label="Período">${['dia', 'semana', 'mes'].map((p) => `<button type="button" role="tab" aria-selected="${st.periodo === p}" data-coord-periodo="${p}">${ROT[p]}</button>`).join('')}</div>`;
     const porDisc = (l) => { const m = {}; for (const x of l) m[x.disciplina] = (m[x.disciplina] || 0) + 1; return Object.entries(m).map(([k, n]) => `${n} ${k === 'audiovisual' ? 'motion' : k}`).join(' · '); };
     const totPontos = r.pessoas.reduce((s, p) => s + p.pontos, 0), totLimite = r.pessoas.reduce((s, p) => s + p.limite, 0), pctTime = totLimite ? Math.round(totPontos / totLimite * 100) : 0;
-    const num = (rot, v, { de = '', sub = '', tom = '', subTom = '', barra = null } = {}) => `<div class="d3-num d3h-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rot}</span><span class="d3h-num-linha"><b class="d3-num-v">${v}${de ? `<small>${de}</small>` : ''}</b></span>${barra != null ? `<span class="d3-barra" style="--v:${Math.max(0, Math.min(100, barra))}%"><i></i></span>` : ''}${sub ? `<span class="d3h-num-sub${subTom ? ' ' + subTom : ''}">${sub}</span>` : ''}</div>`;
+    const num = (rot, v, { de = '', sub = '', tom = '', subTom = '', barra = null } = {}) => `<div class="d3-num d3h-num${tom ? ' ' + tom : ''}"><span class="d3-num-rot">${rot}</span><span class="d3h-num-linha"><span class="d3h-num-txt"><b class="d3-num-v">${v}${de ? `<small>${de}</small>` : ''}</b>${sub ? `<span class="d3h-num-sub${subTom ? ' ' + subTom : ''}">${sub}</span>` : ''}</span>${barra != null ? `<svg class="d3v-anel" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17"/><circle cx="22" cy="22" r="17" stroke-dasharray="${(106.8 * Math.max(0, Math.min(100, barra)) / 100).toFixed(1)} 106.8"/></svg>` : ''}</span></div>`;
     const numeros = `<div class="d3h-nums" role="group" aria-label="Os números da carga">${[
       num('Sem ninguém', n0(r.semDono.length), { tom: r.semDono.length ? 'a' : '', sub: r.semDono.length ? porDisc(r.semDono) : 'todas com alguém' }),
       num('Acima do limite', n0(acima.length), { de: ` / ${n0(r.pessoas.length)}`, tom: acima.length ? 'a' : '', sub: acima[0] ? `${quem(acima[0].id)} ${n0(acima[0].pontos)} / ${n0(acima[0].limite)} · ${n0(acima[0].pct)}%` : 'ninguém', subTom: acima.length ? 'a' : '' }),
@@ -211,12 +212,15 @@
     // Direção 3 com o controle manual da Beatriz: os indicadores e a grade vêm primeiro; o que o Heitor sugere fica
     // recolhido embaixo ("Sugestões do Heitor"), com tudo o que tinha, e só grava com o clique e o OK.
     const man = manualHtml({ itens, time, hoje, nome, cliente });
-    return `<div class="d3h d3h-co v2o"><div class="d3h-topo"><div class="d3h-ola"><h2>Hoje</h2><small>${esc(faixaDe(r))}</small>${periodos}</div><div class="d3h-topo-dir">${abas}</div></div>
-      ${man.faixa || faixa}${aviso}
+    // Direção V2 (pranchas V2, 16/11/2026): a mesma janela de vidro das outras abas, em uma coluna larga (a grade pessoa × dia
+    // pede a largura toda). Em cima a saudação, o período e as abas; depois os seis indicadores com o único cartão laranja
+    // ao lado; a grade ocupa o resto e rola por dentro; as sugestões do Heitor ficam recolhidas no pé.
+    return `<div class="d3h d3h-co v2o d3q d3q-larga"><div class="d3q-main"><div class="d3h-topo"><div class="d3h-ola"><h2>${esc(titulo)}</h2><small>${esc(faixaDe(r))}</small></div><div class="d3h-topo-dir">${periodos}${abas}</div></div>
+      <div class="d3q-co-topo">${man.nums}${man.faixa || faixa}</div>${aviso}
       ${man.html}
       <section class="d3h-cartao v2o-heitor v2-abre" aria-expanded="${sg.heitor}" aria-label="Sugestões do Heitor"><button type="button" class="v2o-heitor-cab" data-coord-heitor aria-expanded="${sg.heitor}"><span class="d3-agente-av v2o-heitor-av" aria-hidden="true">H</span><b>Sugestões do Heitor</b><small>${esc([r.semDono.length ? plural(r.semDono.length, 'sem ninguém', 'sem ninguém') : '', r.trocas.length ? plural(r.trocas.length, 'troca', 'trocas') : '', acima.length ? `${n0(acima.length)} acima do limite` : ''].filter(Boolean).join(' · ') || 'nada a sugerir')}</small><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="v2-mais"><div>${numeros}
-      <div class="d3h-grade"><div class="d3h-col">${semDono}${trocas}</div><div class="d3h-col">${carga}</div><div class="d3h-col">${pessoas}</div></div></div></div></section></div>`;
+      <div class="d3h-grade"><div class="d3h-col">${semDono}${trocas}</div><div class="d3h-col">${carga}</div><div class="d3h-col">${pessoas}</div></div></div></div></section></div></div>`;
   }
 
   // ---------- controle manual (Beatriz, 14/11/2026: "gosto de fazer essas coisas manualmente, pra ter um controle
@@ -476,8 +480,10 @@
         ${filtros}${corpo}${lista}</section>`;
     // Indicadores: o número abre a lista no lugar; Para aprovação tem Aprovar e Atrasadas tem quem é e Mudar prazo.
     const L = I.listas;
+    const SELO_IND = { r: '<path d="M12 7v6M12 17h.01"/>', roxo: '<path d="M9 12l2 2 4-4"/><rect x="4" y="4" width="16" height="16" rx="3"/>', info: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>' };
     const num = ([k, rot]) => { const n = L[k].length, tom = k === 'atrasadas' && n ? 'r' : k === 'hoje' && n ? 'k' : k === 'aguardando' && n ? 'a' : '';
-      return `<button type="button" class="d3-num v2o-ind${tom ? ' ' + tom : ''}" data-coord-ind="${k}" aria-expanded="${sg.ind === k}"><span class="d3-num-rot">${rot}</span><b class="d3-num-v">${n0(n)}</b></button>`; };
+      const kk = k === 'atrasadas' ? 'r' : k === 'aprovar' || k === 'aguardando' ? 'roxo' : 'info';
+      return `<button type="button" class="d3-num d3h-num v2o-ind${tom ? ' ' + tom : ''}" data-k="${kk}" data-coord-ind="${k}" aria-expanded="${sg.ind === k}"><span class="d3-num-rot">${rot}</span><i class="d3h-num-selo" data-k="${kk}" aria-hidden="true"><svg viewBox="0 0 24 24">${SELO_IND[kk]}</svg></i><span class="d3h-num-linha"><span class="d3h-num-txt"><b class="d3-num-v">${n0(n)}</b></span></span></button>`; };
     const linhaInd = (d, k) => { const ids = idsDe(d);
       return `<li class="v2o-il"><span class="v2o-il-cli">${cli(d)}</span><span class="v2o-il-nome" title="${esc(String(d.nome || 'Peça'))}">${esc(String(d.nome || 'Peça').trim())}</span>${formatoChave(d) ? `<span class="v2o-gp-f">${esc(formatoChave(d))}</span>` : ''}${pilulaSt(d)}<span class="v2o-il-q">${ids.length ? ids.map((i) => esc(primeiro(nome(i)))).join(', ') : '<em>sem ninguém</em>'}</span><span class="v2o-gp-datas">${dataBt(d, 'prazo', 'Prazo')}${dataBt(d, 'veiculacao', 'No ar')}</span>
         <span class="v2o-il-ac">${k === 'aprovar' ? `<button type="button" class="v2o-btn k" data-coord-aprovar="${esc(d.id)}">Aprovar</button>` : ''}${k === 'atrasadas' ? `<button type="button" class="v2o-btn" data-coord-mudar-prazo="${esc(d.id)}">Mudar prazo</button>` : ''}${k === 'aguardando' ? `<button type="button" class="v2o-btn" data-coord-menu="passar" data-peca="${esc(d.id)}" data-de="">Atribuir</button>` : ''}<button type="button" class="v2o-btn" data-hoje-acao="peca" data-valor="${esc(d.id)}">Abrir</button></span>
@@ -486,8 +492,8 @@
     const nums = `<div class="v2o-inds" role="group" aria-label="Indicadores da produção">${IND.map(num).join('')}</div>`;
     // A faixa laranja: o que pede ação agora, na ordem atrasadas → no ar hoje → para aprovação.
     const prio = [L.atrasadas.length ? [plural(L.atrasadas.length, 'atrasada', 'atrasadas'), 'atrasadas', 'Ver atrasadas'] : null, L.hoje.length ? [`${n0(L.hoje.length)} no ar hoje`, 'hoje', 'Ver hoje'] : null, L.aprovar.length ? [`${n0(L.aprovar.length)} para aprovar`, 'aprovar', 'Aprovar'] : null].filter(Boolean);
-    const faixaAcao = prio.length ? `<section class="d3-acao d3h-acao" aria-label="O que pede ação agora"><span class="d3-acao-av" aria-hidden="true">H</span><span class="d3-acao-frase">${prio.map((x) => x[0]).join(' · ')}.</span><button type="button" class="d3-acao-btn" data-coord-ind="${prio[0][1]}">${prio[0][2]}</button></section>` : '';
-    return { faixa: faixaAcao, html: `<div class="v2o-man">${nums}${aberta}${grade}</div>` };
+    const faixaAcao = prio.length ? `<section class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa" aria-label="O que pede ação agora"><span class="d3v-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span>Heitor · coordenação</span><span class="d3v-lar-txt"><span class="d3-acao-frase">${prio.map((x) => x[0]).join(' · ')}.</span></span><span class="d3v-lar-bts"><button type="button" class="d3-acao-btn" data-coord-ind="${prio[0][1]}">${prio[0][2]}</button></span></section>` : '';
+    return { faixa: faixaAcao, nums, html: `<div class="v2o-man">${aberta}${grade}</div>` };
   }
 
   // O pedido do arrastar ou do "Passar para…": quem recebe, a data nova (na referência ativa) e os avisos da regra.

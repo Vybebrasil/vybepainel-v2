@@ -17,9 +17,11 @@ test('peças comuns: topo "Hoje" com a data, faixa laranja, quatro números, car
   assert.match(js, /el\.classList\.add\('d3h-tela'\)/, 'fundo areia atrás dos cartões');
 });
 
-test('Agência: faixa com o alerta mais grave, Pede ação em Agora/Depois/Em seguida, De olho, baralho, semana com dia escolhido, agenda, agentes e WhatsApp', () => {
+// Direção V2 (pranchas V2 aprovadas em 16/11/2026): o mais grave vai para o cartão laranja ao lado de "Pede ação"; embaixo, o
+// baralho em leque (sem nada para decidir, a semana) e os clientes de olho; a consulta fica direto no vidro.
+test('Agência: laranja com o alerta mais grave, Pede ação em Agora/Depois, De olho, baralho ou semana, agenda, WhatsApp e agentes', () => {
   const ag = trecho('  function pintarAgencia(el', '  // ---------- Módulo Gestão');
-  naOrdem(ag, ['topoD3({ sub: diaD3(), meio: quemOnline, dir: seg })', 'acaoD3({ ...faixa', '${numeros}', '${pede}', 'decidirHtml()', 'semanaD3Html(N.graficoSemana)', 'agendaD3Html()', 'agentesD3Html()', "whatsappD3Html('agencia')"]);
+  naOrdem(ag, ["laranjaD3({ rotulo: 'VYBES · o mais grave agora'", 'topoD3({ sub: `${diaD3()}', '${numeros}', '<div class="d3q-meio">${pede}<div class="d3q-acao">${laranja}</div></div>', 'decidirHtml()', 'semanaD3Html(N.graficoSemana)', 'agendaD3Html()', "whatsappD3Html('agencia')", 'agentesD3Html()']);
   for (const r of ["rotulo: 'Atrasadas'", "rotulo: 'Vão ao ar hoje'", "rotulo: 'Prontas da semana'", "rotulo: 'Para você decidir'"]) assert.ok(ag.includes(r), r);
   assert.match(ag, /data-espiar="atencao"/); assert.match(ag, /data-espiar="sem3"/); assert.match(ag, /data-hoje-acao="decidir-lista"/);
   const sem = trecho('  function semanaD3Html(', '  function pintarAgencia(');
@@ -28,10 +30,11 @@ test('Agência: faixa com o alerta mais grave, Pede ação em Agora/Depois/Em se
   assert.match(sem, /<polyline class="meta"/, 'previstas tracejadas, prontas em linha');
 });
 
-test('Para você decidir: baralho com ‹ ›, Pedir alteração e Aprovar, status e grupo em pílula; passar não repinta', () => {
+test('Para você decidir: baralho com Aprovar, Pedir alteração e as setas, status com ponto e grupo em etiqueta; passar não repinta', () => {
   const d = trecho('  function decidirHtml(', '  function decidirPeca(');
-  naOrdem(d, ['class="v2-baralho d3h-baralho"', 'data-hoje-acao="decidir-passo" data-valor="-1"', 'data-valor="alterar">Pedir alteração', 'data-valor="aprovar">Aprovar', 'data-hoje-acao="decidir-passo" data-valor="1"']);
-  assert.match(d, /statusCor\(i\.item\)/); assert.match(d, /class="d3h-pill so">\$\{esc\(grupo\)\}/);
+  naOrdem(d, ['class="v2-baralho d3h-baralho"', 'data-valor="aprovar">Aprovar', 'data-valor="alterar">Pedir alteração', 'data-hoje-acao="decidir-passo" data-valor="-1"', 'data-hoje-acao="decidir-passo" data-valor="1"']);
+  assert.match(d, /laranja \? 'd3v-laranja' : 'd3v-leque'/, 'em leque na folha clara, com a arte grande no laranja');
+  assert.match(d, /stD3\(i\.item\)/); assert.match(d, /class="d3h-pill so">\$\{esc\(grupo\)\}/);
   assert.match(js, /closest\?\.\('#vv-hoje \[data-decidir\]'\)/, 'setas do teclado');
 });
 
@@ -43,16 +46,18 @@ test('Minhas tarefas: filtros, busca e Filtros no cartão; bolinha que risca; st
   assert.match(t, /compromissosD3Html\(\)\}\$\{!verComo \? whatsappD3Html\('tarefas'\) : ''\}\$\{!verComo \? aprovacoesD3Html\(\) : ''\}/);
 });
 
-test('Criação: faixa do Danilo, quatro números, Fila do Danilo, parecer em baralho, Pediram ajuste, o time com o limite e as ideias dos clientes', () => {
+test('Criação: laranja com a arte do parecer (ou o que o Danilo pede), quatro números, Fila do Danilo, Pediram ajuste, o time com o limite e as ideias dos clientes', () => {
   const c = trecho('  function pintarCriacao(', '  // Minha sala (quadro 34');
-  naOrdem(c, ["acaoD3({ ...faixa, agente: 'D' })", '${numeros}', '${fila}', "decidirHtml({ titulo: 'Esperando o seu parecer', artes: true })", '${ajustes}', '${time}${ideias}']);
+  naOrdem(c, ["decidirHtml({ titulo: 'Esperando o seu parecer', artes: true, laranja: true })", "laranjaD3({ rotulo: 'Danilo · direção de arte'", '${numeros}', '<div class="d3q-meio">${fila}<div class="d3q-acao">${laranja}</div></div>', '${ajustes}', '${time}${ideias}']);
   assert.match(c, /data-criacao-pessoa=/); assert.match(c, /data-criacao-atalho="perguntar"/); assert.match(c, /data-pend-agente="design"/);
   assert.match(c, /class="v2c-sugestoes" hidden/);
 });
 
 test('Coordenação: período no título, faixa do Heitor que pede o OK, sem ninguém (contorno = sugerido), para equilibrar, carga em linha e agora → depois', () => {
   const h = trecho('  function html({ itens, time', '  async function gravar(', coord);
-  naOrdem(h, ['class="d3-acao d3h-acao"', 'data-coord-periodo=', 'Sem ninguém atribuído', 'Para equilibrar', 'Carga do time', 'agora → depois']);
+  // Direção V2 (16/11/2026): a faixa do Heitor na composição do cartão laranja; a tela no esqueleto de vidro, em coluna larga.
+  assert.match(h, /class="d3h d3h-co v2o d3q d3q-larga"/);
+  naOrdem(h, ['class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa"', 'data-coord-periodo=', 'Sem ninguém atribuído', 'Para equilibrar', 'Carga do time', 'agora → depois']);
   assert.match(h, /data-coord-atribuir="\$\{esc\(s1\.d\.id\)\}" data-para="\$\{esc\(s1\.sugerido\)\}">Atribuir a 1ª/, 'a faixa só abre a confirmação na linha');
   assert.match(h, /confirmarHtml\(chave \+ id, `Atribuir a/, 'nada grava sem o OK');
   assert.match(coord, /function linhaCarga\(/);

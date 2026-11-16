@@ -1863,6 +1863,32 @@ function d3pNum({ rotulo, valor, de = '', tom = '', linhaTom = '', serie = null,
 let pv2SoSemDono = false;
 const pv2Totais = {};
 const pv2Pintado = {};
+const PV2_LIMITE_DIA = 5; // o limite de peças por pessoa no dia, o mesmo da Coordenação
+let pv2Dia = ''; // o dia escolhido na régua ("Por dia" mostra um dia só; vazio = hoje)
+// A seta do título: as outras telas da Produção, as mesmas do submenu do menu lateral (o clique é o do próprio submenu).
+function pv2PintarTroca() {
+  const pop = document.getElementById('pv2-troca-pop'); if (!pop) return;
+  const itens = [...document.querySelectorAll('#vv-sub-producao :is(button,a)')].filter((b) => (b.textContent || '').trim());
+  pop.innerHTML = itens.map((b, i) => `<button type="button" data-troca="${i}"${b.dataset.submodulo === 'gestor' ? ' aria-current="page"' : ''}>${safeText((b.querySelector('b,span')?.textContent || b.textContent || '').trim())}</button>`).join('') || '<span class="pv2-pop-rot">Use o menu lateral para trocar de tela.</span>';
+  pop.querySelectorAll('[data-troca]').forEach((bt) => bt.addEventListener('click', () => itens[Number(bt.dataset.troca)]?.click()));
+}
+// Foto do cliente (a do perfil do Instagram, quando o Feed já leu) ou as iniciais.
+function pv2Foto(nome) {
+  if (!nome) return '';
+  let foto = '';
+  try { const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const linha = (typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : []).find((c) => norm(c.nome) === norm(nome));
+    const usuario = linha && typeof feedUsuario === 'function' ? feedUsuario(String(linha.cadastro?.instagram || linha.instagram || '')) : '';
+    const perfil = usuario && typeof FEED !== 'undefined' ? FEED.perfis?.get?.(usuario) : null;
+    if (perfil && !perfil.erro && perfil.foto && typeof feedFotoIg === 'function') foto = feedFotoIg(perfil.foto); } catch { /* sem o Feed, ficam as iniciais */ }
+  return foto ? `<img class="d3v-foto" src="${safeText(foto)}" alt="" loading="lazy">` : `<i class="d3v-foto" aria-hidden="true">${safeText(String(nome).trim().slice(0, 2).toUpperCase())}</i>`;
+}
+function pv2EscolherDia(iso) {
+  pv2Dia = iso;
+  if (viewMode === 'client' || !DIAS_EM_COLUNAS) { pv2Modo('dia'); }
+  renderWeek(currentWeek, currentFilter, currentDayFilter);
+  pv2PintarSemana();
+}
 function pv2Trocar(el, html) { if (el && pv2Pintado[el.id] !== html) { pv2Pintado[el.id] = html; el.innerHTML = html; } }
 function pv2Montar() {
   if (!pv2Ligado()) return null;
@@ -1874,7 +1900,12 @@ function pv2Montar() {
   const casa = cab.parentElement;
   raiz = document.createElement('div');
   raiz.id = 'pv2-painel'; raiz.className = 'pv2 pv2-painel';
-  raiz.innerHTML = `<div class="pv2-topo"><h2>Painel de trabalho</h2><span class="d3p-data" id="pv2-data">${safeText(d3pDataDeHoje())}</span>
+  // Direção V2 (prancha V2-M-Producao, aprovada pelo Paulo em 16/11/2026): a janela é vidro fumê. No topo, o título com a
+  // seta que troca de tela dentro da Produção, a linha do dia, as vistas, a busca em ícone e Novo conteúdo. À direita, direto
+  // no vidro, a coluna de consulta: o único cartão laranja (o que trava hoje), a carga de hoje, onde a semana trava e os Modos.
+  raiz.innerHTML = `<div class="pv2-topo d3m-topo"><div class="d3m-tit"><details class="pv2-menu d3m-troca" id="pv2-troca" ontoggle="if(this.open)pv2PintarTroca()"><summary title="Trocar de tela dentro da Produção"><h2>Produção</h2>${PV2_IC.baixo || ''}</summary>
+          <div class="pv2-pop" id="pv2-troca-pop" role="group" aria-label="Telas da Produção" onclick="if(event.target.closest('button'))this.closest('details').open=false"></div></details>
+        <span class="d3p-data" id="pv2-data">${safeText(d3pDataDeHoje())}</span></div>
       <span class="pv2-seg" id="pv2-vistas" role="radiogroup" aria-label="Vista">
         <button type="button" role="radio" data-vista="semana" onclick="mostrarAgendaDaSemana()" title="Agenda da equipe, dia a dia">Semana</button>
         <button type="button" role="radio" data-vista="mes" onclick="toggleAgendaMensal()" title="Calendário do mês por cliente">Mês</button>
@@ -1882,49 +1913,57 @@ function pv2Montar() {
         <button type="button" role="radio" data-vista="grupos" onclick="toggleVisaoDeGrupos()" title="Conteúdos divididos pelos grupos do quadro">Grupos</button>
         <button type="button" role="radio" data-vista="equipe" onclick="mostrarEquipeDaSemana(document.getElementById('ops-equipe-btn'))" title="Carga de cada pessoa e distribuição por formato na semana">Equipe</button>
       </span>
-      <details class="pv2-menu" id="pv2-modos"><summary class="pv2-btn" title="Fechamento do dia, mesa de comando, modo reunião e carga da equipe">Modos</summary>
+      <label class="pv2-oculto" for="pv2-busca">Buscar peça ou cliente</label>
+      <input id="pv2-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar peça ou cliente" oninput="const t=this.value;this.value='';handleGlobalSearch(t)" hidden tabindex="-1">
+      <button type="button" class="d3m-ico" id="pv2-busca-bt" onclick="typeof abrirSpotlight==='function'?abrirSpotlight(''):document.querySelector('[data-ferr=busca]')?.click()" aria-label="Buscar peça ou cliente" title="Buscar peça ou cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></button>
+      <button type="button" class="pv2-btn d3p-novo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">${D3P_MAIS}Novo conteúdo</button></div>
+    <aside class="d3m-lado" id="pv2-lado" aria-label="Consulta">
+      <div class="pv2-alto" id="pv2-alto"></div>
+      <div id="pv2-carga"></div>
+      <div id="pv2-trava"></div>
+      <details class="pv2-menu d3m-modos" id="pv2-modos"><summary class="d3m-vlin" title="Fechamento do dia, mesa de comando, modo reunião e carga da equipe"><span><b>Modos</b> · fechamento, mesa e reunião</span>${PV2_IC.depois}</summary>
         <div class="pv2-pop" role="group" aria-label="Modos" onclick="if(event.target.closest('button'))this.closest('details').open=false">
           <button type="button" data-modo-v2="fechamento" onclick="toggleDailyClose()">Fechamento do dia</button>
           <button type="button" data-modo-v2="comando" onclick="toggleManagerCommandDrawer()">Mesa de comando <b id="pv2-comando-n"></b></button>
           <button type="button" onclick="openMeetingMode()">Modo Reunião</button>
           <button type="button" onclick="document.getElementById('ops-carga-btn')?.click()">Carga da equipe</button>
         </div></details>
-      <button type="button" class="pv2-btn d3p-novo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">${D3P_MAIS}Novo conteúdo</button></div>
-    <div class="pv2-alto" id="pv2-alto"></div>
-    <div class="pv2-filtros" role="group" aria-label="Busca e filtros">
-      <label class="pv2-oculto" for="pv2-busca">Buscar peça ou cliente</label>
-      <input id="pv2-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar peça ou cliente" oninput="const t=this.value;this.value='';handleGlobalSearch(t)">
-      <span class="pv2-fichas" id="pv2-chips"></span>
-      <details class="pv2-menu" id="pv2-filtros-menu"><summary class="pv2-btn s" id="pv2-filtros-rot">Filtros</summary>
-        <div class="pv2-pop pv2-pop-filtros" id="pv2-filtros-pop"><span class="pv2-pop-rot">Mês de referência</span></div></details>
-    </div>`;
+    </aside>`;
   cab.before(raiz);
   const semana = document.createElement('div');
   semana.id = 'pv2-semana'; semana.className = 'pv2 pv2-semana';
-  semana.innerHTML = `<button type="button" class="pv2-btn s ic" data-passo="-1" onclick="passarSemana(-1)" aria-label="Semana anterior">${PV2_IC.antes}</button>
-    <h3 id="pv2-semana-rot" aria-live="polite">Semana</h3>
-    <button type="button" class="pv2-btn s ic" data-passo="1" onclick="passarSemana(1)" aria-label="Próxima semana">${PV2_IC.depois}</button>
-    <button type="button" class="pv2-btn s" id="pv2-semana-hoje" onclick="semanaDeHoje()">Hoje</button>
+  // A cabeça do cartão do dia: o dia escolhido com as prontas; Redes, Demandas e Pendências; como ver (Por dia, Por cliente,
+  // Grade) e os Filtros. As setas da semana e o Hoje ficam na régua, em cima.
+  semana.innerHTML = `<h3 id="pv2-semana-rot" aria-live="polite">Semana</h3>
     <span class="pv2-abas" id="pv2-abas" role="radiogroup" aria-label="Mostrar em todos os dias"></span>
     <span class="pv2-seg" id="pv2-modo" role="radiogroup" aria-label="Como ver a semana">
       <button type="button" role="radio" data-modo-semana="dia" onclick="pv2Modo('dia')">Por dia</button>
       <button type="button" role="radio" data-modo-semana="cliente" onclick="pv2Modo('cliente')">Por cliente</button>
       <button type="button" role="radio" data-modo-semana="grade" onclick="pv2Modo('grade')">Grade</button>
-    </span>`;
+    </span>
+    <details class="pv2-menu" id="pv2-filtros-menu"><summary class="pv2-btn s" id="pv2-filtros-rot">Filtros</summary>
+      <div class="pv2-pop pv2-pop-filtros" id="pv2-filtros-pop"><span class="pv2-pop-rot">Mês de referência</span></div></details>`;
+  const regua = document.createElement('div');
+  regua.id = 'pv2-regua'; regua.className = 'pv2 d3m-regua'; regua.setAttribute('role', 'group'); regua.setAttribute('aria-label', 'Dias da semana');
+  const pe = document.createElement('div');
+  pe.id = 'pv2-pe'; pe.className = 'pv2 d3m-olho'; pe.setAttribute('role', 'group'); pe.setAttribute('aria-label', 'De olho');
+  pe.innerHTML = '<span class="d3m-olho-rot">De olho</span><span class="pv2-fichas" id="pv2-chips"></span>';
+  nav.before(regua, semana);
+  casa.append(pe);
   nav.before(semana);
   const reserva = document.createElement('div');
   reserva.id = 'pv2-reserva'; reserva.hidden = true;
   casa.append(reserva);
   // Filtros guarda o que saiu da barra: mês, Pessoa, Status, Veiculação ou Prazo, Mais filtros, Arquivo e limpar.
-  const pop = raiz.querySelector('#pv2-filtros-pop');
+  const pop = semana.querySelector('#pv2-filtros-pop');
   const mes = document.getElementById('month-nav'), filtros = document.getElementById('agenda-filtros');
   const arquivo = document.getElementById('ops-arquivo-btn'), limpar = document.getElementById('ops-clear-btn');
   if (mes) pop.append(mes);
   if (filtros) { const rot = document.createElement('span'); rot.className = 'pv2-pop-rot'; rot.textContent = 'Recorte'; pop.append(rot, filtros); }
-  const pe = document.createElement('div'); pe.className = 'pv2-pop-pe';
-  if (arquivo) pe.append(arquivo);
-  if (limpar) pe.append(limpar);
-  pop.append(pe);
+  const popPe = document.createElement('div'); popPe.className = 'pv2-pop-pe';
+  if (arquivo) popPe.append(arquivo);
+  if (limpar) popPe.append(limpar);
+  pop.append(popPe);
   const escolhidos = document.getElementById('ops-selection-summary');
   if (escolhidos) raiz.after(escolhidos);
   reserva.append(cab, resumo, barra, nav);
@@ -1948,11 +1987,34 @@ function pv2PintarAlto(n) {
   const daSemana = (DADOS || []).filter(itemNaCarteira);
   const porDia = (filtro) => dias.map((dia) => daSemana.filter((d) => d.veiculacao_iso === dia.iso && filtro(d)).length);
   const kpi = (rotulo, valor, o = {}) => d3pNum({ rotulo, valor, ...o });
-  pv2Trocar(document.getElementById('pv2-alto'), d3pAcao({ agente: 'H', quem: 'Heitor · Coordenação', frase, botao, attrs: `onclick="${acao}"` })
-    + `<div class="d3p-nums">${kpi('Publica hoje', n.hoje, { serie: porDia(() => true), serieRotulo: 'Publicações por dia da semana', acao: n.hoje ? "abrirDoResumo('hoje')" : '',
-      sub: !n.hoje ? 'nada hoje' : n.hojePendente === n.hoje ? 'nenhuma pronta' : n.hojePendente > 0 ? `${n.hojePendente} sem estar pronto` : 'tudo pronto', subTom: n.hojePendente > 0 ? 'r' : '' })}
-    ${kpi('Pendentes', n.pendentes, { linhaTom: 'a', serie: porDia((d) => ['A Fazer', 'Falta D.A'].includes(d.status)), serieRotulo: 'Pendentes por dia da semana', acao: n.pendentes ? "abrirDoResumo('acao')" : '', sub: 'a fazer ou falta direção de arte' })}
-    ${kpi('Semana fechada', n.feitas, { de: n.total, barra: n.pct, dica: `${n.pct}% da semana finalizada` })}</div>`);
+  // O laranja (o único da tela): quantas publicam hoje sem estar prontas, em número grande; quantas estão sem dono e a
+  // semana. "Distribuir" liga o filtro Sem dono; "Ver" abre a fila de hoje.
+  const hojeIso = (typeof HOJE_ISO !== 'undefined' && HOJE_ISO) || new Date().toISOString().slice(0, 10);
+  const abertasHoje = daSemana.filter((d) => dataDoCartaoDia(d) === hojeIso && !atividadeDoDiaConcluida(d));
+  const semDonoHoje = abertasHoje.filter(pv2SemDono).length;
+  const titulo = !n.hoje ? 'Hoje não publica nada' : n.hojePendente > 0 ? (n.hojePendente === n.hoje ? `${pl(n.hoje, 'publica hoje e não está pronta', 'publicam hoje, nenhuma pronta')}` : `de ${n.hoje} de hoje ainda não ${pl(n.hojePendente, 'está pronta', 'estão prontas')}`) : `${pl(n.hoje, 'publica hoje, já pronta', 'publicam hoje, todas prontas')}`;
+  const apoio = `${semDonoHoje ? `${semDonoHoje} ainda sem dono. ` : ''}A semana está em ${n.pct}%.`;
+  const bts = [semDonoHoje ? `<button type="button" class="d3m-btn l" onclick="pv2AlternarSemDono()">${semDonoHoje === 1 ? 'Distribuir a sem dono' : `Distribuir as ${semDonoHoje}`}</button>` : '', botao ? `<button type="button" class="d3m-btn l${semDonoHoje ? ' s' : ''}" onclick="${acao}">${safeText(botao)}</button>` : ''].join('');
+  pv2Trocar(document.getElementById('pv2-alto'), `<section class="d3-acao d3p-acao d3m-laranja" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span>Heitor · o que trava hoje</span>
+      <span class="d3m-lar-txt">${n.hoje ? `<b class="d3m-lar-num">${n.hojePendente > 0 ? n.hojePendente : n.hoje}</b>` : ''}<span class="d3-acao-frase" title="${safeText(frase)}">${safeText(titulo)}</span><small>${safeText(apoio)}</small></span>${bts ? `<span class="d3m-lar-bts">${bts}</span>` : ''}</section>`);
+  // Carga de hoje: as peças abertas de hoje por pessoa, contra o limite do dia (o mesmo da Coordenação).
+  const porPessoa = new Map();
+  for (const d of abertasHoje) for (const u of ownerUsersFor(d)) porPessoa.set(String(u.id), { nome: firstName(u.name || u.nome || ''), n: (porPessoa.get(String(u.id))?.n || 0) + 1 });
+  const carga = [...porPessoa.values()].sort((a, b) => b.n - a.n).slice(0, 5);
+  pv2Trocar(document.getElementById('pv2-carga'), `<section class="d3m-cons" aria-label="Carga de hoje"><div class="d3m-cons-cab"><b>Carga de hoje</b><span>abertas hoje / limite do dia</span></div>${carga.length
+    ? carga.map((x) => `<button type="button" class="d3m-vlin" onclick="mostrarEquipeDaSemana(document.getElementById('ops-equipe-btn'))" title="Ver a carga da equipe"><i class="d3m-pes" aria-hidden="true">${safeText(pv2Iniciais(x.nome))}</i><span class="d3m-vnome">${safeText(x.nome)}</span><span class="d3m-vbarra${x.n > PV2_LIMITE_DIA ? ' r' : x.n / PV2_LIMITE_DIA > .6 ? ' a' : ''}" style="--v:${Math.min(100, Math.round(x.n / PV2_LIMITE_DIA * 100))}%"><i></i></span><span class="d3m-vn"><b>${x.n}</b> / ${PV2_LIMITE_DIA}</span></button>`).join('')
+    : '<p class="d3m-vvazio">Ninguém com peça aberta hoje.</p>'}</section>`);
+  // Onde a semana trava: as peças abertas da semana paradas em informação do cliente, alteração ou direção de arte.
+  const abertasSemana = (typeof itensDaSemanaGestor === 'function' && typeof currentWeek !== 'undefined' ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira) : []).filter((d) => !atividadeDoDiaConcluida(d));
+  const TRAVAS = [[/info/i, 'Falta informação do cliente', 'r'], [/altera|ajuste|corre/i, 'Em alteração', 'a'], [/falta d\.?\s?a/i, 'Falta direção de arte', 'a']];
+  const travas = TRAVAS.map(([re, rot, tom]) => [rot, abertasSemana.filter((d) => re.test(String(d.status || ''))).length, tom]).filter((x) => x[1]).sort((a, b) => b[1] - a[1]);
+  pv2Trocar(document.getElementById('pv2-trava'), `<section class="d3m-cons" aria-label="Onde a semana trava"><div class="d3m-cons-cab"><b>Onde a semana trava</b><span>por etapa</span></div>${travas.length
+    ? travas.map(([rot, q, tom]) => `<button type="button" class="d3m-vlin" onclick="abrirDoResumo('acao')" title="Abrir a fila do que pede ação"><i class="d3m-pt ${tom}" aria-hidden="true"></i><span class="d3m-vnome">${rot}</span><b class="d3m-vn">${q}</b>${PV2_IC.depois}</button>`).join('')
+    : '<p class="d3m-vvazio">Nada travado nesta semana.</p>'}</section>`);
+  // A linha do topo: o dia, a semana e as prontas do mês.
+  const ds = typeof getDiasSemana === 'function' && typeof currentWeek !== 'undefined' ? getDiasSemana(currentWeek) : [];
+  const linhaTopo = `${d3pDataDeHoje()}${ds.length ? ` · semana de ${Number(ds[0].iso.slice(8, 10))} a ${Number(ds[ds.length - 1].iso.slice(8, 10))}` : ''} · ${n.feitas} de ${n.total} prontas`;
+  const dataEl = document.getElementById('pv2-data'); if (dataEl && dataEl.textContent !== linhaTopo) dataEl.textContent = linhaTopo;
   pv2Totais.poucosPosts = n.poucosPosts;
   pv2PintarControles();
 }
@@ -1976,6 +2038,8 @@ function pv2PintarControles() {
   raiz.querySelector('[data-modo-v2="fechamento"]')?.setAttribute('aria-pressed', String(P.fechamento.aberto()));
   raiz.querySelector('[data-modo-v2="comando"]')?.setAttribute('aria-pressed', String(P.comando.aberto()));
   document.getElementById('pv2-semana')?.toggleAttribute('hidden', vista === 'equipe');
+  // A vista aberta fica no body: a janela de vidro, a régua, o pé e a coluna de consulta são da vista Semana.
+  if (document.body.dataset.pv2Vista !== vista) document.body.dataset.pv2Vista = vista;
 }
 // "Filtros" acende quando há recorte ligado lá dentro (ou o Arquivo aberto).
 function pv2PintarFiltroAtivo() {
@@ -1985,16 +2049,29 @@ function pv2PintarFiltroAtivo() {
 function pv2PintarSemana() {
   if (!pv2Montar()) return;
   const dias = getDiasSemana(currentWeek), rot = document.getElementById('pv2-semana-rot');
+  const modoAgora = viewMode === 'client' ? 'cliente' : DIAS_EM_COLUNAS ? 'dia' : 'grade';
+  const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const escolhido = dias.some((d) => d.iso === pv2Dia) ? pv2Dia : dias.some((d) => d.iso === hojeIso) ? hojeIso : dias[0]?.iso || '';
+  const doDia = (iso) => { const l = (typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira) : []).filter((d) => dataDoCartaoDia(d) === iso); return { total: l.length, feitas: l.filter(atividadeDoDiaConcluida).length }; };
+  const nomeDia = (iso) => `${new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '')} ${Number(iso.slice(8, 10))}`;
   if (rot && dias.length) {
     const a = dias[0].iso, b = dias[dias.length - 1].iso, mes = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' });
-    const texto = a.slice(0, 7) === b.slice(0, 7) ? `${a.slice(8, 10)} a ${b.slice(8, 10)} de ${mes(b)}` : `${a.slice(8, 10)} de ${mes(a)} a ${b.slice(8, 10)} de ${mes(b)}`;
-    if (rot.textContent !== texto) rot.textContent = texto;
+    const semanaTxt = a.slice(0, 7) === b.slice(0, 7) ? `${a.slice(8, 10)} a ${b.slice(8, 10)} de ${mes(b)}` : `${a.slice(8, 10)} de ${mes(a)} a ${b.slice(8, 10)} de ${mes(b)}`;
+    const t = doDia(escolhido);
+    const texto = modoAgora === 'dia' && escolhido ? `${escolhido === hojeIso ? 'Hoje, ' : ''}${nomeDia(escolhido)}` : semanaTxt;
+    const resto = modoAgora === 'dia' && escolhido ? ` · ${t.feitas} de ${t.total} ${t.total === 1 ? 'pronta' : 'prontas'}` : '';
+    const html = `${safeText(texto)}<span>${safeText(resto)}</span>`;
+    if (rot.dataset.txt !== html) { rot.dataset.txt = html; rot.innerHTML = html; }
   }
+  // A régua da semana: cada dia com as prontas sobre o total e a barra; o escolhido fica claro. As setas passam a semana.
+  const li = pilulasDeSemana(), at = document.getElementById(`tab-s${currentWeek}-label`), ix = li.indexOf(at);
+  pv2Trocar(document.getElementById('pv2-regua'), `<button type="button" class="d3m-regua-seta" data-passo="-1" onclick="passarSemana(-1)" aria-label="Semana anterior"${ix <= 0 ? ' disabled' : ''}>${PV2_IC.antes}</button>`
+    + dias.map((d) => { const t = doDia(d.iso), pct = t.total ? Math.round(t.feitas * 100 / t.total) : 0;
+      return `<button type="button" class="d3m-dia${modoAgora === 'dia' && d.iso === escolhido ? ' d3m-on' : ''}" data-dia="${d.iso}" onclick="pv2EscolherDia('${d.iso}')" title="Ver ${nomeDia(d.iso)}" aria-label="${nomeDia(d.iso)}: ${t.feitas} de ${t.total} prontas${modoAgora === 'dia' && d.iso === escolhido ? ', dia escolhido' : ''}"><span><b>${nomeDia(d.iso)}</b>${d.iso === hojeIso ? '<small>hoje</small>' : ''}</span><span><b class="d3m-dia-n">${t.feitas}<small> / ${t.total}</small></b><i class="d3m-dia-b" style="--v:${pct}%"><i></i></i></span></button>`; }).join('')
+    + `<button type="button" class="d3m-regua-seta" data-passo="1" onclick="passarSemana(1)" aria-label="Próxima semana"${ix < 0 || ix >= li.length - 1 ? ' disabled' : ''}>${PV2_IC.depois}</button>`
+    + (at?.classList.contains('e-hoje') ? '' : '<button type="button" class="d3m-regua-hoje" id="pv2-semana-hoje" onclick="semanaDeHoje()">Hoje</button>'));
   const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`), i = lista.indexOf(atual);
   const semana = document.getElementById('pv2-semana');
-  semana?.querySelector('[data-passo="-1"]')?.toggleAttribute('disabled', i <= 0);
-  semana?.querySelector('[data-passo="1"]')?.toggleAttribute('disabled', i < 0 || i >= lista.length - 1);
-  document.getElementById('pv2-semana-hoje')?.toggleAttribute('data-atual', Boolean(atual?.classList.contains('e-hoje')));
   const modo = viewMode === 'client' ? 'cliente' : DIAS_EM_COLUNAS ? 'dia' : 'grade';
   semana?.querySelectorAll('[data-modo-semana]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.modoSemana === modo)));
   const t = pv2Totais[currentWeek];
@@ -2106,8 +2183,10 @@ function pv2CartaoHtml(d, aba) {
       ondragstart="managerCalendarDragStart('${isRequestItem(d) ? 'request' : 'content'}','${id}',event)" ondragend="managerCalendarDragEnd()">
     <div class="pv2-pc-lin" role="button" tabindex="0" aria-expanded="${aberto}" title="Abrir no lugar. Arraste para mudar a data"
         onclick="pv2AlternarCartao('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2AlternarCartao('${id}',this)}">
+      <span class="d3m-hora">${comHora ? `<span class="d3p-hora" data-hora-de="${id}"${hora ? '' : ' hidden'} title="Hora de publicação">${safeText(hora ? pv2HoraCurta(hora) : '')}</span>` : ''}</span>${pv2Foto(clientes[0])}
       <p class="pv2-t">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</span>` : ''}<span class="d3p-peca"> · ${safeText(titulo)}</span></p>
-      <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}">${safeText(q.texto)}</span>` : ''}${comHora ? `<span class="d3p-hora" data-hora-de="${id}"${hora ? '' : ' hidden'} title="Hora de publicação">${safeText(hora ? pv2HoraCurta(hora) : '')}</span>` : ''}</div>
+      ${(() => { const et = pv2Etapas(d), vez = et.find((e) => e.daVez); return `<span class="d3m-trilha" title="${vez ? 'Etapa: ' + vez.nome : 'Publicada'}" aria-hidden="true">${et.map((e) => `<i class="${e.feita ? 'ok' : e.daVez ? 'vez' : ''}"></i>`).join('')}</span>`; })()}
+      <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}">${safeText(q.texto)}</span>` : ''}</div>
       <span class="pv2-avs">${pv2Av(d)}</span>
     </div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
@@ -2130,6 +2209,9 @@ function pv2RenderDias(sem, filter, dayFilter) {
     ? [...new Set([...diasBase.map((d) => d.iso), ...items.map(dataDoCartaoDia).filter(Boolean)])].sort().map((iso) => ({ iso, label: labels[new Date(iso + 'T12:00:00').getDay()] }))
     : diasBase).filter((d) => !dayFilter || d.iso === dayFilter);
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  // Direção V2: "Por dia" abre em um dia só, o escolhido na régua (hoje, se for desta semana), com a lista inteira.
+  const umDia = DIAS_EM_COLUNAS && !dayFilter && dias.length > 1;
+  if (umDia) { const alvoDia = dias.some((d) => d.iso === pv2Dia) ? pv2Dia : dias.some((d) => d.iso === hoje) ? hoje : dias[0].iso; dias.splice(0, dias.length, ...dias.filter((d) => d.iso === alvoDia)); }
   const gestor = panelMode === 'gestor', ordemVisivel = [];
   const naSemana = { social: new Set(), demandas: new Set(), pendencias: new Set() };
   // Quatro colunas à vista, a partir de hoje (ou do começo, na semana que não é a atual).
@@ -2144,7 +2226,7 @@ function pv2RenderDias(sem, filter, dayFilter) {
     const aba = gestor ? (salva === true ? 'pendencias' : salva === false ? 'social' : !salva ? abaDaSemana : salva) : 'social';
     const { redes, demandas, lista, abertas, concluidas } = listasDoCartaoDia(dayItems, pendencias, aba);
     redes.forEach((x) => naSemana.social.add(String(x.id))); demandas.forEach((x) => naSemana.demandas.add(String(x.id))); pendencias.forEach((x) => naSemana.pendencias.add(String(x.id)));
-    const inteiro = diasExpandidos.has(dia.iso);
+    const inteiro = umDia || diasExpandidos.has(dia.iso);
     const aVista = inteiro ? [...abertas, ...concluidas] : abertas.slice(0, PV2_POR_DIA);
     aVista.forEach((x) => ordemVisivel.push(String(x.id)));
     const resto = abertas.length - Math.min(abertas.length, PV2_POR_DIA), pct = lista.length ? Math.round(concluidas.length * 100 / lista.length) : 0;
@@ -2154,11 +2236,11 @@ function pv2RenderDias(sem, filter, dayFilter) {
     const dataCurta = dia.iso.slice(8, 10) + '/' + dia.iso.slice(5, 7);
     const vazio = aba === 'social' ? 'Nada marcado neste dia.' : aba === 'demandas' ? 'Nenhuma entrega neste dia.' : 'Nada atrasado ou sem data.';
     // Direção 3: o pé do dia é um botão só, "+4 · 4 prontas", que abre o dia inteiro no lugar (e recolhe de novo).
-    const pe = inteiro ? `<button type="button" class="d3p-mais" onclick="pv2MostrarDia(${sem},'${dia.iso}')" aria-label="Recolher ${dataCurta}">Recolher</button>`
+    const pe = umDia ? '' : inteiro ? `<button type="button" class="d3p-mais" onclick="pv2MostrarDia(${sem},'${dia.iso}')" aria-label="Recolher ${dataCurta}">Recolher</button>`
       : resto > 0 || concluidas.length ? `<button type="button" class="d3p-mais" onclick="pv2MostrarDia(${sem},'${dia.iso}')" aria-label="Mostrar tudo de ${dataCurta}" title="${resto > 0 ? `${resto} a mais` : ''}${resto > 0 && concluidas.length ? ' e ' : ''}${concluidas.length ? `${concluidas.length} ${concluidas.length === 1 ? 'pronta recolhida' : 'prontas recolhidas'}` : ''}">${resto > 0 ? `+${resto}` : 'Ver'}${concluidas.length ? `<span> · ${concluidas.length} ${concluidas.length === 1 ? 'pronta' : 'prontas'}</span>` : ''}</button>` : '';
     return `<section class="pv2-col${dia.iso === hoje ? ' hoje' : ''}"${naJanela ? ' data-janela' : ''} data-date="${dia.iso}" data-previa-sequencia="${dia.label} · ${dataCurta}" aria-label="${dia.label} ${dataCurta}"
         ondragover="soltarNoDiaSobre(event,this)" ondragleave="soltarNoDiaSai(this)" ondrop="soltarNoDia('${dia.iso}',event,this)">
-      <div class="pv2-cab"><details class="pv2-menu pv2-dia-menu"><summary title="Adicionar atividade ou gerar o resumo de ${dataCurta}"><b>${nome}</b></summary>
+      ${umDia ? '<div class="d3m-colunas" aria-hidden="true"><span>Publica</span><span></span><span>Cliente e peça</span><span>Briefing até publicar</span><span>Status</span><span></span></div>' : ''}<div class="pv2-cab"><details class="pv2-menu pv2-dia-menu"><summary title="Adicionar atividade ou gerar o resumo de ${dataCurta}"><b>${nome}</b></summary>
           <div class="pv2-pop" onclick="if(event.target.closest('button'))this.closest('details').open=false">${gestor ? `<button type="button" onclick="adicionarDemandaNoDia('${dia.iso}','${aba}')">Adicionar atividade</button>` : ''}<button type="button" onclick="openDailySummary('${dia.iso}')">Gerar resumo</button></div></details>
         <span class="pv2-sub">${concluidas.length} de ${lista.length}</span>${dia.iso === hoje && lista.length ? `<span class="d3-barra" role="progressbar" aria-label="Progresso de ${dataCurta}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" style="--v:${pct}%"><i></i></span>` : ''}</div>
       ${aba !== 'social' && aviso ? `<p class="pv2-sub" role="status">${aviso} <button type="button" class="pv2-link" onclick="ensureDemandasForOperationalViews(true)">Atualizar</button></p>` : ''}
@@ -2171,7 +2253,8 @@ function pv2RenderDias(sem, filter, dayFilter) {
   grid.innerHTML = ''; grid.classList.remove('dias-colunas', 'dias-encaixados'); grid.classList.add('pv2-fora');
   alvo.hidden = false;
   alvo.classList.toggle('grade', !emColunas);
-  alvo.innerHTML = colunas + (emColunas && fora.length ? `<p class="pv2-sub pv2-fora-janela">${fora.length === 1 ? `${fora[0]} fica` : `${fora.slice(0, -1).join(', ')} e ${fora[fora.length - 1]} ficam`} fora desta vista · <button type="button" class="pv2-link" onclick="pv2Modo('grade')">mostrar a semana inteira</button></p>` : '');
+  alvo.classList.toggle('d3m-um-dia', umDia);
+  alvo.innerHTML = colunas + (emColunas && !umDia && fora.length ? `<p class="pv2-sub pv2-fora-janela">${fora.length === 1 ? `${fora[0]} fica` : `${fora.slice(0, -1).join(', ')} e ${fora[fora.length - 1]} ficam`} fora desta vista · <button type="button" class="pv2-link" onclick="pv2Modo('grade')">mostrar a semana inteira</button></p>` : '');
   pv2Totais[sem] = { social: naSemana.social.size, demandas: naSemana.demandas.size, pendencias: naSemana.pendencias.size };
   ORDEM_VISIVEL_DO_DIA = ordemVisivel;
   pintarSeletorDeSemana();

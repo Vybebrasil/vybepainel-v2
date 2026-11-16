@@ -106,8 +106,10 @@ test('a prévia do Criar usa o quadro e a regra de entrada do cadastro, sem mexe
 test('Hoje sem fila: a conversa do VYBES com as abas, as sugestões e "Pergunte ao VYBES", ao lado do Criar', () => {
   const pintar = funcao(mundo, 'desenharHoje');
   const semFila = pintar.slice(pintar.indexOf('if (!fila) {'), pintar.indexOf('const abertas = fila.itens'));
-  assert.match(semFila, /<div class="v2vb-grade">\$\{conversaHtml\(\)\}\$\{criarPainelHtml\('hoje'\)\}<\/div>/);
-  assert.match(semFila, /Dia de: escolher/);
+  // Direção V2 (16/11/2026): a conversa com a pergunta "De quem é este dia?" no cartão laranja ao lado; o Criar embaixo.
+  assert.match(semFila, /<div class="d3q-meio v2vb-grade">\$\{conversaHtml\(\)\}<div class="d3q-acao">\$\{quem\}<\/div><\/div>/);
+  assert.match(semFila, /<div class="d3q-pe">\$\{criarPainelHtml\('hoje'\)\}<\/div>/);
+  assert.match(semFila, /class="d3-acao d3h-acao d3v-laranja vv-quem-dia"/);
   const conversa = funcao(mundo, 'conversaHtml');
   for (const t of ['data-conversa-ag=', 'data-conversa-sug=', 'O que temos para hoje?', 'Quem está travado?', 'Semana da agência', 'Pergunte ou peça ao', 'data-conversa-voz', '>Perguntar<', 'data-pergunta']) assert.ok(conversa.includes(t), t);
   assert.match(mundo, /vybes: \['VYBES', 'Agência inteira'\], danilo: \['Danilo', 'Direção de arte'\], heitor: \['Heitor', 'Coordenação de produção'\]/);

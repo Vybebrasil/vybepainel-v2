@@ -139,7 +139,8 @@ test('zeros em linha discreta, plural certo, mês no seletor e agenda no Hoje da
   assert.match(mundo, /<div class="d3h-olho"><span>De olho<\/span>/);
   assert.match(mundo, /'peças em aberto', 'peça em aberto'\]/);
   assert.match(ler('vybe-mundo-agentes.js'), /x\.n === 1 \? 'Ver o achado' : `Ver os \$\{x\.n\}`/);
-  assert.match(mundo, /<div class="d3h-col">\$\{agendaD3Html\(\)\}\$\{agentesD3Html\(\)\}\$\{whatsappD3Html\('agencia'\)\}<\/div>/);
+  // Direção V2 (16/11/2026): a agenda, o WhatsApp e os agentes ficam na coluna de consulta, direto no vidro.
+  assert.match(mundo, /\$\{ladoD3\(\{ mini: miniAg \}\)\}\$\{agendaD3Html\(\)\}\$\{whatsappD3Html\('agencia'\)\}\$\{agentesD3Html\(\)\}<\/aside>/);
   assert.match(mundo, /class="d3h-link" data-abrir-gestao="semana">abrir<\/button>/);
   assert.match(pessoas, /mesHtml\(ref, 'data-vp-ref-ir', estado\.periodo === 'anual'\)/);
   // Padrão v2 (12/11/2026): o Recrutamento abre com três números fixos, como no quadro; o zerado fica no lugar.

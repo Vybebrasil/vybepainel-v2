@@ -37,9 +37,11 @@ test('Hoje sem fila: pergunta de quem é o dia, guia do VYBES, agenda de hoje e 
   assert.match(semFila, /conversaHtml\(\)/, 'a conversa do VYBES no lugar do guia');
   assert.match(funcao(src, 'conversaHtml'), /passosDoGuia\(/, 'a mesma ordem da fila');
   assert.match(funcao(src, 'conversaHtml'), /\['Agora', 'Depois', 'Em seguida'\]/, 'os mesmos passos Agora / Depois / Em seguida');
-  assert.match(semFila, /agendaDeHojeHtml\(\)/);
-  assert.match(semFila, /agentesViramHtml\(\)/);
-  assert.match(semFila, /criarHtml/);
+  // Direção V2 (16/11/2026): a agenda de hoje, as aprovações e os agentes ficam na coluna de consulta, direto no vidro; o
+  // Criar abre no lugar, embaixo da conversa.
+  assert.match(semFila, /agendaD3Html\(\)/);
+  assert.match(semFila, /agentesD3Html\(\)/);
+  assert.match(semFila, /criarPainelHtml\('hoje'\)/);
   for (const atalho of ['data-hoje-acao="pedido_rh"', 'data-hoje-acao="radar"', 'Não achei sua fila pelo seu usuário. Escolha de quem']) assert.ok(!semFila.includes(atalho), `saiu ${atalho}`);
   // Com a fila, o lado continua com os atalhos e ganha a agenda (quando não há compromissos) e os agentes.
   // Direção 3: compromissosD3Html cai na agenda de hoje quando a pessoa não tem compromisso.
