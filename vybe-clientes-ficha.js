@@ -286,30 +286,6 @@ function trocarAbaDaFicha(aba) {
   if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
   const nome = typeof CLIENTE_ABERTO === 'string' ? CLIENTE_ABERTO : '';
   if (nome) renderClientMasterDetail(nome);
-  if (nome && (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas') && typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
-}
-
-// Financeiro da ficha (prancha V2-M-Cliente-Financeiro): só a conta deste cliente, só para donos, com o atalho para a
-// tela geral. O servidor já apaga o valor de quem não é dono (server/carteira.js); aqui a aba nem desenha número.
-function financeiroDaFichaHtml(nome) {
-  if (!fichaEhDono()) return '<p class="d3v-estado"><b>Só os donos veem o financeiro do cliente.</b></p>';
-  const id = String(idDoCliente(nome) || '');
-  const atalho = typeof window.VybeComercial?.abrir === 'function'
-    ? `<button type="button" class="d3v-btn sec" onclick="window.VybeComercial.abrir('financas', { abas: ['financas'] })">Abrir Finanças, por cliente</button>` : '';
-  if (!id) return `<p class="d3v-estado"><b>Sem ficha no cadastro.</b>O contrato aparece aqui depois de criar a ficha.${atalho}</p>`;
-  const sv = typeof carteiraDaFicha === 'function' ? carteiraDaFicha(() => { if (FICHA_ABA === 'financeiro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); }) : null;
-  if (!sv) return '<p class="d3v-estado"><b>Lendo a conta do cliente…</b></p>';
-  const locais = sv.contratos?.lista || [];
-  const lista = window.VybeFinancas?.contratosDaCarteira ? window.VybeFinancas.contratosDaCarteira(locais) : locais;
-  const c = lista.find((x) => String(x.cliente_id) === id) || null;
-  const reais = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? 'sem valor' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(v)));
-  const dia = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : 'sem data'; };
-  const contratos = typeof window.VybeCarteira?.abrir === 'function' ? `<button type="button" class="d3v-btn sec" onclick="window.VybeCarteira.abrir('contratos', { abas: ['contratos'] })">${c ? 'Editar em Contratos' : 'Registrar em Contratos'}</button>` : '';
-  const campo = (rotulo, valor) => `<div class="fv2-fin-campo"><span class="d3v-rot">${rotulo}</span><b>${fichaEsc(valor)}</b></div>`;
-  return `<div class="fv2-fin"><div class="cv2-cab"><h3>A conta de ${fichaEsc(nome)} <span>· só os donos veem</span></h3><span class="fv2-cab-lado">${contratos}${atalho}</span></div>
-    ${c ? `<div class="fv2-fin-alto"><span class="d3v-rot">Valor mensal do contrato</span><b class="fv2-fin-valor">${fichaEsc(reais(c.valor_mensal))}</b></div>
-      <div class="fv2-fin-grade">${campo('Início', dia(c.inicio))}${campo('Renovação', dia(c.renovacao))}${campo('Situação', c.status || 'ativo')}${c.observacao ? campo('Observação', c.observacao) : ''}</div>`
-      : '<p class="d3v-estado"><b>Nenhum contrato registrado para este cliente.</b>Recebimentos, faturas e atraso ficam em Finanças, por cliente.</p>'}</div>`;
 }
 
 function cadastroLeituraHtml(nome) {
@@ -344,16 +320,54 @@ function cadastroLeituraHtml(nome) {
       ${secoes}</div>`;
 }
 
+// Aba Ecossistema (prancha V2-M-Cliente-Ecossistema, 16/11/2026): cada sistema numa linha (o selo, o nome, a situação, o
+// que falta ou o que há e o botão que resolve), o pé com o resumo e, no vidro, o cartão laranja com o que falta ligar,
+// Dados e acessos e "Um cadastro só". A janela de depois do cadastro continua usando ecossistemaHtml.
+const ECO_SUB = { vybe_os: 'operação e painel', cerebro: 'o que ele sabe', bots: 'o grupo do cliente', drive: 'a pasta do cliente', hub: 'o portal do cliente', financas: 'contrato e pagamento' };
+const ECO_SITUACAO = { ok: 'tudo certo', falta: 'falta ligar', conferir: 'para conferir' };
 function ecossistemaDaFichaHtml(nome) {
-  const id = String(idDoCliente(nome) || '');
-  if (!id) return cadastroLeituraHtml(nome);
+  const id = String(idDoCliente(nome) || ''), n = fichaAspas(nome);
+  const pode = typeof podeEditarClientes !== 'function' || podeEditarClientes();
+  const so = (ico, titulo, texto = '', botao = '') => fv2DuasHtml('ecossistema', `<section class="fv2-folha fv2-cheia">${fv2VazioHtml(ico, titulo, texto, botao)}</section>`, '');
+  if (!id) return so('falta', 'Sem cadastro próprio', 'Este nome aparece na operação, mas ainda não tem ficha.',
+    typeof podeEditarClientes === 'function' && podeEditarClientes() ? `<button type="button" class="d3v-btn s" onclick="cadastrarClienteDaOperacao('${n}')">Criar a ficha</button>` : '');
   const estado = FICHA_ECOSSISTEMA[id];
   if (!estado) carregarEcossistema(id).then(() => { if (FICHA_ABA === 'ecossistema' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); });
-  return `<section class="client-master-detail-card clf-cartao eco-cartao"><div class="clf-cartao-topo"><div>
-      <h3 class="clf-titulo">Ecossistema</h3>
-      <p class="clf-texto">Um cliente, um cadastro. Cada sistema lê daqui; esta lista diz onde ele já está e o que falta.</p></div>
-      <button type="button" class="vb-botao" onclick="carregarEcossistema('${fichaEsc(id)}', true).then(() => renderClientMasterDetail('${fichaAspas(nome)}'))"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/></svg>Conferir de novo</button></div>
-    ${ecossistemaHtml(estado || { carregando: true }, nome)}</section>`;
+  const conferir = `carregarEcossistema('${fichaEsc(id)}', true).then(() => renderClientMasterDetail('${n}'))`;
+  if (!estado || estado.carregando) return so('relogio', 'Conferindo os sistemas…');
+  if (estado.erro) return so('falta', fichaEsc(estado.erro), '', `<button type="button" class="d3v-btn sec s" onclick="${conferir}">Conferir de novo</button>`);
+  const { sistemas = [], cliente = {} } = estado.dados || {};
+  const botaoDe = (s, classe) => { const acao = ECO_ACAO[s.acao];
+    return acao && (pode || s.acao === 'cerebro') ? `<button type="button" class="${classe}" onclick="${acao[1](n, fichaEsc(cliente.id || id))}">${acao[0]}</button>`
+      : s.link ? `<a class="${classe}" href="${fichaEsc(s.link)}" target="_blank" rel="noopener">Abrir</a>` : ''; };
+  const linha = (s) => `<div class="fv2-tb-lin fv2-eco-lin eco-${fichaEsc(s.estado)}"><i class="fv2-selo ${s.estado === 'ok' ? 'g' : 'a'}" aria-hidden="true">${s.estado === 'ok' ? FV2_ICO.ok : FV2_ICO.falta}</i>
+      <span class="fv2-eco-nome"><b>${fichaEsc(s.nome)}</b>${ECO_SUB[s.id] ? ` · ${ECO_SUB[s.id]}` : ''}</span><span class="fv2-eco-sit ${s.estado === 'ok' ? 'g' : 'a'}">${ECO_SITUACAO[s.estado] || fichaEsc(s.estado)}</span>
+      <span class="fv2-eco-det" title="${fichaEsc(s.detalhe)}">${fichaEsc(s.detalhe)}</span>${botaoDe(s, 'd3v-btn sec s fv2-op-acao')}</div>`;
+  const certos = sistemas.filter((s) => s.estado === 'ok').length, faltam = sistemas.filter((s) => s.estado !== 'ok');
+  const meta = (clientMasterRecords().find((r) => r.name === nome) || {}).meta || {};
+  const f = fichaDoCliente(nome) || CADASTRO_CLIENTES.find((c) => String(c.id) === id) || null;
+  const completo = f ? completudeDoCadastro(f) : null;
+  const urlDrive = linkDeCliente(meta.drive), outroLink = linkDeCliente(meta.link), temDoc = Boolean(meta.acessoId && meta.doc);
+  const semLink = [urlDrive, temDoc, outroLink].filter((x) => !x).length;
+  const conta = (forte, apoio, tom = '') => `<span class="cv2-olho fv2-eco-conta${tom ? ` ${tom}` : ''}"><b>${forte}</b><small>${apoio}</small></span>`;
+  const folha = `<section class="fv2-folha fv2-cheia fv2-eco" aria-label="Ecossistema do cliente"><div class="cv2-cab"><h3>Onde ${fichaEsc(nome)} existe <span>· ${fichaPlural(sistemas.length, 'sistema', 'sistemas')}, um cadastro só</span></h3><span class="fv2-cab-nota">conferido agora</span><button type="button" class="fv2-cab-acao" onclick="${conferir}">conferir de novo</button></div>
+      ${sistemas.length ? `<div class="fv2-op-th fv2-eco-th" aria-hidden="true"><span class="fv2-eco-c-selo"></span><span class="fv2-eco-nome">Sistema</span><span class="fv2-eco-sit">Situação</span><span class="fv2-eco-det">O que falta ou o que há</span></div>
+        <div class="fv2-tb fv2-linhas">${sistemas.map(linha).join('')}</div>` : fv2VazioHtml('falta', 'Nenhum sistema na resposta', 'Confira de novo em instantes.')}
+      <div class="cv2-pe fv2-eco-pe"><span class="d3m-olho-rot">Resumo</span>${conta(`${certos} de ${sistemas.length}`, 'sistemas completos')}${completo ? conta(`${completo.feitos} de ${completo.total}`, 'campos do cadastro') : ''}${conta(semLink, semLink === 1 ? 'link faltando' : 'links faltando', semLink ? 'a' : '')}</div></section>`;
+
+  const comAcao = faltam.find((s) => botaoDe(s, 'x'));
+  const nomes = faltam.map((s) => s.nome).join(', ').replace(/, ([^,]*)$/, ' e $1');
+  const alto = faltam.length ? fv2LaranjaHtml({ rotulo: 'falta ligar', n: faltam.length, titulo: faltam.length === 1 ? 'sistema ainda sem este cliente' : 'sistemas ainda sem este cliente',
+      apoio: `${fichaEsc(nomes)}. O cadastro é um só e vale em todos.`, botoes: `${comAcao ? botaoDe(comAcao, 'd3m-btn l') : ''}<button type="button" class="d3m-btn l s" onclick="trocarAbaDaFicha('cadastro')">Ver o cadastro</button>` })
+    : fv2CalmoHtml('Tudo ligado.', `Os ${sistemas.length} sistemas leem o mesmo cadastro deste cliente.`);
+  const porta = (tem, forte, chamada, url) => (url ? `<a class="d3m-vlin" href="${fichaEsc(url)}" target="_blank" rel="noopener"><i class="d3m-pt g" aria-hidden="true"></i><span><b>${forte}</b></span>${fichaVai()}</a>`
+    : fv2VlinHtml(forte, tem ? '' : 'falta', chamada, tem ? 'g' : 'a'));
+  const dados = fv2ConsHtml('Dados e acessos', 'senhas só para quem administra',
+    porta(Boolean(urlDrive), 'Drive do cliente', pode && typeof abrirCadastroCompleto === 'function' ? `abrirCadastroCompleto('${n}', { etapa: 'canais' })` : "trocarAbaDaFicha('geral')", urlDrive)
+    + (meta.acessoId || pode ? porta(temDoc, 'Documento de acessos', `abrirDocumentoDoCliente('${jsArg(String(meta.acessoId || ''))}', '${n}', '${jsArg(id)}')`, '') : '')
+    + fv2VlinHtml('Acessos', 'links, senhas e painel', "trocarAbaDaFicha('geral')", 'g')
+    + porta(Boolean(outroLink), 'Link do projeto', "trocarAbaDaFicha('geral')", outroLink), ' aria-label="Dados e acessos"');
+  return fv2DuasHtml('ecossistema', folha, alto + dados + fv2ConsHtml('Um cadastro só', '', '<p class="fv2-nota-lado">O que for preenchido no cadastro vale no Vybe OS, no cérebro, nos bots e no Hub. Cada sistema lê daqui.</p>'));
 }
 
 // Registros que os chats do Claude.ai mandaram pelo conector "Ecossistema Vybe" (server/mcp-ecossistema.js).
@@ -367,30 +381,298 @@ async function carregarRegistrosDoCliente(id) {
   } catch (e) { FICHA_REGISTROS[id] = { erro: e.message }; }
 }
 const TIPO_REGISTRO = { conteudo: 'Conteúdo', planejamento: 'Planejamento', roteiro: 'Roteiro', decisao: 'Decisão', regra_de_marca: 'Regra de marca', aprendizado: 'Aprendizado' };
+// ── As abas da ficha no esqueleto das pranchas V2-M-Cliente-* (16/11/2026) ───────────────────────────────────────────
+// Toda aba fora do Resumo tem o mesmo esqueleto: as folhas claras à esquerda e, à direita, direto no vidro, o cartão
+// laranja (o que pede ação nesta aba) e a consulta. Peças: fv2-duas, fv2-vazio, fv2-barras e fv2-op (a lista da operação).
+const FV2_ICO = {
+  ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+  relogio: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  lapis: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  cifrao: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"/><path d="M16.5 7.5C16 6 14.3 5 12 5 9.5 5 7.5 6.2 7.5 8.3c0 4.7 9 2.2 9 7.2 0 2.200-2 3.500-4.500 3.500s-4.300-1-4.800-2.800"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  falta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v6M12 17h.01"/></svg>',
+  olho: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+};
+const fichaPlural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const fichaDiaMes = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(String(iso || '')) ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '');
+const fichaVai = () => (typeof CV2_IC !== 'undefined' ? CV2_IC.vai : '');
+function fv2Matiz(t) { let h = 7; for (const ch of String(t || '')) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0; return h % 360; }
+// Outro módulo do Vybe OS (quem navega é o menu lateral); sem o mundo, o atalho não aparece.
+const fv2PodeIr = () => typeof window !== 'undefined' && typeof window.mundoVoxel?.irPara === 'function';
+function fv2DuasHtml(aba, folhas, lado) {
+  return `<div class="fv2-duas" data-fv2-aba="${aba}"><div class="fv2-col">${folhas}</div><aside class="d3m-lado fv2-lado" aria-label="Consulta">${lado}</aside></div>`;
+}
+function fv2VazioHtml(ico, titulo, texto = '', botao = '') {
+  return `<div class="fv2-vazio"><i class="fv2-vazio-ico" aria-hidden="true">${FV2_ICO[ico] || ''}</i><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ''}${botao}</div>`;
+}
+function fv2LaranjaHtml({ quem = 'Mateus', rotulo, n = '', titulo, apoio = '', botoes = '' }) {
+  return `<section class="d3-acao d3m-laranja cv2-laranja fv2-laranja fv2-lar-aba" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${fichaEsc(quem.slice(0, 1))}</span>${fichaEsc(quem)} · ${rotulo}</span>
+    <span class="d3m-lar-txt">${n === '' ? '' : `<b class="d3m-lar-num">${n}</b>`}<span class="d3-acao-frase">${titulo}</span>${apoio ? `<small>${apoio}</small>` : ''}${botoes ? `<span class="d3m-lar-bts">${botoes}</span>` : ''}</span></section>`;
+}
+function fv2CalmoHtml(titulo, texto, botao = '') {
+  return `<section class="fv2-calmo" aria-label="Leitura desta aba"><b>${titulo}</b><span>${texto}</span>${botao}</section>`;
+}
+function fv2ConsHtml(titulo, lado, dentro, attrs = '') {
+  return `<section class="d3m-cons"${attrs}><div class="d3m-cons-cab"><b>${titulo}</b><span>${lado}</span></div>${dentro}</section>`;
+}
+function fv2VlinHtml(forte, apoio, chamada, ponto = '') {
+  return `<button type="button" class="d3m-vlin" onclick="${chamada}">${ponto ? `<i class="d3m-pt ${ponto}" aria-hidden="true"></i>` : ''}<span><b>${forte}</b>${apoio ? ` · ${apoio}` : ''}</span>${fichaVai()}</button>`;
+}
+// Barras de contagem no vidro: [{ rotulo, n, de, lado, cor, tom, chamada, ligada }].
+function fv2BarrasHtml(linhas) {
+  return `<div class="fv2-barras">${linhas.map((l) => { const v = l.de ? Math.round((Math.max(0, l.n) / l.de) * 100) : 0, tag = l.chamada ? 'button' : 'div';
+    return `<${tag}${l.chamada ? ` type="button" onclick="${l.chamada}" aria-pressed="${Boolean(l.ligada)}"` : ''} class="fv2-barra-lin"><span>${fichaEsc(l.rotulo)}</span><span class="d3m-vbarra${l.tom ? ` ${l.tom}` : ''}"${l.cor ? ` style="--st:${fichaEsc(l.cor)}"` : ''}><i style="--v:${v}%"></i></span><b>${l.lado ?? l.n}</b></${tag}>`; }).join('')}</div>`;
+}
+
+// A lista da operação dentro da ficha (Conteúdo e Demandas): os MESMOS editores do painel (marcar vários, status na
+// linha, data na linha, dono, prévia e abrir a peça), no desenho da prancha.
+const FV2_LISTA = { conteudo: { filtro: 'todas', porStatus: false }, demandas: { filtro: 'abertos' } };
+function fv2Filtrar(aba, filtro) { if (!FV2_LISTA[aba]) return; FV2_LISTA[aba].filtro = filtro; if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente(); }
+function fv2PorStatus() { FV2_LISTA.conteudo.porStatus = !FV2_LISTA.conteudo.porStatus; if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente(); }
+function fv2OrdemVisivel(el) { return [...(el?.closest('.fv2-op-linhas')?.querySelectorAll('input[data-item-id]') || [])].map((x) => x.dataset.itemId); }
+function fv2ContarAbaixo(caixa) {
+  const alvo = caixa?.closest('.fv2-op')?.querySelector('[data-fv2-abaixo]');
+  if (!alvo) return;
+  const fundo = caixa.getBoundingClientRect().bottom;
+  const n = [...caixa.children].filter((l) => l.getBoundingClientRect().top >= fundo - 6).length;
+  alvo.textContent = n ? `mais ${fichaPlural(n, alvo.dataset.um, alvo.dataset.varios)} abaixo` : '';
+}
+function fv2Marcadas(itens) { return typeof SELECIONADAS === 'undefined' ? 0 : itens.filter((x) => SELECIONADAS.has(String(x.d.id))).length; }
+// "Mais" do pé: as ações de lote que não cabem à vista, pelas mesmas funções da barra de lote do painel.
+function fv2MaisDoLote(event) {
+  const botao = event.currentTarget;
+  const demandas = [...SELECIONADAS].map(findOperationalItem).filter(Boolean).every(isRequestItem);
+  const falso = { preventDefault() {}, stopPropagation() {}, currentTarget: botao };
+  const op = (rotulo, chamar) => ({ rotulo, direto: true, cor: 'currentColor', aplicar: () => chamar(falso) });
+  abrirMenuDeLote(event, 'Mais ações', [op('Prazo de produção', (ev) => lotePrazo(ev, 'prazo')), op('Grupo', (ev) => loteGrupo(ev, demandas ? 'demandas' : 'producao')),
+    op(demandas ? 'Tipo' : 'Formato', (ev) => loteEscolha(ev, 'formato')), ...(demandas ? [] : [op('Captação', (ev) => loteEscolha(ev, 'captacao'))]),
+    op('Prioridade', (ev) => loteEscolha(ev, 'prioridade')), op('Arquivar', () => loteArquivar())], '');
+}
+function fv2LinhaOpHtml(x, hoje) {
+  const d = x.d, id = jsArg(String(d.id)), pedido = typeof isRequestItem === 'function' && isRequestItem(d);
+  const bruto = String(d.nome || d.formato || 'Peça'), m = /^(.*?)\s+-\s+(.*)$/.exec(bruto);
+  const [tipo, titulo] = m ? [m[1], m[2]] : [String(d.formato || '').trim() || (pedido ? 'Pedido' : 'Peça'), bruto];
+  const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
+  const prazo = String(d.prazo_iso || '').slice(0, 10), veic = String(d.veiculacao_iso || '').slice(0, 10);
+  const data = (campo, iso, dica, manda) => { const venceu = manda && iso && iso < hoje, eHoje = manda && iso === hoje;
+    return `<label class="fv2-op-data fv2-op-c-${campo}${venceu ? ' r' : eHoje ? ' a' : ''}${iso ? '' : ' sem'}" title="${dica}" onclick="event.stopPropagation()"><span>${!iso ? 'sem data' : venceu ? `era ${fichaDiaMes(iso)}` : eHoje ? 'hoje' : fichaDiaMes(iso)}</span><input type="date" value="${fichaEsc(iso)}" aria-label="${dica} de ${fichaEsc(d.nome || '')}" onclick="event.stopPropagation();try{this.showPicker()}catch{}" onchange="event.stopPropagation();salvarDataNaLinha('${id}','${campo}',this)"></label>`; };
+  const mini = typeof jaTemMaterial === 'function' && jaTemMaterial(d)
+    ? `<button type="button" class="fv2-op-mini" style="--h:${fv2Matiz(tipo + titulo)}" data-previa-id="${fichaEsc(String(d.id))}" onclick="event.stopPropagation();abrirPreviaDaEntrega('${id}',this)" title="Ver o material entregue" aria-label="Ver prévia de ${fichaEsc(d.nome || 'atividade')}">${FV2_ICO.olho}</button>`
+    : `<i class="fv2-op-mini" style="--h:${fv2Matiz(tipo + titulo)}" aria-hidden="true"></i>`;
+  return `<div class="fv2-op-lin${marcada ? ' marcada' : ''}" title="Abrir ${fichaEsc(d.nome || '')}" onclick="openItemWorkspace('${id}')">
+      <input type="checkbox" class="fv2-op-marca" ${marcada ? 'checked' : ''} data-item-id="${fichaEsc(String(d.id))}" aria-label="Selecionar ${fichaEsc(d.nome || '')}" onclick="event.stopPropagation();alternarSelecao('${id}',this.checked,event,fv2OrdemVisivel(this))">
+      ${mini}<button type="button" class="fv2-op-nome" onclick="event.stopPropagation();openItemWorkspace('${id}')"><b>${fichaEsc(tipo)}</b> · ${fichaEsc(titulo)}</button>
+      <span class="fv2-op-c-st" onclick="event.stopPropagation()">${typeof pv2StatusBotao === 'function' ? pv2StatusBotao(d) : fichaEsc(d.status || 'Sem status')}</span>
+      ${data('prazo', prazo, 'Prazo de produção', !veic)}${data('veiculacao', veic, pedido ? 'Data de conclusão' : 'Data de veiculação', true)}
+      <span class="fv2-op-c-quem" onclick="event.stopPropagation()">${typeof pv2Av === 'function' ? pv2Av(d) : ''}</span></div>`;
+}
+// A folha da lista: cabeçalho com os recortes, as linhas (só elas rolam) e o pé com o que fazer com as marcadas.
+function fv2FolhaOpHtml({ idGrade, titulo, chips, colunas, itens, vazio, um, varios, todos }) {
+  const hoje = hojeIsoV2(), marcadas = fv2Marcadas(todos);
+  const bt = (rot, chamada) => `<button type="button" class="d3v-btn sec s fv2-op-acao"${marcadas ? '' : ' disabled'} onclick="${chamada}">${rot}</button>`;
+  return `<section class="fv2-folha fv2-op fv2-cheia" aria-label="Lista de ${varios}"><div class="cv2-cab fv2-op-cab"><h3>${titulo}</h3><span class="cv2-filtros">${chips}</span></div>
+      ${itens.length ? `<div class="fv2-op-th" aria-hidden="true"><span class="fv2-op-c-marca"></span><span class="fv2-op-c-mini"></span><span class="fv2-op-c-nome">${colunas[0]}</span><span class="fv2-op-c-st">Status</span><span class="fv2-op-c-prazo">Prazo</span><span class="fv2-op-c-veiculacao">${colunas[1]}</span><span class="fv2-op-c-quem">Quem</span></div>` : ''}
+      <div class="fv2-op-linhas" id="${idGrade}" onscroll="fv2ContarAbaixo(this)">${itens.map((x) => fv2LinhaOpHtml(x, hoje)).join('') || vazio}</div>
+      ${todos.length ? `<div class="fv2-op-pe" role="toolbar" aria-label="Ações para as marcadas"><span class="fv2-op-pe-txt"><b>${marcadas ? fichaPlural(marcadas, 'marcada', 'marcadas') : 'Nenhuma marcada'}</b><span data-fv2-abaixo data-um="${um}" data-varios="${varios}"></span>${marcadas ? '<button type="button" class="cv2-chip" onclick="limparSelecao()">desmarcar</button>' : ''}</span>
+        <span class="fv2-op-pe-bts">${bt('Mudar a data', "lotePrazo(event,'veiculacao')")}${bt('Trocar o dono', 'loteResponsavel(event)')}${bt('Mudar o status', 'loteStatus(event)')}${bt('Mais', 'fv2MaisDoLote(event)')}</span></div>` : ''}</section>`;
+}
+// "Reagendar as N": marca as vencidas e abre a troca de data das marcadas (a mesma do painel).
+function fv2ReagendarVencidas(event) {
+  const ids = vencidosDoCliente(CLIENTE_ABERTO).map((x) => String(x.d.id));
+  if (!ids.length || typeof SELECIONADAS === 'undefined') return;
+  SELECIONADAS.clear(); ids.forEach((i) => SELECIONADAS.add(i));
+  FV2_LISTA.conteudo.filtro = 'vencidas';
+  if (typeof repintarOndeHaSelecao === 'function') repintarOndeHaSelecao(); else redesenharListasDoCliente();
+  lotePrazo(event, 'veiculacao');
+}
+
+// Aba Conteúdo (prancha V2-M-Cliente-Conteudo): os conteúdos em aberto, a veiculação mais antiga primeiro; ao lado, as
+// vencidas no cartão laranja, a contagem por status e os atalhos.
+function conteudoDaFichaHtml(nome) {
+  const E = FV2_LISTA.conteudo, hoje = hojeIsoV2(), id = String(idDoCliente(nome) || ''), aspas = fichaAspas(nome);
+  const todos = conteudosAbertosV2(nome).sort((a, b) => (a.quando || '9999').localeCompare(b.quando || '9999'));
+  const stDe = (x) => String(x.d.status || 'Sem status');
+  const recortes = { todas: () => true, vencidas: (x) => Boolean(x.quando) && x.quando < hoje, alteracao: (x) => /altera/i.test(stDe(x)), aprovacao: (x) => /aprova/i.test(stDe(x)) };
+  const conta = Object.fromEntries(Object.entries(recortes).map(([k, f]) => [k, todos.filter(f).length]));
+  const soStatus = E.filtro.startsWith('st:') ? E.filtro.slice(3) : '';
+  if (!soStatus && !recortes[E.filtro]) E.filtro = 'todas';
+  let itens = todos.filter(soStatus ? (x) => stDe(x) === soStatus : recortes[E.filtro]);
+  if (E.porStatus) itens = [...itens].sort((a, b) => stDe(a).localeCompare(stDe(b), 'pt-BR') || (a.quando || '9999').localeCompare(b.quando || '9999'));
+  const chip = (k, rot, tom = '') => `<button type="button" class="cv2-chip" role="radio" aria-checked="${E.filtro === k}" onclick="fv2Filtrar('conteudo','${k}')">${rot}<span${tom && conta[k] ? ` class="${tom}"` : ''}>${conta[k]}</span></button>`;
+  const chips = `<span class="cv2-chips" role="radiogroup" aria-label="Recorte">${chip('todas', 'Todas')}${chip('vencidas', 'Vencidas', 'cv2-ruim')}${chip('alteracao', 'Em alteração')}${chip('aprovacao', 'Para aprovação')}${
+      soStatus ? `<button type="button" class="cv2-chip" role="radio" aria-checked="true" title="Tirar este recorte" onclick="fv2Filtrar('conteudo','todas')">${fichaEsc(soStatus)}<span>${itens.length}</span></button>` : ''}</span>
+      <i class="cv2-risco" aria-hidden="true"></i><button type="button" class="cv2-chip" data-ligado="${E.porStatus}" aria-pressed="${E.porStatus}" title="Juntar as peças do mesmo status" onclick="fv2PorStatus()">Por status</button>`;
+  const folha = fv2FolhaOpHtml({ idGrade: 'grid-cliente-producao', um: 'conteúdo', varios: 'conteúdos', todos, itens, chips, colunas: ['Conteúdo', 'Veiculação'],
+    titulo: `${fichaPlural(todos.length, 'conteúdo em aberto', 'conteúdos em aberto')} <span>· ${E.porStatus ? 'juntos por status' : 'a veiculação mais antiga primeiro'}</span>`,
+    vazio: todos.length ? fv2VazioHtml('ok', 'Nenhum conteúdo neste recorte', '', `<button type="button" class="d3v-btn sec s" onclick="fv2Filtrar('conteudo','todas')">Ver todos</button>`)
+      : fv2VazioHtml('ok', 'Nenhum conteúdo em aberto', 'O que entrar na produção deste cliente aparece aqui, com o status, o prazo e a veiculação.') });
+
+  const vencidas = todos.filter(recortes.vencidas), esperam = vencidas.filter((x) => /info/i.test(stDe(x))).length;
+  const alto = vencidas.length ? fv2LaranjaHtml({ rotulo: 'o mais grave da conta', n: vencidas.length, titulo: vencidas.length === 1 ? 'peça passou da veiculação' : 'peças passaram da veiculação',
+      apoio: `A mais antiga era para ${fichaDiaMes(vencidas[0].quando)}.${esperam ? ` ${esperam === 1 ? 'Uma espera' : `${esperam} esperam`} o cliente.` : ''}`,
+      botoes: `<button type="button" class="d3m-btn l" title="Marca as vencidas e abre a troca de data" onclick="fv2ReagendarVencidas(event)">${vencidas.length === 1 ? 'Reagendar' : `Reagendar as ${vencidas.length}`}</button><button type="button" class="d3m-btn l s" onclick="fv2Filtrar('conteudo','vencidas')">Uma a uma</button>` })
+    : fv2CalmoHtml('Nenhuma peça vencida.', todos.length ? 'Todas as datas de veiculação estão pela frente.' : 'Sem conteúdo em aberto neste cliente.');
+  const porStatus = Object.entries(todos.reduce((m, x) => { (m[stDe(x)] = m[stDe(x)] || []).push(x); return m; }, {})).sort((a, b) => b[1].length - a[1].length);
+  const maior = porStatus.length ? porStatus[0][1].length : 0;
+  const barras = porStatus.length ? fv2ConsHtml('Por status', fichaPlural(todos.length, 'aberta', 'abertas'), fv2BarrasHtml(porStatus.slice(0, 7).map(([st, l]) => ({ rotulo: st, n: l.length, de: maior,
+    cor: l[0].d.status_color || (typeof corDeStatus === 'function' ? corDeStatus(st)?.cor : '') || '', ligada: soStatus === st, chamada: `fv2Filtrar('conteudo','${soStatus === st ? 'todas' : `st:${fichaAspas(st)}`}')` }))), ' aria-label="Conteúdos por status"') : '';
+  const plj = id && typeof planejamentosDaFicha === 'function' ? planejamentosDaFicha(id, nome) : null;
+  const ultimo = plj && plj.lista && plj.lista[0];
+  const mes = (p) => String(typeof pljMes === 'function' ? pljMes(p.mes) : p.mes || '').toLowerCase();
+  const abrir = [fv2PodeIr() ? fv2VlinHtml('Aprovação de conteúdo', 'o feed do mês', "window.mundoVoxel.irPara('conteudo')") : '',
+    ultimo ? fv2VlinHtml(`Planejamento de ${fichaEsc(mes(ultimo))}`, '', `abrirPlanejamento('${jsArg(ultimo.id)}')`)
+      : plj && plj.podeCriar && typeof novoPlanejamento === 'function' ? fv2VlinHtml('Começar um planejamento', '', `novoPlanejamento('${jsArg(id)}', '${aspas}')`) : ''].join('');
+  return fv2DuasHtml('conteudo', folha, alto + barras + (abrir ? fv2ConsHtml('Abrir', '', abrir) : ''));
+}
+
+// Aba Demandas (prancha V2-M-Cliente-Demandas): os pedidos fora do conteúdo mensal; ao lado, onde está o mensal, de onde
+// vem um pedido e os atalhos.
+function demandasDaFichaHtml(nome) {
+  const E = FV2_LISTA.demandas, aspas = fichaAspas(nome);
+  const record = clientMasterRecords().find((item) => item.name === nome) || { content: [], requests: [] };
+  const FEITO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
+  const feito = (d) => FEITO.includes(String(d.status || ''));
+  // A lista crua de Solicitações fala outro idioma; o normalizador é o mesmo da tabela de grupos.
+  const linha = (d) => { const n = typeof normalizeRequestForOperational === 'function' ? normalizeRequestForOperational(d) : d;
+    return { d: n, quando: String(n.veiculacao_iso || n.prazo_iso || '').slice(0, 10) }; };
+  const porData = (a, b) => (a.quando || '9999').localeCompare(b.quando || '9999');
+  const abertas = (record.requests || []).filter((d) => !feito(d)).map(linha).sort(porData);
+  const feitas = (record.requests || []).filter(feito).map(linha).sort((a, b) => porData(b, a));
+  if (E.filtro !== 'concluidos') E.filtro = 'abertos';
+  const itens = E.filtro === 'concluidos' ? feitas : abertas;
+  const chip = (k, rot, n) => `<button type="button" class="cv2-chip" role="radio" aria-checked="${E.filtro === k}" onclick="fv2Filtrar('demandas','${k}')">${rot}<span>${n}</span></button>`;
+  const nova = `<button type="button" class="d3v-btn s" onclick="openCadastrosGoverned({ client: '${aspas}' })">Nova demanda</button>`;
+  const folha = fv2FolhaOpHtml({ idGrade: 'grid-cliente-demandas', classe: 'demandas-grid', um: 'pedido', varios: 'pedidos', todos: itens, itens, colunas: ['Pedido', 'Conclusão'],
+    chips: `<span class="cv2-chips" role="radiogroup" aria-label="Recorte">${chip('abertos', 'Abertos', abertas.length)}${chip('concluidos', 'Concluídos', feitas.length)}</span>`,
+    titulo: `${E.filtro === 'concluidos' ? 'Pedidos concluídos' : 'Pedidos em aberto'} <span>· fora do conteúdo mensal</span>`,
+    vazio: E.filtro === 'concluidos' ? fv2VazioHtml('ok', 'Nenhum pedido concluído ainda', 'Os pedidos entregues deste cliente ficam aqui.')
+      : fv2VazioHtml('ok', 'Nenhuma solicitação em aberto', `Banner, site, evento, vídeo: o que ${fichaEsc(nome)} pedir fora do mensal aparece aqui, com o dono e o prazo.`, nova) });
+  const { conteudos } = typeof abertosDoCliente === 'function' ? abertosDoCliente(nome) : { conteudos: 0 };
+  const vencidas = typeof vencidosDoCliente === 'function' ? vencidosDoCliente(nome).length : 0;
+  const abrir = fv2PodeIr() ? fv2ConsHtml('Abrir', '', fv2VlinHtml('Todas as demandas', 'da agência', "window.mundoVoxel.irPara('demandas')") + fv2VlinHtml('Projetos pontuais', '', "window.mundoVoxel.irPara('projetos')")) : '';
+  return fv2DuasHtml('demandas', folha, fv2ConsHtml('O mensal está em outra aba', '', fv2VlinHtml('Conteúdo', `${conteudos} em aberto${vencidas ? `, ${fichaPlural(vencidas, 'vencida', 'vencidas')}` : ''}`, "trocarAbaDaFicha('conteudo')"))
+    + fv2ConsHtml('De onde vem um pedido', '', '<p class="fv2-nota-lado">Do grupo do cliente (o VYBES avisa e propõe o card), de uma reunião (demandas sugeridas da ata) ou criado à mão.</p>') + abrir);
+}
+
+// O que a equipe registrou (folha da aba Cérebro): os registros que os chats do Claude.ai mandaram pelo conector.
 function registrosDosChatsHtml(nome) {
   const id = String(idDoCliente(nome) || '');
   if (!id) return '';
   const estado = FICHA_REGISTROS[id];
   if (!estado) carregarRegistrosDoCliente(id).then(() => { if (FICHA_ABA === 'cerebro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); });
-  const corpo = !estado ? '<div class="auto-carregando">Lendo os registros…</div>'
-    : estado.erro ? `<p class="ciclo-erro">${fichaEsc(estado.erro)}</p>`
-    : !estado.dados.length ? '<p>Nada registrado ainda. Quando alguém fechar uma entrega deste cliente com o assistente, o resumo aparece aqui.</p>'
-    : `<ul class="reg-lista">${estado.dados.map((g) => `<li class="reg-item"><details><summary>
-        <span class="reg-tipo">${fichaEsc(TIPO_REGISTRO[g.tipo] || g.tipo)}</span><b>${fichaEsc(g.titulo)}</b>
+  const corpo = !estado ? fv2VazioHtml('relogio', 'Lendo os registros…')
+    : estado.erro ? fv2VazioHtml('falta', fichaEsc(estado.erro))
+    : !estado.dados.length ? fv2VazioHtml('lapis', 'Nada registrado ainda', 'Quando alguém fechar uma entrega deste cliente com o assistente, o que foi aprendido aparece aqui.')
+    : `<ul class="reg-lista fv2-tb fv2-linhas fv2-reg">${estado.dados.map((g) => `<li class="reg-item"><details><summary class="fv2-tb-lin">
+        <span class="d3v-etiqueta reg-tipo">${fichaEsc(TIPO_REGISTRO[g.tipo] || g.tipo)}</span><span class="fv2-tb-txt"><b>${fichaEsc(g.titulo)}</b></span>
         <small>${fichaEsc(String(g.criado_em || '').slice(0, 10).split('-').reverse().join('/'))} · ${fichaEsc(g.status.replace(/_/g, ' '))} · ${fichaEsc(g.origem)}${g.drive_erro ? ' · cópia no Drive falhou' : ''}</small></summary>
-        <p>${fichaEsc(g.resumo).replace(/\n/g, '<br>')}</p>
+        <div class="fv2-reg-c"><p>${fichaEsc(g.resumo).replace(/\n/g, '<br>')}</p>
         ${g.decisoes ? `<h5>Decisões e regras novas</h5><p>${fichaEsc(g.decisoes).replace(/\n/g, '<br>')}</p>` : ''}
         ${g.proximos ? `<h5>Próximos passos</h5><p>${fichaEsc(g.proximos).replace(/\n/g, '<br>')}</p>` : ''}
-        ${g.conteudo ? `<h5>Conteúdo</h5><pre>${fichaEsc(g.conteudo)}</pre>` : ''}</details></li>`).join('')}</ul>`;
-  return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>O que a equipe registrou</h3>
-      <button type="button" class="vb-botao" onclick="delete FICHA_REGISTROS['${fichaEsc(id)}'];renderClientMasterDetail('${fichaAspas(nome)}')">Atualizar</button></div>
-    ${corpo}</div>`;
+        ${g.conteudo ? `<h5>Conteúdo</h5><pre>${fichaEsc(g.conteudo)}</pre>` : ''}</div></details></li>`).join('')}</ul>`;
+  return `<section class="fv2-folha fv2-cheia" aria-label="O que a equipe registrou"><div class="cv2-cab"><h3>O que a equipe registrou</h3>
+      <button type="button" class="fv2-cab-acao" onclick="delete FICHA_REGISTROS['${fichaEsc(id)}'];renderClientMasterDetail('${fichaAspas(nome)}')">atualizar</button></div>
+    ${corpo}</section>`;
 }
 
+// Aba Cérebro (prancha V2-M-Cliente-Cerebro, 16/11/2026): o que o VYBES sabe da conta (o perfil, as cores e os quatro
+// números), as regras de arte e o que a equipe registrou; no vidro, as ideias no banco, as pendências e os atalhos.
+// O cérebro continua um só (vybe-clientes-cerebro.js): "abrir o mapa" abre o mesmo, com este cliente em foco.
 function cerebroDaFichaHtml(nome) {
-  const cartao = typeof cerebroDoClienteCardHtml === 'function' ? cerebroDoClienteCardHtml(nome) : '';
-  // "O que é o cérebro" virou a dica do "?" no título do cartão (quadro 53).
-  return `${cartao}${registrosDosChatsHtml(nome)}`;
+  if (typeof cerebroDoCliente !== 'function') return fv2DuasHtml('cerebro', registrosDosChatsHtml(nome), '');
+  const c = cerebroDoCliente(nome), paleta = c.base?.paleta || [], n = typeof cerebroAspas === 'function' ? cerebroAspas(c.nome) : fichaAspas(c.nome), cats = c.categorias || {};
+  const mapa = `abrirModalCerebroCliente('${n}', 'mapa')`, cerebro = `abrirModalCerebroCliente('${n}')`;
+  const dica = 'O cérebro é um só, o do VYBES. Ele junta o cadastro, a operação, as pastas, as regras de arte e o que a equipe registra deste cliente, e mostra de onde vem cada coisa.';
+  const num = (v, rot, tom = '') => `<div class="fv2-cb-num${tom && v ? ` ${tom}` : ''}"><b>${v}</b><span>${rot}</span></div>`;
+  const sabe = `<section class="fv2-folha fv2-fixa fv2-cb" id="vybes-cli-cerebro-card" aria-label="O que o VYBES sabe desta conta"><div class="cv2-cab"><h3 title="${fichaEsc(dica)}">O que o VYBES sabe desta conta</h3><button type="button" class="fv2-cab-acao" onclick="${mapa}">abrir o mapa</button></div>
+      <div class="fv2-cb-alto"><div class="fv2-cb-quem">${c.base ? `<b>${fichaEsc(c.base.instagram || c.nomeNoCadastro || c.nome)}</b><p>${fichaEsc(c.base.segmento || '')}</p><span>É com isto que ele revisa as peças e sugere as pautas.</span>`
+          : `<b>${fichaEsc(c.nomeNoCadastro || c.nome)}</b><p>Ainda sem estudo de identidade no VYBES.</p><span>O cérebro mostra a operação, as pastas e o que a equipe registrar.</span>`}</div>
+        ${paleta.length ? `<div class="fv2-cb-cores" role="list" aria-label="Cores da marca">${paleta.slice(0, 4).map((p) => `<span role="listitem" title="${fichaEsc([p.nome, p.hex].filter(Boolean).join(' · '))}"><i style="background:${fichaEsc(p.hex)}" aria-hidden="true"></i><em>${fichaEsc(p.nome || p.hex)}</em></span>`).join('')}</div>` : ''}</div>
+      <div class="fv2-cb-nums">${num(c.resumo.atrasados, c.resumo.atrasados === 1 ? 'atrasado' : 'atrasados', 'r')}${num(c.resumo.pendencias, c.resumo.pendencias === 1 ? 'pendência' : 'pendências', 'a')}${num(c.resumo.ideias, c.resumo.ideias === 1 ? 'ideia no banco' : 'ideias no banco')}${num(c.resumo.regras, c.resumo.regras === 1 ? 'regra de arte' : 'regras de arte')}</div></section>`;
+  const regras = cats.regras || [];
+  const folhaRegras = `<section class="fv2-folha fv2-cb-regras" aria-label="Regras de arte"><div class="cv2-cab"><h3>Regras de arte</h3><span class="fv2-cab-nota">${regras.length ? `${regras.length} · o VYBES confere em cada peça` : ''}</span></div>
+      ${regras.length ? `<ul class="fv2-tb fv2-linhas">${regras.map((r) => `<li class="fv2-tb-lin" title="${fichaEsc(r.detalhe || r.titulo)}"><i class="fv2-pt-g" aria-hidden="true"></i><span class="fv2-tb-txt">${fichaEsc(r.detalhe || r.titulo)}</span></li>`).join('')}</ul>`
+        : fv2VazioHtml('lapis', 'Nenhuma regra de arte ainda', 'As regras ficam no cérebro do cliente; o VYBES confere cada peça com elas.', `<button type="button" class="d3v-btn sec s" onclick="${cerebro}">Abrir o cérebro</button>`)}</section>`;
+
+  const ideias = cats.ideias || [], pend = (cats.atrasados || []).filter((i) => i.tom !== 'alerta');
+  const item = (i, ponto = '') => fv2VlinHtml(fichaEsc(i.titulo || i.curto), i.sub && ponto ? fichaEsc(i.sub) : '', cerebro, ponto);
+  const reu = c.idCadastro && window.VybeReunioes?.dadosDe ? window.VybeReunioes.dadosDe(String(c.idCadastro)) : null;
+  const respondidas = reu ? (reu.questoes || []).filter((q) => (reu.onboarding?.respostas || {})[q.chave]).length : 0;
+  const lado = fv2ConsHtml('Ideias no banco', String(ideias.length), ideias.length ? ideias.slice(0, 5).map((i) => item(i)).join('') + (ideias.length > 5 ? fv2VlinHtml(`Mais ${ideias.length - 5}`, 'no cérebro', cerebro) : '') : '<p class="d3m-vvazio">Nenhuma ideia guardada ainda.</p>', ' aria-label="Ideias no banco"')
+    + (pend.length ? fv2ConsHtml(pend.length === 1 ? 'Pendência' : 'Pendências', String(pend.length), pend.slice(0, 3).map((i) => item(i, 'a')).join(''), ' aria-label="Pendências"') : '')
+    + fv2ConsHtml('Abrir', '', fv2VlinHtml('O mapa', 'as sinapses desta conta', mapa)
+      + (reu && (reu.questoes || []).length ? fv2VlinHtml('Questionário de entrada', `${respondidas} de ${reu.questoes.length}`, "trocarAbaDaFicha('onboarding')") : ''));
+  return fv2DuasHtml('cerebro', sabe + folhaRegras + registrosDosChatsHtml(nome), lado);
+}
+
+// Finanças por cliente lidas para a ficha (GET area=comercial&aba=financas, só leitura): o pacote, o custo estimado, a
+// margem e a situação do pagamento. Só os donos pedem isto ao servidor (que também recusa quem não é dono).
+const FINANCAS_DA_FICHA = { dados: null, lendo: false, em: 0 };
+function financasDaFicha(aoChegar) {
+  if (!fichaEhDono()) return null;
+  const c = FINANCAS_DA_FICHA;
+  if (c.dados && Date.now() - c.em < 120000) return c.dados;
+  if (!c.lendo && typeof fetch === 'function') {
+    c.lendo = true;
+    fetch('/api/painel?area=comercial&aba=financas', { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((d) => { c.lendo = false; c.em = Date.now(); c.dados = d && typeof d === 'object' ? d : {}; if (typeof aoChegar === 'function') aoChegar(); });
+  }
+  return c.dados;
+}
+
+// Financeiro da ficha (prancha V2-M-Cliente-Financeiro, 16/11/2026): só a conta deste cliente, só para donos. No alto,
+// Contrato, Custo e Margem; embaixo, o pagamento e as datas do contrato; no vidro, o cartão laranja do Vorcaro com o
+// que falta para a conta fechar e os atalhos. O servidor já apaga o valor de quem não é dono (server/carteira.js); aqui
+// a aba nem desenha número nem pede a leitura.
+function financeiroDaFichaHtml(nome) {
+  if (!fichaEhDono()) return '<p class="d3v-estado"><b>Só os donos veem o financeiro do cliente.</b></p>';
+  const id = String(idDoCliente(nome) || '');
+  const ir = (aba, mod = 'VybeComercial') => (typeof window[mod]?.abrir === 'function' ? `window.${mod}.abrir('${aba}', { abas: ['${aba}'] })` : '');
+  const so = (ico, titulo, texto = '') => fv2DuasHtml('financeiro', `<section class="fv2-folha fv2-cheia">${fv2VazioHtml(ico, titulo, texto)}</section>`, '');
+  if (!id) return so('cifrao', 'Sem ficha no cadastro', 'O contrato aparece aqui depois de criar a ficha.');
+  const repinta = () => { if (FICHA_ABA === 'financeiro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); };
+  const sv = typeof carteiraDaFicha === 'function' ? carteiraDaFicha(repinta) : null;
+  const fin = financasDaFicha(repinta);
+  if (!sv) return so('relogio', 'Lendo a conta do cliente…');
+  const locais = sv.contratos?.lista || [];
+  const lista = window.VybeFinancas?.contratosDaCarteira ? window.VybeFinancas.contratosDaCarteira(locais) : locais;
+  const c = lista.find((x) => String(x.cliente_id) === id) || null;
+  const x = ((fin && fin.clientes) || []).find((k) => String(k.cliente_id) === id) || null;
+  const numero = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) || Number(v) <= 0 ? null : Number(v));
+  const reais = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(v));
+  const dia = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const valor = numero(c?.valor_mensal) ?? numero(x?.valor_mensal);
+  const custo = x && x.custo != null && Number.isFinite(Number(x.custo)) ? Number(x.custo) : null;
+  const margem = x && x.margem_percentual != null && Number.isFinite(Number(x.margem_percentual)) ? Math.round(Number(x.margem_percentual)) : null;
+  const pacote = String(x?.pacote_nome || '').trim();
+  const bt = (rot, chamada) => (chamada ? `<button type="button" class="d3v-btn sec s fv2-op-acao" onclick="${chamada}">${rot}</button>` : '');
+  const cartao = (rot, forte, tem, frase, botao, tom = '') => `<section class="fv2-folha fv2-fin-cartao" aria-label="${rot}"><span class="fv2-fin-rot">${rot}</span><b class="fv2-fin-num${tem ? '' : ' sem'}${tom ? ` ${tom}` : ''}">${forte}</b><p>${frase}</p>${botao}</section>`;
+  const cartoes = `<div class="fv2-fin-tres">${
+    cartao('Contrato', valor ? fichaEsc(reais(valor)) : 'sem valor', Boolean(valor), valor ? `por mês${dia(c?.inicio) ? ` · desde ${dia(c.inicio)}` : ''}${dia(c?.renovacao) ? ` · renova em ${dia(c.renovacao)}` : ''}` : 'O valor mensal ainda não foi informado.', bt(valor ? 'Editar em Contratos' : 'Informar o valor', ir('contratos', 'VybeCarteira')))}${
+    cartao('Custo', custo != null ? fichaEsc(reais(custo)) : pacote ? 'sem custo' : 'sem pacote', custo != null, custo != null ? `estimado pelas horas do pacote${pacote ? ` ${fichaEsc(pacote)}` : ''}` : pacote ? `O pacote ${fichaEsc(pacote)} ainda não tem custo por hora.` : 'Sem pacote, o custo em horas não é estimado.', bt(pacote ? 'Trocar o pacote' : 'Escolher o pacote', ir('financas')))}${
+    cartao('Margem', margem != null ? `${margem}%` : 'sem dado', margem != null, margem != null ? (x.zona_critica ? 'na zona crítica: o custo come quase todo o contrato' : 'do contrato, depois do custo do pacote') : 'Sai do contrato menos o custo do pacote.',
+      `<button type="button" class="d3v-btn sec s fv2-op-acao" onclick="showToast('Margem = valor mensal do contrato menos o custo estimado pelas horas do pacote. Com o extrato do banco, entra a margem real.', 'info', 9000)">Como é calculada</button>`, margem != null && x.zona_critica ? 'r' : '')}</div>`;
+  const pago = x && valor ? ({ atrasado: ['r', 'em atraso'], inadimplente: ['r', 'inadimplente'], em_dia: ['g', 'em dia'] }[x.status_pagamento] || ['', 'sem registro']) : ['', 'sem registro'];
+  const campo = (rot, forte) => `<div class="fv2-fin-campo"><span class="d3v-rot">${rot}</span><b>${forte}</b></div>`;
+  const pagamento = `<section class="fv2-folha fv2-cheia fv2-fin-pag" aria-label="Pagamento e contrato"><div class="cv2-cab"><h3>Pagamento e contrato <span>· ${c ? 'como está em Contratos e em Finanças' : 'informado à mão, sem contrato'}</span></h3>${
+      ir('recebimentos') ? `<button type="button" class="fv2-cab-acao" onclick="${ir('recebimentos')}">ver os recebimentos</button>` : ''}</div>
+    <div class="fv2-fin-grade">${campo('Pagamento', `<span class="fv2-est ${pago[0]}"><i aria-hidden="true"></i>${pago[1]}</span>`)}${campo('Início', dia(c?.inicio) || 'sem data')}${campo('Renovação', dia(c?.renovacao) || 'sem data')}${campo('Contrato', fichaEsc(c ? c.status || 'ativo' : 'não registrado'))}</div>
+    ${c?.observacao || x?.observacao ? `<p class="fv2-fin-obs"><span class="d3v-rot">Observação</span>${fichaEsc(c?.observacao || x.observacao)}</p>` : ''}
+    ${valor && custo != null ? '' : fv2VazioHtml('cifrao', 'A margem aparece quando houver contrato e pacote', 'Com o valor mensal e o pacote da conta, o Vorcaro calcula o custo em horas e a margem.')}</section>`;
+
+  const alto = !valor ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'falta o contrato', titulo: 'Sem o valor mensal, a margem desta conta não fecha', apoio: 'Só os donos veem esta aba. Leva um minuto para informar.',
+      botoes: `${ir('contratos', 'VybeCarteira') ? `<button type="button" class="d3m-btn l" onclick="${ir('contratos', 'VybeCarteira')}">Informar o contrato</button>` : ''}${ir('recebimentos') ? `<button type="button" class="d3m-btn l s" onclick="${ir('recebimentos')}">Lançar</button>` : ''}` })
+    : pago[0] === 'r' ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'pagamento', titulo: `O pagamento desta conta está ${pago[1]}`, apoio: 'A cobrança e o histórico ficam em Inadimplência.',
+      botoes: ir('inadimplencia') ? `<button type="button" class="d3m-btn l" onclick="${ir('inadimplencia')}">Ver a inadimplência</button>` : '' })
+    : custo == null ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'falta o pacote', titulo: 'Sem o pacote, o custo desta conta não é estimado', apoio: 'Com o pacote, a margem aparece aqui.',
+      botoes: ir('financas') ? `<button type="button" class="d3m-btn l" onclick="${ir('financas')}">Escolher o pacote</button>` : '' })
+    : x.zona_critica ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'margem', n: `${margem}%`, titulo: 'de margem: a conta está na zona crítica', apoio: 'O custo do pacote come quase todo o contrato.',
+      botoes: ir('financas') ? `<button type="button" class="d3m-btn l" onclick="${ir('financas')}">Abrir Finanças</button>` : '' })
+    : fv2CalmoHtml('A conta fecha.', `Contrato de ${fichaEsc(reais(valor))} por mês, com ${margem != null ? `${margem}% de margem` : 'o custo estimado'}.`);
+  const abrir = [ir('financas') ? fv2VlinHtml('Finanças por cliente', 'todas as contas', ir('financas')) : '', ir('contratos', 'VybeCarteira') ? fv2VlinHtml('Contratos', 'início e renovação', ir('contratos', 'VybeCarteira')) : '',
+    ir('recebimentos') ? fv2VlinHtml('Recebimentos', 'a receber e recebido', ir('recebimentos')) : ''].join('');
+  return fv2DuasHtml('financeiro', cartoes + pagamento, alto + fv2ConsHtml('Só donos', '', '<p class="fv2-nota-lado">Contrato, custo, margem e pagamento desta conta. A equipe não vê esta aba.</p>') + (abrir ? fv2ConsHtml('Abrir', '', abrir) : ''));
 }
 
 // Embrulha a ficha que já existia. Pelo quadro "Ficha do cliente" do moodboard (12/11/2026): a nota e a fala ficam em
@@ -402,32 +684,31 @@ function cerebroDaFichaHtml(nome) {
   const original = renderClientMasterDetail;
   const CADEADO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
   renderClientMasterDetail = function (cli) {
+    // A lista de uma aba guarda a rolagem entre um desenho e outro (marcar uma peça não leva a lista para o alto).
+    const rolagem = document.querySelector('#client-master-detail .fv2-op-linhas')?.scrollTop || 0;
     original(cli);
     const node = document.getElementById('client-master-detail');
     if (!node || !node.innerHTML) return;
-    const listas = document.querySelector('#panel-cliente-detalhe .cliente-listas');
     const nome = (clientMasterRecords().find((r) => r.name === cli || normalizeClientKey(r.name) === normalizeClientKey(cli)) || {}).name || cli;
     const corpo = node.querySelector('.v2f-corpo') || node;
     // Fora do Resumo, a aba mora numa folha clara que rola por dentro (o esqueleto de cada aba vem da prancha dela).
+    const naAba = (html) => { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = html; };
     const naFolha = (html) => { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = `<div class="fv2-folha fv2-aba-folha" data-aba="${FICHA_ABA}">${html}</div>`; };
     if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
     if (FICHA_ABA === 'cadastro') naFolha(cadastroLeituraHtml(nome));
-    else if (FICHA_ABA === 'financeiro') naFolha(financeiroDaFichaHtml(nome));
-    else if (FICHA_ABA === 'ecossistema') naFolha(ecossistemaDaFichaHtml(nome));
-    else if (FICHA_ABA === 'cerebro') naFolha(cerebroDaFichaHtml(nome));
-    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naFolha(window.VybeReunioes.reunioesHtml(nome));
-    else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naFolha(window.VybeReunioes.onboardingHtml(nome));
-    else if (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas') { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = ''; }
+    else if (FICHA_ABA === 'financeiro') naAba(financeiroDaFichaHtml(nome));
+    else if (FICHA_ABA === 'ecossistema') naAba(ecossistemaDaFichaHtml(nome));
+    else if (FICHA_ABA === 'cerebro') naAba(cerebroDaFichaHtml(nome));
+    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naAba(window.VybeReunioes.reunioesHtml(nome));
+    else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naAba(window.VybeReunioes.onboardingHtml(nome));
+    else if (FICHA_ABA === 'conteudo') naAba(conteudoDaFichaHtml(nome));
+    else if (FICHA_ABA === 'demandas') naAba(demandasDaFichaHtml(nome));
     else node.querySelector('#vybes-cli-cerebro-card')?.remove();
-    // As listas completas (prazo, status, seleção de vários) só aparecem na aba delas.
-    const naLista = FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas';
-    if (listas) {
-      listas.style.display = naLista ? '' : 'none';
-      const [conteudos, pedidos] = listas.querySelectorAll(':scope > section');
-      if (conteudos) conteudos.hidden = FICHA_ABA !== 'conteudo';
-      if (pedidos) pedidos.hidden = FICHA_ABA !== 'demandas';
-    }
     node.dataset.aba = FICHA_ABA;
+    // A folha de estilo lê a aba no body (a barra de lote do painel dá lugar ao pé da lista da aba).
+    if (document.body?.dataset) document.body.dataset.fv2Aba = FICHA_ABA;
+    const linhasOp = node.querySelector('.fv2-op-linhas');
+    if (linhasOp) { linhasOp.scrollTop = rolagem; fv2ContarAbaixo(linhasOp); }
     // Onboarding só aparece para quem está (ou esteve) em onboarding; a leitura das reuniões diz isso e repinta.
     const idFicha = typeof idDoCliente === 'function' ? String(idDoCliente(nome) || '') : '';
     if (idFicha && window.VybeReunioes?.carregar) window.VybeReunioes.carregar(idFicha);

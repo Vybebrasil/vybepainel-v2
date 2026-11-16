@@ -2389,28 +2389,10 @@ function abrirClienteDetalhe(cli) {
 function redesenharListasDoCliente() {
   const cli = CLIENTE_ABERTO;
   if (!cli || document.getElementById('panel-cliente-detalhe')?.style.display === 'none') return;
-  const record = clientMasterRecords().find((item) => item.name === cli) || { content: [], requests: [] };
-  const CONCLUIDO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
-  const emAberto = (lista) => lista.filter((d) => !CONCLUIDO.includes(String(d.status || '')));
-
-  const conteudos = emAberto(record.content);
-  const gridProd = document.getElementById('grid-cliente-producao');
-  if (gridProd) {
-    gridProd.innerHTML = conteudos.length
-      ? tabelaOperacionalHtml(conteudos, 'producao', { compacta: true })
-      : '<div class="grupos-vazio">Nenhum conteúdo em aberto.</div>';
-  }
-
-  // A lista crua de Solicitacoes fala outro idioma; o normalizador e o mesmo
-  // que a tabela de grupos usa.
-  const solicitacoes = emAberto(record.requests)
-    .map((d) => (typeof normalizeRequestForOperational === 'function' ? normalizeRequestForOperational(d) : d));
-  const gridDem = document.getElementById('grid-cliente-demandas');
-  if (gridDem) {
-    gridDem.innerHTML = solicitacoes.length
-      ? tabelaOperacionalHtml(solicitacoes, 'demandas', { compacta: true })
-      : '<div class="grupos-vazio">Nenhuma solicitação em aberto.</div>';
-  }
+  // Pranchas V2-M-Cliente-Conteudo e V2-M-Cliente-Demandas (16/11/2026): as duas listas são abas da ficha, no esqueleto
+  // próprio (conteudoDaFichaHtml e demandasDaFichaHtml, em vybe-clientes-ficha.js), com os mesmos editores da operação
+  // (marcar vários, status e datas na linha, dono, prévia). Redesenhar as listas = repintar a aba que está aberta.
+  if (typeof FICHA_ABA === 'string' && (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas')) renderClientMasterDetail(cli);
 }
 
 

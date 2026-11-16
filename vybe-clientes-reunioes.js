@@ -40,31 +40,93 @@
   }
 
   // ── aba Reuniões ───────────────────────────────────────────────────────────
+  // Prancha V2-M-Cliente-Reunioes (16/11/2026): no esqueleto das abas da ficha (peças fv2-* de vybe-clientes-ficha.js).
+  // À esquerda, três folhas: a reunião em foco (pauta e ata lado a lado; no pé, a gravação e os botões), a pauta
+  // sugerida para a próxima e as outras reuniões (o clique traz a reunião para a folha do alto). No vidro: o cartão
+  // laranja com o que pede ação (gravando, demandas sugeridas, ata faltando, sem a próxima), os tipos e o que sai dali.
+  const focoNaFicha = {}; // clienteId → id da reunião na folha do alto
+  window.verReuniaoNaFicha = function verReuniaoNaFicha(clienteId, reuniaoId) { focoNaFicha[String(clienteId)] = String(reuniaoId); repintar(String(clienteId)); };
+  window.copiarPautaSugerida = async function copiarPautaSugerida(clienteId) {
+    const texto = pautaDe(String(clienteId));
+    if (!texto) return;
+    try { await navigator.clipboard.writeText(texto); showToast('Pauta copiada.', 'success', 3000); }
+    catch { showToast('Não consegui copiar. Abra Nova reunião: a pauta já vem preenchida.', 'info', 5000); }
+  };
+  const soUmaFolha = (aba, ico, titulo, texto = '', botao = '') => fv2DuasHtml(aba, `<section class="fv2-folha fv2-cheia">${fv2VazioHtml(ico, titulo, texto, botao)}</section>`, '');
   function reunioesHtml(nome) {
     const id = String(idDoCliente(nome) || '');
-    if (!id) return '<div class="client-master-detail-card"><p>Este cliente ainda não tem ficha própria. Crie a ficha para registrar reuniões.</p></div>';
+    if (!id) return soUmaFolha('reunioes', 'falta', 'Este cliente ainda não tem ficha própria', 'Crie a ficha para registrar reuniões.');
     const e = dados[id];
-    if (!e) { carregar(id); return '<div class="client-master-detail-card"><div class="auto-carregando">Lendo as reuniões…</div></div>'; }
-    if (e.carregando) return '<div class="client-master-detail-card"><div class="auto-carregando">Lendo as reuniões…</div></div>';
-    if (e.erro) return `<div class="client-master-detail-card"><p class="ciclo-erro">${esc(e.erro)}</p></div>`;
+    if (!e) { carregar(id); return soUmaFolha('reunioes', 'relogio', 'Lendo as reuniões…'); }
+    if (e.carregando) return soUmaFolha('reunioes', 'relogio', 'Lendo as reuniões…');
+    if (e.erro) return soUmaFolha('reunioes', 'falta', esc(e.erro));
     const { reunioes = [], pauta = [], pode, tipos = {} } = e.d;
+    const hoje = hojeIso(), n = asp(nome), vai = typeof CV2_IC !== 'undefined' ? CV2_IC.vai : '';
+    const ordem = [...reunioes].sort((a, b) => String(b.data).localeCompare(String(a.data)));
+    const passadas = ordem.filter((r) => r.data <= hoje), futuras = ordem.filter((r) => r.data > hoje).reverse();
+    const atual = ordem.find((r) => r.id === focoNaFicha[id]) || passadas[0] || ordem[0] || null;
+    const outras = ordem.filter((r) => r !== atual);
     const grav = gravando && gravando.clienteId === id;
-    const lista = reunioes.length ? reunioes.map((r) => `<li class="reu-item"><details><summary>
-        <span class="reu-tipo">${esc(tipos[r.tipo] || r.tipo)}</span><b>${esc(r.titulo)}</b>
-        <small>${dataBr(r.data)}${r.participantes ? ' · ' + esc(r.participantes) : ''}${r.gravacao ? ' · 🎙️ gravada' : ''}${r.ata ? '' : ' · sem ata'}</small></summary>
-        ${r.pauta ? `<h5>Pauta</h5><p>${esc(r.pauta).replace(/\n/g, '<br>')}</p>` : ''}
-        ${r.ata ? `<h5>Ata</h5><p>${esc(r.ata).replace(/\n/g, '<br>')}</p>` : '<p class="cli-vazio">Ainda sem ata.</p>'}
-        ${r.gravacao ? `<p><a class="cli-porta" href="https://drive.google.com/file/d/${esc(r.gravacao.id)}/view" target="_blank" rel="noopener">Ouvir a gravação no Drive ↗</a></p>` : ''}
-        ${sugestoesHtml(r, pode)}
-        ${r.transcricao ? `<h5>Transcrição</h5><p class="reu-transcricao">${esc(r.transcricao.slice(0, 4000)).replace(/\n/g, '<br>')}</p>` : r.gravacao ? '<p class="cli-vazio">A transcrição e as demandas sugeridas chegam aqui depois que o bot processar a gravação.</p>' : ''}
-        ${pode ? `<div class="reu-acoes"><button type="button" class="vb-botao" onclick="abrirReuniao('${asp(nome)}','${esc(r.id)}')">Editar ata</button>
-          ${r.gravacao ? '' : `<button type="button" class="vb-botao" ${gravando ? 'disabled' : ''} onclick="gravarReuniao('${esc(id)}','${esc(r.id)}','${asp(r.titulo)}')">● Gravar</button>`}</div>` : ''}
-      </details></li>`).join('') : '<p class="cli-vazio">Nenhuma reunião registrada ainda.</p>';
-    return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>Reuniões</h3>
-        ${pode ? `<button type="button" class="vb-botao principal" onclick="abrirReuniao('${asp(nome)}')">Nova reunião</button>` : ''}</div>
-      <p>Cada reunião fica aqui, com a pauta, a ata e a gravação.${grav ? ' <b>Gravando agora.</b>' : ''}</p>
-      ${pauta.length ? `<div class="reu-pauta"><b>Pauta sugerida para a próxima</b><ul>${pauta.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>` : ''}
-      <ul class="reu-lista">${lista}</ul></div>`;
+    const tipoDe = (r) => String(tipos[r.tipo] || TIPOS_PADRAO[r.tipo] || r.tipo || 'reunião').toLowerCase();
+    const extenso = (iso) => (typeof dataPorExtensoV2 === 'function' ? dataPorExtensoV2(iso) : dataBr(iso));
+    const pes = (texto) => pessoasDe(texto).slice(0, 4).map((p) => `<i class="cv2-pes" title="${esc(p)}" aria-hidden="true">${esc(iniciais(p))}</i>`).join('');
+    const linhasDe = (texto) => String(texto || '').split('\n').map((l) => l.replace(/^\s*[-•]\s*/, '').trim()).filter(Boolean);
+    const acao = (rot, attrs) => `<button type="button" class="d3v-btn sec s fv2-op-acao" ${attrs}>${rot}</button>`;
+
+    // A reunião em foco.
+    const folhaAtual = !atual ? '' : (() => { const r = atual, pend = pendentesDe(r), itens = linhasDe(r.pauta);
+      const estado = grav && gravando.reuniaoId === String(r.id) ? '<b>Gravando agora</b> · a barra de gravação fica no pé da tela'
+        : r.gravacao ? `<b>Gravada</b> · o áudio está no Drive${r.transcricao ? ', com a transcrição' : r.estado === 'transcricao_falhou' ? '; a transcrição falhou' : '; a transcrição chega quando o bot processar'}`
+        : '<b>Sem gravação</b> · só a pauta e a ata escritas';
+      const doBot = sugestoesHtml(r, pode) + (r.transcricao ? `<h5>Transcrição</h5><p class="reu-transcricao">${esc(r.transcricao.slice(0, 4000)).replace(/\n/g, '<br>')}</p>` : '');
+      return `<section class="fv2-folha fv2-reu" aria-label="Reunião de ${esc(extenso(r.data))}"><div class="cv2-cab"><h3>${esc(r.titulo || 'Reunião')} <span>· ${esc(tipoDe(r))}</span></h3><span class="fv2-cab-lado">${esc(extenso(r.data))}${pes(r.participantes)}</span></div>
+        <div class="fv2-reu-corpo"><div class="fv2-reu-2"><div class="fv2-reu-parte"><span class="d3v-rot">pauta</span>${itens.length ? `<ul>${itens.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : '<p class="fv2-reu-sem">Sem pauta escrita.</p>'}</div>
+          <div class="fv2-reu-parte"><span class="d3v-rot">ata</span>${r.ata ? `<p>${esc(r.ata).replace(/\n/g, '<br>')}</p>` : '<p class="fv2-reu-sem">Ainda sem ata.</p>'}</div></div>
+          ${doBot ? `<details class="fv2-reu-mais"${pend ? ' open' : ''}><summary>O que o VYBES tirou da reunião${pend ? ` · ${plural(pend, 'demanda sugerida', 'demandas sugeridas')}` : ''}</summary><div class="fv2-reu-mais-c">${doBot}</div></details>` : ''}</div>
+        <div class="fv2-reu-pe"><i class="fv2-reu-mic${r.gravacao ? ' on' : ''}" aria-hidden="true">${FV2_ICO.mic}</i><span class="fv2-reu-estado">${estado}</span><span class="fv2-reu-bts">${
+          r.gravacao ? `<a class="d3v-btn sec s fv2-op-acao" href="https://drive.google.com/file/d/${esc(r.gravacao.id)}/view" target="_blank" rel="noopener">Ouvir a gravação</a>`
+            : pode ? acao('Gravar', `${gravando ? 'disabled ' : ''}onclick="gravarReuniao('${esc(id)}','${esc(r.id)}','${asp(r.titulo)}')"`) : ''}${
+          pode ? acao('Editar a ata', `onclick="abrirReuniao('${n}','${esc(r.id)}')"`) : ''}</span></div></section>`; })();
+
+    // A pauta sugerida para a próxima.
+    const folhaPauta = pauta.length ? `<section class="fv2-folha fv2-fixa" aria-label="Pauta sugerida para a próxima"><div class="cv2-cab"><h3>Pauta sugerida para a próxima</h3><span class="fv2-cab-nota">o VYBES monta com o que ficou aberto</span></div>
+        <ol class="fv2-tb fv2-reu-pauta">${pauta.map((p, i) => `<li class="fv2-tb-lin"><i class="fv2-n" aria-hidden="true">${i + 1}</i><span class="fv2-tb-txt">${esc(p)}</span></li>`).join('')}</ol></section>` : '';
+
+    // As outras reuniões.
+    const estadoDe = (r) => (r.data > hoje ? ['b', 'marcada'] : r.ata ? ['g', 'com ata'] : ['r', 'sem ata']);
+    const linhaReu = (r) => { const [tom, rot] = estadoDe(r);
+      return `<button type="button" class="fv2-tb-lin fv2-reu-lin" title="Ver a pauta e a ata" onclick="verReuniaoNaFicha('${esc(id)}','${esc(r.id)}')"><span class="fv2-reu-dia">${dataBr(r.data)}</span><span class="fv2-tb-txt"><b>${esc(r.titulo || 'Reunião')}</b> · ${esc(tipoDe(r))}</span>${pes(r.participantes)}<span class="fv2-est ${tom}"><i aria-hidden="true"></i>${rot}${r.gravacao ? ', gravada' : ''}</span>${vai}</button>`; };
+    const mesDe = (iso) => (typeof MESES_V2 !== 'undefined' && /^\d{4}-\d{2}/.test(String(iso)) ? MESES_V2[Number(String(iso).slice(5, 7)) - 1] : '');
+    const folhaOutras = `<section class="fv2-folha fv2-cheia" aria-label="Outras reuniões"><div class="cv2-cab"><h3>${futuras.some((r) => r !== atual) ? 'Outras reuniões' : 'Reuniões anteriores'}</h3><span class="fv2-cab-nota">${reunioes.length ? plural(reunioes.length, 'registrada', 'registradas') : ''}</span>${
+        pode ? `<button type="button" class="fv2-cab-acao" onclick="abrirReuniao('${n}')">nova reunião</button>` : ''}</div>
+      ${outras.length ? `<div class="fv2-tb fv2-linhas">${outras.map(linhaReu).join('')}</div>`
+        : fv2VazioHtml('relogio', atual ? `Só a de ${esc(mesDe(atual.data) || dataBr(atual.data))}, por enquanto` : 'Nenhuma reunião registrada ainda', 'Cada reunião fica aqui, com a pauta, a ata e a gravação.')}</section>`;
+
+    // O cartão laranja: o que pede ação nas reuniões deste cliente.
+    const f = typeof cadastroDoCliente === 'function' ? cadastroDoCliente(nome) || {} : {};
+    const proxima = [String(f.proxima_reuniao || '').slice(0, 10), futuras[0]?.data].filter((d) => d && d >= hoje).sort()[0] || '';
+    const semAta = passadas.filter((r) => !r.ata);
+    const comPend = ordem.filter((r) => pendentesDe(r) > 0), sugeridas = comPend.reduce((t, r) => t + pendentesDe(r), 0);
+    const btNova = (rot) => (pode ? `<button type="button" class="d3m-btn l" onclick="abrirReuniao('${n}')">${rot}</button>` : '');
+    const btPauta = pauta.length ? `<button type="button" class="d3m-btn l s" onclick="copiarPautaSugerida('${esc(id)}')">Copiar a pauta</button>` : '';
+    const alto = grav ? fv2LaranjaHtml({ rotulo: 'gravando agora', titulo: 'A reunião está sendo gravada', apoio: 'Quando parar, o áudio sobe para a pasta Reuniões do cliente no Drive.',
+        botoes: '<button type="button" class="d3m-btn l" onclick="pararGravacao()">Parar e salvar</button>' })
+      : sugeridas ? fv2LaranjaHtml({ rotulo: 'saiu da reunião', n: sugeridas, titulo: sugeridas === 1 ? 'demanda sugerida espera seu ok' : 'demandas sugeridas esperam seu ok', apoio: `O VYBES tirou da reunião de ${diaMes(comPend[0].data)}.`,
+        botoes: `<button type="button" class="d3m-btn l" onclick="verReuniaoNaFicha('${esc(id)}','${esc(comPend[0].id)}')">Conferir</button>` })
+      : semAta.length ? fv2LaranjaHtml({ rotulo: 'falta a ata', n: semAta.length, titulo: semAta.length === 1 ? 'reunião feita sem ata' : 'reuniões feitas sem ata', apoio: `A mais antiga é de ${diaMes(semAta[semAta.length - 1].data)}.`,
+        botoes: pode ? `<button type="button" class="d3m-btn l" onclick="abrirReuniao('${n}','${esc(semAta[semAta.length - 1].id)}')">Escrever a ata</button>` : '' })
+      : !ordem.length ? fv2LaranjaHtml({ rotulo: 'sem reunião', titulo: 'Nenhuma reunião registrada ainda', apoio: 'A primeira guarda a pauta, a ata e a gravação.', botoes: btNova('Nova reunião') + btPauta })
+      : !proxima ? fv2LaranjaHtml({ rotulo: 'sem a próxima', titulo: 'A próxima reunião ainda não tem data', apoio: `${passadas[0] ? `A última foi em ${diaMes(passadas[0].data)}. ` : ''}${pauta.length ? 'A pauta sugerida já está pronta.' : ''}`, botoes: btNova('Marcar reunião') + btPauta })
+      : fv2CalmoHtml(`Próxima reunião em ${diaMes(proxima)}.`, pauta.length ? 'A pauta sugerida já está pronta.' : 'Todas as reuniões feitas têm ata.');
+    const nomesTipos = Object.values(Object.keys(tipos).length ? tipos : TIPOS_PADRAO).map((t, i) => (i ? String(t).toLowerCase() : String(t)));
+    const drive = typeof clientMasterLinkedData === 'function' && typeof linkDeCliente === 'function' ? linkDeCliente(clientMasterLinkedData(nome).drive) : '';
+    const gravadas = ordem.filter((r) => r.gravacao).length;
+    const lado = alto + fv2ConsHtml('Tipos de reunião', '', `<p class="fv2-nota-lado">${esc(nomesTipos.join(', ').replace(/, ([^,]*)$/, ' e $1'))}.</p>`)
+      + fv2ConsHtml('O que sai de uma reunião', '', (sugeridas ? fv2VlinHtml('Demandas sugeridas', `${sugeridas} esperando`, `verReuniaoNaFicha('${esc(id)}','${esc(comPend[0].id)}')`)
+          : '<div class="d3m-vlin"><span><b>Demandas sugeridas</b> · nenhuma esperando</span></div>')
+        + (drive ? `<a class="d3m-vlin" href="${esc(drive)}" target="_blank" rel="noopener"><span><b>Gravações no Drive</b>${gravadas ? ` · ${plural(gravadas, 'gravada', 'gravadas')}` : ''}</span>${vai}</a>`
+          : `<div class="d3m-vlin"><span><b>Gravações</b> · ${gravadas ? plural(gravadas, 'gravada', 'gravadas') : 'nenhuma ainda'}</span></div>`));
+    return fv2DuasHtml('reunioes', folhaAtual + folhaPauta + folhaOutras, lado);
   }
 
   // O que o bot tirou da gravação: resumo, decisões e demandas para marcar, ajustar e cadastrar no quadro de Solicitações.
@@ -81,7 +143,7 @@
       ${s.resumo ? `<p>${esc(s.resumo).replace(/\n/g, '<br>')}</p>` : ''}
       ${(s.decisoes || []).length ? `<b>Decisões</b><ul>${s.decisoes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
       ${(s.demandas || []).length ? `<b>Demandas sugeridas</b><ul class="reu-dems">${dem}</ul>
-        ${pode ? `<button type="button" class="vb-botao principal" onclick="cadastrarDemandasReuniao('${esc(r.cliente_id)}','${esc(r.id)}', this)">Cadastrar as marcadas em Solicitações</button>` : ''}` : '<p class="cli-vazio">Nenhuma demanda sugerida.</p>'}
+        ${pode ? `<button type="button" class="d3v-btn s" onclick="cadastrarDemandasReuniao('${esc(r.cliente_id)}','${esc(r.id)}', this)">Cadastrar as marcadas em Solicitações</button>` : ''}` : '<p class="cli-vazio">Nenhuma demanda sugerida.</p>'}
       ${feitas.length ? `<p class="reu-ok">${feitas.length} demanda${feitas.length > 1 ? 's' : ''} já cadastrada${feitas.length > 1 ? 's' : ''}.</p>` : ''}</div>`;
   }
   window.cadastrarDemandasReuniao = async function cadastrarDemandasReuniao(clienteId, reuniaoId, botao) {
@@ -241,24 +303,48 @@
 
   // ── aba Onboarding ─────────────────────────────────────────────────────────
   const SECOES = [['negocio', 'Sobre o negócio'], ['marca', 'A marca']];
+  // Prancha V2-M-Cliente-Onboarding (16/11/2026): o questionário de entrada numa folha (as partes, a marca de respondida,
+  // a pergunta e a resposta); no vidro, o cartão laranja com quantas faltam, para onde vai cada coisa, a conta por parte
+  // e os atalhos. "Preencher agora" e "Mandar o link" são os mesmos de antes (abrirQuestionario e onboardingLink).
+  const SECOES_DA_ABA = [...SECOES, ['swot', 'Análise SWOT']];
+  const soFaltamNaFicha = {}; // clienteId → a folha mostra só as perguntas sem resposta
+  window.alternarFaltasDoQuestionario = function alternarFaltasDoQuestionario(clienteId) { soFaltamNaFicha[String(clienteId)] = !soFaltamNaFicha[String(clienteId)]; repintar(String(clienteId)); };
   function onboardingHtml(nome) {
     const id = String(idDoCliente(nome) || '');
-    if (!id) return '<div class="client-master-detail-card"><p>Crie a ficha do cliente para fazer o onboarding.</p></div>';
+    if (!id) return soUmaFolha('onboarding', 'falta', 'Este cliente ainda não tem ficha própria', 'Crie a ficha do cliente para fazer o onboarding.');
     const e = dados[id];
-    if (!e || e.carregando) { if (!e) carregar(id); return '<div class="client-master-detail-card"><div class="auto-carregando">Lendo o onboarding…</div></div>'; }
-    if (e.erro) return `<div class="client-master-detail-card"><p class="ciclo-erro">${esc(e.erro)}</p></div>`;
+    if (!e || e.carregando) { if (!e) carregar(id); return soUmaFolha('onboarding', 'relogio', 'Lendo o onboarding…'); }
+    if (e.erro) return soUmaFolha('onboarding', 'falta', esc(e.erro));
     const { questoes = [], onboarding, pode } = e.d;
-    const resp = onboarding?.respostas || {};
-    const preenchidas = questoes.filter((q) => resp[q.chave]).length;
-    const bloco = (secao) => questoes.filter((q) => q.secao === secao).map((q) => `<div class="${resp[q.chave] ? '' : 'falta'}"><dt>${esc(q.rotulo)}</dt><dd>${resp[q.chave] ? esc(resp[q.chave]).replace(/\n/g, '<br>') : '<span class="cli-vazio">—</span>'}</dd></div>`).join('');
-    const swot = questoes.filter((q) => q.secao === 'swot').map((q) => `<div class="onb-swot-q onb-${q.chave}"><b>${esc(q.rotulo)}</b><p>${resp[q.chave] ? esc(resp[q.chave]).replace(/\n/g, '<br>') : '<span class="cli-vazio">—</span>'}</p></div>`).join('');
-    return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>Onboarding de ${esc(nome)}</h3>
-        ${pode ? `<span class="onb-botoes"><button type="button" class="vb-botao principal" onclick="abrirQuestionario('${esc(id)}','${asp(nome)}')">Preencher com o cliente agora</button>
-          <button type="button" class="vb-botao" onclick="onboardingLink('${esc(id)}')">Link para o cliente</button></span>` : ''}</div>
-      <p>${preenchidas} de ${questoes.length} perguntas respondidas${resp._atualizado_em ? ` · última vez em ${dataBr(resp._atualizado_em)}${resp._por === 'reuniao' ? ', na reunião' : ', pelo cliente'}` : ''}. O cadastro (empresa, responsável, canais) vai para a aba Cadastro; os acessos, para o cofre de Acessos.</p>
-      ${SECOES.map(([s, t]) => `<section class="cad-leitura"><h4>${t}</h4><dl>${bloco(s)}</dl></section>`).join('')}
-      <section class="cad-leitura"><h4>Análise SWOT</h4><div class="onb-swot">${swot}</div></section>
-      <p class="onb-dica">A esteira (boas-vindas, contrato, acessos, kickoff, primeiro mês) e a reunião de kickoff ficam em Clientes → Onboarding, na lateral.</p></div>`;
+    const resp = onboarding?.respostas || {}, n = asp(nome);
+    const feitas = questoes.filter((q) => resp[q.chave]).length, faltam = questoes.length - feitas;
+    const soFaltam = Boolean(soFaltamNaFicha[id]) && faltam > 0 && feitas > 0;
+    const quando = resp._atualizado_em ? `${diaMes(String(resp._atualizado_em).slice(0, 10))}${resp._por === 'reuniao' ? ', na reunião' : ', pelo cliente'}` : '';
+    const partes = SECOES_DA_ABA.map(([s, titulo]) => { const todas = questoes.filter((q) => q.secao === s);
+      return { s, titulo, todas, ok: todas.filter((q) => resp[q.chave]).length }; }).filter((p) => p.todas.length);
+    const linha = (q) => { const v = resp[q.chave];
+      return `<div class="fv2-tb-lin fv2-onb-lin${v ? ' ok' : ' falta'}"><i class="fv2-onb-marca" aria-hidden="true">${v ? FV2_ICO.ok : ''}</i><span class="fv2-onb-q">${esc(q.rotulo)}</span><span class="fv2-onb-r">${v ? esc(v).replace(/\n/g, '<br>') : 'sem resposta'}</span></div>`; };
+    const corpo = partes.map((p) => { const mostra = soFaltam ? p.todas.filter((q) => !resp[q.chave]) : p.todas;
+      return mostra.length ? `<div class="fv2-onb-sec"><b>${p.titulo}</b><span>${p.ok} de ${p.todas.length}</span></div>${mostra.map(linha).join('')}` : ''; }).join('');
+    const folha = `<section class="fv2-folha fv2-cheia fv2-onb" aria-label="Questionário de entrada"><div class="cv2-cab"><h3>Questionário de entrada <span>· ${feitas} de ${questoes.length} respondidas</span></h3>${
+        quando ? `<span class="fv2-cab-nota">última vez em ${quando}</span>` : ''}${faltam && feitas ? `<button type="button" class="fv2-cab-acao" aria-pressed="${soFaltam}" onclick="alternarFaltasDoQuestionario('${esc(id)}')">${soFaltam ? `ver as ${questoes.length}` : `só as ${faltam} que faltam`}</button>` : ''}</div>
+      ${questoes.length ? `<div class="fv2-tb fv2-linhas">${corpo}</div>` : fv2VazioHtml('lapis', 'O questionário ainda não tem perguntas', 'As perguntas chegam do servidor quando o onboarding estiver ligado.')}</section>`;
+
+    const preencher = pode ? `<button type="button" class="d3m-btn l" onclick="abrirQuestionario('${esc(id)}','${n}')">Preencher agora</button><button type="button" class="d3m-btn l s" onclick="onboardingLink('${esc(id)}')">Mandar o link</button>` : '';
+    const alto = !questoes.length ? ''
+      : faltam ? fv2LaranjaHtml({ rotulo: !feitas ? 'questionário em branco' : faltam > feitas ? 'questionário pela metade' : 'faltam poucas', n: `${feitas} / ${questoes.length}`, titulo: 'perguntas respondidas',
+        apoio: `${quando ? `A última vez foi em ${quando}. ` : ''}${faltam === 1 ? 'Falta 1.' : `Faltam ${faltam}.`}`, botoes: preencher })
+      : fv2CalmoHtml('Questionário completo.', quando ? `Respondido pela última vez em ${quando}.` : 'Todas as perguntas têm resposta.',
+        pode ? `<button type="button" class="d3v-btn vidro s" onclick="abrirQuestionario('${esc(id)}','${n}')">Rever as respostas</button>` : '');
+    const f = typeof cadastroDoCliente === 'function' ? cadastroDoCliente(nome) : null;
+    const completo = f && typeof completudeDoCadastro === 'function' ? completudeDoCadastro(f) : null;
+    const abrir = fv2VlinHtml('Cadastro', completo ? `${completo.feitos} de ${completo.total} campos` : 'empresa, responsável e canais', "trocarAbaDaFicha('cadastro')")
+      + fv2VlinHtml('Acessos', 'links, senhas e painel', "trocarAbaDaFicha('geral')")
+      + (window.VybeCarteira?.abrir ? fv2VlinHtml('Esteira de entrada', 'etapas e kickoff', "window.VybeCarteira.abrir('onboarding', { abas: ['onboarding'] })") : '');
+    const lado = alto + fv2ConsHtml('Para onde vai cada coisa', '', '<p class="fv2-nota-lado">As respostas ficam aqui e alimentam o cérebro do cliente. Empresa, responsável e canais vão para o Cadastro; os acessos, para o cofre.</p>')
+      + (partes.length ? fv2ConsHtml('Por parte', plural(questoes.length, 'pergunta', 'perguntas'), fv2BarrasHtml(partes.map((p) => ({ rotulo: p.titulo.replace(/^Sobre /, '').replace(/^./, (l) => l.toUpperCase()), n: p.ok, de: p.todas.length, lado: `${p.ok} / ${p.todas.length}`, tom: 'g' })))) : '')
+      + fv2ConsHtml('Abrir', '', abrir);
+    return fv2DuasHtml('onboarding', folha, lado);
   }
   // Questionário dentro do Vybe OS (Paulo, 09/11/2026: "todo questionário e tudo do onboard não devia já ser feito dentro
   // do Vybe OS?"): na reunião, preenche aqui mesmo, sem abrir outra aba. O link continua para o cliente responder sozinho.

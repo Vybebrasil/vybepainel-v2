@@ -13361,7 +13361,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe{order:0;flex:1 1 0;display:flex;flex-direction:column;gap:16px;min-height:0;margin:-14px -30px -36px}
 #painel-clientes #panel-cliente-detalhe > #cliente-detalhe-cabeca{flex:none;margin:0;padding:0;border:0;background:none;container:fv2topo / inline-size}
 #painel-clientes #panel-cliente-detalhe > #client-master-detail{flex:1 1 0;display:block;min-height:0;margin:0;padding:0;background:none}
-#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="conteudo"],#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="demandas"]{display:none}
 
 /* 2 · O alto. */
 #painel-clientes .fv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:48px;margin:0;padding:0 96px 0 0;border:0;background:none;color:var(--d3-fume-texto)}
@@ -13468,19 +13467,10 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 #painel-clientes .fv2-acessos > .clf-acesso > b{flex:1 1 auto;min-width:0;font-weight:500;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #painel-clientes .fv2-acessos a{color:var(--d3-fume-texto)}
 
-/* 5 · As outras abas: uma folha que rola por dentro. Conteúdo e Demandas usam as listas da operação (.cliente-listas). */
+/* 5 · O Cadastro (leitura) mora numa folha que rola por dentro. As outras abas têm o esqueleto delas em zm-b-ficha2-abas.css. */
 #painel-clientes .fv2-aba{height:100%;min-height:0;margin:0;padding:0}
 #painel-clientes .fv2-aba-folha{height:100%;padding:16px;overflow-y:auto;scrollbar-width:thin}
 #painel-clientes .fv2-aba-folha[data-aba="financeiro"]{padding:0}
-body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe > .cliente-listas{flex:1 1 0;min-height:0;margin:0;padding:16px;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:auto;scrollbar-width:thin;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
-/* O status na lista da operação dentro da ficha: o ponto na cor do status e o texto (a peça da Produção só era desenhada lá). */
-#painel-clientes .cliente-listas .pv2-st{appearance:none;display:inline-flex;align-items:center;gap:6px;height:26px;max-width:100%;margin:0;padding:0 8px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-#painel-clientes .cliente-listas .pv2-st::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-meta))}
-#painel-clientes .cliente-listas .pv2-st:hover{background:var(--d3-veu-forte)}
-#painel-clientes .cliente-listas .pv2-st:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
-#painel-clientes .cliente-listas .pv2-st-rot{min-width:0;overflow:hidden;text-overflow:ellipsis}
-#painel-clientes .cliente-listas .pv2-st-seta{flex:none;display:grid}
-#painel-clientes .cliente-listas .pv2-st-seta > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #painel-clientes .fv2-fin{display:flex;flex-direction:column;min-height:100%}
 #painel-clientes .fv2-fin > .cv2-cab{flex-wrap:wrap;row-gap:8px;padding-top:8px;padding-bottom:8px}
 #painel-clientes .fv2-fin-alto{display:flex;flex-direction:column;gap:6px;padding:20px 16px;border-top:1px solid var(--d3-divisa)}
@@ -13527,6 +13517,309 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 }
 @media (max-width:760px){
   body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe{margin:0 -6px -54px}
+}
+
+/* ===== padrao-v2/zm-b-ficha2-abas.css ===== */
+/* AS ABAS DA FICHA DO CLIENTE NA DIREÇÃO V2 (pranchas V2-M-Cliente-Conteudo, -Demandas, -Reunioes, -Onboarding,
+   -Ecossistema, -Cerebro e -Financeiro, aprovadas pelo Paulo em 16/11/2026). Fragmento do grupo B; vem depois de
+   zm-b-ficha.css (o alto e o Resumo). Toda aba tem o mesmo esqueleto: as folhas claras à esquerda e, à direita, direto
+   no vidro, o cartão laranja e a consulta (316 px). Peças locais: fv2-duas, fv2-vazio, fv2-barras, fv2-op (a lista da
+   operação), fv2-tb (linhas de uma folha). As comuns vêm de z-direcao.css (d3m-*, d3v-*) e zm-b-clientes.css (cv2-*). */
+
+/* 1 · O esqueleto das abas. */
+#painel-clientes .fv2-duas{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0}
+#painel-clientes .fv2-duas > .fv2-col{gap:12px}
+#painel-clientes #client-master-detail > .fv2-aba{display:block}
+#painel-clientes .fv2-cheia{flex:1 1 0;min-height:168px}
+#painel-clientes .fv2-fixa{flex:none}
+#painel-clientes .fv2-lar-aba{flex:none;min-height:0;gap:10px}
+#painel-clientes .fv2-lar-aba .d3m-lar-txt{margin-top:0}
+#painel-clientes .fv2-duas .fv2-calmo{flex:none}
+#painel-clientes .fv2-nota-lado{margin:0;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+#painel-clientes .fv2-cab-acao{appearance:none;flex:none;margin:0 0 0 auto;padding:0 2px;border:0;border-radius:4px;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#painel-clientes .fv2-cab-acao:hover{text-decoration:underline;text-underline-offset:3px}
+#painel-clientes .fv2-cab-acao:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#painel-clientes .fv2-cab-nota{flex:none;margin-left:auto;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#painel-clientes .fv2-cab-nota + .fv2-cab-acao{margin-left:0}
+/* Vazio: o ícone na caixinha, o título e uma frase (o mesmo em todas as abas). */
+#painel-clientes .fv2-vazio{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;margin:0;padding:10px 16px;box-sizing:border-box;text-align:center;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-vazio > b{margin-top:6px;font:600 14px/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#painel-clientes .fv2-vazio > span{max-width:380px}
+#painel-clientes .fv2-vazio > .d3v-btn{margin-top:8px}
+#painel-clientes .fv2-vazio-ico{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--d3-veu);color:var(--d3-tinta)}
+#painel-clientes .fv2-vazio-ico > svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Barras de contagem no vidro (Por status, Por parte). */
+#painel-clientes .fv2-barras{display:flex;flex-direction:column;padding:6px 2px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+#painel-clientes .fv2-barra-lin{appearance:none;display:flex;align-items:center;gap:10px;width:100%;height:23px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:6px;background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left}
+#painel-clientes button.fv2-barra-lin{cursor:pointer}
+#painel-clientes button.fv2-barra-lin:is(:hover,[aria-pressed="true"]){background:var(--d3-fume-veu)}
+#painel-clientes button.fv2-barra-lin:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+#painel-clientes .fv2-barra-lin > span:first-child{flex:0 0 112px;min-width:0;color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-barra-lin > .d3m-vbarra{flex:1 1 auto}
+#painel-clientes .fv2-barra-lin > .d3m-vbarra > i{background:var(--st,var(--d3-fume-texto))}
+#painel-clientes .fv2-barra-lin > .d3m-vbarra.g > i{background:var(--d3-pronto-claro)}
+#painel-clientes .fv2-barra-lin > b{flex:0 0 auto;min-width:22px;text-align:right;font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* 2 · A lista da operação (abas Conteúdo e Demandas): marca, miniatura, nome, status, prazo, veiculação e quem. */
+#painel-clientes .fv2-op-cab{gap:12px}
+#painel-clientes .fv2-op-cab > .cv2-filtros{min-width:0}
+#painel-clientes .fv2-op-cab .cv2-chip > span.cv2-ruim{color:var(--d3-perigo)}
+#painel-clientes .fv2-op-th{flex:none;display:flex;align-items:center;gap:10px;height:24px;padding:0 16px;box-sizing:border-box;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-op-linhas{flex:1 1 0;display:flex;flex-direction:column;min-height:0;margin:0;padding:0;overflow-y:auto;scrollbar-width:thin}
+#painel-clientes .fv2-op-lin{flex:none;display:flex;align-items:center;gap:10px;height:40px;margin:0;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);cursor:pointer}
+#painel-clientes .fv2-op-lin:hover,#painel-clientes .fv2-op-lin.marcada{background:var(--d3-veu)}
+#painel-clientes .fv2-op-c-marca{flex:0 0 16px}
+#painel-clientes .fv2-op-c-mini{flex:0 0 28px}
+#painel-clientes .fv2-op-c-nome{flex:1 1 0;min-width:0}
+#painel-clientes .fv2-op-c-st{flex:0 0 160px;display:flex;align-items:center;min-width:0}
+#painel-clientes .fv2-op-c-prazo{flex:0 0 64px}
+#painel-clientes .fv2-op-c-veiculacao{flex:0 0 96px}
+#painel-clientes .fv2-op-c-quem{flex:0 0 32px;display:flex;align-items:center}
+/* A caixa de marcar: a folha antiga pinta toda caixa marcada de laranja (com #workspace-drawer no :is, peso de um id); aqui vale a tinta da prancha, por dois ids. */
+#painel-clientes #client-master-detail .fv2-op-lin > input.fv2-op-marca{width:16px;height:16px;border:1.5px solid var(--d3-meta);border-radius:5px;background:none}
+#painel-clientes #client-master-detail .fv2-op-lin > input.fv2-op-marca:checked{border-color:var(--d3-tinta);background:var(--d3-tinta) none}
+#painel-clientes .fv2-op-marca{appearance:none;-webkit-appearance:none;flex:0 0 16px;display:grid;place-items:center;width:16px;height:16px;margin:0;padding:0;box-sizing:border-box;border:1.5px solid var(--d3-meta);border-radius:5px;background:none;cursor:pointer}
+#painel-clientes .fv2-op-marca:hover{border-color:var(--d3-tinta)}
+#painel-clientes .fv2-op-marca:checked{border-color:var(--d3-tinta);background:var(--d3-tinta)}
+#painel-clientes .fv2-op-marca:checked::after{content:"";width:8px;height:4px;margin-top:-2px;border:solid var(--d3-contra,var(--d3-escuro-texto));border-width:0 0 2px 2px;transform:rotate(-45deg)}
+#painel-clientes .fv2-op-marca:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#painel-clientes .fv2-op-mini{appearance:none;flex:0 0 28px;display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:7px;background:linear-gradient(160deg,hsl(var(--h,28) 46% 16%) 0%,hsl(var(--h,28) 46% 34%) 60%,hsl(var(--h,28) 52% 62%) 100%);color:var(--d3-escuro-texto);font-style:normal}
+#painel-clientes button.fv2-op-mini{cursor:pointer}
+#painel-clientes button.fv2-op-mini:hover{box-shadow:0 0 0 2px var(--d3-tinta)}
+#painel-clientes button.fv2-op-mini:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#painel-clientes .fv2-op-mini > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-op-nome{appearance:none;flex:1 1 0;min-width:0;height:26px;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-rotulo);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#painel-clientes .fv2-op-nome > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-op-nome:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+/* O status na linha: o ponto na cor do status e o texto; o clique troca (a mesma peça da Produção). */
+#painel-clientes .fv2-op .pv2-st{appearance:none;display:inline-flex;align-items:center;gap:6px;height:26px;max-width:100%;margin:0 0 0 -6px;padding:0 6px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#painel-clientes .fv2-op .pv2-st::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-meta))}
+#painel-clientes .fv2-op .pv2-st:hover{background:var(--d3-veu-forte)}
+#painel-clientes .fv2-op .pv2-st:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#painel-clientes .fv2-op .pv2-st-rot{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-op .pv2-st-seta{flex:none;display:none}
+#painel-clientes .fv2-op .pv2-st:is(:hover,:focus-visible) .pv2-st-seta{display:grid}
+#painel-clientes .fv2-op .pv2-st-seta > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-op .pv2-st-ok{display:none}
+/* A data na linha: o texto curto ("era 02/11", "hoje") por cima do campo de data de verdade. */
+#painel-clientes .fv2-op-data{position:relative;display:block;height:26px;margin:0 0 0 -4px;padding:0 4px;box-sizing:border-box;border-radius:6px;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/26px var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;cursor:pointer}
+#painel-clientes .fv2-op-data.fv2-op-c-prazo{flex-basis:68px}
+#painel-clientes .fv2-op-data.fv2-op-c-veiculacao{flex-basis:100px}
+#painel-clientes .fv2-op-data.r{color:var(--d3-perigo);font-weight:500}
+#painel-clientes .fv2-op-data.a{color:var(--d3-ambar);font-weight:500}
+#painel-clientes .fv2-op-data.sem{color:var(--d3-rotulo)}
+#painel-clientes .fv2-op-data:hover{background:var(--d3-veu-forte)}
+#painel-clientes .fv2-op-data:focus-within{outline:2px solid var(--d3-acao);outline-offset:1px}
+#painel-clientes .fv2-op-data > input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;cursor:pointer}
+#painel-clientes .fv2-op .pv2-av{appearance:none;flex:none;display:grid;place-items:center;width:24px;height:24px;margin:0;padding:0;border:0;border-radius:50%;background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#painel-clientes .fv2-op .pv2-av:hover{background:var(--d3-veu-forte)}
+#painel-clientes .fv2-op .pv2-av.sd{background:none;box-shadow:inset 0 0 0 1.5px var(--d3-ambar);color:var(--d3-ambar)}
+#painel-clientes .fv2-op .pv2-av:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#painel-clientes .fv2-op-pe{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-op-pe-txt{display:inline-flex;align-items:center;gap:10px;min-width:0;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+#painel-clientes .fv2-op-pe-txt > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-op-pe-txt > .cv2-chip{text-decoration:underline;text-underline-offset:3px}
+#painel-clientes .fv2-op-pe-bts{flex:none;display:inline-flex;gap:8px}
+#painel-clientes .fv2-op-acao{background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+#painel-clientes .fv2-op-acao:disabled{background:none;color:var(--d3-rotulo)}
+/* Com a lista da aba na tela, as ações das marcadas ficam no pé dela: a barra de lote do painel dá lugar. */
+body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba="conteudo"],[data-fv2-aba="demandas"]) #lote-deck{display:none}
+
+/* 3 · Linhas de uma folha (fv2-tb): o que as abas Reuniões, Onboarding, Ecossistema e Cérebro listam. */
+#painel-clientes .fv2-tb{margin:0;padding:0;list-style:none}
+#painel-clientes .fv2-tb-lin{appearance:none;display:flex;align-items:center;gap:12px;width:100%;min-height:44px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif);text-align:left;list-style:none}
+#painel-clientes button.fv2-tb-lin{cursor:pointer}
+#painel-clientes button.fv2-tb-lin:hover{background:var(--d3-veu)}
+#painel-clientes button.fv2-tb-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#painel-clientes .fv2-tb-lin > svg{flex:none;width:14px;height:14px;fill:none;stroke:var(--d3-rotulo);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-tb-txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-tb-txt > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-n{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal;font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-est{flex:none;display:inline-flex;align-items:center;gap:6px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+#painel-clientes .fv2-est > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+#painel-clientes .fv2-est.g > i{background:var(--d3-pronto)}
+#painel-clientes .fv2-est.r > i{background:var(--d3-perigo)}
+#painel-clientes .fv2-est.a > i{background:var(--d3-ambar)}
+#painel-clientes .fv2-est.b > i{background:var(--d3-info)}
+
+/* 4 · Aba Reuniões: a reunião em foco (pauta e ata lado a lado; no pé, a gravação), a pauta sugerida e as outras. */
+#painel-clientes .fv2-reu{flex:0 1 auto;min-height:148px}
+#painel-clientes .fv2-reu-corpo{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-reu-2{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+#painel-clientes .fv2-reu-parte{display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px 16px 14px}
+#painel-clientes .fv2-reu-parte + .fv2-reu-parte{border-left:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-reu-parte > ul{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+#painel-clientes .fv2-reu-parte > ul > li{display:flex;align-items:baseline;gap:9px;margin:0;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-parte > ul > li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--d3-meta);transform:translateY(-1px)}
+#painel-clientes .fv2-reu-parte > p{margin:0;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-parte > p.fv2-reu-sem{color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-mais{border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-reu-mais > summary{display:flex;align-items:center;min-height:40px;padding:0 16px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);list-style:none;cursor:pointer}
+#painel-clientes .fv2-reu-mais > summary::-webkit-details-marker{display:none}
+#painel-clientes .fv2-reu-mais > summary:hover{background:var(--d3-veu)}
+#painel-clientes .fv2-reu-mais > summary:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#painel-clientes .fv2-reu-mais-c{padding:0 16px 14px;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-mais-c h5{margin:10px 0 4px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-mais-c p{margin:0 0 6px}
+#painel-clientes .fv2-reu-mais-c .reu-sug{margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+#painel-clientes .fv2-reu-mais-c .reu-sug > h5:first-child{display:none}
+#painel-clientes .fv2-reu-mais-c .reu-sug > .d3v-btn{margin-top:8px}
+#painel-clientes .fv2-reu-pe{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-estado{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-reu-estado > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-mic{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-veu-forte);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-mic.on{background:var(--d3-agente);color:var(--d3-contra,var(--d3-escuro-texto))}
+#painel-clientes .fv2-reu-mic > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-reu-bts{flex:none;display:inline-flex;gap:8px}
+#painel-clientes .fv2-reu-bts > a.d3v-btn{text-decoration:none}
+#painel-clientes .fv2-reu-lin .fv2-tb-txt{color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-dia{flex:0 0 76px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-duas > .fv2-lado div.d3m-vlin:hover{background:var(--d3-fume-veu)}
+#painel-clientes .fv2-lado a.d3m-vlin{text-decoration:none}
+
+/* 5 · Aba Onboarding: o questionário por parte, com a marca de respondida, a pergunta e a resposta. */
+#painel-clientes .fv2-onb-sec{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);background:var(--d3-veu);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-onb-sec > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-onb-lin{align-items:flex-start;min-height:40px;padding-top:10px;padding-bottom:10px}
+#painel-clientes .fv2-onb-marca{flex:none;display:grid;place-items:center;width:18px;height:18px;box-sizing:border-box;border:1.5px solid var(--d3-meta);border-radius:50%}
+#painel-clientes .fv2-onb-lin.ok > .fv2-onb-marca{border-color:var(--d3-pronto);background:var(--d3-pronto);color:var(--d3-contra,var(--d3-escuro-texto))}
+#painel-clientes .fv2-onb-marca > svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-onb-q{flex:0 0 42%;min-width:0;color:var(--d3-tinta)}
+#painel-clientes .fv2-onb-r{flex:1 1 0;min-width:0;color:var(--d3-tinta);overflow-wrap:anywhere}
+#painel-clientes .fv2-onb-lin.falta > .fv2-onb-r{color:var(--d3-rotulo)}
+
+/* 6 · Aba Ecossistema: cada sistema numa linha, com o selo, a situação, o que falta e o botão que resolve. */
+#painel-clientes .fv2-eco-lin{min-height:64px;gap:10px}
+#painel-clientes .fv2-selo{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-pronto);color:var(--d3-contra,var(--d3-escuro-texto))}
+#painel-clientes .fv2-selo.a{background:var(--d3-ajuste-claro);color:var(--d3-tinta-fixa)}
+#painel-clientes .fv2-selo > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-eco-c-selo{flex:0 0 22px}
+#painel-clientes .fv2-eco-nome{flex:0 0 290px;min-width:0;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-eco-nome > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-eco-sit{flex:0 0 150px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-eco-lin > .fv2-eco-sit.g{color:var(--d3-pronto)}
+#painel-clientes .fv2-eco-lin > .fv2-eco-sit.a{color:var(--d3-ambar)}
+#painel-clientes .fv2-eco-det{flex:1 1 0;min-width:0;color:var(--d3-rotulo);overflow:hidden}
+#painel-clientes .fv2-eco-lin > .fv2-eco-det{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+#painel-clientes .fv2-eco-th > .fv2-eco-nome,#painel-clientes .fv2-eco-th > .fv2-eco-det{color:inherit}
+#painel-clientes .fv2-eco-lin > .d3v-btn{flex:none;text-decoration:none}
+#painel-clientes .fv2-eco-pe > .fv2-eco-conta{cursor:default}
+#painel-clientes .fv2-eco-pe > .fv2-eco-conta:hover{color:var(--d3-rotulo)}
+
+/* 7 · Aba Cérebro: o que o VYBES sabe (o perfil, as cores e os quatro números), as regras de arte e os registros. */
+#painel-clientes .fv2-cb-alto{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-cb-quem{display:flex;flex-direction:column;gap:4px;min-width:0;padding:14px 16px;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-cb-quem > b{font:600 20px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-cb-quem > p{margin:0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-cb-cores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:center;gap:10px 16px;padding:14px 16px;border-left:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-cb-cores > span{display:flex;align-items:center;gap:10px;min-width:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+#painel-clientes .fv2-cb-cores > span > em{min-width:0;font-style:normal;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-cb-cores > span > i{flex:none;width:28px;height:28px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+#painel-clientes .fv2-cb-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-cb-num{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 16px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-cb-num + .fv2-cb-num{border-left:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-cb-num > b{font:600 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta);-webkit-text-fill-color:currentColor;font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-cb-num.r > b{color:var(--d3-perigo)}
+#painel-clientes .fv2-cb-num.a > b{color:var(--d3-ambar)}
+#painel-clientes .fv2-cb-regras{flex:0 1 auto;min-height:96px}
+#painel-clientes .fv2-cb-regras > .fv2-linhas{flex:0 1 auto}
+#painel-clientes .fv2-pt-g{flex:none;width:6px;height:6px;border-radius:50%;background:var(--d3-pronto)}
+#painel-clientes .fv2-reg > .reg-item{margin:0;padding:0;border:0;background:none}
+#painel-clientes .fv2-reg summary.fv2-tb-lin{cursor:pointer}
+#painel-clientes .fv2-reg summary.fv2-tb-lin::-webkit-details-marker{display:none}
+#painel-clientes .fv2-reg summary.fv2-tb-lin:hover{background:var(--d3-veu)}
+#painel-clientes .fv2-reg summary > small{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#painel-clientes .fv2-reg-c{padding:4px 16px 14px;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-reg-c > p{margin:0 0 6px}
+#painel-clientes .fv2-reg-c > h5{margin:10px 0 4px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-reg-c > pre{margin:0;padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-veu);font:400 var(--d3-fs-apoio)/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* 8 · Aba Financeiro (só donos): Contrato, Custo e Margem no alto; o pagamento e as datas embaixo. */
+#painel-clientes .fv2-fin-tres{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#painel-clientes .fv2-fin-cartao{align-items:flex-start;gap:4px;min-height:172px;padding:16px;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-fin-rot{font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-fin-num{font:600 24px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta);-webkit-text-fill-color:currentColor;font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-fin-num.sem{color:var(--d3-rotulo)}
+#painel-clientes .fv2-fin-num.r{color:var(--d3-perigo)}
+#painel-clientes .fv2-fin-cartao > p{margin:0}
+#painel-clientes .fv2-fin-cartao > .d3v-btn{margin-top:auto}
+#painel-clientes .fv2-fin-pag > .fv2-fin-grade{flex:none;grid-template-columns:repeat(4,minmax(0,1fr))}
+#painel-clientes .fv2-fin-pag .fv2-fin-campo:last-child{border-right:0}
+#painel-clientes .fv2-fin-pag .fv2-fin-campo > b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#painel-clientes .fv2-fin-pag .fv2-est{font:inherit}
+#painel-clientes .fv2-fin-obs{flex:none;display:flex;flex-direction:column;gap:4px;margin:0;padding:12px 16px;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-fin-pag > .fv2-vazio{border-top:1px solid var(--d3-divisa)}
+
+/* 9 · Janela baixa: o vazio perde o ícone, o número do laranja encolhe e as folhas dividem melhor a altura. */
+@media (max-height:820px) and (min-width:1181px){
+  #painel-clientes .fv2-cheia{min-height:112px}
+  #painel-clientes .fv2-vazio-ico{display:none}
+  #painel-clientes .fv2-vazio > b{margin-top:0}
+  #painel-clientes .fv2-duas > .fv2-lado{gap:8px}
+  #painel-clientes .fv2-lar-aba{gap:6px;padding-top:12px;padding-bottom:12px}
+  #painel-clientes .fv2-lar-aba .d3m-lar-num{font-size:40px}
+  #painel-clientes .fv2-lar-aba .d3m-lar-bts{margin-top:6px}
+  #painel-clientes .fv2-barra-lin{height:21px}
+  #painel-clientes .fv2-fin-cartao{min-height:148px}
+}
+/* 10 · Telas menores: uma coluna (a ficha rola por dentro da janela) e a linha da lista em dois andares. */
+@media (max-width:1180px){
+  #painel-clientes #client-master-detail > .fv2-aba{height:auto}
+  #painel-clientes .fv2-duas{grid-template-columns:minmax(0,1fr);height:auto}
+  /* Numa coluna, o cartão laranja vem primeiro, depois as folhas e por último a consulta. */
+  #painel-clientes .fv2-duas > .fv2-col,#painel-clientes .fv2-duas > .fv2-lado{display:contents}
+  #painel-clientes .fv2-duas .fv2-lar-aba,#painel-clientes .fv2-duas .fv2-calmo{order:-1}
+  #painel-clientes .fv2-duas .d3m-cons{color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+  #painel-clientes .fv2-reu,#painel-clientes .fv2-cb-regras{flex:none}
+  #painel-clientes .fv2-duas .fv2-linhas{max-height:420px}
+  #painel-clientes .fv2-cheia{flex:none}
+  #painel-clientes .fv2-op-linhas{flex:none;max-height:440px}
+}
+@media (max-width:900px){
+  #painel-clientes .fv2-op-cab{flex-wrap:wrap;row-gap:4px;padding-top:8px;padding-bottom:8px}
+  #painel-clientes .fv2-op-cab > .cv2-filtros{margin-left:0;max-width:100%;overflow-x:auto;scrollbar-width:none}
+  #painel-clientes .fv2-op-th{display:none}
+  #painel-clientes .fv2-op-lin{flex-wrap:wrap;height:auto;row-gap:0;padding:6px 14px}
+  #painel-clientes .fv2-op-mini{display:none}
+  #painel-clientes .fv2-op-nome{flex:1 1 calc(100% - 26px)}
+  #painel-clientes .fv2-op-lin > .fv2-op-c-st{flex:1 1 0;margin-left:26px}
+  #painel-clientes .fv2-op-lin > .fv2-op-c-prazo{display:none}
+  #painel-clientes .fv2-op-data.fv2-op-c-veiculacao{flex:0 0 auto}
+  #painel-clientes .fv2-op-pe{flex-wrap:wrap;row-gap:6px;padding-top:8px;padding-bottom:8px}
+  #painel-clientes .fv2-op-pe-bts{flex-wrap:wrap}
+}
+@media (max-width:760px){
+  #painel-clientes .fv2-duas .cv2-cab{flex-wrap:wrap;row-gap:2px;min-height:44px;padding:8px 14px}
+  #painel-clientes .fv2-duas .cv2-cab > h3{flex:1 1 100%;white-space:normal}
+  #painel-clientes .fv2-duas .cv2-cab > :is(.fv2-cab-nota,.fv2-cab-lado){margin-left:0}
+  #painel-clientes .fv2-duas .cv2-cab > .fv2-cab-acao{margin-left:auto}
+  #painel-clientes .fv2-tb-lin{padding-left:14px;padding-right:14px}
+  #painel-clientes .fv2-reu-2{grid-template-columns:minmax(0,1fr)}
+  #painel-clientes .fv2-reu-parte + .fv2-reu-parte{border-left:0;border-top:1px solid var(--d3-divisa)}
+  #painel-clientes .fv2-reu-pe{flex-wrap:wrap;row-gap:8px;padding:10px 14px}
+  #painel-clientes .fv2-reu-estado{flex:1 1 calc(100% - 40px);white-space:normal}
+  #painel-clientes .fv2-reu-lin{flex-wrap:wrap;row-gap:2px;padding-top:8px;padding-bottom:8px}
+  #painel-clientes .fv2-reu-lin > .fv2-tb-txt{flex:1 1 calc(100% - 100px)}
+  #painel-clientes .fv2-onb-lin{flex-wrap:wrap;row-gap:2px}
+  #painel-clientes .fv2-onb-q{flex:1 1 calc(100% - 32px)}
+  #painel-clientes .fv2-onb-r{flex:1 1 100%;margin-left:30px}
+  #painel-clientes .fv2-eco-th{display:none}
+  #painel-clientes .fv2-eco-lin{flex-wrap:wrap;row-gap:4px;min-height:0;padding-top:10px;padding-bottom:10px}
+  #painel-clientes .fv2-eco-lin > .fv2-eco-nome{flex:1 1 calc(100% - 34px)}
+  #painel-clientes .fv2-eco-lin > .fv2-eco-sit{flex:1 1 calc(100% - 34px);margin-left:32px}
+  #painel-clientes .fv2-eco-lin > .fv2-eco-det{flex:1 1 100%;margin-left:32px}
+  #painel-clientes .fv2-eco-lin > .d3v-btn{margin-left:32px}
+  #painel-clientes .fv2-eco-pe{flex-wrap:wrap;row-gap:4px;padding-top:8px;padding-bottom:8px;overflow:visible}
+  #painel-clientes .fv2-cb-alto{grid-template-columns:minmax(0,1fr)}
+  #painel-clientes .fv2-cb-cores{border-left:0;border-top:1px solid var(--d3-divisa)}
+  #painel-clientes .fv2-cb-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #painel-clientes .fv2-cb-num:nth-child(3){border-left:0}
+  #painel-clientes .fv2-cb-num:nth-child(n+3){border-top:1px solid var(--d3-divisa)}
+  #painel-clientes .fv2-reg summary > small{display:none}
+  #painel-clientes .fv2-fin-tres{grid-template-columns:minmax(0,1fr)}
+  #painel-clientes .fv2-fin-cartao{min-height:0}
+  #painel-clientes .fv2-fin-cartao > .d3v-btn{margin-top:10px}
+  #painel-clientes .fv2-fin-pag > .fv2-fin-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 /* ===== padrao-v2/zm-c-agenda.css ===== */
