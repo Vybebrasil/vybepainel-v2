@@ -1,12 +1,16 @@
 // vybe-mundo-tutorial.js — o VYBES apresenta o Vybe OS (Irecity) para quem chega. Ninguém fica perdido.
 //
-// Três peças, todas faladas pelo VYBES (a bolinha lilás-laranja):
+// Cinco peças, todas faladas pelo VYBES (a bolinha lilás-laranja):
+//   · Boas-vindas com os três temas (boasVindas): antes de tudo, a pessoa escolhe a cara do Vybe OS (vybe-tema.js).
+//   · Tutorial de cada tela (registrarTelas, tela): o roteiro da tela, na primeira vez que ela abre. Os roteiros
+//     moram em vybe-mundo-tutorial-roteiros.js; o mecanismo é o do passeio.
 //   · Passeio de boas-vindas (iniciar): escurece a tela, acende um recorte em volta de cada parte do HUD
 //     e explica em uma ou duas frases. Só na primeira vez de cada pessoa; { forcar: true } refaz.
 //   · Dica de primeira vez (dica(id)): balão curto ancorado no que acabou de abrir, com "Entendi",
 //     "Ver de novo depois" e "Não mostrar mais dicas". Já vista, não aparece; { forcar: true } mostra sempre.
 //     Só começam depois do passeio (visto, pulado ou fechado com Esc); pedidas juntas, entram em fila.
-//   · Ajuda do VYBES (ajuda()): rever o passeio e qualquer dica, ligar e desligar as dicas.
+//   · Ajuda do VYBES (ajuda()): reabre o tutorial da tela atual; sem roteiro na tela, abre a janela para rever o
+//     passeio, os tutoriais e qualquer dica, ligar e desligar as dicas e escolher o tema de novo.
 //
 // O que o VYBES diz mora em VybeTutorial.CONTEUDO (logo abaixo): é o lugar de revisar e editar os textos
 // e os alvos, sem mexer no resto. "{nome}" vira o primeiro nome da pessoa.
@@ -52,7 +56,7 @@
           { id: 'criar', alvo: '.vv-trilho-btn[data-trilho="criar"]', lado: 'direita', titulo: 'Criar',
             texto: 'Precisa cadastrar um conteúdo ou uma demanda nova? É aqui, no Criar.' },
           { id: 'ferramentas', alvo: '.vv-barra-topo .vv-ferramentas', lado: 'baixo', titulo: 'Ferramentas',
-            texto: 'Aqui em cima ficam as ferramentas: buscar qualquer coisa (⌘K ou Ctrl+K), avisos, a conversa da equipe, suas notas, claro ou escuro e a sua conta.' },
+            texto: 'Aqui em cima ficam as ferramentas: buscar qualquer coisa (⌘K ou Ctrl+K), avisos, a conversa da equipe, suas notas e a sua conta, onde também se troca o tema.' },
           { id: 'vistas', alvo: '.vv-barra-topo .vv-vistas', lado: 'baixo', titulo: 'Cidade, Prédio e Cérebro',
             texto: 'Aqui você troca o que vê: a Cidade, o Prédio da Vybe, onde cada andar é um setor com os agentes dele, e o Cérebro, com tudo o que eu sei e consulto antes de agir.' },
           { id: 'mapa', alvo: '[data-trilho="centro"]', titulo: 'O Centro',
@@ -114,7 +118,7 @@
       'pessoas:academy': { grupo: 'Telas', titulo: 'Academy', alvo: '#vv-pessoas .vp-topo', lado: 'baixo',
         texto: 'Aqui ficam as trilhas de aprendizado do time: as aulas de cada uma e o que foi atribuído a você.' },
       'ferr:aparencia': { grupo: 'Topo', titulo: 'Aparência', alvo: '.vv-menu-tema-linha', lado: 'esquerda',
-        texto: 'Claro, escuro ou automático, que segue o seu computador. Em Mais ajustes dá para reduzir o movimento da tela.' },
+        texto: 'Aqui você troca o tema: Fumê, Claro, Escuro ou Auto, que segue o seu computador. Em Mais ajustes dá para reduzir o movimento da tela.' },
       'ferr:conta': { grupo: 'Topo', titulo: 'Sua conta', alvo: '.vv-menu-conta:not(.vv-menu-tema)', lado: 'esquerda',
         texto: 'Aqui ficam a sua conta, com perfil e senha, o botão de atualizar os dados do painel e o Sair.' },
       chamada: { grupo: 'Mapa e prédio', titulo: 'Barra de voz', alvo: '.vv-chamada', lado: 'cima',
@@ -316,7 +320,7 @@
   // ---------- teclado, redimensionar e o relógio de reposicionar (só enquanto algo está aberto) ----------
   let ouvindo = false, relogio = null, quadro = false;
   function atualizarOuvidos() {
-    const sim = Boolean(passeio || dicaAtual || ajudaAtual);
+    const sim = Boolean(passeio || dicaAtual || ajudaAtual || boasVindasAtual);
     if (sim && !ouvindo) {
       G.addEventListener?.('keydown', aoTeclar, true); G.addEventListener?.('resize', aoMudarTela);
       relogio = G.setInterval?.(reposicionar, 400); ouvindo = true;
@@ -352,6 +356,7 @@
   // O Esc é de quem está por cima (ajuda → passeio → dica) e não chega ao mapa nem ao módulo.
   function aoTeclar(e) {
     const k = e.key;
+    if (boasVindasAtual) { teclaNasBoasVindas(e); return; }
     if (ajudaAtual) {
       // Painel, não janela por cima de tudo: o Tab sai dele normalmente; o Esc fecha.
       if (k === 'Escape') { engolir(e); fecharAjuda(); }
@@ -359,7 +364,7 @@
     }
     if (passeio) {
       if (k === 'Escape') { engolir(e); fecharPasseio(true); }
-      else if (k === 'Tab') prenderFoco(e, [passeio.el.pular, passeio.el.voltar, passeio.el.proximo]);
+      else if (k === 'Tab') prenderFoco(e, [passeio.el.pular, passeio.el.voltar, passeio.el.proximo, passeio.el.maisAjuda]);
       else if (!ehCampo(e.target) && k === 'ArrowRight') { engolir(e); proximo(); }
       else if (!ehCampo(e.target) && k === 'ArrowLeft') { engolir(e); voltar(); }
       return;
@@ -371,19 +376,25 @@
   // PASSEIO
   // ======================================================================================
   let passeio = null, tentativas = 0, esperando = null;
-  function iniciar({ forcar = false, passeio: qual = 'boas-vindas' } = {}) {
+  function iniciar({ forcar = false, passeio: qual = 'boas-vindas', daAjuda = false } = {}) {
     const def = CONTEUDO.passeios[qual];
-    if (!def || passeio || !doc?.body) return false;
+    if (!def || passeio || boasVindasAtual || !doc?.body) return false;
     if (doc.body.classList?.contains('auth-pending')) return false;
     const eu = quem();
     // Logou mas a equipe ainda não chegou: espera um pouco para não guardar como "anon".
-    if (eu.esperando && !forcar && tentativas < ESPERAS) {
+    // (O roteiro de tela não espera: ele só é conferido depois do passeio, quando a espera do login já passou.)
+    if (eu.esperando && !forcar && !def.tela && tentativas < ESPERAS) {
       tentativas++; G.clearTimeout?.(esperando);
       esperando = G.setTimeout?.(() => { esperando = null; iniciar({ forcar, passeio: qual }); }, 750);
       return false;
     }
     tentativas = 0;
-    if (!forcar && ler(eu.id).passeios[qual]) return false;
+    // Primeiro a escolha do tema (uma vez por navegador); ao fechar, ela chama o passeio de novo.
+    if (!forcar && qual === PRIMEIRO_PASSEIO && precisaBoasVindas() && boasVindas()) return true;
+    // Já viu o passeio: confere se a tela que está aberta tem tutorial para mostrar.
+    if (!forcar && ler(eu.id).passeios[qual]) { if (qual === PRIMEIRO_PASSEIO) agendarConferir(400); return false; }
+    // Roteiro de tela: sem nenhuma parte dela à vista (ainda desenhando), não abre nem conta como visto.
+    if (def.tela && !def.passos.some((p) => p.alvo && acharAlvo(p.alvo))) return false;
     cancelarDica(); fecharDica('depois'); fecharAjuda(false);
 
     const el = {};
@@ -394,6 +405,8 @@
     el.pular = botao('vv-tour-pular', 'Pular', () => fecharPasseio(true), { 'data-tour': 'pular' });
     el.voltar = botao('vv-tour-sec', 'Voltar', () => voltar(), { 'data-tour': 'voltar' });
     el.proximo = botao('vv-tour-principal', 'Próximo', () => proximo(), { 'data-tour': 'proximo' });
+    // Aberto pela Ajuda: um caminho para a janela com todo o resto (outros tutoriais, dicas, tema).
+    el.maisAjuda = daAjuda ? botao('vv-tour-link', 'Ver toda a ajuda', () => { fecharPasseio(false); ajuda({ painel: true }); }, { 'data-tour': 'toda-ajuda' }) : null;
     el.luz = h('div', { class: 'vv-tour-luz vazia', 'aria-hidden': 'true' });
     el.balao = h('section', { class: 'vv-tour-balao', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'vv-tour-titulo', 'aria-describedby': 'vv-tour-texto', tabindex: '-1' },
       h('span', { class: 'vv-tour-bico', 'aria-hidden': 'true' }),
@@ -401,10 +414,17 @@
       h('div', { class: 'vv-tour-rodape' },
         h('span', { class: 'vv-tour-esq' }, el.conta, el.pular),
         h('span', { class: 'vv-tour-acoes' }, el.voltar, el.proximo)),
+      el.maisAjuda ? h('div', { class: 'vv-tour-mais' }, el.maisAjuda) : null,
       el.anuncio);
     // O fundo segura os cliques: durante o passeio nada abre por baixo sem querer.
     el.tela = h('div', { class: 'vv-tour', 'data-modo': 'passeio' }, h('div', { class: 'vv-tour-fundo' }), el.luz, el.balao);
+    // O clique no passeio não chega à página: um menu aberto (Conta, Avisos, Chat) não fecha por "clique fora" enquanto
+    // o VYBES explica as partes dele.
+    for (const tipo of ['click', 'pointerdown', 'mousedown', 'touchstart']) el.tela.addEventListener?.(tipo, (ev) => ev.stopPropagation?.());
     raizDoTutorial().append(el.tela);
+    // O roteiro da tela já explica algumas dicas de primeira vez: contam como vistas.
+    const cobre = def.tela ? (TELAS.find((t) => t.id === def.tela)?.cobre || []) : [];
+    if (cobre.length) mudar((e) => { for (const id of cobre) e.dicas[id] ||= agora(); }, eu.id);
     passeio = { qual, def, i: -1, eu, el, focoAntes: doc.activeElement };
     atualizarOuvidos();
     irPara(0, 1);
@@ -462,6 +482,8 @@
     const { qual, eu, el, focoAntes } = passeio;
     passeio = null;
     if (marcar) mudar((e) => { e.passeios[qual] = agora(); }, eu.id);
+    // Acabou o passeio de boas-vindas: a tela que está aberta não emenda outro tutorial agora.
+    if (qual === PRIMEIRO_PASSEIO) { const t = telaAtual(); if (t) telasAdiadas.add(t); }
     el.tela.remove();
     atualizarOuvidos();
     if (focoAntes && focoAntes.isConnected !== false) focoAntes.focus?.({ preventScroll: true });
@@ -505,7 +527,7 @@
   }
   function dica(id, { forcar = false } = {}) {
     const d = CONTEUDO.dicas[id];
-    if (!d || passeio || ajudaAtual || !doc?.body) return false;
+    if (!d || passeio || ajudaAtual || boasVindasAtual || !doc?.body) return false;
     if (!forcar) {
       if (dicaAtual?.id === id || pendenteId === id || fila.includes(id)) return true;
       // Com porAba, a que já foi vista é decidida na hora de mostrar (a da aba pode ser outra).
@@ -517,7 +539,9 @@
   }
   function mostrarDica(id, forcar = false) {
     let d = CONTEUDO.dicas[id];
-    if (!d || passeio || ajudaAtual) return;
+    if (!d || passeio || ajudaAtual || boasVindasAtual) return;
+    // A tela aberta tem tutorial ainda não visto: ele explica; a dica não aparece por cima (um tutorial de cada vez).
+    if (!forcar && roteiroPendente()) { agendarConferir(60); return; }
     if (d.porAba) {
       // A aba à vista decide (item 35). Pedida pela Ajuda (forcar) sem a tela aberta, vale a do setor.
       const qual = dicaDaAba(id);
@@ -719,11 +743,14 @@
   // AJUDA DO VYBES
   // ======================================================================================
   let ajudaAtual = null;
-  function ajuda() {
-    if (!doc?.body) return false;
+  function ajuda({ painel = false } = {}) {
+    if (!doc?.body || boasVindasAtual) return false;
     if (passeio) fecharPasseio(false);
     cancelarDica(); fecharDica('depois');
     if (ajudaAtual) fecharAjuda(false);
+    // A Ajuda reabre o tutorial da tela atual (Paulo, 16/11/2026); sem roteiro na tela, ou pedida pelo "Ver toda a
+    // ajuda" do próprio tutorial, abre a janela com tudo.
+    if (!painel && reverTela()) return true;
     const eu = quem(), e = ler(eu.id), dono = Boolean(doc.body.classList?.contains('eh-dono'));
     const focaveis = [];
     const guardar = (el) => { focaveis.push(el); return el; };
@@ -732,8 +759,12 @@
 
     const fechar = guardar(botao('vv-tour-x', '×', () => fecharAjuda(), { 'aria-label': 'Fechar a ajuda', title: 'Fechar (Esc)', 'data-tour': 'fechar-ajuda' }));
     const refazer = guardar(botao('vv-tour-principal', 'Refazer o passeio', () => { fecharAjuda(false); iniciar({ forcar: true }); }, { 'data-tour': 'refazer' }));
-    const passeios = Object.entries(CONTEUDO.passeios).map(([id, p]) =>
-      linha(p.titulo, p.resumo || '', Boolean(e.passeios[id]), () => { fecharAjuda(false); iniciar({ forcar: true, passeio: id }); }, { 'data-tour-passeio': id }, ['Visto', 'Novo']));
+    const linhaDoPasseio = ([id, p]) =>
+      linha(p.titulo, p.resumo || '', Boolean(e.passeios[id]), () => { fecharAjuda(false); iniciar({ forcar: true, passeio: id }); }, { 'data-tour-passeio': id }, ['Visto', 'Novo']);
+    const passeios = Object.entries(CONTEUDO.passeios).filter(([, p]) => !p.tela).map(linhaDoPasseio);
+    // Os tutoriais das telas: abrem na hora se a tela estiver aberta; senão, o passo que não acha a parte é pulado.
+    const telasDaAjuda = Object.entries(CONTEUDO.passeios).filter(([, p]) => p.tela).map(linhaDoPasseio);
+    const tema = G.VybeTema ? guardar(botao('vv-tour-link', 'Escolher o tema', () => { fecharAjuda(false); boasVindas({ forcar: true }); }, { 'data-tour': 'escolher-tema' })) : null;
     const ids = Object.keys(CONTEUDO.dicas).filter((id) => CONTEUDO.dicas[id].so !== 'dono' || dono);
     const grupos = [...new Set([...(CONTEUDO.grupos || []), ...ids.map((id) => CONTEUDO.dicas[id].grupo || 'Outras')])]
       .map((g) => [g, ids.filter((id) => (CONTEUDO.dicas[id].grupo || 'Outras') === g)]).filter(([, l]) => l.length)
@@ -754,8 +785,9 @@
         h('p', { class: 'vv-tour-texto vv-tour-so-leitor', id: 'vv-tour-ajuda-texto' }, comNome('Oi, {nome}. Aqui você revê o passeio e qualquer dica, quando quiser.', eu.nome)),
         h('label', { class: 'vv-tour-chave' }, chave, h('span', {}, 'Mostrar uma dica quando eu abrir algo pela primeira vez')),
         h('h3', { class: 'vv-tour-secao' }, 'Passeios'), h('div', { class: 'vv-tour-lista' }, passeios),
+        telasDaAjuda.length ? [h('h3', { class: 'vv-tour-secao' }, 'Tutorial de cada tela'), h('div', { class: 'vv-tour-lista' }, telasDaAjuda)] : null,
         grupos),
-      h('div', { class: 'vv-tour-janela-pe' }, zerar, refazer));
+      h('div', { class: 'vv-tour-janela-pe' }, zerar, tema, refazer));
     const tela = h('div', { class: 'vv-tour vv-tour-ajuda', 'data-modo': 'ajuda' }, janela);
     raizDoTutorial().append(tela);
     G.colocarJanelaDoTopo?.(janela, '[data-ferr="ajuda"]');
@@ -781,17 +813,173 @@
     if (devolverFoco && a.focoAntes && a.focoAntes.isConnected !== false) a.focoAntes.focus?.({ preventScroll: true });
   }
 
+  // ======================================================================================
+  // TUTORIAL DE CADA TELA (Paulo, 16/11/2026: "na primeira vez que a pessoa abre cada tela, o VYBES explica o que é
+  // cada coisa ali, apontando para cada parte, em passos curtos"). É o mesmo passeio de cima (recorte, Pular, Voltar,
+  // Próximo, Esc e setas), com um roteiro por tela. Os roteiros moram em vybe-mundo-tutorial-roteiros.js e entram por
+  // registrarTelas([{ id, nome, se, cobre, passos }]):
+  //   se: seletor (ou lista) que só está à vista quando a tela está aberta; a primeira tela da lista que casa vence.
+  //   passos: [{ alvo, titulo, texto, lado }], como os do passeio. Passo cujo alvo não está na tela é pulado, sem erro.
+  //   cobre: dicas de primeira vez que o roteiro já explica (contam como vistas; não aparecem depois dele).
+  // Aparece só na primeira abertura de cada tela, por pessoa (a mesma memória do passeio: passeios["tela:<id>"]).
+  // "Não mostrar mais dicas" também desliga os roteiros; a Ajuda do VYBES reabre o da tela atual quando a pessoa quiser.
+  // ======================================================================================
+  const TELAS = [];
+  const passeioDaTela = (id) => 'tela:' + id;
+  function registrarTelas(lista) {
+    for (const t of [].concat(lista || [])) {
+      if (!t || !t.id || !Array.isArray(t.passos)) continue;
+      const tela = { id: String(t.id), nome: t.nome || String(t.id), se: t.se, cobre: [].concat(t.cobre || []) };
+      const i = TELAS.findIndex((x) => x.id === tela.id);
+      if (i >= 0) TELAS[i] = tela; else TELAS.push(tela);
+      CONTEUDO.passeios[passeioDaTela(tela.id)] = { tela: tela.id, titulo: tela.nome, resumo: t.resumo || '', passos: t.passos };
+    }
+    return TELAS.length;
+  }
+  // A tela que a pessoa está vendo agora ('' quando nenhuma das registradas está à vista).
+  function telaAtual() { for (const t of TELAS) if (t.se && acharAlvo(t.se)) return t.id; return ''; }
+  // A tela à vista tem roteiro que a pessoa ainda não viu? Enquanto tiver, a dica de primeira vez dá a vez a ele.
+  function roteiroPendente() {
+    if (!TELAS.length) return '';
+    const e = ler();
+    if (e.semDicas || (CONTEUDO.passeios[PRIMEIRO_PASSEIO] && !e.passeios[PRIMEIRO_PASSEIO])) return '';
+    const id = telaAtual();
+    return id && !e.passeios[passeioDaTela(id)] && !telasAdiadas.has(id) ? id : '';
+  }
+  // A tela em que a pessoa estava quando o passeio de boas-vindas acabou não emenda outro tutorial: fica para a próxima
+  // abertura do painel.
+  const telasAdiadas = new Set();
+  let conferePendente = null, confereTentativas = 0;
+  function agendarConferir(ms = 700) {
+    if (!TELAS.length) return;
+    if (conferePendente) G.clearTimeout?.(conferePendente);
+    conferePendente = G.setTimeout?.(() => { conferePendente = null; conferirTela(); }, ms);
+  }
+  // Chamado depois de cada clique (a tela pode ter mudado) e quando o painel abre. Barato: só procura os seletores `se`.
+  function conferirTela() {
+    if (!doc?.body || passeio || ajudaAtual || boasVindasAtual || !TELAS.length) return false;
+    if (doc.body.classList?.contains('auth-pending')) return false;
+    const id = roteiroPendente();
+    if (!id) { confereTentativas = 0; return false; }
+    if (iniciar({ passeio: passeioDaTela(id) })) { confereTentativas = 0; return true; }
+    // A tela abriu mas ainda não desenhou as partes: confere de novo, até três vezes.
+    if (!passeio && confereTentativas < 3) { confereTentativas++; agendarConferir(900); } else confereTentativas = 0;
+    return false;
+  }
+  doc?.addEventListener?.('click', (ev) => { if (TELAS.length && !passeio && !ev?.target?.closest?.('.vv-tour-raiz')) { confereTentativas = 0; agendarConferir(700); } }, true);
+  // Rever o tutorial da tela atual (a Ajuda do VYBES, no menu da Conta). Devolve false quando a tela não tem roteiro.
+  function reverTela({ forcar = true } = {}) {
+    const id = telaAtual();
+    return Boolean(id) && iniciar({ forcar, passeio: passeioDaTela(id), daAjuda: forcar });
+  }
+
+  // ======================================================================================
+  // BOAS-VINDAS: O VYBES RECEBE QUEM CHEGA E MOSTRA OS TRÊS TEMAS (Paulo, 16/11/2026). Uma tela só, antes do passeio:
+  // três cartões com o Hoje em miniatura em cada tema (as mesmas peças, com os tokens do tema: .d3-previa[data-d3-tema]).
+  // Passar o mouse acorda a prévia; escolher troca o tema do painel na hora. Aparece uma vez por navegador
+  // (VybeTema.jaEscolheu); a Ajuda do VYBES abre de novo. Os temas e a guarda moram em vybe-tema.js.
+  // ======================================================================================
+  let boasVindasAtual = null;
+  const FALA_DO_TEMA = {
+    fume: 'Fumê, o padrão da casa: vidro escuro com uma luz quente por trás.',
+    claro: 'Claro, então: tudo leve, bom para sala bem iluminada.',
+    escuro: 'Escuro: descansa a vista, e de noite ninguém reclama do brilho.',
+    auto: 'Sigo o seu computador: claro de dia e escuro quando ele escurecer.',
+  };
+  const precisaBoasVindas = () => Boolean(G.VybeTema && typeof G.VybeTema.jaEscolheu === 'function' && !G.VybeTema.jaEscolheu());
+  // O Hoje em miniatura: menu, janela com saudação e abas, os quatro números, a fila, o laranja, a coluna de consulta
+  // e a barra de voz. Só caixas e os números; as cores saem dos tokens do tema da própria prévia.
+  function previaDoTema(id) {
+    const i = (cls, ...f) => h('i', { class: cls }, f);
+    const num = (v, k) => h('span', { class: 'vp-num' + (k ? ' ' + k : '') }, i('vp-rot'), h('b', {}, v), h('span', { class: 'vp-barras' }, i(''), i(''), i(''), i(''), i('')));
+    const linha = (k) => h('span', { class: 'vp-lin' }, i('vp-foto'), i('vp-nome'), i('vp-st' + (k ? ' ' + k : '')));
+    return h('span', { class: 'd3-previa', 'data-d3-tema': id, 'aria-hidden': 'true' },
+      h('span', { class: 'vp-menu' }, i('on'), i(''), i(''), i(''), i(''), i('')),
+      h('span', { class: 'vp-jan' },
+        h('span', { class: 'vp-topo' }, h('span', { class: 'vp-ola' }, i('vp-t1'), i('vp-t2')), h('span', { class: 'vp-abas' }, i('on'), i(''), i(''))),
+        h('span', { class: 'vp-nums' }, num('141', 'r'), num('0'), num('11', 'g'), num('2')),
+        h('span', { class: 'vp-meio' },
+          h('span', { class: 'vp-folha' }, i('vp-cab'), linha('r'), linha('a'), linha(''), linha('g')),
+          h('span', { class: 'vp-laranja' }, i('vp-lr'), h('b', {}, '125'), i('vp-lf'), i('vp-lf c'), h('span', { class: 'vp-lbts' }, i('k'), i('')))),
+        h('span', { class: 'vp-lado' }, i('vp-mes'), i('vp-tira'), i('vp-tira'), i('vp-tira'))),
+      h('span', { class: 'vp-voz' }, i('k'), i(''), i(''), i(''), i('')));
+  }
+  function boasVindas({ forcar = false, depois = null } = {}) {
+    const VT = G.VybeTema;
+    if (!VT || !doc?.body || boasVindasAtual) return false;
+    if (!forcar && VT.jaEscolheu()) return false;
+    if (doc.body.classList?.contains('auth-pending')) return false;
+    cancelarDica(); fecharDica('depois'); fecharAjuda(false);
+    if (passeio) fecharPasseio(false);
+    const eu = quem();
+    let escolha = VT.escolhido();
+    const fala = h('p', { class: 'vt-fala', id: 'vt-bv-fala', 'aria-live': 'polite' });
+    const cartoes = VT.TEMAS.map((t) => h('button', { type: 'button', class: 'vt-tema', role: 'radio', 'data-tema': t.id, 'data-tour': 'tema-' + t.id, 'aria-checked': 'false', onclick: () => escolher(t.id) },
+      previaDoTema(t.id),
+      h('span', { class: 'vt-tema-pe' }, h('b', {}, t.nome), h('small', {}, t.resumo)),
+      h('i', { class: 'vt-tema-ok', 'aria-hidden': 'true' })));
+    const auto = botao('vt-auto', 'Seguir o meu computador', () => escolher('auto'), { role: 'radio', 'aria-checked': 'false', 'data-tema': 'auto', 'data-tour': 'tema-auto', title: 'Claro de dia e escuro de noite, como o sistema do computador' });
+    const comecar = botao('vt-principal', 'Começar', () => fecharBoasVindas(true), { 'data-tour': 'comecar' });
+    const pular = botao('vt-pular', 'Decidir depois', () => fecharBoasVindas(true), { 'data-tour': 'pular-temas', title: 'Fica como está (Esc)' });
+    const nomeDe = (id) => (VT.ROTULOS && VT.ROTULOS[id]) || id;
+    function pintar() {
+      for (const b of [...cartoes, auto]) b.setAttribute('aria-checked', String(b.getAttribute('data-tema') === escolha));
+      fala.textContent = FALA_DO_TEMA[escolha] || '';
+      comecar.textContent = escolha === 'auto' ? 'Começar seguindo o computador' : `Começar com o ${nomeDe(escolha)}`;
+    }
+    function escolher(id) { escolha = id; VT.trocar(id); pintar(); }
+    const caixa = h('section', { class: 'vt-caixa', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'vt-bv-titulo', 'aria-describedby': 'vt-bv-texto', tabindex: '-1' },
+      h('div', { class: 'vt-cab' },
+        h('span', { class: 'vv-tour-avatar vt-avatar', 'aria-hidden': 'true' }, h('i')),
+        h('div', { class: 'vt-cab-txt' },
+          h('h2', { class: 'vt-titulo', id: 'vt-bv-titulo' }, comNome('Boas-vindas ao Vybe OS, {nome}.', eu.nome)),
+          h('p', { class: 'vt-texto', id: 'vt-bv-texto' }, 'Eu sou o VYBES e fico por aqui o tempo todo. Antes de mostrar a casa, escolha a cara dela: são três temas, a tela troca na hora e a escolha vale só para este navegador.'))),
+      h('div', { class: 'vt-temas', role: 'radiogroup', 'aria-label': 'Tema do Vybe OS' }, cartoes),
+      h('div', { class: 'vt-pe' },
+        h('div', { class: 'vt-pe-esq' }, fala, h('small', { class: 'vt-nota' }, 'Para trocar depois: Conta › Aparência.')),
+        h('div', { class: 'vt-pe-dir' }, auto, pular, comecar)));
+    const telaBv = h('div', { class: 'vv-tour vt-bv', 'data-modo': 'boas-vindas' }, h('div', { class: 'vt-bv-fundo', 'aria-hidden': 'true' }), caixa);
+    raizDoTutorial().append(telaBv);
+    boasVindasAtual = { tela: telaBv, cartoes, auto, comecar, pular, forcar, depois, escolher, escolhida: () => escolha, focoAntes: doc.activeElement };
+    pintar();
+    atualizarOuvidos();
+    comecar.focus?.({ preventScroll: true });
+    return true;
+  }
+  // Fechar marca que a pessoa já passou pela escolha (Começar, Decidir depois e Esc): não volta a cada entrada.
+  function fecharBoasVindas(seguir) {
+    const a = boasVindasAtual; if (!a) return;
+    boasVindasAtual = null;
+    G.VybeTema?.marcarEscolheu?.();
+    a.tela.remove();
+    atualizarOuvidos();
+    if (a.focoAntes && a.focoAntes.isConnected !== false) a.focoAntes.focus?.({ preventScroll: true });
+    if (typeof a.depois === 'function') a.depois();
+    else if (seguir && !a.forcar) iniciar();
+  }
+  function teclaNasBoasVindas(e) {
+    const a = boasVindasAtual, k = e.key;
+    if (k === 'Escape') { engolir(e); fecharBoasVindas(true); return; }
+    if (k === 'Tab') { prenderFoco(e, [...a.cartoes, a.auto, a.pular, a.comecar]); return; }
+    if (k === 'ArrowRight' || k === 'ArrowLeft' || k === 'ArrowDown' || k === 'ArrowUp') {
+      const ids = a.cartoes.map((b) => b.getAttribute('data-tema'));
+      const i = Math.max(0, ids.indexOf(a.escolhida()));
+      const j = (i + (k === 'ArrowRight' || k === 'ArrowDown' ? 1 : ids.length - 1)) % ids.length;
+      engolir(e); a.escolher(ids[j]); a.cartoes[j].focus?.({ preventScroll: true });
+    }
+  }
+
   // ---------- zerar e fechar ----------
   // Esquece o que a pessoa já viu (passeio, dicas e "não mostrar dicas") neste navegador.
   function reset() {
     const eu = quem();
     try { G.localStorage?.removeItem(PREFIXO + eu.id); } catch { /* sem armazenamento */ }
-    adiadas.clear(); cancelarDica(); fecharDica(null);
+    adiadas.clear(); telasAdiadas.clear(); cancelarDica(); fecharDica(null);
     if (passeio) fecharPasseio(false);
     return true;
   }
-  function fechar() { cancelarDica(); fecharDica(null); fecharAjuda(); if (passeio) fecharPasseio(false); }
-  function estado() { const eu = quem(); return { pessoa: eu.id, ...ler(eu.id), adiadas: [...adiadas], aberto: passeio ? 'passeio' : ajudaAtual ? 'ajuda' : dicaAtual ? 'dica:' + dicaAtual.id : '' }; }
+  function fechar() { cancelarDica(); fecharDica(null); fecharAjuda(); if (passeio) fecharPasseio(false); if (boasVindasAtual) fecharBoasVindas(false); }
+  function estado() { const eu = quem(); return { pessoa: eu.id, ...ler(eu.id), adiadas: [...adiadas], aberto: boasVindasAtual ? 'boas-vindas' : passeio ? 'passeio' : ajudaAtual ? 'ajuda' : dicaAtual ? 'dica:' + dicaAtual.id : '', passeio: passeio ? passeio.qual : '', tela: telaAtual() }; }
 
-  G.VybeTutorial = { iniciar, dica, ajuda, desligarDicas, reset, fechar, estado, CONTEUDO };
+  G.VybeTutorial = { iniciar, dica, ajuda, desligarDicas, reset, fechar, estado, CONTEUDO, registrarTelas, telaAtual, tela: reverTela, conferirTela, boasVindas };
 })();
