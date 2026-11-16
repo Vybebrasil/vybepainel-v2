@@ -97,7 +97,12 @@ test('Ficha: as listas completas viram as abas Conteúdo e Demandas; Financeiro 
   const { ctx } = carregar();
   assert.deepEqual([...vm.runInContext('FICHA_ABAS.map(([id]) => id)', ctx)], ['geral', 'demandas', 'conteudo', 'reunioes', 'onboarding', 'financeiro', 'ecossistema', 'cerebro', 'cadastro']);
   const fonte = ler('vybe-clientes-ficha.js');
-  assert.match(fonte, /if \(conteudos\) conteudos\.hidden = FICHA_ABA !== 'conteudo';/);
+  // Prancha V2-M-Cliente-Conteudo: a aba desenha a lista com os mesmos editores da operação e o mesmo id.
+  assert.match(fonte, /else if \(FICHA_ABA === 'conteudo'\) naAba\(conteudoDaFichaHtml\(nome\)\);/);
+  assert.match(fonte, /idGrade: 'grid-cliente-producao'/);
+  const linhaOp = fonte.slice(fonte.indexOf('function fv2LinhaOpHtml'), fonte.indexOf('function fv2FolhaOpHtml'));
+  for (const editor of ['alternarSelecao(', 'pv2StatusBotao(d)', 'salvarDataNaLinha(', 'openItemWorkspace(', 'abrirPreviaDaEntrega(', 'pv2Av(d)']) assert.ok(linhaOp.includes(editor), `a linha da aba mantém ${editor}`);
+  for (const lote of ["lotePrazo(event,'veiculacao')", 'loteResponsavel(event)', 'loteStatus(event)', 'fv2MaisDoLote(event)']) assert.ok(fonte.includes(lote), `o pé da lista chama ${lote}`);
   // Financeiro da ficha: só a conta do cliente, só para donos. Quem não é dono não vê a aba nem o valor.
   assert.match(fonte, /\.filter\(\(\[id\]\) => id !== 'financeiro' \|\| fichaEhDono\(\)\)/);
   assert.match(fonte, /if \(FICHA_ABA === 'financeiro' && !fichaEhDono\(\)\) FICHA_ABA = 'geral';/);

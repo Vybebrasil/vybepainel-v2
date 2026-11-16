@@ -2393,13 +2393,9 @@ function redesenharListasDoCliente() {
   const CONCLUIDO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
   const emAberto = (lista) => lista.filter((d) => !CONCLUIDO.includes(String(d.status || '')));
 
-  const conteudos = emAberto(record.content);
-  const gridProd = document.getElementById('grid-cliente-producao');
-  if (gridProd) {
-    gridProd.innerHTML = conteudos.length
-      ? tabelaOperacionalHtml(conteudos, 'producao', { compacta: true })
-      : '<div class="grupos-vazio">Nenhum conteúdo em aberto.</div>';
-  }
+  // Prancha V2-M-Cliente-Conteudo (16/11/2026): os conteúdos são a aba Conteúdo da ficha, no esqueleto próprio
+  // (conteudoDaFichaHtml, em vybe-clientes-ficha.js), com os mesmos editores da operação. Redesenhar = repintar a aba.
+  if (typeof FICHA_ABA === 'string' && FICHA_ABA === 'conteudo' && typeof conteudoDaFichaHtml === 'function') renderClientMasterDetail(cli);
 
   // A lista crua de Solicitacoes fala outro idioma; o normalizador e o mesmo
   // que a tabela de grupos usa.

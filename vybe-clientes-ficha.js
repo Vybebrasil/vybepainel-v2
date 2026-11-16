@@ -393,6 +393,150 @@ function cerebroDaFichaHtml(nome) {
   return `${cartao}${registrosDosChatsHtml(nome)}`;
 }
 
+// ── As abas da ficha no esqueleto das pranchas V2-M-Cliente-* (16/11/2026) ───────────────────────────────────────────
+// Toda aba fora do Resumo tem o mesmo esqueleto: as folhas claras à esquerda e, à direita, direto no vidro, o cartão
+// laranja (o que pede ação nesta aba) e a consulta. Peças: fv2-duas, fv2-vazio, fv2-barras e fv2-op (a lista da operação).
+const FV2_ICO = {
+  ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+  relogio: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  lapis: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  cifrao: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"/><path d="M16.5 7.5C16 6 14.3 5 12 5 9.5 5 7.5 6.2 7.5 8.3c0 4.7 9 2.2 9 7.2 0 2.200-2 3.500-4.500 3.500s-4.300-1-4.800-2.800"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  falta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v6M12 17h.01"/></svg>',
+  olho: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+};
+const fichaPlural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const fichaDiaMes = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(String(iso || '')) ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '');
+const fichaVai = () => (typeof CV2_IC !== 'undefined' ? CV2_IC.vai : '');
+function fv2Matiz(t) { let h = 7; for (const ch of String(t || '')) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0; return h % 360; }
+// Outro módulo do Vybe OS (quem navega é o menu lateral); sem o mundo, o atalho não aparece.
+const fv2PodeIr = () => typeof window !== 'undefined' && typeof window.mundoVoxel?.irPara === 'function';
+function fv2DuasHtml(aba, folhas, lado) {
+  return `<div class="fv2-duas" data-fv2-aba="${aba}"><div class="fv2-col">${folhas}</div><aside class="d3m-lado fv2-lado" aria-label="Consulta">${lado}</aside></div>`;
+}
+function fv2VazioHtml(ico, titulo, texto = '', botao = '') {
+  return `<div class="fv2-vazio"><i class="fv2-vazio-ico" aria-hidden="true">${FV2_ICO[ico] || ''}</i><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ''}${botao}</div>`;
+}
+function fv2LaranjaHtml({ quem = 'Mateus', rotulo, n = '', titulo, apoio = '', botoes = '' }) {
+  return `<section class="d3-acao d3m-laranja cv2-laranja fv2-laranja fv2-lar-aba" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${fichaEsc(quem.slice(0, 1))}</span>${fichaEsc(quem)} · ${rotulo}</span>
+    <span class="d3m-lar-txt">${n === '' ? '' : `<b class="d3m-lar-num">${n}</b>`}<span class="d3-acao-frase">${titulo}</span>${apoio ? `<small>${apoio}</small>` : ''}${botoes ? `<span class="d3m-lar-bts">${botoes}</span>` : ''}</span></section>`;
+}
+function fv2CalmoHtml(titulo, texto, botao = '') {
+  return `<section class="fv2-calmo" aria-label="Leitura desta aba"><b>${titulo}</b><span>${texto}</span>${botao}</section>`;
+}
+function fv2ConsHtml(titulo, lado, dentro, attrs = '') {
+  return `<section class="d3m-cons"${attrs}><div class="d3m-cons-cab"><b>${titulo}</b><span>${lado}</span></div>${dentro}</section>`;
+}
+function fv2VlinHtml(forte, apoio, chamada, ponto = '') {
+  return `<button type="button" class="d3m-vlin" onclick="${chamada}">${ponto ? `<i class="d3m-pt ${ponto}" aria-hidden="true"></i>` : ''}<span><b>${forte}</b>${apoio ? ` · ${apoio}` : ''}</span>${fichaVai()}</button>`;
+}
+// Barras de contagem no vidro: [{ rotulo, n, de, lado, cor, tom, chamada, ligada }].
+function fv2BarrasHtml(linhas) {
+  return `<div class="fv2-barras">${linhas.map((l) => { const v = l.de ? Math.round((Math.max(0, l.n) / l.de) * 100) : 0, tag = l.chamada ? 'button' : 'div';
+    return `<${tag}${l.chamada ? ` type="button" onclick="${l.chamada}" aria-pressed="${Boolean(l.ligada)}"` : ''} class="fv2-barra-lin"><span>${fichaEsc(l.rotulo)}</span><span class="d3m-vbarra${l.tom ? ` ${l.tom}` : ''}"${l.cor ? ` style="--st:${fichaEsc(l.cor)}"` : ''}><i style="--v:${v}%"></i></span><b>${l.lado ?? l.n}</b></${tag}>`; }).join('')}</div>`;
+}
+
+// A lista da operação dentro da ficha (Conteúdo e Demandas): os MESMOS editores do painel (marcar vários, status na
+// linha, data na linha, dono, prévia e abrir a peça), no desenho da prancha.
+const FV2_LISTA = { conteudo: { filtro: 'todas', porStatus: false }, demandas: { filtro: 'abertos' } };
+function fv2Filtrar(aba, filtro) { if (!FV2_LISTA[aba]) return; FV2_LISTA[aba].filtro = filtro; if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente(); }
+function fv2PorStatus() { FV2_LISTA.conteudo.porStatus = !FV2_LISTA.conteudo.porStatus; if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente(); }
+function fv2OrdemVisivel(el) { return [...(el?.closest('.fv2-op-linhas')?.querySelectorAll('input[data-item-id]') || [])].map((x) => x.dataset.itemId); }
+function fv2ContarAbaixo(caixa) {
+  const alvo = caixa?.closest('.fv2-op')?.querySelector('[data-fv2-abaixo]');
+  if (!alvo) return;
+  const fundo = caixa.getBoundingClientRect().bottom;
+  const n = [...caixa.children].filter((l) => l.getBoundingClientRect().top >= fundo - 6).length;
+  alvo.textContent = n ? `mais ${fichaPlural(n, alvo.dataset.um, alvo.dataset.varios)} abaixo` : '';
+}
+function fv2Marcadas(itens) { return typeof SELECIONADAS === 'undefined' ? 0 : itens.filter((x) => SELECIONADAS.has(String(x.d.id))).length; }
+// "Mais" do pé: as ações de lote que não cabem à vista, pelas mesmas funções da barra de lote do painel.
+function fv2MaisDoLote(event) {
+  const botao = event.currentTarget;
+  const demandas = [...SELECIONADAS].map(findOperationalItem).filter(Boolean).every(isRequestItem);
+  const falso = { preventDefault() {}, stopPropagation() {}, currentTarget: botao };
+  const op = (rotulo, chamar) => ({ rotulo, direto: true, cor: 'currentColor', aplicar: () => chamar(falso) });
+  abrirMenuDeLote(event, 'Mais ações', [op('Prazo de produção', (ev) => lotePrazo(ev, 'prazo')), op('Grupo', (ev) => loteGrupo(ev, demandas ? 'demandas' : 'producao')),
+    op(demandas ? 'Tipo' : 'Formato', (ev) => loteEscolha(ev, 'formato')), ...(demandas ? [] : [op('Captação', (ev) => loteEscolha(ev, 'captacao'))]),
+    op('Prioridade', (ev) => loteEscolha(ev, 'prioridade')), op('Arquivar', () => loteArquivar())], '');
+}
+function fv2LinhaOpHtml(x, hoje) {
+  const d = x.d, id = jsArg(String(d.id)), pedido = typeof isRequestItem === 'function' && isRequestItem(d);
+  const bruto = String(d.nome || d.formato || 'Peça'), m = /^(.*?)\s+-\s+(.*)$/.exec(bruto);
+  const [tipo, titulo] = m ? [m[1], m[2]] : [String(d.formato || '').trim() || (pedido ? 'Pedido' : 'Peça'), bruto];
+  const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
+  const prazo = String(d.prazo_iso || '').slice(0, 10), veic = String(d.veiculacao_iso || '').slice(0, 10);
+  const data = (campo, iso, dica, manda) => { const venceu = manda && iso && iso < hoje, eHoje = manda && iso === hoje;
+    return `<label class="fv2-op-data fv2-op-c-${campo}${venceu ? ' r' : eHoje ? ' a' : ''}${iso ? '' : ' sem'}" title="${dica}" onclick="event.stopPropagation()"><span>${!iso ? 'sem data' : venceu ? `era ${fichaDiaMes(iso)}` : eHoje ? 'hoje' : fichaDiaMes(iso)}</span><input type="date" value="${fichaEsc(iso)}" aria-label="${dica} de ${fichaEsc(d.nome || '')}" onclick="event.stopPropagation();try{this.showPicker()}catch{}" onchange="event.stopPropagation();salvarDataNaLinha('${id}','${campo}',this)"></label>`; };
+  const mini = typeof jaTemMaterial === 'function' && jaTemMaterial(d)
+    ? `<button type="button" class="fv2-op-mini" style="--h:${fv2Matiz(tipo + titulo)}" data-previa-id="${fichaEsc(String(d.id))}" onclick="event.stopPropagation();abrirPreviaDaEntrega('${id}',this)" title="Ver o material entregue" aria-label="Ver prévia de ${fichaEsc(d.nome || 'atividade')}">${FV2_ICO.olho}</button>`
+    : `<i class="fv2-op-mini" style="--h:${fv2Matiz(tipo + titulo)}" aria-hidden="true"></i>`;
+  return `<div class="fv2-op-lin${marcada ? ' marcada' : ''}" title="Abrir ${fichaEsc(d.nome || '')}" onclick="openItemWorkspace('${id}')">
+      <input type="checkbox" class="fv2-op-marca" ${marcada ? 'checked' : ''} data-item-id="${fichaEsc(String(d.id))}" aria-label="Selecionar ${fichaEsc(d.nome || '')}" onclick="event.stopPropagation();alternarSelecao('${id}',this.checked,event,fv2OrdemVisivel(this))">
+      ${mini}<button type="button" class="fv2-op-nome" onclick="event.stopPropagation();openItemWorkspace('${id}')"><b>${fichaEsc(tipo)}</b> · ${fichaEsc(titulo)}</button>
+      <span class="fv2-op-c-st" onclick="event.stopPropagation()">${typeof pv2StatusBotao === 'function' ? pv2StatusBotao(d) : fichaEsc(d.status || 'Sem status')}</span>
+      ${data('prazo', prazo, 'Prazo de produção', !veic)}${data('veiculacao', veic, pedido ? 'Data de conclusão' : 'Data de veiculação', true)}
+      <span class="fv2-op-c-quem" onclick="event.stopPropagation()">${typeof pv2Av === 'function' ? pv2Av(d) : ''}</span></div>`;
+}
+// A folha da lista: cabeçalho com os recortes, as linhas (só elas rolam) e o pé com o que fazer com as marcadas.
+function fv2FolhaOpHtml({ idGrade, titulo, chips, colunas, itens, vazio, um, varios, todos }) {
+  const hoje = hojeIsoV2(), marcadas = fv2Marcadas(todos);
+  const bt = (rot, chamada) => `<button type="button" class="d3v-btn sec s fv2-op-acao"${marcadas ? '' : ' disabled'} onclick="${chamada}">${rot}</button>`;
+  return `<section class="fv2-folha fv2-op fv2-cheia" aria-label="Lista de ${varios}"><div class="cv2-cab fv2-op-cab"><h3>${titulo}</h3><span class="cv2-filtros">${chips}</span></div>
+      ${itens.length ? `<div class="fv2-op-th" aria-hidden="true"><span class="fv2-op-c-marca"></span><span class="fv2-op-c-mini"></span><span class="fv2-op-c-nome">${colunas[0]}</span><span class="fv2-op-c-st">Status</span><span class="fv2-op-c-prazo">Prazo</span><span class="fv2-op-c-veiculacao">${colunas[1]}</span><span class="fv2-op-c-quem">Quem</span></div>` : ''}
+      <div class="fv2-op-linhas" id="${idGrade}" onscroll="fv2ContarAbaixo(this)">${itens.map((x) => fv2LinhaOpHtml(x, hoje)).join('') || vazio}</div>
+      ${todos.length ? `<div class="fv2-op-pe" role="toolbar" aria-label="Ações para as marcadas"><span class="fv2-op-pe-txt"><b>${marcadas ? fichaPlural(marcadas, 'marcada', 'marcadas') : 'Nenhuma marcada'}</b><span data-fv2-abaixo data-um="${um}" data-varios="${varios}"></span>${marcadas ? '<button type="button" class="cv2-chip" onclick="limparSelecao()">desmarcar</button>' : ''}</span>
+        <span class="fv2-op-pe-bts">${bt('Mudar a data', "lotePrazo(event,'veiculacao')")}${bt('Trocar o dono', 'loteResponsavel(event)')}${bt('Mudar o status', 'loteStatus(event)')}${bt('Mais', 'fv2MaisDoLote(event)')}</span></div>` : ''}</section>`;
+}
+// "Reagendar as N": marca as vencidas e abre a troca de data das marcadas (a mesma do painel).
+function fv2ReagendarVencidas(event) {
+  const ids = vencidosDoCliente(CLIENTE_ABERTO).map((x) => String(x.d.id));
+  if (!ids.length || typeof SELECIONADAS === 'undefined') return;
+  SELECIONADAS.clear(); ids.forEach((i) => SELECIONADAS.add(i));
+  FV2_LISTA.conteudo.filtro = 'vencidas';
+  if (typeof repintarOndeHaSelecao === 'function') repintarOndeHaSelecao(); else redesenharListasDoCliente();
+  lotePrazo(event, 'veiculacao');
+}
+
+// Aba Conteúdo (prancha V2-M-Cliente-Conteudo): os conteúdos em aberto, a veiculação mais antiga primeiro; ao lado, as
+// vencidas no cartão laranja, a contagem por status e os atalhos.
+function conteudoDaFichaHtml(nome) {
+  const E = FV2_LISTA.conteudo, hoje = hojeIsoV2(), id = String(idDoCliente(nome) || ''), aspas = fichaAspas(nome);
+  const todos = conteudosAbertosV2(nome).sort((a, b) => (a.quando || '9999').localeCompare(b.quando || '9999'));
+  const stDe = (x) => String(x.d.status || 'Sem status');
+  const recortes = { todas: () => true, vencidas: (x) => Boolean(x.quando) && x.quando < hoje, alteracao: (x) => /altera/i.test(stDe(x)), aprovacao: (x) => /aprova/i.test(stDe(x)) };
+  const conta = Object.fromEntries(Object.entries(recortes).map(([k, f]) => [k, todos.filter(f).length]));
+  const soStatus = E.filtro.startsWith('st:') ? E.filtro.slice(3) : '';
+  if (!soStatus && !recortes[E.filtro]) E.filtro = 'todas';
+  let itens = todos.filter(soStatus ? (x) => stDe(x) === soStatus : recortes[E.filtro]);
+  if (E.porStatus) itens = [...itens].sort((a, b) => stDe(a).localeCompare(stDe(b), 'pt-BR') || (a.quando || '9999').localeCompare(b.quando || '9999'));
+  const chip = (k, rot, tom = '') => `<button type="button" class="cv2-chip" role="radio" aria-checked="${E.filtro === k}" onclick="fv2Filtrar('conteudo','${k}')">${rot}<span${tom && conta[k] ? ` class="${tom}"` : ''}>${conta[k]}</span></button>`;
+  const chips = `<span class="cv2-chips" role="radiogroup" aria-label="Recorte">${chip('todas', 'Todas')}${chip('vencidas', 'Vencidas', 'cv2-ruim')}${chip('alteracao', 'Em alteração')}${chip('aprovacao', 'Para aprovação')}${
+      soStatus ? `<button type="button" class="cv2-chip" role="radio" aria-checked="true" title="Tirar este recorte" onclick="fv2Filtrar('conteudo','todas')">${fichaEsc(soStatus)}<span>${itens.length}</span></button>` : ''}</span>
+      <i class="cv2-risco" aria-hidden="true"></i><button type="button" class="cv2-chip" data-ligado="${E.porStatus}" aria-pressed="${E.porStatus}" title="Juntar as peças do mesmo status" onclick="fv2PorStatus()">Por status</button>`;
+  const folha = fv2FolhaOpHtml({ idGrade: 'grid-cliente-producao', um: 'conteúdo', varios: 'conteúdos', todos, itens, chips, colunas: ['Conteúdo', 'Veiculação'],
+    titulo: `${fichaPlural(todos.length, 'conteúdo em aberto', 'conteúdos em aberto')} <span>· ${E.porStatus ? 'juntos por status' : 'a veiculação mais antiga primeiro'}</span>`,
+    vazio: todos.length ? fv2VazioHtml('ok', 'Nenhum conteúdo neste recorte', '', `<button type="button" class="d3v-btn sec s" onclick="fv2Filtrar('conteudo','todas')">Ver todos</button>`)
+      : fv2VazioHtml('ok', 'Nenhum conteúdo em aberto', 'O que entrar na produção deste cliente aparece aqui, com o status, o prazo e a veiculação.') });
+
+  const vencidas = todos.filter(recortes.vencidas), esperam = vencidas.filter((x) => /info/i.test(stDe(x))).length;
+  const alto = vencidas.length ? fv2LaranjaHtml({ rotulo: 'o mais grave da conta', n: vencidas.length, titulo: vencidas.length === 1 ? 'peça passou da veiculação' : 'peças passaram da veiculação',
+      apoio: `A mais antiga era para ${fichaDiaMes(vencidas[0].quando)}.${esperam ? ` ${esperam === 1 ? 'Uma espera' : `${esperam} esperam`} o cliente.` : ''}`,
+      botoes: `<button type="button" class="d3m-btn l" title="Marca as vencidas e abre a troca de data" onclick="fv2ReagendarVencidas(event)">${vencidas.length === 1 ? 'Reagendar' : `Reagendar as ${vencidas.length}`}</button><button type="button" class="d3m-btn l s" onclick="fv2Filtrar('conteudo','vencidas')">Uma a uma</button>` })
+    : fv2CalmoHtml('Nenhuma peça vencida.', todos.length ? 'Todas as datas de veiculação estão pela frente.' : 'Sem conteúdo em aberto neste cliente.');
+  const porStatus = Object.entries(todos.reduce((m, x) => { (m[stDe(x)] = m[stDe(x)] || []).push(x); return m; }, {})).sort((a, b) => b[1].length - a[1].length);
+  const maior = porStatus.length ? porStatus[0][1].length : 0;
+  const barras = porStatus.length ? fv2ConsHtml('Por status', fichaPlural(todos.length, 'aberta', 'abertas'), fv2BarrasHtml(porStatus.slice(0, 7).map(([st, l]) => ({ rotulo: st, n: l.length, de: maior,
+    cor: l[0].d.status_color || (typeof corDeStatus === 'function' ? corDeStatus(st)?.cor : '') || '', ligada: soStatus === st, chamada: `fv2Filtrar('conteudo','${soStatus === st ? 'todas' : `st:${fichaAspas(st)}`}')` }))), ' aria-label="Conteúdos por status"') : '';
+  const plj = id && typeof planejamentosDaFicha === 'function' ? planejamentosDaFicha(id, nome) : null;
+  const ultimo = plj && plj.lista && plj.lista[0];
+  const mes = (p) => String(typeof pljMes === 'function' ? pljMes(p.mes) : p.mes || '').toLowerCase();
+  const abrir = [fv2PodeIr() ? fv2VlinHtml('Aprovação de conteúdo', 'o feed do mês', "window.mundoVoxel.irPara('conteudo')") : '',
+    ultimo ? fv2VlinHtml(`Planejamento de ${fichaEsc(mes(ultimo))}`, '', `abrirPlanejamento('${jsArg(ultimo.id)}')`)
+      : plj && plj.podeCriar && typeof novoPlanejamento === 'function' ? fv2VlinHtml('Começar um planejamento', '', `novoPlanejamento('${jsArg(id)}', '${aspas}')`) : ''].join('');
+  return fv2DuasHtml('conteudo', folha, alto + barras + (abrir ? fv2ConsHtml('Abrir', '', abrir) : ''));
+}
+
 // Embrulha a ficha que já existia. Pelo quadro "Ficha do cliente" do moodboard (12/11/2026): a nota e a fala ficam em
 // cima de todas as abas; a barra tem Resumo, Demandas, Conteúdo, Reuniões e Onboarding com a contagem de cada uma, o
 // Financeiro (só para os donos, abre Finanças por cliente) e, à direita, Ecossistema e Cérebro. O Cadastro abre pela
@@ -402,6 +546,8 @@ function cerebroDaFichaHtml(nome) {
   const original = renderClientMasterDetail;
   const CADEADO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
   renderClientMasterDetail = function (cli) {
+    // A lista de uma aba guarda a rolagem entre um desenho e outro (marcar uma peça não leva a lista para o alto).
+    const rolagem = document.querySelector('#client-master-detail .fv2-op-linhas')?.scrollTop || 0;
     original(cli);
     const node = document.getElementById('client-master-detail');
     if (!node || !node.innerHTML) return;
@@ -409,6 +555,7 @@ function cerebroDaFichaHtml(nome) {
     const nome = (clientMasterRecords().find((r) => r.name === cli || normalizeClientKey(r.name) === normalizeClientKey(cli)) || {}).name || cli;
     const corpo = node.querySelector('.v2f-corpo') || node;
     // Fora do Resumo, a aba mora numa folha clara que rola por dentro (o esqueleto de cada aba vem da prancha dela).
+    const naAba = (html) => { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = html; };
     const naFolha = (html) => { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = `<div class="fv2-folha fv2-aba-folha" data-aba="${FICHA_ABA}">${html}</div>`; };
     if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
     if (FICHA_ABA === 'cadastro') naFolha(cadastroLeituraHtml(nome));
@@ -417,17 +564,17 @@ function cerebroDaFichaHtml(nome) {
     else if (FICHA_ABA === 'cerebro') naFolha(cerebroDaFichaHtml(nome));
     else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naFolha(window.VybeReunioes.reunioesHtml(nome));
     else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naFolha(window.VybeReunioes.onboardingHtml(nome));
-    else if (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas') { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = ''; }
+    else if (FICHA_ABA === 'conteudo') naAba(conteudoDaFichaHtml(nome));
+    else if (FICHA_ABA === 'demandas') { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = ''; }
     else node.querySelector('#vybes-cli-cerebro-card')?.remove();
     // As listas completas (prazo, status, seleção de vários) só aparecem na aba delas.
-    const naLista = FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas';
-    if (listas) {
-      listas.style.display = naLista ? '' : 'none';
-      const [conteudos, pedidos] = listas.querySelectorAll(':scope > section');
-      if (conteudos) conteudos.hidden = FICHA_ABA !== 'conteudo';
-      if (pedidos) pedidos.hidden = FICHA_ABA !== 'demandas';
-    }
+    const naLista = FICHA_ABA === 'demandas';
+    if (listas) listas.style.display = naLista ? '' : 'none';
     node.dataset.aba = FICHA_ABA;
+    // A folha de estilo lê a aba no body (a barra de lote do painel dá lugar ao pé da lista da aba).
+    if (document.body?.dataset) document.body.dataset.fv2Aba = FICHA_ABA;
+    const linhasOp = node.querySelector('.fv2-op-linhas');
+    if (linhasOp) { linhasOp.scrollTop = rolagem; fv2ContarAbaixo(linhasOp); }
     // Onboarding só aparece para quem está (ou esteve) em onboarding; a leitura das reuniões diz isso e repinta.
     const idFicha = typeof idDoCliente === 'function' ? String(idDoCliente(nome) || '') : '';
     if (idFicha && window.VybeReunioes?.carregar) window.VybeReunioes.carregar(idFicha);

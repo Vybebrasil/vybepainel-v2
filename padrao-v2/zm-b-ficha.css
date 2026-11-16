@@ -13,7 +13,7 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe{order:0;flex:1 1 0;display:flex;flex-direction:column;gap:16px;min-height:0;margin:-14px -30px -36px}
 #painel-clientes #panel-cliente-detalhe > #cliente-detalhe-cabeca{flex:none;margin:0;padding:0;border:0;background:none;container:fv2topo / inline-size}
 #painel-clientes #panel-cliente-detalhe > #client-master-detail{flex:1 1 0;display:block;min-height:0;margin:0;padding:0;background:none}
-#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="conteudo"],#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="demandas"]{display:none}
+#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="demandas"]{display:none}
 
 /* 2 · O alto. */
 #painel-clientes .fv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:48px;margin:0;padding:0 96px 0 0;border:0;background:none;color:var(--d3-fume-texto)}
