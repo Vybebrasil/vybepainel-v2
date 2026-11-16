@@ -305,6 +305,15 @@
         ${dados.length ? `<dl class="d3a-dados">${dados.map(([r, v]) => `<dt>${r}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}
         ${legenda ? `<p class="v2c-leg">${esc(legenda)}</p>` : ''}</div></article>`;
   }
+  // O leque (Paulo, 15/11/2026: "melhora a forma de mostrar os conteúdos para aprovar... quero foda assim também", com o
+  // card fan de referência): as artes da fila abertas como cartas na mão, a da vez de pé no meio, as anteriores à
+  // esquerda e as próximas à direita. Passar de peça só troca as posições (--lp), e as cartas giram com mola.
+  const LEQUE_LADO = 3;
+  function lequeHtml(i, k) {
+    const d = k - st.apr, a = Math.abs(d), ref = String(i.ref), thumb = st.thumbs[ref];
+    if (a <= LEQUE_LADO && thumb === undefined) buscarThumb(ref);
+    return `<button type="button" class="d3a-leque-c${d === 0 ? ' vez' : ''}" data-vc-leque="${k}" style="--lp:${d};--alp:${a}"${a > LEQUE_LADO ? ' hidden' : ''} tabindex="-1" title="${esc(nomeDaPeca(i))}" aria-label="Ver ${esc(nomeDaPeca(i))}">${i.formato ? `<span class="d3a-selo">${esc(i.formato)}</span>` : ''}${arteHtml(ref, thumb, '', a <= LEQUE_LADO)}</button>`;
+  }
   // A fala do Augusto: quantas esperam, quantas veiculam amanhã e como está o mês. O botão aprova as de amanhã, uma por
   // vez, cada uma pelo portão de sempre.
   function falaHtml(f) {
@@ -378,7 +387,7 @@
     const pontos = fila.length <= 12 ? `<span class="v2-pontos" aria-hidden="true">${fila.map((_, k) => `<i${k === st.apr ? ' class="on"' : ''}></i>`).join('')}</span>` : '';
     // Direção 3: o cartão "Para aprovar" com o baralho, ‹ Pedir alteração · Aprovar › embaixo e os pontos.
     return `<div class="v2c-mesa"><section class="d3a-card d3a-mesa" aria-label="Para aprovar"><div class="d3a-topo"><h3>Para aprovar</h3><span><b data-vc-apr-conta>${st.apr + 1} de ${fila.length}</b> · <button type="button" class="v2c-link" data-vc-apr-lista>ver em lista</button></span></div>
-        <div class="v2-baralho vc-apr-baralho" aria-live="polite">${fila.map(cartaHtml).join('')}</div>
+        <div class="d3a-palco"><div class="d3a-leque">${fila.map(lequeHtml).join('')}</div><div class="v2-baralho vc-apr-baralho" aria-live="polite">${fila.map(cartaHtml).join('')}</div></div>
         <div class="v2c-acoes"><button type="button" class="v2c-btn d3a-passo" data-vc-apr-passo="-1" aria-label="Anterior"${st.apr <= 0 ? ' disabled' : ''}>‹</button><button type="button" class="v2c-btn g" data-vc-apr="alterar">Pedir alteração</button><button type="button" class="v2c-btn g k" data-vc-apr="aprovar">Aprovar</button><button type="button" class="v2c-btn d3a-passo" data-vc-apr-passo="1" aria-label="Próxima"${st.apr >= fila.length - 1 ? ' disabled' : ''}>›</button></div>
         <p class="v2c-conta">${pontos}</p></section></div>`;
   }
@@ -450,12 +459,15 @@
     const novo = Math.max(0, Math.min(para, fila.length - 1));
     if (novo === st.apr || !fila.length) return;
     st.apr = novo;
-    const faltaThumb = fila.slice(novo, novo + 3).some((i) => st.thumbs[String(i.ref)] === undefined);
+    const faltaThumb = fila.slice(Math.max(0, novo - LEQUE_LADO), novo + LEQUE_LADO + 1).some((i) => st.thumbs[String(i.ref)] === undefined);
     if (faltaThumb || st.aprLista) return pintar(); // a prévia das que chegaram é pedida no desenho
     el.querySelectorAll('[data-vc-carta]').forEach((c) => { const k = Number(c.dataset.vcCarta), pos = posDaCarta(k);
       if (pos) c.dataset.pos = pos; else delete c.dataset.pos;
       c.setAttribute('aria-hidden', String(pos !== '0')); const b = c.querySelector('[data-vc-apr-ver]'); if (b) { if (pos === '0') b.removeAttribute('tabindex'); else b.tabIndex = -1; } });
     el.querySelectorAll('.v2c-mesa .v2-pontos > i').forEach((p, k) => p.classList.toggle('on', k === novo));
+    // O leque gira: cada arte vai para a posição nova (a transição do CSS faz o resto).
+    el.querySelectorAll('[data-vc-leque]').forEach((c) => { const d = Number(c.dataset.vcLeque) - novo, a = Math.abs(d);
+      c.style.setProperty('--lp', d); c.style.setProperty('--alp', a); c.hidden = a > LEQUE_LADO; c.classList.toggle('vez', d === 0); });
     // A linha destacada da Fila acompanha a carta da frente.
     el.querySelectorAll('.v2c-fila [data-vc-apr-ir]').forEach((l) => { if (Number(l.dataset.vcAprIr) === novo) l.setAttribute('aria-current', 'true'); else l.removeAttribute('aria-current'); });
     const conta = el.querySelector('[data-vc-apr-conta]'); if (conta) conta.textContent = `${novo + 1} de ${fila.length}`;
@@ -700,6 +712,7 @@
     if (t.matches('[data-vc-apr-lote]')) { st.lote = deAmanha(filaParaAprovar()?.fila || []).map((i) => String(i.ref)); return seguirLote(); }
     if (t.matches('[data-vc-apr-reler]')) return relerFila(true);
     if (t.dataset.vcAprIr !== undefined) { st.lote = []; if (st.aprLista) { st.aprLista = false; st.apr = Number(t.dataset.vcAprIr); return pintar(); } return passar(Number(t.dataset.vcAprIr)); }
+    if (t.dataset.vcLeque !== undefined) { st.lote = []; return passar(Number(t.dataset.vcLeque)); }
     if (t.dataset.vcAprPasso !== undefined) { st.lote = []; return passar(st.apr + Number(t.dataset.vcAprPasso)); }
     if (t.dataset.vcApr) return decidir(t.dataset.vcApr);
     if (t.dataset.vcAprVer !== undefined) { if (Date.now() - arrastouEm < 400) return; const i = (filaParaAprovar()?.fila || [])[Number(t.dataset.vcAprVer)]; if (i) abrirDaFila(i); return; }
