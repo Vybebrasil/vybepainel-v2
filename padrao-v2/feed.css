@@ -160,7 +160,7 @@
    a barra de cima em cápsula de vidro, o celular da frente em vidro fosco claro e os vizinhos virados para o centro,
    cada vez mais escuros. Trocar de cliente só desliza (--d) com mola. */
 .vfd-camada{--vidro-claro:color-mix(in srgb,var(--d3-cartao) 16%,transparent);--vidro-borda:color-mix(in srgb,var(--d3-cartao) 26%,transparent);
-  position:fixed;inset:0;z-index:740;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:0;padding:20px 24px 22px;box-sizing:border-box;
+  position:fixed;inset:0;z-index:690;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:0;padding:20px 24px 22px;box-sizing:border-box;
   background:radial-gradient(120% 90% at 50% 38%,color-mix(in srgb,var(--d3-tinta) 66%,transparent),color-mix(in srgb,var(--d3-tinta) 90%,transparent));
   -webkit-backdrop-filter:blur(30px) saturate(1.25);backdrop-filter:blur(30px) saturate(1.25);
   opacity:0;transition:opacity .35s ease;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
@@ -173,7 +173,7 @@ body.vfd-aberto .cartao-rapido-fundo{z-index:741}
 body.vfd-aberto .cartao-rapido{z-index:742}
 body.vfd-aberto .fc-overlay{z-index:743}
 /* A barra de cima: uma cápsula de vidro fina, centrada, com o texto claro. */
-.vfd-c-topo{justify-self:center;display:flex;align-items:center;gap:6px 14px;max-width:min(1180px,100%);padding:6px 6px 6px 18px;border-radius:999px;
+.vfd-c-topo{justify-self:center;display:flex;align-items:center;gap:6px 14px;max-width:min(1180px,calc(100% - 220px));padding:5px 5px 5px 16px;border-radius:12px;
   background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda),0 20px 40px -24px color-mix(in srgb,var(--d3-tinta) 80%,transparent);
   color:var(--d3-cartao);transform:translateY(-12px);opacity:0;transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .4s ease}
 .vfd-entrou .vfd-c-topo{transform:none;opacity:1}
@@ -183,21 +183,21 @@ body.vfd-aberto .fc-overlay{z-index:743}
 .vfd-c-tit .vfd-r{color:var(--d3-cartao);font-weight:700}
 .vfd-c-ctl{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
 .vfd-c-ctl .vfd-vista,.vfd-c-ctl .vfd-filtros{flex-wrap:nowrap;gap:4px}
-.vfd-c-ctl .vfd-chip{height:30px;padding:0 12px;background:transparent;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:color-mix(in srgb,var(--d3-cartao) 82%,transparent);white-space:nowrap;transition:background .2s ease,color .2s ease}
+.vfd-c-ctl .vfd-chip{height:28px;padding:0 11px;border-radius:8px;background:transparent;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:color-mix(in srgb,var(--d3-cartao) 82%,transparent);white-space:nowrap;transition:background .2s ease,color .2s ease}
 .vfd-c-ctl .vfd-chip:hover{background:var(--vidro-claro);color:var(--d3-cartao)}
 .vfd-c-ctl .vfd-chip[aria-pressed="true"]{background:var(--d3-cartao);color:var(--d3-tinta)}
-.vfd-c-ctl .vfd-sel{height:30px;padding:0 4px 0 10px;background:var(--vidro-claro);color:color-mix(in srgb,var(--d3-cartao) 70%,transparent);white-space:nowrap}
+.vfd-c-ctl .vfd-sel{height:28px;padding:0 4px 0 10px;border-radius:8px;background:var(--vidro-claro);color:color-mix(in srgb,var(--d3-cartao) 70%,transparent);white-space:nowrap}
 .vfd-c-ctl .vfd-sel select{height:26px;max-width:170px;background:transparent;color:var(--d3-cartao);font-size:var(--d3-fs-apoio)}
 .vfd-c-ctl .vfd-sel option{color:var(--d3-tinta)}
 .vfd-c-ctl .vfd-mes{height:30px;background:var(--vidro-claro);color:var(--d3-cartao)}
 .vfd-c-ctl .vfd-mes-seta{width:26px;height:26px;background:transparent;color:var(--d3-cartao)}
-.vfd-c-fechar{position:relative;flex:none;width:36px;height:36px;border:0;border-radius:50%;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda);cursor:pointer;transition:transform .25s ease,background .2s ease}
+.vfd-c-fechar{position:relative;flex:none;width:30px;height:30px;border:0;border-radius:9px;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda);cursor:pointer;transition:transform .25s ease,background .2s ease}
 .vfd-c-fechar:hover{transform:rotate(90deg);background:color-mix(in srgb,var(--d3-cartao) 26%,transparent)}
 .vfd-c-fechar i::before,.vfd-c-fechar i::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:2px;border-radius:1px;background:var(--d3-cartao);transform:translate(-50%,-50%) rotate(45deg)}
 .vfd-c-fechar i::after{transform:translate(-50%,-50%) rotate(-45deg)}
 /* O palco: perspectiva para os vizinhos virarem para o centro; cada celular rola por dentro. */
 .vfd-c-palco{position:relative;min-height:0;overflow:hidden;perspective:1800px;perspective-origin:50% 45%}
-.vfd-cel{--larg:min(430px,86vw);position:absolute;left:50%;top:max(28px,calc(50% - 400px));bottom:max(28px,calc(50% - 400px));width:var(--larg);margin-left:calc(var(--larg) / -2);border-radius:32px;overflow:hidden;
+.vfd-cel{--larg:min(430px,86vw);position:absolute;left:50%;top:max(28px,calc(50% - 400px));bottom:max(28px,calc(50% - 400px));width:var(--larg);margin-left:calc(var(--larg) / -2);border-radius:20px;overflow:hidden;
   background:var(--d3-cartao);
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--d3-cartao) 40%,transparent),0 50px 90px -30px color-mix(in srgb,var(--d3-tinta) 90%,transparent);
   z-index:calc(20 - var(--ad,0));transform-origin:50% 50%;
@@ -219,13 +219,13 @@ body.vfd-aberto .fc-overlay{z-index:743}
 .vfd-cel[data-ad="3"],.vfd-cel[data-ad="4"]{filter:brightness(.22) saturate(.6)}
 .vfd-cel[data-ad="1"]:hover{filter:brightness(.62) saturate(.9)}
 .vfd-cel.vfd-frente .vfd-cel-capa{display:none}
-.vfd-cel-capa:focus-visible{outline:3px solid var(--d3-acao);outline-offset:-3px;border-radius:32px}
+.vfd-cel-capa:focus-visible{outline:3px solid var(--d3-acao);outline-offset:-3px;border-radius:20px}
 /* A barra da seleção do lote fica presa no pé do celular. */
 .vfd-cel .vfd-barra{bottom:10px;margin:0 10px}
 /* A doca: cápsula de vidro, setas claras, o nome, "4 / 15" e os pontos. */
 .vfd-c-doca{display:flex;justify-content:center;min-height:0;padding-top:2px}
-.vfd-doca{display:flex;align-items:center;gap:12px;padding:6px;border-radius:999px;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda),0 18px 36px -18px color-mix(in srgb,var(--d3-tinta) 80%,transparent);color:var(--d3-cartao)}
-.vfd-doca-seta{width:40px;height:40px;border:0;border-radius:50%;background:var(--d3-cartao);font:600 var(--d3-fs-titulo)/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:transform .18s ease}
+.vfd-doca{display:flex;align-items:center;gap:12px;padding:5px;border-radius:14px;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda),0 18px 36px -18px color-mix(in srgb,var(--d3-tinta) 80%,transparent);color:var(--d3-cartao)}
+.vfd-doca-seta{width:34px;height:34px;border:0;border-radius:10px;background:var(--d3-cartao);font:600 var(--d3-fs-titulo)/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:transform .18s ease}
 .vfd-doca-seta:hover{transform:scale(1.08)}
 .vfd-doca-seta:active{transform:scale(.94)}
 .vfd-doca-meio{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;max-width:min(340px,58vw);padding:0 8px;text-align:center}

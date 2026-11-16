@@ -27,7 +27,10 @@ test('o Feed abre numa camada por cima de tudo e o quadro antigo do Painel fica 
   assert.ok(src.includes("if (wrap) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); }"));
   assert.ok(src.includes("document.body.classList.add('vfd-aberto');"));
   const css = ler('padrao-v2/feed.css');
-  assert.match(css, /\.vfd-camada\{[^}]*position:fixed;inset:0;z-index:740;/);
+  // Abaixo do menu e da barra do Vybe OS (camada 700) e encaixada na moldura do módulo (Paulo, 15/11/2026: "parece que
+  // tô saindo do sistema").
+  assert.match(css, /\.vfd-camada\{[^}]*position:fixed;inset:0;z-index:690;/);
+  assert.ok(src.includes("const m = document.getElementById('mundo-moldura'), r = m?.getBoundingClientRect();"));
   // O cartão rápido e o cadastro, que abrem da camada, sobem junto.
   assert.match(css, /body\.vfd-aberto \.cartao-rapido\{z-index:742\}/);
   assert.match(css, /body\.vfd-aberto \.fc-overlay\{z-index:743\}/);

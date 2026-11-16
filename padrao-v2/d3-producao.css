@@ -545,3 +545,63 @@ button.d3s-lin-txt{cursor:pointer}
   #vv-conteudo.vc.vc .d3a-palco .v2-baralho{height:300px}
   #vv-conteudo.vc.vc .d3a-leque-c{width:min(52%,190px)}
 }
+/* A mesa da aprovação no padrão novo (Paulo, 15/11/2026: "do lado ali com a copy certinha como ia ficar no Insta, quem
+   fez, as infos... princípios de modernidade", e "o nosso muito tudo branco; olha como esse usou bem as cores"): a mesa
+   ocupa a largura toda (fila e equilíbrio embaixo, lado a lado), a arte grande no leque à esquerda e, à direita, o painel
+   escuro com o post como sai no Instagram, quem fez e as informações, cada uma na sua cor. Aprovar é a ação: laranja. */
+#vv-conteudo.vc.vc .v2c-cols{grid-template-columns:minmax(0,1fr)}
+#vv-conteudo.vc.vc .v2c-lado{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+#vv-conteudo.vc.vc .d3a-palco{grid-template-columns:minmax(0,1fr) minmax(320px,420px);gap:24px;height:560px}
+#vv-conteudo.vc.vc .d3a-leque-c{width:min(56%,320px)}
+#vv-conteudo.vc.vc .d3a-palco .v2-baralho > .d3a-ig{display:block;padding:0;border-radius:24px;background:var(--d3-tinta);color:var(--d3-cartao);box-shadow:0 30px 60px -30px color-mix(in srgb,var(--d3-tinta) 70%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig .d3a-info{height:100%;box-sizing:border-box;gap:14px;padding:18px 18px 16px;overflow-y:auto;scrollbar-width:thin}
+#vv-conteudo.vc.vc .d3a-ig-tit{display:flex;flex-direction:column;gap:4px;margin:0}
+#vv-conteudo.vc.vc .d3a-ig-tit b{font:700 var(--d3-fs-titulo)/1.2 var(--vv-titulo,Inter),sans-serif;color:var(--d3-cartao)}
+#vv-conteudo.vc.vc .d3a-ig-tit .v2c-cli{color:color-mix(in srgb,var(--d3-cartao) 72%,transparent)}
+/* O post como sai no Instagram: cartão claro dentro do painel escuro. */
+#vv-conteudo.vc.vc .d3a-ig-post{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:16px;background:var(--d3-cartao);color:var(--d3-tinta)}
+#vv-conteudo.vc.vc .d3a-ig-cab{margin:0;padding:0;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;align-items:center}
+#vv-conteudo.vc.vc .d3a-ig-av{grid-row:1 / 3;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--d3-trilho);box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 4px var(--d3-acao);font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2)}
+#vv-conteudo.vc.vc .d3a-ig-av img{width:100%;height:100%;object-fit:cover}
+#vv-conteudo.vc.vc .d3a-ig-cab b{font:700 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-conteudo.vc.vc .d3a-ig-cab small{font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
+#vv-conteudo.vc.vc .d3a-ig-leg{margin:0;white-space:pre-line;font-size:var(--d3-fs-texto);line-height:1.45;overflow-wrap:anywhere}
+#vv-conteudo.vc.vc .d3a-ig-leg b{font-weight:700}
+#vv-conteudo.vc.vc .d3a-ig-sem{color:var(--d3-apagado);font-size:var(--d3-fs-apoio)}
+/* Quem fez: rosto, nome e papel. */
+#vv-conteudo.vc.vc .d3a-ig-quem{display:flex;flex-wrap:wrap;gap:8px 16px}
+#vv-conteudo.vc.vc .d3a-ig-quem h4{flex-basis:100%;margin:0;font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,var(--d3-cartao) 55%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-pessoa{display:flex;align-items:center;gap:8px;min-width:0}
+#vv-conteudo.vc.vc .d3a-ig-pessoa .v2c-av{width:30px;height:30px;background:var(--d3-acao);color:var(--d3-cartao);font-size:var(--d3-fs-mini)}
+#vv-conteudo.vc.vc .d3a-ig-pessoa > span{display:flex;flex-direction:column;min-width:0}
+#vv-conteudo.vc.vc .d3a-ig-pessoa b{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao)}
+#vv-conteudo.vc.vc .d3a-ig-pessoa small{font-size:var(--d3-fs-mini);color:color-mix(in srgb,var(--d3-cartao) 58%,transparent)}
+/* As informações: blocos de vidro escuro, cada um com o ponto da sua cor. */
+#vv-conteudo.vc.vc .d3a-ig-infos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+#vv-conteudo.vc.vc .d3a-ig-info{--c:var(--d3-cartao);padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--d3-cartao) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--d3-cartao) 10%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-info dt{display:flex;align-items:center;gap:6px;font-size:var(--d3-fs-mini);color:color-mix(in srgb,var(--d3-cartao) 60%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-info dt i{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-info dd{margin:4px 0 0;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-conteudo.vc.vc .d3a-ig-info dd b{font-weight:700}
+#vv-conteudo.vc.vc .d3a-ig-info dd b.r{color:color-mix(in srgb,var(--d3-perigo) 55%,var(--d3-cartao))}
+#vv-conteudo.vc.vc .d3a-ig-info dd b.a{color:color-mix(in srgb,var(--d3-ajuste) 45%,var(--d3-cartao))}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="status"]{--c:var(--d3-st,var(--d3-info))}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="formato"]{--c:var(--d3-info)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="obj-atracao"]{--c:var(--d3-info)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="obj-educacao"]{--c:var(--d3-pronto)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="obj-conversao"]{--c:var(--d3-acao)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="ar"]{--c:var(--d3-ajuste)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="prazo"]{--c:var(--d3-perigo)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="espera"]{--c:var(--d3-agente)}
+#vv-conteudo.vc.vc .d3a-ig-info .d3a-st{display:inline-flex;align-items:center;gap:6px}
+#vv-conteudo.vc.vc .d3a-ig-info .d3a-st i{display:none}
+/* Aprovar é a ação: laranja. Pedir alteração fica neutro. */
+#vv-conteudo.vc.vc .d3a-mesa .v2c-acoes .v2c-btn.g.k{background:var(--d3-acao);color:var(--d3-cartao)}
+@media (max-width:900px){
+  #vv-conteudo.vc.vc .v2c-lado{grid-template-columns:minmax(0,1fr)}
+  #vv-conteudo.vc.vc .d3a-palco{grid-template-columns:minmax(0,1fr);grid-template-rows:300px minmax(0,auto);height:auto}
+  #vv-conteudo.vc.vc .d3a-palco .v2-baralho{height:auto;min-height:520px}
+}
+/* O botão que abre a tela cheia, no topo do baralho. */
+#vv-conteudo.vc.vc .d3a-tela-cheia{border:0;background:transparent;padding:0;font:inherit;font-weight:600;color:var(--d3-acao);cursor:pointer}
+#vv-conteudo.vc.vc .d3a-leque-c.vez{cursor:zoom-in}

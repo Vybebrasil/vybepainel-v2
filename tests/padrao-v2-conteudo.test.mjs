@@ -23,11 +23,12 @@ test('a tela monta, nesta ordem, a fala, o baralho e, ao lado, a fila e o equil�
   assert.equal(emOrdem(nums, ["rotulo: 'Esperando você'", "rotulo: 'Mais antiga'", "rotulo: 'Com o cliente'", "rotulo: 'Aprovadas pelo cliente'"]), true);
 });
 
-test('o cartão traz arte, nome, cliente, quando veicula, objetivo, quem fez e a legenda', () => {
-  const carta = trecho.slice(trecho.indexOf('<article class="v2-carta v2c-carta"'), trecho.indexOf('function falaHtml'));
-  assert.equal(emOrdem(carta, ['class="v2c-arte', 'class="v2c-nome"', 'cliHtml(i.cliente)', 'avsHtml(fez)', 'PILULA_OBJETIVO[o]', 'class="d3a-dados"', 'class="v2c-leg"']), true);
-  const carta0 = trecho.slice(trecho.indexOf('function cartaHtml'), trecho.indexOf('<article class="v2-carta v2c-carta"'));
-  assert.equal(emOrdem(carta0, ["['no ar'", "['espera'", "['arte'", "['head'"]), true);
+test('o cartão traz arte, nome, cliente, a copy como no Instagram, quem fez e as informações com cor', () => {
+  // Padrão novo (Paulo, 15/11/2026: "do lado a copy certinha como ia ficar no Insta, quem fez, as infos").
+  const carta = trecho.slice(trecho.indexOf('<article class="v2-carta v2c-carta'), trecho.indexOf('function perfilDoCliente'));
+  assert.equal(emOrdem(carta, ['class="v2c-arte', 'class="d3a-ig-tit"', 'cliHtml(i.cliente)', 'class="d3a-ig-post"', 'esc(legenda)', 'class="d3a-ig-quem"', 'class="d3a-ig-infos"']), true);
+  const carta0 = trecho.slice(trecho.indexOf('function cartaHtml'), trecho.indexOf('<article class="v2-carta v2c-carta'));
+  assert.equal(emOrdem(carta0, ["['status', 'Status'", "['formato', 'Formato'", '`obj-${o}`', "['ar', 'Vai ao ar'", "['prazo', 'Prazo de ouro'", "['espera', 'Esperando'"]), true);
   assert.ok(trecho.includes("papel: 'Fez a peça'")); assert.ok(trecho.includes("papel: 'Head do cliente'"));
   assert.ok(trecho.includes('data-vc-apr-passo="-1" aria-label="Anterior"') && trecho.includes('data-vc-apr-passo="1" aria-label="Próxima"'), 'as setas do quadro passam a carta');
 });
