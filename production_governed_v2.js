@@ -441,6 +441,15 @@
         ${naAgenda ? `<button type="button" class="pv2-btn capt-marcar d3ag-marcar" onclick="captMarcarCaptacao()" title="Marcar uma captação (ou outro compromisso) no Google Agenda da Vybe (N)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Marcar captação</button>` : `<span class="pv2-seg" role="radiogroup" aria-label="Data de referência">
           <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'prazo'}" onclick="productionCommandSetDateMode('prazo')" title="Agrupar pelo Prazo de Entrega">Prazo</button>
           <button type="button" role="radio" aria-checked="${typeof productionCommandDateMode !== 'undefined' && productionCommandDateMode === 'veiculacao'}" onclick="productionCommandSetDateMode('veiculacao')" title="Agrupar pela data que vai para o ar">Veiculação</button></span>`}</div></header>` : '';
+    // Direção V2 (pranchas V2-M-Agenda e V2-M-Agenda-Roteiros, 16/11/2026): no computador a Agenda tem o esqueleto novo, com
+    // o topo da janela (agv2TopoHtml, vybe-captacoes.js) e a tela de cada parte; o Feed e o Calendário entram numa folha.
+    // data-agv2 no body liga o vidro fumê da janela (padrao-v2/zm-c-agenda.css). No celular segue o cabeçalho de antes.
+    const agV2 = typeof agv2Ligado === 'function' && agv2Ligado();
+    if (agV2) document.body.dataset.agv2 = window.productionV2View || 'captacoes'; else delete document.body.dataset.agv2;
+    if (agV2) {
+      root.innerHTML = `<div class="d3m-c-tela agv2-tela">${agv2TopoHtml()}${/^\s*<div id="(agv2|rotv2)"/.test(contentHtml) ? contentHtml : `<div class="d3m-c-folha agv2-outra">${contentHtml}</div>`}</div>`;
+      return;
+    }
     root.innerHTML = `
       <div class="prod-v2-layout">
          ${cabecaV2 || `<header class="prod-v2-head${naAgenda ? ' com-acao' : ''}">

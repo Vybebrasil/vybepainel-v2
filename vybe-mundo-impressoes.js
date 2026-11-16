@@ -46,7 +46,7 @@
 
   // ---------- desenho ----------
   const visiveis = () => (st.dados?.impressoes || []).filter((i) => (!st.fornecedor || String(i.fornecedor_id) === st.fornecedor)
-    && (st.filtro === 'atrasadas' ? i.atrasada : st.filtro === 'semfornecedor' ? !i.fornecedor_id && ABERTAS(i) : true));
+    && (st.filtro === 'atrasadas' ? i.atrasada : st.filtro === 'semfornecedor' ? !i.fornecedor_id && ABERTAS(i) : st.filtro.startsWith('etapa:') ? i.etapa === st.filtro.slice(6) : true));
   // Dias de atraso pela previsão (datas sem hora, sem fuso: só ano/mês/dia).
   const diasDeAtraso = (i) => { const h = String(st.dados?.hoje || new Date().toISOString()).slice(0, 10); if (!i.previsao) return 0;
     return Math.max(0, Math.round((Date.parse(h + 'T12:00:00Z') - Date.parse(String(i.previsao).slice(0, 10) + 'T12:00:00Z')) / 864e5)); };
@@ -224,6 +224,7 @@
   function passar(n) {
     const total = decisoes().length; if (!total || st.deckLista) return;
     st.deck = Math.min(Math.max(0, st.deck + n), total - 1);
+    if (v2()) { pintar(); return; }
     st.janela?.querySelectorAll('[data-vi-carta]').forEach((c) => { const pos = Number(c.dataset.viCarta) - st.deck; if (pos < 0) c.dataset.pos = 'fora'; else if (pos <= 2) c.dataset.pos = String(pos); else delete c.dataset.pos; });
     const c = st.janela?.querySelector('[data-vi-conta]'); if (c) c.textContent = `${st.deck + 1} de ${total}`;
   }
@@ -266,7 +267,7 @@
     return `<div class="vi2-cab" aria-hidden="true"><span>Peça</span><span>Etapa</span><span>Fornecedor</span><span>Prazo</span><span></span></div>${lista.map(linhaHtml).join('')}${pe || st.mais ? `<p class="p2-sub p2-pe vi2-pe">${pe}${pe ? ' · ' : ''}<button type="button" class="p2-link" data-vi="mais">${st.mais ? 'recolher' : 'mostrar'}</button></p>` : ''}`;
   }
   const vistaHtml = () => (st.vista === 'etapas' ? quadro() + ficha() : st.vista === 'lista' ? listaHtml() + ficha() : linhasHtml());
-  function pintarLinhas() { const c = st.janela?.querySelector('.vi2-linhas'); if (c) c.innerHTML = vistaHtml(); }
+  function pintarLinhas() { if (v2()) { pintar(); return; } const c = st.janela?.querySelector('.vi2-linhas'); if (c) c.innerHTML = vistaHtml(); }
   function corpo() {
     if (!st.dados && !st.erro) return estado('carregando', 'Carregando as impressões', '');
     if (st.erro && !st.dados) return estado('erro', 'Não deu para abrir Impressões', st.erro, '<button type="button" class="p2-btn s" data-vi="recarregar">Tentar de novo</button>');
@@ -317,8 +318,201 @@
           <div class="vi2-linhas">${vistaHtml()}</div>
         </div></div>`;
   }
+  // ─── Direção V2 · Impressões nas pranchas V2-M-Impressoes, -Etapas e -Lista (16/11/2026) ─────
+  // A janela vira vidro fumê e as três vistas ganham esqueleto próprio. Linhas: o funil das 7 etapas no vidro, uma folha
+  // com uma linha por peça (a que pede você, as que estão na gráfica e as de antes dela) e a consulta à direita (o cartão
+  // laranja do Nestor, as gráficas, o mês e os atalhos). Etapas: sete colunas no vidro, um cartão por peça; arrastar o
+  // cartão muda a etapa (o mesmo impressao_etapa do botão). Lista: a tabela inteira numa folha, com as somas no pé.
+  // A peça escolhida abre a ficha de sempre (ficha()), no lugar ou ao lado; formulário, cotações, sugestões e o que o
+  // Nestor pede (decisoes) são os mesmos. Só no computador; no celular fica a tela de antes (corpo), até a prancha de lá.
+  const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;
+  const IC2 = { mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>', lupa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>',
+    seta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>', antes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+    pontos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="3" d="M6 12h.01M12 12h.01M18 12h.01"/></svg>', x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' };
+  const COR_ETAPA = { arte: 'var(--d3-meta)', orcamento: 'var(--d3-perigo)', aprovado: 'var(--d3-acao)', arquivo_enviado: 'var(--d3-info)', em_impressao: 'var(--d3-info)', pronto: 'var(--d3-pronto)', entregue: 'var(--d3-pronto)', cancelado: 'var(--d3-meta)' };
+  const NA_GRAFICA = ['arquivo_enviado', 'em_impressao', 'pronto'];
+  const foto2 = (nome) => (nome && typeof pv2Foto === 'function' ? pv2Foto(nome) : `<i class="d3v-foto" aria-hidden="true">${esc(String(nome || 'VY').trim().slice(0, 2).toUpperCase())}</i>`);
+  const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  const diaCurto = (iso) => { const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z'); return Number.isFinite(d.getTime()) ? `${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][d.getUTCDay()]} ${br(iso)}` : ''; };
+  const qtd2 = (i) => (i.quantidade ? `${Number(i.quantidade).toLocaleString('pt-BR')} un` : '');
+  const busca2 = (lista) => { const q = norm(st.busca).trim(); return q ? lista.filter((i) => norm(`${i.titulo} ${i.cliente_nome || ''} ${i.fornecedor_nome || ''} ${i.material || ''}`).includes(q)) : lista; };
+  const ordem2 = (a, b) => (b.atrasada ? 1 : 0) - (a.atrasada ? 1 : 0) || String(a.previsao || '9').localeCompare(String(b.previsao || '9'));
+  // A entrega em poucas palavras: o atraso em vermelho, "retirar" em verde quando está pronta, a data nos outros casos.
+  function entrega2(i) {
+    if (i.etapa === 'entregue') return `<span>entregue ${esc(br(i.entregue_em || i.previsao))}</span>`;
+    if (i.etapa === 'cancelado') return '<span class="m">cancelada</span>';
+    if (i.atrasada) return `<span class="r">${diasDeAtraso(i) ? `${plural(diasDeAtraso(i), 'dia', 'dias')} de atraso` : 'atrasada'}</span>`;
+    if (i.etapa === 'pronto') return `<span class="g">retirar${i.previsao ? ` · ${esc(br(i.previsao))}` : ''}</span>`;
+    return i.previsao ? `<span>${esc(diaCurto(i.previsao))}</span>` : '<span class="m">sem data</span>';
+  }
+  const grafica2 = (i) => (i.fornecedor_nome ? `<span>${esc(i.fornecedor_nome)}</span>` : ABERTAS(i) ? `<button type="button" class="imp2-semg" data-vi-escolher-forn="${esc(i.id)}" title="Escolher a gráfica">sem gráfica</button>` : '<span class="m">sem gráfica</span>');
+  const etapa2 = (i) => `<span class="d3v-st" style="--st:${COR_ETAPA[i.etapa] || 'var(--d3-meta)'}"><i aria-hidden="true"></i>${esc(etapaNome(i.etapa))}</span>`;
+  function trilha2(i) {
+    const et = etapasDoCaminho(), k = et.findIndex((e) => e.id === i.etapa);
+    return `<span class="imp2-trilha" role="img" aria-label="${i.etapa === 'cancelado' ? 'Cancelada' : `Etapa ${k + 1} de ${et.length}: ${esc(etapaNome(i.etapa))}`}">${et.map((e, n) => `<i${i.etapa === 'entregue' || n < k ? ' class="ok"' : n === k ? ` class="vez" style="--st:${COR_ETAPA[i.etapa]}"` : ''}></i>`).join('')}</span>`;
+  }
+  // O que a aba da folha mostra (Abertas, Entregues, Canceladas; na Lista, também Todas), com a busca e os filtros.
+  function daAba2() {
+    const todas = busca2(visiveis()), aba = st.aba || (st.vista === 'lista' ? 'todas' : 'abertas');
+    const lista = aba === 'entregues' ? todas.filter((i) => i.etapa === 'entregue') : aba === 'canceladas' ? todas.filter((i) => i.etapa === 'cancelado') : aba === 'todas' ? todas : todas.filter(ABERTAS);
+    const fechadas = (a, b) => String(b.entregue_em || b.previsao || '').localeCompare(String(a.entregue_em || a.previsao || ''));
+    const ord = st.porGrafica ? (a, b) => String(a.fornecedor_nome || '￿').localeCompare(String(b.fornecedor_nome || '￿'), 'pt-BR') || ordem2(a, b)
+      : (a, b) => (ABERTAS(a) ? 0 : 1) - (ABERTAS(b) ? 0 : 1) || (ABERTAS(a) ? ordem2(a, b) : fechadas(a, b));
+    return { todas, aba, lista: [...lista].sort(ord) };
+  }
+  const abas2 = (todas, aba, comTodas) => { const n = { todas: todas.length, abertas: todas.filter(ABERTAS).length, entregues: todas.filter((i) => i.etapa === 'entregue').length, canceladas: todas.filter((i) => i.etapa === 'cancelado').length };
+    const f = (k, t) => `<button type="button" role="radio" data-vi-aba="${k}" aria-checked="${aba === k}">${t} <b>${n[k]}</b></button>`;
+    return `<span class="d3m-c-abas" role="radiogroup" aria-label="Mostrar">${comTodas ? f('todas', 'Todas') : ''}${f('abertas', 'Abertas')}${f('entregues', 'Entregues')}${f('canceladas', 'Canceladas')}</span>
+      <span class="d3m-c-abas imp2-abas2"><button type="button" role="switch" data-vi="por-grafica" aria-checked="${Boolean(st.porGrafica)}" title="Juntar as peças de cada gráfica">Por gráfica</button>${comTodas ? `<button type="button" role="switch" data-vi="todas" aria-checked="${st.todas}" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias">Histórico inteiro</button>` : ''}</span>`; };
+  const vazio2 = (todas) => `<p class="d3v-estado"><b>${st.busca.trim() || st.filtro || st.fornecedor ? 'Nenhuma impressão neste filtro' : todas.length ? 'Nada nesta aba' : 'Nenhuma impressão ainda'}</b>${st.busca.trim() || st.filtro || st.fornecedor ? 'Troque a busca ou o filtro.' : 'Acompanhe aqui da arte à entrega na gráfica.'}${todas.length ? '' : '<button type="button" class="d3v-btn" data-vi="nova">Cadastrar a primeira</button>'}</p>`;
+
+  // ---------- Linhas ----------
+  function linha2(i, grupo) {
+    const aberta = String(i.id) === st.sel;
+    return `<div class="imp2-lin${aberta ? ' aberta' : ''}" data-vi-linha="${esc(i.id)}" aria-expanded="${aberta}" title="Abrir a ficha no lugar">${grupo}${foto2(i.cliente_nome)}
+      <span class="imp2-oq">${i.cliente_nome ? `<b>${esc(i.cliente_nome)}</b>` : ''}<button type="button" class="imp2-nome" data-vi-abrir="${esc(i.id)}" aria-expanded="${aberta}">${esc(i.titulo)}${qtd2(i) ? `, ${esc(qtd2(i))}` : ''}</button></span>
+      ${trilha2(i)}${etapa2(i)}<span class="imp2-c">${grafica2(i)}</span><span class="imp2-c">${entrega2(i)}</span><span class="imp2-v${i.valor == null ? ' m' : ''}">${i.valor == null ? 'sem valor' : esc(reais(i.valor))}</span></div>${aberta ? `<div class="imp2-det">${ficha()}</div>` : ''}`;
+  }
+  function linhas2Html() {
+    const { todas, lista } = daAba2();
+    if (!lista.length) return vazio2(todas);
+    const grupoDe = (i) => (st.porGrafica ? [i.fornecedor_nome || 'Sem gráfica', i.fornecedor_nome ? '' : 'a'] : !ABERTAS(i) ? [i.etapa === 'entregue' ? 'Entregue' : 'Cancelada', ''] : i.atrasada ? ['Agora', 'r'] : NA_GRAFICA.includes(i.etapa) ? ['Na gráfica', ''] : ['Antes dela', '']);
+    let antes = '';
+    return lista.map((i) => { const [nome, tom] = grupoDe(i), novo = nome !== antes; antes = nome; return linha2(i, `<span class="imp2-g ${tom}" title="${esc(nome)}">${novo ? esc(nome) : ''}</span>`); }).join('');
+  }
+  function funil2(abertas, doMes) {
+    return `<div class="imp2-funil" role="group" aria-label="As 7 etapas">${etapasDoCaminho().map((e, k) => { const l = abertas.filter((i) => i.etapa === e.id), on = st.filtro === 'etapa:' + e.id, velha = l.filter((i) => i.atrasada).length;
+      const n = e.id === 'entregue' ? doMes.length : l.length, nota = e.id === 'entregue' ? 'no mês' : velha ? plural(velha, 'atrasada', 'atrasadas') : '';
+      return `<button type="button" class="imp2-fase" role="switch" aria-checked="${on}" data-vi-filtro="${on ? '' : 'etapa:' + e.id}" title="${on ? 'Mostrar todas as etapas' : `Mostrar só: ${esc(e.nome)}`}"><span><b>${k + 1}</b>${esc(e.nome)}</span><span class="imp2-fase-n${velha && e.id !== 'entregue' ? ' r' : ''}"><b>${n}</b>${nota ? `<small class="d3m-c-s">${nota}</small>` : ''}</span></button>`; }).join('')}</div>`;
+  }
+  // O cartão laranja: primeiro o que o Nestor pede (cotação para fechar, gráfica sugerida), depois a peça mais urgente.
+  function laranja2(abertas) {
+    const dec = decisoes(), bt = (txt, attrs, sec) => `<button type="button" class="d3m-btn l${sec ? ' s' : ''}" ${attrs}>${txt}</button>`;
+    st.deck = Math.min(Math.max(0, st.deck), Math.max(0, dec.length - 1));
+    const x = dec[st.deck], urg = abertas.filter((i) => i.atrasada).sort(ordem2)[0] || abertas.filter((i) => i.previsao).sort(ordem2)[0] || null;
+    const setas = dec.length > 1 ? `<span class="imp2-setas"><button type="button" class="d3m-btn l s" data-vi="anterior" aria-label="Pedido anterior"${st.deck ? '' : ' disabled'}>${IC2.antes}</button><span data-vi-conta>${st.deck + 1} de ${dec.length}</span><button type="button" class="d3m-btn l s" data-vi="proxima" aria-label="Próximo pedido"${st.deck < dec.length - 1 ? '' : ' disabled'}>${IC2.seta}</button></span>` : '';
+    const c = x ? (x.tipo === 'cotacao'
+        ? { rot: 'cotação para fechar', num: esc(reais(x.c.valor)), frase: `para fechar ${esc(x.i.titulo)} com a ${esc(x.c.fornecedor_nome || 'gráfica')}`, sub: `${x.outras ? `A mais barata de ${x.outras + 1} cotações. ` : ''}Se aprovar, fornecedor, valor e previsão vão para a impressão.` }
+        : { rot: 'gráfica sugerida', num: '', frase: `Usar a ${esc(x.s.nome)} em ${esc(x.i.titulo)}`, sub: `${esc(x.s.motivo || 'A primeira do ranking para esta peça.')} A edição abre com ela escolhida; só grava quando você salvar.` })
+      : urg ? (urg.atrasada ? { rot: NA_GRAFICA.includes(urg.etapa) ? 'parada na gráfica' : 'atrasada', num: diasDeAtraso(urg) ? plural(diasDeAtraso(urg), 'dia', 'dias') : '', frase: `${diasDeAtraso(urg) ? 'de atraso em' : 'Atrasada:'} ${esc(urg.titulo)}${urg.cliente_nome ? ` de ${esc(urg.cliente_nome)}` : ''}`, sub: `${urg.fornecedor_nome ? `Na ${esc(urg.fornecedor_nome)}. ` : 'Ainda sem gráfica. '}A entrega era ${esc(diaCurto(urg.previsao))}.` }
+        : { rot: 'próxima entrega', num: '', frase: `${esc(urg.titulo)}${urg.cliente_nome ? ` de ${esc(urg.cliente_nome)}` : ''} entrega ${esc(diaCurto(urg.previsao))}`, sub: `${esc(etapaNome(urg.etapa))}${urg.fornecedor_nome ? ` na ${esc(urg.fornecedor_nome)}` : ' · ainda sem gráfica'}.` })
+      : { rot: 'impressões em dia', num: '', frase: abertas.length ? `${plural(abertas.length, 'impressão aberta', 'impressões abertas')}, nenhuma atrasada` : 'Nenhuma impressão aberta', sub: 'Nada pede seu ok agora.' };
+    const bts = x ? bt('Aprovar', 'data-vi-decidir="atual"') + bt('Agora não', 'data-vi="agora-nao"', true) + bt('Ver a peça', `data-vi-abrir="${esc(x.i.id)}"`, true)
+      : urg ? bt('Ver a impressão', `data-vi-abrir="${esc(urg.id)}"`) + (urg.fornecedor_id ? '' : bt('Escolher gráfica', `data-vi-escolher-forn="${esc(urg.id)}"`, true)) : bt('Nova impressão', 'data-vi="nova"');
+    return `<section class="d3m-laranja imp2-laranja" aria-label="O que pede você agora" aria-live="polite"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">N</span>Nestor · ${c.rot}${st.dados?.gestao && x ? ' · só donos' : ''}${setas}</span>
+      <div class="d3m-lar-txt">${c.num ? `<b class="d3m-lar-num">${c.num}</b>` : ''}<b class="d3-acao-frase">${c.frase}</b><small class="d3m-c-s">${c.sub}</small></div><div class="d3m-lar-bts">${bts}</div></section>`;
+  }
+  function lado2(abertas, doMes) {
+    const d = st.dados, forn = (d.porFornecedor || []).filter((f) => f.abertas || String(f.fornecedor_id) === st.fornecedor).sort((a, b) => b.abertas - a.abertas).slice(0, 5);
+    const graficas = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Gráficas</b><span>abertas · prazo médio</span></div>
+      ${forn.map((f) => `<button type="button" class="d3m-vlin" role="switch" aria-checked="${String(f.fornecedor_id) === st.fornecedor}" data-vi-fornecedor="${esc(f.fornecedor_id)}" title="Mostrar só as peças desta gráfica"><span class="d3m-vnome"><b>${esc(f.nome)}</b></span><span class="d3m-vn"><b>${f.abertas}</b>${f.prazo_medio_dias != null ? ` · ${esc(String(f.prazo_medio_dias).replace('.', ','))} ${Number(f.prazo_medio_dias) === 1 ? 'dia' : 'dias'}` : ''}</span>${IC2.seta}</button>`).join('') || '<p class="d3m-vvazio">Nenhuma peça em gráfica agora.</p>'}</div>`;
+    const noPrazo = doMes.filter((i) => i.previsao && String(i.entregue_em) <= String(i.previsao)).length, gasto = doMes.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+    const mes = new Date(String(d.hoje || new Date().toISOString()).slice(0, 10) + 'T12:00:00Z').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' });
+    const tile = (v, r) => `<div class="imp2-tile"><b>${v}</b><span>${r}</span></div>`;
+    const noMes = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${esc(mes.charAt(0).toUpperCase() + mes.slice(1))}</b><span>entregues</span></div><div class="imp2-tiles">${tile(doMes.length, doMes.length === 1 ? 'entregue' : 'entregues')}${tile(`${noPrazo} de ${doMes.length}`, 'no prazo')}${d.gestao ? tile(esc(Number(gasto).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })), 'gasto') : ''}</div></div>`;
+    const abrir = `<div class="d3m-cons imp2-abrir"><div class="d3m-cons-cab"><b>Abrir</b></div>
+      <button type="button" class="d3m-vlin" data-vi="cadastrar-fornecedor" title="Gráficas, estúdios e parceiros"><span class="d3m-vnome"><b>Fornecedores</b></span>${IC2.seta}</button>
+      <button type="button" class="d3m-vlin" role="switch" aria-checked="${st.todas}" data-vi="todas" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias"><span class="d3m-vnome"><b>Histórico inteiro</b></span>${IC2.seta}</button></div>`;
+    return `<aside class="d3m-lado" aria-label="Consulta">${laranja2(abertas)}${graficas}${noMes}${abrir}</aside>`;
+  }
+  function vistaLinhas2(abertas, doMes) {
+    const { todas, aba } = daAba2(), semG = abertas.filter((i) => !i.fornecedor_id).length, atras = abertas.filter((i) => i.atrasada).length, prontas = abertas.filter((i) => i.etapa === 'pronto').length;
+    const emAberto = abertas.filter((i) => i.fornecedor_id).reduce((s, i) => s + (Number(i.valor) || 0), 0);
+    const olho = `<button type="button" class="${semG ? 'a' : ''}" role="switch" aria-checked="${st.filtro === 'semfornecedor'}" data-vi-filtro="${st.filtro === 'semfornecedor' ? '' : 'semfornecedor'}"><b>${semG}</b> sem gráfica escolhida</button><button type="button" class="${atras ? 'r' : ''}" role="switch" aria-checked="${st.filtro === 'atrasadas'}" data-vi-filtro="${st.filtro === 'atrasadas' ? '' : 'atrasadas'}"><b>${atras}</b> ${atras === 1 ? 'atrasada' : 'atrasadas'}</button><span class="${prontas ? 'g' : ''}"><b>${prontas}</b> ${prontas === 1 ? 'pronta para retirar' : 'prontas para retirar'}</span>${st.dados.gestao ? `<span><b>${esc(reais(emAberto))}</b> em aberto nas gráficas</span>` : ''}`;
+    const folha = st.form ? `<section class="d3m-c-folha imp2-folha imp2-rola" aria-label="${st.form.id ? 'Editar impressão' : 'Nova impressão'}">${formulario()}</section>`
+      : `<section class="d3m-c-folha imp2-folha" aria-label="Impressões"><div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${aba === 'abertas' ? plural(abertas.length, 'impressão aberta', 'impressões abertas') : aba === 'entregues' ? 'Entregues' : 'Canceladas'} <span>· ${st.porGrafica ? 'juntas por gráfica' : aba === 'abertas' ? 'a entrega mais próxima primeiro' : 'as mais recentes primeiro'}</span></b>${abas2(todas, aba, false)}</div>
+        <div class="imp2-cab" aria-hidden="true"><span></span><span></span><span>Cliente e peça</span><span>Arte até entregue</span><span>Etapa</span><span>Gráfica</span><span>Entrega</span><span>Valor</span></div>
+        <div class="imp2-lista">${linhas2Html()}</div><div class="imp2-pe"><span class="imp2-pe-rot">De olho</span>${olho}</div></section>`;
+    return `${funil2(abertas, doMes)}<div class="d3m-c-corpo imp2">${folha}${lado2(abertas, doMes)}</div>`;
+  }
+
+  // ---------- Etapas ----------
+  function cartao2(i) {
+    return `<button type="button" class="imp2-cartao${String(i.id) === st.sel ? ' sel' : ''}" data-vi-abrir="${esc(i.id)}"${ABERTAS(i) ? ` draggable="true" data-vi-arrasta="${esc(i.id)}"` : ''}><span class="imp2-cli">${foto2(i.cliente_nome)}<span>${esc(i.cliente_nome || 'Interno')}</span></span>
+      <b>${esc(i.titulo)}</b>${qtd2(i) ? `<span class="m">${esc(qtd2(i))}</span>` : ''}<span class="imp2-cart-pe">${i.fornecedor_nome ? `<span>${esc(i.fornecedor_nome)}</span>` : '<span class="a">sem gráfica</span>'}${entrega2(i)}</span></button>`;
+  }
+  function cartaoLaranja2(i) {
+    return `<div class="d3m-laranja imp2-cart-l"${ABERTAS(i) ? ` draggable="true" data-vi-arrasta="${esc(i.id)}"` : ''}><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">N</span>Nestor · ${diasDeAtraso(i) ? `há ${plural(diasDeAtraso(i), 'dia', 'dias')}` : 'atrasada'}</span>
+      <b class="imp2-cart-t">${esc(i.titulo)}${i.cliente_nome ? ` de ${esc(i.cliente_nome)}` : ''}</b><small class="d3m-c-s">${esc(etapaNome(i.etapa))} parada${i.fornecedor_nome ? ` na ${esc(i.fornecedor_nome)}` : ', sem gráfica'}. Entrega ${esc(diaCurto(i.previsao))}.</small>
+      <button type="button" class="d3m-btn l" data-vi-abrir="${esc(i.id)}">Ver a impressão</button></div>`;
+  }
+  function vistaEtapas2(abertas, doMes) {
+    const lista = busca2(visiveis()), pior = abertas.filter((i) => i.atrasada).sort(ordem2)[0], MAXE = 2;
+    const colunas = etapasDoCaminho().map((e, k) => { const l = lista.filter((i) => i.etapa === e.id).sort(e.id === 'entregue' ? (a, b) => String(b.entregue_em || '').localeCompare(String(a.entregue_em || '')) : ordem2);
+      const vis = e.id === 'entregue' && !st.mais ? l.slice(0, MAXE) : l, fora = l.length - vis.length;
+      return `<section class="imp2-col" data-vi-solta="${esc(e.id)}" aria-label="${esc(e.nome)}"><div class="imp2-col-cab"><span><b>${k + 1}</b> ${esc(e.nome)}</span><span>${e.id === 'entregue' ? `${doMes.length} no mês` : l.length}</span></div>
+        <div class="imp2-col-lista">${vis.map((i) => (pior && i.id === pior.id ? cartaoLaranja2(i) : cartao2(i))).join('') || `<p class="imp2-col-vazio">Nada ${e.id === 'arquivo_enviado' ? 'esperando o arquivo' : 'aqui'}.</p>`}
+          ${fora > 0 || (e.id === 'entregue' && st.mais && l.length > MAXE) ? `<button type="button" class="imp2-col-mais" data-vi="mais">${st.mais ? 'recolher' : `mais ${fora} ${fora === 1 ? 'entregue' : 'entregues'}`}</button>` : ''}</div>
+        ${e.id === 'arte' ? `<button type="button" class="imp2-col-nova" data-vi="nova">${IC2.mais}impressão</button>` : ''}</section>`; }).join('');
+    const canceladas = lista.filter((i) => i.etapa === 'cancelado').length;
+    return `<div class="d3m-c-corpo imp2 imp2-e${st.sel || st.form ? '' : ' um'}"><div class="imp2-quadro">${colunas}</div>${painel2()}</div>${canceladas ? `<p class="imp2-nota">${plural(canceladas, 'cancelada', 'canceladas')} nos últimos 90 dias: veja na vista Lista.</p>` : ''}`;
+  }
+  // A ficha (ou o formulário) ao lado, numa folha que rola por dentro: nas vistas Etapas e Lista.
+  const painel2 = () => (st.form ? `<aside class="d3m-c-folha imp2-painel" aria-label="${st.form.id ? 'Editar impressão' : 'Nova impressão'}">${formulario()}</aside>` : st.sel ? `<div class="d3m-c-folha imp2-painel">${ficha()}</div>` : '');
+
+  // ---------- Lista ----------
+  function vistaLista2(abertas, doMes) {
+    const { todas, aba, lista } = daAba2(), d = st.dados, din = d.gestao;
+    const linha = (i) => `<div class="imp2-tl${String(i.id) === st.sel ? ' aberta' : ''}" data-vi-linha="${esc(i.id)}">${foto2(i.cliente_nome)}<span class="imp2-oq">${i.cliente_nome ? `<b>${esc(i.cliente_nome)}</b>` : ''}<button type="button" class="imp2-nome" data-vi-abrir="${esc(i.id)}">${esc(i.titulo)}</button></span>
+      <span class="imp2-c">${esc(qtd2(i) || '')}</span>${etapa2(i)}<span class="imp2-c">${grafica2(i)}</span><span class="imp2-c${i.pedido_em ? '' : ' m'}">${i.pedido_em ? esc(br(i.pedido_em)) : 'sem pedido'}</span><span class="imp2-c">${entrega2(i)}</span>
+      ${din ? `<span class="imp2-v${i.valor == null ? ' m' : ''}">${i.valor == null ? 'sem valor' : esc(reais(i.valor))}</span>` : ''}<span class="imp2-c">${i.conteudo_id ? `<button type="button" class="imp2-arte" data-vi-arte="${esc(i.conteudo_id)}" title="Abrir a arte">${esc(i.demanda_status || 'Na esteira')}</button>` : '<span class="m">sem arte ligada</span>'}</span></div>`;
+    const mes = new Date(String(d.hoje || new Date().toISOString()).slice(0, 10) + 'T12:00:00Z').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' });
+    const soma = (l) => l.reduce((s, i) => s + (Number(i.valor) || 0), 0), semG = abertas.filter((i) => !i.fornecedor_id).length, atras = abertas.filter((i) => i.atrasada).length;
+    const somas = `${din ? `<span><b>${esc(reais(soma(doMes)))}</b> entregue no mês</span><span><b>${esc(reais(soma(abertas)))}</b> em aberto</span>` : `<span><b>${doMes.length}</b> ${doMes.length === 1 ? 'entregue' : 'entregues'} no mês</span>`}
+      <button type="button" class="${semG ? 'a' : ''}" role="switch" aria-checked="${st.filtro === 'semfornecedor'}" data-vi-filtro="${st.filtro === 'semfornecedor' ? '' : 'semfornecedor'}"><b>${semG}</b> sem gráfica</button><button type="button" class="${atras ? 'r' : ''}" role="switch" aria-checked="${st.filtro === 'atrasadas'}" data-vi-filtro="${st.filtro === 'atrasadas' ? '' : 'atrasadas'}"><b>${atras}</b> ${atras === 1 ? 'atrasada' : 'atrasadas'}</button>`;
+    return `<div class="d3m-c-corpo imp2 imp2-t${din ? '' : ' semv'}${st.sel || st.form ? '' : ' um'}"><section class="d3m-c-folha imp2-folha" aria-label="Impressões"><div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${plural(todas.length, 'impressão', 'impressões')} <span>· ${todas.filter(ABERTAS).length} abertas e ${doMes.length} ${doMes.length === 1 ? 'entregue' : 'entregues'} em ${esc(mes)}</span></b>${abas2(todas, aba, true)}</div>
+      <div class="imp2-tcab" aria-hidden="true"><span></span><span>Cliente e peça</span><span>Quantidade</span><span>Etapa</span><span>Gráfica</span><span>Pedido</span><span>Entrega</span>${din ? '<span>Valor</span>' : ''}<span>A arte na esteira</span></div>
+      <div class="imp2-lista">${lista.map(linha).join('') || vazio2(todas)}</div><div class="imp2-pe"><span class="imp2-pe-rot">Somas</span>${somas}</div></section>${painel2()}</div>`;
+  }
+
+  function corpo2() {
+    if (!st.dados && !st.erro) return '<div class="d3m-c-folha d3v-estado" role="status"><b>Carregando as impressões</b></div>';
+    if (st.erro && !st.dados) return `<div class="d3m-c-folha d3v-estado erro" role="alert"><b>Não deu para abrir Impressões</b>${esc(st.erro)}<button type="button" class="d3v-btn sec" data-vi="recarregar">Tentar de novo</button></div>`;
+    const d = st.dados, todas = d.impressoes || [], abertas = todas.filter(ABERTAS), mesIso = String(d.hoje || new Date().toISOString()).slice(0, 7);
+    const doMes = todas.filter((i) => i.etapa === 'entregue' && String(i.entregue_em || '').slice(0, 7) === mesIso);
+    return st.vista === 'etapas' ? vistaEtapas2(abertas, doMes) : st.vista === 'lista' ? vistaLista2(abertas, doMes) : vistaLinhas2(abertas, doMes);
+  }
+  function pintarV2() {
+    const d = st.dados, abertas = (d?.impressoes || []).filter(ABERTAS), naG = abertas.filter((i) => NA_GRAFICA.includes(i.etapa)).length, prontas = abertas.filter((i) => i.etapa === 'pronto').length;
+    st.janela.classList.add('d3m-c-janela');
+    const sub = !d ? (st.erro ? 'não deu para abrir' : 'carregando as impressões') : st.vista === 'etapas' ? `${plural(abertas.length, 'aberta', 'abertas')} · arrastar o cartão muda a etapa · sem gráfica não passa do orçamento`
+      : st.vista === 'lista' ? `a tabela inteira, com pedido${d.gestao ? ', valor' : ''} e a arte na esteira` : `${plural(abertas.length, 'aberta', 'abertas')} · ${naG} na gráfica · ${prontas ? plural(prontas, 'pronta para retirar', 'prontas para retirar') : 'nenhuma pronta para retirar'}`;
+    const vista = (k, r) => `<button type="button" role="radio" data-vi-vista="${k}" aria-checked="${st.vista === k}">${r}</button>`;
+    const fNome = st.fornecedor ? (d?.fornecedores || []).find((f) => String(f.id) === st.fornecedor)?.nome || 'gráfica' : '';
+    const filtrado = Boolean(st.filtro || st.fornecedor || st.todas);
+    const sw = (attrs, on, t) => `<button type="button" role="menuitemcheckbox" aria-checked="${on}" ${attrs}>${t}</button>`;
+    const mais = `<details class="d3m-c-menu"><summary class="d3m-c-ico${filtrado ? ' on' : ''}" aria-label="Filtros e histórico" title="Filtros e histórico">${IC2.pontos}</summary><div class="d3m-c-pop dir" role="menu" aria-label="Filtros e histórico">
+        <span class="d3m-c-pop-rot">Mostrar só</span>${sw(`data-vi-filtro="${st.filtro === 'atrasadas' ? '' : 'atrasadas'}"`, st.filtro === 'atrasadas', 'Atrasadas')}${sw(`data-vi-filtro="${st.filtro === 'semfornecedor' ? '' : 'semfornecedor'}"`, st.filtro === 'semfornecedor', 'Sem gráfica')}
+        ${fNome ? sw('data-vi-fornecedor=""', true, `Só ${esc(fNome)}`) : ''}${sw('data-vi="todas"', st.todas, 'Histórico inteiro')}
+        ${(d?.ranking || []).length ? `<span class="d3m-c-pop-rot">Ranking das gráficas</span>${d.ranking.slice(0, 6).map((f) => `<button type="button" role="menuitemcheckbox" aria-checked="${String(f.fornecedor_id) === st.fornecedor}" data-vi-fornecedor="${esc(f.fornecedor_id)}" title="${esc(f.motivo || '')}">${esc(f.nome)}<small class="d3m-c-s">${esc([`${f.entregues} ${f.entregues === 1 ? 'entregue' : 'entregues'}`, f.pontualidade != null ? `${f.pontualidade}% no prazo` : ''].filter(Boolean).join(' · '))}</small></button>`).join('')}` : ''}</div></details>`;
+    const titulo = typeof window.d3mcTrocaHtml === 'function' ? window.d3mcTrocaHtml('Impressões', 'producao', 'impressoes').replace('class="d3m-c-h"', 'class="d3m-c-h" id="vi-titulo"') : '<b class="d3m-c-h" id="vi-titulo" role="heading" aria-level="2">Impressões</b>';
+    const tinha = st.janela.querySelector('.imp2-lista, .imp2-quadro')?.scrollTop || 0, foco = document.activeElement?.id === 'vi-busca';
+    st.janela.innerHTML = `<div class="d3m-c-topo"><div class="d3m-c-tit">${titulo}<span class="d3m-c-sub">${esc(sub)}</span></div>
+        <span class="d3m-c-seg" role="radiogroup" aria-label="Ver como">${vista('linhas', 'Linhas')}${vista('etapas', 'Etapas')}${vista('lista', 'Lista')}</span>
+        <label class="d3m-c-busca" title="Buscar peça, cliente ou gráfica">${IC2.lupa}<input id="vi-busca" type="search" aria-label="Buscar peça, cliente ou gráfica" autocomplete="off" placeholder="Buscar peça, cliente ou gráfica" data-vi-busca value="${esc(st.busca)}"></label>${mais}
+        <button type="button" class="d3m-c-btn" data-vi="nova">${IC2.mais}Nova impressão</button><button type="button" class="d3m-c-ico" data-vi="fechar" aria-label="Fechar" title="Fechar">${IC2.x}</button></div>
+      <p class="vi-aviso imp2-aviso" role="status"></p>${corpo2()}`;
+    pintarAviso();
+    const l = st.janela.querySelector('.imp2-lista, .imp2-quadro'); if (l) l.scrollTop = tinha;
+    if (foco) { const b = st.janela.querySelector('#vi-busca'); b?.focus(); try { b?.setSelectionRange(b.value.length, b.value.length); } catch { /* campo sem seleção */ } }
+  }
+  // Arrastar o cartão de uma coluna para outra muda a etapa (vista Etapas): o mesmo pedido do botão de avançar.
+  function aoArrastar(e) { const c = e.target.closest?.('[data-vi-arrasta]'); if (!c) return; e.dataTransfer.setData('text/vybe-impressao', c.dataset.viArrasta); e.dataTransfer.effectAllowed = 'move'; }
+  function aoPassar(e) { const col = e.target.closest?.('[data-vi-solta]'); if (!col || ![...(e.dataTransfer?.types || [])].includes('text/vybe-impressao')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; col.classList.add('alvo'); }
+  function aoSair(e) { e.target.closest?.('[data-vi-solta]')?.classList.remove('alvo'); }
+  function aoSoltar(e) {
+    const col = e.target.closest?.('[data-vi-solta]'), id = e.dataTransfer?.getData('text/vybe-impressao'); if (!col || !id) return;
+    e.preventDefault(); col.classList.remove('alvo');
+    const i = (st.dados?.impressoes || []).find((x) => String(x.id) === id), para = col.dataset.viSolta; if (!i || i.etapa === para) return;
+    if (['arquivo_enviado', 'em_impressao', 'pronto', 'entregue'].includes(para) && !i.fornecedor_id) { st.aviso = 'Sem gráfica a impressão não passa do orçamento: escolha a gráfica primeiro.'; pintarAviso(true); return; }
+    st.sel = id; gravar({ acao: 'impressao_etapa', id, etapa: para }, `Foi para ${etapaNome(para)}.`);
+  }
+
   function pintar() {
     if (!st.janela) return;
+    // Direção V2 (pranchas V2-M-Impressoes): no computador, o esqueleto novo (pintarV2, logo acima).
+    if (v2()) return pintarV2();
+    st.janela.classList?.remove('d3m-c-janela');
     const tinha = st.janela.scrollTop || 0;
     st.janela.innerHTML = `<div class="vi-topo vb-janela-topo">${cabecalho({ id: 'vi-titulo', titulo: 'Impressões',
       acoes: `<span class="vi-topo-acoes">${st.dados && !st.form && (st.dados.impressoes || []).length ? '<button type="button" class="p2-btn d3im-nova" data-vi="nova">+ Nova impressão</button>' : ''}${botaoX('data-vi="fechar"', 'vi-x')}</span>` })}</div>
@@ -349,7 +543,8 @@
     const b = e.target.closest('button');
     if (!b) { const l = e.target.closest('[data-vi-linha]'); if (l && !e.target.closest('a,input,select,textarea,label')) { st.sel = st.sel === l.dataset.viLinha ? '' : l.dataset.viLinha; st.cancelar = false; pintar(); } return; }
     if (b.disabled) return;
-    if (b.dataset.viVista) { st.vista = b.dataset.viVista; pintar(); return; }
+    if (b.dataset.viVista) { st.vista = b.dataset.viVista; st.aba = ''; pintar(); return; }
+    if (b.dataset.viAba) { st.aba = b.dataset.viAba; pintar(); return; }
     if (b.dataset.viDecidir) { decidir(b.dataset.viDecidir); return; }
     if (b.dataset.viAbrir) { st.sel = st.sel === b.dataset.viAbrir && st.vista === 'linhas' ? '' : b.dataset.viAbrir; st.cancelar = false; pintar(); st.janela.querySelector('.vi2-item.sel')?.scrollIntoView?.({ block: 'nearest' }); return; }
     if (b.dataset.viFiltro !== undefined) { st.filtro = b.dataset.viFiltro; pintar(); return; }
@@ -372,6 +567,7 @@
     else if (a === 'cotar') { st.cotar = true; pintar(); st.janela.querySelector('[data-vi-form=cotacao] select')?.focus(); }
     else if (a === 'nao-cotar') { st.cotar = false; pintar(); }
     else if (a === 'filtros') { st.filtros = !st.filtros; pintar(); }
+    else if (a === 'por-grafica') { st.porGrafica = !st.porGrafica; pintar(); }
     else if (a === 'mais') { st.mais = !st.mais; pintarLinhas(); }
     else if (a === 'deck-lista') { st.deckLista = !st.deckLista; pintar(); }
     else if (a === 'anterior' || a === 'proxima') passar(a === 'proxima' ? 1 : -1);
@@ -411,6 +607,7 @@
       janela.setAttribute('role', 'dialog'); janela.setAttribute('aria-modal', 'true'); janela.setAttribute('aria-labelledby', 'vi-titulo');
       raiz.append(janela);
       raiz.addEventListener('click', aoClicar); raiz.addEventListener('change', aoMudar); raiz.addEventListener('submit', aoEnviar); raiz.addEventListener('input', aoDigitar);
+      raiz.addEventListener('dragstart', aoArrastar); raiz.addEventListener('dragover', aoPassar); raiz.addEventListener('dragleave', aoSair); raiz.addEventListener('drop', aoSoltar);
       document.body.append(raiz);
       Object.assign(st, { raiz, janela });
     }
