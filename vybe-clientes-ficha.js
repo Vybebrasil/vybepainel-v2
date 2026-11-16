@@ -288,29 +288,6 @@ function trocarAbaDaFicha(aba) {
   if (nome) renderClientMasterDetail(nome);
 }
 
-// Financeiro da ficha (prancha V2-M-Cliente-Financeiro): só a conta deste cliente, só para donos, com o atalho para a
-// tela geral. O servidor já apaga o valor de quem não é dono (server/carteira.js); aqui a aba nem desenha número.
-function financeiroDaFichaHtml(nome) {
-  if (!fichaEhDono()) return '<p class="d3v-estado"><b>Só os donos veem o financeiro do cliente.</b></p>';
-  const id = String(idDoCliente(nome) || '');
-  const atalho = typeof window.VybeComercial?.abrir === 'function'
-    ? `<button type="button" class="d3v-btn sec" onclick="window.VybeComercial.abrir('financas', { abas: ['financas'] })">Abrir Finanças, por cliente</button>` : '';
-  if (!id) return `<p class="d3v-estado"><b>Sem ficha no cadastro.</b>O contrato aparece aqui depois de criar a ficha.${atalho}</p>`;
-  const sv = typeof carteiraDaFicha === 'function' ? carteiraDaFicha(() => { if (FICHA_ABA === 'financeiro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); }) : null;
-  if (!sv) return '<p class="d3v-estado"><b>Lendo a conta do cliente…</b></p>';
-  const locais = sv.contratos?.lista || [];
-  const lista = window.VybeFinancas?.contratosDaCarteira ? window.VybeFinancas.contratosDaCarteira(locais) : locais;
-  const c = lista.find((x) => String(x.cliente_id) === id) || null;
-  const reais = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? 'sem valor' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(v)));
-  const dia = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : 'sem data'; };
-  const contratos = typeof window.VybeCarteira?.abrir === 'function' ? `<button type="button" class="d3v-btn sec" onclick="window.VybeCarteira.abrir('contratos', { abas: ['contratos'] })">${c ? 'Editar em Contratos' : 'Registrar em Contratos'}</button>` : '';
-  const campo = (rotulo, valor) => `<div class="fv2-fin-campo"><span class="d3v-rot">${rotulo}</span><b>${fichaEsc(valor)}</b></div>`;
-  return `<div class="fv2-fin"><div class="cv2-cab"><h3>A conta de ${fichaEsc(nome)} <span>· só os donos veem</span></h3><span class="fv2-cab-lado">${contratos}${atalho}</span></div>
-    ${c ? `<div class="fv2-fin-alto"><span class="d3v-rot">Valor mensal do contrato</span><b class="fv2-fin-valor">${fichaEsc(reais(c.valor_mensal))}</b></div>
-      <div class="fv2-fin-grade">${campo('Início', dia(c.inicio))}${campo('Renovação', dia(c.renovacao))}${campo('Situação', c.status || 'ativo')}${c.observacao ? campo('Observação', c.observacao) : ''}</div>`
-      : '<p class="d3v-estado"><b>Nenhum contrato registrado para este cliente.</b>Recebimentos, faturas e atraso ficam em Finanças, por cliente.</p>'}</div>`;
-}
-
 function cadastroLeituraHtml(nome) {
   const f = fichaDoCliente(nome) || CADASTRO_CLIENTES.find((c) => String(c.id) === String(idDoCliente(nome))) || null;
   if (!f) return `<div class="client-master-detail-card"><h3>Sem cadastro próprio</h3>
@@ -628,6 +605,76 @@ function cerebroDaFichaHtml(nome) {
   return fv2DuasHtml('cerebro', sabe + folhaRegras + registrosDosChatsHtml(nome), lado);
 }
 
+// Finanças por cliente lidas para a ficha (GET area=comercial&aba=financas, só leitura): o pacote, o custo estimado, a
+// margem e a situação do pagamento. Só os donos pedem isto ao servidor (que também recusa quem não é dono).
+const FINANCAS_DA_FICHA = { dados: null, lendo: false, em: 0 };
+function financasDaFicha(aoChegar) {
+  if (!fichaEhDono()) return null;
+  const c = FINANCAS_DA_FICHA;
+  if (c.dados && Date.now() - c.em < 120000) return c.dados;
+  if (!c.lendo && typeof fetch === 'function') {
+    c.lendo = true;
+    fetch('/api/painel?area=comercial&aba=financas', { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((d) => { c.lendo = false; c.em = Date.now(); c.dados = d && typeof d === 'object' ? d : {}; if (typeof aoChegar === 'function') aoChegar(); });
+  }
+  return c.dados;
+}
+
+// Financeiro da ficha (prancha V2-M-Cliente-Financeiro, 16/11/2026): só a conta deste cliente, só para donos. No alto,
+// Contrato, Custo e Margem; embaixo, o pagamento e as datas do contrato; no vidro, o cartão laranja do Vorcaro com o
+// que falta para a conta fechar e os atalhos. O servidor já apaga o valor de quem não é dono (server/carteira.js); aqui
+// a aba nem desenha número nem pede a leitura.
+function financeiroDaFichaHtml(nome) {
+  if (!fichaEhDono()) return '<p class="d3v-estado"><b>Só os donos veem o financeiro do cliente.</b></p>';
+  const id = String(idDoCliente(nome) || '');
+  const ir = (aba, mod = 'VybeComercial') => (typeof window[mod]?.abrir === 'function' ? `window.${mod}.abrir('${aba}', { abas: ['${aba}'] })` : '');
+  const so = (ico, titulo, texto = '') => fv2DuasHtml('financeiro', `<section class="fv2-folha fv2-cheia">${fv2VazioHtml(ico, titulo, texto)}</section>`, '');
+  if (!id) return so('cifrao', 'Sem ficha no cadastro', 'O contrato aparece aqui depois de criar a ficha.');
+  const repinta = () => { if (FICHA_ABA === 'financeiro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); };
+  const sv = typeof carteiraDaFicha === 'function' ? carteiraDaFicha(repinta) : null;
+  const fin = financasDaFicha(repinta);
+  if (!sv) return so('relogio', 'Lendo a conta do cliente…');
+  const locais = sv.contratos?.lista || [];
+  const lista = window.VybeFinancas?.contratosDaCarteira ? window.VybeFinancas.contratosDaCarteira(locais) : locais;
+  const c = lista.find((x) => String(x.cliente_id) === id) || null;
+  const x = ((fin && fin.clientes) || []).find((k) => String(k.cliente_id) === id) || null;
+  const numero = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) || Number(v) <= 0 ? null : Number(v));
+  const reais = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(v));
+  const dia = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const valor = numero(c?.valor_mensal) ?? numero(x?.valor_mensal);
+  const custo = x && x.custo != null && Number.isFinite(Number(x.custo)) ? Number(x.custo) : null;
+  const margem = x && x.margem_percentual != null && Number.isFinite(Number(x.margem_percentual)) ? Math.round(Number(x.margem_percentual)) : null;
+  const pacote = String(x?.pacote_nome || '').trim();
+  const bt = (rot, chamada) => (chamada ? `<button type="button" class="d3v-btn sec s fv2-op-acao" onclick="${chamada}">${rot}</button>` : '');
+  const cartao = (rot, forte, tem, frase, botao, tom = '') => `<section class="fv2-folha fv2-fin-cartao" aria-label="${rot}"><span class="fv2-fin-rot">${rot}</span><b class="fv2-fin-num${tem ? '' : ' sem'}${tom ? ` ${tom}` : ''}">${forte}</b><p>${frase}</p>${botao}</section>`;
+  const cartoes = `<div class="fv2-fin-tres">${
+    cartao('Contrato', valor ? fichaEsc(reais(valor)) : 'sem valor', Boolean(valor), valor ? `por mês${dia(c?.inicio) ? ` · desde ${dia(c.inicio)}` : ''}${dia(c?.renovacao) ? ` · renova em ${dia(c.renovacao)}` : ''}` : 'O valor mensal ainda não foi informado.', bt(valor ? 'Editar em Contratos' : 'Informar o valor', ir('contratos', 'VybeCarteira')))}${
+    cartao('Custo', custo != null ? fichaEsc(reais(custo)) : pacote ? 'sem custo' : 'sem pacote', custo != null, custo != null ? `estimado pelas horas do pacote${pacote ? ` ${fichaEsc(pacote)}` : ''}` : pacote ? `O pacote ${fichaEsc(pacote)} ainda não tem custo por hora.` : 'Sem pacote, o custo em horas não é estimado.', bt(pacote ? 'Trocar o pacote' : 'Escolher o pacote', ir('financas')))}${
+    cartao('Margem', margem != null ? `${margem}%` : 'sem dado', margem != null, margem != null ? (x.zona_critica ? 'na zona crítica: o custo come quase todo o contrato' : 'do contrato, depois do custo do pacote') : 'Sai do contrato menos o custo do pacote.',
+      `<button type="button" class="d3v-btn sec s fv2-op-acao" onclick="showToast('Margem = valor mensal do contrato menos o custo estimado pelas horas do pacote. Com o extrato do banco, entra a margem real.', 'info', 9000)">Como é calculada</button>`, margem != null && x.zona_critica ? 'r' : '')}</div>`;
+  const pago = x && valor ? ({ atrasado: ['r', 'em atraso'], inadimplente: ['r', 'inadimplente'], em_dia: ['g', 'em dia'] }[x.status_pagamento] || ['', 'sem registro']) : ['', 'sem registro'];
+  const campo = (rot, forte) => `<div class="fv2-fin-campo"><span class="d3v-rot">${rot}</span><b>${forte}</b></div>`;
+  const pagamento = `<section class="fv2-folha fv2-cheia fv2-fin-pag" aria-label="Pagamento e contrato"><div class="cv2-cab"><h3>Pagamento e contrato <span>· ${c ? 'como está em Contratos e em Finanças' : 'informado à mão, sem contrato'}</span></h3>${
+      ir('recebimentos') ? `<button type="button" class="fv2-cab-acao" onclick="${ir('recebimentos')}">ver os recebimentos</button>` : ''}</div>
+    <div class="fv2-fin-grade">${campo('Pagamento', `<span class="fv2-est ${pago[0]}"><i aria-hidden="true"></i>${pago[1]}</span>`)}${campo('Início', dia(c?.inicio) || 'sem data')}${campo('Renovação', dia(c?.renovacao) || 'sem data')}${campo('Contrato', fichaEsc(c ? c.status || 'ativo' : 'não registrado'))}</div>
+    ${c?.observacao || x?.observacao ? `<p class="fv2-fin-obs"><span class="d3v-rot">Observação</span>${fichaEsc(c?.observacao || x.observacao)}</p>` : ''}
+    ${valor && custo != null ? '' : fv2VazioHtml('cifrao', 'A margem aparece quando houver contrato e pacote', 'Com o valor mensal e o pacote da conta, o Vorcaro calcula o custo em horas e a margem.')}</section>`;
+
+  const alto = !valor ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'falta o contrato', titulo: 'Sem o valor mensal, a margem desta conta não fecha', apoio: 'Só os donos veem esta aba. Leva um minuto para informar.',
+      botoes: `${ir('contratos', 'VybeCarteira') ? `<button type="button" class="d3m-btn l" onclick="${ir('contratos', 'VybeCarteira')}">Informar o contrato</button>` : ''}${ir('recebimentos') ? `<button type="button" class="d3m-btn l s" onclick="${ir('recebimentos')}">Lançar</button>` : ''}` })
+    : pago[0] === 'r' ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'pagamento', titulo: `O pagamento desta conta está ${pago[1]}`, apoio: 'A cobrança e o histórico ficam em Inadimplência.',
+      botoes: ir('inadimplencia') ? `<button type="button" class="d3m-btn l" onclick="${ir('inadimplencia')}">Ver a inadimplência</button>` : '' })
+    : custo == null ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'falta o pacote', titulo: 'Sem o pacote, o custo desta conta não é estimado', apoio: 'Com o pacote, a margem aparece aqui.',
+      botoes: ir('financas') ? `<button type="button" class="d3m-btn l" onclick="${ir('financas')}">Escolher o pacote</button>` : '' })
+    : x.zona_critica ? fv2LaranjaHtml({ quem: 'Vorcaro', rotulo: 'margem', n: `${margem}%`, titulo: 'de margem: a conta está na zona crítica', apoio: 'O custo do pacote come quase todo o contrato.',
+      botoes: ir('financas') ? `<button type="button" class="d3m-btn l" onclick="${ir('financas')}">Abrir Finanças</button>` : '' })
+    : fv2CalmoHtml('A conta fecha.', `Contrato de ${fichaEsc(reais(valor))} por mês, com ${margem != null ? `${margem}% de margem` : 'o custo estimado'}.`);
+  const abrir = [ir('financas') ? fv2VlinHtml('Finanças por cliente', 'todas as contas', ir('financas')) : '', ir('contratos', 'VybeCarteira') ? fv2VlinHtml('Contratos', 'início e renovação', ir('contratos', 'VybeCarteira')) : '',
+    ir('recebimentos') ? fv2VlinHtml('Recebimentos', 'a receber e recebido', ir('recebimentos')) : ''].join('');
+  return fv2DuasHtml('financeiro', cartoes + pagamento, alto + fv2ConsHtml('Só donos', '', '<p class="fv2-nota-lado">Contrato, custo, margem e pagamento desta conta. A equipe não vê esta aba.</p>') + (abrir ? fv2ConsHtml('Abrir', '', abrir) : ''));
+}
+
 // Embrulha a ficha que já existia. Pelo quadro "Ficha do cliente" do moodboard (12/11/2026): a nota e a fala ficam em
 // cima de todas as abas; a barra tem Resumo, Demandas, Conteúdo, Reuniões e Onboarding com a contagem de cada uma, o
 // Financeiro (só para os donos, abre Finanças por cliente) e, à direita, Ecossistema e Cérebro. O Cadastro abre pela
@@ -649,7 +696,7 @@ function cerebroDaFichaHtml(nome) {
     const naFolha = (html) => { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = `<div class="fv2-folha fv2-aba-folha" data-aba="${FICHA_ABA}">${html}</div>`; };
     if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
     if (FICHA_ABA === 'cadastro') naFolha(cadastroLeituraHtml(nome));
-    else if (FICHA_ABA === 'financeiro') naFolha(financeiroDaFichaHtml(nome));
+    else if (FICHA_ABA === 'financeiro') naAba(financeiroDaFichaHtml(nome));
     else if (FICHA_ABA === 'ecossistema') naAba(ecossistemaDaFichaHtml(nome));
     else if (FICHA_ABA === 'cerebro') naAba(cerebroDaFichaHtml(nome));
     else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naAba(window.VybeReunioes.reunioesHtml(nome));

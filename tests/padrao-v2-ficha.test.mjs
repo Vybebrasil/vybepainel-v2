@@ -150,3 +150,30 @@ test('CSS: tudo em padrao-v2/ficha.css, sem !important nem html body.mundo', () 
   assert.match(css, /#painel-clientes \.v2f-tabela/);
   assert.match(css, /\.vc-camada > #vv-reunioes/);
 });
+
+test('Abas da ficha nas pranchas V2-M-Cliente-*: o esqueleto novo mantém as funções e o dinheiro só para donos', () => {
+  const ficha = ler('vybe-clientes-ficha.js'), reu = ler('vybe-clientes-reunioes.js');
+  // Toda aba fora do Resumo e do Cadastro usa o mesmo esqueleto (folhas + consulta no vidro).
+  for (const aba of ['conteudo', 'demandas', 'ecossistema', 'cerebro', 'financeiro']) assert.match(ficha, new RegExp(`fv2DuasHtml\\('${aba}'`), `a aba ${aba} está no esqueleto`);
+  for (const aba of ['reunioes', 'onboarding']) assert.match(reu, new RegExp(`fv2DuasHtml\\('${aba}'`), `a aba ${aba} está no esqueleto`);
+  // Reuniões: gravar, editar a ata, ouvir a gravação e cadastrar as demandas sugeridas seguem pelos mesmos caminhos.
+  const abaReu = reu.slice(reu.indexOf('function reunioesHtml'), reu.indexOf('function sugestoesHtml'));
+  for (const f of ["gravarReuniao('", "abrirReuniao('", 'sugestoesHtml(r, pode)', 'pararGravacao()', 'https://drive.google.com/file/d/']) assert.ok(abaReu.includes(f), `a aba Reuniões mantém ${f}`);
+  assert.match(reu, /data-reu-sug="\$\{esc\(r\.id\)\}"/);
+  // Onboarding: preencher junto e o link do cliente são os mesmos.
+  const abaOnb = reu.slice(reu.indexOf('function onboardingHtml'), reu.indexOf('window.abrirQuestionario'));
+  for (const f of ["abrirQuestionario('", "onboardingLink('"]) assert.ok(abaOnb.includes(f), `a aba Onboarding mantém ${f}`);
+  // Ecossistema: os botões que resolvem vêm do mesmo mapa de ações; a janela de depois do cadastro não mudou.
+  assert.match(ficha, /const acao = ECO_ACAO\[s\.acao\];/);
+  assert.match(ficha, /if \(alvo\) alvo\.innerHTML = ecossistemaHtml\(dados, nome\);/);
+  // Cérebro: o cartão guarda o id que o Resumo remove e o mapa abre o mesmo cérebro.
+  assert.match(ficha, /id="vybes-cli-cerebro-card"/);
+  assert.match(ficha, /abrirModalCerebroCliente\('\$\{n\}', 'mapa'\)/);
+  // Financeiro: quem não é dono não desenha número nem pede a leitura de Finanças por cliente ao servidor.
+  assert.match(ficha, /function financasDaFicha\(aoChegar\) \{\s*if \(!fichaEhDono\(\)\) return null;/);
+  assert.match(ficha, /function financeiroDaFichaHtml\(nome\) \{\s*if \(!fichaEhDono\(\)\) return '<p class="d3v-estado"><b>Só os donos veem o financeiro do cliente\.<\/b><\/p>';/);
+  // CSS das abas: só tokens, sem !important, sem html body.mundo, sem :has com [style] e sem animação que nasce invisível.
+  const css = ler('padrao-v2/zm-b-ficha2-abas.css');
+  assert.doesNotMatch(css, /!important|html body\.mundo|:has\([^)]*\[style|@keyframes/);
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-fA-F]{3,8}\b/, 'cor só por token --d3-*');
+});

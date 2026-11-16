@@ -268,7 +268,8 @@ test('Contratos: o mês a mês é um cartão com uma série por vez; a conta fic
 test('"Ver o que falta" e "Atualizar" são botões do padrão, não texto clicável (quadro 30)', () => {
   assert.match(ler('vybe-mundo-comercial.js'), /<button type="button" class="vc-sec" data-vc="falta" aria-expanded="\$\{st\.verFalta\}">Ver o que falta<\/button>/);
   assert.doesNotMatch(ler('vybe-mundo-comercial.js'), /class="vc-link" data-vc="falta"/);
-  assert.match(ler('vybe-clientes-ficha.js'), /<button type="button" class="vb-botao" onclick="delete FICHA_REGISTROS\[[^>]*>Atualizar<\/button>/);
+  // Prancha V2-M-Cliente-Cerebro (16/11/2026): "atualizar" é a ação do cabeçalho da folha, ainda um botão de verdade.
+  assert.match(ler('vybe-clientes-ficha.js'), /<button type="button" class="fv2-cab-acao" onclick="delete FICHA_REGISTROS\[[^>]*>atualizar<\/button>/);
 });
 
 test('Conta: no mundo a tela não é um cartão dentro da janela (quadros 13 e 60)', () => {
