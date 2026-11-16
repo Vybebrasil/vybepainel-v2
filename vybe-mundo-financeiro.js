@@ -678,6 +678,75 @@
     cifrao: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M16 7h-5.5a2.5 2.5 0 0 0 0 5h3a2.5 2.5 0 0 1 0 5H8"/></svg>', alta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-6 4 4 6-8"/><path d="M14 7h6v6"/></svg>',
     alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v6M12 17h.01"/></svg>', relogio: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 9v3l2 1"/></svg>',
   };
+  // =====================================================================================================
+  // MOLDE V2 DAS TELAS DE FINANÇAS (prancha V2-M-Financas-Modelo, 16/11/2026). O esqueleto comum de todas as telas do
+  // setor, menos o Vorcaro: o topo no vidro (título que troca de tela, "só donos" · o mês · a frase que resume, busca,
+  // "Como funciona" e a ação da tela), à esquerda o cartão principal (lista, matriz ou gráfico, com a faixa "De olho" no
+  // pé) e, quando a tela pede, os números em cima e um segundo cartão embaixo; à direita o laranja do Vorcaro só quando
+  // há algo a decidir e a coluna de Finanças com o que espera em cada tela. Também usado por vybe-mundo-financas.js
+  // (Recebimentos, Contas a pagar, Inadimplência) e vybe-mundo-comercial.js (Por cliente), por window.VybeFinanceiro.molde.
+  // O desenho mora em padrao-v2/zm-d-financas.css (peças .d3m-d-fm-*).
+  // =====================================================================================================
+  // O que espera em cada tela: a última contagem que se conhece (as telas da janela do Comercial não têm o extrato).
+  const contagemFin = {};
+  function contarFin(d) {
+    if (!d || !Array.isArray(d.transacoes)) return contagemFin;
+    const lista = d.transacoes, mes = (d.hoje || '').slice(0, 7);
+    const fxAn = d.fixos?.length ? X().analisarFixos(d.fixos, lista, mes, d.cartao?.itens || []) : null;
+    Object.assign(contagemFin, { vorcaro: analise(d).length, extrato: lista.filter((t) => !t.real.conferido).length, clientes_mes: (d.por_cliente?.linhas || []).filter((l) => l.total_aberto > 0).length,
+      cartao: (d.cartao?.itens || []).filter((i) => i.categoria === 'a_classificar').length + (d.cartao?.pagamentos_sem_fatura?.length || 0),
+      fixos: (fxAn?.fixos || []).filter((f) => !f.achado && f.vence <= (d.hoje || '')).length });
+    return contagemFin;
+  }
+  const TELAS_MOLDE = [['vorcaro', 'Vorcaro · Tesouraria'], ...TELAS_FIN];
+  // A coluna de Finanças: cada tela com o que espera nela; a de agora em branco.
+  const navFin = (tela) => `<nav class="d3m-cons d3m-d-fm-nav" aria-label="Finanças"><div class="d3m-cons-cab"><b>Finanças</b><span>o que espera em cada tela</span></div>${TELAS_MOLDE.map(([a, n]) => `<button type="button" class="d3m-vlin" data-fx="ir-aba" data-valor="${a}"${a === tela ? ' aria-current="page"' : ''}><span><b>${esc(n)}</b></span>${contagemFin[a] ? `<b class="d3m-vn">${n0(contagemFin[a])}</b>` : ''}</button>`).join('')}</nav>`;
+  // O laranja do Vorcaro: quem fala e sobre o quê, o número grande, a frase, o apoio e até dois botões ([texto, attrs]).
+  function laranjaFin({ rot = '', num = '', frase = '', apoio = '', bts = [] } = {}) {
+    const b = bts.filter(Boolean).map(([t, attrs], i) => `<button type="button" class="d3m-btn l${i ? ' s' : ''}" ${attrs}>${esc(t)}</button>`).join('');
+    return `<section class="d3m-laranja d3m-d-fm-lar" data-fx-card="decisao" aria-label="O que pede decisão"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>Vorcaro${rot ? ' · ' + esc(rot) : ''}</span>
+      <div class="d3m-lar-txt">${num !== '' ? `<b class="d3m-lar-num">${esc(num)}</b>` : ''}<span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}${b ? `<div class="d3m-lar-bts">${b}</div>` : ''}</div></section>`;
+  }
+  // As fichas da cabeça do cartão: { nome, n, tom, on, attrs }.
+  const fichasFin = (l, rotulo = 'Filtrar') => `<span class="d3m-d-fm-fichas" role="group" aria-label="${esc(rotulo)}">${l.filter(Boolean).map((f) => `<button type="button" class="d3m-d-fm-ficha" ${f.attrs || ''} aria-pressed="${Boolean(f.on)}">${esc(f.nome)}${f.n != null ? `<span${f.tom ? ` class="${f.tom}"` : ''}>${n0(f.n)}</span>` : ''}</button>`).join('')}</span>`;
+  // A faixa "De olho" no pé do cartão: [valor, rótulo, tom].
+  const olhoFin = (l) => { const i = l.filter(Boolean); return i.length ? `<div class="d3m-d-fm-olho"><span class="d3m-d-fm-olho-rot">De olho</span>${i.map(([v, r, tom]) => `<span><b${tom ? ` class="${tom}"` : ''}>${v}</b> ${r}</span>`).join('')}</div>` : ''; };
+  // Colunas de largura fixa (a flexível é 0): o cabeçalho e as linhas usam a mesma lista.
+  const celFin = (w, html = '', cls = '') => `<span class="d3m-d-fm-c${w ? '' : ' f'}${cls ? ' ' + cls : ''}"${w ? ` style="--w:${w}px"` : ''}>${html}</span>`;
+  const cabFin = (cols) => `<div class="d3m-d-fm-th" aria-hidden="true">${cols.map(([w, t, cls]) => celFin(w, esc(t || ''), cls)).join('')}</div>`;
+  const trFin = (cols, cels, cls = '') => `<div class="d3m-d-fm-tr${cls ? ' ' + cls : ''}">${cols.map(([w, , c], i) => celFin(w, cels[i] ?? '', c)).join('')}</div>`;
+  // O quadradinho com as iniciais do cliente, na cor da carteira.
+  const avFin = (nome) => { let cart = ''; try { cart = typeof carteiraDoCliente === 'function' ? String(carteiraDoCliente(nome) || '') : ''; } catch { /* sem carteira */ } return `<span class="d3m-d-fm-av" data-carteira="${esc(cart)}" aria-hidden="true">${esc((String(nome || '').trim().split(/\s+/)[0] || '?').slice(0, 2).toUpperCase())}</span>`; };
+  // Cartão folha do molde: cabeça de 44 (título · apoio e, à direita, as fichas), as colunas, a lista que rola e o "De olho".
+  const folhaFin = ({ titulo, sub = '', dir = '', cab = '', corpo = '', olho = '', cls = '', rotulo = '' }) => `<section class="d3m-d-folha d3m-d-fm-folha${cls ? ' ' + cls : ''}"${rotulo ? ` data-fx-card="${rotulo}"` : ''}><div class="d3m-d-cab d3m-d-fm-cab"><h3>${esc(titulo)}${sub ? ` <small>· ${sub}</small>` : ''}</h3>${dir ? `<span class="d3m-d-fm-dir">${dir}</span>` : ''}</div>${cab}<div class="d3m-d-fm-rolo">${corpo}</div>${olho}</section>`;
+  // Número em folha (rótulo e selo em cima; o número de 28, a linha de apoio e o gráfico pequeno embaixo).
+  const numFin = ({ rotulo, selo = '', ic = IC.ok, valor, tom = '', sub = '', graf = '', attrs = '' }) => `<${attrs ? `button type="button" ${attrs}` : 'div'} class="d3m-d-folha d3m-d-fx-num"><span class="d3m-d-fx-num-cab"><span>${esc(rotulo)}</span><span class="d3m-d-selo${selo ? ' ' + selo : ''}">${ic}</span></span><span class="d3m-d-fx-num-pe"><span><b class="d3m-d-fx-v${tom ? ' ' + tom : ''}">${valor}</b><small>${sub}</small></span>${graf}</span></${attrs ? 'button' : 'div'}>`;
+  // O esqueleto: { tela (data-tela), aba (a da coluna), titulo, sub (depois de "só donos"), ferr, acao, nums, corpo, laranja }.
+  // Nas telas sem o extrato (as da janela do Comercial), a contagem vem de uma leitura só de /api/painel?area=financeiro.
+  let contagemLendo = false;
+  function garantirContagem(repintar) {
+    if (Object.keys(contagemFin).length || contagemLendo || typeof fetch !== 'function' || typeof location === 'undefined') return;
+    contagemLendo = true;
+    fetch('/api/painel?area=financeiro', { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && Array.isArray(d.transacoes)) { contarFin(d); repintar?.(); } }).catch(() => { /* sem contagem */ });
+  }
+  function molde({ tela, aba = tela, titulo, sub = '', ferr = '', acao = '', nums = '', corpo = '', laranja = '', d = null, repintar = null }) {
+    if (d && Array.isArray(d.transacoes)) contarFin(d); else garantirContagem(repintar);
+    const pop = TELAS_MOLDE.map(([a, n]) => `<button type="button" data-fx="ir-aba" data-valor="${a}"${a === aba ? ' aria-current="page"' : ''}>${esc(n)}</button>`).join('');
+    const topoM = `<div class="d3m-d-topo d3m-d-fx-topo d3m-d-fm-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="${esc(titulo)}: ir a outra tela de Finanças"><h1>${esc(titulo)}</h1>${ICV.baixo}</summary>
+        <div class="d3m-d-pop"><button type="button" data-fx="ir" data-valor="setor:financas">Visão geral de Finanças</button>${pop}</div></details>
+        <span class="d3m-d-sub">${SELO}${sub ? ` · ${sub}` : ''}</span></div>
+      <div class="d3m-d-ferr"><button type="button" class="d3m-d-ico" data-fx="buscar" aria-label="Buscar" title="Buscar">${ICV.busca}</button><button type="button" class="d3m-d-ico" data-v2="ajuda" aria-label="Como funciona" title="Como funciona">${ICV.ajuda}</button>${ferr}${acao}</div></div>`;
+    return `<div class="fv2 fx d3f d3m-d-fx d3m-d-fm" data-tela="${esc(tela)}">${topoM}<div class="d3m-d-fx-grade d3m-d-fm-grade"><div class="d3m-d-fm-main">${nums ? `<div class="d3m-d-fx-nums">${nums}</div>` : ''}${corpo}</div>
+      <aside class="d3m-lado d3m-d-fx-lado d3m-d-fm-lado" aria-label="Consulta">${laranja}${navFin(aba)}</aside></div></div>`;
+  }
+  // Botões do topo, no vidro: a ação principal em branco e a secundária com borda.
+  const acaoFin = (texto, attrs, mais = true) => `<button type="button" class="d3m-d-vbtn p" ${attrs}>${mais ? IC.mais : ''}${esc(texto)}</button>`;
+  // As setas do mês (ou do ano), no vidro; sem o atributo, a seta fica desligada.
+  const setasFin = (antes, depois, nome = 'mês') => `<span class="d3m-d-fm-setas" role="group" aria-label="Trocar o ${esc(nome)}"><button type="button" class="d3m-d-ico" ${antes || 'disabled'} aria-label="${nome === 'ano' ? 'Ano' : 'Mês'} anterior" title="${nome === 'ano' ? 'Ano' : 'Mês'} anterior">${SETA.esq}</button><button type="button" class="d3m-d-ico" ${depois || 'disabled'} aria-label="Próximo ${esc(nome)}" title="Próximo ${esc(nome)}">${SETA.dir}</button></span>`;
+  const segFin = (l, rotulo) => `<span class="d3m-d-seg" role="group" aria-label="${esc(rotulo)}">${l.map(([t, attrs, on]) => `<button type="button" ${attrs} aria-pressed="${Boolean(on)}">${esc(t)}</button>`).join('')}</span>`;
+  const pecasFin = Object.freeze({ molde, laranja: laranjaFin, fichas: fichasFin, olho: olhoFin, cab: cabFin, tr: trFin, av: avFin, folha: folhaFin, num: numFin, acao: acaoFin, seg: segFin, setas: setasFin, contar: contarFin, contagem: contagemFin });
+
   // Direção V2 (prancha V2-M-Financeiro, 16/11/2026): a janela é vidro fumê. Em cima, três números (caixa, resultado do
   // mês e o caixa em 6 meses); embaixo, "Pede decisão" e "Entrou e saiu" em folha, e o cartão laranja, que é o lançamento
   // que chegou pelo WhatsApp (com os campos para corrigir antes de decidir) ou, sem nenhum, o item mais sério do "Pede
@@ -687,6 +756,7 @@
     anfitriao = ctx;
     const d = ctx.d, u = ui.vorcaro, mes = (d.hoje || '').slice(0, 7), nomeDoMes = MESES[Number(mes.slice(5)) - 1] || '';
     const achados = analise(d), lista = d.transacoes || [];
+    contarFin(d);
     const r = X().resumo(lista, { mes });
     const propostas = d.vorcaro?.propostas || [], pend = propostas.filter((p) => p.estado === 'pendente');
     const daqui = achados.filter((a) => !a.ancora).length;
@@ -1192,5 +1262,5 @@
   const telas = Object.freeze({ vorcaro, extrato, clientes_mes: clientesMes, cartao, fixos, projecao, vales });
   // Contas a pagar › "Lançar à mão" abre o formulário já aberto, como saída ainda não paga.
   function abrirLancarMao({ status = '' } = {}) { ui.vorcaro.mao = true; ui.vorcaro.status = status; }
-  window.VybeFinanceiro = Object.freeze({ telas, abrirPessoa, abrirLancarMao, _teste: { cartaoPessoa, ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise } });
+  window.VybeFinanceiro = Object.freeze({ telas, abrirPessoa, abrirLancarMao, molde: pecasFin, _teste: { cartaoPessoa, ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise } });
 })();

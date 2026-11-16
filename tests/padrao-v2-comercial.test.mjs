@@ -294,6 +294,27 @@ test('Finanças por cliente: selo só donos, Lançar em branco, bloco do Vorcaro
   assert.deepEqual(pedidos.find((p) => p.corpo?.acao === 'financas_salvar')?.corpo, { acao: 'financas_salvar', cliente_id: '1', versao: '3', valor_mensal: 4000, pacote_id: '1', status_pagamento: 'em_dia', observacao: '' });
 });
 
+// Padrão V2 (prancha V2-M-Financas-Por-Cliente, 16/11/2026): com o molde das telas de Finanças carregado, a mesma aba sai
+// no esqueleto comum (topo no vidro, um cartão com os grupos Agora/Em dia/Falta, "De olho" e a coluna de Finanças).
+test('Finanças por cliente no molde V2: topo com só donos e Lançar, laranja só com decisão, grupos, linha que abre, De olho e Recebi', async () => {
+  const { ctx, janela, clicar, pedidos } = comercial(respostas2, dono);
+  vm.runInContext(ler('vybe-mundo-financeiro.js'), ctx);
+  ctx.VybeComercial.abrir('financas', { abas: ['financas'] }); await esperar();
+  const html = janela().innerHTML;
+  assert.equal(janela().className, 'vc', 'nem v2c nem d3c: a casa é a das telas de Finanças');
+  naOrdem(html, ['class="fv2 fx d3f d3m-d-fx d3m-d-fm" data-tela="fx-financas"', '<h1>Finanças por cliente</h1>', 'só donos', 'contrato, pagamento e margem de cada conta', 'data-vc-periodo="mensal"', 'data-v2="lancar"',
+    '4 clientes ativos', '3 com cobrança', 'data-v2="chip" data-id="todos" aria-pressed="true">Todos<span>4</span>', 'data-v2="chip" data-id="atraso"', '>Colunas</button>', '>Cliente<', '>Margem<',
+    'data-v2-linha="fc:1"', '>Agora<', '>Em dia<', '>Falta<', 'data-vc="financas" data-id="4"', 'class="d3m-d-fm-olho"', 'De olho', 'cobrados por mês',
+    'class="d3m-laranja d3m-d-fm-lar"', 'margem baixa', '>Rever contrato</button>', 'aria-current="page"><span><b>Por cliente</b>']);
+  assert.equal((html.match(/class="d3m-laranja/g) || []).length, 1, 'um laranja só');
+  const linha = html.slice(html.indexOf('data-v2-linha="fc:1"'), html.indexOf('data-v2-linha="fc:', html.indexOf('data-v2-linha="fc:1"') + 5));
+  naOrdem(linha, ['data-v2="abre" data-id="fc:1"', 'R$ 4.000', 'em atraso', '<b>Contrato</b>', '<b>Custo</b>', '<b>Pagamento</b>', 'data-vc="financas" data-id="1"', 'data-v2="recebi" data-id="1">Recebi</button>']);
+  assert.ok(!/style="--w:100px">Custo<\/span>/.test(html), 'sem a coluna de custo');
+  clicar({ v2: 'colunas' }); assert.match(janela().innerHTML, /style="--w:100px">Custo<\/span>/);
+  clicar({ v2: 'recebi', id: '1' }, { textContent: '' }); await esperar();
+  assert.deepEqual(pedidos.find((p) => p.corpo?.acao === 'financas_salvar')?.corpo, { acao: 'financas_salvar', cliente_id: '1', versao: '3', valor_mensal: 4000, pacote_id: '1', status_pagamento: 'em_dia', observacao: '' });
+});
+
 test('Fornecedores (Direção 3): bloco de ação do Nestor, quatro números, a busca com as fichas e a tabela com Pede ação e Completos', async () => {
   const { ctx, janela, clicar } = comercial(respostas2, dono);
   ctx.VybeComercial.abrir('fornecedores', { abas: ['fornecedores'] }); await esperar();
@@ -340,5 +361,7 @@ test('telas do grupo de Finanças hospedadas na janela; faturamento chega como n
   const ultimo = visto.at(-1);
   assert.equal(ultimo.d.faturamento, 9600, 'antes virava {} em completar()');
   assert.equal(typeof ultimo.repintar, 'function'); assert.equal(typeof ultimo.recarregar, 'function'); assert.ok('filtro' in ultimo && 'verFalta' in ultimo && 'admin' in ultimo);
-  assert.match(ler('vybe-mundo-comercial.js'), /el\.classList\?\.toggle\?\.\('fv2-casa', telaFin\);/);
+  // Padrão V2 (16/11/2026): Finanças por cliente também mora na casa das telas de Finanças (o molde de vybe-mundo-financeiro.js).
+  assert.match(ler('vybe-mundo-comercial.js'), /el\.classList\?\.toggle\?\.\('fv2-casa', telaFin \|\| fm\);/);
+  assert.match(ler('vybe-mundo-comercial.js'), /const fm = st\.aba === 'financas' && Boolean\(window\.VybeFinanceiro\?\.molde\);/);
 });

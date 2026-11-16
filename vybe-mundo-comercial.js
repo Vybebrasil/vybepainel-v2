@@ -1272,6 +1272,60 @@
     ]);
     const tecnico = (() => { const e = finEstado()?.dados; return e && !e.conectado ? `${esc(e.motivo || 'Nenhum extrato importado')}${e.aviso ? ' · ' + esc(e.aviso) : ''}${(e.passos || []).length ? `<ol>${e.passos.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}` : ''; })();
     const erroFin = finEstado()?.erro;
+    const FM = window.VybeFinanceiro?.molde;
+    if (FM) {
+      // Padrão V2 (prancha V2-M-Financas-Por-Cliente, 16/11/2026): o molde das telas de Finanças. Um cartão só, com todos os
+      // clientes ativos agrupados (Agora: em atraso; Em dia; Falta: sem valor mensal), a linha que abre no lugar com
+      // contrato, custo e pagamento, e o "De olho" no pé; o laranja só quando há o que decidir.
+      const fator2 = st.periodo.tipo === 'anual' ? 12 : 1, ano = fator2 === 12 ? ' no ano' : '';
+      const atrasoDe = (c) => f?.inadimplencia?.clientes?.find((x) => x.cliente_id && String(x.cliente_id) === String(c.cliente_id));
+      const grupoDe = (c) => (atrasado(c) ? 0 : semContrato(c) ? 2 : 1);
+      const vis = todos.filter(GRUPOS[v.chip.financas][1]).filter((c) => !termo || norm(c.cliente_nome).includes(termo))
+        .sort((a, b) => grupoDe(a) - grupoDe(b) || (Number(b.valor_mensal) || 0) - (Number(a.valor_mensal) || 0) || String(a.cliente_nome).localeCompare(String(b.cliente_nome), 'pt-BR'));
+      const COLS = [[60, ''], [28, ''], [0, 'Cliente'], [110, 'Por mês' + (fator2 === 12 ? ' × 12' : ''), 'r'], [110, 'Em aberto', 'r'], [190, 'Pagamento'], [110, 'Margem'], [14, '']];
+      const cols = v.colunas ? [...COLS.slice(0, 4), [100, 'Custo', 'r'], ...COLS.slice(4)] : COLS;
+      const ROT = [['Agora', 'r'], ['Em dia', ''], ['Falta', 'a']];
+      const linhaFm = (c, i) => {
+        const id = esc(c.cliente_id), ab = v.aberta === 'fc:' + c.cliente_id, m = margemFinDe(f, c.cliente_id), at = atrasoDe(c), g = grupoDe(c), primeiro = !i || grupoDe(vis[i - 1]) !== g;
+        const aberto = at ? `<b class="r">${esc(reais(at.valor))}</b>` : atrasado(c) ? '<b class="r">em atraso</b>' : c.valor_mensal ? '<span class="q">nada</span>' : '';
+        const pag = semContrato(c) ? '<span class="q">sem cobrança</span>' : atrasado(c) ? `<span class="r">${esc(pagamento(c)[1].toLowerCase())}${at?.faturas ? ` · ${esc(plural(at.faturas, 'fatura', 'faturas'))}` : ''}</span>` : '<span class="g">em dia</span>';
+        const margem = !c.valor_mensal ? `<button type="button" class="d3m-d-elo" data-vc="financas" data-id="${id}" aria-label="Informar o valor de ${esc(c.cliente_nome)}">Informar</button>`
+          : c.margem_percentual != null ? `<span class="${c.zona_critica ? 'r' : ''}">${pc(Math.round(c.margem_percentual))}</span>` : '<span class="q">sem pacote</span>';
+        const cels = [primeiro ? `<span class="${ROT[g][1]}">${ROT[g][0]}</span>` : '', FM.av(c.cliente_nome),
+          `<button type="button" class="d3m-d-fm-nome" data-v2="abre" data-id="fc:${id}" aria-expanded="${ab}"><b>${esc(c.cliente_nome)}</b></button>`,
+          c.valor_mensal ? esc(reais(c.valor_mensal * fator2)) : '<span class="q">sem valor</span>', aberto, pag, margem, ''];
+        if (v.colunas) cels.splice(4, 0, c.custo != null ? 'R$ ' + num(Math.round(c.custo * fator2)) : '<span class="q">sem pacote</span>');
+        return `<div class="v2-abre d3m-d-fm-linha" data-v2-linha="fc:${id}" aria-expanded="${ab}">${FM.tr(cols, cels)}
+          <div class="v2-mais"><div><div class="d3m-d-fm-det">
+            <p><b>Contrato</b> ${c.valor_mensal ? `${esc(reais(c.valor_mensal))} por mês` : 'Sem valor mensal informado'}${c.pacote_nome ? ' · ' + esc(c.pacote_nome) : ''}</p>
+            <p><b>Custo</b> ${c.custo != null ? `R$ ${num(Math.round(c.custo))} estimados pelas horas do pacote` : 'Sem pacote, o custo não é estimado'}${m ? ` · margem real ${din(m.mes.margem)} no mês e ${din(m.periodo.margem)} em 3 meses` : ''}</p>
+            <p><b>Pagamento</b> ${esc(pagamento(c)[1].replace(/^./, (x) => x.toUpperCase()))}${doFin ? ' pelos lançamentos' : ', informado à mão'}${c.observacao ? ' · ' + esc(c.observacao) : ''}</p>
+            <p class="d3m-d-fm-det-bts">${botao('Editar', `data-vc="financas" data-id="${id}" aria-label="Editar ${esc(c.cliente_nome)}"`, 'k')}${atrasado(c) && !doFin ? botao('Recebi', `data-v2="recebi" data-id="${id}"`, 'v2-estado') : ''}${botao('Ver recebimentos', 'data-vc="ir-recebimentos"')}</p></div></div></div></div>`;
+      };
+      const nSem = todos.filter(semContrato).length, atrasoTotal = f?.inadimplencia?.total;
+      const fichasL = [['todos', 'Todos'], ['atraso', 'Em atraso', 'r'], ['emdia', 'Em dia'], ['sem', 'Sem cobrança', 'a'], ...(nCrit ? [['baixa', 'Margem baixa', 'r']] : []), ...(todos.some(GRUPOS.inad[1]) ? [['inad', 'Inadimplentes', 'r']] : [])]
+        .map(([k, nome, tom]) => { const n = todos.filter(GRUPOS[k][1]).length; return { nome, n, tom: n ? tom : '', on: v.chip.financas === k, attrs: `data-v2="chip" data-id="${k}"` }; });
+      const dir = FM.fichas(fichasL, 'Filtrar os clientes') + `<button type="button" class="d3m-d-fm-ficha" data-v2="colunas" aria-pressed="${Boolean(v.colunas)}">Colunas</button>`;
+      const corpo = vis.map(linhaFm).join('')
+        || `<p class="d3m-d-fm-vazio">${todos.length ? (termo ? `Nenhum cliente com "${esc(st.filtro.financas)}".` : 'Nenhum cliente neste filtro.') : 'Nenhum cliente ativo no cadastro.'}</p>`;
+      const resto = f && v.fin ? `<div class="v2c-resto d3m-d-fm-resto">${finTopo(f)}${finGraficos(f)}${finMargens(f)}</div>` : '';
+      const tec = `${erroFin ? `<p class="d3m-d-fm-vazio">Os valores reais não vieram agora: ${esc(erroFin)}</p>` : ''}${st.verFalta && souAdminAqui() && tecnico ? `<div class="d3m-d-fm-vazio">${tecnico}</div>` : ''}`;
+      const olho = FM.olho([[esc(reais((r.receita || 0) * fator2)), `cobrados${ano || ' por mês'}`, 'g'], atrasoTotal ? [esc(reais(atrasoTotal)), 'em aberto', 'r'] : null,
+        [num(comContrato - semPacote), r.margem_percentual != null ? `com pacote · margem ${pc(Math.round(r.margem_percentual))}` : 'com pacote: a margem ainda não fecha', r.margem_percentual != null && r.margem_percentual < zona ? 'r' : ''],
+        f ? [elo(`Mês a mês e margem real · ${v.fin ? 'recolher' : 'mostrar'}`, `data-v2="fin" aria-expanded="${Boolean(v.fin)}"`), ''] : null, souAdminAqui() && tecnico ? [elo('O que falta', `data-vc="falta" aria-expanded="${st.verFalta}"`), ''] : null]);
+      const sem1 = todos.find(semContrato), crit1 = criticos[0];
+      const laranja = nCrit ? FM.laranja({ rot: 'margem baixa', num: String(nCrit), frase: nCrit === 1 ? 'cliente custa quase o que paga' : 'clientes custam quase o que pagam', apoio: `${esc(crit1.cliente_nome)} paga ${esc(reais(crit1.valor_mensal))} e custa R$ ${num(Math.round(crit1.custo))}.`, bts: [['Rever contrato', `data-vc="financas" data-id="${esc(crit1.cliente_id)}"`], nCrit > 1 ? [`Ver os ${num(nCrit)}`, 'data-v2="chip" data-id="baixa"'] : null] })
+        : nSem ? FM.laranja({ rot: 'sem cobrança', num: String(nSem), frase: nSem === 1 ? 'cliente sem valor mensal' : 'clientes sem valor mensal', apoio: 'Sem o valor não há aviso de atraso nem margem.', bts: [['Informar os valores', `data-vc="financas" data-id="${esc(sem1.cliente_id)}"`], nSem > 1 ? [`Ver os ${num(nSem)}`, 'data-v2="chip" data-id="sem"'] : null] })
+          : nAtraso ? FM.laranja({ rot: 'em atraso', num: String(nAtraso), frase: nAtraso === 1 ? 'cliente em atraso' : 'clientes em atraso', apoio: atrasoTotal ? `${esc(reais(atrasoTotal))} em aberto no total.` : '', bts: [['Ver recebimentos', 'data-vc="ir-recebimentos"'], [nAtraso === 1 ? 'Ver o cliente' : `Ver os ${num(nAtraso)}`, 'data-v2="chip" data-id="atraso"']] }) : '';
+      const somaMesC = (ym, n) => { const [a, mm] = ym.split('-').map(Number), x = new Date(Date.UTC(a, mm - 1 + n, 1)); return x.toISOString().slice(0, 7); };
+      const mesR = mesFin(), ant = st.periodo.tipo === 'anual' ? somaMesC(mesR, -12) : somaMesC(mesR, -1), dep = st.periodo.tipo === 'anual' ? somaMesC(mesR, 12) : somaMesC(mesR, 1);
+      const anual = st.periodo.tipo === 'anual', limite = hojeIso().slice(0, anual ? 4 : 7);
+      return FM.molde({ tela: 'fx-financas', aba: 'financas', titulo: 'Finanças por cliente', repintar: pintar,
+        sub: `${esc(anual ? mesR.slice(0, 4) : nomeMes(mesR))} · contrato, pagamento e margem de cada conta`,
+        ferr: FM.setas(`data-vc-mes-ir="${ant}"`, dep.slice(0, anual ? 4 : 7) > limite ? '' : `data-vc-mes-ir="${dep}"`, anual ? 'ano' : 'mês') + FM.seg([['Mensal', 'data-vc-periodo="mensal"', !anual], ['Anual', 'data-vc-periodo="anual"', anual]], 'Período'),
+        acao: d ? FM.acao('Lançar', 'data-v2="lancar"') : '', laranja,
+        corpo: FM.folha({ titulo: plural(todos.length, 'cliente ativo', 'clientes ativos'), sub: `${num(comContrato)} com cobrança`, dir, cab: FM.cab(cols), corpo: corpo + resto + tec, olho, cls: 'd3m-d-fm-principal', rotulo: 'lista' }) });
+    }
     if (ehD3()) {
       // Direção 3 (quadro D3-PorCliente, só donos): o bloco do Vorcaro com quem custa quase o que paga, quatro números,
       // "Pede ação" curto ao lado da lista de clientes; o resto (mês a mês, margem real, o que falta) a um clique.
@@ -2018,7 +2072,9 @@
     const d = st.dados[st.aba], erro = st.erro[st.aba];
     // Direção V2 dos módulos (Fornecedores e Creators no computador): o esqueleto das pranchas V2-M-*, em pintarM.
     if (v2m()) return pintarM(el, { d, erro, abas });
-    const m = M.has(st.aba), v2 = !m && V2.has(st.aba);
+    // Finanças por cliente no molde V2 das telas de Finanças (window.VybeFinanceiro.molde): a janela é a casa das telas de Finanças.
+    const fm = st.aba === 'financas' && Boolean(window.VybeFinanceiro?.molde);
+    const m = M.has(st.aba), v2 = !m && !fm && V2.has(st.aba);
     el.className = m ? 'vc d3m-d-m' : v2 ? (D3.has(st.aba) ? 'vc v2c d3c' : 'vc v2c') : 'vc';
     topoDaVez = null;
     let conteudo, telaFin = false;
@@ -2033,7 +2089,7 @@
       ${st.ajuda ? `<div class="vc-ajuda" role="note"><b>${esc(abas.find((a) => a[0] === st.aba)?.[1])}</b><p>${esc(AJUDA[st.aba])}</p></div>` : ''}
       ${st.msg && !st.folha ? `<p class="vc-msg-geral${st.msg.startsWith('⚠️') ? ' erro' : ''}" role="status">${esc(st.msg)}</p>` : ''}
       <div class="vc-corpo${v2 ? ' v2c-corpo' : m ? ' d3m-d-m-corpo' : ''}${st.carregando[st.aba] && d ? ' atualizando' : ''}">${conteudo}</div>${folhaHtml()}`;
-    el.classList?.toggle?.('fv2-casa', telaFin);
+    el.classList?.toggle?.('fv2-casa', telaFin || fm);
     const nc = rolagem ? el.querySelector('.vc-corpo') : null; if (nc) nc.scrollTop = rolagem;
     if ((v2 || m) && d && !erro) st.v2.visto[st.aba] = true;
     if (idFoco) { const alvo = el.querySelector(`[data-vc-busca="${idFoco}"], [name="${idFoco}"]`); if (alvo) { alvo.focus(); try { alvo.setSelectionRange?.(selFim, selFim); } catch {} } }
