@@ -64,3 +64,12 @@ test('Jogos (V2-M-Jogos): quatro mesas em cartões, quem pode jogar na folha e a
   assert.match(css, /#vv-placa:has\(> \.d3m-f-jogos\)\{[^}]*background:var\(--d3-fume\)/);
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /backdrop-filter:\s*blur|animation/);
 });
+
+test('Ranking (V2-M-Ranking): a folha "A equipe" com a tabela e o "De olho", e a consulta com o laranja, você e os jogos', () => {
+  const ficha = ler('vybe-escritorio-ficha.js');
+  const r = trecho('function pintarRankingEscritorio()', '\n// A barra "Você" fica fixa embaixo', ficha);
+  for (const t of ['class="d3m-e-tela d3m-f-rk', 'class="d3m-e-folha cresce d3m-f-rk-folha d3r-tab" aria-label="A equipe"', 'class="d3m-e-rola v2r-rola"', 'class="d3m-e-pe d3m-f-rk-pe"><span>De olho</span>', 'class="d3m-laranja d3m-f-lar"', 'para passar', 'class="d3m-f-minis"', 'aria-label="Jogos no terraço"', "irPara?.('jogos')", 'abrirConquistasEscritorio()', "irPara?.('produtividade')", 'abrirDetalheRankingEscritorio(', "trocarPeriodoRankingEscritorio('${k}')"]) assert.ok(r.includes(t), t);
+  assert.ok(ficha.includes('document.body.classList.contains("mundo") ? "d3m-f-rkj" : "ofc-menu-jogo"'), 'no mundo, a janela fumê; fora dele, a de antes');
+  const css = ler('padrao-v2/zm-f-ranking.css');
+  assert.match(css, /#ofc-ranking\.rk2:has\(> \.d3m-f-rk\)\{[^}]*var\(--d3-fume\)/);
+});

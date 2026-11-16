@@ -1334,7 +1334,9 @@ function abrirRankingEscritorio(aba, periodo) {
   if (periodo) escritorioRanking.periodo = periodo;
   if (!document.getElementById("ofc-ranking")) {
     openWorkflowModal('<div class="ofc-ranking rk2" id="ofc-ranking" role="dialog" aria-label="Ranking"></div>');
-    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "rk2-janela", "ofc-menu-jogo");
+    // V2 (prancha V2-M-Ranking): no mundo a janela é de vidro fumê (d3m-f-rkj), sem a moldura clara de ofc-menu-jogo,
+    // que pinta o fundo e as letras com !important; fora do mundo (?legado=1) fica como era.
+    document.getElementById("workflow-modal")?.classList.add("ofc-ranking-janela", "rk2-janela", document.body.classList.contains("mundo") ? "d3m-f-rkj" : "ofc-menu-jogo");
   }
   pintarRankingEscritorio();
   carregarRankingEscritorio();
@@ -1466,13 +1468,18 @@ function pintarRankingEscritorio() {
   const fecha = per === "total" ? "desde o começo" : per === "dia" ? "fecha hoje à meia-noite" : faltam === 0 ? "fecha hoje à meia-noite" : faltam === 1 ? "fecha amanhã" : `fecha em ${faltam} dias`;
   const titulo = { dia: "Ranking de hoje", semana: "Ranking da semana", mes: "Ranking do mês", total: "Ranking de sempre" }[per];
   const intervalo = !d?.inicio ? "" : per === "dia" ? dataBr(d.inicio) : per === "mes" ? new Date(d.inicio + "T12:00:00Z").toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }) : `${dataBr(d.inicio)} a ${dataBr(d.fim)}`;
-  // Quadro "Ranking" do padrão v2 (12/11/2026): título com o período e "Por que essa ordem?" numa linha, as categorias
-  // em fichas, o pódio num cartão, a sua posição numa faixa preta, a lista curta com "mostrar" e, ao lado, os jogos.
-  const fechar = '<button type="button" class="v2r-x" onclick="closeWorkflowModal()" aria-label="Fechar o ranking"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
-  const periodos = `<div class="v2r-seg" role="group" aria-label="Período">${RK_PERIODOS.map(([k, t]) => `<button type="button" aria-pressed="${per === k}" onclick="trocarPeriodoRankingEscritorio('${k}')">${t}</button>`).join("")}</div>`;
-  const topoDe = (porque) => `<div class="v2r-topo"><h1>Ranking</h1><p class="v2r-sub v2r-quando" title="${safeText(titulo)}">${[intervalo, fecha].filter(Boolean).map(safeText).join(" · ")}</p>${periodos}${porque}${fechar}</div>`;
-  const jogos = escritorioJogosRankingHtml();
-  const soEstado = (html) => { el.innerHTML = `<div class="v2r">${topoDe("")}<div class="v2r-corpo"><div class="v2r-esq"><div class="v2r-card">${html}</div></div>${jogos}</div></div>`; };
+  // V2 (prancha V2-M-Ranking, 16/11/2026): a janela de vidro fumê com o título no vidro, o período e "Por que essa
+  // ordem?"; à esquerda a folha "A equipe" (as categorias na cabeça, a tabela que rola por dentro e o "De olho" no pé);
+  // à direita a consulta de 316: o cartão laranja com o que falta para subir, você no período, os jogos e os atalhos.
+  const fechar = '<button type="button" class="d3m-e-ico" onclick="closeWorkflowModal()" aria-label="Fechar o ranking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+  const periodos = `<div class="d3m-e-per" role="group" aria-label="Período">${RK_PERIODOS.map(([k, t]) => `<button type="button" aria-pressed="${per === k}" onclick="trocarPeriodoRankingEscritorio('${k}')">${t}</button>`).join("")}</div>`;
+  const sub = [per === "semana" && intervalo ? `semana de ${intervalo}` : intervalo, fecha, "XP do trabalho"].filter(Boolean).map(safeText).join(" · ");
+  const topoDe = (porque) => `<div class="d3m-e-topo"><div class="d3m-e-tit"><span class="d3m-e-h" role="heading" aria-level="1">Ranking</span><span class="d3m-e-sub" title="${safeText(titulo)}">${sub}</span></div><div class="d3m-e-acoes">${periodos}${porque}${fechar}</div></div>`;
+  const seta = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  const onlineJogos = (escritorio.conectado ? (escritorio.onlineTodos || escritorio.online || []) : (escritorio.lobbyOnline || [])).filter((p) => String(p.id) !== eu).length;
+  const ladoFim = `<section class="d3m-cons" aria-label="Jogos no terraço"><div class="d3m-cons-cab"><b>Jogos no terraço</b><span>${onlineJogos} online</span></div><button type="button" class="d3m-vlin" onclick="closeWorkflowModal();window.mundoVoxel?.irPara?.('jogos')"><span><b>Sinuca, xadrez e pôquer</b> <span class="d3m-f-ap">· ${onlineJogos ? "tem gente para chamar" : "mesas livres"}</span></span>${seta}</button></section>
+<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div><button type="button" class="d3m-vlin" onclick="closeWorkflowModal();abrirConquistasEscritorio()"><span><b>Conquistas</b> <span class="d3m-f-ap">· os troféus</span></span>${seta}</button><button type="button" class="d3m-vlin" onclick="closeWorkflowModal();window.mundoVoxel?.irPara?.('produtividade')"><span><b>Produtividade</b> <span class="d3m-f-ap">· o seu score</span></span>${seta}</button></section>`;
+  const soEstado = (html) => { el.innerHTML = `<div class="d3m-e-tela d3m-f-rk">${topoDe("")}<div class="d3m-e-corpo"><div class="d3m-e-main"><section class="d3m-e-folha cresce d3m-f-rk-folha" aria-label="A equipe"><div class="d3m-e-rola">${html}</div></section></div><aside class="d3m-lado d3m-f-lado" aria-label="Consulta">${ladoFim}</aside></div></div>`; };
   if (escritorioRanking.erro && !d) { soEstado(vbEstadoHtml({ tipo: "erro", titulo: "Não deu para carregar o ranking", texto: escritorioRanking.erro, acao: '<button type="button" class="v2r-btn" onclick="carregarRankingEscritorio()">Tentar de novo</button>' })); return; }
   if (!d) { soEstado(vbEstadoHtml({ tipo: "carregando", titulo: "Carregando o ranking" })); return; }
   if (!d.disponivel) { soEstado(vbEstadoHtml({ titulo: "O ranking ainda não começou", texto: "Ele aparece quando a contagem de pontos estiver ativa." })); return; }
@@ -1503,7 +1510,7 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
   const av = (p, tam) => { const u = escritorioCabecaUrl(p.id); return `<span class="v2r-av" style="--t:${tam}px">${u ? `<img src="${safeText(u)}" alt="" loading="lazy">` : iniciais(p)}</span>`; };
   const mexeu = (p) => { if (per === "total" || !p.posicao || !p.antes) return p.posicao && !p.antes && per !== "total" ? "entrou agora" : ""; const n = p.antes - p.posicao; return !n ? "mesma posição" : `${n > 0 ? "subiu" : "caiu"} ${Math.abs(n)}`; };
   const funcao = (p) => safeText(ESCRITORIO_FUNCAO_NOME[p.funcao] || "");
-  let esquerda = "", d3cima = "", linhaXp = "";
+  let esquerda = "", d3cima = "", linhaXp = "", lado = "";
   if (cat) {
     const geral = cat.k === "geral";
     const ord = ordenar(cat), vivos = ord.filter((x) => x.v > 0);
@@ -1546,9 +1553,10 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
         ag && per !== "total" ? numR("Entregas da equipe", String(ag.pecas), String(ag.meta), ag.bateu ? "meta batida" : "", ag.pct) : "",
         lider ? numR("Líder", safeText(cat.fmt(lider.v, lider.p)), "", `${safeText(nome(lider.p))}${geral && per !== "total" ? ` · ${lider.p.pct}% da meta` : ""}`, null) : "",
       ].join("")}</div>`;
-    const tabela = `<div class="v2r-card d3r-tab"><div class="d3r-tab-cab"><h3>Equipe</h3>${fichas}</div><div class="d3r-cab" aria-hidden="true"><span></span><span>Pessoa</span><span>Entregas</span><span>Meta</span><span>${safeText(cat.nome)}</span><span>Prêmio</span></div>${ord.map((x) => { const pos = posDe(x), pr = geral && per === "semana" && pos && pos <= 3 ? premio("ranking_" + pos) : null;
+    const deOlho = [ag && per !== "total" ? `<b>${Number(ag.pecas).toLocaleString("pt-BR")} de ${Number(ag.meta).toLocaleString("pt-BR")}</b> entregas da equipe` : "", lider ? `<b>${safeText(cat.fmt(lider.v, lider.p))}</b> do líder${geral && per !== "total" ? `, com ${lider.p.pct}% da meta` : ""}` : "", per !== "total" && faltam != null ? `<b>${faltam} ${faltam === 1 ? "dia" : "dias"}</b> para fechar ${per === "mes" ? "o mês" : per === "dia" ? "o dia" : "a semana"}` : ""].filter(Boolean);
+    const tabela = `<section class="d3m-e-folha cresce d3m-f-rk-folha d3r-tab" aria-label="A equipe"><div class="d3m-e-cab d3r-tab-cab"><b>A equipe${intervalo ? ` <span>· ${safeText(intervalo)}</span>` : ""}</b>${fichas}</div><div class="d3r-cab" aria-hidden="true"><span></span><span>Pessoa</span><span>Entregas</span><span>Meta</span><span>${safeText(cat.nome)}</span><span>Prêmio</span></div><div class="d3m-e-rola v2r-rola">${ord.map((x) => { const pos = posDe(x), pr = geral && per === "semana" && pos && pos <= 3 ? premio("ranking_" + pos) : null;
       return `<button type="button" data-pid="${x.p.id}" class="d3r-lin${x.p.id === eu ? " eu" : ""}" onclick="abrirDetalheRankingEscritorio('${x.p.id}', this)"><span class="d3r-pos${pos && pos <= 3 ? " p" + pos : ""}">${pos || "–"}</span>${av(x.p, 30)}<span class="d3r-nome"><b>${x.p.id === eu ? "Você" : safeText(nome(x.p))}</b><small>${[funcao(x.p), geral ? mexeu(x.p) : ""].filter(Boolean).join(" · ")}</small></span><span class="d3r-n">${Number(x.p.entregas || 0).toLocaleString("pt-BR")}</span><span class="d3r-meta">${per === "total" ? "" : `<span class="d3-barra" style="--v:${Math.min(100, Number(x.p.pct) || 0)}%"><i></i></span><small>${Number(x.p.pct) || 0}%</small>`}</span><b class="d3r-v">${safeText(cat.fmt(x.v, x.p))}</b><span class="d3r-pr">${pr ? "+" + pr.moedas : "–"}</span></button>`; }).join("")}
-      ${geral && per === "semana" && premio("ranking_1") ? `<p class="d3r-pe"><span>Prêmio</span>${[1, 2, 3].map((i) => premio("ranking_" + i)).filter(Boolean).map((pr, i) => `<span class="d3r-ficha">${i + 1}º · +${pr.moedas} moedas · +${pr.pontos} XP</span>`).join("")}</p>` : ""}</div>`;
+      ${geral && per === "semana" && premio("ranking_1") ? `<p class="d3r-pe"><span>Prêmio</span>${[1, 2, 3].map((i) => premio("ranking_" + i)).filter(Boolean).map((pr, i) => `<span class="d3r-ficha">${i + 1}º · +${pr.moedas} moedas · +${pr.pontos} XP</span>`).join("")}</p>` : ""}</div>${deOlho.length ? `<div class="d3m-e-pe d3m-f-rk-pe"><span>De olho</span>${deOlho.map((t) => `<span>${t}</span>`).join("")}</div>` : ""}</section>`;
     const eixo = rkEixo(d), acum = (p) => { let a = 0; return eixo.map((dia) => (a += Number((p.ritmo || []).find(([x]) => x === dia)?.[1] || 0))); };
     if (eu_ && eixo.length > 1 && per !== "total") {
       const meu = acum(eu_.p), lid = lider && lider.p.id !== eu ? acum(lider.p) : null, ate = Math.max(1, eixo.filter((x) => String(x).slice(0, 10) <= hoje).length);
@@ -1559,6 +1567,16 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
       linhaXp = `<div class="v2r-card d3r-xp"><div class="d3r-cab2"><b>XP ${per === "dia" ? "de hoje" : per === "mes" ? "no mês" : "na semana"}</b><span><i></i>você${lid ? ` <i class="m"></i>${safeText(nome(lider.p))}` : ""}</span></div><svg class="d3-graf" viewBox="0 0 ${W} ${H}" style="--d3-comp:${Math.ceil(comp) || 1}" role="img" aria-label="Seu XP no período">${lid ? `<polyline class="meta" points="${pl(lid)}"/>` : ""}<polyline points="${pl(mine)}"/><circle cx="${X(mine.length - 1).toFixed(1)}" cy="${Y(mine[mine.length - 1]).toFixed(1)}" r="4.5"/></svg><div class="d3r-dias">${rot}</div></div>`;
     }
     esquerda = copaMes + tabela;
+    if (eu_) {
+      const acima = ord[minha - 1], pos = posDe(eu_);
+      const lidera = minha === 0 && eu_.v > 0;
+      const num = lidera ? "1º" : !acima ? "" : geral && per === "total" ? `${Math.max(1, Number(acima.p.xpTotal || 0) - Number(eu_.p.xpTotal || 0) + 1).toLocaleString("pt-BR")} XP` : cat.fmt(Math.max(1, acima.v - eu_.v + 1), acima.p);
+      const frase = lidera ? `você lidera ${geral ? "o período" : `em ${safeText(cat.nome)}`}` : acima ? `${String(num).startsWith("1 ") ? "falta" : "faltam"} para passar ${safeText(nome(acima.p))}` : "entregue para entrar neste ranking";
+      const apoio = `Você está em ${pos ? pos + "º" : "–"} de ${ord.length}, com ${safeText(cat.fmt(eu_.v, eu_.p))}${geral && per !== "total" ? ` e ${eu_.p.pct}% da sua meta` : ""}.`;
+      const quando = { dia: "hoje", semana: "nesta semana", mes: "neste mês", total: "desde sempre" }[per];
+      lado = `<section class="d3m-laranja d3m-f-lar" aria-label="VYBES · para subir um lugar"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${lidera ? "você na frente" : "para subir um lugar"}</span><div class="d3m-lar-txt">${num ? `<b class="d3m-lar-num">${safeText(num)}</b>` : ""}<span class="d3-acao-frase">${frase}</span><small class="d3m-f-lar-ap">${apoio}</small><div class="d3m-lar-bts"><button type="button" class="d3m-btn l" onclick="closeWorkflowModal();window.mundoVoxel?.irPara?.('tarefas')">Ver minha fila</button><button type="button" class="d3m-btn l s" onclick="document.querySelector('#ofc-ranking [aria-controls=v2r-porque]')?.click()">Como ganhar</button></div></div></section>
+<section class="d3m-cons" aria-label="Você ${quando}"><div class="d3m-cons-cab"><b>Você ${quando}</b><span></span></div><div class="d3m-f-minis"><button type="button" class="d3m-f-mini" onclick="verMinhaLinhaRankingEscritorio()"><b>${pos ? pos + "º" : "–"}</b><span>de ${ord.length}</span></button><button type="button" class="d3m-f-mini" onclick="verMinhaLinhaRankingEscritorio()"><b>${Number(eu_.p.xp || 0).toLocaleString("pt-BR")}</b><span>XP</span></button><button type="button" class="d3m-f-mini" onclick="verMinhaLinhaRankingEscritorio()"><b>${per === "total" ? `Nível ${eu_.p.nivel || 1}` : `${eu_.p.pct}%`}</b><span>${per === "total" ? "o seu nível" : "da meta"}</span></button></div></section>`;
+    }
   }
   let corpo = "";
   if (!cat && aba === "tesouros") {
@@ -1575,10 +1593,11 @@ ${p.pecas?.length ? `<div class="ofc-rk-det-col largo"><h5>As entregas <small>${
   const anterior = per === "semana" && d.anterior?.podio?.length ? `<div class="ofc-rk-anterior"><small>Semana passada</small>${[...d.anterior.podio].sort((x, y) => x.posicao - y.posicao).map((p) => `<span>${p.posicao}º ${rosto(p.id, 22)} ${safeText(nome(p))}</span>`).join("")}${d.anterior.agenciaBateu ? '<span class="ok">Agência bateu a meta</span>' : ""}</div>` : "";
   const como = `<details class="ofc-rk-como"><summary>Como funciona</summary><ul><li><b>Geral:</b> o % da <b>sua própria meta</b> (a média das suas entregas nas últimas 8 semanas, na proporção do período). Criação, Produção, Atendimento, Agendamento e Gestão competem por igual. Em "Sempre" vale o nível.</li><li><b>Setas:</b> quanto você subiu ou desceu no Geral desde o período anterior (ontem, semana passada, mês passado).</li><li><b>Prêmios</b> só no ranking da semana, no domingo à meia-noite: ${["ranking_1", "ranking_2", "ranking_3"].map((k, i) => { const p = premio(k); return p ? `${i + 1}º ${p.moedas} moedas e ${p.pontos} XP` : ""; }).filter(Boolean).join(" · ")}, com o troféu da semana.</li><li><b>Categorias:</b> quem mais fez cada tipo de trabalho; a linha de cada pessoa mostra o ritmo do XP no período.</li><li><b>Em chamas:</b> dias úteis seguidos com entrega, até hoje.</li><li>Todo mundo vê o ranking de todo mundo.</li></ul></details>`;
   const porqueAberto = Boolean(escritorioRanking.porque);
-  const porque = `<button type="button" class="v2r-btn" aria-expanded="${porqueAberto}" aria-controls="v2r-porque" onclick="escritorioRanking.porque=!escritorioRanking.porque;const p=document.getElementById('v2r-porque');p.setAttribute('aria-expanded',escritorioRanking.porque);this.setAttribute('aria-expanded',escritorioRanking.porque)">Por que essa ordem?</button>`;
-  el.innerHTML = `<div class="v2r${escritorioRanking.carregando === per ? " atualizando" : ""}">${topoDe(porque)}
-<div class="v2-abre v2r-porque" id="v2r-porque" aria-expanded="${porqueAberto}"><i hidden></i><div class="v2-mais"><div><div class="v2r-card v2r-porque-dentro"><p>${safeText(cat?.dica || (aba === "tesouros" ? "Tesouros mostra a carteira e a coleção de cada um, de todos os tempos." : "A meta da agência é a média de peças por semana nas últimas 8 semanas, na proporção do período."))}</p>${anterior}${como}</div></div></div></div>
-${d3cima}<div class="v2r-corpo"><div class="v2r-esq">${cat ? "" : fichas}<div class="v2r-rola">${esquerda}</div></div>${linhaXp ? `<div class="d3r-dir">${linhaXp}${jogos}</div>` : jogos}</div></div>`;
+  const porque = `<button type="button" class="d3v-btn vidro d3m-e-fio" aria-expanded="${porqueAberto}" aria-controls="v2r-porque" onclick="escritorioRanking.porque=!escritorioRanking.porque;const p=document.getElementById('v2r-porque');p.setAttribute('aria-expanded',escritorioRanking.porque);this.setAttribute('aria-expanded',escritorioRanking.porque)">Por que essa ordem?</button>`;
+  el.innerHTML = `<div class="d3m-e-tela d3m-f-rk${escritorioRanking.carregando === per ? " atualizando" : ""}">${topoDe(porque)}
+<div class="v2-abre v2r-porque d3m-f-rk-porque" id="v2r-porque" aria-expanded="${porqueAberto}"><i hidden></i><div class="v2-mais"><div><div class="v2r-card v2r-porque-dentro"><p>${safeText(cat?.dica || (aba === "tesouros" ? "Tesouros mostra a carteira e a coleção de cada um, de todos os tempos." : "A meta da agência é a média de peças por semana nas últimas 8 semanas, na proporção do período."))}</p>${anterior}${como}</div></div></div></div>
+<div class="d3m-e-corpo"><div class="d3m-e-main">${cat ? esquerda : `<section class="d3m-e-folha cresce d3m-f-rk-folha" aria-label="${safeText(aba === "tesouros" ? "Tesouros" : "Agência")}"><div class="d3m-e-cab"><b>${aba === "tesouros" ? "Tesouros" : "A agência"}</b>${fichas}</div><div class="d3m-e-rola v2r-rola">${corpo}</div></section>`}</div><aside class="d3m-lado d3m-f-lado" aria-label="Consulta">${lado}${ladoFim}</aside></div></div>`;
+  void d3cima; void linhaXp;
   const rola = el.querySelector(".v2r-rola"); if (rola && chaveAntes.split(":")[0] === per) rola.scrollTop = rolagem;
   el.dataset.rkChave = per + ":" + aba;
 }
