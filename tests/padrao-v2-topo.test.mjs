@@ -62,52 +62,63 @@ function telaDaConta({ ai, eu, equipe = [], clientes = [], acessos = [] }) {
 }
 const admin = { nome: 'Operador de teste', email: 'operador@example.test', admin: true };
 
-// Direção 3 (13/11/2026): a ordem passou a ser a do quadro D3-ContaEquipe (bloco de ação, quatro números, três colunas).
-test('Conta e equipe: a ordem do quadro D3 (cabeçalho, bloco de ação, quatro números, três colunas, fileira Abrir)', () => {
+// Prancha V2-M-Conta-Equipe (16/11/2026): título no vidro, a folha de quem você é, a Operação, a Equipe e a consulta
+// (o laranja do VYBES, por que conferir o WhatsApp e os atalhos). Os quatro números e a fileira "Abrir" saíram.
+test('Conta e equipe: a ordem da prancha (título no vidro, você, Operação, Equipe e a consulta com o laranja)', () => {
   const { html } = telaDaConta({ ai: { erro: 'Sem resposta.' }, eu: admin,
     equipe: [{ id: 1, nome: 'Ana Lima', pode_entrar: true, ativo: true }, { id: 2, nome: 'Fora', pode_entrar: false, ativo: true }],
     clientes: [{ id: 1, nome: 'Cliente A', ativo: true }, { id: 2, nome: 'Cliente B', ativo: true }, { id: 3, nome: 'Cliente C', ativo: true }, { id: 4, nome: 'Saiu', ativo: false }],
     acessos: [{ id: 1, tem_documento: true }, { id: 2, tem_documento: false }] });
-  // Acabamento 15/11: com o WhatsApp pendente, o "Conferir o WhatsApp" do topo some (a ação mora no bloco laranja).
+  // Com o WhatsApp pendente, o "Conferir o WhatsApp" do topo some (a ação mora na linha e no laranja).
   assert.doesNotMatch(html, />Conferir o WhatsApp<\/button>/);
-  const ordem = ['<h1>Conta e equipe</h1>', '>Gestão<', '>Ver como o time vê</button>',
-    'class="d3-acao"', 'VYBES · Conta', 'class="d3c-nums"', '<h2>Pede ação</h2>', '<h2>Operação</h2>', 'id="conta-conteudo"', '<h2>Equipe</h2>', 'class="v2c-abrir"'];
+  const ordem = ['class="d3m-e-tela d3m-e-conta" data-papel="admin" data-parte="inicio"', '>Conta e equipe</span>', 'a sua conta, os acessos e a equipe · 1 pessoa com acesso · 3 clientes', '>Ver como o time vê</button>',
+    'id="conta-conteudo"', '<b>Operação</b>', '<b>Equipe ', 'class="d3m-lado d3m-e-ct-lado"', 'id="v2c-fala"', 'class="d3m-laranja d3m-e-ct-lar"', 'VYBES · a sua conta', 'Por que conferir o WhatsApp', '<b>Atalhos</b>', 'Sair da conta'];
   let i = -1; for (const p of ordem) { const j = html.indexOf(p, i + 1); assert.ok(j > i, 'fora de ordem ou faltando: ' + p); i = j; }
-  assert.doesNotMatch(html, /class="v2c-btn p"/, 'o laranja cheio é só o bloco de ação');
-  assert.equal(html.split('class="d3-acao"').length - 1, 1);
-  assert.match(html, /Não conferi seu WhatsApp, e falta sua foto\.<\/span><button type="button" class="d3-acao-btn" onclick="carregarContaAI\(\)">Tentar de novo<\/button>/);
-  assert.match(html, /d3-num-rot">Equipe<\/span><b class="d3-num-v">1<\/b>[\s\S]*com acesso/);
-  assert.match(html, /d3-num-rot">Clientes<\/span><b class="d3-num-v">3<\/b>[\s\S]*Cliente A[\s\S]*Cliente B[\s\S]*\+1[\s\S]*ativos no painel/);
-  assert.match(html, /d3-num-rot">Credenciais<\/span><b class="d3-num-v">1<\/b>/);
-  assert.match(html, /d3-num-rot">Donos<\/span>/);
-  assert.match(html, /v2c-pill r">Não conferido<\/span><b>WhatsApp<\/b>[\s\S]*vínculo com o seu número[\s\S]*>Tentar de novo<\/button>/);
-  assert.match(html, /v2c-pill a">Sem foto<\/span><b>Sua foto<\/b>[\s\S]*>Escolher<\/button>/);
-  assert.match(html, /<h2>Pede ação<\/h2><span class="v2c-sub">2<\/span>/);
-  for (const r of ['Perfil', 'Senha', 'Equipe', 'Clientes', 'Opções das fichas', 'Credenciais', 'Manutenção']) assert.match(html, new RegExp(`class="v2c-chip"[^>]*>${r}</button>`));
-  assert.doesNotMatch(html, /conta-barra|conta-aba|—/);
+  assert.doesNotMatch(html, /class="v2c-btn p"/, 'o laranja cheio é só o cartão de ação');
+  assert.equal(html.split('class="d3m-laranja').length - 1, 1);
+  assert.match(html, /<b class="d3m-lar-num">2<\/b><span class="d3-acao-frase">coisas faltam na sua conta<\/span><small class="d3m-lar-sub">Não conferi seu WhatsApp, e falta sua foto\.<\/small>/);
+  assert.match(html, /class="d3m-btn l" onclick="carregarContaAI\(\)">Tentar de novo<\/button><button type="button" class="d3m-btn l s" onclick="document\.getElementById\('conta-foto-arquivo'\)\?\.click\(\)">Escolher a foto<\/button>/);
+  assert.match(html, /<b>Equipe <span>· 1 com acesso<\/span><\/b>/);
+  assert.match(html, /Só você por aqui[\s\S]*abrirNovoNoCiclo\('pessoa',\{depois:carregarConta\}\)">Convidar alguém</);
+  assert.match(html, /<b>Clientes<\/b> · 3 ativos<\/span>/);
+  assert.match(html, /<b>Credenciais<\/b> · 1 guardada · [\s\S]*?só a gestão vê/);
+  assert.match(html, /<b class="d3m-e-ct-sit r"[^>]*>não conferido<\/b>[\s\S]*>Tentar de novo<\/button>/);
+  assert.match(html, /<b class="d3m-e-ct-sit a">sem foto<\/b>[\s\S]*>Escolher<\/button>/);
+  for (const s of ['opcoes', 'manutencao', 'clientes', 'acessos', 'equipe']) assert.match(html, new RegExp(`escolherSecaoDaConta\\('${s}'\\)`), 'a porta continua: ' + s);
+  assert.doesNotMatch(html, /conta-barra|conta-aba|—|d3c-nums|v2c-abrir/);
 });
 
 test('Conta: o cartão de quem você é tem foto, senha que abre no lugar (dois campos), WhatsApp e tema', () => {
   const { html } = telaDaConta({ ai: { disponivel: true, vinculado: true }, eu: { ...admin, foto_url: 'f.png' } });
-  assert.match(html, /<h2>Operador de teste<\/h2><p class="v2c-sub">operador@example\.test<\/p><\/div>\s*<span class="v2c-pill n">gestão<\/span>/);
-  assert.match(html, /<div class="v2-abre" id="v2c-senha" aria-expanded="false">[\s\S]*>Trocar<\/button>[\s\S]*class="v2-mais" id="v2c-senha-campos" inert>[\s\S]*id="conta-atual"[\s\S]*id="conta-nova"[\s\S]*class="v2c-btn s k" onclick="trocarMinhaSenha\(\)">Salvar/);
+  assert.match(html, /<b class="d3m-e-ct-nome">Operador de teste<\/b><span class="d3m-e-ct-email"[^>]*>operador@example\.test<\/span><\/div>\s*<span class="d3m-e-ct-pill">gestão<\/span>/);
+  assert.match(html, /<div class="v2-abre d3m-e-ct-senha" id="v2c-senha" aria-expanded="false">[\s\S]*>Trocar<\/button>[\s\S]*class="v2-mais" id="v2c-senha-campos" inert>[\s\S]*id="conta-atual"[\s\S]*id="conta-nova"[\s\S]*class="d3v-btn s" onclick="trocarMinhaSenha\(\)">Salvar/);
   assert.doesNotMatch(html, /conta-nova2/);
-  assert.match(html, /v2c-pill g"[^>]*>Conectado<\/b>/);
+  assert.match(html, /d3m-e-ct-sit g"[^>]*>conectado<\/b>/);
+  assert.doesNotMatch(html, /sem foto/);
   // 16/11/2026 (três temas): Fumê, Claro, Escuro e Auto; sem escolha guardada, o marcado é o Fumê (vybe-tema.js).
   assert.match(html, /role="radiogroup" aria-label="Tema" data-tema="fume">[\s\S]*data-tema-conta="fume" aria-checked="true"[\s\S]*data-tema-conta="claro" aria-checked="false"[\s\S]*data-tema-conta="escuro" aria-checked="false"[\s\S]*data-tema-conta="auto" aria-checked="false"/);
   assert.match(html, /Conta em ordem\. WhatsApp conferido\./);
-  assert.match(html, /Nada pendente na sua conta\. WhatsApp conferido\./);
-  assert.match(html, /<span class="v2c-sub">nada agora<\/span>/);
+  assert.doesNotMatch(html, /d3m-laranja/, 'sem pendência não há laranja');
+  // Sem pendência de WhatsApp, o topo oferece conferir de novo.
+  assert.match(html, /onclick="carregarContaAI\(\)">Conferir o WhatsApp<\/button>/);
 });
 
-test('Conta: quem não administra vê só a própria conta; a parte da operação abre pela fileira', () => {
+test('Conta: quem não administra vê só a própria conta; a parte da operação abre na mesma janela, com a volta', () => {
   const time = telaDaConta({ ai: { disponivel: true, vinculado: false, pode_gerar: true }, eu: { nome: 'Bia', email: 'bia@x', foto_url: 'f.png' } }).html;
-  assert.match(time, /<h1>Sua conta<\/h1>/);
-  assert.doesNotMatch(time, /v2c-tres|Operação|Ver como o time vê|>Equipe<\/button>/);
+  assert.match(time, /role="heading" aria-level="2">Sua conta<\/span>/);
+  assert.match(time, /data-papel="time"/);
+  assert.doesNotMatch(time, /v2c-tres|Operação|Ver como o time vê|<b>Equipe |abrir a equipe/);
   assert.match(time, />Conectar<\/button>/);
   const t = telaDaConta({ ai: { disponivel: true, vinculado: true }, eu: { ...admin, foto_url: 'f.png' }, equipe: [{ id: 1, nome: 'Ana', email: 'ana@x', pode_entrar: true, ativo: true, tem_senha: true }] });
   vm.runInContext("escolherSecaoDaConta('equipe')", t.c);
+  assert.match(t.raiz.innerHTML, /data-parte="equipe"/);
+  assert.match(t.raiz.innerHTML, /<div class="d3m-e-cab"><b>Equipe<\/b><button type="button" class="d3m-e-elo d3m-e-ct-volta" onclick="escolherSecaoDaConta\('perfil'\)">/);
   assert.match(t.raiz.innerHTML, /class="v2c-card v2c-secao" id="conta-conteudo">[\s\S]*Novo colaborador[\s\S]*class="eq-linha/);
-  assert.match(t.raiz.innerHTML, /data-secao="equipe" aria-pressed="true"/);
-  assert.doesNotMatch(t.raiz.innerHTML, /v2c-duas/);
+  assert.doesNotMatch(t.raiz.innerHTML, /v2c-duas|d3m-e-ct-lado/);
+  vm.runInContext("escolherSecaoDaConta('perfil')", t.c);
+  assert.match(t.raiz.innerHTML, /data-parte="inicio"/);
+  // "Ver como o time vê": some o que é de quem administra e o laranja oferece a volta.
+  vm.runInContext('alternarVisaoDoTime()', t.c);
+  assert.match(t.raiz.innerHTML, /data-papel="time"[\s\S]*Você vê o painel como o time\.[\s\S]*onclick="alternarVisaoDoTime\(\)">Voltar<\/button>/);
+  assert.doesNotMatch(t.raiz.innerHTML, /<b>Operação<\/b>|<b>Equipe /);
 });
