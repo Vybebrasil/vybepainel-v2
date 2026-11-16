@@ -793,7 +793,7 @@ function managerCalendarDragStart(source, itemId, event) {
     event.dataTransfer.setData('text/plain', `${source}:${itemId}`);
   }
 }
-function managerCalendarDragEnd() { managerCalendarDragPayload = null; document.querySelectorAll('.manager-calendar-day').forEach(node => node.classList.remove('is-drop-target')); }
+function managerCalendarDragEnd() { managerCalendarDragPayload = null; document.querySelectorAll('.manager-calendar-day, .d3m-a-dia').forEach(node => node.classList.remove('is-drop-target')); }
 function managerCalendarDragOver(event, cell) { event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; cell.classList.add('is-drop-target'); }
 function managerCalendarDragLeave(cell) { cell.classList.remove('is-drop-target'); }
 // Arrastar JÁ é a decisão: quem soltou a peça no dia escolheu a data. Abrir o
