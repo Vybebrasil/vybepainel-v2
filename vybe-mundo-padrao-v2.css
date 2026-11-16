@@ -16296,6 +16296,16 @@ label.d3m-d-vbtn{cursor:pointer}
 .d3m-d-fm-leg i.pago{background:var(--d3-pronto)}
 .d3m-d-fm-leg i.aberto{background:var(--d3-perigo)}
 .d3m-d-fm-leg i.a_receber{background:var(--d3-info)}
+/* Números do molde: o que não tem valor fica apagado. O vazio alto, com o ícone e dois botões. */
+.d3m-d-fm .d3m-d-fx-v.q{color:var(--d3-rotulo)}
+.d3m-d-fm .d3m-d-fm-av > svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-fm-vazio-alto{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:100%;box-sizing:border-box}
+.d3m-d-fm-vazio-alto > p{max-width:360px;margin:0;line-height:1.45}
+.d3m-d-fm-vazio-alto > p > b{display:block;margin-bottom:4px;font-weight:600;color:var(--d3-tinta)}
+.d3m-d-fm-vazio-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--d3-veu-forte);color:var(--d3-tinta)}
+.d3m-d-fm-vazio-ic > svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-fm-vazio-bts{display:inline-flex;gap:8px}
+.d3m-d-fm-ficha > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 /* Dois cartões lado a lado embaixo do principal. */
 .d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
 

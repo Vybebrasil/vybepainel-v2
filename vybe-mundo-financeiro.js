@@ -49,7 +49,7 @@
   const ui = {
     extrato: { mes: '', chip: 'conferir', cat: '', lado: '', aberta: '', mostrar: 60, partes: {}, previa: null, csv: '', nomeArquivo: '', lendo: false, regra: '' },
     clientes_mes: { chip: 'todos', aberta: '' },
-    cartao: { fatura: '', novo: false, colar: false, editando: '', chip: 'todos', aberta: '', inteira: false },
+    cartao: { fatura: '', lado: '', novo: false, colar: false, editando: '', chip: 'todos', aberta: '', inteira: false },
     fixos: { mes: '', novo: false, editando: '' },
     vorcaro: { mao: false, frente: '', baixo: '' },
     vales: { aberta: '', chip: 'todos', ajuste: '' },
@@ -304,7 +304,7 @@
     const COLS = [[28, ''], [0, 'Cliente e mensalidade'], ...seis.map((m) => [84, mesCurto(m), 'm']), [110, 'Em aberto', 'r']];
     const CEL = { pago: 'pago', parcial: 'parcial', aberto: 'aberto', a_receber: 'a receber', sem: 'sem cobrança', fora: 'antes do extrato' };
     const cel = (m) => `<span class="d3m-d-fm-mes ${esc(m.situacao)}" title="${esc(m.situacao === 'fora' ? `${nomeMes(m.mes)}: antes do extrato importado` : `${nomeMes(m.mes)}: previsto ${rs(m.previsto)}, recebido ${rs(m.recebido)}${m.em_aberto ? `, em aberto ${rs(m.em_aberto)}` : ''}${m.a_receber ? `, a receber ${rs(m.a_receber)}` : ''}`)}">${m.situacao === 'sem' || m.situacao === 'fora' ? '·' : m.situacao === 'pago' ? 'pago' : esc(mil(m.em_aberto || m.a_receber).replace('R$ ', ''))}<span class="fv2-sr"> ${esc(CEL[m.situacao] || m.situacao)}</span></span>`;
-    const corpo = !pc2.desde ? `<div class="d3m-d-fm-vazio"><p>Sem extrato, não dá para saber quem pagou.</p><button type="button" class="fv2-btn s" data-fx="ir-aba" data-valor="extrato">Ir ao extrato</button></div>`
+    const corpo = !linhas.length && !pc2.desde ? `<div class="d3m-d-fm-vazio"><p>Sem extrato, não dá para saber quem pagou.</p><button type="button" class="fv2-btn s" data-fx="ir-aba" data-valor="extrato">Ir ao extrato</button></div>`
       : !linhas.length ? `<div class="d3m-d-fm-vazio"><p>Nenhuma entrada ligada a cliente ainda.</p><button type="button" class="fv2-btn s" data-fx="ir-aba" data-valor="extrato" data-chip="entradas">Ligar no extrato</button></div>`
         : vis.map((l) => {
           const aberta = u.aberta === l.cliente_id;
@@ -317,13 +317,13 @@
       .map(([k, nome, n, tom]) => ({ nome, n, tom: n ? tom : '', on: u.chip === k, attrs: `data-fx="chip" data-alvo="clientes_mes" data-valor="${k}"` })), 'Filtrar os clientes')
       + '<span class="d3m-d-fm-leg" aria-hidden="true"><span><i class="pago"></i>pago</span><span><i class="aberto"></i>em aberto</span><span><i class="a_receber"></i>a receber</span></span>';
     const semCobranca = (d.clientes || []).filter((c) => c.ativo !== false && !c.mensalidade).length;
-    const olho = pc2.desde ? M().olho([[esc(mil(recebido)), atual ? `recebido em ${soMes(atual)}` : 'recebido no mês', recebido ? 'g' : ''], [esc(mil(aReceber)), 'a receber no mês'],
+    const olho = pc2.desde || linhas.length ? M().olho([[esc(mil(recebido)), atual ? `recebido em ${soMes(atual)}` : 'recebido no mês', recebido ? 'g' : ''], [esc(mil(aReceber)), 'a receber no mês'],
       [`${n0(pagos)} de ${n0(cobrados)}`, atual ? `já pagou ${soMes(atual)}` : 'já pagaram no mês'], semCobranca ? [n0(semCobranca), semCobranca === 1 ? 'cliente ativo sem cobrança' : 'clientes ativos sem cobrança', 'a'] : null]) : '';
     const laranja = aberto > 0 ? M().laranja({ rot: 'quem deve', num: n0(nAberto), frase: nAberto === 1 ? 'cliente com mês em aberto' : 'clientes com mês em aberto',
       apoio: `${esc(rs(aberto))} no total.${maior?.total_aberto ? ` O maior é ${esc(maior.cliente_nome)}, com ${esc(rs(maior.total_aberto))}.` : ''}`,
       bts: [['Ver quem deve', 'data-fx="chip" data-alvo="clientes_mes" data-valor="aberto"'], maior?.total_aberto ? [`Abrir ${maior.cliente_nome}`, `data-fx="abrir" data-alvo="clientes_mes" data-valor="${esc(maior.cliente_id)}"`] : null] }) : '';
     return M().molde({ tela: 'fx-clientes_mes', aba: 'clientes_mes', titulo: 'Clientes mês a mês', d, repintar,
-      sub: `${seis.length ? `${esc(soMes(seis[0]))} a ${esc(nomeMes(atual))}` : 'sem extrato'}${aberto ? ` · ${esc(mil(aberto))} em aberto` : linhas.length ? ' · todos em dia' : ''}`, laranja,
+      sub: `${seis.length ? `${esc(soMes(seis[0]))} a ${esc(nomeMes(atual))}` : 'sem extrato'}${aberto ? ` · ${esc(mil(aberto))} em aberto` : linhas.length ? ' · todos em dia' : ''}${!pc2.desde ? ' · sem extrato importado' : ''}`, laranja,
       corpo: M().folha({ titulo: 'Pago e em aberto', sub: 'pelo mês de referência', dir: linhas.length ? fichas : '', cab: linhas.length ? M().cab(COLS) : '', corpo, olho, rotulo: 'matriz', cls: 'd3m-d-fm-matriz' }) });
   }
   function detalheCliente(d, l) {
@@ -351,47 +351,57 @@
     // Vencimento da fatura (dia por cartão, chave financeiro_cartoes, 14/11/2026): a fatura do mês vence no dia do cartão.
     const vence = doMes.map((f) => f.vence).filter(Boolean).sort()[0] || '';
     const venc = d.cartao?.vencimentos || {}, nomesCartao = [...new Set([...cartoes, ...Object.keys(venc), 'Cartão da agência'])];
-    const acoes = `<button type="button" class="fv2-btn d3f-cinza" data-fx="cartao-colar">Colar fatura</button><button type="button" class="fv2-btn p" data-fx="cartao-novo">${IC.mais}Novo item</button>`;
-    const partes = [topo('Cartão de crédito', acoes, mesNav(meses, u.fatura, 'cartao', (m) => `fatura de ${soMes(m)}`), `<span class="d3f-data">${esc(cartoes.join(' · ') || 'Cartão da agência')}</span>`)];
-    const frase = !faturas.length ? 'Cole os itens da fatura para ver cada compra.'
-      : falta > 0 || semCat ? `${falta > 0 ? `Faltam ${esc(rs(falta))} na fatura` : 'Fatura quitada'}${semCat ? ` e ${quantos(semCat, 'item sem categoria', 'itens sem categoria')}` : ''}.`
-      : soltos.length ? `${quantos(soltos.length, 'pagamento', 'pagamentos')} de cartão sem fatura.` : 'Fatura quitada e tudo com categoria.';
-    partes.push(!faturas.length ? acao(frase, 'Colar fatura', 'data-fx="cartao-colar"')
-      : semCat ? acao(frase, `Ver ${semCat === 1 ? 'o item' : 'os ' + n0(semCat)}`, 'data-fx="chip" data-alvo="cartao" data-valor="semcat"')
-      : soltos.length && !(falta > 0) ? acao(frase, 'Ver', 'data-fx="foco" data-valor="soltos"') : acao(frase));
-    const anteriores = faturas.filter((f) => f.fatura <= u.fatura), porFatura = [...new Set(anteriores.map((f) => f.fatura))].sort().slice(-6).map((m) => anteriores.filter((f) => f.fatura === m).reduce((s, f) => s + f.total, 0));
-    const antes = [...new Set(faturas.map((f) => f.fatura))].sort().filter((m) => m < u.fatura).slice(-1)[0];
-    partes.push(nums([
-      { rotulo: 'Total da fatura', valor: mil(total), serie: porFatura, sub: antes ? `${mes3(antes)} ${mil(faturas.filter((f) => f.fatura === antes).reduce((s, f) => s + f.total, 0))}` : quantos(itens.length, 'item', 'itens') },
-      { rotulo: 'Pago · pelo extrato', valor: mil(pago), tom: pago ? 'g d3f-verde' : 'q', barra: pc(pago, total), sub: `${quantos(pagamentos.length, 'pagamento', 'pagamentos')} · ${pc(pago, total)}%` },
-      { rotulo: 'Falta pagar', valor: mil(falta), tom: falta > 0 ? '' : 'q', sub: `${pill(...SITUACAO_FATURA[situacao])}${vence ? ` <span${falta > 0 && vence < (d.hoje || '') ? ' class="d3f-r"' : ''}>vence ${esc(dataCurta(vence))}</span>` : ' <button type="button" class="fv2-link" data-fx="foco" data-valor="vencimento">vencimento?</button>'}` },
-      { rotulo: 'Itens', valor: n0(itens.length), sub: semCat ? `<span class="d3f-r">${n0(semCat)} sem categoria</span>` : 'todos com categoria', attrs: 'data-fx="chip" data-alvo="cartao" data-valor="todos"' },
-    ]));
-    if (u.colar) partes.push(colarHtml(d));
-    if (u.novo) partes.push(card('Novo item da fatura', itemCampos(d, { fatura: u.fatura, data: `${u.fatura}-01`, status: 'em_aberto' }), '', 'fx-form-caixa'));
+    // Padrão V2 (prancha V2-M-Financas-Cartao): o molde com três números em cima, os itens da fatura no cartão principal,
+    // os pagamentos sem fatura no segundo cartão; categorias, pagamentos e o vencimento atrás de botões; o laranja só
+    // quando há o que decidir (pagamento sem fatura, item sem categoria, fatura vencida sem pagar).
+    const pagoSolto = soltos.reduce((s, p) => s + Number(p.valor || 0), 0);
+    const vista = !doMes.length ? 'ainda vazia' : SITUACAO_FATURA[situacao][0].toLowerCase();
+    const ultimoPag = pagamentos[0];
+    const nums = [M().num({ rotulo: 'Total da fatura', ic: ICV.cifrao, valor: esc(mil(total)), sub: itens.length ? quantos(itens.length, 'item', 'itens') : 'nenhum item colado' }),
+      M().num({ rotulo: 'Pago, pelo extrato', selo: pago ? 'vybe' : '', ic: IC.ok, valor: esc(rs(pago)), tom: pago ? 'g' : '', sub: pagamentos.length ? `${quantos(pagamentos.length, 'pagamento', 'pagamentos')}${ultimoPag ? `, o último em ${esc(dataCurta(ultimoPag.data))}` : ''}` : 'nenhum pagamento ligado' }),
+      M().num({ rotulo: 'Falta pagar', selo: 'negocio', ic: ICV.relogio, valor: !itens.length && pago ? 'sem fatura' : esc(mil(falta)), tom: !itens.length && pago ? 'q' : '', sub: !itens.length && pago ? 'não dá para saber sem os itens' : `${esc(SITUACAO_FATURA[situacao][0])}${vence ? ` · vence ${esc(dataCurta(vence))}` : ''}` })].join('');
     const vis = itens.filter((i) => (u.chip === 'aberto' ? i.status !== 'pago' : u.chip === 'semcat' ? i.categoria === 'a_classificar' : true));
-    const cabe = u.inteira ? vis : vis.slice(0, 10), resto = vis.slice(cabe.length);
+    const cabe = u.inteira ? vis : vis.slice(0, 30), resto = vis.slice(cabe.length);
+    const COLS = [[48, 'Dia'], [0, 'Item'], [130, 'Situação'], [110, 'Valor', 'r'], [14, '']];
     const linhaItem = (i) => {
       const aberta = u.aberta === i.id || u.editando === i.id, semC = i.categoria === 'a_classificar';
       const quem = [semC ? '' : nomeCat(d, i.categoria), i.quem, i.cliente_nome, cartoes.length > 1 ? i._cartao : ''].filter(Boolean).map(esc).join(' · ');
-      return `<div class="v2-abre fv2-linha fx-item" data-linha="${esc(i.id)}" aria-expanded="${aberta}"><div class="fv2-lin"><span class="fx-dia">${dataCurta(i.data)}</span>
-          <button type="button" class="fv2-txt" data-fx="abrir" data-alvo="cartao" data-valor="${esc(i.id)}" aria-expanded="${aberta}"><span class="fx-item-txt"><b>${esc(i.descricao)}${i.parcela ? ` <span class="d3f-mes">· ${esc(i.parcela)}</span>` : ''}</b><small${semC ? ' class="d3f-r"' : ''}>${semC ? 'A classificar' + (quem ? ' · ' + quem : '') : quem}</small></span></button>
-          <span class="d3f-dir">${pill(STATUS_NOME[i.status] || 'Em aberto', STATUS_TOM[i.status] || 'a')}</span><b class="fx-valor s">${esc(rs(i.valor))}</b></div>
-        <div class="v2-mais"><div><div class="fv2-det">${u.editando === i.id ? `<div class="fx-form-caixa">${itemCampos(d, i)}</div>` : `<div class="fx-linha-acoes"><span class="fv2-seg fx-seg-p" role="group" aria-label="Situação do item">${['pago', 'nao_pago', 'em_aberto'].map((s) => `<button type="button" data-fx="item-status" data-id="${esc(i.id)}" data-valor="${s}" aria-pressed="${i.status === s}">${STATUS_NOME[s]}</button>`).join('')}</span><button type="button" class="fv2-btn s" data-fx="item-editar" data-valor="${esc(i.id)}">Editar</button></div>`}</div></div></div></div>`;
+      return `<div class="v2-abre d3m-d-fm-linha fx-item" data-linha="${esc(i.id)}" aria-expanded="${aberta}">${M().tr(COLS, [dataCurta(i.data),
+        `<button type="button" class="d3m-d-fm-nome" data-fx="abrir" data-alvo="cartao" data-valor="${esc(i.id)}" aria-expanded="${aberta}"><b>${esc(i.descricao)}</b>${i.parcela ? ` <small>· ${esc(i.parcela)}</small>` : ''} <small${semC ? ' class="r"' : ''}>· ${semC ? 'A classificar' + (quem ? ' · ' + quem : '') : quem}</small></button>`,
+        `<span class="${STATUS_TOM[i.status] === 'g' ? 'g' : STATUS_TOM[i.status] === 'r' ? 'r' : 'a'}">${esc(STATUS_NOME[i.status] || 'Em aberto')}</span>`, esc(rs(i.valor)), ''])}
+        <div class="v2-mais"><div><div class="fv2-det d3m-d-fm-det">${u.editando === i.id ? `<div class="fx-form-caixa">${itemCampos(d, i)}</div>` : `<div class="fx-linha-acoes"><span class="fv2-seg fx-seg-p" role="group" aria-label="Situação do item">${['pago', 'nao_pago', 'em_aberto'].map((s) => `<button type="button" data-fx="item-status" data-id="${esc(i.id)}" data-valor="${s}" aria-pressed="${i.status === s}">${STATUS_NOME[s]}</button>`).join('')}</span><button type="button" class="fv2-btn s" data-fx="item-editar" data-valor="${esc(i.id)}">Editar</button></div>`}</div></div></div></div>`;
     };
-    const cabItens = `<span class="d3f-card-meio">${pill(...SITUACAO_FATURA[situacao])}${chips('cartao', [['todos', 'Todos', itens.length], ['aberto', 'Em aberto', emAberto], ['semcat', 'Sem categoria', semCat, semCat ? 'r' : '']], u.chip)}</span>`;
-    const itensCard = `<section class="fv2-card d3f-tabela fx-itens" data-fx-card="itens"><div class="fv2-card-topo"><h2>Itens</h2>${cabItens}</div>
-      ${cabe.length ? cabeca([['fx-dia', 'Dia'], ['fv2-txt', 'Item'], ['d3f-dir', 'Situação'], ['fx-valor', 'Valor']]) + cabe.map(linhaItem).join('') : vazio(itens.length ? 'Nada com esse filtro.' : 'Nenhum item nesta fatura.', itens.length ? '' : '<button type="button" class="fv2-btn s" data-fx="cartao-colar">Colar itens da fatura</button>')}
-      ${resto.length ? `<div class="fv2-pe"><button type="button" class="d3f-mais" data-fx="mais" data-alvo="cartao">+${n0(resto.length)} <span>· ${esc(rs(resto.reduce((s, i) => s + Number(i.valor || 0), 0)))}</span></button></div>` : ''}</section>`;
+    const fichas = M().fichas([['todos', 'Todos', itens.length], ['aberto', 'Em aberto', emAberto], ['semcat', 'Sem categoria', semCat, 'r']]
+      .map(([k, nome, n, tom]) => ({ nome, n, tom: n ? tom : '', on: u.chip === k, attrs: `data-fx="chip" data-alvo="cartao" data-valor="${k}"` })), 'Filtrar os itens')
+      + `<button type="button" class="d3m-d-fm-ficha" data-fx="cartao-novo" aria-expanded="${Boolean(u.novo)}">${IC.mais}Novo item</button>`;
+    const corpo = cabe.length ? cabe.map(linhaItem).join('') + (resto.length ? `<div class="d3m-d-fm-pe"><button type="button" class="d3f-mais" data-fx="mais" data-alvo="cartao">+${n0(resto.length)} · ${esc(rs(resto.reduce((s, i) => s + Number(i.valor || 0), 0)))}</button></div>` : '')
+      : itens.length ? '<p class="d3m-d-fm-vazio">Nada com esse filtro.</p>'
+        : `<div class="d3m-d-fm-vazio d3m-d-fm-vazio-alto"><span class="d3m-d-fm-vazio-ic" aria-hidden="true">${ICV.cifrao}</span><p><b>Nenhum item nesta fatura</b>Cole os itens da fatura para ver cada compra, o que foi pago e o que falta.</p><span class="d3m-d-fm-vazio-bts"><button type="button" class="fv2-btn s d3f-escuro" data-fx="cartao-colar">Colar os itens da fatura</button><button type="button" class="fv2-btn s" data-fx="cartao-novo">Novo item</button></span></div>`;
     const porCat = new Map();
     for (const f of doMes) for (const c of f.por_categoria) porCat.set(c.categoria, { ...c, total: (porCat.get(c.categoria)?.total || 0) + c.total });
     const cats = [...porCat.values()].sort((a, b) => b.total - a.total), maxCat = Math.max(1, ...cats.map((c) => c.total));
-    const lado = [cats.length ? card('Por categoria', cats.map((c) => gx(esc(c.nome), c.total / maxCat * 100, esc(rs(c.total)), { tom: c.categoria === 'a_classificar' ? 'r' : '' })).join(''), esc(rs(total))) : '',
-      card('Pagamentos', pagamentos.length ? pagamentos.map((p) => `<div class="fx-mini fx-pag"><span class="fx-dia">${esc(dataCurta(p.data))}</span><span>${esc(p.historico)}</span><b class="fx-valor e">${esc(rs(p.valor))}</b></div>`).join('') : '<p class="fv2-sub">Nenhum pagamento ligado a esta fatura.</p>', 'do extrato'),
-      card('Vencimento', nomesCartao.map((n) => `<div class="fx-mini fx-venc"><span>${esc(n)}</span><label class="fx-venc-dia">dia <input class="fx-in" type="number" min="1" max="31" step="1" inputmode="numeric" value="${esc(venc[n] ?? '')}" aria-label="Dia do vencimento da fatura do ${esc(n)}"></label><button type="button" class="fv2-btn s v2-estado" data-fx="venc-salvar" data-valor="${esc(n)}">Salvar</button></div>`).join(''), vence ? `esta vence ${esc(dataCurta(vence))}` : 'dia do mês', 'fx-vencimento', 'vencimento'),
-      soltos.length ? card('Sem fatura', soltos.map((p) => `<div class="fx-mini fx-pag"><span class="fx-dia">${esc(dataCurta(p.data))}</span><span>${esc(p.historico)}</span><b>${esc(rs(p.valor))}</b><button type="button" class="fv2-btn s" data-fx="ir-lanc" data-valor="${esc(p.id)}" data-mes="${esc(p.data.slice(0, 7))}">No extrato</button></div>`).join(''), pill(String(soltos.length), 'a'), 'fx-soltos', 'soltos') : ''].join('');
-    partes.push(`<div class="fx-duas"><div class="fx-col">${itensCard}</div><div class="fx-col fx-lado">${lado}</div></div>`);
-    return casca(partes, 'cartao');
+    const olho = M().olho([[esc(mil(total)), 'na fatura'], pagamentos.length ? [esc(rs(pago)), `<button type="button" class="d3m-d-fm-elo" data-fx="cartao-lado" data-valor="pagamentos" aria-expanded="${u.lado === 'pagamentos'}">${quantos(pagamentos.length, 'pagamento', 'pagamentos')}</button>`, 'g'] : null,
+      cats.length ? [n0(cats.length), `<button type="button" class="d3m-d-fm-elo" data-fx="cartao-lado" data-valor="categorias" aria-expanded="${u.lado === 'categorias'}">${cats.length === 1 ? 'categoria' : 'categorias'}</button>`] : null]);
+    const principal = M().folha({ titulo: `Itens da fatura de ${soMes(u.fatura)}`, sub: esc(cartoes.join(' e ') || 'cartão da agência'), dir: fichas, cab: cabe.length ? M().cab(COLS) : '', corpo, olho: itens.length ? olho : '', rotulo: 'itens', cls: 'fx-itens' });
+    const PAINEL = { categorias: ['Por categoria', () => cats.map((c) => gx(esc(c.nome), c.total / maxCat * 100, esc(rs(c.total)), { tom: c.categoria === 'a_classificar' ? 'r' : '' })).join('') || '<p class="fv2-sub">Nada nesta fatura.</p>'],
+      pagamentos: ['Pagamentos', () => pagamentos.map((p) => `<div class="fx-mini fx-pag"><span class="fx-dia">${esc(dataCurta(p.data))}</span><span>${esc(p.historico)}</span><b class="fx-valor e">${esc(rs(p.valor))}</b></div>`).join('') || '<p class="fv2-sub">Nenhum pagamento ligado a esta fatura.</p>'],
+      vencimento: ['Vencimento', () => nomesCartao.map((n) => `<div class="fx-mini fx-venc"><span>${esc(n)}</span><label class="fx-venc-dia">dia <input class="fx-in" type="number" min="1" max="31" step="1" inputmode="numeric" value="${esc(venc[n] ?? '')}" aria-label="Dia do vencimento da fatura do ${esc(n)}"></label><button type="button" class="fv2-btn s v2-estado" data-fx="venc-salvar" data-valor="${esc(n)}">Salvar</button></div>`).join('')] };
+    const fechar = (k) => `<button type="button" class="d3m-d-fm-elo" data-fx="${k}" data-valor="${k === 'cartao-lado' ? u.lado : ''}">fechar</button>`;
+    const formas = (u.colar ? M().folha({ titulo: 'Colar itens da fatura', dir: fechar('cartao-colar'), corpo: `<div class="d3m-d-fm-painel">${colarHtml(d)}</div>`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: 'colar' }) : '')
+      + (u.novo ? M().folha({ titulo: 'Novo item da fatura', dir: fechar('cartao-novo'), corpo: `<div class="d3m-d-fm-painel">${itemCampos(d, { fatura: u.fatura, data: `${u.fatura}-01`, status: 'em_aberto' })}</div>`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: 'novo' }) : '');
+    const painel = PAINEL[u.lado] ? M().folha({ titulo: PAINEL[u.lado][0], dir: vence && u.lado === 'vencimento' ? `esta vence ${esc(dataCurta(vence))} · ${fechar('cartao-lado')}` : fechar('cartao-lado'), corpo: `<div class="d3m-d-fm-painel">${PAINEL[u.lado][1]()}</div>`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: u.lado === 'vencimento' ? 'vencimento' : u.lado }) : '';
+    const COLS_S = [[48, 'Dia'], [28, ''], [0, 'No extrato'], [110, 'Valor', 'r'], [150, ''], [96, '']];
+    const semFatura = soltos.length ? M().folha({ titulo: 'Pagamentos do cartão sem fatura', sub: `${n0(soltos.length)}, pelo extrato`, dir: `${esc(rs(pagoSolto))} no total`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: 'soltos',
+      corpo: soltos.map((p) => M().tr(COLS_S, [esc(dataCurta(p.data)), `<span class="d3m-d-fm-av">${ICV.cifrao}</span>`, esc(p.historico), esc(rs(p.valor)), '<span class="a">no extrato, sem fatura</span>', `<button type="button" class="fv2-btn s" data-fx="ir-lanc" data-valor="${esc(p.id)}" data-mes="${esc(p.data.slice(0, 7))}">No extrato</button>`])).join('') }) : '';
+    const laranja = soltos.length ? M().laranja({ rot: 'pago sem saber o quê', num: n0(soltos.length), frase: soltos.length === 1 ? 'pagamento sem fatura' : 'pagamentos sem fatura', apoio: `${esc(rs(pagoSolto))} pagos no cartão sem os itens.`, bts: [['Colar a fatura', 'data-fx="cartao-colar"'], [soltos.length === 1 ? 'Ver' : `Ver os ${n0(soltos.length)}`, 'data-fx="foco" data-valor="soltos"']] })
+      : semCat ? M().laranja({ rot: 'sem categoria', num: n0(semCat), frase: semCat === 1 ? 'item sem categoria' : 'itens sem categoria', apoio: `Na fatura de ${esc(soMes(u.fatura))}.`, bts: [[semCat === 1 ? 'Ver o item' : `Ver os ${n0(semCat)}`, 'data-fx="chip" data-alvo="cartao" data-valor="semcat"']] })
+        : falta > 0 && vence && vence < (d.hoje || '') ? M().laranja({ rot: 'venceu sem pagar', num: esc(mil(falta)), frase: `faltam na fatura de ${esc(soMes(u.fatura))}`, apoio: `Venceu em ${esc(dataCurta(vence))}.`, bts: [['Ver no extrato', 'data-fx="ir-aba" data-valor="extrato" data-chip="saidas"']] }) : '';
+    const vNome = Object.values(venc).find((x) => x != null && x !== '');
+    return M().molde({ tela: 'fx-cartao', aba: 'cartao', titulo: 'Cartão de crédito', d, repintar,
+      sub: `${esc(cartoes.join(' e ') || 'cartão da agência')} · fatura de ${esc(soMes(u.fatura))}, ${esc(vista)}`,
+      ferr: M().setas(meses[meses.indexOf(u.fatura) - 1] ? `data-fx="mes" data-alvo="cartao" data-valor="${meses[meses.indexOf(u.fatura) - 1]}"` : '', meses[meses.indexOf(u.fatura) + 1] ? `data-fx="mes" data-alvo="cartao" data-valor="${meses[meses.indexOf(u.fatura) + 1]}"` : '', 'mês')
+        + `<button type="button" class="d3m-d-vbtn" data-fx="cartao-lado" data-valor="vencimento" aria-expanded="${u.lado === 'vencimento'}">Vencimento: ${vence ? esc(dataCurta(vence)) : vNome ? 'dia ' + esc(vNome) : 'sem dia'}</button>`,
+      acao: M().acao('Colar fatura', `data-fx="cartao-colar" aria-expanded="${Boolean(u.colar)}"`), laranja, nums, corpo: formas + principal + painel + semFatura });
   }
   // Os campos do item da fatura: no "Novo item" (cartão no topo) e na linha que abre (editar no lugar).
   function itemCampos(d, it) {
@@ -1100,6 +1110,8 @@
       // Cartão
       case 'cartao-novo': ui.cartao.novo = !ui.cartao.novo; ui.cartao.editando = ''; return repintar();
       case 'cartao-colar': ui.cartao.colar = !ui.cartao.colar; return repintar();
+      // Cartão V2: por categoria, pagamentos e o vencimento atrás de botões, um por vez.
+      case 'cartao-lado': ui.cartao.lado = ui.cartao.lado === valor ? '' : valor; return repintar();
       case 'item-editar': ui.cartao.editando = valor; ui.cartao.aberta = valor; ui.cartao.novo = false; return repintar();
       case 'item-fechar': ui.cartao.editando = ''; ui.cartao.novo = false; return repintar();
       case 'item-salvar': {

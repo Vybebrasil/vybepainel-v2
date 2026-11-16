@@ -113,11 +113,22 @@ test('Clientes mês a mês (prancha V2-M-Financas-Clientes-Mes): a matriz no mol
 test('Cartão: total, pago pelo extrato, falta e itens; itens com situação, filtro "Sem categoria" e editar no lugar', () => {
   const V = telas(), d = dados();
   let html = V.telas.cartao({ d, filtro: {} });
-  comum(html, 'cartao', 4);
-  assert.match(html, /Faltam R\$ 1\.518,00 na fatura e 1 item sem categoria\./);
-  assert.match(html, /data-alvo="cartao" data-valor="semcat">Ver o item</);
-  assert.match(html, /Sem categoria <b class="r">1<\/b>/); assert.match(html, /A classificar/); assert.match(html, /· 2\/5/);
+  // Padrão V2 (prancha V2-M-Financas-Cartao): três números em folha, os itens no cartão principal e o laranja só com decisão.
+  molde(html, 'cartao');
+  assert.equal((html.match(/class="d3m-d-folha d3m-d-fx-num"/g) || []).length, 3, 'três números');
+  for (const r of ['Total da fatura', 'Pago, pelo extrato', 'Falta pagar']) assert.ok(html.includes(`<span>${r}</span>`), r);
+  assert.match(html, /R\$ 1,5 mil/, 'o total da fatura');
+  // O pagamento sem fatura vem primeiro (não dá para saber o que foi pago); sem ele, o item sem categoria.
+  const soltos = d.cartao.pagamentos_sem_fatura.length;
+  if (soltos) assert.match(html, /Vorcaro · pago sem saber o quê<\/span>[\s\S]*data-fx="cartao-colar">Colar a fatura<[\s\S]*data-fx="foco" data-valor="soltos"/);
+  else assert.match(html, /Vorcaro · sem categoria<\/span>[\s\S]*d3m-lar-num">1<\/b><span class="d3-acao-frase">item sem categoria[\s\S]*data-alvo="cartao" data-valor="semcat">Ver o item</);
+  if (soltos) assert.match(html, /data-fx-card="soltos"[\s\S]*data-fx="ir-lanc"/, 'os pagamentos sem fatura no segundo cartão');
+  assert.match(html, /data-valor="semcat" aria-pressed="false">Sem categoria<span class="r">1<\/span>/); assert.match(html, /A classificar/); assert.match(html, /· 2\/5/);
   assert.match(html, /fatura de novembro/);
+  assert.match(html, /data-fx="cartao-lado" data-valor="vencimento"/, 'o vencimento atrás de botão');
+  V._teste.ui.cartao.lado = 'vencimento';
+  assert.match(V.telas.cartao({ d, filtro: {} }), /data-fx-card="vencimento"[\s\S]*data-fx="venc-salvar"/);
+  V._teste.ui.cartao.lado = '';
   V._teste.ui.cartao.aberta = 'ct-um';
   html = V.telas.cartao({ d, filtro: {} });
   assert.match(html, /data-linha="ct-um" aria-expanded="true"[\s\S]*data-fx="item-status" data-id="ct-um" data-valor="pago"[\s\S]*data-fx="item-editar" data-valor="ct-um"/);
