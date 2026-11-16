@@ -94,10 +94,11 @@
   --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
   --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
 }
-/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), .pv2-casa (Produção) e qualquer raiz
+/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), a Produção na vista Semana (a mesma
+   casa .pv2-casa guarda a Agenda, as Demandas e as outras vistas, que ainda são folha clara) e qualquer raiz
    com a classe d3-tema. Tela remontada no padrão V2 entra aqui (ou leva a classe) e passa a escurecer junto.
    .d3-previa é a prévia da tela de escolha: leva o tema no próprio elemento e não herda o da página. */
-[data-d3-tema="escuro"] :is(#vv-hoje,.pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
+[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
   --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
   --d3-tinta:#F4F2ED; --d3-texto2:#D8D4CD; --d3-apagado:#ABA69E; --d3-meta:#75706A; --d3-rotulo:rgba(244,242,237,.7); --d3-divisa:rgba(255,255,255,.08); --d3-veu:rgba(255,255,255,.07); --d3-veu-forte:rgba(255,255,255,.13); --d3-contra:#1F1D1A;
   --d3-cart-vinicius:#F2A678; --d3-cart-ewerton:#9DBBFF; --d3-acao-texto:#F2A678; --d3-perigo:#FF9C8F; --d3-ajuste:#F2C46D; --d3-pronto:#7FD8A4; --d3-info:#9DBBFF; --d3-ambar:#F2C46D; --d3-agente-texto:#B9A8FF;
@@ -13098,10 +13099,10 @@ body.mundo #mundo-hud :is(.vv-setor,.vv-menu-conta,.vv-avisos-painel,#vv-agenda,
 :is(.d3v-laranja,.d3m-laranja,.d3-acao){--d3-acao-texto:var(--d3-acao-texto-fixa);--d3-agente:var(--d3-agente-fixo);--d3-agente-texto:#4B36A8;
   --d3-fume-texto:#FFFFFF;--d3-fume-apagado:rgba(255,255,255,.88);--d3-fume-texto2:rgba(255,255,255,.88);--d3-fume-veu:rgba(255,255,255,.16);--d3-fume-veu-forte:rgba(255,255,255,.24);--d3-fume-borda:rgba(255,255,255,.38);--d3-fume-contra:var(--d3-acao-texto-fixa)}
 /* A faixa da barra de rolagem da página (scrollbar-gutter) mostra o fundo do html: ele acompanha o ambiente do tema. */
-html[data-d3-tema]:has(body.mundo){background:var(--d3-tema-fundo)}
+html[data-d3-tema]:has(body.mundo),html[data-d3-tema]:has(body.mundo.mundo-visivel:not(.mundo-centro)),html[data-d3-tema]:has(body.mundo.mundo-modulo){background:var(--d3-tema-fundo)}
 /* O nome do cliente leva a cor da carteira (Vinícius laranja, Ewerton azul): na folha escura, a versão clara das duas. */
-:where([data-d3-tema="escuro"]) :is(#vv-hoje,.pv2-casa,.d3-tema) .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
-:where([data-d3-tema="escuro"]) :is(#vv-hoje,.pv2-casa,.d3-tema) .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema) .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema) .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
 
 /* 3 · A TROCA DE TEMA. A foto do tema de antes some por cima do novo (de 1 a 0); o novo já está inteiro por baixo. */
 @keyframes d3TemaSai{from{opacity:1}to{opacity:0}}
@@ -13132,9 +13133,9 @@ body.mundo #mundo-hud #vv-agenda .vd-chip > i{color:var(--d3-ajuste)}
 body.mundo #mundo-hud #vv-agenda .vd-chip.feriado > i{color:var(--d3-perigo)}
 /* O que a folha antiga prende com cor escrita (título de módulo, fila do Danilo, cliente sem carteira): o preenchimento do
    texto sai do tema, sem brigar com o !important de lá. */
-:where([data-d3-tema]) .pv2-casa :is(h1,h2,h3,h4){-webkit-text-fill-color:var(--d3-tinta)}
-:where([data-d3-tema]) .pv2-casa #pv2-semana #pv2-filtros-rot:not(.tem){-webkit-text-fill-color:var(--d3-tinta)}
-.pv2-casa :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cli:not([data-carteira="vinicius"]):not([data-carteira="ewerton"]){color:var(--d3-tinta)}
+:where([data-d3-tema]) body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa :is(h1,h2,h3,h4){-webkit-text-fill-color:var(--d3-tinta)}
+:where([data-d3-tema]) body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa #pv2-semana #pv2-filtros-rot:not(.tem){-webkit-text-fill-color:var(--d3-tinta)}
+body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cli:not([data-carteira="vinicius"]):not([data-carteira="ewerton"]){color:var(--d3-tinta)}
 #vv-hoje .d3q .d3h-danilo .vs-bloco-cabeca b{-webkit-text-fill-color:var(--d3-tinta)}
 #vv-hoje .d3q .d3h-danilo .vv-vazio{-webkit-text-fill-color:var(--d3-apagado)}
 /* A etiqueta verde sobre o vidro (WhatsApp "esperando"): o verde do tema puxado para a letra do vidro (estava em 3,9:1). */
@@ -13148,3 +13149,140 @@ body.mundo #mundo-hud #vv-agenda .vd-chip.feriado > i{color:var(--d3-perigo)}
 }
 /* A sua foto no seletor "Dia de" (o Hoje de Minhas tarefas): fundo do tema, para as iniciais passarem de 4,5:1 no celular. */
 #vv-hoje .d3q .d3h-topo .v2t-chip > i{background:var(--d3-fume-escuro)}
+
+/* 5 · BOAS-VINDAS DO VYBES COM OS TRÊS TEMAS (vybe-mundo-tutorial.js, boasVindas). Uma janela de vidro sobre o ambiente do
+   tema escolhido: quem fala em cima, os três cartões com a prévia no meio e a escolha embaixo. O único laranja é o anel
+   do cartão escolhido. Tudo sai dos tokens: ao escolher, a própria janela troca de tema junto com o painel. */
+.vv-tour-raiz .vt-bv{pointer-events:auto;display:grid;place-items:center;padding:24px;box-sizing:border-box;overflow:auto}
+.vv-tour-raiz .vt-bv-fundo{position:fixed;inset:0;background:var(--d3-ambiente)}
+@keyframes vtChega{from{transform:translateY(14px) scale(.985);opacity:.55}to{transform:none;opacity:1}}
+.vv-tour-raiz .vt-caixa{position:relative;box-sizing:border-box;width:min(1080px,100%);padding:32px;border-radius:24px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -48px rgba(0,0,0,.6);color:var(--d3-fume-texto);outline:0;animation:vtChega .5s cubic-bezier(.22,1,.36,1) both}
+.vv-tour-raiz .vt-cab{display:flex;align-items:flex-start;gap:16px}
+.vv-tour-raiz .vt-avatar{width:56px;height:56px}
+.vv-tour-raiz .vt-avatar > i{width:18px;height:18px}
+.vv-tour-raiz .vt-cab-txt{display:flex;flex-direction:column;gap:8px;min-width:0}
+.vv-tour-raiz .vt-titulo{margin:0;font:600 30px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto)}
+.vv-tour-raiz .vt-texto{margin:0;max-width:64ch;font:400 var(--d3-fs-destaque)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.vv-tour-raiz .vt-temas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px}
+.vv-tour-raiz .vt-tema{appearance:none;position:relative;display:flex;flex-direction:column;gap:12px;min-width:0;margin:0;padding:10px 10px 14px;border:0;border-radius:18px;background:var(--d3-fume-veu);color:var(--d3-fume-texto);text-align:left;cursor:pointer;transition:transform .35s cubic-bezier(.22,1,.36,1),background-color .25s,box-shadow .25s}
+.vv-tour-raiz .vt-tema:hover{transform:translateY(-4px);background:var(--d3-fume-veu-forte)}
+.vv-tour-raiz .vt-tema[aria-checked="true"]{background:var(--d3-fume-veu-forte);box-shadow:0 0 0 2px var(--d3-acao),0 24px 40px -28px rgba(0,0,0,.6)}
+.vv-tour-raiz .vt-tema:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:3px}
+.vv-tour-raiz .vt-tema-pe{display:flex;flex-direction:column;gap:2px;padding:0 6px;min-width:0}
+.vv-tour-raiz .vt-tema-pe > b{font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+.vv-tour-raiz .vt-tema-pe > small{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.vv-tour-raiz .vt-tema-ok{display:none;position:absolute;right:18px;top:18px;width:22px;height:22px;border-radius:50%;background:var(--d3-acao);box-shadow:0 6px 14px -6px rgba(0,0,0,.6)}
+.vv-tour-raiz .vt-tema-ok::after{content:"";position:absolute;left:8px;top:5px;width:5px;height:9px;border:solid var(--d3-escuro-texto);border-width:0 2px 2px 0;rotate:45deg}
+.vv-tour-raiz .vt-tema[aria-checked="true"] > .vt-tema-ok{display:block}
+.vv-tour-raiz .vt-pe{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:24px}
+.vv-tour-raiz .vt-pe-esq{display:flex;flex-direction:column;gap:4px;min-width:0}
+.vv-tour-raiz .vt-fala{margin:0;font:500 var(--d3-fs-destaque)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+.vv-tour-raiz .vt-nota{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.vv-tour-raiz .vt-pe-dir{flex:none;display:flex;align-items:center;gap:8px}
+.vv-tour-raiz :is(.vt-auto,.vt-pular,.vt-principal){appearance:none;display:inline-flex;align-items:center;justify-content:center;height:40px;margin:0;padding:0 16px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:background-color .2s}
+.vv-tour-raiz :is(.vt-auto,.vt-pular):hover{background:var(--d3-fume-veu-forte)}
+.vv-tour-raiz .vt-auto[aria-checked="true"]{box-shadow:inset 0 0 0 2px var(--d3-acao)}
+.vv-tour-raiz .vt-principal{padding:0 20px;background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
+.vv-tour-raiz :is(.vt-auto,.vt-pular,.vt-principal):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* A prévia: o Hoje em miniatura, com as peças de verdade em escala (cqw = centésimo da largura da prévia). O tema vem do
+   atributo da própria prévia, então as três aparecem lado a lado, cada uma no seu tema. */
+.d3-previa{position:relative;display:block;width:100%;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:var(--d3-ambiente);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);container-type:inline-size}
+.d3-previa :is(span,i,b){display:block;box-sizing:border-box;font-style:normal}
+.d3-previa .vp-menu{position:absolute;left:3cqw;top:3cqw;bottom:3cqw;width:6.4cqw;padding:1.2cqw 0;border-radius:2.4cqw;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);display:flex;flex-direction:column;align-items:center;gap:1.3cqw}
+.d3-previa .vp-menu > i{width:4cqw;height:3.2cqw;border-radius:1cqw;background:var(--d3-fume-veu-forte)}
+.d3-previa .vp-menu > i.on{background:var(--d3-fume-texto)}
+.d3-previa .vp-jan{position:absolute;left:11.6cqw;right:3cqw;top:3cqw;bottom:11.6cqw;padding:2.2cqw;border-radius:2.6cqw;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);display:grid;grid-template-columns:minmax(0,1fr) 17cqw;grid-template-rows:auto auto minmax(0,1fr);gap:1.5cqw}
+.d3-previa .vp-topo{grid-column:1;display:flex;align-items:center;justify-content:space-between}
+.d3-previa .vp-ola{display:flex;flex-direction:column;gap:.8cqw}
+.d3-previa .vp-t1{width:19cqw;height:2.2cqw;border-radius:1cqw;background:var(--d3-fume-texto)}
+.d3-previa .vp-t2{width:11cqw;height:1.2cqw;border-radius:.6cqw;background:var(--d3-fume-meta)}
+.d3-previa .vp-abas{position:relative;display:flex;gap:.5cqw;padding:.5cqw;border-radius:1.2cqw;background:var(--d3-fume-veu)}
+.d3-previa .vp-abas > i{width:5.4cqw;height:2.2cqw;border-radius:.8cqw}
+.d3-previa .vp-abas > i.on{background:var(--d3-fume-texto)}
+.d3-previa .vp-nums{grid-column:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.3cqw}
+.d3-previa .vp-num{position:relative;display:flex;flex-direction:column;gap:1cqw;height:10.4cqw;padding:1.4cqw;border-radius:1.8cqw;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
+.d3-previa .vp-rot{width:62%;height:1.1cqw;border-radius:.6cqw;background:var(--d3-rotulo)}
+.d3-previa .vp-num > b{font:700 4.2cqw/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3-previa .vp-num.r > b{color:var(--d3-perigo)}
+.d3-previa .vp-num.g > b{color:var(--d3-pronto)}
+.d3-previa .vp-barras{position:absolute;right:1.4cqw;bottom:1.4cqw;display:flex;align-items:flex-end;gap:.5cqw;height:4cqw}
+.d3-previa .vp-barras > i{width:.9cqw;height:45%;border-radius:.45cqw;background:var(--d3-veu-forte);transform-origin:50% 100%}
+.d3-previa .vp-barras > i:nth-child(2){height:75%}
+.d3-previa .vp-barras > i:nth-child(3){height:58%}
+.d3-previa .vp-barras > i:nth-child(4){height:100%}
+.d3-previa .vp-barras > i:nth-child(5){height:82%;background:var(--d3-info)}
+.d3-previa .vp-num.r .vp-barras > i:nth-child(5){background:var(--d3-perigo)}
+.d3-previa .vp-num.g .vp-barras > i:nth-child(5){background:var(--d3-pronto)}
+.d3-previa .vp-meio{grid-column:1;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1.3cqw;min-height:0}
+.d3-previa .vp-folha{display:flex;flex-direction:column;gap:1.2cqw;min-height:0;padding:1.5cqw;border-radius:1.8cqw;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);overflow:hidden}
+.d3-previa .vp-cab{flex:none;width:34%;height:1.5cqw;border-radius:.7cqw;background:var(--d3-tinta)}
+.d3-previa .vp-lin{flex:none;display:flex;align-items:center;gap:1.1cqw}
+.d3-previa .vp-foto{flex:none;width:2.8cqw;height:2.8cqw;border-radius:.9cqw;background:var(--d3-veu-forte)}
+.d3-previa .vp-nome{flex:1 1 auto;height:1.2cqw;border-radius:.6cqw;background:var(--d3-veu-forte)}
+.d3-previa .vp-st{flex:none;width:1.5cqw;height:1.5cqw;border-radius:50%;background:var(--d3-info)}
+.d3-previa .vp-st.r{background:var(--d3-perigo)}
+.d3-previa .vp-st.a{background:var(--d3-ajuste)}
+.d3-previa .vp-st.g{background:var(--d3-pronto)}
+.d3-previa .vp-laranja{position:relative;display:flex;flex-direction:column;gap:.9cqw;min-height:0;padding:1.6cqw;border-radius:1.8cqw;background:var(--d3-laranja);box-shadow:0 2.4cqw 4cqw -3cqw rgba(194,73,12,.85);overflow:hidden}
+.d3-previa .vp-laranja::after{content:"";position:absolute;right:-5cqw;top:-6cqw;width:16cqw;height:16cqw;border-radius:50%;background:radial-gradient(closest-side,rgba(255,224,198,.5),rgba(255,224,198,0))}
+.d3-previa .vp-lr{width:56%;height:1.1cqw;border-radius:.6cqw;background:rgba(255,255,255,.78)}
+.d3-previa .vp-laranja > b{margin-top:auto;font:700 6.2cqw/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.03em;color:var(--d3-escuro-texto)}
+.d3-previa .vp-lf{width:88%;height:1.3cqw;border-radius:.6cqw;background:rgba(255,255,255,.92)}
+.d3-previa .vp-lf.c{width:58%;background:rgba(255,255,255,.62)}
+.d3-previa .vp-lbts{display:flex;gap:.8cqw;margin-top:.5cqw}
+.d3-previa .vp-lbts > i{width:8cqw;height:2.6cqw;border-radius:.8cqw;background:rgba(255,255,255,.16);box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+.d3-previa .vp-lbts > i.k{background:var(--d3-escuro-texto);box-shadow:none}
+.d3-previa .vp-lado{grid-column:2;grid-row:1 / -1;display:flex;flex-direction:column;gap:1.2cqw;min-height:0}
+.d3-previa .vp-mes{flex:none;height:15cqw;border-radius:1.8cqw;background:var(--d3-fume-escuro);box-shadow:inset 0 0 0 1px var(--d3-fume-borda)}
+.d3-previa .vp-tira{flex:none;height:3.6cqw;border-radius:1.2cqw;background:var(--d3-fume-veu)}
+.d3-previa .vp-voz{position:absolute;left:33cqw;bottom:2.8cqw;width:44cqw;height:6cqw;border-radius:2.2cqw;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);display:flex;align-items:center;justify-content:center;gap:2.2cqw}
+.d3-previa .vp-voz > i{width:3cqw;height:3cqw;border-radius:1cqw;background:var(--d3-fume-veu-forte)}
+.d3-previa .vp-voz > i.k{width:11cqw;background:var(--d3-fume-texto)}
+/* A prévia ganha vida ao passar o mouse, ao chegar pelo teclado e na escolhida: as barras crescem, a fila entra, o número
+   sobe, a aba troca e a luz do laranja respira. Nada começa do invisível (o repouso congela a animação no começo). */
+@keyframes vpBarra{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+@keyframes vpLinha{from{transform:translateX(-4cqw);opacity:.35}to{transform:none;opacity:1}}
+@keyframes vpNumero{from{transform:translateY(1.6cqw);opacity:.35}to{transform:none;opacity:1}}
+@keyframes vpAba{0%,30%{transform:translateX(0)}45%,78%{transform:translateX(5.9cqw)}93%,100%{transform:translateX(0)}}
+@keyframes vpBrilho{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-barras > i{animation:vpBarra .7s cubic-bezier(.22,1,.36,1) both}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-barras > i:nth-child(2){animation-delay:.06s}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-barras > i:nth-child(3){animation-delay:.12s}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-barras > i:nth-child(4){animation-delay:.18s}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-barras > i:nth-child(5){animation-delay:.24s}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-lin{animation:vpLinha .55s cubic-bezier(.22,1,.36,1) both}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-lin:nth-child(3){animation-delay:.07s}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-lin:nth-child(4){animation-delay:.14s}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-lin:nth-child(5){animation-delay:.21s}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) :is(.vp-num > b,.vp-laranja > b){animation:vpNumero .6s cubic-bezier(.22,1,.36,1) both}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-abas > i.on{animation:vpAba 3.6s cubic-bezier(.4,0,.2,1) .4s infinite}
+.vt-tema:is(:hover,:focus-visible,[aria-checked="true"]) .vp-laranja::after{animation:vpBrilho 3.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.vv-tour-raiz .vt-caixa,.d3-previa *,.d3-previa .vp-laranja::after{animation:none}.vv-tour-raiz .vt-tema{transition:none}}
+.vv-tour-raiz.vv-tour-quieto :is(.vt-caixa,.d3-previa *){animation:none}
+/* Telas baixas (1366 × 768, 1280 × 720): a janela aperta para caber sem rolar. */
+@media (max-height:800px) and (min-width:761px){
+  .vv-tour-raiz .vt-caixa{width:min(940px,100%);padding:24px}
+  .vv-tour-raiz .vt-temas,.vv-tour-raiz .vt-pe{margin-top:16px}
+  .vv-tour-raiz .vt-titulo{font-size:26px}
+}
+/* Celular (390 px): um cartão por linha, com a prévia à esquerda e o nome ao lado; os botões em duas linhas. */
+@media (max-width:760px){
+  .vv-tour-raiz .vt-bv{padding:12px;place-items:start center}
+  .vv-tour-raiz .vt-caixa{padding:18px;border-radius:20px}
+  .vv-tour-raiz .vt-cab{gap:12px}
+  .vv-tour-raiz .vt-avatar{width:40px;height:40px}
+  .vv-tour-raiz .vt-avatar > i{width:13px;height:13px}
+  .vv-tour-raiz .vt-titulo{font-size:22px}
+  .vv-tour-raiz .vt-texto{font-size:var(--d3-fs-texto)}
+  .vv-tour-raiz .vt-temas{grid-template-columns:minmax(0,1fr);gap:10px;margin-top:16px}
+  .vv-tour-raiz .vt-tema{flex-direction:row;align-items:center;gap:12px;padding:8px}
+  .vv-tour-raiz .vt-tema:hover{transform:none}
+  .vv-tour-raiz .vt-tema > .d3-previa{flex:none;width:136px}
+  .vv-tour-raiz .vt-tema-pe{padding:0 28px 0 0}
+  .vv-tour-raiz .vt-tema-ok{right:12px;top:12px}
+  .vv-tour-raiz .vt-pe{flex-direction:column;align-items:stretch;gap:12px;margin-top:16px}
+  .vv-tour-raiz .vt-pe-dir{flex-wrap:wrap}
+  .vv-tour-raiz :is(.vt-auto,.vt-pular){flex:1 1 0;padding:0 10px}
+  .vv-tour-raiz .vt-principal{flex:1 0 100%;height:44px}
+}

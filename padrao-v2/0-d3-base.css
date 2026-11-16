@@ -92,10 +92,11 @@
   --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
   --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
 }
-/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), .pv2-casa (Produção) e qualquer raiz
+/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), a Produção na vista Semana (a mesma
+   casa .pv2-casa guarda a Agenda, as Demandas e as outras vistas, que ainda são folha clara) e qualquer raiz
    com a classe d3-tema. Tela remontada no padrão V2 entra aqui (ou leva a classe) e passa a escurecer junto.
    .d3-previa é a prévia da tela de escolha: leva o tema no próprio elemento e não herda o da página. */
-[data-d3-tema="escuro"] :is(#vv-hoje,.pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
+[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
   --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
   --d3-tinta:#F4F2ED; --d3-texto2:#D8D4CD; --d3-apagado:#ABA69E; --d3-meta:#75706A; --d3-rotulo:rgba(244,242,237,.7); --d3-divisa:rgba(255,255,255,.08); --d3-veu:rgba(255,255,255,.07); --d3-veu-forte:rgba(255,255,255,.13); --d3-contra:#1F1D1A;
   --d3-cart-vinicius:#F2A678; --d3-cart-ewerton:#9DBBFF; --d3-acao-texto:#F2A678; --d3-perigo:#FF9C8F; --d3-ajuste:#F2C46D; --d3-pronto:#7FD8A4; --d3-info:#9DBBFF; --d3-ambar:#F2C46D; --d3-agente-texto:#B9A8FF;

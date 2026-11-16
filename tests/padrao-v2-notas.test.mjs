@@ -99,5 +99,6 @@ test('Boletim e Ajuda: o nome, a etiqueta e o X no cabeçalho, embaixo do "Mais"
   assert.match(tutorial, /h\('h2', \{ class: 'vv-tour-titulo', id: 'vv-tour-ajuda-titulo' \}, 'Ajuda'\)/);
   assert.match(tutorial, /class: 'vv-tour-janela v2aj'/);
   assert.match(tutorial, /G\.colocarJanelaDoTopo\?\.\(janela, '\[data-ferr="ajuda"\]'\)/);
-  assert.match(tutorial, /h\('div', \{ class: 'vv-tour-janela-pe' \}, zerar, refazer\)/, 'pé com Zerar e Refazer o passeio');
+  // 16/11/2026 (três temas): entre o Zerar e o Refazer entra "Escolher o tema", que reabre as boas-vindas do VYBES.
+  assert.match(tutorial, /h\('div', \{ class: 'vv-tour-janela-pe' \}, zerar, tema, refazer\)/, 'pé com Zerar, Escolher o tema e Refazer o passeio');
 });

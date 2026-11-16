@@ -93,7 +93,8 @@ test('Conta: o cartão de quem você é tem foto, senha que abre no lugar (dois 
   assert.match(html, /<div class="v2-abre" id="v2c-senha" aria-expanded="false">[\s\S]*>Trocar<\/button>[\s\S]*class="v2-mais" id="v2c-senha-campos" inert>[\s\S]*id="conta-atual"[\s\S]*id="conta-nova"[\s\S]*class="v2c-btn s k" onclick="trocarMinhaSenha\(\)">Salvar/);
   assert.doesNotMatch(html, /conta-nova2/);
   assert.match(html, /v2c-pill g"[^>]*>Conectado<\/b>/);
-  assert.match(html, /role="radiogroup" aria-label="Tema" data-tema="claro">[\s\S]*data-tema-conta="claro" aria-checked="true"[\s\S]*data-tema-conta="escuro" aria-checked="false"/);
+  // 16/11/2026 (três temas): Fumê, Claro, Escuro e Auto; sem escolha guardada, o marcado é o Fumê (vybe-tema.js).
+  assert.match(html, /role="radiogroup" aria-label="Tema" data-tema="fume">[\s\S]*data-tema-conta="fume" aria-checked="true"[\s\S]*data-tema-conta="claro" aria-checked="false"[\s\S]*data-tema-conta="escuro" aria-checked="false"[\s\S]*data-tema-conta="auto" aria-checked="false"/);
   assert.match(html, /Conta em ordem\. WhatsApp conferido\./);
   assert.match(html, /Nada pendente na sua conta\. WhatsApp conferido\./);
   assert.match(html, /<span class="v2c-sub">nada agora<\/span>/);
