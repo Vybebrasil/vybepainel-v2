@@ -1,0 +1,62 @@
+// Direção V2 nos módulos do grupo C (pranchas V2-M-Agenda, V2-M-Agenda-Roteiros e seguintes, 16/11/2026): o esqueleto
+// novo de cada tela, com as funções de sempre, e os fragmentos zm-c-* só com tokens e sem !important.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+
+const ler = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
+const fragmentos = readdirSync(new URL('../padrao-v2/', import.meta.url)).filter((f) => f.startsWith('zm-c-') && f.endsWith('.css'));
+
+test('fragmentos zm-c-*: só tokens --d3-*, sem !important, sem html body.mundo, sem :has com [style] e em CRLF', () => {
+  assert.ok(fragmentos.includes('zm-c-base.css') && fragmentos.includes('zm-c-agenda.css'));
+  const junto = ler('vybe-mundo-padrao-v2.css');
+  for (const f of fragmentos) {
+    const css = ler(`padrao-v2/${f}`), semComentario = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(semComentario, /!important/, f);
+    assert.doesNotMatch(semComentario, /html body\.mundo/, f);
+    assert.doesNotMatch(semComentario, /:has\([^)]*\[style/, f);
+    assert.doesNotMatch(semComentario, /#[0-9a-fA-F]{3,8}\b/, `${f}: cor fora dos tokens`);
+    assert.doesNotMatch(semComentario, /@keyframes[^{]*\{\s*(from|0%)\s*\{[^}]*opacity:\s*0[;}]/, f);
+    assert.ok(!/[^\r]\n/.test(css), `${f}: CRLF`);
+    assert.ok(junto.includes(`/* ===== padrao-v2/${f} ===== */`), `${f} entrou na folha junta`);
+  }
+});
+
+test('Agenda V2: grade de horas no computador, com as mesmas funções; no celular fica a tela de antes', () => {
+  const capt = ler('vybe-captacoes.js'), prod = ler('production_governed_v2.js'), css = ler('padrao-v2/zm-c-agenda.css');
+  assert.match(capt, /function agv2Ligado\(\) \{ return typeof pv2Ligado === "function" && pv2Ligado\(\) && !captNoCelular\(\); \}/);
+  assert.match(capt, /function pv2aHtml\(\{ todos, pend, nPend \}\) \{\r?\n[^\n]*\r?\n  if \(agv2Ligado\(\)\) return agv2Html\(\{ todos, pend \}\);/);
+  assert.match(prod, /if \(agV2\) document\.body\.dataset\.agv2 = window\.productionV2View \|\| 'captacoes'; else delete document\.body\.dataset\.agv2;/);
+  assert.match(prod, /\$\{agv2TopoHtml\(\)\}/);
+  // O topo: Semana | Mês | Roteiros, as setas e Marcar captação; Dia, Feed e Calendário na seta do título.
+  for (const t of ["prodAgendaVista('${v}')", 'captNavegar(-1)', 'captNavegar(1)', 'captMarcarCaptacao()', "captVista('dia')", "window.setProdV2View('feed')", "window.setProdV2View('calendar')", 'captAlternarInspetor()', 'T hoje · ← → navega']) assert.ok(capt.includes(t), t);
+  // A grade: bloco abre o cartão e a prévia, horário vazio marca, cliente arrastado marca, o dia abre o Dia, a legenda filtra.
+  const grade = capt.slice(capt.indexOf('function agv2BlocoHtml('), capt.indexOf('function agv2LaranjaHtml('));
+  for (const t of ['captSelecionar(', "agPreviaEntrar(this,'captPreviaHtml')", 'agv2Clicar(event,', 'agv2Soltar(event,', 'agSobre(event)', "captVerDia('${d}')", 'class="agv2-agora"']) assert.ok(grade.includes(t), t);
+  assert.match(capt, /function agv2Clicar\(ev, dia, ini, horas\) \{ if \(ev\.target\.closest\("\.agv2-ev"\)\) return; captMarcarEm\(dia, agv2HoraDoClique\(ev, ini, horas\)\); \}/);
+  assert.match(capt, /captSoltarCliente\(cliente, ev\.currentTarget\.dataset\.dia, agv2HoraDoClique\(ev, ini, horas\)\)/);
+  assert.match(capt, /class="agv2-leg t-\$\{t\}" role="switch" aria-checked="\$\{CAPT\.tipos\.has\(t\)\}" onclick="captTipo\('\$\{t\}'\)"/);
+  // A gravação sem fechar vai no laranja; captação verde, reunião roxa, compromisso azul.
+  assert.match(capt, /\$\{e\.estado\?\.chave === "fechar" \? " fechar" : ""\}/);
+  assert.match(css, /\.agv2 \.t-captacao\{--agv2-cor:var\(--d3-mod-vybe\)/);
+  assert.match(css, /\.agv2 \.t-reuniao\{--agv2-cor:var\(--d3-agente-texto\)/);
+  assert.match(css, /\.agv2 \.t-outro\{--agv2-cor:var\(--d3-info\)/);
+  assert.match(css, /\.agv2 \.fechar\{--agv2-cor:var\(--d3-acao\)/);
+  // A consulta: o cartão laranja resolve a mais urgente; "Antes de gravar" abre o que precisa de você.
+  const lado = capt.slice(capt.indexOf('function agv2LaranjaHtml('), capt.indexOf('function agv2Html('));
+  for (const t of ['captAbrirFechar(', 'captAbrirMontar(', 'captCadastrar(', "captGrupo('roteiro')", "captGrupo('pecas')", 'captPendenciasHtml(pend)', "prodAgendaVista('roteiros')", '<b>Antes de gravar</b>', '<b>Hoje</b>', '<b>Abrir</b>']) assert.ok(lado.includes(t), t);
+  // A janela é o vidro fumê e a grade só rola por dentro.
+  assert.match(css, /body\.mundo\.mundo-modulo\[data-modo="producao"\]\[data-agv2\] #mundo-moldura\{border-radius:20px;background:var\(--d3-fume\)/);
+  assert.match(css, /\.agv2-rola\{flex:1 1 0;min-height:0;overflow-x:hidden;overflow-y:auto;[^}]*container-type:size\}/);
+  assert.match(css, /--agv2-hora:max\(36px,calc\(100cqh \/ var\(--agv2-n,11\)\)\)/);
+  // O cartão aberto não fecha quando o clique é em outro bloco da grade nova.
+  assert.match(capt, /closest\("\.ag-ev,\.agv2-ev,\.agv2-lado,\.ag-chip,/);
+});
+
+test('Roteiros V2: uma folha por roteiro, com as mesmas ações, e os clientes como filtro na consulta', () => {
+  const rot = ler('vybe-roteiros.js'), capt = ler('vybe-captacoes.js');
+  assert.match(rot, /if \(typeof agv2Ligado === "function" && agv2Ligado\(\)\) return rotv2Html\(\);/);
+  for (const t of ["rotAbrirEditar('${r.id}')", "rotAbrirLigar('${r.id}')", 'target="_blank" rel="noopener">Abrir no Docs</a>', 'peças do roteiro', 'conteúdos que saíram dele', 'nenhum conteúdo ligado ainda', 'rotAbrirIncluir()', "rotv2Cliente('${safeText(id)}')", 'rotv2SoSem()', '<b>Por cliente</b>']) assert.ok(rot.includes(t), t);
+  for (const t of ['oninput="rotv2Buscar(this.value)"', 'onclick="rotBuscarDrive(this)">Buscar no Drive</button>', 'onclick="rotAbrirIncluir()"']) assert.ok(capt.includes(t), t);
+  assert.match(rot, /function rotv2Buscar\(valor\) \{ ROT\.busca = valor; const l = document\.getElementById\("rotv2-lista"\); if \(l\) l\.innerHTML = rotv2ListaHtml\(\); \}/);
+});
