@@ -98,7 +98,7 @@ test('todas as abas desenham com dados e com o estado vazio', async () => {
   assert.match(t.html(), /vp-gantt-barra atrasada/);
   assert.doesNotMatch(t.html(), /Carga da semana/, 'a carga saiu de Projetos pontuais (auditoria 09/11)');
   await t.P.abrir('rh');
-  assert.doesNotMatch(t.html(), /Headcount|Responder a pesquisa/, 'padrão v2: visão geral e clima saem do alto e ficam a um clique');
+  assert.doesNotMatch(t.html(), /Headcount|data-vp-form="pesquisa"/, 'visão geral e o formulário do clima ficam a um clique (na consulta)');
   t.P._teste.ver('visao'); assert.match(t.html(), /Headcount/);
   t.P._teste.ver('clima'); assert.match(t.html(), /Responder a pesquisa/); assert.match(t.html(), /O resultado aparece com 3/);
 });
@@ -107,11 +107,9 @@ test('RH 08/11: fila com números clicáveis, fora do prazo em vermelho, respost
   const g = montar({ gestao: true });
   await g.P.abrir('rh');
   let h = g.html();
-  // Padrão v2: os três números do quadro continuam clicáveis (mini painel) e o fora do prazo fica em vermelho na linha de baixo.
-  assert.match(h, /data-espiar="pessoas:abertos"/); assert.match(h, /data-espiar="pessoas:fora"/); assert.match(h, /data-espiar="pessoas:respondidos"/);
-  assert.match(h, /class="v2p-ruim" data-espiar="pessoas:fora"[^>]*>1 fora do prazo</);
-  assert.match(h, /d3-num-v">1<span class="d3p-de"> \/ 1</); assert.match(h, /tempo médio de 1,5 dias úteis/);
-  assert.match(h, /Fora do prazo há 2 dias úteis/, 'no cartão do baralho'); assert.match(h, /aberto há 6 dias/); assert.match(h, /para 04\/11/);
+  // Prancha V2-M-RH-Pedidos: o fora do prazo em vermelho na linha e no pé da folha, que filtra a lista.
+  assert.match(h, /class="d3m-e-pes-selo r">Fora do prazo</); assert.match(h, /1 pedido fora do prazo/); assert.match(h, /data-vp-filtro-pedidos="fora"/);
+  assert.match(h, /aberto há 6 dias/); assert.match(h, /para 04\/11/);
   assert.doesNotMatch(h, /data-vp-form="responder"|Prazos de resposta por tipo|Clima de agosto|Encerrar agora/, 'lista, prazos e clima a um clique');
   g.P._teste.ver('lista'); h = g.html();
   assert.match(h, /vp-kpi espiavel u1/, 'na lista, fora do prazo pinta o número de vermelho'); assert.match(h, /100% respondidos no prazo/);
@@ -132,8 +130,11 @@ test('RH 08/11: fila com números clicáveis, fora do prazo em vermelho, respost
   const a = montar();
   await a.P.abrir('rh');
   h = a.html();
-  assert.match(h, /Seus pedidos/); assert.match(h, /Cancelar pedido/); assert.match(h, /<p><b>Declaração/); assert.match(h, /Já enviamos por e-mail/);
+  assert.match(h, /Seus pedidos/); assert.match(h, /Cancelar pedido/);
   assert.doesNotMatch(h, /data-v2p-decidir|data-v2p-ver="prazos"|data-v2p-ver="visao"/, 'quem pediu não decide nem vê as partes da gestão');
+  a.P._teste.v2({ filtro: 'respondidos' }); h = a.html();
+  assert.match(h, /<b>Declaração<\/b>/); assert.match(h, /Resposta do RH: Já enviamos por e-mail/); assert.match(h, /class="d3m-e-pes-selo r">Recusado</);
+  a.P._teste.v2({ filtro: '' });
   a.P._teste.ver('lista'); h = a.html();
   assert.match(h, /Seus pedidos ao RH/); assert.match(h, /Resposta do RH:<\/b> Já enviamos por e-mail/);
   assert.doesNotMatch(h, /Prazos de resposta|data-vp-form="responder"|Clima de agosto|Encerrar agora/);

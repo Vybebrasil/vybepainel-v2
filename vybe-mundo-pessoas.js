@@ -1412,13 +1412,13 @@
 
   // ---------- desenho ----------
   const DESENHO = { produtividade: htmlProdutividade, rh: htmlRh, projetos: htmlProjetos, academy: htmlAcademy, recrutamento: htmlRecrutamento, documentos: htmlDocumentos };
-  const LISTA_V2 = { produtividade: listaMesE, academy: listaAcademy, recrutamento: listaRecrutamento, documentos: listaDocumentos, projetos: listaProjetos };
+  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaAcademy, recrutamento: listaRecrutamento, documentos: listaDocumentos, projetos: listaProjetos };
   // ---------- V2 · grupo E (pranchas V2-M-RH-*, V2-M-Academy, aprovadas pelo Paulo em 16/11/2026) ----------
   // O esqueleto novo das telas do RH: a janela de vidro fumê, o título no vidro (com a seta que troca de tela do setor),
   // a coluna de trabalho em folhas claras e a coluna de consulta de 316 direto no vidro. As peças .d3m-e-* são as da
   // casca do grupo (padrao-v2/zm-e-casca.css); as locais desta janela ficam em padrao-v2/zm-e-pessoas.css. Cada tela
   // devolve { sub, acoes, main, lado }; as funções, os data-* e os formulários de antes seguem os mesmos.
-  const E = new Set(['produtividade']);
+  const E = new Set(['produtividade', 'rh']);
   const IC_E = { lupa: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', ajuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', mais: '<path d="M12 5v14M5 12h14"/>',
     depois: '<path d="M9 6l6 6-6 6"/>', antes: '<path d="M15 6l-6 6 6 6"/>', baixo: '<path d="M6 9l6 6 6-6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>', certo: '<path d="M5 12l4 4 10-10"/>', fora: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>' };
   const icE = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${IC_E[n] || ''}</svg>`;
@@ -1556,7 +1556,120 @@
     const busca = d.gestao && time.length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar pessoa" aria-label="Buscar pessoa" value="${esc(estado.v2.busca)}">` : '';
     return { sub: subTexto, acoes: busca, main, lado };
   }
-  const DESENHO_E = { produtividade: produtividadeE };
+  // ---------- Pedidos e calendário (prancha V2-M-RH-Pedidos) ----------
+  // À esquerda, a folha dos pedidos (Abertos | Respondidos): quem administra decide na própria linha (Aprovar ou Resolver
+  // e Recusar com o motivo, os mesmos caminhos de antes); quem pediu acompanha e cancela. No meio, o calendário do time
+  // em grade de mês, com os feriados nacionais, os aniversários, as férias aprovadas e o pedido de férias que espera
+  // (tracejado). Na consulta, o que dá para pedir, o clima, o mês no calendário e o que é só da gestão. A lista
+  // completa, o clima, os prazos, a visão geral, as datas de RH e a folha abrem na folha da esquerda, com Fechar.
+  const FERIADOS_FIXOS = { '01-01': 'Confraternização', '04-21': 'Tiradentes', '05-01': 'Dia do Trabalho', '09-07': 'Independência', '10-12': 'Aparecida', '11-02': 'Finados', '11-15': 'República', '11-20': 'Consc. Negra', '12-25': 'Natal' };
+  // Feriados nacionais do mês: os fixos e a Sexta-feira Santa (Páscoa pelo cálculo de Meeus).
+  function feriadosDoMes(ym) {
+    const [ano, mes] = ym.split('-').map(Number), out = {};
+    for (const [md, nome] of Object.entries(FERIADOS_FIXOS)) if (Number(md.slice(0, 2)) === mes) out[`${ym}-${md.slice(3)}`] = nome;
+    const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const pascoa = Date.UTC(ano, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1), santa = new Date(pascoa - 2 * 864e5).toISOString().slice(0, 10);
+    if (santa.slice(0, 7) === ym) out[santa] = 'Sexta Santa';
+    return out;
+  }
+  const respondidoE = (p) => ['resolvido', 'recusado'].includes(p.status) || p.sla === 'encerrado';
+  function linhaPedidoE(p, d) {
+    const h = d.hoje || hoje(), aberto = !respondidoE(p), nome = primeiroNome(p.pessoa_nome) || 'quem pediu';
+    const datas = p.inicio ? (p.inicio === p.fim || !p.fim ? `dia ${br(p.inicio)}` : `${br(p.inicio)} a ${br(p.fim)}`) : p.data_desejada ? `para ${br(p.data_desejada)}` : '';
+    const apoio = [d.gestao ? nome : '', nomeTipo(d, p.tipo), datas, aberto ? ha(p.idadeDias) : p.respondido_dia ? `respondido ${br(p.respondido_dia)}` : ''].filter(Boolean).join(' · ');
+    const selo = aberto ? (p.sla === 'atrasado' ? ['Fora do prazo', 'r'] : p.prazo ? [`até ${dataFalada(p.prazo, h)}`, entre(h, p.prazo) <= 1 ? 'a' : ''] : ['Sem prazo', ''])
+      : [p.status === 'recusado' ? 'Recusado' : p.tipo === 'ferias' && p.status === 'resolvido' ? 'Aprovado' : p.status === 'cancelado' ? 'Cancelado' : 'Respondido', p.status === 'recusado' ? 'r' : 'g'];
+    let acoes = '';
+    if (aberto && d.gestao) {
+      acoes = estado.v2.recusando === String(p.id)
+        ? `<form data-vp-form="responder" data-id="${esc(p.id)}" class="d3m-e-pes-recusa"><input name="resposta" maxlength="2000" required placeholder="Motivo da recusa, para quem pediu" aria-label="Motivo da recusa"><button type="button" class="d3v-btn d3m-e-fio" data-v2p-recusar="">Voltar</button><button type="submit" class="d3v-btn" name="status" value="recusado">Recusar</button></form>`
+        : `<span class="d3m-e-pes-bts"><button type="button" class="d3v-btn d3m-e-fio" data-v2p-recusar="${esc(p.id)}">Recusar</button><button type="button" class="d3v-btn v2-estado" data-v2p-decidir="${esc(p.id)}" data-feito="${p.tipo === 'ferias' ? 'Aprovado' : 'Resolvido'}">${p.tipo === 'ferias' ? 'Aprovar' : 'Resolver'}</button></span>`;
+    } else if (aberto && p.status === 'aberto' && String(p.pessoa_id) === String(d.eu?.id)) acoes = `<span class="d3m-e-pes-bts"><button type="button" class="d3v-btn d3m-e-fio" data-vp-pedido="${esc(p.id)}" data-status="cancelado">Cancelar pedido</button></span>`;
+    return `<div class="d3m-e-pes-ped${p.sla === 'atrasado' && aberto ? ' r' : ''}" data-carta="${esc(p.id)}">${d.gestao ? av(p.pessoa_nome) : ''}<span class="d3m-e-pes-lin-t"><b>${esc(p.titulo)}</b><small class="d3m-e-pes-lin-s">${esc(apoio)}</small>`
+      + `${p.descricao && aberto ? `<small class="d3m-e-pes-lin-s d3m-e-pes-cita">“${esc(p.descricao)}”</small>` : ''}${p.resposta ? `<small class="d3m-e-pes-lin-s">Resposta do RH: ${esc(p.resposta)}</small>` : ''}</span>`
+      + `<span class="d3m-e-pes-selo${selo[1] ? ' ' + selo[1] : ''}">${esc(selo[0])}</span>${acoes}</div>`;
+  }
+  const filtroPedidosE = () => (estado.v2.filtro ? (estado.v2.filtro === 'respondidos' ? 'respondidos' : 'abertos') : estado.filtroPedidos === 'respondidos' ? 'respondidos' : 'abertos');
+  function listaPedidosE(d) {
+    const todos = d.pedidos || [], abertos = todos.filter((p) => !respondidoE(p)), resp = todos.filter(respondidoE), filtro = filtroPedidosE();
+    const lista = (filtro === 'abertos' ? abertos.filter((p) => estado.filtroPedidos !== 'fora' || p.sla === 'atrasado') : resp).filter((p) => bate(p.titulo, p.pessoa_nome, nomeTipo(d, p.tipo)));
+    const vazioTxt = filtro === 'respondidos' ? ['Nenhum pedido respondido ainda', 'O que o RH responder fica guardado aqui.']
+      : d.gestao ? ['Nenhum pedido esperando resposta', 'Quando alguém pedir férias, folga, documento ou reembolso, o pedido aparece aqui para decidir.']
+        : ['Nenhum pedido por aqui', 'Férias, folga, documento ou reembolso: peça aqui e acompanhe a resposta.'];
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${lista.length ? lista.map((p) => linhaPedidoE(p, d)).join('')
+      : estadoE({ tipo: 'vazio', icone: 'certo', grande: true, titulo: estado.v2.busca ? 'Nenhum pedido com essa busca' : vazioTxt[0], texto: estado.v2.busca ? 'Confira o que foi digitado.' : vazioTxt[1], acao: filtro === 'abertos' && !estado.v2.busca ? btnEstadoE('Nova solicitação', 'data-vp-abrir-form="pedido"') : '' })}</div>`;
+  }
+  function pedidosFolhaE(d) {
+    const todos = d.pedidos || [], abertos = todos.filter((p) => !respondidoE(p)), resp = todos.filter(respondidoE);
+    const v = estado.v2.ver, h = d.hoje || hoje();
+    const partes = { lista: 'Pedidos em lista', clima: 'Pesquisa de clima', prazos: 'Prazos de resposta', visao: 'Visão geral', datas: 'Datas de RH', folha: 'Folha', aniv: 'O seu aniversário' };
+    if (estado.form === 'pedido') return folhaE({ titulo: 'Nova solicitação ao RH', cls: 'cresce d3m-e-pes-esq', dir: '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form">${formPedido(d)}</div>` });
+    if (partes[v] && (d.gestao || ['lista', 'clima', 'aniv'].includes(v))) {
+      const meu = d.meuPerfil?.nascimento || '';
+      const corpo = v === 'lista' ? htmlPedidos(d) : v === 'clima' ? htmlClima(d) : v === 'prazos' ? formPrazos(d) : v === 'visao' && d.visao ? visaoGeralHtml(d) : v === 'datas' ? datasRhHtml(d) : v === 'folha' ? htmlFolha()
+        : v === 'aniv' ? `<form data-vp-form="meu-aniversario" class="vp-form">${campoAniversario(meu, 'Seu aniversário')}<p class="vp-nota">Só o dia e o mês aparecem no calendário do time.</p><div class="vp-botoes"><button type="submit" class="vp-acao">Salvar</button></div></form>` : '';
+      return folhaE({ titulo: partes[v], cls: 'cresce d3m-e-pes-esq', dir: '<button type="button" class="d3m-e-elo" data-v2p-ver="">Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form" data-v2p-secao>${corpo || estadoE({ tipo: 'vazio', titulo: 'Nada para mostrar aqui ainda' })}</div>` });
+    }
+    const filtro = filtroPedidosE(), seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais pedidos"><button type="button" role="radio" data-v2p-filtro="abertos" aria-checked="${filtro === 'abertos'}">Abertos <span class="d3m-e-pes-n">${abertos.length}</span></button><button type="button" role="radio" data-v2p-filtro="respondidos" aria-checked="${filtro === 'respondidos'}">Respondidos <span class="d3m-e-pes-n">${resp.length}</span></button></span>`;
+    const fora = abertos.filter((p) => p.sla === 'atrasado').length;
+    const pe = d.gestao && fora && filtro === 'abertos' ? `<span class="d3m-e-pes-pe-r">${plural(fora, 'pedido fora do prazo', 'pedidos fora do prazo')}</span><button type="button" class="d3m-e-elo" data-vp-filtro-pedidos="${estado.filtroPedidos === 'fora' ? '' : 'fora'}">${estado.filtroPedidos === 'fora' ? 'mostrar todos' : 'ver só esses'}</button>` : '';
+    return folhaE({ titulo: d.gestao ? 'Pedidos ao RH' : 'Seus pedidos ao RH', cls: 'cresce d3m-e-pes-esq', dir: seg, pe,
+      corpo: listaPedidosE(d) });
+  }
+  function calendarioE(d) {
+    const h = d.hoje || hoje(), ym = /^\d{4}-\d{2}$/.test(estado.calMes) ? estado.calMes : h.slice(0, 7), [ano, mes] = ym.split('-').map(Number);
+    const pend = pedidosAbertos(d).filter((p) => p.tipo === 'ferias' && p.inicio).map((p) => ({ nome: p.pessoa_nome || d.eu?.nome || 'Você', inicio: p.inicio, fim: p.fim || p.inicio }));
+    const por = eventosDoMes(ym, d.aniversarios, d.ferias), porPend = eventosDoMes(ym, [], pend), fer = feriadosDoMes(ym);
+    const n = diasNoMes(ano, mes), vazios = (new Date(Date.UTC(ano, mes - 1, 1)).getUTCDay() + 6) % 7, nomeMes = MESES_RH[mes - 1], celulas = [];
+    const semanas = Math.ceil((vazios + n) / 7);
+    for (let i = 0; i < vazios; i++) celulas.push('<span class="d3m-e-pes-dia fora" aria-hidden="true"></span>');
+    for (let dia = 1; dia <= n; dia++) {
+      const iso = `${ym}-${String(dia).padStart(2, '0')}`, evs = [...(por[iso] || []), ...(porPend[iso] || []).map((e) => ({ ...e, tipo: 'pend' }))];
+      const fala = [fer[iso] ? `feriado: ${fer[iso]}` : '', ...evs.map((e) => FALA_CAL[e.tipo](e.nome))].filter(Boolean).join('; ');
+      celulas.push(`<span class="d3m-e-pes-dia${iso === h ? ' hoje' : ''}" role="listitem" aria-label="${esc(`${dia} de ${nomeMes}${iso === h ? ', hoje' : ''}${fala ? ': ' + fala : ''}`)}"><b aria-hidden="true">${dia}</b>`
+        + `${fer[iso] ? `<small class="d3m-e-pes-fer" aria-hidden="true">${esc(fer[iso])}</small>` : ''}`
+        + (evs.length ? `<span class="d3m-e-pes-evs" aria-hidden="true">${evs.slice(0, 2).map((e) => `<i class="d3m-e-pes-ev ${e.tipo}" title="${esc(maiuscula(FALA_CAL[e.tipo](e.nome)))}">${esc(primeiroNome(e.nome))}</i>`).join('')}${evs.length > 2 ? `<i class="d3m-e-pes-ev mais">+${evs.length - 2}</i>` : ''}</span>` : '') + '</span>');
+    }
+    while (celulas.length < semanas * 7) celulas.push('<span class="d3m-e-pes-dia fora" aria-hidden="true"></span>');
+    const nav = `<span class="d3m-e-pes-mes"><button type="button" class="d3m-e-pes-seta" data-vp-cal="-1" aria-label="Mês anterior">${icE('antes')}</button><button type="button" class="d3m-e-pes-seta" data-vp-cal="1" aria-label="Próximo mês">${icE('depois')}</button>${ym === h.slice(0, 7) ? '' : '<button type="button" class="d3m-e-elo" data-vp-cal="0">este mês</button>'}</span>`;
+    return `<section class="d3m-e-folha cresce d3m-e-pes-cal" aria-label="Calendário do time"><div class="d3m-e-cab"><b>Calendário do time <span>· ${esc(nomeMes)} de ${ano}</span></b><span class="d3m-e-cab-dir">${nav}</span></div>`
+      + `<div class="d3m-e-pes-grade" role="list" aria-label="${esc(`Calendário do time, ${nomeMes} de ${ano}`)}" style="--sem:${semanas}">${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((s) => `<span class="d3m-e-pes-ds" aria-hidden="true">${s}</span>`).join('')}${celulas.join('')}</div></section>`;
+  }
+  function rhE(d) {
+    const h = d.hoje || hoje(), abertos = pedidosAbertos(d), c = d.pesquisa || {}, atual = c.atual;
+    const ym = /^\d{4}-\d{2}$/.test(estado.calMes) ? estado.calMes : h.slice(0, 7), nomeMes = MESES_RH[Number(ym.slice(5, 7)) - 1];
+    const nFer = Object.keys(feriadosDoMes(ym)).length;
+    const sub = `${abertos.length ? plural(abertos.length, d.gestao ? 'pedido esperando resposta' : 'pedido seu esperando o RH', d.gestao ? 'pedidos esperando resposta' : 'pedidos seus esperando o RH') : d.gestao ? 'nenhum pedido esperando resposta' : 'nada esperando o RH'}${nFer ? ` · ${plural(nFer, 'feriado', 'feriados')} em ${nomeMes}` : ''}`;
+    const main = `<div class="d3m-e-main"><div class="d3m-e-pes-rhg">${pedidosFolhaE(d)}${calendarioE(d)}</div></div>`;
+    // A consulta.
+    const tipos = (d.tipos || []).filter((t) => t.formulario !== false);
+    const pedir = consE('O que dá para pedir', (tipos.length ? tipos : [{ id: 'ferias', nome: 'Férias ou folga' }, { id: 'documento', nome: 'Documento' }, { id: 'reembolso', nome: 'Reembolso' }])
+      .slice(0, 5).map((t) => vlinE(t.nome, t.dias ? `resposta em ${plural(t.dias, 'dia útil', 'dias úteis')}` : '', `data-vp-abrir-form="pedido" data-tipo="${esc(t.id)}"`)).join(''));
+    const doHist = atual && (c.historico || []).find((x) => x.id === atual.id), respostas = doHist?.resultado?.respostas;
+    const climaTxt = atual?.situacao === 'aberta' ? (atual.respondeu ? `Você já respondeu "${esc(atual.titulo)}". Fica aberta até ${br(atual.fecha)}.` : `"${esc(atual.titulo)}" está aberta até ${br(atual.fecha)}: seis perguntas, sem nome.`)
+      + (respostas != null && c.equipe ? ` ${respostas} de ${c.equipe} responderam.` : '')
+      : atual?.situacao === 'agendada' ? `"${esc(atual.titulo)}" abre em ${br(atual.abre)}.` : 'A pesquisa de clima é anônima. Nenhuma pesquisa aberta agora.';
+    const climaBt = atual?.situacao === 'aberta' && !atual.respondeu ? vlinE('Responder a pesquisa', 'anônima', 'data-v2p-ver="clima" data-form="pesquisa"')
+      : d.gestao && !atual && d.rhPronto !== false ? vlinE('Iniciar pesquisa', 'com período', 'data-v2p-ver="clima" data-form="pesquisa-abrir"')
+        : d.gestao && (c.historico || []).length ? vlinE('Ver as pesquisas', 'resultado somado', 'data-v2p-ver="clima"') : '';
+    const doMes = (lista) => lista.length;
+    const anivMes = (d.aniversarios || []).filter((a) => Number(String(a.dia).slice(0, 2)) === Number(ym.slice(5, 7)));
+    const feriasMes = (d.ferias || []).filter((f) => f.inicio?.slice(0, 7) <= ym && (f.fim || f.inicio).slice(0, 7) >= ym);
+    const calTxt = doMes(anivMes) || doMes(feriasMes)
+      ? [anivMes.length ? `${anivMes.map((a) => `${esc(primeiroNome(a.nome))} faz aniversário dia ${Number(String(a.dia).slice(3))}`).slice(0, 3).join(', ')}.` : '', feriasMes.length ? `${feriasMes.map((f) => `${esc(primeiroNome(f.nome))} de férias ${br(f.inicio)} a ${br(f.fim || f.inicio)}`).slice(0, 3).join(', ')}.` : ''].filter(Boolean).join(' ')
+      : `Nenhum aniversário, férias ou folga cadastrados.${nFer ? ` ${nFer === 1 ? 'O feriado já aparece' : `Os ${nFer === 2 ? 'dois' : nFer === 3 ? 'três' : nFer} feriados já aparecem`}.` : ''}`;
+    const meu = d.meuPerfil?.nascimento || '';
+    // Só da gestão: em grade de dois, curtos, para a consulta caber em 1366 × 768 sem rolar.
+    const gestaoCons = d.gestao ? consE('Só da gestão', `<div class="d3m-e-pes-vgrade">${[['lista', 'Em lista'], ['prazos', 'Prazos'], d.visao ? ['visao', 'Visão geral'] : null, ['datas', 'Datas de RH'], htmlFolha() ? ['folha', 'Folha'] : null]
+      .filter(Boolean).map(([k, r]) => vlinE(r, '', `data-v2p-ver="${k}"`)).join('')}</div>`) : '';
+    const lado = pedir + consE('Clima', txtE(climaTxt) + climaBt, 'anônimo')
+      + consE('No calendário', `<span class="d3m-e-pes-leg-c" aria-hidden="true"><span><i class="aniv"></i>aniversário</span><span><i class="ferias"></i>férias</span><span><i class="pend"></i>espera resposta</span></span>` + txtE(calTxt) + vlinE('O seu aniversário', /^\d{4}-\d{2}-\d{2}/.test(meu) ? `${meu.slice(8, 10)}/${meu.slice(5, 7)} · alterar` : 'cadastrar dia e mês', 'data-v2p-ver="aniv"'), nomeMes) + gestaoCons;
+    const busca = (d.pedidos || []).length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar pedido" aria-label="Buscar pedido" value="${esc(estado.v2.busca)}">` : '';
+    const acao = estado.form === 'pedido' ? '' : `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="pedido">${icE('mais')}Nova solicitação</button>`;
+    return { sub, acoes: busca, acao, main, lado };
+  }
+  const DESENHO_E = { produtividade: produtividadeE, rh: rhE };
 
   function htmlCorpo() {
     const d = estado.dados[estado.aba];
@@ -1690,7 +1803,10 @@
     else if (perto('[data-vp-recarregar]')) carregar();
     else if ((b = perto('[data-vp-proj-zoom]'))) { estado.projZoom = b.dataset.vpProjZoom; pintar(); }
     else if ((b = perto('[data-vp-proj-filtro]'))) { estado.projFiltro = b.dataset.vpProjFiltro; pintar(); }
-    else if ((b = perto('[data-vp-abrir-form]'))) abrirForm(b.dataset.vpAbrirForm, b.dataset.vpAbrirForm === 'projeto' ? { inicio: hoje(), fim: somarDias(hoje(), 14), etapas: [{}] } : b.dataset.vpAbrirForm === 'trilha' ? { aulas: [{}] } : b.dataset.vpAbrirForm === 'candidato' && b.dataset.vaga ? { vaga_id: b.dataset.vaga } : null);
+    else if ((b = perto('[data-vp-abrir-form]'))) {
+      if (b.dataset.tipo) estado.tipoPedido = b.dataset.tipo; // "O que dá para pedir": o formulário já no tipo escolhido
+      abrirForm(b.dataset.vpAbrirForm, b.dataset.vpAbrirForm === 'projeto' ? { inicio: hoje(), fim: somarDias(hoje(), 14), etapas: [{}] } : b.dataset.vpAbrirForm === 'trilha' ? { aulas: [{}] } : b.dataset.vpAbrirForm === 'candidato' && b.dataset.vaga ? { vaga_id: b.dataset.vaga } : null);
+    }
     else if (perto('[data-vp-fechar-form]')) { estado.form = ''; estado.editar = null; pintar(); }
     else if ((b = perto('[data-vp-pessoa]'))) { estado.pessoa = b.dataset.vpPessoa; carregar(); }
     else if ((b = perto('[data-vp-periodo]'))) { estado.periodo = b.dataset.vpPeriodo; carregar(); }

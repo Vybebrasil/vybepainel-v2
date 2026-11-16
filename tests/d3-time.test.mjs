@@ -45,7 +45,7 @@ function montar() {
 
 // V2 · grupo E (pranchas V2-M-RH-* e V2-M-Academy, 16/11/2026): as telas já no esqueleto novo saem do teste da Direção 3
 // e ganham o do vidro fumê; as outras seguem com a proteção de antes até chegar a vez delas.
-const E_FEITAS = ['produtividade'];
+const E_FEITAS = ['produtividade', 'rh'];
 test('V2 · grupo E: o título no vidro, as abas de antes escondidas no DOM e sem o bloco laranja', async () => {
   const t = montar();
   for (const aba of E_FEITAS) {
@@ -60,6 +60,7 @@ test('V2 · grupo E: o título no vidro, as abas de antes escondidas no DOM e se
 });
 test('RH na Direção 3: abas no cabeçalho, o dia ao lado do título, um bloco de ação laranja e números d3-num', async () => {
   const t = montar();
+  await t.P.abrir('academy'); // a primeira resposta diz que é gestão (Recrutamento e Documentos só abrem para ela)
   for (const aba of ['produtividade', 'rh', 'recrutamento', 'documentos', 'academy'].filter((a) => !E_FEITAS.includes(a))) {
     await t.P.abrir(aba);
     const h = t.html();
@@ -88,7 +89,8 @@ test('Pedidos: rótulos curtos e o 1º que vence; Documentos: linha do tempo dos
   const t = montar();
   await t.P.abrir('rh');
   let h = t.html();
-  assert.match(h, />Esperando resposta</); assert.match(h, /class="d3p-aviso">1º vence amanhã/); assert.match(h, /class="d3p-legenda"/);
+  // Prancha V2-M-RH-Pedidos: o prazo de cada pedido no selo da linha e a legenda do calendário na consulta.
+  assert.match(h, /class="d3m-e-pes-selo( a)?">até /); assert.match(h, /class="d3m-e-pes-leg-c"/);
   await t.P.abrir('documentos');
   h = t.html();
   assert.match(h, /aria-label="Vencimentos"/); assert.match(h, /class="d3p-tl-hoje"/);

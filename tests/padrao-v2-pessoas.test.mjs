@@ -69,26 +69,25 @@ test('as quatro telas seguem a ordem do quadro: título, fala do VYBES, três n�
   assert.match(readFileSync('vybe-mundo-pessoas.js', 'utf8'), /const V2 = new Set\(\['produtividade', 'rh', 'projetos', 'recrutamento', 'documentos', 'academy'\]\);/, 'Projetos também no padrão v2 (quadro ProjetosDepois)');
 });
 
-test('Pedidos e calendário: baralho de decisão, calendário com pendente tracejado e o resto a um clique', async () => {
+test('Pedidos e calendário (prancha V2-M-RH-Pedidos): pedidos que se decidem na linha, calendário do mês e a consulta no vidro', async () => {
   const t = montar();
   await t.P.abrir('rh');
   let h = t.html();
-  ordem(h, 'class="v2p-fala d3-acao d3p-acao"', 'class="v2p-tres"', '<h3>Pede ação</h3>', 'class="v2-baralho v2p-baralho"', 'data-v2p-decide', 'aria-label="Seus pedidos"', '<span class="v2p-sub">Também</span>', '<h3>Calendário do time</h3>');
-  assert.match(h, /<b>2 pedidos esperam resposta<\/b> e o de Bia vence amanhã\. Ewerton sai de férias de 16\/11 a 20\/11\./);
-  assert.match(h, /No prazo<\/small><span class="d3p-num-linha"><b class="d3-num-v">9<span class="d3p-de"> \/ 10</); assert.match(h, />4<span class="d3p-de"> \/ 6 · fecha amanhã</); assert.match(h, /<button[^>]*data-form="pesquisa">responder</);
-  assert.equal(h.split('class="v2-carta v2p-carta"').length - 1, 2); assert.match(h, /data-pos="0" data-carta="11"/); assert.match(h, /data-pos="1" data-carta="12"/);
-  assert.match(h, /Responder até amanhã/); assert.match(h, /“Deixo as pautas fechadas\.”/);
-  assert.match(h, /data-v2p-recusar="11">Recusar</); assert.match(h, /class="v2p-btn k v2-estado v2p-aprovar" data-v2p-decidir="11" data-feito="Aprovado">Aprovar</);
-  assert.match(h, /1 de 2 · seta para os lados passa · <button[^>]*data-v2p-ver="lista">ver em lista</);
-  assert.match(h, /class="v2p-pill mi pd" title="Bia Alves pediu férias ou folga e espera resposta">BI</, 'pedido de férias aberto entra tracejado');
-  assert.match(h, /class="v2p-pill mi g" title="Ewerton Dias de férias ou folga">EW</); assert.match(h, /class="v2p-pill mi an"[^>]*>JA</);
-  assert.match(h, /Respondido<\/span><p><b>Declaração de vínculo<\/b> <span class="v2p-sub">· 11\/11/, 'Seus pedidos embaixo do Pede ação (quadro D3-RhPedidos)');
-  // o segundo cartão não é férias: o botão vira Resolver
-  t.clicar('[data-v2p-carta]', { v2pCarta: '1' });
-  assert.match(t.html(), /data-v2p-decidir="12" data-feito="Resolvido">Resolver</); assert.match(t.html(), /2 de 2/);
+  assert.equal(t.janela().className, 'vp-janela d3m-e-pes-janela');
+  ordem(h, 'class="d3m-e-topo"', 'Pedidos e calendário', 'Recursos Humanos · 2 pedidos esperando resposta', 'data-vp-abrir-form="pedido"', 'Pedidos ao RH', 'data-v2p-filtro="abertos" aria-checked="true">Abertos', 'Calendário do time', '<aside class="d3m-lado"', 'O que dá para pedir', 'Clima', 'No calendário', 'Só da gestão');
+  assert.match(h, /data-v2p-recusar="11">Recusar</); assert.match(h, /data-v2p-decidir="11" data-feito="Aprovado">Aprovar</); assert.match(h, /data-v2p-decidir="12" data-feito="Resolvido">Resolver</);
+  assert.match(h, /“Deixo as pautas fechadas\.”/); assert.match(h, /class="d3m-e-pes-selo a">até amanhã</);
+  assert.match(h, /class="d3m-e-pes-ev pend" title="Bia Alves pediu férias ou folga e espera resposta">Bia</, 'pedido de férias aberto entra tracejado');
+  assert.match(h, /class="d3m-e-pes-ev ferias" title="Ewerton Dias de férias ou folga">Ewerton</); assert.match(h, /class="d3m-e-pes-ev aniv"[^>]*>Jady</);
+  assert.match(h, /class="d3m-e-pes-fer"[^>]*>Consc\. Negra</, 'os feriados nacionais no calendário'); assert.match(h, /3 feriados em novembro/);
+  assert.match(h, /data-vp-abrir-form="pedido" data-tipo="ferias"/, 'o que dá para pedir abre o formulário no tipo');
+  // Respondidos: o histórico com o selo
+  t.clicar('[data-v2p-filtro]', { v2pFiltro: 'respondidos' }); h = t.html();
+  assert.match(h, /Declaração de vínculo/); assert.match(h, /class="d3m-e-pes-selo g">Respondido</);
   // recusar pede o motivo no lugar e usa o formulário de resposta de sempre
+  t.clicar('[data-v2p-filtro]', { v2pFiltro: 'abertos' });
   t.clicar('[data-v2p-recusar]', { v2pRecusar: '12' });
-  assert.match(t.html(), /<form data-vp-form="responder" data-id="12" class="v2p-recusa"><input name="resposta"[^>]*required/);
+  assert.match(t.html(), /<form data-vp-form="responder" data-id="12" class="d3m-e-pes-recusa"><input name="resposta"[^>]*required/);
   // aprovar grava pelo caminho de sempre
   const b = { dataset: { v2pDecidir: '11', feito: 'Aprovado' }, textContent: 'Aprovar' };
   t.janela(); await t.P.abrir('rh');
@@ -101,9 +100,9 @@ test('Pedidos e calendário de quem pediu: sem botões de decisão, com o própr
   const t = montar({ gestao: false });
   await t.P.abrir('rh');
   const h = t.html();
-  assert.match(h, /<h3>Seus pedidos<\/h3>/); assert.match(h, /Nada seu esperando o RH/); assert.match(h, /Nenhum pedido por aqui/);
-  assert.doesNotMatch(h, /data-v2p-decidir|data-v2p-recusar|Visão geral|Datas de RH|Prazos de resposta/);
-  assert.match(h, /<b class="d3-num-v">Aberta</, 'quem não é da gestão não vê quantos responderam o clima');
+  assert.match(h, /Seus pedidos ao RH/); assert.match(h, /nada esperando o RH/); assert.match(h, /Nenhum pedido por aqui/); assert.match(h, /Nova solicitação/);
+  assert.doesNotMatch(h, /data-v2p-decidir|data-v2p-recusar|Visão geral|Datas de RH|Só da gestão/);
+  assert.doesNotMatch(h, /responderam/, 'quem não é da gestão não vê quantos responderam o clima');
 });
 
 test('Recrutamento: período na barra de filtro, quem espera retorno em Pede ação, funil e vaga que abre no lugar', async () => {

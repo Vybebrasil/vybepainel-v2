@@ -17525,6 +17525,58 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
   #vv-pessoas .d3m-e-acoes > input.d3m-e-pes-busca[type=search]{flex:1 1 140px;width:auto;min-width:0}
 }
 
+/* ---------- Pedidos e calendário ---------- */
+/* A folha dos pedidos (430 na prancha) e o calendário, que ocupa o resto. */
+#vv-pessoas .d3m-e-pes-rhg{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,.84fr) minmax(0,1fr);gap:16px}
+#vv-pessoas .d3m-e-pes-rhg > .d3m-e-folha{min-height:0}
+#vv-pessoas .d3m-e-pes-n{margin-left:4px;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+/* Um pedido: avatar (gestão), o que é e o apoio, o selo do prazo e as ações. */
+#vv-pessoas .d3m-e-pes-ped{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:56px;padding:10px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa)}
+#vv-pessoas .d3m-e-pes-ped:first-child{border-top:0}
+#vv-pessoas .d3m-e-pes-ped > .d3m-e-pes-lin-t{flex:1 1 160px}
+#vv-pessoas .d3m-e-pes-cita{white-space:normal}
+#vv-pessoas .d3m-e-pes-selo{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#vv-pessoas .d3m-e-pes-selo.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#vv-pessoas .d3m-e-pes-selo.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+#vv-pessoas .d3m-e-pes-selo.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+#vv-pessoas .d3m-e-pes-bts{flex:none;display:inline-flex;gap:6px;margin-left:auto}
+#vv-pessoas .d3m-e-pes-bts > .d3v-btn,#vv-pessoas .d3m-e-pes-recusa > .d3v-btn{height:28px;padding:0 10px}
+#vv-pessoas .d3m-e-pes-recusa{flex:1 1 100%;display:flex;gap:6px}
+#vv-pessoas .d3m-e-pes-recusa > input{flex:1 1 auto;min-width:0;min-height:28px;height:28px}
+#vv-pessoas .d3m-e-pes-pe-r{color:var(--d3-perigo)}
+/* Atalhos curtos da consulta em grade de dois. */
+#vv-pessoas .d3m-e-pes-vgrade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+
+/* O calendário: semana de seg a dom, as semanas do mês dividem a altura da folha. */
+#vv-pessoas .d3m-e-pes-grade{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:24px repeat(var(--sem,5),minmax(0,1fr));margin:0 16px 16px;border-radius:var(--d3-r-caixa);overflow:hidden}
+#vv-pessoas .d3m-e-pes-ds{padding:0 8px;font:400 var(--d3-fs-apoio)/24px var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-pessoas .d3m-e-pes-dia{display:flex;flex-direction:column;gap:2px;min-width:0;min-height:0;padding:6px 8px;box-sizing:border-box;box-shadow:inset 1px 1px 0 var(--d3-divisa);overflow:hidden}
+#vv-pessoas .d3m-e-pes-dia.fora{background:var(--d3-veu)}
+#vv-pessoas .d3m-e-pes-dia > b{font:500 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#vv-pessoas .d3m-e-pes-dia.hoje{box-shadow:inset 0 0 0 2px var(--d3-tinta);border-radius:4px}
+#vv-pessoas .d3m-e-pes-dia.hoje > b{font-weight:700}
+#vv-pessoas .d3m-e-pes-fer{font:400 var(--d3-fs-mini)/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);overflow-wrap:anywhere}
+#vv-pessoas .d3m-e-pes-evs{display:flex;flex-direction:column;gap:2px;min-width:0}
+#vv-pessoas .d3m-e-pes-ev{display:block;min-width:0;padding:1px 5px;border-radius:4px;font:500 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-pessoas .d3m-e-pes-ev.aniv{background:var(--d3-agente-veu);color:var(--d3-agente-texto)}
+#vv-pessoas .d3m-e-pes-ev.ferias{background:var(--d3-info-veu);color:var(--d3-info)}
+#vv-pessoas .d3m-e-pes-ev.pend{box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-texto2)}
+#vv-pessoas .d3m-e-pes-ev.mais{color:var(--d3-rotulo)}
+/* A legenda do calendário, na consulta (no vidro): o quadradinho de 10 com a cor de cada coisa. */
+#vv-pessoas .d3m-e-pes-leg-c{display:inline-flex;gap:10px}
+#vv-pessoas .d3m-e-pes-leg-c{flex-wrap:wrap;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#vv-pessoas .d3m-e-pes-leg-c > span{display:inline-flex;align-items:center;gap:5px;color:var(--d3-fume-apagado)}
+#vv-pessoas .d3m-e-pes-leg-c i{width:10px;height:10px;border-radius:3px}
+#vv-pessoas .d3m-e-pes-leg-c i.aniv{background:var(--d3-agente-veu)}
+#vv-pessoas .d3m-e-pes-leg-c i.ferias{background:var(--d3-info-veu)}
+#vv-pessoas .d3m-e-pes-leg-c i.pend{box-shadow:inset 0 0 0 1px var(--d3-fume-apagado)}
+@media (max-width:900px){
+  #vv-pessoas .d3m-e-pes-rhg{display:flex;flex-direction:column;flex:none}
+  #vv-pessoas .d3m-e-pes-cal{flex:none}
+  #vv-pessoas .d3m-e-pes-grade{flex:none;grid-template-rows:24px repeat(var(--sem,5),64px);margin:0 8px 12px}
+  #vv-pessoas .d3m-e-pes-dia{padding:4px}
+}
+
 /* ===== padrao-v2/zm-f-casca.css ===== */
 /* ===================================================================================================================
    V2 · GRUPO F · O MUNDO VYBE (pranchas V2-M-Centro, Predio, Minha-Sala, Jogos, Loja, Ranking e Conquistas, aprovadas
