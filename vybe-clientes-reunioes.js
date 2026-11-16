@@ -143,7 +143,7 @@
       ${s.resumo ? `<p>${esc(s.resumo).replace(/\n/g, '<br>')}</p>` : ''}
       ${(s.decisoes || []).length ? `<b>Decisões</b><ul>${s.decisoes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
       ${(s.demandas || []).length ? `<b>Demandas sugeridas</b><ul class="reu-dems">${dem}</ul>
-        ${pode ? `<button type="button" class="vb-botao principal" onclick="cadastrarDemandasReuniao('${esc(r.cliente_id)}','${esc(r.id)}', this)">Cadastrar as marcadas em Solicitações</button>` : ''}` : '<p class="cli-vazio">Nenhuma demanda sugerida.</p>'}
+        ${pode ? `<button type="button" class="d3v-btn s" onclick="cadastrarDemandasReuniao('${esc(r.cliente_id)}','${esc(r.id)}', this)">Cadastrar as marcadas em Solicitações</button>` : ''}` : '<p class="cli-vazio">Nenhuma demanda sugerida.</p>'}
       ${feitas.length ? `<p class="reu-ok">${feitas.length} demanda${feitas.length > 1 ? 's' : ''} já cadastrada${feitas.length > 1 ? 's' : ''}.</p>` : ''}</div>`;
   }
   window.cadastrarDemandasReuniao = async function cadastrarDemandasReuniao(clienteId, reuniaoId, botao) {
