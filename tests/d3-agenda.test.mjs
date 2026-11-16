@@ -32,7 +32,8 @@ test('Planejamentos, Impressões, Projetos e Toolkit: bloco de ação, números 
   assert.match(plj, /window\.d3AcaoHtml\(\{ agente: 'A'/); assert.match(plj, /rotulo: 'Peças para aprovar'/); assert.match(plj, /d3pl-sec/);
   assert.match(imp, /window\.d3AcaoHtml\(\{ agente: 'N'/); assert.match(imp, /rotulo: 'Entregues no mês', valor: String\(doMes\.length\), serie:/); assert.match(imp, /Escolher gráfica/);
   assert.match(pes, /agente: 'H', frase: corpo/); for (const t of ['Em andamento', 'Etapas vencidas', 'Etapas feitas', 'Próxima entrega']) assert.ok(pes.includes(`rotulo: '${t}'`), t);
-  assert.match(fer, /window\.d3AcaoHtml\(\{ agente: 'V'/); assert.doesNotMatch(fer, /<p class="p2-sub">\$\{esc\(f\.frase\)\}<\/p>/);
+  // Toolkit no grupo E (prancha V2-M-Toolkit): sem o bloco laranja; a frase explicativa segue fora das ferramentas.
+  assert.doesNotMatch(fer, /d3AcaoHtml/); assert.doesNotMatch(fer, /<p class="p2-sub">\$\{esc\(f\.frase\)\}<\/p>/);
   // Os botões do alto ficam brancos: o laranja cheio é só o bloco de ação.
   assert.doesNotMatch(plj, /class="p2-btn p"/); assert.doesNotMatch(imp, /class="p2-btn p"/);
 });

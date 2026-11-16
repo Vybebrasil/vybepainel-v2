@@ -74,12 +74,12 @@ test('Impressões (Direção 3): bloco de ação do Nestor, quatro números, bar
 });
 
 test('Toolkit: visão em pílulas com a busca, usados por último em cartões e as três ferramentas com o resultado no lugar', () => {
-  assert.match(fer, /<span class="p2-seg" role="tablist" aria-label="Ferramentas do Toolkit">/);
+  // V2 · grupo E (prancha V2-M-Toolkit): as abas em pílula no vidro, a busca e os usados por último na consulta.
+  assert.match(fer, /<span class="d3m-e-per d3m-e-tk-abas" role="group" aria-label="Ferramentas do Toolkit">/);
   assert.match(fer, /placeholder="Buscar ferramenta" data-vf-busca/);
-  assert.match(fer, /<small class="d3tk-quem">VYBES · Ferramentas<\/small>/);
-  assert.match(fer, /<span class="p2-sub">neste computador<\/span>/);
+  assert.match(fer, /<b id="vf-recentes-titulo">Usados por último<\/b><span>neste computador<\/span>/);
   for (const t of ['data-vf-gerar="qr">Gerar QR<', 'data-vf-gerar="wa">Criar link<', 'data-vf-gerar="roi">Calcular<']) assert.ok(fer.includes(t), t);
-  for (const t of ['Baixar de novo', 'Refazer', 'Gerar o primeiro QR', 'Nada usado ainda neste computador.']) assert.ok(fer.includes(t), t);
+  for (const t of ['data-vf="refazer" data-vf-uso=', 'Nada usado ainda neste computador.', 'data-vf="comercial"', 'vendas pagam']) assert.ok(fer.includes(t), t);
   const guardado = {};
   const ctx = { window: {}, localStorage: { getItem: (k) => guardado[k] ?? null, setItem: (k, v) => { guardado[k] = v; } }, console };
   ctx.window.addEventListener = () => {};
