@@ -138,6 +138,12 @@ label.d3m-d-vbtn{cursor:pointer}
 .d3m-d-fm-vazio-ic > svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .d3m-d-fm-vazio-bts{display:inline-flex;gap:8px}
 .d3m-d-fm-ficha > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+/* Os três passos no pé do cartão vazio (Pessoas e vales). */
+.d3m-d-fm-passos{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;border-top:1px solid var(--d3-divisa)}
+.d3m-d-fm-passo{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:12px;background:var(--d3-veu);font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-fm-passo > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-d-fm-passo-n{display:grid;place-items:center;width:22px;height:22px;margin-bottom:4px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra);font:600 11px var(--vv-texto,Inter,sans-serif)}
+.d3m-d-selo.a{background:var(--d3m-d-ambar)}
 /* Dois cartões lado a lado embaixo do principal. */
 .d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:150px}
 .d3m-d-fm-pesa{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-height:100%;box-sizing:border-box}
@@ -172,6 +178,7 @@ label.d3m-d-vbtn{cursor:pointer}
   .d3m-d-fm-olho{flex-wrap:wrap;white-space:normal;padding:8px 16px;row-gap:4px}
 }
 @media (max-width:640px){
+  .d3m-d-fm-passos{grid-template-columns:minmax(0,1fr)}
   .d3m-d-fm-c.m{flex:0 0 52px}
   .d3m-d-fm-leg{display:none}
   .d3m-d-fm .d3m-d-fm-topo > .d3m-d-ferr{flex-wrap:wrap;max-width:100%}

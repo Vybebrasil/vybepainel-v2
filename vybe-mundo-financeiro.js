@@ -52,7 +52,7 @@
     cartao: { fatura: '', lado: '', novo: false, colar: false, editando: '', chip: 'todos', aberta: '', inteira: false },
     fixos: { mes: '', novo: false, editando: '' },
     vorcaro: { mao: false, frente: '', baixo: '' },
-    vales: { aberta: '', chip: 'todos', ajuste: '' },
+    vales: { aberta: '', chip: 'todos', ajuste: '', combinado: false },
     projecao: { horizonte: 6, cenario: { cortes: {}, economias: {}, clientes_novos: [], clientes_perdidos: {}, gastos_novos: [], ajuste_entradas_pct: 0 }, nome: '', base: null },
   };
   let anfitriao = {}; // { d, repintar, recarregar } da última pintura (janela do Comercial)
@@ -916,29 +916,40 @@
     anfitriao = ctx;
     const d = ctx.d, u = ui.vales, contas = d.contas_pessoas || [];
     const comVale = contas.filter((c) => c.vale > 0), aPagar = contas.filter((c) => c.a_pagar > 0), semComb = contas.filter((c) => !c.salario?.valor);
-    const totalVale = comVale.reduce((s, c) => s + c.vale, 0);
-    const partes = [topo('Pessoas e vales')];
-    partes.push(comVale.length ? acao(`${esc(rs(totalVale))} em vale${comVale[0] ? `; o maior é ${esc(comVale[0].nome)}` : ''}.`, 'Ver quem', 'data-fx="chip" data-alvo="vales" data-valor="vale"')
-      : !contas.length ? acao('Nenhum Pix atribuído a alguém do time ainda.', 'Ir ao extrato', 'data-fx="ir-aba" data-valor="extrato"')
-      : acao('Ninguém com vale.'));
-    partes.push(nums([
-      { rotulo: 'Em vale', valor: mil(totalVale), tom: totalVale ? 'r' : '', sub: quantos(comVale.length, 'pessoa', 'pessoas') },
-      { rotulo: 'A pagar às pessoas', valor: mil(aPagar.reduce((s, c) => s + c.a_pagar, 0)), sub: quantos(aPagar.length, 'pessoa', 'pessoas') },
-      { rotulo: 'Sem combinado', valor: n0(semComb.length), tom: semComb.length ? 'a' : '', sub: 'salário não informado' },
-    ]));
+    const totalVale = comVale.reduce((s, c) => s + c.vale, 0), totalPagar = aPagar.reduce((s, c) => s + c.a_pagar, 0);
+    // Padrão V2 (prancha V2-M-Financas-Vales): o molde com três números, as pessoas no cartão principal (combinado, pago
+    // no mês, a pagar e o vale; a linha abre com a conta da pessoa) e, vazio, os três passos. O laranja só com vale.
+    const pessoasSemComb = semComb.length + (d.pessoas || []).filter((p) => !contas.some((c) => c.pessoa_id === String(p.id))).length;
+    const nums = [M().num({ rotulo: 'Em vale', ic: ICV.cifrao, valor: esc(mil(totalVale)), tom: totalVale ? 'r' : '', sub: comVale.length ? quantos(comVale.length, 'pessoa', 'pessoas') : 'nenhuma pessoa' }),
+      M().num({ rotulo: 'A pagar às pessoas', selo: 'negocio', ic: ICV.relogio, valor: esc(mil(totalPagar)), sub: aPagar.length ? quantos(aPagar.length, 'pessoa', 'pessoas') : 'nenhuma pessoa' }),
+      M().num({ rotulo: 'Sem combinado', selo: pessoasSemComb ? 'a' : '', ic: ICV.alerta, valor: n0(pessoasSemComb), sub: pessoasSemComb === 1 ? 'pessoa com o salário não informado' : 'pessoas com o salário não informado' })].join('');
     const vis = contas.filter((c) => (u.chip === 'vale' ? c.vale > 0 : u.chip === 'semcomb' ? !c.salario?.valor : true));
     const ultimo = (c) => c.meses[c.meses.length - 1] || {};
+    const COLS = [[28, ''], [0, 'Pessoa'], [170, 'Pago no mês'], [130, 'A pagar', 'r'], [130, 'Vale', 'r']];
     const corpo = vis.map((c) => {
       const aberta = u.aberta === c.pessoa_id, m = ultimo(c);
-      return `<div class="v2-abre fv2-linha" data-linha="${esc(c.pessoa_id)}" aria-expanded="${aberta}"><div class="fv2-lin"><button type="button" class="fv2-txt" data-fx="abrir" data-alvo="vales" data-valor="${esc(c.pessoa_id)}" aria-expanded="${aberta}"><b>${esc(c.nome)}</b> <small class="fv2-sub">${c.salario?.valor ? esc(rs(c.salario.valor)) + '/mês' : 'sem combinado'}</small></button>
-        <span class="fv2-sub">pago em ${esc(soMes(m.mes))}: ${esc(rs(m.pago || 0))}</span>${c.a_pagar ? pill(`${rs(c.a_pagar)} a pagar`, 'a') : ''}<b class="fv2-valor ${c.vale ? 'fx-neg' : ''}">${c.vale ? esc(rs(c.vale)) + ' de vale' : 'sem vale'}</b></div>
+      return `<div class="v2-abre d3m-d-fm-linha" data-linha="${esc(c.pessoa_id)}" aria-expanded="${aberta}">${M().tr(COLS, [M().av(c.nome),
+        `<button type="button" class="d3m-d-fm-nome" data-fx="abrir" data-alvo="vales" data-valor="${esc(c.pessoa_id)}" aria-expanded="${aberta}"><b>${esc(c.nome)}</b> <small>· ${c.salario?.valor ? esc(rs(c.salario.valor)) + ' por mês' : 'sem combinado'}</small></button>`,
+        `${esc(rs(m.pago || 0))}${m.mes ? ` <small>em ${esc(mes3(m.mes))}</small>` : ''}`, c.a_pagar ? `<span class="a">${esc(rs(c.a_pagar))}</span>` : '<span class="q">nada</span>',
+        c.vale ? `<b class="r">${esc(rs(c.vale))}</b>` : '<span class="q">sem vale</span>'])}
         <div class="v2-mais"><div>${aberta ? cartaoPessoa(d, c) : ''}</div></div></div>`;
     }).join('');
-    // Quem do time ainda não tem conta: escolher para informar o combinado.
+    const passos = [['Diga o combinado', 'O salário de cada pessoa, uma vez.'], ['Atribua os Pix', 'No extrato, diga para quem foi cada um.'], ['O que passar vira vale', 'E o que faltar aparece como a pagar.']]
+      .map(([t, s], i) => `<div class="d3m-d-fm-passo"><span class="d3m-d-fm-passo-n">${i + 1}</span><b>${t}</b><small>${s}</small></div>`).join('');
+    const vazioH = !contas.length ? `<div class="d3m-d-fm-vazio d3m-d-fm-vazio-alto"><span class="d3m-d-fm-vazio-ic" aria-hidden="true">${ICV.cifrao}</span><p><b>Ninguém aqui ainda</b>Nenhum Pix foi atribuído a alguém do time. Quando for, cada pessoa aparece com o combinado, o que recebeu e o vale.</p><span class="d3m-d-fm-vazio-bts"><button type="button" class="fv2-btn s d3f-escuro" data-fx="ir-aba" data-valor="extrato">Ir ao extrato</button><button type="button" class="fv2-btn s" data-fx="vales-combinado">Informar um combinado</button></span></div>` : '';
     const semConta = (d.pessoas || []).filter((p) => !contas.some((c) => c.pessoa_id === String(p.id)));
-    const novo = semConta.length ? `<details class="fx-det"><summary>Informar o combinado de outra pessoa · ${n0(semConta.length)}</summary>${semConta.map((p) => `<div class="fx-mini" data-fx-form="salario"><span>${esc(p.nome)}</span><input name="valor" class="fx-in fx-num" inputmode="decimal" placeholder="combinado" aria-label="Combinado de ${esc(p.nome)}"><input name="desde" type="month" class="fx-in" aria-label="Desde"><button type="button" class="fv2-btn s v2-estado" data-fx="pessoa-salario" data-valor="${esc(p.id)}">Salvar</button></div>`).join('')}</details>` : '';
-    partes.push(card('Por pessoa', `<div class="fv2-filtros">${chips('vales', [['todos', 'Todos', contas.length], ['vale', 'Com vale', comVale.length, 'r'], ['semcomb', 'Sem combinado', semComb.length]], u.chip)}</div>${corpo || vazio('Ninguém com esse filtro.')}${novo}`, 'combinado × pago × vale'));
-    return casca(partes, 'vales');
+    const combinado = u.combinado ? M().folha({ titulo: 'Informar o combinado', sub: semConta.length ? quantos(semConta.length, 'pessoa sem conta', 'pessoas sem conta') : '', dir: '<button type="button" class="d3m-d-fm-elo" data-fx="vales-combinado">fechar</button>', cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: 'combinado',
+      corpo: `<div class="d3m-d-fm-painel">${semConta.map((p) => `<div class="fx-mini" data-fx-form="salario"><span>${esc(p.nome)}</span><input name="valor" class="fx-in fx-num" inputmode="decimal" placeholder="combinado" aria-label="Combinado de ${esc(p.nome)}"><input name="desde" type="month" class="fx-in" aria-label="Desde"><button type="button" class="fv2-btn s v2-estado" data-fx="pessoa-salario" data-valor="${esc(p.id)}">Salvar</button></div>`).join('') || '<p class="fv2-sub">Todo o time já tem conta; o combinado se muda na linha da pessoa.</p>'}</div>` }) : '';
+    const fichas = M().fichas([['todos', 'Todos', contas.length], ['vale', 'Com vale', comVale.length, 'r'], ['semcomb', 'Sem combinado', semComb.length, 'a']]
+      .map(([k, nome, n, tom]) => ({ nome, n, tom: n ? tom : '', on: u.chip === k, attrs: `data-fx="chip" data-alvo="vales" data-valor="${k}"` })), 'Filtrar as pessoas');
+    const principal = M().folha({ titulo: 'Por pessoa', sub: 'combinado, pago e vale', dir: fichas, cab: corpo ? M().cab(COLS) : '', rotulo: 'pessoas',
+      corpo: corpo || vazioH || '<p class="d3m-d-fm-vazio">Ninguém com esse filtro.</p>', olho: contas.length ? '' : `<div class="d3m-d-fm-passos">${passos}</div>` });
+    const maior = comVale.slice().sort((a, b) => b.vale - a.vale)[0];
+    const laranja = maior ? M().laranja({ rot: 'em vale', num: esc(mil(totalVale)), frase: comVale.length === 1 ? 'em vale de uma pessoa' : `em vale de ${n0(comVale.length)} pessoas`,
+      apoio: `O maior é ${esc(maior.nome)}, com ${esc(rs(maior.vale))}. Vale é o que passou do combinado.`, bts: [['Ver quem', 'data-fx="chip" data-alvo="vales" data-valor="vale"'], [`Abrir ${maior.nome}`, `data-fx="abrir" data-alvo="vales" data-valor="${esc(maior.pessoa_id)}"`]] }) : '';
+    return M().molde({ tela: 'fx-vales', aba: 'vales', titulo: 'Pessoas e vales', d, repintar,
+      sub: `${esc(nomeMes((d.hoje || '').slice(0, 7)))} · ${contas.length ? quantos(contas.length, 'pessoa com conta', 'pessoas com conta') : 'nenhum Pix atribuído ao time ainda'}`,
+      acao: M().acao('Informar combinado', `data-fx="vales-combinado" aria-expanded="${Boolean(u.combinado)}"`), laranja, nums, corpo: combinado + principal });
   }
   // Abrir a conta de uma pessoa de outra tela (RH › Folha).
   function abrirPessoa(id) { ui.vales.aberta = String(id || ''); window.VybeComercial?.abrir?.('vales', { abas: ['vales'], rotulo: 'Finanças' }); }
@@ -1115,6 +1126,7 @@
       case 'cartao-novo': ui.cartao.novo = !ui.cartao.novo; ui.cartao.editando = ''; return repintar();
       case 'cartao-colar': ui.cartao.colar = !ui.cartao.colar; return repintar();
       // Cartão V2: por categoria, pagamentos e o vencimento atrás de botões, um por vez.
+      case 'vales-combinado': ui.vales.combinado = !ui.vales.combinado; return repintar();
       case 'cartao-lado': ui.cartao.lado = ui.cartao.lado === valor ? '' : valor; return repintar();
       case 'item-editar': ui.cartao.editando = valor; ui.cartao.aberta = valor; ui.cartao.novo = false; return repintar();
       case 'item-fechar': ui.cartao.editando = ''; ui.cartao.novo = false; return repintar();

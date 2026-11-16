@@ -167,9 +167,14 @@ test('telas: Extrato com "Para quem" e "Gasto fixo", a pergunta do Pix ao Viníc
   V._teste.ui.vales.aberta = '7';
   const html = V.telas.vales({ d, filtro: {} });
   assert.match(html, /data-tela="fx-vales"/); assert.match(html, /<h1>Pessoas e vales<\/h1>/); assert.match(html, /só donos/);
-  assert.match(html, /Ana Ficticia[\s\S]*R\$ 500,00 de vale/);
+  // Padrão V2 (prancha V2-M-Financas-Vales): o vale na coluna Vale, em vermelho; o combinado de quem não tem conta abre pelo botão.
+  assert.match(html, /Ana Ficticia[\s\S]*<b class="r">R\$ 500,00<\/b>/);
   assert.match(html, /Salário \/ pró-labore combinado[\s\S]*value="3000"/);
   assert.match(html, /Pix que compõem[\s\S]*data-fx="ir-lanc"/);
-  assert.match(html, /Informar o combinado de outra pessoa · 1/, 'o Vinícius ainda sem combinado');
+  assert.match(html, /data-fx="vales-combinado"/);
+  V._teste.ui.vales.combinado = true;
+  const comb = V.telas.vales({ d, filtro: {} });
+  assert.match(comb, /<h3>Informar o combinado <small>· 1 pessoa sem conta<\/small><\/h3>[\s\S]*Combinado de Vinícius[\s\S]*data-fx="pessoa-salario" data-valor="2"/, 'o Vinícius ainda sem combinado');
+  V._teste.ui.vales.combinado = false;
   assert.doesNotMatch(html, /—/);
 });
