@@ -87,6 +87,25 @@ test('apagar o lançado à mão desliga a proposta; restaurar religa', async (t)
   assert.equal(p.transacao_id, r.transacao.id);
 });
 
+test('como o dinheiro passou: do histórico no extrato, escolhido à mão; quem lançou fica registrado', async (t) => {
+  const sql = await banco(t);
+  let d = await ler(sql);
+  assert.equal(d.transacoes.find((x) => /Posto/.test(x.banco.historico)).real.forma, 'pix', 'Pix Enviado vira Pix');
+  const posto = d.transacoes.find((x) => /Posto/.test(x.banco.historico));
+  await escreverFinanceiro(sql, paulo, { acao: 'editar', id: posto.id, mudanca: { forma: 'cartao' } });
+  await assert.rejects(escreverFinanceiro(sql, paulo, { acao: 'editar', id: posto.id, mudanca: { forma: 'cheque' } }), /Forma/);
+  const r = await escreverFinanceiro(sql, paulo, { acao: 'lancar_mao', lancamento: { tipo: 'saida', valor: 300, data: '2026-11-08', categoria: 'estrutura', texto: 'Internet', forma: 'boleto', quem: 'Operadora' }, fixo: { repete: true } });
+  assert.equal(r.fixo.forma, 'boleto', 'a conta fixa paga do mesmo jeito do lançamento');
+  d = await ler(sql);
+  assert.equal(d.transacoes.find((x) => x.id === posto.id).real.forma, 'cartao');
+  const mao = d.transacoes.find((x) => x.id === r.transacao.id);
+  assert.equal(mao.real.forma, 'boleto');
+  assert.equal(mao.real.lancado_por, 'Paulo Henrique');
+  assert.equal(mao.real.quem, 'Operadora');
+  const sem = await escreverFinanceiro(sql, paulo, { acao: 'lancar_mao', lancamento: { tipo: 'saida', valor: 20, data: '2026-11-08', categoria: 'alimentacao', texto: 'Café' } });
+  assert.equal(sem.transacao.real.forma, 'dinheiro', 'à mão sem escolher = dinheiro');
+});
+
 test('só os donos apagam', async (t) => {
   const sql = await banco(t);
   const id = (await ler(sql)).transacoes[0].id;

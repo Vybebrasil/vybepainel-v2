@@ -183,6 +183,22 @@
       ...(Array.isArray(r.opcoes) ? { opcoes: r.opcoes.filter((c) => CAT.has(c)) } : {}) };
   }
   // Quem recebeu/mandou, tirado do histórico ("Pix Enviado Fulano de Tal" → "Fulano de Tal"), só para mostrar.
+  // Como o dinheiro entrou ou saiu (16/11/2026). No extrato vem do histórico do banco; à mão, quem lança escolhe.
+  const FORMAS_LANCAMENTO = Object.freeze([
+    { id: 'pix', nome: 'Pix' }, { id: 'boleto', nome: 'Boleto' }, { id: 'cartao', nome: 'Cartão' },
+    { id: 'debito', nome: 'Direto na conta' }, { id: 'transferencia', nome: 'Transferência' }, { id: 'dinheiro', nome: 'Dinheiro (na mão)' }]);
+  const FORMA_IDS = new Set(FORMAS_LANCAMENTO.map((f) => f.id));
+  function formaDoHistorico(historico) {
+    const h = semAcento(historico);
+    if (/\bpix\b/.test(h) && !/tarifa/.test(h)) return 'pix';
+    if (/\b(ted|doc|transf)/.test(h)) return 'transferencia';
+    if (/cr cob|bloq|boleto|pagamento (de )?(conta|titulo)|pagto/.test(h)) return 'boleto';
+    if (/cartao|fatura|visa|master|elo\b/.test(h)) return 'cartao';
+    if (/saque|deposito/.test(h)) return 'dinheiro';
+    return h ? 'debito' : '';
+  }
+  // A forma do lançamento: a escolhida, senão a do histórico (lançamento guardado antes de existir o campo).
+  const formaDe = (t) => (FORMA_IDS.has(t?.real?.forma) ? t.real.forma : t?.banco?.saldo != null ? formaDoHistorico(t.banco.historico) : '');
   function contraparte(historico) {
     const m = /^pix (enviado|recebido|automatico enviado)\s+(.+)$/i.exec(String(historico || '').trim());
     return m ? m[2].trim() : '';
@@ -208,6 +224,7 @@
       sugestao: s,
       real: {
         categoria: s.categoria, quem: s.quem, descricao: '', cliente_id: s.cliente_id || '', cliente_nome: s.cliente_nome || '', fatura: '',
+        forma: formaDoHistorico(l.historico),
         // Para quem foi (pessoa do time, sócio incluído) e o gasto fixo que este lançamento paga (14/11/2026).
         pessoa_id: s.pessoa_id || '', pessoa_nome: s.pessoa_nome || '', fixo_id: s.fixo_id || '',
         partes: [], // [{ valor, categoria, cliente_id, cliente_nome, quem, pessoa_id, pessoa_nome, descricao, competencia }] quando dividido
@@ -327,6 +344,7 @@
     if ('categoria' in mudanca) { if (!CAT.has(mudanca.categoria)) return { erro: 'Categoria desconhecida.' }; real.categoria = mudanca.categoria; }
     if ('status' in mudanca) { if (!STATUS.includes(mudanca.status)) return { erro: 'Status deve ser pago, nao_pago ou em_aberto.' }; real.status = mudanca.status; }
     for (const k of ['quem', 'descricao', 'cliente_id', 'cliente_nome', 'fatura', 'pessoa_id', 'pessoa_nome', 'fixo_id']) if (k in mudanca) real[k] = String(mudanca[k] ?? '').slice(0, 160);
+    if ('forma' in mudanca) { if (mudanca.forma && !FORMA_IDS.has(mudanca.forma)) return { erro: 'Forma desconhecida.' }; real.forma = mudanca.forma || ''; }
     if ('competencia' in mudanca) { if (mudanca.competencia && !ehMes(mudanca.competencia)) return { erro: 'Competência no formato AAAA-MM.' }; real.competencia = mudanca.competencia || t.banco.data.slice(0, 7); }
     if ('partes' in mudanca) {
       const partes = (Array.isArray(mudanca.partes) ? mudanca.partes : []).slice(0, 30).map((p) => ({
@@ -550,6 +568,7 @@
       autor: String(p.autor || '').slice(0, 80), texto: String(p.texto || '').slice(0, 600), anexo: ['print', 'audio', 'mensagem'].includes(p.anexo) ? p.anexo : 'mensagem',
       tipo, valor, data, categoria, cliente_id: String(p.cliente_id || '').slice(0, 80), cliente_nome: String(p.cliente_nome || '').slice(0, 160),
       quem: String(p.quem || '').slice(0, 80), status: STATUS.includes(p.status) ? p.status : 'pago', recebido_em: agora,
+      forma: FORMA_IDS.has(p.forma) ? p.forma : '',
       estado: 'pendente', transacao_id: '', decidido_por: '' } };
   }
   // Lançamentos do banco que podem ser a mesma coisa: mesmo sentido, mesmo valor (centavo a centavo) e até 5 dias de
@@ -567,6 +586,8 @@
         documento: '', valor, saldo: null, contraparte: p.quem || '', origem: p.origem },
       sugestao: { categoria: p.categoria, quem: p.quem, revisar: false, regra: 'vorcaro', nota: 'lançado pelo Vorcaro' },
       real: { categoria: p.categoria, quem: p.quem, descricao: p.texto.slice(0, 160), cliente_id: p.cliente_id, cliente_nome: p.cliente_nome, fatura: '', partes: [],
+        // Quem registrou (o dono que lançou à mão, ou quem mandou no grupo) e como o dinheiro passou.
+        forma: p.forma || (p.origem === 'mao' ? 'dinheiro' : ''), lancado_por: p.autor || quem || '',
         status: p.status || 'pago', competencia: p.data.slice(0, 7), conferido: true, conferido_por: quem, conferido_em: new Date().toISOString() } };
   }
 
@@ -640,7 +661,7 @@
   }
 
   const api = Object.freeze({ CAT_PAGO_PESSOA, contaPessoa, normalizarSalario, normalizarAjusteVale, CATEGORIAS, ESTADOS_PROPOSTA, normalizarProposta, candidatosDaProposta, transacaoDaProposta, STATUS, REGRAS_PADRAO, lerCsvBB, numeroBR, dataBR, idsDosLancamentos, sugerir, contraparte, novaTransacao,
-    clienteDoHistorico, transacoesDoCsv, mesclar, reaplicarRegras, normalizarRegra, FORMAS, normalizarFixo, fixoVigente, analisarFixos, normalizarItemCartao, partesValidas, aplicarEdicao, pedacos, resumo, mesesDa, porCliente, cartao, pagamentosSemFatura, baseDaProjecao, projetar, somarMeses });
+    clienteDoHistorico, FORMAS_LANCAMENTO, formaDoHistorico, formaDe, transacoesDoCsv, mesclar, reaplicarRegras, normalizarRegra, FORMAS, normalizarFixo, fixoVigente, analisarFixos, normalizarItemCartao, partesValidas, aplicarEdicao, pedacos, resumo, mesesDa, porCliente, cartao, pagamentosSemFatura, baseDaProjecao, projetar, somarMeses });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.VybeFinanceiroExtrato = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
