@@ -52,7 +52,8 @@ test('nome acessível com verbo nos botões que só diziam "Abrir", "Salvar" ou 
 
 test('fala de agente sem ação vira cartão claro; com botão continua laranja', () => {
   assert.match(ler('vybe-mundo-setor.js'), /g2-fala v2-abre\$\{linhas\.length \? '' : ' g2-fala-quieta'\}/);
-  assert.match(mundo, /v2n-fala\$\{D\.nRecados \? '' : ' v2n-fala-quieta'\}/);
+  // V2 (prancha V2-M-Equipe-Online): na Equipe online a fala virou o cartão laranja da consulta; sem ação, sai sem botão.
+  assert.match(mundo, /class="d3m-laranja d3m-f-lar d3m-g-lar"[^`]*\$\{bts \? `<div class="d3m-lar-bts">/);
   assert.match(css, /\.g2-fala\.g2-fala-quieta\{background:var\(--d3-cartao/);
   assert.match(css, /\.v2n-fala\.v2n-fala-quieta\{background:var\(--d3-cartao/);
 });

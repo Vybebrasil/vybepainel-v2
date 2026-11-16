@@ -67,9 +67,10 @@ test('Centro e loja, Equipe online e entrada pelos quadros D3', () => {
   assert.match(js, /fala\.className = 'd3-acao d3h-acao v2m-fala'/);
   const loja = trecho('  function mostrarCliente(nome) {', '    p.hidden = false; ajustarAreaLivre(); window.VybeClientePlaca');
   naOrdem(loja, ['class="d3m-loja-cab"', 'class="v2m-n3 d3m-n3"', 'class="d3m-lista"', 'class="d3m-semana"', 'class="d3m-quem"', 'data-trilho="criar">Nova demanda', 'class="v2n-btn k d3m-abrir" data-abrir-cliente=']);
-  assert.match(js, /<h1>Equipe online<\/h1><small class="v2e-data">/);
-  assert.match(js, /class="v2e-seg" role="img"/); assert.match(js, /class="v2n-busca v2e-busca" data-eq-busca/);
-  assert.match(js, /<span class="v2-risca\$\{m\.feita \|\| m\.concluida/);
+  // V2 (prancha V2-M-Equipe-Online): o título no vidro, a busca no botão de lupa e a missão riscada quando feita.
+  assert.match(js, /<span class="d3m-e-h" role="heading" aria-level="1">Equipe online<\/span><span class="d3m-e-sub">\$\{sub\}/);
+  assert.match(js, /<input type="search" class="d3m-f-campo" data-eq-busca/);
+  assert.match(js, /<b class="v2-risca\$\{feita\(m\) \? ' feita' : ''\}">/);
   assert.match(trecho('  function entradaHtml(', '  function pintarEntrada('), /class="d3-acao d3en-acao"/);
 });
 

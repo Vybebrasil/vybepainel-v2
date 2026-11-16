@@ -68,9 +68,9 @@ test('21, 40, 61: a ação da aba fica no cabeçalho uma vez só; pedidos e clim
 test('22: Equipe online com "visto há", moedas num selo e atalhos com ícone', () => {
   const m = trecho('vybe-mundo.js', 'const EQUIPE_ACOES', '// Perfil = a ficha completa');
   assert.doesNotMatch(m, /<small>offline<\/small>|vv-coins/);
-  assert.match(m, /vistoHa\(D\.vistos\[t\.id\]\)/);
-  assert.match(m, /class="v2n-chip vv-moedas-selo"/);
-  assert.match(m, /class="v2n-chip" data-equipe="\$\{id\}"/, 'padrão v2: as portas do Escritório viram fichas no pé, como no quadro');
+  assert.match(m, /vistoHa\(D\.vistos\[x\.id\]\)/);
+  assert.match(m, /class="d3m-g-moedas vv-moedas-selo"/);
+  assert.match(m, /class="d3m-vlin" data-equipe="\$\{id\}"/, 'V2: as portas do Escritório viram linhas na consulta, como na prancha');
   const ctx = { Date, Number, Math, JSON, localStorage: { getItem: () => null, setItem() {} } }; vm.createContext(ctx);
   vm.runInContext(trecho('vybe-mundo.js', '  function vistoHa', '  // ===== Equipe online pelo quadro') + ';this.f = vistoHa;', ctx);
   const ha = (min) => ctx.f(Date.now() - min * 60e3);
