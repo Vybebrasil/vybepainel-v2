@@ -52,16 +52,37 @@ const comum = (html, nome, nums) => {
   assert.doesNotMatch(html, /—/, `${nome}: sem travessão`);
 };
 
+// Padrão V2 (16/11/2026): as telas no molde comum (prancha V2-M-Financas-Modelo).
+const molde = (html, nome) => {
+  assert.match(html, new RegExp(`class="fv2 fx d3f d3m-d-fx d3m-d-fm" data-tela="fx-${nome}"`));
+  assert.match(html, /class="d3-selo-donos"[^>]*>[\s\S]*só donos/, `${nome}: selo só donos`);
+  assert.ok((html.match(/class="d3m-laranja/g) || []).length <= 1, `${nome}: no máximo um laranja`);
+  assert.doesNotMatch(html, /class="d3-acao"|class="d3f-nums"|fv2-fala|fv2-kpi/, `${nome}: o bloco de ação e os números antigos saíram`);
+  assert.match(html, new RegExp(`class="d3m-vlin" data-fx="ir-aba" data-valor="${nome}" aria-current="page"`), `${nome}: a coluna de Finanças marca a tela`);
+  assert.doesNotMatch(html, /—/, `${nome}: sem travessão`);
+};
+
 test('Extrato: banco × de verdade em colunas, os números com a linha, conferir, dividir entre clientes e "Sempre assim"', () => {
   const V = telas(), d = dados();
   let html = V.telas.extrato({ d, filtro: {} });
-  comum(html, 'extrato', 4);
-  assert.match(html, /Vorcaro · Tesouraria<\/small>4 lançamentos para conferir e 1 boleto para dividir\./);
-  assert.match(html, /data-fx="chip" data-alvo="extrato" data-valor="conferir">Ver o que falta</);
-  assert.match(html, /Entrou<\/span>[\s\S]*?<svg class="d3-graf"/, 'a mini linha do que entrou mês a mês');
-  assert.match(html, /class="d3f-cab"[\s\S]*Dia[\s\S]*No banco[\s\S]*De verdade[\s\S]*Valor/);
+  // Padrão V2 (prancha V2-M-Financas-Extrato): o molde; os números viram o "De olho" e o laranja só pede o que falta.
+  molde(html, 'extrato');
+  assert.match(html, /Vorcaro · já sugeri o destino<\/span>[\s\S]*d3m-lar-num">4<\/b><span class="d3-acao-frase">lançamentos para conferir<\/span><small>E 1 boleto de R\$ 6\.100,00 para dividir entre clientes\.<\/small>/);
+  assert.match(html, /class="d3m-btn l" data-fx="chip" data-alvo="extrato" data-valor="conferir">Ver os 4</);
+  assert.match(html, /class="d3m-btn l s" data-fx="cat" data-valor="receita_boleto">Dividir</);
+  assert.match(html, /class="d3m-d-fm-th"[\s\S]*Dia[\s\S]*No banco[\s\S]*De verdade[\s\S]*Valor/);
   assert.match(html, /\+R\$ 6\.100,00/); assert.match(html, /−R\$ 300,00/);
-  assert.match(html, /A conferir <b class="a">4<\/b>/);
+  assert.match(html, /data-valor="conferir" aria-pressed="true">A conferir<span class="a">4<\/span>/);
+  assert.match(html, /class="d3m-d-fm-olho"[\s\S]*entrou[\s\S]*saiu[\s\S]*saldo em 12\/11/, 'entrou, saiu e o saldo no De olho');
+  assert.match(html, /data-fx="conferir-todos">Conferir os 4 sugeridos/);
+  // Para onde foi, regras e importações atrás de botões.
+  assert.doesNotMatch(html, /class="d3f-gx/); assert.match(html, /data-fx="extrato-lado" data-valor="regras"/); assert.match(html, /data-fx="extrato-lado" data-valor="para"/);
+  V._teste.ui.extrato.lado = 'para';
+  html = V.telas.extrato({ d, filtro: {} });
+  assert.match(html, /Para onde foi[\s\S]*data-fx="cat"[^>]*class="d3f-gx/, 'para onde foi em barras que filtram');
+  V._teste.ui.extrato.lado = 'regras';
+  assert.match(V.telas.extrato({ d, filtro: {} }), /<h3>Regras<\/h3>[\s\S]*Nenhuma regra sua ainda\./);
+  V._teste.ui.extrato.lado = '';
   const boleto = d.transacoes.find((t) => t.banco.valor === 6100);
   V._teste.ui.extrato.aberta = boleto.id;
   html = V.telas.extrato({ d, filtro: {} });
@@ -69,7 +90,7 @@ test('Extrato: banco × de verdade em colunas, os números com a linha, conferir
   assert.match(html, /data-fx="dividir"[^>]*>Dividir entre clientes</);
   assert.match(html, /data-fx="regra-de"[^>]*>Sempre assim</);
   assert.match(html, /class="fv2-btn d3f-escuro v2-estado" data-fx="salvar-lanc"[^>]*>Salvar e conferir</, 'o botão que conta o estado');
-  assert.match(html, /Para onde foi[\s\S]*data-fx="cat"[^>]*class="d3f-gx/, 'para onde foi em barras que filtram');
+  V._teste.ui.extrato.aberta = '';
 });
 
 test('Cartão: total, pago pelo extrato, falta e itens; itens com situação, filtro "Sem categoria" e editar no lugar', () => {

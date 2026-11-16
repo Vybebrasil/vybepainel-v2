@@ -80,7 +80,7 @@
 .d3m-d-fm-det > p{margin:0 0 4px}
 .d3m-d-fm-det > p > b{font-weight:600}
 .d3m-d-fm-det-bts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s){appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s){appearance:none;display:inline-flex;width:auto;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
 #vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s):hover{background:var(--d3-veu)}
 #vv-comercial .fv2.d3m-d-fm :is(.v2c-btn.k,.fv2-btn.s.d3f-escuro,.fv2-btn.d3f-escuro,.d3m-d-fm-escuro){background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra)}
 #vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
@@ -97,6 +97,20 @@
 .d3m-d-fm-olho b.r{color:var(--d3-perigo)}
 .d3m-d-fm-olho b.g{color:var(--d3-pronto)}
 .d3m-d-fm-olho b.a{color:var(--d3-ambar)}
+/* Peças que algumas telas usam: o conferido com o ponto verde, o pé dentro da lista, o painel atrás de botão, a busca. */
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-ok{appearance:none;display:inline-flex;width:auto;align-items:center;gap:6px;height:28px;margin:0;padding:0 4px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-fm-ok > i{width:7px;height:7px;border-radius:50%;background:var(--d3-mod-vybe)}
+.d3m-d-fm-ok:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-d-fm-tr > .d3m-d-fm-c:last-child{display:flex;justify-content:flex-end}
+.d3m-d-fm-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 16px;border-top:1px solid var(--d3-divisa)}
+#vv-comercial .fv2.d3m-d-fm .d3f-mais{appearance:none;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.d3m-d-fm-segundo{max-height:46%}
+.d3m-d-fm-painel{padding:0 16px 14px}
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-painel .fv2-card{margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-painel .fv2-card > .fv2-card-topo{display:none}
+.d3m-d-fm-busca{display:flex;align-items:center;gap:8px;margin-top:10px}
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-busca > .fv2-busca{flex:1 1 auto;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+label.d3m-d-vbtn{cursor:pointer}
 /* Dois cartões lado a lado embaixo do principal. */
 .d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
 

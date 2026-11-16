@@ -20,7 +20,8 @@ test('Finanças: rodapé "Sócios avisados" com vazio honesto, Contrato e Forma,
 
 test('Extrato numa linha e "Guardar o cenário" sempre no bloco laranja', () => {
   const s = ler('vybe-mundo-financeiro.js');
-  assert.match(s, /<div class="fv2-card-topo fx-lancs-topo"><h2>Lançamentos<\/h2>\$\{filtrosHtml\}<\/div>/);
+  // Padrão V2 (16/11/2026): as fichas continuam numa linha só, agora na cabeça do cartão do molde.
+  assert.match(s, /M\(\)\.folha\(\{ titulo: `Lançamentos de \$\{soMes\(u\.mes\) \|\| 'agora'\}`, sub: 'Banco do Brasil, conta PJ', dir: todas\.length \? fichas : ''/);
   assert.match(s, /'Guardar o cenário', 'data-fx="cenario-focar"'/);
   const css = ler('padrao-v2/d3-financas.css');
   assert.match(css, /\.fx-lancs-topo\{flex-wrap:nowrap/);

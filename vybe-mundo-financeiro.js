@@ -47,7 +47,7 @@
 
   // ---------- Estado da tela (o que fica entre uma pintura e outra) ----------
   const ui = {
-    extrato: { mes: '', chip: 'conferir', cat: '', aberta: '', mostrar: 60, partes: {}, previa: null, csv: '', nomeArquivo: '', lendo: false, regra: '' },
+    extrato: { mes: '', chip: 'conferir', cat: '', lado: '', aberta: '', mostrar: 60, partes: {}, previa: null, csv: '', nomeArquivo: '', lendo: false, regra: '' },
     clientes_mes: { chip: 'todos', aberta: '' },
     cartao: { fatura: '', novo: false, colar: false, editando: '', chip: 'todos', aberta: '', inteira: false },
     fixos: { mes: '', novo: false, editando: '' },
@@ -69,6 +69,8 @@
     catch (e) { avisar(e.message); return null; }
   }
   const repintar = () => anfitriao.repintar?.();
+  // O molde V2 das telas de Finanças (pecasFin, mais abaixo).
+  const M = () => pecasFin;
 
   // ---------- Peças ----------
   function topo(titulo, acoes = '', meio = '', extra = '') {
@@ -135,60 +137,61 @@
       if (u.chip === 'abertos') return t.real.status !== 'pago';
       return true;
     };
-    const lista = doMes.filter(filtro).slice().reverse();
     const aConferir = doMes.filter((t) => !t.real.conferido).length;
-    const arquivo = (cls) => `<label class="${cls} fx-arquivo">${cls.includes('fv2-btn') ? IC.mais : ''}Importar extrato<input type="file" accept=".csv,text/csv" data-fx-arquivo hidden></label>`;
-    const partes = [topo('Extrato e conciliação', arquivo('fv2-btn p'), meses.length ? mesNav(meses, u.mes, 'extrato') : '', '<span class="d3f-data">Banco do Brasil · conta PJ</span>')];
-    if (u.previa) partes.push(previaHtml(d));
-    if (!todas.length && !u.previa) {
-      partes.push(acao('Sem extrato ainda. Importe o CSV da conta PJ.', '', '', arquivo('d3-acao-btn')));
-      return casca(partes, 'extrato');
-    }
-    if (r) {
-      const sem = doMes.filter((t) => t.real.categoria === 'receita_boleto' && !t.real.partes?.length).length;
-      const frase = aConferir ? `${quantos(aConferir, 'lançamento', 'lançamentos')} para conferir${sem ? ` e ${quantos(sem, 'boleto', 'boletos')} para dividir` : ''}.`
-        : `${esc(soMes(u.mes)).replace(/^./, (c) => c.toUpperCase())} todo conferido.`;
-      partes.push(acao(frase, aConferir ? 'Ver o que falta' : '', 'data-fx="chip" data-alvo="extrato" data-valor="conferir"'));
-      const anterior = (d.serie || []).filter((s) => s.mes < u.mes && s.saldo_final != null).slice(-1)[0];
-      const ultimoDia = doMes.filter((t) => t.banco.saldo != null).map((t) => t.banco.data).sort().slice(-1)[0];
-      const nCartao = doMes.filter((t) => X().pedacos(t).some((p) => p.categoria === 'cartao_agencia')).length;
-      partes.push(nums([
-        { rotulo: 'Entrou', valor: mil(r.entradas), tom: 'g', serie: ultimos(d.serie, u.mes, 'entradas'), sub: quantos(doMes.filter((t) => t.banco.valor > 0).length, 'entrada', 'entradas'), attrs: 'data-fx="chip" data-alvo="extrato" data-valor="entradas"' },
-        { rotulo: 'Saiu sem o cartão', valor: mil(r.saidas), serie: ultimos(d.serie, u.mes, 'saidas'), sub: quantos(doMes.filter((t) => t.banco.valor < 0).length - nCartao, 'saída', 'saídas'), attrs: 'data-fx="chip" data-alvo="extrato" data-valor="saidas"' },
-        { rotulo: 'Pago no cartão', valor: mil(r.cartao_e_transferencias), sub: `${quantos(nCartao, 'pagamento', 'pagamentos')} · <button type="button" class="fv2-link" data-fx="ir-aba" data-valor="cartao">itens no Cartão</button>` },
-        { rotulo: ultimoDia ? `Saldo · ${dataCurta(ultimoDia)}` : 'Saldo', valor: r.saldo_final == null ? 'sem saldo' : mil(r.saldo_final), tom: Number(r.saldo_final) < 0 ? 'r' : '', serie: ultimos(d.serie, u.mes, 'saldo_final'),
-          sub: anterior ? `era ${mil(anterior.saldo_final)} em ${soMes(anterior.mes).slice(0, 3)}` : '' },
-      ]));
-    }
+    // Padrão V2 (prancha V2-M-Financas-Extrato): o molde. Um cartão com os lançamentos do mês (Dia, No banco, De verdade,
+    // Valor e Conferir), as fichas na cabeça e o "De olho" no pé; "Para onde foi", as regras, as importações e os apagados
+    // ficam atrás de botões e abrem embaixo da lista. O laranja só quando há o que conferir ou dividir.
+    const arquivo = (cls, rot = 'Importar extrato') => `<label class="${cls} fx-arquivo">${cls.includes('p') ? IC.mais : ''}${rot}<input type="file" accept=".csv,text/csv" data-fx-arquivo hidden></label>`;
+    const i = meses.indexOf(u.mes), antes = meses[i - 1] || '', depois = meses[i + 1] || '';
     const contar = (k) => doMes.filter((t) => ({ conferir: !t.real.conferido, entradas: t.banco.valor > 0, saidas: t.banco.valor < 0, abertos: t.real.status !== 'pago', todos: true })[k]).length;
-    const catsMes = [...new Set(doMes.flatMap((t) => X().pedacos(t).map((p) => p.categoria)))];
-    const filtrosHtml = `<div class="fv2-filtros fx-filtros">${chips('extrato', [['conferir', 'A conferir', contar('conferir'), 'a'], ['todos', 'Todos', contar('todos')], ['entradas', 'Entradas', contar('entradas')], ['saidas', 'Saídas', contar('saidas')], ['abertos', 'Não pago / em aberto', contar('abertos')]], u.chip)}
-      <label class="fv2-sr" for="fx-cat">Categoria</label><select id="fx-cat" class="fx-sel fx-sel-chip" data-fx-campo="filtro-cat"><option value="">Categoria</option>${catsMes.map((c) => `<option value="${c}"${u.cat === c ? ' selected' : ''}>${esc(nomeCat(d, c))}</option>`).join('')}</select>
-      <label class="fv2-sr" for="fx-busca-extrato">Buscar no extrato</label><input class="fv2-busca fx-busca" id="fx-busca-extrato" type="search" data-vc-busca="fx_extrato" placeholder="Buscar" title="Buscar no extrato" value="${esc(ctx.filtro?.fx_extrato || '')}"></div>`;
-    const linhas = lista.slice(0, u.mostrar).map((t) => linhaExtrato(d, t)).join('');
-    const resto = lista.length - u.mostrar;
+    const sem = doMes.filter((t) => t.real.categoria === 'receita_boleto' && !t.real.partes?.length);
+    const ultimoDia = doMes.filter((t) => t.banco.saldo != null).map((t) => t.banco.data).sort().slice(-1)[0];
+    const lista = doMes.filter(filtro).slice().reverse();
+    const linhas = lista.slice(0, u.mostrar).map((t) => linhaExtrato(d, t)).join(''), resto = lista.length - u.mostrar;
+    const fichas = M().fichas([['todos', 'Todos'], ['conferir', 'A conferir', 'a'], ['entradas', 'Entradas'], ['saidas', 'Saídas'], ['abertos', 'Não pago']]
+      .map(([k, nome, tom]) => { const n = contar(k); return { nome, n, tom: n ? tom : '', on: u.chip === k && !u.cat, attrs: `data-fx="chip" data-alvo="extrato" data-valor="${k}"` }; })
+      .concat([{ nome: u.cat ? nomeCat(d, u.cat) : 'Categoria', on: u.lado === 'para' || Boolean(u.cat), attrs: `data-fx="extrato-lado" data-valor="para" aria-expanded="${u.lado === 'para'}"` }]), 'Filtrar os lançamentos');
     const pe = [resto > 0 ? `<button type="button" class="d3f-mais" data-fx="mais" data-alvo="extrato">+${n0(resto)}</button>` : '',
       u.chip === 'conferir' && lista.length ? `<button type="button" class="fv2-btn s" data-fx="conferir-todos">Conferir os ${n0(Math.min(lista.length, u.mostrar))} sugeridos</button>` : ''].filter(Boolean).join('');
-    const corpo = (linhas ? cabeca([['fx-dia', 'Dia'], ['fx-banco', 'No banco'], ['fx-real', 'De verdade'], ['fx-valor', 'Valor'], ['fx-ok-cab', '']]) + linhas : vazio(u.chip === 'conferir' ? 'Tudo conferido neste mês.' : 'Nada com esse filtro.')) + (pe ? `<div class="fv2-pe">${pe}</div>` : '');
-    // Quadro D3-Extrato: o título, as fichas, a Categoria e a busca numa linha só, no alto do cartão.
-    const lancs = `<section class="fv2-card d3f-tabela fx-lancs" data-fx-card="lancamentos"><div class="fv2-card-topo fx-lancs-topo"><h2>Lançamentos</h2>${filtrosHtml}</div>${corpo}</section>`;
-    partes.push(`<div class="fx-duas fx-duas-extrato"><div class="fx-col">${lancs}</div>
-      <div class="fx-col fx-lado">${r ? card('Para onde foi', porCategoriaHtml(d, r), 'de verdade') : ''}${regrasHtml(d)}${importacoesHtml(d)}${lixeiraHtml(d)}</div></div>`);
-    return casca(partes, 'extrato');
+    const COLS = COLS_EXTRATO;
+    const corpo = !todas.length ? `<div class="d3m-d-fm-vazio"><p>Sem extrato ainda. Importe o CSV da conta PJ.</p>${arquivo('fv2-btn s d3f-escuro')}</div>`
+      : (linhas || `<p class="d3m-d-fm-vazio">${u.chip === 'conferir' ? 'Tudo conferido neste mês.' : 'Nada com esse filtro.'}</p>`) + (pe ? `<div class="d3m-d-fm-pe">${pe}</div>` : '');
+    const ultImp = (d.importacoes || []).slice(-1)[0];
+    const olho = r ? M().olho([[esc(comSinal(r.entradas)), 'entrou', 'g'], [esc(comSinal(-r.saidas)), 'saiu'], r.cartao_e_transferencias ? [esc(mil(r.cartao_e_transferencias)), '<button type="button" class="d3m-d-fm-elo" data-fx="ir-aba" data-valor="cartao">no cartão</button>'] : null,
+      r.saldo_final != null ? [esc(mil(r.saldo_final)), ultimoDia ? `saldo em ${dataCurta(ultimoDia)}` : 'saldo', Number(r.saldo_final) < 0 ? 'r' : ''] : null,
+      ultImp ? [n0(ultImp.novas), `<button type="button" class="d3m-d-fm-elo" data-fx="extrato-lado" data-valor="importacoes" aria-expanded="${u.lado === 'importacoes'}">importados em ${esc(dataCurta(ultImp.em))}</button>`] : null,
+      (d.apagados || []).length ? [n0(d.total_apagados || d.apagados.length), `<button type="button" class="d3m-d-fm-elo" data-fx="extrato-lado" data-valor="apagados" aria-expanded="${u.lado === 'apagados'}">apagados</button>`] : null]) : '';
+    const principal = M().folha({ titulo: `Lançamentos de ${soMes(u.mes) || 'agora'}`, sub: 'Banco do Brasil, conta PJ', dir: todas.length ? fichas : '', cab: todas.length ? M().cab(COLS) : '', corpo, olho, rotulo: 'lancamentos', cls: 'fx-lancs' });
+    // O que mora atrás dos botões: um painel por vez, embaixo da lista, com o fechar no alto.
+    const PAINEL = { para: ['Para onde foi', () => (r ? porCategoriaHtml(d, r) : '') + `<div class="d3m-d-fm-busca"><label class="fv2-sr" for="fx-busca-extrato">Buscar no extrato</label><input class="fv2-busca fx-busca" id="fx-busca-extrato" type="search" data-vc-busca="fx_extrato" placeholder="Buscar no extrato" title="Buscar no extrato" value="${esc(ctx.filtro?.fx_extrato || '')}">${u.cat ? `<button type="button" class="fv2-btn s" data-fx="cat" data-valor="${esc(u.cat)}">Tirar a categoria</button>` : ''}</div>`],
+      regras: ['Regras', () => regrasHtml(d)], importacoes: ['Importações', () => importacoesHtml(d) || '<p class="fv2-sub">Nenhuma importação ainda.</p>'], apagados: ['Apagados', () => lixeiraHtml(d) || '<p class="fv2-sub">Nada apagado.</p>'] };
+    const painel = PAINEL[u.lado] ? M().folha({ titulo: PAINEL[u.lado][0], dir: `<button type="button" class="d3m-d-fm-elo" data-fx="extrato-lado" data-valor="${u.lado}">fechar</button>`, corpo: `<div class="d3m-d-fm-painel">${PAINEL[u.lado][1]()}</div>`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: u.lado }) : '';
+    const laranja = !todas.length ? '' : aConferir ? M().laranja({ rot: 'já sugeri o destino', num: n0(aConferir), frase: aConferir === 1 ? 'lançamento para conferir' : 'lançamentos para conferir',
+      apoio: sem.length ? `E ${quantos(sem.length, 'boleto', 'boletos')} de ${esc(rs(sem.reduce((s, t) => s + t.banco.valor, 0)))} para dividir entre clientes.` : 'A categoria sugerida já está na linha; abra para corrigir.',
+      bts: [[aConferir === 1 ? 'Ver o lançamento' : `Ver os ${n0(aConferir)}`, 'data-fx="chip" data-alvo="extrato" data-valor="conferir"'], sem.length ? ['Dividir', 'data-fx="cat" data-valor="receita_boleto"'] : null] })
+      : sem.length ? M().laranja({ rot: 'boleto para dividir', num: n0(sem.length), frase: sem.length === 1 ? 'boleto para dividir entre clientes' : 'boletos para dividir entre clientes', apoio: `${esc(rs(sem.reduce((s, t) => s + t.banco.valor, 0)))} no total.`, bts: [['Dividir', 'data-fx="cat" data-valor="receita_boleto"']] }) : '';
+    const corpoTela = (u.previa ? M().folha({ titulo: `Prévia: ${ui.extrato.nomeArquivo || 'extrato'}`, dir: 'nada gravado ainda', corpo: `<div class="d3m-d-fm-painel">${previaHtml(d)}</div>`, cls: 'd3m-d-fm-curta d3m-d-fm-segundo', rotulo: 'previa' }) : '') + principal + painel;
+    return M().molde({ tela: 'fx-extrato', aba: 'extrato', titulo: 'Extrato e conciliação', d, repintar,
+      sub: `${esc(nomeMes(u.mes) || 'sem extrato')}${doMes.length ? ` · ${quantos(doMes.length, 'lançamento', 'lançamentos')}` : ''}${aConferir ? ` · ${n0(aConferir)} para conferir` : todas.length ? ' · tudo conferido' : ''}`,
+      ferr: (meses.length ? M().setas(antes ? `data-fx="mes" data-alvo="extrato" data-valor="${antes}"` : '', depois ? `data-fx="mes" data-alvo="extrato" data-valor="${depois}"` : '') : '')
+        + `<button type="button" class="d3m-d-vbtn" data-fx="extrato-lado" data-valor="regras" aria-expanded="${u.lado === 'regras'}">Regras</button>`,
+      acao: arquivo('d3m-d-vbtn p'), laranja, corpo: corpoTela });
   }
+  // As colunas do Extrato (prancha V2-M-Financas-Extrato): Dia, No banco, De verdade, Valor e o Conferir.
+  const COLS_EXTRATO = [[48, 'Dia'], [0, 'No banco'], [300, 'De verdade'], [110, 'Valor', 'r'], [96, '']];
   function linhaExtrato(d, t) {
     const u = ui.extrato, aberta = u.aberta === t.id, entrada = t.banco.valor > 0;
     const cat = t.real.partes?.length ? `dividido em ${t.real.partes.length}` : nomeCat(d, t.real.categoria);
     const quem = t.real.partes?.length ? [...new Set(t.real.partes.map((p) => p.cliente_nome || p.pessoa_nome || p.quem).filter(Boolean))].join(', ') : (t.real.cliente_nome || t.real.pessoa_nome || t.real.quem || '');
     const fixo = t.real.fixo_id ? (d.fixos || []).find((f) => f.id === t.real.fixo_id) : null;
-    const como = (X().FORMAS_LANCAMENTO.find((f) => f.id === X().formaDe(t)) || {}).nome || '';
-    const tomCat = t.real.categoria === 'a_classificar' ? 'r' : t.real.conferido && !t.real.partes?.length ? 'n' : 'a';
-    const status = (t.real.status !== 'pago' ? pill(STATUS_NOME[t.real.status], STATUS_TOM[t.real.status]) : '') + (t.banco.origem ? pill(t.banco.origem === 'mao' ? 'à mão' : 'WhatsApp', 'b') : '');
-    return `<div class="v2-abre fv2-linha fx-lanc${t.real.conferido ? ' ok' : ''}" data-linha="${esc(t.id)}" aria-expanded="${aberta}">
-      <div class="fv2-lin"><span class="fx-dia">${dataCurta(t.banco.data)}</span><button type="button" class="fv2-txt" data-fx="abrir" data-alvo="extrato" data-valor="${esc(t.id)}" aria-expanded="${aberta}">
-        <span class="fx-banco">${esc(t.banco.historico)}</span><span class="fx-real">${pill(cat, tomCat)}${quem || como ? `<span class="fx-quem">${esc([quem, como].filter(Boolean).join(' · '))}</span>` : ''}${fixo ? pill('fixo · ' + fixo.nome, 'n') : ''}${status}</span></button>
-        <b class="fx-valor ${entrada ? 'e' : 's'}">${esc(comSinal(t.banco.valor))}</b>
-        <button type="button" class="fx-ok" data-fx="conferir" data-valor="${esc(t.id)}" aria-pressed="${t.real.conferido}" title="${t.real.conferido ? 'Conferido' + (t.real.conferido_por ? ' por ' + esc(t.real.conferido_por) : '') : 'Marcar como conferido'}">${IC.ok}<span class="fv2-sr">Conferido</span></button></div>
+    const semCli = entrada && /receita_cliente|receita_boleto/.test(t.real.categoria) && !quem && !t.real.partes?.length;
+    const status = (t.real.status !== 'pago' ? ` <small class="${STATUS_TOM[t.real.status] === 'r' ? 'r' : 'a'}">· ${esc(STATUS_NOME[t.real.status]).toLowerCase()}</small>` : '') + (t.banco.origem ? ` <small>· ${t.banco.origem === 'mao' ? 'à mão' : 'WhatsApp'}</small>` : '');
+    const real = `<b class="${t.real.categoria === 'a_classificar' ? 'r' : ''}">${esc(cat)}</b>${quem ? ` <small>· ${esc(quem)}</small>` : semCli ? ' <small class="a">· sem cliente</small>' : ''}${fixo ? ` <small>· fixo ${esc(fixo.nome)}</small>` : ''}${status}`;
+    const ok = t.real.conferido ? `<button type="button" class="fx-ok d3m-d-fm-ok" data-fx="conferir" data-valor="${esc(t.id)}" aria-pressed="true" title="${'Conferido' + (t.real.conferido_por ? ' por ' + esc(t.real.conferido_por) : '') + '. Tocar desfaz.'}"><i aria-hidden="true"></i>conferido</button>`
+      : `<button type="button" class="fv2-btn s fx-ok" data-fx="conferir" data-valor="${esc(t.id)}" aria-pressed="false" title="Marcar como conferido">Conferir</button>`;
+    return `<div class="v2-abre d3m-d-fm-linha fx-lanc${t.real.conferido ? ' ok' : ''}" data-linha="${esc(t.id)}" aria-expanded="${aberta}">${M().tr(COLS_EXTRATO, [dataCurta(t.banco.data),
+      `<button type="button" class="d3m-d-fm-nome" data-fx="abrir" data-alvo="extrato" data-valor="${esc(t.id)}" aria-expanded="${aberta}">${esc(t.banco.historico)}</button>`, real,
+      `<span class="${entrada ? 'g' : ''}">${esc(comSinal(t.banco.valor))}</span>`, ok])}
       <div class="v2-mais"><div>${aberta ? editorExtrato(d, t) : ''}</div></div></div>`;
   }
   function editorExtrato(d, t) {
@@ -975,6 +978,8 @@
       case 'chip': ui[alvo].chip = valor; ui[alvo].aberta = ''; if (alvo === 'extrato') ue.mostrar = 60; if (alvo === 'cartao') ui.cartao.inteira = false; return repintar();
       case 'mais': if (alvo === 'cartao') ui.cartao.inteira = true; else ue.mostrar += 100; return repintar();
       case 'cat': ue.cat = ue.cat === valor ? '' : valor; ue.chip = 'todos'; return repintar();
+      // Extrato V2: Para onde foi, Regras, Importações e Apagados abrem atrás de botões, um por vez.
+      case 'extrato-lado': ue.lado = ue.lado === valor ? '' : valor; return repintar();
       case 'abrir': ui[alvo].aberta = ui[alvo].aberta === valor ? '' : valor; if (alvo === 'extrato') ue.regra = ''; if (alvo === 'cartao' && ui.cartao.editando && ui.cartao.editando !== valor) ui.cartao.editando = ''; return repintar();
       case 'foco': { // leva ao cartão e acende a borda
         const c = b.closest('.fx')?.querySelector(`[data-fx-card="${valor}"]`); if (!c) return;
