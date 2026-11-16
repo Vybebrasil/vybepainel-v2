@@ -341,6 +341,23 @@ test('roteiro: a tela ainda sem nenhuma parte desenhada não abre nem conta como
   assert.equal(novato.T.conferirTela(), false);
 });
 
+// Reriston (equipe, 16/11/2026): "não conseguiu nem mudar o responsável nem o status". O roteiro da tela abria 700 ms
+// depois do clique que abriu o menu de status (ou de responsável) e o fundo transparente do passeio, por cima de tudo,
+// engolia a escolha seguinte. Com o menu, a caixa da troca ou a gaveta à vista, o roteiro espera; fechou, ele entra.
+test('roteiro: não abre por cima do menu de status ou de responsável, da caixa da troca nem da gaveta; entra depois', () => {
+  for (const aberto of ['#status-editor', '#dono-editor', '#workflow-modal', '#workspace-drawer']) {
+    const m = montar({ alvos: { ...TELA_PAINEL(), [aberto]: [alvo(600, 300, 260, 220)] } });
+    m.T.registrarTelas(ROTEIRO);
+    m.clicarNaPagina(); m.rodar();                    // o clique que abriu o menu
+    assert.equal(m.T.estado().aberto, '', `${aberto} aberto: nenhum fundo do passeio por cima dele`);
+    assert.equal(m.classe('vv-tour-fundo'), undefined, aberto);
+    assert.equal(m.guardado().passeios['tela:painel'], undefined, 'esperar não conta como visto');
+    delete m.tela.alvos[aberto];                      // escolheu e o menu fechou
+    m.rodar();
+    assert.equal(m.T.estado().aberto, 'passeio', `${aberto} fechou: o roteiro entra`);
+  }
+});
+
 test('Ajuda do VYBES: reabre o tutorial da tela atual, mesmo já visto; sem roteiro na tela, abre a janela da Ajuda', () => {
   const m = montar({ alvos: TELA_PAINEL(), visto: { passeios: { 'boas-vindas': 'x', 'tela:painel': 'x' } } });
   m.T.registrarTelas(ROTEIRO);
