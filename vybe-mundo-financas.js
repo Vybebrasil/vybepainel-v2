@@ -148,6 +148,9 @@
     filtro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
   };
   const SELO = `<span class="d3-selo-donos">${IC.cadeado}só donos</span>`;
+  // Padrão V2 (16/11/2026): o molde comum das telas de Finanças, de vybe-mundo-financeiro.js. Sem ele (testes que carregam
+  // só este arquivo), as telas saem como antes.
+  const molde = () => (typeof window !== 'undefined' ? window.VybeFinanceiro?.molde : null);
   // Rodapé "Sócios avisados" dos quadros D3 (Visão geral, Recebimentos e Inadimplência): as iniciais de quem avisou ou foi
   // avisado nos últimos 30 dias, pelo registro de avisos (vybe_financeiro_avisos, desde 14/11/2026). O aviso é só registro
   // interno e o sino do Vybe OS: nada sai por WhatsApp. Sem a tabela ainda, o vazio honesto.
@@ -358,6 +361,45 @@
         || `<p class="fv2-nada">${!vivas.length ? 'Nenhum recebimento neste período.' : termo ? 'Nenhuma fatura com esse texto neste filtro.' : 'Nenhuma fatura neste filtro.'}</p>`,
       pe: maisHtml(resto.length, soRecebidas ? (resto.length === 1 ? 'recebida' : 'recebidas') : '', 'mostrar', 'rec', soma(resto, 'valor')) });
     const semNada = !todas.length && !atrasadas.length;
+    const M = molde();
+    if (M) {
+      // Padrão V2 (prancha V2-M-Financas-Recebimentos): um cartão com as faturas do período agrupadas (Agora: em atraso;
+      // A vencer; Recebida), a linha que abre no lugar e o "De olho" no pé; o laranja só com fatura em atraso.
+      const COLS = [[60, ''], [28, ''], [0, 'Cliente'], [84, 'Referência'], [104, 'Valor', 'r'], [230, 'Situação'], [70, '']];
+      const ROT = [['Agora', 'r'], ['A vencer', ''], ['Recebida', 'g'], ['Cancelada', 'q']];
+      const grupoX = (x) => (x.cancelado ? 3 : x.status === 'recebido' ? 2 : emAtraso(x) ? 0 : 1);
+      const vis = (u.extra ? grupo[u.extra] : u.chip === 'todas' ? vivas : grupo[u.chip] || vivas).filter(bate)
+        .sort((x, z) => grupoX(x) - grupoX(z) || (grupoX(x) === 2 ? String(z.recebido_em || '').localeCompare(String(x.recebido_em || '')) : String(x.vencimento).localeCompare(String(z.vencimento))));
+      const situacao = (x) => (x.cancelado ? '<span class="q">cancelada, fora dos totais</span>' : x.status === 'recebido' ? `<span class="g">recebida${x.recebido_em ? ` em ${curta(x.recebido_em)}` : ''}${x.forma ? `, por ${esc(FORMA_NOME[x.forma] || x.forma)}` : ''}</span>`
+        : emAtraso(x) ? `<span class="r">atrasada há ${quantos(x.atraso, 'dia', 'dias')}${Number(x.valor_recebido) > 0 ? `, recebido ${rs(x.valor_recebido)}` : ''}</span>`
+          : x.status === 'parcial' ? `<span class="a">parcial, recebido ${rs(x.valor_recebido)} · vence ${curta(x.vencimento)}</span>` : `a receber · vence ${curta(x.vencimento)}`);
+      const linhaR = (x, i) => {
+        const aberta = u.aberta === String(x.id), g = grupoX(x), primeiro = !i || grupoX(vis[i - 1]) !== g;
+        const nome = x.cliente_nome ? `<b>${esc(x.cliente_nome)}</b> <small>· ${esc(x.tipo === 'recorrente' ? 'recorrente' : x.descricao || 'pontual')}</small>` : `<b>${esc(x.descricao || 'Recebimento')}</b> <small>· ${esc(x.categoria || 'pontual')}</small>`;
+        return `<div class="v2-abre d3m-d-fm-linha" data-linha="${esc(x.id)}" aria-expanded="${aberta}">${M.tr(COLS, [primeiro ? `<span class="${ROT[g][1]}">${ROT[g][0]}</span>` : '', M.av(x.cliente_nome || x.descricao || '?'),
+          `<button type="button" class="d3m-d-fm-nome" data-fv="linha" data-tela="rec" data-valor="${esc(x.id)}" aria-expanded="${aberta}">${nome}</button>`, `${esc(mes3(x.vencimento))}/${esc(String(x.vencimento).slice(2, 4))}`, rs(x.valor), situacao(x),
+          x.cancelado || x.status === 'recebido' ? '' : botaoRecebi(x)])}
+          <div class="v2-mais"><div><div class="fv2-det d3m-d-fm-det">${detalheFatura(x)}</div></div></div></div>`;
+      };
+      const fichas = M.fichas([['todas', 'Todas', vivas.length], ['atraso', 'Em atraso', grupo.atraso.length, 'r'], ['vencer', 'A vencer', grupo.vencer.length], ['recebidas', 'Recebidas', grupo.recebidas.length], ['recorrentes', 'Recorrentes', grupo.recorrentes.length], ['pontuais', 'Pontuais', grupo.pontuais.length]]
+        .map(([k, nome, n, tom]) => ({ nome, n, tom: n ? tom : '', on: !u.extra && u.chip === k, attrs: `data-fv="chip" data-tela="rec" data-valor="${k}"` }))
+        .concat([['parciais', 'Parciais', grupo.parciais.length], ['canceladas', 'Canceladas', grupo.canceladas.length]].filter(([, , n]) => n).map(([k, nome, n]) => ({ nome, n, on: u.extra === k, attrs: `data-fv="extra" data-tela="rec" data-valor="${k}"` }))), 'Filtrar as faturas');
+      const corpo = semNada ? `<div class="d3m-d-fm-vazio"><p>Nenhum recebimento em ${esc(rotuloFala(per, hoje))}.</p>${doExtrato(d) ? '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Abrir o Extrato</button>' : '<button type="button" class="fv2-btn s" data-vc="recebivel">Lançar o primeiro</button>'}</div>`
+        : vis.map(linhaR).join('') || `<p class="d3m-d-fm-vazio">${termo ? 'Nenhuma fatura com esse texto neste filtro.' : 'Nenhuma fatura neste filtro.'}</p>`;
+      const olho = M.olho([[mil(a.recebido), 'recebido', Number(a.recebido) ? 'g' : ''], [mil(soma(grupo.vencer, 'aberto')), per.tipo === 'anual' ? 'a receber no ano' : 'a receber no mês'],
+        totalAtraso ? [mil(totalAtraso), `em atraso${deFora.length ? `, ${mil(soma(deFora, 'aberto'))} de ${deQuando}` : ''}`, 'r'] : null]) ;
+      const anual = per.tipo === 'anual', mesP = /^\d{4}-\d{2}$/.test(per.mes || '') ? per.mes : hoje.slice(0, 7), passo = anual ? 12 : 1, depois = somaMes(mesP, passo);
+      const laranja = atrasadas.length ? M.laranja({ rot: 'em atraso', num: n0(atrasadas.length), frase: atrasadas.length === 1 ? 'fatura em atraso' : 'faturas em atraso',
+        apoio: `${mil(totalAtraso)} no total${deFora.length ? `, ${deFora.length === 1 ? 'uma' : n0(deFora.length)} de ${deQuando}` : ''}.${atrasadas[0]?.cliente_nome ? ` A mais antiga é ${esc(atrasadas[0].cliente_nome)}, há ${quantos(atrasadas[0].atraso, 'dia', 'dias')}.` : ''}`,
+        bts: [[`Ver ${atrasadas.length === 1 ? 'a fatura' : 'as ' + n0(atrasadas.length)}`, 'data-fv="chip" data-tela="rec" data-valor="atraso"'], ['Inadimplência', 'data-fv="ir" data-valor="inadimplencia"']] }) : '';
+      return M.molde({ tela: 'rec', aba: 'recebimentos', titulo: 'Recebimentos', repintar: ctx.repintar,
+        sub: `${esc(rot)}${vivas.length ? ` · ${n0(grupo.recebidas.length)} de ${quantos(vivas.length, 'fatura recebida', 'faturas recebidas')}` : ''}${doExtrato(d) ? ' · pelo extrato' : ''}`,
+        ferr: M.setas(`data-vc-mes-ir="${somaMes(mesP, -passo)}"`, depois.slice(0, anual ? 4 : 7) > hoje.slice(0, anual ? 4 : 7) ? '' : `data-vc-mes-ir="${depois}"`, anual ? 'ano' : 'mês')
+          + M.seg([['Mensal', 'data-vc-periodo="mensal"', !anual], ['Anual', 'data-vc-periodo="anual"', anual]], 'Período'),
+        acao: doExtrato(d) ? M.acao('Lançar à mão', 'data-fv="ir" data-valor="vorcaro" data-mao="pago"') : M.acao('Novo recebimento', 'data-vc="recebivel"'), laranja,
+        corpo: M.folha({ titulo: `Faturas de ${anual ? mesP.slice(0, 4) : mesDe(mesP + '-01')}`, sub: quantos(grupo.recorrentes.length, 'recorrente', 'recorrentes') + (grupo.pontuais.length ? ` e ${quantos(grupo.pontuais.length, 'pontual', 'pontuais')}` : ''),
+          dir: fichas, cab: semNada ? '' : M.cab(COLS), corpo, olho, rotulo: 'lista' }) });
+    }
     return `<div class="fv2 d3f" data-tela="rec"><div class="fv2-in">
       ${topo({ titulo: 'Recebimentos', meio: periodoHtml(per, hoje), acoes: comoFunciona + (doExtrato(d) ? lancarMao('Lançar à mão') : novo('recebivel', 'Novo recebimento')), extra: fonte(d) })}
       ${acao('Vorcaro · Financeiro', frase, atrasadas.length ? `Ver ${atrasadas.length === 1 ? 'a fatura' : 'as ' + n0(atrasadas.length)}` : '', 'data-fv="foco" data-valor="acao"')}
@@ -673,7 +715,7 @@
     if (acao === 'mostrar-acao') { u.acaoInteira = true; return repintar(tela); }
     if (acao === 'linha') { // abre no lugar, sem pintar a tela de novo; uma por vez
       u.aberta = u.aberta === valor ? '' : valor;
-      for (const l of raiz.querySelectorAll('.fv2-linha')) { const on = l.dataset.linha === u.aberta; l.setAttribute('aria-expanded', on); l.querySelector('.fv2-txt')?.setAttribute('aria-expanded', on); }
+      for (const l of raiz.querySelectorAll('.fv2-linha, .d3m-d-fm-linha')) { const on = l.dataset.linha === u.aberta; l.setAttribute('aria-expanded', on); l.querySelector('.fv2-txt, .d3m-d-fm-nome')?.setAttribute('aria-expanded', on); }
       return;
     }
     if (acao === 'conta') { u.conta = !u.conta; raiz.querySelector('.fv2-conta')?.setAttribute('aria-expanded', u.conta); b.setAttribute('aria-expanded', u.conta); return; }
@@ -683,7 +725,7 @@
     if (acao === 'lancar') { ui.vis.lancar = !ui.vis.lancar; return repintarVisao(); }
     if (acao === 'novo') { // abre a tela e, quando ela estiver pintada, o formulário de lançar
       ui.vis.lancar = false; ir(valor);
-      let n = 0; const t = setInterval(() => { const novo = document.querySelector(`#vv-comercial .fv2 .fv2-btn.p[data-vc="${valor === 'contas' ? 'conta' : 'recebivel'}"]`); if (novo) { clearInterval(t); novo.click(); } else if (++n > 40) clearInterval(t); }, 150);
+      let n = 0; const t = setInterval(() => { const novo = document.querySelector(`#vv-comercial .fv2 :is(.fv2-btn.p,.d3m-d-vbtn.p)[data-vc="${valor === 'contas' ? 'conta' : 'recebivel'}"]`); if (novo) { clearInterval(t); novo.click(); } else if (++n > 40) clearInterval(t); }, 150);
       return;
     }
     if (acao === 'receber') return baixa(b, { acao: 'recebivel_receber', id: valor, valor_recebido: Number(b.dataset.total) || 0, recebido_em: hojeBahia() }, 'Recebido');

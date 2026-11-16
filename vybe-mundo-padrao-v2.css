@@ -16232,16 +16232,29 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
 .d3m-d-fm-av{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--d3-tinta);color:var(--d3-contra);font:600 10.5px var(--vv-texto,Inter,sans-serif)}
 .d3m-d-fm-av[data-carteira="vinicius"]{background:var(--d3-cart-vinicius)}
 .d3m-d-fm-av[data-carteira="ewerton"]{background:var(--d3-cart-ewerton)}
+/* Dias em atraso: a barra até 30 dias, na cor do atraso; o ponto da régua; o sócio em bolinha. */
+.d3m-d-fm-dias{display:flex;align-items:center;gap:10px}
+.d3m-d-fm-dias > b{flex:none;font-weight:600}
+.d3m-d-fm-barra{flex:1 1 auto;height:3px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+.d3m-d-fm-barra > i{display:block;width:var(--v,0%);height:100%;background:var(--d3-rotulo)}
+.d3m-d-fm-dias.r .d3m-d-fm-barra > i{background:var(--d3-perigo)}
+.d3m-d-fm-dias.a .d3m-d-fm-barra > i{background:var(--d3m-d-ambar)}
+.d3m-d-fm-ponto{display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--d3-meta);vertical-align:middle}
+.d3m-d-fm-ponto.a{background:var(--d3m-d-ambar)}
+.d3m-d-fm-ponto.r{background:var(--d3-perigo)}
+.d3m-d-fm .d3m-d-fm-c .d3f-av{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif)}
+.d3m-d-fm .d3m-d-fm-c .d3f-av.vazio{background:none}
 /* O que abre na linha. */
 .d3m-d-fm-det{padding:4px 16px 12px 114px;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 .d3m-d-fm-det > p{margin:0 0 4px}
 .d3m-d-fm-det > p > b{font-weight:600}
 .d3m-d-fm-det-bts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.d3m-d-fm :is(.v2c-btn,.fv2-btn){appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-d-fm :is(.v2c-btn,.fv2-btn):hover{background:var(--d3-veu)}
-.d3m-d-fm :is(.v2c-btn.k,.fv2-btn.d3f-escuro,.d3m-d-fm-escuro){background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra)}
-.d3m-d-fm :is(.v2c-btn,.fv2-btn):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s){appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s):hover{background:var(--d3-veu)}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn.k,.fv2-btn.s.d3f-escuro,.fv2-btn.d3f-escuro,.d3m-d-fm-escuro){background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra)}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
 .d3m-d-fm :is(.v2c-link,.d3m-d-fm-elo){appearance:none;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.d3m-d-fm-vazio > p{margin:0 0 10px}
 .d3m-d-fm-vazio{margin:0;padding:24px 16px;font-size:var(--d3-fs-texto);color:var(--d3-rotulo);text-align:center}
 .d3m-d-fm-resto{padding:12px 16px;border-top:1px solid var(--d3-divisa)}
 /* "De olho": as somas no pé do cartão, separadas por um fio. */
@@ -16261,7 +16274,7 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
   .d3m-d-fm .d3m-d-fm-lar{gap:6px;padding:12px 16px}
   .d3m-d-fm .d3m-d-fm-lar .d3m-lar-num{font-size:36px}
   .d3m-d-fm .d3m-d-fm-lar .d3-acao-frase{font-size:16px}
-  .d3m-d-fm .d3m-d-fm-nav .d3m-vlin{height:27px}
+  .d3m-d-fm .d3m-d-fm-nav .d3m-vlin{height:26px}
   .d3m-d-fm .d3m-d-fm-lado{gap:10px}
   .d3m-d-fm .d3m-d-fm-nav{gap:3px}
   .d3m-d-fm .d3m-d-fm-lar .d3m-lar-bts{margin-top:4px}
