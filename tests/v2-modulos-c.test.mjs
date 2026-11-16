@@ -121,3 +121,59 @@ test('Projetos V2: abre na linha do tempo, com os cartões como aba e a página 
   assert.match(css, /\.pj2-rola\{flex:1 1 0;min-height:0;overflow-y:auto/);
   assert.match(css, /\.pj2-barra\.r\{background:var\(--d3-perigo\)\}/);
 });
+
+test('Fornecedores V2: uma linha por fornecedor na folha, com os campos e os botões de sempre; no celular fica a tela de antes', () => {
+  const com = ler('vybe-mundo-comercial.js'), css = ler('padrao-v2/zm-c-comercial.css');
+  assert.ok(com.includes("const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;"));
+  // Só estas abas trocam de esqueleto, e só no computador; o resto da janela do Comercial fica como estava.
+  assert.ok(com.includes('if (v2m()) return pintarM(el, { d, erro, abas });') && com.includes('const v2m = () => Boolean(M2[st.aba]) && v2();'));
+  assert.match(com, /const M2 = \{ fornecedores: \['Fornecedores', 'producao', fornecedoresM\]/);
+  assert.ok(com.includes("el.className = 'vc d3m-c-janela';") && com.includes('window.d3mcTrocaHtml(nome, setor, st.aba)'));
+  const tela = com.slice(com.indexOf('function fornecedoresM(d)'), com.indexOf('const M2 = '));
+  // Tudo o que a tela fazia continua pelos mesmos data-*.
+  for (const t of ['data-v2-linha="fo:${id}"', 'data-v2="abre" data-id="fo:${id}"', 'data-v2-campo="forn:bv:${esc(f.id)}"', 'data-v2-campo="forn:contato:${esc(f.id)}"', 'data-v2="salvar-campo" data-id="forn:bv:${esc(f.id)}"',
+    'data-vc="ver-impressoes" data-id="${id}"', 'data-vc="fornecedor" data-id="${id}"', 'data-vc="arquivar-forn" data-id="${id}"', 'data-vc="fornecedor">${IM.mais}Novo fornecedor', "buscaM('forn', 'Buscar fornecedor ou contato')",
+    'data-v2="abre-um" data-id="fo:${esc(bvs[0].id)}"', 'C().filtrarFornecedores(', 'carregarEntregas();']) assert.ok(tela.includes(t), t);
+  // A ordem da prancha: Agora (o que falta) e Em dia; o pé "De olho"; o Nestor, o mês com as gráficas e os atalhos.
+  for (const t of ["[['Agora', lista.filter(incompleto)], ['Em dia'", '<span>Fornecedor</span><span>Contato</span><span>BV</span><span>Em andamento</span><span>Entrega média</span>', '<span class="m2-pe-rot">De olho</span>',
+    "'Nestor · falta para as Impressões'", '<span>com as gráficas</span>', '<b>Abrir</b>', "irM('creators', 'Creators'", 'só donos e administração']) assert.ok(tela.includes(t), t);
+  // Erro (quem não pode ver) e vazio ficam no mesmo esqueleto.
+  assert.ok(com.includes('<b>Não foi possível abrir ${nome}</b>${esc(erro)}') && tela.includes('<b>Nenhum fornecedor ainda</b>'));
+  assert.match(css, /\.fo2-lista\{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto/);
+  assert.match(css, /\.fo2-abre\[aria-expanded="true"\] > \.fo2-det\{display:flex\}/);
+  assert.match(css, /#vv-comercial\.d3m-c-janela :is\(\.vc-folha,\.vc-abas\)\{color:var\(--d3-tinta\)\}/);
+});
+
+test('Creators V2: as pessoas em grade, o cartão vira no lugar com as campanhas e os botões de sempre', () => {
+  const com = ler('vybe-mundo-comercial.js'), css = ler('padrao-v2/zm-c-creators.css');
+  assert.match(com, /creators: \['Creators', 'producao', creatorsM\] \};/);
+  const tela = com.slice(com.indexOf('function creatorsM(d)'), com.indexOf('const M2 = '));
+  for (const t of ['data-v2-linha="cc:${id}"', 'data-v2="abre" data-id="cc:${id}"', 'data-v2-campo="creator:contato:${id}"', 'data-v2="salvar-campo" data-id="creator:contato:${id}"', 'data-vc="campanha" data-id="${id}"',
+    'data-vc="campanha-encerrar" data-id="${esc(k.id)}"', 'data-vc="creator" data-id="${id}"', 'data-vc="arquivar-creator" data-id="${id}"', 'data-vc="creator">${IM.mais}Novo creator', "buscaM('creator', 'Buscar nome ou @')",
+    'data-v2="abre-um" data-id="cc:${esc(pede[0].id)}"', 'C().filtrarCreators(', 'data-m2="nicho"', 'data-m2="ordem"']) assert.ok(tela.includes(t), t);
+  // Quem só lê não vê os botões de editar nem o campo do contato.
+  assert.ok(tela.includes('${edita && semContato(c) ? `<div class="m2-campo">') && tela.includes('${edita ? `<button type="button" class="d3m-c-btn" data-vc="creator">'));
+  for (const t of ['<span>· Irecê e região</span>', 'Maior engajamento</button>', '<span class="m2-pe-rot">De olho</span>', "'VYBES · falta o contato'", '<b>Por nicho</b>', '<b>Como funciona</b>', '<b>Nenhum creator cadastrado</b>']) assert.ok(tela.includes(t), t);
+  assert.match(com, /if \(t\.dataset\.m2 === 'nicho'\) \{ st\.filtro\.nicho = t\.dataset\.id \|\| ''; st\.v2\.aberta = ''; pintar\(\); return; \}/);
+  assert.match(css, /\.cr2-grade\{flex:1 1 0;display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);[^}]*overflow-y:auto/);
+  assert.match(css, /\.cr2-c\[aria-expanded="true"\] > \.cr2-verso\{display:flex\}/);
+});
+
+test('Conversas V2: a lista no vidro, a conversa na folha e a consulta, com os mesmos data-wa-* e só leitura', () => {
+  const wa = ler('vybe-mundo-whatsapp.js'), css = ler('padrao-v2/zm-c-conversas.css');
+  assert.ok(wa.includes("const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;"));
+  assert.ok(wa.includes("const novo = v2(); el.classList.toggle('d3m-c-janela', novo);") && wa.includes('const html = novo ? htmlV2({ porConversa, naoLidas, mencoesNaoLidas }) : `<div class="v2w d3w">'));
+  const tela = wa.slice(wa.indexOf('const v2 = '), wa.indexOf('// ---------- Interação ----------'));
+  // Tudo o que a tela fazia continua pelos mesmos atributos e ids.
+  for (const t of ['data-wa-aba="${k}"', 'data-wa-filtro="${k}"', 'data-wa-busca', 'data-wa-conversa="${c.id}"', 'data-wa-conversa="${m.conversa}" data-wa-seq="${m.seq}"', 'data-wa-todas', 'data-wa-procurar', 'data-wa-procura',
+    'data-wa-notificar', 'data-wa-fechar', 'id="vv-wa-itens"', 'id="vv-wa-mensagens"', 'data-seq="${m.seq}"', 'href="${esc(linkDoWhatsapp(c))}" target="_blank" rel="noopener noreferrer"', "window.d3mcTrocaHtml('Conversas', 'comercial', 'conversas')"]) assert.ok(tela.includes(t), t);
+  // Continua só leitura: nenhum campo de envio; a resposta sai pelo WhatsApp.
+  assert.doesNotMatch(tela, /<textarea|method: 'POST'|type="submit"/);
+  for (const t of ['Aqui é só leitura. A resposta sai pelo seu WhatsApp.', "rot: 'chamaram você'", "bt('Já vi', 'data-wa-javi', true)", 'Clientes esperando</b>', '<b>Avisos</b>', '<b>Quem lê</b>', 'Grupo de cliente só recebe mensagem com autorização de um dono.']) assert.ok(tela.includes(t), t);
+  assert.ok(wa.includes("if (t.matches('[data-wa-javi]')) { marcarMencoesLidas(); return pintar(); }"));
+  // Nada de aria-current, aria-pressed ou aria-selected na tela nova (o tema antigo força o desenho desses botões).
+  assert.doesNotMatch(tela, /aria-(current|pressed|selected)=/);
+  assert.match(css, /\.d3m-c-corpo\.cv2\{grid-template-columns:288px minmax\(0,1fr\) 316px\}/);
+  assert.match(css, /\.cv2-itens\{flex:1 1 0;[^}]*overflow-y:auto/);
+  assert.match(css, /\.cv2-msgs\{flex:1 1 0;[^}]*overflow-y:auto/);
+});
