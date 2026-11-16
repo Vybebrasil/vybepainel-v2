@@ -66,6 +66,21 @@ test('Contas a pagar no molde: vencida em Agora com Paguei, A pagar, Pagas, fich
   assert.equal(laranjas(html), 1);
 });
 
+test('Inadimplência no molde: clientes com a barra dos dias, sócio e Ver; Régua de avisos; laranja com o mais antigo', () => {
+  const w = carregar();
+  const d = { hoje: HOJE, total: 7300, clientes: [{ cliente_id: '1', cliente_nome: 'Cliente B', atraso_mais_antigo: 40, vencimento_mais_antigo: '2026-10-03', faturas: 2, valor: 5000 },
+    { cliente_id: '2', cliente_nome: 'Cliente C', atraso_mais_antigo: 12, vencimento_mais_antigo: '2026-10-31', faturas: 1, valor: 2300 }], faturas: [], marcados_a_mao: [] };
+  const html = w.VybeFinancas.telas.inadimplencia({ d, filtro: {} });
+  comum(html, 'ina', 'inadimplencia', 'Inadimplência');
+  naOrdem(html, ['data-fv="ir" data-valor="recebimentos">Ver recebimentos', '2 clientes em atraso', '>Críticos<span class="r">1</span>', 'data-linha="k1"', 'Cliente B', 'class="d3m-d-fm-dias r"', '--v:100%', '40 dias', 'R$ 5.000',
+    'data-linha="k2"', 'class="d3m-d-fm-dias a"', 'R$ 7,3 mil</b> em atraso', 'Régua de avisos', 'o sócio do cliente', 'os quatro sócios', 'crítico',
+    'class="d3m-laranja d3m-d-fm-lar"', 'Vorcaro · o mais antigo', 'd3m-lar-num">40 dias', 'de atraso de Cliente B', 'class="d3m-btn l" data-fv="linha" data-tela="ina" data-valor="k1"']);
+  assert.equal(laranjas(html), 1);
+  const vazio = w.VybeFinancas.telas.inadimplencia({ d: { hoje: HOJE, total: 0, clientes: [], faturas: [], marcados_a_mao: [] }, filtro: {} });
+  assert.equal(laranjas(vazio), 0, 'ninguém em atraso, nenhum laranja');
+  assert.match(vazio, /Ninguém em atraso\./);
+});
+
 test('molde: CSS só com tokens d3 e sem o que é proibido', () => {
   const css = ler('padrao-v2/zm-d-financas.css');
   assert.doesNotMatch(css, /!important|html body\.mundo|:has\([^)]*\[style/);

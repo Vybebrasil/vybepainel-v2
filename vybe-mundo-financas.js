@@ -612,6 +612,47 @@
     const grafMes = porMes.some((v) => v > 0) ? cartao({ titulo: 'Em atraso · 6 meses', rotulo: 'meses', sub: 'pelo vencimento',
       corpo: `${globalThis.d3LinhaSvg(porMes, { largura: 320, altura: 90, rotulo: `Valor em atraso por mês de vencimento: ${seis.map((m, i) => `${mesDe(m + '-01')} ${mil(porMes[i])}`).join(', ')}` })}<div class="d3f-eixo">${seis.map((m, i) => (i === 5 ? `<b>${esc(mes3(m + '-01'))}</b>` : `<span>${esc(mes3(m + '-01'))}</span>`)).join('')}</div>` }) : '';
     const falta = oQueFalta(ctx), semNada = !clientes.length && u.extra !== 'marcados';
+    const M = molde();
+    if (M) {
+      // Padrão V2 (prancha V2-M-Financas-Inadimplencia): os clientes em atraso, do mais antigo ao mais novo, com a barra dos
+      // dias até 30, o sócio e o valor; "De olho" no pé, a Régua de avisos embaixo e o laranja com o mais antigo (ou o
+      // primeiro que ninguém avisou).
+      const COLS = [[28, ''], [0, 'Cliente'], [200, 'Dias em atraso'], [64, 'Sócio'], [110, 'Valor', 'r'], [96, '']];
+      const tomDias = (n) => (n > 30 ? 'r' : n > 7 ? 'a' : '');
+      const linhaI = (c) => {
+        const l = doCliente(c), uma = l.length === 1 && Number(c.faturas) <= 1 ? l[0] : null, id = 'k' + (c.cliente_id ?? c.cliente_nome), aberta = u.aberta === String(id), n = Number(c.atraso_mais_antigo) || 0;
+        const detalhe = hist([`Venceu em ${extenso(c.vencimento_mais_antigo)}`, c.descricao ? esc(c.descricao) : '', real && c.no_vybe === false ? 'Sem par no Vybe OS: a ligação é pelo CNPJ ou pelo nome' : '', ...historicoAvisos(av, c)])
+          + l.map((x) => `<div class="fv2-mini">${pilula(quantos(x.atraso, 'dia', 'dias'), 'r')}<p>${esc(oQueE(x))} · ${rs(x.aberto ?? x.valor)} em aberto · venceu em ${extenso(x.vencimento)}</p>
+              ${doFin(x.id) ? NO_EXTRATO : `${uma ? '' : botaoRecebi(x)}<button type="button" class="fv2-btn s" data-vc="receber" data-id="${esc(x.id)}">Recebi uma parte</button>`}</div>`).join('')
+          + (l.length ? '' : '<p class="fv2-hist">Estes lançamentos se conferem no Extrato</p>') + (botaoAvisar(av, c) ? `<div class="fv2-det-acoes">${botaoAvisar(av, c)}</div>` : '');
+        return `<div class="v2-abre d3m-d-fm-linha" data-linha="${esc(id)}" aria-expanded="${aberta}">${M.tr(COLS, [M.av(c.cliente_nome),
+          `<button type="button" class="d3m-d-fm-nome" data-fv="linha" data-tela="ina" data-valor="${esc(id)}" aria-expanded="${aberta}"><b>${esc(c.cliente_nome)}</b>${Number(c.faturas) ? ` <small>· ${quantos(c.faturas, 'fatura', 'faturas')}</small>` : ''}</button>`,
+          `<span class="d3m-d-fm-dias ${tomDias(n)}"><span class="d3m-d-fm-barra" style="--v:${Math.min(100, Math.round(n / 30 * 100))}%"><i></i></span><b>${quantos(n, 'dia', 'dias')}</b></span>`,
+          `${socio(c.cliente_nome)}${av?.disponivel && nAvisos(av, c) ? `<small title="${esc(quantos(nAvisos(av, c), 'aviso', 'avisos'))} aos sócios"> ${n0(nAvisos(av, c))}×</small>` : ''}`, rs(c.valor),
+          uma ? botaoRecebi(uma) : `<button type="button" class="fv2-btn s" data-fv="linha" data-tela="ina" data-valor="${esc(id)}">Ver</button>`])}
+          <div class="v2-mais"><div><div class="fv2-det d3m-d-fm-det">${detalhe}</div></div></div></div>`;
+      };
+      const fichas = M.fichas([['todos', 'Todos', clientes.length], ['ate7', 'Até 7 dias', clientes.filter(faixa.ate7).length], ['de8a30', 'De 8 a 30 dias', clientes.filter(faixa.de8a30).length], ['criticos', 'Críticos', criticos.length, 'r'],
+        ...(av?.disponivel ? [['semaviso', 'Sem aviso', semAviso.length, 'a']] : [])].map(([k, nome, n, tom]) => ({ nome, n, tom: n ? tom : '', on: !u.extra && u.chip === k, attrs: `data-fv="chip" data-tela="ina" data-valor="${k}"` }))
+        .concat([['marcados', 'Marcados à mão', marcados.length], ...(real ? [['sempar', 'Sem par no Vybe OS', semPar.length]] : [])].filter(([, , n]) => n).map(([k, nome, n]) => ({ nome, n, on: u.extra === k, attrs: `data-fv="extra" data-tela="ina" data-valor="${k}"` }))), 'Filtrar os clientes');
+      const corpo = u.extra === 'marcados'
+        ? marcados.filter(bate).map((m) => M.tr(COLS, [M.av(m.cliente_nome), `<b>${esc(m.cliente_nome)}</b>`, `<span class="${m.status_pagamento === 'inadimplente' ? 'r' : 'a'}">${esc(STATUS[m.status_pagamento] || 'Marcado')} à mão</span>`, '', '', '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="financas">Abrir</button>'])).join('') || '<p class="d3m-d-fm-vazio">Ninguém marcado à mão.</p>'
+        : semNada ? `<div class="d3m-d-fm-vazio"><p>Ninguém em atraso.</p><button type="button" class="fv2-btn s" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button></div>`
+          : base.map(linhaI).join('') || '<p class="d3m-d-fm-vazio">Nenhum cliente neste filtro.</p>';
+      const avisados = av?.disponivel ? new Set((av.lista || []).filter((a) => String(a.em || '') >= new Date(Date.now() - 30 * 864e5).toISOString()).flatMap((a) => [a.quem_nome, ...(a.para || [])]).filter(Boolean)).size : 0;
+      const olho = M.olho([[mil(total), 'em atraso', total ? 'r' : ''], [n0(nFat), nFat === 1 ? 'fatura' : 'faturas'], [n0(avisados), av?.disponivel ? 'sócios avisados em 30 dias' : 'sócios avisados, sem registro ainda'], falta.botao ? [falta.botao, ''] : null]);
+      const regua = M.folha({ titulo: 'Régua de avisos', dir: 'quem é avisado e quando', cls: 'd3m-d-fm-regua', rotulo: 'regua', corpo: [['3 dias', 'o sócio do cliente', de3a9, ''], ['10 dias', 'os quatro sócios', de10a30, 'a'], ['30 dias', 'crítico', criticos.length, 'r']]
+        .map(([q, quem, n, tom]) => M.tr([[90, ''], [0, ''], [110, '', 'r']], [`<span class="d3m-d-fm-ponto ${tom}"></span>${q}`, quem, n ? `<b>${quantos(n, 'cliente', 'clientes')}</b>` : '<span class="q">0 clientes</span>'])).join('') + falta.nota });
+      const alvo = semAvisoJa || antigo, nomeS = alvo ? SOCIO[carteiraDe(alvo.cliente_nome)] : null;
+      const laranja = alvo ? M.laranja({ rot: semAvisoJa ? 'ninguém avisou' : 'o mais antigo', num: quantos(alvo.atraso_mais_antigo, 'dia', 'dias'), frase: `de atraso de ${esc(alvo.cliente_nome)}`,
+        apoio: `${rs(alvo.valor)}${Number(alvo.faturas) ? ` em ${quantos(alvo.faturas, 'fatura', 'faturas')}` : ''}, a primeira de ${curta(alvo.vencimento_mais_antigo)}.${criticos.length > 1 ? ` ${quantos(criticos.length, 'cliente passou', 'clientes passaram')} de 30 dias.` : ''}`,
+        bts: [av?.disponivel ? [`${nAvisos(av, alvo) ? 'Avisar de novo' : nomeS ? 'Avisar o ' + nomeS[1] : 'Avisar o sócio'}`, `data-fv="avisar" data-cliente-id="${esc(alvo.cliente_id ?? '')}" data-cliente-nome="${esc(alvo.cliente_nome)}" data-atraso="${Number(alvo.atraso_mais_antigo) || 0}"`] : null,
+          [`Ver ${alvo.cliente_nome}`, `data-fv="linha" data-tela="ina" data-valor="${esc('k' + (alvo.cliente_id ?? alvo.cliente_nome))}"`]] }) : '';
+      return M.molde({ tela: 'ina', aba: 'inadimplencia', titulo: 'Inadimplência', repintar: ctx.repintar,
+        sub: `${esc(diaDeHoje(hoje))}${total ? ` · ${mil(total)} em atraso` : ''}${criticos.length ? ` · ${quantos(criticos.length, 'passou', 'passaram')} de 30 dias` : ''}${real ? ' · pelo extrato' : ''}`,
+        acao: '<button type="button" class="d3m-d-vbtn" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>', laranja,
+        corpo: M.folha({ titulo: quantos(clientes.length, 'cliente em atraso', 'clientes em atraso'), sub: clientes.length ? 'do mais antigo ao mais novo' : '', dir: fichas, cab: semNada || u.extra === 'marcados' ? '' : M.cab(COLS), corpo, olho, cls: 'd3m-d-fm-curta', rotulo: 'acao' }) + regua });
+    }
     return `<div class="fv2 d3f" data-tela="ina"><div class="fv2-in">
       ${topo({ titulo: 'Inadimplência', acoes: comoFunciona + '<button type="button" class="fv2-btn" data-fv="ir" data-valor="recebimentos">Ver recebimentos</button>', extra: `<span class="d3f-data">${esc(diaDeHoje(hoje))}</span>${real ? '<span class="fv2-pill b">Extrato</span>' : fonte(d)}` })}
       ${semAvisoJa ? acao('Vorcaro · Financeiro', frase, `Avisar ${SOCIO[carteiraDe(semAvisoJa.cliente_nome)] ? 'o ' + SOCIO[carteiraDe(semAvisoJa.cliente_nome)][1] : 'o sócio'}`, `data-fv="avisar" data-cliente-id="${esc(semAvisoJa.cliente_id ?? '')}" data-cliente-nome="${esc(semAvisoJa.cliente_nome)}" data-atraso="${Number(semAvisoJa.atraso_mais_antigo) || 0}"`)
