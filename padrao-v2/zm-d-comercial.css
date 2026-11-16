@@ -1,0 +1,308 @@
+/* ===================================================================================================================
+   COMERCIAL · CRM E FUNIL NA PRANCHA V2-M-Comercial (16/11/2026). A janela é vidro fumê (zm-d-0-pecas.css). Em cima, três
+   números em folha; no meio, o quadro: uma coluna de vidro por fase aberta, com o cartão de 84 de cada oportunidade (a
+   lista rola por dentro da coluna e o cartão abre no lugar, com o próximo passo e os botões); no pé, Ganho e Perdido em
+   duas linhas. A coluna de consulta fica no vidro: o cartão laranja da proposta mais parada, as conversas do WhatsApp,
+   por que se perde e o "Abrir". A lista, uma fase só e "Metas, corrida e formulário" abrem em folha no lugar do quadro.
+   O HTML vem de vybe-mundo-comercial.js (topoM e funilM); as peças .d3m-d-* são de zm-d-0-pecas.css e as .d3m-* de
+   z-direcao.css.
+   =================================================================================================================== */
+.d3m-d-cm{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-cm-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+/* Topo: a busca abre ao lado da lupa. */
+.d3m-d-cm-topo .d3m-d-cm-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.d3m-d-cm-topo .d3m-d-cm-busca::placeholder{color:var(--d3-fume-apagado)}
+.d3m-d-cm-topo .d3m-d-cm-busca:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-d-cm-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+.d3m-d-cm-topo .d3m-d-ico > svg,.d3m-d-cm-topo .d3m-d-troca > summary > svg{width:16px;height:16px}
+.d3m-d-cm-topo .d3m-d-vbtn > svg{width:14px;height:14px}
+.d3m-d-cm-topo .d3m-d-tit h2{padding:0;border:0;background:none}
+
+/* O quadro: uma coluna de vidro por fase. */
+.d3m-d-cm-quadro{flex:1 1 0;display:grid;grid-template-columns:repeat(var(--n,5),minmax(0,1fr));gap:8px;min-height:0}
+.d3m-d-cm-col{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;margin:0;padding:8px;box-sizing:border-box;border-radius:12px;background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.d3m-d-cm-col-cab{flex:none;display:flex;justify-content:space-between;align-items:baseline;gap:6px;height:24px;padding:0 4px;font-size:var(--d3-fs-apoio)}
+.d3m-d-cm-col-cab > b{min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-cm-col-cab > b > span{font-weight:400;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
+.d3m-d-cm-col-cab > span{flex:none;color:var(--d3-fume-apagado);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-cm-ops{flex:1 1 0;display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto;scrollbar-width:thin}
+/* O cartão da oportunidade: empresa e valor em cima; há quanto tempo e quem cuida embaixo. */
+.d3m-d-cm-op{flex:none;margin:0;border-radius:var(--d3-r-caixa);background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+.d3m-d-cm-op-b{appearance:none;display:flex;flex-direction:column;justify-content:space-between;width:100%;height:84px;margin:0;padding:10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:none;box-shadow:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.d3m-d-cm-op-b:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+.d3m-d-cm-op-t{display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-d-cm-op-t > b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-cm-op-t > span{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.d3m-d-cm-op-pe{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:20px;font-size:var(--d3-fs-mini)}
+.d3m-d-cm-op-pe > span{min-width:0;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-cm-op-pe > span.r{color:var(--d3-perigo);font-weight:500}
+.d3m-d-cm-op-pe > span.g{color:var(--d3-pronto);font-weight:500}
+.d3m-d-cm-av{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--d3-veu);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
+.d3m-d-cm-op[draggable="true"]{cursor:grab}
+/* O que abre no lugar: o próximo passo, a etapa, quem cuida e os botões. */
+.d3m-d-cm-mais{display:none;margin:0;padding:0 10px 10px}
+.d3m-d-cm [aria-expanded="true"] > .d3m-d-cm-mais{display:block}
+.d3m-d-cm-op[aria-expanded="true"]{box-shadow:var(--d3-folha-sombra),0 0 0 2px var(--d3-fume-texto)}
+.d3m-d-cm-mais .v2c-pas{margin:0 0 4px;font-size:var(--d3-fs-apoio);line-height:1.4;color:var(--d3-rotulo)}
+.d3m-d-cm-mais .v2c-pas > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-d-cm-mais .v2c-acoes{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.d3m-d-cm-mais .v2c-btn{appearance:none;display:inline-flex;align-items:center;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-cm-mais .v2c-btn:hover{background:var(--d3-veu-forte)}
+.d3m-d-cm-mais .v2c-btn.k{background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+.d3m-d-cm-mais .v2c-btn.ruim{color:var(--d3-perigo)}
+.d3m-d-cm-mais .v2c-btn[data-estado="feito"]{background:var(--d3-pronto);color:var(--d3-escuro-texto)}
+.d3m-d-cm-mais .v2c-btn:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+/* O pé da coluna Novo: o que o SDR propôs e o lead novo. */
+.d3m-d-cm-col-pe{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:auto}
+.d3m-d-cm-sdr{font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado);white-space:nowrap}
+.d3m-d-cm-aqui{appearance:none;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:30px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-cm-aqui:hover{background:var(--d3-fume-veu)}
+.d3m-d-cm-aqui > svg{width:13px;height:13px}
+.d3m-d-cm-aqui:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+
+/* Ganho e Perdido: duas linhas no vidro. */
+.d3m-d-cm-fim{flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.d3m-d-cm-fim > .d3m-vlin{height:40px;font-size:var(--d3-fs-apoio)}
+.d3m-d-cm-fim > .d3m-vlin > span{flex:1 1 auto;min-width:0;color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-cm-fim > .d3m-vlin > span > b{font-weight:600;color:var(--d3-fume-texto)}
+.d3m-d-cm-fim > .d3m-vlin[aria-pressed="true"]{background:var(--d3-fume-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-fume-borda)}
+.d3m-d-cm-fim > .d3m-vlin > svg,.d3m-d-cm-lado .d3m-vlin > svg{flex:none;width:14px;height:14px;stroke:var(--d3-fume-apagado)}
+
+/* A folha que abre no lugar do quadro: a lista, uma fase só ou "Metas, corrida e formulário". */
+.d3m-d-cm-folha{flex:1 1 0;min-height:0}
+.d3m-d-cm-folha > .d3m-d-cab{border-bottom:1px solid var(--d3-divisa)}
+.d3m-d-cm-rolo{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-cm-li{margin:0}
+.d3m-d-cm-li:first-child > .d3m-d-lin{border-top:0}
+.d3m-d-cm-li > .d3m-d-lin > span > b{font-weight:600}
+.d3m-d-cm-li > .d3m-d-lin > i.d3m-d-cm-av{width:20px;height:20px;background:var(--d3-veu)}
+.d3m-d-cm-li > .d3m-d-cm-mais{padding:0 16px 12px 33px}
+.d3m-d-cm-li[aria-expanded="true"]{background:var(--d3-veu)}
+.d3m-d-cm-chips{flex:none;display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px}
+.d3m-d-cm-chips > button{appearance:none;display:inline-flex;align-items:center;gap:5px;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-cm-chips > button > b{font-weight:600}
+.d3m-d-cm-chips > button[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+.d3m-d-cm-chips > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-d-cm-nada{margin:0;padding:16px;font-size:var(--d3-fs-texto);color:var(--d3-rotulo)}
+.d3m-d-cm-resto{padding:16px}
+/* O aviso do que ainda não está ligado: uma tira no vidro. */
+.d3m-d-cm-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.4}
+.d3m-d-cm-aviso > span{flex:1 1 320px;min-width:0}
+.d3m-d-cm-aviso > .d3m-d-cm-tec{flex-basis:100%;color:var(--d3-fume-apagado)}
+.d3m-d-cm-aviso .v2c-btn{appearance:none;flex:none;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+
+/* A coluna de consulta, no vidro. */
+.d3m-d-cm-lado{min-height:0}
+.d3m-d-cm-pesa{flex:none;min-height:244px}
+.d3m-d-cm-lado > .d3m-cons{flex:none}
+.d3m-d-cm-lado .d3m-vlin > span:first-of-type{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--d3-fume-apagado)}
+.d3m-d-cm-lado .d3m-vlin > span:first-of-type > b{font-weight:600;color:var(--d3-fume-texto)}
+.d3m-d-cm-lado .d3m-cons:not(.d3m-d-cm-abrir) > .d3m-vlin{height:40px}
+.d3m-d-cm-zap{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-mod-vybe);color:var(--d3-escuro-texto)}
+.d3m-d-cm-zap > svg{width:12px;height:12px}
+.d3m-d-cm-mot{display:flex;flex-direction:column;padding:6px 0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-d-cm-mot > button{appearance:none;display:grid;grid-template-columns:92px minmax(0,1fr) 20px;align-items:center;gap:10px;width:100%;height:23px;margin:0;padding:0 12px;border:0;border-radius:6px;background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-d-cm-mot > button:hover{background:var(--d3-fume-veu)}
+.d3m-d-cm-mot > button > span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-cm-mot > button > b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.d3m-d-cm-mot .d3m-vbarra > i{background:var(--d3-fume-texto)}
+.d3m-d-cm-mot > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+
+/* Tela baixa (1366 × 768): o laranja e as linhas um degrau menores. */
+@media (max-height:820px){
+  .d3m-d-cm-pesa{min-height:176px;padding:12px 16px}
+  .d3m-d-cm-pesa .d3m-lar-num{font-size:40px}
+  .d3m-d-cm-pesa .d3m-lar-txt > .d3-acao-frase{font-size:16px}
+  .d3m-d-cm-pesa .d3m-lar-txt > small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .d3m-d-cm-pesa .d3m-lar-bts{margin-top:6px}
+  .d3m-d-cm-lado{gap:10px}
+  .d3m-d-cm-lado .d3m-cons{gap:4px}
+  .d3m-d-cm-lado .d3m-cons > .d3m-vlin{height:32px}
+  .d3m-d-cm-lado .d3m-cons:not(.d3m-d-cm-abrir) > .d3m-vlin{height:34px}
+  .d3m-d-cm-op-b{height:76px;padding:8px 10px}
+}
+/* Janela estreita: a coluna de consulta encolhe. */
+@media (max-width:1180px){
+  .d3m-d-cm{grid-template-columns:minmax(0,1fr) 264px}
+  .d3m-d-cm-pesa .d3m-lar-bts > .d3m-btn{padding:0 10px}
+}
+/* Celular: uma coluna só, o laranja primeiro, e a janela rola; as fases viram uma coluna de cada vez. */
+@media (max-width:900px){
+  .d3m-d-cm-topo{flex-wrap:wrap;gap:8px}
+  .d3m-d-cm-topo > .d3m-d-ferr{flex:1 1 100%;flex-wrap:wrap}
+  .d3m-d-cm-topo .d3m-d-sub{white-space:normal}
+  .d3m-d-cm{display:flex;flex-direction:column;height:auto;gap:12px}
+  .d3m-d-cm-main{display:contents}
+  .d3m-d-cm-lado{display:contents}
+  .d3m-d-cm-pesa{order:-1;flex:none;min-height:200px}
+  .d3m-d-cm-quadro{flex:none;display:flex;flex-direction:column}
+  .d3m-d-cm-ops{flex:none;overflow:visible}
+  .d3m-d-cm-fim{grid-template-columns:minmax(0,1fr)}
+  .d3m-d-cm-folha{flex:none}
+  .d3m-d-cm-rolo{flex:none;max-height:70vh}
+}
+
+/* ===================================================================================================================
+   PRODUTOS E PACOTES NA PRANCHA V2-M-Pacotes (16/11/2026). Os números em folha, a esteira numa folha só (pacote e o que
+   entra nele, tipo, preço, custo em horas, margem com a barra na cor do que diz e vendidos; a linha abre no lugar) com
+   o "De olho" no pé, e a coluna de consulta com o laranja, o "Pede ação", a carga do time e o "Abrir". O HTML vem de
+   abaPacotes (vybe-mundo-comercial.js). Custo e margem só são montados para quem é dono.
+   =================================================================================================================== */
+.d3m-d-pk > .d3m-d-cab{height:44px;border-bottom:0}
+.d3m-d-cab > h3 > small{font-weight:400}
+/* Fichas dentro da folha: texto, a escolhida com véu. */
+.d3m-d-pk-seg{flex:none;display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:2px;min-width:0}
+.d3m-d-pk-seg > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:26px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-pk-seg > button > b{font-weight:400;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.d3m-d-pk-seg > button:hover{background:var(--d3-veu)}
+.d3m-d-pk-seg > button[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
+.d3m-d-pk-seg > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+/* A linha da esteira, em colunas. */
+.d3m-d-pk-lin{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) 72px 84px 104px 168px 88px 14px;align-items:center;gap:12px;width:100%;height:56px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+.d3m-d-pk-lin.sem-margem{grid-template-columns:minmax(0,1fr) 72px 84px 88px 14px}
+button.d3m-d-pk-lin{cursor:pointer}
+button.d3m-d-pk-lin:hover{background:var(--d3-veu)}
+button.d3m-d-pk-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-d-pk-cab{height:28px;border-top:0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-pk-n{min-width:0;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-pk-n > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-d-pk-tipo{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;background:var(--d3-veu);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-tinta)}
+.d3m-d-pk-p,.d3m-d-pk-c,.d3m-d-pk-vd{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+b.d3m-d-pk-p{font-weight:600}
+b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
+.d3m-d-pk-c{color:var(--d3-rotulo)}
+.d3m-d-pk-vd{font-size:var(--d3-fs-apoio)}
+.d3m-d-pk-m{display:flex;align-items:center;gap:10px;min-width:0}
+.d3m-d-pk-m > b{flex:none;width:38px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.d3m-d-pk-m > b.g{color:var(--d3-pronto)}
+.d3m-d-pk-m > b.a{color:var(--d3-ambar)}
+.d3m-d-pk-m > b.r{color:var(--d3-perigo)}
+.d3m-d-pk-barra{flex:1 1 auto;min-width:20px;height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden;color:var(--d3-mod-vybe)}
+.d3m-d-pk-barra.a{color:var(--d3m-d-ambar)}
+.d3m-d-pk-barra.r{color:var(--d3-perigo)}
+.d3m-d-pk-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:currentColor}
+.d3m-d-pk-lin > svg{width:14px;height:14px;stroke:var(--d3-rotulo)}
+.d3m-d-pk-li{margin:0}
+.d3m-d-pk-li.apagado > .d3m-d-pk-lin > .d3m-d-pk-n > b{color:var(--d3-rotulo)}
+.d3m-d-pk-li[aria-expanded="true"]{background:var(--d3-veu)}
+.d3m-d-pk-li > .d3m-d-cm-mais{padding:0 16px 12px}
+/* "De olho": uma faixa de contadores no pé da folha. */
+.d3m-d-pk-olho{flex:none;display:flex;align-items:center;gap:0;height:44px;padding:0 16px;border-top:1px solid var(--d3-divisa);overflow:hidden;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-d-pk-olho > small{flex:none;margin-right:14px;font-size:inherit}
+.d3m-d-pk-olho > span{flex:none;padding:0 12px;border-left:1px solid var(--d3-divisa)}
+.d3m-d-pk-olho > small + span{padding-left:0;border-left:0}
+.d3m-d-pk-olho b{margin-right:2px;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-d-pk-olho b.a{color:var(--d3-ambar)}
+.d3m-d-pk-olho b.r{color:var(--d3-perigo)}
+.d3m-d-pk-olho > button{appearance:none;flex:none;height:28px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-pk-olho > button:hover,.d3m-d-pk-olho > button[aria-pressed="true"]{background:var(--d3-veu)}
+.d3m-d-pk-olho > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+/* "Pede ação" na coluna de consulta: o selo em texto, a frase e o botão na linha. */
+.d3m-d-pk-ped{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 6px 4px 10px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.d3m-d-pk-ped > span{flex:1 1 auto;display:flex;flex-direction:column;gap:1px;min-width:0;color:var(--d3-fume-apagado)}
+.d3m-d-pk-ped > span > em{min-width:0;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-pk-ped > span b{font-weight:600;color:var(--d3-fume-texto)}
+.d3m-d-pk-ped > span > small{font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado)}
+.d3m-d-pk-ped > span > small.r{color:var(--d3-perigo-vidro)}
+.d3m-d-pk-ped > span > small.a{color:var(--d3-ajuste-claro)}
+.d3m-d-pk-ped > span > small.g{color:var(--d3-mod-vybe-claro)}
+.d3m-d-pk-ped .v2c-cli,.d3m-d-pk-ped .v2c-cli *{color:var(--d3-fume-texto);font-weight:600}
+.d3m-d-pk-ped > .v2c-btn{appearance:none;flex:none;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-pk-ped > .v2c-btn:hover{background:rgba(255,255,255,.26)}
+.d3m-d-pk-ped > .v2c-btn:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+.d3m-d-pk-serie{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.d3m-d-pk-serie .d3-graf{display:block;width:100%;height:64px}
+.d3m-d-pk-serie .d3c-carga-x{display:flex;justify-content:space-between;font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+@media (max-height:820px){
+  .d3m-d-pk-lin{height:46px}
+  .d3m-d-pk-cab{height:26px}
+  .d3m-d-pk-ped{min-height:34px}
+}
+@media (max-width:1180px){
+  .d3m-d-pk-lin{grid-template-columns:minmax(0,1fr) 64px 76px 84px 120px 76px 14px;gap:8px}
+}
+@media (max-width:900px){
+  :is(.d3m-d-pk,.d3m-d-or) > .d3m-d-cab{height:auto;flex-wrap:wrap;padding:10px 16px}
+  .d3m-d-pk-seg{flex:1 1 100%;justify-content:flex-start}
+  .d3m-d-pk-cab{display:none}
+  .d3m-d-pk-lin,.d3m-d-pk-lin.sem-margem{grid-template-columns:minmax(0,1fr) auto 14px;grid-auto-rows:auto;gap:2px 10px;height:auto;padding:10px 16px}
+  .d3m-d-pk-lin > .d3m-d-pk-n{white-space:normal}
+  .d3m-d-pk-lin > :is(span:nth-child(2),.d3m-d-pk-c,.d3m-d-pk-vd){display:none}
+  .d3m-d-pk-lin > .d3m-d-pk-m{grid-column:1 / -1;grid-row:2}
+  .d3m-d-pk-olho{height:auto;flex-wrap:wrap;gap:4px 0;padding:10px 16px;white-space:normal}
+}
+
+/* ===================================================================================================================
+   ORÇAMENTOS NA PRANCHA V2-M-Orcamentos (16/11/2026). Duas folhas lado a lado: a lista em três grupos (Agora, Andando e
+   Fechados), com o valor e a situação em ponto, e a proposta escolhida, com os itens, o total e o que dá para fazer
+   com ela. Na coluna de consulta, o laranja do que vence, os números, o "Pede ação" e o "Abrir". O HTML vem de
+   abaOrcamentos (vybe-mundo-comercial.js).
+   =================================================================================================================== */
+.d3m-d-or-main{flex-direction:row;gap:16px}
+.d3m-d-or-main > .d3m-d-or{flex:3 1 0}
+.d3m-d-or-main > .d3m-d-or-prop{flex:2 1 0}
+/* A linha da lista: o grupo (uma vez), o cliente e o pacote, o valor e a situação. */
+.d3m-d-or-lin{appearance:none;display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:6px;width:100%;height:64px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-d-or-lin:first-child{border-top:0}
+.d3m-d-or-lin:hover{background:var(--d3-veu)}
+.d3m-d-or-lin[aria-pressed="true"]{background:var(--d3-veu)}
+.d3m-d-or-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-d-or-g{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-or-g.r{color:var(--d3-perigo)}
+.d3m-d-or-n,.d3m-d-or-v{display:flex;flex-direction:column;gap:2px;min-width:0}
+.d3m-d-or-n > b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-or-n > b *{color:inherit;font-weight:inherit}
+/* O nome do cliente vem com a ficha da carteira; aqui é só o nome. */
+#vv-comercial.d3m-d-m .d3m-d-pk-ped :is(.v2c-cli,.cliente-carteira){display:inline;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+.d3m-d-or > .d3m-d-cab > h3{flex:1 0 auto}
+.d3m-d-or > .d3m-d-pk-olho{padding:0 12px}
+.d3m-d-or > .d3m-d-pk-olho > small{margin-right:10px}
+.d3m-d-or > .d3m-d-pk-olho > :is(span,button){padding:0 10px}
+.d3m-d-or-n > span{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-or-v{align-items:flex-end;white-space:nowrap}
+.d3m-d-or-v > span:first-child{color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.d3m-d-or-v > span:first-child > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-d-or-v > span:last-child{display:inline-flex;align-items:center;gap:6px;font-size:var(--d3-fs-apoio)}
+.d3m-d-or-v em{font-style:normal;color:var(--d3-rotulo)}
+.d3m-d-or-v em.r{color:var(--d3-perigo)}
+.d3m-d-or-v em.a{color:var(--d3-ambar)}
+.d3m-d-or-pt{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+.d3m-d-or-pt.l{background:var(--d3-agente)}
+.d3m-d-or-pt.g{background:var(--d3-mod-vybe)}
+.d3m-d-or-pt.r{background:var(--d3-perigo)}
+/* A proposta escolhida. */
+.d3m-d-or-res{margin:0;padding:12px 16px;font-size:var(--d3-fs-apoio);line-height:1.5;color:var(--d3-rotulo)}
+.d3m-d-or-it{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 16px;padding:12px 0;border-top:1px solid var(--d3-divisa)}
+.d3m-d-or-it > span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.d3m-d-or-it b{font-weight:600;font-variant-numeric:tabular-nums}
+.d3m-d-or-it small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-or-tot{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 16px;padding:16px 0;border-top:1px solid var(--d3-divisa)}
+.d3m-d-or-tot > span{display:flex;flex-direction:column;gap:4px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-or-tot > b{font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-or-bts{flex:none;display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 16px}
+.d3m-d-or-bt{appearance:none;flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-or-bt:hover{background:var(--d3-veu)}
+.d3m-d-or-bt.k{background:var(--d3-tinta);box-shadow:none;color:var(--d3-escuro-texto)}
+.d3m-d-or-bt[data-estado="feito"]{background:var(--d3-pronto);box-shadow:none;color:var(--d3-escuro-texto)}
+.d3m-d-or-bt:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+/* Os três números da coluna de consulta. */
+.d3m-d-or-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.d3m-d-or-minis > span{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.d3m-d-or-minis b{font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-or-minis small{font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado);white-space:nowrap}
+@media (max-height:820px){
+  .d3m-d-or-lin{height:52px}
+  .d3m-d-or-it{padding:8px 0}
+  .d3m-d-or-tot{padding:10px 0}
+  .d3m-d-or-minis > span{padding:6px 10px}
+}
+@media (max-width:1180px){
+  .d3m-d-or-main{gap:12px}
+  .d3m-d-or-lin{grid-template-columns:52px minmax(0,1fr) auto}
+}
+@media (max-width:900px){
+  .d3m-d-or-lin{grid-template-columns:minmax(0,1fr) auto;height:auto;padding:10px 16px}
+  .d3m-d-or-g:empty{display:none}
+  .d3m-d-or-g{grid-column:1 / -1}
+  .d3m-d-or-main > :is(.d3m-d-or,.d3m-d-or-prop){flex:none}
+}
