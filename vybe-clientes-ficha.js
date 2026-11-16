@@ -286,7 +286,6 @@ function trocarAbaDaFicha(aba) {
   if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
   const nome = typeof CLIENTE_ABERTO === 'string' ? CLIENTE_ABERTO : '';
   if (nome) renderClientMasterDetail(nome);
-  if (nome && (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas') && typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
 }
 
 // Financeiro da ficha (prancha V2-M-Cliente-Financeiro): só a conta deste cliente, só para donos, com o atalho para a
@@ -537,6 +536,35 @@ function conteudoDaFichaHtml(nome) {
   return fv2DuasHtml('conteudo', folha, alto + barras + (abrir ? fv2ConsHtml('Abrir', '', abrir) : ''));
 }
 
+// Aba Demandas (prancha V2-M-Cliente-Demandas): os pedidos fora do conteúdo mensal; ao lado, onde está o mensal, de onde
+// vem um pedido e os atalhos.
+function demandasDaFichaHtml(nome) {
+  const E = FV2_LISTA.demandas, aspas = fichaAspas(nome);
+  const record = clientMasterRecords().find((item) => item.name === nome) || { content: [], requests: [] };
+  const FEITO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
+  const feito = (d) => FEITO.includes(String(d.status || ''));
+  // A lista crua de Solicitações fala outro idioma; o normalizador é o mesmo da tabela de grupos.
+  const linha = (d) => { const n = typeof normalizeRequestForOperational === 'function' ? normalizeRequestForOperational(d) : d;
+    return { d: n, quando: String(n.veiculacao_iso || n.prazo_iso || '').slice(0, 10) }; };
+  const porData = (a, b) => (a.quando || '9999').localeCompare(b.quando || '9999');
+  const abertas = (record.requests || []).filter((d) => !feito(d)).map(linha).sort(porData);
+  const feitas = (record.requests || []).filter(feito).map(linha).sort((a, b) => porData(b, a));
+  if (E.filtro !== 'concluidos') E.filtro = 'abertos';
+  const itens = E.filtro === 'concluidos' ? feitas : abertas;
+  const chip = (k, rot, n) => `<button type="button" class="cv2-chip" role="radio" aria-checked="${E.filtro === k}" onclick="fv2Filtrar('demandas','${k}')">${rot}<span>${n}</span></button>`;
+  const nova = `<button type="button" class="d3v-btn s" onclick="openCadastrosGoverned({ client: '${aspas}' })">Nova demanda</button>`;
+  const folha = fv2FolhaOpHtml({ idGrade: 'grid-cliente-demandas', classe: 'demandas-grid', um: 'pedido', varios: 'pedidos', todos: itens, itens, colunas: ['Pedido', 'Conclusão'],
+    chips: `<span class="cv2-chips" role="radiogroup" aria-label="Recorte">${chip('abertos', 'Abertos', abertas.length)}${chip('concluidos', 'Concluídos', feitas.length)}</span>`,
+    titulo: `${E.filtro === 'concluidos' ? 'Pedidos concluídos' : 'Pedidos em aberto'} <span>· fora do conteúdo mensal</span>`,
+    vazio: E.filtro === 'concluidos' ? fv2VazioHtml('ok', 'Nenhum pedido concluído ainda', 'Os pedidos entregues deste cliente ficam aqui.')
+      : fv2VazioHtml('ok', 'Nenhuma solicitação em aberto', `Banner, site, evento, vídeo: o que ${fichaEsc(nome)} pedir fora do mensal aparece aqui, com o dono e o prazo.`, nova) });
+  const { conteudos } = typeof abertosDoCliente === 'function' ? abertosDoCliente(nome) : { conteudos: 0 };
+  const vencidas = typeof vencidosDoCliente === 'function' ? vencidosDoCliente(nome).length : 0;
+  const abrir = fv2PodeIr() ? fv2ConsHtml('Abrir', '', fv2VlinHtml('Todas as demandas', 'da agência', "window.mundoVoxel.irPara('demandas')") + fv2VlinHtml('Projetos pontuais', '', "window.mundoVoxel.irPara('projetos')")) : '';
+  return fv2DuasHtml('demandas', folha, fv2ConsHtml('O mensal está em outra aba', '', fv2VlinHtml('Conteúdo', `${conteudos} em aberto${vencidas ? `, ${fichaPlural(vencidas, 'vencida', 'vencidas')}` : ''}`, "trocarAbaDaFicha('conteudo')"))
+    + fv2ConsHtml('De onde vem um pedido', '', '<p class="fv2-nota-lado">Do grupo do cliente (o VYBES avisa e propõe o card), de uma reunião (demandas sugeridas da ata) ou criado à mão.</p>') + abrir);
+}
+
 // Embrulha a ficha que já existia. Pelo quadro "Ficha do cliente" do moodboard (12/11/2026): a nota e a fala ficam em
 // cima de todas as abas; a barra tem Resumo, Demandas, Conteúdo, Reuniões e Onboarding com a contagem de cada uma, o
 // Financeiro (só para os donos, abre Finanças por cliente) e, à direita, Ecossistema e Cérebro. O Cadastro abre pela
@@ -551,7 +579,6 @@ function conteudoDaFichaHtml(nome) {
     original(cli);
     const node = document.getElementById('client-master-detail');
     if (!node || !node.innerHTML) return;
-    const listas = document.querySelector('#panel-cliente-detalhe .cliente-listas');
     const nome = (clientMasterRecords().find((r) => r.name === cli || normalizeClientKey(r.name) === normalizeClientKey(cli)) || {}).name || cli;
     const corpo = node.querySelector('.v2f-corpo') || node;
     // Fora do Resumo, a aba mora numa folha clara que rola por dentro (o esqueleto de cada aba vem da prancha dela).
@@ -565,11 +592,8 @@ function conteudoDaFichaHtml(nome) {
     else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naFolha(window.VybeReunioes.reunioesHtml(nome));
     else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naFolha(window.VybeReunioes.onboardingHtml(nome));
     else if (FICHA_ABA === 'conteudo') naAba(conteudoDaFichaHtml(nome));
-    else if (FICHA_ABA === 'demandas') { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = ''; }
+    else if (FICHA_ABA === 'demandas') naAba(demandasDaFichaHtml(nome));
     else node.querySelector('#vybes-cli-cerebro-card')?.remove();
-    // As listas completas (prazo, status, seleção de vários) só aparecem na aba delas.
-    const naLista = FICHA_ABA === 'demandas';
-    if (listas) listas.style.display = naLista ? '' : 'none';
     node.dataset.aba = FICHA_ABA;
     // A folha de estilo lê a aba no body (a barra de lote do painel dá lugar ao pé da lista da aba).
     if (document.body?.dataset) document.body.dataset.fv2Aba = FICHA_ABA;

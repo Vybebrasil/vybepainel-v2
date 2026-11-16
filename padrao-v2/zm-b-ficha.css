@@ -13,7 +13,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe{order:0;flex:1 1 0;display:flex;flex-direction:column;gap:16px;min-height:0;margin:-14px -30px -36px}
 #painel-clientes #panel-cliente-detalhe > #cliente-detalhe-cabeca{flex:none;margin:0;padding:0;border:0;background:none;container:fv2topo / inline-size}
 #painel-clientes #panel-cliente-detalhe > #client-master-detail{flex:1 1 0;display:block;min-height:0;margin:0;padding:0;background:none}
-#painel-clientes #panel-cliente-detalhe > #client-master-detail[data-aba="demandas"]{display:none}
 
 /* 2 · O alto. */
 #painel-clientes .fv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:48px;margin:0;padding:0 96px 0 0;border:0;background:none;color:var(--d3-fume-texto)}
@@ -120,19 +119,10 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 #painel-clientes .fv2-acessos > .clf-acesso > b{flex:1 1 auto;min-width:0;font-weight:500;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #painel-clientes .fv2-acessos a{color:var(--d3-fume-texto)}
 
-/* 5 · As outras abas: uma folha que rola por dentro. Conteúdo e Demandas usam as listas da operação (.cliente-listas). */
+/* 5 · O Cadastro (leitura) mora numa folha que rola por dentro. As outras abas têm o esqueleto delas em zm-b-ficha2-abas.css. */
 #painel-clientes .fv2-aba{height:100%;min-height:0;margin:0;padding:0}
 #painel-clientes .fv2-aba-folha{height:100%;padding:16px;overflow-y:auto;scrollbar-width:thin}
 #painel-clientes .fv2-aba-folha[data-aba="financeiro"]{padding:0}
-body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes #panel-cliente-detalhe > .cliente-listas{flex:1 1 0;min-height:0;margin:0;padding:16px;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:auto;scrollbar-width:thin;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
-/* O status na lista da operação dentro da ficha: o ponto na cor do status e o texto (a peça da Produção só era desenhada lá). */
-#painel-clientes .cliente-listas .pv2-st{appearance:none;display:inline-flex;align-items:center;gap:6px;height:26px;max-width:100%;margin:0;padding:0 8px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-#painel-clientes .cliente-listas .pv2-st::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-meta))}
-#painel-clientes .cliente-listas .pv2-st:hover{background:var(--d3-veu-forte)}
-#painel-clientes .cliente-listas .pv2-st:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
-#painel-clientes .cliente-listas .pv2-st-rot{min-width:0;overflow:hidden;text-overflow:ellipsis}
-#painel-clientes .cliente-listas .pv2-st-seta{flex:none;display:grid}
-#painel-clientes .cliente-listas .pv2-st-seta > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #painel-clientes .fv2-fin{display:flex;flex-direction:column;min-height:100%}
 #painel-clientes .fv2-fin > .cv2-cab{flex-wrap:wrap;row-gap:8px;padding-top:8px;padding-bottom:8px}
 #painel-clientes .fv2-fin-alto{display:flex;flex-direction:column;gap:6px;padding:20px 16px;border-top:1px solid var(--d3-divisa)}

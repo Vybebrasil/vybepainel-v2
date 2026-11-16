@@ -100,6 +100,11 @@ test('Ficha: as listas completas viram as abas Conteúdo e Demandas; Financeiro 
   // Prancha V2-M-Cliente-Conteudo: a aba desenha a lista com os mesmos editores da operação e o mesmo id.
   assert.match(fonte, /else if \(FICHA_ABA === 'conteudo'\) naAba\(conteudoDaFichaHtml\(nome\)\);/);
   assert.match(fonte, /idGrade: 'grid-cliente-producao'/);
+  // Prancha V2-M-Cliente-Demandas: os pedidos passam pelo normalizador da operação e pela mesma linha.
+  assert.match(fonte, /else if \(FICHA_ABA === 'demandas'\) naAba\(demandasDaFichaHtml\(nome\)\);/);
+  assert.match(fonte, /idGrade: 'grid-cliente-demandas'/);
+  assert.match(fonte, /normalizeRequestForOperational\(d\)/);
+  assert.match(ler('vybe-clientes.js'), /if \(typeof FICHA_ABA === 'string' && \(FICHA_ABA === 'conteudo' \|\| FICHA_ABA === 'demandas'\)\) renderClientMasterDetail\(cli\);/);
   const linhaOp = fonte.slice(fonte.indexOf('function fv2LinhaOpHtml'), fonte.indexOf('function fv2FolhaOpHtml'));
   for (const editor of ['alternarSelecao(', 'pv2StatusBotao(d)', 'salvarDataNaLinha(', 'openItemWorkspace(', 'abrirPreviaDaEntrega(', 'pv2Av(d)']) assert.ok(linhaOp.includes(editor), `a linha da aba mantém ${editor}`);
   for (const lote of ["lotePrazo(event,'veiculacao')", 'loteResponsavel(event)', 'loteStatus(event)', 'fv2MaisDoLote(event)']) assert.ok(fonte.includes(lote), `o pé da lista chama ${lote}`);
