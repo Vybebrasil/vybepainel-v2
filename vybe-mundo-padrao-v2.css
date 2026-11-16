@@ -14464,6 +14464,156 @@ svg.d3m-d-anel > .fio{fill:none;stroke:currentColor;stroke-width:4;stroke-lineca
 }
 .d3m-d-selo.i{background:var(--d3-info)}
 
+/* ===== padrao-v2/zm-d-agentes.css ===== */
+/* ===================================================================================================================
+   AGENTES NA PRANCHA V2-M-Agentes (16/11/2026). A janela dos Agentes (#vv-agentes) vira vidro fumê só na tela principal
+   (classe .d3m-d-m, posta por vybe-mundo-agentes.js); a fila em lista, o perfil do agente e "Como o VYBES pensa" seguem
+   na janela de antes. Em cima, o cartão laranja com o pedido da frente ao lado da folha "Para você decidir"; embaixo, a
+   folha "Quem é quem", três agentes por linha; na coluna de consulta, o acerto em 7 dias, o que os agentes viram, a
+   central e o "Abrir". As peças .d3m-d-* vêm de zm-d-0-pecas.css e as .d3m-* de z-direcao.css. Só tokens --d3-*.
+   =================================================================================================================== */
+body.mundo #vv-agentes.vv-ag.d3m-d-m{display:flex;flex-direction:column;gap:16px;padding:16px;box-sizing:border-box;overflow:hidden;border:0;border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#vv-agentes.d3m-d-m > .vga-detalhe.d3m-d-m-corpo{flex:1 1 0;min-height:0;margin:0;padding:0;overflow:hidden}
+#vv-agentes.d3m-d-m .d3m-d-tit h2{margin:0;padding:0;border:0;background:none;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto)}
+#vv-agentes.d3m-d-m .d3m-d-cab > h3{margin:0;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-tinta)}
+#vv-agentes.d3m-d-m .d3m-d-cab > h3 > small{font:400 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-agentes.d3m-d-m .vga-vazio{margin:0;padding:16px;border-radius:16px;background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-texto)}
+/* Topo: a busca abre ao lado da lupa; a central sem sinal avisa ali. */
+.d3m-d-ag-topo .d3m-d-ag-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.d3m-d-ag-topo .d3m-d-ag-busca::placeholder{color:var(--d3-fume-apagado)}
+.d3m-d-ag-topo .d3m-d-ag-busca:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-d-ag-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+.d3m-d-ag-sinal{display:inline-flex;align-items:center;gap:8px;font-size:var(--d3-fs-apoio);color:var(--d3-perigo-vidro);white-space:nowrap}
+
+/* A tela: a coluna principal e a coluna de consulta de 316. */
+.d3m-d-ag{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-ag-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-d-ag-alto{flex:none;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;height:232px}
+.d3m-d-ag-lado{min-height:0}
+.d3m-d-ag-lado > .d3m-cons{flex:none}
+.d3m-d-ag-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.4}
+.d3m-d-ag-aviso > .d3m-d-vbtn{height:28px;padding:0 10px;font-size:var(--d3-fs-apoio)}
+/* O laranja com o pedido da frente: a frase, a prova em até três linhas e as respostas. */
+.d3m-d-ag-pesa{min-height:0;height:100%}
+.d3m-d-ag-pesa .d3m-lar-txt > .d3-acao-frase{font-size:22px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.d3m-d-ag-pesa .d3m-lar-txt > small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.d3m-d-ag-pesa .d3m-lar-bts{align-items:center}
+.d3m-d-ag-so{font-size:var(--d3-fs-apoio);color:var(--d3-escuro-texto)}
+.d3m-d-ag-elo{appearance:none;display:inline-flex;align-items:center;height:34px;margin:0 0 0 auto;padding:0 6px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-escuro-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-ag-elo:hover{text-decoration:underline;text-underline-offset:3px}
+.d3m-d-ag-elo:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-d-ag-elo.v{height:18px;margin:0;padding:0 2px;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+/* "Para você decidir": a fila em linhas de 64; a da frente fica marcada. */
+.d3m-d-ag-decidir{min-height:0}
+.d3m-d-ag-decidir > .d3m-d-cab,.d3m-d-ag-quemq > .d3m-d-cab{height:44px}
+.d3m-d-ag-peds{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-ag-ped{appearance:none;flex:none;display:flex;align-items:center;gap:10px;width:100%;height:64px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-d-ag-ped:hover,.d3m-d-ag-ped[aria-pressed="true"]{background:var(--d3-veu)}
+.d3m-d-ag-ped:focus-visible,.d3m-d-ag-cel:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-d-ag-g{flex:none;width:52px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-d-ag-g.r{color:var(--d3-perigo)}
+.d3m-d-ag-ped-t{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-d-ag-ped-t > b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ag-ped-t > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ag-ped-q{flex:none;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-ag-ped-q.r{font-weight:500;color:var(--d3-perigo)}
+.d3m-d-ag-nada{flex:1 1 auto;display:flex;align-items:center;margin:0;padding:16px;border-top:1px solid var(--d3-divisa);font-size:var(--d3-fs-texto);color:var(--d3-rotulo)}
+/* A bolinha lilás do agente: 40 na célula, 28 na fila e 22 no vidro. */
+.d3m-d-ag-av{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--d3-agente);color:var(--d3-escuro-texto);font:600 16px var(--vv-texto,Inter,sans-serif);font-style:normal}
+.d3m-d-ag-av.p{width:28px;height:28px;font-size:var(--d3-fs-mini)}
+.d3m-d-ag-av.v{width:22px;height:22px;font-size:10px}
+/* "Quem é quem": três agentes por linha, cada célula com 110 de altura; a lista rola por dentro. */
+.d3m-d-ag-quemq{flex:1 1 0;min-height:0}
+.d3m-d-ag-grade{flex:1 1 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(88px,110px);align-content:start;min-height:0;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+.d3m-d-ag-cel{appearance:none;display:flex;align-items:center;gap:12px;min-width:0;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-right:1px solid var(--d3-divisa);border-bottom:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-d-ag-cel:nth-child(3n){border-right:0}
+.d3m-d-ag-cel:hover{background:var(--d3-veu)}
+.d3m-d-ag-quem{flex:1 1 auto;display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-d-ag-quem > span:first-child{color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ag-quem > span:first-child > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-d-ag-est{display:inline-flex;align-items:center;gap:6px;font-size:var(--d3-fs-apoio);white-space:nowrap}
+.d3m-d-ag-est > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+.d3m-d-ag-est > i.g{background:var(--d3-mod-vybe)}
+.d3m-d-ag-est > i.a{background:var(--d3m-d-ambar)}
+.d3m-d-ag-quem > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ag-quem > small.r{font-weight:500;color:var(--d3-perigo)}
+.d3m-d-ag-nota{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.d3m-d-ag-nota > b{font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-d-ag-nota > b.r{color:var(--d3-perigo)}
+.d3m-d-ag-barra{display:block;width:44px;height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden;color:var(--d3-meta)}
+.d3m-d-ag-barra.g{color:var(--d3-mod-vybe)}
+.d3m-d-ag-barra.a{color:var(--d3m-d-ambar)}
+.d3m-d-ag-barra.r{color:var(--d3-perigo)}
+.d3m-d-ag-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:currentColor}
+.d3m-d-ag-pe{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;height:48px;padding:0 16px;border-top:1px solid var(--d3-divisa);font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+.d3m-d-ag-pe > .d3m-d-elo:first-of-type{margin-right:auto;font-weight:400;color:var(--d3-rotulo)}
+.d3m-d-ag-vagos{flex:none;display:inline-flex;gap:8px}
+.d3m-d-ag-vagos > i{width:24px;height:24px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--d3-meta)}
+/* A coluna de consulta: o cartão do acerto, o que os agentes viram e a central. */
+.d3m-d-ag-cartao{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-height:78px;padding:12px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.d3m-d-ag-cartao > span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-d-ag-cartao > span > b{font:600 36px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.d3m-d-ag-cartao > span > b.r{color:var(--d3-perigo-vidro)}
+.d3m-d-ag-cartao > span > small{font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
+.d3m-d-ag-cartao > svg.d3m-d-mini{width:120px;height:44px;color:var(--d3-fume-texto)}
+.d3m-d-ag-lado .d3m-vlin{height:40px}
+.d3m-d-ag-lado .d3m-vlin > .d3m-vnome{flex:1 1 auto;min-width:0;max-width:none;color:var(--d3-fume-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ag-lado .d3m-vlin > .d3m-vnome > b{font-weight:600}
+.d3m-d-ag-lado .d3m-vlin > span:first-child,.d3m-d-ag-central > span{flex:1 1 auto;min-width:0;color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ag-lado .d3m-vlin > span:first-child > b,.d3m-d-ag-central > span > b{font-weight:600;color:var(--d3-fume-texto)}
+.d3m-d-ag-lado .d3m-vlin > svg{flex:none;width:14px;height:14px;stroke:var(--d3-fume-apagado)}
+div.d3m-d-ag-central{cursor:default}
+/* A meta do acerto (só donos), no vidro. */
+.d3m-d-ag-lado .d3t-meta > summary{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);list-style:none;cursor:pointer}
+.d3m-d-ag-lado .d3t-meta > summary::-webkit-details-marker{display:none}
+.d3m-d-ag-lado .d3t-meta-form{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 0;padding:8px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio)}
+.d3m-d-ag-lado .d3t-meta-form input{width:56px;height:28px;margin:0 4px;padding:0 6px;border:0;border-radius:6px;background:var(--d3-cartao);color:var(--d3-tinta);font:inherit}
+.d3m-d-ag-lado .d3t-meta-form button{appearance:none;height:28px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);color:var(--d3-tinta);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+
+/* Tela baixa (1366 × 768): o alto e as células um degrau menores. */
+@media (max-height:820px){
+  .d3m-d-ag-alto{height:196px}
+  .d3m-d-ag-pesa{padding:12px 16px}
+  .d3m-d-ag-pesa .d3m-lar-txt > .d3-acao-frase{font-size:18px}
+  .d3m-d-ag-pesa .d3m-lar-bts{margin-top:6px}
+  .d3m-d-ag-ped{height:52px}
+  .d3m-d-ag-decidir > .d3m-d-cab,.d3m-d-ag-quemq > .d3m-d-cab{height:40px}
+  .d3m-d-ag-grade{grid-auto-rows:minmax(72px,84px)}
+  .d3m-d-ag-pe{height:40px}
+  .d3m-d-ag-lado{gap:10px}
+  .d3m-d-ag-lado .d3m-cons{gap:4px}
+  .d3m-d-ag-lado .d3m-vlin{height:32px}
+  .d3m-d-ag-cartao{min-height:64px;padding:8px 12px}
+  .d3m-d-ag-cartao > span > b{font-size:28px}
+}
+@media (max-width:1280px){
+  .d3m-d-ag{grid-template-columns:minmax(0,1fr) 264px}
+  .d3m-d-ag-cel{gap:10px;padding:0 12px}
+  .d3m-d-ag-g{width:44px}
+}
+/* Celular: uma coluna só, o laranja primeiro, e a janela rola. */
+@media (max-width:900px){
+  body.mundo #vv-agentes.vv-ag.d3m-d-m{padding:12px;gap:12px;overflow-y:auto;border-radius:0 0 14px 14px}
+  #vv-agentes.d3m-d-m > .vga-detalhe.d3m-d-m-corpo{flex:none;overflow:visible}
+  .d3m-d-ag-topo{flex-wrap:wrap;gap:8px}
+  .d3m-d-ag-topo > .d3m-d-ferr{flex:1 1 100%;flex-wrap:wrap}
+  .d3m-d-ag-topo .d3m-d-sub{white-space:normal}
+  .d3m-d-ag{display:flex;flex-direction:column;height:auto;gap:12px}
+  .d3m-d-ag-main,.d3m-d-ag-lado{display:contents}
+  .d3m-d-ag-alto{display:flex;flex-direction:column;height:auto}
+  .d3m-d-ag-pesa{height:auto;min-height:200px}
+  .d3m-d-ag-peds,.d3m-d-ag-grade{flex:none;overflow:visible}
+  .d3m-d-ag-quemq{flex:none}
+  .d3m-d-ag-quemq > .d3m-d-cab{height:auto;flex-wrap:wrap;padding:10px 16px}
+  .d3m-d-ag-quemq .d3m-d-pk-seg{flex:1 1 100%;justify-content:flex-start}
+  .d3m-d-ag-grade{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}
+  .d3m-d-ag-cel{min-height:84px;padding:10px 16px;border-right:0}
+  .d3m-d-ag-g{width:auto;min-width:44px}
+  .d3m-d-ag-pe{height:auto;flex-wrap:wrap;padding:10px 16px;white-space:normal}
+  .d3m-d-ag-vagos{display:none}
+  .d3m-d-ag-decidir .d3m-d-pk-olho{height:auto;flex-wrap:wrap;gap:4px 0;padding:10px 16px;white-space:normal}
+}
+
 /* ===== padrao-v2/zm-d-carteira.css ===== */
 /* ===================================================================================================================
    CONTRATOS E CHURN NAS PRANCHAS V2-M-Contratos e V2-M-Churn (16/11/2026). A janela da Carteira (#vv-carteira) vira vidro
