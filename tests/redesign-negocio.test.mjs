@@ -106,12 +106,13 @@ test('Onboarding sem ativação (quadro do padrão v2): a tela do quadro vazia, 
   await esperar();
   let html = a.janela().innerHTML;
   assert.match(html, /O onboarding ainda não está disponível/); // sem jargão (auditoria 15/11, item 21)
-  assert.match(html, /<h2>Pede ação<\/h2><\/div><div class="v2c-vazio"><p>Nenhum cliente em entrada\.<\/p>/);
+  // Prancha V2-M-Onboarding: a folha dos clientes em entrada fica no lugar, com a frase do vazio.
+  assert.match(html, /<section class="fv2-folha ob2-lista" aria-label="Clientes em entrada">[\s\S]*<div class="fv2-vazio"><b>O onboarding ainda não está disponível<\/b>/);
   assert.doesNotMatch(html, /vc-esteira-previa|ver o que falta/, 'a esteira saiu do alto; quem não administra não vê o botão');
   a.clicar({ vcAjuda: '' });
   html = a.janela().innerHTML;
-  assert.match(html, /<ol class="vc-esteira vc-esteira-previa"[^>]*><li title="Mensagem enviada"><i aria-hidden="true">1<\/i><span>Boas-vindas<\/span><small>1 item<\/small>/);
-  assert.match(html, /<i aria-hidden="true">2<\/i><span>Kickoff<\/span><small>0 itens<\/small>/);
+  assert.match(html, /<ol class="ob2-esteira"><li><i aria-hidden="true">1<\/i><span><b>Boas-vindas<\/b><small>Mensagem enviada<\/small>/);
+  assert.match(html, /<i aria-hidden="true">2<\/i><span><b>Kickoff<\/b><small>0 itens<\/small>/);
   assert.doesNotMatch(html, /Tentar de novo/);
   // Servidor sem a carteira (503 "aguardando"): não é erro, nem mostra o arquivo na tela.
   const b = carteira({ resposta: { status: 503, corpo: { error: 'Carteira aguardando ativação: falta aplicar a migração 2026-11-07-carteira.sql.', aguardando: true } } });
@@ -119,10 +120,10 @@ test('Onboarding sem ativação (quadro do padrão v2): a tela do quadro vazia, 
   await esperar();
   html = b.janela().innerHTML;
   assert.doesNotMatch(html, /\.sql|Tentar de novo|role="alert"/);
-  assert.match(html, /data-vc-etapa-onb="cadastro">Cadastro <b>0<\/b>/, 'sem etapas do servidor, as fichas mostram o caminho em três passos');
-  b.clicar({ vcAjuda: '' });
+  assert.match(html, /data-vc-etapa-onb="cadastro" aria-pressed="false"><span>1 Cadastro<\/span>\s*<span><b>0<\/b>/, 'sem etapas do servidor, as fichas mostram o caminho em três passos');
+  b.clicar({ vcComo: '' });
   html = b.janela().innerHTML;
-  assert.match(html, /<span>Cadastro<\/span>[\s\S]*<span>Questionário e kickoff<\/span>[\s\S]*<span>Checklist<\/span>/);
+  assert.match(html, /<b>Cadastro<\/b>[\s\S]*<b>Questionário e kickoff<\/b>[\s\S]*<b>Checklist<\/b>/);
 });
 
 function comercial(respostas, extra = {}) {

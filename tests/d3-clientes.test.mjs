@@ -20,12 +20,12 @@ test('Saúde da carteira: bloco de ação, quatro números com linha, lista com 
   assert.match(carteira, /<span class="\$\{ehVencida\(m\) \? 'r' : ''\}"\$\{noTeto\(m\)[^\n]*?><b>−\$\{-m\.pontos\}<\/b>/);
 });
 
-test('Onboarding: quatro números, colunas no quadro e, ao lado, tempo de entrada em linha, etapas e configuração', () => {
+test('Onboarding na prancha V2: fichas das etapas com Concluídos, colunas na folha, quanto cada etapa demora e, no vidro, a configuração', () => {
   const tela = carteira.slice(carteira.indexOf('  function abaOnboarding() {'), carteira.indexOf('  // ---------- Churn ----------'));
-  assert.match(tela, /numD3\(\{ rotulo: 'Concluídos no mês'/);
-  assert.match(tela, /class="d3c-cab d3c-cab-onb"/);
-  assert.match(tela, /aria-label="Tempo de entrada"[\s\S]{0,200}d3Linha\(/);
-  assert.match(tela, /botao\('Configurar etapas', 'data-vc-ed-abrir'\)/, 'o editor de etapas continua');
+  assert.match(tela, /<span>Concluídos<small>/);
+  assert.match(tela, /<span>Cliente<\/span><span>Etapas<\/span><span>Agora<\/span><span>Parado<\/span><span>Head<\/span>/);
+  assert.match(tela, /const porEtapa = diasPorEtapa\(lista\)[\s\S]{0,400}aria-label="Quanto cada etapa demora"/);
+  assert.match(tela, /vlin\('Configurar as etapas', '', 'data-vc-ed-abrir'\)/, 'o editor de etapas continua');
   assert.match(tela, /data-vc-encerrados aria-expanded/, 'os encerrados continuam a um clique');
 });
 

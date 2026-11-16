@@ -488,6 +488,11 @@
   }
 
   // ---------- Onboarding ----------
+  // Prancha V2-M-Onboarding (16/11/2026): o esqueleto dos módulos V2. À esquerda, as fichas das etapas (o clique filtra),
+  // a folha dos clientes em entrada (o parado há mais tempo primeiro; a linha abre no lugar com o responsável e o
+  // checklist de cada etapa) e a folha "Quanto cada etapa demora", com o pé "De olho". No vidro, o cartão laranja do
+  // parado (ou de quem pede ação), o questionário do cliente em foco e "Abrir" (etapas, reuniões, como funciona e os
+  // encerrados). O que vai ao servidor não mudou: onboarding_marcar, _responsavel, _iniciar, _encerrar e _reabrir.
   const podeOnboarding = (clienteId) => Boolean(estado.servidor?.pode?.onboarding_todos || estado.servidor?.meus_clientes?.includes(String(clienteId)));
   function nomeDaPessoa(id) { return (estado.servidor?.pessoas || []).find((p) => String(p.id) === String(id))?.nome || ''; }
   // A situação da linha, pelo que o servidor devolve: pronta para encerrar, parada, sem responsável ou andando.
@@ -499,28 +504,47 @@
     if (!s.atual?.responsavel_id) return { tipo: 'sem-dono', tom: 'a', texto: 'Sem responsável', pede: true };
     return { tipo: 'andando', tom: 'g', texto: d ? `Andando · ${plural(d, 'dia', 'dias')}` : 'Andando' };
   }
-  // A linha do quadro: situação, cliente, as etapas em bolinhas, a etapa de agora, o checklist dela e a ação.
-  // Aberta no lugar, mostra cada etapa com o responsável e o checklist, e os atalhos (kickoff, questionário, ficha).
-  function linhaOnboarding(o, etapas) {
+  // Peças V2 da tela: botão de contorno na folha, botão do laranja, linha de consulta no vidro e a foto do cliente.
+  const VAI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  const btnOb = (rotulo, attrs) => `<button type="button" class="ob2-btn" ${attrs}>${esc(rotulo)}</button>`;
+  const btnLar = (rotulo, attrs, segundo = false) => `<button type="button" class="d3m-btn l${segundo ? ' s' : ''}" ${attrs}>${esc(rotulo)}</button>`;
+  const vlin = (forte, apoio, attrs, ponto = '') => `<button type="button" class="d3m-vlin" ${attrs}>${ponto ? `<i class="d3m-pt ${ponto}" aria-hidden="true"></i>` : ''}<span><b>${esc(forte)}</b>${apoio ? ` · ${esc(apoio)}` : ''}</span>${VAI}</button>`;
+  const consulta = (titulo, lado, dentro) => `<section class="d3m-cons"><div class="d3m-cons-cab"><b>${esc(titulo)}</b><span>${esc(lado)}</span></div>${dentro}</section>`;
+  function fotoCli(nome) {
+    if (typeof fotoDoClienteCv2 === 'function') return fotoDoClienteCv2(nome);
+    let h = 7; for (const ch of String(nome || '')) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
+    const p = String(nome || '?').trim().split(/\s+/);
+    return `<i class="d3v-foto cv2-foto" style="--h:${h % 360}" aria-hidden="true">${esc((p.length > 1 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase())}</i>`;
+  }
+  const segmentoDe = (id) => { const c = cadastro().find((x) => String(x.id) === String(id)); return c?.segmento || c?.cadastro?.segmento || ''; };
+  const haDias = (d) => (d == null ? '—' : d === 0 ? 'hoje' : `há ${plural(d, 'dia', 'dias')}`);
+  // A linha da folha: o grupo (só na primeira do grupo), a foto, o cliente, a trilha das etapas, a etapa de agora, há
+  // quanto tempo está parada, o responsável e a ação. Aberta no lugar, cada etapa com o responsável e o checklist, e os
+  // atalhos (kickoff, questionário, ficha e encerrar).
+  function linhaOnboarding(o, etapas, grupo = '') {
     const s = o.situacao, sit = situacaoDaLinha(o), chave = `o:${o.cliente_id}`, aberto = estado.abertos.has(chave), pode = podeOnboarding(o.cliente_id) && !o.encerrado_em;
     const pessoas = estado.servidor?.pessoas || [], resp = s.atual?.responsavel_id ? nomeDaPessoa(s.atual.responsavel_id) : '';
-    const n = s.etapas.findIndex((e) => e.id === s.atual?.id) + 1;
-    const tri = `<span class="v2c-tri" role="img" aria-label="${esc(s.concluido ? 'Todas as etapas feitas' : `Etapa ${n || 1} de ${s.etapas.length}`)}">${s.etapas.map((e) => `<i class="v2c-cx${e.concluida ? ' ok' : s.atual?.id === e.id ? ' at' : ''}">${e.concluida ? CHECK : ''}</i>`).join('')}</span>`;
+    const parado = sit.tipo === 'parado', n = s.etapas.findIndex((e) => e.id === s.atual?.id) + 1;
+    const trilha = `<span class="ob2-trilha" role="img" aria-label="${esc(s.concluido ? 'Todas as etapas feitas' : `Etapa ${n || 1} de ${s.etapas.length}`)}">${s.etapas.map((e) => `<i class="${e.concluida ? 'ok' : s.atual?.id === e.id ? `vez${parado ? ' r' : ''}` : ''}"></i>`).join('')}</span>`;
     const def = etapas.find((e) => e.id === s.atual?.id), feitos = o.etapas?.[def?.id]?.feitos || {}, faltam = (def?.itens || []).filter((i) => !feitos[i.id]);
-    const parada = s.atual?.parada_desde && sit.tipo === 'parado' ? `, parada desde ${dataCurta(diaDoCarimbo(s.atual.parada_desde)).slice(0, 5)}` : '';
-    const agora = o.encerrado_em ? '<b>Encerrado</b>' : s.concluido ? '<b>Todas as etapas feitas</b>'
-      : `<b>${esc(s.atual?.nome || '')}</b>${faltam.length ? ` · falta ${esc(faltam[0].texto.replace(/^./, (c) => c.toLowerCase()))}${faltam.length > 1 ? ` e mais ${faltam.length - 1}` : ''}` : ''}${parada}`;
-    const atual = s.etapas.find((e) => e.id === s.atual?.id), pct = atual?.total ? Math.round((atual.feitos / atual.total) * 100) : s.pct;
-    // Direção 3: "1/3" embaixo da barra; quem é o dono fica no avatar ao lado (e no rótulo para leitor de tela).
-    const progresso = `<span class="v2c-pg"><span class="v2-barra"><i style="--v:${pct}%;--c:#11613A"></i></span><small>${atual ? `${atual.feitos}/${atual.total}` : `${s.pct}%`}<span class="d3c-so-leitor"> · ${esc(primeiroNome(resp) || 'sem dono')}</span></small></span>`;
-    const acaoDaLinha = !podeOnboarding(o.cliente_id) ? botao('Ver etapas', `data-vc-abrir="${esc(chave)}"`)
-      : o.encerrado_em ? botao('Reabrir', `data-vc-onb="onboarding_reabrir" data-vc-cli="${esc(o.cliente_id)}"`)
-      : sit.tipo === 'pronto' ? botao('Encerrar onboarding', `data-vc-onb="onboarding_encerrar" data-vc-cli="${esc(o.cliente_id)}"`)
-      : sit.tipo === 'sem-dono' ? botao('Definir responsável', `data-vc-abrir="${esc(chave)}" data-vc-focar="resp"`)
-      : botao('Abrir checklist', `data-vc-abrir="${esc(chave)}"`);
+    const etapa = o.encerrado_em ? '<span class="fv2-est">Encerrado</span>' : s.concluido ? '<span class="fv2-est g"><i aria-hidden="true"></i>Todas feitas</span>'
+      : `<span class="fv2-est ${parado ? 'r' : 'a'}" title="${esc(faltam.length ? `Falta: ${faltam.map((i) => i.texto).join(' · ')}` : '')}"><i aria-hidden="true"></i>${esc(s.atual?.nome || '')}</span>`;
+    const dias = o.encerrado_em ? `<span class="ob2-dias">${dataCurta(diaDoCarimbo(o.encerrado_em)).slice(0, 5)}</span>`
+      : s.concluido ? '<span class="ob2-dias g">pronto</span>' : `<span class="ob2-dias${parado ? ' r' : ''}">${haDias(s.atual?.dias_parada)}</span>`;
+    const head = resp ? `<i class="ob2-pes" title="${esc(resp)}" aria-hidden="true">${esc(duasLetras(resp))}</i>`
+      : `<i class="ob2-pes vago" title="Sem responsável" aria-hidden="true">?</i>`;
+    const rot = grupo ? `<span class="ob2-rot ${grupo === 'Agora' ? 'r' : ''}">${esc(grupo)}</span>` : '<span class="ob2-rot"></span>';
+    const seg = segmentoDe(o.cliente_id);
+    const kickoffAgora = pode && s.atual?.id === 'kickoff' && typeof window.abrirReuniao === 'function';
+    const acaoDaLinha = !podeOnboarding(o.cliente_id) ? btnOb('Ver etapas', `data-vc-abrir="${esc(chave)}"`)
+      : o.encerrado_em ? btnOb('Reabrir', `data-vc-onb="onboarding_reabrir" data-vc-cli="${esc(o.cliente_id)}"`)
+      : sit.tipo === 'pronto' ? btnOb('Encerrar onboarding', `data-vc-onb="onboarding_encerrar" data-vc-cli="${esc(o.cliente_id)}"`)
+      : sit.tipo === 'sem-dono' ? btnOb('Definir responsável', `data-vc-abrir="${esc(chave)}" data-vc-focar="resp"`)
+      : kickoffAgora ? btnOb('Marcar o kickoff', `data-vc-kickoff="${esc(o.cliente || '')}"`)
+      : btnOb('Ver o checklist', `data-vc-abrir="${esc(chave)}"`);
     const detalhe = etapas.map((e, i) => {
       const dela = o.etapas?.[e.id] || {}, st = s.etapas.find((x) => x.id === e.id);
-      return `<fieldset class="vc-etapa v2c-etapa"><legend><i class="v2c-cx${st?.concluida ? ' ok' : s.atual?.id === e.id ? ' at' : ''}" aria-hidden="true">${st?.concluida ? CHECK : ''}</i><span class="${st?.concluida ? 'feita' : ''}">${i + 1} · ${esc(e.nome)}</span> <small>${st ? `${st.feitos}/${st.total}` : ''}</small></legend>
+      return `<fieldset class="vc-etapa ob2-etapa"><legend><i class="ob2-cx${st?.concluida ? ' ok' : s.atual?.id === e.id ? ' at' : ''}" aria-hidden="true">${st?.concluida ? CHECK : ''}</i><span class="${st?.concluida ? 'feita' : ''}">${i + 1} · ${esc(e.nome)}</span> <small>${st ? `${st.feitos}/${st.total}` : ''}</small></legend>
         <label class="vc-campo"><span>Responsável</span><select data-vc-resp="${esc(o.cliente_id)}" data-vc-etapa="${esc(e.id)}"${pode ? '' : ' disabled'}>
           <option value="">Sem responsável</option>${pessoas.map((p) => `<option value="${esc(p.id)}"${String(dela.responsavel_id) === String(p.id) ? ' selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>
         <ul class="vc-check">${e.itens.map((it) => { const f = dela.feitos?.[it.id];
@@ -529,18 +553,16 @@
     }).join('');
     // Reunião e questionário (vybe-clientes-reunioes.js): o kickoff grava o áudio; o questionário serve para preencher junto
     // na reunião ou para mandar o link ao cliente.
-    const atalhos = `<div class="v2c-atalhos">${pode && typeof window.abrirReuniao === 'function' ? `${botao('Reunião de kickoff', `data-vc-kickoff="${esc(o.cliente || '')}"`, 'k')}
-        ${botao('Questionário com o cliente', `data-vc-quest="junto" data-vc-cli="${esc(o.cliente_id)}" data-vc-nome="${esc(o.cliente || '')}"`)}
-        ${botao('Link do questionário', `data-vc-quest="link" data-vc-cli="${esc(o.cliente_id)}"`)}` : ''}
-        ${botao('Ficha', `data-vc-cliente="${esc(o.cliente || '')}"`)}
-        ${podeOnboarding(o.cliente_id) ? (o.encerrado_em ? '' : botao('Encerrar onboarding', `data-vc-onb="onboarding_encerrar" data-vc-cli="${esc(o.cliente_id)}"`)) : '<span class="v2c-sub">Só quem administra, o Atendimento e os heads do cliente mexem aqui.</span>'}</div>`;
-    return `<li class="v2-abre v2c-linha v2c-onb${o.encerrado_em ? ' encerrado' : ''}" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="v2c-lin">
-        <button type="button" class="v2c-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${o.cliente || 'Cliente'}: ${sit.texto}`)}">
-          <span class="v2c-st"><span class="v2c-pill ${sit.tom}">${esc(sit.texto)}</span></span>
-          <span class="v2c-nm">${cliCor(o.cliente || '')}</span>${tri}
-          <span class="v2c-agora">${agora}</span>${progresso}${resp ? avatarHtml(resp).replace('class="v2c-av"', `class="v2c-av" title="${esc(resp)}"`) : '<span class="v2c-av vago" aria-hidden="true">?</span>'}</button>
-        <span class="v2c-ac">${acaoDaLinha}</span></div>
-      <div class="v2-mais"><div><div class="v2c-det">${detalhe}${atalhos}</div></div></div></li>`;
+    const atalhos = `<div class="ob2-atalhos">${pode && typeof window.abrirReuniao === 'function' ? `${btnOb('Reunião de kickoff', `data-vc-kickoff="${esc(o.cliente || '')}"`)}
+        ${btnOb('Questionário com o cliente', `data-vc-quest="junto" data-vc-cli="${esc(o.cliente_id)}" data-vc-nome="${esc(o.cliente || '')}"`)}
+        ${btnOb('Link do questionário', `data-vc-quest="link" data-vc-cli="${esc(o.cliente_id)}"`)}` : ''}
+        ${btnOb('Ficha', `data-vc-cliente="${esc(o.cliente || '')}"`)}
+        ${podeOnboarding(o.cliente_id) ? (o.encerrado_em ? '' : btnOb('Encerrar onboarding', `data-vc-onb="onboarding_encerrar" data-vc-cli="${esc(o.cliente_id)}"`)) : '<span class="ob2-sub">Só quem administra, o Atendimento e os heads do cliente mexem aqui.</span>'}</div>`;
+    return `<li class="v2-abre ob2-linha${o.encerrado_em ? ' encerrado' : ''}" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="ob2-lin">
+        <button type="button" class="ob2-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${o.cliente || 'Cliente'}: ${sit.texto}`)}">
+          ${rot}${fotoCli(o.cliente || '')}<span class="ob2-nm"><b>${esc(o.cliente || '')}</b>${seg ? ` <span>· ${esc(seg)}</span>` : ''}</span>${trilha}${etapa}${dias}${head}</button>
+        <span class="ob2-ac">${acaoDaLinha}</span></div>
+      <div class="v2-mais"><div><div class="ob2-det">${detalhe}${atalhos}</div></div></div></li>`;
   }
   function editorEtapasHtml() {
     const lista = estado.editorEtapas;
@@ -560,19 +582,35 @@
       ${nota('Item tirado some da esteira; o que já foi marcado nele fica guardado e volta se o item voltar com o mesmo nome interno.')}</section>`;
   }
   const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  // "Como funciona": a esteira numerada, com os itens de cada etapa (a do servidor; sem ela, o caminho em três passos).
+  // "Como funciona", no vidro: a esteira numerada, com os itens de cada etapa (a do servidor; sem ela, o padrão).
   function comoFuncionaHtml(etapas, padrao) {
-    const passos = (etapas.length ? etapas : padrao || []).map((e) => [e.nome, plural(e.itens?.length || 0, 'item', 'itens'), (e.itens || []).map((i) => i.texto).join(' · ')]);
-    const lista = passos.length ? passos : [['Cadastro', 'dados, contrato e acessos', ''], ['Questionário e kickoff', 'o cliente responde, o head conduz', ''], ['Checklist', 'Drive, grupo, primeiro planejamento', '']];
-    return `<div class="v2c-card v2c-ajuda"><div class="v2c-card-topo"><h2>Como funciona a esteira</h2></div><ol class="vc-esteira vc-esteira-previa" aria-label="Etapas do onboarding">${lista.map(([nome, sub, itens], i) =>
-      `<li${itens ? ` title="${esc(itens)}"` : ''}><i aria-hidden="true">${i + 1}</i><span>${esc(nome)}</span><small>${esc(sub)}</small></li>`).join('')}</ol>
-      ${nota('Começa quando entra um cliente novo ou um contrato novo de um cliente da casa. Cada etapa tem o checklist e o responsável dela; "parada desde" mostra há quanto tempo a etapa atual não anda.')}</div>`;
+    const passos = (etapas.length ? etapas : padrao || []).map((e) => [e.nome, (e.itens || []).map((i) => i.texto).join(' · ') || plural(e.itens?.length || 0, 'item', 'itens')]);
+    const lista = passos.length ? passos : [['Cadastro', 'dados, contrato e acessos'], ['Questionário e kickoff', 'o cliente responde, o head conduz'], ['Checklist', 'Drive, grupo, primeiro planejamento']];
+    return `<section class="d3m-cons ob2-como" aria-label="Como funciona a esteira"><div class="d3m-cons-cab"><b>Como funciona</b><span>${plural(lista.length, 'etapa', 'etapas')}</span></div>
+      <ol class="ob2-esteira">${lista.map(([nome, itens], i) => `<li><i aria-hidden="true">${i + 1}</i><span><b>${esc(nome)}</b><small>${esc(itens)}</small></span></li>`).join('')}</ol>
+      <p class="ob2-nota">Começa quando entra um cliente novo ou um contrato novo de um cliente da casa. Cada etapa tem o checklist e o responsável dela; "parado" conta desde o último movimento da etapa de agora.</p></section>`;
   }
+  // Os dias de cada etapa já concluída (da conclusão da anterior, ou do início, até a conclusão dela), por etapa.
+  function diasPorEtapa(lista) {
+    const porEtapa = new Map();
+    for (const o of lista) {
+      let antes = Date.parse(o.iniciado_em);
+      for (const e of o.situacao?.etapas || []) {
+        const fim = e.concluida ? Date.parse(e.concluida_em) : NaN;
+        if (!Number.isFinite(fim)) break;
+        if (Number.isFinite(antes) && fim >= antes) { const x = porEtapa.get(e.id) || []; x.push((fim - antes) / 864e5); porEtapa.set(e.id, x); }
+        antes = fim;
+      }
+    }
+    return porEtapa;
+  }
+  const diasTxt = (d) => (d == null ? '—' : d < 0.5 ? 'menos de 1 dia' : plural(Math.round(d), 'dia', 'dias'));
   function abaOnboarding() {
     const sv = estado.servidor;
-    if (!sv) return { corpo: estado.erro ? vazio(estado.erro, secundario('Tentar de novo', 'data-vc-recarregar')) : '' };
+    const titulo = (sub) => `<div class="ob2-tit"><h2 id="vc-titulo">Onboarding</h2><span>${esc(sub)}</span></div>`;
+    if (!sv) return { v2: true, titulo: titulo('cliente novo ou contrato novo'), corpo: estado.erro ? vazio(estado.erro, secundario('Tentar de novo', 'data-vc-recarregar')) : '' };
     const etapas = sv.etapas || [], ligado = Boolean(sv.onboarding?.disponivel);
-    if (ligado && estado.editorEtapas) return { corpo: editorEtapasHtml() };
+    if (ligado && estado.editorEtapas) return { v2: true, titulo: titulo('configurar as etapas da esteira'), corpo: `<div class="fv2-folha ob2-editor">${editorEtapasHtml()}</div>` };
     const lista = ligado ? sv.onboarding.clientes || [] : [];
     const emAberto = lista.filter((o) => !o.encerrado_em), encerrados = lista.filter((o) => o.encerrado_em);
     const ocupados = new Set(emAberto.map((o) => o.cliente_id));
@@ -581,92 +619,109 @@
     // cliente novo (cadastro → esteira) ou contrato novo de um cliente da casa (renovação, serviço novo: esteira do zero).
     const podeNovo = ligado && typeof window.abrirCadastroCompleto === 'function' && (typeof podeEditarClientes !== 'function' || podeEditarClientes());
     const podeComecar = podeNovo || candidatos.length > 0;
-    // Direção 3: a data no título; "Novo onboarding" é botão branco (o único laranja cheio é o bloco de ação).
-    const diaHoje = new Date(`${hoje()}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/-feira/, '').replace(/\.$/, '').replace(' de ', ' ');
-    const topo = `<span class="d3c-meta">${esc(diaHoje)}</span>${botao('Como funciona', `data-vc-ajuda aria-expanded="${estado.ajuda}"`, 'g')}
-      ${podeComecar ? botao('Novo onboarding', `data-vc-novo aria-expanded="${Boolean(estado.novoOnb)}"`, 'g d3c-novo') : ligado ? '<span class="d3c-meta">Só quem administra, o Atendimento e os heads começam um onboarding</span>' : ''}`;
-    // Botão desativado sem motivo à vista (auditoria 15/11, item 36): sem poder começar, o botão sai e o motivo fica escrito.
+    const sitDe = new Map(emAberto.map((o) => [o, situacaoDaLinha(o)]));
+    const parados = emAberto.filter((o) => sitDe.get(o).tipo === 'parado').sort((a, b) => (b.situacao.atual?.dias_parada ?? 0) - (a.situacao.atual?.dias_parada ?? 0));
+    const pedem = emAberto.filter((o) => sitDe.get(o).pede), pior = parados[0];
+    const duracao = (o) => (Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5;
+    const duracoes = encerrados.map(duracao).filter((d) => Number.isFinite(d) && d >= 0);
+    const media = duracoes.length ? Math.max(1, Math.round(duracoes.reduce((t, d) => t + d, 0) / duracoes.length)) : null;
+    const mesAgora = hoje().slice(0, 7), concluidosMes = encerrados.filter((o) => diaDoCarimbo(o.encerrado_em).startsWith(mesAgora));
+    const nomeMes = new Date(`${mesAgora}-15T12:00:00`).toLocaleDateString('pt-BR', { month: 'long' });
+    // O alto: o título com a frase do momento; busca, "Como funciona", "Novo onboarding" (branco no vidro) e fechar.
+    const sub = !ligado ? 'cliente novo ou contrato novo' : `cliente novo ou contrato novo · ${emAberto.length} em entrada${pior ? ` · ${parados.length > 1 ? `${parados.length} parados` : `1 parado ${haDias(pior.situacao.atual?.dias_parada)}`}` : ''}`;
+    const topo = `<label class="ob2-busca"><span class="ob2-so-leitor">Buscar cliente em onboarding</span><input type="search" data-vc-busca-onb placeholder="Buscar cliente" value="${esc(estado.buscaOnb)}"${estado.buscaOnb ? ' class="tem"' : ''}></label>
+      <button type="button" class="ob2-ico" data-vc-como aria-expanded="${estado.ajuda}" aria-label="Como funciona" title="Como funciona"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
+      ${podeComecar ? `<button type="button" class="ob2-novo" data-vc-novo aria-expanded="${Boolean(estado.novoOnb)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Novo onboarding</button>` : ''}`;
+    // Botão desativado sem motivo à vista (auditoria 15/11, item 36): sem poder começar, o botão sai e o motivo fica escrito ao lado.
     const contrato = estado.contratoNovo ? `<div class="vc-iniciar"><label class="vc-campo"><span>Cliente que fechou contrato novo</span><select data-vc-novo-onb>${candidatos.map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></label>
-      ${botao('Cancelar', 'data-vc-contrato-novo')}${botao('Começar a esteira', 'data-vc-iniciar', 'k')}</div>` : '';
-    const iniciar = estado.novoOnb && podeComecar ? `<section class="v2c-card v2c-painel vc-onb-comecar" aria-label="Começar um onboarding">
+      ${btnOb('Cancelar', 'data-vc-contrato-novo')}${btnOb('Começar a esteira', 'data-vc-iniciar')}</div>` : '';
+    const iniciar = estado.novoOnb && podeComecar ? `<section class="fv2-folha ob2-comecar vc-onb-comecar" aria-label="Começar um onboarding">
       <div class="vc-onb-caminhos">
         ${podeNovo ? `<button type="button" class="vc-onb-caminho" data-vc-onb-novo><b>Cliente novo</b><small>Cadastra o cliente e já abre a esteira, o questionário e o kickoff.</small></button>` : ''}
         ${candidatos.length ? `<button type="button" class="vc-onb-caminho" data-vc-contrato-novo aria-expanded="${Boolean(estado.contratoNovo)}"><b>Contrato novo</b><small>Cliente da casa que renovou ou fechou um serviço novo: a esteira começa do zero.</small></button>` : ''}
       </div>${contrato}</section>` : '';
-    const ajuda = estado.ajuda ? comoFuncionaHtml(etapas, sv.etapas_padrao) : '';
-    // Os três números: quem está entrando, quem parou há mais de 5 dias e quanto tempo leva uma entrada (dos encerrados).
-    const sitDe = new Map(emAberto.map((o) => [o, situacaoDaLinha(o)]));
-    const parados = emAberto.filter((o) => sitDe.get(o).tipo === 'parado').sort((a, b) => (b.situacao.atual?.dias_parada ?? 0) - (a.situacao.atual?.dias_parada ?? 0));
-    const pedem = emAberto.filter((o) => sitDe.get(o).pede), pior = parados[0];
-    const duracoes = encerrados.map((o) => (Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5).filter((d) => Number.isFinite(d) && d >= 0);
-    const media = duracoes.length ? Math.max(1, Math.round(duracoes.reduce((t, d) => t + d, 0) / duracoes.length)) : null;
-    // Direção 3: quatro números (em entrada, parados, tempo médio com a linha, concluídos no mês).
-    const porFim = encerrados.filter((o) => Number.isFinite(Date.parse(o.encerrado_em)) && Number.isFinite(Date.parse(o.iniciado_em))).sort((a, b) => String(a.encerrado_em).localeCompare(String(b.encerrado_em)));
-    const mesAgora = hoje().slice(0, 7), concluidosMes = encerrados.filter((o) => diaDoCarimbo(o.encerrado_em).startsWith(mesAgora));
-    const numeros = `<div class="v2c-tres d3c-quatro">
-        ${numD3({ rotulo: 'Em entrada', valor: emAberto.length, sub: emAberto.length ? `${plural(pedem.length, 'pede ação', 'pedem ação')} · ${emAberto.length - pedem.length} andando` : 'nenhum agora' })}
-        ${numD3({ rotulo: `Parados ${DIAS_PARADO}+ dias`, valor: parados.length, tom: parados.length ? 'r' : '',
-          sub: pior ? `<span class="d3c-r">${esc(pior.cliente || '')} · desde ${dataCurta(diaDoCarimbo(pior.situacao.atual.parada_desde)).slice(0, 5)}</span>` : 'nada parado' })}
-        ${numD3({ rotulo: 'Tempo médio', valor: media == null ? '—' : media, de: media == null ? '' : media === 1 ? ' dia' : ' dias',
-          linha: d3Linha(porFim.map((o) => (Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5), { largura: 90, altura: 28, rotulo: 'Dias de cada entrada encerrada' }),
-          sub: media == null ? 'sem encerrado ainda' : plural(duracoes.length, 'encerrado', 'encerrados') })}
-        ${numD3({ rotulo: 'Concluídos no mês', valor: concluidosMes.length, tom: concluidosMes.length ? 'g' : '', sub: concluidosMes.length ? esc(concluidosMes.slice(0, 2).map((o) => o.cliente || '').join(' · ')) + (concluidosMes.length > 2 ? ` +${concluidosMes.length - 2}` : '') : 'nenhum ainda' })}
-      </div>`;
-    const AG = AGENTE;
-    // Laranja só com ação (auditoria 15/11, itens 3 e 27): sem botão, a frase fica no cartão branco.
-    const fala = !ligado ? falaHtml('O onboarding ainda não está disponível. Quando estiver, quem está entrando aparece aqui.')
-      : !emAberto.length ? (podeComecar ? d3Acao({ frase: `${quemD3(AG)}Ninguém entrando agora.`, agente: AG.nome, botao: 'Novo onboarding', attrs: 'data-vc-novo' }) : falaHtml('Ninguém entrando agora.'))
-      : pior ? d3Acao({ frase: `${quemD3(AG)}${esc(pior.cliente || 'Um cliente')} travou: ${esc(String(pior.situacao.atual?.nome || 'etapa').toLowerCase())} há ${plural(pior.situacao.atual?.dias_parada ?? 0, 'dia', 'dias')}${parados.length > 1 ? ` · mais ${parados.length - 1} parados` : ''}.`,
-        agente: AG.nome, botao: `Ver ${pior.cliente || 'o cliente'}`, attrs: `data-vc-abrir="o:${esc(pior.cliente_id)}" data-vc-focar="linha"` })
-      : pedem.length ? d3Acao({ frase: `${quemD3(AG)}${plural(emAberto.length, 'cliente entrando', 'clientes entrando')} · ${plural(pedem.length, 'pede', 'pedem')} ação.`, agente: AG.nome,
-        botao: pedem.length === 1 ? `Ver ${pedem[0].cliente || 'o cliente'}` : `Ver os ${pedem.length}`, attrs: `data-vc-abrir="o:${esc(pedem[0].cliente_id)}" data-vc-focar="linha"` })
-      : falaHtml(`${plural(emAberto.length, 'cliente entrando', 'clientes entrando')} · nenhum travou.`);
-    // Uma barra de filtro só: a busca, a etapa em que cada cliente está e "Filtros" (encerrados e o editor de etapas).
-    const termo = semAcento(estado.buscaOnb).trim();
-    const daEtapa = (id) => emAberto.filter((o) => !o.situacao.concluido && o.situacao.atual?.id === id).length;
-    // Sem etapas do servidor (esteira ainda não ligada), as fichas mostram o caminho em três passos, zerado.
+    // As fichas das etapas: quantos clientes estão em cada uma e há quanto tempo o mais parado está ali; o clique filtra.
+    // Sem etapas do servidor (esteira ainda não ligada), as fichas mostram o caminho padrão, zerado.
     const etapasDoFiltro = etapas.length ? etapas : sv.etapas_padrao?.length ? sv.etapas_padrao : [{ id: 'cadastro', nome: 'Cadastro' }, { id: 'kickoff', nome: 'Questionário e kickoff' }, { id: 'checklist', nome: 'Checklist' }];
     if (estado.etapaOnb !== 'todas' && !etapasDoFiltro.some((e) => e.id === estado.etapaOnb)) estado.etapaOnb = 'todas';
-    const filtros = `<div class="v2c-filtros">
-        <input type="search" class="v2c-busca" data-vc-busca-onb placeholder="Buscar cliente" aria-label="Buscar cliente em onboarding" value="${esc(estado.buscaOnb)}">
-        <span class="v2c-chips" role="group" aria-label="Filtrar pela etapa">${ficha('Todas as etapas', emAberto.length, 'data-vc-etapa-onb="todas"', estado.etapaOnb === 'todas')}${etapasDoFiltro.map((e) => ficha(esc(e.nome), daEtapa(e.id), `data-vc-etapa-onb="${esc(e.id)}"`, estado.etapaOnb === e.id)).join('')}</span>
-        ${botao('Filtros', `data-vc-filtros aria-expanded="${estado.filtros}"`)}
-      </div>${estado.filtros ? `<div class="v2c-card v2c-painel v2c-painel-linha">${encerrados.length ? botao(`${estado.verEncerrados ? 'Esconder' : 'Ver'} encerrados (${encerrados.length})`, `data-vc-encerrados aria-expanded="${estado.verEncerrados}"`) : '<span class="v2c-sub">Nenhum onboarding encerrado ainda.</span>'}
-        ${sv.pode?.etapas && ligado ? botao('Configurar etapas', 'data-vc-ed-abrir') : ''}</div>` : ''}`;
+    const nelas = (id) => emAberto.filter((o) => !o.situacao.concluido && o.situacao.atual?.id === id);
+    const mediaMes = concluidosMes.length ? Math.max(1, Math.round(concluidosMes.map(duracao).reduce((t, d) => t + d, 0) / concluidosMes.length)) : null;
+    const mesFicha = typeof mesCurto === 'function' ? mesCurto(mesAgora) : nomeMes;
+    const fichas = `<div class="ob2-fichas" role="group" aria-label="Filtrar pela etapa">${etapasDoFiltro.map((e, i) => {
+      const x = nelas(e.id), maior = x.length ? Math.max(...x.map((o) => o.situacao.atual?.dias_parada ?? 0)) : null, ligada = estado.etapaOnb === e.id;
+      return `<button type="button" class="ob2-ficha" data-vc-etapa-onb="${ligada ? 'todas' : esc(e.id)}" aria-pressed="${ligada}"><span>${i + 1} ${esc(e.nome)}</span>
+        <span><b>${x.length}</b><small${maior != null && maior > DIAS_PARADO ? ' class="r"' : ''}>${maior == null ? 'ninguém' : haDias(maior)}</small></span></button>`; }).join('')}
+      <button type="button" class="ob2-ficha" data-vc-encerrados aria-expanded="${estado.verEncerrados}"${encerrados.length ? '' : ' disabled'} title="${encerrados.length ? `${estado.verEncerrados ? 'Esconder' : 'Ver'} os encerrados na lista` : 'Nenhum onboarding encerrado ainda'}"><span>Concluídos<small>${esc(mesFicha)}</small></span>
+        <span><b>${concluidosMes.length}</b><small>${mediaMes == null ? 'nenhum ainda' : `em ${plural(mediaMes, 'dia', 'dias')}`}</small></span></button></div>`;
+    // A folha dos clientes em entrada: "pede ação" (parado, sem responsável, pronto para encerrar) antes de "andando".
+    const termo = semAcento(estado.buscaOnb).trim();
     const passa = (o) => (!termo || semAcento(o.cliente).includes(termo)) && (estado.etapaOnb === 'todas' || (!o.situacao.concluido && o.situacao.atual?.id === estado.etapaOnb));
     const porParada = (a, b) => (b.situacao.atual?.dias_parada ?? -1) - (a.situacao.atual?.dias_parada ?? -1);
     const pedeAcao = emAberto.filter((o) => passa(o) && sitDe.get(o).pede).sort(porParada), andando = emAberto.filter((o) => passa(o) && !sitDe.get(o).pede).sort(porParada);
     const limite = estado.limite.onboarding || PAGINA, cabem = andando.slice(0, Math.max(0, limite - pedeAcao.length)), resto = andando.length - cabem.length;
-    const filtrando = Boolean(termo) || estado.etapaOnb !== 'todas';
-    // Direção 3: título do grupo com a contagem ao lado (sem frase); a explicação do lado vai só para o leitor de tela.
-    const secao = (titulo, lado, linhas) => `<div class="v2c-card-topo d3c-grupo"><h2>${titulo}</h2><small>${linhas.length}<span class="d3c-so-leitor"> · ${lado}</span></small></div><ol class="v2c-lista">${linhas.map((o) => linhaOnboarding(o, etapas)).join('')}</ol>`;
-    // Vazio = uma frase; o "Novo onboarding" já está no topo e no bloco de ação (auditoria 15/11, itens 4 e 7).
-    const quadro = !emAberto.length ? `<div class="v2c-card-topo"><h2>Pede ação</h2></div><div class="v2c-vazio"><p>Nenhum cliente em entrada.</p></div>`
-      : !pedeAcao.length && !andando.length ? `<div class="v2c-card-topo"><h2>Pede ação</h2></div><div class="v2c-vazio"><p>Nenhum cliente neste filtro.</p>${botao('Ver todos', 'data-vc-etapa-onb="todas" data-vc-limpar')}</div>`
-      : `${pedeAcao.length ? secao('Pede ação', `${plural(pedeAcao.length, 'coisa', 'coisas')}, na ordem`, pedeAcao) : filtrando ? '' : '<div class="v2c-card-topo"><h2>Pede ação</h2><small>nada pede ação agora</small></div>'}
-        ${cabem.length ? secao('Andando', `${cabem.length + resto} sem pendência${encerrados.length ? ` · ${plural(encerrados.length, 'encerrado', 'encerrados')}` : ''}`, cabem) : ''}
-        ${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, 'cliente', 'clientes')} andando · ${ligacao('mostrar', 'data-vc-mais="onboarding"')}</p>` : ''}`;
-    const fechados = estado.verEncerrados && encerrados.length ? `<section class="v2c-card v2c-quadro" aria-label="Encerrados">${secao('Encerrados', plural(encerrados.length, 'onboarding', 'onboardings'), encerrados.filter((o) => !termo || semAcento(o.cliente).includes(termo)))}</section>` : '';
-    // O rodapé do quadro: sem a esteira ligada, a frase do vazio e, para quem administra, o que falta.
-    // Direção 3: "ainda não ligado" já está no bloco de ação; o detalhe técnico abre pelo "Ver o que falta" do cartão Configuração.
-    const pe = ligado || !(estado.verFalta && souAdminAqui()) ? '' : `<div class="v2c-rodape"><p class="v2c-sub"><small class="vc-ativacao-tec">Falta aplicar a migração <code>${esc(sv.migracao || '2026-11-07-carteira.sql')}</code> no banco. Depois disso, esta parte aparece sozinha.</small></p></div>`;
-    // Direção 3: cabeçalho das colunas no quadro, "Concluídos" no pé e, ao lado, o tempo de entrada em linha, as etapas e a configuração.
-    const cab = emAberto.length ? '<div class="d3c-cab d3c-cab-onb" aria-hidden="true"><span>Situação</span><span>Cliente</span><span>Etapa</span><span>Agora</span><span>Checklist</span></div>' : '';
-    const peQuadro = encerrados.length ? `<div class="v2c-pe d3c-pe">${botao(`Concluídos ${encerrados.length}`, `data-vc-encerrados aria-expanded="${estado.verEncerrados}"`)}</div>` : '';
-    const porMes = new Map();
-    for (const o of porFim) { const m = diaDoCarimbo(o.encerrado_em).slice(0, 7), x = porMes.get(m) || []; x.push((Date.parse(o.encerrado_em) - Date.parse(o.iniciado_em)) / 864e5); porMes.set(m, x); }
-    const meses = [...porMes.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
-    const tempoEntrada = `<section class="v2c-card d3c-lado-card" aria-label="Tempo de entrada"><div class="v2c-card-topo"><h2>Tempo de entrada</h2><small>dias</small></div>
-      ${meses.length >= 2 ? `${d3Linha(meses.map(([, x]) => x.reduce((t, d) => t + d, 0) / x.length), { largura: 300, altura: 90, rotulo: `Dias médios de entrada: ${meses.map(([m, x]) => `${mesCurto(m)} ${Math.round(x.reduce((t, d) => t + d, 0) / x.length)}`).join(', ')}` })}
-        <div class="d3c-meses" aria-hidden="true">${meses.map(([m], i) => `<span${i === meses.length - 1 ? ' class="agora"' : ''}>${mesCurto(m)}</span>`).join('')}</div>`
-        : `<p class="v2c-sub">${media == null ? 'sem encerrado ainda' : `${plural(media, 'dia', 'dias')} em média`}</p>`}</section>`;
-    const etapasCard = `<section class="v2c-card d3c-lado-card" aria-label="Etapas"><div class="v2c-card-topo"><h2>Etapas</h2><small>parada média</small></div><ol class="d3c-etapas">${etapasDoFiltro.map((e, i) => {
-      const nelas = emAberto.filter((o) => !o.situacao.concluido && o.situacao.atual?.id === e.id), dias = nelas.length ? Math.round(nelas.reduce((t, o) => t + (o.situacao.atual?.dias_parada || 0), 0) / nelas.length) : null;
-      return `<li><span>${i + 1}</span><b>${esc(e.nome)}</b><em>${nelas.length}</em><small${dias != null && dias > DIAS_PARADO ? ' class="d3c-a"' : ''}>${dias == null ? '—' : `${dias} d`}</small></li>`; }).join('')}</ol></section>`;
-    const config = (sv.pode?.etapas && ligado) || (!ligado && souAdminAqui()) ? `<section class="v2c-card d3c-lado-card d3c-config" aria-label="Configuração"><h2>Configuração</h2><span class="d3c-selo">admin</span>
-      ${ligado ? botao('Configurar etapas', 'data-vc-ed-abrir') : botao('Ver o que falta', `data-vc-falta aria-expanded="${estado.verFalta}"`)}</section>` : '';
-    return { topo, corpo: `${ajuda}${iniciar}${fala}${numeros}${filtros}<div class="d3c-onb-grade"><section class="v2c-card v2c-quadro" aria-label="Clientes em entrada">${cab}${quadro}${peQuadro}</section>
-      <div class="d3c-lado">${tempoEntrada}${etapasCard}${config}</div></div>${fechados}${pe}` };
+    const chips = `<span class="ob2-chips" role="group" aria-label="Filtrar pela etapa">${[['todas', 'Todas as etapas', emAberto.length], ...etapasDoFiltro.map((e) => [e.id, e.nome, nelas(e.id).length])]
+      .filter(([id, , q]) => id === 'todas' || q > 0 || estado.etapaOnb === id).map(([id, rotulo, q]) => `<button type="button" class="ob2-chip" data-vc-etapa-onb="${esc(id)}" aria-pressed="${estado.etapaOnb === id}">${esc(rotulo)}<span>${q}</span></button>`).join('')}</span>`;
+    const linhas = [...pedeAcao.map((o, i) => linhaOnboarding(o, etapas, i ? '' : 'Agora')), ...cabem.map((o, i) => linhaOnboarding(o, etapas, i ? '' : 'Andando'))];
+    const fechados = estado.verEncerrados ? encerrados.filter((o) => !termo || semAcento(o.cliente).includes(termo)) : [];
+    linhas.push(...fechados.map((o, i) => linhaOnboarding(o, etapas, i ? '' : 'Encerrados')));
+    const vazioDaLista = !ligado ? (typeof fv2VazioHtml === 'function' ? fv2VazioHtml('relogio', 'O onboarding ainda não está disponível', 'Quando estiver, quem está entrando aparece aqui.') : '<div class="fv2-vazio"><b>O onboarding ainda não está disponível</b></div>')
+      : !emAberto.length ? `<div class="fv2-vazio"><b>Nenhum cliente em entrada</b><span>Cliente novo ou contrato novo de um cliente da casa abre a esteira.</span></div>`
+      : `<div class="fv2-vazio"><b>Nenhum cliente neste filtro</b>${btnOb('Ver todos', 'data-vc-etapa-onb="todas" data-vc-limpar')}</div>`;
+    const folhaLista = `<section class="fv2-folha ob2-lista" aria-label="Clientes em entrada">
+      <div class="ob2-cab"><h3>${plural(emAberto.length, 'cliente em entrada', 'clientes em entrada')}${emAberto.length > 1 ? '<span> · o parado há mais tempo primeiro</span>' : ''}</h3>${ligado && emAberto.length ? chips : ''}</div>
+      ${linhas.length ? `<div class="ob2-th" aria-hidden="true"><span class="ob2-th-l"><span></span><span></span><span>Cliente</span><span>Etapas</span><span>Agora</span><span>Parado</span><span>Head</span></span><span></span></div>
+      <ol class="ob2-linhas">${linhas.join('')}${resto > 0 ? `<li class="ob2-mais">+ ${plural(resto, 'cliente', 'clientes')} andando · ${ligacao('mostrar', 'data-vc-mais="onboarding"')}</li>` : ''}</ol>` : vazioDaLista}</section>`;
+    // "Quanto cada etapa demora": a média de quem já passou por ela, com a barra (vermelha acima de DIAS_PARADO) e quem está nela agora.
+    const porEtapa = diasPorEtapa(lista), medias = etapasDoFiltro.map((e) => { const x = porEtapa.get(e.id) || []; return x.length ? x.reduce((t, d) => t + d, 0) / x.length : null; });
+    const teto = Math.max(DIAS_PARADO * 1.5, ...medias.filter((m) => m != null));
+    const folhaEtapas = `<section class="fv2-folha ob2-etapas" aria-label="Quanto cada etapa demora">
+      <div class="ob2-cab"><h3>Quanto cada etapa demora</h3><span class="ob2-cab-nota">média de quem já passou, em dias</span></div>
+      <ol class="ob2-et-linhas">${etapasDoFiltro.map((e, i) => { const m = medias[i], q = nelas(e.id).length, itens = (e.itens || []).map((x) => x.texto.replace(/^./, (c) => c.toLowerCase())).join(', ');
+        return `<li class="ob2-et"><i class="fv2-n">${i + 1}</i><span class="ob2-et-nm"><b>${esc(e.nome)}</b>${itens ? ` <span>· ${esc(itens)}</span>` : ''}</span>
+          <span class="ob2-et-barra${m != null && m > DIAS_PARADO ? ' r' : ''}" role="img" aria-label="${esc(`${e.nome}: ${diasTxt(m)} em média`)}"><i style="--v:${m == null ? 0 : Math.max(3, Math.round((m / teto) * 100))}%"></i></span>
+          <span class="ob2-et-d">${m == null ? '—' : m < 0.5 ? '<b>&lt;1</b> dia' : `<b>${Math.round(m)}</b> ${Math.round(m) === 1 ? 'dia' : 'dias'}`}</span>
+          <span class="ob2-et-q">${q ? plural(q, 'cliente agora', 'clientes agora') : 'ninguém agora'}</span></li>`; }).join('')}</ol>
+      <div class="ob2-olho"><span class="ob2-olho-rot">De olho</span>
+        <span class="ob2-olho-i"><b>${media == null ? '—' : plural(media, 'dia', 'dias')}</b><small>tempo médio de entrada</small></span>
+        <button type="button" class="ob2-olho-i" data-vc-encerrados aria-expanded="${estado.verEncerrados}"${encerrados.length ? '' : ' disabled'}><b class="${concluidosMes.length ? 'g' : ''}">${concluidosMes.length}</b><small>${concluidosMes.length === 1 ? 'concluído' : 'concluídos'} em ${esc(nomeMes)}</small></button>
+        ${pior ? `<button type="button" class="ob2-olho-i" data-vc-abrir="o:${esc(pior.cliente_id)}" data-vc-focar="linha"><b class="r">${parados.length}</b><small>${parados.length === 1 ? 'parado' : 'parados'} há ${DIAS_PARADO + 1} dias ou mais</small></button>` : `<span class="ob2-olho-i"><b>0</b><small>parado há ${DIAS_PARADO + 1} dias ou mais</small></span>`}</div></section>`;
+    // O vidro: o laranja só com ação (auditoria 15/11, itens 3 e 27); sem ação, a frase calma no vidro.
+    const foco = pior || pedem[0] || emAberto[0] || null;
+    const AG = AGENTE;
+    const laranja = (rotulo, n, frase, apoio, botoes) => `<section class="d3-acao d3m-laranja ob2-laranja" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${esc(AG.nome[0])}</span>${esc(AG.nome)} · ${esc(rotulo)}</span>
+      <span class="d3m-lar-txt">${n === '' ? '' : `<b class="d3m-lar-num">${esc(n)}</b>`}<span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}<span class="d3m-lar-bts">${botoes}</span></span></section>`;
+    const calmo = (frase, texto) => `<section class="ob2-calmo" aria-label="${esc(`${AG.nome}, ${AG.papel}`)}"><b>${frase}</b><span>${texto}</span></section>`;
+    const faltaDe = (o) => { const def = etapas.find((e) => e.id === o.situacao.atual?.id), f = o.etapas?.[def?.id]?.feitos || {}; return (def?.itens || []).filter((i) => !f[i.id]); };
+    let alto;
+    if (!ligado) alto = calmo('O onboarding ainda não está disponível.', 'Quando estiver, quem está entrando aparece aqui.');
+    else if (!emAberto.length) alto = podeComecar ? laranja('ninguém entrando', '', 'Ninguém entrando agora.', 'Cliente novo ou contrato novo de um cliente da casa abre a esteira.', btnLar('Novo onboarding', 'data-vc-novo')) : calmo('Ninguém entrando agora.', 'Quando um cliente novo entrar, a esteira aparece aqui.');
+    else if (pior) {
+      const falta = faltaDe(pior), d = pior.situacao.atual?.dias_parada ?? 0, pode = podeOnboarding(pior.cliente_id);
+      const principal = pode && pior.situacao.atual?.id === 'kickoff' && typeof window.abrirReuniao === 'function' ? btnLar('Marcar o kickoff', `data-vc-kickoff="${esc(pior.cliente || '')}"`)
+        : btnLar('Ver o checklist', `data-vc-abrir="o:${esc(pior.cliente_id)}" data-vc-focar="linha"`);
+      alto = laranja('parado na entrada', plural(d, 'dia', 'dias'), `em ${esc(String(pior.situacao.atual?.nome || 'etapa').toLowerCase())} com ${esc(pior.cliente || 'o cliente')}`,
+        `${falta.length ? `Falta ${esc(falta[0].texto.replace(/^./, (c) => c.toLowerCase()))}${falta.length > 1 ? ` e mais ${falta.length - 1}` : ''}.` : ''}${parados.length > 1 ? ` Mais ${plural(parados.length - 1, 'cliente parado', 'clientes parados')}.` : ''}`,
+        `${principal}${btnLar('Abrir a ficha', `data-vc-cliente="${esc(pior.cliente || '')}"`, true)}`);
+    } else if (pedem.length) {
+      const um = pedem[0];
+      alto = laranja('pede ação', String(pedem.length), pedem.length === 1 ? `${esc(um.cliente || 'cliente')} pede ação na entrada` : 'clientes pedem ação na entrada',
+        esc(pedem.slice(0, 3).map((o) => `${o.cliente}: ${sitDe.get(o).texto.toLowerCase()}`).join(' · ')), btnLar(pedem.length === 1 ? `Ver ${um.cliente || 'o cliente'}` : 'Ver o primeiro', `data-vc-abrir="o:${esc(um.cliente_id)}" data-vc-focar="linha"`));
+    } else alto = calmo(`${plural(emAberto.length, 'cliente entrando', 'clientes entrando')} · nenhum travou.`, 'Cada etapa anda com o responsável dela.');
+    const podeFoco = foco && podeOnboarding(foco.cliente_id) && typeof window.abrirReuniao === 'function';
+    const questionario = podeFoco ? consulta('O questionário', foco.cliente || '', vlin('Link para o cliente', 'ele responde sozinho', `data-vc-quest="link" data-vc-cli="${esc(foco.cliente_id)}"`)
+      + vlin('Preencher na reunião', '', `data-vc-quest="junto" data-vc-cli="${esc(foco.cliente_id)}" data-vc-nome="${esc(foco.cliente || '')}"`)) : '';
+    const abrirLinhas = [
+      sv.pode?.etapas && ligado ? vlin('Configurar as etapas', '', 'data-vc-ed-abrir') : '',
+      window.VybeReunioes?.abrir ? vlin('Reuniões', 'kickoffs marcados', 'data-vc-reunioes') : '',
+      vlin('Como funciona', 'as etapas e os itens', `data-vc-como aria-expanded="${estado.ajuda}"`),
+      encerrados.length ? vlin(`${estado.verEncerrados ? 'Esconder' : 'Ver'} encerrados`, String(encerrados.length), `data-vc-encerrados aria-expanded="${estado.verEncerrados}"`) : '',
+      !ligado && souAdminAqui() ? vlin('Ver o que falta', 'para ligar o onboarding', `data-vc-falta aria-expanded="${estado.verFalta}"`) : '',
+    ].join('');
+    const lado = `${alto}${estado.ajuda ? comoFuncionaHtml(etapas, sv.etapas_padrao) : ''}${questionario}${consulta('Abrir', sv.pode?.etapas ? 'quem administra' : '', abrirLinhas)}
+      ${ligado && !podeComecar ? '<p class="ob2-nota">Só quem administra, o Atendimento e os heads começam um onboarding.</p>' : ''}`;
+    // Sem a esteira ligada, para quem administra, o que falta.
+    const pe = ligado || !(estado.verFalta && souAdminAqui()) ? '' : `<p class="ob2-nota ob2-tec"><small class="vc-ativacao-tec">Falta aplicar a migração <code>${esc(sv.migracao || '2026-11-07-carteira.sql')}</code> no banco. Depois disso, esta parte aparece sozinha.</small></p>`;
+    return { v2: true, titulo: titulo(sub), topo, corpo: `<div class="fv2-duas ob2-duas"><div class="fv2-col">${iniciar}${fichas}${folhaLista}${folhaEtapas}</div><aside class="d3m-lado fv2-lado" aria-label="Consulta">${lado}${pe}</aside></div>` };
   }
 
   // ---------- Churn ----------
@@ -724,7 +779,7 @@
   // O cartão laranja: quem fala e sobre o quê, o número grande, a frase, a linha de apoio e até dois botões.
   const larMq = (ag, rot, n, frase, apoio, bts) => `<section class="d3m-laranja d3m-d-ct-pesa" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${esc(ag.nome[0])}</span>${esc(ag.nome)} · ${esc(rot)}</span>
       <div class="d3m-lar-txt">${n !== '' && n != null ? `<b class="d3m-lar-num">${esc(n)}</b>` : ''}<span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div></section>`;
-  const btnLar = (rotulo, attrs, s = false) => `<button type="button" class="d3m-btn l${s ? ' s' : ''}" ${attrs}>${esc(rotulo)}</button>`;
+  // Os botões do cartão laranja usam o btnLar do Onboarding (lá em cima): o mesmo botão, declarado uma vez só.
   // Número em folha: rótulo e selo em cima; embaixo o número de 28 (na cor do que diz), a linha de apoio e o gráfico.
   function numMq({ rotulo, selo = '', ic = '', valor, de = '', tom = '', sub = '', graf = '', attrs = '' }) {
     const tag = attrs ? 'button' : 'div';
@@ -1093,7 +1148,8 @@
     const t = lendo ? { corpo: '<p class="vc-carregando" role="status">Lendo a carteira…</p>' } : ({ saude: abaSaude, onboarding: abaOnboarding, churn: abaChurn, contratos: abaContratos }[estado.aba] || abaSaude)();
     const erro = estado.erro && !estado.carregando ? `<p class="vc-erro" role="alert">${esc(estado.erro)} ${secundario('Tentar de novo', 'data-vc-recarregar')}</p>` : '';
     const abas = abasVisiveis().length > 1 ? `<div class="vc-abas" role="tablist" aria-label="Partes da Carteira">${abasVisiveis().map(([k, r]) => `<button type="button" role="tab" id="vc-aba-${k}" aria-controls="vc-corpo" aria-selected="${estado.aba === k}" tabindex="${estado.aba === k ? 0 : -1}" data-vc-aba="${k}">${r}</button>`).join('')}</div>` : '';
-    return `<div class="v2c" data-tela="${estado.aba}"><div class="v2c-topo"><h2 id="vc-titulo">${esc(TITULO_DA_ABA[estado.aba])}</h2>${t.topo || ''}${FECHAR}</div>${abas}
+    // Onboarding na prancha V2 (t.v2): o título com a frase do momento e as peças do vidro (zm-b-modulos.css).
+    return `<div class="v2c${t.v2 ? ' ob2' : ''}" data-tela="${t.v2 ? `${estado.aba}-v2` : estado.aba}"><div class="v2c-topo">${t.titulo || `<h2 id="vc-titulo">${esc(TITULO_DA_ABA[estado.aba])}</h2>`}${t.topo || ''}${t.v2 ? FECHAR.replace('class="v2c-x"', 'class="ob2-x"') : FECHAR}</div>${abas}
       <p class="vc-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
       <div class="vc-corpo v2c-corpo" id="vc-corpo" role="tabpanel">${erro}${t.corpo}</div></div>`;
   }
@@ -1135,6 +1191,7 @@
     const valor = chave ? foco.getAttribute(chave) : null, item = foco?.dataset?.vcCli;
     j.className = TELAS_M.has(estado.aba) ? 'vc-janela d3m-d-m' : 'vc-janela';
     j.innerHTML = htmlJanela();
+    j.classList?.[estado.aba === 'onboarding' ? 'add' : 'remove']?.('ob2-janela'); // a janela de vidro da prancha V2 (zm-b-modulos.css)
     if (chave === 'data-vc-busca-onb' || chave === 'data-vc-busca') { const campo = j.querySelector(`[${chave}]`); campo?.focus?.(); campo?.setSelectionRange?.(campo.value.length, campo.value.length); }
     const novoCorpo = j.querySelector('.vc-corpo');
     if (novoCorpo && rolagem) novoCorpo.scrollTop = rolagem; // gravar 0 numa janela nova só forçaria um layout da página inteira
@@ -1220,6 +1277,7 @@
       } });
       return;
     }
+    if ('vcReunioes' in d) { fechar({ foco: false }); return window.VybeReunioes?.abrir?.(); }
     if (d.vcKickoff) return window.abrirReuniao?.(d.vcKickoff, '', { tipo: 'onboarding', titulo: `Kickoff - ${d.vcKickoff}` });
     if (d.vcQuest) return d.vcQuest === 'junto' ? window.abrirQuestionario?.(d.vcCli, d.vcNome || '') : window.onboardingLink?.(d.vcCli);
     if (d.vcOnb) return gravar({ acao: d.vcOnb, cliente_id: d.vcCli }, d.vcOnb === 'onboarding_encerrar' ? 'Onboarding encerrado.' : 'Onboarding reaberto.');
@@ -1281,8 +1339,8 @@
     const linha = [...(estado.janela?.querySelectorAll?.('[data-vc-linha]') || [])].find((x) => x.dataset.vcLinha === chave);
     if (!linha) return pintar();
     linha.setAttribute('aria-expanded', String(abrindo));
-    linha.querySelector('.v2c-abrir, [data-vc-abrir]')?.setAttribute('aria-expanded', String(abrindo));
-    if (focar) { linha.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); (focar === 'resp' ? [...linha.querySelectorAll('select[data-vc-resp]')].find((x) => !x.value && !x.disabled) : linha.querySelector('.v2c-abrir, [data-vc-abrir]'))?.focus?.({ preventScroll: true }); }
+    linha.querySelector('.v2c-abrir, .ob2-abrir, [data-vc-abrir]')?.setAttribute('aria-expanded', String(abrindo));
+    if (focar) { linha.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); (focar === 'resp' ? [...linha.querySelectorAll('select[data-vc-resp]')].find((x) => !x.value && !x.disabled) : linha.querySelector('.v2c-abrir, .ob2-abrir, [data-vc-abrir]'))?.focus?.({ preventScroll: true }); }
   }
   function aoDigitar(e) {
     if (e.target?.matches?.('[data-vc-busca]')) { estado.busca[estado.aba] = e.target.value.slice(0, 60); delete estado.limite[estado.aba]; pintar(); return; }
