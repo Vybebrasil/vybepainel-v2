@@ -2102,7 +2102,7 @@ export default async function handler(req, res) {
     return logoDoCliente(req, res, sql(), { comSessao });
   }
   if (areaPublica === 'portal') {
-    try { return await portalDoCliente(req, res, sql()); }
+    try { return await portalDoCliente(req, res, sql(), { fazer: { trocarStatus, comentar }, miniatura: miniaturaDoDrive }); }
     catch (erro) { return falhaInterna(res, 'portal', erro); }
   }
   // Convidado do Escritório: entra por um link assinado, sem conta

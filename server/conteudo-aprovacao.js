@@ -282,7 +282,7 @@ export function lerLote(corpo = {}) {
 // nesta conexão; cada comTransacao (o motor das automações, o comentário) ganha um SAVEPOINT: se a
 // automação de uma peça falhar, desfaz só o que ela fez, como na aprovação de uma peça, e a falha vai para
 // o histórico pelo mesmo caminho (registrarFalhaDeEncaminhamento).
-function dentroDoLote(tx) {
+export function dentroDoLote(tx) {
   let n = 0;
   const s = (partes, ...valores) => tx(partes, ...valores);
   s.query = (texto, valores) => tx.query(texto, valores);

@@ -5,6 +5,7 @@
 //   area=agentes        conector MCP dos agentes de conteúdo (chave própria)
 import { timingSafeEqual } from 'node:crypto';
 import * as P from './planejamentos.js';
+import { gradeDoPortal, responderGradeDoPortal, imagemDaGradeDoPortal } from './grade-do-cliente.js';
 import { documentoHtml, nomeDoMes, pecasComRevisao } from './planejamento-documento.js';
 import { enviarEmail, emailConfigurado } from './email.js';
 import { FERRAMENTAS as FERRAMENTAS_ECOSSISTEMA, executarFerramenta as executarNoEcossistema } from './mcp-ecossistema.js';
@@ -207,7 +208,7 @@ const chavePortalConfere = (req) => {
  const a = Buffer.from(enviada), b = Buffer.from(certa);
  return a.length === b.length && timingSafeEqual(a, b);
 };
-export async function portalDoCliente(req, res, sql) {
+export async function portalDoCliente(req, res, sql, opcoes = {}) {
  if (!chavePortalConfere(req)) return res.status(401).json({ error: 'Chave do portal inválida.' });
  if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
  const b = corpoDe(req);
@@ -218,6 +219,10 @@ export async function portalDoCliente(req, res, sql) {
   if (b.rota === 'marcar') return res.status(200).json({ ok: true, resumo: await P.marcarPecaDoPortal(sql, b) });
   // O documento com a diagramação do painel, para o VybeHub mostrar (uma diagramação só).
   if (b.rota === 'documento') { const p = await P.planejamentoDoPortal(sql, b); return res.status(200).json({ ok: true, versao: p.versao, estado: p.estado, html: documentoHtml(p, { paraCliente: true, modo: 'portal' }) }); }
+  // Grade do mês no feed do cliente (server/grade-do-cliente.js): ver, responder e as imagens.
+  if (b.rota === 'grade') return res.status(200).json({ ok: true, ...(await gradeDoPortal(sql, b)) });
+  if (b.rota === 'grade_responder') return res.status(200).json({ ok: true, ...(await responderGradeDoPortal(sql, b, opcoes.fazer)) });
+  if (b.rota === 'grade_imagem') return res.status(200).json({ ok: true, ...(await imagemDaGradeDoPortal(sql, b, { miniatura: opcoes.miniatura })) });
   return res.status(400).json({ error: 'Ação inválida.' });
  } catch (e) { return falha(res, e); }
 }
