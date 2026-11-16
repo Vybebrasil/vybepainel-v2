@@ -14,7 +14,7 @@ test('o baralho de aprovação ganha o leque das artes ao lado da carta de infor
   assert.ok(js.includes('style="--lp:${d};--alp:${a}"${a > LEQUE_LADO ? \' hidden\' : \'\'}'));
   // Passar de peça gira o leque no lugar (sem pintar a tela de novo) e clicar numa arte vai até ela.
   assert.ok(js.includes("c.style.setProperty('--lp', d); c.style.setProperty('--alp', a); c.hidden = a > LEQUE_LADO; c.classList.toggle('vez', d === 0);"));
-  assert.ok(js.includes('if (t.dataset.vcLeque !== undefined) { st.lote = []; return passar(Number(t.dataset.vcLeque)); }'));
+  assert.ok(js.includes('if (t.dataset.vcLeque !== undefined) { st.lote = []; if (Number(t.dataset.vcLeque) === st.apr) return imerAbrir(); return passar(Number(t.dataset.vcLeque)); }'));
   // As decisões continuam pelos portões de sempre.
   assert.match(js, /d\.portao\(d\.item, d\.opcao\);/);
 });

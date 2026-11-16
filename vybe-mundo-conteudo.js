@@ -297,13 +297,44 @@
       i.horas == null ? null : ['espera', `<b class="${i.horas >= 24 ? 'a' : ''}">${i.horas < 1 ? 'entrou agora' : esc(esperaHa(i.horas))}</b>`],
       fez.length && fez[0].papel === 'Fez a peça' ? ['arte', esc(fez.map((p) => p.nome).join(', '))] : null,
       heads.length ? ['head', esc(heads.join(', '))] : null].filter(Boolean);
-    return `<article class="v2-carta v2c-carta"${pos ? ` data-pos="${pos}"` : ''} data-vc-carta="${k}" data-carteira="${esc(carteira || '')}" aria-hidden="${pos !== '0'}">
+    // O painel ao lado da arte (Paulo, 15/11/2026: "do lado, com a copy certinha como ia ficar no Insta, quem fez, as
+    // infos"): o post como sai no Instagram (o @ e a foto do cliente, a legenda inteira), quem fez e as informações,
+    // cada uma com a sua cor (status, formato, objetivo, quando vai ao ar, espera).
+    const ig = perfilDoCliente(i.cliente);
+    const prazo = String(i.prazo || item?.prazo_iso || '').slice(0, 10);
+    const infos = [
+      ['status', 'Status', `<span class="d3a-st"${corSt ? ` style="--d3-st:${esc(corSt)}"` : ''}><i aria-hidden="true"></i>${esc(i.status || 'Para aprovação')}</span>`],
+      i.formato ? ['formato', 'Formato', esc(i.formato)] : null,
+      o ? [`obj-${o}`, 'Objetivo', esc(E.ROTULO[o])] : null,
+      ['ar', 'Vai ao ar', `<b class="${q.tom === 'r' ? 'r' : q.tom === 'a' ? 'a' : ''}">${esc(noAr || q.frase)}</b>`],
+      prazo ? ['prazo', 'Prazo de ouro', esc(diaMes(prazo))] : null,
+      i.horas == null ? null : ['espera', 'Esperando', `<b class="${i.horas >= 24 ? 'a' : ''}">${i.horas < 1 ? 'entrou agora' : esc(esperaHa(i.horas))}</b>`],
+    ].filter(Boolean);
+    const pessoas = [...fez.map((p) => ({ ...p, papel: p.papel === 'Fez a peça' ? 'Fez a peça' : p.papel })),
+      ...heads.filter((h) => !fez.some((p) => p.nome === h)).map((nome) => ({ nome, papel: 'Head do cliente' }))]
+      .filter((p, n, l) => l.findIndex((x) => x.nome === p.nome) === n).slice(0, 4);
+    return `<article class="v2-carta v2c-carta d3a-ig"${pos ? ` data-pos="${pos}"` : ''} data-vc-carta="${k}" data-carteira="${esc(carteira || '')}" aria-hidden="${pos !== '0'}">
       <span class="d3a-arte-caixa"><button type="button" class="v2c-arte${thumb?.thumb ? '' : ' vazia'}" data-vc-apr-ver="${k}" title="Abrir a peça" aria-label="Abrir a peça: ${esc(i.titulo)}"${pos === '0' ? '' : ' tabindex="-1"'}>${i.formato ? `<span class="d3a-selo">${esc(i.formato)}</span>` : ''}${arte}</button></span>
-      <div class="d3a-info"><p class="v2c-nome"><b>${esc(nomeDaPeca(i))}</b></p>
-        <p class="v2c-meta">${cliHtml(i.cliente)}${avsHtml(fez)}</p>
-        <p class="d3a-pills"><span class="d3a-pill"${corSt ? ` style="--d3-st:${esc(corSt)}"` : ''}><i aria-hidden="true"></i>${esc(i.status || 'Para aprovação')}</span>${i.formato ? `<span class="d3a-pill">${esc(i.formato)}</span>` : ''}${o ? `<span class="d3a-pill v2c-pill ${PILULA_OBJETIVO[o]}">${E.ROTULO[o]}</span>` : ''}</p>
-        ${dados.length ? `<dl class="d3a-dados">${dados.map(([r, v]) => `<dt>${r}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}
-        ${legenda ? `<p class="v2c-leg">${esc(legenda)}</p>` : ''}</div></article>`;
+      <div class="d3a-info">
+        <p class="d3a-ig-tit"><b>${esc(nomeDaPeca(i))}</b><span>${cliHtml(i.cliente)}</span></p>
+        <section class="d3a-ig-post" aria-label="Como fica no Instagram">
+          <header class="d3a-ig-cab"><span class="d3a-ig-av">${ig.foto ? `<img src="${esc(ig.foto)}" alt="" loading="lazy">` : esc(ig.iniciais)}</span><b>${esc(ig.usuario || ig.nome)}</b><small>como fica no Instagram</small></header>
+          <p class="d3a-ig-leg">${legenda ? `<b>${esc(ig.usuario || ig.nome)}</b> ${esc(legenda)}` : '<span class="d3a-ig-sem">A legenda ainda não foi escrita. O Augusto (Copy) sugere, ou escreva na peça.</span>'}</p>
+        </section>
+        ${pessoas.length ? `<section class="d3a-ig-quem" aria-label="Quem fez"><h4>Quem fez</h4>${pessoas.map((p) => `<span class="d3a-ig-pessoa">${avHtml(p)}<span><b>${esc(p.nome)}</b><small>${esc(p.papel)}</small></span></span>`).join('')}</section>` : ''}
+        <dl class="d3a-ig-infos">${infos.map(([cor, r, v]) => `<div class="d3a-ig-info" data-cor="${esc(cor)}"><dt><i aria-hidden="true"></i>${r}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      </div></article>`;
+  }
+  // O @ e a foto do cliente para o "como fica no Instagram": do cadastro e, se o Feed já leu o perfil, a foto de lá.
+  function perfilDoCliente(cliente) {
+    const nome = String(cliente || '').split(',')[0].trim();
+    const linhas = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
+    const linha = linhas.find((c) => normal(c.nome) === normal(nome)) || {};
+    const bruto = String(linha.cadastro?.instagram || linha.instagram || '');
+    const usuario = typeof feedUsuario === 'function' ? feedUsuario(bruto) : bruto.replace(/^@/, '').toLowerCase();
+    const perfil = usuario && typeof FEED !== 'undefined' ? FEED.perfis?.get?.(usuario) : null;
+    const foto = perfil && !perfil.erro && perfil.foto && typeof feedFotoIg === 'function' ? feedFotoIg(perfil.foto) : '';
+    return { nome, usuario, foto, iniciais: nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase() };
   }
   // O leque (Paulo, 15/11/2026: "melhora a forma de mostrar os conteúdos para aprovar... quero foda assim também", com o
   // card fan de referência): as artes da fila abertas como cartas na mão, a da vez de pé no meio, as anteriores à
@@ -386,7 +417,7 @@
       <p class="v2c-conta"><span>${plural(fila.length, 'peça', 'peças')} · toque para decidir · <button type="button" class="v2c-link" data-vc-apr-lista>ver em baralho</button></span></p></div>`;
     const pontos = fila.length <= 12 ? `<span class="v2-pontos" aria-hidden="true">${fila.map((_, k) => `<i${k === st.apr ? ' class="on"' : ''}></i>`).join('')}</span>` : '';
     // Direção 3: o cartão "Para aprovar" com o baralho, ‹ Pedir alteração · Aprovar › embaixo e os pontos.
-    return `<div class="v2c-mesa"><section class="d3a-card d3a-mesa" aria-label="Para aprovar"><div class="d3a-topo"><h3>Para aprovar</h3><span><b data-vc-apr-conta>${st.apr + 1} de ${fila.length}</b> · <button type="button" class="v2c-link" data-vc-apr-lista>ver em lista</button></span></div>
+    return `<div class="v2c-mesa"><section class="d3a-card d3a-mesa" aria-label="Para aprovar"><div class="d3a-topo"><h3>Para aprovar</h3><span><b data-vc-apr-conta>${st.apr + 1} de ${fila.length}</b> · <button type="button" class="v2c-link" data-vc-apr-lista>ver em lista</button> · <button type="button" class="d3a-tela-cheia" data-vc-im-abrir>Aprovar em tela cheia</button></span></div>
         <div class="d3a-palco"><div class="d3a-leque">${fila.map(lequeHtml).join('')}</div><div class="v2-baralho vc-apr-baralho" aria-live="polite">${fila.map(cartaHtml).join('')}</div></div>
         <div class="v2c-acoes"><button type="button" class="v2c-btn d3a-passo" data-vc-apr-passo="-1" aria-label="Anterior"${st.apr <= 0 ? ' disabled' : ''}>‹</button><button type="button" class="v2c-btn g" data-vc-apr="alterar">Pedir alteração</button><button type="button" class="v2c-btn g k" data-vc-apr="aprovar">Aprovar</button><button type="button" class="v2c-btn d3a-passo" data-vc-apr-passo="1" aria-label="Próxima"${st.apr >= fila.length - 1 ? ' disabled' : ''}>›</button></div>
         <p class="v2c-conta">${pontos}</p></section></div>`;
@@ -697,6 +728,152 @@
   }
   function vazio(titulo, detalhe = '', botao = '') { return `<div class="vc-vazio"><b>${esc(titulo)}</b>${detalhe ? `<span>${esc(detalhe)}</span>` : ''}${botao}</div>`; }
 
+  // ---------- Aprovar em tela cheia (modo imersivo) ----------
+  // Paulo, 15/11/2026: "olha a diferença... tá zoando?" (com a referência dos painéis de vidro do visionOS) e "na hora de
+  // mostrar um conteúdo pra aprovar, do lado a copy certinha como ia ficar no Insta, quem fez, as infos... os princípios
+  // de modernidade". O fundo é a própria arte, ampliada e desfocada (cada peça muda a luz da tela); no centro, um cartão
+  // de vidro claro com a arte grande e a copy como sai no Instagram; à esquerda a anterior, à direita quem fez, os
+  // detalhes (cada um com a sua cor) e a próxima; embaixo, a cápsula com Pedir alteração e Aprovar (o laranja é a ação).
+  // As decisões passam pelos portões de sempre (decidir): enquanto um portão está aberto, a tela cheia se recolhe.
+  const imer = { aberta: false, lado: '' };
+  function imerAbrir() { if (!filaParaAprovar()?.fila?.length) return; imer.aberta = true; imer.lado = ''; pintarImersao(); }
+  function imerFechar() {
+    imer.aberta = false;
+    document.body.classList.remove('vc-imersivo');
+    document.getElementById('vv-conteudo')?.classList.remove('vc-com-imersao');
+    const el = document.getElementById('vc-imersao');
+    if (el) { el.classList.remove('vc-im-entrou'); setTimeout(() => { if (!imer.aberta) el.remove(); }, 320); }
+  }
+  function imerIr(passo) {
+    const fila = filaParaAprovar()?.fila || [];
+    const novo = Math.max(0, Math.min(fila.length - 1, st.apr + passo));
+    if (novo === st.apr) return;
+    imer.lado = passo > 0 ? 'dir' : 'esq';
+    st.lote = [];
+    passar(novo);
+    pintarImersao();
+  }
+  const fotoGrande = (p) => (p?.thumb ? String(p.thumb).replace(/=s\d+(-[a-z]+)?$/i, '=s1600').replace(/sz=w?\d+/i, 'sz=w1600') : '');
+  function imerArte(i, grande) {
+    const ref = String(i.ref), p = st.thumbs[ref];
+    if (p === undefined) buscarThumb(ref);
+    if (p?.thumb) return `<img src="${esc(grande ? fotoGrande(p) : p.thumb)}" alt="${esc(`Arte de ${i.titulo || 'peça'}`)}" loading="lazy" data-vc-previa="${esc(ref)}">${p.tipo === 'video' ? '<i class="vc-im-play" aria-label="Vídeo">▶</i>' : p.n > 1 ? `<i class="vc-im-n" aria-label="Carrossel com ${p.n} imagens">1/${p.n}</i>` : ''}`;
+    return `<span class="vc-im-sem"><b>${esc(i.formato || 'Peça')}</b><small>${p === undefined ? 'Buscando a arte…' : 'A arte ainda não foi anexada'}</small></span>`;
+  }
+  function imerMini(i, lado) {
+    const q = quando(i);
+    return `<button type="button" class="vc-im-mini vc-im-vidro" data-vc-im="${lado < 0 ? 'ant' : 'prox'}" aria-label="${lado < 0 ? 'Peça anterior' : 'Próxima peça'}: ${esc(nomeDaPeca(i))}">
+      <span class="vc-im-mini-rot">${lado < 0 ? '‹ Anterior' : 'Próxima ›'}</span>
+      <span class="vc-im-mini-arte">${imerArte(i, false)}</span>
+      <b>${esc(nomeDaPeca(i))}</b><small>${esc(String(i.cliente || '').split(',')[0].trim())} · ${esc(q.curto)}</small></button>`;
+  }
+  function pintarImersao() {
+    if (!imer.aberta) return;
+    const f = filaParaAprovar(), fila = f?.fila || [];
+    let el = document.getElementById('vc-imersao');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'vc-imersao'; el.className = 'vc-im';
+      el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Aprovar uma peça por vez');
+      // Dentro da janela da Aprovação: o menu e a barra do Vybe OS continuam à vista (Paulo, 15/11/2026: "agora
+      // parece que tô saindo do sistema").
+      const j = janela(); j.scrollTop = 0; j.classList.add('vc-com-imersao'); j.append(el);
+      document.body.classList.add('vc-imersivo');
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('vc-im-entrou')));
+    }
+    if (!fila.length) {
+      el.innerHTML = `<div class="vc-im-fundo vc-im-fundo-vazio"></div><div class="vc-im-fim vc-im-vidro"><b>Tudo aprovado por aqui.</b><span>Nada esperando a sua aprovação agora.</span><button type="button" class="vc-im-btn k" data-vc-im="fechar">Voltar</button></div>`;
+      return;
+    }
+    st.apr = Math.max(0, Math.min(st.apr, fila.length - 1));
+    const i = fila[st.apr], ant = fila[st.apr - 1], prox = fila[st.apr + 1];
+    const ref = String(i.ref), p = st.thumbs[ref], item = itemDoPainel(i), ig = perfilDoCliente(i.cliente);
+    const legenda = String(item?.legenda || '').trim(), o = objetivoDe(i.ref), q = quando(i), noAr = quandoNoAr(i);
+    const prazo = String(i.prazo || item?.prazo_iso || '').slice(0, 10);
+    const corSt = (typeof corDeStatus === 'function' ? corDeStatus(i.status || '')?.cor : '') || '';
+    const fez = quemFez(i), heads = (i.heads || []).map((h) => h.nome).filter(Boolean);
+    const pessoas = [...fez, ...heads.filter((h) => !fez.some((x) => x.nome === h)).map((nome) => ({ nome, papel: 'Head do cliente' }))]
+      .filter((x, n, l) => l.findIndex((y) => y.nome === x.nome) === n).slice(0, 4);
+    const detalhes = [
+      ['status', 'Status', `<span${corSt ? ` style="--d3-st:${esc(corSt)}"` : ''}>${esc(i.status || 'Para aprovação')}</span>`],
+      i.formato ? ['formato', 'Formato', esc(i.formato)] : null,
+      o ? [`obj-${o}`, 'Objetivo', esc(E.ROTULO[o])] : null,
+      ['ar', 'Vai ao ar', `<b class="${q.tom === 'r' ? 'r' : ''}">${esc(noAr || q.frase)}</b>`],
+      prazo ? ['prazo', 'Prazo de ouro', esc(diaMes(prazo))] : null,
+      i.horas == null ? null : ['espera', 'Esperando', esc(i.horas < 1 ? 'entrou agora' : esperaHa(i.horas))],
+    ].filter(Boolean);
+    const fundo = p?.thumb ? ` style="--arte:url('${esc(fotoGrande(p)).replace(/'/g, '%27')}')"` : '';
+    el.innerHTML = `
+      <div class="vc-im-fundo${p?.thumb ? '' : ' vc-im-fundo-vazio'}"${fundo}></div>
+      <header class="vc-im-topo vc-im-vidro">
+        <span class="vc-im-topo-tit"><b>Para aprovar</b><small>${st.apr + 1} de ${fila.length}</small></span>
+        <span class="vc-im-pontos" aria-hidden="true">${fila.length <= 20 ? fila.map((_, k) => `<i${k === st.apr ? ' class="on"' : ''}></i>`).join('') : ''}</span>
+        <button type="button" class="vc-im-x" data-vc-im="fechar" aria-label="Sair da tela cheia (Esc)">${IC.fechar}</button>
+      </header>
+      <div class="vc-im-palco">
+        <aside class="vc-im-lado vc-im-esq">${ant ? imerMini(ant, -1) : ''}</aside>
+        <article class="vc-im-centro vc-im-vidro${imer.lado ? ` vc-im-vem-${imer.lado}` : ''}" aria-live="polite">
+          <button type="button" class="vc-im-arte" data-vc-im="abrir" title="Abrir a peça inteira"><span class="vc-im-brilho" aria-hidden="true"></span>${imerArte(i, true)}</button>
+          <div class="vc-im-texto">
+            <p class="vc-im-tit"><b>${esc(nomeDaPeca(i))}</b><span>${cliHtml(i.cliente)}</span></p>
+            <section class="vc-im-ig" aria-label="Como fica no Instagram">
+              <header><span class="vc-im-av">${ig.foto ? `<img src="${esc(ig.foto)}" alt="">` : esc(ig.iniciais)}</span><b>${esc(ig.usuario || ig.nome)}</b><small>como fica no Instagram</small></header>
+              <p>${legenda ? `<b>${esc(ig.usuario || ig.nome)}</b> ${esc(legenda)}` : '<span class="vc-im-sem-leg">A legenda ainda não foi escrita. O Augusto (Copy) sugere, ou escreva na peça.</span>'}</p>
+            </section>
+          </div>
+        </article>
+        <aside class="vc-im-lado vc-im-dir">
+          ${pessoas.length ? `<section class="vc-im-vidro vc-im-quem" aria-label="Quem fez"><h4>Quem fez</h4><div>${pessoas.map((x) => `<span class="vc-im-pessoa"><span class="vc-im-rosto">${esc(String(x.nome).trim().slice(0, 2).toUpperCase())}</span><span><b>${esc(String(x.nome).split(' ')[0])}</b><small>${esc(x.papel)}</small></span></span>`).join('')}</div></section>` : ''}
+          <section class="vc-im-vidro vc-im-det" aria-label="Detalhes"><h4>Detalhes</h4><dl>${detalhes.map(([c, r, v]) => `<div data-cor="${esc(c)}"><dt><i aria-hidden="true"></i>${r}</dt><dd>${v}</dd></div>`).join('')}</dl></section>
+          ${prox ? imerMini(prox, 1) : ''}
+        </aside>
+      </div>
+      <footer class="vc-im-acoes vc-im-vidro">
+        <button type="button" class="vc-im-seta" data-vc-im="ant" aria-label="Peça anterior"${ant ? '' : ' disabled'}>‹</button>
+        <button type="button" class="vc-im-btn" data-vc-im="alterar">Pedir alteração</button>
+        <button type="button" class="vc-im-btn k" data-vc-im="aprovar">Aprovar</button>
+        <button type="button" class="vc-im-seta" data-vc-im="prox" aria-label="Próxima peça"${prox ? '' : ' disabled'}>›</button>
+      </footer>`;
+    // As vizinhas já vêm buscadas: passar de peça não espera a arte.
+    for (const x of [ant, prox, fila[st.apr + 2]]) if (x && st.thumbs[String(x.ref)] === undefined) buscarThumb(String(x.ref));
+    imer.lado = '';
+  }
+  // Decidir: o portão abre por cima e a tela cheia se recolhe até ele fechar; aí volta, já com a fila nova.
+  function imerDecidir(acao) {
+    const el = document.getElementById('vc-imersao'); if (!el) return;
+    el.classList.add('vc-im-pausa');
+    decidir(acao);
+    let vez = 0;
+    const esperar = () => {
+      if (!imer.aberta) return;
+      if (porCimaDaJanela() && vez++ < 600) { setTimeout(esperar, 400); return; }
+      el.classList.remove('vc-im-pausa');
+      pintarImersao();
+    };
+    setTimeout(esperar, 500);
+  }
+  avisosPrevia.add(() => { if (imer.aberta) pintarImersao(); });
+  document.addEventListener('vybe:aprovacoes', () => { if (imer.aberta) pintarImersao(); });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest?.('#vc-imersao [data-vc-im], [data-vc-im-abrir]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    if (b.matches('[data-vc-im-abrir]')) return imerAbrir();
+    const a = b.dataset.vcIm;
+    if (a === 'fechar') return imerFechar();
+    if (a === 'ant') return imerIr(-1);
+    if (a === 'prox') return imerIr(1);
+    if (a === 'aprovar' || a === 'alterar') return imerDecidir(a);
+    if (a === 'abrir') { const i = (filaParaAprovar()?.fila || [])[st.apr]; if (i) { document.getElementById('vc-imersao')?.classList.add('vc-im-pausa'); abrirDaFila(i); setTimeout(function volta() { if (porCimaDaJanela()) return setTimeout(volta, 400); document.getElementById('vc-imersao')?.classList.remove('vc-im-pausa'); }, 600); } }
+  }, true);
+  // Deslizar no celular troca de peça.
+  let imerToque = null;
+  document.addEventListener('touchstart', (e) => { imerToque = imer.aberta && e.target.closest?.('#vc-imersao .vc-im-palco') ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (!imerToque) return;
+    const t = e.changedTouches[0], dx = t.clientX - imerToque.x, dy = t.clientY - imerToque.y; imerToque = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) imerIr(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
   // ---------- Interação ----------
   document.addEventListener('click', (e) => {
     const t = e.target.closest?.('button'); if (!t) return;
@@ -712,7 +889,7 @@
     if (t.matches('[data-vc-apr-lote]')) { st.lote = deAmanha(filaParaAprovar()?.fila || []).map((i) => String(i.ref)); return seguirLote(); }
     if (t.matches('[data-vc-apr-reler]')) return relerFila(true);
     if (t.dataset.vcAprIr !== undefined) { st.lote = []; if (st.aprLista) { st.aprLista = false; st.apr = Number(t.dataset.vcAprIr); return pintar(); } return passar(Number(t.dataset.vcAprIr)); }
-    if (t.dataset.vcLeque !== undefined) { st.lote = []; return passar(Number(t.dataset.vcLeque)); }
+    if (t.dataset.vcLeque !== undefined) { st.lote = []; if (Number(t.dataset.vcLeque) === st.apr) return imerAbrir(); return passar(Number(t.dataset.vcLeque)); }
     if (t.dataset.vcAprPasso !== undefined) { st.lote = []; return passar(st.apr + Number(t.dataset.vcAprPasso)); }
     if (t.dataset.vcApr) return decidir(t.dataset.vcApr);
     if (t.dataset.vcAprVer !== undefined) { if (Date.now() - arrastouEm < 400) return; const i = (filaParaAprovar()?.fila || [])[Number(t.dataset.vcAprVer)]; if (i) abrirDaFila(i); return; }
@@ -728,6 +905,10 @@
     if (t.matches('[data-vc-recarregar-links]')) { st.erroLinks = ''; st.links = null; pintar(); return carregarLinks(); }
   }, true);
   window.addEventListener('keydown', (e) => {
+    if (imer.aberta && !porCimaDaJanela()) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); return imerIr(e.key === 'ArrowRight' ? 1 : -1); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return imerFechar(); }
+    }
     if (!st.aberto) return;
     // Por cima da janela pode haver a gaveta da peça (aberta pela prévia), o cadastro ou um portão: eles vêm primeiro.
     const porCima = porCimaDaJanela();
@@ -752,7 +933,7 @@
     if (st.aba === 'links' || st.aba === 'cliente') carregarLinks();
     janela().querySelector('[data-vc-fechar]')?.focus();
   }
-  function fechar() { st.aberto = false; st.peca = ''; st.ajuda = false; st.novoLink = null; st.lote = []; pintar(); }
+  function fechar() { if (imer.aberta) imerFechar(); st.aberto = false; st.peca = ''; st.ajuda = false; st.novoLink = null; st.lote = []; pintar(); }
 
   function ciclo() { clearTimeout(st.timer); st.timer = setTimeout(async () => { if (!document.hidden) await carregarObjetivos(); ciclo(); }, 120e3); }
   setTimeout(() => { carregarObjetivos(); ciclo(); }, 3000);

@@ -428,6 +428,135 @@ body.mundo #ag-cartao .capt-novo-tipo input:checked + span{background:transparen
   #automacoes-root.v2r .v2g-lin{flex-wrap:wrap;gap:6px 10px}
 }
 
+/* ===== padrao-v2/aprovar-tela-cheia.css ===== */
+/* Aprovar em tela cheia, no padrão das referências do Paulo (painéis de vidro do visionOS, 15/11/2026: "segue o padrão
+   que mando... o nosso tá grotesco, muito arredondado"): vidro neutro e translúcido sobre a arte desfocada, cantos
+   pequenos (14-18 px), letra pequena e leve, rótulos discretos, divisórias finas no lugar de pílulas, a arte de ponta a
+   ponta no topo do painel, botões pequenos. Abre dentro da moldura do módulo (o menu e a barra do Vybe OS seguem à vista:
+   "agora parece que tô saindo do sistema"). O laranja só no Aprovar. */
+.vc-im{--vidro:color-mix(in srgb,var(--d3-cartao) 42%,transparent);--vidro-forte:color-mix(in srgb,var(--d3-cartao) 62%,transparent);
+  --borda:color-mix(in srgb,var(--d3-cartao) 55%,transparent);--linha:color-mix(in srgb,var(--d3-tinta) 10%,transparent);--suave:color-mix(in srgb,var(--d3-tinta) 55%,transparent);
+  position:absolute;inset:0;z-index:30;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:14px;padding:14px 20px 16px;box-sizing:border-box;
+  overflow:hidden;border-radius:inherit;opacity:0;transition:opacity .35s ease;font:400 13px/1.45 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);background:var(--d3-areia)}
+.vc-im.vc-im-entrou{opacity:1}
+.vc-im.vc-im-pausa{visibility:hidden;pointer-events:none}
+/* O ambiente: a arte ampliada e desfocada, com um véu claro neutro (sem tingir os painéis). */
+.vc-im-fundo{position:absolute;inset:-80px;z-index:0;background-image:var(--arte);background-size:cover;background-position:center;filter:blur(60px) saturate(1.05);transform:scale(1.15)}
+.vc-im-fundo::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--d3-areia) 38%,transparent)}
+.vc-im-fundo-vazio{background:radial-gradient(55% 55% at 25% 30%,var(--d3-ajuste-veu),transparent 70%),radial-gradient(55% 55% at 78% 72%,var(--d3-info-veu),transparent 70%),var(--d3-areia);filter:none;transform:none}
+.vc-im > :not(.vc-im-fundo){position:relative;z-index:1}
+/* Vidro neutro: translúcido, desfoque forte, borda de luz fina. */
+.vc-im-vidro{background:var(--vidro);-webkit-backdrop-filter:blur(36px) saturate(1.15);backdrop-filter:blur(36px) saturate(1.15);
+  box-shadow:inset 0 0 0 1px var(--borda),0 18px 40px -26px color-mix(in srgb,var(--d3-tinta) 45%,transparent)}
+/* O topo: barra fina centrada, como a do navegador da referência. */
+.vc-im-topo{justify-self:center;display:flex;flex-direction:row;flex-wrap:nowrap;white-space:nowrap;align-items:center;gap:12px;height:32px;padding:0 4px 0 14px;border-radius:10px}
+.vc-im-topo-tit{display:flex;align-items:baseline;gap:8px}
+.vc-im-topo-tit b{font:600 13px var(--vv-texto,Inter),sans-serif}
+.vc-im-topo-tit small{font-size:11px;color:var(--suave)}
+.vc-im-pontos{display:flex;gap:3px}
+.vc-im-pontos i{width:5px;height:5px;border-radius:50%;background:color-mix(in srgb,var(--d3-tinta) 20%,transparent);transition:width .35s cubic-bezier(.22,1,.36,1)}
+.vc-im-pontos i.on{width:12px;border-radius:3px;background:var(--d3-tinta)}
+.vc-im-x{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:7px;background:transparent;color:var(--d3-tinta);cursor:pointer}
+.vc-im-x:hover{background:var(--vidro-forte)}
+.vc-im-x svg{width:13px;height:13px}
+/* O palco: a anterior | a peça | quem fez, detalhes e a próxima. */
+.vc-im-palco{display:grid;grid-template-columns:minmax(140px,190px) minmax(0,440px) minmax(220px,270px);justify-content:center;align-items:center;gap:22px;min-height:0}
+.vc-im-lado{display:flex;flex-direction:column;gap:12px;min-width:0;max-height:100%}
+.vc-im-esq{opacity:.9;transform:perspective(1400px) rotateY(16deg);transform-origin:100% 50%}
+/* A peça: a arte de ponta a ponta no topo do painel, embaixo o nome, a copy e quem é. */
+.vc-im-centro{display:flex;flex-direction:column;max-height:100%;min-height:0;border-radius:18px;background:var(--vidro-forte);overflow:hidden}
+.vc-im-vem-dir{animation:vc-im-vem-dir .5s cubic-bezier(.22,1,.36,1)}
+.vc-im-vem-esq{animation:vc-im-vem-esq .5s cubic-bezier(.22,1,.36,1)}
+@keyframes vc-im-vem-dir{from{opacity:.35;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes vc-im-vem-esq{from{opacity:.35;transform:translateX(-40px)}to{opacity:1;transform:none}}
+.vc-im-arte{position:relative;display:block;flex:1 1 auto;min-height:0;margin:0;padding:0;border:0;background:color-mix(in srgb,var(--d3-tinta) 6%,transparent);cursor:zoom-in;overflow:hidden}
+.vc-im-arte > img{display:block;width:100%;height:100%;max-height:min(54vh,520px);object-fit:cover}
+.vc-im-brilho{display:none}
+.vc-im-play,.vc-im-n{position:absolute;z-index:2;right:10px;top:10px;display:grid;place-items:center;min-width:26px;height:26px;padding:0 7px;border-radius:8px;background:var(--vidro-forte);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font:600 11px var(--vv-texto,Inter),sans-serif;font-style:normal;color:var(--d3-tinta)}
+.vc-im-sem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;aspect-ratio:4/5;max-height:min(54vh,520px);color:var(--suave)}
+.vc-im-sem b{font:600 15px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
+.vc-im-sem small{font-size:11px}
+.vc-im-texto{display:flex;flex-direction:column;gap:10px;flex:none;max-height:42%;padding:14px 16px 16px;overflow-y:auto;scrollbar-width:thin}
+.vc-im-tit{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0}
+.vc-im-tit b{font:600 15px/1.3 var(--vv-texto,Inter),sans-serif}
+.vc-im-tit .v2c-cli{font-size:11px;color:var(--suave)}
+.vc-im-ig{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--linha)}
+.vc-im-ig header{display:flex;align-items:center;gap:8px;margin:0;padding:0}
+.vc-im-av{display:grid;place-items:center;width:22px;height:22px;flex:none;border-radius:50%;overflow:hidden;background:var(--vidro-forte);box-shadow:0 0 0 1.5px var(--d3-acao);font:600 9px var(--vv-texto,Inter),sans-serif;color:var(--suave)}
+.vc-im-av img{width:100%;height:100%;object-fit:cover}
+.vc-im-ig header b{font:600 12px var(--vv-texto,Inter),sans-serif}
+.vc-im-ig header small{margin-left:auto;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--suave)}
+.vc-im-ig p{margin:0;white-space:pre-line;font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}
+.vc-im-sem-leg{color:var(--suave);font-size:12px}
+/* Os painéis da direita: quem fez (rostos em fila) e os detalhes (rótulo e valor, divisórias finas). */
+.vc-im-quem,.vc-im-det{padding:12px 14px;border-radius:16px}
+.vc-im-quem h4,.vc-im-det h4{margin:0 0 8px;font:500 11px var(--vv-texto,Inter),sans-serif;color:var(--suave)}
+.vc-im-quem > div{display:flex;flex-wrap:wrap;gap:8px 12px}
+.vc-im-pessoa{display:flex;align-items:center;gap:7px}
+.vc-im-rosto{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--d3-tinta) 78%,transparent);font:600 10px var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao);box-shadow:0 0 0 1.5px var(--borda)}
+.vc-im-pessoa > span:last-child{display:flex;flex-direction:column;line-height:1.25}
+.vc-im-pessoa b{font:600 12px var(--vv-texto,Inter),sans-serif}
+.vc-im-pessoa small{font-size:10.5px;color:var(--suave)}
+.vc-im-det dl{display:grid;margin:0}
+.vc-im-det dl > div{--c:var(--d3-tinta);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--linha)}
+.vc-im-det dl > div:first-child{border-top:0;padding-top:2px}
+.vc-im-det dt{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--suave)}
+.vc-im-det dt i{width:6px;height:6px;border-radius:50%;background:var(--c)}
+.vc-im-det dd{margin:0;font:500 12px var(--vv-texto,Inter),sans-serif;text-align:right}
+.vc-im-det dd b{font-weight:600}
+.vc-im-det dd b.r{color:var(--d3-perigo)}
+.vc-im-det [data-cor="status"]{--c:var(--d3-st,var(--d3-info))}
+.vc-im-det [data-cor="formato"]{--c:var(--d3-info)}
+.vc-im-det [data-cor="obj-atracao"]{--c:var(--d3-info)}
+.vc-im-det [data-cor="obj-educacao"]{--c:var(--d3-pronto)}
+.vc-im-det [data-cor="obj-conversao"]{--c:var(--d3-acao)}
+.vc-im-det [data-cor="ar"]{--c:var(--d3-ajuste)}
+.vc-im-det [data-cor="prazo"]{--c:var(--d3-perigo)}
+.vc-im-det [data-cor="espera"]{--c:var(--d3-agente)}
+/* A anterior e a próxima: vidro, arte pequena, nome em duas linhas. */
+.vc-im-mini{display:flex;flex-direction:column;gap:6px;width:100%;margin:0;padding:10px;border:0;border-radius:16px;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:transform .25s ease,background .25s ease}
+.vc-im-mini:hover{transform:translateY(-2px);background:var(--vidro-forte)}
+.vc-im-mini-rot{font:500 10.5px var(--vv-texto,Inter),sans-serif;color:var(--suave)}
+.vc-im-mini-arte{display:grid;place-items:center;aspect-ratio:4/5;border-radius:10px;overflow:hidden;background:color-mix(in srgb,var(--d3-tinta) 6%,transparent)}
+.vc-im-mini-arte img{width:100%;height:100%;object-fit:cover}
+.vc-im-mini-arte .vc-im-sem{height:100%;aspect-ratio:auto;max-height:none}
+.vc-im-mini-arte .vc-im-sem b{font-size:13px}
+.vc-im-mini-arte .vc-im-sem small{display:none}
+.vc-im-mini > b{font:600 12px/1.3 var(--vv-texto,Inter),sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vc-im-mini > small{font-size:10.5px;color:var(--suave)}
+.vc-im-dir .vc-im-mini{display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:10px;row-gap:2px;align-items:center}
+.vc-im-dir .vc-im-mini-rot{grid-column:1 / -1}
+.vc-im-dir .vc-im-mini-arte{grid-row:2 / 4;width:44px;border-radius:8px}
+/* As ações: pequenas, numa barra fina de vidro. */
+.vc-im-acoes{justify-self:center;display:flex;align-items:center;gap:6px;padding:4px;border-radius:12px}
+.vc-im-btn{height:34px;min-width:140px;padding:0 18px;border:0;border-radius:9px;background:var(--vidro-forte);font:600 13px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:background .18s ease,filter .18s ease}
+.vc-im-btn:hover{background:var(--d3-cartao)}
+.vc-im-btn.k{background:var(--d3-acao);color:var(--d3-cartao)}
+.vc-im-btn.k:hover{filter:brightness(1.06)}
+.vc-im-seta{width:34px;height:34px;border:0;border-radius:9px;background:transparent;font:500 18px/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
+.vc-im-seta:hover:not(:disabled){background:var(--vidro-forte)}
+.vc-im-seta:disabled{opacity:.3;cursor:default}
+.vc-im-fim{place-self:center;grid-row:2;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 30px;border-radius:18px;text-align:center}
+.vc-im-fim b{font:600 15px var(--vv-texto,Inter),sans-serif}
+@media (prefers-reduced-motion:reduce){.vc-im{transition:none}.vc-im-vem-dir,.vc-im-vem-esq{animation:none}}
+@media (max-width:980px){
+  .vc-im{padding:10px 10px 12px;gap:10px;border-radius:0}
+  .vc-im-palco{grid-template-columns:minmax(0,1fr);align-content:start;overflow-y:auto}
+  .vc-im-esq{display:none}
+  .vc-im-dir{order:2}
+  .vc-im-centro{max-height:none}
+  .vc-im-texto{max-height:none}
+  .vc-im-btn{min-width:0;flex:1}
+  .vc-im-acoes{justify-self:stretch}
+}
+/* A janela da Aprovação não rola por baixo da tela cheia. */
+#vv-conteudo.vc-com-imersao{overflow:hidden}
+/* Dentro da janela, as regras antigas dela (cabeçalho em coluna, cor dos botões) não valem aqui. */
+#vv-conteudo .vc-im .vc-im-ig header{display:flex;flex-direction:row;align-items:center;text-align:left}
+#vv-conteudo .vc-im .vc-im-btn{color:var(--d3-tinta)}
+#vv-conteudo .vc-im .vc-im-btn.k{color:var(--d3-cartao)}
+#vv-conteudo .vc-im .vc-im-topo{flex-direction:row}
+
 /* ===== padrao-v2/casca.css ===== */
 /* PADRÃO V2 · MENU RECOLHIDO (confere de 13/11/2026). Recolhido pelo "‹", o menu continuava com a ilha de 232 e os nomes
    espremidos embaixo dos ícones ("Recu Huma"), e a página entrava por cima dele (capturas do Paulo, no Hoje e na Minha
@@ -5175,6 +5304,66 @@ button.d3s-lin-txt{cursor:pointer}
   #vv-conteudo.vc.vc .d3a-palco .v2-baralho{height:300px}
   #vv-conteudo.vc.vc .d3a-leque-c{width:min(52%,190px)}
 }
+/* A mesa da aprovação no padrão novo (Paulo, 15/11/2026: "do lado ali com a copy certinha como ia ficar no Insta, quem
+   fez, as infos... princípios de modernidade", e "o nosso muito tudo branco; olha como esse usou bem as cores"): a mesa
+   ocupa a largura toda (fila e equilíbrio embaixo, lado a lado), a arte grande no leque à esquerda e, à direita, o painel
+   escuro com o post como sai no Instagram, quem fez e as informações, cada uma na sua cor. Aprovar é a ação: laranja. */
+#vv-conteudo.vc.vc .v2c-cols{grid-template-columns:minmax(0,1fr)}
+#vv-conteudo.vc.vc .v2c-lado{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+#vv-conteudo.vc.vc .d3a-palco{grid-template-columns:minmax(0,1fr) minmax(320px,420px);gap:24px;height:560px}
+#vv-conteudo.vc.vc .d3a-leque-c{width:min(56%,320px)}
+#vv-conteudo.vc.vc .d3a-palco .v2-baralho > .d3a-ig{display:block;padding:0;border-radius:24px;background:var(--d3-tinta);color:var(--d3-cartao);box-shadow:0 30px 60px -30px color-mix(in srgb,var(--d3-tinta) 70%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig .d3a-info{height:100%;box-sizing:border-box;gap:14px;padding:18px 18px 16px;overflow-y:auto;scrollbar-width:thin}
+#vv-conteudo.vc.vc .d3a-ig-tit{display:flex;flex-direction:column;gap:4px;margin:0}
+#vv-conteudo.vc.vc .d3a-ig-tit b{font:700 var(--d3-fs-titulo)/1.2 var(--vv-titulo,Inter),sans-serif;color:var(--d3-cartao)}
+#vv-conteudo.vc.vc .d3a-ig-tit .v2c-cli{color:color-mix(in srgb,var(--d3-cartao) 72%,transparent)}
+/* O post como sai no Instagram: cartão claro dentro do painel escuro. */
+#vv-conteudo.vc.vc .d3a-ig-post{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:16px;background:var(--d3-cartao);color:var(--d3-tinta)}
+#vv-conteudo.vc.vc .d3a-ig-cab{margin:0;padding:0;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;align-items:center}
+#vv-conteudo.vc.vc .d3a-ig-av{grid-row:1 / 3;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--d3-trilho);box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 4px var(--d3-acao);font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2)}
+#vv-conteudo.vc.vc .d3a-ig-av img{width:100%;height:100%;object-fit:cover}
+#vv-conteudo.vc.vc .d3a-ig-cab b{font:700 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-conteudo.vc.vc .d3a-ig-cab small{font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
+#vv-conteudo.vc.vc .d3a-ig-leg{margin:0;white-space:pre-line;font-size:var(--d3-fs-texto);line-height:1.45;overflow-wrap:anywhere}
+#vv-conteudo.vc.vc .d3a-ig-leg b{font-weight:700}
+#vv-conteudo.vc.vc .d3a-ig-sem{color:var(--d3-apagado);font-size:var(--d3-fs-apoio)}
+/* Quem fez: rosto, nome e papel. */
+#vv-conteudo.vc.vc .d3a-ig-quem{display:flex;flex-wrap:wrap;gap:8px 16px}
+#vv-conteudo.vc.vc .d3a-ig-quem h4{flex-basis:100%;margin:0;font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,var(--d3-cartao) 55%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-pessoa{display:flex;align-items:center;gap:8px;min-width:0}
+#vv-conteudo.vc.vc .d3a-ig-pessoa .v2c-av{width:30px;height:30px;background:var(--d3-acao);color:var(--d3-cartao);font-size:var(--d3-fs-mini)}
+#vv-conteudo.vc.vc .d3a-ig-pessoa > span{display:flex;flex-direction:column;min-width:0}
+#vv-conteudo.vc.vc .d3a-ig-pessoa b{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao)}
+#vv-conteudo.vc.vc .d3a-ig-pessoa small{font-size:var(--d3-fs-mini);color:color-mix(in srgb,var(--d3-cartao) 58%,transparent)}
+/* As informações: blocos de vidro escuro, cada um com o ponto da sua cor. */
+#vv-conteudo.vc.vc .d3a-ig-infos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+#vv-conteudo.vc.vc .d3a-ig-info{--c:var(--d3-cartao);padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--d3-cartao) 8%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--d3-cartao) 10%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-info dt{display:flex;align-items:center;gap:6px;font-size:var(--d3-fs-mini);color:color-mix(in srgb,var(--d3-cartao) 60%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-info dt i{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent)}
+#vv-conteudo.vc.vc .d3a-ig-info dd{margin:4px 0 0;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vv-conteudo.vc.vc .d3a-ig-info dd b{font-weight:700}
+#vv-conteudo.vc.vc .d3a-ig-info dd b.r{color:color-mix(in srgb,var(--d3-perigo) 55%,var(--d3-cartao))}
+#vv-conteudo.vc.vc .d3a-ig-info dd b.a{color:color-mix(in srgb,var(--d3-ajuste) 45%,var(--d3-cartao))}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="status"]{--c:var(--d3-st,var(--d3-info))}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="formato"]{--c:var(--d3-info)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="obj-atracao"]{--c:var(--d3-info)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="obj-educacao"]{--c:var(--d3-pronto)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="obj-conversao"]{--c:var(--d3-acao)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="ar"]{--c:var(--d3-ajuste)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="prazo"]{--c:var(--d3-perigo)}
+#vv-conteudo.vc.vc .d3a-ig-info[data-cor="espera"]{--c:var(--d3-agente)}
+#vv-conteudo.vc.vc .d3a-ig-info .d3a-st{display:inline-flex;align-items:center;gap:6px}
+#vv-conteudo.vc.vc .d3a-ig-info .d3a-st i{display:none}
+/* Aprovar é a ação: laranja. Pedir alteração fica neutro. */
+#vv-conteudo.vc.vc .d3a-mesa .v2c-acoes .v2c-btn.g.k{background:var(--d3-acao);color:var(--d3-cartao)}
+@media (max-width:900px){
+  #vv-conteudo.vc.vc .v2c-lado{grid-template-columns:minmax(0,1fr)}
+  #vv-conteudo.vc.vc .d3a-palco{grid-template-columns:minmax(0,1fr);grid-template-rows:300px minmax(0,auto);height:auto}
+  #vv-conteudo.vc.vc .d3a-palco .v2-baralho{height:auto;min-height:520px}
+}
+/* O botão que abre a tela cheia, no topo do baralho. */
+#vv-conteudo.vc.vc .d3a-tela-cheia{border:0;background:transparent;padding:0;font:inherit;font-weight:600;color:var(--d3-acao);cursor:pointer}
+#vv-conteudo.vc.vc .d3a-leque-c.vez{cursor:zoom-in}
 
 /* ===== padrao-v2/d3-series.css ===== */
 /* Séries históricas nos quadros D3 (14/11/2026): as linhas que antes ficavam em "sem histórico ainda" e agora vêm de
@@ -7065,7 +7254,7 @@ body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:va
    a barra de cima em cápsula de vidro, o celular da frente em vidro fosco claro e os vizinhos virados para o centro,
    cada vez mais escuros. Trocar de cliente só desliza (--d) com mola. */
 .vfd-camada{--vidro-claro:color-mix(in srgb,var(--d3-cartao) 16%,transparent);--vidro-borda:color-mix(in srgb,var(--d3-cartao) 26%,transparent);
-  position:fixed;inset:0;z-index:740;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:0;padding:20px 24px 22px;box-sizing:border-box;
+  position:fixed;inset:0;z-index:690;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:0;padding:20px 24px 22px;box-sizing:border-box;
   background:radial-gradient(120% 90% at 50% 38%,color-mix(in srgb,var(--d3-tinta) 66%,transparent),color-mix(in srgb,var(--d3-tinta) 90%,transparent));
   -webkit-backdrop-filter:blur(30px) saturate(1.25);backdrop-filter:blur(30px) saturate(1.25);
   opacity:0;transition:opacity .35s ease;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
@@ -7078,7 +7267,7 @@ body.vfd-aberto .cartao-rapido-fundo{z-index:741}
 body.vfd-aberto .cartao-rapido{z-index:742}
 body.vfd-aberto .fc-overlay{z-index:743}
 /* A barra de cima: uma cápsula de vidro fina, centrada, com o texto claro. */
-.vfd-c-topo{justify-self:center;display:flex;align-items:center;gap:6px 14px;max-width:min(1180px,100%);padding:6px 6px 6px 18px;border-radius:999px;
+.vfd-c-topo{justify-self:center;display:flex;align-items:center;gap:6px 14px;max-width:min(1180px,calc(100% - 220px));padding:5px 5px 5px 16px;border-radius:12px;
   background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda),0 20px 40px -24px color-mix(in srgb,var(--d3-tinta) 80%,transparent);
   color:var(--d3-cartao);transform:translateY(-12px);opacity:0;transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .4s ease}
 .vfd-entrou .vfd-c-topo{transform:none;opacity:1}
@@ -7088,21 +7277,21 @@ body.vfd-aberto .fc-overlay{z-index:743}
 .vfd-c-tit .vfd-r{color:var(--d3-cartao);font-weight:700}
 .vfd-c-ctl{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
 .vfd-c-ctl .vfd-vista,.vfd-c-ctl .vfd-filtros{flex-wrap:nowrap;gap:4px}
-.vfd-c-ctl .vfd-chip{height:30px;padding:0 12px;background:transparent;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:color-mix(in srgb,var(--d3-cartao) 82%,transparent);white-space:nowrap;transition:background .2s ease,color .2s ease}
+.vfd-c-ctl .vfd-chip{height:28px;padding:0 11px;border-radius:8px;background:transparent;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:color-mix(in srgb,var(--d3-cartao) 82%,transparent);white-space:nowrap;transition:background .2s ease,color .2s ease}
 .vfd-c-ctl .vfd-chip:hover{background:var(--vidro-claro);color:var(--d3-cartao)}
 .vfd-c-ctl .vfd-chip[aria-pressed="true"]{background:var(--d3-cartao);color:var(--d3-tinta)}
-.vfd-c-ctl .vfd-sel{height:30px;padding:0 4px 0 10px;background:var(--vidro-claro);color:color-mix(in srgb,var(--d3-cartao) 70%,transparent);white-space:nowrap}
+.vfd-c-ctl .vfd-sel{height:28px;padding:0 4px 0 10px;border-radius:8px;background:var(--vidro-claro);color:color-mix(in srgb,var(--d3-cartao) 70%,transparent);white-space:nowrap}
 .vfd-c-ctl .vfd-sel select{height:26px;max-width:170px;background:transparent;color:var(--d3-cartao);font-size:var(--d3-fs-apoio)}
 .vfd-c-ctl .vfd-sel option{color:var(--d3-tinta)}
 .vfd-c-ctl .vfd-mes{height:30px;background:var(--vidro-claro);color:var(--d3-cartao)}
 .vfd-c-ctl .vfd-mes-seta{width:26px;height:26px;background:transparent;color:var(--d3-cartao)}
-.vfd-c-fechar{position:relative;flex:none;width:36px;height:36px;border:0;border-radius:50%;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda);cursor:pointer;transition:transform .25s ease,background .2s ease}
+.vfd-c-fechar{position:relative;flex:none;width:30px;height:30px;border:0;border-radius:9px;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda);cursor:pointer;transition:transform .25s ease,background .2s ease}
 .vfd-c-fechar:hover{transform:rotate(90deg);background:color-mix(in srgb,var(--d3-cartao) 26%,transparent)}
 .vfd-c-fechar i::before,.vfd-c-fechar i::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:2px;border-radius:1px;background:var(--d3-cartao);transform:translate(-50%,-50%) rotate(45deg)}
 .vfd-c-fechar i::after{transform:translate(-50%,-50%) rotate(-45deg)}
 /* O palco: perspectiva para os vizinhos virarem para o centro; cada celular rola por dentro. */
 .vfd-c-palco{position:relative;min-height:0;overflow:hidden;perspective:1800px;perspective-origin:50% 45%}
-.vfd-cel{--larg:min(430px,86vw);position:absolute;left:50%;top:max(28px,calc(50% - 400px));bottom:max(28px,calc(50% - 400px));width:var(--larg);margin-left:calc(var(--larg) / -2);border-radius:32px;overflow:hidden;
+.vfd-cel{--larg:min(430px,86vw);position:absolute;left:50%;top:max(28px,calc(50% - 400px));bottom:max(28px,calc(50% - 400px));width:var(--larg);margin-left:calc(var(--larg) / -2);border-radius:20px;overflow:hidden;
   background:var(--d3-cartao);
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--d3-cartao) 40%,transparent),0 50px 90px -30px color-mix(in srgb,var(--d3-tinta) 90%,transparent);
   z-index:calc(20 - var(--ad,0));transform-origin:50% 50%;
@@ -7124,13 +7313,13 @@ body.vfd-aberto .fc-overlay{z-index:743}
 .vfd-cel[data-ad="3"],.vfd-cel[data-ad="4"]{filter:brightness(.22) saturate(.6)}
 .vfd-cel[data-ad="1"]:hover{filter:brightness(.62) saturate(.9)}
 .vfd-cel.vfd-frente .vfd-cel-capa{display:none}
-.vfd-cel-capa:focus-visible{outline:3px solid var(--d3-acao);outline-offset:-3px;border-radius:32px}
+.vfd-cel-capa:focus-visible{outline:3px solid var(--d3-acao);outline-offset:-3px;border-radius:20px}
 /* A barra da seleção do lote fica presa no pé do celular. */
 .vfd-cel .vfd-barra{bottom:10px;margin:0 10px}
 /* A doca: cápsula de vidro, setas claras, o nome, "4 / 15" e os pontos. */
 .vfd-c-doca{display:flex;justify-content:center;min-height:0;padding-top:2px}
-.vfd-doca{display:flex;align-items:center;gap:12px;padding:6px;border-radius:999px;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda),0 18px 36px -18px color-mix(in srgb,var(--d3-tinta) 80%,transparent);color:var(--d3-cartao)}
-.vfd-doca-seta{width:40px;height:40px;border:0;border-radius:50%;background:var(--d3-cartao);font:600 var(--d3-fs-titulo)/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:transform .18s ease}
+.vfd-doca{display:flex;align-items:center;gap:12px;padding:5px;border-radius:14px;background:var(--vidro-claro);box-shadow:inset 0 0 0 1px var(--vidro-borda),0 18px 36px -18px color-mix(in srgb,var(--d3-tinta) 80%,transparent);color:var(--d3-cartao)}
+.vfd-doca-seta{width:34px;height:34px;border:0;border-radius:10px;background:var(--d3-cartao);font:600 var(--d3-fs-titulo)/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:transform .18s ease}
 .vfd-doca-seta:hover{transform:scale(1.08)}
 .vfd-doca-seta:active{transform:scale(.94)}
 .vfd-doca-meio{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;max-width:min(340px,58vw);padding:0 8px;text-align:center}

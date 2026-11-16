@@ -424,9 +424,19 @@ function feedCamada() {
   c.innerHTML = '<div class="vfd-c-topo"></div><div class="vfd-c-palco" aria-live="polite"></div><div class="vfd-c-doca"></div>';
   document.body.append(c);
   document.body.classList.add('vfd-aberto');
+  // Na moldura do módulo, não na tela toda: o menu e a barra do Vybe OS seguem à vista (Paulo, 15/11/2026: "agora
+  // parece que tô saindo do sistema; acha um meio-termo").
+  feedEncaixar(c);
+  if (!feedEncaixar.ligado) { feedEncaixar.ligado = true; window.addEventListener('resize', () => { const x = document.getElementById('vfd-camada'); if (x) feedEncaixar(x); }); }
   feedLigarArrasto(c); feedLigarToque(c); feedLigarCarrossel(c);
   requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add('vfd-entrou')));
   return c;
+}
+function feedEncaixar(el) {
+  const m = document.getElementById('mundo-moldura'), r = m?.getBoundingClientRect();
+  if (r && r.width > 600 && r.height > 400 && innerWidth > 980) {
+    Object.assign(el.style, { inset: 'auto', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: getComputedStyle(m).borderRadius || '28px' });
+  } else Object.assign(el.style, { inset: '0', left: '', top: '', width: '', height: '', borderRadius: '0' });
 }
 function feedFecharCamada() {
   const c = typeof document !== 'undefined' ? document.getElementById('vfd-camada') : null;
