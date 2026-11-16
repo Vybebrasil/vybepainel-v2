@@ -323,6 +323,8 @@ function switchBoard(board, btn) {
   if (activeBoard === 'demandas' && board !== 'demandas') guardarPreferenciasDemandas();
   if (activeBoard !== 'demandas' && board === 'demandas') preferenciasDemandasUsuario = null;
   activeBoard = board;
+  // O quadro aberto fica no body: a janela de vidro de cada tela V2 (padrao-v2/zm-e-*.css) é escolhida por ele.
+  if (document.body && document.body.dataset.quadro !== board) document.body.dataset.quadro = board;
   if(board==='demandas') { gruposDeDemandasAberto=true; agendaDeDemandasAberta=false; gruposDemandasRecolhidos.clear(); }
   document.querySelectorAll('.board-switch-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
