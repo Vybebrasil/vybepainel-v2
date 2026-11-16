@@ -9,6 +9,7 @@ import { gradeDoPortal, responderGradeDoPortal, imagemDaGradeDoPortal } from './
 import { documentoHtml, nomeDoMes, pecasComRevisao } from './planejamento-documento.js';
 import { enviarEmail, emailConfigurado } from './email.js';
 import { FERRAMENTAS as FERRAMENTAS_ECOSSISTEMA, executarFerramenta as executarNoEcossistema } from './mcp-ecossistema.js';
+import { FORMATO_DO_PLANEJAMENTO, FERRAMENTA_FORMATO, FERRAMENTA_PUBLICAR, publicarPlanejamento } from './planejamento-conector.js';
 import { pastaDePlanejamento, salvarDocumentoEPdf, logosNoDrive, baixarDoDrive } from '../vybe_drive.js';
 
 const corpoDe = (req) => (req.body && typeof req.body === 'object' ? req.body : (() => { try { return JSON.parse(req.body || '{}'); } catch { return {}; } })());
@@ -230,27 +231,12 @@ export async function portalDoCliente(req, res, sql, opcoes = {}) {
 // ── Conector dos agentes (MCP por HTTP, JSON-RPC) ───────────────────────────
 // Os agentes de conteúdo (projetos no Claude) adicionam o painel como conector
 // personalizado: <painel>/api/painel?area=agentes&chave=<AGENTES_CHAVE>.
-const FORMATO = `Formato padrão do planejamento Vybe (o mesmo para todos os clientes; a identidade visual vem do cadastro do cliente no painel):
-- resumo: 2 a 4 frases sobre a ideia do mês, para o cliente.
-- numeros (opcional): [{rotulo, valor}] — se omitido, o painel conta as peças por formato.
-- linhas: [{titulo, texto}] — 2 a 4 linhas de conteúdo do mês.
-- datas: [{data:"02/11 · seg", nome, texto}] — datas comerciais/feriados que orientam o mês.
-- pecas: [{data:"AAAA-MM-DD", formato: Card|Carrossel|Reels|Fotografia|Vídeo|Stories|Outro, tema, linha, objetivo, telas, legenda, referencia, observacao}].
-  - linha: o título de uma das linhas de conteúdo do mês.
-  - objetivo: uma frase com o que a peça quer causar.
-  - telas: lista com o texto de cada tela (carrossel, card, story), na ordem; uma tela por item, sem "Tela 1:".
-  - legenda: a legenda pronta (ou o roteiro, em Reels e Vídeo).
-  - referencia: só referência visual ou de vídeo; não repita aqui objetivo nem telas.
-  - observacao: a pergunta ou o que o cliente precisa decidir ou mandar.
-- observacoes: o que precisa ser combinado com o cliente.
-Deixe de fora o que é interno (responsáveis, prazos de produção, pendências do painel).`;
+// Formato, contrato e gravação do planejamento ficam em server/planejamento-conector.js: o Ecossistema Vybe
+// (chats dos clientes) publica pelo mesmo caminho.
 const FERRAMENTAS = [
  { name: 'listar_clientes', description: 'Clientes ativos no painel da Vybe (nome exato para publicar).', inputSchema: { type: 'object', properties: {} } },
- { name: 'formato_do_planejamento', description: 'Como o planejamento deve ser estruturado antes de publicar.', inputSchema: { type: 'object', properties: {} } },
- { name: 'publicar_planejamento', description: 'Publica (ou atualiza) o planejamento do mês de um cliente no painel, para o head revisar e mandar ao cliente.',
-  inputSchema: { type: 'object', required: ['cliente', 'mes', 'conteudo'], properties: {
-   cliente: { type: 'string', description: 'Nome do cliente como está no painel' }, mes: { type: 'string', description: 'AAAA-MM' }, titulo: { type: 'string' },
-   conteudo: { type: 'object', description: 'resumo, numeros, linhas, datas, pecas, observacoes (veja formato_do_planejamento)' } } } },
+ FERRAMENTA_FORMATO,
+ FERRAMENTA_PUBLICAR,
  { name: 'ver_planejamento', description: 'Situação e comentários (do head e do cliente) do planejamento de um mês, para refazer ajustes.',
   inputSchema: { type: 'object', required: ['cliente', 'mes'], properties: { cliente: { type: 'string' }, mes: { type: 'string', description: 'AAAA-MM' } } } },
 ];
@@ -270,11 +256,8 @@ async function chamar(sql, nome, args = {}) {
   return executarNoEcossistema(sql, nome, args, { conta: 'conector dos agentes', salvarNoDrive: opcoesDoConector.salvarNoDrive });
  }
  if (nome === 'listar_clientes') return (await sql`SELECT nome FROM vybe_clientes WHERE ativo IS NOT FALSE ORDER BY nome`).map((c) => c.nome).join('\n');
- if (nome === 'formato_do_planejamento') return FORMATO;
- if (nome === 'publicar_planejamento') {
-  const p = await P.publicarDoAgente(sql, args);
-  return `${p.novo ? 'Publicado' : 'Atualizado (versão ' + p.versao + ')'}: ${p.cliente}, ${nomeDoMes(p.mes)}, ${p.conteudo.pecas.length} peças. O head do cliente foi avisado para revisar.`;
- }
+ if (nome === 'formato_do_planejamento') return FORMATO_DO_PLANEJAMENTO;
+ if (nome === 'publicar_planejamento') return publicarPlanejamento(sql, args, { por: 'agente' });
  if (nome === 'ver_planejamento') {
   const c = await P.clientePorNomeOuId(sql, args.cliente);
   const [p] = await sql`SELECT id,estado,versao,resposta_nome,resposta_texto FROM vybe_planejamentos WHERE cliente_id=${c.id} AND mes=${P.mesDoTexto(args.mes)}::date AND estado<>'arquivado'`;

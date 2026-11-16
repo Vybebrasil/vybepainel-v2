@@ -12,6 +12,8 @@
 // O conector só lê cadastro e só ACRESCENTA registros: não apaga, não muda status
 // de peça, não fala com cliente. O pacote de produção (propor_pacote_producao) também só ACRESCENTA: fica proposto até
 // um dos donos dar o ok no grupo Produção pelo VYBES (server/pacotes-producao.js).
+// O planejamento do mês (publicar_planejamento, 16/11/2026) entra no módulo Planejamentos em "revisar", pela mesma
+// gravação do conector dos agentes (server/planejamento-conector.js): o head revisa, manda ao cliente e cadastra as peças.
 
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { completude, valorDoCampo, CAMPOS_CADASTRO } from './clientes-cadastro.js';
@@ -19,6 +21,8 @@ import { tabelaRegras } from './assistente-regras.js';
 import { respostasDoCliente, respostasEmLinhas } from './onboarding-contexto.js';
 import { proporPacote, dataCurta } from './pacotes-producao.js';
 import { umaVez } from './uma-vez.js';
+import { mesDoTexto } from './planejamentos.js';
+import { FORMATO_DO_PLANEJAMENTO, FERRAMENTA_FORMATO, FERRAMENTA_PUBLICAR, publicarPlanejamento } from './planejamento-conector.js';
 
 export const VERSAO_PROTOCOLO = '2025-06-18';
 const TIPOS = ['conteudo', 'planejamento', 'roteiro', 'decisao', 'regra_de_marca', 'aprendizado'];
@@ -59,7 +63,7 @@ export const FERRAMENTAS = [
   {
     name: 'registrar',
     title: 'Registrar no ecossistema Vybe',
-    description: 'Grava no Vybe OS uma entrega definitiva deste chat (conteúdo aprovado, planejamento, roteiro, decisão do cliente, regra de marca ou aprendizado). Vai para a ficha do cliente, o cérebro do VYBES e uma cópia .md na pasta do cliente no Drive. Não use para conversa solta, testes ou ideias descartadas.',
+    description: 'Grava no Vybe OS uma entrega definitiva deste chat (conteúdo aprovado, planejamento, roteiro, decisão do cliente, regra de marca ou aprendizado). Vai para a ficha do cliente, o cérebro do VYBES e uma cópia .md na pasta do cliente no Drive. Não use para conversa solta, testes ou ideias descartadas. O planejamento do mês NÃO vai por aqui: registrar com tipo "planejamento" só guarda na ficha e não entra no módulo Planejamentos; para isso leia formato_do_planejamento e use publicar_planejamento.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -114,6 +118,10 @@ FERRAMENTAS.push({
     additionalProperties: false,
   },
 });
+
+// O planejamento do mês (Paulo, 16/11/2026): o mesmo contrato do conector dos agentes. Entra no módulo Planejamentos
+// em "revisar"; nunca vai direto ao cliente nem cria peça.
+FERRAMENTAS.push(FERRAMENTA_FORMATO, FERRAMENTA_PUBLICAR);
 
 const semSinais = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 function erroDeUso(msg) { return Object.assign(new Error(msg), { deUso: true }); }
@@ -220,7 +228,9 @@ function cadastroParaChat(c) {
   return linhas.map(([r, v]) => `- ${r}: ${v}`).join('\n');
 }
 
-export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoDrive = null } = {}) {
+// publicarPlanejamento (no contexto): só os testes trocam, com um dublê da gravação, sem banco. Sem ele, grava por
+// P.publicarDoAgente, a mesma função do conector dos agentes.
+export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoDrive = null, publicarPlanejamento: gravarPlanejamento } = {}) {
   if (nome === 'listar_clientes') {
     const busca = semSinais(args.busca);
     const lista = (await clientesAtivos(db)).filter((c) => !busca || semSinais(c.nome).includes(busca));
@@ -281,7 +291,24 @@ export async function executarFerramenta(db, nome, args = {}, { conta, salvarNoD
         drive = ' A cópia no Drive falhou agora; o registro está salvo no Vybe OS.';
       }
     }
-    return `Registrado em ${c.nome} (registro ${novo.id}).${avisoRegras}${drive}`;
+    // Registro de planejamento fica na ficha, mas não é o planejamento do mês: o chat é avisado do caminho certo.
+    const avisoPlanejamento = r.tipo === 'planejamento'
+      ? ' Atenção: isto ficou só na ficha do cliente e NÃO entrou no módulo Planejamentos. Se é o planejamento do mês, leia formato_do_planejamento e publique com publicar_planejamento (entra em revisão para o head).'
+      : '';
+    return `Registrado em ${c.nome} (registro ${novo.id}).${avisoRegras}${drive}${avisoPlanejamento}`;
+  }
+  if (nome === 'formato_do_planejamento') return FORMATO_DO_PLANEJAMENTO;
+  if (nome === 'publicar_planejamento') {
+    // A entrada é conferida antes de ir ao banco; o resto da validação (peças, datas, resumo, estado do mês) é a
+    // mesma do conector dos agentes, dentro de publicarDoAgente.
+    try { mesDoTexto(args.mes); } catch (e) { throw erroDeUso(e.message); }
+    if (!args.conteudo || typeof args.conteudo !== 'object' || Array.isArray(args.conteudo)) throw erroDeUso('Informe o conteudo do planejamento como objeto (veja formato_do_planejamento).');
+    // O cliente é o do painel, escolhido como em consultar_cliente (ativo, sem chute entre parecidos).
+    const c = acharCliente(args.cliente, await clientesAtivos(db));
+    try {
+      return await publicarPlanejamento(db, { cliente: String(c.id), mes: args.mes, titulo: args.titulo, conteudo: args.conteudo },
+        { por: `Claude.ai · ${conta}`, publicar: gravarPlanejamento });
+    } catch (e) { if (e.status) throw erroDeUso(e.message); throw e; }
   }
   if (nome === 'propor_pacote_producao') {
     const c = acharCliente(args.cliente, await clientesAtivos(db));
@@ -308,7 +335,9 @@ export async function atenderMensagem(db, msg, contexto) {
       protocolVersion: VERSAO_PROTOCOLO,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: 'ecossistema-vybe', title: 'Ecossistema Vybe', version: '1.0.0' },
-      instructions: 'Ferramentas do Vybe OS, o sistema da agência Vybe. Use consultar_cliente no começo do trabalho de um cliente e registrar ao fechar uma entrega definitiva. O nome do cliente tem de ser o do Vybe OS (listar_clientes mostra).',
+      instructions: 'Ferramentas do Vybe OS, o sistema da agência Vybe. Use consultar_cliente no começo do trabalho de um cliente e registrar ao fechar uma entrega definitiva. '
+        + 'Planejamento do mês: antes de publicar, leia formato_do_planejamento; depois publique com publicar_planejamento (cliente, mes AAAA-MM e conteudo). Ele entra no módulo Planejamentos em revisão: o head revisa, manda ao cliente e cadastra as peças; nada vai direto ao cliente. '
+        + 'registrar com tipo "planejamento" só guarda na ficha e não vira o planejamento do mês. O nome do cliente tem de ser o do Vybe OS (listar_clientes mostra).',
     });
   }
   if (method === 'ping') return resposta(id, {});

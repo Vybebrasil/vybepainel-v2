@@ -3,7 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { conexao } from './postgres.mjs';
-import { areaMcp, atenderMensagem, contaDaChave, lerChaves, acharCliente } from '../server/mcp-ecossistema.js';
+import { areaMcp, atenderMensagem, contaDaChave, lerChaves, acharCliente, FERRAMENTAS } from '../server/mcp-ecossistema.js';
+import { FORMATO_DO_PLANEJAMENTO, FERRAMENTA_PUBLICAR } from '../server/planejamento-conector.js';
 
 const CHAVES = lerChaves('gestao:' + 'a'.repeat(32) + ',segunda:' + 'b'.repeat(32) + ',curta:123');
 
@@ -47,7 +48,7 @@ test('conversa completa: initialize, lista, consulta e registro com cópia no Dr
     assert.equal(ini.corpo.result.serverInfo.name, 'ecossistema-vybe');
     assert.equal((await chamar({ jsonrpc: '2.0', method: 'notifications/initialized' })).code, 202);
     const lista = await chamar({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
-    assert.deepEqual(lista.corpo.result.tools.map((t) => t.name), ['listar_clientes', 'consultar_cliente', 'registrar', 'propor_pacote_producao']);
+    assert.deepEqual(lista.corpo.result.tools.map((t) => t.name), ['listar_clientes', 'consultar_cliente', 'registrar', 'propor_pacote_producao', 'formato_do_planejamento', 'publicar_planejamento']);
 
     const ativos = await chamar({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'listar_clientes', arguments: {} } });
     assert.match(ativos.corpo.result.content[0].text, /Academia Lions/);
@@ -169,5 +170,95 @@ test('regras de marca registradas antes da conversão viram regras uma vez só',
     assert.deepEqual((await regrasDoCliente(sql, 1)).sort(), ['Laranja só em destaque', 'Nunca fundo preto']);
     assert.deepEqual(await converterRegrasPendentes(sql), { registros: 0, regras: 0 });
     assert.equal((await regrasDoCliente(sql, 1)).length, 2);
+  } finally { await db.close(); }
+});
+
+// ── Planejamento do mês pelo Ecossistema (Paulo, 16/11/2026) ─────────────────
+// O chat do cliente publica no módulo Planejamentos pela mesma gravação do conector dos agentes. Aqui a gravação é
+// um dublê (sem tabela de planejamentos); o caminho com a gravação real está em tests/planejamentos.test.mjs.
+function dubleDaGravacao({ falha = null } = {}) {
+  const chamadas = [];
+  const publicar = async (sql, args, opcoes) => {
+    chamadas.push({ args, opcoes });
+    if (falha) throw falha;
+    return { novo: true, versao: 1, cliente: 'Academia Lions', mes: '2026-12-01', conteudo: { pecas: args.conteudo.pecas || [] } };
+  };
+  return { chamadas, publicar };
+}
+const planoDeDezembro = { resumo: 'Dezembro de fim de ano.', pecas: [{ data: '2026-12-05', formato: 'Reels', tema: 'Treino de férias' }] };
+const chamarFerramenta = (sql, name, args, contexto) => atenderMensagem(sql, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }, contexto);
+
+test('planejamento: as ferramentas aparecem no Ecossistema e as instructions mandam ler o formato e publicar', async () => {
+  const { db, sql } = await banco();
+  try {
+    const ini = await atenderMensagem(sql, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }, { conta: 'gestao' });
+    const instrucoes = ini.result.instructions;
+    assert.match(instrucoes, /formato_do_planejamento/);
+    assert.match(instrucoes, /publicar_planejamento/);
+    assert.match(instrucoes, /registrar com tipo "planejamento".*não vira o planejamento do mês/);
+    const nomes = (await atenderMensagem(sql, { jsonrpc: '2.0', id: 2, method: 'tools/list' }, { conta: 'gestao' })).result.tools.map((t) => t.name);
+    assert.ok(nomes.includes('formato_do_planejamento') && nomes.includes('publicar_planejamento'));
+    // Mesmo contrato do conector dos agentes (o mesmo objeto, não uma cópia).
+    assert.equal(FERRAMENTAS.find((f) => f.name === 'publicar_planejamento'), FERRAMENTA_PUBLICAR);
+    assert.deepEqual(FERRAMENTA_PUBLICAR.inputSchema.required, ['cliente', 'mes', 'conteudo']);
+    assert.match(FERRAMENTAS.find((f) => f.name === 'registrar').description, /publicar_planejamento/);
+    const formato = await chamarFerramenta(sql, 'formato_do_planejamento', {}, { conta: 'gestao' });
+    assert.equal(formato.result.isError, false);
+    assert.equal(formato.result.content[0].text, FORMATO_DO_PLANEJAMENTO);
+  } finally { await db.close(); }
+});
+
+test('planejamento: entrada errada volta como erro de uso e não chega à gravação', async () => {
+  const { db, sql } = await banco();
+  try {
+    const d = dubleDaGravacao();
+    const ctx = { conta: 'gestao', publicarPlanejamento: d.publicar };
+    for (const [args, erro] of [
+      [{ cliente: 'Academia Lions', mes: 'dezembro', conteudo: planoDeDezembro }, /AAAA-MM/],
+      [{ cliente: 'Academia Lions', mes: '2026-13', conteudo: planoDeDezembro }, /AAAA-MM/],
+      [{ cliente: 'Academia Lions', mes: '2026-12' }, /conteudo/],
+      [{ cliente: 'Academia Lions', mes: '2026-12', conteudo: [planoDeDezembro] }, /conteudo/],
+      [{ cliente: 'Gonzalez', mes: '2026-12', conteudo: planoDeDezembro }, /Mais de um cliente parecido/],
+      [{ cliente: 'Cliente Antigo', mes: '2026-12', conteudo: planoDeDezembro }, /não encontrado/],
+      [{ cliente: '', mes: '2026-12', conteudo: planoDeDezembro }, /nome do cliente/],
+    ]) {
+      const r = await chamarFerramenta(sql, 'publicar_planejamento', args, ctx);
+      assert.equal(r.result.isError, true, JSON.stringify(args));
+      assert.match(r.result.content[0].text, erro);
+    }
+    assert.equal(d.chamadas.length, 0);
+  } finally { await db.close(); }
+});
+
+test('planejamento: publica pela gravação comum, com o cliente do painel e o chat no histórico', async () => {
+  const { db, sql } = await banco();
+  try {
+    const d = dubleDaGravacao();
+    const r = await chamarFerramenta(sql, 'publicar_planejamento', { cliente: 'lions', mes: '2026-12', titulo: 'Dezembro', conteudo: planoDeDezembro }, { conta: 'gestao', publicarPlanejamento: d.publicar });
+    assert.equal(r.result.isError, false, r.result.content[0].text);
+    assert.match(r.result.content[0].text, /^Publicado: Academia Lions, dezembro de 2026, 1 peças/);
+    assert.equal(d.chamadas.length, 1);
+    const [{ args, opcoes }] = d.chamadas;
+    const [lions] = await sql`SELECT id FROM vybe_clientes WHERE nome='Academia Lions'`;
+    assert.deepEqual(args, { cliente: String(lions.id), mes: '2026-12', titulo: 'Dezembro', conteudo: planoDeDezembro });
+    assert.deepEqual(opcoes, { por: 'Claude.ai · gestao' });
+    // Recusa da gravação (ex.: mês já com o cliente) volta para o chat com a mensagem.
+    const recusa = dubleDaGravacao({ falha: Object.assign(new Error('O planejamento de Academia Lions deste mês já está com o cliente.'), { status: 409 }) });
+    const r2 = await chamarFerramenta(sql, 'publicar_planejamento', { cliente: 'Academia Lions', mes: '2026-12', conteudo: planoDeDezembro }, { conta: 'segunda', publicarPlanejamento: recusa.publicar });
+    assert.equal(r2.result.isError, true);
+    assert.match(r2.result.content[0].text, /já está com o cliente/);
+  } finally { await db.close(); }
+});
+
+test('registrar com tipo planejamento guarda na ficha e avisa para usar publicar_planejamento; os outros tipos não mudam', async () => {
+  const { db, sql } = await banco();
+  try {
+    const plano = await chamarFerramenta(sql, 'registrar', { cliente: 'Academia Lions', tipo: 'planejamento', titulo: 'Dezembro', resumo: 'Plano do mês.' }, { conta: 'gestao' });
+    assert.equal(plano.result.isError, false);
+    assert.match(plano.result.content[0].text, /Registrado em Academia Lions/);
+    assert.match(plano.result.content[0].text, /NÃO entrou no módulo Planejamentos.*publicar_planejamento/);
+    assert.equal((await sql`SELECT tipo FROM vybe_cliente_registros`)[0].tipo, 'planejamento');
+    const outro = await chamarFerramenta(sql, 'registrar', { cliente: 'Academia Lions', tipo: 'roteiro', titulo: 'Reels', resumo: 'Roteiro aprovado.' }, { conta: 'gestao' });
+    assert.match(outro.result.content[0].text, /^Registrado em Academia Lions \(registro \d+\)\.$/);
   } finally { await db.close(); }
 });
