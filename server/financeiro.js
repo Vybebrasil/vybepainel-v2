@@ -12,6 +12,9 @@
 //   cartao_salvar { item } / cartao_remover { id }
 //   cartao_vencimento { cartao, dia }   o dia do mês em que a fatura do cartão vence (chave financeiro_cartoes)
 //   cenario_salvar { cenario } / cenario_remover { id }
+//   lancar_mao   { lancamento, fixo? }   o que não passou pelo banco; com fixo.repete (saída), vira também gasto fixo
+//   apagar       { id }                  tira o lançamento e guarda na lixeira (o do banco não volta ao reimportar)
+//   restaurar    { id }                  devolve o que foi apagado (o "Desfazer")
 //
 // Quem: só os quatro donos (server/donos.js), sempre. Dinheiro da Vybe não passa por "quem administra".
 // Onde: vybe_carteira_config (chave/valor jsonb), sem migração — chaves financeiro_*. Cada escrita lê com FOR UPDATE e
@@ -62,6 +65,8 @@ async function mudar(sql, parte, pessoaId, fn) {
 }
 
 // Várias chaves travadas na mesma transação (lançar uma proposta mexe nas propostas e no extrato juntos).
+// Ids do banco que um dono apagou: o reimportar não os traz de volta.
+const idsApagados = (extrato = {}) => new Set((extrato.lixeira || []).map((t) => t.id));
 async function mudarVarias(sql, partes, pessoaId, fn) {
   return sql.comTransacao(async (tx) => {
     const atuais = {};
@@ -130,6 +135,10 @@ export function montar(base, clientes, { mes, hoje, pessoas = [] }) {
     hoje, mes: mesAtual, meses,
     categorias: X.CATEGORIAS, regras_padrao: X.REGRAS_PADRAO, regras: base.regras,
     transacoes: lista, importacoes: base.extrato.importacoes || [],
+    // Lixeira (os 30 últimos apagados), para restaurar sem depender do "Desfazer" de poucos segundos.
+    apagados: (base.extrato.lixeira || []).slice(0, 30).map((t) => ({ id: t.id, data: t.banco.data, historico: t.banco.historico, valor: t.banco.valor,
+      do_banco: t.banco.saldo != null, apagado_em: t.apagado_em || '', apagado_por: t.apagado_por || '' })),
+    total_apagados: (base.extrato.lixeira || []).length,
     resumo: X.resumo(lista, { mes: mesAtual }),
     serie: meses.map((m) => { const r = X.resumo(lista, { mes: m }); return { mes: m, entradas: r.entradas, saidas: r.saidas, cartao: r.cartao_e_transferencias, resultado: r.resultado, saldo_final: r.saldo_final, a_revisar: r.a_revisar }; }),
     a_revisar: lista.filter((t) => !t.real.conferido).length,
@@ -237,8 +246,9 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
       const lido = lerCsv(b);
       const [base, clientes] = await Promise.all([lerTudo(sql), clientesComMensalidade(sql)]);
       const novas = X.transacoesDoCsv(lido, base.regras, clientes.filter((c) => c.ativo).map((c) => ({ id: c.cliente_id, nome: c.cliente_nome })));
-      const { novas: n, repetidas } = X.mesclar(base.extrato.transacoes, novas);
-      const ja = new Set(base.extrato.transacoes.map((t) => t.id));
+      const apagados = idsApagados(base.extrato);
+      const { novas: n, repetidas } = X.mesclar([...base.extrato.transacoes, ...(base.extrato.lixeira || [])], novas);
+      const ja = new Set([...base.extrato.transacoes.map((t) => t.id), ...apagados]);
       return { previa: true, agencia: lido.agencia, conta: lido.conta, avisos: lido.avisos, novas: n, repetidas,
         transacoes: novas.map((t) => ({ ...t, ja_importada: ja.has(t.id) })), resumo: X.resumo(novas), meses: X.mesesDa(novas).map((m) => X.resumo(novas, { mes: m })) };
     }
@@ -247,7 +257,10 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
       const [{ regras }, clientes] = await Promise.all([lerTudo(sql), clientesComMensalidade(sql)]);
       return mudar(sql, 'extrato', pid, (atual) => {
         const novas = X.transacoesDoCsv(lido, regras, clientes.filter((c) => c.ativo).map((c) => ({ id: c.cliente_id, nome: c.cliente_nome })));
-        const m = X.mesclar(atual.transacoes || [], novas);
+        // O que um dono apagou não volta ao reimportar o mesmo extrato (conta como repetido).
+        const apagados = idsApagados(atual);
+        const m = X.mesclar(atual.transacoes || [], novas.filter((t) => !apagados.has(t.id)));
+        m.repetidas = novas.length - m.novas;
         const datas = novas.map((t) => t.banco.data).sort();
         const registro = { em: new Date().toISOString(), por: nomeDe(pessoa), agencia: lido.agencia, conta: lido.conta, de: datas[0], ate: datas[datas.length - 1], novas: m.novas, repetidas: m.repetidas };
         return { valor: { ...atual, transacoes: m.lista, importacoes: [...(atual.importacoes || []), registro].slice(-50) }, resposta: { importado: registro } };
@@ -261,6 +274,26 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
         if (r.erro) throw erro(400, r.erro);
         lista[i] = { ...lista[i], real: r.real };
         return { valor: { ...atual, transacoes: lista }, resposta: { transacao: lista[i] } };
+      });
+    // Apagar (Paulo, 15/11/2026: "não tem como apagar um lançamento"). Vai para a lixeira, não some: o "Desfazer" e o
+    // restaurar devolvem, e o id do banco fica lembrado para o reimportar não trazer de volta. O lançado pelo WhatsApp ou à
+    // mão desliga a proposta (fica descartada), para não contar duas vezes nem aparecer como lançada sem lançamento.
+    case 'apagar':
+      return mudarVarias(sql, ['extrato', 'vorcaro'], pid, (a) => {
+        const lista = a.extrato.transacoes || [], i = porId(lista, b.id);
+        const [tirada] = lista.splice(i, 1);
+        const lixeira = [{ ...tirada, apagado_em: new Date().toISOString(), apagado_por: nomeDe(pessoa) }, ...(a.extrato.lixeira || []).filter((x) => x.id !== tirada.id)].slice(0, 2000);
+        const propostas = (a.vorcaro.propostas || []).map((p) => (p.transacao_id === tirada.id ? { ...p, estado: 'descartada', transacao_id: '', apagada_com: tirada.id } : p));
+        return { valores: { extrato: { ...a.extrato, transacoes: lista, lixeira }, vorcaro: { ...a.vorcaro, propostas } }, resposta: { apagado: tirada.id } };
+      });
+    case 'restaurar':
+      return mudarVarias(sql, ['extrato', 'vorcaro'], pid, (a) => {
+        const lixeira = a.extrato.lixeira || [], i = lixeira.findIndex((x) => x.id === String(b.id || ''));
+        if (i < 0) throw erro(404, 'Esse lançamento não está na lixeira.');
+        const [{ apagado_em: _e, apagado_por: _p, ...volta }] = lixeira.splice(i, 1);
+        const m = X.mesclar(a.extrato.transacoes || [], [volta]);
+        const propostas = (a.vorcaro.propostas || []).map((p) => (p.apagada_com === volta.id ? { ...p, estado: 'lancada', transacao_id: volta.id, apagada_com: '' } : p));
+        return { valores: { extrato: { ...a.extrato, transacoes: m.lista, lixeira }, vorcaro: { ...a.vorcaro, propostas } }, resposta: { restaurado: volta.id } };
       });
     case 'conferir_varios':
       return mudar(sql, 'extrato', pid, (atual) => {
@@ -350,11 +383,25 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
     case 'lancar_mao': {
       const r = X.normalizarProposta({ ...(b.lancamento || {}), origem: 'mao', autor: nomeDe(pessoa) });
       if (r.erro) throw erro(400, r.erro);
-      return mudarVarias(sql, ['vorcaro', 'extrato'], pid, (a) => {
+      // "Fui adicionar uma conta a pagar… não devia me perguntar se era conta fixa?" (Paulo, 15/11/2026). Saída que se
+      // repete todo mês vira também gasto fixo, ligado a este lançamento (o mês dele fica coberto); dali em diante a conta
+      // aparece sozinha em Contas a pagar e no Vorcaro todo mês, no dia do vencimento.
+      let fixo = null;
+      if (b.fixo?.repete && r.proposta.tipo === 'saida') {
+        if (!X.CATEGORIAS.some((c) => c.id === r.proposta.categoria && c.tipo === 'saida')) throw erro(400, 'Escolha para onde vai a conta fixa (a categoria).');
+        const f = X.normalizarFixo({ nome: b.fixo.nome || r.proposta.texto || r.proposta.quem, valor: r.proposta.valor, categoria: r.proposta.categoria,
+          dia: Number(b.fixo.dia) || Number(r.proposta.data.slice(8, 10)), forma: b.fixo.forma, inicio: r.proposta.data.slice(0, 7) });
+        if (f.erro) throw erro(400, f.erro === 'Dê um nome ao gasto fixo.' ? 'Dê um nome à conta fixa (em "O que foi").' : f.erro);
+        fixo = f.fixo;
+      }
+      return mudarVarias(sql, fixo ? ['vorcaro', 'extrato', 'fixos'] : ['vorcaro', 'extrato'], pid, (a) => {
         const p = { ...r.proposta, estado: 'lancada', decidido_por: nomeDe(pessoa) };
         const tr = X.transacaoDaProposta(p, nomeDe(pessoa)); p.transacao_id = tr.id;
+        if (fixo) tr.real.fixo_id = fixo.id;
         const m = X.mesclar(a.extrato.transacoes || [], [tr]);
-        return { valores: { vorcaro: { propostas: [...(a.vorcaro.propostas || []), p].slice(-1000) }, extrato: { ...a.extrato, transacoes: m.lista } }, resposta: { transacao: tr } };
+        const valores = { vorcaro: { propostas: [...(a.vorcaro.propostas || []), p].slice(-1000) }, extrato: { ...a.extrato, transacoes: m.lista } };
+        if (fixo) valores.fixos = salvarNaLista(Array.isArray(a.fixos) ? a.fixos : [], fixo);
+        return { valores, resposta: { transacao: tr, fixo } };
       });
     }
     case 'proposta_lancar':

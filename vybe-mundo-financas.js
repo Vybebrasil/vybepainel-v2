@@ -209,7 +209,7 @@
     return `<div class="fv2-topo"><div class="fv2-ola">${trilha ? `<p class="fv2-sub"><button type="button" class="fv2-link" data-fv="ir" data-valor="setor:financas">Finanças</button> › ${esc(titulo)}</p>` : ''}<div class="d3f-tit"><h1>${esc(titulo)}</h1>${SELO}${extra}</div></div>${meio}${acoes}</div>`;
   }
   // Com o extrato como fonte, lançar à mão é pelo Vorcaro (vira lançamento do extrato, sem saldo).
-  const lancarMao = (nome) => `<button type="button" class="fv2-btn p" data-fv="ir" data-valor="vorcaro">${IC.mais}${esc(nome)}</button>`;
+  const lancarMao = (nome, status = '') => `<button type="button" class="fv2-btn p" data-fv="ir" data-valor="vorcaro" data-mao="${status || 'pago'}">${IC.mais}${esc(nome)}</button>`;
   const novo = (vc, nome) => `<button type="button" class="fv2-btn p" data-vc="${vc}">${IC.mais}${esc(nome)}</button>`;
   const comoFunciona = '<button type="button" class="fv2-btn d3f-cinza" data-vc="ajuda">Como funciona</button>';
   function periodoHtml(per, hoje) {
@@ -455,7 +455,7 @@
       corpo: (visiveis.map(linhaGrupo).join('') + zerados.map(linhaZerada).join('') || `<p class="fv2-nada">${termo || u.extra ? 'Nenhuma conta neste filtro.' : 'A divisão aparece com a primeira conta lançada.'}</p>`) + doFinancas });
     const falta = oQueFalta(ctx), semNada = !todas.length && !pedem.length;
     return `<div class="fv2 d3f" data-tela="con"><div class="fv2-in">
-      ${topo({ titulo: 'Contas a pagar', meio: periodoHtml(per, hoje), acoes: comoFunciona + (doExtrato(d) ? lancarMao('Lançar à mão') : novo('conta', 'Nova conta')), extra: fonte(d) })}
+      ${topo({ titulo: 'Contas a pagar', meio: periodoHtml(per, hoje), acoes: comoFunciona + (doExtrato(d) ? lancarMao('Nova conta', 'nao_pago') : novo('conta', 'Nova conta')), extra: fonte(d) })}
       ${acao('Vorcaro · Financeiro', frase, nVenc + nSete ? `Ver ${nVenc + nSete === 1 ? 'a conta' : 'as ' + n0(nVenc + nSete)}` : '', 'data-fv="foco" data-valor="acao"')}
       ${numeros}${barra}
       ${semNada ? vazioLinha('Nenhuma conta neste período.', `${doExtrato(d) ? '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Abrir o Extrato</button>' : '<button type="button" class="fv2-btn s" data-vc="conta">Lançar a primeira</button>'}${falta.botao}`)
@@ -678,7 +678,7 @@
     }
     if (acao === 'conta') { u.conta = !u.conta; raiz.querySelector('.fv2-conta')?.setAttribute('aria-expanded', u.conta); b.setAttribute('aria-expanded', u.conta); return; }
     if (acao === 'foco') { const alvo = raiz.querySelector(`[data-fv-card="${valor}"]`); if (alvo) { alvo.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); alvo.classList.remove('fv2-olha'); void alvo.offsetWidth; alvo.classList.add('fv2-olha'); } return; }
-    if (acao === 'ir') return ir(valor);
+    if (acao === 'ir') { if (b.dataset.mao) window.VybeFinanceiro?.abrirLancarMao?.({ status: b.dataset.mao }); return ir(valor); }
     if (acao === 'per') { ui.vis.per = valor; ui.vis.aberta = ''; ui.vis.inteira = false; return repintarVisao(); }
     if (acao === 'lancar') { ui.vis.lancar = !ui.vis.lancar; return repintarVisao(); }
     if (acao === 'novo') { // abre a tela e, quando ela estiver pintada, o formulário de lançar
