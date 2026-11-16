@@ -166,7 +166,8 @@ async function loadAiUsage(force=false) {
   if (aiUsageLoading || (!force && aiUsageData?.period_days === aiUsageDays)) { renderAiUsageBoard(aiUsageData); return; }
   aiUsageLoading = true;
   const root = document.getElementById('ai-usage-root');
-  if (root) root.innerHTML = aiCabecalhoHtml() + vbEstadoHtml({ tipo: 'carregando', titulo: 'Consultando uso e custos' });
+  const noMundo = typeof pv2Ligado === 'function' && pv2Ligado();
+  if (root) root.innerHTML = noMundo ? pv2iCascaHtml({ tipo: 'carregando', forma: 'lista', linhas: 8, titulo: 'Consultando uso e custos' }) : aiCabecalhoHtml() + vbEstadoHtml({ tipo: 'carregando', titulo: 'Consultando uso e custos' });
   try {
     const response = await fetch(`${AI_USAGE_API}?days=${aiUsageDays}`);
     const data = await response.json();
@@ -174,7 +175,8 @@ async function loadAiUsage(force=false) {
     aiUsageData = data;
     renderAiUsageBoard(data);
   } catch (error) {
-    if (root) root.innerHTML = aiCabecalhoHtml() + vbEstadoHtml({ tipo: 'erro', titulo: 'Não foi possível ler os gastos da IA', texto: error.message || '',
+    if (root) root.innerHTML = noMundo ? pv2iCascaHtml({ tipo: 'erro', forma: 'lista', grande: true, titulo: 'Não foi possível ler os gastos da IA', texto: error.message || 'Não foi possível falar com o servidor.', acao: typeof d3mEEstadoBtn === 'function' ? d3mEEstadoBtn('Tentar de novo', 'onclick="loadAiUsage(true)"', true) : '' })
+      : aiCabecalhoHtml() + vbEstadoHtml({ tipo: 'erro', titulo: 'Não foi possível ler os gastos da IA', texto: error.message || '',
       acao: '<button type="button" class="vb-botao" onclick="loadAiUsage(true)">Tentar de novo</button>' });
   } finally {
     aiUsageLoading = false;
@@ -209,7 +211,7 @@ function aiPeriodosHtml() {
 }
 
 function aiCabecalhoHtml() {
-  if (typeof pv2Ligado === 'function' && pv2Ligado()) return `<div id="pv2-ia" class="pv2 pv2-ia">${pv2iTopoHtml()}</div>`;
+  if (typeof pv2Ligado === 'function' && pv2Ligado()) return `<div class="d3m-e-tela d3m-e-ia">${pv2iTopoHtml()}</div>`;
   return vbCabecalhoHtml({ titulo: 'IA e custos', texto: 'Quanto o VYBES gasta, com quem e em quê.',
     acoes: `${aiPeriodosHtml()}<button type="button" class="vb-botao" onclick="loadAiUsage(true)">Atualizar</button>` });
 }
@@ -302,6 +304,7 @@ async function saveAiUsageSettings() {
     const result = await response.json();
     if (!response.ok) throw new Error(result?.error || 'Não foi possível salvar.');
     aiUsageData = result.dashboard;
+    if (typeof pv2iParametros !== 'undefined') pv2iParametros = false; // salvo: o formulário dá lugar a "Com quem e em quê"
     renderAiUsageBoard(aiUsageData);
     if (typeof showToast === 'function') showToast('Parâmetros de custo atualizados.');
   } catch (error) {
@@ -323,6 +326,8 @@ function switchBoard(board, btn) {
   if (activeBoard === 'demandas' && board !== 'demandas') guardarPreferenciasDemandas();
   if (activeBoard !== 'demandas' && board === 'demandas') preferenciasDemandasUsuario = null;
   activeBoard = board;
+  // O quadro aberto fica no body: a janela de vidro de cada tela V2 (padrao-v2/zm-e-*.css) é escolhida por ele.
+  if (document.body && document.body.dataset.quadro !== board) document.body.dataset.quadro = board;
   if(board==='demandas') { gruposDeDemandasAberto=true; agendaDeDemandasAberta=false; gruposDemandasRecolhidos.clear(); }
   document.querySelectorAll('.board-switch-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -1572,27 +1577,56 @@ function pv2dPintar() {
 }
 try { pv2dMontar(); } catch { /* a tela antiga segue valendo */ }
 
-// ─── Padrão v2 · IA e custos pelo quadro D3-IaCustos (Direção 3, 13/11/2026) ─────────────────────
-// A tela é o quadro, nesta ordem: título com o selo "só donos", o período (7, 30, 90 dias) e Atualizar (o "Definir
-// teto" saiu do topo no acabamento de 15/11: a ação principal mora no bloco laranja, e o cartão do teto tem o "definir");
-// o bloco de ação do Alex (frase curta e um botão); quatro números (gasto no período, como o mês fecha, pedidos e teto);
-// e três colunas: "Pede ação" com o gasto por dia em linha, "Com quem" e "Em quê". Os números vêm de /api/ia-custos.
-// A API devolve o gasto por pessoa, por modelo e, nas gravações desde 14/11/2026, por agente e por cliente
-// (ai_usage_events.agente/cliente): "Em quê" mostra os agentes quando há, senão os modelos; "Com quem" troca para
-// "Por cliente" no botão do pé.
-// As peças d3AcaoHtml, d3NumHtml e d3LinhaSvg são da base (vybe-core.js; CSS em padrao-v2/0-d3-base.css).
-const PV2I_SELO = '<span class="d3-selo-donos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>só donos</span>';
+// ─── Padrão v2 · IA e custos na direção V2 (prancha V2-M-IA-Custos, aprovada pelo Paulo em 16/11/2026) ─────────
+// O esqueleto novo da tela, na casca do grupo E (.d3m-e-*, padrao-v2/zm-e-casca.css e zm-e-ia.css): no vidro, o título
+// (com a seta das telas da Gestão), o selo "só donos", o período (7, 30, 90 dias), Atualizar, a busca e "Como funciona";
+// à esquerda, três números (gasto no período, como o mês fecha e pedidos), a folha "Teto do mês" (o teto, o aviso em 80%
+// e o vermelho em 100%) e a folha "Com quem e em quê" (o gasto por dia em linha, quem pediu ou por cliente, e por agente
+// ou por modelo; sem uso, o estado vazio; com "Parâmetros", o formulário no lugar); à direita, direto no vidro, o cartão
+// laranja do Alex (a única ação cheia), o que entra na conta, o que os números acusam ("De olho") e os atalhos.
+// Os números vêm de /api/ia-custos. A API devolve o gasto por pessoa, por modelo e, nas gravações desde 14/11/2026, por
+// agente e por cliente (ai_usage_events.agente/cliente): "Em quê" mostra os agentes quando há, senão os modelos.
+// As peças .d3m-e-* e os estados (vazio, carregando, erro) vêm de vybe-core.js (d3mETopo, d3mEEstado, d3mEKpi).
+const PV2I_CADEADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const PV2I_SELO = `<span class="d3m-e-so-donos">${PV2I_CADEADO}só donos</span>`;
+const PV2I_SETA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+const PV2I_AJUDA = ['Cada pedido ao VYBES entra na conta: de quem foi, em qual modelo e quanto custou, em real e em dólar.',
+  'Os valores são estimados pelo preço de tabela de cada modelo e pelo dólar de referência; não substituem as faturas da OpenAI, do Google e da Anthropic.',
+  'O teto do mês avisa os donos em 80% e fica vermelho, aqui e no Hoje, ao chegar a 100%.'];
+let pv2iRecorte = 'pessoa';
+let pv2iParametros = false;   // o formulário dos parâmetros no lugar de "Com quem e em quê"
+function pv2iEstado(op) {
+  if (typeof d3mEEstado === 'function') return d3mEEstado(op);
+  return op.tipo === 'carregando' ? `<div class="d3m-e-estado-carregando" role="status" aria-busy="true" aria-label="${safeText(op.titulo || 'Carregando')}"></div>`
+    : `<div class="d3m-e-estado d3m-e-estado-${op.tipo === 'erro' ? 'erro' : 'vazio'}" role="${op.tipo === 'erro' ? 'alert' : 'status'}"><b>${safeText(op.titulo || '')}</b><span>${safeText(op.texto || '')}</span>${op.acao || ''}</div>`;
+}
 function pv2iTopoHtml() {
-  return `<div class="pv2-topo"><div class="d3f-tit"><h2>IA e custos</h2><span class="d3f-data">Gestão</span>${PV2I_SELO}</div>
-    <span class="pv2-seg ia-periodos" role="radiogroup" aria-label="Período">${[7, 30, 90].map((d) => `<button type="button" role="radio" data-days="${d}" aria-checked="${aiUsageDays === d}" onclick="setAiUsageDays(${d},this)">${d} dias</button>`).join('')}</span>
-    <button type="button" class="pv2-btn" onclick="loadAiUsage(true)">Atualizar</button></div>`;
+  const sub = `uso e custo da IA · últimos ${aiUsageDays} dias`;
+  const acoes = `<span class="d3m-e-per ia-periodos" role="radiogroup" aria-label="Período">${[7, 30, 90].map((d) => `<button type="button" role="radio" data-days="${d}" aria-checked="${aiUsageDays === d}" onclick="setAiUsageDays(${d},this)">${d} dias</button>`).join('')}</span>`
+    + '<button type="button" class="d3v-btn vidro d3m-e-fio" onclick="loadAiUsage(true)">Atualizar</button>'
+    + `<button type="button" class="d3m-e-ico" aria-label="Buscar" title="Buscar em todo o painel" onclick="document.querySelector('[data-ferr=&quot;busca&quot;]')?.click()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button>`
+    + `<details class="d3m-e-troca d3m-e-ajuda"><summary class="d3m-e-ico" aria-label="Como funciona" title="Como funciona"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.2c-.8.5-1.2 1-1.2 1.9M12 17h.01"/></svg></summary><div class="d3m-e-pop d3m-e-ajuda-pop" role="note" aria-label="Como a conta é feita"><b class="d3m-e-ajuda-t">Como funciona</b>${PV2I_AJUDA.map((t) => `<p class="d3m-e-ajuda-p">${t}</p>`).join('')}</div></details>`;
+  const topo = typeof d3mETopo === 'function' ? d3mETopo({ titulo: 'IA e custos', sub, setor: 'gestao', atual: 'ai-usage', acoes })
+    : `<div class="d3m-e-topo"><div class="d3m-e-tit"><span class="d3m-e-h" role="heading" aria-level="2">IA e custos</span><span class="d3m-e-sub">${sub}</span></div><div class="d3m-e-acoes">${acoes}</div></div>`;
+  // O selo "só donos" abre a linha de apoio (a tela inteira é só dos donos).
+  return topo.replace('<span class="d3m-e-sub">', `<span class="d3m-e-sub">${PV2I_SELO} · `);
 }
+// A casca da tela enquanto os números não vieram (carregando) ou quando a leitura falhou (erro).
+function pv2iCascaHtml(estado) {
+  return `<div class="d3m-e-tela d3m-e-ia"${estado.tipo === 'carregando' ? ' aria-busy="true"' : ''}>${pv2iTopoHtml()}<div class="d3m-e-corpo um"><div class="d3m-e-main"><section class="d3m-e-folha cresce" aria-label="IA e custos"><div class="d3m-e-cab"><b>${estado.tipo === 'carregando' ? 'Consultando uso e custos' : 'Uso e custos'}</b></div><div class="d3m-e-rola">${pv2iEstado(estado)}</div></section></div></div></div>`;
+}
+function pv2iIr(id) {
+  if (typeof window !== 'undefined' && window.mundoVoxel?.irPara) window.mundoVoxel.irPara(id);
+  else if (typeof switchBoard === 'function') { const bt = document.querySelector(`.board-switch-btn[onclick*="'${id}'"]`); if (bt) switchBoard(id, bt); }
+}
+// "Parâmetros" e "Definir o teto": o formulário entra no lugar de "Com quem e em quê" (nada abre por cima).
 function pv2iAbrirParametros(focarTeto) {
-  const d = document.getElementById('pv2i-parametros'); if (!d) return;
-  d.open = true;
-  d.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  if (focarTeto) setTimeout(() => document.getElementById('ai-budget-input')?.focus({ preventScroll: true }), 80);
+  pv2iParametros = true;
+  if (aiUsageData) pv2iRender(aiUsageData);
+  const foco = () => document.getElementById(focarTeto ? 'ai-budget-input' : 'ai-usd-input')?.focus?.({ preventScroll: true });
+  if (typeof setTimeout === 'function') setTimeout(foco, 80); else foco();
 }
+function pv2iFecharParametros() { pv2iParametros = false; if (aiUsageData) pv2iRender(aiUsageData); }
 // "Usar R$ 300": grava o teto sugerido pelo mesmo caminho de "Salvar" e o botão conta o estado.
 async function pv2iUsarTeto(valor, botao) {
   const s = aiUsageData?.settings || {};
@@ -1610,13 +1644,12 @@ async function pv2iUsarTeto(valor, botao) {
     if (typeof showToast === 'function') showToast(error.message || 'Falha ao salvar o teto.');
   }
 }
-// Número da Direção 3 com a linha de baixo (o que era legenda vira um dado curto).
-function pv2iNum(o) {
-  const h = d3NumHtml(o);
-  return o.sub ? h.replace(/<\/(div|button)>$/, `<span class="d3f-sub">${o.sub}</span></$1>`) : h;
+function pv2iTrocarRecorte(qual) { pv2iRecorte = qual === 'cliente' || qual === 'pessoa' ? qual : (pv2iRecorte === 'cliente' ? 'pessoa' : 'cliente'); if (aiUsageData) pv2iRender(aiUsageData); }
+// Cartão de número (a peça do grupo E, com um reserva simples para onde vybe-core.js não foi carregado).
+function pv2iKpi(o) {
+  if (typeof d3mEKpi === 'function') return d3mEKpi(o);
+  return `<div class="d3m-e-kpi${o.tom ? ' ' + o.tom : ''}"><span class="d3m-e-kpi-topo"><span>${safeText(o.rotulo)}</span></span><span class="d3m-e-kpi-baixo"><span class="d3m-e-kpi-txt"><b class="d3m-e-kpi-v">${o.valor}</b><small class="d3m-e-kpi-sub">${o.sub || ''}</small></span></span></div>`;
 }
-let pv2iRecorte = 'pessoa';
-function pv2iTrocarRecorte() { pv2iRecorte = pv2iRecorte === 'cliente' ? 'pessoa' : 'cliente'; if (aiUsageData) pv2iRender(aiUsageData); }
 function pv2iRender(data) {
   const root = document.getElementById('ai-usage-root');
   if (!root || !data) return;
@@ -1641,34 +1674,34 @@ function pv2iRender(data) {
   const doMes = lista.filter((d) => d.chave.slice(0, 7) === agora.toISOString().slice(0, 7)), acumulado = [];
   doMes.reduce((s, d) => { acumulado.push(s + d.custo); return s + d.custo; }, 0);
   const semCusto = providers.filter((p) => aiNumber(p.cost_brl) === 0).reduce((s, p) => s + aiNumber(p.calls), 0), pctSemCusto = pedidos ? Math.round((semCusto / pedidos) * 100) : 0;
-  // o bloco de ação do Alex: uma frase e um botão
-  const acao = !pedidos ? { frase: `Nenhum pedido ao VYBES em ${dias} dias.`, botao: dias < 90 ? 'Ver 90 dias' : '', attrs: 'onclick="setAiUsageDays(90,this)"' }
-    : teto <= 0 && sugerido ? { frase: `Sem teto mensal. Com ${redondo(sugerido)}, aviso antes de estourar.`, botao: `Usar ${redondo(sugerido)}`, attrs: `onclick="pv2iUsarTeto(${sugerido},this)"` }
-    : teto <= 0 ? { frase: 'Sem teto mensal definido.', botao: 'Definir teto', attrs: 'onclick="pv2iAbrirParametros(true)"' }
-    : usado >= 80 ? { frase: `${usado.toFixed(0)}% do teto usado; ${nomeDoMes} fecha perto de ${redondo(previsto)}.`, botao: 'Rever o teto', attrs: 'onclick="pv2iAbrirParametros(true)"' }
-    : { frase: `${Mes} fecha perto de ${redondo(previsto)}, dentro do teto.`, botao: 'Ver a conta', attrs: 'onclick="pv2iAbrirParametros(false)"' };
-  const blocoAcao = d3AcaoHtml({ frase: `<small class="d3f-quem">Alex · Análise e números</small>${acao.frase}`, agente: 'A', botao: acao.botao, attrs: acao.attrs });
-  // Pede ação: só o que os números sustentam
-  const pv2iAcoes = [];
-  if (teto <= 0) pv2iAcoes.push({ pill: pv2Pill('Sem teto', 'a'), texto: '<b>Teto mensal</b> não definido',
-    botao: sugerido ? `<button type="button" class="pv2-btn s d3f-escuro v2-estado" onclick="event.stopPropagation();pv2iUsarTeto(${sugerido},this)">Usar ${redondo(sugerido)}</button>` : `<button type="button" class="pv2-btn s" onclick="event.stopPropagation();pv2iAbrirParametros(true)">Definir</button>`,
-    mais: [previsto > 0 ? `${nomeDoMes.slice(0, 3)} ~${redondo(previsto)}` : '', `${nomeDoMes.slice(0, 3)} até hoje ${aiBrl(noMes)}`, 'aviso em 80%', 'vermelho em 100%'].filter(Boolean) });
-  else if (usado >= 80) pv2iAcoes.push({ pill: pv2Pill(`${usado.toFixed(0)}% do teto`, usado >= 100 ? 'r' : 'a'), texto: usado >= 100 ? `<b>Teto estourado</b> · ${aiBrl(noMes)} de ${aiBrl(teto)}` : `<b>Perto do teto</b> · ${aiBrl(noMes)} de ${aiBrl(teto)}`,
-    botao: `<button type="button" class="pv2-btn s" onclick="event.stopPropagation();pv2iAbrirParametros(true)">Rever o teto</button>`, mais: [previsto > 0 ? `${nomeDoMes.slice(0, 3)} ~${redondo(previsto)}` : ''].filter(Boolean) });
-  if (pedidos && gasto > 0 && pico.custo / gasto >= 0.2 && lista.filter((d) => d.custo > 0).length > 2) pv2iAcoes.push({ pill: pv2Pill(aiBrl(pico.custo), 'a'), texto: `<b>${dm(pico.chave)}</b> · ${Math.round((pico.custo / gasto) * 100)}% do gasto, ${n0(pico.pedidos)} ${pl(pico.pedidos, 'pedido', 'pedidos')}`, botao: '' });
-  const topo = people[0], mediaPessoas = people.length > 1 ? people.slice(1).reduce((s, p) => s + aiNumber(p.cost_brl), 0) / (people.length - 1) : 0;
-  if (topo && mediaPessoas > 0 && aiNumber(topo.cost_brl) >= mediaPessoas * 2) pv2iAcoes.push({ pill: pv2Pill(`${(aiNumber(topo.cost_brl) / mediaPessoas).toFixed(0)}× a média`, 'b'), texto: `<b>${safeText(topo.profile_name)}</b> · pedidos por pessoa`, botao: '' });
-  const linhaAcao = (a, i) => `<div class="pv2-linha v2-abre" aria-expanded="${i === 0 && a.mais?.length ? 'true' : 'false'}"><div class="pv2-lin"${a.mais?.length ? ` role="button" tabindex="0" onclick="const l=this.parentElement;l.setAttribute('aria-expanded',String(l.getAttribute('aria-expanded')!=='true'))"` : ''}>${a.pill}<p>${a.texto}</p>${a.botao}</div>
-      ${a.mais?.length ? `<div class="v2-mais"><div><div class="pv2i-mais">${a.mais.map((m) => `<span class="pv2i-ficha">${m}</span>`).join('')}</div></div></div>` : ''}</div>`;
-  const pedeAcao = `<section class="pv2-card pv2i-acao" aria-label="Pede ação"><div class="pv2i-cab"><h3>Pede ação</h3><span class="pv2-sub">${pv2iAcoes.length ? `${pv2iAcoes.length}${pv2iAcoes.length > 1 ? ', na ordem' : ''}` : 'nada agora'}</span></div>
-      ${pv2iAcoes.length ? pv2iAcoes.map(linhaAcao).join('') : `<p class="pv2-sub pv2-nada">${pedidos ? 'Nada pede ação: o gasto está dentro do teto.' : 'Sem uso no período.'}</p>`}</section>`;
-  // Por dia: o gasto de cada dia em linha, com a média tracejada e o dia mais caro marcado
-  const eixo = [0, 0.25, 0.5, 0.75, 1].map((f) => lista[Math.min(lista.length - 1, Math.round(f * (lista.length - 1)))]);
-  const porDiaHtml = `<section class="pv2-card pv2i-dia" aria-label="Gasto por dia"><div class="pv2i-cab"><h3>Por dia</h3><span class="pv2-sub"><span class="d3f-leg"><i></i>gasto</span><span class="d3f-leg proj"><i></i>média ${aiBrl(media)}</span></span></div>
-      ${pedidos ? `<div class="pv2i-graf">${d3LinhaSvg(lista.map((d) => d.custo), { meta: media, largura: 320, altura: 96, rotulo: `Gasto por dia de ${dm(lista[0].chave)} a ${dm(lista[lista.length - 1].chave)}${pico.custo > 0 ? `; o dia mais caro foi ${dm(pico.chave)}, com ${aiBrl(pico.custo)}` : ''}` })}${pico.custo > 0 ? `<span class="pv2i-pico">${dm(pico.chave)} · ${aiBrl(pico.custo)}</span>` : ''}</div>
-      <div class="d3f-eixo">${eixo.map((d, i) => (i === eixo.length - 1 ? `<b>${dm(d.chave)}</b>` : `<span>${dm(d.chave)}</span>`)).join('')}</div>` : '<p class="pv2-sub pv2-nada">Sem gasto no período.</p>'}</section>`;
-  // Com quem e Em quê
-  const gx = (av, nome, sub, valor, max) => `<div class="pv2i-gx"><span class="pv2-av" aria-hidden="true">${safeText(av)}</span><span class="pv2i-nome" title="${safeText(nome + (sub ? ' · ' + sub : ''))}">${safeText(nome)}</span><span class="d3-barra" style="--v:${max > 0 ? Math.max(2, Math.round((aiNumber(valor) / max) * 100)) : 0}%"><i></i></span><b>${aiBrl(valor)}</b></div>`;
+
+  // Os três números.
+  const kpis = `<div class="d3m-e-kpis" style="--n:3">${[
+    { rotulo: `Gasto em ${dias} dias`, valor: aiBrl(gasto), sub: `${overview.cost_usd != null ? aiUsd(overview.cost_usd) : aiUsd(month.cost_usd)}${pedidos ? ` · ${aiBrl(gasto / pedidos)} por pedido` : ''}`, selo: 't', icone: 'cifrao' },
+    { rotulo: `${Mes} fecha perto de`, valor: previsto > 0 ? redondo(previsto) : aiBrl(0), sub: `até hoje, ${aiBrl(noMes)}${pedidosDoMes ? ` · ${n0(pedidosDoMes)} ${pl(pedidosDoMes, 'pedido', 'pedidos')}` : ''}`, selo: 'roxo', icone: 'alta', serie: acumulado.length > 1 && noMes > 0 ? acumulado : null },
+    { rotulo: `Pedidos em ${dias} dias`, valor: n0(pedidos), sub: pedidos ? `${pctSemCusto}% sem custo` : 'nenhum no período', selo: 'i', icone: 'bot', anel: pedidos ? pctSemCusto : null },
+  ].map(pv2iKpi).join('')}</div>`;
+
+  // "Teto do mês": o teto (com o botão), o aviso em 80% e o vermelho em 100%.
+  const tomTeto = teto <= 0 ? 'a' : usado >= 100 ? 'r' : usado >= 80 ? 'a' : 'g';
+  const botaoTeto = teto > 0 ? '<button type="button" class="d3v-btn s" onclick="pv2iAbrirParametros(true)">Mudar</button>'
+    : `${sugerido ? `<button type="button" class="d3v-btn s d3m-e-fio v2-estado" onclick="pv2iUsarTeto(${sugerido},this)">Usar ${redondo(sugerido)}</button>` : ''}<button type="button" class="d3v-btn s" onclick="pv2iAbrirParametros(true)">Definir</button>`;
+  const tetoHtml = `<section class="d3m-e-folha d3m-e-ia-teto" aria-label="Teto do mês"><div class="d3m-e-cab"><b>Teto do mês</b><span class="d3m-e-cab-dir">${teto > 0 ? `${aiBrl(noMes)} de ${aiBrl(teto)}` : 'não definido'}</span></div>
+    <div class="d3m-e-ia-lin principal"><span class="d3m-e-ia-c1"><span class="d3v-st d3m-e-ia-st ${tomTeto}"><i aria-hidden="true"></i>${teto > 0 ? `${usado.toFixed(0)}% usado` : 'Sem teto'}</span></span><span class="d3m-e-ia-txt"><b>Teto mensal</b> <span>· ${teto > 0 ? `${aiBrl(teto)} por mês${previsto > 0 ? `; ${nomeDoMes} fecha perto de ${redondo(previsto)}` : ''}` : 'o limite de gasto com IA'}</span></span>${teto > 0 ? `<span class="d3m-e-ia-barra ${tomTeto}" aria-hidden="true"><i style="--v:${Math.min(100, Math.round(usado))}%"></i></span>` : ''}${botaoTeto}</div>
+    <div class="d3m-e-ia-lin"><b class="d3m-e-ia-c1 d3m-e-ia-pct${teto > 0 && usado >= 80 && usado < 100 ? ' a' : ''}">80%</b><span class="d3m-e-ia-txt">aviso aos donos</span><span class="d3m-e-ia-auto">${teto > 0 && usado >= 80 ? 'avisado' : 'automático'}</span></div>
+    <div class="d3m-e-ia-lin"><b class="d3m-e-ia-c1 d3m-e-ia-pct r">100%</b><span class="d3m-e-ia-txt">fica vermelho aqui e no Hoje</span><span class="d3m-e-ia-auto">${teto > 0 && usado >= 100 ? 'estourado' : 'automático'}</span></div></section>`;
+
+  // Os parâmetros da estimativa (os ids são os que saveAiUsageSettings lê).
+  const gemini = settings.gemini_billing === 'paid' ? 'API paga: o custo entra na conta' : 'plano gratuito: custo estimado em R$ 0,00';
+  const parametros = `<div class="d3m-e-ia-form" id="pv2i-parametros"><p class="d3m-e-ia-form-p">O teto acende o aviso a partir de 80% e fica vermelho ao chegar a 100%. O Gemini está no ${safeText(gemini)}.</p>
+      <div class="d3m-e-campo"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
+      <div class="d3m-e-campo"><label for="ai-usd-input">Dólar de referência (R$ por US$ 1)</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd) || 5.5}"></div>
+      <div class="d3m-e-campo"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing === 'free' ? 'selected' : ''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing === 'paid' ? 'selected' : ''}>API paga</option></select></div>
+      <div class="d3m-e-ia-form-bts"><button class="ai-setting-save d3v-btn s" type="button" onclick="saveAiUsageSettings()" aria-label="Salvar o teto, o dólar e o plano do Gemini">Salvar</button><button type="button" class="d3v-btn sec s" onclick="pv2iFecharParametros()">Voltar</button></div></div>`;
+  const parametrosBtn = '<button type="button" class="d3v-btn s d3m-e-fio" onclick="pv2iAbrirParametros(false)">Parâmetros</button>';
+
+  // "Com quem e em quê": o gasto por dia em linha, quem pediu (ou por cliente) e por agente (ou por modelo).
+  const gx = (av, nome, sub, valor, max) => `<div class="d3m-e-ia-gx" title="${safeText(nome + (sub ? ' · ' + sub : ''))}"><i class="d3v-foto" aria-hidden="true">${safeText(av)}</i><span class="d3m-e-ia-nome">${safeText(nome)}</span><span class="d3m-e-ia-barra" aria-hidden="true"><i style="--v:${max > 0 ? Math.max(2, Math.round((aiNumber(valor) / max) * 100)) : 0}%"></i></span><b>${aiBrl(valor)}</b></div>`;
   const agentes = Array.isArray(data.agents) ? data.agents : [], clientesIa = Array.isArray(data.clients) ? data.clients : [];
   const porCliente = pv2iRecorte === 'cliente';
   const maxPessoa = Math.max(0, ...people.map((p) => aiNumber(p.cost_brl))), maxModelo = Math.max(0, ...providers.map((p) => aiNumber(p.cost_brl)));
@@ -1677,33 +1710,48 @@ function pv2iRender(data) {
   const deAgente = agentes.slice(0, 6).map((a) => gx(String(a.agente || '?').trim().slice(0, 1).toUpperCase(), String(a.agente || 'Agente'), `${n0(a.calls)} ${pl(aiNumber(a.calls), 'pedido', 'pedidos')}`, a.cost_brl, maxAgente)).join('');
   const quem = people.slice(0, 6).map((p) => gx(String(p.profile_name || '?').trim().slice(0, 2).toUpperCase(), String(p.profile_name || 'Não identificado').split(' ')[0], `${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxPessoa)).join('');
   const emQue = providers.slice(0, 6).map((p) => { const rot = aiProviderLabel(p.provider), nome = rot === 'GPT' ? rot : rot.charAt(0) + rot.slice(1).toLowerCase(); return gx(rot.slice(0, 1), nome, `${p.model || 'modelo não identificado'} · ${n0(p.calls)} ${pl(aiNumber(p.calls), 'pedido', 'pedidos')}`, p.cost_brl, maxModelo); }).join('');
-  const gemini = settings.gemini_billing === 'paid' ? 'API paga: o custo entra na conta' : 'plano gratuito: custo estimado em R$ 0,00';
-  const parametros = `<details class="pv2-menu" id="pv2i-parametros"><summary class="pv2-chip">Parâmetros</summary>
-        <div class="pv2-pop pv2i-pop"><p class="pv2-sub">O teto acende o aviso a partir de 80% e fica vermelho ao chegar a 100%. O Gemini está no ${safeText(gemini)}.</p>
-          <div class="ai-setting-field"><label for="ai-budget-input">Teto mensal (R$)</label><input id="ai-budget-input" type="number" min="0" step="1" value="${aiNumber(settings.monthly_budget_brl)}"></div>
-          <div class="ai-setting-field"><label for="ai-usd-input">Dólar de referência (R$ por US$ 1)</label><input id="ai-usd-input" type="number" min="0.01" step="0.01" value="${aiNumber(settings.brl_per_usd) || 5.5}"></div>
-          <div class="ai-setting-field"><label for="ai-gemini-billing">Gemini</label><select id="ai-gemini-billing"><option value="free" ${settings.gemini_billing === 'free' ? 'selected' : ''}>Plano gratuito</option><option value="paid" ${settings.gemini_billing === 'paid' ? 'selected' : ''}>API paga</option></select></div>
-          <button class="ai-setting-save pv2-btn s k" type="button" onclick="saveAiUsageSettings()" aria-label="Salvar o dólar e o plano do Gemini">Salvar</button></div></details>`;
+  const nada = (t) => `<p class="d3m-e-ia-nada">${t}</p>`;
+  const eixo = [0, 0.25, 0.5, 0.75, 1].map((f) => lista[Math.min(lista.length - 1, Math.round(f * (lista.length - 1)))]);
   const listaQuem = porCliente ? clientesIa : people;
-  const trocar = `<button type="button" class="pv2-chip pv2i-recorte" aria-pressed="${porCliente}" onclick="pv2iTrocarRecorte()">${porCliente ? 'Por pessoa' : 'Por cliente'}</button>`;
-  const comQuem = `<section class="pv2-card pv2i-quem" aria-label="Com quem"><div class="pv2i-cab"><h3>Com quem</h3><span class="pv2-sub">${porCliente ? 'por cliente' : 'quem pediu'}</span></div>${porCliente ? deCliente || '<p class="pv2-sub pv2-nada">Sem cliente registrado nos pedidos do período (passa a contar nas gravações novas).</p>' : quem || '<p class="pv2-sub pv2-nada">Sem pessoas identificadas no período.</p>'}
-      <p class="pv2-sub pv2i-pe">${listaQuem.length ? `do maior para o menor${listaQuem.length > 6 ? ` · os 6 de ${n0(listaQuem.length)}` : ''}` : ''}${trocar}</p></section>`;
-  const emQueHtml = `<section class="pv2-card pv2i-que" aria-label="Em quê"><div class="pv2i-cab"><h3>Em quê</h3><span class="pv2-sub">${agentes.length ? 'por agente' : 'por modelo'}</span></div>${agentes.length ? deAgente : emQue || '<p class="pv2-sub pv2-nada">Sem modelos usados no período.</p>'}
-      <div class="pv2i-pe pv2i-fichas"><span class="pv2i-ficha" title="Valores estimados pelo preço de tabela de cada modelo e pelo dólar de referência; não substituem as faturas da OpenAI, do Google e da Anthropic.">estimado</span><span class="pv2i-ficha">preço de tabela</span>${parametros}</div></section>`;
-  root.innerHTML = `<div id="pv2-ia" class="pv2 pv2-ia d3f">${pv2iTopoHtml()}
-    ${blocoAcao}
-    <div class="d3f-nums" style="--n:4">${[
-      { rotulo: `Gasto em ${dias} dias`, valor: aiBrl(gasto), tom: gasto ? '' : 'q', sub: `${overview.cost_usd != null ? aiUsd(overview.cost_usd) : aiUsd(month.cost_usd)}${pedidos ? ` · ${aiBrl(gasto / pedidos)} por pedido` : ''}` },
-      { rotulo: `${Mes} fecha perto de`, valor: previsto > 0 ? redondo(previsto) : aiBrl(0), tom: previsto > 0 ? '' : 'q', serie: acumulado.length > 1 ? acumulado : null, sub: `até hoje · ${aiBrl(noMes)}${pedidosDoMes ? ` · ${n0(pedidosDoMes)} ${pl(pedidosDoMes, 'pedido', 'pedidos')}` : ''}` },
-      { rotulo: `Pedidos em ${dias} dias`, valor: n0(pedidos), tom: pedidos ? '' : 'q', barra: pctSemCusto, sub: pedidos ? `${pctSemCusto}% sem custo` : 'nenhum no período' },
-      // Sem teto: o número é "—" e a frase vai embaixo (acabamento 15/11), não "Sem teto" no lugar do número.
-      { rotulo: 'Teto mensal', valor: teto > 0 ? `${usado.toFixed(0)}%` : '—', tom: teto > 0 ? (usado >= 100 ? 'r' : usado >= 80 ? 'a' : '') : 'q', barra: teto > 0 ? Math.min(100, usado) : null,
-        sub: `${teto > 0 ? `${aiBrl(noMes)} de ${aiBrl(teto)}` : 'sem teto ainda'} · <button type="button" class="pv2-link" onclick="pv2iAbrirParametros(true)">${teto > 0 ? 'mudar' : 'definir'}</button>` },
-    ].map(pv2iNum).join('')}</div>
-    ${pedidos ? `<div class="pv2i-baixo"><div class="d3f-coluna">${pedeAcao}${porDiaHtml}</div>${comQuem}${emQueHtml}</div>`
-      // Sem pedido no período (acabamento 15/11): no lugar de três cartões vazios, uma frase só; o "Pede ação" (o teto)
-      // e os Parâmetros continuam.
-      : `<div class="pv2i-baixo pv2i-sem-uso"><div class="d3f-coluna">${pedeAcao}</div><section class="pv2-card pv2i-que" aria-label="Com quem e em quê"><div class="pv2i-cab"><h3>Com quem e em quê</h3><span class="pv2-sub">${dias} dias</span></div><p class="pv2-sub pv2-nada">Sem pedidos ao VYBES no período. Quem pediu, em qual modelo e o gasto de cada dia aparecem aqui quando houver uso.</p>
-      <div class="pv2i-pe pv2i-fichas">${parametros}</div></section></div>`}
-  </div>`;
+  const colDia = `<div class="d3m-e-ia-col" aria-label="Gasto por dia"><div class="d3m-e-ia-col-cab"><b>Por dia</b><span>média ${aiBrl(media)}</span></div>
+      <div class="d3m-e-ia-graf">${d3LinhaSvg(lista.map((d) => d.custo), { meta: media, largura: 320, altura: 96, rotulo: `Gasto por dia de ${dm(lista[0].chave)} a ${dm(lista[lista.length - 1].chave)}${pico.custo > 0 ? `; o dia mais caro foi ${dm(pico.chave)}, com ${aiBrl(pico.custo)}` : ''}` })}</div>
+      <div class="d3m-e-ia-eixo">${eixo.map((d, i) => (i === eixo.length - 1 ? `<b>${dm(d.chave)}</b>` : `<span>${dm(d.chave)}</span>`)).join('')}</div>${pico.custo > 0 ? `<p class="d3m-e-ia-nada">o dia mais caro: ${dm(pico.chave)}, ${aiBrl(pico.custo)}</p>` : ''}</div>`;
+  const recorte = `<span class="d3m-e-seg" role="radiogroup" aria-label="Com quem">${[['pessoa', 'Pessoa'], ['cliente', 'Cliente']].map(([q, r]) => `<button type="button" role="radio" class="pv2i-recorte" aria-checked="${pv2iRecorte === q}" onclick="pv2iTrocarRecorte('${q}')">${r}</button>`).join('')}</span>`;
+  const colQuem = `<div class="d3m-e-ia-col" aria-label="Com quem"><div class="d3m-e-ia-col-cab"><b>Com quem</b>${recorte}</div>${porCliente ? deCliente || nada('Sem cliente registrado nos pedidos do período (passa a contar nas gravações novas).') : quem || nada('Sem pessoas identificadas no período.')}${listaQuem.length > 6 ? nada(`os 6 maiores de ${n0(listaQuem.length)}`) : ''}</div>`;
+  const colQue = `<div class="d3m-e-ia-col" aria-label="Em quê"><div class="d3m-e-ia-col-cab"><b>Em quê</b><span>${agentes.length ? 'por agente' : 'por modelo'}</span></div>${agentes.length ? deAgente : emQue || nada('Sem modelos usados no período.')}</div>`;
+  let usoCorpo, usoPe = '', usoDir = `${dias} dias`, usoTit = 'Com quem e em quê';
+  if (pv2iParametros) { usoTit = 'Parâmetros'; usoDir = 'teto, dólar e Gemini'; usoCorpo = parametros; }
+  else if (!pedidos) usoCorpo = pv2iEstado({ tipo: 'vazio', forma: 'lista', grande: true, icone: 'bot', titulo: 'Sem pedidos ao VYBES no período', texto: 'Quem pediu, em qual modelo e o gasto de cada dia aparecem aqui quando houver uso.', acao: `<span class="d3m-e-ia-vazio-bts">${parametrosBtn}</span>` });
+  else {
+    usoCorpo = `<div class="d3m-e-ia-cols">${colDia}${colQuem}${colQue}</div>`;
+    usoPe = `<div class="d3m-e-pe d3m-e-ia-pe"><span><span class="d3v-etiqueta" title="Valores estimados pelo preço de tabela de cada modelo e pelo dólar de referência; não substituem as faturas da OpenAI, do Google e da Anthropic.">estimado</span> <span class="d3v-etiqueta">preço de tabela</span></span>${parametrosBtn}</div>`;
+  }
+  const usoHtml = `<section class="d3m-e-folha cresce d3m-e-ia-uso" aria-label="${usoTit}"><div class="d3m-e-cab"><b>${usoTit}</b><span class="d3m-e-cab-dir">${usoDir}</span></div><div class="d3m-e-rola">${usoCorpo}</div>${usoPe}</section>`;
+
+  // O cartão laranja do Alex: o teto que falta, o teto perto de estourar, o período sem pedido ou como o mês fecha.
+  const btL = (rot, attrs, sec) => `<button type="button" class="d3m-btn l${sec ? ' s' : ''}${sec ? '' : ' v2-estado'}" ${attrs}>${rot}</button>`;
+  const btParam = btL('Parâmetros', 'onclick="pv2iAbrirParametros(false)"', true);
+  let lar;
+  if (teto <= 0) lar = { rot: 'falta o teto', tit: 'O teto mensal de IA ainda não foi definido', sub: sugerido ? `Com ${redondo(sugerido)} de teto, o aviso chega antes de estourar.` : 'Sem teto não há aviso em 80% nem vermelho em 100%.',
+    bts: (sugerido ? btL(`Usar ${redondo(sugerido)}`, `onclick="pv2iUsarTeto(${sugerido},this)"`) : btL('Definir o teto', 'onclick="pv2iAbrirParametros(true)"')) + btParam };
+  else if (usado >= 80) lar = { rot: usado >= 100 ? 'teto estourado' : 'perto do teto', num: `${usado.toFixed(0)}%`, tit: `do teto de ${nomeDoMes} já foi usado`, sub: `${aiBrl(noMes)} de ${aiBrl(teto)}${previsto > 0 ? `; o mês fecha perto de ${redondo(previsto)}` : ''}.`, bts: btL('Rever o teto', 'onclick="pv2iAbrirParametros(true)"') + btParam };
+  else if (!pedidos) lar = { rot: 'sem uso', tit: `Nenhum pedido ao VYBES em ${dias} dias`, sub: `O teto de ${aiBrl(teto)} segue valendo para o mês.`, bts: (dias < 90 ? btL('Ver 90 dias', 'onclick="setAiUsageDays(90,this)"') : '') + btParam };
+  else lar = { rot: 'dentro do teto', tit: `${Mes} fecha perto de ${redondo(previsto)}`, sub: `Dentro do teto de ${aiBrl(teto)}: ${usado.toFixed(0)}% usado até hoje.`, bts: btL('Ver a conta', 'onclick="pv2iAbrirParametros(false)"') };
+  const laranja = `<section class="d3m-laranja d3m-e-ia-lar" aria-label="O que pede ação agora"><div class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">A</span><span>Alex · ${lar.rot}</span></div>
+    <div class="d3m-lar-txt">${lar.num ? `<b class="d3m-lar-num">${lar.num}</b>` : ''}<span class="d3-acao-frase">${lar.tit}</span><small class="d3m-lar-sub">${lar.sub}</small><div class="d3m-lar-bts">${lar.bts}</div></div></section>`;
+  // De olho: só o que os números sustentam (o dia que pesou e a pessoa muito acima da média).
+  const olho = [];
+  if (pedidos && gasto > 0 && pico.custo / gasto >= 0.2 && lista.filter((d) => d.custo > 0).length > 2) olho.push(`<b>${dm(pico.chave)}</b> · ${Math.round((pico.custo / gasto) * 100)}% do gasto, ${n0(pico.pedidos)} ${pl(pico.pedidos, 'pedido', 'pedidos')}`);
+  const topo = people[0], mediaPessoas = people.length > 1 ? people.slice(1).reduce((s, p) => s + aiNumber(p.cost_brl), 0) / (people.length - 1) : 0;
+  if (topo && mediaPessoas > 0 && aiNumber(topo.cost_brl) >= mediaPessoas * 2) olho.push(`<b>${safeText(topo.profile_name)}</b> · ${(aiNumber(topo.cost_brl) / mediaPessoas).toFixed(0)}× a média por pessoa`);
+  const olhoHtml = olho.length ? `<section class="d3m-cons" aria-label="De olho"><div class="d3m-cons-cab"><b>De olho</b><span>${olho.length}</span></div>${olho.map((t) => `<p class="d3m-vvazio d3m-e-ia-olho">${t}</p>`).join('')}</section>` : '';
+  const conta = '<section class="d3m-cons" aria-label="O que entra na conta"><div class="d3m-cons-cab"><b>O que entra na conta</b><span></span></div><p class="d3m-e-lado-txt">Cada pedido ao VYBES, de quem foi, em qual modelo e quanto custou, em real e em dólar.</p></section>';
+  const abrir = `<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+    <button type="button" class="d3m-vlin" onclick="pv2iIr('agentes')"><span><b>Agentes</b> · quem pede e quem age</span>${PV2I_SETA}</button>
+    <button type="button" class="d3m-vlin" onclick="pv2iIr('automacoes')"><span><b>Automações</b></span>${PV2I_SETA}</button></section>`;
+
+  root.innerHTML = `<div class="d3m-e-tela d3m-e-ia">${pv2iTopoHtml()}<div class="d3m-e-corpo">
+    <div class="d3m-e-main">${kpis}${tetoHtml}${usoHtml}</div>
+    <aside class="d3m-lado" aria-label="Consulta">${laranja}${conta}${olhoHtml}${abrir}</aside>
+  </div></div>`;
 }

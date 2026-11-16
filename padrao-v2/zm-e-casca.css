@@ -1,0 +1,147 @@
+/* ===================================================================================================================
+   V2 · GRUPO E · A CASCA DAS TELAS (pranchas V2-M-Diario, Performance, IA-Custos, Automacoes, Conta-Equipe, RH-*,
+   Equipe-Online, Academy e Toolkit, aprovadas pelo Paulo em 16/11/2026). O esqueleto comum das telas deste grupo:
+   a janela de vidro fumê, o título direto no vidro (24, com a seta que troca de tela), a coluna de trabalho em folhas
+   claras e a coluna de consulta de 316 px direto no vidro (.d3m-lado, de z-direcao.css). Peças locais (.d3m-e-*):
+   quando outra área precisar, sobem para z-direcao.css com o nome .d3m-*.
+   =================================================================================================================== */
+
+/* A janela dos quadros deste grupo é vidro fumê. O quadro aberto fica no body (data-quadro, de switchBoard). */
+body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
+
+/* A tela: uma coluna da altura da janela. Fora do Irecity (?legado=1) ela mesma faz o fundo escuro. */
+.d3m-e-tela{display:flex;flex-direction:column;min-width:0;height:100%;box-sizing:border-box;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+:where(body:not(.mundo)) .d3m-e-tela{min-height:560px;padding:16px;border-radius:20px;background:var(--d3-fume-painel)}
+.d3m-e-tela :is(p,h3,h4){margin:0}
+
+/* Topo no vidro: título com a seta de trocar de tela, a linha de apoio e as ações. À direita ficam os dois botões da janela. */
+.d3m-e-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;margin:0 0 16px;padding:0 104px 0 0;color:var(--d3-fume-texto)}
+.d3m-e-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-e-h{display:block;margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
+.d3m-e-sub{font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-acoes{flex:none;display:flex;align-items:center;gap:8px}
+.d3m-e-troca{position:relative;align-self:flex-start}
+.d3m-e-troca > summary{display:inline-flex;align-items:center;gap:6px;list-style:none;border-radius:var(--d3-r-botao);cursor:pointer}
+.d3m-e-troca > summary::-webkit-details-marker{display:none}
+.d3m-e-troca > summary > svg{flex:none;width:16px;height:16px;fill:none;stroke:var(--d3-fume-apagado);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-troca > summary:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:3px}
+.d3m-e-pop{position:absolute;z-index:5;left:0;top:calc(100% + 6px);display:flex;flex-direction:column;gap:2px;min-width:220px;padding:6px;border-radius:12px;background:var(--d3-cartao);box-shadow:0 18px 40px -18px rgba(0,0,0,.55),0 0 0 1px var(--d3-veu)}
+.d3m-e-pop > button{appearance:none;display:flex;align-items:center;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;cursor:pointer}
+.d3m-e-pop > button:hover{background:var(--d3-veu)}
+.d3m-e-pop > button.on{font-weight:600;background:var(--d3-veu)}
+.d3m-e-pop > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-e-pop > span{padding:6px 10px;color:var(--d3-rotulo);font-size:var(--d3-fs-apoio)}
+/* Botão de ícone no vidro (34 px, canto 8). */
+.d3m-e-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
+.d3m-e-ico:hover{background:var(--d3-fume-borda)}
+.d3m-e-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* Corpo: trabalho à esquerda, consulta de 316 à direita. Só as listas rolam, por dentro. */
+.d3m-e-corpo{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px}
+.d3m-e-corpo.um{grid-template-columns:minmax(0,1fr)}
+.d3m-e-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-e-corpo > .d3m-lado{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--d3-fume-borda) transparent}
+.d3m-e-lado-txt{margin:0;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+
+/* A folha: cartão claro com cabeça de 44, divisória fina e o corpo. .cresce ocupa o que sobra e rola por dentro. */
+.d3m-e-folha{flex:none;display:flex;flex-direction:column;min-width:0;box-sizing:border-box;border-radius:16px;overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+.d3m-e-folha.cresce{flex:1 1 0;min-height:0}
+.d3m-e-cab{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 16px;box-sizing:border-box}
+.d3m-e-cab > b{min-width:0;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-cab > b > span{font-weight:400;color:var(--d3-rotulo)}
+.d3m-e-cab-dir{flex:none;display:inline-flex;align-items:center;gap:10px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-rola{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+.d3m-e-pe{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-pe > span:first-child{flex:1 1 auto;min-width:0}
+
+/* Alternador dentro da cabeça da folha (26 px, canto 7; a escolhida num véu). */
+.d3m-e-seg{display:inline-flex;gap:2px}
+.d3m-e-seg > button{appearance:none;display:inline-flex;align-items:center;height:26px;margin:0;padding:0 9px;border:0;border-radius:7px;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-e-seg > button:hover{background:var(--d3-veu)}
+.d3m-e-seg > button[aria-checked="true"],.d3m-e-seg > button[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
+.d3m-e-seg > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+
+/* Faixa de números dentro da folha: número de 28 e o rótulo embaixo, divididos por um fio. */
+.d3m-e-nums{flex:none;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));border-top:1px solid var(--d3-divisa)}
+.d3m-e-nums > span{display:flex;flex-direction:column;gap:4px;min-width:0;padding:16px}
+.d3m-e-nums > span + span{border-left:1px solid var(--d3-divisa)}
+.d3m-e-nums b{font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-e-nums .r > b{color:var(--d3-perigo)}
+.d3m-e-nums .a > b{color:var(--d3-ambar)}
+.d3m-e-nums .g > b{color:var(--d3-pronto)}
+.d3m-e-nums span > span{font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-nums small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Período no vidro (36 px, canto 10; a escolhida numa pastilha branca). */
+.d3m-e-per{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-e-per > button{appearance:none;display:inline-flex;align-items:center;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-e-per > button:hover{background:var(--d3-fume-veu)}
+.d3m-e-per > button:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-e-per > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+/* "Como funciona": o botão de ícone que abre uma nota (a mesma caixa da seta do título, presa à direita). */
+.d3m-e-ajuda{align-self:center}
+.d3m-e-ajuda > summary.d3m-e-ico{display:grid}
+.d3m-e-ajuda > summary.d3m-e-ico > svg{stroke:var(--d3-fume-texto)}
+.d3m-e-ajuda-pop{left:auto;right:0;width:300px;gap:6px;padding:12px}
+.d3m-e-ajuda-t{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ajuda-p{margin:0;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:normal}
+/* Elo de texto na cabeça ou no pé da folha (tinta, 500) e o botão de fio (contorno) das linhas. */
+.d3m-e-elo{appearance:none;flex:none;margin:0;padding:0;border:0;border-radius:4px;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-e-elo:hover{text-decoration:underline}
+.d3m-e-elo:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3v-btn.d3m-e-fio{flex:none;background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font-weight:500}
+.d3v-btn.d3m-e-fio:hover{background:var(--d3-veu)}
+.d3v-btn.vidro.d3m-e-fio{box-shadow:inset 0 0 0 1px var(--d3-escuro-apagado);color:var(--d3-fume-texto)}
+.d3v-btn.vidro.d3m-e-fio:hover{background:var(--d3-fume-veu)}
+/* O selo "só donos" na linha de apoio do título. */
+.d3m-e-so-donos{display:inline-flex;align-items:center;gap:4px;color:var(--d3-fume-texto);vertical-align:bottom}
+.d3m-e-so-donos > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Cartões de número (116 de altura): rótulo e selo de 24 em cima; embaixo o número de 28, a nota e, se houver, o anel. */
+.d3m-e-kpis{flex:none;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:12px}
+.d3m-e-kpi{appearance:none;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:116px;margin:0;padding:14px;box-sizing:border-box;border:0;border-radius:16px;overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+button.d3m-e-kpi{cursor:pointer}
+button.d3m-e-kpi:hover{box-shadow:var(--d3-folha-sombra),inset 0 0 0 1px var(--d3-meta)}
+button.d3m-e-kpi:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-e-kpi-topo{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:500}
+.d3m-e-kpi-topo > span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-kpi .d3v-selo[data-k="t"]{background:var(--d3-tinta)}
+.d3m-e-kpi .d3v-selo[data-k="a"]{background:var(--d3-ambar)}
+.d3m-e-kpi-baixo{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.d3m-e-kpi-txt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-e-kpi-v{display:block;font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-kpi.r .d3m-e-kpi-v{color:var(--d3-perigo)}
+.d3m-e-kpi.a .d3m-e-kpi-v{color:var(--d3-ambar)}
+.d3m-e-kpi.g .d3m-e-kpi-v{color:var(--d3-pronto)}
+.d3m-e-kpi-v > .d3m-e-kpi-de{font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-rotulo)}
+.d3m-e-kpi-sub{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-anel{flex:none;width:40px;height:40px;transform:rotate(-90deg);color:var(--d3-tinta)}
+.d3m-e-kpi.r .d3m-e-anel{color:var(--d3-perigo)}
+.d3m-e-kpi.a .d3m-e-anel{color:var(--d3-ambar)}
+.d3m-e-anel > circle{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round}
+.d3m-e-anel > circle:first-child{opacity:.16}
+.d3m-e-kpi-graf{flex:none;display:block;width:84px;height:36px}
+.d3m-e-kpi-graf > svg{display:block;width:100%;height:100%}
+
+/* Telas menores: uma coluna; a consulta desce para depois do trabalho e a janela rola (como no Hoje). */
+@media (max-width:900px){
+  .d3m-e-tela{height:auto;min-height:100%}
+  .d3m-e-topo{flex-wrap:wrap;gap:8px;padding-right:0}
+  .d3m-e-sub{white-space:normal}
+  .d3m-e-corpo{display:flex;flex-direction:column;flex:none}
+  .d3m-e-main{min-height:auto}
+  .d3m-e-folha.cresce{flex:none;min-height:200px}
+  .d3m-e-rola{flex:none;max-height:60vh}
+  .d3m-e-corpo > .d3m-lado{overflow:visible}
+  .d3m-e-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d3m-e-nums > span:nth-child(odd){border-left:0}
+  .d3m-e-nums > span:nth-child(n+3){border-top:1px solid var(--d3-divisa)}
+  .d3m-e-pe{flex-wrap:wrap;padding:10px 16px}
+  .d3m-e-acoes{flex:1 1 100%;flex-wrap:wrap;min-width:0}
+  .d3m-e-per{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .d3m-e-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d3m-e-acoes{position:relative}
+  .d3m-e-ajuda{position:static}
+  .d3m-e-ajuda-pop{left:0;right:0;width:auto}
+}

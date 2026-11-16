@@ -14384,6 +14384,526 @@ body.mundo .vv-gestao:has(> .vs-agencia){padding:16px;overflow:hidden;border:0;b
   .vs-agencia .d3m-d-g-eixo{display:flex}
 }
 
+/* ===== padrao-v2/zm-e-casca.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · A CASCA DAS TELAS (pranchas V2-M-Diario, Performance, IA-Custos, Automacoes, Conta-Equipe, RH-*,
+   Equipe-Online, Academy e Toolkit, aprovadas pelo Paulo em 16/11/2026). O esqueleto comum das telas deste grupo:
+   a janela de vidro fumê, o título direto no vidro (24, com a seta que troca de tela), a coluna de trabalho em folhas
+   claras e a coluna de consulta de 316 px direto no vidro (.d3m-lado, de z-direcao.css). Peças locais (.d3m-e-*):
+   quando outra área precisar, sobem para z-direcao.css com o nome .d3m-*.
+   =================================================================================================================== */
+
+/* A janela dos quadros deste grupo é vidro fumê. O quadro aberto fica no body (data-quadro, de switchBoard). */
+body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
+
+/* A tela: uma coluna da altura da janela. Fora do Irecity (?legado=1) ela mesma faz o fundo escuro. */
+.d3m-e-tela{display:flex;flex-direction:column;min-width:0;height:100%;box-sizing:border-box;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+:where(body:not(.mundo)) .d3m-e-tela{min-height:560px;padding:16px;border-radius:20px;background:var(--d3-fume-painel)}
+.d3m-e-tela :is(p,h3,h4){margin:0}
+
+/* Topo no vidro: título com a seta de trocar de tela, a linha de apoio e as ações. À direita ficam os dois botões da janela. */
+.d3m-e-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;margin:0 0 16px;padding:0 104px 0 0;color:var(--d3-fume-texto)}
+.d3m-e-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-e-h{display:block;margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
+.d3m-e-sub{font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-acoes{flex:none;display:flex;align-items:center;gap:8px}
+.d3m-e-troca{position:relative;align-self:flex-start}
+.d3m-e-troca > summary{display:inline-flex;align-items:center;gap:6px;list-style:none;border-radius:var(--d3-r-botao);cursor:pointer}
+.d3m-e-troca > summary::-webkit-details-marker{display:none}
+.d3m-e-troca > summary > svg{flex:none;width:16px;height:16px;fill:none;stroke:var(--d3-fume-apagado);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-troca > summary:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:3px}
+.d3m-e-pop{position:absolute;z-index:5;left:0;top:calc(100% + 6px);display:flex;flex-direction:column;gap:2px;min-width:220px;padding:6px;border-radius:12px;background:var(--d3-cartao);box-shadow:0 18px 40px -18px rgba(0,0,0,.55),0 0 0 1px var(--d3-veu)}
+.d3m-e-pop > button{appearance:none;display:flex;align-items:center;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;cursor:pointer}
+.d3m-e-pop > button:hover{background:var(--d3-veu)}
+.d3m-e-pop > button.on{font-weight:600;background:var(--d3-veu)}
+.d3m-e-pop > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-e-pop > span{padding:6px 10px;color:var(--d3-rotulo);font-size:var(--d3-fs-apoio)}
+/* Botão de ícone no vidro (34 px, canto 8). */
+.d3m-e-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
+.d3m-e-ico:hover{background:var(--d3-fume-borda)}
+.d3m-e-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* Corpo: trabalho à esquerda, consulta de 316 à direita. Só as listas rolam, por dentro. */
+.d3m-e-corpo{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px}
+.d3m-e-corpo.um{grid-template-columns:minmax(0,1fr)}
+.d3m-e-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-e-corpo > .d3m-lado{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--d3-fume-borda) transparent}
+.d3m-e-lado-txt{margin:0;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+
+/* A folha: cartão claro com cabeça de 44, divisória fina e o corpo. .cresce ocupa o que sobra e rola por dentro. */
+.d3m-e-folha{flex:none;display:flex;flex-direction:column;min-width:0;box-sizing:border-box;border-radius:16px;overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+.d3m-e-folha.cresce{flex:1 1 0;min-height:0}
+.d3m-e-cab{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 16px;box-sizing:border-box}
+.d3m-e-cab > b{min-width:0;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-cab > b > span{font-weight:400;color:var(--d3-rotulo)}
+.d3m-e-cab-dir{flex:none;display:inline-flex;align-items:center;gap:10px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-rola{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+.d3m-e-pe{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-pe > span:first-child{flex:1 1 auto;min-width:0}
+
+/* Alternador dentro da cabeça da folha (26 px, canto 7; a escolhida num véu). */
+.d3m-e-seg{display:inline-flex;gap:2px}
+.d3m-e-seg > button{appearance:none;display:inline-flex;align-items:center;height:26px;margin:0;padding:0 9px;border:0;border-radius:7px;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-e-seg > button:hover{background:var(--d3-veu)}
+.d3m-e-seg > button[aria-checked="true"],.d3m-e-seg > button[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
+.d3m-e-seg > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+
+/* Faixa de números dentro da folha: número de 28 e o rótulo embaixo, divididos por um fio. */
+.d3m-e-nums{flex:none;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));border-top:1px solid var(--d3-divisa)}
+.d3m-e-nums > span{display:flex;flex-direction:column;gap:4px;min-width:0;padding:16px}
+.d3m-e-nums > span + span{border-left:1px solid var(--d3-divisa)}
+.d3m-e-nums b{font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-e-nums .r > b{color:var(--d3-perigo)}
+.d3m-e-nums .a > b{color:var(--d3-ambar)}
+.d3m-e-nums .g > b{color:var(--d3-pronto)}
+.d3m-e-nums span > span{font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-nums small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Período no vidro (36 px, canto 10; a escolhida numa pastilha branca). */
+.d3m-e-per{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-e-per > button{appearance:none;display:inline-flex;align-items:center;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-e-per > button:hover{background:var(--d3-fume-veu)}
+.d3m-e-per > button:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-e-per > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+/* "Como funciona": o botão de ícone que abre uma nota (a mesma caixa da seta do título, presa à direita). */
+.d3m-e-ajuda{align-self:center}
+.d3m-e-ajuda > summary.d3m-e-ico{display:grid}
+.d3m-e-ajuda > summary.d3m-e-ico > svg{stroke:var(--d3-fume-texto)}
+.d3m-e-ajuda-pop{left:auto;right:0;width:300px;gap:6px;padding:12px}
+.d3m-e-ajuda-t{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ajuda-p{margin:0;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:normal}
+/* Elo de texto na cabeça ou no pé da folha (tinta, 500) e o botão de fio (contorno) das linhas. */
+.d3m-e-elo{appearance:none;flex:none;margin:0;padding:0;border:0;border-radius:4px;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-e-elo:hover{text-decoration:underline}
+.d3m-e-elo:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3v-btn.d3m-e-fio{flex:none;background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font-weight:500}
+.d3v-btn.d3m-e-fio:hover{background:var(--d3-veu)}
+.d3v-btn.vidro.d3m-e-fio{box-shadow:inset 0 0 0 1px var(--d3-escuro-apagado);color:var(--d3-fume-texto)}
+.d3v-btn.vidro.d3m-e-fio:hover{background:var(--d3-fume-veu)}
+/* O selo "só donos" na linha de apoio do título. */
+.d3m-e-so-donos{display:inline-flex;align-items:center;gap:4px;color:var(--d3-fume-texto);vertical-align:bottom}
+.d3m-e-so-donos > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Cartões de número (116 de altura): rótulo e selo de 24 em cima; embaixo o número de 28, a nota e, se houver, o anel. */
+.d3m-e-kpis{flex:none;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:12px}
+.d3m-e-kpi{appearance:none;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:116px;margin:0;padding:14px;box-sizing:border-box;border:0;border-radius:16px;overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+button.d3m-e-kpi{cursor:pointer}
+button.d3m-e-kpi:hover{box-shadow:var(--d3-folha-sombra),inset 0 0 0 1px var(--d3-meta)}
+button.d3m-e-kpi:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-e-kpi-topo{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:500}
+.d3m-e-kpi-topo > span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-kpi .d3v-selo[data-k="t"]{background:var(--d3-tinta)}
+.d3m-e-kpi .d3v-selo[data-k="a"]{background:var(--d3-ambar)}
+.d3m-e-kpi-baixo{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.d3m-e-kpi-txt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-e-kpi-v{display:block;font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-kpi.r .d3m-e-kpi-v{color:var(--d3-perigo)}
+.d3m-e-kpi.a .d3m-e-kpi-v{color:var(--d3-ambar)}
+.d3m-e-kpi.g .d3m-e-kpi-v{color:var(--d3-pronto)}
+.d3m-e-kpi-v > .d3m-e-kpi-de{font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-rotulo)}
+.d3m-e-kpi-sub{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-anel{flex:none;width:40px;height:40px;transform:rotate(-90deg);color:var(--d3-tinta)}
+.d3m-e-kpi.r .d3m-e-anel{color:var(--d3-perigo)}
+.d3m-e-kpi.a .d3m-e-anel{color:var(--d3-ambar)}
+.d3m-e-anel > circle{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round}
+.d3m-e-anel > circle:first-child{opacity:.16}
+.d3m-e-kpi-graf{flex:none;display:block;width:84px;height:36px}
+.d3m-e-kpi-graf > svg{display:block;width:100%;height:100%}
+
+/* Telas menores: uma coluna; a consulta desce para depois do trabalho e a janela rola (como no Hoje). */
+@media (max-width:900px){
+  .d3m-e-tela{height:auto;min-height:100%}
+  .d3m-e-topo{flex-wrap:wrap;gap:8px;padding-right:0}
+  .d3m-e-sub{white-space:normal}
+  .d3m-e-corpo{display:flex;flex-direction:column;flex:none}
+  .d3m-e-main{min-height:auto}
+  .d3m-e-folha.cresce{flex:none;min-height:200px}
+  .d3m-e-rola{flex:none;max-height:60vh}
+  .d3m-e-corpo > .d3m-lado{overflow:visible}
+  .d3m-e-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d3m-e-nums > span:nth-child(odd){border-left:0}
+  .d3m-e-nums > span:nth-child(n+3){border-top:1px solid var(--d3-divisa)}
+  .d3m-e-pe{flex-wrap:wrap;padding:10px 16px}
+  .d3m-e-acoes{flex:1 1 100%;flex-wrap:wrap;min-width:0}
+  .d3m-e-per{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .d3m-e-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d3m-e-acoes{position:relative}
+  .d3m-e-ajuda{position:static}
+  .d3m-e-ajuda-pop{left:0;right:0;width:auto}
+}
+
+/* ===== padrao-v2/zm-e-diario.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · DIÁRIO (prancha V2-M-Diario, aprovada pelo Paulo em 16/11/2026). O HTML sai de vybe-relatorios.js
+   (diarioPintar): a casca .d3m-e-* (zm-e-casca.css), duas folhas à esquerda ("A foto de agora" e "Registros salvos")
+   e, direto no vidro, o cartão laranja do Heitor, "O que mudou", a semana em linha e os atalhos. O cabeçalho antigo do
+   index.html (título, alternador com os ids de sempre e o botão do topo) fica guardado: os ids e os handlers continuam.
+   =================================================================================================================== */
+
+/* O quadro ocupa a janela inteira, com 16 de respiro, sem a rolagem da página (só a lista de registros rola). No
+   computador o quadro prende-se ao body (que no Irecity já é a própria janela, position:fixed) e a tela e a vista das
+   peças prendem-se ao quadro: o .container antigo tem padding com !important em três larguras e o cabeçalho antigo
+   ocupa 8 px acima, e assim nenhum dos dois entra na conta. Sem rolagem de página, a calha da barra de rolagem sai. */
+#painel-diario > .container > .vb-cabecalho{display:none}
+body.mundo #painel-diario{background:none}
+@media (min-width:901px){
+  body.mundo.mundo-modulo[data-quadro="diario"]{scrollbar-gutter:auto}
+  body.mundo.mundo-modulo[data-quadro="diario"] #painel-diario{position:absolute;inset:0;max-width:none;height:auto;margin:0}
+  body.mundo.mundo-modulo[data-quadro="diario"] :is(#diario-snapshots-list,#diario-detalhe){position:absolute;inset:16px;box-sizing:border-box}
+  body.mundo.mundo-modulo[data-quadro="diario"] #diario-detalhe > div:first-child{padding-right:104px}
+}
+/* O cartão laranja: a frase de apoio é branca (a folha antiga apaga todo small sem classe dentro dos quadros). */
+.d3m-laranja .d3m-lar-txt > small.d3m-lar-sub{color:var(--d3-escuro-texto)}
+
+/* O cartão laranja: 200 de altura, como na prancha. */
+.d3m-e-diario-lar{flex:none}
+.d3m-e-diario-lar.vazio{min-height:200px}
+.d3m-e-diario-lar .v2-estado[data-estado="feito"]{gap:6px}
+
+/* Registros: o dia, a linha (hora, quem registrou, as três contagens, o selo do que mudou e a seta) e o que abre no lugar. */
+.d3m-e-reg-dia{margin:0;padding:10px 16px 4px;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-reg{border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-reg-lin{appearance:none;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;margin:0;padding:0 16px;box-sizing:border-box;border:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-e-reg-lin:hover{background:var(--d3-veu)}
+.d3m-e-reg-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-e-reg.on > .d3m-e-reg-lin{box-shadow:inset 3px 0 0 var(--d3-tinta)}
+.d3m-e-reg-hora{flex:none;min-width:42px;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-e-reg-av{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--d3-veu-forte);color:var(--d3-texto2);font:600 10px var(--vv-texto,Inter,sans-serif)}
+.d3m-e-reg-cs{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:2px 14px;min-width:0;color:var(--d3-rotulo)}
+.d3m-e-reg-cs > span{white-space:nowrap}
+.d3m-e-reg-cs b{font-weight:600;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-e-reg-cs > .g > b{color:var(--d3-pronto)}
+.d3m-e-reg-cs > .r > b{color:var(--d3-perigo)}
+.d3m-e-reg-cs > .a > b{color:var(--d3-ambar)}
+.d3m-e-reg-selo{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+.d3m-e-reg-selo.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+.d3m-e-reg-selo.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+.d3m-e-reg-seta{flex:none;display:grid;place-items:center;width:16px;height:16px;transition:transform .2s}
+.d3m-e-reg-seta > svg{width:14px;height:14px;fill:none;stroke:var(--d3-rotulo);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-reg[aria-expanded="true"] .d3m-e-reg-seta{transform:rotate(90deg)}
+.d3m-e-reg-mais{display:flex;flex-direction:column;gap:6px;padding:0 16px 0 92px;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-reg[aria-expanded="true"] .d3m-e-reg-mais{padding-top:2px;padding-bottom:12px}
+.d3m-e-reg-grade{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px}
+.d3m-e-reg-grade > b{font-weight:600;color:var(--d3-tinta);white-space:nowrap}
+.d3m-e-reg-grade > b.g{color:var(--d3-pronto)}
+.d3m-e-reg-grade > b.r{color:var(--d3-perigo)}
+.d3m-e-reg-grade > b.a{color:var(--d3-ambar)}
+.d3m-e-reg-grade .v2d-cli{font-weight:600;color:var(--d3-tinta)}
+.d3m-e-reg-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
+.d3m-e-reg-acoes > span{margin-right:auto;font-size:var(--d3-fs-apoio)}
+.d3m-e-reg-pe{margin:0;padding:8px 12px}
+
+/* "O que mudou", no vidro: etapa (ponto na cor do status), barra, quantas e a diferença. */
+.d3m-e-ets{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-e-et{display:grid;grid-template-columns:118px minmax(20px,1fr) 30px 34px;align-items:center;gap:8px;min-height:26px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+.d3m-e-et-nome{display:inline-flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-et-nome > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,var(--d3-fume-apagado))}
+.d3m-e-et-nome.g > i{background:var(--d3-pronto-claro)}
+.d3m-e-et-nome.a > i{background:var(--d3-ajuste-claro)}
+.d3m-e-et-nome.r > i{background:var(--d3-perigo-claro)}
+.d3m-e-et > .d3m-vn{min-width:0}
+.d3m-e-et-dif{text-align:right;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
+.d3m-e-et-dif:is(.g,.a){color:var(--d3-fume-texto);font-weight:600}
+
+/* A semana em linha, no vidro: a linha clara, a meta tracejada e o eixo dos registros. */
+.d3m-e-graf{padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-e-graf .d3-graf polyline{stroke:var(--d3-fume-texto)}
+.d3m-e-graf .d3-graf polyline.meta{stroke:var(--d3-fume-apagado)}
+.d3m-e-graf .d3-graf circle{fill:var(--d3-fume-texto)}
+.d3m-e-eixo{display:flex;justify-content:space-between;gap:4px;margin-top:6px;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.d3m-e-eixo > .ultimo{color:var(--d3-fume-texto);font-weight:600}
+.d3m-e-leg{display:inline-flex;align-items:center;gap:5px}
+.d3m-e-leg > i{width:10px;height:2px;border-radius:1px;background:var(--d3-fume-texto)}
+.d3m-e-leg > i.meta{margin-left:6px;background:none;border-top:2px dashed var(--d3-fume-apagado);height:0}
+
+/* As peças de um registro (a vista que abre com "Ver as peças") numa folha só, que rola por dentro. */
+#painel-diario #diario-detalhe .person-chip.active{background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+#painel-diario #diario-detalhe{overflow-y:auto;padding:16px;border-radius:16px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
+
+@media (max-width:900px){
+  .d3m-e-reg-lin{flex-wrap:wrap;padding:8px 12px}
+  .d3m-e-reg-mais{padding-left:16px}
+}
+
+/* ===== padrao-v2/zm-e-estados.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · ESTADOS (prancha V2-M-Estados, aprovada pelo Paulo em 16/11/2026): vazio, carregando e erro, para
+   lista, quadro, grade e ficha. A mesma família de peças em qualquer tela; o HTML sai de d3mEEstado (vybe-core.js).
+   Vazio diz o que vai aparecer e dá o primeiro passo. Carregando é o esqueleto da própria tela, parado, com um pulso
+   leve de opacidade (de .6 a 1, nunca de zero). Erro diz o que não veio e deixa tentar de novo.
+   PEÇA PARA PROMOVER: .d3m-e-estado-* vira .d3m-estado-* em z-direcao.css (hoje há .d3v-estado e .d3v-esq, mais simples).
+   =================================================================================================================== */
+
+/* Vazio e erro: selo de 36 com o ícone, o título de 13, uma frase de 12 e, se houver, um botão de 28. */
+.d3m-e-estado{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:120px;margin:0;padding:10px 16px;box-sizing:border-box;text-align:center;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-estado-ic{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:var(--d3-r-caixa);background:var(--d3-veu);color:var(--d3-rotulo)}
+.d3m-e-estado-ic > svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-estado > b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-estado > span:not(.d3m-e-estado-ic){max-width:400px}
+.d3m-e-estado-erro > .d3m-e-estado-ic{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+/* Na área grande da tela (a lista principal): selo de 44, título de 14 e frase de 13. */
+.d3m-e-estado.grande{gap:8px;padding:24px}
+.d3m-e-estado.grande > .d3m-e-estado-ic{width:44px;height:44px;border-radius:12px}
+.d3m-e-estado.grande > .d3m-e-estado-ic > svg{width:20px;height:20px}
+.d3m-e-estado.grande > b{font-size:14px}
+.d3m-e-estado.grande > span:not(.d3m-e-estado-ic){font-size:var(--d3-fs-texto);line-height:1.5}
+/* Direto no vidro fumê (coluna de consulta): letra clara. */
+.d3m-e-estado.vidro{min-height:96px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-apagado)}
+.d3m-e-estado.vidro > b{color:var(--d3-fume-texto)}
+.d3m-e-estado.vidro > .d3m-e-estado-ic{background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+.d3m-e-estado.vidro.d3m-e-estado-erro > .d3m-e-estado-ic{color:var(--d3-perigo-vidro)}
+/* O botão do estado: 28 px, canto 8. Cheio no vazio (o primeiro passo); de contorno no erro ("Tentar de novo"). */
+.d3m-e-estado-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;margin:4px 0 0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-escuro-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-e-estado-btn:hover{background:var(--d3-texto2)}
+.d3m-e-estado-btn.sec{background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font-weight:500}
+.d3m-e-estado-btn.sec:hover{background:var(--d3-veu)}
+.d3m-e-estado-btn:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-e-estado.vidro > .d3m-e-estado-btn{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+.d3m-e-estado.vidro > .d3m-e-estado-btn.sec{background:none;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
+
+/* Carregando: os ossos da tela. O pulso é do bloco inteiro e só de opacidade. */
+@keyframes d3mERespira{0%,100%{opacity:.6}50%{opacity:1}}
+.d3m-e-estado-carregando{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;box-sizing:border-box;animation:d3mERespira 1.8s ease-in-out infinite}
+.d3m-e-osso{flex:none;display:block;height:10px;border-radius:5px;background:var(--d3-veu-forte)}
+.d3m-e-estado-carregando[data-forma="lista"] > span{display:flex;align-items:center;gap:10px;height:34px;padding:0 14px;border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-estado-carregando[data-forma="lista"] .d3m-e-osso.selo{width:24px;height:24px;border-radius:7px}
+.d3m-e-estado-carregando[data-forma="lista"] .d3m-e-osso.nome{width:46%}
+.d3m-e-estado-carregando[data-forma="lista"] .d3m-e-osso.fim{width:16%;margin-left:auto}
+.d3m-e-estado-carregando[data-forma="quadro"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:8px;padding:10px}
+.d3m-e-estado-carregando[data-forma="quadro"] > span{display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:var(--d3-r-botao);background:var(--d3-veu)}
+.d3m-e-estado-carregando[data-forma="quadro"] .d3m-e-osso.rot{width:60%;height:8px}
+.d3m-e-estado-carregando[data-forma="quadro"] .d3m-e-osso.cartao{height:34px;border-radius:var(--d3-r-botao)}
+.d3m-e-estado-carregando[data-forma="grade"]{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-content:start;gap:8px;padding:10px}
+.d3m-e-estado-carregando[data-forma="grade"] > .d3m-e-osso{height:56px;border-radius:var(--d3-r-botao)}
+.d3m-e-estado-carregando[data-forma="ficha"]{flex-direction:row;gap:12px;padding:12px}
+.d3m-e-estado-carregando[data-forma="ficha"] > .d3m-e-osso.foto{width:56px;height:56px;border-radius:14px}
+.d3m-e-estado-carregando[data-forma="ficha"] > span{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-width:0}
+.d3m-e-estado-carregando[data-forma="ficha"] .d3m-e-osso.t{width:60%;height:14px}
+.d3m-e-estado-carregando[data-forma="ficha"] .d3m-e-osso.s{width:40%}
+.d3m-e-estado-carregando[data-forma="ficha"] .d3m-e-osso.b1{height:46px;border-radius:var(--d3-r-botao)}
+.d3m-e-estado-carregando[data-forma="ficha"] .d3m-e-osso.b2{height:26px;border-radius:var(--d3-r-botao)}
+/* No vidro, os ossos são claros. */
+.d3m-e-estado-carregando.vidro .d3m-e-osso{background:var(--d3-fume-veu-forte)}
+.d3m-e-estado-carregando.vidro[data-forma="lista"] > span{border-bottom-color:var(--d3-fume-veu)}
+.d3m-e-estado-carregando.vidro[data-forma="quadro"] > span{background:var(--d3-fume-veu)}
+@media (prefers-reduced-motion:reduce){.d3m-e-estado-carregando{animation:none}}
+@media (max-width:900px){.d3m-e-estado-carregando[data-forma="grade"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ===== padrao-v2/zm-e-ia.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · IA E CUSTOS (prancha V2-M-IA-Custos, aprovada pelo Paulo em 16/11/2026). O HTML sai de vybe-demandas.js
+   (pv2iRender): a casca .d3m-e-* (zm-e-casca.css), três cartões de número, a folha "Teto do mês" (o teto, 80% e 100%),
+   a folha "Com quem e em quê" (por dia, com quem e em quê; sem uso, o estado vazio; com "Parâmetros", o formulário) e,
+   direto no vidro, o cartão laranja do Alex, o que entra na conta, "De olho" e os atalhos.
+   =================================================================================================================== */
+
+/* O quadro ocupa a janela inteira, com 16 de respiro, sem a rolagem da página (a mesma receita do Diário). */
+body.mundo #painel-ai-usage{background:none}
+@media (min-width:901px){
+  body.mundo.mundo-modulo[data-quadro="ai-usage"]{scrollbar-gutter:auto}
+  body.mundo.mundo-modulo[data-quadro="ai-usage"] #painel-ai-usage{position:absolute;inset:0;max-width:none;height:auto;margin:0}
+  body.mundo.mundo-modulo[data-quadro="ai-usage"] #ai-usage-root > .d3m-e-ia{position:absolute;inset:16px;height:auto;box-sizing:border-box}
+}
+
+/* "Teto do mês": a linha do teto (52) e as duas linhas automáticas (44). A primeira coluna tem 100 de largura. */
+.d3m-e-ia-lin{flex:none;display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ia-lin.principal{min-height:52px}
+.d3m-e-ia-c1{flex:none;display:flex;align-items:center;width:90px;min-width:0}
+.d3m-e-ia-pct{font-weight:600;font-variant-numeric:tabular-nums}
+.d3m-e-ia-pct.r{color:var(--d3-perigo)}
+.d3m-e-ia-pct.a{color:var(--d3-ambar)}
+.d3m-e-ia-st.a{--st:var(--d3-ambar)}
+.d3m-e-ia-st.r{--st:var(--d3-perigo)}
+.d3m-e-ia-st.g{--st:var(--d3-pronto)}
+.d3m-e-ia-txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ia-txt > b{font-weight:600}
+.d3m-e-ia-txt > span{color:var(--d3-rotulo)}
+.d3m-e-ia-auto{flex:none;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-e-ia-barra{flex:1 1 0;min-width:20px;height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+.d3m-e-ia-lin > .d3m-e-ia-barra{flex:0 0 120px}
+.d3m-e-ia-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-texto2)}
+.d3m-e-ia-barra.r > i{background:var(--d3-perigo)}
+.d3m-e-ia-barra.a > i{background:var(--d3-ambar)}
+.d3m-e-ia-barra.g > i{background:var(--d3-pronto)}
+
+/* "Com quem e em quê": três colunas dentro da folha (por dia, com quem, em quê). */
+.d3m-e-ia-cols{flex:1 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.d3m-e-ia-col{display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px 16px}
+.d3m-e-ia-col + .d3m-e-ia-col{border-left:1px solid var(--d3-divisa)}
+.d3m-e-ia-col-cab{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:26px}
+.d3m-e-ia-col-cab > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ia-col-cab > span:not(.d3m-e-seg){font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-e-ia-gx{flex:none;display:flex;align-items:center;gap:8px;min-height:30px;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ia-gx > .d3v-foto{width:24px;height:24px;border-radius:7px;font-size:10px}
+.d3m-e-ia-nome{flex:0 0 84px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ia-gx > b{flex:none;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.d3m-e-ia-graf > svg{display:block;width:100%;height:96px}
+.d3m-e-ia-eixo{display:flex;justify-content:space-between;gap:4px;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ia-eixo > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-e-ia-nada{margin:0;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ia-pe > span:first-child{display:flex;align-items:center;gap:6px}
+.d3m-e-ia-vazio-bts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+
+/* Os parâmetros (teto, dólar e Gemini) no lugar da folha de baixo: três campos lado a lado, Salvar e Voltar. */
+.d3m-e-ia-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:12px 16px;padding:16px}
+.d3m-e-ia-form-p{grid-column:1 / -1;margin:0;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ia-form > .d3m-e-campo{display:flex;flex-direction:column;gap:4px;min-width:0;margin:0}
+.d3m-e-ia-form > .d3m-e-campo > label{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ia-form > .d3m-e-campo > :is(input,select){width:100%;height:34px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.d3m-e-ia-form > .d3m-e-campo > :is(input,select):focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.d3m-e-ia-form-bts{grid-column:1 / -1;display:flex;gap:8px}
+/* A folha antiga pinta .ai-setting-save de laranja e arredonda os campos com !important, pelas variáveis dela: aqui as
+   variáveis apontam para os tokens (o botão escuro e o canto 8), sem forçar regra. O botão guarda a classe porque
+   saveAiUsageSettings procura por ela. */
+.d3m-e-ia-form .ai-setting-save{--vv-acao:var(--d3-tinta);--vv-laranja:var(--d3-tinta)}
+.d3m-e-ia-form > .d3m-e-campo > :is(input,select){--ds-r-botao:var(--d3-r-botao);--ds-linha:var(--d3-meta)}
+
+/* O cartão laranja (216 de altura) e o "De olho" no vidro. */
+.d3m-e-ia-lar{flex:none;min-height:216px}
+.d3m-e-ia-lar::after{content:"";position:absolute;z-index:0;right:18px;top:58px;width:56px;height:56px;border-radius:50%;background:var(--d3-escuro-texto);opacity:.06;pointer-events:none}
+.d3m-e-ia-olho{color:var(--d3-fume-apagado);font-size:var(--d3-fs-texto)}
+.d3m-e-ia-olho > b{font-weight:600;color:var(--d3-fume-texto)}
+
+/* Janela baixa (notebook de 768): as linhas encolhem para as três faixas caberem. */
+@media (min-width:901px) and (max-height:820px){
+  .d3m-e-ia .d3m-e-kpi{height:96px;padding:10px 14px}
+  .d3m-e-ia .d3m-e-cab{min-height:38px}
+  .d3m-e-ia .d3m-e-ia-lin{min-height:36px}
+  .d3m-e-ia .d3m-e-ia-lin.principal{min-height:44px}
+  .d3m-e-ia-lar{min-height:190px}
+}
+/* Telas menores: uma coluna, a janela rola. */
+@media (max-width:900px){
+  .d3m-e-ia .d3m-e-kpis{grid-template-columns:minmax(0,1fr)}
+  .d3m-e-ia-lin{flex-wrap:wrap;padding:8px 16px}
+  .d3m-e-ia-txt{flex-basis:calc(100% - 110px);white-space:normal}
+  .d3m-e-ia-cols,.d3m-e-ia-form{grid-template-columns:minmax(0,1fr)}
+  .d3m-e-ia-col + .d3m-e-ia-col{border-left:0;border-top:1px solid var(--d3-divisa)}
+  .d3m-e-ia-lar{min-height:0}
+  .d3m-e-ia .d3m-e-ia-uso > .d3m-e-rola{max-height:none}
+}
+
+/* ===== padrao-v2/zm-e-performance.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · PERFORMANCE (prancha V2-M-Performance, aprovada pelo Paulo em 16/11/2026). O HTML sai de
+   vybe-mundo-performance.js (VybePerformance.html): a casca .d3m-e-* (zm-e-casca.css), quatro cartões de número, a
+   folha "Onde a fila está", "Pede ação" e "Entregas por semana" lado a lado e, direto no vidro, o cartão laranja do
+   Heitor, as outras leituras da Gestão e as pessoas. A tela abre na camada da Gestão (.vv-gestao), não num quadro.
+   =================================================================================================================== */
+
+/* A camada da Gestão com a Performance aberta vira a janela de vidro fumê. A regra antiga do material das janelas
+   (vybe-mundo.css) tem o peso de um id por causa do :is(#…): o :is(.vv-gestao,#vv-gestao) daqui só empata esse peso. */
+body.mundo :is(.vv-gestao,#vv-gestao):has(> .vv-perf){padding:16px;border:0;border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto)}
+body.mundo :is(.vv-gestao,#vv-gestao) > .vv-perf{max-width:none;margin:0;padding:0}
+@media (min-width:901px){
+  body.mundo :is(.vv-gestao,#vv-gestao):has(> .vv-perf){overflow:hidden}
+  body.mundo :is(.vv-gestao,#vv-gestao) > .vv-perf{height:100%}
+}
+/* Esta janela não tem os botões de tela cheia e fechar: o topo usa a largura toda. */
+.d3m-e-perf > .d3m-e-topo{padding-right:0}
+
+/* "Onde a fila está": cabeçalho de colunas (24), uma linha de 44 por etapa e o pé com as atrasadas por cliente. */
+.d3m-e-fx-cab,.d3m-e-fx-lin{display:flex;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
+.d3m-e-fx-cab{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-e-fx-lista{flex:none;display:flex;flex-direction:column;min-height:0}
+.d3m-e-perf-fila.todas > .d3m-e-fx-lista{max-height:220px;overflow-y:auto;scrollbar-width:thin}
+.d3m-e-fx-lin{flex:none;height:44px;border-top:1px solid var(--d3-divisa)}
+.d3m-e-fx-st{flex:none;display:flex;align-items:center;width:150px;min-width:0}
+.d3m-e-fx-barra,.d3m-e-fx-barra-rot{flex:1 1 0;min-width:0}
+.d3m-e-fx-barra{height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+.d3m-e-fx-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-texto2)}
+.d3m-e-fx-n,.d3m-e-fx-at{appearance:none;flex:none;margin:0;padding:0;border:0;border-radius:4px;background:none;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-fx-n{width:40px;font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-fx-at{width:110px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-perigo)}
+.d3m-e-fx-cab > .d3m-e-fx-at,.d3m-e-fx-at.calmo{color:var(--d3-rotulo)}
+button:is(.d3m-e-fx-n,.d3m-e-fx-at){cursor:pointer}
+button:is(.d3m-e-fx-n,.d3m-e-fx-at):hover{text-decoration:underline}
+button:is(.d3m-e-fx-n,.d3m-e-fx-at):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+button.d3m-e-fx-at[aria-pressed="true"]{font-weight:600}
+.d3m-e-fx-pe{flex:none;display:flex;align-items:center;gap:16px;height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);overflow:hidden;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+.d3m-e-fx-pe-rot{flex:none;color:var(--d3-rotulo)}
+.d3m-e-fx-cli{flex:0 1 auto;display:inline-flex;align-items:center;gap:6px;min-width:0}
+.d3m-e-fx-cli > .d3v-foto{width:20px;height:20px;border-radius:6px;font-size:10px}
+.d3m-e-fx-cli > b{flex:0 1 auto;display:block;min-width:56px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-perf .d3m-e-fx-pe .d3m-e-fx-cli .cliente-carteira{--carteira-texto:var(--d3-tinta);display:inline;padding:0;border-radius:0;background:none;font:inherit}
+.d3m-e-perf .d3m-e-fx-cli .cliente-carteira::before{content:none}
+.d3m-e-fx-cli > span{flex:none;color:var(--d3-rotulo)}
+.d3m-e-fx-pe > .d3m-e-elo{margin-left:auto}
+
+/* "Pede ação" e "Entregas por semana", lado a lado, ocupando o que sobra; só a lista de dentro rola. */
+.d3m-e-par{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.d3m-e-par > .d3m-e-folha{min-height:0}
+.d3m-e-pd-lin{flex:none;display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-pd-lin:last-child{border-bottom:0}
+.d3m-e-pd-n{flex:none;width:44px;font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-pd-n.r{color:var(--d3-perigo)}
+.d3m-e-pd-n.a{color:var(--d3-ambar)}
+.d3m-e-pd-txt{flex:1 1 auto;min-width:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-pd-txt > b{font-weight:600}
+.d3m-e-pd-txt > span{color:var(--d3-rotulo)}
+.d3m-e-pd-zer{flex:none;display:flex;align-items:center;height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);overflow:hidden;white-space:nowrap}
+.d3m-e-pd-zer-rot{flex:none;margin-right:14px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-pd-z{flex:none;display:flex;align-items:baseline;gap:5px;padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
+.d3m-e-pd-z:first-child,.d3m-e-pd-zer-rot + .d3m-e-pd-z{padding-left:0;border-left:0}
+.d3m-e-pd-z > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-e-pd-z-rot{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-pd-z.mais{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+.d3m-e-pd-z.mais.curta{display:none}
+
+/* Entregas: o gráfico em linha ocupa o que sobra e os três números ficam no pé (a mesma faixa dos zerados). */
+.d3m-e-perf .d3m-e-ent-graf{flex:1 1 0;display:flex;flex-direction:column;min-height:0;padding:10px 16px 6px}
+.d3m-e-perf .d3m-e-ent-graf > .d3-graf{flex:1 1 0;display:block;width:100%;height:auto;min-height:0;margin:0}
+.d3m-e-perf .d3m-e-ent-graf > .d3g-eixo{flex:none;display:flex;justify-content:space-between;gap:4px;margin:4px 0 0;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-perf .d3m-e-ent-graf > .d3g-eixo > .on{color:var(--d3-tinta);font-weight:600}
+.d3m-e-perf-ent > .d3m-e-rola{overflow:hidden}
+.d3m-e-mini-v{appearance:none;margin:0;padding:0;border:0;border-radius:4px;background:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums;cursor:pointer}
+.d3m-e-mini-v:hover{text-decoration:underline}
+.d3m-e-mini-v:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+
+/* O cartão laranja: 252 de altura, com o segundo círculo de luz da prancha. */
+.d3m-e-perf-lar{flex:none;min-height:252px}
+.d3m-e-perf-lar::after{content:"";position:absolute;z-index:0;right:18px;top:58px;width:56px;height:56px;border-radius:50%;background:var(--d3-escuro-texto);opacity:.06;pointer-events:none}
+
+/* As tabelas (departamento, formato, pessoa e cliente) numa folha só, que rola por dentro. */
+.d3m-e-perf-tabelas .d3v-btn > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-perf-tabs{display:flex;flex-direction:column;gap:14px;padding:16px;color:var(--d3-tinta)}
+.d3m-e-perf .d3m-e-perf-tabs small{color:var(--d3-rotulo)}
+
+/* Janela baixa (notebook de 768): as linhas encolhem para as três faixas caberem sem rolar a tela. */
+@media (min-width:901px) and (max-height:820px){
+  .d3m-e-perf .d3m-e-kpi{height:96px;padding:10px 14px}
+  .d3m-e-perf .d3m-e-cab{min-height:38px}
+  .d3m-e-perf .d3m-e-fx-cab{height:20px}
+  .d3m-e-perf .d3m-e-fx-lin{height:34px}
+  .d3m-e-perf .d3m-e-fx-pe,.d3m-e-perf .d3m-e-pd-zer{height:36px}
+  .d3m-e-perf .d3m-e-pd-lin{min-height:40px}
+  .d3m-e-perf-lar{min-height:200px}
+  .d3m-e-perf .d3m-e-perf-lar .d3m-lar-num{font-size:44px}
+  .d3m-e-perf .d3m-lado{gap:10px}
+  .d3m-e-perf .d3m-lado .d3m-vlin{height:30px}
+}
+/* Até 1400 de largura o pé da fila mostra dois clientes (o terceiro fica no "abrir as N") e o dos zerados, dois (o "+N" conta o terceiro). */
+@media (min-width:901px) and (max-width:1400px){
+  .d3m-e-fx-pe > .d3m-e-fx-cli:nth-of-type(n+4),.d3m-e-pd-zer > .d3m-e-pd-z.terceiro,.d3m-e-pd-z.mais.larga{display:none}
+  .d3m-e-pd-z.mais.curta{display:flex}
+}
+/* Telas menores: uma coluna, a janela rola. */
+@media (max-width:900px){
+  body.mundo :is(.vv-gestao,#vv-gestao):has(> .vv-perf){padding:12px;border-radius:0 0 16px 16px}
+  .d3m-e-par{display:flex;flex-direction:column;flex:none}
+  .d3m-e-par > .d3m-e-folha .d3m-e-rola{max-height:none}
+  .d3m-e-fx-st{width:112px}
+  .d3m-e-fx-at{width:84px}
+  .d3m-e-fx-pe,.d3m-e-pd-zer{flex-wrap:wrap;height:auto;gap:6px 12px;padding:10px 16px;white-space:normal}
+  .d3m-e-pd-lin{flex-wrap:wrap;padding:8px 16px}
+  .d3m-e-pd-txt{flex-basis:calc(100% - 60px);white-space:normal}
+  .d3m-e-pd-lin > .d3v-btn{margin-left:54px}
+  .d3m-e-perf-lar{min-height:0}
+  .d3m-e-perf .d3m-e-ent-graf{flex:none;height:150px;box-sizing:border-box}
+  .d3m-e-fx-barra-rot{overflow:hidden;text-overflow:ellipsis}
+}
+
 /* ===== padrao-v2/zt-temas.css ===== */
 /* TEMAS E TUTORIAL DO VYBES (Paulo, 16/11/2026: "criar um tema white e um dark"; o VYBES recebe quem chega, mostra os três
    temas e explica cada tela na primeira vez). Última folha da junção (zt- vem depois de z-direcao e dos zm-*).
