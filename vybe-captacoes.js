@@ -1558,6 +1558,18 @@ function agv2TopoHtml() {
       <div class="d3m-c-pop" role="menu" aria-label="Outras partes da agenda">${outras}</div></details><span class="d3m-c-sub">${safeText(sub)}</span></div>
     <span class="d3m-c-seg" role="radiogroup" aria-label="O que ver">${seg}</span>${acoes}</div>`;
 }
+// A seta do título das janelas V2 do grupo C (Planejamentos, Impressões, Projetos, Fornecedores, Creators e Conversas): as
+// outras telas do mesmo setor, as mesmas do submenu do menu lateral (o clique é o do próprio submenu, como no Painel de
+// trabalho). Fica aqui porque este arquivo está sempre carregado; os módulos chamam window.d3mcTrocaHtml.
+function d3mcTrocaHtml(titulo, setor, atual) {
+  return `<details class="d3m-c-troca" ontoggle="if(this.open)d3mcPintarTroca(this,'${setor}','${atual}')"><summary title="Trocar de tela"><b class="d3m-c-h" role="heading" aria-level="2">${safeText(titulo)}</b>${AGV2_IC.baixo}</summary><div class="d3m-c-pop" role="menu" aria-label="Outras telas"></div></details>`;
+}
+function d3mcPintarTroca(det, setor, atual) {
+  const pop = det.querySelector(".d3m-c-pop"); if (!pop) return;
+  const itens = [...document.querySelectorAll(`#vv-sub-${setor} :is(button,a)`)].filter((b) => (b.textContent || "").trim());
+  pop.innerHTML = itens.map((b, i) => `<button type="button" role="menuitemradio" data-troca="${i}" aria-checked="${b.dataset.submodulo === atual}">${safeText((b.querySelector("b,span")?.textContent || b.textContent || "").trim())}</button>`).join("") || '<span class="d3m-c-pop-rot">Use o menu lateral para trocar de tela.</span>';
+  pop.querySelectorAll("[data-troca]").forEach((bt) => bt.addEventListener("click", () => { det.open = false; itens[Number(bt.dataset.troca)]?.click(); }));
+}
 // A grade de horas. --agv2-hora é a altura de uma hora: a grade ocupa a altura da folha quando cabe (o CSS divide a
 // altura pelo número de horas) e rola por dentro quando a hora ficaria menor que 36 px.
 function agv2HoraDoClique(ev, ini, horas) {

@@ -157,10 +157,16 @@
       ${com.length ? `${secao(acao.length ? 'Com planejamento' : titulo, resto.length + (soSem ? sem.length : 0), 'g')}${com.join('')}` : ''}
       ${mostrar}`;
   }
-  function pintarLista() { const c = janela?.querySelector('.p2-lista'); if (c) c.innerHTML = listaHtml(contas()); }
+  function pintarLista() {
+    if (v2()) { const l = janela?.querySelector('#plj2-lista'); if (l) l.innerHTML = lista2Html(contas()); return; }
+    const c = janela?.querySelector('.p2-lista'); if (c) c.innerHTML = listaHtml(contas());
+  }
 
   function pintar() {
     if (!janela) return;
+    // Direção V2 (prancha V2-M-Planejamentos): no computador, o esqueleto novo (pintarV2, logo abaixo).
+    if (v2()) return pintarV2();
+    janela.classList.remove('d3m-c-janela');
     const C = contas(), { meses, todos, contar } = C, com = contar.todos - contar.sem, mes = estado.mes, nomeMes = mesNome(mes);
     const ficha = (id, t) => `<button type="button" class="p2-chip" data-plj-filtro="${id}" aria-pressed="${estado.filtro === id}">${t} <b>${contar[id]}</b></button>`;
     const prim = todos.find(pedeAcao), semLista = todos.filter((p) => !p.planejamento);
@@ -192,6 +198,105 @@
     janela.innerHTML = `<div class="vv-plj-cabeca vb-janela-topo">${cabecalho({ titulo: 'Planejamentos', acoes: `${seg}${novo}${botaoX('data-plj-fechar')}` })}</div>
       ${fala}${kpis}${barra}
       <div class="p2-card p2-lista">${listaHtml(C)}</div>`;
+  }
+
+  // ─── Direção V2 · Planejamentos na prancha V2-M-Planejamentos (16/11/2026) ───────────────────
+  // A janela vira vidro fumê. O mês inteiro numa folha: uma linha por cliente, na ordem do que pede você ("Agora"), do
+  // que anda e do que falta, com a versão, a trilha do escrito ao aprovado, onde está, as peças e o OK do head. À direita,
+  // no vidro: o cartão laranja do Augusto, o mês em números (cada linha filtra pela situação), o que dá para fazer de uma
+  // vez e onde o cliente aprova. Os botões são os de sempre (data-plj-*): o nome abre o documento, a linha abre no lugar
+  // com as etapas, Histórico e Editar e revisar; "Criar" começa o planejamento. Só no computador; no celular fica a tela
+  // de antes (pintar), até a prancha do celular.
+  const v2 = () => !window.matchMedia?.('(max-width: 700px)').matches;
+  const IC2 = { mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>', lupa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>',
+    seta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>', pontos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="3" d="M6 12h.01M12 12h.01M18 12h.01"/></svg>', x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' };
+  // Onde o planejamento está: o nome, a cor do ponto e quantos passos da trilha (de 5) já foram.
+  const ONDE = { rascunho: ['Escrito', 'var(--d3-meta)', 0, ''], revisar: ['Para revisar', 'var(--d3-acao)', 1, 'a'], enviado: ['Com o cliente', 'var(--d3-agente)', 2, 'b'],
+    ajustes: ['Ajustes pedidos', 'var(--d3-perigo)', 3, 'r'], aprovado: ['Aprovado', 'var(--d3-pronto)', 4, 'g'], cadastrado: ['Peças cadastradas', 'var(--d3-pronto)', 4, 'g'] };
+  const foto2 = (nome) => (typeof pv2Foto === 'function' ? pv2Foto(nome) : `<i class="d3v-foto" aria-hidden="true">${esc(String(nome || '').trim().slice(0, 2).toUpperCase())}</i>`);
+  const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  function trilha2(pl) {
+    const [nome, , feitas, tom] = pl ? (ONDE[pl.estado] || [pl.estado, '', 0, '']) : ['sem planejamento', '', -1, ''];
+    return `<span class="plj2-trilha" role="img" aria-label="${esc(pl ? `Etapa ${Math.min(feitas + 1, 5)} de 5: ${nome}` : 'Sem planejamento')}">${[0, 1, 2, 3, 4].map((i) => `<i class="${i < feitas ? 'ok' : i === feitas ? `vez ${tom}` : ''}"></i>`).join('')}</span>`;
+  }
+  function linha2(p, grupo, aberta) {
+    const pl = p.planejamento, [nome, cor] = ONDE[pl.estado] || [pl.estado, 'var(--d3-meta)'];
+    const r = pl.revisao || {}, n = Number(r.total) || 0, ok = Number(r.head_ok) || 0, edita = !['aprovado', 'cadastrado'].includes(pl.estado);
+    const head = `${p.meu ? '<span class="plj2-meu" title="Você é head deste cliente">você</span>' : ''}${n ? `<span title="${ok} de ${n} peças com o OK do head">${ok}/${n}</span>${ok === n ? `<span class="plj2-ok" aria-hidden="true">${CERTO}</span>` : ''}` : ''}`;
+    const lin = `<div class="plj2-lin${aberta ? ' aberta' : ''}" data-plj-linha="${esc(pl.id)}" aria-expanded="${aberta}" title="Abrir as etapas no lugar">${grupo}${foto2(p.cliente)}
+      <button type="button" class="plj2-nome" data-plj-abrir="${esc(pl.id)}" title="Abrir o planejamento de ${esc(p.cliente)}">${esc(p.cliente)}</button>
+      <span class="plj2-ver">${esc(MES[Number(String(pl.mes || '').slice(5, 7)) - 1] || '')} · v${esc(pl.versao || 1)}</span>${trilha2(pl)}
+      <span class="d3v-st" style="--st:${cor}"><i aria-hidden="true"></i>${esc(nome)}</span><span class="plj2-n">${r.total == null ? '' : plural(n, 'peça', 'peças')}</span><span class="plj2-head">${head}</span></div>`;
+    if (!aberta) return lin;
+    return `${lin}<div class="plj2-det"><span class="plj2-etapas">${etapasHtml(pl)}</span>${avisosHtml(p)}<span class="plj2-vao"></span>
+      <button type="button" class="d3m-c-btn c" data-plj-abrir="${esc(pl.id)}" data-plj-aba="historico">Histórico</button>${edita ? `<button type="button" class="d3m-c-btn c" data-plj-abrir="${esc(pl.id)}" data-plj-aba="editar">Editar e revisar</button>` : ''}<button type="button" class="d3m-c-btn c k" data-plj-abrir="${esc(pl.id)}">Abrir como documento</button></div>`;
+  }
+  const linhaSem2 = (p, grupo, mes) => `<div class="plj2-lin sem">${grupo}${foto2(p.cliente)}<span class="plj2-nome">${esc(p.cliente)}</span><span class="plj2-ver">${esc(MES[Number(String(mes || '').slice(5, 7)) - 1] || '')}</span>${trilha2(null)}
+      <span class="plj2-semtxt">sem planejamento</span><span class="plj2-n"></span><button type="button" class="plj2-criar" data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}" ${rotuloNovo(p)}>Criar</button></div>`;
+  function lista2Html({ todos }) {
+    if (estado.carregando) return '<p class="d3v-estado" role="status"><b>Buscando os planejamentos</b></p>';
+    if (estado.erro) return `<p class="d3v-estado erro" role="alert"><b>Não foi possível buscar</b>${esc(estado.erro)}<button type="button" class="d3v-btn sec" data-plj-recarregar>Tentar de novo</button></p>`;
+    const q = norm(estado.busca).trim();
+    const lista = filtrar(todos).filter((p) => (!q || norm(`${p.cliente} ${p.segmento || ''}`).includes(q)) && (!estado.situacao || p.planejamento?.estado === estado.situacao));
+    if (!todos.length) return '<p class="d3v-estado"><b>Nenhum cliente ativo</b>Os clientes aparecem aqui com o planejamento do mês.</p>';
+    if (!lista.length) return `<p class="d3v-estado"><b>Nada com esse filtro</b>${q ? 'Confira a busca.' : 'Troque a ficha ou a situação.'}</p>`;
+    const grupos = [['Agora', 'r', lista.filter(pedeAcao)], ['Andando', '', lista.filter((p) => p.planejamento && !pedeAcao(p))], ['Falta', 'a', lista.filter((p) => !p.planejamento)]];
+    return grupos.map(([nome, tom, itens]) => itens.map((p, i) => { const g = `<span class="plj2-g ${tom}">${i ? '' : nome}</span>`;
+      return p.planejamento ? linha2(p, g, String(p.planejamento.id) === String(estado.aberta || '')) : linhaSem2(p, g, estado.mes); }).join('')).join('');
+  }
+  function pintarV2() {
+    const C = contas(), { meses, todos, contar } = C, com = contar.todos - contar.sem, mes = estado.mes, nomeMes = mesNome(mes), ano = String(mes || '').slice(0, 4);
+    janela.classList.add('d3m-c-janela');
+    const pronto = !estado.carregando && !estado.erro && todos.length;
+    const prim = todos.find(pedeAcao), semLista = todos.filter((p) => !p.planejamento);
+    const sub = pronto ? `${nomeMes ? `${nomeMes} de ${ano} · ` : ''}${com} de ${plural(contar.todos, 'cliente', 'clientes')} · ${contar.acao ? `${contar.acao} ${contar.acao === 1 ? 'pede' : 'pedem'} ação` : 'nada pedindo ação'}` : estado.erro ? 'não foi possível buscar' : 'buscando os planejamentos';
+    const seg = meses.length ? `<span class="d3m-c-seg" role="radiogroup" aria-label="Mês">${meses.map((m) => `<button type="button" role="radio" data-plj-mes="${m}" aria-checked="${m === mes}">${maiuscula(mesNome(m))}</button>`).join('')}</span>` : '';
+    const novo = `<details class="d3m-c-menu"><summary class="d3m-c-btn">${IC2.mais}Novo planejamento</summary><div class="d3m-c-pop dir" role="menu" aria-label="Para qual cliente">
+        ${[...semLista, ...todos.filter((p) => p.planejamento)].map((p) => `<button type="button" role="menuitem" data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}" ${rotuloNovo(p)}>${esc(p.cliente)}${p.planejamento ? '' : '<small class="d3m-c-s">sem planejamento</small>'}</button>`).join('') || '<span class="d3m-c-pop-rot">Nenhum cliente carregado.</span>'}</div></details>`;
+    const sit = (id, t) => `<button type="button" role="menuitemradio" data-plj-situacao="${id}" aria-checked="${estado.situacao === id}">${t}</button>`;
+    const mais = `<details class="d3m-c-menu"><summary class="d3m-c-ico${estado.situacao ? ' on' : ''}" aria-label="Filtrar pela situação do planejamento" title="Filtrar pela situação">${IC2.pontos}</summary><div class="d3m-c-pop dir" role="menu" aria-label="Situação do planejamento">
+        <span class="d3m-c-pop-rot">Situação</span>${sit('', 'Todas')}${Object.entries(ESTADOS).map(([id, [t]]) => sit(id, t)).join('')}</div></details>`;
+    const titulo = typeof window.d3mcTrocaHtml === 'function' ? window.d3mcTrocaHtml('Planejamentos', 'producao', 'planejamentos') : '<b class="d3m-c-h" role="heading" aria-level="2">Planejamentos</b>';
+    const topo = `<div class="d3m-c-topo"><div class="d3m-c-tit">${titulo}<span class="d3m-c-sub">${esc(sub)}</span></div>${seg}
+      <label class="d3m-c-busca" title="Buscar cliente">${IC2.lupa}<input id="plj-busca" type="search" aria-label="Buscar cliente" autocomplete="off" placeholder="Buscar cliente" data-plj-busca value="${esc(estado.busca)}"></label>${mais}${novo}<button type="button" class="d3m-c-ico" data-plj-fechar aria-label="Fechar" title="Fechar">${IC2.x}</button></div>`;
+    const ficha = (id, t) => `<button type="button" role="radio" data-plj-filtro="${id}" aria-checked="${estado.filtro === id}">${t} <b>${contar[id]}</b></button>`;
+    const soma = (k) => todos.reduce((s, p) => s + (p.alertas?.[k] || []).length, 0), nAprovar = soma('aprovar'), nAtras = soma('atrasadas'), nInfo = soma('sem_info');
+    const olho = [[nAprovar, 'peça para aprovar', 'peças para aprovar', ''], [nAtras, 'peça atrasada', 'peças atrasadas', 'r'], [nInfo, 'peça sem informação', 'peças sem informação', 'a']]
+      .map(([n, um, varios, tom]) => `<span class="${n ? tom : ''}"><b>${n}</b> ${n === 1 ? um : varios}</span>`).join('');
+    const folha = `<section class="d3m-c-folha plj2-folha" aria-label="Planejamentos do mês"><div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${nomeMes ? `${maiuscula(nomeMes)} de ${ano}` : 'Planejamentos'}${pronto ? ` <span>· ${com} de ${contar.todos} com planejamento</span>` : ''}</b>
+        <span class="d3m-c-abas" role="radiogroup" aria-label="Mostrar">${ficha('todos', 'Todos')}${ficha('meus', 'Meus')}${ficha('acao', 'Pedem ação')}${ficha('sem', 'Sem planejamento')}</span></div>
+      <div class="plj2-cab" aria-hidden="true"><span></span><span></span><span>Cliente</span><span>Versão</span><span>Escrito até aprovado</span><span>Onde está</span><span>Peças</span><span>OK do head</span></div>
+      <div id="plj2-lista" class="plj2-lista">${lista2Html(C)}</div>
+      ${pronto ? `<div class="plj2-pe"><span class="plj2-pe-rot">De olho</span>${olho}</div>` : ''}</section>`;
+    // O cartão laranja: o primeiro que pede ação, ou os que faltam, ou tudo em dia.
+    const bt = (txt, attrs, sec) => `<button type="button" class="d3m-btn l${sec ? ' s' : ''}" ${attrs}>${txt}</button>`;
+    const semUm = !prim && contar.sem === 1 ? semLista[0] : null, a = prim?.alertas || {};
+    const avisos = prim ? [[a.atrasadas, 'peça atrasada', 'peças atrasadas'], [a.aprovar, 'para aprovar', 'para aprovar'], [a.sem_info, 'sem informação', 'sem informação']].filter(([l]) => (l || []).length).map(([l, um, varios]) => `${l.length} ${l.length === 1 ? um : varios}`).join(' · ') : '';
+    const c = prim ? { frase: `${esc(prim.cliente)} ${prim.planejamento.estado === 'ajustes' ? `pediu ajustes na versão ${esc(prim.planejamento.versao || 1)}` : 'espera a revisão'}`, sub: avisos ? `${avisos}.` : prim.planejamento.estado === 'ajustes' ? 'O cliente devolveu: ajuste e mande de novo.' : 'Revise peça a peça e mande ao cliente.',
+        bts: bt(`Abrir a versão ${esc(prim.planejamento.versao || 1)}`, `data-plj-abrir="${esc(prim.planejamento.id)}"`) + bt(prim.planejamento.estado === 'ajustes' ? 'Ver os ajustes' : 'Editar e revisar', `data-plj-abrir="${esc(prim.planejamento.id)}" data-plj-aba="editar"`, true) }
+      : contar.sem ? { frase: `${plural(contar.sem, 'cliente', 'clientes')} sem planejamento${nomeMes ? ` de ${nomeMes}` : ''}`, sub: 'Sem planejamento não há peça para cadastrar.',
+        bts: semUm ? `<button type="button" class="d3m-btn l" data-plj-novo="${esc(semUm.cliente_id)}" data-plj-nome="${esc(semUm.cliente)}" ${rotuloNovo(semUm)}>Começar</button>` : bt(`Ver os ${contar.sem}`, 'data-plj-filtro="sem"') }
+      : { frase: `Todos com planejamento${nomeMes ? ` de ${nomeMes}` : ''}`, sub: 'Nada esperando revisão nem ajuste.', bts: '' };
+    const laranja = !pronto ? '' : `<section class="d3m-laranja plj2-laranja" aria-label="O que pede você agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">A</span>Augusto · o que trava ${esc(nomeMes || 'o mês')}</span>
+        <div class="d3m-lar-txt"><b class="d3-acao-frase">${c.frase}</b><small class="d3m-c-s">${c.sub}</small></div>${c.bts ? `<div class="d3m-lar-bts">${c.bts}</div>` : ''}</section>`;
+    // O mês em números: cada linha filtra a lista pela situação (a de "sem planejamento" troca a ficha).
+    const conta = (ids) => todos.filter((p) => ids.includes(p.planejamento?.estado)).length;
+    const dist = [['aprovado', 'Aprovados', conta(['aprovado']), ''], ['cadastrado', 'Peças cadastradas', conta(['cadastrado']), ''], ['enviado', 'Com o cliente', conta(['enviado']), 'b'], ['revisar', 'Para revisar', conta(['revisar']), 'a'], ['rascunho', 'Escritos', conta(['rascunho']), 'n'], ['ajustes', 'Ajustes pedidos', conta(['ajustes']), 'r']]
+      .filter(([id, , n]) => n || ['aprovado', 'enviado', 'revisar', 'ajustes'].includes(id))
+      .map(([id, t, n, tom]) => `<button type="button" class="plj2-dl" role="switch" aria-checked="${estado.situacao === id}" data-plj-situacao="${estado.situacao === id ? '' : id}" title="${estado.situacao === id ? 'Mostrar todas as situações' : `Mostrar só: ${t}`}"><span>${t}</span><span class="d3m-vbarra ${tom}"><i style="--v:${contar.todos ? Math.round(n / contar.todos * 100) : 0}%"></i></span><b>${n}</b></button>`).join('')
+      + `<button type="button" class="plj2-dl" role="switch" aria-checked="${estado.filtro === 'sem'}" data-plj-filtro="${estado.filtro === 'sem' ? 'todos' : 'sem'}" title="Mostrar só quem está sem planejamento"><span>Sem planejamento</span><span class="d3m-vbarra n"><i style="--v:${contar.todos ? Math.round(contar.sem / contar.todos * 100) : 0}%"></i></span><b>${contar.sem}</b></button>`;
+    const umPl = prim || todos.find((p) => p.planejamento);
+    const deUmaVez = [contar.sem ? `<button type="button" class="d3m-vlin" data-plj-filtro="sem"><span class="d3m-vnome"><b>Criar ${contar.sem === 1 ? 'o que falta' : `os ${contar.sem} que faltam`}</b></span>${IC2.seta}</button>` : '',
+      umPl ? `<button type="button" class="d3m-vlin" data-plj-abrir="${esc(umPl.planejamento.id)}" title="${esc(umPl.cliente)}"><span class="d3m-vnome"><b>Abrir como documento</b> · ${esc(umPl.cliente)}</span>${IC2.seta}</button>
+        <button type="button" class="d3m-vlin" data-plj-abrir="${esc(umPl.planejamento.id)}" data-plj-aba="historico" title="${esc(umPl.cliente)}"><span class="d3m-vnome"><b>Histórico de versões</b> · ${esc(umPl.cliente)}</span>${IC2.seta}</button>` : ''].join('');
+    const lado = !pronto ? '<aside class="d3m-lado" aria-label="Consulta"></aside>' : `<aside class="d3m-lado" aria-label="Consulta">${laranja}
+      <div class="d3m-cons"><div class="d3m-cons-cab"><b>${maiuscula(nomeMes || 'mês')}</b><span>${com} de ${contar.todos}</span></div><div class="plj2-dist">${dist}</div></div>
+      ${deUmaVez ? `<div class="d3m-cons"><div class="d3m-cons-cab"><b>De uma vez</b></div>${deUmaVez}</div>` : ''}
+      <div class="d3m-cons plj2-nota-bloco"><div class="d3m-cons-cab"><b>Onde o cliente aprova</b></div><p class="plj2-nota">O cliente vê e responde a grade do mês no VybeHub. Aqui fica só o trabalho da equipe.</p></div></aside>`;
+    // A busca guarda o foco e o cursor quando a tela inteira é repintada.
+    const foco = document.activeElement?.id === 'plj-busca';
+    janela.innerHTML = `${topo}<div class="d3m-c-corpo plj2">${folha}${lado}</div>`;
+    if (foco) { const b = janela.querySelector('#plj-busca'); b?.focus(); try { b?.setSelectionRange(b.value.length, b.value.length); } catch { /* campo sem seleção */ } }
   }
 
   async function carregar() {

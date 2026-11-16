@@ -60,3 +60,20 @@ test('Roteiros V2: uma folha por roteiro, com as mesmas ações, e os clientes c
   for (const t of ['oninput="rotv2Buscar(this.value)"', 'onclick="rotBuscarDrive(this)">Buscar no Drive</button>', 'onclick="rotAbrirIncluir()"']) assert.ok(capt.includes(t), t);
   assert.match(rot, /function rotv2Buscar\(valor\) \{ ROT\.busca = valor; const l = document\.getElementById\("rotv2-lista"\); if \(l\) l\.innerHTML = rotv2ListaHtml\(\); \}/);
 });
+
+test('Planejamentos V2: o mês numa folha, uma linha por cliente, com os botões de sempre', () => {
+  const plj = ler('vybe-mundo-planejamentos.js'), css = ler('padrao-v2/zm-c-planejamentos.css'), base = ler('padrao-v2/zm-c-base.css');
+  assert.match(plj, /const v2 = \(\) => !window\.matchMedia\?\.\('\(max-width: 700px\)'\)\.matches;/);
+  assert.ok(plj.includes("if (v2()) return pintarV2();") && plj.includes("janela.classList.remove('d3m-c-janela');"));
+  assert.match(plj, /if \(v2\(\)\) \{ const l = janela\?\.querySelector\('#plj2-lista'\); if \(l\) l\.innerHTML = lista2Html\(contas\(\)\); return; \}/);
+  const tela = plj.slice(plj.indexOf('const v2 = '), plj.indexOf('async function carregar()'));
+  // Tudo o que a tela fazia continua pelos mesmos data-plj-*.
+  for (const t of ['data-plj-linha="${esc(pl.id)}"', 'data-plj-abrir="${esc(pl.id)}"', 'data-plj-aba="historico"', 'data-plj-aba="editar"', 'data-plj-novo="${esc(p.cliente_id)}" data-plj-nome="${esc(p.cliente)}" ${rotuloNovo(p)}',
+    'data-plj-mes="${m}"', 'data-plj-busca', 'data-plj-filtro="${id}"', 'data-plj-situacao="${id}"', 'data-plj-recarregar', 'data-plj-fechar', 'etapasHtml(pl)', 'avisosHtml(p)']) assert.ok(tela.includes(t), t);
+  // A ordem da prancha: Agora, Andando e Falta; a trilha do escrito ao aprovado; o pé "De olho"; a consulta.
+  for (const t of ["['Agora', 'r', lista.filter(pedeAcao)]", "['Andando', ''", "['Falta', 'a'", '<span>Escrito até aprovado</span>', '<span class="plj2-pe-rot">De olho</span>', 'Augusto · o que trava', '<b>De uma vez</b>', '<b>Onde o cliente aprova</b>', "window.d3mcTrocaHtml('Planejamentos', 'producao', 'planejamentos')"]) assert.ok(tela.includes(t), t);
+  assert.match(css, /\.plj2-lista\{flex:1 1 0;min-height:0;overflow-y:auto/);
+  assert.match(base, /:is\(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp\)\.d3m-c-janela\.d3m-c-janela\{[^}]*background:var\(--d3-fume\)/);
+  // A seta do título troca de tela pelo submenu do menu lateral.
+  assert.match(ler('vybe-captacoes.js'), /function d3mcPintarTroca\(det, setor, atual\) \{/);
+});

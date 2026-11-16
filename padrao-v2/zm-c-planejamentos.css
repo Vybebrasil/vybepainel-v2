@@ -1,0 +1,71 @@
+/* DIREÇÃO V2 · PLANEJAMENTOS (prancha V2-M-Planejamentos, 16/11/2026). O mês numa folha, uma linha por cliente; a consulta
+   no vidro. A janela (#vv-planejamentos) ganha .d3m-c-janela (zm-c-base.css) quando a tela V2 está nela. */
+.plj2-folha{min-height:0}
+.plj2-cab,.plj2-lin{display:grid;grid-template-columns:70px 28px minmax(0,1fr) 66px 128px minmax(0,172px) 76px 78px;align-items:center;gap:0 10px;padding:0 16px;box-sizing:border-box}
+.plj2-cab{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.plj2-lista{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.plj2-lin{min-height:38px;border-top:1px solid var(--d3-divisa);cursor:pointer}
+.plj2-lin.sem{cursor:default}
+.plj2-lin:not(.sem):hover,.plj2-lin.aberta{background:var(--d3-veu)}
+.plj2-g{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.plj2-g.r{color:var(--d3-perigo)}
+.plj2-g.a{color:var(--d3-ambar)}
+.plj2-nome{appearance:none;justify-self:start;max-width:100%;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button.plj2-nome{cursor:pointer}
+button.plj2-nome:hover{text-decoration:underline;text-underline-offset:3px}
+button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.plj2-ver,.plj2-n{font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.plj2-lin.sem > .plj2-ver,.plj2-semtxt{color:var(--d3-rotulo)}
+.plj2-semtxt{font-size:var(--d3-fs-apoio)}
+.plj2-trilha{display:inline-flex;gap:3px}
+.plj2-trilha > i{flex:1 1 0;height:4px;border-radius:2px;background:var(--d3-veu-forte)}
+.plj2-trilha > i.ok{background:var(--d3-texto2)}
+.plj2-trilha > i.vez{background:var(--d3-meta)}
+.plj2-trilha > i.vez.a{background:var(--d3-acao)}
+.plj2-trilha > i.vez.b{background:var(--d3-agente)}
+.plj2-trilha > i.vez.r{background:var(--d3-perigo)}
+.plj2-trilha > i.vez.g{background:var(--d3-pronto)}
+.plj2-head{display:inline-flex;align-items:center;gap:6px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+.plj2-meu{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:999px;background:var(--d3-veu-forte);color:var(--d3-tinta);font-size:var(--d3-fs-mini)}
+.plj2-ok{display:inline-grid}
+.plj2-ok > svg{width:14px;height:14px;fill:none;stroke:var(--d3-pronto);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.plj2-criar{appearance:none;justify-self:end;height:28px;margin:0;padding:0 8px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.plj2-criar:hover{background:var(--d3-veu)}
+/* A linha aberta no lugar: as etapas, os avisos das peças e os três jeitos de abrir. */
+.plj2-det{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px 12px 124px;background:var(--d3-veu)}
+.plj2-etapas{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:var(--d3-fs-apoio);color:var(--d3-tinta)}
+.plj2-etapas > .p2-etp{display:inline-flex;align-items:center;gap:6px}
+.plj2-etapas .p2-cx{flex:none;display:grid;place-items:center;width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-meta)}
+.plj2-etapas .p2-cx.ok{background:var(--d3-pronto);box-shadow:none}
+.plj2-etapas .p2-cx.at{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+.plj2-etapas .p2-cx > svg{width:9px;height:9px;fill:none;stroke:var(--d3-escuro-texto);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.plj2-det > .d3pl-av{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu-forte);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+.plj2-det > .d3pl-av.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+.plj2-vao{flex:1 1 auto}
+/* O pé "De olho", da mesma folha. */
+.plj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+.plj2-pe-rot{margin-right:14px}
+.plj2-pe > span + span{padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
+.plj2-pe > .plj2-pe-rot + span{padding-left:0;border-left:0}
+.plj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.plj2-pe > span.r > b{color:var(--d3-perigo)}
+.plj2-pe > span.a > b{color:var(--d3-ambar)}
+/* A consulta. */
+.plj2-laranja{flex:none;min-height:216px}
+.plj2-dist{display:flex;flex-direction:column;padding:6px 0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.plj2-dl{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) 118px 24px;align-items:center;gap:12px;height:23px;margin:0;padding:0 12px;border:0;border-radius:0;background:none;box-shadow:none;color:var(--d3-fume-apagado);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.plj2-dl:hover,.plj2-dl[aria-checked="true"]{background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.plj2-dl > span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plj2-dl > b{text-align:right;font-weight:600;color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+.plj2-dl > .d3m-vbarra{min-width:0}
+.plj2-dl > .d3m-vbarra.b > i{background:var(--d3-agente-claro)}
+.plj2-dl > .d3m-vbarra.n > i{background:var(--d3-fume-apagado)}
+.plj2-nota{margin:0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+/* Janela baixa (1366 x 768): a consulta encolhe e a nota de onde o cliente aprova sai, para nada rolar. */
+@media (max-height:820px){.plj2-laranja{min-height:0}.plj2 .d3m-vlin{height:32px}.plj2-nota-bloco{display:none}}
+@media (max-width:1100px){.plj2-folha{height:560px}}
+@media (max-width:900px){
+  .plj2-cab,.plj2-lin{grid-template-columns:52px 28px minmax(0,1fr) 60px minmax(0,150px) 70px}
+  .plj2-cab > :is(:nth-child(5),:nth-child(8)),.plj2-lin > :is(.plj2-trilha,.plj2-head){display:none}
+  .plj2-lin.sem > .plj2-criar{grid-column:6}
+}
