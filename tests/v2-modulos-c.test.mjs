@@ -100,3 +100,24 @@ test('Impressões V2: funil das 7 etapas, linhas, colunas e tabela, com a ficha 
   assert.match(css, /\.imp2-funil\{flex:none;display:grid;grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
   assert.match(css, /\.imp2-quadro\{display:grid;grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
 });
+
+test('Projetos V2: abre na linha do tempo, com os cartões como aba e a página do projeto de sempre', () => {
+  const pes = ler('vybe-mundo-pessoas.js'), css = ler('padrao-v2/zm-c-projetos.css');
+  assert.ok(pes.includes("const v2pj = () => estado.aba === 'projetos' && typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;"));
+  assert.ok(pes.includes("janela.innerHTML = pj2 ? painelPj2() : htmlPainel();"));
+  const tela = pes.slice(pes.indexOf('const v2pj = '), pes.indexOf('  // Escolher um projeto: o cartão fica marcado'));
+  // Abre na linha do tempo; Cartões é a outra aba.
+  assert.ok(tela.includes("vista = estado.v2.vista || 'tempo'"));
+  assert.ok(tela.includes("[['tempo', 'Linha do tempo'], ['cartoes', 'Cartões']]"));
+  // As mesmas ações: abrir o projeto, editar, novo, filtros, busca, fechar; a página, a lista e o formulário de sempre.
+  for (const t of ['data-v2pj-abre="${esc(p.id)}"', 'data-forcar="1"', 'data-vp-editar-projeto="${esc(pior.p.id)}"', 'data-vp-abrir-form="projeto"', 'data-v2pj-vista="${k}"', 'data-v2p-filtro="concluidos"', 'data-v2pj-campo="tipo"', 'data-v2p-busca', 'data-vp-fechar', 'data-vp-recarregar', 'data-vp-aba="${k}"',
+    'paginaProj(escolhido, d)', 'paginaProj(aberto, d)', 'listaProjetos(d)', 'barraProjetos(d, ps)', 'formProjeto(d)', 'semMigracao(d)']) assert.ok(tela.includes(t), t);
+  // A etapa na linha: feita, atrasada, em curso ou a fazer; a linha vermelha é hoje (a posição vem do servidor).
+  assert.ok(tela.includes("const tomEtapaPj = (e, h) => (e.feita ? 'ok' : e.fim && e.fim < h ? 'r' : e.inicio && e.inicio <= h ? 'b' : '');"));
+  assert.ok(tela.includes('<i class="pj2-barra ${tom}" style="left:${e.pos.esq}%;width:${e.pos.larg}%"></i>') && tela.includes('<div class="pj2-hoje" aria-hidden="true"><i style="left:${l.hoje}%"></i></div>'));
+  for (const t of ['<span class="pj2-pe-rot">De olho</span>', 'Heitor · ${c.rot}', '<b>Carga com os projetos</b>', '<b>Encerrados</b>']) assert.ok(tela.includes(t), t);
+  // Novo projeto só para a gestão.
+  assert.ok(tela.includes("${d?.gestao ? `<button type=\"button\" class=\"d3m-c-btn\" data-vp-abrir-form=\"projeto\">"));
+  assert.match(css, /\.pj2-rola\{flex:1 1 0;min-height:0;overflow-y:auto/);
+  assert.match(css, /\.pj2-barra\.r\{background:var\(--d3-perigo\)\}/);
+});

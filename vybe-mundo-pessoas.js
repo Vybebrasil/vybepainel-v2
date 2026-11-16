@@ -997,6 +997,93 @@
     return `${semMigracao(d)}<div class="v2p v2p-proj">${falaProjetos(d, ps)}${numerosProjetos(d, ps)}${barraProjetos(d, ps)}
       <div class="v2pj-grade${lado ? '' : ' so-lista'}">${listaProjetos(d)}${lado}</div></div>`;
   }
+  // ─── Direção V2 · Projetos pontuais na prancha V2-M-Projetos (16/11/2026) ────────────────────
+  // A janela vira vidro fumê e abre na linha do tempo: uma folha com cada projeto e as etapas em barras (feita, em curso,
+  // atrasada e a fazer; a linha vermelha é hoje) e, à direita, no vidro, o cartão laranja do Heitor, a carga de quem está
+  // nos projetos e os atalhos. Os cartões continuam como aba (a lista e a página do projeto de sempre, numa folha).
+  // Escolher um projeto ou uma etapa abre a página dele ao lado (paginaProj), onde se marca a etapa; o formulário é o
+  // mesmo. Só no computador e só na aba Projetos; no celular e nas outras abas de Pessoas fica a tela de antes.
+  const v2pj = () => estado.aba === 'projetos' && typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;
+  const ICJ = { mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>', lupa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>',
+    seta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>', baixo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    pontos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="3" d="M6 12h.01M12 12h.01M18 12h.01"/></svg>', x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' };
+  const fotoPj = (nome) => (nome && typeof pv2Foto === 'function' ? pv2Foto(nome) : `<i class="d3v-foto" aria-hidden="true">${esc(iniciais(nome || 'Vybe'))}</i>`);
+  // A etapa na linha do tempo: feita, atrasada (passou do fim sem ser feita), em curso (já começou) ou a fazer.
+  const tomEtapaPj = (e, h) => (e.feita ? 'ok' : e.fim && e.fim < h ? 'r' : e.inicio && e.inicio <= h ? 'b' : '');
+  function tempoPj2(d, ps) {
+    const h = d.hoje || hoje(), l = d.linha || {}, ids = new Set(projetosFiltrados(d).map((p) => p.id));
+    const lista = (l.projetos || []).filter((p) => ids.has(p.id));
+    if (!lista.length) return `<p class="d3v-estado"><b>${ps.length ? 'Nenhum projeto neste filtro' : 'Nenhum projeto pontual ainda'}</b>${ps.length ? 'Troque a busca ou o filtro.' : 'Evento, lançamento ou site fora do mensal: crie o projeto com as etapas e veja tudo aqui.'}${!ps.length && d.gestao ? '<button type="button" class="d3v-btn" data-vp-abrir-form="projeto">Criar o primeiro projeto</button>' : ''}</p>`;
+    const regua = (l.semanas || []).map((s) => `<span style="left:${s.esq}%">${esc(dm(s.inicio))}</span>`).join('');
+    const quando = (p) => (p.fim ? `${p.tipo === 'evento' ? 'evento em' : p.tipo === 'lancamento' ? 'no ar em' : 'entrega em'} ${esc(dm(p.fim))}` : 'sem data de entrega');
+    const proj = (p) => `<section class="pj2-proj" aria-label="${esc(p.nome)}"><div class="pj2-cab">${fotoPj(p.cliente)}<button type="button" class="pj2-nome" data-v2pj-abre="${esc(p.id)}" title="Abrir o projeto ao lado">${esc(p.nome)}</button>
+        <span class="pj2-cli">${p.cliente ? `· ${esc(p.cliente)}` : '· interno'}</span><span class="pj2-quando">${quando(p)}</span></div>
+      ${(p.etapas || []).map((e) => { const tom = tomEtapaPj(e, h);
+        return `<div class="pj2-etapa"><button type="button" class="pj2-et" data-v2pj-abre="${esc(p.id)}" title="${esc(e.responsavel_nome || 'sem responsável')} · ${esc(dm(e.inicio))} a ${esc(dm(e.fim))}${e.feita ? ' · feita' : tom === 'r' ? ' · atrasada' : ''}">${av(e.responsavel_nome || '?')}<span>${esc(e.nome)}</span></button>
+          <div class="pj2-trilho">${e.pos ? `<i class="pj2-barra ${tom}" style="left:${e.pos.esq}%;width:${e.pos.larg}%"></i>` : ''}</div></div>`; }).join('') || '<p class="pj2-sem">Sem etapas ainda.</p>'}</section>`;
+    return `<div class="pj2-regua" aria-hidden="true"><span></span><div>${regua}</div></div>
+      <div class="pj2-rola" role="region" aria-label="Linha do tempo dos projetos" tabindex="0"><div class="pj2-corpo">${l.hoje != null ? `<div class="pj2-hoje" aria-hidden="true"><i style="left:${l.hoje}%"></i></div>` : ''}
+        <div class="pj2-grade" aria-hidden="true"><span></span><div>${(l.semanas || []).map((s) => `<i style="left:${s.esq}%"></i>`).join('')}</div></div>${lista.map(proj).join('')}</div></div>`;
+  }
+  function laranjaPj2(d, ps) {
+    const h = d.hoje || hoje(), abertos = ps.filter((p) => p.status !== 'concluido'), bt = (txt, attrs, sec) => `<button type="button" class="d3m-btn l${sec ? ' s' : ''}" ${attrs}>${txt}</button>`;
+    const pior = abertos.flatMap((p) => vencidasDe(p, h).map((e) => ({ p, e }))).sort((a, b) => (a.e.fim < b.e.fim ? -1 : 1))[0];
+    const prox = abertos.flatMap((p) => etapasDe(p).filter((e) => !e.feita && e.fim && e.fim >= h).map((e) => ({ p, e }))).sort((a, b) => (a.e.fim < b.e.fim ? -1 : 1))[0];
+    const c = pior ? { rot: 'etapa atrasada', num: plural(entre(pior.e.fim, h), 'dia', 'dias'), frase: `de atraso em ${esc(pior.e.nome)}, de ${esc(pior.p.nome)}`, sub: `${pior.e.responsavel_nome ? `Está com ${esc(primeiroNome(pior.e.responsavel_nome))}.` : 'Sem responsável.'} Era para ${esc(dm(pior.e.fim))}.`,
+        bts: bt('Abrir a etapa', `data-v2pj-abre="${esc(pior.p.id)}" data-forcar="1"`) + (d.gestao ? bt('Trocar o dono', `data-vp-editar-projeto="${esc(pior.p.id)}"`, true) : '') }
+      : prox ? { rot: 'próxima entrega', num: esc(dm(prox.e.fim)), frase: `${esc(prox.e.nome)}, de ${esc(prox.p.nome)}`, sub: `${prox.e.responsavel_nome ? `Com ${esc(primeiroNome(prox.e.responsavel_nome))}. ` : ''}Nenhuma etapa atrasada.`, bts: bt('Abrir o projeto', `data-v2pj-abre="${esc(prox.p.id)}" data-forcar="1"`) }
+      : { rot: 'projetos em dia', num: '', frase: abertos.length ? `${plural(abertos.length, 'projeto andando', 'projetos andando')}, nenhuma etapa com data` : 'Nenhum projeto andando agora', sub: 'Evento, lançamento ou site fora do mensal entram aqui.', bts: d.gestao ? bt('Novo projeto', 'data-vp-abrir-form="projeto"') : '' };
+    return `<section class="d3m-laranja pj2-laranja" aria-label="O que pede você agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span>Heitor · ${c.rot}</span>
+      <div class="d3m-lar-txt">${c.num ? `<b class="d3m-lar-num">${c.num}</b>` : ''}<b class="d3-acao-frase">${c.frase}</b><small class="d3m-c-s">${c.sub}</small></div>${c.bts ? `<div class="d3m-lar-bts">${c.bts}</div>` : ''}</section>`;
+  }
+  function ladoPj2(d, ps) {
+    const fechados = ps.filter((p) => p.status === 'concluido').length, cap = Number(d.capacidade) || 0;
+    const carga = (d.carga || []).filter((c) => c.etapas).sort((a, b) => b.pct - a.pct).slice(0, 5);
+    const cargaHtml = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Carga com os projetos</b><span>abertas / limite</span></div>
+      ${carga.map((c) => `<div class="d3m-vlin pj2-carga" title="${esc(c.nome)}: ${plural(c.pecas, 'demanda', 'demandas')}${c.etapas ? ` e ${plural(c.etapas, 'ponto', 'pontos')} de projeto` : ''}">${av(c.nome)}<span class="d3m-vnome">${esc(primeiroNome(c.nome))}</span><span class="d3m-vbarra${c.pct >= 100 ? ' r' : c.pct >= 75 ? ' a' : ''}"><i style="--v:${Math.min(100, c.pct)}%"></i></span><span class="d3m-vn"><b>${esc(c.pecas + c.etapas)}</b>${cap ? ` / ${esc(cap)}` : ''}</span></div>`).join('') || '<p class="d3m-vvazio">Ninguém com etapa de projeto nesta semana.</p>'}</div>`;
+    const abrir = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Abrir</b></div>
+      <button type="button" class="d3m-vlin" data-v2pj-vista="cartoes"><span class="d3m-vnome"><b>Cartões</b> · um por projeto</span>${ICJ.seta}</button>
+      <button type="button" class="d3m-vlin" data-v2pj-encerrados><span class="d3m-vnome"><b>Encerrados</b> · ${esc(fechados)}</span>${ICJ.seta}</button>
+      <button type="button" class="d3m-vlin" data-pj2-ajuda><span class="d3m-vnome"><b>Como funciona</b> · as etapas viram demandas na esteira</span>${ICJ.seta}</button></div>`;
+    return `<aside class="d3m-lado" aria-label="Consulta">${laranjaPj2(d, ps)}${cargaHtml}${abrir}${estado.ajuda ? `<p class="pj2-ajuda" role="note">${esc(AJUDA.projetos)}</p>` : ''}</aside>`;
+  }
+  function corpoPj2(d) {
+    if (!d) return estado.erro ? `<div class="d3m-c-folha d3v-estado erro" role="alert"><b>Não deu para abrir agora</b>${esc(estado.erro)}<button type="button" class="d3v-btn sec" data-vp-recarregar>Tentar de novo</button></div>` : '<div class="d3m-c-folha d3v-estado" role="status"><b>Carregando os projetos</b></div>';
+    const ps = projetosVisiveis(d), h = d.hoje || hoje(), abertos = ps.filter((p) => p.status !== 'concluido'), form = estado.form === 'projeto', vista = estado.v2.vista || 'tempo';
+    const escolhido = !form && estado.v2.proj ? ps.find((p) => p.id === estado.v2.proj) : null;
+    const lado = form ? `<div class="d3m-c-folha pj2-painel"><div class="v2p v2p-proj">${formProjeto(d)}</div></div>` : escolhido && vista === 'tempo' ? `<div class="d3m-c-folha pj2-painel"><div class="v2p v2p-proj">${paginaProj(escolhido, d)}</div></div>` : ladoPj2(d, ps);
+    const erro = estado.erro ? `<p class="pj2-erro" role="alert">Não foi possível atualizar: ${esc(estado.erro)} <button type="button" class="d3v-btn sec s" data-vp-recarregar>Tentar de novo</button></p>` : '';
+    if (vista !== 'tempo') {
+      const aberto = form ? null : projetoAberto(d, projetosFiltrados(d));
+      return `<div class="d3m-c-corpo pj2${form ? ' com-painel' : ' um'}"><section class="d3m-c-folha pj2-folha pj2-cartoes" aria-label="Projetos em cartões">${erro}${semMigracao(d)}<div class="v2p v2p-proj">${barraProjetos(d, ps)}<div class="v2pj-grade${aberto ? '' : ' so-lista'}">${listaProjetos(d)}${aberto ? paginaProj(aberto, d) : ''}</div></div></section>${form ? lado : ''}</div>`;
+    }
+    const es = abertos.flatMap((p) => etapasDe(p).map((e) => tomEtapaPj(e, h))), conta = (t) => es.filter((x) => x === t).length;
+    const prox = abertos.flatMap((p) => etapasDe(p).filter((e) => !e.feita && e.fim && e.fim >= h).map((e) => e.fim)).sort()[0];
+    const olho = `<span class="${conta('r') ? 'r' : ''}"><b>${conta('r')}</b> ${conta('r') === 1 ? 'etapa atrasada' : 'etapas atrasadas'}</span><span><b>${conta('b')}</b> em curso</span><span><b>${conta('')}</b> a fazer</span>${prox ? `<span><b>${esc(dm(prox))}</b> a próxima entrega</span>` : ''}`;
+    const legenda = [['ok', 'feita'], ['b', 'em curso'], ['r', 'atrasada'], ['', 'a fazer']].map(([t, n]) => `<span><i class="pj2-barra ${t}"></i>${n}</span>`).join('');
+    const filtro = estado.v2.filtro === 'concluidos';
+    return `<div class="d3m-c-corpo pj2${lado.startsWith('<div') ? ' com-painel' : ''}"><section class="d3m-c-folha pj2-folha" aria-label="Linha do tempo dos projetos"><div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${filtro ? plural(ps.length - abertos.length, 'projeto encerrado', 'projetos encerrados') : plural(abertos.length, 'projeto em curso', 'projetos em curso')} <span>· fora do mensal</span></b><span class="pj2-legenda" aria-label="Legenda">${legenda}</span></div>
+        ${erro}${semMigracao(d)}${tempoPj2(d, ps)}${ps.length ? `<div class="pj2-pe"><span class="pj2-pe-rot">De olho</span>${olho}</div>` : ''}</section>${lado}</div>`;
+  }
+  function painelPj2() {
+    const d = estado.dados.projetos, ps = d ? projetosVisiveis(d) : [], abertos = ps.filter((p) => p.status !== 'concluido'), vista = estado.v2.vista || 'tempo', v = estado.v2;
+    const g = gestao(), abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
+    // Com outras abas de Pessoas na mesma janela, a seta do título troca de aba; aberta pelo dock (só Projetos), troca de tela.
+    const titulo = abas.length > 1 ? `<details class="d3m-c-troca"><summary title="Outras partes de Pessoas"><b class="d3m-c-h" id="vp-titulo" role="heading" aria-level="2">Projetos pontuais</b>${ICJ.baixo}</summary><div class="d3m-c-pop" role="menu" aria-label="Partes do setor de Pessoas">${abas.map(([k, r]) => `<button type="button" role="menuitemradio" aria-checked="${k === estado.aba}" data-vp-aba="${k}">${esc(r)}</button>`).join('')}</div></details>`
+      : typeof window.d3mcTrocaHtml === 'function' ? window.d3mcTrocaHtml('Projetos pontuais', 'producao', 'projetos').replace('class="d3m-c-h"', 'class="d3m-c-h" id="vp-titulo"') : '<b class="d3m-c-h" id="vp-titulo" role="heading" aria-level="2">Projetos pontuais</b>';
+    const sub = !d ? (estado.erro ? 'não deu para abrir' : 'carregando') : `evento, lançamento e site · ${abertos.length} em curso${vista === 'tempo' ? ' · a linha vermelha é hoje' : ''}`;
+    const seg = `<span class="d3m-c-seg" role="radiogroup" aria-label="Como ver os projetos">${[['tempo', 'Linha do tempo'], ['cartoes', 'Cartões']].map(([k, r]) => `<button type="button" role="radio" data-v2pj-vista="${k}" aria-checked="${vista === k}">${r}</button>`).join('')}</span>`;
+    const sw = (attrs, on, t) => `<button type="button" role="menuitemradio" aria-checked="${on}" ${attrs}>${t}</button>`, zoom = estado.projZoom || 'semana';
+    const filtrado = v.filtro === 'concluidos' || Boolean(v.cliente || v.resp || v.tipo);
+    const mais = `<details class="d3m-c-menu"><summary class="d3m-c-ico${filtrado ? ' on' : ''}" aria-label="Filtros dos projetos" title="Filtros">${ICJ.pontos}</summary><div class="d3m-c-pop dir" role="menu" aria-label="Filtros dos projetos">
+        <span class="d3m-c-pop-rot">Mostrar</span>${sw('data-v2p-filtro="abertos"', v.filtro !== 'concluidos', `Em andamento <small class="d3m-c-s">${abertos.length}</small>`)}${sw('data-v2p-filtro="concluidos"', v.filtro === 'concluidos', `Concluídos <small class="d3m-c-s">${ps.length - abertos.length}</small>`)}
+        <span class="d3m-c-pop-rot">Tipo</span>${sw('data-v2pj-campo="tipo" data-valor=""', !v.tipo, 'Todos')}${Object.entries(TIPOS_PROJETO).filter(([k]) => ps.some((p) => p.tipo === k)).map(([k, r]) => sw(`data-v2pj-campo="tipo" data-valor="${esc(k)}"`, v.tipo === k, esc(r))).join('')}</div></details>`;
+    return `<div class="d3m-c-topo"><div class="d3m-c-tit">${titulo}<span class="d3m-c-sub">${esc(sub)}</span></div>${d && ps.length ? seg : ''}
+        <label class="d3m-c-busca" title="Buscar projeto">${ICJ.lupa}<input type="search" id="pj2-busca" data-v2p-busca aria-label="Buscar projeto" autocomplete="off" placeholder="Buscar projeto" value="${esc(v.busca)}"></label>${d && ps.length ? mais : ''}
+        ${d?.gestao ? `<button type="button" class="d3m-c-btn" data-vp-abrir-form="projeto">${ICJ.mais}Novo projeto</button>` : ''}<button type="button" class="d3m-c-ico" data-vp-fechar aria-label="Fechar" title="Fechar">${ICJ.x}</button></div>
+      <p class="vp-aviso pj2-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
+      <div class="pj2-tela" aria-busy="${estado.carregando}">${corpoPj2(d)}</div>`;
+  }
   // Escolher um projeto: o cartão fica marcado e a página dele abre ao lado. `forcar` (da fala) limpa os filtros.
   function abrirProjeto(id, forcar = false) {
     if (forcar) Object.assign(estado.v2, { filtro: '', busca: '', cliente: '', resp: '', tipo: '', painel: '', vista: 'cartoes' });
@@ -1352,8 +1439,11 @@
   function pintar() {
     const janela = estado.janela; if (!janela) return;
     const corpo = janela.querySelector?.('.vp-corpo'), rolagem = corpo?.scrollTop || 0;
-    janela.className = 'vp-janela' + (V2.has(estado.aba) ? ' v2p-janela' : '');
-    janela.innerHTML = htmlPainel();
+    // Direção V2 (prancha V2-M-Projetos): no computador, a aba Projetos tem o esqueleto novo (painelPj2).
+    const pj2 = v2pj(), foco = pj2 && document.activeElement?.id === 'pj2-busca';
+    janela.className = 'vp-janela' + (V2.has(estado.aba) ? ' v2p-janela' : '') + (pj2 ? ' d3m-c-janela' : '');
+    janela.innerHTML = pj2 ? painelPj2() : htmlPainel();
+    if (foco) { const b = janela.querySelector('#pj2-busca'); b?.focus(); try { b?.setSelectionRange(b.value.length, b.value.length); } catch { /* campo sem seleção */ } }
     const novo = janela.querySelector?.('.vp-corpo'); if (novo) novo.scrollTop = rolagem;
   }
   function avisar() { const el = estado.raiz?.querySelector?.('.vp-aviso'); if (el) el.textContent = estado.aviso; }
@@ -1437,6 +1527,8 @@
     else if (perto('[data-v2p-pedir-trilha]')) pedirTrilha();
     else if ((b = perto('[data-v2pj-abre]'))) abrirProjeto(b.dataset.v2pjAbre, b.dataset.forcar === '1');
     else if ((b = perto('[data-v2pj-vista]'))) { estado.v2.vista = b.dataset.v2pjVista; estado.v2.mais = ''; pintar(); }
+    else if (perto('[data-v2pj-encerrados]')) { Object.assign(estado.v2, { filtro: 'concluidos', vista: 'cartoes', mais: '' }); pintar(); }
+    else if (perto('[data-pj2-ajuda]')) { estado.ajuda = !estado.ajuda; pintar(); }
     else if ((b = perto('[data-v2pj-painel]'))) { const k = b.dataset.v2pjPainel; estado.v2.painel = estado.v2.painel === k ? '' : k; pintar(); }
     else if ((b = perto('[data-v2pj-campo]'))) { const k = b.dataset.v2pjCampo, v = b.dataset.valor || ''; estado.v2[k] = estado.v2[k] === v ? '' : v; pintar(); }
     else if ((b = perto('[data-v2pj-mais]'))) { estado.v2.mais = estado.v2.mais === b.dataset.v2pjMais ? '' : b.dataset.v2pjMais; pintar(); }

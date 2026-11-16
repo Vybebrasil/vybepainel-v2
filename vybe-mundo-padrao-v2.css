@@ -13101,6 +13101,69 @@ button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{
   .plj2-lin.sem > .plj2-criar{grid-column:6}
 }
 
+/* ===== padrao-v2/zm-c-projetos.css ===== */
+/* DIREÇÃO V2 · PROJETOS PONTUAIS (prancha V2-M-Projetos, 16/11/2026). A janela (#vv-pessoas, na aba Projetos) ganha
+   .d3m-c-janela (zm-c-base.css). Abre na linha do tempo: uma folha com as etapas em barras e a consulta no vidro; os
+   cartões continuam como aba, numa folha. */
+.pj2-aviso{flex:none;margin:-8px 0;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-pronto-claro)}
+.pj2-aviso:empty{display:none}
+.pj2-tela{flex:1 1 0;display:flex;flex-direction:column;min-height:0}
+.pj2-folha{min-height:0}
+.pj2-erro{flex:none;display:flex;align-items:center;gap:8px;margin:0;padding:6px 16px;background:var(--d3-perigo-veu);color:var(--d3-perigo);font-size:var(--d3-fs-apoio)}
+.pj2-legenda{flex:none;display:inline-flex;align-items:center;gap:12px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+.pj2-legenda > span{display:inline-flex;align-items:center;gap:6px}
+.pj2-legenda .pj2-barra{position:static;width:14px;height:5px}
+/* A régua das semanas e a grade: 250 px para o nome da etapa, o resto é o tempo. */
+.pj2-regua,.pj2-grade,.pj2-etapa{display:grid;grid-template-columns:250px minmax(0,1fr);gap:0 16px}
+.pj2-regua{flex:none;height:28px;padding:0 16px;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.pj2-regua > div{position:relative}
+.pj2-regua > div > span{position:absolute;top:7px;padding-left:4px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pj2-rola{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+.pj2-corpo{position:relative;min-height:100%;padding:0 16px;box-sizing:border-box}
+.pj2-grade,.pj2-hoje{position:absolute;inset:0 16px;pointer-events:none}
+.pj2-grade > div{position:relative}
+.pj2-grade > div > i{position:absolute;top:0;bottom:0;width:1px;background:var(--d3-divisa)}
+.pj2-hoje{left:282px;z-index:2}
+.pj2-hoje > i{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--d3-perigo)}
+.pj2-proj{position:relative;padding:10px 0 8px;border-bottom:1px solid var(--d3-divisa)}
+.pj2-cab{position:relative;z-index:3;display:flex;align-items:center;gap:8px;min-width:0;height:32px;margin-bottom:4px}
+.pj2-nome,.pj2-et{appearance:none;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.pj2-nome{flex:0 1 auto;min-width:0}
+.pj2-nome:hover,.pj2-et:hover > span{text-decoration:underline;text-underline-offset:3px}
+:is(.pj2-nome,.pj2-et):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.pj2-cli{flex:0 1 auto;min-width:0;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pj2-quando{flex:none;margin-left:auto;padding-left:8px;border-radius:4px;background:var(--d3-folha);font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap}
+.pj2-etapa{align-items:center;height:30px}
+.pj2-et{display:flex;align-items:center;gap:8px;min-width:0;font-weight:400}
+.pj2-et > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#vv-pessoas .pj2-et > .v2p-av{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 9px var(--vv-texto,Inter,sans-serif)}
+.pj2-trilho{position:relative;height:100%}
+.pj2-barra{position:absolute;top:50%;min-width:10px;height:8px;margin-top:-4px;border-radius:4px;background:var(--d3-veu-forte)}
+.pj2-barra.ok{background:var(--d3-texto2)}
+.pj2-barra.b{background:var(--d3-info)}
+.pj2-barra.r{background:var(--d3-perigo)}
+.pj2-sem{margin:0;padding:4px 0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.pj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+.pj2-pe-rot{margin-right:14px}
+.pj2-pe > span + span{padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
+.pj2-pe > .pj2-pe-rot + span{padding-left:0;border-left:0}
+.pj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.pj2-pe > span.r > b{color:var(--d3-perigo)}
+/* A consulta. */
+.pj2-laranja{flex:none;min-height:216px}
+.pj2-laranja .d3m-lar-num{font-size:52px}
+.pj2-carga{cursor:default}
+#vv-pessoas .pj2-carga > .v2p-av{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:600 10px var(--vv-texto,Inter,sans-serif)}
+.pj2 .d3m-vlin.pj2-carga > .d3m-vnome{flex:0 0 76px}
+.pj2-ajuda{margin:0;padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);font-size:var(--d3-fs-apoio);line-height:1.45;color:var(--d3-fume-apagado)}
+/* A página do projeto (ou o formulário) ao lado, numa folha que rola por dentro; e os cartões, na aba deles. */
+.pj2.com-painel{grid-template-columns:minmax(0,1fr) 420px}
+.pj2-painel,.pj2-cartoes{overflow-y:auto;scrollbar-width:thin;padding:14px}
+.pj2-painel .v2p-card{margin:0;box-shadow:none}
+@media (max-height:820px){.pj2-laranja{min-height:0}.pj2-laranja .d3m-lar-num{font-size:40px}.pj2 .d3m-vlin{height:32px}}
+@media (max-width:1280px){.pj2-regua,.pj2-grade,.pj2-etapa{grid-template-columns:190px minmax(0,1fr)}.pj2-hoje{left:222px}.pj2.com-painel{grid-template-columns:minmax(0,1fr) 380px}}
+@media (max-width:1100px){.pj2-tela{flex:none}.pj2-folha{height:560px}.pj2.com-painel{grid-template-columns:minmax(0,1fr)}}
+
 /* ===== padrao-v2/zm-d-0-pecas.css ===== */
 /* ===================================================================================================================
    MÓDULOS V2 · GRUPO D (Gestão, Financeiro, Comercial, Pacotes, Orçamentos, Contratos, Churn e Agentes) · PEÇAS LOCAIS.
