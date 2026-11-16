@@ -11,7 +11,7 @@
 // mostra briefing, equipe, responsáveis nem outros clientes. Diferente do /aprovar/<token> dos
 // planejamentos (server/planejamentos-api.js), que aprova o planejamento do mês antes da produção.
 import { createHash, randomBytes } from 'node:crypto';
-import { podeEditarCliente } from './planejamentos.js';
+import { podeEditarCliente, legendasDasPecas } from './planejamentos.js';
 import { avisoMigracao } from './conteudo-objetivo.js';
 
 const erro = (mensagem, status = 400) => Object.assign(new Error(mensagem), { status });
@@ -149,10 +149,11 @@ export async function pecasDoLink(sql, token) {
     WHERE r.link_id = ${l.id} ORDER BY r.em DESC LIMIT 50`;
   const comVistas = await vistasProntas(sql);
   const vistas = comVistas ? await vistasDoLink(sql, l.id, pecas.map((p) => p.id)) : new Set();
+  const legendas = await legendasDasPecas(sql, l.cliente_id, pecas.map((p) => p.id)).catch(() => new Map());
   return { cliente: l.cliente, expira_em: l.expira_em, vistas: comVistas,
     pecas: pecas.map((p) => {
       const arqs = arquivos.get(p.id) || [];
-      return { ...p, formato: p.formato || '', arquivos: arqs, vista: arqs.length > 0 && vistas.has(p.id) };
+      return { ...p, formato: p.formato || '', legenda: legendas.get(p.id) || '', arquivos: arqs, vista: arqs.length > 0 && vistas.has(p.id) };
     }), respondidas };
 }
 

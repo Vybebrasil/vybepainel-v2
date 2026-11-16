@@ -15,7 +15,7 @@
 // O VybeHub chama de servidor para servidor (area=portal, chave PORTAL_CHAVE) com o nome do cliente logado lá. Sai só
 // o que o cliente precisa: título, formato, data, a situação em palavras dele e a arte. Nada de responsável, status
 // interno, prazo ou dinheiro.
-import { clientePorNomeOuId } from './planejamentos.js';
+import { clientePorNomeOuId, legendasDasPecas } from './planejamentos.js';
 import { STATUS_EM_APROVACAO, DESTINO, LIMITE_COMENTARIO, LIMITE_NOME, dentroDoLote } from './conteudo-aprovacao.js';
 
 export const BOARD_PRODUCAO = 7829537690;
@@ -123,7 +123,8 @@ async function pecasDoCliente(sql, clienteId, de, ate, { board = BOARD_PRODUCAO 
       respostas.set(u.id, { acao, nome: String(u.autor).slice(0, -MARCA_AUTOR.length).trim(), comentario, em: u.criado_em });
     }
   }
-  return pecas.map((p) => ({ id: p.id, titulo: p.titulo || 'Sem título', formato: p.fmt.nome, formato_chave: p.fmt.chave, veiculacao: p.veiculacao,
+  const legendas = ids.length ? await legendasDasPecas(sql, clienteId, ids).catch(() => new Map()) : new Map();
+  return pecas.map((p) => ({ id: p.id, titulo: p.titulo || 'Sem título', formato: p.fmt.nome, formato_chave: p.fmt.chave, veiculacao: p.veiculacao, legenda: legendas.get(p.id) || '',
     estado: estadoParaCliente(p.status_chave), arte: artes.get(p.id) || [], resposta: respostas.get(p.id) || null }));
 }
 
