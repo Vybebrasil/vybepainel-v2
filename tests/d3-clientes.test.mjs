@@ -20,12 +20,12 @@ test('Saúde da carteira: bloco de ação, quatro números com linha, lista com 
   assert.match(carteira, /<span class="\$\{ehVencida\(m\) \? 'r' : ''\}"\$\{noTeto\(m\)[^\n]*?><b>−\$\{-m\.pontos\}<\/b>/);
 });
 
-test('Onboarding: quatro números, colunas no quadro e, ao lado, tempo de entrada em linha, etapas e configuração', () => {
+test('Onboarding na prancha V2: fichas das etapas com Concluídos, colunas na folha, quanto cada etapa demora e, no vidro, a configuração', () => {
   const tela = carteira.slice(carteira.indexOf('  function abaOnboarding() {'), carteira.indexOf('  // ---------- Churn ----------'));
-  assert.match(tela, /numD3\(\{ rotulo: 'Concluídos no mês'/);
-  assert.match(tela, /class="d3c-cab d3c-cab-onb"/);
-  assert.match(tela, /aria-label="Tempo de entrada"[\s\S]{0,200}d3Linha\(/);
-  assert.match(tela, /botao\('Configurar etapas', 'data-vc-ed-abrir'\)/, 'o editor de etapas continua');
+  assert.match(tela, /<span>Concluídos<small>/);
+  assert.match(tela, /<span>Cliente<\/span><span>Etapas<\/span><span>Agora<\/span><span>Parado<\/span><span>Head<\/span>/);
+  assert.match(tela, /const porEtapa = diasPorEtapa\(lista\)[\s\S]{0,400}aria-label="Quanto cada etapa demora"/);
+  assert.match(tela, /vlin\('Configurar as etapas', '', 'data-vc-ed-abrir'\)/, 'o editor de etapas continua');
   assert.match(tela, /data-vc-encerrados aria-expanded/, 'os encerrados continuam a um clique');
 });
 
@@ -37,10 +37,10 @@ test('Clientes na Direção V2: cartão laranja do Mateus, o pé "De olho" no lu
   assert.match(ler('padrao-v2/zm-b-clientes.css'), /#painel-clientes \.cv2-novo\{[^}]*background:var\(--d3-fume-texto\)/);
 });
 
-test('Reuniões: bloco de ação, quatro números ("No mês" em linha), Pede ação e lista em cartões separados', () => {
-  assert.match(reunioes, /kpi\('No mês', doMes\.length/);
-  assert.match(reunioes, /d3LinhaSvg\(serie/);
-  assert.match(reunioes, /class="v2r-card v2r-pede"/);
+test('Reuniões na prancha V2: o laranja do Mateus, a folha com o pé "De olho" e os tipos do mês no vidro', () => {
+  assert.match(reunioes, /class="d3-acao d3m-laranja rv2-laranja"/);
+  assert.match(reunioes, /function olhoDaTela\(n, resto\) \{[\s\S]{0,400}De olho/);
+  assert.match(reunioes, /consulta\('Tipos', MESES\[/);
   assert.doesNotMatch(reunioes, /class="v2r-sub v2r-rodape"/, 'sem frase explicativa no rodapé');
 });
 

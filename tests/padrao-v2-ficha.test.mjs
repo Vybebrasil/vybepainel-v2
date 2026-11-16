@@ -117,7 +117,7 @@ test('Ficha: as listas completas viram as abas Conteúdo e Demandas; Financeiro 
   assert.equal(vm.runInContext('FICHA_ABA', ctx), 'geral', 'quem não é dono volta para o Resumo');
 });
 
-test('Reuniões: janela própria com fala, três números, Pede ação que abre no lugar, lista e Nova reunião ao lado', async () => {
+test('Reuniões na prancha V2-M-Reunioes: janela própria com a folha das reuniões que abre no lugar, o laranja do Mateus e Nova reunião no vidro', async () => {
   const { ctx, postados } = carregar({ reunioes: [
     { id: '7', cliente_id: '2', data: '2026-11-05', tipo: 'rotina', titulo: 'Rotina', participantes: 'Ewerton, Beatriz', ata: '', pauta: '- Calendário',
       gravacao: { id: 'g1' }, transcricao: 'texto', sugestoes: { resumo: 'Resumo pronto', decisoes: ['Gravar depoimentos'], demandas: [{ titulo: 'Card' }, { titulo: 'Reels' }] } },
@@ -125,14 +125,20 @@ test('Reuniões: janela própria com fala, três números, Pede ação que abre 
   const fonte = ler('vybe-clientes-reunioes.js');
   assert.match(fonte, /window\.VybeReunioes = \{ reunioesHtml, onboardingHtml, carregar, temOnboarding, abrir, fechar: fecharTela, aberto: \(\) => Boolean\(tela\.raiz\), dadosDe \}/);
   await ctx.VybeReunioes.carregar('1'); await ctx.VybeReunioes.carregar('2');
-  assert.match(fonte, /<h2 id="v2r-titulo">Reuniões<\/h2><span class="d3c-meta">\$\{esc\(diaHoje\)\}<\/span><button type="button" class="v2r-btn p" data-v2r-acao="nova">Nova reunião<\/button>/);
-  assert.match(fonte, /kpi\('Esta semana'[\s\S]*kpi\('Sem ata'[\s\S]*kpi\('Demandas sugeridas'[\s\S]*kpi\('No mês'/);
-  // Direção 3: Pede ação e a lista em cartões separados; a fala é o bloco de ação laranja.
-  assert.match(fonte, /<section class="v2r-card v2r-pede" aria-label="Pede ação"><div data-v2r="pede"><\/div><\/section>/);
-  assert.match(fonte, /d3AcaoHtml\(\{ frase: `\$\{quem\}\$\{frase\}`, agente: 'Mateus', botao, attrs \}\)/);
-  assert.match(fonte, /class="v2-abre v2r-abre" aria-expanded="false"><div class="v2r-lin"><span class="v2r-pill r">Sem ata<\/span>/);
-  assert.match(fonte, />Usar o resumo<\/button>[\s\S]*Pauta<\/b>[\s\S]*Ata<\/b>[\s\S]*Gravação<\/b>/);
-  assert.match(fonte, /data-valor="todas" aria-pressed="true">Todas<[\s\S]*>Esta semana<[\s\S]*>Sem ata<[\s\S]*>Filtros</);
+  // O alto: título com a frase do momento, busca, filtro por tipo, "Nova reunião" branco no vidro e fechar.
+  assert.match(fonte, /<div class="rv2-tit"><h2 id="v2r-titulo">Reuniões<\/h2><span data-v2r="sub"><\/span><\/div>\s*<label class="rv2-busca">[\s\S]{0,200}data-v2r-busca[\s\S]{0,200}data-v2r-acao="tipos"[\s\S]{0,400}<button type="button" class="rv2-novo" data-v2r-acao="nova">[\s\S]{0,120}Nova reunião<\/button>/);
+  // A folha: fichas, colunas, linhas e o pé "De olho"; no vidro, a consulta e o formulário (escondido até "Nova reunião").
+  assert.match(fonte, /<section class="fv2-folha rv2-lista" aria-label="Reuniões">[\s\S]*data-v2r="chips"[\s\S]*<span>Cliente e título<\/span><span>Quando<\/span><span>Quem<\/span><span>Ata<\/span><\/span><span>Viraram demanda<\/span>[\s\S]*data-v2r="linhas"[\s\S]*data-v2r="olho"[\s\S]*<aside class="d3m-lado fv2-lado" aria-label="Consulta"><div class="rv2-lado" data-v2r="lado"><\/div>\s*<section class="fv2-folha rv2-form" data-v2r="form" aria-label="Nova reunião" hidden>/);
+  // O laranja do Mateus só com ação, na ordem: demandas sugeridas, ata faltando, clientes sem a próxima reunião.
+  assert.match(fonte, /laranja\('do VYBES'[\s\S]*data-v2r-acao="demandas"[\s\S]*laranja\('falta a ata'[\s\S]*data-valor="sem-ata"[\s\S]*laranja\('falta marcar'[\s\S]*data-v2r-acao="sem-proxima"/);
+  assert.match(fonte, /if \(acao === 'sem-proxima' && typeof abrirListaDoPainel === 'function'\)[\s\S]{0,300}aoEscolher: \(valor\) => abrirFormDaTela\(valor\)/, 'escolher o cliente abre Nova reunião com ele');
+  // A linha abre no lugar com pauta, ata e gravação, e o que fazer: abrir, usar o resumo, ouvir, ler a transcrição, conferir as demandas.
+  assert.match(fonte, /class="v2-abre rv2-linha" aria-expanded="false"[\s\S]{0,200}class="rv2-abrir" data-v2r-acao="linha" aria-expanded="false"/);
+  assert.match(fonte, /data-v2r-acao="resumo"[^`]*>Usar o resumo<\/button>/);
+  assert.match(fonte, /Pauta<\/b>[\s\S]*Ata<\/b>[\s\S]*Gravação<\/b>[\s\S]*\$\{principal\}[\s\S]*>Ouvir a gravação<\/a>[\s\S]*'Ler a transcrição'[\s\S]*Conferir/);
+  assert.match(fonte, /data-v2r-acao="ficha" data-cli="\$\{esc\(x\.id\)\}" data-v2r-conferir/, 'as demandas sugeridas continuam a um clique');
+  assert.match(fonte, /\[\['todas', 'Todas'\], \['semana', 'Esta semana'\], \['sem-ata', 'Sem ata'\]\][\s\S]{0,200}data-v2r-acao="filtro" data-valor="\$\{k\}" aria-pressed=/);
+  assert.match(fonte, /data-v2r-acao="tipo" data-valor="\$\{esc\(k\)\}" aria-pressed=/, 'os tipos do mês filtram a folha');
   assert.match(fonte, /Nenhuma reunião ainda\.[\s\S]*Marcar a primeira/);
   // O formulário salva pelo mesmo salvarReuniao, com os mesmos campos de antes.
   for (const id of ['reu-cliente', 'reu-tipo', 'reu-data', 'reu-titulo', 'reu-participantes', 'reu-pauta', 'reu-ata']) assert.match(fonte, new RegExp(`id="${id}"`));

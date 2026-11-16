@@ -14207,6 +14207,314 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba
   #painel-clientes .fv2-fin-pag > .fv2-fin-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
+/* ===== padrao-v2/zm-b-modulos.css ===== */
+/* OS MÓDULOS ONBOARDING E REUNIÕES NA DIREÇÃO V2 (pranchas V2-M-Onboarding e V2-M-Reunioes, aprovadas pelo Paulo em
+   16/11/2026). Fragmento do grupo B; vem depois de zm-b-ficha2-abas.css. As duas janelas têm o mesmo esqueleto das abas da
+   ficha: vidro fumê, o alto com o título e a frase do momento, as folhas claras à esquerda e, à direita, direto no vidro,
+   o cartão laranja e a consulta (316 px). Peças comuns: .d3m-laranja, .d3m-btn, .d3m-cons e .d3m-vlin (z-direcao.css);
+   as locais repetem as fv2-* da ficha (fv2-duas, fv2-folha, fv2-vazio, fv2-est, fv2-n) com o id de cada janela.
+   Onboarding: .ob2 (vybe-mundo-carteira.js, a janela ganha .ob2-janela). Reuniões: .rv2 (vybe-clientes-reunioes.js). */
+
+/* 1 · A janela de vidro e o alto. */
+#vv-carteira.ob2-janela,.vc-camada > #vv-reunioes.rv2-janela{padding:16px;box-sizing:border-box;border:0;border-radius:var(--d3-r-janela);background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto)}
+#vv-carteira .v2c.ob2,#vv-reunioes .rv2{position:relative;display:flex;flex-direction:column;gap:16px;height:100%;min-height:0;margin:0;padding:0;background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+#vv-carteira .ob2 > .v2c-topo,#vv-reunioes .rv2-topo{flex:none;display:flex;flex-wrap:nowrap;align-items:center;gap:8px;min-height:48px;margin:0;padding:0}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-tit,.rv2-tit){display:flex;flex-direction:column;gap:3px;min-width:0;margin-right:auto}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-tit,.rv2-tit) > h2{margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-tit,.rv2-tit) > span{overflow:hidden;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;text-overflow:ellipsis}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-so-leitor,.rv2-so-leitor){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+/* A busca: um quadrado com a lupa que abre ao focar (e fica aberto com texto). */
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca){flex:none;display:flex}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca) > input{flex:none;width:34px;height:34px;margin:0;padding:0 0 0 32px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background-color:var(--d3-fume-veu-forte);background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2711%27 cy=%2711%27 r=%276%27/%3E%3Cpath d=%27m20 20-4.5-4.5%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:9px center;background-size:16px;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:width .2s}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca) > input::placeholder{color:transparent}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca) > input:is(:focus,.tem){width:200px;padding-right:10px;cursor:text}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca) > input:focus::placeholder{color:var(--d3-fume-apagado)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca) > input::-webkit-search-cancel-button{filter:invert(1)}
+#vv-carteira .ob2 :is(.ob2-ico,.ob2-novo,.ob2-x),#vv-reunioes .rv2 :is(.rv2-ico,.rv2-novo,.rv2-x){appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:34px;height:34px;margin:0;padding:0;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-carteira .ob2 :is(.ob2-ico,.ob2-x):hover,#vv-reunioes .rv2 :is(.rv2-ico,.rv2-x):hover{background:var(--d3-fume-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-fume-borda)}
+#vv-carteira .ob2 :is(.ob2-ico,.ob2-novo,.ob2-x) > svg,#vv-reunioes .rv2 :is(.rv2-ico,.rv2-novo,.rv2-x) > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#vv-carteira .ob2 .ob2-ico[aria-expanded="true"],#vv-reunioes .rv2 .rv2-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta-fixa)}
+#vv-carteira .ob2 .ob2-novo,#vv-reunioes .rv2 .rv2-novo{width:auto;padding:0 14px;background:var(--d3-fume-texto);color:var(--d3-tinta-fixa);font-weight:600}
+#vv-carteira .ob2 .ob2-novo:hover,#vv-reunioes .rv2 .rv2-novo:hover{background:var(--d3-vidro-forte)}
+#vv-carteira .ob2 .ob2-novo > svg,#vv-reunioes .rv2 .rv2-novo > svg{width:14px;height:14px;stroke-width:2.4}
+#vv-carteira .ob2 .ob2-novo[aria-expanded="true"]{box-shadow:inset 0 0 0 2px var(--d3-acao)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(button,input,select,summary,a):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-topo,.v2c-topo,.rv2-topo,.fv2-lado) :is(button,input,a):focus-visible{outline-color:var(--d3-fume-texto)}
+/* O aviso de "Salvando…" e "Salvo.": um balão no pé da janela, sem empurrar o resto. */
+#vv-carteira .ob2 > .vc-aviso{position:absolute;left:50%;bottom:22px;z-index:5;margin:0;padding:8px 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-painel);box-shadow:0 12px 24px -12px rgba(0,0,0,.6);color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);transform:translateX(-50%);pointer-events:none}
+#vv-carteira .ob2 > .vc-aviso:empty{display:none}
+#vv-carteira .ob2 > .vc-abas{flex:none}
+
+/* 2 · O esqueleto: as folhas à esquerda e a consulta de 316 px no vidro. */
+#vv-carteira .v2c.ob2 .v2c-corpo.vc-corpo{flex:1 1 auto;display:flex;flex-direction:column;gap:0;min-height:0;margin:0;padding:0;overflow:hidden}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-duas{flex:1 1 auto;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-col{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-lado{min-height:0;overflow-y:auto;scrollbar-width:none}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-folha{display:flex;flex-direction:column;min-width:0;min-height:0;margin:0;padding:0;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-cab,.rv2-cab){flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;padding:0 16px;box-sizing:border-box}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-cab,.rv2-cab) > h3{min-width:0;margin:0;overflow:hidden;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;text-overflow:ellipsis}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-cab,.rv2-cab) > h3 > span{font-weight:400;color:var(--d3-rotulo)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-cab-nota,.rv2-cab-nota){flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-chips,.rv2-chips){flex:none;display:inline-flex;gap:2px}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-chip,.rv2-chip){appearance:none;display:inline-flex;align-items:center;gap:5px;height:26px;margin:0;padding:0 9px;border:0;border-radius:7px;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-chip,.rv2-chip):hover{background:var(--d3-veu)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-chip,.rv2-chip)[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-chip,.rv2-chip) > span{color:var(--d3-rotulo);font-weight:400;font-variant-numeric:tabular-nums}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-btn,.rv2-btn){appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px rgba(31,29,26,.28);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-btn,.rv2-btn):hover{background:var(--d3-veu)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-btn,.rv2-btn).k{background:var(--d3-tinta);box-shadow:none;color:var(--d3-escuro-texto)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-btn,.rv2-btn):disabled{box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-rotulo);cursor:default}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-vazio{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:96px;margin:0;padding:12px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);text-align:center;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-vazio > b{font:600 14px/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-vazio > :is(.ob2-btn,.rv2-btn){margin-top:8px}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-vazio-ico{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--d3-veu);color:var(--d3-tinta)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-vazio-ico > svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-n{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--d3-veu);color:var(--d3-tinta);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal;font-variant-numeric:tabular-nums}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-est{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow:hidden;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;text-overflow:ellipsis}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-est > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-est.g > i{background:var(--d3-pronto)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-est.r > i{background:var(--d3-perigo)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-est.a > i{background:var(--d3-ambar)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .fv2-est.r{color:var(--d3-perigo)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .cv2-foto{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,hsl(var(--h,28) 42% 16%),hsl(var(--h,28) 42% 31%));color:var(--d3-escuro-texto);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);font-style:normal;object-fit:cover}
+/* O pé "De olho" das folhas. */
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho,.rv2-olho){flex:none;display:flex;align-items:center;min-height:44px;margin-top:auto;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);overflow:hidden}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho-rot,.rv2-olho-rot){flex:none;margin-right:14px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho-i,.rv2-olho-i){appearance:none;flex:none;display:flex;align-items:baseline;gap:5px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;color:var(--d3-tinta);font:inherit;white-space:nowrap}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho-rot,.rv2-olho-rot) + :is(.ob2-olho-i,.rv2-olho-i){padding-left:0;border-left:0}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) button:is(.ob2-olho-i,.rv2-olho-i):not(:disabled){cursor:pointer}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) button:is(.ob2-olho-i,.rv2-olho-i):not(:disabled):hover > small{text-decoration:underline;text-underline-offset:3px}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho-i,.rv2-olho-i) > b{font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho-i,.rv2-olho-i) > b.g{color:var(--d3-pronto)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho-i,.rv2-olho-i) > b.r{color:var(--d3-perigo)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-olho-i,.rv2-olho-i) > small{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+/* A coluna do vidro: o laranja, o calmo e as notas. */
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-laranja,.rv2-laranja){flex:none;min-height:228px}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-laranja,.rv2-laranja) .d3m-lar-txt > small{font-size:var(--d3-fs-texto)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-calmo,.rv2-calmo){flex:none;display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:var(--d3-r-ilha);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-calmo,.rv2-calmo) > b{font:600 var(--d3-fs-destaque)/1.3 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-calmo,.rv2-calmo) > span,:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-nota,.rv2-nota){margin:0;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) .d3m-cons-cab > span:empty{display:none}
+
+/* 3 · Onboarding: as fichas das etapas, a folha dos clientes e a folha de quanto cada etapa demora. */
+#vv-carteira .ob2 .ob2-fichas{flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;height:72px}
+#vv-carteira .ob2 .ob2-ficha{appearance:none;display:flex;flex-direction:column;justify-content:space-between;min-width:0;margin:0;padding:10px 12px;box-sizing:border-box;border:0;border-radius:12px;background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-carteira .ob2 .ob2-ficha:hover:not(:disabled){background:var(--d3-fume-veu-forte)}
+#vv-carteira .ob2 .ob2-ficha:disabled{cursor:default}
+#vv-carteira .ob2 .ob2-ficha > span{display:flex;align-items:baseline;justify-content:space-between;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-carteira .ob2 .ob2-ficha > span:last-child{justify-content:flex-start}
+#vv-carteira .ob2 .ob2-ficha > span > b{font:600 var(--d3-fs-titulo) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+#vv-carteira .ob2 .ob2-ficha small{overflow:hidden;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);text-overflow:ellipsis}
+#vv-carteira .ob2 .ob2-ficha small.r{color:var(--d3-perigo-vidro)}
+#vv-carteira .ob2 .ob2-ficha:is([aria-pressed="true"],[aria-expanded="true"]){background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+#vv-carteira .ob2 .ob2-ficha:is([aria-pressed="true"],[aria-expanded="true"]) small{color:var(--d3-rotulo)}
+#vv-carteira .ob2 .ob2-ficha:is([aria-pressed="true"],[aria-expanded="true"]) small.r{color:var(--d3-perigo)}
+#vv-carteira .ob2 .ob2-comecar{flex:none;padding:12px}
+#vv-carteira .ob2 .ob2-lista{flex:0 1 auto;min-height:150px;container:ob2l / inline-size}
+#vv-carteira .ob2 .ob2-linhas{flex:1 1 auto;min-height:0;margin:0;padding:0;overflow-y:auto;list-style:none;scrollbar-width:thin}
+/* As colunas: grupo, foto, cliente, trilha, etapa, parado e head (no botão que abre a linha); a ação fica fora. */
+#vv-carteira .ob2 :is(.ob2-th,.ob2-lin){display:grid;grid-template-columns:minmax(0,1fr) 150px;align-items:center;gap:10px;padding:0 16px}
+#vv-carteira .ob2 :is(.ob2-th-l,.ob2-abrir){display:grid;grid-template-columns:56px 28px minmax(0,1fr) 120px 128px 76px 40px;align-items:center;gap:10px;min-width:0}
+#vv-carteira .ob2 .ob2-th{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#vv-carteira .ob2 .ob2-th-l > span{overflow:hidden;text-overflow:ellipsis}
+#vv-carteira .ob2 .ob2-linha{margin:0;padding:0;border-top:1px solid var(--d3-divisa)}
+#vv-carteira .ob2 .ob2-lin{min-height:56px}
+#vv-carteira .ob2 .ob2-abrir{appearance:none;height:56px;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-carteira .ob2 .ob2-linha:hover{background:var(--d3-veu)}
+#vv-carteira .ob2 .ob2-linha[aria-expanded="true"]{background:var(--d3-veu)}
+#vv-carteira .ob2 .ob2-rot{overflow:hidden;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;text-overflow:ellipsis}
+#vv-carteira .ob2 .ob2-rot.r{color:var(--d3-perigo)}
+#vv-carteira .ob2 .ob2-nm{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-carteira .ob2 .ob2-nm > b{font-weight:600}
+#vv-carteira .ob2 .ob2-nm > span{color:var(--d3-rotulo)}
+#vv-carteira .ob2 .ob2-trilha{display:flex;gap:3px;min-width:0}
+#vv-carteira .ob2 .ob2-trilha > i{flex:1 1 0;min-width:6px;height:4px;border-radius:2px;background:var(--d3-veu-forte)}
+#vv-carteira .ob2 .ob2-trilha > i.ok{background:var(--d3-texto2)}
+#vv-carteira .ob2 .ob2-trilha > i.vez{background:var(--d3-ambar)}
+#vv-carteira .ob2 .ob2-trilha > i.vez.r{background:var(--d3-perigo)}
+#vv-carteira .ob2 .ob2-dias{overflow:hidden;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+#vv-carteira .ob2 .ob2-dias.r{color:var(--d3-perigo);font-weight:500}
+#vv-carteira .ob2 .ob2-dias.g{color:var(--d3-pronto);font-weight:500}
+#vv-carteira .ob2 .ob2-pes{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--d3-veu);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-carteira .ob2 .ob2-pes.vago{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+#vv-carteira .ob2 .ob2-ac{display:flex;justify-content:flex-end;min-width:0}
+#vv-carteira .ob2 .ob2-mais{padding:10px 16px;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);list-style:none}
+#vv-carteira .ob2 .ob2-linha.encerrado .ob2-nm > b{font-weight:500}
+/* A linha aberta: cada etapa com o responsável e o checklist, e os atalhos. */
+#vv-carteira .ob2 .ob2-linha[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1),visibility 0s .28s}
+#vv-carteira .ob2 .ob2-det{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:2px 16px 14px}
+#vv-carteira .ob2 .ob2-etapa{min-width:0;margin:0;padding:10px 12px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-folha);box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+#vv-carteira .ob2 .ob2-etapa > legend{display:flex;align-items:center;gap:6px;float:left;width:100%;margin:0 0 8px;padding:0;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vv-carteira .ob2 .ob2-etapa > legend > small{margin-left:auto;font-weight:400;color:var(--d3-rotulo)}
+#vv-carteira .ob2 .ob2-etapa > legend > .feita{color:var(--d3-rotulo)}
+#vv-carteira .ob2 .ob2-etapa > :not(legend){clear:both}
+#vv-carteira .ob2 .ob2-cx{flex:none;display:grid;place-items:center;width:16px;height:16px;box-sizing:border-box;border:1.5px solid var(--d3-rotulo);border-radius:50%;color:var(--d3-escuro-texto)}
+#vv-carteira .ob2 .ob2-cx.ok{border:0;background:var(--d3-pronto)}
+#vv-carteira .ob2 .ob2-cx.at{border-color:var(--d3-ambar)}
+#vv-carteira .ob2 .ob2-cx > svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+#vv-carteira .ob2 .ob2-etapa .vc-campo{display:flex;flex-direction:column;gap:3px;margin:0 0 8px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-carteira .ob2 .ob2-etapa select{height:30px;padding:0 8px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-carteira .ob2 .ob2-etapa .vc-check{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+#vv-carteira .ob2 .ob2-etapa .vc-check label{display:flex;align-items:flex-start;gap:8px;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);cursor:pointer}
+#vv-carteira .ob2 .ob2-etapa .vc-check input{flex:none;width:15px;height:15px;margin:1px 0 0;accent-color:var(--d3-pronto)}
+#vv-carteira .ob2 .ob2-etapa .vc-check small{display:block;color:var(--d3-rotulo)}
+#vv-carteira .ob2 .ob2-atalhos{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#vv-carteira .ob2 .ob2-sub{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+/* Quanto cada etapa demora. */
+#vv-carteira .ob2 .ob2-etapas{flex:1 1 0;min-height:150px}
+#vv-carteira .ob2 .ob2-et-linhas{flex:1 1 auto;min-height:0;margin:0;padding:0;overflow-y:auto;list-style:none;scrollbar-width:thin}
+#vv-carteira .ob2 .ob2-et{display:grid;grid-template-columns:24px minmax(0,1fr) 160px 76px 110px;align-items:center;gap:10px;min-height:42px;padding:0 16px;border-top:1px solid var(--d3-divisa)}
+#vv-carteira .ob2 .ob2-et-nm{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-carteira .ob2 .ob2-et-nm > b{font-weight:600}
+#vv-carteira .ob2 .ob2-et-nm > span{color:var(--d3-rotulo)}
+#vv-carteira .ob2 .ob2-et-barra{display:block;height:4px;border-radius:2px;background:var(--d3-veu-forte)}
+#vv-carteira .ob2 .ob2-et-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-mod-vybe)}
+#vv-carteira .ob2 .ob2-et-barra.r > i{background:var(--d3-perigo)}
+#vv-carteira .ob2 .ob2-et-d{font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;font-variant-numeric:tabular-nums}
+#vv-carteira .ob2 .ob2-et-d > b{font-weight:600}
+#vv-carteira .ob2 .ob2-et-q{overflow:hidden;text-align:right;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;text-overflow:ellipsis}
+/* Como funciona, no vidro. */
+#vv-carteira .ob2 .ob2-esteira{display:flex;flex-direction:column;gap:2px;margin:0;padding:6px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);list-style:none}
+#vv-carteira .ob2 .ob2-esteira > li{display:flex;align-items:flex-start;gap:10px;padding:5px 0}
+#vv-carteira .ob2 .ob2-esteira > li > i{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--d3-fume-veu-forte);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-carteira .ob2 .ob2-esteira > li > span{display:flex;flex-direction:column;gap:1px;min-width:0}
+#vv-carteira .ob2 .ob2-esteira small{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+/* O editor das etapas, numa folha só que rola por dentro. */
+#vv-carteira .ob2 .ob2-editor{flex:1 1 0;min-height:0;padding:16px;overflow-y:auto}
+@container ob2l (max-width:820px){
+  #vv-carteira .ob2 :is(.ob2-th-l,.ob2-abrir){grid-template-columns:56px 28px minmax(0,1fr) 128px 76px 40px}
+  #vv-carteira .ob2 :is(.ob2-trilha,.ob2-th-l > span:nth-child(4)){display:none}
+}
+
+/* 4 · Celular: uma coluna que rola dentro da janela (as folhas e o vidro um embaixo do outro). */
+@media (max-width:720px){
+  #vv-carteira.ob2-janela{padding:12px;border-radius:0}
+  #vv-carteira .ob2 > .v2c-topo{flex-wrap:wrap;row-gap:8px}
+  #vv-carteira .ob2 .ob2-tit{flex:1 1 calc(100% - 50px)}
+  #vv-carteira .ob2 .ob2-tit > span{white-space:normal}
+  #vv-carteira .ob2 .ob2-busca{flex:1 1 auto}
+  #vv-carteira .ob2 .ob2-busca > input,#vv-carteira .ob2 .ob2-busca > input:is(:focus,.tem){width:100%}
+  #vv-carteira .ob2 .ob2-x{order:-1}
+  #vv-carteira .v2c.ob2 .v2c-corpo.vc-corpo{overflow-y:auto;overscroll-behavior:contain}
+  #vv-carteira .ob2 .fv2-duas{flex:none;display:flex;flex-direction:column;height:auto}
+  #vv-carteira .ob2 :is(.fv2-col,.fv2-lado){flex:none}
+  #vv-carteira .ob2 .fv2-lado{overflow:visible}
+  #vv-carteira .ob2 .ob2-fichas{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr));height:auto}
+  #vv-carteira .ob2 .ob2-ficha{min-height:64px}
+  #vv-carteira .ob2 :is(.ob2-lista,.ob2-etapas){flex:none;min-height:0}
+  #vv-carteira .ob2 .ob2-cab{height:auto;min-height:44px;flex-wrap:wrap;padding:8px 14px}
+  #vv-carteira .ob2 .ob2-cab > h3 > span{display:none}
+  #vv-carteira .ob2 .ob2-chips{flex-wrap:wrap;width:100%}
+  #vv-carteira .ob2 .ob2-ficha small{display:none}
+  #vv-carteira .ob2 .ob2-ficha > span:last-child > small{display:inline}
+  #vv-carteira .ob2 .ob2-th{display:none}
+  #vv-carteira .ob2 .ob2-lin{grid-template-columns:minmax(0,1fr);gap:0;padding:6px 14px 10px}
+  #vv-carteira .ob2 .ob2-abrir{grid-template-columns:28px minmax(0,1fr) auto;height:48px}
+  #vv-carteira .ob2 .ob2-abrir > :is(.ob2-rot,.ob2-trilha,.fv2-est,.ob2-pes){display:none}
+  #vv-carteira .ob2 .ob2-ac{justify-content:flex-start}
+  #vv-carteira .ob2 .ob2-det{grid-template-columns:minmax(0,1fr);padding:2px 14px 12px}
+  #vv-carteira .ob2 .ob2-et{grid-template-columns:24px minmax(0,1fr) auto;padding:6px 14px}
+  #vv-carteira .ob2 :is(.ob2-et-barra,.ob2-et-q){display:none}
+  #vv-carteira .ob2 .ob2-olho{flex-wrap:wrap;gap:6px 0;padding:8px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  #vv-carteira .ob2 .ob2-linha > .v2-mais,#vv-carteira .ob2 .ob2-busca > input{transition:none}
+}
+
+/* 5 · Reuniões: a folha das reuniões, a linha que abre no lugar, a consulta no vidro e o formulário de Nova reunião. */
+.vc-camada > #vv-reunioes.rv2-janela{display:flex;flex-direction:column;overflow:hidden}
+#vv-reunioes .rv2{flex:1 1 auto}
+#vv-reunioes .rv2 .rv2-lista{flex:1 1 auto;container:rv2l / inline-size}
+#vv-reunioes .rv2 .rv2-linhas{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin}
+#vv-reunioes .rv2 :is(.rv2-th,.rv2-lin){display:grid;grid-template-columns:minmax(0,1fr) 110px 14px;align-items:center;gap:10px;padding:0 16px}
+#vv-reunioes .rv2 :is(.rv2-th-l,.rv2-abrir){display:grid;grid-template-columns:56px 28px minmax(0,1fr) 120px 64px 126px;align-items:center;gap:10px;min-width:0}
+#vv-reunioes .rv2 .rv2-th{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#vv-reunioes .rv2 .rv2-th[hidden]{display:none}
+#vv-reunioes .rv2 .rv2-th-l > span,#vv-reunioes .rv2 .rv2-th > span{overflow:hidden;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-linha{border-top:1px solid var(--d3-divisa)}
+#vv-reunioes .rv2 .rv2-linha:hover,#vv-reunioes .rv2 .rv2-linha[aria-expanded="true"]{background:var(--d3-veu)}
+#vv-reunioes .rv2 .rv2-abrir{appearance:none;height:44px;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-reunioes .rv2 .rv2-rot{overflow:hidden;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-rot.a{color:var(--d3-ambar)}
+#vv-reunioes .rv2 .rv2-nm{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-nm > b{font-weight:600}
+#vv-reunioes .rv2 .rv2-nm > span{color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-quando{overflow:hidden;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+#vv-reunioes .rv2 .rv2-quem{display:flex;min-width:0;overflow:hidden}
+#vv-reunioes .rv2 .v2r-avs{display:inline-flex}
+#vv-reunioes .rv2 .v2r-av{display:grid;place-items:center;width:22px;height:22px;margin:0 0 0 4px;border-radius:50%;background:var(--d3-veu-forte);box-shadow:none;color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif)}
+#vv-reunioes .rv2 .v2r-avs > .v2r-av,#vv-reunioes .rv2 .v2r-avs > .v2r-av + .v2r-av{margin:0 4px 0 0}
+#vv-reunioes .rv2 .rv2-dem{display:flex;min-width:0}
+#vv-reunioes .rv2 .rv2-dem-t{overflow:hidden;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-dem-b{appearance:none;height:24px;margin:0;padding:0 8px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-ajuste-veu);box-shadow:none;color:var(--d3-ajuste);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-reunioes .rv2 .rv2-dem-b:hover{box-shadow:inset 0 0 0 1px var(--d3-ajuste)}
+#vv-reunioes .rv2 .rv2-seta{display:grid;place-items:center;color:var(--d3-rotulo);pointer-events:none}
+#vv-reunioes .rv2 .rv2-seta > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+#vv-reunioes .rv2 .rv2-linha[aria-expanded="true"] .rv2-seta > svg{transform:rotate(90deg)}
+#vv-reunioes .rv2 .rv2-linha[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1),visibility 0s .28s}
+#vv-reunioes .rv2 .rv2-det{display:flex;flex-direction:column;gap:4px;padding:0 16px 12px 110px}
+#vv-reunioes .rv2 .rv2-det > p{margin:0;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-det > p > b{font-weight:600;color:var(--d3-tinta)}
+#vv-reunioes .rv2 .rv2-botoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+/* A coluna do vidro: os tipos em barras (o clique filtra) e o formulário de Nova reunião numa folha. */
+#vv-reunioes .rv2 .rv2-lado{display:flex;flex-direction:column;gap:12px}
+#vv-reunioes .rv2 .rv2-duas.com-form .rv2-lado{display:none}
+#vv-reunioes .rv2 .rv2-barras{display:flex;flex-direction:column;padding:6px 2px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+#vv-reunioes .rv2 .rv2-barra-lin{appearance:none;display:grid;grid-template-columns:144px minmax(0,1fr) 24px;align-items:center;gap:10px;height:23px;margin:0;padding:0 10px;border:0;border-radius:6px;background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-reunioes .rv2 .rv2-barra-lin:hover,#vv-reunioes .rv2 .rv2-barra-lin[aria-pressed="true"]{background:var(--d3-fume-veu-forte)}
+#vv-reunioes .rv2 .rv2-barra-lin[aria-pressed="true"] > span:first-child{font-weight:600}
+#vv-reunioes .rv2 .rv2-barra-lin > span:first-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-barra-lin > .d3m-vbarra > i{background:var(--d3-fume-texto)}
+#vv-reunioes .rv2 .rv2-barra-lin > b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+#vv-reunioes .rv2 .rv2-form{flex:none;padding:0 0 14px}
+#vv-reunioes .rv2 .rv2-form[hidden]{display:none}
+#vv-reunioes .rv2 .rv2-campos{display:flex;flex-direction:column;gap:10px;padding:0 14px}
+#vv-reunioes .rv2 .rv2-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#vv-reunioes .rv2 .rv2-cp{display:flex;flex-direction:column;gap:4px;min-width:0}
+#vv-reunioes .rv2 .rv2-cp > label{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-inp{width:100%;min-width:0;height:34px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-reunioes .rv2 textarea.rv2-inp{height:auto;min-height:64px;padding:8px 10px;resize:vertical;line-height:1.4}
+#vv-reunioes .rv2 .rv2-inp::placeholder,#vv-reunioes .rv2 .rv2-nu::placeholder{color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-pt{display:flex;align-items:center;gap:6px}
+#vv-reunioes .rv2 .rv2-nu{flex:1 1 auto;min-width:0;height:100%;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:inherit}
+#vv-reunioes .rv2 .rv2-pt .v2r-avs:empty{display:none}
+#vv-reunioes .rv2 .rv2-sugerida{margin-left:4px;padding:1px 6px;border-radius:999px;background:var(--d3-agente-veu);color:var(--d3-agente-texto);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+#vv-reunioes .rv2 .rv2-form .ciclo-erro{margin:0;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-perigo)}
+#vv-reunioes .rv2 .rv2-form .ciclo-erro:empty{display:none}
+#vv-reunioes .rv2 .rv2-form-pe{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:12px 14px 0}
+#vv-reunioes .rv2 .rv2-topo [hidden]{display:none}
+@container rv2l (max-width:820px){
+  #vv-reunioes .rv2 :is(.rv2-th-l,.rv2-abrir){grid-template-columns:56px 28px minmax(0,1fr) 110px 120px}
+  #vv-reunioes .rv2 :is(.rv2-quem,.rv2-th-l > span:nth-child(5)){display:none}
+}
+
+/* 6 · Reuniões no celular: uma coluna que rola dentro da janela. */
+@media (max-width:720px){
+  .vc-camada > #vv-reunioes.rv2-janela{padding:12px;border-radius:0}
+  #vv-reunioes .rv2-topo{flex-wrap:wrap;row-gap:8px}
+  #vv-reunioes .rv2-tit{flex:1 1 calc(100% - 50px)}
+  #vv-reunioes .rv2-tit > span{white-space:normal}
+  #vv-reunioes .rv2-busca{flex:1 1 auto}
+  #vv-reunioes .rv2-busca > input,#vv-reunioes .rv2-busca > input:is(:focus,.tem){width:100%}
+  #vv-reunioes .rv2 .rv2-x{order:-1}
+  #vv-reunioes .rv2 .fv2-duas{flex:1 1 auto;display:flex;flex-direction:column;height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  #vv-reunioes .rv2 :is(.fv2-col,.fv2-lado,.rv2-lista){flex:none;overflow:visible}
+  #vv-reunioes .rv2 .rv2-linhas{overflow:visible}
+  #vv-reunioes .rv2 .rv2-duas.com-form .fv2-col{display:none}
+  #vv-reunioes .rv2 .rv2-cab{height:auto;min-height:44px;flex-wrap:wrap;padding:8px 14px}
+  #vv-reunioes .rv2 .rv2-cab > h3 > span{display:none}
+  #vv-reunioes .rv2 .rv2-th{display:none}
+  #vv-reunioes .rv2 .rv2-lin{grid-template-columns:minmax(0,1fr) auto;padding:0 14px}
+  #vv-reunioes .rv2 .rv2-abrir{grid-template-columns:28px minmax(0,1fr) auto;height:52px}
+  #vv-reunioes .rv2 .rv2-abrir > :is(.rv2-rot,.rv2-quem,.fv2-est){display:none}
+  #vv-reunioes .rv2 .rv2-seta{display:none}
+  #vv-reunioes .rv2 .rv2-det{padding:0 14px 12px}
+  #vv-reunioes .rv2 .rv2-olho{flex-wrap:wrap;gap:6px 0;padding:8px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  #vv-reunioes .rv2 .rv2-linha > .v2-mais,#vv-reunioes .rv2 .rv2-seta > svg,#vv-reunioes .rv2 .rv2-busca > input{transition:none}
+}
+
 /* ===== padrao-v2/zm-c-agenda.css ===== */
 /* DIREÇÃO V2 · AGENDA E CAPTAÇÕES (pranchas V2-M-Agenda e V2-M-Agenda-Roteiros, 16/11/2026). A janela é vidro fumê; a
    semana é uma grade de horas numa folha clara e a consulta fica direto no vidro. Vale no computador (data-agv2 no body,

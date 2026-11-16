@@ -39,20 +39,26 @@ test('a linha do cliente: nota, quem é, a barra do que tirou ponto e a ação; 
   assert.match(carteira, /if \(d\.vcAbrir\) return alternarLinha\(d\.vcAbrir, d\.vcFocar \|\| ''\);/);
 });
 
-test('Onboarding segue o quadro: Como funciona e Novo onboarding, fala, três números, busca e etapas, Pede ação antes de Andando', () => {
+test('Onboarding segue a prancha V2-M-Onboarding: busca, Como funciona e Novo onboarding no alto, fichas das etapas, a folha de quem entra e o vidro', () => {
   const tela = carteira.slice(carteira.indexOf('  function abaOnboarding() {'), carteira.indexOf('  // ---------- Churn ----------'));
-  // Direção 3: quatro números, quadro com colunas e, ao lado, tempo de entrada em linha, etapas e configuração.
-  naOrdem(tela, ["botao('Como funciona'", "botao('Novo onboarding'", "rotulo: 'Em entrada'", 'rotulo: `Parados ${DIAS_PARADO}+ dias`', "rotulo: 'Tempo médio'", "rotulo: 'Concluídos no mês'",
-    'data-vc-busca-onb', "ficha('Todas as etapas'", "botao('Filtros'", "secao('Pede ação'", "secao('Andando'", 'Tempo de entrada', '<h2>Etapas</h2>',
-    '${ajuda}${iniciar}${fala}${numeros}${filtros}<div class="d3c-onb-grade"><section class="v2c-card v2c-quadro"']);
+  // Prancha V2 (16/11/2026): o alto, as fichas das etapas (filtram), a folha dos clientes (pede ação antes de andando), quanto
+  // cada etapa demora com o pé "De olho" e, no vidro, o laranja, o questionário do cliente em foco e "Abrir".
+  naOrdem(tela, ['data-vc-busca-onb', 'data-vc-como aria-expanded', 'data-vc-novo aria-expanded', 'class="ob2-fichas"', 'data-vc-etapa-onb="${ligada ?', 'class="ob2-chip" data-vc-etapa-onb=',
+    "linhaOnboarding(o, etapas, i ? '' : 'Agora')", "linhaOnboarding(o, etapas, i ? '' : 'Andando')", "linhaOnboarding(o, etapas, i ? '' : 'Encerrados')", 'Quanto cada etapa demora', 'De olho',
+    "laranja('parado na entrada'", "consulta('O questionário'", "vlin('Configurar as etapas'",
+    'corpo: `<div class="fv2-duas ob2-duas"><div class="fv2-col">${iniciar}${fichas}${folhaLista}${folhaEtapas}</div><aside class="d3m-lado fv2-lado" aria-label="Consulta">${lado}${pe}</aside></div>`']);
   const linha = carteira.slice(carteira.indexOf('  function linhaOnboarding('), carteira.indexOf('  function editorEtapasHtml() {'));
-  naOrdem(linha, ['class="v2c-st"', 'class="v2c-nm"', '${tri}', 'class="v2c-agora"', '${progresso}', 'class="v2c-ac"', 'class="v2-mais"']);
-  // Nada some: encerrados e o editor de etapas em "Filtros"; os dois caminhos em "Novo onboarding"; kickoff, questionário e ficha na linha aberta.
+  naOrdem(linha, ['class="v2-abre ob2-linha', 'class="ob2-abrir" data-vc-abrir=', '${rot}${fotoCli(', 'class="ob2-nm"', '${trilha}${etapa}${dias}${head}', 'class="ob2-ac"', 'class="v2-mais"']);
+  // Nada some: encerrados e o editor de etapas no vidro; os dois caminhos em "Novo onboarding"; kickoff, questionário e ficha na linha aberta.
   assert.match(tela, /data-vc-encerrados aria-expanded/);
-  assert.match(tela, /botao\('Configurar etapas', 'data-vc-ed-abrir'\)/);
+  assert.match(tela, /vlin\('Configurar as etapas', '', 'data-vc-ed-abrir'\)/);
   assert.match(tela, /data-vc-onb-novo><b>Cliente novo<\/b>[\s\S]{0,400}data-vc-contrato-novo/);
-  for (const a of ["botao('Reunião de kickoff'", "botao('Questionário com o cliente'", "botao('Link do questionário'", "botao('Ficha'", "botao('Encerrar onboarding'"]) assert.ok(linha.includes(a), a);
+  assert.match(tela, /data-vc-quest="link" data-vc-cli=[\s\S]{0,200}data-vc-quest="junto" data-vc-cli=/, 'o questionário do cliente em foco no vidro');
+  for (const a of ["btnOb('Reunião de kickoff'", "btnOb('Questionário com o cliente'", "btnOb('Link do questionário'", "btnOb('Ficha'", "btnOb('Encerrar onboarding'", "btnOb('Definir responsável'", "btnOb('Reabrir'"]) assert.ok(linha.includes(a), a);
   assert.match(linha, /data-vc-item="\$\{esc\(it\.id\)\}" data-vc-etapa="\$\{esc\(e\.id\)\}" data-vc-cli=/, 'o checklist grava pelo caminho de sempre');
+  assert.match(linha, /data-vc-resp="\$\{esc\(o\.cliente_id\)\}" data-vc-etapa=/, 'o responsável grava pelo caminho de sempre');
+  assert.match(carteira, /if \('vcAjuda' in d \|\| 'vcComo' in d\) \{ estado\.ajuda = !estado\.ajuda; return pintar\(\); \}/);
+  assert.match(carteira, /if \('vcReunioes' in d\) \{ fechar\(\{ foco: false \}\); return window\.VybeReunioes\?\.abrir\?\.\(\); \}/);
 });
 
 test('Conversas segue o quadro: título, de onde vem e as visões; cartão da lista e cartão da conversa; continua só leitura', () => {
@@ -82,4 +88,15 @@ test('o CSS do grupo ganha pelo id da janela, sem !important nem html body.mundo
   assert.match(css, /#vv-whatsapp \.v2w-bl\.eu\{[^}]*background:#FFE9DB/);
   assert.match(css, /#vv-whatsapp \.v2w-bl\.agt\{background:var\(--d3-agente-veu\)\}/, 'balão do agente no véu lilás (token da Direção 3)');
   assert.match(css, /prefers-reduced-motion:reduce/);
+});
+
+test('CSS dos módulos V2 do grupo B (zm-b-modulos.css): janela de vidro só no Onboarding, só tokens, sem !important nem animação que nasce invisível', () => {
+  const v2 = ler('padrao-v2/zm-b-modulos.css');
+  assert.doesNotMatch(v2, /!important|html body\.mundo|:has\(|@keyframes/);
+  assert.doesNotMatch(v2.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-fA-F]{3,8}\b/, 'cor só por token --d3-*');
+  assert.match(v2, /#vv-carteira\.ob2-janela,\.vc-camada > #vv-reunioes\.rv2-janela\{[^}]*background:var\(--d3-fume\)/);
+  assert.match(v2, /:is\(#vv-carteira,#vv-reunioes\) :is\(\.ob2,\.rv2\) \.fv2-duas\{[^}]*grid-template-columns:minmax\(0,1fr\) 316px/);
+  // A janela não ganha position (a regra global do dock põe bottom nela com !important; relative a deslocaria).
+  assert.doesNotMatch(v2, /#vv-carteira\.ob2-janela[^{]*\{[^}]*position:/);
+  assert.match(carteira, /j\.classList\?\.\[estado\.aba === 'onboarding' \? 'add' : 'remove'\]\?\.\('ob2-janela'\)/);
 });
