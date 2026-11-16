@@ -7,8 +7,9 @@ vm.runInContext(fs.readFileSync('vybe-config.js','utf8'),c);
 const core=fs.readFileSync('vybe-core.js','utf8');
 vm.runInContext(core.slice(0,core.indexOf('// QUANDO FOI')),c);
 test('carteiras seguem a divisão aprovada inclusive aliases e Serra Grande',()=>{
- for(const n of ['VOA','Voa Sportswear','Alpha1','Mangaba AI','Restaurante Brussolo','Academia Lions Top','ConectaSim','Copirecê','DiaCenter','DiaLab','Serra Grande Bebidas']) assert.equal(c.carteiraDoCliente(n),'vinicius',n);
+ for(const n of ['VOA','Voa Sportswear','Restaurante Brussolo','Academia Lions Top','ConectaSim','Copirecê','DiaCenter','DiaLab','Serra Grande Bebidas']) assert.equal(c.carteiraDoCliente(n),'vinicius',n);
  for(const n of ['Gonzalez','Antonov','Hellen Rocha','Experimente','Hebravet','Escola Viva']) assert.equal(c.carteiraDoCliente(n),'ewerton',n);
+ for(const n of ['Alpha1','Mangaba AI']) assert.equal(c.carteiraDoCliente(n),'',n+' não é mais cliente (16/11)');
  assert.equal(c.carteiraDoCliente('Conta nova'),'');
  assert.equal(c.carteiraDoCliente('Antonov Site Novo'),'');
 });
