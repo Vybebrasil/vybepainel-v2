@@ -16166,6 +16166,215 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
   .d3m-d-or-main > :is(.d3m-d-or,.d3m-d-or-prop){flex:none}
 }
 
+/* ===== padrao-v2/zm-d-financas.css ===== */
+/* ===================================================================================================================
+   FINANÇAS · MOLDE V2 (prancha V2-M-Financas-Modelo, 16/11/2026). Só os donos. O esqueleto comum das telas de Finanças
+   (menos o Vorcaro, que é zm-d-financeiro.css): o topo no vidro, à esquerda o cartão principal com a cabeça de 44 (título
+   · apoio e as fichas), as colunas, a lista que rola por dentro e a faixa "De olho" no pé; os números em cima e um
+   segundo cartão embaixo quando a tela pede; à direita o laranja do Vorcaro (só com decisão) e a coluna de Finanças.
+   O HTML vem de window.VybeFinanceiro.molde (vybe-mundo-financeiro.js), usado também por vybe-mundo-financas.js e
+   vybe-mundo-comercial.js. A janela, o topo e os números são as peças do Vorcaro (.d3m-d-fx-*); aqui só o que é do molde.
+   =================================================================================================================== */
+.d3m-d-fm-grade{grid-template-columns:minmax(0,1fr) 316px}
+.d3m-d-fm-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-d-fm .d3m-d-fm-lado{display:flex;flex-direction:column;gap:16px;min-height:0}
+.d3m-d-fm .d3m-d-fm-lar{flex:none;margin:0;transform:none}
+.d3m-d-fm .d3m-d-fm-lar .d3m-lar-num{font-size:52px;line-height:1;color:var(--d3-escuro-texto);white-space:nowrap}
+.d3m-d-fm .d3m-d-fm-lar .d3-acao-frase{flex:none;overflow:visible;white-space:normal;font:600 19px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-escuro-texto)}
+.d3m-d-fm .d3m-d-fm-lar small{font:500 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-escuro-texto)}
+/* A coluna de Finanças: a tela de agora em branco. */
+.d3m-d-fm .d3m-d-fm-nav{flex:none}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin{flex:none;height:30px}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin > .d3m-vn{min-width:0;color:var(--d3-fume-texto)}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"] > .d3m-vn{color:var(--d3-tinta)}
+/* As setas do mês no topo. */
+.d3m-d-fm-setas{flex:none;display:inline-flex;gap:4px}
+.d3m-d-fm-setas > .d3m-d-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-fm-setas > .d3m-d-ico:disabled{opacity:.4;cursor:default}
+
+/* O cartão: cabeça de 44, colunas de 24, linhas de 40 e o "De olho". */
+.d3m-d-fm-folha{flex:1 1 0;min-height:0}
+.d3m-d-fm-folha.d3m-d-fm-curta{flex:0 1 auto}
+.d3m-d-fm .d3m-d-fm-cab{height:44px;gap:12px}
+.d3m-d-fm .d3m-d-fm-cab > h3{flex:0 1 auto}
+.d3m-d-fm .d3m-d-fm-cab > h3 > small{font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-fm-dir{flex:0 1 auto;display:flex;align-items:center;gap:10px;min-width:0;margin-left:auto;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-d-fm-fichas{display:inline-flex;gap:2px;min-width:0}
+.d3m-d-fm-ficha{appearance:none;flex:none;display:inline-flex;align-items:center;gap:5px;height:26px;margin:0;padding:0 9px;border:0;border-radius:7px;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-fm-ficha:hover{background:var(--d3-veu)}
+.d3m-d-fm-ficha[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
+.d3m-d-fm-ficha > span{color:var(--d3-rotulo);font-weight:400;font-variant-numeric:tabular-nums}
+.d3m-d-fm-ficha > span.r{color:var(--d3-perigo)}
+.d3m-d-fm-ficha > span.a{color:var(--d3-ambar)}
+.d3m-d-fm-ficha > span.g{color:var(--d3-pronto)}
+.d3m-d-fm-ficha:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.d3m-d-fm-th,.d3m-d-fm-tr{display:flex;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
+.d3m-d-fm-th{flex:none;height:24px;font:400 11.5px var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-fm-tr{min-height:40px;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-d-fm-c{flex:0 0 var(--w,80px);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-fm-c.f{flex:1 1 0}
+.d3m-d-fm-c.r{text-align:right}
+.d3m-d-fm-c.w{white-space:normal}
+.d3m-d-fm-c .r,.d3m-d-fm-c.cr{color:var(--d3-perigo)}
+.d3m-d-fm-c .g,.d3m-d-fm-c.cg{color:var(--d3-pronto)}
+.d3m-d-fm-c .a,.d3m-d-fm-c.ca{color:var(--d3-ambar)}
+.d3m-d-fm-c .q,.d3m-d-fm-c.cq{color:var(--d3-rotulo)}
+.d3m-d-fm-c small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-fm-c > b{font-weight:600}
+.d3m-d-fm-tr > .d3m-d-fm-c:first-child{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+.d3m-d-fm-rolo{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-fm-nota{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--d3-divisa);font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-fm-nome{appearance:none;display:block;width:100%;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:inherit;font:inherit;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.d3m-d-fm-nome:hover > b{text-decoration:underline;text-underline-offset:3px}
+.d3m-d-fm-nome:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-d-fm-nome > b{font-weight:600}
+.d3m-d-fm-nome > small{font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-fm-av{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--d3-tinta);color:var(--d3-contra);font:600 10.5px var(--vv-texto,Inter,sans-serif)}
+.d3m-d-fm-av[data-carteira="vinicius"]{background:var(--d3-cart-vinicius)}
+.d3m-d-fm-av[data-carteira="ewerton"]{background:var(--d3-cart-ewerton)}
+/* Dias em atraso: a barra até 30 dias, na cor do atraso; o ponto da régua; o sócio em bolinha. */
+.d3m-d-fm-dias{display:flex;align-items:center;gap:10px}
+.d3m-d-fm-dias > b{flex:none;font-weight:600}
+.d3m-d-fm-barra{flex:1 1 auto;height:3px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+.d3m-d-fm-barra > i{display:block;width:var(--v,0%);height:100%;background:var(--d3-rotulo)}
+.d3m-d-fm-dias.r .d3m-d-fm-barra > i{background:var(--d3-perigo)}
+.d3m-d-fm-dias.a .d3m-d-fm-barra > i{background:var(--d3m-d-ambar)}
+.d3m-d-fm-ponto{display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--d3-meta);vertical-align:middle}
+.d3m-d-fm-ponto.a{background:var(--d3m-d-ambar)}
+.d3m-d-fm-ponto.r{background:var(--d3-perigo)}
+.d3m-d-fm .d3m-d-fm-c .d3f-av{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif)}
+.d3m-d-fm .d3m-d-fm-c .d3f-av.vazio{background:none}
+/* O que abre na linha. */
+.d3m-d-fm-det{padding:4px 16px 12px 114px;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-d-fm-det > p{margin:0 0 4px}
+.d3m-d-fm-det > p > b{font-weight:600}
+.d3m-d-fm-det-bts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s){appearance:none;display:inline-flex;width:auto;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s):hover{background:var(--d3-veu)}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn.k,.fv2-btn.s.d3f-escuro,.fv2-btn.d3f-escuro,.d3m-d-fm-escuro){background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra)}
+#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-d-fm :is(.v2c-link,.d3m-d-fm-elo){appearance:none;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.d3m-d-fm-vazio > p{margin:0 0 10px}
+.d3m-d-fm-vazio{margin:0;padding:24px 16px;font-size:var(--d3-fs-texto);color:var(--d3-rotulo);text-align:center}
+.d3m-d-fm-resto{padding:12px 16px;border-top:1px solid var(--d3-divisa)}
+/* "De olho": as somas no pé do cartão, separadas por um fio. */
+.d3m-d-fm-olho{flex:none;display:flex;align-items:center;gap:12px;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+.d3m-d-fm-olho > span + span + span{padding-left:12px;border-left:1px solid var(--d3-divisa)}
+.d3m-d-fm-olho > span{flex:none}
+.d3m-d-fm-olho > span:last-child:not(:nth-child(2)){flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-fm-olho b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-d-fm-olho b.r{color:var(--d3-perigo)}
+.d3m-d-fm-olho b.g{color:var(--d3-pronto)}
+.d3m-d-fm-olho b.a{color:var(--d3-ambar)}
+/* Peças que algumas telas usam: o conferido com o ponto verde, o pé dentro da lista, o painel atrás de botão, a busca. */
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-ok{appearance:none;display:inline-flex;width:auto;align-items:center;gap:6px;height:28px;margin:0;padding:0 4px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-fm-ok > i{width:7px;height:7px;border-radius:50%;background:var(--d3-mod-vybe)}
+.d3m-d-fm-ok:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-d-fm-tr > .d3m-d-fm-c:last-child{display:flex;justify-content:flex-end}
+.d3m-d-fm-pe{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 16px;border-top:1px solid var(--d3-divisa)}
+#vv-comercial .fv2.d3m-d-fm .d3f-mais{appearance:none;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.d3m-d-fm-segundo{max-height:46%}
+.d3m-d-fm-painel{padding:0 16px 14px}
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-painel .fv2-card{margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-painel .fv2-card > .fv2-card-topo{display:none}
+.d3m-d-fm-busca{display:flex;align-items:center;gap:8px;margin-top:10px}
+#vv-comercial .fv2.d3m-d-fm .d3m-d-fm-busca > .fv2-busca{flex:1 1 auto;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+label.d3m-d-vbtn{cursor:pointer}
+/* Clientes mês a mês: a linha alta (nome e mensalidade), a célula do mês na cor da situação e a legenda. */
+.d3m-d-fm-alta .d3m-d-fm-tr{min-height:52px}
+.d3m-d-fm-alta .d3m-d-fm-nome{display:flex;flex-direction:column;gap:1px}
+.d3m-d-fm-alta .d3m-d-fm-nome > small{font-size:var(--d3-fs-apoio)}
+.d3m-d-fm-c.m{text-align:center}
+.d3m-d-fm-mes{display:block;height:30px;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-apoio)/30px var(--vv-texto,Inter,sans-serif);text-align:center;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.d3m-d-fm-mes.pago{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+.d3m-d-fm-mes.aberto{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+.d3m-d-fm-mes.parcial{background:var(--d3-ajuste-veu);color:var(--d3-ambar)}
+.d3m-d-fm-mes.a_receber{background:var(--d3-info-veu);color:var(--d3-info)}
+.d3m-d-fm-leg{display:inline-flex;align-items:center;gap:10px;padding-left:10px;border-left:1px solid var(--d3-divisa)}
+.d3m-d-fm-leg > span{display:inline-flex;align-items:center;gap:5px;color:var(--d3-tinta)}
+.d3m-d-fm-leg i{width:8px;height:8px;border-radius:2px}
+.d3m-d-fm-leg i.pago{background:var(--d3-pronto)}
+.d3m-d-fm-leg i.aberto{background:var(--d3-perigo)}
+.d3m-d-fm-leg i.a_receber{background:var(--d3-info)}
+/* Números do molde: o que não tem valor fica apagado. O vazio alto, com o ícone e dois botões. */
+.d3m-d-fm .d3m-d-fx-v.q{color:var(--d3-rotulo)}
+.d3m-d-fm .d3m-d-fm-av > svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-fm-vazio-alto{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:100%;box-sizing:border-box}
+.d3m-d-fm-vazio-alto > p{max-width:360px;margin:0;line-height:1.45}
+.d3m-d-fm-vazio-alto > p > b{display:block;margin-bottom:4px;font-weight:600;color:var(--d3-tinta)}
+.d3m-d-fm-vazio-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--d3-veu-forte);color:var(--d3-tinta)}
+.d3m-d-fm-vazio-ic > svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-fm-vazio-bts{display:inline-flex;gap:8px}
+.d3m-d-fm-ficha > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+/* Os três passos no pé do cartão vazio (Pessoas e vales). */
+.d3m-d-fm-passos{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;border-top:1px solid var(--d3-divisa)}
+.d3m-d-fm-passo{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:12px;background:var(--d3-veu);font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-fm-passo > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-d-fm-passo-n{display:grid;place-items:center;width:22px;height:22px;margin-bottom:4px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra);font:600 11px var(--vv-texto,Inter,sans-serif)}
+.d3m-d-selo.a{background:var(--d3m-d-ambar)}
+/* Relatórios e projeção: o relatório e o E se lado a lado; o rótulo entre as tabelas; o eixo com o saldo do mês. */
+.d3m-d-fm-par.d3m-d-fm-proj{grid-template-columns:minmax(0,1fr) 336px;min-height:0}
+.d3m-d-fm-rot{margin:0;padding:10px 16px 4px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-fm-c .b{font-weight:600}
+.d3m-d-fm-graf{padding-top:4px}
+.d3m-d-fm .d3m-d-fm-cab > h3:empty{display:none}
+.d3m-d-fm .d3m-d-fm-cab > h3:empty + .d3m-d-fm-dir{margin-left:0}
+.d3m-d-fm .d3m-d-fm-cab > h3:empty + .d3m-d-fm-dir .d3m-d-fm-ficha{height:30px;font-size:var(--d3-fs-texto)}
+.d3m-d-fm-leg-graf{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin:0;padding:0 16px 4px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-fm-graf > .d3m-d-fm-leg-graf{padding:0 0 4px}
+.d3m-d-fm .d3f-eixo > :is(span,b){display:flex;flex-direction:column;align-items:center;gap:1px}
+.d3m-d-fm .d3f-eixo small{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-d-fm .d3f-eixo .proj small{color:var(--d3-agente)}
+.d3m-d-fm-ese .d3m-d-fm-painel{padding-top:0}
+/* Dois cartões lado a lado embaixo do principal. */
+.d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:150px}
+.d3m-d-fm-pesa{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-height:100%;box-sizing:border-box}
+
+/* Tela baixa (1366 × 768). */
+@media (max-height:820px){
+  .d3m-d-fm .d3m-d-fm-lar{gap:6px;padding:12px 16px}
+  .d3m-d-fm .d3m-d-fm-lar .d3m-lar-num{font-size:36px}
+  .d3m-d-fm .d3m-d-fm-lar .d3-acao-frase{font-size:16px}
+  .d3m-d-fm .d3m-d-fm-nav .d3m-vlin{height:26px}
+  .d3m-d-fm .d3m-d-fm-lado{gap:10px}
+  .d3m-d-fm .d3m-d-fm-nav{gap:3px}
+  .d3m-d-fm .d3m-d-fm-lar .d3m-lar-bts{margin-top:4px}
+  .d3m-d-fm-tr{min-height:36px}
+  .d3m-d-fm-olho{min-height:38px}
+}
+@media (max-width:1320px){
+  .d3m-d-fm-par.d3m-d-fm-proj{grid-template-columns:minmax(0,1fr) 280px}
+  .d3m-d-fm-grade{grid-template-columns:minmax(0,1fr) 248px}
+  .d3m-d-fm-dir .d3m-d-fm-ficha{padding:0 6px}
+}
+/* Celular e janela estreita: uma coluna; o laranja antes da lista, a coluna de Finanças no fim, e a janela rola. */
+@media (max-width:1100px){
+  .d3m-d-fm .d3m-d-fm-lado{display:contents}
+  .d3m-d-fm .d3m-d-fm-lar{order:-1}
+  .d3m-d-fm .d3m-d-fm-nav{order:1}
+  .d3m-d-fm-folha,.d3m-d-fm-par{flex:none}
+  .d3m-d-fm-rolo{overflow:visible}
+  .d3m-d-fm-par{grid-template-columns:minmax(0,1fr)}
+  .d3m-d-fm .d3m-d-fm-cab{flex-wrap:wrap;height:auto;min-height:44px;padding:8px 16px}
+  .d3m-d-fm-dir{flex-wrap:wrap;white-space:normal;margin-left:0}
+  .d3m-d-fm-fichas{flex-wrap:wrap}
+  .d3m-d-fm-olho{flex-wrap:wrap;white-space:normal;padding:8px 16px;row-gap:4px}
+}
+@media (max-width:640px){
+  .d3m-d-fm-passos{grid-template-columns:minmax(0,1fr)}
+  .d3m-d-fm-c.m{flex:0 0 52px}
+  .d3m-d-fm-leg{display:none}
+  .d3m-d-fm .d3m-d-fm-topo > .d3m-d-ferr{flex-wrap:wrap;max-width:100%}
+  .d3m-d-fm-th{display:none}
+  .d3m-d-fm-tr{flex-wrap:wrap;row-gap:2px;padding:8px 16px}
+  .d3m-d-fm-c{flex:0 1 auto}
+  .d3m-d-fm-c:empty{display:none}
+  .d3m-d-fm-c.f{flex:1 1 calc(100% - 40px)}
+  .d3m-d-fm-det{padding:4px 16px 12px}
+  .d3m-d-fm-olho > span + span + span{padding-left:0;border-left:0}
+}
+
 /* ===== padrao-v2/zm-d-financeiro.css ===== */
 /* ===================================================================================================================
    FINANCEIRO · VORCARO (TESOURARIA) NA PRANCHA V2-M-Financeiro (16/11/2026). Só os donos. A janela é vidro fumê: três

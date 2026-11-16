@@ -52,16 +52,37 @@ const comum = (html, nome, nums) => {
   assert.doesNotMatch(html, /—/, `${nome}: sem travessão`);
 };
 
+// Padrão V2 (16/11/2026): as telas no molde comum (prancha V2-M-Financas-Modelo).
+const molde = (html, nome) => {
+  assert.match(html, new RegExp(`class="fv2 fx d3f d3m-d-fx d3m-d-fm" data-tela="fx-${nome}"`));
+  assert.match(html, /class="d3-selo-donos"[^>]*>[\s\S]*só donos/, `${nome}: selo só donos`);
+  assert.ok((html.match(/class="d3m-laranja/g) || []).length <= 1, `${nome}: no máximo um laranja`);
+  assert.doesNotMatch(html, /class="d3-acao"|class="d3f-nums"|fv2-fala|fv2-kpi/, `${nome}: o bloco de ação e os números antigos saíram`);
+  assert.match(html, new RegExp(`class="d3m-vlin" data-fx="ir-aba" data-valor="${nome}" aria-current="page"`), `${nome}: a coluna de Finanças marca a tela`);
+  assert.doesNotMatch(html, /—/, `${nome}: sem travessão`);
+};
+
 test('Extrato: banco × de verdade em colunas, os números com a linha, conferir, dividir entre clientes e "Sempre assim"', () => {
   const V = telas(), d = dados();
   let html = V.telas.extrato({ d, filtro: {} });
-  comum(html, 'extrato', 4);
-  assert.match(html, /Vorcaro · Tesouraria<\/small>4 lançamentos para conferir e 1 boleto para dividir\./);
-  assert.match(html, /data-fx="chip" data-alvo="extrato" data-valor="conferir">Ver o que falta</);
-  assert.match(html, /Entrou<\/span>[\s\S]*?<svg class="d3-graf"/, 'a mini linha do que entrou mês a mês');
-  assert.match(html, /class="d3f-cab"[\s\S]*Dia[\s\S]*No banco[\s\S]*De verdade[\s\S]*Valor/);
+  // Padrão V2 (prancha V2-M-Financas-Extrato): o molde; os números viram o "De olho" e o laranja só pede o que falta.
+  molde(html, 'extrato');
+  assert.match(html, /Vorcaro · já sugeri o destino<\/span>[\s\S]*d3m-lar-num">4<\/b><span class="d3-acao-frase">lançamentos para conferir<\/span><small>E 1 boleto de R\$ 6\.100,00 para dividir entre clientes\.<\/small>/);
+  assert.match(html, /class="d3m-btn l" data-fx="chip" data-alvo="extrato" data-valor="conferir">Ver os 4</);
+  assert.match(html, /class="d3m-btn l s" data-fx="cat" data-valor="receita_boleto">Dividir</);
+  assert.match(html, /class="d3m-d-fm-th"[\s\S]*Dia[\s\S]*No banco[\s\S]*De verdade[\s\S]*Valor/);
   assert.match(html, /\+R\$ 6\.100,00/); assert.match(html, /−R\$ 300,00/);
-  assert.match(html, /A conferir <b class="a">4<\/b>/);
+  assert.match(html, /data-valor="conferir" aria-pressed="true">A conferir<span class="a">4<\/span>/);
+  assert.match(html, /class="d3m-d-fm-olho"[\s\S]*entrou[\s\S]*saiu[\s\S]*saldo em 12\/11/, 'entrou, saiu e o saldo no De olho');
+  assert.match(html, /data-fx="conferir-todos">Conferir os 4 sugeridos/);
+  // Para onde foi, regras e importações atrás de botões.
+  assert.doesNotMatch(html, /class="d3f-gx/); assert.match(html, /data-fx="extrato-lado" data-valor="regras"/); assert.match(html, /data-fx="extrato-lado" data-valor="para"/);
+  V._teste.ui.extrato.lado = 'para';
+  html = V.telas.extrato({ d, filtro: {} });
+  assert.match(html, /Para onde foi[\s\S]*data-fx="cat"[^>]*class="d3f-gx/, 'para onde foi em barras que filtram');
+  V._teste.ui.extrato.lado = 'regras';
+  assert.match(V.telas.extrato({ d, filtro: {} }), /<h3>Regras<\/h3>[\s\S]*Nenhuma regra sua ainda\./);
+  V._teste.ui.extrato.lado = '';
   const boleto = d.transacoes.find((t) => t.banco.valor === 6100);
   V._teste.ui.extrato.aberta = boleto.id;
   html = V.telas.extrato({ d, filtro: {} });
@@ -69,17 +90,45 @@ test('Extrato: banco × de verdade em colunas, os números com a linha, conferir
   assert.match(html, /data-fx="dividir"[^>]*>Dividir entre clientes</);
   assert.match(html, /data-fx="regra-de"[^>]*>Sempre assim</);
   assert.match(html, /class="fv2-btn d3f-escuro v2-estado" data-fx="salvar-lanc"[^>]*>Salvar e conferir</, 'o botão que conta o estado');
-  assert.match(html, /Para onde foi[\s\S]*data-fx="cat"[^>]*class="d3f-gx/, 'para onde foi em barras que filtram');
+  V._teste.ui.extrato.aberta = '';
+});
+
+test('Clientes mês a mês (prancha V2-M-Financas-Clientes-Mes): a matriz no molde, a célula na cor da situação, De olho e o laranja só com quem deve', () => {
+  const V = telas(), d = dados();
+  let html = V.telas.clientes_mes({ d, filtro: {} });
+  molde(html, 'clientes_mes');
+  assert.match(html, /<h3>Pago e em aberto <small>· pelo mês de referência<\/small><\/h3>/);
+  assert.match(html, /data-fx="abrir" data-alvo="clientes_mes" data-valor="c1"[^>]*><b>Cliente Teste<\/b><small>R\$ 4\.000,00 por mês<\/small>/);
+  assert.match(html, /class="d3m-d-fm-mes (pago|parcial|aberto|a_receber|sem|fora)"/);
+  assert.match(html, /class="d3m-d-fm-olho"[\s\S]*recebido em novembro[\s\S]*a receber no mês[\s\S]*já pagou novembro/);
+  const aberto = d.por_cliente.linhas.reduce((s, l) => s + l.total_aberto, 0);
+  assert.equal((html.match(/class="d3m-laranja/g) || []).length, aberto > 0 ? 1 : 0, 'laranja só com quem deve');
+  if (aberto > 0) assert.match(html, /Vorcaro · quem deve[\s\S]*data-fx="chip" data-alvo="clientes_mes" data-valor="aberto">Ver quem deve</);
+  V._teste.ui.clientes_mes.aberta = 'c1';
+  html = V.telas.clientes_mes({ d, filtro: {} });
+  assert.match(html, /data-linha="c1" aria-expanded="true"[\s\S]*class="fx-mm-det"/, 'a linha abre com as entradas do cliente');
+  V._teste.ui.clientes_mes.aberta = '';
 });
 
 test('Cartão: total, pago pelo extrato, falta e itens; itens com situação, filtro "Sem categoria" e editar no lugar', () => {
   const V = telas(), d = dados();
   let html = V.telas.cartao({ d, filtro: {} });
-  comum(html, 'cartao', 4);
-  assert.match(html, /Faltam R\$ 1\.518,00 na fatura e 1 item sem categoria\./);
-  assert.match(html, /data-alvo="cartao" data-valor="semcat">Ver o item</);
-  assert.match(html, /Sem categoria <b class="r">1<\/b>/); assert.match(html, /A classificar/); assert.match(html, /· 2\/5/);
+  // Padrão V2 (prancha V2-M-Financas-Cartao): três números em folha, os itens no cartão principal e o laranja só com decisão.
+  molde(html, 'cartao');
+  assert.equal((html.match(/class="d3m-d-folha d3m-d-fx-num"/g) || []).length, 3, 'três números');
+  for (const r of ['Total da fatura', 'Pago, pelo extrato', 'Falta pagar']) assert.ok(html.includes(`<span>${r}</span>`), r);
+  assert.match(html, /R\$ 1,5 mil/, 'o total da fatura');
+  // O pagamento sem fatura vem primeiro (não dá para saber o que foi pago); sem ele, o item sem categoria.
+  const soltos = d.cartao.pagamentos_sem_fatura.length;
+  if (soltos) assert.match(html, /Vorcaro · pago sem saber o quê<\/span>[\s\S]*data-fx="cartao-colar">Colar a fatura<[\s\S]*data-fx="foco" data-valor="soltos"/);
+  else assert.match(html, /Vorcaro · sem categoria<\/span>[\s\S]*d3m-lar-num">1<\/b><span class="d3-acao-frase">item sem categoria[\s\S]*data-alvo="cartao" data-valor="semcat">Ver o item</);
+  if (soltos) assert.match(html, /data-fx-card="soltos"[\s\S]*data-fx="ir-lanc"/, 'os pagamentos sem fatura no segundo cartão');
+  assert.match(html, /data-valor="semcat" aria-pressed="false">Sem categoria<span class="r">1<\/span>/); assert.match(html, /A classificar/); assert.match(html, /· 2\/5/);
   assert.match(html, /fatura de novembro/);
+  assert.match(html, /data-fx="cartao-lado" data-valor="vencimento"/, 'o vencimento atrás de botão');
+  V._teste.ui.cartao.lado = 'vencimento';
+  assert.match(V.telas.cartao({ d, filtro: {} }), /data-fx-card="vencimento"[\s\S]*data-fx="venc-salvar"/);
+  V._teste.ui.cartao.lado = '';
   V._teste.ui.cartao.aberta = 'ct-um';
   html = V.telas.cartao({ d, filtro: {} });
   assert.match(html, /data-linha="ct-um" aria-expanded="true"[\s\S]*data-fx="item-status" data-id="ct-um" data-valor="pago"[\s\S]*data-fx="item-editar" data-valor="ct-um"/);
@@ -94,10 +143,12 @@ test('Cartão: total, pago pelo extrato, falta e itens; itens com situação, fi
 test('Gastos fixos: o que não apareceu no extrato pede ação, editar no lugar e os prováveis com os critérios', () => {
   const V = telas(), d = dados();
   let html = V.telas.fixos({ d, filtro: {} });
-  comum(html, 'fixos', 4);
-  assert.match(html, /Contador venceu dia 10 e não saiu no extrato\./);
-  assert.match(html, /d3f-alerta" data-linha="fx-contador"[\s\S]*não apareceu/);
-  assert.match(html, /Do que entra[\s\S]*--v:/); assert.match(html, /× 12/);
+  // Padrão V2 (prancha V2-M-Financas-Fixos): o molde; o mês, o ano e a fatia do que entra no "De olho".
+  molde(html, 'fixos');
+  assert.match(html, /Vorcaro · fixo que não apareceu<\/span>[\s\S]*Contador venceu dia 10 e não saiu no extrato/);
+  assert.match(html, /d3m-d-fm-naoveio" data-linha="fx-contador"[\s\S]*não apareceu/);
+  assert.match(html, /class="d3m-d-fm-olho"[\s\S]*por mês[\s\S]*no ano[\s\S]*do que entra/);
+  assert.match(html, /<h3>Onde pesa<\/h3>[\s\S]*class="d3f-gx/); assert.match(html, /data-fx-card="provaveis"/);
   V._teste.ui.fixos.editando = 'fx-aluguel';
   html = V.telas.fixos({ d, filtro: {} });
   assert.match(html, /data-linha="fx-aluguel" aria-expanded="true"[\s\S]*data-fx-form="fixo" data-id="fx-aluguel"[\s\S]*data-fx="fixo-salvar"/);
@@ -105,13 +156,23 @@ test('Gastos fixos: o que não apareceu no extrato pede ação, editar no lugar 
 
 test('Projeção: caixa em linha com o ponto no hoje, a tabela à vista e o "E se…"', () => {
   const V = telas(), d = dados();
-  const html = V.telas.projecao({ d, filtro: {} });
-  comum(html, 'projecao', 4);
-  assert.match(html, /No ritmo atual, o caixa vai a <b>/);
+  let html = V.telas.projecao({ d, filtro: {} });
+  // Padrão V2 (prancha V2-M-Financas-Projecao): o molde; o laranja diz onde o caixa chega e guarda o cenário.
+  molde(html, 'projecao');
+  assert.match(html, /Vorcaro · (no ritmo de hoje|o caixa fica negativo)<\/span>[\s\S]*class="d3m-lar-num">[^<]+<\/b><span class="d3-acao-frase">reais em caixa em [a-zç]+<\/span><small>Entram R\$ [^<]+ e saem R\$ [^<]+ por mês\./);
+  assert.match(html, /data-fx="foco" data-valor="cenario">Montar um cenário<[\s\S]*data-fx="cenario-focar" title="Guardar o cenário">Guardar</);
+  assert.match(html, /data-fx="horizonte" data-valor="6" aria-pressed="true">6 meses/);
   assert.match(html, /<svg class="d3-graf fx-graf"[\s\S]*<polyline points="[^"]+" class="meta"\/>[\s\S]*<circle/, 'realizado cheio, como está tracejado, ponto no hoje');
+  assert.match(html, /class="d3f-eixo"><span>[a-z]{3}<small>/, 'o eixo com o saldo de cada mês');
+  assert.match(html, />Realizado<[\s\S]*Entrou[\s\S]*Saiu[\s\S]*Resultado[\s\S]*A conferir/);
   assert.match(html, /class="fx-tab fx-tab-proj"[\s\S]*Saldo · como está/); assert.doesNotMatch(html, /Ver a tabela mês a mês/, 'a tabela fica à vista');
-  assert.match(html, /E se…[\s\S]*data-fx="novo-mais"[\s\S]*data-fx="cenario-salvar"/);
-  assert.match(html, /Fluxo realizado[\s\S]*fx-fluxo-b[\s\S]*Resultado por grupo/);
+  assert.match(html, /data-fx-card="cenario"[\s\S]*E se…[\s\S]*data-fx="novo-mais"[\s\S]*data-fx="cenario-salvar"/);
+  // "Resultado por grupo" é a segunda aba do mesmo cartão.
+  assert.match(html, /data-fx="proj-aba" data-valor="grupos" aria-pressed="false">Resultado por grupo/); assert.doesNotMatch(html, /class="fx-tab fx-dre"/);
+  V._teste.ui.projecao.aba = 'grupos';
+  html = V.telas.projecao({ d, filtro: {} });
+  assert.match(html, /data-fx="proj-aba" data-valor="grupos" aria-pressed="true">Resultado por grupo[\s\S]*class="fx-tab fx-dre"/);
+  V._teste.ui.projecao.aba = 'caixa';
 });
 
 test('Vorcaro (prancha V2-M-Financeiro): três números, Pede decisão, o laranja com o lançamento do WhatsApp e as telas de Finanças no vidro', () => {
