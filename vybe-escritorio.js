@@ -2620,7 +2620,8 @@ function escritorioFaseChamada(e = escritorio, { online = true, outraAba = false
   if (e.vozPausada) return { fase: "fora" };
   const canal = escritorioCanal(e.zona);
   if (!canal) return { fase: "sem-voz", motivo: e.zona === "foco" ? "Foco: sem voz" : "Sem voz aqui" };
-  if (e.chamada && e.canalChamada === canal) return { fase: "na-sala" };
+  // A rede oscilou e o motor está voltando sozinho (mesma reunião, microfone e tela preservados).
+  if (e.chamada && e.canalChamada === canal) return e.vozOscilou ? { fase: "reconectando", motivo: "A conexão oscilou" } : { fase: "na-sala" };
   if (e.falhaConversa && !e.entrandoChamada) return { fase: "caiu", motivo: e.falhaConversa };
   if (e.vozCaiu) return { fase: "reconectando", motivo: "A voz caiu", etapa: e.etapaVoz || "" };
   return { fase: "conectando", etapa: e.etapaVoz || "preparando a voz" };
@@ -4903,6 +4904,27 @@ async function escritorioSincronizarVoz() {
   renderMidiaEscritorio();
   atualizarControlesEscritorio();
 }
+// A voz caiu de verdade (queda que o motor não recuperou): larga esta reunião, soltando microfone e tela dela (sem
+// isso ela seguia viva por trás, segurando os dois), e entra de novo na mesma sala.
+function escritorioVozCaiu(meeting) {
+  if (escritorio.chamada !== meeting) return;
+  clearTimeout(escritorio.timerOscilou);
+  escritorio.vozOscilou = false;
+  escritorio.chamada = null;
+  escritorio.vozCaiu = true;
+  escritorio.telaLigada = false;
+  if (escritorio.vozMarca) escritorio.vozMarca.em = Date.now();
+  escritorioFiltroVoz.geracao++;
+  escritorioNivelAudio.parar();
+  escritorioPararVozes();
+  Promise.allSettled([["audioEnabled", "disableAudio"], ["videoEnabled", "disableVideo"], ["screenShareEnabled", "disableScreenShare"]]
+    .filter(([flag]) => meeting?.self?.[flag]).map(([, metodo]) => Promise.resolve().then(() => meeting.self[metodo]())))
+    .then(() => meeting?.leave?.()).catch(() => {});
+  document.getElementById("office-minha-tela")?.remove();
+  escritorioAviso("A conversa caiu. Reconectando…");
+  atualizarDockEscritorio();
+  escritorioTentarVozDeNovo();
+}
 // Cada etapa da conversa tem prazo: em vez de ficar em "Preparando conversa…"
 // para sempre, a pessoa vê em qual etapa parou (e o console guarda o motivo).
 function escritorioComPrazo(promessa, ms, etapa) {
@@ -4966,6 +4988,7 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     escritorio.vozCaiu = false;
     escritorio.erroCamera = null;
     escritorio.telaLigada = false;
+    escritorio.vozOscilou = false;
     for (const evento of [
       "participantJoined",
       "participantLeft",
@@ -4982,16 +5005,32 @@ async function entrarChamadaEscritorio({ canal = escritorioCanal() || "escritori
     // tecla em qualquer lugar já libera (o botão fica como atalho visível).
     // A conversa caiu sozinha (rede, servidor de mídia): entra de novo na
     // mesma sala sem a pessoa precisar fazer nada.
-    meeting.self.on("roomLeft", () => {
+    // Queda curta (Paulo, 16/11/2026: "tá caindo toda hora a chamada, desativando o microfone, quando tá streamando a
+    // tela"): o motor avisa roomLeft com state "disconnected" numa oscilação da rede (comum com a tela subindo) e ele
+    // mesmo reconecta, devolvendo microfone e tela (roomJoined com reconnected). Antes a chamada era largada ali, sem
+    // leave(): a reunião velha seguia viva por trás com o microfone e a tela (o motor aceita uma tela só por reunião) e
+    // uma nova entrava sem a tela. Agora espera a volta; só larga se ela não vier em 12 s, ou numa queda de verdade.
+    meeting.self.on("roomLeft", (ev) => {
       if (escritorio.chamada !== meeting) return;
-      escritorio.chamada = null;
-      escritorio.vozCaiu = true;
-      escritorioFiltroVoz.geracao++;
-      escritorioNivelAudio.parar();
-      escritorioPararVozes();
-      escritorioAviso("A conversa caiu. Reconectando…");
+      if (ev?.state === "disconnected") {
+        if (escritorio.vozOscilou) return;
+        escritorio.vozOscilou = true;
+        clearTimeout(escritorio.timerOscilou);
+        escritorio.timerOscilou = setTimeout(() => { if (escritorio.chamada === meeting && escritorio.vozOscilou) escritorioVozCaiu(meeting); }, 12000);
+        atualizarDockEscritorio();
+        atualizarControlesEscritorio();
+        return;
+      }
+      escritorioVozCaiu(meeting);
+    });
+    meeting.self.on("roomJoined", () => {
+      if (escritorio.chamada !== meeting || !escritorio.vozOscilou) return;
+      escritorio.vozOscilou = false;
+      clearTimeout(escritorio.timerOscilou);
+      escritorioTocarVozes();
+      renderMidiaEscritorio();
       atualizarDockEscritorio();
-      escritorioTentarVozDeNovo();
+      atualizarControlesEscritorio();
     });
     // Um par de ouvintes por chamada: o erro de autoplay repete, e antes cada repetição somava mais dois.
     let liberarArmado = false;
@@ -5704,6 +5743,8 @@ async function sairChamadaEscritorio({ manual = false } = {}) {
   // Trocas internas podem reconectar; uma saída manual espera a pessoa entrar novamente.
   if (manual) { escritorio.vozPausada = true; escritorio.vozCaiu = false; escritorio.falhaConversa = ""; }
   escritorio.telaLigada = false;
+  escritorio.vozOscilou = false;
+  clearTimeout(escritorio.timerOscilou);
   escritorio.geracaoVoz = (escritorio.geracaoVoz || 0) + 1;
   clearTimeout(escritorio.timerConversa); clearTimeout(escritorio.timerVoz);
   const m = escritorio.chamada;
