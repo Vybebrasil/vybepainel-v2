@@ -20,6 +20,22 @@ export async function planejamentosProntos(sql) {
  const [r] = await sql`SELECT (to_regclass('public.vybe_planejamentos') IS NOT NULL AND to_regclass('public.vybe_planejamento_eventos') IS NOT NULL) AS existe`;
  return Boolean(r?.existe);
 }
+// A legenda de cada peça, como o cliente viu e aprovou no planejamento do mês (Paulo, 15/11/2026: na aprovação, "a arte,
+// a legenda e os botões"). A peça liga ao planejamento por conteudo_id (cadastrarPecas). Só de planejamento já aprovado
+// pelo cliente: o rascunho do head não sai. Peça cadastrada à mão não tem: fica sem legenda.
+export async function legendasDasPecas(sql, clienteId, ids) {
+ const alvo = new Set((ids || []).map(String));
+ const mapa = new Map();
+ if (!alvo.size || !clienteId || !await planejamentosProntos(sql)) return mapa;
+ const planos = await sql`SELECT conteudo FROM vybe_planejamentos WHERE cliente_id=${clienteId} AND estado = ANY(${['aprovado', 'cadastrado']}) ORDER BY mes DESC, id DESC LIMIT 12`;
+ for (const p of planos) {
+  for (const peca of Array.isArray(p.conteudo?.pecas) ? p.conteudo.pecas : []) {
+   const id = String(peca?.conteudo_id || ''), legenda = String(peca?.legenda || '').replace(/\r\n?/g, '\n').trim();
+   if (alvo.has(id) && legenda && !mapa.has(id)) mapa.set(id, legenda.slice(0, 2200));
+  }
+ }
+ return mapa;
+}
 const exigir = async (sql) => { if (!await planejamentosProntos(sql)) throw erro('Os planejamentos ainda estão sendo ligados.', 503); };
 
 // --- Conteúdo padrão ---------------------------------------------------------
