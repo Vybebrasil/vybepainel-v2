@@ -104,7 +104,7 @@ test('Jogos e Equipe online mostram conteúdo: mesas com Jogar e quem está onli
   const mundo = readFileSync('vybe-mundo.js', 'utf8');
   const jogos = mundo.slice(mundo.indexOf('function mostrarJogos()'), mundo.indexOf('let jogandoAgora'));
   for (const id of ['sinuca', 'xadrez', 'poker', 'mesa']) assert.ok(mundo.includes(`['${id}', `), id);
-  assert.match(jogos, /class="v2n-btn k" data-jogo=/, 'padrão v2: Jogar é o botão preto do cartão');
+  assert.match(jogos, /class="d3v-btn s\$\{rotulo === 'Jogar' \? '' : ' sec d3m-f-fio'\}" data-jogo=/, 'V2: Jogar é o botão escuro do cartão; Desafiar, o de fio');
   assert.match(jogos, /Quem pode jogar agora/);
   assert.doesNotMatch(mundo, /Ranking, Missões e Conquistas ficam em Equipe/, 'sai a frase velha');
   const equipe = mundo.slice(mundo.indexOf('const EQUIPE_NO_DOCK'), mundo.indexOf('// Perfil = a ficha completa'));

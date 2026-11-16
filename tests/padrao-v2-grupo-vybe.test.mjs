@@ -68,7 +68,8 @@ test('Conquistas: moram na Loja, com a escada que abre no lugar, o título e a e
 
 test('Ranking: título com período e porquê numa linha, fichas, pódio, você, lista curta e jogos ao lado', () => {
   const pinta = fatia(ficha, 'function pintarRankingEscritorio()', '\n// A barra "Você" fica fixa embaixo');
-  for (const texto of ['<h1>Ranking</h1>', 'class="v2r-seg"', 'Por que essa ordem?', 'class="v2r-chips"', 'Atividade · ', 'class="v2r-card v2r-podio"', 'class="v2r-voce"', 'De onde veio o XP', 'class="v2r-card v2r-lista"', '>mostrar<', 'conquistas e prêmios da Copa não contam no XP', 'escritorioJogosRankingHtml()']) assert.ok(pinta.includes(texto), texto);
+  // V2 (prancha V2-M-Ranking, 16/11/2026): o título no vidro, o período em pastilha e os jogos na consulta.
+  for (const texto of ['role="heading" aria-level="1">Ranking</span>', 'class="d3m-e-per" role="group" aria-label="Período"', 'Por que essa ordem?', 'class="v2r-chips"', 'Atividade · ', 'class="v2r-card v2r-podio"', 'class="v2r-voce"', 'De onde veio o XP', 'class="v2r-card v2r-lista"', '>mostrar<', 'conquistas e prêmios da Copa não contam no XP', 'aria-label="Jogos no terraço"']) assert.ok(pinta.includes(texto), texto);
   assert.doesNotMatch(pinta, /rk2-camp|rk2-periodos|rk2-regra/, 'os cartões de campeão e a faixa de período antigos saíram');
   assert.match(pinta, /resto\.slice\(0, 2\)/, 'duas linhas à vista; o resto em "mostrar"');
   for (const fica of ['Tesouros', 'Agência', 'Como funciona', 'Semana passada', 'Copa Vybe de ', 'abrirDetalheRankingEscritorio(']) assert.ok(pinta.includes(fica), 'continua a um clique: ' + fica);

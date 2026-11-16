@@ -1,0 +1,74 @@
+/* ===================================================================================================================
+   V2 · GRUPO F · RANKING (prancha V2-M-Ranking, aprovada pelo Paulo em 16/11/2026). A janela de vidro fumê do ranking:
+   o título no vidro com o período e "Por que essa ordem?"; à esquerda a folha "A equipe" (as categorias na cabeça, a
+   tabela que rola por dentro e o "De olho" no pé); à direita a consulta de 316 com o cartão laranja do que falta para
+   subir, você no período, os jogos do terraço e os atalhos. O HTML sai de pintarRankingEscritorio
+   (vybe-escritorio-ficha.js), dentro do #workflow-modal (classe d3m-f-rkj). As regras antigas de #ofc-ranking .d3r-*
+   (d3-hoje.css) continuam valendo para a linha; aqui só o que muda no vidro.
+   =================================================================================================================== */
+
+/* A janela: presa nos quatro lados, vidro fumê (pelas variáveis da moldura antiga, que pinta com !important); o Hoje
+   fica escondido atrás dela. */
+body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{top:var(--vv-m,14px);left:var(--vv-palco-esq,104px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);min-width:calc(100% - var(--vv-palco-esq,104px) - var(--vv-m,14px));--pv-vidro:var(--d3-fume);--glass:var(--d3-fume);--pv-borda:var(--d3-fume-borda);--pv-brilho:0 0 0 0 transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* A moldura clara do modal no mundo (vybe-mundo.css) pinta o fundo com !important e prende o padding em 0: o vidro
+   (fumê sobre o ambiente) e o respiro de 16 ficam no #ofc-ranking, que ocupa a janela inteira. */
+#ofc-ranking.rk2:has(> .d3m-f-rk){padding:16px;box-sizing:border-box;background:linear-gradient(var(--d3-fume),var(--d3-fume)),var(--d3-ambiente);color:var(--d3-fume-texto)}
+body.mundo:has(#workflow-modal.d3m-f-rkj) #mundo-hud > #vv-hoje{visibility:hidden}
+#ofc-ranking > .d3m-f-rk{flex:1 1 auto;min-height:0;color:var(--d3-fume-texto)}
+#ofc-ranking > .d3m-f-rk > .d3m-e-topo{padding-right:0}
+#ofc-ranking > .d3m-f-rk > .d3m-e-topo .d3m-e-acoes{flex-wrap:wrap;justify-content:flex-end}
+#ofc-ranking > .d3m-f-rk.atualizando .d3m-f-rk-folha{opacity:.85}
+/* "Por que essa ordem?" abre um cartão claro embaixo do título. */
+#ofc-ranking > .d3m-f-rk > .d3m-f-rk-porque{margin:-8px 0 0}
+#ofc-ranking > .d3m-f-rk .v2r-porque-dentro{margin:0 0 12px;padding:12px 16px;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta)}
+
+/* A folha "A equipe": as categorias num alternador na cabeça; a tabela rola por dentro; "De olho" no pé. */
+#ofc-ranking .d3m-e-folha.d3m-f-rk-folha{padding:0;border-radius:16px;background:var(--d3-folha)}
+#ofc-ranking .d3m-f-rk-folha > .d3m-e-cab{flex-wrap:wrap;padding:6px 16px}
+#ofc-ranking .d3m-f-rk-folha > .d3m-e-cab .v2r-chips{gap:2px}
+#ofc-ranking .d3m-f-rk-folha .v2r-chip{height:26px;padding:0 9px;border-radius:7px;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#ofc-ranking .d3m-f-rk-folha .v2r-chip:hover{background:var(--d3-veu);box-shadow:none}
+#ofc-ranking .d3m-f-rk-folha .v2r-chip:is([aria-pressed="true"],.tem){background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
+#ofc-ranking .d3m-f-rk-folha > .d3r-cab{flex:none;border-top:1px solid var(--d3-divisa);color:var(--d3-rotulo)}
+#ofc-ranking .d3m-f-rk-folha > .d3m-e-rola{border-top:0}
+#ofc-ranking .d3m-f-rk-folha .d3r-lin{min-height:56px;border-top:0;border-bottom:1px solid var(--d3-divisa)}
+#ofc-ranking .d3m-f-rk-folha .d3r-lin:hover{background:var(--d3-veu)}
+/* Você: a linha num véu (não mais a faixa preta). */
+#ofc-ranking .d3m-f-rk-folha .d3r-lin.eu{margin:0;width:100%;padding:0 16px;border-radius:0;background:var(--d3-veu-forte);color:var(--d3-tinta)}
+#ofc-ranking .d3m-f-rk-folha .d3r-lin.eu :is(.d3r-nome > small,.d3r-meta > small,.d3r-pr){color:var(--d3-rotulo)}
+#ofc-ranking .d3m-f-rk-folha .d3r-lin.eu .d3-barra{background:var(--d3-veu-forte)}
+#ofc-ranking .d3m-f-rk-folha .d3r-lin.eu .d3-barra > i{background:var(--d3-tinta)}
+#ofc-ranking .d3m-f-rk-folha .d3r-pos{width:auto;height:auto;border-radius:0;background:none;color:var(--d3-tinta)}
+#ofc-ranking .d3m-f-rk-folha .d3r-pos:is(.p1,.p2,.p3){background:none;color:var(--d3-acao-texto)}
+#ofc-ranking .d3m-f-rk-folha .d3r-pr{color:var(--d3-pronto)}
+#ofc-ranking .d3m-f-rk-pe{flex-wrap:wrap;gap:6px 18px;min-height:48px;padding:8px 16px}
+#ofc-ranking .d3m-f-rk-pe > span:first-child{flex:none}
+#ofc-ranking .d3m-f-rk-pe b{font-weight:600;color:var(--d3-tinta)}
+#ofc-ranking .d3m-f-rk-folha > .d3m-e-rola > .v2r-legado{border-radius:0;box-shadow:none}
+
+/* A folha clara do jogo (vybe-mundo.css: body.mundo :is(#office-catalogo,#ofc-ranking,#ofc-conquistas) :is(span,small,b…))
+   põe a cor de quase todo texto em "inherit" e a do small numa variável: aqui as peças do vidro voltam às cores delas. */
+#ofc-ranking .d3m-f-rk{--jg-claro-apagado:var(--d3-fume-apagado)}
+#ofc-ranking .d3m-f-rk .d3m-e-folha{--jg-claro-apagado:var(--d3-rotulo)}
+#ofc-ranking .d3m-f-rk .d3m-laranja{--jg-claro-apagado:var(--d3-escuro-texto)}
+body.mundo #ofc-ranking .d3m-f-rk :is(.d3m-e-sub,.d3m-cons-cab > span,.d3m-f-ap,.d3m-f-mini > span){color:var(--d3-fume-apagado)}
+body.mundo #ofc-ranking .d3m-f-rk .d3m-lar-rot > .d3-acao-av{color:var(--d3-agente)}
+body.mundo #ofc-ranking .d3m-f-rk .d3m-e-folha :is(.d3m-e-cab > b > span,.d3r-nome > small,.d3r-meta > small){color:var(--d3-rotulo)}
+body.mundo #ofc-ranking .d3m-f-rk .d3m-e-folha .d3r-pr{color:var(--d3-pronto)}
+body.mundo #ofc-ranking .d3m-f-rk .d3m-f-rk-pe b{color:var(--d3-tinta)}
+
+/* A consulta: o laranja e os três quadradinhos de você (peças de zm-f-sala.css e zm-f-casca.css). */
+#ofc-ranking .d3m-f-rk .d3m-lado{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--d3-fume-borda) transparent}
+#ofc-ranking .d3m-f-rk .d3m-f-ap{color:var(--d3-fume-apagado)}
+
+@media (max-width:900px){
+  body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-width:calc(100% - 2 * var(--vv-m,8px))}
+  #ofc-ranking.rk2:has(> .d3m-f-rk){padding:12px;overflow-y:auto;overscroll-behavior:contain}
+  #ofc-ranking > .d3m-f-rk{height:auto}
+  #ofc-ranking > .d3m-f-rk > .d3m-e-topo{flex-wrap:wrap;align-items:flex-start}
+  #ofc-ranking > .d3m-f-rk .d3m-e-h{font-size:20px}
+  #ofc-ranking > .d3m-f-rk > .d3m-e-corpo{display:flex;flex-direction:column}
+  #ofc-ranking .d3m-e-folha.d3m-f-rk-folha{flex:none;max-height:none}
+  #ofc-ranking .d3m-f-rk-folha > .d3m-e-rola{overflow:visible}
+  #ofc-ranking .d3m-f-rk-folha > .d3m-e-cab .v2r-chips{flex:1 1 100%;flex-wrap:wrap;min-width:0}
+}
