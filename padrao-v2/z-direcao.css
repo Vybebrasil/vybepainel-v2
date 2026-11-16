@@ -647,6 +647,12 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
   body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-ferramentas > .vv-botao.vv-busca-larga{flex:none;width:34px;margin-left:auto;margin-right:0;padding:0 0 0 9px;gap:0;color:var(--d3-fume-texto)}
   body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-busca-larga > :is(kbd,.vv-busca-texto){display:none}
   body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala{flex:0 1 auto;min-width:0}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala:not([hidden]){flex:none;min-width:34px;height:34px;margin:0;padding:0 4px;gap:0;justify-content:center;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala :is(.vv-topo-sala-nome,.vv-topo-sala-entrar){display:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala-rostos > i{box-shadow:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala-rostos > i:nth-child(n+2){display:none}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala-dentro{display:inline-flex;align-items:center;font-size:0}
+  body.mundo:not(.mundo-modulo):not(.mundo-quarto):not(.mundo-centro):not(.mundo-gestao) #mundo-hud:has(> #vv-hoje > .d3q) > .vv-topo .vv-topo-sala:has(> .vv-topo-sala-dentro[aria-busy="true"]) > .vv-topo-sala-rostos{display:none}
 }
 
 /* Minhas tarefas: a lista é o trabalho, então a linha do meio fica com quase o dobro da altura do pé. */
@@ -743,7 +749,10 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
 #vv-hoje.d3h-tela > .d3q.d3q-larga{grid-template-columns:minmax(0,1fr)}
 #vv-hoje .d3q-larga > .d3q-main{min-height:0}
 @media (min-width:1181px){
-  #vv-hoje .d3q-larga .d3h-topo{padding-right:300px}
+  /* A linha divide o espaço com os botões da barra (até 8, com a sala): reserva 340 px; as abas encolhem e deslizam de lado em vez de passar por baixo. */
+  #vv-hoje .d3q-larga .d3h-topo{padding-right:340px}
+  #vv-hoje .d3q-larga .d3h-topo-dir{min-width:0}
+  #vv-hoje .d3q-larga .d3h-topo-dir > .vb-abas{min-width:0;overflow-x:auto;scrollbar-width:none}
 }
 #vv-hoje .d3q-co-topo{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px;align-items:stretch;min-width:0}
 #vv-hoje .d3q.d3h-co .v2o-inds{gap:12px}
