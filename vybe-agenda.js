@@ -1164,6 +1164,10 @@ function renderManagerCalendar(forcar = false) {
   const noDa = emprestadaAoDa('manager-calendar');
   const referencia = noDa ? '' : `<div class="manager-calendar-segmento" role="group" aria-label="Data de referência">
       <button type="button" class="${dateMode==='veiculacao'?'active':''}" aria-pressed="${dateMode==='veiculacao'}" onclick="managerCalendarSetDateMode('veiculacao')">Veiculação</button><button type="button" class="${dateMode==='prazo'?'active':''}" aria-pressed="${dateMode==='prazo'}" onclick="managerCalendarSetDateMode('prazo')">Prazo</button></div>`;
+  // Direção V2 (prancha V2-M-Producao-Mes): no mundo, o mês é uma folha com o resumo de cada dia; a lista do dia abre no clique.
+  const mesV2 = !noDa && typeof pv2MesHtml === 'function' && typeof pv2Ligado === 'function' && pv2Ligado();
+  wrap.classList.toggle('d3m-a-v2', mesV2);
+  if (mesV2) { wrap.innerHTML = pv2MesHtml({ meta, grouped, clients, semCarteira, escolhido }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
   const noMesAtual = !Number(MONTH_OFFSET || 0);
   wrap.innerHTML = `<div class="manager-calendar-head">
       ${noDa ? '' : '<div class="manager-calendar-title">Agenda mensal por cliente</div>'}
@@ -1357,6 +1361,8 @@ function renderTeam() {
       <div class="stat-row"><span>% do total</span><strong>${Math.round(c/all.length*100)}%</strong></div>
       <div class="stat-bar-wrap"><div class="stat-bar" style="width:${Math.round(c/maxF*100)}%"></div></div>
     </div>`).join("");
+  // Direção V2 (prancha V2-M-Producao-Equipe): no mundo, a mesma conta vira a carga por pessoa em linha e as colunas por formato.
+  if (typeof pv2EquipePintar === 'function') pv2EquipePintar();
 }
 
 // ─── Select de dias ───────────────────────────────────────────────────────────
@@ -2435,7 +2441,11 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   // embaixo de "Pessoa: Jady" era um filtro ativo ignorado em silêncio.
   const pessoaDoDa = emprestadaAoDa(cfg.alvo) && typeof daControllerPersonId !== 'undefined' && daControllerPersonId !== 'all'
     ? daControllerPersonId : null;
-  const fonte=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(buscaClienteConteudos.toLocaleLowerCase('pt-BR'))))
+  // Direção V2 (prancha V2-M-Producao-Grupos): no mundo, Grupos da Produção é a tabela de um grupo por vez, e a busca
+  // da coluna de consulta acha também pelo nome do conteúdo e pelo ID.
+  const gruposV2 = quadro === 'producao' && !forcar && !emprestadaAoDa(cfg.alvo) && typeof pv2GruposHtml === 'function' && typeof pv2Ligado === 'function' && pv2Ligado();
+  const termoDaBusca = String(buscaClienteConteudos || '').toLocaleLowerCase('pt-BR');
+  const fonte=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(termoDaBusca)) || (gruposV2 && (String(i.nome || '').toLocaleLowerCase('pt-BR').includes(termoDaBusca) || String(i.id).toLocaleLowerCase('pt-BR').includes(termoDaBusca))))
     .filter(i=>!pessoaDoDa || assignedIds(i).includes(pessoaDoDa));
   if (typeof garantirGruposDoPainel === 'function') garantirGruposDoPainel();
   const grupos = itensPorGrupo(fonte, cfg.ordem());
@@ -2448,6 +2458,8 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   if (botao) botao.setAttribute('aria-expanded', String(aberta));
   if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
+  wrap.classList.toggle('d3m-a-v2', gruposV2);
+  if (gruposV2) { wrap.innerHTML = pv2GruposHtml({ grupos, quadro }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
 
   const peca = (n) => quadro === 'demandas'
     ? (n === 1 ? 'solicitação' : 'solicitações')

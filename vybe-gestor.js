@@ -1871,6 +1871,10 @@ function pv2PintarTroca() {
   const itens = [...document.querySelectorAll('#vv-sub-producao :is(button,a)')].filter((b) => (b.textContent || '').trim());
   pop.innerHTML = itens.map((b, i) => `<button type="button" data-troca="${i}"${b.dataset.submodulo === 'gestor' ? ' aria-current="page"' : ''}>${safeText((b.querySelector('b,span')?.textContent || b.textContent || '').trim())}</button>`).join('') || '<span class="pv2-pop-rot">Use o menu lateral para trocar de tela.</span>';
   pop.querySelectorAll('[data-troca]').forEach((bt) => bt.addEventListener('click', () => itens[Number(bt.dataset.troca)]?.click()));
+  // No celular (prancha V2-M-Producao-Celular) a fileira das vistas sai do topo: elas moram neste menu, em cima das telas.
+  const vistaAgora = document.body.dataset.pv2Vista || 'semana';
+  pop.insertAdjacentHTML('afterbegin', '<span class="pv2-pop-rot d3m-a-cel">Vista</span>' + [['semana', 'Semana'], ['mes', 'Mês'], ['feed', 'Feed'], ['grupos', 'Grupos'], ['equipe', 'Equipe']]
+    .map(([v, rot]) => `<button type="button" class="d3m-a-cel" data-vista-cel="${v}"${v === vistaAgora ? ' aria-current="true"' : ''} onclick="document.querySelector('#pv2-vistas [data-vista=&quot;${v}&quot;]')?.click()">${rot}</button>`).join('') + '<span class="pv2-pop-rot d3m-a-cel">Telas da Produção</span>');
 }
 // Foto do cliente (a do perfil do Instagram, quando o Feed já leu) ou as iniciais.
 function pv2Foto(nome) {
@@ -1913,12 +1917,15 @@ function pv2Montar() {
         <button type="button" role="radio" data-vista="grupos" onclick="toggleVisaoDeGrupos()" title="Conteúdos divididos pelos grupos do quadro">Grupos</button>
         <button type="button" role="radio" data-vista="equipe" onclick="mostrarEquipeDaSemana(document.getElementById('ops-equipe-btn'))" title="Carga de cada pessoa e distribuição por formato na semana">Equipe</button>
       </span>
+      <span class="d3m-a-feed-ctl" id="pv2-feed-ctl"></span>
       <label class="pv2-oculto" for="pv2-busca">Buscar peça ou cliente</label>
       <input id="pv2-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar peça ou cliente" oninput="const t=this.value;this.value='';handleGlobalSearch(t)" hidden tabindex="-1">
       <button type="button" class="d3m-ico" id="pv2-busca-bt" onclick="typeof abrirSpotlight==='function'?abrirSpotlight(''):document.querySelector('[data-ferr=busca]')?.click()" aria-label="Buscar peça ou cliente" title="Buscar peça ou cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></button>
+      <button type="button" class="d3m-ico d3m-a-cel" id="pv2-filtros-bt" onclick="event.stopPropagation();pv2FiltrosNoCelular()" aria-label="Filtros e modos de ver a semana" title="Filtros e modos de ver a semana"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button>
       <button type="button" class="pv2-btn d3p-novo" onclick="typeof openCadastrosGoverned==='function'?openCadastrosGoverned({board:'producao'}):openCadastrosStation()">${D3P_MAIS}Novo conteúdo</button></div>
     <aside class="d3m-lado" id="pv2-lado" aria-label="Consulta">
       <div class="pv2-alto" id="pv2-alto"></div>
+      <div class="d3m-a-lado-v" id="pv2-lado-v"></div>
       <div id="pv2-carga"></div>
       <div id="pv2-trava"></div>
       <details class="pv2-menu d3m-modos" id="pv2-modos"><summary class="d3m-vlin" title="Fechamento do dia, mesa de comando, modo reunião e carga da equipe"><span><b>Modos</b> · fechamento, mesa e reunião</span>${PV2_IC.depois}</summary>
@@ -2014,7 +2021,7 @@ function pv2PintarAlto(n) {
   // A linha do topo: o dia, a semana e as prontas do mês.
   const ds = typeof getDiasSemana === 'function' && typeof currentWeek !== 'undefined' ? getDiasSemana(currentWeek) : [];
   const linhaTopo = `${d3pDataDeHoje()}${ds.length ? ` · semana de ${Number(ds[0].iso.slice(8, 10))} a ${Number(ds[ds.length - 1].iso.slice(8, 10))}` : ''} · ${n.feitas} de ${n.total} prontas`;
-  const dataEl = document.getElementById('pv2-data'); if (dataEl && dataEl.textContent !== linhaTopo) dataEl.textContent = linhaTopo;
+  pv2Vista.semana = { linha: linhaTopo };
   pv2Totais.poucosPosts = n.poucosPosts;
   pv2PintarControles();
 }
@@ -2040,6 +2047,7 @@ function pv2PintarControles() {
   document.getElementById('pv2-semana')?.toggleAttribute('hidden', vista === 'equipe');
   // A vista aberta fica no body: a janela de vidro, a régua, o pé e a coluna de consulta são da vista Semana.
   if (document.body.dataset.pv2Vista !== vista) document.body.dataset.pv2Vista = vista;
+  pv2PintarVista(vista);
 }
 // "Filtros" acende quando há recorte ligado lá dentro (ou o Arquivo aberto).
 function pv2PintarFiltroAtivo() {
@@ -2067,7 +2075,7 @@ function pv2PintarSemana() {
   const li = pilulasDeSemana(), at = document.getElementById(`tab-s${currentWeek}-label`), ix = li.indexOf(at);
   pv2Trocar(document.getElementById('pv2-regua'), `<button type="button" class="d3m-regua-seta" data-passo="-1" onclick="passarSemana(-1)" aria-label="Semana anterior"${ix <= 0 ? ' disabled' : ''}>${PV2_IC.antes}</button>`
     + dias.map((d) => { const t = doDia(d.iso), pct = t.total ? Math.round(t.feitas * 100 / t.total) : 0;
-      return `<button type="button" class="d3m-dia${modoAgora === 'dia' && d.iso === escolhido ? ' d3m-on' : ''}" data-dia="${d.iso}" onclick="pv2EscolherDia('${d.iso}')" title="Ver ${nomeDia(d.iso)}" aria-label="${nomeDia(d.iso)}: ${t.feitas} de ${t.total} prontas${modoAgora === 'dia' && d.iso === escolhido ? ', dia escolhido' : ''}"><span><b>${nomeDia(d.iso)}</b>${d.iso === hojeIso ? '<small>hoje</small>' : ''}</span><span><b class="d3m-dia-n">${t.feitas}<small> / ${t.total}</small></b><i class="d3m-dia-b" style="--v:${pct}%"><i></i></i></span></button>`; }).join('')
+      return `<button type="button" class="d3m-dia${modoAgora === 'dia' && d.iso === escolhido ? ' d3m-on' : ''}" data-dia="${d.iso}" onclick="pv2EscolherDia('${d.iso}')" title="Ver ${nomeDia(d.iso)}" aria-label="${nomeDia(d.iso)}: ${t.feitas} de ${t.total} prontas${modoAgora === 'dia' && d.iso === escolhido ? ', dia escolhido' : ''}"><span><b><i class="d3m-a-dsem">${nomeDia(d.iso).split(' ')[0]}</i> ${Number(d.iso.slice(8, 10))}</b>${d.iso === hojeIso ? '<small>hoje</small>' : ''}</span><span><b class="d3m-dia-n">${t.feitas}<small> / ${t.total}</small></b><i class="d3m-dia-b" style="--v:${pct}%"><i></i></i></span></button>`; }).join('')
     + `<button type="button" class="d3m-regua-seta" data-passo="1" onclick="passarSemana(1)" aria-label="Próxima semana"${ix < 0 || ix >= li.length - 1 ? ' disabled' : ''}>${PV2_IC.depois}</button>`
     + (at?.classList.contains('e-hoje') ? '' : '<button type="button" class="d3m-regua-hoje" id="pv2-semana-hoje" onclick="semanaDeHoje()">Hoje</button>'));
   const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`), i = lista.indexOf(atual);
@@ -2077,6 +2085,14 @@ function pv2PintarSemana() {
   const t = pv2Totais[currentWeek];
   pv2Trocar(document.getElementById('pv2-abas'), modo === 'cliente' || !t || panelMode !== 'gestor' ? '' : [['social', 'Redes'], ['demandas', 'Demandas'], ['pendencias', 'Pendências']]
     .map(([id, nome]) => `<button type="button" role="radio" aria-checked="${abaDaSemana === id}" onclick="escolherAbaDaSemana(${currentWeek},'${id}')">${nome} ${t[id]}</button>`).join('<i aria-hidden="true">·</i>'));
+}
+// No celular, Redes/Demandas/Pendências, Por dia/Por cliente/Grade e os Filtros ficam recolhidos atrás do ícone do topo.
+function pv2FiltrosNoCelular() {
+  const menu = document.getElementById('pv2-filtros-menu'); if (!menu) return;
+  if ((document.body.dataset.pv2Vista || 'semana') !== 'semana') mostrarAgendaDaSemana();
+  menu.open = !menu.open;
+  document.getElementById('pv2-filtros-bt')?.setAttribute('aria-expanded', String(menu.open));
+  if (menu.open) document.getElementById('pv2-semana')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function pv2Modo(modo) {
   const botao = document.getElementById('btn-view-day');
@@ -2098,6 +2114,261 @@ function pv2PoucosPosts() {
   if (sortCritico && viewMode !== 'client') pv2Modo('cliente');
   mostrarAgendaDaSemana();
   pv2PintarControles();
+}
+
+// ----- Direção V2: as outras vistas da Produção (pranchas V2-M-Producao-Mes, -Grupos, -Equipe e V2-M-Feed, 16/11/2026) -----
+// A janela, o topo e a coluna de consulta são os mesmos da Semana. Cada vista guarda aqui o que conta (a linha embaixo do
+// título e a coluna de consulta) e desenha a própria folha no lugar de sempre (#manager-calendar, #grupos-board,
+// #panel-team, #feed-board), com as mesmas funções de antes.
+const pv2Vista = { semana: null, mes: null, grupos: null, equipe: null, feed: null };
+const pv2Pl = (q, um, varios) => (q === 1 ? um : varios);
+const PV2_DIAS_CURTOS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+function pv2HojeIso() { return (typeof HOJE_ISO !== 'undefined' && HOJE_ISO) || (typeof META !== 'undefined' && META.today_iso) || new Date().toISOString().slice(0, 10); }
+// O cartão laranja da coluna de consulta (o único laranja cheio da tela) e as linhas de vidro embaixo dele.
+function pv2Laranja({ quem, agente = 'H', numero = '', titulo, apoio = '', botoes = '', rotulo = 'O que pede ação agora' }) {
+  return `<section class="d3-acao d3p-acao d3m-laranja" aria-label="${safeText(rotulo)}"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${safeText(agente)}</span>${safeText(quem)}</span>
+      <span class="d3m-lar-txt">${numero !== '' ? `<b class="d3m-lar-num">${safeText(String(numero))}</b>` : ''}<span class="d3-acao-frase">${safeText(titulo)}</span>${apoio ? `<small>${safeText(apoio)}</small>` : ''}</span>${botoes ? `<span class="d3m-lar-bts">${botoes}</span>` : ''}</section>`;
+}
+function pv2Cons(titulo, nota, corpo) {
+  return `<section class="d3m-cons" aria-label="${safeText(titulo)}"><div class="d3m-cons-cab"><b>${safeText(titulo)}</b><span>${safeText(nota || '')}</span></div>${corpo}</section>`;
+}
+// Escolha e chave nas peças V2 usam aria-checked (role="radio" ou "switch"): a folha antiga pinta de preto, com força, todo
+// botão com aria-pressed, aria-selected ou .active dentro de módulo.
+function pv2Vlin(html, acao, dica = '', extra = '') {
+  return `<button type="button" class="d3m-vlin" onclick="${acao}"${dica ? ` title="${safeText(dica)}"` : ''}${extra}><span>${html}</span>${PV2_IC.depois}</button>`;
+}
+// A linha embaixo do título e a coluna de consulta da vista aberta.
+function pv2PintarVista(vista) {
+  const v = vista || document.body.dataset.pv2Vista || 'semana', d = pv2Vista[v];
+  const dataEl = document.getElementById('pv2-data');
+  if (dataEl && d?.linha && dataEl.textContent !== d.linha) dataEl.textContent = d.linha;
+  const lado = document.getElementById('pv2-lado-v');
+  if (lado) pv2Trocar(lado, v === 'semana' ? '' : d?.lado || '');
+}
+
+// MÊS (prancha V2-M-Producao-Mes): o mês inteiro numa folha. Cada dia diz quantas peças tem e quantas estão prontas;
+// dia que já passou com peça aberta fica em vermelho. Clicar no dia abre a lista dele (a de sempre, onde a peça abre e
+// muda de data); dia vazio cadastra. Na coluna de consulta: o laranja com as vencidas do mês, as carteiras (o mesmo
+// recorte Todos, Viniceta e Galeguinho), o que ficou fora do feed, a esteira e as datas comemorativas.
+function pv2MesHtml({ meta, grouped, clients, semCarteira, escolhido }) {
+  const hoje = pv2HojeIso();
+  const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(meta.first);
+  const doMes = meta.cells.filter((c) => c.inMonth);
+  let total = 0, prontas = 0, vencidas = 0, primeiroVencido = '', ultimoVencido = '', comemorativas = 0;
+  const datas = window.VybeDatas?.pronto?.() ? window.VybeDatas : null;
+  const semanas = [];
+  for (let i = 0; i < meta.cells.length; i += 7) { const s = meta.cells.slice(i, i + 7); if (s.some((c) => c.inMonth)) semanas.push(s); }
+  const celulas = semanas.flat().map((cell) => {
+    if (!cell.inMonth) return '<span class="d3m-a-dia fora" aria-hidden="true"></span>';
+    const itens = grouped.get(cell.iso) || [], n = itens.length, ok = itens.filter(atividadeDoDiaConcluida).length, abertas = n - ok;
+    const venceu = cell.iso < hoje && abertas > 0, eHoje = cell.iso === hoje;
+    total += n; prontas += ok;
+    if (venceu) { vencidas += abertas; if (!primeiroVencido) primeiroVencido = cell.iso; ultimoVencido = cell.iso; }
+    const doDia = datas ? datas.doDia(cell.iso) : [];
+    if (doDia.length) comemorativas += 1;
+    const nota = eHoje ? 'hoje' : doDia.length ? String(doDia[0].nome).split(/ \u2014 | - /)[0] : '';
+    const dia = cell.date.getDate(), pct = n ? Math.round(ok * 100 / n) : 0;
+    const conta = !n ? '' : venceu ? `<span class="d3m-a-dia-n r"><b>${abertas}</b> <span>${pv2Pl(abertas, 'vencida', 'vencidas')}</span></span>` : `<span class="d3m-a-dia-n"><b>${ok}</b> / ${n} <span>${pv2Pl(n, 'pronta', 'prontas')}</span></span>`;
+    const fala = `${dia} de ${nomeMes}${eHoje ? ', hoje' : ''}${doDia.length ? `, ${doDia[0].nome}` : ''}: ${!n ? 'sem peças, cadastrar neste dia' : venceu ? `${abertas} ${pv2Pl(abertas, 'vencida', 'vencidas')} de ${n}` : `${ok} de ${n} ${pv2Pl(n, 'pronta', 'prontas')}`}`;
+    return `<button type="button" class="d3m-a-dia${eHoje ? ' hoje' : ''}${venceu ? ' venc' : ''}${n ? '' : ' vazio'}" data-date="${cell.iso}"${previaDoDiaAttrs(itens, planningDateBr(cell.iso).slice(0, 5))} onclick="${n ? `abrirDiaDoCalendario(event,'${cell.iso}')` : `managerCalendarAdd('${cell.iso}')`}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)" aria-label="${safeText(fala)}" title="${n ? 'Ver as peças deste dia' : 'Cadastrar neste dia'}">`
+      + `<span class="d3m-a-dia-topo"><b>${dia}</b><small>${safeText(nota)}</small></span>`
+      + `<span class="d3m-a-dia-pe">${conta}${n ? `<i class="d3m-a-dia-b${venceu ? ' r' : ''}" style="--v:${pct}%"><i></i></i>` : ''}</span></button>`;
+  }).join('');
+  const noMesAtual = !Number(MONTH_OFFSET || 0);
+  const titulo = managerCalendarLabel(meta);
+  const recorte = escolhido?.rotulo || 'Todos os clientes';
+  // O que a coluna de consulta e a linha do topo contam.
+  const diaDe = (iso) => Number(iso.slice(8, 10));
+  const faixa = !vencidas ? '' : primeiroVencido === ultimoVencido ? `do dia ${diaDe(primeiroVencido)}` : `de ${diaDe(primeiroVencido)} a ${diaDe(ultimoVencido)}`;
+  const linha = `${nomeMes} de ${meta.year} · ${total} ${pv2Pl(total, 'peça', 'peças')} · ${prontas} ${pv2Pl(prontas, 'pronta', 'prontas')}${vencidas ? ` · ${vencidas} ${pv2Pl(vencidas, 'vencida', 'vencidas')} ${faixa}` : ''}`;
+  const laranja = vencidas
+    ? pv2Laranja({ quem: 'Heitor · o mês até aqui', numero: vencidas, titulo: `${pv2Pl(vencidas, 'vencida', 'vencidas')} ${faixa} de ${nomeMes}`, apoio: 'Em vermelho, o dia ainda tem peça aberta.',
+      botoes: `<button type="button" class="d3m-btn l" onclick="abrirDoResumo('hoje')">${vencidas === 1 ? 'Ver a vencida' : `Ver as ${vencidas}`}</button><button type="button" class="d3m-btn l s" onclick="abrirDiaDoCalendario(event,'${primeiroVencido}')" title="Abre o dia mais antigo com peça aberta: cada peça abre e muda de data">Dia mais antigo</button>` })
+    : pv2Laranja({ quem: 'Heitor · o mês até aqui', numero: total ? prontas : '', titulo: total ? `de ${total} ${pv2Pl(total, 'peça pronta', 'peças prontas')} em ${nomeMes}` : `Nenhuma peça em ${nomeMes}`, apoio: total ? 'Nenhum dia para trás com peça aberta.' : 'Clique em um dia para cadastrar.',
+      botoes: `<button type="button" class="d3m-btn l" onclick="managerCalendarAdd('${noMesAtual ? hoje : doMes[0].iso}')">Cadastrar</button>` });
+  const maior = Math.max(1, semCarteira.length);
+  const carteira = (rot, n, on, acao, cls, dica) => `<button type="button" class="d3m-a-cart${on ? ' on' : ''}" role="radio" aria-checked="${Boolean(on)}" onclick="${acao}" title="${safeText(dica)}"><span>${safeText(rot)}</span><i class="d3m-a-cart-b${cls}" style="--v:${Math.round(n * 100 / maior)}%"><i></i></i><b>${n}</b></button>`;
+  const carteiras = pv2Cons('Carteiras', 'peças no mês', `<div class="d3m-a-caixa" role="radiogroup" aria-label="Carteira">${carteira('Todos', semCarteira.length, managerCalendarClientFilter === 'all' && filtroCarteira === 'all', 'managerCalendarTodos()', '', 'Todos os clientes')
+    + CARTEIRAS_DA_AGENDA.map(({ id, apelido, dono }) => carteira(apelido, semCarteira.filter((item) => clientesDoItem(item).some((nome) => carteiraDoCliente(nome) === id)).length, filtroCarteira === id, `managerCalendarSetCarteira('${id}')`, ` c-${safeText(id)}`, filtroCarteira === id ? 'Voltar para todos os clientes' : `Só os clientes de ${dono}`)).join('')}</div>`);
+  const fora = FORA_DO_FEED_NO_MES ? pv2Cons('Fora do feed', '', pv2Vlin(`<b>${FORA_DO_FEED_NO_MES} ${pv2Pl(FORA_DO_FEED_NO_MES, 'solicitação', 'solicitações')}</b> · ${MOSTRAR_FORA_DO_FEED ? 'aparecendo no mês' : pv2Pl(FORA_DO_FEED_NO_MES, 'não vai para o feed', 'não vão para o feed')}`, 'alternarForaDoFeed()', MOSTRAR_FORA_DO_FEED ? 'Esconder de novo as solicitações que não vão para o feed' : 'Mostrar mesmo assim no calendário', ` role="switch" aria-checked="${Boolean(MOSTRAR_FORA_DO_FEED)}"`)) : '';
+  const abrir = pv2Cons('Abrir', '', pv2Vlin('<b>A esteira do mês</b>', "switchBoard('demandas',document.getElementById('btn-board-demandas'))", 'Abrir a esteira de solicitações')
+    + pv2Vlin(`<b>Datas comemorativas</b>${comemorativas ? ` · ${comemorativas} em ${safeText(nomeMes)}` : ''}`, "typeof abrirCalendarioSazonal==='function'&&abrirCalendarioSazonal()", 'Abrir o calendário de datas comemorativas')
+    + pv2Vlin('<b>Cliente master</b> · o cadastro do cliente', 'managerCalendarOpenClientMaster()', 'Abrir o cadastro do cliente escolhido'));
+  pv2Vista.mes = { linha, lado: laranja + carteiras + fora + abrir };
+  return `<section class="d3m-a-folha d3m-a-mes" aria-label="Calendário de ${safeText(titulo)}">
+      <div class="d3m-a-cab"><h3><span class="manager-calendar-month-label">${safeText(titulo)}</span> <span>· ${total} ${pv2Pl(total, 'peça', 'peças')}</span></h3>
+        <span class="d3m-a-setas" role="group" aria-label="Trocar de mês"><button type="button" class="d3v-btn txt ico s" onclick="managerCalendarGoMonth(-1)" aria-label="Mês anterior" title="Mês anterior">${PV2_IC.antes}</button><button type="button" class="d3v-btn txt ico s" onclick="managerCalendarGoMonth(1)" aria-label="Próximo mês" title="Próximo mês">${PV2_IC.depois}</button>${noMesAtual ? '' : '<button type="button" class="d3v-btn txt s manager-calendar-hoje" onclick="managerCalendarGoToday()">Hoje</button>'}</span>
+        <span class="d3m-a-seg" role="radiogroup" aria-label="Data de referência"><button type="button" role="radio" aria-checked="${dateMode === 'veiculacao'}" onclick="managerCalendarSetDateMode('veiculacao')">Veiculação</button><button type="button" role="radio" aria-checked="${dateMode === 'prazo'}" onclick="managerCalendarSetDateMode('prazo')">Prazo</button></span>
+        <i class="d3m-a-div" aria-hidden="true"></i>
+        <button type="button" class="d3m-a-filtro${managerCalendarClientFilter === 'all' && filtroCarteira === 'all' ? '' : ' tem'}" onclick="abrirBuscaDeCliente(event)" title="Escolher ou buscar cliente (${clients.length} com atividade)">${safeText(recorte)}</button></div>
+      <div class="d3m-a-mes-sem" aria-hidden="true">${PV2_DIAS_CURTOS.map((d) => `<span>${d}</span>`).join('')}</div>
+      <div class="d3m-a-mes-grade" style="--linhas:${semanas.length}">${celulas}</div></section>`;
+}
+
+// GRUPOS (prancha V2-M-Producao-Grupos): a tabela crua, um grupo por vez. O grupo se escolhe na coluna de consulta; a
+// folha mostra as linhas dele com as colunas de conferir (ID, conteúdo, cliente, formato, status, prazo, no ar e quem) e
+// guarda as outras seis atrás de "Colunas". Cada célula é o mesmo editor de sempre (clientes, formato, status, datas,
+// responsável); "Marcar várias" liga as caixas e a barra de lote; o menu do grupo (renomear, cor, ordem, apagar) fica na
+// cabeça da folha.
+let pv2GruposSel = '', pv2GruposFiltro = 'todos', pv2GruposColunas = false, pv2GruposLote = false;
+const PV2_GRUPOS_EXTRAS = ['captacao', 'tipo_conteudo', 'off_audio', 'prioridade'];
+const pv2GruposRedesenha = () => renderVisaoDeGrupos('producao');
+function pv2GruposEscolher(id) { pv2GruposSel = String(id); pv2GruposRedesenha(); }
+function pv2GruposFiltrar(f) { pv2GruposFiltro = f; pv2GruposRedesenha(); }
+function pv2GruposAlternar(qual) {
+  if (qual === 'colunas') pv2GruposColunas = !pv2GruposColunas;
+  if (qual === 'lote') { pv2GruposLote = !pv2GruposLote; if (!pv2GruposLote && SELECIONADAS.size && typeof limparSelecao === 'function') limparSelecao(); }
+  pv2GruposRedesenha();
+}
+const pv2GrupoVencida = (i, hoje) => Boolean(i.veiculacao_iso) && i.veiculacao_iso < hoje && !atividadeDoDiaConcluida(i);
+// A tabela do grupo em arquivo (CSV com ponto e vírgula, que a planilha abre direto): o que está na lista, no recorte.
+function pv2GruposExportar() {
+  const d = pv2Vista.grupos?.exporta; if (!d || !d.itens.length) return;
+  const cel = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const linhas = [['ID', 'Conteúdo', 'Cliente', 'Formato', 'Status', 'Prazo', 'Veiculação', 'Responsável'].map(cel).join(';')]
+    .concat(d.itens.map((i) => [i.id, i.nome, clientesDoItem(i).join(', '), i.formato, i.status, i.prazo_iso, i.veiculacao_iso, String(i.responsavel || '').replace('—', '')].map(cel).join(';')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+  a.download = `${String(d.nome || 'grupo').toLowerCase().replace(/[^a-z0-9à-ú]+/gi, '-')}.csv`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function pv2GrupoLinha(item, { lote, extras, hoje }) {
+  const parar = 'event.stopPropagation()', id = jsArg(item.id), marcada = SELECIONADAS.has(String(item.id));
+  const nome = String(item.nome || 'Sem título'), corte = nome.indexOf(' - ');
+  const titulo = corte > 0 ? `<b>${safeText(nome.slice(0, corte))}</b> · ${safeText(nome.slice(corte + 3))}` : `<b>${safeText(nome)}</b>`;
+  const data = (campo, iso, atrasado) => `<label class="d3m-a-data${atrasado ? ' r' : ''}"><span>${iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data'}</span><input type="date" class="grupo-data-campo${atrasado ? ' is-late' : ''}" value="${safeText(iso || '')}" onclick="${parar};if(this.showPicker)try{this.showPicker()}catch(e){}" onchange="${parar};salvarDataNaLinha('${item.id}','${campo}',this)" title="${campo === 'prazo' ? 'Prazo de produção' : 'Data de veiculação'}" aria-label="${campo === 'prazo' ? 'Prazo de produção' : 'Data de veiculação'} de ${safeText(nome)}"></label>`;
+  const escolha = (campo) => `<td onclick="${parar}">${pillEditavel(item, campo)}</td>`;
+  const cad = extras ? cadastroDaPeca(item) : null;
+  return `<tr class="${marcada ? 'marcada' : ''}${typeof pv2Chegou === 'function' ? pv2Chegou(item) : ''}" onclick="openItemWorkspace('${id}')" title="Abrir ${safeText(nome)}">`
+    + (lote ? `<td class="grupo-marcar" onclick="${parar}"><input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(nome)}" onclick="${parar};alternarSelecao('${id}',this.checked,event)"></td>` : '')
+    + `<td class="grupo-id" onclick="${parar};copiarId('${id}')" title="ID da atividade · clique para copiar">${safeText(item.id)}</td>`
+    + `<td class="d3m-a-g-nome"><span>${titulo}</span>${botaoDePreviaNaLinha(item)}</td>`
+    + `<td class="d3m-a-g-cli" onclick="${parar}">${pv2Foto(clientesDoItem(item)[0] || '')}${botaoClientesDoItem(item)}</td>`
+    + escolha('formato')
+    + `<td data-label="Status" onclick="${parar}">${pv2StatusBotao(item)}</td>`
+    + `<td data-label="Prazo" onclick="${parar}">${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>`
+    + `<td data-label="No ar" onclick="${parar}">${data('veiculacao', item.veiculacao_iso, pv2GrupoVencida(item, hoje))}</td>`
+    + `<td class="d3m-a-g-quem" onclick="${parar}">${pv2Av(item)}</td>`
+    + (extras ? PV2_GRUPOS_EXTRAS.map(escolha).join('') + `<td class="grupo-cadastro">${safeText(cad.quem)}</td><td class="grupo-cadastro grupo-cadastro-data">${safeText(cad.quando)}</td>` : '')
+    + '</tr>';
+}
+function pv2GruposHtml({ grupos, quadro }) {
+  const hoje = pv2HojeIso(), comPecas = grupos.filter((g) => g.itens.length);
+  if (!grupos.some((g) => g.id === pv2GruposSel)) pv2GruposSel = (comPecas[0] || grupos[0])?.id || '';
+  const grupo = grupos.find((g) => g.id === pv2GruposSel) || { id: '', nome: 'Sem grupo', itens: [] };
+  const total = grupos.reduce((s, g) => s + g.itens.length, 0);
+  const semDono = grupo.itens.filter(pv2SemDono), vencidas = grupo.itens.filter((i) => pv2GrupoVencida(i, hoje));
+  const recorte = pv2GruposFiltro === 'semdono' ? semDono : pv2GruposFiltro === 'vencidas' ? vencidas : grupo.itens;
+  const todos = gruposExpandidos.has(grupo.id), visiveis = todos ? recorte : recorte.slice(0, LINHAS_POR_GRUPO), restam = recorte.length - visiveis.length;
+  const lote = pv2GruposLote || SELECIONADAS.size > 0, extras = pv2GruposColunas;
+  const th = (campo, rotulo) => { const on = ORDEM.campo === campo; return `<th${on ? ` aria-sort="${ORDEM.desc ? 'descending' : 'ascending'}"` : ''}><button type="button" class="d3m-a-th${on ? ' on' : ''}" onclick="ordenarPor('${campo}')" title="Ordenar por ${rotulo}${on ? (ORDEM.desc ? ' (maior para menor)' : ' (menor para maior)') : ''}">${rotulo}${on ? `<i aria-hidden="true">${ORDEM.desc ? '↓' : '↑'}</i>` : ''}</button></th>`; };
+  const todasMarcadas = recorte.length > 0 && recorte.every((i) => SELECIONADAS.has(String(i.id)));
+  const cabeca = (lote ? `<th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''} aria-label="Selecionar tudo em ${safeText(grupo.nome)}" onchange="selecionarGrupo('${jsArg(grupo.id)}',this.checked,'${quadro}')"></th>` : '')
+    + th('id', 'ID') + th('nome', 'Conteúdo') + th('cliente', 'Cliente') + th('formato', 'Formato') + th('status', 'Status') + th('prazo_iso', 'Prazo') + th('veiculacao_iso', 'No ar') + th('responsavel', 'Quem')
+    + (extras ? th('captacao', 'Captação') + th('tipo_conteudo', 'Tipo') + th('off_audio', 'OFF') + th('prioridade', 'Prioridade') + th('cadastrado_por', 'Cadastrou') + th('criado_em', 'Quando') : '');
+  const fil = (id, rotulo, n, tom) => `<button type="button" role="radio" aria-checked="${pv2GruposFiltro === id}" onclick="pv2GruposFiltrar('${id}')">${rotulo} <b${tom && n ? ` class="${tom}"` : ''}>${n}</b></button>`;
+  const editavel = typeof grupoEditavelNaTela === 'function' && grupoEditavelNaTela(quadro, grupo.id);
+  const corpo = !grupo.itens.length ? `<p class="d3v-estado"><b>Nenhuma peça neste grupo.</b>${buscaClienteConteudos ? 'A busca não encontrou nada aqui.' : 'Use o + para cadastrar a primeira.'}</p>`
+    : !recorte.length ? `<p class="d3v-estado"><b>${pv2GruposFiltro === 'semdono' ? 'Todas as peças deste grupo têm responsável.' : 'Nenhuma peça vencida neste grupo.'}</b></p>`
+    : `<div class="d3m-a-g-rola"><table class="d3m-a-g-tab grupo-tabela${extras ? ' larga' : ''}"><thead><tr>${cabeca}</tr></thead><tbody>${visiveis.map((i) => pv2GrupoLinha(i, { lote, extras, hoje })).join('')}</tbody></table></div>`;
+  // A coluna de consulta: os grupos, a busca, o que esta aba é e o trabalho em lote.
+  const mesTxt = (() => { try { return new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(managerCalendarMonthMeta().first); } catch { return ''; } })();
+  const linha = `conteúdos por grupo · ${total} ${pv2Pl(total, 'peça', 'peças')}${mesTxt ? ` em ${mesTxt}` : ''} · ${comPecas.length} ${pv2Pl(comPecas.length, 'grupo com peças', 'grupos com peças')}`;
+  const lista = `<div class="d3m-a-grupos" role="radiogroup" aria-label="Grupos">${grupos.map((g) => `<button type="button" class="d3m-vlin d3m-a-grupo${g.id === grupo.id ? ' on' : ''}" role="radio" aria-checked="${g.id === grupo.id}" data-grupo="${safeText(g.id)}" onclick="pv2GruposEscolher('${jsArg(g.id)}')"><span><b>${safeText(g.nome)}</b></span><b class="d3m-vn">${g.itens.length}</b></button>`).join('')}${typeof botaoNovoGrupoNoFim === 'function' ? botaoNovoGrupoNoFim(quadro) : ''}</div>`;
+  const busca = `<label class="d3m-a-busca"><span class="pv2-oculto">Buscar por cliente, conteúdo ou ID</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><input id="busca-cliente-conteudos" type="search" autocomplete="off" placeholder="por cliente, conteúdo ou ID" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label>`;
+  const lado = pv2Cons('Grupos', `${total} ${pv2Pl(total, 'peça', 'peças')}`, lista) + pv2Cons('Buscar', '', busca)
+    + `<section class="d3m-cons d3m-a-nota-v"><div class="d3m-cons-cab"><b>Esta aba é a tabela crua</b></div><p>Serve para conferir e corrigir em lote. Para trabalhar o dia, a Semana mostra só o que publica.</p></section>`
+    + pv2Cons('Em lote', '', pv2Vlin('<b>Marcar várias</b> · mudar data, dono ou status', "pv2GruposAlternar('lote')", lote ? 'Esconder as caixas de marcar' : 'Mostrar as caixas de marcar', ` role="switch" aria-checked="${lote}"`)
+      + pv2Vlin('<b>Exportar a tabela</b>', 'pv2GruposExportar()', 'Baixar a lista deste grupo em planilha (CSV)'));
+  pv2Vista.grupos = { linha, lado, exporta: { nome: grupo.nome, itens: recorte } };
+  return `<section class="d3m-a-folha d3m-a-gr" data-grupo="${safeText(grupo.id)}" data-quadro="${quadro}" data-previa-sequencia="${safeText(grupo.nome)}" aria-label="Grupo ${safeText(grupo.nome)}">
+      <div class="d3m-a-cab"><h3><span${editavel ? ` ondblclick="renomearGrupoPeloNome(event,'${quadro}','${jsArg(grupo.id)}')" title="Clique duplo para renomear"` : ''}>${safeText(grupo.nome)}</span> <span>· ${grupo.itens.length} ${pv2Pl(grupo.itens.length, 'peça', 'peças')}</span></h3>
+        <span class="d3m-a-setas">${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome) : ''}<button type="button" class="d3v-btn txt ico s grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${jsArg(grupo.id)}')" aria-label="Adicionar conteúdo em ${safeText(grupo.nome)}" title="Novo conteúdo neste grupo">${D3P_MAIS}</button></span>
+        <span class="d3m-a-seg" role="radiogroup" aria-label="Recorte do grupo">${fil('todos', 'Todos', grupo.itens.length, '')}${fil('semdono', 'Sem responsável', semDono.length, 'a')}${fil('vencidas', 'Vencidas', vencidas.length, 'r')}</span>
+        <i class="d3m-a-div" aria-hidden="true"></i>
+        <span class="d3m-a-seg"><button type="button" role="switch" aria-checked="${extras}" onclick="pv2GruposAlternar('colunas')" title="${extras ? 'Esconder as seis colunas a mais' : 'Mostrar captação, tipo, OFF, prioridade, quem cadastrou e quando'}">Colunas</button><button type="button" role="switch" aria-checked="${ORDEM.campo === 'status'}" onclick="ordenarPor('status')" title="Ordenar a lista pelo status">Por status</button></span></div>
+      ${corpo}
+      <div class="d3m-a-pe"><span>Tabela</span><span><b>${visiveis.length}</b>de ${recorte.length} na lista</span>${restam > 0 ? `<span><button type="button" class="d3v-btn txt s grupo-ver-mais" onclick="verGrupoInteiro('${jsArg(grupo.id)}')">Mostrar ${pv2Pl(restam, 'a outra', `as outras ${restam}`)}</button></span>` : ''}<span>${extras ? 'todas as colunas à mostra' : '<b>6</b>colunas escondidas: captação, tipo, off, prioridade, quem cadastrou e quando'}</span></div></section>`;
+}
+
+// EQUIPE (prancha V2-M-Producao-Equipe): a carga de cada pessoa no mês, em uma linha com a barra por etapa (prontas, em
+// produção, esperando captação, a fazer), e as peças por formato em colunas. Clicar na pessoa filtra a Produção por ela.
+// Na coluna de consulta: o laranja com o que está sem responsável, o limite da semana de cada um (os mesmos pontos da
+// Coordenação) e o atalho para a Coordenação, onde se distribui à mão.
+function pv2PodeCoordenar() {
+  try {
+    if (typeof SESSAO_ATUAL !== 'undefined' && SESSAO_ATUAL?.dono) return true;
+    const eu = String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || '');
+    return Boolean(eu) && (typeof EQUIPES !== 'undefined' ? EQUIPES.coordenacao || [] : []).map(String).includes(eu);
+  } catch { return false; }
+}
+function pv2AbrirCoordenacao() {
+  if (!window.mundoVoxel?.irPara) return;
+  window.mundoVoxel.irPara('hoje');
+  setTimeout(() => document.querySelector('[data-visao-hoje="coordenacao"]')?.click(), 250);
+}
+function pv2FiltrarPessoa(id) {
+  if (typeof filterByPerson === 'function') filterByPerson(String(id), document.querySelector(`#person-filter-bar .person-wrap[data-person-id="${CSS.escape(String(id))}"]`) || document.getElementById('person-all'));
+  mostrarAgendaDaSemana();
+}
+function pv2EquipePintar() {
+  const painel = typeof document !== 'undefined' ? document.getElementById('panel-team') : null; if (!painel) return;
+  const v2 = pv2Ligado() && panelMode === 'gestor';
+  painel.classList.toggle('d3m-a-v2', v2);
+  if (!v2) return;
+  const folha = (id, rotulo) => { let el = document.getElementById(id); if (!el) { el = document.createElement('section'); el.id = id; el.className = 'd3m-a-folha'; el.setAttribute('aria-label', rotulo); painel.append(el); } return el; };
+  const itens = (typeof DADOS !== 'undefined' ? DADOS : []).filter(itemNaCarteira);
+  const etapa = (d) => (atividadeDoDiaConcluida(d) ? 'g' : /^aguardo$|capta/i.test(String(d.status || '')) ? 'c' : /^(a fazer|pode fazer|nova demanda)$|falta/i.test(String(d.status || '')) ? 'f' : 'p');
+  const vazio = () => ({ total: 0, g: 0, p: 0, c: 0, f: 0 });
+  const porPessoa = new Map(), semDono = vazio(), fora = vazio();
+  for (const d of itens) {
+    const e = etapa(d), donos = ownerUsersFor(d);
+    const alvos = donos.length ? donos.map((u) => { const k = String(u.id); if (!porPessoa.has(k)) porPessoa.set(k, { ...vazio(), id: k, nome: firstName(u.name || ''), papel: (typeof DA_CONTROLLER_ROLES !== 'undefined' && DA_CONTROLLER_ROLES[u.id]) || '' }); return porPessoa.get(k); }) : [pv2SemDono(d) ? semDono : fora];
+    for (const a of alvos) { a.total += 1; a[e] += 1; }
+  }
+  const pessoas = [...porPessoa.values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const comDono = itens.length - semDono.total;
+  const barra = (x) => `<span class="d3m-a-eq-b" role="img" aria-label="${x.g} prontas, ${x.p} em produção, ${x.c} esperando captação e ${x.f} a fazer">${[['g', x.g], ['p', x.p], ['c', x.c], ['f', x.f]].filter(([, n]) => n).map(([k, n]) => `<i class="${k}" style="flex-grow:${n}"></i>`).join('')}</span>`;
+  const linha = (x, { av, nome, papel, acao, dica, tom = '' }) => `<button type="button" class="d3m-a-eq-lin" onclick="${acao}" title="${safeText(dica)}">${av}<span class="d3m-a-eq-nome"><b>${safeText(nome)}</b>${papel ? ` · ${safeText(papel)}` : ''}</span>${barra(x)}<span class="d3m-a-eq-pr">${x.g} ${pv2Pl(x.g, 'pronta', 'prontas')}</span><b class="d3m-a-eq-n${tom}">${x.total}</b></button>`;
+  const linhas = pessoas.map((x) => linha(x, { av: `<i class="d3m-a-eq-av" aria-hidden="true">${safeText(pv2Iniciais(x.nome))}</i>`, nome: x.nome, papel: x.papel, acao: `pv2FiltrarPessoa('${jsArg(x.id)}')`, dica: `Ver a semana só com as peças de ${x.nome}` }))
+    .concat(fora.total ? [linha(fora, { av: '<i class="d3m-a-eq-av" aria-hidden="true">…</i>', nome: 'Outras pessoas', papel: 'fora do time do painel', acao: 'mostrarAgendaDaSemana()', dica: 'Peças com responsável que não está no time do painel' })] : [])
+    .concat(semDono.total ? [linha(semDono, { av: '<i class="d3m-a-eq-av sd" aria-hidden="true">+</i>', nome: 'Sem responsável', papel: 'ninguém pegou ainda', acao: 'pv2AlternarSemDono()', dica: 'Ver na semana só as peças sem responsável', tom: ' r' })] : []);
+  const carga = folha('pv2-eq-carga', 'Carga por pessoa');
+  pv2Trocar(carga, `<div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Carga por pessoa</span> <span>· ${comDono} ${pv2Pl(comDono, 'peça', 'peças')} com dono</span></h3>
+      <span class="d3m-a-eq-leg" aria-hidden="true"><span><i class="g"></i>prontas</span><span><i class="p"></i>em produção</span><span><i class="c"></i>esperando captação</span><span><i class="f"></i>a fazer</span></span></div>
+    <div class="d3m-a-eq-lista">${linhas.join('') || '<p class="d3v-estado"><b>Nenhuma peça no mês.</b>Quando houver, a carga de cada pessoa aparece aqui.</p>'}</div>`);
+  // Por formato: colunas da mais cheia para a menos.
+  const porFmt = new Map();
+  for (const d of itens) { const f = String(d.formato || '').trim() || 'Sem formato'; porFmt.set(f, (porFmt.get(f) || 0) + 1); }
+  const fmts = [...porFmt.entries()].sort((a, b) => b[1] - a[1]), maiorFmt = Math.max(1, ...fmts.map((x) => x[1]));
+  pv2Trocar(folha('pv2-eq-formato', 'Por formato'), `<div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Por formato</span> <span>· ${itens.length} ${pv2Pl(itens.length, 'peça', 'peças')} no mês</span></h3><span class="d3v-rot">quantidade e parte do total</span></div>
+    ${fmts.length ? `<div class="d3m-a-eq-cols" role="list">${fmts.map(([f, n]) => `<div class="d3m-a-eq-col" role="listitem" aria-label="${safeText(f)}: ${n} ${pv2Pl(n, 'peça', 'peças')}, ${Math.round(n * 100 / itens.length)}% do total"><b>${n}</b><i style="--k:${Math.round(n * 100 / maiorFmt) / 100}"></i><span><span>${safeText(f)}</span><small>${Math.round(n * 100 / itens.length)}%</small></span></div>`).join('')}</div>` : '<p class="d3v-estado"><b>Nenhuma peça no mês.</b></p>'}`);
+  // A coluna de consulta.
+  const mesTxt = (() => { try { return new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(managerCalendarMonthMeta().first); } catch { return ''; } })();
+  const coord = pv2PodeCoordenar();
+  const laranja = semDono.total
+    ? pv2Laranja({ quem: 'Heitor · sem dono', numero: semDono.total, titulo: `${pv2Pl(semDono.total, 'peça do mês sem responsável', 'peças do mês sem responsável')}`, apoio: `${semDono.f ? `${pv2Pl(semDono.f, 'É 1 a fazer', `São ${semDono.f} a fazer`)}. ` : ''}Distribuir agora alivia as próximas semanas.`,
+      botoes: (coord ? '<button type="button" class="d3m-btn l" onclick="pv2AbrirCoordenacao()">Distribuir</button>' : '') + `<button type="button" class="d3m-btn l${coord ? ' s' : ''}" onclick="pv2AlternarSemDono()">${semDono.total === 1 ? 'Ver a sem dono' : `Ver as ${semDono.total}`}</button>` })
+    : pv2Laranja({ quem: 'Heitor · a carga do mês', numero: itens.length ? comDono : '', titulo: itens.length ? `${pv2Pl(comDono, 'peça com responsável', 'peças com responsável')}${mesTxt ? ` em ${mesTxt}` : ''}` : 'Nenhuma peça no mês', apoio: itens.length ? 'Nenhuma peça sem responsável.' : '',
+      botoes: coord ? '<button type="button" class="d3m-btn l" onclick="pv2AbrirCoordenacao()">Abrir a Coordenação</button>' : '' });
+  // O limite da semana de cada pessoa da criação: os mesmos pontos e o mesmo teto da Coordenação.
+  let limites = '';
+  try {
+    const C = window.VybeCoordenacao, E = typeof EQUIPES !== 'undefined' ? EQUIPES : { design: [], audiovisual: [] }, T = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+    const ids = [...new Set([...(E.design || []), ...(E.audiovisual || [])].map(String))];
+    if (C && ids.length) {
+      const av = (id) => (E.audiovisual || []).map(String).includes(id);
+      const time = ids.map((id) => ({ id, nome: (T.find((u) => String(u.id) === id) || {}).name || id, papel: '', disciplina: av(id) ? 'audiovisual' : 'design', limiteSemana: typeof daCapacitySignal === 'function' ? daCapacitySignal({ id }, []).threshold : av(id) ? 24 : 14 }));
+      const abertas = (typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : itens).filter((d) => !isFinishedItem(d) && !(typeof isRequestItem === 'function' && isRequestItem(d)));
+      const r = C.calcular({ itens: abertas, time, hoje: pv2HojeIso(), periodo: 'semana', peso: (d, u) => (typeof daEffortWeight === 'function' ? daEffortWeight(d, u) : 1) });
+      const n0 = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+      limites = pv2Cons('Limite de cada um', 'pontos da semana / limite', (r.pessoas || []).slice().sort((a, b) => b.pct - a.pct).map((p) => `<button type="button" class="d3m-vlin" onclick="pv2FiltrarPessoa('${jsArg(p.id)}')" title="${safeText(firstName(p.nome))}: ${n0(p.pontos)} de ${p.limite} pontos na semana (${p.pct}%)"><i class="d3m-pes" aria-hidden="true">${safeText(pv2Iniciais(p.nome))}</i><span class="d3m-vnome">${safeText(firstName(p.nome))}</span><span class="d3m-vbarra${p.pct > 100 ? ' r' : p.pct >= 80 ? ' a' : ''}" style="--v:${Math.min(100, p.pct)}%"><i></i></span><span class="d3m-vn"><b>${n0(p.pontos)}</b> / ${p.limite}</span></button>`).join('') || '<p class="d3m-vvazio">Sem time de criação cadastrado.</p>');
+    }
+  } catch { limites = ''; }
+  const abrir = pv2Cons('Abrir', '', (coord ? pv2Vlin('<b>Coordenação</b> · distribuir à mão, por pessoa', 'pv2AbrirCoordenacao()', 'Abrir a Coordenação no Hoje') : '')
+    + pv2Vlin('<b>Carga da semana</b> · quem tem pendência', "mostrarAgendaDaSemana();document.getElementById('ops-carga-btn')?.click()", 'Abrir a carga da equipe na semana'));
+  pv2Vista.equipe = { linha: `carga da equipe${mesTxt ? ` em ${mesTxt}` : ''} · ${itens.length} ${pv2Pl(itens.length, 'peça', 'peças')}${semDono.total ? ` · ${semDono.total} ainda sem responsável` : ''}`, lado: laranja + limites + abrir };
+  if (document.body.dataset.pv2Vista === 'equipe') pv2PintarVista('equipe');
 }
 
 // ----- a semana em colunas de dia, com o cartão que abre no lugar -----
@@ -2184,7 +2455,7 @@ function pv2CartaoHtml(d, aba) {
     <div class="pv2-pc-lin" role="button" tabindex="0" aria-expanded="${aberto}" title="Abrir no lugar. Arraste para mudar a data"
         onclick="pv2AlternarCartao('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2AlternarCartao('${id}',this)}">
       <span class="d3m-hora">${comHora ? `<span class="d3p-hora" data-hora-de="${id}"${hora ? '' : ' hidden'} title="Hora de publicação">${safeText(hora ? pv2HoraCurta(hora) : '')}</span>` : ''}</span>${pv2Foto(clientes[0])}
-      <p class="pv2-t">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</span>` : ''}<span class="d3p-peca"> · ${safeText(titulo)}</span></p>
+      <p class="pv2-t">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</span>` : ''}<span class="d3p-peca"><i class="d3m-a-sep"> · </i>${safeText(titulo)}</span></p>
       ${(() => { const et = pv2Etapas(d), vez = et.find((e) => e.daVez); return `<span class="d3m-trilha" title="${vez ? 'Etapa: ' + vez.nome : 'Publicada'}" aria-hidden="true">${et.map((e) => `<i class="${e.feita ? 'ok' : e.daVez ? 'vez' : ''}"></i>`).join('')}</span>`; })()}
       <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}">${safeText(q.texto)}</span>` : ''}</div>
       <span class="pv2-avs">${pv2Av(d)}</span>
