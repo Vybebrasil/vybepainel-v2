@@ -10,7 +10,7 @@ const gestor = ler('vybe-gestor.js'), demandas = ler('vybe-demandas.js'), capt =
 const css = ler('padrao-v2/paineis.css');
 const bloco = (js, inicio, fim) => { const a = js.indexOf(inicio); assert.ok(a >= 0, inicio); const b = fim ? js.indexOf(fim, a + 1) : js.length; return js.slice(a, b < 0 ? js.length : b); };
 const painel = bloco(gestor, '// ─── Padrão v2 · Painel de trabalho');
-const dem = bloco(demandas, '// ─── Padrão v2 · Demandas', '// ─── Padrão v2 · IA e custos');
+const dem = bloco(demandas, '// ─── Padrão V2 · Demandas', '// ─── Padrão v2 · IA e custos');
 const ia = bloco(demandas, '// ─── Padrão v2 · IA e custos');
 const agenda = bloco(capt, '// ─── Padrão v2 · Agenda e captações');
 const naOrdem = (texto, partes) => { let p = -1; for (const parte of partes) { const i = texto.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; } };
@@ -64,14 +64,16 @@ test('a semana em colunas: quatro dias à vista, cartão compacto que abre no lu
   assert.match(painel, /class="pv2-av sd" onclick="event\.stopPropagation\(\);openOwnerEditor\(event,'\$\{id\}'\)"/);
 });
 
-test('Demandas na ordem do quadro: título, Lista ou Calendário, Nova demanda, fala e dois números, fichas, Filtros, Mostrar ID, o ⋯ com Colunas e a lista', () => {
-  naOrdem(dem, ['<h2>Demandas</h2>', 'class="d3p-data"', '>Lista</button>', '>Calendário</button>', 'Nova demanda</button>', 'id="pv2d-alto"', 'placeholder="Buscar cliente ou demanda"', 'id="pv2d-chips"', 'id="pv2d-filtros-rot">Filtros</summary>', 'id="pv2d-ordenar"', 'Mostrar ID</label>', 'id="pv2d-colunas"', '>Colunas</span>', 'id="pv2d-lista"']);
-  assert.match(dem, /const PV2D_VISOES = \[\['atrasadas', 'Atrasadas'\], \['minha', 'Minha fila'\], \['sem', 'Sem responsável'\], \['semana', 'Vencem na semana'\], \['abertas', 'Todas'\]\];/);
-  naOrdem(dem, ["kpi('Abertas'", "kpi('Vencem hoje'", "kpi('Atrasadas'", "kpi('Sem dono'"]);
+// Prancha V2-M-Demandas (16/11/2026): o esqueleto mudou (uma folha por urgência e a consulta ao lado); os ids são os de antes.
+test('Demandas na ordem da prancha V2: título, Lista ou Calendário, a busca, o ⋯ (ordenar, colunas e filtros), Nova demanda, a folha com as fichas e a lista, e a consulta', () => {
+  naOrdem(dem, ['<h2>Demandas</h2>', 'class="d3p-data"', '>Lista</button>', '>Calendário</button>', 'placeholder="Buscar cliente ou demanda"', 'id="pv2d-colunas"', 'id="pv2d-ordenar"', '>Colunas</span>', 'Mostrar ID</label>', 'id="pv2d-filtros-rot">Filtros</summary>', 'Nova demanda</button>', 'id="pv2d-chips"', 'id="pv2d-lista"', 'id="pv2d-pe"', 'id="pv2d-alto"', 'id="pv2d-tipos"', 'id="pv2d-abrir"']);
+  assert.match(dem, /const PV2D_VISOES = \[\['abertas', 'Todas'\], \['minha', 'Minha fila'\], \['atrasadas', 'Atrasadas'\], \['sem', 'Sem responsável'\], \['semana', 'Na semana'\]\];/);
+  // Os quatro números viraram o pé "De olho" e a linha do dia no topo.
+  naOrdem(dem, ['<span>De olho</span>', "pl(atrasadas.length, 'atrasada', 'atrasadas')", "'sem responsável'", "pl(venceHoje.length, 'vence hoje', 'vencem hoje')", "'grupo vazio, recolhido', 'grupos vazios, recolhidos'"]);
   assert.match(dem, /Distribuir \$\{sem\.length === 1 \? 'a 1' : 'as ' \+ sem\.length\}/);
   const linha = bloco(dem, 'function pv2dLinhaHtml(', 'function pv2dPintar(');
-  naOrdem(linha, ['class="d3d-tipo"', 'class="pv2-nome"', 'class="d3d-cli"', 'class="pv2-cs"', 'class="pv2-cp"', 'class="d3d-conc"', 'class="pv2-cr"', 'class="d3d-tar', 'class="pv2-seta"', 'class="v2-mais"', 'pv2EtapasHtml(d)', "'Trocar responsável'", '>Abrir a peça</button>']);
-  naOrdem(dem, ['<span>Tipo</span>', '<span>Demanda</span>', '<span>Cliente</span>', '<span>Status</span>', '<span>Prazo</span>', '<span>Conclusão</span>', '<span>Responsável</span>', '<span>Tarefas</span>']);
+  naOrdem(linha, ['class="d3m-a-dm-q', 'class="pv2-nome"', 'class="d3d-tipo"', 'class="d3d-cli"', 'class="pv2-cs"', 'class="pv2-cp"', 'class="d3d-tar', 'class="pv2-cr"', 'class="v2-mais"', 'pv2EtapasHtml(d)', "'Trocar responsável'", '>Abrir a peça</button>']);
+  naOrdem(dem, ['<span>Demanda</span>', '<span>Cliente</span>', '<span>Status</span>', '<span>Prazo</span>', '<span>Tarefas</span>']);
   assert.match(dem, />\+ Nova aqui<\/button>/);
   assert.match(dem, /class="d3p-mais" onclick="pv2dGrupoInteiro\(/);
   assert.match(dem, /ficam recolhidos/);

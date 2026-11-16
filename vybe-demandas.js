@@ -328,6 +328,8 @@ function switchBoard(board, btn) {
   activeBoard = board;
   // O quadro aberto fica no body: a janela de vidro de cada tela V2 (padrao-v2/zm-e-*.css) é escolhida por ele.
   if (document.body && document.body.dataset.quadro !== board) document.body.dataset.quadro = board;
+  // E no data-pv2-quadro, que a prancha de Demandas (padrao-v2/zm-a-6-demandas.css) usa.
+  if (document.body) document.body.dataset.pv2Quadro = board;
   if(board==='demandas') { gruposDeDemandasAberto=true; agendaDeDemandasAberta=false; gruposDemandasRecolhidos.clear(); }
   document.querySelectorAll('.board-switch-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -1383,19 +1385,28 @@ function pesquisarOpcoesDemanda(input, id) {
   vazio.textContent = encontrados ? '' : 'Nenhuma opção encontrada.';
 }
 
-// ─── Padrão v2 · Demandas pelo quadro DEPOIS do moodboard (12/11/2026) ───────────────────────
-// A tela é o quadro, nesta ordem: título com Lista ou Calendário e Nova demanda; a fala do Heitor ao lado de dois
-// números (Atrasadas e Sem responsável); a busca, as quatro fichas (Atrasadas, Minha fila, Sem responsável, Todas),
-// Filtros e Colunas; e um cartão só com os grupos, onde a linha abre no lugar com as etapas, quem faz e o prazo.
+// ─── Padrão V2 · Demandas pela prancha V2-M-Demandas (aprovada pelo Paulo em 16/11/2026) ───────────────────
+// A janela é vidro fumê, com o esqueleto da prancha: no topo, o título (com a seta que troca de tela), a linha do dia
+// com as contas, Lista ou Calendário, a busca em ícone, o ⋯ (ordenar, colunas e os filtros de sempre) e Nova demanda;
+// no meio, UMA folha com a lista por urgência (Agora, Semana, Depois), as fichas (Todas, Minha fila, Atrasadas, Sem
+// responsável, Na semana), "Por status" e o pé "De olho"; à direita, direto no vidro, o laranja do Heitor, "Por tipo"
+// (a consulta, que também filtra) e "Abrir" (Calendário, Grupos e Mostrar o ID). A linha abre no lugar com as etapas,
+// quem faz e os botões de sempre.
 // Só vale no mundo; no tema antigo fica a tela de sempre. O que era da tela antiga segue respondendo pelos mesmos ids:
 // cabeçalho, busca antiga, visões, a tabela por grupo e as vistas de semana, dia e esteira vão para
 // #pv2-demandas-reserva (escondida); os filtros (Responsável geral, Status, Tipo, Cliente, Responsável, Conclusão ou
-// Prazo, dia), o resumo do recorte, as visões Concluídas e Tudo e a ordenação passam para dentro de Filtros.
+// Prazo, dia), o resumo do recorte, as visões Concluídas e Tudo e a ordenação ficam dentro do ⋯.
 const PV2D_POR_GRUPO = 6;
 const pv2dLinhasAbertas = new Set(), pv2dGruposInteiros = new Set();
 let pv2dMostrarVazios = false;
 let PV2D_ORDEM_VISIVEL = [];
-const PV2D_VISOES = [['atrasadas', 'Atrasadas'], ['minha', 'Minha fila'], ['sem', 'Sem responsável'], ['semana', 'Vencem na semana'], ['abertas', 'Todas']];
+const PV2D_VISOES = [['abertas', 'Todas'], ['minha', 'Minha fila'], ['atrasadas', 'Atrasadas'], ['sem', 'Sem responsável'], ['semana', 'Na semana']];
+// Como a folha se arruma: por urgência (o padrão da prancha), por status ou pelos grupos do quadro.
+let pv2dModo = 'urgencia';
+const PV2D_URGENCIA = [['Agora', 'r'], ['Semana', ''], ['Depois', ''], ['Sem prazo', ''], ['Feita', 'g']];
+const PV2D_LUPA = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>';
+const PV2D_PONTOS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>';
+const PV2D_SETA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 function pv2dMontar() {
   if (typeof pv2Ligado !== 'function' || !pv2Ligado()) return null;
   let raiz = document.getElementById('pv2-demandas');
@@ -1403,30 +1414,33 @@ function pv2dMontar() {
   const casa = document.querySelector('#painel-demandas > .container'), controles = casa?.querySelector(':scope > .dem-controles');
   if (!casa || !controles) return null;
   raiz = document.createElement('div');
-  raiz.id = 'pv2-demandas'; raiz.className = 'pv2 pv2-demandas';
-  // Direção 3 (moodboard 3, 13/11/2026): título com a data, Lista ou Calendário e Nova demanda (branco); o bloco laranja
-  // do Heitor; quatro números; a busca com as fichas, Filtros, Ordenar, o interruptor Mostrar ID e o ⋯ (Colunas); e a
-  // lista em colunas num cartão só.
-  raiz.innerHTML = `<div class="pv2-topo"><h2>Demandas</h2><span class="d3p-data">${safeText(typeof d3pDataDeHoje === 'function' ? d3pDataDeHoje() : '')}</span>
+  raiz.id = 'pv2-demandas'; raiz.className = 'pv2 pv2-demandas d3m-a-dm';
+  const baixo = typeof PV2_IC !== 'undefined' && PV2_IC.baixo ? PV2_IC.baixo : '';
+  raiz.innerHTML = `<div class="pv2-topo d3m-topo"><div class="d3m-tit"><details class="pv2-menu d3m-troca" id="pv2d-troca" ontoggle="if(this.open)pv2dPintarTroca()"><summary title="Trocar de tela"><h2>Demandas</h2>${baixo}</summary>
+          <div class="pv2-pop" id="pv2d-troca-pop" role="group" aria-label="Outras telas" onclick="if(event.target.closest('button'))this.closest('details').open=false"></div></details>
+        <span class="d3p-data" id="pv2d-data">${safeText(typeof d3pDataDeHoje === 'function' ? d3pDataDeHoje() : '')}</span></div>
       <span class="pv2-seg" id="pv2d-vistas" role="radiogroup" aria-label="Vista">
         <button type="button" role="radio" data-vista="lista" onclick="pv2dVista('lista')">Lista</button>
         <button type="button" role="radio" data-vista="calendario" onclick="pv2dVista('calendario')" title="Agenda mensal das demandas">Calendário</button>
       </span>
-      <button type="button" class="pv2-btn d3p-novo" onclick="cadastrarNoGrupo('demandas','')">${typeof D3P_MAIS === 'string' ? D3P_MAIS : ''}Nova demanda</button></div>
-    <div class="pv2-alto" id="pv2d-alto"></div>
-    <div class="pv2-filtros" role="group" aria-label="Busca e filtros">
       <label class="pv2-oculto" for="pv2d-busca">Buscar cliente ou demanda</label>
-      <input id="pv2d-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar cliente ou demanda" oninput="buscarClienteDemandas(this.value)">
-      <span class="pv2-fichas" id="pv2d-chips"></span>
-      <details class="pv2-menu" id="pv2d-filtros-menu"><summary class="pv2-btn s" id="pv2d-filtros-rot">Filtros</summary>
-        <div class="pv2-pop pv2-pop-filtros" id="pv2d-filtros-pop"><div class="pv2-pop-linha" id="pv2d-visoes"></div><span class="pv2-pop-rot">Recorte</span></div></details>
-      <details class="pv2-menu" id="pv2d-ordenar"><summary class="pv2-btn s" title="Ordenar a lista"><span class="d3d-rot">Ordenar</span><b id="pv2d-ordem-rot"></b></summary>
-        <div class="pv2-pop"><span class="pv2-pop-rot">Ordenar por</span><div class="pv2-pop-linha" id="pv2d-ordem"></div></div></details>
-      <label class="d3d-interruptor" title="Mostrar o número de cada demanda"><input type="checkbox" role="switch" data-coluna="dem-coluna-id" onchange="pv2dColuna(this)"><i aria-hidden="true"></i>Mostrar ID</label>
-      <details class="pv2-menu d3d-mais" id="pv2d-colunas"><summary class="pv2-btn s" aria-label="Mais opções" title="Mais opções">⋯</summary>
-        <div class="pv2-pop"><span class="pv2-pop-rot">Colunas</span><label class="pv2-lote"><input type="checkbox" data-coluna="dem-coluna-cadastro" onchange="pv2dColuna(this)"> Mostrar cadastro e criação</label></div></details>
-    </div>
-    <section class="pv2-card pv2-lista" id="pv2d-lista" aria-label="Demandas por grupo"></section>`;
+      <input id="pv2d-busca" class="pv2-busca" type="search" autocomplete="off" placeholder="Buscar cliente ou demanda" oninput="buscarClienteDemandas(this.value)" onblur="if(!this.value)this.closest('.d3m-topo').classList.remove('buscando')">
+      <button type="button" class="d3m-ico" id="pv2d-busca-bt" onclick="pv2dAbrirBusca()" aria-label="Buscar cliente ou demanda" title="Buscar cliente ou demanda">${PV2D_LUPA}</button>
+      <details class="pv2-menu d3d-mais" id="pv2d-colunas"><summary class="d3m-ico" aria-label="Mais opções: ordenar, colunas e filtros" title="Ordenar, colunas e filtros">${PV2D_PONTOS}</summary>
+        <div class="pv2-pop d3m-a-dm-pop"><div id="pv2d-ordenar"><span class="pv2-pop-rot">Ordenar por <b id="pv2d-ordem-rot"></b></span><div class="pv2-pop-linha d3m-a-seg" id="pv2d-ordem" role="group" aria-label="Ordenar por"></div></div>
+          <span class="pv2-pop-rot">Colunas</span>
+          <label class="d3d-interruptor" title="Mostrar o número de cada demanda"><input type="checkbox" role="switch" data-coluna="dem-coluna-id" onchange="pv2dColuna(this)"><i aria-hidden="true"></i>Mostrar ID</label>
+          <label class="pv2-lote"><input type="checkbox" data-coluna="dem-coluna-cadastro" onchange="pv2dColuna(this)"> Mostrar cadastro e criação</label>
+          <details class="d3m-a-dm-filtros" id="pv2d-filtros-menu"><summary class="d3m-a-filtro" id="pv2d-filtros-rot">Filtros</summary>
+            <div class="pv2-pop-filtros" id="pv2d-filtros-pop"><div class="pv2-pop-linha d3m-a-seg" id="pv2d-visoes" role="radiogroup" aria-label="Concluídas e tudo"></div><span class="pv2-pop-rot">Recorte</span></div></details></div></details>
+      <button type="button" class="pv2-btn d3p-novo" onclick="cadastrarNoGrupo('demandas','')">${typeof D3P_MAIS === 'string' ? D3P_MAIS : ''}Nova demanda</button></div>
+    <section class="d3m-a-folha d3m-a-dm-folha" id="pv2d-folha" aria-label="Demandas em aberto">
+      <div class="d3m-a-cab"><h3 class="d3m-a-so" id="pv2d-tit"></h3><span class="d3m-a-seg" id="pv2d-chips" role="radiogroup" aria-label="Recorte da lista"></span><i class="d3m-a-div" aria-hidden="true"></i>
+        <button type="button" class="d3m-a-filtro" id="pv2d-por-status" role="switch" aria-checked="false" onclick="pv2dArrumar(pv2dModo === 'status' ? 'urgencia' : 'status')" title="Agrupar a lista por status">Por status</button></div>
+      <div class="d3m-a-dm-cols" aria-hidden="true"><span></span><span>Demanda</span><span>Cliente</span><span>Status</span><span>Prazo</span><span>Tarefas</span><span></span></div>
+      <div class="d3m-a-dm-lista" id="pv2d-lista"></div>
+      <div class="d3m-a-pe d3m-a-dm-pe" id="pv2d-pe"></div></section>
+    <aside class="d3m-lado d3m-a-dm-lado" id="pv2d-lado" aria-label="Consulta"><div class="pv2-alto" id="pv2d-alto"></div><div id="pv2d-tipos"></div><div id="pv2d-abrir"></div></aside>`;
   casa.prepend(raiz);
   const reserva = document.createElement('div');
   reserva.id = 'pv2-demandas-reserva'; reserva.hidden = true;
@@ -1438,7 +1452,8 @@ function pv2dMontar() {
   pop.append(controles);
   [casa.querySelector(':scope > .pv-cabeca'), casa.querySelector(':scope > .quadro-toolbar'), document.getElementById('dem-visoes'), document.getElementById('grupos-board-demandas'),
     document.getElementById('panel-demandas-semana'), document.getElementById('panel-demandas-dia'), document.getElementById('panel-demandas-esteira')].forEach((el) => { if (el) reserva.append(el); });
-  casa.classList.add('pv2-casa');
+  // A casa das Demandas não leva .pv2-casa: as regras da janela da Produção (z-direcao.css) pegariam nela.
+  casa.classList.add('d3m-a-dm-casa');
   return raiz;
 }
 function pv2dVista(vista) {
@@ -1451,6 +1466,26 @@ function pv2dColuna(caixa) {
   antiga.checked = caixa.checked;
   antiga.dispatchEvent(new Event('change', { bubbles: true }));
 }
+// "Mostrar o ID" da coluna de consulta: a mesma caixa de sempre (#dem-coluna-id), virada por um toque.
+function pv2dAlternarId() {
+  const antiga = document.getElementById('dem-coluna-id'); if (!antiga) return;
+  antiga.checked = !antiga.checked;
+  antiga.dispatchEvent(new Event('change', { bubbles: true }));
+  pv2dPintar();
+}
+function pv2dAbrirBusca() {
+  const topo = document.querySelector('#pv2-demandas > .d3m-topo'), campo = document.getElementById('pv2d-busca'); if (!topo || !campo) return;
+  topo.classList.add('buscando'); campo.focus();
+}
+// A seta do título: as outras telas do mesmo setor do menu lateral, sem sair da janela.
+function pv2dPintarTroca() {
+  const pop = document.getElementById('pv2d-troca-pop'); if (!pop) return;
+  const eu = document.querySelector('.vv-trilho [data-submodulo="demandas"]');
+  const itens = eu?.parentElement ? [...eu.parentElement.querySelectorAll(':scope > :is(button,a)')].filter((b) => (b.textContent || '').trim()) : [];
+  pop.innerHTML = itens.map((b, i) => `<button type="button" data-troca="${i}"${b === eu ? ' aria-current="page"' : ''}>${safeText((b.querySelector('b,span')?.textContent || b.textContent || '').trim())}</button>`).join('') || '<span class="pv2-pop-rot">Use o menu lateral para trocar de tela.</span>';
+  pop.querySelectorAll('[data-troca]').forEach((bt) => bt.addEventListener('click', () => itens[Number(bt.dataset.troca)]?.click()));
+}
+function pv2dArrumar(modo) { pv2dModo = ['urgencia', 'status', 'grupos'].includes(modo) ? modo : 'urgencia'; pv2dPintar(); }
 function pv2dAlternarLinha(id, el) {
   const linha = el.closest('.pv2-linha'); if (!linha) return;
   const abrir = linha.getAttribute('aria-expanded') !== 'true';
@@ -1462,15 +1497,26 @@ function pv2dGrupoInteiro(id) { if (pv2dGruposInteiros.has(id)) pv2dGruposInteir
 function pv2dVazios() { pv2dMostrarVazios = !pv2dMostrarVazios; pv2dPintar(); }
 function pv2dOrdenar(campo) { ordenarPor(campo); pv2dPintar(); }
 function pv2dDiasDeAtraso(iso, hoje) { return Math.max(1, Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(iso + 'T12:00:00Z')) / 864e5)); }
-// Direção 3: o prazo é a data em texto; vermelho só no que venceu (com os dias de atraso na dica), âmbar no de hoje.
+function pv2dSomarDias(iso, n) { const x = new Date(`${iso}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+// O prazo é a data em texto: "venceu 14/11" em vermelho (com os dias de atraso na dica), "hoje" em âmbar, o dia da
+// semana na frente do que vence em até seis dias e só a data no resto.
 function pv2dPrazoHtml(d, hoje) {
   if (DEMANDA_CONCLUIDA.includes(d.status)) return pv2Pill('feita', 'g');
   if (!d.prazo_iso) return '<span class="d3d-data vazio">sem prazo</span>';
-  if (hoje && d.prazo_iso < hoje) { const n = pv2dDiasDeAtraso(d.prazo_iso, hoje); return `<span class="d3d-data r" title="${n} ${n === 1 ? 'dia' : 'dias'} de atraso">${pv2DiaMes(d.prazo_iso)}</span>`; }
+  if (hoje && d.prazo_iso < hoje) { const n = pv2dDiasDeAtraso(d.prazo_iso, hoje); return `<span class="d3d-data r" title="${n} ${n === 1 ? 'dia' : 'dias'} de atraso">venceu ${pv2DiaMes(d.prazo_iso)}</span>`; }
   if (d.prazo_iso === hoje) return '<span class="d3d-data a" title="Prazo hoje">hoje</span>';
-  return `<span class="d3d-data" title="Prazo">${pv2DiaMes(d.prazo_iso)}</span>`;
+  const naSemana = hoje && d.prazo_iso <= pv2dSomarDias(hoje, 6);
+  return `<span class="d3d-data" title="Prazo">${naSemana ? ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(`${d.prazo_iso}T12:00:00Z`).getUTCDay()] + ' ' : ''}${pv2DiaMes(d.prazo_iso)}</span>`;
 }
-function pv2dLinhaHtml(d, hoje) {
+// A urgência de cada demanda pela data do prazo: 0 Agora (venceu ou vence hoje), 1 Semana (até seis dias), 2 Depois,
+// 3 Sem prazo e 4 Feita.
+function pv2dUrgencia(d, hoje) {
+  if (DEMANDA_CONCLUIDA.includes(d.status)) return 4;
+  if (!d.prazo_iso) return 3;
+  if (!hoje || d.prazo_iso <= hoje) return 0;
+  return d.prazo_iso <= pv2dSomarDias(hoje, 6) ? 1 : 2;
+}
+function pv2dLinhaHtml(d, hoje, rot = null) {
   const id = safeText(d.id), aberta = pv2dLinhasAbertas.has(String(d.id)), clientes = clientesDoItem(d);
   const marcada = typeof SELECIONADAS !== 'undefined' && SELECIONADAS.has(String(d.id));
   const donos = ownerUsersFor(d), semDono = pv2SemDono(d), atrasada = demandaAtrasada(d), feita = DEMANDA_CONCLUIDA.includes(d.status);
@@ -1479,21 +1525,20 @@ function pv2dLinhaHtml(d, hoje) {
   const frase = [semDono ? 'Ninguém pegou ainda' : `<b>${safeText(nomes.join(', '))}</b> ${nomes.length > 1 ? 'fazem' : 'faz'}`,
     d.prazo_iso ? `prazo ${atrasada ? 'era' : feita ? 'foi' : 'é'} ${pv2DiaMes(d.prazo_iso)}` : 'sem prazo', conclusao ? `conclusão prevista para ${pv2DiaMes(conclusao)}` : '',
     Number(d.tarefas) ? `${Number(d.tarefas_feitas || 0)} de ${Number(d.tarefas)} tarefas feitas` : ''].filter(Boolean).join(' · ');
-  const tipo = String(d.tipo || d.formato || '').trim(), selos = [tipo && tipo !== '—' ? pv2Pill(tipo, 'n') : '', d.prioridade ? pv2Pill('Prioridade ' + String(d.prioridade).toLocaleLowerCase('pt-BR'), /alta|urgent|crít/i.test(d.prioridade) ? 'r' : 'n') : ''].join('');
+  const tipo = String(d.tipo || d.formato || '').trim(), selos = [d.prioridade ? pv2Pill('Prioridade ' + String(d.prioridade).toLocaleLowerCase('pt-BR'), /alta|urgent|crít/i.test(d.prioridade) ? 'r' : 'n') : ''].join('');
   const cadastro = [d.cadastrado_por ? `cadastrada por ${safeText(firstName(d.cadastrado_por))}` : '', d.criado_em ? `criada em ${pv2DiaMes(String(d.criado_em).slice(0, 10))}` : ''].filter(Boolean).join(' · ');
-  // Direção 3: a linha em colunas, como no quadro: Tipo, Demanda, Cliente, Status (o menu de sempre), Prazo (toca e
-  // muda no lugar), Conclusão, Responsável, Tarefas e a seta; o resto abre no lugar.
+  // Prancha V2-M-Demandas: a linha em colunas: a urgência (só na primeira de cada grupo), a demanda com o tipo, o cliente
+  // com a foto, o status (o menu de sempre), o prazo (toca e muda no lugar), as tarefas em barra e quem faz na bolinha
+  // (o "?" escolhe o responsável); o resto abre no lugar.
   const nTar = Number(d.tarefas) || 0, nFeitas = Number(d.tarefas_feitas) || 0;
   return `<div class="pv2-linha v2-abre${marcada ? ' marcada' : ''}${pv2Chegou(d)}" data-linha="${id}" data-vt="peca-${id}" aria-expanded="${aberta}">
-    <div class="pv2-lin d3d-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2dAlternarLinha('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2dAlternarLinha('${id}',this)}">
-      <span class="d3d-tipo">${tipo && tipo !== '—' ? safeText(tipo) : ''}</span>
-      <p class="pv2-nome">${safeText(d.nome || '')}<small class="pv2-id">#${id}</small></p>
-      <span class="d3d-cli">${clientes[0] ? pv2Cli(clientes[0]) : '<span class="d3d-data vazio">sem cliente</span>'}${clientes.length > 1 ? `<small title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</small>` : ''}</span>
+    <div class="pv2-lin d3d-lin d3m-a-dm-lin" role="button" tabindex="0" aria-expanded="${aberta}" title="Abrir no lugar" onclick="pv2dAlternarLinha('${id}',this)" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();pv2dAlternarLinha('${id}',this)}">
+      <span class="d3m-a-dm-q${rot && rot[1] ? ' ' + rot[1] : ''}">${rot ? rot[0] : ''}</span>
+      <p class="pv2-nome"><b>${safeText(d.nome || '')}</b>${tipo && tipo !== '—' ? `<span class="d3d-tipo"> · ${safeText(tipo)}</span>` : ''}<small class="pv2-id">#${id}</small></p>
+      <span class="d3d-cli">${clientes[0] ? `${typeof pv2Foto === 'function' ? pv2Foto(clientes[0]) : ''}${pv2Cli(clientes[0])}` : '<span class="d3d-data vazio">sem cliente</span>'}${clientes.length > 1 ? `<small title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</small>` : ''}</span>
       <span class="pv2-cs">${pv2StatusBotao(d)}</span><span class="pv2-cp"${feita ? '' : ` data-editar-data="prazo" data-peca="${id}" title="Tocar para mudar o prazo"`}>${pv2dPrazoHtml(d, hoje)}</span>
-      <span class="d3d-conc">${conclusao ? `<span class="d3d-data">${pv2DiaMes(conclusao)}</span>` : ''}</span>
-      <span class="pv2-cr">${pv2Av(d, { comNome: true })}</span>
-      <span class="d3d-tar${nTar && nFeitas >= nTar ? ' ok' : ''}" title="${nTar ? `${nFeitas} de ${nTar} tarefas feitas` : 'Sem tarefas'}">${nTar ? `${nFeitas}/${nTar}` : '0'}</span>
-      <i class="pv2-seta" aria-hidden="true">${PV2_IC.depois}</i></div>
+      <span class="d3d-tar${nTar && nFeitas >= nTar ? ' ok' : ''}" title="${nTar ? `${nFeitas} de ${nTar} tarefas feitas` : 'Sem tarefas'}"><i class="d3m-a-dm-b" style="--v:${nTar ? Math.round(Math.min(nFeitas, nTar) * 100 / nTar) : 0}%" aria-hidden="true"><i></i></i>${nTar ? `${nFeitas}/${nTar}` : '0'}</span>
+      <span class="pv2-cr">${pv2Av(d)}</span></div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
       <div class="pv2-det-linha"><p>${frase}${cadastro ? `<span class="pv2-cadastro"> · ${cadastro}</span>` : ''}</p>${selos}
         <label class="pv2-lote" title="Marcar para ação em lote"><input type="checkbox" ${marcada ? 'checked' : ''} aria-label="Marcar ${safeText(d.nome || '')}" onclick="alternarSelecao('${id}',this.checked,event,PV2D_ORDEM_VISIVEL)">Marcar</label>
@@ -1506,74 +1551,117 @@ function pv2dPintar() {
   const hoje = META.today_iso || '', pl = (n, um, varios) => (n === 1 ? um : varios);
   const todas = (DADOS_DEMANDAS || []).filter(itemNaCarteira), abertas = todas.filter((d) => !DEMANDA_CONCLUIDA.includes(d.status));
   const atrasadas = abertas.filter(demandaAtrasada), sem = abertas.filter((d) => pertenceVisaoDemanda(d, 'sem'));
-  const semDeHoje = sem.filter((d) => hoje && String(d.criado_em || '').slice(0, 10) === hoje).length;
-  // Direção 3: a frase curta do Heitor no bloco laranja (o que venceu, o que está sem dono e o que vence hoje) e o botão
-  // do que pede ação; embaixo, quatro números com a mini linha onde há série de verdade.
-  const venceHoje = abertas.filter((d) => hoje && d.prazo_iso === hoje), entregueHoje = todas.filter((d) => hoje && d.prazo_iso === hoje && DEMANDA_CONCLUIDA.includes(d.status)).length;
-  const partes = [];
-  if (!abertas.length) partes.push('Nenhuma demanda em aberto.');
-  else {
-    const ruins = [atrasadas.length ? `${atrasadas.length} ${pl(atrasadas.length, 'atrasada', 'atrasadas')}` : '', sem.length ? `${sem.length} sem dono` : ''].filter(Boolean);
-    partes.push(ruins.length ? `${ruins.join(' e ')}.` : 'Nada atrasado e tudo com dono.');
-    if (venceHoje.length === 1) { const v = venceHoje[0], tipo = String(v.tipo || '').trim(), cli = clientesDoItem(v)[0] || ''; partes.push(`${safeText([tipo && tipo !== '—' ? tipo : 'Demanda', cli].filter(Boolean).join(' '))} vence hoje.`); }
-    else if (venceHoje.length > 1) partes.push(`${venceHoje.length} vencem hoje.`);
-  }
-  const [botao, attrs] = atrasadas.length ? [atrasadas.length === 1 ? 'Ver a atrasada' : `Ver as ${atrasadas.length}`, `onclick="escolherVisaoDemanda('atrasadas')"`]
-    : sem.length ? [`Distribuir ${sem.length === 1 ? 'a 1' : 'as ' + sem.length}`, `onclick="escolherVisaoDemanda('sem')" title="Ver as sem responsável para escolher quem faz"`] : ['', ''];
-  const dia = (iso, n) => { const x = new Date(`${iso}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
-  const semana = hoje ? [-6, -5, -4, -3, -2, -1, 0].map((n) => dia(hoje, n)) : [];
-  const entraram = semana.map((iso) => todas.filter((d) => String(d.criado_em || '').slice(0, 10) === iso).length), novas = entraram.reduce((a, b) => a + b, 0);
-  const proximos = hoje ? [0, 1, 2, 3, 4, 5, 6].map((n) => abertas.filter((d) => d.prazo_iso === dia(hoje, n)).length) : null;
-  const maisAntiga = atrasadas.reduce((m, d) => (d.prazo_iso && (!m || d.prazo_iso < m) ? d.prazo_iso : m), '');
-  const kpi = (rotulo, valor, o = {}) => (typeof d3pNum === 'function' ? d3pNum({ rotulo, valor, ...o }) : `<div class="pv2-card pv2-kpi"><small>${rotulo}</small><b>${valor}</b></div>`);
-  pv2Trocar(document.getElementById('pv2d-alto'), (typeof d3pAcao === 'function' ? d3pAcao({ agente: 'H', quem: 'Heitor · Coordenação', frase: partes.join(' '), botao, attrs }) : '')
-    + `<div class="d3p-nums quatro">${kpi('Abertas', abertas.length, { serie: novas ? entraram : null, serieRotulo: 'Entradas por dia na semana', sub: novas ? `+${novas} na semana` : 'em aberto', acao: "escolherVisaoDemanda('abertas')" })}
-    ${kpi('Vencem hoje', venceHoje.length, { tom: venceHoje.length ? 'a' : '', serie: proximos && proximos.some(Boolean) ? proximos : null, serieRotulo: 'Prazos nos próximos 7 dias', sub: entregueHoje ? `${entregueHoje} já ${pl(entregueHoje, 'entregue', 'entregues')}` : 'nenhuma entregue' })}
-    ${kpi('Atrasadas', atrasadas.length, { tom: atrasadas.length ? 'r' : '', sub: maisAntiga ? `a mais antiga · ${pv2dDiasDeAtraso(maisAntiga, hoje)} ${pv2dDiasDeAtraso(maisAntiga, hoje) === 1 ? 'dia' : 'dias'}` : 'nada vencido', subTom: maisAntiga ? 'r' : '', acao: "escolherVisaoDemanda('atrasadas')" })}
-    ${kpi('Sem dono', sem.length, { de: abertas.length, barra: abertas.length ? (sem.length * 100) / abertas.length : 0, dica: semDeHoje ? `${semDeHoje} ${pl(semDeHoje, 'entrou', 'entraram')} hoje` : sem.length ? 'esperando alguém pegar' : 'todas têm dono', acao: "escolherVisaoDemanda('sem')" })}</div>`);
+  const venceHoje = abertas.filter((d) => hoje && d.prazo_iso === hoje);
+  const cliDe = (d) => String(clientesDoItem(d)[0] || '').split(',')[0].trim();
+  // O topo: a data e as contas (abertas, o que vence hoje e o que atrasou).
+  const data = document.getElementById('pv2d-data');
+  if (data) data.textContent = [typeof d3pDataDeHoje === 'function' ? d3pDataDeHoje() : '', `${abertas.length} ${pl(abertas.length, 'aberta', 'abertas')}`, venceHoje.length ? `${venceHoje.length} ${pl(venceHoje.length, 'vence hoje', 'vencem hoje')}` : '',
+    atrasadas.length ? `${atrasadas.length} ${pl(atrasadas.length, 'atrasada', 'atrasadas')}` : ''].filter(Boolean).join(' · ');
+  // O laranja do Heitor, o único cheio da tela: o que vence hoje; sem isso, o que atrasou; sem isso, o que está sem dono.
+  const bt = (rot, attrs, segundo = false) => `<button type="button" class="d3m-btn l${segundo ? ' s' : ''}" ${attrs}>${safeText(rot)}</button>`;
+  const btAtrasadas = atrasadas.length ? bt(atrasadas.length === 1 ? 'Ver a vencida' : `Ver as ${atrasadas.length} vencidas`, `onclick="escolherVisaoDemanda('atrasadas')"`, true) : '';
+  const btSem = (segundo) => (sem.length ? bt(`Distribuir ${sem.length === 1 ? 'a 1' : 'as ' + sem.length}`, `onclick="escolherVisaoDemanda('sem')" title="Ver as sem responsável para escolher quem faz"`, segundo) : '');
+  const maisAntiga = atrasadas.slice().sort((a, b) => String(a.prazo_iso || '9').localeCompare(String(b.prazo_iso || '9')))[0];
+  const quemFaz = (d) => { const n = ownerUsersFor(d).map((u) => firstName(u.name)); return n.length ? `Está com ${n.join(', ')}.` : 'Ainda sem responsável.'; };
+  let cartao;
+  if (!abertas.length) cartao = { quem: 'Heitor · Coordenação', titulo: 'Nenhuma demanda em aberto.', apoio: (DADOS_DEMANDAS || []).length ? 'Tudo o que entrou já foi concluído.' : 'Quando uma demanda entrar, ela aparece aqui pela urgência.', botoes: bt('Nova demanda', `onclick="cadastrarNoGrupo('demandas','')"`) };
+  else if (venceHoje.length === 1) { const v = venceHoje[0];
+    cartao = { quem: 'Heitor · vence hoje', titulo: `${String(v.nome || 'Demanda').trim()}${cliDe(v) ? `, de ${cliDe(v)}` : ''}, é para hoje`, apoio: `${quemFaz(v)}${atrasadas.length ? ` ${atrasadas.length === 1 ? `${String(maisAntiga?.nome || 'Uma demanda').trim()} já venceu` : `${atrasadas.length} já venceram`}.` : ''}`,
+      botoes: bt('Abrir a demanda', `onclick="openItemWorkspace('${jsArg(v.id)}')"`) + (btAtrasadas || btSem(true)) }; }
+  else if (venceHoje.length) cartao = { quem: 'Heitor · vence hoje', numero: venceHoje.length, titulo: 'vencem hoje', apoio: `${atrasadas.length ? `${atrasadas.length} ${pl(atrasadas.length, 'já venceu', 'já venceram')}. ` : ''}${sem.length ? `${sem.length} sem responsável.` : ''}`.trim(), botoes: bt('Ver as da semana', `onclick="escolherVisaoDemanda('semana')"`) + (btAtrasadas || btSem(true)) };
+  else if (atrasadas.length) cartao = { quem: 'Heitor · passou do prazo', numero: atrasadas.length, titulo: pl(atrasadas.length, 'atrasada', 'atrasadas'), apoio: maisAntiga ? `A mais antiga é ${String(maisAntiga.nome || '').trim()}, de ${pv2DiaMes(maisAntiga.prazo_iso)}.` : '', botoes: bt(atrasadas.length === 1 ? 'Ver a atrasada' : `Ver as ${atrasadas.length}`, `onclick="escolherVisaoDemanda('atrasadas')"`) + btSem(true) };
+  else if (sem.length) cartao = { quem: 'Heitor · sem responsável', numero: sem.length, titulo: 'sem dono', apoio: 'Escolha quem faz para a demanda andar.', botoes: btSem(false) };
+  else cartao = { quem: 'Heitor · Coordenação', titulo: 'Nada atrasado e tudo com dono.', apoio: `${abertas.length} ${pl(abertas.length, 'demanda em aberto', 'demandas em aberto')}.`, botoes: bt('Nova demanda', `onclick="cadastrarNoGrupo('demandas','')"`) };
+  pv2Trocar(document.getElementById('pv2d-alto'), typeof pv2Laranja === 'function' ? pv2Laranja({ agente: 'H', ...cartao }) : '');
   // O interruptor Mostrar ID e as colunas do ⋯ seguem a preferência guardada nas caixas de sempre.
   raiz.querySelectorAll('[data-coluna]').forEach((c) => { const antiga = document.getElementById(c.dataset.coluna); if (antiga) c.checked = antiga.checked; });
-  // fichas e Filtros
+  // As fichas da folha, as visões de dentro dos filtros e a ordenação: escolhas em radio (aria-checked).
   const conta = (v) => todas.filter((d) => pertenceVisaoDemanda(d, v)).length;
-  pv2Trocar(document.getElementById('pv2d-chips'), PV2D_VISOES.map(([id, nome]) => `<button type="button" class="pv2-chip" aria-pressed="${visaoRapidaDemandas === id}" onclick="escolherVisaoDemanda('${id}')">${nome} <b>${conta(id)}</b></button>`).join(''));
-  pv2Trocar(document.getElementById('pv2d-visoes'), [['concluidas', 'Concluídas'], ['todas', 'Tudo, com as concluídas']].map(([id, nome]) => `<button type="button" class="pv2-chip" aria-pressed="${visaoRapidaDemandas === id}" onclick="escolherVisaoDemanda('${id}')">${nome} <b>${conta(id)}</b></button>`).join(''));
+  const ficha = ([id, nome]) => { const n = conta(id); return `<button type="button" role="radio" aria-checked="${visaoRapidaDemandas === id}" onclick="escolherVisaoDemanda('${id}')">${nome}<b${id === 'atrasadas' && n ? ' class="r"' : ''}>${n}</b></button>`; };
+  pv2Trocar(document.getElementById('pv2d-chips'), PV2D_VISOES.map(ficha).join(''));
+  pv2Trocar(document.getElementById('pv2d-visoes'), [['concluidas', 'Concluídas'], ['todas', 'Tudo, com as concluídas']].map(ficha).join(''));
   const campos = (typeof COLUNAS_DA_TABELA !== 'undefined' && COLUNAS_DA_TABELA.demandas || []).filter((c) => typeof CAMPOS_ORDENAVEIS !== 'undefined' && CAMPOS_ORDENAVEIS[c]);
   pv2Trocar(document.getElementById('pv2d-ordem'), campos.map((c) => { const cfg = CAMPOS_ORDENAVEIS[c], ativa = ORDEM.campo === c;
-    return `<button type="button" class="pv2-chip" aria-pressed="${ativa}" onclick="pv2dOrdenar('${c}')" title="Ordenar por ${safeText(cfg.rotuloDemandas || cfg.rotulo)}">${safeText(cfg.rotuloDemandas || cfg.rotulo)}${ativa ? (ORDEM.desc ? ' ↓' : ' ↑') : ''}</button>`; }).join(''));
+    return `<button type="button" role="switch" aria-checked="${ativa}" onclick="pv2dOrdenar('${c}')" title="Ordenar por ${safeText(cfg.rotuloDemandas || cfg.rotulo)}">${safeText(cfg.rotuloDemandas || cfg.rotulo)}${ativa ? (ORDEM.desc ? ' ↓' : ' ↑') : ''}</button>`; }).join(''));
   const ordemRot = document.getElementById('pv2d-ordem-rot'), campoAtivo = campos.includes(ORDEM.campo) ? CAMPOS_ORDENAVEIS[ORDEM.campo] : null;
-  if (ordemRot) ordemRot.textContent = campoAtivo ? `${campoAtivo.rotuloDemandas || campoAtivo.rotulo}${ORDEM.desc ? ' ↓' : ''}` : 'Padrão';
+  if (ordemRot) ordemRot.textContent = campoAtivo ? `· ${campoAtivo.rotuloDemandas || campoAtivo.rotulo}${ORDEM.desc ? ' ↓' : ''}` : '· pelo prazo';
   const recortado = filtroCarteira !== 'all' || Boolean(buscaClienteDemandas.trim()) || currentDemandaAtrasadas || currentDemandaStatusFilter !== 'all' || currentDemandaTipoFilter !== 'all' || currentDemandaPersonFilter !== 'all' || Boolean(currentDemandaDayFilter) || ['concluidas', 'todas'].includes(visaoRapidaDemandas);
   document.getElementById('pv2d-filtros-rot')?.classList.toggle('tem', recortado);
+  document.getElementById('pv2d-colunas')?.classList.toggle('tem', recortado);
   const busca = document.getElementById('pv2d-busca');
   if (busca && document.activeElement !== busca && busca.value !== buscaClienteDemandas) busca.value = buscaClienteDemandas;
+  if (busca) busca.closest('.d3m-topo')?.classList.toggle('buscando', Boolean(busca.value) || document.activeElement === busca);
   raiz.querySelectorAll('#pv2d-colunas [data-coluna]').forEach((c) => { c.checked = Boolean(document.getElementById(c.dataset.coluna)?.checked); });
   const calendario = Boolean(agendaDeDemandasAberta);
   raiz.querySelectorAll('#pv2d-vistas [data-vista]').forEach((b) => b.setAttribute('aria-checked', String((b.dataset.vista === 'calendario') === calendario)));
-  // a lista: um cartão só, com os grupos e a linha que abre no lugar
-  const lista = document.getElementById('pv2d-lista');
-  lista.hidden = calendario;
+  // No Calendário, a folha e a consulta saem e a agenda do mês (a de sempre) ocupa a janela, embaixo do topo.
+  raiz.classList.toggle('cal', calendario);
+  raiz.closest('.container')?.classList.toggle('d3m-a-dm-cal', calendario);
   if (calendario) return;
   if (typeof garantirGruposDoPainel === 'function') garantirGruposDoPainel();
-  const grupos = itensPorGrupo(filtrarDemandasBase().map(normalizeRequestForOperational), GRUPOS_DE_DEMANDAS);
-  const abertasPorGrupo = new Map(); abertas.forEach((d) => abertasPorGrupo.set(String(d.group_id || ''), (abertasPorGrupo.get(String(d.group_id || '')) || 0) + 1));
-  const ordemVisivel = [], vazios = grupos.filter((g) => !g.itens.length), comItens = grupos.filter((g) => g.itens.length);
-  const blocoDoGrupo = (g) => {
-    const inteiro = pv2dGruposInteiros.has(g.id), aVista = inteiro ? g.itens : g.itens.slice(0, PV2D_POR_GRUPO), resto = g.itens.length - aVista.length;
-    aVista.forEach((d) => ordemVisivel.push(String(d.id)));
-    const atras = g.itens.filter(demandaAtrasada).length, doGrupo = abertasPorGrupo.get(String(g.id)) || g.itens.length;
-    const conta = atras ? `${atras} ${pl(atras, 'atrasada', 'atrasadas')} de ${Math.max(doGrupo, g.itens.length)}` : `${g.itens.length} ${pl(g.itens.length, 'demanda', 'demandas')}`;
-    return `<div class="pv2-grupo" data-grupo="${safeText(g.id)}"><div class="pv2-grp"><i style="background:${safeText(corDeQualquerGrupo(g.id))}" aria-hidden="true"></i><h3>${safeText(g.nome)}</h3><span class="pv2-sub">${g.itens.length ? conta : 'nada neste filtro'}</span>
-        ${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo('demandas', g.id, g.nome) : ''}<button type="button" class="pv2-btn s d3d-nova" onclick="cadastrarNoGrupo('demandas','${jsArg(g.id)}')" aria-label="Nova demanda em ${safeText(g.nome)}">+ Nova aqui</button></div>
-      ${aVista.map((d) => pv2dLinhaHtml(d, hoje)).join('')}
-      ${resto > 0 ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${jsArg(g.id)}')" aria-label="Ver todas as ${g.itens.length} de ${safeText(g.nome)}" title="+ ${resto} neste grupo · ver todas">+${resto}</button>` : inteiro && g.itens.length > PV2D_POR_GRUPO ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${jsArg(g.id)}')">Mostrar menos</button>` : ''}</div>`;
-  };
-  const nomesVazios = vazios.slice(0, 1).map((g) => g.nome).join('') + (vazios.length > 1 ? ` e mais ${vazios.length - 1}` : '');
-  const peVazios = vazios.length ? `<p class="pv2-sub pv2-pe-geral">${vazios.length} ${pl(vazios.length, 'grupo sem nada neste filtro', 'grupos sem nada neste filtro')} (${safeText(nomesVazios)}) ${pl(vazios.length, 'fica recolhido', 'ficam recolhidos')} · <button type="button" class="pv2-link" onclick="pv2dVazios()">${pv2dMostrarVazios ? 'recolher' : 'mostrar'}</button></p>` : '';
-  const semNada = !comItens.length ? `<p class="pv2-sub pv2-nada">${(DADOS_DEMANDAS || []).length ? 'Nenhuma demanda neste filtro.' : 'Nenhuma demanda carregada ainda.'} ${recortado || visaoRapidaDemandas !== 'abertas' ? '<button type="button" class="pv2-link" onclick="clearDemandaFilters();escolherVisaoDemanda(\'abertas\')">Ver todas em aberto</button>' : '<button type="button" class="pv2-link" onclick="cadastrarNoGrupo(\'demandas\',\'\')">Criar a primeira</button>'}</p>` : '';
-  const cab = comItens.length ? '<div class="d3d-cab" aria-hidden="true"><span>Tipo</span><span>Demanda</span><span>Cliente</span><span>Status</span><span>Prazo</span><span>Conclusão</span><span>Responsável</span><span>Tarefas</span><span></span></div>' : '';
-  lista.innerHTML = cab + comItens.map(blocoDoGrupo).join('') + semNada + (pv2dMostrarVazios ? vazios.map(blocoDoGrupo).join('') : '') + peVazios
-    + (typeof botaoNovoGrupoNoFim === 'function' && pv2dMostrarVazios ? botaoNovoGrupoNoFim('demandas') : '');
+  const lista = document.getElementById('pv2d-lista');
+  const base = filtrarDemandasBase().map(normalizeRequestForOperational);
+  const grupos = itensPorGrupo(base, GRUPOS_DE_DEMANDAS);
+  const vazios = grupos.filter((g) => !g.itens.length), comItens = grupos.filter((g) => g.itens.length);
+  const itens = comItens.flatMap((g) => g.itens);
+  // O título da folha: quantas estão à vista (e de quantas, quando um recorte esconde parte).
+  const titulo = visaoRapidaDemandas === 'concluidas' ? `${itens.length} ${pl(itens.length, 'concluída', 'concluídas')}` : visaoRapidaDemandas === 'todas' ? `${itens.length} ${pl(itens.length, 'demanda', 'demandas')}, com as concluídas`
+    : `${itens.length === abertas.length ? abertas.length : `${itens.length} de ${abertas.length}`} ${pl(abertas.length, 'demanda aberta', 'demandas abertas')}`;
+  pv2Trocar(document.getElementById('pv2d-tit'), `<span>${titulo}</span> <span>· ${pv2dModo === 'grupos' ? 'pelos grupos do quadro' : pv2dModo === 'status' ? 'por status' : 'fora do conteúdo mensal'}</span>`);
+  document.getElementById('pv2d-por-status')?.setAttribute('aria-checked', String(pv2dModo === 'status'));
+  const ordemVisivel = [];
+  const semNada = !comItens.length ? `<p class="d3v-estado pv2-nada"><b>${(DADOS_DEMANDAS || []).length ? 'Nenhuma demanda neste filtro.' : 'Nenhuma demanda carregada ainda.'}</b>${recortado || visaoRapidaDemandas !== 'abertas' ? '<button type="button" class="pv2-link" onclick="clearDemandaFilters();escolherVisaoDemanda(\'abertas\')">Ver todas em aberto</button>' : '<button type="button" class="pv2-link" onclick="cadastrarNoGrupo(\'demandas\',\'\')">Criar a primeira</button>'}</p>` : '';
+  let corpo;
+  if (pv2dModo === 'grupos') {
+    // Pelos grupos do quadro (Novas demandas, Ideias...): o cabeçalho de cada grupo com o menu e "+ Nova aqui".
+    const abertasPorGrupo = new Map(); abertas.forEach((d) => abertasPorGrupo.set(String(d.group_id || ''), (abertasPorGrupo.get(String(d.group_id || '')) || 0) + 1));
+    const blocoDoGrupo = (g) => {
+      const inteiro = pv2dGruposInteiros.has(g.id), aVista = inteiro ? g.itens : g.itens.slice(0, PV2D_POR_GRUPO), resto = g.itens.length - aVista.length;
+      aVista.forEach((d) => ordemVisivel.push(String(d.id)));
+      const atras = g.itens.filter(demandaAtrasada).length, doGrupo = abertasPorGrupo.get(String(g.id)) || g.itens.length;
+      const contaG = atras ? `${atras} ${pl(atras, 'atrasada', 'atrasadas')} de ${Math.max(doGrupo, g.itens.length)}` : `${g.itens.length} ${pl(g.itens.length, 'demanda', 'demandas')}`;
+      return `<div class="pv2-grupo" data-grupo="${safeText(g.id)}"><div class="pv2-grp"><i style="background:${safeText(corDeQualquerGrupo(g.id))}" aria-hidden="true"></i><h3>${safeText(g.nome)}</h3><span class="pv2-sub">${g.itens.length ? contaG : 'nada neste filtro'}</span>
+          ${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo('demandas', g.id, g.nome) : ''}<button type="button" class="pv2-btn s d3d-nova" onclick="cadastrarNoGrupo('demandas','${jsArg(g.id)}')" aria-label="Nova demanda em ${safeText(g.nome)}">+ Nova aqui</button></div>
+        ${aVista.map((d) => pv2dLinhaHtml(d, hoje)).join('')}
+        ${resto > 0 ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${jsArg(g.id)}')" aria-label="Ver todas as ${g.itens.length} de ${safeText(g.nome)}" title="+ ${resto} neste grupo · ver todas">+${resto}</button>` : inteiro && g.itens.length > PV2D_POR_GRUPO ? `<button type="button" class="d3p-mais" onclick="pv2dGrupoInteiro('${jsArg(g.id)}')">Mostrar menos</button>` : ''}</div>`;
+    };
+    const nomesVazios = vazios.slice(0, 1).map((g) => g.nome).join('') + (vazios.length > 1 ? ` e mais ${vazios.length - 1}` : '');
+    const peVazios = vazios.length ? `<p class="pv2-sub pv2-pe-geral">${vazios.length} ${pl(vazios.length, 'grupo sem nada neste filtro', 'grupos sem nada neste filtro')} (${safeText(nomesVazios)}) ${pl(vazios.length, 'fica recolhido', 'ficam recolhidos')} · <button type="button" class="pv2-link" onclick="pv2dVazios()">${pv2dMostrarVazios ? 'recolher' : 'mostrar'}</button></p>` : '';
+    corpo = comItens.map(blocoDoGrupo).join('') + semNada + (pv2dMostrarVazios ? vazios.map(blocoDoGrupo).join('') : '') + peVazios
+      + (typeof botaoNovoGrupoNoFim === 'function' && pv2dMostrarVazios ? botaoNovoGrupoNoFim('demandas') : '');
+  } else if (pv2dModo === 'status') {
+    // Por status: o que pede retrabalho e aprovação primeiro, depois a produção, o que espera o cliente e o resto.
+    const peso = (st) => (/altera|ajuste|corre/i.test(st) ? 0 : /aprova/i.test(st) ? 1 : /andamento|produ/i.test(st) ? 2 : /pode fazer/i.test(st) ? 3 : /a fazer|fazer/i.test(st) ? 4 : /info|briefing|cliente/i.test(st) ? 5 : DEMANDA_CONCLUIDA.includes(st) ? 7 : 6);
+    const porSt = new Map(); itens.slice().sort((a, b) => String(a.prazo_iso || '9999').localeCompare(String(b.prazo_iso || '9999'))).forEach((d) => { const st = String(d.status || 'Sem status').trim() || 'Sem status'; if (!porSt.has(st)) porSt.set(st, []); porSt.get(st).push(d); });
+    corpo = [...porSt.entries()].sort((a, b) => peso(a[0]) - peso(b[0])).map(([st, l]) => { l.forEach((d) => ordemVisivel.push(String(d.id))); return `<div class="d3m-a-dm-grp"><span>${safeText(st)}</span><b>${l.length}</b></div>${l.map((d) => pv2dLinhaHtml(d, hoje)).join('')}`; }).join('') + semNada;
+  } else {
+    // Por urgência (a prancha): Agora (venceu ou vence hoje), Semana, Depois e Sem prazo; dentro de cada uma, pelo prazo
+    // ou, se a pessoa escolheu uma ordem no ⋯, pela ordem escolhida.
+    const naOrdem = campoAtivo && typeof ordenarItens === 'function' ? ordenarItens(itens.slice()) : itens.slice().sort((a, b) => String(a.prazo_iso || '9999').localeCompare(String(b.prazo_iso || '9999')));
+    const porUrgencia = naOrdem.map((d, i) => [d, pv2dUrgencia(d, hoje), i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]);
+    let ant = -1;
+    corpo = porUrgencia.map(([d, u]) => { ordemVisivel.push(String(d.id)); const rot = u !== ant ? PV2D_URGENCIA[u] : null; ant = u; return pv2dLinhaHtml(d, hoje, rot); }).join('') + semNada;
+  }
+  lista.innerHTML = corpo;
+  lista.setAttribute('aria-label', pv2dModo === 'grupos' ? 'Demandas por grupo' : pv2dModo === 'status' ? 'Demandas por status' : 'Demandas por urgência');
+  lista.dataset.modo = pv2dModo;
   PV2D_ORDEM_VISIVEL = ordemVisivel;
+  // O pé "De olho": o que atrasou, o que está sem dono, o que vence hoje e os grupos vazios (recolhidos).
+  const olho = (n, rot, attrs, tom = '') => `<button type="button" class="d3m-a-dm-olho" ${attrs}><b${tom && n ? ` class="${tom}"` : ''}>${n}</b>${rot}</button>`;
+  pv2Trocar(document.getElementById('pv2d-pe'), `<span>De olho</span>${olho(atrasadas.length, pl(atrasadas.length, 'atrasada', 'atrasadas'), `onclick="escolherVisaoDemanda('atrasadas')"`, 'r')}${olho(sem.length, 'sem responsável', `onclick="escolherVisaoDemanda('sem')"`, 'a')}${olho(venceHoje.length, pl(venceHoje.length, 'vence hoje', 'vencem hoje'), `onclick="escolherVisaoDemanda('semana')" title="Ver o que vence na semana"`, 'a')}`
+    + (vazios.length ? olho(vazios.length, pl(vazios.length, 'grupo vazio, recolhido', 'grupos vazios, recolhidos'), `onclick="pv2dMostrarVazios=true;pv2dArrumar('grupos')" title="Ver os grupos do quadro, com os vazios"`) : ''));
+  // A consulta: "Por tipo" (conta as abertas; tocar filtra a folha) e "Abrir" (Calendário, Grupos e Mostrar o ID).
+  const porTipo = new Map(); abertas.forEach((d) => { const t = tipoDaDemanda(d) || '__sem__'; porTipo.set(t, (porTipo.get(t) || 0) + 1); });
+  const tipos = [...porTipo.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]))), maxTipo = Math.max(1, ...tipos.map(([, n]) => n));
+  const cons = (tit, nota, corpoCons) => `<section class="d3m-cons" aria-label="${safeText(tit)}"><div class="d3m-cons-cab"><b>${safeText(tit)}</b><span>${nota}</span></div>${corpoCons}</section>`;
+  pv2Trocar(document.getElementById('pv2d-tipos'), cons('Por tipo', currentDemandaTipoFilter !== 'all' ? '<button type="button" class="d3m-a-dm-limpar" onclick="limparTipoDeDemanda()">mostrar todas</button>' : `${abertas.length} ${pl(abertas.length, 'aberta', 'abertas')}`,
+    tipos.length ? `<div class="d3m-a-caixa" role="group" aria-label="Filtrar por tipo">${tipos.map(([t, n]) => `<button type="button" class="d3m-a-cart${currentDemandaTipoFilter === t ? ' on' : ''}" role="switch" aria-checked="${currentDemandaTipoFilter === t}" onclick="filtrarDemandaPorTipo('${jsArg(t)}')" title="${t === '__sem__' ? 'Ver só as que ainda não têm tipo' : `Ver só ${safeText(t)}`}"><span>${t === '__sem__' ? 'Sem tipo' : safeText(t)}</span><i class="d3m-a-cart-b" style="--v:${Math.round(n * 100 / maxTipo)}%" aria-hidden="true"><i></i></i><b>${n}</b></button>`).join('')}</div>` : '<p class="d3m-vvazio">Nenhuma demanda em aberto.</p>'));
+  const nomesGrupos = grupos.slice(0, 2).map((g) => g.nome).join(', ') + (grupos.length > 2 ? ` e mais ${grupos.length - 2}` : '');
+  const idLigado = Boolean(document.getElementById('dem-coluna-id')?.checked);
+  const vlin = (html, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span>${html}</span>${PV2D_SETA}</button>`;
+  pv2Trocar(document.getElementById('pv2d-abrir'), cons('Abrir', '', vlin('<b>Calendário</b> · as demandas por data', `onclick="pv2dVista('calendario')"`)
+    + vlin(pv2dModo === 'grupos' ? '<b>Urgência</b> · voltar para Agora, Semana e Depois' : `<b>Grupos</b>${nomesGrupos ? ` · ${safeText(nomesGrupos)}` : ''}`, `role="switch" aria-checked="${pv2dModo === 'grupos'}" onclick="pv2dArrumar(pv2dModo === 'grupos' ? 'urgencia' : 'grupos')" title="${pv2dModo === 'grupos' ? 'Voltar para a lista por urgência' : 'Ver as demandas pelos grupos do quadro'}"`)
+    + vlin(idLigado ? '<b>Esconder o ID</b>' : '<b>Mostrar o ID</b>', `role="switch" aria-checked="${idLigado}" onclick="pv2dAlternarId()" title="O número de cada demanda ao lado do nome"`)));
 }
 try { pv2dMontar(); } catch { /* a tela antiga segue valendo */ }
 
