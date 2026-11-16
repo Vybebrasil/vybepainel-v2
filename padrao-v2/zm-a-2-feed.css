@@ -1,0 +1,175 @@
+/* MÓDULOS V2 · GRUPO A · FEED (prancha V2-M-Feed, aprovada pelo Paulo em 16/11/2026). O Feed é uma vista da Produção, dentro
+   da janela de vidro: a lista dos clientes direto no vidro, a grade do cliente numa folha (o perfil em cima e a grade do
+   Instagram rolando por dentro) e, à direita, o laranja, as semanas em calendário, as datas marcadas e os atalhos.
+   As peças da grade (.vfd-t, .vfd-x, .vfd-prov) e os painéis (.vfd-ajuste) são os de padrao-v2/feed.css, acertados aqui
+   para o desenho da prancha. A janela, o topo e as peças .d3m-a-* vêm de zm-a-1-producao.css. */
+
+/* 1 · A janela: três colunas (clientes, grade, consulta), sem a coluna de consulta presa da Semana. */
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa{padding-right:16px}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > *{margin-right:-14px}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] :is(#pv2-busca-bt,#pv2-painel .d3p-novo){display:none}
+body.mundo.mundo-modulo[data-modo="gestor"]:not([data-pv2-vista="feed"]) #pv2-feed-ctl{display:none}
+.d3m-a-feed-ctl{flex:none;display:inline-flex;align-items:center;gap:8px}
+.d3m-a-feed-ctl:empty{display:none}
+.d3m-a-feed-ctl > .d3m-ico:disabled{opacity:.4;cursor:default}
+/* O seletor no vidro (o mesmo desenho das vistas do topo): caixa de véu, o escolhido branco. */
+.d3m-a-vseg{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+#pv2-painel.pv2 .d3m-a-vseg,#feed-board.d3m-a-v2 .d3m-a-vseg{background:var(--d3-fume-veu);box-shadow:none}
+.d3m-a-vseg > button,#pv2-painel.pv2 .d3m-a-vseg > button{appearance:none;flex:0 1 auto;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-a-vseg > button:hover{background:var(--d3-fume-veu)}
+.d3m-a-vseg > button[aria-checked="true"],#pv2-painel.pv2 .d3m-a-vseg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-a-vseg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > #feed-board.d3m-a-v2{flex:1 1 0;display:grid;grid-template-columns:248px 374px minmax(0,1fr);gap:16px;min-height:0;margin-top:0;margin-bottom:-48px;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta)}
+
+/* 2 · A lista dos clientes, no vidro. */
+.vfd2-lista{gap:8px;min-height:0}
+.vfd2-lista > .d3m-cons-cab{flex:none;padding:0 2px}
+.vfd2-lista > .d3m-cons-cab > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+.vfd2-lista > .d3m-cons-cab > span{color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado)}
+.vfd2-lista > .d3m-a-vseg{align-self:stretch}
+.vfd2-clis{flex:1 1 0;display:flex;flex-direction:column;gap:2px;min-height:0;overflow-y:auto;scrollbar-width:none}
+#feed-board.d3m-a-v2 .vfd2-cli{flex:none;height:36px;padding:0 10px 0 8px;background:none;gap:10px}
+#feed-board.d3m-a-v2 .vfd2-cli:hover{background:var(--d3-fume-veu)}
+#feed-board.d3m-a-v2 .vfd2-cli > .d3v-foto{width:22px;height:22px;border-radius:6px;font-size:9px;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#feed-board.d3m-a-v2 .vfd2-cli > .d3m-vnome{flex:1 1 auto;max-width:none;font-weight:500;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#feed-board.d3m-a-v2 .vfd2-cli > .d3m-vn{min-width:0;font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#feed-board.d3m-a-v2 .vfd2-cli > .vfd2-ok{width:14px;height:14px;fill:none;stroke:var(--d3-mod-vybe-claro);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+#feed-board.d3m-a-v2 .vfd2-cli.on,#feed-board.d3m-a-v2 .vfd2-cli.on:hover{background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
+#feed-board.d3m-a-v2 .vfd2-cli.on > .d3v-foto{background:var(--d3-veu-forte);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd2-cli.on > :is(.d3m-vnome,.d3m-vn){font-weight:600;color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd2-cli.on > .d3m-pt.r{background:var(--d3-perigo)}
+#feed-board.d3m-a-v2 .vfd2-cli.on > .vfd2-ok{stroke:var(--d3-pronto)}
+.vfd2-head{flex:none;display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+#feed-board.d3m-a-v2 .vfd2-head > select{flex:1 1 auto;min-width:0;height:28px;margin:0;padding:0 4px;border:0;background:none;box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#feed-board.d3m-a-v2 .vfd2-head > select > option{color:var(--d3-tinta)}
+
+/* 3 · A grade do cliente: o perfil em cima; o que vai sair e o que está no ar rolam por dentro da folha. */
+.vfd2-cel{min-height:0}
+.vfd2-perfil{flex:none;display:flex;align-items:center;gap:12px;padding:16px 16px 10px}
+.vfd2-perfil > div{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.vfd2-avatar{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--d3-tinta);color:var(--d3-escuro-texto);font:600 var(--d3-fs-titulo) var(--vv-texto,Inter,sans-serif);font-style:normal}
+.vfd2-perfil p{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.vfd2-perfil .vfd2-nums{color:var(--d3-rotulo)}
+#feed-board.d3m-a-v2 .vfd2-user > .vfd-ig-user{font:600 14px/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);text-decoration:none}
+#feed-board.d3m-a-v2 .vfd2-user > a.vfd-ig-user:hover{text-decoration:underline}
+.vfd2-rola{flex:1 1 0;min-height:0;padding:0 16px 16px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.vfd2-rot{display:flex;justify-content:space-between;gap:8px;margin:0;padding:2px 0 4px;font:400 var(--d3-fs-mini)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.vfd2-rot > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.vfd2-rola > .vfd-grade + .vfd2-rot{padding-top:8px}
+#feed-board.d3m-a-v2 .vfd-grade{gap:3px;margin:0;border-radius:0}
+#feed-board.d3m-a-v2 .vfd-grade > .vfd-vazio{grid-column:1/-1;margin:0;padding:18px 8px;text-align:center;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#feed-board.d3m-a-v2 .vfd-t{background:var(--d3-veu)}
+/* O X: fundo rosado, o X vermelho fino, "sem post" e o dia embaixo; o + cadastra; marcado, ganha o contorno escuro. */
+#feed-board.d3m-a-v2 .vfd-x{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#feed-board.d3m-a-v2 .vfd-x-marcar{justify-content:center;gap:4px;padding:18px 4px 24px}
+#feed-board.d3m-a-v2 .vfd-x-marca{width:18px}
+#feed-board.d3m-a-v2 .vfd-x-txt{font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);text-transform:none;letter-spacing:0}
+#feed-board.d3m-a-v2 .vfd-x-data{font:400 10px/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#feed-board.d3m-a-v2 .vfd-x > .vfd-data{left:0;right:0;bottom:8px;max-width:none;padding:0;border-radius:0;background:none;text-align:center;font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-x-criar{top:6px;right:6px;width:22px;height:22px;border-radius:6px;background:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-marcado{background:var(--d3-perigo-veu);color:var(--d3-perigo);box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-marcado::before{content:"";position:absolute;left:6px;top:6px;z-index:1;width:16px;height:16px;border-radius:4px;background:var(--d3-tinta) url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%273%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M5 12l5 5 9-10%27/%3E%3C/svg%3E") center/11px no-repeat;pointer-events:none}
+#feed-board.d3m-a-v2 .vfd-marcado .vfd-x-data{color:var(--d3-rotulo)}
+#feed-board.d3m-a-v2 .vfd-livre{background:var(--d3-veu);color:var(--d3-tinta)}
+/* A peça sem arte: "sem arte" em cima, o formato em negrito, o título, o status com o ponto e o dia. */
+#feed-board.d3m-a-v2 .vfd-prov{align-items:flex-start;justify-content:flex-start;gap:2px;padding:30px 8px 40px;border:0;background:var(--d3-veu);text-align:left;color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-prov > b{font:600 var(--d3-fs-destaque)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-prov > small{-webkit-line-clamp:2;font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+#feed-board.d3m-a-v2 .vfd-sem-arte::before{content:"sem arte";position:absolute;left:8px;top:8px;font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#feed-board.d3m-a-v2 .vfd-peca > .vfd-etapa{left:8px;right:8px;top:auto;bottom:21px;display:flex;align-items:center;gap:5px;max-width:none;padding:0;border-radius:0;background:none;font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-peca > .vfd-etapa::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--d3-meta)}
+#feed-board.d3m-a-v2 .vfd-peca > .vfd-data{left:8px;bottom:6px;padding:0;border-radius:0;background:none;font:600 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-peca:not(.vfd-sem-arte)::after{content:"";position:absolute;inset:auto 0 0;height:54%;background:linear-gradient(180deg,rgba(18,15,13,0),var(--d3-fume-forte));pointer-events:none}
+#feed-board.d3m-a-v2 .vfd-peca:not(.vfd-sem-arte) > :is(.vfd-etapa,.vfd-data){z-index:1;color:var(--d3-fume-texto)}
+#feed-board.d3m-a-v2 .vfd-peca.vfd-atrasada{box-shadow:inset 0 0 0 2px var(--d3-perigo)}
+#feed-board.d3m-a-v2 .vfd-peca.vfd-atrasada > .vfd-etapa::before{background:var(--d3-perigo)}
+#feed-board.d3m-a-v2 .vfd-peca.vfd-trocada{box-shadow:inset 0 0 0 2px var(--d3-agente)}
+
+/* 4 · A coluna da direita: o laranja, as semanas, as datas marcadas e os atalhos. */
+.vfd2-lado{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0;overflow-y:auto;scrollbar-width:none}
+.vfd2-lado > *{flex:none}
+#feed-board.d3m-a-v2 .vfd2-laranja{min-height:220px;padding:16px;border-radius:16px}
+#feed-board.d3m-a-v2 .vfd2-laranja :is(.d3m-lar-rot,.d3m-lar-num,.d3-acao-frase,.d3m-lar-txt > small){color:var(--d3-escuro-texto);-webkit-text-fill-color:var(--d3-escuro-texto)}
+#feed-board.d3m-a-v2 .vfd2-laranja .d3m-lar-rot > .d3-acao-av{-webkit-text-fill-color:var(--d3-agente)}
+.vfd2-semanas > .d3m-a-cab > h3{flex:none}
+.vfd2-semanas > .d3m-a-cab > .d3v-rot{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vfd2-cal{display:flex;flex-direction:column;gap:6px;padding:0 16px 14px}
+.vfd2-sem{display:grid;grid-template-columns:86px repeat(7,minmax(0,1fr)) 52px;align-items:center;gap:6px;min-height:36px}
+.vfd2-sem-cab{min-height:20px;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);text-align:center}
+.vfd2-sem-rot{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+.vfd2-sem-n{text-align:right;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;font-variant-numeric:tabular-nums}
+.vfd2-sem-n.g{color:var(--d3-pronto)}
+.vfd2-sem-n.r{color:var(--d3-perigo)}
+.vfd2-dia{appearance:none;position:relative;display:flex;align-items:center;justify-content:center;gap:2px;min-width:0;height:36px;margin:0;padding:0 4px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+span.vfd2-dia{cursor:default}
+.vfd2-dia:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.vfd2-nada > i{width:4px;height:4px;border-radius:50%;background:var(--d3-veu-forte)}
+button.vfd2-nada:hover{background:var(--d3-veu)}
+.vfd2-peca{background:var(--d3-veu);box-shadow:inset 0 -2px 0 var(--st,var(--d3-meta))}
+.vfd2-peca:hover{background:var(--d3-veu-forte)}
+.vfd2-peca > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vfd2-peca > small{flex:none;font-size:9px;color:var(--d3-rotulo)}
+.vfd2-peca.passou{color:var(--d3-rotulo)}
+.vfd2-x{background:var(--d3-perigo-veu)}
+.vfd2-x:hover{box-shadow:inset 0 0 0 1px var(--d3-perigo)}
+.vfd2-x > i{position:relative;width:12px;height:12px}
+.vfd2-x > i::before,.vfd2-x > i::after{content:"";position:absolute;left:50%;top:-1px;width:1.5px;height:14px;border-radius:1px;background:var(--d3-perigo);transform:rotate(45deg)}
+.vfd2-x > i::after{transform:rotate(-45deg)}
+.vfd2-x.livre{background:var(--d3-veu)}
+.vfd2-x.livre > i::before,.vfd2-x.livre > i::after{background:var(--d3-tinta)}
+.vfd2-x.on,.vfd2-x.on:hover{box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+.vfd2-dia.vfd-sobre{box-shadow:inset 0 0 0 2px var(--d3-agente)}
+.vfd2-marcadas{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 12px;box-sizing:border-box;border-radius:12px;background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.vfd2-desmarcar{appearance:none;flex:none;display:grid;place-items:center;width:20px;height:20px;margin:0;padding:0;border:0;border-radius:5px;background:var(--d3-fume-texto);cursor:pointer}
+.vfd2-desmarcar > svg{width:12px;height:12px;fill:none;stroke:var(--d3-tinta);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.vfd2-desmarcar:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.vfd2-marcadas-txt{flex:1 1 auto;min-width:0;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vfd2-marcadas-txt > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#feed-board.d3m-a-v2 .vfd2-fmt{flex:none;width:auto;height:34px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#feed-board.d3m-a-v2 .vfd2-fmt > option{color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd2-cadastrar{flex:none;background:var(--d3-fume-texto);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+.vfd2-painel{padding:4px}
+#feed-board.d3m-a-v2 .vfd2-painel > .vfd-ajuste{border:0;background:none}
+.vfd2-atalhos{display:flex;flex-direction:column;gap:8px}
+.vfd2-atalhos > .d3m-vlin{height:40px}
+.vfd2-atalhos > .d3m-vlin > span:first-child{color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado)}
+.vfd2-atalhos > .d3m-vlin > span:first-child > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+.vfd2-atalhos > .vfd2-info{margin:0;cursor:default}
+.vfd2-atalhos > .vfd2-info:hover{background:var(--d3-fume-veu)}
+
+/* 5 · Telas baixas (1366 × 768): o laranja e as linhas um degrau menores, para a coluna da direita caber sem rolar. */
+@media (max-height:800px){
+  #feed-board.d3m-a-v2 .vfd2-laranja{min-height:0}
+  #feed-board.d3m-a-v2 .vfd2-laranja .d3m-lar-num{font-size:44px}
+  .vfd2-lado{gap:8px}
+  .vfd2-sem{min-height:30px}
+  .vfd2-dia{height:30px}
+  .vfd2-cal{gap:4px;padding-bottom:10px}
+  .vfd2-atalhos{gap:6px}
+  .vfd2-atalhos > .d3m-vlin{height:34px}
+  #feed-board.d3m-a-v2 .vfd2-laranja .d3m-lar-bts{margin-top:6px}
+  .vfd2-marcadas{min-height:48px}
+}
+
+/* 6 · Telas menores: sem largura para as três colunas, a lista vira uma fileira que rola de lado, em cima; depois o
+   laranja com as semanas e, por fim, a grade. A janela rola. */
+@media (max-width:1180px){
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > #feed-board.d3m-a-v2{flex:none;grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-bottom:0}
+  .vfd2-lista{grid-column:1/-1}
+  .vfd2-clis{flex:none;flex-direction:row;gap:6px;overflow-x:auto;overflow-y:hidden}
+  #feed-board.d3m-a-v2 .vfd2-cli{flex:0 0 auto;width:auto;max-width:200px;background:var(--d3-fume-veu)}
+  .vfd2-cel{height:640px}
+  .vfd2-lado{overflow:visible}
+}
+@media (max-width:760px){
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > #feed-board.d3m-a-v2{grid-template-columns:minmax(0,1fr)}
+  .vfd2-lado{order:2}
+  .vfd2-cel{order:3;height:auto}
+  .vfd2-rola{flex:none;overflow:visible}
+  .vfd2-sem{grid-template-columns:54px repeat(7,minmax(0,1fr)) 40px;gap:3px}
+  .vfd2-sem-rot{font-size:var(--d3-fs-mini);white-space:normal;line-height:1.15}
+  .vfd2-peca > span{font-size:9px}
+  .vfd2-marcadas{flex-wrap:wrap}
+  .vfd2-marcadas-txt{flex:1 1 calc(100% - 40px);white-space:normal}
+  .d3m-a-feed-ctl{flex:1 1 100%}
+}

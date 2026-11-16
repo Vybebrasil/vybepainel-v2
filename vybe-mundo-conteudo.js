@@ -178,6 +178,14 @@
       <p>Em <b>Links de aprovação</b>, o head gera um link com validade para o cliente aprovar ou pedir ajuste sem login. Ele só vê as peças dele em "Ag. Aprovação Cliente".</p>
       <p>Em <b>Para aprovar</b>, Aprovar manda a peça para Para agendar e Pedir alteração devolve com o seu recado. As duas pedem confirmação antes de gravar. Se o quadro da peça não tiver esses status, ela abre para você decidir por lá. Tocar na arte abre a peça; as setas do teclado, ou arrastar o cartão, passam para a próxima.</p></div>` : '';
     const aviso = st.pronto === false ? avisoParte(st.aviso) : '';
+    // Direção V2: no mundo, o topo e o corpo de cada aba são os das pranchas V2-M-Aprovacao (Links mostra a tela de Com o cliente).
+    const emV2 = v2();
+    el.classList.toggle('d3m-a-v2', emV2);
+    if (emV2) {
+      el.innerHTML = topoV2() + ajuda + aviso + `<div class="vc-corpo d3m-a-ap-corpo" data-aba="${st.aba}">${st.aba === 'equilibrio' ? corpoEquilibrioV2() : st.aba === 'aprovar' ? corpoAprovarV2() : corpoClienteV2()}</div>`;
+      if (st.aba === 'aprovar') st.aprAss = assinaturaDaFila();
+      return;
+    }
     el.innerHTML = topo + ajuda + aviso + `<div class="vc-corpo">${st.aba === 'links' ? corpoLinks() : st.aba === 'cliente' ? corpoCliente() : st.aba === 'aprovar' ? corpoAprovar() : corpoEquilibrio()}</div>`;
     if (st.aba === 'aprovar') st.aprAss = assinaturaDaFila();
   }
@@ -484,6 +492,184 @@
     // A fala de antes (falaHtml) fica escrita para quem a chama de fora.
     return `<div class="v2c-apr d3a">${acaoHtml(f)}${numerosHtml(f)}<div class="v2c-cols">${mesaHtml(f)}<div class="v2c-lado">${filaHtml(f)}${cartaoEquilibrio()}</div></div></div>`;
   }
+
+  // ---------- Direção V2 (pranchas V2-M-Aprovacao, -Com-o-Cliente, -Equilibrio e -Celular, aprovadas em 16/11/2026) ----------
+  // No mundo, a janela é vidro fumê e cada aba tem o esqueleto da prancha. Para aprovar: a fila à esquerda (direto no
+  // vidro), a arte da vez no centro com a próxima atrás, e à direita o cartão laranja com Aprovar e Pedir alteração, a
+  // legenda como fica no Instagram, quem fez e os detalhes. Com o cliente (e Links, que mostra a mesma tela): cada
+  // cliente com o link e as peças mandadas. Equilíbrio: o mix de cada cliente em uma linha. Os botões levam os mesmos
+  // data-vc-* de antes: quem grava e quem passa de peça são as funções de sempre.
+  const v2 = () => typeof document !== 'undefined' && Boolean(document.body?.classList.contains('mundo'));
+  const V2_SETA = { antes: svg('<path d="M15 6l-6 6 6 6"/>'), depois: svg('<path d="M9 6l6 6-6 6"/>') };
+  const fotoV2 = (nome) => (typeof pv2Foto === 'function' ? pv2Foto(String(nome || '').split(',')[0].trim()) : `<i class="d3v-foto" aria-hidden="true">${esc(String(nome || '?').trim().slice(0, 2).toUpperCase())}</i>`);
+  const consV2 = (titulo, nota, corpo, attrs = '') => `<section class="d3m-cons"${attrs}><div class="d3m-cons-cab"><b>${esc(titulo)}</b><span>${nota}</span></div>${corpo}</section>`;
+  const laranjaV2 = ({ quem, numero = '', selo = '', titulo, apoio = '', botoes = '' }) => `<section class="d3-acao d3m-laranja" aria-label="${esc(quem)}"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">A</span>${esc(quem)}</span>
+      <span class="d3m-lar-txt">${selo ? `<span class="d3m-a-ap-selo">${esc(selo)}</span>` : ''}${numero !== '' ? `<b class="d3m-lar-num">${esc(String(numero))}</b>` : ''}<span class="d3-acao-frase">${esc(titulo)}</span>${apoio ? `<small>${esc(apoio)}</small>` : ''}</span>${botoes ? `<span class="d3m-lar-bts">${botoes}</span>` : ''}</section>`;
+  const mesMinusculo = () => nomeDoMes(st.mes).toLowerCase();
+  // A linha embaixo do título: o mês e o que a aba conta.
+  function linhaV2() {
+    const f = filaParaAprovar();
+    if (st.aba === 'equilibrio') return `${mesMinusculo()} · atração, educação e conversão de cada cliente`;
+    if (st.aba === 'cliente' || st.aba === 'links') {
+      const ativos = st.links?.clientes ? st.links.clientes.reduce((s, c) => s + (c.links?.length || 0), 0) : null;
+      return `${mesMinusculo()} · ${plural(f?.comCliente || 0, 'peça com o cliente', 'peças com o cliente')}${ativos == null ? '' : ` · ${plural(ativos, 'link ativo', 'links ativos')}`}`;
+    }
+    if (!f) return `${mesMinusculo()} · lendo o que espera você`;
+    const n = f.fila.length, h = f.fila.reduce((m, i) => Math.max(m, i.horas ?? -1), -1);
+    return `${mesMinusculo()} · ${n ? `${n} ${n === 1 ? 'espera' : 'esperam'} você` : 'nada esperando você'}${h >= 1 ? ` · a mais antiga há ${esperaHa(h)}` : ''}`;
+  }
+  function topoV2() {
+    const f = filaParaAprovar(), nFila = f?.fila?.length, nCliente = f?.comCliente, mesAtual = st.mes === hoje().slice(0, 7);
+    // As abas V2 são escolha única (rádio): a folha antiga pinta de preto, com força, todo [role="tab"] com aria-selected.
+    const aba = (id, rot, n) => `<button type="button" role="radio" data-vc-aba="${id}" aria-checked="${st.aba === id}">${rot}${n ? ` <span class="d3a-n">${n}</span>` : ''}</button>`;
+    return `<div class="v2c-topo d3m-a-ap-topo"><div class="d3m-a-ap-tit"><h2>Aprovação</h2><span class="d3m-a-ap-linha">${esc(linhaV2())}</span></div>
+      <span class="d3m-a-vseg" role="radiogroup" aria-label="O que ver">${aba('aprovar', 'Para aprovar', nFila)}${aba('cliente', 'Com o cliente', nCliente)}${aba('equilibrio', 'Equilíbrio do mês')}${aba('links', 'Links')}</span>
+      <span class="v2c-mes d3m-a-ap-mes" role="group" aria-label="Mês"><button type="button" class="d3m-ico" data-vc-mes="-1" aria-label="Mês anterior" title="Mês anterior">${V2_SETA.antes}</button>${mesAtual ? '' : `<button type="button" class="d3v-btn vidro v2c-mes-nome" data-vc-mes="0" title="${esc(nomeDoMes(st.mes))}: voltar para este mês">Este mês</button>`}<button type="button" class="d3m-ico" data-vc-mes="1" aria-label="Próximo mês" title="Próximo mês">${V2_SETA.depois}</button></span>
+      <button type="button" class="d3m-ico" data-vc-como aria-expanded="${st.ajuda}" aria-label="Como funciona" title="Como funciona">${svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8M12 17h.01"/>')}</button>
+      <button type="button" class="d3m-ico" data-vc-fechar aria-label="Fechar (Esc)" title="Fechar (Esc)">${IC.fechar}</button></div>`;
+  }
+  // O resumo do mês que a coluna de consulta repete: as aprovadas pelo cliente e o equilíbrio em três barras.
+  function mesV2() {
+    if (!pecasDoPainel().length) return '';
+    const d = dadosDoMes(), g = d.atual.geral, total = g.total || 0, classificadas = E.OBJETIVOS.reduce((s, o) => s + (g[o] || 0), 0) || 1;
+    const nomeMes = MESES[Number(st.mes.slice(5)) - 1];
+    return consV2(nomeMes[0].toUpperCase() + nomeMes.slice(1), `${d.aprovadasAgora} de ${total}`, `<div class="d3m-a-caixa d3m-a-ap-barra"><span class="d3m-vbarra" style="--v:${total ? Math.round(d.aprovadasAgora * 100 / total) : 0}%"><i></i></span><span>aprovadas pelo cliente</span></div>`)
+      + consV2('Equilíbrio do mês', '<button type="button" class="d3m-a-ap-link" data-vc-aba="equilibrio">abrir</button>', `<div class="d3m-a-caixa">${E.OBJETIVOS.map((o) => { const p = Math.round((g[o] || 0) * 100 / classificadas); return `<span class="d3m-a-ap-obj" data-obj="${o}"><span>${esc(E.ROTULO[o])}</span><i class="d3m-vbarra" style="--v:${p}%"><i></i></i><b>${p}%</b></span>`; }).join('')}</div>`);
+  }
+  function miniV2(i, perto = true) {
+    const ref = String(i.ref), thumb = st.thumbs[ref];
+    if (perto && thumb === undefined) buscarThumb(ref);
+    return `<span class="d3m-a-ap-mini${thumb?.thumb ? '' : ' vazia'}">${thumb?.thumb ? `<img src="${esc(thumb.thumb)}" alt="" loading="lazy" data-vc-previa="${esc(ref)}">` : esc(String(i.formato || i.titulo || '?').trim().slice(0, 2).toUpperCase())}</span>`;
+  }
+  // O título sem o formato na frente ("Reels - Treino de pernas" vira "Treino de pernas"): o formato já vai na etiqueta.
+  const tituloV2 = (i) => { const t = String(i.titulo || 'Sem título').trim(), f = String(i.formato || '').trim(); const resto = f && normal(t).startsWith(normal(f)) ? t.slice(f.length).replace(/^[\s\-–:·|]+/, '') : ''; return resto || t; };
+  const primeiroCliente = (i) => String(i.cliente || 'Sem cliente').split(',')[0].trim();
+  // A coluna da esquerda: quem espera você, o que está com o cliente e o mês.
+  function esquerdaV2(f) {
+    const fila = f?.fila || [], comO = f?.comO || [], am = deAmanha(fila).length;
+    const abertos = st.links?.clientes ? st.links.clientes.reduce((s, c) => s + (c.links?.length || 0), 0) : null;
+    const item = (i, k) => `<button type="button" class="d3m-a-ap-item" data-vc-apr-ir="${k}"${k === st.apr ? ' aria-current="true"' : ''} title="${esc(nomeDaPeca(i))}">${miniV2(i, k < 8)}<span><b>${esc(tituloV2(i))}</b><span>${esc(primeiroCliente(i))}${i.formato ? ` · ${esc(i.formato)}` : ''}</span><small class="${(i.horas ?? 0) >= 24 ? 'r' : ''}">${i.horas == null ? esc(quando(i).frase) : i.horas < 1 ? 'entrou agora' : `${(i.horas ?? 0) >= 24 ? 'parada há' : 'há'} ${esc(esperaHa(i.horas))}`}</small></span></button>`;
+    const doCliente = (i) => `<button type="button" class="d3m-a-ap-item" data-vc-aba="cliente" title="Ver o que está com o cliente">${miniV2(i)}<span><b>${esc(tituloV2(i))}</b><span>${esc(primeiroCliente(i))}${i.formato ? ` · ${esc(i.formato)}` : ''}</span><small>${i.horas == null ? 'com o cliente' : `enviado há ${esc(esperaHa(i.horas))}`}</small></span></button>`;
+    return `<aside class="d3m-lado d3m-a-ap-esq" aria-label="Fila de aprovação">
+      ${consV2('Esperando você', String(fila.length), `<div class="v2c-fila d3m-a-ap-fila">${fila.map(item).join('') || `<p class="d3m-vvazio">${f ? 'Nada esperando a sua aprovação.' : esc(A()?.estado?.().erro || 'Lendo o que espera você…')}</p>`}</div>${am ? `<button type="button" class="d3v-btn vidro d3m-a-ap-lote" data-vc-apr-lote>${am === 1 ? 'Aprovar a de amanhã' : `Aprovar as ${am} de amanhã`}</button>` : ''}`)}
+      ${consV2('Com o cliente', abertos == null ? '' : plural(abertos, 'link aberto', 'links abertos'), comO.slice(0, 2).map(doCliente).join('') || '<button type="button" class="d3m-vlin" data-vc-aba="cliente"><span>Nada com o cliente agora</span></button>')}
+      ${mesV2()}</aside>`;
+  }
+  // A arte no centro: a da vez de pé, a próxima atrás à direita. As posições são as mesmas variáveis do leque (--lp).
+  function lequeV2(i, k) {
+    const d = k - st.apr, a = Math.abs(d), ref = String(i.ref), thumb = st.thumbs[ref], ig = perfilDoCliente(i.cliente);
+    if (a <= LEQUE_LADO && thumb === undefined) buscarThumb(ref);
+    return `<button type="button" class="d3a-leque-c${d === 0 ? ' vez' : d === 1 ? ' prox' : ''}" data-vc-leque="${k}" style="--lp:${d};--alp:${a}"${a > LEQUE_LADO ? ' hidden' : ''} tabindex="-1" title="${esc(nomeDaPeca(i))}: abrir em tela cheia" aria-label="Ver ${esc(nomeDaPeca(i))}">`
+      + `<span class="d3m-a-ap-ig"><i aria-hidden="true">${ig.foto ? `<img src="${esc(ig.foto)}" alt="" loading="lazy">` : esc(ig.iniciais)}</i><b>${esc(ig.usuario || ig.nome)}</b>${i.formato ? `<span class="d3m-a-ap-selo">${esc(i.formato)}</span>` : ''}</span>`
+      + `<span class="d3m-a-ap-arte${thumb?.thumb ? '' : ' vazia'}">${arteHtml(ref, thumb, '', a <= LEQUE_LADO)}</span>${thumb?.thumb ? '' : `<span class="d3m-a-ap-nome"><b>${esc(tituloV2(i))}</b><small>${esc(primeiroCliente(i))}</small></span>`}</button>`;
+  }
+  // O que a peça da vez diz, à direita: o laranja com a decisão, a legenda, quem fez e os detalhes.
+  function cartaV2(i, k, n) {
+    const pos = k === st.apr ? '0' : k < st.apr ? 'fora' : String(Math.min(k - st.apr, 3));
+    const o = objetivoDe(i.ref), q = quando(i), item = itemDoPainel(i), ig = perfilDoCliente(i.cliente);
+    const legenda = String(item?.legenda || '').trim(), prazo = String(i.prazo || item?.prazo_iso || '').slice(0, 10), noAr = quandoNoAr(i);
+    const fez = quemFez(i), heads = (i.heads || []).map((h) => h.nome).filter(Boolean);
+    const pessoas = [...fez, ...heads.filter((h) => !fez.some((p) => p.nome === h)).map((nome) => ({ nome, papel: 'Head do cliente' }))].filter((p, x, l) => l.findIndex((y) => y.nome === p.nome) === x).slice(0, 3);
+    const passou = prazo && prazo < hoje();
+    const apoio = `${primeiroCliente(i)}.${i.horas == null ? '' : i.horas < 1 ? ' Entrou agora.' : ` ${i.horas >= 24 ? 'Parada' : 'Esperando'} há ${esperaHa(i.horas)}${passou ? ', passou do prazo de ouro' : ''}.`}`;
+    const det = [o ? ['Objetivo', esc(E.ROTULO[o]), ''] : null, ['Vai ao ar', esc(noAr || q.frase), q.tom === 'r' ? 'r' : q.tom === 'a' ? 'a' : ''], prazo ? ['Prazo de ouro', esc(diaMes(prazo)), passou ? 'r' : ''] : null,
+      i.horas == null ? null : ['Esperando', i.horas < 1 ? 'entrou agora' : esc(esperaHa(i.horas)), i.horas >= 24 ? 'a' : ''], ['Status', esc(i.status || 'Para aprovação'), '']].filter(Boolean);
+    return `<article class="d3m-a-ap-carta" data-vc-carta="${k}" data-pos="${pos}" aria-hidden="${pos !== '0'}">
+      ${laranjaV2({ quem: `Augusto · para aprovar, ${k + 1} de ${n}`, selo: i.formato || '', titulo: tituloV2(i), apoio, botoes: '<button type="button" class="d3m-btn l" data-vc-apr="aprovar">Aprovar</button><button type="button" class="d3m-btn l s" data-vc-apr="alterar">Pedir alteração</button>' })}
+      ${consV2('Legenda', 'como fica no Instagram', `<p class="d3m-a-caixa d3m-a-ap-leg">${legenda ? `<b>${esc(ig.usuario || ig.nome)}</b> ${esc(legenda)}` : 'A legenda ainda não foi escrita. O Augusto (Copy) sugere, ou escreva na peça.'}</p>`)}
+      ${pessoas.length ? consV2('Quem fez', '', pessoas.map((p) => `<p class="d3m-vlin d3m-a-ap-pes"><i class="d3m-pes" aria-hidden="true">${esc(String(p.nome || '?').trim().slice(0, 2).toUpperCase())}</i><span><b>${esc(String(p.nome).split(' ')[0])}</b> · ${esc(p.papel === 'Fez a peça' ? 'fez a peça' : 'head do cliente')}</span></p>`).join('')) : ''}
+      ${consV2('Detalhes', `<button type="button" class="d3m-a-ap-link" data-vc-apr-ver="${k}"${pos === '0' ? '' : ' tabindex="-1"'}>abrir a peça</button>`, `<dl class="d3m-a-caixa d3m-a-ap-det">${det.map(([r, v, tom]) => `<div><dt>${r}</dt><dd${tom ? ` class="${tom}"` : ''}>${v}</dd></div>`).join('')}</dl>`)}
+    </article>`;
+  }
+  function corpoAprovarV2() {
+    if (!A()) return vazio('As aprovações não carregaram.', 'Recarregue a página para tentar de novo.');
+    const f = filaParaAprovar(), fila = f?.fila || [], n = fila.length;
+    if (!f) { const erro = A().estado().erro; if (!erro) A().atualizar(); }
+    if (n) st.apr = Math.max(0, Math.min(st.apr, n - 1));
+    const pontos = n > 1 && n <= 12 ? `<span class="v2-pontos" aria-hidden="true">${fila.map((_, k) => `<i${k === st.apr ? ' class="on"' : ''}></i>`).join('')}</span>` : '';
+    const erro = !f ? A().estado().erro : '';
+    const meio = !f ? `<div class="d3v-estado${erro ? ' erro' : ''}"><b>${esc(erro || 'Carregando o que espera aprovação…')}</b>${erro ? '<button type="button" class="d3v-btn vidro" data-vc-apr-reler>Tentar de novo</button>' : ''}</div>`
+      : !n ? '<div class="d3v-estado"><b>Nada esperando a sua aprovação.</b>Quando uma peça entrar em Para aprovação, ela aparece aqui.</div>'
+      : st.aprLista ? `<section class="d3m-a-folha v2c-lista d3m-a-ap-lista" aria-label="Peças para aprovar"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Para aprovar</span> <span>· ${plural(n, 'peça', 'peças')}, pela data do cliente</span></h3><button type="button" class="d3m-a-filtro" data-vc-apr-lista>ver a arte</button></div>
+          <div class="d3m-a-ap-linhas">${fila.map((i, k) => { const q = quando(i); return `<button type="button" class="d3m-a-ap-lin" data-vc-apr-ir="${k}"${k === st.apr ? ' aria-current="true"' : ''}>${fotoV2(i.cliente)}<span><b>${esc(primeiroCliente(i))}</b> · ${esc(nomeDaPeca(i))}</span><small class="${q.tom === 'r' ? 'r' : ''}">${esc(q.curto)}</small></button>`; }).join('')}</div></section>`
+      : `<button type="button" class="d3m-ico d3a-passo" data-vc-apr-passo="-1" aria-label="Peça anterior"${st.apr <= 0 ? ' disabled' : ''}>${V2_SETA.antes}</button>
+        <div class="d3a-leque vc-apr-baralho d3m-a-ap-leque" aria-live="polite">${fila.map(lequeV2).join('')}</div>
+        <button type="button" class="d3m-ico d3a-passo" data-vc-apr-passo="1" aria-label="Próxima peça"${st.apr >= n - 1 ? ' disabled' : ''}>${V2_SETA.depois}</button>
+        <p class="d3m-a-ap-pe">${pontos}<b data-vc-apr-conta>${st.apr + 1} de ${n}</b><span class="d3m-a-ap-dica">A aprova · R pede alteração · setas trocam de peça</span><button type="button" class="d3m-a-ap-link" data-vc-im-abrir>tela cheia</button><button type="button" class="d3m-a-ap-link" data-vc-apr-lista>ver em lista</button></p>`;
+    // Sem fila, a direita diz o que o mês pede (o que falta no equilíbrio), sem laranja: o laranja é só para decidir.
+    let direita = fila.map((i, k) => cartaV2(i, k, n)).join('');
+    if (!n && f) {
+      const cl = pecasDoPainel().length ? dadosDoMes().atual.clientes : [];
+      const falta = E.OBJETIVOS.map((o) => [o, cl.filter((c) => (c.falta || []).includes(o)).length]).sort((a, b) => b[1] - a[1])[0];
+      direita = consV2('Augusto · Copy', '', `<p class="d3m-a-caixa d3m-a-ap-leg">Nada esperando você.${falta?.[1] ? ` Falta ${esc(E.ROTULO[falta[0]].toLowerCase())} em ${plural(falta[1], 'cliente', 'clientes')} neste mês.` : ''}${f.comCliente ? ` ${plural(f.comCliente, 'peça está', 'peças estão')} com o cliente.` : ''}</p>${falta?.[1] ? `<button type="button" class="d3m-vlin" data-vc-aba="equilibrio"><span><b>Equilíbrio do mês</b> · ver ${falta[1] === 1 ? 'o cliente' : `os ${falta[1]} clientes`}</span>${V2_SETA.depois}</button>` : ''}`);
+    }
+    return `<div class="v2c-apr d3m-a-ap${st.aprLista ? ' em-lista' : ''}">${esquerdaV2(f)}<div class="v2c-mesa d3m-a-ap-meio">${meio}</div><div class="d3m-lado d3m-a-ap-dir">${direita}</div></div>`;
+  }
+  // Com o cliente (e a aba Links): cada cliente numa folha, com o link, a validade e as peças que foram para ele.
+  function corpoClienteV2() {
+    const f = filaParaAprovar(), comO = f?.comO || [], d = st.links;
+    const chave = (n) => normal(String(n || '').split(',')[0]);
+    const erro = st.erroLinks ? `<div class="d3v-estado erro"><b>${esc(st.erroLinks)}</b><button type="button" class="d3v-btn sec" data-vc-recarregar-links>Tentar de novo</button></div>` : '';
+    const clientes = d?.clientes || [];
+    const pecasDe = (nome) => comO.filter((i) => chave(i.cliente) === chave(nome));
+    const semCadastro = comO.filter((i) => !clientes.some((c) => chave(c.nome) === chave(i.cliente)));
+    const peca = (i) => `<span class="d3m-a-cl-peca">${miniV2(i)}<span><b>${esc(tituloV2(i))}</b><small>${i.formato ? `${esc(i.formato)} · ` : ''}${i.horas == null ? esc(quando(i).frase) : `esperando há ${esc(esperaHa(i.horas))}`}</small></span></span>`;
+    const validade = (c) => `<label class="vc-validade d3m-a-cl-val">Validade <select data-vc-dias="${esc(c.id)}"><option value="7">7 dias</option><option value="14" selected>14 dias</option><option value="30">30 dias</option></select></label>`;
+    const gerar = (c, forte) => `<button type="button" class="d3v-btn${forte ? '' : ' sec'} s" data-vc-gerar="${esc(c.id)}"${d?.pronto === false || st.gerando ? ' disabled' : ''}>Gerar link</button>`;
+    const novo = (c) => (st.novoLink && chave(st.novoLink.cliente) === chave(c.nome) ? `<div class="vc-novo-link d3m-a-cl-novo" role="status"><b>Link pronto</b><span>Copie e mande pelo canal de sempre. Ele aparece só agora.</span><span class="vc-novo-linha"><input readonly value="${esc(st.novoLink.link)}" aria-label="Link de aprovação" data-vc-link-campo><button type="button" class="d3v-btn s" data-vc-copiar>Copiar o link</button></span></div>` : '');
+    const comAlgo = clientes.filter((c) => c.links?.length || c.pendentes || pecasDe(c.nome).length), semNada = clientes.filter((c) => !comAlgo.includes(c));
+    const folha = (c) => { const l = c.links?.[0], pecas = pecasDe(c.nome);
+      const estado = !l ? ['', 'Sem link ativo'] : l.ultimo_acesso_em ? ['roxo', `Aberto${l.respostas ? `, ${plural(l.respostas, 'resposta', 'respostas')}` : ', sem resposta'}`] : ['r', 'Link ainda não aberto'];
+      return `<section class="d3m-a-folha d3m-a-cl" aria-label="${esc(c.nome)}"><div class="d3m-a-cab d3m-a-cl-cab">${fotoV2(c.nome)}<span class="d3m-a-cl-nome"><b>${esc(c.nome)}</b><small>${l ? `link gerado por ${esc(l.criado_por || 'alguém do time')} · vale até ${esc(dataHora(l.expira_em))} · ${l.respostas ? plural(l.respostas, 'resposta', 'respostas') : 'nenhuma resposta'}` : c.pendentes ? `${plural(c.pendentes, 'peça esperando', 'peças esperando')} o cliente, sem link` : 'nada esperando o cliente'}</small></span>
+          <span class="d3v-st d3m-a-cl-st"><i${estado[0] ? ` class="${estado[0]}"` : ''} aria-hidden="true"></i>${estado[1]}</span>${validade(c)}${gerar(c, !l)}${(c.links || []).map((x, n) => `<button type="button" class="d3v-btn sec s" data-vc-revogar="${esc(x.id)}" title="Desligar o link${c.links.length > 1 ? ` ${n + 1}` : ''} (vale até ${esc(dataHora(x.expira_em))})">Desligar${c.links.length > 1 ? ` ${n + 1}` : ''}</button>`).join('')}</div>
+        ${novo(c)}${pecas.length ? `<div class="d3m-a-cl-pecas">${pecas.map(peca).join('')}</div>` : ''}</section>`; };
+    const resto = semNada.length ? `<section class="d3m-a-folha d3m-a-cl" aria-label="Mandar mais peças ao cliente"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Mandar mais peças ao cliente</span> <span>· o link reúne o que estiver em aprovação do cliente</span></h3></div>
+        <div class="d3m-a-cl-resto">${semNada.map((c) => `<div class="d3m-a-cl-lin">${fotoV2(c.nome)}<b>${esc(c.nome)}</b>${validade(c)}${gerar(c, false)}${novo(c)}</div>`).join('')}</div></section>` : '';
+    const soltas = semCadastro.length ? `<section class="d3m-a-folha d3m-a-cl" aria-label="Peças com o cliente"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Com o cliente</span> <span>· ${plural(semCadastro.length, 'peça', 'peças')} de cliente em que você não gera link</span></h3></div><div class="d3m-a-cl-pecas">${semCadastro.map((i) => peca({ ...i, titulo: `${primeiroCliente(i)} · ${tituloV2(i)}` })).join('')}</div></section>` : '';
+    const aviso = d && d.pronto === false && !(st.pronto === false) ? avisoParte(d.aviso) : '';
+    const principal = erro || (!d ? '<div class="d3v-estado"><b>Carregando os clientes…</b></div>'
+      : aviso + (comAlgo.map(folha).join('') + soltas + resto || '<div class="d3v-estado"><b>Você ainda não é head de nenhum cliente.</b>O link de aprovação é gerado pelo head do cliente ou por quem administra.</div>'));
+    // A coluna de consulta: a peça que espera há mais tempo, os números do mês e o que esta aba é.
+    const antiga = comO.reduce((m, i) => ((i.horas ?? -1) > (m?.horas ?? -1) ? i : m), null);
+    const dono = antiga ? clientes.find((c) => chave(c.nome) === chave(antiga.cliente)) : null;
+    const ativos = clientes.reduce((s, c) => s + (c.links?.length || 0), 0);
+    const aprovadas = pecasDoPainel().length ? dadosDoMes().aprovadasAgora : 0;
+    const laranja = antiga && antiga.horas != null ? laranjaV2({ quem: `Augusto · ${dono?.links?.length ? (dono.links[0].ultimo_acesso_em ? 'esperando resposta' : 'link sem abrir') : 'sem link'}`, numero: esperaHa(antiga.horas), titulo: `e ${primeiroCliente(antiga)} ainda não respondeu`, apoio: `${antiga.formato ? `${antiga.formato}, ` : ''}${tituloV2(antiga)}.${dono?.links?.length ? ` O link vale até ${dataHora(dono.links[0].expira_em)}.` : ''}`,
+      botoes: dono ? `<button type="button" class="d3m-btn l" data-vc-gerar="${esc(dono.id)}"${d?.pronto === false || st.gerando ? ' disabled' : ''}>${dono.links?.length ? 'Gerar outro link' : 'Gerar o link'}</button>` : '' }) : '';
+    const nomeMes = MESES[Number(st.mes.slice(5)) - 1];
+    const lado = `${laranja}${consV2(nomeMes[0].toUpperCase() + nomeMes.slice(1), 'com o cliente', `<div class="d3m-a-cl-nums"><span><b>${comO.length}</b>esperando</span><span><b>${aprovadas}</b>aprovadas</span><span><b>${ativos}</b>${ativos === 1 ? 'link ativo' : 'links ativos'}</span></div>`)}
+      <section class="d3m-cons d3m-a-nota-v"><div class="d3m-cons-cab"><b>Links e Com o cliente são um só</b></div><p>Cada link aparece aqui com o que foi mandado nele. Depois de gerado, o endereço aparece uma vez só: copie na hora.</p></section>
+      <section class="d3m-cons d3m-a-nota-v"><div class="d3m-cons-cab"><b>Onde o cliente aprova</b></div><p>A grade do mês fica no VybeHub. Este link é para peça avulsa, quando não dá para esperar a grade.</p></section>`;
+    return `<div class="d3m-a-cl-tela"><div class="d3m-a-cl-meio">${principal}</div><aside class="d3m-lado d3m-a-ap-dir" aria-label="Consulta">${lado}</aside></div>`;
+  }
+  // Equilíbrio do mês: o mix de cada cliente numa linha (foto, a barra de atração, educação e conversão, as peças e o que
+  // falta); clicar no cliente abre o calendário dele no lugar, como antes.
+  function corpoEquilibrioV2() {
+    if (!pecasDoPainel().length) return '<div class="d3v-estado"><b>As peças ainda estão carregando.</b>Assim que o painel trouxer a produção, o equilíbrio aparece aqui.</div>';
+    const d = dadosDoMes(), g = d.atual.geral, a = d.anterior.geral, cls = d.atual.clientes, ant = MESES[Number(E.mesAnterior(st.mes).slice(5)) - 1];
+    if (st.cliente && !cls.some((c) => normal(c.cliente) === normal(st.cliente))) { st.cliente = ''; st.peca = ''; }
+    const legenda = `<span class="d3m-a-eq-leg d3m-a-mx-leg" aria-hidden="true">${E.OBJETIVOS.map((o) => `<span><i data-obj="${o}"></i>${E.ROTULO[o].toLowerCase()}</span>`).join('')}<span><i data-obj="sem"></i>sem objetivo</span></span>`;
+    const linhas = cls.map((c) => {
+      const cl = c.total || 1, aberto = normal(c.cliente) === normal(st.cliente), r = E.resumoCurto(c);
+      return `<button type="button" class="d3m-a-mx-lin vc-eq-linha${aberto ? ' ativo' : ''}" role="listitem" data-vc-cliente="${esc(c.cliente)}" aria-expanded="${aberto}" title="${esc(c.frase)}. ${aberto ? 'Fechar o calendário' : 'Ver o calendário do cliente'}">${fotoV2(c.cliente)}<b class="d3m-a-mx-nome">${esc(c.cliente)}</b>
+          <span class="d3m-a-mx-barra" role="img" aria-label="${esc(c.frase)}">${E.OBJETIVOS.map((o) => (c[o] ? `<i data-obj="${o}" style="flex-grow:${c[o]}"></i>` : '')).join('')}${c.sem ? `<i data-obj="sem" style="flex-grow:${c.sem}"></i>` : ''}</span><span class="d3m-a-mx-n">${cl}</span><span class="d3m-a-mx-falta${r.tom === 'ok' ? ' g' : ''}">${esc(r.texto)}</span></button>`
+        + (aberto ? `<div class="vc-eq-detalhe d3m-a-mx-det"><div class="vc-grade${st.peca ? ' com-previa' : ''}"><div class="vc-cal-caixa">${calendario(d)}</div>${st.peca ? `<div class="vc-previa">${previa(d)}</div>` : ''}</div></div>` : '');
+    }).join('');
+    const folha = `<section class="d3m-a-folha d3m-a-mx" aria-label="O mix de cada cliente"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>O mix de cada cliente</span> <span>· ${plural(g.total, 'peça', 'peças')} em ${esc(MESES[Number(st.mes.slice(5)) - 1])}</span></h3>${legenda}</div>
+        ${cls.length ? `<div class="d3m-a-mx-cab" aria-hidden="true"><span>Cliente</span><span>Atração, educação e conversão</span><span>Peças</span><span>O que falta</span></div><div class="d3m-a-mx-lista vc-eq-lista" role="list" aria-label="Clientes do mês">${linhas}</div>`
+          : `<div class="d3v-estado"><b>Nenhuma peça com data em ${esc(nomeDoMes(st.mes))}.</b>Cadastre os conteúdos do mês e marque o objetivo de cada um.<button type="button" class="d3v-btn sec" data-vc-novo>Novo conteúdo</button></div>`}
+        <div class="d3m-a-pe"><span>No mês</span>${E.OBJETIVOS.map((o) => `<span><b>${g[o] || 0}</b>${esc(E.ROTULO[o].toLowerCase())}</span>`).join('')}<span><b${g.sem ? ' class="a"' : ''}>${g.sem || 0}</b>sem objetivo</span></div></section>`;
+    const comFalta = cls.filter((c) => (c.falta || []).length), primeiro = comFalta[0];
+    const laranja = comFalta.length ? laranjaV2({ quem: 'Augusto · o mix do mês', numero: comFalta.length, titulo: `${comFalta.length === 1 ? 'cliente sem mistura' : 'clientes sem mistura'} no mês`, apoio: `${g.sem ? `${plural(g.sem, 'peça está', 'peças estão')} sem objetivo marcado. ` : ''}Falta ao menos um objetivo em cada um deles.`,
+      botoes: `<button type="button" class="d3m-btn l" data-vc-cliente="${esc(primeiro.cliente)}">Ver ${esc(primeiro.cliente.split(' ')[0])}</button><button type="button" class="d3m-btn l s" data-vc-novo>Novo conteúdo</button>` }) : '';
+    const maior = Math.max(1, ...E.OBJETIVOS.map((o) => Math.max(g[o] || 0, a[o] || 0)));
+    const sinal = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
+    const contra = consV2(`Contra ${ant}`, 'peças', `<div class="d3m-a-caixa">${E.OBJETIVOS.map((o) => `<span class="d3m-a-ap-obj" data-obj="${o}"><span>${esc(E.ROTULO[o])}</span><i class="d3m-vbarra" style="--v:${Math.round((g[o] || 0) * 100 / maior)}%"><i></i></i><b>${sinal((g[o] || 0) - (a[o] || 0))}</b></span>`).join('')}</div>`);
+    const dif = d.aprovadasAgora - d.aprovadasAntes;
+    const aprov = consV2('Aprovadas pelo cliente', `${d.aprovadasAgora} de ${g.total}`, `<div class="d3m-a-caixa d3m-a-ap-barra"><span class="d3m-vbarra" style="--v:${g.total ? Math.round(d.aprovadasAgora * 100 / g.total) : 0}%"><i></i></span><span>${dif > 0 ? `${dif} a mais que em ${ant}` : dif < 0 ? `${Math.abs(dif)} a menos que em ${ant}` : `igual a ${ant}`}</span></div>`);
+    const abrir = consV2('Abrir', '', `<button type="button" class="d3m-vlin" data-vc-planejamentos onclick="window.mundoVoxel?.irPara?.('planejamentos')"><span><b>Planejamentos</b> · o mix nasce lá</span>${V2_SETA.depois}</button>`);
+    return `<div class="d3m-a-cl-tela"><div class="d3m-a-cl-meio d3m-a-mx-meio">${folha}</div><aside class="d3m-lado d3m-a-ap-dir" aria-label="Consulta">${laranja}${contra}${aprov}${abrir}</aside></div>`;
+  }
   // Passar de carta mexe só nas posições (data-pos): é a troca que anima. A tela inteira só é refeita quando a fila muda.
   function passar(para) {
     const fila = filaParaAprovar()?.fila || [], el = janela();
@@ -498,7 +684,7 @@
     el.querySelectorAll('.v2c-mesa .v2-pontos > i').forEach((p, k) => p.classList.toggle('on', k === novo));
     // O leque gira: cada arte vai para a posição nova (a transição do CSS faz o resto).
     el.querySelectorAll('[data-vc-leque]').forEach((c) => { const d = Number(c.dataset.vcLeque) - novo, a = Math.abs(d);
-      c.style.setProperty('--lp', d); c.style.setProperty('--alp', a); c.hidden = a > LEQUE_LADO; c.classList.toggle('vez', d === 0); });
+      c.style.setProperty('--lp', d); c.style.setProperty('--alp', a); c.hidden = a > LEQUE_LADO; c.classList.toggle('vez', d === 0); c.classList.toggle('prox', d === 1); });
     // A linha destacada da Fila acompanha a carta da frente.
     el.querySelectorAll('.v2c-fila [data-vc-apr-ir]').forEach((l) => { if (Number(l.dataset.vcAprIr) === novo) l.setAttribute('aria-current', 'true'); else l.removeAttribute('aria-current'); });
     const conta = el.querySelector('[data-vc-apr-conta]'); if (conta) conta.textContent = `${novo + 1} de ${fila.length}`;
@@ -881,7 +1067,8 @@
     if (obj && t.dataset.vcObjetivo) { e.preventDefault(); e.stopPropagation(); return definirObjetivo(obj.dataset.vcItem, t.dataset.vcObjetivo); }
     if (!t.closest('#vv-conteudo')) return;
     if (t.matches('[data-vc-fechar]')) return fechar();
-    if (t.matches('[data-vc-ajuda]')) { st.ajuda = !st.ajuda; return pintar(); }
+    // data-vc-como é o "Como funciona" do topo V2 (a regra do canto das janelas pinta de branco todo [data-vc-ajuda]).
+    if (t.matches('[data-vc-ajuda],[data-vc-como]')) { st.ajuda = !st.ajuda; return pintar(); }
     if (t.matches('[data-vc-falta]')) { st.verFalta = !st.verFalta; return pintar(); }
     if (t.dataset.vcAba) { st.aba = t.dataset.vcAba; st.lote = []; if (['links', 'cliente'].includes(st.aba) && !st.links) carregarLinks(); if (st.aba === 'aprovar') relerFila(); return pintar(); }
     if (t.dataset.vcEqCliente !== undefined) { st.aba = 'equilibrio'; st.cliente = t.dataset.vcEqCliente; st.peca = ''; st.lote = []; return pintar(); }
@@ -913,6 +1100,8 @@
     // Por cima da janela pode haver a gaveta da peça (aberta pela prévia), o cadastro ou um portão: eles vêm primeiro.
     const porCima = porCimaDaJanela();
     if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && st.aba === 'aprovar' && !porCima && !e.target.closest?.('input, textarea, select, [contenteditable="true"]')) { e.preventDefault(); st.lote = []; return passar(st.apr + (e.key === 'ArrowRight' ? 1 : -1)); }
+    // Direção V2: A aprova e R pede alteração a peça da vez, pelo mesmo portão dos botões (ele confirma antes de gravar).
+    if (v2() && st.aba === 'aprovar' && !st.aprLista && !porCima && !imer.aberta && !e.ctrlKey && !e.metaKey && !e.altKey && /^[ar]$/i.test(e.key) && !e.target.closest?.('input, textarea, select, [contenteditable="true"]') && (filaParaAprovar()?.fila || []).length) { e.preventDefault(); st.lote = []; return decidir(/a/i.test(e.key) ? 'aprovar' : 'alterar'); }
     if (e.key !== 'Escape') return;
     if (porCima) return;
     e.preventDefault(); e.stopPropagation();

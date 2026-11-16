@@ -387,9 +387,12 @@ function feedVista(vista, passo = 0) {
 // fecha.
 const FEED_VIZINHOS = 3;
 function renderFeedDoCliente() {
-  // O quadro antigo dentro do Painel fica vazio: o Feed abre por cima de tudo.
   const wrap = document.getElementById('feed-board');
+  // Direção V2 (prancha V2-M-Feed): no mundo, o Feed é uma vista dentro da janela da Produção, não a camada por cima.
+  if (wrap && feedAberto && feedV2Ligado()) { feedFecharCamada(); feedV2Pintar(wrap); return; }
+  // Fora do mundo (e ao fechar), o quadro dentro do Painel fica vazio: o Feed abre por cima de tudo.
   if (wrap) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); }
+  if (wrap) wrap.classList.remove('d3m-a-v2', 'vfd-com-sel');
   if (!feedAberto) { feedFecharCamada(); return; }
   if (typeof garantirClientesAtivos === 'function') { try { garantirClientesAtivos(); } catch { /* segue */ } }
   if (typeof ensureClientMasterSources === 'function' && !feedClientes.pedido) {
@@ -904,7 +907,7 @@ async function feedSoltar(origem, idAlvo, isoAlvo) {
   // Solicitação de feed muda a conclusão (como no calendário); peça de produção, a veiculação.
   const mover = (x, iso) => moverDataDoItem(x.it, 'veiculacao', iso, { request: x.request, renderizar: false, avisar: false });
   if (typeof moverDataDoItem !== 'function') { feedToast('Não foi possível mover a data agora.', 'err', 6000); return; }
-  FEED.salvando = true; document.getElementById('vfd-camada')?.classList.add('vfd-salvando');
+  FEED.salvando = true; document.getElementById('vfd-camada')?.classList.add('vfd-salvando'); document.getElementById('feed-board')?.classList.add('vfd-salvando');
   // A data que a peça ocupou deixa de estar marcada para o lote.
   FEED.sel?.isos.delete(isoAlvo);
   try {
@@ -922,12 +925,174 @@ async function feedSoltar(origem, idAlvo, isoAlvo) {
   } catch (erro) {
     feedToast(`Não foi possível mover a data: ${erro.message}`, 'err', 7000);
   } finally {
-    FEED.salvando = false; document.getElementById('vfd-camada')?.classList.remove('vfd-salvando');
+    FEED.salvando = false; document.getElementById('vfd-camada')?.classList.remove('vfd-salvando'); document.getElementById('feed-board')?.classList.remove('vfd-salvando');
     if (FEED.sel && !FEED.sel.isos.size) FEED.sel = null;
     renderFeedDoCliente();
     if (typeof renderManagerCalendar === 'function') renderManagerCalendar();
     if (typeof renderVisaoDeGrupos === 'function') renderVisaoDeGrupos();
   }
+}
+
+// ── O FEED NA DIREÇÃO V2 (prancha V2-M-Feed, aprovada pelo Paulo em 16/11/2026) ──────────────────────────────────────
+// No mundo, o Feed deixa de ser a camada com os celulares em carrossel e vira uma vista da Produção, dentro da janela:
+// a lista dos clientes à esquerda (quem tem buraco primeiro), a grade inteira do cliente escolhido no meio e, à direita,
+// o cartão laranja (quantos posts faltam), as semanas em calendário, as datas marcadas e os atalhos. Tudo que grava é
+// o de sempre: feedMarcar, feedCriarNoDia, feedCadastrarMarcadas, o lote, o Intercalar, o arrastar e o Atualizar.
+function feedV2Ligado() {
+  return typeof document !== 'undefined' && typeof pv2Ligado === 'function' && pv2Ligado() && typeof panelMode !== 'undefined' && panelMode === 'gestor' && Boolean(document.getElementById('pv2-painel'));
+}
+const FEED_V2_SETA = { antes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>', depois: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' };
+function feedV2Foto(cli, classe = 'd3v-foto') {
+  const p = cli.usuario ? FEED.perfis.get(cli.usuario) : null;
+  const iniciais = cli.nome.trim().slice(0, 2).toUpperCase();
+  return p && !p.erro && p.foto ? `<img class="${classe}" src="${feedEsc(feedFotoIg(p.foto))}" alt="" loading="lazy">` : `<i class="${classe}" aria-hidden="true">${feedEsc(iniciais)}</i>`;
+}
+function feedV2Troca(el, html) { if (el && el.vfdHtml !== html) { el.innerHTML = html; el.vfdHtml = html; return true; } return false; }
+// A lista dos clientes, direto no vidro: quantos são, quantos posts faltam, a carteira e cada cliente com os buracos dele.
+function feedV2ListaHtml(lista, montados, cli, todos) {
+  const cart = typeof CARTEIRAS_DA_AGENDA !== 'undefined' ? CARTEIRAS_DA_AGENDA : [];
+  const total = lista.reduce((s, c) => s + montados.get(c.nome).buracos.length, 0);
+  const heads = [...new Set(todos.flatMap((c) => c.heads))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const seg = (v, rot) => `<button type="button" role="radio" aria-checked="${FEED.carteira === v}" onclick="feedFiltrar('carteira','${jsArg(v)}')">${feedEsc(rot)}</button>`;
+  const opc = (v, rot) => `<option value="${feedEsc(v)}"${v === FEED.head ? ' selected' : ''}>${feedEsc(rot)}</option>`;
+  return `<div class="d3m-cons-cab"><b>${feedPlural(lista.length, 'cliente', 'clientes')}</b><span>${total ? feedPlural(total, 'post faltando', 'posts faltando') : 'nenhum buraco'}</span></div>
+    <div class="d3m-a-vseg" role="radiogroup" aria-label="Carteira">${seg('all', 'Todos')}${cart.map((c) => seg(c.id, c.apelido)).join('')}</div>
+    <div class="vfd2-clis" role="radiogroup" aria-label="Cliente">${lista.map((c) => { const b = montados.get(c.nome).buracos.length, on = c.nome === cli?.nome;
+      return `<button type="button" class="d3m-vlin vfd2-cli${on ? ' on' : ''}" role="radio" aria-checked="${on}" data-vfd2-cli="${feedEsc(c.nome)}" onclick="feedFoco('${jsArg(c.nome)}')" title="${feedEsc(c.nome)}: ${b ? feedPlural(b, 'post faltando', 'posts faltando') : 'sem buracos'} ${feedEsc(feedJanela().rotulo)}">${feedV2Foto(c)}<span class="d3m-vnome">${feedEsc(c.nome)}</span>${b ? `<i class="d3m-pt r" aria-hidden="true"></i><b class="d3m-vn">${b}</b>` : '<svg class="vfd2-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>'}</button>`; }).join('') || '<p class="d3m-vvazio">Nenhum cliente neste filtro.</p>'}</div>
+    ${heads.length > 1 ? `<label class="vfd2-head"><span>Head</span><select onchange="feedFiltrar('head',this.value)" aria-label="Filtrar por head">${opc('all', 'Todos')}${heads.map((h) => opc(h, h)).join('')}</select></label>` : ''}`;
+}
+// A grade do cliente, como no Instagram: o perfil em cima; o que vai sair (o mais novo em cima) e, colado, o que está no ar.
+function feedV2GradeHtml(cli, g) {
+  const p = g.perfil && !g.perfil.erro ? g.perfil : null;
+  const gradeMax = g.jan.modo === 'mes' ? Infinity : Math.min(30, Math.max(FEED_GRADE_MAX, Math.ceil(g.futuro.length / 3) * 3));
+  const futuro = g.futuro.slice(-gradeMax), resto = g.futuro.length - futuro.length;
+  const usuario = cli.usuario ? `<a class="vfd-ig-user" href="https://www.instagram.com/${feedEsc(cli.usuario)}/" target="_blank" rel="noopener noreferrer">${feedEsc(cli.usuario)}</a>` : `<span class="vfd-ig-user vfd-sem-insta">${feedEsc(cli.nome)}</span>`;
+  const nums = p ? `${feedNumeroIg(p.total_posts)} posts · ${feedNumeroIg(p.seguidores)} seguidores` : cli.usuario ? 'lendo o Instagram…' : 'sem Instagram no cadastro';
+  const bio = String(p?.bio || cli.bio || '').trim();
+  const noAr = g.noAr.map((t) => feedTileHtml(t, cli)).join('');
+  const lido = p?.fonte === 'captura' ? `feed lido em ${feedDm(String(p.capturado_em || '').slice(0, 10))}` : p?.fonte === 'meta' ? 'pela conta da Meta' : p ? 'do perfil público' : noAr ? 'as últimas veiculadas' : '';
+  return `<div class="vfd2-perfil">${feedV2Foto(cli, 'vfd2-avatar')}<div><p class="vfd2-user">${usuario}</p><p class="vfd2-nums">${feedEsc(nums)}</p>${bio ? `<p class="vfd2-bio" title="${feedEsc(bio)}">${feedEsc(bio.split('\n')[0])}</p>` : ''}</div></div>
+    <div class="vfd2-rola" data-vfd2-rola="${feedEsc(cli.nome)}">
+      <p class="vfd2-rot"><span>a sair, o mais novo em cima</span><span>${resto > 0 ? `mais ${feedPlural(resto, 'item', 'itens')} mais longe` : g.depois ? `${feedPlural(g.depois, 'peça', 'peças')} depois de ${feedDm(g.jan.fim)}` : ''}</span></p>
+      <div class="vfd-grade" data-vfd-grade="${feedEsc(cli.nome)}">${futuro.map((t) => feedTileHtml(t, cli)).join('') || `<p class="vfd-vazio">Nada programado ${feedEsc(g.jan.rotulo)}.</p>`}</div>
+      <p class="vfd2-rot"><span>no ar</span><span>${feedEsc(lido)}</span></p>
+      <div class="vfd-grade">${noAr || '<p class="vfd-vazio">Nada no ar ainda por aqui.</p>'}</div>
+    </div>`;
+}
+// As semanas em calendário: uma linha por semana, sete dias; a peça com o formato (a cor embaixo é o status), o X onde
+// falta post (tocar marca a data para o lote) e o ponto no dia livre. À direita, quantos posts a semana tem de três.
+function feedV2SemanasHtml(cli, g) {
+  const jan = g.jan, hoje = jan.hoje, nome = jsArg(cli.nome);
+  const troca = FEED.intercalar?.cliente === cli.nome ? new Map(FEED.intercalar.moves.map((m) => [m.id, m.para])) : null;
+  const pecas = feedDoCliente(cli.nome).map((x) => (troca?.has(String(x.item.id)) ? { ...x, iso: troca.get(String(x.item.id)) } : x)).filter((x) => x.iso >= jan.ini && x.iso <= jan.fim);
+  const buraco = new Map([...g.buracos, ...g.livres].map((b) => [b.iso, b]));
+  const curto = (iso) => `${Number(iso.slice(8, 10))} ${FEED_MESES[Number(iso.slice(5, 7)) - 1].slice(0, 3)}`;
+  const linhas = [];
+  for (let s = 0; s < jan.semanas; s += 1) {
+    const ini = feedSomar(jan.seg0, s * 7), fim = feedSomar(ini, 6);
+    const daSemana = pecas.filter((x) => x.iso >= ini && x.iso <= fim);
+    const meta = Math.min(FEED_POR_SEMANA, FEED_DIAS_PADRAO.map((d) => feedSomar(ini, d)).filter((iso) => iso >= jan.ini && iso <= jan.fim).length);
+    const dias = Array.from({ length: 7 }, (_, d) => {
+      const iso = feedSomar(ini, d), fora = iso < jan.ini || iso > jan.fim, doDia = daSemana.filter((x) => x.iso === iso), b = buraco.get(iso), quando = feedQuando(iso);
+      if (doDia.length) {
+        const x = doDia[0], it = x.item, st = String(it.status || ''), cor = it.status_color || (typeof corDeStatus === 'function' ? corDeStatus(st)?.cor : '') || '';
+        return `<button type="button" class="vfd2-dia vfd2-peca${iso < hoje ? ' passou' : ''}" ${iso < hoje ? '' : 'draggable="true" '}data-vfd-item="${feedEsc(String(it.id))}" data-vfd-alvo="${feedEsc(iso)}" data-vfd-cliente="${feedEsc(cli.nome)}"${cor ? ` style="--st:${feedEsc(cor)}"` : ''} onclick="feedAbrirPeca('${jsArg(String(it.id))}',event,${x.request ? 'true' : 'false'})" title="${feedEsc(String(it.nome || it.titulo || 'Peça'))} · ${feedEsc(quando)}${st ? ' · ' + feedEsc(st) : ''}${doDia.length > 1 ? ` · mais ${doDia.length - 1} no dia` : ''}"><span>${feedEsc(x.fmt.nome)}</span>${doDia.length > 1 ? `<small>+${doDia.length - 1}</small>` : ''}</button>`;
+      }
+      if (b) return `<button type="button" class="vfd2-dia vfd2-x${b.marcado ? ' on' : ''}${b.livre ? ' livre' : ''}" role="switch" aria-checked="${Boolean(b.marcado)}" data-vfd-alvo="${feedEsc(iso)}" data-vfd-cliente="${feedEsc(cli.nome)}" onclick="feedMarcar('${nome}','${jsArg(iso)}')" title="${b.marcado ? 'Desmarcar' : 'Marcar'} ${feedEsc(quando)}${b.sazonal ? ` (${feedEsc(b.sazonal)})` : ''} para cadastrar em lote" aria-label="${b.livre ? 'Data livre' : 'Sem post'} ${feedEsc(quando)}${b.marcado ? ', marcada' : ''}"><i aria-hidden="true"></i></button>`;
+      if (fora || iso < hoje) return '<span class="vfd2-dia vfd2-nada" aria-hidden="true"><i></i></span>';
+      return `<button type="button" class="vfd2-dia vfd2-nada" data-vfd-alvo="${feedEsc(iso)}" data-vfd-cliente="${feedEsc(cli.nome)}" onclick="feedMarcar('${nome}','${jsArg(iso)}')" title="Marcar ${feedEsc(quando)} como data livre para o lote" aria-label="Dia livre ${feedEsc(quando)}: marcar para o lote"><i aria-hidden="true"></i></button>`;
+    }).join('');
+    const n = daSemana.length;
+    linhas.push(`<div class="vfd2-sem" role="row"><span class="vfd2-sem-rot">${curto(ini > jan.ini ? ini : jan.ini).split(' ')[0]} a ${curto(fim < jan.fim ? fim : jan.fim)}</span>${dias}<b class="vfd2-sem-n ${n >= meta ? 'g' : 'r'}">${n} de ${meta}</b></div>`);
+  }
+  const mes = FEED.mes || feedMesAtual();
+  const titulo = jan.modo === 'mes' ? `<span class="d3m-a-setas" role="group" aria-label="Trocar de mês"><button type="button" class="d3v-btn txt ico s" aria-label="Mês anterior" onclick="feedVista('mes',-1)" ${mes <= feedMesAtual() ? 'disabled' : ''}>${FEED_V2_SETA.antes}</button><button type="button" class="d3v-btn txt ico s" aria-label="Próximo mês" onclick="feedVista('mes',1)">${FEED_V2_SETA.depois}</button></span>` : '';
+  const nota = `${FEED_POR_SEMANA} posts por semana · a cor embaixo é o status`;
+  return `<section class="d3m-a-folha vfd2-semanas" aria-label="Semanas de ${feedEsc(cli.nome)}"><div class="d3m-a-cab"><h3 class="${titulo ? '' : 'd3m-a-so'}"><span>${jan.modo === 'mes' ? feedEsc(feedNomeMes(mes).replace(/^./, (c) => c.toUpperCase())) : `As próximas ${FEED_SEMANAS} semanas`}</span></h3>${titulo}<span class="d3v-rot">${feedEsc(nota)}</span></div>
+    <div class="vfd2-cal" role="table" aria-label="Posts por dia"><div class="vfd2-sem vfd2-sem-cab" aria-hidden="true"><span class="vfd2-sem-rot"></span>${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((d) => `<span>${d}</span>`).join('')}<b class="vfd2-sem-n"></b></div>${linhas.join('')}</div></section>`;
+}
+// A coluna da direita: o laranja, as semanas, as datas marcadas (ou o painel aberto) e os atalhos no vidro.
+function feedV2LadoHtml(cli, g) {
+  const nome = jsArg(cli.nome), jan = g.jan, b = g.buracos.length;
+  const podeIntercalar = g.futuras.filter((x) => !x.request).length >= 3;
+  const palavras = ['Nenhum', 'Um', 'Dois', 'Três', 'Quatro', 'Cinco'];
+  const apoio = [g.semArte ? `${palavras[g.semArte] || g.semArte} já ${g.semArte === 1 ? 'cadastrado ainda está' : 'cadastrados ainda estão'} sem arte.` : '',
+    g.atrasadas ? `${feedPlural(g.atrasadas, 'peça com o prazo de ouro vencido', 'peças com o prazo de ouro vencido')}.` : '',
+    g.repetido ? `Três ${g.repetido} seguidos deixam a grade repetida.` : '',
+    cli.heads?.length ? `${cli.heads.slice(0, 2).join(' e ')} ${cli.heads.length > 1 ? 'são os heads' : 'é o head'}.` : ''].filter(Boolean).join(' ');
+  const botoes = `<button type="button" class="d3m-btn l" aria-expanded="${FEED.lote?.cliente === cli.nome}" onclick="feedLoteAbrir('${nome}')">Preencher em lote</button>${podeIntercalar ? `<button type="button" class="d3m-btn l s" aria-expanded="${FEED.intercalar?.cliente === cli.nome}" onclick="feedIntercalarPropor('${nome}')">Intercalar formatos</button>` : ''}`;
+  const laranja = `<section class="d3-acao d3p-acao d3m-laranja vfd2-laranja" aria-label="O que falta no feed de ${feedEsc(cli.nome)}"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · o feed de ${feedEsc(cli.nome)}</span>
+      <span class="d3m-lar-txt"><b class="d3m-lar-num">${b || g.futuras.length}</b><span class="d3-acao-frase">${b ? `${b === 1 ? 'post faltando' : 'posts faltando'} ${feedEsc(jan.rotulo)}` : `${g.futuras.length === 1 ? 'post a sair' : 'posts a sair'} ${feedEsc(jan.rotulo)}, ${FEED_POR_SEMANA} por semana`}</span>${apoio ? `<small>${feedEsc(apoio)}</small>` : ''}</span><span class="d3m-lar-bts">${botoes}</span></section>`;
+  const sel = FEED.sel?.cliente === cli.nome && FEED.sel.isos.size ? FEED.sel : null;
+  let marcadas = '';
+  if (sel) {
+    const isos = [...sel.isos].sort(), fmt = FEED_FORMATOS.find((f) => f.chave === sel.fmt) || FEED_FORMATOS[0];
+    marcadas = `<div class="vfd2-marcadas" role="region" aria-label="Datas marcadas de ${feedEsc(cli.nome)}"><button type="button" class="vfd2-desmarcar" onclick="feedLimparMarcas()" title="Desmarcar todas" aria-label="Desmarcar todas as datas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></button>
+      <span class="vfd2-marcadas-txt"><b>${feedPlural(isos.length, 'data marcada', 'datas marcadas')}</b> · ${feedEsc(isos.map(feedQuando).join(isos.length === 2 ? ' e ' : ', '))}</span>
+      <select class="vfd2-fmt" aria-label="Formato das peças" onchange="feedLoteFormato(this.value)">${FEED_FORMATOS.map((f) => `<option value="${f.chave}"${f.chave === sel.fmt ? ' selected' : ''}>${feedEsc(f.nome)}</option>`).join('')}</select>
+      <button type="button" class="d3v-btn vfd2-cadastrar" onclick="feedCadastrarMarcadas()" title="Abre o cadastro com uma peça por data, já com o dia e o prazo de ouro">Cadastrar ${isos.length === 1 ? `1 ${feedEsc(fmt.nome)}` : `as ${isos.length}`}</button></div>`;
+  }
+  const painel = FEED.lote?.cliente === cli.nome ? feedLoteHtml(cli) : FEED.intercalar?.cliente === cli.nome ? feedIntercalarHtml(cli) : FEED.atualizar === cli.nome ? feedAtualizarHtml(cli) : '';
+  const p = g.perfil && !g.perfil.erro ? g.perfil : null;
+  const lido = p?.fonte === 'captura' ? `última leitura em ${feedDm(String(p.capturado_em || '').slice(0, 10))}` : 'ler o feed de agora';
+  const vlin = (html, acao, dica, extra = '') => `<button type="button" class="d3m-vlin" onclick="${acao}" title="${feedEsc(dica)}"${extra}><span>${html}</span>${FEED_V2_SETA.depois}</button>`;
+  const atalhos = `<p class="d3m-vlin vfd2-info"><span><b>Arrastar troca as datas</b> · e o calendário do cliente muda junto</span></p>`
+    + vlin('<b>Novo post</b> · escolher o dia no cadastro', `feedCriarNoDia('${nome}','')`, 'Cadastrar um post deste cliente')
+    + (feedSouDono() && cli.usuario ? vlin(`<b>Atualizar o Instagram</b> · ${feedEsc(lido)}`, `feedAtualizarAbrir('${nome}')`, 'Atualizar o feed lido do Instagram', ` aria-expanded="${FEED.atualizar === cli.nome}"`) : '');
+  return `${laranja}${feedV2SemanasHtml(cli, g)}${marcadas}${painel ? `<div class="d3m-a-folha vfd2-painel">${painel}</div>` : ''}<div class="vfd2-atalhos">${atalhos}</div>`;
+}
+function feedV2Pintar(wrap) {
+  if (typeof garantirClientesAtivos === 'function') { try { garantirClientesAtivos(); } catch { /* segue */ } }
+  if (typeof ensureClientMasterSources === 'function' && !feedClientes.pedido) {
+    feedClientes.pedido = true;
+    Promise.resolve(ensureClientMasterSources()).then(() => { if (feedAberto) renderFeedDoCliente(); }).catch(() => {});
+  }
+  // A lista é o seletor de cliente: o filtro "cliente" da camada antiga não vale aqui.
+  if (FEED.cliente !== 'all') FEED.cliente = 'all';
+  wrap.classList.remove('focus-hidden'); wrap.classList.add('d3m-a-v2');
+  if (!wrap.querySelector('#vfd2-lista')) {
+    wrap.innerHTML = '<aside class="vfd2-lista d3m-lado" id="vfd2-lista" aria-label="Clientes"></aside><section class="d3m-a-folha vfd2-cel" id="vfd2-cel" aria-live="polite"></section><div class="vfd2-lado" id="vfd2-lado"></div>';
+    feedLigarArrasto(wrap); feedLigarToque(wrap); feedV2Teclas();
+  }
+  const todos = feedClientes(), ordenada = feedOrdem(), jan = feedJanela();
+  let i = ordenada.findIndex((c) => c.nome === FEED.foco);
+  if (i < 0 && ordenada.length) { i = 0; FEED.foco = ordenada[0].nome; }
+  const cli = ordenada[i] || null;
+  const montados = new Map(ordenada.map((c) => [c.nome, feedMontar(c)]));
+  feedV2Troca(wrap.querySelector('#vfd2-lista'), feedV2ListaHtml(ordenada, montados, cli, todos));
+  const cel = wrap.querySelector('#vfd2-cel'), lado = wrap.querySelector('#vfd2-lado');
+  if (!cli) {
+    feedV2Troca(cel, '<p class="d3v-estado"><b>Nenhum cliente neste filtro.</b>Troque a carteira ou o head para ver os feeds.</p>'); feedV2Troca(lado, '');
+  } else {
+    const g = montados.get(cli.nome), rola = cel.querySelector('.vfd2-rola'), topo = rola && rola.dataset.vfd2Rola === cli.nome ? rola.scrollTop : 0;
+    cel.setAttribute('aria-label', `Feed de ${cli.nome}`);
+    if (feedV2Troca(cel, feedV2GradeHtml(cli, g)) && topo) { const novo = cel.querySelector('.vfd2-rola'); if (novo) novo.scrollTop = topo; }
+    feedV2Troca(lado, feedV2LadoHtml(cli, g));
+    wrap.classList.toggle('vfd-com-sel', Boolean(FEED.sel?.cliente === cli.nome && FEED.sel.isos.size));
+    wrap.querySelector('.vfd2-cli.on')?.scrollIntoView?.({ block: 'nearest' });
+  }
+  // No topo da janela: o período (4 semanas ou o mês) e as setas que passam de cliente.
+  const n = ordenada.length, prox = n > 1 ? ordenada[(i + 1) % n] : null, ant = n > 1 ? ordenada[(i - 1 + n) % n] : null;
+  const ctl = document.getElementById('pv2-feed-ctl');
+  if (ctl) feedV2Troca(ctl, `<span class="pv2-seg d3m-a-vseg" role="radiogroup" aria-label="Período do feed"><button type="button" role="radio" aria-checked="${FEED.vista !== 'mes'}" onclick="feedVista('semanas')">${FEED_SEMANAS} semanas</button><button type="button" role="radio" aria-checked="${FEED.vista === 'mes'}" onclick="feedVista('mes')">Mês</button></span>
+    <button type="button" class="d3m-ico" onclick="feedPasso(-1)" ${n > 1 ? '' : 'disabled'} aria-label="Cliente anterior${ant ? `: ${feedEsc(ant.nome)}` : ''}" title="Cliente anterior${ant ? `: ${feedEsc(ant.nome)}` : ''} (seta para a esquerda)">${FEED_V2_SETA.antes}</button><button type="button" class="d3m-ico" onclick="feedPasso(1)" ${n > 1 ? '' : 'disabled'} aria-label="Próximo cliente${prox ? `: ${feedEsc(prox.nome)}` : ''}" title="Próximo cliente${prox ? `: ${feedEsc(prox.nome)}` : ''} (seta para a direita)">${FEED_V2_SETA.depois}</button>`);
+  if (typeof pv2Vista !== 'undefined') {
+    pv2Vista.feed = { linha: cli ? `feed dos clientes · ${cli.nome}, ${i + 1} de ${n}${prox ? ` · depois vem ${prox.nome}` : ''}` : `feed dos clientes · nenhum cliente neste filtro ${jan.rotulo}`, lado: '' };
+    if (typeof pv2PintarVista === 'function' && document.body.dataset.pv2Vista === 'feed') pv2PintarVista('feed');
+  }
+  // As fotos da lista são as do perfil de cada cliente; as artes, só do cliente à mostra.
+  feedPedirPerfis(ordenada);
+  if (cli) feedPedirArtes([cli]);
+}
+// ← e → passam de cliente enquanto o Feed está aberto na janela (fora de campo de texto e sem nada por cima).
+function feedV2Teclas() {
+  if (feedV2Teclas.ligado) return; feedV2Teclas.ligado = true;
+  document.addEventListener('keydown', (e) => {
+    if (!feedAberto || !feedV2Ligado() || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+    if ([...document.querySelectorAll('#fc-overlay, #cartao-rapido, #workspace-drawer, .workflow-modal-overlay, dialog[open]')].some((x) => x.getClientRects().length && getComputedStyle(x).visibility !== 'hidden')) return;
+    e.preventDefault(); feedPasso(e.key === 'ArrowRight' ? 1 : -1);
+  });
 }
 
 if (typeof window !== 'undefined') Object.assign(window, { toggleFeedDoCliente, renderFeedDoCliente, feedFiltrar, feedAbrirPeca, feedFechar, feedPasso, feedFoco });
