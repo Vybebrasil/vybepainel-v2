@@ -115,10 +115,10 @@ const CLIENTES_ALIAS = {
 };
 
 // Normaliza o nome do cliente para evitar duplicatas entre os boards
-// Carteiras informadas por Paulo em 07/10/2026. Não substituem executores
+// Carteiras informadas por Paulo em 07/10/2026; Alpha1 e Mangaba AI saíram em 16/11/2026 (não são mais clientes). Não substituem executores
 // das atividades nem as permissões; VOA tem Ewerton somente no site.
 const CARTEIRAS_CLIENTES = Object.freeze({
-  vinicius: ['VOA', 'Alpha1', 'Mangaba AI', 'Brussolo Ristorante', 'Academia Lions',
+  vinicius: ['VOA', 'Brussolo Ristorante', 'Academia Lions',
     'ConectaSim', 'Copirecê', 'DiaCenter', 'DiaLab', 'Serra Grande Bebidas'],
   ewerton: ['Gonzalez', 'Antonov', 'Hellen', 'Experimente Papelaria', 'Hebravet', 'Escola Viva']
 });
