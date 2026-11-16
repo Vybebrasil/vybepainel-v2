@@ -44,18 +44,20 @@ test('o rodapé técnico sai das três telas, sem forçar nada', () => {
   assert.doesNotMatch(bloco, /html body\.mundo/);
 });
 
-test('Automações: regras primeiro, falhas numa aba, Recalcular e Sincronizar no "Mais", Prioridade na dica', () => {
+test('Automações: regras primeiro, falhas numa aba, Recalcular e Sincronizar em "Manutenção", Prioridade no "Como funciona"', () => {
   const fonte = ler('vybe-automacoes-ui.js');
   const pintar = trecho(fonte, 'function pintarAutomacoes', 'function trocarAbaAutomacoes');
-  assert.match(pintar, /class="v2g-seg ar-abas" role="radiogroup"/, 'padrão v2 (quadro Automações): Regras e Falhas em pílula clara, com a escolhida em branco');
+  assert.match(pintar, /class="d3m-e-seg ar-abas" role="radiogroup"/, 'prancha V2-M-Automacoes: Regras e Falhas no alternador da cabeça da folha');
   assert.match(pintar, /Regras <span class="ar-n">/);
   assert.match(pintar, /Falhas <span class="ar-n" id="auto-aba-falhas-n">/);
   assert.match(pintar, /Nova regra/);
-  assert.match(pintar, /<em>Quando<\/em>[\s\S]*<em>então<\/em>/);
+  assert.match(pintar, /<em class="d3m-e-au-q">Quando<\/em>[\s\S]*<em class="d3m-e-au-q">então<\/em>/);
   assert.match(pintar, /role="switch"/);
   assert.ok(pintar.indexOf('data-aba="regras"') < pintar.indexOf('data-aba="falhas"'), 'as regras vêm antes das falhas');
-  const mais = pintar.slice(pintar.indexOf('const mais'), pintar.indexOf('const novo'));
-  assert.match(mais, /vga-mais-menu[\s\S]*Recalcular prioridades[\s\S]*Sincronizar regras do sistema/);
+  // Prancha V2-M-Automacoes: o "Mais" saiu do topo; Recalcular e Sincronizar ficam em "Manutenção", só para quem administra.
+  const manut = pintar.slice(pintar.indexOf('const manutencao = admin ?'), pintar.indexOf('const lado ='));
+  assert.match(manut, /<b>Manutenção<\/b>[\s\S]*recalcularPrioridadesAgora\(this\)[\s\S]*Recalcular prioridades[\s\S]*sincronizarRegrasDoSistema\(this\)[\s\S]*Sincronizar regras do sistema/);
+  assert.doesNotMatch(pintar, /vga-mais-menu/);
   assert.match(pintar, /data-dica="\$\{safeText\(texto\)\}"/);
   assert.match(fonte, /const DICA_PRIORIDADE = 'A coluna Prioridade/);
   assert.doesNotMatch(pintar, /auto-aviso-varredura|Encaminhamentos com falha<\/h2>/, 'sem parágrafo nem título grande');

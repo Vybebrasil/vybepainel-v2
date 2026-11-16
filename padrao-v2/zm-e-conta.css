@@ -1,0 +1,101 @@
+/* ===================================================================================================================
+   V2 · GRUPO E · CONTA E EQUIPE (prancha V2-M-Conta-Equipe, aprovada pelo Paulo em 16/11/2026). O HTML sai de
+   vybe-conta.js (pintarConta): a casca .d3m-e-* (zm-e-casca.css), a folha de quem você é (foto, senha, WhatsApp e tema),
+   a folha da Operação e a folha da Equipe (só quem administra) e, direto no vidro, o laranja do VYBES com o que falta
+   na conta, por que conferir o WhatsApp e os atalhos. As partes da operação abrem na mesma janela, numa folha só.
+   =================================================================================================================== */
+
+/* O quadro ocupa a janela inteira, com 16 de respiro, sem a rolagem da página (só as listas rolam, por dentro). */
+body.mundo :is(#painel-conta,#conta-root){background:none}
+@media (min-width:901px){
+  body.mundo.mundo-modulo[data-quadro="conta"]{scrollbar-gutter:auto}
+  body.mundo.mundo-modulo[data-quadro="conta"] #painel-conta{position:absolute;inset:0;max-width:none;height:auto;margin:0}
+  body.mundo.mundo-modulo[data-quadro="conta"] #conta-root > .d3m-e-conta{position:absolute;inset:16px;height:auto;box-sizing:border-box}
+}
+
+/* O trabalho em duas colunas: você e a operação à esquerda, a equipe à direita. Quem não administra vê só a sua folha. */
+.d3m-e-ct-cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px}
+.d3m-e-ct-cols.so-eu{grid-template-columns:minmax(0,560px)}
+.d3m-e-ct-col{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-e-ct-cols > .d3m-e-folha{min-height:0}
+
+/* Quem você é: a foto de 56, o nome de 18, o e-mail e o papel. */
+.d3m-e-ct-quem{flex:none;display:flex;align-items:center;gap:14px;padding:16px}
+.d3m-e-ct-retrato{flex:none;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;overflow:hidden;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 18px var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+.d3m-e-ct-retrato > img{width:100%;height:100%;object-fit:cover}
+.d3m-e-ct-quem-txt{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-e-ct-nome{font:600 18px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-email{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-pill{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu-forte);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+.d3m-e-ct-pill.k{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto))}
+
+/* Uma linha de 48: o rótulo (100), o que é, a situação e a saída. */
+.d3m-e-ct-lin{flex:none;display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ct-rot{flex:none;width:88px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-e-ct-txt{flex:1 1 0;min-width:0}
+.d3m-e-ct-sit{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-e-ct-sit.r{color:var(--d3-perigo)}
+.d3m-e-ct-sit.a{color:var(--d3-ambar)}
+.d3m-e-ct-sit.g{color:var(--d3-pronto)}
+.d3m-e-ct-bts{flex:none;display:inline-flex;align-items:center;gap:6px}
+.d3m-e-conta .v2-estado{position:relative}
+.d3m-e-ct-senha[aria-expanded="true"]{background:var(--d3-veu)}
+.d3m-e-ct-senha-campos{display:flex;align-items:center;gap:8px;padding:0 16px 12px 116px}
+#conta-root .d3m-e-ct-senha-campos > input,#conta-root .d3m-e-ct-codigo > input{appearance:none;flex:1 1 0;min-width:0;height:32px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#conta-root .d3m-e-ct-senha-campos > input:focus-visible,#conta-root .d3m-e-ct-codigo > input:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.d3m-e-ct-ai{display:flex;flex-direction:column;min-width:0}
+.d3m-e-ct-codigo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 16px 10px 116px;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ct-codigo > label{flex:1 1 100%;color:var(--d3-rotulo)}
+.d3m-e-ct-codigo-nota{flex:1 1 100%;color:var(--d3-rotulo)}
+.d3m-e-ct-aviso{margin:0;padding:0 16px 0 116px;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ct-aviso:not(:empty){padding-bottom:10px}
+.d3m-e-ct-perfil .d3c-seg{flex:none}
+
+/* Operação: uma linha de 44 por parte, com o "Abrir". */
+.d3m-e-ct-op{flex:none;display:flex;align-items:center;gap:12px;min-height:44px;padding:0 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-ct-op-txt{flex:1 1 0;min-width:0;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-op-txt > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-e-ct-cad{display:inline-flex;align-items:center;gap:4px}
+
+/* Equipe: uma linha de 48 por pessoa. */
+.d3m-e-ct-eq{flex:none;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ct-av{width:24px;height:24px;border-radius:50%;overflow:hidden;font-size:9px}
+.d3m-e-ct-av > img{width:100%;height:100%;object-fit:cover}
+.d3m-e-ct-eq-nome{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-eq-nome > b{font-weight:600}
+.d3m-e-ct-voce{flex:none;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+
+/* Uma parte da operação aberta: a folha inteira, com a volta na cabeça; o conteúdo de antes rola por dentro. */
+.d3m-e-ct-volta{display:inline-flex;align-items:center;gap:4px}
+.d3m-e-ct-volta > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#conta-root .d3m-e-ct-parte #v2c.d3c{width:auto;max-width:none;min-width:0;min-height:0;margin:0;padding:16px;box-sizing:border-box;background:none}
+.d3m-e-ct-parte > .d3m-e-rola{overflow-x:hidden}
+#conta-root .d3m-e-ct-parte #v2c.d3c > .v2c-secao{margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+
+/* A consulta: a nota do VYBES quando não há o que fazer, e o laranja com a frase de apoio branca. */
+.d3m-e-ct-nota{display:flex;flex-direction:column;gap:4px;font-size:var(--d3-fs-texto);color:var(--d3-fume-texto)}
+.d3m-e-ct-nota > .d3m-e-ct-de{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.d3m-e-ct-lar{flex:none;gap:8px}
+.d3m-laranja.d3m-e-ct-lar .d3m-lar-txt > small.d3m-lar-sub{color:var(--d3-escuro-texto)}
+.d3m-e-ct-lar .d3m-btn:disabled{opacity:.7;cursor:default}
+
+/* Janela baixa (notebook de 768): as faixas encolhem. */
+@media (min-width:901px) and (max-height:820px){
+  .d3m-e-ct-quem{padding:12px 16px}
+  .d3m-e-ct-retrato{width:44px;height:44px;font-size:15px}
+  .d3m-e-ct-lin{min-height:42px}
+  .d3m-e-ct-op{min-height:38px}
+  .d3m-e-ct-eq{min-height:42px}
+  .d3m-laranja.d3m-e-ct-lar .d3m-lar-num{font-size:40px}
+}
+/* Telas menores: uma coluna, a janela rola. */
+@media (max-width:900px){
+  .d3m-e-ct-cols,.d3m-e-ct-cols.so-eu{display:flex;flex-direction:column}
+  .d3m-e-ct-lin{flex-wrap:wrap;gap:4px 10px;padding:10px 16px}
+  .d3m-e-ct-rot{width:100%}
+  .d3m-e-ct-senha-campos,.d3m-e-ct-codigo,.d3m-e-ct-aviso{padding-left:16px}
+  .d3m-e-ct-senha-campos{flex-wrap:wrap}
+  .d3m-e-ct-op-txt{white-space:normal}
+  .d3m-e-ct-op{padding:8px 16px}
+  #conta-root .d3m-e-ct-parte #v2c.d3c{padding:12px}
+}

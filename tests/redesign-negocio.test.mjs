@@ -219,24 +219,25 @@ test('Finanças por cliente (padrão v2): três números, fichas e a lista com o
   assert.doesNotMatch(html, /Vybe Finanças/, 'o aviso fala do efeito, sem nome de sistema');
 });
 
-test('Conta: o WhatsApp é uma linha com a situação numa etiqueta; quem resolve é o "Pede ação"; código só depois de pedir', () => {
+test('Conta: o WhatsApp é uma linha com a situação e a saída na própria linha; código só depois de pedir', () => {
   const ctx = vm.createContext({ console, Date, safeText, vbEstadoHtml: () => '<div class="vb-estado"></div>', document: { querySelector: () => null, getElementById: () => null } });
   vm.runInContext(ler('vybe-conta.js'), ctx);
   const html = (estado) => { ctx.__e = estado; return vm.runInContext('CONTA_AI = globalThis.__e; blocoContaAI()', ctx); };
   const livre = html({ disponivel: true, vinculado: false, pode_gerar: true });
-  assert.match(livre, /conta-ai-linha"><span class="conta-ai-rotulo">WhatsApp<\/span>[\s\S]*<b class="v2c-pill a"[^>]*>Não conectado<\/b>/);
-  assert.doesNotMatch(livre, />Conectar<\/button>/, 'padrão v2: o Conectar fica no Pede ação');
+  assert.match(livre, /conta-ai-linha"><span class="d3m-e-ct-rot conta-ai-rotulo">WhatsApp<\/span>[\s\S]*<b class="d3m-e-ct-sit a"[^>]*>não conectado<\/b>/);
+  // Prancha V2-M-Conta-Equipe: a saída da pendência fica na própria linha (e no laranja da consulta).
+  assert.match(livre, /onclick="acaoContaAI\('vinculacao_iniciar'\)">Conectar<\/button>/);
   ctx.__eu = { nome: 'Pessoa', email: 'p@x', foto_url: 'f.png' };
-  assert.match(vm.runInContext('pedeAcaoDaConta(globalThis.__eu)', ctx), /Não conectado[\s\S]*onclick="acaoContaAI\('vinculacao_iniciar'\)">Conectar<\/button>/);
+  assert.match(vm.runInContext('falaDaConta(globalThis.__eu)', ctx), /Seu WhatsApp não está ligado a mim\.[\s\S]*onclick="acaoContaAI\('vinculacao_iniciar'\)">Conectar<\/button>/);
   assert.doesNotMatch(livre, /vb-estado|<h3|Gerar código temporário/);
-  assert.match(html({ disponivel: true, vinculado: true, pode_gerar: true }), /<b class="v2c-pill g"[^>]*>Conectado<\/b>[\s\S]*>Desconectar</);
+  assert.match(html({ disponivel: true, vinculado: true, pode_gerar: true }), /<b class="d3m-e-ct-sit g"[^>]*>conectado<\/b>[\s\S]*>Desconectar</);
   const erro = html({ erro: 'Sem resposta.' });
-  assert.match(erro, /conta-ai-linha erro[\s\S]*Não deu para conferir agora[\s\S]*Sem resposta\./);
-  assert.match(vm.runInContext('pedeAcaoDaConta(globalThis.__eu)', ctx), /Não conferido[\s\S]*onclick="carregarContaAI\(\)">Tentar de novo<\/button>/);
+  assert.match(erro, /conta-ai-linha erro[\s\S]*title="Sem resposta\."[^>]*>não conferido<\/b>[\s\S]*onclick="carregarContaAI\(\)">Tentar de novo<\/button>/);
+  assert.match(vm.runInContext('falaDaConta(globalThis.__eu)', ctx), /Não conferi seu WhatsApp\.[\s\S]*onclick="carregarContaAI\(\)">Tentar de novo<\/button>/);
   assert.doesNotMatch(erro, /vb-estado/, 'erro numa linha, sem o bloco com ícone vermelho');
   const comCodigo = html({ disponivel: true, vinculado: false, pode_gerar: true, codigo: 'a'.repeat(20), expiraEm: new Date(Date.now() + 6e5).toISOString() });
   assert.match(comCodigo, /Cancelar o código[\s\S]*conta-ai-codigo/);
-  assert.match(vm.runInContext('pedeAcaoDaConta(globalThis.__eu)', ctx), />Já enviei o código<\/button>/);
+  assert.match(comCodigo, />Já enviei o código<\/button>/);
 });
 
 test('CSS do redesign Negócio: no fim, sem !important nem html body.mundo', () => {

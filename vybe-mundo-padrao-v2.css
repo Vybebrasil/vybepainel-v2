@@ -16414,6 +16414,162 @@ body.mundo .vv-gestao:has(> .vs-agencia){padding:16px;overflow:hidden;border:0;b
   .vs-agencia .d3m-d-g-eixo{display:flex}
 }
 
+/* ===== padrao-v2/zm-e-automacoes.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · AUTOMAÇÕES (prancha V2-M-Automacoes, aprovada pelo Paulo em 16/11/2026). O HTML sai de
+   vybe-automacoes-ui.js (pintarAutomacoes): a casca .d3m-e-* (zm-e-casca.css), uma folha só com Regras, Falhas e
+   Últimas ações no alternador da cabeça e, direto no vidro, a consulta: o laranja do agente quando há falha, o que uma
+   regra pode fazer, o que pede ação, os atalhos e a manutenção (Recalcular e Sincronizar, o "Mais" de antes).
+   A prancha desenha a tela sem regra; com regras, a mesma folha ganha três números, a busca com os filtros e a lista.
+   =================================================================================================================== */
+
+/* O quadro ocupa a janela inteira, com 16 de respiro, sem a rolagem da página (só as listas rolam, por dentro). */
+body.mundo :is(#painel-automacoes,#automacoes-root){background:none}
+@media (min-width:901px){
+  body.mundo.mundo-modulo[data-quadro="automacoes"]{scrollbar-gutter:auto}
+  body.mundo.mundo-modulo[data-quadro="automacoes"] #painel-automacoes{position:absolute;inset:0;max-width:none;height:auto;margin:0}
+  body.mundo.mundo-modulo[data-quadro="automacoes"] #automacoes-root > .d3m-e-auto{position:absolute;inset:16px;height:auto;box-sizing:border-box}
+}
+
+/* "Nova regra" no topo: a pastilha branca (a folha antiga pinta .auto-novo de laranja). */
+#automacoes-root .d3v-btn.d3m-e-claro.auto-novo{background:var(--d3-fume-texto);color:var(--d3-fume-contra,var(--d3-tinta));box-shadow:none}
+#automacoes-root .d3v-btn.d3m-e-claro.auto-novo:hover{background:var(--d3-fume-apagado)}
+
+/* "Nova regra" aberta: o construtor toma o lugar do corpo e rola por dentro. */
+.d3m-e-auto > #auto-editor:empty{display:none}
+.d3m-e-auto > #auto-editor{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin;border-radius:16px}
+.d3m-e-auto > #auto-editor:not(:empty) ~ .d3m-e-corpo{display:none}
+#automacoes-root .d3m-e-auto > #auto-editor > .auto-construtor{margin:0}
+
+/* A folha: cada aba é uma coluna que ocupa o que sobra. */
+.d3m-e-au-aba{flex:1 1 0;display:flex;flex-direction:column;min-height:0}
+.d3m-e-au-aba[hidden]{display:none}
+.d3m-e-au-folha .ar-n{margin-left:4px;font-weight:400;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+
+/* Sem regra: o vazio no meio e os três passos no pé (Quando, Se, Então). */
+.d3m-e-au-vazio{justify-content:center}
+.d3m-e-au-passos{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;border-top:1px solid var(--d3-divisa)}
+.d3m-e-au-passo{display:flex;flex-direction:column;gap:6px;min-width:0;padding:16px;border-radius:12px;background:var(--d3-veu)}
+.d3m-e-au-passo-n{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal}
+.d3m-e-au-passo > b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-au-passo > span{font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+
+/* Com regras: três números, a busca com os filtros e a lista. */
+.d3m-e-au-nums > .d3m-e-au-num{padding:12px 16px}
+.d3m-e-au-num.r > b{color:var(--d3-perigo)}
+.d3m-e-au-nums b > .d3m-e-au-de{font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-au-nums .d3m-e-au-num-sub{color:var(--d3-rotulo)}
+.d3m-e-au-filtros{flex:none;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa)}
+#automacoes-root .d3m-e-au-busca{appearance:none;flex:0 1 240px;min-width:120px;height:32px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#automacoes-root .d3m-e-au-busca::placeholder{color:var(--d3-rotulo)}
+#automacoes-root .d3m-e-au-busca:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.d3m-e-au-chips,.d3m-e-au-saude{display:flex;align-items:center;gap:4px;min-width:0}
+.d3m-e-au-chips{flex:1 1 auto;overflow-x:auto;scrollbar-width:none}
+#automacoes-root .d3m-e-au-chip{appearance:none;flex:none;display:inline-flex;align-items:center;gap:5px;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#automacoes-root .d3m-e-au-chip > b{font-weight:400;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+#automacoes-root .d3m-e-au-chip:hover{background:var(--d3-veu)}
+#automacoes-root .d3m-e-au-chip:is([aria-checked="true"],[aria-expanded="true"]){background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
+#automacoes-root .d3m-e-au-chip:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+#automacoes-root .d3m-e-au-chip.mais{box-shadow:inset 0 0 0 1px var(--d3-meta)}
+
+/* Uma regra: linha de 52 com a chave, o nome e a frase, o selo, a contagem e "Testar"; abre no lugar. */
+.d3m-e-au-regra{flex:none;border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-au-regra[aria-expanded="true"]{background:var(--d3-veu);box-shadow:inset 3px 0 0 var(--d3-tinta)}
+.d3m-e-au-lin{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px;box-sizing:border-box}
+.d3m-e-au-tg{appearance:none;position:relative;flex:none;width:32px;height:18px;margin:0;padding:0;border:0;border-radius:9px;background:var(--d3-meta);cursor:pointer;transition:background-color .2s}
+.d3m-e-au-tg::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--d3-contra,var(--d3-escuro-texto));transition:transform .2s}
+.d3m-e-au-tg[aria-checked="true"]{background:var(--d3-tinta)}
+.d3m-e-au-tg[aria-checked="true"]::after{transform:translateX(14px)}
+.d3m-e-au-tg:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-e-au-nome{appearance:none;flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0;margin:0;padding:6px 0;border:0;border-radius:4px;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-e-au-nome > b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-au-nome:hover > b{text-decoration:underline;text-underline-offset:3px}
+.d3m-e-au-nome:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.d3m-e-au-qe{display:block;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-au-q{font-style:normal;font-weight:600;color:var(--d3-tinta)}
+.d3m-e-au-qe > svg{width:12px;height:12px;margin:0 2px;vertical-align:-2px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-au-regra.desligada :is(.d3m-e-au-nome > b,.d3m-e-au-q){color:var(--d3-rotulo)}
+.d3m-e-au-n{flex:none;min-width:72px;text-align:right;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-au-pill{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);font-style:normal;white-space:nowrap}
+.d3m-e-au-pill.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+.d3m-e-au-pill.a{box-shadow:inset 0 0 0 1px var(--d3-ambar)}
+.d3m-e-au-pill.g{box-shadow:inset 0 0 0 1px var(--d3-pronto)}
+.d3m-e-au-regra > .v2-mais > div{display:flex;flex-direction:column;gap:4px}
+.d3m-e-au-regra[aria-expanded="true"] > .v2-mais > div{padding:0 16px 12px 60px}
+.d3m-e-au-mais{margin:0;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-au-elo{color:var(--d3-tinta);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.d3m-e-au-rodape{flex:none;margin:0;padding:10px 16px;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-au-lista .v2-estado{position:relative}
+
+/* As abas Falhas e Últimas ações: a frase em cima e uma linha por ocorrência. */
+.d3m-e-au-falhas-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:6px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-au-hist-n{flex:none;white-space:nowrap}
+.d3m-e-au-falhas-n{flex:none;margin:0;padding:10px 16px 4px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-au-falha{flex:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;align-items:start;gap:16px;padding:12px 16px;border-bottom:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-au-falha-peca,.d3m-e-au-falha-motivo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.d3m-e-au-falha-peca > b{font-weight:600;overflow-wrap:anywhere}
+.d3m-e-au-falha-s{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-au-falha-p{margin:0;color:var(--d3-tinta);overflow-wrap:anywhere}
+.d3m-e-au-falha-acoes{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.d3m-e-au-fez{flex:none;display:flex;align-items:center;gap:12px;min-height:40px;padding:4px 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-au-fez > .d3m-e-au-selo{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:20px;padding:0 8px;box-sizing:border-box;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+.d3m-e-au-fez-txt{flex:1 1 0;min-width:0;margin:0;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-au-fez-txt > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-e-au-fez-s{display:block;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);overflow:hidden;text-overflow:ellipsis}
+.d3m-e-au-hora{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+
+/* A consulta no vidro: as linhas do que a regra faz não são botão; o que pede ação, uma linha de 36 com a saída. */
+.d3m-e-au-fala[hidden]{display:none}
+.d3m-e-au-lar{flex:none;gap:8px}
+.d3m-laranja.d3m-e-au-lar .d3m-lar-num{font-size:36px}
+.d3m-e-au-lado .d3m-vlin{height:32px}
+.d3m-laranja .d3m-lar-txt > small.d3m-lar-sub{color:var(--d3-escuro-texto)}
+.d3m-e-au-tipo{cursor:default}
+.d3m-e-au-tipo:hover{background:var(--d3-fume-veu)}
+.d3m-e-au-pede{display:flex;align-items:center;gap:8px;height:32px;padding:0 4px 0 10px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-e-au-pede-txt{flex:1 1 0;min-width:0;margin:0;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-au-pede-txt > b,.d3m-e-au-pede-txt > .d3m-e-au-selo{font-weight:600;color:var(--d3-fume-texto)}
+.d3m-e-au-pede > .d3v-btn{flex:none}
+.d3m-e-au-lado .d3m-e-au-elo{color:var(--d3-fume-texto)}
+.d3m-e-au-manut > .d3m-vlin:disabled{cursor:default;color:var(--d3-fume-apagado)}
+
+/* Janela baixa (notebook de 768): as faixas encolhem. */
+@media (min-width:901px) and (max-height:820px){
+  .d3m-e-au-passos{padding:12px 16px}
+  .d3m-e-au-passo{padding:12px}
+  .d3m-e-au-nums > .d3m-e-au-num{padding:8px 16px}
+  .d3m-e-au-lin{min-height:46px}
+  .d3m-e-au-lado{gap:10px}
+  .d3m-e-au-lado .d3m-vlin,.d3m-e-au-pede{height:30px}
+  .d3m-laranja.d3m-e-au-lar{padding:12px}
+  .d3m-laranja.d3m-e-au-lar .d3m-lar-num{font-size:32px}
+}
+/* Telas menores: uma coluna, a janela rola. */
+@media (max-width:900px){
+  .d3m-e-au-aba{flex:none}
+  .d3m-e-au-passos{grid-template-columns:minmax(0,1fr)}
+  .d3m-e-au-nums.d3m-e-nums{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .d3m-e-au-nums.d3m-e-nums > span:nth-child(odd){border-left:1px solid var(--d3-divisa)}
+  .d3m-e-au-nums.d3m-e-nums > span:first-child{border-left:0}
+  .d3m-e-au-nums.d3m-e-nums > span:nth-child(n+3){border-top:0}
+  .d3m-e-au-nums > .d3m-e-au-num{padding:10px}
+  .d3m-e-au-nums > .d3m-e-au-num > :is(span,small){white-space:normal}
+  .d3m-e-au-folha > .d3m-e-cab{flex-wrap:wrap;padding:8px 16px}
+  .d3m-e-au-filtros{flex-wrap:wrap;padding:8px 16px}
+  #automacoes-root .d3m-e-au-busca{flex:1 1 100%}
+  .d3m-e-au-lin{flex-wrap:wrap;gap:6px 10px;padding:8px 16px}
+  .d3m-e-au-nome{flex:1 1 calc(100% - 50px)}
+  .d3m-e-au-nome > b,.d3m-e-au-qe{white-space:normal}
+  .d3m-e-au-n{min-width:0;margin-left:44px;text-align:left}
+  .d3m-e-au-regra[aria-expanded="true"] > .v2-mais > div{padding-left:16px}
+  .d3m-e-au-falha{grid-template-columns:minmax(0,1fr)}
+  .d3m-e-au-falha-acoes{flex-direction:row;flex-wrap:wrap}
+  .d3m-e-au-falhas-topo{flex-wrap:wrap}
+  .d3m-e-au-fez{flex-wrap:wrap}
+  .d3m-e-au-fez-txt{flex-basis:calc(100% - 80px);white-space:normal}
+  .d3m-e-auto > #auto-editor{flex:none;overflow:visible}
+}
+
 /* ===== padrao-v2/zm-e-casca.css ===== */
 /* ===================================================================================================================
    V2 · GRUPO E · A CASCA DAS TELAS (pranchas V2-M-Diario, Performance, IA-Custos, Automacoes, Conta-Equipe, RH-*,
@@ -16424,7 +16580,7 @@ body.mundo .vv-gestao:has(> .vs-agencia){padding:16px;overflow:hidden;border:0;b
    =================================================================================================================== */
 
 /* A janela dos quadros deste grupo é vidro fumê. O quadro aberto fica no body (data-quadro, de switchBoard). */
-body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
+body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"],[data-quadro="automacoes"],[data-quadro="conta"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 
 /* A tela: uma coluna da altura da janela. Fora do Irecity (?legado=1) ela mesma faz o fundo escuro. */
 .d3m-e-tela{display:flex;flex-direction:column;min-width:0;height:100%;box-sizing:border-box;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
@@ -16511,6 +16667,11 @@ body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"]) #mun
 .d3v-btn.d3m-e-fio:hover{background:var(--d3-veu)}
 .d3v-btn.vidro.d3m-e-fio{box-shadow:inset 0 0 0 1px var(--d3-escuro-apagado);color:var(--d3-fume-texto)}
 .d3v-btn.vidro.d3m-e-fio:hover{background:var(--d3-fume-veu)}
+/* A ação principal no vidro: a pastilha branca do topo ("Nova regra", "Convidar"). */
+.d3v-btn.d3m-e-claro{flex:none;background:var(--d3-fume-texto);color:var(--d3-fume-contra,var(--d3-tinta))}
+.d3v-btn.d3m-e-claro:hover{background:var(--d3-fume-apagado)}
+.d3v-btn.d3m-e-claro > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3v-btn.d3m-e-claro:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 /* O selo "só donos" na linha de apoio do título. */
 .d3m-e-so-donos{display:inline-flex;align-items:center;gap:4px;color:var(--d3-fume-texto);vertical-align:bottom}
 .d3m-e-so-donos > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -16561,6 +16722,109 @@ button.d3m-e-kpi:focus-visible{outline:2px solid var(--d3-fume-texto);outline-of
   .d3m-e-acoes{position:relative}
   .d3m-e-ajuda{position:static}
   .d3m-e-ajuda-pop{left:0;right:0;width:auto}
+}
+
+/* ===== padrao-v2/zm-e-conta.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO E · CONTA E EQUIPE (prancha V2-M-Conta-Equipe, aprovada pelo Paulo em 16/11/2026). O HTML sai de
+   vybe-conta.js (pintarConta): a casca .d3m-e-* (zm-e-casca.css), a folha de quem você é (foto, senha, WhatsApp e tema),
+   a folha da Operação e a folha da Equipe (só quem administra) e, direto no vidro, o laranja do VYBES com o que falta
+   na conta, por que conferir o WhatsApp e os atalhos. As partes da operação abrem na mesma janela, numa folha só.
+   =================================================================================================================== */
+
+/* O quadro ocupa a janela inteira, com 16 de respiro, sem a rolagem da página (só as listas rolam, por dentro). */
+body.mundo :is(#painel-conta,#conta-root){background:none}
+@media (min-width:901px){
+  body.mundo.mundo-modulo[data-quadro="conta"]{scrollbar-gutter:auto}
+  body.mundo.mundo-modulo[data-quadro="conta"] #painel-conta{position:absolute;inset:0;max-width:none;height:auto;margin:0}
+  body.mundo.mundo-modulo[data-quadro="conta"] #conta-root > .d3m-e-conta{position:absolute;inset:16px;height:auto;box-sizing:border-box}
+}
+
+/* O trabalho em duas colunas: você e a operação à esquerda, a equipe à direita. Quem não administra vê só a sua folha. */
+.d3m-e-ct-cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px}
+.d3m-e-ct-cols.so-eu{grid-template-columns:minmax(0,560px)}
+.d3m-e-ct-col{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-e-ct-cols > .d3m-e-folha{min-height:0}
+
+/* Quem você é: a foto de 56, o nome de 18, o e-mail e o papel. */
+.d3m-e-ct-quem{flex:none;display:flex;align-items:center;gap:14px;padding:16px}
+.d3m-e-ct-retrato{flex:none;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;overflow:hidden;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 18px var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
+.d3m-e-ct-retrato > img{width:100%;height:100%;object-fit:cover}
+.d3m-e-ct-quem-txt{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-e-ct-nome{font:600 18px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-email{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-pill{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu-forte);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+.d3m-e-ct-pill.k{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto))}
+
+/* Uma linha de 48: o rótulo (100), o que é, a situação e a saída. */
+.d3m-e-ct-lin{flex:none;display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ct-rot{flex:none;width:88px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-e-ct-txt{flex:1 1 0;min-width:0}
+.d3m-e-ct-sit{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-e-ct-sit.r{color:var(--d3-perigo)}
+.d3m-e-ct-sit.a{color:var(--d3-ambar)}
+.d3m-e-ct-sit.g{color:var(--d3-pronto)}
+.d3m-e-ct-bts{flex:none;display:inline-flex;align-items:center;gap:6px}
+.d3m-e-conta .v2-estado{position:relative}
+.d3m-e-ct-senha[aria-expanded="true"]{background:var(--d3-veu)}
+.d3m-e-ct-senha-campos{display:flex;align-items:center;gap:8px;padding:0 16px 12px 116px}
+#conta-root .d3m-e-ct-senha-campos > input,#conta-root .d3m-e-ct-codigo > input{appearance:none;flex:1 1 0;min-width:0;height:32px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#conta-root .d3m-e-ct-senha-campos > input:focus-visible,#conta-root .d3m-e-ct-codigo > input:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.d3m-e-ct-ai{display:flex;flex-direction:column;min-width:0}
+.d3m-e-ct-codigo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 16px 10px 116px;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ct-codigo > label{flex:1 1 100%;color:var(--d3-rotulo)}
+.d3m-e-ct-codigo-nota{flex:1 1 100%;color:var(--d3-rotulo)}
+.d3m-e-ct-aviso{margin:0;padding:0 16px 0 116px;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-ct-aviso:not(:empty){padding-bottom:10px}
+.d3m-e-ct-perfil .d3c-seg{flex:none}
+
+/* Operação: uma linha de 44 por parte, com o "Abrir". */
+.d3m-e-ct-op{flex:none;display:flex;align-items:center;gap:12px;min-height:44px;padding:0 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-ct-op-txt{flex:1 1 0;min-width:0;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-op-txt > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-e-ct-cad{display:inline-flex;align-items:center;gap:4px}
+
+/* Equipe: uma linha de 48 por pessoa. */
+.d3m-e-ct-eq{flex:none;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-ct-av{width:24px;height:24px;border-radius:50%;overflow:hidden;font-size:9px}
+.d3m-e-ct-av > img{width:100%;height:100%;object-fit:cover}
+.d3m-e-ct-eq-nome{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-ct-eq-nome > b{font-weight:600}
+.d3m-e-ct-voce{flex:none;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+
+/* Uma parte da operação aberta: a folha inteira, com a volta na cabeça; o conteúdo de antes rola por dentro. */
+.d3m-e-ct-volta{display:inline-flex;align-items:center;gap:4px}
+.d3m-e-ct-volta > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#conta-root .d3m-e-ct-parte #v2c.d3c{width:auto;max-width:none;min-width:0;min-height:0;margin:0;padding:16px;box-sizing:border-box;background:none}
+.d3m-e-ct-parte > .d3m-e-rola{overflow-x:hidden}
+#conta-root .d3m-e-ct-parte #v2c.d3c > .v2c-secao{margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+
+/* A consulta: a nota do VYBES quando não há o que fazer, e o laranja com a frase de apoio branca. */
+.d3m-e-ct-nota{display:flex;flex-direction:column;gap:4px;font-size:var(--d3-fs-texto);color:var(--d3-fume-texto)}
+.d3m-e-ct-nota > .d3m-e-ct-de{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.d3m-e-ct-lar{flex:none;gap:8px}
+.d3m-laranja.d3m-e-ct-lar .d3m-lar-txt > small.d3m-lar-sub{color:var(--d3-escuro-texto)}
+.d3m-e-ct-lar .d3m-btn:disabled{opacity:.7;cursor:default}
+
+/* Janela baixa (notebook de 768): as faixas encolhem. */
+@media (min-width:901px) and (max-height:820px){
+  .d3m-e-ct-quem{padding:12px 16px}
+  .d3m-e-ct-retrato{width:44px;height:44px;font-size:15px}
+  .d3m-e-ct-lin{min-height:42px}
+  .d3m-e-ct-op{min-height:38px}
+  .d3m-e-ct-eq{min-height:42px}
+  .d3m-laranja.d3m-e-ct-lar .d3m-lar-num{font-size:40px}
+}
+/* Telas menores: uma coluna, a janela rola. */
+@media (max-width:900px){
+  .d3m-e-ct-cols,.d3m-e-ct-cols.so-eu{display:flex;flex-direction:column}
+  .d3m-e-ct-lin{flex-wrap:wrap;gap:4px 10px;padding:10px 16px}
+  .d3m-e-ct-rot{width:100%}
+  .d3m-e-ct-senha-campos,.d3m-e-ct-codigo,.d3m-e-ct-aviso{padding-left:16px}
+  .d3m-e-ct-senha-campos{flex-wrap:wrap}
+  .d3m-e-ct-op-txt{white-space:normal}
+  .d3m-e-ct-op{padding:8px 16px}
+  #conta-root .d3m-e-ct-parte #v2c.d3c{padding:12px}
 }
 
 /* ===== padrao-v2/zm-e-diario.css ===== */

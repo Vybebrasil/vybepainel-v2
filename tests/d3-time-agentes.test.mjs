@@ -44,14 +44,15 @@ test('D3 · Perfil do agente: bloco de ação do agente, números, três colunas
   assert.match(ag, /data-vga-mais aria-pressed="\$\{st\.mais\}">\$\{st\.mais \? 'Recolher a ficha' : 'Ficha completa'\}/, 'a ficha de antes continua a um clique');
 });
 
-test('D3 · Automações: bloco de ação com o agente, quatro números com Por tipo e regras com "Testar" no fim da linha', () => {
-  // Acabamento 15/11: com falha, o bloco laranja; sem falha (nada a fazer), a nota branca.
-  assert.match(auto, /const tipoFala = pendentes\.length \? 'd3-acao' : 'd3-nota';/);
-  assert.match(auto, /class="d3-num d3t-tipos"><span class="d3-num-rot">Por tipo · 30 dias<\/span>/);
-  // "Nova regra" do topo é branca (não igual à aba selecionada) e só aparece quando já há regra.
-  assert.match(auto, /class="v2g-btn auto-novo"/);
-  assert.match(auto, /const novo = admin && !semRegra \?/);
-  assert.match(auto, /<span class="v2g-sub v2r-n">/);
+test('V2 · Automações: o laranja do agente só com falha, por tipo na consulta e regras com "Testar" no fim da linha', () => {
+  // Prancha V2-M-Automacoes: com falha, o cartão laranja do agente na consulta; sem falha (nada a fazer), ele some.
+  assert.match(auto, /fala\.hidden = !pendentes\.length;/);
+  assert.match(auto, /class="d3m-laranja d3m-e-au-lar" aria-label="O que pede ação agora"/);
+  assert.match(auto, /class="d3m-vlin d3m-e-au-tipo"><span><b>\$\{nome\}<\/b> · \$\{texto\}<\/span>/, 'o que uma regra pode fazer, com a contagem de 30 dias por tipo');
+  // "Nova regra" do topo é a pastilha branca no vidro, para quem administra (a prancha mostra-a também sem regra).
+  assert.match(auto, /class="d3v-btn d3m-e-claro auto-novo"/);
+  assert.match(auto, /const novo = admin \?/);
+  assert.match(auto, /<span class="d3m-e-au-n">/);
   assert.match(auto, /botao\.textContent = 'Testar'; return;/, 'o botão que conta o estado volta ao rótulo curto');
   // O fim de linha não entra na conta: o git guarda LF e a cópia local no Windows tem CRLF (o CI lê LF).
   assert.ok(!/\r(?!\n)/.test(auto), 'sem \\r solto');
