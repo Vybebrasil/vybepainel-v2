@@ -29,12 +29,12 @@ test('Onboarding: quatro números, colunas no quadro e, ao lado, tempo de entrad
   assert.match(tela, /data-vc-encerrados aria-expanded/, 'os encerrados continuam a um clique');
 });
 
-test('Gestão de clientes e ficha: bloco de ação, quatro números e "Novo cliente" sem laranja cheio', () => {
-  assert.match(clientes, /aviso\.className = 'cli-aviso d3f-acao';/);
-  for (const r of ['Ativos', 'Sem reunião registrada', 'Com NPS', 'Só na operação']) assert.ok(clientes.includes(`numero('${r}'`), r);
-  assert.match(clientes, /class="v2f-btn p d3f-novo"/);
-  assert.match(clientes, /<div class="v2f-alto d3f-alto">\$\{d3AcaoHtml\(/);
-  assert.match(ler('padrao-v2/ficha.css'), /\.p\{background:var\(--d3-cartao,#FFFFFF\)/);
+test('Clientes na Direção V2: cartão laranja do Mateus, o pé "De olho" no lugar dos quatro números e "Novo cliente" branco no vidro', () => {
+  assert.match(clientes, /class="d3-acao d3m-laranja cv2-laranja"/);
+  for (const r of ['sem próxima reunião', 'com cadastro incompleto', 'com NPS']) assert.ok(clientes.includes(r), r);
+  assert.match(clientes, /class="cv2-novo d3f-novo" onclick="novoClienteNoPainel\(\)"/);
+  assert.match(clientes, /class="d3-acao d3m-laranja cv2-laranja fv2-laranja"/, 'a ficha usa o mesmo cartão laranja');
+  assert.match(ler('padrao-v2/zm-b-clientes.css'), /#painel-clientes \.cv2-novo\{[^}]*background:var\(--d3-fume-texto\)/);
 });
 
 test('Reuniões: bloco de ação, quatro números ("No mês" em linha), Pede ação e lista em cartões separados', () => {

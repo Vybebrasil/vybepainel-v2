@@ -273,15 +273,43 @@ async function criarNoFinancas(id, nome) {
 }
 
 // ── ficha em abas ────────────────────────────────────────────────────────────
-const FICHA_ABAS = [['geral', 'Resumo'], ['demandas', 'Demandas'], ['conteudo', 'Conteúdo'], ['reunioes', 'Reuniões'], ['onboarding', 'Onboarding'], ['cadastro', 'Cadastro'], ['ecossistema', 'Ecossistema'], ['cerebro', 'Cérebro']];
-// Ecossistema e Cérebro ficam à direita da barra, como fichas; o Cadastro só aparece ali enquanto está aberto.
-const FICHA_ABAS_AO_LADO = ['ecossistema', 'cerebro'];
+// Prancha V2-M-Cliente-Ficha (16/11/2026): as abas ficam no alto da ficha, numa barra só. Financeiro é só dos donos (a
+// conta do cliente, com atalho para a tela geral); Ecossistema entra como aba (a janela à parte segue na rota antiga); o
+// Cadastro só aparece ali enquanto está aberto.
+const FICHA_ABAS = [['geral', 'Resumo'], ['demandas', 'Demandas'], ['conteudo', 'Conteúdo'], ['reunioes', 'Reuniões'], ['onboarding', 'Onboarding'], ['financeiro', 'Financeiro'], ['ecossistema', 'Ecossistema'], ['cerebro', 'Cérebro'], ['cadastro', 'Cadastro']];
+const FICHA_ABAS_AO_LADO = [];
+const fichaEhDono = () => { try { return typeof souDonoDaSessao === 'function' && souDonoDaSessao() === true; } catch { return false; } };
 
 function trocarAbaDaFicha(aba) {
   FICHA_ABA = FICHA_ABAS.some(([id]) => id === aba) ? aba : 'geral';
+  // O financeiro do cliente é só dos donos: quem não é dono volta para o Resumo.
+  if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
   const nome = typeof CLIENTE_ABERTO === 'string' ? CLIENTE_ABERTO : '';
   if (nome) renderClientMasterDetail(nome);
   if (nome && (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas') && typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
+}
+
+// Financeiro da ficha (prancha V2-M-Cliente-Financeiro): só a conta deste cliente, só para donos, com o atalho para a
+// tela geral. O servidor já apaga o valor de quem não é dono (server/carteira.js); aqui a aba nem desenha número.
+function financeiroDaFichaHtml(nome) {
+  if (!fichaEhDono()) return '<p class="d3v-estado"><b>Só os donos veem o financeiro do cliente.</b></p>';
+  const id = String(idDoCliente(nome) || '');
+  const atalho = typeof window.VybeComercial?.abrir === 'function'
+    ? `<button type="button" class="d3v-btn sec" onclick="window.VybeComercial.abrir('financas', { abas: ['financas'] })">Abrir Finanças, por cliente</button>` : '';
+  if (!id) return `<p class="d3v-estado"><b>Sem ficha no cadastro.</b>O contrato aparece aqui depois de criar a ficha.${atalho}</p>`;
+  const sv = typeof carteiraDaFicha === 'function' ? carteiraDaFicha(() => { if (FICHA_ABA === 'financeiro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); }) : null;
+  if (!sv) return '<p class="d3v-estado"><b>Lendo a conta do cliente…</b></p>';
+  const locais = sv.contratos?.lista || [];
+  const lista = window.VybeFinancas?.contratosDaCarteira ? window.VybeFinancas.contratosDaCarteira(locais) : locais;
+  const c = lista.find((x) => String(x.cliente_id) === id) || null;
+  const reais = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? 'sem valor' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(v)));
+  const dia = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : 'sem data'; };
+  const contratos = typeof window.VybeCarteira?.abrir === 'function' ? `<button type="button" class="d3v-btn sec" onclick="window.VybeCarteira.abrir('contratos', { abas: ['contratos'] })">${c ? 'Editar em Contratos' : 'Registrar em Contratos'}</button>` : '';
+  const campo = (rotulo, valor) => `<div class="fv2-fin-campo"><span class="d3v-rot">${rotulo}</span><b>${fichaEsc(valor)}</b></div>`;
+  return `<div class="fv2-fin"><div class="cv2-cab"><h3>A conta de ${fichaEsc(nome)} <span>· só os donos veem</span></h3><span class="fv2-cab-lado">${contratos}${atalho}</span></div>
+    ${c ? `<div class="fv2-fin-alto"><span class="d3v-rot">Valor mensal do contrato</span><b class="fv2-fin-valor">${fichaEsc(reais(c.valor_mensal))}</b></div>
+      <div class="fv2-fin-grade">${campo('Início', dia(c.inicio))}${campo('Renovação', dia(c.renovacao))}${campo('Situação', c.status || 'ativo')}${c.observacao ? campo('Observação', c.observacao) : ''}</div>`
+      : '<p class="d3v-estado"><b>Nenhum contrato registrado para este cliente.</b>Recebimentos, faturas e atraso ficam em Finanças, por cliente.</p>'}</div>`;
 }
 
 function cadastroLeituraHtml(nome) {
@@ -380,12 +408,16 @@ function cerebroDaFichaHtml(nome) {
     const listas = document.querySelector('#panel-cliente-detalhe .cliente-listas');
     const nome = (clientMasterRecords().find((r) => r.name === cli || normalizeClientKey(r.name) === normalizeClientKey(cli)) || {}).name || cli;
     const corpo = node.querySelector('.v2f-corpo') || node;
-    if (FICHA_ABA === 'cadastro') corpo.innerHTML = cadastroLeituraHtml(nome);
-    else if (FICHA_ABA === 'ecossistema') corpo.innerHTML = ecossistemaDaFichaHtml(nome);
-    else if (FICHA_ABA === 'cerebro') corpo.innerHTML = cerebroDaFichaHtml(nome);
-    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) corpo.innerHTML = window.VybeReunioes.reunioesHtml(nome);
-    else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) corpo.innerHTML = window.VybeReunioes.onboardingHtml(nome);
-    else if (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas') corpo.innerHTML = '';
+    // Fora do Resumo, a aba mora numa folha clara que rola por dentro (o esqueleto de cada aba vem da prancha dela).
+    const naFolha = (html) => { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = `<div class="fv2-folha fv2-aba-folha" data-aba="${FICHA_ABA}">${html}</div>`; };
+    if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
+    if (FICHA_ABA === 'cadastro') naFolha(cadastroLeituraHtml(nome));
+    else if (FICHA_ABA === 'financeiro') naFolha(financeiroDaFichaHtml(nome));
+    else if (FICHA_ABA === 'ecossistema') naFolha(ecossistemaDaFichaHtml(nome));
+    else if (FICHA_ABA === 'cerebro') naFolha(cerebroDaFichaHtml(nome));
+    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naFolha(window.VybeReunioes.reunioesHtml(nome));
+    else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naFolha(window.VybeReunioes.onboardingHtml(nome));
+    else if (FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas') { corpo.className = 'v2f-corpo fv2-aba'; corpo.innerHTML = ''; }
     else node.querySelector('#vybes-cli-cerebro-card')?.remove();
     // As listas completas (prazo, status, seleção de vários) só aparecem na aba delas.
     const naLista = FICHA_ABA === 'conteudo' || FICHA_ABA === 'demandas';
@@ -404,17 +436,14 @@ function cerebroDaFichaHtml(nome) {
     const respondidas = reu ? (reu.questoes || []).filter((q) => (reu.onboarding?.respostas || {})[q.chave]).length : 0;
     const conta = { demandas: abertos.pedidos, conteudo: abertos.conteudos, reunioes: reu ? (reu.reunioes || []).length : '',
       onboarding: reu && (reu.questoes || []).length ? `${respondidas} de ${reu.questoes.length}` : '' };
-    const naBarra = FICHA_ABAS.filter(([id]) => !FICHA_ABAS_AO_LADO.includes(id) && id !== 'cadastro')
+    const naBarra = FICHA_ABAS.filter(([id]) => id !== 'cadastro' || FICHA_ABA === 'cadastro')
+      .filter(([id]) => id !== 'financeiro' || fichaEhDono())
       .filter(([id]) => id !== 'onboarding' || FICHA_ABA === 'onboarding' || window.VybeReunioes?.temOnboarding?.(nome));
-    const aba = ([id, rotulo]) => `<button type="button" role="tab" aria-selected="${id === FICHA_ABA}" class="v2f-seg-pill principal${id === FICHA_ABA ? ' ativo' : ''}" onclick="trocarAbaDaFicha('${id}')">${rotulo}${
-      conta[id] !== undefined && conta[id] !== '' ? `<b class="v2f-q">${conta[id]}</b>` : ''}</button>`;
-    const dono = typeof souDonoDaSessao === 'function' && souDonoDaSessao() && typeof window.VybeComercial?.abrir === 'function';
-    const financeiro = dono ? `<button type="button" role="tab" aria-selected="false" class="v2f-seg-pill principal" title="Só os donos veem. Abre Finanças, por cliente" onclick="window.VybeComercial.abrir('financas', { abas: ['financas'] })">${CADEADO}Financeiro</button>` : '';
-    const aoLado = FICHA_ABAS.filter(([id]) => FICHA_ABAS_AO_LADO.includes(id) || (id === 'cadastro' && FICHA_ABA === 'cadastro'))
-      .map(([id, rotulo]) => `<button type="button" class="v2f-chip" aria-pressed="${id === FICHA_ABA}" onclick="trocarAbaDaFicha('${id}')">${rotulo}</button>`).join('');
-    const barra = `<div class="v2f-abas"><nav class="ficha-abas v2f-seg" role="tablist" aria-label="Ficha do cliente">${naBarra.map(aba).join('')}${financeiro}</nav><span class="v2f-espaco"></span>${aoLado}</div>`;
-    const alto = node.querySelector('.v2f-alto');
-    if (alto) alto.insertAdjacentHTML('afterend', barra); else node.insertAdjacentHTML('afterbegin', barra);
+    const aba = ([id, rotulo]) => `<button type="button" role="radio" aria-checked="${id === FICHA_ABA}"${id === 'financeiro' ? ' title="Só os donos veem"' : ''} onclick="trocarAbaDaFicha('${id}')">${id === 'financeiro' ? CADEADO : ''}${rotulo}${
+      conta[id] !== undefined && conta[id] !== '' && conta[id] !== 0 ? `<span class="v2f-q">${conta[id]}</span>` : ''}</button>`;
+    const barra = `<nav class="ficha-abas cv2-seg fv2-abas" role="radiogroup" aria-label="Ficha do cliente">${naBarra.map(aba).join('')}</nav>`;
+    const topo = document.getElementById('ficha-abas-topo');
+    if (topo) topo.innerHTML = barra; else node.insertAdjacentHTML('afterbegin', barra);
   };
   // Abrir outro cliente volta para a Visão geral.
   if (typeof abrirClienteDetalhe === 'function') {

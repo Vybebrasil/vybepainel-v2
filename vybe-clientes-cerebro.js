@@ -1272,8 +1272,76 @@ function construirGrafoCerebro(clienteAlvo = 'todos') {
 }
 
 // ── Tela ──────────────────────────────────────────────────────────────────────
+// Cérebro na prancha V2-M-Clientes-Cerebro (16/11/2026): três partes. À esquerda, direto no vidro, a lista dos clientes
+// com quantas regras de arte cada um tem; no meio, a folha do cliente escolhido (Cliente, Mapa, Atividade e Sinapses);
+// à direita, o cartão laranja das contas sem regra, a central e o que abrir. A busca no conhecimento e "Atualizar a
+// central" ficam no alto da janela (vybe-clientes.js); a origem vira uma linha de "Abrir".
+const CEREBRO_LADOS = { lista: '', laranja: '', consulta: '' };
+const CEREBRO_IC_VAI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+function cerebroRegrasDe(nome) {
+  try { return (cerebroDoCliente(nome).categorias.regras || []).length; } catch { return 0; }
+}
+function cerebroFotoHtml(nome) {
+  return typeof fotoDoClienteCv2 === 'function' && typeof safeText === 'function' ? fotoDoClienteCv2(nome) : `<i class="d3v-foto" aria-hidden="true">${cerebroEsc(String(nome).trim().slice(0, 2).toUpperCase())}</i>`;
+}
+function cerebroVerSemRegra() { CEREBRO_STATE.soSemRegra = !CEREBRO_STATE.soSemRegra; cerebroRepintar(); }
+function cerebroEscreverPrimeiraRegra(nome) {
+  CEREBRO_STATE.clienteFoco = nome; CEREBRO_STATE.abaInterna = 'ficha'; CEREBRO_STATE.selecionado = null;
+  cerebroRepintar(); cerebroAbrirNovo('regras');
+}
+function cerebroEscolherOrigem(gatilho) {
+  const opcoes = [['todas', 'Todas as fontes'], ['central', 'Central do VYBES'], ['operacao', 'Operação do painel'], ['referencia', 'Referências cadastradas'], ['navegador', 'Notas deste navegador']];
+  if (typeof abrirListaDoPainel !== 'function') return;
+  abrirListaDoPainel(gatilho, { titulo: 'Origem do conhecimento', atual: CEREBRO_STATE.fonteFiltro, opcoes: opcoes.map(([valor, rotulo]) => ({ valor, rotulo })), aoEscolher: (v) => filtrarOrigemCerebro(v) });
+}
+function cerebroMontarLados(lista, todos) {
+  const regras = new Map(lista.map((n) => [n, cerebroRegrasDe(n)]));
+  const semRegra = lista.filter((n) => !regras.get(n));
+  const naLista = CEREBRO_STATE.soSemRegra && semRegra.length ? semRegra : lista;
+  const focoChave = chaveClienteAtividadeCerebro(CEREBRO_STATE.clienteFoco);
+  CEREBRO_LADOS.lista = `<div class="d3m-cons-cab"><b>${lista.length} ${lista.length === 1 ? 'cliente' : 'clientes'}</b><span>${CEREBRO_STATE.soSemRegra && semRegra.length ? 'só os sem regra' : 'regras de arte'}</span></div>
+    <div class="cv2c-nomes" role="radiogroup" aria-label="Clientes do cérebro">${naLista.map((n) => { const q = regras.get(n), on = !todos && chaveClienteAtividadeCerebro(n) === focoChave;
+      return `<button type="button" role="radio" class="cv2c-nome${on ? ' on' : ''}" aria-checked="${on}" data-cb-cliente="${cerebroEsc(n)}" onclick="focarClienteNoCerebro('${cerebroAspas(n)}')" title="${cerebroEsc(n)}: ${q ? `${q} ${q === 1 ? 'regra' : 'regras'} de arte` : 'nenhuma regra de arte'}">${cerebroFotoHtml(n)}<span>${cerebroEsc(n)}</span><b>${q || 'nada'}</b></button>`; }).join('')
+      || '<p class="d3m-vvazio">Nenhum cliente ativo no cadastro.</p>'}</div>`;
+  // O laranja é só ação: contas sem regra de arte. Sem nenhuma, o cartão sai.
+  CEREBRO_LADOS.laranja = semRegra.length ? `<section class="d3-acao d3m-laranja cv2-laranja" aria-label="Contas sem regra de arte"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · conta sem regra</span>
+      <span class="d3m-lar-txt"><b class="d3m-lar-num">${semRegra.length}</b><span class="d3-acao-frase">${semRegra.length === 1 ? 'cliente sem regra de arte' : 'clientes sem regra de arte'}</span><small>Sem regra, a revisão das peças ${semRegra.length === 1 ? 'dele' : 'deles'} é só pelo olho.</small>
+      <span class="d3m-lar-bts"><button type="button" class="d3m-btn l" onclick="cerebroEscreverPrimeiraRegra('${cerebroAspas(semRegra[0])}')" title="Escrever a primeira regra de ${cerebroEsc(semRegra[0])}">Escrever a primeira</button>${
+        semRegra.length > 1 || CEREBRO_STATE.soSemRegra ? `<button type="button" class="d3m-btn l s" role="switch" aria-checked="${Boolean(CEREBRO_STATE.soSemRegra)}" onclick="cerebroVerSemRegra()">${CEREBRO_STATE.soSemRegra ? 'Ver todos' : `Ver os ${semRegra.length}`}</button>` : ''}</span></span></section>` : '';
+  const d = CEREBRO_ATIVIDADE.dados;
+  const estado = CEREBRO_ATIVIDADE.carregando ? ['', 'Consultando', 'aguardando a central'] : CEREBRO_ATIVIDADE.erro ? ['r', 'Indisponível', 'a operação do painel segue valendo']
+    : d ? ['g', 'Ligada', `${(d.clientes || []).length} ${(d.clientes || []).length === 1 ? 'conta lida' : 'contas lidas'}`] : ['', 'Ainda não consultada', 'use Atualizar a central'];
+  const origem = { todas: 'todas as fontes', central: 'central do VYBES', operacao: 'operação do painel', referencia: 'referências cadastradas', navegador: 'notas deste navegador' }[CEREBRO_STATE.fonteFiltro] || 'todas as fontes';
+  const linha = (forte, apoio, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span><b>${forte}</b> · ${apoio}</span>${CEREBRO_IC_VAI}</button>`;
+  CEREBRO_LADOS.consulta = `<section class="d3m-cons"><div class="d3m-cons-cab"><b>É com isto que ele trabalha</b><span></span></div><p class="cv2-nota">O VYBES revisa peças e sugere pautas com o que está aqui. O que a equipe fecha com o assistente entra sozinho.</p></section>
+    <section class="d3m-cons" aria-label="Central"><div class="d3m-cons-cab"><b>Central</b><span>${d ? `última leitura às ${cerebroEsc(cerebroHora(d.lidoEm))}` : ''}</span></div>
+      <p class="cv2c-central"${CEREBRO_ATIVIDADE.erro ? ` title="${cerebroEsc(CEREBRO_ATIVIDADE.erro)}"` : ''}><i class="d3m-pt ${estado[0]}" aria-hidden="true"></i><span><b>${estado[1]}</b> · ${estado[2]}</span></p></section>
+    <section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+      ${linha('Rede de clientes', 'quem divide conteúdo', `onclick="CEREBRO_STATE.abaInterna='mapa';focarClienteNoCerebro('todos')"`)}
+      ${linha('Atividade', 'o que entrou por último', `onclick="alternarAbaCerebro('atividade')"`)}
+      ${linha('Origem', origem, `aria-haspopup="listbox" onclick="cerebroEscolherOrigem(this)"`)}</section>`;
+}
+// Põe as duas colunas de fora da folha (a lista e a consulta) na janela de Clientes, quando ela está no Cérebro.
+function cerebroPintarLados() {
+  if (typeof document === 'undefined') return;
+  const por = (id, html) => { const el = document.getElementById(id); if (!el) return; el.hidden = !html; if (el.innerHTML !== html) el.innerHTML = html; };
+  por('clientes-cerebro-lista', CEREBRO_LADOS.lista);
+  por('clientes-aviso', CEREBRO_LADOS.laranja);
+  por('clientes-consulta', CEREBRO_LADOS.consulta);
+}
+
+// Ao abrir pela janela de Clientes, o Cérebro entra num cliente (o primeiro da lista), no mapa dele; a rede de todos
+// fica em Abrir > Rede de clientes. Vale uma vez: depois a pessoa escolhe.
+function cerebroEntrarNaJanela() {
+  if (CEREBRO_STATE.entrou) return;
+  CEREBRO_STATE.entrou = true;
+  const lista = cerebroListaDeClientes();
+  if (CEREBRO_STATE.clienteFoco === 'todos' && lista.length) { CEREBRO_STATE.clienteFoco = lista[0]; if (CEREBRO_STATE.abaInterna === 'atividade') CEREBRO_STATE.abaInterna = 'mapa'; }
+}
+
 function renderCerebroVybesHtml(clienteFixo = null) {
   if (clienteFixo) CEREBRO_STATE.clienteFoco=clienteFixo;
+  const lista=[...new Set([...cerebroListaDeClientes(),...(CEREBRO_ATIVIDADE.dados?.clientes || []).map(x=>typeof clientMasterCanonicalName==='function'?clientMasterCanonicalName(x.cliente):x.cliente)])];
   const todos=CEREBRO_STATE.clienteFoco==='todos';
   const grafo=construirGrafoCerebro(CEREBRO_STATE.clienteFoco);
   CEREBRO_STATE.nodes=grafo.nodes; CEREBRO_STATE.links=grafo.links;
@@ -1281,25 +1349,21 @@ function renderCerebroVybesHtml(clienteFixo = null) {
   if (todos && CEREBRO_STATE.abaInterna==='ficha') CEREBRO_STATE.abaInterna='mapa';
   if (!cerebroSelecaoExiste(CEREBRO_STATE.selecionado)) CEREBRO_STATE.selecionado=null;
   const detalhe=['grupo','item'].includes(CEREBRO_STATE.selecionado?.tipo);
-  const lista=[...new Set([...cerebroListaDeClientes(),...(CEREBRO_ATIVIDADE.dados?.clientes || []).map(x=>typeof clientMasterCanonicalName==='function'?clientMasterCanonicalName(x.cliente):x.cliente)])];
-  const d=CEREBRO_ATIVIDADE.dados;
-  const fonte=CEREBRO_ATIVIDADE.carregando ? 'Consultando a central…' : CEREBRO_ATIVIDADE.erro ? 'Central indisponível' : d ? `Central consultada às ${cerebroHora(d.lidoEm)}` : 'Central ainda não consultada';
   const total=c ? Object.values(c.categorias).flat().length : lista.length;
-  const cabecalho=`<header class="cb-topo"><div class="cb-identidade">${cerebroIcone('mapa')}<div><b>CÉREBRO DO VYBES</b><small>Conhecimento, contexto e atividade</small></div></div>
-    <label class="cb-cliente-seletor"><span>Cliente</span><select aria-label="Cliente do cérebro" onchange="focarClienteNoCerebro(this.value)"><option value="todos" ${todos?'selected':''}>Todos os clientes</option>${lista.map(n=>`<option value="${cerebroEsc(n)}" ${chaveClienteAtividadeCerebro(n)===chaveClienteAtividadeCerebro(CEREBRO_STATE.clienteFoco)?'selected':''}>${cerebroEsc(n)}</option>`).join('')}</select></label>
-    <div class="vb-alternar" role="group" aria-label="Forma de ver o cérebro">${[['mapa','Mapa'],['atividade','Atividade'],['sinapses','Sinapses'],...(!todos?[['ficha','Ficha']]:[])].map(([id,nome])=>`<button type="button" aria-pressed="${CEREBRO_STATE.abaInterna===id}" onclick="alternarAbaCerebro('${id}')">${nome}</button>`).join('')}</div>
-    <button type="button" class="vb-botao cb-ampliar" onclick="ampliarCerebro()" aria-label="${CEREBRO_STATE.ampliado?'Recolher':'Ampliar'} cérebro">${CEREBRO_STATE.ampliado?'Recolher':'Ampliar'}</button></header>`;
-  const controles=`<div class="cb-ferramentas"><label class="cb-pesquisa"><span>Buscar no conhecimento</span><input id="cb-busca-conhecimento" type="search" placeholder="Ideia, regra, peça ou aprendizado…" value="${cerebroEsc(CEREBRO_STATE.buscaConhecimento)}" oninput="pesquisarConhecimentoCerebro(this)" aria-label="Buscar no conhecimento"></label>
-    <label class="cb-origem-filtro"><span>Origem</span><select aria-label="Filtrar por origem" onchange="filtrarOrigemCerebro(this.value)">${[['todas','Todas as fontes'],['central','Central do VYBES'],['operacao','Operação do painel'],['referencia','Referências cadastradas'],['navegador','Notas deste navegador']].map(([id,n])=>`<option value="${id}" ${CEREBRO_STATE.fonteFiltro===id?'selected':''}>${n}</option>`).join('')}</select></label>
-    <button type="button" class="vb-botao" onclick="carregarAtividadeCerebro()" ${CEREBRO_ATIVIDADE.carregando?'disabled':''}>${CEREBRO_ATIVIDADE.carregando?'Consultando…':'Atualizar central'}</button></div>`;
-  const contexto=`<div class="cb-contexto"><div><h2>${cerebroEsc(todos?'Rede de clientes':c.nomeNoCadastro || c.nome)}</h2><p>${cerebroEsc(todos?'As conexões entre contas vêm de conteúdos compartilhados no painel.':`${c.head?'Head: '+c.head+' · ':''}${total} registro${total === 1 ? '' : 's'} no recorte`)}${CEREBRO_STATE.buscaConhecimento || CEREBRO_STATE.fonteFiltro!=='todas'?' · filtros ativos':''}</p></div><div class="cb-conexao ${CEREBRO_ATIVIDADE.erro?'cb-com-erro':''}"><i></i><span>${cerebroEsc(fonte)}</span></div></div>`;
+  cerebroMontarLados(lista,todos);
+  const abas=[...(!todos?[['ficha','Cliente']]:[]),['mapa','Mapa'],['atividade','Atividade'],['sinapses','Sinapses']];
+  const cabecalho=`<header class="cv2-cab cv2c-cab"><h3>${cerebroEsc(todos?'Rede de clientes':c.nomeNoCadastro || c.nome)} <span>· ${todos?'quem divide conteúdo':'o que o VYBES sabe'}</span></h3>
+    <span class="cv2-filtros"><span class="cv2-chips" role="radiogroup" aria-label="Forma de ver o cérebro">${abas.map(([id,nome])=>`<button type="button" class="cv2-chip" role="radio" aria-checked="${CEREBRO_STATE.abaInterna===id}" onclick="alternarAbaCerebro('${id}')">${nome}</button>`).join('')}</span><i class="cv2-risco" aria-hidden="true"></i>
+    <span class="cv2-chips"><button type="button" class="cv2-chip cb-ampliar" onclick="ampliarCerebro()" aria-label="${CEREBRO_STATE.ampliado?'Recolher':'Ampliar'} cérebro">${CEREBRO_STATE.ampliado?'recolher':'ampliar'}</button></span></span></header>`;
+  const pe=`<p class="cv2c-pe">${cerebroEsc(todos?'As conexões entre contas vêm de conteúdos compartilhados no painel.':`${c.head?'Head: '+c.head+' · ':''}${total} registro${total === 1 ? '' : 's'} no recorte`)}${CEREBRO_STATE.buscaConhecimento || CEREBRO_STATE.fonteFiltro!=='todas'?' · filtros ativos':''}</p>`;
   const areas=todos?'':`<details class="cb-areas"><summary>Explorar áreas</summary><div>${CEREBRO_ORDEM_MAPA.map(gid=>`<button type="button" aria-label="${cerebroEsc(cerebroGrupo(gid).nome)}, ${c.categorias[gid].length} ${c.categorias[gid].length === 1 ? 'item' : 'itens'}" onclick="cerebroSelecionar('grupo','${gid}')"><i style="background:${cerebroGrupo(gid).cor}"></i><span>${cerebroEsc(cerebroGrupo(gid).nome)}</span><small>${c.categorias[gid].length}</small></button>`).join('')}</div></details>`;
   const caminho=`<div class="cb-mapa-trilho"><div class="cb-caminho"><button type="button" onclick="voltarRedeCerebro()">${todos?'Clientes':cerebroEsc(c.nomeNoCadastro || c.nome)}</button>${CEREBRO_STATE.grupoExpandido?`<span>›</span><button type="button" onclick="cerebroSelecionar('grupo','${CEREBRO_STATE.grupoExpandido}')">${cerebroEsc(cerebroGrupo(CEREBRO_STATE.grupoExpandido).nome)}</button>`:''}</div>${areas}</div>`;
   // O mapa é o grafo vivo (vybe-cerebro-grafo.js, Paulo 08/11/2026: "nessa linha" do Obsidian): VYBES, agentes, central, clientes, time e peças.
-  const mapa=window.VybeCerebroGrafo?`<div class="cb-grafo" id="cb-grafo"></div>`:`${caminho}<div class="cb-palco" id="vybes-cerebro-palco"><canvas id="vybes-cerebro-canvas" tabindex="0" aria-label="Rede de conhecimento. Use Explorar áreas para navegar pelo teclado; mais e menos para zoom, Escape para voltar."></canvas><div class="cb-palco-acoes"><button type="button" class="vb-botao" onclick="zoomCerebro(1.25)" aria-label="Aproximar mapa">+</button><button type="button" class="vb-botao" onclick="zoomCerebro(.8)" aria-label="Afastar mapa">−</button><button type="button" class="vb-botao" onclick="resetarCameraCerebro()">Enquadrar</button></div><div class="cb-mapa-rodape"><span>${todos?'Escolha um cliente para entrar na rede.':'Escolha uma área para revelar seu conteúdo.'}</span><span>Arraste para mover · + / − para explorar</span></div></div>`;
+  // Na janela de Clientes, o mapa de um cliente é o desenho dele (áreas em volta da conta, na folha); a rede de todos é o grafo vivo.
+  const mapa=window.VybeCerebroGrafo&&todos?`<div class="cb-grafo" id="cb-grafo"></div>`:`${caminho}<div class="cb-palco" id="vybes-cerebro-palco"><canvas id="vybes-cerebro-canvas" tabindex="0" aria-label="Rede de conhecimento. Use Explorar áreas para navegar pelo teclado; mais e menos para zoom, Escape para voltar."></canvas><div class="cb-palco-acoes"><button type="button" class="vb-botao" onclick="zoomCerebro(1.25)" aria-label="Aproximar mapa">+</button><button type="button" class="vb-botao" onclick="zoomCerebro(.8)" aria-label="Afastar mapa">−</button><button type="button" class="vb-botao" onclick="resetarCameraCerebro()">Enquadrar</button></div><div class="cb-mapa-rodape"><span>${todos?'Escolha um cliente para entrar na rede.':'Escolha uma área para revelar seu conteúdo.'}</span><span>Arraste para mover · + / − para explorar</span></div></div>`;
   const corpo=CEREBRO_STATE.abaInterna==='mapa'?mapa:CEREBRO_STATE.abaInterna==='sinapses'?renderSinapsesCerebroHtml(todos?null:(c.nomeNoCadastro||c.nome)):CEREBRO_STATE.abaInterna==='ficha'&&c?renderDossieNeuralClienteHtml(c):renderAtividadeCerebroHtml();
   if (typeof window.setTimeout==='function' && !CEREBRO_ATIVIDADE.tentado) { CEREBRO_ATIVIDADE.tentado=true; window.setTimeout(carregarAtividadeCerebro,0); }
-  return `<div class="vybes-cerebro-shell cb cb-${CEREBRO_STATE.abaInterna}${detalhe?' cb-com-detalhe':''}${CEREBRO_STATE.ampliado?' cb-ampliado':''}" id="vybes-cerebro-shell"><section class="cb-centro">${cabecalho}${CEREBRO_STATE.abaInterna==='sinapses'?'':controles+contexto}${corpo}</section><aside class="cb-inspetor${detalhe?' cb-aberto':''}" id="vybes-cerebro-inspetor" aria-label="Detalhes da seleção" aria-live="polite"><button type="button" class="vb-link cb-fechar" onclick="recolherCerebro()">Fechar detalhes ×</button>${renderInspetorNoCerebroHtml(CEREBRO_STATE.selecionado,c)}</aside></div>`;
+  return `<div class="vybes-cerebro-shell cb cv2c cb-${CEREBRO_STATE.abaInterna}${detalhe?' cb-com-detalhe':''}${CEREBRO_STATE.ampliado?' cb-ampliado':''}" id="vybes-cerebro-shell"><section class="cb-centro">${cabecalho}<div class="cv2c-corpo">${corpo}</div>${pe}</section><aside class="cb-inspetor${detalhe?' cb-aberto':''}" id="vybes-cerebro-inspetor" aria-label="Detalhes da seleção" aria-live="polite"><button type="button" class="vb-link cb-fechar" onclick="recolherCerebro()">Fechar detalhes ×</button>${renderInspetorNoCerebroHtml(CEREBRO_STATE.selecionado,c)}</aside></div>`;
 }
 
 function cerebroSelecaoExiste(sel) {
@@ -1442,6 +1506,7 @@ function cerebroRepintar() {
   const grid = document.getElementById('grid-clientes-lista');
   if (!grid || (typeof visaoDeClientes === 'function' && visaoDeClientes() !== 'sinapses')) return;
   grid.innerHTML = renderCerebroVybesHtml(CEREBRO_STATE.clienteFoco);
+  cerebroPintarLados();
   montarMapaCerebro();
 }
 // O mapa: o grafo vivo quando ele carregou (vybe-cerebro-grafo.js), senão o motor antigo. A central entra quando responde.

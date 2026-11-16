@@ -278,6 +278,13 @@ function planejamentosDaFicha(id, nome) {
 
 // Quadro "Ficha do cliente" do moodboard (12/11/2026): uma linha só no alto, com Clientes (voltar), o nome na cor do
 // cliente, a situação, segmento, plano e head, e à direita Editar cadastro e Nova demanda (a única ação cheia da tela).
+// A ficha na prancha V2-M-Cliente-Ficha (16/11/2026): o alto fica no vidro, numa linha só (voltar, a foto, o nome com o
+// segmento, o plano, o head e a situação, as abas, o lápis do cadastro e Nova demanda). As abas são postas por
+// vybe-clientes-ficha.js em #ficha-abas-topo.
+const FV2_IC = {
+  volta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+  lapis: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+};
 function cabecaDaFichaHtml(nome, { f, meta, estado, podeMexer, aspas }) {
   const segmento = String(f.segmento || meta.segment || '').trim();
   const plano = String(f.plano || meta.plan || '').trim();
@@ -285,25 +292,25 @@ function cabecaDaFichaHtml(nome, { f, meta, estado, podeMexer, aspas }) {
   const meio = (texto, chamada, titulo) => podeMexer && chamada
     ? `<span class="clf-meta-item editavel" role="button" tabindex="0" title="${titulo}" onclick="${chamada}" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();this.click()}">${texto}</span>`
     : `<span class="clf-meta-item">${texto}</span>`;
-  const headHtml = heads.length
-    ? `<span class="clf-meta-rot">head</span>${heads.slice(0, 3).map((h) => `<span class="v2f-av" aria-hidden="true">${safeText(iniciaisV2(h))}</span>`).join('')}<span title="${safeText(heads.join(', '))}">${safeText(heads.map(primeiroNomeV2).join(', '))}</span>`
-    : 'Sem head';
-  const cor = corDoClienteV2(nome);
-  return `<div class="clf-cabeca-linha v2f-cabeca">
-      <button type="button" class="v2f-btn s clf-voltar" onclick="voltarClientesLista()"><span aria-hidden="true">‹</span> Clientes</button>
-      <h2 class="clf-nome v2f-nome" style="color:${cor === '#6B665E' ? '#1F1D1A' : cor}">${safeText(nome)}</h2>${situacaoDoClienteHtml(nome, estado)}
-      <p class="clf-meta v2f-meta">${[
-          meio(segmento ? safeText(segmento) : 'Sem segmento', `abrirSegmentoDoCliente(event, '${aspas}')`, 'Trocar o segmento'),
-          meio(plano ? safeText(plano) : 'Sem plano', `editarCampoDaFicha(event, '${aspas}', 'plano')`, 'Editar o plano'),
+  const headHtml = heads.length ? `head <span title="${safeText(heads.join(', '))}">${safeText(heads.map(primeiroNomeV2).join(', '))}</span>` : 'sem head';
+  return `<div class="clf-cabeca-linha fv2-topo d3m-topo">
+      <button type="button" class="d3m-ico clf-voltar" onclick="voltarClientesLista()" aria-label="Voltar para Clientes" title="Voltar para Clientes">${FV2_IC.volta}</button>
+      ${fotoDoClienteCv2(nome, true)}
+      <div class="d3m-tit fv2-tit"><h2 class="clf-nome fv2-nome">${safeText(nome)}</h2>
+      <p class="clf-meta fv2-meta">${[
+          meio(segmento ? safeText(segmento) : 'sem segmento', `abrirSegmentoDoCliente(event, '${aspas}')`, 'Trocar o segmento'),
+          meio(plano ? safeText(plano) : 'sem plano', `editarCampoDaFicha(event, '${aspas}', 'plano')`, 'Editar o plano'),
           meio(headHtml, `abrirHeadsDoCliente(event, '${aspas}')`, 'Escolher o head'),
-        ].join('<i class="clf-ponto" aria-hidden="true">·</i>')}</p>
-      <span class="clf-acoes v2f-acoes">
-        ${podeMexer ? `<button type="button" class="v2f-btn" onclick="abrirFichaDeCliente('${aspas}')">Editar cadastro</button>` : ''}
-        <button type="button" class="v2f-btn p" onclick="openCadastrosGoverned({ client: '${aspas}' })">Nova demanda</button>
+          // A situação na linha do cadastro: o mesmo botão de antes, sem a etiqueta colorida (a folha antiga força a cor dela).
+          situacaoDoClienteHtml(nome, estado).replace('class="cli-situacao ', 'class="fv2-sit '),
+        ].join('<i class="clf-ponto" aria-hidden="true">·</i>')}</p></div>
+      <span class="fv2-abas-topo" id="ficha-abas-topo"></span>
+      <span class="clf-acoes fv2-acoes">
+        ${podeMexer ? `<button type="button" class="d3m-ico" onclick="abrirFichaDeCliente('${aspas}')" aria-label="Editar cadastro" title="Editar cadastro">${FV2_IC.lapis}</button>` : ''}
+        <button type="button" class="cv2-novo" onclick="openCadastrosGoverned({ client: '${aspas}' })">${CV2_IC.novo}Nova demanda</button>
       </span>
     </div>`;
 }
-
 // A carteira lida para a ficha (GET area=carteira, só leitura): o clima do grupo, o onboarding e os sinais do servidor
 // (NPS, reunião, contrato) que entram na nota. Lida uma vez ao abrir a ficha e guardada por 2 minutos; quando chega,
 // a ficha que estiver aberta se redesenha.
@@ -332,59 +339,12 @@ function saudeDaFicha(id, sv) {
     return CARTEIRA_DA_FICHA.saude.clientes.find((x) => String(x.id) === String(id)) || null;
   } catch { return null; }
 }
-// Direção 3 (quadro D3-FichaCliente): a faixa de cima com três cartões, Saúde (número, linha e os motivos com os pontos),
-// Clima do grupo e Onboarding. Sem dado, o cartão fica no lugar com um vazio curto.
-function faixaDaFichaHtml({ id, s, sv, motivosTexto, serie = null }) {
-  const tom = tomDaSaudeV2(s);
-  const dataHora = (v) => { const d = new Date(v); if (!Number.isFinite(d.getTime())) return '';
-    const dia = d.toISOString().slice(0, 10) === hojeIsoV2() ? 'hoje' : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-    return `${dia} ${String(d.getHours()).padStart(2, '0')}h`; };
-  // Saúde: os motivos com os pontos, quando a conta da Carteira está à mão; senão, os textos.
-  const pontos = (s?.motivos || []).filter((m) => typeof m === 'object' && m.tom === 'ruim' && m.pontos);
-  const pilulas = pontos.length
-    ? pontos.slice(0, 3).map((m) => `<span class="v2f-pill d3f-mot" title="${safeText(m.texto)}"><b>${String(m.pontos).replace('-', '−')}</b>${safeText(String(m.texto).replace(/^grupo:.*/, 'grupo'))}</span>`).join('')
-    : motivosTexto;
-  // A nota guardada dia a dia (vybe_serie_diaria, série 'saude'); com menos de dois dias guardados, o vazio honesto.
-  const pontosSaude = (serie?.saude?.pontos || []).filter((p) => p && p.valor != null);
-  const valoresSaude = typeof d3SerieValores === 'function' ? d3SerieValores(serie?.saude) : null;
-  const desdeSaude = pontosSaude.length ? pontosSaude[0].dia.slice(8, 10) + '/' + pontosSaude[0].dia.slice(5, 7) : '';
-  const linha = valoresSaude && typeof d3LinhaSvg === 'function'
-    ? `<div class="d3f-hist" title="Saúde guardada dia a dia desde ${desdeSaude}${(serie.saude.origens || []).includes('saude_mensal') ? ' (antes de 14/11, a nota de cada mês)' : ''}">${d3LinhaSvg(valoresSaude, { largura: 160, altura: 34, meta: 75, rotulo: `Saúde de ${valoresSaude.length} registros desde ${desdeSaude}` })}<small class="v2f-sub">desde ${desdeSaude}</small></div>`
-    : '<p class="d3f-sem-hist">sem histórico ainda</p>';
-  const saude = `<section class="v2f-card v2f-saude d3f-faixa-saude${tom ? ' v2-humor' : ''}"${tom ? (typeof vbHumorAttr === 'function' ? vbHumorAttr(Number(s.score)) : '') : ''} style="--c:${tom ? tom.barra : '#B5AFA5'}" aria-label="Saúde do cliente">
-      <div class="d3f-faixa-num"><span class="v2f-sub">Saúde</span><b class="v2f-nota" style="color:${tom ? tom.texto : '#6B665E'}"><span class="v2-num">${tom ? Number(s.score) : '—'}</span></b>
-        <span class="d3f-faixa-risco" style="color:${tom ? tom.texto : '#6B665E'}">${tom ? ({ alto: 'risco alto', medio: 'risco médio', baixo: 'em dia' }[s.risco] || '') : 'sem nota'}</span></div>
-      <div class="d3f-faixa-meio">${linha}<p class="v2f-pills">${pilulas || '<span class="v2f-sub">nada puxando para baixo</span>'}</p></div>
-    </section>`;
-  // Clima do grupo (vybe_carteira_clima, o bot lê o grupo).
-  const cl = id && sv?.clima?.disponivel ? (sv.clima.porCliente || {})[String(id)] : null;
-  const clima = `<section class="v2f-card d3f-faixa-card" aria-label="Clima do grupo"><div class="d3f-faixa-topo"><b>Clima do grupo</b>${cl?.atualizado_em ? `<span class="v2f-sub d3f-faixa-quando"><span class="d3f-ag" aria-hidden="true">V</span>${safeText(dataHora(cl.atualizado_em))}</span>` : ''}</div>
-      ${cl && Number.isFinite(Number(cl.pontos))
-        ? `<b class="d3f-faixa-v"><span class="v2-num">${Number(cl.pontos) > 0 ? '+' : Number(cl.pontos) < 0 ? '−' : ''}${Math.abs(Number(cl.pontos))}</span><small> pts</small></b>
-           <p class="v2f-pills">${cl.motivo ? `<span class="v2f-pill ${Number(cl.pontos) < 0 ? 'a' : 'g'}">${safeText(cl.motivo)}</span>` : ''}</p>`
-        : `<p class="d3f-faixa-vazio">${!sv ? 'Lendo o grupo…' : 'Sem leitura do grupo ainda.'}</p>`}
-    </section>`;
-  // Onboarding: os itens feitos de todas as etapas, a barra e onde parou.
-  const ob = id && sv?.onboarding?.disponivel ? (sv.onboarding.clientes || []).find((o) => String(o.cliente_id) === String(id)) : null;
-  const sit = ob?.situacao;
-  const totalItens = sit ? (sit.etapas || []).reduce((t, e) => t + (Number(e.total) || 0), 0) : 0;
-  const feitosItens = sit ? (sit.etapas || []).reduce((t, e) => t + (Number(e.feitos) || 0), 0) : 0;
-  const diaBr = (v) => { const iso = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8)}/${iso.slice(5, 7)}` : ''; };
-  const pe = !sit ? '' : sit.concluido
-    ? [diaBr(ob.encerrado_em), ob.iniciado_em && ob.encerrado_em ? `<b>${Math.max(0, Math.round((Date.parse(String(ob.encerrado_em).slice(0, 10)) - Date.parse(String(ob.iniciado_em).slice(0, 10))) / 864e5))} dias</b>` : ''].filter(Boolean).join(' · ')
-    : [sit.atual?.nome ? safeText(sit.atual.nome) : '', sit.atual?.dias_parada ? `<b>parada há ${sit.atual.dias_parada} ${sit.atual.dias_parada === 1 ? 'dia' : 'dias'}</b>` : ''].filter(Boolean).join(' · ');
-  const onboarding = `<section class="v2f-card d3f-faixa-card" aria-label="Onboarding"><div class="d3f-faixa-topo"><b>Onboarding</b>${sit ? `<span class="v2f-pill ${sit.concluido ? 'g' : 'a'}">${sit.concluido ? 'Concluído' : 'Em andamento'}</span>` : ''}</div>
-      ${sit ? `<b class="d3f-faixa-v"><span class="v2-num">${feitosItens}</span><small> / ${totalItens}</small></b>
-        <span class="d3-barra d3f-faixa-barra" style="--v:${totalItens ? Math.round((feitosItens / totalItens) * 100) : 0}%"><i></i></span>
-        ${pe ? `<p class="d3f-faixa-pe">${pe}</p>` : ''}`
-        : `<p class="d3f-faixa-vazio">${!sv ? 'Lendo o onboarding…' : 'Sem onboarding registrado.'}</p>`}
-    </section>`;
-  return `<div class="d3f-faixa">${saude}${clima}${onboarding}</div>`;
-}
-
-// O corpo da ficha pelo quadro: no alto, a nota de saúde com o porquê e a fala do Mateus (ficam em cima de todas as
-// abas); no Resumo, "Pede ação" e "Próximas entregas" à esquerda, "Última reunião", "Dados e acessos" e os
-// planejamentos à direita. As listas completas (com prazo, status e seleção de vários) ficam nas abas Conteúdo e Demandas.
+// O Resumo da ficha na prancha V2-M-Cliente-Ficha (16/11/2026), em três colunas na janela de vidro:
+//   à esquerda (folhas): "Próximas entregas" em cartões da peça e "Depois das vencidas", o que pede ação em ordem;
+//   no meio: o cartão laranja do Mateus com o mais grave da conta e a folha "As vencidas", a mais antiga primeiro;
+//   à direita, direto no vidro: Saúde com os pontos de cada motivo, Última reunião, Dados e acessos, Planejamentos,
+//   Clima do grupo e Onboarding (sem leitura, "Ainda sem dado").
+// As listas completas (prazo, status e seleção de vários) ficam nas abas Conteúdo e Demandas.
 function renderClientMasterDetail(cli) {
   const record=clientMasterRecords().find(item=>item.name===cli || normalizeClientKey(item.name)===normalizeClientKey(cli));
   const node=document.getElementById('client-master-detail');
@@ -397,7 +357,9 @@ function renderClientMasterDetail(cli) {
   const podeMexer = Boolean(id) && podeEditorClientesNaFicha();
   const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
     return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
+  const diaMes = (iso) => `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}`;
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  const vai = CV2_IC.vai;
 
   const situacao = String(f.status || '').trim();
   const estado = !situacao ? (f.ativo === false ? 'inativos' : 'sem')
@@ -411,145 +373,152 @@ function renderClientMasterDetail(cli) {
   const abertos = conteudosAbertosV2(nome);
   const vencidas = vencidosDoCliente(nome);
   const hoje = hojeIsoV2();
-
-  // ── No alto: a nota e a fala ──
   const s = id ? saudesDaCarteira()(nome) : null;
-  const tom = tomDaSaudeV2(s);
   const semConversa = id ? diasSemContato(f) : null;
   const completo = id && typeof completudeDoCadastro === 'function' ? completudeDoCadastro(f) : null;
-  const motivos = [
-    ...((s && s.motivos) || []).slice(0, 2).map((m) => `<span class="v2f-pill ${/vencid|furo|atras/i.test(m) ? 'r' : 'a'}">${safeText(m)}</span>`),
-    !id ? '' : semConversa === null ? '<span class="v2f-pill a">sem reunião registrada</span>'
-      : `<span class="v2f-pill ${semConversa >= SEM_CONTATO_ATENCAO ? 'a' : 'n'}">reunião há ${plural(semConversa, 'dia', 'dias')}</span>`,
-    completo ? `<button type="button" class="v2f-pill ${completo.feitos === completo.total ? 'g' : 'a'}" title="Ver o cadastro inteiro" onclick="trocarAbaDaFicha('cadastro')">cadastro ${completo.feitos} de ${completo.total}</button>` : '',
-    !id ? '<span class="v2f-pill a">sem ficha no cadastro</span>' : '',
-  ].filter(Boolean).join('');
-  // 10 · Cor do humor: a nota de saúde pinta o cartão do alto da ficha.
-  const nota = `<section class="v2f-card v2f-saude${tom ? ' v2-humor' : ''}"${tom ? (typeof vbHumorAttr === 'function' ? vbHumorAttr(Number(s.score)) : '') : ''} aria-label="Saúde do cliente">
-      <div class="v2f-nota-caixa"><b class="v2f-nota" style="color:${tom ? tom.texto : '#6B665E'}"><span class="v2-num">${tom ? Number(s.score) : '—'}</span></b><p class="v2f-sub">saúde</p></div>
-      <div class="v2f-porque"><p class="v2f-sub">${tom ? 'O porquê:' : 'Sem nota: cliente inativo ou sem peças para medir.'}</p><p class="v2f-pills">${motivos}</p></div>
-    </section>`;
-  const fraseReuniao = semConversa === null ? 'ainda não há reunião registrada' : semConversa === 0 ? 'a última reunião foi hoje' : `a última reunião foi há ${plural(semConversa, 'dia', 'dias')}`;
-  const conselho = vencidas.length ? 'Eu começaria pelas vencidas.'
-    : semConversa === null || semConversa >= SEM_CONTATO_ATENCAO ? 'Eu começaria marcando a reunião.' : 'A conta está em ordem.';
-  const fraseFala = !id ? 'Este nome aparece na operação, mas ainda não tem ficha. Eu começaria criando a ficha.'
-    : `${vencidas.length ? `<b>${vencidas.length === 1 ? '1 peça passou' : `${vencidas.length} peças passaram`} da veiculação</b> e ` : 'Nenhuma peça vencida e '}${fraseReuniao}. ${conselho}`;
-  const verConta = window.VybeCarteira?.abrir
-    ? `<button type="button" class="v2f-btn s" onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })" aria-label="Ver a conta da nota na Saúde da carteira">Ver a conta</button>` : '';
-  // Direção 3 (moodboard 3, 13/11/2026): no alto só o bloco de ação laranja, numa frase curta; as abas entram logo
-  // depois dele e a nota com o porquê abre o Resumo.
-  const fraseCurta = !id ? 'Sem ficha no cadastro ainda.'
-    : `${vencidas.length ? `${vencidas.length === 1 ? '1 peça passou' : `${vencidas.length} peças passaram`} da veiculação.` : 'Nenhuma peça vencida.'} ${
-      semConversa === null ? 'Sem reunião registrada.' : semConversa === 0 ? 'Última reunião hoje.' : `Última reunião há ${plural(semConversa, 'dia', 'dias')}.`}`;
-  const alto = typeof d3AcaoHtml === 'function'
-    ? `<div class="v2f-alto d3f-alto">${d3AcaoHtml({ frase: `<small class="d3c-quem">Mateus · Atendimento</small>${fraseCurta}`, agente: 'Mateus',
-      botao: window.VybeCarteira?.abrir ? 'Ver a conta' : '', attrs: `onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })"` })}</div>`
-    : `<div class="v2f-alto">${nota}<section class="v2f-card v2f-fala" aria-label="Leitura do Mateus">${falaV2Html('Mateus · Atendimento ao cliente', fraseFala, verConta)}</section></div>`;
-  // Direção 3: a faixa de três cartões (Saúde, Clima do grupo, Onboarding) no lugar da nota solta.
-  const sv = id && typeof d3AcaoHtml === 'function' ? carteiraDaFicha(() => {
-    const aberto = document.getElementById('client-master-detail');
-    if (aberto && aberto.dataset.cliente === nome && aberto.isConnected) renderClientMasterDetail(nome);
-  }) : null;
-  // A linha da Saúde: a nota guardada dia a dia (server/series-historicas.js, GET area=series&para=cliente).
-  const serieSaude = id && typeof d3Series === 'function' ? d3Series('cliente', () => {
-    const aberto = document.getElementById('client-master-detail');
-    if (aberto && aberto.dataset.cliente === nome && aberto.isConnected) renderClientMasterDetail(nome);
-  }, 'id=' + encodeURIComponent(id)) : null;
-  const notaNoCorpo = typeof d3AcaoHtml === 'function'
-    ? faixaDaFichaHtml({ id, s: saudeDaFicha(id, sv) || s, sv, motivosTexto: motivos, serie: serieSaude }) : '';
+  const repinta = () => { const aberto = document.getElementById('client-master-detail');
+    if (aberto && aberto.dataset.cliente === nome && aberto.isConnected) renderClientMasterDetail(nome); };
+  // A carteira lida do servidor (clima do grupo, onboarding e os sinais que entram na nota).
+  const sv = id ? carteiraDaFicha(repinta) : null;
+  const sd = saudeDaFicha(id, sv) || s;
   node.dataset.cliente = nome;
+  // Nome da peça em duas partes: "Card - Dia do cliente" vira o tipo e o título.
+  const partes = (d) => { const bruto = String(d.nome || d.formato || 'Peça'), m = /^(.*?)\s+-\s+(.*)$/.exec(bruto);
+    return m ? [m[1], m[2]] : [String(d.formato || '').trim() || 'Peça', bruto]; };
+  const quandoCurto = (iso) => (!iso ? 'sem data' : iso === hoje ? 'hoje' : diaMes(iso));
+  const abrirPeca = (d) => `onclick="if(typeof openItemWorkspace==='function')openItemWorkspace('${jsArg(String(d.id))}')"`;
+  const matiz = (t) => { let h = 7; for (const ch of String(t || '')) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0; return h % 360; };
 
-  // ── Pede ação ──
-  const linhaVencida = (x) => `<p class="v2f-hist">${safeText(String(x.d.nome || x.d.formato || 'Peça').replace(/\s+-\s+/, ' · '))}, era para ${x.quando.slice(8)}/${x.quando.slice(5, 7)}${x.d.responsavel ? `, com ${safeText(primeiroNomeV2(x.d.responsavel))}` : ''}${/info/i.test(String(x.d.status || '')) ? ', espera informação do cliente' : ''}</p>`;
-  const pede = [];
-  if (!id && podeEditorClientesNaFicha()) pede.push(`<div class="v2f-lin"><span class="v2f-pill a">Sem ficha</span><p><b>Cadastro</b> ainda não criado</p><button type="button" class="v2f-btn s" onclick="cadastrarClienteDaOperacao('${aspas}')">Criar a ficha</button></div>`);
-  if (vencidas.length) pede.push(`<div class="v2-abre v2f-abre" aria-expanded="false">
-      <div class="v2f-lin"><span class="v2f-pill r">${plural(vencidas.length, 'vencida', 'vencidas')}</span>
-        <p><button type="button" class="v2f-abrir" aria-expanded="false" onclick="alternarLinhaV2(this)">${vencidas.length === 1 ? 'Peça' : 'Peças'} com a <b>veiculação vencida</b></button></p>
-        <button type="button" class="v2f-btn s" title="Abre a aba Conteúdo, onde a data troca na linha" aria-label="Reagendar na aba Conteúdo" onclick="trocarAbaDaFicha('conteudo')">Reagendar</button></div>
-      <div class="v2-mais"><div>${vencidas.slice(0, 2).map(linhaVencida).join('')}
-        ${vencidas.length > 2 ? `<p class="v2f-hist"><span>+ ${plural(vencidas.length - 2, 'peça', 'peças')} · <button type="button" class="v2f-link" onclick="trocarAbaDaFicha('conteudo')">ver todas</button></span></p>` : ''}</div></div>
-    </div>`);
+  // ── Próximas entregas: os cartões da peça ──
+  const proximas = abertos.filter((x) => !x.quando || x.quando >= hoje).sort((a, b) => (a.quando || '9999').localeCompare(b.quando || '9999'));
+  const NA_FRENTE = 8;
+  const cartaoPeca = (x) => { const [tipo, titulo] = partes(x.d);
+    return `<button type="button" class="fv2-peca" style="--h:${matiz(tipo + titulo)}" title="Abrir ${safeText(x.d.nome || '')}" ${abrirPeca(x.d)}>
+      <span class="fv2-peca-tipo">${safeText(tipo)} · ${quandoCurto(x.quando)}</span>
+      <span class="fv2-peca-pe"><b>${safeText(titulo)}</b><span class="fv2-peca-st ${tomDoStatusV2(x.d.status)}"><i aria-hidden="true"></i>${safeText(x.d.status || 'Sem status')}</span></span></button>`; };
+  const cartaoEntregas = `<section class="fv2-folha fv2-entregas" aria-label="Próximas entregas"><div class="cv2-cab"><h3>Próximas entregas</h3><span class="fv2-cab-lado">${plural(conteudos, 'em aberto', 'em aberto')}${pedidos ? ` · ${plural(pedidos, 'pedido', 'pedidos')}` : ''}
+        <button type="button" class="cv2-chip" onclick="trocarAbaDaFicha('conteudo')">ver na aba Conteúdo</button></span></div>
+      ${proximas.length ? `<div class="fv2-pecas">${proximas.slice(0, NA_FRENTE).map(cartaoPeca).join('')}</div>`
+        : `<p class="d3v-estado"><b>${abertos.length ? 'Nenhuma entrega com data pela frente.' : 'Nenhum conteúdo em aberto.'}</b></p>`}</section>`;
+
+  // ── Depois das vencidas: o que pede ação, na ordem ──
   const plj = planejamentosDaFicha(id, nome);
   const mesPlj = (p) => (typeof pljMes === 'function' ? pljMes(p.mes) : String(p.mes || ''));
+  const linhaPede = (rotulo, tom, texto, botao) => `<div class="fv2-lin v2f-lin"><span class="fv2-lin-rot${tom ? ` ${tom}` : ''}">${rotulo}</span><p>${texto}</p>${botao}</div>`;
+  const bt = (rotulo, attrs) => `<button type="button" class="d3v-btn sec s" ${attrs}>${rotulo}</button>`;
+  const pede = [];
+  if (!id && podeEditorClientesNaFicha()) pede.push(linhaPede('Sem ficha', 'a', '<b>Cadastro</b> · ainda não criado', bt('Criar a ficha', `onclick="cadastrarClienteDaOperacao('${aspas}')"`)));
   ((plj && plj.lista) || []).filter((p) => ['ajustes', 'revisar'].includes(p.estado)).forEach((p) => pede.push(
-    `<div class="v2f-lin"><span class="v2f-pill a">${p.estado === 'ajustes' ? 'Ajustes pedidos' : 'Para revisar'}</span>
-      <p><b>Planejamento de ${safeText(mesPlj(p).toLowerCase())}</b> · ${safeText(String(p.titulo || '').replace(/^planejamento de\s*/i, ''))}, versão ${safeText(p.versao)}</p>
-      <button type="button" class="v2f-btn s" aria-label="Abrir o planejamento" onclick="abrirPlanejamento('${jsArg(p.id)}')">Abrir</button></div>`));
-  if (id && !reuniao) pede.push(`<div class="v2f-lin"><span class="v2f-pill a">Sem data</span><p><b>Próxima reunião</b> ainda não marcada</p>${podeMexer
-    ? `<button type="button" class="v2f-btn s" onclick="editarCampoDaFicha({ currentTarget: this.closest('.v2f-lin') }, '${aspas}', 'proxima_reuniao')">Marcar reunião</button>` : ''}</div>`);
-  const cartaoPede = `<section class="v2f-card v2f-pede"><div class="v2f-card-topo"><h3>Pede ação</h3><span class="v2f-sub">${pede.length ? `${plural(pede.length, 'coisa', 'coisas')}, na ordem` : 'nada agora'}</span></div>
-      ${pede.join('') || '<p class="v2f-vazio">Nada pede ação neste cliente agora.</p>'}</section>`;
-
-  // ── Próximas entregas ──
-  const proximas = abertos.filter((x) => !x.quando || x.quando >= hoje).sort((a, b) => (a.quando || '9999').localeCompare(b.quando || '9999'));
-  const NA_FRENTE = 3;
-  const olho = (d) => (typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d, 'v2f-olho') : '');
-  const entrega = (x) => `<div class="v2f-lin v2f-entrega" role="button" tabindex="0" title="Abrir ${safeText(x.d.nome || '')}" onclick="if(typeof openItemWorkspace==='function')openItemWorkspace('${jsArg(String(x.d.id))}')" onkeydown="if(event.target===this&&(event.key==='Enter'||event.key===' ')){event.preventDefault();this.click()}">
-      <span class="v2f-pill ${tomDoStatusV2(x.d.status)}">${safeText(x.d.status || 'Sem status')}</span><p><b>${safeText(String(x.d.nome || '').replace(/\s+-\s+/, ' · '))}</b></p>${olho(x.d)}
-      <span class="v2f-sub">${quandoVeiculaV2(x.quando)}</span>${x.d.responsavel ? `<span class="v2f-av" title="${safeText(x.d.responsavel)}" aria-hidden="true">${safeText(iniciaisV2(x.d.responsavel))}</span>` : ''}</div>`;
-  const restoEntregas = abertos.length - Math.min(NA_FRENTE, proximas.length);
-  const cartaoEntregas = `<section class="v2f-card v2f-entregas"><div class="v2f-card-topo"><h3>Próximas entregas</h3><span class="v2f-sub">${plural(conteudos, 'conteúdo em aberto', 'conteúdos em aberto')} · ${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}</span></div>
-      ${proximas.slice(0, NA_FRENTE).map(entrega).join('') || `<p class="v2f-vazio">${abertos.length ? 'Nenhuma entrega com data pela frente.' : 'Nenhum conteúdo em aberto.'}</p>`}
-      ${abertos.length ? `<p class="v2f-pe">${restoEntregas > 0 ? `+ ${plural(restoEntregas, 'peça', 'peças')} · ` : ''}<button type="button" class="v2f-link" onclick="trocarAbaDaFicha('conteudo')">mostrar</button> · prazo, status e seleção de vários ficam na aba Conteúdo</p>` : ''}</section>`;
-
-  // ── Última reunião ──
-  const reu = id && window.VybeReunioes?.dadosDe ? window.VybeReunioes.dadosDe(id) : null;
-  const ultima = reu ? (reu.reunioes || []).filter((r) => r.data <= hoje)[0] || (reu.reunioes || [])[0] : null;
-  const sugeridas = ultima?.sugestoes?.demandas || [];
-  const jaCadastradas = ultima?.sugestoes?.cadastradas || [];
-  const decisoes = sugeridas.slice(0, 3).map((d) => { const feita = jaCadastradas.some((c) => c.titulo === d.titulo);
-    return `<p class="v2f-dec"><i class="v2f-cx${feita ? ' ok' : ''}">${feita ? V2F_CERTO : ''}</i><span class="v2-risca${feita ? ' feita' : ''}">${safeText(d.titulo)}</span></p>`; }).join('');
-  const participantes = String(ultima?.participantes || '').split(/[,;]/).map((p) => p.trim()).filter(Boolean);
-  const corpoReuniao = !id ? '<p class="v2f-vazio">Crie a ficha para registrar reuniões.</p>'
-    : !reu ? '<p class="v2f-vazio">Lendo as reuniões…</p>'
-    : !ultima ? `<p class="v2f-vazio">Nenhuma reunião registrada ainda.</p>${reu.pode ? `<p class="v2f-botoes"><button type="button" class="v2f-btn s" onclick="abrirReuniao('${aspas}')">Nova reunião</button></p>` : ''}`
-    : `<p class="v2f-reu-linha">${participantes.length ? `<span class="v2f-avs" role="img" aria-label="Participantes: ${safeText(participantes.join(', '))}">${participantes.slice(0, 3).map((p) => `<span class="v2f-av">${safeText(iniciaisV2(p))}</span>`).join('')}</span>` : ''}${safeText(ultima.titulo)}</p>
-      ${decisoes}${!decisoes && !ultima.ata ? '<p class="v2f-vazio">Ainda sem ata.</p>' : ''}
-      <p class="v2f-botoes"><button type="button" class="v2f-btn s" aria-label="Ver o resumo e as decisões da reunião" onclick="trocarAbaDaFicha('reunioes')">Resumo e decisões</button>${ultima.transcricao ? `<button type="button" class="v2f-btn s" aria-label="Ver a transcrição da reunião" onclick="trocarAbaDaFicha('reunioes')">Transcrição</button>` : ''}</p>`;
-  const cartaoReuniao = `<section class="v2f-card v2f-reuniao"><div class="v2f-card-topo"><h3>Última reunião</h3><span class="v2f-sub">${ultima ? `${dataPorExtensoV2(ultima.data)}${ultima.gravacao ? ' · gravada' : ''}` : ''}</span></div>
-      ${corpoReuniao}
-      ${reuniao ? `<p class="v2f-pe">Próxima reunião em <b>${safeText(reuniao)}</b>${podeMexer ? ` · <button type="button" class="v2f-link" onclick="editarCampoDaFicha({ currentTarget: this.closest('.v2f-pe') }, '${aspas}', 'proxima_reuniao')">trocar a data</button>` : ''}</p>` : ''}</section>`;
-
-  // ── Dados e acessos: cada porta numa linha; o que falta diz "Falta" e se guarda ali mesmo. ──
+    linhaPede(p.estado === 'ajustes' ? 'Ajustes pedidos' : 'Para revisar', 'a', `<b>Planejamento de ${safeText(mesPlj(p).toLowerCase())}</b> · ${safeText(String(p.titulo || '').replace(/^planejamento de\s*/i, ''))}, versão ${safeText(p.versao)}`,
+      bt('Abrir', `aria-label="Abrir o planejamento" onclick="abrirPlanejamento('${jsArg(p.id)}')"`))));
+  if (id && !reuniao) pede.push(linhaPede('Sem data', 'a', `<b>Próxima reunião</b> · ${semConversa === null ? 'ainda sem reunião registrada' : semConversa === 0 ? 'a última foi hoje' : `a última foi há ${plural(semConversa, 'dia', 'dias')}`}`,
+    podeMexer ? bt('Marcar reunião', `onclick="editarCampoDaFicha({ currentTarget: this.closest('.v2f-lin') }, '${aspas}', 'proxima_reuniao')"`) : ''));
+  if (completo && completo.feitos < completo.total) pede.push(linhaPede(`${completo.feitos} de ${completo.total}`, '', `<b>Cadastro</b> · faltam ${safeText(completo.faltam.slice(0, 3).join(', ').toLowerCase())}${completo.faltam.length > 3 ? ` e mais ${completo.faltam.length - 3}` : ''}`,
+    podeMexer ? bt('Completar', `onclick="abrirFichaDeCliente('${aspas}')"`) : bt('Ver', `onclick="trocarAbaDaFicha('cadastro')"`)));
   const urlDrive = linkDeCliente(meta.drive);
   const outroLink = linkDeCliente(meta.link);
-  const ehManus = /(^|\.)manus\.im$/i.test((() => { try { return new URL(outroLink).hostname; } catch { return ''; } })());
-  const planejamentoUrl = linkDeCliente(f.planejamento_url || meta.planning);
-  const falta = '<span class="v2f-pill a">Falta</span>';
-  const abrirLink = (url) => `<a class="v2f-btn s" href="${safeText(url)}" target="_blank" rel="noopener" aria-label="Abrir o link numa aba nova">Abrir</a>`;
-  const guardar = (campo, rotulo) => (podeMexer ? `<button type="button" class="v2f-btn s" onclick="editarAcessoDaFicha(event, '${aspas}', '${campo}')">${rotulo}</button>` : '');
   const temDoc = Boolean(meta.acessoId && meta.doc);
-  const docBotao = meta.acessoId || podeMexer
-    ? `<button type="button" class="v2f-btn s" onclick="abrirDocumentoDoCliente('${jsArg(String(meta.acessoId || ''))}', '${aspas}', '${jsArg(id)}')">${temDoc ? 'Abrir' : 'Escrever'}</button>` : '';
-  const linhaAcesso = (rotulo, valorHtml, chamada, acao) => `<div class="clf-acesso client-master-detail-field">
-      <small>${rotulo}</small><b>${valorHtml}</b>${podeMexer && chamada ? `<button type="button" class="v2f-link" onclick="${chamada}">${acao}</button>` : ''}</div>`;
+  const ehManus = /(^|\.)manus\.im$/i.test((() => { try { return new URL(outroLink).hostname; } catch { return ''; } })());
   const rotuloLink = ehManus || meta.temManus ? 'Manus' : 'Link do projeto';
-  const cartaoDados = `<section class="v2f-card v2f-dados clf-dados"><div class="v2f-card-topo"><h3>Dados e acessos</h3><span class="v2f-sub">senhas só para quem administra</span></div>
-      <div class="v2f-lin">${urlDrive ? '' : falta}<p><b>Drive</b> do cliente</p>${urlDrive ? abrirLink(urlDrive) : guardar('pasta_drive', 'Colar o link')}</div>
-      <div class="v2f-lin">${temDoc ? '' : falta}<p><b>Documento de acessos</b></p>${docBotao}</div>
-      <div class="v2f-lin"><p><b>Acessos</b> · links, senhas e painel</p><button type="button" class="v2f-btn s" aria-expanded="false" aria-controls="v2f-acessos-lista" onclick="const l=document.getElementById('v2f-acessos-lista');l.hidden=!l.hidden;this.setAttribute('aria-expanded',String(!l.hidden))">Ver acessos</button></div>
-      <div class="clf-acessos-lista v2f-acessos-lista" id="v2f-acessos-lista" hidden>
+  const faltamAcessos = id ? [urlDrive ? '' : 'Drive', temDoc ? '' : 'documento de acessos', outroLink ? '' : rotuloLink.toLowerCase()].filter(Boolean) : [];
+  if (faltamAcessos.length) pede.push(linhaPede(faltamAcessos.length === 1 ? 'Falta 1' : `Faltam ${faltamAcessos.length}`, '', `<b>${safeText(faltamAcessos.join(', ').replace(/, ([^,]*)$/, ' e $1').replace(/^./, (l) => l.toUpperCase()))}</b>`,
+    bt(faltamAcessos.length === 1 ? 'Colar o link' : 'Colar os links', `onclick="document.getElementById('fv2-dados')?.scrollIntoView({ block: 'nearest' });document.querySelector('#fv2-dados button')?.focus()"`)));
+  const cartaoPede = `<section class="fv2-folha fv2-pede v2f-pede" aria-label="Pede ação"><div class="cv2-cab"><h3>${vencidas.length ? 'Depois das vencidas' : 'Pede ação'}</h3><span class="fv2-cab-lado">${pede.length ? `${plural(pede.length, 'coisa', 'coisas')}, na ordem` : 'nada agora'}</span></div>
+      <div class="fv2-linhas">${pede.join('') || '<p class="d3v-estado"><b>Nada pede ação neste cliente agora.</b></p>'}</div></section>`;
+
+  // ── O cartão laranja: o mais grave da conta ──
+  const esperam = vencidas.filter((x) => /info/i.test(String(x.d.status || ''))).length;
+  const laranja = ({ rotulo, n, titulo, apoio, botoes }) => `<section class="d3-acao d3m-laranja cv2-laranja fv2-laranja" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">M</span>Mateus · ${rotulo}</span>
+      <span class="d3m-lar-txt">${n === '' ? '' : `<b class="d3m-lar-num">${n}</b>`}<span class="d3-acao-frase">${titulo}</span>${apoio ? `<small>${apoio}</small>` : ''}<span class="d3m-lar-bts">${botoes}</span></span></section>`;
+  const verConta = window.VybeCarteira?.abrir ? `<button type="button" class="d3m-btn l s" onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })" aria-label="Ver a conta da nota na Saúde da carteira">Ver a conta</button>` : '';
+  const alto = !id ? laranja({ rotulo: 'sem ficha', n: '', titulo: 'Este nome ainda não tem ficha', apoio: 'Aparece na operação, mas não está no cadastro.',
+      botoes: podeEditorClientesNaFicha() ? `<button type="button" class="d3m-btn l" onclick="cadastrarClienteDaOperacao('${aspas}')">Criar a ficha</button>` : '' })
+    : vencidas.length ? laranja({ rotulo: 'o mais grave da conta', n: vencidas.length, titulo: vencidas.length === 1 ? 'peça passou da veiculação' : 'peças passaram da veiculação',
+      apoio: `A mais antiga era para ${diaMes(vencidas[0].quando)}.${esperam ? ` ${esperam === 1 ? 'Uma espera' : `${esperam} esperam`} informação do cliente.` : ''}`,
+      botoes: `<button type="button" class="d3m-btn l" title="Abre a aba Conteúdo, onde a data troca na linha" aria-label="Reagendar na aba Conteúdo" onclick="trocarAbaDaFicha('conteudo')">${vencidas.length === 1 ? 'Reagendar' : `Reagendar as ${vencidas.length}`}</button>${verConta}` })
+    : semConversa === null || semConversa >= SEM_CONTATO_ATENCAO ? laranja({ rotulo: 'o mais grave da conta', n: semConversa === null ? '' : semConversa,
+      titulo: semConversa === null ? 'Sem reunião registrada' : 'dias sem reunião', apoio: 'Nenhuma peça vencida. Eu começaria marcando a reunião.',
+      botoes: `${podeMexer ? `<button type="button" class="d3m-btn l" onclick="abrirReuniao('${aspas}')">Nova reunião</button>` : ''}${verConta}` })
+    : `<section class="fv2-calmo" aria-label="Leitura do Mateus"><b>A conta está em ordem.</b><span>Nenhuma peça vencida e a última reunião foi ${semConversa === 0 ? 'hoje' : `há ${plural(semConversa, 'dia', 'dias')}`}.</span>${window.VybeCarteira?.abrir ? `<button type="button" class="d3v-btn vidro s" onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })">Ver a conta</button>` : ''}</section>`;
+
+  // ── As vencidas: a mais antiga primeiro ──
+  const linhaVencida = (x) => { const [tipo, titulo] = partes(x.d), espera = /info/i.test(String(x.d.status || ''));
+    return `<button type="button" class="fv2-venc" title="Abrir ${safeText(x.d.nome || '')}" ${abrirPeca(x.d)}><i class="fv2-pt${espera ? ' a' : ''}" aria-hidden="true"></i><span class="fv2-venc-t"><b>${safeText(tipo)}</b> · ${safeText(titulo)}</span><span class="fv2-venc-q">era ${diaMes(x.quando)}</span>${
+      x.d.responsavel ? `<i class="cv2-pes" title="${safeText(x.d.responsavel)}" aria-hidden="true">${safeText(iniciaisV2(x.d.responsavel))}</i>` : '<i class="cv2-pes vazio" aria-hidden="true"></i>'}</button>`; };
+  const cartaoVencidas = `<section class="fv2-folha fv2-vencidas" aria-label="As vencidas"><div class="cv2-cab"><h3>As vencidas</h3><span class="fv2-cab-lado">${vencidas.length ? 'mais antiga primeiro' : ''}
+        ${vencidas.length ? `<button type="button" class="cv2-chip" onclick="trocarAbaDaFicha('conteudo')">ver ${vencidas.length === 1 ? 'a peça' : `as ${vencidas.length}`}</button>` : ''}</span></div>
+      <div class="fv2-linhas">${vencidas.map(linhaVencida).join('') || '<p class="d3v-estado"><b>Nenhuma peça vencida.</b>As entregas com data ficam em Próximas entregas.</p>'}</div>
+      ${esperam ? '<p class="fv2-legenda"><i class="fv2-pt a" aria-hidden="true"></i>espera informação do cliente</p>' : ''}</section>`;
+
+  // ── A coluna de consulta ──
+  const bloco = (titulo, lado, dentro, attrs = '') => `<section class="d3m-cons"${attrs}><div class="d3m-cons-cab"><b>${titulo}</b><span>${lado}</span></div>${dentro}</section>`;
+  const tom = tomDaNotaCv2(s);
+  const pontos = (sd?.motivos || []).filter((m) => typeof m === 'object' && m.tom === 'ruim' && m.pontos);
+  const C = 2 * Math.PI * 22;
+  const anel = `<span class="fv2-nota ${tom}"${tom && typeof vbHumorAttr === 'function' ? vbHumorAttr(Number(s.score)) : ''}><svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="22"/><circle class="v" cx="28" cy="28" r="22" stroke-dasharray="${((tom ? Math.max(0, Math.min(100, Number(s.score))) : 0) / 100 * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 28 28)"/></svg><b>${tom ? Number(s.score) : '–'}</b></span>`;
+  const motivosTxt = pontos.length ? pontos.slice(0, 3).map((m) => `<span class="fv2-mot" title="${safeText(m.texto)}"><b>${String(m.pontos).replace('-', '−')}</b>${safeText(String(m.texto).replace(/^grupo:.*/, 'clima do grupo'))}</span>`).join('')
+    : ((s && s.motivos) || []).slice(0, 3).map((m) => `<span class="fv2-mot">${safeText(m)}</span>`).join('') || `<span class="fv2-mot">${tom ? 'nada puxando para baixo' : 'cliente inativo ou sem peças para medir'}</span>`;
+  const saude = bloco('Saúde', tom ? ({ alto: 'risco alto', medio: 'risco médio', baixo: 'em dia' }[s.risco] || '') : 'sem nota',
+    `<${window.VybeCarteira?.abrir ? `button type="button" onclick="window.VybeCarteira.abrir('saude', { abas: ['saude'] })" title="Ver a conta da nota na Saúde da carteira"` : 'div'} class="fv2-saude">${anel}<span class="fv2-mots">${motivosTxt}</span></${window.VybeCarteira?.abrir ? 'button' : 'div'}>`, ' aria-label="Saúde do cliente"');
+
+  const reu = id && window.VybeReunioes?.dadosDe ? window.VybeReunioes.dadosDe(id) : null;
+  const ultima = reu ? (reu.reunioes || []).filter((r) => r.data <= hoje)[0] || (reu.reunioes || [])[0] : null;
+  const participantes = String(ultima?.participantes || '').split(/[,;]/).map((p) => p.trim()).filter(Boolean);
+  const corpoReuniao = !id ? '<p class="d3m-vvazio">Crie a ficha para registrar reuniões.</p>'
+    : !reu ? '<p class="d3m-vvazio">Lendo as reuniões…</p>'
+    : !ultima ? `<p class="d3m-vvazio">Nenhuma reunião registrada ainda.</p>${reu.pode ? `<button type="button" class="d3m-vlin" onclick="abrirReuniao('${aspas}')"><span><b>Nova reunião</b> · registrar a conversa</span>${vai}</button>` : ''}`
+    : `<button type="button" class="d3m-vlin" aria-label="Ver o resumo e as decisões da reunião" onclick="trocarAbaDaFicha('reunioes')">${participantes.slice(0, 2).map((p) => `<i class="d3m-pes" title="${safeText(p)}" aria-hidden="true">${safeText(iniciaisV2(p))}</i>`).join('')}<span><b>${safeText(ultima.titulo)}</b></span><em class="fv2-apoio">${ultima.ata ? 'ata' : ultima.transcricao ? 'transcrição' : 'sem ata'}</em>${vai}</button>`;
+  const proxima = !id ? '' : reuniao ? `<div class="d3m-vlin fv2-campo v2f-lin"><span><b>Próxima</b> · ${safeText(reuniao)}</span>${podeMexer ? `<button type="button" class="fv2-mini" onclick="editarCampoDaFicha({ currentTarget: this.closest('.v2f-lin') }, '${aspas}', 'proxima_reuniao')">trocar a data</button>` : ''}</div>` : '';
+  const cartaoReuniao = bloco('Última reunião', ultima ? `${dataPorExtensoV2(ultima.data)}${ultima.gravacao ? ' · gravada' : ''}` : '', corpoReuniao + proxima, ' aria-label="Última reunião"');
+
+  // Dados e acessos: cada porta numa linha; o que falta diz "falta" e se guarda ali mesmo.
+  const planejamentoUrl = linkDeCliente(f.planejamento_url || meta.planning);
+  const porta = (tem, forte, apoio, acao) => `<div class="d3m-vlin fv2-campo client-master-detail-field"><i class="d3m-pt${tem ? ' g' : ' a'}" aria-hidden="true"></i><span><b>${forte}</b>${apoio ? ` · ${apoio}` : ''}</span>${acao}</div>`;
+  const abrirLink = (url) => `<a class="fv2-mini" href="${safeText(url)}" target="_blank" rel="noopener" aria-label="Abrir o link numa aba nova">abrir</a>`;
+  const guardar = (campo, rotulo) => (podeMexer ? `<button type="button" class="fv2-mini" onclick="editarAcessoDaFicha(event, '${aspas}', '${campo}')">${rotulo}</button>` : '');
+  const docBotao = meta.acessoId || podeMexer
+    ? `<button type="button" class="fv2-mini" onclick="abrirDocumentoDoCliente('${jsArg(String(meta.acessoId || ''))}', '${aspas}', '${jsArg(id)}')">${temDoc ? 'abrir' : 'escrever'}</button>` : '';
+  const linhaAcesso = (rotulo, valorHtml, chamada, acao) => `<div class="clf-acesso client-master-detail-field">
+      <small>${rotulo}</small><b>${valorHtml}</b>${podeMexer && chamada ? `<button type="button" class="fv2-mini" onclick="${chamada}">${acao}</button>` : ''}</div>`;
+  const cartaoDados = bloco('Dados e acessos', 'senhas só para quem administra', `
+      ${porta(urlDrive, 'Drive do cliente', urlDrive ? '' : 'falta', urlDrive ? abrirLink(urlDrive) : guardar('pasta_drive', 'colar o link'))}
+      ${porta(temDoc, 'Documento de acessos', temDoc ? '' : 'falta', docBotao)}
+      <button type="button" class="d3m-vlin" aria-expanded="false" aria-controls="v2f-acessos-lista" onclick="const l=document.getElementById('v2f-acessos-lista');l.hidden=!l.hidden;this.setAttribute('aria-expanded',String(!l.hidden))"><i class="d3m-pt g" aria-hidden="true"></i><span><b>Acessos</b> · links, senhas e painel</span>${vai}</button>
+      <div class="clf-acessos-lista fv2-acessos" id="v2f-acessos-lista" hidden>
         ${linhaAcesso('Pasta do Drive', urlDrive ? `<a href="${safeText(urlDrive)}" target="_blank" rel="noopener">Abrir no Drive</a>` : 'Falta',
-          `editarAcessoDaFicha(event, '${aspas}', 'pasta_drive')`, urlDrive ? 'Trocar' : 'Guardar o endereço')}
+          `editarAcessoDaFicha(event, '${aspas}', 'pasta_drive')`, urlDrive ? 'trocar' : 'guardar o endereço')}
         ${linhaAcesso(rotuloLink, outroLink ? `<a href="${safeText(outroLink)}" target="_blank" rel="noopener">Abrir</a>` : meta.temManus ? 'Marcado no Manus, sem endereço' : 'Falta',
-          `editarAcessoDaFicha(event, '${aspas}', 'link')`, outroLink ? 'Trocar' : 'Guardar o endereço')}
+          `editarAcessoDaFicha(event, '${aspas}', 'link')`, outroLink ? 'trocar' : 'guardar o endereço')}
         ${linhaAcesso('Planejamento', planejamentoUrl ? `<a href="${safeText(planejamentoUrl)}" target="_blank" rel="noopener">Abrir</a>` : 'Falta',
-          podeMexer ? `abrirFichaDeCliente('${aspas}')` : '', 'Editar no cadastro')}
+          podeMexer ? `abrirFichaDeCliente('${aspas}')` : '', 'editar no cadastro')}
         ${linhaAcesso('Painel do cliente', paineldoClienteHtml(painel),
-          `editarCampoDaFicha({ currentTarget: this.closest('.clf-acesso') }, '${aspas}', 'dashboard')`, 'Trocar')}
+          `editarCampoDaFicha({ currentTarget: this.closest('.clf-acesso') }, '${aspas}', 'dashboard')`, 'trocar')}
       </div>
-      <div class="v2f-lin">${outroLink ? '' : falta}<p><b>${rotuloLink}</b></p>${outroLink ? abrirLink(outroLink) : guardar('link', 'Colar o link')}</div>
-    </section>`;
+      ${porta(outroLink, rotuloLink, outroLink ? '' : 'falta', outroLink ? abrirLink(outroLink) : guardar('link', 'colar o link'))}`, ' id="fv2-dados" aria-label="Dados e acessos"');
 
-  // ── Planejamentos: uma ficha por mês e "Começar um planejamento". ──
-  const fichasPlj = !id ? '' : !plj ? '<span class="v2f-sub">buscando…</span>'
-    : `${plj.lista.map((p) => `<button type="button" class="v2f-chip" title="${safeText((typeof PLJ_ESTADOS !== 'undefined' && PLJ_ESTADOS[p.estado]?.rotulo) || p.estado || '')}" onclick="abrirPlanejamento('${jsArg(p.id)}')">${safeText(mesPlj(p))} · v${safeText(p.versao)}</button>`).join('')}${
-      plj.podeCriar && typeof novoPlanejamento === 'function' ? `<button type="button" class="v2f-chip" onclick="novoPlanejamento('${jsArg(id)}', '${aspas}')">Começar um planejamento</button>` : ''}${
-      !plj.lista.length && !plj.podeCriar ? `<span class="v2f-sub">${plj.erro ? safeText(plj.erro) : 'nenhum ainda'}</span>` : ''}`;
-  const planejamentos = id ? `<div class="v2f-plj"><span class="v2f-sub">Planejamentos:</span>${fichasPlj}</div>` : '';
+  // Planejamentos: uma linha por mês e "Começar um planejamento".
+  const estadoPlj = (p) => String((typeof PLJ_ESTADOS !== 'undefined' && PLJ_ESTADOS[p.estado]?.rotulo) || p.estado || '').toLowerCase();
+  const linhasPlj = !id ? '' : !plj ? '<p class="d3m-vvazio">Buscando os planejamentos…</p>'
+    : `${plj.lista.map((p) => `<button type="button" class="d3m-vlin" onclick="abrirPlanejamento('${jsArg(p.id)}')"><span><b>${safeText(mesPlj(p))}, versão ${safeText(p.versao)}</b>${estadoPlj(p) ? ` · ${safeText(estadoPlj(p))}` : ''}</span>${vai}</button>`).join('')}${
+      plj.podeCriar && typeof novoPlanejamento === 'function' ? `<button type="button" class="d3m-vlin" onclick="novoPlanejamento('${jsArg(id)}', '${aspas}')"><span><b>Começar um planejamento</b></span>${vai}</button>` : ''}${
+      !plj.lista.length && !plj.podeCriar ? `<p class="d3m-vvazio">${plj.erro ? safeText(plj.erro) : 'Nenhum planejamento ainda.'}</p>` : ''}`;
+  const planejamentos = id ? bloco('Planejamentos', '', linhasPlj, ' aria-label="Planejamentos"') : '';
 
-  node.innerHTML = `${alto}<div class="v2f-corpo">${notaNoCorpo}<div class="v2f-dupla"><div class="v2f-col">${cartaoPede}${cartaoEntregas}</div><div class="v2f-col">${cartaoReuniao}${cartaoDados}${planejamentos}</div></div></div>`;
+  // Clima do grupo e Onboarding: aparecem quando há leitura; sem nenhuma, um aviso curto.
+  const cl = id && sv?.clima?.disponivel ? (sv.clima.porCliente || {})[String(id)] : null;
+  const temClima = cl && Number.isFinite(Number(cl.pontos));
+  const ob = id && sv?.onboarding?.disponivel ? (sv.onboarding.clientes || []).find((o) => String(o.cliente_id) === String(id)) : null;
+  const sit = ob?.situacao;
+  const totalItens = sit ? (sit.etapas || []).reduce((t, e) => t + (Number(e.total) || 0), 0) : 0;
+  const feitosItens = sit ? (sit.etapas || []).reduce((t, e) => t + (Number(e.feitos) || 0), 0) : 0;
+  const clima = temClima ? bloco('Clima do grupo', `${Number(cl.pontos) > 0 ? '+' : Number(cl.pontos) < 0 ? '−' : ''}${Math.abs(Number(cl.pontos))} pts`,
+    `<p class="d3m-vvazio">${cl.motivo ? safeText(cl.motivo) : 'Leitura do grupo pelo VYBES.'}</p>`, ' aria-label="Clima do grupo"') : '';
+  const onboarding = sit ? bloco('Onboarding', sit.concluido ? 'concluído' : 'em andamento',
+    `<button type="button" class="d3m-vlin" onclick="trocarAbaDaFicha('onboarding')"><span><b>${feitosItens} de ${totalItens}</b>${sit.atual?.nome ? ` · ${safeText(sit.atual.nome)}` : ''}</span><span class="d3m-vbarra"><i style="--v:${totalItens ? Math.round((feitosItens / totalItens) * 100) : 0}%"></i></span>${vai}</button>`, ' aria-label="Onboarding"') : '';
+  const semDado = id && !temClima && !sit ? bloco('Ainda sem dado', '', `<p class="cv2-nota fv2-semdado">${!sv ? 'Lendo o clima do grupo e o onboarding…' : 'Clima do grupo e onboarding aparecem aqui quando houver leitura. Hoje não há nada a mostrar.'}</p>`) : '';
+
+  node.innerHTML = `<div class="v2f-corpo fv2-resumo"><div class="fv2-col">${cartaoEntregas}${cartaoPede}</div><div class="fv2-col fv2-meio"><div class="v2f-alto fv2-alto">${alto}</div>${cartaoVencidas}</div>
+    <aside class="d3m-lado fv2-lado" aria-label="Consulta">${saude}${cartaoReuniao}${cartaoDados}${planejamentos}${clima}${onboarding}${semDado}</aside></div>`;
 }
 // Linha que abre no lugar (peça .v2-abre do padrão): o botão e o bloco contam o estado.
 function alternarLinhaV2(botao) {
@@ -665,6 +634,86 @@ function linkDeCliente(valor) {
   } catch { return ''; }
 }
 
+// ── Clientes na prancha V2-M-Clientes (16/11/2026) ──────────────────────────────────────────────────────────────
+// A tela é uma janela de vidro: o alto (título que troca de tela, a frase da carteira, Lista/Fichas/Cérebro, busca,
+// Mais e Novo cliente), a folha da lista com a pior nota primeiro e o pé "De olho", e a coluna de consulta (o cartão
+// laranja de quem precisa de você, a carteira, por head e Abrir como). Os números que eram cartões viraram a frase do
+// alto e o pé; os recortes seguem em Mais > Filtros.
+const CV2_IC = {
+  vai: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+  mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
+  novo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  busca: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>',
+};
+const LIMITE_PRECISA_DE_VOCE = 52;
+// Quem precisa de você: a mesma regra da Saúde da carteira (risco alto ou nota abaixo do limite).
+function clientePrecisaDeVoce(s) {
+  if (!s || !Number.isFinite(Number(s.score))) return false;
+  return typeof s.precisa === 'boolean' ? s.precisa : s.risco === 'alto' || Number(s.score) < LIMITE_PRECISA_DE_VOCE;
+}
+// O tom da nota na lista: vermelho em quem precisa de você, verde em quem está em dia e âmbar no meio.
+function tomDaNotaCv2(s) {
+  if (!s || !Number.isFinite(Number(s.score))) return '';
+  return clientePrecisaDeVoce(s) ? 'r' : s.risco === 'baixo' ? 'g' : 'a';
+}
+// A foto do cliente (a do Instagram, quando o Feed já leu) ou as iniciais sobre a cor dele (matiz tirado do nome).
+function fotoDoClienteCv2(nome, grande = false) {
+  const cls = `d3v-foto cv2-foto${grande ? ' g' : ''}`;
+  const pronta = typeof pv2Foto === 'function' ? pv2Foto(nome) : '';
+  if (/^<img/.test(pronta)) return pronta.replace('class="d3v-foto"', `class="${cls}"`);
+  let h = 7; for (const ch of String(nome || '')) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
+  h %= 360;
+  const partes = String(nome || '?').trim().split(/\s+/);
+  const letras = (partes.length > 1 ? partes[0][0] + partes[1][0] : partes[0].slice(0, 2)).toUpperCase() || '?';
+  return `<i class="${cls}" style="--h:${h}" aria-hidden="true">${safeText(letras)}</i>`;
+}
+function proximaReuniaoCv2(nome) {
+  const f = cadastroDoCliente(nome) || {};
+  const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
+  const iso = String(f.proxima_reuniao || ligado.nextMeeting || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return { iso: '', texto: 'sem data' };
+  const dia = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(`${iso}T12:00:00Z`).getUTCDay()];
+  return { iso, texto: `${dia} ${iso.slice(8)}/${iso.slice(5, 7)}`, passou: iso < hojeIsoV2() };
+}
+// O foco escolhido (o cartão laranja, o pé "De olho" ou Mais > Filtros) recorta a lista inteira.
+function clientePassaNoFoco(nome, foco = FOCO_DE_CLIENTES, saudeDe = null) {
+  if (foco === 'todos') return true;
+  const f = cadastroDoCliente(nome) || {};
+  if (foco === 'sem-contato') { const d = diasSemContato(f); return d !== null && d >= SEM_CONTATO_ATENCAO; }
+  if (foco === 'sem-registro') return diasSemContato(f) === null;
+  if (foco === 'detratores') return temNota(f.nps) && Number(f.nps) <= 6;
+  if (foco === 'painel-velho') { const p = String(f.dashboard || '').trim(); return Boolean(p) && !painelEstaEmDia(p); }
+  if (foco === 'precisam') return clientePrecisaDeVoce((saudeDe || saudesDaCarteira())(nome));
+  if (foco === 'sem-proxima') return !proximaReuniaoCv2(nome).iso;
+  if (foco === 'cadastro-incompleto') { const c = typeof completudeDoCadastro === 'function' ? completudeDoCadastro(cadastroDoCliente(nome)) : null; return !c || c.feitos < c.total; }
+  if (foco === 'com-nps') return temNota(f.nps);
+  return true;
+}
+// O título troca de tela dentro de Clientes: as mesmas rotas do menu lateral (Saúde, Onboarding, Reuniões, Contratos e Churn).
+function abrirTrocaDeClientes(gatilho) {
+  const alvo = (id) => document.querySelector(`.vv-trilho [data-submodulo="${id}"], .vv-trilho [data-trilho="${id}"]`);
+  const telas = [['', 'Clientes'], ['carteira', 'Saúde da carteira'], ['onboarding', 'Onboarding'], ['reunioes', 'Reuniões'], ['contratos', 'Contratos'], ['churn', 'Churn']]
+    .filter(([id]) => !id || alvo(id));
+  abrirListaDoPainel(gatilho, { titulo: 'Clientes', atual: '', opcoes: telas.map(([valor, rotulo]) => ({ valor, rotulo })),
+    aoEscolher: (id) => { if (id) alvo(id)?.click(); } });
+}
+// "Mais": o que não cabe no alto da prancha fica a um clique (Cadastros, os filtros que eram chips e Limpar filtros).
+function abrirMaisDeClientes(gatilho) {
+  abrirListaDoPainel(gatilho, { titulo: 'Mais', atual: '', opcoes: [{ valor: 'cadastros', rotulo: 'Cadastros' }, { valor: 'filtros', rotulo: 'Filtros…' }, { valor: 'limpar', rotulo: 'Limpar filtros' }],
+    aoEscolher: (valor) => {
+      if (valor === 'cadastros') return typeof openCadastrosStation === 'function' ? openCadastrosStation() : undefined;
+      if (valor === 'limpar') return limparFiltrosDeClientes();
+      return abrirFiltrosDeClientes(document.getElementById('clientes-mais') || gatilho);
+    } });
+}
+function filtrarClientesPorHead(chave) {
+  FILTRO_CLIENTES.head = FILTRO_CLIENTES.head === chave ? '' : chave;
+  renderClientesBoard();
+}
+function abrirSaudeDaCarteira() {
+  if (window.VybeCarteira?.abrir) window.VybeCarteira.abrir('saude', { abas: ['saude'] });
+}
+
 function renderClientesBoard() {
   // Garantir que ambos os dados estejam carregados
   if (DADOS_DEMANDAS.length === 0) {
@@ -676,137 +725,131 @@ function renderClientesBoard() {
   void ensureClientMasterSources();
   if (!CADASTRO_CLIENTES.length) { carregarCadastroClientes().then(() => renderClientesLista(clientMasterRecords().map((r) => r.name))); }
   const todosClientes = clientMasterRecords().map(record=>record.name);
-  // KPIs
-  // A tela respondia "quantos clientes?" tres vezes, com tres numeros
-  // diferentes: 71 encontrados, 61 contas no Vybe, 16 ativos. E "quantos
-  // conteudos?" duas: 1668 e 472. Nenhum dos rotulos dizia qual era qual, entao
-  // nenhum servia para decidir nada. Agora e uma conta so, com a mesma regra da
-  // tabela logo abaixo — e cada numero e uma pergunta que alguem faz de verdade.
+  // Uma conta só de "quantos clientes?", com a mesma regra da lista logo abaixo.
   const numeros = contagemDeClientes(todosClientes);
-  const aceso = (k) => (k.acao || '').includes(`'${FOCO_DE_CLIENTES}'`);
-  // NUMERO QUE NAO PEDE NADA RECUA.
-  //
-  // Os oito cartoes tinham o mesmo peso. Num dia real, tres deles diziam zero —
-  // "Detratores 0", "Sem contato 0", "NPS médio —" — e disputavam o olho de
-  // igual para igual com "Painel a atualizar 14" e "Só na operação 31", que sao
-  // trabalho de verdade. Zero continua na tela, porque "nenhum detrator" e uma
-  // boa noticia que vale ver; so para de gritar.
-  // Dois numeros novos, e os dois sao fila de trabalho, nao estatistica: quem
-  // esta sem conversa ha tempo demais, e quantos paineis precisam ser
-  // atualizados. Clicar recorta a lista para eles.
-  // Juntar "faz muito tempo que nao falo com ele" com "nunca registrei nada"
-  // dava 15 de 15 no primeiro dia — um numero que diz que tudo esta errado nao
-  // e sinal, e ruido, e ninguem olha duas vezes. Sao problemas diferentes: um e
-  // de relacionamento, o outro e de preenchimento, e so o primeiro e urgente.
-  // Os recortes contam dentro do Head e do Segmento escolhidos: o número do chip é o que a lista vai mostrar.
-  const ativoDeVerdade = (c) => clienteAtivo(c) && String(c.status || '').trim()
-    && passaNosFiltrosDeClientes(c.nome, { semBusca: true });
-  const semContato = CADASTRO_CLIENTES.filter((c) => {
-    if (!ativoDeVerdade(c)) return false;
-    const d = diasSemContato(c);
-    return d !== null && d >= SEM_CONTATO_ATENCAO;
-  }).length;
-  const semRegistro = CADASTRO_CLIENTES.filter((c) =>
-    ativoDeVerdade(c) && diasSemContato(c) === null).length;
-  const painelVelho = CADASTRO_CLIENTES.filter((c) => {
-    if (!ativoDeVerdade(c)) return false;
-    const p = String(c.dashboard || '').trim();
-    return Boolean(p) && !painelEstaEmDia(p);
-  }).length;
-  // NPS medio de quem tem nota, e quantos detratores. Media sozinha esconde o
-  // caso grave: seis notas 9 e uma 3 dao 8,1 — e ha um cliente para ligar hoje.
-  // A média vai na frase do cabeçalho, que é da carteira inteira; os detratores (chip) seguem os filtros.
-  const comNota = CADASTRO_CLIENTES.filter((c) => clienteAtivo(c) && String(c.status || '').trim() && temNota(c.nps));
-  const npsMedio = comNota.length
-    ? (comNota.reduce((soma, c) => soma + Number(c.nps), 0) / comNota.length).toFixed(1).replace('.', ',')
-    : '—';
-  const detratores = comNota.filter((c) => Number(c.nps) <= 6 && ativoDeVerdade(c)).length;
-  // Quadro "Clientes" do moodboard (12/11/2026), nesta ordem: título com Tabela/Fichas/Cérebro, Cadastros e Novo
-  // cliente; a fala do Mateus; três números; busca e filtros numa linha; a tabela num cartão. Os números que eram
-  // frase e chips viram o texto pequeno dos três cartões; os recortes (sem contato, detratores, painel) seguem em Filtros.
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
-  const recortes = [
-    {label:'Sem contato', value:semContato, acao:"focarClientes('sem-contato')", foco:'sem-contato', zero:'ninguém sem contato',
-      dica:`Só quem está há ${SEM_CONTATO_ATENCAO} dias ou mais sem reunião`},
-    {label:'Sem registro de reunião', value:semRegistro, acao:"focarClientes('sem-registro')", foco:'sem-registro', zero:'todos com reunião registrada',
-      dica:'Só quem ainda não tem nenhuma reunião anotada'},
-    {label:'Detratores', value:detratores, acao:"focarClientes('detratores')", foco:'detratores', zero:'nenhum detrator',
-      dica:'Só quem deu nota 6 ou menos no NPS'},
-    {label:'Painel a atualizar', value:painelVelho, acao:"focarClientes('painel-velho')", foco:'painel-velho', zero:'nenhum painel a atualizar',
-      dica:'Só quem está com o painel (dashboard) desatualizado'},
-  ].map((k) => ({ ...k, aceso: aceso(k) }));
+  // Os recortes contam dentro do Head, da Carteira e do Segmento escolhidos: o número é o que a lista vai mostrar.
   const saudeDe = saudesDaCarteira();
   const nomesAtivos = todosClientes.filter((n) => situacaoDaLinhaDeCliente(n) === 'ativos');
-  const riscos = { baixo: 0, medio: 0, alto: 0 };
-  nomesAtivos.forEach((n) => { const s = saudeDe(n); if (s && riscos[s.risco] !== undefined) riscos[s.risco] += 1; });
-  const porRisco = [riscos.baixo ? `${riscos.baixo} em dia` : '', riscos.medio ? `${riscos.medio} em risco médio` : '', riscos.alto ? `${riscos.alto} em risco alto` : ''].filter(Boolean);
+  const noRecorte = nomesAtivos.filter((n) => passaNosFiltrosDeClientes(n, { semBusca: true, semSituacao: true }));
+  const conta = (foco) => noRecorte.filter((n) => clientePassaNoFoco(n, foco, saudeDe)).length;
+  const semContato = conta('sem-contato'), semRegistro = conta('sem-registro'), painelVelho = conta('painel-velho'), detratores = conta('detratores');
+  const precisam = noRecorte.filter((n) => clientePrecisaDeVoce(saudeDe(n)))
+    .sort((a, b) => Number(saudeDe(a).score) - Number(saudeDe(b).score) || String(a).localeCompare(String(b), 'pt-BR'));
+  const semProxima = conta('sem-proxima'), incompletos = conta('cadastro-incompleto'), comNps = conta('com-nps');
+  const vencidasNaCarteira = noRecorte.reduce((t, n) => t + vencidosDoCliente(n).length, 0);
+  const recortes = [
+    {label:'Precisam de você', value:precisam.length, foco:'precisam'},
+    {label:'Sem contato', value:semContato, foco:'sem-contato'},
+    {label:'Sem registro de reunião', value:semRegistro, foco:'sem-registro'},
+    {label:'Sem próxima reunião', value:semProxima, foco:'sem-proxima'},
+    {label:'Cadastro incompleto', value:incompletos, foco:'cadastro-incompleto'},
+    {label:'Com NPS', value:comNps, foco:'com-nps'},
+    {label:'Detratores', value:detratores, foco:'detratores'},
+    {label:'Painel a atualizar', value:painelVelho, foco:'painel-velho'},
+  ].map((k) => ({ ...k, acao: `focarClientes('${k.foco}')`, aceso: FOCO_DE_CLIENTES === k.foco }));
+  const visao = visaoDeClientes(), noCerebro = visao === 'sinapses';
+  // A nota média: a da Saúde da carteira; sem ela (a conta ainda não carregou), a média das notas que a lista tem.
+  const resumo = (() => { try { return window.VybeCarteira?.resumo?.() || null; } catch { return null; } })();
+  const notas = nomesAtivos.map((n) => saudeDe(n)).filter((s) => s && Number.isFinite(Number(s.score))).map((s) => Number(s.score));
+  const media = resumo?.media ?? (notas.length ? Math.round(notas.reduce((t, x) => t + x, 0) / notas.length) : null);
+  const limite = resumo?.limite || LIMITE_PRECISA_DE_VOCE;
+  const porCarteira = {};
+  nomesAtivos.forEach((n) => { const k = carteiraDaLinhaDeCliente(n); porCarteira[k] = (porCarteira[k] || 0) + 1; });
+  const carteiras = ['vinicius', 'ewerton'].filter((k) => porCarteira[k]).map((k) => `${ROTULO_DA_CARTEIRA[k]} ${porCarteira[k]}`).join(', ');
+
+  // O alto: a frase da carteira debaixo do título.
   const frase = document.getElementById('clientes-frase');
-  if (frase) frase.textContent = '';
+  if (frase) frase.textContent = noCerebro ? 'cérebro do VYBES · conhecimento, contexto e atividade de cada conta'
+    : [plural(numeros.ativos, 'ativo', 'ativos'), carteiras, media == null ? 'ainda sem nota de saúde' : `nota média ${media} de 100`].filter(Boolean).join(' · ');
   const gradeKpi = document.getElementById('kpi-grid-clientes');
-  if (gradeKpi) {
-    // Direção 3 (moodboard 3, 13/11/2026): quatro números; "Sem reunião registrada" mostra a barra do quanto falta.
-    const numero = (titulo, valor, sub, atraso, { de = '', tom = '', barra = null } = {}) => `<div class="v2f-card v2f-kpi d3-num${tom ? ` ${tom}` : ''}"><small class="d3-num-rot">${titulo}</small><b class="d3-num-v"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${valor}${de ? `<small>${de}</small>` : ''}</b>${
-      barra == null ? '' : `<span class="d3-barra${tom === 'r' ? ' r' : ''}" style="--v:${Math.max(0, Math.min(100, Math.round(barra)))}%"><i></i></span>`}${sub ? `<small class="d3c-sub">${sub}</small>` : ''}</div>`;
-    gradeKpi.className = 'kpi-grid v2f-kpis d3f-kpis';
-    gradeKpi.hidden = visaoDeClientes() === 'sinapses';
-    gradeKpi.innerHTML = numero('Ativos', numeros.ativos, [...porRisco, numeros.inativos ? plural(numeros.inativos, 'inativo', 'inativos') : ''].filter(Boolean).join(' · ') || 'sem nota ainda')
-      + numero('Sem reunião registrada', semRegistro, '', '.12s',
-        { de: numeros.ativos ? ` / ${numeros.ativos}` : '', tom: semRegistro ? 'r' : '', barra: numeros.ativos ? (semRegistro / numeros.ativos) * 100 : null })
-      + numero('Com NPS', comNota.length, [comNota.length ? `média ${npsMedio}` : '', plural(detratores, 'detrator', 'detratores'), `${semContato} sem contato`].filter(Boolean).join(' · '), '.24s', { de: numeros.ativos ? ` / ${numeros.ativos}` : '' })
-      + numero('Só na operação', numeros.sem || 0, `sem ficha no cadastro${painelVelho ? ` · ${plural(painelVelho, 'painel a atualizar', 'painéis a atualizar')}` : ''}`, '.36s');
-  }
-  // A fala do Mateus: como está a carteira, o item que mais falta no cadastro e quem está sem ficha. "Completar
-  // cadastros" recorta a lista para quem não tem reunião registrada (o mesmo recorte do aviso antigo).
+  if (gradeKpi) { gradeKpi.hidden = true; gradeKpi.innerHTML = ''; }
+  const acoes = document.getElementById('clientes-acoes');
+  if (acoes && noCerebro) acoes.innerHTML = `<span class="clientes-visao" id="clientes-visao-topo"></span><span class="cli-busca cv2-busca cv2c-busca${typeof CEREBRO_STATE !== 'undefined' && CEREBRO_STATE.buscaConhecimento ? ' aberta' : ''}"><button type="button" class="d3m-ico" aria-label="Buscar no conhecimento" title="Buscar no conhecimento" onclick="this.parentElement.classList.add('aberta');this.nextElementSibling.focus()">${CV2_IC.busca}</button><input id="cb-busca-conhecimento" type="search" placeholder="Ideia, regra, peça ou aprendizado" aria-label="Buscar no conhecimento" value="${safeText(typeof CEREBRO_STATE !== 'undefined' ? CEREBRO_STATE.buscaConhecimento : '')}" oninput="pesquisarConhecimentoCerebro(this)" onblur="if(!this.value)this.parentElement.classList.remove('aberta')"></span><button type="button" class="cv2-vidro" onclick="carregarAtividadeCerebro()">Atualizar a central</button>`;
+  else if (acoes) acoes.innerHTML = `<span class="clientes-visao" id="clientes-visao-topo"></span><button type="button" class="d3m-ico" id="clientes-mais" aria-haspopup="listbox" aria-label="Mais: cadastros e filtros" title="Cadastros e filtros" onclick="abrirMaisDeClientes(this)">${CV2_IC.mais}</button>${
+    podeEditarClientes() ? `<button type="button" class="cv2-novo d3f-novo" onclick="novoClienteNoPainel()">${CV2_IC.novo}Novo cliente</button>` : ''}`;
+
+  // O cartão laranja do Mateus: quem precisa de você. Sem ninguém abaixo do limite, o que falta registrar; sem nada
+  // a pedir, o cartão sai (laranja é só ação).
   const aviso = document.getElementById('clientes-aviso');
   if (aviso) {
-    const focado = FOCO_DE_CLIENTES === 'sem-registro';
-    const faltas = new Map();
-    let comFicha = 0;
-    nomesAtivos.forEach((n) => { const c = typeof completudeDoCadastro === 'function' ? completudeDoCadastro(cadastroDoCliente(n)) : null;
-      if (!c) return; comFicha += 1; c.faltam.forEach((r) => faltas.set(r, (faltas.get(r) || 0) + 1)); });
-    const candidatos = [...faltas.entries()].map(([rotulo, n]) => ({ rotulo, n, de: comFicha }));
-    if (semRegistro) candidatos.push({ rotulo: 'Registro de reunião', n: semRegistro, de: numeros.ativos });
-    const maisFalta = candidatos.sort((a, b) => b.n - a.n || (a.rotulo === 'Registro de reunião' ? -1 : 1))[0];
-    const minuscula = (t) => (/^[A-ZÀ-Ú][a-zà-ú]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t);
-    const partes = [
-      !numeros.ativos ? '' : !porRisco.length ? `${plural(numeros.ativos, 'cliente ativo', 'clientes ativos')}, ainda sem nota de saúde.`
-        : riscos.baixo ? `${riscos.baixo === 1 ? 'Um cliente está' : `${riscos.baixo} clientes estão`} em dia${porRisco.length > 1 ? ` e ${porRisco.slice(1).join(' e ')}` : ''}.`
-        : `Nenhum cliente está em dia: ${porRisco.join(' e ')}.`,
-      maisFalta ? `O que mais falta no cadastro é <b>${safeText(minuscula(maisFalta.rotulo))}</b>: ${maisFalta.n >= maisFalta.de ? `nenhum dos ${maisFalta.de} tem` : `${maisFalta.n} de ${maisFalta.de} não ${maisFalta.n === 1 ? 'tem' : 'têm'}`}.` : '',
-      numeros.sem ? `E ${numeros.sem} ${numeros.sem === 1 ? 'está' : 'estão'} sem ficha.` : '',
-    ].filter(Boolean);
-    // Direção 3: a fala vira o bloco de ação laranja, numa frase curta (o risco da carteira está no cartão Ativos).
-    const curta = [
-      maisFalta ? `${maisFalta.n >= maisFalta.de ? `Nenhum dos ${maisFalta.de} tem` : `${maisFalta.n} de ${maisFalta.de} sem`} ${safeText(minuscula(maisFalta.rotulo))}.` : '',
-      numeros.sem ? `${numeros.sem} ${numeros.sem === 1 ? 'está' : 'estão'} sem ficha.` : '',
-    ].filter(Boolean).join(' ') || (partes.length ? partes[0] : '');
-    const textoAviso = focado ? 'Só quem não tem reunião registrada.' : curta;
-    const botaoAviso = semRegistro || focado ? (focado ? 'Ver todos' : 'Completar cadastros') : '';
-    aviso.hidden = (!textoAviso && !focado) || visaoDeClientes() === 'sinapses';
-    if (typeof d3AcaoHtml === 'function') {
-      aviso.className = 'cli-aviso d3f-acao';
-      aviso.innerHTML = aviso.hidden ? '' : d3AcaoHtml({ frase: `<small class="d3c-quem">Mateus · Atendimento</small>${textoAviso}`, agente: 'Mateus', botao: botaoAviso,
-        attrs: `aria-pressed="${focado}" onclick="focarClientes('sem-registro')"` });
-    } else {
-      aviso.className = 'cli-aviso v2f-card v2f-fala';
-      aviso.innerHTML = aviso.hidden ? '' : falaV2Html('Mateus · Atendimento ao cliente', focado ? 'Mostrando só quem não tem reunião registrada.' : partes.join(' '),
-        botaoAviso ? `<button type="button" class="v2f-btn s cli-aviso-acao" aria-pressed="${focado}" onclick="focarClientes('sem-registro')">${botaoAviso}</button>` : '');
+    const focoPrecisam = FOCO_DE_CLIENTES === 'precisam', focoRegistro = FOCO_DE_CLIENTES === 'sem-registro';
+    const cartao = ({ rotulo, n, titulo, apoio, botoes }) => `<section class="d3-acao d3m-laranja cv2-laranja" aria-label="${safeText(rotulo)}"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">M</span>Mateus · ${safeText(rotulo)}</span>
+        <span class="d3m-lar-txt"><b class="d3m-lar-num">${n}</b><span class="d3-acao-frase">${safeText(titulo)}</span>${apoio ? `<small>${safeText(apoio)}</small>` : ''}<span class="d3m-lar-bts">${botoes}</span></span></section>`;
+    let html = '';
+    if (precisam.length) {
+      const pior = precisam[0], s = saudeDe(pior), venc = vencidosDoCliente(pior).length;
+      const abaixo = precisam.every((n) => Number(saudeDe(n).score) < limite);
+      html = cartao({ rotulo: 'quem precisa de você', n: precisam.length,
+        titulo: abaixo ? `${precisam.length === 1 ? 'cliente' : 'clientes'} com nota abaixo de ${limite}` : `${precisam.length === 1 ? 'cliente precisa' : 'clientes precisam'} de você`,
+        apoio: `A pior nota é de ${pior}: ${Number(s.score)}${venc ? `, com ${plural(venc, 'vencida', 'vencidas')}` : ''}.`,
+        botoes: `<button type="button" class="d3m-btn l cv2-abrir" title="Abrir a ficha de ${safeText(pior)}" onclick="abrirClienteDetalhe('${jsArg(pior)}')"><span>Abrir ${safeText(pior)}</span></button>${
+          precisam.length > 1 || focoPrecisam ? `<button type="button" class="d3m-btn l s" role="switch" aria-checked="${focoPrecisam}" onclick="focarClientes('precisam')">${focoPrecisam ? 'Ver todos' : `Ver os ${precisam.length}`}</button>` : ''}` });
+    } else if (semRegistro || focoRegistro) {
+      html = cartao({ rotulo: 'o que falta registrar', n: semRegistro, titulo: `${semRegistro === 1 ? 'cliente' : 'clientes'} sem reunião registrada`,
+        apoio: focoRegistro ? 'A lista mostra só quem não tem reunião registrada.' : 'Ninguém está abaixo da nota de alerta.',
+        botoes: `<button type="button" class="d3m-btn l" role="switch" aria-checked="${focoRegistro}" onclick="focarClientes('sem-registro')">${focoRegistro ? 'Ver todos' : 'Completar cadastros'}</button>` });
     }
+    aviso.className = 'cli-aviso cv2-aviso';
+    aviso.hidden = !html || noCerebro;
+    aviso.innerHTML = aviso.hidden ? '' : html;
   }
-  // Direção 3 (quadro D3-GestaoClientes): o rótulo "Gestão" ao lado do título, em cinza, como a data do Hoje.
-  const tituloClientes = document.querySelector('#clientes-hero h2');
-  if (tituloClientes && !tituloClientes.nextElementSibling?.classList.contains('d3c-modo')) tituloClientes.insertAdjacentHTML('afterend', '<span class="d3c-modo">Gestão</span>');
-  const acoes = document.getElementById('clientes-acoes');
-  // Sem a classe antiga do cabeçalho (ela pinta de laranja o texto de todo botão dali); o id continua o mesmo.
-  // Direção 3: "Novo cliente" é botão branco com o "+"; o único laranja cheio é o bloco de ação.
-  if (acoes) acoes.className = 'v2f-topo-acoes';
-  if (acoes) acoes.innerHTML = `<span class="clientes-visao" id="clientes-visao-topo"></span><button type="button" class="v2f-btn" onclick="openCadastrosStation()">Cadastros</button>${
-    podeEditarClientes() ? '<button type="button" class="v2f-btn p d3f-novo" onclick="novoClienteNoPainel()">Novo cliente</button>' : ''}`;
+
+  // A coluna de consulta, direto no vidro: a carteira, por head e Abrir como.
+  const consulta = document.getElementById('clientes-consulta');
+  if (consulta) {
+    const bloco = (titulo, lado, dentro) => `<section class="d3m-cons" aria-label="${safeText(titulo)}"><div class="d3m-cons-cab"><b>${safeText(titulo)}</b><span>${lado}</span></div>${dentro}</section>`;
+    const linha = (forte, apoio, attrs, extra = '') => `<button type="button" class="d3m-vlin" ${attrs}>${extra}<span><b>${safeText(forte)}</b>${apoio ? ` · ${safeText(apoio)}` : ''}</span>${CV2_IC.vai}</button>`;
+    const C = 2 * Math.PI * 17;
+    const anel = `<svg class="cv2-anel-g" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17"/><circle class="v" cx="22" cy="22" r="17" stroke-dasharray="${(Math.max(0, Math.min(100, Number(media) || 0)) / 100 * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/></svg>`;
+    const causa = resumo?.causa ? resumo.causa.replace(/^./, (l) => l.toUpperCase()) : '';
+    const quem = resumo && resumo.clientesDaCausa >= resumo.total ? 'cada um' : resumo ? plural(resumo.clientesDaCausa, 'cliente', 'clientes') : '';
+    const [forte, apoio] = !resumo ? [media == null ? 'Ainda sem nota' : `Nota média ${media}`, 'a conta da saúde ainda não carregou nesta tela']
+      : !resumo.causa ? ['Ninguém perdeu ponto', 'nenhum sinal tirando nota da carteira']
+      : resumo.deAtraso ? [`Resolvidas as vencidas, vai a ${resumo.semEla}`, `hoje são elas que tiram ${resumo.tiraIgual ? '' : 'até '}${resumo.tira} pontos de ${quem}`]
+      : [`${causa}: resolvido, vai a ${resumo.semEla}`, `hoje tira ${resumo.tiraIgual ? '' : 'até '}${resumo.tira} pontos de ${quem}`];
+    const carteira = bloco('A carteira', media == null ? 'sem nota' : `nota média ${media}`,
+      `<button type="button" class="cv2-carteira" onclick="abrirSaudeDaCarteira()" title="Abrir a Saúde da carteira">${anel}<span><b>${safeText(forte)}</b><small>${safeText(apoio)}</small></span></button>`);
+    // Por head: quantos clientes ativos cada head tem e a nota média deles; o clique recorta a lista.
+    const heads = new Map();
+    nomesAtivos.forEach((n) => headsDoClienteNaLista(n).forEach((h) => { const k = primeiroNomeDe(h), x = heads.get(k) || { rotulo: String(h).split(/\s+/)[0], n: 0, soma: 0, comNota: 0 };
+      const s = saudeDe(n); x.n += 1; if (s && Number.isFinite(Number(s.score))) { x.soma += Number(s.score); x.comNota += 1; } heads.set(k, x); }));
+    const porHead = heads.size ? bloco('Por head', 'clientes · nota', [...heads.entries()].sort((a, b) => b[1].n - a[1].n || a[1].rotulo.localeCompare(b[1].rotulo, 'pt-BR')).slice(0, 4)
+      .map(([k, x]) => `<button type="button" class="d3m-vlin" role="switch" aria-checked="${FILTRO_CLIENTES.head === k}" title="Ver só os clientes de ${safeText(x.rotulo)}" onclick="filtrarClientesPorHead('${jsArg(k)}')"><i class="d3m-pes" aria-hidden="true">${safeText(iniciaisV2(x.rotulo))}</i><span><b>${safeText(x.rotulo)}</b> · ${plural(x.n, 'cliente', 'clientes')}</span><b class="d3m-vn">${x.comNota ? Math.round(x.soma / x.comNota) : '–'}</b>${CV2_IC.vai}</button>`).join('')) : '';
+    const abrir = bloco(visao === 'tabela' ? 'Abrir como' : 'Abrir', '', [
+      visao !== 'tabela' ? linha('Lista', 'a pior nota primeiro, em linhas', `onclick="trocarVisaoDeClientes('tabela')"`) : '',
+      visao !== 'fichas' ? linha('Fichas', `${numeros.ativos === 1 ? 'o ativo em cartão' : `os ${numeros.ativos} em cartões`}, com a foto`, `onclick="trocarVisaoDeClientes('fichas')"`) : '',
+      visao !== 'sinapses' ? linha('Cérebro', 'o que o VYBES sabe de cada um', `onclick="trocarVisaoDeClientes('sinapses')"`) : '',
+      linha('Cadastros', numeros.sem ? `${numeros.sem} só na operação, sem ficha` : 'todos com ficha no cadastro', 'onclick="openCadastrosStation()"'),
+      window.VybeCarteira?.abrir ? linha('Saúde mês a mês', 'como a nota é feita', 'onclick="abrirSaudeDaCarteira()"') : '',
+    ].join(''));
+    const notaFichas = visao === 'fichas' ? '<section class="d3m-cons"><div class="d3m-cons-cab"><b>O cartão abre a ficha</b><span></span></div><p class="cv2-nota">Drive, documento, CNPJ e endereço saíram do cartão e ficam na ficha, na aba Ecossistema e no cadastro.</p></section>' : '';
+    consulta.hidden = noCerebro;
+    consulta.innerHTML = noCerebro ? '' : (visao === 'fichas' ? notaFichas + porHead + abrir : carteira + porHead + abrir);
+  }
+
+  // O título da folha e o pé "De olho": quatro contas da carteira; o clique recorta a lista.
+  const titulo = document.getElementById('clientes-conta');
+  const sit = FILTRO_CLIENTES.situacao;
+  const ROT_ORDEM = { saude: ['pior nota primeiro', 'melhor nota primeiro'], cliente: ['por nome', 'por nome, de trás para a frente'], head: ['por head', 'por head, de trás para a frente'],
+    abertos: ['mais vencidas primeiro', 'menos vencidas primeiro'], reuniao: ['reunião mais próxima primeiro', 'reunião mais distante primeiro'], cadastro: ['cadastro mais vazio primeiro', 'cadastro mais cheio primeiro'] };
+  const ordemTxt = (ROT_ORDEM[ORDEM_DE_CLIENTES.coluna] || ROT_ORDEM.saude)[ORDEM_DE_CLIENTES.sentido > 0 ? 0 : 1];
+  const mostrados = todosClientes.filter((n) => passaNosFiltrosDeClientes(n) && clientePassaNoFoco(n, FOCO_DE_CLIENTES, saudeDe)).length;
+  const oQue = sit === 'ativos' ? ['cliente ativo', 'clientes ativos'] : sit === 'inativos' ? ['cliente inativo', 'clientes inativos'] : sit === 'sem' ? ['só na operação', 'só na operação'] : sit === 'ignorados' ? ['que não é cliente', 'que não são clientes'] : ['cliente', 'clientes'];
+  if (titulo) titulo.innerHTML = `${plural(mostrados, oQue[0], oQue[1])} <span>· ${visao === 'fichas' ? 'pior nota primeiro' : ordemTxt}</span>`;
+  const pe = document.getElementById('clientes-pe');
+  if (pe) {
+    const ficha = (n, rotulo, tom, attrs) => `<button type="button" class="cv2-olho${tom ? ` ${tom}` : ''}" ${attrs}><b>${n}</b><small>${rotulo}</small></button>`;
+    const foco = (id) => `role="switch" aria-checked="${FOCO_DE_CLIENTES === id}" onclick="focarClientes('${id}')"`;
+    pe.hidden = visao !== 'tabela';
+    pe.innerHTML = `<span class="d3m-olho-rot">De olho</span>${ficha(vencidasNaCarteira, vencidasNaCarteira === 1 ? 'peça vencida na carteira' : 'peças vencidas na carteira', vencidasNaCarteira ? 'r' : '', `title="Ordenar por quem tem mais vencidas" onclick="ordenarClientesPor('abertos')"`)
+      }${ficha(semProxima, 'sem próxima reunião', semProxima ? 'a' : '', foco('sem-proxima'))}${ficha(incompletos, 'com cadastro incompleto', '', foco('cadastro-incompleto'))}${ficha(comNps, 'com NPS', '', foco('com-nps'))}`;
+  }
+  const corpo = document.getElementById('clientes-corpo');
+  if (corpo) corpo.dataset.visao = visao;
+  marcarTelaDeClientes();
   RECORTES_DE_CLIENTES = recortes;
   pintarFiltrosDeClientes(recortes);
-  // "Conteúdos em aberto" e "Solicitações em aberto" sairam daqui: sao numeros
-  // da operacao, e a operacao tem duas telas so dela. Nesta, cada numero tem de
-  // ajudar a cuidar de um cliente.
   // Renderizar lista
   renderClientesLista(todosClientes);
 }
@@ -829,18 +872,17 @@ function trocarVisaoDeClientes(qual) {
 }
 
 function selosDeVisaoDeClientes() {
-  // No quadro, Tabela/Fichas/Cérebro ficam no cabeçalho, ao lado de Cadastros; o lugar antigo (na barra) fica vazio.
-  // "v2f-seg-pill principal" tira o botão das regras gerais que pintam de preto todo botão selecionado: aqui a ligada é branca.
+  // Lista/Fichas/Cérebro ficam no alto, no vidro; o lugar antigo (na folha) fica vazio.
   const antigo = document.getElementById('clientes-visao');
   const alvo = document.getElementById('clientes-visao-topo') || antigo;
   if (!alvo) return;
   if (antigo && antigo !== alvo) { antigo.innerHTML = ''; antigo.hidden = true; }
   const atual = visaoDeClientes();
-  alvo.className = 'clientes-visao v2f-seg';
-  alvo.setAttribute('role', 'tablist');
+  alvo.className = 'clientes-visao cv2-seg';
+  alvo.setAttribute('role', 'radiogroup');
   alvo.setAttribute('aria-label', 'Como ver os clientes');
-  alvo.innerHTML = [['tabela', 'Tabela'], ['fichas', 'Fichas'], ['sinapses', 'Cérebro']].map(([id, rotulo]) =>
-    `<button type="button" role="tab" aria-selected="${atual === id}" class="v2f-seg-pill principal${atual === id ? ' ativo' : ''}"${id === 'sinapses' ? ' title="Cérebro VYBES"' : ''}
+  alvo.innerHTML = [['tabela', 'Lista'], ['fichas', 'Fichas'], ['sinapses', 'Cérebro']].map(([id, rotulo]) =>
+    `<button type="button" role="radio" aria-checked="${atual === id}"${id === 'sinapses' ? ' title="Cérebro VYBES"' : ''}
       onclick="trocarVisaoDeClientes('${id}')">${rotulo}</button>`).join('');
 }
 
@@ -856,9 +898,9 @@ function carteiraDaLinhaDeCliente(nome) {
 }
 // Colunas que a pessoa liga no menu "Colunas": na frente ficam as cinco do quadro (Cliente, Head, Saúde, Em aberto e
 // Cadastro); plano, segmento, pedidos, status, Drive, documento e a seleção de vários entram por aqui. Fica só neste navegador.
-const COLUNAS_OPCIONAIS_DE_CLIENTES = [['plano', 'Plano'], ['segmento', 'Segmento'], ['pedidos', 'Pedidos em aberto'], ['proxima_reuniao', 'Próxima reunião'],
+const COLUNAS_OPCIONAIS_DE_CLIENTES = [['plano', 'Plano'], ['segmento', 'Segmento'], ['pedidos', 'Pedidos em aberto'],
   ['status', 'Status (ativo ou inativo)'], ['drive', 'Drive'], ['documento', 'Documento de acessos'], ['marcar', 'Selecionar vários (ações em lote)']];
-const COLUNAS_PADRAO_DE_CLIENTES = { plano: false, segmento: false, pedidos: false, proxima_reuniao: false, status: false, drive: false, documento: false, marcar: false };
+const COLUNAS_PADRAO_DE_CLIENTES = { plano: false, segmento: false, pedidos: false, status: false, drive: false, documento: false, marcar: false };
 function colunasDeClientes() {
   let salvas = {};
   try { salvas = JSON.parse(localStorage.getItem('vybe_clientes_colunas_v2') || '{}') || {}; } catch { salvas = {}; }
@@ -982,21 +1024,22 @@ function pintarFiltrosDeClientes(recortes = []) {
     const o = opcoesDeFiltroDeClientes(qual).find((x) => x.valor === v);
     return `${NOME_DO_FILTRO[qual]}: ${safeText(String(o?.rotulo || v).replace(/ \(\d+\)$/, ''))}`;
   };
-  const menu = (qual) => `<button type="button" class="v2f-chip" aria-haspopup="listbox" aria-pressed="${Boolean(FILTRO_CLIENTES[qual])}"
+  const menu = (qual) => `<button type="button" class="cv2-chip" aria-haspopup="listbox" data-ligado="${Boolean(FILTRO_CLIENTES[qual])}"
       onclick="escolherFiltroDeClientes('${qual}', this)">${rotuloDe(qual)}</button>`;
   const nomes = clientMasterRecords().map((r) => r.name).filter((n) => passaNosFiltrosDeClientes(n, { semBusca: true, semSituacao: true }));
   const quantos = (sit) => nomes.filter((n) => situacaoDaLinhaDeCliente(n) === sit).length;
-  const situacao = (sit, rotulo) => `<button type="button" class="v2f-chip" aria-pressed="${FILTRO_CLIENTES.situacao === sit}"
-      title="Mostrar só os ${rotulo.toLowerCase()}" onclick="alternarSituacaoDeClientes('${sit}')">${rotulo} <b>${quantos(sit)}</b></button>`;
+  const situacao = (sit, rotulo) => `<button type="button" class="cv2-chip" role="switch" aria-checked="${FILTRO_CLIENTES.situacao === sit}"
+      title="Mostrar só os ${rotulo.toLowerCase()}" onclick="alternarSituacaoDeClientes('${sit}')">${rotulo} <span>${quantos(sit)}</span></button>`;
+  // Os recortes moram em Mais > Filtros; com um deles ligado, a folha mostra qual é (e o clique abre os filtros).
   const outros = Boolean(FILTRO_CLIENTES.segmento) || FOCO_DE_CLIENTES !== 'todos' || ['sem', 'ignorados'].includes(FILTRO_CLIENTES.situacao);
   const ligados = [FILTRO_CLIENTES.segmento ? rotuloDe('segmento') : '', ...recortes.filter((k) => k.aceso).map((k) => safeText(k.label)),
     FILTRO_CLIENTES.situacao === 'sem' ? 'Só na operação' : FILTRO_CLIENTES.situacao === 'ignorados' ? 'Não são clientes' : ''].filter(Boolean);
-  const filtros = `<button type="button" class="v2f-btn s" data-v2f-filtros aria-haspopup="listbox" aria-pressed="${outros}" title="Segmento, sem contato, detratores, painel a atualizar e quem está só na operação"
-      onclick="abrirFiltrosDeClientes(this)">${outros ? `Filtros: ${ligados.join(', ')}` : 'Filtros'}</button>`;
-  const colunas = `<button type="button" class="v2f-btn s" aria-haspopup="listbox" title="Escolher as colunas da tabela"
+  const filtros = outros ? `<button type="button" class="cv2-chip" data-v2f-filtros aria-haspopup="listbox" data-ligado="true" title="Segmento, sem contato, detratores, painel a atualizar e quem está só na operação"
+      onclick="abrirFiltrosDeClientes(this)">${ligados.join(', ')}</button>` : '';
+  const colunas = `<button type="button" class="cv2-chip" aria-haspopup="listbox" title="Escolher as colunas da lista"
       onclick="escolherColunasDeClientes(this)">Colunas</button>`;
-  alvo.innerHTML = situacao('ativos', 'Ativos') + situacao('inativos', 'Inativos') + menu('carteira') + menu('head') + filtros
-    + (visaoDeClientes() === 'tabela' ? colunas : '');
+  alvo.innerHTML = `<span class="cv2-chips">${situacao('ativos', 'Ativos')}${situacao('inativos', 'Inativos')}</span><i class="cv2-risco" aria-hidden="true"></i><span class="cv2-chips">${menu('carteira')}${menu('head')}${filtros}${
+    visaoDeClientes() === 'tabela' ? colunas : ''}</span>`;
 }
 
 // "Dashboard" no cadastro NAO e endereco: e o estado do painel do cliente,
@@ -1677,17 +1720,15 @@ function alternarLinhaDeCliente(botao) {
 }
 function ordenarClientesPor(coluna) {
   ORDEM_DE_CLIENTES = ORDEM_DE_CLIENTES.coluna === coluna ? { coluna, sentido: -ORDEM_DE_CLIENTES.sentido } : { coluna, sentido: 1 };
-  renderClientesLista(clientMasterRecords().map((record) => record.name));
+  renderClientesBoard();
 }
 function mostrarListaInteiraDeClientes(inteira = true) {
   LISTA_INTEIRA_DE_CLIENTES = inteira;
   renderClientesLista(clientMasterRecords().map((record) => record.name));
 }
-function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = saudesDaCarteira()) {
+function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = saudesDaCarteira(), grupo = '') {
   const f = cadastroDoCliente(nome) || {};
   const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
-  const dataBr = (v) => { const iso = String(v || '').slice(0, 10);
-    return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : ''; };
   const aspas = jsArg(nome); // nome em argumento de onclick (auditoria 15/11/2026)
   const idNoCadastro = semCadastro ? '' : idDoCliente(nome);
   const podeMexer = !semCadastro && podeEditarClientes();
@@ -1698,41 +1739,45 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
   const plano = String(f.plano || ligado.plan || '').trim();
   const heads = String(f.heads || ligado.head || '').split(',').map((n) => n.trim()).filter(Boolean);
   const s = semCadastro ? null : saudeDe(nome);
-  const tom = tomDaSaudeV2(s);
+  const tom = tomDaNotaCv2(s);
   const { conteudos, pedidos } = abertosDoCliente(nome);
   const vencidos = vencidosDoCliente(nome).length;
   const c = semCadastro || typeof completudeDoCadastro !== 'function' ? null : completudeDoCadastro(f);
   const marcado = CLIENTES_MARCADOS.has(nome);
   const aberto = CLIENTES_ABERTOS_NA_LISTA.has(nome);
+  const reuniao = proximaReuniaoCv2(nome);
 
   // Colunas ligadas em "Colunas": as mesmas edições de antes, na célula.
   const editavel = (campo, dentro, titulo = 'Clique para editar') => (podeMexer
-    ? `<span class="v2f-extra cli-editavel" title="${titulo}" onclick="editarCelulaDoCliente(event, '${aspas}', '${campo}')">${dentro}</span>`
-    : `<span class="v2f-extra">${dentro}</span>`);
+    ? `<span class="cv2-extra cli-editavel" title="${titulo}" onclick="editarCelulaDoCliente(event, '${aspas}', '${campo}')">${dentro}</span>`
+    : `<span class="cv2-extra">${dentro}</span>`);
   const urlDrive = linkDeCliente(ligado.drive);
   const extras = [
     mostrar.plano ? editavel('plano', safeText(plano) || vazio) : '',
-    mostrar.segmento ? (podeMexer ? `<span class="v2f-extra cli-editavel" title="Clique para escolher a etiqueta" onclick="abrirSegmentoDoCliente(event, '${aspas}')">${safeText(segmento) || vazio}</span>` : `<span class="v2f-extra">${safeText(segmento) || vazio}</span>`) : '',
-    mostrar.pedidos ? `<span class="v2f-extra">${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}</span>` : '',
-    mostrar.proxima_reuniao ? editavel('proxima_reuniao', dataBr(f.proxima_reuniao || ligado.nextMeeting) || vazio) : '',
-    mostrar.status ? `<span class="v2f-extra" onclick="event.stopPropagation()">${situacaoDoClienteHtml(nome, estado)}</span>` : '',
-    mostrar.drive ? `<span class="v2f-extra" onclick="event.stopPropagation()">${urlDrive ? `<a class="v2f-link" href="${safeText(urlDrive)}" target="_blank" rel="noopener" title="${safeText(urlDrive)}">Abrir</a>`
-      : podeMexer ? `<button type="button" class="v2f-link" onclick="editarAcessoDoCliente(event, '${aspas}', 'pasta_drive')">Colar o link</button>` : vazio}</span>` : '',
-    mostrar.documento ? `<span class="v2f-extra" onclick="event.stopPropagation()">${ligado.acessoId || podeMexer
-      ? `<button type="button" class="v2f-link" onclick="abrirDocumentoDoCliente('${jsArg(String(ligado.acessoId || ''))}', '${aspas}', '${jsArg(idNoCadastro)}')">${ligado.acessoId && ligado.doc ? 'Abrir' : 'Escrever'}</button>` : vazio}</span>` : '',
+    mostrar.segmento ? (podeMexer ? `<span class="cv2-extra cli-editavel" title="Clique para escolher a etiqueta" onclick="abrirSegmentoDoCliente(event, '${aspas}')">${safeText(segmento) || vazio}</span>` : `<span class="cv2-extra">${safeText(segmento) || vazio}</span>`) : '',
+    mostrar.pedidos ? `<span class="cv2-extra">${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}</span>` : '',
+    mostrar.status ? `<span class="cv2-extra" onclick="event.stopPropagation()">${situacaoDoClienteHtml(nome, estado)}</span>` : '',
+    mostrar.drive ? `<span class="cv2-extra" onclick="event.stopPropagation()">${urlDrive ? `<a class="cv2-link" href="${safeText(urlDrive)}" target="_blank" rel="noopener" title="${safeText(urlDrive)}">Abrir</a>`
+      : podeMexer ? `<button type="button" class="cv2-link" onclick="editarAcessoDoCliente(event, '${aspas}', 'pasta_drive')">Colar o link</button>` : vazio}</span>` : '',
+    mostrar.documento ? `<span class="cv2-extra" onclick="event.stopPropagation()">${ligado.acessoId || podeMexer
+      ? `<button type="button" class="cv2-link" onclick="abrirDocumentoDoCliente('${jsArg(String(ligado.acessoId || ''))}', '${aspas}', '${jsArg(idNoCadastro)}')">${ligado.acessoId && ligado.doc ? 'Abrir' : 'Escrever'}</button>` : vazio}</span>` : '',
   ].join('');
 
   const caixa = mostrar.marcar && podeEditarClientes()
     ? `<input type="checkbox" class="v2f-marcar" ${marcado ? 'checked' : ''} aria-label="Marcar ${safeText(nome)}"
         onclick="event.stopPropagation();this.closest('.v2f-linha').classList.toggle('marcada',this.checked);alternarClienteMarcado('${aspas}',this.checked)">` : '';
   const situacaoHtml = estado !== 'ativos' && !mostrar.status ? `<span onclick="event.stopPropagation()">${situacaoDoClienteHtml(nome, estado)}</span>` : '';
-  const cadastro = semCadastro ? '<span class="v2f-pill n">sem ficha</span>'
-    : !c ? vazio
-    : c.feitos === c.total ? '<span class="v2f-pill g">completo</span>'
-    // Direção 3 (quadro D3-GestaoClientes): o cadastro é uma pílula clara com o que já está feito ("3 de 12").
-    : `<span class="v2f-pill v2f-cad-n" title="Faltam: ${safeText(c.faltam.join(', '))}">${c.feitos} de ${c.total}</span>`;
+  // O cadastro: o anel do quanto já está preenchido e "5/12"; completo fica verde; só na operação, "sem ficha".
+  const C = 2 * Math.PI * 6;
+  const anel = (feitos, total) => `<svg class="cv2-anel${feitos >= total ? ' cheio' : ''}" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><circle class="v" cx="8" cy="8" r="6" stroke-dasharray="${(feitos / Math.max(1, total) * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 8 8)"/></svg>`;
+  const cadastro = semCadastro ? '<span class="cv2-cd sem">sem ficha</span>'
+    : !c ? `<span class="cv2-cd">${vazio}</span>`
+    : `<span class="cv2-cd${c.feitos === c.total ? ' cheio' : ''}" title="${c.feitos === c.total ? 'Cadastro completo' : `Faltam: ${safeText(c.faltam.join(', '))}`}">${anel(c.feitos, c.total)}${c.feitos}/${c.total}</span>`;
   // "peça" é o nome da unidade em todo o sistema (acabamento 15/11), não "conteúdo".
-  const emAberto = `${plural(conteudos, 'peça', 'peças')}${vencidos ? ` · <b class="v2f-ruim">${plural(vencidos, 'vencida', 'vencidas')}</b>` : ''}`;
+  const emAberto = `${plural(conteudos, 'peça', 'peças')}${vencidos ? ` <b class="cv2-ruim">· ${plural(vencidos, 'vencida', 'vencidas')}</b>` : ''}`;
+  const reuniaoHtml = podeMexer
+    ? `<span class="cv2-re cli-editavel${reuniao.iso ? '' : ' sem'}" title="Próxima reunião: clique para mudar a data" onclick="editarCelulaDoCliente(event, '${aspas}', 'proxima_reuniao')">${reuniao.texto}</span>`
+    : `<span class="cv2-re${reuniao.iso ? '' : ' sem'}" title="Próxima reunião">${reuniao.texto}</span>`;
 
   // O detalhe que abre no lugar.
   const feitos = c && typeof CADASTRO_DEF !== 'undefined' && CADASTRO_DEF
@@ -1743,24 +1788,25 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
       c.total - Math.min(4, feitos.length) - Math.min(1, c.faltam.length) > 0 ? `<span class="v2f-ck">+ ${c.total - Math.min(4, feitos.length) - Math.min(1, c.faltam.length)}</span>` : '',
     ].join('') : '';
   const botoes = semCadastro
-    ? (podeEditarClientes() ? `<button type="button" class="v2f-btn s" onclick="cadastrarClienteDaOperacao('${aspas}')">Cadastrar</button>` : '')
-    : (podeMexer ? `<button type="button" class="v2f-btn s" onclick="abrirFichaDeCliente('${aspas}')">Completar cadastro</button>` : '');
-  const detalhe = `<div class="v2f-ficha"><div class="v2f-ficha-texto">
+    ? (podeEditarClientes() ? `<button type="button" class="d3v-btn sec s" onclick="cadastrarClienteDaOperacao('${aspas}')">Cadastrar</button>` : '')
+    : (podeMexer ? `<button type="button" class="d3v-btn sec s" onclick="abrirFichaDeCliente('${aspas}')">Completar cadastro</button>` : '');
+  const detalhe = `<div class="cv2-det"><div class="cv2-det-texto">
         <p><b>Saúde${tom ? ` ${Number(s.score)}` : ''}</b> · ${tom ? safeText((s.motivos || []).slice(0, 2).join(' · ') || 'sem nada puxando para baixo') : 'sem nota: cliente inativo ou sem peças para medir'}</p>
-        <p><b>Em aberto</b> · ${plural(conteudos, 'peça', 'peças')}${vencidos ? `, ${vencidos} com a veiculação vencida` : ''} · ${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}</p>
+        <p><b>Em aberto</b> · ${plural(conteudos, 'peça', 'peças')}${vencidos ? `, ${vencidos} com a veiculação vencida` : ''} · ${pedidos ? plural(pedidos, 'pedido', 'pedidos') : 'nenhum pedido'}${plano ? ` · plano ${safeText(plano)}` : ''}</p>
         <p class="v2f-cad"><b>Cadastro${c ? ` ${c.feitos} de ${c.total}` : ''}</b>${c ? itens : ' · sem ficha no cadastro'}</p>
-      </div>${botoes}<button type="button" class="v2f-btn s k" onclick="abrirClienteDetalhe('${aspas}')">Abrir a ficha</button></div>`;
+      </div>${botoes}<button type="button" class="d3v-btn s cv2-abrir-ficha" onclick="abrirClienteDetalhe('${aspas}')">Abrir a ficha</button></div>`;
 
-  return `<div class="v2-abre v2f-linha${marcado ? ' marcada' : ''}" data-cliente="${safeText(nome)}" aria-expanded="${aberto}">
-    <div class="v2f-tr" onclick="alternarLinhaDeCliente(this.querySelector('.v2f-vai'))">
-      <p class="v2f-c-nome cli-nome">${caixa}<span class="v2f-cli" style="--c:${corDoClienteV2(nome)}">${safeText(nome)}</span>${
-        segmento || plano ? ` <span class="v2f-seg2">· ${safeText([segmento, plano].filter(Boolean).join(' · '))}</span>` : ''}${situacaoHtml}</p>
-      <span class="v2f-hd" title="${safeText(heads.join(', '))}">${heads.length ? `<span class="v2f-av" aria-hidden="true">${safeText(iniciaisV2(heads[0]))}</span><span class="v2f-hd-nome">${safeText(heads.map(primeiroNomeV2).join(', '))}</span>` : '<span class="v2f-sub">Sem head</span>'}</span>
-      ${tom ? `<div class="v2f-sa" title="Nota ${Number(s.score)} de 100"><b style="color:${tom.texto}">${Number(s.score)}</b><div class="v2-barra"><i style="--v:${Math.max(0, Math.min(100, Number(s.score)))}%;--c:${tom.barra}"></i></div></div>` : `<div class="v2f-sa">${vazio}</div>`}
-      <span class="v2f-ab">${emAberto}</span>
-      <span class="v2f-cd">${cadastro}</span>
+  return `<div class="v2-abre v2f-linha cv2-linha${marcado ? ' marcada' : ''}" data-cliente="${safeText(nome)}" aria-expanded="${aberto}">
+    <div class="cv2-tr" onclick="alternarLinhaDeCliente(this.querySelector('.v2f-vai'))">
+      <span class="cv2-grupo${grupo === 'Agora' ? ' r' : ''}">${grupo}</span>${caixa}${fotoDoClienteCv2(nome)}
+      <p class="cv2-nome cli-nome"><b>${safeText(nome)}</b>${segmento ? ` <span>· ${safeText(segmento)}</span>` : ''}${situacaoHtml}</p>
+      <span class="cv2-hd" title="${safeText(heads.join(', '))}">${heads.length ? `<i class="cv2-pes" aria-hidden="true">${safeText(iniciaisV2(heads[0]))}</i><span>${safeText(heads.map(primeiroNomeV2).join(', '))}</span>` : '<span class="cv2-apagado">sem head</span>'}</span>
+      ${tom ? `<span class="cv2-sa ${tom}" title="Nota ${Number(s.score)} de 100"><b>${Number(s.score)}</b><span class="cv2-barra"><i style="--v:${Math.max(0, Math.min(100, Number(s.score)))}%"></i></span></span>` : `<span class="cv2-sa">${vazio}</span>`}
+      <span class="cv2-ab">${emAberto}</span>
+      ${reuniaoHtml}
+      ${cadastro}
       ${extras}
-      <button type="button" class="v2f-vai" aria-expanded="${aberto}" aria-label="Abrir a linha de ${safeText(nome)}" onclick="event.stopPropagation();alternarLinhaDeCliente(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button type="button" class="v2f-vai cv2-vai" aria-expanded="${aberto}" aria-label="Abrir a linha de ${safeText(nome)}" onclick="event.stopPropagation();alternarLinhaDeCliente(this)">${CV2_IC.vai}</button>
     </div>
     <div class="v2-mais"><div>${detalhe}</div></div>
   </div>`;
@@ -1829,63 +1875,74 @@ function situacaoDaLinhaDeCliente(nome) {
   return f.ativo === false ? 'inativos' : 'sem';
 }
 
-function tabelaDeClientesHtml(clientes) {
-  const nomeVale = (nome) => /[a-z0-9]/i.test(String(nome || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, ''));
-  // O foco escolhido em Filtros (sem contato, sem registro, detratores, painel) recorta a lista inteira.
-  const passaNoFoco = (nome) => {
-    const f = cadastroDoCliente(nome) || {};
-    if (FOCO_DE_CLIENTES === 'sem-contato') { const d = diasSemContato(f);
-      return d !== null && d >= SEM_CONTATO_ATENCAO; }
-    if (FOCO_DE_CLIENTES === 'sem-registro') return diasSemContato(f) === null;
-    if (FOCO_DE_CLIENTES === 'detratores') return temNota(f.nps) && Number(f.nps) <= 6;
-    if (FOCO_DE_CLIENTES === 'painel-velho') {
-      const p = String(f.dashboard || '').trim();
-      return Boolean(p) && !painelEstaEmDia(p);
-    }
-    return true;
-  };
-  const saudeDe = saudesDaCarteira(); // uma conta da carteira para a tabela inteira
-  const lista = clientes.filter(nomeVale).filter((nome) => FOCO_DE_CLIENTES === 'todos' || passaNoFoco(nome));
-  if (!lista.length) return '<div class="grupos-vazio v2f-card">Nenhum cliente com esses filtros. <button type="button" class="cli-limpar v2f-link" onclick="limparFiltrosDeClientes()">Limpar filtros</button></div>';
-
-  // A ordem: quem precisa de você primeiro (a pior nota de saúde no alto); o título da coluna muda a ordem.
+// A ordem da lista: quem precisa de você primeiro (a pior nota de saúde no alto); o título da coluna muda a ordem.
+function ordenarNomesDeClientes(lista, saudeDe = saudesDaCarteira(), ordem = ORDEM_DE_CLIENTES) {
   const chave = {
     cliente: (n) => String(n).toLowerCase(),
     head: (n) => headsDoClienteNaLista(n).join(', ').toLowerCase() || '￿',
     saude: (n) => { const s = saudeDe(n); return s && Number.isFinite(Number(s.score)) ? Number(s.score) : 999; },
     abertos: (n) => -(vencidosDoCliente(n).length * 1000 + abertosDoCliente(n).conteudos),
+    reuniao: (n) => proximaReuniaoCv2(n).iso || '9999',
     cadastro: (n) => { const c = typeof completudeDoCadastro === 'function' ? completudeDoCadastro(cadastroDoCliente(n)) : null; return c ? c.feitos / Math.max(1, c.total) : 2; },
-  }[ORDEM_DE_CLIENTES.coluna] || ((n) => String(n).toLowerCase());
+  }[ordem.coluna] || ((n) => String(n).toLowerCase());
   const valores = new Map(lista.map((n) => [n, chave(n)]));
-  const ordenada = [...lista].sort((a, b) => { const x = valores.get(a), y = valores.get(b);
-    return ((typeof x === 'string' ? x.localeCompare(y, 'pt-BR') : x - y) || String(a).localeCompare(String(b), 'pt-BR')) * ORDEM_DE_CLIENTES.sentido; });
-  const semCorte = LISTA_INTEIRA_DE_CLIENTES || Boolean(FILTRO_CLIENTES.busca) || ordenada.length <= CLIENTES_NA_FRENTE + 1;
-  const naFrente = semCorte ? ordenada : ordenada.slice(0, CLIENTES_NA_FRENTE);
-  const resto = ordenada.length - naFrente.length;
+  return [...lista].sort((a, b) => { const x = valores.get(a), y = valores.get(b);
+    return ((typeof x === 'string' ? x.localeCompare(y, 'pt-BR') : x - y) || String(a).localeCompare(String(b), 'pt-BR')) * ordem.sentido; });
+}
+function clientesQueValem(clientes, saudeDe = saudesDaCarteira()) {
+  const nomeVale = (nome) => /[a-z0-9]/i.test(String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, ''));
+  return clientes.filter(nomeVale).filter((nome) => clientePassaNoFoco(nome, FOCO_DE_CLIENTES, saudeDe));
+}
+const VAZIO_DE_CLIENTES = '<p class="d3v-estado cv2-vazio"><b>Nenhum cliente com esses filtros.</b><button type="button" class="d3v-btn sec s cli-limpar" onclick="limparFiltrosDeClientes()">Limpar filtros</button></p>';
+
+function tabelaDeClientesHtml(clientes) {
+  const saudeDe = saudesDaCarteira(); // uma conta da carteira para a tabela inteira
+  const lista = clientesQueValem(clientes, saudeDe);
+  if (!lista.length) return VAZIO_DE_CLIENTES;
+  // A lista inteira fica na folha, que rola por dentro: a prancha não corta em "+10 clientes".
+  const ordenada = ordenarNomesDeClientes(lista, saudeDe);
 
   const cols = colunasDeClientes();
-  const ROTULO_EXTRA = { plano: 'Plano', segmento: 'Segmento', pedidos: 'Pedidos', proxima_reuniao: 'Próx. reunião', status: 'Status', drive: 'Drive', documento: 'Documento' };
+  const ROTULO_EXTRA = { plano: 'Plano', segmento: 'Segmento', pedidos: 'Pedidos', status: 'Status', drive: 'Drive', documento: 'Documento' };
   const extras = Object.keys(ROTULO_EXTRA).filter((k) => cols[k]);
   const titulo = (coluna, rotulo, dica = '') => { const ativa = ORDEM_DE_CLIENTES.coluna === coluna;
-    return `<button type="button" class="v2f-th-b v2f-h-${coluna}" ${dica ? `title="${dica}" ` : ''}aria-sort="${ativa ? (ORDEM_DE_CLIENTES.sentido > 0 ? 'ascending' : 'descending') : 'none'}" onclick="ordenarClientesPor('${coluna}')">${rotulo}${ativa ? `<i aria-hidden="true">${ORDEM_DE_CLIENTES.sentido > 0 ? '↑' : '↓'}</i>` : ''}</button>`; };
+    return `<button type="button" class="cv2-th-b cv2-h-${coluna}" ${dica ? `title="${dica}" ` : ''}aria-sort="${ativa ? (ORDEM_DE_CLIENTES.sentido > 0 ? 'ascending' : 'descending') : 'none'}" onclick="ordenarClientesPor('${coluna}')">${rotulo}${ativa && coluna !== 'saude' ? `<i aria-hidden="true">${ORDEM_DE_CLIENTES.sentido > 0 ? '↑' : '↓'}</i>` : ativa && ORDEM_DE_CLIENTES.sentido < 0 ? '<i aria-hidden="true">↓</i>' : ''}</button>`; };
   const marcarTodos = cols.marcar && podeEditarClientes()
     ? `<input type="checkbox" class="v2f-marcar" aria-label="Marcar todos da lista" onclick="marcarBlocoDeClientes('', this.checked)">` : '';
+  // "Agora" e "Depois": na ordem padrão (pior nota primeiro), o primeiro de cada grupo leva o rótulo na margem.
   const ordemPadrao = ORDEM_DE_CLIENTES.coluna === 'saude' && ORDEM_DE_CLIENTES.sentido > 0;
-  // Direção 3: o pé tem só o botão que conta o resto e quantos clientes cada carteira tem, sem frase explicativa
-  // (a ordem continua no título de cada coluna; plano, segmento e pedidos em Colunas).
-  const porCarteira = {};
-  ordenada.forEach((n) => { const k = carteiraDaLinhaDeCliente(n); porCarteira[k] = (porCarteira[k] || 0) + 1; });
-  const carteiras = Object.entries(porCarteira).filter(([k]) => k !== SEM_CARTEIRA).map(([k, q]) => `<span class="d3f-cart d3f-cart-${safeText(k)}">${safeText(ROTULO_DA_CARTEIRA[k] || k)} ${q}</span>`).join('');
-  void ordemPadrao;
-  const pe = `${resto > 0 ? `<button type="button" class="v2f-btn s d3f-mais" title="Quem precisa de você primeiro" onclick="mostrarListaInteiraDeClientes()">+${resto} ${resto === 1 ? 'cliente' : 'clientes'}</button>`
-      : LISTA_INTEIRA_DE_CLIENTES && ordenada.length > CLIENTES_NA_FRENTE + 1 ? `<button type="button" class="v2f-btn s d3f-mais" onclick="mostrarListaInteiraDeClientes(false)">Mostrar menos</button>` : ''}<span class="d3f-espaco"></span>${carteiras}`;
-  return `<section class="v2f-card v2f-tabela" aria-label="Clientes" style="--v2f-extras:${extras.map(() => '112px').join(' ')}">
-      <div class="v2f-th">${`<span class="v2f-th-nome">${marcarTodos}${titulo('cliente', 'Cliente')}</span>`}${titulo('head', 'Head')}${titulo('saude', 'Saúde', 'Nota de 0 a 100 da Saúde da carteira')}${titulo('abertos', 'Em aberto')}${titulo('cadastro', 'Cadastro', 'Itens essenciais do cadastro preenchidos')}${
-        extras.map((k) => `<span class="v2f-h-extra">${ROTULO_EXTRA[k]}</span>`).join('')}<span></span></div>
-      ${naFrente.map((n) => { const estado = situacaoDaLinhaDeCliente(n); return linhaDeClienteHtml(n, estado === 'sem', estado, cols, saudeDe); }).join('')}
-      <div class="v2f-pe d3f-pe">${pe}</div>
+  let ultimo = '';
+  const grupoDe = (n) => { if (!ordemPadrao) return '';
+    const s = saudeDe(n), g = !s || !Number.isFinite(Number(s.score)) ? '' : clientePrecisaDeVoce(s) ? 'Agora' : 'Depois';
+    if (!g || g === ultimo) return ''; ultimo = g; return g; };
+  return `<section class="cv2-tabela${cols.marcar && podeEditarClientes() ? ' com-marcar' : ''}" aria-label="Clientes" style="--cv2-extras:${extras.length}">
+      <div class="cv2-th"><span class="cv2-grupo"></span>${marcarTodos}<span class="cv2-th-foto"></span>${titulo('cliente', 'Cliente')}${titulo('head', 'Head')}${titulo('saude', 'Saúde', 'Nota de 0 a 100 da Saúde da carteira')}${titulo('abertos', 'Em aberto')}${titulo('reuniao', 'Reunião', 'Próxima reunião marcada')}${titulo('cadastro', 'Cadastro', 'Itens essenciais do cadastro preenchidos')}${
+        extras.map((k) => `<span class="cv2-extra">${ROTULO_EXTRA[k]}</span>`).join('')}<span class="cv2-th-vai"></span></div>
+      <div class="cv2-linhas">${ordenada.map((n) => { const estado = situacaoDaLinhaDeCliente(n); return linhaDeClienteHtml(n, estado === 'sem', estado, cols, saudeDe, grupoDe(n)); }).join('')}</div>
     </section>`;
+}
+
+// As fichas (prancha V2-M-Clientes-Fichas): um cartão por cliente, com a foto, a nota, o que está em aberto e o head.
+// O cartão abre a ficha; Drive, documento, CNPJ e endereço ficam na ficha, na aba Ecossistema e no cadastro.
+function fichasDeClientesHtml(clientes) {
+  const saudeDe = saudesDaCarteira();
+  const lista = clientesQueValem(clientes, saudeDe);
+  if (!lista.length) return VAZIO_DE_CLIENTES;
+  const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  return `<div class="cv2-fichas">${ordenarNomesDeClientes(lista, saudeDe, { coluna: 'saude', sentido: 1 }).map((nome) => {
+    const f = cadastroDoCliente(nome) || {};
+    const ligado = typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome) : {};
+    const segmento = String(f.segmento || ligado.segment || '').trim();
+    const heads = String(f.heads || ligado.head || '').split(',').map((n) => n.trim()).filter(Boolean);
+    const s = saudeDe(nome), tom = tomDaNotaCv2(s);
+    const { conteudos } = abertosDoCliente(nome);
+    const vencidos = vencidosDoCliente(nome).length;
+    return `<button type="button" class="cv2-ficha" data-cliente="${safeText(nome)}" onclick="abrirClienteDetalhe('${jsArg(nome)}')" title="Abrir a ficha de ${safeText(nome)}">
+      <span class="cv2-ficha-alto">${fotoDoClienteCv2(nome, true)}${tom ? `<span class="cv2-sa ${tom}" title="Nota ${Number(s.score)} de 100"><b>${Number(s.score)}</b><span class="cv2-barra"><i style="--v:${Math.max(0, Math.min(100, Number(s.score)))}%"></i></span></span>` : '<span class="cv2-sa cv2-apagado">sem nota</span>'}</span>
+      <b class="cv2-ficha-nome">${safeText(nome)}</b><span class="cv2-ficha-seg">${safeText(segmento) || '&nbsp;'}</span>
+      <span class="cv2-ficha-ab">${plural(conteudos, 'aberta', 'abertas')}${vencidos ? ` <b class="cv2-ruim">· ${plural(vencidos, 'vencida', 'vencidas')}</b>` : ''}</span>
+      <span class="cv2-hd">${heads.length ? `<i class="cv2-pes" aria-hidden="true">${safeText(iniciaisV2(heads[0]))}</i><span>${safeText(heads.map(primeiroNomeV2).join(', '))}</span>` : '<span class="cv2-apagado">sem head</span>'}</span>
+    </button>`; }).join('')}</div>`;
 }
 
 // ── Atas de reunião ───────────────────────────────────────────────────────────
@@ -2259,45 +2316,33 @@ function renderClientesLista(clientes) {
   const grid = document.getElementById('grid-clientes-lista');
   selosDeVisaoDeClientes();
   const visao = visaoDeClientes();
-  // Os filtros e a busca recortam a tabela e as fichas; o Cérebro mostra o mapa inteiro e esconde os dois.
+  // Os filtros e a busca recortam a lista e as fichas; o Cérebro mostra o mapa inteiro e esconde os dois.
   const noCerebro = visao === 'sinapses' && typeof renderCerebroVybesHtml === 'function';
-  document.querySelectorAll('#clientes-filtros, #panel-clientes-lista .cli-busca').forEach((el) => { el.hidden = noCerebro; });
+  document.querySelectorAll('#clientes-filtros, #clientes-hero > .cli-busca, #clientes-conta').forEach((el) => { el.hidden = noCerebro; });
+  const listaDoCerebro = document.getElementById('clientes-cerebro-lista');
+  if (listaDoCerebro && !noCerebro) { listaDoCerebro.hidden = true; listaDoCerebro.innerHTML = ''; }
+  const corpo = document.getElementById('clientes-corpo');
+  if (corpo) corpo.dataset.visao = noCerebro ? 'sinapses' : visao === 'sinapses' ? 'tabela' : visao;
   if (!noCerebro) clientes = clientes.filter(passaNosFiltrosDeClientes);
   if (noCerebro) {
     grid.classList.remove('em-tabela');
     grid.classList.add('em-sinapses');
+    if (typeof cerebroEntrarNaJanela === 'function') cerebroEntrarNaJanela();
     grid.innerHTML = renderCerebroVybesHtml();
+    if (typeof cerebroPintarLados === 'function') cerebroPintarLados();
     if (typeof montarMapaCerebro === 'function') montarMapaCerebro(); else if (typeof iniciarMotorCanvasCerebro === 'function') iniciarMotorCanvasCerebro();
     return;
   }
   grid.classList.remove('em-sinapses');
-  if (visao === 'tabela') {
+  // em-tabela fica nas duas vistas: sem ela a folha antiga força a grade de cartões na casa da lista.
+  if (visao === 'fichas') {
     grid.classList.add('em-tabela');
-    grid.innerHTML = tabelaDeClientesHtml(clientes);
-    pintarDeckDeClientes();
+    grid.innerHTML = fichasDeClientesHtml(clientes);
     return;
   }
-  grid.classList.remove('em-tabela');
-  if (!clientes.length) { grid.innerHTML = '<div class="grupos-vazio">Nenhum cliente com esses filtros. <button type="button" class="cli-limpar" onclick="limparFiltrosDeClientes()">Limpar filtros</button></div>'; return; }
-  const registros = clientMasterRecords();
-  grid.innerHTML = clientes.map(cli => {
-    const record=registros.find(item=>item.name===cli) || {content:[],requests:[]};
-    const nProd = record.content.filter(d => d.status !== 'Finalizado' && d.status !== 'finalizado').length;
-    const STATUS_CONCLUIDO = ['Feito','Finalizado','feito','finalizado','Concluídas'];
-    const demandasAtivas = record.requests.filter(d => !STATUS_CONCLUIDO.includes(d.status));
-    const nDem  = demandasAtivas.length;
-    const atrasadas = demandasAtivas.filter(d => d.prazo_atrasado).length;
-    const alertCls = atrasadas > 0 ? 'alert-low' : nProd > 0 ? 'alert-ok' : 'alert-empty';
-    // Ficha em cartão (Paulo, 08/11/2026: "tem painel que ainda tá uma merda"): o nome na cor da carteira e os números
-    // com o que são (antes: nome cru e dois números soltos).
-    return `<div class="client-card cli-ficha-card ${alertCls}" role="button" tabindex="0" onclick="abrirClienteDetalhe('${jsArg(cli)}')" onkeydown="if(event.key==='Enter')this.click()">
-      <div class="client-header">
-        <div class="client-name">${typeof cliCor === 'function' ? cliCor(cli) : safeText(cli)}</div>
-      </div>
-      <div class="cli-ficha-nums"><span><b>${nProd}</b> conteúdos abertos</span><span class="${atrasadas ? 'ruim' : ''}"><b>${atrasadas}</b> atrasada${atrasadas === 1 ? '' : 's'}</span><span><b>${nDem}</b> solicitaç${nDem === 1 ? 'ão' : 'ões'}</span></div>
-      ${fichaClienteHtml(cli)}
-    </div>`;
-  }).join('');
+  grid.classList.add('em-tabela');
+  grid.innerHTML = tabelaDeClientesHtml(clientes);
+  pintarDeckDeClientes();
 }
 
 // A busca entra nos filtros da lista: recarregar o quadro (um cadastro salvo, um filtro novo) não a perde mais.
@@ -2309,11 +2354,17 @@ function filterClientesList(query) {
 // Os numeros do topo sao da LISTA — 71 clientes, 1668 conteudos. Com um cliente
 // aberto eles nao respondem nada e ainda empurram a ficha dele para baixo da
 // dobra. Somem enquanto se olha um cliente, e voltam no "Voltar".
+// O que está na janela (a lista ou a ficha de um cliente): a folha de estilo da Direção V2 lê isto no body.
+function marcarTelaDeClientes() {
+  if (typeof document === 'undefined' || !document.body?.dataset) return;
+  document.body.dataset.cv2 = document.getElementById('panel-cliente-detalhe')?.style?.display === 'none' ? 'lista' : 'ficha';
+}
 function numerosDaListaDeClientes(mostrar) {
-  ['clientes-hero', 'client-master-kpis', 'client-master-source-rail', 'kpi-grid-clientes', 'clientes-aviso']
+  ['clientes-hero', 'client-master-kpis', 'client-master-source-rail', 'clientes-corpo']
     .forEach((id) => { const el = document.getElementById(id); if (!el) return;
       // O cabeçalho da lista usa hidden (vybe-padrao.css força display:flex nele); os outros, o display.
       if (id === 'clientes-hero') el.hidden = !mostrar; else el.style.display = mostrar ? '' : 'none'; });
+  marcarTelaDeClientes();
 }
 
 let CLIENTE_ABERTO = '';

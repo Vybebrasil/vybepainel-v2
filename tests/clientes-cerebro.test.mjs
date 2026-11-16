@@ -58,7 +58,10 @@ test('renderCerebroVybesHtml e cerebroDoClienteCardHtml geram marcação do canv
   vm.runInContext("CEREBRO_STATE.abaInterna = 'mapa'", c);
   const htmlCanvas = c.renderCerebroVybesHtml();
   assert.match(htmlCanvas, /vybes-cerebro-canvas/);
-  assert.match(htmlCanvas, /CÉREBRO DO VYBES/);
+  // Prancha V2-M-Clientes-Cerebro: o cabeçalho da folha diz de quem é o cérebro; a lista e a consulta ficam fora dela.
+  assert.match(htmlCanvas, /Rede de clientes <span>· quem divide conteúdo/);
+  assert.match(vm.runInContext('CEREBRO_LADOS.lista', c), /data-cb-cliente="Brussolo Ristorante"/);
+  assert.match(vm.runInContext('CEREBRO_LADOS.consulta', c), /Rede de clientes<\/b> · quem divide conteúdo/);
   const htmlCard = c.cerebroDoClienteCardHtml('Brussolo Ristorante');
   assert.match(htmlCard, /O que o VYBES sabe de Brussolo Ristorante/);
   assert.match(htmlCard, /Abrir o mapa<\/button>/);
