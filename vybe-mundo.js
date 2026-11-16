@@ -1245,20 +1245,12 @@
   }
   // Clientes de olho (quadro "Direção de cor e vidro"): os três clientes da fila que mais pedem atenção agora, pelo
   // atraso, depois o que vai ao ar hoje e o volume aberto. O toque filtra Minhas tarefas pelo cliente.
-  function fotoDoClienteD3(nome) {
-    const linhas = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
-    const norm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-    const linha = linhas.find((c) => norm(c.nome) === norm(nome)); if (!linha) return '';
-    const bruto = String(linha.cadastro?.instagram || linha.instagram || '');
-    const usuario = typeof feedUsuario === 'function' ? feedUsuario(bruto) : bruto.replace(/^@/, '').toLowerCase();
-    const perfil = usuario && typeof FEED !== 'undefined' ? FEED.perfis?.get?.(usuario) : null;
-    return perfil && !perfil.erro && perfil.foto && typeof feedFotoIg === 'function' ? feedFotoIg(perfil.foto) : '';
-  }
-  // A foto do perfil do cliente (ou as iniciais, quando não há): vai na frente de toda linha de cliente.
+  // A logo do cliente (vybe-logo-cliente.js: cadastro → Instagram → Drive) ou as iniciais: vai na frente de toda linha de cliente.
   function fotoCliD3(nome, grande = false) {
     if (!nome) return '';
-    const foto = fotoDoClienteD3(nome);
-    return foto ? `<img class="d3v-foto${grande ? ' g' : ''}" src="${esc(foto)}" alt="" loading="lazy">` : `<i class="d3v-foto${grande ? ' g' : ''}" aria-hidden="true">${esc(iniciaisD3(nome))}</i>`;
+    const classe = `d3v-foto${grande ? ' g' : ''}`;
+    if (typeof logoDoClienteHtml === 'function') return logoDoClienteHtml(nome, { classe, iniciais: iniciaisD3(nome) });
+    return `<i class="${classe}" aria-hidden="true">${esc(iniciaisD3(nome))}</i>`;
   }
   function olhoListaD3(lista, aux = '') {
     if (!lista.length) return '';

@@ -326,23 +326,27 @@
       <div class="d3a-info">
         <p class="d3a-ig-tit"><b>${esc(nomeDaPeca(i))}</b><span>${cliHtml(i.cliente)}</span></p>
         <section class="d3a-ig-post" aria-label="Como fica no Instagram">
-          <header class="d3a-ig-cab"><span class="d3a-ig-av">${ig.foto ? `<img src="${esc(ig.foto)}" alt="" loading="lazy">` : esc(ig.iniciais)}</span><b>${esc(ig.usuario || ig.nome)}</b><small>como fica no Instagram</small></header>
+          <header class="d3a-ig-cab"><span class="d3a-ig-av">${ig.av}</span><b>${esc(ig.usuario || ig.nome)}</b><small>como fica no Instagram</small></header>
           <p class="d3a-ig-leg">${legenda ? `<b>${esc(ig.usuario || ig.nome)}</b> ${esc(legenda)}` : '<span class="d3a-ig-sem">A legenda ainda não foi escrita. O Augusto (Copy) sugere, ou escreva na peça.</span>'}</p>
         </section>
         ${pessoas.length ? `<section class="d3a-ig-quem" aria-label="Quem fez"><h4>Quem fez</h4>${pessoas.map((p) => `<span class="d3a-ig-pessoa">${avHtml(p)}<span><b>${esc(p.nome)}</b><small>${esc(p.papel)}</small></span></span>`).join('')}</section>` : ''}
         <dl class="d3a-ig-infos">${infos.map(([cor, r, v]) => `<div class="d3a-ig-info" data-cor="${esc(cor)}"><dt><i aria-hidden="true"></i>${r}</dt><dd>${v}</dd></div>`).join('')}</dl>
       </div></article>`;
   }
-  // O @ e a foto do cliente para o "como fica no Instagram": do cadastro e, se o Feed já leu o perfil, a foto de lá.
+  // O @ e a logo do cliente para o "como fica no Instagram": o @ do cadastro (ou do cérebro) e a logo da fonte única
+  // (vybe-logo-cliente.js: cadastro → Instagram → Drive → iniciais). av é o avatar pronto para a tela.
   function perfilDoCliente(cliente) {
     const nome = String(cliente || '').split(',')[0].trim();
     const linhas = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
     const linha = linhas.find((c) => normal(c.nome) === normal(nome)) || {};
     const bruto = String(linha.cadastro?.instagram || linha.instagram || '');
-    const usuario = typeof feedUsuario === 'function' ? feedUsuario(bruto) : bruto.replace(/^@/, '').toLowerCase();
+    const usuario = typeof instagramDoClienteLogo === 'function' ? instagramDoClienteLogo(nome) : typeof feedUsuario === 'function' ? feedUsuario(bruto) : bruto.replace(/^@/, '').toLowerCase();
     const perfil = usuario && typeof FEED !== 'undefined' ? FEED.perfis?.get?.(usuario) : null;
     const foto = perfil && !perfil.erro && perfil.foto && typeof feedFotoIg === 'function' ? feedFotoIg(perfil.foto) : '';
-    return { nome, usuario, foto, iniciais: nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase() };
+    const iniciais = nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
+    const av = nome && typeof logoDoClienteHtml === 'function' ? logoDoClienteHtml(nome, { classe: '', iniciais })
+      : foto ? `<img src="${esc(foto)}" alt="" loading="lazy">` : esc(iniciais);
+    return { nome, usuario, foto, iniciais, av };
   }
   // O leque (Paulo, 15/11/2026: "melhora a forma de mostrar os conteúdos para aprovar... quero foda assim também", com o
   // card fan de referência): as artes da fila abertas como cartas na mão, a da vez de pé no meio, as anteriores à
@@ -560,7 +564,7 @@
     const d = k - st.apr, a = Math.abs(d), ref = String(i.ref), thumb = st.thumbs[ref], ig = perfilDoCliente(i.cliente);
     if (a <= LEQUE_LADO && thumb === undefined) buscarThumb(ref);
     return `<button type="button" class="d3a-leque-c${d === 0 ? ' vez' : d === 1 ? ' prox' : ''}" data-vc-leque="${k}" style="--lp:${d};--alp:${a}"${a > LEQUE_LADO ? ' hidden' : ''} tabindex="-1" title="${esc(nomeDaPeca(i))}: abrir em tela cheia" aria-label="Ver ${esc(nomeDaPeca(i))}">`
-      + `<span class="d3m-a-ap-ig"><i aria-hidden="true">${ig.foto ? `<img src="${esc(ig.foto)}" alt="" loading="lazy">` : esc(ig.iniciais)}</i><b>${esc(ig.usuario || ig.nome)}</b>${i.formato ? `<span class="d3m-a-ap-selo">${esc(i.formato)}</span>` : ''}</span>`
+      + `<span class="d3m-a-ap-ig"><i aria-hidden="true">${ig.av}</i><b>${esc(ig.usuario || ig.nome)}</b>${i.formato ? `<span class="d3m-a-ap-selo">${esc(i.formato)}</span>` : ''}</span>`
       + `<span class="d3m-a-ap-arte${thumb?.thumb ? '' : ' vazia'}">${arteHtml(ref, thumb, '', a <= LEQUE_LADO)}</span>${thumb?.thumb ? '' : `<span class="d3m-a-ap-nome"><b>${esc(tituloV2(i))}</b><small>${esc(primeiroCliente(i))}</small></span>`}</button>`;
   }
   // O que a peça da vez diz, à direita: o laranja com a decisão, a legenda, quem fez e os detalhes.
@@ -1003,7 +1007,7 @@
           <div class="vc-im-texto">
             <p class="vc-im-tit"><b>${esc(nomeDaPeca(i))}</b><span>${cliHtml(i.cliente)}</span></p>
             <section class="vc-im-ig" aria-label="Como fica no Instagram">
-              <header><span class="vc-im-av">${ig.foto ? `<img src="${esc(ig.foto)}" alt="">` : esc(ig.iniciais)}</span><b>${esc(ig.usuario || ig.nome)}</b><small>como fica no Instagram</small></header>
+              <header><span class="vc-im-av">${ig.av}</span><b>${esc(ig.usuario || ig.nome)}</b><small>como fica no Instagram</small></header>
               <p>${legenda ? `<b>${esc(ig.usuario || ig.nome)}</b> ${esc(legenda)}` : '<span class="vc-im-sem-leg">A legenda ainda não foi escrita. O Augusto (Copy) sugere, ou escreva na peça.</span>'}</p>
             </section>
           </div>

@@ -205,6 +205,7 @@ export async function areaFeedInstagram(req, res, quem, opcoes = {}) {
     return servirImagemCapturada(db, String(req.query.captura), String(req.query.img || ''), res);
   }
   if (req.query?.foto) return repassarFoto(String(req.query.foto), res, opcoes);
+  if (req.query?.avatar) return fotoDoPerfil(String(req.query.avatar), res, { ...opcoes, db });
   const lista = String(req.query?.usuarios || '').split(',');
   const perfis = await feedsDoInstagram(lista, { ...opcoes, db });
   res.setHeader?.('Cache-Control', 'private, max-age=300');
@@ -233,6 +234,21 @@ async function repassarFoto(url, res, { buscar = fetch } = {}) {
     console.warn('[feed_instagram] foto', erro?.message || erro);
     return res.status(502).json({ error: 'Imagem indisponível agora.' });
   }
+}
+
+// Só a foto do perfil, como imagem (vybe-logo-cliente.js: a logo do cliente em todas as telas, sem a tela precisar abrir o
+// Feed antes). Lê o perfil pelo mesmo caminho do Feed (cache de 1 h, captura gravada, Meta) e não grava nada.
+//   GET /api/painel?area=feed_instagram&avatar=<usuario>
+async function fotoDoPerfil(valor, res, opcoes = {}) {
+  const usuario = usuarioDoInstagram(valor);
+  const nada = () => { res.setHeader('Cache-Control', 'private, max-age=600'); return res.status(404).json({ error: 'Sem foto do perfil.' }); };
+  if (!usuario) return nada();
+  const perfil = (await feedsDoInstagram([usuario], opcoes))[usuario];
+  const foto = perfil && !perfil.erro ? String(perfil.foto || '') : '';
+  if (!foto) return nada();
+  // A captura guardada já é servida pelo Vybe OS: só aponta para ela.
+  if (foto.startsWith('/api/painel?area=feed_instagram&captura=')) { res.setHeader('Cache-Control', 'private, max-age=3600'); res.setHeader('Location', foto); return res.status(302).end(); }
+  return repassarFoto(foto, res, opcoes);
 }
 
 export function limparCacheDoFeed() { CACHE.clear(); }

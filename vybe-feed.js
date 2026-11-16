@@ -945,6 +945,8 @@ const FEED_V2_SETA = { antes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path
 function feedV2Foto(cli, classe = 'd3v-foto') {
   const p = cli.usuario ? FEED.perfis.get(cli.usuario) : null;
   const iniciais = cli.nome.trim().slice(0, 2).toUpperCase();
+  // A mesma logo das outras telas (vybe-logo-cliente.js); sem esse arquivo, a foto do perfil que o Feed leu.
+  if (typeof logoDoClienteHtml === 'function') return logoDoClienteHtml(cli.nome, { classe, iniciais });
   return p && !p.erro && p.foto ? `<img class="${classe}" src="${feedEsc(feedFotoIg(p.foto))}" alt="" loading="lazy">` : `<i class="${classe}" aria-hidden="true">${feedEsc(iniciais)}</i>`;
 }
 function feedV2Troca(el, html) { if (el && el.vfdHtml !== html) { el.innerHTML = html; el.vfdHtml = html; return true; } return false; }

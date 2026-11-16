@@ -10,7 +10,7 @@ import { documentoHtml, nomeDoMes, pecasComRevisao } from './planejamento-docume
 import { enviarEmail, emailConfigurado } from './email.js';
 import { FERRAMENTAS as FERRAMENTAS_ECOSSISTEMA, executarFerramenta as executarNoEcossistema } from './mcp-ecossistema.js';
 import { FORMATO_DO_PLANEJAMENTO, FERRAMENTA_FORMATO, FERRAMENTA_PUBLICAR, publicarPlanejamento } from './planejamento-conector.js';
-import { pastaDePlanejamento, salvarDocumentoEPdf, logosNoDrive, baixarDoDrive } from '../vybe_drive.js';
+import { pastaDePlanejamento, salvarDocumentoEPdf, logosNoDrive, logoNaPastaDoCliente, baixarDoDrive } from '../vybe_drive.js';
 
 const corpoDe = (req) => (req.body && typeof req.body === 'object' ? req.body : (() => { try { return JSON.parse(req.body || '{}'); } catch { return {}; } })());
 const base = (req) => process.env.PAINEL_URL || `https://${req.headers?.host || 'vybepainel-v2.vercel.app'}`;
@@ -132,11 +132,13 @@ export async function areaPlanejamentos(req, res, quem, sql) {
 // Confere de 14/11/2026: a rota é pública, então responde com CSP fechada (um SVG não roda script no nosso endereço), SVG vai
 // como anexo, e só quem tem sessão (comSessao) dispara a busca no Drive e a gravação da escolha; sem sessão, só o que já
 // está salvo.
-export async function logoDoCliente(req, res, sql, { comSessao = false, baixar = baixarDoDrive, procurar = logosNoDrive } = {}) {
+export async function logoDoCliente(req, res, sql, { comSessao = false, baixar = baixarDoDrive, procurar = logosNoDrive, naPasta = logoNaPastaDoCliente } = {}) {
  res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
  res.setHeader('X-Content-Type-Options', 'nosniff');
  const id = String(req.query?.c || '');
  if (!/^\d{1,18}$/.test(id)) return res.status(404).end();
+ const fonte = String(req.query?.fonte || '');
+ if (fonte === 'cadastro' || fonte === 'drive') return logoPorFonte(fonte, id, res, sql, { comSessao, baixar, procurar, naPasta });
  const [c] = await sql`SELECT nome, identidade->>'logo_drive' AS arquivo, identidade->>'logo' AS url FROM vybe_clientes WHERE id=${id}`;
  if (!c) return res.status(404).end();
  if (!c.arquivo && /^https:\/\/\S{4,500}$/.test(c.url || '')) { res.setHeader('Cache-Control', 'public, max-age=3600'); res.setHeader('Location', c.url); return res.status(302).end(); }
@@ -152,6 +154,9 @@ export async function logoDoCliente(req, res, sql, { comSessao = false, baixar =
   } catch { /* Drive fora do ar: segue sem logo */ }
  }
  if (!arquivo) { res.setHeader('Cache-Control', 'public, max-age=3600'); return res.status(404).end(); }
+ return servirLogoDoDrive(arquivo, res, baixar, 'public, max-age=86400');
+}
+async function servirLogoDoDrive(arquivo, res, baixar, cache) {
  try {
   const r = await baixar(arquivo);
   const tipo = String(r.headers.get('content-type') || 'image/png').split(';')[0].trim().toLowerCase();
@@ -159,9 +164,55 @@ export async function logoDoCliente(req, res, sql, { comSessao = false, baixar =
   if (!/^image\//.test(tipo)) return res.status(404).end();
   res.setHeader('Content-Type', tipo);
   if (tipo === 'image/svg+xml') res.setHeader('Content-Disposition', 'attachment; filename="logo.svg"');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Cache-Control', cache);
   return res.status(200).send(Buffer.from(await r.arrayBuffer()));
  } catch { return res.status(404).end(); }
+}
+
+// A logo de cada fonte, para a mesma logo em todas as telas (Paulo, 16/11/2026: "deixa todos com sua logo... pega do insta
+// ou do drive"; vybe-logo-cliente.js pede na ordem cadastro → Instagram → Drive → iniciais). As duas fontes daqui SÓ LEEM:
+//   fonte=cadastro  a logo guardada: a do planejamento (identidade.logo / logo_drive) ou o campo "Logo (link no Drive)"
+//                   da ficha (cadastro.logo_url). Pública como a capa do planejamento; sem logo guardada, 404.
+//   fonte=drive     procura no Drive: a pasta do cliente (Dados & Acessos) → "Banco de Marca"/logo; sem ela, a busca por
+//                   nome do envio do planejamento (nota mínima 3). Só com sessão; a escolha fica num cache em memória
+//                   (6 h) e NÃO é gravada no banco: para fixar, grave no cadastro (scripts/logos-clientes.mjs).
+const LOGO_NO_DRIVE = new Map(); // id do cliente -> { quando, arquivo }
+const LOGO_NO_DRIVE_MS = 6 * 60 * 60 * 1000;
+export function limparCacheDeLogos() { LOGO_NO_DRIVE.clear(); }
+// O id do arquivo num link do Drive (/file/d/<id>/..., ?id=<id>, /uc?id=<id>); outro endereço não é do Drive.
+export function arquivoDoLinkDoDrive(link) {
+ const s = String(link || '').trim();
+ if (!/^https:\/\/(drive|docs)\.google\.com\//i.test(s)) return '';
+ return (s.match(/\/file\/d\/([\w-]{10,80})/) || s.match(/[?&]id=([\w-]{10,80})/) || [])[1] || '';
+}
+async function logoPorFonte(fonte, id, res, sql, { comSessao, baixar, procurar, naPasta }) {
+ const naoTem = (cache) => { res.setHeader('Cache-Control', cache); return res.status(404).end(); };
+ if (fonte === 'drive' && !comSessao) return naoTem('no-store');
+ const [c] = await sql`SELECT c.nome, c.identidade->>'logo_drive' AS arquivo, c.identidade->>'logo' AS url, c.cadastro->>'logo_url' AS logo_url,
+   (SELECT a.pasta_drive FROM vybe_acessos a WHERE a.cliente_id = c.id AND a.pasta_drive IS NOT NULL ORDER BY a.atualizado_em DESC NULLS LAST LIMIT 1) AS pasta
+   FROM vybe_clientes c WHERE c.id=${id}`;
+ if (!c) return naoTem('public, max-age=3600');
+ if (fonte === 'cadastro') {
+  const arquivo = /^[\w-]{10,80}$/.test(c.arquivo || '') ? c.arquivo : arquivoDoLinkDoDrive(c.logo_url);
+  if (arquivo) return servirLogoDoDrive(arquivo, res, baixar, 'public, max-age=86400');
+  // Um link que não é do Drive (o site do cliente, um CDN) vai direto; o link de pasta do Drive não é imagem.
+  const url = [c.url, c.logo_url].find((u) => /^https:\/\/\S{4,500}$/.test(u || '') && !/^https:\/\/(drive|docs)\.google\.com\//i.test(u));
+  if (!url) return naoTem('public, max-age=3600');
+  res.setHeader('Cache-Control', 'public, max-age=3600'); res.setHeader('Location', url); return res.status(302).end();
+ }
+ const guardado = LOGO_NO_DRIVE.get(id);
+ let arquivo = guardado && Date.now() - guardado.quando < LOGO_NO_DRIVE_MS ? guardado.arquivo : null;
+ if (arquivo === null) {
+  try {
+   const pastaId = String(c.pasta || '').match(/folders\/([\w-]{10,80})/)?.[1] || '';
+   let [melhor] = pastaId ? await naPasta(pastaId, c.nome) : [];
+   if (!melhor) { const [achado] = await procurar(c.nome); if (achado && achado.nota >= 3) melhor = achado; }
+   arquivo = melhor?.id || '';
+   LOGO_NO_DRIVE.set(id, { quando: Date.now(), arquivo });
+  } catch { arquivo = ''; /* Drive fora do ar: não guarda; tenta de novo na próxima */ }
+ }
+ if (!arquivo) return naoTem('private, max-age=3600');
+ return servirLogoDoDrive(arquivo, res, baixar, 'private, max-age=86400');
 }
 
 // ── Página do cliente ───────────────────────────────────────────────────────

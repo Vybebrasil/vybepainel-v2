@@ -1876,16 +1876,11 @@ function pv2PintarTroca() {
   pop.insertAdjacentHTML('afterbegin', '<span class="pv2-pop-rot d3m-a-cel">Vista</span>' + [['semana', 'Semana'], ['mes', 'Mês'], ['feed', 'Feed'], ['grupos', 'Grupos'], ['equipe', 'Equipe']]
     .map(([v, rot]) => `<button type="button" class="d3m-a-cel" data-vista-cel="${v}"${v === vistaAgora ? ' aria-current="true"' : ''} onclick="document.querySelector('#pv2-vistas [data-vista=&quot;${v}&quot;]')?.click()">${rot}</button>`).join('') + '<span class="pv2-pop-rot d3m-a-cel">Telas da Produção</span>');
 }
-// Foto do cliente (a do perfil do Instagram, quando o Feed já leu) ou as iniciais.
+// A logo do cliente (a fonte única de vybe-logo-cliente.js: cadastro → Instagram → Drive) ou as iniciais.
 function pv2Foto(nome) {
   if (!nome) return '';
-  let foto = '';
-  try { const norm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-    const linha = (typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : []).find((c) => norm(c.nome) === norm(nome));
-    const usuario = linha && typeof feedUsuario === 'function' ? feedUsuario(String(linha.cadastro?.instagram || linha.instagram || '')) : '';
-    const perfil = usuario && typeof FEED !== 'undefined' ? FEED.perfis?.get?.(usuario) : null;
-    if (perfil && !perfil.erro && perfil.foto && typeof feedFotoIg === 'function') foto = feedFotoIg(perfil.foto); } catch { /* sem o Feed, ficam as iniciais */ }
-  return foto ? `<img class="d3v-foto" src="${safeText(foto)}" alt="" loading="lazy">` : `<i class="d3v-foto" aria-hidden="true">${safeText(String(nome).trim().slice(0, 2).toUpperCase())}</i>`;
+  if (typeof logoDoClienteHtml === 'function') return logoDoClienteHtml(nome);
+  return `<i class="d3v-foto" aria-hidden="true">${safeText(String(nome).trim().slice(0, 2).toUpperCase())}</i>`;
 }
 function pv2EscolherDia(iso) {
   pv2Dia = iso;
