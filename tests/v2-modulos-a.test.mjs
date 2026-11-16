@@ -179,3 +179,17 @@ test('Aprovação V2 · Com o cliente e Equilíbrio: gerar, desligar, copiar, va
   const eq = src.slice(src.indexOf('function corpoEquilibrioV2'), src.indexOf('// Passar de carta mexe só nas posições'));
   for (const f of ['data-vc-cliente="${esc(c.cliente)}"', 'calendario(d)', 'previa(d)', 'data-vc-novo', 'E.resumoCurto(c)']) assert.ok(eq.includes(f), `Equilíbrio mantém ${f}`);
 });
+
+test('Direção de arte V2: pelo menu lateral o módulo abre no esqueleto da prancha, com os comandos da Criação do Hoje', () => {
+  const src = ler('vybe-mundo.js');
+  const ini = src.indexOf('    if (criacaoPeloDock) {\n      const esperaTxt') >= 0 ? src.indexOf('    if (criacaoPeloDock) {\n      const esperaTxt') : src.indexOf('    if (criacaoPeloDock) {\r\n      const esperaTxt');
+  assert.ok(ini > 0, 'o ramo do módulo existe dentro de pintarCriacao');
+  const da = src.slice(ini, src.indexOf('    const temParecer = !verComo && (filaDecidir() || []).length;'));
+  for (const f of ['data-hoje-acao="decidir-lista"', 'data-hoje-acao="peca" data-valor="${esc(i.ref)}"', 'data-hoje-acao="decidir" data-valor="aprovar"', 'data-hoje-acao="decidir" data-valor="alterar"', 'data-criacao-atalho="ajustes"',
+    'data-criacao-pessoa="${esc(x.u.id)}"', 'data-criacao-atalho="dia-time"', 'data-criacao-atalho="antigo"', 'data-criacao-atalho="sugestoes"', 'data-hoje-acao="agenda"', 'A.sugestoes', 'A.conversa', 'A.clientesHtml', 'linhaPecaD3(x.d, { hoje })', 'previaDecidir(String(i.ref))']) assert.ok(da.includes(f), `Direção de arte mantém ${f}`);
+  assert.ok(da.includes('if (vez) decidirEm = 0;'), 'Aprovar e Pedir alteração do laranja decidem a peça que ele mostra');
+  // A Criação dentro do Hoje (com as abas) continua como estava.
+  assert.ok(src.includes("const laranja = temParecer ? decidirHtml({ titulo: 'Esperando o seu parecer', artes: true, laranja: true })"));
+  const css = ler('padrao-v2/zm-a-4-direcao.css');
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith('@') && !l.trim().startsWith('}')).map((l) => l.trim().split('{')[0]).filter((s) => !s.includes('#vv-hoje')).join('\n'), /\S/, 'todo seletor preso à janela do Hoje');
+});

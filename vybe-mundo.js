@@ -1895,6 +1895,50 @@
     // Criação no esqueleto da prancha V2-Hoje (16/11/2026): a fila de arte grande com o único cartão laranja ao lado (a
     // arte esperando o parecer, grande; sem nenhuma, o que o Danilo pede), os ajustes embaixo e, direto no vidro, o mês,
     // o time e as ideias dos clientes.
+    // Direção de arte pelo menu lateral (prancha V2-M-Direcao-Arte, aprovada pelo Paulo em 16/11/2026): o módulo, sem as
+    // abas do Hoje. Em cima, a folha "Esperam o seu parecer" (cada arte com o cliente, o head e há quanto espera) com
+    // "Pediram ajuste" ao lado; embaixo, o time em linhas (pontos contra o limite, o que é de hoje e as abertas) e o pé
+    // "De olho". Na coluna de consulta: o laranja com a peça da vez (Aprovar e Pedir alteração, pelo portão de sempre), a
+    // Fila do Danilo e os atalhos. Os botões levam os mesmos data-* da Criação do Hoje.
+    if (criacaoPeloDock) {
+      const esperaTxt = (h) => (h == null ? '' : h < 1 ? 'chegou agora' : `${h >= 24 ? 'parada há' : 'há'} ${h < 48 ? h + ' h' : Math.round(h / 24) + ' d'}`);
+      const semFormato = (i) => { const t = String(i.titulo || 'Peça').trim(), f = String(i.formato || '').trim(); const r = f && t.toLowerCase().startsWith(f.toLowerCase()) ? t.slice(f.length).replace(/^[\s\-–:·|]+/, '') : ''; return r || t; };
+      const abrirArte = (i) => (i.quadro === 'demandas' || !i.item ? 'data-hoje-acao="decidir-lista"' : `data-hoje-acao="peca" data-valor="${esc(i.ref)}"`);
+      const arteV2 = (i) => { const t = previaDecidir(String(i.ref));
+        return `<button type="button" class="d3m-a-da-arte" ${abrirArte(i)} title="Abrir a peça: ${esc(i.titulo || '')}"><span class="d3m-a-da-img${t?.thumb ? '' : ' vazia'}">${i.formato ? `<span class="d3m-a-da-selo">${esc(i.formato)}</span>` : ''}${t?.thumb && VC()?.arteHtml ? VC().arteHtml(String(i.ref), t, '') : ''}</span>`
+          + `<span class="d3m-a-da-txt"><b>${esc(semFormato(i))}</b>${i.cliente ? `<span class="d3m-a-da-cli">${fotoCliD3(i.cliente)}<span>${esc(String(i.cliente).split(',')[0].trim())}</span></span>` : ''}${i.heads?.length ? `<small>head ${esc(i.heads.map((h) => String(h.nome).split(' ')[0]).join(', '))}</small>` : ''}${i.horas == null ? '' : `<small class="${i.horas >= 24 ? 'r' : 't'}">${esc(esperaTxt(i.horas))}</small>`}<small class="d3m-a-da-arq">${t === null ? 'sem arquivo anexado' : t === undefined ? 'buscando a prévia' : esc(quandoVeiculaTxt(i))}</small></span></button>`; };
+      const lendo = !verComo && filaDecidir() === null;
+      const parecer = `<section class="d3m-a-folha d3m-a-da-parecer" aria-label="Esperam o seu parecer"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Esperam o seu parecer</span> <span>· ${n0(artes.length)}</span></h3><span class="d3v-rot">${artes.length > 1 ? 'pela data do cliente' : ''}</span><button type="button" class="d3m-a-filtro" data-hoje-acao="decidir-lista" title="Abrir a Aprovação com a fila inteira">ver em lista</button></div>
+          <div class="d3m-a-da-linha"><div class="d3m-a-da-artes">${artes.slice(0, 2).map(arteV2).join('') || `<p class="d3v-estado"><b>${lendo ? 'Lendo as aprovações' : 'Nada esperando o seu parecer'}</b>${lendo ? '' : 'Quando uma arte pedir a sua decisão, ela aparece aqui.'}</p>`}${artes.length > 2 ? `<button type="button" class="d3m-a-da-mais" data-hoje-acao="decidir-lista" title="Ver as outras na Aprovação">+ ${n0(artes.length - 2)}</button>` : ''}</div>
+            <div class="d3m-a-da-ajuste"><b>Pediram ajuste${ajuste.length ? ` · ${n0(ajuste.length)}` : ''}</b>${ajuste.length ? `<div class="d3m-a-da-ajustes">${ajuste.slice(0, 4).map((x) => linhaPecaD3(x.d, { hoje })).join('')}</div>` : '<p>Nenhum ajuste pedido. Quando uma peça voltar, ela aparece aqui com o que mudar.</p>'}<button type="button" class="d3m-a-da-link" data-criacao-atalho="ajustes">abrir as demandas</button></div></div></section>`;
+      const noCliente = itens.filter((x) => /cliente/i.test(String(x.d.status || '')) && /aprova/i.test(String(x.d.status || ''))).length;
+      const linhasTime = porPessoa.map((x) => { const c = cargaDe(x.u), carga = c ? c.carga : x.l.length, lim = c ? c.limite : Math.max(1, ...porPessoa.map((y) => y.l.length)), pct = Math.round(carga / Math.max(lim, 1) * 100);
+        return `<button type="button" class="d3m-a-da-pes" data-criacao-pessoa="${esc(x.u.id)}" title="Ver o dia de ${esc(curto(x.u))}"><i class="d3m-a-da-av" aria-hidden="true">${esc(curto(x.u).slice(0, 2).toUpperCase())}</i><span class="d3m-a-da-nome"><b>${esc(curto(x.u))}</b> · ${esc(papel(x.u))}</span>`
+          + `<span class="d3m-a-da-carga"><i class="d3m-a-da-b${pct > 100 ? ' r' : pct >= 60 ? ' a' : ''}" style="--v:${Math.min(100, pct)}%"><i></i></i><span><b>${n0(carga)}</b> / ${n0(lim)}</span></span><span class="d3m-a-da-n${x.atr ? ' r' : ''}">${x.atr ? n0(x.atr) : '0'}</span><span class="d3m-a-da-n">${n0(x.hj)}</span><span class="d3m-a-da-n">${n0(x.l.length)}</span></button>`; }).join('');
+      const olho = (n, rot, attrs, tom = '') => `<${attrs ? `button type="button" ${attrs}` : 'span'} class="d3m-a-da-olho"><b${tom && n ? ` class="${tom}"` : ''}>${n0(n)}</b>${rot}</${attrs ? 'button' : 'span'}>`;
+      const timeV2 = `<section class="d3m-a-folha d3m-a-da-time" aria-label="O time"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>O time</span> <span>· ${n0(itens.length)} em aberto, ${n0(deHoje.length)} para hoje</span></h3>${dono && !verComo ? '<button type="button" class="d3m-a-filtro" data-criacao-atalho="dia-time" title="Abrir Minhas tarefas com o dia do time">ver o dia do time</button>' : ''}</div>
+          <div class="d3m-a-da-cols" aria-hidden="true"><span>Pessoa</span><span>Pontos e limite</span><span>Venceram</span><span>Hoje</span><span>Abertas</span></div>
+          <div class="d3m-a-da-lista">${linhasTime || '<p class="d3v-estado"><b>Sem o time agora</b></p>'}</div>
+          <div class="d3m-a-pe d3m-a-da-pe"><span>De olho</span>${olho(artes.length, 'esperam revisão', 'data-hoje-acao="decidir-lista"', 'r')}${olho(ajuste.length, 'em ajuste', 'data-criacao-atalho="ajustes"', 'a')}${olho(atrasadas.length, atrasadas.length === 1 ? 'venceu' : 'venceram', '', 'r')}${olho(noCliente, 'em aprovação do cliente', '')}</div></section>`;
+      const vez = primeiraArte;
+      if (vez) decidirEm = 0;
+      const prazoVez = vez ? String(vez.prazo || vez.item?.prazo_iso || '').slice(0, 10) : '';
+      const laranjaV2 = vez
+        ? laranjaD3({ rotulo: `Danilo · a primeira da fila${artes.length > 1 ? `, 1 de ${n0(artes.length)}` : ''}`, agente: 'D', numero: vez.horas != null && vez.horas >= 1 ? (vez.horas < 48 ? `${vez.horas} h` : `${Math.round(vez.horas / 24)} d`) : '',
+          titulo: vez.horas != null && vez.horas >= 1 ? 'esperando o seu parecer' : 'Chegou agora para o seu parecer', apoio: `${vez.formato ? `${esc(vez.formato)} ` : ''}${vez.cliente ? `de ${esc(String(vez.cliente).split(',')[0].trim())}` : ''}, ${esc(semFormato(vez))}.${prazoVez && prazoVez < hoje ? ' Passou do prazo de ouro.' : ` ${esc(quandoVeiculaTxt(vez)[0].toUpperCase() + quandoVeiculaTxt(vez).slice(1))}.`}`,
+          botoes: [{ rot: 'Aprovar', attrs: 'data-hoje-acao="decidir" data-valor="aprovar"' }, { rot: 'Pedir alteração', attrs: 'data-hoje-acao="decidir" data-valor="alterar"' }] })
+        : laranjaD3({ rotulo: 'Danilo · direção de arte', agente: 'D', titulo: faixa.frase, botoes: [{ rot: faixa.botao, attrs: faixa.attrs }] });
+      const vlin = (html, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span>${html}</span>${SETA_D3(1)}</button>`;
+      const filaV2 = A?.sugestoes ? `<div class="d3h-danilo d3h-danilo-solta d3m-a-da-fila">${A.sugestoes}${A.mudouHtml || ''}</div>`
+        : '<section class="d3m-cons d3m-a-da-fila" aria-label="Fila do Danilo"><div class="d3m-cons-cab"><b>Fila do Danilo</b><span>sugestão</span></div><p class="d3m-a-da-nota">Nada para delegar nem cobrar agora.</p></section>';
+      const abrirV2 = `<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>${vlin('<b>Radar das peças</b> · o painel antigo da direção de arte', 'data-criacao-atalho="antigo"')}${A?.clientesHtml ? vlin('<b>Ideias dos clientes</b> · confirmado e sugestão', 'data-criacao-atalho="sugestoes" aria-expanded="false"') : ''}${vlin('<b>Calendário</b> · captações e reuniões', 'data-hoje-acao="agenda"')}</section>`;
+      const htmlDa = `<div class="d3h d3h-cr d3q d3m-a-da"><div class="d3q-main">${topoD3({ titulo: 'Direção de arte', sub: `${diaD3()} · ${artes.length === 1 ? '1 espera revisão' : `${n0(artes.length)} esperam revisão`} · ${plural(itens.length, 'peça aberta', 'peças abertas')} no time`, dir: conversaBtn || agenteBtn ? `<details class="d3h-mais-menu"><summary aria-label="Mais ações da Direção de arte">⋯</summary><div class="d3h-mais-pop">${conversaBtn}${agenteBtn}</div></details>` : '' })}
+          ${A?.conversa ? `<div class="d3h-cartao v2c-conversa" hidden>${A.conversa}</div>` : ''}${A?.clientesHtml ? `<div class="d3h-cartao v2c-sugestoes" hidden>${A.clientesHtml}</div>` : ''}
+          ${parecer}${timeV2}</div>
+        <aside class="d3m-lado d3m-a-da-lado" aria-label="Consulta">${laranjaV2}${filaV2}${abrirV2}</aside></div>`;
+      if (el.vvHtml !== htmlDa) { el.innerHTML = htmlDa; el.vvHtml = htmlDa; }
+      return;
+    }
     const temParecer = !verComo && (filaDecidir() || []).length;
     const laranja = temParecer ? decidirHtml({ titulo: 'Esperando o seu parecer', artes: true, laranja: true })
       : laranjaD3({ rotulo: 'Danilo · direção de arte', agente: 'D', titulo: faixa.frase, botoes: [{ rot: faixa.botao, attrs: faixa.attrs }] });

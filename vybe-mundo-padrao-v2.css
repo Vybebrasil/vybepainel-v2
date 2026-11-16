@@ -12946,6 +12946,109 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
   #vv-conteudo.vc.vc.vc.d3m-a-v2 .d3m-a-mx-leg{display:none}
 }
 
+/* ===== padrao-v2/zm-a-4-direcao.css ===== */
+/* MÓDULOS V2 · GRUPO A · DIREÇÃO DE ARTE (prancha V2-M-Direcao-Arte, aprovada pelo Paulo em 16/11/2026). O módulo aberto
+   pelo menu lateral, na mesma janela de vidro do Hoje: a folha "Esperam o seu parecer" com as artes e "Pediram ajuste" ao
+   lado; a folha do time em linhas com o pé "De olho"; e, direto no vidro, o laranja com a peça da vez, a Fila do Danilo e
+   os atalhos. As peças .d3m-a-* comuns (folha, cabeça, pé, filtro) vêm de zm-a-1-producao.css. */
+#vv-hoje .d3m-a-da .d3q-main > .d3m-a-da-parecer{flex:none}
+#vv-hoje .d3m-a-da .d3q-main > .d3m-a-da-time{flex:1 1 0;min-height:0}
+#vv-hoje .d3m-a-da .d3m-a-cab > h3{margin:0 auto 0 0;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da .d3m-a-cab > h3 > span + span{font-weight:400;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-da .d3m-a-filtro{color:var(--d3-tinta);font-weight:500}
+/* Esperam o seu parecer: as artes (a imagem de 150 × 200, o nome, o cliente, o head e a espera) e a caixa dos ajustes. */
+#vv-hoje .d3m-a-da-linha{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:12px;padding:0 16px 16px}
+#vv-hoje .d3m-a-da-artes{display:flex;gap:16px;min-width:0}
+#vv-hoje .d3m-a-da-artes > .d3v-estado{min-height:200px}
+#vv-hoje .d3m-a-da .d3m-a-da-arte{appearance:none;flex:1 1 0;min-width:0;display:flex;align-items:stretch;gap:14px;margin:0;padding:0;border:0;border-radius:12px;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-hoje .d3m-a-da .d3m-a-da-arte:hover{background:var(--d3-veu)}
+#vv-hoje .d3m-a-da .d3m-a-da-arte:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#vv-hoje .d3m-a-da-img{position:relative;flex:none;display:block;width:150px;height:200px;border-radius:12px;overflow:hidden;background:var(--d3-fume-painel)}
+#vv-hoje .d3m-a-da-img.vazia{background:linear-gradient(170deg,var(--d3-fume-painel) 20%,var(--d3-acao-texto) 120%)}
+#vv-hoje .d3m-a-da-img > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+#vv-hoje .d3m-a-da-img > :is(i,.vc-previa-selo){position:absolute;right:8px;bottom:8px;font-style:normal;color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-da-selo{position:absolute;left:8px;top:8px;z-index:1;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-folha);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .d3m-a-da-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px;padding:12px 4px 4px 0}
+#vv-hoje .d3m-a-da-txt > b{font:600 var(--d3-fs-destaque)/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#vv-hoje .d3m-a-da-cli{display:flex;align-items:center;gap:8px;min-width:0;font-size:var(--d3-fs-texto);color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da-cli > :first-child{flex:none;width:22px;height:22px;border-radius:6px;font-size:9px}
+#vv-hoje .d3m-a-da-cli > span:last-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-hoje .d3m-a-da-txt > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-da-txt > small.r{color:var(--d3-perigo);-webkit-text-fill-color:var(--d3-perigo)}
+#vv-hoje .d3m-a-da-txt > small.t{color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da-txt > .d3m-a-da-arq{margin-top:auto}
+#vv-hoje .d3m-a-da .d3m-a-da-mais{appearance:none;flex:none;align-self:center;height:34px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-hoje .d3m-a-da-ajuste{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:200px;padding:14px;box-sizing:border-box;border-radius:12px;background:var(--d3-veu);font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-da-ajuste > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da-ajuste > p{margin:0;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-da-ajustes{min-height:0;overflow-y:auto;scrollbar-width:thin}
+#vv-hoje .d3m-a-da .d3m-a-da-link{appearance:none;align-self:flex-start;margin:auto 0 0;padding:0 2px;border:0;border-radius:4px;background:none;color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-hoje .d3m-a-da .d3m-a-da-link:hover{text-decoration:underline;text-underline-offset:3px}
+/* O time: pessoa, os pontos contra o limite (a barra), o que venceu, o que é de hoje e as abertas. */
+#vv-hoje .d3m-a-da-cols,#vv-hoje .d3m-a-da .d3m-a-da-pes{display:grid;grid-template-columns:28px minmax(120px,1fr) minmax(200px,1.1fr) 70px 56px 64px;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
+#vv-hoje .d3m-a-da-cols{flex:none;height:26px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-da-cols > span:first-child{grid-column:1/3;padding-left:38px}
+#vv-hoje .d3m-a-da-cols > span:nth-child(n+3){text-align:right}
+#vv-hoje .d3m-a-da-lista{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+#vv-hoje .d3m-a-da .d3m-a-da-pes{appearance:none;width:100%;height:46px;margin:0;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-hoje .d3m-a-da .d3m-a-da-pes:hover{background:var(--d3-veu)}
+#vv-hoje .d3m-a-da .d3m-a-da-pes:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#vv-hoje .d3m-a-da-av{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-hoje .d3m-a-da-nome{min-width:0;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-hoje .d3m-a-da-nome > b{font-weight:600;color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da-carga{display:flex;align-items:center;gap:12px;min-width:0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+#vv-hoje .d3m-a-da-carga > span{flex:0 0 62px}
+#vv-hoje .d3m-a-da-carga b{font-weight:600;color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da-b{flex:1 1 auto;display:block;height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+#vv-hoje .d3m-a-da-b > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-mod-vybe)}
+#vv-hoje .d3m-a-da-b.a > i{background:var(--d3m-a-producao)}
+#vv-hoje .d3m-a-da-b.r > i{background:var(--d3-perigo)}
+#vv-hoje .d3m-a-da-n{text-align:right;font-variant-numeric:tabular-nums}
+#vv-hoje .d3m-a-da-n.r{font-weight:600;color:var(--d3-perigo)}
+#vv-hoje .d3m-a-da .d3m-a-da-olho{appearance:none;flex:none;display:inline-flex;align-items:baseline;gap:5px;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#vv-hoje .d3m-a-da button.d3m-a-da-olho{cursor:pointer}
+#vv-hoje .d3m-a-da button.d3m-a-da-olho:hover{color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da-pe > span:first-child + .d3m-a-da-olho{padding-left:0;border-left:0}
+#vv-hoje .d3m-a-da-olho > b{font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#vv-hoje .d3m-a-da-olho > b.r{color:var(--d3-perigo);-webkit-text-fill-color:var(--d3-perigo)}
+#vv-hoje .d3m-a-da-olho > b.a{color:var(--d3-ambar);-webkit-text-fill-color:var(--d3-ambar)}
+/* A coluna de consulta: o laranja, a Fila do Danilo e os atalhos. */
+#vv-hoje .d3m-a-da-lado{gap:12px;min-height:0;padding-top:62px;overflow-y:auto;scrollbar-width:none}
+#vv-hoje .d3m-a-da-lado .d3m-cons-cab > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-da-lado .d3m-cons-cab > span{color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado)}
+#vv-hoje .d3m-a-da-nota{margin:0;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado)}
+#vv-hoje .d3m-a-da-lado .d3m-vlin{color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-da-lado .d3m-vlin > span:first-child{color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado)}
+#vv-hoje .d3m-a-da-lado .d3m-vlin > span:first-child > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-da-lado .d3m-vlin > svg{flex:none;width:14px;height:14px;fill:none;stroke:var(--d3-fume-apagado);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#vv-hoje .d3m-a-da-lado > .d3h-danilo.d3m-a-da-fila{flex:none;max-height:260px;overflow-y:auto;scrollbar-width:none;border-radius:16px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+#vv-hoje .d3m-a-da-lado > *{flex:none}
+/* Telas baixas (1366 × 768): o laranja e a fila um degrau menores, para a coluna caber sem rolar. */
+@media (max-height:800px){
+  #vv-hoje .d3m-a-da-lado .d3v-lar-num{font-size:40px}
+  #vv-hoje .d3m-a-da-lado > .d3h-danilo.d3m-a-da-fila{max-height:132px}
+  #vv-hoje .d3m-a-da-img{height:168px}
+  #vv-hoje .d3m-a-da-ajuste,#vv-hoje .d3m-a-da-artes > .d3v-estado{min-height:168px}
+}
+
+/* Telas menores: uma coluna; as artes e os ajustes empilham e a tabela do time rola de lado dentro da folha. */
+@media (max-width:1180px){
+  #vv-hoje .d3m-a-da .d3q-main > .d3m-a-da-time{flex:none}
+  #vv-hoje .d3m-a-da-lista{flex:none;overflow:visible}
+  #vv-hoje .d3m-a-da-lado{padding-top:0;overflow:visible}
+}
+@media (max-width:760px){
+  #vv-hoje .d3m-a-da-linha{grid-template-columns:minmax(0,1fr)}
+  #vv-hoje .d3m-a-da-artes{flex-direction:column}
+  #vv-hoje .d3m-a-da-img{width:96px;height:128px}
+  #vv-hoje .d3m-a-da-ajuste{min-height:0}
+  #vv-hoje .d3m-a-da-cols{display:none}
+  #vv-hoje .d3m-a-da .d3m-a-da-pes{grid-template-columns:28px minmax(0,1fr) 44px 44px;grid-template-rows:auto auto;height:auto;padding:8px 14px;gap:4px 10px}
+  #vv-hoje .d3m-a-da-carga{grid-column:2/5;grid-row:2}
+  #vv-hoje .d3m-a-da-pes > .d3m-a-da-n:nth-of-type(3){display:none}
+  #vv-hoje .d3m-a-da-pe{flex-wrap:wrap;gap:4px 0;padding:8px 14px}
+}
+
 /* ===== padrao-v2/zm-b-clientes.css ===== */
 /* CLIENTES NA DIREÇÃO V2 (pranchas V2-M-Clientes, V2-M-Clientes-Fichas, V2-M-Clientes-Cerebro e V2-M-Clientes-Celular,
    aprovadas pelo Paulo em 16/11/2026). Fragmento do grupo B (Clientes, ficha do cliente, Onboarding e Reuniões).
