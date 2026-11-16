@@ -288,14 +288,40 @@ export async function logosNoDrive(cliente) {
   if (!termo) return [];
   const q = encodeURIComponent(`trashed = false and mimeType contains 'image/' and name contains 'logo' and name contains '${termo}'`);
   const d = await drive(`files?q=${q}&fields=files(id,name,mimeType,size,thumbnailLink)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`);
-  const nota = (f) => (/png/.test(f.mimeType) ? 3 : /svg/.test(f.mimeType) ? 2 : /jpe?g|webp/.test(f.mimeType) ? 1 : -9)
+  return ordenarLogos(d.files, palavras);
+}
+// A nota de "parece o logo principal": PNG na frente, arquivo leve, sem mascote/mockup, com o nome do cliente.
+function notaDoLogo(f, palavras = []) {
+  return (/png/.test(f.mimeType) ? 3 : /svg/.test(f.mimeType) ? 2 : /jpe?g|webp/.test(f.mimeType) ? 1 : -9)
     + (/(-0?1|logo[^-]*)\.\w+$/i.test(f.name) ? 1 : 0) + (Number(f.size || 0) < 3e6 ? 1 : -1)
     + (/mascote|adesivo|efeito|c[oó]pia|caminh|psb|mockup/i.test(f.name) ? -4 : 0)
     + palavras.filter((w) => semSinais(f.name).includes(semSinais(w))).length;
-  return (d.files || []).filter((f) => /image\/(png|jpe?g|webp|svg)/.test(f.mimeType))
-    .map((f) => ({ id: f.id, nome: f.name, mime: f.mimeType, miniatura: f.thumbnailLink || null, nota: nota(f) }))
+}
+function ordenarLogos(arquivos, palavras, bonus = () => 0) {
+  return (arquivos || []).filter((f) => /image\/(png|jpe?g|webp|svg)/.test(f.mimeType))
+    .map((f) => ({ id: f.id, nome: f.name, mime: f.mimeType, miniatura: f.thumbnailLink || null, nota: notaDoLogo(f, palavras) + bonus(f) }))
     .sort((a, b) => b.nota - a.nota || a.nome.localeCompare(b.nome));
 }
+
+// A logo na pasta do próprio cliente (a ligada em Dados & Acessos): a subpasta da marca ("Banco de Marca", "Marca",
+// "Logo", "Identidade") e, dentro dela, uma pasta de logo, se houver. Só lê; nada é gravado no Drive nem no banco.
+const PASTA_DA_MARCA = /banco\s*de\s*marca|\bmarca\b|\blogo|identidade/i;
+const PASTA = "mimeType = 'application/vnd.google-apps.folder'";
+export async function logoNaPastaDoCliente(pastaId, cliente = '') {
+  const id = String(pastaId || '');
+  if (!/^[\w-]{10,80}$/.test(id)) return [];
+  const listar = async (pai, filtro) => (await drive(`files?q=${encodeURIComponent(`'${pai}' in parents and trashed = false and ${filtro}`)}&fields=files(id,name,mimeType,size,thumbnailLink)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`)).files || [];
+  const marca = (await listar(id, PASTA)).filter((p) => PASTA_DA_MARCA.test(semSinaisComEspaco(p.name))).slice(0, 3);
+  const dentro = [];
+  for (const p of marca) {
+    const logo = (await listar(p.id, PASTA)).filter((s) => /logo/i.test(s.name)).slice(0, 2);
+    for (const s of [...logo, p]) dentro.push(...(await listar(s.id, "mimeType contains 'image/'")).map((f) => ({ ...f, naPastaDeLogo: s !== p || /logo/i.test(p.name) })));
+  }
+  const palavras = String(ALIAS_CLIENTE[semSinais(cliente)] || cliente || '').normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^A-Za-z0-9]+/).filter((w) => w.length >= 3 && !PALAVRAS_GENERICAS.test(w));
+  // Dentro da pasta da marca, "logo" no nome do arquivo ou a pasta de logo já contam como o nome do cliente contaria.
+  return ordenarLogos(dentro, palavras, (f) => (/logo/i.test(f.name) ? 2 : 0) + (f.naPastaDeLogo ? 1 : 0)).filter((f) => f.nota >= 3);
+}
+function semSinaisComEspaco(v) { return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 
 export async function baixarDoDrive(fileId) {
   const r = await fetch(

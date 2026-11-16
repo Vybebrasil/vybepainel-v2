@@ -892,6 +892,8 @@ export async function areaClientes(req, res, quem) {
              c.plano, c.segmento, c.responsavel, c.status, c.planejamento_url,
              c.dashboard, c.valor, c.proxima_reuniao, c.ultima_reuniao, c.criado_no_monday,
              c.nao_e_cliente, c.nps, c.nps_em, c.cadastro,
+             -- A logo escolhida no planejamento (só se há uma): a tela pede a fonte "cadastro" da logo (vybe-logo-cliente.js).
+             (COALESCE(c.identidade->>'logo','') <> '' OR COALESCE(c.identidade->>'logo_drive','') <> '') AS tem_logo,
              -- Regra única de cliente ativo (auditoria 09/11): as telas leem este campo em vez de cada uma ter a sua.
              (COALESCE(c.ativo,true) AND NOT COALESCE(c.nao_e_cliente,false)) AS ativo_de_verdade,
              c.identidade->'personagem'->>'figura' AS personagem,

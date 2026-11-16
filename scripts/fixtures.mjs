@@ -165,6 +165,13 @@ export async function demoApi(req,res,url,body) {
   // e um perfil "privado" para a tela mostrar o caso sem posts.
   if(url.pathname==='/api/painel' && url.searchParams.get('area')==='feed_instagram' && sessao){
     const cores=['#C2490C','#1E4A9A','#11613A','#6E56CF','#7A4A00','#1F1D1A'];
+    // Só a foto do perfil (a logo do cliente nas telas, vybe-logo-cliente.js): a mesma bolinha desenhada do perfil.
+    const avatar=String(url.searchParams.get('avatar')||'').trim().toLowerCase();
+    if(avatar){
+      if(!/^[a-z0-9._]{1,30}$/.test(avatar)||avatar==='cliente9')return reply(404,{error:'Sem foto do perfil.'});
+      res.writeHead(200,{'Content-Type':'image/svg+xml'});
+      return res.end(`<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='${cores[avatar.length%cores.length]}'/><text x='60' y='74' font-family='Arial' font-size='44' fill='#fff' text-anchor='middle'>${avatar.slice(0,2).toUpperCase()}</text></svg>`);
+    }
     const perfis={};
     for(const u of String(url.searchParams.get('usuarios')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean).slice(0,40)){
       if(u==='cliente9'){perfis[u]={usuario:u,erro:'Perfil privado ou sem posts públicos.'};continue;}

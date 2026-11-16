@@ -656,15 +656,14 @@ function tomDaNotaCv2(s) {
   if (!s || !Number.isFinite(Number(s.score))) return '';
   return clientePrecisaDeVoce(s) ? 'r' : s.risco === 'baixo' ? 'g' : 'a';
 }
-// A foto do cliente (a do Instagram, quando o Feed já leu) ou as iniciais sobre a cor dele (matiz tirado do nome).
+// A logo do cliente (vybe-logo-cliente.js: cadastro → Instagram → Drive) ou as iniciais sobre a cor dele (matiz do nome).
 function fotoDoClienteCv2(nome, grande = false) {
   const cls = `d3v-foto cv2-foto${grande ? ' g' : ''}`;
-  const pronta = typeof pv2Foto === 'function' ? pv2Foto(nome) : '';
-  if (/^<img/.test(pronta)) return pronta.replace('class="d3v-foto"', `class="${cls}"`);
   let h = 7; for (const ch of String(nome || '')) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
   h %= 360;
   const partes = String(nome || '?').trim().split(/\s+/);
   const letras = (partes.length > 1 ? partes[0][0] + partes[1][0] : partes[0].slice(0, 2)).toUpperCase() || '?';
+  if (nome && typeof logoDoClienteHtml === 'function') return logoDoClienteHtml(nome, { classe: cls, iniciais: letras, estilo: `--h:${h}` });
   return `<i class="${cls}" style="--h:${h}" aria-hidden="true">${safeText(letras)}</i>`;
 }
 function proximaReuniaoCv2(nome) {

@@ -210,7 +210,7 @@
       + (comAtraso(e) ? `<button type="button" class="d3m-e-fx-at" data-perf-etapa="${esc(e.status)}" aria-pressed="${e === sel}" title="Ver por cliente">${pl(e.atrasadas, 'atrasada', 'atrasadas')}</button>` : '<span class="d3m-e-fx-at calmo">em dia</span>') + '</div>').join('');
     let pe = '';
     if (sel) {
-      const cs = sel.atrasadasPorCliente.slice(0, 3).map((c, i) => `<span class="d3m-e-fx-cli"><i class="d3v-foto" aria-hidden="true">${esc(iniciais(c.cliente))}</i><b>${cli(c.cliente)}</b><span>${n0(c.qtd)}${i === 0 && c.dias > 0 ? `, a mais antiga há ${pl(c.dias, 'dia', 'dias')}` : ''}</span></span>`).join('');
+      const cs = sel.atrasadasPorCliente.slice(0, 3).map((c, i) => `<span class="d3m-e-fx-cli">${typeof logoDoClienteHtml === 'function' ? logoDoClienteHtml(c.cliente, { iniciais: iniciais(c.cliente) }) : `<i class="d3v-foto" aria-hidden="true">${esc(iniciais(c.cliente))}</i>`}<b>${cli(c.cliente)}</b><span>${n0(c.qtd)}${i === 0 && c.dias > 0 ? `, a mais antiga há ${pl(c.dias, 'dia', 'dias')}` : ''}</span></span>`).join('');
       const resto = sel.atrasadasPorCliente.length - 3;
       pe = `<div class="d3m-e-fx-pe"><span class="d3m-e-fx-pe-rot"${sel.idadeMediana != null ? ` title="Parada há ${dd(sel.idadeMediana)} (mediana)"` : ''}>Em ${esc(stFrase(sel.status, true))}, por cliente${sel.idadeMediana != null ? ` · há ${dd(sel.idadeMediana)}` : ''}</span>${cs}${resto > 0 ? `<span class="d3m-e-fx-pe-rot">e mais ${n0(resto)}</span>` : ''}`
         + `<button type="button" class="d3m-e-elo" data-espiar="perf:etapaAtr|${esc(sel.status)}">${sel.atrasadas === 1 ? 'abrir a atrasada' : `abrir as ${n0(sel.atrasadas)}`}</button></div>`;
