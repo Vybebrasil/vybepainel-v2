@@ -433,7 +433,8 @@
       const N = ctx.numeros(), H = N?.hoje || {}, S = N?.semana || {}, Hi = N?.historico || {}, P = N?.projecao || {}, C = N?.cobertura || {};
       const mes = String(per.mes).slice(0, 7);
       // Dinheiro só para os donos (Paulo, 13/11/2026): para quem não é dono nem se pede (antes, a coordenação pedia e levava 403).
-      const veDinheiro = typeof souDonoDaSessao !== 'function' || souDonoDaSessao(), negado = Promise.resolve({ falha: 'negado' });
+      // No "ver como" de quem não é dono a tela também esconde (ctx.dinheiro, de vybe-mundo.js); a permissão continua no servidor.
+      const veDinheiro = (typeof souDonoDaSessao !== 'function' || souDonoDaSessao()) && (typeof ctx.dinheiro !== 'function' || ctx.dinheiro() === true), negado = Promise.resolve({ falha: 'negado' });
       const [vf, fin, rec, com, cart, ina, fx] = await Promise.all([veDinheiro ? ler('/api/painel?area=financeiro&parte=comercial&mes=' + mes) : negado, veDinheiro ? ler('/api/painel?area=comercial&aba=financas') : negado,
         veDinheiro ? ler('/api/painel?area=comercial&aba=recebimentos' + qPeriodo()) : negado, ler('/api/painel?area=comercial&aba=funil' + qPeriodo()), ler('/api/painel?area=carteira'), veDinheiro ? ler('/api/painel?area=comercial&aba=inadimplencia') : negado,
         // Sobra do mês pelo financeiro do próprio Vybe OS (extrato, vybe-mundo-financeiro.js), só os quatro donos.
@@ -543,44 +544,93 @@
             { nome: 'Renovam em 30 dias', valor: (cart.contratos.lista || []).filter((c) => c.renovacao && c.renovacao >= new Date().toISOString().slice(0, 10) && c.renovacao <= new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)).length, cls: 'atencao' },
             { nome: 'Saídas no mês', valor: (cart.churn?.registros || []).filter((r) => String(r.saiu_em || '').startsWith(mesAtual())).length, cls: 'ruim' }]), { icone: 'calendario', acao: ir('setor:clientes', 'Clientes') })
           + bloco('Cobertura da semana', `meta de ${num(C.meta || 3)} posts por cliente`, deitadas([{ nome: `Abaixo de ${num(C.meta || 3)} posts`, valor: (C.sem3 || []).length, cls: 'atencao' }, { nome: 'Sem nenhum post', valor: (C.semConteudo || []).length, cls: 'ruim' }, { nome: 'Sem planejamento', valor: (C.semPlanejamento || []).length, cls: 'atencao' }]), { icone: 'doc', acao: ir('setor:producao', 'Produção') })) : '');
-      // ---- Direção 3 (quadro D3-Gestao): bloco de ação curto, quatro números, Por setor com o "Abrir" no pé e Esta semana
-      // em linha (prontas cheia, previstas tracejada, acumuladas no dia). "Pronta" é só o que chegou em Finalizado.
+      // ---- Direção V2 (prancha V2-M-Gestao, 16/11/2026): quatro cartões, um por área (número grande na cor do que diz, o
+      // gráfico na mesma cor e três linhas), e a coluna de consulta direto no vidro: o cartão laranja do que pesa agora,
+      // a semana em linha e o "Abrir". Finanças só existe para os donos (para os outros o cartão nem é montado). "Pronta"
+      // é só o que chegou em Finalizado.
       principal = '';
       const iHoje = AL.findIndex((a) => /ao ar hoje|veiculação hoje/.test(String(a.texto || '')));
-      const fraseD3 = falt ? `Produção pesa: ${pl(falt, 'vai', 'vão')} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : atr ? `${pl(atr, 'peça passou', 'peças passaram')} da data do cliente.` : 'Nada atrasado agora.';
-      const acaoD3 = d3gAcao({ frase: fraseD3, agente: 'V', botao: falt ? (falt === 1 ? 'Abrir a de hoje' : `Abrir as ${num(falt)}`) : atr ? (atr === 1 ? 'Abrir a atrasada' : `Abrir as ${num(atr)}`) : '', attrs: falt && iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : 'data-espiar="atrasadas"' });
       const prevHoje = Number(H.previstas) || 0, prontasHoje = Number(H.previstasFeitas ?? Math.max(0, prevHoje - falt)) || 0; // pausada não é pronta
-      // Direção 3 (quadro D3-Gestao): o 4º número é a sobra do mês (entrou − saiu no extrato), com o selo "só donos".
       const X = window.VybeFinanceiroExtrato, fxR = veDinheiro && !fx.falha && Array.isArray(fx.transacoes) && typeof X?.resumo === 'function' ? X.resumo(fx.transacoes, { mes }) : null;
-      const quarto = fxR
-        ? d3gNum({ rotulo: 'Sobra do mês', valor: `${esc(rs(fxR.resultado))}`, tom: Number(fxR.resultado) < 0 ? 'r' : '', attrs: 'data-setor-ir="setor:financas"' },
-          `<span class="d3g-selo d3-selo-donos">só donos</span>${fxR.lancamentos ? `+${esc(curto(fxR.entradas))} · −${esc(curto(fxR.saidas + fxR.cartao_e_transferencias))} · Vorcaro` : 'sem extrato no mês · Vorcaro'}`, Number(fxR.resultado) < 0 ? 'r' : '')
-        : d3gNum({ rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: media == null ? null : Math.round(media), attrs: 'data-setor-sub="carteira"' }, `saúde ${media == null ? 'sem dado' : num(media)} · ${num(criticos)} em risco alto`, criticos ? 'r' : '');
-      const numerosD3 = `<div class="d3g-nums">${d3gNum({ rotulo: 'Atrasadas', valor: num(atr), tom: atr ? 'r' : '', serie: serieAtrasadas(), attrs: atr ? 'data-espiar="atrasadas" title="' + esc(contaL[0].replace(/<[^>]*>/g, '')) + '"' : '' }, `${num(H.emRisco)} risco de furo · 2 d`, Number(H.emRisco) ? 'a' : '')}
-        ${d3gNum({ rotulo: 'Vão ao ar hoje', valor: `${num(prontasHoje)}<small> / ${num(prevHoje)} prontas</small>`, barra: pctDe(prontasHoje, prevHoje) ?? 0, attrs: falt && iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : '' })}
-        ${d3gNum({ rotulo: 'Prontas da semana', valor: `${num(prontas)}<small> / ${num(S.previstas)}</small>`, barra: pctDe(prontas, S.previstas) ?? 0 }, `semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}`)}
-        ${quarto}</div>`;
-      // Por setor: uma linha por setor, com o ícone do setor na cor do grupo do menu, a pílula do que pesa, o texto e o
-      // botão; o que era detalhe vira pílulas lado a lado.
-      const ICONE_SETOR = { 'Produção': ['calendario', 'operacao'], Clientes: ['pino', 'operacao'], Comercial: ['aviao', 'negocio'], 'Finanças': ['dinheiro', 'negocio'] };
-      const setorD3 = ordem.map((l) => {
-        const t = String(l.texto || ''), i = t.indexOf(' · '), nome = i > 0 ? t.slice(0, i) : t, resto = i > 0 ? t.slice(i + 3) : '';
-        const [icn, grupo] = ICONE_SETOR[nome.replace(/<[^>]*>/g, '').trim()] || ['meta', 'operacao'];
-        return `<div class="d3g-set"><span class="d3g-set-nome"><span class="d3g-set-ic ${grupo}">${ic(icn)}</span>${nome}</span><div class="d3g-set-corpo"><p><span class="d3s-pill ${l.tom || 'n'}">${l.pill}</span><span class="d3g-set-txt">${resto}</span></p>${(l.det || []).length ? `<p class="d3g-set-pills">${l.det.map((d) => `<span class="d3s-pill n">${d}</span>`).join('')}</p>` : ''}</div>${l.botao || ''}</div>`;
-      }).join('') || '<p class="d3s-vazio">Nada pede ação agora.</p>';
-      const abrirD3 = `<div class="d3s-ver d3g-abrir"><span>Abrir</span>${atr ? `<button type="button" class="d3s-chip r" data-espiar="atrasadas">${pl(atr, 'atrasada', 'atrasadas')}</button>` : ''}${ABAS.map(([id, n]) => `<button type="button" class="d3s-chip" data-gestao-aba="${id}">${n}</button>`).join('')}<button type="button" class="d3s-chip" data-g2-mais>${temVF ? 'Faturamento e custos' : val ? 'Vendas por mês' : 'Negócios por mês'}</button><button type="button" class="d3s-chip" data-setor-sub="equipe">Equipe online · ${num(online.length)}</button></div>`;
-      const porSetor = `<section class="d3s-card d3g-setores" aria-label="Por setor"><div class="d3s-topo"><h3>Por setor</h3><small>mais grave primeiro</small></div><div class="d3s-rolo">${setorD3}</div>${abrirD3}</section>`;
-      // Esta semana: prontas e previstas acumuladas por dia; a linha das prontas para em hoje.
+      const semTag = (t) => String(t).replace(/<[^>]*>/g, '');
+      const lin = (tom, texto, quando = '', attrs = '') => `<${attrs ? `button type="button" ${attrs}` : 'div'} class="d3m-d-lin"><i class="${tom}"></i><span>${texto}</span><small>${quando}</small></${attrs ? 'button' : 'div'}>`;
+      const cab = (selo, icn, nome, eloHtml = '', extra = '') => `<div class="d3m-d-cab"><span class="d3m-d-selo ${selo}">${ic(icn)}</span><h3>${esc(nome)}${extra}</h3>${eloHtml}</div>`;
+      const eloV2 = (rotulo, attrs) => `<button type="button" class="d3m-d-elo" ${attrs}>${esc(rotulo)}</button>`;
+      const numV2 = (valor, tom, rotulo, attrs = '') => `<div class="d3m-d-g-n"><${attrs ? `button type="button" ${attrs}` : 'b'} class="d3m-d-numero${tom ? ' ' + tom : ''}">${valor}</${attrs ? 'button' : 'b'}><span>${rotulo}</span></div>`;
+      // Gráfico de área na cor do número: a linha e o véu por baixo.
+      const area = (vals, tom, rotulo) => {
+        const v = (vals || []).map(Number).filter(Number.isFinite); if (v.length < 2) return '<span class="d3m-d-g-graf" aria-hidden="true"></span>';
+        const mn = Math.min(...v), mx = Math.max(...v), x = (i) => 2 + (i * 236) / (v.length - 1), y = (n) => (mx === mn ? 60 : 114 - ((n - mn) * 108) / (mx - mn));
+        const d = v.map((n, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(n).toFixed(1)}`).join(' ');
+        return `<svg class="d3m-d-g-graf ${tom}" viewBox="0 0 240 120" preserveAspectRatio="none" role="img" aria-label="${esc(rotulo)}"><path class="veu" d="${d} V120 H2 Z"/><path class="fio" d="${d}"/></svg>`;
+      };
+      // Produção
+      const sAtr = serieAtrasadas(), rumo = sAtr && sAtr.length > 2 ? Math.sign(sAtr[sAtr.length - 1] - sAtr[Math.max(0, sAtr.length - 8)]) : 0;
+      const semPostar = Number(H.semPostar) || 0, iSemPostar = AL.findIndex((a) => /sem Finalizado|conferir se sa/.test(String(a.texto || '')));
+      const cProducao = `<section class="d3m-d-folha d3m-d-g-c" aria-label="Produção">${cab('operacao', 'calendario', 'Produção', eloV2('ver por etapa', 'data-gestao-aba="performance"'))}
+        <div class="d3m-d-g-meio">${numV2(num(atr), atr ? 'r' : 'g', atr ? `${atr === 1 ? 'peça atrasada' : 'peças atrasadas'}${rumo > 0 ? ', e subindo' : rumo < 0 ? ', e caindo' : ''}` : 'nenhuma peça atrasada', atr ? `data-espiar="atrasadas" title="${esc(semTag(contaL[0]))}"` : '')}${area(sAtr, atr ? 'r' : 'g', 'Atrasadas dia a dia')}</div>
+        ${lin(prevHoje && prontasHoje < prevHoje ? 'r' : 'g', prevHoje ? `${num(prontasHoje)} de ${num(prevHoje)} ${prevHoje === 1 ? 'pronta' : 'prontas'} para hoje` : 'Nada vai ao ar hoje', prevHoje ? (prevHoje === 1 ? 'vai ao ar hoje' : 'vão ao ar hoje') : 'hoje', falt && iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : '')}
+        ${lin(Number(H.emRisco) ? 'a' : 'n', Number(H.emRisco) ? `${num(H.emRisco)} com risco de furo` : 'Nenhuma com risco de furo', 'em 2 dias', Number(H.emRisco) ? 'data-espiar="emRisco"' : '')}
+        ${semPostar ? lin('i', `${pl(semPostar, 'agendada', 'agendadas')} a conferir`, 'se saíram', iSemPostar >= 0 ? `data-espiar="alerta:${iSemPostar}"` : '') : lin('i', `${pl(prox.previstas, 'prevista', 'previstas')}`, 'semana que vem', 'data-gestao-aba="semana"')}</section>`;
+      // Finanças: só para os donos. Sem extrato no mês, o que o Vybe Finanças tiver; sem nada, diz que falta.
+      let cFinancas = '';
+      if (veDinheiro) {
+        const doMes = fxR?.lancamentos ? fx.transacoes.filter((t) => String(t?.banco?.data || '').startsWith(mes)) : [];
+        const diasFx = [...new Set(doMes.map((t) => t.banco.data))].sort(), saldos = diasFx.map((d) => X.resumo(doMes, { mes: d }).saldo_final).filter((s) => s != null);
+        const sobra = fxR?.lancamentos ? Number(fxR.resultado) : temVF ? Number(VR.resultado) : null, dias = Math.max(0, ...inaL.map((c) => Number(c.atraso_mais_antigo) || 0));
+        const irFin = (id) => (temAba(id) ? `data-setor-sub="${id}"` : 'data-setor-ir="setor:financas"');
+        cFinancas = `<section class="d3m-d-folha d3m-d-g-c" aria-label="Finanças, só donos">${cab('negocio', 'dinheiro', 'Finanças', eloV2('abrir Finanças', 'data-setor-ir="setor:financas"'), ' <small>· só donos</small>')}
+          <div class="d3m-d-g-meio">${sobra != null ? numV2(esc(rs(sobra)), sobra < 0 ? 'r' : 'g', `${sobra < 0 ? 'falta' : 'sobra'} de ${esc(mesNome)} até agora`, 'data-setor-ir="setor:financas"') : numV2('—', '', fin.falha === 'negado' ? 'só os donos veem' : 'sem extrato no mês')}${area(saldos, sobra != null && sobra < 0 ? 'r' : 'g', 'Saldo da conta dia a dia')}</div>
+          ${fxR?.lancamentos ? lin('g', `Entrou R$ ${esc(curto(fxR.entradas))}, saiu R$ ${esc(curto(fxR.saidas + fxR.cartao_e_transferencias))}`, 'Vorcaro', irFin('vorcaro')) : temVF ? lin('g', `Recebido ${esc(rs(VR.recebido))} de ${esc(rs(VR.previsto))}`, 'no mês', irFin('recebimentos')) : lin('n', 'Sem extrato no mês', 'Vorcaro', irFin('vorcaro'))}
+          ${inaTotal > 0 ? lin('r', `${esc(rs(inaTotal))} em atraso`, dias ? `há ${pl(dias, 'dia', 'dias')}` : pl(inaL.length, 'cliente', 'clientes'), irFin('inadimplencia')) : lin('g', 'Nada em atraso', 'recebimentos', irFin('inadimplencia'))}
+          ${fxR?.saldo_final != null ? lin('n', `Caixa de ${esc(rs(fxR.saldo_final))}`, diasFx.length ? `saldo de ${diaMes(diasFx[diasFx.length - 1])}` : 'saldo', irFin('extrato')) : lin('n', 'Caixa sem saldo no extrato', 'extrato', irFin('extrato'))}</section>`;
+      }
+      // Clientes: a nota média da Saúde da carteira e quem precisa de atenção.
+      const tomSaude = media == null ? '' : media < 50 ? 'r' : media < 70 ? 'a' : 'g', saidasMes = (cart.churn?.registros || []).filter((r) => String(r.saiu_em || '').startsWith(mesAtual())).length;
+      const rosca = `<svg class="d3m-d-g-rosca ${tomSaude}" viewBox="0 0 120 120" role="img" aria-label="Nota média ${media == null ? 'sem dado' : num(media)} de 100"><circle class="trilho" cx="60" cy="60" r="46"/>${media == null ? '' : `<circle class="fio" cx="60" cy="60" r="46" pathLength="100" stroke-dasharray="${Math.max(0, Math.min(100, Math.round(media)))} 100" transform="rotate(-90 60 60)"/>`}</svg>`;
+      const cClientes = `<section class="d3m-d-folha d3m-d-g-c" aria-label="Clientes">${cab('time', 'pessoas', 'Clientes', temAba('carteira') ? eloV2('ver quais', 'data-setor-sub="carteira"') : eloV2('abrir Clientes', 'data-setor-ir="setor:clientes"'))}
+        <div class="d3m-d-g-meio">${numV2(media == null ? '—' : num(media), tomSaude, media == null ? 'a saúde ainda está sendo calculada' : 'nota média da carteira, de 100', temAba('carteira') ? 'data-setor-sub="carteira"' : '')}${rosca}</div>
+        ${criticos ? lin('r', `${criticos === 1 ? '1 cliente precisa' : `${num(criticos)} clientes precisam`} de você`, 'risco alto', temAba('carteira') ? 'data-setor-sub="carteira"' : '') : lin('g', 'Nenhum cliente em risco alto', 'na carteira')}
+        ${semCont.length ? lin('a', `${semCont.length === 1 ? esc(semCont[0]) : pl(semCont.length, 'cliente', 'clientes')} sem conteúdo`, 'nesta semana', iSemCont >= 0 ? `data-espiar="alerta:${iSemCont}"` : '') : lin('n', 'Todos com conteúdo', 'nesta semana')}
+        ${lin('n', `${pl(C.clientesAtivos, 'ativo', 'ativos')}, ${saidasMes ? pl(saidasMes, 'saiu', 'saíram') : 'nenhum saiu'}`, 'no mês', 'data-setor-ir="setor:clientes"')}</section>`;
+      // Comercial: o que está em negociação, as metas do mês e o funil. Dinheiro só aparece para os donos.
+      const negC = com.resumo?.em_negociacao || {}, nNeg = Number(negC.quantidade) || 0, batidas = metas.filter((m) => m.batida).length, serieNeg = vendas.slice(-7).map((x) => Number(x.negocios) || 0), topoNeg = Math.max(0, ...serieNeg);
+      const barrasNeg = `<span class="d3m-d-g-barras${topoNeg ? '' : ' vazio'}" role="img" aria-label="Negócios fechados por mês">${(serieNeg.length ? serieNeg : [0, 0, 0, 0, 0, 0, 0]).map((n) => `<i style="--v:${topoNeg ? Math.max(8, Math.round((n / topoNeg) * 100)) : 18}%"></i>`).join('')}</span>`;
+      const cComercial = `<section class="d3m-d-folha d3m-d-g-c" aria-label="Comercial">${cab('negocio', 'alta', 'Comercial', metas.length || com.falha ? eloV2('abrir Comercial', 'data-setor-ir="setor:comercial"') : eloV2('definir metas', 'data-setor-sub="funil"'))}
+        <div class="d3m-d-g-meio">${com.falha ? numV2('—', '', com.falha === 'negado' ? 'só os donos veem' : 'sem números agora') : numV2(num(nNeg), '', `em negociação, ${metas.length ? `${num(batidas)} de ${pl(metas.length, 'meta batida', 'metas batidas')}` : 'sem meta no mês'}`, 'data-setor-sub="funil"')}${barrasNeg}</div>
+        ${com.falha ? lin('n', 'Comercial sem números agora', esc(mesNome)) : metas.length ? lin(batidas === metas.length ? 'g' : 'a', `${num(batidas)} de ${pl(metas.length, 'meta batida', 'metas batidas')}`, esc(mesNome), 'data-setor-ir="setor:comercial"') : lin('a', 'Nenhuma meta definida', esc(mesNome), 'data-setor-sub="funil"')}
+        ${nNeg ? lin('n', pl(nNeg, 'oportunidade aberta', 'oportunidades abertas'), val && veDinheiro ? `MRR ${esc(rs(negC.mensal))}` : 'no funil', 'data-setor-sub="funil"') : lin('n', 'Nenhuma oportunidade aberta', 'funil vazio', 'data-setor-sub="funil"')}
+        ${lin('n', `${pl(A.negocios ?? 0, 'negócio fechado', 'negócios fechados')}, ${pl(A.propostas ?? 0, 'proposta', 'propostas')}`, per.tipo === 'anual' ? 'no ano' : 'no mês', 'data-setor-ir="setor:comercial"')}</section>`;
+      // O cartão laranja: o que pesa agora. O número grande, a frase e até dois botões.
+      const outros = Math.max(0, ordem.length - (atr || daProducao.length ? 1 : 0));
+      const resto = outros ? ` Mais ${pl(outros, 'área pede', 'áreas pedem')} ação.` : ' O resto não pede urgência.';
+      const pesa = falt ? { n: falt, frase: `${falt === 1 ? 'vai' : 'vão'} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}`, apoio: `É a Produção.${resto}`, botao: falt === 1 ? 'Abrir a de hoje' : `Abrir as ${num(falt)}`, attrs: iHoje >= 0 ? `data-espiar="alerta:${iHoje}"` : 'data-espiar="atrasadas"' }
+        : atr ? { n: atr, frase: `${atr === 1 ? 'peça passou' : 'peças passaram'} da data do cliente`, apoio: `É a Produção.${resto}`, botao: atr === 1 ? 'Abrir a atrasada' : `Abrir as ${num(atr)}`, attrs: 'data-espiar="atrasadas"' }
+          : { n: null, frase: 'Nada atrasado agora.', apoio: outros ? `${pl(outros, 'área pede', 'áreas pedem')} ação nos cartões ao lado.` : 'Nenhuma área pede ação agora.', botao: '', attrs: '' };
+      const laranja = `<section class="d3m-laranja d3m-d-g-pesa" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · onde pesa agora</span>
+        <div class="d3m-lar-txt">${pesa.n != null ? `<b class="d3m-lar-num">${num(pesa.n)}</b>` : ''}<span class="d3-acao-frase">${pesa.frase}</span><small>${pesa.apoio}</small>
+        <div class="d3m-lar-bts">${pesa.botao ? `<button type="button" class="d3m-btn l" ${pesa.attrs}>${pesa.botao}</button>` : ''}<button type="button" class="d3m-btn l s" data-gestao-aba="performance">Ver por etapa</button></div></div></section>`;
+      // Esta semana, direto no vidro: prontas e previstas acumuladas por dia; a linha das prontas para em hoje.
       const dias7 = (S.porDia || []).slice(0, 7), iHojeDia = dias7.findIndex((d) => d.dia === H.dia);
       let a1 = 0, a2 = 0;
       const prevAc = dias7.map((d) => (a2 += Number(d.previstas) || 0)), feitAc = dias7.map((d) => (a1 += Number(d.entregues) || 0)).slice(0, iHojeDia >= 0 ? iHojeDia + 1 : dias7.length);
-      const DIAC = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-      const hojeD = dias7[iHojeDia] || {};
-      const semanaD3 = `<section class="d3s-card d3g-semana" aria-label="Esta semana"><div class="d3s-topo"><h3>Esta semana</h3><small class="d3g-leg"><span class="ch">prontas</span><span class="tr">previstas</span></small></div>
-        <div class="d3g-graf-caixa">${dias7.length > 1 ? d3gGrafico(feitAc, prevAc, dias7.map((d) => DIAC[diaDe(d.dia)]), { atual: iHojeDia, rotulo: 'Prontas e previstas da semana, acumuladas por dia' }) : '<p class="d3s-vazio">Os dias da semana aparecem quando a produção carregar.</p>'}</div>
-        <div class="d3g-minis"><p><span>Hoje</span><b>${num(hojeD.entregues || 0)}<small> / ${num(hojeD.previstas || 0)}</small></b></p><p><span>Prontas</span><b>${num(prontas)}<small> / ${num(S.previstas)}</small></b></p><p><span>Próxima</span><b>${num(prox.previstas)}<small> previstas</small></b></p></div>
-        <div class="d3s-ver"><span class="d3s-pill n"><i></i>capacidade: ${Number(prox.capacidadeMediana) ? `${num(prox.capacidadeMediana)} por semana` : 'sem dado'}</span><button type="button" class="d3s-chip" data-gestao-aba="historico">12 semanas · mediana de ${num(Hi.medianaEntregues ?? 0)}${Hi.mediaNoPrazoPct == null ? '' : ` · no prazo ${pct(Hi.mediaNoPrazoPct)}`}</button>${btn('Ver a semana', 'data-gestao-aba="semana"')}</div></section>`;
-      return `<div class="g2 d3g">${acaoD3}${numerosD3}<div class="d3g-duas">${porSetor}${semanaD3}</div>`
+      const DIAC = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], hojeD = dias7[iHojeDia] || {};
+      const topoSem = Math.max(1, ...prevAc, ...feitAc), xs = (i) => 8 + (i * 264) / Math.max(1, dias7.length - 1), ys = (v) => 80 - ((Number(v) || 0) * 66) / topoSem;
+      const fio = (l) => l.map((v, i) => `${i ? 'L' : 'M'}${xs(i).toFixed(1)} ${ys(v).toFixed(1)}`).join(' '), fimS = feitAc.length - 1;
+      const grafSemana = dias7.length > 1 ? `<svg class="d3m-d-g-sem-graf" viewBox="0 0 284 92" preserveAspectRatio="none" role="img" aria-label="Prontas e previstas da semana, acumuladas por dia"><path class="meta" d="${fio(prevAc)}"/>${feitAc.length > 1 ? `<path class="fio" d="${fio(feitAc)}"/>` : ''}${fimS >= 0 ? `<circle cx="${xs(fimS).toFixed(1)}" cy="${ys(feitAc[fimS]).toFixed(1)}" r="3.5"/>` : ''}</svg>
+        <span class="d3m-d-g-eixo">${dias7.map((d, i) => `<span${i === iHojeDia ? ' class="on"' : ''}>${DIAC[diaDe(d.dia)]}</span>`).join('')}</span>` : '<span class="d3m-d-g-sem-vazio">Os dias da semana aparecem quando a produção carregar.</span>';
+      const semanaV2 = `<section class="d3m-cons d3m-d-g-semana" aria-label="Esta semana"><div class="d3m-cons-cab"><b>Esta semana</b><span>prontas e previstas</span></div>
+        <button type="button" class="d3m-d-g-sem" data-gestao-aba="semana" title="Ver a semana">${grafSemana}
+        <span class="d3m-d-g-minis"><span><b>${num(hojeD.entregues || 0)} / ${num(hojeD.previstas || 0)}</b><small>hoje</small></span><span><b>${num(prontas)} / ${num(S.previstas)}</b><small>na semana</small></span><span><b>${num(prox.previstas)}</b><small>semana que vem</small></span></span></button></section>`;
+      // Abrir: cinco caminhos na coluna; os outros ficam no menu do título (pintarEm).
+      const SETA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+      const vai = (nome, apoio, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span><b>${esc(nome)}</b> <small>· ${esc(apoio)}</small></span>${SETA}</button>`;
+      const abrirV2 = `<nav class="d3m-cons d3m-d-g-abrir" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+        ${vai('Performance', 'entregas, prazo e fluxo', 'data-gestao-aba="performance"')}${temAba('diario') ? vai('Diário', 'a foto de cada dia', 'data-setor-sub="diario"') : vai('Agora', 'o que está na mesa', 'data-gestao-aba="agora"')}
+        ${vai('Histórico e projeção', '12 semanas', 'data-gestao-aba="historico"')}${vai(veDinheiro ? (temVF ? 'Faturamento e custos' : 'Dinheiro e vendas') : 'Números e gráficos', veDinheiro ? 'só donos' : 'entregas, clientes e time', 'data-g2-mais')}
+        ${vai('Time e bots', `${num(online.length)} online`, 'data-gestao-aba="time"')}</nav>`;
+      return `<div class="g2 d3m-d-g${cFinancas ? '' : ' sem-fin'}"><div class="d3m-d-g-cartoes">${cProducao}${cFinancas}${cClientes}${cComercial}</div>
+        <aside class="d3m-lado d3m-d-g-lado" aria-label="Consulta">${laranja}${semanaV2}${abrirV2}</aside>`
         + mais('Dinheiro, comercial, clientes e time em números e gráficos', antigo) + '</div>';
     },
     // Redesign (quadro 57, 10/11/2026): sem dados no mês, a visão geral era uma frase solta. Agora os números do setor
@@ -950,14 +1000,27 @@
     const g = ++geracaoEm;
     const mesmo = Boolean(ultimoEm && ultimoEm.setor === setor);
     principal = '';
-    destino.innerHTML = `<div class="g2-topo vs-em-topo"><h2>${setor === 'setor:agencia' ? 'A agência inteira' : esc(contexto?.nome || '')}</h2>${barraPeriodo()}
-      <button type="button" class="g2-btn g2-atualizar" data-setor-atualizar title="Atualizar">${I_VOLTA}Atualizado ${hora(contexto?.numeros?.()?.geradoEm)}</button><span class="g2-vaga">${mesmo ? ultimoEm.principal : ''}</span></div>
+    // Direção V2 (prancha V2-M-Gestao): na Gestão o topo fica direto no vidro. O título abre as outras vistas, a linha de
+    // apoio diz o período e a hora da leitura, e à direita ficam o período, a busca e o "Mais" (atualizar, tela cheia, fechar).
+    const VISTAS = [['performance', 'Performance'], ['agora', 'Agora'], ['semana', 'Semana'], ['clientes', 'Clientes'], ['carteiras', 'Carteiras'], ['time', 'Time e bots'], ['historico', 'Histórico e projeção']];
+    const topoV2 = () => `<div class="d3m-d-topo vs-em-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="Gestão: trocar de vista"><h2>Gestão</h2>${traco('<path d="M6 9l6 6 6-6"/>', 2)}</summary>
+        <div class="d3m-d-pop"><button type="button" data-gestao-aba="agencia" aria-current="page">Visão geral</button>${VISTAS.map(([id, n]) => `<button type="button" data-gestao-aba="${id}">${n}</button>`).join('')}<button type="button" data-setor-sub="equipe">Equipe online</button></div></details>
+        <span class="d3m-d-sub">a agência inteira · ${esc(per.tipo === 'anual' ? String(per.mes).slice(0, 4) : nomeMes(per.mes))} · atualizado às ${hora(contexto?.numeros?.()?.geradoEm)}</span></div>
+      <div class="d3m-d-ferr">${barraPeriodo().replace('class="vs-alternar"', 'class="vs-alternar d3m-d-seg"').replace('<select data-vs-mes', '<select class="d3m-d-sel" data-vs-mes')}
+        <button type="button" class="d3m-d-ico" data-d3m-busca aria-label="Buscar" title="Buscar">${traco('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', 2)}</button>
+        <details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais" title="Mais">${traco('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>', 2)}</summary>
+          <div class="d3m-d-pop"><button type="button" data-setor-atualizar>Atualizar agora</button><button type="button" data-gestao-cheia>Tela cheia</button><button type="button" data-gestao-fechar>Fechar a Gestão</button></div></details>
+        <span class="g2-vaga">${mesmo ? ultimoEm.principal : ''}</span></div></div>`;
+    destino.innerHTML = (setor === 'setor:agencia' ? topoV2() : `<div class="g2-topo vs-em-topo"><h2>${esc(contexto?.nome || '')}</h2>${barraPeriodo()}
+      <button type="button" class="g2-btn g2-atualizar" data-setor-atualizar title="Atualizar">${I_VOLTA}Atualizado ${hora(contexto?.numeros?.()?.geradoEm)}</button><span class="g2-vaga">${mesmo ? ultimoEm.principal : ''}</span></div>`) + `
       <div class="vs-corpo${mesmo ? ' g2-quieta' : ''}">${mesmo ? ultimoEm.corpo : carregando()}</div>`;
     if (!destino.dataset.vsOuvindo) {
       destino.dataset.vsOuvindo = '1';
       destino.addEventListener('click', (ev) => {
         const b = ev.target.closest('button'); if (!b || !alvoEm) return;
         if (cliqueV2(b)) return;
+        // A busca do topo da Gestão é a busca de todo o painel (a barra do topo fica escondida com a Gestão aberta).
+        if (b.hasAttribute('data-d3m-busca')) { document.querySelector('#mundo-hud [data-ferr="busca"]')?.click?.(); return; }
         if (b.hasAttribute('data-setor-atualizar')) { cache.clear(); pintarEm(alvoEm.destino, alvoEm.setor, alvoEm.contexto); return; }
         if (b.dataset.vsTipo) { per.tipo = b.dataset.vsTipo; pintarEm(alvoEm.destino, alvoEm.setor, alvoEm.contexto); return; }
         if (b.dataset.setorIr) alvoEm.contexto?.irSetor?.(b.dataset.setorIr);

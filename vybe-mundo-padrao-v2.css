@@ -12127,3 +12127,198 @@ body.mundo #v2j-busca.spotlight-dialog,body.mundo dialog#v2j-busca{background:va
 body.mundo #v2j-busca #spotlight-input{border:0;background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
 /* A folha da aparência pinta todo diálogo com var(--glass) (com !important): a busca troca a variável, não a regra. */
 body.mundo #v2j-busca{--glass:var(--d3-fume-painel)}
+
+/* ===== padrao-v2/zm-d-0-pecas.css ===== */
+/* ===================================================================================================================
+   MÓDULOS V2 · GRUPO D (Gestão, Financeiro, Comercial, Pacotes, Orçamentos, Contratos, Churn e Agentes) · PEÇAS LOCAIS.
+   As pranchas V2-M-* repetem as mesmas peças em toda janela de módulo; as que ainda não existem em z-direcao.css ficam
+   aqui, com o prefixo .d3m-d-, até serem unificadas: o topo da janela no vidro (título com menu, linha de apoio e as
+   ferramentas), o cartão folha com cabeça de 48, o selo do setor, a linha de 40 com ponto e o número de 44.
+   Só tokens --d3-*; nenhuma regra antiga é forçada.
+   =================================================================================================================== */
+
+/* Âmbar vivo para ponto e gráfico (o --d3-ajuste-claro é claro demais na folha e o --d3-ambar é cor de letra). */
+:root{--d3m-d-ambar:color-mix(in srgb,var(--d3-ajuste-claro) 45%,var(--d3-ambar))}
+
+/* Topo da janela, direto no vidro: título de 24, apoio de 12 e as ferramentas à direita. */
+.d3m-d-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;margin:0;padding:0;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-d-tit h2{margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
+.d3m-d-sub{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ferr{flex:none;display:flex;align-items:center;gap:8px;min-width:0}
+/* O título abre o menu das outras vistas; o "Mais" abre o resto. Os dois são <details> com a mesma caixa escura. */
+.d3m-d-troca,.d3m-d-mais{position:relative}
+.d3m-d-troca > summary{display:inline-flex;align-items:center;gap:6px;list-style:none;border-radius:var(--d3-r-botao);cursor:pointer}
+.d3m-d-troca > summary::-webkit-details-marker,.d3m-d-mais > summary::-webkit-details-marker{display:none}
+.d3m-d-troca > summary > svg{flex:none;width:16px;height:16px;fill:none;stroke:var(--d3-fume-apagado);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-troca > summary:focus-visible,.d3m-d-mais > summary:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:3px}
+.d3m-d-pop{position:absolute;z-index:30;top:calc(100% + 6px);left:0;display:flex;flex-direction:column;gap:2px;min-width:220px;padding:6px;box-sizing:border-box;border-radius:12px;background:var(--d3-fume-painel);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 18px 40px -18px rgba(0,0,0,.7)}
+.d3m-d-mais > .d3m-d-pop{left:auto;right:0}
+.d3m-d-pop > :is(button,a){appearance:none;display:flex;align-items:center;gap:8px;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-d-pop > :is(button,a):hover{background:var(--d3-fume-veu)}
+.d3m-d-pop > :is(button,a)[aria-current]{background:var(--d3-fume-veu-forte);font-weight:600}
+.d3m-d-pop > :is(button,a):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+/* Botão só de ícone, no vidro. */
+.d3m-d-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);list-style:none;cursor:pointer}
+.d3m-d-ico:hover{background:rgba(255,255,255,.26)}
+.d3m-d-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* Botão com nome, no vidro (o secundário do topo). */
+.d3m-d-vbtn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-d-vbtn:hover{background:var(--d3-fume-veu-forte)}
+.d3m-d-vbtn.p{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta);font-weight:600}
+.d3m-d-vbtn.p:hover{background:rgba(255,255,255,.9)}
+.d3m-d-vbtn > svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-vbtn:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* Escolha de uma entre poucas, no vidro: trilho de 36, a escolhida branca. */
+.d3m-d-seg{flex:none;display:inline-flex;gap:2px;height:36px;margin:0;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-d-seg > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-seg > button:hover{background:var(--d3-fume-veu)}
+.d3m-d-seg > button:is([aria-pressed="true"],[aria-selected="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-d-seg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* Campo de escolha, no vidro. */
+.d3m-d-topo select.d3m-d-sel{appearance:none;flex:none;height:34px;max-width:100%;margin:0;padding:0 32px 0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background-color:var(--d3-fume-veu);background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:13px;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-topo select.d3m-d-sel > option{background:var(--d3-cartao);color:var(--d3-tinta)}
+.d3m-d-topo select.d3m-d-sel:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* Cartão folha: cabeça de 48 com o selo do setor, o título e um atalho de texto. */
+.d3m-d-folha{display:flex;flex-direction:column;min-width:0;min-height:0;margin:0;padding:0;box-sizing:border-box;border:0;border-radius:16px;overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-cab{flex:none;display:flex;align-items:center;gap:10px;height:48px;margin:0;padding:0 16px;box-sizing:border-box}
+.d3m-d-cab > h3{flex:1 1 auto;min-width:0;margin:0;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-cab > h3 > small{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-cab > small{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-d-selo{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+.d3m-d-selo.operacao{background:var(--d3-mod-operacao)}
+.d3m-d-selo.negocio{background:var(--d3-agente)}
+.d3m-d-selo.time{background:var(--d3-mod-time)}
+.d3m-d-selo.vybe{background:var(--d3-mod-vybe)}
+.d3m-d-selo.r{background:var(--d3-perigo)}
+.d3m-d-selo > svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-elo{appearance:none;flex:none;display:inline-flex;align-items:center;height:24px;margin:0;padding:0 2px;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-d-elo:hover{text-decoration:underline;text-underline-offset:3px}
+.d3m-d-elo:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+/* Linha de 40: ponto na cor do que diz, o texto e o apoio à direita. Com ação, a linha inteira é o botão. */
+.d3m-d-lin{appearance:none;flex:none;display:flex;align-items:center;gap:10px;width:100%;height:40px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+button.d3m-d-lin{cursor:pointer}
+button.d3m-d-lin:hover{background:var(--d3-veu)}
+button.d3m-d-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-d-lin > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+.d3m-d-lin > i.r{background:var(--d3-perigo)}
+.d3m-d-lin > i.a{background:var(--d3m-d-ambar)}
+.d3m-d-lin > i.g{background:var(--d3-mod-vybe)}
+.d3m-d-lin > i.i{background:var(--d3-info)}
+.d3m-d-lin > i.l{background:var(--d3-agente)}
+.d3m-d-lin > span{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-lin > small{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+/* Número de 44, na cor do que diz. */
+.d3m-d-numero{appearance:none;display:block;margin:0;padding:0;border:0;border-radius:6px;background:none;box-shadow:none;font:600 44px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.03em;color:var(--d3-tinta);text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}
+button.d3m-d-numero{cursor:pointer}
+button.d3m-d-numero:focus-visible{outline:2px solid var(--d3-acao);outline-offset:3px}
+.d3m-d-numero.r{color:var(--d3-perigo)}
+.d3m-d-numero.g{color:var(--d3-pronto)}
+.d3m-d-numero.a{color:var(--d3-ambar)}
+
+/* ===== padrao-v2/zm-d-gestao.css ===== */
+/* ===================================================================================================================
+   GESTÃO · A AGÊNCIA INTEIRA NA PRANCHA V2-M-Gestao (16/11/2026). A janela é vidro fumê; por cima, quatro cartões folha
+   (um por área: número grande na cor do que diz, o gráfico na mesma cor e três linhas) e a coluna de consulta direto no
+   vidro (o cartão laranja do que pesa agora, a semana em linha e o "Abrir"). Finanças só é montado para os donos: sem
+   ele, a Produção ocupa a linha de cima inteira. O HTML vem de vybe-mundo-setor.js (painel setor:agencia e o topo em
+   pintarEm); as peças .d3m-d-* são de zm-d-0-pecas.css e as .d3m-* de z-direcao.css.
+   =================================================================================================================== */
+body.mundo .vv-gestao:has(> .vs-agencia){padding:16px;overflow:hidden;border:0;border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);backdrop-filter:none;-webkit-backdrop-filter:none;color:var(--d3-fume-texto)}
+.vv-gestao > .vv-g-corpo.vs-agencia{display:flex;flex-direction:column;gap:16px;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:0;margin:0;padding:0}
+.vv-gestao > .vs-agencia > .vs-corpo{flex:1 1 0;display:block;min-height:0;margin:0;padding:0}
+/* O período do topo (a mesma barra dos setores) com as peças do vidro. */
+.vs-agencia > .d3m-d-topo .vs-periodo{display:inline-flex;align-items:center;gap:8px;margin:0}
+.vs-agencia > .d3m-d-topo .g2-vaga:empty{display:none}
+
+.vs-agencia .d3m-d-g{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta)}
+.vs-agencia .d3m-d-g-cartoes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:12px;min-width:0;min-height:0}
+.vs-agencia .d3m-d-g.sem-fin > .d3m-d-g-cartoes > .d3m-d-g-c:first-child{grid-column:1 / -1}
+.vs-agencia .d3m-d-g-meio{flex:1 1 0;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:0;padding:0 16px 8px}
+.vs-agencia .d3m-d-g-n{flex:0 1 auto;display:flex;flex-direction:column;gap:6px;min-width:0}
+.vs-agencia .d3m-d-g-n > span{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+/* Os gráficos do cartão: área, rosca e barras, na cor do número. */
+.vs-agencia .d3m-d-g-graf{flex:0 1 240px;display:block;width:240px;min-width:0;height:120px;max-height:100%;overflow:visible;color:var(--d3-tinta)}
+.vs-agencia .d3m-d-g-graf.r{color:var(--d3-perigo)}
+.vs-agencia .d3m-d-g-graf.g{color:var(--d3-mod-vybe)}
+.vs-agencia .d3m-d-g-graf > .veu{fill:currentColor;stroke:none;opacity:.14}
+.vs-agencia .d3m-d-g-graf > .fio{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.vs-agencia .d3m-d-g-rosca{flex:none;display:block;width:104px;height:104px;max-height:100%;color:var(--d3-meta)}
+.vs-agencia .d3m-d-g-rosca.r{color:var(--d3-perigo)}
+.vs-agencia .d3m-d-g-rosca.a{color:var(--d3m-d-ambar)}
+.vs-agencia .d3m-d-g-rosca.g{color:var(--d3-mod-vybe)}
+.vs-agencia .d3m-d-g-rosca > .trilho{fill:none;stroke:var(--d3-veu-forte);stroke-width:10}
+.vs-agencia .d3m-d-g-rosca > .fio{fill:none;stroke:currentColor;stroke-width:10;stroke-linecap:round}
+.vs-agencia .d3m-d-g-barras{flex:0 1 240px;display:flex;align-items:flex-end;gap:6px;min-width:0;height:120px;max-height:100%}
+.vs-agencia .d3m-d-g-barras > i{flex:1 1 0;height:var(--v,18%);border-radius:2px;background:var(--d3-agente)}
+.vs-agencia .d3m-d-g-barras.vazio > i{background:var(--d3-veu-forte)}
+
+/* A coluna de consulta, no vidro. */
+.vs-agencia .d3m-d-g-lado{min-height:0}
+.vs-agencia .d3m-d-g-pesa{flex:1 1 auto;min-height:0}
+.vs-agencia .d3m-d-g-semana,.vs-agencia .d3m-d-g-abrir{flex:none}
+.vs-agencia .d3m-d-g-sem{appearance:none;display:flex;flex-direction:column;gap:6px;width:100%;margin:0;padding:12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.vs-agencia .d3m-d-g-sem:hover{background:var(--d3-fume-veu-forte)}
+.vs-agencia .d3m-d-g-sem:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.vs-agencia .d3m-d-g-sem-graf{display:block;width:100%;height:92px;overflow:visible}
+.vs-agencia .d3m-d-g-sem-graf > .meta{fill:none;stroke:var(--d3-escuro-apagado);stroke-width:2;stroke-dasharray:4 5;vector-effect:non-scaling-stroke}
+.vs-agencia .d3m-d-g-sem-graf > .fio{fill:none;stroke:var(--d3-fume-texto);stroke-width:2.4;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.vs-agencia .d3m-d-g-sem-graf > circle{fill:var(--d3-fume-texto)}
+.vs-agencia .d3m-d-g-eixo{display:flex;justify-content:space-between;font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado)}
+.vs-agencia .d3m-d-g-eixo > .on{color:var(--d3-fume-texto);font-weight:600}
+.vs-agencia .d3m-d-g-sem-vazio{font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
+.vs-agencia .d3m-d-g-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:4px}
+.vs-agencia .d3m-d-g-minis > span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vs-agencia .d3m-d-g-minis b{font-weight:600;font-variant-numeric:tabular-nums}
+.vs-agencia .d3m-d-g-minis small{font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado);white-space:nowrap}
+.vs-agencia .d3m-d-g-abrir .d3m-vlin{flex:none}
+.vs-agencia .d3m-d-g-abrir .d3m-vlin small{font-size:inherit;color:var(--d3-fume-apagado)}
+
+/* "Números e gráficos" (o que já existia, a um clique): abre por cima dos quatro cartões, com a rolagem por dentro. */
+.vs-agencia .d3m-d-g > details.g2-mais{display:none;margin:0}
+.vs-agencia .d3m-d-g > details.g2-mais[open]{position:absolute;z-index:5;inset:0 332px 0 0;display:flex;flex-direction:column;padding:0;border:0;border-radius:16px;overflow:hidden;background:var(--d3-cartao);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+.vs-agencia .d3m-d-g > details.g2-mais > summary{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;height:48px;margin:0;padding:0 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa);list-style:none;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);cursor:pointer}
+.vs-agencia .d3m-d-g > details.g2-mais > summary::-webkit-details-marker{display:none}
+.vs-agencia .d3m-d-g > details.g2-mais > summary > u{font-size:0;text-decoration:none}
+.vs-agencia .d3m-d-g > details.g2-mais > summary > u::after{content:"fechar";font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.vs-agencia .d3m-d-g > details.g2-mais > summary:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.vs-agencia .d3m-d-g > details.g2-mais > .g2-mais-corpo{flex:1 1 0;min-height:0;margin:0;padding:16px;overflow-y:auto;scrollbar-width:thin}
+
+/* Tela baixa (1366 × 768): tudo encolhe um degrau e o gráfico da semana dá lugar aos três números. */
+@media (max-height:820px){
+  .vs-agencia .d3m-d-g-c > .d3m-d-cab{height:40px}
+  .vs-agencia .d3m-d-g-c > .d3m-d-lin{height:34px}
+  .vs-agencia .d3m-d-g-c .d3m-d-numero{font-size:36px}
+  .vs-agencia .d3m-d-g-graf,.vs-agencia .d3m-d-g-barras{height:84px}
+  .vs-agencia .d3m-d-g-rosca{width:80px;height:80px}
+  .vs-agencia .d3m-d-g-pesa{padding:12px 16px}
+  .vs-agencia .d3m-d-g-pesa .d3m-lar-num{font-size:44px}
+  .vs-agencia .d3m-d-g-pesa .d3m-lar-txt > .d3-acao-frase{font-size:17px}
+  .vs-agencia .d3m-d-g-pesa .d3m-lar-bts{margin-top:6px}
+  .vs-agencia .d3m-d-g-sem-graf,.vs-agencia .d3m-d-g-eixo{display:none}
+  .vs-agencia .d3m-d-g-minis{margin-top:0}
+  .vs-agencia .d3m-d-g-abrir .d3m-vlin{height:32px}
+  .vs-agencia .d3m-d-g-abrir{gap:4px}
+}
+/* Janela estreita: a coluna de consulta encolhe; no celular vira uma coluna só, o laranja primeiro, e a janela rola. */
+@media (max-width:1180px){
+  .vs-agencia .d3m-d-g{grid-template-columns:minmax(0,1fr) 264px}
+  .vs-agencia .d3m-d-g > details.g2-mais[open]{right:280px}
+  .vs-agencia .d3m-d-g-graf,.vs-agencia .d3m-d-g-barras{flex-basis:120px}
+}
+@media (max-width:900px){
+  body.mundo .vv-gestao:has(> .vs-agencia){overflow-y:auto;padding:12px}
+  .vv-gestao > .vv-g-corpo.vs-agencia{height:auto}
+  .vs-agencia > .d3m-d-topo{flex-wrap:wrap;gap:8px}
+  .vs-agencia > .d3m-d-topo > .d3m-d-ferr{flex:1 1 100%;flex-wrap:wrap}
+  .vs-agencia .d3m-d-g{display:flex;flex-direction:column;height:auto;gap:12px}
+  .vs-agencia .d3m-d-g-cartoes{display:flex;flex-direction:column}
+  .vs-agencia .d3m-d-g-c{min-height:236px}
+  .vs-agencia .d3m-d-g-lado{display:contents}
+  .vs-agencia .d3m-d-g-pesa{order:-1;flex:none;min-height:200px}
+  .vs-agencia .d3m-d-g > details.g2-mais[open]{position:static;max-height:70vh}
+  .vs-agencia .d3m-d-g-sem-graf,.vs-agencia .d3m-d-g-eixo{display:block}
+  .vs-agencia .d3m-d-g-eixo{display:flex}
+}

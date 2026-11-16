@@ -1,0 +1,88 @@
+/* ===================================================================================================================
+   MÓDULOS V2 · GRUPO D (Gestão, Financeiro, Comercial, Pacotes, Orçamentos, Contratos, Churn e Agentes) · PEÇAS LOCAIS.
+   As pranchas V2-M-* repetem as mesmas peças em toda janela de módulo; as que ainda não existem em z-direcao.css ficam
+   aqui, com o prefixo .d3m-d-, até serem unificadas: o topo da janela no vidro (título com menu, linha de apoio e as
+   ferramentas), o cartão folha com cabeça de 48, o selo do setor, a linha de 40 com ponto e o número de 44.
+   Só tokens --d3-*; nenhuma regra antiga é forçada.
+   =================================================================================================================== */
+
+/* Âmbar vivo para ponto e gráfico (o --d3-ajuste-claro é claro demais na folha e o --d3-ambar é cor de letra). */
+:root{--d3m-d-ambar:color-mix(in srgb,var(--d3-ajuste-claro) 45%,var(--d3-ambar))}
+
+/* Topo da janela, direto no vidro: título de 24, apoio de 12 e as ferramentas à direita. */
+.d3m-d-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;margin:0;padding:0;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
+.d3m-d-tit h2{margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto);white-space:nowrap}
+.d3m-d-sub{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ferr{flex:none;display:flex;align-items:center;gap:8px;min-width:0}
+/* O título abre o menu das outras vistas; o "Mais" abre o resto. Os dois são <details> com a mesma caixa escura. */
+.d3m-d-troca,.d3m-d-mais{position:relative}
+.d3m-d-troca > summary{display:inline-flex;align-items:center;gap:6px;list-style:none;border-radius:var(--d3-r-botao);cursor:pointer}
+.d3m-d-troca > summary::-webkit-details-marker,.d3m-d-mais > summary::-webkit-details-marker{display:none}
+.d3m-d-troca > summary > svg{flex:none;width:16px;height:16px;fill:none;stroke:var(--d3-fume-apagado);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-troca > summary:focus-visible,.d3m-d-mais > summary:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:3px}
+.d3m-d-pop{position:absolute;z-index:30;top:calc(100% + 6px);left:0;display:flex;flex-direction:column;gap:2px;min-width:220px;padding:6px;box-sizing:border-box;border-radius:12px;background:var(--d3-fume-painel);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 18px 40px -18px rgba(0,0,0,.7)}
+.d3m-d-mais > .d3m-d-pop{left:auto;right:0}
+.d3m-d-pop > :is(button,a){appearance:none;display:flex;align-items:center;gap:8px;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-d-pop > :is(button,a):hover{background:var(--d3-fume-veu)}
+.d3m-d-pop > :is(button,a)[aria-current]{background:var(--d3-fume-veu-forte);font-weight:600}
+.d3m-d-pop > :is(button,a):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+/* Botão só de ícone, no vidro. */
+.d3m-d-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);list-style:none;cursor:pointer}
+.d3m-d-ico:hover{background:rgba(255,255,255,.26)}
+.d3m-d-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* Botão com nome, no vidro (o secundário do topo). */
+.d3m-d-vbtn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-d-vbtn:hover{background:var(--d3-fume-veu-forte)}
+.d3m-d-vbtn.p{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta);font-weight:600}
+.d3m-d-vbtn.p:hover{background:rgba(255,255,255,.9)}
+.d3m-d-vbtn > svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-vbtn:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* Escolha de uma entre poucas, no vidro: trilho de 36, a escolhida branca. */
+.d3m-d-seg{flex:none;display:inline-flex;gap:2px;height:36px;margin:0;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.d3m-d-seg > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-seg > button:hover{background:var(--d3-fume-veu)}
+.d3m-d-seg > button:is([aria-pressed="true"],[aria-selected="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-d-seg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* Campo de escolha, no vidro. */
+.d3m-d-topo select.d3m-d-sel{appearance:none;flex:none;height:34px;max-width:100%;margin:0;padding:0 32px 0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background-color:var(--d3-fume-veu);background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:13px;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-topo select.d3m-d-sel > option{background:var(--d3-cartao);color:var(--d3-tinta)}
+.d3m-d-topo select.d3m-d-sel:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* Cartão folha: cabeça de 48 com o selo do setor, o título e um atalho de texto. */
+.d3m-d-folha{display:flex;flex-direction:column;min-width:0;min-height:0;margin:0;padding:0;box-sizing:border-box;border:0;border-radius:16px;overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-cab{flex:none;display:flex;align-items:center;gap:10px;height:48px;margin:0;padding:0 16px;box-sizing:border-box}
+.d3m-d-cab > h3{flex:1 1 auto;min-width:0;margin:0;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-cab > h3 > small{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-cab > small{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-d-selo{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+.d3m-d-selo.operacao{background:var(--d3-mod-operacao)}
+.d3m-d-selo.negocio{background:var(--d3-agente)}
+.d3m-d-selo.time{background:var(--d3-mod-time)}
+.d3m-d-selo.vybe{background:var(--d3-mod-vybe)}
+.d3m-d-selo.r{background:var(--d3-perigo)}
+.d3m-d-selo > svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.d3m-d-elo{appearance:none;flex:none;display:inline-flex;align-items:center;height:24px;margin:0;padding:0 2px;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-d-elo:hover{text-decoration:underline;text-underline-offset:3px}
+.d3m-d-elo:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+/* Linha de 40: ponto na cor do que diz, o texto e o apoio à direita. Com ação, a linha inteira é o botão. */
+.d3m-d-lin{appearance:none;flex:none;display:flex;align-items:center;gap:10px;width:100%;height:40px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+button.d3m-d-lin{cursor:pointer}
+button.d3m-d-lin:hover{background:var(--d3-veu)}
+button.d3m-d-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-d-lin > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+.d3m-d-lin > i.r{background:var(--d3-perigo)}
+.d3m-d-lin > i.a{background:var(--d3m-d-ambar)}
+.d3m-d-lin > i.g{background:var(--d3-mod-vybe)}
+.d3m-d-lin > i.i{background:var(--d3-info)}
+.d3m-d-lin > i.l{background:var(--d3-agente)}
+.d3m-d-lin > span{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-lin > small{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;font-variant-numeric:tabular-nums}
+/* Número de 44, na cor do que diz. */
+.d3m-d-numero{appearance:none;display:block;margin:0;padding:0;border:0;border-radius:6px;background:none;box-shadow:none;font:600 44px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.03em;color:var(--d3-tinta);text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}
+button.d3m-d-numero{cursor:pointer}
+button.d3m-d-numero:focus-visible{outline:2px solid var(--d3-acao);outline-offset:3px}
+.d3m-d-numero.r{color:var(--d3-perigo)}
+.d3m-d-numero.g{color:var(--d3-pronto)}
+.d3m-d-numero.a{color:var(--d3-ambar)}
