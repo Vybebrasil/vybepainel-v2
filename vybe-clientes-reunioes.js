@@ -415,13 +415,12 @@
     if (!d) return false;
     return Boolean(d.em_onboarding || Object.keys(d.onboarding?.respostas || {}).some((k) => !k.startsWith('_')));
   }
-  // ── tela Reuniões (quadro "Reuniões" do moodboard, 12/11/2026) ─────────────────────────────────────────────
-  // Lateral → Clientes → Reuniões abre uma janela, não mais só o formulário: a fala do Mateus, três números (esta
-  // semana, sem ata, demandas sugeridas), "Pede ação" com a linha que abre no lugar, a lista com busca e filtros e,
-  // ao lado, o formulário de Nova reunião (os mesmos campos e a mesma gravação de antes). As reuniões vêm da leitura
-  // por cliente que a ficha já usava (area=reunioes&cliente=…), feita para cada cliente ativo.
-  const tela = { raiz: null, janela: null, antes: null, form: true, filtro: 'todas', tipo: '', busca: '', inteira: false, lendo: false, quadro: 0 };
-  const NA_FRENTE = 6;
+  // ── tela Reuniões (prancha V2-M-Reunioes, 16/11/2026) ─────────────────────────────────────────────────────
+  // Lateral → Clientes → Reuniões abre uma janela: a folha com todas as reuniões dos clientes ativos, o laranja do Mateus
+  // e, no vidro, a consulta; o formulário de Nova reunião (os mesmos campos e a mesma gravação de antes) abre no vidro.
+  // As reuniões vêm da leitura por cliente que a ficha já usava (area=reunioes&cliente=…), feita para cada cliente ativo.
+  const tela = { raiz: null, janela: null, antes: null, form: false, filtro: 'todas', tipo: '', busca: '', inteira: false, lendo: false, quadro: 0 };
+  const NA_FRENTE = 12;
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
   const corDe = (nome) => (typeof corDoClienteV2 === 'function' ? corDoClienteV2(nome) : '#6B665E');
   const iniciais = (n) => (String(n || '').trim().split(/\s+/)[0] || '?').slice(0, 2).toUpperCase();
@@ -483,61 +482,65 @@
   }
   const quandoTexto = (iso, hoje) => { const d = diasEntre(hoje, iso); return d === 0 ? 'hoje' : d === 1 ? 'amanhã' : d > 1 ? `em ${d} dias` : diaMes(iso); };
 
-  // Direção 3 (moodboard 3, 13/11/2026): a fala do Mateus vira o bloco de ação laranja, numa frase curta com o botão.
-  function falaDaTela(n) {
-    const quem = '<small class="d3c-quem">Mateus · Atendimento</small>';
-    const frase = tela.lendo && !n.lista.length ? 'Lendo as reuniões…'
-      : !n.lista.length ? 'Nenhuma reunião registrada ainda.'
-      : `${n.semAta.length ? `${plural(n.semAta.length, 'reunião feita', 'reuniões feitas')} sem ata.` : n.daSemana.length ? `${plural(n.daSemana.length, 'reunião', 'reuniões')} esta semana.` : 'Todas as feitas têm ata.'}${
-        n.sugeridas ? ` ${n.sugeridas === 1 ? '1 demanda espera' : `${n.sugeridas} demandas esperam`} seu ok.` : ''}`;
-    const botao = n.sugeridas ? (n.sugeridas === 1 ? 'Ver a demanda' : `Ver as ${n.sugeridas}`) : n.semAta.length ? (n.semAta.length === 1 ? 'Ver a reunião' : `Ver as ${n.semAta.length}`) : !n.lista.length && !tela.lendo ? 'Marcar a primeira' : '';
-    const attrs = n.sugeridas ? 'data-v2r-acao="demandas"' : n.semAta.length ? 'data-v2r-acao="filtro" data-valor="sem-ata"' : 'data-v2r-acao="nova"';
-    // Laranja só com ação (acabamento 15/11): sem botão ("Todas as feitas têm ata."), a frase vai na nota branca.
-    if (!botao && typeof d3NotaHtml === 'function') return d3NotaHtml({ frase: `${quem}${frase}`, agente: 'Mateus' });
-    if (typeof d3AcaoHtml === 'function') return d3AcaoHtml({ frase: `${quem}${frase}`, agente: 'Mateus', botao, attrs });
-    return `<span class="v2r-ag" aria-hidden="true">M</span><p class="v2r-fala-texto"><span class="v2r-quem">Mateus · Atendimento ao cliente</span>${frase}</p>${botao ? `<button type="button" class="v2r-btn s" ${attrs}>${esc(botao)}</button>` : ''}`;
+  // Prancha V2-M-Reunioes (16/11/2026): o esqueleto dos módulos V2. À esquerda, uma folha com as reuniões (as marcadas
+  // primeiro, depois as feitas; a linha abre no lugar com a pauta, a ata, a gravação e o que fazer) e o pé "De olho". No
+  // vidro, o cartão laranja do que pede ação (demandas sugeridas, ata faltando ou clientes sem a próxima reunião), o que
+  // uma reunião guarda, os tipos do mês (o clique filtra) e "Abrir". "Nova reunião" abre o formulário de sempre no vidro.
+  const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const VAI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  const fotoCli = (nome) => {
+    if (typeof fotoDoClienteCv2 === 'function') return fotoDoClienteCv2(nome);
+    let h = 7; for (const ch of String(nome || '')) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
+    return `<i class="d3v-foto cv2-foto" style="--h:${h % 360}" aria-hidden="true">${esc(iniciais(nome))}</i>`;
+  };
+  const diaSemana = (iso) => SEMANA[new Date(`${iso}T12:00:00Z`).getUTCDay()];
+  const quandoLonga = (iso, hoje) => { const d = diasEntre(hoje, iso); return d === 0 ? `hoje, ${diaMes(iso)}` : d === 1 ? `amanhã, ${diaMes(iso)}` : d > 1 ? `${diaSemana(iso)} ${diaMes(iso)}` : diaMes(iso); };
+  const btnR = (rotulo, attrs) => `<button type="button" class="rv2-btn" ${attrs}>${esc(rotulo)}</button>`;
+  const btnLar = (rotulo, attrs, segundo = false) => `<button type="button" class="d3m-btn l${segundo ? ' s' : ''}" ${attrs}>${esc(rotulo)}</button>`;
+  const vlin = (forte, apoio, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span><b>${esc(forte)}</b>${apoio ? ` · ${esc(apoio)}` : ''}</span>${VAI}</button>`;
+  const consulta = (titulo, lado, dentro) => `<section class="d3m-cons"><div class="d3m-cons-cab"><b>${esc(titulo)}</b><span>${esc(lado)}</span></div>${dentro}</section>`;
+  // Os clientes ativos que não têm a próxima reunião marcada (só depois de ler as reuniões de todos).
+  const semProxima = (n) => clientesAtivos().filter((c) => !((dados[c.id]?.d?.reunioes) || []).some((r) => r.data > n.hoje));
+  // O cartão laranja, só com ação: demandas sugeridas esperando o ok, reunião feita sem ata e, sem nada disso, os clientes
+  // sem a próxima reunião. Sem ação, a frase calma no vidro (acabamento 15/11).
+  function laranjaDaTela(n) {
+    const laranja = (rotulo, num, frase, apoio, botoes) => `<section class="d3-acao d3m-laranja rv2-laranja" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">M</span>Mateus · ${esc(rotulo)}</span>
+      <span class="d3m-lar-txt"><b class="d3m-lar-num">${num}</b><span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}<span class="d3m-lar-bts">${botoes}</span></span></section>`;
+    const calmo = (frase, texto) => `<section class="rv2-calmo" aria-label="Leitura do Mateus"><b>${frase}</b><span>${texto}</span></section>`;
+    if (tela.lendo && !n.lista.length) return calmo('Lendo as reuniões…', 'Uma leitura por cliente ativo.');
+    if (n.sugeridas) return laranja('do VYBES', n.sugeridas, n.sugeridas === 1 ? 'demanda sugerida espera seu ok' : 'demandas sugeridas esperam seu ok',
+      `Saíram ${n.comSugestao.length === 1 ? `da reunião de ${esc(n.comSugestao[0].nome)}` : `de ${n.comSugestao.length} reuniões`}. Confira antes de virar demanda.`,
+      btnLar(n.sugeridas === 1 ? 'Ver a demanda' : `Ver as ${n.sugeridas}`, 'data-v2r-acao="demandas"'));
+    if (n.semAta.length) { const antiga = n.semAta[0], dias = diasEntre(antiga.r.data, n.hoje);
+      return laranja('falta a ata', n.semAta.length, n.semAta.length === 1 ? 'reunião feita sem ata' : 'reuniões feitas sem ata',
+        `A mais antiga é a de ${esc(antiga.nome)}, ${dias ? `há ${plural(dias, 'dia', 'dias')}` : 'de hoje'}.${antiga.r.sugestoes?.resumo ? ' O resumo do VYBES está pronto.' : ''}`,
+        btnLar(n.semAta.length === 1 ? 'Ver a reunião' : `Ver as ${n.semAta.length}`, 'data-v2r-acao="filtro" data-valor="sem-ata"') + btnLar('Nova reunião', 'data-v2r-acao="nova"', true)); }
+    if (!n.lista.length) return laranja('nenhuma reunião', 0, 'reuniões registradas', 'Marque a primeira: a pauta vem sugerida com o que o sistema sabe do cliente.', btnLar('Marcar a primeira', 'data-v2r-acao="nova"'));
+    const faltam = tela.lendo ? [] : semProxima(n);
+    if (faltam.length) { const total = clientesAtivos().length, mes = n.hoje.slice(0, 7), feitas = n.lista.filter((x) => String(x.r.data).startsWith(mes) && x.r.data <= n.hoje);
+      return laranja('falta marcar', faltam.length, faltam.length === 1 ? 'cliente sem a próxima reunião' : 'clientes sem a próxima reunião',
+        `${feitas.length && feitas.every((x) => x.r.ata) ? `As ${feitas.length} de ${MESES[Number(mes.slice(5, 7)) - 1]} têm ata. ` : ''}${total - faltam.length ? `${plural(total - faltam.length, 'cliente já tem', 'clientes já têm')} a próxima marcada.` : 'Nenhum cliente tem a próxima marcada.'}`,
+        btnLar('Nova reunião', 'data-v2r-acao="nova"') + btnLar(faltam.length === 1 ? `Ver ${faltam[0].nome}` : `Ver os ${faltam.length}`, 'data-v2r-acao="sem-proxima" aria-haspopup="listbox"', true)); }
+    return calmo('Todas as feitas têm ata e todo cliente tem a próxima.', `${plural(n.daSemana.length, 'reunião', 'reuniões')} esta semana.`);
   }
-  // Direção 3: quatro números; "No mês" traz a linha das reuniões dos últimos meses.
-  function kpisDaTela(n) {
-    const kpi = (titulo, valor, sub, ruim, atraso, linha = '') => `<div class="v2r-card v2r-kpi d3-num${ruim ? ' r' : ''}"><small class="d3-num-rot">${titulo}</small><b class="d3-num-v"${atraso ? ` style="animation-delay:${atraso}"` : ''}>${valor}</b>${linha}<small class="d3c-sub">${sub}</small></div>`;
-    const antiga = n.semAta[0];
+  // A coluna do vidro: o laranja, o que uma reunião guarda, os tipos do mês (o clique filtra a folha) e "Abrir".
+  function ladoDaTela(n) {
     const mes = n.hoje.slice(0, 7), doMes = n.lista.filter((x) => String(x.r.data).startsWith(mes));
-    const meses = []; for (let i = 5; i >= 0; i -= 1) { const d = new Date(`${mes}-15T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - i); meses.push(d.toISOString().slice(0, 7)); }
-    const serie = meses.map((m) => n.lista.filter((x) => String(x.r.data).startsWith(m)).length);
-    const linha = typeof d3LinhaSvg === 'function' && serie.some(Boolean) ? d3LinhaSvg(serie, { largura: 90, altura: 28, rotulo: `Reuniões por mês: ${serie.join(', ')}` }) : '';
-    return kpi('Esta semana', n.daSemana.length, n.proxima ? `próxima · ${quandoTexto(n.proxima.r.data, n.hoje)}` : 'nenhuma marcada')
-      + kpi('Sem ata', n.semAta.length, antiga ? `a mais antiga · ${diasEntre(antiga.r.data, n.hoje) ? plural(diasEntre(antiga.r.data, n.hoje), 'dia', 'dias') : 'hoje'}` : 'todas com ata', n.semAta.length > 0, '.12s')
-      + kpi('Demandas sugeridas', n.sugeridas, n.sugeridas ? 'esperando ok' : 'nenhuma esperando', false, '.24s')
-      + kpi('No mês', doMes.length, `${doMes.filter((x) => x.r.ata).length} com ata`, false, '.36s', linha);
+    const tipos = Object.entries(TIPOS_PADRAO).map(([k, rotulo]) => [k, rotulo, doMes.filter((x) => x.r.tipo === k).length]);
+    const maior = Math.max(1, ...tipos.map(([, , q]) => q));
+    const barras = `<div class="rv2-barras" role="group" aria-label="Filtrar por tipo">${tipos.map(([k, rotulo, q]) => `<button type="button" class="rv2-barra-lin" data-v2r-acao="tipo" data-valor="${esc(k)}" aria-pressed="${tela.tipo === k}"><span>${esc(rotulo)}</span><span class="d3m-vbarra"><i style="--v:${Math.round((q / maior) * 100)}%"></i></span><b>${q}</b></button>`).join('')}</div>`;
+    const ir = typeof window.mundoVoxel?.irPara === 'function';
+    const abrir = [ir ? vlin('Agenda', 'reuniões e captações', 'data-v2r-acao="ir" data-valor="agenda"') : '', ir ? vlin('Onboarding', 'kickoffs e questionário', 'data-v2r-acao="ir" data-valor="onboarding"') : '',
+      tela.tipo ? vlin('Todos os tipos', 'tirar o filtro', 'data-v2r-acao="tipo" data-valor=""') : ''].join('');
+    return `${laranjaDaTela(n)}${consulta('Uma reunião guarda', '', '<p class="rv2-nota">Pauta, ata e a gravação do áudio. O VYBES transcreve e sugere as demandas que saíram dela.</p>')}
+      ${consulta('Tipos', MESES[Number(mes.slice(5, 7)) - 1], barras)}${abrir ? consulta('Abrir', '', abrir) : ''}`;
   }
-  function pedeAcaoDaTela(n) {
-    const tipoCurto = (r) => String(TIPOS_PADRAO[r.tipo] || 'reunião').split(/\s+/)[0].toLowerCase();
-    const semAta = (x) => { const r = x.r, dias = diasEntre(r.data, n.hoje), resumo = Boolean(r.sugestoes?.resumo);
-      const principal = !x.pode ? '' : resumo
-        ? `<button type="button" class="v2r-btn s" data-v2r-acao="resumo" data-cli="${esc(x.id)}" data-reu="${esc(r.id)}" title="Abre a ata já preenchida com o resumo, para conferir e salvar">Usar o resumo</button>`
-        : `<button type="button" class="v2r-btn s" data-v2r-acao="ata" data-cli="${esc(x.id)}" data-reu="${esc(r.id)}">Escrever a ata</button>`;
-      return `<div class="v2-abre v2r-abre" aria-expanded="false"><div class="v2r-lin"><span class="v2r-pill r">Sem ata</span>
-          <p><button type="button" class="v2r-abrir" data-v2r-acao="linha" aria-expanded="false">${cliHtml(x.nome)} · ${esc(tipoCurto(r))} de ${diaMes(r.data)}${r.gravacao ? (r.transcricao ? ', gravada e transcrita' : ', gravada') : ''}</button></p>
-          ${avsHtml(r.participantes)}${principal}</div>
-        <div class="v2-mais"><div><div class="v2r-dt">
-          <p><b>Pauta</b> · ${r.pauta ? esc(String(r.pauta).split('\n')[0].replace(/^-\s*/, '').slice(0, 110)) : 'sem pauta escrita'}</p>
-          <p><b>Ata</b> · em branco ${dias ? `há ${plural(dias, 'dia', 'dias')}` : 'desde hoje'}${resumo ? '; o resumo do VYBES está pronto' : r.gravacao ? '; o resumo ainda não chegou' : ''}</p>
-          <p><b>Gravação</b> · ${r.gravacao ? `na pasta Reuniões do cliente no Drive${r.transcricao ? ', já transcrita' : ''}` : 'não foi gravada'}</p>
-          ${r.gravacao || r.transcricao ? `<div class="v2r-botoes">${r.gravacao ? `<a class="v2r-btn s" href="https://drive.google.com/file/d/${esc(r.gravacao.id)}/view" target="_blank" rel="noopener">Ouvir a gravação</a>` : ''}${
-            r.transcricao ? `<button type="button" class="v2r-btn s" data-v2r-acao="ficha" data-cli="${esc(x.id)}">Ler a transcrição</button>` : ''}</div>` : ''}
-        </div></div></div></div>`; };
-    const doVybes = (x) => { const q = pendentesDe(x.r);
-      return `<div class="v2r-lin"><span class="v2r-pill v">Do VYBES</span><p>${cliHtml(x.nome)} · ${q === 1 ? '1 demanda sugerida' : `${q} demandas sugeridas`} na reunião de ${diaMes(x.r.data)}</p>
-        <button type="button" class="v2r-btn s" data-v2r-acao="ficha" data-cli="${esc(x.id)}" data-v2r-conferir>Conferir</button></div>`; };
-    const linhas = [...n.semAta.slice(0, 3).map(semAta), ...n.comSugestao.slice(0, 2).map(doVybes)];
-    const total = n.semAta.length + n.comSugestao.length;
-    const mais = n.semAta.length > 3 ? `<p class="v2r-pe">+ ${n.semAta.length - 3} sem ata · <button type="button" class="v2r-link" data-v2r-acao="filtro" data-valor="sem-ata">mostrar</button></p>` : '';
-    return `<div class="v2r-card-topo"><h3>Pede ação</h3><span class="v2r-sub">${total ? `${total} · na ordem` : 'nada agora'}</span></div>
-      ${linhas.join('') || `<p class="v2r-vazio">${tela.lendo ? 'Lendo as reuniões…' : 'Nenhuma reunião pede ação agora.'}</p>`}${mais}`;
-  }
+  // A folha: cabeçalho com as fichas, as colunas, as linhas (marcadas primeiro, a mais próxima no alto; depois as feitas,
+  // a mais recente no alto) e o pé "De olho".
   function linhasDaTela(n) {
-    if (!n.lista.length) return tela.lendo ? '<p class="v2r-vazio">Lendo as reuniões…</p>'
-      : `<p class="v2r-vazio">Nenhuma reunião ainda.</p><p class="v2r-botoes"><button type="button" class="v2r-btn s" data-v2r-acao="nova">Marcar a primeira</button></p>`;
+    if (!n.lista.length) return tela.lendo ? '<div class="fv2-vazio"><b>Lendo as reuniões…</b></div>'
+      : `<div class="fv2-vazio"><b>Nenhuma reunião ainda.</b><span>A pauta vem sugerida com o que o sistema sabe do cliente; a gravação vai para o Drive.</span>${btnR('Marcar a primeira', 'data-v2r-acao="nova"')}</div>`;
     const termo = tela.busca.trim().toLowerCase();
     const passa = (x) => (!termo || `${x.nome} ${x.r.titulo}`.toLowerCase().includes(termo)) && (!tela.tipo || x.r.tipo === tela.tipo)
       && (tela.filtro === 'semana' ? x.r.data >= n.ini && x.r.data <= n.fim : tela.filtro === 'sem-ata' ? x.r.data <= n.hoje && !x.r.ata : true);
@@ -546,67 +549,97 @@
     const futuras = filtradas.filter((x) => x.r.data >= n.hoje).sort((a, b) => a.r.data.localeCompare(b.r.data));
     const passadas = filtradas.filter((x) => x.r.data < n.hoje).sort((a, b) => b.r.data.localeCompare(a.r.data));
     const ordem = [...futuras, ...passadas];
-    if (!ordem.length) return '<p class="v2r-vazio">Nenhuma reunião com esse filtro.</p>';
+    if (!ordem.length) return `<div class="fv2-vazio"><b>Nenhuma reunião com esse filtro.</b>${btnR('Ver todas', 'data-v2r-acao="filtro" data-valor="todas"')}</div>`;
     const corte = tela.inteira || termo ? ordem.length : Math.max(futuras.length, Math.min(NA_FRENTE, ordem.length));
-    const linha = (x) => { const r = x.r, futura = r.data >= n.hoje;
-      const pill = futura ? `<span class="v2r-pill b">${quandoTexto(r.data, n.hoje)}</span>` : r.ata ? '<span class="v2r-pill g">com ata</span>' : '<span class="v2r-pill r">sem ata</span>';
-      return `<div class="v2r-lin"><span class="v2r-sub v2r-dia">${diaMes(r.data)}</span><p>${cliHtml(x.nome)} · ${esc(r.titulo)}</p>${avsHtml(r.participantes)}${pill}
-        <button type="button" class="v2r-btn s" data-v2r-acao="${x.pode ? 'ata' : 'ficha'}" data-cli="${esc(x.id)}" data-reu="${esc(r.id)}" aria-label="Abrir a reunião ${esc(r.titulo)} de ${esc(x.nome)}">Abrir</button></div>`; };
-    const resto = ordem.length - corte;
-    return ordem.slice(0, corte).map(linha).join('')
-      + (resto > 0 ? `<p class="v2r-pe">+ ${plural(resto, 'reunião anterior', 'reuniões anteriores')} · <button type="button" class="v2r-link" data-v2r-acao="mostrar">mostrar</button></p>` : '');
+    const grupoDe = (x) => (x.r.data >= n.hoje ? (x.r.data <= n.fim ? 'Semana' : 'Depois') : 'Feitas');
+    let ultimo = '';
+    const linha = (x) => { const r = x.r, futura = r.data >= n.hoje, pend = pendentesDe(r), feitas = (r.sugestoes?.cadastradas || []).length, g = grupoDe(x), rot = g !== ultimo ? g : ''; ultimo = g;
+      const ata = futura ? `<span class="fv2-est">${r.pauta ? 'com pauta' : 'pauta sugerida'}</span>` : r.ata ? '<span class="fv2-est g"><i aria-hidden="true"></i>com ata</span>'
+        : `<span class="fv2-est r"><i aria-hidden="true"></i>sem ata${r.sugestoes?.resumo ? ' · resumo pronto' : ''}</span>`;
+      const demanda = pend ? `<button type="button" class="rv2-dem-b" data-v2r-acao="ficha" data-cli="${esc(x.id)}" data-v2r-conferir>${pend === 1 ? '1 sugerida' : `${pend} sugeridas`}</button>`
+        : `<span class="rv2-dem-t">${futura ? '' : feitas ? plural(feitas, 'demanda', 'demandas') : 'nenhuma'}</span>`;
+      const principal = !x.pode ? btnR('Abrir na ficha', `data-v2r-acao="ficha" data-cli="${esc(x.id)}"`)
+        : !futura && !r.ata && r.sugestoes?.resumo ? `<button type="button" class="rv2-btn" data-v2r-acao="resumo" data-cli="${esc(x.id)}" data-reu="${esc(r.id)}" title="Abre a ata já preenchida com o resumo, para conferir e salvar">Usar o resumo</button>`
+        : btnR(!futura && !r.ata ? 'Escrever a ata' : 'Abrir a reunião', `data-v2r-acao="ata" data-cli="${esc(x.id)}" data-reu="${esc(r.id)}"`);
+      const dias = diasEntre(r.data, n.hoje);
+      return `<div class="v2-abre rv2-linha" aria-expanded="false" data-reu-linha="${esc(r.id)}"><div class="rv2-lin">
+          <button type="button" class="rv2-abrir" data-v2r-acao="linha" aria-expanded="false" aria-label="${esc(`${x.nome}: ${r.titulo || 'reunião'}, ${quandoLonga(r.data, n.hoje)}`)}">
+            <span class="rv2-rot${g === 'Semana' ? ' a' : ''}">${rot}</span>${fotoCli(x.nome)}<span class="rv2-nm"><b>${esc(x.nome)}</b> <span>· ${esc(r.titulo || TIPOS_PADRAO[r.tipo] || 'Reunião')}</span></span>
+            <span class="rv2-quando">${esc(quandoLonga(r.data, n.hoje))}</span><span class="rv2-quem">${avsHtml(r.participantes)}</span>${ata}</button>
+          <span class="rv2-dem">${demanda}</span><span class="rv2-seta" aria-hidden="true">${VAI}</span></div>
+        <div class="v2-mais"><div><div class="rv2-det">
+          <p><b>Pauta</b> · ${r.pauta ? esc(String(r.pauta).split('\n').map((l) => l.replace(/^\s*[-•]\s*/, '').trim()).filter(Boolean).join(' · ').slice(0, 220)) : futura ? 'a pauta sugerida vem pronta ao abrir' : 'sem pauta escrita'}</p>
+          <p><b>Ata</b> · ${r.ata ? esc(String(r.ata).slice(0, 220)) : futura ? 'depois da reunião' : `em branco ${dias ? `há ${plural(dias, 'dia', 'dias')}` : 'desde hoje'}${r.sugestoes?.resumo ? '; o resumo do VYBES está pronto' : r.gravacao ? '; o resumo ainda não chegou' : ''}`}</p>
+          <p><b>Gravação</b> · ${r.gravacao ? `na pasta Reuniões do cliente no Drive${r.transcricao ? ', já transcrita' : ''}` : 'não foi gravada'}</p>
+          <div class="rv2-botoes">${principal}${r.gravacao ? `<a class="rv2-btn" href="https://drive.google.com/file/d/${esc(r.gravacao.id)}/view" target="_blank" rel="noopener">Ouvir a gravação</a>` : ''}${
+            r.transcricao ? btnR('Ler a transcrição', `data-v2r-acao="ficha" data-cli="${esc(x.id)}"`) : ''}${pend ? btnR(`Conferir ${pend === 1 ? 'a demanda' : `as ${pend} demandas`}`, `data-v2r-acao="ficha" data-cli="${esc(x.id)}"`) : ''}</div>
+        </div></div></div></div>`; };
+    return ordem.slice(0, corte).map(linha).join('');
+  }
+  function olhoDaTela(n, resto) {
+    const mes = n.hoje.slice(0, 7), feitas = n.lista.filter((x) => String(x.r.data).startsWith(mes) && x.r.data <= n.hoje), semAta = feitas.filter((x) => !x.r.ata).length;
+    return `<span class="rv2-olho-rot">De olho</span>
+      <span class="rv2-olho-i"><b class="${feitas.length ? 'g' : ''}">${feitas.length}</b><small>${feitas.length === 1 ? 'feita' : 'feitas'} em ${MESES[Number(mes.slice(5, 7)) - 1]}${feitas.length ? (semAta ? `, ${semAta} sem ata` : feitas.length === 1 ? ', com ata' : ', todas com ata') : ''}</small></span>
+      ${n.sugeridas ? `<button type="button" class="rv2-olho-i" data-v2r-acao="demandas"><b class="r">${n.sugeridas}</b><small>${n.sugeridas === 1 ? 'demanda sugerida esperando' : 'demandas sugeridas esperando'}</small></button>` : '<span class="rv2-olho-i"><b>0</b><small>demandas sugeridas esperando</small></span>'}
+      ${resto > 0 ? `<button type="button" class="rv2-olho-i" data-v2r-acao="mostrar"><b>+ ${resto}</b><small>${resto === 1 ? 'reunião anterior' : 'reuniões anteriores'}</small></button>` : ''}`;
   }
   function formDaTela() {
     const opcoesTipo = Object.entries(TIPOS_PADRAO).map(([k, v]) => `<option value="${k}" ${k === 'rotina' ? 'selected' : ''}>${esc(v)}</option>`).join('');
-    return `<div class="v2r-card-topo"><h3>Nova reunião</h3><button type="button" class="v2r-btn s" data-v2r-acao="fechar-form" aria-label="Fechar Nova reunião">Fechar</button></div>
-      <div class="v2r-g2"><div class="v2r-cp"><label for="reu-cliente">Cliente</label>
-          <select class="v2r-inp" id="reu-cliente" onchange="trocarClienteDaReuniao(this.value)" required><option value="">Escolha o cliente</option>${clientesAtivos().map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></div>
-        <div class="v2r-cp"><label for="reu-tipo">Tipo</label><select class="v2r-inp" id="reu-tipo">${opcoesTipo}</select></div></div>
-      <div class="v2r-g2 v2r-g-data"><div class="v2r-cp"><label for="reu-data">Data</label><input class="v2r-inp" id="reu-data" type="date" value="${esc(hojeIso())}"></div>
-        <div class="v2r-cp"><label for="reu-titulo">Título</label><input class="v2r-inp" id="reu-titulo" type="text" maxlength="160" placeholder="Ex.: Entrada da Lil"></div></div>
-      <div class="v2r-cp"><label for="reu-participantes">Participantes</label>
-        <div class="v2r-inp v2r-pt"><span class="v2r-avs" data-v2r-avs aria-hidden="true"></span><input class="v2r-nu" id="reu-participantes" type="text" maxlength="600" placeholder="Quem estava" autocomplete="off"></div></div>
-      <div class="v2r-cp"><label for="reu-pauta">Pauta <span class="d3r-sugerida" title="Sugerida com o que o sistema sabe do cliente. Edite à vontade.">sugerida</span></label><textarea class="v2r-inp" id="reu-pauta" rows="3"></textarea></div>
-      <div class="v2r-cp v2r-cp-ata"><label for="reu-ata">Ata</label><textarea class="v2r-inp" id="reu-ata" rows="3" placeholder="O que foi falado, o que ficou decidido, próximos passos e responsáveis"></textarea></div>
-      <p class="ciclo-erro" id="reu-erro" role="alert"></p>
-      <div class="v2r-form-pe"><button type="button" class="v2r-btn" data-v2r-acao="fechar-form">Cancelar</button>
-        <button type="button" class="v2r-btn d3r-gravar" ${gravando ? 'disabled' : ''} title="O áudio vai para a pasta Reuniões do cliente no Drive; o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha." onclick="salvarReuniao('', '', true)">Salvar e gravar</button>
-        <button type="button" class="v2r-btn k" onclick="salvarReuniao('', '')">Salvar</button></div>`;
+    return `<div class="rv2-cab"><h3>Nova reunião</h3><button type="button" class="rv2-btn" data-v2r-acao="fechar-form" aria-label="Fechar Nova reunião">Fechar</button></div>
+      <div class="rv2-campos"><div class="rv2-cp"><label for="reu-cliente">Cliente</label>
+          <select class="rv2-inp" id="reu-cliente" onchange="trocarClienteDaReuniao(this.value)" required><option value="">Escolha o cliente</option>${clientesAtivos().map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}</select></div>
+        <div class="rv2-g2"><div class="rv2-cp"><label for="reu-tipo">Tipo</label><select class="rv2-inp" id="reu-tipo">${opcoesTipo}</select></div>
+          <div class="rv2-cp"><label for="reu-data">Data</label><input class="rv2-inp" id="reu-data" type="date" value="${esc(hojeIso())}"></div></div>
+        <div class="rv2-cp"><label for="reu-titulo">Título</label><input class="rv2-inp" id="reu-titulo" type="text" maxlength="160" placeholder="Ex.: Entrada da Lil"></div>
+        <div class="rv2-cp"><label for="reu-participantes">Participantes</label>
+          <div class="rv2-inp rv2-pt"><span class="v2r-avs" data-v2r-avs aria-hidden="true"></span><input class="rv2-nu" id="reu-participantes" type="text" maxlength="600" placeholder="Quem estava" autocomplete="off"></div></div>
+        <div class="rv2-cp"><label for="reu-pauta">Pauta <span class="rv2-sugerida" title="Sugerida com o que o sistema sabe do cliente. Edite à vontade.">sugerida</span></label><textarea class="rv2-inp" id="reu-pauta" rows="3"></textarea></div>
+        <div class="rv2-cp"><label for="reu-ata">Ata</label><textarea class="rv2-inp" id="reu-ata" rows="3" placeholder="O que foi falado, o que ficou decidido, próximos passos e responsáveis"></textarea></div>
+        <p class="ciclo-erro" id="reu-erro" role="alert"></p></div>
+      <div class="rv2-form-pe"><button type="button" class="rv2-btn" data-v2r-acao="fechar-form">Cancelar</button>
+        <button type="button" class="rv2-btn" ${gravando ? 'disabled' : ''} title="O áudio vai para a pasta Reuniões do cliente no Drive; o VYBES devolve a transcrição, o resumo e as demandas sugeridas na ficha." onclick="salvarReuniao('', '', true)">Salvar e gravar</button>
+        <button type="button" class="rv2-btn k" onclick="salvarReuniao('', '')">Salvar</button></div>`;
   }
   function pintarForm() {
     const alvo = tela.janela?.querySelector('[data-v2r="form"]');
     if (!alvo) return;
     alvo.hidden = !tela.form;
     alvo.innerHTML = tela.form ? formDaTela() : '';
-    tela.janela.querySelector('.v2r-dupla')?.classList.toggle('so-lista', !tela.form);
+    tela.janela.querySelector('.rv2-duas')?.classList.toggle('com-form', Boolean(tela.form));
   }
   function pintarTela() {
     if (!tela.janela) return;
     cancelAnimationFrame(tela.quadro);
     tela.quadro = requestAnimationFrame(() => {
       const j = tela.janela; if (!j) return;
-      const n = numerosDaTela();
-      const abertas = new Set([...j.querySelectorAll('[data-v2r="pede"] .v2-abre[aria-expanded="true"] [data-reu]')].map((b) => b.dataset.reu));
-      j.querySelector('[data-v2r="fala"]').innerHTML = falaDaTela(n);
-      // Sem reunião, "Marcar a primeira" do bloco é a ação; o "Nova reunião" do topo some para não repetir (acabamento 15/11).
-      const novaTopo = j.querySelector('.v2r-topo [data-v2r-acao="nova"]'); if (novaTopo) { novaTopo.hidden = !n.lista.length && !tela.lendo; novaTopo.style.display = novaTopo.hidden ? 'none' : ''; }
-      const kpis = j.querySelector('[data-v2r="kpis"]'), antes = kpis.dataset.v, agora = `${n.daSemana.length}|${n.semAta.length}|${n.sugeridas}|${n.proxima?.r.data || ''}|${n.lista.length}`;
-      if (antes !== agora) { kpis.dataset.v = agora; kpis.innerHTML = kpisDaTela(n); }
-      const pedeHtml = pedeAcaoDaTela(n), caixaPede = j.querySelector('[data-v2r="pede"]');
-      caixaPede.innerHTML = pedeHtml;
-      // Vazio é uma frase (a do Mateus, acima); o cartão "Pede ação" sem nada dentro some (acabamento 15/11).
-      const cartaoPede = caixaPede.closest?.('section'); if (cartaoPede) cartaoPede.style.display = /class="v2r-vazio"/.test(pedeHtml) && !tela.lendo ? 'none' : '';
-      j.querySelectorAll('[data-v2r="pede"] .v2-abre').forEach((b) => { if (abertas.has(b.querySelector('[data-reu]')?.dataset.reu)) { b.setAttribute('aria-expanded', 'true'); b.querySelector('.v2r-abrir')?.setAttribute('aria-expanded', 'true'); } });
-      j.querySelector('[data-v2r="linhas"]').innerHTML = linhasDaTela(n);
-      j.querySelector('.v2r-filtros').hidden = !n.lista.length;
-      j.querySelectorAll('.v2r-filtros [data-valor]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.valor === tela.filtro)));
-      const bf = j.querySelector('[data-v2r-acao="tipos"]');
-      if (bf) { bf.textContent = tela.tipo ? `Filtros: ${String(TIPOS_PADRAO[tela.tipo] || tela.tipo).split(/\s+/)[0]}` : 'Filtros'; bf.setAttribute('aria-pressed', String(Boolean(tela.tipo))); }
+      const n = numerosDaTela(), mes = n.hoje.slice(0, 7);
+      const abertas = new Set([...j.querySelectorAll('.rv2-linha[aria-expanded="true"]')].map((b) => b.dataset.reuLinha));
+      const faltam = tela.lendo ? null : semProxima(n);
+      j.querySelector('[data-v2r="sub"]').textContent = [new Date(`${n.hoje}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).replace(/-feira/, ''), `${n.daSemana.length} ${n.daSemana.length === 1 ? 'marcada' : 'marcadas'} na semana`,
+        faltam ? `${plural(faltam.length, 'cliente', 'clientes')} sem a próxima` : ''].filter(Boolean).join(' · ');
+      const feitasMes = n.lista.filter((x) => String(x.r.data).startsWith(mes) && x.r.data <= n.hoje).length;
+      j.querySelector('[data-v2r="titulo-lista"]').innerHTML = `Reuniões<span> · ${n.daSemana.length} nesta semana, ${feitasMes} ${feitasMes === 1 ? 'feita' : 'feitas'} em ${MESES[Number(mes.slice(5, 7)) - 1]}</span>`;
+      const conta = { todas: n.lista.length, semana: n.daSemana.length, 'sem-ata': n.semAta.length };
+      j.querySelector('[data-v2r="chips"]').innerHTML = n.lista.length ? [['todas', 'Todas'], ['semana', 'Esta semana'], ['sem-ata', 'Sem ata']].map(([k, r]) =>
+        `<button type="button" class="rv2-chip" data-v2r-acao="filtro" data-valor="${k}" aria-pressed="${tela.filtro === k}">${r}<span>${conta[k]}</span></button>`).join('') : '';
+      const html = linhasDaTela(n), alvo = j.querySelector('[data-v2r="linhas"]');
+      alvo.innerHTML = html;
+      j.querySelectorAll('.rv2-linha').forEach((b) => { if (abertas.has(b.dataset.reuLinha)) { b.setAttribute('aria-expanded', 'true'); b.querySelector('.rv2-abrir')?.setAttribute('aria-expanded', 'true'); } });
+      j.querySelector('.rv2-th').hidden = !alvo.querySelector('.rv2-linha');
+      const termo = tela.busca.trim(), mostradas = alvo.querySelectorAll('.rv2-linha').length;
+      const filtradas = n.lista.filter((x) => (!tela.tipo || x.r.tipo === tela.tipo) && (tela.filtro === 'semana' ? x.r.data >= n.ini && x.r.data <= n.fim : tela.filtro === 'sem-ata' ? x.r.data <= n.hoje && !x.r.ata : true)).length;
+      j.querySelector('[data-v2r="olho"]').innerHTML = olhoDaTela(n, termo || tela.inteira ? 0 : Math.max(0, filtradas - mostradas));
+      j.querySelector('[data-v2r="lado"]').innerHTML = ladoDaTela(n);
+      // Sem reunião, "Marcar a primeira" do laranja é a ação; o "Nova reunião" do alto some para não repetir (acabamento 15/11).
+      const novaTopo = j.querySelector('.rv2-topo [data-v2r-acao="nova"]'); if (novaTopo) novaTopo.hidden = !n.lista.length && !tela.lendo;
+      const bf = j.querySelector('.rv2-topo [data-v2r-acao="tipos"]');
+      if (bf) { bf.setAttribute('aria-pressed', String(Boolean(tela.tipo))); bf.title = tela.tipo ? `Tipo: ${TIPOS_PADRAO[tela.tipo] || tela.tipo}` : 'Filtrar por tipo'; }
     });
   }
-  function abrirFormDaTela() {
+  function abrirFormDaTela(clienteId = '') {
     if (!tela.form) { tela.form = true; pintarForm(); }
     const campo = tela.janela?.querySelector('#reu-cliente');
+    if (campo && clienteId) { campo.value = String(clienteId); window.trocarClienteDaReuniao?.(String(clienteId)); }
     campo?.scrollIntoView?.({ block: 'nearest' });
     campo?.focus();
   }
@@ -624,10 +657,12 @@
     if (acao === 'nova') return abrirFormDaTela();
     if (acao === 'fechar-form') { tela.form = false; pintarForm(); tela.janela.querySelector('[data-v2r-acao="nova"]')?.focus(); return; }
     if (acao === 'filtro') { tela.filtro = d.valor; tela.inteira = false; return pintarTela(); }
+    if (acao === 'tipo') { tela.tipo = tela.tipo === d.valor ? '' : d.valor; tela.inteira = false; return pintarTela(); }
     if (acao === 'mostrar') { tela.inteira = true; return pintarTela(); }
     if (acao === 'linha') { const bloco = b.closest('.v2-abre'), abre = bloco.getAttribute('aria-expanded') !== 'true';
       bloco.setAttribute('aria-expanded', String(abre)); b.setAttribute('aria-expanded', String(abre)); return; }
     if (acao === 'ficha') return irParaFicha(d.cli);
+    if (acao === 'ir') { fecharTela({ foco: false }); return window.mundoVoxel?.irPara?.(d.valor); }
     if (acao === 'demandas') { const alvos = [...tela.janela.querySelectorAll('[data-v2r-conferir]')];
       if (alvos.length === 1) return irParaFicha(alvos[0].dataset.cli);
       alvos[0]?.scrollIntoView?.({ block: 'center' }); alvos[0]?.focus(); return; }
@@ -636,12 +671,15 @@
       const s = r?.sugestoes;
       const texto = acao === 'resumo' && s ? [s.resumo, (s.decisoes || []).length ? `Decisões:\n${s.decisoes.map((x) => `- ${x}`).join('\n')}` : ''].filter(Boolean).join('\n\n') : '';
       return window.abrirReuniao(nome, d.reu, texto ? { ata: texto } : {}); }
+    // Os clientes sem a próxima reunião: a lista do painel; escolher um abre "Nova reunião" com ele.
+    if (acao === 'sem-proxima' && typeof abrirListaDoPainel === 'function') { const n = numerosDaTela();
+      return abrirListaDoPainel(b, { titulo: 'Sem a próxima reunião', atual: '', opcoes: semProxima(n).map((c) => ({ valor: String(c.id), rotulo: c.nome })), aoEscolher: (valor) => abrirFormDaTela(valor) }); }
     if (acao === 'tipos' && typeof abrirListaDoPainel === 'function') return abrirListaDoPainel(b, { titulo: 'Filtrar por tipo', atual: tela.tipo,
       opcoes: [{ valor: '', rotulo: 'Todos os tipos' }, ...Object.entries(TIPOS_PADRAO).map(([valor, rotulo]) => ({ valor, rotulo }))],
       aoEscolher: (valor) => { tela.tipo = valor; tela.inteira = false; pintarTela(); } });
   }
   function aoDigitarNaTela(e) {
-    if (e.target.matches?.('[data-v2r-busca]')) { tela.busca = e.target.value; pintarTela(); }
+    if (e.target.matches?.('[data-v2r-busca]')) { tela.busca = e.target.value; e.target.classList.toggle('tem', Boolean(tela.busca)); pintarTela(); }
     if (e.target.id === 'reu-participantes') { const alvo = tela.janela?.querySelector('[data-v2r-avs]');
       if (alvo) alvo.innerHTML = pessoasDe(e.target.value).slice(0, 4).map((p) => `<span class="v2r-av v2-pop">${esc(iniciais(p))}</span>`).join(''); }
   }
@@ -660,33 +698,30 @@
   function abrirTela() {
     if (!tela.raiz) {
       tela.antes = document.activeElement || null;
-      tela.form = !window.matchMedia?.('(max-width: 720px)').matches;
+      // Prancha V2: a folha das reuniões ocupa a tela; "Nova reunião" abre o formulário no vidro.
+      tela.form = false;
       Object.assign(tela, { filtro: 'todas', tipo: '', busca: '', inteira: false });
       const raiz = document.createElement('div'), janela = document.createElement('section');
       raiz.className = 'vc-camada v2r-camada';
       janela.id = 'vv-reunioes';
-      janela.className = 'vc-janela';
+      janela.className = 'vc-janela rv2-janela';
       janela.setAttribute('role', 'dialog');
       janela.setAttribute('aria-modal', 'true');
       janela.setAttribute('aria-labelledby', 'v2r-titulo');
-      // Direção 3: a data no título, "Nova reunião" em botão branco, Pede ação e a lista em cartões separados.
-      const diaHoje = new Date(`${hojeIso()}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(/-feira/, '').replace(/\.$/, '').replace(' de ', ' ');
-      janela.innerHTML = `<div class="v2r d3r">
-        <div class="v2r-topo"><h2 id="v2r-titulo">Reuniões</h2><span class="d3c-meta">${esc(diaHoje)}</span><button type="button" class="v2r-btn p" data-v2r-acao="nova">Nova reunião</button>
-          <button type="button" class="v2r-x" data-v2r-acao="fechar" aria-label="Fechar" title="Fechar (Esc)">${XIS}</button></div>
-        <div class="v2r-corpo">
-          <div class="v2r-fala-d3" data-v2r="fala" aria-label="Leitura do Mateus"></div>
-          <div class="v2r-kpis" data-v2r="kpis"></div>
-          <div class="v2r-dupla">
-            <div class="v2r-col"><section class="v2r-card v2r-pede" aria-label="Pede ação"><div data-v2r="pede"></div></section>
-            <section class="v2r-card v2r-lista" aria-label="Reuniões">
-              <div class="v2r-filtros" hidden><label for="v2r-busca" class="v2r-oculto">Buscar reunião por cliente ou título</label>
-                <input id="v2r-busca" class="v2r-busca" type="search" data-v2r-busca placeholder="Buscar reunião" autocomplete="off">
-                <button type="button" class="v2r-chip" data-v2r-acao="filtro" data-valor="todas" aria-pressed="true">Todas</button><button type="button" class="v2r-chip" data-v2r-acao="filtro" data-valor="semana" aria-pressed="false">Esta semana</button><button type="button" class="v2r-chip" data-v2r-acao="filtro" data-valor="sem-ata" aria-pressed="false">Sem ata</button>
-                <button type="button" class="v2r-btn s" data-v2r-acao="tipos" aria-haspopup="listbox" aria-pressed="false">Filtros</button></div>
-              <div data-v2r="linhas"></div></section></div>
-            <section class="v2r-card v2r-form" data-v2r="form" aria-label="Nova reunião"></section>
-          </div>
+      janela.innerHTML = `<div class="rv2">
+        <div class="rv2-topo"><div class="rv2-tit"><h2 id="v2r-titulo">Reuniões</h2><span data-v2r="sub"></span></div>
+          <label class="rv2-busca"><span class="rv2-so-leitor">Buscar reunião por cliente ou título</span><input id="v2r-busca" type="search" data-v2r-busca placeholder="Buscar reunião" autocomplete="off"></label>
+          <button type="button" class="rv2-ico" data-v2r-acao="tipos" aria-haspopup="listbox" aria-pressed="false" aria-label="Filtrar por tipo" title="Filtrar por tipo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
+          <button type="button" class="rv2-novo" data-v2r-acao="nova"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova reunião</button>
+          <button type="button" class="rv2-x" data-v2r-acao="fechar" aria-label="Fechar" title="Fechar (Esc)">${XIS}</button></div>
+        <div class="fv2-duas rv2-duas">
+          <div class="fv2-col"><section class="fv2-folha rv2-lista" aria-label="Reuniões">
+            <div class="rv2-cab"><h3 data-v2r="titulo-lista">Reuniões</h3><span class="rv2-chips" role="group" aria-label="Filtrar as reuniões" data-v2r="chips"></span></div>
+            <div class="rv2-th" aria-hidden="true" hidden><span class="rv2-th-l"><span></span><span></span><span>Cliente e título</span><span>Quando</span><span>Quem</span><span>Ata</span></span><span>Viraram demanda</span><span></span></div>
+            <div class="rv2-linhas" data-v2r="linhas"></div>
+            <div class="rv2-olho" data-v2r="olho"></div></section></div>
+          <aside class="d3m-lado fv2-lado" aria-label="Consulta"><div class="rv2-lado" data-v2r="lado"></div>
+            <section class="fv2-folha rv2-form" data-v2r="form" aria-label="Nova reunião" hidden></section></aside>
         </div></div>`;
       raiz.append(janela);
       raiz.addEventListener('click', aoClicarNaTela);

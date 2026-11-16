@@ -14421,6 +14421,100 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba
   #vv-carteira .ob2 .ob2-linha > .v2-mais,#vv-carteira .ob2 .ob2-busca > input{transition:none}
 }
 
+/* 5 · Reuniões: a folha das reuniões, a linha que abre no lugar, a consulta no vidro e o formulário de Nova reunião. */
+.vc-camada > #vv-reunioes.rv2-janela{display:flex;flex-direction:column;overflow:hidden}
+#vv-reunioes .rv2{flex:1 1 auto}
+#vv-reunioes .rv2 .rv2-lista{flex:1 1 auto;container:rv2l / inline-size}
+#vv-reunioes .rv2 .rv2-linhas{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin}
+#vv-reunioes .rv2 :is(.rv2-th,.rv2-lin){display:grid;grid-template-columns:minmax(0,1fr) 110px 14px;align-items:center;gap:10px;padding:0 16px}
+#vv-reunioes .rv2 :is(.rv2-th-l,.rv2-abrir){display:grid;grid-template-columns:56px 28px minmax(0,1fr) 120px 64px 126px;align-items:center;gap:10px;min-width:0}
+#vv-reunioes .rv2 .rv2-th{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#vv-reunioes .rv2 .rv2-th[hidden]{display:none}
+#vv-reunioes .rv2 .rv2-th-l > span,#vv-reunioes .rv2 .rv2-th > span{overflow:hidden;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-linha{border-top:1px solid var(--d3-divisa)}
+#vv-reunioes .rv2 .rv2-linha:hover,#vv-reunioes .rv2 .rv2-linha[aria-expanded="true"]{background:var(--d3-veu)}
+#vv-reunioes .rv2 .rv2-abrir{appearance:none;height:44px;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-reunioes .rv2 .rv2-rot{overflow:hidden;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-rot.a{color:var(--d3-ambar)}
+#vv-reunioes .rv2 .rv2-nm{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-nm > b{font-weight:600}
+#vv-reunioes .rv2 .rv2-nm > span{color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-quando{overflow:hidden;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+#vv-reunioes .rv2 .rv2-quem{display:flex;min-width:0;overflow:hidden}
+#vv-reunioes .rv2 .v2r-avs{display:inline-flex}
+#vv-reunioes .rv2 .v2r-av{display:grid;place-items:center;width:22px;height:22px;margin:0 0 0 4px;border-radius:50%;background:var(--d3-veu-forte);box-shadow:none;color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif)}
+#vv-reunioes .rv2 .v2r-avs > .v2r-av,#vv-reunioes .rv2 .v2r-avs > .v2r-av + .v2r-av{margin:0 4px 0 0}
+#vv-reunioes .rv2 .rv2-dem{display:flex;min-width:0}
+#vv-reunioes .rv2 .rv2-dem-t{overflow:hidden;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-dem-b{appearance:none;height:24px;margin:0;padding:0 8px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-ajuste-veu);box-shadow:none;color:var(--d3-ajuste);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-reunioes .rv2 .rv2-dem-b:hover{box-shadow:inset 0 0 0 1px var(--d3-ajuste)}
+#vv-reunioes .rv2 .rv2-seta{display:grid;place-items:center;color:var(--d3-rotulo);pointer-events:none}
+#vv-reunioes .rv2 .rv2-seta > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+#vv-reunioes .rv2 .rv2-linha[aria-expanded="true"] .rv2-seta > svg{transform:rotate(90deg)}
+#vv-reunioes .rv2 .rv2-linha[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1),visibility 0s .28s}
+#vv-reunioes .rv2 .rv2-det{display:flex;flex-direction:column;gap:4px;padding:0 16px 12px 110px}
+#vv-reunioes .rv2 .rv2-det > p{margin:0;font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-det > p > b{font-weight:600;color:var(--d3-tinta)}
+#vv-reunioes .rv2 .rv2-botoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+/* A coluna do vidro: os tipos em barras (o clique filtra) e o formulário de Nova reunião numa folha. */
+#vv-reunioes .rv2 .rv2-lado{display:flex;flex-direction:column;gap:12px}
+#vv-reunioes .rv2 .rv2-duas.com-form .rv2-lado{display:none}
+#vv-reunioes .rv2 .rv2-barras{display:flex;flex-direction:column;padding:6px 2px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+#vv-reunioes .rv2 .rv2-barra-lin{appearance:none;display:grid;grid-template-columns:144px minmax(0,1fr) 24px;align-items:center;gap:10px;height:23px;margin:0;padding:0 10px;border:0;border-radius:6px;background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#vv-reunioes .rv2 .rv2-barra-lin:hover,#vv-reunioes .rv2 .rv2-barra-lin[aria-pressed="true"]{background:var(--d3-fume-veu-forte)}
+#vv-reunioes .rv2 .rv2-barra-lin[aria-pressed="true"] > span:first-child{font-weight:600}
+#vv-reunioes .rv2 .rv2-barra-lin > span:first-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vv-reunioes .rv2 .rv2-barra-lin > .d3m-vbarra > i{background:var(--d3-fume-texto)}
+#vv-reunioes .rv2 .rv2-barra-lin > b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+#vv-reunioes .rv2 .rv2-form{flex:none;padding:0 0 14px}
+#vv-reunioes .rv2 .rv2-form[hidden]{display:none}
+#vv-reunioes .rv2 .rv2-campos{display:flex;flex-direction:column;gap:10px;padding:0 14px}
+#vv-reunioes .rv2 .rv2-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#vv-reunioes .rv2 .rv2-cp{display:flex;flex-direction:column;gap:4px;min-width:0}
+#vv-reunioes .rv2 .rv2-cp > label{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-inp{width:100%;min-width:0;height:34px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-reunioes .rv2 textarea.rv2-inp{height:auto;min-height:64px;padding:8px 10px;resize:vertical;line-height:1.4}
+#vv-reunioes .rv2 .rv2-inp::placeholder,#vv-reunioes .rv2 .rv2-nu::placeholder{color:var(--d3-rotulo)}
+#vv-reunioes .rv2 .rv2-pt{display:flex;align-items:center;gap:6px}
+#vv-reunioes .rv2 .rv2-nu{flex:1 1 auto;min-width:0;height:100%;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:inherit}
+#vv-reunioes .rv2 .rv2-pt .v2r-avs:empty{display:none}
+#vv-reunioes .rv2 .rv2-sugerida{margin-left:4px;padding:1px 6px;border-radius:999px;background:var(--d3-agente-veu);color:var(--d3-agente-texto);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+#vv-reunioes .rv2 .rv2-form .ciclo-erro{margin:0;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-perigo)}
+#vv-reunioes .rv2 .rv2-form .ciclo-erro:empty{display:none}
+#vv-reunioes .rv2 .rv2-form-pe{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:12px 14px 0}
+#vv-reunioes .rv2 .rv2-topo [hidden]{display:none}
+@container rv2l (max-width:820px){
+  #vv-reunioes .rv2 :is(.rv2-th-l,.rv2-abrir){grid-template-columns:56px 28px minmax(0,1fr) 110px 120px}
+  #vv-reunioes .rv2 :is(.rv2-quem,.rv2-th-l > span:nth-child(5)){display:none}
+}
+
+/* 6 · Reuniões no celular: uma coluna que rola dentro da janela. */
+@media (max-width:720px){
+  .vc-camada > #vv-reunioes.rv2-janela{padding:12px;border-radius:0}
+  #vv-reunioes .rv2-topo{flex-wrap:wrap;row-gap:8px}
+  #vv-reunioes .rv2-tit{flex:1 1 calc(100% - 50px)}
+  #vv-reunioes .rv2-tit > span{white-space:normal}
+  #vv-reunioes .rv2-busca{flex:1 1 auto}
+  #vv-reunioes .rv2-busca > input,#vv-reunioes .rv2-busca > input:is(:focus,.tem){width:100%}
+  #vv-reunioes .rv2 .rv2-x{order:-1}
+  #vv-reunioes .rv2 .fv2-duas{flex:1 1 auto;display:flex;flex-direction:column;height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  #vv-reunioes .rv2 :is(.fv2-col,.fv2-lado,.rv2-lista){flex:none;overflow:visible}
+  #vv-reunioes .rv2 .rv2-linhas{overflow:visible}
+  #vv-reunioes .rv2 .rv2-duas.com-form .fv2-col{display:none}
+  #vv-reunioes .rv2 .rv2-cab{height:auto;min-height:44px;flex-wrap:wrap;padding:8px 14px}
+  #vv-reunioes .rv2 .rv2-cab > h3 > span{display:none}
+  #vv-reunioes .rv2 .rv2-th{display:none}
+  #vv-reunioes .rv2 .rv2-lin{grid-template-columns:minmax(0,1fr) auto;padding:0 14px}
+  #vv-reunioes .rv2 .rv2-abrir{grid-template-columns:28px minmax(0,1fr) auto;height:52px}
+  #vv-reunioes .rv2 .rv2-abrir > :is(.rv2-rot,.rv2-quem,.fv2-est){display:none}
+  #vv-reunioes .rv2 .rv2-seta{display:none}
+  #vv-reunioes .rv2 .rv2-det{padding:0 14px 12px}
+  #vv-reunioes .rv2 .rv2-olho{flex-wrap:wrap;gap:6px 0;padding:8px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  #vv-reunioes .rv2 .rv2-linha > .v2-mais,#vv-reunioes .rv2 .rv2-seta > svg,#vv-reunioes .rv2 .rv2-busca > input{transition:none}
+}
+
 /* ===== padrao-v2/zm-c-agenda.css ===== */
 /* DIREÇÃO V2 · AGENDA E CAPTAÇÕES (pranchas V2-M-Agenda e V2-M-Agenda-Roteiros, 16/11/2026). A janela é vidro fumê; a
    semana é uma grade de horas numa folha clara e a consulta fica direto no vidro. Vale no computador (data-agv2 no body,

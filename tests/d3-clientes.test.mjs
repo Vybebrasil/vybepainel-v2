@@ -37,10 +37,10 @@ test('Clientes na Direção V2: cartão laranja do Mateus, o pé "De olho" no lu
   assert.match(ler('padrao-v2/zm-b-clientes.css'), /#painel-clientes \.cv2-novo\{[^}]*background:var\(--d3-fume-texto\)/);
 });
 
-test('Reuniões: bloco de ação, quatro números ("No mês" em linha), Pede ação e lista em cartões separados', () => {
-  assert.match(reunioes, /kpi\('No mês', doMes\.length/);
-  assert.match(reunioes, /d3LinhaSvg\(serie/);
-  assert.match(reunioes, /class="v2r-card v2r-pede"/);
+test('Reuniões na prancha V2: o laranja do Mateus, a folha com o pé "De olho" e os tipos do mês no vidro', () => {
+  assert.match(reunioes, /class="d3-acao d3m-laranja rv2-laranja"/);
+  assert.match(reunioes, /function olhoDaTela\(n, resto\) \{[\s\S]{0,400}De olho/);
+  assert.match(reunioes, /consulta\('Tipos', MESES\[/);
   assert.doesNotMatch(reunioes, /class="v2r-sub v2r-rodape"/, 'sem frase explicativa no rodapé');
 });
 
