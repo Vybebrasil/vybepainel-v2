@@ -102,7 +102,7 @@ function tokensDe(seletor) {
   for (const m of corpo.matchAll(/(--d3-[\w-]+)\s*:\s*((?:[^;(]|\([^)]*\))+)/g)) t[m[1]] = m[2].trim();
   return t;
 }
-const FOLHA_ESCURA = '[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]';
+const FOLHA_ESCURA = '[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] :is(#pv2-painel,#pv2-regua,#pv2-semana,#pv2-pe,#panel-week4),.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]';
 const TEMAS = {
   fume: tokensDe('[data-d3-tema="fume"]'),
   claro: tokensDe('[data-d3-tema="claro"]'),

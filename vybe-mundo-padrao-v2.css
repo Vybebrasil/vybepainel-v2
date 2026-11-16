@@ -94,11 +94,11 @@
   --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
   --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
 }
-/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), a Produção na vista Semana (a mesma
+/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), as partes da Produção na vista Semana (a mesma
    casa .pv2-casa guarda a Agenda, as Demandas e as outras vistas, que ainda são folha clara) e qualquer raiz
    com a classe d3-tema. Tela remontada no padrão V2 entra aqui (ou leva a classe) e passa a escurecer junto.
    .d3-previa é a prévia da tela de escolha: leva o tema no próprio elemento e não herda o da página. */
-[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
+[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] :is(#pv2-painel,#pv2-regua,#pv2-semana,#pv2-pe,#panel-week4),.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
   --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
   --d3-tinta:#F4F2ED; --d3-texto2:#D8D4CD; --d3-apagado:#ABA69E; --d3-meta:#75706A; --d3-rotulo:rgba(244,242,237,.7); --d3-divisa:rgba(255,255,255,.08); --d3-veu:rgba(255,255,255,.07); --d3-veu-forte:rgba(255,255,255,.13); --d3-contra:#1F1D1A;
   --d3-cart-vinicius:#F2A678; --d3-cart-ewerton:#9DBBFF; --d3-acao-texto:#F2A678; --d3-perigo:#FF9C8F; --d3-ajuste:#F2C46D; --d3-pronto:#7FD8A4; --d3-info:#9DBBFF; --d3-ambar:#F2C46D; --d3-agente-texto:#B9A8FF;
@@ -13101,8 +13101,8 @@ body.mundo #mundo-hud :is(.vv-setor,.vv-menu-conta,.vv-avisos-painel,#vv-agenda,
 /* A faixa da barra de rolagem da página (scrollbar-gutter) mostra o fundo do html: ele acompanha o ambiente do tema. */
 html[data-d3-tema]:has(body.mundo),html[data-d3-tema]:has(body.mundo.mundo-visivel:not(.mundo-centro)),html[data-d3-tema]:has(body.mundo.mundo-modulo){background:var(--d3-tema-fundo)}
 /* O nome do cliente leva a cor da carteira (Vinícius laranja, Ewerton azul): na folha escura, a versão clara das duas. */
-:where([data-d3-tema="escuro"]) :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema) .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
-:where([data-d3-tema="escuro"]) :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa,.d3-tema) .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,.d3-tema) .cliente-carteira[data-carteira="vinicius"],:where([data-d3-tema="escuro"]) :where(body[data-modo="gestor"][data-pv2-vista="semana"]) :is(#pv2-semana,#panel-week4) .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,.d3-tema) .cliente-carteira[data-carteira="ewerton"],:where([data-d3-tema="escuro"]) :where(body[data-modo="gestor"][data-pv2-vista="semana"]) :is(#pv2-semana,#panel-week4) .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
 
 /* 3 · A TROCA DE TEMA. A foto do tema de antes some por cima do novo (de 1 a 0); o novo já está inteiro por baixo. */
 @keyframes d3TemaSai{from{opacity:1}to{opacity:0}}
@@ -13133,9 +13133,9 @@ body.mundo #mundo-hud #vv-agenda .vd-chip > i{color:var(--d3-ajuste)}
 body.mundo #mundo-hud #vv-agenda .vd-chip.feriado > i{color:var(--d3-perigo)}
 /* O que a folha antiga prende com cor escrita (título de módulo, fila do Danilo, cliente sem carteira): o preenchimento do
    texto sai do tema, sem brigar com o !important de lá. */
-:where([data-d3-tema]) body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa :is(h1,h2,h3,h4){-webkit-text-fill-color:var(--d3-tinta)}
-:where([data-d3-tema]) body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa #pv2-semana #pv2-filtros-rot:not(.tem){-webkit-text-fill-color:var(--d3-tinta)}
-body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cli:not([data-carteira="vinicius"]):not([data-carteira="ewerton"]){color:var(--d3-tinta)}
+:where([data-d3-tema]) body[data-modo="gestor"][data-pv2-vista="semana"] :is(#pv2-painel,#pv2-regua,#pv2-semana,#pv2-pe,#panel-week4) :is(h1,h2,h3,h4){-webkit-text-fill-color:var(--d3-tinta)}
+:where([data-d3-tema]) body[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-filtros-rot:not(.tem){-webkit-text-fill-color:var(--d3-tinta)}
+body[data-modo="gestor"][data-pv2-vista="semana"] :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cli:not([data-carteira="vinicius"]):not([data-carteira="ewerton"]){color:var(--d3-tinta)}
 #vv-hoje .d3q .d3h-danilo .vs-bloco-cabeca b{-webkit-text-fill-color:var(--d3-tinta)}
 #vv-hoje .d3q .d3h-danilo .vv-vazio{-webkit-text-fill-color:var(--d3-apagado)}
 /* A etiqueta verde sobre o vidro (WhatsApp "esperando"): o verde do tema puxado para a letra do vidro (estava em 3,9:1). */
@@ -13148,7 +13148,7 @@ body[data-modo="gestor"][data-pv2-vista="semana"] .pv2-casa :is(#pv2-painel,#pv2
   body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar > svg,body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar > svg{color:var(--d3-escuro-texto);stroke:var(--d3-escuro-texto)}
 }
 /* A sua foto no seletor "Dia de" (o Hoje de Minhas tarefas): fundo do tema, para as iniciais passarem de 4,5:1 no celular. */
-#vv-hoje .d3q .d3h-topo .v2t-chip > i{background:var(--d3-fume-escuro)}
+#vv-hoje .d3q .d3h-topo :is(.d3h-dia > summary,button.d3h-dia) > i{background:var(--d3-fume-escuro)}
 
 /* 5 · BOAS-VINDAS DO VYBES COM OS TRÊS TEMAS (vybe-mundo-tutorial.js, boasVindas). Uma janela de vidro sobre o ambiente do
    tema escolhido: quem fala em cima, os três cartões com a prévia no meio e a escolha embaixo. O único laranja é o anel
