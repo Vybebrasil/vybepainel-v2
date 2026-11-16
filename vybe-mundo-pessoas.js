@@ -1412,13 +1412,13 @@
 
   // ---------- desenho ----------
   const DESENHO = { produtividade: htmlProdutividade, rh: htmlRh, projetos: htmlProjetos, academy: htmlAcademy, recrutamento: htmlRecrutamento, documentos: htmlDocumentos };
-  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaAcademy, recrutamento: listaVagasE, documentos: listaDocsE, projetos: listaProjetos };
+  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaTrilhasE, recrutamento: listaVagasE, documentos: listaDocsE, projetos: listaProjetos };
   // ---------- V2 · grupo E (pranchas V2-M-RH-*, V2-M-Academy, aprovadas pelo Paulo em 16/11/2026) ----------
   // O esqueleto novo das telas do RH: a janela de vidro fumê, o título no vidro (com a seta que troca de tela do setor),
   // a coluna de trabalho em folhas claras e a coluna de consulta de 316 direto no vidro. As peças .d3m-e-* são as da
   // casca do grupo (padrao-v2/zm-e-casca.css); as locais desta janela ficam em padrao-v2/zm-e-pessoas.css. Cada tela
   // devolve { sub, acoes, main, lado }; as funções, os data-* e os formulários de antes seguem os mesmos.
-  const E = new Set(['produtividade', 'rh', 'recrutamento', 'documentos']);
+  const E = new Set(['produtividade', 'rh', 'recrutamento', 'documentos', 'academy']);
   const IC_E = { lupa: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', ajuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', mais: '<path d="M12 5v14M5 12h14"/>',
     depois: '<path d="M9 6l6 6-6 6"/>', antes: '<path d="M15 6l-6 6 6 6"/>', baixo: '<path d="M6 9l6 6 6-6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>', certo: '<path d="M5 12l4 4 10-10"/>', fora: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>' };
   const icE = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${IC_E[n] || ''}</svg>`;
@@ -1446,7 +1446,8 @@
     const abasHtml = `<div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas" hidden>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === a}" data-vp-aba="${k}" tabindex="-1">${esc(r)}</button>`).join('')}</div>`;
     let p = null;
     if (d && !d.proibido) p = DESENHO_E[a](d);
-    const sub = `${a === 'academy' ? 'Time' : 'Recursos Humanos'}${p?.sub ? ` · ${p.sub}` : ''}`;
+    // A Academy não é do RH: a linha de apoio dela é só a dela (prancha V2-M-Academy).
+    const sub = a === 'academy' ? p?.sub || 'trilhas de treinamento da Vybe' : `Recursos Humanos${p?.sub ? ` · ${p.sub}` : ''}`;
     const ajuda = `<details class="d3m-e-troca d3m-e-ajuda"><summary class="d3m-e-ico" aria-label="Como funciona" title="Como funciona">${icE('ajuda')}</summary><div class="d3m-e-pop d3m-e-ajuda-pop" role="note" aria-label="Como funciona"><b class="d3m-e-ajuda-t">Como funciona</b><p class="d3m-e-ajuda-p">${esc(AJUDA[a])}</p></div></details>`;
     const fechar = `<button type="button" class="d3m-e-ico" data-vp-fechar aria-label="Fechar" title="Fechar">${icE('x')}</button>`;
     const h = `<span class="d3m-e-h" id="vp-titulo" role="heading" aria-level="2">${esc(NOME_E[a])}</span>`;
@@ -1674,7 +1675,7 @@
   // e, sem vaga, os três passos. Os formulários de vaga, candidato e etapas abrem na própria folha. Na consulta: quem vê,
   // quem espera retorno (abre o candidato para mover de etapa) e os atalhos.
   const kpiE = (o) => (typeof d3mEKpi === 'function' ? d3mEKpi(o)
-    : `<div class="d3m-e-kpi${o.tom ? ' ' + o.tom : ''}"><span class="d3m-e-kpi-topo"><span>${esc(o.rotulo)}</span></span><span class="d3m-e-kpi-baixo"><span class="d3m-e-kpi-txt"><b class="d3m-e-kpi-v">${o.valor}${o.de ? `<small class="d3m-e-kpi-de">${o.de}</small>` : ''}</b><small class="d3m-e-kpi-sub">${o.sub || ''}</small></span></span></div>`);
+    : `<${o.attrs ? `button type="button" ${o.attrs}` : 'div'} class="d3m-e-kpi${o.tom ? ' ' + o.tom : ''}"><span class="d3m-e-kpi-topo"><span>${esc(o.rotulo)}</span></span><span class="d3m-e-kpi-baixo"><span class="d3m-e-kpi-txt"><b class="d3m-e-kpi-v">${o.valor}${o.de ? `<small class="d3m-e-kpi-de">${o.de}</small>` : ''}</b><small class="d3m-e-kpi-sub">${o.sub || ''}</small></span></span></${o.attrs ? 'button' : 'div'}>`);
   const passosE = (lista) => `<div class="d3m-e-pes-passos" role="list">${lista.map(([t, x], i) => `<div class="d3m-e-pes-passo" role="listitem"><i aria-hidden="true">${i + 1}</i><b>${esc(t)}</b><span>${esc(x)}</span></div>`).join('')}</div>`;
   function listaVagasE(d) {
     const { h, etapas, vagas, pendIds } = contaRecrutamento(d), f = estado.v2.filtro || 'abertas', cands = d.candidatos || [];
@@ -1807,7 +1808,55 @@
     const sub = `contratos e documentos do time · ${!docs.length ? 'nenhum cadastrado' : venc.length ? plural(venc.length, 'vencido', 'vencidos') : renovar.length ? `${renovar.length} a vencer` : 'tudo em dia'}`;
     return { sub, acoes: busca, acao, main: `<div class="d3m-e-main">${kpis}${folha}</div>`, lado };
   }
-  const DESENHO_E = { produtividade: produtividadeE, rh: rhE, recrutamento: recrutamentoE, documentos: documentosE };
+  // ---------- Academy (prancha V2-M-Academy) ----------
+  // Três cartões de número, a folha "Trilhas no ar" (No ar | Minhas) com a trilha que abre no lugar (as aulas que se
+  // marcam ali mesmo, e quem administra edita e atribui) e, sem trilha, os três passos. A busca e quem monta ficam na
+  // consulta; quem não monta pede uma trilha ao RH por lá.
+  function listaTrilhasE(d) {
+    const todas = trilhasDaTela(d), lista = trilhasFiltradas(d);
+    const linhas = lista.map((t) => {
+      const pr = progressoDe(t), at = t.atribuidas || [], fim = at.filter((a) => a.progresso?.pct >= 100).length;
+      const doTime = d.gestao && !t.modelo, pct = Math.round(doTime ? (at.length ? fim / at.length * 100 : 0) : pr.pct);
+      const texto = doTime ? (at.length ? `${fim} de ${at.length} ${fim === 1 ? 'terminou' : 'terminaram'}` : 'ninguém atribuído') : `${pr.concluidas} de ${plural(pr.total, 'aula', 'aulas')}`;
+      return linhaAbre(t.id, `<span class="d3m-e-pes-lin-t"><b>${esc(t.nome)}</b><small class="d3m-e-pes-lin-s">${esc(aulasTexto(t.aulas))}${t.minha ? ' · atribuída a você' : t.modelo ? ' · modelo' : ''}</small></span>`,
+        `<span class="d3m-e-pes-prog${pct >= 60 ? ' g' : ''}" style="--v:${pct}%" aria-hidden="true"></span><span class="d3m-e-pes-conta" title="${esc(texto)}">${esc(texto)}</span>`, detalheTrilha(t, d), `a trilha ${t.nome}`);
+    }).join('');
+    const vazio = todas.length ? estadoE({ tipo: 'vazio', icone: 'vazio', titulo: 'Nenhuma trilha neste filtro', texto: 'Troque o filtro ou a busca.' }) : '';
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${linhas || vazio}</div>`;
+  }
+  function academyE(d) {
+    const h = d.hoje || hoje(), todas = trilhasDaTela(d), reais = todas.filter((t) => !t.modelo), feitas = new Set((d.feitas || []).map(String));
+    const minha = todas.find((t) => t.minha && progressoDe(t).pct < 100) || todas.find((t) => t.minha), prM = minha ? progressoDe(minha) : null;
+    const faltam = prM ? prM.total - prM.concluidas : 0, total = contaAulas(todas.flatMap((t) => t.aulas || []));
+    const pendentes = d.gestao ? reais.flatMap((t) => (t.atribuidas || []).filter((a) => (a.progresso?.pct || 0) < 100).map((a) => ({ a, t, atraso: a.prazo && a.prazo < h ? entre(a.prazo, h) : 0 })))
+      .sort((x, y) => y.atraso - x.atraso || (x.a.progresso?.pct || 0) - (y.a.progresso?.pct || 0)) : [];
+    // Aulas feitas: as do time (quem recebeu trilha) para quem administra; as suas para os outros.
+    const minhas = todas.filter((t) => t.minha).map(progressoDe);
+    const [fe, to] = d.gestao ? [reais.reduce((s, t) => s + (t.atribuidas || []).reduce((x, a) => x + (Number(a.progresso?.concluidas) || 0), 0), 0), reais.reduce((s, t) => s + (t.atribuidas || []).reduce((x, a) => x + (Number(a.progresso?.total) || 0), 0), 0)]
+      : [minhas.reduce((s, p) => s + p.concluidas, 0), minhas.reduce((s, p) => s + p.total, 0)];
+    const sem = (t) => `<span class="d3m-e-pes-sem">${t}</span>`;
+    const kpis = `<div class="d3m-e-kpis" style="--n:3">${kpiE({ rotulo: 'Trilhas no ar', valor: String(todas.length), icone: 'agenda', selo: 't', sub: todas.length ? `${plural(total.videos, 'vídeo', 'vídeos')} · ${total.docs} ${total.docs === 1 ? 'doc' : 'docs'}` : 'nenhuma' })}`
+      + `${kpiE({ rotulo: 'Aulas feitas', valor: to ? String(fe) : sem('sem dado'), de: to ? ` / ${to}` : '', icone: 'certo', selo: 'g', anel: to ? fe / to * 100 : null, sub: to ? (d.gestao ? 'do time' : 'suas') : d.gestao ? 'ninguém atribuído' : 'sem trilha' })}`
+      + `${kpiE({ rotulo: 'A sua trilha', valor: prM ? String(prM.pct) : sem('nenhuma'), de: prM ? '%' : '', icone: 'alta', selo: 'roxo', sub: !minha ? 'nada atribuído a você' : faltam ? `${esc(minha.nome)} · ${faltam === 1 ? 'falta 1 aula' : `faltam ${faltam} aulas`}` : `${esc(minha.nome)} · concluída`, attrs: minha && faltam ? `data-v2p-abre="${esc(minha.id)}" data-abrir="1" title="Continuar a ${esc(minha.nome)}"` : '' })}</div>`;
+    let folha;
+    if (estado.form === 'trilha') folha = folhaE({ titulo: estado.editar?.id ? 'Editar trilha' : 'Nova trilha', cls: 'cresce', dir: '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form">${formTrilha()}</div>` });
+    else {
+      const f = estado.v2.filtro === 'minhas' ? 'minhas' : 'ar';
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais trilhas">${[['ar', 'No ar', todas.length], ['minhas', 'Minhas', todas.filter((t) => t.minha).length]].map(([k, r, n]) => `<button type="button" role="radio" data-v2p-filtro="${k}" aria-checked="${f === k}">${r} <span class="d3m-e-pes-n">${n}</span></button>`).join('')}</span>`;
+      const corpo = todas.length ? listaTrilhasE(d)
+        : `<div class="d3m-e-rola">${estadoE({ tipo: 'vazio', icone: 'agenda', grande: true, titulo: 'Nenhuma trilha ainda', texto: d.gestao ? 'Monte a primeira com os vídeos e documentos que todo mundo que chega precisa ver.' : 'Quando os donos montarem uma trilha, ela aparece aqui, com as aulas e o seu progresso.', acao: d.gestao && d.provisionado !== false ? btnEstadoE('Montar a primeira trilha', 'data-vp-trilha-modelo') : '' })}</div>`
+          + passosE([['A trilha', 'Um assunto, com aulas em vídeo ou documento.'], ['A sua trilha', 'A que foi atribuída a você, com prazo.'], ['O progresso', 'Quantas aulas você viu e o que falta.']]);
+      folha = `<section class="d3m-e-folha cresce" aria-label="Trilhas"><div class="d3m-e-cab"><b>${f === 'minhas' ? 'Minhas trilhas' : 'Trilhas no ar'}</b><span class="d3m-e-cab-dir">${seg}</span></div>${corpo}</section>`;
+    }
+    const lado = consE('Quem monta', txtE('Os donos montam as trilhas. Quem está entrando recebe a sua pelo onboarding do time.') + (d.gestao === false ? vlinE('Pedir uma trilha', 'ao RH', 'data-v2p-pedir-trilha') : ''))
+      + (pendentes.length ? consE('Pede atenção', pendentes.slice(0, 4).map(({ a, t, atraso }) => vlinE(primeiroNome(a.nome), `${t.nome} · ${atraso ? `atrasada há ${plural(atraso, 'dia', 'dias')}` : a.progresso?.pct ? `aula ${a.progresso.concluidas} de ${a.progresso.total}` : 'não começou'}`, `data-v2p-abre="${esc(t.id)}" data-abrir="1"`)).join(''), plural(pendentes.length, 'pessoa', 'pessoas')) : '')
+      + consE('Buscar', `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="trilha, vídeo ou documento" aria-label="Buscar trilha, vídeo ou documento" value="${esc(estado.v2.busca)}">`)
+      + semMigracao(d).replace('class="vp-nota"', 'class="d3m-e-lado-txt"');
+    const acao = d.gestao && d.provisionado !== false && estado.form !== 'trilha' && todas.length ? `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="trilha">${icE('mais')}Nova trilha</button>` : '';
+    const sub = `trilhas de treinamento da Vybe · ${todas.length ? plural(reais.length || todas.length, 'trilha no ar', 'trilhas no ar') : 'nenhuma trilha no ar'}${minha && faltam ? ` · ${faltam === 1 ? 'falta 1 aula' : `faltam ${faltam} aulas`} na sua` : ''}`;
+    return { sub, acao, main: `<div class="d3m-e-main">${kpis}${folha}</div>`, lado };
+  }
+  const DESENHO_E = { produtividade: produtividadeE, rh: rhE, recrutamento: recrutamentoE, documentos: documentosE, academy: academyE };
 
   function htmlCorpo() {
     const d = estado.dados[estado.aba];

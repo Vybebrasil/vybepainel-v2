@@ -17458,9 +17458,9 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
 #vv-pessoas .d3m-e-pes > .d3m-e-pes-aviso:empty{display:none}
 #vv-pessoas .d3m-e-pes-erro{flex:none;margin:0 0 12px;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-perigo-veu);color:var(--d3-perigo);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
 /* A busca no vidro (34 de altura, como os ícones do topo). */
-#vv-pessoas .d3m-e-acoes > input.d3m-e-pes-busca[type=search]{width:200px;height:34px;min-height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
-#vv-pessoas .d3m-e-acoes > input.d3m-e-pes-busca[type=search]::placeholder{color:var(--d3-fume-apagado)}
-#vv-pessoas .d3m-e-acoes > input.d3m-e-pes-busca[type=search]:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+#vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]{width:200px;height:34px;min-height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]::placeholder{color:var(--d3-fume-apagado)}
+#vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
 /* Dentro das folhas, as linhas de antes (.v2p-linha) ganham o respiro de 16 das folhas. */
 #vv-pessoas .d3m-e-folha .d3m-e-rola > :is(.v2p-linha,.v2p-lin){padding-left:16px;padding-right:16px}
 #vv-pessoas .d3m-e-folha .d3m-e-rola > .v2p-linha:first-child{border-top:0}
@@ -17522,7 +17522,7 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
   #vv-pessoas .d3m-e-pes-duas{display:flex;flex-direction:column;flex:none}
   #vv-pessoas .d3m-e-pes-mesc{grid-template-columns:minmax(0,1fr);justify-items:center}
   #vv-pessoas .d3m-e-pes-comps{width:100%;grid-template-columns:minmax(0,1fr)}
-  #vv-pessoas .d3m-e-acoes > input.d3m-e-pes-busca[type=search]{flex:1 1 140px;width:auto;min-width:0}
+  #vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]{flex:1 1 140px;width:auto;min-width:0}
   /* A cabeça da folha quebra em duas linhas: o título em cima, o mês e o alternador embaixo. */
   #vv-pessoas .d3m-e-folha > .d3m-e-cab{flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
   #vv-pessoas .d3m-e-folha > .d3m-e-cab > .d3m-e-cab-dir{flex:1 1 100%;min-width:0;flex-wrap:wrap;white-space:normal}
@@ -17612,6 +17612,18 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
 }
 /* A linha da consulta escolhida (vaga, tipo de documento). */
 #vv-pessoas .d3m-lado .d3m-vlin.on{background:var(--d3-fume-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-fume-borda)}
+
+/* ---------- Academy ---------- */
+/* A busca na consulta ocupa a largura dela. */
+#vv-pessoas .d3m-cons > input.d3m-e-pes-busca[type=search]{width:100%;height:36px;min-height:36px}
+/* O avanço da trilha: a barra de 120 e a conta ao lado. */
+#vv-pessoas .d3m-e-pes-prog{flex:none;display:block;width:120px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--d3-ambar) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-prog.g{background:linear-gradient(90deg,var(--d3-pronto) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-conta{flex:none;width:120px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){
+  #vv-pessoas .d3m-e-pes-prog{width:60px}
+  #vv-pessoas .d3m-e-pes-conta{width:auto}
+}
 
 /* ===== padrao-v2/zm-f-casca.css ===== */
 /* ===================================================================================================================

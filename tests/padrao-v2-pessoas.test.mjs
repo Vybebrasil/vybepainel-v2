@@ -55,21 +55,18 @@ function montar({ gestao = true } = {}) {
 }
 const ordem = (h, ...trechos) => { let i = -1; for (const t of trechos) { const j = h.indexOf(t, i + 1); assert.ok(j > i, `"${t}" na ordem do quadro`); i = j; } };
 
-test('as quatro telas seguem a ordem do quadro: título, fala do VYBES, três números, filtro, Pede ação e lista', async () => {
+test('as cinco telas no esqueleto do grupo E: vidro fumê, título no vidro, uma ação principal e a consulta', async () => {
   const t = montar();
-  // Recrutamento já está no esqueleto do grupo E (teste próprio, abaixo).
-  for (const [aba, pe] of [['academy', 'monta: donos e RH']]) {
+  for (const aba of ['academy', 'produtividade', 'rh', 'recrutamento', 'documentos']) {
     await t.P.abrir(aba);
     const h = t.html();
-    assert.equal(t.janela().className, 'vp-janela v2p-janela', aba);
-    ordem(h, 'id="vp-titulo"', 'class="v2p-fala d3-acao d3p-acao"', 'class="v2p-tres"', 'class="v2p-barra-f"', 'data-v2p-busca', '<h3>Pede ação</h3>', 'data-v2p-lista', pe);
-    assert.equal(h.split('class="v2p-card v2p-kpi').length - 1, aba === 'academy' ? 4 : 3, `${aba}: números do quadro (Academy com Aulas feitas)`);
-    assert.equal(h.split('<button type="button" class="vp-acao"').length - 1, 1, `${aba}: uma ação principal`);
-    assert.match(h, /<h2[^>]*>[^<]*<\/h2><p>[a-zçáéíóúâêô]+, \d+ [a-z]+<\/p>/, 'Direção 3: o dia ao lado do título, sem a frase');
+    assert.equal(t.janela().className, 'vp-janela d3m-e-pes-janela', aba);
+    ordem(h, 'class="d3m-e-topo"', 'id="vp-titulo"', 'class="d3m-e-sub"', 'class="vp-corpo d3m-e-corpo', 'class="d3m-e-main"', '<aside class="d3m-lado" aria-label="Consulta">');
+    assert.ok(h.split('class="d3v-btn d3m-e-claro"').length - 1 <= 1, `${aba}: no máximo uma ação principal no topo`);
+    assert.doesNotMatch(h, /v2p-fala|v2p-tres|d3-acao/, `${aba}: sem a fala laranja e os números de antes`);
   }
   assert.match(readFileSync('vybe-mundo-pessoas.js', 'utf8'), /const V2 = new Set\(\['produtividade', 'rh', 'projetos', 'recrutamento', 'documentos', 'academy'\]\);/, 'Projetos também no padrão v2 (quadro ProjetosDepois)');
 });
-
 test('Pedidos e calendário (prancha V2-M-RH-Pedidos): pedidos que se decidem na linha, calendário do mês e a consulta no vidro', async () => {
   const t = montar();
   await t.P.abrir('rh');
@@ -137,27 +134,27 @@ test('Documentos (prancha V2-M-RH-Documentos): três números, Por colaborador c
   assert.match(h, /Reri Lima/); assert.doesNotMatch(h, /Jady Rocha/);
 });
 
-test('Academy: quem falta em Pede ação, a sua trilha com Continuar e a aula que marca no lugar', async () => {
+test('Academy (prancha V2-M-Academy): três números, Trilhas no ar com a trilha que abre, quem falta e a busca na consulta', async () => {
   const t = montar();
   await t.P.abrir('academy');
   let h = t.html();
-  assert.match(h, /<b>1 trilha no ar\.<\/b> 1 pessoa ainda não terminou a Boas-vindas\./);
-  assert.match(h, /Boas-vindas feita<\/small><span class="d3p-num-linha"><b class="d3-num-v">1<span class="d3p-de"> \/ 2</); assert.match(h, /1 vídeo · 1 doc/); assert.match(h, /falta 1 · /);
-  assert.match(h, /Atrasada há 9 dias<\/span><p><b>Jady<\/b> · Boas-vindas/);
-  assert.match(h, /<p class="v2p-sub">Documento 2<\/p><b>Manual<\/b>/); assert.match(h, /class="v2p-mini"/, 'a miniatura da aula (quadro D3-Academy)'); assert.match(h, /<span>Trilha<\/span><span>Para<\/span>/); assert.match(h, /class="v2p-btn s k" href="https:\/\/y"[^>]*>Continuar</);
+  ordem(h, 'class="d3m-e-h" id="vp-titulo" role="heading" aria-level="2">Academy', 'trilhas de treinamento da Vybe · 1 trilha no ar', 'data-vp-abrir-form="trilha"', 'Trilhas no ar', 'Aulas feitas', 'A sua trilha', '<aside class="d3m-lado"', 'Quem monta', 'Pede atenção', 'Buscar');
+  assert.doesNotMatch(h, /class="d3m-e-troca" ontoggle/, 'a Academy não é do setor do RH: sem a seta de trocar de tela');
+  assert.match(h, /1 vídeo · 1 doc/); assert.match(h, /Boas-vindas · falta 1 aula/); assert.match(h, /data-v2p-abre="1" data-abrir="1" title="Continuar a Boas-vindas"/);
+  assert.match(h, /data-v2p-abre="1" data-abrir="1"><span><b>Jady<\/b> · Boas-vindas · atrasada há 9 dias/);
   assert.match(h, /1 de 2 terminou/); assert.match(h, /class="v2p-cx ok" data-v2p-aula="a1" aria-pressed="true"/); assert.match(h, /data-vp-editar-trilha="1">Editar trilha</); assert.match(h, /Atribuir e acompanhar/);
+  assert.match(h, /data-v2p-busca placeholder="trilha, vídeo ou documento"/);
   t.pedidos.length = 0;
   t.clicar('[data-v2p-aula]', { v2pAula: 'a2' }); await new Promise((ok) => setTimeout(ok, 0));
   assert.deepEqual(t.pedidos.find((p) => p.metodo === 'POST')?.corpo, { acao: 'aula_feita', aula_id: 'a2', feita: true });
-  // quem não monta trilhas: o botão do alto vira "Pedir uma trilha" e abre a solicitação ao RH com o assunto
+  // quem não monta trilhas: "Pedir uma trilha" na consulta abre a solicitação ao RH com o assunto
   const e = montar({ gestao: false });
   await e.P.abrir('academy');
   h = e.html();
-  assert.match(h, /data-v2p-pedir-trilha>Pedir uma trilha</); assert.doesNotMatch(h, /Nova trilha|Editar trilha|Atribuir e acompanhar/); assert.match(h, /<small class="d3-num-rot">Aulas feitas<\/small>/);
+  assert.match(h, /data-v2p-pedir-trilha><span><b>Pedir uma trilha/); assert.doesNotMatch(h, /Nova trilha|Editar trilha|Atribuir e acompanhar|Pede atenção/); assert.match(h, /Aulas feitas/);
   e.clicar('[data-v2p-pedir-trilha]'); await new Promise((ok) => setTimeout(ok, 0));
   assert.match(e.html(), /data-vp-form="pedido"/); assert.match(e.html(), /value="Trilha na Academy: "/);
 });
-
 test('Produtividade (prancha V2-M-RH-Produtividade): a folha do mês com o anel, O mês de cada um e o que é dos donos pela consulta', async () => {
   const comps = [{ id: 'prazo', nome: 'Entregas no prazo' }, { id: 'volume', nome: 'Volume' }];
   const p = (id, nome, score, entregues, meta, cq = []) => ({ id, nome, score, entregues, meta, atrasadas: score < 70 ? 4 : 0, componentes: { prazo: score / 100, volume: .5 }, frases: ['frase do mês'], conquistas: cq.map((t2, i) => ({ id: 'c' + i, titulo: t2, texto: '' })) });

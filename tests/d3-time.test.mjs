@@ -45,7 +45,7 @@ function montar() {
 
 // V2 · grupo E (pranchas V2-M-RH-* e V2-M-Academy, 16/11/2026): as telas já no esqueleto novo saem do teste da Direção 3
 // e ganham o do vidro fumê; as outras seguem com a proteção de antes até chegar a vez delas.
-const E_FEITAS = ['produtividade', 'rh', 'recrutamento', 'documentos'];
+const E_FEITAS = ['produtividade', 'rh', 'recrutamento', 'documentos', 'academy'];
 test('V2 · grupo E: o título no vidro, as abas de antes escondidas no DOM e sem o bloco laranja', async () => {
   const t = montar();
   for (const aba of E_FEITAS) {
