@@ -42,7 +42,7 @@
     saude: null, aviso: '', ajuda: false, ordem: { saude: 'risco', churn: 'recente', contratos: 'renovacao' }, risco: 'precisam', head: 'todos',
     visao: 'agora', filtros: false, novoOnb: false, buscaOnb: '', etapaOnb: 'todas',
     limite: {}, abertos: new Set(), form: null, editorEtapas: null, salvando: false, verEncerrados: false, verFalta: false, rotulo: '',
-    busca: {}, filtroCt: 'todos', filtroCh: 'todas', serieCt: 'ativos', vistaCh: 'motivos', registrar: false, histCh: false,
+    busca: {}, buscaAberta: false, filtroCt: 'todos', filtroCh: 'todas', serieCt: 'ativos', vistaCt: 'lista', vistaCh: 'meses', registrar: false, histCh: false,
   };
 
   // ---------- utilidades ----------
@@ -671,16 +671,11 @@
 
   // ---------- Churn ----------
   // ===== Churn e Contratos pelos quadros do moodboard (Paulo, 12/11/2026: "eu aprovei o DEPOIS") =====
-  // As duas telas seguem a ordem dos quadros: título com "Como funciona" e a ação principal; a fala do agente; três
-  // números; busca e fichas; "Pede ação" ao lado da lista (Contratos: com o mês a mês; Churn: com saídas e retenção).
-  // Saíram do alto e continuam a um clique: o período (Mensal/Anual e o mês) e a ordem em "Filtros"; a conta do LTV,
-  // do mês a mês e do churn em "Como funciona". O que vai ao servidor não mudou: formContrato e formChurn.
+  // As duas telas seguem as pranchas V2-M-Contratos e V2-M-Churn (16/11/2026): o topo no vidro, a folha com a lista e a
+  // coluna de consulta com o cartão laranja. O período (Mensal/Anual e o mês) e a ordem abrem pelo "Mais"; a conta do
+  // LTV, do mês a mês e do churn em "Como funciona". O que vai ao servidor não mudou: formContrato e formChurn.
   const AGENTE_CONTRATOS = { nome: 'Vorcaro', papel: 'Financeiro e contratos' };
   const AGENTE_CHURN = { nome: 'VYBES', papel: 'Comercial' };
-  const falaDe = (ag, frase, acaoHtml = '') => `<section class="v2c-card v2c-fala" aria-label="${esc(`${ag.nome}, ${ag.papel}`)}"><span class="v2c-ag" aria-hidden="true">${esc(ag.nome[0])}</span><p><span class="v2c-quem">${esc(ag.nome)} · ${esc(ag.papel)}</span>${frase}</p>${acaoHtml}</section>`;
-  // Direção 3: o bloco de ação laranja (vybe-core.js); fora do painel (testes sem o núcleo), a fala de antes.
-  const d3AcaoOu = (ag, frase, rotulo = '', attrs = '') => (typeof d3AcaoHtml === 'function' ? d3AcaoHtml({ frase, agente: ag.nome, botao: rotulo, attrs })
-    : falaDe(ag, frase.replace(/<small class="d3c-quem">[\s\S]*?<\/small>/, ''), rotulo ? botao(rotulo, attrs) : ''));
   const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   const mesCurto = (ym) => MES_CURTO[Number(String(ym).slice(5, 7)) - 1] || '';
   const mesAno = (iso) => (iso ? `${String(iso).slice(5, 7)}/${String(iso).slice(0, 4)}` : '');
@@ -688,21 +683,71 @@
   const reaisCurto = (v) => (v == null ? '—' : Math.abs(v) >= 1000 ? `R$ ${virgula(Math.round(v / 100) / 10)} mil` : reais(v));
   const mesesDe = (de, ate) => Math.max(0, Math.round((Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 864e5 / (S()?.DIAS_MES || 30.44)));
   const nomesEm = (nomes) => (nomes.length <= 2 ? nomes.map((n) => `<b>${esc(n)}</b>`).join(' e ') : `${nomes.slice(0, 2).map((n) => `<b>${esc(n)}</b>`).join(', ')} e mais ${nomes.length - 2}`);
-  const fichaConta = (rotulo, n, attrs, ligada) => ficha(`${esc(rotulo)} · ${n}`, null, attrs, ligada);
-  const buscaHtml = (rotulo) => `<input type="search" class="v2c-busca" data-vc-busca placeholder="Buscar cliente" aria-label="${esc(rotulo)}" value="${esc(estado.busca[estado.aba] || '')}">`;
   const termoDaBusca = () => semAcento(estado.busca[estado.aba] || '').trim();
   const ehAdminAqui = () => souAdminAqui();
-  // O período e a ordem, que saíram do alto: Mensal/Anual, o mês e a ordem da lista.
-  function painelPeriodo(lista, ordens) {
-    return `<div class="v2c-card v2c-painel v2c-painel-linha v2k-painel"><span class="v2c-seg" role="group" aria-label="Período">${[['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, r]) => `<button type="button" data-vc-tipo="${k}" aria-pressed="${estado.tipo === k}">${r}</button>`).join('')}</span>
-      ${typeof vbMesHtml === 'function' ? vbMesHtml({ mes: estado.mes, max: hoje().slice(0, 7), attr: 'data-vc-mes-ir', ano: estado.tipo === 'anual' }) : ''}
-      ${ordemHtml(lista, ordens)}</div>`;
+
+  // ---------- Peças das pranchas V2-M-Contratos e V2-M-Churn (16/11/2026) ----------
+  // As duas telas saem da janela clara: o topo e a tela ficam direto no vidro fumê (padrao-v2/zm-d-carteira.css), com as
+  // peças .d3m-d-* de zm-d-0-pecas.css e as .d3m-* de z-direcao.css. Cada aba devolve { topo, ajuda, corpo }.
+  const TELAS_M = new Set(['contratos', 'churn']);
+  const svgM = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const ICQ = { baixo: svgM('<path d="M6 9l6 6 6-6"/>'), seta: svgM('<path d="M9 6l6 6-6 6"/>'), busca: svgM('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svgM('<path d="M5 12h.01M12 12h.01M19 12h.01"/>'),
+    mais: svgM('<path d="M12 5v14M5 12h14"/>'), ajuda: svgM('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>'),
+    alerta: svgM('<path d="M12 7v6M12 17h.01"/>'), dinheiro: svgM('<path d="M12 4v16M16 8.5c0-1.4-1.8-2.5-4-2.5s-4 1.1-4 2.5 1.8 2.5 4 3 4 1.6 4 3-1.8 2.5-4 2.5-4-1.1-4-2.5"/>'), relogio: svgM('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>'), sai: svgM('<path d="M14 7l5 5-5 5M19 12H8"/>') };
+  const VISTAS_COM = [['funil', 'CRM e funil'], ['conversas', 'Conversas'], ['pacotes', 'Produtos e pacotes'], ['orcamentos', 'Orçamentos'], ['contratos', 'Contratos'], ['churn', 'Churn']];
+  // Dinheiro só para dono, também no "ver como" (a mesma regra do souDonoDoDinheiro de vybe-mundo.js): o servidor já manda
+  // a carteira sem valores para quem não é dono; vendo como outra pessoa, a sessão é de dono e quem esconde é a tela.
+  const vendoComoSemDinheiro = () => { try { const id = sessionStorage.getItem('vybe.verComo'); if (!id) return false;
+    const time = typeof TEAM_USERS !== 'undefined' && Array.isArray(TEAM_USERS) ? TEAM_USERS : []; return time.find((u) => String(u.id) === String(id))?.dono !== true; } catch { return false; } };
+  const veDinheiro = () => estado.servidor?.pode?.ver_dinheiro !== false && !vendoComoSemDinheiro();
+  const semValor = (lista, campo) => (veDinheiro() ? lista : (lista || []).map((x) => (x ? { ...x, [campo]: null } : x)));
+  const clientesM = () => semValor(estado.servidor?.clientes || [], 'valor');
+  const contratosM = () => semValor(listaContratos(), 'valor_mensal');
+  // Ir a outra tela do Comercial pelo item do menu lateral (marca o item e abre a janela certa); sem o menu, direto.
+  function irVista(id) {
+    const b = document.querySelector?.(`.vv-trilho [data-submodulo="${id}"]`);
+    if (b) { if (!TELAS_M.has(id)) fechar({ foco: false }); b.click(); return; }
+    if (TELAS_M.has(id)) { estado.aba = id; if (estado.soAbas) estado.soAbas = new Set([id]); estado.form = null; estado.aviso = ''; return pintar(); }
+    fechar({ foco: false }); window.VybeComercial?.abrir?.(id, { abas: [id] });
   }
-  // O rodapé tracejado do quadro: a parte ainda não ligada e, para quem administra, o que falta.
-  const rodapeVazio = (titulo, texto) => `<div class="v2k-vz" role="note"><p><b>${esc(titulo)}</b> ${esc(texto)}${estado.verFalta && ehAdminAqui()
-    ? ` <small class="vc-ativacao-tec">Falta aplicar a migração <code>${esc(estado.servidor?.migracao || '2026-11-07-carteira.sql')}</code> no banco. Depois disso, esta parte aparece sozinha.</small>` : ''}</p>
-    ${ehAdminAqui() ? botao('Para quem administra: ver o que falta', `data-vc-falta aria-expanded="${estado.verFalta}"`) : ''}</div>`;
-  const cartaoTopo = (titulo, lado = '') => `<div class="v2c-card-topo"><h2>${titulo}</h2>${lado ? `<small>${lado}</small>` : ''}</div>`;
+  // O topo no vidro: o título abre as outras telas; à direita as ferramentas, o "Mais" e a ação principal.
+  function topoMq(t) {
+    const nome = TITULO_DA_ABA[estado.aba], outras = abasVisiveis().filter(([k]) => !TELAS_M.has(k));
+    const itens = [...(t?.mais || []), '<button type="button" role="menuitem" data-vc-fechar>Fechar</button>'];
+    return `<div class="d3m-d-topo d3m-d-ct-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="${esc(nome)}: ir a outra tela do Comercial"><h2 id="vc-titulo">${esc(nome)}</h2>${ICQ.baixo}</summary>
+        <div class="d3m-d-pop">${VISTAS_COM.map(([id, n]) => `<button type="button" data-vc-ir="${id}"${id === estado.aba ? ' aria-current="page"' : ''}>${esc(n)}</button>`).join('')}${outras.map(([k, r]) => `<button type="button" data-vc-aba="${k}">${esc(r)}</button>`).join('')}</div></details>
+        <span class="d3m-d-sub">${t?.sub || esc(FRASE_DA_ABA[estado.aba])}</span></div>
+      <div class="d3m-d-ferr">${t?.ferr || ''}<button type="button" class="d3m-d-ico" data-vc-como aria-expanded="${estado.ajuda}" aria-label="Como funciona" title="Como funciona">${ICQ.ajuda}</button>
+        <details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais opções" title="Mais opções">${ICQ.pontos}</summary><div class="d3m-d-pop" role="menu">${itens.join('')}</div></details>${t?.acao || ''}</div></div>`;
+  }
+  const buscaM = (rotulo) => `${estado.buscaAberta || termoDaBusca() ? `<input type="search" class="d3m-d-ct-busca" data-vc-busca placeholder="Buscar cliente" aria-label="${esc(rotulo)}" value="${esc(estado.busca[estado.aba] || '')}">` : ''}<button type="button" class="d3m-d-ico" data-vc-busca-abre aria-expanded="${Boolean(estado.buscaAberta || termoDaBusca())}" aria-label="Buscar" title="Buscar">${ICQ.busca}</button>`;
+  // O cartão laranja: quem fala e sobre o quê, o número grande, a frase, a linha de apoio e até dois botões.
+  const larMq = (ag, rot, n, frase, apoio, bts) => `<section class="d3m-laranja d3m-d-ct-pesa" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${esc(ag.nome[0])}</span>${esc(ag.nome)} · ${esc(rot)}</span>
+      <div class="d3m-lar-txt">${n !== '' && n != null ? `<b class="d3m-lar-num">${esc(n)}</b>` : ''}<span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div></section>`;
+  const btnLar = (rotulo, attrs, s = false) => `<button type="button" class="d3m-btn l${s ? ' s' : ''}" ${attrs}>${esc(rotulo)}</button>`;
+  // Número em folha: rótulo e selo em cima; embaixo o número de 28 (na cor do que diz), a linha de apoio e o gráfico.
+  function numMq({ rotulo, selo = '', ic = '', valor, de = '', tom = '', sub = '', graf = '', attrs = '' }) {
+    const tag = attrs ? 'button' : 'div';
+    return `<${tag}${attrs ? ` type="button" ${attrs}` : ''} class="d3m-d-folha d3m-d-num"><span class="d3m-d-num-cab"><span>${esc(rotulo)}</span><span class="d3m-d-selo${selo ? ' ' + selo : ''}">${ic}</span></span>
+      <span class="d3m-d-num-pe"><span><b class="d3m-d-num-v${tom ? ' ' + tom : ''}">${esc(valor)}${de ? `<small> ${esc(de)}</small>` : ''}</b><small>${sub}</small></span>${graf}</span></${tag}>`;
+  }
+  function miniMq(vals, cls = '') {
+    const v = (vals || []).map(Number).filter(Number.isFinite); if (v.length < 2) return '';
+    const mn = Math.min(...v), mx = Math.max(...v), w = 84, h = 40;
+    const fio = v.map((n, i) => `${i ? 'L' : 'M'}${(2 + (i * (w - 4)) / (v.length - 1)).toFixed(1)} ${(mx === mn ? h / 2 : h - 3 - ((n - mn) * (h - 6)) / (mx - mn)).toFixed(1)}`).join(' ');
+    return `<svg class="d3m-d-mini${cls ? ' ' + cls : ''}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path class="veu" d="${fio} V${h} H2 Z"/><path class="fio" d="${fio}"/></svg>`;
+  }
+  // O quadradinho do cliente: as duas letras, numa das seis cores dos setores (sempre a mesma para o mesmo nome).
+  const avM = (nome) => { let h = 0; for (const ch of String(nome || '')) h = (h * 31 + ch.charCodeAt(0)) % 997; return `<i class="d3m-d-ct-av c${h % 6}" aria-hidden="true">${esc(duasLetras(nome))}</i>`; };
+  const segM = (rotulo, itens) => `<span class="d3m-d-pk-seg" role="group" aria-label="${esc(rotulo)}">${itens.map(([attrs, texto, n, ligada, tom]) => `<button type="button" ${attrs} aria-pressed="${Boolean(ligada)}">${esc(texto)}${n == null ? '' : ` <b${tom && n ? ` class="${tom}"` : ''}>${n}</b>`}</button>`).join('')}</span>`;
+  // A parte ainda não ligada, numa tira no vidro; para quem administra, o que falta.
+  const avisoM = (titulo, texto) => `<p class="d3m-d-ct-aviso" role="note"><span><b>${esc(titulo)}</b> ${esc(texto)}</span>${ehAdminAqui() ? `<button type="button" class="d3m-d-vbtn" data-vc-falta aria-expanded="${estado.verFalta}">Para quem administra: ver o que falta</button>` : ''}${estado.verFalta && ehAdminAqui()
+    ? `<small>Falta aplicar a migração <code>${esc(estado.servidor?.migracao || '2026-11-07-carteira.sql')}</code> no banco. Depois disso, esta parte aparece sozinha.</small>` : ''}</p>`;
+  // Período (Mensal ou Anual, com o mês) e a ordem da lista: abrem pelo "Mais", numa folha curta.
+  const periodoM = (lista, ordens) => `<div class="d3m-d-folha d3m-d-ct-periodo" role="group" aria-label="Período e ordem">${segM('Período', [['mensal', 'Mensal'], ['anual', 'Anual']].map(([k, r]) => [`data-vc-tipo="${k}"`, r, null, estado.tipo === k]))}
+      ${typeof vbMesHtml === 'function' ? vbMesHtml({ mes: estado.mes, max: hoje().slice(0, 7), attr: 'data-vc-mes-ir', ano: estado.tipo === 'anual' }) : ''}${ordemHtml(lista, ordens)}<button type="button" class="d3m-d-elo" data-vc-filtros aria-expanded="true">Recolher</button></div>`;
+  const vazioM = (frase, botaoHtml = '') => `<div class="d3m-d-ct-nada"><p>${frase}</p>${botaoHtml}</div>`;
+  const btnFolha = (rotulo, attrs, k = false) => `<button type="button" class="d3m-d-ct-btn${k ? ' k' : ''}" ${attrs}>${esc(rotulo)}</button>`;
 
   function formChurn(s) {
     const f = estado.form;
@@ -729,147 +774,130 @@
   }
   const TIPO_CURTO = { cancelamento: 'cancelou', nao_renovou: 'não renovou', pausa: 'pausou' };
   const TIPO_FICHA = { cancelamento: 'Cancelou', nao_renovou: 'Não renovou', pausa: 'Pausou' };
-  const podeChurn = () => Boolean(estado.servidor?.pode?.churn && estado.servidor?.churn?.disponivel);
+  const podeChurn = () => Boolean(estado.servidor?.pode?.churn && estado.servidor?.churn?.disponivel && veDinheiro());
   const motivoDaSaida = (s) => (s.motivo ? MOTIVOS()[s.motivo] || s.motivo : 'sem motivo');
-  // Quem saiu: o nome e o porquê; à direita, quanto levou e quanto tempo ficou. Abre no lugar com a data e o motivo.
-  function linhaSaidaQ(s) {
-    const chave = `s:${s.id}`, formAqui = estado.form?.tipo === 'churn' && estado.form.id === s.id && estado.form.onde === 'lista';
-    const aberto = formAqui || estado.abertos.has(chave);
+  // Quem saiu, em colunas: quem, quando, como, por quê, quanto levava por mês, quanto tempo ficou e o que dá para fazer.
+  // O nome abre a linha no lugar (a data, o motivo por extenso e "Editar motivo"); o formulário de sempre abre embaixo.
+  function linhaSaidaM(s, { din }) {
+    const chave = `s:${s.id}`, formAqui = estado.form?.tipo === 'churn' && estado.form.id === s.id && estado.form.onde !== 'registrar';
+    const aberto = formAqui || estado.abertos.has(chave), pode = podeChurn();
     const porque = [s.tipo ? TIPOS()[s.tipo] : 'Sem tipo', String(motivoDaSaida(s)).toLowerCase()].join(' · ');
-    const pode = podeChurn();
-    return `<li class="v2-abre v2c-linha v2k-saiu" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="v2c-lin">
-        <button type="button" class="v2c-abrir" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${s.nome}, ${porque}`)}">
-          <span class="v2k-nome"><b>${cliCor(s.nome)}</b><small>saiu ${esc(diaMes(s.saida))}</small></span>
-          <span class="d3k-tipo">${esc(s.tipo ? TIPOS()[s.tipo] : 'sem tipo')}</span>
-          <span class="d3k-motivo${s.motivo ? '' : ' d3c-r'}">${esc(String(motivoDaSaida(s)).replace(/^./, (l) => (s.motivo ? l.toUpperCase() : l)))}</span>
-          <span class="d3k-casa">${s.meses == null ? '—' : esc(mesesTxt(s.meses))}</span>
-          <span class="v2k-dir"><b>${s.receita == null ? '—' : esc(reais(s.receita))}</b></span>
-        </button></div>
-      <div class="v2-mais"><div><div class="v2k-det">
-        <p class="v2k-hist">Saiu em ${esc(dataCurta(s.saida))}${s.saidaFonte === 'ultima_peca' ? ' (estimada pela última peça)' : ''}${s.tipo ? ` · ${esc(TIPOS()[s.tipo])}` : ''} · ${esc(motivoDaSaida(s))}</p>
-        ${s.detalhe || s.motivoLivre ? `<p class="v2k-hist">“${esc(s.detalhe || s.motivoLivre)}”</p>` : ''}
-        ${pode && !formAqui ? `<p class="v2k-det-acoes">${botao(s.classificado ? 'Editar motivo' : 'Classificar a saída', `data-vc-form-abrir="churn" data-vc-cli="${esc(s.id)}" data-vc-onde="lista"`, 'k')}</p>` : ''}
-        ${formAqui ? formChurn(s) : ''}
-      </div></div></div></li>`;
+    const acao = formAqui ? '' : pode && !s.classificado ? btnFolha('Registrar motivo', `data-vc-form-abrir="churn" data-vc-cli="${esc(s.id)}" data-vc-onde="lista"`) : btnFolha('Abrir a ficha', `data-vc-cliente="${esc(s.nome)}"`);
+    return `<li class="d3m-d-ch-li" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="d3m-d-ch-lin${din ? '' : ' sem-valor'}">
+          <button type="button" class="d3m-d-ch-n" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${s.nome}, ${porque}`)}">${esc(s.nome)}</button>
+          <span>${esc(diaMes(s.saida))}</span><span>${esc(s.tipo ? (TIPO_CURTO[s.tipo] || TIPOS()[s.tipo]) : 'sem tipo')}</span>
+          <span class="d3m-d-ch-mot${s.motivo ? '' : ' a'}">${esc(s.motivo ? motivoDaSaida(s) : 'sem motivo')}</span>
+          ${din ? `<span class="d3m-d-ch-v">${s.receita == null ? 'sem valor' : esc(reais(s.receita))}</span>` : ''}<span class="d3m-d-ch-v">${s.meses == null ? 'sem data' : esc(mesesTxt(s.meses))}</span>${acao || '<span></span>'}</div>
+        <div class="d3m-d-ct-mais"><p>Saiu em ${esc(dataCurta(s.saida))}${s.saidaFonte === 'ultima_peca' ? ' (estimada pela última peça)' : ''}${s.tipo ? ` · ${esc(TIPOS()[s.tipo])}` : ''} · ${esc(motivoDaSaida(s))}</p>
+          ${s.detalhe || s.motivoLivre ? `<p>“${esc(s.detalhe || s.motivoLivre)}”</p>` : ''}
+          ${formAqui ? `<div class="v2k-acao-form">${porQueHtml(s)}${formChurn(s)}</div>` : `<div class="d3m-d-ct-acoes">${pode ? btnFolha(s.classificado ? 'Editar motivo' : 'Classificar a saída', `data-vc-form-abrir="churn" data-vc-cli="${esc(s.id)}" data-vc-onde="lista"`, true) : ''}${btnFolha('Abrir a ficha', `data-vc-cliente="${esc(s.nome)}"`)}</div>`}</div></li>`;
   }
   function abaChurn() {
-    const sv = estado.servidor;
-    const ajudaHtml = estado.ajuda ? `<div class="v2c-card v2c-ajuda"><div class="vc-ajuda" role="note"><b>Como o churn é contado</b>
-      <p>Quem saiu (pela desativação no cadastro), com tipo e motivo. Taxa = saídas ÷ clientes ativos no começo do período. Receita perdida = a receita mensal de quem saiu.</p>
-      <p>${esc(COMO_CONTA_CHURN)} A retenção mostra quantos de cada mês de entrada seguiam ativos depois de 1, 2, 3, 6 e 12 meses.</p></div></div>` : '';
-    const como = botao('Como funciona', `data-vc-ajuda aria-expanded="${estado.ajuda}" aria-label="Como funciona e como a taxa e a retenção são calculadas"`, 'g');
-    if (sv?.aguardando) return { topo: como,
-      corpo: `${ajudaHtml}${falaDe(AGENTE_CHURN, '<b>O churn ainda não está disponível.</b> Quando estiver, quem saiu, por quê e a receita perdida aparecem aqui.')}${rodapeVazio('O churn ainda não está disponível.', 'Quando estiver, quem saiu, por quê e a receita perdida aparecem aqui.')}` };
-    if (!sv?.clientes) return { topo: como, corpo: vazio(estado.erro || 'A base de clientes não carregou.', secundario('Tentar de novo', 'data-vc-recarregar')) };
-    const r = S().churn({ clientes: sv.clientes, registros: sv.churn?.registros || [], contratos: listaContratos(), tipo: estado.tipo, mes: estado.mes });
-    const c = S().cohort({ clientes: sv.clientes, hoje: hoje() });
-    const pode = podeChurn(), periodo = esc(r.periodo.rotulo);
+    const sv = estado.servidor, din = veDinheiro();
+    const ajuda = `<div class="vc-ajuda" role="note"><b>Como o churn é contado</b>
+      <p>Quem saiu (pela desativação no cadastro), com tipo e motivo. Taxa = saídas ÷ clientes ativos no começo do período.${din ? ' Receita perdida = a receita mensal de quem saiu.' : ''}</p>
+      <p>${esc(COMO_CONTA_CHURN)} A retenção mostra quantos de cada mês de entrada seguiam ativos depois de 1, 2, 3, 6 e 12 meses.</p></div>`;
+    if (sv?.aguardando) return { topo: { sub: 'quem saiu, por quê e quanto tempo ficou' }, ajuda,
+      corpo: `<div class="d3m-d-ct" data-tela="ct-churn"><div class="d3m-d-ct-main"><section class="d3m-d-folha d3m-d-ct-folha" aria-label="Quem saiu"><div class="d3m-d-cab"><h3>Quem saiu</h3></div>${vazioM('O churn ainda não está disponível. Quando estiver, quem saiu e por quê aparecem aqui.')}</section>
+        ${avisoM('O churn ainda não está disponível.', 'Quando estiver, quem saiu, por quê e quanto tempo ficou aparecem aqui.')}</div>
+        <aside class="d3m-lado d3m-d-ct-lado" aria-label="Consulta">${larMq(AGENTE_CHURN, 'churn', '', 'O churn ainda não está disponível', 'Quando estiver, quem saiu e por quê aparecem aqui.', '')}</aside></div>` };
+    if (!sv?.clientes) return { topo: null, ajuda, corpo: `<section class="d3m-d-folha d3m-d-ct-folha so">${vazioM(esc(estado.erro || 'A base de clientes não carregou.'), btnFolha('Tentar de novo', 'data-vc-recarregar', true))}</section>` };
+    const base0 = clientesM(), registros = semValor(sv.churn?.registros || [], 'receita_mensal');
+    const r = S().churn({ clientes: base0, registros, contratos: contratosM(), tipo: estado.tipo, mes: estado.mes });
+    const c = S().cohort({ clientes: base0, hoje: hoje() });
+    const pode = podeChurn(), periodo = esc(r.periodo.rotulo), espia = (chave) => (din ? ` data-espiar="${chave}"` : '');
     // Ativos hoje = os mesmos ativos das outras telas (auditoria 15/11, item 38): o cadastro com a regra única; sem cadastro
     // carregado, a base do servidor.
     const ativoCad = window.VybeDono?.util?.ativoNoCadastro || ((x) => x && x.ativo);
     const ativosHoje = cadastro().length ? cadastro().filter((x) => x && ativoCad(x)).length : sv.clientes.filter((x) => x && x.id != null && x.ativo).length;
     const termo = termoDaBusca(), naBusca = (s) => !termo || semAcento(s.nome).includes(termo);
-    // Topo: o período escolhido, "Como funciona" e "Registrar saída" (classifica uma saída que já aparece aqui).
+    // "Registrar saída" (no "Mais") classifica uma saída que já aparece aqui.
     const semClass = r.todas.filter((s) => !s.classificado), saidasParaRegistrar = [...semClass, ...r.todas.filter((s) => s.classificado)];
-    // Sem poder registrar, o botão sai (auditoria 15/11, item 36); quem não é admin lê o motivo ao lado.
-    const motivoSemRegistrar = !pode && sv.churn?.disponivel ? 'Só quem administra registra a saída' : '';
-    const topo = `<span class="d3c-meta">${periodo}</span>${como}${pode && r.todas.length ? botao('Registrar saída', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"`, 'p') : motivoSemRegistrar ? `<span class="d3c-meta">${esc(motivoSemRegistrar)}</span>` : ''}`;
     const emRegistro = estado.form?.tipo === 'churn' && estado.form.onde === 'registrar' ? r.todas.find((s) => s.id === estado.form.id) : null;
-    const registrar = estado.registrar === estado.aba && pode && r.todas.length ? `<section class="v2c-card v2c-painel v2k-registrar" aria-label="Registrar saída">
-      ${emRegistro ? `<p class="v2k-registrar-quem"><b>${cliCor(emRegistro.nome)}</b> · saiu em ${esc(dataCurta(emRegistro.saida))}</p>${porQueHtml(emRegistro)}${formChurn(emRegistro)}`
+    const registrar = estado.registrar === estado.aba && pode && r.todas.length ? `<section class="d3m-d-folha d3m-d-ct-registrar v2k-registrar" aria-label="Registrar saída">
+      ${emRegistro ? `<p class="d3m-d-ct-quem"><b>${esc(emRegistro.nome)}</b> · saiu em ${esc(dataCurta(emRegistro.saida))}</p>${porQueHtml(emRegistro)}${formChurn(emRegistro)}`
         : `<label class="vc-campo"><span>Cliente que saiu</span><select data-vc-registrar-cli>${saidasParaRegistrar.map((s) => `<option value="${esc(s.id)}">${esc(s.nome)} · saiu em ${esc(dataCurta(s.saida))}${s.classificado ? '' : ' · sem motivo'}</option>`).join('')}</select></label>
-        ${botao('Cancelar', 'data-vc-registrar')}${botao('Continuar', 'data-vc-registrar-ir="churn"', 'k')}`}</section>` : '';
-    // A fala: quantos saíram, quanto levaram e se falta motivo.
-    const primeiroSem = r.lista.find((s) => !s.classificado);
-    // Direção 3: a fala do VYBES vira o bloco de ação laranja, numa frase só.
-    const qC = quemD3(AGENTE_CHURN), nomeMes = (iso) => (S().util?.nomeDoMes ? S().util.nomeDoMes(String(iso).slice(0, 7)).split(' ')[0] : diaMes(iso));
-    // O bloco laranja diz o que o "Pede ação" pede, com o botão que faz isso (auditoria 15/11, itens 3 e 27): primeiro a
-    // saída sem motivo (quem pode classificar), depois o cliente que pode sair (risco alto na Saúde); sem ação, frase neutra.
-    const neutra = (frase) => falaDe(AGENTE_CHURN, frase);
+        ${btnFolha('Cancelar', 'data-vc-registrar')}${btnFolha('Continuar', 'data-vc-registrar-ir="churn"', true)}`}</section>` : '';
+    const nomeMes = (iso) => (S().util?.nomeDoMes ? S().util.nomeDoMes(String(iso).slice(0, 7)).split(' ')[0] : diaMes(iso));
+    const dePeriodo = estado.tipo === 'anual' ? `de ${periodo}` : `de ${esc(nomeMes(`${estado.mes}-01`))}`;
+    // O laranja diz o que pede ação, com o botão que faz isso (auditoria 15/11, itens 3 e 27): primeiro a saída sem motivo,
+    // depois o cliente que pode sair (risco alto na Saúde); sem ação, o resumo das saídas.
+    const semMotivoP = r.lista.filter((s) => !s.classificado), primeiroSem = semMotivoP[0];
     const riscoSaida = (estado.saude?.clientes || []).filter((x) => x.risco === 'alto' && x.id).sort((a, b) => a.score - b.score);
-    const resumoSaidas = !r.saidas ? (r.todas.length ? `Ninguém saiu em ${periodo} · ${plural(r.todas.length, 'saída', 'saídas')} no histórico.` : 'Nenhum cliente saiu até agora.')
-      : `${plural(r.saidas, 'saída', 'saídas')} em ${periodo} · ${esc(reaisCurto(r.receitaPerdida))} por mês${r.principalMotivo ? ` · mais por ${esc(String(r.principalMotivo.rotulo).toLowerCase())}` : ''}.`;
-    const fala = primeiroSem && pode ? d3AcaoOu(AGENTE_CHURN, `${qC}${esc(primeiroSem.nome)} saiu em ${esc(nomeMes(primeiroSem.saida))} e está sem motivo.${r.semClassificar > 1 ? ` Mais ${r.semClassificar - 1} sem motivo.` : ''}`,
-        'Classificar agora', `data-vc-form-abrir="churn" data-vc-cli="${esc(primeiroSem.id)}" data-vc-onde="acao"`)
-      : riscoSaida.length ? d3AcaoOu(AGENTE_CHURN, `${qC}${esc(riscoSaida[0].nome)} pode sair: nota ${riscoSaida[0].score} na Saúde da carteira.${riscoSaida.length > 1 ? ` Mais ${plural(riscoSaida.length - 1, 'cliente', 'clientes')} em risco alto.` : ''}`,
-        'Abrir o cliente', `data-vc-cliente="${esc(riscoSaida[0].nome)}"`)
-      : !r.saidas && r.todas.length ? d3AcaoOu(AGENTE_CHURN, `${qC}${resumoSaidas}`, 'Ver o histórico', 'data-vc-hist-ch')
-      : neutra(primeiroSem ? `${esc(primeiroSem.nome)} saiu em ${esc(nomeMes(primeiroSem.saida))} e está sem motivo.` : resumoSaidas);
-    // Os três números.
-    const porTipo = Object.keys(TIPOS()).map((k) => [k, r.lista.filter((s) => s.tipo === k).length]), semTipo = r.lista.filter((s) => !s.tipo).length;
-    const vt = r.variacao.taxa, mudou = vt && vt.direcao !== 'igual' ? `<span class="v2c-pill ${vt.direcao === 'sobe' ? 'r' : 'g'}">${vt.direcao === 'sobe' ? 'subiu' : 'caiu'} ${virgula(Math.abs(vt.delta))} p.p.</span>` : '';
-    // Direção 3: quatro números; a taxa com a linha das saídas mês a mês e "Até sair" (tempo médio de casa de quem saiu).
-    void mudou;
-    const serieCh = serieDosMeses();
-    const numeros = `<div class="v2c-tres d3c-quatro">
-        ${numD3({ rotulo: 'Taxa de churn', valor: r.taxa == null ? '—' : `${esc(virgula(r.taxa))}%`,
-          linha: serieCh ? d3Linha(serieCh.meses.slice(-6).map((p) => Number(p.saidas) || 0), { largura: 90, altura: 28, rotulo: 'Saídas mês a mês' }) : '',
-          sub: `${r.taxa == null ? 'sem base no período' : `${r.saidas} de ${r.ativosNoInicio}`} · ${plural(ativosHoje, 'ativo', 'ativos')} hoje${vt && vt.direcao !== 'igual' ? ` · ${vt.direcao === 'sobe' ? '+' : '−'}${esc(virgula(Math.abs(vt.delta)))} p.p.` : ''}` })}
-        ${numD3({ rotulo: 'Saídas', valor: r.saidas,
-          sub: [...porTipo.filter(([, n]) => n).map(([k, n]) => `${n} ${TIPO_CURTO[k] || k}`), semTipo ? `${semTipo} sem tipo` : ''].filter(Boolean).join(' · ') || 'ninguém no período' })}
-        ${numD3({ rotulo: 'Receita perdida', valor: esc(reaisCurto(r.receitaPerdida)), tom: r.receitaPerdida ? 'r' : '',
-          sub: `por mês${r.semReceita ? ` · ${plural(r.semReceita, 'sem valor', 'sem valor')}` : ''}` })}
-        ${numD3({ rotulo: 'Até sair', valor: r.tempoMedioMeses == null ? '—' : esc(virgula(r.tempoMedioMeses)), de: r.tempoMedioMeses == null ? '' : ' meses', sub: r.tempoMedioMeses == null ? 'sem data de entrada' : 'tempo médio de casa' })}
-      </div>`;
-    // Busca, fichas (tipo e sem motivo) e "Filtros" (período e ordem).
-    const base = estado.histCh ? r.todas : r.lista;
-    const FICHAS = [['todas', 'Todas', () => true], ...Object.keys(TIPOS()).map((k) => [k, TIPO_FICHA[k] || TIPOS()[k], (s) => s.tipo === k]), ['sem', 'Sem motivo', (s) => !s.classificado]];
-    if (!FICHAS.some(([k]) => k === estado.filtroCh)) estado.filtroCh = 'todas';
-    const filtros = `<div class="v2c-filtros">${buscaHtml('Buscar saída por cliente')}
-        <span class="v2c-chips" role="group" aria-label="Filtrar as saídas">${FICHAS.map(([k, rot, f]) => [k, rot, base.filter(f).length]).filter(([k, , n]) => n || ['todas', 'cancelamento', 'nao_renovou', 'sem'].includes(k)).map(([k, rot, n]) => fichaConta(rot, n, `data-vc-filtro-ch="${k}"`, estado.filtroCh === k)).join('')}</span>
-        ${botao('Filtros', `data-vc-filtros aria-expanded="${estado.filtros}"`)}
-      </div>${estado.filtros ? painelPeriodo('churn', [['recente', 'Mais recente primeiro'], ['receita', 'Maior receita primeiro'], ['nome', 'Nome A–Z']]) : ''}`;
-    // Pede ação: saída sem motivo e cliente que pode sair (risco alto na Saúde, com a renovação perto quando houver).
-    const ctr = contratosAgora(), linhaDe = new Map((ctr?.linhas || []).map((l) => [l.id, l]));
-    const semMotivo = r.lista.filter((s) => !s.classificado && naBusca(s));
-    const risco = (estado.saude?.clientes || []).filter((x) => x.risco === 'alto' && x.id && naBusca(x)).map((x) => ({ x, l: linhaDe.get(String(x.id)) }))
-      .sort((a, b) => Number(Boolean(b.l?.emBreve || b.l?.vencida)) - Number(Boolean(a.l?.emBreve || a.l?.vencida)) || a.x.score - b.x.score).slice(0, 2);
-    const itemSem = (s) => {
-      const formAqui = estado.form?.tipo === 'churn' && estado.form.id === s.id && estado.form.onde === 'acao';
-      return `<li class="v2k-acao"><span class="v2c-pill r">Sem motivo</span><p><span class="v2k-cli">${cliCor(s.nome)}</span> · saiu ${esc(diaMes(s.saida))}</p>${s.receita != null ? `<b class="d3k-acao-v">${esc(reais(s.receita))}</b>` : ''}
-        ${pode && !formAqui ? botao('Classificar a saída', `data-vc-form-abrir="churn" data-vc-cli="${esc(s.id)}" data-vc-onde="acao"`) : ''}
-        ${formAqui ? `<div class="v2k-acao-form">${porQueHtml(s)}${formChurn(s)}</div>` : ''}</li>`;
-    };
-    const itemRisco = ({ x, l }) => `<li class="v2k-acao"><span class="v2c-pill a">Pode sair</span><p><span class="v2k-cli">${cliCor(x.nome)}</span> · nota ${x.score} na Saúde da carteira${l?.vencida ? ` e renovação vencida em ${esc(diaMes(l.renovacao))}` : l?.emBreve ? ` e contrato vencendo em ${plural(l.diasRenovacao, 'dia', 'dias')}` : ''}</p>
-        ${botao('Abrir o cliente', `data-vc-cliente="${esc(x.nome)}"`)}</li>`;
-    const nAcao = semMotivo.length + risco.length;
-    const pedeAcao = `${cartaoTopo('Pede ação', nAcao ? `${nAcao}` : 'nada agora')}
-      ${nAcao ? `<ol class="v2c-lista v2k-acoes">${semMotivo.map(itemSem).join('')}${risco.map(itemRisco).join('')}</ol>` : ''}`;
-    // Quem saiu: no período (ou o histórico inteiro), pela ficha e pela busca.
-    const passa = FICHAS.find(([k]) => k === estado.filtroCh)[2];
-    let lista = base.filter((s) => passa(s) && naBusca(s));
-    if (estado.ordem.churn === 'receita') lista = [...lista].sort((a, b) => (b.receita ?? -1) - (a.receita ?? -1));
-    else if (estado.ordem.churn === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    const limite = estado.limite.churn || PAGINA_QUADRO, resto = lista.length - limite;
-    const quemSaiu = `<div class="v2c-card-topo v2k-quem-saiu"><h2>${estado.histCh ? 'Quem já saiu' : 'Quem saiu'}</h2><small>${lista.length}${r.todas.length ? ' · ' : ''}${r.todas.length ? ligacao(estado.histCh ? `só ${r.periodo.rotulo}` : 'mostrar o histórico', 'data-vc-hist-ch') : ''}</small></div>
-      ${lista.length ? `<div class="d3c-cab d3k-cab-saiu" aria-hidden="true"><span>Cliente</span><span>Tipo</span><span>Motivo</span><span>Na casa</span><span>Por mês</span></div><ol class="v2c-lista">${lista.slice(0, limite).map(linhaSaidaQ).join('')}</ol>${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, 'saída', 'saídas')} · ${ligacao('mostrar', 'data-vc-mais="churn"')}</p>` : ''}`
-        : `<div class="v2c-vazio"><p>${termo || estado.filtroCh !== 'todas' ? 'Nenhuma saída neste filtro.' : estado.histCh ? 'Ninguém saiu até agora.' : `Ninguém saiu em ${periodo}.`}</p>${termo || estado.filtroCh !== 'todas' ? botao('Ver todas', 'data-vc-filtro-ch="todas" data-vc-limpar') : ''}</div>`}`;
-    // Saídas e retenção: motivos, saídas por mês e a retenção por mês de entrada.
+    const laranja = primeiroSem ? larMq(AGENTE_CHURN, 'saída sem motivo', semMotivoP.length, `${semMotivoP.length === 1 ? 'saída' : 'saídas'} ${dePeriodo} sem motivo`, `${esc(primeiroSem.nome)} saiu em ${esc(diaMes(primeiroSem.saida))}. Sem o motivo, a retenção não aprende.`,
+        `${pode ? btnLar('Registrar o motivo', `data-vc-form-abrir="churn" data-vc-cli="${esc(primeiroSem.id)}" data-vc-onde="lista"`) : ''}${btnLar('Abrir a ficha', `data-vc-cliente="${esc(primeiroSem.nome)}"`, pode)}`)
+      : riscoSaida.length ? larMq(AGENTE_CHURN, 'pode sair', riscoSaida.length, riscoSaida.length === 1 ? 'cliente em risco alto' : 'clientes em risco alto', `${esc(riscoSaida[0].nome)} está com nota ${riscoSaida[0].score} na Saúde da carteira.`, btnLar('Abrir o cliente', `data-vc-cliente="${esc(riscoSaida[0].nome)}"`))
+      : r.saidas ? larMq(AGENTE_CHURN, 'saídas', r.saidas, `${r.saidas === 1 ? 'saída' : 'saídas'} em ${periodo}`, `${din && r.receitaPerdida ? `${esc(reaisCurto(r.receitaPerdida))} por mês. ` : ''}${r.principalMotivo ? `Mais por ${esc(String(r.principalMotivo.rotulo).toLowerCase())}.` : 'Todas com motivo.'}`, '')
+      : r.todas.length ? larMq(AGENTE_CHURN, 'sem saída', '', `Ninguém saiu em ${periodo}`, `${plural(r.todas.length, 'saída', 'saídas')} no histórico.`, estado.histCh ? '' : btnLar('Ver o histórico', 'data-vc-hist-ch'))
+      : larMq(AGENTE_CHURN, 'sem saída', '', 'Nenhum cliente saiu até agora', 'Quem for desativado no cadastro aparece aqui.', '');
+    // Os três números em folha.
     const serie = serieDosMeses();
     if (serie) guardarBase();
-    const VISTAS = [['motivos', 'Motivos'], ['meses', 'Por mês'], ['retencao', 'Retenção']];
-    if (!VISTAS.some(([k]) => k === estado.vistaCh)) estado.vistaCh = 'motivos';
-    const contagem = [...r.porMotivo.map((m) => ({ rotulo: m.rotulo, vezes: base.filter((s) => s.motivo === m.motivo).length, cor: '#1F1D1A' })).sort((a, b) => b.vezes - a.vezes),
-      { rotulo: 'Sem motivo', vezes: base.filter((s) => !s.motivo).length, cor: '#B42318', semMotivo: true }].filter((m) => m.vezes);
-    // Direção 3: gráficos em linha (saídas e entradas mês a mês), com o mês de cada ponto embaixo.
-    const linhaMes = (campoM, titulo) => `<figure class="d3k-graf"><figcaption>${esc(titulo)} <b>${serie.meses.reduce((t, p) => t + (Number(p[campoM]) || 0), 0)}</b></figcaption>
-      ${d3Linha(serie.meses.map((p) => Number(p[campoM]) || 0), { largura: 420, altura: 90, rotulo: `${titulo}: ${serie.meses.map((p) => `${mesCurto(p.mes)} ${Number(p[campoM]) || 0}`).join(', ')}` })}
-      <div class="d3c-meses" aria-hidden="true">${serie.meses.map((p, i) => `<span${p.agora ? ' class="agora"' : ''}${Number(p[campoM]) ? ` data-espiar="carteira:mes:${campoM}:${esc(p.mes)}"` : ''}>${i % 2 === serie.meses.length % 2 || p.agora ? mesCurto(p.mes) : ''}</span>`).join('')}</div></figure>`;
-    const vista = estado.vistaCh === 'meses' ? (serie && serie.meses.some((p) => Number(p.saidas) > 0 || Number(p.novos) > 0) ? `<div class="d3k-grafs">${linhaMes('saidas', 'Saíram')}${linhaMes('novos', 'Entraram')}</div>`
-        : '<div class="v2c-vazio"><p>Ninguém saiu nem entrou nestes meses.</p></div>')
-      : estado.vistaCh === 'retencao' ? cohortHtml(c)
-      : contagem.length ? `<div class="v2k-motivos">${contagem.map((m) => `<p class="v2k-mot${m.semMotivo ? ' d3k-sem' : ''}"><span>${esc(m.rotulo)}</span><span class="v2c-sub">${m.vezes}</span></p><div class="v2-barra"><i style="--v:${Math.round((m.vezes / Math.max(1, base.length)) * 100)}%;--c:${m.cor}"></i></div>`).join('')}</div>`
-      : `<div class="v2c-vazio"><p>${estado.histCh ? 'Nenhuma saída até agora.' : `Nenhuma saída em ${periodo}.`}</p></div>`;
-    const ultimos = serie ? serie.meses.slice(-6).filter((p) => Number(p.saidas) > 0).map((p) => mesCurto(p.mes)) : [];
+    const seis = serie ? serie.meses.slice(-6) : [], vt = r.variacao.taxa;
+    const noPeriodo = estado.tipo === 'anual' ? `em ${periodo}` : `em ${esc(nomeMes(`${estado.mes}-01`))}`;
+    const porTipo = Object.keys(TIPOS()).map((k) => [k, r.lista.filter((s) => s.tipo === k).length]), semTipo = r.lista.filter((s) => !s.tipo).length;
+    const numeros = `<div class="d3m-d-nums">${numMq({ rotulo: `Taxa de churn ${noPeriodo}`, selo: r.saidas ? 'r' : '', ic: ICQ.alerta, valor: r.taxa == null ? '—' : `${virgula(r.taxa)}%`, tom: r.saidas ? 'r' : '',
+        sub: `${r.taxa == null ? 'sem base no período' : `${plural(r.saidas, 'saída', 'saídas')} em ${plural(r.ativosNoInicio, 'cliente', 'clientes')}`}${vt && vt.direcao !== 'igual' ? ` · ${vt.direcao === 'sobe' ? '+' : '−'}${esc(virgula(Math.abs(vt.delta)))} p.p.` : ''}`, graf: miniMq(seis.map((p) => Number(p.saidas) || 0), r.saidas ? 'r' : '') })}
+      ${din ? numMq({ rotulo: 'Receita perdida', ic: ICQ.dinheiro, valor: reaisCurto(r.receitaPerdida), sub: `por mês, ${r.saidas ? `com ${r.saidas === 1 ? 'a saída' : `as ${r.saidas} saídas`} ${dePeriodo}` : `sem saída em ${periodo}`}${r.semReceita ? ` · ${r.semReceita} sem valor` : ''}` })
+        : numMq({ rotulo: 'Saídas', ic: ICQ.sai, valor: String(r.saidas), sub: [...porTipo.filter(([, n]) => n).map(([k, n]) => `${n} ${TIPO_CURTO[k] || k}`), semTipo ? `${semTipo} sem tipo` : ''].filter(Boolean).join(' · ') || 'ninguém no período' })}
+      ${numMq({ rotulo: 'Tempo até sair', selo: 'negocio', ic: ICQ.relogio, valor: r.tempoMedioMeses == null ? '—' : plural(Math.round(r.tempoMedioMeses), 'mês', 'meses'), sub: r.tempoMedioMeses == null ? 'sem data de entrada' : `média de casa ${r.saidas === 1 ? 'da saída' : `das ${r.saidas} saídas`} ${dePeriodo}` })}</div>`;
+    // A lista: no período (ou o histórico inteiro), pela ficha, pela busca e pela ordem.
+    const base = estado.histCh ? r.todas : r.lista;
+    const FICHAS = [['todas', 'Todas', () => true], ...Object.keys(TIPOS()).map((k) => [k, TIPO_FICHA[k] || TIPOS()[k], (s) => s.tipo === k]), ['sem', 'Sem motivo', (s) => !s.classificado, 'a']];
+    if (!FICHAS.some(([k]) => k === estado.filtroCh)) estado.filtroCh = 'todas';
+    const passa = FICHAS.find(([k]) => k === estado.filtroCh)[2];
+    let lista = base.filter((s) => passa(s) && naBusca(s));
+    const comForm = estado.form?.tipo === 'churn' && estado.form.onde !== 'registrar' ? r.todas.find((s) => s.id === estado.form.id) : null;
+    if (comForm && !lista.includes(comForm)) lista = [comForm, ...lista];
+    const ORDENS = [['recente', 'Mais recente primeiro'], ...(din ? [['receita', 'Maior receita primeiro']] : []), ['nome', 'Nome A–Z']];
+    if (!ORDENS.some(([k]) => k === estado.ordem.churn)) estado.ordem.churn = 'recente';
+    if (estado.ordem.churn === 'receita') lista = [...lista].sort((a, b) => (b.receita ?? -1) - (a.receita ?? -1));
+    else if (estado.ordem.churn === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const filtrando = Boolean(termo) || estado.filtroCh !== 'todas';
+    const quemSaiu = `<section class="d3m-d-folha d3m-d-ch-quem${comForm ? ' com-form' : ''}" aria-label="Quem saiu"><div class="d3m-d-cab"><h3>${estado.histCh ? 'Quem já saiu' : 'Quem saiu'} <small>· ${base.length} ${estado.histCh ? 'no histórico' : `em ${periodo}`}</small></h3>
+        ${segM('Filtrar as saídas', FICHAS.map(([k, rot, f2, tom]) => [k, rot, base.filter(f2).length, tom]).filter(([k, , n]) => n || ['todas', 'cancelamento', 'nao_renovou', 'sem'].includes(k)).map(([k, rot, n, tom]) => [`data-vc-filtro-ch="${k}"`, rot, n, estado.filtroCh === k, tom]))}
+        ${r.todas.length ? `<button type="button" class="d3m-d-elo" data-vc-hist-ch aria-pressed="${estado.histCh}">${estado.histCh ? `só ${periodo}` : 'mostrar o histórico'}</button>` : ''}</div>
+        ${lista.length ? `<div class="d3m-d-ch-lin d3m-d-ch-cabl${din ? '' : ' sem-valor'}" aria-hidden="true"><span>Cliente</span><span>Saiu em</span><span>Como</span><span>Motivo</span>${din ? '<span class="d3m-d-ch-v">Por mês</span>' : ''}<span class="d3m-d-ch-v">Ficou</span><span></span></div>
+          <ol class="d3m-d-ct-rolo">${lista.map((s) => linhaSaidaM(s, { din })).join('')}</ol>`
+          : vazioM(filtrando ? 'Nenhuma saída neste filtro.' : estado.histCh ? 'Ninguém saiu até agora.' : `Ninguém saiu em ${periodo}.`, filtrando ? btnFolha('Ver todas', 'data-vc-filtro-ch="todas" data-vc-limpar', true) : !estado.histCh && r.todas.length ? btnFolha('Mostrar o histórico', 'data-vc-hist-ch') : '')}</section>`;
+    // Saídas por mês (barras dos últimos seis meses), os motivos do histórico inteiro ou a retenção por mês de entrada.
+    const VISTAS = [['meses', 'Por mês'], ['motivos', 'Motivos'], ['retencao', 'Retenção']];
+    if (!VISTAS.some(([k]) => k === estado.vistaCh)) estado.vistaCh = 'meses';
+    const motivosDe = (fonte) => [...r.porMotivo.map((m) => ({ rotulo: m.rotulo, vezes: fonte.filter((s) => s.motivo === m.motivo).length })).sort((a, b) => b.vezes - a.vezes),
+      { rotulo: 'Sem motivo registrado', vezes: fonte.filter((s) => !s.motivo).length, semMotivo: true }].filter((m) => m.vezes);
+    const motivosHtml = (fonte, nada) => { const lista2 = motivosDe(fonte), topoM2 = Math.max(1, ...lista2.map((m) => m.vezes));
+      return lista2.length ? `<div class="d3m-d-ch-mots">${lista2.map((m) => `<p class="d3m-d-ch-motl${m.semMotivo ? ' a' : ''}"><span>${esc(m.rotulo)}</span><span class="d3m-d-ch-barra"><i style="--v:${Math.round((m.vezes / topoM2) * 100)}%"></i></span><b>${m.vezes}</b></p>`).join('')}</div>` : vazioM(nada); };
+    const barrasDe = (campoM, titulo) => { const mx = Math.max(1, ...seis.map((p) => Number(p[campoM]) || 0));
+      return `<div class="d3m-d-ch-barras" role="img" aria-label="${esc(`${titulo}: ${seis.map((p) => `${mesCurto(p.mes)} ${Number(p[campoM]) || 0}`).join(', ')}`)}">${seis.map((p) => { const n = Number(p[campoM]) || 0;
+        return `<span${n ? espia(`carteira:mes:${campoM}:${esc(p.mes)}`) : ''}><b>${n}</b><i${n ? ` class="on" style="--n:${(n / mx).toFixed(2)}"` : ''}></i><small${p.agora ? ' class="agora"' : ''}>${mesCurto(p.mes)}</small></span>`; }).join('')}</div>`; };
+    const temMes = seis.some((p) => Number(p.saidas) > 0 || Number(p.novos) > 0);
+    const vista = estado.vistaCh === 'retencao' ? `<div class="d3m-d-ch-cohort">${cohortHtml(c)}</div>`
+      : estado.vistaCh === 'motivos' ? motivosHtml(r.todas, 'Nenhuma saída até agora.')
+      : temMes ? barrasDe('saidas', 'Saídas por mês') : vazioM('Ninguém saiu nem entrou nestes meses.');
+    const tituloVista = estado.vistaCh === 'retencao' ? 'Retenção por mês de entrada' : estado.vistaCh === 'motivos' ? 'Motivos no histórico' : 'Saídas por mês';
     const totalSerie = serie ? serie.meses.reduce((t, p) => t + (Number(p.saidas) || 0), 0) : 0;
-    const peDaVista = serie ? `${totalSerie ? `${plural(totalSerie, 'saída', 'saídas')} em ${serie.meses.length} meses${ultimos.length ? ` (${ultimos.length > 1 ? `${ultimos.slice(0, -1).join(', ')} e ${ultimos.at(-1)}` : ultimos[0]} nos últimos seis)` : ''}.` : `Ninguém saiu nos últimos ${serie.meses.length} meses.`} “Retenção” mostra quantos ficaram, por mês de entrada.` : '“Retenção” mostra quantos ficaram, por mês de entrada.';
-    // Direção 3 (quadro D3-Churn): as abas Motivos / Por mês / Retenção no canto direito do título.
-    const lado = `<section class="v2c-card v2k-lado" aria-label="Saídas e retenção"><div class="d3k-lado-topo"><h2>Saídas e retenção</h2>
-        <span class="v2c-seg" role="group" aria-label="Ver">${VISTAS.map(([k, rot]) => `<button type="button" data-vc-vista-ch="${k}" aria-pressed="${estado.vistaCh === k}">${rot}</button>`).join('')}</span></div>
-        <div class="v2k-vista">${vista}</div>${serie && estado.vistaCh !== 'meses' ? `<div class="d3k-pe-linha">${linhaMes('saidas', 'Saídas por mês')}</div>` : ''}<p class="d3c-so-leitor">${esc(peDaVista)}</p></section>`;
-    const rodape = sv.churn?.disponivel ? '' : rodapeVazio('A classificação das saídas ainda não está disponível.', 'As saídas já aparecem pela desativação do cliente; o motivo de cada uma passa a ser guardado quando estiver.');
-    return { topo, corpo: `${ajudaHtml}${registrar}${fala}${numeros}${filtros}
-      <div class="v2k-grade2 v2k-churn"><div class="v2k-col-esq d3k-esq"><section class="v2c-card v2c-quadro v2k-esq" aria-label="Pede ação">${pedeAcao}</section><section class="v2c-card v2c-quadro d3k-quem" aria-label="Quem saiu">${quemSaiu}</section></div>${lado}</div>${rodape}` };
+    const peDaVista = serie ? `${totalSerie ? `${plural(totalSerie, 'saída', 'saídas')} em ${serie.meses.length} meses.` : `Ninguém saiu nos últimos ${serie.meses.length} meses.`} “Retenção” mostra quantos ficaram, por mês de entrada.` : '“Retenção” mostra quantos ficaram, por mês de entrada.';
+    const folhaVista = `<section class="d3m-d-folha d3m-d-ch-vista" aria-label="${esc(tituloVista)}"><div class="d3m-d-cab"><h3>${esc(tituloVista)}</h3>${segM('Ver', VISTAS.map(([k, rot]) => [`data-vc-vista-ch="${k}"`, rot, null, estado.vistaCh === k]))}</div>
+        <div class="d3m-d-ch-corpo">${vista}</div><p class="d3m-d-ct-leitor">${esc(peDaVista)}</p></section>`;
+    const folhaMotivos = `<section class="d3m-d-folha d3m-d-ch-porque" aria-label="Por que saíram"><div class="d3m-d-cab"><h3>Por que saíram</h3><small>${estado.histCh ? 'histórico' : periodo}</small></div>
+        <div class="d3m-d-ch-corpo">${motivosHtml(base, estado.histCh ? 'Nenhuma saída até agora.' : `Nenhuma saída em ${periodo}.`)}</div></section>`;
+    // A coluna de consulta: o laranja, quem está em risco agora e a retenção por ano de entrada.
+    const emRisco = riscoSaida.filter(naBusca).slice(0, 4);
+    const riscoM = `<section class="d3m-cons" aria-label="Em risco agora"><div class="d3m-cons-cab"><b>Em risco agora</b><span>${riscoSaida.length ? 'risco alto na Saúde' : 'ninguém'}</span></div>
+      ${emRisco.map((x) => `<button type="button" class="d3m-vlin" data-vc-cliente="${esc(x.nome)}" aria-label="${esc(`${x.nome}, nota ${x.score}`)}">${avM(x.nome)}<span class="d3m-vnome"><b>${esc(x.nome)}</b></span><b class="d3m-vn">${x.score}</b>${ICQ.seta}</button>`).join('') || '<p class="d3m-vvazio">Nenhum cliente em risco alto.</p>'}</section>`;
+    const anos = new Map();
+    for (const x of base0) { const a = String(x?.entrada || '').slice(0, 4); if (!x || x.id == null || !/^\d{4}$/.test(a)) continue; const o = anos.get(a) || { n: 0, ficam: 0 }; o.n += 1; if (x.ativo) o.ficam += 1; anos.set(a, o); }
+    const porAno = [...anos.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-4);
+    const retencaoM = `<section class="d3m-cons" aria-label="Retenção por ano de entrada"><div class="d3m-cons-cab"><b>Retenção</b><span>por ano de entrada</span></div>
+      ${porAno.length ? `<button type="button" class="d3m-d-ch-ret" data-vc-vista-ch="retencao" aria-label="Retenção por ano de entrada: ${esc(porAno.map(([a, o]) => `${a}, ${o.ficam} de ${o.n}`).join('; '))}. Abrir a retenção por mês">${porAno.map(([a, o]) => { const p = Math.round((o.ficam / o.n) * 100);
+        return `<span title="${o.ficam} de ${o.n} seguem ativos"><small>${a}</small><span class="d3m-vbarra${p < 50 ? ' r' : p < 75 ? ' a' : ''}"><i style="--v:${p}%"></i></span><b>${p}%</b></span>`; }).join('')}</button>` : '<p class="d3m-vvazio">Sem data de entrada ainda.</p>'}</section>`;
+    const aviso = sv.churn?.disponivel ? '' : avisoM('A classificação das saídas ainda não está disponível.', 'As saídas já aparecem pela desativação do cliente; o motivo de cada uma passa a ser guardado quando estiver.');
+    const topo = { sub: `quem saiu, por quê e ${din ? 'quanto levou' : 'quanto tempo ficou'} · ${periodo} · ${plural(ativosHoje, 'ativo', 'ativos')} hoje`, ferr: buscaM('Buscar saída por cliente'),
+      mais: [`<button type="button" role="menuitem" data-vc-filtros aria-expanded="${estado.filtros}">Período e ordem</button>`, ...(r.todas.length ? [`<button type="button" role="menuitem" data-vc-hist-ch>${estado.histCh ? `Só ${periodo}` : 'Mostrar o histórico'}</button>`] : []),
+        ...(pode && r.todas.length ? [`<button type="button" role="menuitem" data-vc-registrar aria-expanded="${estado.registrar === estado.aba}">Registrar saída</button>`] : [])], acao: '' };
+    return { topo, ajuda, corpo: `<div class="d3m-d-ct d3m-d-ch${comForm ? ' com-form' : ''}" data-tela="ct-churn"><div class="d3m-d-ct-main">${estado.filtros ? periodoM('churn', ORDENS) : ''}${registrar}${numeros}
+        <div class="d3m-d-ch-meio">${folhaVista}${folhaMotivos}</div>${quemSaiu}${aviso}</div>
+      <aside class="d3m-lado d3m-d-ct-lado" aria-label="Consulta">${laranja}${riscoM}${retencaoM}</aside></div>` };
   }
   // Como o churn é contado: vai para "Como funciona".
   const COMO_CONTA_CHURN = 'Saída = desativação no cadastro (a data do registro de churn, quando houver). Entrada = início do contrato; sem ele, a data do cadastro.';
@@ -884,7 +912,7 @@
   // ---------- Contratos ----------
   // Como o mês a mês é contado: vai para "Como funciona".
   function comoContaMesAMes(s) {
-    return `Cada mês na data do último dia (o mês corrente, hoje). Ativos = entraram até ali e não tinham saído${s?.semEntrada ? ` (${plural(s.semEntrada, 'cliente sem data de entrada conta', 'clientes sem data de entrada contam')} como antigo)` : ''}. Ticket = receita mensal ativa ÷ clientes ativos com valor. As saídas por mês ficam na tela Churn.`;
+    return `Cada mês na data do último dia (o mês corrente, hoje). Ativos = entraram até ali e não tinham saído${s?.semEntrada ? ` (${plural(s.semEntrada, 'cliente sem data de entrada conta', 'clientes sem data de entrada contam')} como antigo)` : ''}.${veDinheiro() ? ' Ticket = receita mensal ativa ÷ clientes ativos com valor.' : ''} As saídas por mês ficam na tela Churn.`;
   }
   const CAMPOS_MES_A_MES = ['ativos', 'novos', 'ltvMedio', 'ticketMedio'];
   const mesAMesTemDado = (s) => Boolean(s && s.meses.some((p) => CAMPOS_MES_A_MES.some((c) => Number(p[c]) > 0)));
@@ -914,7 +942,7 @@
         numero(sem, String(sem), ' no Finanças sem par no Vybe OS', { tom: sem ? 'atencao' : '', espiar: 'financas:carteira:sempar' }), numero(falta, String(falta), ' ativos no Vybe OS faltando no Finanças', { tom: falta ? 'atencao' : '', espiar: 'financas:carteira:faltafin' })])}
       ${nota('Ligação pelo CNPJ quando os dois cadastros têm; senão pelo nome (sem acento, sem ltda/me/eireli). Quem ficou sem par: confira o nome ou o CNPJ no cadastro do cliente.')}</section>`;
   }
-  const podeContratos = () => Boolean(estado.servidor?.pode?.contratos && estado.servidor?.contratos?.disponivel);
+  const podeContratos = () => Boolean(estado.servidor?.pode?.contratos && estado.servidor?.contratos?.disponivel && veDinheiro());
   const contratoDaFin = (id) => window.VybeFinancas?.contratoDoCliente?.(id) || null;
   // A trilha do contrato: do início à renovação, quanto já passou. Vermelho venceu, âmbar renova em 30 dias.
   function trilha(l) {
@@ -926,141 +954,129 @@
     // Direção 3: a trilha "até renovar" em tinta escura, âmbar quando renova em 30 dias, vermelho só quando venceu.
     return { pct, cor: l.vencida ? '#B42318' : l.emBreve ? '#7A4A00' : '#1F1D1A', texto: `${passou} de ${plural(total, 'mês', 'meses')}`, curto: `${passou}/${total}` };
   }
-  const pilulaRenovacao = (l) => (!l.temContrato ? '<span class="v2c-pill r">Sem contrato</span>'
-    : l.status === 'encerrado' ? '<span class="v2c-pill">Encerrado</span>'
-    : l.vencida ? `<span class="v2c-pill r">venceu ${esc(diaMes(l.renovacao))}</span>`
-    : l.emBreve ? `<span class="v2c-pill a">${esc(diaMes(l.renovacao))} · ${l.diasRenovacao ? plural(l.diasRenovacao, 'dia', 'dias') : 'hoje'}</span>`
-    : l.renovacao ? `<span class="v2c-pill">${esc(mesAno(l.renovacao))}</span>` : '<span class="v2c-pill">sem data</span>');
-  // A linha do cliente ativo: nome e desde quando, a trilha até a renovação, o valor e a data. Abre no lugar.
-  function linhaContratoQ(l) {
-    const chave = `k:${l.id}`, formAqui = estado.form?.tipo === 'contrato' && estado.form.id === l.id && estado.form.onde === 'lista';
-    const aberto = formAqui || estado.abertos.has(chave), t = trilha(l), fc = contratoDaFin(l.id), pode = !fc && podeContratos();
+  // Os doze meses da régua da renovação, a partir do mês de hoje: [{ ym, letra }].
+  function mesesDaRegua() {
+    const [a, m] = hoje().slice(0, 7).split('-').map(Number);
+    return Array.from({ length: 12 }, (_, i) => { const d = new Date(Date.UTC(a, m - 1 + i, 1)), ym = `${d.getUTCFullYear()}-${dois(d.getUTCMonth() + 1)}`; return { ym, letra: mesCurto(ym)[0] || '' }; });
+  }
+  const mesAA = (iso) => (iso ? `${mesCurto(iso)} ${String(iso).slice(2, 4)}` : '');
+  // Em que grupo a linha entra: a renovação venceu ou chega em 30 dias (Agora), tem contrato (Depois) ou falta registrar.
+  const grupoCt = (l) => (!l.temContrato ? 'falta' : l.status !== 'encerrado' && (l.vencida || l.emBreve) ? 'agora' : 'depois');
+  const ROT_GRUPO_CT = { agora: 'Agora', depois: 'Depois', falta: 'Falta' };
+  // A linha do cliente ativo: quando, quem, quanto por mês, desde quando, a régua de doze meses com o mês da renovação e
+  // a data. Abre no lugar com o histórico e o que dá para fazer (o formulário de sempre).
+  function linhaContratoM(l, { regua, din, rotGrupo }) {
+    const chave = `k:${l.id}`, formAqui = estado.form?.tipo === 'contrato' && estado.form.id === l.id && estado.form.onde !== 'registrar';
+    const aberto = formAqui || estado.abertos.has(chave), t = trilha(l), fc = contratoDaFin(l.id), pode = !fc && podeContratos(), g = grupoCt(l);
     const [rotStatus] = STATUS_CONTRATO[l.status] || ['Sem contrato'];
-    const hist = [l.temContrato ? [l.inicio ? `Início em ${S().util?.nomeDoMes ? S().util.nomeDoMes(l.inicio.slice(0, 7)) : dataCurta(l.inicio)}` : 'Sem data de início', l.renovacao ? `renovação em ${diaMes(l.renovacao)}${l.renovacao.slice(0, 4) !== hoje().slice(0, 4) ? `/${l.renovacao.slice(2, 4)}` : ''}` : 'sem renovação marcada', rotStatus].join(' · ') : 'Sem contrato registrado',
-      [l.valor != null ? `${reais(l.valor)} por mês${l.valorDoCadastro ? ' (do cadastro)' : ''}` : 'sem valor mensal', l.mesesLtv != null ? `na casa há ${mesesTxt(l.mesesLtv)}` : 'sem data de entrada', l.receitaLtv != null ? `LTV estimado ${reais(l.receitaLtv)}` : ''].filter(Boolean).join(' · ')];
-    const daFin = fc ? `<p class="v2k-hist">${esc(['Vybe Finanças: ' + fc.titulo, fc.assinado_em ? 'assinado em ' + dataCurta(fc.assinado_em) : 'sem data de assinatura', fc.dia_vencimento ? 'vence dia ' + fc.dia_vencimento : '', fc.status, fc.tem_pdf ? 'com PDF' : 'sem PDF'].filter(Boolean).join(' · '))}</p>` : '';
-    const acoes = `${pode ? botao(l.temContrato ? 'Abrir o contrato' : 'Registrar contrato', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}" data-vc-onde="lista"`, 'k') : ''}${pode && l.temContrato ? botao('Mudar a data', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}" data-vc-onde="lista" data-vc-campo="renovacao"`) : ''}${botao('Abrir o cliente', `data-vc-cliente="${esc(l.nome)}"`)}`;
-    return `<li class="v2-abre v2c-linha v2k-ct" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="v2c-lin">
-        <button type="button" class="v2c-abrir v2k-linha-ct" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${l.nome}, ${l.valor == null ? 'sem valor' : `${reais(l.valor)} por mês`}, ${t.texto}`)}">
-          <span class="v2k-nome"><b>${cliCor(l.nome)}</b><small>${l.entrada ? `desde ${esc(mesAno(l.entrada))}` : 'sem data de entrada'}</small></span>
-          <span class="d3k-desde">${l.entrada ? esc(mesAno(l.entrada)) : '—'}</span>
-          <span class="v2k-trilha"><span class="v2-barra"><i style="--v:${t.pct}%;--c:${t.cor}"></i></span><small>${esc(t.texto)}</small><em class="d3k-trilha-n">${esc(t.curto || '')}</em></span>
-          <b class="v2k-valor">${l.valor == null ? '—' : esc(reais(l.valor))}</b>${pilulaRenovacao(l)}</button></div>
-      <div class="v2-mais"><div><div class="v2k-det">
-        ${hist.map((h) => `<p class="v2k-hist">${esc(h)}</p>`).join('')}${daFin}${l.observacao ? `<p class="v2k-hist">“${esc(l.observacao)}”</p>` : ''}
-        ${formAqui ? formContrato(l) : `<p class="v2k-det-acoes">${acoes}</p>`}
-      </div></div></div></li>`;
+    const hist = [l.temContrato ? [l.inicio ? `Início em ${S().util?.nomeDoMes ? S().util.nomeDoMes(l.inicio.slice(0, 7)) : dataCurta(l.inicio)}` : 'Sem data de início', l.renovacao ? `renovação em ${diaMes(l.renovacao)}${l.renovacao.slice(0, 4) !== hoje().slice(0, 4) ? `/${l.renovacao.slice(2, 4)}` : ''}` : 'sem renovação marcada', rotStatus, t.texto].join(' · ') : 'Sem contrato registrado',
+      [din ? (l.valor != null ? `${reais(l.valor)} por mês${l.valorDoCadastro ? ' (do cadastro)' : ''}` : 'sem valor mensal') : '', l.mesesLtv != null ? `na casa há ${mesesTxt(l.mesesLtv)}` : 'sem data de entrada', din && l.receitaLtv != null ? `LTV estimado ${reais(l.receitaLtv)}` : ''].filter(Boolean).join(' · ')];
+    const daFin = fc ? `<p>${esc(['Vybe Finanças: ' + fc.titulo, fc.assinado_em ? 'assinado em ' + dataCurta(fc.assinado_em) : 'sem data de assinatura', fc.dia_vencimento ? 'vence dia ' + fc.dia_vencimento : '', fc.status, fc.tem_pdf ? 'com PDF' : 'sem PDF'].filter(Boolean).join(' · '))}</p>` : '';
+    const acoes = `${pode ? btnFolha(l.temContrato ? 'Abrir o contrato' : 'Registrar contrato', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}" data-vc-onde="lista"`, true) : ''}${pode && l.temContrato ? btnFolha('Mudar a data', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}" data-vc-onde="lista" data-vc-campo="renovacao"`) : ''}${btnFolha('Abrir o cliente', `data-vc-cliente="${esc(l.nome)}"`)}`;
+    const mesRenova = l.temContrato && l.status !== 'encerrado' && l.renovacao ? (l.vencida ? regua[0].ym : l.renovacao.slice(0, 7)) : '';
+    const reguaHtml = `<span class="d3m-d-ct-regua" aria-hidden="true">${regua.map((q) => (q.ym === mesRenova ? `<i class="on${l.vencida || l.emBreve ? ' r' : ''}">${esc(q.letra)}</i>` : '<i></i>')).join('')}</span>`;
+    const renova = !l.temContrato ? `<span class="d3m-d-ct-r${pode ? ' k' : ''}">${pode ? 'Registrar' : 'sem contrato'}</span>` : l.status === 'encerrado' ? '<span class="d3m-d-ct-r q">encerrado</span>'
+      : l.vencida ? `<span class="d3m-d-ct-r r">venceu ${esc(diaMes(l.renovacao))}</span>` : l.emBreve ? `<span class="d3m-d-ct-r a">${esc(diaMes(l.renovacao))}</span>`
+      : l.renovacao ? `<span class="d3m-d-ct-r">${esc(mesCurto(l.renovacao))} de ${esc(l.renovacao.slice(2, 4))}</span>` : '<span class="d3m-d-ct-r q">sem data</span>';
+    return `<li class="d3m-d-ct-li" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}">
+        <button type="button" class="d3m-d-ct-lin${din ? '' : ' sem-valor'}" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${l.nome}, ${din ? (l.valor == null ? 'sem valor, ' : `${reais(l.valor)} por mês, `) : ''}${l.temContrato ? t.texto : 'sem contrato'}`)}">
+          <span class="d3m-d-ct-g ${g}">${rotGrupo ? esc(ROT_GRUPO_CT[g]) : ''}</span>${avM(l.nome)}<span class="d3m-d-ct-n">${esc(l.nome)}</span>
+          ${din ? (l.valor == null ? '<span class="d3m-d-ct-v q">sem valor</span>' : `<b class="d3m-d-ct-v">${esc(reais(l.valor))}</b>`) : ''}
+          <span class="d3m-d-ct-d${l.entrada ? '' : ' q'}">${l.entrada ? esc(mesAA(l.entrada)) : 'sem data'}</span>${reguaHtml}${renova}</button>
+        <div class="d3m-d-ct-mais">${hist.map((h) => `<p>${esc(h)}</p>`).join('')}${daFin}${l.observacao ? `<p>“${esc(l.observacao)}”</p>` : ''}
+          ${formAqui ? `<div class="v2k-acao-form">${formContrato(l)}</div>` : `<div class="d3m-d-ct-acoes">${acoes}</div>`}</div></li>`;
   }
   function abaContratos() {
-    const sv = estado.servidor, f = finCarteira();
-    const como = botao('Como funciona', `data-vc-ajuda aria-expanded="${estado.ajuda}" aria-label="Como funciona e como o LTV é calculado"`, 'g');
-    if (sv?.aguardando) return { topo: `${como}${botao('Registrar contrato', 'disabled title="Os contratos ainda não foram ligados"', 'p')}`,
-      corpo: `${falaDe(AGENTE_CONTRATOS, '<b>Os contratos ainda não foram ligados.</b> Quando estiverem, o valor, o início e a renovação de cada cliente aparecem aqui.')}${rodapeVazio('Os contratos ainda não foram ligados.', 'Quando estiverem ligados, o valor, o início e a renovação de cada cliente aparecem aqui. Nada se perde até lá.')}` };
-    if (!sv?.clientes) return { topo: como, corpo: vazio(estado.erro || 'A base de clientes não carregou.', secundario('Tentar de novo', 'data-vc-recarregar')) };
-    const r = S().contratos({ clientes: sv.clientes, contratos: listaContratos(), hoje: hoje(), tipo: estado.tipo, mes: estado.mes });
+    const sv = estado.servidor, f = finCarteira(), din = veDinheiro();
+    if (sv?.aguardando) return { topo: { sub: 'valor, início e renovação de cada cliente ativo' }, ajuda: '',
+      corpo: `<div class="d3m-d-ct" data-tela="ct-contratos"><div class="d3m-d-ct-main"><section class="d3m-d-folha d3m-d-ct-folha" aria-label="Clientes ativos"><div class="d3m-d-cab"><h3>Clientes ativos</h3></div>${vazioM('Os contratos ainda não foram ligados. Quando estiverem, o valor, o início e a renovação de cada cliente aparecem aqui.')}</section>
+        ${avisoM('Os contratos ainda não foram ligados.', 'Quando estiverem ligados, o valor, o início e a renovação de cada cliente aparecem aqui. Nada se perde até lá.')}</div>
+        <aside class="d3m-lado d3m-d-ct-lado" aria-label="Consulta">${larMq(AGENTE_CONTRATOS, 'contratos', '', 'Os contratos ainda não foram ligados', 'Quando estiverem, o valor, o início e a renovação de cada cliente aparecem aqui.', '')}</aside></div>` };
+    if (!sv?.clientes) return { topo: null, ajuda: '', corpo: `<section class="d3m-d-folha d3m-d-ct-folha so">${vazioM(esc(estado.erro || 'A base de clientes não carregou.'), btnFolha('Tentar de novo', 'data-vc-recarregar', true))}</section>` };
+    const r = S().contratos({ clientes: clientesM(), contratos: contratosM(), hoje: hoje(), tipo: estado.tipo, mes: estado.mes });
     espiarCarteira.contratos = r;
     const pode = podeContratos(), termo = termoDaBusca(), naBusca = (l) => !termo || semAcento(l.nome).includes(termo);
     const serie = serieDosMeses();
     if (serie) guardarBase();
-    const dicaLtv = `LTV = meses desde o início do contrato (sem contrato, a data de entrada no cadastro) até hoje, só clientes ativos. Receita estimada = valor mensal × meses de casa.${r.semDataLtv ? ` ${plural(r.semDataLtv, 'cliente sem data fica', 'clientes sem data ficam')} fora da média.` : ''} Tempo restante = dias até a renovação dos contratos abertos que ainda não venceram${r.restanteMedio ? ` (${plural(r.restanteMedio.contratos, 'contrato', 'contratos')})` : ''}.`;
-    const ajudaHtml = estado.ajuda ? `<div class="v2c-card v2c-ajuda"><div class="vc-ajuda" role="note"><b>Como os contratos funcionam</b>
-      <p>Valor mensal, início, renovação e status de cada cliente ativo. Renovações dos próximos 30 dias ficam em "Pede ação"; a trilha da linha mostra quanto do contrato já passou.</p>
-      <p>${esc(dicaLtv)}</p><p>${esc(comoContaMesAMes(serie))}</p></div></div>` : '';
+    const espia = (chave) => (din ? ` data-espiar="${chave}"` : '');
+    const dicaLtv = `LTV = meses desde o início do contrato (sem contrato, a data de entrada no cadastro) até hoje, só clientes ativos.${din ? ' Receita estimada = valor mensal × meses de casa.' : ''}${r.semDataLtv ? ` ${plural(r.semDataLtv, 'cliente sem data fica', 'clientes sem data ficam')} fora da média.` : ''} Tempo restante = dias até a renovação dos contratos abertos que ainda não venceram${r.restanteMedio ? ` (${plural(r.restanteMedio.contratos, 'contrato', 'contratos')})` : ''}.`;
+    const notaFonte = f ? 'Os contratos que estão no Vybe Finanças vêm de lá (início, fim, assinatura, vencimento e PDF) e se alteram no Finanças. Os outros clientes seguem com o registro do Vybe OS, que só quem administra altera.'
+      : 'Só o registro do contrato, sem assinatura eletrônica; valor e contrato só quem administra altera.';
+    const ajuda = `<div class="vc-ajuda" role="note"><b>Como os contratos funcionam</b>
+      <p>${din ? 'Valor mensal, início' : 'Início'}, renovação e status de cada cliente ativo. O que venceu ou renova em 30 dias fica em "Agora"; a régua da linha mostra em que mês dos próximos doze cai a renovação.</p>
+      <p>${esc(dicaLtv)}</p><p>${esc(comoContaMesAMes(serie))}</p><p>${esc(notaFonte)}</p></div>${f && din ? `<div class="d3m-d-folha d3m-d-ct-fin">${finContratosHtml(f)}</div>` : ''}`;
     // Topo: "Registrar contrato" escolhe o cliente e abre o mesmo formulário de sempre.
     const fora = (l) => Boolean(contratoDaFin(l.id));
     const candidatos = [...r.linhas.filter((l) => !l.temContrato && !fora(l)), ...r.linhas.filter((l) => l.temContrato && !fora(l)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))];
-    const tituloRegistrar = !pode ? (sv.contratos?.disponivel ? 'Valor e contrato só quem administra altera' : 'Os contratos ainda não foram ligados') : !candidatos.length ? 'Nenhum cliente ativo no cadastro' : '';
-    const topo = `<span class="d3c-meta">${esc(r.periodo.rotulo)}</span>${como}${botao('Registrar contrato', `data-vc-registrar aria-expanded="${estado.registrar === estado.aba}"${tituloRegistrar ? ` disabled title="${esc(tituloRegistrar)}"` : ''}`, 'p')}`;
     const emRegistro = estado.form?.tipo === 'contrato' && estado.form.onde === 'registrar' ? r.linhas.find((l) => l.id === estado.form.id) : null;
-    const registrar = estado.registrar === estado.aba && pode && candidatos.length ? `<section class="v2c-card v2c-painel v2k-registrar" aria-label="Registrar contrato">
-      ${emRegistro ? `<p class="v2k-registrar-quem"><b>${cliCor(emRegistro.nome)}</b> · ${emRegistro.temContrato ? 'contrato registrado: os campos abaixo substituem o atual' : 'sem contrato ainda'}</p>${formContrato(emRegistro)}`
+    const registrar = estado.registrar === estado.aba && pode && candidatos.length ? `<section class="d3m-d-folha d3m-d-ct-registrar v2k-registrar" aria-label="Registrar contrato">
+      ${emRegistro ? `<p class="d3m-d-ct-quem"><b>${esc(emRegistro.nome)}</b> · ${emRegistro.temContrato ? 'contrato registrado: os campos abaixo substituem o atual' : 'sem contrato ainda'}</p>${formContrato(emRegistro)}`
         : `<label class="vc-campo"><span>Cliente</span><select data-vc-registrar-cli>${candidatos.map((l) => `<option value="${esc(l.id)}">${esc(l.nome)}${l.temContrato ? '' : ' · sem contrato'}</option>`).join('')}</select></label>
-        ${botao('Cancelar', 'data-vc-registrar')}${botao('Continuar', 'data-vc-registrar-ir="contrato"', 'k')}`}</section>` : '';
-    // A fala do Vorcaro: quanto entra por mês, o que renova em 30 dias e quem está sem contrato.
-    const abertos = r.linhas.filter((l) => l.temContrato && l.status !== 'encerrado').length;
-    const semNomes = r.linhas.filter((l) => !l.temContrato).map((l) => l.nome);
-    const breve = r.emBreve.length, vencidas = r.vencidas.length;
-    // Direção 3: a fala do Vorcaro vira o bloco de ação laranja, numa frase só (a renovação mais perto primeiro).
-    const qV = quemD3(AGENTE_CONTRATOS), prox = [...r.vencidas, ...r.emBreve][0];
-    const fala = !r.linhas.length ? d3AcaoOu(AGENTE_CONTRATOS, `${qV}Nenhum cliente ativo no cadastro.`)
-      : prox ? d3AcaoOu(AGENTE_CONTRATOS, `${qV}${esc(prox.nome)} ${prox.vencida ? `venceu em ${esc(diaMes(prox.renovacao))}` : prox.diasRenovacao ? `renova em ${plural(prox.diasRenovacao, 'dia', 'dias')}` : 'renova hoje'}.${vencidas + breve > 1 ? ` Mais ${vencidas + breve - 1} no mês.` : ''}`,
-        vencidas + breve === 1 ? 'Ver a renovação' : `Ver os ${vencidas + breve}`, 'data-vc-filtro-ct="breve"')
-      : semNomes.length ? d3AcaoOu(AGENTE_CONTRATOS, `${qV}${semNomes.length === 1 ? `${esc(semNomes[0])} está` : `${semNomes.length} clientes estão`} sem contrato.`, semNomes.length === 1 ? 'Ver quem' : `Ver os ${semNomes.length}`, 'data-vc-filtro-ct="sem"')
-      : d3AcaoOu(AGENTE_CONTRATOS, `${qV}${esc(reaisCurto(r.receita))} por mês em ${plural(abertos, 'contrato', 'contratos')} · nenhuma renovação em 30 dias.`);
-    // Os três números.
-    const vr = r.variacao.receita, mudou = vr && vr.direcao !== 'igual' ? `<span class="v2c-pill ${vr.direcao === 'sobe' ? 'g' : 'a'}">${vr.direcao === 'sobe' ? '+' : '−'}${esc(reaisCurto(Math.abs(vr.delta)))} no ${estado.tipo === 'anual' ? 'ano' : 'mês'}</span>` : '';
-    const emJogo = [...r.emBreve, ...r.vencidas].reduce((t, l) => t + (l.valor || 0), 0);
-    const comLtv = r.linhas.length - r.semReceitaLtv;
-    // Direção 3: quatro números; o quarto é "Sem contrato", com a barra de quantos dos ativos faltam.
-    void mudou;
-    const semCt = r.linhas.filter((l) => !l.temContrato).length, ltvMeses = r.ltvMedio == null ? null : Math.round(r.ltvMedio);
-    const numeros = `<div class="v2c-tres d3c-quatro">
-        ${numD3({ rotulo: 'Em contratos', valor: esc(reaisCurto(r.receita)), linha: serie ? d3Linha(serie.meses.slice(-6).map((p) => Number(p.ativos) || 0), { largura: 90, altura: 28, rotulo: 'Clientes ativos mês a mês' }) : '',
-          sub: `por mês · ${r.ticketMedio == null ? 'ticket sem valor' : `ticket ${esc(reaisCurto(r.ticketMedio))}`}${vr && vr.direcao !== 'igual' ? ` · ${vr.direcao === 'sobe' ? '+' : '−'}${esc(reaisCurto(Math.abs(vr.delta)))}` : ''}` })}
-        ${numD3({ rotulo: 'Renovam em 30 dias', valor: breve, tom: breve ? 'a' : '', attrs: `data-vc-filtro-ct="breve"`,
-          sub: `${breve ? `<span class="d3c-a" data-espiar="carteira:contratos:breve">${esc(reaisCurto(emJogo))}/mês em jogo</span>` : 'nenhuma'}${vencidas ? ` · <span class="d3c-r">${plural(vencidas, 'vencida', 'vencidas')}</span>` : ''}` })}
-        ${numD3({ rotulo: 'Tempo de casa', valor: ltvMeses == null ? '—' : ltvMeses, de: ltvMeses == null ? '' : ltvMeses === 1 ? ' mês' : ' meses',
-          sub: r.receitaLtv == null ? 'LTV sem valor' : `<span data-espiar="carteira:ltv:receita">LTV ${esc(reaisCurto(r.receitaLtv / Math.max(1, comLtv)))}</span>` })}
-        ${numD3({ rotulo: 'Sem contrato', valor: semCt, tom: semCt ? 'r' : '', attrs: 'data-vc-filtro-ct="sem"',
-          linha: r.linhas.length ? `<span class="d3-barra d3c-barra-r" style="--v:${Math.round((semCt / r.linhas.length) * 100)}%"><i></i></span>` : '' })}
-      </div>`;
-    // Busca, fichas e "Filtros" (período e ordem).
-    const FICHAS = [['todos', 'Todos os clientes ativos', () => true], ['breve', vencidas ? 'Vencidas e em 30 dias' : 'Renovam em 30 dias', (l) => l.emBreve || l.vencida], ['sem', 'Sem contrato', (l) => !l.temContrato]];
+        ${btnFolha('Cancelar', 'data-vc-registrar')}${btnFolha('Continuar', 'data-vc-registrar-ir="contrato"', true)}`}</section>` : '';
+    const abertos = r.linhas.filter((l) => l.temContrato && l.status !== 'encerrado').length, comContrato = r.linhas.filter((l) => l.temContrato).length;
+    const semCt = r.linhas.filter((l) => !l.temContrato), breve = r.emBreve.length, vencidas = r.vencidas.length;
+    // O laranja do Vorcaro: a renovação que venceu ou chega em 30 dias; sem ela, quem está sem contrato; sem nada, o que entra por mês.
+    const pedem = [...r.vencidas, ...r.emBreve], prox = pedem[0], emJogo = pedem.reduce((t, l) => t + (l.valor || 0), 0);
+    const quando = (l) => `${esc(l.nome)} ${l.vencida ? 'venceu em' : 'em'} ${esc(diaMes(l.renovacao))}`;
+    const laranja = !r.linhas.length ? larMq(AGENTE_CONTRATOS, 'contratos', '', 'Nenhum cliente ativo no cadastro', 'Quem entra no cadastro como ativo aparece aqui.', '')
+      : prox ? larMq(AGENTE_CONTRATOS, vencidas ? 'renovação vencida' : 'renovação chegando', pedem.length, vencidas === pedem.length ? (pedem.length === 1 ? 'renovação vencida' : 'renovações vencidas') : pedem.length === 1 ? 'contrato renova em 30 dias' : `contratos ${vencidas ? 'venceram ou renovam' : 'renovam'} em 30 dias`,
+        `${pedem.slice(0, 2).map(quando).join(' e ')}${pedem.length > 2 ? ` e mais ${pedem.length - 2}` : ''}${din && emJogo ? `: <span${espia('carteira:contratos:breve')}>${esc(reais(emJogo))} por mês</span>` : ''}.`,
+        `${btnLar(`Abrir ${prox.nome}`, `data-vc-abrir="k:${esc(prox.id)}" data-vc-focar="linha"`)}${pedem.length > 1 ? btnLar(`Ver os ${pedem.length}`, 'data-vc-filtro-ct="breve"', true) : ''}`)
+      : semCt.length ? larMq(AGENTE_CONTRATOS, 'sem contrato', semCt.length, semCt.length === 1 ? 'cliente ativo sem contrato' : 'clientes ativos sem contrato', `${semCt.slice(0, 2).map((l) => esc(l.nome)).join(' e ')}${semCt.length > 2 ? ` e mais ${semCt.length - 2}` : ''}. Nenhuma renovação em 30 dias.`,
+        btnLar(semCt.length === 1 ? 'Ver quem' : `Ver os ${semCt.length}`, 'data-vc-filtro-ct="sem"'))
+      : larMq(AGENTE_CONTRATOS, 'contratos em dia', din && r.receita ? reaisCurto(r.receita) : abertos, din && r.receita ? `por mês em ${plural(abertos, 'contrato', 'contratos')}` : abertos === 1 ? 'contrato em dia' : 'contratos em dia', 'Nenhuma renovação nos próximos 30 dias.', '');
+    // Fichas e a lista, pela ficha, pela busca e pela ordem.
+    const FICHAS = [['todos', 'Todos', () => true], ['breve', vencidas ? 'Vencidas e em 30 dias' : 'Renovam em 30 dias', (l) => l.emBreve || l.vencida, 'a'], ['sem', 'Sem contrato', (l) => !l.temContrato, 'a']];
     if (!FICHAS.some(([k]) => k === estado.filtroCt)) estado.filtroCt = 'todos';
-    const filtros = `<div class="v2c-filtros">${buscaHtml('Buscar contrato por cliente')}
-        <span class="v2c-chips" role="group" aria-label="Filtrar os clientes">${FICHAS.map(([k, rot, f2]) => [k, rot, r.linhas.filter(f2).length]).map(([k, rot, n]) => fichaConta(rot, n, `data-vc-filtro-ct="${k}"`, estado.filtroCt === k)).join('')}</span>
-        ${botao('Filtros', `data-vc-filtros aria-expanded="${estado.filtros}"`)}
-      </div>${estado.filtros ? painelPeriodo('contratos', [['renovacao', 'Renovação mais próxima'], ['valor', 'Maior valor primeiro'], ['nome', 'Nome A–Z']]) : ''}`;
-    // Pede ação: renovação vencida ou em 30 dias (na ordem da data) e, num item só, quem está sem contrato.
-    const itemRenova = (l) => {
-      const formAqui = estado.form?.tipo === 'contrato' && estado.form.id === l.id && estado.form.onde === 'acao', fc = contratoDaFin(l.id);
-      const pilula = l.vencida ? `<span class="v2c-pill r">Venceu em ${esc(diaMes(l.renovacao))}</span>` : `<span class="v2c-pill a">${l.diasRenovacao ? `Renova em ${plural(l.diasRenovacao, 'dia', 'dias')}` : 'Renova hoje'}</span>`;
-      // Direção 3 (quadro D3-Contratos): o nome e o valor numa linha curta, a etiqueta embaixo.
-      return `<li class="v2k-acao v2k-acao-ct"${l.mesesLtv != null ? ` title="${esc(`na casa há ${mesesTxt(l.mesesLtv)}`)}"` : ''}><div class="v2k-acao-tx"><p><span class="v2k-cli">${cliCor(l.nome)}</span>${l.valor != null ? ` · ${esc(reais(l.valor))}` : ''}</p>${pilula}</div>
-        ${formAqui ? '' : !fc && pode ? botao('Renovar', `data-vc-form-abrir="contrato" data-vc-cli="${esc(l.id)}" data-vc-onde="acao" data-vc-campo="renovacao"`) : botao('Abrir o cliente', `data-vc-cliente="${esc(l.nome)}"`)}
-        ${formAqui ? `<div class="v2k-acao-form">${formContrato(l)}</div>` : ''}</li>`;
-    };
-    const renova = [...r.vencidas, ...r.emBreve].filter(naBusca), semC = r.linhas.filter((l) => !l.temContrato && naBusca(l));
-    // Direção 3: Pede ação curto (a renovação mais perto e quem está sem contrato), para o Mês a mês ficar acima da dobra.
-    const mostra = renova.slice(0, 1), sobra = renova.length - mostra.length, nAcao = renova.length + (semC.length ? 1 : 0);
-    const itemSem = semC.length ? `<li class="v2k-acao v2k-acao-ct" title="sem valor mensal nem início"><div class="v2k-acao-tx"><p>${nomesEm(semC.map((l) => l.nome))}</p><span class="v2c-pill r">Sem contrato</span></div>
-        ${botao(pode ? (semC.length === 1 ? 'Registrar o contrato' : `Registrar os ${semC.length}`) : semC.length === 1 ? 'Ver o cliente' : `Ver os ${semC.length}`, 'data-vc-filtro-ct="sem"')}</li>` : '';
-    const pedeAcao = `<section class="v2c-card v2k-pede" aria-label="Pede ação">${cartaoTopo('Pede ação', nAcao ? `${nAcao}` : 'nada agora')}
-      ${nAcao ? `<ol class="v2c-lista v2k-acoes">${mostra.map(itemRenova).join('')}${itemSem}</ol>${sobra > 0 ? `<p class="v2c-pe">+ ${plural(sobra, 'renovação', 'renovações')} · ${ligacao('mostrar', 'data-vc-filtro-ct="breve"')}</p>` : ''}`
-        : `<div class="v2c-vazio"><p>${r.linhas.length ? 'Nenhuma renovação nos próximos 30 dias e todo cliente ativo tem contrato.' : 'Nenhum cliente ativo no cadastro.'}</p></div>`}</section>`;
-    // Mês a mês: uma série de cada vez (ativos, novos, LTV ou ticket), os últimos seis meses, o mês de agora em laranja.
-    const SERIES = [['ativos', 'Ativos', String], ['novos', 'Novos', String], ['ltvMedio', 'LTV', (x) => `${virgula(x)} meses`], ['ticketMedio', 'Ticket', (x) => reais(x)]];
-    if (!SERIES.some(([k]) => k === estado.serieCt)) estado.serieCt = 'ativos';
-    const [campo, rotSerie, fmt] = SERIES.find(([k]) => k === estado.serieCt);
-    // Direção 3: mês a mês em linha, com o valor de agora em destaque e quanto mudou nos seis meses.
-    const pontos = serie ? serie.meses.slice(-6) : [];
-    const valores = pontos.map((p) => Number(p[campo]) || 0), ultimo = pontos.at(-1), primeiroP = pontos[0];
-    const delta = ultimo && primeiroP ? (Number(ultimo[campo]) || 0) - (Number(primeiroP[campo]) || 0) : 0;
-    const colunas = !mesAMesTemDado(serie) ? '<div class="v2c-vazio"><p>Sem data de entrada ainda.</p></div>'
-      : `<p class="d3k-agora"><b>${esc(ultimo[campo] == null ? '—' : fmt(ultimo[campo]))}</b>${campo === 'ativos' || campo === 'novos' ? `<span class="${delta >= 0 ? 'd3c-g' : 'd3c-r'}">${delta >= 0 ? '+' : '−'}${Math.abs(delta)} em ${pontos.length} meses</span>` : ''}</p>
-        ${d3Linha(valores, { largura: 420, altura: 84, rotulo: `${rotSerie} mês a mês: ${pontos.map((p) => `${mesCurto(p.mes)} ${p[campo] == null ? 'sem dado' : fmt(p[campo])}`).join(', ')}` })}
-        <div class="d3c-meses" aria-hidden="true">${pontos.map((p) => `<span${p.agora ? ' class="agora"' : ''}${campo === 'novos' && Number(p.novos) ? ` data-espiar="carteira:mes:novos:${esc(p.mes)}"` : ''}>${mesCurto(p.mes)}</span>`).join('')}</div>`;
-    const mesAMes = `<section class="v2c-card v2k-meses" aria-label="Mês a mês"><div class="v2k-meses-topo"><h2>Mês a mês</h2><span class="v2c-seg" role="group" aria-label="Série">${SERIES.map(([k, rot]) => `<button type="button" data-vc-serie-ct="${k}" aria-pressed="${estado.serieCt === k}">${rot}</button>`).join('')}</span></div>${colunas}</section>`;
-    // Clientes ativos: a lista pela ficha, pela busca e pela ordem de "Filtros".
-    const [, rotFicha, passaFicha] = FICHAS.find(([k]) => k === estado.filtroCt);
+    const [, , passaFicha] = FICHAS.find(([k]) => k === estado.filtroCt);
     let lista = r.linhas.filter((l) => passaFicha(l) && naBusca(l));
+    const comForm = estado.form?.tipo === 'contrato' && estado.form.onde !== 'registrar' ? r.linhas.find((l) => l.id === estado.form.id) : null;
+    if (comForm && !lista.includes(comForm)) lista = [comForm, ...lista];
+    const ORDENS = [['renovacao', 'Renovação mais próxima'], ...(din ? [['valor', 'Maior valor primeiro']] : []), ['nome', 'Nome A–Z']];
+    if (!ORDENS.some(([k]) => k === estado.ordem.contratos)) estado.ordem.contratos = 'renovacao';
+    const porGrupo = estado.ordem.contratos === 'renovacao';
     if (estado.ordem.contratos === 'valor') lista = [...lista].sort((a, b) => (b.valor ?? -1) - (a.valor ?? -1));
     else if (estado.ordem.contratos === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    const limite = estado.limite.contratos || 4, resto = lista.length - limite;
-    const restante = r.restanteMedio ? `em média ${restanteTxt(r.restanteMedio.dias).replace('faltam ', '')} até a renovação` : 'sem renovação marcada';
-    const novosTxt = `<span class="v2k-espia" data-espiar="carteira:novos:periodo" role="button" tabindex="0">${plural(r.novos.length, 'novo', 'novos')} no ${estado.tipo === 'anual' ? 'ano' : 'mês'}</span>`;
-    const titulo = estado.filtroCt === 'todos' ? 'Clientes ativos' : rotFicha;
-    const filtrando = Boolean(termo) || estado.filtroCt !== 'todos';
-    const cabCt = '<div class="d3c-cab d3k-cab" aria-hidden="true"><span>Cliente</span><span>Desde</span><span>Até renovar</span><span>Por mês</span><span>Renova</span></div>';
-    const clientes = `<section class="v2c-card v2c-quadro v2k-clientes" aria-label="${esc(titulo)}">${cartaoTopo(`${esc(titulo)}`, `${lista.length} · ${novosTxt}<span class="d3c-so-leitor"> · ${esc(restante)}</span>`)}
-      ${lista.length ? `${cabCt}<ol class="v2c-lista">${lista.slice(0, limite).map(linhaContratoQ).join('')}</ol>`
-        : `<div class="v2c-vazio"><p>${filtrando ? 'Nenhum cliente neste filtro.' : 'Nenhum cliente ativo no cadastro. Quem entra no cadastro como ativo aparece aqui.'}</p>${filtrando ? botao('Ver todos', 'data-vc-filtro-ct="todos" data-vc-limpar') : ''}</div>`}
-      ${resto > 0 ? `<p class="v2c-pe">+ ${plural(resto, estado.filtroCt === 'todos' ? 'cliente ativo' : 'cliente', estado.filtroCt === 'todos' ? 'clientes ativos' : 'clientes')} · ${ligacao('mostrar', 'data-vc-mais="contratos"')}</p>` : ''}</section>`;
-    const rodape = sv.contratos?.disponivel || f ? '' : rodapeVazio('Os contratos ainda não foram ligados.', 'Quando estiverem ligados, o valor, o início e a renovação de cada cliente ficam guardados aqui. Nada se perde até lá.');
-    const pe = `<p class="v2c-sub v2k-nota">${esc(f ? 'Os contratos que estão no Vybe Finanças vêm de lá (início, fim, assinatura, vencimento e PDF) e se alteram no Finanças. Os outros clientes seguem com o registro do Vybe OS, que só quem administra altera.'
-      : 'Só o registro do contrato, sem assinatura eletrônica; valor e contrato só quem administra altera. A trilha mostra quanto falta para renovar.')}</p>`;
-    return { topo, corpo: `${ajudaHtml}${registrar}${fala}${numeros}${filtros}
-      <div class="v2k-grade2 v2k-contratos d3k-contratos">${clientes}<div class="v2k-col-esq">${pedeAcao}${mesAMes}</div></div>${f ? `<div class="v2c-card v2k-fin">${finContratosHtml(f)}</div>` : ''}${rodape}${estado.ajuda ? pe : ''}` };
+    else { const peso = { agora: 0, depois: 1, falta: 2 }; lista = [...lista].sort((a, b) => peso[grupoCt(a)] - peso[grupoCt(b)]); }
+    const regua = mesesDaRegua(), filtrando = Boolean(termo) || estado.filtroCt !== 'todos';
+    let grupoAntes = '';
+    const linhas = lista.map((l) => { const g = grupoCt(l), rotGrupo = porGrupo && g !== grupoAntes; grupoAntes = g; return linhaContratoM(l, { regua, din, rotGrupo }); }).join('');
+    const ltvMeses = r.ltvMedio == null ? null : Math.round(r.ltvMedio), comLtv = r.linhas.length - r.semReceitaLtv;
+    const olho = `<div class="d3m-d-pk-olho"><small>De olho</small>${din ? `<span><b>${esc(reaisCurto(r.receita))}</b> em contratos, por mês</span><span><b>${r.ticketMedio == null ? '—' : esc(reais(Math.round(r.ticketMedio)))}</b> ticket</span>` : `<span><b>${comContrato}</b> com contrato</span>`}
+        <span${r.receitaLtv != null ? espia('carteira:ltv:receita') : ''}${din && r.receitaLtv != null ? ` title="${esc(`LTV médio ${reaisCurto(r.receitaLtv / Math.max(1, comLtv))}`)}"` : ''}><b>${ltvMeses == null ? '—' : plural(ltvMeses, 'mês', 'meses')}</b> tempo de casa</span>
+        <button type="button" data-vc-filtro-ct="sem" aria-pressed="${estado.filtroCt === 'sem'}"><b${semCt.length ? ' class="a"' : ''}>${semCt.length}</b> sem contrato</button></div>`;
+    const cabLin = `<div class="d3m-d-ct-lin d3m-d-ct-cabl${din ? '' : ' sem-valor'}" aria-hidden="true"><span></span><span></span><span>Cliente</span>${din ? '<span class="d3m-d-ct-v">Por mês</span>' : ''}<span>Desde</span><span>${esc(mesAA(`${regua[0].ym}-01`))} até ${esc(mesAA(`${regua[11].ym}-01`))}</span><span class="d3m-d-ct-r">Renova</span></div>`;
+    const novosN = r.novos.length, mesNome = S().util?.nomeDoMes ? S().util.nomeDoMes(estado.mes).split(' ')[0] : 'no mês';
+    const folhaLista = `<section class="d3m-d-folha d3m-d-ct-folha" aria-label="Clientes ativos"><div class="d3m-d-cab"><h3>${plural(r.linhas.length, 'cliente ativo', 'clientes ativos')} <small>· ${porGrupo ? 'a renovação mais próxima primeiro' : estado.ordem.contratos === 'valor' ? 'o maior valor primeiro' : 'de A a Z'}</small></h3>
+        ${segM('Filtrar os clientes', FICHAS.map(([k, rot, f2, tom]) => [`data-vc-filtro-ct="${k}"`, rot, r.linhas.filter(f2).length, estado.filtroCt === k, tom]))}</div>
+        ${lista.length ? `${cabLin}<ol class="d3m-d-ct-rolo">${linhas}</ol>` : vazioM(filtrando ? 'Nenhum cliente neste filtro.' : 'Nenhum cliente ativo no cadastro. Quem entra no cadastro como ativo aparece aqui.', filtrando ? btnFolha('Ver todos', 'data-vc-filtro-ct="todos" data-vc-limpar', true) : '')}
+        ${olho}</section>`;
+    // Mês a mês: uma série de cada vez (ativos, novos, LTV ou ticket), os últimos doze meses; abre no lugar da lista.
+    const SERIES = [['ativos', 'Ativos', String], ['novos', 'Novos', String], ['ltvMedio', 'LTV', (x) => `${virgula(x)} meses`], ...(din ? [['ticketMedio', 'Ticket', (x) => reais(x)]] : [])];
+    if (!SERIES.some(([k]) => k === estado.serieCt)) estado.serieCt = 'ativos';
+    const [campo, rotSerie, fmt] = SERIES.find(([k]) => k === estado.serieCt);
+    const pontos = serie ? serie.meses.slice(-12) : [], valores = pontos.map((p) => Number(p[campo]) || 0), ultimo = pontos.at(-1), primeiroP = pontos[0];
+    const delta = ultimo && primeiroP ? (Number(ultimo[campo]) || 0) - (Number(primeiroP[campo]) || 0) : 0;
+    const folhaMeses = `<section class="d3m-d-folha d3m-d-ct-folha d3m-d-ct-meses" aria-label="Mês a mês"><div class="d3m-d-cab"><h3>Mês a mês <small>· ${esc(rotSerie.toLowerCase())}, ${pontos.length ? `${pontos.length} meses` : 'sem data ainda'}</small></h3>
+        ${segM('Série', SERIES.map(([k, rot]) => [`data-vc-serie-ct="${k}"`, rot, null, estado.serieCt === k]))}<button type="button" class="d3m-d-elo" data-vc-vista-ct="lista">Voltar aos clientes</button></div>
+        ${!mesAMesTemDado(serie) ? vazioM('Sem data de entrada ainda.') : `<div class="d3m-d-ct-serie"><p><b class="d3m-d-numero">${esc(ultimo[campo] == null ? '—' : fmt(ultimo[campo]))}</b>${campo === 'ativos' || campo === 'novos' ? `<span class="${delta >= 0 ? 'g' : 'r'}">${delta >= 0 ? '+' : '−'}${Math.abs(delta)} em ${pontos.length} meses</span>` : ''}</p>
+          ${d3Linha(valores, { largura: 720, altura: 220, rotulo: `${rotSerie} mês a mês: ${pontos.map((p) => `${mesCurto(p.mes)} ${p[campo] == null ? 'sem dado' : fmt(p[campo])}`).join(', ')}` })}
+          <div class="d3m-d-ct-eixo" aria-hidden="true">${pontos.map((p) => `<span${p.agora ? ' class="agora"' : ''}${campo === 'novos' && Number(p.novos) ? espia(`carteira:mes:novos:${esc(p.mes)}`) : ''}>${mesCurto(p.mes)}</span>`).join('')}</div></div>`}</section>`;
+    // A coluna de consulta: o laranja, os clientes ativos em doze meses e o "Abrir".
+    const ativos12 = serie ? serie.meses.slice(-12).map((p) => Number(p.ativos) || 0) : [];
+    const ativosM = `<section class="d3m-cons" aria-label="Clientes ativos em doze meses"><div class="d3m-cons-cab"><b>Clientes ativos</b><span>${ativos12.length ? `${ativos12.length} meses` : 'sem data ainda'}</span></div>
+      <button type="button" class="d3m-d-ct-cartao" data-vc-vista-ct="meses" aria-pressed="${estado.vistaCt === 'meses'}" aria-label="Clientes ativos mês a mês"><span><b>${r.linhas.length}</b><small${novosN ? espia('carteira:novos:periodo') : ''}>${plural(novosN, 'novo', 'novos')} ${estado.tipo === 'anual' ? 'no ano' : `em ${esc(mesNome)}`}</small></span>${miniMq(ativos12)}</button></section>`;
+    const abrirM = `<nav class="d3m-cons d3m-d-ct-abrir" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+      <button type="button" class="d3m-vlin" data-vc-ir="churn"><span><b>Churn</b> · quem saiu e por quê</span>${ICQ.seta}</button>
+      <button type="button" class="d3m-vlin" data-vc-vista-ct="${estado.vistaCt === 'meses' ? 'lista' : 'meses'}" aria-pressed="${estado.vistaCt === 'meses'}"><span><b>Mês a mês</b> · ativos, novos, LTV${din ? ' e ticket' : ''}</span>${ICQ.seta}</button>
+      <button type="button" class="d3m-vlin" data-vc-como aria-expanded="${estado.ajuda}"><span><b>Como funciona</b></span>${ICQ.seta}</button></nav>`;
+    const aviso = sv.contratos?.disponivel || f ? '' : avisoM('Os contratos ainda não foram ligados.', 'Quando estiverem ligados, o valor, o início e a renovação de cada cliente ficam guardados aqui. Nada se perde até lá.');
+    const topo = { sub: `${din ? 'valor, início' : 'início'} e renovação · ${comContrato} com contrato · ${breve + vencidas ? `${plural(breve + vencidas, 'renova', 'renovam')} em 30 dias` : 'nenhuma renovação em 30 dias'}${estado.tipo === 'anual' || estado.mes !== hoje().slice(0, 7) ? ` · ${esc(r.periodo.rotulo)}` : ''}`,
+      ferr: buscaM('Buscar contrato por cliente'),
+      mais: [`<button type="button" role="menuitem" data-vc-filtros aria-expanded="${estado.filtros}">Período e ordem</button>`, `<button type="button" role="menuitem" data-vc-vista-ct="${estado.vistaCt === 'meses' ? 'lista' : 'meses'}">${estado.vistaCt === 'meses' ? 'Voltar aos clientes' : 'Mês a mês'}</button>`],
+      acao: pode && candidatos.length ? `<button type="button" class="d3m-d-vbtn p" data-vc-registrar aria-expanded="${estado.registrar === estado.aba}">${ICQ.mais}Registrar contrato</button>` : '' };
+    return { topo, ajuda, corpo: `<div class="d3m-d-ct" data-tela="ct-contratos"><div class="d3m-d-ct-main">${estado.filtros ? periodoM('contratos', ORDENS) : ''}${registrar}${estado.vistaCt === 'meses' ? folhaMeses : folhaLista}${aviso}</div>
+      <aside class="d3m-lado d3m-d-ct-lado" aria-label="Consulta">${laranja}${ativosM}${abrirM}</aside></div>` };
   }
 
   // ---------- janela ----------
@@ -1081,7 +1097,16 @@
       <p class="vc-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
       <div class="vc-corpo v2c-corpo" id="vc-corpo" role="tabpanel">${erro}${t.corpo}</div></div>`;
   }
+  // Contratos e Churn: a janela em vidro fumê, com o topo e a tela direto no vidro.
+  function htmlDaJanelaM() {
+    const lendo = estado.carregando && !estado.servidor && !estado.saude;
+    const t = lendo ? { topo: null, ajuda: '', corpo: '<p class="vc-carregando" role="status">Lendo a carteira…</p>' } : (estado.aba === 'churn' ? abaChurn : abaContratos)();
+    const erro = estado.erro && !estado.carregando ? `<p class="vc-erro" role="alert">${esc(estado.erro)} ${btnFolha('Tentar de novo', 'data-vc-recarregar')}</p>` : '';
+    return `${topoMq(t.topo)}<p class="vc-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>${estado.ajuda ? t.ajuda || '' : ''}
+      <div class="vc-corpo d3m-d-m-corpo" id="vc-corpo" role="tabpanel">${erro}${t.corpo}</div>`;
+  }
   function htmlJanela() {
+    if (TELAS_M.has(estado.aba)) return htmlDaJanelaM();
     if (TELAS_DO_QUADRO.has(estado.aba)) return htmlDoQuadro();
     const corpo = estado.carregando && !estado.servidor && !estado.saude ? '<p class="vc-carregando" role="status">Lendo a carteira…</p>'
       : ({ churn: abaChurn, contratos: abaContratos }[estado.aba] || abaChurn)();
@@ -1106,8 +1131,9 @@
     const foco = document.activeElement, dentro = foco && j.contains(foco);
     const chave = dentro ? ['data-vc-aba', 'data-vc-risco', 'data-vc-tipo', 'data-vc-abrir', 'data-vc-ordem', 'data-vc-item', 'data-vc-resp', 'data-vc-head', 'data-vc-mes-ir', 'data-vc-falta',
       'data-vc-visao', 'data-vc-filtros', 'data-vc-head-ficha', 'data-vc-etapa-onb', 'data-vc-busca-onb', 'data-vc-ordem-gira', 'data-vc-ajuda', 'data-vc-novo', 'data-vc-encerrados',
-      'data-vc-busca', 'data-vc-filtro-ct', 'data-vc-filtro-ch', 'data-vc-serie-ct', 'data-vc-vista-ch', 'data-vc-hist-ch', 'data-vc-registrar'].find((a) => foco.hasAttribute(a)) : null;
+      'data-vc-busca', 'data-vc-busca-abre', 'data-vc-como', 'data-vc-vista-ct', 'data-vc-filtro-ct', 'data-vc-filtro-ch', 'data-vc-serie-ct', 'data-vc-vista-ch', 'data-vc-hist-ch', 'data-vc-registrar'].find((a) => foco.hasAttribute(a)) : null;
     const valor = chave ? foco.getAttribute(chave) : null, item = foco?.dataset?.vcCli;
+    j.className = TELAS_M.has(estado.aba) ? 'vc-janela d3m-d-m' : 'vc-janela';
     j.innerHTML = htmlJanela();
     if (chave === 'data-vc-busca-onb' || chave === 'data-vc-busca') { const campo = j.querySelector(`[${chave}]`); campo?.focus?.(); campo?.setSelectionRange?.(campo.value.length, campo.value.length); }
     const novoCorpo = j.querySelector('.vc-corpo');
@@ -1135,13 +1161,18 @@
     if (!b || !estado.janela?.contains(b) || b.disabled) return;
     const d = b.dataset;
     if ('vcFechar' in d) return fechar();
-    if ('vcAjuda' in d) { estado.ajuda = !estado.ajuda; return pintar(); }
+    if ('vcAjuda' in d || 'vcComo' in d) { estado.ajuda = !estado.ajuda; return pintar(); }
+    if (d.vcIr) return irVista(d.vcIr);
+    if ('vcBuscaAbre' in d) { estado.buscaAberta = !(estado.buscaAberta || termoDaBusca()); if (!estado.buscaAberta) estado.busca[estado.aba] = ''; pintar(); if (estado.buscaAberta) estado.janela?.querySelector?.('[data-vc-busca]')?.focus?.(); return; }
+    if (d.vcVistaCt) { estado.vistaCt = d.vcVistaCt === 'meses' ? 'meses' : 'lista'; return pintar(); }
     if (d.vcAba) { estado.aba = d.vcAba; estado.form = null; estado.aviso = ''; return pintar(); }
     if (d.vcTipo) { estado.tipo = d.vcTipo; return pintar(); }
     if (d.vcMesIr) { if (/^\d{4}-\d{2}$/.test(d.vcMesIr)) estado.mes = d.vcMesIr; return pintar(); }
     if ('vcFalta' in d) { estado.verFalta = !estado.verFalta; return pintar(); }
     if (d.vcRisco) { estado.risco = d.vcRisco; if ('vcLimpar' in d) estado.head = 'todos'; delete estado.limite.saude; return pintar(); }
     if (d.vcMais) { estado.limite[d.vcMais] = (estado.limite[d.vcMais] || PAGINA) + PAGINA; return pintar(); }
+    // A linha pedida pelo cartão laranja abre mesmo fora da ficha escolhida ou com o "Mês a mês" na frente.
+    if (d.vcAbrir && d.vcFocar && TELAS_M.has(estado.aba)) { estado.vistaCt = 'lista'; estado.filtroCt = 'todos'; estado.busca[estado.aba] = ''; estado.abertos.add(d.vcAbrir); pintar(); }
     if (d.vcAbrir) return alternarLinha(d.vcAbrir, d.vcFocar || '');
     if (d.vcVisao) { estado.visao = d.vcVisao; return pintar(); }
     if ('vcFiltros' in d) { estado.filtros = !estado.filtros; return pintar(); }
@@ -1194,6 +1225,8 @@
     if (d.vcOnb) return gravar({ acao: d.vcOnb, cliente_id: d.vcCli }, d.vcOnb === 'onboarding_encerrar' ? 'Onboarding encerrado.' : 'Onboarding reaberto.');
     if ('vcEncerrados' in d) { estado.verEncerrados = !estado.verEncerrados; return pintar(); }
     if (d.vcFormAbrir) {
+      // O formulário mostra o valor: só abre para quem pode gravar (o servidor confere de novo).
+      if (!(d.vcFormAbrir === 'churn' ? podeChurn() : podeContratos())) return;
       // onde: em que lugar da tela o formulário abre (Pede ação, a linha da lista ou o painel de registrar); campo: o que ganha o foco.
       estado.form = { tipo: d.vcFormAbrir, id: d.vcCli, onde: d.vcOnde || '', motivo: '' };
       pintar();
@@ -1248,8 +1281,8 @@
     const linha = [...(estado.janela?.querySelectorAll?.('[data-vc-linha]') || [])].find((x) => x.dataset.vcLinha === chave);
     if (!linha) return pintar();
     linha.setAttribute('aria-expanded', String(abrindo));
-    linha.querySelector('.v2c-abrir')?.setAttribute('aria-expanded', String(abrindo));
-    if (focar) { linha.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); (focar === 'resp' ? [...linha.querySelectorAll('select[data-vc-resp]')].find((x) => !x.value && !x.disabled) : linha.querySelector('.v2c-abrir'))?.focus?.({ preventScroll: true }); }
+    linha.querySelector('.v2c-abrir, [data-vc-abrir]')?.setAttribute('aria-expanded', String(abrindo));
+    if (focar) { linha.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); (focar === 'resp' ? [...linha.querySelectorAll('select[data-vc-resp]')].find((x) => !x.value && !x.disabled) : linha.querySelector('.v2c-abrir, [data-vc-abrir]'))?.focus?.({ preventScroll: true }); }
   }
   function aoDigitar(e) {
     if (e.target?.matches?.('[data-vc-busca]')) { estado.busca[estado.aba] = e.target.value.slice(0, 60); delete estado.limite[estado.aba]; pintar(); return; }

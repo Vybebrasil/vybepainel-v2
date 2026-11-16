@@ -19,13 +19,18 @@ test('D3 · CSS da seção: preso às janelas, sem !important, sem html body.mun
   assert.match(secao, /prefers-reduced-motion:reduce/);
 });
 
-test('D3 · Agentes: bloco de ação, quatro números, "Para você decidir" em cartões e o pé com as fichas', () => {
+test('D3 · Agentes: a tela principal é a prancha V2-M-Agentes; a fila em lista (a um clique) segue com o bloco de ação e os quatro números', () => {
+  assert.match(ag, /const emM = \(\) => st\.vista === 'fila' && !st\.lista;/);
+  assert.match(ag, /if \(!st\.lista\) return filaMHtml\(\{ F, dono, lendo \}\);/);
+  const m = ag.slice(ag.indexOf('  function filaMHtml('), ag.indexOf('  function filaHtml() {'));
+  assert.match(m, /const it = n \? F\.decidir\[st\.frente\] : null, c = it \? cartaDe\(it\) : null;/);
+  assert.match(m, /class="d3m-btn l v2-estado" \$\{c\.sim\[1\]\}\$\{trava\}[\s\S]*class="d3m-btn l s" \$\{c\.nao\[1\]\}\$\{trava\}/, 'as mesmas rotas do baralho');
+  assert.match(m, /<h3>Para você decidir<\/h3>/);
+  assert.match(m, /data-vga-lista="1">ver em lista</, 'a fila inteira continua em lista');
+  assert.match(ag, /class="d3m-d-ag-sinal" role="status">Central sem sinal<button type="button" class="d3m-d-vbtn" data-vga-recarregar>Tentar de novo/);
+  // A lista de antes: bloco de ação, quatro números e a conta do acerto.
   assert.match(ag, /const fala = d3Acao\(\{ frase:[\s\S]*botao: n \? 'Ver o 1º' : '', attrs: 'data-vga-primeiro'/);
   for (const r of ["rotulo: 'Para decidir'", "rotulo: 'Agentes'", "rotulo: 'Acerto · 7 dias'", "rotulo: 'Achados de olho'"]) assert.ok(ag.includes(r), r);
-  assert.match(ag, /function decidirHtml\(itens\)[\s\S]*const c = cartaDe\(it\)[\s\S]*\$\{c\.nao\[1\]\}[\s\S]*v2-estado" \$\{c\.sim\[1\]\}/, 'as mesmas rotas do baralho');
-  assert.match(ag, /<h3 class="v2g-h2">Para você decidir<\/h3>/);
-  assert.match(ag, /data-vga-lista="1">Ver em lista</, 'a fila inteira continua em lista');
-  assert.match(ag, /d3t-sinal" role="status">Central sem sinal<button type="button" data-vga-recarregar>Tentar de novo/);
   assert.match(ag, /if \(b\.hasAttribute\('data-vga-primeiro'\)\)/);
   assert.match(ag, /acerto = <b>certos ÷ \(certos \+ errados\)<\/b>/);
 });

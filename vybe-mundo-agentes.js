@@ -29,7 +29,7 @@
   const rotuloDoModo = (m) => MODO[m.id] || ESTADO_SETOR[m.id] || ESTADO_SETOR.planejado;
   const ANDAR = (n, id) => (n === 0 ? 'Térreo' : id === 'terraco' ? 'Terraço' : n + 'º andar');
   const FREQ = { uma_vez: 'Uma vez', diaria: 'Todo dia', semanal: 'Toda semana', mensal: 'Todo mês' };
-  const st = { aberto: false, vista: 'fila', setor: 'orquestrador', msg: '', enviando: false, frente: 0, lista: false, lado: 'resumo', achado: undefined, rotinasTodas: false, achadosTodos: false, mais: false, trocar: false, anima: true, doBaralho: false, saindo: false, chegou: false, perfis: {}, estados: { dados: null, erro: '', em: 0, lendo: null } };
+  const st = { aberto: false, vista: 'fila', setor: 'orquestrador', msg: '', enviando: false, frente: 0, lista: false, lado: 'resumo', quem: 'todos', busca: '', buscaAberta: false, achado: undefined, rotinasTodas: false, achadosTodos: false, mais: false, trocar: false, anima: true, doBaralho: false, saindo: false, chegou: false, perfis: {}, estados: { dados: null, erro: '', em: 0, lendo: null } };
   // Estados e pedidos de aprovação: só para dono (o servidor confere a sessão e a central de novo). 30 s de folga.
   function lerEstados(forcar = false) {
     const e = st.estados;
@@ -497,22 +497,6 @@
   // "há 6 h", "há 2 dias": a idade do pedido mais antigo.
   const idade = (iso) => { const ms = Date.now() - Date.parse(iso); if (!(ms >= 0)) return ''; const h = Math.round(ms / 3600e3); return h < 1 ? 'há menos de 1 h' : h < 48 ? `há ${h} h` : `há ${Math.round(h / 24)} dias`; };
   const maisAntigo = (itens) => itens.map((it) => String(it.em || '')).filter(Boolean).sort()[0] || '';
-  // Lista "Para você decidir" (quadro D3-Agentes): cada pedido num cartão com quem pede, o que quer, a prova e as duas
-  // respostas. Os mesmos dados e as mesmas rotas do baralho (cartaDe); a fila inteira continua em "Ver em lista".
-  function decidirHtml(itens) {
-    const dono = souDono(), trava = st.enviando ? ' disabled' : '';
-    return itens.map((it, i) => {
-      const c = cartaDe(it), s = setores().find((x) => x.id === it.setor), m = s ? modoDo(s) : null;
-      const vistos = it.vistos || [];
-      const prazo = it.tipo === 'aprovacao' ? `<span class="d3t-prazo${horasAte(it.p.expiraEm) <= 6 ? ' r' : ''}">${it.em ? esc(idade(it.em).replace('há ', '')) + ' · ' : ''}vence ${horasAte(it.p.expiraEm)} h</span>` : it.em ? `<span class="d3t-prazo">${esc(idade(it.em))}</span>` : '';
-      return `<article class="d3t-ped${i === 0 ? ' frente' : ''}"${i === 0 ? ' id="d3t-primeiro" tabindex="-1"' : ''}>
-        <div class="d3t-ped-cab"><span class="v2g-av lil d3-agente-av" aria-hidden="true">${esc(iniciais(it.agente))}</span><b>${esc(c.quem)}</b>${c.papel ? `<span class="v2g-sub">${esc(c.papel)}</span>` : ''}${m ? `<span class="d3t-pil"><i style="--c:${(rotuloDoModo(m)[2])}"></i>${esc(rotuloDoModo(m)[0])}</span>` : ''}${c.selos.map(([, t]) => `<span class="d3t-pil">${esc(t)}</span>`).join('')}${prazo}</div>
-        <b class="d3t-ped-tit">${esc(c.tit)}</b>
-        <span class="d3t-ped-prova"><span>${esc(c.prova)}</span>${c.sub ? `<small>${esc(c.sub)}</small>` : ''}</span>
-        <div class="d3t-ped-pe">${vistos.length > 1 ? `<span class="d3t-pil">visto por ${vistos.length}</span>` : ''}<span class="d3t-veio">${c.veio.slice(0, 1).join('')}</span>
-          ${dono ? `<button type="button" class="v2g-btn s" ${c.nao[1]}${trava}>${esc(c.nao[0])}</button><button type="button" class="v2g-btn s k v2-estado" ${c.sim[1]}${trava}>${esc(c.sim[0])}</button>` : '<span class="v2g-sub">Só um dono decide.</span>'}</div></article>`;
-    }).join('');
-  }
   // O prazo mais curto entre os pedidos que vencem (aprovação de agente em sombra).
   function venceEm(itens) {
     const hs = itens.filter((it) => it.tipo === 'aprovacao').map((it) => horasAte(it.p.expiraEm));
@@ -579,10 +563,115 @@
     return `<div class="v2a-cab"><h3 class="v2g-h2">Depende de você</h3><span class="v2g-sub">${pedidosTxt(F.decidir.length)} em lista · <button type="button" class="v2g-link" data-vga-lista>ver em cartões</button></span></div>
       <section class="vga-bloco"><h4>Para decidir<span class="vga-pilula">${F.decidir.length}</span></h4>${decidir}</section>${acomp}${esp}`;
   }
+  // ===== Prancha V2-M-Agentes (16/11/2026): a janela dos Agentes em vidro fumê (padrao-v2/zm-d-agentes.css) =====
+  // O topo e a tela ficam direto no vidro: em cima, o cartão laranja com o pedido da frente (as mesmas respostas de
+  // cartaDe) ao lado da folha "Para você decidir"; embaixo, a folha "Quem é quem" (cada agente com o estado, o que tem
+  // para você e o acerto); na coluna de consulta, o acerto em 7 dias, o que os agentes viram, a central e o "Abrir".
+  // A fila em lista, o perfil do agente e "Como o VYBES pensa" seguem na janela de antes, a um clique.
+  const emM = () => st.vista === 'fila' && !st.lista;
+  const svgA = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const ICA = { seta: svgA('<path d="M9 6l6 6-6 6"/>'), busca: svgA('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svgA('<path d="M5 12h.01M12 12h.01M19 12h.01"/>'),
+    ajuda: svgA('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>') };
+  const ESTADO_M = { ativo: ['g', 'Ativo, age e avisa'], sombra: ['', 'Em sombra, só sugere'], pausado: ['a', 'Pausado, volta na data marcada'], desligado: ['', 'Desligado'], planejado: ['', 'Planejado, ainda sem rotina'] };
+  const tomDaNota = (n) => (n == null ? '' : n >= 75 ? 'g' : n >= 60 ? 'a' : 'r');
+  const minusc = (t) => String(t || '').charAt(0).toLowerCase() + String(t || '').slice(1);
+  function miniA(vals) {
+    const v = (vals || []).map(Number).filter(Number.isFinite); if (v.length < 2) return '';
+    const mn = Math.min(...v), mx = Math.max(...v), w = 120, h = 44;
+    const fio = v.map((n, i) => `${i ? 'L' : 'M'}${(2 + (i * (w - 4)) / (v.length - 1)).toFixed(1)} ${(mx === mn ? h / 2 : h - 3 - ((n - mn) * (h - 6)) / (mx - mn)).toFixed(1)}`).join(' ');
+    return `<svg class="d3m-d-mini" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path class="veu" d="${fio} V${h} H2 Z"/><path class="fio" d="${fio}"/></svg>`;
+  }
+  // A média do acerto dia a dia (série acerto_agente de cada agente, alinhada pelo fim): só quando há série guardada.
+  function serieDaMedia(rodam) {
+    const series = rodam.map((s) => serieDoAcerto(s.id)?.valores).filter((v) => v && v.length > 1); if (!series.length) return [];
+    const n = Math.min(14, Math.max(...series.map((v) => v.length)));
+    return Array.from({ length: n }, (_, i) => { const xs = series.map((v) => v[v.length - n + i]).filter((x) => typeof x === 'number' && Number.isFinite(x)); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; }).filter((x) => x != null);
+  }
+  function topoMHtml() {
+    const F = filaAgora(), n = F.decidir.length, varios = souDono() ? aprovaveis(F).length : 0;
+    const todos = setores(), rodam = todos.filter((s) => modoDo(s).id !== 'planejado'), conta = (id) => rodam.filter((s) => modoDo(s).id === id).length;
+    const dia = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Bahia', weekday: 'long', day: 'numeric', month: 'long' }).replace('-feira', '');
+    const sub = [dia, todos.length ? `${conta('ativo')} ${conta('ativo') === 1 ? 'ativo' : 'ativos'}, ${conta('sombra')} em sombra` : '', n ? `${n === 1 ? '1 pedido depende' : `${n} pedidos dependem`} de você` : 'nada depende de você agora'].filter(Boolean).join(' · ');
+    const f = fonte(), semSinal = f.erro && !f.dados;
+    return `<div class="d3m-d-topo d3m-d-ag-topo"><div class="d3m-d-tit"><h2>Agentes</h2><span class="d3m-d-sub">${esc(sub)}</span></div>
+      <div class="d3m-d-ferr">${semSinal ? '<span class="d3m-d-ag-sinal" role="status">Central sem sinal<button type="button" class="d3m-d-vbtn" data-vga-recarregar>Tentar de novo</button></span>' : ''}
+        ${st.buscaAberta || st.busca ? `<input type="search" class="d3m-d-ag-busca" data-vga-busca placeholder="Buscar agente" aria-label="Buscar agente" value="${esc(st.busca || '')}">` : ''}<button type="button" class="d3m-d-ico" data-vga-busca-abre aria-expanded="${Boolean(st.buscaAberta || st.busca)}" aria-label="Buscar agente" title="Buscar agente">${ICA.busca}</button>
+        ${temDiagnostico() ? `<button type="button" class="d3m-d-ico" data-vga-cerebro aria-label="Como o VYBES pensa" title="Como o VYBES pensa">${ICA.ajuda}</button>` : ''}
+        <details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais opções" title="Mais opções">${ICA.pontos}</summary><div class="d3m-d-pop" role="menu"><button type="button" role="menuitem" data-vga-lista="1">Ver a fila em lista</button><button type="button" role="menuitem" data-vga-recarregar>Ler a central de novo</button><button type="button" role="menuitem" data-vga-fechar>Fechar</button></div></details>
+        ${varios > 1 ? `<button type="button" class="d3m-d-vbtn p" data-vga-aprovar-todos${st.enviando ? ' disabled' : ''}>Aprovar os ${varios}</button>` : ''}</div></div>`;
+  }
+  // A célula do agente em "Quem é quem": a bolinha, o nome e a área, o estado, o que ele tem para você e o acerto.
+  function celulaAgenteHtml(s, F) {
+    const m = modoDo(s), [tom, texto] = ESTADO_M[m.id] || ['', rotuloDoModo(m)[0]], nota = notaDe(s.id);
+    const meus = F.decidir.filter((it) => (it.vistos || [it]).some((v) => v.setor === s.id)), olho = F.acompanhar.find((x) => x.setor === s.id);
+    const aperta = meus.some((it) => it.tipo === 'falha' || (it.tipo === 'aprovacao' && horasAte(it.p.expiraEm) <= 6));
+    const oQue = meus.length ? `${meus.length === 1 ? '1 pedido espera' : `${meus.length} pedidos esperam`} você` : olho ? `${olho.n} ${olho.n === 1 ? 'achado' : 'achados'} de olho, sem urgência` : m.id === 'planejado' ? 'falta ligar as ferramentas' : 'nada para você agora';
+    return `<button type="button" class="d3m-d-ag-cel" data-vga-setor="${esc(s.id)}" title="Abrir ${esc(s.agente)}${m.ate ? ` · volta ${esc(quando(m.ate))}` : ''}">
+      <span class="d3m-d-ag-av" aria-hidden="true">${esc(String(s.agente || '?').charAt(0).toUpperCase())}</span>
+      <span class="d3m-d-ag-quem"><span><b>${esc(s.agente)}</b> · ${esc(s.funcao || s.nome)}</span><span class="d3m-d-ag-est"><i${tom ? ` class="${tom}"` : ''}></i>${esc(texto)}</span><small${aperta ? ' class="r"' : ''}>${esc(oQue)}</small></span>
+      <span class="d3m-d-ag-nota"><b${nota != null && nota < 60 ? ' class="r"' : ''}>${nota == null ? '—' : `${nota}%`}</b><span class="d3m-d-ag-barra${tomDaNota(nota) ? ' ' + tomDaNota(nota) : ''}"><i style="--v:${nota ?? 0}%"></i></span></span></button>`;
+  }
+  function filaMHtml({ F, dono, lendo }) {
+    const n = F.decidir.length, trava = st.enviando ? ' disabled' : '';
+    st.frente = n ? ((st.frente % n) + n) % n : 0;
+    const it = n ? F.decidir[st.frente] : null, c = it ? cartaDe(it) : null;
+    // O laranja: o pedido da frente, com as duas respostas de sempre (as mesmas rotas do baralho) e o agente a um clique.
+    const laranja = c ? `<section class="d3m-laranja d3m-d-ag-pesa" aria-label="O pedido da frente"${st.frente === 0 ? ' id="d3t-primeiro" tabindex="-1"' : ''}><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${esc(String(it.agente || 'V').charAt(0).toUpperCase())}</span>${esc(c.quem)} · ${esc(minusc(c.tipo))}${c.selos[0] ? `, ${esc(minusc(c.selos[0][1]))}` : ''}${it.em ? `, ${esc(idade(it.em))}` : ''}</span>
+        <div class="d3m-lar-txt"><span class="d3-acao-frase">${esc(c.tit)}</span><small>${esc(c.prova)}${c.sub ? ` ${esc(c.sub)}` : ''}</small>
+          <div class="d3m-lar-bts">${dono ? `<button type="button" class="d3m-btn l v2-estado" ${c.sim[1]}${trava}>${esc(c.sim[0])}</button><button type="button" class="d3m-btn l s" ${c.nao[1]}${trava}>${esc(c.nao[0])}</button>` : '<span class="d3m-d-ag-so">Só um dono decide.</span>'}
+            <button type="button" class="d3m-d-ag-elo" data-vga-setor="${esc(it.setor)}">Abrir ${esc(it.agente)}</button></div></div></section>`
+      : `<section class="d3m-laranja d3m-d-ag-pesa" aria-label="O pedido da frente"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${lendo ? 'lendo' : 'tudo em dia'}</span>
+        <div class="d3m-lar-txt"><span class="d3-acao-frase">${lendo ? 'Lendo o que cada agente deixou para você' : 'Nada depende de você agora'}</span><small>Quando um agente pedir o seu OK, achar algo urgente, falhar ou quiser guardar uma lição, aparece aqui.</small></div></section>`;
+    // "Para você decidir": a fila em linhas (a da frente marcada); tocar na linha traz o pedido para o laranja.
+    const acompanhar = F.acompanhar.reduce((t, x) => t + x.n, 0);
+    const linhas = F.decidir.map((x, i) => { const k = cartaDe(x), urgente = x.tipo === 'falha' || x.tipo === 'achado' || x.tipo === 'grupo' || (x.tipo === 'aprovacao' && horasAte(x.p.expiraEm) <= 6);
+      return `<button type="button" class="d3m-d-ag-ped" data-vga-frente="${i}" aria-pressed="${i === st.frente}"><span class="d3m-d-ag-g${i === 0 ? ' r' : ''}">${i === 0 ? 'Agora' : i === 1 ? 'Depois' : ''}</span><span class="d3m-d-ag-av p" aria-hidden="true">${esc(String(x.agente || '?').charAt(0).toUpperCase())}</span>
+        <span class="d3m-d-ag-ped-t"><b>${esc(k.tit)}</b><small>${esc(k.quem)} · ${esc(minusc(k.tipo))}${k.selos[0] ? ` · ${esc(minusc(k.selos[0][1]))}` : ''}${(x.vistos || []).length > 1 ? ` · visto por ${x.vistos.length}` : ''}</small></span>
+        <span class="d3m-d-ag-ped-q${urgente && x.tipo === 'aprovacao' ? ' r' : ''}">${x.tipo === 'aprovacao' ? `vence ${horasAte(x.p.expiraEm)} h` : x.em ? esc(idade(x.em)) : ''}</span></button>`; }).join('');
+    const decidir = `<section class="d3m-d-folha d3m-d-ag-decidir" aria-label="Para você decidir"><div class="d3m-d-cab"><h3>Para você decidir</h3><small>${n ? `${n} · o mais antigo primeiro` : lendo ? 'procurando' : 'nada esperando'}</small></div>
+        ${n ? `<div class="d3m-d-ag-peds">${linhas}</div>` : `<p class="d3m-d-ag-nada">${lendo ? 'Procurando…' : 'Nada esperando você agora.'}</p>`}
+        <div class="d3m-d-pk-olho"><small>Vigiando</small><button type="button" data-vga-lista="1"><b>${acompanhar}</b> ${acompanhar === 1 ? 'achado' : 'achados'}, sem urgência</button>${F.esperando.length ? `<button type="button" data-vga-lista="1"><b>${F.esperando.length}</b> esperando confirmação</button>` : ''}<button type="button" data-vga-lista="1">ver em lista</button></div></section>`;
+    // "Quem é quem": quem já trabalha (ativo, em sombra, pausado) e, no pé, os planejados.
+    const todos = setores(), rodam = todos.filter((s) => modoDo(s).id !== 'planejado'), planejados = todos.filter((s) => modoDo(s).id === 'planejado');
+    const FICHAS = [['todos', 'Todos', todos.length, rodam], ['ativo', 'Ativos', rodam.filter((s) => modoDo(s).id === 'ativo').length, rodam.filter((s) => modoDo(s).id === 'ativo')],
+      ['sombra', 'Em sombra', rodam.filter((s) => modoDo(s).id === 'sombra').length, rodam.filter((s) => modoDo(s).id === 'sombra')], ['planejado', 'Planejados', planejados.length, planejados]];
+    if (!FICHAS.some(([k]) => k === st.quem)) st.quem = 'todos';
+    const termo = normal(st.busca || ''), comPedido = (s) => F.decidir.some((x) => (x.vistos || [x]).some((v) => v.setor === s.id));
+    const daFicha = FICHAS.find(([k]) => k === st.quem)[3].filter((s) => !termo || normal(`${s.agente} ${s.funcao || ''} ${s.nome}`).includes(termo));
+    const naOrdem = [...daFicha.filter(comPedido), ...daFicha.filter((s) => !comPedido(s))];
+    const quem = `<section class="d3m-d-folha d3m-d-ag-quemq" aria-label="Quem é quem"><div class="d3m-d-cab"><h3>Quem é quem <small>· ${rodam.length} trabalhando${planejados.length ? `, ${planejados.length} planejados` : ''}</small></h3>
+        <span class="d3m-d-pk-seg" role="group" aria-label="Filtrar os agentes">${FICHAS.map(([k, rot, q]) => `<button type="button" data-vga-quem="${k}" aria-pressed="${st.quem === k}">${rot} <b>${q}</b></button>`).join('')}</span></div>
+        ${naOrdem.length ? `<div class="d3m-d-ag-grade">${naOrdem.map((s) => celulaAgenteHtml(s, F)).join('')}</div>` : `<p class="d3m-d-ag-nada">${termo ? 'Nenhum agente com esse nome.' : st.quem === 'planejado' ? 'Nenhum agente planejado.' : 'Nenhum agente neste estado.'}</p>`}
+        <div class="d3m-d-ag-pe">${st.quem !== 'planejado' && planejados.length ? `<span class="d3m-d-ag-vagos" aria-hidden="true">${planejados.slice(0, 8).map(() => '<i></i>').join('')}</span><button type="button" class="d3m-d-elo" data-vga-quem="planejado">${planejados.length} ${planejados.length === 1 ? 'planejado' : 'planejados'}, ainda sem rotina</button>` : '<span title="Nota = achados resolvidos sobre resolvidos mais os marcados como errado. Sem retorno não conta como acerto.">acerto = certos ÷ (certos + errados), em 7 dias</span>'}
+          ${temDiagnostico() ? '<button type="button" class="d3m-d-elo" data-vga-cerebro>ver o mapa das rotinas</button>' : ''}</div></section>`;
+    // A coluna de consulta.
+    const notas = rodam.map((s) => notaDe(s.id)).filter((x) => x != null), media = notas.length ? Math.round(notas.reduce((a, b) => a + b, 0) / notas.length) : null;
+    const baixos = rodam.filter((s) => { const x = notaDe(s.id); return x != null && x < 60; });
+    const acertoM = `<section class="d3m-cons" aria-label="Acerto em 7 dias"><div class="d3m-cons-cab"><b>Acerto em 7 dias</b><span>${notas.length ? `${notas.length} com nota` : 'sem nota ainda'}</span></div>
+      <div class="d3m-d-ag-cartao"><span><b${media != null && media < 60 ? ' class="r"' : ''}>${media == null ? '—' : `${media}%`}</b><small>${baixos.length ? `${esc(listaDeNomes(baixos.map((s) => s.agente)))} abaixo de 60` : media == null ? 'a nota aparece com o retorno de um dono' : 'dos achados com retorno estavam certos'}</small></span>${miniA(serieDaMedia(rodam))}</div>${metaHtml()}</section>`;
+    const viram = F.acompanhar.slice(0, 4);
+    const viramM = `<section class="d3m-cons" aria-label="Hoje os agentes viram"><div class="d3m-cons-cab"><b>Os agentes viram</b>${acompanhar ? '<button type="button" class="d3m-d-ag-elo v" data-vga-lista="1">abrir</button>' : '<span>nada de olho</span>'}</div>
+      ${viram.map((x) => `<button type="button" class="d3m-vlin" data-vga-setor="${esc(x.setor)}" title="${esc(`${x.n} ${x.n === 1 ? 'achado' : 'achados'} em aberto`)}"><i class="d3m-d-ag-av v" aria-hidden="true">${esc(String(x.agente || '?').charAt(0).toUpperCase())}</i><span class="d3m-vnome"><b>${esc(x.agente)}</b>: ${esc(x.mais.fato)}</span><i class="d3m-pt${x.n > 2 ? ' a' : ''}"></i></button>`).join('') || `<p class="d3m-vvazio">${lendo ? 'Lendo os agentes…' : 'Nenhum achado em aberto.'}</p>`}</section>`;
+    const f = fonte(), leitura = f.atualizadoEm ? new Date(f.atualizadoEm).toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }) : '';
+    const centralM = `<section class="d3m-cons" aria-label="Central do VYBES"><div class="d3m-cons-cab"><b>Central</b><span>${leitura ? `última leitura às ${esc(leitura)}` : ''}</span></div>
+      ${f.dados ? '<div class="d3m-vlin d3m-d-ag-central" role="status"><i class="d3m-pt g"></i><span><b>Ligada</b> · no ar, lendo os agentes</span></div>'
+        : f.erro ? `<button type="button" class="d3m-vlin d3m-d-ag-central" data-vga-recarregar><i class="d3m-pt a"></i><span><b>Sem sinal</b> · tentar de novo</span>${ICA.seta}</button>` : '<div class="d3m-vlin d3m-d-ag-central" role="status"><i class="d3m-pt"></i><span><b>Consultando</b> · a central do VYBES</span></div>'}</section>`;
+    const abrirM = `<nav class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+      ${temDiagnostico() ? `<button type="button" class="d3m-vlin" data-vga-cerebro><span><b>Como o VYBES pensa</b> · rotina por rotina</span>${ICA.seta}</button>` : ''}
+      <button type="button" class="d3m-vlin" data-vga-lista="1"><span><b>A fila em lista</b> · decidir linha a linha</span>${ICA.seta}</button></nav>`;
+    // Avisos discretos, numa tira no vidro: os pedidos de aprovação sem leitura, a leitura em curso e a central incompleta.
+    const avisos = [dono && st.estados.erro ? `<p class="d3m-d-ag-aviso" title="${esc(st.estados.erro)}">Pedidos de aprovação sem leitura agora.</p>` : '',
+      lendo ? `<p class="d3m-d-ag-aviso vga-lendo" role="status">Lendo ${F.lidos} de ${F.de} agentes na central do VYBES…</p>` : F.lidos < F.de ? `<p class="d3m-d-ag-aviso">A central não respondeu por ${F.de - F.lidos} agente${F.de - F.lidos > 1 ? 's' : ''}: a fila pode estar incompleta. <button type="button" class="d3m-d-vbtn" data-vga-recarregar>Tentar de novo</button></p>` : '',
+      st.msg ? `<p class="d3m-d-ag-aviso vga-msg" role="status">${esc(st.msg)}</p>` : ''].join('');
+    return `<div class="d3m-d-ag" data-tela="ag-fila"><div class="d3m-d-ag-main">${avisos}<div class="d3m-d-ag-alto">${laranja}${decidir}</div>${quem}</div>
+      <aside class="d3m-lado d3m-d-ag-lado" aria-label="Consulta">${acertoM}${viramM}${centralM}${abrirM}</aside></div>`;
+  }
   function filaHtml() {
     const anima = st.anima;
     const F = filaAgora(), dono = souDono(), lendo = F.lidos < F.de && setores().some((s) => st.perfis[s.id]?.lendo || !st.perfis[s.id]);
     if (!F.de) return '<p class="vga-vazio">Carregando a planta do prédio…</p>';
+    // A tela principal é a prancha V2-M-Agentes; daqui para baixo, a fila em lista (a um clique), na janela de antes.
+    if (!st.lista) return filaMHtml({ F, dono, lendo });
     const n = F.decidir.length, h = venceEm(F.decidir), antigo = maisAntigo(F.decidir);
     const prazo = h == null ? '' : `vence em ${h} h`;
     // Direção 3: o bloco de ação laranja diz quantos pedidos esperam e há quanto tempo; "Ver o 1º" leva ao primeiro.
@@ -599,11 +688,7 @@
     const avisoPedidos = dono && st.estados.erro ? `<p class="vga-nota d3t-aviso-leve" title="${esc(st.estados.erro)}"><span class="d3t-pil"><i style="--c:var(--d3-ajuste)"></i>Pedidos de aprovação sem leitura agora</span></p>` : '';
     const aviso = avisoPedidos + (lendo ? `<p class="vga-nota vga-lendo" role="status">Lendo ${F.lidos} de ${F.de} agentes na central do VYBES…</p>`
       : F.lidos < F.de ? `<p class="vga-nota">A central não respondeu por ${F.de - F.lidos} agente${F.de - F.lidos > 1 ? 's' : ''}: a fila pode estar incompleta. <button type="button" class="vga-link" data-vga-recarregar>Tentar de novo</button></p>` : '');
-    const leitura = fonte().atualizadoEm ? new Date(fonte().atualizadoEm).toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }) : '';
-    const pePedidos = `<div class="d3t-pe"><span class="v2g-sub">De olho</span>${acompanhar ? `<button type="button" class="v2g-chip" data-vga-lista="1">${acompanhar} achado${acompanhar === 1 ? '' : 's'}</button>` : ''}${F.esperando.length ? `<button type="button" class="v2g-chip" data-vga-lista="1">${F.esperando.length} esperando</button>` : ''}<button type="button" class="v2g-chip" data-vga-lista="1">Ver em lista</button></div>`;
-    const esq = st.lista ? listaDaFilaHtml(F, dono, lendo)
-      : `<section class="v2g-card d3t-decidir" aria-label="Para você decidir"><div class="v2g-cab"><h3 class="v2g-h2">Para você decidir</h3><span class="v2g-sub">mais antigo primeiro${leitura ? ` <span class="d3t-pil">leitura de ${esc(leitura)}</span>` : ''}</span></div>
-        ${n ? `<div class="d3t-peds">${decidirHtml(F.decidir)}</div>` : `<p class="v2a-nada">${lendo ? 'Procurando…' : 'Nada esperando você agora.'}</p>`}${pePedidos}</section>`;
+    const esq = listaDaFilaHtml(F, dono, lendo);
     return `${fala}${numeros}${aviso}<div class="v2a-grade d3t-grade${st.lista ? ' em-lista' : ''}"><div class="v2a-esq">${esq}</div>${comoVaoHtml(F, anima)}</div>${st.msg ? `<p class="vga-msg" role="status">${esc(st.msg)}</p>` : ''}`;
   }
   // Número no item Agentes do dock: só para quem decide (dono, sem "ver como"), lido ao entrar e a cada 10 min com a aba à vista.
@@ -778,6 +863,7 @@
   // O alto da janela. Na fila e em "Como o VYBES pensa", o cabeçalho único; no agente, o do quadro "Perfil do agente":
   // voltar, a bolinha com a letra, o nome, onde ele fica, o estado e "Trocar de agente" (a lista por andar de antes).
   function topoHtml() {
+    if (emM()) return topoMHtml();
     const x = botaoX('data-vga-fechar', 'vga-fechar');
     if (st.vista !== 'agente') {
       const F = st.vista === 'fila' ? filaAgora() : null, varios = F && souDono() ? aprovaveis(F).length : 0;
@@ -803,6 +889,7 @@
     if (!raiz) {
       raiz = document.createElement('section'); raiz.id = 'vv-agentes'; raiz.className = 'vv-ag v2a'; raiz.setAttribute('aria-label', 'Agentes da Vybe');
       raiz.addEventListener('click', aoClicar); raiz.addEventListener('submit', aoEnviar);
+      raiz.addEventListener('input', (e) => { if (e.target?.matches?.('[data-vga-busca]')) { st.busca = e.target.value.slice(0, 40); pintar(); } });
       // Opção escolhida do estado marcada por classe (sem :has, que pesa no Vybe OS).
       raiz.addEventListener('change', (e) => { const g = e.target.closest?.('.vga-modos-opcoes'); if (g) g.querySelectorAll('label').forEach((l) => l.classList.toggle('sel', l.contains(e.target) && e.target.checked)); });
       document.body.append(raiz);
@@ -816,8 +903,17 @@
     st.anima = !mesmo;
     if (!mesmo) { st.frente = 0; st.achado = undefined; st.rotinasTodas = false; st.achadosTodos = false; st.mais = false; }
     raiz.dataset.vista = chave; raiz.dataset.setor = st.setor;
-    const corpo = detalheHtml();
-    raiz.innerHTML = `${topoHtml()}<div class="vga-detalhe v2a-corpo v2a-${st.vista}">${corpo}</div>`;
+    const corpo = detalheHtml(), m = emM();
+    // Prancha V2-M-Agentes: a janela vira vidro fumê só na tela principal; guarda o "Mais" aberto, a rolagem das listas e a busca.
+    const maisAberto = Boolean(raiz.querySelector('.d3m-d-mais[open]')), rolos = ['.d3m-d-ag-grade', '.d3m-d-ag-peds'].map((q) => raiz.querySelector(q)?.scrollTop || 0);
+    const naBusca = document.activeElement?.matches?.('[data-vga-busca]') ? document.activeElement.selectionEnd : null;
+    raiz.className = m ? 'vv-ag d3m-d-m' : 'vv-ag v2a';
+    raiz.innerHTML = m ? `${topoHtml()}<div class="vga-detalhe d3m-d-m-corpo">${corpo}</div>` : `${topoHtml()}<div class="vga-detalhe v2a-corpo v2a-${st.vista}">${corpo}</div>`;
+    if (m) {
+      if (maisAberto) { const d = raiz.querySelector('.d3m-d-mais'); if (d) d.open = true; }
+      ['.d3m-d-ag-grade', '.d3m-d-ag-peds'].forEach((q, i) => { const el = rolos[i] ? raiz.querySelector(q) : null; if (el) el.scrollTop = rolos[i]; });
+      if (naBusca != null) { const campo = raiz.querySelector('[data-vga-busca]'); campo?.focus?.(); try { campo?.setSelectionRange?.(naBusca, naBusca); } catch { /* sem seleção */ } }
+    }
     st.chegou = false;
     raiz.hidden = false;
     if (abertos.length) raiz.querySelectorAll('.vga-detalhe details:not(.vga-mais) > summary').forEach((s) => { if (abertos.includes(s.textContent)) s.parentElement.open = true; });
@@ -905,6 +1001,10 @@
     if (b.dataset.vgaPassa) { if (b.dataset.vgaFica) st.msg = `${b.dataset.vgaFica} continua em sombra.`; passar(Number(b.dataset.vgaPassa) || 1); return; }
     if (b.hasAttribute('data-vga-lista')) { st.lista = b.dataset.vgaLista ? true : !st.lista; pintar(); raiz?.querySelector('.vga-detalhe')?.scrollTo?.(0, 0); return; }
     if (b.dataset.vgaLado) { st.lado = b.dataset.vgaLado; pintar(); return; }
+    // Prancha V2-M-Agentes: a ficha de "Quem é quem", a busca e a linha que traz o pedido para o laranja.
+    if (b.dataset.vgaQuem) { st.quem = b.dataset.vgaQuem; pintar(); return; }
+    if (b.hasAttribute('data-vga-busca-abre')) { st.buscaAberta = !(st.buscaAberta || st.busca); if (!st.buscaAberta) st.busca = ''; pintar(); if (st.buscaAberta) raiz?.querySelector('[data-vga-busca]')?.focus?.(); return; }
+    if (b.dataset.vgaFrente != null) { st.frente = Number(b.dataset.vgaFrente) || 0; pintar(); return; }
     if (b.dataset.vgaAbre != null) { st.achado = st.achado === b.dataset.vgaAbre ? '' : b.dataset.vgaAbre; raiz.querySelectorAll('.v2a-achado').forEach((l) => { const a = l.firstElementChild?.dataset.vgaAbre === st.achado; l.setAttribute('aria-expanded', String(a)); l.firstElementChild?.setAttribute('aria-expanded', String(a)); }); return; }
     if (b.hasAttribute('data-vga-achados-todos')) { st.achadosTodos = !st.achadosTodos; pintar(); return; }
     if (b.hasAttribute('data-vga-rotinas-todas')) { st.rotinasTodas = !st.rotinasTodas; pintar(); return; }
