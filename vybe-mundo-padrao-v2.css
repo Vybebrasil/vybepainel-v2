@@ -12843,8 +12843,9 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
    o tema antigo obriga os campos da janela a ser. */
 .d3m-c-busca{flex:none;display:flex;align-items:center;height:34px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
 .d3m-c-busca > svg{margin:0 9px;pointer-events:none}
-.d3m-c-busca > input{width:0;min-width:0;height:28px;margin:0;padding:0;box-sizing:border-box;opacity:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);transition:width .2s}
-.d3m-c-busca > input:is(:focus,:not(:placeholder-shown)){width:210px;margin-right:3px;padding:0 10px;opacity:1;outline:0}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca > input{flex:none;width:0;min-width:0;height:28px;margin:0;padding:0;box-sizing:border-box;opacity:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);transition:width .2s}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca > input:is(:focus,:not(:placeholder-shown)){width:210px;margin-right:3px;padding:0 10px;opacity:1;outline:0}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca{display:flex;flex-direction:row;align-items:center;gap:0;margin:0}
 .d3m-c-busca:focus-within{box-shadow:inset 0 0 0 2px var(--d3-fume-texto)}
 /* A janela de módulo (as que abrem por cima do mundo: Planejamentos, Impressões, Projetos, Fornecedores, Creators e
    Conversas) vira vidro fumê quando a tela V2 está nela (.d3m-c-janela, posta pelo módulo). A posição continua a do tema. */
@@ -12894,6 +12895,137 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
   .d3m-c-topo{flex-wrap:wrap}
   .d3m-c-corpo{flex:none;grid-template-columns:minmax(0,1fr)}
   .d3m-c-corpo > .d3m-lado{overflow:visible}
+}
+
+/* ===== padrao-v2/zm-c-impressoes.css ===== */
+/* DIREÇÃO V2 · IMPRESSÕES (pranchas V2-M-Impressoes, V2-M-Impressoes-Etapas e V2-M-Impressoes-Lista, 16/11/2026). A janela
+   (#vv-impressoes) ganha .d3m-c-janela (zm-c-base.css). Linhas: o funil das 7 etapas no vidro, a folha com uma linha por
+   peça e a consulta. Etapas: sete colunas no vidro. Lista: a tabela inteira numa folha. */
+.imp2-aviso{flex:none;margin:-8px 0;padding:0;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-pronto-claro)}
+.imp2-aviso:empty{display:none}
+.imp2-aviso.erro{color:var(--d3-perigo-vidro)}
+.imp2 .m{color:var(--d3-rotulo)}
+.imp2 .r{color:var(--d3-perigo)}
+.imp2 .a{color:var(--d3-ambar)}
+.imp2 .g{color:var(--d3-pronto)}
+/* O funil: sete caixas de vidro, o número da etapa, o nome e quantas peças estão nela. Cada uma filtra a lista. */
+.imp2-funil{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.imp2-funil:empty{display:none}
+.imp2-fase{appearance:none;display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-width:0;height:72px;margin:0;padding:10px 12px;box-sizing:border-box;border:0;border-radius:12px;background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.imp2-fase:hover{background:var(--d3-fume-veu-forte)}
+.imp2-fase[aria-checked="true"]{background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta)}
+.imp2-fase > span:first-child{display:flex;gap:8px;min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp2-fase > span:first-child > b{font-weight:400;color:var(--d3-fume-apagado)}
+.imp2-fase[aria-checked="true"] > span:first-child > b{color:var(--d3-rotulo)}
+.imp2-fase-n{display:flex;align-items:baseline;gap:6px;min-width:0;white-space:nowrap}
+.imp2-fase-n > b{font:600 var(--d3-fs-titulo)/1 var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+.imp2-fase-n > small{font-size:var(--d3-fs-apoio);overflow:hidden;text-overflow:ellipsis}
+.imp2-fase-n.r > small{color:var(--d3-perigo-vidro)}
+.imp2-fase[aria-checked="true"] > .imp2-fase-n.r > small{color:var(--d3-perigo)}
+.imp2-fase:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* A folha das linhas. */
+.imp2-folha{min-height:0}
+.imp2-rola{overflow-y:auto;scrollbar-width:thin;padding:16px}
+.imp2-cab,.imp2-lin{display:grid;grid-template-columns:68px 28px minmax(0,1fr) 100px 112px minmax(0,104px) minmax(0,108px) 82px;align-items:center;gap:0 10px;padding:0 16px;box-sizing:border-box}
+.imp2-cab,.imp2-tcab{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.imp2-cab > span:last-child,.imp2-v{text-align:right}
+.imp2-lista{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.imp2-lin,.imp2-tl{min-height:44px;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);cursor:pointer}
+.imp2-tl{min-height:42px}
+:is(.imp2-lin,.imp2-tl):hover,:is(.imp2-lin,.imp2-tl).aberta{background:var(--d3-veu)}
+.imp2-g{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp2-oq{display:flex;align-items:baseline;min-width:0;color:var(--d3-rotulo);white-space:nowrap}
+.imp2-oq > b{flex:0 1 auto;min-width:0;max-width:58%;font-weight:600;color:var(--d3-tinta);overflow:hidden;text-overflow:ellipsis}
+.imp2-oq > b::after{content:" · ";white-space:pre;font-weight:400;color:var(--d3-rotulo)}
+.imp2-oq > .imp2-nome{flex:1 1 0;min-width:40px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp2-nome,.imp2-semg,.imp2-arte{appearance:none;display:inline;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.imp2-nome:hover,.imp2-semg:hover,.imp2-arte:hover{text-decoration:underline;text-underline-offset:3px}
+.imp2-semg{color:var(--d3-ambar)}
+.imp2-arte{color:var(--d3-tinta)}
+:is(.imp2-nome,.imp2-semg,.imp2-arte,.imp2-pe > button,.imp2-cartao,.imp2-col-mais,.imp2-col-nova):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.imp2-c{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.imp2-v{white-space:nowrap;font-variant-numeric:tabular-nums}
+.imp2-trilha{display:inline-flex;gap:3px}
+.imp2-trilha > i{flex:1 1 0;height:4px;border-radius:2px;background:var(--d3-veu-forte)}
+.imp2-trilha > i.ok{background:var(--d3-texto2)}
+.imp2-trilha > i.vez{background:var(--st,var(--d3-meta))}
+/* A ficha de sempre, aberta no lugar. */
+.imp2-det{padding:4px 16px 14px 120px;background:var(--d3-veu)}
+.imp2-det > .vi-ficha,.imp2-painel > .vi-ficha{position:static;width:auto;max-width:none;margin:0;border:0;border-radius:12px;box-shadow:none}
+.imp2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+.imp2-pe-rot{margin-right:14px}
+.imp2-pe > :is(span,button):not(.imp2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
+.imp2-pe > .imp2-pe-rot + :is(span,button){padding-left:0;border-left:0}
+.imp2-pe > button{cursor:pointer}
+.imp2-pe > button:hover,.imp2-pe > button[aria-checked="true"]{color:var(--d3-tinta)}
+.imp2-pe > button[aria-checked="true"]{text-decoration:underline;text-underline-offset:3px}
+.imp2-pe b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.imp2-pe .r > b,.imp2-pe .r b{color:var(--d3-perigo)}
+.imp2-pe .a b{color:var(--d3-ambar)}
+.imp2-pe .g b{color:var(--d3-pronto)}
+.imp2-abas2{margin-left:8px;padding-left:10px;border-left:1px solid var(--d3-veu-forte)}
+/* A consulta. */
+.imp2-laranja{flex:none;min-height:216px}
+.imp2-laranja .d3m-lar-num{font-size:52px}
+.imp2-setas{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:var(--d3-fs-mini)}
+.imp2-setas > .d3m-btn{width:22px;height:22px;padding:0}
+.imp2-setas > .d3m-btn > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.imp2-setas > .d3m-btn:disabled{opacity:.45;cursor:default}
+.imp2-abrir{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:6px}
+.imp2-abrir > .d3m-cons-cab{grid-column:1 / -1}
+.imp2-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
+.imp2-tile{display:flex;flex-direction:column;gap:2px;min-width:0;padding:8px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.imp2-tile > b{font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto);white-space:nowrap;font-variant-numeric:tabular-nums}
+.imp2-tile > span{font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
+/* ETAPAS: sete colunas de vidro; o cartão é uma folha, e arrastar muda a etapa. */
+.imp2-quadro{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;min-width:0;min-height:0}
+.imp2-col{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;padding:8px;box-sizing:border-box;border-radius:14px;background:var(--d3-fume-veu)}
+.imp2-col.alvo{background:var(--d3-fume-veu-forte);box-shadow:inset 0 0 0 2px var(--d3-fume-borda)}
+.imp2-col-cab{flex:none;display:flex;justify-content:space-between;gap:8px;padding:4px 4px 0;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto);white-space:nowrap}
+.imp2-col-cab > span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.imp2-col-cab > span:first-child > b{font-weight:400}
+.imp2-col-cab > span:last-child{font-weight:400;color:var(--d3-fume-apagado)}
+.imp2-col-lista{flex:1 1 0;display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto;scrollbar-width:none}
+.imp2-col-vazio{margin:0;padding:8px 4px;font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
+.imp2-cartao{appearance:none;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;margin:0;padding:10px;box-sizing:border-box;border:0;border-radius:10px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.imp2-cartao.sel{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+.imp2-cartao > b{max-width:100%;font-size:var(--d3-fs-texto);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.imp2-cli{display:flex;align-items:center;gap:6px;max-width:100%;margin-bottom:2px}
+.imp2-cli > .d3v-foto{width:20px;height:20px;border-radius:6px;font-size:9px}
+.imp2-cli > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp2-cart-pe{display:flex;flex-direction:column;max-width:100%;margin-top:4px}
+.imp2-cart-pe > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp2-cart-pe > span:last-child:not(.r):not(.g){color:var(--d3-rotulo)}
+.imp2-cart-l{flex:none;gap:6px;padding:10px;border-radius:10px;font-size:var(--d3-fs-apoio)}
+.imp2-cart-l > .d3m-lar-rot{font-size:var(--d3-fs-mini)}
+.imp2-cart-l .d3-acao-av{width:20px;height:20px;font-size:9px}
+.imp2-cart-t{font:600 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif)}
+.imp2-cart-l > .d3m-btn{align-self:stretch;height:auto;min-height:30px;margin-top:4px;padding:4px 8px;white-space:normal}
+.imp2-col-mais,.imp2-col-nova{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 8px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.imp2-col-mais{justify-content:flex-start}
+.imp2-col-mais:hover,.imp2-col-nova:hover{background:var(--d3-fume-veu)}
+.imp2-col-nova > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.imp2-nota{flex:none;margin:-8px 0 0;font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
+/* A ficha (ou o formulário) ao lado, nas vistas Etapas e Lista. */
+.imp2-e:not(.um),.imp2-t:not(.um){grid-template-columns:minmax(0,1fr) 380px}
+.imp2-painel{overflow-y:auto;scrollbar-width:thin;padding:14px}
+/* LISTA: a tabela inteira. */
+.imp2-tcab,.imp2-tl{display:grid;grid-template-columns:28px minmax(0,1.5fr) 82px 122px minmax(0,.8fr) 78px minmax(0,.8fr) 92px minmax(0,.8fr);align-items:center;gap:0 10px;padding:0 16px;box-sizing:border-box}
+.imp2-t.semv :is(.imp2-tcab,.imp2-tl){grid-template-columns:28px minmax(0,1.5fr) 82px 122px minmax(0,.8fr) 78px minmax(0,.8fr) minmax(0,.8fr)}
+.imp2-tcab > span:nth-child(8):not(:last-child){text-align:right}
+/* Janela baixa (1366 x 768): o funil e a consulta encolhem para nada rolar. */
+@media (max-height:820px){.imp2-laranja{min-height:0}.imp2-laranja .d3m-lar-num{font-size:40px}.imp2-laranja .d3m-c-s{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.imp2 > .d3m-lado{gap:8px}.imp2 .d3m-vlin{height:30px}.imp2-tile{padding:5px 10px}.imp2-fase{height:56px;padding:8px 12px}}
+@media (max-width:1400px){
+  .imp2-cab,.imp2-lin{grid-template-columns:60px 28px minmax(0,1fr) 76px 104px minmax(0,96px) minmax(0,104px) 80px;gap:0 8px}
+}
+@media (max-width:1500px){.imp2-e:not(.um) > .imp2-quadro{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;scrollbar-width:thin}}
+@media (max-width:1100px){
+  .imp2-folha{height:560px}
+  .imp2-funil{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .imp2-quadro{grid-template-columns:repeat(7,minmax(180px,1fr));overflow-x:auto;height:520px}
+  .imp2-e:not(.um),.imp2-t:not(.um){grid-template-columns:minmax(0,1fr)}
+  .imp2-cab,.imp2-lin{grid-template-columns:56px 28px minmax(0,1fr) 112px minmax(0,96px) 80px}
+  .imp2-cab > :is(:nth-child(4),:nth-child(6)),.imp2-lin > :is(.imp2-trilha,.imp2-trilha + .d3v-st + .imp2-c){display:none}
 }
 
 /* ===== padrao-v2/zm-c-planejamentos.css ===== */

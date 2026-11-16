@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 const ler = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const fragmentos = readdirSync(new URL('../padrao-v2/', import.meta.url)).filter((f) => f.startsWith('zm-c-') && f.endsWith('.css'));
 
-test('fragmentos zm-c-*: só tokens --d3-*, sem !important, sem html body.mundo, sem :has com [style] e em CRLF', () => {
+test('fragmentos zm-c-*: só tokens --d3-*, sem !important, sem html body.mundo, sem :has com [style] e sem fim de linha misturado', () => {
   assert.ok(fragmentos.includes('zm-c-base.css') && fragmentos.includes('zm-c-agenda.css'));
   const junto = ler('vybe-mundo-padrao-v2.css');
   for (const f of fragmentos) {
@@ -17,7 +17,7 @@ test('fragmentos zm-c-*: só tokens --d3-*, sem !important, sem html body.mundo,
     assert.doesNotMatch(semComentario, /:has\([^)]*\[style/, f);
     assert.doesNotMatch(semComentario, /#[0-9a-fA-F]{3,8}\b/, `${f}: cor fora dos tokens`);
     assert.doesNotMatch(semComentario, /@keyframes[^{]*\{\s*(from|0%)\s*\{[^}]*opacity:\s*0[;}]/, f);
-    assert.ok(!/[^\r]\n/.test(css), `${f}: CRLF`);
+    assert.ok(!(css.includes('\r\n') && css.replaceAll('\r\n', '').includes('\n')), `${f}: fim de linha misturado`);
     assert.ok(junto.includes(`/* ===== padrao-v2/${f} ===== */`), `${f} entrou na folha junta`);
   }
 });
@@ -63,8 +63,8 @@ test('Roteiros V2: uma folha por roteiro, com as mesmas ações, e os clientes c
 
 test('Planejamentos V2: o mês numa folha, uma linha por cliente, com os botões de sempre', () => {
   const plj = ler('vybe-mundo-planejamentos.js'), css = ler('padrao-v2/zm-c-planejamentos.css'), base = ler('padrao-v2/zm-c-base.css');
-  assert.match(plj, /const v2 = \(\) => !window\.matchMedia\?\.\('\(max-width: 700px\)'\)\.matches;/);
-  assert.ok(plj.includes("if (v2()) return pintarV2();") && plj.includes("janela.classList.remove('d3m-c-janela');"));
+  assert.ok(plj.includes("const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;"));
+  assert.ok(plj.includes("if (v2()) return pintarV2();") && plj.includes("janela.classList?.remove('d3m-c-janela');"));
   assert.match(plj, /if \(v2\(\)\) \{ const l = janela\?\.querySelector\('#plj2-lista'\); if \(l\) l\.innerHTML = lista2Html\(contas\(\)\); return; \}/);
   const tela = plj.slice(plj.indexOf('const v2 = '), plj.indexOf('async function carregar()'));
   // Tudo o que a tela fazia continua pelos mesmos data-plj-*.
@@ -76,4 +76,27 @@ test('Planejamentos V2: o mês numa folha, uma linha por cliente, com os botões
   assert.match(base, /:is\(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp\)\.d3m-c-janela\.d3m-c-janela\{[^}]*background:var\(--d3-fume\)/);
   // A seta do título troca de tela pelo submenu do menu lateral.
   assert.match(ler('vybe-captacoes.js'), /function d3mcPintarTroca\(det, setor, atual\) \{/);
+});
+
+test('Impressões V2: funil das 7 etapas, linhas, colunas e tabela, com a ficha e os pedidos de sempre', () => {
+  const imp = ler('vybe-mundo-impressoes.js'), css = ler('padrao-v2/zm-c-impressoes.css');
+  assert.ok(imp.includes("const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;"));
+  assert.ok(imp.includes('if (v2()) return pintarV2();'));
+  const tela = imp.slice(imp.indexOf('const v2 = '), imp.indexOf('  function pintar() {'));
+  // As três vistas e o que cada uma faz continuam pelos mesmos data-vi-*.
+  for (const t of ['data-vi-vista="${k}"', 'data-vi-busca', 'data-vi="nova"', 'data-vi="fechar"', 'data-vi="todas"', 'data-vi="recarregar"', 'data-vi="cadastrar-fornecedor"', 'data-vi="mais"', 'data-vi="agora-nao"', 'data-vi="anterior"', 'data-vi="proxima"',
+    'data-vi-decidir="atual"', 'data-vi-abrir="${esc(i.id)}"', 'data-vi-linha="${esc(i.id)}"', 'data-vi-escolher-forn="${esc(i.id)}"', 'data-vi-fornecedor="${esc(f.fornecedor_id)}"', 'data-vi-arte="${esc(i.conteudo_id)}"', 'data-vi-aba="${k}"', 'data-vi="por-grafica"',
+    'ficha()', 'formulario()', 'decisoes()']) assert.ok(tela.includes(t), t);
+  // Linhas: o funil filtra pela etapa; a ordem é o que pede você, o que está na gráfica e o que vem antes dela.
+  assert.ok(tela.includes("data-vi-filtro=\"${on ? '' : 'etapa:' + e.id}\""));
+  assert.ok(imp.includes("st.filtro.startsWith('etapa:') ? i.etapa === st.filtro.slice(6) : true"));
+  for (const t of ["['Agora', 'r']", "['Na gráfica', '']", "['Antes dela', '']", '<span>Arte até entregue</span>', '<span class="imp2-pe-rot">De olho</span>', '<b>Gráficas</b>', '<span class="imp2-pe-rot">Somas</span>', '<span>A arte na esteira</span>']) assert.ok(tela.includes(t), t);
+  // Etapas: arrastar o cartão muda a etapa pelo mesmo pedido do botão; sem gráfica não passa do orçamento.
+  assert.ok(tela.includes("gravar({ acao: 'impressao_etapa', id, etapa: para }, `Foi para ${etapaNome(para)}.`);"));
+  assert.ok(tela.includes("if (['arquivo_enviado', 'em_impressao', 'pronto', 'entregue'].includes(para) && !i.fornecedor_id) {"));
+  assert.ok(imp.includes("raiz.addEventListener('dragstart', aoArrastar); raiz.addEventListener('dragover', aoPassar); raiz.addEventListener('dragleave', aoSair); raiz.addEventListener('drop', aoSoltar);"));
+  // Dinheiro só para a gestão (valor, somas e gasto).
+  assert.ok(tela.includes("${din ? '<span>Valor</span>' : ''}") && tela.includes("d.gestao ? tile("));
+  assert.match(css, /\.imp2-funil\{flex:none;display:grid;grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.imp2-quadro\{display:grid;grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
 });

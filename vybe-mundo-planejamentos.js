@@ -166,7 +166,7 @@
     if (!janela) return;
     // Direção V2 (prancha V2-M-Planejamentos): no computador, o esqueleto novo (pintarV2, logo abaixo).
     if (v2()) return pintarV2();
-    janela.classList.remove('d3m-c-janela');
+    janela.classList?.remove('d3m-c-janela');
     const C = contas(), { meses, todos, contar } = C, com = contar.todos - contar.sem, mes = estado.mes, nomeMes = mesNome(mes);
     const ficha = (id, t) => `<button type="button" class="p2-chip" data-plj-filtro="${id}" aria-pressed="${estado.filtro === id}">${t} <b>${contar[id]}</b></button>`;
     const prim = todos.find(pedeAcao), semLista = todos.filter((p) => !p.planejamento);
@@ -207,7 +207,7 @@
   // vez e onde o cliente aprova. Os botões são os de sempre (data-plj-*): o nome abre o documento, a linha abre no lugar
   // com as etapas, Histórico e Editar e revisar; "Criar" começa o planejamento. Só no computador; no celular fica a tela
   // de antes (pintar), até a prancha do celular.
-  const v2 = () => !window.matchMedia?.('(max-width: 700px)').matches;
+  const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;
   const IC2 = { mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>', lupa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>',
     seta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>', pontos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="3" d="M6 12h.01M12 12h.01M18 12h.01"/></svg>', x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' };
   // Onde o planejamento está: o nome, a cor do ponto e quantos passos da trilha (de 5) já foram.
