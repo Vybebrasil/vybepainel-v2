@@ -19,15 +19,17 @@ test('CSS do grupo: sem !important, sem html body.mundo e tudo pelo id da janela
   for (const s of seletores) for (const parte of s.split(/,(?![^(]*\))/)) assert.match(parte.trim(), /^(#office-catalogo|#ofc-ranking|#workflow-modal\.rk2-janela|#vv-decorar#vv-decorar)/, parte);
 });
 
-test('Loja: a casca do quadro (título, partes, três números, barra única, grade e conquistas)', () => {
+test('Loja: a casca (título, partes, busca, fichas, grade, conquistas, consulta e ficha; ids de sempre)', () => {
   const casca = fatia(loja, 'function escritorioLojaCascaHtml(', '\nfunction escritorioLojaAbasHtml');
-  for (const pedaco of ['<h1>Loja</h1>', 'id="office-catj-abas"', 'id="v2l-kpis"', 'id="v2l-busca"', 'id="v2l-chips"', 'id="v2l-painel"', 'id="office-catj-grade"', 'id="v2l-conq"', 'id="office-catj-ficha"']) assert.ok(casca.includes(pedaco), pedaco);
-  assert.ok(casca.indexOf('v2l-kpis') < casca.indexOf('v2l-busca') && casca.indexOf('v2l-busca') < casca.indexOf('office-catj-grade') && casca.indexOf('office-catj-grade') < casca.indexOf('v2l-conq'), 'ordem do quadro');
+  for (const pedaco of ['>Loja</span>', 'id="office-catj-abas"', 'id="v2l-kpis"', 'id="v2l-busca"', 'id="v2l-chips"', 'id="v2l-painel"', 'id="office-catj-grade"', 'id="v2l-conq"', 'id="office-catj-ficha"']) assert.ok(casca.includes(pedaco), pedaco);
+  // V2 (prancha V2-M-Loja): a busca vai para o topo, a grade antes das conquistas e a consulta à direita.
+  const o = (id) => casca.indexOf(`id="${id}"`);
+  assert.ok(o('v2l-busca') < o('office-catj-grade') && o('office-catj-grade') < o('v2l-conq') && o('v2l-conq') < o('v2l-kpis'), 'ordem da prancha');
   const abas = fatia(loja, 'function escritorioLojaAbasHtml(', '\n// Quantas peças cabem');
   assert.match(abas, /aba\("Loja", "loja"\) \+ aba\("Inventário", "inventario".*aba\("Carteira", "carteira"\) \+ aba\("Conquistas", "conquistas"\)/);
   assert.doesNotMatch(abas, /role="tab"|aria-selected/, 'a parte escolhida não pode cair na regra antiga que a pinta de preto');
   const kpis = fatia(loja, 'function escritorioLojaKpisHtml(', '\n// A barra de filtro única');
-  for (const rotulo of ['Seu saldo', 'Seus troféus', 'Próximo troféu', 'sua estante', 'para subir']) assert.ok(kpis.includes(rotulo), rotulo);
+  for (const rotulo of ['Seu saldo', 'Vitrine da semana', 'Como ganhar VybeCoins', 'o próximo troféu', 'Por área', 'Ranking da semana']) assert.ok(kpis.includes(rotulo), rotulo);
   assert.match(editor, /d\.innerHTML = escritorioLojaCascaHtml\(escritorio\.cat\);/);
   assert.match(editor, /d\.className = "ofc-dialogo ofc-catjanela v2l-janela";/);
 });
