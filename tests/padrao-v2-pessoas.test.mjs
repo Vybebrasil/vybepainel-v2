@@ -162,7 +162,7 @@ test('Academy: quem falta em Pede ação, a sua trilha com Continuar e a aula qu
   assert.match(e.html(), /data-vp-form="pedido"/); assert.match(e.html(), /value="Trilha na Academy: "/);
 });
 
-test('Produtividade: a fala do Alex, o mês no cabeçalho, O mês de cada um e o que é dos donos a um clique', async () => {
+test('Produtividade (prancha V2-M-RH-Produtividade): a folha do mês com o anel, O mês de cada um e o que é dos donos pela consulta', async () => {
   const comps = [{ id: 'prazo', nome: 'Entregas no prazo' }, { id: 'volume', nome: 'Volume' }];
   const p = (id, nome, score, entregues, meta, cq = []) => ({ id, nome, score, entregues, meta, atrasadas: score < 70 ? 4 : 0, componentes: { prazo: score / 100, volume: .5 }, frases: ['frase do mês'], conquistas: cq.map((t2, i) => ({ id: 'c' + i, titulo: t2, texto: '' })) });
   const ranking = [p('4', 'Jady Rocha', 94, 16, 15, ['Sequência de 10 no prazo']), p('5', 'Vini Prado', 77, 9, 12), p('2', 'Reri Lima', 61, 6, 15)];
@@ -171,20 +171,22 @@ test('Produtividade: a fala do Alex, o mês no cabeçalho, O mês de cada um e o
   const t = montar();
   await t.P.abrir('produtividade');
   let h = t.html();
-  assert.equal(t.janela().className, 'vp-janela v2p-janela');
-  ordem(h, 'id="vp-titulo"', 'class="v2p-fala d3-acao d3p-acao"', 'Alex · Análise e números', 'class="v2p-tres"', '<h3>Pede ação</h3>', '<h3>Conquistas do mês</h3>', '<h3>O mês de cada um</h3>', 'Da operação', 'Também aqui, só para os donos:');
-  assert.match(h, /<b>Reri está com 61<\/b>, 6 de 15 entregas\./);
-  assert.match(h, /data-vp-ajuda aria-expanded="false">Como o score é feito</);
-  assert.match(h, /Score do time<\/small><span class="d3p-num-linha"><b class="d3-num-v">77</); assert.match(h, /Metas batidas<\/small><span class="d3p-num-linha"><b class="d3-num-v">1<span class="d3p-de"> \/ 3</); assert.match(h, /No prazo do cliente/); assert.equal(h.split('class="v2p-card v2p-kpi').length - 1, 4, 'quatro números');
-  assert.match(h, /class="v2p-pill a">6 de 15 entregas<\/span><p><b>Reri<\/b> · 4 peças abertas atrasadas/); assert.match(h, /data-v2p-abre="2" data-abrir="1">Ver o mês</);
-  assert.match(h, /data-linha="4" aria-expanded="false"/); assert.match(h, /class="d3-barra v2p-barra-lin a"><i style="--v:61%">/); assert.match(h, /<b class="v2p-sc">94<\/b>/); assert.match(h, /<span>Pessoa<\/span><span>Metas<\/span><span>Conquistas<\/span><span>Score<\/span>/);
-  assert.doesNotMatch(h, /vp-anel|Ranking do mês/, 'sem o anel e sem a lista antiga');
-  // quem não é dono: só o próprio mês, aberto, sem comparação
+  assert.equal(t.janela().className, 'vp-janela d3m-e-pes-janela', 'a janela vira o vidro fumê do grupo E');
+  ordem(h, 'class="d3m-e-topo"', 'id="vp-titulo"', 'Recursos Humanos · novembro de 2026 · score do time 77', 'O mês do time', 'class="d3m-e-pes-anel"', 'O mês de cada um', 'Conquistas do mês', '<aside class="d3m-lado"', 'Como o score é feito', 'Pede atenção', 'Do time', 'Da operação');
+  assert.match(h, /data-vp-mes-ir="2026-10" aria-label="Mês anterior"/, 'o mês anda pelas mesmas setas de antes');
+  assert.match(h, /Score 77 de 100/); assert.match(h, /<b>Entregas no prazo<\/b>[\s\S]*?<span>77%<\/span>/, 'o componente é a média do time');
+  assert.match(h, /data-v2p-abre="2" data-abrir="1"><span><b>Reri<\/b> · score 61, 4 atrasadas/, 'quem pede atenção abre a linha no lugar');
+  assert.match(h, /data-linha="4" aria-expanded="false"/); assert.match(h, /class="d3-barra v2p-barra-lin a"><i style="--v:61%">/); assert.match(h, /<b class="v2p-sc">94<\/b>/);
+  assert.match(h, /data-v2p-ver="carga"/); assert.match(h, /data-v2p-ver="pesos"/); assert.match(h, /data-vp-ir="performance"/); assert.match(h, /data-v2p-busca/);
+  assert.doesNotMatch(h, /v2p-fala|d3p-acao|v2p-tres|Também aqui/, 'sem a fala laranja e os três números de antes');
+  t.P._teste.ver('pesos'); assert.match(t.html(), /data-vp-form="pesos"/); assert.match(t.html(), /data-v2p-ver="">Fechar/);
+  // quem não é dono: só o próprio mês, o score por semana e as conquistas, sem comparação
   const e = montar({ gestao: false });
   await e.P.abrir('produtividade');
   h = e.html();
-  assert.match(h, /<h3>O seu mês<\/h3>/); assert.match(h, /O seu score de novembro é 77/); assert.match(h, /class="v2p-linha" aria-expanded="true"/);
-  assert.doesNotMatch(h, /Jady|Reri|Pede ação|Também aqui|data-v2p-ver=/);
+  ordem(h, 'O seu mês', 'Score 77 de 100', 'Score por semana', 'Conquistas do mês', 'Ranking da semana');
+  assert.match(h, /o seu score é 77/); assert.match(h, /9 de 12 entregas/);
+  assert.doesNotMatch(h, /Jady|Reri|Pede atenção|data-v2p-ver=|data-v2p-busca/);
 });
 
 test('o CSS do grupo fica no fragmento, com as medidas do quadro e sem forçar regra antiga', () => {

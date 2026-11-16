@@ -69,8 +69,8 @@ test('quem não é da gestão: só o próprio mês, sem ranking, sem pesos e sem
   await t.P.abrir('produtividade');
   const h = t.html();
   // Padrão v2 (quadro da Produtividade): o próprio mês aberto, com o score, os componentes e as conquistas.
-  assert.match(h, /<h3>O seu mês<\/h3>/); assert.match(h, /O seu score de novembro é 80/); assert.match(h, /Fila em dia/); assert.match(h, /Entregas no prazo<\/span><b>66%/);
-  assert.doesNotMatch(h, /O mês de cada um|Pede ação|Pesos do score|Carga da semana|data-vp-aba="recrutamento"|data-vp-aba="documentos"/);
+  assert.match(h, /O seu mês/); assert.match(h, /o seu score é 80/); assert.match(h, /Fila em dia/); assert.match(h, /<b>Entregas no prazo<\/b>[\s\S]*?<span>66%<\/span>/);
+  assert.doesNotMatch(h, /O mês de cada um|Pede atenção|Pesos do score|Carga da semana|data-vp-aba="recrutamento"|data-vp-aba="documentos"/);
   await t.P.abrir('recrutamento');
   assert.match(t.html(), /aria-selected="true" data-vp-aba="produtividade"/, 'aba da gestão cai em Produtividade');
   assert.ok(!t.pedidos.some((p) => p.url.includes('aba=recrutamento')), 'nem pede ao servidor');
@@ -80,8 +80,8 @@ test('gestão: ranking, pesos, metas e as abas de Recrutamento e Documentos', as
   const t = montar({ gestao: true });
   await t.P.abrir('produtividade');
   // Padrão v2: o ranking virou "O mês de cada um"; carga, pesos e metas ficam a um clique, em "Também aqui".
-  assert.match(t.html(), /<h3>O mês de cada um<\/h3>/); assert.match(t.html(), /3 de 10 entregas/); assert.match(t.html(), /data-vp-aba="documentos"/);
-  assert.match(t.html(), /data-v2p-ver="carga">Carga da semana/); assert.doesNotMatch(t.html(), /Sobrecarregada|data-vp-form="pesos"/);
+  assert.match(t.html(), /O mês de cada um/); assert.match(t.html(), /3 de 10 entregas/); assert.match(t.html(), /data-vp-aba="documentos"/);
+  assert.match(t.html(), /data-v2p-ver="carga"><span><b>Carga da semana/); assert.doesNotMatch(t.html(), /Sobrecarregada|data-vp-form="pesos"/);
   t.P._teste.ver('carga'); assert.match(t.html(), /Sobrecarregada/, 'a carga da semana fica na Produtividade dos donos');
   t.P._teste.ver('pesos'); assert.match(t.html(), /data-vp-form="pesos"/); t.P._teste.ver('metas'); assert.match(t.html(), /data-vp-form="metas"/);
   await t.P.abrir('recrutamento');

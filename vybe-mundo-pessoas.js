@@ -1412,13 +1412,159 @@
 
   // ---------- desenho ----------
   const DESENHO = { produtividade: htmlProdutividade, rh: htmlRh, projetos: htmlProjetos, academy: htmlAcademy, recrutamento: htmlRecrutamento, documentos: htmlDocumentos };
-  const LISTA_V2 = { academy: listaAcademy, recrutamento: listaRecrutamento, documentos: listaDocumentos, projetos: listaProjetos };
+  const LISTA_V2 = { produtividade: listaMesE, academy: listaAcademy, recrutamento: listaRecrutamento, documentos: listaDocumentos, projetos: listaProjetos };
+  // ---------- V2 · grupo E (pranchas V2-M-RH-*, V2-M-Academy, aprovadas pelo Paulo em 16/11/2026) ----------
+  // O esqueleto novo das telas do RH: a janela de vidro fumê, o título no vidro (com a seta que troca de tela do setor),
+  // a coluna de trabalho em folhas claras e a coluna de consulta de 316 direto no vidro. As peças .d3m-e-* são as da
+  // casca do grupo (padrao-v2/zm-e-casca.css); as locais desta janela ficam em padrao-v2/zm-e-pessoas.css. Cada tela
+  // devolve { sub, acoes, main, lado }; as funções, os data-* e os formulários de antes seguem os mesmos.
+  const E = new Set(['produtividade']);
+  const IC_E = { lupa: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', ajuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', mais: '<path d="M12 5v14M5 12h14"/>',
+    depois: '<path d="M9 6l6 6-6 6"/>', antes: '<path d="M15 6l-6 6 6 6"/>', baixo: '<path d="M6 9l6 6 6-6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>', certo: '<path d="M5 12l4 4 10-10"/>', fora: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>' };
+  const icE = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${IC_E[n] || ''}</svg>`;
+  // Estado de uma área (vazio, erro, carregando): a peça do grupo (d3mEEstado, vybe-core.js); sem ela (testes), o mesmo texto.
+  const estadoE = (o) => (typeof d3mEEstado === 'function' ? d3mEEstado(o)
+    : `<div class="d3m-e-estado d3m-e-estado-${o.tipo === 'erro' ? 'erro' : 'vazio'}${o.grande ? ' grande' : ''}" role="status">${o.titulo ? `<b>${esc(o.titulo)}</b>` : ''}${o.texto ? `<span>${esc(o.texto)}</span>` : ''}${o.acao || ''}</div>`);
+  const btnEstadoE = (rotulo, attrs, sec = false) => `<button type="button" class="d3m-e-estado-btn${sec ? ' sec' : ''}" ${attrs}>${esc(rotulo)}</button>`;
+  // A folha clara: cabeça de 44 (título, apoio e o que vai à direita), o corpo e, se houver, o pé.
+  const folhaE = ({ titulo, apoio = '', dir = '', corpo = '', pe = '', cls = '', rotulo = '', attrs = '' }) => `<section class="d3m-e-folha${cls ? ' ' + cls : ''}" aria-label="${esc(rotulo || titulo)}"${attrs ? ' ' + attrs : ''}>`
+    + `<div class="d3m-e-cab"><b>${esc(titulo)}${apoio ? ` <span>· ${esc(apoio)}</span>` : ''}</b>${dir ? `<span class="d3m-e-cab-dir">${dir}</span>` : ''}</div>${corpo}${pe ? `<div class="d3m-e-pe">${pe}</div>` : ''}</section>`;
+  // A consulta no vidro: um bloco com título (e o apoio à direita) e as linhas de 36 que levam a outro lugar.
+  const consE = (titulo, corpo, apoio = '') => `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${esc(titulo)}</b>${apoio ? `<span>${esc(apoio)}</span>` : ''}</div>${corpo}</div>`;
+  const vlinE = (nome, texto, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span><b>${esc(nome)}</b>${texto ? ` · ${esc(texto)}` : ''}</span>${icE('depois')}</button>`;
+  const txtE = (t) => `<p class="d3m-e-lado-txt">${t}</p>`;
+  // Leva a outra tela pelo próprio menu lateral (o mesmo clique de quem usa o menu).
+  function irPeloMenu(id) {
+    const item = document.querySelector?.(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`);
+    if (item) { fechar(); item.click(); }
+  }
+  const NOME_E = { produtividade: 'Produtividade', rh: 'Pedidos e calendário', recrutamento: 'Recrutamento', documentos: 'Documentos', academy: 'Academy' };
+  function htmlPainelE() {
+    const a = estado.aba, d = estado.dados[a], g = gestao();
+    const abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
+    // As abas de antes seguem no DOM para o teclado e os leitores; trocar de tela é a seta do título (o submenu do setor).
+    const abasHtml = `<div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas" hidden>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === a}" data-vp-aba="${k}" tabindex="-1">${esc(r)}</button>`).join('')}</div>`;
+    let p = null;
+    if (d && !d.proibido) p = DESENHO_E[a](d);
+    const sub = `${a === 'academy' ? 'Time' : 'Recursos Humanos'}${p?.sub ? ` · ${p.sub}` : ''}`;
+    const ajuda = `<details class="d3m-e-troca d3m-e-ajuda"><summary class="d3m-e-ico" aria-label="Como funciona" title="Como funciona">${icE('ajuda')}</summary><div class="d3m-e-pop d3m-e-ajuda-pop" role="note" aria-label="Como funciona"><b class="d3m-e-ajuda-t">Como funciona</b><p class="d3m-e-ajuda-p">${esc(AJUDA[a])}</p></div></details>`;
+    const fechar = `<button type="button" class="d3m-e-ico" data-vp-fechar aria-label="Fechar" title="Fechar">${icE('x')}</button>`;
+    const h = `<span class="d3m-e-h" id="vp-titulo" role="heading" aria-level="2">${esc(NOME_E[a])}</span>`;
+    const setor = a === 'academy' ? '' : 'pessoas';
+    const tit = setor ? `<details class="d3m-e-troca" ontoggle="if(this.open&&typeof d3mETroca==='function')d3mETroca(this,'${setor}','${a}')"><summary title="Trocar de tela">${h}${icE('baixo')}</summary><div class="d3m-e-pop" role="group" aria-label="Outras telas"></div></details>` : h;
+    const topo = `<div class="d3m-e-topo"><div class="d3m-e-tit">${tit}<span class="d3m-e-sub">${esc(sub)}</span></div><div class="d3m-e-acoes">${p?.acoes || ''}${ajuda}${p?.acao || ''}${fechar}</div></div>`;
+    const corpo = p ? `${p.main}${p.lado ? `<aside class="d3m-lado" aria-label="Consulta">${p.lado}</aside>` : ''}`
+      : `<div class="d3m-e-main"><section class="d3m-e-folha cresce" aria-label="${esc(NOME_E[a])}">${d?.proibido ? estadoE({ tipo: 'vazio', grande: true, titulo: 'Só para os donos e quem administra', texto: 'Esta parte do RH não abre para você.' })
+        : estado.erro ? estadoE({ tipo: 'erro', grande: true, titulo: 'Não deu para abrir agora', texto: estado.erro, acao: btnEstadoE('Tentar de novo', 'data-vp-recarregar', true) })
+          : estadoE({ tipo: 'carregando', forma: 'lista', linhas: 6, titulo: `Carregando ${NOME_E[a]}` })}</section></div>`;
+    const erroTopo = p && estado.erro ? `<p class="d3m-e-pes-erro" role="alert">Não foi possível atualizar: ${esc(estado.erro)} <button type="button" class="d3m-e-elo" data-vp-recarregar>Tentar de novo</button></p>` : '';
+    return `<div class="d3m-e-tela d3m-e-pes d3m-e-pes-${a}">${topo}${abasHtml}${erroTopo}
+      <p class="vp-aviso d3m-e-pes-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
+      <div class="vp-corpo d3m-e-corpo${p && !p.lado ? ' um' : ''}" id="vp-corpo" role="tabpanel" aria-labelledby="vp-aba-${a}" aria-busy="${estado.carregando}">${corpo}</div></div>`;
+  }
+  const mesNomeE = (ym) => MESES_RH[Number(String(ym).slice(5, 7)) - 1] || 'mês';
+  // ‹ novembro de 2026 › dentro da cabeça da folha: as mesmas setas de antes (data-vp-mes-ir), sem passar do mês de hoje.
+  function mesNavE(mes, attr) {
+    const max = hoje().slice(0, 7), prox = andarMes(mes, 1);
+    return `<span class="d3m-e-pes-mes"><button type="button" class="d3m-e-pes-seta" ${attr}="${esc(andarMes(mes, -1))}" aria-label="Mês anterior">${icE('antes')}</button>`
+      + `<span>${esc(mesNomeE(mes))} de ${esc(mes.slice(0, 4))}</span><button type="button" class="d3m-e-pes-seta" ${attr}="${esc(prox)}" aria-label="Próximo mês"${prox > max ? ' disabled' : ''}>${icE('depois')}</button></span>`;
+  }
+  // O anel do score (0 a 100): o número no meio e a palavra embaixo; sem dado, o traço.
+  function anelE(score, rotulo) {
+    const v = score == null ? null : Math.max(0, Math.min(100, Math.round(score))), c = 2 * Math.PI * 52;
+    return `<div class="d3m-e-pes-anel${v == null ? ' sem' : v < 70 ? ' a' : ''}" role="img" aria-label="${esc(v == null ? 'Score sem dado' : `Score ${v} de 100`)}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/>`
+      + `${v == null ? '<circle class="ponto" cx="112" cy="60" r="5"/>' : `<circle class="v" cx="60" cy="60" r="52" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}"/>`}</svg><span><b>${v == null ? '–' : v}</b><small class="d3m-e-pes-anel-r">${esc(rotulo)}</small></span></div>`;
+  }
+
+  // ---------- Produtividade (prancha V2-M-RH-Produtividade) ----------
+  // A folha do mês (o anel do score e os quatro componentes), o score por semana e as conquistas. Quem administra vê o
+  // time: o anel é a média, os componentes são a média de quem tem score, e embaixo "O mês de cada um" com a linha que
+  // abre no lugar. A carga, os pesos e as metas (só donos) abrem pela consulta, numa folha no lugar do mês de cada um.
+  const COMPS_E = [['prazo', 'Entregas no prazo', 'a data do cliente manda'], ['volume', 'Volume do mês', 'contra a meta do cargo'], ['ajustes', 'Peças que voltaram', 'para ajuste'], ['atrasos', 'Atrasado na fila', 'o que está vencido com você']];
+  function compsE(d) {
+    const doServidor = (d.componentes || []).map((c) => c.id);
+    const lista = COMPS_E.filter(([id]) => !doServidor.length || doServidor.includes(id));
+    for (const c of d.componentes || []) if (!COMPS_E.some(([id]) => id === c.id)) lista.push([c.id, c.nome, '']);
+    return lista;
+  }
+  function semanaE(d) {
+    const s = semanasDoScore(d);
+    const vazio = estadoE({ tipo: 'vazio', icone: 'alta', titulo: 'Sem histórico por semana ainda', texto: d.gestao ? 'Quando as demandas do painel andarem, o score do time aparece aqui, semana a semana.' : 'Quando as demandas do painel com você andarem, o seu mês aparece aqui, semana a semana.' });
+    if (!s || typeof d3LinhaSvg !== 'function') return `<div class="d3m-e-rola">${vazio}</div>`;
+    const linha = s.deste.length >= 2 ? s.deste : s.todos.slice(-6);
+    if (linha.length < 2) return `<div class="d3m-e-rola">${vazio}</div>`;
+    const meta = s.deste.length >= 2 && s.anterior.length >= 2 ? s.anterior.map((p) => p.valor).slice(0, linha.length) : null;
+    return `<div class="d3m-e-rola d3m-e-pes-semana"><div class="d3m-e-pes-semana-g">${d3LinhaSvg(linha.map((p) => p.valor), { meta, largura: 520, altura: 140, rotulo: `Score ${d.gestao ? 'do time' : 'seu'} por semana: ${linha.map((p) => `${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)} ${Math.round(p.valor)}`).join(', ')}` })}</div>`
+      + `<div class="d3m-e-pes-semana-x" aria-hidden="true">${linha.map((p, i) => `<span${i === linha.length - 1 ? ' class="agora"' : ''}>sem ${i + 1}${i === linha.length - 1 ? ` · ${Math.round(p.valor)}` : ''}</span>`).join('')}</div>`
+      + `${meta ? `<p class="d3m-e-pes-leg">tracejado: ${esc(mesNomeE(s.ant))}</p>` : ''}</div>`;
+  }
+  function conquistasE(d, conquistas, nomeMes) {
+    if (!conquistas.length) return `<div class="d3m-e-rola">${estadoE({ tipo: 'vazio', icone: 'certo', titulo: `Nenhuma conquista em ${nomeMes}`, texto: 'As conquistas saem das entregas. O score não precisa de nada preenchido à mão.' })}</div>`;
+    return `<div class="d3m-e-rola d3m-e-pes-lista">${conquistas.map(({ c, p }) => `<div class="d3m-e-pes-lin">${av(p.nome)}<span class="d3m-e-pes-lin-t"><b>${esc(c.titulo)}</b><small class="d3m-e-pes-lin-s">${esc(primeiroNome(p.nome))}${c.texto ? ` · ${esc(c.texto)}` : ''}</small></span></div>`).join('')}</div>`;
+  }
+  function listaMesE(d) {
+    const time = d.ranking || [], lista = time.filter((p) => bate(p.nome));
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${lista.length ? lista.map((p) => linhaDoMes(p, d.componentes || [])).join('')
+      : estadoE({ tipo: 'vazio', icone: 'pessoas', titulo: time.length ? 'Ninguém com esse nome' : 'Ninguém na equipe ainda', texto: time.length ? 'Confira a busca.' : 'Quem pode entrar no painel aparece aqui.' })}</div>`;
+  }
+  function produtividadeE(d) {
+    const mes = estado.mes || d.mes || hoje().slice(0, 7), nomeMes = mesNomeE(mes), eu = d.detalhe;
+    const time = d.gestao ? (d.ranking || []) : eu ? [eu] : [], comScore = time.filter((p) => p.score != null);
+    const conquistas = time.flatMap((p) => (p.conquistas || []).map((c) => ({ c, p })));
+    const media = (lista, f) => (lista.length ? lista.reduce((s, p) => s + f(p), 0) / lista.length : null);
+    const score = d.gestao ? media(comScore, (p) => p.score) : eu?.score ?? null;
+    const tiles = compsE(d).map(([id, nome, apoio]) => {
+      const com = time.filter((p) => p.componentes?.[id] != null), v = d.gestao ? media(com, (p) => p.componentes[id]) : eu?.componentes?.[id];
+      const pct = v == null ? null : Math.round(v * 100), vol = id === 'volume' && !d.gestao && eu?.meta ? `${eu.entregues ?? 0} de ${eu.meta} entregas` : '';
+      return `<div class="d3m-e-pes-comp${pct == null ? '' : pct >= 80 ? ' g' : pct < 60 ? ' a' : ''}"><b>${esc(nome)}</b><small class="d3m-e-pes-comp-a">${esc(d.gestao && id === 'atrasos' ? 'o que está vencido no time' : apoio)}</small>`
+        + `<small class="d3m-e-pes-comp-v">${pct == null ? `sem dado em ${esc(nomeMes)}` : `<span>${pct}%</span>${vol ? ` · ${esc(vol)}` : ''}`}</small></div>`;
+    }).join('');
+    const mesFolha = folhaE({ titulo: d.gestao ? 'O mês do time' : 'O seu mês', apoio: 'score de 0 a 100', dir: mesNavE(mes, 'data-vp-mes-ir'), cls: 'd3m-e-pes-mesf',
+      corpo: `<div class="d3m-e-pes-mesc">${anelE(score, score == null ? 'sem dado' : d.gestao ? `média de ${plural(comScore.length, 'pessoa', 'pessoas')}` : 'o seu score')}<div class="d3m-e-pes-comps">${tiles}</div></div>` });
+    // Embaixo: quem administra vê o mês de cada um (ou a parte dos donos que abriu) e, ao lado, Por semana | Conquistas.
+    const v = estado.v2.ver, partes = { carga: 'Carga da semana', pesos: 'Pesos do score', metas: 'Metas por cargo' };
+    let esquerda;
+    if (d.gestao && partes[v]) {
+      const pesos = d.pesos || {};
+      const corpo = v === 'carga' ? htmlCarga(d.cargaSemana)
+        : v === 'pesos' ? `<form data-vp-form="pesos" class="vp-form vp-grade">${(d.componentes || []).map((c) => `<label><span>${esc(c.nome)}</span><input type="number" name="${esc(c.id)}" min="0" max="100" step="1" value="${esc(pesos[c.id])}" inputmode="numeric" required></label>`).join('')}
+          <p class="vp-nota">O score é a média ponderada: o peso conta em relação aos outros (não precisa somar 100).</p><div class="vp-botoes"><button type="submit" class="vp-acao">Salvar pesos</button></div></form>`
+          : `<form data-vp-form="metas" class="vp-form vp-grade">${Object.entries(d.cargos || {}).map(([k, nome]) => `<label><span>${esc(nome)}</span><input type="number" name="${esc(k)}" min="0" max="1000" step="1" value="${esc(d.metas?.[k] ?? 0)}" inputmode="numeric" required></label>`).join('')}
+          <p class="vp-nota">No mês corrente a meta vale proporcional aos dias que já passaram.</p><div class="vp-botoes"><button type="submit" class="vp-acao">Salvar metas</button></div></form>`;
+      esquerda = folhaE({ titulo: partes[v], apoio: 'só os donos', cls: 'cresce', dir: `<button type="button" class="d3m-e-elo" data-v2p-ver="">Fechar</button>`, corpo: `<div class="d3m-e-rola d3m-e-pes-form" data-v2p-secao>${corpo}</div>` });
+    } else if (d.gestao) {
+      esquerda = folhaE({ titulo: 'O mês de cada um', apoio: plural(time.length, 'pessoa', 'pessoas'), cls: 'cresce', dir: 'metas · score', corpo: listaMesE(d) });
+    } else {
+      esquerda = folhaE({ titulo: 'Score por semana', dir: esc(nomeMes), cls: 'cresce', corpo: semanaE(d) });
+    }
+    let direita;
+    if (d.gestao) {
+      const aba = estado.v2.filtro === 'semana' ? 'semana' : 'conq';
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="O que ver"><button type="button" role="radio" data-v2p-filtro="conq" aria-checked="${aba === 'conq'}">Conquistas ${conquistas.length}</button><button type="button" role="radio" data-v2p-filtro="semana" aria-checked="${aba === 'semana'}">Por semana</button></span>`;
+      direita = `<section class="d3m-e-folha cresce" aria-label="${aba === 'semana' ? 'Score por semana' : 'Conquistas do mês'}"><div class="d3m-e-cab"><b>${aba === 'semana' ? 'Score do time' : 'Conquistas do mês'}</b>${seg}</div>${aba === 'semana' ? semanaE(d) : conquistasE(d, conquistas, nomeMes)}</section>`;
+    } else {
+      direita = folhaE({ titulo: 'Conquistas do mês', dir: String(conquistas.length), cls: 'cresce', corpo: conquistasE(d, conquistas, nomeMes) });
+    }
+    const main = `<div class="d3m-e-main">${mesFolha}<div class="d3m-e-pes-duas">${esquerda}${direita}</div></div>`;
+    // A consulta: como o score é feito, quem pede atenção (time), o que é dos donos e a Performance da operação.
+    const baixo = d.gestao ? [...comScore].filter((p) => p.score < 70).sort((a, b) => a.score - b.score).slice(0, 3) : [];
+    const lado = consE('Como o score é feito', txtE('Sai das demandas do painel, sem nada para preencher: prazo, volume contra a meta do cargo, retrabalho e o que está atrasado.'))
+      + (baixo.length ? consE('Pede atenção', baixo.map((p) => vlinE(primeiroNome(p.nome), `score ${p.score}${p.atrasadas ? `, ${plural(p.atrasadas, 'atrasada', 'atrasadas')}` : ''}`, `data-v2p-abre="${esc(p.id)}" data-abrir="1"`)).join(''), plural(baixo.length, 'pessoa', 'pessoas')) : '')
+      + consE('Do time', d.gestao ? Object.entries(partes).map(([k, r]) => vlinE(r, k === 'carga' ? 'peças e etapas' : 'só os donos', `data-v2p-ver="${k}"`)).join('') : vlinE('Ranking da semana', 'XP e superação', 'data-vp-ir="ranking"'))
+      + consE('Da operação', vlinE('Performance', 'fica em Gestão', 'data-vp-ir="performance"'));
+    const subTexto = `${nomeMes} de ${mes.slice(0, 4)} · ${score == null ? (d.gestao ? 'ainda sem dado no time' : 'ainda sem dado no seu mês') : d.gestao ? `score do time ${Math.round(score)}` : `o seu score é ${Math.round(score)}`}`;
+    const busca = d.gestao && time.length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar pessoa" aria-label="Buscar pessoa" value="${esc(estado.v2.busca)}">` : '';
+    return { sub: subTexto, acoes: busca, main, lado };
+  }
+  const DESENHO_E = { produtividade: produtividadeE };
+
   function htmlCorpo() {
     const d = estado.dados[estado.aba];
     if (!d) return estado.erro ? vazio('Não deu para abrir agora', estado.erro, acao('Tentar de novo', 'data-vp-recarregar')) : '<p class="vp-carregando" role="status">Carregando…</p>';
     return (estado.erro ? `<p class="vp-erro">Não foi possível atualizar: ${esc(estado.erro)} <button type="button" class="vp-link" data-vp-recarregar>Tentar de novo</button></p>` : '') + DESENHO[estado.aba](d);
   }
   function htmlPainel() {
+    if (E.has(estado.aba)) return htmlPainelE();
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const g = gestao(), abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
     // Direção 3: o período do Recrutamento fica na barra de filtro; no cabeçalho só as abas, a ajuda e a ação.
@@ -1439,9 +1585,10 @@
   function pintar() {
     const janela = estado.janela; if (!janela) return;
     const corpo = janela.querySelector?.('.vp-corpo'), rolagem = corpo?.scrollTop || 0;
-    // Direção V2 (prancha V2-M-Projetos): no computador, a aba Projetos tem o esqueleto novo (painelPj2).
+    // Direção V2 (prancha V2-M-Projetos): no computador, a aba Projetos tem o esqueleto novo (painelPj2);
+    // as outras abas do RH e a Academy vão para o esqueleto E (htmlPainelE, pelo htmlPainel).
     const pj2 = v2pj(), foco = pj2 && document.activeElement?.id === 'pj2-busca';
-    janela.className = 'vp-janela' + (V2.has(estado.aba) ? ' v2p-janela' : '') + (pj2 ? ' d3m-c-janela' : '');
+    janela.className = 'vp-janela' + (pj2 ? ' v2p-janela d3m-c-janela' : E.has(estado.aba) ? ' d3m-e-pes-janela' : V2.has(estado.aba) ? ' v2p-janela' : '');
     janela.innerHTML = pj2 ? painelPj2() : htmlPainel();
     if (foco) { const b = janela.querySelector('#pj2-busca'); b?.focus(); try { b?.setSelectionRange(b.value.length, b.value.length); } catch { /* campo sem seleção */ } }
     const novo = janela.querySelector?.('.vp-corpo'); if (novo) novo.scrollTop = rolagem;
@@ -1510,7 +1657,8 @@
     const t = e.target, perto = (s) => t?.closest?.(s), d = estado.dados[estado.aba] || {};
     if (t === estado.raiz) { fechar(); return; }
     let b;
-    if ((b = perto('[data-v2p-abre]'))) abrirLinha(b.dataset.v2pAbre, b.dataset.abrir === '1');
+    if ((b = perto('[data-vp-ir]'))) irPeloMenu(b.dataset.vpIr);
+    else if ((b = perto('[data-v2p-abre]'))) abrirLinha(b.dataset.v2pAbre, b.dataset.abrir === '1');
     else if ((b = perto('[data-v2p-carta]'))) moverBaralho(Number(b.dataset.v2pCarta));
     else if ((b = perto('[data-v2p-decidir]'))) decidir(b);
     else if ((b = perto('[data-v2p-recusar]'))) {
