@@ -53,6 +53,9 @@
 #painel-clientes .fv2-op-c-prazo{flex:0 0 64px}
 #painel-clientes .fv2-op-c-veiculacao{flex:0 0 96px}
 #painel-clientes .fv2-op-c-quem{flex:0 0 32px;display:flex;align-items:center}
+/* A caixa de marcar: a folha antiga pinta toda caixa marcada de laranja (com #workspace-drawer no :is, peso de um id); aqui vale a tinta da prancha, por dois ids. */
+#painel-clientes #client-master-detail .fv2-op-lin > input.fv2-op-marca{width:16px;height:16px;border:1.5px solid var(--d3-meta);border-radius:5px;background:none}
+#painel-clientes #client-master-detail .fv2-op-lin > input.fv2-op-marca:checked{border-color:var(--d3-tinta);background:var(--d3-tinta) none}
 #painel-clientes .fv2-op-marca{appearance:none;-webkit-appearance:none;flex:0 0 16px;display:grid;place-items:center;width:16px;height:16px;margin:0;padding:0;box-sizing:border-box;border:1.5px solid var(--d3-meta);border-radius:5px;background:none;cursor:pointer}
 #painel-clientes .fv2-op-marca:hover{border-color:var(--d3-tinta)}
 #painel-clientes .fv2-op-marca:checked{border-color:var(--d3-tinta);background:var(--d3-tinta)}
@@ -230,8 +233,10 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba
   #painel-clientes .fv2-cheia{min-height:112px}
   #painel-clientes .fv2-vazio-ico{display:none}
   #painel-clientes .fv2-vazio > b{margin-top:0}
-  #painel-clientes .fv2-lar-aba{gap:6px}
-  #painel-clientes .fv2-lar-aba .d3m-lar-num{font-size:44px}
+  #painel-clientes .fv2-duas > .fv2-lado{gap:8px}
+  #painel-clientes .fv2-lar-aba{gap:6px;padding-top:12px;padding-bottom:12px}
+  #painel-clientes .fv2-lar-aba .d3m-lar-num{font-size:40px}
+  #painel-clientes .fv2-lar-aba .d3m-lar-bts{margin-top:6px}
   #painel-clientes .fv2-barra-lin{height:21px}
   #painel-clientes .fv2-fin-cartao{min-height:148px}
 }
