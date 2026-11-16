@@ -443,3 +443,67 @@ test('roteiros: as telas do padrão novo e os módulos principais têm roteiro; 
   // a personalidade do VYBES não é copiada para cá
   assert.doesNotMatch(ROTEIROS_JS, /mordomo|PERSONALIDADE|PROMPT_BASE/);
 });
+
+// Os roteiros como saem do arquivo (com o `se`, que o CONTEUDO não guarda): cada um tem o seletor da tela e passos com
+// alvo, título e texto. As telas V2 que ganharam roteiro (16/11/2026) estão todas aqui, curtas (3 a 6 passos), e as de
+// Finanças, Comercial, Carteira e Agentes ficam presas à janela e ao data-tela, porque a janela de antes continua no
+// DOM por baixo (com hidden) e não pode casar no lugar da nova.
+function roteirosDoArquivo() {
+  const lista = [];
+  const c = vm.createContext({ console, VybeTutorial: { registrarTelas: (l) => { lista.push(...l); return lista.length; } } });
+  c.window = c;
+  vm.runInContext(ROTEIROS_JS, c);
+  return lista;
+}
+test('roteiros: cada um tem `se` e passos com alvo, título e texto; as telas V2 têm roteiro curto', () => {
+  const lista = roteirosDoArquivo();
+  const seletor = (s) => typeof s === 'string' && s.trim().length > 0 && !/\[style/.test(s);
+  for (const r of lista) {
+    assert.ok(r.id && r.nome && r.resumo, `${r.id}: id, nome e resumo`);
+    const se = [].concat(r.se || []);
+    assert.ok(se.length && se.every(seletor), `${r.id}: \`se\` com seletor`);
+    assert.ok(Array.isArray(r.passos) && r.passos.length >= 2 && r.passos.length <= 8, `${r.id}: de 2 a 8 passos`);
+    for (const p of r.passos) {
+      assert.ok(p && typeof p === 'object', `${r.id}: passo vazio`);
+      assert.ok([].concat(p.alvo || []).length && [].concat(p.alvo).every(seletor), `${r.id} · ${p.titulo}: alvo`);
+      assert.ok(typeof p.titulo === 'string' && p.titulo.trim(), `${r.id}: título`);
+      assert.ok(typeof p.texto === 'string' && p.texto.trim(), `${r.id} · ${p.titulo}: texto`);
+      if (p.lado) assert.match(p.lado, /^(direita|esquerda|baixo|cima)$/, `${r.id} · ${p.titulo}: lado`);
+    }
+    for (const c of r.cobre || []) assert.match(c, /^(trilho|ferr):[a-z-]+$|^modulo$/, `${r.id}: cobre ${c}`);
+  }
+  const ids = lista.map((r) => r.id);
+  const NOVAS = ['producao-mes', 'feed', 'producao-grupos', 'producao-equipe', 'demandas', 'tarefas', 'direcao', 'impressoes', 'projetos', 'comercial', 'pacotes',
+    'orcamentos', 'contratos', 'churn', 'agentes', 'financas-cliente', 'recebimentos', 'contas', 'inadimplencia', 'extrato', 'clientes-mes', 'cartao', 'fixos',
+    'vales', 'projecao', 'automacoes', 'conta', 'rh-produtividade', 'rh-pedidos', 'rh-recrutamento', 'rh-documentos', 'academy', 'toolkit', 'onboarding',
+    'reunioes', 'fornecedores', 'creators', 'conversas', 'diario', 'performance', 'ia-custos', 'centro', 'predio', 'minha-sala', 'jogos', 'loja', 'ranking',
+    'conquistas', 'equipe'];
+  for (const id of NOVAS) {
+    const r = lista.find((x) => x.id === id);
+    assert.ok(r, 'falta o roteiro de ' + id);
+    assert.ok(r.passos.length >= 3 && r.passos.length <= 6, `${id}: de 3 a 6 passos (tem ${r.passos.length})`);
+    assert.ok(r.passos.some((p) => p.texto.includes('{nome}')), `${id}: trata a pessoa pelo {nome}`);
+  }
+  // Finanças: cada tela do molde casa pelo data-tela dela, e todos os passos ficam dentro dela
+  for (const [id, tela] of [['financas-cliente', 'fx-financas'], ['recebimentos', 'rec'], ['contas', 'con'], ['inadimplencia', 'ina'], ['extrato', 'fx-extrato'],
+    ['clientes-mes', 'fx-clientes_mes'], ['cartao', 'fx-cartao'], ['fixos', 'fx-fixos'], ['vales', 'fx-vales'], ['projecao', 'fx-projecao']]) {
+    const r = lista.find((x) => x.id === id), raiz = `#vv-comercial .d3m-d-fm[data-tela="${tela}"]`;
+    assert.ok(r.se.startsWith(raiz), `${id}: se pelo data-tela`);
+    for (const p of r.passos) assert.ok([].concat(p.alvo).every((a) => a.startsWith(raiz)), `${id} · ${p.titulo}: alvo dentro da tela`);
+  }
+  // janelas que ficam por baixo: o seletor diz a janela
+  for (const [id, janela] of [['agentes', '#vv-agentes'], ['contratos', '#vv-carteira'], ['churn', '#vv-carteira'], ['onboarding', '#vv-carteira'], ['comercial', '#vv-comercial'],
+    ['pacotes', '#vv-comercial'], ['orcamentos', '#vv-comercial'], ['fornecedores', '#vv-comercial'], ['creators', '#vv-comercial']]) {
+    const r = lista.find((x) => x.id === id);
+    assert.ok(r.se.startsWith(janela), `${id}: se começa pela janela`);
+    for (const p of r.passos) assert.ok([].concat(p.alvo).every((a) => a.startsWith(janela)), `${id} · ${p.titulo}: alvo dentro da janela`);
+  }
+  // quem abre por cima do Hoje vem antes dele; o Ranking abre por cima da Loja e vem antes dela; os módulos que o Hoje
+  // desenha por dentro (Minhas tarefas, Direção de arte) também vêm antes dos roteiros do Hoje
+  const pos = (id) => ids.indexOf(id);
+  for (const id of ['loja', 'conquistas', 'ranking', 'tarefas', 'direcao', 'equipe', 'jogos']) assert.ok(pos(id) < pos('hoje-agencia'), `${id} antes do Hoje`);
+  assert.ok(pos('ranking') < pos('loja'), 'Ranking antes da Loja');
+  assert.ok(pos('performance') < pos('gestao') && pos('performance') < pos('diario'), 'Performance antes da Gestão e do Diário');
+  // os seletores antigos das telas remontadas saíram
+  assert.doesNotMatch(ROTEIROS_JS, /#vfd-camada|\.d3c-fin|\.fv2-topo|\.v2c-cols|#pv2-agenda|\.p2-lista|\.d3g-setores|#kpi-grid-clientes/);
+});
