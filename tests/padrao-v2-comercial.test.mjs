@@ -180,28 +180,55 @@ test('Produtos e pacotes: topo no vidro, os números, a esteira em colunas com a
   assert.ok(!h.includes('Custo') && !h.includes('<span>Margem</span>') && !/[^-]margem/.test(h) && !h.includes('Ticket') && !h.includes('Novo pacote') && !h.includes('Editar pacote'));
 });
 
-test('Orçamentos: bloco de ação do que vence, quatro números, fichas, a tabela e "Pede ação"', async () => {
+// Módulos V2 (prancha V2-M-Orcamentos, 16/11/2026): duas folhas lado a lado (a lista em três grupos e a proposta
+// escolhida) e a coluna de consulta com o laranja do que vence, os números, o "Pede ação" e o "Abrir".
+test('Orçamentos: topo no vidro, a lista em grupos, a proposta escolhida com as ações e a coluna de consulta', async () => {
   const { ctx, janela, clicar, pedidos } = comercial(respostas);
   ctx.VybeComercial.abrir('orcamentos', { abas: ['orcamentos'] }); await esperar();
   let html = janela().innerHTML;
-  naOrdem(html, ['<h2>Orçamentos</h2>', 'Como funciona</button>', 'class="v2c-btn d3c-novo" data-vc="orcamento">', '<section class="d3-acao"', '>Em aberto</span>', '>Vencem em 7 dias</span>', '>Aprovados</span>', '>Ticket médio</span>',
-    'placeholder="Buscar cliente ou pacote"', 'aria-pressed="true">Abertos <b>4</b></button>', '>Rascunho <b>1</b></button>', '>Aprovados <b>1</b></button>', '>Recusados <b>1</b></button>', '>Filtros</button>',
-    '<div class="v2c-grade d3c-grade orcamentos">', '<h3>Abertos</h3><small>4</small>', '<span>Cliente</span><span>Pacote</span>', '<h3>Pede ação</h3>']);
-  assert.match(html, /Academia E vence amanhã, sem resposta há 5 dias\.<\/span><\/span><button type="button" class="d3-acao-btn" data-vc="imprimir" data-id="1">Ver a proposta<\/button>/);
-  assert.match(html, /class="d3-num r[^"]*"><span class="d3-num-rot">Vencem em 7 dias<\/span>/);
-  const pede = html.slice(html.indexOf('<h3>Pede ação</h3>'));
-  naOrdem(pede, ['<span class="v2c-pill r">Vence amanhã</span>', 'data-vc="imprimir" data-id="1">Ver</button>', '<span class="v2c-pill n">Rascunho</span>', 'class="v2c-btn s k v2-estado" data-v2="orc-status" data-id="6" data-status="enviado" data-feito="Enviado">Enviar</button>']);
-  assert.ok(!pede.includes('Registrar contrato'), 'sem a Carteira carregada, não promete o contrato');
-  assert.equal((html.match(/class="v2c-lin d3c-orc"/g) || []).length, 4);
+  assert.equal(janela().className, 'vc d3m-d-m');
+  naOrdem(html, ['<div class="d3m-d-topo d3m-d-cm-topo">', '<h2>Orçamentos</h2>', 'data-v2="ir" data-id="orcamentos" aria-current="page">', '<span class="d3m-d-sub">propostas a partir dos pacotes · 4 abertas · R$ 15,2 mil por mês em aberto</span>', 'data-v2="busca"', 'data-v2="ajuda"', 'data-v2="roi" aria-expanded="false">ROI na proposta</button>', 'class="d3m-d-vbtn p" data-vc="orcamento">',
+    '<div class="d3m-d-cm" data-tela="cm-orcamentos">', '<section class="d3m-d-folha d3m-d-cm-folha d3m-d-or" aria-label="Orçamentos">', '<h3>7 orçamentos</h3>',
+    'aria-pressed="true">Todos <b>7</b></button>', '>Abertos <b>4</b></button>', '>Aprovados <b>1</b></button>', '>Recusados <b>1</b></button>',
+    '<div class="d3m-d-pk-olho"><small>De olho</small>', '<b>R$ 15,2 mil</b> em aberto</span>', 'data-v2="chip" data-id="vencendo" title="Vencem em 7 dias" aria-pressed="false"><b class="r">1</b> a vencer</button>', 'data-v2="chip" data-id="rascunho" title="Rascunho" aria-pressed="false"><b>1</b> rascunho</button>', '<section class="d3m-d-folha d3m-d-cm-folha d3m-d-or-prop" aria-label="Proposta para Academia E">',
+    '<aside class="d3m-lado d3m-d-cm-lado"', '<section class="d3m-laranja d3m-d-cm-pesa"', '<div class="d3m-d-or-minis">', 'aria-label="Pede ação"', '<nav class="d3m-cons d3m-d-cm-abrir"']);
+  assert.doesNotMatch(html, /v2c-topo|d3c-|class="d3-acao"/, 'nada do esqueleto anterior');
+  // A lista: Agora (o que vence), Andando (enviados e rascunhos) e Fechados, com o nome do grupo uma vez só.
+  assert.equal((html.match(/<button type="button" class="d3m-d-or-lin"/g) || []).length, 7);
+  naOrdem(html, ['data-v2-linha="orc:1" aria-pressed="true"><span class="d3m-d-or-g r">Agora</span>', '<span class="d3m-d-or-g">Andando</span>', 'data-v2-linha="orc:6"', 'data-v2-linha="orc:5" aria-pressed="false"><span class="d3m-d-or-g">Fechados</span>', 'data-v2-linha="orc:7"']);
   const linha = html.slice(html.indexOf('data-v2-linha="orc:1"'), html.indexOf('data-v2-linha="orc:2"'));
-  naOrdem(linha, ['<b class="d3c-orc-v">R$ 3.800', '<span class="v2c-pill r">vence amanhã</span>', 'Itens: 1× Social &lt;b&gt;Completo&lt;/b&gt;', 'Criado em ', 'class="v2c-btn s k" data-vc="imprimir" data-id="1">Ver a proposta</button>', 'data-v2="duplicar" data-id="1">Duplicar</button>',
-    'data-status="aceito">Marcar aprovado</button>', 'data-status="recusado">Marcar recusado</button>']);
+  naOrdem(linha, ['Academia E', 'Social &lt;b&gt;Completo&lt;/b&gt;', '<b>R$ 3.800</b> por mês', '<i class="d3m-d-or-pt l"></i>Enviado <em class="r">vence amanhã</em>']);
+  // O laranja é o que vence primeiro: abre a proposta na folha ao lado ou o documento.
+  naOrdem(html, ['VYBES · proposta sem resposta</span>', '<b class="d3m-lar-num">5 dias</b>', 'sem resposta de Academia E</span>', 'A proposta vence amanhã. R$ 3.800 por mês.', 'class="d3m-btn l" data-v2="abre-um" data-id="orc:1">Ver a proposta</button>', 'class="d3m-btn l s" data-vc="imprimir" data-id="1">Abrir o documento</button>']);
+  naOrdem(html.slice(html.indexOf('d3m-d-or-minis')), ['<b>4</b><small>abertos</small>', '<b>1 de 2</b><small>aprovado</small>', '<b>R$ 3,8 mil</b><small>ganho por mês</small>']);
+  const pede = html.slice(html.indexOf('aria-label="Pede ação"'), html.indexOf('d3m-d-cm-abrir'));
+  naOrdem(pede, ['<small class="r">Vence amanhã</small>', 'data-vc="imprimir" data-id="1">Ver</button>', '<small class="n">Rascunho</small>', 'class="v2c-btn s k v2-estado" data-v2="orc-status" data-id="6" data-status="enviado" data-feito="Enviado">Enviar</button>']);
+  assert.ok(!pede.includes('Registrar contrato'), 'sem a Carteira carregada, não promete o contrato');
+  // A proposta escolhida: os itens com o preço do dia, o total e as ações de sempre.
+  const prop = html.slice(html.indexOf('d3m-d-or-prop'), html.indexOf('<aside'));
+  naOrdem(prop, ['<h3>Proposta para Academia E</h3><small>enviado</small>', 'Criada em ', 'Vale até ', '<b>Social &lt;b&gt;Completo&lt;/b&gt;</b><small>1× · mensal</small></span><b>R$ 3.800</b>', '<div class="d3m-d-or-tot"><span>Por mês</span><b>R$ 3.800</b>',
+    'class="d3m-d-or-bt k" data-vc="imprimir" data-id="1">Abrir como documento</button>', 'data-v2="duplicar" data-id="1">Duplicar</button>', 'data-status="aceito">Marcar aprovado</button>', 'data-status="recusado">Marcar recusado</button>']);
+  // Outra linha escolhida troca a proposta ao lado.
+  clicar({ v2: 'abre-um', id: 'orc:5' }); html = janela().innerHTML;
+  assert.match(html, /aria-label="Proposta para Cliente G">[\s\S]*<small>aprovado<\/small>/);
+  clicar({ v2: 'chip', id: 'recusados' }); html = janela().innerHTML;
+  assert.equal((html.match(/<button type="button" class="d3m-d-or-lin"/g) || []).length, 1); assert.match(html, /aria-label="Proposta para Pizzaria H"/);
+  clicar({ v2: 'chip', id: 'todos' });
   clicar({ v2: 'orc-status', id: '1', status: 'aceito' }); await esperar();
   assert.deepEqual(pedidos.find((p) => p.corpo?.acao === 'orcamento_status')?.corpo, { acao: 'orcamento_status', id: '1', status: 'aceito' });
   clicar({ v2: 'duplicar', id: '1' }); html = janela().innerHTML;
   assert.match(html, /aria-label="Novo orçamento"[\s\S]*name="cliente_nome" type="text" value="Academia E"[\s\S]*name="q_1" type="number" value="1"/);
   clicar({ vc: 'fechar-folha' }); assert.ok(!janela().innerHTML.includes('vc-roi'));
-  clicar({ v2: 'roi' }); assert.match(janela().innerHTML, /<div class="v2c-resto"><details class="vc-roi vc-roi-det" open>/);
+  // "ROI na proposta" abre no lugar da proposta.
+  clicar({ v2: 'roi' }); assert.match(janela().innerHTML, /aria-label="ROI na proposta">[\s\S]*<div class="d3m-d-cm-resto"><details class="vc-roi vc-roi-det" open>/);
+});
+
+test('Orçamentos vazio: o mesmo esqueleto, com a frase na lista e o primeiro orçamento no laranja', async () => {
+  const { ctx, janela } = comercial((url) => (url.includes('aba=orcamentos') ? { ok: true, pode, hoje, pacotes: pacotes.filter((x) => x.ativo), orcamentos: [] } : { ok: true }));
+  ctx.VybeComercial.abrir('orcamentos', { abas: ['orcamentos'] }); await esperar();
+  const html = janela().innerHTML;
+  naOrdem(html, ['<h3>0 orçamentos</h3>', 'Nenhum orçamento ainda. As propostas saem dos pacotes.', 'aria-label="Proposta"', '<span class="d3-acao-frase">Nenhum orçamento ainda</span>', 'class="d3m-btn l" data-vc="orcamento">Fazer o primeiro</button>']);
+  assert.doesNotMatch(html, /class="d3m-d-or-lin"|ROI na proposta/);
 });
 
 test('"Usar em orçamento" leva o pacote para a folha do orçamento novo', async () => {

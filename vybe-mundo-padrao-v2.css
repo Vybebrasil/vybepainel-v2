@@ -14368,6 +14368,9 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
 .d3m-d-pk-olho b{margin-right:2px;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .d3m-d-pk-olho b.a{color:var(--d3-ambar)}
 .d3m-d-pk-olho b.r{color:var(--d3-perigo)}
+.d3m-d-pk-olho > button{appearance:none;flex:none;height:28px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-pk-olho > button:hover,.d3m-d-pk-olho > button[aria-pressed="true"]{background:var(--d3-veu)}
+.d3m-d-pk-olho > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
 /* "Pede ação" na coluna de consulta: o selo em texto, a frase e o botão na linha. */
 .d3m-d-pk-ped{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 6px 4px 10px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
 .d3m-d-pk-ped > span{flex:1 1 auto;display:flex;flex-direction:column;gap:1px;min-width:0;color:var(--d3-fume-apagado)}
@@ -14393,7 +14396,7 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
   .d3m-d-pk-lin{grid-template-columns:minmax(0,1fr) 64px 76px 84px 120px 76px 14px;gap:8px}
 }
 @media (max-width:900px){
-  .d3m-d-pk > .d3m-d-cab{height:auto;flex-wrap:wrap;padding:10px 16px}
+  :is(.d3m-d-pk,.d3m-d-or) > .d3m-d-cab{height:auto;flex-wrap:wrap;padding:10px 16px}
   .d3m-d-pk-seg{flex:1 1 100%;justify-content:flex-start}
   .d3m-d-pk-cab{display:none}
   .d3m-d-pk-lin,.d3m-d-pk-lin.sem-margem{grid-template-columns:minmax(0,1fr) auto 14px;grid-auto-rows:auto;gap:2px 10px;height:auto;padding:10px 16px}
@@ -14401,6 +14404,81 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
   .d3m-d-pk-lin > :is(span:nth-child(2),.d3m-d-pk-c,.d3m-d-pk-vd){display:none}
   .d3m-d-pk-lin > .d3m-d-pk-m{grid-column:1 / -1;grid-row:2}
   .d3m-d-pk-olho{height:auto;flex-wrap:wrap;gap:4px 0;padding:10px 16px;white-space:normal}
+}
+
+/* ===================================================================================================================
+   ORÇAMENTOS NA PRANCHA V2-M-Orcamentos (16/11/2026). Duas folhas lado a lado: a lista em três grupos (Agora, Andando e
+   Fechados), com o valor e a situação em ponto, e a proposta escolhida, com os itens, o total e o que dá para fazer
+   com ela. Na coluna de consulta, o laranja do que vence, os números, o "Pede ação" e o "Abrir". O HTML vem de
+   abaOrcamentos (vybe-mundo-comercial.js).
+   =================================================================================================================== */
+.d3m-d-or-main{flex-direction:row;gap:16px}
+.d3m-d-or-main > .d3m-d-or{flex:3 1 0}
+.d3m-d-or-main > .d3m-d-or-prop{flex:2 1 0}
+/* A linha da lista: o grupo (uma vez), o cliente e o pacote, o valor e a situação. */
+.d3m-d-or-lin{appearance:none;display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:6px;width:100%;height:64px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-d-or-lin:first-child{border-top:0}
+.d3m-d-or-lin:hover{background:var(--d3-veu)}
+.d3m-d-or-lin[aria-pressed="true"]{background:var(--d3-veu)}
+.d3m-d-or-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-d-or-g{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-or-g.r{color:var(--d3-perigo)}
+.d3m-d-or-n,.d3m-d-or-v{display:flex;flex-direction:column;gap:2px;min-width:0}
+.d3m-d-or-n > b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-or-n > b *{color:inherit;font-weight:inherit}
+/* O nome do cliente vem com a ficha da carteira; aqui é só o nome. */
+#vv-comercial.d3m-d-m .d3m-d-pk-ped :is(.v2c-cli,.cliente-carteira){display:inline;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+.d3m-d-or > .d3m-d-cab > h3{flex:1 0 auto}
+.d3m-d-or > .d3m-d-pk-olho{padding:0 12px}
+.d3m-d-or > .d3m-d-pk-olho > small{margin-right:10px}
+.d3m-d-or > .d3m-d-pk-olho > :is(span,button){padding:0 10px}
+.d3m-d-or-n > span{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-or-v{align-items:flex-end;white-space:nowrap}
+.d3m-d-or-v > span:first-child{color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.d3m-d-or-v > span:first-child > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-d-or-v > span:last-child{display:inline-flex;align-items:center;gap:6px;font-size:var(--d3-fs-apoio)}
+.d3m-d-or-v em{font-style:normal;color:var(--d3-rotulo)}
+.d3m-d-or-v em.r{color:var(--d3-perigo)}
+.d3m-d-or-v em.a{color:var(--d3-ambar)}
+.d3m-d-or-pt{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+.d3m-d-or-pt.l{background:var(--d3-agente)}
+.d3m-d-or-pt.g{background:var(--d3-mod-vybe)}
+.d3m-d-or-pt.r{background:var(--d3-perigo)}
+/* A proposta escolhida. */
+.d3m-d-or-res{margin:0;padding:12px 16px;font-size:var(--d3-fs-apoio);line-height:1.5;color:var(--d3-rotulo)}
+.d3m-d-or-it{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 16px;padding:12px 0;border-top:1px solid var(--d3-divisa)}
+.d3m-d-or-it > span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.d3m-d-or-it b{font-weight:600;font-variant-numeric:tabular-nums}
+.d3m-d-or-it small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-or-tot{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 16px;padding:16px 0;border-top:1px solid var(--d3-divisa)}
+.d3m-d-or-tot > span{display:flex;flex-direction:column;gap:4px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-or-tot > b{font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-or-bts{flex:none;display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 16px}
+.d3m-d-or-bt{appearance:none;flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-or-bt:hover{background:var(--d3-veu)}
+.d3m-d-or-bt.k{background:var(--d3-tinta);box-shadow:none;color:var(--d3-escuro-texto)}
+.d3m-d-or-bt[data-estado="feito"]{background:var(--d3-pronto);box-shadow:none;color:var(--d3-escuro-texto)}
+.d3m-d-or-bt:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+/* Os três números da coluna de consulta. */
+.d3m-d-or-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.d3m-d-or-minis > span{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.d3m-d-or-minis b{font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-or-minis small{font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado);white-space:nowrap}
+@media (max-height:820px){
+  .d3m-d-or-lin{height:52px}
+  .d3m-d-or-it{padding:8px 0}
+  .d3m-d-or-tot{padding:10px 0}
+  .d3m-d-or-minis > span{padding:6px 10px}
+}
+@media (max-width:1180px){
+  .d3m-d-or-main{gap:12px}
+  .d3m-d-or-lin{grid-template-columns:52px minmax(0,1fr) auto}
+}
+@media (max-width:900px){
+  .d3m-d-or-lin{grid-template-columns:minmax(0,1fr) auto;height:auto;padding:10px 16px}
+  .d3m-d-or-g:empty{display:none}
+  .d3m-d-or-g{grid-column:1 / -1}
+  .d3m-d-or-main > :is(.d3m-d-or,.d3m-d-or-prop){flex:none}
 }
 
 /* ===== padrao-v2/zm-d-financeiro.css ===== */

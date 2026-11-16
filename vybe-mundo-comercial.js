@@ -299,7 +299,7 @@
   // faixa de etapas ou a barra de filtro; o quadro ou "Pede ação" ao lado da lista que abre no lugar; o vazio numa
   // linha tracejada; uma frase de rodapé. O que o quadro não mostra fica a um clique ("mostrar"), nunca some.
   const V2 = new Set(['funil', 'pacotes', 'orcamentos', 'financas', 'fornecedores', 'creators']);
-  st.v2 = { visao: 'quadro', fase: '', aberta: '', mostra: {}, mes: false, cap: false, roi: false, chip: { pacotes: 'ativos', orcamentos: 'abertos', financas: 'todos', fornecedores: '', creators: '' }, filtros: {}, colunas: false, fin: false, lancar: false, usar: '', arrasta: '', visto: {} };
+  st.v2 = { visao: 'quadro', fase: '', aberta: '', mostra: {}, mes: false, cap: false, roi: false, chip: { pacotes: 'ativos', orcamentos: 'todos', financas: 'todos', fornecedores: '', creators: '' }, filtros: {}, colunas: false, fin: false, lancar: false, usar: '', arrasta: '', visto: {} };
   const DIAS_SEM = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   const milhar = (v) => 'R$ ' + curto(v);
   const reais = (v) => (Number.isInteger(Number(v)) ? 'R$ ' + num(v) : din(v));
@@ -491,7 +491,7 @@
   // direita), números em folha com o selo e o gráfico na cor do que dizem, o trabalho no meio e a coluna de consulta no
   // vidro, com o cartão laranja em cima. As peças são .d3m-* (z-direcao.css) e .d3m-d-* (zm-d-0-pecas.css); o desenho
   // de cada tela mora em padrao-v2/zm-d-comercial.css. A tela diz o que vai no topo em topoDaVez, ao ser pintada.
-  const M = new Set(['funil', 'pacotes']);
+  const M = new Set(['funil', 'pacotes', 'orcamentos']);
   let topoDaVez = null;
   const ICM = { seta: svg('<path d="M9 6l6 6-6 6"/>'), busca: svg('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svg('<path d="M5 12h.01M12 12h.01M19 12h.01"/>'),
     ok: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'), alerta: svg('<path d="M12 7v6M12 17h.01"/>'), zap: svg('<path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.2A8 8 0 1 1 20 11.5z"/>') };
@@ -1098,7 +1098,7 @@
     const falta = (o) => (ehDia(o.validade) ? diasEntre(hoje, o.validade) : null);
     const vencendo = abertos.filter((o) => { const n = falta(o); return n != null && n >= 0 && n <= 7; }), vencidos = abertos.filter((o) => falta(o) < 0);
     const criado = (o) => diaBahia(o.criado_em), ha = (o) => { const c = criado(o); if (!c) return ''; const n = Math.max(0, diasEntre(c, hoje)); return n ? `criado há ${plural(n, 'dia', 'dias')}` : 'criado hoje'; };
-    const cli = (o) => `<span class="v2c-cli">${cliCor(o.cliente_nome)}</span>`;
+    const cli = (o) => `<b>${esc(o.cliente_nome)}</b>`; // só o nome: a ficha colorida da carteira não se lê no vidro
     const itens = (o) => (o.itens || []).map((i) => esc(i.nome)).join(' + ') || 'sem itens';
     const valor = (o) => [o.totais?.total_recorrente ? reais(o.totais.total_recorrente) + ' por mês' : '', o.totais?.total_avulso ? reais(o.totais.total_avulso) + ' avulso' : ''].filter(Boolean).join(' + ') || 'R$ 0';
     const prazo = (o) => { const n = falta(o); return n == null ? null : n < 0 ? ['r', `venceu há ${plural(-n, 'dia', 'dias')}`] : n === 0 ? ['r', 'vence hoje'] : n === 1 ? ['r', 'vence amanhã'] : n <= 7 ? ['a', `vence em ${num(n)} dias`] : null; };
@@ -1112,7 +1112,7 @@
       ...rascunhos.map((o) => ({ selo: ['n', 'Rascunho'], texto: curtoD3 ? `${cli(o)} · ${itens(o)}` : `${cli(o)} · ${itens(o)} · pronto para sair`, acao: edita ? botao(curtoD3 ? 'Enviar' : 'Marcar como enviado', `data-v2="orc-status" data-id="${esc(o.id)}" data-status="enviado" data-feito="Enviado"`, curtoD3 ? 'k v2-estado' : 'v2-estado') : '' })),
     ];
     const GRUPOS = { abertos: ['Abertos', abertos], rascunho: ['Rascunho', rascunhos], aprovados: ['Aprovados', aprovados], recusados: ['Recusados', recusados], todos: ['Todos', todos], vencendo: ['Vencem em 7 dias', vencendo], vencidos: ['Vencidos', vencidos] };
-    if (!GRUPOS[v.chip.orcamentos]) v.chip.orcamentos = 'abertos';
+    if (!GRUPOS[v.chip.orcamentos]) v.chip.orcamentos = 'todos';
     const ficha = (k) => [k, GRUPOS[k][0], GRUPOS[k][1].length];
     const termo = norm(st.filtro.orcamentos), lista = GRUPOS[v.chip.orcamentos][1].filter((o) => !termo || norm(`${o.cliente_nome} ${(o.itens || []).map((i) => i.nome).join(' ')}`).includes(termo));
     const cabe = v.mostra.orcamentos || termo ? lista : lista.slice(0, ehD3() ? 6 : 3), resto = lista.length - cabe.length;
@@ -1128,57 +1128,68 @@
           <p class="v2c-acoes recuo">${botao('Ver a proposta', `data-vc="imprimir" data-id="${id}"`, 'k')}${edita && !semPacote ? botao('Duplicar', `data-v2="duplicar" data-id="${id}"`) : ''}
             ${edita ? Object.entries(MUDAR).filter(([k]) => k !== o.status).map(([k, n]) => botao(n, `data-v2="orc-status" data-id="${id}" data-status="${k}"`)).join('') : ''}</p></div></div></div>`;
     };
-    if (ehD3()) {
-      // Direção 3: a tabela (cliente, pacote, por mês, enviado e validade) à esquerda e "Pede ação" à direita.
-      const linhaO = (o) => {
-        const id = esc(o.id), ab = v.aberta === 'orc:' + o.id, c = criado(o), pz = o.status === 'enviado' ? prazo(o) : null;
-        const situacao = pz ? selo(pz) : o.status === 'enviado' ? (ehDia(o.validade) ? `<span class="d3c-ate">até ${esc(dm(o.validade))}</span>` : '') : selo(o.status === 'aceito' ? ['g', 'aprovado'] : o.status === 'recusado' ? ['n', 'recusado'] : ['n', 'rascunho']);
-        const porMes = o.totais?.total_recorrente ? reais(o.totais.total_recorrente) : o.totais?.total_avulso ? reais(o.totais.total_avulso) : 'R$ 0';
-        return `<div class="v2c-abre v2-abre" data-v2-linha="orc:${id}" aria-expanded="${ab}">
-          <button type="button" class="v2c-lin d3c-orc" data-v2="abre" data-id="orc:${id}" aria-expanded="${ab}">${cli(o)}<span class="d3c-orc-i">${itens(o)}</span><b class="d3c-orc-v">${esc(porMes)}${!o.totais?.total_recorrente && o.totais?.total_avulso ? '<small> avulso</small>' : ''}</b><span class="d3c-orc-d">${c ? esc(dm(c)) : '—'}</span><span class="d3c-orc-s">${situacao}</span></button>
-          <div class="v2-mais"><div>
-            <p class="v2c-hist">Itens: ${(o.itens || []).map((i) => `${num(i.quantidade)}× ${esc(i.nome)}`).join(', ') || 'nenhum'}${o.desconto_percentual ? ' · desconto ' + pc(o.desconto_percentual) : ''} · ${esc(valor(o))}</p>
-            <p class="v2c-hist">${c ? `Criado em ${esc(porExtenso(c))}` : 'Criado'}${o.criado_por_nome ? ' por ' + esc(o.criado_por_nome) : ''} · válido até ${data(o.validade)}${ehDia(o.validade) && o.validade < hoje ? ' (vencido)' : ''}</p>
-            <p class="v2c-acoes recuo">${botao('Ver a proposta', `data-vc="imprimir" data-id="${id}"`, 'k')}${edita && !semPacote ? botao('Duplicar', `data-v2="duplicar" data-id="${id}"`) : ''}
-              ${edita ? Object.entries(MUDAR).filter(([k]) => k !== o.status).map(([k, n]) => botao(n, `data-v2="orc-status" data-id="${id}" data-status="${k}"`)).join('') : ''}</p></div></div></div>`;
+    if (M.has('orcamentos')) {
+      // Prancha V2-M-Orcamentos: duas folhas lado a lado. À esquerda, a lista em três grupos (Agora: o que vence ou
+      // venceu; Andando: enviados e rascunhos; Fechados: aprovados e recusados), com o valor e a situação em ponto; à
+      // direita, a proposta escolhida com os itens, o total e o que dá para fazer com ela. Na coluna de consulta, o
+      // laranja do que vence, os números do período, o "Pede ação" e o "Abrir". "ROI na proposta" abre no lugar da proposta.
+      const ordem = (l) => [...l].sort((a, b) => String(a.validade || '9').localeCompare(String(b.validade || '9')));
+      const agora = ordem([...vencidos, ...vencendo]), idsAgora = new Set(agora.map((o) => String(o.id)));
+      const grupos = [['Agora', agora, 'r'], ['Andando', [...abertos.filter((o) => !idsAgora.has(String(o.id))), ...rascunhos], ''], ['Fechados', [...aprovados, ...recusados], '']];
+      const naLista = new Set(lista.map((o) => String(o.id)));
+      const sit = (o) => { const pz = o.status === 'enviado' ? prazo(o) : null;
+        return o.status === 'enviado' ? ['l', 'Enviado', pz ? pz[1] : ehDia(o.validade) ? 'até ' + dm(o.validade) : '', pz ? pz[0] : ''] : o.status === 'aceito' ? ['g', 'Aprovado', o.aprovado_dia ? dm(o.aprovado_dia) : '', ''] : o.status === 'recusado' ? ['r', 'Recusado', '', ''] : ['', 'Rascunho', ha(o).replace('criado ', ''), '']; };
+      const sel = todos.find((o) => 'orc:' + o.id === v.aberta && naLista.has(String(o.id))) || grupos.flatMap((g) => g[1]).find((o) => naLista.has(String(o.id))) || null;
+      const porMes = (o) => (o.totais?.total_recorrente ? [reais(o.totais.total_recorrente), 'por mês'] : o.totais?.total_avulso ? [reais(o.totais.total_avulso), 'avulso'] : ['R$ 0', '']);
+      const linhaO = (o, rot) => {
+        const id = esc(o.id), [tom, nome, quando, tomQ] = sit(o), [val, un] = porMes(o), ab = sel === o;
+        return `<button type="button" class="d3m-d-or-lin" data-v2="abre-um" data-id="orc:${id}" data-v2-linha="orc:${id}" aria-pressed="${ab}"><span class="d3m-d-or-g${rot[1] ? ' ' + rot[1] : ''}">${esc(rot[0])}</span>
+          <span class="d3m-d-or-n"><b>${esc(o.cliente_nome)}</b><span>${itens(o)}</span></span><span class="d3m-d-or-v"><span><b>${esc(val)}</b> ${un}</span><span><i class="d3m-d-or-pt${tom ? ' ' + tom : ''}"></i>${nome}${quando ? ` <em${tomQ ? ` class="${tomQ === 'a' ? 'a' : 'r'}"` : ''}>${esc(quando)}</em>` : ''}</span></span></button>`;
       };
-      const urgente = [...vencidos, ...vencendo].sort((a, b) => String(a.validade).localeCompare(String(b.validade)))[0];
+      const linhas = grupos.map(([nome, l, tom]) => l.filter((o) => naLista.has(String(o.id))).map((o, i) => linhaO(o, [i ? '' : nome, tom])).join('')).join('');
+      const fichas = ['todos', 'abertos', 'aprovados', 'recusados', 'rascunho', 'vencendo', 'vencidos'].map(ficha).filter(([k]) => ['todos', 'abertos', 'aprovados', 'recusados'].includes(k) || k === v.chip.orcamentos);
+      const seg = `<span class="d3m-d-pk-seg" role="group" aria-label="Filtrar os orçamentos">${fichas.map(([k, nome, n]) => `<button type="button" data-v2="chip" data-id="${k}" aria-pressed="${v.chip.orcamentos === k}">${esc(nome)} <b>${num(n)}</b></button>`).join('')}</span>`;
       const semResp = (o) => { const c = criado(o); return c ? Math.max(0, diasEntre(c, hoje)) : null; };
-      const acao = urgente ? acaoD3(`${esc(urgente.cliente_nome)} ${esc(prazo(urgente)[1])}${semResp(urgente) ? `, sem resposta há ${plural(semResp(urgente), 'dia', 'dias')}` : ''}.`, { texto: 'Ver a proposta', attrs: `data-vc="imprimir" data-id="${esc(urgente.id)}"` })
-        : rascunhos.length ? acaoD3(`${plural(rascunhos.length, 'rascunho pronto', 'rascunhos prontos')} para sair.`, { texto: 'Ver os rascunhos', attrs: 'data-v2="chip" data-id="rascunho"' })
-          : abertos.length ? acaoD3(`${mensal(abertos) ? esc(milhar(mensal(abertos))) + ' por mês' : plural(abertos.length, 'orçamento', 'orçamentos')} em aberto; nada vence na semana.`)
-            // Vazio (acabamento 15/11): uma frase e uma ação, no bloco laranja; sem pacote ativo, a ação é ir aos Pacotes.
-            : !todos.length && semPacote ? acaoD3('Nenhum orçamento ainda: falta um pacote ativo.', { texto: 'Ir para Pacotes', attrs: 'data-vc="ir-pacotes"' })
-            : acaoD3(todos.length ? 'Nenhum orçamento aberto agora.' : 'Nenhum orçamento ainda.', edita && !semPacote ? { texto: todos.length ? 'Novo orçamento' : 'Fazer o primeiro', attrs: 'data-vc="orcamento"' } : {});
+      const olhoB = (k, n, um, varios, tom = '') => (n ? `<button type="button" data-v2="chip" data-id="${k}" title="${esc(GRUPOS[k][0])}" aria-pressed="${v.chip.orcamentos === k}"><b${tom ? ` class="${tom}"` : ''}>${num(n)}</b> ${n === 1 ? um : varios}</button>` : '');
+      const olho = `<span title="Soma por mês dos orçamentos enviados"><b>${esc(milhar(mensal(abertos)))}</b> em aberto</span>${olhoB('vencendo', vencendo.length, 'a vencer', 'a vencer', 'r')}${olhoB('vencidos', vencidos.length, 'vencido', 'vencidos', 'r')}${olhoB('rascunho', rascunhos.length, 'rascunho', 'rascunhos')}`;
+      const listaM = `<section class="d3m-d-folha d3m-d-cm-folha d3m-d-or" aria-label="Orçamentos"><div class="d3m-d-cab"><h3>${plural(todos.length, 'orçamento', 'orçamentos')}</h3>${seg}</div>
+        <div class="d3m-d-cm-rolo">${linhas || `<p class="d3m-d-cm-nada">${!todos.length ? (semPacote ? 'Nenhum orçamento ainda: falta um pacote ativo.' : 'Nenhum orçamento ainda. As propostas saem dos pacotes.') : termo ? 'Nenhum orçamento com esse texto.' : 'Nenhum orçamento neste filtro.'}</p>`}</div>
+        <div class="d3m-d-pk-olho"><small>De olho</small>${olho}</div></section>`;
+      // A proposta escolhida: os itens com o preço do dia, o desconto, o total e as ações.
+      const propM = () => {
+        if (v.roi && todos.length) return `<section class="d3m-d-folha d3m-d-cm-folha d3m-d-or-prop" aria-label="ROI na proposta"><div class="d3m-d-cab"><h3>ROI na proposta</h3><button type="button" class="d3m-d-elo" data-v2="roi" aria-expanded="true">voltar à proposta</button></div><div class="d3m-d-cm-rolo"><div class="d3m-d-cm-resto">${roiHtml(d)}</div></div></section>`;
+        if (!sel) return `<section class="d3m-d-folha d3m-d-cm-folha d3m-d-or-prop" aria-label="Proposta"><div class="d3m-d-cab"><h3>Proposta</h3></div><p class="d3m-d-cm-nada">${todos.length ? 'Escolha um orçamento na lista para ver a proposta.' : 'A proposta escolhida aparece aqui, com os itens e o total.'}</p></section>`;
+        const o = sel, id = esc(o.id), c = criado(o), [val, un] = porMes(o), t = o.totais || {};
+        const it = (o.itens || []).map((i) => `<div class="d3m-d-or-it"><span><b>${esc(i.nome)}</b><small>${num(i.quantidade)}× · ${i.tipo === 'recorrente' ? 'mensal' : 'avulso'}</small></span><b>${esc(reais((Number(i.preco) || 0) * (Number(i.quantidade) || 1)))}</b></div>`).join('');
+        return `<section class="d3m-d-folha d3m-d-cm-folha d3m-d-or-prop" aria-label="Proposta para ${esc(o.cliente_nome)}"><div class="d3m-d-cab"><h3>Proposta para ${esc(o.cliente_nome)}</h3><small>${esc(sit(o)[1].toLowerCase())}</small></div>
+          <div class="d3m-d-cm-rolo"><p class="d3m-d-or-res">${c ? `Criada em ${esc(porExtenso(c))}` : 'Criada'}${o.criado_por_nome ? ' por ' + esc(o.criado_por_nome) : ''}. Vale até ${data(o.validade)}${ehDia(o.validade) && o.validade < hoje ? ' (vencida)' : ''}.</p>
+            ${it || '<p class="d3m-d-cm-nada">Sem itens.</p>'}${o.desconto_percentual ? `<div class="d3m-d-or-it"><span><b>Desconto</b><small>${pc(o.desconto_percentual)}</small></span><b></b></div>` : ''}
+            <div class="d3m-d-or-tot"><span>${un ? un.replace(/^./, (x) => x.toUpperCase()) : 'Total'}${t.total_recorrente && t.total_avulso ? `<small>mais ${esc(reais(t.total_avulso))} avulso</small>` : ''}</span><b>${esc(val)}</b></div></div>
+          <div class="d3m-d-or-bts"><button type="button" class="d3m-d-or-bt k" data-vc="imprimir" data-id="${id}">Abrir como documento</button>${edita && !semPacote ? `<button type="button" class="d3m-d-or-bt" data-v2="duplicar" data-id="${id}">Duplicar</button>` : ''}
+            ${edita ? Object.entries(MUDAR).filter(([k]) => k !== o.status).map(([k, n]) => `<button type="button" class="d3m-d-or-bt v2-estado" data-v2="orc-status" data-id="${id}" data-status="${k}">${n}</button>`).join('') : ''}</div></section>`;
+      };
+      // O laranja: o que vence primeiro; sem ele, os rascunhos, o que está em aberto ou o primeiro orçamento.
+      const urgente = agora[0];
+      const laranja = urgente ? larM('d3m-d-cm-pesa', 'proposta sem resposta', semResp(urgente) != null ? plural(semResp(urgente), 'dia', 'dias') : '', `${semResp(urgente) != null ? 'sem resposta de ' : ''}${esc(urgente.cliente_nome)}`, `A proposta ${esc(prazo(urgente)[1])}. ${esc(valor(urgente))}.`,
+        `<button type="button" class="d3m-btn l" data-v2="abre-um" data-id="orc:${esc(urgente.id)}">Ver a proposta</button><button type="button" class="d3m-btn l s" data-vc="imprimir" data-id="${esc(urgente.id)}">Abrir o documento</button>`)
+        : rascunhos.length ? larM('d3m-d-cm-pesa', 'rascunho', num(rascunhos.length), `${rascunhos.length === 1 ? 'rascunho pronto' : 'rascunhos prontos'} para sair`, '', '<button type="button" class="d3m-btn l" data-v2="chip" data-id="rascunho">Ver os rascunhos</button>')
+          : abertos.length ? larM('d3m-d-cm-pesa', 'em aberto', mensal(abertos) ? milhar(mensal(abertos)) : num(abertos.length), mensal(abertos) ? 'por mês em aberto' : abertos.length === 1 ? 'orçamento em aberto' : 'orçamentos em aberto', 'Nada vence na semana.', '')
+            : !todos.length && semPacote ? larM('d3m-d-cm-pesa', 'orçamentos', '', 'Nenhum orçamento ainda: falta um pacote ativo', '', '<button type="button" class="d3m-btn l" data-vc="ir-pacotes">Ir para Pacotes</button>')
+              : larM('d3m-d-cm-pesa', 'orçamentos', '', todos.length ? 'Nenhum orçamento aberto agora' : 'Nenhum orçamento ainda', '', edita && !semPacote ? `<button type="button" class="d3m-btn l" data-vc="orcamento">${todos.length ? 'Novo orçamento' : 'Fazer o primeiro'}</button>` : '');
       const fechados = aprovados.length + recusados.length;
-      // Os últimos 6 meses, em R$/mês: enviados (tudo menos rascunho) pelo mês em que o orçamento foi criado e aprovados pelo
-      // mês da aprovação (aprovado_dia, gravado desde 14/11/2026; o de antes vem do atualizado_em do aceito, pelo servidor).
-      const mesAtual = hoje.slice(0, 7), meses6 = Array.from({ length: 6 }, (_, i) => C().somarMeses(mesAtual + '-01', i - 5).slice(0, 7));
-      const porMes = (l, dia = criado) => meses6.map((mm) => mensal(l.filter((o) => String(dia(o) || '').slice(0, 7) === mm)));
-      const serieEnv = porMes(todos.filter((o) => o.status !== 'rascunho')), serieApr = porMes(aprovados, (o) => o.aprovado_dia || criado(o));
-      const temSerie = serieEnv.some((n) => n > 0);
-      const aprovadoMes = `<section class="v2c-card d3c-aprov" aria-label="Aprovado por mês"><div class="v2c-card-topo"><h3>Aprovado por mês</h3><small class="d3c-leg2"><i></i>aprovado <i class="t"></i>enviado</small></div>
-        ${temSerie ? `<div class="d3c-aprov-g">${linhaD3(serieApr, { meta: serieEnv, largura: 300, altura: 96, rotulo: 'Aprovado e enviado por mês, em reais por mês' })}</div>` : '<div class="d3c-carga-g"><span>sem histórico ainda</span></div>'}
-        <div class="d3c-meses">${meses6.map((mm, i) => `<span class="d3c-mes${i === 5 ? ' ultimo' : ''}" title="${esc(nomeMes(mm) + ': aprovado ' + milhar(serieApr[i]) + ' · enviado ' + milhar(serieEnv[i]))}">${esc(MESES[Number(mm.slice(5)) - 1].slice(0, 3))}</span>`).join('')}</div></section>`;
-      const numeros = numerosD3([
-        { rotulo: 'Em aberto', valor: milhar(mensal(abertos)), serie: temSerie ? serieEnv : null, sub: `por mês · ${plural(abertos.length, 'enviado', 'enviados')}` },
-        { rotulo: 'Vencem em 7 dias', valor: num(vencendo.length), tom: vencendo.length ? 'r' : '', attrs: vencendo.length ? 'data-v2="chip" data-id="vencendo"' : '',
-          sub: vencendo.length ? `${esc(milhar(mensal(vencendo)))}/mês sem resposta` : vencidos.length ? `${num(vencidos.length)} já ${vencidos.length === 1 ? 'venceu' : 'venceram'}` : 'nenhum', subTom: vencendo.length || vencidos.length ? 'r' : '' },
-        { rotulo: 'Aprovados', valor: num(aprovados.length), sub: aprovados.length ? `+${esc(milhar(mensal(aprovados)))}/mês` : 'nenhum ainda', subTom: aprovados.length ? 'g' : '' },
-        { rotulo: 'Ticket médio', valor: abertos.length ? milhar(mensal(abertos) / abertos.length) : 'R$ 0', barra: fechados ? (aprovados.length / fechados) * 100 : null, sub: fechados ? `${num(aprovados.length)} de ${num(fechados)} fechados` : 'nada fechado' },
-      ]);
-      const cab = '<div class="d3c-cab d3c-orc" aria-hidden="true"><span>Cliente</span><span>Pacote</span><span class="d3c-orc-v">Por mês</span><span>Enviado</span><span>Validade</span></div>';
-      const corpoD3 = todos.length ? `${semPacote ? vazioV2('<b>Sem pacotes ativos.</b>', botao('Ir para Pacotes', 'data-vc="ir-pacotes"')) : ''}
-        ${filtroHtml({ aba: 'orcamentos', rotulo: 'Buscar cliente ou pacote', fichas: ['abertos', 'rascunho', 'aprovados', 'recusados'].map(ficha), extras: ['todos', 'vencendo', 'vencidos'].map(ficha) })}
-        <div class="v2c-grade d3c-grade orcamentos"><section class="v2c-card v2c-lista d3c-tabela" aria-label="Orçamentos"><div class="v2c-card-topo"><h3>${GRUPOS[v.chip.orcamentos][0]}</h3><small>${num(lista.length)}</small></div>${cab}
-            ${cabe.map(linhaO).join('') || `<p class="v2c-sub v2c-nada">${termo ? 'Nenhum orçamento com esse texto.' : 'Nenhum orçamento neste filtro.'}</p>`}
-            ${resto > 0 ? `<p class="v2c-sub v2c-card-pe">+ ${num(resto)} · ${elo('mostrar', 'data-v2="mostra" data-id="orcamentos"')}</p>` : ''}</section>
-          <div class="d3c-col">${pedeHtml(pede, 'pede-orcamentos')}${aprovadoMes}</div></div>`
-        : '';
-      // "ROI na proposta" fica no menu ⋯ do topo.
-      // Sem nenhum orçamento, os quatro números zerados não dizem nada: fica só a frase com a ação.
-      return `${acao}${todos.length ? numeros : ''}${corpoD3}
-        ${todos.length && v.roi ? `<div class="v2c-resto">${roiHtml(d)}</div>` : ''}`;
+      const minis = `<section class="d3m-cons" aria-label="Resumo"><div class="d3m-cons-cab"><b>No total</b><span>${plural(todos.length, 'orçamento', 'orçamentos')}</span></div>
+        <div class="d3m-d-or-minis"><span><b>${num(abertos.length)}</b><small>${abertos.length === 1 ? 'aberto' : 'abertos'}</small></span><span><b>${num(aprovados.length)} de ${num(fechados)}</b><small>${aprovados.length === 1 ? 'aprovado' : 'aprovados'}</small></span><span><b>${esc(milhar(mensal(aprovados)))}</b><small>ganho por mês</small></span></div></section>`;
+      const cabePede = v.mostra['pede-orcamentos'] ? pede : pede.slice(0, 2);
+      const pedeM = pede.length ? `<section class="d3m-cons d3m-d-pk-pede" aria-label="Pede ação"><div class="d3m-cons-cab"><b>Pede ação</b><span>${num(pede.length)}</span></div>
+        ${cabePede.map((y) => `<div class="d3m-d-pk-ped"><span><small class="${y.selo[0]}">${esc(y.selo[1])}</small><em>${y.texto}</em></span>${y.acao || ''}</div>`).join('')}${pede.length > cabePede.length ? `<button type="button" class="d3m-vlin" data-v2="mostra" data-id="pede-orcamentos"><span>+ ${num(pede.length - cabePede.length)} · mostrar</span></button>` : ''}</section>` : '';
+      const abrirM = `<nav class="d3m-cons d3m-d-cm-abrir" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div><button type="button" class="d3m-vlin" data-v2="ir" data-id="pacotes"><span><b>Pacotes</b> · preço, custo e margem</span>${ICM.seta}</button>
+        <button type="button" class="d3m-vlin" data-v2="ir" data-id="funil"><span><b>CRM e funil</b></span>${ICM.seta}</button></nav>`;
+      topoDaVez = { titulo: 'Orçamentos', sub: `propostas a partir dos pacotes · ${plural(abertos.length, 'aberta', 'abertas')}${mensal(abertos) ? ` · ${esc(milhar(mensal(abertos)))} por mês em aberto` : ''}`,
+        ferr: `${v.busca ? `<input type="search" class="d3m-d-cm-busca" data-vc-busca="orcamentos" placeholder="Buscar cliente ou pacote" aria-label="Buscar cliente ou pacote" value="${esc(st.filtro.orcamentos || '')}">` : ''}<button type="button" class="d3m-d-ico" data-v2="busca" aria-expanded="${Boolean(v.busca)}" aria-label="Buscar" title="Buscar">${ICM.busca}</button>`,
+        mais: todos.length ? [`<button type="button" role="menuitem" data-v2="roi" aria-expanded="${Boolean(v.roi)}">ROI na proposta</button>`] : [],
+        acao: edita && !semPacote && todos.length ? `<button type="button" class="d3m-d-vbtn p" data-vc="orcamento">${IC.mais}Novo orçamento</button>` : '' };
+      return `<div class="d3m-d-cm" data-tela="cm-orcamentos"><div class="d3m-d-cm-main d3m-d-or-main">${listaM}${propM()}</div>
+        <aside class="d3m-lado d3m-d-cm-lado" aria-label="Consulta">${laranja}${minis}${pedeM}${abrirM}</aside></div>`;
     }
     const n7 = vencendo.length, frase = abertos.length
       ? `Há ${mensal(abertos) ? `<b>${esc(milhar(mensal(abertos)))} por mês</b> em ${plural(abertos.length, 'orçamento aberto', 'orçamentos abertos')}` : `<b>${plural(abertos.length, 'orçamento aberto', 'orçamentos abertos')}</b>`}. ${n7 ? `<b>${n7 === 1 ? '1 vence' : num(n7) + ' vencem'} esta semana</b> sem resposta.` : vencidos.length ? `<b>${vencidos.length === 1 ? '1 está' : num(vencidos.length) + ' estão'} com a validade vencida</b>.` : 'Nenhum vence esta semana.'}`

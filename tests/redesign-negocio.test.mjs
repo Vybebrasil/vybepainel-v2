@@ -386,8 +386,8 @@ test('Recebimentos, Inadimplência e Orçamentos (quadro 20 e 00 Main, regra 4):
   assert.match(html, /<b>0<\/b> clientes[\s\S]*<b>0<\/b> faturas/);
   ctx.VybeComercial.abrir('orcamentos', { abas: ['pacotes', 'orcamentos'] }); await esperar();
   html = janela().innerHTML;
-  // Acabamento 15/11: vazio é uma frase e uma ação, no bloco laranja (sem os quatro números zerados).
-  assert.match(html, /Nenhum orçamento ainda: falta um pacote ativo\.<\/span><\/span><button type="button" class="d3-acao-btn" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
+  // Acabamento 15/11 e prancha V2-M-Orcamentos (16/11): vazio é uma frase e uma ação, no cartão laranja.
+  assert.match(html, /<span class="d3-acao-frase">Nenhum orçamento ainda: falta um pacote ativo<\/span>[\s\S]*class="d3m-btn l" data-vc="ir-pacotes">Ir para Pacotes<\/button>/);
   assert.equal((html.match(/Ir para Pacotes/g) || []).length, 1);
   assert.doesNotMatch(html.slice(html.indexOf('vc-abas')), /<h3>Orçamentos<\/h3>/, 'o título fica só no cabeçalho');
   assert.match(ler('vybe-mundo-comercial.js'), /'ir-pacotes': \(\) => abrir\('pacotes'/, 'o botão abre a aba Pacotes');
