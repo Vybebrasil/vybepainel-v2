@@ -6894,6 +6894,7 @@ body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:va
 .vfd-l-arte{background:var(--d3-tinta)}
 .vfd-l-prov{background:var(--d3-agente-veu);border:1px dashed var(--d3-agente)}
 .vfd-l-x{background:var(--d3-perigo-veu);border:1px solid var(--d3-perigo)}
+.vfd-l-atraso{background:var(--d3-cartao);box-shadow:inset 0 0 0 2px var(--d3-perigo)}
 .vfd-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .vfd-sel{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;border-radius:999px;background:var(--d3-cartao);font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
 .vfd-sel select{height:32px;max-width:220px;border:0;border-radius:999px;background:transparent;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
@@ -6940,13 +6941,24 @@ body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:va
 .vfd-x-marca::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .vfd-x-txt{font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .vfd-x .vfd-data{background:var(--d3-cartao);color:var(--d3-perigo)}
-/* O + do sem post: o quadro inteiro é o alvo do clique; o + fica no canto, como o + do dia no calendário. */
-.vfd-x-criar{position:absolute;inset:0;z-index:1;display:block;margin:0;padding:0;border:0;background:transparent;cursor:pointer}
-.vfd-x-criar i{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:var(--d3-perigo);transition:transform .15s ease}
+/* O quadro do X: tocar marca a data para o lote; o + no canto cadastra só ela (como o + do dia no calendário). */
+.vfd-x-marcar{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin:0;padding:8px 6px 26px;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer}
+.vfd-x-marcar:focus-visible{outline:2px solid var(--d3-perigo);outline-offset:-2px}
+.vfd-x-data{max-width:100%;padding:0 4px;font-size:var(--d3-fs-mini);line-height:1.2;text-align:center;color:var(--d3-texto2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vfd-x-criar{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:50%;background:var(--d3-perigo);cursor:pointer;transition:transform .15s ease}
 .vfd-x-criar i::before,.vfd-x-criar i::after{content:"";position:absolute;left:50%;top:50%;width:12px;height:2px;border-radius:1px;background:var(--d3-cartao);transform:translate(-50%,-50%)}
 .vfd-x-criar i::after{transform:translate(-50%,-50%) rotate(90deg)}
-.vfd-x:hover .vfd-x-criar i,.vfd-x-criar:focus-visible i{transform:scale(1.12)}
-.vfd-x-criar:focus-visible{outline:2px solid var(--d3-perigo);outline-offset:-2px}
+.vfd-x-criar:hover,.vfd-x-criar:focus-visible{transform:scale(1.12)}
+.vfd-x-criar:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+/* Data livre (o lote passou dos X) e data marcada para o lote. */
+.vfd-livre{background:var(--d3-trilho);color:var(--d3-texto2)}
+.vfd-livre .vfd-x-marca{display:none}
+.vfd-marcado{background:var(--d3-tinta);color:var(--d3-cartao)}
+.vfd-marcado .vfd-x-marca::before,.vfd-marcado .vfd-x-marca::after{background:var(--d3-cartao)}
+.vfd-marcado .vfd-x-data{color:var(--d3-cartao)}
+.vfd-marcado .vfd-x-marca{display:block;width:30%}
+.vfd-marcado .vfd-x-marca::before{width:50%;height:4px;left:30%;top:60%;transform:translate(-50%,-50%) rotate(45deg)}
+.vfd-marcado .vfd-x-marca::after{width:100%;left:60%;top:45%;transform:translate(-50%,-50%) rotate(-55deg)}
 .vfd-sem-img::after{content:"sem imagem";position:absolute;inset:0;display:grid;place-items:center;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
 .vfd-passado{filter:saturate(.85)}
 .vfd-vazio{grid-column:1 / -1;margin:0;padding:14px;text-align:center;color:var(--d3-apagado);background:var(--d3-trilho)}
@@ -6987,6 +6999,7 @@ body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:va
 .vfd-cliente .vfd-grade{gap:2px;margin:0 -14px;border-radius:0}
 /* Ações do cliente (Ajustar feed, + Novo post) e o painel de ajuste, como os botões do perfil do Instagram. */
 .vfd-acoes{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+.vfd-acao-a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
 .vfd-acao{height:32px;padding:0 12px;border:0;border-radius:8px;background:var(--d3-trilho);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
 .vfd-acao:hover{background:var(--d3-linha)}
 .vfd-acao[aria-expanded="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
@@ -7000,6 +7013,78 @@ body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:va
 .vfd-ajuste-op .vfd-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
 .vfd-ajuste-nota{margin:0;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
 .vfd-ajuste-pe{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+/* A etapa da peça (o status do calendário) e o prazo de ouro vencido. */
+.vfd-etapa{position:absolute;left:4px;top:4px;max-width:calc(100% - 30px);padding:1px 6px;border-radius:999px;background:var(--d3-cartao);font:600 var(--d3-fs-mini)/1.5 var(--vv-texto,Inter),sans-serif;color:var(--d3-texto2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.vfd-atrasada{box-shadow:inset 0 0 0 3px var(--d3-perigo)}
+.vfd-atrasada .vfd-etapa{background:var(--d3-perigo);color:var(--d3-cartao)}
+.vfd-trocada{box-shadow:inset 0 0 0 3px var(--d3-acao)}
+/* Arrastar no celular: a cópia da peça segue o dedo. */
+.vfd-fantasma{position:fixed;z-index:9999;pointer-events:none;opacity:.85;border-radius:6px;transform:scale(1.04)}
+/* Período: próximas semanas ou o mês, com as setas. */
+.vfd-vista{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.vfd-mes{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 4px;border-radius:999px;background:var(--d3-cartao)}
+.vfd-mes b{min-width:90px;text-align:center;font:700 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;text-transform:capitalize}
+.vfd-mes-seta{width:30px;height:30px;border:0;border-radius:50%;background:var(--d3-trilho);font:700 var(--d3-fs-destaque)/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
+.vfd-mes-seta:disabled{opacity:.35;cursor:default}
+.vfd-qtd{display:inline-flex;align-items:center;gap:10px}
+.vfd-qtd b{min-width:28px;text-align:center;font:700 var(--d3-fs-destaque) var(--vv-titulo,Inter),sans-serif}
+/* A barra das datas marcadas, presa embaixo do cartão do cliente enquanto se rola a grade. */
+.vfd-barra{position:sticky;bottom:8px;z-index:3;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:0 0 0 1px var(--d3-borda),0 8px 24px var(--d3-borda)}
+.vfd-barra-tit{margin:0;font-size:var(--d3-fs-apoio);color:var(--d3-texto2)}
+.vfd-barra-tit b{color:var(--d3-tinta)}
+.vfd-trocas,.vfd-passos{margin:0;padding-left:18px;font-size:var(--d3-fs-apoio);color:var(--d3-texto2)}
+.vfd-trocas li,.vfd-passos li{margin:2px 0}
+.vfd-favorito{display:inline-flex;align-items:center;height:28px;margin:4px 0;padding:0 12px;border-radius:8px;background:var(--d3-acao);font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao);text-decoration:none;cursor:grab}
+/* Um cliente por vez (Paulo, 15/11/2026: "1 por vez, algo foda assim", coverflow de vidro de referência): o cliente
+   da frente em pé, os vizinhos girando para trás em perspectiva, a doca embaixo com as setas. */
+.vfd-carrossel{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 0 8px;overflow:hidden;border-radius:var(--d3-r-cartao);background:radial-gradient(120% 70% at 50% 0%,var(--d3-cartao),transparent 70%)}
+.vfd-palco{position:relative;width:min(460px,100%);perspective:1400px;perspective-origin:50% 30%}
+.vfd-slide{display:block;width:100%;box-sizing:border-box}
+.vfd-frente{position:relative;z-index:10}
+.vfd-frente > .vfd-cliente{box-shadow:0 30px 60px -24px color-mix(in srgb,var(--d3-tinta) 35%,transparent),0 0 0 1px var(--d3-borda)}
+.vfd-vizinho{position:absolute;top:24px;left:0;z-index:calc(10 - var(--ad));margin:0;padding:0;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;
+  transform:translateX(calc(var(--d) * 58%)) translateZ(calc(var(--ad) * -180px)) rotateY(calc(var(--d) * -32deg)) scale(calc(1 - var(--ad) * .06));
+  transform-origin:50% 0;opacity:calc(1 - var(--ad) * .28);filter:saturate(calc(1 - var(--ad) * .25));transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
+.vfd-vizinho:hover,.vfd-vizinho:focus-visible{opacity:1;transform:translateX(calc(var(--d) * 58%)) translateZ(calc(var(--ad) * -150px)) rotateY(calc(var(--d) * -26deg)) scale(calc(1 - var(--ad) * .05))}
+.vfd-vizinho:focus-visible{outline:2px solid var(--d3-acao);outline-offset:4px;border-radius:var(--d3-r-cartao)}
+.vfd-resumo{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:0 24px 48px -24px color-mix(in srgb,var(--d3-tinta) 40%,transparent),0 0 0 1px var(--d3-borda)}
+.vfd-resumo-topo{display:flex;align-items:center;gap:12px;min-width:0}
+.vfd-resumo .vfd-ig-foto{width:56px;height:56px}
+.vfd-resumo-nome{display:flex;flex-direction:column;min-width:0}
+.vfd-resumo-nome b{font:700 var(--d3-fs-destaque) var(--vv-titulo,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vfd-resumo-nome small{font-size:var(--d3-fs-apoio);color:var(--d3-apagado);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vfd-resumo-aviso{align-self:flex-start;padding:2px 8px;border-radius:999px;background:var(--d3-pronto-veu);font:600 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;color:var(--d3-pronto)}
+.vfd-resumo-aviso.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+.vfd-resumo-grade{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin:0 -14px -14px;border-radius:0 0 var(--d3-r-cartao) var(--d3-r-cartao);overflow:hidden}
+.vfd-mini{display:block;aspect-ratio:4/5;background:var(--d3-linha);overflow:hidden}
+.vfd-mini img{display:block;width:100%;height:100%;object-fit:cover}
+.vfd-mini-x{background:var(--d3-perigo-veu);box-shadow:inset 0 0 0 1px var(--d3-perigo)}
+.vfd-mini.vfd-prov-reels{background:var(--d3-info-veu)}
+.vfd-mini.vfd-prov-carrossel{background:var(--d3-pronto-veu)}
+.vfd-mini.vfd-prov-card,.vfd-mini.vfd-prov-foto{background:var(--d3-ajuste-veu)}
+.vfd-mini.vfd-prov-post,.vfd-mini.vfd-prov-outro{background:var(--d3-agente-veu)}
+/* A entrada do cliente da frente, vindo do lado de onde veio. */
+@keyframes vfd-entra-dir{from{opacity:.35;transform:translateX(38%) rotateY(-24deg) scale(.94)}to{opacity:1;transform:none}}
+@keyframes vfd-entra-esq{from{opacity:.35;transform:translateX(-38%) rotateY(24deg) scale(.94)}to{opacity:1;transform:none}}
+.vfd-entra-dir{animation:vfd-entra-dir .5s cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 0}
+.vfd-entra-esq{animation:vfd-entra-esq .5s cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 0}
+@media (prefers-reduced-motion:reduce){.vfd-entra-dir,.vfd-entra-esq{animation:none}.vfd-vizinho{transition:none}}
+/* A doca de vidro: setas, o nome, a posição e os pontos. */
+.vfd-doca{position:sticky;bottom:10px;z-index:20;display:flex;align-items:center;gap:10px;padding:6px;border-radius:999px;background:color-mix(in srgb,var(--d3-cartao) 82%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px -12px color-mix(in srgb,var(--d3-tinta) 40%,transparent),0 0 0 1px var(--d3-borda)}
+.vfd-doca-seta{width:40px;height:40px;border:0;border-radius:50%;background:var(--d3-tinta);font:700 var(--d3-fs-titulo)/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao);cursor:pointer;transition:transform .15s ease}
+.vfd-doca-seta:hover{transform:scale(1.08)}
+.vfd-doca-seta:disabled{opacity:.25;cursor:default;transform:none}
+.vfd-doca-meio{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;max-width:min(320px,60vw);padding:0 6px;text-align:center}
+.vfd-doca-meio b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif}
+.vfd-doca-meio small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
+.vfd-pontos{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;max-width:100%}
+.vfd-pontos i{width:5px;height:5px;border-radius:50%;background:var(--d3-borda)}
+.vfd-pontos i.on{width:14px;border-radius:3px;background:var(--d3-tinta)}
+@media (max-width:600px){
+  .vfd-palco{width:calc(100% - 40px)}
+  .vfd-vizinho{transform:translateX(calc(var(--d) * 70%)) translateZ(calc(var(--ad) * -200px)) rotateY(calc(var(--d) * -38deg)) scale(calc(1 - var(--ad) * .08))}
+  .vfd-vizinho[style*="--ad:2"],.vfd-vizinho[style*="--ad:3"]{display:none}
+}
 
 /* ===== padrao-v2/ficha.css ===== */
 /* PADRÃO V2 · FICHA (12/11/2026): Gestão de clientes, Ficha do cliente e Reuniões iguais aos quadros DEPOIS do

@@ -1947,7 +1947,17 @@ window.fcPreviaDoCriar = function(board) {
     if (inicio.titulo) state.itens[0].titulo = inicio.titulo;
     if (['atracao', 'educacao', 'conversao'].includes(inicio.objetivo)) state.objetivo = inicio.objetivo;
     if (inicio.brief)  state.itens[0].brief  = inicio.brief;
-    if (inicio.veic || inicio.titulo || inicio.brief) fcEspelharPrimeiro();
+    // O Feed do Painel manda o formato que falta e, no "Preencher o mês", uma
+    // lista de peças do mesmo formato (Paulo, 15/11/2026): cada uma vira um
+    // cartão, com título, dia e prazo já preenchidos, e o resto segue a regra.
+    if (inicio.format && fcListaCatalogo('format').includes(inicio.format)) state.format = inicio.format;
+    if (Array.isArray(inicio.itens) && inicio.itens.length) {
+      state.itens = inicio.itens.slice(0, 20).map((x) => {
+        const veic = /^\d{4}-\d{2}-\d{2}$/.test(String(x?.veic || '')) ? x.veic : '';
+        return { titulo: String(x?.titulo || '').slice(0, 140), veic, prazo: x?.prazo || (veic ? cadastroPrazoInterno(veic) : ''), brief: String(x?.brief || '').slice(0, 2000) };
+      });
+    }
+    if (inicio.veic || inicio.titulo || inicio.brief || inicio.itens) fcEspelharPrimeiro();
 
     // Exposta porque a troca de quadro precisa redesenhar grupo, status e a
     // terceira coluna — e ela mora dentro desta função.

@@ -199,7 +199,7 @@ const VYBES_CEREBRO_BASE = [
   {
     nome: 'VÖA Sportswear',
     apelidos: ['voa', 'voa sportswear', 'vöa', 'vöa sportswear'],
-    instagram: '@use.voa',
+    instagram: '@voasportswear',
     seguidores: '2.570 seguidores · Antonov Center, Irecê-BA',
     segmento: 'Moda Fitness Autoral & Activewear',
     tom: 'Direto, confiante e próximo ("Criada para acompanhar seu ritmo"). Fala de mulher para mulher sobre caimento real, cós que não enrola, zero transparência e compressão.',
