@@ -303,24 +303,48 @@
 
   // ── aba Onboarding ─────────────────────────────────────────────────────────
   const SECOES = [['negocio', 'Sobre o negócio'], ['marca', 'A marca']];
+  // Prancha V2-M-Cliente-Onboarding (16/11/2026): o questionário de entrada numa folha (as partes, a marca de respondida,
+  // a pergunta e a resposta); no vidro, o cartão laranja com quantas faltam, para onde vai cada coisa, a conta por parte
+  // e os atalhos. "Preencher agora" e "Mandar o link" são os mesmos de antes (abrirQuestionario e onboardingLink).
+  const SECOES_DA_ABA = [...SECOES, ['swot', 'Análise SWOT']];
+  const soFaltamNaFicha = {}; // clienteId → a folha mostra só as perguntas sem resposta
+  window.alternarFaltasDoQuestionario = function alternarFaltasDoQuestionario(clienteId) { soFaltamNaFicha[String(clienteId)] = !soFaltamNaFicha[String(clienteId)]; repintar(String(clienteId)); };
   function onboardingHtml(nome) {
     const id = String(idDoCliente(nome) || '');
-    if (!id) return '<div class="client-master-detail-card"><p>Crie a ficha do cliente para fazer o onboarding.</p></div>';
+    if (!id) return soUmaFolha('onboarding', 'falta', 'Este cliente ainda não tem ficha própria', 'Crie a ficha do cliente para fazer o onboarding.');
     const e = dados[id];
-    if (!e || e.carregando) { if (!e) carregar(id); return '<div class="client-master-detail-card"><div class="auto-carregando">Lendo o onboarding…</div></div>'; }
-    if (e.erro) return `<div class="client-master-detail-card"><p class="ciclo-erro">${esc(e.erro)}</p></div>`;
+    if (!e || e.carregando) { if (!e) carregar(id); return soUmaFolha('onboarding', 'relogio', 'Lendo o onboarding…'); }
+    if (e.erro) return soUmaFolha('onboarding', 'falta', esc(e.erro));
     const { questoes = [], onboarding, pode } = e.d;
-    const resp = onboarding?.respostas || {};
-    const preenchidas = questoes.filter((q) => resp[q.chave]).length;
-    const bloco = (secao) => questoes.filter((q) => q.secao === secao).map((q) => `<div class="${resp[q.chave] ? '' : 'falta'}"><dt>${esc(q.rotulo)}</dt><dd>${resp[q.chave] ? esc(resp[q.chave]).replace(/\n/g, '<br>') : '<span class="cli-vazio">—</span>'}</dd></div>`).join('');
-    const swot = questoes.filter((q) => q.secao === 'swot').map((q) => `<div class="onb-swot-q onb-${q.chave}"><b>${esc(q.rotulo)}</b><p>${resp[q.chave] ? esc(resp[q.chave]).replace(/\n/g, '<br>') : '<span class="cli-vazio">—</span>'}</p></div>`).join('');
-    return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>Onboarding de ${esc(nome)}</h3>
-        ${pode ? `<span class="onb-botoes"><button type="button" class="vb-botao principal" onclick="abrirQuestionario('${esc(id)}','${asp(nome)}')">Preencher com o cliente agora</button>
-          <button type="button" class="vb-botao" onclick="onboardingLink('${esc(id)}')">Link para o cliente</button></span>` : ''}</div>
-      <p>${preenchidas} de ${questoes.length} perguntas respondidas${resp._atualizado_em ? ` · última vez em ${dataBr(resp._atualizado_em)}${resp._por === 'reuniao' ? ', na reunião' : ', pelo cliente'}` : ''}. O cadastro (empresa, responsável, canais) vai para a aba Cadastro; os acessos, para o cofre de Acessos.</p>
-      ${SECOES.map(([s, t]) => `<section class="cad-leitura"><h4>${t}</h4><dl>${bloco(s)}</dl></section>`).join('')}
-      <section class="cad-leitura"><h4>Análise SWOT</h4><div class="onb-swot">${swot}</div></section>
-      <p class="onb-dica">A esteira (boas-vindas, contrato, acessos, kickoff, primeiro mês) e a reunião de kickoff ficam em Clientes → Onboarding, na lateral.</p></div>`;
+    const resp = onboarding?.respostas || {}, n = asp(nome);
+    const feitas = questoes.filter((q) => resp[q.chave]).length, faltam = questoes.length - feitas;
+    const soFaltam = Boolean(soFaltamNaFicha[id]) && faltam > 0 && feitas > 0;
+    const quando = resp._atualizado_em ? `${diaMes(String(resp._atualizado_em).slice(0, 10))}${resp._por === 'reuniao' ? ', na reunião' : ', pelo cliente'}` : '';
+    const partes = SECOES_DA_ABA.map(([s, titulo]) => { const todas = questoes.filter((q) => q.secao === s);
+      return { s, titulo, todas, ok: todas.filter((q) => resp[q.chave]).length }; }).filter((p) => p.todas.length);
+    const linha = (q) => { const v = resp[q.chave];
+      return `<div class="fv2-tb-lin fv2-onb-lin${v ? ' ok' : ' falta'}"><i class="fv2-onb-marca" aria-hidden="true">${v ? FV2_ICO.ok : ''}</i><span class="fv2-onb-q">${esc(q.rotulo)}</span><span class="fv2-onb-r">${v ? esc(v).replace(/\n/g, '<br>') : 'sem resposta'}</span></div>`; };
+    const corpo = partes.map((p) => { const mostra = soFaltam ? p.todas.filter((q) => !resp[q.chave]) : p.todas;
+      return mostra.length ? `<div class="fv2-onb-sec"><b>${p.titulo}</b><span>${p.ok} de ${p.todas.length}</span></div>${mostra.map(linha).join('')}` : ''; }).join('');
+    const folha = `<section class="fv2-folha fv2-cheia fv2-onb" aria-label="Questionário de entrada"><div class="cv2-cab"><h3>Questionário de entrada <span>· ${feitas} de ${questoes.length} respondidas</span></h3>${
+        quando ? `<span class="fv2-cab-nota">última vez em ${quando}</span>` : ''}${faltam && feitas ? `<button type="button" class="fv2-cab-acao" aria-pressed="${soFaltam}" onclick="alternarFaltasDoQuestionario('${esc(id)}')">${soFaltam ? `ver as ${questoes.length}` : `só as ${faltam} que faltam`}</button>` : ''}</div>
+      ${questoes.length ? `<div class="fv2-tb fv2-linhas">${corpo}</div>` : fv2VazioHtml('lapis', 'O questionário ainda não tem perguntas', 'As perguntas chegam do servidor quando o onboarding estiver ligado.')}</section>`;
+
+    const preencher = pode ? `<button type="button" class="d3m-btn l" onclick="abrirQuestionario('${esc(id)}','${n}')">Preencher agora</button><button type="button" class="d3m-btn l s" onclick="onboardingLink('${esc(id)}')">Mandar o link</button>` : '';
+    const alto = !questoes.length ? ''
+      : faltam ? fv2LaranjaHtml({ rotulo: !feitas ? 'questionário em branco' : faltam > feitas ? 'questionário pela metade' : 'faltam poucas', n: `${feitas} / ${questoes.length}`, titulo: 'perguntas respondidas',
+        apoio: `${quando ? `A última vez foi em ${quando}. ` : ''}${faltam === 1 ? 'Falta 1.' : `Faltam ${faltam}.`}`, botoes: preencher })
+      : fv2CalmoHtml('Questionário completo.', quando ? `Respondido pela última vez em ${quando}.` : 'Todas as perguntas têm resposta.',
+        pode ? `<button type="button" class="d3v-btn vidro s" onclick="abrirQuestionario('${esc(id)}','${n}')">Rever as respostas</button>` : '');
+    const f = typeof cadastroDoCliente === 'function' ? cadastroDoCliente(nome) : null;
+    const completo = f && typeof completudeDoCadastro === 'function' ? completudeDoCadastro(f) : null;
+    const abrir = fv2VlinHtml('Cadastro', completo ? `${completo.feitos} de ${completo.total} campos` : 'empresa, responsável e canais', "trocarAbaDaFicha('cadastro')")
+      + fv2VlinHtml('Acessos', 'links, senhas e painel', "trocarAbaDaFicha('geral')")
+      + (window.VybeCarteira?.abrir ? fv2VlinHtml('Esteira de entrada', 'etapas e kickoff', "window.VybeCarteira.abrir('onboarding', { abas: ['onboarding'] })") : '');
+    const lado = alto + fv2ConsHtml('Para onde vai cada coisa', '', '<p class="fv2-nota-lado">As respostas ficam aqui e alimentam o cérebro do cliente. Empresa, responsável e canais vão para o Cadastro; os acessos, para o cofre.</p>')
+      + (partes.length ? fv2ConsHtml('Por parte', plural(questoes.length, 'pergunta', 'perguntas'), fv2BarrasHtml(partes.map((p) => ({ rotulo: p.titulo.replace(/^Sobre /, '').replace(/^./, (l) => l.toUpperCase()), n: p.ok, de: p.todas.length, lado: `${p.ok} / ${p.todas.length}`, tom: 'g' })))) : '')
+      + fv2ConsHtml('Abrir', '', abrir);
+    return fv2DuasHtml('onboarding', folha, lado);
   }
   // Questionário dentro do Vybe OS (Paulo, 09/11/2026: "todo questionário e tudo do onboard não devia já ser feito dentro
   // do Vybe OS?"): na reunião, preenche aqui mesmo, sem abrir outra aba. O link continua para o cliente responder sozinho.

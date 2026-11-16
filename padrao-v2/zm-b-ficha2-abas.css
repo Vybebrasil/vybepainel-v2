@@ -149,6 +149,17 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba
 #painel-clientes .fv2-duas > .fv2-lado div.d3m-vlin:hover{background:var(--d3-fume-veu)}
 #painel-clientes .fv2-lado a.d3m-vlin{text-decoration:none}
 
+/* 5 · Aba Onboarding: o questionário por parte, com a marca de respondida, a pergunta e a resposta. */
+#painel-clientes .fv2-onb-sec{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);background:var(--d3-veu);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-onb-sec > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-onb-lin{align-items:flex-start;min-height:40px;padding-top:10px;padding-bottom:10px}
+#painel-clientes .fv2-onb-marca{flex:none;display:grid;place-items:center;width:18px;height:18px;box-sizing:border-box;border:1.5px solid var(--d3-meta);border-radius:50%}
+#painel-clientes .fv2-onb-lin.ok > .fv2-onb-marca{border-color:var(--d3-pronto);background:var(--d3-pronto);color:var(--d3-contra,var(--d3-escuro-texto))}
+#painel-clientes .fv2-onb-marca > svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-onb-q{flex:0 0 42%;min-width:0;color:var(--d3-tinta)}
+#painel-clientes .fv2-onb-r{flex:1 1 0;min-width:0;color:var(--d3-tinta);overflow-wrap:anywhere}
+#painel-clientes .fv2-onb-lin.falta > .fv2-onb-r{color:var(--d3-rotulo)}
+
 /* 9 · Telas menores: uma coluna (a ficha rola por dentro da janela) e a linha da lista em dois andares. */
 @media (max-width:1180px){
   #painel-clientes #client-master-detail > .fv2-aba{height:auto}
