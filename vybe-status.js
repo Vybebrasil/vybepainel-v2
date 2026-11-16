@@ -258,7 +258,8 @@ async function submitHandoff() {
     if (flow.manual) {
       showToast('Passagem de bastão registrada no Vybe OS', 'ok');
       await atualizarGavetaPreservandoRascunhos(flow.item, drawer);
-    } else await commitStatusChange(flow.item, flow.option);
+    } else if (flow.bastao) await seguirDepoisDoBastao(flow.item, flow.option);
+    else await commitStatusChange(flow.item, flow.option);
   } catch (e) {
     showToast(salvo ? 'Passagem salva. Não foi possível atualizar os detalhes; reabra a atividade.' : `Não foi possível registrar a passagem: ${e.message}`, salvo ? 'info' : 'err', 7000);
   } finally { handoffEnviando = false; if (botao) botao.disabled = false; }

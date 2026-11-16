@@ -348,4 +348,24 @@ function passoDoBastao(dir) {
   document.getElementById('bastao-seguir').textContent = ir === secoes.length - 1 ? BASTAO_FIM : 'Continuar';
   secoes[ir].querySelector('textarea,input')?.focus();
 }
-function openManualHandoff(itemId) { const item=findOperationalItem(itemId); if (item) openHandoffGate(item,null); }
+// A passagem de bastão leva a peça à etapa seguinte (Paulo, 16/11/2026: "de EM ANDAMENTO precisa ir PARA APROVAÇÃO...
+// e de PARA APROVAÇÃO para PARA AGENDAR"). Antes o botão "Passar bastão" só registrava o comentário e a peça ficava
+// onde estava. O mapa é por chave do rótulo (sem acento, minúsculas, '_'), a mesma de chaveDeStatus, para valer com
+// "Para Aprovação" ou "Para aprovação". Status fora do mapa (ou destino que o quadro não tem) seguem como antes:
+// só o registro, sem trocar o status.
+const BASTAO_PROXIMA_ETAPA = Object.freeze({ em_andamento: 'para_aprovacao', para_aprovacao: 'para_agendar' });
+const chaveDoBastao = (rotulo) => String(rotulo || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+function destinoDoBastao(item) {
+  const alvo = BASTAO_PROXIMA_ETAPA[chaveDoBastao(item?.status)];
+  if (!alvo) return null;
+  const opcoes = typeof operationalStatusOptions === 'function' ? (operationalStatusOptions(item) || []) : [];
+  return opcoes.find((o) => o && o.ativa !== false && chaveDoBastao(o.label) === alvo) || null;
+}
+// Depois do registro, a troca passa pelos portões de sempre: Para aprovação pela conferência visual (updateFocusStatus);
+// sair de Para aprovação é aprovar, e aprovar abre o checklist de qualidade, como o botão Aprovar da gaveta.
+function seguirDepoisDoBastao(item, option) {
+  if (chaveDoBastao(item?.status) === 'para_aprovacao' && typeof openQualityGate === 'function') return openQualityGate(item, option);
+  return updateFocusStatus(String(item.id), option.label);
+}
+function openManualHandoff(itemId) { const item=findOperationalItem(itemId); if (!item) return; const destino=destinoDoBastao(item); openHandoffGate(item,destino); if (destino && pendingWorkflowChange) pendingWorkflowChange.bastao=true; }
