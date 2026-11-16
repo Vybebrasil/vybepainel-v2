@@ -14464,6 +14464,276 @@ svg.d3m-d-anel > .fio{fill:none;stroke:currentColor;stroke-width:4;stroke-lineca
 }
 .d3m-d-selo.i{background:var(--d3-info)}
 
+/* ===== padrao-v2/zm-d-carteira.css ===== */
+/* ===================================================================================================================
+   CONTRATOS E CHURN NAS PRANCHAS V2-M-Contratos e V2-M-Churn (16/11/2026). A janela da Carteira (#vv-carteira) vira vidro
+   fumê só nessas duas telas (classe .d3m-d-m, posta por vybe-mundo-carteira.js); Saúde e Onboarding seguem como estão.
+   Contratos: uma folha com a lista em três grupos (Agora, Depois e Falta), a régua de doze meses com o mês da renovação
+   e o "De olho" no pé; ao lado, o laranja do Vorcaro, os clientes ativos em doze meses e o "Abrir". Churn: três números
+   em folha, as saídas por mês ao lado do porquê, "Quem saiu" em colunas e, ao lado, o laranja, quem está em risco e a
+   retenção por ano de entrada. As peças .d3m-d-* vêm de zm-d-0-pecas.css e as .d3m-* de z-direcao.css. Só tokens --d3-*.
+   =================================================================================================================== */
+body.mundo .vc-camada > #vv-carteira.vc-janela.d3m-d-m{display:flex;flex-direction:column;gap:16px;padding:16px;overflow:hidden;border:0;border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#vv-carteira.d3m-d-m > .vc-corpo.d3m-d-m-corpo{flex:1 1 0;min-height:0;margin:0;padding:0;overflow:hidden}
+#vv-carteira.d3m-d-m .d3m-d-tit h2{margin:0;font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-fume-texto)}
+#vv-carteira.d3m-d-m .d3m-d-cab > h3{margin:0}
+#vv-carteira.d3m-d-m :is(button,summary,select,input,textarea):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px;box-shadow:none}
+#vv-carteira.d3m-d-m .d3m-d-folha :is(button,select,input,textarea):focus-visible{outline-color:var(--d3-acao)}
+/* O aviso de que gravou, o "Como funciona", o erro e o carregando, no vidro. */
+#vv-carteira.d3m-d-m > .vc-aviso{flex:none;margin:0;padding:8px 12px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-carteira.d3m-d-m > .vc-aviso:empty{display:none}
+#vv-carteira.d3m-d-m > .vc-ajuda{flex:none;max-height:30%;margin:0;padding:10px 12px;overflow-y:auto;scrollbar-width:thin;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.45}
+#vv-carteira.d3m-d-m > .vc-ajuda > b{display:block;margin-bottom:2px;font-weight:600}
+#vv-carteira.d3m-d-m > .vc-ajuda > p{margin:0;color:var(--d3-fume-apagado);font-size:var(--d3-fs-apoio)}
+#vv-carteira.d3m-d-m .vc-erro{margin:0 0 12px;padding:8px 12px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-perigo-vidro);font-size:var(--d3-fs-texto)}
+#vv-carteira.d3m-d-m .vc-carregando{margin:0;padding:16px;border-radius:16px;background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+#vv-carteira.d3m-d-m > .d3m-d-ct-fin{flex:none;padding:12px 16px}
+
+/* Topo: a busca abre ao lado da lupa. */
+.d3m-d-ct-topo .d3m-d-ct-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.d3m-d-ct-topo .d3m-d-ct-busca::placeholder{color:var(--d3-fume-apagado)}
+.d3m-d-ct-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+
+/* A tela: a coluna principal e a coluna de consulta de 316. */
+.d3m-d-ct{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-d-ct-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-d-ct-lado{min-height:0}
+.d3m-d-ct-pesa{flex:none;min-height:252px}
+.d3m-d-ct-lado > .d3m-cons{flex:none}
+.d3m-d-ct-lado .d3m-vlin > span:first-of-type{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--d3-fume-apagado)}
+.d3m-d-ct-lado .d3m-vlin > span:first-of-type > b{font-weight:600;color:var(--d3-fume-texto)}
+.d3m-d-ct-lado .d3m-vlin > b.d3m-vn{flex:none;font-weight:600;color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+.d3m-d-ct-lado .d3m-vlin > svg{flex:none;width:14px;height:14px;stroke:var(--d3-fume-apagado)}
+.d3m-d-ct-folha{flex:1 1 0;min-height:0}
+.d3m-d-ct-folha.so{height:100%}
+.d3m-d-ct-folha > .d3m-d-cab{height:44px}
+#vv-carteira.d3m-d-m .d3m-d-cab > h3 > small{font:400 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-pk-seg > button > b.a{color:var(--d3-ambar)}
+.d3m-d-ct-rolo{flex:1 1 0;min-height:0;margin:0;padding:0;list-style:none;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-ct-leitor{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* A linha do contrato: quando, quem, quanto por mês, desde quando, a régua de doze meses e a data da renovação. */
+.d3m-d-ct-lin{appearance:none;display:grid;grid-template-columns:60px 28px minmax(0,1fr) 96px 72px 228px 96px;align-items:center;gap:10px;width:100%;height:38px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+.d3m-d-ct-lin.sem-valor{grid-template-columns:60px 28px minmax(0,1fr) 72px 228px 96px}
+button.d3m-d-ct-lin{cursor:pointer}
+button.d3m-d-ct-lin:hover{background:var(--d3-veu)}
+.d3m-d-ct-cabl{flex:none;height:28px;border-top:0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-ct-g{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-d-ct-g.agora{color:var(--d3-perigo)}
+.d3m-d-ct-g.falta{color:var(--d3-ambar)}
+.d3m-d-ct-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal;letter-spacing:.02em}
+.d3m-d-ct-av.c0{background:var(--d3-mod-operacao)}
+.d3m-d-ct-av.c1{background:var(--d3-agente)}
+.d3m-d-ct-av.c2{background:var(--d3-mod-time)}
+.d3m-d-ct-av.c3{background:var(--d3-mod-vybe)}
+.d3m-d-ct-av.c4{background:var(--d3-info)}
+.d3m-d-ct-n{min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ct-v{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+b.d3m-d-ct-v{font-weight:500}
+.d3m-d-ct-d{font-size:var(--d3-fs-apoio);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-ct-lin .q{color:var(--d3-rotulo)}
+.d3m-d-ct-regua{display:inline-flex;gap:3px;width:228px}
+.d3m-d-ct-regua > i{flex:none;display:grid;place-items:center;width:16px;height:18px;border-radius:4px;background:var(--d3-veu);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
+.d3m-d-ct-regua > i.on{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto))}
+.d3m-d-ct-regua > i.on.r{background:var(--d3-perigo);color:var(--d3-escuro-texto)}
+.d3m-d-ct-r{text-align:right;font-size:var(--d3-fs-apoio);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-d-ct-r.a{font-weight:500;color:var(--d3-ambar)}
+.d3m-d-ct-r.r{font-weight:500;color:var(--d3-perigo)}
+.d3m-d-ct-r.k{font-weight:500}
+.d3m-d-ct-li{margin:0}
+.d3m-d-ct-li:first-child > .d3m-d-ct-lin{border-top:0}
+.d3m-d-ct-li[aria-expanded="true"],.d3m-d-ch-li[aria-expanded="true"]{background:var(--d3-veu)}
+/* O que abre no lugar: o histórico e os botões, ou o formulário de sempre. */
+.d3m-d-ct-mais{display:none;margin:0;padding:0 16px 12px 114px}
+[aria-expanded="true"] > .d3m-d-ct-mais{display:block}
+.d3m-d-ct-mais > p{margin:0 0 4px;font-size:var(--d3-fs-apoio);line-height:1.4;color:var(--d3-rotulo)}
+.d3m-d-ct-acoes{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.d3m-d-ct-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-d-ct-btn:hover{background:var(--d3-veu-forte)}
+.d3m-d-ct-btn.k{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto))}
+/* O formulário de sempre (.vc-form), na folha. */
+#vv-carteira.d3m-d-m .vc-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 0;padding:0}
+#vv-carteira.d3m-d-m .vc-form .vc-campo.largo,#vv-carteira.d3m-d-m .vc-form .vc-linha-acoes{grid-column:1 / -1}
+#vv-carteira.d3m-d-m :is(.vc-campo,.vc-ordem){display:flex;flex-direction:column;gap:3px;min-width:0;color:var(--d3-rotulo);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+#vv-carteira.d3m-d-m :is(.vc-campo,.vc-ordem) :is(select,input,textarea){width:100%;min-height:34px;padding:6px 10px;border:1px solid var(--d3-veu-forte);border-radius:var(--d3-r-botao);background-color:var(--d3-cartao);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-carteira.d3m-d-m .vc-form .vc-linha-acoes{display:flex;justify-content:flex-end;gap:8px;padding:4px 0 0}
+#vv-carteira.d3m-d-m .vc-form :is(.vc-acao,.vc-sec){appearance:none;height:32px;margin:0;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-carteira.d3m-d-m .vc-form .vc-acao{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font-weight:600}
+#vv-carteira.d3m-d-m .v2k-porque{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+#vv-carteira.d3m-d-m .v2k-porque > .v2c-sub{margin-right:4px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-carteira.d3m-d-m .v2k-porque > .v2c-chip{appearance:none;display:inline-flex;align-items:center;height:26px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-carteira.d3m-d-m .v2k-porque > .v2c-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto))}
+/* "Registrar" e "Período e ordem": uma folha curta em cima da lista. */
+.d3m-d-ct-registrar,.d3m-d-ct-periodo{flex:none;flex-direction:row;flex-wrap:wrap;align-items:flex-end;gap:8px 12px;padding:12px 16px;overflow:visible}
+.d3m-d-ct-registrar > .vc-campo{flex:1 1 240px}
+.d3m-d-ct-registrar > .vc-form,.d3m-d-ct-registrar > .v2k-porque,.d3m-d-ct-quem{flex:1 1 100%}
+.d3m-d-ct-quem{margin:0;color:var(--d3-rotulo)}
+.d3m-d-ct-quem > b{font-weight:600;color:var(--d3-tinta)}
+.d3m-d-ct-registrar > .d3m-d-ct-btn{height:34px;padding:0 14px}
+.d3m-d-ct-periodo{align-items:center}
+.d3m-d-ct-periodo > .d3m-d-pk-seg{justify-content:flex-start}
+.d3m-d-ct-periodo > .vc-ordem{flex:0 1 240px;flex-direction:row;align-items:center;gap:8px}
+.d3m-d-ct-periodo > .d3m-d-elo{margin-left:auto}
+.d3m-d-ct-periodo .vb-mes{display:inline-flex;align-items:center;gap:4px;margin:0;color:var(--d3-tinta)}
+.d3m-d-ct-periodo .vb-mes > b{min-width:120px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:center}
+.d3m-d-ct-periodo .vb-mes > button{appearance:none;display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);cursor:pointer}
+.d3m-d-ct-periodo .vb-mes > button:disabled{opacity:.4;cursor:default}
+.d3m-d-ct-periodo .vb-mes > button > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Vazio dentro da folha e a tira do que ainda não está ligado. */
+.d3m-d-ct-nada{flex:1 1 auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;min-height:64px;padding:16px;color:var(--d3-rotulo)}
+.d3m-d-ct-nada > p{margin:0;font-size:var(--d3-fs-texto);color:var(--d3-rotulo)}
+.d3m-d-ct-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-apagado);font-size:var(--d3-fs-apoio);line-height:1.4}
+.d3m-d-ct-aviso > span{flex:1 1 320px;min-width:0}
+.d3m-d-ct-aviso > span > b{font-weight:600;color:var(--d3-fume-texto)}
+.d3m-d-ct-aviso > small{flex-basis:100%;font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
+.d3m-d-ct-aviso > .d3m-d-vbtn{height:28px;padding:0 10px;font-size:var(--d3-fs-apoio)}
+/* Mês a mês, no lugar da lista: o número de agora, a linha e os meses. */
+.d3m-d-ct-meses > .d3m-d-cab{gap:12px}
+.d3m-d-ct-serie{flex:1 1 0;display:flex;flex-direction:column;gap:8px;min-height:0;padding:8px 16px 16px}
+.d3m-d-ct-serie > p{display:flex;align-items:baseline;gap:10px;margin:0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-ct-serie > p > span.g{color:var(--d3-pronto)}
+.d3m-d-ct-serie > p > span.r{color:var(--d3-perigo)}
+.d3m-d-ct-serie > svg{flex:1 1 0;display:block;width:100%;min-height:80px}
+.d3m-d-ct-eixo{flex:none;display:flex;justify-content:space-between;font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+.d3m-d-ct-eixo > .agora{font-weight:600;color:var(--d3-tinta)}
+/* Clientes ativos em doze meses: o cartão de vidro com o número e a linha. */
+.d3m-d-ct-cartao{appearance:none;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;width:100%;height:72px;margin:0;padding:12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-d-ct-cartao:hover,.d3m-d-ct-cartao[aria-pressed="true"]{background:var(--d3-fume-veu-forte)}
+.d3m-d-ct-cartao > span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-d-ct-cartao > span > b{font:600 24px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-d-ct-cartao > span > small{font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado);white-space:nowrap}
+.d3m-d-ct-cartao > svg.d3m-d-mini{width:120px;height:44px;color:var(--d3-fume-texto)}
+
+/* ----- Churn ----- */
+.d3m-d-ch .d3m-d-nums{flex:none}
+.d3m-d-ch-meio{flex:1 1 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-height:150px}
+.d3m-d-ch-meio > .d3m-d-folha > .d3m-d-cab{height:44px}
+.d3m-d-ch-corpo{flex:1 1 0;display:flex;flex-direction:column;justify-content:flex-end;min-height:0;padding:0 16px 14px;overflow:hidden}
+.d3m-d-ch-porque > .d3m-d-ch-corpo{justify-content:center}
+.d3m-d-ch-corpo > .d3m-d-ct-nada{padding:0}
+/* Barras dos seis meses: o número em cima, a barra e o mês. */
+.d3m-d-ch-barras{flex:1 1 0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px;min-height:0}
+.d3m-d-ch-barras > span{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:6px;min-height:0;text-align:center}
+.d3m-d-ch-barras > span > b{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-d-ch-barras > span > i{flex:none;height:4px;border-radius:2px;background:var(--d3-veu-forte)}
+.d3m-d-ch-barras > span > i.on{flex:0 1 calc(var(--n,0) * 64px);min-height:12px;height:auto;border-radius:6px;background:var(--d3-perigo)}
+.d3m-d-ch-barras > span > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-ch-barras > span > small.agora{font-weight:600;color:var(--d3-tinta)}
+/* Por que saíram: o motivo, a barra e quantas vezes. */
+.d3m-d-ch-mots{display:flex;flex-direction:column;gap:2px;max-height:100%;overflow-y:auto;scrollbar-width:thin}
+.d3m-d-ch-motl{display:grid;grid-template-columns:minmax(0,160px) minmax(0,1fr) 24px;align-items:center;gap:12px;min-height:28px;margin:0;font-size:var(--d3-fs-texto);color:var(--d3-tinta)}
+.d3m-d-ch-motl > span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-d-ch-motl.a > span:first-child{color:var(--d3-ambar)}
+.d3m-d-ch-motl > b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.d3m-d-ch-barra{height:4px;border-radius:2px;background:var(--d3-veu);overflow:hidden}
+.d3m-d-ch-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-perigo)}
+.d3m-d-ch-motl.a .d3m-d-ch-barra > i{background:var(--d3m-d-ambar)}
+/* Retenção por mês de entrada (a tabela de sempre), na folha. */
+.d3m-d-ch-cohort{min-height:0;max-height:100%;overflow:auto;scrollbar-width:thin}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort table{width:100%;border-collapse:collapse;font-size:var(--d3-fs-apoio);color:var(--d3-tinta)}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort :is(th,td){height:26px;padding:0 8px;border:0;border-top:1px solid var(--d3-divisa);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort thead th{border-top:0;color:var(--d3-rotulo)}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort :is(th,td):first-child{text-align:left}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort td.u2{color:var(--d3-ambar);font-weight:500}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort td.u3a{color:var(--d3-perigo);font-weight:500}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort td.u6{color:var(--d3-pronto);font-weight:500}
+#vv-carteira.d3m-d-m .d3m-d-ch-cohort .vc-nota{margin:8px 0 0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+/* Quem saiu: a folha de baixo, em colunas. */
+.d3m-d-ch-quem{flex:0 1 auto;max-height:42%}
+/* Com o formulário aberto, as duas folhas do meio saem e "Quem saiu" ocupa a altura. */
+.d3m-d-ch.com-form .d3m-d-ch-meio{display:none}
+.d3m-d-ch-quem.com-form{flex:1 1 0;max-height:none}
+.d3m-d-ch-quem.com-form > .d3m-d-ct-rolo{flex:1 1 0}
+.d3m-d-ch-quem > .d3m-d-cab{height:44px;gap:12px}
+.d3m-d-ch-quem > .d3m-d-ct-rolo{flex:0 1 auto}
+.d3m-d-ch-lin{display:grid;grid-template-columns:minmax(0,1fr) 84px 110px minmax(0,.8fr) 96px 84px 130px;align-items:center;gap:10px;height:48px;margin:0;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-d-ch-lin.sem-valor{grid-template-columns:minmax(0,1fr) 84px 110px minmax(0,.8fr) 84px 130px}
+.d3m-d-ch-cabl{flex:none;height:24px;border-top:0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-ch-lin > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.d3m-d-ch-lin > .d3m-d-ch-v{text-align:right}
+.d3m-d-ch-lin > .d3m-d-ch-mot.a{font-weight:500;color:var(--d3-ambar)}
+.d3m-d-ch-lin > .d3m-d-ct-btn{justify-self:end;height:30px;background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+.d3m-d-ch-lin > .d3m-d-ct-btn:hover{background:var(--d3-veu)}
+.d3m-d-ch-n{appearance:none;min-width:0;height:32px;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.d3m-d-ch-n:hover{text-decoration:underline;text-underline-offset:3px}
+.d3m-d-ch-li{margin:0}
+.d3m-d-ch-li > .d3m-d-ct-mais{padding:0 16px 12px}
+/* Retenção por ano de entrada, no vidro. */
+.d3m-d-ch-ret{appearance:none;display:flex;flex-direction:column;gap:2px;width:100%;margin:0;padding:8px 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-d-ch-ret:hover{background:var(--d3-fume-veu-forte)}
+.d3m-d-ch-ret > span{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:center;gap:12px;height:23px}
+.d3m-d-ch-ret > span > small{font-size:var(--d3-fs-texto);color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
+.d3m-d-ch-ret > span > b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.d3m-d-ct-lado .d3m-vlin > .d3m-d-ct-av{width:22px;height:22px;border-radius:7px;font-size:9px}
+
+/* Tela baixa (1366 × 768): as linhas e o laranja um degrau menores. */
+@media (max-height:820px){
+  .d3m-d-ct-lin{height:32px}
+  .d3m-d-ct-cabl{height:24px}
+  .d3m-d-ct-av{width:24px;height:24px;border-radius:7px}
+  .d3m-d-ct-folha > .d3m-d-cab,.d3m-d-ch-meio > .d3m-d-folha > .d3m-d-cab,.d3m-d-ch-quem > .d3m-d-cab{height:40px}
+  .d3m-d-ct-pesa{min-height:188px;padding:12px 16px}
+  .d3m-d-ct-pesa .d3m-lar-num{font-size:40px}
+  .d3m-d-ct-pesa .d3m-lar-txt > .d3-acao-frase{font-size:16px}
+  .d3m-d-ct-pesa .d3m-lar-bts{margin-top:6px}
+  .d3m-d-ct-lado{gap:10px}
+  .d3m-d-ct-lado .d3m-cons{gap:4px}
+  .d3m-d-ct-lado .d3m-cons > .d3m-vlin{height:32px}
+  .d3m-d-ct-cartao{height:60px;padding:8px 12px}
+  .d3m-d-ch-lin{height:40px}
+  .d3m-d-ch-cabl{height:22px}
+  .d3m-d-ch-meio{min-height:120px}
+  .d3m-d-ch-ret > span{height:20px}
+}
+/* Janela estreita: a coluna de consulta e a régua encolhem. */
+@media (max-width:1280px){
+  .d3m-d-ct{grid-template-columns:minmax(0,1fr) 264px}
+  .d3m-d-ct-lin{grid-template-columns:52px 24px minmax(0,1fr) 84px 60px 228px 84px;gap:8px}
+  .d3m-d-ct-lin.sem-valor{grid-template-columns:52px 24px minmax(0,1fr) 60px 228px 84px}
+  .d3m-d-ct-av{width:24px;height:24px;border-radius:7px}
+  .d3m-d-ct-pesa .d3m-lar-bts > .d3m-btn{padding:0 10px}
+  .d3m-d-ch-lin{grid-template-columns:minmax(0,1fr) 64px 92px minmax(0,.8fr) 84px 76px 118px;gap:8px}
+  .d3m-d-ch-lin.sem-valor{grid-template-columns:minmax(0,1fr) 64px 92px minmax(0,.8fr) 76px 118px}
+}
+/* Celular: uma coluna só, o laranja primeiro, e a janela rola; a linha fica com o nome, o valor e a renovação. */
+@media (max-width:900px){
+  body.mundo .vc-camada > #vv-carteira.vc-janela.d3m-d-m{padding:12px;gap:12px;overflow-y:auto;border-radius:0 0 14px 14px}
+  #vv-carteira.d3m-d-m > .vc-corpo.d3m-d-m-corpo{flex:none;overflow:visible}
+  .d3m-d-ct-topo{flex-wrap:wrap;gap:8px}
+  .d3m-d-ct-topo > .d3m-d-ferr{flex:1 1 100%;flex-wrap:wrap}
+  .d3m-d-ct-topo .d3m-d-sub{white-space:normal}
+  .d3m-d-ct-topo .d3m-d-ct-busca{flex:1 1 140px}
+  .d3m-d-ct{display:flex;flex-direction:column;height:auto;gap:12px}
+  .d3m-d-ct-main,.d3m-d-ct-lado{display:contents}
+  .d3m-d-ct-pesa{order:-1;min-height:200px}
+  .d3m-d-ct-folha,.d3m-d-ch-quem,.d3m-d-ch-quem.com-form{flex:none;max-height:none}
+  .d3m-d-ct-folha > .d3m-d-cab,.d3m-d-ch-quem > .d3m-d-cab,.d3m-d-ch-meio > .d3m-d-folha > .d3m-d-cab{height:auto;flex-wrap:wrap;padding:10px 16px}
+  .d3m-d-ct-folha .d3m-d-pk-seg,.d3m-d-ch-quem .d3m-d-pk-seg{flex:1 1 100%;justify-content:flex-start}
+  .d3m-d-ct-rolo,.d3m-d-ch-quem > .d3m-d-ct-rolo{flex:none;overflow:visible}
+  .d3m-d-ct-cabl,.d3m-d-ch-cabl{display:none}
+  .d3m-d-ct-lin,.d3m-d-ct-lin.sem-valor{grid-template-columns:28px minmax(0,1fr) auto;grid-auto-rows:auto;gap:2px 10px;height:auto;min-height:52px;padding:8px 16px}
+  .d3m-d-ct-lin > :is(.d3m-d-ct-regua,.d3m-d-ct-d){display:none}
+  .d3m-d-ct-lin > .d3m-d-ct-g{grid-column:1 / -1;grid-row:1}
+  .d3m-d-ct-lin > .d3m-d-ct-g:empty{display:none}
+  .d3m-d-ct-lin > .d3m-d-ct-av{grid-column:1;grid-row:2 / span 2}
+  .d3m-d-ct-lin > .d3m-d-ct-n{grid-column:2;grid-row:2}
+  .d3m-d-ct-lin > .d3m-d-ct-v{grid-column:3;grid-row:2}
+  .d3m-d-ct-lin > .d3m-d-ct-r{grid-column:2 / -1;grid-row:3;text-align:left}
+  .d3m-d-ct-mais{padding:0 16px 12px}
+  #vv-carteira.d3m-d-m .vc-form{grid-template-columns:minmax(0,1fr)}
+  .d3m-d-ch-meio{flex:none;grid-template-columns:minmax(0,1fr);min-height:0}
+  .d3m-d-ch-meio > .d3m-d-folha{min-height:220px}
+  .d3m-d-ch-lin,.d3m-d-ch-lin.sem-valor{grid-template-columns:minmax(0,1fr) auto;grid-auto-rows:auto;gap:2px 10px;height:auto;padding:10px 16px}
+  .d3m-d-ch-lin > .d3m-d-ch-n{grid-column:1;grid-row:1;height:24px}
+  .d3m-d-ch-lin > span{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+  .d3m-d-ch-lin > span:nth-of-type(1){grid-column:2;grid-row:1;text-align:right}
+  .d3m-d-ch-lin > span:nth-of-type(n+2){grid-column:1}
+  .d3m-d-ch-lin > .d3m-d-ch-v{text-align:left}
+  .d3m-d-ch-lin > .d3m-d-ct-btn{grid-column:2;grid-row:2 / span 3;align-self:center;height:40px}
+  .d3m-d-ct-btn{min-height:40px}
+  .d3m-d-ct-periodo > .d3m-d-elo{margin-left:0}
+}
+
 /* ===== padrao-v2/zm-d-comercial.css ===== */
 /* ===================================================================================================================
    COMERCIAL · CRM E FUNIL NA PRANCHA V2-M-Comercial (16/11/2026). A janela é vidro fumê (zm-d-0-pecas.css). Em cima, três

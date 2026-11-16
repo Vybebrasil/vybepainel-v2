@@ -54,16 +54,16 @@ test('Conversas: bloco de ação pela menção não lida ou pela conversa com ma
   assert.match(css, /#vv-whatsapp \.d3w \.v2w-bl\.eu\{background:var\(--d3-tinta\)/);
 });
 
-test('Contratos e Churn: bloco de ação, quatro números, tabela com "Até renovar" e "Quem saiu", gráficos em linha', () => {
+test('Contratos e Churn: saíram do quadro da Direção 3 para as pranchas V2-M (laranja, folhas e coluna de consulta); o envio não muda', () => {
   const ct = carteira.slice(carteira.indexOf('  function abaContratos() {'), carteira.indexOf('  // ---------- janela ----------'));
   const ch = carteira.slice(carteira.indexOf('  function abaChurn() {'), carteira.indexOf('  // Como o churn é contado'));
-  assert.match(carteira, /const d3AcaoOu = \(ag, frase, rotulo = '', attrs = ''\) => \(typeof d3AcaoHtml === 'function'/);
-  for (const r of ['Em contratos', 'Renovam em 30 dias', 'Tempo de casa', 'Sem contrato']) assert.ok(ct.includes(`numD3({ rotulo: '${r}'`), r);
-  for (const r of ['Taxa de churn', 'Saídas', 'Receita perdida', 'Até sair']) assert.ok(ch.includes(`numD3({ rotulo: '${r}'`), r);
-  assert.match(ct, /<span>Até renovar<\/span>/);
+  assert.match(carteira, /const TELAS_M = new Set\(\['contratos', 'churn'\]\);/);
+  assert.match(carteira, /if \(TELAS_M\.has\(estado\.aba\)\) return htmlDaJanelaM\(\);/);
+  for (const r of ['larMq(AGENTE_CONTRATOS', '<small>De olho</small>', 'em contratos, por mês', 'tempo de casa', 'sem contrato</button>']) assert.ok(ct.includes(r), r);
+  for (const r of ['larMq(AGENTE_CHURN', "rotulo: 'Receita perdida'", "rotulo: 'Tempo até sair'", '<b>Em risco agora</b>']) assert.ok(ch.includes(r), r);
   assert.match(ct, /d3Linha\(valores/, 'mês a mês em linha');
-  assert.match(ch, /<span>Motivo<\/span><span>Na casa<\/span><span>Por mês<\/span>/);
-  assert.doesNotMatch(ch, /barrasMes\(/, 'sem gráfico de barras');
+  assert.match(ch, /<span>Motivo<\/span>\$\{din \? '<span class="d3m-d-ch-v">Por mês<\/span>' : ''\}<span class="d3m-d-ch-v">Ficou<\/span>/, 'a coluna "Por mês" só entra para quem vê dinheiro');
+  assert.doesNotMatch(ch, /barrasMes\(/, 'sem o gráfico de barras de antes');
   // O que vai ao servidor não muda.
   assert.equal((carteira.match(/acao: 'contrato_salvar'|acao: 'churn_registrar'/g) || []).length, 2);
 });
