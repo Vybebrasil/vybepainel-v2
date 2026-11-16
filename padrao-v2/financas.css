@@ -47,27 +47,13 @@
 
 /* cartão, fala e números */
 :is(#vv-comercial,.vv-setor-visao) :is(.fv2-card,.fv2-fala,.fv2-kpi){min-width:0;padding:18px;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22)}
-:is(#vv-comercial,.vv-setor-visao) .fv2-fala{display:flex;align-items:center;gap:14px}
-:is(#vv-comercial,.vv-setor-visao) .fv2-fala > p{flex:1;min-width:0;font:400 var(--d3-fs-destaque)/1.45 var(--vv-texto,Inter,system-ui,sans-serif)}
 :is(#vv-comercial,.vv-setor-visao) .fv2 b{font-weight:700}
-:is(#vv-comercial,.vv-setor-visao) .fv2-quem{display:block;margin-bottom:2px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,system-ui,sans-serif);color:#4B36A8}
-:is(#vv-comercial,.vv-setor-visao) .fv2-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 var(--d3-fs-destaque) var(--vv-texto,Inter,system-ui,sans-serif)}
-:is(#vv-comercial,.vv-setor-visao) .fv2-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:fv2-pulso 3.6s ease-out infinite}
 @keyframes fv2-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
 :is(#vv-comercial,.vv-setor-visao) .fv2-conta > .v2-mais > *{min-height:0;overflow:hidden}
 :is(#vv-comercial,.vv-setor-visao) .fv2-dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 24px;padding:6px 18px 0}
 :is(#vv-comercial,.vv-setor-visao) .fv2-dl > div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #EAE6DE;font-size:var(--d3-fs-texto)}
 :is(#vv-comercial,.vv-setor-visao) .fv2-dl dt{color:#6B665E}
 :is(#vv-comercial,.vv-setor-visao) .fv2-dl dd{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > small{display:block;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1F1D1A}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpi.ruim > b{color:#B42318}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpi.bom > b{color:#11613A}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpi.quieto > b{color:#B5AFA5}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > .v2-barra{background:#EAE6DE}
-:is(#vv-comercial,.vv-setor-visao) .fv2-kpi > .v2-barra + small{margin-top:8px}
-:is(#vv-comercial,.vv-setor-visao) .fv2-clis{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:8px;color:#1F1D1A}
 
 /* cliente e pílulas */
 :is(#vv-comercial,.vv-setor-visao) .fv2-cli{--c:#8A847A;display:inline-flex;align-items:center;gap:6px;font-weight:600}
@@ -133,7 +119,6 @@
 :is(#vv-comercial,.vv-setor-visao) .fv2-mk{position:absolute;top:26px;transform:translateX(-50%);font-size:var(--d3-fs-apoio);color:#6B665E;white-space:nowrap}
 :is(#vv-comercial,.vv-setor-visao) .fv2-faixa{padding:8px 0}
 /* Finanças: o caixa em colunas e os atalhos */
-:is(#vv-comercial,.vv-setor-visao) .fv2-cols{flex:1;display:flex;align-items:flex-end;gap:6px;min-height:140px;height:170px;padding-top:14px}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col > i{display:block;width:28px;height:var(--h);border-radius:8px 8px 3px 3px;background:#D9D3C8;transform-origin:bottom;animation:fv2-sobe .9s cubic-bezier(.2,.8,.2,1) both}
 :is(#vv-comercial,.vv-setor-visao) .fv2-col.agora > i{background:#1F1D1A}
@@ -157,13 +142,7 @@
 @container fv2 (max-width:560px){
   :is(#vv-comercial,.vv-setor-visao) .fv2-ola{flex-basis:100%}
   :is(#vv-comercial,.vv-setor-visao) .fv2-ola h1{font-size:24px}
-  :is(#vv-comercial,.vv-setor-visao) .fv2-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  :is(#vv-comercial,.vv-setor-visao) .fv2-kpi:first-child{grid-column:1 / -1}
   :is(#vv-comercial,.vv-setor-visao) :is(.fv2-card,.fv2-fala,.fv2-kpi){padding:14px}
-  :is(#vv-comercial,.vv-setor-visao) .fv2-kpi > b{font-size:24px}
-  :is(#vv-comercial,.vv-setor-visao) .fv2-fala{flex-wrap:wrap}
-  :is(#vv-comercial,.vv-setor-visao) .fv2-fala > p{flex-basis:calc(100% - 54px)}
-  :is(#vv-comercial,.vv-setor-visao) .fv2-fala > .fv2-btn{margin-left:54px}
   :is(#vv-comercial,.vv-setor-visao) .fv2-lin:not(.fv2-gr){flex-wrap:wrap;gap:8px 10px}
   :is(#vv-comercial,.vv-setor-visao) .fv2-lin:not(.fv2-gr) > .fv2-txt{flex-basis:calc(100% - 90px)}
   :is(#vv-comercial,.vv-setor-visao) .fv2-lin:not(.fv2-gr) > :is(.fv2-btn,.fv2-valor,.fv2-so-la){margin-left:auto}

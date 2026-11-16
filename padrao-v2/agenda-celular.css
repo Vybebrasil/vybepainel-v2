@@ -9,7 +9,7 @@
 @media (max-width:700px){
   /* 4 · menos coisa acima da grade */
   body.mundo #pv2-agenda.pv2a-mes-cel{gap:10px}
-  body.mundo #pv2-agenda.pv2a-mes-cel > .pv2-fala,body.mundo #pv2-agenda.pv2a-mes-cel .pv2-filtros > .pv2-busca{display:none}
+  body.mundo #pv2-agenda.pv2a-mes-cel .pv2-filtros > .pv2-busca{display:none}
   /* Direção 3: no mês do celular os quatro números saem (continuam na Semana), para o cabeçalho dos dias subir e o + não ficar sobre ele; o fim da rolagem ganha a altura do + com folga, para nada ficar preso embaixo dele */
   body.mundo #pv2-agenda.pv2a-mes-cel > .d3ag-nums{display:none}
   body.mundo #pv2-agenda{padding-bottom:calc(56px + 32px + env(safe-area-inset-bottom,0px))}

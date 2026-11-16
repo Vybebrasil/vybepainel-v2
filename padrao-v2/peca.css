@@ -169,8 +169,6 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2-solta svg{flex:none}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-solta:is(:hover,.dragover){border-color:#1F1D1A;background-color:#F9F8F5}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-solta.alta{padding:18px 14px}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-solta.alta strong{display:block;font-weight:600}
-body.mundo #workspace-drawer.gv2-gaveta .gv2-rec > summary{display:flex;align-items:baseline;gap:8px;padding:6px 0;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
-body.mundo #workspace-drawer.gv2-gaveta .gv2-rec > summary small{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:#6B665E}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-link{display:flex;gap:8px;align-items:center}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-conversa{display:flex;flex-direction:column;gap:10px}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-log{display:flex;align-items:center;gap:10px;flex-wrap:wrap}

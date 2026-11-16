@@ -129,8 +129,6 @@ body.ver-voz #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="salas"],
 body[data-som-aba="audio"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="audio"],
 body[data-som-aba="musica"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="musica"],
 body[data-som-aba="tv"] #vv-dock-salas-faixa .vq-dock .vq-item[data-dock="tv"]{background:#C2490C;color:#FFFFFF}
-/* entrar na voz: a ação preta do quadro */
-#vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar{background:#1F1D1A;color:#FFFFFF}
 /* mudo e sem ouvir: o estado continua dito no nome, em vermelho (é o que pede atenção) */
 #vv-dock-salas-faixa .vq-dock .vq-item:is(.vq-mic.mudo,.vq-surdo){color:#1F1D1A}
 /* desligado: cinza, sem apagar o botão */

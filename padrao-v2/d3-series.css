@@ -2,11 +2,6 @@
    vybe_serie_diaria (server/series-historicas.js). Só o que é novo: a linha da Saúde na ficha, o Score por semana, a
    carga com o limite na Visão do setor e a carga por mês do Comercial. As cores são as do 0-d3-base.css. */
 
-/* Ficha do cliente · Saúde: a linha no lugar do tracejado, com o "desde" embaixo. */
-#painel-clientes .d3f-hist{display:grid;gap:2px;min-height:28px}
-#painel-clientes .d3f-hist .d3-graf{max-height:40px}
-#painel-clientes .d3f-hist > small{font-size:var(--d3-fs-apoio);color:var(--d3-apagado,#6B665E)}
-
 /* Pessoas · Produtividade · Score por semana: linha larga, a do mês anterior tracejada, as semanas embaixo. */
 #vv-pessoas.v2p-janela .v2p-semana .d3p-leg{display:inline-flex;gap:10px;font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
 #vv-pessoas.v2p-janela .v2p-semana .d3p-semana-g{margin:10px 0 0}

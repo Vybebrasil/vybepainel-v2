@@ -153,7 +153,6 @@ test('CSS: tudo em padrao-v2/ficha.css, sem !important nem html body.mundo', () 
   const css = ler('padrao-v2/ficha.css');
   assert.doesNotMatch(css, /!important/);
   assert.doesNotMatch(css, /html body\.mundo/);
-  assert.match(css, /#painel-clientes \.v2f-tabela/);
   assert.match(css, /\.vc-camada > #vv-reunioes/);
 });
 

@@ -59,11 +59,6 @@
 .d3m-c-pop.dir{left:auto;right:0;max-height:min(420px,60vh);overflow-y:auto;scrollbar-width:thin}
 .d3m-c-pop > button > small{margin-left:auto;padding-left:12px;font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado)}
 .d3m-c-ico.on{background:var(--d3-fume-texto);color:var(--d3-tinta-fixa)}
-/* O fechar da janela, no fim do topo: o mesmo botão de ícone no vidro. */
-.d3m-c-topo > .d3m-c-x{appearance:none;flex:none;display:grid;place-items:center;position:static;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto);cursor:pointer}
-.d3m-c-topo > .d3m-c-x:hover{background:var(--d3-fume-borda)}
-.d3m-c-topo > .d3m-c-x > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.d3m-c-topo > .d3m-c-x:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 /* Fichas na cabeça da folha: texto de 28 px; a escolhida fica no véu forte. */
 .d3m-c-abas{flex:none;display:inline-flex;align-items:center;gap:2px}
 .d3m-c-abas > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}

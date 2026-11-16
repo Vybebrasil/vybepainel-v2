@@ -31,7 +31,6 @@
 #vv-hoje .d3h-co .v2o-sem-quem{display:flex;flex-direction:column;gap:2px;min-width:0;padding:6px 6px 0}
 #vv-hoje .d3h-co .v2o-sem-quem > b{font:700 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 #vv-hoje .d3h-co .v2o-sem-quem > small{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#vv-hoje .d3h-co .v2o-sem-ab.a{color:var(--d3-ajuste);font-weight:600}
 #vv-hoje .d3h-co .v2o-sem-dia{display:flex;flex-direction:column;gap:3px;min-width:0;padding:6px 8px;border-radius:14px}
 #vv-hoje .d3h-co .v2o-sem-dia > b{font:700 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 #vv-hoje .d3h-co .v2o-sem-dia > small{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}

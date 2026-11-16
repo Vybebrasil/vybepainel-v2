@@ -5,35 +5,19 @@
 #feed-board.vfd-salvando{cursor:progress}
 #feed-board.vfd-salvando .vfd-peca{pointer-events:none;opacity:.7}
 .vfd{display:flex;flex-direction:column;gap:14px;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
-.vfd-topo{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px}
-.vfd-topo h2{margin:0;font:700 var(--d3-fs-titulo)/1.2 var(--vv-titulo,Inter),sans-serif}
-.vfd-topo p{margin:2px 0 0;color:var(--d3-apagado)}
 .vfd-r{color:var(--d3-perigo)}
-.vfd-legenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
 .vfd-l{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
-.vfd-l-arte{background:var(--d3-tinta)}
-.vfd-l-prov{background:var(--d3-agente-veu);border:1px dashed var(--d3-agente)}
-.vfd-l-x{background:var(--d3-perigo-veu);border:1px solid var(--d3-perigo)}
-.vfd-l-atraso{background:var(--d3-cartao);box-shadow:inset 0 0 0 2px var(--d3-perigo)}
 .vfd-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .vfd-sel{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;border-radius:999px;background:var(--d3-cartao);font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
 .vfd-sel select{height:32px;max-width:220px;border:0;border-radius:999px;background:transparent;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
 .vfd-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;align-items:start}
 .vfd-cliente{display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
-.vfd-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
-.vfd-cab h3{margin:0;font:700 var(--d3-fs-destaque)/1.2 var(--vv-titulo,Inter),sans-serif;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-.vfd-perfil{display:inline-flex;align-items:baseline;gap:6px;min-width:0;font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
-.vfd-arroba{font-weight:600;color:var(--d3-info);text-decoration:none}
-.vfd-arroba:hover{text-decoration:underline}
 .vfd-sem-insta{color:var(--d3-ajuste)}
 .vfd-avisos{display:flex;flex-wrap:wrap;gap:4px;width:100%}
 .vfd-aviso{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--d3-trilho);font:600 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 .vfd-aviso.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
 .vfd-aviso.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
 .vfd-aviso.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
-.vfd-linha{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin:4px 0 0}
-.vfd-linha b{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;text-transform:uppercase;letter-spacing:.04em;color:var(--d3-texto2)}
-.vfd-linha small{font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
 .vfd-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;border-radius:10px;overflow:hidden}
 .vfd-t{position:relative;display:block;aspect-ratio:4/5;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:var(--d3-linha);overflow:hidden;font:inherit;color:inherit;text-align:left;text-decoration:none}
 .vfd-t img{display:block;width:100%;height:100%;object-fit:cover}
@@ -82,7 +66,6 @@
 .vfd-sem-img::after{content:"sem imagem";position:absolute;inset:0;display:grid;place-items:center;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
 .vfd-passado{filter:saturate(.85)}
 .vfd-vazio{grid-column:1 / -1;margin:0;padding:14px;text-align:center;color:var(--d3-apagado);background:var(--d3-trilho)}
-.vfd-mais{margin:0;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
 @media (max-width:600px){
   .vfd-lista{grid-template-columns:minmax(0,1fr)}
   .vfd-sel select{max-width:150px}
@@ -92,8 +75,6 @@
 .vfd-chip:hover{background:var(--d3-trilho)}
 .vfd-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
 .vfd-sel select{appearance:none;padding:0 10px;background:var(--d3-trilho)}
-.vfd-topo{padding-right:52px}
-@media (min-width:768px){.vfd-topo{padding-right:112px}}
 /* Cabeçalho de perfil do Instagram (Paulo, 15/11/2026: "é pra ficar tipo o feed mesmo do Insta, bio, tudo certinho"):
    foto redonda, os números ao lado, o @ com o selo, o nome, a bio e o link; a barra da grade; a grade colada. */
 .vfd-cliente{padding:16px 14px 12px}

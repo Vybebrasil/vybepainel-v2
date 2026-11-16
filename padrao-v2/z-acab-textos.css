@@ -11,10 +11,6 @@
 /* Aviso de parte que ainda não está pronta: a frase neutra para todos; o detalhe técnico só para quem administra. */
 .vc-aviso .vc-nota-tec{display:block;margin-top:6px;font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
 
-/* IA e custos sem pedido no período: o "Pede ação" e um cartão só com a frase (no lugar de três cartões vazios). */
-#pv2-ia.d3f .pv2i-baixo.pv2i-sem-uso{grid-template-columns:minmax(0,1.2fr) minmax(0,2fr)}
-@media (max-width:1100px){#pv2-ia.d3f.d3f .pv2i-baixo.pv2i-sem-uso{grid-template-columns:minmax(0,1fr)}}
-
 /* A margem negativa da Conta passava 3 px da tela no celular depois de algumas telas (confere de 15/11/2026): o contêiner
    corta de lado sem virar área de rolagem. */
 #conta-root{overflow-x:clip}

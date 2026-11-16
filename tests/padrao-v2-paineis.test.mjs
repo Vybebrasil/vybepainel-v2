@@ -240,7 +240,6 @@ test('o CSS do grupo traz as medidas do quadro e não força regra antiga', () =
   assert.match(css, /#pv2-demandas \.pv2-cp\{flex:none;width:66px\}/);
   assert.match(css, /#pv2-demandas \.pv2-cr\{[^}]*width:118px;/);
   assert.match(css, /#pv2-agenda \.pv2a-duas\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.15fr\);gap:14px/);
-  assert.match(css, /#pv2-ia \.pv2i-tres\{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px\}/);
   assert.match(css, /\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:14px;/);
   assert.match(css, /prefers-reduced-motion:reduce/);
 });

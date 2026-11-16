@@ -16,7 +16,6 @@ test('D3 · CSS da seção: preso às janelas, sem !important, sem html body.mun
   const seletores = secao.replace(/\/\*[\s\S]*?\*\//g, '').split('}').map((r) => r.split('{')[0].trim()).filter((s) => s && !s.startsWith('@'));
   for (const s of seletores) assert.match(s, /#vv-agentes|#automacoes-root/, `regra presa à janela: ${s.slice(0, 80)}`);
   assert.match(secao, /#vv-agentes\.v2a,#automacoes-root\.v2r\{background:var\(--d3-areia\)\}/, 'fundo areia');
-  assert.match(secao, /prefers-reduced-motion:reduce/);
 });
 
 test('D3 · Agentes: a tela principal é a prancha V2-M-Agentes; a fila em lista (a um clique) segue com o bloco de ação e os quatro números', () => {

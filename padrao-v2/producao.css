@@ -9,8 +9,7 @@
 /* ---------- a janela e o cabeçalho ---------- */
 #vv-planejamentos.vv-plj{gap:16px;padding:26px 30px;border:0;background:#F9F8F5;color:#1F1D1A;box-shadow:0 24px 48px -30px rgba(31,29,26,.3)}
 #vv-planejamentos.vv-plj > .vv-plj-cabeca.vb-janela-topo,
-#vv-impressoes.vc-janela > .vi-topo.vb-janela-topo,
-#vv-ferramentas.vc-janela > .vf-topo.vb-janela-topo{flex:none;margin:0;padding:0;border:0;background:none}
+#vv-impressoes.vc-janela > .vi-topo.vb-janela-topo{flex:none;margin:0;padding:0;border:0;background:none}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .vb-janela-topo.vb-janela-topo > .vb-cabecalho{flex-wrap:wrap;align-items:center;gap:12px;margin:0;padding:0}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .vb-janela-topo.vb-janela-topo .vb-cabecalho-texto{flex:1 1 200px;min-width:0;padding:0}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .vb-janela-topo.vb-janela-topo .vb-cabecalho-texto h2{margin:0;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
@@ -65,22 +64,7 @@
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .cliente-carteira::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:currentColor}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1F1D1A}
 /* a frase do agente */
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-fala{flex:none;display:flex;align-items:center;gap:14px}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-fala > p{flex:1;min-width:0;font:400 var(--d3-fs-destaque)/1.45 var(--vv-texto);color:#1F1D1A}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-fala b{font-weight:700}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 var(--d3-fs-destaque) var(--vv-texto)}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:p2-pulso 3.6s ease-out infinite}
 @keyframes p2-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-quem{display:block;margin-bottom:2px;font:600 var(--d3-fs-apoio) var(--vv-texto);color:#4B36A8}
-/* três números */
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpis{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi > small{display:block;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto);color:#6B665E;overflow-wrap:anywhere}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1F1D1A}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi.atencao > b{color:#7A4A00}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi.ruim > b{color:#B42318}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi.quieto > b{color:#B5AFA5}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi > .v2-barra{background:#EAE6DE}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi > .p2-kpi-pe{margin-top:8px}
 /* busca e fichas numa barra só */
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-filtros{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-busca{appearance:none;flex:1 1 160px;min-width:140px;height:36px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 var(--d3-fs-texto) var(--vv-texto)}
@@ -89,10 +73,6 @@
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-lin{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.35 var(--vv-texto);color:#1F1D1A}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-lin > p{flex:1;min-width:0}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-lin b.ruim{color:#B42318}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-lista-topo{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-lista-topo > :is(h3,.p2-h){flex:1}
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-lista-topo + :is(.p2-lin,.p2-abre),
-:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-lista-topo + .p2-abre > .p2-lin{border-top:0}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-abre[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1)),visibility 0s .28s}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-pe{margin-top:auto;padding-top:8px}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-vazio{padding:10px 0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto);color:#6B665E}
@@ -108,7 +88,6 @@
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-menu-pop button:hover{background:#F3F1EC}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-menu-pop small{flex:none;font:400 var(--d3-fs-apoio) var(--vv-texto);color:#6B665E}
 @media (prefers-reduced-motion:reduce){
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-ag::after{animation:none}
   :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) :is(.p2-btn,.p2-abre[aria-expanded="false"] > .v2-mais){transition:none}
 }
 
@@ -132,12 +111,6 @@
 @media (max-width:760px){
   #vv-planejamentos.vv-plj{padding:16px;gap:12px}
   :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .vb-janela-topo.vb-janela-topo .vb-cabecalho-texto h2{font-size:24px}
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-fala{flex-wrap:wrap}
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-fala > p{flex:1 1 200px}
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpis{gap:8px}
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi.p2-card{padding:12px}
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi > b{font-size:var(--d3-fs-titulo);white-space:nowrap}
-  :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-kpi > small{font-size:var(--d3-fs-apoio)}
   :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-card{padding:14px}
   #vv-planejamentos .p2-lin{flex-wrap:wrap;gap:6px 10px}
   #vv-planejamentos .p2-c1{flex:1 1 100%;width:auto}
@@ -153,7 +126,6 @@
 #vv-impressoes.vc-janela > .vi-corpo{flex:none;display:flex;flex-direction:column;gap:16px;min-height:0;padding:0;overflow:visible}
 #vv-impressoes .vi2-duas{display:flex;align-items:flex-start;gap:20px}
 #vv-impressoes .vi2-pede{flex:none;width:462px;max-width:100%;display:flex;flex-direction:column;gap:12px}
-#vv-impressoes .vi2-pede-topo{width:400px;max-width:100%;margin:0}
 #vv-impressoes .vi2-baralho{width:400px;max-width:calc(100% - 60px);height:300px}
 #vv-impressoes .vi2-carta{box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:14px;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto);color:#1F1D1A}
 #vv-impressoes .vi2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0;font-size:var(--d3-fs-texto)}
@@ -165,7 +137,6 @@
 #vv-impressoes .vi2-ef b{color:#1F1D1A}
 #vv-impressoes .vi2-decide{display:flex;align-items:center;gap:8px;width:400px;max-width:100%;margin-top:2px}
 #vv-impressoes .vi2-decide > .k{flex:1}
-#vv-impressoes .vi2-conta{display:flex;align-items:center;gap:10px}
 #vv-impressoes .vi2-deck-lista{width:400px;max-width:100%}
 #vv-impressoes .vi2-deck-lista > .p2-lin:first-child{border-top:0;padding-top:0}
 #vv-impressoes .vi2-lista{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
@@ -178,7 +149,6 @@
 #vv-impressoes .vi2-nome{appearance:none;display:inline;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 #vv-impressoes .vi2-nome:hover{text-decoration:underline}
 #vv-impressoes .vi2-nome:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px;border-radius:4px}
-#vv-impressoes .vi2-l2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:18px;margin-top:6px;font-size:var(--d3-fs-texto);color:#4A463F}
 #vv-impressoes .vi2-onde{flex:1;min-width:0}
 #vv-impressoes .vi2-onde b.atencao{color:#7A4A00}
 #vv-impressoes .vi2-tri{flex:none;display:inline-flex;align-items:center;gap:10px}
@@ -213,47 +183,19 @@
 #vv-ferramentas.vc-janela > .vf-aviso{flex:none;margin:-8px 0;padding:0;min-height:0;font:600 var(--d3-fs-texto) var(--vv-texto)}
 #vv-ferramentas.vc-janela > .vf-aviso:empty{display:none}
 #vv-ferramentas.vc-janela > .vf-corpo{flex:none;min-height:0;overflow:visible}
-#vv-ferramentas.vc-janela > .vf-corpo.vf2-inicio{display:flex;flex-direction:column;gap:16px;padding:0}
 #vv-ferramentas.vc-janela > .vf-corpo.p2-card{padding:18px}
-#vv-ferramentas .vb-janela-topo .vf2-busca{flex:0 1 200px;width:200px;min-width:120px}
-#vv-ferramentas .vf2-usados{display:flex;flex-direction:column;gap:10px}
-#vv-ferramentas .vf2-usados > .p2-lista-topo{margin:0}
-#vv-ferramentas .vf2-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-#vv-ferramentas .vf2-rec{display:flex;flex-direction:column;gap:8px;padding:14px 16px;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto)}
-#vv-ferramentas .vf2-rec-topo{display:flex;align-items:center;gap:8px}
-#vv-ferramentas .vf2-rec-topo > .p2-sub{margin-left:auto}
-#vv-ferramentas .vf2-rec-oq{overflow-wrap:anywhere}
-#vv-ferramentas .vf2-rec-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
-#vv-ferramentas .vf2-fer{display:flex;flex-direction:column;gap:12px}
-#vv-ferramentas .vf2-fer > .p2-sub{min-height:31px}
 /* "mais opções" desce para baixo do nome quando o cartão é estreito (1024: "Link do WhatsApp" passava por cima dele). */
-#vv-ferramentas .vf2-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-#vv-ferramentas .vf2-cab > h3{flex:1 1 auto;min-width:0}
-#vv-ferramentas .vf2-mais{margin-left:auto;font:600 var(--d3-fs-apoio) var(--vv-texto);text-decoration:none;white-space:nowrap}
-#vv-ferramentas .vf2-ico{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#FFF1E6;color:#8A3207}
-#vv-ferramentas .vf2-ico svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#vv-ferramentas .vf2-rot{display:block;margin:0 0 4px 4px;font:600 var(--d3-fs-apoio) var(--vv-texto);color:#4A463F}
-#vv-ferramentas .p2-campo{appearance:none;display:block;width:100%;height:38px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:#F9F8F5;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 var(--d3-fs-texto) var(--vv-texto)}
-#vv-ferramentas .p2-campo::placeholder{color:#6B665E}
 #vv-ferramentas .vf2-formato{display:flex;align-items:center;gap:8px;height:38px}
-#vv-ferramentas .vf2-res{display:flex;align-items:center;gap:12px;min-height:72px;box-sizing:border-box;margin-top:auto;padding:12px 14px;border-radius:16px;background:#F3F1EC;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto);color:#1F1D1A}
-#vv-ferramentas .vf2-res > p{flex:1;min-width:0}
-#vv-ferramentas .vf2-res .p2-sub.ruim{color:#B42318}
 #vv-ferramentas .vf2-quebra{overflow-wrap:anywhere}
 #vv-ferramentas .vf2-qr{flex:none;display:block;width:48px;height:48px;padding:3px;border-radius:6px;background:#FFFFFF}
 #vv-ferramentas .vf2-qr svg{display:block;width:100%;height:100%}
 #vv-ferramentas .vf2-roi{flex:none;font:700 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em}
 #vv-ferramentas .vf2-roi.ruim{color:#B42318}
-@media (max-width:1000px){
-  #vv-ferramentas .vf2-tres{grid-template-columns:minmax(0,1fr)}
-  #vv-ferramentas .vf2-fer > .p2-sub{min-height:0}
-}
 /* Em 1024 o fechar caía sozinho numa linha embaixo das abas (a busca não encolhia antes de quebrar a linha). */
 @media (min-width:761px){
   #vv-ferramentas .vb-janela-topo.vb-janela-topo .vb-cabecalho-acoes{flex-wrap:nowrap;min-width:0;max-width:100%}
 }
 @media (max-width:760px){
-  #vv-ferramentas .vb-janela-topo .vf2-busca{flex:1 1 120px;width:auto}
   #vv-ferramentas .vb-janela-topo .vb-cabecalho-acoes{width:100%;justify-content:flex-start}
 }
 

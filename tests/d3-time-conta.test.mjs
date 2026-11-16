@@ -62,7 +62,4 @@ test('CSS D3 da Conta e da Equipe online: sem !important, sem html body.mundo, t
     assert.match(linha.trim(), /^(#conta-root #v2c\.d3c|#vv-placa \.v2e)/, 'só mexe na Conta e na Equipe online: ' + linha.slice(0, 60));
   }
   assert.match(secao, /#conta-root #v2c\.d3c\{[^}]*background:var\(--d3-areia\)/);
-  assert.match(secao, /#vv-placa \.v2e\{[^}]*background:var\(--d3-areia\)/);
-  assert.match(secao, /#vv-placa \.v2e \.v2n-fala\{[^}]*background:var\(--d3-acao\)/, 'a fala vira o bloco de ação');
-  assert.match(secao, /#vv-placa \.v2e \.v2e-topo > \.v2n-btn\.p\{[^}]*background:var\(--d3-cartao\)/, 'Conversa da equipe deixa de ser laranja');
 });

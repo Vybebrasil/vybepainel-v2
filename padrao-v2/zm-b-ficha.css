@@ -125,8 +125,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 #painel-clientes .fv2-aba-folha[data-aba="financeiro"]{padding:0}
 #painel-clientes .fv2-fin{display:flex;flex-direction:column;min-height:100%}
 #painel-clientes .fv2-fin > .cv2-cab{flex-wrap:wrap;row-gap:8px;padding-top:8px;padding-bottom:8px}
-#painel-clientes .fv2-fin-alto{display:flex;flex-direction:column;gap:6px;padding:20px 16px;border-top:1px solid var(--d3-divisa)}
-#painel-clientes .fv2-fin-valor{font:600 44px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.03em;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 #painel-clientes .fv2-fin-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;border-top:1px solid var(--d3-divisa)}
 #painel-clientes .fv2-fin-campo{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-right:1px solid var(--d3-divisa)}
 #painel-clientes .fv2-fin-campo > b{font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}

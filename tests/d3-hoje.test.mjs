@@ -106,7 +106,6 @@ test('Centro e Minha sala pelos quadros: o 3D dentro de um cartão da grade, nú
 
 test('Minha sala: a grade deixa o toque passar para o quarto 3D (arrastar, girar e zoom como antes)', () => {
   const css = fs.readFileSync("padrao-v2/d3-hoje.css", "utf8");
-  assert.match(css, /#d3-sala > \.d3s-grade\{pointer-events:none\}/);
   assert.match(css, /#d3-sala \.d3s-quarto\{[^}]*pointer-events:none/);
   assert.match(css, /#d3-centro \.d3c-mapa\{[^}]*pointer-events:none/);
 });

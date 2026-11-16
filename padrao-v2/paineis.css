@@ -59,19 +59,6 @@
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-ag{flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-ag::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:pv2-pulso 3.6s ease-out infinite}
 @keyframes pv2-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-fala{display:flex;align-items:center;gap:14px}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-fala > p{flex:1;min-width:0;font:400 var(--d3-fs-destaque)/1.45 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-fala b{font-weight:700}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-quem{display:block;margin-bottom:2px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:#4B36A8}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi{appearance:none;display:block;text-align:left;font:inherit}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) button.pv2-kpi{cursor:pointer;transition:box-shadow .2s}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) button.pv2-kpi:hover{box-shadow:0 1px 2px rgba(31,29,26,.05),0 16px 28px -18px rgba(31,29,26,.4)}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi > small{display:block;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;color:#1F1D1A;font-variant-numeric:tabular-nums}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi > b > i{font:600 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif;font-style:normal;letter-spacing:0;color:#6B665E}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi.ruim > b{color:#B42318}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi.quieto > b{color:#B5AFA5}
-:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-kpi > .v2-barra{background:#EAE6DE}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx.ok{background:#1F1D1A;box-shadow:none}
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-cx svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
@@ -94,8 +81,6 @@
 #pv2-painel .pv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-right:92px}
 #pv2-painel .pv2-topo h2{flex:1 1 220px;min-width:0;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
 #pv2-painel .pv2-alto{display:flex;flex-wrap:wrap;gap:14px;align-items:stretch}
-#pv2-painel .pv2-alto > .pv2-fala{flex:1.5 1 300px}
-#pv2-painel .pv2-alto > .pv2-kpi{flex:1 1 150px}
 #pv2-painel .pv2-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 #pv2-painel .pv2-pop-filtros{gap:10px;width:min(560px,86vw);padding:14px}
 #pv2-painel .pv2-pop-pe{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:10px;border-top:1px solid #F1EDE6}
@@ -141,14 +126,11 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 @media (max-width:640px){
   :is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6){grid-template-columns:minmax(0,1fr)}
   #pv2-painel .pv2-topo h2{flex-basis:100%;font-size:26px}
-  #pv2-painel .pv2-alto > .pv2-kpi{flex:1 1 90px;padding:12px}
-  #pv2-painel .pv2-kpi > b{font-size:26px}
   #pv2-painel .pv2-topo{padding-right:0}
   #pv2-painel .pv2-topo h2{padding-right:92px;box-sizing:border-box}
   #pv2-painel .pv2-busca{flex-basis:100%}
   #pv2-semana .pv2-abas{margin-left:0;flex-basis:100%}
 }
-@media (max-width:640px){:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-fala{flex-wrap:wrap}:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-fala > p{flex:1 1 180px}}
 @media (max-width:640px){:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-seg{flex:0 1 auto;flex-wrap:wrap;max-width:100%;border-radius:20px}}
 
 /* ---------- Demandas ---------- */
@@ -156,8 +138,6 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 #pv2-demandas .pv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-right:92px}
 #pv2-demandas .pv2-topo h2{flex:1 1 180px;min-width:0;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
 #pv2-demandas .pv2-alto{display:flex;flex-wrap:wrap;gap:14px;align-items:stretch}
-#pv2-demandas .pv2-alto > .pv2-fala{flex:1 1 320px}
-#pv2-demandas .pv2-alto > .pv2-kpi{flex:0 1 170px;width:170px}
 #pv2-demandas .pv2-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 #pv2-demandas .pv2-pop-filtros{gap:10px;width:min(620px,86vw);max-height:min(70vh,560px);overflow:auto;padding:14px}
 #pv2-demandas .pv2-pop-linha{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -184,9 +164,6 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 #pv2-demandas .pv2-cr{flex:none;display:flex;align-items:center;gap:8px;width:118px;min-width:0;font-size:var(--d3-fs-texto)}
 #pv2-demandas .pv2-dono-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #pv2-demandas .pv2-sem-dono{appearance:none;min-height:0;margin:0;padding:0;border:0;border-radius:4px;background:none;box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:#B42318;white-space:nowrap;cursor:pointer}
-#pv2-demandas .pv2-seta{flex:none;display:grid;place-items:center;width:14px;height:14px;transition:transform .2s}
-#pv2-demandas .pv2-seta svg{width:14px;height:14px;fill:none;stroke:#6B665E;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-#pv2-demandas .pv2-linha[aria-expanded="true"] .pv2-seta{transform:rotate(90deg)}
 #pv2-demandas .pv2-det{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding:12px 14px;border-radius:14px;background:#F9F8F5}
 #pv2-demandas .pv2-etapas{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
 #pv2-demandas .pv2-det-linha{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
@@ -198,7 +175,6 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 #pv2-demandas :is(#demandas-grupos-btn,#demandas-agenda-btn,.dem-colunas){display:none}
 @media (max-width:760px){
   #pv2-demandas .pv2-topo h2{font-size:26px}
-  #pv2-demandas .pv2-alto > .pv2-kpi{flex:1 1 120px;width:auto}
   #pv2-demandas .pv2-busca{flex-basis:100%}
   #pv2-demandas .pv2-lin{flex-wrap:wrap;gap:6px 10px}
   #pv2-demandas .pv2-nome{flex-basis:100%;white-space:normal}
@@ -220,7 +196,6 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 #pv2-agenda .pv2a-duas.larga{grid-template-columns:minmax(0,1fr)}
 #pv2-agenda .pv2a-duas > .pv2-card{display:flex;flex-direction:column}
 #pv2-agenda .pv2a-cab{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-#pv2-agenda .pv2a-acao > .pv2a-cab{align-items:baseline;margin-bottom:2px}
 #pv2-agenda .pv2a-cab h3{flex:1;min-width:0;font:600 var(--d3-fs-destaque)/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:0;color:#1F1D1A}
 #pv2-agenda .pv2-lin{display:flex;align-items:center;gap:12px;min-width:0;padding:12px 0;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
 #pv2-agenda .pv2-lin[role="button"]{cursor:pointer}
@@ -229,21 +204,11 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 #pv2-agenda .pv2-det{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:12px 14px;border-radius:14px;background:#F9F8F5;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
 #pv2-agenda .pv2-det b{font-weight:700;color:#1F1D1A}
 #pv2-agenda .pv2-det-acoes{display:flex;flex-wrap:wrap;gap:8px}
-#pv2-agenda .pv2a-pe{margin-top:auto;padding-top:8px}
 #pv2-agenda .pv2-nada{padding:8px 0}
-#pv2-agenda .pv2a-dia{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif}
-#pv2-agenda .pv2a-cab + .pv2a-dia,#pv2-agenda .pv2a-dia.hj,#pv2-agenda .pv2a-dia.hj + .pv2a-dia{border-top-color:transparent}
-#pv2-agenda .pv2a-dia.hj{margin:0 -10px;padding:9px 10px;border-radius:14px;background:#F9F8F5}
 #pv2-agenda .pv2a-d{appearance:none;flex:none;width:62px;min-height:0;margin:0;padding:0;border:0;border-radius:6px;background:none;box-shadow:none;text-align:left;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:#4A463F;cursor:pointer}
 #pv2-agenda .pv2a-d b{margin-left:4px;font:700 var(--d3-fs-titulo) var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#1F1D1A}
 #pv2-agenda .pv2a-d:hover b{text-decoration:underline}
-#pv2-agenda .pv2a-evs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
-#pv2-agenda .pv2a-ev{appearance:none;display:inline-flex;align-items:center;gap:7px;max-width:100%;height:28px;min-height:0;margin:0;padding:0 11px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:400 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:inset 0 0 0 1px #E6E0D6}
-#pv2-agenda .pv2a-ev::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,#3B5BA9)}
-#pv2-agenda .pv2a-ev time{font-weight:600;color:#4A463F}
-#pv2-agenda .pv2a-ev:hover,#pv2-agenda .pv2a-ev.sel{box-shadow:inset 0 0 0 1.5px #1F1D1A}
-#pv2-agenda .pv2a-ev:focus-visible,#pv2-agenda .pv2a-d:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
-#pv2-agenda button.pv2a-data{appearance:none;border:0;margin:0;cursor:pointer}
+#pv2-agenda .pv2a-d:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 #pv2-agenda .pv2a-semana.carregando{opacity:.6}
 #pv2-agenda .pv2a-inspetor{display:block}
 @media (max-width:900px){
@@ -255,59 +220,8 @@ body[data-modo]:not([data-modo="gestor"]) :is(#pv2-painel,#pv2-semana){display:n
 }
 
 /* ---------- IA e custos ---------- */
-#pv2-ia{display:flex;flex-direction:column;gap:16px}
-#pv2-ia .pv2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-right:92px}
-#pv2-ia .pv2-topo h2{flex:1 1 180px;min-width:0;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
-#pv2-ia .pv2i-tres{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}
-#pv2-ia .pv2i-gasto{display:flex;gap:18px}
-#pv2-ia .pv2i-gasto > .pv2-kpi{flex:none}
-#pv2-ia .pv2-kpi > b{white-space:nowrap}
-#pv2-ia .pv2-kpi.atencao > b{color:#7A4A00}
-#pv2-ia .pv2i-sob{margin-top:8px}
-#pv2-ia .pv2i-dias-caixa{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end}
-#pv2-ia .pv2i-dias{display:flex;align-items:flex-end;gap:3px;height:74px}
-#pv2-ia .pv2i-dias i{display:block;flex:1;min-width:1px;height:var(--h);border-radius:3px 3px 1px 1px;background:#D9D3C8;transform-origin:bottom;animation:pv2i-sobe .9s cubic-bezier(.2,.8,.2,1) both}
-#pv2-ia .pv2i-dias i.pico{background:#1F1D1A}
 @keyframes pv2i-sobe{from{transform:scaleY(0)}to{transform:none}}
-#pv2-ia .pv2i-eixo{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
-#pv2-ia .pv2i-eixo span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-#pv2-ia .pv2i-eixo i{display:inline-block;width:8px;height:8px;border-radius:2px;background:#1F1D1A}
-#pv2-ia .pv2i-baixo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:stretch}
-#pv2-ia .pv2i-baixo > .pv2-card{display:flex;flex-direction:column}
-#pv2-ia .pv2i-cab{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
-#pv2-ia .pv2i-cab h3{flex:1;font:600 var(--d3-fs-destaque)/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:0;color:#1F1D1A}
-#pv2-ia .pv2-lin{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
-#pv2-ia .pv2-lin[role="button"]{cursor:pointer}
-#pv2-ia .pv2i-cab + .pv2-linha > .pv2-lin{border-top-color:transparent}
-#pv2-ia .pv2-lin > p{flex:1;min-width:0}
-#pv2-ia .pv2-hist{display:flex;align-items:center;gap:8px;padding:0 0 10px 84px;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#4A463F}
-#pv2-ia .pv2-hist::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#C9C2B6}
-#pv2-ia .pv2i-vazio{display:flex;align-items:center;gap:12px;margin-top:auto;padding:10px 14px;border-radius:14px;background:#F3F1EC}
-#pv2-ia .pv2i-vazio p{flex:1;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter),sans-serif;color:#4A463F}
-#pv2-ia .pv2i-vazio b{color:#1F1D1A}
-#pv2-ia .pv2i-duas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
-#pv2-ia .pv2i-gx{display:grid;grid-template-columns:28px 84px minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif}
-#pv2-ia .pv2i-cab + .pv2i-gx{border-top-color:transparent}
-#pv2-ia .pv2i-gx > b{min-width:62px;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;text-align:right;white-space:nowrap}
-#pv2-ia .pv2i-gx .v2-barra{background:#EAE6DE}
-#pv2-ia .pv2i-gx .pv2-av{cursor:default}
-#pv2-ia .pv2-av.lil{background:#EEEAFB;color:#4B36A8}
-#pv2-ia .pv2i-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#pv2-ia .pv2i-nome small{display:block;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter),sans-serif;color:#6B665E;overflow:hidden;text-overflow:ellipsis}
-#pv2-ia .pv2i-pe{margin-top:auto;padding-top:10px}
-#pv2-ia .pv2i-rodape{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-#pv2-ia .pv2i-rodape > p{flex:1 1 260px}
-#pv2-ia .pv2i-pop{top:auto;bottom:calc(100% + 8px);gap:10px;width:min(360px,86vw);padding:14px}
-#pv2-ia .pv2i-pop .ai-setting-field{display:flex;flex-direction:column;gap:4px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:#4A463F}
-#pv2-ia .pv2i-pop :is(input,select){height:36px;box-sizing:border-box;padding:0 12px;border:0;border-radius:10px;background:#FFFFFF;color:#1F1D1A;font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;box-shadow:inset 0 0 0 1px #E6E0D6}
-@media (prefers-reduced-motion:reduce){#pv2-ia .pv2i-dias i{animation:none}}
-@media (max-width:900px){
-  #pv2-ia .pv2i-tres,#pv2-ia .pv2i-baixo,#pv2-ia .pv2i-duas{grid-template-columns:minmax(0,1fr)}
-  #pv2-ia .pv2i-gasto{flex-direction:column}
-  #pv2-ia .pv2-topo h2{font-size:26px;flex-basis:100%}
-  #pv2-ia .pv2-hist{padding-left:0}
-}
-@media (max-width:640px){#pv2-agenda .pv2a-cab{flex-wrap:wrap;gap:4px 8px}#pv2-agenda .pv2a-cab h3{flex:1 1 auto}#pv2-agenda .pv2-lin > p{flex:1 1 150px}#pv2-agenda .pv2a-dia{align-items:flex-start}}
+@media (max-width:640px){#pv2-agenda .pv2a-cab{flex-wrap:wrap;gap:4px 8px}#pv2-agenda .pv2a-cab h3{flex:1 1 auto}#pv2-agenda .pv2-lin > p{flex:1 1 150px}}
 
 /* Acabamento premium (15/11/2026, item 13): no celular o cabeçalho do Painel de trabalho e da Agenda quebrava em quatro
    linhas soltas (título, abas, "Modos"/"Novo conteúdo" sozinhos, a data caindo por último). Fica em três linhas fixas:

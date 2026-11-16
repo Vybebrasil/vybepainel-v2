@@ -10,7 +10,6 @@
 .vv-gestao:has(> .vv-g-corpo > .g2-topo) > :is(.vv-g-topo,.vv-g-abas){display:none}
 .vv-gestao .g2-topo{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 16px;padding:0;border:0;background:none;position:static}
 .vv-gestao .g2-topo > h2{flex:1 1 auto;min-width:0;margin:0;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
-.vv-gestao .g2-topo .g2-topo-sub{font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
 .vv-gestao .g2-topo .g2-vaga{display:contents}
 .vv-gestao .g2-topo .g2-fechar{display:none;width:38px;padding:0}
 .vv-gestao .g2-topo .g2-fechar svg{width:14px;height:14px}
@@ -68,9 +67,7 @@
 .vv-gestao .g2-duas{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:stretch}
 .vv-gestao .g2-duas.mods{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
 .vv-gestao .g2-duas.iguais{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-.vv-gestao .g2-col{display:flex;flex-direction:column;gap:14px;min-width:0}
-.vv-gestao .g2-col > .g2-entregas{flex:1}
-.vv-gestao .g2-duas > .g2-card,.vv-gestao .g2-entregas{display:flex;flex-direction:column}
+.vv-gestao .g2-duas > .g2-card{display:flex;flex-direction:column}
 /* Linhas de "Pede ação": pílula, texto e o botão na linha; o detalhe abre no lugar. */
 .vv-gestao .g2-linha{border-top:1px solid #F1EDE6}
 .vv-gestao .g2-card-topo + .g2-linha{border-top:0}
@@ -92,7 +89,6 @@
 .vv-gestao .g2-pe{font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E;padding-top:8px}
 .vv-gestao .g2-resto > .g2-pe{border-top:1px solid #F1EDE6}
 .vv-gestao .g2-resto,.vv-gestao .g2-pe-fim{margin-top:auto}
-.vv-gestao .g2-pe-topo{padding-top:6px}
 .vv-gestao .g2-vazio{padding:14px 0 4px;font-size:var(--d3-fs-texto);color:#6B665E}
 /* Cliente: a bolinha na cor da carteira e o nome em negrito. */
 .vv-gestao .g2 :is(.g2-lin-txt,.g2-hist,.g2-fx-st) .cliente-carteira{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;border-radius:0;background:none;font:inherit;font-weight:600}
@@ -112,22 +108,9 @@
 .vv-gestao .g2-mod > small{font:600 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
 .vv-gestao .g2-mod > span{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;color:#6B665E}
 .vv-gestao .g2-mod > span > b{font:700 22px/1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A;font-variant-numeric:tabular-nums}
-/* Performance: a fila por etapa e os três números das entregas. */
-.vv-gestao .g2-fx{display:grid;grid-template-columns:112px minmax(0,1fr) 34px 92px;align-items:center;gap:10px;padding:10px 0;font-size:var(--d3-fs-texto)}
-.vv-gestao .g2-fx-st{min-width:0;display:flex;overflow:hidden}
-.vv-gestao .g2-fx-st > *{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vv-gestao .g2-fx-n{appearance:none;margin:0;padding:0;border:0;border-radius:6px;background:none;color:#1F1D1A;font:700 var(--d3-fs-destaque) var(--vv-titulo,"Inter Tight"),Inter,sans-serif;text-align:right;font-variant-numeric:tabular-nums;cursor:pointer}
-.vv-gestao .g2-fx-at{appearance:none;margin:0;padding:0;border:0;border-radius:6px;background:none;color:#B42318;font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;text-align:left;white-space:nowrap}
-.vv-gestao button.g2-fx-at{cursor:pointer}
-.vv-gestao .g2-fx-at.calmo{color:#6B665E}
-.vv-gestao .g2-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:auto;padding-top:14px}
-.vv-gestao .g2-mini > span{display:block;font-size:var(--d3-fs-apoio);color:#6B665E}
-.vv-gestao .g2-mini > b{display:block;margin:2px 0;font:600 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
-.vv-gestao .g2-entregas .vs-grafico{margin:8px 0 0}
 /* "Abrir:" no pé: as outras abas viram fichas. */
 .vv-gestao .g2-abrir{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:#6B665E}
 .vv-gestao .g2-abrir > span:first-child{margin-right:2px}
-.vv-gestao .g2-abrir-fim{margin-left:auto}
 .vv-gestao .g2-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:500 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
 .vv-gestao .g2-chip:hover{box-shadow:inset 0 0 0 1px #1F1D1A}
 /* O que a tela antiga mostrava a mais: fechado, a um clique. */
@@ -173,27 +156,11 @@
   .vv-gestao .g2-lin > .g2-btn{margin-left:auto}
   .vv-gestao .g2-hists,.vv-gestao .g2-hists.fx{padding-left:0}
   .vv-gestao .g2-mods-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .vv-gestao .g2-fx{grid-template-columns:96px minmax(0,1fr) 30px 84px;gap:8px}
   .vv-gestao .g2-dia{grid-template-columns:72px minmax(0,1fr) 62px;gap:8px}
-  .vv-gestao .g2-minis{grid-template-columns:minmax(0,1fr)}
-  .vv-gestao .g2-abrir-fim{margin-left:0;flex:1 1 100%}
   .vv-gestao .g2-card-topo{flex-wrap:wrap}
 }
 
 /* Fiel ao quadro */
-/* Performance (D3-Performance): os zerados numa linha de pílulas verdes claras, no pé de "Pede ação". */
-.vv-gestao .g2-pede .g2-zerados{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 16px 12px;border-top:1px solid var(--d3-linha,#F1EDE6)}
-.vv-gestao .g2-pede .g2-zerados > span:first-child{margin-right:4px;font:400 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado,#6B665E)}
-.vv-gestao .g2-pede .g2-zerados > .g2-zero{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-pronto-veu,#E8F5EC);color:var(--d3-pronto,#11613A);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;white-space:nowrap}
-/* Gestão (D3-Gestao): o ícone de cada setor na cor do grupo do menu; o detalhe da Produção em pílulas lado a lado; o
-   selo "só donos" no canto do número da sobra. */
-.vv-gestao .d3g-set .d3g-set-nome{display:inline-flex;align-items:center;gap:8px;min-width:0}
-.vv-gestao .d3g-set .d3g-set-ic{display:inline-flex;flex:none;width:16px;height:16px;color:var(--d3-mod-operacao)}
-.vv-gestao .d3g-set .d3g-set-ic.negocio{color:var(--d3-mod-negocio)}
-.vv-gestao .d3g-set .d3g-set-ic > svg{width:16px;height:16px}
-.vv-gestao .d3g-set .d3g-set-pills{flex-direction:row;flex-wrap:wrap}
-.vv-gestao .d3g-set .d3g-set-pills .d3s-pill{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vv-gestao .d3g-nums > .d3-num .d3g-sub .d3g-selo{position:absolute;top:12px;right:14px;margin:0}
 /* Visão do setor (D3-VisaoSetor): a carga de cada pessoa em linha (peças por dia na semana), o atualizar só no ícone
    redondo e o dia com a hora ao lado do título. */
 .vv-gestao.vv-setor-visao .d3s-pes > .d3-graf{width:100%;max-width:120px;height:24px;justify-self:end}
