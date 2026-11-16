@@ -2150,6 +2150,22 @@ function pv2PintarVista(vista) {
 // dia que já passou com peça aberta fica em vermelho. Clicar no dia abre a lista dele (a de sempre, onde a peça abre e
 // muda de data); dia vazio cadastra. Na coluna de consulta: o laranja com as vencidas do mês, as carteiras (o mesmo
 // recorte Todos, Viniceta e Galeguinho), o que ficou fora do feed, a esteira e as datas comemorativas.
+// Dentro do dia, as peças em etiquetas (Paulo, 16/11: "preciso que apareça cada demanda pra eu arrastar e ver o status
+// sem abrir"). A etiqueta é o bloco do calendário de antes no padrão V2: mesmo abrir (managerCalendarOpen) e mesmo
+// arrastar (managerCalendarDragStart/End); o status vai no ponto, no title e por escrito quando a célula é larga.
+// Passou de PV2_MES_PECAS, o "+N" abre a lista do dia.
+const PV2_MES_PECAS = 12;
+function pv2MesPecaHtml(item) {
+  const fonte = item.calendarSource === 'request' ? 'request' : 'content', id = jsArg(item.id);
+  const status = String(item.status || 'Sem status'), cliente = clientesDoItem(item)[0] || item.cliente || '';
+  const cor = managerCalendarStatusColor(item, (typeof corDeStatus === 'function' ? corDeStatus(status)?.cor : '') || '#9A948A');
+  const dono = item.responsavel && item.responsavel !== '—' ? firstName(item.responsavel) : 'Sem responsável';
+  const dica = `${cliente || 'Sem cliente'} · ${item.nome || 'Sem título'} · ${status} · ${dono}. Clique para abrir, arraste para mudar a data`;
+  return `<button type="button" draggable="true" data-vt="peca-${safeText(String(item.id))}" class="d3m-a-pc${atividadeDoDiaConcluida(item) ? ' feita' : ''}" title="${safeText(dica)}" aria-label="${safeText(dica)}"`
+    + ` onclick="managerCalendarOpen('${fonte}','${id}',event)" ondragstart="managerCalendarDragStart('${fonte}','${id}',event)" ondragend="managerCalendarDragEnd()">`
+    + `<i class="d3m-a-pc-st" style="--st:${safeText(cor)}" aria-hidden="true"></i><span class="d3m-a-pc-t"><b>${safeText(cliente || 'Sem cliente')}</b> ${safeText(pv2Titulo(item) || 'Sem título')}</span>`
+    + `<span class="d3m-a-pc-s">${safeText(status)}</span></button>`;
+}
 function pv2MesHtml({ meta, grouped, clients, semCarteira, escolhido }) {
   const hoje = pv2HojeIso();
   const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(meta.first);
@@ -2170,9 +2186,17 @@ function pv2MesHtml({ meta, grouped, clients, semCarteira, escolhido }) {
     const dia = cell.date.getDate(), pct = n ? Math.round(ok * 100 / n) : 0;
     const conta = !n ? '' : venceu ? `<span class="d3m-a-dia-n r"><b>${abertas}</b> <span>${pv2Pl(abertas, 'vencida', 'vencidas')}</span></span>` : `<span class="d3m-a-dia-n"><b>${ok}</b> / ${n} <span>${pv2Pl(n, 'pronta', 'prontas')}</span></span>`;
     const fala = `${dia} de ${nomeMes}${eHoje ? ', hoje' : ''}${doDia.length ? `, ${doDia[0].nome}` : ''}: ${!n ? 'sem peças, cadastrar neste dia' : venceu ? `${abertas} ${pv2Pl(abertas, 'vencida', 'vencidas')} de ${n}` : `${ok} de ${n} ${pv2Pl(n, 'pronta', 'prontas')}`}`;
-    return `<button type="button" class="d3m-a-dia${eHoje ? ' hoje' : ''}${venceu ? ' venc' : ''}${n ? '' : ' vazio'}" data-date="${cell.iso}"${previaDoDiaAttrs(itens, planningDateBr(cell.iso).slice(0, 5))} onclick="${n ? `abrirDiaDoCalendario(event,'${cell.iso}')` : `managerCalendarAdd('${cell.iso}')`}" ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)" aria-label="${safeText(fala)}" title="${n ? 'Ver as peças deste dia' : 'Cadastrar neste dia'}">`
-      + `<span class="d3m-a-dia-topo"><b>${dia}</b><small>${safeText(nota)}</small></span>`
-      + `<span class="d3m-a-dia-pe">${conta}${n ? `<i class="d3m-a-dia-b${venceu ? ' r' : ''}" style="--v:${pct}%"><i></i></i>` : ''}</span></button>`;
+    // Cada peça do dia vira uma etiqueta (ponto do status, cliente e peça) que abre como no calendário de antes e se
+    // arrasta para outro dia: o soltar é o do dia, managerCalendarDrop, a mesma gravação do calendário antigo e da Semana.
+    const ordem = [...itens].sort((a, b) => Number(atividadeDoDiaConcluida(a)) - Number(atividadeDoDiaConcluida(b))
+      || String(clientesDoItem(a)[0] || '').localeCompare(String(clientesDoItem(b)[0] || ''), 'pt-BR') || String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+    const pecas = ordem.slice(0, PV2_MES_PECAS).map(pv2MesPecaHtml).join('');
+    const mais = n > PV2_MES_PECAS ? `<button type="button" class="d3m-a-dia-mais" onclick="abrirDiaDoCalendario(event,'${cell.iso}')" title="Ver as ${n} peças deste dia">+${n - PV2_MES_PECAS} ${pv2Pl(n - PV2_MES_PECAS, 'peça', 'peças')}</button>` : '';
+    return `<div class="d3m-a-dia${eHoje ? ' hoje' : ''}${venceu ? ' venc' : ''}${n ? '' : ' vazio'}" role="group" aria-label="${dia} de ${safeText(nomeMes)}" data-date="${cell.iso}"${previaDoDiaAttrs(itens, planningDateBr(cell.iso).slice(0, 5))} ondragover="managerCalendarDragOver(event,this)" ondragleave="managerCalendarDragLeave(this)" ondrop="managerCalendarDrop('${cell.iso}',event,this)">`
+      + `<button type="button" class="d3m-a-dia-cab" onclick="${n ? `abrirDiaDoCalendario(event,'${cell.iso}')` : `managerCalendarAdd('${cell.iso}')`}" aria-label="${safeText(fala)}" title="${n ? 'Ver as peças deste dia' : 'Cadastrar neste dia'}">`
+      + `<span class="d3m-a-dia-topo"><b>${dia}</b><small>${safeText(nota)}</small>${conta}</span>`
+      + `${n ? `<i class="d3m-a-dia-b${venceu ? ' r' : ''}" style="--v:${pct}%"><i></i></i>` : ''}</button>`
+      + `${n ? `<div class="d3m-a-dia-pcs">${pecas}${mais}</div>` : ''}</div>`;
   }).join('');
   const noMesAtual = !Number(MONTH_OFFSET || 0);
   const titulo = managerCalendarLabel(meta);

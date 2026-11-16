@@ -88,22 +88,39 @@ body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-
 .d3m-a-mes-sem{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));height:26px;padding:0 16px;font:400 var(--d3-fs-apoio)/26px var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
 .d3m-a-mes-sem > span{padding-left:10px}
 .d3m-a-mes-grade{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(var(--linhas,6),minmax(0,1fr));margin:0 16px 16px;border-right:1px solid var(--d3-divisa);border-bottom:1px solid var(--d3-divisa)}
-.d3m-a-dia{appearance:none;display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-width:0;min-height:0;margin:0;padding:8px 10px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-left:1px solid var(--d3-divisa);border-radius:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer;overflow:hidden}
+.d3m-a-dia{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:0;margin:0;padding:6px 6px 4px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-left:1px solid var(--d3-divisa);border-radius:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;overflow:hidden}
 .d3m-a-dia.fora{background:var(--d3m-a-veu-fraco);cursor:default}
-button.d3m-a-dia:hover,.d3m-a-dia.is-drop-target{background:var(--d3-veu)}
-.d3m-a-dia:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-a-dia:not(.fora):hover,.d3m-a-dia.is-drop-target{background:var(--d3-veu)}
+.d3m-a-dia.is-drop-target{box-shadow:inset 0 0 0 2px var(--d3-acao)}
+.d3m-a-dia-cab{appearance:none;flex:none;display:flex;flex-direction:column;gap:4px;width:100%;min-width:0;margin:0;padding:2px 4px;border:0;border-radius:var(--d3-r-botao);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.d3m-a-dia.vazio > .d3m-a-dia-cab{flex:1 1 auto}
+.d3m-a-dia-cab:focus-visible,.d3m-a-pc:focus-visible,.d3m-a-dia-mais:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
 .d3m-a-dia.hoje{box-shadow:inset 0 0 0 2px var(--d3-tinta)}
-.d3m-a-dia-topo{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
+.d3m-a-dia-topo{display:flex;align-items:baseline;gap:6px;min-width:0}
 .d3m-a-dia-topo > b{flex:none;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
 .d3m-a-dia.hoje .d3m-a-dia-topo > b{font-weight:700}
-.d3m-a-dia-topo > small{min-width:0;font-size:var(--d3-fs-mini);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.d3m-a-dia-pe{display:flex;flex-direction:column;gap:5px;min-width:0}
-.d3m-a-dia-n{color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.d3m-a-dia-topo > small{flex:1 1 0;min-width:0;font-size:var(--d3-fs-mini);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-a-dia-n{flex:0 1 auto;min-width:0;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .d3m-a-dia-n > b{font-weight:600;color:var(--d3-tinta)}
 .d3m-a-dia-n.r,.d3m-a-dia-n.r > b{color:var(--d3-perigo)}
-.d3m-a-dia-b{flex:none;display:block;width:100%;height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+.d3m-a-dia-b{flex:none;display:block;width:100%;height:3px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
 .d3m-a-dia-b > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-mod-vybe)}
 .d3m-a-dia-b.r > i{background:var(--d3-perigo)}
+/* As peças do dia: etiquetas de uma linha (ponto do status, cliente e peça). A lista rola dentro da célula; o status por
+   escrito aparece quando a célula é larga, e sempre no title. */
+.d3m-a-dia-pcs{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:2px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;container-type:inline-size}
+.d3m-a-pc{appearance:none;flex:none;display:flex;align-items:center;gap:5px;width:100%;min-width:0;height:20px;margin:0;padding:0 5px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-mini)/20px var(--vv-texto,Inter,sans-serif);text-align:left;cursor:grab}
+.d3m-a-pc:hover{background:var(--d3-veu-forte)}
+.d3m-a-pc:active{cursor:grabbing}
+.d3m-a-pc-st{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-meta))}
+.d3m-a-pc-t{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-a-pc-t > b{font-weight:600}
+.d3m-a-pc-s{display:none;flex:0 1 auto;max-width:45%;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-a-pc.feita{background:none;color:var(--d3-apagado)}
+.d3m-a-pc.feita .d3m-a-pc-t > b{font-weight:500}
+@container (min-width:190px){.d3m-a-pc-s{display:block}}
+.d3m-a-dia-mais{appearance:none;flex:none;width:100%;margin:0;padding:0 5px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-texto2);font:600 var(--d3-fs-mini)/20px var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-a-dia-mais:hover{background:var(--d3-veu)}
 
 /* 4 · GRUPOS. A tabela crua de um grupo: linha de 40, cabeçalho em rótulo, as células com os editores de sempre sem a
    pílula (formato em etiqueta, status em ponto, datas em texto). Na coluna de consulta, o grupo escolhido fica claro. */
@@ -232,7 +249,7 @@ body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-
   body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"]) .container.pv2-casa > #panel-team.d3m-a-v2 > :is(#pv2-eq-carga,#pv2-eq-formato){flex:none}
   .d3m-a-eq-cols{height:200px}
   .d3m-a-g-rola{flex:none;max-height:70vh}
-  .d3m-a-mes-grade{flex:none;grid-template-rows:repeat(var(--linhas,6),72px)}
+  .d3m-a-mes-grade{flex:none;grid-template-rows:repeat(var(--linhas,6),128px)}
 }
 @media (max-width:900px){
   body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel .d3m-tit{flex:1 1 100%;padding-right:52px}
@@ -247,6 +264,7 @@ body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-
   .d3m-a-mes-sem > span{padding-left:4px}
   .d3m-a-mes-grade{margin:0 8px 8px;grid-template-rows:repeat(var(--linhas,6),64px)}
   .d3m-a-dia{padding:6px 4px}
+  .d3m-a-dia-pcs{display:none}
   .d3m-a-dia-topo > small{display:none}
   .d3m-a-dia-n > span{display:none}
 }

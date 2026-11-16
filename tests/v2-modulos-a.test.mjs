@@ -54,6 +54,23 @@ test('Mês: a folha com o resumo de cada dia mantém as funções do calendário
   assert.ok(mes.includes('atividadeDoDiaConcluida'), 'pronta é a regra de sempre (só Finalizado)');
 });
 
+test('Mês: cada dia lista as peças em etiquetas que abrem e se arrastam como no calendário de antes (Paulo, 16/11)', () => {
+  const gestor = ler('vybe-gestor.js'), agenda = ler('vybe-agenda.js');
+  const mes = gestor.slice(gestor.indexOf('const PV2_MES_PECAS'), gestor.indexOf('// GRUPOS (prancha'));
+  const peca = mes.slice(mes.indexOf('function pv2MesPecaHtml'), mes.indexOf('function pv2MesHtml'));
+  assert.ok(peca.includes('draggable="true"'), 'a etiqueta é arrastável');
+  for (const f of ["managerCalendarOpen('${fonte}','${id}',event)", "managerCalendarDragStart('${fonte}','${id}',event)", 'managerCalendarDragEnd()', 'managerCalendarStatusColor(item', 'data-vt="peca-'])
+    assert.ok(peca.includes(f), `a etiqueta usa ${f}`);
+  assert.ok(peca.includes('${safeText(status)}'), 'o status vai por escrito na etiqueta e no title');
+  assert.ok(mes.includes('.map(pv2MesPecaHtml)') && mes.includes('class="d3m-a-dia-pcs"'), 'o dia desenha as peças');
+  assert.ok(mes.includes("ondrop=\"managerCalendarDrop('${cell.iso}',event,this)\""), 'o dia aceita o soltar com a gravação de sempre');
+  assert.ok(mes.includes('class="d3m-a-dia-mais"') && mes.includes("abrirDiaDoCalendario(event,'${cell.iso}')"), 'o +N abre o dia');
+  assert.doesNotMatch(mes, /<button type="button" class="d3m-a-dia[$" ]/, 'o dia não é mais botão: botão dentro de botão não clica');
+  assert.ok(agenda.includes("querySelectorAll('.manager-calendar-day, .d3m-a-dia')"), 'soltar fora limpa o destaque do dia V2');
+  const css = semComentario(ler('padrao-v2/zm-a-1-producao.css'));
+  assert.match(css, /.d3m-a-dia-pcs{[^}]*overflow-y:auto/, 'a lista rola dentro da célula');
+});
+
 test('Grupos: um grupo por vez, com os editores de sempre em cada célula, o lote, a ordem por coluna e o menu do grupo', () => {
   const gestor = ler('vybe-gestor.js'), agenda = ler('vybe-agenda.js');
   assert.match(agenda, /const gruposV2 = quadro === 'producao' && !forcar && !emprestadaAoDa\(cfg\.alvo\)/);
