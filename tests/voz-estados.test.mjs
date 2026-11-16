@@ -61,7 +61,7 @@ function montar({ e: extra = {}, online = true } = {}) {
   });
   for (const n of ['escritorioCanal', 'escritorioFaseChamada', 'escritorioMidiaChamada', 'escritorioTextoTransicao', 'escritorioEstadoChamada', 'escritorioTentarChamadaDeNovo',
     'escritorioTelaParou', 'escritorioMudancaNaSala', 'escritorioTextoMudancaSala', 'escritorioAvisoNaSala', 'escritorioComPrazo', 'entrarChamadaEscritorio', 'escritorioConversaAutomatica',
-    'escritorioTentarVozDeNovo', 'sairChamadaEscritorio', 'alternarMidiaEscritorio', 'escritorioSincronizarVoz', 'escritorioMicDesligouSozinho', 'escritorioOutrosNaChamada', 'escritorioLiberarSom'])
+    'escritorioTentarVozDeNovo', 'sairChamadaEscritorio', 'alternarMidiaEscritorio', 'escritorioSincronizarVoz', 'escritorioMicDesligouSozinho', 'escritorioOutrosNaChamada', 'escritorioLiberarSom', 'escritorioVozCaiu'])
     vm.runInContext(fonte(office, n), c);
   vm.runInContext('var ESCRITORIO_VOZ_PRAZO = 15000;', c);
   // vm.runInContext não expõe const/let do topo: as funções acima são declarações, então ficam em c.
@@ -281,4 +281,58 @@ test('Entrar, Tentar de novo e Usar aqui passam pela mesma porta, que não faz n
   assert.match(f, /\['conectando', 'reconectando', 'na-sala', 'indisponivel', 'sem-voz'\]\.includes\(st\.fase\)\) \{ pintarChamada\(\); return; \}/);
   assert.match(f, /st\.fase === 'caiu'\) \{ pintarChamada\.tentou = true; fn\('escritorioTentarChamadaDeNovo'\)/);
   assert.ok(world.includes("if (a === 'entrar' || a === 'tentar' || a === 'assumir') { entrarPeloTopo(); return; }"));
+});
+
+// Paulo, 16/11/2026: "tá caindo toda hora a chamada, desativando o microfone, quando tá streamando a tela". O motor avisa
+// roomLeft "disconnected" numa oscilação e volta sozinho (roomJoined reconnected), com microfone e tela.
+async function naSalaMostrandoTela() {
+  const m = montar({ e: { microfoneQuer: true } });
+  m.c.escritorioConversaAutomatica(); await m.passar(0);
+  const r = m.tr.reunioes[0];
+  assert.equal(m.e.chamada, r);
+  await m.c.alternarMidiaEscritorio('screen'); await m.passar(0);
+  assert.equal(r.self.screenShareEnabled, true);
+  assert.equal(r.self.audioEnabled, true);
+  return { m, r };
+}
+test('oscilação curta da rede: a mesma reunião segue, com microfone e tela, sem abrir outra', async () => {
+  const { m, r } = await naSalaMostrandoTela();
+  r.self.emit('roomLeft', { state: 'disconnected' });
+  assert.equal(m.e.chamada, r, 'não larga a reunião');
+  assert.equal(m.estado().fase, 'reconectando');
+  assert.ok(!m.avisos.includes('A conversa caiu. Reconectando…'), m.avisos.join(' | '));
+  await m.passar(3000);
+  r.self.emit('roomJoined', { reconnected: true });
+  assert.equal(m.estado().fase, 'na-sala');
+  assert.equal(m.tr.reunioes.length, 1, 'nenhuma reunião nova');
+  assert.equal(r.saiu, false);
+  assert.equal(r.self.screenShareEnabled, true, 'a tela continua');
+  assert.equal(r.self.audioEnabled, true, 'o microfone continua');
+  await m.passar(20000);
+  assert.equal(m.tr.reunioes.length, 1, 'o prazo da oscilação não dispara depois da volta');
+});
+test('oscilação que não volta em 12 s: larga a reunião velha (solta microfone e tela) e entra de novo', async () => {
+  const { m, r } = await naSalaMostrandoTela();
+  r.self.emit('roomLeft', { state: 'disconnected' });
+  await m.passar(11000);
+  assert.equal(m.e.chamada, r);
+  await m.passar(1500);
+  assert.equal(r.saiu, true, 'a reunião velha saiu (leave)');
+  assert.equal(r.self.screenShareEnabled, false, 'a tela da reunião velha foi solta');
+  assert.equal(r.self.audioEnabled, false, 'o microfone da reunião velha foi solto');
+  await m.passar(2000);
+  assert.equal(m.e.chamada, m.tr.reunioes[1]);
+  assert.equal(m.estado().fase, 'na-sala');
+  assert.equal(m.e.chamada.self.audioEnabled, true, 'volta com o microfone ligado');
+});
+test('queda de verdade (failed): larga a reunião velha na hora e entra de novo', async () => {
+  const { m, r } = await naSalaMostrandoTela();
+  r.self.emit('roomLeft', { state: 'failed' });
+  assert.equal(m.e.chamada, null);
+  assert.equal(m.estado().fase, 'reconectando');
+  await m.passar(0);
+  assert.equal(r.saiu, true);
+  assert.equal(r.self.screenShareEnabled, false);
+  await m.passar(1500);
+  assert.equal(m.e.chamada, m.tr.reunioes[1]);
 });
