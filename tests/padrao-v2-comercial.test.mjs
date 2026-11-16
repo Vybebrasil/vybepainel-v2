@@ -60,66 +60,88 @@ function orcamentos() {
 }
 const respostas = (url) => (url.includes('aba=funil') ? funil() : url.includes('aba=pacotes') ? { ok: true, pode, hoje, pacotes, produtos: calc.produtoCampeao(ops, pacotes) } : url.includes('aba=orcamentos') ? orcamentos() : { ok: true });
 
-// Direção 3 (moodboard 3, 13/11/2026): CRM e funil, Produtos e pacotes e Orçamentos pelos quadros D3. A ordem é a do
-// quadro: título com o mês, "Como funciona" e a ação em branco; o bloco de ação laranja; quatro números; as fichas; o
-// quadro ou a tabela ao lado de "Pede ação". O que o quadro não mostra fica a um clique.
-test('CRM e funil: bloco de ação com a proposta parada, quatro números, fichas das etapas e as colunas de todas as fases', async () => {
+// Módulos V2 (prancha V2-M-Comercial, 16/11/2026): CRM e funil no esqueleto da prancha. A janela é vidro; o topo tem o
+// título que abre as outras telas, a linha de apoio e as ferramentas; três números em folha; o quadro com todas as fases
+// abertas; Ganho e Perdido no pé; e a coluna de consulta com o laranja, as conversas, por que se perde e o "Abrir".
+test('CRM e funil: topo no vidro, três números, o quadro de todas as fases, Ganho e Perdido no pé e a coluna de consulta', async () => {
   const { ctx, janela, clicar, pedidos } = comercial(respostas);
   ctx.VybeComercial.abrir('funil', { abas: ['funil'] }); await esperar();
   let html = janela().innerHTML;
-  assert.equal(janela().className, 'vc v2c d3c');
-  // Fiel ao quadro (14/11): metas e etapas no menu ⋯ do topo; "Dono: todos" no fim das fichas; o SDR no pé da coluna Novo.
-  naOrdem(html, ['<div class="v2c-topo d3c-topo"><h2>CRM e funil</h2><span class="d3c-sub">', 'aria-label="Visão do funil"', 'Como funciona</button>', '<details class="d3c-menu">', 'data-v2="mes"', 'data-vc="etapas">Configurar etapas</button>', 'class="v2c-btn d3c-novo" data-vc="lead">',
-    '<section class="d3-acao"', '<div class="d3c-nums', '<div class="d3c-etapas"', '<span class="d3c-dono">', 'data-vc-filtro="dono"', '<div class="v2c-quadro d3c-quadro"', '<span class="d3c-sdr">']);
-  assert.doesNotMatch(html, /class="d3c-mais"|<select/);
-  assert.match(html, /<span class="d3c-sdr"><i aria-hidden="true">S<\/i>SDR · nada para aprovar<\/span>/);
-  assert.ok(!/class="v2c-btn p"/.test(html), 'o único laranja cheio é o bloco de ação');
-  assert.match(html, /Academia E · proposta sem resposta há 8 dias\.<\/span><\/span><button type="button" class="d3-acao-btn" data-v2="paradas" data-id="6">Ver a proposta<\/button>/);
-  naOrdem(html, ['>Em negociação</span>', 'abertas · R$ 9.900/mês', '>Meta do mês</span>', 'R$ 3,8 mil de 10 mil', 'class="d3-barra"', '>Taxa de ganho</span>', '50%', '>Paradas 5+ dias</span>', 'a mais antiga há 8 dias']);
-  // Fichas: Abertas e uma por fase, com a contagem em negrito; a vazia apagada.
-  assert.match(html, /data-v2="fase" data-id="" aria-pressed="true">Abertas <b>6<\/b><\/button>/);
-  assert.equal((html.match(/class="d3c-et[^"]*" data-v2="fase" data-id="[a-z_]+" data-v2-solta/g) || []).length, fases.length);
-  assert.match(html, /class="d3c-et z" data-v2="fase" data-id="apresentacao"[^>]*><i style="--c:#579BFC"><\/i>Apresentação <b>0<\/b>/);
-  // Colunas: todas as fases abertas, até três cartões; Ganho e Perdido no pé da última.
-  assert.equal((html.match(/<section class="v2c-colu d3c-colu"/g) || []).length, 5);
-  assert.match(html, /<b>Novo<\/b><span>3 · R\$ 2,8 mil<\/span>/);
-  assert.match(html, /class="d3c-fim-b g" data-v2="fase" data-id="ganho"[^>]*><span>Ganho<\/span><span>1 · R\$ 3,8 mil<\/span>/);
-  assert.match(html, /data-id="perdido"[^>]*><span>Perdido<\/span><span>1 · preço 1<\/span>/);
+  assert.equal(janela().className, 'vc d3m-d-m');
+  naOrdem(html, ['<div class="d3m-d-topo d3m-d-cm-topo">', '<details class="d3m-d-troca">', '<h2>Comercial</h2>', 'data-v2="ir" data-id="funil" aria-current="page">CRM e funil</button>', 'data-v2="ir" data-id="conversas">', 'data-v2="ir" data-id="pacotes">', 'data-v2="ir" data-id="orcamentos">', 'data-v2="ir" data-id="contratos">', 'data-v2="ir" data-id="churn">',
+    '<span class="d3m-d-sub">CRM e funil · ', ' · 6 abertas · taxa de ganho de 50%</span>', 'aria-label="Visão do funil"', '<select class="d3m-d-sel" data-vc-filtro="dono"', '<option value="">Dono: todos</option>', 'data-v2="busca"', '<details class="d3m-d-mais">', 'data-vc="ajuda"', 'data-v2="mes"', 'data-vc="etapas">Configurar etapas</button>', 'data-vc="fechar">Fechar</button>', 'class="d3m-d-vbtn p" data-vc="lead">',
+    '<div class="d3m-d-cm" data-tela="cm-funil">', '<div class="d3m-d-nums">', '<div class="d3m-d-cm-quadro"', '<div class="d3m-d-cm-fim">', '<aside class="d3m-lado d3m-d-cm-lado"', '<section class="d3m-laranja d3m-d-cm-pesa"', 'aria-label="Conversas"', 'aria-label="Por que se perde"', '<nav class="d3m-cons d3m-d-cm-abrir"']);
+  assert.doesNotMatch(html, /v2c-topo|d3c-|class="d3-acao"/, 'nada do esqueleto anterior');
+  // O laranja é a proposta mais parada, com o valor (quem vê é dono) e os dois botões.
+  naOrdem(html, ['VYBES · proposta parada</span>', '<b class="d3m-lar-num">8 dias</b>', 'sem resposta de Academia E</span>', 'Proposta de R$ 3.200 por mês.', 'data-v2="ir" data-id="conversas">Retomar a conversa</button>', 'class="d3m-btn l s" data-v2="paradas" data-id="6">Ver a proposta</button>']);
+  // Três números: em negociação, a meta do mês e as paradas (em vermelho, e o número abre a proposta).
+  naOrdem(html, ['<span>Em negociação</span>', '>R$ 9,9 mil</b>', '6 oportunidades abertas, por mês', '<span>Meta de ', '>R$ 3,8 mil<small> / 10 mil</small></b>', '38% da meta, com 1 ganho', 'class="d3m-d-anel g"', 'data-v2="paradas" data-id="6" class="d3m-d-folha d3m-d-num">', '<span>Paradas há mais de 5 dias</span>', '<b class="d3m-d-num-v r">1</b>', 'a mais antiga há 8 dias']);
+  // O quadro: todas as fases abertas, com a contagem e a soma por mês; o SDR e o lead novo no pé da coluna Novo.
+  assert.equal((html.match(/<section class="d3m-d-cm-col"/g) || []).length, 5);
+  assert.match(html, /<b title="Novo">Novo <span>3<\/span><\/b><span>R\$ 2,8 mil<\/span>/);
+  assert.match(html, /<b title="Primeiro contato">1º contato <span>1<\/span><\/b>/);
+  assert.match(html, /<span class="d3m-d-cm-sdr">SDR · nada para aprovar<\/span><button type="button" class="d3m-d-cm-aqui" data-vc="lead">/);
+  assert.match(html, /data-v2="fase" data-id="ganho" data-v2-solta="ganho" aria-pressed="false"><i class="d3m-pt g"><\/i><span><b>Ganho<\/b> · 1 em [a-zç]+<\/span><b class="d3m-vn">R\$ 3,8 mil<\/b>/);
+  assert.match(html, /data-v2="fase" data-id="perdido" aria-pressed="false"><i class="d3m-pt"><\/i><span><b>Perdido<\/b> · 1, por preço<\/span><b class="d3m-vn">R\$ 1,5 mil<\/b>/);
   assert.ok(html.includes('Clínica &lt;i&gt;A&lt;/i&gt;') && !html.includes('<i>A</i>'), 'nome escapado');
-  assert.match(html, /<b>Academia E<\/b><span class="d3c-av" title="Vinícius">VI<\/span>/);
-  assert.match(html, /<span class="v2c-pill a">parado 8 d<\/span>/);
-  // O cartão abre no lugar com o próximo passo e os botões.
+  // O cartão: empresa e valor; há quanto tempo (em vermelho quando parou) e quem cuida. Abre no lugar com os botões.
   const cartao = html.slice(html.indexOf('data-v2-linha="op:6"'), html.indexOf('data-v2-linha="op:7"'));
-  naOrdem(cartao, ['draggable="true" data-v2-arrasta="6"', 'data-v2="abre" data-id="op:6"', '<div class="v2-mais">', 'Proposta enviada em ', '<b>Próximo passo:</b>', 'data-v2="liguei" data-id="6"', '>Avançar etapa</button>', '>Perdido</button>']);
+  naOrdem(cartao, ['draggable="true" data-v2-arrasta="6"', 'data-v2="abre" data-id="op:6"', '<b>Academia E</b><span>R$ 3.200 por mês</span>', '<span class="r">parada há 8 dias</span><i class="d3m-d-cm-av" title="Vinícius">VI</i>', '<div class="d3m-d-cm-mais">', 'Proposta enviada em ', '<b>Próximo passo:</b>', 'data-v2="liguei" data-id="6"', '>Avançar etapa</button>', '>Perdido</button>']);
+  assert.match(html, /<span class="g">ligar amanhã<\/span>/);
+  // Por que se perde: o motivo abre as perdidas dele; o "Abrir" leva às outras telas.
+  assert.match(html, /<button type="button" data-v2="motivo" data-id="preco"[^>]*><span>Preço<\/span><span class="d3m-vbarra"><i style="--v:100%"><\/i><\/span><b>1<\/b><\/button>/);
+  naOrdem(html.slice(html.indexOf('d3m-d-cm-abrir')), ['data-v2="ir" data-id="pacotes"><span><b>Produtos e pacotes</b> · 4 ativos</span>', 'data-id="orcamentos"><span><b>Orçamentos</b>', 'data-id="contratos"><span><b>Contratos</b>', 'data-id="churn"><span><b>Churn</b>']);
   clicar({ v2: 'liguei', id: '6' }, { textContent: '' }); await esperar();
   assert.deepEqual(pedidos.find((p) => p.corpo?.acao === 'comentar')?.corpo, { acao: 'comentar', id: '6', observacao: 'Liguei para o contato.' });
+  // Uma fase só, a lista e "Metas, corrida e formulário" abrem em folha, no lugar do quadro.
   clicar({ v2: 'fase', id: 'ganho' }); html = janela().innerHTML;
-  assert.match(html, /<div class="v2c-quadro d3c-quadro foco">[\s\S]*Cliente G/);
+  assert.match(html, /<section class="d3m-d-folha d3m-d-cm-folha" aria-label="Ganho">[\s\S]*data-v2="fase" data-id="ganho">voltar ao quadro<\/button>[\s\S]*Cliente G/);
+  assert.doesNotMatch(html, /class="d3m-d-cm-quadro"/);
+  clicar({ v2: 'motivo', id: 'preco' }); html = janela().innerHTML;
+  assert.match(html, /aria-label="Perdido">[\s\S]*data-vc-motivo="preco" aria-pressed="true"[\s\S]*Pizzaria H/);
   clicar({ v2: 'visao', id: 'lista' }); html = janela().innerHTML;
-  assert.match(html, /<h3>Abertas<\/h3><small>6<\/small>/); assert.ok(html.indexOf('Academia E') < html.indexOf('Provedor F'), 'a mais parada primeiro');
+  assert.match(html, /<h3>Abertas<\/h3><small>6 · da proposta mais parada para a mais nova<\/small>/); assert.ok(html.indexOf('Academia E</b> · ') < html.indexOf('Provedor F</b> · '), 'a mais parada primeiro');
   assert.ok(!html.includes('Corrida comercial'));
   clicar({ v2: 'mes' }); html = janela().innerHTML;
-  assert.match(html, /<div class="v2c-resto">[\s\S]*Metas de [\s\S]*class="d3-graf"[\s\S]*Corrida comercial/);
+  assert.match(html, /aria-label="Metas, corrida e formulário">[\s\S]*<div class="d3m-d-cm-resto">[\s\S]*Metas de [\s\S]*class="d3-graf"[\s\S]*Corrida comercial/);
   assert.ok(!html.includes('class="vc-g-barra"'), 'série de meses em linha, não em barra');
-  assert.match(html, /data-vc="etapas">Configurar etapas<\/button>/);
-  // "Dono: todos" filtra pelo responsável da oportunidade ("-" = sem responsável).
-  clicar({ v2: 'visao', id: 'quadro' }); clicar({ v2: 'fase', id: '' });
+  // "Dono: todos" filtra pelo responsável da oportunidade ("-" = sem responsável); a busca, pelo nome da empresa.
+  clicar({ v2: 'visao', id: 'quadro' });
   janela().ouvintes.change[0]({ target: { dataset: { vcFiltro: 'dono' }, value: '-' } }); html = janela().innerHTML;
   assert.ok(html.includes('data-v2-linha="op:1"') && !html.includes('data-v2-linha="op:6"'), 'só a oportunidade sem responsável');
+  janela().ouvintes.change[0]({ target: { dataset: { vcFiltro: 'dono' }, value: '' } });
+  clicar({ v2: 'busca' }); janela().ouvintes.input[0]({ target: { dataset: { vcBusca: 'funil' }, value: 'academ' } }); html = janela().innerHTML;
+  assert.match(html, /class="d3m-d-cm-busca" data-vc-busca="funil"[^>]*value="academ"/);
+  assert.ok(html.includes('data-v2-linha="op:6"') && !html.includes('data-v2-linha="op:7"'), 'só a empresa buscada');
 });
 
-test('funil vazio: as fichas em 0, o bloco de ação e a linha tracejada com "Cadastrar o primeiro lead"', async () => {
+test('funil para quem não é dono: nenhum valor em dinheiro na tela (o servidor tira e a tela não monta)', async () => {
+  const semValor = () => { const f = funil(); return { ...f, pode: { ver_dinheiro: false, editar_comercial: true, editar_pacotes: false } }; };
+  const { ctx, janela, clicar } = comercial((url) => (url.includes('aba=funil') ? semValor() : { ok: true }));
+  ctx.VybeComercial.abrir('funil', { abas: ['funil'] }); await esperar();
+  let html = janela().innerHTML;
+  // Mesmo com os valores na resposta (não deveriam vir), a tela não monta dinheiro para quem não vê dinheiro.
+  assert.doesNotMatch(html, /R\$/, 'nenhum valor no quadro');
+  naOrdem(html, ['<span>Em negociação</span>', '<b class="d3m-d-num-v">6</b>', 'oportunidades abertas', 'sem resposta de Academia E</span>', 'Proposta enviada e sem retorno.']);
+  assert.match(html, /<b>Academia E<\/b><span>Vinícius<\/span>/, 'no lugar do valor, quem cuida');
+  assert.doesNotMatch(html, /data-vc="valor"|data-vc="etapas"|data-vc="metas"/);
+  for (const passo of [{ v2: 'visao', id: 'lista' }, { v2: 'fase', id: 'ganho' }, { v2: 'fase', id: 'perdido' }]) { clicar(passo); html = janela().innerHTML; assert.doesNotMatch(html, /R\$/, 'nenhum valor em ' + passo.id); }
+});
+
+test('funil vazio: o mesmo esqueleto, com as colunas vazias e "Cadastrar o primeiro lead" no laranja', async () => {
   const { ctx, janela } = comercial(() => ({ ok: true, pode: { editar_comercial: true }, valor_disponivel: true }));
   ctx.VybeComercial.abrir('funil', { abas: ['funil'] }); await esperar();
   const html = janela().innerHTML;
-  assert.equal((html.match(/class="d3c-et(?: g)? z"/g) || []).length, calc.FASES.length);
-  assert.doesNotMatch(html, /class="v2c-quadro/);
-  // Acabamento 15/11: um botão por ação; "Cadastrar o primeiro lead" mora no bloco laranja e a linha tracejada só explica.
-  assert.match(html, /Nenhuma oportunidade ainda\.<\/span><\/span><button type="button" class="d3-acao-btn" data-vc="lead">Cadastrar o primeiro lead<\/button>/);
-  assert.match(html, /<div class="v2c-vz"><p><b>Nenhuma oportunidade ainda\.<\/b> As 7 etapas ficam em 0\.<\/p><\/div>/);
-  assert.equal((html.match(/data-vc="lead"/g) || []).length, 1);
+  assert.equal((html.match(/<section class="d3m-d-cm-col"/g) || []).length, calc.FASES.length - 2, 'todas as fases abertas, vazias');
+  assert.doesNotMatch(html, /class="d3m-d-cm-op"/);
+  assert.match(html, /<span class="d3-acao-frase">Nenhuma oportunidade ainda<\/span>[\s\S]*class="d3m-btn l" data-vc="lead">Cadastrar o primeiro lead<\/button>/);
+  naOrdem(html, ['<span>Em negociação</span>', '<b class="d3m-d-num-v">0</b>', '<b class="d3m-d-num-v">—</b>', 'sem meta ainda', 'nenhuma proposta parada', 'Nenhuma perda registrada.']);
+  // Sem oportunidade aberta, o lead novo mora no laranja e no pé da coluna Novo; o topo não repete.
+  assert.doesNotMatch(html, /class="d3m-d-vbtn p" data-vc="lead"/);
 });
 
+// Direção 3 (moodboard 3, 13/11/2026): Produtos e pacotes e Orçamentos pelos quadros D3: título com o mês, "Como funciona" e a
+// ação em branco; o bloco de ação laranja; quatro números; as fichas; a tabela ao lado de "Pede ação".
 test('Produtos e pacotes: bloco de ação do sem preço, quatro números, fichas, a tabela e "Pede ação"', async () => {
   const { ctx, janela, clicar } = comercial(respostas);
   ctx.VybeComercial.abrir('pacotes', { abas: ['pacotes'] }); await esperar();

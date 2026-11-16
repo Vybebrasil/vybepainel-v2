@@ -81,7 +81,8 @@ test('Funil (padrão v2): uma etapa por fase mesmo vazia, Novo lead no título e
   });
   ctx.VybeComercial.abrir('funil'); await esperar();
   let html = janela().innerHTML;
-  assert.equal((html.match(/class="d3c-et(?: g)? z"/g) || []).length, calc.FASES.length, 'sem resposta do funil, as fases padrão vazias (tracejadas)');
+  assert.equal((html.match(/<section class="d3m-d-cm-col"/g) || []).length, calc.FASES.length - 2, 'sem resposta do funil, as fases abertas padrão em colunas vazias (prancha V2-M-Comercial)');
+  assert.doesNotMatch(html, /class="d3m-d-cm-op"/);
   assert.doesNotMatch(html, /Novo lead/, 'só quem edita o comercial vê o botão');
 
   comDados = true; ctx.VybeComercial.abrir('funil'); await esperar();

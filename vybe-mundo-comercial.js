@@ -426,6 +426,9 @@
     if (a === 'ver-ganhos') { v.fase = 'ganho'; v.visao = 'quadro'; return irPara('funil'); }
     if (a === 'usar') { v.usar = id; return irPara('orcamentos'); }
     if (a === 'contratos') { fechar(); window.VybeCarteira?.abrir?.('contratos'); return; }
+    if (a === 'ir') return irMod(id);
+    if (a === 'motivo') { st.filtro.motivo = id; v.fase = 'perdido'; v.mes = false; pintar(); return; }
+    if (a === 'busca') { v.busca = !v.busca; if (!v.busca) st.filtro.funil = ''; pintar(); if (v.busca) raiz()?.querySelector?.('[data-vc-busca="funil"]')?.focus?.(); return; }
     if (a === 'duplicar') {
       const d = st.dados.orcamentos, o = d?.orcamentos.find((x) => String(x.id) === id); if (!o) return;
       const qtd = {}; for (const i of o.itens || []) if (d.pacotes.some((p) => String(p.id) === String(i.pacote_id))) qtd[i.pacote_id] = (qtd[i.pacote_id] || 0) + (Number(i.quantidade) || 1);
@@ -451,13 +454,13 @@
       const c = st.dados.creators?.creators.find((x) => String(x.id) === alvo); if (!c) return;
       return concluir(t, () => comercial({ acao: 'creator_salvar', id: c.id, nome: c.nome, arroba: c.arroba ? '@' + c.arroba : '', seguidores: c.seguidores ?? '', engajamento: c.engajamento ?? '', nicho: c.nicho || '', cidade: c.cidade || '', contato: valor, observacoes: c.observacoes || '' }), t.dataset.feito || 'Salvo');
     }
-    if (a === 'visao') { v.visao = id === 'lista' ? 'lista' : 'quadro'; v.fase = ''; }
-    else if (a === 'fase') v.fase = v.fase === id ? '' : id;
+    if (a === 'visao') { v.visao = id === 'lista' ? 'lista' : 'quadro'; v.fase = ''; v.mes = false; }
+    else if (a === 'fase') { v.fase = v.fase === id ? '' : id; v.mes = false; }
     else if (a === 'mostra') v.mostra[id] = true;
     else if (['mes', 'cap', 'roi', 'colunas', 'fin'].includes(a)) v[a] = !v[a];
     else if (a === 'chip') { v.chip[st.aba] = id; v.mostra = {}; v.aberta = ''; }
     else if (a === 'filtros') v.filtros[st.aba] = !v.filtros[st.aba];
-    else if (a === 'paradas') { v.visao = 'quadro'; v.fase = 'proposta'; v.aberta = id ? 'op:' + id : ''; }
+    else if (a === 'paradas') { v.visao = 'quadro'; v.fase = 'proposta'; v.mes = false; v.aberta = id ? 'op:' + id : ''; }
     // 8 · Troca de visão (quadro ↔ lista) e 7 · chip que voa (fase e chips): o cartão do negócio voa para o lugar novo.
     if (['visao', 'fase', 'chip'].includes(a) && typeof window.vbTransicao === 'function') { window.vbTransicao(() => pintar(), { tipo: a === 'visao' ? 'visao' : 'chip' }); return; }
     pintar();
@@ -482,6 +485,47 @@
     if (para.id === 'ganho') confirmarGanho(o.id, o.etapa, 'ganho'); else executar(() => crm({ acao: 'mover', id: o.id, de_etapa: o.etapa, etapa: para.id }), 'Etapa registrada.');
   }
   // Cabeçalho do quadro: título, a visão (só no funil), "Como funciona" e a única ação cheia da tela.
+  // ===== Módulos V2 (pranchas V2-M-*, 16/11/2026): a janela é vidro fumê, com o esqueleto da prancha =====
+  // Topo direto no vidro (o título abre as outras telas do Comercial, a linha de apoio diz o que há e as ferramentas à
+  // direita), números em folha com o selo e o gráfico na cor do que dizem, o trabalho no meio e a coluna de consulta no
+  // vidro, com o cartão laranja em cima. As peças são .d3m-* (z-direcao.css) e .d3m-d-* (zm-d-0-pecas.css); o desenho
+  // de cada tela mora em padrao-v2/zm-d-comercial.css. A tela diz o que vai no topo em topoDaVez, ao ser pintada.
+  const M = new Set(['funil']);
+  let topoDaVez = null;
+  const ICM = { seta: svg('<path d="M9 6l6 6-6 6"/>'), busca: svg('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svg('<path d="M5 12h.01M12 12h.01M19 12h.01"/>'),
+    ok: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'), alerta: svg('<path d="M12 7v6M12 17h.01"/>'), zap: svg('<path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.2A8 8 0 1 1 20 11.5z"/>') };
+  const VISTAS_COM = [['funil', 'CRM e funil'], ['conversas', 'Conversas'], ['pacotes', 'Produtos e pacotes'], ['orcamentos', 'Orçamentos'], ['contratos', 'Contratos'], ['churn', 'Churn']];
+  // Ir a outra tela do Comercial pelo item do menu lateral (marca o item e abre a janela certa); sem o menu, direto.
+  function irMod(id) {
+    const b = document.querySelector?.(`.vv-trilho [data-submodulo="${id}"]`);
+    if (b) { if (id === 'contratos' || id === 'churn') fechar(); b.click(); return; }
+    if (ABAS.some((a) => a[0] === id)) return abrir(id, st.soAbas ? { abas: [id] } : {});
+    if (id === 'contratos' || id === 'churn') { fechar(); window.VybeCarteira?.abrir?.(id); }
+  }
+  // O topo no vidro. Sem os dados (carregando ou erro), só o título com o menu e o "Mais".
+  function topoM(t) {
+    const nome = (VISTAS_COM.find((x) => x[0] === st.aba) || [0, 'Comercial'])[1];
+    const itens = [`<button type="button" role="menuitem" data-vc="ajuda" aria-expanded="${st.ajuda}">Como funciona</button>`, ...(t?.mais || []), '<button type="button" role="menuitem" data-vc="fechar">Fechar</button>'];
+    return `<div class="d3m-d-topo d3m-d-cm-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="Comercial: ir a outra tela"><h2>Comercial</h2>${IC.baixo}</summary>
+        <div class="d3m-d-pop">${VISTAS_COM.map(([id, n]) => `<button type="button" data-v2="ir" data-id="${id}"${id === st.aba ? ' aria-current="page"' : ''}>${esc(n)}</button>`).join('')}</div></details>
+        <span class="d3m-d-sub">${t?.sub || esc(nome)}</span></div>
+      <div class="d3m-d-ferr">${t?.ferr || ''}<details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais opções" title="Mais opções">${ICM.pontos}</summary><div class="d3m-d-pop" role="menu">${itens.join('')}</div></details>${t?.acao || ''}</div></div>`;
+  }
+  // Número em folha: rótulo e selo em cima; embaixo o número de 28 (na cor do que diz), a linha de apoio e o gráfico.
+  function numM({ rotulo, selo: s = '', ic = '', valor, de = '', tom = '', sub = '', graf = '', attrs = '' }) {
+    const tag = attrs ? 'button' : 'div';
+    return `<${tag}${attrs ? ` type="button" ${attrs}` : ''} class="d3m-d-folha d3m-d-num"><span class="d3m-d-num-cab"><span>${esc(rotulo)}</span><span class="d3m-d-selo${s ? ' ' + s : ''}">${ic}</span></span>
+      <span class="d3m-d-num-pe"><span><b class="d3m-d-num-v${tom ? ' ' + tom : ''}">${esc(valor)}${de ? `<small> ${esc(de)}</small>` : ''}</b><small>${sub}</small></span>${graf}</span></${tag}>`;
+  }
+  // Gráficos pequenos do número: a linha com o véu, o anel de quanto da meta e as barras.
+  function miniM(vals, cls = '') {
+    const v = (vals || []).map(Number).filter(Number.isFinite); if (v.length < 2) return '';
+    const mn = Math.min(...v), mx = Math.max(...v), w = 84, h = 40;
+    const fio = v.map((n, i) => `${i ? 'L' : 'M'}${(2 + (i * (w - 4)) / (v.length - 1)).toFixed(1)} ${(mx === mn ? h / 2 : h - 3 - ((n - mn) * (h - 6)) / (mx - mn)).toFixed(1)}`).join(' ');
+    return `<svg class="d3m-d-mini${cls ? ' ' + cls : ''}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path class="veu" d="${fio} V${h} H2 Z"/><path class="fio" d="${fio}"/></svg>`;
+  }
+  const anelM = (pct, cls = '') => { const c = 2 * Math.PI * 16, k = Math.max(0, Math.min(100, Number(pct) || 0)); return `<svg class="d3m-d-anel${cls ? ' ' + cls : ''}" viewBox="0 0 40 40" aria-hidden="true"><circle class="trilho" cx="20" cy="20" r="16"/><circle class="fio" cx="20" cy="20" r="16" stroke-dasharray="${((c * k) / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`; };
+  const barrasM = (vals, cls = '') => { const v = (vals || []).map(Number).filter(Number.isFinite), mx = Math.max(1, ...v); return v.length ? `<span class="d3m-d-barrinhas${cls ? ' ' + cls : ''}" aria-hidden="true">${v.map((n) => `<i style="--v:${Math.max(12, Math.round((n / mx) * 100))}%"></i>`).join('')}</span>` : ''; };
   function topoV2(d) {
     const aba = st.aba, titulo = TITULO[aba] || (ABAS.find((a) => a[0] === aba) || [0, 'Comercial'])[1];
     // Funil: sem oportunidade aberta, "Cadastrar lead" mora no bloco laranja; o "Novo lead" do topo não repete (acabamento 15/11).
@@ -577,7 +621,8 @@
     const motivoSel = st.filtro.motivo || '', comMotivo = r.motivos_perda.filter((x) => x.quantidade);
     const maiorMotivo = [...comMotivo].sort((a, b) => b.quantidade - a.quantidade)[0];
     // "Dono: todos" (Direção 3): o quadro e a lista mostram só as oportunidades do responsável escolhido ("-" = sem responsável).
-    const donoSel = st.filtro.dono || '', doDono = (o) => !donoSel || (donoSel === '-' ? !o.responsavel_nome : o.responsavel_nome === donoSel);
+    const donoSel = st.filtro.dono || '', buscaF = st.v2.busca ? norm(st.filtro.funil || '').trim() : '';
+    const doDono = (o) => (!donoSel || (donoSel === '-' ? !o.responsavel_nome : o.responsavel_nome === donoSel)) && (!buscaF || norm(o.nome).includes(buscaF));
     const opsDa = (id) => d.oportunidades.filter((o) => doDono(o) && faseDe(o.etapa) === id && (id !== 'perdido' || !motivoSel || o.motivo_perda === motivoSel));
     const etapa = (f) => {
       const n = Number(f.atual) || 0, soma = val && f.id !== 'perdido' ? d.oportunidades.filter((o) => faseDe(o.etapa) === f.id).reduce((s, o) => s + (Number(o.valor_mensal) || 0), 0) : 0;
@@ -625,7 +670,7 @@
     const linhaVazia = !d.oportunidades.length ? vazioV2(`<b>Nenhuma oportunidade ainda.</b> As ${num(r.fases.length)} etapas ficam em 0.${ligado ? '' : ' O valor da negociação ainda não está disponível.'}`, (podeLead && !ehD3() ? botao('Cadastrar o primeiro lead', 'data-vc="lead"') : '') + falta)
       : !ligado ? vazioV2('<b>O valor da negociação ainda não está disponível.</b> O funil já funciona; valor e follow-up aparecem aqui assim que estiverem disponíveis.', falta) : '';
     const campeao = d.produtos?.campeao ? `<p class="vc-dica">Produto campeão: <b>${esc(d.produtos.campeao.nome)}</b> (${num(d.produtos.campeao.ganhos)} ganhos)${d.produtos.ticket_medio_mensal != null ? ' · ticket médio ' + din(d.produtos.ticket_medio_mensal) + '/mês' : ''}${d.produtos.ticket_medio_avulso ? ' · ' + din(d.produtos.ticket_medio_avulso) + ' avulso' : ''}</p>` : '';
-    if (ehD3()) return funilD3({ p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, encerradas, meta, editaMeta, linhaVazia, falta, tecnico, campeao, podeLead, donoSel, faseDe, todas: d.oportunidades });
+    if (M.has('funil')) return funilM({ p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, meta, editaMeta, falta, tecnico, campeao, podeLead, donoSel, todas: d.oportunidades, ligado });
     return `${falaHtml(frase, paradas.length ? botao(paradas.length === 1 ? 'Ver a proposta' : `Ver as ${num(paradas.length)}`, `data-v2="paradas" data-id="${esc(paradas[0].id)}"`) : '')}
       ${numeros}
       <div class="v2c-etapas" role="group" aria-label="Etapas do funil">${r.fases.map(etapa).join('')}</div>
@@ -633,90 +678,105 @@
       <p class="v2c-sub v2c-pe">O SDR propõe empresas pelo CRM do 1º andar. O cartão abre no lugar com o próximo passo; Ganho e Perdido abrem a lista ao clicar${p.editar_comercial ? '; arrastar o cartão também avança a etapa' : ''}.${[m && m.periodo ? elo(`Metas, corrida e formulário de leads · ${v.mes ? 'recolher' : 'mostrar'}`, `data-v2="mes" aria-expanded="${v.mes}"`) : '', p.editar_pacotes ? elo('Configurar etapas', 'data-vc="etapas"') : ''].filter(Boolean).map((x) => ' ' + x).join(' ·')}</p>
       ${v.mes ? `<div class="v2c-resto">${campeao}${blocoMes(d)}</div>` : ''}`;
   }
-  // CRM e funil pela Direção 3: o bloco de ação com a proposta mais parada, quatro números, as etapas em fichas com a
-  // contagem, as colunas de todas as fases abertas (até três cartões, o resto em "mostrar") e Ganho e Perdido no pé da
-  // última coluna. O cartão abre no lugar com o próximo passo e os botões, como antes.
-  function funilD3(x) {
-    const { p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, encerradas, meta, editaMeta, linhaVazia, falta, tecnico, campeao, podeLead, donoSel, faseDe, todas } = x;
+  // CRM e funil na prancha V2-M-Comercial: três números em folha (em negociação, a meta e as paradas), o quadro com
+  // todas as fases abertas em colunas no vidro (o cartão de 84 com a empresa, o valor, há quanto tempo e quem cuida; a
+  // lista rola por dentro da coluna e o cartão abre no lugar com o próximo passo e os botões), Ganho e Perdido em duas
+  // linhas no pé e, na coluna de consulta, o cartão laranja com a proposta mais parada, as conversas do WhatsApp, por
+  // que se perde e o "Abrir". Lista, uma fase só e "Metas, corrida e formulário" abrem no lugar do quadro.
+  // Dinheiro só com val (dono e migração aplicada): sem ele, o cartão mostra quem cuida e os números viram contagem.
+  function funilM(x) {
+    const { p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, meta, editaMeta, falta, tecnico, campeao, podeLead, donoSel, todas, ligado } = x;
+    const d = d3Dados(), hoje = d?.hoje || hojeIso(), mesIso = m?.periodo?.mes || st.periodo.mes || hoje.slice(0, 7), mesNome = MESES[Number(String(mesIso).slice(5, 7)) - 1] || 'mês';
     const somaMes = (ops) => ops.reduce((s, o) => s + (Number(o.valor_mensal) || 0), 0);
-    const quanto = (ops) => `${num(ops.length)}${val && somaMes(ops) ? ' · ' + milhar(somaMes(ops)) : ''}`;
-    const cor = (id) => COR_FASE[id] || '#C4C4C4';
-    // O selo curto do cartão (o próximo passo já vai escrito embaixo): parado, enviada, o dia ou há quanto chegou.
-    const hoje = d3Dados()?.hoje || hojeIso();
-    const seloCurto = (o) => {
-      const s = seloDe(o); if (!s) return null;
-      const n = parada(o);
-      if (n != null) return n > 5 ? ['a', `parado ${num(n)} d`] : ['n', n ? `${num(n)} d` : 'hoje'];
-      if (ehDia(o.proxima_acao_data) && !['ganho', 'perdido'].includes(o.etapa)) {
-        const k = diasEntre(hoje, o.proxima_acao_data);
-        return k < 0 ? ['r', 'desde ' + dm(o.proxima_acao_data)] : ['n', k === 0 ? 'hoje' : k === 1 ? 'amanhã' : k < 7 ? DIAS_SEM[new Date(o.proxima_acao_data + 'T12:00:00Z').getUTCDay()].slice(0, 3) + ' ' + dm(o.proxima_acao_data).slice(0, 2) : dm(o.proxima_acao_data)];
-      }
-      if (/^há \d+/.test(s[1])) return ['n', s[1].replace(/^há (\d+) dias?$/, '$1 d')];
-      if (s[1] === 'chegou hoje') return ['n', 'hoje'];
-      return s;
+    // Há quanto tempo, na cor do que diz: vermelho no que passou do prazo, verde no que está marcado.
+    const quando = (o) => {
+      const s = seloDe(o);
+      if (s) return [s[0] === 'r' ? 'r' : s[0] === 'a' ? 'g' : '', s[1].replace(/^(\d+) dias sem resposta$/, 'parada há $1 dias')];
+      if (!ehDia(o.criado_dia)) return ['', ''];
+      const k = diasEntre(o.criado_dia, hoje); return ['', k <= 0 ? 'hoje' : `há ${plural(k, 'dia', 'dias')}`];
     };
-    const cartao = (o, naLista) => {
-      const id = esc(o.id), ab = v.aberta === 'op:' + o.id, fim = ['ganho', 'perdido'].includes(o.etapa);
-      const av = o.responsavel_nome ? `<span class="d3c-av" title="${esc(o.responsavel_nome)}">${esc(iniciais(o.responsavel_nome))}</span>` : '';
-      const valor = val && (o.valor_mensal || o.valor_avulso) ? `<span class="d3c-op-v"><b>${esc(reais(o.valor_mensal || o.valor_avulso))}</b> ${o.valor_mensal ? '/mês' : 'avulso'}</span>` : `<span class="d3c-op-v">${esc(o.responsavel_nome || 'Sem responsável')}</span>`;
-      const passo = naLista ? etapaNome(o.etapa) : !fim && String(o.proxima_acao || '').trim() ? '→ ' + o.proxima_acao : '';
-      return `<article class="v2c-op d3c-op v2-abre" data-v2-linha="op:${id}" data-vt="op-${id}" aria-expanded="${ab}"${p.editar_comercial && !fim ? ` draggable="true" data-v2-arrasta="${id}"` : ''}>
-        <button type="button" class="v2c-op-lin d3c-op-lin" data-v2="abre" data-id="op:${id}" aria-expanded="${ab}"><span class="d3c-op-t"><b>${esc(o.nome)}</b>${av}</span>
-          <span class="d3c-op-m">${valor}${selo(seloCurto(o))}</span>${passo ? `<span class="d3c-passo">${esc(passo)}</span>` : ''}</button>
-        <div class="v2-mais"><div>${detalhe(o)}</div></div></article>`;
+    const av = (o) => (o.responsavel_nome ? `<i class="d3m-d-cm-av" title="${esc(o.responsavel_nome)}">${esc(iniciais(o.responsavel_nome))}</i>` : '');
+    const valorDe = (o) => (val && (o.valor_mensal || o.valor_avulso) ? `${reais(o.valor_mensal || o.valor_avulso)} ${o.valor_mensal ? 'por mês' : 'avulso'}` : o.responsavel_nome || 'Sem responsável');
+    const arrasta = (o) => (p.editar_comercial && !['ganho', 'perdido'].includes(o.etapa) ? ` draggable="true" data-v2-arrasta="${esc(o.id)}"` : '');
+    const cartao = (o) => {
+      const id = esc(o.id), ab = v.aberta === 'op:' + o.id, [tom, txt] = quando(o);
+      return `<article class="d3m-d-cm-op" data-v2-linha="op:${id}" data-vt="op-${id}" aria-expanded="${ab}"${arrasta(o)}>
+        <button type="button" class="d3m-d-cm-op-b" data-v2="abre" data-id="op:${id}" aria-expanded="${ab}"><span class="d3m-d-cm-op-t"><b>${esc(o.nome)}</b><span>${esc(valorDe(o))}</span></span>
+          <span class="d3m-d-cm-op-pe"><span${tom ? ` class="${tom}"` : ''}>${esc(txt)}</span>${av(o)}</span></button>
+        <div class="d3m-d-cm-mais">${detalhe(o)}</div></article>`;
     };
-    const ganhos = opsDa('ganho'), perdidas = opsDa('perdido');
-    const fimHtml = `<div class="d3c-fim"><button type="button" class="d3c-fim-b g" data-v2="fase" data-id="ganho" aria-pressed="${v.fase === 'ganho'}"><span>Ganho</span><span>${esc(quanto(ganhos))}</span></button>
-      <button type="button" class="d3c-fim-b" data-v2="fase" data-id="perdido" aria-pressed="${v.fase === 'perdido'}"><span>Perdido</span><span>${num(perdidas.length)}${maiorMotivo ? ' · ' + esc(maiorMotivo.nome.toLowerCase()) + ' ' + num(maiorMotivo.quantidade) : ''}</span></button></div>`;
-    const coluna = (f, max, ultima = false) => {
-      const ops = opsDa(f.id), cabe = max && !v.mostra['f:' + f.id] ? ops.slice(0, max) : ops, resto = ops.length - cabe.length;
-      const filtro = f.id === 'perdido' && comMotivo.length ? `<div class="v2c-chips" role="group" aria-label="Filtrar perdidas por motivo">
-          <button type="button" class="v2c-chip" data-vc-motivo="" aria-pressed="${!motivoSel}">Todos <b>${num(f.atual)}</b></button>
-          ${comMotivo.map((y) => `<button type="button" class="v2c-chip" data-vc-motivo="${esc(y.id)}" aria-pressed="${motivoSel === y.id}" title="${esc(pc(y.percentual))} das perdas">${esc(y.nome)} <b>${num(y.quantidade)}</b></button>`).join('')}</div>` : '';
-      return `<section class="v2c-colu d3c-colu" data-v2-solta="${esc(f.id)}" aria-label="${esc(f.nome)}: ${num(ops.length)}"><h3><i style="--c:${cor(f.id)}"></i><b>${esc(f.nome)}</b><span>${esc(quanto(ops))}</span></h3>${filtro}
-        <div class="v2c-colu-ops">${cabe.map((o) => cartao(o)).join('') || '<p class="v2c-sub d3c-nada">Vazia</p>'}</div>
-        ${resto > 0 ? `<p class="v2c-sub">+ ${num(resto)} · ${elo('mostrar', `data-v2="mostra" data-id="f:${esc(f.id)}"`)}</p>` : ''}${f.id === 'novo' ? sdr : ''}${ultima ? fimHtml : ''}</section>`;
+    const linha = (o) => {
+      const id = esc(o.id), ab = v.aberta === 'op:' + o.id, [tom, txt] = quando(o);
+      return `<article class="d3m-d-cm-li" data-v2-linha="op:${id}" data-vt="op-${id}" aria-expanded="${ab}"${arrasta(o)}>
+        <button type="button" class="d3m-d-lin" data-v2="abre" data-id="op:${id}" aria-expanded="${ab}"><i${tom ? ` class="${tom}"` : ''}></i><span><b>${esc(o.nome)}</b> · ${esc(etapaNome(o.etapa))}</span><small>${esc([val && (o.valor_mensal || o.valor_avulso) ? valorDe(o) : '', txt].filter(Boolean).join(' · '))}</small>${av(o)}</button>
+        <div class="d3m-d-cm-mais">${detalhe(o)}</div></article>`;
     };
-    // Rodapé do SDR na coluna Novo (quadro D3-Funil): quantas empresas o SDR do 1º andar propôs e esperam a aprovação humana.
-    // A origem vem do servidor (origem_tipo: sdr, manual ou formulario, gravada na criação desde 14/11/2026): o SDR conta só
-    // o que ele propôs; o cadastrado à mão (e o formulário) fica de fora da conta e aparece na dica. Sem a origem, a etapa decide.
+    // O SDR do 1º andar (a origem vem do servidor: sdr, manual ou formulario; sem ela, a etapa decide): quantas ele
+    // propôs e esperam a aprovação humana. O que foi cadastrado à mão fica de fora da conta e aparece na dica.
     const novos = opsDa('novo'), comOrigem = novos.some((o) => o.origem_tipo);
     const nSdr = novos.filter((o) => (comOrigem ? o.origem_tipo === 'sdr' : true) && o.etapa === 'abordagem_proposta').length;
     const nMao = comOrigem ? novos.filter((o) => o.origem_tipo && o.origem_tipo !== 'sdr').length : 0;
-    const textoSdr = nSdr ? `SDR · 1º andar propôs ${num(nSdr)}` : 'SDR · nada para aprovar';
-    const sdr = `<span class="d3c-sdr"><i aria-hidden="true">S</i>${nMao ? `<span title="${esc(`Fora da conta do SDR: ${num(nMao)} ${nMao === 1 ? 'cadastrada' : 'cadastradas'} à mão ou pelo formulário`)}">${textoSdr}</span>` : textoSdr}</span>`;
-    const abertasF = r.fases.filter((f) => !['ganho', 'perdido'].includes(f.id));
-    const emFoco = r.fases.find((f) => f.id === v.fase);
-    const corpo = emFoco ? `<div class="v2c-quadro d3c-quadro foco">${coluna(emFoco, 0)}</div>`
-      : v.visao === 'lista' ? (emAberto.length ? `<section class="v2c-card v2c-lista d3c-lista" aria-label="Oportunidades abertas"><div class="v2c-card-topo"><h3>Abertas</h3><small>${num(emAberto.length)}</small></div>${emAberto.map((o) => cartao(o, true)).join('')}</section>` : '')
-        : d3Tem(emAberto, ganhos, perdidas) ? `<div class="v2c-quadro d3c-quadro" style="--n:${abertasF.length}" aria-label="Fases do funil">${abertasF.map((f, i) => coluna(f, 3, i === abertasF.length - 1)).join('')}</div>` : '';
-    // As fichas das etapas: Abertas (todas) e uma por fase, com a bolinha da cor da fase e a contagem.
-    const chip = (f) => {
-      const n = Number(f.atual) || 0, chegaram = Number(f.alcancaram) || 0;
-      const dica = [f.conversao != null ? pc(f.conversao) + ' seguem' : '', f.id === 'perdido' && maiorMotivo ? 'motivo: ' + maiorMotivo.nome.toLowerCase() : '', !['ganho', 'perdido'].includes(f.id) && chegaram ? `${num(chegaram)} ${chegaram === 1 ? 'chegou' : 'chegaram'}` : ''].filter(Boolean).join(' · ');
-      return `<button type="button" class="d3c-et${f.id === 'ganho' ? ' g' : ''}${n ? '' : ' z'}" data-v2="fase" data-id="${esc(f.id)}" data-v2-solta="${esc(f.id)}" aria-pressed="${v.fase === f.id}"${dica ? ` title="${esc(dica)}"` : ''}>${f.id === 'ganho' ? '' : `<i style="--c:${cor(f.id)}"></i>`}${esc(f.nome)} <b>${num(n)}</b></button>`;
+    const sdr = `<span class="d3m-d-cm-sdr"${nMao ? ` title="${esc(`Fora da conta do SDR: ${num(nMao)} ${nMao === 1 ? 'cadastrada' : 'cadastradas'} à mão ou pelo formulário`)}"` : ''}>${nSdr ? `SDR · 1º andar propôs ${num(nSdr)}` : 'SDR · nada para aprovar'}</span>`;
+    const coluna = (f) => {
+      const ops = opsDa(f.id), soma = val ? somaMes(ops) : 0;
+      return `<section class="d3m-d-cm-col" data-v2-solta="${esc(f.id)}" aria-label="${esc(f.nome)}: ${num(ops.length)}"><div class="d3m-d-cm-col-cab"><b title="${esc(f.nome)}">${esc(f.nome.replace(/^Primeiro /, "1º "))} <span>${num(ops.length)}</span></b>${soma ? `<span>${esc(milhar(soma))}</span>` : ''}</div>
+        <div class="d3m-d-cm-ops">${ops.map(cartao).join('')}</div>
+        ${f.id === 'novo' ? `<div class="d3m-d-cm-col-pe">${sdr}${podeLead ? `<button type="button" class="d3m-d-cm-aqui" data-vc="lead">${IC.mais}lead aqui</button>` : ''}</div>` : ''}</section>`;
     };
-    // "Dono: todos" no fim da faixa (quadro D3-Funil): os responsáveis que aparecem nas oportunidades.
-    const donos = [...new Set(todas.map((o) => o.responsavel_nome).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    const semDono = todas.some((o) => !o.responsavel_nome);
-    const dono = `<span class="d3c-dono">${escolhaC({ rotulo: 'Dono:', valor: donoSel, vazio: 'todos', campo: 'data-vc-filtro="dono"', opcoes: [...donos.map((n) => ({ valor: n, nome: n, n: todas.filter((o) => o.responsavel_nome === n).length })), ...(semDono ? [{ valor: '-', nome: 'sem responsável', n: todas.filter((o) => !o.responsavel_nome).length }] : [])] })}</span>`;
-    const etapas = `<div class="d3c-etapas" role="group" aria-label="Etapas do funil"><button type="button" class="d3c-et" data-v2="fase" data-id="" aria-pressed="${!v.fase}">Abertas <b>${num(abertas)}</b></button>${r.fases.map(chip).join('')}${dono}</div>`;
+    const ganhos = opsDa('ganho'), perdidas = opsDa('perdido');
+    const abertasF = r.fases.filter((f) => !['ganho', 'perdido'].includes(f.id)), emFoco = r.fases.find((f) => f.id === v.fase);
+    const chipsMotivo = emFoco?.id === 'perdido' && comMotivo.length ? `<div class="d3m-d-cm-chips" role="group" aria-label="Filtrar perdidas por motivo"><button type="button" data-vc-motivo="" aria-pressed="${!motivoSel}">Todos <b>${num(emFoco.atual)}</b></button>
+        ${comMotivo.map((y) => `<button type="button" data-vc-motivo="${esc(y.id)}" aria-pressed="${motivoSel === y.id}" title="${esc(pc(y.percentual))} das perdas">${esc(y.nome)} <b>${num(y.quantidade)}</b></button>`).join('')}</div>` : '';
+    const folha = (titulo, apoio, volta, corpo, extra = '') => `<section class="d3m-d-folha d3m-d-cm-folha" aria-label="${esc(titulo)}"><div class="d3m-d-cab"><h3>${esc(titulo)}</h3><small>${apoio}</small>${volta}</div>${extra}<div class="d3m-d-cm-rolo">${corpo}</div></section>`;
+    const nada = (frase) => `<p class="d3m-d-cm-nada">${esc(frase)}</p>`;
+    const meio = v.mes && m?.periodo ? folha('Metas, corrida e formulário', esc(mesNome), `<button type="button" class="d3m-d-elo" data-v2="mes" aria-expanded="true">voltar ao quadro</button>`, `<div class="d3m-d-cm-resto">${campeao}${blocoMes(d)}</div>`)
+      : emFoco ? folha(emFoco.nome, num(opsDa(emFoco.id).length), `<button type="button" class="d3m-d-elo" data-v2="fase" data-id="${esc(emFoco.id)}">voltar ao quadro</button>`, opsDa(emFoco.id).map(linha).join('') || nada(emFoco.id === 'perdido' ? (motivoSel ? 'Nenhuma perda com este motivo.' : 'Nenhuma perda registrada. O motivo de cada uma aparece aqui.') : 'Nenhuma oportunidade nesta fase.'), chipsMotivo)
+        : v.visao === 'lista' ? folha('Abertas', `${num(emAberto.length)} · da proposta mais parada para a mais nova`, '', emAberto.map(linha).join('') || nada(todas.length ? 'Nenhuma oportunidade em negociação.' : 'Nenhuma oportunidade ainda.'))
+          : `<div class="d3m-d-cm-quadro" style="--n:${abertasF.length || 1}" aria-label="Fases do funil">${abertasF.map(coluna).join('')}</div>`;
+    // Ganho e Perdido: duas linhas no vidro, que abrem a lista da fase no lugar do quadro.
+    const mrrMes = m?.progresso?.find((y) => y.id === 'mrr'), nGanhoMes = m?.kpis?.atual?.negocios;
+    const fim = `<div class="d3m-d-cm-fim"><button type="button" class="d3m-vlin" data-v2="fase" data-id="ganho" data-v2-solta="ganho" aria-pressed="${v.fase === 'ganho'}"><i class="d3m-pt g"></i><span><b>Ganho</b> · ${nGanhoMes != null ? `${num(nGanhoMes)} em ${esc(mesNome)}` : num(ganhos.length)}</span>${val ? `<b class="d3m-vn">${esc(milhar(nGanhoMes != null && mrrMes ? mrrMes.realizado : somaMes(ganhos)))}</b>` : ''}${ICM.seta}</button>
+      <button type="button" class="d3m-vlin" data-v2="fase" data-id="perdido" aria-pressed="${v.fase === 'perdido'}"><i class="d3m-pt"></i><span><b>Perdido</b> · ${num(perdidas.length)}${maiorMotivo ? `, por ${esc(maiorMotivo.nome.toLowerCase())}` : ''}</span>${val && somaMes(perdidas) ? `<b class="d3m-vn">${esc(milhar(somaMes(perdidas)))}</b>` : ''}${ICM.seta}</button></div>`;
+    // Os três números. A meta em dinheiro só aparece para quem vê dinheiro.
+    const metaV = meta && (val || meta.tipo !== 'dinheiro') ? meta : (m?.progresso || []).find((y) => y.tipo !== 'dinheiro' && y.meta > 0) || null;
     const maisParada = paradas[0];
-    const acao = maisParada ? acaoD3(`${esc(maisParada.nome)} · proposta sem resposta há ${plural(parada(maisParada), 'dia', 'dias')}.`, { texto: 'Ver a proposta', attrs: `data-v2="paradas" data-id="${esc(maisParada.id)}"`, quem: '' })
-      : abertas ? acaoD3(`${val && neg.mensal ? esc(milhar(neg.mensal)) + ' por mês' : plural(abertas, 'oportunidade aberta', 'oportunidades abertas')} em negociação.`, { texto: v.visao === 'lista' ? 'Ver o quadro' : 'Ver a lista', attrs: `data-v2="visao" data-id="${v.visao === 'lista' ? 'quadro' : 'lista'}"`, quem: '' })
-        : acaoD3(todas.length ? 'Nenhuma oportunidade em negociação.' : 'Nenhuma oportunidade ainda.', podeLead ? { texto: todas.length ? 'Cadastrar lead' : 'Cadastrar o primeiro lead', attrs: 'data-vc="lead"', quem: '' } : { quem: '' });
-    const numeros = numerosD3([
-      { rotulo: 'Em negociação', valor: num(abertas), serie: serieAbertas(), sub: val && neg.mensal ? `abertas · ${esc(reais(neg.mensal))}/mês${neg.avulso ? ' + ' + esc(reais(neg.avulso)) + ' avulso' : ''}` : abertas === 1 ? 'aberta' : 'abertas' },
-      { rotulo: m ? (m.periodo.tipo === 'anual' ? 'Meta do ano' : 'Meta do mês') : 'Meta do mês', valor: meta ? (meta.tipo === 'dinheiro' ? `R$ ${curto(meta.realizado)} de ${curto(meta.meta)}` : `${num(meta.realizado)} de ${num(meta.meta)}`) : '—',
-        // Sem meta: o número é "—" e a frase vai embaixo (acabamento 15/11), não "Sem meta" no lugar do número.
-        barra: meta ? meta.barra : null, sub: meta ? (meta.id === 'mrr' ? 'MRR novo' : esc(meta.nome.toLowerCase())) : editaMeta ? `sem meta · ${elo('definir', 'data-vc="metas"')}` : 'sem meta ainda' },
-      { rotulo: 'Taxa de ganho', valor: r.taxa_ganho == null ? '0%' : pc(r.taxa_ganho), sub: encerradas ? `de ${plural(encerradas, 'encerrado', 'encerrados')}` : 'nada encerrado' },
-      { rotulo: 'Paradas 5+ dias', valor: num(paradas.length), tom: paradas.length ? 'a' : '', attrs: maisParada ? `data-v2="paradas" data-id="${esc(maisParada.id)}"` : '',
-        sub: maisParada ? `a mais antiga há ${plural(parada(maisParada), 'dia', 'dias')}` : 'nenhuma', subTom: maisParada ? 'a' : '' },
-    ]);
-    // "Metas, corrida e formulário" e "Configurar etapas" ficam no menu ⋯ do topo (topoV2).
-    return `${acao}${numeros}${etapas}${corpo}${linhaVazia}${st.verFalta && falta ? `<p class="v2c-sub v2c-tec">${tecnico}</p>` : ''}
-      ${v.mes ? `<div class="v2c-resto">${campeao}${blocoMes(d3Dados())}</div>` : ''}`;
+    const numeros = `<div class="d3m-d-nums">${numM({ rotulo: 'Em negociação', selo: 'negocio', ic: IC.marca, valor: val && neg.mensal ? milhar(neg.mensal) : num(abertas), sub: val && neg.mensal ? `${plural(abertas, 'oportunidade aberta', 'oportunidades abertas')}, por mês${neg.avulso ? ' · avulso ' + esc(milhar(neg.avulso)) : ''}` : abertas === 1 ? 'oportunidade aberta' : 'oportunidades abertas', graf: miniM(serieAbertas(), 'l') })}
+      ${numM({ rotulo: m?.periodo?.tipo === 'anual' ? 'Meta do ano' : `Meta de ${mesNome}`, selo: 'vybe', ic: ICM.ok, valor: metaV ? (metaV.tipo === 'dinheiro' ? milhar(metaV.realizado) : num(metaV.realizado)) : '—', de: metaV ? '/ ' + (metaV.tipo === 'dinheiro' ? curto(metaV.meta) : num(metaV.meta)) : '',
+        sub: metaV ? `${num(Math.round(metaV.percentual ?? metaV.barra ?? 0))}% da meta${metaV.id === 'mrr' ? (nGanhoMes != null ? `, com ${plural(nGanhoMes, 'ganho', 'ganhos')}` : '') : ' · ' + esc(metaV.nome.toLowerCase())}` : editaMeta ? `sem meta · ${`<button type="button" class="d3m-d-elo" data-vc="metas">definir</button>`}` : 'sem meta ainda', graf: metaV ? anelM(metaV.barra, 'g') : '' })}
+      ${numM({ rotulo: 'Paradas há mais de 5 dias', selo: paradas.length ? 'r' : '', ic: ICM.alerta, valor: num(paradas.length), tom: paradas.length ? 'r' : '', sub: maisParada ? `a mais antiga há ${plural(parada(maisParada), 'dia', 'dias')}` : 'nenhuma proposta parada', graf: barrasM(paradas.slice(0, 5).map(parada).reverse(), 'r'), attrs: maisParada ? `data-v2="paradas" data-id="${esc(maisParada.id)}"` : '' })}</div>`;
+    // O laranja: a proposta mais parada; sem ela, o que há em negociação ou o primeiro lead.
+    const lar = (rot, n, frase, apoio, bts) => `<section class="d3m-laranja d3m-d-cm-pesa" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${esc(rot)}</span>
+      <div class="d3m-lar-txt">${n ? `<b class="d3m-lar-num">${esc(n)}</b>` : ''}<span class="d3-acao-frase">${frase}</span>${apoio ? `<small>${apoio}</small>` : ''}${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div></section>`;
+    const laranja = maisParada ? lar('proposta parada', plural(parada(maisParada), 'dia', 'dias'), `sem resposta de ${esc(maisParada.nome)}`,
+      `${val && maisParada.valor_mensal ? `Proposta de ${esc(reais(maisParada.valor_mensal))} por mês.` : 'Proposta enviada e sem retorno.'}${ehDia(maisParada.proxima_acao_data) && maisParada.proxima_acao_data < hoje ? ` O retorno era para ${esc(dm(maisParada.proxima_acao_data))}.` : ''}`,
+      `<button type="button" class="d3m-btn l" data-v2="ir" data-id="conversas">Retomar a conversa</button><button type="button" class="d3m-btn l s" data-v2="paradas" data-id="${esc(maisParada.id)}">Ver a proposta</button>`)
+      : abertas ? lar('em negociação', val && neg.mensal ? milhar(neg.mensal) : num(abertas), val && neg.mensal ? 'por mês em negociação' : abertas === 1 ? 'oportunidade aberta' : 'oportunidades abertas', 'Nenhuma proposta parada há mais de 5 dias.',
+        `<button type="button" class="d3m-btn l" data-v2="visao" data-id="${v.visao === 'lista' ? 'quadro' : 'lista'}">${v.visao === 'lista' ? 'Ver o quadro' : 'Ver a lista'}</button>`)
+        : lar('funil', '', todas.length ? 'Nenhuma oportunidade em negociação' : 'Nenhuma oportunidade ainda', 'O SDR propõe empresas pelo CRM do 1º andar.', podeLead ? `<button type="button" class="d3m-btn l" data-vc="lead">${todas.length ? 'Cadastrar lead' : 'Cadastrar o primeiro lead'}</button>` : '');
+    // Conversas: quem espera resposta no WhatsApp da Vybe (a mesma leitura do Hoje; só leitura).
+    const P = window.VybePendencias, pe = P?.estado?.(); if (P && !pe?.dados && !pe?.lendo && !pe?.erro) P.atualizar?.();
+    const esperando = pe?.dados?.atendimento?.clientesEsperando || [];
+    const conversas = `<section class="d3m-cons" aria-label="Conversas"><div class="d3m-cons-cab"><b>Conversas</b><span>WhatsApp, só leitura</span></div>
+      ${esperando.slice(0, 2).map((c) => `<button type="button" class="d3m-vlin" data-pend-cliente="${esc(c.cliente)}" title="${esc(c.autor)}: ${esc(c.texto)}"><i class="d3m-d-cm-zap" aria-hidden="true">${ICM.zap}</i><span><b>${esc(c.cliente)}</b> · ${esc(c.texto)}</span></button>`).join('')
+        || `<button type="button" class="d3m-vlin" data-v2="ir" data-id="conversas"><i class="d3m-d-cm-zap" aria-hidden="true">${ICM.zap}</i><span><b>Abrir as conversas</b> · ${pe?.dados ? 'ninguém esperando' : 'quem espera resposta'}</span>${ICM.seta}</button>`}</section>`;
+    // Por que se perde: os motivos registrados nas perdidas, do maior para o menor; tocar abre as perdidas do motivo.
+    const motivos = [...comMotivo].sort((a, b) => b.quantidade - a.quantidade).slice(0, 3), topoMot = Math.max(1, ...motivos.map((y) => y.quantidade)), nPerd = comMotivo.reduce((s, y) => s + y.quantidade, 0);
+    const perde = `<section class="d3m-cons" aria-label="Por que se perde"><div class="d3m-cons-cab"><b>Por que se perde</b><span>${nPerd ? plural(nPerd, 'perdida', 'perdidas') : ''}</span></div>
+      ${motivos.length ? `<div class="d3m-d-cm-mot">${motivos.map((y) => `<button type="button" data-v2="motivo" data-id="${esc(y.id)}" title="${esc(pc(y.percentual))} das perdas"><span>${esc(y.nome)}</span><span class="d3m-vbarra"><i style="--v:${Math.round((y.quantidade / topoMot) * 100)}%"></i></span><b>${num(y.quantidade)}</b></button>`).join('')}</div>` : '<p class="d3m-vvazio">Nenhuma perda registrada.</p>'}</section>`;
+    const vai = (id, nome, apoio = '') => `<button type="button" class="d3m-vlin" data-v2="ir" data-id="${id}"><span><b>${esc(nome)}</b>${apoio ? ` · ${esc(apoio)}` : ''}</span>${ICM.seta}</button>`;
+    const abrirHtml = `<nav class="d3m-cons d3m-d-cm-abrir" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>${vai('pacotes', 'Produtos e pacotes', d?.pacotes?.length ? plural(d.pacotes.length, 'ativo', 'ativos') : '')}${vai('orcamentos', 'Orçamentos')}${vai('contratos', 'Contratos')}${vai('churn', 'Churn')}</nav>`;
+    // O topo: Quadro ou Lista, o dono, a busca, o "Mais" e o lead novo.
+    const donos = [...new Set(todas.map((o) => o.responsavel_nome).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR')), semDono = todas.some((o) => !o.responsavel_nome);
+    const taxa = r.taxa_ganho == null ? '' : ` · taxa de ganho de ${num(Math.round(Number(r.taxa_ganho) || 0))}%`;
+    topoDaVez = { sub: `CRM e funil · ${esc(nomeMes(mesIso))} · ${plural(abertas, 'aberta', 'abertas')}${taxa}`,
+      ferr: `<span class="d3m-d-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${v.visao === k && !emFoco}">${n}</button>`).join('')}</span>
+        <select class="d3m-d-sel" data-vc-filtro="dono" aria-label="Dono das oportunidades"><option value="">Dono: todos</option>${donos.map((n) => `<option value="${esc(n)}"${donoSel === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}${semDono ? `<option value="-"${donoSel === '-' ? ' selected' : ''}>sem responsável</option>` : ''}</select>
+        ${v.busca ? `<input type="search" class="d3m-d-cm-busca" data-vc-busca="funil" placeholder="Buscar empresa" aria-label="Buscar empresa" value="${esc(st.filtro.funil || '')}">` : ''}<button type="button" class="d3m-d-ico" data-v2="busca" aria-expanded="${Boolean(v.busca)}" aria-label="Buscar" title="Buscar">${ICM.busca}</button>`,
+      mais: [m?.periodo ? `<button type="button" role="menuitem" data-v2="mes" aria-expanded="${Boolean(v.mes)}">Metas, corrida e formulário</button>` : '', p.editar_pacotes ? '<button type="button" role="menuitem" data-vc="etapas">Configurar etapas</button>' : ''].filter(Boolean),
+      acao: podeLead && abertas ? `<button type="button" class="d3m-d-vbtn p" data-vc="lead">${IC.mais}Novo lead</button>` : '' };
+    const aviso = !ligado || falta ? `<p class="d3m-d-cm-aviso" role="note">${ligado ? '' : '<span>O valor da negociação ainda não está disponível. O funil já funciona; valor e follow-up aparecem aqui assim que estiverem disponíveis.</span>'}${falta}${st.verFalta && falta ? `<span class="d3m-d-cm-tec">${tecnico}</span>` : ''}</p>` : '';
+    return `<div class="d3m-d-cm" data-tela="cm-funil"><div class="d3m-d-cm-main">${numeros}${aviso}${meio}${fim}</div>
+      <aside class="d3m-lado d3m-d-cm-lado" aria-label="Consulta">${laranja}${conversas}${perde}${abrirHtml}</aside></div>`;
   }
   const d3Tem = (...listas) => listas.some((l) => l.length);
   const d3Dados = () => st.dados.funil;
@@ -1739,23 +1799,24 @@
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const dinheiro = veDinheiro(), abas = ABAS.filter((a) => (!a[2] || dinheiro) && (!st.soAbas || st.soAbas.has(a[0])));
     if (!abas.some((a) => a[0] === st.aba)) st.aba = 'funil';
-    const d = st.dados[st.aba], erro = st.erro[st.aba], v2 = V2.has(st.aba);
-    el.className = v2 ? (D3.has(st.aba) ? 'vc v2c d3c' : 'vc v2c') : 'vc';
+    const d = st.dados[st.aba], erro = st.erro[st.aba], m = M.has(st.aba), v2 = !m && V2.has(st.aba);
+    el.className = m ? 'vc d3m-d-m' : v2 ? (D3.has(st.aba) ? 'vc v2c d3c' : 'vc v2c') : 'vc';
+    topoDaVez = null;
     let conteudo, telaFin = false;
     if (erro) conteudo = `<div class="vc-vazio"><p>${esc(erro)}</p><button type="button" class="vc-sec" data-vc="recarregar">Tentar de novo</button></div>`;
     else if (!d) conteudo = '<div class="vc-vazio"><p>Carregando…</p></div>';
     else { try { const tela = window.VybeFinancas?.telas?.[st.aba] || window.VybeFinanceiro?.telas?.[st.aba]; telaFin = Boolean(tela); conteudo = tela ? tela({ d, filtro: st.filtro, verFalta: st.verFalta, admin: souAdminAqui(), repintar: pintar, recarregar: () => carregar() }) : PINTOR[st.aba](d); } catch (e) { console.error('[comercial]', e); conteudo = vazio('Não foi possível mostrar esta aba.'); } }
-    el.innerHTML = `${v2 ? topoV2(erro ? null : d) : `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? TITULO[st.aba] || (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
+    el.innerHTML = `${m ? topoM(erro || !d ? null : topoDaVez) : v2 ? topoV2(erro ? null : d) : `<div class="vc-topo"><span class="vc-marca">${IC.marca}</span><span class="vc-titulo"><b>${esc(st.soAbas?.size === 1 ? TITULO[st.aba] || (ABAS.find((a) => a[0] === st.aba) || [0, 'Comercial'])[1] : (st.rotulo || 'Comercial'))}</b><small>${st.soAbas?.size && FRASE[st.aba] ? FRASE[st.aba] : dinheiro ? 'Funil, produtos e o dinheiro da agência' : 'Funil, pacotes, orçamentos e creators'}</small></span>
         ${acaoDoTopo(d)}
         <button type="button" class="vc-icone" data-vc="ajuda" aria-label="Como funciona" aria-pressed="${st.ajuda}" title="Como funciona">${IC.ajuda}</button>
         <button type="button" class="vc-icone" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC.fechar}</button></div>`}
       <nav class="vc-abas" role="tablist" aria-label="Abas do Comercial"${abas.length > 1 ? '' : ' hidden'}>${abas.map(([id, nome]) => `<button type="button" role="tab" data-vc-aba="${id}" aria-selected="${st.aba === id}">${esc(nome)}</button>`).join('')}</nav>
       ${st.ajuda ? `<div class="vc-ajuda" role="note"><b>${esc(abas.find((a) => a[0] === st.aba)?.[1])}</b><p>${esc(AJUDA[st.aba])}</p></div>` : ''}
       ${st.msg && !st.folha ? `<p class="vc-msg-geral${st.msg.startsWith('⚠️') ? ' erro' : ''}" role="status">${esc(st.msg)}</p>` : ''}
-      <div class="vc-corpo${v2 ? ' v2c-corpo' : ''}${st.carregando[st.aba] && d ? ' atualizando' : ''}">${conteudo}</div>${folhaHtml()}`;
+      <div class="vc-corpo${v2 ? ' v2c-corpo' : m ? ' d3m-d-m-corpo' : ''}${st.carregando[st.aba] && d ? ' atualizando' : ''}">${conteudo}</div>${folhaHtml()}`;
     el.classList?.toggle?.('fv2-casa', telaFin);
     const nc = rolagem ? el.querySelector('.vc-corpo') : null; if (nc) nc.scrollTop = rolagem;
-    if (v2 && d && !erro) st.v2.visto[st.aba] = true;
+    if ((v2 || m) && d && !erro) st.v2.visto[st.aba] = true;
     if (idFoco) { const alvo = el.querySelector(`[data-vc-busca="${idFoco}"], [name="${idFoco}"]`); if (alvo) { alvo.focus(); try { alvo.setSelectionRange?.(selFim, selFim); } catch {} } }
   }
   function atualizarAoVivo(form) {
@@ -1854,6 +1915,8 @@
     e.preventDefault(); e.stopPropagation();
     if (st.folha) { st.folha = null; st.msg = ''; pintar(); } else fechar();
   }, true);
+
+  document.addEventListener?.('vybe:pendencias', () => { if (st.aberto && st.aba === 'funil' && !st.folha) pintar(); });
 
   window.VybeComercial = { abrir, fechar, aberto: () => st.aberto, ABAS: ABAS.map(([id, nome, dinheiro]) => ({ id, nome, so_donos: Boolean(dinheiro) })) };
 })();
