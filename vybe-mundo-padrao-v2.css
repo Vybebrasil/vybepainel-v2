@@ -13682,6 +13682,24 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba
 #painel-clientes .fv2-onb-r{flex:1 1 0;min-width:0;color:var(--d3-tinta);overflow-wrap:anywhere}
 #painel-clientes .fv2-onb-lin.falta > .fv2-onb-r{color:var(--d3-rotulo)}
 
+/* 6 · Aba Ecossistema: cada sistema numa linha, com o selo, a situação, o que falta e o botão que resolve. */
+#painel-clientes .fv2-eco-lin{min-height:64px;gap:10px}
+#painel-clientes .fv2-selo{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-pronto);color:var(--d3-contra,var(--d3-escuro-texto))}
+#painel-clientes .fv2-selo.a{background:var(--d3-ajuste-claro);color:var(--d3-tinta-fixa)}
+#painel-clientes .fv2-selo > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-eco-c-selo{flex:0 0 22px}
+#painel-clientes .fv2-eco-nome{flex:0 0 290px;min-width:0;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-eco-nome > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-eco-sit{flex:0 0 150px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-eco-lin > .fv2-eco-sit.g{color:var(--d3-pronto)}
+#painel-clientes .fv2-eco-lin > .fv2-eco-sit.a{color:var(--d3-ambar)}
+#painel-clientes .fv2-eco-det{flex:1 1 0;min-width:0;color:var(--d3-rotulo);overflow:hidden}
+#painel-clientes .fv2-eco-lin > .fv2-eco-det{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+#painel-clientes .fv2-eco-th > .fv2-eco-nome,#painel-clientes .fv2-eco-th > .fv2-eco-det{color:inherit}
+#painel-clientes .fv2-eco-lin > .d3v-btn{flex:none;text-decoration:none}
+#painel-clientes .fv2-eco-pe > .fv2-eco-conta{cursor:default}
+#painel-clientes .fv2-eco-pe > .fv2-eco-conta:hover{color:var(--d3-rotulo)}
+
 /* 9 · Telas menores: uma coluna (a ficha rola por dentro da janela) e a linha da lista em dois andares. */
 @media (max-width:1180px){
   #painel-clientes #client-master-detail > .fv2-aba{height:auto}

@@ -343,16 +343,54 @@ function cadastroLeituraHtml(nome) {
       ${secoes}</div>`;
 }
 
+// Aba Ecossistema (prancha V2-M-Cliente-Ecossistema, 16/11/2026): cada sistema numa linha (o selo, o nome, a situação, o
+// que falta ou o que há e o botão que resolve), o pé com o resumo e, no vidro, o cartão laranja com o que falta ligar,
+// Dados e acessos e "Um cadastro só". A janela de depois do cadastro continua usando ecossistemaHtml.
+const ECO_SUB = { vybe_os: 'operação e painel', cerebro: 'o que ele sabe', bots: 'o grupo do cliente', drive: 'a pasta do cliente', hub: 'o portal do cliente', financas: 'contrato e pagamento' };
+const ECO_SITUACAO = { ok: 'tudo certo', falta: 'falta ligar', conferir: 'para conferir' };
 function ecossistemaDaFichaHtml(nome) {
-  const id = String(idDoCliente(nome) || '');
-  if (!id) return cadastroLeituraHtml(nome);
+  const id = String(idDoCliente(nome) || ''), n = fichaAspas(nome);
+  const pode = typeof podeEditarClientes !== 'function' || podeEditarClientes();
+  const so = (ico, titulo, texto = '', botao = '') => fv2DuasHtml('ecossistema', `<section class="fv2-folha fv2-cheia">${fv2VazioHtml(ico, titulo, texto, botao)}</section>`, '');
+  if (!id) return so('falta', 'Sem cadastro próprio', 'Este nome aparece na operação, mas ainda não tem ficha.',
+    typeof podeEditarClientes === 'function' && podeEditarClientes() ? `<button type="button" class="d3v-btn s" onclick="cadastrarClienteDaOperacao('${n}')">Criar a ficha</button>` : '');
   const estado = FICHA_ECOSSISTEMA[id];
   if (!estado) carregarEcossistema(id).then(() => { if (FICHA_ABA === 'ecossistema' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); });
-  return `<section class="client-master-detail-card clf-cartao eco-cartao"><div class="clf-cartao-topo"><div>
-      <h3 class="clf-titulo">Ecossistema</h3>
-      <p class="clf-texto">Um cliente, um cadastro. Cada sistema lê daqui; esta lista diz onde ele já está e o que falta.</p></div>
-      <button type="button" class="vb-botao" onclick="carregarEcossistema('${fichaEsc(id)}', true).then(() => renderClientMasterDetail('${fichaAspas(nome)}'))"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/></svg>Conferir de novo</button></div>
-    ${ecossistemaHtml(estado || { carregando: true }, nome)}</section>`;
+  const conferir = `carregarEcossistema('${fichaEsc(id)}', true).then(() => renderClientMasterDetail('${n}'))`;
+  if (!estado || estado.carregando) return so('relogio', 'Conferindo os sistemas…');
+  if (estado.erro) return so('falta', fichaEsc(estado.erro), '', `<button type="button" class="d3v-btn sec s" onclick="${conferir}">Conferir de novo</button>`);
+  const { sistemas = [], cliente = {} } = estado.dados || {};
+  const botaoDe = (s, classe) => { const acao = ECO_ACAO[s.acao];
+    return acao && (pode || s.acao === 'cerebro') ? `<button type="button" class="${classe}" onclick="${acao[1](n, fichaEsc(cliente.id || id))}">${acao[0]}</button>`
+      : s.link ? `<a class="${classe}" href="${fichaEsc(s.link)}" target="_blank" rel="noopener">Abrir</a>` : ''; };
+  const linha = (s) => `<div class="fv2-tb-lin fv2-eco-lin eco-${fichaEsc(s.estado)}"><i class="fv2-selo ${s.estado === 'ok' ? 'g' : 'a'}" aria-hidden="true">${s.estado === 'ok' ? FV2_ICO.ok : FV2_ICO.falta}</i>
+      <span class="fv2-eco-nome"><b>${fichaEsc(s.nome)}</b>${ECO_SUB[s.id] ? ` · ${ECO_SUB[s.id]}` : ''}</span><span class="fv2-eco-sit ${s.estado === 'ok' ? 'g' : 'a'}">${ECO_SITUACAO[s.estado] || fichaEsc(s.estado)}</span>
+      <span class="fv2-eco-det" title="${fichaEsc(s.detalhe)}">${fichaEsc(s.detalhe)}</span>${botaoDe(s, 'd3v-btn sec s fv2-op-acao')}</div>`;
+  const certos = sistemas.filter((s) => s.estado === 'ok').length, faltam = sistemas.filter((s) => s.estado !== 'ok');
+  const meta = (clientMasterRecords().find((r) => r.name === nome) || {}).meta || {};
+  const f = fichaDoCliente(nome) || CADASTRO_CLIENTES.find((c) => String(c.id) === id) || null;
+  const completo = f ? completudeDoCadastro(f) : null;
+  const urlDrive = linkDeCliente(meta.drive), outroLink = linkDeCliente(meta.link), temDoc = Boolean(meta.acessoId && meta.doc);
+  const semLink = [urlDrive, temDoc, outroLink].filter((x) => !x).length;
+  const conta = (forte, apoio, tom = '') => `<span class="cv2-olho fv2-eco-conta${tom ? ` ${tom}` : ''}"><b>${forte}</b><small>${apoio}</small></span>`;
+  const folha = `<section class="fv2-folha fv2-cheia fv2-eco" aria-label="Ecossistema do cliente"><div class="cv2-cab"><h3>Onde ${fichaEsc(nome)} existe <span>· ${fichaPlural(sistemas.length, 'sistema', 'sistemas')}, um cadastro só</span></h3><span class="fv2-cab-nota">conferido agora</span><button type="button" class="fv2-cab-acao" onclick="${conferir}">conferir de novo</button></div>
+      ${sistemas.length ? `<div class="fv2-op-th fv2-eco-th" aria-hidden="true"><span class="fv2-eco-c-selo"></span><span class="fv2-eco-nome">Sistema</span><span class="fv2-eco-sit">Situação</span><span class="fv2-eco-det">O que falta ou o que há</span></div>
+        <div class="fv2-tb fv2-linhas">${sistemas.map(linha).join('')}</div>` : fv2VazioHtml('falta', 'Nenhum sistema na resposta', 'Confira de novo em instantes.')}
+      <div class="cv2-pe fv2-eco-pe"><span class="d3m-olho-rot">Resumo</span>${conta(`${certos} de ${sistemas.length}`, 'sistemas completos')}${completo ? conta(`${completo.feitos} de ${completo.total}`, 'campos do cadastro') : ''}${conta(semLink, semLink === 1 ? 'link faltando' : 'links faltando', semLink ? 'a' : '')}</div></section>`;
+
+  const comAcao = faltam.find((s) => botaoDe(s, 'x'));
+  const nomes = faltam.map((s) => s.nome).join(', ').replace(/, ([^,]*)$/, ' e $1');
+  const alto = faltam.length ? fv2LaranjaHtml({ rotulo: 'falta ligar', n: faltam.length, titulo: faltam.length === 1 ? 'sistema ainda sem este cliente' : 'sistemas ainda sem este cliente',
+      apoio: `${fichaEsc(nomes)}. O cadastro é um só e vale em todos.`, botoes: `${comAcao ? botaoDe(comAcao, 'd3m-btn l') : ''}<button type="button" class="d3m-btn l s" onclick="trocarAbaDaFicha('cadastro')">Ver o cadastro</button>` })
+    : fv2CalmoHtml('Tudo ligado.', `Os ${sistemas.length} sistemas leem o mesmo cadastro deste cliente.`);
+  const porta = (tem, forte, chamada, url) => (url ? `<a class="d3m-vlin" href="${fichaEsc(url)}" target="_blank" rel="noopener"><i class="d3m-pt g" aria-hidden="true"></i><span><b>${forte}</b></span>${fichaVai()}</a>`
+    : fv2VlinHtml(forte, tem ? '' : 'falta', chamada, tem ? 'g' : 'a'));
+  const dados = fv2ConsHtml('Dados e acessos', 'senhas só para quem administra',
+    porta(Boolean(urlDrive), 'Drive do cliente', pode && typeof abrirCadastroCompleto === 'function' ? `abrirCadastroCompleto('${n}', { etapa: 'canais' })` : "trocarAbaDaFicha('geral')", urlDrive)
+    + (meta.acessoId || pode ? porta(temDoc, 'Documento de acessos', `abrirDocumentoDoCliente('${jsArg(String(meta.acessoId || ''))}', '${n}', '${jsArg(id)}')`, '') : '')
+    + fv2VlinHtml('Acessos', 'links, senhas e painel', "trocarAbaDaFicha('geral')", 'g')
+    + porta(Boolean(outroLink), 'Link do projeto', "trocarAbaDaFicha('geral')", outroLink), ' aria-label="Dados e acessos"');
+  return fv2DuasHtml('ecossistema', folha, alto + dados + fv2ConsHtml('Um cadastro só', '', '<p class="fv2-nota-lado">O que for preenchido no cadastro vale no Vybe OS, no cérebro, nos bots e no Hub. Cada sistema lê daqui.</p>'));
 }
 
 // Registros que os chats do Claude.ai mandaram pelo conector "Ecossistema Vybe" (server/mcp-ecossistema.js).
@@ -587,7 +625,7 @@ function demandasDaFichaHtml(nome) {
     if (FICHA_ABA === 'financeiro' && !fichaEhDono()) FICHA_ABA = 'geral';
     if (FICHA_ABA === 'cadastro') naFolha(cadastroLeituraHtml(nome));
     else if (FICHA_ABA === 'financeiro') naFolha(financeiroDaFichaHtml(nome));
-    else if (FICHA_ABA === 'ecossistema') naFolha(ecossistemaDaFichaHtml(nome));
+    else if (FICHA_ABA === 'ecossistema') naAba(ecossistemaDaFichaHtml(nome));
     else if (FICHA_ABA === 'cerebro') naFolha(cerebroDaFichaHtml(nome));
     else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naAba(window.VybeReunioes.reunioesHtml(nome));
     else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naAba(window.VybeReunioes.onboardingHtml(nome));
