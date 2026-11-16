@@ -158,3 +158,22 @@ test('Creators V2: as pessoas em grade, o cartão vira no lugar com as campanhas
   assert.match(css, /\.cr2-grade\{flex:1 1 0;display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);[^}]*overflow-y:auto/);
   assert.match(css, /\.cr2-c\[aria-expanded="true"\] > \.cr2-verso\{display:flex\}/);
 });
+
+test('Conversas V2: a lista no vidro, a conversa na folha e a consulta, com os mesmos data-wa-* e só leitura', () => {
+  const wa = ler('vybe-mundo-whatsapp.js'), css = ler('padrao-v2/zm-c-conversas.css');
+  assert.ok(wa.includes("const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;"));
+  assert.ok(wa.includes("const novo = v2(); el.classList.toggle('d3m-c-janela', novo);") && wa.includes('const html = novo ? htmlV2({ porConversa, naoLidas, mencoesNaoLidas }) : `<div class="v2w d3w">'));
+  const tela = wa.slice(wa.indexOf('const v2 = '), wa.indexOf('// ---------- Interação ----------'));
+  // Tudo o que a tela fazia continua pelos mesmos atributos e ids.
+  for (const t of ['data-wa-aba="${k}"', 'data-wa-filtro="${k}"', 'data-wa-busca', 'data-wa-conversa="${c.id}"', 'data-wa-conversa="${m.conversa}" data-wa-seq="${m.seq}"', 'data-wa-todas', 'data-wa-procurar', 'data-wa-procura',
+    'data-wa-notificar', 'data-wa-fechar', 'id="vv-wa-itens"', 'id="vv-wa-mensagens"', 'data-seq="${m.seq}"', 'href="${esc(linkDoWhatsapp(c))}" target="_blank" rel="noopener noreferrer"', "window.d3mcTrocaHtml('Conversas', 'comercial', 'conversas')"]) assert.ok(tela.includes(t), t);
+  // Continua só leitura: nenhum campo de envio; a resposta sai pelo WhatsApp.
+  assert.doesNotMatch(tela, /<textarea|method: 'POST'|type="submit"/);
+  for (const t of ['Aqui é só leitura. A resposta sai pelo seu WhatsApp.', "rot: 'chamaram você'", "bt('Já vi', 'data-wa-javi', true)", 'Clientes esperando</b>', '<b>Avisos</b>', '<b>Quem lê</b>', 'Grupo de cliente só recebe mensagem com autorização de um dono.']) assert.ok(tela.includes(t), t);
+  assert.ok(wa.includes("if (t.matches('[data-wa-javi]')) { marcarMencoesLidas(); return pintar(); }"));
+  // Nada de aria-current, aria-pressed ou aria-selected na tela nova (o tema antigo força o desenho desses botões).
+  assert.doesNotMatch(tela, /aria-(current|pressed|selected)=/);
+  assert.match(css, /\.d3m-c-corpo\.cv2\{grid-template-columns:288px minmax\(0,1fr\) 316px\}/);
+  assert.match(css, /\.cv2-itens\{flex:1 1 0;[^}]*overflow-y:auto/);
+  assert.match(css, /\.cv2-msgs\{flex:1 1 0;[^}]*overflow-y:auto/);
+});

@@ -14124,6 +14124,92 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 /* A folha do formulário (a de sempre) abre por cima da janela de vidro: a letra volta a ser a tinta. */
 #vv-comercial.d3m-c-janela :is(.vc-folha,.vc-abas){color:var(--d3-tinta)}
 
+/* ===== padrao-v2/zm-c-conversas.css ===== */
+/* DIREÇÃO V2 · CONVERSAS (prancha V2-M-Conversas, 16/11/2026). A janela (#vv-whatsapp) ganha .d3m-c-janela (zm-c-base.css)
+   no computador e vira três colunas: a lista dos grupos direto no vidro, a conversa numa folha clara e a consulta de
+   316 px. Só rolam a lista e as mensagens, por dentro. Só tokens --d3-*. */
+.d3m-c-corpo.cv2{grid-template-columns:288px minmax(0,1fr) 316px}
+.cv2-lista{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;color:var(--d3-fume-texto)}
+.cv2-fichas{align-self:flex-start;height:32px;max-width:100%}
+.cv2-fichas > button{height:26px;padding:0 8px;gap:4px;font-size:var(--d3-fs-apoio)}
+.cv2-itens{flex:1 1 0;display:flex;flex-direction:column;gap:4px;min-height:0;overflow-y:auto;scrollbar-width:none}
+.cv2-item{appearance:none;flex:none;display:flex;align-items:center;gap:10px;width:100%;height:56px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.cv2-item:hover{background:var(--d3-fume-veu)}
+.cv2-item.on{background:var(--d3-escuro-texto);color:var(--d3-tinta-fixa)}
+.cv2-item:focus-visible,.cv2-mais:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+.cv2-av{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:600 var(--d3-fs-mini)/1 var(--vv-texto,Inter,sans-serif)}
+.cv2-item.on > .cv2-av{background:var(--d3-veu-forte);color:var(--d3-tinta-fixa)}
+.cv2-tx{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
+.cv2-l1,.cv2-l2{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.cv2-l1 > b{min-width:0;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv2-l1 > time{flex:none;font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
+.cv2-l2 > span{flex:1 1 auto;min-width:0;color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv2-item.on :is(.cv2-l1 > time,.cv2-l2 > span){color:var(--d3-rotulo-fixo)}
+.cv2-item.nao-lida .cv2-l2 > span{color:var(--d3-fume-texto)}
+.cv2-item.nao-lida.on .cv2-l2 > span{color:var(--d3-tinta-fixa)}
+.cv2-nl,.cv2-arroba{flex:none;display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:var(--d3-escuro-texto);color:var(--d3-tinta-fixa);font:600 var(--d3-fs-mini)/1 var(--vv-texto,Inter,sans-serif);font-style:normal;font-variant-numeric:tabular-nums}
+.cv2-arroba{background:var(--d3-acao);color:var(--d3-escuro-texto)}
+.cv2-item.on .cv2-nl{background:var(--d3-tinta-fixa);color:var(--d3-escuro-texto)}
+.cv2-mais{appearance:none;flex:none;align-self:flex-start;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.cv2-mais:hover{background:var(--d3-fume-veu)}
+.cv2-lista .d3v-estado{flex:none;align-items:flex-start;padding:10px;text-align:left;color:var(--d3-fume-apagado)}
+.cv2-lista .d3v-estado > b{color:var(--d3-fume-texto)}
+/* A conversa: a folha clara, com a cabeça, as mensagens (só elas rolam) e o pé de só leitura. */
+.cv2-folha{min-height:0}
+.cv2-folha > .d3m-c-folha-cab{border-bottom:1px solid var(--d3-divisa)}
+.cv2-so{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap}
+.cv2-so > svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cv2-lupa{flex:none;width:28px;padding:0}
+.cv2-link{flex:none;border-radius:4px;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap}
+.cv2-link:hover{text-decoration:underline;text-underline-offset:3px}
+.cv2-link:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.cv2-procura{flex:none;display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--d3-divisa);font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap}
+#vv-whatsapp.d3m-c-janela .cv2-procura > input{flex:1 1 auto;min-width:0;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-whatsapp.d3m-c-janela .cv2-procura > input:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.cv2-msgs{flex:1 1 0;display:flex;flex-direction:column;gap:12px;min-height:0;padding:16px;box-sizing:border-box;overflow-y:auto;scrollbar-width:thin}
+.cv2-msgs > :first-child{margin-top:auto}
+.cv2-dia,.cv2-sep{flex:none;align-self:center;margin:0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.cv2-sep{align-self:stretch;display:flex;align-items:center;gap:10px;font-weight:600;color:var(--d3-acao-texto)}
+.cv2-sep::before,.cv2-sep::after{content:"";flex:1 1 0;height:1px;background:var(--d3-veu-forte)}
+.cv2-bl{flex:none;display:flex;align-items:flex-start;gap:10px;min-width:0}
+.cv2-bl.eu{flex-direction:row-reverse}
+.cv2-bl > .cv2-av{width:28px;height:28px;background:var(--d3-veu);color:var(--d3-tinta);font-size:10px}
+.cv2-bl.agt > .cv2-av{background:var(--d3-agente-veu);color:var(--d3-agente-texto)}
+.cv2-b{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:min(420px,78%);padding:10px 12px;box-sizing:border-box;border-radius:12px;background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif)}
+.cv2-bl.eu > .cv2-b{background:var(--d3-veu-forte)}
+.cv2-bl.para-voce > .cv2-b{box-shadow:inset 2px 0 0 var(--d3-acao)}
+.cv2-bl.piscar > .cv2-b{box-shadow:inset 0 0 0 2px var(--d3-acao)}
+.cv2-bc{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:var(--d3-fs-apoio);line-height:1.3}
+.cv2-bc > b{min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv2-bc > em{flex:none;font-style:normal;font-weight:500;color:var(--d3-acao-texto)}
+.cv2-bc > time{flex:none;margin-left:auto;padding-left:8px;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.cv2-citada{padding:4px 8px;border-radius:6px;box-shadow:inset 2px 0 0 var(--d3-meta);background:var(--d3-veu);font-size:var(--d3-fs-apoio);color:var(--d3-texto2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv2-midia{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.cv2-texto{overflow-wrap:anywhere;white-space:pre-wrap}
+.cv2-apagada{display:inline-flex;align-items:center;gap:6px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.cv2-apagada > svg{flex:none;width:13px;height:13px}
+.cv2-pe{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.cv2-pe > span{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv2-folha > .d3v-estado{flex:1 1 auto}
+/* A consulta. */
+.cv2-laranja{flex:none;min-height:244px}
+.cv2-laranja .d3m-btn.l.s{background:none}
+.cv2-laranja .d3m-btn.l.s:hover{background:var(--d3-fume-veu)}
+.cv2 .d3m-vlin.cv2-cli{height:40px}
+.cv2 .d3m-vlin.cv2-cli > .d3v-foto{flex:none}
+.cv2-ver{appearance:none;flex:none;margin:0;padding:0 2px;border:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;white-space:nowrap;cursor:pointer}
+.cv2-ver:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.cv2-nota{margin:0;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.cv2-nota.caixa{padding:9px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);font-size:var(--d3-fs-apoio);line-height:1.4}
+/* Janela baixa (1366 x 768) e larguras menores. */
+@media (max-height:820px){.cv2-laranja{min-height:0}.cv2-laranja .d3m-lar-num{font-size:40px}.cv2-laranja .d3m-c-s{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.cv2-item{height:50px}.cv2 > .d3m-lado{gap:10px}.cv2 .d3m-vlin{height:32px}.cv2 .d3m-vlin.cv2-cli{height:36px}.cv2-nota{line-height:1.4}}
+@media (max-width:1400px){.d3m-c-corpo.cv2{grid-template-columns:264px minmax(0,1fr) 300px}}
+@media (max-width:1100px){
+  .d3m-c-corpo.cv2{grid-template-columns:240px minmax(0,1fr)}
+  .cv2-lista,.cv2-folha{height:560px}
+  .cv2 > .d3m-lado{grid-column:1 / -1}
+}
+
 /* ===== padrao-v2/zm-c-creators.css ===== */
 /* DIREÇÃO V2 · CREATORS (prancha V2-M-Creators, 16/11/2026). As pessoas em grade na folha, quatro por linha; o cartão vira
    no lugar (.cr2-verso) com as campanhas, o campo do contato e os botões. As peças divididas com Fornecedores (.m2-*) e a

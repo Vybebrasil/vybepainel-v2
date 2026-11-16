@@ -218,7 +218,9 @@
     // Direção 3 (moodboard 3, 13/11/2026): título com "WhatsApp · hora" e as visões; o bloco de ação laranja leva à
     // menção não lida mais recente ou à conversa com mais mensagens novas.
     const alcance = d && !d.eu?.socio ? 'os grupos de que você participa' : 'grupos internos e de clientes';
-    const html = `<div class="v2w d3w">
+    // Direção V2 (prancha V2-M-Conversas): no computador, o esqueleto novo (htmlV2); no celular, a tela de antes.
+    const novo = v2(); el.classList.toggle('d3m-c-janela', novo);
+    const html = novo ? htmlV2({ porConversa, naoLidas, mencoesNaoLidas }) : `<div class="v2w d3w">
       <div class="v2w-topo">
         <h2>Conversas</h2>
         <p class="v2w-sub" title="WhatsApp da Vybe · ${alcance}">WhatsApp da Vybe · ${d ? hora(Date.parse(d.geradoEm) || Date.now()) : leitura}${st.erro && d ? ` · ${esc(st.erro)}` : ''}</p>
@@ -347,6 +349,121 @@
       <div class="v2w-rodape">${IC.cadeado}<p class="v2w-sub">Só leitura nesta etapa. Para responder, use o seu WhatsApp.</p></div>`;
   }
 
+  // ===== Direção V2 (prancha V2-M-Conversas, 16/11/2026) =====
+  // No computador a janela vira três colunas no vidro: a lista dos grupos (com as fichas Todos, Internos, Clientes e Não
+  // lidas), a conversa numa folha clara e a consulta (o cartão laranja de quem chamou você, os clientes com mensagem que
+  // você ainda não leu, os avisos e quem lê). Continua só leitura, com os mesmos data-wa-*; no celular fica a tela de antes.
+  const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;
+  const svg2 = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const IC2 = { lupa: svg2('<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>'), x: svg2('<path d="M6 6l12 12M18 6 6 18"/>'), seta: svg2('<path d="m9 6 6 6-6 6"/>'),
+    sino: svg2('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'), cadeado: svg2('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') };
+  const vazio2 = (texto, detalhe = '') => `<p class="d3v-estado"><b>${esc(texto)}</b>${esc(detalhe)}</p>`;
+  const plural2 = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  const faz = (ms) => { const min = Math.max(0, Math.round((Date.now() - Number(ms)) / 6e4)); return min < 60 ? `${Math.max(1, min)} min` : min < 2880 ? `${Math.round(min / 60)} h` : `${Math.round(min / 1440)} d`; };
+  const avisosEstado = () => (typeof Notification === 'undefined' ? 'sem' : Notification.permission);
+  function itemV2(c, porConversa) {
+    const n = porConversa[c.id] || 0, u = c.ultima, mencao = (st.dados.mencoes || []).some((m) => m.conversa === c.id && mencaoNaoLida(m)), on = st.conversa === c.id;
+    return `<button type="button" role="listitem" class="cv2-item${on ? ' on' : ''}${n ? ' nao-lida' : ''}" data-wa-conversa="${c.id}" title="${esc(c.nome)}${on ? ' (aberta)' : ''}">
+      <span class="cv2-av" aria-hidden="true">${esc(iniciais(nomeCurto(c)))}</span>
+      <span class="cv2-tx"><span class="cv2-l1"><b>${esc(c.tipo === 'cliente' && c.cliente ? c.cliente : c.nome)}</b><time>${esc(quando(u.em))}</time></span>
+        <span class="cv2-l2"><span>${u.minha ? 'Você: ' : u.autor ? esc(u.autor.split(' ')[0]) + ': ' : ''}${esc(resumoNaLista(u))}</span>${mencao ? '<i class="cv2-arroba" title="Menção a você">@</i>' : ''}${n ? `<i class="cv2-nl" title="${plural2(n, 'não lida', 'não lidas')}">${n > 99 ? '99+' : n}</i>` : ''}</span></span></button>`;
+  }
+  function listaV2(porConversa) {
+    const d = st.dados;
+    if (!d) return st.erro ? vazio2(st.erro, 'Tento de novo sozinho em instantes.') : vazio2('Carregando as conversas');
+    if (st.aba === 'mencoes') {
+      if (!d.mencoes?.length) return vazio2('Ninguém marcou você por enquanto', 'Quando alguém marcar você com @ num grupo, aparece aqui.');
+      return d.mencoes.map((m) => `<button type="button" role="listitem" class="cv2-item${mencaoNaoLida(m) ? ' nao-lida' : ''}" data-wa-conversa="${m.conversa}" data-wa-seq="${m.seq}" title="${esc(m.grupo)}">
+        <span class="cv2-av" aria-hidden="true">@</span>
+        <span class="cv2-tx"><span class="cv2-l1"><b>${esc(m.grupo)}</b><time>${esc(quando(m.em))}</time></span>
+          <span class="cv2-l2"><span>${esc(m.autor.split(' ')[0])}: ${esc(resumoNaLista(m))}</span>${mencaoNaoLida(m) ? '<i class="cv2-nl" title="Não lida">1</i>' : ''}</span></span></button>`).join('');
+    }
+    if (!d.eu.vinculado) return vazio2('Seu WhatsApp ainda não está vinculado ao Vybe OS', 'Quando o seu número estiver vinculado, aparecem aqui os grupos de que você participa.');
+    const busca = semAcento(st.busca);
+    const lista = d.conversas.filter((c) => (st.filtro === 'todos' || (st.filtro === 'naolidas' ? porConversa[c.id] : c.tipo === st.filtro)) && (!busca || semAcento(`${c.nome} ${c.cliente || ''}`).includes(busca)));
+    if (!d.conversas.length) return vazio2('Nenhuma mensagem ainda', 'As conversas aparecem aqui conforme chegam ao WhatsApp do VYBES.');
+    if (!lista.length) return vazio2('Nada com esse filtro', busca ? 'Confira a busca.' : 'Troque a ficha.');
+    // As não lidas primeiro; das já vistas, as que cabem, e o resto a um clique ("mais N grupos").
+    const novas = lista.filter((c) => porConversa[c.id]), vistas = lista.filter((c) => !porConversa[c.id]);
+    const inteira = st.todas || Boolean(busca) || st.filtro !== 'todos', cabem = inteira ? vistas : vistas.slice(0, Math.max(4, VISTAS_NA_LISTA - novas.length)), resto = vistas.length - cabem.length;
+    return `${[...novas, ...cabem].map((c) => itemV2(c, porConversa)).join('')}${resto > 0 ? `<button type="button" class="cv2-mais" data-wa-todas>mais ${plural2(resto, 'grupo', 'grupos')}</button>` : ''}`;
+  }
+  function folhaV2() {
+    if (!st.conversa) return `<section class="d3m-c-folha cv2-folha" aria-label="Mensagens"><p class="d3v-estado"><b>Escolha uma conversa</b>Aqui é só leitura: para responder, use o seu WhatsApp.</p></section>`;
+    const c = st.dados?.conversas?.find((x) => x.id === st.conversa) || st.msgs;
+    const carregada = st.msgs && st.msgs.id === st.conversa ? st.msgs.mensagens : null;
+    const autores = carregada ? [...new Set(carregada.filter((m) => !m.minha && m.autor).map((m) => m.autor))] : [];
+    const tipo = c?.tipo === 'interno' ? 'grupo interno' : c?.cliente ? `grupo do cliente ${esc(c.cliente)}` : 'grupo de cliente';
+    const cab = `<div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3" title="${esc(c?.nome || 'Conversa')}">${esc(c?.nome || 'Conversa')} <span>· ${tipo}${autores.length ? `, ${plural2(autores.length, 'pessoa escreveu', 'pessoas escreveram')} aqui` : ''}</span></b>
+        <span class="cv2-so">${IC2.cadeado}só leitura</span>
+        ${carregada?.length ? `<button type="button" class="d3m-c-btn c cv2-lupa${st.procurando ? ' k' : ''}" data-wa-procurar aria-expanded="${Boolean(st.procurando)}" aria-label="Buscar na conversa" title="Buscar na conversa">${IC2.lupa}</button>` : ''}
+        <a class="cv2-link" href="${esc(linkDoWhatsapp(c))}" target="_blank" rel="noopener noreferrer">abrir no WhatsApp</a></div>`;
+    const pe = `<div class="cv2-pe"><span>Aqui é só leitura. A resposta sai pelo seu WhatsApp.</span><a class="d3m-c-btn c k" href="${esc(linkDoWhatsapp(c))}" target="_blank" rel="noopener noreferrer">Responder no grupo</a></div>`;
+    const corpo = (dentro) => `<section class="d3m-c-folha cv2-folha" aria-label="Mensagens">${cab}${dentro}${pe}</section>`;
+    if (st.erroConversa) return corpo(`<div class="cv2-msgs">${vazio2(st.erroConversa)}</div>`);
+    if (!carregada) return corpo(`<div class="cv2-msgs">${vazio2('Carregando as mensagens')}</div>`);
+    const termo = st.procurando ? semAcento(st.procura).trim() : '';
+    const mostradas = termo ? carregada.filter((m) => semAcento(`${m.autor || ''} ${m.texto || ''} ${m.midia || ''}`).includes(termo)) : carregada;
+    const procura = st.procurando ? `<div class="cv2-procura"><input type="search" data-wa-procura placeholder="Buscar nesta conversa" value="${esc(st.procura)}" aria-label="Buscar nesta conversa"><span role="status">${termo ? `${mostradas.length} de ${carregada.length}` : `${carregada.length} mensagens guardadas`}</span></div>` : '';
+    const novas = termo ? [] : carregada.filter((m) => !m.minha && m.seq > (st.lidaAoAbrir ?? Infinity));
+    const ultimo = carregada.at(-1)?.seq ?? 0;
+    if (st.visto?.id !== st.conversa) st.visto = { id: st.conversa, seq: ultimo, base: ultimo, ate: 0 };
+    else if (ultimo > st.visto.seq) st.visto = { id: st.conversa, seq: ultimo, base: st.visto.seq, ate: Date.now() + 2000 };
+    const chegou = Date.now() < st.visto.ate ? st.visto.base : Infinity;
+    let dia = '', html = '';
+    for (const m of mostradas) {
+      const r = relativo(m.em);
+      if (r !== dia) { dia = r; html += `<p class="cv2-dia">${esc(r.toLowerCase())}</p>`; }
+      if (novas[0] === m) html += `<p class="cv2-sep">${plural2(novas.length, 'nova', 'novas')}</p>`;
+      html += `<div class="cv2-bl${m.minha ? ' eu' : ''}${m.vybes ? ' agt' : ''}${m.paraVoce ? ' para-voce' : ''}${m.seq > chegou ? ' novo' : ''}" data-seq="${m.seq}">
+        <span class="cv2-av" aria-hidden="true">${esc(iniciais(m.minha ? (st.dados?.eu?.nome || 'Você') : m.autor))}</span>
+        <div class="cv2-b"><span class="cv2-bc"><b>${m.minha ? 'Você' : `${esc(m.autor)}${m.vybes ? ' · agente' : ''}`}</b>${m.paraVoce ? '<em>marcou você</em>' : ''}<time>${m.editada ? 'editada · ' : ''}${esc(hora(m.em))}</time></span>
+          ${m.citada ? `<span class="cv2-citada">${esc(m.citada)}</span>` : ''}
+          ${m.apagada ? `<span class="cv2-apagada">${IC_APAGADA}Mensagem apagada</span>` : `${m.midia ? `<span class="cv2-midia">${esc(m.midia)}</span>` : ''}${m.texto ? `<span class="cv2-texto">${esc(m.texto)}</span>` : ''}`}</div></div>`;
+    }
+    return corpo(`${procura}<div class="cv2-msgs" id="vv-wa-mensagens">${html || vazio2(termo ? 'Nada com esse texto nesta conversa' : 'Sem mensagens guardadas nesta conversa')}</div>`);
+  }
+  // A consulta: quem chamou você (a menção não lida mais recente) ou a conversa com mais mensagens novas; os grupos de
+  // cliente com mensagem que você ainda não leu; os avisos do navegador; e quem lê o quê.
+  function ladoV2(porConversa) {
+    const d = st.dados; if (!d) return '<aside class="d3m-lado" aria-label="Consulta"></aside>';
+    const bt = (texto, attrs, sec) => `<button type="button" class="d3m-btn l${sec ? ' s' : ''}" ${attrs}>${esc(texto)}</button>`;
+    const lar = ({ rot, numero = '', frase, sub = '', bts = '' }) => `<section class="d3m-laranja cv2-laranja" aria-label="O que pede você agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${rot}</span>
+        <div class="d3m-lar-txt">${numero ? `<b class="d3m-lar-num">${esc(numero)}</b>` : ''}<b class="d3-acao-frase">${esc(frase)}</b>${sub ? `<small class="d3m-c-s">${esc(sub)}</small>` : ''}</div>${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</section>`;
+    const mencao = (d.mencoes || []).filter(mencaoNaoLida).sort((a, b) => b.seq - a.seq)[0];
+    const [idMais, nMais] = Object.entries(porConversa || {}).sort((a, b) => b[1] - a[1])[0] || [], cMais = idMais ? d.conversas.find((x) => String(x.id) === String(idMais)) : null;
+    const total = Object.values(porConversa || {}).reduce((t, x) => t + x, 0);
+    const laranja = mencao ? lar({ rot: 'chamaram você', numero: faz(mencao.em), frase: `esperando você no grupo ${mencao.grupo || ''}`, sub: `${String(mencao.autor || '').split(' ')[0]}: ${resumoNaLista(mencao).slice(0, 110)}`,
+        bts: bt('Abrir a conversa', `data-wa-conversa="${esc(mencao.conversa)}" data-wa-seq="${Number(mencao.seq)}"`) + bt('Já vi', 'data-wa-javi', true) })
+      : cMais && nMais ? lar({ rot: 'mensagens novas', numero: String(total), frase: `${total === 1 ? 'mensagem nova' : 'mensagens novas'} em ${plural2(Object.keys(porConversa).length, 'conversa', 'conversas')}`, sub: `${cMais.nome}: ${plural2(nMais, 'nova', 'novas')}.`,
+        bts: bt(`Abrir ${nomeCurto(cMais)}`.slice(0, 28), `data-wa-conversa="${esc(cMais.id)}"`) + bt('Ver as não lidas', 'data-wa-filtro="naolidas"', true) })
+        : lar({ rot: 'tudo lido', frase: 'Nada novo desde a sua última leitura', sub: 'As conversas chegam aqui conforme o WhatsApp do VYBES recebe.' });
+    const esperando = d.conversas.filter((c) => c.tipo === 'cliente' && porConversa[c.id] && !c.ultima.minha);
+    const clientes = `<div class="d3m-cons"><div class="d3m-cons-cab"><b title="Grupos de cliente com mensagem que você ainda não leu">Clientes esperando</b>${esperando.length > 2 ? `<button type="button" class="cv2-ver" data-wa-filtro="naolidas" title="Mostrar as conversas não lidas">ver os ${esperando.length}</button>` : `<span>${esperando.length}</span>`}</div>${esperando.slice(0, 2).map((c) => `<button type="button" class="d3m-vlin cv2-cli" data-wa-conversa="${esc(c.id)}" title="${esc(c.nome)}"><span class="d3v-foto" aria-hidden="true">${esc(iniciais(nomeCurto(c)))}</span><span class="d3m-vnome"><b>${esc(nomeCurto(c))}</b> · ${esc(resumoNaLista(c.ultima))}</span>${IC2.seta}</button>`).join('') || '<p class="cv2-nota caixa">Nenhum grupo de cliente com mensagem nova.</p>'}</div>`;
+    const av = avisosEstado();
+    const avisos = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Avisos</b><span>${av === 'granted' ? 'ligados' : av === 'default' ? 'desligados' : av === 'denied' ? 'bloqueados' : 'indisponíveis'}</span></div>${av === 'default'
+      ? `<button type="button" class="d3m-vlin" data-wa-notificar title="Aviso quando chegar mensagem ou alguém marcar você"><span class="d3m-vnome"><b>Ativar avisos</b> · quando chamarem você</span>${IC2.seta}</button>`
+      : `<p class="cv2-nota caixa">${av === 'granted' ? 'Você recebe o aviso quando chega mensagem ou alguém marca você.' : av === 'denied' ? 'O navegador bloqueou os avisos deste endereço. Libere nas permissões do site.' : 'Este navegador não mostra avisos.'}</p>`}</div>`;
+    const quem = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Quem lê</b></div><p class="cv2-nota">${d.eu?.socio ? 'O VYBES lê os grupos internos e os dos clientes, e você vê todos aqui.' : 'Você vê aqui os grupos de que participa.'} Grupo de cliente só recebe mensagem com autorização de um dono.</p></div>`;
+    return `<aside class="d3m-lado" aria-label="Consulta">${laranja}${clientes}${avisos}${quem}</aside>`;
+  }
+  function htmlV2({ porConversa, naoLidas, mencoesNaoLidas }) {
+    const d = st.dados, n = (x) => (x ? ` <b>${x > 99 ? '99+' : x}</b>` : ''), av = avisosEstado();
+    const sub = d ? `o WhatsApp da Vybe · ${plural2(d.conversas.length, 'grupo', 'grupos')} · lido às ${hora(Date.parse(d.geradoEm) || Date.now())}${mencoesNaoLidas ? ` · ${plural2(mencoesNaoLidas, 'menção', 'menções')} para você` : ''}${st.erro ? ` · ${st.erro}` : ''}` : st.erro || 'lendo as conversas';
+    const titulo = typeof window.d3mcTrocaHtml === 'function' ? window.d3mcTrocaHtml('Conversas', 'comercial', 'conversas') : '<b class="d3m-c-h" role="heading" aria-level="2">Conversas</b>';
+    const aba = (k, r, q) => `<button type="button" role="radio" data-wa-aba="${k}" aria-checked="${st.aba === k}"${k === 'mencoes' ? ' aria-label="Menções a você"' : ''}>${r}${n(q)}</button>`;
+    const filtro = ([k, r]) => `<button type="button" role="radio" data-wa-filtro="${k}" aria-checked="${st.filtro === k}">${r}${k === 'naolidas' ? n(naoLidas) : ''}</button>`;
+    return `<div class="d3m-c-topo"><div class="d3m-c-tit">${titulo}<span class="d3m-c-sub" title="${esc(sub)}">${esc(sub)}</span></div>
+        <span class="d3m-c-seg" role="radiogroup" aria-label="Visão">${aba('conversas', 'Conversas', 0)}${aba('mencoes', 'Menções', mencoesNaoLidas)}</span>
+        ${st.aba === 'conversas' ? `<label class="d3m-c-busca" title="Buscar grupo ou cliente">${IC2.lupa}<input type="search" data-wa-busca autocomplete="off" placeholder="Buscar grupo ou cliente" value="${esc(st.busca)}" aria-label="Buscar grupo ou cliente"></label>` : ''}
+        ${av === 'default' ? `<button type="button" class="d3m-c-ico" data-wa-notificar aria-label="Ativar avisos" title="Ativar avisos: quando chegar mensagem ou alguém marcar você">${IC2.sino}</button>` : ''}
+        <button type="button" class="d3m-c-ico" data-wa-fechar aria-label="Fechar" title="Fechar (Esc)">${IC2.x}</button></div>
+      <div class="d3m-c-corpo cv2"><div class="cv2-lista" role="region" aria-label="${st.aba === 'conversas' ? 'Conversas' : 'Menções a você'}">
+          ${st.aba === 'conversas' ? `<span class="d3m-c-seg cv2-fichas" role="radiogroup" aria-label="Filtrar">${[['todos', 'Todos'], ['interno', 'Internos'], ['cliente', 'Clientes'], ['naolidas', 'Não lidas']].map(filtro).join('')}</span>` : ''}
+          <div class="cv2-itens" id="vv-wa-itens" role="list">${listaV2(porConversa)}</div></div>
+        ${folhaV2()}${ladoV2(porConversa)}</div>`;
+  }
+
   // ---------- Interação ----------
   function aoClicar(e) {
     const t = e.target.closest?.('button'); if (!t) return;
@@ -354,8 +471,9 @@
     if (t.matches('[data-wa-voltar]')) { st.conversa = null; st.msgs = null; return pintar(); }
     if (t.matches('[data-wa-notificar]')) { Notification.requestPermission?.().then(() => pintar(), () => pintar()); return; }
     if (t.dataset.waAba) { st.aba = t.dataset.waAba; if (st.aba === 'mencoes') marcarMencoesLidas(); return pintar(); }
-    if (t.dataset.waFiltro) { st.filtro = t.dataset.waFiltro; return pintar(); }
+    if (t.dataset.waFiltro) { st.filtro = t.dataset.waFiltro; st.aba = 'conversas'; return pintar(); }
     if (t.matches('[data-wa-todas]')) { st.todas = true; return pintar(); }
+    if (t.matches('[data-wa-javi]')) { marcarMencoesLidas(); return pintar(); } // "Já vi" do cartão laranja: as menções ficam lidas
     if (t.matches('[data-wa-procurar]')) { st.procurando = !st.procurando; if (!st.procurando) st.procura = ''; pintar(); if (st.procurando) document.querySelector?.('#vv-whatsapp [data-wa-procura]')?.focus(); return; }
     if (t.dataset.waConversa) { abrirConversa(t.dataset.waConversa, { focar: t.dataset.waSeq ? Number(t.dataset.waSeq) : null }); }
   }
