@@ -93,6 +93,23 @@ test('Extrato: banco × de verdade em colunas, os números com a linha, conferir
   V._teste.ui.extrato.aberta = '';
 });
 
+test('Clientes mês a mês (prancha V2-M-Financas-Clientes-Mes): a matriz no molde, a célula na cor da situação, De olho e o laranja só com quem deve', () => {
+  const V = telas(), d = dados();
+  let html = V.telas.clientes_mes({ d, filtro: {} });
+  molde(html, 'clientes_mes');
+  assert.match(html, /<h3>Pago e em aberto <small>· pelo mês de referência<\/small><\/h3>/);
+  assert.match(html, /data-fx="abrir" data-alvo="clientes_mes" data-valor="c1"[^>]*><b>Cliente Teste<\/b><small>R\$ 4\.000,00 por mês<\/small>/);
+  assert.match(html, /class="d3m-d-fm-mes (pago|parcial|aberto|a_receber|sem|fora)"/);
+  assert.match(html, /class="d3m-d-fm-olho"[\s\S]*recebido em novembro[\s\S]*a receber no mês[\s\S]*já pagou novembro/);
+  const aberto = d.por_cliente.linhas.reduce((s, l) => s + l.total_aberto, 0);
+  assert.equal((html.match(/class="d3m-laranja/g) || []).length, aberto > 0 ? 1 : 0, 'laranja só com quem deve');
+  if (aberto > 0) assert.match(html, /Vorcaro · quem deve[\s\S]*data-fx="chip" data-alvo="clientes_mes" data-valor="aberto">Ver quem deve</);
+  V._teste.ui.clientes_mes.aberta = 'c1';
+  html = V.telas.clientes_mes({ d, filtro: {} });
+  assert.match(html, /data-linha="c1" aria-expanded="true"[\s\S]*class="fx-mm-det"/, 'a linha abre com as entradas do cliente');
+  V._teste.ui.clientes_mes.aberta = '';
+});
+
 test('Cartão: total, pago pelo extrato, falta e itens; itens com situação, filtro "Sem categoria" e editar no lugar', () => {
   const V = telas(), d = dados();
   let html = V.telas.cartao({ d, filtro: {} });

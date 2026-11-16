@@ -16280,6 +16280,22 @@ b.d3m-d-pk-p.r{font-weight:500;color:var(--d3-perigo)}
 .d3m-d-fm-busca{display:flex;align-items:center;gap:8px;margin-top:10px}
 #vv-comercial .fv2.d3m-d-fm .d3m-d-fm-busca > .fv2-busca{flex:1 1 auto;height:32px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 label.d3m-d-vbtn{cursor:pointer}
+/* Clientes mês a mês: a linha alta (nome e mensalidade), a célula do mês na cor da situação e a legenda. */
+.d3m-d-fm-alta .d3m-d-fm-tr{min-height:52px}
+.d3m-d-fm-alta .d3m-d-fm-nome{display:flex;flex-direction:column;gap:1px}
+.d3m-d-fm-alta .d3m-d-fm-nome > small{font-size:var(--d3-fs-apoio)}
+.d3m-d-fm-c.m{text-align:center}
+.d3m-d-fm-mes{display:block;height:30px;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-apoio)/30px var(--vv-texto,Inter,sans-serif);text-align:center;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.d3m-d-fm-mes.pago{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+.d3m-d-fm-mes.aberto{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+.d3m-d-fm-mes.parcial{background:var(--d3-ajuste-veu);color:var(--d3-ambar)}
+.d3m-d-fm-mes.a_receber{background:var(--d3-info-veu);color:var(--d3-info)}
+.d3m-d-fm-leg{display:inline-flex;align-items:center;gap:10px;padding-left:10px;border-left:1px solid var(--d3-divisa)}
+.d3m-d-fm-leg > span{display:inline-flex;align-items:center;gap:5px;color:var(--d3-tinta)}
+.d3m-d-fm-leg i{width:8px;height:8px;border-radius:2px}
+.d3m-d-fm-leg i.pago{background:var(--d3-pronto)}
+.d3m-d-fm-leg i.aberto{background:var(--d3-perigo)}
+.d3m-d-fm-leg i.a_receber{background:var(--d3-info)}
 /* Dois cartões lado a lado embaixo do principal. */
 .d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
 
@@ -16313,6 +16329,8 @@ label.d3m-d-vbtn{cursor:pointer}
   .d3m-d-fm-olho{flex-wrap:wrap;white-space:normal;padding:8px 16px;row-gap:4px}
 }
 @media (max-width:640px){
+  .d3m-d-fm-c.m{flex:0 0 52px}
+  .d3m-d-fm-leg{display:none}
   .d3m-d-fm .d3m-d-fm-topo > .d3m-d-ferr{flex-wrap:wrap;max-width:100%}
   .d3m-d-fm-th{display:none}
   .d3m-d-fm-tr{flex-wrap:wrap;row-gap:2px;padding:8px 16px}

@@ -297,29 +297,34 @@
     const busca = semAcento(ctx.filtro?.fx_clientes || '');
     const vis = linhas.filter((l) => (u.chip === 'aberto' ? l.total_aberto > 0 : u.chip === 'pagos' ? l.total_aberto === 0 : true) && (!busca || semAcento(l.cliente_nome).includes(busca)));
     const maior = linhas.slice().sort((a, b) => b.total_aberto - a.total_aberto)[0];
-    const partes = [topo('Clientes mês a mês')];
-    partes.push(!pc2.desde ? acao('Sem extrato, não dá para saber quem pagou.', 'Ir ao extrato', 'data-fx="ir-aba" data-valor="extrato"')
-      : !linhas.length ? acao('Nenhuma entrada ligada a cliente ainda.', 'Ligar no extrato', 'data-fx="ir-aba" data-valor="extrato" data-chip="entradas"')
-      : aberto > 0 ? acao(`${esc(rs(aberto))} em aberto${maior?.total_aberto ? `; o maior é ${esc(maior.cliente_nome)}` : ''}.`, 'Ver quem deve', 'data-fx="chip" data-alvo="clientes_mes" data-valor="aberto"')
-      : acao(`Todos em dia desde ${esc(soMes(pc2.desde))}.`));
-    partes.push(nums([
-      // Sem meses no extrato, o rótulo não fica pela metade ("Recebido em"): vira "no mês" (auditoria 15/11, item 22).
-      { rotulo: atual ? `Recebido em ${soMes(atual)}` : 'Recebido no mês', valor: mil(recebido), tom: 'g' },
-      { rotulo: 'Em aberto', valor: mil(aberto), tom: aberto > 0 ? 'r' : '', sub: aReceber ? `${esc(mil(aReceber))} a receber no mês` : 'meses passados' },
-      { rotulo: atual ? `Pagaram em ${soMes(atual)}` : 'Pagaram no mês', valor: `${n0(pagos)}<small class="d3f-de"> / ${n0(cobrados)}</small>`, barra: pc(pagos, cobrados) },
-    ]));
-    const filtro = `<div class="fv2-filtros"><label class="fv2-sr" for="fx-busca-cli">Buscar cliente</label><input class="fv2-busca" id="fx-busca-cli" type="search" data-vc-busca="fx_clientes" placeholder="Buscar cliente" value="${esc(ctx.filtro?.fx_clientes || '')}">
-      ${chips('clientes_mes', [['todos', 'Todos', linhas.length], ['aberto', 'Em aberto', linhas.filter((l) => l.total_aberto > 0).length, 'r'], ['pagos', 'Em dia', linhas.filter((l) => !l.total_aberto).length, 'g']], u.chip)}</div>`;
-    const cab = `<div class="fx-mm fx-mm-cab" style="--n:${meses.length}"><span>Cliente</span>${meses.map((m) => `<span>${esc(mesCurto(m))}</span>`).join('')}<span>Em aberto</span></div>`;
-    const corpo = vis.map((l) => {
-      const aberta = u.aberta === l.cliente_id;
-      return `<div class="fx-mm-bloco"><div class="fx-mm" style="--n:${meses.length}"><button type="button" class="fx-mm-nome" data-fx="abrir" data-alvo="clientes_mes" data-valor="${esc(l.cliente_id)}" aria-expanded="${aberta}">${esc(l.cliente_nome)}${l.mensalidade ? `<small>${esc(rs(l.mensalidade))}/mês</small>` : '<small>sem mensalidade</small>'}</button>
-        ${l.meses.map((m) => `<span class="fx-cel ${m.situacao}" title="${esc(m.situacao === 'fora' ? `${nomeMes(m.mes)}: antes do extrato importado` : `${nomeMes(m.mes)}: previsto ${rs(m.previsto)}, recebido ${rs(m.recebido)}${m.em_aberto ? `, em aberto ${rs(m.em_aberto)}` : ''}${m.a_receber ? `, a receber ${rs(m.a_receber)}` : ''}`)}">${m.situacao === 'sem' || m.situacao === 'fora' ? '·' : m.situacao === 'pago' ? '✓' : esc(mil(m.em_aberto || m.a_receber).replace('R$ ', ''))}</span>`).join('')}
-        <b class="${l.total_aberto ? 'fx-neg' : ''}">${l.total_aberto ? esc(rs(l.total_aberto)) : '·'}</b></div>${aberta ? detalheCliente(d, l) : ''}</div>`;
-    }).join('');
-    const legenda = `<p class="fv2-sub fx-legenda"><span class="fx-cel pago">✓</span> pago <span class="fx-cel parcial">½</span> parcial <span class="fx-cel aberto">!</span> em aberto <span class="fx-cel a_receber">…</span> a receber <span class="fx-cel sem">·</span> sem cobrança</p>`;
-    partes.push(card('Pago e em aberto', filtro + `<div class="fx-mm-rolo">${cab}${corpo || vazio('Ninguém com esse filtro.')}</div>` + legenda, 'pelo mês de referência'));
-    return casca(partes, 'clientes_mes');
+    const nAberto = linhas.filter((l) => l.total_aberto > 0).length;
+    // Padrão V2 (prancha V2-M-Financas-Clientes-Mes): a matriz cliente × mês num cartão só (os 6 meses mais novos), cada
+    // célula na cor da situação, o "De olho" no pé e o laranja só quando alguém deve.
+    const seis = meses.slice(-6), ini = meses.length - seis.length;
+    const COLS = [[28, ''], [0, 'Cliente e mensalidade'], ...seis.map((m) => [84, mesCurto(m), 'm']), [110, 'Em aberto', 'r']];
+    const CEL = { pago: 'pago', parcial: 'parcial', aberto: 'aberto', a_receber: 'a receber', sem: 'sem cobrança', fora: 'antes do extrato' };
+    const cel = (m) => `<span class="d3m-d-fm-mes ${esc(m.situacao)}" title="${esc(m.situacao === 'fora' ? `${nomeMes(m.mes)}: antes do extrato importado` : `${nomeMes(m.mes)}: previsto ${rs(m.previsto)}, recebido ${rs(m.recebido)}${m.em_aberto ? `, em aberto ${rs(m.em_aberto)}` : ''}${m.a_receber ? `, a receber ${rs(m.a_receber)}` : ''}`)}">${m.situacao === 'sem' || m.situacao === 'fora' ? '·' : m.situacao === 'pago' ? 'pago' : esc(mil(m.em_aberto || m.a_receber).replace('R$ ', ''))}<span class="fv2-sr"> ${esc(CEL[m.situacao] || m.situacao)}</span></span>`;
+    const corpo = !pc2.desde ? `<div class="d3m-d-fm-vazio"><p>Sem extrato, não dá para saber quem pagou.</p><button type="button" class="fv2-btn s" data-fx="ir-aba" data-valor="extrato">Ir ao extrato</button></div>`
+      : !linhas.length ? `<div class="d3m-d-fm-vazio"><p>Nenhuma entrada ligada a cliente ainda.</p><button type="button" class="fv2-btn s" data-fx="ir-aba" data-valor="extrato" data-chip="entradas">Ligar no extrato</button></div>`
+        : vis.map((l) => {
+          const aberta = u.aberta === l.cliente_id;
+          return `<div class="v2-abre d3m-d-fm-linha d3m-d-fm-alta" data-linha="${esc(l.cliente_id)}" aria-expanded="${aberta}">${M().tr(COLS, [M().av(l.cliente_nome),
+            `<button type="button" class="d3m-d-fm-nome" data-fx="abrir" data-alvo="clientes_mes" data-valor="${esc(l.cliente_id)}" aria-expanded="${aberta}"><b>${esc(l.cliente_nome)}</b><small>${l.mensalidade ? `${esc(rs(l.mensalidade))} por mês` : 'sem mensalidade'}</small></button>`,
+            ...l.meses.slice(ini).map(cel), l.total_aberto ? `<b class="r">${esc(rs(l.total_aberto))}</b>` : '<span class="q">em dia</span>'])}
+            <div class="v2-mais"><div>${aberta ? detalheCliente(d, l) : ''}</div></div></div>`;
+        }).join('') || '<p class="d3m-d-fm-vazio">Ninguém com esse filtro.</p>';
+    const fichas = M().fichas([['todos', 'Todos', linhas.length], ['aberto', 'Em aberto', nAberto, 'r'], ['pagos', 'Em dia', linhas.length - nAberto]]
+      .map(([k, nome, n, tom]) => ({ nome, n, tom: n ? tom : '', on: u.chip === k, attrs: `data-fx="chip" data-alvo="clientes_mes" data-valor="${k}"` })), 'Filtrar os clientes')
+      + '<span class="d3m-d-fm-leg" aria-hidden="true"><span><i class="pago"></i>pago</span><span><i class="aberto"></i>em aberto</span><span><i class="a_receber"></i>a receber</span></span>';
+    const semCobranca = (d.clientes || []).filter((c) => c.ativo !== false && !c.mensalidade).length;
+    const olho = pc2.desde ? M().olho([[esc(mil(recebido)), atual ? `recebido em ${soMes(atual)}` : 'recebido no mês', recebido ? 'g' : ''], [esc(mil(aReceber)), 'a receber no mês'],
+      [`${n0(pagos)} de ${n0(cobrados)}`, atual ? `já pagou ${soMes(atual)}` : 'já pagaram no mês'], semCobranca ? [n0(semCobranca), semCobranca === 1 ? 'cliente ativo sem cobrança' : 'clientes ativos sem cobrança', 'a'] : null]) : '';
+    const laranja = aberto > 0 ? M().laranja({ rot: 'quem deve', num: n0(nAberto), frase: nAberto === 1 ? 'cliente com mês em aberto' : 'clientes com mês em aberto',
+      apoio: `${esc(rs(aberto))} no total.${maior?.total_aberto ? ` O maior é ${esc(maior.cliente_nome)}, com ${esc(rs(maior.total_aberto))}.` : ''}`,
+      bts: [['Ver quem deve', 'data-fx="chip" data-alvo="clientes_mes" data-valor="aberto"'], maior?.total_aberto ? [`Abrir ${maior.cliente_nome}`, `data-fx="abrir" data-alvo="clientes_mes" data-valor="${esc(maior.cliente_id)}"`] : null] }) : '';
+    return M().molde({ tela: 'fx-clientes_mes', aba: 'clientes_mes', titulo: 'Clientes mês a mês', d, repintar,
+      sub: `${seis.length ? `${esc(soMes(seis[0]))} a ${esc(nomeMes(atual))}` : 'sem extrato'}${aberto ? ` · ${esc(mil(aberto))} em aberto` : linhas.length ? ' · todos em dia' : ''}`, laranja,
+      corpo: M().folha({ titulo: 'Pago e em aberto', sub: 'pelo mês de referência', dir: linhas.length ? fichas : '', cab: linhas.length ? M().cab(COLS) : '', corpo, olho, rotulo: 'matriz', cls: 'd3m-d-fm-matriz' }) });
   }
   function detalheCliente(d, l) {
     const doCliente = (d.transacoes || []).flatMap((t) => X().pedacos(t).filter((p) => String(p.cliente_id) === String(l.cliente_id) && p.valor > 0).map((p) => ({ ...p, historico: t.banco.historico })));
