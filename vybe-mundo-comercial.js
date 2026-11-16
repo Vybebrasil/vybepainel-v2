@@ -1683,7 +1683,67 @@
       acoes: `${buscaM('forn', 'Buscar fornecedor ou contato')}${menu}<button type="button" class="d3m-c-btn" data-vc="fornecedor">${IM.mais}Novo fornecedor</button>`,
       corpo: `<div class="d3m-c-corpo fo2">${folha}<aside class="d3m-lado" aria-label="Consulta">${laranja}${noMes}${abrirL}${ajudaM()}</aside></div>` };
   }
-  const M2 = { fornecedores: ['Fornecedores', 'producao', fornecedoresM] };
+  // Creators (prancha V2-M-Creators): as pessoas em grade, quatro por linha, com o rosto, os seguidores, o engajamento,
+  // o nicho e a cidade; o cartão vira no lugar e mostra as campanhas, o campo do contato e os botões de sempre. Ao lado,
+  // o VYBES diz quem está sem contato, os nichos (que filtram a grade) e os atalhos.
+  function creatorsM(d) {
+    const p = d.pode || {}, v = st.v2, edita = Boolean(p.editar_comercial), todos = d.creators, igual = (a, b) => norm(a).trim() === norm(b).trim();
+    const deIrece = (c) => igual(c.cidade, 'Irecê'), semContato = (c) => !String(c.contato || '').trim(), emCamp = (c) => Boolean(c.em_campanha);
+    const ativasDe = (c) => (c.campanhas || []).filter((k) => k.em_campanha), pede = todos.filter(semContato), temCamp = d.campanhas_disponivel !== false;
+    const nichos = d.opcoes.nichos.filter(Boolean), cidades = d.opcoes.cidades.filter((x) => x && !igual(x, 'Irecê'));
+    const GRUPOS = { '': ['Todos', () => true], irece: ['Irecê', deIrece], regiao: ['Região', (c) => !deIrece(c)], campanha: ['Em campanha', emCamp], sem: ['Sem contato', semContato],
+      ...Object.fromEntries(cidades.map((n) => ['c:' + n, [n, (c) => igual(c.cidade, n)]])) };
+    if (!GRUPOS[v.chip.creators || '']) v.chip.creators = '';
+    const sel = v.chip.creators || '', ficha = (k) => [k, GRUPOS[k][0], todos.filter(GRUPOS[k][1]).length], busca = norm(st.filtro.creator).trim();
+    const nichoSel = nichos.find((n) => igual(n, st.filtro.nicho || '')) || '', porEng = st.m2Ordem === 'eng';
+    const filtrada = C().filtrarCreators(todos.filter(GRUPOS[sel][1]), { nicho: nichoSel, cidade: '', busca: st.filtro.creator || '' });
+    const lista = porEng ? [...filtrada].sort((a, b) => (Number(b.engajamento) || 0) - (Number(a.engajamento) || 0)) : filtrada;
+    const letras = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((x) => x[0] || '').join('').toUpperCase() || '?';
+    const tom = (n) => { let h = 0; for (const ch of String(n || '')) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h % 8; };
+    const cartao = (c) => {
+      const id = esc(c.id), ab = v.aberta === 'cc:' + c.id, camp = ativasDe(c)[0], eng = Number(c.engajamento) > 0;
+      const pe = semContato(c) ? '<span class="cr2-ct a">sem contato</span>' : camp ? `<span class="cr2-ct g" title="Em campanha · ${esc(camp.cliente_nome)}">em campanha · ${esc(camp.cliente_nome)}</span>` : '<span class="cr2-ct">com contato</span>';
+      return `<article class="cr2-c" data-v2-linha="cc:${id}" aria-expanded="${ab}">
+        <button type="button" class="cr2-frente" data-v2="abre" data-id="cc:${id}" aria-expanded="${ab}" title="Abrir ${esc(c.nome)}">
+          <span class="cr2-av t${tom(c.nome)}" aria-hidden="true">${esc(letras(c.nome))}</span>
+          <span class="cr2-nome">${esc(c.nome)}</span><span class="cr2-arroba">${c.arroba ? '@' + esc(c.arroba) : 'sem @'}</span>
+          <span class="cr2-nums"><span><b>${Number(c.seguidores) > 0 ? esc(curto(c.seguidores)) : '—'}</b>seguidores</span><span><b>${eng ? pc(c.engajamento) : '—'}</b>engajamento</span></span>
+          <span class="cr2-tags">${c.nicho ? `<i>${esc(c.nicho)}</i>` : '<i class="z">sem nicho</i>'}${c.cidade ? esc(c.cidade) : ''}</span>${pe}</button>
+        <div class="cr2-verso">
+          <div class="cr2-verso-cab"><b>${esc(c.nome)}</b><button type="button" class="cr2-x" data-v2="abre" data-id="cc:${id}" aria-label="Voltar para o cartão" title="Voltar">${IM.x}</button></div>
+          <p><b>Contato</b> · ${semContato(c) ? 'não informado' : esc(c.contato)}</p>
+          ${c.observacoes ? `<p>${esc(c.observacoes)}</p>` : ''}
+          ${(c.campanhas || []).slice(0, 4).map((k) => `<p class="cr2-k"><span class="${k.em_campanha ? 'g' : 'm'}">${k.em_campanha ? 'em campanha' : k.status === 'encerrada' ? 'encerrada' : 'planejada'}</span> · ${esc(k.cliente_nome)} · ${esc(dm(k.inicio))}${k.fim ? ' a ' + esc(dm(k.fim)) : ''}${edita && k.status !== 'encerrada' ? ' ' + btM('Encerrar', `data-vc="campanha-encerrar" data-id="${esc(k.id)}"`) : ''}</p>`).join('')}
+          ${edita && semContato(c) ? `<div class="m2-campo"><label for="v2c-cc-${id}"><b>Contato</b>: WhatsApp ou e-mail</label><input id="v2c-cc-${id}" type="text" maxlength="200" placeholder="WhatsApp ou e-mail" data-v2-campo="creator:contato:${id}">${btM('Salvar contato', `data-v2="salvar-campo" data-id="creator:contato:${id}" data-feito="Salvo"`, 'k v2-estado')}</div>` : ''}
+          ${edita ? `<p class="m2-acoes">${temCamp ? btM('Nova campanha', `data-vc="campanha" data-id="${id}"`) : ''}${btM('Editar', `data-vc="creator" data-id="${id}"`)}${btM('Arquivar', `data-vc="arquivar-creator" data-id="${id}"`, 'ruim')}</p>` : ''}</div></article>`;
+    };
+    const vazio = !todos.length ? `<p class="d3v-estado"><b>Nenhum creator cadastrado</b>Os influenciadores de Irecê e região aparecem aqui, com o @, os seguidores e o contato.${edita ? '<button type="button" class="d3v-btn" data-vc="creator">Cadastrar o primeiro</button>' : ''}</p>`
+      : `<p class="d3v-estado"><b>Nenhum creator com esse filtro</b>${busca ? 'Confira a busca.' : 'Troque a ficha ou o nicho.'}</p>`;
+    const alcance = todos.reduce((s, c) => s + (Number(c.seguidores) || 0), 0), comEng = todos.filter((c) => Number(c.engajamento) > 0);
+    const engMedio = comEng.length ? Math.round(comEng.reduce((s, c) => s + Number(c.engajamento), 0) / comEng.length * 10) / 10 : null, nCamp = todos.filter(emCamp).length;
+    const troca = (k, texto, titulo, cls = '') => `<button type="button"${cls ? ` class="${cls}"` : ''} data-v2="chip" data-id="${sel === k ? '' : k}" role="switch" aria-checked="${sel === k}" title="${titulo}">${texto}</button>`;
+    const olho = `<span><b>${esc(curto(alcance))}</b> seguidores somados</span><span><b>${engMedio != null ? pc(engMedio) : '—'}</b> engajamento médio</span>${troca('sem', `<b>${num(pede.length)}</b> sem contato`, 'Mostrar só quem está sem contato', pede.length ? 'a' : '')}${temCamp ? troca('campanha', `<b>${num(nCamp)}</b> em campanha`, 'Mostrar só quem está em campanha') : ''}`;
+    const nichoMenu = nichos.length ? `<details class="d3m-c-menu cr2-nicho"><summary class="${nichoSel ? 'on' : ''}">${nichoSel ? esc(nichoSel) : 'Nicho'}${IM.baixo}</summary><div class="d3m-c-pop dir" role="menu" aria-label="Nicho">
+        <button type="button" role="menuitemradio" data-m2="nicho" data-id="" aria-checked="${!nichoSel}">Todos os nichos</button>${nichos.map((n) => `<button type="button" role="menuitemradio" data-m2="nicho" data-id="${esc(n)}" aria-checked="${igual(n, nichoSel)}">${esc(n)}<small class="d3m-c-s">${num(todos.filter((c) => igual(c.nicho, n)).length)}</small></button>`).join('')}</div></details>` : '';
+    const folha = `<section class="d3m-c-folha cr2-folha" aria-label="Creators"><div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${plural(todos.length, 'creator', 'creators')} <span>· Irecê e região</span></b>
+        ${todos.length ? `<span class="d3m-c-abas" role="radiogroup" aria-label="Mostrar">${['', 'irece', 'regiao'].map((k) => fichaM(ficha(k), sel)).join('')}</span><span class="d3m-c-abas cr2-abas2">${nichoMenu}<button type="button" role="switch" data-m2="ordem" aria-checked="${porEng}" title="${porEng ? 'Voltar para a ordem dos seguidores' : 'Pôr na frente quem engaja mais'}">Maior engajamento</button></span>` : ''}</div>
+      <div class="cr2-grade m2-rola${lista.length ? '' : ' vazia'}">${lista.map(cartao).join('') || vazio}</div>
+      ${todos.length ? `<div class="m2-pe"><span class="m2-pe-rot">De olho</span>${olho}</div>` : ''}</section>`;
+    const laranja = !todos.length ? laranjaM({ quem: 'VYBES · Agência', letra: 'V', frase: 'Nenhum creator cadastrado', sub: 'Sem o cadastro não há quem chamar para a campanha.', bts: edita ? larM('Cadastrar o primeiro', 'data-vc="creator"') : '' })
+      : pede.length ? laranjaM({ quem: 'VYBES · falta o contato', letra: 'V', numero: num(pede.length), frase: `${pede.length === 1 ? 'creator' : 'creators'} sem contato`, sub: `${nomesM(pede)}. Sem contato não dá para chamar na campanha.`,
+        bts: (edita ? larM('Completar', `data-v2="abre-um" data-id="cc:${esc(pede[0].id)}"`) : '') + (pede.length > 1 || !edita ? larM(pede.length === 1 ? 'Ver quem é' : `Ver os ${num(pede.length)}`, 'data-v2="chip" data-id="sem"', edita) : '') })
+        : laranjaM({ quem: 'VYBES · Agência', letra: 'V', frase: 'Todos com contato', sub: nCamp ? `${plural(nCamp, 'creator', 'creators')} em campanha agora.` : 'Dá para chamar qualquer um para a campanha.' });
+    const maior = Math.max(1, ...nichos.map((n) => todos.filter((c) => igual(c.nicho, n)).length));
+    const porNicho = `<div class="d3m-cons cr2-pn"><div class="d3m-cons-cab"><b>Por nicho</b><span>${plural(todos.length, 'creator', 'creators')}</span></div>${nichos.length ? `<div class="cr2-nichos m2-rola2">${[...nichos].map((n) => [n, todos.filter((c) => igual(c.nicho, n)).length]).sort((a, b) => b[1] - a[1]).map(([n, q]) => `<button type="button" class="cr2-nl" role="switch" aria-checked="${igual(n, nichoSel)}" data-m2="nicho" data-id="${igual(n, nichoSel) ? '' : esc(n)}" title="${igual(n, nichoSel) ? 'Mostrar todos os nichos' : `Mostrar só: ${esc(n)}`}"><span>${esc(n)}</span><span class="cr2-barra"><i style="--v:${Math.round(q / maior * 100)}%"></i></span><b>${num(q)}</b></button>`).join('')}</div>` : '<p class="m2-nota cr2-semn">Nenhum nicho informado ainda.</p>'}</div>`;
+    const temForn = Boolean(document.querySelector?.('#vv-sub-producao [data-submodulo="fornecedores"]'));
+    const abrirL = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Abrir</b></div>${temForn ? irM('fornecedores', 'Fornecedores', '') : ''}<button type="button" class="d3m-vlin m2-mais" data-m2="ajuda" aria-expanded="${st.ajuda}"><span class="d3m-vnome"><b>Como funciona</b></span>${IM.seta}</button>${st.ajuda ? `<p class="m2-nota" role="note">${esc(AJUDA.creators)}</p>` : ''}</div>`;
+    const item = (k) => `<button type="button" role="menuitemradio" data-v2="chip" data-id="${sel === k ? '' : k}" aria-checked="${sel === k}">${esc(GRUPOS[k][0])}<small class="d3m-c-s">${num(todos.filter(GRUPOS[k][1]).length)}</small></button>`;
+    const extras = [...(temCamp ? ['campanha'] : []), 'sem'], menu = menuM(`<span class="d3m-c-pop-rot">Mostrar só</span>${extras.map(item).join('')}${cidades.length ? `<span class="d3m-c-pop-rot">Cidade</span>${cidades.map((n) => item('c:' + n)).join('')}` : ''}`, [...extras, ...cidades.map((n) => 'c:' + n)].includes(sel), 'Mais filtros');
+    return { sub: `influenciadores de Irecê e região · ${plural(todos.length, 'cadastrado', 'cadastrados')} · ${plural(nichos.length, 'nicho', 'nichos')}`,
+      acoes: `${buscaM('creator', 'Buscar nome ou @')}${todos.length ? menu : ''}${edita ? `<button type="button" class="d3m-c-btn" data-vc="creator">${IM.mais}Novo creator</button>` : ''}`,
+      corpo: `<div class="d3m-c-corpo cr2${st.ajuda ? ' ajuda' : ''}">${folha}<aside class="d3m-lado" aria-label="Consulta">${laranja}${todos.length ? porNicho : ''}${abrirL}</aside></div>` };
+  }
+  const M2 = { fornecedores: ['Fornecedores', 'producao', fornecedoresM], creators: ['Creators', 'producao', creatorsM] };
   const v2m = () => Boolean(M2[st.aba]) && v2();
   function pintarM(el, { d, erro, abas }) {
     const ativo = document.activeElement, idFoco = el.contains(ativo) ? (ativo.dataset.vcBusca || ativo.name || '') : '', selFim = ativo?.selectionEnd;
@@ -1709,6 +1769,8 @@
     const t = e.target.closest?.('#vv-comercial [data-m2]'); if (!t) return;
     if (t.dataset.m2 === 'categorias') { st.m2Cats = !st.m2Cats; pintar(); return; }
     if (t.dataset.m2 === 'ajuda') { st.ajuda = !st.ajuda; pintar(); return; }
+    if (t.dataset.m2 === 'nicho') { st.filtro.nicho = t.dataset.id || ''; st.v2.aberta = ''; pintar(); return; }
+    if (t.dataset.m2 === 'ordem') { st.m2Ordem = st.m2Ordem === 'eng' ? '' : 'eng'; pintar(); return; }
     if (t.dataset.m2 !== 'ir') return;
     const id = t.dataset.id, b = document.querySelector(`#vv-sub-producao [data-submodulo="${id}"]`);
     if (b) b.click(); else if (id === 'impressoes') { fechar(); window.VybeImpressoes?.abrir?.(); } else abrir(id, { abas: [id] });

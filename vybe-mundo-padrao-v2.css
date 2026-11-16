@@ -14124,6 +14124,93 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 /* A folha do formulário (a de sempre) abre por cima da janela de vidro: a letra volta a ser a tinta. */
 #vv-comercial.d3m-c-janela :is(.vc-folha,.vc-abas){color:var(--d3-tinta)}
 
+/* ===== padrao-v2/zm-c-creators.css ===== */
+/* DIREÇÃO V2 · CREATORS (prancha V2-M-Creators, 16/11/2026). As pessoas em grade na folha, quatro por linha; o cartão vira
+   no lugar (.cr2-verso) com as campanhas, o campo do contato e os botões. As peças divididas com Fornecedores (.m2-*) e a
+   janela ficam em zm-c-comercial.css e zm-c-base.css. Só tokens --d3-*. */
+.cr2-folha{min-height:0}
+.cr2-abas2{margin-left:2px;padding-left:10px;border-left:1px solid var(--d3-veu-forte)}
+.cr2-nicho > summary{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 8px 0 10px;border-radius:var(--d3-r-botao);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.cr2-nicho > summary:hover{background:var(--d3-veu)}
+.cr2-nicho > summary.on{background:var(--d3-veu-forte);font-weight:600}
+.cr2-nicho > summary > svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cr2-nicho > summary:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.cr2-grade{flex:1 1 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(280px,auto);align-content:start;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+.cr2-grade.vazia{display:flex}
+.cr2-c{position:relative;display:flex;min-width:0;box-sizing:border-box;border-right:1px solid var(--d3-divisa);border-bottom:1px solid var(--d3-divisa)}
+.cr2-c:nth-child(4n){border-right:0}
+.cr2-frente{appearance:none;flex:1 1 auto;display:flex;flex-direction:column;align-items:center;gap:0;min-width:0;margin:0;padding:20px 12px 14px;box-sizing:border-box;border:0;border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:center;cursor:pointer}
+.cr2-frente:hover{background:var(--d3-veu)}
+.cr2-frente:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.cr2-av{flex:none;display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:var(--d3-texto2);color:var(--d3-escuro-texto);font:600 22px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em}
+.cr2-av.t0{background:var(--d3-mod-operacao)}
+.cr2-av.t1{background:var(--d3-mod-negocio)}
+.cr2-av.t2{background:var(--d3-mod-time)}
+.cr2-av.t3{background:var(--d3-mod-vybe)}
+.cr2-av.t4{background:var(--d3-info)}
+.cr2-av.t5{background:var(--d3-agente-texto)}
+.cr2-av.t6{background:var(--d3-perigo)}
+.cr2-nome{max-width:100%;margin-top:12px;font:600 14px/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr2-arroba{max-width:100%;margin-top:3px;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr2-nums{display:flex;justify-content:center;gap:20px;margin-top:14px}
+.cr2-nums > span{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:var(--d3-fs-mini);color:var(--d3-rotulo);white-space:nowrap}
+.cr2-nums > span > b{font:600 var(--d3-fs-destaque)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.cr2-tags{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%;margin-top:14px;white-space:nowrap;overflow:hidden}
+.cr2-tags > i{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu-forte);font-style:normal;font-size:var(--d3-fs-mini);font-weight:500}
+.cr2-tags > i.z{background:none;padding:0;color:var(--d3-rotulo);font-weight:400}
+.cr2-ct{max-width:100%;margin-top:10px;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr2-ct.a{font-weight:500;color:var(--d3-ambar)}
+.cr2-frente:hover > .cr2-ct.a{color:var(--d3-ajuste)}
+.cr2-ct.g{font-weight:500;color:var(--d3-pronto)}
+/* O verso: o cartão vira no lugar, sem empurrar a grade. */
+.cr2-verso{position:absolute;inset:0;z-index:1;display:none;flex-direction:column;gap:8px;padding:12px;box-sizing:border-box;overflow-y:auto;scrollbar-width:thin;background:var(--d3-fume-painel);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);text-align:left}
+.cr2-c[aria-expanded="true"] > .cr2-verso{display:flex}
+.cr2-verso-cab{flex:none;display:flex;align-items:center;gap:8px;min-width:0}
+.cr2-verso-cab > b{flex:1 1 auto;min-width:0;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr2-x{appearance:none;flex:none;display:grid;place-items:center;width:24px;height:24px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto);cursor:pointer}
+.cr2-x > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.cr2-x:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+.cr2-verso > p{margin:0;overflow-wrap:anywhere}
+.cr2-verso > p > b{font-weight:600}
+.cr2-k > .g{font-weight:600;color:var(--d3-pronto-claro)}
+.cr2-k > .m{color:var(--d3-fume-apagado)}
+.cr2-verso .m2-campo > label{color:var(--d3-fume-texto)}
+:is(#vv-comercial,#vv-whatsapp).d3m-c-janela .cr2-verso .m2-campo > input{flex:1 1 100%;width:100%}
+.cr2-verso .m2-acoes{margin-top:auto}
+.cr2-verso .d3m-c-btn.c{box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
+.cr2-verso .d3m-c-btn.c:hover{background:var(--d3-fume-veu)}
+.cr2-verso .d3m-c-btn.c.k{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta-fixa)}
+.cr2-verso .d3m-c-btn.c.ruim{color:var(--d3-perigo-vidro)}
+.cr2-verso .d3m-c-btn.c:focus-visible{outline-color:var(--d3-fume-texto)}
+/* A consulta: os nichos em barras; cada linha filtra a grade. */
+.cr2-nichos{display:flex;flex-direction:column;padding:6px 0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.cr2-nl{appearance:none;display:grid;grid-template-columns:84px minmax(0,1fr) 20px;align-items:center;gap:12px;height:23px;margin:0;padding:0 12px;border:0;border-radius:0;background:none;box-shadow:none;color:var(--d3-fume-apagado);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.cr2-nl:hover,.cr2-nl[aria-checked="true"]{background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.cr2-nl > span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr2-nl > b{text-align:right;font-weight:600;color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+.cr2-nl:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+.cr2-barra{height:4px;border-radius:2px;background:var(--d3-fume-veu-forte);overflow:hidden}
+.cr2-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-fume-texto)}
+.cr2-semn{padding:8px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.cr2 .d3v-estado{flex:1 1 auto}
+/* Janela baixa (1366 x 768): duas linhas de cartões continuam cabendo. */
+@media (max-height:820px){
+  .cr2-grade{grid-auto-rows:minmax(236px,auto)}
+  .cr2-frente{padding:14px 10px 10px}
+  .cr2-av{width:56px;height:56px;font-size:18px}
+  .cr2-nome{margin-top:8px}
+  .cr2-nums,.cr2-tags{margin-top:10px}
+  .cr2-ct{margin-top:8px}
+  .cr2-nl{height:21px}
+  .cr2.ajuda .cr2-pn{display:none}
+}
+@media (max-width:1100px){
+  .cr2-folha{height:620px}
+  .cr2-grade{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cr2-c:nth-child(4n){border-right:1px solid var(--d3-divisa)}
+  .cr2-c:nth-child(3n){border-right:0}
+}
+
 /* ===== padrao-v2/zm-c-impressoes.css ===== */
 /* DIREÇÃO V2 · IMPRESSÕES (pranchas V2-M-Impressoes, V2-M-Impressoes-Etapas e V2-M-Impressoes-Lista, 16/11/2026). A janela
    (#vv-impressoes) ganha .d3m-c-janela (zm-c-base.css). Linhas: o funil das 7 etapas no vidro, a folha com uma linha por

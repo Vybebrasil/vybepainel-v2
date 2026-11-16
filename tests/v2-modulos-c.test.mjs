@@ -143,3 +143,18 @@ test('Fornecedores V2: uma linha por fornecedor na folha, com os campos e os bot
   assert.match(css, /\.fo2-abre\[aria-expanded="true"\] > \.fo2-det\{display:flex\}/);
   assert.match(css, /#vv-comercial\.d3m-c-janela :is\(\.vc-folha,\.vc-abas\)\{color:var\(--d3-tinta\)\}/);
 });
+
+test('Creators V2: as pessoas em grade, o cartão vira no lugar com as campanhas e os botões de sempre', () => {
+  const com = ler('vybe-mundo-comercial.js'), css = ler('padrao-v2/zm-c-creators.css');
+  assert.match(com, /creators: \['Creators', 'producao', creatorsM\] \};/);
+  const tela = com.slice(com.indexOf('function creatorsM(d)'), com.indexOf('const M2 = '));
+  for (const t of ['data-v2-linha="cc:${id}"', 'data-v2="abre" data-id="cc:${id}"', 'data-v2-campo="creator:contato:${id}"', 'data-v2="salvar-campo" data-id="creator:contato:${id}"', 'data-vc="campanha" data-id="${id}"',
+    'data-vc="campanha-encerrar" data-id="${esc(k.id)}"', 'data-vc="creator" data-id="${id}"', 'data-vc="arquivar-creator" data-id="${id}"', 'data-vc="creator">${IM.mais}Novo creator', "buscaM('creator', 'Buscar nome ou @')",
+    'data-v2="abre-um" data-id="cc:${esc(pede[0].id)}"', 'C().filtrarCreators(', 'data-m2="nicho"', 'data-m2="ordem"']) assert.ok(tela.includes(t), t);
+  // Quem só lê não vê os botões de editar nem o campo do contato.
+  assert.ok(tela.includes('${edita && semContato(c) ? `<div class="m2-campo">') && tela.includes('${edita ? `<button type="button" class="d3m-c-btn" data-vc="creator">'));
+  for (const t of ['<span>· Irecê e região</span>', 'Maior engajamento</button>', '<span class="m2-pe-rot">De olho</span>', "'VYBES · falta o contato'", '<b>Por nicho</b>', '<b>Como funciona</b>', '<b>Nenhum creator cadastrado</b>']) assert.ok(tela.includes(t), t);
+  assert.match(com, /if \(t\.dataset\.m2 === 'nicho'\) \{ st\.filtro\.nicho = t\.dataset\.id \|\| ''; st\.v2\.aberta = ''; pintar\(\); return; \}/);
+  assert.match(css, /\.cr2-grade\{flex:1 1 0;display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);[^}]*overflow-y:auto/);
+  assert.match(css, /\.cr2-c\[aria-expanded="true"\] > \.cr2-verso\{display:flex\}/);
+});
