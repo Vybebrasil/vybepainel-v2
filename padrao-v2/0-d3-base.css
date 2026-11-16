@@ -11,7 +11,25 @@
   --d3-perigo:#B42318; --d3-perigo-veu:#FDECEE; --d3-ajuste:#7A4A00; --d3-ajuste-veu:#FFF4D6;
   --d3-pronto:#11613A; --d3-pronto-veu:#E8F5EC; --d3-info:#1E4A9A; --d3-info-veu:#E7EEFB;
   --d3-cart-vinicius:#9A4A1E; --d3-cart-ewerton:#3B5BA9;
-  --d3-r-cartao:20px; --d3-r-janela:28px;
+  --d3-r-cartao:16px; --d3-r-janela:20px;
+  /* Direção de cor e vidro (quadro aprovado pelo Paulo em 16/11/2026): cantos 8/12/16/20 (pílula só em etiqueta), vidro claro
+     sobre um fundo de ambiente quente, painel escuro para o que é de consulta e o laranja em degradê só no destaque. */
+  --d3-r-botao:8px; --d3-r-caixa:10px; --d3-r-ilha:16px;
+  --d3-vidro:rgba(255,255,255,.62); --d3-vidro-forte:rgba(255,255,255,.78); --d3-vidro-borda:rgba(255,255,255,.75);
+  --d3-escuro:rgba(31,29,26,.88); --d3-escuro-linha:rgba(255,255,255,.1); --d3-escuro-apagado:rgba(255,255,255,.6); --d3-escuro-texto:#FFFFFF;
+  --d3-acao-claro:#E39A6A;
+  --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF;
+  --d3-ambiente-claro:radial-gradient(55% 65% at 12% 20%,#EADFCE 0%,rgba(234,223,206,0) 70%),radial-gradient(45% 55% at 90% 80%,#B9C6CB 0%,rgba(185,198,203,0) 70%),radial-gradient(40% 50% at 62% 8%,#E8CBAA 0%,rgba(232,203,170,0) 70%),#D9D2C7;
+  /* Direção V2 (pranchas V2 aprovadas pelo Paulo em 16/11/2026): o vidro escurece, o branco vira exceção e a cor trabalha.
+     ambiente = a luz quente escura atrás do HUD; fume = o vidro do HUD e da janela do Hoje (letra branca); folha = o cartão
+     claro por cima; rotulo = o cinza a 68% dos rótulos (5:1 sobre a folha); laranja = o degradê do único cartão cheio. */
+  --d3-ambiente:radial-gradient(48% 58% at 10% 12%,#CFA06C 0%,rgba(207,160,108,0) 70%),radial-gradient(46% 56% at 92% 18%,#9FB1BA 0%,rgba(159,177,186,0) 70%),radial-gradient(60% 55% at 72% 104%,#94623C 0%,rgba(148,98,60,0) 70%),radial-gradient(42% 48% at 22% 100%,#46545B 0%,rgba(70,84,91,0) 70%),#6B5F55;
+  --d3-fume:rgba(34,28,23,.66); --d3-fume-forte:rgba(30,25,21,.82); --d3-fume-borda:rgba(255,255,255,.2); --d3-fume-veu:rgba(255,255,255,.1); --d3-fume-veu-forte:rgba(255,255,255,.18);
+  --d3-fume-texto:#FFFFFF; --d3-fume-apagado:rgba(255,255,255,.84); --d3-fume-escuro:rgba(18,15,13,.5); --d3-fume-painel:#2B2520; --d3-rotulo-fixo:rgba(31,29,26,.68);
+  --d3-folha:rgba(255,255,255,.9); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.55); --d3-rotulo:rgba(31,29,26,.68); --d3-divisa:rgba(31,29,26,.07); --d3-veu:rgba(31,29,26,.07); --d3-veu-forte:rgba(31,29,26,.12);
+  --d3-tinta-fixa:#1F1D1A; --d3-ambar:#8F5600; --d3-perigo-vidro:#FFC4BC;
+  --d3-laranja:radial-gradient(52% 52% at 100% 0%,#EDA676 0%,rgba(237,166,118,0) 70%),linear-gradient(170deg,#C2490C 0%,#A83D08 100%);
+  --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
   /* Escala de fonte (acabamento premium, 15/11/2026): seis tamanhos inteiros no lugar dos 14 a 19 por tela e dos meios
      pixels (10,5 / 11,5 / 12,5 / 13,5 / 14,5). mini: selo, contador, legenda miúda · apoio: rótulo, chip, sublinha ·
      texto: texto e botão · destaque: nome na linha, frase do bloco de ação · titulo: título de cartão e janela ·

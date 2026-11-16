@@ -167,5 +167,5 @@ test('fichas por pessoa, Mês arrastando entre dias (mantém quem faz), Aprovar 
   assert.doesNotMatch(css, /!important|html body\.mundo/);
   assert.match(ler('vybe-mundo-padrao-v2.css'), /padrao-v2\/d3-coordenacao\.css/);
   html = C.html(args);
-  assert.match(html, /class="d3-acao d3h-acao"/); assert.equal((html.match(/class="d3-acao /g) || []).length, 1, 'um só bloco laranja');
+  assert.match(html, /class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa"/); // direção V2: a faixa virou o cartão laranja ao lado dos indicadores assert.equal((html.match(/class="d3-acao /g) || []).length, 1, 'um só bloco laranja');
 });

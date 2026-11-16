@@ -7,9 +7,11 @@ const js = fs.readFileSync('vybe-mundo.js', 'utf8').replace(/\r\n/g, '\n');
 const css = fs.readFileSync('vybe-mundo.css', 'utf8').replace(/\r\n/g, '\n');
 const tela = js.slice(js.indexOf('// ===== Minhas tarefas pelo quadro D3-Tarefas'), js.indexOf('  function acaoDoHoje('));
 
-test('a tela segue a ordem do quadro D3-Tarefas: topo, faixa do guia, números, lista e as duas colunas', () => {
+// Direção V2 (pranchas V2 aprovadas em 16/11/2026): topo, números, a lista com o cartão laranja ao lado (a peça para aprovar
+// ou o guia do dia) e a coluna de consulta direto no vidro.
+test('a tela segue a ordem da prancha V2: topo, números, lista com o laranja ao lado e a coluna de consulta', () => {
   assert.ok(tela.length > 2000);
-  const ordem = ['<div class="d3h d3h-tf">', 'dir: `${diaDe}${segDono}`', '${faixa}', '${numeros}', '<div class="d3h-col">${tarefas}</div>', 'decidirHtml()', 'agentesD3Html(', 'compromissosD3Html()', "whatsappD3Html('tarefas')", 'aprovacoesD3Html()'];
+  const ordem = ["decidirHtml({ titulo: 'Para aprovar agora', laranja: true }) : faixa", '<div class="d3h d3h-tf d3q">', 'dir: `${diaDe}${segDono}`', '${numeros}', '<div class="d3q-meio">${tarefas}<div class="d3q-acao">${laranja}</div></div>', 'compromissosD3Html()', "whatsappD3Html('tarefas')", 'aprovacoesD3Html()', 'agentesD3Html('];
   let p = -1; for (const parte of ordem) { const i = tela.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; }
   // O que o quadro não tem saiu da tela.
   for (const velho of ['vv-hoje-dias', 'vv-anel', 'data-pergunta', 'vv-chips', 'vv-blocos-prio', 'guiaHtml(']) assert.ok(!tela.includes(velho), `saiu ${velho}`);
@@ -17,23 +19,24 @@ test('a tela segue a ordem do quadro D3-Tarefas: topo, faixa do guia, números, 
 
 test('faixa do guia com os três primeiros passos e Começar, e os quatro números com barra', () => {
   assert.match(tela, /const passosFaixa = ordemGuia\.slice\(0, 3\)/);
-  assert.match(tela, /botao: passosGuia\[0\] \? 'Começar' : '', attrs: passosGuia\[0\]\?\.attrs/);
+  assert.match(tela, /botoes: \[passosGuia\[0\] \? \{ rot: 'Começar', attrs: passosGuia\[0\]\.attrs \} : null\]/);
   assert.match(tela, /rotulo: 'Para hoje'[\s\S]{0,400}rotulo: 'Atrasadas'[\s\S]{0,500}rotulo: 'Feitas na semana', valor: n0\(feitas\.length\)[^\n]{0,80}barra:/);
 });
 
-test('filtros Hoje, Semana, Todas, Atrasadas e Feitas, a busca e Filtros', () => {
+test('filtros Hoje, Semana, Todas, Atrasadas e Feitas, a busca e Por status', () => {
   // Todas (13/11/2026) fica entre Semana e Atrasadas: a fila inteira, na ordem.
   assert.match(tela, /const GRUPOS = \{ hoje: \['Hoje', hojeP, 'Hoje, na ordem'[^\]]*\], semana: \['Semana', semanaP[^\]]*\], todas: \['Todas', naFila, 'Todas, na ordem', 'Nada aberto\.'\], atrasadas: \['Atrasadas', atrasadasP[^\]]*\], feitas: \['Feitas', feitas[^\]]*\] \};/);
   assert.match(tela, /class="v2t-busca" data-busca-tarefas placeholder="Buscar nas minhas tarefas"/);
   assert.match(tela, /<div class="v2-lista d3h-lista" aria-label="Minha fila">/, "a busca repinta só a lista; fichas e campo ficam fora dela");
-  assert.match(tela, /aria-pressed="\$\{hojeVerTodas\}">Filtros<\/button>/);
+  // Prancha V2-Pecas: o botão se chama pelo que faz (agrupa a lista por status).
+  assert.match(tela, /aria-pressed="\$\{hojeVerTodas\}" title="Agrupar a lista por status">Por status<\/button>/);
   // A busca redesenha só a lista: o campo não perde o foco.
   assert.match(js, /if \(!e\.target\.matches\?\.\('\[data-busca-tarefas\]'\)\) return;\n    buscaTarefas = e\.target\.value; linhaAberta = ''; soListaAgora = true; pintarHoje\(\); soListaAgora = false;/);
   assert.match(tela, /const atual = soListaAgora \? el\.querySelector\('\.v2-lista'\) : null;/);
 });
 
 test('a linha: bolinha que conclui, cliente e peça, status que troca ali, quando e a seta', () => {
-  const linha = tela.slice(tela.indexOf('const linha = (x) =>'), tela.indexOf('function listaHtml()'));
+  const linha = tela.slice(tela.indexOf('const linha = (x, rep = false) =>'), tela.indexOf('function listaHtml()'));
   const ordem = ['class="v2t-cx', 'class="v2t-nome"', 'class="v2t-st"', 'class="v2t-quando"', 'class="v2-linha-seta"'];
   let p = -1; for (const parte of ordem) { const i = linha.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; }
   assert.match(linha, /onclick="openStatusEditor\(event,'\$\{id\}'\)" title="Trocar o status"/);
