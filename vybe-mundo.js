@@ -4179,18 +4179,39 @@
   function mostrarJogos() {
     const p = placa(), gente = presencaDoEscritorio(), Z = zonas3d();
     const eu = typeof escritorio !== 'undefined' ? String(escritorio?.base?.eu || '') : '';
-    // Padrão v2 (moodboard, 12/11/2026): título e quantos online; um cartão por mesa, com a arte, a regra e Jogar;
-    // embaixo, quem está online para chamar, na linha do quadro.
-    const pessoa = (g) => `<div class="v2n-lin"><span class="v2n-av vd" aria-hidden="true">${esc(iniciais(g.id === eu ? 'Você' : g.nome))}</span><p><b>${esc(g.id === eu ? 'Você' : g.nome)}</b> <span class="v2n-sub">· ${Z[g.zona] ? esc(Z[g.zona].nome) : 'fora das salas'}</span></p>${g.id === eu ? '' : `<button type="button" class="v2n-btn s" data-chamar-online="${esc(g.id)}">Chamar</button>`}</div>`;
-    p.innerHTML = `<div class="v2j"><div class="v2e-topo"><h1>Jogos</h1><span class="v2n-chip"><i class="v2j-ponto" aria-hidden="true"></i>${n0(gente.length)} online agora</span>
-        <button type="button" class="v2n-x" data-fechar aria-label="Fechar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
-      <p class="v2n-sub">As mesas ficam no terraço do prédio. Escolha o jogo e chame quem está online.</p>
-      <div class="v2j-mesas">${JOGOS.map(([id, nome, txt, , , classe, rotulo]) => `<article class="v2n-card v2j-mesa">
-        <img class="v2j-arte" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" loading="lazy">
-        <div><h2>${esc(nome)}</h2><p class="v2n-sub">${esc(txt)}</p></div><button type="button" class="v2n-btn k" data-jogo="${id}">${esc(rotulo)}</button></article>`).join('')}</div>
-      <section class="v2n-card"><div class="v2n-cab"><h2>Quem pode jogar agora</h2><span class="v2n-sub">${plural(gente.length, 'pessoa online', 'pessoas online')}</span></div>
-        ${gente.length ? gente.map(pessoa).join('') : '<p class="v2n-sub v2e-nada">Ninguém online agora. Dá para abrir a mesa e esperar alguém chegar.</p>'}</section>
-      <p class="v2n-sub">Ranking, Loja e Conquistas ficam no menu, em Prédio, Jogos, Loja…</p></div>`;
+    // V2 (prancha V2-M-Jogos, 16/11/2026): a janela de vidro fumê com o título no vidro e quantos estão online; as quatro
+    // mesas em cartões (a arte da mesa em cima, a regra, quantos jogam e Jogar); embaixo, na folha, quem pode jogar agora;
+    // à direita a consulta com o ranking da semana, onde ficam as mesas e os atalhos. As mesas e os motores não mudam.
+    const QUANTOS = { sinuca: 'contra 1 pessoa', xadrez: 'por desafio', poker: 'até 6 na mesa', mesa: '2 a 4 pessoas' };
+    const pessoa = (g) => `<div class="d3m-f-jlin"><i class="d3m-f-jav" aria-hidden="true">${esc(iniciais(g.id === eu ? 'Você' : g.nome))}</i><span class="d3m-vnome"><b>${esc(g.id === eu ? 'Você' : g.nome)}</b> <span class="d3m-f-japoio">· ${Z[g.zona] ? esc(Z[g.zona].nome) : 'fora das salas'}</span></span>${g.id === eu ? '' : `<button type="button" class="d3v-btn sec s" data-chamar-online="${esc(g.id)}" aria-label="Chamar ${esc(g.nome)} para jogar">Chamar</button>`}</div>`;
+    const mesas = JOGOS.map(([id, nome, txt, , , classe, rotulo]) => `<article class="d3m-f-mesa" data-mesa="${id}">
+        <span class="d3m-f-mesa-arte"><img src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(classe)}.png?size=64" alt="" loading="lazy"></span>
+        <div class="d3m-f-mesa-txt"><span class="d3m-f-mesa-h" role="heading" aria-level="3">${esc(nome)}</span><span class="d3m-f-mesa-p">${esc(txt)}</span></div>
+        <div class="d3m-f-mesa-pe"><span class="d3m-f-mesa-q">${QUANTOS[id] || ''}</span><button type="button" class="d3v-btn s${rotulo === 'Jogar' ? '' : ' sec d3m-f-fio'}" data-jogo="${id}">${esc(rotulo)}</button></div></article>`).join('');
+    const vazio = typeof d3mEEstado === 'function' ? d3mEEstado({ tipo: 'vazio', titulo: 'Ninguém online agora', texto: 'Quando alguém entrar, dá para chamar daqui. A mesa de sinuca abre sozinha para treinar.' }) : '<p class="d3m-f-japoio">Ninguém online agora. Dá para abrir a mesa e esperar alguém chegar.</p>';
+    // O ranking da semana, do mesmo servidor da tela do Ranking (sem dado, só o caminho até ela).
+    const R = typeof escritorioRanking !== 'undefined' ? escritorioRanking : null, dS = R?.dados?.semana;
+    if (R && !dS && !mostrarJogos.pediu && typeof carregarRankingEscritorio === 'function') {
+      mostrarJogos.pediu = true;
+      Promise.resolve(carregarRankingEscritorio('semana')).catch(() => {}).then(() => { if (!placa().hidden && placa().querySelector('.d3m-f-jogos')) mostrarJogos(); });
+    }
+    const dm = (iso) => (iso ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '');
+    const ord = dS?.disponivel ? [...(dS.pessoas || [])].sort((a, b) => (b.xp || 0) - (a.xp || 0)) : [];
+    const minhaPos = ord.findIndex((x) => String(x.id) === eu);
+    const rk = (x, i) => `<button type="button" class="d3m-vlin d3m-f-rk" data-trilho="ranking"><span class="d3m-f-rk-n">${i + 1}</span><span class="d3m-vnome"><b>${esc(String(x.nome || '').split(' ')[0])}</b></span><span class="d3m-f-vai">${n0(x.xp || 0)} XP</span></button>`;
+    const ranking = `<section class="d3m-cons" aria-label="Ranking da semana"><div class="d3m-cons-cab"><b>Ranking da semana</b><span>${dS?.inicio ? `${dm(dS.inicio)} a ${dm(dS.fim)}` : ''}</span></div>
+      ${ord.length ? ord.slice(0, 3).map(rk).join('') + (minhaPos >= 0 ? `<button type="button" class="d3m-vlin" data-trilho="ranking"><span><b>Você</b> <span class="d3m-f-ap">· ${minhaPos + 1}º lugar</span></span><span class="d3m-f-vai">${n0(ord[minhaPos].xp || 0)} XP</span>${IC_F.seta}</button>` : '')
+        : `<button type="button" class="d3m-vlin" data-trilho="ranking"><span><b>Abrir o ranking</b> <span class="d3m-f-ap">· ${R?.erro ? 'sem sinal agora' : dS && !dS.disponivel ? 'ainda não começou' : 'carregando'}</span></span>${IC_F.seta}</button>`}</section>`;
+    const onde = '<section class="d3m-cons" aria-label="Onde ficam"><div class="d3m-cons-cab"><b>Onde ficam</b><span></span></div><p class="d3m-e-lado-txt">As mesas ficam no terraço. A partida abre na tela do jogo, que não muda nesta rodada.</p></section>';
+    const abrir = `<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+      <button type="button" class="d3m-vlin" data-trilho="loja"><span><b>Loja</b> <span class="d3m-f-ap">· mesas para a sua sala</span></span>${IC_F.seta}</button>
+      <button type="button" class="d3m-vlin" data-trilho="conquistas"><span><b>Conquistas</b></span>${IC_F.seta}</button></section>`;
+    p.innerHTML = `<div class="d3m-e-tela d3m-f-jogos"><div class="d3m-e-topo"><div class="d3m-e-tit"><span class="d3m-e-h" role="heading" aria-level="1">Jogos</span><span class="d3m-e-sub">as mesas ficam no terraço do prédio · escolha a mesa e chame quem está online</span></div>
+        <div class="d3m-e-acoes"><span class="d3m-f-online">${plural(gente.length, 'online agora', 'online agora')}</span><button type="button" class="d3m-e-ico" data-fechar aria-label="Fechar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div></div>
+      <div class="d3m-e-corpo"><div class="d3m-e-main"><div class="d3m-f-mesas">${mesas}</div>
+        <section class="d3m-e-folha cresce" aria-label="Quem pode jogar agora"><div class="d3m-e-cab"><b>Quem pode jogar agora</b><span class="d3m-e-cab-dir">${plural(gente.length, 'pessoa online', 'pessoas online')}</span></div>
+          <div class="d3m-e-rola">${gente.length ? gente.map(pessoa).join('') : vazio}</div></section></div>
+        <aside class="d3m-lado" aria-label="Consulta">${ranking}${onde}${abrir}</aside></div></div>`;
     p.hidden = false; ajustarAreaLivre();
   }
   let jogandoAgora = false;

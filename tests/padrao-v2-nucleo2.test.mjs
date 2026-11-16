@@ -55,7 +55,7 @@ test('painel Salas do dock: título, pessoas ao vivo, fechar, rostos, Dentro, a 
 
 test('Jogos na janela do padrão e o Chat com título e a sala de quem lê', () => {
   const j = trecho('function mostrarJogos()', 'let jogandoAgora');
-  assert.ok(j.includes('<h1>Jogos</h1>') && j.includes('class="v2n-btn k" data-jogo=') && j.includes('Quem pode jogar agora'));
+  assert.ok(j.includes('role="heading" aria-level="1">Jogos</span>') && j.includes('data-jogo="${id}"') && j.includes('Quem pode jogar agora') && j.includes('data-fechar'));
   assert.ok(conversa.includes("const titulo = el('h2', 'vv-conversa-titulo');") && conversa.includes("titulo.textContent = 'Chat';"));
   assert.ok(conversa.includes('<b>${esc(nomeSala(sala))}</b> · lê quem está na sala'));
 });

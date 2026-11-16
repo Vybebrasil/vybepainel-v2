@@ -55,3 +55,12 @@ test('Minha sala (V2-M-Minha-Sala): o nome no vidro, tiras, o quarto no cartão 
   assert.match(css, /#d3-sala\.d3m-f-mundo > \.d3m-f-corpo\{[^}]*pointer-events:none/, 'o toque passa para o 3D');
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /backdrop-filter:\s*blur|animation/, 'nada de blur nem animação por cima da cena');
 });
+
+test('Jogos (V2-M-Jogos): quatro mesas em cartões, quem pode jogar na folha e a consulta com o ranking da semana', () => {
+  const j = trecho('  function mostrarJogos() {', '  let jogandoAgora = false;');
+  for (const t of ['class="d3m-e-tela d3m-f-jogos"', 'class="d3m-f-mesas"', 'class="d3m-f-mesa" data-mesa="${id}"', 'data-jogo="${id}"', 'aria-label="Quem pode jogar agora"', 'data-chamar-online=', 'data-fechar', 'aria-label="Ranking da semana"', "carregarRankingEscritorio('semana')", 'data-trilho="ranking"', 'data-trilho="loja"', 'data-trilho="conquistas"']) assert.ok(j.includes(t), t);
+  assert.ok(mundo.includes('else if (b.dataset.jogo) abrirJogo(b.dataset.jogo);'), 'Jogar abre a mesma mesa de antes');
+  const css = ler('padrao-v2/zm-f-jogos.css');
+  assert.match(css, /#vv-placa:has\(> \.d3m-f-jogos\)\{[^}]*background:var\(--d3-fume\)/);
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /backdrop-filter:\s*blur|animation/);
+});
