@@ -1460,7 +1460,8 @@
     if (st.entregas.pedido) return; st.entregas.pedido = true;
     pedir('impressoes', null, '').then((r) => {
       const m = new Map(); for (const x of r.ranking || []) if (x.prazo_medio_dias != null) m.set(String(x.fornecedor_id), { dias: Number(x.prazo_medio_dias), entregues: Number(x.entregues) || 0 });
-      st.entregas.mapa = m; if (st.aberto && st.aba === 'fornecedores') pintar();
+      st.entregas.mapa = m; st.entregas.imp = { abertas: Number(r.resumo?.abertas) || 0, gestao: Boolean(r.gestao), lista: Array.isArray(r.impressoes) ? r.impressoes : [] };
+      if (st.aberto && st.aba === 'fornecedores') pintar();
     }).catch(() => { st.entregas.mapa = new Map(); });
   }
   function abaFornecedores(d) {
@@ -1587,6 +1588,131 @@
         antes: nichos.length ? `<span class="d3c-dono d3cr-nicho">${escolhaC({ rotulo: 'Nicho', valor: nichoSel, vazio: 'todos', campo: 'data-vc-filtro="nicho"', opcoes: nichos.map((n) => ({ valor: n, nome: n, n: todos.filter((c) => igual(c.nicho, n)).length })) })}</span>` : '' })}
       ${cabe.length ? `<div class="v2c-pessoas d3cr-grade">${cabe.map(cartaoD3).join('')}${resto > 0 ? `<button type="button" class="v2c-card d3cr-mais" data-v2="mostra" data-id="creators">+${plural(resto, 'creator', 'creators')}</button>` : ''}</div>` : '<p class="v2c-sub v2c-nada">Nenhum creator com esse filtro.</p>'}`;
   }
+  // ===== Direção V2 dos módulos (pranchas V2-M-Fornecedores e V2-M-Creators, 16/11/2026) =====
+  // No computador, estas abas trocam o esqueleto: o topo no vidro (o título com a seta das outras telas do setor, a
+  // busca, o menu e a ação), o trabalho numa folha clara e a consulta de 316 px direto no vidro. As funções são as de
+  // sempre (data-vc, data-v2, data-v2-campo e a folha do formulário); no celular e nas outras abas a tela é a de antes.
+  const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;
+  const svgM = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const IM = { mais: svgM('<path d="M12 5v14M5 12h14"/>'), lupa: svgM('<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>'), pontos: svgM('<path stroke-width="3" d="M6 12h.01M12 12h.01M18 12h.01"/>'),
+    x: svgM('<path d="M6 6l12 12M18 6 6 18"/>'), seta: svgM('<path d="m9 6 6 6-6 6"/>'), baixo: svgM('<path d="m6 9 6 6 6-6"/>') };
+  const maiuscula = (t) => String(t || '').charAt(0).toUpperCase() + String(t || '').slice(1);
+  const nomesM = (lista) => { const n = lista.slice(0, 2).map((x) => x.nome); return lista.length > 2 ? `${n.join(', ')} e mais ${num(lista.length - 2)}` : n.join(' e '); };
+  const btM = (texto, attrs, cls = '') => `<button type="button" class="d3m-c-btn c${cls ? ' ' + cls : ''}" ${attrs}>${esc(texto)}</button>`;
+  const botLarF = (texto, attrs, sec) => `<button type="button" class="d3m-btn l${sec ? ' s' : ''}" ${attrs}>${esc(texto)}</button>`;
+  const fichaM = ([id, nome, n], sel) => `<button type="button" role="radio" data-v2="chip" data-id="${esc(id)}" aria-checked="${sel === id}">${esc(nome)} <b>${num(n)}</b></button>`;
+  const menuM = (itens, on, rotulo) => `<details class="d3m-c-menu"><summary class="d3m-c-ico${on ? ' on' : ''}" aria-label="${rotulo}" title="${rotulo}">${IM.pontos}</summary><div class="d3m-c-pop dir" role="menu" aria-label="${rotulo}">${itens}</div></details>`;
+  const buscaM = (chave, rotulo) => `<label class="d3m-c-busca" title="${esc(rotulo)}">${IM.lupa}<input type="search" aria-label="${esc(rotulo)}" autocomplete="off" placeholder="${esc(rotulo)}" data-vc-busca="${chave}" value="${esc(st.filtro[chave] || '')}"></label>`;
+  const laranjaM = ({ quem, letra, numero = '', frase, sub = '', bts = '' }) => `<section class="d3m-laranja m2-laranja" aria-label="O que pede você agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${letra}</span>${esc(quem)}</span>
+      <div class="d3m-lar-txt">${numero !== '' ? `<b class="d3m-lar-num">${esc(numero)}</b>` : ''}<b class="d3-acao-frase">${esc(frase)}</b>${sub ? `<small class="d3m-c-s">${esc(sub)}</small>` : ''}</div>${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</section>`;
+  const ajudaM = () => (st.ajuda ? `<div class="d3m-cons m2-ajuda" role="note"><div class="d3m-cons-cab"><b>Como funciona</b></div><p class="m2-nota">${esc(AJUDA[st.aba])}</p></div>` : '');
+  const irM = (id, nome, apoio) => `<button type="button" class="d3m-vlin" data-m2="ir" data-id="${id}"><span class="d3m-vnome"><b>${nome}</b>${apoio ? ` · ${esc(apoio)}` : ''}</span>${IM.seta}</button>`;
+
+  // Fornecedores (prancha V2-M-Fornecedores): uma linha por fornecedor, na ordem do que falta (Agora) e do que está em
+  // dia; a linha abre no lugar com o campo do BV ou do contato e os botões de sempre. Ao lado, o Nestor diz o que falta
+  // para as Impressões, o mês com as gráficas (o gasto e o BV saem das impressões pedidas no mês) e os atalhos.
+  function fornecedoresM(d) {
+    carregarEntregas();
+    const v = st.v2, entrega = (f) => st.entregas.mapa?.get(String(f.id)) || null, imp = st.entregas.imp;
+    const ativos = d.fornecedores.filter((f) => f.ativo), nomeCat = (id) => d.categorias.find((c) => c.id === id)?.nome || id;
+    const semBv = (f) => !(Number(f.bv_percentual) > 0), semContato = (f) => !String(f.contato || '').trim() && !String(f.telefone || '').trim();
+    const abertas = (f) => Number(f.impressoes?.abertas) || 0, incompleto = (f) => semBv(f) || semContato(f);
+    const pede = ativos.filter(incompleto), porCat = (id) => ativos.filter((f) => f.categoria === id).length, cats = d.categorias.filter((c) => porCat(c.id) > 0);
+    const GRUPOS = { '': ['Todos', () => true], ...Object.fromEntries(d.categorias.map((c) => [c.id, [c.nome, (f) => f.categoria === c.id]])), '+imp': ['Com impressão aberta', (f) => abertas(f) > 0],
+      '+bv': ['Sem BV', semBv], '+contato': ['Sem contato', semContato], '+falta': ['Incompletos', incompleto] };
+    if (!GRUPOS[v.chip.fornecedores || '']) v.chip.fornecedores = '';
+    const sel = v.chip.fornecedores || '', ficha = (k) => [k, GRUPOS[k][0], ativos.filter(GRUPOS[k][1]).length], busca = norm(st.filtro.forn).trim();
+    const filtrada = C().filtrarFornecedores(ativos.filter(GRUPOS[sel][1]), { categoria: '', busca: st.filtro.forn || '' });
+    // Na ordem do que falta: primeiro quem está sem BV, depois quem está só sem contato e, por fim, quem está em dia.
+    const lista = [...filtrada.filter(semBv), ...filtrada.filter((f) => !semBv(f) && semContato(f)), ...filtrada.filter((f) => !incompleto(f))];
+    // Na cabeça da folha cabem as três categorias com mais gente (e a escolhida); todas ficam em Categorias, na consulta.
+    const noTopo = [...cats].sort((a, b) => porCat(b.id) - porCat(a.id)).slice(0, 3).map((c) => c.id), fichas = ['', ...cats.map((c) => c.id).filter((id) => noTopo.includes(id) || id === sel), '+imp'];
+    const nBv = ativos.filter(semBv).length, nCt = ativos.filter(semContato).length, comImp = ativos.filter((f) => abertas(f) > 0);
+    const campo = (f, qual) => (qual === 'bv'
+      ? `<div class="m2-campo"><label for="v2c-bv-${esc(f.id)}"><b>BV combinado</b>, em %</label><input id="v2c-bv-${esc(f.id)}" class="curto" type="text" inputmode="decimal" placeholder="Ex.: 10" data-v2-campo="forn:bv:${esc(f.id)}">${btM('Salvar BV', `data-v2="salvar-campo" data-id="forn:bv:${esc(f.id)}" data-feito="BV salvo"`, 'k v2-estado')}</div>`
+      : `<div class="m2-campo"><label for="v2c-ct-${esc(f.id)}"><b>Contato</b> de ${esc(f.nome)}</label><input id="v2c-ct-${esc(f.id)}" type="text" maxlength="200" placeholder="Nome, WhatsApp ou e-mail" data-v2-campo="forn:contato:${esc(f.id)}">${btM('Salvar contato', `data-v2="salvar-campo" data-id="forn:contato:${esc(f.id)}" data-feito="Salvo"`, 'k v2-estado')}</div>`);
+    const linha = (f, i, grupo) => {
+      const id = esc(f.id), ab = v.aberta === 'fo:' + f.id, x = f.impressoes || {}, local = f.cidade ? `${f.cidade}${f.uf ? '/' + f.uf : ''}` : '', e = entrega(f);
+      const acao = !incompleto(f) ? 'Abrir' : semBv(f) ? 'Registrar BV' : 'Pôr contato';
+      return `<div class="fo2-abre" data-v2-linha="fo:${id}" aria-expanded="${ab}"><div class="fo2-lin">
+          <span class="fo2-g${grupo === 'Agora' ? ' r' : ''}">${i ? '' : grupo}</span>
+          <span class="fo2-nome" title="${esc(f.nome)}"><b>${esc(f.nome)}</b> <span>· ${esc(nomeCat(f.categoria))}</span></span>
+          <span class="fo2-c${semContato(f) ? ' a' : ''}">${semContato(f) ? 'sem contato' : esc([f.contato, f.telefone].filter(Boolean).join(' · '))}</span>
+          <span class="fo2-c${semBv(f) ? ' a' : ''}">${semBv(f) ? 'sem BV' : pc(f.bv_percentual)}</span>
+          <span class="fo2-c${abertas(f) ? '' : ' m'}">${abertas(f) ? plural(abertas(f), 'impressão', 'impressões') : 'nada'}${x.atrasadas ? ` · <b class="r">${plural(x.atrasadas, 'atrasada', 'atrasadas')}</b>` : ''}</span>
+          <span class="fo2-c${e ? '' : ' m'}">${e ? plural(e.dias, 'dia', 'dias') : 'sem entrega'}</span>
+          <span class="fo2-ac">${btM(acao, `data-v2="abre" data-id="fo:${id}" aria-expanded="${ab}"`)}</span></div>
+        <div class="fo2-det">
+          <p><b>Contato</b> · ${esc([f.contato, f.telefone, local].filter(Boolean).join(' · ') || 'não informado')}</p>
+          <p><b>Impressões</b> · ${num(abertas(f))} em andamento${x.atrasadas ? `, ${plural(x.atrasadas, 'atrasada', 'atrasadas')}` : ''} · ${plural(Number(x.entregues) || 0, 'entregue', 'entregues')}${e ? ` · ${plural(e.dias, 'dia', 'dias')} do pedido à entrega, em média` : ''}</p>
+          ${f.observacoes ? `<p><b>Observações</b> · ${esc(f.observacoes)}</p>` : ''}
+          ${semBv(f) ? campo(f, 'bv') : ''}${semContato(f) ? campo(f, 'contato') : ''}
+          <p class="m2-acoes">${(abertas(f) || x.entregues) && window.VybeImpressoes ? btM('Ver impressões', `data-vc="ver-impressoes" data-id="${id}"`) : ''}${btM('Editar', `data-vc="fornecedor" data-id="${id}"`)}${btM('Arquivar', `data-vc="arquivar-forn" data-id="${id}"`, 'ruim')}</p></div></div>`;
+    };
+    const linhas = [['Agora', lista.filter(incompleto)], ['Em dia', lista.filter((f) => !incompleto(f))]].map(([g, itens]) => itens.map((f, i) => linha(f, i, g)).join('')).join('');
+    const vazio = !ativos.length ? `<p class="d3v-estado"><b>Nenhum fornecedor ainda</b>Cadastre as gráficas, os estúdios e os parceiros, com o BV e o contato.<button type="button" class="d3v-btn" data-vc="fornecedor">Cadastrar o primeiro</button></p>`
+      : `<p class="d3v-estado"><b>Nenhum fornecedor com esse filtro</b>${busca ? 'Confira a busca.' : 'Troque a ficha.'}</p>`;
+    // O mês com as gráficas: as impressões pedidas neste mês (area=impressoes); o valor só vem para quem vê dinheiro.
+    const mes = hojeIso().slice(0, 7), nomeDoMes = MESES[Number(mes.slice(5)) - 1], bvDe = new Map(ativos.map((f) => [String(f.id), Number(f.bv_percentual) || 0]));
+    const doMes = (imp?.lista || []).filter((i) => i.fornecedor_id && i.etapa !== 'cancelado' && String(i.pedido_em || '').startsWith(mes) && i.valor != null);
+    const gasto = doMes.reduce((s, i) => s + (Number(i.valor) || 0), 0), bvMes = doMes.reduce((s, i) => s + (Number(i.valor) || 0) * (bvDe.get(String(i.fornecedor_id)) || 0) / 100, 0);
+    const temValor = Boolean(imp?.gestao), tile = (valor, rot) => `<div class="m2-tile"><b>${valor}</b><span>${rot}</span></div>`;
+    const olho = [`<button type="button" data-v2="chip" data-id="${sel === '+bv' ? '' : '+bv'}" role="switch" aria-checked="${sel === '+bv'}" title="Mostrar só quem está sem BV"><b>${num(ativos.length - nBv)} de ${num(ativos.length)}</b> com BV</button>`,
+      `<button type="button" data-v2="chip" data-id="${sel === '+contato' ? '' : '+contato'}" role="switch" aria-checked="${sel === '+contato'}" title="Mostrar só quem está sem contato"><b>${num(ativos.length - nCt)} de ${num(ativos.length)}</b> com contato</button>`,
+      `<button type="button" data-v2="chip" data-id="${sel === '+imp' ? '' : '+imp'}" role="switch" aria-checked="${sel === '+imp'}" title="Mostrar só quem tem impressão em andamento"><b>${num(comImp.length)}</b> com impressão em andamento</button>`,
+      temValor ? `<span class="g"><b>${esc(din(bvMes))}</b> de BV em ${esc(nomeDoMes)}</span>` : ''].join('');
+    const folha = `<section class="d3m-c-folha fo2-folha" aria-label="Fornecedores"><div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${plural(ativos.length, 'fornecedor', 'fornecedores')} <span>· gráficas, estúdios e parceiros</span></b>
+        ${ativos.length ? `<span class="d3m-c-abas" role="radiogroup" aria-label="Mostrar">${fichas.map((k) => fichaM(ficha(k), sel)).join('')}</span>` : ''}</div>
+      <div class="fo2-cab" aria-hidden="true"><span></span><span>Fornecedor</span><span>Contato</span><span>BV</span><span>Em andamento</span><span>Entrega média</span><span></span></div>
+      <div class="fo2-lista m2-rola">${linhas || vazio}</div>
+      ${ativos.length ? `<div class="m2-pe"><span class="m2-pe-rot">De olho</span>${olho}</div>` : ''}</section>`;
+    const quem = 'Nestor · falta para as Impressões', bvs = ativos.filter(semBv), cts = ativos.filter(semContato), soCt = cts.filter((f) => !semBv(f));
+    const laranja = !ativos.length ? laranjaM({ quem: 'Nestor · Compras', letra: 'N', frase: 'Nenhum fornecedor ainda', sub: 'Sem o cadastro, as Impressões não sabem a quem pedir.', bts: botLarF('Cadastrar o primeiro', 'data-vc="fornecedor"') })
+      : nBv ? laranjaM({ quem, letra: 'N', numero: num(nBv), frase: `${nBv === 1 ? 'fornecedor' : 'fornecedores'} sem BV combinado`,
+        sub: `${nomesM(bvs)}.${soCt.length ? ` ${nomesM(soCt)} ${soCt.length === 1 ? 'está' : 'estão'} sem contato.` : ''}`,
+        bts: botLarF('Registrar o BV', `data-v2="abre-um" data-id="fo:${esc(bvs[0].id)}"`) + (pede.length > 1 ? botLarF(`Ver os ${num(pede.length)}`, 'data-v2="chip" data-id="+falta"', true) : '') })
+        : nCt ? laranjaM({ quem, letra: 'N', numero: num(nCt), frase: `${nCt === 1 ? 'fornecedor' : 'fornecedores'} sem contato`, sub: `${nomesM(cts)}. Sem contato não dá para pedir o orçamento.`,
+          bts: botLarF('Pôr o contato', `data-v2="abre-um" data-id="fo:${esc(cts[0].id)}"`) + (nCt > 1 ? botLarF(`Ver os ${num(nCt)}`, 'data-v2="chip" data-id="+contato"', true) : '') })
+          : laranjaM({ quem: 'Nestor · Compras', letra: 'N', frase: 'Todos com BV e contato', sub: 'Nada falta para as Impressões.' });
+    const noMes = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${esc(maiuscula(nomeDoMes))}</b><span>com as gráficas</span></div><div class="m2-tiles">${tile(temValor ? esc(reais(Math.round(gasto))) : '—', 'gasto')}${tile(temValor ? esc(reais(Math.round(bvMes))) : '—', 'de BV')}${tile(num(comImp.length), 'em uso')}</div></div>`;
+    const abrirL = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Abrir</b></div>${window.VybeImpressoes ? irM('impressoes', 'Impressões', imp ? plural(imp.abertas, 'aberta', 'abertas') : '') : ''}${irM('creators', 'Creators', 'influenciadores da região')}
+        ${cats.length ? `<button type="button" class="d3m-vlin m2-mais" data-m2="categorias" aria-expanded="${Boolean(st.m2Cats)}"><span class="d3m-vnome"><b>Categorias</b></span>${IM.seta}</button>${!st.m2Cats ? '' : `<div class="m2-mais-l">${cats.map((c) => `<button type="button" class="d3m-vlin" data-v2="chip" data-id="${esc(c.id)}" role="switch" aria-checked="${sel === c.id}"><span class="d3m-vnome">${esc(c.nome)}</span><b class="d3m-vn">${num(porCat(c.id))}</b></button>`).join('')}</div>`}` : ''}</div>`;
+    const item = (k) => `<button type="button" role="menuitemradio" data-v2="chip" data-id="${sel === k ? '' : k}" aria-checked="${sel === k}">${GRUPOS[k][0]}<small class="d3m-c-s">${num(ativos.filter(GRUPOS[k][1]).length)}</small></button>`;
+    const menu = menuM(`<span class="d3m-c-pop-rot">Mostrar só</span>${['+falta', '+bv', '+contato'].map(item).join('')}<button type="button" role="menuitemcheckbox" data-m2="ajuda" aria-checked="${st.ajuda}">Como funciona</button>`, ['+falta', '+bv', '+contato'].includes(sel), 'Filtros e ajuda');
+    return { sub: `só donos e administração · ${plural(ativos.length, 'ativo', 'ativos')} · ${comImp.length ? `${num(comImp.length)} com impressão em andamento` : 'nenhuma impressão em andamento'}`,
+      acoes: `${buscaM('forn', 'Buscar fornecedor ou contato')}${menu}<button type="button" class="d3m-c-btn" data-vc="fornecedor">${IM.mais}Novo fornecedor</button>`,
+      corpo: `<div class="d3m-c-corpo fo2">${folha}<aside class="d3m-lado" aria-label="Consulta">${laranja}${noMes}${abrirL}${ajudaM()}</aside></div>` };
+  }
+  const M2 = { fornecedores: ['Fornecedores', 'producao', fornecedoresM] };
+  const v2m = () => Boolean(M2[st.aba]) && v2();
+  function pintarM(el, { d, erro, abas }) {
+    const ativo = document.activeElement, idFoco = el.contains(ativo) ? (ativo.dataset.vcBusca || ativo.name || '') : '', selFim = ativo?.selectionEnd;
+    const rola = el.querySelector('.m2-rola'), rolagem = rola ? rola.scrollTop : 0, [nome, setor, tela] = M2[st.aba];
+    el.className = 'vc d3m-c-janela';
+    let t;
+    if (erro) t = { sub: 'não foi possível abrir', corpo: `<div class="d3m-c-folha d3v-estado erro" role="alert"><b>Não foi possível abrir ${nome}</b>${esc(erro)}<button type="button" class="d3v-btn sec" data-vc="recarregar">Tentar de novo</button></div>` };
+    else if (!d) t = { sub: 'carregando', corpo: `<div class="d3m-c-folha d3v-estado" role="status"><b>Carregando ${nome}</b></div>` };
+    else { try { t = tela(d); } catch (e) { console.error('[comercial]', e); t = { sub: '', corpo: '<div class="d3m-c-folha d3v-estado erro" role="alert"><b>Não foi possível mostrar esta tela</b><button type="button" class="d3v-btn sec" data-vc="recarregar">Tentar de novo</button></div>' }; } }
+    const titulo = typeof window.d3mcTrocaHtml === 'function' ? window.d3mcTrocaHtml(nome, setor, st.aba) : `<b class="d3m-c-h" role="heading" aria-level="2">${nome}</b>`;
+    el.innerHTML = `<div class="d3m-c-topo"><div class="d3m-c-tit">${titulo}<span class="d3m-c-sub">${esc(t.sub)}</span></div>${t.acoes || ''}<button type="button" class="d3m-c-ico" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IM.x}</button></div>
+      ${abas.length > 1 ? `<nav class="vc-abas" role="tablist" aria-label="Abas do Comercial">${abas.map(([id, n]) => `<button type="button" role="tab" data-vc-aba="${id}" aria-selected="${st.aba === id}">${esc(n)}</button>`).join('')}</nav>` : ''}
+      ${st.msg && !st.folha ? `<p class="m2-aviso${st.msg.startsWith('⚠️') ? ' erro' : ''}" role="status">${esc(st.msg.replace(/^⚠️\s*/, ''))}</p>` : ''}
+      ${t.corpo}${folhaHtml()}`;
+    const nova = el.querySelector('.m2-rola'); if (nova && rolagem) nova.scrollTop = rolagem;
+    // A linha que o cartão laranja abriu vem para a vista, com o campo pronto para digitar.
+    if (st.v2.aberta && st.v2.aberta !== st.m2Aberta) { const l = el.querySelector(`[data-v2-linha="${st.v2.aberta}"]`); l?.scrollIntoView?.({ block: 'nearest' }); if (!idFoco) l?.querySelector('[data-v2-campo]')?.focus({ preventScroll: true }); }
+    st.m2Aberta = st.v2.aberta;
+    if (idFoco) { const alvo = el.querySelector(`[data-vc-busca="${idFoco}"], [name="${idFoco}"]`); if (alvo) { alvo.focus(); try { alvo.setSelectionRange?.(selFim, selFim); } catch { /* campo sem seleção */ } } }
+  }
+  // Os atalhos da consulta levam às outras telas pelo submenu do menu lateral (o mesmo clique da seta do título).
+  document.addEventListener?.('click', (e) => {
+    const t = e.target.closest?.('#vv-comercial [data-m2]'); if (!t) return;
+    if (t.dataset.m2 === 'categorias') { st.m2Cats = !st.m2Cats; pintar(); return; }
+    if (t.dataset.m2 === 'ajuda') { st.ajuda = !st.ajuda; pintar(); return; }
+    if (t.dataset.m2 !== 'ir') return;
+    const id = t.dataset.id, b = document.querySelector(`#vv-sub-producao [data-submodulo="${id}"]`);
+    if (b) b.click(); else if (id === 'impressoes') { fechar(); window.VybeImpressoes?.abrir?.(); } else abrir(id, { abas: [id] });
+  });
   const PINTOR = { funil: abaFunil, pacotes: abaPacotes, orcamentos: abaOrcamentos, financas: abaFinancas, recebimentos: abaRecebimentos, contas: abaContas,
     inadimplencia: abaInadimplencia, caixa: abaCaixa, fornecedores: abaFornecedores, creators: abaCreators };
 
@@ -1827,7 +1953,10 @@
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const dinheiro = veDinheiro(), abas = ABAS.filter((a) => (!a[2] || dinheiro) && (!st.soAbas || st.soAbas.has(a[0])));
     if (!abas.some((a) => a[0] === st.aba)) st.aba = 'funil';
-    const d = st.dados[st.aba], erro = st.erro[st.aba], m = M.has(st.aba), v2 = !m && V2.has(st.aba);
+    const d = st.dados[st.aba], erro = st.erro[st.aba];
+    // Direção V2 dos módulos (Fornecedores e Creators no computador): o esqueleto das pranchas V2-M-*, em pintarM.
+    if (v2m()) return pintarM(el, { d, erro, abas });
+    const m = M.has(st.aba), v2 = !m && V2.has(st.aba);
     el.className = m ? 'vc d3m-d-m' : v2 ? (D3.has(st.aba) ? 'vc v2c d3c' : 'vc v2c') : 'vc';
     topoDaVez = null;
     let conteudo, telaFin = false;

@@ -121,3 +121,25 @@ test('Projetos V2: abre na linha do tempo, com os cartões como aba e a página 
   assert.match(css, /\.pj2-rola\{flex:1 1 0;min-height:0;overflow-y:auto/);
   assert.match(css, /\.pj2-barra\.r\{background:var\(--d3-perigo\)\}/);
 });
+
+test('Fornecedores V2: uma linha por fornecedor na folha, com os campos e os botões de sempre; no celular fica a tela de antes', () => {
+  const com = ler('vybe-mundo-comercial.js'), css = ler('padrao-v2/zm-c-comercial.css');
+  assert.ok(com.includes("const v2 = () => typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 700px)').matches;"));
+  // Só estas abas trocam de esqueleto, e só no computador; o resto da janela do Comercial fica como estava.
+  assert.ok(com.includes('if (v2m()) return pintarM(el, { d, erro, abas });') && com.includes('const v2m = () => Boolean(M2[st.aba]) && v2();'));
+  assert.match(com, /const M2 = \{ fornecedores: \['Fornecedores', 'producao', fornecedoresM\]/);
+  assert.ok(com.includes("el.className = 'vc d3m-c-janela';") && com.includes('window.d3mcTrocaHtml(nome, setor, st.aba)'));
+  const tela = com.slice(com.indexOf('function fornecedoresM(d)'), com.indexOf('const M2 = '));
+  // Tudo o que a tela fazia continua pelos mesmos data-*.
+  for (const t of ['data-v2-linha="fo:${id}"', 'data-v2="abre" data-id="fo:${id}"', 'data-v2-campo="forn:bv:${esc(f.id)}"', 'data-v2-campo="forn:contato:${esc(f.id)}"', 'data-v2="salvar-campo" data-id="forn:bv:${esc(f.id)}"',
+    'data-vc="ver-impressoes" data-id="${id}"', 'data-vc="fornecedor" data-id="${id}"', 'data-vc="arquivar-forn" data-id="${id}"', 'data-vc="fornecedor">${IM.mais}Novo fornecedor', "buscaM('forn', 'Buscar fornecedor ou contato')",
+    'data-v2="abre-um" data-id="fo:${esc(bvs[0].id)}"', 'C().filtrarFornecedores(', 'carregarEntregas();']) assert.ok(tela.includes(t), t);
+  // A ordem da prancha: Agora (o que falta) e Em dia; o pé "De olho"; o Nestor, o mês com as gráficas e os atalhos.
+  for (const t of ["[['Agora', lista.filter(incompleto)], ['Em dia'", '<span>Fornecedor</span><span>Contato</span><span>BV</span><span>Em andamento</span><span>Entrega média</span>', '<span class="m2-pe-rot">De olho</span>',
+    "'Nestor · falta para as Impressões'", '<span>com as gráficas</span>', '<b>Abrir</b>', "irM('creators', 'Creators'", 'só donos e administração']) assert.ok(tela.includes(t), t);
+  // Erro (quem não pode ver) e vazio ficam no mesmo esqueleto.
+  assert.ok(com.includes('<b>Não foi possível abrir ${nome}</b>${esc(erro)}') && tela.includes('<b>Nenhum fornecedor ainda</b>'));
+  assert.match(css, /\.fo2-lista\{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto/);
+  assert.match(css, /\.fo2-abre\[aria-expanded="true"\] > \.fo2-det\{display:flex\}/);
+  assert.match(css, /#vv-comercial\.d3m-c-janela :is\(\.vc-folha,\.vc-abas\)\{color:var\(--d3-tinta\)\}/);
+});
