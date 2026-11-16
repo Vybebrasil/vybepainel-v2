@@ -379,122 +379,186 @@ function feedVista(vista, passo = 0) {
   renderFeedDoCliente();
 }
 
+// ── A camada do Feed (Paulo, 15/11/2026: "quando clicar em feed, ao invés de abrir assim, vem um hover pra frente com
+// o feed do cliente... tela cheia que vem por cima... essa troca de feed tá dura, amador; deixa fluida", com painéis
+// de vidro de referência). Um "celular" por cliente, lado a lado: o do meio grande e mexível, os vizinhos menores
+// atrás. Os celulares ficam montados: trocar de cliente só muda a posição (--d) e o CSS desliza com mola; cada um
+// rola por dentro, sem a página rolar. Setas, ← →, dois dedos no trackpad, deslizar no celular, clicar no vizinho; Esc
+// fecha.
+const FEED_VIZINHOS = 3;
 function renderFeedDoCliente() {
+  // O quadro antigo dentro do Painel fica vazio: o Feed abre por cima de tudo.
   const wrap = document.getElementById('feed-board');
-  if (!wrap) return;
-  if (!feedAberto) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
-  wrap.classList.remove('focus-hidden');
+  if (wrap) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); }
+  if (!feedAberto) { feedFecharCamada(); return; }
   if (typeof garantirClientesAtivos === 'function') { try { garantirClientesAtivos(); } catch { /* segue */ } }
   if (typeof ensureClientMasterSources === 'function' && !feedClientes.pedido) {
     feedClientes.pedido = true;
     Promise.resolve(ensureClientMasterSources()).then(() => { if (feedAberto) renderFeedDoCliente(); }).catch(() => {});
   }
+  const camada = feedCamada();
+  if (!camada) return;
   const todos = feedClientes();
-  const lista = feedFiltrados();
-  // Quem tem buraco primeiro: é onde a rediagramação começa.
-  const montados = lista.map((c) => ({ c, b: feedMontar(c).buracos.length }));
-  const ordenada = montados.sort((a, b) => b.b - a.b || a.c.nome.localeCompare(b.c.nome, 'pt-BR')).map((x) => x.c);
-  const totalBuracos = montados.reduce((s, x) => s + x.b, 0);
+  const ordenada = feedOrdem();
   const jan = feedJanela();
-  wrap.innerHTML = `<div class="vfd">
-    <div class="vfd-topo"><div><h2>Feed dos clientes</h2><p>${lista.length === 1 ? 'O feed de agora e o que vai sair, como na grade do Instagram.' : `${feedPlural(lista.length, 'cliente', 'clientes')} · ${totalBuracos ? `<b class="vfd-r">${feedPlural(totalBuracos, 'post faltando', 'posts faltando')}</b> ${feedEsc(jan.rotulo)}` : `nenhum buraco ${feedEsc(jan.rotulo)}`}`}</p></div>
-      <p class="vfd-legenda"><span class="vfd-l vfd-l-arte"></span>arte pronta <span class="vfd-l vfd-l-prov"></span>sem arte <span class="vfd-l vfd-l-x"></span>sem post (semana com menos de ${FEED_POR_SEMANA}) <span class="vfd-l vfd-l-atraso"></span>prazo vencido</p></div>
-    ${feedVistaHtml()}
-    ${feedFiltrosHtml(todos)}
-    ${ordenada.length ? feedCarrosselHtml(ordenada) : '<p class="vfd-vazio">Nenhum cliente neste filtro.</p>'}</div>`;
-  feedLigarArrasto(wrap);
-  feedLigarToque(wrap);
-  feedLigarCarrossel(wrap);
-  // Perfis e artes do cliente da frente e dos vizinhos que aparecem; o resto vem quando chegar a vez.
-  const i = Math.max(0, ordenada.findIndex((c) => c.nome === FEED.foco));
-  const perto = ordenada.filter((_, j) => Math.abs(j - i) <= 2);
+  const totalBuracos = ordenada.reduce((s, c) => s + feedMontar(c).buracos.length, 0);
+  let i = ordenada.findIndex((c) => c.nome === FEED.foco);
+  if (i < 0 && ordenada.length) { i = 0; FEED.foco = ordenada[0].nome; }
+  camada.querySelector('.vfd-c-topo').innerHTML = `<div class="vfd-c-tit"><h2>Feed dos clientes</h2><p>${ordenada.length === 1 ? 'O feed de agora e o que vai sair, como na grade do Instagram.' : `${feedPlural(ordenada.length, 'cliente', 'clientes')} · ${totalBuracos ? `<b class="vfd-r">${feedPlural(totalBuracos, 'post faltando', 'posts faltando')}</b> ${feedEsc(jan.rotulo)}` : `nenhum buraco ${feedEsc(jan.rotulo)}`}`}</p></div>
+    <div class="vfd-c-ctl">${feedVistaHtml()}${feedFiltrosHtml(todos)}</div>
+    <button type="button" class="vfd-c-fechar" onclick="feedFechar()" aria-label="Fechar o Feed (Esc)"><i aria-hidden="true"></i></button>`;
+  feedPintarPalco(camada, ordenada, i);
+  feedPintarDoca(camada, ordenada, i);
+  const perto = ordenada.filter((_, j) => Math.abs(feedDistancia(j, i, ordenada.length)) <= 2);
   feedPedirPerfis(perto);
   feedPedirArtes(perto);
 }
-
-// ── Um cliente por vez (Paulo, 15/11/2026: "tá ruim e feio aparecendo todos os feeds de vez... 1 por vez, algo foda
-// assim", com o coverflow de vidro de referência): o cliente da frente inteiro, com a grade que se mexe; os vizinhos
-// girando para trás em 3D, cada um com a prévia do feed. Setas, teclado (← →), deslizar no celular ou clicar no vizinho.
-const FEED_VIZINHOS = 3;
-function feedCarrosselHtml(lista) {
-  let i = lista.findIndex((c) => c.nome === FEED.foco);
-  if (i < 0) { i = 0; FEED.foco = lista[0].nome; }
-  const n = lista.length;
-  const slides = [];
-  // Em círculo: depois do último vem o primeiro, e sempre há vizinho dos dois lados (sem repetir cliente).
-  const esq = Math.min(FEED_VIZINHOS, Math.floor((n - 1) / 2)), dir = Math.min(FEED_VIZINHOS, n - 1 - esq);
-  for (let d = -esq; d <= dir; d += 1) {
-    const cli = lista[(i + d + n) % n];
-    slides.push(d === 0
-      ? `<div class="vfd-slide vfd-frente${FEED.entrada ? ` vfd-entra-${FEED.entrada}` : ''}" style="--d:0">${feedClienteHtml(cli)}</div>`
-      : `<button type="button" class="vfd-slide vfd-vizinho" style="--d:${d};--ad:${Math.abs(d)}" aria-label="Ver o feed de ${feedEsc(cli.nome)}" onclick="feedFoco('${jsArg(cli.nome)}')">${feedResumoHtml(cli)}</button>`);
-  }
-  FEED.entrada = '';
-  const ant = n > 1 ? lista[(i - 1 + n) % n] : null, prox = n > 1 ? lista[(i + 1) % n] : null;
-  const pontos = n <= 24 ? `<span class="vfd-pontos" aria-hidden="true">${lista.map((_, j) => `<i${j === i ? ' class="on"' : ''}></i>`).join('')}</span>` : '';
-  return `<div class="vfd-carrossel" role="region" aria-roledescription="carrossel" aria-label="Feed dos clientes, um por vez">
-    <div class="vfd-palco">${slides.join('')}</div>
-    ${n > 1 ? `<div class="vfd-doca" role="group" aria-label="Trocar de cliente">
-      <button type="button" class="vfd-doca-seta" ${ant ? `onclick="feedFoco('${jsArg(ant.nome)}','esq')" aria-label="Cliente anterior: ${feedEsc(ant.nome)}"` : 'disabled aria-label="Cliente anterior"'}>‹</button>
-      <span class="vfd-doca-meio"><b>${feedEsc(lista[i].nome)}</b><small>${i + 1} de ${n}${prox ? ` · próximo: ${feedEsc(prox.nome)}` : ''}</small>${pontos}</span>
-      <button type="button" class="vfd-doca-seta" ${prox ? `onclick="feedFoco('${jsArg(prox.nome)}','dir')" aria-label="Próximo cliente: ${feedEsc(prox.nome)}"` : 'disabled aria-label="Próximo cliente"'}>›</button>
-    </div>` : ''}
+// A camada por cima de tudo; montada uma vez e reaproveitada enquanto o Feed estiver aberto.
+function feedCamada() {
+  if (typeof document === 'undefined' || !document.body) return null;
+  let c = document.getElementById('vfd-camada');
+  if (c) { clearTimeout(feedFecharCamada.timer); c.classList.remove('vfd-saindo'); return c; }
+  c = document.createElement('div');
+  c.id = 'vfd-camada'; c.className = 'vfd-camada';
+  c.setAttribute('role', 'dialog'); c.setAttribute('aria-modal', 'true'); c.setAttribute('aria-label', 'Feed dos clientes');
+  c.innerHTML = '<div class="vfd-c-topo"></div><div class="vfd-c-palco" aria-live="polite"></div><div class="vfd-c-doca"></div>';
+  document.body.append(c);
+  document.body.classList.add('vfd-aberto');
+  feedLigarArrasto(c); feedLigarToque(c); feedLigarCarrossel(c);
+  requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add('vfd-entrou')));
+  return c;
+}
+function feedFecharCamada() {
+  const c = typeof document !== 'undefined' ? document.getElementById('vfd-camada') : null;
+  if (!c) return;
+  c.classList.add('vfd-saindo'); c.classList.remove('vfd-entrou');
+  document.body.classList.remove('vfd-aberto');
+  clearTimeout(feedFecharCamada.timer);
+  feedFecharCamada.timer = setTimeout(() => { if (!feedAberto) c.remove(); }, 320);
+}
+function feedFechar() {
+  FEED.sel = null; FEED.lote = null; FEED.intercalar = null; FEED.atualizar = null;
+  if (typeof PAINEIS_DA_BARRA !== 'undefined' && PAINEIS_DA_BARRA.feed && typeof alternarPainelDaBarra === 'function') { if (feedAberto) alternarPainelDaBarra('feed'); }
+  else { feedAberto = false; renderFeedDoCliente(); }
+}
+// Distância de j até a frente i, em círculo (depois do último vem o primeiro).
+function feedDistancia(j, i, n) { if (n <= 1) return 0; let d = (((j - i) % n) + n) % n; if (d > Math.floor(n / 2)) d -= n; return d; }
+function feedPintarPalco(camada, lista, i) {
+  const palco = camada.querySelector('.vfd-c-palco');
+  if (!lista.length) { palco.innerHTML = '<p class="vfd-vazio vfd-c-vazio">Nenhum cliente neste filtro.</p>'; return; }
+  palco.querySelector('.vfd-c-vazio')?.remove();
+  const vivos = new Set();
+  lista.forEach((cli, j) => {
+    const d = feedDistancia(j, i, lista.length), ad = Math.abs(d);
+    vivos.add(cli.nome);
+    let cel = [...palco.children].find((x) => x.dataset.cli === cli.nome);
+    if (!cel) {
+      cel = document.createElement('section');
+      cel.className = 'vfd-cel'; cel.dataset.cli = cli.nome;
+      cel.innerHTML = '<div class="vfd-cel-rola"></div><button type="button" class="vfd-cel-capa"></button>';
+      cel.style.setProperty('--d', String(d > 0 ? FEED_VIZINHOS + 1 : -(FEED_VIZINHOS + 1)));
+      palco.append(cel);
+    }
+    // Quem pula de um lado para o outro (a volta do círculo) não atravessa a tela: some e reaparece.
+    const antes = Number(cel.dataset.d ?? d);
+    cel.classList.toggle('vfd-pula', Math.abs(antes - d) > FEED_VIZINHOS);
+    cel.dataset.d = String(d);
+    cel.style.setProperty('--d', String(d)); cel.style.setProperty('--ad', String(ad)); cel.dataset.ad = String(Math.min(ad, 4));
+    cel.classList.toggle('vfd-frente', d === 0);
+    cel.classList.toggle('vfd-longe', ad > FEED_VIZINHOS);
+    cel.setAttribute('aria-hidden', String(d !== 0));
+    const capa = cel.querySelector('.vfd-cel-capa');
+    capa.setAttribute('aria-label', `Ver o feed de ${cli.nome}`);
+    capa.onclick = d === 0 ? null : () => feedFoco(cli.nome);
+    capa.tabIndex = d === 0 || ad > FEED_VIZINHOS ? -1 : 0;
+    // O conteúdo só de quem aparece; o mesmo HTML não é trocado (a rolagem e o foco ficam onde estavam).
+    if (ad <= FEED_VIZINHOS) {
+      const html = feedClienteHtml(cli);
+      if (cel.vfdHtml !== html) { cel.querySelector('.vfd-cel-rola').innerHTML = html; cel.vfdHtml = html; }
+    }
+  });
+  [...palco.children].forEach((x) => { if (x.dataset.cli && !vivos.has(x.dataset.cli)) x.remove(); });
+  requestAnimationFrame(() => palco.querySelectorAll('.vfd-pula').forEach((x) => x.classList.remove('vfd-pula')));
+}
+function feedPintarDoca(camada, lista, i) {
+  const doca = camada.querySelector('.vfd-c-doca'), n = lista.length;
+  if (n <= 1) { doca.innerHTML = ''; return; }
+  const ant = lista[(i - 1 + n) % n], prox = lista[(i + 1) % n];
+  const pontos = n <= 30 ? `<span class="vfd-pontos" aria-hidden="true">${lista.map((_, j) => `<i${j === i ? ' class="on"' : ''}></i>`).join('')}</span>` : '';
+  doca.innerHTML = `<div class="vfd-doca" role="group" aria-label="Trocar de cliente">
+    <button type="button" class="vfd-doca-seta" onclick="feedPasso(-1)" aria-label="Cliente anterior: ${feedEsc(ant.nome)}">‹</button>
+    <span class="vfd-doca-meio"><b>${feedEsc(lista[i].nome)}</b><small>${i + 1} / ${n} · próximo: ${feedEsc(prox.nome)}</small>${pontos}</span>
+    <button type="button" class="vfd-doca-seta" onclick="feedPasso(1)" aria-label="Próximo cliente: ${feedEsc(prox.nome)}">›</button>
   </div>`;
 }
-// A prévia de um vizinho: o perfil e os 9 primeiros quadros da grade (o que vai sair, depois o que está no ar).
-function feedResumoHtml(cli) {
-  const g = feedMontar(cli), p = g.perfil && !g.perfil.erro ? g.perfil : null;
-  const iniciais = cli.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
-  const foto = p?.foto ? `<img src="${feedEsc(feedFotoIg(p.foto))}" alt="" loading="lazy">` : `<span>${feedEsc(iniciais)}</span>`;
-  const quadros = [...g.futuro.slice(-9).filter((t) => !t.livre), ...g.noAr].slice(0, 9).map((t) => {
-    if (t.buraco) return '<i class="vfd-mini vfd-mini-x"></i>';
-    if (t.ig) return `<i class="vfd-mini"><img src="${feedEsc(feedFotoIg(t.ig.imagem))}" alt="" loading="lazy"></i>`;
-    const arte = t.request ? null : FEED.artes.get(String(t.item.id));
-    return arte?.thumb ? `<i class="vfd-mini"><img src="${feedEsc(String(arte.thumb).replace(/sz=\d+/, 'sz=240'))}" alt="" loading="lazy"></i>` : `<i class="vfd-mini vfd-prov-${feedEsc(t.fmt.chave)}"></i>`;
-  }).join('');
-  return `<span class="vfd-resumo">
-    <span class="vfd-resumo-topo"><span class="vfd-ig-foto">${foto}</span><span class="vfd-resumo-nome"><b>${feedEsc(cli.usuario || cli.nome)}</b><small>${feedEsc(cli.nome)}</small></span></span>
-    <span class="vfd-resumo-aviso${g.buracos.length ? ' r' : ''}">${g.buracos.length ? feedPlural(g.buracos.length, 'post faltando', 'posts faltando') : 'completo'}</span>
-    <span class="vfd-resumo-grade">${quadros}</span>
-  </span>`;
-}
-function feedFoco(nome, lado) {
+function feedFoco(nome) {
   if (FEED.foco === nome) return;
-  const lista = feedOrdem();
-  const de = lista.findIndex((c) => c.nome === FEED.foco), para = lista.findIndex((c) => c.nome === nome);
-  FEED.entrada = lado || (para > de ? 'dir' : 'esq');
-  if (para < 0) return;
   FEED.foco = nome;
   // Marcações, lote e prévias são do cliente que estava na frente.
   FEED.sel = null; FEED.lote = null; FEED.intercalar = null; FEED.atualizar = null;
   renderFeedDoCliente();
 }
 function feedPasso(passo) {
-  const lista = feedOrdem();
-  const i = lista.findIndex((c) => c.nome === FEED.foco);
-  const alvo = lista[((i < 0 ? 0 : i) + passo + lista.length) % lista.length];
-  if (alvo) feedFoco(alvo.nome, passo > 0 ? 'dir' : 'esq');
+  const lista = feedOrdem(); if (!lista.length) return;
+  const i = Math.max(0, lista.findIndex((c) => c.nome === FEED.foco));
+  feedFoco(lista[(i + passo + lista.length) % lista.length].nome);
 }
-// A mesma ordem do carrossel (quem tem buraco primeiro).
+// A ordem do carrossel: quem tem buraco primeiro (é onde a rediagramação começa). Fica a mesma enquanto a camada está
+// aberta, para o cliente não trocar de lugar no meio da navegação.
 function feedOrdem() {
-  return feedFiltrados().map((c) => ({ c, b: feedMontar(c).buracos.length })).sort((a, b) => b.b - a.b || a.c.nome.localeCompare(b.c.nome, 'pt-BR')).map((x) => x.c);
+  const lista = feedFiltrados();
+  const chave = lista.map((c) => c.nome).sort().join('|') + '#' + (FEED.vista === 'mes' ? FEED.mes : 'semanas');
+  if (FEED.ordem?.chave !== chave) {
+    const nomes = lista.map((c) => ({ c, b: feedMontar(c).buracos.length })).sort((a, b) => b.b - a.b || a.c.nome.localeCompare(b.c.nome, 'pt-BR')).map((x) => x.c.nome);
+    FEED.ordem = { chave, nomes };
+  }
+  const pos = new Map(FEED.ordem.nomes.map((n, k) => [n, k]));
+  return lista.slice().sort((a, b) => (pos.get(a.nome) ?? 0) - (pos.get(b.nome) ?? 0));
 }
-function feedLigarCarrossel(wrap) {
-  if (wrap.vfdCarrossel) return; wrap.vfdCarrossel = true;
+function feedLigarCarrossel(camada) {
+  if (camada.vfdCarrossel) return; camada.vfdCarrossel = true;
+  const algoPorCima = () => [...document.querySelectorAll('#fc-overlay, #cartao-rapido, #workspace-drawer, .workflow-modal-overlay')].some((x) => x.getClientRects().length && getComputedStyle(x).visibility !== 'hidden' && !x.closest('#vfd-camada'));
+  // O Esc é segurado antes por outra parte do painel (no keydown): o Feed fecha quando a tecla sobe.
+  window.addEventListener('keyup', (e) => {
+    if (e.key !== 'Escape' || !feedAberto || !camada.isConnected || algoPorCima()) return;
+    e.preventDefault(); feedFechar();
+  }, true);
   document.addEventListener('keydown', (e) => {
-    if (!feedAberto || !wrap.isConnected || wrap.classList.contains('focus-hidden') || !wrap.getClientRects().length) return;
+    if (!feedAberto || !camada.isConnected || algoPorCima()) return;
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    if (e.target.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]') || document.querySelector('#fc-overlay, #cartao-rapido')) return;
+    if (e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
     e.preventDefault(); feedPasso(e.key === 'ArrowRight' ? 1 : -1);
   });
-  // Deslizar no celular: só no cabeçalho e nos vizinhos (na grade, o dedo pega a peça para arrastar ou rola a tela).
+  // Dois dedos no trackpad (ou a roda com Shift): um passo por gesto.
+  let acumulado = 0, travado = 0;
+  camada.addEventListener('wheel', (e) => {
+    const dx = e.deltaX || (e.shiftKey ? e.deltaY : 0);
+    if (!dx || Math.abs(dx) < Math.abs(e.deltaY) * (e.shiftKey ? 0 : 1)) return;
+    e.preventDefault();
+    if (Date.now() < travado) return;
+    acumulado += dx;
+    if (Math.abs(acumulado) > 50) { feedPasso(acumulado > 0 ? 1 : -1); acumulado = 0; travado = Date.now() + 520; }
+  }, { passive: false });
+  // Deslizar no celular, fora de quando o dedo segura uma peça para arrastar.
   let ini = null;
-  wrap.addEventListener('touchstart', (e) => { if (e.touches.length === 1 && e.target.closest?.('.vfd-ig, .vfd-vizinho, .vfd-doca')) ini = { x: e.touches[0].clientX, y: e.touches[0].clientY }; else ini = null; }, { passive: true });
-  wrap.addEventListener('touchend', (e) => {
-    if (!ini || FEED.arrastando) return;
+  camada.addEventListener('touchstart', (e) => { ini = e.touches.length === 1 && !e.target.closest?.('.vfd-c-topo') ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() } : null; }, { passive: true });
+  camada.addEventListener('touchend', (e) => {
+    if (!ini || FEED.arrastando || FEED.arrastou) { ini = null; return; }
     const t = e.changedTouches[0], dx = t.clientX - ini.x, dy = t.clientY - ini.y; ini = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) feedPasso(dx < 0 ? 1 : -1);
   }, { passive: true });
+  // A peça abre por inteiro (a gaveta) por baixo desta camada: a camada se recolhe e um botão traz o Feed de volta.
+  document.addEventListener('click', (e) => {
+    if (!feedAberto || !e.target.closest?.('.cr-abrir')) return;
+    camada.classList.add('vfd-recolhida');
+    let volta = document.getElementById('vfd-voltar');
+    if (!volta) {
+      volta = document.createElement('button'); volta.type = 'button'; volta.id = 'vfd-voltar'; volta.className = 'vfd-voltar';
+      volta.textContent = '‹ Voltar ao Feed';
+      volta.onclick = () => { camada.classList.remove('vfd-recolhida'); volta.remove(); document.querySelector('#workspace-drawer .workspace-close, #workspace-drawer [data-fechar]')?.click?.(); };
+      document.body.append(volta);
+    }
+  }, true);
 }
 
 function feedFiltrar(campo, valor) {
@@ -830,7 +894,7 @@ async function feedSoltar(origem, idAlvo, isoAlvo) {
   // Solicitação de feed muda a conclusão (como no calendário); peça de produção, a veiculação.
   const mover = (x, iso) => moverDataDoItem(x.it, 'veiculacao', iso, { request: x.request, renderizar: false, avisar: false });
   if (typeof moverDataDoItem !== 'function') { feedToast('Não foi possível mover a data agora.', 'err', 6000); return; }
-  FEED.salvando = true; document.getElementById('feed-board')?.classList.add('vfd-salvando');
+  FEED.salvando = true; document.getElementById('vfd-camada')?.classList.add('vfd-salvando');
   // A data que a peça ocupou deixa de estar marcada para o lote.
   FEED.sel?.isos.delete(isoAlvo);
   try {
@@ -848,7 +912,7 @@ async function feedSoltar(origem, idAlvo, isoAlvo) {
   } catch (erro) {
     feedToast(`Não foi possível mover a data: ${erro.message}`, 'err', 7000);
   } finally {
-    FEED.salvando = false; document.getElementById('feed-board')?.classList.remove('vfd-salvando');
+    FEED.salvando = false; document.getElementById('vfd-camada')?.classList.remove('vfd-salvando');
     if (FEED.sel && !FEED.sel.isos.size) FEED.sel = null;
     renderFeedDoCliente();
     if (typeof renderManagerCalendar === 'function') renderManagerCalendar();
@@ -856,4 +920,4 @@ async function feedSoltar(origem, idAlvo, isoAlvo) {
   }
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { toggleFeedDoCliente, renderFeedDoCliente, feedFiltrar, feedAbrirPeca });
+if (typeof window !== 'undefined') Object.assign(window, { toggleFeedDoCliente, renderFeedDoCliente, feedFiltrar, feedAbrirPeca, feedFechar, feedPasso, feedFoco });
