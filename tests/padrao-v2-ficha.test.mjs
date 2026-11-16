@@ -60,21 +60,19 @@ function carregar({ reunioes = [] } = {}) {
   return { ctx, pegar, postados };
 }
 
-test('Clientes: título com Tabela/Fichas/Cérebro, Cadastros e Novo cliente; fala, três números, barra e tabela', () => {
+test('Clientes: Lista/Fichas/Cérebro, Mais e Novo cliente no alto; cartão laranja, folha da lista e pé', () => {
   const { ctx, pegar } = carregar();
   ctx.renderClientesBoard();
   const acoes = pegar('clientes-acoes');
-  assert.equal(acoes.className, 'v2f-topo-acoes');
-  assert.match(acoes.innerHTML, /id="clientes-visao-topo"[\s\S]*>Cadastros<[\s\S]*class="v2f-btn p d3f-novo"[^>]*>Novo cliente</);
-  assert.match(pegar('clientes-visao-topo').innerHTML, />Tabela<[\s\S]*>Fichas<[\s\S]*>Cérebro</);
-  assert.match(pegar('clientes-aviso').innerHTML, /class="v2f-ag"[\s\S]*Mateus · Atendimento ao cliente/);
-  // Direção 3: quatro números (Ativos, Sem reunião registrada, Com NPS, Só na operação).
-  assert.equal((pegar('kpi-grid-clientes').innerHTML.match(/class="v2f-card v2f-kpi d3-num/g) || []).length, 4, 'quatro números');
-  assert.match(pegar('clientes-filtros').innerHTML, /Ativos <b>2<\/b>[\s\S]*Inativos[\s\S]*Carteira[\s\S]*Head[\s\S]*Filtros[\s\S]*Colunas/);
+  assert.match(acoes.innerHTML, /id="clientes-visao-topo"[\s\S]*id="clientes-mais"[\s\S]*class="cv2-novo d3f-novo"[^>]*>[\s\S]*Novo cliente</);
+  assert.match(pegar('clientes-visao-topo').innerHTML, />Lista<[\s\S]*>Fichas<[\s\S]*>Cérebro</);
+  assert.match(pegar('clientes-aviso').innerHTML, /class="d3-acao-av"[^>]*>M<\/span>Mateus · /);
+  assert.equal(pegar('kpi-grid-clientes').hidden, true, 'os números viraram a frase do alto e o pé');
+  assert.match(pegar('clientes-filtros').innerHTML, /Ativos <span>2<\/span>[\s\S]*Inativos[\s\S]*Carteira[\s\S]*Head[\s\S]*Colunas/);
   const tabela = ctx.tabelaDeClientesHtml(['Academia Lions', 'Alpha1']);
-  assert.match(tabela, /class="v2-abre v2f-linha" data-cliente="Academia Lions" aria-expanded="false"/);
+  assert.match(tabela, /class="v2-abre v2f-linha cv2-linha" data-cliente="Academia Lions" aria-expanded="false"/);
   assert.ok(tabela.indexOf('"Academia Lions"') < tabela.indexOf('"Alpha1"'), 'pior nota primeiro');
-  assert.match(tabela, /2 peças · <b class="v2f-ruim">1 vencida<\/b>/);
+  assert.match(tabela, /2 peças <b class="cv2-ruim">· 1 vencida<\/b>/);
 });
 
 test('Ficha: linha do alto, nota com o porquê, fala, abas com contagem, Pede ação, entregas e Dados e acessos', () => {

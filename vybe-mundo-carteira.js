@@ -1337,10 +1337,25 @@
   const aberto = () => Boolean(estado.raiz);
   function dados() {
     const r = estado.saude || calcularSaude();
-    return r ? r.clientes.map((c) => ({ cliente: c.nome, clienteId: c.id, score: c.score, risco: c.risco,
+    return r ? r.clientes.map((c) => ({ cliente: c.nome, clienteId: c.id, score: c.score, risco: c.risco, precisa: precisaDeVoce(c), vencidas: c.numeros?.atrasadas || 0,
       motivos: c.motivos.filter((m) => m.tom === 'ruim').map((m) => m.texto), head: c.heads.join(', ') })) : [];
+  }
+  // O resumo da carteira para a lista de Clientes (prancha V2-M-Clientes): a média, o limite de quem precisa de você e o
+  // sinal que mais tira ponto, com a nota a que a carteira iria sem ele (a mesma conta da fala da Saúde).
+  function resumo() {
+    const r = estado.saude || calcularSaude();
+    if (!r || !r.clientes.length) return null;
+    const soma = new Map();
+    for (const c of r.clientes) for (const m of ruinsDe(c)) { const k = causaDe(m), x = soma.get(k) || { pontos: 0, clientes: new Set(), maior: 0 }; x.pontos -= m.pontos; x.maior = Math.max(x.maior, -m.pontos); x.clientes.add(c); soma.set(k, x); }
+    const [causa, x] = [...soma.entries()].sort((a, b) => b[1].pontos - a[1].pontos)[0] || [];
+    const semEla = causa ? Math.round(r.clientes.reduce((t, c) => t + Math.min(100, c.score + ruinsDe(c).filter((m) => causaDe(m) === causa).reduce((s, m) => s - m.pontos, 0)), 0) / r.clientes.length) : null;
+    const porCliente = causa ? [...x.clientes].map((c) => ruinsDe(c).filter((m) => causaDe(m) === causa).reduce((s, m) => s - m.pontos, 0)) : [];
+    return { media: r.resumo.media ?? null, total: r.clientes.length, limite: LIMITE_PRECISA, precisam: r.clientes.filter(precisaDeVoce).length,
+      vencidas: r.clientes.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0),
+      causa: causa || '', deAtraso: causa === 'atraso de veiculação' || causa === 'prazo interno vencido', clientesDaCausa: causa ? x.clientes.size : 0, semEla,
+      tira: porCliente.length ? Math.max(...porCliente) : 0, tiraIgual: porCliente.length > 0 && porCliente.every((p) => p === porCliente[0]) };
   }
 
   window.addEventListener('keydown', aoTeclar, true);
-  window.VybeCarteira = Object.freeze({ abrir, fechar, aberto, dados });
+  window.VybeCarteira = Object.freeze({ abrir, fechar, aberto, dados, resumo });
 })();

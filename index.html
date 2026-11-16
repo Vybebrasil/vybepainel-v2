@@ -503,20 +503,21 @@
 <!-- ===== PAINEL CLIENTES ===== -->
 <div id="painel-clientes" style="display:none;">
   <div class="container">
-    <div class="client-module-hero" id="clientes-hero"><div class="pv-cabeca" style="--c:#7aa7ff"><span class="pv-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg></span><div><span class="pv-etiqueta client-module-kicker">Relacionamento</span><h2>Clientes</h2><p id="clientes-frase">Cadastro mestre da Vybe: relacionamento, heads, dados, acessos e visão operacional da conta.</p></div></div><div class="client-module-actions" id="clientes-acoes"><button type="button" class="vb-botao" onclick="openCadastrosStation()">Cadastros</button></div></div>
+    <!-- Clientes na prancha V2-M-Clientes (16/11/2026): o alto no vidro (título que troca de tela, a frase da carteira,
+         Lista/Fichas/Cérebro, busca, Mais e Novo cliente), a folha da lista à esquerda e a coluna de consulta à direita. -->
+    <div class="cv2-topo d3m-topo" id="clientes-hero"><div class="d3m-tit"><button type="button" class="cv2-troca" id="clientes-troca" aria-haspopup="listbox" title="Outras telas de Clientes" onclick="abrirTrocaDeClientes(this)"><h2>Clientes</h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><p id="clientes-frase" class="cv2-sub"></p></div>
+      <span class="cli-busca cv2-busca"><button type="button" class="d3m-ico" aria-label="Buscar cliente" title="Buscar cliente" onclick="this.parentElement.classList.add('aberta');this.nextElementSibling.focus()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button><input id="cliente-search" type="search" aria-label="Buscar cliente" placeholder="Buscar cliente" autocomplete="off" oninput="filterClientesList(this.value)" onblur="if(!this.value)this.parentElement.classList.remove('aberta')"></span>
+      <div class="cv2-acoes" id="clientes-acoes"></div></div>
     <div id="client-master-kpis" class="client-master-kpis"></div>
     <div id="client-master-source-rail" class="client-source-rail"></div>
-    <div id="kpi-grid-clientes" class="kpi-grid"></div>
-    <div id="clientes-aviso" class="cli-aviso" role="status" hidden></div>
-    <!-- Lista de clientes (quadro 50 do redesign): visão, filtros em chips e a busca à direita. -->
-    <div id="panel-clientes-lista">
-      <h3 class="cli-oculto">Lista de clientes</h3>
-      <div class="filter-bar cli-barra">
-        <span class="clientes-visao" id="clientes-visao"></span>
-        <span class="cli-filtros" id="clientes-filtros"></span>
-        <label class="cli-busca"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span class="cli-oculto">Buscar cliente</span><input id="cliente-search" type="search" placeholder="Buscar cliente" autocomplete="off" oninput="filterClientesList(this.value)"></label>
-      </div>
-      <div class="clients-grid" id="grid-clientes-lista"></div>
+    <div id="kpi-grid-clientes" class="kpi-grid" hidden></div>
+    <div class="cv2-corpo" id="clientes-corpo">
+      <section id="panel-clientes-lista" class="cv2-folha" aria-labelledby="clientes-conta">
+        <div class="cv2-cab"><h3 id="clientes-conta">Clientes</h3><span class="clientes-visao" id="clientes-visao" hidden></span><span class="cv2-filtros" id="clientes-filtros"></span></div>
+        <div class="clients-grid" id="grid-clientes-lista"></div>
+        <div class="cv2-pe d3m-olho" id="clientes-pe" role="group" aria-label="De olho"></div>
+      </section>
+      <aside class="d3m-lado cv2-lado" id="clientes-lado" aria-label="Consulta"><div id="clientes-aviso" class="cli-aviso" role="status" hidden></div><div class="cv2-consulta" id="clientes-consulta"></div></aside>
     </div>
     <!-- Detalhe de um cliente (quadro 51): cabeçalho com o cliente na cor dele; as abas e os cartões vêm do JS. -->
     <div id="panel-cliente-detalhe" style="display:none;">

@@ -61,33 +61,40 @@ function carregar() {
   return { ctx, pegar };
 }
 
-test('tabela de clientes (quadro Clientes do padrão v2): Cliente, Head, Saúde, Em aberto e Cadastro; a linha abre no lugar', () => {
+test('lista de clientes (prancha V2-M-Clientes): Cliente, Head, Saúde, Em aberto, Reunião e Cadastro; a pior nota primeiro; a linha abre no lugar', () => {
   const { ctx } = carregar();
   const nomes = vm.runInContext('clientMasterRecords().map((r) => r.name)', ctx);
   assert.ok(nomes.includes('Academia Lions') && nomes.includes('Alpha1'));
   const html = ctx.tabelaDeClientesHtml(nomes);
-  const cabecalho = html.slice(html.indexOf('class="v2f-th"'), html.indexOf('data-cliente='));
+  const cabecalho = html.slice(html.indexOf('class="cv2-th"'), html.indexOf('data-cliente='));
   for (const sai of ['Dashboard', 'Última reunião', 'NPS', 'Manus', 'Status', 'Drive', 'Documento', 'Segmento', 'Plano']) assert.doesNotMatch(cabecalho, new RegExp(`>${sai}<`), sai);
-  for (const entra of ['Cliente', 'Head', 'Saúde', 'Em aberto', 'Cadastro']) assert.match(cabecalho, new RegExp(`>${entra}<`), entra);
-  // A pior nota no alto: quem precisa de você primeiro.
+  for (const entra of ['Cliente', 'Head', 'Saúde', 'Em aberto', 'Reunião', 'Cadastro']) assert.match(cabecalho, new RegExp(`>${entra}<`), entra);
+  // A pior nota no alto: quem precisa de você primeiro, com "Agora" e "Depois" na margem.
   assert.ok(html.indexOf('data-cliente="Alpha1"') < html.indexOf('data-cliente="Academia Lions"'));
   const linha = html.slice(html.indexOf('data-cliente="Academia Lions"'));
-  assert.match(linha, /<b style="color:#11613A">88<\/b><div class="v2-barra"><i style="--v:88%;--c:#11613A">/);
-  assert.match(linha, /1 peça<\/span>/, 'o finalizado não conta como em aberto');
-  assert.match(linha, /class="v2f-pill g">completo</);
-  assert.match(linha, /class="v2f-seg2">· Academia · Plus</);
-  assert.match(linha, /<b>Em aberto<\/b> · 1 peça · 1 pedido/, 'o pedido vai para o detalhe que abre');
-  assert.match(linha, /class="v2f-btn s k" onclick="abrirClienteDetalhe\('Academia Lions'\)">Abrir a ficha/);
+  assert.match(linha, /<span class="cv2-grupo">Depois<\/span>/);
+  assert.match(linha, /<span class="cv2-sa g" title="Nota 88 de 100"><b>88<\/b><span class="cv2-barra"><i style="--v:88%">/);
+  assert.match(linha, /<span class="cv2-ab">1 peça<\/span>/, 'o finalizado não conta como em aberto');
+  assert.match(linha, /class="cv2-cd cheio" title="Cadastro completo">/);
+  assert.match(linha, /<b>Academia Lions<\/b> <span>· Academia<\/span>/);
+  assert.match(linha, /<b>Em aberto<\/b> · 1 peça · 1 pedido · plano Plus/, 'o pedido e o plano vão para o detalhe que abre');
+  assert.match(linha, /class="d3v-btn s cv2-abrir-ficha" onclick="abrirClienteDetalhe\('Academia Lions'\)">Abrir a ficha/);
   const outra = html.slice(html.indexOf('data-cliente="Alpha1"'), html.indexOf('data-cliente="Academia Lions"'));
-  assert.match(outra, /<b style="color:#B42318">42<\/b>/);
-  assert.match(outra, /class="v2f-pill v2f-cad-n"[^>]*>1 de 3</, 'Direção 3: o cadastro em pílula clara com o que já está feito');
+  assert.match(outra, /<span class="cv2-grupo r">Agora<\/span>/);
+  assert.match(outra, /<span class="cv2-sa r" title="Nota 42 de 100"><b>42<\/b>/);
+  assert.match(outra, /class="cv2-cd" title="Faltam: [^"]*">[\s\S]*?1\/3<\/span>/, 'o cadastro é o anel com o que já está feito');
+  assert.match(outra, /class="cv2-re[^"]* sem"[^>]*>sem data</, 'sem próxima reunião marcada');
   assert.match(outra, /<b>Saúde 42<\/b> · 3 peças atrasadas/);
-  // Direção 3: o pé sem frase explicativa; a ordem segue no título de cada coluna e o resto em Colunas.
-  assert.doesNotMatch(html, /o título da coluna muda a ordem/);
-  assert.match(html, /class="v2f-pe d3f-pe">/);
+  // A lista inteira fica na folha, que rola por dentro: sem o corte "+N clientes".
+  assert.doesNotMatch(html, /d3f-mais|\+\d+ clientes/);
+  // As fichas (prancha V2-M-Clientes-Fichas): o cartão abre a ficha e não leva mais Drive, documento, CNPJ e endereço.
+  const fichas = ctx.fichasDeClientesHtml(nomes);
+  assert.match(fichas, /class="cv2-ficha" data-cliente="Alpha1" onclick="abrirClienteDetalhe\('Alpha1'\)"/);
+  assert.ok(fichas.indexOf('data-cliente="Alpha1"') < fichas.indexOf('data-cliente="Academia Lions"'), 'pior nota primeiro também nas fichas');
+  assert.doesNotMatch(fichas, /CNPJ|Drive|Documento/);
 });
 
-test('filtros da lista: head, segmento e busca recortam; a barra é Ativos, Inativos, Carteira, Head, Filtros e Colunas', () => {
+test('filtros da lista: head, segmento e busca recortam; a folha traz Ativos, Inativos, Carteira, Head e Colunas, e os recortes ficam em Mais', () => {
   const { ctx, pegar } = carregar();
   vm.runInContext("FILTRO_CLIENTES.situacao = ''", ctx);
   const filtra = () => vm.runInContext("clientMasterRecords().map((r) => r.name).filter((n) => passaNosFiltrosDeClientes(n))", ctx);
@@ -101,33 +108,54 @@ test('filtros da lista: head, segmento e busca recortam; a barra é Ativos, Inat
   vm.runInContext("FILTRO_CLIENTES.busca = ''; FILTRO_CLIENTES.head = 'vinicius'", ctx);
   ctx.pintarFiltrosDeClientes([{ label: 'Sem contato', foco: 'sem-contato', value: 0, aceso: false }]);
   const chips = pegar('clientes-filtros').innerHTML;
-  assert.match(chips, /aria-pressed="true"[^>]*>Head: Vinícius/);
-  assert.doesNotMatch(chips, /Sem contato/, 'os recortes ficam em Filtros');
-  assert.match(chips, /abrirFiltrosDeClientes\(this\)">Filtros</);
+  assert.match(chips, /data-ligado="true"[^>]*>Head: Vinícius/);
+  assert.doesNotMatch(chips, /Sem contato/, 'os recortes ficam em Mais > Filtros');
+  assert.doesNotMatch(chips, /abrirFiltrosDeClientes/, 'sem recorte ligado, a folha não mostra o botão de filtros');
   assert.match(chips, /escolherColunasDeClientes\(this\)">Colunas</);
+  assert.equal(typeof ctx.abrirMaisDeClientes, 'function');
+  assert.equal(typeof ctx.abrirFiltrosDeClientes, 'function');
+  // Com um recorte ligado, a folha diz qual é e o clique abre os filtros.
+  ctx.pintarFiltrosDeClientes([{ label: 'Sem contato', foco: 'sem-contato', value: 0, aceso: true }]);
+  vm.runInContext("FOCO_DE_CLIENTES = 'sem-contato'", ctx);
+  ctx.pintarFiltrosDeClientes([{ label: 'Sem contato', foco: 'sem-contato', value: 0, aceso: true }]);
+  assert.match(pegar('clientes-filtros').innerHTML, /data-v2f-filtros[^>]*onclick="abrirFiltrosDeClientes\(this\)">Sem contato</);
+  vm.runInContext("FOCO_DE_CLIENTES = 'todos'", ctx);
   const opcoes = vm.runInContext("opcoesDeFiltroDeClientes('head').map((o) => o.rotulo)", ctx);
   assert.deepEqual([...opcoes], ['Todos os heads', 'Ewerton (1)', 'Vinícius (1)']);
   ctx.selosDeVisaoDeClientes();
-  assert.match(pegar('clientes-visao-topo').innerHTML, /role="tab" aria-selected="true"[^>]*>Tabela</, 'Tabela, Fichas e Cérebro sobem para o cabeçalho');
+  assert.match(pegar('clientes-visao-topo').innerHTML, /role="radio" aria-checked="true"[^>]*>Lista</, 'Lista, Fichas e Cérebro ficam no alto');
   assert.equal(pegar('clientes-visao').innerHTML, '');
 });
 
-test('cabeçalho da lista: a fala do Mateus, três números e Novo cliente como a ação da tela', () => {
+test('alto e coluna de consulta: a frase da carteira, o cartão laranja de quem precisa de você, Abrir como e o pé "De olho"', () => {
   const { ctx, pegar } = carregar();
   ctx.podeAdministrar = () => true;
   ctx.renderClientesBoard();
-  assert.equal(pegar('clientes-frase').textContent, '');
-  assert.match(pegar('clientes-acoes').innerHTML, /class="v2f-btn" onclick="openCadastrosStation\(\)">Cadastros<\/button><button type="button" class="v2f-btn p d3f-novo" onclick="novoClienteNoPainel\(\)">Novo cliente/);
-  // Direção 3: quatro números, com o "de quantos" e a barra em "Sem reunião registrada".
-  const kpis = pegar('kpi-grid-clientes').innerHTML;
-  assert.match(kpis, /<small class="d3-num-rot">Ativos<\/small><b class="d3-num-v">2<\/b><small class="d3c-sub">1 em dia · 1 em risco alto<\/small>/);
-  assert.match(kpis, /<small class="d3-num-rot">Sem reunião registrada<\/small><b class="d3-num-v" style="animation-delay:.12s">1<small> \/ 2<\/small><\/b><span class="d3-barra r" style="--v:50%">/);
-  assert.match(kpis, /<small class="d3-num-rot">Com NPS<\/small><b class="d3-num-v" style="animation-delay:.24s">1<small> \/ 2<\/small><\/b><small class="d3c-sub">média 9,0 · 0 detratores · 0 sem contato/);
-  assert.match(kpis, /<small class="d3-num-rot">Só na operação<\/small>/);
+  assert.equal(pegar('clientes-frase').textContent, '2 ativos · nota média 65 de 100');
+  assert.match(pegar('clientes-acoes').innerHTML, /id="clientes-mais"[^>]*onclick="abrirMaisDeClientes\(this\)"/);
+  assert.match(pegar('clientes-acoes').innerHTML, /class="cv2-novo d3f-novo" onclick="novoClienteNoPainel\(\)">[\s\S]*Novo cliente/);
+  // Os quatro cartões de número saíram: viraram a frase do alto e o pé.
+  assert.equal(pegar('kpi-grid-clientes').hidden, true);
+  assert.equal(pegar('kpi-grid-clientes').innerHTML, '');
   const fala = pegar('clientes-aviso').innerHTML;
-  assert.match(fala, /Mateus · Atendimento ao cliente/);
-  assert.match(fala, /Um cliente está em dia e 1 em risco alto\./);
-  assert.match(fala, /onclick="focarClientes\('sem-registro'\)">Completar cadastros</);
+  assert.match(fala, /class="d3-acao d3m-laranja cv2-laranja"/);
+  assert.match(fala, /Mateus · quem precisa de você/);
+  assert.match(fala, /<b class="d3m-lar-num">1<\/b><span class="d3-acao-frase">cliente com nota abaixo de 52<\/span>/);
+  assert.match(fala, /A pior nota é de Alpha1: 42\./);
+  assert.match(fala, /onclick="abrirClienteDetalhe\('Alpha1'\)"><span>Abrir Alpha1</);
+  const consulta = pegar('clientes-consulta').innerHTML;
+  for (const r of ['A carteira', 'Por head', 'Abrir como', 'Fichas', 'Cérebro', 'Cadastros']) assert.ok(consulta.includes(r), r);
+  assert.match(consulta, /onclick="trocarVisaoDeClientes\('fichas'\)"/);
+  assert.match(consulta, /onclick="filtrarClientesPorHead\('ewerton'\)"/);
+  const pe = pegar('clientes-pe').innerHTML;
+  assert.match(pe, /De olho/);
+  assert.match(pe, /<b>1<\/b><small>sem próxima reunião<\/small>|<b>2<\/b><small>sem próxima reunião<\/small>/);
+  assert.match(pe, /onclick="focarClientes\('cadastro-incompleto'\)"><b>1<\/b><small>com cadastro incompleto/);
+  assert.match(pe, /onclick="focarClientes\('com-nps'\)"><b>1<\/b><small>com NPS/);
+  // Sem ninguém abaixo da nota de alerta, o laranja pede o registro de reunião (o mesmo recorte de antes).
+  ctx.window.VybeCarteira = { dados: () => [] };
+  ctx.renderClientesBoard();
+  assert.match(pegar('clientes-aviso').innerHTML, /onclick="focarClientes\('sem-registro'\)">Completar cadastros</);
 });
 
 test('ficha (quadro Ficha do cliente): uma linha no alto, a nota com o porquê, a fala, Pede ação, entregas e Dados e acessos', () => {

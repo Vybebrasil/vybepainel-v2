@@ -239,11 +239,12 @@ test('Coordenação: peça do Vybe OS (id "vybe:N") grava pela linha e pelo lote
   assert.match(ctx.VybeCoordenacao.html(args), /data-estado="feito" disabled aria-live="polite"><svg[^>]*>.*<\/svg>Confirmado 1<\/button>/);
 });
 
-test('Gestão de clientes: rótulo "Gestão" ao lado do título, uma vez só', () => {
-  const cli = ler('vybe-clientes.js');
-  assert.match(cli, /const tituloClientes = document\.querySelector\('#clientes-hero h2'\);/);
-  assert.match(cli, /!tituloClientes\.nextElementSibling\?\.classList\.contains\('d3c-modo'\)\) tituloClientes\.insertAdjacentHTML\('afterend', '<span class="d3c-modo">Gestão<\/span>'\)/);
-  assert.match(css, /#painel-clientes #clientes-hero \.d3c-modo\{[^}]*color:var\(--d3-apagado\)/);
+test('Clientes: o título troca de tela e a frase da carteira fica embaixo (o rótulo "Gestão" saiu com a prancha V2)', () => {
+  const cli = ler('vybe-clientes.js'), pagina = ler('index.html');
+  assert.match(pagina, /id="clientes-troca"[^>]*onclick="abrirTrocaDeClientes\(this\)"><h2>Clientes<\/h2>/);
+  assert.match(pagina, /<p id="clientes-frase" class="cv2-sub"><\/p>/);
+  assert.match(cli, /function abrirTrocaDeClientes\(gatilho\)/);
+  assert.doesNotMatch(cli, /d3c-modo/);
 });
 
 test('CSS do fragmento: sem importância forçada e sem html body.mundo', () => {
