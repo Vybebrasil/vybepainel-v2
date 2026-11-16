@@ -496,6 +496,49 @@
       cab: visiveis.length ? cabeca([['fv2-txt', 'Grupo'], ['d3f-cab-barra', 'Já saiu'], ['fv2-valor', '%'], ['fv2-sub', 'Pago'], ['d3f-cab-falta', 'Falta']]) : '',
       corpo: (visiveis.map(linhaGrupo).join('') + zerados.map(linhaZerada).join('') || `<p class="fv2-nada">${termo || u.extra ? 'Nenhuma conta neste filtro.' : 'A divisão aparece com a primeira conta lançada.'}</p>`) + doFinancas });
     const falta = oQueFalta(ctx), semNada = !todas.length && !pedem.length;
+    const M = molde();
+    if (M) {
+      // Padrão V2 (prancha V2-M-Financas-Contas): um cartão com as contas do período agrupadas (Agora: vencidas sem pagar;
+      // A pagar; Pagas), o "Paguei" na linha e o "De olho" no pé; o laranja só com conta vencida ou vencendo em 7 dias.
+      const COLS = [[60, ''], [48, 'Dia'], [0, 'Conta'], [104, 'Valor', 'r'], [190, 'Situação'], [76, '']];
+      const ROT = [['Agora', 'r'], ['A pagar', 'a'], ['Pagas', 'g'], ['Canceladas', 'q']];
+      const venceu = (c) => !c.pago_em && !c.cancelada && String(c.vencimento).slice(0, 10) < hoje;
+      const grupoC = (c) => (c.cancelada ? 3 : c.pago_em ? 2 : venceu(c) ? 0 : 1);
+      const base = u.extra === 'canceladas' ? todas.filter((c) => c.cancelada) : vivas.filter(u.extra ? extra[u.extra] : u.chip === 'todas' ? () => true : (c) => c.grupo === u.chip);
+      const vis = base.filter(bate).sort((x, z) => grupoC(x) - grupoC(z) || (grupoC(x) === 2 ? String(z.pago_em).localeCompare(String(x.pago_em)) : String(x.vencimento).localeCompare(String(z.vencimento))));
+      const situacao = (c) => { const v = String(c.vencimento).slice(0, 10), dias = diasEntre(hoje, v);
+        return c.cancelada ? '<span class="q">cancelada</span>' : c.pago_em ? `<span class="g">paga em ${curta(c.pago_em)}</span>` : dias < 0 ? `<span class="r">venceu há ${quantos(-dias, 'dia', 'dias')}</span>` : dias === 0 ? '<span class="a">vence hoje</span>' : dias === 1 ? 'vence amanhã' : `vence em ${quantos(dias, 'dia', 'dias')}`; };
+      const linhaC = (c, i) => {
+        const id = 'c' + c.id, aberta = u.aberta === id, g = grupoC(c), primeiro = !i || grupoC(vis[i - 1]) !== g;
+        return `<div class="v2-abre d3m-d-fm-linha" data-linha="${esc(id)}" aria-expanded="${aberta}">${M.tr(COLS, [primeiro ? `<span class="${ROT[g][1]}">${ROT[g][0]}</span>` : '', curta(c.pago_em || c.vencimento),
+          `<button type="button" class="d3m-d-fm-nome" data-fv="linha" data-tela="con" data-valor="${esc(id)}" aria-expanded="${aberta}"><b>${esc(c.descricao || 'Conta')}</b> <small>· ${esc(SINGULAR[c.grupo] || nomeGrupo(c.grupo).toLowerCase())}${c.fornecedor_nome ? ' · ' + esc(c.fornecedor_nome) : ''}</small></button>`,
+          rs(c.valor), situacao(c), botaoPaguei(c)])}
+          <div class="v2-mais"><div><div class="fv2-det d3m-d-fm-det">${detalheConta(c, nomeGrupo(c.grupo), hoje, { dentro: ids.has(String(c.id)) })}</div></div></div></div>`;
+      };
+      const nAbertas = vivas.filter(extra.abertas).length, nPagas = vivas.filter(extra.pagas).length;
+      const fichas = M.fichas([{ nome: 'Todas', n: vivas.length, on: !u.extra && u.chip === 'todas', attrs: 'data-fv="chip" data-tela="con" data-valor="todas"' },
+        { nome: 'A pagar', n: nAbertas, tom: nVenc ? 'r' : nAbertas ? 'a' : '', on: u.extra === 'abertas', attrs: 'data-fv="extra" data-tela="con" data-valor="abertas"' },
+        { nome: 'Pagas', n: nPagas, on: u.extra === 'pagas', attrs: 'data-fv="extra" data-tela="con" data-valor="pagas"' },
+        ...grupos.filter((g) => vivas.some((c) => c.grupo === g.id)).map((g) => ({ nome: g.nome, n: vivas.filter((c) => c.grupo === g.id).length, on: !u.extra && u.chip === g.id, attrs: `data-fv="chip" data-tela="con" data-valor="${esc(g.id)}"` })),
+        todas.length > vivas.length ? { nome: 'Canceladas', n: todas.length - vivas.length, on: u.extra === 'canceladas', attrs: 'data-fv="extra" data-tela="con" data-valor="canceladas"' } : null], 'Filtrar as contas');
+      const corpo = (semNada ? `<div class="d3m-d-fm-vazio"><p>Nenhuma conta em ${esc(rotuloFala(per, hoje))}.</p>${doExtrato(d) ? '<button type="button" class="fv2-btn s" data-fv="ir" data-valor="extrato">Abrir o Extrato</button>' : '<button type="button" class="fv2-btn s" data-vc="conta">Lançar a primeira</button>'}</div>`
+        : vis.map(linhaC).join('') || `<p class="d3m-d-fm-vazio">${termo ? 'Nenhuma conta com esse texto neste filtro.' : 'Nenhuma conta neste filtro.'}</p>`) + (doFinancas ? `<div class="d3m-d-fm-resto">${doFinancas}</div>` : '') + falta.nota;
+      const fixa = grupos.find((g) => g.id === 'fixa'), pctFixa = fixa && fat && fixa.percentual_faturamento != null ? String(fixa.percentual_faturamento).replace('.', ',') : null;
+      const olho = M.olho([[mil(r.pago), 'pago'], [mil(r.a_pagar), 'a pagar', nVenc ? 'r' : Number(r.a_pagar) ? 'a' : ''], pctFixa != null ? [`${pctFixa}%`, 'do que entra vai nas fixas'] : null,
+        temNumero ? [mil(r.resultado), per.tipo === 'anual' ? 'resultado do ano' : 'resultado do mês', Number(r.resultado) < 0 ? 'r' : 'g'] : null, falta.botao ? [falta.botao, ''] : null]);
+      const v0 = vencidas[0], dias0 = v0 ? diasEntre(String(v0.vencimento).slice(0, 10), hoje) : 0;
+      const laranja = v0 ? M.laranja({ rot: 'venceu e não saiu', num: quantos(dias0, 'dia', 'dias'), frase: `${esc(v0.descricao || 'Uma conta')} vencida`,
+        apoio: `${rs(v0.valor)}, venceu em ${curta(v0.vencimento)}.${nVenc > 1 ? ` E mais ${quantos(nVenc - 1, 'conta vencida', 'contas vencidas')}.` : ''}`,
+        bts: [doFin(v0.id) ? ['Ver no extrato', 'data-fv="ir" data-valor="extrato"'] : ['Paguei', `data-fv="pagar" data-valor="${esc(v0.id)}"`], nVenc > 1 ? [`Ver as ${n0(nVenc)}`, 'data-fv="extra" data-tela="con" data-valor="vencidas"'] : ['Contas a pagar', 'data-fv="extra" data-tela="con" data-valor="abertas"']] })
+        : nSete ? M.laranja({ rot: 'vence em 7 dias', num: n0(nSete), frase: nSete === 1 ? 'conta vence em 7 dias' : 'contas vencem em 7 dias', apoio: `${mil(soma(sete, 'valor'))} no total.${logo}`, bts: [[nSete === 1 ? 'Ver a conta' : `Ver as ${n0(nSete)}`, 'data-fv="extra" data-tela="con" data-valor="abertas"']] }) : '';
+      const anual = per.tipo === 'anual', mesP = /^\d{4}-\d{2}$/.test(per.mes || '') ? per.mes : hoje.slice(0, 7), passo = anual ? 12 : 1, depois = somaMes(mesP, passo);
+      return M.molde({ tela: 'con', aba: 'contas', titulo: 'Contas a pagar', repintar: ctx.repintar,
+        sub: `${esc(rotuloPeriodo(per, hoje))}${vivas.length ? ` · ${quantos(nPagas, 'paga', 'pagas')}, ${n0(nAbertas)} a pagar` : ''}${doExtrato(d) ? ' · pelo extrato' : ''}`,
+        ferr: M.setas(`data-vc-mes-ir="${somaMes(mesP, -passo)}"`, depois.slice(0, anual ? 4 : 7) > hoje.slice(0, anual ? 4 : 7) ? '' : `data-vc-mes-ir="${depois}"`, anual ? 'ano' : 'mês')
+          + M.seg([['Mensal', 'data-vc-periodo="mensal"', !anual], ['Anual', 'data-vc-periodo="anual"', anual]], 'Período'),
+        acao: doExtrato(d) ? M.acao('Nova conta', 'data-fv="ir" data-valor="vorcaro" data-mao="nao_pago"') : M.acao('Nova conta', 'data-vc="conta"'), laranja,
+        corpo: M.folha({ titulo: `Contas de ${anual ? mesP.slice(0, 4) : mesDe(mesP + '-01')}`, sub: quantos(vivas.length, 'lançada', 'lançadas'), dir: fichas, cab: semNada ? '' : M.cab(COLS), corpo, olho, rotulo: 'lista' }) });
+    }
     return `<div class="fv2 d3f" data-tela="con"><div class="fv2-in">
       ${topo({ titulo: 'Contas a pagar', meio: periodoHtml(per, hoje), acoes: comoFunciona + (doExtrato(d) ? lancarMao('Nova conta', 'nao_pago') : novo('conta', 'Nova conta')), extra: fonte(d) })}
       ${acao('Vorcaro · Financeiro', frase, nVenc + nSete ? `Ver ${nVenc + nSete === 1 ? 'a conta' : 'as ' + n0(nVenc + nSete)}` : '', 'data-fv="foco" data-valor="acao"')}

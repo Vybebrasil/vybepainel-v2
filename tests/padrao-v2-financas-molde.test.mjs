@@ -52,6 +52,20 @@ test('Recebimentos no molde: grupos Agora, A vencer e Recebida; Recebi na linha;
   assert.doesNotMatch(html, /data-fv="receber"/);
 });
 
+test('Contas a pagar no molde: vencida em Agora com Paguei, A pagar, Pagas, fichas por grupo e o laranja da vencida', () => {
+  const w = carregar();
+  const conta = (id, descricao, grupo, valor, vencimento, pago_em = null) => ({ id: String(id), descricao, grupo, valor, vencimento, pago_em, cancelada: false, fornecedor_nome: '' });
+  const d = { hoje: HOJE, periodo: { tipo: 'mensal', mes: '2026-11' }, faturamento: 9600, grupos: [{ id: 'fixa', nome: 'Fixas' }, { id: 'variavel', nome: 'Variáveis' }],
+    contas: [conta(1, 'Aluguel da sala', 'fixa', 1200, '2026-11-05'), conta(2, 'Internet', 'fixa', 159.9, '2026-11-20'), conta(3, 'Freela', 'variavel', 1200, '2026-11-10', '2026-11-10')],
+    resumo: { total: 2559.9, pago: 1200, a_pagar: 1359.9, resultado: 7040.1, vencidas: { quantidade: 1, total: 1200 }, sete_dias: { quantidade: 0, total: 0, contas: [] }, grupos: [{ id: 'fixa', nome: 'Fixas', total: 1359.9, percentual_faturamento: 14.2 }, { id: 'variavel', nome: 'Variáveis', total: 1200 }] } };
+  const html = w.VybeFinancas.telas.contas({ d, filtro: {} });
+  comum(html, 'con', 'contas', 'Contas a pagar');
+  naOrdem(html, ['data-vc="conta"', 'Contas de novembro', '>Todas<span>3</span>', '>A pagar<span class="r">2</span>', '>Pagas<span>1</span>', '>Fixas<span>2</span>',
+    'data-linha="c1"', '>Agora</span>', 'Aluguel da sala', 'venceu há 7 dias', 'data-fv="pagar" data-valor="1"', '>A pagar</span>', 'vence em 8 dias', '>Pagas</span>', 'paga em 10/11',
+    'R$ 1,2 mil</b> pago', '14,2%</b> do que entra vai nas fixas', 'resultado do mês', 'venceu e não saiu', 'd3m-lar-num">7 dias', 'Aluguel da sala vencida', 'class="d3m-btn l" data-fv="pagar" data-valor="1">Paguei']);
+  assert.equal(laranjas(html), 1);
+});
+
 test('molde: CSS só com tokens d3 e sem o que é proibido', () => {
   const css = ler('padrao-v2/zm-d-financas.css');
   assert.doesNotMatch(css, /!important|html body\.mundo|:has\([^)]*\[style/);
