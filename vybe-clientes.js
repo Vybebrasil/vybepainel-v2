@@ -674,6 +674,7 @@ const CV2_IC = {
   vai: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
   mais: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
   novo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  busca: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>',
 };
 const LIMITE_PRECISA_DE_VOCE = 52;
 // Quem precisa de você: a mesma regra da Saúde da carteira (risco alto ou nota abaixo do limite).
@@ -795,7 +796,8 @@ function renderClientesBoard() {
   const gradeKpi = document.getElementById('kpi-grid-clientes');
   if (gradeKpi) { gradeKpi.hidden = true; gradeKpi.innerHTML = ''; }
   const acoes = document.getElementById('clientes-acoes');
-  if (acoes) acoes.innerHTML = `<span class="clientes-visao" id="clientes-visao-topo"></span><button type="button" class="d3m-ico" id="clientes-mais" aria-haspopup="listbox" aria-label="Mais: cadastros e filtros" title="Cadastros e filtros" onclick="abrirMaisDeClientes(this)">${CV2_IC.mais}</button>${
+  if (acoes && noCerebro) acoes.innerHTML = `<span class="clientes-visao" id="clientes-visao-topo"></span><span class="cli-busca cv2-busca cv2c-busca${typeof CEREBRO_STATE !== 'undefined' && CEREBRO_STATE.buscaConhecimento ? ' aberta' : ''}"><button type="button" class="d3m-ico" aria-label="Buscar no conhecimento" title="Buscar no conhecimento" onclick="this.parentElement.classList.add('aberta');this.nextElementSibling.focus()">${CV2_IC.busca}</button><input id="cb-busca-conhecimento" type="search" placeholder="Ideia, regra, peça ou aprendizado" aria-label="Buscar no conhecimento" value="${safeText(typeof CEREBRO_STATE !== 'undefined' ? CEREBRO_STATE.buscaConhecimento : '')}" oninput="pesquisarConhecimentoCerebro(this)" onblur="if(!this.value)this.parentElement.classList.remove('aberta')"></span><button type="button" class="cv2-vidro" onclick="carregarAtividadeCerebro()">Atualizar a central</button>`;
+  else if (acoes) acoes.innerHTML = `<span class="clientes-visao" id="clientes-visao-topo"></span><button type="button" class="d3m-ico" id="clientes-mais" aria-haspopup="listbox" aria-label="Mais: cadastros e filtros" title="Cadastros e filtros" onclick="abrirMaisDeClientes(this)">${CV2_IC.mais}</button>${
     podeEditarClientes() ? `<button type="button" class="cv2-novo d3f-novo" onclick="novoClienteNoPainel()">${CV2_IC.novo}Novo cliente</button>` : ''}`;
 
   // O cartão laranja do Mateus: quem precisa de você. Sem ninguém abaixo do limite, o que falta registrar; sem nada
@@ -2347,14 +2349,18 @@ function renderClientesLista(clientes) {
   const visao = visaoDeClientes();
   // Os filtros e a busca recortam a lista e as fichas; o Cérebro mostra o mapa inteiro e esconde os dois.
   const noCerebro = visao === 'sinapses' && typeof renderCerebroVybesHtml === 'function';
-  document.querySelectorAll('#clientes-filtros, #clientes-hero .cli-busca, #clientes-conta').forEach((el) => { el.hidden = noCerebro; });
+  document.querySelectorAll('#clientes-filtros, #clientes-hero > .cli-busca, #clientes-conta').forEach((el) => { el.hidden = noCerebro; });
+  const listaDoCerebro = document.getElementById('clientes-cerebro-lista');
+  if (listaDoCerebro && !noCerebro) { listaDoCerebro.hidden = true; listaDoCerebro.innerHTML = ''; }
   const corpo = document.getElementById('clientes-corpo');
   if (corpo) corpo.dataset.visao = noCerebro ? 'sinapses' : visao === 'sinapses' ? 'tabela' : visao;
   if (!noCerebro) clientes = clientes.filter(passaNosFiltrosDeClientes);
   if (noCerebro) {
     grid.classList.remove('em-tabela');
     grid.classList.add('em-sinapses');
+    if (typeof cerebroEntrarNaJanela === 'function') cerebroEntrarNaJanela();
     grid.innerHTML = renderCerebroVybesHtml();
+    if (typeof cerebroPintarLados === 'function') cerebroPintarLados();
     if (typeof montarMapaCerebro === 'function') montarMapaCerebro(); else if (typeof iniciarMotorCanvasCerebro === 'function') iniciarMotorCanvasCerebro();
     return;
   }

@@ -181,6 +181,41 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
 #painel-clientes .cv2-anel-g > circle.v{stroke:var(--d3-acao-claro);stroke-linecap:round}
 #painel-clientes .cv2-nota{margin:0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
 
+/* 4b · O Cérebro (prancha V2-M-Clientes-Cerebro): a lista dos clientes no vidro, a folha do cliente e a consulta. */
+#painel-clientes .cv2-corpo[data-visao="sinapses"]{grid-template-columns:248px minmax(0,1fr) 316px}
+#painel-clientes .cv2-corpo[data-visao="sinapses"] > .cv2-folha > .cv2-cab{display:none}
+#painel-clientes .cv2c-lista{gap:6px;min-height:0}
+#painel-clientes .cv2c-lista[hidden]{display:none}
+#painel-clientes .cv2c-lista > .d3m-cons-cab{flex:none;padding:0 8px 0 0}
+#painel-clientes .cv2c-lista > .d3m-cons-cab > b{-webkit-text-fill-color:currentColor}
+#painel-clientes .cv2c-nomes{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:4px;overflow-y:auto;scrollbar-width:none}
+#painel-clientes .cv2c-nome{appearance:none;flex:none;display:flex;align-items:center;gap:10px;height:36px;margin:0;padding:0 8px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#painel-clientes .cv2c-nome:hover{background:var(--d3-fume-veu)}
+#painel-clientes .cv2c-nome:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+#painel-clientes .cv2c-nome > .cv2-foto{width:22px;height:22px;border-radius:6px;font-size:9px}
+#painel-clientes .cv2c-nome > span{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .cv2c-nome > b{flex:none;font-weight:600;font-variant-numeric:tabular-nums;-webkit-text-fill-color:currentColor}
+#painel-clientes .cv2c-nome.on{background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font-weight:600}
+#painel-clientes .cv2c-central{display:flex;align-items:center;gap:10px;height:36px;margin:0;padding:0 10px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-apagado);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#painel-clientes .cv2c-central b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#painel-clientes .cv2c-central > .d3m-pt.g{background:var(--d3-pronto-claro)}
+#painel-clientes .cv2-vidro{order:4;appearance:none;flex:none;display:inline-flex;align-items:center;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#painel-clientes .cv2-vidro:hover{background:var(--d3-fume-veu-forte)}
+#painel-clientes .cv2-vidro:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+#painel-clientes #grid-clientes-lista > .cv2c{display:flex;height:100%;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+#painel-clientes .cv2c > .cb-centro{flex:1 1 0;display:flex;flex-direction:column;min-width:0;min-height:0;margin:0;padding:0;border:0;background:none}
+#painel-clientes .cv2c .cv2c-cab{flex-direction:row;flex-wrap:nowrap;justify-content:space-between;margin:0;border:0;background:none}
+#painel-clientes .cv2c .cv2c-cab > h3{text-align:left}
+#painel-clientes .cv2c-corpo{flex:1 1 0;display:flex;flex-direction:column;min-height:0;margin:0 16px;border-radius:12px;overflow:auto;scrollbar-width:thin;background:var(--d3-veu)}
+#painel-clientes .cv2c-corpo > *{flex:none}
+#painel-clientes .cv2c-corpo :is(.cb-caminho button,.cb-areas small,.cb-mapa-rodape span){color:var(--d3-texto2)}
+#painel-clientes .cv2c-corpo > .cb-palco{flex:1 1 0;min-height:240px;height:auto}
+#painel-clientes .cv2c-corpo > .cb-palco > canvas{width:100%;height:100%}
+#painel-clientes .cv2c-corpo > .cb-grafo{height:100%;min-height:0;border:0;border-radius:12px}
+#painel-clientes .cv2c-pe{flex:none;margin:0;padding:10px 32px 14px;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .cv2c > .cb-inspetor:not(.cb-aberto){display:none}
+#painel-clientes .cv2c > .cb-inspetor.cb-aberto{flex:0 0 300px;min-height:0;overflow-y:auto;border-left:1px solid var(--d3-divisa)}
+
 /* 5 · Janela baixa (1366 × 768 e parecidas): o cartão laranja deita o número ao lado do título e as linhas encolhem,
    para a coluna de consulta caber inteira sem rolar. */
 @media (max-height:820px) and (min-width:1181px){
@@ -197,7 +232,12 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
 /* 6 · Telas menores: sem a coluna presa à direita, o laranja sobe para antes da lista e a consulta sai (o que ela abre
    está no título, em Lista/Fichas/Cérebro e em Mais). */
 @media (max-width:1180px){
-  #painel-clientes .cv2-corpo{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:12px}
+  #painel-clientes .cv2-corpo,#painel-clientes .cv2-corpo[data-visao="sinapses"]{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:12px}
+  #painel-clientes .cv2-corpo[data-visao="sinapses"]{grid-template-rows:auto auto minmax(0,1fr)}
+  #painel-clientes .cv2c-lista{order:-2}
+  #painel-clientes .cv2c-nomes{flex:none;flex-direction:row;overflow-x:auto;overflow-y:hidden}
+  #painel-clientes .cv2c-nome{max-width:180px}
+  #painel-clientes .cv2c > .cb-inspetor.cb-aberto{flex-basis:44%}
   #painel-clientes .cv2-lado{order:-1;overflow:visible}
   #painel-clientes .cv2-consulta{display:none}
   #painel-clientes .cv2-laranja{min-height:0}
@@ -219,11 +259,15 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
   #painel-clientes .cv2-seg{order:5;flex:1 1 100%;height:40px;margin-right:-52px}
   #painel-clientes .cv2-seg > button{flex:1 1 0;height:34px}
   #painel-clientes .cv2-novo{width:40px;height:40px;padding:0;font-size:0;gap:0}
+  #painel-clientes .cv2-vidro{height:40px;padding:0 10px}
   #painel-clientes .cv2-novo > svg{width:18px;height:18px}
   #painel-clientes .cv2-topo :is(.cv2-acoes,.cv2-busca) > .d3m-ico{width:40px;height:40px}
   #painel-clientes .cv2-busca > input{width:150px;height:40px}
   #painel-clientes .cv2-laranja .d3m-lar-bts > .d3m-btn{flex:1 1 0;height:40px}
-  #painel-clientes .cv2-cab{flex-wrap:wrap;row-gap:4px;padding:8px 14px}
+  #painel-clientes .cv2-cab,#painel-clientes .cv2c .cv2c-cab{flex-wrap:wrap;row-gap:4px;padding:8px 14px}
+  #painel-clientes .cv2-corpo[data-visao="sinapses"] > .cv2-lado{display:none}
+  #painel-clientes .cv2-corpo[data-visao="sinapses"]{grid-template-rows:auto minmax(0,1fr)}
+  #painel-clientes .cv2c .cb-ampliar,#painel-clientes .cv2c .cv2-risco{display:none}
   #painel-clientes .cv2-filtros{margin-left:0;max-width:100%;overflow-x:auto;scrollbar-width:none}
   #painel-clientes .cv2-th{display:none}
   #painel-clientes .cv2-tr{display:grid;grid-template-columns:40px minmax(0,1fr) auto;grid-template-areas:"foto nome nota" "foto ab nota";column-gap:12px;row-gap:1px;height:auto;min-height:52px;padding:6px 14px}
