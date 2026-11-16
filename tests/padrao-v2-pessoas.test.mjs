@@ -58,7 +58,7 @@ const ordem = (h, ...trechos) => { let i = -1; for (const t of trechos) { const 
 test('as quatro telas seguem a ordem do quadro: título, fala do VYBES, três números, filtro, Pede ação e lista', async () => {
   const t = montar();
   // Recrutamento já está no esqueleto do grupo E (teste próprio, abaixo).
-  for (const [aba, pe] of [['academy', 'monta: donos e RH'], ['documentos', 'Por colaborador']]) {
+  for (const [aba, pe] of [['academy', 'monta: donos e RH']]) {
     await t.P.abrir(aba);
     const h = t.html();
     assert.equal(t.janela().className, 'vp-janela v2p-janela', aba);
@@ -123,19 +123,18 @@ test('Recrutamento (prancha V2-M-RH-Recrutamento): três números, o funil do m�
   assert.match(h, /data-v2p-filtro="fechadas" aria-checked="true"/); assert.match(h, /Redator/);
 });
 
-test('Documentos: o vencido em destaque, Renovar abre o documento e quem está em dia fica recolhido', async () => {
+test('Documentos (prancha V2-M-RH-Documentos): três números, Por colaborador com a pessoa que abre e Renovar na consulta', async () => {
   const t = montar();
   await t.P.abrir('academy'); await t.P.abrir('documentos');
   let h = t.html();
-  assert.match(h, /<b>1 documento venceu e 1 vence em até 30 dias\.<\/b> O outro documento do time está em dia\./);
-  assert.match(h, /class="v2p-card v2p-kpi d3-num atencao a"><small class="d3-num-rot">Vencem em 30 dias/); assert.match(h, /class="v2p-card v2p-kpi d3-num ruim r"><small class="d3-num-rot">Vencidos<\/small>/); assert.match(h, /há 4 dias/); assert.match(h, /1º em 12 dias/); assert.match(h, /aria-label="Vencimentos"/);
-  assert.match(h, /class="v2p-lin dest"><p><span class="v2p-pill r">Venceu há 4 dias<\/span><br><b>Contrato PJ<\/b>/);
-  assert.match(h, /data-vp-editar-documento="1" data-foco="renovacao">Renovar</); assert.match(h, /Vence em 12 dias/);
-  assert.match(h, /1 venceu em 08\/11/); assert.match(h, /1 vence em 24\/11/); assert.match(h, /Abrir<\/a>/); assert.match(h, /data-vp-editar-documento="2">Editar</);
-  assert.match(h, /\+ 1 colaborador com tudo em dia recolhido · /); assert.doesNotMatch(h, /Deivid/);
-  t.clicar('[data-v2p-mostrar]', { v2pMostrar: 'emDia' }); assert.match(t.html(), /Deivid/);
+  ordem(h, 'class="d3m-e-topo"', 'contratos e documentos do time · 1 vencido', 'data-v2p-busca', 'data-vp-abrir-form="documento"', 'Documentos do time', 'Vencem em 30 dias', 'Vencidos', 'Por colaborador', '<aside class="d3m-lado"', 'O aviso', 'Para renovar', 'Tipos', 'Abrir');
+  assert.match(h, /o mais antigo há 4 dias/); assert.match(h, /1º em 12 dias/);
+  assert.match(h, /data-vp-editar-documento="1" data-foco="renovacao"><span><b>Renovar<\/b> · Contrato PJ · Reri · venceu 08\/11/);
+  assert.match(h, /class="d3m-e-pes-selo r">1 venceu em 08\/11</); assert.match(h, /class="d3m-e-pes-selo a">1 vence em 24\/11</); assert.match(h, /Abrir<\/a>/); assert.match(h, /data-vp-editar-documento="2">Editar</);
+  assert.ok(h.indexOf('Reri Lima') < h.indexOf('Jady Rocha') && h.indexOf('Jady Rocha') < h.indexOf('Deivid Souza'), 'o vencido sobe para o topo da lista');
+  assert.match(h, /data-v2p-tipo="contrato"/, 'os tipos viram filtro na consulta');
   t.clicar('[data-v2p-filtro]', { v2pFiltro: 'vencidos' }); h = t.html();
-  assert.match(h, /Reri/); assert.doesNotMatch(h, /<b>Jady<\/b>/);
+  assert.match(h, /Reri Lima/); assert.doesNotMatch(h, /Jady Rocha/);
 });
 
 test('Academy: quem falta em Pede ação, a sua trilha com Continuar e a aula que marca no lugar', async () => {

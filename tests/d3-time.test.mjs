@@ -45,7 +45,7 @@ function montar() {
 
 // V2 · grupo E (pranchas V2-M-RH-* e V2-M-Academy, 16/11/2026): as telas já no esqueleto novo saem do teste da Direção 3
 // e ganham o do vidro fumê; as outras seguem com a proteção de antes até chegar a vez delas.
-const E_FEITAS = ['produtividade', 'rh', 'recrutamento'];
+const E_FEITAS = ['produtividade', 'rh', 'recrutamento', 'documentos'];
 test('V2 · grupo E: o título no vidro, as abas de antes escondidas no DOM e sem o bloco laranja', async () => {
   const t = montar();
   for (const aba of E_FEITAS) {
@@ -93,10 +93,9 @@ test('Pedidos: rótulos curtos e o 1º que vence; Documentos: linha do tempo dos
   assert.match(h, /class="d3m-e-pes-selo( a)?">até /); assert.match(h, /class="d3m-e-pes-leg-c"/);
   await t.P.abrir('documentos');
   h = t.html();
-  assert.match(h, /aria-label="Vencimentos"/); assert.match(h, /class="d3p-tl-hoje"/);
-  assert.match(h, /class="d3p-tl-pt r"[^>]*title="Contrato"/); assert.match(h, /class="d3p-tl-pt a"[^>]*title="Estágio"/);
-  assert.match(h, /data-v2p-tipo="contrato"/, 'os tipos viram fichas de filtro');
-  assert.match(h, /<span>Pessoa<\/span><span>Docs<\/span><span>Situação<\/span>/);
+  // Prancha V2-M-RH-Documentos: os vencimentos viram "Para renovar" na consulta, com os tipos de filtro.
+  assert.match(h, /Para renovar/); assert.match(h, /data-foco="renovacao"><span><b>Renovar<\/b> · Contrato/); assert.match(h, /data-foco="renovacao"><span><b>Renovar<\/b> · Estágio/);
+  assert.match(h, /data-v2p-tipo="contrato"/, 'os tipos viram filtro na consulta');
 });
 
 test('Recrutamento: o período Mensal | Anual no topo, no vidro, e o mês na cabeça do funil', async () => {

@@ -87,7 +87,7 @@ test('gestão: ranking, pesos, metas e as abas de Recrutamento e Documentos', as
   await t.P.abrir('recrutamento');
   assert.match(t.html(), /Fulana/); assert.match(t.html(), /▼ 3 dias/); assert.match(t.html(), /Mensal/);
   await t.P.abrir('documentos');
-  assert.match(t.html(), /Vence em 20\/11/); assert.match(t.html(), /data-vp-editar-documento="1"[^>]*>Renovar</);
+  assert.match(t.html(), /Vence em 20\/11/); assert.match(t.html(), /data-vp-editar-documento="1"[^>]*><span><b>Renovar</);
 });
 
 test('todas as abas desenham com dados e com o estado vazio', async () => {

@@ -1412,13 +1412,13 @@
 
   // ---------- desenho ----------
   const DESENHO = { produtividade: htmlProdutividade, rh: htmlRh, projetos: htmlProjetos, academy: htmlAcademy, recrutamento: htmlRecrutamento, documentos: htmlDocumentos };
-  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaAcademy, recrutamento: listaVagasE, documentos: listaDocumentos, projetos: listaProjetos };
+  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaAcademy, recrutamento: listaVagasE, documentos: listaDocsE, projetos: listaProjetos };
   // ---------- V2 · grupo E (pranchas V2-M-RH-*, V2-M-Academy, aprovadas pelo Paulo em 16/11/2026) ----------
   // O esqueleto novo das telas do RH: a janela de vidro fumê, o título no vidro (com a seta que troca de tela do setor),
   // a coluna de trabalho em folhas claras e a coluna de consulta de 316 direto no vidro. As peças .d3m-e-* são as da
   // casca do grupo (padrao-v2/zm-e-casca.css); as locais desta janela ficam em padrao-v2/zm-e-pessoas.css. Cada tela
   // devolve { sub, acoes, main, lado }; as funções, os data-* e os formulários de antes seguem os mesmos.
-  const E = new Set(['produtividade', 'rh', 'recrutamento']);
+  const E = new Set(['produtividade', 'rh', 'recrutamento', 'documentos']);
   const IC_E = { lupa: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', ajuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', mais: '<path d="M12 5v14M5 12h14"/>',
     depois: '<path d="M9 6l6 6-6 6"/>', antes: '<path d="M15 6l-6 6 6 6"/>', baixo: '<path d="M6 9l6 6 6-6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>', certo: '<path d="M5 12l4 4 10-10"/>', fora: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>' };
   const icE = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${IC_E[n] || ''}</svg>`;
@@ -1748,7 +1748,66 @@
     const sub = `só os donos e quem administra · ${nAb ? plural(nAb, 'vaga aberta', 'vagas abertas') : 'nenhuma vaga aberta'}${pendentes.length ? ` · ${plural(pendentes.length, 'espera', 'esperam')} retorno` : ''}`;
     return { sub, acoes: per + busca, acao, main, lado };
   }
-  const DESENHO_E = { produtividade: produtividadeE, rh: rhE, recrutamento: recrutamentoE };
+  // ---------- Documentos (prancha V2-M-RH-Documentos) ----------
+  // Três cartões de número e a folha "Por colaborador" (Todos | A vencer | Vencidos | Sem validade) com a pessoa que abre no
+  // lugar. Quem pede renovação vai para a consulta (Renovar abre o documento no campo da data), com os tipos e os atalhos.
+  function listaDocsE(d) {
+    const f = estado.v2.filtro || 'todos', t2 = estado.v2.tipo, docs = d.documentos || [];
+    const passa = (x) => (t2 === 'encerrado' ? x.situacao === 'encerrado' : x.situacao !== 'encerrado' && (!t2 || x.tipo === t2))
+      && (f === 'todos' || (f === 'renovar' ? x.situacao === 'renovar' : f === 'vencidos' ? x.situacao === 'vencido' : x.situacao === 'sem_renovacao'))
+      && bate(x.titulo, x.pessoa_nome || '', (d.tipos || {})[x.tipo] || '');
+    const por = new Map();
+    for (const x of docs.filter(passa)) { const k = String(x.pessoa_id ?? x.pessoa_nome); if (!por.has(k)) por.set(k, { id: k, nome: x.pessoa_nome || 'Sem nome', docs: [] }); por.get(k).docs.push(x); }
+    const peso = (g) => (g.docs.some((x) => x.situacao === 'vencido') ? 0 : g.docs.some((x) => x.situacao === 'renovar') ? 1 : 2);
+    const primeira = (g) => g.docs.filter((x) => ['vencido', 'renovar'].includes(x.situacao)).map((x) => x.renovacao).sort()[0] || '';
+    const grupos = [...por.values()].sort((a, b) => peso(a) - peso(b) || primeira(a).localeCompare(primeira(b)) || a.nome.localeCompare(b.nome, 'pt-BR'));
+    const selo = (t, k) => `<span class="d3m-e-pes-selo${k ? ' ' + k : ''}">${esc(t)}</span>`;
+    const linhas = grupos.map((g) => {
+      const v = g.docs.filter((x) => x.situacao === 'vencido'), r = g.docs.filter((x) => x.situacao === 'renovar');
+      const s = v.length ? selo(v.length === 1 ? `1 venceu em ${br(v[0].renovacao)}` : `${v.length} vencidos`, 'r') : r.length ? selo(r.length === 1 ? `1 vence em ${br(r[0].renovacao)}` : `${r.length} a vencer`, 'a') : selo('Em dia', 'g');
+      const detalhe = `<div class="v2p-docs">${g.docs.map((x) => { const [t, k] = (SELO_DOC[x.situacao] || SELO_DOC.sem_renovacao)(x); return `<p class="v2p-doc"><span class="v2p-doc-nome" title="${esc([(d.tipos || {})[x.tipo] || x.tipo || '', x.inicio ? `desde ${br(x.inicio)}` : ''].filter(Boolean).join(' · '))}">${esc(x.titulo)}</span>${selo(t, k === 'n' ? '' : k)}
+        ${x.link ? `<a class="d3m-e-elo" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Abrir</a>` : ''}<button type="button" class="d3m-e-elo" data-vp-editar-documento="${esc(x.id)}">Editar</button></p>`; }).join('')}</div>`;
+      return linhaAbre(g.id, `${av(g.nome)}<span class="d3m-e-pes-lin-t"><b>${esc(g.nome)}</b><small class="d3m-e-pes-lin-s">${esc(g.docs.map((x) => x.titulo).join(', '))}</small></span>`, s, detalhe, `os documentos de ${g.nome}`);
+    }).join('');
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${linhas || (docs.length ? estadoE({ tipo: 'vazio', icone: 'lapis', titulo: 'Nenhum documento neste filtro', texto: 'Troque o filtro ou a busca.' })
+      : estadoE({ tipo: 'vazio', icone: 'lapis', grande: true, titulo: 'Nenhum documento cadastrado', texto: 'Registre contratos e documentos da equipe para ser avisado antes de vencer.', acao: estado.form === 'documento' ? '' : btnEstadoE('Novo documento', 'data-vp-abrir-form="documento"') }))}</div>`;
+  }
+  function documentosE(d) {
+    const h = d.hoje || hoje(), docs = d.documentos || [], ativos = docs.filter((x) => x.situacao !== 'encerrado'), dias = d.avisoDias || 30;
+    const venc = ativos.filter((x) => x.situacao === 'vencido').sort((a, b) => a.renovacao.localeCompare(b.renovacao)), renovar = ativos.filter((x) => x.situacao === 'renovar').sort((a, b) => a.renovacao.localeCompare(b.renovacao));
+    const semVal = ativos.filter((x) => x.situacao === 'sem_renovacao').length, emDia = ativos.length - venc.length - renovar.length, pedem = [...venc, ...renovar];
+    const gente = new Set(ativos.map((x) => String(x.pessoa_id ?? x.pessoa_nome))).size, encerrados = docs.length - ativos.length;
+    const kpis = `<div class="d3m-e-kpis" style="--n:3">${kpiE({ rotulo: 'Documentos do time', valor: String(ativos.length), icone: 'lapis', selo: 't', sub: ativos.length ? `${emDia} em dia · ${plural(gente, 'pessoa', 'pessoas')}` : 'nenhuma pessoa' })}`
+      + `${kpiE({ rotulo: `Vencem em ${dias} dias`, valor: String(renovar.length), icone: 'relogio', selo: 'a', tom: renovar.length ? 'a' : '', sub: renovar.length ? `1º em ${plural(Math.max(0, entre(h, renovar[0].renovacao)), 'dia', 'dias')}` : 'nenhum' })}`
+      + `${kpiE({ rotulo: 'Vencidos', valor: String(venc.length), icone: 'alerta', selo: 'r', tom: venc.length ? 'r' : '', sub: venc.length ? `o mais antigo há ${plural(Math.max(1, entre(venc[0].renovacao, h)), 'dia', 'dias')}` : 'nenhum' })}</div>`;
+    let folha;
+    if (estado.form === 'documento') {
+      const x = estado.editar || {};
+      folha = folhaE({ titulo: x.id ? 'Editar documento' : 'Novo documento', cls: 'cresce', dir: '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="documento" class="vp-form"><input type="hidden" name="id" value="${esc(x.id || '')}"><div class="vp-grade">
+        <label><span>Colaborador</span><select name="pessoa_id" required>${pessoasOpcoes(d.pessoas, x.pessoa_id, 'Escolha')}</select></label>
+        <label><span>Tipo</span><select name="tipo">${opcoes(d.tipos || {}, x.tipo || 'contrato')}</select></label>
+        <label><span>Título</span><input name="titulo" maxlength="200" required value="${esc(x.titulo || '')}"></label>
+        <label><span>Status</span><select name="status">${opcoes({ ativo: 'Ativo', encerrado: 'Encerrado' }, x.status || 'ativo')}</select></label>
+        <label><span>Início</span><input type="date" name="inicio" value="${esc(x.inicio || '')}"></label><label><span>Renovação</span><input type="date" name="renovacao" value="${esc(x.renovacao || '')}"></label></div>
+        <label><span>Link do arquivo (https://)</span><input type="url" name="link" maxlength="1000" value="${esc(x.link || '')}"></label>
+        <label><span>Observação</span><textarea name="observacao" rows="2" maxlength="2000">${esc(x.observacao || '')}</textarea></label>
+        <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar documento</button></div></form></div>` });
+    } else {
+      const f = estado.v2.filtro || 'todos';
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais documentos">${[['todos', 'Todos', ativos.length], ['renovar', 'A vencer', renovar.length], ['vencidos', 'Vencidos', venc.length], ['sem', 'Sem validade', semVal]].map(([k, r, n]) => `<button type="button" role="radio" data-v2p-filtro="${k}" aria-checked="${f === k}">${r} <span class="d3m-e-pes-n">${n}</span></button>`).join('')}</span>`;
+      folha = `<section class="d3m-e-folha cresce" aria-label="Por colaborador"><div class="d3m-e-cab"><b>Por colaborador</b><span class="d3m-e-cab-dir">${seg}</span></div>${listaDocsE(d)}</section>`;
+    }
+    const tipos = Object.entries(d.tipos || {}).map(([k, nome]) => [k, nome, ativos.filter((x) => x.tipo === k).length]).filter(([, , n]) => n);
+    const lado = consE('O aviso', txtE(`${dias === 30 ? 'Trinta' : dias} dias antes de um documento vencer, o RH é avisado. Vencido, ele sobe para o topo da lista.`))
+      + (pedem.length ? consE('Para renovar', pedem.slice(0, 5).map((x) => vlinE('Renovar', `${x.titulo} · ${primeiroNome(x.pessoa_nome)} · ${x.situacao === 'vencido' ? 'venceu' : 'vence'} ${br(x.renovacao)}`, `data-vp-editar-documento="${esc(x.id)}" data-foco="renovacao"`)).join(''), plural(pedem.length, 'documento', 'documentos')) : '')
+      + (tipos.length || encerrados ? consE('Tipos', [...tipos, ...(encerrados ? [['encerrado', 'Encerrados', encerrados]] : [])].map(([k, nome, n]) => `<button type="button" class="d3m-vlin${estado.v2.tipo === k ? ' on' : ''}" data-v2p-tipo="${esc(k)}" aria-pressed="${estado.v2.tipo === k}"><span><b>${esc(nome)}</b> · ${n}</span>${icE(estado.v2.tipo === k ? 'certo' : 'depois')}</button>`).join('')) : '')
+      + consE('Abrir', vlinE('Pedidos ao RH', '', 'data-vp-aba="rh"') + vlinE('Recrutamento', '', 'data-vp-aba="recrutamento"'));
+    const busca = docs.length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar pessoa ou documento" aria-label="Buscar pessoa ou documento" value="${esc(estado.v2.busca)}">` : '';
+    const acao = estado.form === 'documento' ? '' : `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="documento">${icE('mais')}Novo documento</button>`;
+    const sub = `contratos e documentos do time · ${!docs.length ? 'nenhum cadastrado' : venc.length ? plural(venc.length, 'vencido', 'vencidos') : renovar.length ? `${renovar.length} a vencer` : 'tudo em dia'}`;
+    return { sub, acoes: busca, acao, main: `<div class="d3m-e-main">${kpis}${folha}</div>`, lado };
+  }
+  const DESENHO_E = { produtividade: produtividadeE, rh: rhE, recrutamento: recrutamentoE, documentos: documentosE };
 
   function htmlCorpo() {
     const d = estado.dados[estado.aba];
