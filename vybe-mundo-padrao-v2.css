@@ -7920,6 +7920,8 @@ body.vfd-aberto .fc-overlay{z-index:743}
 #vv-comercial .fx-lanc.ok .fx-banco{color:#6B665E}
 #vv-comercial .fx-editor{margin:2px 0 6px 52px;padding:14px 16px;border-radius:16px;background:#FBFAF7;box-shadow:inset 0 0 0 1px #EFEBE4}
 #vv-comercial .fx-comobanco{font-size:var(--d3-fs-texto);color:#4A463F}
+#vv-comercial .fx-comobanco .fx-origem{display:block;margin-top:6px;font-size:var(--d3-fs-mini);color:#8A847A}
+#vv-comercial p.fx-origem{margin-top:6px;font-size:var(--d3-fs-mini)}
 #vv-comercial .fx-comobanco small{display:block;font:600 var(--d3-fs-mini) var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:.04em;text-transform:uppercase;color:#8A847A}
 #vv-comercial .fx-partes{margin-top:12px;padding:12px;border-radius:14px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6}
 #vv-comercial .fx-parte{display:grid;grid-template-columns:100px minmax(130px,1fr) minmax(120px,.8fr) 30px;gap:8px;align-items:center;margin-top:8px}

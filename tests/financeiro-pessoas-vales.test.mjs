@@ -161,7 +161,7 @@ test('telas: Extrato com "Para quem" e "Gasto fixo", a pergunta do Pix ao Viníc
   const vin = transacoes.find((x) => /Vinicius/.test(x.banco.historico));
   V._teste.ui.extrato.aberta = vin.id; V._teste.ui.extrato.mes = '2026-10'; V._teste.ui.extrato.chip = 'todos';
   const ext = V.telas.extrato({ d, filtro: {} });
-  assert.match(ext, /<span>Para quem<\/span><select name="pessoa_id"[\s\S]*Ana Ficticia[\s\S]*Vinícius/);
+  assert.match(ext, /<span>Pessoa do time<\/span><select name="pessoa_id"[\s\S]*Ana Ficticia[\s\S]*Vinícius/);
   assert.match(ext, /<span>Gasto fixo<\/span><select name="fixo_id"[\s\S]*Internet ficticia/);
   assert.match(ext, /data-fx="escolher-cat"[^>]*data-valor="cartao_agencia"[\s\S]*data-fx="escolher-cat"[^>]*data-valor="pro_labore"/);
   V._teste.ui.vales.aberta = '7';

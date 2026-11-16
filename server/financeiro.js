@@ -390,7 +390,7 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
       if (b.fixo?.repete && r.proposta.tipo === 'saida') {
         if (!X.CATEGORIAS.some((c) => c.id === r.proposta.categoria && c.tipo === 'saida')) throw erro(400, 'Escolha para onde vai a conta fixa (a categoria).');
         const f = X.normalizarFixo({ nome: b.fixo.nome || r.proposta.texto || r.proposta.quem, valor: r.proposta.valor, categoria: r.proposta.categoria,
-          dia: Number(b.fixo.dia) || Number(r.proposta.data.slice(8, 10)), forma: b.fixo.forma, inicio: r.proposta.data.slice(0, 7) });
+          dia: Number(b.fixo.dia) || Number(r.proposta.data.slice(8, 10)), forma: b.fixo.forma || r.proposta.forma, inicio: r.proposta.data.slice(0, 7) });
         if (f.erro) throw erro(400, f.erro === 'Dê um nome ao gasto fixo.' ? 'Dê um nome à conta fixa (em "O que foi").' : f.erro);
         fixo = f.fixo;
       }
@@ -443,7 +443,7 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
 // GET devolve só as categorias (para o bot sugerir com os mesmos ids). Nunca devolve lançamento nem saldo.
 export async function areaFinanceiroBot(req, res, criarBanco, config = process.env) {
   if (!autenticarAssistente(req, config.VYBE_AI_BOT_TOKEN)) return res.status(401).json({ error: 'Não autorizado.' });
-  if (req.method === 'GET') return res.status(200).json({ ok: true, categorias: X.CATEGORIAS.map(({ id, nome, tipo }) => ({ id, nome, tipo })) });
+  if (req.method === 'GET') return res.status(200).json({ ok: true, categorias: X.CATEGORIAS.map(({ id, nome, tipo }) => ({ id, nome, tipo })), formas: X.FORMAS_LANCAMENTO });
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
   const b = req.body || {};
   if (b.acao !== 'propor') return res.status(400).json({ error: 'Ação desconhecida.' });
