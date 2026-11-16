@@ -404,32 +404,6 @@ async function carregarRegistrosDoCliente(id) {
   } catch (e) { FICHA_REGISTROS[id] = { erro: e.message }; }
 }
 const TIPO_REGISTRO = { conteudo: 'Conteúdo', planejamento: 'Planejamento', roteiro: 'Roteiro', decisao: 'Decisão', regra_de_marca: 'Regra de marca', aprendizado: 'Aprendizado' };
-function registrosDosChatsHtml(nome) {
-  const id = String(idDoCliente(nome) || '');
-  if (!id) return '';
-  const estado = FICHA_REGISTROS[id];
-  if (!estado) carregarRegistrosDoCliente(id).then(() => { if (FICHA_ABA === 'cerebro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); });
-  const corpo = !estado ? '<div class="auto-carregando">Lendo os registros…</div>'
-    : estado.erro ? `<p class="ciclo-erro">${fichaEsc(estado.erro)}</p>`
-    : !estado.dados.length ? '<p>Nada registrado ainda. Quando alguém fechar uma entrega deste cliente com o assistente, o resumo aparece aqui.</p>'
-    : `<ul class="reg-lista">${estado.dados.map((g) => `<li class="reg-item"><details><summary>
-        <span class="reg-tipo">${fichaEsc(TIPO_REGISTRO[g.tipo] || g.tipo)}</span><b>${fichaEsc(g.titulo)}</b>
-        <small>${fichaEsc(String(g.criado_em || '').slice(0, 10).split('-').reverse().join('/'))} · ${fichaEsc(g.status.replace(/_/g, ' '))} · ${fichaEsc(g.origem)}${g.drive_erro ? ' · cópia no Drive falhou' : ''}</small></summary>
-        <p>${fichaEsc(g.resumo).replace(/\n/g, '<br>')}</p>
-        ${g.decisoes ? `<h5>Decisões e regras novas</h5><p>${fichaEsc(g.decisoes).replace(/\n/g, '<br>')}</p>` : ''}
-        ${g.proximos ? `<h5>Próximos passos</h5><p>${fichaEsc(g.proximos).replace(/\n/g, '<br>')}</p>` : ''}
-        ${g.conteudo ? `<h5>Conteúdo</h5><pre>${fichaEsc(g.conteudo)}</pre>` : ''}</details></li>`).join('')}</ul>`;
-  return `<div class="client-master-detail-card"><div class="cli-ficha-topo"><h3>O que a equipe registrou</h3>
-      <button type="button" class="vb-botao" onclick="delete FICHA_REGISTROS['${fichaEsc(id)}'];renderClientMasterDetail('${fichaAspas(nome)}')">Atualizar</button></div>
-    ${corpo}</div>`;
-}
-
-function cerebroDaFichaHtml(nome) {
-  const cartao = typeof cerebroDoClienteCardHtml === 'function' ? cerebroDoClienteCardHtml(nome) : '';
-  // "O que é o cérebro" virou a dica do "?" no título do cartão (quadro 53).
-  return `${cartao}${registrosDosChatsHtml(nome)}`;
-}
-
 // ── As abas da ficha no esqueleto das pranchas V2-M-Cliente-* (16/11/2026) ───────────────────────────────────────────
 // Toda aba fora do Resumo tem o mesmo esqueleto: as folhas claras à esquerda e, à direita, direto no vidro, o cartão
 // laranja (o que pede ação nesta aba) e a consulta. Peças: fv2-duas, fv2-vazio, fv2-barras e fv2-op (a lista da operação).
@@ -603,6 +577,57 @@ function demandasDaFichaHtml(nome) {
     + fv2ConsHtml('De onde vem um pedido', '', '<p class="fv2-nota-lado">Do grupo do cliente (o VYBES avisa e propõe o card), de uma reunião (demandas sugeridas da ata) ou criado à mão.</p>') + abrir);
 }
 
+// O que a equipe registrou (folha da aba Cérebro): os registros que os chats do Claude.ai mandaram pelo conector.
+function registrosDosChatsHtml(nome) {
+  const id = String(idDoCliente(nome) || '');
+  if (!id) return '';
+  const estado = FICHA_REGISTROS[id];
+  if (!estado) carregarRegistrosDoCliente(id).then(() => { if (FICHA_ABA === 'cerebro' && CLIENTE_ABERTO === nome) renderClientMasterDetail(nome); });
+  const corpo = !estado ? fv2VazioHtml('relogio', 'Lendo os registros…')
+    : estado.erro ? fv2VazioHtml('falta', fichaEsc(estado.erro))
+    : !estado.dados.length ? fv2VazioHtml('lapis', 'Nada registrado ainda', 'Quando alguém fechar uma entrega deste cliente com o assistente, o que foi aprendido aparece aqui.')
+    : `<ul class="reg-lista fv2-tb fv2-linhas fv2-reg">${estado.dados.map((g) => `<li class="reg-item"><details><summary class="fv2-tb-lin">
+        <span class="d3v-etiqueta reg-tipo">${fichaEsc(TIPO_REGISTRO[g.tipo] || g.tipo)}</span><span class="fv2-tb-txt"><b>${fichaEsc(g.titulo)}</b></span>
+        <small>${fichaEsc(String(g.criado_em || '').slice(0, 10).split('-').reverse().join('/'))} · ${fichaEsc(g.status.replace(/_/g, ' '))} · ${fichaEsc(g.origem)}${g.drive_erro ? ' · cópia no Drive falhou' : ''}</small></summary>
+        <div class="fv2-reg-c"><p>${fichaEsc(g.resumo).replace(/\n/g, '<br>')}</p>
+        ${g.decisoes ? `<h5>Decisões e regras novas</h5><p>${fichaEsc(g.decisoes).replace(/\n/g, '<br>')}</p>` : ''}
+        ${g.proximos ? `<h5>Próximos passos</h5><p>${fichaEsc(g.proximos).replace(/\n/g, '<br>')}</p>` : ''}
+        ${g.conteudo ? `<h5>Conteúdo</h5><pre>${fichaEsc(g.conteudo)}</pre>` : ''}</div></details></li>`).join('')}</ul>`;
+  return `<section class="fv2-folha fv2-cheia" aria-label="O que a equipe registrou"><div class="cv2-cab"><h3>O que a equipe registrou</h3>
+      <button type="button" class="fv2-cab-acao" onclick="delete FICHA_REGISTROS['${fichaEsc(id)}'];renderClientMasterDetail('${fichaAspas(nome)}')">atualizar</button></div>
+    ${corpo}</section>`;
+}
+
+// Aba Cérebro (prancha V2-M-Cliente-Cerebro, 16/11/2026): o que o VYBES sabe da conta (o perfil, as cores e os quatro
+// números), as regras de arte e o que a equipe registrou; no vidro, as ideias no banco, as pendências e os atalhos.
+// O cérebro continua um só (vybe-clientes-cerebro.js): "abrir o mapa" abre o mesmo, com este cliente em foco.
+function cerebroDaFichaHtml(nome) {
+  if (typeof cerebroDoCliente !== 'function') return fv2DuasHtml('cerebro', registrosDosChatsHtml(nome), '');
+  const c = cerebroDoCliente(nome), paleta = c.base?.paleta || [], n = typeof cerebroAspas === 'function' ? cerebroAspas(c.nome) : fichaAspas(c.nome), cats = c.categorias || {};
+  const mapa = `abrirModalCerebroCliente('${n}', 'mapa')`, cerebro = `abrirModalCerebroCliente('${n}')`;
+  const dica = 'O cérebro é um só, o do VYBES. Ele junta o cadastro, a operação, as pastas, as regras de arte e o que a equipe registra deste cliente, e mostra de onde vem cada coisa.';
+  const num = (v, rot, tom = '') => `<div class="fv2-cb-num${tom && v ? ` ${tom}` : ''}"><b>${v}</b><span>${rot}</span></div>`;
+  const sabe = `<section class="fv2-folha fv2-fixa fv2-cb" id="vybes-cli-cerebro-card" aria-label="O que o VYBES sabe desta conta"><div class="cv2-cab"><h3 title="${fichaEsc(dica)}">O que o VYBES sabe desta conta</h3><button type="button" class="fv2-cab-acao" onclick="${mapa}">abrir o mapa</button></div>
+      <div class="fv2-cb-alto"><div class="fv2-cb-quem">${c.base ? `<b>${fichaEsc(c.base.instagram || c.nomeNoCadastro || c.nome)}</b><p>${fichaEsc(c.base.segmento || '')}</p><span>É com isto que ele revisa as peças e sugere as pautas.</span>`
+          : `<b>${fichaEsc(c.nomeNoCadastro || c.nome)}</b><p>Ainda sem estudo de identidade no VYBES.</p><span>O cérebro mostra a operação, as pastas e o que a equipe registrar.</span>`}</div>
+        ${paleta.length ? `<div class="fv2-cb-cores" role="list" aria-label="Cores da marca">${paleta.slice(0, 4).map((p) => `<span role="listitem" title="${fichaEsc([p.nome, p.hex].filter(Boolean).join(' · '))}"><i style="background:${fichaEsc(p.hex)}" aria-hidden="true"></i><em>${fichaEsc(p.nome || p.hex)}</em></span>`).join('')}</div>` : ''}</div>
+      <div class="fv2-cb-nums">${num(c.resumo.atrasados, c.resumo.atrasados === 1 ? 'atrasado' : 'atrasados', 'r')}${num(c.resumo.pendencias, c.resumo.pendencias === 1 ? 'pendência' : 'pendências', 'a')}${num(c.resumo.ideias, c.resumo.ideias === 1 ? 'ideia no banco' : 'ideias no banco')}${num(c.resumo.regras, c.resumo.regras === 1 ? 'regra de arte' : 'regras de arte')}</div></section>`;
+  const regras = cats.regras || [];
+  const folhaRegras = `<section class="fv2-folha fv2-cb-regras" aria-label="Regras de arte"><div class="cv2-cab"><h3>Regras de arte</h3><span class="fv2-cab-nota">${regras.length ? `${regras.length} · o VYBES confere em cada peça` : ''}</span></div>
+      ${regras.length ? `<ul class="fv2-tb fv2-linhas">${regras.map((r) => `<li class="fv2-tb-lin" title="${fichaEsc(r.detalhe || r.titulo)}"><i class="fv2-pt-g" aria-hidden="true"></i><span class="fv2-tb-txt">${fichaEsc(r.detalhe || r.titulo)}</span></li>`).join('')}</ul>`
+        : fv2VazioHtml('lapis', 'Nenhuma regra de arte ainda', 'As regras ficam no cérebro do cliente; o VYBES confere cada peça com elas.', `<button type="button" class="d3v-btn sec s" onclick="${cerebro}">Abrir o cérebro</button>`)}</section>`;
+
+  const ideias = cats.ideias || [], pend = (cats.atrasados || []).filter((i) => i.tom !== 'alerta');
+  const item = (i, ponto = '') => fv2VlinHtml(fichaEsc(i.titulo || i.curto), i.sub && ponto ? fichaEsc(i.sub) : '', cerebro, ponto);
+  const reu = c.idCadastro && window.VybeReunioes?.dadosDe ? window.VybeReunioes.dadosDe(String(c.idCadastro)) : null;
+  const respondidas = reu ? (reu.questoes || []).filter((q) => (reu.onboarding?.respostas || {})[q.chave]).length : 0;
+  const lado = fv2ConsHtml('Ideias no banco', String(ideias.length), ideias.length ? ideias.slice(0, 5).map((i) => item(i)).join('') + (ideias.length > 5 ? fv2VlinHtml(`Mais ${ideias.length - 5}`, 'no cérebro', cerebro) : '') : '<p class="d3m-vvazio">Nenhuma ideia guardada ainda.</p>', ' aria-label="Ideias no banco"')
+    + (pend.length ? fv2ConsHtml(pend.length === 1 ? 'Pendência' : 'Pendências', String(pend.length), pend.slice(0, 3).map((i) => item(i, 'a')).join(''), ' aria-label="Pendências"') : '')
+    + fv2ConsHtml('Abrir', '', fv2VlinHtml('O mapa', 'as sinapses desta conta', mapa)
+      + (reu && (reu.questoes || []).length ? fv2VlinHtml('Questionário de entrada', `${respondidas} de ${reu.questoes.length}`, "trocarAbaDaFicha('onboarding')") : ''));
+  return fv2DuasHtml('cerebro', sabe + folhaRegras + registrosDosChatsHtml(nome), lado);
+}
+
 // Embrulha a ficha que já existia. Pelo quadro "Ficha do cliente" do moodboard (12/11/2026): a nota e a fala ficam em
 // cima de todas as abas; a barra tem Resumo, Demandas, Conteúdo, Reuniões e Onboarding com a contagem de cada uma, o
 // Financeiro (só para os donos, abre Finanças por cliente) e, à direita, Ecossistema e Cérebro. O Cadastro abre pela
@@ -626,7 +651,7 @@ function demandasDaFichaHtml(nome) {
     if (FICHA_ABA === 'cadastro') naFolha(cadastroLeituraHtml(nome));
     else if (FICHA_ABA === 'financeiro') naFolha(financeiroDaFichaHtml(nome));
     else if (FICHA_ABA === 'ecossistema') naAba(ecossistemaDaFichaHtml(nome));
-    else if (FICHA_ABA === 'cerebro') naFolha(cerebroDaFichaHtml(nome));
+    else if (FICHA_ABA === 'cerebro') naAba(cerebroDaFichaHtml(nome));
     else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naAba(window.VybeReunioes.reunioesHtml(nome));
     else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naAba(window.VybeReunioes.onboardingHtml(nome));
     else if (FICHA_ABA === 'conteudo') naAba(conteudoDaFichaHtml(nome));
