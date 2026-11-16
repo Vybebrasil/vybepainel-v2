@@ -18,12 +18,16 @@ test('o CSS do grupo fica no fim do vybe-mundo.css, sem !important e sem html bo
 
 test('Equipe online: a ordem do quadro e as ações que já existiam', () => {
   const m = trecho('function mostrarEquipe()', 'const naEquipe =');
-  const ordem = ['<h1>Equipe online</h1>', 'data-equipe="conversa">Conversa da equipe', 'VYBES · Escritório', "kpi('Online agora'", "kpi('Recados sem ler'", "kpi('Missões do dia'", '<h2>Pede ação</h2>', '<h2>Missões do dia</h2>', 'class="v2n-sub">Escritório</span>', '<h2>No prédio agora</h2>'];
+  // V2 (prancha V2-M-Equipe-Online, 16/11/2026): título no vidro, saldo e Conversa; "No prédio agora" e "Missões do dia"
+  // nas folhas; na consulta, o cartão laranja do VYBES, os recados e as portas do Escritório.
+  const ordem = ['>Equipe online</span>', 'data-equipe="conversa">Conversa da equipe', 'No prédio agora <span>', 'data-eq-fora', 'class="d3m-e-rola d3m-g-lista"', 'Missões do dia <span>', 'title="As VybeCoins entram', '${laranja}${recados}${escr}'];
   let ultimo = -1; for (const t of ordem) { const i = m.indexOf(t); assert.ok(i > ultimo, t); ultimo = i; }
   const predio = trecho('function predioAgoraHtml(D)', 'function mostrarEquipe()');
-  assert.match(predio, /class="v2-abre v2e-sala" aria-expanded=/, 'a sala com mais de uma pessoa abre no lugar');
+  assert.match(predio, /class="v2-abre d3m-g-abre" aria-expanded=/, 'a sala com mais de uma pessoa abre no lugar');
+  assert.match(predio, /data-eq-recado="\$\{esc\(x\.id\)\}"[^>]*>Deixar recado</, 'quem está fora: Deixar recado na ficha');
+  assert.match(m, /data-eq-missao="\$\{esc\(m0\.ref\)\}\|\$\{esc\(m0\.quadro \|\| ''\)\}">Abrir a missão/, 'o cartão laranja abre a missão');
   assert.match(predio, /data-chamar-online=/); assert.match(predio, /data-entrar-zona=/); assert.match(predio, /data-perfil=/);
-  assert.ok(predio.includes('Entrar na sala') && predio.includes('Ninguém online agora.'));
+  assert.ok(predio.includes('Entrar na sala') && predio.includes('Ninguém online agora'));
   assert.match(m, /data-eq-filtro="\$\{k\}" aria-pressed=/, 'Todos, Online e Fora agora como fichas');
   assert.match(js, /e\?\.recadosResumo/, 'recados sem ler vêm do resumo do Escritório');
   assert.match(js, /e\?\.missoes\?\.missoes \|\| \[\]\)\.filter\(\(m\) => m\.hoje \|\| m\.atrasada\)/, 'missões do dia: as de hoje e as atrasadas');
@@ -65,4 +69,12 @@ test('celular: barra de quatro com o Criar redondo ao lado e a folha "Mais" em g
   for (const t of ['<h3>Ferramentas e sala</h3>', '<h3>Vista do mundo</h3>', '<h3>Favoritos</h3>', '<h3>Setores</h3>']) assert.ok(m.includes(t), t);
   assert.ok(bloco.includes('#mundo-hud .vv-trilho > .vv-trilho-btn.criar{order:4;position:absolute;right:-64px'));
   assert.ok(bloco.includes('#mundo-hud .vv-cel-mais .vv-cel-grade{grid-template-columns:repeat(4,minmax(0,1fr))'));
+});
+
+test('V2 · Equipe online: fragmento próprio, só tokens --d3-*, sem !important, sem html body.mundo, sem :has com [style]', () => {
+  const f = readFileSync('padrao-v2/zm-g-equipe.css', 'utf8');
+  assert.doesNotMatch(f, /!important|html body\.mundo|:has\([^)]*\[style/);
+  assert.doesNotMatch(f.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-fA-F]{3,8}\b(?![-\w])/, 'sem cor em hex');
+  assert.match(f, /#vv-placa:has\(> \.d3m-g-equipe\)\{[^}]*background:var\(--d3-fume\)/, 'a placa vira a janela fumê');
+  assert.ok(readFileSync('vybe-mundo-padrao-v2.css', 'utf8').includes('/* ===== padrao-v2/zm-g-equipe.css ===== */'), 'juntado');
 });

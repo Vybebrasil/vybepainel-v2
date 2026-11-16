@@ -4088,89 +4088,113 @@
     const trancas = e?.trancas instanceof Map ? e.trancas : new Map();
     return { e, euId, gente, Z, time, fora, vistos, salas, recados, nRecados: recados.reduce((s, r) => s + r.n, 0), missoes, trancas, total: Math.max(time.length, gente.length), saldo: e?.base?.economia?.saldo ?? null };
   }
-  const avEquipe = (nome, on = false, extra = '') => `<span class="v2n-av${on ? ' vd' : ''}${extra}" aria-hidden="true">${esc(iniciais(nome))}</span>`;
-  // "No prédio agora": uma linha por sala com gente (abre no lugar), a linha de quem está fora e a frase do vazio.
+  // V2 (prancha V2-M-Equipe-Online, 16/11/2026): a janela de vidro fumê com o título no vidro e a linha do dia; a folha
+  // "No prédio agora" com uma ficha por pessoa (rosto, área, estado e a ação: Chamar quem está online, Deixar recado para
+  // quem está fora) e, embaixo, as salas com gente (abrem no lugar); a folha "Missões do dia"; e a consulta com o cartão
+  // laranja do VYBES (a missão que pede você), os recados e as portas do Escritório.
+  const AREAS_EQUIPE = { gestao: 'gestão', criacao: 'criação', producao: 'produção', midia: 'mídia', convivencia: 'convivência', atendimento: 'atendimento', foco: 'foco', planejamento: 'planejamento', comercial: 'comercial', financeiro: 'financeiro', reuniao: 'reunião' };
+  const areaDaPessoa = (t) => { const s = String(t?.perfil?.setor || t?.perfil?.sala || t?.setor || '').trim(); return s ? (AREAS_EQUIPE[s.toLowerCase()] || s.replace(/[-_]+/g, ' ').toLowerCase()) : ''; };
+  const avEquipe = (nome, on = false) => `<i class="d3m-g-av${on ? ' on' : ''}" aria-hidden="true">${esc(iniciais(nome))}</i>`;
+  // O rosto: o mesmo boneco do mundo (cabeça voxel); por baixo, as iniciais, que ficam quando a imagem não vem.
+  const rostoEquipe = (id, nome) => { const url = typeof escritorioCabecaUrl === 'function' ? escritorioCabecaUrl(id) : '';
+    return `<span class="d3m-g-ini">${esc(iniciais(nome))}</span>${url ? `<img src="${esc(url)}" alt="" width="56" height="56" loading="lazy">` : ''}`; };
+  // "No prédio agora": as fichas das pessoas (filtro e busca), as salas com gente e a frase do vazio.
   function predioAgoraHtml(D) {
     const plano = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const termo = plano(equipeBusca).trim(), bate = (...t) => !termo || t.some((x) => plano(x).includes(termo));
     const nomeDe = (g) => (g.id === D.euId ? 'Você' : g.nome || 'Pessoa');
-    const acoes = (g, zona, irAte) => (g.id === D.euId ? '<span class="v2n-sub">é você</span>'
-      : `${irAte && zona && D.e?.zona !== zona ? `<button type="button" class="v2n-btn s" data-entrar-zona="${esc(zona)}">Ir até lá</button>` : ''}<button type="button" class="v2n-btn s" data-chamar-online="${esc(g.id)}" aria-label="Chamar ${esc(primeiro(g.nome))} para a minha sala">Chamar</button><button type="button" class="v2n-btn s" data-perfil="${esc(g.id)}">Perfil</button>`);
-    const linhas = [];
+    if (!D.e?.base && !D.gente.length) return typeof d3mEEstado === 'function' ? d3mEEstado({ tipo: 'carregando', forma: 'grade', titulo: 'Carregando a equipe', linhas: 4 }) : '';
+    // As fichas: quem está online primeiro (com a sala), depois quem está fora (quem saiu há menos tempo primeiro).
+    const porId = new Map(D.time.map((t) => [String(t.id), t]));
+    const online = D.gente.map((g) => ({ id: g.id, nome: nomeDe(g), area: areaDaPessoa(porId.get(g.id)), zona: g.zona && D.Z[g.zona] ? g.zona : '', on: true, eu: g.id === D.euId }));
+    const fora = D.fora.map((t) => ({ id: String(t.id), nome: t.nome || 'Pessoa', area: areaDaPessoa(t), on: false, eu: String(t.id) === D.euId }));
+    const pessoas = [...(equipeFiltro === 'fora' ? [] : online), ...(equipeFiltro === 'online' ? [] : fora)]
+      .filter((x) => bate(x.nome, x.area, x.zona ? D.Z[x.zona].nome : ''));
+    const ficha = (x) => {
+      const estado = x.on ? (x.zona ? (/^sala/i.test(D.Z[x.zona].nome) ? `na ${esc(D.Z[x.zona].nome)}` : `na sala ${esc(D.Z[x.zona].nome)}`) : 'na recepção') : esc(D.vistos[x.id] ? vistoHa(D.vistos[x.id]) : 'fora');
+      const acao = x.eu ? '<span class="d3m-g-voce">é você</span>'
+        : x.on ? `<button type="button" class="d3v-btn sec s d3m-g-fio" data-chamar-online="${esc(x.id)}" aria-label="Chamar ${esc(primeiro(x.nome))} para a minha sala">Chamar</button>`
+          : `<button type="button" class="d3v-btn sec s d3m-g-fio" data-eq-recado="${esc(x.id)}" aria-label="Deixar recado para ${esc(primeiro(x.nome))}">Deixar recado</button>`;
+      return `<article class="d3m-g-pes${x.on ? ' on' : ''}"><button type="button" class="d3m-g-rosto" data-perfil="${esc(x.id)}" aria-label="Perfil de ${esc(x.nome)}">${rostoEquipe(x.id, x.nome)}</button>
+        <b class="d3m-g-nome">${esc(x.nome)}</b><span class="d3m-g-area">${esc(x.area || 'equipe')}</span><span class="d3m-g-est"><i aria-hidden="true"></i>${estado}</span>
+        <span class="d3m-g-bts">${acao}${equipeForaAberto ? `<button type="button" class="d3v-btn sec s d3m-g-fio" data-perfil="${esc(x.id)}">Perfil</button>` : ''}</span></article>`;
+    };
+    // As salas com gente: uma linha por sala; com mais de uma pessoa, abre no lugar (Chamar, Perfil, Entrar na sala).
+    const acoes = (g, zona, irAte) => (g.id === D.euId ? '<span class="d3m-g-voce">é você</span>'
+      : `${irAte && zona && D.e?.zona !== zona ? `<button type="button" class="d3v-btn sec s d3m-g-fio" data-entrar-zona="${esc(zona)}">Ir até lá</button>` : ''}<button type="button" class="d3v-btn sec s d3m-g-fio" data-chamar-online="${esc(g.id)}" aria-label="Chamar ${esc(primeiro(g.nome))} para a minha sala">Chamar</button><button type="button" class="d3v-btn sec s d3m-g-fio" data-perfil="${esc(g.id)}">Perfil</button>`);
+    const salas = [];
     if (equipeFiltro !== 'fora') for (const [zona, l] of D.salas) {
       const nomeSala = zona ? D.Z[zona].nome : 'Fora das salas';
       const quem = l.filter((g) => bate(nomeDe(g), g.nome, nomeSala)); if (!quem.length) continue;
-      const selo = `<span class="v2n-pill ${zona ? 'g' : 'n'}">${zona ? IC_MIC_SALA : ''}${esc(nomeSala)}</span>`;
+      const selo = `<span class="d3m-g-selo${zona ? ' g' : ''}">${zona ? IC_MIC_SALA : ''}${esc(nomeSala)}</span>`;
       const estado = !zona ? 'na recepção' : D.trancas.has(zona) ? 'sala trancada' : 'sala de voz aberta';
       if (quem.length === 1) { const g = quem[0];
-        linhas.push(`<div class="v2n-lin v2e-sala">${selo}${avEquipe(nomeDe(g), true)}<p><b>${esc(nomeDe(g))}</b> <span class="v2n-sub">· ${estado}</span></p><span class="v2e-acoes">${acoes(g, zona, true)}</span></div>`);
+        salas.push(`<div class="d3m-g-sala">${selo}${avEquipe(nomeDe(g), true)}<span class="d3m-g-quem"><b>${esc(nomeDe(g))}</b> <span class="d3m-g-apoio">· ${estado}</span></span><span class="d3m-g-acoes">${acoes(g, zona, true)}</span></div>`);
         continue; }
       const aberta = equipeAbertas.has(zona) || Boolean(termo);
-      linhas.push(`<div class="v2-abre v2e-sala" aria-expanded="${aberta}"><button type="button" class="v2n-lin v2e-sala-cab" data-eq-sala="${esc(zona)}" aria-expanded="${aberta}">${selo}<span class="v2n-avs" aria-hidden="true">${quem.slice(0, 4).map((g) => avEquipe(nomeDe(g), true)).join('')}</span><p><b>${esc(juntarNomes(quem.map((g) => primeiro(nomeDe(g)))))}</b> <span class="v2n-sub">· ${estado}</span></p><span class="v2e-seta">${IC_SETA_BAIXO}</span></button>
-        <div class="v2-mais"><div><div class="v2e-det"><div class="v2e-det-gente">${quem.map((g) => `<div class="v2e-pes">${avEquipe(nomeDe(g), true)}<p><b>${esc(nomeDe(g))}</b></p>${acoes(g, zona, false)}</div>`).join('')}</div>
-          ${zona && D.e?.zona !== zona ? `<button type="button" class="v2n-btn k" data-entrar-zona="${esc(zona)}">Entrar na sala</button>` : zona ? '<span class="v2n-pill g">Você está aqui</span>' : ''}</div></div></div></div>`);
+      salas.push(`<div class="v2-abre d3m-g-abre" aria-expanded="${aberta}"><button type="button" class="d3m-g-sala" data-eq-sala="${esc(zona)}" aria-expanded="${aberta}">${selo}<span class="d3m-g-avs" aria-hidden="true">${quem.slice(0, 4).map((g) => avEquipe(nomeDe(g), true)).join('')}</span><span class="d3m-g-quem"><b>${esc(juntarNomes(quem.map((g) => primeiro(nomeDe(g)))))}</b> <span class="d3m-g-apoio">· ${estado}</span></span><span class="d3m-g-seta">${IC_SETA_BAIXO}</span></button>
+        <div class="v2-mais"><div><div class="d3m-g-det">${quem.map((g) => `<div class="d3m-g-sala">${avEquipe(nomeDe(g), true)}<span class="d3m-g-quem"><b>${esc(nomeDe(g))}</b></span><span class="d3m-g-acoes">${acoes(g, zona, false)}</span></div>`).join('')}
+          ${zona && D.e?.zona !== zona ? `<div class="d3m-g-entrar"><button type="button" class="d3v-btn s" data-entrar-zona="${esc(zona)}">Entrar na sala</button></div>` : zona ? '<div class="d3m-g-entrar"><span class="d3m-g-selo g">Você está aqui</span></div>' : ''}</div></div></div></div>`);
     }
-    if (equipeFiltro !== 'online') { const fora = D.fora.filter((t) => bate(t.nome));
-      if (fora.length) { const aberto = equipeForaAberto || Boolean(termo) || equipeFiltro === 'fora';
-        linhas.push(`<div class="v2-abre v2e-sala" aria-expanded="${aberto}"><div class="v2n-lin"><span class="v2n-pill n">Fora agora ${n0(fora.length)}</span><p class="v2e-fora">${fora.slice(0, 5).map((t) => `<span>${avEquipe(t.nome)}<b>${esc(primeiro(t.nome))}</b></span>`).join('')}${fora.length > 5 ? `<span class="v2n-sub">+ ${n0(fora.length - 5)}</span>` : ''}</p><button type="button" class="v2n-btn s" data-eq-fora aria-expanded="${aberto}">${aberto ? 'Recolher' : 'Ver perfis'}</button></div>
-          <div class="v2-mais"><div><div class="v2e-det v2e-det-fora"><div class="v2e-det-gente">${fora.map((t) => `<div class="v2e-pes">${avEquipe(t.nome)}<p><b>${esc(t.nome || 'Pessoa')}</b> <span class="v2n-sub">· ${esc(D.vistos[t.id] ? vistoHa(D.vistos[t.id]) : 'fora agora')}</span></p><button type="button" class="v2n-btn s" data-eq-recado="${esc(t.id)}">Recado</button><button type="button" class="v2n-btn s" data-perfil="${esc(t.id)}">Perfil</button></div>`).join('')}</div></div></div></div></div>`); } }
-    if (!D.gente.length && equipeFiltro !== 'fora' && !termo) linhas.push('<div class="v2n-lin v2e-vazio"><span class="v2n-pill n">Ninguém online</span><p class="v2n-sub"><b>Ninguém online agora.</b> Quem entrar aparece aqui, com a sala onde está.</p><button type="button" class="v2n-btn s" data-equipe="recados">Deixar recado</button></div>');
-    else if (!linhas.length) linhas.push(`<p class="v2n-sub v2e-nada">${termo ? 'Ninguém com esse nome ou sala.' : 'Ninguém neste filtro.'}</p>`);
-    return linhas.join('');
+    const vazio = (titulo, texto) => (typeof d3mEEstado === 'function' ? d3mEEstado({ tipo: 'vazio', titulo, texto }) : `<p class="d3m-g-apoio">${esc(titulo)}. ${esc(texto)}</p>`);
+    const baixo = salas.length ? `<div class="d3m-g-salas"><span class="d3m-g-rot">Salas com gente</span>${salas.join('')}</div>`
+      : !D.gente.length && equipeFiltro !== 'fora' && !termo ? vazio('Ninguém online agora', 'Quem entrar aparece aqui, com a sala onde está.')
+        : !pessoas.length ? vazio(termo ? 'Ninguém com esse nome ou sala' : 'Ninguém neste filtro', termo ? 'Tente outro nome, área ou sala.' : 'Troque o filtro para ver o resto da equipe.') : '';
+    return `${pessoas.length ? `<div class="d3m-g-pessoas">${pessoas.map(ficha).join('')}</div>` : ''}${baixo}`;
   }
   function mostrarEquipe() {
     const p = placa(), D = dadosDaEquipe();
     marcarVistos(D.gente);
     if (D.e?.base && !D.e.missoes && !mostrarEquipe.pediu) { mostrarEquipe.pediu = true; Promise.resolve(fn('carregarMissoesEscritorio')?.()).catch(() => {}).finally(() => { if (naEquipe()) mostrarEquipe(); }); }
-    const acoes = EQUIPE_ACOES.filter(([id, , f]) => id !== 'conversa' && !EQUIPE_NO_DOCK.has(id) && typeof window[f.split('(')[0]] === 'function');
-    const temConversa = typeof window.alternarAbaEscritorio === 'function';
-    const nSalas = [...D.salas.keys()].filter(Boolean).length, on = D.gente.length;
-    // A fala: quantos estão online e onde está a maior roda; depois, os recados que esperam.
-    const maior = [...D.salas.entries()].filter(([z]) => z).sort((a, b) => b[1].length - a[1].length)[0];
-    const onde = !maior ? '' : maior[1].length === on ? `, ${on === 1 ? 'na' : 'todos na'} ${esc(D.Z[maior[0]].nome)}` : `, ${n0(maior[1].length)} ${maior[1].length === 1 ? 'na' : 'deles na'} ${esc(D.Z[maior[0]].nome)}`;
-    const fala = (on ? `<b>${n0(on)} de ${n0(D.total)} online agora</b>${onde}.` : '<b>Ninguém online agora.</b>')
-      + (D.nRecados ? ` <b>${plural(D.nRecados, 'recado', 'recados')}</b> ${D.nRecados === 1 ? 'espera' : 'esperam'} a sua resposta.` : ' Nenhum recado esperando você.');
-    const moedas = D.missoes.reduce((s, m) => s + (Number(m.recompensa?.moedas) || 0), 0);
-    const kpi = (rot, valor, sub, extra = '', quieto = false) => `<div class="v2n-card v2n-kpi${quieto ? ' quieto' : ''}"><small>${rot}</small><b><span class="v2-num">${valor}</span>${extra}</b><small>${sub}</small></div>`;
-    const pede = D.recados.map((r) => `<div class="v2n-lin"><span class="v2n-pill a">${n0(r.n)} sem ler</span><p><b>Recado de ${esc(primeiro(r.nome))}</b></p><button type="button" class="v2n-btn s" data-eq-recado="${esc(r.id)}">Responder</button></div>`).join('');
-    const missoes = D.missoes.slice(0, 4).map((m) => `<button type="button" class="v2n-lin v2e-missao" data-eq-missao="${esc(m.ref)}|${esc(m.quadro || '')}" title="Abrir a demanda"><i class="v2e-cx${m.feita || m.concluida ? ' ok' : ''}" aria-hidden="true"></i><p><span class="v2-risca${m.feita || m.concluida ? ' feita' : ''}">${esc(m.titulo)}</span>${m.cliente ? ` <span class="v2n-sub">· ${esc(m.cliente)}</span>` : ''}</p>${m.atrasada ? '<span class="v2n-pill r">Atrasada</span>' : ''}${m.recompensa?.moedas ? `<span class="v2n-pill n">${n0(m.recompensa.moedas)} VybeCoins</span>` : ''}</button>`).join('');
-    const rostos = on ? `<span class="v2n-avs" aria-hidden="true">${D.gente.slice(0, 3).map((g, i, l) => avEquipe(g.id === D.euId ? 'Você' : g.nome, true, i === l.length - 1 ? ' v2-pop' : '')).join('')}</span>` : '';
-    const html = `<div class="v2e">
-      <div class="v2e-topo"><h1>Equipe online</h1><small class="v2e-data">${esc(diaD3())}</small>
-        ${D.saldo !== null ? `<span class="v2n-chip vv-moedas-selo" title="Seu saldo de VybeCoins"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg><b>${n0(D.saldo)}</b> VybeCoins</span>` : ''}
-        ${temConversa ? '<button type="button" class="v2n-btn p" data-equipe="conversa">Conversa da equipe</button>' : ''}</div>
-      <section class="v2n-card v2n-fala${D.nRecados ? '' : ' v2n-fala-quieta'}" aria-label="VYBES sobre a equipe"><span class="v2n-ag" aria-hidden="true">V</span><p><span class="v2n-quem">VYBES · Escritório</span>${fala}</p>${D.nRecados ? '<button type="button" class="v2n-btn s" data-equipe="recados">Ler os recados</button>' : ''}</section>
-      <div class="v2e-nums">
-        ${kpi('Online agora', `${n0(on)}<small> / ${n0(D.total)}</small>`, on ? `em ${plural(nSalas, 'sala', 'salas')}` : 'ninguém nas salas', rostos, !on)}
-        ${kpi('Recados sem ler', n0(D.nRecados), D.nRecados ? `de ${plural(D.recados.length, 'pessoa', 'pessoas')}` : 'nada esperando', '', !D.nRecados)}
-        ${kpi('Missões do dia', n0(D.missoes.length), D.missoes.length ? (moedas ? `valem ${n0(moedas)} VybeCoins` : 'para hoje ou atrasadas') : 'nada para hoje', '', !D.missoes.length)}
+    const acoes = EQUIPE_ACOES.filter(([id, , f]) => !['conversa', 'recados', 'missoes'].includes(id) && !EQUIPE_NO_DOCK.has(id) && typeof window[f.split('(')[0]] === 'function');
+    const temConversa = typeof window.alternarAbaEscritorio === 'function', temRecados = typeof window.abrirRecadosEscritorio === 'function' || Boolean(window.VybeConversa?.abrir);
+    const on = D.gente.length, nSalas = Object.keys(D.Z).length;
+    const sub = `${esc(diaD3())} · ${on ? `${n0(on)} de ${n0(D.total)} online` : 'ninguém online'} · ${D.nRecados ? `${plural(D.nRecados, 'recado esperando', 'recados esperando')} você` : 'nenhum recado esperando você'}`;
+    // As missões do dia: as atrasadas primeiro; cada linha abre a demanda.
+    const missoes = [...D.missoes].sort((a, b) => Number(Boolean(b.atrasada)) - Number(Boolean(a.atrasada)));
+    const moedas = missoes.reduce((s, m) => s + (Number(m.recompensa?.moedas) || 0), 0);
+    const feita = (m) => Boolean(m.feita || m.concluida);
+    const missao = (m) => `<button type="button" class="d3m-g-mis" data-eq-missao="${esc(m.ref)}|${esc(m.quadro || '')}" title="Abrir a demanda"><i class="d3m-g-cx${feita(m) ? ' ok' : ''}" aria-hidden="true"></i><span class="d3m-g-mis-t"><b class="v2-risca${feita(m) ? ' feita' : ''}">${esc(m.titulo)}</b>${m.cliente ? ` <span class="d3m-g-apoio">· ${esc(m.cliente)}</span>` : ''}</span><span class="d3m-g-mis-q${m.atrasada && !feita(m) ? ' r' : ''}">${feita(m) ? 'feita' : m.atrasada ? 'atrasada' : 'para hoje'}</span><span class="d3m-g-mis-v">${m.recompensa?.moedas ? `${n0(m.recompensa.moedas)} VybeCoins` : ''}</span></button>`;
+    // O cartão laranja: a missão que pede você (a atrasada antes); sem missão, os recados; sem nada, a equipe.
+    const m0 = missoes.find((m) => !feita(m)), outras = missoes.filter((m) => m !== m0 && !feita(m));
+    const lar = (rot, frase, apoio, bts) => `<section class="d3m-laranja d3m-f-lar d3m-g-lar" aria-label="VYBES sobre a equipe"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>${rot}</span><div class="d3m-lar-txt"><span class="d3-acao-frase">${frase}</span><small class="d3m-f-lar-ap">${apoio}</small>${bts ? `<div class="d3m-lar-bts">${bts}</div>` : ''}</div></section>`;
+    const laranja = m0 ? lar(`VYBES · ${m0.atrasada ? 'missão atrasada' : 'missão do dia'}`, `A missão ${esc(m0.titulo)} ${m0.atrasada ? 'está atrasada' : 'é para hoje'}`,
+        `${m0.recompensa?.moedas ? `Vale ${plural(m0.recompensa.moedas, 'VybeCoin', 'VybeCoins')}.` : 'As VybeCoins entram quando a tarefa é concluída.'}${outras.length ? ` ${outras.length === 1 ? `A outra missão do dia ${outras[0].atrasada ? 'também está atrasada' : 'é para hoje'}.` : `Mais ${plural(outras.length, 'missão', 'missões')} no dia.`}` : ''}`,
+        `<button type="button" class="d3m-btn l" data-eq-missao="${esc(m0.ref)}|${esc(m0.quadro || '')}">Abrir a missão</button>${missoes.length > 1 ? `<button type="button" class="d3m-btn l s" data-equipe="missoes">Ver as ${n0(missoes.length)}</button>` : ''}`)
+      : D.nRecados ? lar('VYBES · recados', `${plural(D.nRecados, 'recado espera', 'recados esperam')} a sua resposta`, `De ${juntarNomes(D.recados.map((r) => esc(primeiro(r.nome))))}.`, `<button type="button" class="d3m-btn l" data-eq-recado="${esc(D.recados[0].id)}">Responder</button>`)
+        : lar('VYBES · equipe', on ? `${plural(on, 'pessoa online', 'pessoas online')} agora` : 'Nada pede você agora', on ? '“Chamar” traz a pessoa para a sua sala.' : 'Nenhuma missão para hoje e nenhum recado esperando. Quem entrar aparece na lista.', '');
+    const recados = `<section class="d3m-cons" aria-label="Recados"><div class="d3m-cons-cab"><b>Recados</b><span>${n0(D.nRecados)} sem ler</span></div>
+      ${D.recados.length ? D.recados.slice(0, 3).map((r) => `<button type="button" class="d3m-vlin" data-eq-recado="${esc(r.id)}"><span><b>Recado de ${esc(primeiro(r.nome))}</b> <span class="d3m-f-ap">· ${n0(r.n)} sem ler</span></span><span class="d3m-f-vai">Responder</span></button>`).join('')
+        : `<p class="d3m-e-lado-txt">Nenhum recado sem resposta.${temRecados ? ' Dá para deixar recado para quem está fora.' : ''}</p>`}
+      ${EQUIPE_ACOES.some(([id, , f]) => id === 'recados' && typeof window[f.split('(')[0]] === 'function') ? `<button type="button" class="d3m-vlin" data-equipe="recados"><span><b>Abrir os recados</b></span>${IC_F.seta}</button>` : ''}</section>`;
+    const minha = typeof minhaSalaDaConta === 'function' ? minhaSalaDaConta() : '', naMinha = minha ? (D.salas.get(minha) || []).length : 0;
+    const escr = `<section class="d3m-cons" aria-label="Escritório"><div class="d3m-cons-cab"><b>Escritório</b><span></span></div>
+      ${acoes.map(([id, nome]) => `<button type="button" class="d3m-vlin" data-equipe="${id}"><span><b>${esc(nome)}</b></span>${IC_F.seta}</button>`).join('')}
+      <button type="button" class="d3m-vlin" data-trilho="minha-sala"><span><b>Minha sala</b> <span class="d3m-f-ap">· ${naMinha ? plural(naMinha, 'pessoa agora', 'pessoas agora') : 'vazia agora'}</span></span>${IC_F.seta}</button>
+      <button type="button" class="d3m-vlin" data-eq-salas><span><b>Salas</b>${nSalas ? ` <span class="d3m-f-ap">· ${n0(nSalas)}</span>` : ''}</span>${IC_F.seta}</button></section>`;
+    const busca = `<details class="d3m-e-troca d3m-f-menu d3m-g-busca"${equipeBusca ? ' open' : ''}><summary class="d3m-e-ico" title="Buscar pessoa ou sala" aria-label="Buscar pessoa ou sala">${IC_F.lupa}</summary><div class="d3m-e-pop d3m-f-pop"><input type="search" class="d3m-f-campo" data-eq-busca placeholder="Pessoa, área ou sala" aria-label="Buscar pessoa, área ou sala" value="${esc(equipeBusca)}"></div></details>`;
+    const html = `<div class="d3m-e-tela d3m-g-equipe"><div class="d3m-e-topo"><div class="d3m-e-tit"><span class="d3m-e-h" role="heading" aria-level="1">Equipe online</span><span class="d3m-e-sub">${sub}</span></div>
+        <div class="d3m-e-acoes">${busca}${D.saldo !== null ? `<span class="d3m-g-moedas vv-moedas-selo" title="Seu saldo de VybeCoins"><b>${n0(D.saldo)}</b> VybeCoins</span>` : ''}${temConversa ? '<button type="button" class="d3v-btn d3m-f-claro" data-equipe="conversa">Conversa da equipe</button>' : ''}<button type="button" class="d3m-e-ico" data-fechar aria-label="Fechar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div></div>
+      <div class="d3m-e-corpo"><div class="d3m-e-main">
+        <section class="d3m-e-folha cresce" aria-label="No prédio agora"><div class="d3m-e-cab"><b>No prédio agora <span>· ${n0(on)} de ${n0(D.total)} online</span></b><span class="d3m-e-cab-dir"><span class="d3m-e-seg" role="group" aria-label="Quem mostrar">${[['todos', 'Todos', D.total], ['online', 'Online', on], ['fora', 'Fora', D.fora.length]].map(([k, r, n]) => `<button type="button" data-eq-filtro="${k}" aria-pressed="${equipeFiltro === k}" title="${k === 'fora' ? 'Fora agora' : r}">${r}<span class="d3m-g-n">${n0(n)}</span></button>`).join('')}</span><i class="d3m-g-div" aria-hidden="true"></i><button type="button" class="d3m-e-elo" data-eq-fora aria-expanded="${equipeForaAberto}">${equipeForaAberto ? 'esconder perfis' : 'ver perfis'}</button></span></div>
+          <div class="d3m-e-rola d3m-g-lista">${predioAgoraHtml(D)}</div></section>
+        <section class="d3m-e-folha" aria-label="Missões do dia"><div class="d3m-e-cab"><b>Missões do dia <span>· ${missoes.length ? `${n0(missoes.filter((m) => !feita(m)).length)} em aberto` : 'nada para hoje'}</span></b><span class="d3m-e-cab-dir">${moedas ? `valem ${n0(moedas)} VybeCoins` : ''}<button type="button" class="d3m-e-elo" data-equipe="missoes" title="As VybeCoins entram quando a tarefa é concluída">todas</button></span></div>
+          ${missoes.length ? `<div class="d3m-g-missoes">${missoes.slice(0, 3).map(missao).join('')}</div>${missoes.length > 3 ? `<p class="d3m-g-mais">+ ${n0(missoes.length - 3)} em “todas”</p>` : ''}` : '<p class="d3m-g-nada">Nada para hoje. Quando uma tarefa chegar, ela aparece aqui com o que vale.</p>'}</section>
       </div>
-      <div class="v2e-grade">
-        <div class="v2e-esq">
-          <section class="v2n-card"><div class="v2n-cab"><h2>Pede ação</h2><span class="v2n-sub">${D.recados.length ? `${plural(D.recados.length, 'coisa', 'coisas')} esperando você` : 'nada esperando você'}</span></div>${pede || '<p class="v2n-sub v2e-nada">Nenhum recado sem resposta.</p>'}</section>
-          <section class="v2n-card v2e-missoes"><div class="v2n-cab"><h2>Missões do dia</h2><span class="v2n-sub">${D.missoes.length ? `${n0(D.missoes.length)} em aberto · ` : ''}<button type="button" class="vg-link" data-equipe="missoes" title="As VybeCoins entram quando a tarefa é concluída">todas</button></span></div>
-            ${D.missoes.length ? `<span class="v2e-seg" role="img" aria-label="${esc(`${D.missoes.length} missões, ${D.missoes.filter((m) => m.atrasada).length} atrasadas`)}">${D.missoes.slice(0, 12).map((m) => `<i class="${m.feita || m.concluida ? 'ok' : m.atrasada ? 'r' : ''}"></i>`).join('')}</span>` : ''}
-            ${missoes || '<p class="v2n-sub v2e-nada">Nada para hoje. Quando uma tarefa chegar, ela aparece aqui com o que vale.</p>'}
-            ${D.missoes.length > 4 ? `<p class="v2n-sub v2e-pe">+ ${n0(D.missoes.length - 4)}</p>` : ''}
-            ${acoes.length ? `<div class="v2e-portas d3e-portas"><span class="v2n-sub">Escritório</span>${acoes.map(([id, nome]) => `<button type="button" class="v2n-chip" data-equipe="${id}">${esc(nome)}${id === 'recados' && D.nRecados ? ` <b>${n0(D.nRecados)}</b>` : ''}</button>`).join('')}</div>` : ''}</section>
-        </div>
-        <section class="v2n-card v2e-predio"><div class="v2n-cab d3e-cab"><h2>No prédio agora</h2><input type="search" class="v2n-busca v2e-busca" data-eq-busca placeholder="Pessoa ou sala" aria-label="Buscar pessoa ou sala" value="${esc(equipeBusca)}"><span class="v2e-filtros d3e-filtros">${[['todos', 'Todos', D.total], ['online', 'Online', on], ['fora', 'Fora', D.fora.length]].map(([k, r, n]) => `<button type="button" class="v2n-chip" data-eq-filtro="${k}" aria-pressed="${equipeFiltro === k}" title="${k === 'fora' ? 'Fora agora' : r}">${r} <b>${n0(n)}</b></button>`).join('')}</span></div>
-          <div class="v2e-lista">${predioAgoraHtml(D)}</div>
-          <p class="v2n-sub v2e-pe d3e-pe"><span>${on ? `${n0(on)} em ${plural(nSalas, 'sala', 'salas')} · “Chamar” traz a pessoa para a sua sala` : 'Ninguém na sua sala'}</span><button type="button" class="v2n-btn s" data-equipe="recados">Deixar recado</button></p></section>
-      </div>
-    </div>`;
-    if (p.vvEquipe !== html || !p.querySelector('.v2e')) { p.innerHTML = html; p.vvEquipe = html; }
+      <aside class="d3m-lado" aria-label="Consulta">${laranja}${recados}${escr}</aside></div></div>`;
+    if (p.vvEquipe !== html || !p.querySelector('.d3m-g-equipe')) { p.innerHTML = html; p.vvEquipe = html; }
     p.hidden = false; ajustarAreaLivre();
   }
-  const naEquipe = () => !placa().hidden && Boolean(placa().querySelector('.v2e'));
+  const naEquipe = () => !placa().hidden && Boolean(placa().querySelector('.d3m-g-equipe'));
   // A lista acompanha a presença (quem entrou, quem mudou de sala) sem tirar o foco de quem está digitando na busca.
   if (typeof setInterval === 'function') setInterval(() => { if (naEquipe() && !placa().contains(document.activeElement)) mostrarEquipe(); }, 4000);
   hud.addEventListener('input', (e) => {
     if (!e.target.matches?.('[data-eq-busca]')) return;
-    equipeBusca = e.target.value; const l = placa().querySelector('.v2e-lista'); if (l) l.innerHTML = predioAgoraHtml(dadosDaEquipe()); placa().vvEquipe = '';
+    equipeBusca = e.target.value; const l = placa().querySelector('.d3m-g-lista'); if (l) l.innerHTML = predioAgoraHtml(dadosDaEquipe()); placa().vvEquipe = '';
   });
   hud.addEventListener('click', (e) => {
-    const b = e.target.closest?.('#vv-placa .v2e button'); if (!b) return;
+    const b = e.target.closest?.('#vv-placa .d3m-g-equipe button'); if (!b) return;
+    if (b.hasAttribute('data-eq-salas')) { abrirDaDireita(body.classList.contains('ver-voz') ? '' : 'voz'); return; }
     if (b.dataset.eqSala !== undefined) { const z = b.dataset.eqSala; if (equipeAbertas.has(z)) equipeAbertas.delete(z); else equipeAbertas.add(z); mostrarEquipe(); }
     else if (b.dataset.eqFiltro) { equipeFiltro = b.dataset.eqFiltro; mostrarEquipe(); }
     else if (b.hasAttribute('data-eq-fora')) { equipeForaAberto = !equipeForaAberto; mostrarEquipe(); }
