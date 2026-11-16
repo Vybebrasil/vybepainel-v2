@@ -67,7 +67,7 @@ test('CSS das pranchas (zm-d-carteira.css): só tokens --d3-*, sem !important, s
   assert.match(regras, /\.d3m-d-ct-regua > i\{[^}]*width:16px;height:18px;border-radius:4px/);
   assert.match(regras, /\.d3m-d-ch-lin\{[^}]*height:48px/);
   assert.ok(ler('vybe-mundo-padrao-v2.css').includes('/* ===== padrao-v2/zm-d-carteira.css ===== */'), 'o fragmento entrou na folha juntada');
-  assert.ok(!/[^\r]\n/.test(fs.readFileSync('padrao-v2/zm-d-carteira.css', 'utf8')), 'fim de linha em CRLF');
+  { const t = fs.readFileSync('padrao-v2/zm-d-carteira.css', 'utf8'); assert.ok(!(/\r\n/.test(t) && /[^\r]\n/.test(t)), 'fim de linha sem mistura (o CI lê em LF)'); }
 });
 
 // Na tela de verdade (vm): a linha do contrato, a régua e o envio pelo mesmo formulário.

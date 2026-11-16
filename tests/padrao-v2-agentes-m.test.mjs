@@ -50,5 +50,5 @@ test('CSS da prancha (zm-d-agentes.css): só tokens --d3-*, sem !important, sem 
   assert.match(regras, /\.d3m-d-ag-ped\{[^}]*height:64px/);
   assert.match(regras, /\.d3m-d-ag-av\{[^}]*width:40px;height:40px;border-radius:50%;background:var\(--d3-agente\)/);
   assert.ok(ler('vybe-mundo-padrao-v2.css').includes('/* ===== padrao-v2/zm-d-agentes.css ===== */'), 'o fragmento entrou na folha juntada');
-  assert.ok(!/[^\r]\n/.test(fs.readFileSync('padrao-v2/zm-d-agentes.css', 'utf8')), 'fim de linha em CRLF');
+  { const t = fs.readFileSync('padrao-v2/zm-d-agentes.css', 'utf8'); assert.ok(!(/\r\n/.test(t) && /[^\r]\n/.test(t)), 'fim de linha sem mistura (o CI lê em LF)'); }
 });
