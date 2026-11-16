@@ -277,6 +277,8 @@
     if (!document.getElementById('vv-whatsapp')?.hidden && document.getElementById('vv-whatsapp')?.isConnected) return;
     if (placa() && !placa().hidden) return;
     // A Criação aberta pela Direção de arte do dock continua acesa como Direção de arte, não como Hoje.
+    // Minhas tarefas aberta pelo menu lateral (o módulo) continua acesa como Minhas tarefas.
+    if (tarefasPeloDock && visaoHoje === 'tarefas' && !body.classList.contains('mundo-cartoes') && !body.classList.contains('mundo-modulo')) { marcarTrilho('tarefas'); return; }
     marcarTrilho(body.classList.contains('mundo-cartoes') ? 'modulos' : criacaoPeloDock && visaoHoje === 'criacao' && !body.classList.contains('mundo-modulo') ? 'direcao' : 'hoje');
   }
   if (typeof MutationObserver === 'function') new MutationObserver((lista) => {
@@ -453,12 +455,12 @@
     if (id === 'direcao') { visaoHoje = 'criacao'; criacaoPeloDock = true; usarTrilho.criacao = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
     // Minhas tarefas (quadro 31 do redesign, 10/11/2026): o item do dock e a aba do Hoje levam ao mesmo lugar, o Hoje na
     // aba Minhas tarefas. O Modo Foco antigo continua a um clique ("Abrir o dia completo").
-    if (id === 'tarefas') { visaoHoje = 'tarefas'; try { localStorage.setItem('vybe.mundo.visaoHoje', 'tarefas'); } catch { /* fica nesta tela */ } usarTrilho.tarefas = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
+    if (id === 'tarefas') { visaoHoje = 'tarefas'; tarefasPeloDock = true; try { localStorage.setItem('vybe.mundo.visaoHoje', 'tarefas'); } catch { /* fica nesta tela */ } usarTrilho.tarefas = true; usarTrilho('hoje', botao, saiuDaAntiga); return; }
     if (trancadoPara(id)) { mostrarSemAcesso(id); return; }
     // Saiu da Direção de arte para outra tela (Prédio, Centro, Loja, Gestão, um painel): a Criação deixa de valer como
     // Direção de arte, e o dock não volta a marcá-la ao fechar (auditoria 15/11, item 34). Janela de módulo por cima do
     // Hoje (sub.mod), Criar e VYBES não tiram a pessoa de lá.
-    if (!['hoje', 'criar', 'vybes'].includes(id) && !(SUBMODULOS.find((x) => x.id === id) || TRILHO.find((t) => t && typeof t === 'object' && t.id === id))?.mod) criacaoPeloDock = false;
+    if (!['hoje', 'criar', 'vybes'].includes(id) && !(SUBMODULOS.find((x) => x.id === id) || TRILHO.find((t) => t && typeof t === 'object' && t.id === id))?.mod) { criacaoPeloDock = false; tarefasPeloDock = false; }
     const fora = TRILHO.find((t) => t && typeof t === 'object' && t.id === id && t.url);
     if (fora) { window.open(fora.url, '_blank', 'noopener'); return; } // sistema irmão (VybeHub): abre ao lado, sem mexer na tela
     if (String(id).startsWith('setor:')) {
@@ -516,7 +518,7 @@
     if (!gestao.hidden) fecharGestao();
     const noModulo = body.classList.contains('mundo-modulo');
     if (noModulo && ['hoje', 'predio', 'equipe', 'modulos', 'jogos'].includes(id)) sairDaTelaAntiga();
-    if (id === 'hoje') { body.classList.remove('mundo-cartoes'); if (!usarTrilho.criacao) criacaoPeloDock = false; marcarTrilho(usarTrilho.criacao ? 'direcao' : usarTrilho.tarefas ? 'tarefas' : 'hoje'); usarTrilho.criacao = false; usarTrilho.tarefas = false; pintarHoje(); ajustarAreaLivre(); return; }
+    if (id === 'hoje') { body.classList.remove('mundo-cartoes'); if (!usarTrilho.criacao) criacaoPeloDock = false; if (!usarTrilho.tarefas) tarefasPeloDock = false; marcarTrilho(usarTrilho.criacao ? 'direcao' : usarTrilho.tarefas ? 'tarefas' : 'hoje'); usarTrilho.criacao = false; usarTrilho.tarefas = false; pintarHoje(); ajustarAreaLivre(); return; }
     if (id === 'modulos') { const abrir = !body.classList.contains('mundo-cartoes'); body.classList.toggle('mundo-cartoes', abrir); marcarTrilho(abrir ? 'modulos' : 'hoje'); ajustarAreaLivre(); return; }
     if (id === 'equipe') { marcarTrilho('equipe'); mostrarEquipe(); return; }
     if (id === 'jogos') { marcarTrilho('jogos'); mostrarJogos(); return; }
@@ -862,6 +864,8 @@
   function trocarVisaoHoje(v) {
     visaoHoje = v; try { localStorage.setItem('vybe.mundo.visaoHoje', v); } catch {}
     if (criacaoPeloDock && v !== 'criacao') { criacaoPeloDock = false; marcarTrilho(v === 'tarefas' ? 'tarefas' : 'hoje'); }
+    // Minhas tarefas aberta pelo menu lateral é o módulo; trocar de aba volta ao Hoje (a aba Minhas tarefas de lá segue igual).
+    if (tarefasPeloDock && v !== 'tarefas') { tarefasPeloDock = false; marcarTrilho('hoje'); }
     pintarHoje();
   }
   let cacheDono = { chave: '', valor: null };
@@ -1827,6 +1831,8 @@
   // direção de arte ainda está muito defasado, muita informação solta"). O Danilo guia; os números, as pessoas e as filas
   // saem das mesmas peças do painel (as abertas de quem é do time, pelos responsáveis), com a situação oficial da peça.
   let criacaoPeloDock = false;
+  // Minhas tarefas aberta pelo menu lateral: o módulo da prancha V2-M-Minhas-Tarefas (a aba do Hoje segue como estava).
+  let tarefasPeloDock = false;
   function pecasDaCriacao(fonte = typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : []) {
     const time = timeDeCriacao();
     const ids = (d) => [...(d.responsavel_ids || []), d.responsavel_id].filter((x) => x != null).map(String);
@@ -2109,8 +2115,9 @@
       return `<span class="v2t-q">${v <= somar(hoje, 6) && v > hoje ? NOME_DIA[new Date(v + 'T12:00:00Z').getUTCDay()] : dmD3(v)}</span>`; };
     const qDa = (x) => { const p = pesoNoGuia(x, hoje); return p <= 2 ? QUANDO_D3[0] : p <= 4 ? QUANDO_D3[1] : QUANDO_D3[2]; };
     // Etapas da peça, lidas do status (o painel não guarda etapa por etapa): o que já passou fica marcado, em barras.
-    const etapasHtml = (d) => { const st = String(d.status || '').toLowerCase(), fim = typeof isFinishedItem === 'function' && isFinishedItem(d);
-      const n = fim ? 5 : /agend|aprovad|pronta/.test(st) ? 4 : /aprova/.test(st) ? 3 : /andamento|produ|altera|ajuste|corre/.test(st) ? 2 : d.tem_briefing === false || /briefing|info/.test(st) ? 0 : 1;
+    const etapaDe = (d) => { const st = String(d.status || '').toLowerCase(), fim = typeof isFinishedItem === 'function' && isFinishedItem(d);
+      return fim ? 5 : /agend|aprovad|pronta/.test(st) ? 4 : /aprova/.test(st) ? 3 : /andamento|produ|altera|ajuste|corre/.test(st) ? 2 : d.tem_briefing === false || /briefing|info/.test(st) ? 0 : 1; };
+    const etapasHtml = (d) => { const n = etapaDe(d);
       return `<div class="v2t-etapas" title="Pelo status da peça">${['Briefing', 'Texto', 'Arte', 'Aprovação', 'Publicar'].map((e, k) => `<span class="v2t-etapa${k < n ? ' ok' : k === n ? ' agora' : ''}"><i aria-hidden="true"></i>${k < n ? '✓ ' : ''}${e}</span>`).join('')}</div>`; };
     const linha = (x, rep = false) => { const id = esc(String(x.d.id)), feita = x.sit === 'concluida', cli = cliente(x), rot = roteiroDaPeca(x.d), q = feita ? ['Feita', 'ok'] : qDa(x);
       const extras = [typeof botaoDeBriefingHtml === 'function' ? botaoDeBriefingHtml(x.d) : '', typeof botaoDeMaterialBrutoHtml === 'function' ? botaoDeMaterialBrutoHtml(x.d) : '', typeof botaoDeEntregaHtml === 'function' ? botaoDeEntregaHtml(x.d) : '',
@@ -2160,6 +2167,87 @@
     const semDias = Array.from({ length: 7 }, (_, i) => somar(iniSem, i));
     const semanaPessoa = semanaD3Html({ campo: 'veiculacao', porDia: semDias.map((dia) => ({ dia, previstas: abertas.filter((x) => dataDe(x) === dia).length + feitas.filter((x) => x.ref === dia).length, entregues: feitas.filter((x) => x.ref === dia).length })) },
       { pecas: [...abertas, ...feitas].map((x) => x.d), selecionavel: false, abrir: false });
+    // ===== Minhas tarefas pelo menu lateral (prancha V2-M-Minhas-Tarefas, aprovada pelo Paulo em 16/11/2026) =====
+    // O módulo, não a aba do Hoje: só a fila, na ordem do guia (a data do cliente manda), em uma folha. Cada linha traz o
+    // grupo (Agora, Atrasou, Hoje, Semana), o cliente e a peça, a trilha de etapas (do briefing até publicar), o status
+    // (troca ali mesmo) e a data (toca e muda); a linha abre no lugar com o porquê, os anexos, Marcar pronta e Abrir. No
+    // pé, "De olho". Na coluna de consulta: o laranja com a primeira da fila, o que voltou com ajuste, os compromissos, o
+    // WhatsApp e como o VYBES montou a ordem. Os botões levam os mesmos data-* da aba Minhas tarefas do Hoje.
+    if (tarefasPeloDock) {
+      const formatoDe = (x) => String(x.d.formato || x.d.tipo || '').trim().replace(/^[—–-]+$/, '');
+      const semFormato = (x) => { const t = semGrito(titulo(x)), f = formatoDe(x); const r = f && t.toLowerCase().startsWith(f.toLowerCase()) ? t.slice(f.length).replace(/^[\s\-–:·|]+/, '') : ''; return r || t; };
+      // O grupo de cada linha, pelo peso do guia e pela data; a folha segue os grupos nesta ordem e, dentro de cada um, a
+      // ordem do guia (a data do cliente manda).
+      const GRUPOS_V2 = ['Atrasou', 'Hoje', 'Ajuste', 'Aguarda', 'Amanhã', 'Semana', 'Depois', 'Sem data', 'Feita'];
+      const grupoV2 = (x) => { if (x.sit === 'concluida') return ['Feita', 'g']; const p = pesoNoGuia(x, hoje), v = dataDe(x);
+        return p <= 1 ? ['Atrasou', 'r'] : p === 2 || v === hoje ? ['Hoje', 'a'] : p === 3 ? ['Ajuste', 'a'] : p === 4 ? ['Aguarda', ''] : !v ? ['Sem data', ''] : v === somar(hoje, 1) ? ['Amanhã', ''] : v <= fimSem ? ['Semana', ''] : ['Depois', '']; };
+      const posGuia = new Map(ordemGuia.map((x, i) => [x, i])), chaveV2 = (x) => GRUPOS_V2.indexOf(grupoV2(x)[0]) * 1e6 + (posGuia.get(x) ?? 999999);
+      const naOrdem = (l) => l.slice().sort((a, b) => chaveV2(a) - chaveV2(b));
+      const primeiraV2 = naOrdem(naFila)[0] || null;
+      const dataV2 = (x) => { const v = dataDe(x);
+        if (x.sit === 'concluida') return [v === hoje ? 'feita hoje' : v ? `feita ${dmD3(v)}` : 'feita', 'g'];
+        if (!v) return ['sem data', ''];
+        if (v < hoje && !desatualizada(x)) return [`venceu ${dmD3(v)}`, 'r'];
+        if (v === hoje) return [veic(x) === hoje ? 'publica hoje' : 'prazo hoje', 'a'];
+        return [`${v === somar(hoje, 1) ? 'amanhã' : NOME_DIA[new Date(v + 'T12:00:00Z').getUTCDay()].slice(0, 3)} ${dmD3(v)}`, '']; };
+      const ETAPAS_V2 = ['Briefing', 'Texto', 'Arte', 'Aprovação', 'Publicar'];
+      const trilhaV2 = (d) => { const n = etapaDe(d), rot = n >= 5 ? 'Publicada' : `Etapa de agora: ${ETAPAS_V2[n]}`;
+        return `<span class="d3m-trilha" role="img" aria-label="${rot}" title="${rot} (pelo status da peça)">${ETAPAS_V2.map((_, k) => `<i${k < n ? ' class="ok"' : k === n ? ' class="vez"' : ''}></i>`).join('')}</span>`; };
+      const linhaV2 = (x, rot) => { const id = esc(String(x.d.id)), feita = x.sit === 'concluida', cli = cliente(x), f = formatoDe(x), dt = dataV2(x), roteiro = roteiroDaPeca(x.d);
+        const extras = [typeof botaoDeBriefingHtml === 'function' ? botaoDeBriefingHtml(x.d) : '', typeof botaoDeMaterialBrutoHtml === 'function' ? botaoDeMaterialBrutoHtml(x.d) : '', typeof botaoDeEntregaHtml === 'function' ? botaoDeEntregaHtml(x.d) : '',
+          roteiro ? `<a class="focus-brief-btn roteiro" href="${esc(roteiro.link)}" target="_blank" rel="noopener" title="${esc(roteiro.titulo || 'Roteiro')}">${typeof vbIcone === 'function' ? vbIcone('documento') : ''}<span>Roteiro</span></a>` : ''].filter(Boolean).join('');
+        const olho = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(x.d, 'linha-previa vv-olho') : '';
+        const quem = varios && x.quem?.length ? ` · ${esc(x.quem.join(', '))}` : '';
+        const peca = `${f ? `${esc(f)}, ` : ''}${esc(semFormato(x))}`;
+        return `<div class="v2-abre v2-linha d3m-a-mt-l${feita ? ' feita' : ''}" data-linha="${id}" data-vt="peca-${id}" aria-expanded="false"><div class="d3m-a-mt-lin">
+          <span class="d3m-a-mt-q${rot && rot[1] ? ' ' + rot[1] : ''}">${rot ? rot[0] : ''}</span>${fotoCliD3(cli) || '<i class="d3v-foto" aria-hidden="true">·</i>'}
+          <button type="button" class="d3m-a-mt-nome" data-hoje-acao="linha" data-valor="${id}" title="${esc(titulo(x) + (cli ? ' · ' + cli : ''))}"><span class="v2-risca${feita ? ' feita' : ''}">${cli ? `<b>${esc(String(cli).split(',')[0].trim())}</b> <span>· ${peca}${quem}</span>` : `<b>${peca}</b>${quem ? `<span>${quem}</span>` : ''}`}</span></button>
+          <span class="d3m-a-mt-tr">${trilhaV2(x.d)}</span>
+          <span class="d3m-a-mt-st">${x.d.status ? (feita ? stD3(x.d) : `<button type="button" class="vv-demanda-status" onclick="openStatusEditor(event,'${id}')" title="Trocar o status" aria-label="Trocar o status: ${esc(x.d.status)}">${stD3(x.d)}</button>`) : ''}</span>
+          <span class="d3m-a-mt-dt${dt[1] ? ' ' + dt[1] : ''}">${feita ? esc(dt[0]) : `<span data-editar-data="veiculacao" data-peca="${id}" title="Tocar para mudar a data">${esc(dt[0])}</span>`}${olho}</span></div>
+        <div class="v2-mais"><div><div class="v2t-det d3m-a-mt-det">${etapasHtml(x.d)}
+          <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${extras}
+            ${feita ? '' : `<button type="button" class="d3h-btn s" data-hoje-acao="concluir" data-valor="${id}" aria-label="Marcar pronta: ${esc(titulo(x))}">Marcar pronta</button><button type="button" class="d3h-btn s" onclick="openStatusEditor(event,'${id}')">Passar bastão</button>`}<button type="button" class="d3h-btn s k" data-hoje-acao="peca" data-valor="${id}">Abrir a peça</button></div></div></div></div></div>`; };
+      const [, baseV2, , vazioV2] = GRUPOS[filtroTarefas], listaV2 = (filtroTarefas === 'feitas' ? baseV2 : naOrdem(baseV2)).filter(bate);
+      let corpoV2;
+      if (!listaV2.length) corpoV2 = `<p class="d3v-estado"><b>${termo ? 'Nada com esse texto neste filtro.' : vazioV2}</b>${termo ? '' : filtroTarefas === 'hoje' && semanaP.length ? 'O que vem na semana está em Semana.' : 'Quando uma peça entrar na sua fila, ela aparece aqui na ordem do dia.'}</p>`;
+      else if (hojeVerTodas && filtroTarefas !== 'feitas') {
+        const g = new Map(); for (const x of listaV2) { const st = String(x.d.status || 'Sem status').trim() || 'Sem status'; if (!g.has(st)) g.set(st, []); g.get(st).push(x); }
+        corpoV2 = [...g.entries()].sort((a, b) => rankStatus(a[0]) - rankStatus(b[0])).map(([st, l]) => `<div class="d3m-a-mt-grp"><span>${esc(st)}</span><b>${n0(l.length)}</b></div>${l.map((x) => linhaV2(x, null)).join('')}`).join('');
+      } else { let ant = ''; corpoV2 = listaV2.map((x) => { const r = x === primeiraV2 && !termo ? ['Agora', 'r'] : grupoV2(x), rep = r[0] === ant; ant = r[0]; return linhaV2(x, rep ? null : r); }).join(''); }
+      const filtrosV2 = `<span class="d3m-a-seg" role="radiogroup" aria-label="Filtrar a lista">${Object.entries(GRUPOS).map(([k, [rot, l]]) => `<button type="button" role="radio" aria-checked="${k === filtroTarefas}" data-hoje-acao="filtro" data-valor="${k}">${rot}<b${k === 'atrasadas' && l.length ? ' class="r"' : ''}>${n0(l.length)}</b></button>`).join('')}</span>`;
+      // O limite de carga é o do painel de direção de arte (peso de cada peça contra o limite da pessoa); sem ele, as abertas.
+      let cargaV2 = null; try { if (!varios && typeof daEffortWeight === 'function' && typeof daCapacitySignal === 'function') { const lim = Number(daCapacitySignal(fila.user, []).threshold); if (lim > 0) cargaV2 = [abertas.reduce((s, x) => s + (Number(daEffortWeight(x.d, fila.user)) || 0), 0), lim]; } } catch { cargaV2 = null; }
+      const olhoV2 = (n, rot, attrs, tom = '') => `<button type="button" class="d3m-a-mt-olho" ${attrs}><b${tom ? ` class="${tom}"` : ''}>${n}</b>${rot}</button>`;
+      const folhaV2 = `<section class="d3m-a-folha d3m-a-mt-folha" aria-label="${varios ? 'Tarefas do dia' : 'Minhas tarefas'}"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Na ordem do dia</span> <span>· ${varios ? `de ${n0(fila.users.length)} pessoas, ` : ''}pela data do cliente</span></h3>
+          <input type="search" class="d3m-a-mt-busca" data-busca-tarefas placeholder="Buscar" aria-label="Buscar nas minhas tarefas" value="${esc(buscaTarefas)}">${filtrosV2}<i class="d3m-a-div" aria-hidden="true"></i>
+          <button type="button" class="d3m-a-filtro" role="switch" aria-checked="${hojeVerTodas}" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}" title="Agrupar a lista por status">Por status</button></div>
+        <div class="d3m-a-mt-cols" aria-hidden="true"><span></span><span></span><span>Cliente e peça</span><span>Briefing até publicar</span><span>Status</span><span>Data</span></div>
+        <div class="v2-lista d3m-a-mt-lista" aria-label="Minha fila">${corpoV2}</div>
+        <div class="d3m-a-pe d3m-a-mt-pe"><span>De olho</span>${olhoV2(n0(hojeP.length), 'para hoje', 'data-hoje-acao="filtro" data-valor="hoje"')}${olhoV2(n0(atrasadasP.length), atrasadasP.length === 1 ? 'atrasada' : 'atrasadas', 'data-hoje-acao="filtro" data-valor="atrasadas"', atrasadasP.length ? 'r' : '')}${olhoV2(n0(feitas.length), feitas.length === 1 ? 'feita na semana' : 'feitas na semana', 'data-hoje-acao="filtro" data-valor="feitas"', feitas.length ? 'g' : '')}${cargaV2 ? olhoV2(`${n0(cargaV2[0])} de ${n0(cargaV2[1])}`, 'do seu limite', 'data-hoje-acao="filtro" data-valor="todas" title="Os pontos das peças abertas contra o limite de carga"', cargaV2[0] > cargaV2[1] ? 'r' : '') : olhoV2(n0(naFila.length), naFila.length === 1 ? 'aberta' : 'abertas', 'data-hoje-acao="filtro" data-valor="todas"')}<button type="button" class="d3m-a-filtro d3m-a-mt-todas" data-hoje-acao="demandas" title="Abrir as Demandas, fora da sua fila">todas as demandas</button></div></section>`;
+      // O laranja: a primeira da fila, com o porquê e a etapa em que está; sem nada aberto, a fila limpa.
+      const etapaV2 = primeiraV2 ? etapaDe(primeiraV2.d) : 0, cliV2 = primeiraV2 ? String(cliente(primeiraV2) || '').split(',')[0].trim() : '';
+      const laranjaV2 = primeiraV2
+        ? laranjaD3({ rotulo: `${agente.nome} · ${varios ? 'a primeira do dia' : 'a sua primeira agora'}`, agente: agente.nome, titulo: `${esc(formatoDe(primeiraV2) || 'Peça')}${cliV2 ? ` de ${esc(cliV2)}` : ''}, ${esc(semFormato(primeiraV2))}`,
+          apoio: `${esc(motivoNoGuia(primeiraV2, hoje))}. ${etapaV2 >= 5 ? 'Já publicada.' : `Etapa de agora: ${ETAPAS_V2[etapaV2].toLowerCase()}.`}`,
+          botoes: [{ rot: 'Abrir a peça', attrs: `data-hoje-acao="peca" data-valor="${esc(primeiraV2.d.id)}"` }, { rot: 'Marcar pronta', attrs: `data-hoje-acao="concluir" data-valor="${esc(primeiraV2.d.id)}"` }] })
+        : laranjaD3({ rotulo: `${agente.nome} · guia do dia`, agente: agente.nome, titulo: 'Fila limpa.', apoio: feitas.length ? `${plural(feitas.length, 'feita', 'feitas')} nesta semana.` : 'Nada aberto na sua fila agora.', botoes: [feitas.length ? { rot: 'Ver as feitas', attrs: 'data-hoje-acao="filtro" data-valor="feitas"' } : { rot: 'Todas as demandas', attrs: 'data-hoje-acao="demandas"' }] });
+      const voltaram = naOrdem(naFila).filter((x) => /altera|ajuste|corre/i.test(String(x.d.status || '')));
+      const vlinV2 = (html, attrs, ico = '') => `<button type="button" class="d3m-vlin" ${attrs}>${ico}<span>${html}</span>${SETA_D3(1)}</button>`;
+      const voltaramV2 = `<section class="d3m-cons" aria-label="Voltaram para você"><div class="d3m-cons-cab"><b>${varios ? 'Voltaram com ajuste' : 'Voltaram para você'}</b><span>${voltaram.length ? plural(voltaram.length, 'alteração', 'alterações') : ''}</span></div>${voltaram.slice(0, 2).map((x) => vlinV2(`${cliente(x) ? `<b>${esc(String(cliente(x)).split(',')[0].trim())}</b> · ` : ''}${esc(semFormato(x))}`, `data-hoje-acao="peca" data-valor="${esc(x.d.id)}" title="${esc(titulo(x) + ' · ' + String(x.d.status || ''))}"`, fotoCliD3(cliente(x)))).join('') || '<p class="d3m-vvazio">Nada voltou com ajuste.</p>'}${voltaram.length > 2 ? `<button type="button" class="d3h-link d3h-mais" data-hoje-acao="filtro" data-valor="todas">+ ${n0(voltaram.length - 2)}</button>` : ''}</section>`;
+      const ordemV2 = `<section class="d3m-cons" aria-label="A ordem"><div class="d3m-cons-cab"><b>A ordem</b><span></span></div>${vlinV2('<b>Como o VYBES montou esta ordem</b>', 'data-hoje-acao="agentes"')}</section>`;
+      const subV2 = `${diaD3()} · ${n0(hojeP.length)} para hoje${atrasadasP.length ? `, ${plural(atrasadasP.length, 'atrasada', 'atrasadas')}` : ''}`;
+      const htmlMt = `<div class="d3h d3q d3m-a-mt"><div class="d3q-main">${topoD3({ sub: subV2, dir: `${diaDe}${segDono}` })}${folhaV2}</div>
+        <aside class="d3h-lado d3q-lado d3m-lado d3m-a-mt-lado" aria-label="Consulta">${laranjaV2}${voltaramV2}${compromissosD3Html()}${!verComo ? whatsappD3Html('tarefas') : ''}${ordemV2}</aside></div>`;
+      if (el.vvHtml !== htmlMt) {
+        const atual = soListaAgora ? el.querySelector('.v2-lista') : null;
+        if (atual) { const t = document.createElement('template'); t.innerHTML = htmlMt; const nova = t.content.querySelector('.v2-lista'); if (nova) atual.replaceWith(nova); else el.innerHTML = htmlMt; }
+        else el.innerHTML = htmlMt;
+        el.vvHtml = htmlMt;
+      }
+      aplicarLinhaAberta(el);
+      return;
+    }
     // ===== Hoje no quadro "Direção de cor e vidro" (Paulo, 16/11/2026: "Cria uma estrutura moderna mas que vai saber
     // aproveitar as informações úteis de cada tela") =====
     // À esquerda: a saudação com a frase do guia; os quatro números com o selo de cor; Minhas tarefas grande e, ao lado, o

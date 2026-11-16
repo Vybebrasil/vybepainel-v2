@@ -21,14 +21,18 @@ test('o CSS da Direção 3 da Produção: tokens d3, pelo id da tela, sem regra 
   for (const r of regras) assert.ok(/#pv2-|#vv-conteudo|#mundo-moldura|\.d3p-|\.d3s|\.d3d-|\.pv2\.pv2-dias|\.vv-setor-visao|\.d3-num\.d3[ps]-num|button\.d3-num|\.vv-gestao /.test(r), r.slice(0, 80));
 });
 
-test('Painel e Demandas: bloco de ação laranja, números com linha ou barra e Novo branco', () => {
+// Prancha V2-M-Demandas (16/11/2026): nas Demandas o laranja do Heitor vem do pv2Laranja (o mesmo das outras telas V2)
+// e os quatro números viraram o pé "De olho" da folha; o Painel segue com d3pAcao e d3pNum.
+test('Painel e Demandas: bloco de ação laranja, números com linha ou barra (no Painel) ou o pé De olho (nas Demandas) e Novo branco', () => {
   assert.match(gestor, /function d3pAcao\(/);
   assert.match(gestor, /function d3pNum\(/);
   assert.match(gestor, /d3LinhaSvg\(serie, \{ largura: 90, altura: 28, rotulo: serieRotulo \}\)/);
   assert.match(gestor, /class="pv2-btn d3p-novo"/);
   assert.match(demandas, /class="pv2-btn d3p-novo"/);
-  assert.match(demandas, /d3pAcao\(\{ agente: 'H', quem: 'Heitor · Coordenação'/);
-  assert.match(demandas, /<div class="d3p-nums quatro">/);
+  assert.match(demandas, /pv2Laranja\(\{ agente: 'H', \.\.\.cartao \}\)/);
+  assert.match(demandas, /cartao = \{ quem: 'Heitor · Coordenação'/);
+  assert.match(demandas, /<div class="d3m-a-pe d3m-a-dm-pe" id="pv2d-pe">/);
+  assert.match(demandas, /<span>De olho<\/span>/);
 });
 
 test('o status de cada peça continua controlável nas quatro telas', () => {
