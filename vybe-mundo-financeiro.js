@@ -51,7 +51,7 @@
     clientes_mes: { chip: 'todos', aberta: '' },
     cartao: { fatura: '', novo: false, colar: false, editando: '', chip: 'todos', aberta: '', inteira: false },
     fixos: { mes: '', novo: false, editando: '' },
-    vorcaro: { mao: false, frente: '' },
+    vorcaro: { mao: false, frente: '', baixo: '' },
     vales: { aberta: '', chip: 'todos', ajuste: '' },
     projecao: { horizonte: 6, cenario: { cortes: {}, economias: {}, clientes_novos: [], clientes_perdidos: {}, gastos_novos: [], ajuste_entradas_pct: 0 }, nome: '', base: null },
   };
@@ -668,68 +668,106 @@
     }
     return out.sort((x, y) => y.g - x.g);
   }
-  const ATALHOS = [['extrato', 'Extrato', 'conferir e dividir'], ['clientes_mes', 'Clientes mês a mês', 'quem pagou, quem deve'], ['cartao', 'Cartão de crédito', 'item por item'],
-    ['fixos', 'Gastos fixos', 'o que sai todo mês'], ['projecao', 'Relatórios e projeção', 'e se…']];
+  // As telas de Finanças, na ordem do menu (o título do Vorcaro e a coluna de consulta levam a cada uma).
+  const TELAS_FIN = [['financas', 'Por cliente'], ['recebimentos', 'Recebimentos'], ['contas', 'Contas a pagar'], ['inadimplencia', 'Inadimplência'], ['extrato', 'Extrato e conciliação'],
+    ['clientes_mes', 'Clientes mês a mês'], ['cartao', 'Cartão de crédito'], ['fixos', 'Gastos fixos'], ['vales', 'Pessoas e vales'], ['projecao', 'Relatórios e projeção']];
   const iniciais = (nome) => String(nome || '?').trim().slice(0, 2).toUpperCase();
+  const ICV = {
+    seta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>', baixo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+    busca: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>', ajuda: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.300c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>',
+    cifrao: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M16 7h-5.5a2.5 2.5 0 0 0 0 5h3a2.5 2.5 0 0 1 0 5H8"/></svg>', alta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-6 4 4 6-8"/><path d="M14 7h6v6"/></svg>',
+    alerta: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v6M12 17h.01"/></svg>', relogio: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 9v3l2 1"/></svg>',
+  };
+  // Direção V2 (prancha V2-M-Financeiro, 16/11/2026): a janela é vidro fumê. Em cima, três números (caixa, resultado do
+  // mês e o caixa em 6 meses); embaixo, "Pede decisão" e "Entrou e saiu" em folha, e o cartão laranja, que é o lançamento
+  // que chegou pelo WhatsApp (com os campos para corrigir antes de decidir) ou, sem nenhum, o item mais sério do "Pede
+  // decisão". A coluna de consulta fica no vidro: cada tela de Finanças com o que espera nela, como o Vorcaro trabalha e
+  // o banco. "Decididas" abre no lugar do gráfico e "Lançar à mão" ocupa a coluna da esquerda (o formulário cabe inteiro). O desenho mora em padrao-v2/zm-d-financeiro.css.
   function vorcaro(ctx) {
     anfitriao = ctx;
     const d = ctx.d, u = ui.vorcaro, mes = (d.hoje || '').slice(0, 7), nomeDoMes = MESES[Number(mes.slice(5)) - 1] || '';
-    const achados = analise(d);
-    const r = X().resumo(d.transacoes || [], { mes });
+    const achados = analise(d), lista = d.transacoes || [];
+    const r = X().resumo(lista, { mes });
     const propostas = d.vorcaro?.propostas || [], pend = propostas.filter((p) => p.estado === 'pendente');
-    const graves = achados.filter((a) => a.g >= 2).length;
-    const partes = [topo('Vorcaro · Tesouraria', `<button type="button" class="fv2-btn p" data-fx="mao-abrir">${IC.mais}Lançar à mão</button>`)];
-    partes.push(!(d.transacoes || []).length && !pend.length ? acao('Sem extrato ainda; importe o CSV da conta PJ.', 'Ir ao extrato', 'data-fx="ir-aba" data-valor="extrato"')
-      : achados.length ? acao(`${quantos(achados.length, 'coisa pede', 'coisas pedem')} atenção${pend.length ? `; ${quantos(pend.length, 'chegou', 'chegaram')} pelo WhatsApp` : ''}.`,
-        pend.length ? `Ver ${pend.length === 1 ? 'o lançamento' : 'os ' + n0(pend.length)}` : 'Ver o que vi', `data-fx="foco" data-valor="${pend.length ? 'whats' : 'vi'}"`)
-      : acao('Tudo em ordem no financeiro.'));
-    const saldo = d.projecao?.base?.saldo_hoje || 0;
+    const daqui = achados.filter((a) => !a.ancora).length;
+    const fxAn = d.fixos?.length ? X().analisarFixos(d.fixos, lista, mes, d.cartao?.itens || []) : null;
+    const contagem = { extrato: lista.filter((t) => !t.real.conferido).length, clientes_mes: (d.por_cliente?.linhas || []).filter((l) => l.total_aberto > 0).length,
+      cartao: (d.cartao?.itens || []).filter((i) => i.categoria === 'a_classificar').length + (d.cartao?.pagamentos_sem_fatura?.length || 0),
+      fixos: (fxAn?.fixos || []).filter((f) => !f.achado && f.vence <= (d.hoje || '')).length };
+    // Topo, direto no vidro.
+    const topoV2 = `<div class="d3m-d-topo d3m-d-fx-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="Vorcaro · Tesouraria: ir a outra tela de Finanças"><h1>Vorcaro · Tesouraria</h1>${ICV.baixo}</summary>
+        <div class="d3m-d-pop"><button type="button" data-fx="ir" data-valor="setor:financas">Visão geral de Finanças</button>${TELAS_FIN.map(([a, n]) => `<button type="button" data-fx="ir-aba" data-valor="${a}">${esc(n)}</button>`).join('')}</div></details>
+        <span class="d3m-d-sub">${SELO} · <button type="button" class="d3m-d-fx-elo" data-fx="ir" data-valor="setor:financas">Finanças</button> · ${esc(nomeMes(mes))} · ${achados.length ? quantos(achados.length, 'coisa pede', 'coisas pedem') + ' decisão' : 'nada pede decisão'}</span></div>
+      <div class="d3m-d-ferr"><button type="button" class="d3m-d-ico" data-fx="buscar" aria-label="Buscar" title="Buscar">${ICV.busca}</button><button type="button" class="d3m-d-ico" data-fx="foco" data-valor="como" aria-label="Como funciona" title="Como funciona">${ICV.ajuda}</button>
+        <button type="button" class="d3m-d-vbtn p" data-fx="mao-abrir" aria-expanded="${Boolean(u.mao)}">${IC.mais}Lançar à mão</button></div></div>`;
+    // Três números: rótulo, selo, o número de 28, a linha de apoio e um gráfico pequeno na cor do número.
+    const saldo = d.projecao?.base?.saldo_hoje, serie = d.serie || [];
     const proj = d.projecao?.base?.meses_usados?.length ? X().projetar(d.projecao.base, {}, 6) : null;
-    const antiga = pend.map((p) => p.recebido_em || p.data).filter(Boolean).sort()[0];
-    partes.push(nums([
-      { rotulo: 'Caixa hoje', valor: mil(saldo), tom: saldo < 0 ? 'r' : '', serie: (d.serie || []).filter((s) => s.saldo_final != null).slice(-6).map((s) => s.saldo_final), sub: proj ? `em 6 meses · ${mil(proj.saldo_final)}` : '', attrs: 'data-fx="ir-aba" data-valor="projecao"' },
-      { rotulo: `Resultado de ${nomeDoMes}`, valor: mil(r.resultado), tom: r.resultado < 0 ? 'a' : 'g', sub: duas(r.entradas, r.saidas + r.cartao_e_transferencias, `entrou ${esc(mil(r.entradas).replace('R$ ', ''))}`, `saiu ${esc(mil(r.saidas + r.cartao_e_transferencias).replace('R$ ', ''))}`) },
-      { rotulo: 'Pede decisão', valor: n0(achados.length), tom: achados.length ? '' : 'g', sub: graves ? `<span class="d3f-a">${quantos(graves, 'mais séria', 'mais sérias')}</span>` : 'nada sério', attrs: 'data-fx="foco" data-valor="vi"' },
-      { rotulo: 'Chegou pelo WhatsApp', valor: n0(pend.length), tom: pend.length ? '' : 'q', sub: antiga ? `a mais antiga · ${dataCurta(antiga)}` : 'nada esperando', attrs: 'data-fx="foco" data-valor="whats"' },
-    ]));
-    if (u.mao) partes.push(maoForm(d));
-    const lista = achados.map((a) => `<div class="fx-achado g${a.g}" title="${esc(a.texto)}"><span class="fx-sinal" aria-hidden="true"></span><p><b>${esc(a.rot)}</b>${a.det ? ` · ${esc(a.det)}` : ''}${a.clientes?.length ? `<span class="fx-clis">${a.clientes.map((n) => `<span class="fv2-cli">${esc(n)}</span>`).join('')}</span>` : ''}</p>${a.aba ? `<button type="button" class="fv2-btn s" data-fx="ir-aba" data-valor="${a.aba}" data-chip="${esc(a.chip || '')}" data-cat="${esc(a.cat || '')}" data-mes="${esc(a.mes || '')}">${esc(a.btn || 'Resolver')}</button>` : a.ancora ? '<span class="fv2-pill n">ao lado</span>' : ''}</div>`).join('');
+    const fioDe = (vals, w = 84, h = 40) => { const v = vals.map(Number).filter(Number.isFinite); if (v.length < 2) return ''; const mn = Math.min(...v), mx = Math.max(...v); return v.map((n, i) => `${i ? 'L' : 'M'}${(2 + (i * (w - 4)) / (v.length - 1)).toFixed(1)} ${(mx === mn ? h / 2 : h - 3 - ((n - mn) * (h - 6)) / (mx - mn)).toFixed(1)}`).join(' '); };
+    const mini = (vals, cls) => { const f = fioDe(vals); return f ? `<svg class="d3m-d-fx-mini ${cls}" viewBox="0 0 84 40" preserveAspectRatio="none" aria-hidden="true"><path class="veu" d="${f} V40 H2 Z"/><path class="fio" d="${f}"/></svg>` : ''; };
+    const numV2 = ({ rotulo, selo, ic, valor, tom = '', sub = '', graf = '', attrs = '' }) => `<${attrs ? `button type="button" ${attrs}` : 'div'} class="d3m-d-folha d3m-d-fx-num"><span class="d3m-d-fx-num-cab"><span>${esc(rotulo)}</span><span class="d3m-d-selo ${selo}">${ic}</span></span><span class="d3m-d-fx-num-pe"><span><b class="d3m-d-fx-v${tom ? ' ' + tom : ''}">${esc(valor)}</b><small>${sub}</small></span>${graf}</span></${attrs ? 'button' : 'div'}>`;
+    const antes = serie.filter((s) => s.mes < mes && s.saldo_final != null).slice(-1)[0];
+    const ent = r.entradas, sai = r.saidas + r.cartao_e_transferencias, topoES = Math.max(1, ent, sai), semR = (v) => esc(mil(v).replace('R$ ', ''));
+    const ultimoProj = proj?.meses?.[proj.meses.length - 1];
+    const numsV2 = `<div class="d3m-d-fx-nums">${numV2({ rotulo: 'Caixa hoje', selo: '', ic: ICV.cifrao, valor: saldo != null ? mil(saldo) : 'sem saldo', tom: saldo < 0 ? 'r' : '', sub: antes ? `era ${esc(mil(antes.saldo_final))} em ${esc(soMes(antes.mes))}` : 'pelo extrato do banco', graf: mini(serie.filter((s) => s.saldo_final != null).slice(-6).map((s) => s.saldo_final), saldo < 0 ? 'r' : ''), attrs: 'data-fx="ir-aba" data-valor="extrato"' })}
+      ${numV2({ rotulo: `Resultado de ${nomeDoMes}`, selo: r.resultado < 0 ? 'r' : 'vybe', ic: r.resultado < 0 ? ICV.alerta : IC.ok, valor: mil(r.resultado), tom: r.resultado < 0 ? 'r' : 'g', sub: `entrou ${semR(ent)}, saiu ${semR(sai)}`, graf: `<span class="d3m-d-fx-duas" aria-hidden="true"><i style="--v:${pc(ent, topoES)}%"></i><i style="--v:${pc(sai, topoES)}%"></i></span>` })}
+      ${numV2({ rotulo: 'Em 6 meses, no ritmo de hoje', selo: 'negocio', ic: ICV.alta, valor: proj ? mil(proj.saldo_final) : 'sem base', tom: proj && proj.saldo_final < 0 ? 'r' : '', sub: proj ? `${ultimoProj?.mes ? `em ${esc(soMes(ultimoProj.mes))} · ` : ''}abrir a projeção` : 'falta extrato para projetar', graf: proj ? mini([saldo || 0, ...(proj.meses || []).map((m) => m.saldo)], 'l') : '', attrs: 'data-fx="ir-aba" data-valor="projecao"' })}</div>`;
+    // Pede decisão: o mais sério primeiro. Selo na cor da gravidade, o rótulo com o detalhe, o valor e um botão.
+    const TOM_G = { 3: ['r', ICV.alerta], 2: ['a', ICV.relogio], 1: ['n', ICV.relogio] };
+    const linhaAchado = (a) => { const det = String(a.det || ''), valor = (det.match(/-?R\$ [\d.,]+(?! mil)\b/) || [''])[0], resto = (a.clientes?.length ? a.clientes.join(', ') : det.replace(valor, '').replace(/^[\s·]+|[\s·]+$/g, '').replace(/\s·\s·\s/, ' · '));
+      const [tom, ic] = TOM_G[a.g] || TOM_G[1];
+      return `<div class="d3m-d-fx-ach" title="${esc(a.texto)}"><span class="d3m-d-selo ${tom}">${ic}</span><span class="d3m-d-fx-ach-txt"><b>${esc(a.rot)}</b>${resto ? ` <span>· ${esc(resto)}</span>` : ''}</span><span class="d3m-d-fx-ach-v">${esc(valor)}</span>${a.aba ? `<button type="button" class="d3m-d-fx-btn" data-fx="ir-aba" data-valor="${a.aba}" data-chip="${esc(a.chip || '')}" data-cat="${esc(a.cat || '')}" data-mes="${esc(a.mes || '')}">${esc(a.btn || 'Resolver')}</button>` : `<button type="button" class="d3m-d-fx-btn" data-fx="foco" data-valor="whats">Ver</button>`}</div>`; };
+    const pede = `<section class="d3m-d-folha d3m-d-fx-pede" data-fx-card="vi" aria-label="Pede decisão"><div class="d3m-d-cab"><h3>Pede decisão</h3><small>${achados.length ? `o mais sério primeiro · ${n0(daqui)} daqui${pend.length ? ` e ${n0(pend.length)} do WhatsApp` : ''}` : 'nada agora'}</small></div>
+      <div class="d3m-d-fx-rolo">${achados.map(linhaAchado).join('') || '<p class="d3v-estado"><b>Nada pedindo decisão agora.</b>O Vorcaro avisa aqui quando aparecer.</p>'}</div></section>`;
+    // O lugar de baixo: o gráfico "Entrou e saiu"; "Lançar à mão" e "Decididas" abrem no mesmo lugar.
     const decididas = propostas.filter((p) => p.estado !== 'pendente').slice(-8).reverse();
     const ESTADO = { lancada: ['lançada', 'g'], juntada: ['juntada', 'g'], descartada: ['descartada', 'n'] };
-    const decididasHtml = decididas.length ? card('Decididas', decididas.map((p) => `<div class="fx-decidida${p.estado === 'descartada' ? ' fora' : ''}"><span class="fx-dia">${esc(dataCurta(p.data))}</span><span class="fx-dec-txt${p.estado === 'descartada' ? ' v2-risca feita' : ''}">${esc(p.texto || p.quem || 'sem texto')}</span>${pill(...(ESTADO[p.estado] || ['decidida', 'n']))}<b class="fx-valor ${p.tipo === 'entrada' ? 'e' : 's'}">${esc(comSinal(p.tipo === 'entrada' ? p.valor : -p.valor))}</b></div>`).join(''), `${n0(decididas.length)} últimas`) : '';
-    // O baralho: a proposta da frente com o formulário, as outras atrás; tocar numa da lista traz para a frente.
-    const frente = pend.find((p) => p.id === u.frente) || pend[0];
-    const atras = Math.min(2, pend.length - 1);
-    const whats = pend.length ? `<div class="fx-baralho" style="--atras:${atras}">${Array.from({ length: atras }, (_, i) => `<span class="fx-carta-atras" style="--i:${i + 1}" aria-hidden="true"></span>`).join('')}${propostaHtml(d, frente)}</div>
-        <div class="fx-fila">${pend.map((p) => `<button type="button" class="fx-fila-l${p === frente ? ' on' : ''}" data-fx="proposta-frente" data-valor="${esc(p.id)}" aria-pressed="${p === frente}"><span class="d3f-av">${esc(iniciais(p.autor))}</span><span class="fx-fila-txt">${esc(p.texto || '(sem texto)')}</span><small>${esc(ANEXO[p.anexo] || 'mensagem')} · ${esc(dataCurta(p.recebido_em))}</small><b class="fx-valor ${p.tipo === 'entrada' ? 'e' : 's'}">${esc(comSinal(p.tipo === 'entrada' ? p.valor : -p.valor))}</b></button>`).join('')}</div>`
-      : vazio('Nada esperando do grupo <b>Vybe Financeiro</b>.');
-    const contagem = { extrato: (d.transacoes || []).filter((t) => !t.real.conferido).length, clientes_mes: (d.por_cliente?.linhas || []).filter((l) => l.total_aberto > 0).length,
-      cartao: (d.cartao?.itens || []).filter((i) => i.categoria === 'a_classificar').length + (d.cartao?.pagamentos_sem_fatura?.length || 0),
-      fixos: (d.fixos?.length ? X().analisarFixos(d.fixos, d.transacoes || [], mes, d.cartao?.itens || []).fixos.filter((f) => !f.achado && f.vence <= (d.hoje || '')).length : 0) };
-    const atalhos = ATALHOS.map(([a, nome, sub]) => `<button type="button" class="fx-atalho" data-fx="ir-aba" data-valor="${a}"><span><b>${esc(nome)}</b><small>${esc(sub)}</small></span>${contagem[a] ? `<b class="${a === 'extrato' || a === 'clientes_mes' ? 'd3f-a' : ''}">${n0(contagem[a])}</b>` : '<span></span>'}<i aria-hidden="true">›</i></button>`).join('');
-    const comoTrabalho = `<div class="fx-passos"><span><b>1</b>Extrato + grupo</span><i aria-hidden="true">↓</i><span><b>2</b>Vorcaro sugere</span><i aria-hidden="true">↓</i><span class="on"><b>3</b>Um dono confirma</span></div><div class="fx-criterios">${pill('4 donos')}${pill('fora dos outros grupos')}</div>`;
-    partes.push(`<div class="fx-tres"><div class="fx-col">${card('O que eu vi', lista || vazio('Nada pedindo atenção agora.'), 'mais sério primeiro', '', 'vi')}${decididasHtml}</div>
-      <div class="fx-col">${card('Chegou pelo WhatsApp', whats, pend.length ? `Vybe Financeiro · ${n0(pend.findIndex((p) => p === frente) + 1)} de ${n0(pend.length)}` : 'Vybe Financeiro', 'fx-whats', 'whats')}</div>
-      <div class="fx-col fx-lado">${card('Onde mexer', atalhos)}${card('Como eu trabalho', comoTrabalho)}</div></div>`);
-    return casca(partes, 'vorcaro');
+    const m4 = serie.slice(-4), topoM = Math.max(1, ...m4.flatMap((s) => [s.entradas, s.saidas + s.cartao])), k1 = (v) => (Math.abs(v) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const baixo = u.mao ? maoForm(d)
+      : u.baixo === 'decididas' ? `<section class="d3m-d-folha d3m-d-fx-baixo" aria-label="Decididas"><div class="d3m-d-cab"><h3>Decididas</h3><small>${n0(decididas.length)} últimas</small><button type="button" class="d3m-d-elo" data-fx="vorcaro-baixo" data-valor="">voltar ao gráfico</button></div>
+          <div class="d3m-d-fx-rolo">${decididas.map((p) => `<div class="d3m-d-lin fx-decidida${p.estado === 'descartada' ? ' fora' : ''}"><i class="${(ESTADO[p.estado] || [0, 'n'])[1]}"></i><span class="fx-dec-txt${p.estado === 'descartada' ? ' v2-risca feita' : ''}">${esc(dataCurta(p.data))} · ${esc(p.texto || p.quem || 'sem texto')}</span><small>${esc((ESTADO[p.estado] || ['decidida'])[0])} · ${esc(comSinal(p.tipo === 'entrada' ? p.valor : -p.valor))}</small></div>`).join('') || '<p class="d3v-estado"><b>Nada decidido ainda.</b></p>'}</div></section>`
+        : `<section class="d3m-d-folha d3m-d-fx-baixo" aria-label="Entrou e saiu"><div class="d3m-d-cab"><h3>Entrou e saiu</h3><small class="d3m-d-fx-leg">em mil reais <span><i class="e"></i>entrou</span><span><i></i>saiu</span></small></div>
+          ${m4.length ? `<div class="d3m-d-fx-meses" style="--n:${m4.length}">${m4.map((s) => { const sa = s.saidas + s.cartao; return `<div class="d3m-d-fx-mes"><div class="d3m-d-fx-par"><span><b>${k1(s.entradas)}</b><i class="e" style="--k:${pc(s.entradas, topoM) / 100}"></i></span><span><span>${k1(sa)}</span><i style="--k:${pc(sa, topoM) / 100}"></i></span></div><span class="d3m-d-fx-mes-pe"><span>${esc(mes3(s.mes))}</span><b class="${s.resultado < 0 ? 'r' : 'g'}">${s.resultado < 0 ? '−' : '+'}${k1(s.resultado)}</b></span></div>`; }).join('')}</div>`
+    : '<p class="d3v-estado"><b>Sem extrato ainda.</b>Importe o CSV da conta PJ para ver o que entrou e saiu.</p>'}</section>`;
+    // O laranja: o lançamento do WhatsApp da frente; sem ele, o item mais sério do "Pede decisão".
+    const frente = pend.find((p) => p.id === u.frente) || pend[0], serio = achados.find((a) => !a.ancora);
+    const laranja = frente ? propostaHtml(d, frente, pend.indexOf(frente) + 1, pend.length)
+      : `<section class="d3m-laranja d3m-d-fx-prop" data-fx-card="whats" aria-label="O que pede decisão agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>Vorcaro · ${serio ? 'o mais sério agora' : 'Tesouraria'}</span>
+        <div class="d3m-lar-txt"><span class="d3-acao-frase">${serio ? esc(serio.rot) + (serio.det ? ` · ${esc(serio.det)}` : '') : !lista.length ? 'Sem extrato ainda' : 'Tudo em ordem no financeiro'}</span><small>${serio ? esc(serio.texto) : !lista.length ? 'Importe o CSV da conta PJ para o Vorcaro começar a conferir.' : 'Nada chegou pelo grupo Vybe Financeiro e nada pede decisão.'}</small>
+        <div class="d3m-lar-bts">${serio?.aba ? `<button type="button" class="d3m-btn l" data-fx="ir-aba" data-valor="${serio.aba}" data-chip="${esc(serio.chip || '')}" data-cat="${esc(serio.cat || '')}" data-mes="${esc(serio.mes || '')}">${esc(serio.btn || 'Resolver')}</button>` : !lista.length ? '<button type="button" class="d3m-btn l" data-fx="ir-aba" data-valor="extrato">Ir ao extrato</button>' : ''}</div></div></section>`;
+    const outras = pend.filter((p) => p !== frente);
+    const aSeguir = pend.length > 1 ? `<section class="d3m-cons d3m-d-fx-seguir" aria-label="A seguir"><div class="d3m-cons-cab"><b>A seguir</b><span>${n0(outras.length)} de ${n0(pend.length)}</span></div><div class="d3m-d-fx-rolo">${outras.map((p) => `<button type="button" class="d3m-vlin" data-fx="proposta-frente" data-valor="${esc(p.id)}" aria-pressed="false"><i class="d3m-pes" aria-hidden="true">${esc(iniciais(p.autor))}</i><span class="d3m-vnome"><b>${esc(p.texto || '(sem texto)')}</b> <small>· ${esc(p.autor || 'Grupo')}, ${esc(ANEXO[p.anexo] || 'mensagem')}</small></span><b class="d3m-vn">${esc(comSinal(p.tipo === 'entrada' ? p.valor : -p.valor))}</b></button>`).join('')}</div></section>` : '';
+    // A coluna de consulta, no vidro.
+    const vai = (a, nome) => `<button type="button" class="d3m-vlin" data-fx="ir-aba" data-valor="${a}"><span><b>${esc(nome)}</b></span>${contagem[a] ? `<b class="d3m-vn">${n0(contagem[a])}</b>` : ''}${ICV.seta}</button>`;
+    const ultimaData = lista.map((t) => t.banco.data).sort().slice(-1)[0], imp = (d.importacoes || []).map((i) => i.em).filter(Boolean).sort().slice(-1)[0];
+    const lado = `<aside class="d3m-lado d3m-d-fx-lado" aria-label="Consulta"><nav class="d3m-cons" aria-label="Finanças"><div class="d3m-cons-cab"><b>Finanças</b><span>o que espera em cada tela</span></div>${TELAS_FIN.map(([a, n]) => vai(a, n)).join('')}</nav>
+      <section class="d3m-cons" data-fx-card="como" aria-label="Como o Vorcaro trabalha"><div class="d3m-cons-cab"><b>Como o Vorcaro trabalha</b><span></span></div><p class="d3m-d-fx-como">O extrato e o grupo entram, o Vorcaro sugere, e um dono confirma. Nada é lançado sozinho. Só os 4 donos veem; fica fora dos outros grupos.</p></section>
+      <section class="d3m-cons" aria-label="Banco"><div class="d3m-cons-cab"><b>Banco do Brasil · conta PJ</b><span>${ultimaData ? `saldo de ${esc(dataCurta(ultimaData))}` : 'sem extrato'}</span></div>
+        <button type="button" class="d3m-vlin" data-fx="ir-aba" data-valor="extrato"><span><b>Importar o extrato</b>${imp ? ` <small>· último em ${esc(dataCurta(imp))}</small>` : ''}</span>${ICV.seta}</button>
+        ${decididas.length ? `<button type="button" class="d3m-vlin" data-fx="vorcaro-baixo" data-valor="decididas" aria-pressed="${u.baixo === 'decididas'}"><span><b>Decididas</b> <small>· ${n0(decididas.length)} últimas do WhatsApp</small></span>${ICV.seta}</button>` : ''}</section></aside>`;
+    return `<div class="fv2 fx d3f d3m-d-fx" data-tela="fx-vorcaro">${topoV2}<div class="d3m-d-fx-grade"><div class="d3m-d-fx-main">${numsV2}<div class="d3m-d-fx-meio"><div class="d3m-d-fx-esq">${u.mao ? '' : pede}${baixo}</div><div class="d3m-d-fx-dir">${laranja}${aSeguir}</div></div></div>${lado}</div></div>`;
   }
-  function propostaHtml(d, p) {
+  // O lançamento que chegou pelo WhatsApp, no cartão laranja: quem mandou, o valor grande, o que é, os campos para
+  // corrigir (os mesmos nomes de antes: tipo, valor, data, categoria, cliente_id e quem) e as três decisões.
+  function propostaHtml(d, p, i = 1, n = 1) {
     const sinal = p.tipo === 'entrada' ? 1 : -1;
-    const cands = (p.candidatos || []).map((c, i) => `<button type="button" class="fv2-btn s${i ? '' : ' d3f-escuro'} v2-estado" data-fx="proposta-juntar" data-valor="${esc(p.id)}" data-transacao="${esc(c.id)}" title="${esc(c.historico)}">Juntar com ${esc(dataCurta(c.data))}</button>`).join('');
+    const cands = (p.candidatos || []).map((c, k) => `<button type="button" class="d3m-btn l${k ? ' s' : ''} v2-estado" data-fx="proposta-juntar" data-valor="${esc(p.id)}" data-transacao="${esc(c.id)}" title="${esc(c.historico)}">Juntar com ${esc(dataCurta(c.data))}</button>`).join('');
     const ja = (p.candidatos || [])[0];
-    return `<div class="fx-proposta fx-carta" data-fx-proposta="${esc(p.id)}"><p class="fx-comobanco"><span class="d3f-av">${esc(iniciais(p.autor))}</span><small>${esc(p.autor || 'Grupo')} · ${esc(ANEXO[p.anexo] || 'mensagem')} · ${esc(dataCurta(p.recebido_em))}</small><b class="fx-valor ${sinal > 0 ? 'e' : 's'}">${esc(comSinal(sinal * p.valor))}</b></p>
-      <p class="fx-prop-txt">${esc(p.texto || '(sem texto)')}</p>
-      <div class="fx-grade fx-grade-3">
-        ${campo('Tipo', `<select name="tipo" class="fx-sel"><option value="saida"${p.tipo !== 'entrada' ? ' selected' : ''}>saiu</option><option value="entrada"${p.tipo === 'entrada' ? ' selected' : ''}>entrou</option></select>`)}
-        ${campo('Valor', `<input name="valor" class="fx-in fx-num" inputmode="decimal" value="${esc(String(p.valor).replace('.', ','))}">`)}
-        ${campo('Dia', `<input name="data" type="date" class="fx-in" value="${esc(p.data)}">`)}
-        ${campo('Para onde foi', `<select name="categoria" class="fx-sel">${opcoesCat(d, p.categoria)}</select>`)}
-        ${campo('Cliente', `<select name="cliente_id" class="fx-sel">${opcoesCliente(d, p.cliente_id)}</select>`)}
-        ${campo('Quem', `<input name="quem" class="fx-in" value="${esc(p.quem)}">`)}
+    const cmp = (rot, html) => `<label><span>${esc(rot)}</span>${html}</label>`;
+    return `<section class="d3m-laranja d3m-d-fx-prop" data-fx-proposta="${esc(p.id)}" data-fx-card="whats" aria-label="Chegou pelo WhatsApp"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>Vorcaro · chegou pelo WhatsApp, ${n0(i)} de ${n0(n)}</span>
+      <p class="d3m-d-fx-quem"><i aria-hidden="true">${esc(iniciais(p.autor))}</i><span><b>${esc(p.autor || 'Grupo')}</b> mandou ${p.anexo === 'print' ? 'um print' : p.anexo === 'audio' ? 'um áudio' : 'uma mensagem'}${p.recebido_em ? ` em ${esc(dataCurta(p.recebido_em))}` : ''}</span></p>
+      <div class="d3m-d-fx-val"><b class="d3m-lar-num">${esc(comSinal(sinal * p.valor))}</b><span class="d3-acao-frase">${esc(p.texto || '(sem texto)')}</span></div>
+      <div class="d3m-d-fx-campos">
+        ${cmp('Tipo', `<select name="tipo"><option value="saida"${p.tipo !== 'entrada' ? ' selected' : ''}>saiu</option><option value="entrada"${p.tipo === 'entrada' ? ' selected' : ''}>entrou</option></select>`)}
+        ${cmp('Valor', `<input name="valor" inputmode="decimal" value="${esc(String(p.valor).replace('.', ','))}">`)}
+        ${cmp('Para onde foi', `<select name="categoria">${opcoesCat(d, p.categoria)}</select>`)}
+        ${cmp('Cliente', `<select name="cliente_id">${opcoesCliente(d, p.cliente_id)}</select>`)}
+        ${cmp('Quem', `<input name="quem" value="${esc(p.quem)}">`)}
+        ${cmp('Dia', `<input name="data" type="date" value="${esc(p.data)}">`)}
       </div>
-      ${ja ? `<p class="fx-ja">${pill(`já no extrato · ${dataCurta(ja.data)} · ${ja.historico.slice(0, 32)}`, 'b')}</p>` : ''}
-      <div class="fx-linha-acoes fx-fim"><button type="button" class="fv2-btn s fv2-perigo" data-fx="proposta-descartar" data-valor="${esc(p.id)}">Descartar</button>
-        <button type="button" class="fv2-btn s${cands ? '' : ' d3f-escuro'} v2-estado" data-fx="proposta-lancar" data-valor="${esc(p.id)}" title="Entra como lançamento à parte (dinheiro que não passou pela conta)">${cands ? 'Lançar à parte' : 'Lançar'}</button>${cands}</div></div>`;
+      ${ja ? `<small class="d3m-d-fx-ja">Já está no extrato de ${esc(dataCurta(ja.data))}: ${esc(String(ja.historico || '').slice(0, 48))}. Juntar evita lançar duas vezes.</small>` : ''}
+      <div class="d3m-lar-bts">${cands}<button type="button" class="d3m-btn l${cands ? ' s' : ''} v2-estado" data-fx="proposta-lancar" data-valor="${esc(p.id)}" title="Entra como lançamento à parte (dinheiro que não passou pela conta)">${cands ? 'Lançar à parte' : 'Lançar'}</button>
+        <button type="button" class="d3m-d-fx-descartar" data-fx="proposta-descartar" data-valor="${esc(p.id)}">Descartar</button></div></section>`;
   }
   const opcoesForma = (atual = '') => `<option value="">escolher</option>${X().FORMAS_LANCAMENTO.map((f) => `<option value="${f.id}"${atual === f.id ? ' selected' : ''}>${esc(f.nome)}</option>`).join('')}`;
   // De onde veio o lançamento e quem registrou (16/11/2026: "o quem é quem pagou ou quem está lançando?").
@@ -1079,6 +1117,9 @@
         return;
       }
       case 'mao-abrir': ui.vorcaro.mao = !ui.vorcaro.mao; return repintar();
+      // Prancha V2: "Decididas" abre no lugar do gráfico; a busca do topo é a busca de todo o painel.
+      case 'vorcaro-baixo': ui.vorcaro.baixo = ui.vorcaro.baixo === valor ? '' : valor; ui.vorcaro.mao = false; return repintar();
+      case 'buscar': document.querySelector('#mundo-hud [data-ferr="busca"]')?.click?.(); return;
       case 'mao-salvar': {
         const f = formDe(b, 'mao'); if (!f) return;
         const v = valoresDe(f);

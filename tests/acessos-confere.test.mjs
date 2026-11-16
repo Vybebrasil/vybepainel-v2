@@ -27,7 +27,7 @@ test('dinheiro: carteira sem valores para quem não é dono; Gestão não pede f
   const cart = ler('server/carteira.js'), setor = ler('vybe-mundo-setor.js'), com = ler('vybe-mundo-comercial.js');
   assert.ok(cart.includes('const dinheiro = ehDonoPessoa(quem?.pessoa);') && cart.includes('for (const c of clientes || []) c.valor = null;'));
   for (const acao of ['contrato_salvar', 'churn_registrar', 'churn_apagar']) assert.ok(cart.includes(`if (acao === '${acao}') {\n    soDono(quem);`), acao);
-  assert.ok(setor.includes("const veDinheiro = typeof souDonoDaSessao !== 'function' || souDonoDaSessao(), negado = Promise.resolve({ falha: 'negado' });"));
+  assert.ok(setor.includes("const veDinheiro = (typeof souDonoDaSessao !== 'function' || souDonoDaSessao()) && (typeof ctx.dinheiro !== 'function' || ctx.dinheiro() === true), negado = Promise.resolve({ falha: 'negado' });"), 'a Gestão só pede finanças para dono, inclusive no ver como');
   assert.doesNotMatch(com.slice(com.indexOf('function palpiteDono'), com.indexOf('const souAdminAqui')), /souAdmin\(\)/, 'o palpite de dinheiro não usa a marca de admin');
   assert.ok(com.includes("['fornecedores', 'Fornecedores'],"), 'Fornecedores não é aba de dinheiro');
 });

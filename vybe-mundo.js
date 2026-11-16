@@ -1528,7 +1528,7 @@
       // Dinheiro, comercial, clientes, produção e time num painel só (vybe-mundo-setor.js, mesmas leituras dos setores).
       gestao.innerHTML = '<div class="vv-g-corpo vs-agencia"></div>'; // quadro da Gestão: o cabeçalho vem no próprio painel (vybe-mundo-setor.js)
       window.VybeSetor.pintarEm(gestao.querySelector('.vs-agencia'), 'setor:agencia', { nome: 'Gestão', subs: SUBMODULOS.filter(subVisivel), numeros: () => numerosDoDono(), fila: () => minhaFila(), agenda: () => agendaEventos,
-        abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor) });
+        abrirSub: (sub) => usarTrilho(sub), irSetor: (setor) => abrirVisaoSetor(setor), dinheiro: () => souDonoDoDinheiro() });
       return;
     }
     if (gestaoAba === 'performance' && window.VybePerformance?.html) {

@@ -73,46 +73,67 @@ test('Visão do setor: cabeçalho do quadro (setores em fichas, Atualizado e um 
   for (const b of ['Entregas por semana', 'Carga do time', 'Onde trava', 'Clientes com atraso', 'Cobertura da semana', 'Próximos compromissos']) assert.ok(resto.includes(b), `${b} continua a um clique`);
 });
 
-test('Gestão (quadro D3-Gestao): bloco de ação curto, quatro números, Por setor com o Abrir no pé e Esta semana em linha', async () => {
-  const t = montar({ respostas: (u) => (u.includes('aba=inadimplencia') ? { total: 10400, clientes: [{ cliente_nome: 'Cliente B', atraso_mais_antigo: 18 }, { cliente_nome: 'Cliente C', atraso_mais_antigo: 4 }] } : u.includes('aba=financas') ? { resumo: { receita: 1 } } : u.includes('aba=funil') ? { mes: { kpis: { atual: {} }, progresso: [] } } : {}) });
+const RESPOSTAS_GESTAO = (u) => (u.includes('aba=inadimplencia') ? { total: 10400, clientes: [{ cliente_nome: 'Cliente B', atraso_mais_antigo: 18 }, { cliente_nome: 'Cliente C', atraso_mais_antigo: 4 }] } : u.includes('aba=financas') ? { resumo: { receita: 1 } } : u.includes('aba=funil') ? { mes: { kpis: { atual: {} }, progresso: [] } } : {});
+test('Gestão (prancha V2-M-Gestao): topo no vidro, quatro cartões por área, o laranja do que pesa, a semana e o Abrir', async () => {
+  const t = montar({ respostas: RESPOSTAS_GESTAO });
   const destino = t.novo();
   t.ctx.VybeSetor.pintarEm(destino, 'setor:agencia', { ...contexto(numeros()), nome: 'Gestão' });
-  assert.match(destino.innerHTML, /<h2>A agência inteira<\/h2>.*data-vs-tipo="mensal".*data-vs-mes.*Atualizado \d\d:\d\d/s);
+  assert.match(destino.innerHTML, /class="d3m-d-topo vs-em-topo">.*<h2>Gestão<\/h2>.*data-gestao-aba="performance">Performance.*data-gestao-aba="historico".*data-setor-sub="equipe".*a agência inteira · .* · atualizado às \d\d:\d\d.*data-vs-tipo="mensal".*data-vs-mes.*data-d3m-busca.*data-setor-atualizar.*data-gestao-cheia.*data-gestao-fechar/s);
   await esperar();
   const h = t.parte('.vs-corpo').innerHTML;
-  assert.equal(t.parte('.g2-vaga').innerHTML, '', 'o botão sai do topo e vai para o bloco laranja');
-  assert.match(h, /<span class="d3-acao-frase">Produção pesa: 1 vai ao ar hoje sem estar pronta\.<\/span><button type="button" class="d3-acao-btn" data-espiar="alerta:1">Abrir a de hoje<\/button>/);
-  const ordem = ['d3-acao', 'd3g-nums', 'd3g-setores', 'd3g-abrir', 'd3g-semana', '<details class="g2-mais"'].map((c) => h.indexOf(c));
+  assert.equal(t.parte('.g2-vaga').innerHTML, '', 'o botão do que pesa fica no cartão laranja');
+  const ordem = ['d3m-d-g-cartoes', 'aria-label="Produção"', 'aria-label="Finanças, só donos"', 'aria-label="Clientes"', 'aria-label="Comercial"', 'd3m-d-g-lado', 'd3m-laranja', 'd3m-d-g-semana', 'd3m-d-g-abrir', '<details class="g2-mais"'].map((c) => h.indexOf(c));
   assert.ok(ordem.every((p, i) => p >= 0 && (i === 0 || p > ordem[i - 1])), ordem.join(','));
-  // O mesmo rótulo do Hoje e da Produção (auditoria 15/11, item 31): "Prontas da semana".
-  for (const r of ['Atrasadas', 'Vão ao ar hoje', 'Prontas da semana', 'Clientes ativos']) assert.ok(h.includes(`<span class="d3-num-rot">${r}</span>`), r);
-  assert.match(h, /title="Atrasada: a data do cliente/, 'a conta da fala antiga fica na dica do número');
-  assert.match(h, /Prontas da semana<\/span><b class="d3-num-v">4<small> \/ 10<\/small><\/b><span class="d3-barra" style="--v:40%">/);
-  const linhas = [...h.slice(h.indexOf('d3g-setores'), h.indexOf('d3g-abrir')).matchAll(/<b>(Produção|Finanças|Clientes|Comercial)<\/b>/g)].map((m) => m[1]);
-  assert.deepEqual(linhas, ['Produção', 'Finanças', 'Clientes', 'Comercial'], 'um setor por linha, o mais grave primeiro');
-  assert.match(h, /<span class="d3s-pill r">18 dias<\/span><span class="d3g-set-txt">R\$ 10,4 mil em atraso, de 2 clientes<\/span>.*?data-setor-ir="setor:financas">Abrir Finanças/s);
-  assert.match(h, /<span class="d3s-pill a">Sem meta<\/span><span class="d3g-set-txt">nenhuma meta definida para novembro<\/span>.*?data-setor-sub="funil">Definir metas/s);
-  assert.match(h, /<span class="d3s-pill n">2 risco de furo · 2 d<\/span>/, 'o detalhe da Produção vira pílula');
-  assert.match(h, /data-gestao-aba="performance">Ver por etapa/);
-  assert.match(h, /class="d3s-ver d3g-abrir"><span>Abrir<\/span><button type="button" class="d3s-chip r" data-espiar="atrasadas">3 atrasadas<\/button>.*?data-gestao-aba="historico">Histórico e projeção<.*?Negócios por mês<.*?data-setor-sub="equipe">Equipe online · 0</s);
-  assert.match(h, /Esta semana<\/h3>.*?<svg class="d3-graf d3g-graf"[^>]*><polyline class="meta" points="[^"]+"\/><polyline points="[^"]+"\/><circle/s, 'prontas e previstas em linha');
+  // Produção: o número abre as atrasadas (a conta fica na dica) e cada linha leva à lista dela.
+  assert.match(h, /data-espiar="atrasadas" title="Atrasada: a data do cliente[^"]*" class="d3m-d-numero r">3<\/button><span>peças atrasadas<\/span>/);
+  assert.match(h, /data-espiar="alerta:1" class="d3m-d-lin"><i class="r"><\/i><span>3 de 4 prontas para hoje<\/span><small>vão ao ar hoje<\/small>/);
+  assert.match(h, /data-espiar="emRisco" class="d3m-d-lin"><i class="a"><\/i><span>2 com risco de furo<\/span><small>em 2 dias<\/small>/);
+  assert.match(h, /data-gestao-aba="performance">ver por etapa/);
+  // Finanças (só donos): o que está em atraso, com os dias, leva ao setor.
+  assert.match(h, /<h3>Finanças <small>· só donos<\/small><\/h3>.*?data-setor-ir="setor:financas">abrir Finanças/s);
+  assert.match(h, /data-setor-ir="setor:financas" class="d3m-d-lin"><i class="r"><\/i><span>R\$ 10,4 mil em atraso<\/span><small>há 18 dias<\/small>/);
+  // Clientes e Comercial
+  assert.match(h, /data-espiar="alerta:3" class="d3m-d-lin"><i class="a"><\/i><span>Cliente D sem conteúdo<\/span><small>nesta semana<\/small>/);
+  assert.match(h, /data-setor-sub="funil" class="d3m-d-lin"><i class="a"><\/i><span>Nenhuma meta definida<\/span>.*?data-setor-sub="funil">definir metas|data-setor-sub="funil">definir metas.*?<span>Nenhuma meta definida<\/span>/s);
+  // O laranja: o número, a frase e os dois botões.
+  assert.match(h, /VYBES · onde pesa agora<\/span>\s*<div class="d3m-lar-txt"><b class="d3m-lar-num">1<\/b><span class="d3-acao-frase">vai ao ar hoje sem estar pronta<\/span><small>É a Produção\. Mais 3 áreas pedem ação\.<\/small>/);
+  assert.match(h, /<button type="button" class="d3m-btn l" data-espiar="alerta:1">Abrir a de hoje<\/button><button type="button" class="d3m-btn l s" data-gestao-aba="performance">Ver por etapa<\/button>/);
+  // Esta semana em linha, com hoje marcado, e o Abrir.
+  assert.match(h, /data-gestao-aba="semana" title="Ver a semana"><svg class="d3m-d-g-sem-graf"[^>]*><path class="meta" d="[^"]+"\/><path class="fio" d="[^"]+"\/><circle/, 'prontas e previstas em linha');
   assert.match(h, /<span class="on">qui<\/span>/, 'hoje marcado no eixo');
-  assert.match(h, /data-gestao-aba="semana">Ver a semana/);
-  assert.doesNotMatch(h, /g2-dia-qt|class="v2-barra g2-barra"><i style="--v:\d+%;--c:#11613A"><\/i><\/div><span class="g2-dia/, 'sem as barras por dia');
+  assert.match(h, /<b>4 \/ 10<\/b><small>na semana<\/small>.*<b>8<\/b><small>semana que vem<\/small>/s);
+  assert.match(h, /aria-label="Abrir">.*data-gestao-aba="performance".*data-gestao-aba="historico".*data-g2-mais.*data-gestao-aba="time"><span><b>Time e bots<\/b> <small>· 0 online<\/small>/s);
   const resto = h.slice(h.indexOf('<details class="g2-mais">'));
   for (const b of ['Entregas por semana', 'Clientes prioritários', 'Carga do time']) assert.ok(resto.includes(b), `${b} continua a um clique`);
 });
 
-test('Gestão sem dado e sem alerta: "sem números agora" e "Nada pede ação agora"', async () => {
+test('Gestão para quem não é dono (ou no "ver como"): sem o cartão de Finanças, sem valor e sem pedir dinheiro ao servidor', async () => {
+  const pedidos = [];
+  const t = montar({ respostas: (u) => { pedidos.push(u); return RESPOSTAS_GESTAO(u); } });
+  t.ctx.VybeSetor.pintarEm(t.novo(), 'setor:agencia', { ...contexto(numeros()), nome: 'Gestão', dinheiro: () => false }); await esperar();
+  const h = t.parte('.vs-corpo').innerHTML;
+  assert.match(h, /<div class="g2 d3m-d-g sem-fin">/);
+  assert.doesNotMatch(h, /aria-label="Finanças|abrir Finanças|R\$/, 'nenhum valor na tela');
+  assert.match(h, /aria-label="Produção".*aria-label="Clientes".*aria-label="Comercial"/s);
+  assert.match(h, /<b>Números e gráficos<\/b> <small>· entregas, clientes e time<\/small>/);
+  assert.deepEqual(pedidos.filter((u) => /area=financeiro|aba=financas|aba=recebimentos|aba=inadimplencia/.test(u)), [], 'dinheiro nem é pedido');
+});
+
+test('Gestão sem dado e sem alerta: o laranja diz que nada atrasou e os cartões dizem o que falta', async () => {
   const N = { ...numeros(), alertas: [], hoje: { dia: '2026-11-12', atrasadas: 0, emRisco: 0, faltam: 0, lista: {} }, cobertura: { clientesAtivos: 5 }, clientes: [] };
   let t = montar();
   t.ctx.VybeSetor.pintarEm(t.novo(), 'setor:agencia', { ...contexto(N), nome: 'Gestão' }); await esperar();
-  assert.match(t.parte('.vs-corpo').innerHTML, /<b>Finanças<\/b><\/span><div class="d3g-set-corpo"><p><span class="d3s-pill n">Sem dado<\/span><span class="d3g-set-txt">sem números agora<\/span>/);
-  assert.match(t.parte('.vs-corpo').innerHTML, /<span class="d3-acao-frase">Nada atrasado agora\.<\/span><\/section>/, 'sem atrasada, sem botão');
+  let h = t.parte('.vs-corpo').innerHTML;
+  assert.match(h, /<div class="d3m-lar-txt"><span class="d3-acao-frase">Nada atrasado agora\.<\/span><small>2 áreas pedem ação nos cartões ao lado\.<\/small>\s*<div class="d3m-lar-bts"><button type="button" class="d3m-btn l s"/, 'sem atrasada, sem número e sem o botão de abrir');
+  assert.match(h, /class="d3m-d-numero g">0<\/b><span>nenhuma peça atrasada<\/span>/);
+  assert.match(h, /class="d3m-d-numero">—<\/b><span>sem extrato no mês<\/span>/);
+  assert.match(h, /<span>Nenhuma com risco de furo<\/span>/);
   assert.equal(t.parte('.g2-vaga').innerHTML, '');
   t = montar({ respostas: (u) => (u.includes('aba=financas') ? { resumo: { receita: 1 } } : u.includes('aba=funil') ? { mes: { kpis: { atual: {} }, progresso: [{ nome: 'Negócios', meta: 2, realizado: 2, batida: true, percentual: 100 }] } } : {}) });
   t.ctx.VybeSetor.pintarEm(t.novo(), 'setor:agencia', { ...contexto(N), nome: 'Gestão' }); await esperar();
-  assert.match(t.parte('.vs-corpo').innerHTML, /Nada pede ação agora\./);
+  h = t.parte('.vs-corpo').innerHTML;
+  assert.match(h, /Nenhuma área pede ação agora\./);
+  assert.match(h, /<i class="g"><\/i><span>1 de 1 meta batida<\/span>/);
 });
 
 test('Performance (quadro D3-Performance): bloco do Heitor, quatro números, pede ação, entregas e a fila por etapa', () => {
