@@ -243,18 +243,27 @@ function escritorioGarantirConquistasLoja() {
   }).catch((e) => { escritorio.conquistasErro = e.message; }).finally(() => { escritorioLendoConquistasLoja = null; redesenharCatalogoJanelaEscritorio(); });
 }
 function escritorioLojaCascaHtml(f) {
-  return `<div class="v2l" id="v2-loja">
-<div class="v2l-topo"><h1>Loja</h1><div class="v2l-seg" id="office-catj-abas" role="group" aria-label="Partes da loja"></div><button type="button" class="v2l-x" onclick="this.closest('dialog').close()" aria-label="Fechar a loja"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-<div class="v2l-kpis" id="v2l-kpis"></div>
-<div class="v2l-corpo">
-<section class="v2l-esq" aria-label="Itens">
-<div class="v2l-filtros"><label class="v2l-so-leitor" for="v2l-busca">Buscar na loja</label><input type="search" id="v2l-busca" class="v2l-busca" placeholder="Buscar: mesa, sofá" autocomplete="off" value="${safeText(f.busca)}" oninput="escritorio.cat.busca=this.value;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()"><div class="v2l-chips" id="v2l-chips" role="group" aria-label="Filtros da loja"></div></div>
+  // V2 (pranchas V2-M-Loja e V2-M-Conquistas, 16/11/2026): a janela de vidro fumê com o título no vidro, as partes
+  // (Loja, Inventário, Carteira, Conquistas), a busca num menu do topo e o fechar; à esquerda a folha dos itens (a
+  // cabeça com as fichas, a grade de itens grandes que rola por dentro) ou, em Conquistas, as duas folhas dela; à
+  // direita a consulta de 316 (#v2l-kpis): saldo, vitrine da semana e atalhos, ou o laranja do próximo troféu.
+  // Os ids de sempre continuam (abas, busca, fichas, Filtros, faixas, info, grade, conquistas e ficha).
+  const lupa = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>';
+  return `<div class="d3m-e-tela d3m-f-loja" id="v2-loja">
+<div class="d3m-e-topo"><div class="d3m-e-tit"><span class="d3m-e-h" id="d3m-f-loja-h" role="heading" aria-level="1">Loja</span><span class="d3m-e-sub" id="d3m-f-loja-sub"></span></div>
+<div class="d3m-e-acoes"><div class="d3m-e-per d3m-f-partes" id="office-catj-abas" role="group" aria-label="Partes da loja"></div><details class="d3m-e-troca d3m-f-menu d3m-f-loja-busca"${f.busca ? " open" : ""}><summary class="d3m-e-ico" aria-label="Buscar na loja" title="Buscar na loja">${lupa}</summary><div class="d3m-e-pop"><label class="v2l-so-leitor" for="v2l-busca">Buscar na loja</label><input type="search" id="v2l-busca" class="v2l-busca d3m-f-campo" placeholder="Buscar: mesa, sofá" autocomplete="off" value="${safeText(f.busca)}" oninput="escritorio.cat.busca=this.value;escritorio.cat.ver=60;desenharCatalogoJanelaEscritorio()"></div></details><span class="d3m-f-saldo" id="d3m-f-loja-saldo"></span><button type="button" class="d3m-e-ico" onclick="this.closest('dialog').close()" aria-label="Fechar a loja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+<div class="d3m-e-corpo">
+<div class="d3m-e-main">
+<section class="d3m-e-folha cresce d3m-f-itens v2l-esq" aria-label="Itens">
+<div class="d3m-e-cab"><b id="d3m-f-loja-tit">Destaques</b><div class="d3m-e-cab-dir v2l-filtros"><div class="d3m-f-fichas" id="v2l-chips" role="group" aria-label="Filtros da loja"></div></div></div>
 <div class="v2-abre v2l-painel" id="v2l-painel" aria-expanded="false"><i hidden></i><div class="v2-mais"><div id="v2l-painel-dentro"></div></div></div>
-<div class="v2l-faixas" id="office-catj-faixas" role="group" aria-label="Filtros do inventário"></div>
-<div class="v2l-info" id="office-catj-info"></div>
-<div class="v2l-grade" id="office-catj-grade"></div>
+<div class="v2l-faixas d3m-f-faixas" id="office-catj-faixas" role="group" aria-label="Filtros do inventário"></div>
+<div class="v2l-info d3m-f-info" id="office-catj-info"></div>
+<div class="d3m-e-rola d3m-f-grade" id="office-catj-grade"></div>
 </section>
-<aside class="v2l-card v2l-conq" id="v2l-conq" aria-label="Conquistas"></aside>
+<div class="d3m-f-conq" id="v2l-conq" aria-label="Conquistas"></div>
+</div>
+<aside class="d3m-lado d3m-f-lado" id="v2l-kpis" aria-label="Consulta"></aside>
 <aside class="ofc-catj-ficha ofc-previa-movel" id="office-catj-ficha" aria-label="Ficha do móvel" hidden></aside>
 </div></div>`;
 }
@@ -269,24 +278,41 @@ function escritorioLojaCabem() {
   const eco = escritorio.base?.economia; if (!eco || !escritorioCatalogo) return 0;
   if (!escritorioCabemNoSaldo || escritorioCabemNoSaldo.saldo !== eco.saldo || escritorioCabemNoSaldo.loja !== eco.loja) {
     const aba = escritorio.cat?.aba; if (escritorio.cat) escritorio.cat.aba = "loja"; // a conta é a da Loja, em qualquer aba
-    let n = 0; try { n = escritorioCatalogoGeralLista({ categoria: "*", busca: "", raridade: "", posso: true, desejos: false }).filter((m) => escritorioInfoLoja(m.classe).raridade === "comum").length; } finally { if (escritorio.cat) escritorio.cat.aba = aba; }
-    escritorioCabemNoSaldo = { saldo: eco.saldo, loja: eco.loja, n };
+    let n = 0, total = 0; try { n = escritorioCatalogoGeralLista({ categoria: "*", busca: "", raridade: "", posso: true, desejos: false }).filter((m) => escritorioInfoLoja(m.classe).raridade === "comum").length; total = escritorioCatalogoGeralLista({ categoria: "*", busca: "", raridade: "", posso: false, desejos: false }).filter((m) => escritorioInfoLoja(m.classe).raridade === "comum").length; } finally { if (escritorio.cat) escritorio.cat.aba = aba; }
+    escritorioCabemNoSaldo = { saldo: eco.saldo, loja: eco.loja, n, total };
   }
   return escritorioCabemNoSaldo.n;
 }
+// A consulta da direita (#v2l-kpis; prancha V2-M-Loja): o saldo com quanto da loja cabe nele, a vitrine da semana,
+// como ganhar VybeCoins e os atalhos. Em Conquistas (prancha V2-M-Conquistas): o laranja do próximo troféu, os níveis
+// ganhos por área e o ranking. Os números são os mesmos de antes (saldo, peças que cabem, troféus, próximo troféu).
 function escritorioLojaKpisHtml() {
-  const eco = escritorio.base?.economia, marcos = escritorioMarcosDaLoja();
-  const saldo = Number(eco?.saldo || 0), cabem = escritorioLojaCabem();
-  const c1 = `<div class="v2l-card v2l-kpi"><small>Seu saldo</small><b><span class="v2-num">${eco ? v2lNum(saldo) : "…"}</span> <em>VybeCoins</em></b><div class="v2-barra"><i style="--v:${eco ? 100 : 0}%;--c:#E8B93A"></i></div><small>${cabem ? `${v2lNum(cabem)} ${cabem === 1 ? "peça cabe" : "peças cabem"} no saldo · ` : ""}piso, parede e bloco são grátis</small></div>`;
-  if (!marcos) {
-    const frase = escritorio.conquistasErro ? "Não deu para ler as conquistas agora." : escritorio.conquistasLidas ? "As conquistas em níveis estão sendo ativadas." : "Lendo as suas conquistas…";
-    return c1 + `<div class="v2l-card v2l-kpi"><small>Seus troféus</small><b><span>…</span></b><div class="v2-barra"><i style="--v:0%"></i></div><small>${frase}</small></div><div class="v2l-card v2l-kpi"><small>Próximo troféu</small><b><span>…</span></b><div class="v2-barra"><i style="--v:0%"></i></div><small>${frase}</small></div>`;
+  const eco = escritorio.base?.economia, marcos = escritorioMarcosDaLoja(), aba = escritorio.cat?.aba || "loja";
+  const saldo = Number(eco?.saldo || 0), cabem = escritorioLojaCabem(), comuns = escritorioCabemNoSaldo?.total || 0;
+  const seta = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  const ir = (chave, rotulo, apoio) => `<button type="button" class="d3m-vlin" onclick="escritorio.cat.aba='${chave}';escritorio.cat.ver=60;${chave === "inventario" ? "carregarTrocasEscritorio();" : ""}redesenharCatalogoJanelaEscritorio()"><span><b>${rotulo}</b> <span class="d3m-f-ap">· ${apoio}</span></span>${seta}</button>`;
+  const r = marcos ? escritorioConquistasResumo(marcos) : null, p = r?.andamento[0], dp = p && p.degraus.find((d) => d.nivel === p.proximo.nivel);
+  const frase = escritorio.conquistasErro ? "Não deu para ler as conquistas agora." : escritorio.conquistasLidas ? "As conquistas em níveis estão sendo ativadas." : "Lendo as suas conquistas…";
+  if (aba === "conquistas") {
+    const NOMES = ["", "Bronze", "Prata", "Ouro", "Diamante"];
+    const rot = `<span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${!r || p ? "o próximo troféu" : "os seus troféus"}</span>`;
+    const bts = `<div class="d3m-lar-bts"><button type="button" class="d3m-btn l" onclick="this.closest('dialog')?.close();window.mundoVoxel?.irPara?.('tarefas')">Ver minha fila</button><button type="button" class="d3m-btn l s" onclick="document.querySelector('#v2l-estante .d3m-e-rola')?.focus()">Ver a estante</button></div>`;
+    const dentro = !r ? `<span class="d3-acao-frase">${frase}</span>`
+      : p ? `<b class="d3m-lar-num">${v2lNum(p.proximo.meta - p.valor)}</b><span class="d3-acao-frase">${safeText(p.unidade)} para ${NOMES[p.proximo.nivel] ? `a ${safeText(NOMES[p.proximo.nivel])}` : safeText(p.proximo.nome)}</span><small class="d3m-f-lar-ap">${safeText(p.nome)}: você tem ${v2lNum(p.valor)} de ${v2lNum(p.proximo.meta)}.${dp ? ` Vale ${v2lNum(dp.moedas)} moedas e ${v2lNum(dp.pontos)} XP.` : ""}</small>${bts}`
+      : `<b class="d3m-lar-num">${v2lNum(r.niveis)}</b><span class="d3-acao-frase">${r.niveis ? "troféus, nenhuma escada em andamento" : "a primeira entrega abre a primeira escada"}</span>${bts}`;
+    const lar = `<section class="d3m-laranja d3m-f-lar" aria-label="VYBES · o próximo troféu">${rot}<div class="d3m-lar-txt">${dentro}</div></section>`;
+    const areas = r && typeof ESCRITORIO_GRUPOS_CONQUISTA !== "undefined" ? ESCRITORIO_GRUPOS_CONQUISTA.map(([, nome, , ids]) => { const l = ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean); return l.length ? [nome, l.filter((x) => x.nivel).length, l.length] : null; }).filter(Boolean) : [];
+    const porArea = areas.length ? `<section class="d3m-cons" aria-label="Por área"><div class="d3m-cons-cab"><b>Por área</b><span>níveis ganhos</span></div><div class="d3m-f-areas">${areas.map(([nome, n, t]) => `<span class="d3m-f-area"><span class="d3m-f-ap">${safeText(nome)}</span><span class="d3m-f-area-b"><i style="--v:${Math.round((n / t) * 100)}%"></i></span><b>${n}/${t}</b></span>`).join("")}</div></section>` : "";
+    return `${lar}${porArea}<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div><button type="button" class="d3m-vlin" onclick="this.closest('dialog')?.close();abrirRankingEscritorio(undefined,'semana')"><span><b>Ranking da semana</b> <span class="d3m-f-ap">· quem lidera</span></span>${seta}</button>${ir("loja", "Loja", "gastar as VybeCoins")}</section>`;
   }
-  const r = escritorioConquistasResumo(marcos), p = r.andamento[0], dp = p && p.degraus.find((d) => d.nivel === p.proximo.nivel);
-  const c2 = `<div class="v2l-card v2l-kpi"><small>Seus troféus</small><b><span class="v2-num" style="animation-delay:.12s">${v2lNum(r.niveis)}</span> <em>de ${v2lNum(r.total)}</em></b><div class="v2-barra"><i style="--v:${r.total ? Math.round((r.niveis / r.total) * 100) : 0}%;--c:var(--d3-tinta)"></i></div><small class="v2l-meds">${r.porNivel.map((q, i) => `<span class="v2l-med" style="--c:${V2L_NIVEL_COR[i + 1]}" title="${q} ${["Bronze", "Prata", "Ouro", "Diamante"][i]}">${q}</span>`).join("")}<button type="button" class="v2l-link" onclick="escritorio.cat.aba='conquistas';redesenharCatalogoJanelaEscritorio()">sua estante</button></small></div>`;
-  const c3 = p ? `<div class="v2l-card v2l-kpi"><small>Próximo troféu · ${safeText(p.nome)} ${safeText(p.proximo.nome)}</small><b><span class="v2-num" style="animation-delay:.24s">${v2lNum(p.proximo.meta - p.valor)}</span> <em>${safeText(p.unidade)} para subir</em></b><div class="v2-barra"><i style="--v:${r.pct(p)}%;--c:${V2L_NIVEL_COR[p.proximo.nivel] || "#B9B8C2"}"></i></div><small>${v2lNum(p.valor)} de ${v2lNum(p.proximo.meta)}${dp ? ` · vale +${dp.moedas} moedas e +${dp.pontos} XP` : ""}</small></div>`
-    : `<div class="v2l-card v2l-kpi"><small>Próximo troféu</small><b><span>${r.niveis ? "Tudo em dia" : "Nenhum ainda"}</span></b><div class="v2-barra"><i style="--v:${r.niveis ? 100 : 0}%;--c:#11613A"></i></div><small>${r.niveis ? "Nenhuma escada em andamento agora." : "A primeira entrega abre a primeira escada."}</small></div>`;
-  return c1 + c2 + c3;
+  const saldoHtml = `<section class="d3m-cons" aria-label="Seu saldo"><div class="d3m-cons-cab"><b>Seu saldo</b><span>VybeCoins</span></div><div class="d3m-f-saldo-box"><b class="d3m-f-saldo-n">${eco ? v2lNum(saldo) : "…"}</b><span class="d3m-f-saldo-b" title="Quanto da loja comum cabe no seu saldo"><i style="--v:${eco && comuns ? Math.max(2, Math.round((cabem / comuns) * 100)) : 0}%"></i></span><small class="d3m-f-ap">${cabem ? `${v2lNum(cabem)} ${cabem === 1 ? "peça cabe" : "peças cabem"} no saldo. ` : ""}Piso, parede e bloco são grátis.</small></div></section>`;
+  const loja = eco?.loja, hoje = typeof hojeDeVerdade === "function" ? hojeDeVerdade() : new Date().toISOString().slice(0, 10);
+  const troca = loja?.semana ? Math.max(1, Math.round((Date.parse(loja.semana) + 7 * 864e5 - Date.parse(hoje)) / 864e5)) : 0;
+  const vitrine = (loja?.vitrine || []).map((c) => { const i = escritorioInfoLoja(c); return `<button type="button" class="d3m-vlin" onclick="abrirPreviaMovelEscritorio('${safeText(c)}')"><span><b>${safeText(escritorioNomeDaClasse(c))}</b> <span class="d3m-f-ap">· ${i.restante === 0 ? "esgotado" : i.restante > 0 ? (i.restante === 1 ? "resta 1" : `restam ${i.restante}`) : `${v2lNum(i.preco)} moedas`}</span></span>${seta}</button>`; }).join("");
+  const vitrineHtml = vitrine ? `<section class="d3m-cons d3m-f-cresce" aria-label="Vitrine da semana"><div class="d3m-cons-cab"><b>Vitrine da semana</b><span>${troca ? `troca em ${troca} ${troca === 1 ? "dia" : "dias"}` : ""}</span></div><div class="d3m-f-lista">${vitrine}</div></section>` : "";
+  const ganhar = `<section class="d3m-cons" aria-label="Como ganhar VybeCoins"><div class="d3m-cons-cab"><b>Como ganhar VybeCoins</b><span></span></div><p class="d3m-f-ganhar">Entregas, missões do dia e troféus.${dp ? ` O próximo troféu vale ${v2lNum(dp.moedas)} moedas.` : ""}</p></section>`;
+  const abrir = `<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>${[aba !== "loja" ? ir("loja", "Loja", "móveis e roupas") : "", aba !== "inventario" ? ir("inventario", "Inventário", "o que já é seu") : "", aba !== "carteira" ? ir("carteira", "Carteira", "entradas e saídas") : "", ir("conquistas", "Conquistas", r ? `${v2lNum(r.niveis)} de ${v2lNum(r.total)} troféus` : "os troféus")].join("")}</section>`;
+  return saldoHtml + vitrineHtml + ganhar + abrir;
 }
 // A barra de filtro única: as fichas à vista e, em Filtros, tudo o que antes ocupava três faixas (categorias,
 // raridade, ordem e desejos). Nada some: fica a um clique.
@@ -384,9 +410,11 @@ function escritorioConquistasLojaHtml(largo = false) {
   const daAba = (ids) => ids ? ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean) : r.andamento.slice(0, 8);
   const visiveis = grupos.filter(([, , ids]) => daAba(ids).length);
   const aba = visiveis.some(([k]) => k === escritorio.cqAba) ? escritorio.cqAba : visiveis[0]?.[0];
-  const todos = largo || escritorio.cqMaisGrupos || visiveis.findIndex(([k]) => k === aba) > 2;
+  // Na tela Conquistas (prancha V2-M-Conquistas) as fichas moram na cabeça da folha: duas à vista e "+ N" para o resto.
+  const mostra = largo ? 2 : 3;
+  const todos = escritorio.cqMaisGrupos || visiveis.findIndex(([k]) => k === aba) >= mostra;
   const chip = ([k, nome, ids]) => { const l = daAba(ids); return `<button type="button" class="v2l-chip" aria-pressed="${k === aba}" onclick="escritorio.cqAba='${k}';escritorio.cqAberta=undefined;escritorio.cqTitulos=false;redesenharConquistasLoja()">${safeText(nome)}${ids ? ` ${l.filter((x) => x.nivel).length}/${l.length}` : ""}</button>`; };
-  const chips = `<div class="v2l-chips v2l-conq-chips" role="group" aria-label="Grupos de conquistas">${(todos ? visiveis : visiveis.slice(0, 3)).map(chip).join("")}${!todos && visiveis.length > 3 ? `<button type="button" class="v2l-chip" aria-expanded="false" title="Mostrar os outros grupos" onclick="escritorio.cqMaisGrupos=true;redesenharConquistasLoja()">+ ${visiveis.length - 3}</button>` : ""}</div>`;
+  const chips = `<div class="v2l-chips v2l-conq-chips" role="group" aria-label="Grupos de conquistas">${(todos ? visiveis : visiveis.slice(0, mostra)).map(chip).join("")}${!todos && visiveis.length > mostra ? `<button type="button" class="v2l-chip" aria-expanded="false" title="Mostrar os outros grupos" onclick="escritorio.cqMaisGrupos=true;redesenharConquistasLoja()">+ ${visiveis.length - mostra}</button>` : ""}</div>`;
   const lista = daAba(grupos.find(([k]) => k === aba)?.[2] ?? null);
   // Sem escolha ainda, a primeira de "Perto de subir" vem aberta (cqAberta: undefined = padrão, null = todas fechadas).
   const aberta = escritorio.cqAberta === undefined ? (aba === "perto" ? lista[0]?.id : null) : escritorio.cqAberta;
@@ -405,11 +433,23 @@ ${dp ? `<span class="v2l-premio"><b>+${dp.moedas}</b> moedas<br><b>+${dp.pontos}
   const pe = `<div class="v2l-titulo"><p><span class="v2l-sub">Seu título no mapa</span><b>${safeText(r.atual?.texto || (r.titulos.length ? "Sem título" : "Nenhum título ainda"))}</b></p>${r.titulos.length ? `<button type="button" class="v2l-btn s" aria-expanded="${Boolean(escritorio.cqTitulos)}" onclick="escritorio.cqTitulos=!escritorio.cqTitulos;redesenharConquistasLoja()">${escritorio.cqTitulos ? "Fechar títulos" : `Trocar título · ${r.titulos.length}`}</button>` : ""}</div>`;
   const escadas = `<div class="v2l-escadas">${escritorio.cqTitulos && !largo ? titulosHtml : lista.map(escada).join("") || '<p class="v2l-vazio">Nada aqui ainda.</p>'}</div>`;
   if (!largo) return topo + chips + escadas + pe;
-  return `<div class="v2l-conq-col">${topo}${chips}${escadas}</div><div class="v2l-conq-col lado">${pe}${escritorio.cqTitulos ? titulosHtml : ""}${estante}</div>`;
+  // A tela Conquistas (prancha V2-M-Conquistas): a folha "Mais perto de subir" (as fichas na cabeça, as escadas que
+  // abrem no lugar e o título no pé) e a folha "Sua estante" (os troféus e, no pé, quantos de cada nível).
+  const nomeAba = aba === "perto" ? "Mais perto de subir" : grupos.find(([k]) => k === aba)?.[1] || "Conquistas";
+  const conta = aba === "perto" ? `${lista.length} de ${r.andamento.length}` : `${lista.filter((x) => x.nivel).length} de ${lista.length} conquistas`;
+  const maior = r.melhor ? `o maior é ${safeText(r.melhor.nome)} ${safeText(r.melhor.degraus.filter((d) => d.ok).at(-1)?.nome || "")}` : "";
+  const subir = `<section class="d3m-e-folha cresce d3m-f-subir" aria-label="${safeText(nomeAba)}"><div class="d3m-e-cab"><b>${safeText(nomeAba)} <span>· ${conta}</span></b>${chips}</div>
+<div class="d3m-e-rola v2l-escadas">${escritorio.cqTitulos ? titulosHtml : lista.map(escada).join("") || '<p class="v2l-vazio">Nada aqui ainda.</p>'}</div>
+<div class="d3m-e-pe d3m-f-titulo"><span class="d3m-f-titulo-t"><b>Seu título no mapa</b> · ${safeText(r.atual?.texto || (r.titulos.length ? "sem título" : "sem título ainda"))}</span>${r.titulos.length ? `<button type="button" class="d3v-btn sec d3m-f-fio" aria-expanded="${Boolean(escritorio.cqTitulos)}" onclick="escritorio.cqTitulos=!escritorio.cqTitulos;redesenharConquistasLoja()">${escritorio.cqTitulos ? "Fechar os títulos" : `Trocar o título · ${r.titulos.length}`}</button>` : ""}</div></section>`;
+  const prateleira = `<section class="d3m-e-folha cresce d3m-f-estante" id="v2l-estante" aria-label="Sua estante"><div class="d3m-e-cab"><b>Sua estante <span>· ${v2lNum(r.niveis)} de ${v2lNum(r.total)}</span></b><span class="d3m-e-cab-dir">${maior}</span></div>
+<div class="d3m-e-rola" tabindex="-1">${r.ganhos.length ? `<div class="d3m-f-pecas">${r.ganhos.map((d) => `<span class="d3m-f-peca" style="--c:${V2L_NIVEL_COR[d.nivel]}" title="${safeText(d.escada)} ${safeText(d.nome)}">${escritorioMiniaturaHtml(d.classe)}</span>`).join("")}</div>` : '<p class="v2l-vazio">Os troféus que você ganhar aparecem aqui, prontos para expor no quarto.</p>'}</div>
+<div class="d3m-e-pe d3m-f-trofeus"><span>Troféus</span>${r.porNivel.map((q, i) => `<span class="d3m-f-trofeu"><b>${v2lNum(q)}</b> ${["bronze", "prata", "ouro", "diamante"][i]}</span>`).join("")}</div></section>`;
+  void topo; void pe; void estante;
+  return subir + prateleira;
 }
 function redesenharConquistasLoja() {
   const el = document.querySelector("#office-catalogo[open] #v2l-conq");
-  if (!el) return;
+  if (!el || escritorio.cat?.aba !== "conquistas") return;
   const rolagem = el.querySelector(".v2l-escadas")?.scrollTop || 0;
   el.innerHTML = escritorioConquistasLojaHtml(escritorio.cat?.aba === "conquistas");
   const lista = el.querySelector(".v2l-escadas"); if (lista) lista.scrollTop = rolagem;
