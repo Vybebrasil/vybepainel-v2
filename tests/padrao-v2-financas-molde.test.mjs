@@ -87,3 +87,19 @@ test('molde: CSS só com tokens d3 e sem o que é proibido', () => {
   assert.doesNotMatch(css.replace(/rgba?\([^)]*\)/g, ''), /#[0-9a-fA-F]{3,8}\b(?![\w-])(?=[;}\s,)])/, 'cor só por token');
   assert.match(ler('vybe-mundo-padrao-v2.css'), /padrao-v2\/zm-d-financas\.css/);
 });
+
+// O botão da linha (Conferir no Extrato, Recebi, Paguei, Ver): a regra antiga de financeiro.css (#vv-comercial .fx-ok) faz
+// dele um círculo de 30 px, e o texto saía cortado na beirada ("Confe"). No molde a regra do botão pesa mais e devolve a
+// largura do texto. Se alguém tirar o width:auto ou baixar o peso do seletor, o corte volta.
+test('molde: o botão da linha não herda o círculo de 30 px do .fx-ok antigo', () => {
+  const css = ler('padrao-v2/zm-d-financas.css').replace(/\r\n/g, '\n');
+  const regra = css.split('\n').find((l) => l.startsWith('#vv-comercial .fv2.d3m-d-fm :is(.v2c-btn,.fv2-btn,.fv2-btn.s){'));
+  assert.ok(regra, 'a regra do botão do molde existe, com #vv-comercial e as duas classes da janela');
+  assert.match(regra, /width:auto/);
+  assert.match(regra, /border-radius:var\(--d3-r-botao\)/);
+  assert.match(regra, /padding:0 10px/);
+  assert.match(ler('padrao-v2/financeiro.css'), /#vv-comercial \.fx-ok\{[^}]*width:30px/, 'a regra antiga continua lá: o molde precisa vencê-la');
+  const js = ler('vybe-mundo-financeiro.js');
+  assert.match(js, /class="fv2-btn s fx-ok" data-fx="conferir"/, 'o Conferir do Extrato é um fv2-btn: pega a regra do molde');
+  assert.match(js, /COLS_EXTRATO = \[[^\n]*\[96, ''\]\];/, 'a coluna do Conferir tem 96 px, o bastante para o texto inteiro');
+});
