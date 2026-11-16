@@ -1,0 +1,95 @@
+/* ===================================================================================================================
+   V2 · GRUPO F · CONQUISTAS (prancha V2-M-Conquistas, aprovada pelo Paulo em 16/11/2026). A tela própria das
+   conquistas, na mesma janela de vidro da Loja (parte Conquistas; abrirConquistasEscritorio leva para ela): a folha
+   "Mais perto de subir" com as fichas dos grupos na cabeça, as escadas que abrem no lugar e o título no pé; a folha
+   "Sua estante" de 380 com os troféus e, no pé, quantos de cada nível; e a consulta de 316 com o laranja do próximo
+   troféu, os níveis ganhos por área e o ranking. O HTML sai de escritorioConquistasLojaHtml(true) e
+   escritorioLojaKpisHtml (vybe-escritorio-loja.js). A janela e o vidro são os de zm-f-loja.css.
+   =================================================================================================================== */
+
+#office-catalogo.d3m-f-lojaj .d3m-f-conq{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq > .d3m-e-folha{min-height:0}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .d3m-e-cab{flex-wrap:wrap;padding:6px 16px}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .d3m-e-cab > b{font-weight:600;color:var(--d3-tinta)}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .d3m-e-cab-dir{color:var(--d3-rotulo)}
+/* As fichas dos grupos na cabeça (as mesmas da Loja: 26 de altura, a escolhida num véu). */
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .v2l-conq-chips{display:inline-flex;flex-wrap:wrap;gap:2px;margin:0}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .v2l-chip{height:26px;padding:0 9px;border-radius:7px;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .v2l-chip:hover{background:var(--d3-veu)}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .v2l-chip[aria-pressed="true"]{background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq .v2l-chip:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+
+/* As escadas: o selo de 28, o nome com o nível, quanto falta à direita, a barra embaixo e o prêmio em verde. */
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-escadas{display:block}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc{padding:0 16px;border-top:0;border-bottom:1px solid var(--d3-divisa)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-lin{gap:12px;padding:12px 0;color:var(--d3-tinta)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-lin:focus-visible{outline:2px solid var(--d3-acao)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-selo{align-self:flex-start;width:28px;height:28px;box-shadow:none;color:var(--d3-tinta-fixa);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-meio{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"n s" "b b";align-items:baseline;gap:4px 10px}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-nome{grid-area:n;gap:4px;white-space:nowrap}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-nome > b{font-weight:600;color:var(--d3-tinta)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-nome > .v2l-pill{height:auto;padding:0;background:none;color:var(--d3-rotulo);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-nome > .v2l-pill::before{content:"· "}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-meio > .v2l-sub{grid-area:s;justify-self:end;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-meio > .v2-barra{grid-area:b;height:4px;margin:2px 0 0;border-radius:2px;background:var(--d3-veu)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-premio{max-width:96px;color:var(--d3-pronto);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-premio > b{color:var(--d3-pronto);font-weight:400}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-lin > .v2l-pill.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+/* Os quatro níveis lado a lado, embaixo do nome; o já ganho num véu quente. */
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-niv{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 0 10px 40px}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-niv > p{padding:8px 10px;border-radius:8px;background:var(--d3-veu);color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-niv > p.ok{background:var(--d3-ajuste-veu)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-niv > p > b{color:var(--d3-tinta);font-weight:600}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-criterio{margin:0;padding:0 0 12px 40px;color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-titulos{display:flex;flex-direction:column;gap:8px;padding:12px 16px}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-titulos .v2l-chip.p{height:26px;box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+#office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-titulos > p > span{color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj .d3m-f-conq :is(.v2l-vazio){padding:18px 16px;color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj .d3m-f-titulo{justify-content:space-between;min-height:48px}
+#office-catalogo.d3m-f-lojaj .d3m-f-titulo-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj .d3m-f-titulo-t > b{font-weight:600;color:var(--d3-tinta)}
+#office-catalogo.d3m-f-lojaj .d3m-f-titulo > .d3v-btn{flex:none;height:28px;padding:0 10px;color:var(--d3-tinta);font-size:var(--d3-fs-texto)}
+
+/* A estante: os troféus em sete por linha, cada um com o fio do nível embaixo; no pé, quantos de cada nível. */
+#office-catalogo.d3m-f-lojaj .d3m-f-estante > .d3m-e-rola{border-top:0}
+#office-catalogo.d3m-f-lojaj .d3m-f-estante > .d3m-e-rola:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-f-pecas{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;padding:0 16px 16px}
+.d3m-f-peca{display:grid;place-items:center;height:40px;border-radius:10px;background:var(--d3-veu);box-shadow:inset 0 -3px 0 var(--c,var(--d3-meta));overflow:hidden}
+.d3m-f-peca > img{max-width:30px;max-height:30px;object-fit:contain;image-rendering:pixelated}
+#office-catalogo.d3m-f-lojaj .d3m-f-trofeus{gap:0;min-height:44px;color:var(--d3-rotulo);white-space:nowrap}
+#office-catalogo.d3m-f-lojaj .d3m-f-trofeus > span:first-child{margin-right:14px;font-size:var(--d3-fs-apoio)}
+#office-catalogo.d3m-f-lojaj .d3m-f-trofeu{padding:0 10px;font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj .d3m-f-trofeu + .d3m-f-trofeu{border-left:1px solid var(--d3-veu-forte)}
+#office-catalogo.d3m-f-lojaj .d3m-f-trofeus > span:nth-child(2){padding-left:0}
+#office-catalogo.d3m-f-lojaj .d3m-f-trofeu > b{font-size:13.5px;font-weight:600;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+
+/* A consulta: o laranja (peça de zm-f-casca.css) e os níveis por área em barras finas numa caixa do vidro. */
+#office-catalogo.d3m-f-lojaj .d3m-f-loja .d3m-laranja{--jg-claro-apagado:var(--d3-escuro-texto);color:var(--d3-escuro-texto)}
+#office-catalogo.d3m-f-lojaj .d3m-f-loja .d3m-laranja :is(.d3m-lar-rot,.d3m-lar-num,.d3-acao-frase,small){color:var(--d3-escuro-texto)}
+#office-catalogo.d3m-f-lojaj .d3m-f-loja .d3m-lar-rot > .d3-acao-av{color:var(--d3-agente)}
+#office-catalogo.d3m-f-lojaj .d3m-f-loja .d3m-btn.l{background:var(--d3-escuro-texto);color:var(--d3-acao-texto)}
+#office-catalogo.d3m-f-lojaj .d3m-f-loja .d3m-btn.l.s{background:none;box-shadow:inset 0 0 0 1px var(--d3-escuro-texto);color:var(--d3-escuro-texto)}
+.d3m-f-areas{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+.d3m-f-area{display:flex;align-items:center;gap:8px}
+.d3m-f-area > span:first-child{flex:none;width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-f-area-b{flex:1 1 auto;height:4px;border-radius:2px;background:var(--d3-fume-veu-forte)}
+.d3m-f-area-b > i{display:block;width:var(--v,0%);height:4px;border-radius:2px;background:var(--d3-ajuste-claro)}
+#office-catalogo.d3m-f-lojaj .d3m-f-area > b{flex:none;min-width:28px;text-align:right;font-weight:600;color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+
+@media (min-width:901px) and (max-height:820px){
+  #office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-lin{padding:9px 0}
+  .d3m-f-areas{gap:5px;padding:9px 12px}
+}
+@media (min-width:901px) and (max-width:1400px){
+  #office-catalogo.d3m-f-lojaj .d3m-f-conq{grid-template-columns:minmax(0,1fr) 320px}
+  .d3m-f-pecas{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  #office-catalogo.d3m-f-lojaj .d3m-f-conq{flex:none;display:flex;flex-direction:column}
+  #office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-meio{grid-template-columns:minmax(0,1fr);grid-template-areas:"n" "s" "b"}
+  #office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-esc-meio > .v2l-sub{justify-self:start;white-space:normal}
+  #office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-niv{grid-template-columns:repeat(2,minmax(0,1fr));padding-left:0}
+  #office-catalogo.d3m-f-lojaj .d3m-f-subir .v2l-criterio{padding-left:0}
+  #office-catalogo.d3m-f-lojaj .d3m-f-trofeus{flex-wrap:wrap;row-gap:6px;padding:8px 16px}
+  .d3m-f-pecas{grid-template-columns:repeat(6,minmax(0,1fr))}
+}

@@ -87,3 +87,13 @@ test('Loja (V2-M-Loja): a folha dos itens com as fichas na cabeça e a grade gra
   assert.match(css, /\.d3m-f-grade\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
 
+test('Conquistas (V2-M-Conquistas): tela própria com "Mais perto de subir", a estante e o laranja do próximo troféu; a rota antiga leva para ela', () => {
+  const loja = ler('vybe-escritorio-loja.js'), ficha = ler('vybe-escritorio-ficha.js');
+  const conq = trecho('function escritorioConquistasLojaHtml(', '\nfunction redesenharConquistasLoja', loja);
+  for (const t of ['class="d3m-e-folha cresce d3m-f-subir"', 'Mais perto de subir', 'class="d3m-e-rola v2l-escadas"', 'class="d3m-e-pe d3m-f-titulo"', 'Seu título no mapa', 'Trocar o título · ', 'class="d3m-e-folha cresce d3m-f-estante" id="v2l-estante"', 'class="d3m-f-pecas"', 'class="d3m-e-pe d3m-f-trofeus"', 'escritorioAbrirEscadaLoja(this,', 'escolherTituloEscritorio(']) assert.ok(conq.includes(t), t);
+  const kpis = trecho('function escritorioLojaKpisHtml() {', '\n// A barra de filtro única', loja);
+  for (const t of ['class="d3m-laranja d3m-f-lar"', 'o próximo troféu', 'Ver minha fila', 'Ver a estante', 'class="d3m-f-areas"', 'abrirRankingEscritorio(undefined,\'semana\')']) assert.ok(kpis.includes(t), t);
+  assert.match(trecho('async function abrirConquistasEscritorio()', '\nfunction pintarConquistasEscritorio', ficha), /abrirCatalogoEscritorio\("conquistas"\); return;/, 'a rota antiga abre a tela Conquistas');
+  const css = ler('padrao-v2/zm-f-conquistas.css');
+  assert.match(css, /\.d3m-f-conq\{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax\(0,1fr\) 380px/);
+});

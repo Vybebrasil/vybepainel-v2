@@ -410,9 +410,11 @@ function escritorioConquistasLojaHtml(largo = false) {
   const daAba = (ids) => ids ? ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean) : r.andamento.slice(0, 8);
   const visiveis = grupos.filter(([, , ids]) => daAba(ids).length);
   const aba = visiveis.some(([k]) => k === escritorio.cqAba) ? escritorio.cqAba : visiveis[0]?.[0];
-  const todos = largo || escritorio.cqMaisGrupos || visiveis.findIndex(([k]) => k === aba) > 2;
+  // Na tela Conquistas (prancha V2-M-Conquistas) as fichas moram na cabeça da folha: duas à vista e "+ N" para o resto.
+  const mostra = largo ? 2 : 3;
+  const todos = escritorio.cqMaisGrupos || visiveis.findIndex(([k]) => k === aba) >= mostra;
   const chip = ([k, nome, ids]) => { const l = daAba(ids); return `<button type="button" class="v2l-chip" aria-pressed="${k === aba}" onclick="escritorio.cqAba='${k}';escritorio.cqAberta=undefined;escritorio.cqTitulos=false;redesenharConquistasLoja()">${safeText(nome)}${ids ? ` ${l.filter((x) => x.nivel).length}/${l.length}` : ""}</button>`; };
-  const chips = `<div class="v2l-chips v2l-conq-chips" role="group" aria-label="Grupos de conquistas">${(todos ? visiveis : visiveis.slice(0, 3)).map(chip).join("")}${!todos && visiveis.length > 3 ? `<button type="button" class="v2l-chip" aria-expanded="false" title="Mostrar os outros grupos" onclick="escritorio.cqMaisGrupos=true;redesenharConquistasLoja()">+ ${visiveis.length - 3}</button>` : ""}</div>`;
+  const chips = `<div class="v2l-chips v2l-conq-chips" role="group" aria-label="Grupos de conquistas">${(todos ? visiveis : visiveis.slice(0, mostra)).map(chip).join("")}${!todos && visiveis.length > mostra ? `<button type="button" class="v2l-chip" aria-expanded="false" title="Mostrar os outros grupos" onclick="escritorio.cqMaisGrupos=true;redesenharConquistasLoja()">+ ${visiveis.length - mostra}</button>` : ""}</div>`;
   const lista = daAba(grupos.find(([k]) => k === aba)?.[2] ?? null);
   // Sem escolha ainda, a primeira de "Perto de subir" vem aberta (cqAberta: undefined = padrão, null = todas fechadas).
   const aberta = escritorio.cqAberta === undefined ? (aba === "perto" ? lista[0]?.id : null) : escritorio.cqAberta;
@@ -431,7 +433,19 @@ ${dp ? `<span class="v2l-premio"><b>+${dp.moedas}</b> moedas<br><b>+${dp.pontos}
   const pe = `<div class="v2l-titulo"><p><span class="v2l-sub">Seu título no mapa</span><b>${safeText(r.atual?.texto || (r.titulos.length ? "Sem título" : "Nenhum título ainda"))}</b></p>${r.titulos.length ? `<button type="button" class="v2l-btn s" aria-expanded="${Boolean(escritorio.cqTitulos)}" onclick="escritorio.cqTitulos=!escritorio.cqTitulos;redesenharConquistasLoja()">${escritorio.cqTitulos ? "Fechar títulos" : `Trocar título · ${r.titulos.length}`}</button>` : ""}</div>`;
   const escadas = `<div class="v2l-escadas">${escritorio.cqTitulos && !largo ? titulosHtml : lista.map(escada).join("") || '<p class="v2l-vazio">Nada aqui ainda.</p>'}</div>`;
   if (!largo) return topo + chips + escadas + pe;
-  return `<div class="v2l-conq-col">${topo}${chips}${escadas}</div><div class="v2l-conq-col lado">${pe}${escritorio.cqTitulos ? titulosHtml : ""}${estante}</div>`;
+  // A tela Conquistas (prancha V2-M-Conquistas): a folha "Mais perto de subir" (as fichas na cabeça, as escadas que
+  // abrem no lugar e o título no pé) e a folha "Sua estante" (os troféus e, no pé, quantos de cada nível).
+  const nomeAba = aba === "perto" ? "Mais perto de subir" : grupos.find(([k]) => k === aba)?.[1] || "Conquistas";
+  const conta = aba === "perto" ? `${lista.length} de ${r.andamento.length}` : `${lista.filter((x) => x.nivel).length} de ${lista.length} conquistas`;
+  const maior = r.melhor ? `o maior é ${safeText(r.melhor.nome)} ${safeText(r.melhor.degraus.filter((d) => d.ok).at(-1)?.nome || "")}` : "";
+  const subir = `<section class="d3m-e-folha cresce d3m-f-subir" aria-label="${safeText(nomeAba)}"><div class="d3m-e-cab"><b>${safeText(nomeAba)} <span>· ${conta}</span></b>${chips}</div>
+<div class="d3m-e-rola v2l-escadas">${escritorio.cqTitulos ? titulosHtml : lista.map(escada).join("") || '<p class="v2l-vazio">Nada aqui ainda.</p>'}</div>
+<div class="d3m-e-pe d3m-f-titulo"><span class="d3m-f-titulo-t"><b>Seu título no mapa</b> · ${safeText(r.atual?.texto || (r.titulos.length ? "sem título" : "sem título ainda"))}</span>${r.titulos.length ? `<button type="button" class="d3v-btn sec d3m-f-fio" aria-expanded="${Boolean(escritorio.cqTitulos)}" onclick="escritorio.cqTitulos=!escritorio.cqTitulos;redesenharConquistasLoja()">${escritorio.cqTitulos ? "Fechar os títulos" : `Trocar o título · ${r.titulos.length}`}</button>` : ""}</div></section>`;
+  const prateleira = `<section class="d3m-e-folha cresce d3m-f-estante" id="v2l-estante" aria-label="Sua estante"><div class="d3m-e-cab"><b>Sua estante <span>· ${v2lNum(r.niveis)} de ${v2lNum(r.total)}</span></b><span class="d3m-e-cab-dir">${maior}</span></div>
+<div class="d3m-e-rola" tabindex="-1">${r.ganhos.length ? `<div class="d3m-f-pecas">${r.ganhos.map((d) => `<span class="d3m-f-peca" style="--c:${V2L_NIVEL_COR[d.nivel]}" title="${safeText(d.escada)} ${safeText(d.nome)}">${escritorioMiniaturaHtml(d.classe)}</span>`).join("")}</div>` : '<p class="v2l-vazio">Os troféus que você ganhar aparecem aqui, prontos para expor no quarto.</p>'}</div>
+<div class="d3m-e-pe d3m-f-trofeus"><span>Troféus</span>${r.porNivel.map((q, i) => `<span class="d3m-f-trofeu"><b>${v2lNum(q)}</b> ${["bronze", "prata", "ouro", "diamante"][i]}</span>`).join("")}</div></section>`;
+  void topo; void pe; void estante;
+  return subir + prateleira;
 }
 function redesenharConquistasLoja() {
   const el = document.querySelector("#office-catalogo[open] #v2l-conq");
