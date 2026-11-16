@@ -186,7 +186,10 @@ export async function clientePorNomeOuId(sql, cliente) {
  if (parecidos.length === 1) return parecidos[0];
  throw erro(parecidos.length ? `Mais de um cliente parecido com "${cliente}": ${parecidos.map((c) => c.nome).join(', ')}.` : `Cliente "${cliente}" não encontrado no painel.`, 404);
 }
-export async function publicarDoAgente(sql, { cliente, mes, titulo, conteudo }) {
+// `por`: quem publicou, no histórico (o agente ou o chat do Ecossistema: 'Claude.ai · <conta>'). A origem do
+// planejamento continua 'agente' nos dois casos (a coluna só aceita 'agente' ou 'painel').
+export async function publicarDoAgente(sql, { cliente, mes, titulo, conteudo }, { por = 'agente' } = {}) {
+ const autor = String(por || 'agente').slice(0, 80);
  await exigir(sql);
  const c = await clientePorNomeOuId(sql, cliente);
  const m = mesDoTexto(mes);
@@ -201,12 +204,12 @@ export async function publicarDoAgente(sql, { cliente, mes, titulo, conteudo }) 
    const [antes] = await tx`SELECT conteudo FROM vybe_planejamentos WHERE id=${atual.id}`;
    corpo.revisoes = revisoesQueValem(antes?.conteudo?.revisoes, corpo.pecas);
    const [p] = await tx`UPDATE vybe_planejamentos SET titulo=${t},conteudo=${JSON.stringify(corpo)}::jsonb,versao=versao+1,estado='revisar',atualizado_em=now() WHERE id=${atual.id} RETURNING *`;
-   await registrar(tx, p.id, 'nova_versao', { externo: 'agente', versao: p.versao });
+   await registrar(tx, p.id, 'nova_versao', { externo: autor, versao: p.versao });
    return { ...publico(p), cliente: c.nome, novo: false };
   }
   corpo.revisoes = {};
   const [p] = await tx`INSERT INTO vybe_planejamentos(cliente_id,mes,titulo,conteudo,origem) VALUES(${c.id},${m}::date,${t},${JSON.stringify(corpo)}::jsonb,'agente') RETURNING *`;
-  await registrar(tx, p.id, 'publicado', { externo: 'agente', versao: 1 });
+  await registrar(tx, p.id, 'publicado', { externo: autor, versao: 1 });
   return { ...publico(p), cliente: c.nome, novo: true };
  });
 }

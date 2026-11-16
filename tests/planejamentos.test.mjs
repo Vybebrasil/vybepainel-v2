@@ -92,6 +92,33 @@ test('conector dos agentes (MCP): chave, ferramentas e publicação; página do 
  assert.match((await rpc('tools/call',{name:'ver_planejamento',arguments:{cliente:'Serra Grande',mes:'2026-11'}})).corpo.result.content[0].text,/aprovado/);
  r=resposta();await paginaDeAprovacao({method:'GET',query:{t:'x'.repeat(30)}},r,sql);assert.equal(r.codigo,404);
 });
+// Ecossistema Vybe (chats dos clientes, 16/11/2026): a mesma gravação do agente, em revisão, com o chat no histórico.
+test('Ecossistema publica o planejamento do mês em revisão, sem criar peça nem mandar ao cliente',async t=>{
+ const {sql,db}=await banco(t);
+ await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
+ // Colunas que a lista de clientes do Ecossistema lê.
+ await db.exec(`ALTER TABLE vybe_clientes ADD COLUMN apagado_em timestamptz, ADD COLUMN cnpj text, ADD COLUMN endereco text, ADD COLUMN telefone text,
+  ADD COLUMN plano text, ADD COLUMN valor numeric, ADD COLUMN cadastro jsonb NOT NULL DEFAULT '{}'`);
+ const {atenderMensagem}=await import('../server/mcp-ecossistema.js');
+ const publicar=(args)=>atenderMensagem(sql,{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'publicar_planejamento',arguments:args}},{conta:'gestao'});
+ let r=await publicar({cliente:'serra grande',mes:'2026-12',conteudo});
+ assert.equal(r.result.isError,false,r.result.content[0].text);
+ assert.match(r.result.content[0].text,/Publicado: Serra Grande, dezembro de 2026, 2 peças/);
+ const [p]=await sql`SELECT id,cliente_id,estado,origem,versao FROM vybe_planejamentos`;
+ assert.deepEqual({cliente:String(p.cliente_id),estado:p.estado,origem:p.origem,versao:p.versao},{cliente:'10',estado:'revisar',origem:'agente',versao:1});
+ r=await publicar({cliente:'Serra Grande',mes:'2026-12',conteudo:{...conteudo,resumo:'Dezembro revisto'}});
+ assert.match(r.result.content[0].text,/Atualizado \(versão 2\)/);
+ const ev=await sql`SELECT tipo,autor_externo FROM vybe_planejamento_eventos WHERE planejamento_id=${p.id} ORDER BY id`;
+ assert.deepEqual(ev.map(e=>[e.tipo,e.autor_externo]),[['publicado','Claude.ai · gestao'],['nova_versao','Claude.ai · gestao']]);
+ assert.equal((await sql`SELECT COUNT(*)::int AS n FROM vybe_conteudos`)[0].n,0,'nenhuma peça cadastrada sozinha');
+ // Mesma validação do agente: sem resumo nem peças não publica.
+ r=await publicar({cliente:'Mangaba',mes:'2026-12',conteudo:{}});
+ assert.equal(r.result.isError,true);assert.match(r.result.content[0].text,/resumo ou de peças/);
+ // Depois de mandado ao cliente, o chat não sobrescreve.
+ await P.enviarAoCliente(sql,{id:3},{id:String(p.id)});
+ r=await publicar({cliente:'Serra Grande',mes:'2026-12',conteudo});
+ assert.equal(r.result.isError,true);assert.match(r.result.content[0].text,/com o cliente/);
+});
 test('Centro de Operação: um agente por cliente ativo, com planejamento primeiro e marca do head',async t=>{
  const {db,sql}=await banco(t);
  await db.exec(readFileSync('migrations/2026-10-20-planejamentos.sql','utf8'));
