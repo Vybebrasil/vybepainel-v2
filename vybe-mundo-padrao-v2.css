@@ -12553,6 +12553,15 @@ body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-
   .d3m-a-pe > span:last-child{flex:1 1 100%;padding-left:0;border-left:0;white-space:normal}
 }
 
+/* SEMANA · Por dia em fases: o rótulo de 12 px (o mesmo do Agora / Depois) com a contagem, e um respiro entre as fases. Para
+   agendar leva a cor de pronto; Finalizado vai no fim, recolhido até abrir o dia, com a linha riscada e apagada. */
+.d3p-linhas > .d3p-fase{display:flex;align-items:baseline;gap:6px;margin:18px 0 6px;padding:0 16px;font:500 var(--d3-fs-apoio)/16px var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3p-linhas > .d3p-fase:first-child{margin-top:8px}
+.d3p-fase > b{font-weight:600;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3p-fase.feito{color:var(--d3-texto2)}
+.d3p-fase.agendar,.d3p-fase.agendar > b{color:var(--d3-pronto)}
+.d3p-fase.fim,.d3p-fase.fim > b{color:var(--d3-apagado)}
+
 /* ===== padrao-v2/zm-a-2-feed.css ===== */
 /* MÓDULOS V2 · GRUPO A · FEED (prancha V2-M-Feed, aprovada pelo Paulo em 16/11/2026). O Feed é uma vista da Produção, dentro
    da janela de vidro: a lista dos clientes direto no vidro, a grade do cliente numa folha (o perfil em cima e a grade do

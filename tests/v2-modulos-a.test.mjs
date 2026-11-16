@@ -71,6 +71,25 @@ test('Mês: cada dia lista as peças em etiquetas que abrem e se arrastam como n
   assert.match(css, /.d3m-a-dia-pcs{[^}]*overflow-y:auto/, 'a lista rola dentro da célula');
 });
 
+test('Semana, Por dia: do mais sem fazer ao pronto, em quatro fases com rótulo, vencido mais antigo primeiro (Paulo, 16/11)', () => {
+  const gestor = ler('vybe-gestor.js');
+  const trecho = (de, ate) => gestor.slice(gestor.indexOf(de), gestor.indexOf(ate));
+  const codigo = trecho('function grupoDoDiaPorStatus', 'function ordenarCartaoDia') + trecho('function pv2Etapas', 'function pv2EtapasHtml') + trecho('const PV2_FASES', 'function pv2RenderDias');
+  const ctx = { atividadeDoDiaConcluida: (d) => d.status === 'Finalizado', isFinishedItem: (d) => d.status === 'Finalizado', clientesDoItem: (d) => [d.cliente], pv2CartaoHtml: (d) => `[${d.id}]`, pv2Horas: { h1: '09:00', h2: '18:00' } };
+  vm.runInNewContext(codigo + ';this.ordenar = pv2OrdenarPorFase; this.fase = pv2FaseDaPeca; this.linhas = pv2LinhasPorFase;', ctx);
+  const p = (id, status, prazo = '2026-11-16', cliente = 'Z') => ({ id, status, prazo_iso: prazo, cliente });
+  const fases = { 'A Fazer': 0, 'Pode Fazer': 0, 'Falta D.A.': 0, 'Ag. Info Cliente': 0, 'Em andamento': 1, 'Em Andamento': 1, 'Alteração': 1, 'Para aprovação': 1, 'Para agendar': 2, 'Agendado': 2, 'Finalizado': 3 };
+  for (const [st, n] of Object.entries(fases)) assert.equal(ctx.fase(p('x', st)), n, `${st} cai na fase ${n}`);
+  const lista = [p('and', 'Em andamento', '2026-11-16', 'A'), p('ag', 'Agendado'), p('paga', 'Para agendar'), p('fim', 'Finalizado'), p('faz', 'A Fazer', '2026-11-16', 'A'), p('pode', 'Pode Fazer'),
+    p('venc2', 'Pode Fazer', '2026-11-12'), p('venc1', 'Falta D.A.', '2026-11-10'), p('h2', 'A Fazer'), p('h1', 'A Fazer')];
+  const ordem = ctx.ordenar(lista, '2026-11-16').map((d) => d.id);
+  assert.deepEqual(ordem, ['venc1', 'venc2', 'h1', 'h2', 'faz', 'pode', 'and', 'paga', 'ag', 'fim'], 'A Fazer nunca vem depois de Em andamento; vencido mais antigo e hora de publicar primeiro');
+  const html = ctx.linhas(ctx.ordenar(lista, '2026-11-16'), lista, 'social');
+  assert.deepEqual([...html.matchAll(/data-fase="(\w+)"[^>]*><span>([^<]+)<\/span><b>(\d+)<\/b>/g)].map((m) => `${m[2]} ${m[3]}`), ['Precisa fazer 6', 'Sendo feito 1', 'Para agendar 2', 'Finalizado 1']);
+  assert.ok(gestor.includes('pv2LinhasPorFase(aVista, [...abertas, ...concluidas], aba)') && gestor.includes('const aVista = inteiro ? [...emFases, ...concluidas] : emFases.slice(0, PV2_POR_DIA);'), 'a Semana usa a ordem e os rótulos');
+  assert.ok(/class="pv2-pc[^`]*draggable="true"/.test(gestor), 'a linha continua arrastável');
+});
+
 test('Grupos: um grupo por vez, com os editores de sempre em cada célula, o lote, a ordem por coluna e o menu do grupo', () => {
   const gestor = ler('vybe-gestor.js'), agenda = ler('vybe-agenda.js');
   assert.match(agenda, /const gruposV2 = quadro === 'producao' && !forcar && !emprestadaAoDa\(cfg\.alvo\)/);
