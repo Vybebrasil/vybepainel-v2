@@ -43,9 +43,25 @@ function montar() {
   return { P: ctx.window.VybePessoas, html: () => corpo.filho?.filho?.innerHTML || '' };
 }
 
+// V2 · grupo E (pranchas V2-M-RH-* e V2-M-Academy, 16/11/2026): as telas já no esqueleto novo saem do teste da Direção 3
+// e ganham o do vidro fumê; as outras seguem com a proteção de antes até chegar a vez delas.
+const E_FEITAS = ['produtividade', 'rh', 'recrutamento', 'documentos', 'academy'];
+test('V2 · grupo E: o título no vidro, as abas de antes escondidas no DOM e sem o bloco laranja', async () => {
+  const t = montar();
+  for (const aba of E_FEITAS) {
+    await t.P.abrir(aba);
+    const h = t.html();
+    assert.match(h, /^<div class="d3m-e-tela d3m-e-pes /, `${aba}: a casca do grupo E`);
+    assert.match(h, /class="d3m-e-topo"><div class="d3m-e-tit">/, `${aba}: o topo no vidro`);
+    assert.match(h, /<div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas" hidden>/, `${aba}: as abas seguem no DOM, escondidas`);
+    assert.match(h, /data-vp-fechar aria-label="Fechar"/, `${aba}: o Fechar no topo`);
+    assert.doesNotMatch(h, /d3-acao|v2p-fala|vp-topo-botoes/, `${aba}: sem o bloco laranja e sem o cabeçalho antigo`);
+  }
+});
 test('RH na Direção 3: abas no cabeçalho, o dia ao lado do título, um bloco de ação laranja e números d3-num', async () => {
   const t = montar();
-  for (const aba of ['produtividade', 'rh', 'recrutamento', 'documentos', 'academy']) {
+  await t.P.abrir('academy'); // a primeira resposta diz que é gestão (Recrutamento e Documentos só abrem para ela)
+  for (const aba of ['produtividade', 'rh', 'recrutamento', 'documentos', 'academy'].filter((a) => !E_FEITAS.includes(a))) {
     await t.P.abrir(aba);
     const h = t.html();
     assert.match(h, /class="vp-topo-botoes"><div class="d3p-abas" role="tablist"/, `${aba}: abas dentro do cabeçalho`);
@@ -58,34 +74,36 @@ test('RH na Direção 3: abas no cabeçalho, o dia ao lado do título, um bloco 
   }
 });
 
-test('Produtividade: quatro números, colunas Pessoa · Metas · Conquistas · Score e a frase de quem pede conversa', async () => {
+test('Produtividade: o anel, os componentes do servidor, as colunas Pessoa · Metas · Conquistas · Score e quem pede atenção', async () => {
   const t = montar();
   await t.P.abrir('produtividade');
   const h = t.html();
-  assert.equal(h.split('class="v2p-card v2p-kpi').length - 1, 4);
-  assert.match(h, /No prazo do cliente<\/small><span class="d3p-num-linha"><b class="d3-num-v">77<span class="d3p-de">%/);
-  assert.match(h, /class="d3p-th"/); assert.match(h, /class="d3p-col-meta g">30\/30</); assert.match(h, /class="d3p-col-meta a">8\/25</);
-  assert.match(h, /<b>Reriston está com 61<\/b>, 8 de 25 entregas\./);
+  // Prancha V2-M-RH-Produtividade: o anel do score e os quatro componentes na folha do mês; as colunas do mês de cada um e
+  // quem pede atenção na consulta.
+  assert.match(h, /class="d3m-e-pes-anel/); assert.equal((h.match(/class="d3m-e-pes-comp( [ga])?"/g) || []).length, 1, 'só os componentes que o servidor mandou (aqui, o prazo)');
+  assert.match(h, /class="d3p-col-meta g">30\/30</); assert.match(h, /class="d3p-col-meta a">8\/25</);
+  assert.match(h, /<b>Reriston<\/b> · score 61/);
 });
 
 test('Pedidos: rótulos curtos e o 1º que vence; Documentos: linha do tempo dos vencimentos com o hoje', async () => {
   const t = montar();
   await t.P.abrir('rh');
   let h = t.html();
-  assert.match(h, />Esperando resposta</); assert.match(h, /class="d3p-aviso">1º vence amanhã/); assert.match(h, /class="d3p-legenda"/);
+  // Prancha V2-M-RH-Pedidos: o prazo de cada pedido no selo da linha e a legenda do calendário na consulta.
+  assert.match(h, /class="d3m-e-pes-selo( a)?">até /); assert.match(h, /class="d3m-e-pes-leg-c"/);
   await t.P.abrir('documentos');
   h = t.html();
-  assert.match(h, /aria-label="Vencimentos"/); assert.match(h, /class="d3p-tl-hoje"/);
-  assert.match(h, /class="d3p-tl-pt r"[^>]*title="Contrato"/); assert.match(h, /class="d3p-tl-pt a"[^>]*title="Estágio"/);
-  assert.match(h, /data-v2p-tipo="contrato"/, 'os tipos viram fichas de filtro');
-  assert.match(h, /<span>Pessoa<\/span><span>Docs<\/span><span>Situação<\/span>/);
+  // Prancha V2-M-RH-Documentos: os vencimentos viram "Para renovar" na consulta, com os tipos de filtro.
+  assert.match(h, /Para renovar/); assert.match(h, /data-foco="renovacao"><span><b>Renovar<\/b> · Contrato/); assert.match(h, /data-foco="renovacao"><span><b>Renovar<\/b> · Estágio/);
+  assert.match(h, /data-v2p-tipo="contrato"/, 'os tipos viram filtro na consulta');
 });
 
-test('Recrutamento: o período sai do cabeçalho e vai para a barra de filtro', async () => {
+test('Recrutamento: o período Mensal | Anual no topo, no vidro, e o mês na cabeça do funil', async () => {
   const t = montar();
   await t.P.abrir('academy'); await t.P.abrir('recrutamento'); // a primeira resposta diz que é gestão
   const h = t.html(), topo = h.slice(0, h.indexOf('vp-corpo'));
-  assert.doesNotMatch(topo, /vp-periodo/); assert.match(h, /data-vp-abrir-form="etapas">Etapas<\/button><div class="vp-periodo">/);
+  assert.match(topo, /class="d3m-e-per" role="group" aria-label="Período"><button type="button" data-vp-periodo="mensal" aria-pressed="true">Mensal/);
+  assert.match(h, /data-vp-ref-ir="\d{4}-\d{2}" aria-label="Mês anterior"/);
 });
 
 test('CSS do Time: sem !important nem html body.mundo, tokens --d3-* e o prefixo da janela', () => {

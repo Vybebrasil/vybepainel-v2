@@ -65,61 +65,74 @@
     return { pct: Math.round((r - i) / i * 100), porReal: r / i };
   }
   const fraseRoi = (c) => `Retorno de ${c.pct.toLocaleString('pt-BR')}% (${din(c.porReal)} para cada R$ 1)`;
+  // V2 · grupo E (prancha V2-M-Toolkit, aprovada pelo Paulo em 16/11/2026): a Visão geral são três folhas, uma por
+  // ferramenta, com os campos, o botão preto e o resultado no lugar; os usados por último, a dica da reunião e o atalho
+  // para o Comercial ficam na consulta, no vidro. As abas de cada ferramenta seguem com tudo (resistência e cor do QR,
+  // testar o link, a conta completa de ROI) dentro de uma folha. A calculadora da Visão geral é a da prancha: quantas
+  // vendas pagam a Vybe (investimento, ticket e margem; a mesma conta de VybeComercialCalculos.roiCampanha).
+  function contaRoi(r) {
+    const calc = window.VybeComercialCalculos?.roiCampanha;
+    if (calc) return calc(r);
+    const inv = numero(r.investimento), tk = numero(r.ticket), mg = numero(r.margem);
+    if (!inv || !tk || mg == null || mg > 100) return null;
+    const lucroPorVenda = Math.round(tk * mg) / 100;
+    return { investimento: inv, lucroPorVenda, empate: lucroPorVenda > 0 ? Math.ceil(inv / lucroPorVenda) : null, faturamento: null, lucro: null, roi: null };
+  }
+  const fraseVendas = (c) => `${c.empate == null ? 'Sem venda que pague' : `${c.empate.toLocaleString('pt-BR')} ${c.empate === 1 ? 'venda paga' : 'vendas pagam'}`} a Vybe no mês (lucro de ${din(c.lucroPorVenda)} por venda)`;
   // O resultado de cada ferramenta na Visão geral; antes de gerar, a frase que diz o que aparece ali.
   function resultadoHtml(tipo) {
+    const vazio = (t, ruim = false) => `<p class="d3m-e-tk-vazio${ruim ? ' ruim' : ''}">${esc(t)}</p>`;
     if (tipo === 'qr') {
       const t = st.qr.texto.trim(), r = st.feito.qr && t ? svgQR(t) : { svg: '', erro: '' };
-      if (!r.svg) return `<p class="p2-sub">${esc(r.erro || 'O QR aparece aqui, pronto para baixar.')}</p>`;
-      return `<span class="vf2-qr">${r.svg}</span><p><b>QR pronto</b><br><span class="p2-sub">${st.formato === 'svg' ? 'SVG, o melhor para a gráfica' : 'PNG de 1.200 px'}</span></p><button type="button" class="p2-btn s" data-vf="${st.formato === 'svg' ? 'svg' : 'png'}">Baixar</button>`;
+      if (!r.svg) return vazio(r.erro || 'O QR aparece aqui, pronto para baixar.', Boolean(r.erro));
+      return `<span class="d3m-e-tk-qr">${r.svg}</span><p class="d3m-e-tk-pronto"><b>QR pronto</b><small class="d3m-e-tk-sub">${st.formato === 'svg' ? 'SVG, o melhor para a gráfica' : 'PNG de 1.200 px'}</small></p><button type="button" class="d3v-btn d3m-e-fio" data-vf="${st.formato === 'svg' ? 'svg' : 'png'}">Baixar</button>`;
     }
     if (tipo === 'wa') {
       const link = st.feito.wa ? linkWhatsapp(st.wa.numero, st.wa.mensagem) : '';
-      if (!link) return `<p class="p2-sub${st.feito.wa ? ' ruim' : ''}">${st.feito.wa ? 'Número inválido: use DDD + número (10 ou 11 dígitos).' : 'O link aparece aqui, pronto para copiar.'}</p>`;
-      return `<p><b class="vf2-quebra">${esc(link.replace(/^https:\/\//, '').split('?')[0])}</b><br><span class="p2-sub">${st.wa.mensagem.trim() ? 'abre a conversa com a mensagem pronta' : 'abre a conversa'}</span></p><button type="button" class="p2-btn s v2-estado" data-vf="copiar">Copiar</button>`;
+      if (!link) return vazio(st.feito.wa ? 'Número inválido: use DDD + número (10 ou 11 dígitos).' : 'O link aparece aqui, pronto para copiar.', st.feito.wa);
+      return `<p class="d3m-e-tk-pronto"><b class="vf2-quebra">${esc(link.replace(/^https:\/\//, '').split('?')[0])}</b><small class="d3m-e-tk-sub">${st.wa.mensagem.trim() ? 'abre a conversa com a mensagem pronta' : 'abre a conversa'}</small></p><button type="button" class="d3v-btn d3m-e-fio v2-estado" data-vf="copiar">Copiar</button>`;
     }
-    const c = st.feito.roi ? retornoSimples(st.simples.investimento, st.simples.retorno) : null;
-    if (!c) return `<p class="p2-sub${st.feito.roi ? ' ruim' : ''}">${st.feito.roi ? 'Preencha o investimento e o retorno em reais.' : 'O retorno aparece aqui.'}</p>`;
-    return `<b class="vf2-roi${c.pct < 0 ? ' ruim' : ''}"><span class="v2-num">${c.pct.toLocaleString('pt-BR')}%</span></b><p><b>de retorno</b><br><span class="p2-sub">${din(c.porReal)} para cada R$ 1</span></p><button type="button" class="p2-btn s v2-estado" data-vf="copiar-roi">Copiar</button>`;
+    const c = st.feito.roi ? contaRoi(st.roi) : null;
+    if (!c) return vazio(st.feito.roi ? 'Preencha o investimento, o ticket médio e a margem.' : 'O retorno aparece aqui, com as vendas que pagam o mês.', st.feito.roi);
+    return `<b class="d3m-e-tk-num">${c.empate == null ? '–' : c.empate.toLocaleString('pt-BR')}</b><p class="d3m-e-tk-pronto"><b>${c.empate === 1 ? 'venda paga' : 'vendas pagam'} a Vybe no mês</b><small class="d3m-e-tk-sub">lucro de ${din(c.lucroPorVenda)} por venda · ${elo('conta completa', 'data-vf-aba="roi"')}</small></p><button type="button" class="d3v-btn d3m-e-fio v2-estado" data-vf="copiar-roi">Copiar</button>`;
   }
+  const elo = (t, attrs) => `<button type="button" class="d3m-e-elo" ${attrs}>${esc(t)}</button>`;
   function pintarResultado(tipo) { const el = st.janela?.querySelector(`[data-vf-res="${tipo}"]`); if (el) el.innerHTML = resultadoHtml(tipo); }
+  const COR_NOME = Object.fromEntries(CORES.map(([c, n]) => [c, n.toLowerCase()]));
   function abaInicio() {
-    const recentes = lerRecentes(), q = norm(st.busca).trim();
-    const campo = (id, rot, attr, valor, ph, tipo = 'text') => `<div><label class="vf2-rot" for="${id}">${rot}</label><input id="${id}" class="p2-campo" type="${tipo}" ${attr} value="${esc(valor)}" placeholder="${ph}"></div>`;
-    const cabeca = (f) => `<div class="vf2-cab"><span class="vf2-ico">${icone(f.ic, 18)}</span><h3>${esc(f.nome)}</h3><button type="button" class="p2-link vf2-mais" data-vf-aba="${f.aba}">mais opções</button></div>`;
+    const q = norm(st.busca).trim();
+    const campo = (id, rot, attr, valor, ph, tipo = 'text') => `<div class="d3m-e-tk-campo"><label class="d3m-e-tk-rot" for="${id}">${rot}</label><input id="${id}" class="d3m-e-tk-in" type="${tipo}" ${attr} value="${esc(valor)}" placeholder="${ph}"></div>`;
+    const SUB = { qr: 'para peça impressa, cardápio e evento', whatsapp: 'com mensagem pronta, para bio e anúncio', roi: 'quantas vendas pagam a Vybe' };
+    const cabeca = (f) => `<div class="d3m-e-tk-cab"><span class="d3m-e-tk-ico ${f.aba}" aria-hidden="true">${icone(f.ic, 14)}</span><span class="d3m-e-tk-cab-t"><b>${esc(f.nome)}</b><small class="d3m-e-tk-sub">${esc(SUB[f.aba])}</small></span><button type="button" class="d3m-e-elo" data-vf-aba="${f.aba}" title="Abrir ${esc(f.nome)} com todas as opções">mais opções</button></div>`;
+    const res = (t) => `<div class="d3m-e-tk-res" data-vf-res="${t}" role="status">${resultadoHtml(t)}</div>`;
     const cartoes = {
-      qr: (f) => `<article class="p2-card vf2-fer">${cabeca(f)}
+      qr: (f) => `<section class="d3m-e-folha d3m-e-tk-fer" aria-label="${esc(f.nome)}">${cabeca(f)}
         ${campo('vf2-qr-texto', 'Link ou texto', 'data-vf-campo="qr.texto" maxlength="300"', st.qr.texto, 'https://')}
-        <div><span class="vf2-rot" id="vf2-formato">Formato</span><div class="vf2-formato" role="radiogroup" aria-labelledby="vf2-formato">${[['png', 'PNG'], ['svg', 'SVG']].map(([k, n]) => `<button type="button" class="p2-chip" role="radio" aria-checked="${st.formato === k}" data-vf-formato="${k}">${n}</button>`).join('')}</div></div>
-        <div><button type="button" class="p2-btn k" data-vf-gerar="qr">Gerar QR</button></div>
-        <div class="vf2-res" data-vf-res="qr" role="status">${resultadoHtml('qr')}</div></article>`,
-      whatsapp: (f) => `<article class="p2-card vf2-fer">${cabeca(f)}
-        ${campo('vf2-wa-numero', 'Número com DDD', 'data-vf-campo="wa.numero" inputmode="tel" maxlength="20"', st.wa.numero, '(74) 99999-9999', 'tel')}
-        ${campo('vf2-wa-msg', 'Mensagem pronta', 'data-vf-campo="wa.mensagem" maxlength="500"', st.wa.mensagem, 'Olá! Quero saber mais.')}
-        <div><button type="button" class="p2-btn k" data-vf-gerar="wa">Criar link</button></div>
-        <div class="vf2-res" data-vf-res="wa" role="status">${resultadoHtml('wa')}</div></article>`,
-      roi: (f) => `<article class="p2-card vf2-fer">${cabeca(f)}
-        ${campo('vf2-roi-inv', 'Investimento', 'data-vf-campo="simples.investimento" inputmode="decimal"', st.simples.investimento, 'R$ 1.500')}
-        ${campo('vf2-roi-ret', 'Retorno', 'data-vf-campo="simples.retorno" inputmode="decimal"', st.simples.retorno, 'R$ 6.300')}
-        <div><button type="button" class="p2-btn k" data-vf-gerar="roi">Calcular</button></div>
-        <div class="vf2-res" data-vf-res="roi" role="status">${resultadoHtml('roi')}</div></article>`,
+        <div class="d3m-e-tk-par"><div class="d3m-e-tk-campo"><span class="d3m-e-tk-rot" id="vf2-formato">Formato</span><span class="d3m-e-seg d3m-e-tk-seg" role="radiogroup" aria-labelledby="vf2-formato">${[['png', 'PNG'], ['svg', 'SVG']].map(([k, n]) => `<button type="button" role="radio" aria-checked="${st.formato === k}" data-vf-formato="${k}">${n}</button>`).join('')}</span></div>
+          <div class="d3m-e-tk-campo"><span class="d3m-e-tk-rot">Cor</span><button type="button" class="d3m-e-tk-in d3m-e-tk-cor" data-vf-aba="qr" title="Escolher a cor nas opções do QR"><i style="background:${esc(st.qr.cor)}"></i>${esc(COR_NOME[st.qr.cor.toUpperCase()] || 'outra')}</button></div></div>
+        <div><button type="button" class="d3m-e-tk-btn" data-vf-gerar="qr">Gerar QR</button></div>${res('qr')}</section>`,
+      whatsapp: (f) => `<section class="d3m-e-folha d3m-e-tk-fer" aria-label="${esc(f.nome)}">${cabeca(f)}
+        ${campo('vf2-wa-numero', 'Número com DDD', 'data-vf-campo="wa.numero" inputmode="tel" maxlength="20"', st.wa.numero, '(74) 90000-0000', 'tel')}
+        ${campo('vf2-wa-msg', 'Mensagem pronta, se quiser', 'data-vf-campo="wa.mensagem" maxlength="500"', st.wa.mensagem, 'Olá! Quero saber mais.')}
+        <div><button type="button" class="d3m-e-tk-btn" data-vf-gerar="wa">Criar link</button></div>${res('wa')}</section>`,
+      roi: (f) => `<section class="d3m-e-folha d3m-e-tk-fer" aria-label="${esc(f.nome)}">${cabeca(f)}
+        ${campo('vf2-roi-inv', 'Investimento por mês', 'data-vf-campo="roi.investimento" inputmode="decimal"', st.roi.investimento, 'R$ 1.500')}
+        <div class="d3m-e-tk-par">${campo('vf2-roi-ticket', 'Ticket médio', 'data-vf-campo="roi.ticket" inputmode="decimal"', st.roi.ticket, 'R$ 180')}${campo('vf2-roi-margem', 'Margem por venda', 'data-vf-campo="roi.margem" inputmode="decimal"', st.roi.margem, '35%')}</div>
+        <div><button type="button" class="d3m-e-tk-btn" data-vf-gerar="roi">Calcular</button></div>${res('roi')}</section>`,
     };
     const visiveis = FERRAMENTAS.filter((f) => !q || norm(`${f.nome} ${f.frase}`).includes(q));
-    const acoes = (r, i) => `${r.tipo === 'qr' ? `<button type="button" class="p2-btn s" data-vf="baixar-uso" data-vf-uso="${i}">Baixar de novo</button>` : r.tipo === 'whatsapp' || r.dados.retorno != null ? `<button type="button" class="p2-btn s" data-vf="copiar-uso" data-vf-uso="${i}">Copiar</button>` : ''}<button type="button" class="p2-btn s" data-vf="refazer" data-vf-uso="${i}">Refazer</button>`;
-    // Direção 3: o bloco "Usados por último" fica sempre no lugar do quadro; sem histórico neste navegador, um cartão
-    // diz isso em uma linha.
-    const usados = `<section class="vf2-usados" aria-labelledby="vf-recentes-titulo"><div class="p2-lista-topo"><h3 class="p2-h" id="vf-recentes-titulo">Usados por último</h3><span class="p2-sub">neste computador</span></div>
-        ${recentes.length ? `<div class="vf2-tres">${recentes.map((r, i) => { const n = rotuloDoUso(r); return `<div class="p2-card vf2-rec"><p class="vf2-rec-topo"><span class="p2-pill">${esc(n.sub.split(' · ')[0])}</span><span class="p2-sub">${esc(quandoFoi(r.quando))}</span></p>
-          <p class="vf2-rec-oq"><b>${esc(n.titulo)}</b>${n.sub.includes(' · ') ? ` · ${esc(n.sub.split(' · ').slice(1).join(' · '))}` : ''}</p><p class="vf2-rec-acoes">${acoes(r, i)}</p></div>`; }).join('')}</div>`
-        : '<div class="p2-card vf2-rec d3tk-vazio"><p class="p2-sub">Sem histórico ainda.</p></div>'}</section>`;
-    // Direção 3 (quadro D3-Toolkit): a frase vira o bloco de ação laranja, com o último uso e o botão que o refaz; sem
-    // uso ainda, o convite para o primeiro QR. Nas ferramentas sai a frase explicativa: o rótulo e o campo bastam.
-    const u0 = recentes[0], n0 = u0 ? rotuloDoUso(u0) : null;
-    const bt0 = !u0 ? ['Gerar o primeiro QR', 'data-vf="primeiro-qr"'] : u0.tipo === 'qr' ? ['Baixar de novo', 'data-vf="baixar-uso" data-vf-uso="0"'] : u0.tipo === 'whatsapp' || u0.dados.retorno != null ? ['Copiar de novo', 'data-vf="copiar-uso" data-vf-uso="0"'] : ['Refazer', 'data-vf="refazer" data-vf-uso="0"'];
-    const acao = typeof window.d3AcaoHtml === 'function' ? window.d3AcaoHtml({ agente: 'V', frase: `<small class="d3tk-quem">VYBES · Ferramentas</small><span>${u0 ? `${esc(n0.titulo)} pronto · ${esc(quandoFoi(u0.quando))}.` : 'Nada usado ainda neste computador.'}</span>`, botao: bt0[0], attrs: bt0[1] }) : '';
-    return `${acao}
-      ${usados}
-      ${visiveis.length ? `<div class="vf2-tres vf2-fers">${visiveis.map((f) => cartoes[f.aba](f)).join('')}</div>` : '<p class="p2-vazio">Nenhuma ferramenta com esse nome.</p>'}
-      `;
+    return visiveis.length ? `<div class="d3m-e-tk-tres" style="--n:${visiveis.length}">${visiveis.map((f) => cartoes[f.aba](f)).join('')}</div>`
+      : `<section class="d3m-e-folha cresce" aria-label="Busca">${typeof d3mEEstado === 'function' ? d3mEEstado({ tipo: 'vazio', grande: true, titulo: 'Nenhuma ferramenta com esse nome', texto: 'Confira a busca: QR Code, link do WhatsApp ou calculadora de ROI.' }) : '<p class="d3m-e-tk-vazio">Nenhuma ferramenta com esse nome.</p>'}</section>`;
+  }
+  // A consulta no vidro: o que foi usado neste computador (refaz num clique), a dica da reunião e o atalho do Comercial.
+  function ladoHtml() {
+    const recentes = lerRecentes();
+    const usados = recentes.length ? recentes.map((r, i) => { const n = rotuloDoUso(r);
+      return `<button type="button" class="d3m-vlin" data-vf="refazer" data-vf-uso="${i}" title="Refazer: ${esc(n.sub)}"><span><b>${esc(n.titulo)}</b> · ${esc(quandoFoi(r.quando))}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; }).join('')
+      : '<p class="d3m-e-lado-txt">Nada usado ainda neste computador. O que você gerar fica guardado aqui para baixar de novo.</p>';
+    return `<aside class="d3m-lado" aria-label="Consulta"><div class="d3m-cons"><div class="d3m-cons-cab"><b id="vf-recentes-titulo">Usados por último</b><span>neste computador</span></div>${usados}</div>
+      <div class="d3m-cons"><div class="d3m-cons-cab"><b>Para a reunião</b></div><p class="d3m-e-lado-txt">A calculadora serve para a conversa de venda: quantas vendas pagam a Vybe e o retorno esperado.</p></div>
+      <div class="d3m-cons"><div class="d3m-cons-cab"><b>Abrir</b></div><button type="button" class="d3m-vlin" data-vf="comercial"><span><b>Comercial</b> · produtos e orçamentos</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div></aside>`;
   }
   // Número brasileiro → só dígitos com 55 na frente. Aceita (74) 99999-9999, 74999999999, +55 74 9…
   function numeroWhatsapp(entrada) {
@@ -207,15 +220,23 @@
   }
   function corpoDaAba() { return st.aba === 'inicio' ? abaInicio() : st.aba === 'whatsapp' ? abaWhatsapp() : st.aba === 'roi' ? abaRoi() : abaQR(); }
   function html() {
-    const seg = `<span class="p2-seg" role="tablist" aria-label="Ferramentas do Toolkit">${ABAS.map(([k, n]) => `<button type="button" role="tab" aria-selected="${st.aba === k}" data-vf-aba="${k}">${n}</button>`).join('')}</span>`;
-    const busca = `<label class="p2-oculto" for="vf-busca">Buscar ferramenta</label><input id="vf-busca" class="p2-busca vf2-busca" type="search" placeholder="Buscar ferramenta" data-vf-busca value="${esc(st.busca)}">`;
-    return `<div class="vf-topo vb-janela-topo">${cabecalho({ id: 'vf-titulo', titulo: 'Toolkit', acoes: `${seg}${busca}${botaoX('data-vf="fechar"', 'vf-x')}` })}</div>
-      <p class="vf-aviso" role="status" aria-live="polite">${esc(st.aviso)}</p>
-      <div class="vf-corpo${st.aba === 'inicio' ? ' vf2-inicio' : ' p2-card'}">${corpoDaAba()}</div>`;
+    // As abas em pílula no vidro (a escolhida branca; grupo de botões, e não tablist, para o realce global de abas não pintá-las), a busca, a ajuda que não precisa e o Fechar: o topo do grupo E.
+    const seg = `<span class="d3m-e-per d3m-e-tk-abas" role="group" aria-label="Ferramentas do Toolkit">${ABAS.map(([k, n]) => `<button type="button" aria-pressed="${st.aba === k}" data-vf-aba="${k}">${n}</button>`).join('')}</span>`;
+    const busca = `<label class="d3m-e-tk-oculto" for="vf-busca">Buscar ferramenta</label><input id="vf-busca" class="d3m-e-tk-busca" type="search" placeholder="Buscar ferramenta" data-vf-busca value="${esc(st.busca)}">`;
+    const fechar = `<button type="button" class="d3m-e-ico" data-vf="fechar" aria-label="Fechar" title="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+    const h = '<span class="d3m-e-h" id="vf-titulo" role="heading" aria-level="2">Toolkit</span>';
+    const tit = `<details class="d3m-e-troca" ontoggle="if(this.open&&typeof d3mETroca==='function')d3mETroca(this,'toolkit','toolkit')"><summary title="Trocar de tela">${h}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="d3m-e-pop" role="group" aria-label="Outras telas"></div></details>`;
+    const nome = (ABAS.find(([k]) => k === st.aba) || ABAS[0])[1];
+    const main = st.aba === 'inicio' ? `<div class="d3m-e-main">${abaInicio()}</div>`
+      : `<div class="d3m-e-main"><section class="d3m-e-folha cresce" aria-label="${esc(nome)}"><div class="d3m-e-cab"><b>${esc(nome)}</b><span class="d3m-e-cab-dir"><button type="button" class="d3m-e-elo" data-vf-aba="inicio">Voltar à visão geral</button></span></div><div class="d3m-e-rola d3m-e-tk-aba">${corpoDaAba()}</div></section></div>`;
+    return `<div class="d3m-e-tela d3m-e-tk"><div class="d3m-e-topo"><div class="d3m-e-tit">${tit}<span class="d3m-e-sub">ferramentas rápidas da Vybe · QR Code, link do WhatsApp e calculadora de ROI</span></div><div class="d3m-e-acoes">${seg}${busca}${fechar}</div></div>
+      <p class="vf-aviso d3m-e-tk-aviso" role="status" aria-live="polite">${esc(st.aviso)}</p>
+      <div class="vf-corpo d3m-e-corpo">${main}${ladoHtml()}</div></div>`;
   }
   function pintar(manterFoco = true) {
     if (!st.janela) return;
     const f = manterFoco ? document.activeElement?.dataset?.vfCampo : null, sel = f ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+    st.janela.className = 'vc-janela d3m-e-tk-janela';
     st.janela.innerHTML = html();
     if (f) { const el = st.janela.querySelector(`[data-vf-campo="${f}"]`); el?.focus(); try { if (sel && el.setSelectionRange) el.setSelectionRange(...sel); } catch {} }
   }
@@ -254,7 +275,7 @@
     const gerar = e.target.closest('[data-vf-gerar]');
     if (gerar) {
       const t = gerar.dataset.vfGerar; st.feito[t] = true; pintarResultado(t);
-      if (t === 'roi' && retornoSimples(st.simples.investimento, st.simples.retorno)) guardarUso('roi', { ...st.simples });
+      if (t === 'roi' && contaRoi(st.roi)) guardarUso('roi', { ...st.roi });
       return;
     }
     const b = e.target.closest('[data-vf]'); if (!b || b.disabled) return;
@@ -262,7 +283,9 @@
     // O botão conta o estado: gira e fica verde com a palavra nova (v2-estado).
     const feito = (texto) => { if (!b.classList.contains('v2-estado') || !b.isConnected) return; b.dataset.estado = 'feito'; b.innerHTML = CERTO + texto; };
     if (a === 'primeiro-qr') { st.janela.querySelector('[data-vf-campo="qr.texto"]')?.focus(); return; }
-    if (a === 'copiar-roi') { const c = retornoSimples(st.simples.investimento, st.simples.retorno); if (c) (navigator.clipboard?.writeText(fraseRoi(c)) || Promise.reject()).then(() => { feito('Copiado'); avisar('Retorno copiado.'); }, () => avisar(fraseRoi(c))); return; }
+    if (a === 'copiar-roi') { const c = contaRoi(st.roi); if (c) (navigator.clipboard?.writeText(fraseVendas(c)) || Promise.reject()).then(() => { feito('Copiado'); avisar('Conta copiada.'); }, () => avisar(fraseVendas(c))); return; }
+    // O atalho da consulta: o Comercial pelo próprio menu lateral (Produtos e Orçamentos ficam lá).
+    if (a === 'comercial') { const item = document.querySelector?.('.vv-trilho [data-trilho="setor:comercial"]'); if (item) { fechar(); item.click(); } return; }
     if (a === 'fechar') fechar();
     else if (a === 'svg') { const s = svgQR(st.qr.texto.trim()).svg; if (s) { guardarUso('qr', { texto: st.qr.texto.trim(), ecc: st.qr.ecc, cor: st.qr.cor }); baixar(nomeArquivo() + '.svg', new Blob([s], { type: 'image/svg+xml' })); avisar('SVG baixado: é o melhor para a gráfica (não perde qualidade).'); } }
     else if (a === 'png') baixarPNG();
@@ -319,7 +342,7 @@
       Object.assign(st, { raiz, janela });
     }
     pintar(false);
-    (st.aba === 'inicio' ? st.janela.querySelector('[role="tab"][aria-selected="true"]') : st.janela.querySelector('[data-vf-campo]'))?.focus();
+    (st.aba === 'inicio' ? st.janela.querySelector('[data-vf-aba][aria-pressed="true"]') : st.janela.querySelector('[data-vf-campo]'))?.focus();
   }
   function fechar() {
     const { raiz, antes } = st; if (!raiz) return;

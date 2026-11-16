@@ -1,0 +1,189 @@
+/* ===================================================================================================================
+   V2 · GRUPO E · RECURSOS HUMANOS E ACADEMY (pranchas V2-M-RH-Produtividade, RH-Pedidos, RH-Recrutamento,
+   RH-Documentos e V2-M-Academy, aprovadas pelo Paulo em 16/11/2026). O HTML sai de vybe-mundo-pessoas.js
+   (htmlPainelE e as telas *E): a casca .d3m-e-* (zm-e-casca.css) dentro da janela própria do setor (#vv-pessoas, na
+   camada .vp-camada), que nestas telas leva .d3m-e-pes-janela e vira o vidro fumê. Projetos pontuais segue como estava.
+   Peças locais .d3m-e-pes-*: quando outra área precisar, sobem para zm-e-casca.css.
+   =================================================================================================================== */
+
+/* A janela: vidro fumê com 16 de respiro; a tela ocupa tudo e só as listas rolam, por dentro. */
+body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;border:0;border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto)}
+#vv-pessoas.d3m-e-pes-janela{-webkit-backdrop-filter:blur(24px) saturate(1.2);backdrop-filter:blur(24px) saturate(1.2)}
+#vv-pessoas .d3m-e-pes{flex:1 1 auto;min-height:0}
+/* Aqui não há os botões da janela do mundo à direita do topo: o Fechar é o último ícone do próprio topo. */
+#vv-pessoas .d3m-e-pes > .d3m-e-topo{padding-right:0}
+/* O corpo de antes (.vp-corpo) vira a grade da casca: sem o respiro e a rolagem da janela antiga. */
+#vv-pessoas .d3m-e-pes > .vp-corpo.d3m-e-corpo{display:grid;flex:1 1 0;min-height:0;padding:0;overflow:visible;gap:16px}
+#vv-pessoas .d3m-e-pes > .vp-corpo.d3m-e-corpo.um{display:grid}
+#vv-pessoas .d3m-e-pes .d3m-e-h{font-size:24px}
+/* O aviso de "Salvando…" e "Pedido atualizado.": uma pastilha no alto, só quando tem texto. */
+#vv-pessoas .d3m-e-pes > .d3m-e-pes-aviso{position:absolute;z-index:6;top:22px;left:50%;translate:-50% 0;margin:0;padding:6px 12px;border-radius:999px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#vv-pessoas .d3m-e-pes > .d3m-e-pes-aviso:empty{display:none}
+#vv-pessoas .d3m-e-pes-erro{flex:none;margin:0 0 12px;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-perigo-veu);color:var(--d3-perigo);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+/* A busca no vidro (34 de altura, como os ícones do topo). */
+#vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]{width:200px;height:34px;min-height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]::placeholder{color:var(--d3-fume-apagado)}
+#vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+/* Dentro das folhas, as linhas de antes (.v2p-linha) ganham o respiro de 16 das folhas. */
+#vv-pessoas .d3m-e-folha .d3m-e-rola > :is(.v2p-linha,.v2p-lin){padding-left:16px;padding-right:16px}
+#vv-pessoas .d3m-e-folha .d3m-e-rola > .v2p-linha:first-child{border-top:0}
+#vv-pessoas .d3m-e-folha .v2p-nome b{color:var(--d3-tinta)}
+
+/* Duas folhas lado a lado, que crescem até o fim da janela. */
+#vv-pessoas .d3m-e-pes-duas{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#vv-pessoas .d3m-e-pes-duas > .d3m-e-folha{min-height:0}
+
+/* O mês: ‹ novembro de 2026 › na cabeça da folha. */
+#vv-pessoas .d3m-e-pes-mes{display:inline-flex;align-items:center;gap:4px;color:var(--d3-rotulo)}
+#vv-pessoas .d3m-e-pes-seta{appearance:none;display:grid;place-items:center;width:24px;height:24px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-tinta);cursor:pointer}
+#vv-pessoas .d3m-e-pes-seta:hover{background:var(--d3-veu)}
+#vv-pessoas .d3m-e-pes-seta:disabled{color:var(--d3-meta);cursor:default;background:none}
+#vv-pessoas .d3m-e-pes-seta > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#vv-pessoas .d3m-e-pes-seta:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+
+/* A folha do mês: o anel de 120 e os quatro componentes em blocos de véu (2 × 2). */
+#vv-pessoas .d3m-e-pes-mesc{display:grid;grid-template-columns:132px minmax(0,1fr);align-items:center;gap:20px;padding:4px 16px 16px}
+#vv-pessoas .d3m-e-pes-anel{position:relative;display:grid;place-items:center;width:120px;height:120px;margin-left:6px;color:var(--d3-tinta)}
+#vv-pessoas .d3m-e-pes-anel.a{color:var(--d3-ambar)}
+#vv-pessoas .d3m-e-pes-anel > svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+#vv-pessoas .d3m-e-pes-anel circle{fill:none;stroke:var(--d3-veu-forte);stroke-width:9}
+#vv-pessoas .d3m-e-pes-anel circle.v{stroke:currentColor;stroke-linecap:round}
+#vv-pessoas .d3m-e-pes-anel circle.ponto{fill:var(--d3-rotulo);stroke:none}
+#vv-pessoas .d3m-e-pes-anel > span{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:96px;text-align:center}
+#vv-pessoas .d3m-e-pes-anel b{font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:currentColor;font-variant-numeric:tabular-nums}
+#vv-pessoas .d3m-e-pes-anel-r{font:400 var(--d3-fs-apoio)/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-pessoas .d3m-e-pes-comps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#vv-pessoas .d3m-e-pes-comp{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px;border-radius:var(--d3-r-caixa);background:var(--d3-veu)}
+#vv-pessoas .d3m-e-pes-comp > b{font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vv-pessoas .d3m-e-pes-comp > small{font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-pessoas .d3m-e-pes-comp-v{margin-top:8px}
+#vv-pessoas .d3m-e-pes-comp-v > span{font-weight:600;color:var(--d3-tinta)}
+#vv-pessoas .d3m-e-pes-comp.g .d3m-e-pes-comp-v > span{color:var(--d3-pronto)}
+#vv-pessoas .d3m-e-pes-comp.a .d3m-e-pes-comp-v > span{color:var(--d3-ambar)}
+
+/* Score por semana: a linha ocupa a folha, as semanas embaixo. */
+#vv-pessoas .d3m-e-pes-semana{justify-content:center;gap:8px;padding:16px}
+#vv-pessoas .d3m-e-pes-semana-g svg{display:block;width:100%;height:auto;max-height:180px}
+#vv-pessoas .d3m-e-pes-semana-x{display:flex;justify-content:space-between;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-pessoas .d3m-e-pes-semana-x > .agora{font-weight:600;color:var(--d3-tinta)}
+#vv-pessoas .d3m-e-pes-leg{margin:0;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+
+/* Linha simples de lista (conquistas): avatar, título e apoio. */
+#vv-pessoas .d3m-e-pes-lin{flex:none;display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa)}
+#vv-pessoas .d3m-e-pes-lin:first-child{border-top:0}
+#vv-pessoas .d3m-e-pes-lin-t{display:flex;flex-direction:column;gap:2px;min-width:0;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vv-pessoas .d3m-e-pes-lin-t > b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-pessoas .d3m-e-pes-lin-s{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* A parte dos donos (carga, pesos, metas) aberta numa folha: o formulário de antes, com o respiro da folha. */
+#vv-pessoas .d3m-e-pes-form{padding:12px 16px}
+
+/* Celular: uma coluna; a janela rola. */
+@media (max-width:900px){
+  body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:12px;overflow-y:auto}
+  #vv-pessoas .d3m-e-pes{flex:none}
+  #vv-pessoas .d3m-e-pes > .vp-corpo.d3m-e-corpo{display:flex;flex:none}
+  #vv-pessoas .d3m-e-pes-duas{display:flex;flex-direction:column;flex:none}
+  #vv-pessoas .d3m-e-pes-mesc{grid-template-columns:minmax(0,1fr);justify-items:center}
+  #vv-pessoas .d3m-e-pes-comps{width:100%;grid-template-columns:minmax(0,1fr)}
+  #vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]{flex:1 1 140px;width:auto;min-width:0}
+  /* A cabeça da folha quebra em duas linhas: o título em cima, o mês e o alternador embaixo. */
+  #vv-pessoas .d3m-e-folha > .d3m-e-cab{flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+  #vv-pessoas .d3m-e-folha > .d3m-e-cab > .d3m-e-cab-dir{flex:1 1 100%;min-width:0;flex-wrap:wrap;white-space:normal}
+  #vv-pessoas .d3m-e-folha > .d3m-e-cab .d3m-e-seg{flex-wrap:wrap}
+}
+
+/* ---------- Pedidos e calendário ---------- */
+/* A folha dos pedidos (430 na prancha) e o calendário, que ocupa o resto. */
+#vv-pessoas .d3m-e-pes-rhg{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,.84fr) minmax(0,1fr);gap:16px}
+#vv-pessoas .d3m-e-pes-rhg > .d3m-e-folha{min-height:0}
+#vv-pessoas .d3m-e-pes-n{margin-left:4px;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+/* Um pedido: avatar (gestão), o que é e o apoio, o selo do prazo e as ações. */
+#vv-pessoas .d3m-e-pes-ped{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:56px;padding:10px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa)}
+#vv-pessoas .d3m-e-pes-ped:first-child{border-top:0}
+#vv-pessoas .d3m-e-pes-ped > .d3m-e-pes-lin-t{flex:1 1 160px}
+#vv-pessoas .d3m-e-pes-cita{white-space:normal}
+#vv-pessoas .d3m-e-pes-selo{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#vv-pessoas .d3m-e-pes-selo.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#vv-pessoas .d3m-e-pes-selo.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+#vv-pessoas .d3m-e-pes-selo.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+#vv-pessoas .d3m-e-pes-bts{flex:none;display:inline-flex;gap:6px;margin-left:auto}
+#vv-pessoas .d3m-e-pes-bts > .d3v-btn,#vv-pessoas .d3m-e-pes-recusa > .d3v-btn{height:28px;padding:0 10px}
+#vv-pessoas .d3m-e-pes-recusa{flex:1 1 100%;display:flex;gap:6px}
+#vv-pessoas .d3m-e-pes-recusa > input{flex:1 1 auto;min-width:0;min-height:28px;height:28px}
+#vv-pessoas .d3m-e-pes-pe-r{color:var(--d3-perigo)}
+/* Atalhos curtos da consulta em grade de dois. */
+#vv-pessoas .d3m-e-pes-vgrade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+
+/* O calendário: semana de seg a dom, as semanas do mês dividem a altura da folha. */
+#vv-pessoas .d3m-e-pes-grade{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:24px repeat(var(--sem,5),minmax(0,1fr));margin:0 16px 16px;border-radius:var(--d3-r-caixa);overflow:hidden}
+#vv-pessoas .d3m-e-pes-ds{padding:0 8px;font:400 var(--d3-fs-apoio)/24px var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-pessoas .d3m-e-pes-dia{display:flex;flex-direction:column;gap:2px;min-width:0;min-height:0;padding:6px 8px;box-sizing:border-box;box-shadow:inset 1px 1px 0 var(--d3-divisa);overflow:hidden}
+#vv-pessoas .d3m-e-pes-dia.fora{background:var(--d3-veu)}
+#vv-pessoas .d3m-e-pes-dia > b{font:500 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#vv-pessoas .d3m-e-pes-dia.hoje{box-shadow:inset 0 0 0 2px var(--d3-tinta);border-radius:4px}
+#vv-pessoas .d3m-e-pes-dia.hoje > b{font-weight:700}
+#vv-pessoas .d3m-e-pes-fer{font:400 var(--d3-fs-mini)/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);overflow-wrap:anywhere}
+#vv-pessoas .d3m-e-pes-evs{display:flex;flex-direction:column;gap:2px;min-width:0}
+#vv-pessoas .d3m-e-pes-ev{display:block;min-width:0;padding:1px 5px;border-radius:4px;font:500 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-pessoas .d3m-e-pes-ev.aniv{background:var(--d3-agente-veu);color:var(--d3-agente-texto)}
+#vv-pessoas .d3m-e-pes-ev.ferias{background:var(--d3-info-veu);color:var(--d3-info)}
+#vv-pessoas .d3m-e-pes-ev.pend{box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-texto2)}
+#vv-pessoas .d3m-e-pes-ev.mais{color:var(--d3-rotulo)}
+/* A legenda do calendário, na consulta (no vidro): o quadradinho de 10 com a cor de cada coisa. */
+#vv-pessoas .d3m-e-pes-leg-c{display:inline-flex;gap:10px}
+#vv-pessoas .d3m-e-pes-leg-c{flex-wrap:wrap;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#vv-pessoas .d3m-e-pes-leg-c > span{display:inline-flex;align-items:center;gap:5px;color:var(--d3-fume-apagado)}
+#vv-pessoas .d3m-e-pes-leg-c i{width:10px;height:10px;border-radius:3px}
+#vv-pessoas .d3m-e-pes-leg-c i.aniv{background:var(--d3-agente-veu)}
+#vv-pessoas .d3m-e-pes-leg-c i.ferias{background:var(--d3-info-veu)}
+#vv-pessoas .d3m-e-pes-leg-c i.pend{box-shadow:inset 0 0 0 1px var(--d3-fume-apagado)}
+@media (max-width:900px){
+  #vv-pessoas .d3m-e-pes-rhg{display:flex;flex-direction:column;flex:none}
+  #vv-pessoas .d3m-e-pes-cal{flex:none}
+  #vv-pessoas .d3m-e-pes-grade{flex:none;grid-template-rows:24px repeat(var(--sem,5),64px);margin:0 8px 12px}
+  #vv-pessoas .d3m-e-pes-dia{padding:4px}
+}
+
+/* ---------- Recrutamento e Documentos ---------- */
+/* "sem dado" no cartão de número: o mesmo tamanho, em cinza. */
+#vv-pessoas .d3m-e-pes-sem{color:var(--d3-rotulo)}
+/* Os três passos embaixo do vazio (cartões de véu com o número de 22). */
+#vv-pessoas .d3m-e-pes-passos{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;border-top:1px solid var(--d3-divisa)}
+#vv-pessoas .d3m-e-pes-passo{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:120px;padding:14px 16px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-veu);font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-pessoas .d3m-e-pes-passo > i{display:grid;place-items:center;width:22px;height:22px;margin-bottom:8px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-pessoas .d3m-e-pes-passo > b{font-weight:600;color:var(--d3-tinta)}
+/* O funil: uma coluna por etapa com o número e a barra. */
+#vv-pessoas .d3m-e-pes-funil{flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;padding:12px 16px;border-top:1px solid var(--d3-divisa)}
+#vv-pessoas .d3m-e-pes-fun{display:flex;flex-direction:column;gap:4px;min-width:0}
+#vv-pessoas .d3m-e-pes-fun > b{font:600 18px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#vv-pessoas .d3m-e-pes-fun > i{display:block;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--d3-tinta) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-fun.r > i{background:linear-gradient(90deg,var(--d3-perigo) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-fun.g > i{background:linear-gradient(90deg,var(--d3-pronto) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-funil + .d3m-e-rola{border-top:1px solid var(--d3-divisa)}
+/* As etapas com gente, em selos, ao lado do nome da vaga. */
+#vv-pessoas .d3m-e-pes-etps{flex:none;display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:55%}
+#vv-pessoas .d3m-e-folha .v2p-det{padding-bottom:12px}
+#vv-pessoas .d3m-e-folha .v2p-det-acoes{display:flex;gap:6px;margin-top:8px}
+#vv-pessoas .d3m-e-folha .v2p-det-acoes > .d3v-btn{height:28px;padding:0 10px}
+/* Documentos: cada documento da pessoa numa linha (nome, selo, Abrir e Editar). */
+#vv-pessoas .d3m-e-folha .v2p-doc{display:flex;align-items:center;gap:10px;margin:0;padding:6px 0}
+#vv-pessoas .d3m-e-folha .v2p-doc-nome{flex:1 1 auto;min-width:0;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){
+  #vv-pessoas .d3m-e-pes-passos{grid-template-columns:minmax(0,1fr)}
+  #vv-pessoas .d3m-e-pes-passo{min-height:0}
+  #vv-pessoas .d3m-e-pes-funil{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* A linha da consulta escolhida (vaga, tipo de documento). */
+#vv-pessoas .d3m-lado .d3m-vlin.on{background:var(--d3-fume-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-fume-borda)}
+
+/* ---------- Academy ---------- */
+/* A busca na consulta ocupa a largura dela. */
+#vv-pessoas .d3m-cons > input.d3m-e-pes-busca[type=search]{width:100%;height:36px;min-height:36px}
+/* O avanço da trilha: a barra de 120 e a conta ao lado. */
+#vv-pessoas .d3m-e-pes-prog{flex:none;display:block;width:120px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--d3-ambar) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-prog.g{background:linear-gradient(90deg,var(--d3-pronto) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-conta{flex:none;width:120px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){
+  #vv-pessoas .d3m-e-pes-prog{width:60px}
+  #vv-pessoas .d3m-e-pes-conta{width:auto}
+}

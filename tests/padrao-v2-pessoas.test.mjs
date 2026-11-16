@@ -55,40 +55,37 @@ function montar({ gestao = true } = {}) {
 }
 const ordem = (h, ...trechos) => { let i = -1; for (const t of trechos) { const j = h.indexOf(t, i + 1); assert.ok(j > i, `"${t}" na ordem do quadro`); i = j; } };
 
-test('as quatro telas seguem a ordem do quadro: título, fala do VYBES, três números, filtro, Pede ação e lista', async () => {
+test('as cinco telas no esqueleto do grupo E: vidro fumê, título no vidro, uma ação principal e a consulta', async () => {
   const t = montar();
-  for (const [aba, pe] of [['academy', 'monta: donos e RH'], ['recrutamento', 'Vagas abertas'], ['documentos', 'Por colaborador']]) {
+  for (const aba of ['academy', 'produtividade', 'rh', 'recrutamento', 'documentos']) {
     await t.P.abrir(aba);
     const h = t.html();
-    assert.equal(t.janela().className, 'vp-janela v2p-janela', aba);
-    ordem(h, 'id="vp-titulo"', 'class="v2p-fala d3-acao d3p-acao"', 'class="v2p-tres"', 'class="v2p-barra-f"', 'data-v2p-busca', '<h3>Pede ação</h3>', 'data-v2p-lista', pe);
-    assert.equal(h.split('class="v2p-card v2p-kpi').length - 1, aba === 'academy' ? 4 : 3, `${aba}: números do quadro (Academy com Aulas feitas)`);
-    assert.equal(h.split('<button type="button" class="vp-acao"').length - 1, 1, `${aba}: uma ação principal`);
-    assert.match(h, /<h2[^>]*>[^<]*<\/h2><p>[a-zçáéíóúâêô]+, \d+ [a-z]+<\/p>/, 'Direção 3: o dia ao lado do título, sem a frase');
+    assert.equal(t.janela().className, 'vp-janela d3m-e-pes-janela', aba);
+    ordem(h, 'class="d3m-e-topo"', 'id="vp-titulo"', 'class="d3m-e-sub"', 'class="vp-corpo d3m-e-corpo', 'class="d3m-e-main"', '<aside class="d3m-lado" aria-label="Consulta">');
+    assert.ok(h.split('class="d3v-btn d3m-e-claro"').length - 1 <= 1, `${aba}: no máximo uma ação principal no topo`);
+    assert.doesNotMatch(h, /v2p-fala|v2p-tres|d3-acao/, `${aba}: sem a fala laranja e os números de antes`);
   }
   assert.match(readFileSync('vybe-mundo-pessoas.js', 'utf8'), /const V2 = new Set\(\['produtividade', 'rh', 'projetos', 'recrutamento', 'documentos', 'academy'\]\);/, 'Projetos também no padrão v2 (quadro ProjetosDepois)');
 });
-
-test('Pedidos e calendário: baralho de decisão, calendário com pendente tracejado e o resto a um clique', async () => {
+test('Pedidos e calendário (prancha V2-M-RH-Pedidos): pedidos que se decidem na linha, calendário do mês e a consulta no vidro', async () => {
   const t = montar();
   await t.P.abrir('rh');
   let h = t.html();
-  ordem(h, 'class="v2p-fala d3-acao d3p-acao"', 'class="v2p-tres"', '<h3>Pede ação</h3>', 'class="v2-baralho v2p-baralho"', 'data-v2p-decide', 'aria-label="Seus pedidos"', '<span class="v2p-sub">Também</span>', '<h3>Calendário do time</h3>');
-  assert.match(h, /<b>2 pedidos esperam resposta<\/b> e o de Bia vence amanhã\. Ewerton sai de férias de 16\/11 a 20\/11\./);
-  assert.match(h, /No prazo<\/small><span class="d3p-num-linha"><b class="d3-num-v">9<span class="d3p-de"> \/ 10</); assert.match(h, />4<span class="d3p-de"> \/ 6 · fecha amanhã</); assert.match(h, /<button[^>]*data-form="pesquisa">responder</);
-  assert.equal(h.split('class="v2-carta v2p-carta"').length - 1, 2); assert.match(h, /data-pos="0" data-carta="11"/); assert.match(h, /data-pos="1" data-carta="12"/);
-  assert.match(h, /Responder até amanhã/); assert.match(h, /“Deixo as pautas fechadas\.”/);
-  assert.match(h, /data-v2p-recusar="11">Recusar</); assert.match(h, /class="v2p-btn k v2-estado v2p-aprovar" data-v2p-decidir="11" data-feito="Aprovado">Aprovar</);
-  assert.match(h, /1 de 2 · seta para os lados passa · <button[^>]*data-v2p-ver="lista">ver em lista</);
-  assert.match(h, /class="v2p-pill mi pd" title="Bia Alves pediu férias ou folga e espera resposta">BI</, 'pedido de férias aberto entra tracejado');
-  assert.match(h, /class="v2p-pill mi g" title="Ewerton Dias de férias ou folga">EW</); assert.match(h, /class="v2p-pill mi an"[^>]*>JA</);
-  assert.match(h, /Respondido<\/span><p><b>Declaração de vínculo<\/b> <span class="v2p-sub">· 11\/11/, 'Seus pedidos embaixo do Pede ação (quadro D3-RhPedidos)');
-  // o segundo cartão não é férias: o botão vira Resolver
-  t.clicar('[data-v2p-carta]', { v2pCarta: '1' });
-  assert.match(t.html(), /data-v2p-decidir="12" data-feito="Resolvido">Resolver</); assert.match(t.html(), /2 de 2/);
+  assert.equal(t.janela().className, 'vp-janela d3m-e-pes-janela');
+  ordem(h, 'class="d3m-e-topo"', 'Pedidos e calendário', 'Recursos Humanos · 2 pedidos esperando resposta', 'data-vp-abrir-form="pedido"', 'Pedidos ao RH', 'data-v2p-filtro="abertos" aria-checked="true">Abertos', 'Calendário do time', '<aside class="d3m-lado"', 'O que dá para pedir', 'Clima', 'No calendário', 'Só da gestão');
+  assert.match(h, /data-v2p-recusar="11">Recusar</); assert.match(h, /data-v2p-decidir="11" data-feito="Aprovado">Aprovar</); assert.match(h, /data-v2p-decidir="12" data-feito="Resolvido">Resolver</);
+  assert.match(h, /“Deixo as pautas fechadas\.”/); assert.match(h, /class="d3m-e-pes-selo a">até amanhã</);
+  assert.match(h, /class="d3m-e-pes-ev pend" title="Bia Alves pediu férias ou folga e espera resposta">Bia</, 'pedido de férias aberto entra tracejado');
+  assert.match(h, /class="d3m-e-pes-ev ferias" title="Ewerton Dias de férias ou folga">Ewerton</); assert.match(h, /class="d3m-e-pes-ev aniv"[^>]*>Jady</);
+  assert.match(h, /class="d3m-e-pes-fer"[^>]*>Consc\. Negra</, 'os feriados nacionais no calendário'); assert.match(h, /3 feriados em novembro/);
+  assert.match(h, /data-vp-abrir-form="pedido" data-tipo="ferias"/, 'o que dá para pedir abre o formulário no tipo');
+  // Respondidos: o histórico com o selo
+  t.clicar('[data-v2p-filtro]', { v2pFiltro: 'respondidos' }); h = t.html();
+  assert.match(h, /Declaração de vínculo/); assert.match(h, /class="d3m-e-pes-selo g">Respondido</);
   // recusar pede o motivo no lugar e usa o formulário de resposta de sempre
+  t.clicar('[data-v2p-filtro]', { v2pFiltro: 'abertos' });
   t.clicar('[data-v2p-recusar]', { v2pRecusar: '12' });
-  assert.match(t.html(), /<form data-vp-form="responder" data-id="12" class="v2p-recusa"><input name="resposta"[^>]*required/);
+  assert.match(t.html(), /<form data-vp-form="responder" data-id="12" class="d3m-e-pes-recusa"><input name="resposta"[^>]*required/);
   // aprovar grava pelo caminho de sempre
   const b = { dataset: { v2pDecidir: '11', feito: 'Aprovado' }, textContent: 'Aprovar' };
   t.janela(); await t.P.abrir('rh');
@@ -101,68 +98,64 @@ test('Pedidos e calendário de quem pediu: sem botões de decisão, com o própr
   const t = montar({ gestao: false });
   await t.P.abrir('rh');
   const h = t.html();
-  assert.match(h, /<h3>Seus pedidos<\/h3>/); assert.match(h, /Nada seu esperando o RH/); assert.match(h, /Nenhum pedido por aqui/);
-  assert.doesNotMatch(h, /data-v2p-decidir|data-v2p-recusar|Visão geral|Datas de RH|Prazos de resposta/);
-  assert.match(h, /<b class="d3-num-v">Aberta</, 'quem não é da gestão não vê quantos responderam o clima');
+  assert.match(h, /Seus pedidos ao RH/); assert.match(h, /nada esperando o RH/); assert.match(h, /Nenhum pedido por aqui/); assert.match(h, /Nova solicitação/);
+  assert.doesNotMatch(h, /data-v2p-decidir|data-v2p-recusar|Visão geral|Datas de RH|Só da gestão/);
+  assert.doesNotMatch(h, /responderam/, 'quem não é da gestão não vê quantos responderam o clima');
 });
 
-test('Recrutamento: período na barra de filtro, quem espera retorno em Pede ação, funil e vaga que abre no lugar', async () => {
+test('Recrutamento (prancha V2-M-RH-Recrutamento): três números, o funil do mês com a vaga que abre no lugar e quem espera retorno na consulta', async () => {
   const t = montar();
   await t.P.abrir('academy'); await t.P.abrir('recrutamento'); // a primeira resposta diz que é gestão
   let h = t.html();
-  assert.match(h, /data-vp-abrir-form="vaga">Nova vaga<\/button><button[^>]*data-vp-ajuda/); assert.match(h, /data-vp-abrir-form="etapas">Etapas<\/button><div class="vp-periodo">/);
-  assert.match(h, /<b>1 vaga aberta, 2 candidatos\.<\/b> 1 espera retorno há mais de 5 dias/);
-  assert.match(h, /mais antiga · 34 dias/); assert.match(h, /1 contratação · <span class="vp-vs bom">▼ 3 dias vs mês anterior/);
-  assert.match(h, /aria-pressed="true" data-v2p-filtro="abertas">Abertas <b>1<\/b>/); assert.match(h, /data-v2p-filtro="pendente">Retorno pendente <b>1<\/b>/); assert.match(h, /data-v2p-filtro="fechadas">Fechadas <b>1<\/b>/);
-  assert.match(h, /class="v2p-pill r">8 dias<\/span><p><b>Fulana Um<\/b> · Designer<br><span class="v2p-sub">em Entrevista · no funil desde 04\/11/);
-  assert.match(h, /<select data-vp-mover="1">/, 'o candidato muda de etapa na própria linha');
-  assert.match(h, /<h3>Funil de novembro<\/h3><small>2 candidatos na vaga aberta/); assert.doesNotMatch(h, /<div class="v2p-fun"><span>Aprovado/, 'etapa sem candidato não aparece');
-  assert.match(h, /class="v2-abre v2p-linha" data-linha="1" aria-expanded="false"/); assert.match(h, /Triagem 1<\/span><span class="v2p-pill a">Entrevista 1</);
+  ordem(h, 'class="d3m-e-topo"', 'Recursos Humanos · só os donos e quem administra · 1 vaga aberta', 'data-vp-periodo="mensal"', 'data-v2p-busca', 'data-vp-abrir-form="vaga"', 'Vagas abertas', 'Candidatos', 'Tempo até contratar', 'Funil de novembro', '<aside class="d3m-lado"', 'Quem vê', 'Esperando retorno', 'Configurar as etapas');
+  assert.match(h, /mais antiga · 34 dias/); assert.match(h, /1 contratação · ▼ 3 dias/);
+  assert.match(h, /data-v2p-filtro="abertas" aria-checked="true">Abertas <span class="d3m-e-pes-n">1</); assert.match(h, /data-v2p-filtro="pendente" aria-checked="false">Retorno pendente <span class="d3m-e-pes-n">1</); assert.match(h, /data-v2p-filtro="fechadas" aria-checked="false">Fechadas <span class="d3m-e-pes-n">1</);
+  assert.match(h, /data-vp-editar-candidato="1"><span><b>Fulana Um<\/b> · Designer · 8 dias/, 'quem espera retorno abre o candidato para mover de etapa');
+  assert.match(h, /class="d3m-e-pes-fun" role="listitem"><small class="d3m-e-pes-lin-s">Triagem<\/small><b>1<\/b>/, 'o funil por etapa');
+  assert.match(h, /class="v2-abre v2p-linha" data-linha="1" aria-expanded="false"/); assert.match(h, /class="d3m-e-pes-selo">Triagem 1<\/span><span class="d3m-e-pes-selo">Entrevista 1</);
   assert.match(h, /class="v2p-etp-nome at" data-vp-editar-candidato="1"[^>]*>Fulana Um</, 'cartão da etapa com o nome (quadro D3-Recrutamento)');
-  assert.match(h, /<span>Vaga<\/span><span>Aberta<\/span><span>Conduz<\/span><span>Etapas<\/span>/); assert.match(h, /class="d3p-vg-aberta[^"]*"[^>]*>34 dias</); assert.match(h, /data-vp-abrir-form="candidato" data-vaga="1">Novo candidato</); assert.match(h, /data-vp-editar-vaga="1">Editar vaga</);
-  assert.match(h, /\+ 1 vaga fechada recolhida · <button[^>]*data-v2p-filtro="fechadas">mostrar</); assert.doesNotMatch(h, /Redator/);
+  assert.match(h, /data-vp-abrir-form="candidato" data-vaga="1">Novo candidato</); assert.match(h, /data-vp-editar-vaga="1">Editar vaga</);
+  assert.doesNotMatch(h, /Redator/); assert.match(h, /data-vp-vaga-ir="1"/, 'com mais de uma vaga, escolher uma na consulta');
   t.clicar('[data-v2p-filtro]', { v2pFiltro: 'fechadas' }); h = t.html();
-  assert.match(h, /<h3>Vagas fechadas<\/h3>/); assert.match(h, /Redator/);
-  t.clicar('[data-v2p-filtros]'); assert.match(t.html(), /class="vb-escolha|data-vp-vaga/, 'Filtros guarda a escolha de vaga');
+  assert.match(h, /data-v2p-filtro="fechadas" aria-checked="true"/); assert.match(h, /Redator/);
 });
 
-test('Documentos: o vencido em destaque, Renovar abre o documento e quem está em dia fica recolhido', async () => {
+test('Documentos (prancha V2-M-RH-Documentos): três números, Por colaborador com a pessoa que abre e Renovar na consulta', async () => {
   const t = montar();
   await t.P.abrir('academy'); await t.P.abrir('documentos');
   let h = t.html();
-  assert.match(h, /<b>1 documento venceu e 1 vence em até 30 dias\.<\/b> O outro documento do time está em dia\./);
-  assert.match(h, /class="v2p-card v2p-kpi d3-num atencao a"><small class="d3-num-rot">Vencem em 30 dias/); assert.match(h, /class="v2p-card v2p-kpi d3-num ruim r"><small class="d3-num-rot">Vencidos<\/small>/); assert.match(h, /há 4 dias/); assert.match(h, /1º em 12 dias/); assert.match(h, /aria-label="Vencimentos"/);
-  assert.match(h, /class="v2p-lin dest"><p><span class="v2p-pill r">Venceu há 4 dias<\/span><br><b>Contrato PJ<\/b>/);
-  assert.match(h, /data-vp-editar-documento="1" data-foco="renovacao">Renovar</); assert.match(h, /Vence em 12 dias/);
-  assert.match(h, /1 venceu em 08\/11/); assert.match(h, /1 vence em 24\/11/); assert.match(h, /Abrir<\/a>/); assert.match(h, /data-vp-editar-documento="2">Editar</);
-  assert.match(h, /\+ 1 colaborador com tudo em dia recolhido · /); assert.doesNotMatch(h, /Deivid/);
-  t.clicar('[data-v2p-mostrar]', { v2pMostrar: 'emDia' }); assert.match(t.html(), /Deivid/);
+  ordem(h, 'class="d3m-e-topo"', 'contratos e documentos do time · 1 vencido', 'data-v2p-busca', 'data-vp-abrir-form="documento"', 'Documentos do time', 'Vencem em 30 dias', 'Vencidos', 'Por colaborador', '<aside class="d3m-lado"', 'O aviso', 'Para renovar', 'Tipos', 'Abrir');
+  assert.match(h, /o mais antigo há 4 dias/); assert.match(h, /1º em 12 dias/);
+  assert.match(h, /data-vp-editar-documento="1" data-foco="renovacao"><span><b>Renovar<\/b> · Contrato PJ · Reri · venceu 08\/11/);
+  assert.match(h, /class="d3m-e-pes-selo r">1 venceu em 08\/11</); assert.match(h, /class="d3m-e-pes-selo a">1 vence em 24\/11</); assert.match(h, /Abrir<\/a>/); assert.match(h, /data-vp-editar-documento="2">Editar</);
+  assert.ok(h.indexOf('Reri Lima') < h.indexOf('Jady Rocha') && h.indexOf('Jady Rocha') < h.indexOf('Deivid Souza'), 'o vencido sobe para o topo da lista');
+  assert.match(h, /data-v2p-tipo="contrato"/, 'os tipos viram filtro na consulta');
   t.clicar('[data-v2p-filtro]', { v2pFiltro: 'vencidos' }); h = t.html();
-  assert.match(h, /Reri/); assert.doesNotMatch(h, /<b>Jady<\/b>/);
+  assert.match(h, /Reri Lima/); assert.doesNotMatch(h, /Jady Rocha/);
 });
 
-test('Academy: quem falta em Pede ação, a sua trilha com Continuar e a aula que marca no lugar', async () => {
+test('Academy (prancha V2-M-Academy): três números, Trilhas no ar com a trilha que abre, quem falta e a busca na consulta', async () => {
   const t = montar();
   await t.P.abrir('academy');
   let h = t.html();
-  assert.match(h, /<b>1 trilha no ar\.<\/b> 1 pessoa ainda não terminou a Boas-vindas\./);
-  assert.match(h, /Boas-vindas feita<\/small><span class="d3p-num-linha"><b class="d3-num-v">1<span class="d3p-de"> \/ 2</); assert.match(h, /1 vídeo · 1 doc/); assert.match(h, /falta 1 · /);
-  assert.match(h, /Atrasada há 9 dias<\/span><p><b>Jady<\/b> · Boas-vindas/);
-  assert.match(h, /<p class="v2p-sub">Documento 2<\/p><b>Manual<\/b>/); assert.match(h, /class="v2p-mini"/, 'a miniatura da aula (quadro D3-Academy)'); assert.match(h, /<span>Trilha<\/span><span>Para<\/span>/); assert.match(h, /class="v2p-btn s k" href="https:\/\/y"[^>]*>Continuar</);
+  ordem(h, 'class="d3m-e-h" id="vp-titulo" role="heading" aria-level="2">Academy', 'trilhas de treinamento da Vybe · 1 trilha no ar', 'data-vp-abrir-form="trilha"', 'Trilhas no ar', 'Aulas feitas', 'A sua trilha', '<aside class="d3m-lado"', 'Quem monta', 'Pede atenção', 'Buscar');
+  assert.doesNotMatch(h, /class="d3m-e-troca" ontoggle/, 'a Academy não é do setor do RH: sem a seta de trocar de tela');
+  assert.match(h, /1 vídeo · 1 doc/); assert.match(h, /Boas-vindas · falta 1 aula/); assert.match(h, /data-v2p-abre="1" data-abrir="1" title="Continuar a Boas-vindas"/);
+  assert.match(h, /data-v2p-abre="1" data-abrir="1"><span><b>Jady<\/b> · Boas-vindas · atrasada há 9 dias/);
   assert.match(h, /1 de 2 terminou/); assert.match(h, /class="v2p-cx ok" data-v2p-aula="a1" aria-pressed="true"/); assert.match(h, /data-vp-editar-trilha="1">Editar trilha</); assert.match(h, /Atribuir e acompanhar/);
+  assert.match(h, /data-v2p-busca placeholder="trilha, vídeo ou documento"/);
   t.pedidos.length = 0;
   t.clicar('[data-v2p-aula]', { v2pAula: 'a2' }); await new Promise((ok) => setTimeout(ok, 0));
   assert.deepEqual(t.pedidos.find((p) => p.metodo === 'POST')?.corpo, { acao: 'aula_feita', aula_id: 'a2', feita: true });
-  // quem não monta trilhas: o botão do alto vira "Pedir uma trilha" e abre a solicitação ao RH com o assunto
+  // quem não monta trilhas: "Pedir uma trilha" na consulta abre a solicitação ao RH com o assunto
   const e = montar({ gestao: false });
   await e.P.abrir('academy');
   h = e.html();
-  assert.match(h, /data-v2p-pedir-trilha>Pedir uma trilha</); assert.doesNotMatch(h, /Nova trilha|Editar trilha|Atribuir e acompanhar/); assert.match(h, /<small class="d3-num-rot">Aulas feitas<\/small>/);
+  assert.match(h, /data-v2p-pedir-trilha><span><b>Pedir uma trilha/); assert.doesNotMatch(h, /Nova trilha|Editar trilha|Atribuir e acompanhar|Pede atenção/); assert.match(h, /Aulas feitas/);
   e.clicar('[data-v2p-pedir-trilha]'); await new Promise((ok) => setTimeout(ok, 0));
   assert.match(e.html(), /data-vp-form="pedido"/); assert.match(e.html(), /value="Trilha na Academy: "/);
 });
-
-test('Produtividade: a fala do Alex, o mês no cabeçalho, O mês de cada um e o que é dos donos a um clique', async () => {
+test('Produtividade (prancha V2-M-RH-Produtividade): a folha do mês com o anel, O mês de cada um e o que é dos donos pela consulta', async () => {
   const comps = [{ id: 'prazo', nome: 'Entregas no prazo' }, { id: 'volume', nome: 'Volume' }];
   const p = (id, nome, score, entregues, meta, cq = []) => ({ id, nome, score, entregues, meta, atrasadas: score < 70 ? 4 : 0, componentes: { prazo: score / 100, volume: .5 }, frases: ['frase do mês'], conquistas: cq.map((t2, i) => ({ id: 'c' + i, titulo: t2, texto: '' })) });
   const ranking = [p('4', 'Jady Rocha', 94, 16, 15, ['Sequência de 10 no prazo']), p('5', 'Vini Prado', 77, 9, 12), p('2', 'Reri Lima', 61, 6, 15)];
@@ -171,20 +164,22 @@ test('Produtividade: a fala do Alex, o mês no cabeçalho, O mês de cada um e o
   const t = montar();
   await t.P.abrir('produtividade');
   let h = t.html();
-  assert.equal(t.janela().className, 'vp-janela v2p-janela');
-  ordem(h, 'id="vp-titulo"', 'class="v2p-fala d3-acao d3p-acao"', 'Alex · Análise e números', 'class="v2p-tres"', '<h3>Pede ação</h3>', '<h3>Conquistas do mês</h3>', '<h3>O mês de cada um</h3>', 'Da operação', 'Também aqui, só para os donos:');
-  assert.match(h, /<b>Reri está com 61<\/b>, 6 de 15 entregas\./);
-  assert.match(h, /data-vp-ajuda aria-expanded="false">Como o score é feito</);
-  assert.match(h, /Score do time<\/small><span class="d3p-num-linha"><b class="d3-num-v">77</); assert.match(h, /Metas batidas<\/small><span class="d3p-num-linha"><b class="d3-num-v">1<span class="d3p-de"> \/ 3</); assert.match(h, /No prazo do cliente/); assert.equal(h.split('class="v2p-card v2p-kpi').length - 1, 4, 'quatro números');
-  assert.match(h, /class="v2p-pill a">6 de 15 entregas<\/span><p><b>Reri<\/b> · 4 peças abertas atrasadas/); assert.match(h, /data-v2p-abre="2" data-abrir="1">Ver o mês</);
-  assert.match(h, /data-linha="4" aria-expanded="false"/); assert.match(h, /class="d3-barra v2p-barra-lin a"><i style="--v:61%">/); assert.match(h, /<b class="v2p-sc">94<\/b>/); assert.match(h, /<span>Pessoa<\/span><span>Metas<\/span><span>Conquistas<\/span><span>Score<\/span>/);
-  assert.doesNotMatch(h, /vp-anel|Ranking do mês/, 'sem o anel e sem a lista antiga');
-  // quem não é dono: só o próprio mês, aberto, sem comparação
+  assert.equal(t.janela().className, 'vp-janela d3m-e-pes-janela', 'a janela vira o vidro fumê do grupo E');
+  ordem(h, 'class="d3m-e-topo"', 'id="vp-titulo"', 'Recursos Humanos · novembro de 2026 · score do time 77', 'O mês do time', 'class="d3m-e-pes-anel"', 'O mês de cada um', 'Conquistas do mês', '<aside class="d3m-lado"', 'Como o score é feito', 'Pede atenção', 'Do time', 'Da operação');
+  assert.match(h, /data-vp-mes-ir="2026-10" aria-label="Mês anterior"/, 'o mês anda pelas mesmas setas de antes');
+  assert.match(h, /Score 77 de 100/); assert.match(h, /<b>Entregas no prazo<\/b>[\s\S]*?<span>77%<\/span>/, 'o componente é a média do time');
+  assert.match(h, /data-v2p-abre="2" data-abrir="1"><span><b>Reri<\/b> · score 61, 4 atrasadas/, 'quem pede atenção abre a linha no lugar');
+  assert.match(h, /data-linha="4" aria-expanded="false"/); assert.match(h, /class="d3-barra v2p-barra-lin a"><i style="--v:61%">/); assert.match(h, /<b class="v2p-sc">94<\/b>/);
+  assert.match(h, /data-v2p-ver="carga"/); assert.match(h, /data-v2p-ver="pesos"/); assert.match(h, /data-vp-ir="performance"/); assert.match(h, /data-v2p-busca/);
+  assert.doesNotMatch(h, /v2p-fala|d3p-acao|v2p-tres|Também aqui/, 'sem a fala laranja e os três números de antes');
+  t.P._teste.ver('pesos'); assert.match(t.html(), /data-vp-form="pesos"/); assert.match(t.html(), /data-v2p-ver="">Fechar/);
+  // quem não é dono: só o próprio mês, o score por semana e as conquistas, sem comparação
   const e = montar({ gestao: false });
   await e.P.abrir('produtividade');
   h = e.html();
-  assert.match(h, /<h3>O seu mês<\/h3>/); assert.match(h, /O seu score de novembro é 77/); assert.match(h, /class="v2p-linha" aria-expanded="true"/);
-  assert.doesNotMatch(h, /Jady|Reri|Pede ação|Também aqui|data-v2p-ver=/);
+  ordem(h, 'O seu mês', 'Score 77 de 100', 'Score por semana', 'Conquistas do mês', 'Ranking da semana');
+  assert.match(h, /o seu score é 77/); assert.match(h, /9 de 12 entregas/);
+  assert.doesNotMatch(h, /Jady|Reri|Pede atenção|data-v2p-ver=|data-v2p-busca/);
 });
 
 test('o CSS do grupo fica no fragmento, com as medidas do quadro e sem forçar regra antiga', () => {

@@ -116,11 +116,13 @@ test('um cabeçalho de janela: vbCabecalhoHtml com o X único, sem rótulo de se
   const core = ler('vybe-core.js');
   assert.match(core, /function vbCabecalhoHtml\(\{ titulo, texto = '', acoes = '', id = '' \}\)/);
   assert.match(core, /function vbFecharHtml\(attr = '', classe = ''\)/);
-  for (const [arq, topo] of [['vybe-mundo-pessoas.js', 'vp-topo'], ['vybe-mundo-impressoes.js', 'vi-topo'], ['vybe-mundo-ferramentas.js', 'vf-topo'], ['vybe-mundo-agentes.js', 'vga-topo'], ['vybe-mundo-planejamentos.js', 'vv-plj-cabeca']]) {
+  for (const [arq, topo] of [['vybe-mundo-pessoas.js', 'vp-topo'], ['vybe-mundo-impressoes.js', 'vi-topo'], ['vybe-mundo-agentes.js', 'vga-topo'], ['vybe-mundo-planejamentos.js', 'vv-plj-cabeca']]) {
     const src = ler(arq);
     assert.ok(src.includes(`class="${topo} vb-janela-topo">\${cabecalho({`), `${arq}: o topo usa o cabeçalho único`);
     assert.match(src, /botaoX\('data-/, `${arq}: o X é o do padrão`);
   }
+  // O Toolkit saiu desta lista no grupo E (prancha V2-M-Toolkit): o topo dele é o .d3m-e-topo no vidro, com o Fechar no fim.
+  assert.match(ler('vybe-mundo-ferramentas.js'), /class="d3m-e-topo">/); assert.match(ler('vybe-mundo-ferramentas.js'), /data-vf="fechar" aria-label="Fechar"/);
   assert.doesNotMatch(ler('vybe-mundo-pessoas.js'), /class="vp-kicker">\$\{esc\(estado\.rotulo/);
   assert.doesNotMatch(ler('vybe-mundo-planejamentos.js'), /vv-plj-kicker/);
   const css = ler('vybe-mundo.css');

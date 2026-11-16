@@ -1412,13 +1412,459 @@
 
   // ---------- desenho ----------
   const DESENHO = { produtividade: htmlProdutividade, rh: htmlRh, projetos: htmlProjetos, academy: htmlAcademy, recrutamento: htmlRecrutamento, documentos: htmlDocumentos };
-  const LISTA_V2 = { academy: listaAcademy, recrutamento: listaRecrutamento, documentos: listaDocumentos, projetos: listaProjetos };
+  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaTrilhasE, recrutamento: listaVagasE, documentos: listaDocsE, projetos: listaProjetos };
+  // ---------- V2 · grupo E (pranchas V2-M-RH-*, V2-M-Academy, aprovadas pelo Paulo em 16/11/2026) ----------
+  // O esqueleto novo das telas do RH: a janela de vidro fumê, o título no vidro (com a seta que troca de tela do setor),
+  // a coluna de trabalho em folhas claras e a coluna de consulta de 316 direto no vidro. As peças .d3m-e-* são as da
+  // casca do grupo (padrao-v2/zm-e-casca.css); as locais desta janela ficam em padrao-v2/zm-e-pessoas.css. Cada tela
+  // devolve { sub, acoes, main, lado }; as funções, os data-* e os formulários de antes seguem os mesmos.
+  const E = new Set(['produtividade', 'rh', 'recrutamento', 'documentos', 'academy']);
+  const IC_E = { lupa: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', ajuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', mais: '<path d="M12 5v14M5 12h14"/>',
+    depois: '<path d="M9 6l6 6-6 6"/>', antes: '<path d="M15 6l-6 6 6 6"/>', baixo: '<path d="M6 9l6 6 6-6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>', certo: '<path d="M5 12l4 4 10-10"/>', fora: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>' };
+  const icE = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${IC_E[n] || ''}</svg>`;
+  // Estado de uma área (vazio, erro, carregando): a peça do grupo (d3mEEstado, vybe-core.js); sem ela (testes), o mesmo texto.
+  const estadoE = (o) => (typeof d3mEEstado === 'function' ? d3mEEstado(o)
+    : `<div class="d3m-e-estado d3m-e-estado-${o.tipo === 'erro' ? 'erro' : 'vazio'}${o.grande ? ' grande' : ''}" role="status">${o.titulo ? `<b>${esc(o.titulo)}</b>` : ''}${o.texto ? `<span>${esc(o.texto)}</span>` : ''}${o.acao || ''}</div>`);
+  const btnEstadoE = (rotulo, attrs, sec = false) => `<button type="button" class="d3m-e-estado-btn${sec ? ' sec' : ''}" ${attrs}>${esc(rotulo)}</button>`;
+  // A folha clara: cabeça de 44 (título, apoio e o que vai à direita), o corpo e, se houver, o pé.
+  const folhaE = ({ titulo, apoio = '', dir = '', corpo = '', pe = '', cls = '', rotulo = '', attrs = '' }) => `<section class="d3m-e-folha${cls ? ' ' + cls : ''}" aria-label="${esc(rotulo || titulo)}"${attrs ? ' ' + attrs : ''}>`
+    + `<div class="d3m-e-cab"><b>${esc(titulo)}${apoio ? ` <span>· ${esc(apoio)}</span>` : ''}</b>${dir ? `<span class="d3m-e-cab-dir">${dir}</span>` : ''}</div>${corpo}${pe ? `<div class="d3m-e-pe">${pe}</div>` : ''}</section>`;
+  // A consulta no vidro: um bloco com título (e o apoio à direita) e as linhas de 36 que levam a outro lugar.
+  const consE = (titulo, corpo, apoio = '') => `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${esc(titulo)}</b>${apoio ? `<span>${esc(apoio)}</span>` : ''}</div>${corpo}</div>`;
+  const vlinE = (nome, texto, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span><b>${esc(nome)}</b>${texto ? ` · ${esc(texto)}` : ''}</span>${icE('depois')}</button>`;
+  const txtE = (t) => `<p class="d3m-e-lado-txt">${t}</p>`;
+  // Leva a outra tela pelo próprio menu lateral (o mesmo clique de quem usa o menu).
+  function irPeloMenu(id) {
+    const item = document.querySelector?.(`.vv-trilho [data-trilho="${id}"], .vv-trilho [data-submodulo="${id}"]`);
+    if (item) { fechar(); item.click(); }
+  }
+  const NOME_E = { produtividade: 'Produtividade', rh: 'Pedidos e calendário', recrutamento: 'Recrutamento', documentos: 'Documentos', academy: 'Academy' };
+  function htmlPainelE() {
+    const a = estado.aba, d = estado.dados[a], g = gestao();
+    const abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
+    // As abas de antes seguem no DOM para o teclado e os leitores; trocar de tela é a seta do título (o submenu do setor).
+    const abasHtml = `<div class="vp-abas" role="tablist" aria-label="Partes do setor de Pessoas" hidden>${abas.map(([k, r]) => `<button type="button" role="tab" id="vp-aba-${k}" aria-controls="vp-corpo" aria-selected="${k === a}" data-vp-aba="${k}" tabindex="-1">${esc(r)}</button>`).join('')}</div>`;
+    let p = null;
+    if (d && !d.proibido) p = DESENHO_E[a](d);
+    // A Academy não é do RH: a linha de apoio dela é só a dela (prancha V2-M-Academy).
+    const sub = a === 'academy' ? p?.sub || 'trilhas de treinamento da Vybe' : `Recursos Humanos${p?.sub ? ` · ${p.sub}` : ''}`;
+    const ajuda = `<details class="d3m-e-troca d3m-e-ajuda"><summary class="d3m-e-ico" aria-label="Como funciona" title="Como funciona">${icE('ajuda')}</summary><div class="d3m-e-pop d3m-e-ajuda-pop" role="note" aria-label="Como funciona"><b class="d3m-e-ajuda-t">Como funciona</b><p class="d3m-e-ajuda-p">${esc(AJUDA[a])}</p></div></details>`;
+    const fechar = `<button type="button" class="d3m-e-ico" data-vp-fechar aria-label="Fechar" title="Fechar">${icE('x')}</button>`;
+    const h = `<span class="d3m-e-h" id="vp-titulo" role="heading" aria-level="2">${esc(NOME_E[a])}</span>`;
+    const setor = a === 'academy' ? '' : 'pessoas';
+    const tit = setor ? `<details class="d3m-e-troca" ontoggle="if(this.open&&typeof d3mETroca==='function')d3mETroca(this,'${setor}','${a}')"><summary title="Trocar de tela">${h}${icE('baixo')}</summary><div class="d3m-e-pop" role="group" aria-label="Outras telas"></div></details>` : h;
+    const topo = `<div class="d3m-e-topo"><div class="d3m-e-tit">${tit}<span class="d3m-e-sub">${esc(sub)}</span></div><div class="d3m-e-acoes">${p?.acoes || ''}${ajuda}${p?.acao || ''}${fechar}</div></div>`;
+    const corpo = p ? `${p.main}${p.lado ? `<aside class="d3m-lado" aria-label="Consulta">${p.lado}</aside>` : ''}`
+      : `<div class="d3m-e-main"><section class="d3m-e-folha cresce" aria-label="${esc(NOME_E[a])}">${d?.proibido ? estadoE({ tipo: 'vazio', grande: true, titulo: 'Só para os donos e quem administra', texto: 'Esta parte do RH não abre para você.' })
+        : estado.erro ? estadoE({ tipo: 'erro', grande: true, titulo: 'Não deu para abrir agora', texto: estado.erro, acao: btnEstadoE('Tentar de novo', 'data-vp-recarregar', true) })
+          : estadoE({ tipo: 'carregando', forma: 'lista', linhas: 6, titulo: `Carregando ${NOME_E[a]}` })}</section></div>`;
+    const erroTopo = p && estado.erro ? `<p class="d3m-e-pes-erro" role="alert">Não foi possível atualizar: ${esc(estado.erro)} <button type="button" class="d3m-e-elo" data-vp-recarregar>Tentar de novo</button></p>` : '';
+    return `<div class="d3m-e-tela d3m-e-pes d3m-e-pes-${a}">${topo}${abasHtml}${erroTopo}
+      <p class="vp-aviso d3m-e-pes-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>
+      <div class="vp-corpo d3m-e-corpo${p && !p.lado ? ' um' : ''}" id="vp-corpo" role="tabpanel" aria-labelledby="vp-aba-${a}" aria-busy="${estado.carregando}">${corpo}</div></div>`;
+  }
+  const mesNomeE = (ym) => MESES_RH[Number(String(ym).slice(5, 7)) - 1] || 'mês';
+  // ‹ novembro de 2026 › dentro da cabeça da folha: as mesmas setas de antes (data-vp-mes-ir), sem passar do mês de hoje.
+  function mesNavE(mes, attr) {
+    const max = hoje().slice(0, 7), prox = andarMes(mes, 1);
+    return `<span class="d3m-e-pes-mes"><button type="button" class="d3m-e-pes-seta" ${attr}="${esc(andarMes(mes, -1))}" aria-label="Mês anterior">${icE('antes')}</button>`
+      + `<span>${esc(mesNomeE(mes))} de ${esc(mes.slice(0, 4))}</span><button type="button" class="d3m-e-pes-seta" ${attr}="${esc(prox)}" aria-label="Próximo mês"${prox > max ? ' disabled' : ''}>${icE('depois')}</button></span>`;
+  }
+  // O anel do score (0 a 100): o número no meio e a palavra embaixo; sem dado, o traço.
+  function anelE(score, rotulo) {
+    const v = score == null ? null : Math.max(0, Math.min(100, Math.round(score))), c = 2 * Math.PI * 52;
+    return `<div class="d3m-e-pes-anel${v == null ? ' sem' : v < 70 ? ' a' : ''}" role="img" aria-label="${esc(v == null ? 'Score sem dado' : `Score ${v} de 100`)}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/>`
+      + `${v == null ? '<circle class="ponto" cx="112" cy="60" r="5"/>' : `<circle class="v" cx="60" cy="60" r="52" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}"/>`}</svg><span><b>${v == null ? '–' : v}</b><small class="d3m-e-pes-anel-r">${esc(rotulo)}</small></span></div>`;
+  }
+
+  // ---------- Produtividade (prancha V2-M-RH-Produtividade) ----------
+  // A folha do mês (o anel do score e os quatro componentes), o score por semana e as conquistas. Quem administra vê o
+  // time: o anel é a média, os componentes são a média de quem tem score, e embaixo "O mês de cada um" com a linha que
+  // abre no lugar. A carga, os pesos e as metas (só donos) abrem pela consulta, numa folha no lugar do mês de cada um.
+  const COMPS_E = [['prazo', 'Entregas no prazo', 'a data do cliente manda'], ['volume', 'Volume do mês', 'contra a meta do cargo'], ['ajustes', 'Peças que voltaram', 'para ajuste'], ['atrasos', 'Atrasado na fila', 'o que está vencido com você']];
+  function compsE(d) {
+    const doServidor = (d.componentes || []).map((c) => c.id);
+    const lista = COMPS_E.filter(([id]) => !doServidor.length || doServidor.includes(id));
+    for (const c of d.componentes || []) if (!COMPS_E.some(([id]) => id === c.id)) lista.push([c.id, c.nome, '']);
+    return lista;
+  }
+  function semanaE(d) {
+    const s = semanasDoScore(d);
+    const vazio = estadoE({ tipo: 'vazio', icone: 'alta', titulo: 'Sem histórico por semana ainda', texto: d.gestao ? 'Quando as demandas do painel andarem, o score do time aparece aqui, semana a semana.' : 'Quando as demandas do painel com você andarem, o seu mês aparece aqui, semana a semana.' });
+    if (!s || typeof d3LinhaSvg !== 'function') return `<div class="d3m-e-rola">${vazio}</div>`;
+    const linha = s.deste.length >= 2 ? s.deste : s.todos.slice(-6);
+    if (linha.length < 2) return `<div class="d3m-e-rola">${vazio}</div>`;
+    const meta = s.deste.length >= 2 && s.anterior.length >= 2 ? s.anterior.map((p) => p.valor).slice(0, linha.length) : null;
+    return `<div class="d3m-e-rola d3m-e-pes-semana"><div class="d3m-e-pes-semana-g">${d3LinhaSvg(linha.map((p) => p.valor), { meta, largura: 520, altura: 140, rotulo: `Score ${d.gestao ? 'do time' : 'seu'} por semana: ${linha.map((p) => `${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)} ${Math.round(p.valor)}`).join(', ')}` })}</div>`
+      + `<div class="d3m-e-pes-semana-x" aria-hidden="true">${linha.map((p, i) => `<span${i === linha.length - 1 ? ' class="agora"' : ''}>sem ${i + 1}${i === linha.length - 1 ? ` · ${Math.round(p.valor)}` : ''}</span>`).join('')}</div>`
+      + `${meta ? `<p class="d3m-e-pes-leg">tracejado: ${esc(mesNomeE(s.ant))}</p>` : ''}</div>`;
+  }
+  function conquistasE(d, conquistas, nomeMes) {
+    if (!conquistas.length) return `<div class="d3m-e-rola">${estadoE({ tipo: 'vazio', icone: 'certo', titulo: `Nenhuma conquista em ${nomeMes}`, texto: 'As conquistas saem das entregas. O score não precisa de nada preenchido à mão.' })}</div>`;
+    return `<div class="d3m-e-rola d3m-e-pes-lista">${conquistas.map(({ c, p }) => `<div class="d3m-e-pes-lin">${av(p.nome)}<span class="d3m-e-pes-lin-t"><b>${esc(c.titulo)}</b><small class="d3m-e-pes-lin-s">${esc(primeiroNome(p.nome))}${c.texto ? ` · ${esc(c.texto)}` : ''}</small></span></div>`).join('')}</div>`;
+  }
+  function listaMesE(d) {
+    const time = d.ranking || [], lista = time.filter((p) => bate(p.nome));
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${lista.length ? lista.map((p) => linhaDoMes(p, d.componentes || [])).join('')
+      : estadoE({ tipo: 'vazio', icone: 'pessoas', titulo: time.length ? 'Ninguém com esse nome' : 'Ninguém na equipe ainda', texto: time.length ? 'Confira a busca.' : 'Quem pode entrar no painel aparece aqui.' })}</div>`;
+  }
+  function produtividadeE(d) {
+    const mes = estado.mes || d.mes || hoje().slice(0, 7), nomeMes = mesNomeE(mes), eu = d.detalhe;
+    const time = d.gestao ? (d.ranking || []) : eu ? [eu] : [], comScore = time.filter((p) => p.score != null);
+    const conquistas = time.flatMap((p) => (p.conquistas || []).map((c) => ({ c, p })));
+    const media = (lista, f) => (lista.length ? lista.reduce((s, p) => s + f(p), 0) / lista.length : null);
+    const score = d.gestao ? media(comScore, (p) => p.score) : eu?.score ?? null;
+    const tiles = compsE(d).map(([id, nome, apoio]) => {
+      const com = time.filter((p) => p.componentes?.[id] != null), v = d.gestao ? media(com, (p) => p.componentes[id]) : eu?.componentes?.[id];
+      const pct = v == null ? null : Math.round(v * 100), vol = id === 'volume' && !d.gestao && eu?.meta ? `${eu.entregues ?? 0} de ${eu.meta} entregas` : '';
+      return `<div class="d3m-e-pes-comp${pct == null ? '' : pct >= 80 ? ' g' : pct < 60 ? ' a' : ''}"><b>${esc(nome)}</b><small class="d3m-e-pes-comp-a">${esc(d.gestao && id === 'atrasos' ? 'o que está vencido no time' : apoio)}</small>`
+        + `<small class="d3m-e-pes-comp-v">${pct == null ? `sem dado em ${esc(nomeMes)}` : `<span>${pct}%</span>${vol ? ` · ${esc(vol)}` : ''}`}</small></div>`;
+    }).join('');
+    const mesFolha = folhaE({ titulo: d.gestao ? 'O mês do time' : 'O seu mês', apoio: 'score de 0 a 100', dir: mesNavE(mes, 'data-vp-mes-ir'), cls: 'd3m-e-pes-mesf',
+      corpo: `<div class="d3m-e-pes-mesc">${anelE(score, score == null ? 'sem dado' : d.gestao ? `média de ${plural(comScore.length, 'pessoa', 'pessoas')}` : 'o seu score')}<div class="d3m-e-pes-comps">${tiles}</div></div>` });
+    // Embaixo: quem administra vê o mês de cada um (ou a parte dos donos que abriu) e, ao lado, Por semana | Conquistas.
+    const v = estado.v2.ver, partes = { carga: 'Carga da semana', pesos: 'Pesos do score', metas: 'Metas por cargo' };
+    let esquerda;
+    if (d.gestao && partes[v]) {
+      const pesos = d.pesos || {};
+      const corpo = v === 'carga' ? htmlCarga(d.cargaSemana)
+        : v === 'pesos' ? `<form data-vp-form="pesos" class="vp-form vp-grade">${(d.componentes || []).map((c) => `<label><span>${esc(c.nome)}</span><input type="number" name="${esc(c.id)}" min="0" max="100" step="1" value="${esc(pesos[c.id])}" inputmode="numeric" required></label>`).join('')}
+          <p class="vp-nota">O score é a média ponderada: o peso conta em relação aos outros (não precisa somar 100).</p><div class="vp-botoes"><button type="submit" class="vp-acao">Salvar pesos</button></div></form>`
+          : `<form data-vp-form="metas" class="vp-form vp-grade">${Object.entries(d.cargos || {}).map(([k, nome]) => `<label><span>${esc(nome)}</span><input type="number" name="${esc(k)}" min="0" max="1000" step="1" value="${esc(d.metas?.[k] ?? 0)}" inputmode="numeric" required></label>`).join('')}
+          <p class="vp-nota">No mês corrente a meta vale proporcional aos dias que já passaram.</p><div class="vp-botoes"><button type="submit" class="vp-acao">Salvar metas</button></div></form>`;
+      esquerda = folhaE({ titulo: partes[v], apoio: 'só os donos', cls: 'cresce', dir: `<button type="button" class="d3m-e-elo" data-v2p-ver="">Fechar</button>`, corpo: `<div class="d3m-e-rola d3m-e-pes-form" data-v2p-secao>${corpo}</div>` });
+    } else if (d.gestao) {
+      esquerda = folhaE({ titulo: 'O mês de cada um', apoio: plural(time.length, 'pessoa', 'pessoas'), cls: 'cresce', dir: 'metas · score', corpo: listaMesE(d) });
+    } else {
+      esquerda = folhaE({ titulo: 'Score por semana', dir: esc(nomeMes), cls: 'cresce', corpo: semanaE(d) });
+    }
+    let direita;
+    if (d.gestao) {
+      const aba = estado.v2.filtro === 'semana' ? 'semana' : 'conq';
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="O que ver"><button type="button" role="radio" data-v2p-filtro="conq" aria-checked="${aba === 'conq'}">Conquistas ${conquistas.length}</button><button type="button" role="radio" data-v2p-filtro="semana" aria-checked="${aba === 'semana'}">Por semana</button></span>`;
+      direita = `<section class="d3m-e-folha cresce" aria-label="${aba === 'semana' ? 'Score por semana' : 'Conquistas do mês'}"><div class="d3m-e-cab"><b>${aba === 'semana' ? 'Score do time' : 'Conquistas do mês'}</b>${seg}</div>${aba === 'semana' ? semanaE(d) : conquistasE(d, conquistas, nomeMes)}</section>`;
+    } else {
+      direita = folhaE({ titulo: 'Conquistas do mês', dir: String(conquistas.length), cls: 'cresce', corpo: conquistasE(d, conquistas, nomeMes) });
+    }
+    const main = `<div class="d3m-e-main">${mesFolha}<div class="d3m-e-pes-duas">${esquerda}${direita}</div></div>`;
+    // A consulta: como o score é feito, quem pede atenção (time), o que é dos donos e a Performance da operação.
+    const baixo = d.gestao ? [...comScore].filter((p) => p.score < 70).sort((a, b) => a.score - b.score).slice(0, 3) : [];
+    const lado = consE('Como o score é feito', txtE('Sai das demandas do painel, sem nada para preencher: prazo, volume contra a meta do cargo, retrabalho e o que está atrasado.'))
+      + (baixo.length ? consE('Pede atenção', baixo.map((p) => vlinE(primeiroNome(p.nome), `score ${p.score}${p.atrasadas ? `, ${plural(p.atrasadas, 'atrasada', 'atrasadas')}` : ''}`, `data-v2p-abre="${esc(p.id)}" data-abrir="1"`)).join(''), plural(baixo.length, 'pessoa', 'pessoas')) : '')
+      + consE('Do time', d.gestao ? Object.entries(partes).map(([k, r]) => vlinE(r, k === 'carga' ? 'peças e etapas' : 'só os donos', `data-v2p-ver="${k}"`)).join('') : vlinE('Ranking da semana', 'XP e superação', 'data-vp-ir="ranking"'))
+      + consE('Da operação', vlinE('Performance', 'fica em Gestão', 'data-vp-ir="performance"'));
+    const subTexto = `${nomeMes} de ${mes.slice(0, 4)} · ${score == null ? (d.gestao ? 'ainda sem dado no time' : 'ainda sem dado no seu mês') : d.gestao ? `score do time ${Math.round(score)}` : `o seu score é ${Math.round(score)}`}`;
+    const busca = d.gestao && time.length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar pessoa" aria-label="Buscar pessoa" value="${esc(estado.v2.busca)}">` : '';
+    return { sub: subTexto, acoes: busca, main, lado };
+  }
+  // ---------- Pedidos e calendário (prancha V2-M-RH-Pedidos) ----------
+  // À esquerda, a folha dos pedidos (Abertos | Respondidos): quem administra decide na própria linha (Aprovar ou Resolver
+  // e Recusar com o motivo, os mesmos caminhos de antes); quem pediu acompanha e cancela. No meio, o calendário do time
+  // em grade de mês, com os feriados nacionais, os aniversários, as férias aprovadas e o pedido de férias que espera
+  // (tracejado). Na consulta, o que dá para pedir, o clima, o mês no calendário e o que é só da gestão. A lista
+  // completa, o clima, os prazos, a visão geral, as datas de RH e a folha abrem na folha da esquerda, com Fechar.
+  const FERIADOS_FIXOS = { '01-01': 'Confraternização', '04-21': 'Tiradentes', '05-01': 'Dia do Trabalho', '09-07': 'Independência', '10-12': 'Aparecida', '11-02': 'Finados', '11-15': 'República', '11-20': 'Consc. Negra', '12-25': 'Natal' };
+  // Feriados nacionais do mês: os fixos e a Sexta-feira Santa (Páscoa pelo cálculo de Meeus).
+  function feriadosDoMes(ym) {
+    const [ano, mes] = ym.split('-').map(Number), out = {};
+    for (const [md, nome] of Object.entries(FERIADOS_FIXOS)) if (Number(md.slice(0, 2)) === mes) out[`${ym}-${md.slice(3)}`] = nome;
+    const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const pascoa = Date.UTC(ano, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1), santa = new Date(pascoa - 2 * 864e5).toISOString().slice(0, 10);
+    if (santa.slice(0, 7) === ym) out[santa] = 'Sexta Santa';
+    return out;
+  }
+  const respondidoE = (p) => ['resolvido', 'recusado'].includes(p.status) || p.sla === 'encerrado';
+  function linhaPedidoE(p, d) {
+    const h = d.hoje || hoje(), aberto = !respondidoE(p), nome = primeiroNome(p.pessoa_nome) || 'quem pediu';
+    const datas = p.inicio ? (p.inicio === p.fim || !p.fim ? `dia ${br(p.inicio)}` : `${br(p.inicio)} a ${br(p.fim)}`) : p.data_desejada ? `para ${br(p.data_desejada)}` : '';
+    const apoio = [d.gestao ? nome : '', nomeTipo(d, p.tipo), datas, aberto ? ha(p.idadeDias) : p.respondido_dia ? `respondido ${br(p.respondido_dia)}` : ''].filter(Boolean).join(' · ');
+    const selo = aberto ? (p.sla === 'atrasado' ? ['Fora do prazo', 'r'] : p.prazo ? [`até ${dataFalada(p.prazo, h)}`, entre(h, p.prazo) <= 1 ? 'a' : ''] : ['Sem prazo', ''])
+      : [p.status === 'recusado' ? 'Recusado' : p.tipo === 'ferias' && p.status === 'resolvido' ? 'Aprovado' : p.status === 'cancelado' ? 'Cancelado' : 'Respondido', p.status === 'recusado' ? 'r' : 'g'];
+    let acoes = '';
+    if (aberto && d.gestao) {
+      acoes = estado.v2.recusando === String(p.id)
+        ? `<form data-vp-form="responder" data-id="${esc(p.id)}" class="d3m-e-pes-recusa"><input name="resposta" maxlength="2000" required placeholder="Motivo da recusa, para quem pediu" aria-label="Motivo da recusa"><button type="button" class="d3v-btn d3m-e-fio" data-v2p-recusar="">Voltar</button><button type="submit" class="d3v-btn" name="status" value="recusado">Recusar</button></form>`
+        : `<span class="d3m-e-pes-bts"><button type="button" class="d3v-btn d3m-e-fio" data-v2p-recusar="${esc(p.id)}">Recusar</button><button type="button" class="d3v-btn v2-estado" data-v2p-decidir="${esc(p.id)}" data-feito="${p.tipo === 'ferias' ? 'Aprovado' : 'Resolvido'}">${p.tipo === 'ferias' ? 'Aprovar' : 'Resolver'}</button></span>`;
+    } else if (aberto && p.status === 'aberto' && String(p.pessoa_id) === String(d.eu?.id)) acoes = `<span class="d3m-e-pes-bts"><button type="button" class="d3v-btn d3m-e-fio" data-vp-pedido="${esc(p.id)}" data-status="cancelado">Cancelar pedido</button></span>`;
+    return `<div class="d3m-e-pes-ped${p.sla === 'atrasado' && aberto ? ' r' : ''}" data-carta="${esc(p.id)}">${d.gestao ? av(p.pessoa_nome) : ''}<span class="d3m-e-pes-lin-t"><b>${esc(p.titulo)}</b><small class="d3m-e-pes-lin-s">${esc(apoio)}</small>`
+      + `${p.descricao && aberto ? `<small class="d3m-e-pes-lin-s d3m-e-pes-cita">“${esc(p.descricao)}”</small>` : ''}${p.resposta ? `<small class="d3m-e-pes-lin-s">Resposta do RH: ${esc(p.resposta)}</small>` : ''}</span>`
+      + `<span class="d3m-e-pes-selo${selo[1] ? ' ' + selo[1] : ''}">${esc(selo[0])}</span>${acoes}</div>`;
+  }
+  const filtroPedidosE = () => (estado.v2.filtro ? (estado.v2.filtro === 'respondidos' ? 'respondidos' : 'abertos') : estado.filtroPedidos === 'respondidos' ? 'respondidos' : 'abertos');
+  function listaPedidosE(d) {
+    const todos = d.pedidos || [], abertos = todos.filter((p) => !respondidoE(p)), resp = todos.filter(respondidoE), filtro = filtroPedidosE();
+    const lista = (filtro === 'abertos' ? abertos.filter((p) => estado.filtroPedidos !== 'fora' || p.sla === 'atrasado') : resp).filter((p) => bate(p.titulo, p.pessoa_nome, nomeTipo(d, p.tipo)));
+    const vazioTxt = filtro === 'respondidos' ? ['Nenhum pedido respondido ainda', 'O que o RH responder fica guardado aqui.']
+      : d.gestao ? ['Nenhum pedido esperando resposta', 'Quando alguém pedir férias, folga, documento ou reembolso, o pedido aparece aqui para decidir.']
+        : ['Nenhum pedido por aqui', 'Férias, folga, documento ou reembolso: peça aqui e acompanhe a resposta.'];
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${lista.length ? lista.map((p) => linhaPedidoE(p, d)).join('')
+      : estadoE({ tipo: 'vazio', icone: 'certo', grande: true, titulo: estado.v2.busca ? 'Nenhum pedido com essa busca' : vazioTxt[0], texto: estado.v2.busca ? 'Confira o que foi digitado.' : vazioTxt[1], acao: filtro === 'abertos' && !estado.v2.busca ? btnEstadoE('Nova solicitação', 'data-vp-abrir-form="pedido"') : '' })}</div>`;
+  }
+  function pedidosFolhaE(d) {
+    const todos = d.pedidos || [], abertos = todos.filter((p) => !respondidoE(p)), resp = todos.filter(respondidoE);
+    const v = estado.v2.ver, h = d.hoje || hoje();
+    const partes = { lista: 'Pedidos em lista', clima: 'Pesquisa de clima', prazos: 'Prazos de resposta', visao: 'Visão geral', datas: 'Datas de RH', folha: 'Folha', aniv: 'O seu aniversário' };
+    if (estado.form === 'pedido') return folhaE({ titulo: 'Nova solicitação ao RH', cls: 'cresce d3m-e-pes-esq', dir: '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form">${formPedido(d)}</div>` });
+    if (partes[v] && (d.gestao || ['lista', 'clima', 'aniv'].includes(v))) {
+      const meu = d.meuPerfil?.nascimento || '';
+      const corpo = v === 'lista' ? htmlPedidos(d) : v === 'clima' ? htmlClima(d) : v === 'prazos' ? formPrazos(d) : v === 'visao' && d.visao ? visaoGeralHtml(d) : v === 'datas' ? datasRhHtml(d) : v === 'folha' ? htmlFolha()
+        : v === 'aniv' ? `<form data-vp-form="meu-aniversario" class="vp-form">${campoAniversario(meu, 'Seu aniversário')}<p class="vp-nota">Só o dia e o mês aparecem no calendário do time.</p><div class="vp-botoes"><button type="submit" class="vp-acao">Salvar</button></div></form>` : '';
+      return folhaE({ titulo: partes[v], cls: 'cresce d3m-e-pes-esq', dir: '<button type="button" class="d3m-e-elo" data-v2p-ver="">Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form" data-v2p-secao>${corpo || estadoE({ tipo: 'vazio', titulo: 'Nada para mostrar aqui ainda' })}</div>` });
+    }
+    const filtro = filtroPedidosE(), seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais pedidos"><button type="button" role="radio" data-v2p-filtro="abertos" aria-checked="${filtro === 'abertos'}">Abertos <span class="d3m-e-pes-n">${abertos.length}</span></button><button type="button" role="radio" data-v2p-filtro="respondidos" aria-checked="${filtro === 'respondidos'}">Respondidos <span class="d3m-e-pes-n">${resp.length}</span></button></span>`;
+    const fora = abertos.filter((p) => p.sla === 'atrasado').length;
+    const pe = d.gestao && fora && filtro === 'abertos' ? `<span class="d3m-e-pes-pe-r">${plural(fora, 'pedido fora do prazo', 'pedidos fora do prazo')}</span><button type="button" class="d3m-e-elo" data-vp-filtro-pedidos="${estado.filtroPedidos === 'fora' ? '' : 'fora'}">${estado.filtroPedidos === 'fora' ? 'mostrar todos' : 'ver só esses'}</button>` : '';
+    return folhaE({ titulo: d.gestao ? 'Pedidos ao RH' : 'Seus pedidos ao RH', cls: 'cresce d3m-e-pes-esq', dir: seg, pe,
+      corpo: listaPedidosE(d) });
+  }
+  function calendarioE(d) {
+    const h = d.hoje || hoje(), ym = /^\d{4}-\d{2}$/.test(estado.calMes) ? estado.calMes : h.slice(0, 7), [ano, mes] = ym.split('-').map(Number);
+    const pend = pedidosAbertos(d).filter((p) => p.tipo === 'ferias' && p.inicio).map((p) => ({ nome: p.pessoa_nome || d.eu?.nome || 'Você', inicio: p.inicio, fim: p.fim || p.inicio }));
+    const por = eventosDoMes(ym, d.aniversarios, d.ferias), porPend = eventosDoMes(ym, [], pend), fer = feriadosDoMes(ym);
+    const n = diasNoMes(ano, mes), vazios = (new Date(Date.UTC(ano, mes - 1, 1)).getUTCDay() + 6) % 7, nomeMes = MESES_RH[mes - 1], celulas = [];
+    const semanas = Math.ceil((vazios + n) / 7);
+    for (let i = 0; i < vazios; i++) celulas.push('<span class="d3m-e-pes-dia fora" aria-hidden="true"></span>');
+    for (let dia = 1; dia <= n; dia++) {
+      const iso = `${ym}-${String(dia).padStart(2, '0')}`, evs = [...(por[iso] || []), ...(porPend[iso] || []).map((e) => ({ ...e, tipo: 'pend' }))];
+      const fala = [fer[iso] ? `feriado: ${fer[iso]}` : '', ...evs.map((e) => FALA_CAL[e.tipo](e.nome))].filter(Boolean).join('; ');
+      celulas.push(`<span class="d3m-e-pes-dia${iso === h ? ' hoje' : ''}" role="listitem" aria-label="${esc(`${dia} de ${nomeMes}${iso === h ? ', hoje' : ''}${fala ? ': ' + fala : ''}`)}"><b aria-hidden="true">${dia}</b>`
+        + `${fer[iso] ? `<small class="d3m-e-pes-fer" aria-hidden="true">${esc(fer[iso])}</small>` : ''}`
+        + (evs.length ? `<span class="d3m-e-pes-evs" aria-hidden="true">${evs.slice(0, 2).map((e) => `<i class="d3m-e-pes-ev ${e.tipo}" title="${esc(maiuscula(FALA_CAL[e.tipo](e.nome)))}">${esc(primeiroNome(e.nome))}</i>`).join('')}${evs.length > 2 ? `<i class="d3m-e-pes-ev mais">+${evs.length - 2}</i>` : ''}</span>` : '') + '</span>');
+    }
+    while (celulas.length < semanas * 7) celulas.push('<span class="d3m-e-pes-dia fora" aria-hidden="true"></span>');
+    const nav = `<span class="d3m-e-pes-mes"><button type="button" class="d3m-e-pes-seta" data-vp-cal="-1" aria-label="Mês anterior">${icE('antes')}</button><button type="button" class="d3m-e-pes-seta" data-vp-cal="1" aria-label="Próximo mês">${icE('depois')}</button>${ym === h.slice(0, 7) ? '' : '<button type="button" class="d3m-e-elo" data-vp-cal="0">este mês</button>'}</span>`;
+    return `<section class="d3m-e-folha cresce d3m-e-pes-cal" aria-label="Calendário do time"><div class="d3m-e-cab"><b>Calendário do time <span>· ${esc(nomeMes)} de ${ano}</span></b><span class="d3m-e-cab-dir">${nav}</span></div>`
+      + `<div class="d3m-e-pes-grade" role="list" aria-label="${esc(`Calendário do time, ${nomeMes} de ${ano}`)}" style="--sem:${semanas}">${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((s) => `<span class="d3m-e-pes-ds" aria-hidden="true">${s}</span>`).join('')}${celulas.join('')}</div></section>`;
+  }
+  function rhE(d) {
+    const h = d.hoje || hoje(), abertos = pedidosAbertos(d), c = d.pesquisa || {}, atual = c.atual;
+    const ym = /^\d{4}-\d{2}$/.test(estado.calMes) ? estado.calMes : h.slice(0, 7), nomeMes = MESES_RH[Number(ym.slice(5, 7)) - 1];
+    const nFer = Object.keys(feriadosDoMes(ym)).length;
+    const sub = `${abertos.length ? plural(abertos.length, d.gestao ? 'pedido esperando resposta' : 'pedido seu esperando o RH', d.gestao ? 'pedidos esperando resposta' : 'pedidos seus esperando o RH') : d.gestao ? 'nenhum pedido esperando resposta' : 'nada esperando o RH'}${nFer ? ` · ${plural(nFer, 'feriado', 'feriados')} em ${nomeMes}` : ''}`;
+    const main = `<div class="d3m-e-main"><div class="d3m-e-pes-rhg">${pedidosFolhaE(d)}${calendarioE(d)}</div></div>`;
+    // A consulta.
+    const tipos = (d.tipos || []).filter((t) => t.formulario !== false);
+    const pedir = consE('O que dá para pedir', (tipos.length ? tipos : [{ id: 'ferias', nome: 'Férias ou folga' }, { id: 'documento', nome: 'Documento' }, { id: 'reembolso', nome: 'Reembolso' }])
+      .slice(0, 5).map((t) => vlinE(t.nome, t.dias ? `resposta em ${plural(t.dias, 'dia útil', 'dias úteis')}` : '', `data-vp-abrir-form="pedido" data-tipo="${esc(t.id)}"`)).join(''));
+    const doHist = atual && (c.historico || []).find((x) => x.id === atual.id), respostas = doHist?.resultado?.respostas;
+    const climaTxt = atual?.situacao === 'aberta' ? (atual.respondeu ? `Você já respondeu "${esc(atual.titulo)}". Fica aberta até ${br(atual.fecha)}.` : `"${esc(atual.titulo)}" está aberta até ${br(atual.fecha)}: seis perguntas, sem nome.`)
+      + (respostas != null && c.equipe ? ` ${respostas} de ${c.equipe} responderam.` : '')
+      : atual?.situacao === 'agendada' ? `"${esc(atual.titulo)}" abre em ${br(atual.abre)}.` : 'A pesquisa de clima é anônima. Nenhuma pesquisa aberta agora.';
+    const climaBt = atual?.situacao === 'aberta' && !atual.respondeu ? vlinE('Responder a pesquisa', 'anônima', 'data-v2p-ver="clima" data-form="pesquisa"')
+      : d.gestao && !atual && d.rhPronto !== false ? vlinE('Iniciar pesquisa', 'com período', 'data-v2p-ver="clima" data-form="pesquisa-abrir"')
+        : d.gestao && (c.historico || []).length ? vlinE('Ver as pesquisas', 'resultado somado', 'data-v2p-ver="clima"') : '';
+    const doMes = (lista) => lista.length;
+    const anivMes = (d.aniversarios || []).filter((a) => Number(String(a.dia).slice(0, 2)) === Number(ym.slice(5, 7)));
+    const feriasMes = (d.ferias || []).filter((f) => f.inicio?.slice(0, 7) <= ym && (f.fim || f.inicio).slice(0, 7) >= ym);
+    const calTxt = doMes(anivMes) || doMes(feriasMes)
+      ? [anivMes.length ? `${anivMes.map((a) => `${esc(primeiroNome(a.nome))} faz aniversário dia ${Number(String(a.dia).slice(3))}`).slice(0, 3).join(', ')}.` : '', feriasMes.length ? `${feriasMes.map((f) => `${esc(primeiroNome(f.nome))} de férias ${br(f.inicio)} a ${br(f.fim || f.inicio)}`).slice(0, 3).join(', ')}.` : ''].filter(Boolean).join(' ')
+      : `Nenhum aniversário, férias ou folga cadastrados.${nFer ? ` ${nFer === 1 ? 'O feriado já aparece' : `Os ${nFer === 2 ? 'dois' : nFer === 3 ? 'três' : nFer} feriados já aparecem`}.` : ''}`;
+    const meu = d.meuPerfil?.nascimento || '';
+    // Só da gestão: em grade de dois, curtos, para a consulta caber em 1366 × 768 sem rolar.
+    const gestaoCons = d.gestao ? consE('Só da gestão', `<div class="d3m-e-pes-vgrade">${[['lista', 'Em lista'], ['prazos', 'Prazos'], d.visao ? ['visao', 'Visão geral'] : null, ['datas', 'Datas de RH'], htmlFolha() ? ['folha', 'Folha'] : null]
+      .filter(Boolean).map(([k, r]) => vlinE(r, '', `data-v2p-ver="${k}"`)).join('')}</div>`) : '';
+    const lado = pedir + consE('Clima', txtE(climaTxt) + climaBt, 'anônimo')
+      + consE('No calendário', `<span class="d3m-e-pes-leg-c" aria-hidden="true"><span><i class="aniv"></i>aniversário</span><span><i class="ferias"></i>férias</span><span><i class="pend"></i>espera resposta</span></span>` + txtE(calTxt) + vlinE('O seu aniversário', /^\d{4}-\d{2}-\d{2}/.test(meu) ? `${meu.slice(8, 10)}/${meu.slice(5, 7)} · alterar` : 'cadastrar dia e mês', 'data-v2p-ver="aniv"'), nomeMes) + gestaoCons;
+    const busca = (d.pedidos || []).length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar pedido" aria-label="Buscar pedido" value="${esc(estado.v2.busca)}">` : '';
+    const acao = estado.form === 'pedido' ? '' : `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="pedido">${icE('mais')}Nova solicitação</button>`;
+    return { sub, acoes: busca, acao, main, lado };
+  }
+  // ---------- Recrutamento (prancha V2-M-RH-Recrutamento) ----------
+  // Três cartões de número, a folha do funil do mês (Abertas | Retorno pendente | Fechadas) com a vaga que abre no lugar
+  // e, sem vaga, os três passos. Os formulários de vaga, candidato e etapas abrem na própria folha. Na consulta: quem vê,
+  // quem espera retorno (abre o candidato para mover de etapa) e os atalhos.
+  const kpiE = (o) => (typeof d3mEKpi === 'function' ? d3mEKpi(o)
+    : `<${o.attrs ? `button type="button" ${o.attrs}` : 'div'} class="d3m-e-kpi${o.tom ? ' ' + o.tom : ''}"><span class="d3m-e-kpi-topo"><span>${esc(o.rotulo)}</span></span><span class="d3m-e-kpi-baixo"><span class="d3m-e-kpi-txt"><b class="d3m-e-kpi-v">${o.valor}${o.de ? `<small class="d3m-e-kpi-de">${o.de}</small>` : ''}</b><small class="d3m-e-kpi-sub">${o.sub || ''}</small></span></span></${o.attrs ? 'button' : 'div'}>`);
+  const passosE = (lista) => `<div class="d3m-e-pes-passos" role="list">${lista.map(([t, x], i) => `<div class="d3m-e-pes-passo" role="listitem"><i aria-hidden="true">${i + 1}</i><b>${esc(t)}</b><span>${esc(x)}</span></div>`).join('')}</div>`;
+  function listaVagasE(d) {
+    const { h, etapas, vagas, pendIds } = contaRecrutamento(d), f = estado.v2.filtro || 'abertas', cands = d.candidatos || [];
+    const daVaga = (v) => cands.filter((c) => c.vaga_id === v.id);
+    const lista = vagas.filter((v) => (f === 'fechadas' ? v.status !== 'aberta' : v.status === 'aberta') && (f !== 'pendente' || daVaga(v).some((c) => pendIds.has(c.id)))
+      && (!estado.vaga || v.id === estado.vaga) && bate(v.titulo, v.cargo || '', ...daVaga(v).map((c) => c.nome)));
+    const linhas = lista.map((v) => {
+      const cs = daVaga(v), comGente = etapas.map((e, i) => [e, i, cs.filter((c) => c.etapa === e)]).filter(([, , l]) => l.length);
+      const dias = v.aberta_em ? Math.max(0, entre(v.aberta_em, h)) : null;
+      const sub = [v.status === 'aberta' ? (dias == null ? '' : `aberta há ${plural(dias, 'dia', 'dias')}`) : v.status === 'pausada' ? 'pausada' : `fechada${v.fechada_em ? ' em ' + br(v.fechada_em) : ''}`, v.cargo || ''].filter(Boolean).join(' · ');
+      const detalhe = `<div class="v2p-det">${comGente.length ? `<div class="v2p-etp">${comGente.map(([e, , l]) => `<div class="v2p-etp-card"><p class="v2p-sub">${esc(e)}${l.some((c) => pendIds.has(c.id)) ? ' · <span class="v2p-ruim">sem retorno</span>' : ''}</p>${l.map((c) => `<button type="button" class="v2p-etp-nome${pendIds.has(c.id) ? ' at' : ''}" data-vp-editar-candidato="${esc(c.id)}" title="${esc(c.nome)}: abrir e mover de etapa" aria-label="${esc(c.nome)}, em ${esc(e)}: abrir">${esc(c.nome)}</button>`).join('')}</div>`).join('')}</div>` : '<p class="v2p-sub">Nenhum candidato nesta vaga ainda.</p>'}
+        ${v.descricao ? `<p class="v2p-sub">${esc(v.descricao)}</p>` : ''}
+        <div class="v2p-det-acoes"><button type="button" class="d3v-btn d3m-e-fio" data-vp-abrir-form="candidato" data-vaga="${esc(v.id)}">Novo candidato</button><button type="button" class="d3v-btn d3m-e-fio" data-vp-editar-vaga="${esc(v.id)}">Editar vaga</button></div></div>`;
+      return linhaAbre(v.id, `<span class="d3m-e-pes-lin-t"><b>${esc(v.titulo)} <span class="d3m-e-pes-n">${cs.length}</span></b><small class="d3m-e-pes-lin-s">${esc(sub || 'vaga')}</small></span>`,
+        `<span class="d3m-e-pes-etps">${comGente.map(([e, i, l]) => `<span class="d3m-e-pes-selo${/^reprovad/i.test(e) ? ' r' : /^(aprovad|contratad)/i.test(e) ? ' g' : ''}">${esc(e)} ${l.length}</span>`).join('')}</span>`, detalhe, `a vaga ${v.titulo}`);
+    }).join('');
+    const vazioF = f === 'fechadas' ? ['Nenhuma vaga fechada', 'As vagas fechadas ficam guardadas aqui.'] : f === 'pendente' ? ['Ninguém esperando retorno', `Ninguém parado no funil há mais de ${DIAS_RETORNO} dias.`] : ['Nenhuma vaga com essa busca', 'Confira o que foi digitado.'];
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${linhas || estadoE({ tipo: 'vazio', icone: 'pessoas', titulo: vazioF[0], texto: vazioF[1] })}</div>`;
+  }
+  function recrutamentoE(d) {
+    const ind = d.indicadores || {}, R = contaRecrutamento(d), { h, etapas, vagas, pendentes } = R, todos = d.candidatos || [];
+    const abertas = vagas.filter((v) => v.status === 'aberta'), fechadas = vagas.length - abertas.length, nomeVaga = Object.fromEntries(vagas.map((v) => [v.id, v.titulo]));
+    const anual = estado.periodo === 'anual', ref = estado.ref || h.slice(0, 7), corte = anual ? ref.slice(0, 4) : ref;
+    const entraram = todos.filter((c) => diaIso(c.criado_em).startsWith(corte)).length, antiga = abertas.map((v) => v.aberta_em).filter(Boolean).sort()[0];
+    const tm = ind.tempoMedio || {}, vs = ind.vs?.delta == null ? '' : ind.vs.delta === 0 ? ' · igual ao anterior' : ` · ${ind.vs.delta > 0 ? '▲' : '▼'} ${Math.abs(ind.vs.delta)} dias`;
+    const nAb = ind.abertas ?? abertas.length;
+    const kpis = `<div class="d3m-e-kpis" style="--n:3">${kpiE({ rotulo: 'Vagas abertas', valor: String(nAb), icone: 'pessoas', selo: 't', sub: antiga ? `mais antiga · ${plural(Math.max(0, entre(antiga, h)), 'dia', 'dias')}` : fechadas ? plural(fechadas, 'fechada', 'fechadas') : 'nenhuma' })}`
+      + `${kpiE({ rotulo: 'Candidatos', valor: String(ind.candidatos ?? todos.length), icone: 'alta', selo: 'roxo', sub: entraram ? `+${entraram} no ${anual ? 'ano' : 'mês'}` : `nenhum no ${anual ? 'ano' : 'mês'}` })}`
+      + `${kpiE({ rotulo: 'Tempo até contratar', valor: tm.dias == null ? '<span class="d3m-e-pes-sem">sem dado</span>' : String(tm.dias), de: tm.dias == null ? '' : tm.dias === 1 ? ' dia' : ' dias', icone: 'relogio', selo: 'i', sub: `${tm.contratacoes ? plural(tm.contratacoes, 'contratação', 'contratações') : 'sem contratação ainda'}${tm.dias == null ? '' : vs}` })}</div>`;
+    const f = estado.v2.filtro || 'abertas', fechar = '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>';
+    let folha;
+    if (estado.form === 'vaga') {
+      const v = estado.editar || {};
+      folha = folhaE({ titulo: v.id ? 'Editar vaga' : 'Nova vaga', cls: 'cresce', dir: fechar, corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="vaga" class="vp-form"><input type="hidden" name="id" value="${esc(v.id || '')}"><div class="vp-grade">
+        <label><span>Título</span><input name="titulo" maxlength="200" required value="${esc(v.titulo || '')}"></label><label><span>Cargo</span><input name="cargo" maxlength="100" value="${esc(v.cargo || '')}"></label>
+        <label><span>Status</span><select name="status">${opcoes({ aberta: 'Aberta', pausada: 'Pausada', fechada: 'Fechada' }, v.status || 'aberta')}</select></label></div>
+        <label><span>Descrição</span><textarea name="descricao" rows="2" maxlength="2000">${esc(v.descricao || '')}</textarea></label>
+        <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar vaga</button></div></form></div>` });
+    } else if (estado.form === 'candidato') {
+      const c = estado.editar || {};
+      folha = folhaE({ titulo: c.id ? c.nome || 'Candidato' : 'Novo candidato', cls: 'cresce', dir: fechar, corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="candidato" class="vp-form"><input type="hidden" name="id" value="${esc(c.id || '')}"><div class="vp-grade">
+        <label><span>Nome</span><input name="nome" maxlength="200" required value="${esc(c.nome || '')}"></label><label><span>Contato</span><input name="contato" maxlength="200" value="${esc(c.contato || '')}"></label>
+        <label><span>Vaga</span><select name="vaga_id" required>${vagas.map((v) => `<option value="${esc(v.id)}"${v.id === (c.vaga_id || estado.vaga) ? ' selected' : ''}>${esc(v.titulo)}</option>`).join('')}</select></label>
+        <label><span>Etapa</span><select name="etapa">${etapas.map((e) => `<option${e === (c.etapa || etapas[0]) ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select></label></div>
+        <label><span>Observação</span><textarea name="observacao" rows="2" maxlength="2000">${esc(c.observacao || '')}</textarea></label>
+        ${c.id ? `<p class="vp-nota">No funil desde ${br(diaIso(c.criado_em))}${c.contratado_em ? ` · contratado em ${br(diaIso(c.contratado_em))}` : ''}.</p>` : ''}
+        <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar candidato</button></div></form></div>` });
+    } else if (estado.form === 'etapas') {
+      folha = folhaE({ titulo: 'Etapas do funil', cls: 'cresce', dir: fechar, corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="etapas" class="vp-form"><label><span>Etapas do funil (uma por linha, na ordem)</span><textarea name="etapas" rows="5">${esc(etapas.join('\n'))}</textarea></label>
+        <p class="vp-nota">A etapa chamada Aprovado (ou Contratado) conta como contratação; a última é a de saída.</p><div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar etapas</button></div></form></div>` });
+    } else {
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais vagas">${[['abertas', 'Abertas', abertas.length], ['pendente', 'Retorno pendente', pendentes.length], ['fechadas', 'Fechadas', fechadas]].map(([k, r, n]) => `<button type="button" role="radio" data-v2p-filtro="${k}" aria-checked="${f === k}">${r} <span class="d3m-e-pes-n">${n}</span></button>`).join('')}</span>`;
+      const noFunil = todos.filter((c) => R.abertasIds.has(c.vaga_id)), maior = Math.max(1, ...etapas.map((e) => noFunil.filter((c) => c.etapa === e).length));
+      const funil = noFunil.length ? `<div class="d3m-e-pes-funil" role="list" aria-label="Candidatos por etapa">${etapas.map((e) => { const n = noFunil.filter((c) => c.etapa === e).length; return `<span class="d3m-e-pes-fun${/^reprovad/i.test(e) ? ' r' : /^(aprovad|contratad)/i.test(e) ? ' g' : ''}" role="listitem"><small class="d3m-e-pes-lin-s">${esc(e)}</small><b>${n}</b><i style="--v:${Math.round(n / maior * 100)}%"></i></span>`; }).join('')}</div>` : '';
+      const corpo = !vagas.length
+        ? `<div class="d3m-e-rola">${estadoE({ tipo: 'vazio', icone: 'pessoas', grande: true, titulo: 'Nenhuma vaga aberta', texto: 'Abra a primeira para começar a receber candidatos no funil.', acao: btnEstadoE('Nova vaga', 'data-vp-abrir-form="vaga"') })}</div>`
+          + passosE([['A vaga', 'Cargo, descrição e o que se espera.'], ['As etapas', 'São configuráveis; cada candidato anda por elas.'], ['Aprovado ou contratado', 'Conta no tempo médio de contratação.']])
+        : funil + listaVagasE(d);
+      folha = `<section class="d3m-e-folha cresce" aria-label="Funil"><div class="d3m-e-cab"><b>Funil de ${esc(anual ? ref.slice(0, 4) : mesNomeE(ref))}</b><span class="d3m-e-cab-dir">${mesNavE(ref, 'data-vp-ref-ir')}${seg}</span></div>${corpo}</section>`;
+    }
+    const main = `<div class="d3m-e-main">${kpis}${folha}</div>`;
+    const lado = consE('Quem vê', txtE('Só os donos e quem administra. A equipe não vê as vagas nem os candidatos.'))
+      + (pendentes.length ? consE('Esperando retorno', pendentes.slice(0, 5).map((c) => vlinE(c.nome, `${nomeVaga[c.vaga_id] || ''} · ${plural(R.idade(c), 'dia', 'dias')}`, `data-vp-editar-candidato="${esc(c.id)}"`)).join(''), `há mais de ${DIAS_RETORNO} dias`) : '')
+      // Com mais de uma vaga, escolher uma só (antes, a escolha "Vaga" dos Filtros): o funil e a lista ficam nela.
+      + (vagas.length > 1 ? consE('Por vaga', [['', 'Todas as vagas', todos.length], ...vagas.filter((v) => v.status === 'aberta' || v.id === estado.vaga).map((v) => [v.id, v.titulo, todos.filter((c) => c.vaga_id === v.id).length])]
+        .map(([id, nome, n]) => `<button type="button" class="d3m-vlin${(estado.vaga || '') === id ? ' on' : ''}" data-vp-vaga-ir="${esc(id)}" aria-pressed="${(estado.vaga || '') === id}"><span><b>${esc(nome)}</b> · ${plural(n, 'candidato', 'candidatos')}</span>${icE((estado.vaga || '') === id ? 'certo' : 'depois')}</button>`).join('')) : '')
+      + consE('Abrir', vlinE('Configurar as etapas', etapas.length ? plural(etapas.length, 'etapa', 'etapas') : '', 'data-vp-abrir-form="etapas"') + vlinE('Documentos do time', '', 'data-vp-aba="documentos"'));
+    const per = `<span class="d3m-e-per" role="group" aria-label="Período"><button type="button" data-vp-periodo="mensal" aria-pressed="${!anual}">Mensal</button><button type="button" data-vp-periodo="anual" aria-pressed="${anual}">Anual</button></span>`;
+    const busca = vagas.length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar vaga ou candidato" aria-label="Buscar vaga ou candidato" value="${esc(estado.v2.busca)}">` : '';
+    const acao = estado.form === 'vaga' ? '' : `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="vaga">${icE('mais')}Nova vaga</button>`;
+    const sub = `só os donos e quem administra · ${nAb ? plural(nAb, 'vaga aberta', 'vagas abertas') : 'nenhuma vaga aberta'}${pendentes.length ? ` · ${plural(pendentes.length, 'espera', 'esperam')} retorno` : ''}`;
+    return { sub, acoes: per + busca, acao, main, lado };
+  }
+  // ---------- Documentos (prancha V2-M-RH-Documentos) ----------
+  // Três cartões de número e a folha "Por colaborador" (Todos | A vencer | Vencidos | Sem validade) com a pessoa que abre no
+  // lugar. Quem pede renovação vai para a consulta (Renovar abre o documento no campo da data), com os tipos e os atalhos.
+  function listaDocsE(d) {
+    const f = estado.v2.filtro || 'todos', t2 = estado.v2.tipo, docs = d.documentos || [];
+    const passa = (x) => (t2 === 'encerrado' ? x.situacao === 'encerrado' : x.situacao !== 'encerrado' && (!t2 || x.tipo === t2))
+      && (f === 'todos' || (f === 'renovar' ? x.situacao === 'renovar' : f === 'vencidos' ? x.situacao === 'vencido' : x.situacao === 'sem_renovacao'))
+      && bate(x.titulo, x.pessoa_nome || '', (d.tipos || {})[x.tipo] || '');
+    const por = new Map();
+    for (const x of docs.filter(passa)) { const k = String(x.pessoa_id ?? x.pessoa_nome); if (!por.has(k)) por.set(k, { id: k, nome: x.pessoa_nome || 'Sem nome', docs: [] }); por.get(k).docs.push(x); }
+    const peso = (g) => (g.docs.some((x) => x.situacao === 'vencido') ? 0 : g.docs.some((x) => x.situacao === 'renovar') ? 1 : 2);
+    const primeira = (g) => g.docs.filter((x) => ['vencido', 'renovar'].includes(x.situacao)).map((x) => x.renovacao).sort()[0] || '';
+    const grupos = [...por.values()].sort((a, b) => peso(a) - peso(b) || primeira(a).localeCompare(primeira(b)) || a.nome.localeCompare(b.nome, 'pt-BR'));
+    const selo = (t, k) => `<span class="d3m-e-pes-selo${k ? ' ' + k : ''}">${esc(t)}</span>`;
+    const linhas = grupos.map((g) => {
+      const v = g.docs.filter((x) => x.situacao === 'vencido'), r = g.docs.filter((x) => x.situacao === 'renovar');
+      const s = v.length ? selo(v.length === 1 ? `1 venceu em ${br(v[0].renovacao)}` : `${v.length} vencidos`, 'r') : r.length ? selo(r.length === 1 ? `1 vence em ${br(r[0].renovacao)}` : `${r.length} a vencer`, 'a') : selo('Em dia', 'g');
+      const detalhe = `<div class="v2p-docs">${g.docs.map((x) => { const [t, k] = (SELO_DOC[x.situacao] || SELO_DOC.sem_renovacao)(x); return `<p class="v2p-doc"><span class="v2p-doc-nome" title="${esc([(d.tipos || {})[x.tipo] || x.tipo || '', x.inicio ? `desde ${br(x.inicio)}` : ''].filter(Boolean).join(' · '))}">${esc(x.titulo)}</span>${selo(t, k === 'n' ? '' : k)}
+        ${x.link ? `<a class="d3m-e-elo" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Abrir</a>` : ''}<button type="button" class="d3m-e-elo" data-vp-editar-documento="${esc(x.id)}">Editar</button></p>`; }).join('')}</div>`;
+      return linhaAbre(g.id, `${av(g.nome)}<span class="d3m-e-pes-lin-t"><b>${esc(g.nome)}</b><small class="d3m-e-pes-lin-s">${esc(g.docs.map((x) => x.titulo).join(', '))}</small></span>`, s, detalhe, `os documentos de ${g.nome}`);
+    }).join('');
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${linhas || (docs.length ? estadoE({ tipo: 'vazio', icone: 'lapis', titulo: 'Nenhum documento neste filtro', texto: 'Troque o filtro ou a busca.' })
+      : estadoE({ tipo: 'vazio', icone: 'lapis', grande: true, titulo: 'Nenhum documento cadastrado', texto: 'Registre contratos e documentos da equipe para ser avisado antes de vencer.', acao: estado.form === 'documento' ? '' : btnEstadoE('Novo documento', 'data-vp-abrir-form="documento"') }))}</div>`;
+  }
+  function documentosE(d) {
+    const h = d.hoje || hoje(), docs = d.documentos || [], ativos = docs.filter((x) => x.situacao !== 'encerrado'), dias = d.avisoDias || 30;
+    const venc = ativos.filter((x) => x.situacao === 'vencido').sort((a, b) => a.renovacao.localeCompare(b.renovacao)), renovar = ativos.filter((x) => x.situacao === 'renovar').sort((a, b) => a.renovacao.localeCompare(b.renovacao));
+    const semVal = ativos.filter((x) => x.situacao === 'sem_renovacao').length, emDia = ativos.length - venc.length - renovar.length, pedem = [...venc, ...renovar];
+    const gente = new Set(ativos.map((x) => String(x.pessoa_id ?? x.pessoa_nome))).size, encerrados = docs.length - ativos.length;
+    const kpis = `<div class="d3m-e-kpis" style="--n:3">${kpiE({ rotulo: 'Documentos do time', valor: String(ativos.length), icone: 'lapis', selo: 't', sub: ativos.length ? `${emDia} em dia · ${plural(gente, 'pessoa', 'pessoas')}` : 'nenhuma pessoa' })}`
+      + `${kpiE({ rotulo: `Vencem em ${dias} dias`, valor: String(renovar.length), icone: 'relogio', selo: 'a', tom: renovar.length ? 'a' : '', sub: renovar.length ? `1º em ${plural(Math.max(0, entre(h, renovar[0].renovacao)), 'dia', 'dias')}` : 'nenhum' })}`
+      + `${kpiE({ rotulo: 'Vencidos', valor: String(venc.length), icone: 'alerta', selo: 'r', tom: venc.length ? 'r' : '', sub: venc.length ? `o mais antigo há ${plural(Math.max(1, entre(venc[0].renovacao, h)), 'dia', 'dias')}` : 'nenhum' })}</div>`;
+    let folha;
+    if (estado.form === 'documento') {
+      const x = estado.editar || {};
+      folha = folhaE({ titulo: x.id ? 'Editar documento' : 'Novo documento', cls: 'cresce', dir: '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="documento" class="vp-form"><input type="hidden" name="id" value="${esc(x.id || '')}"><div class="vp-grade">
+        <label><span>Colaborador</span><select name="pessoa_id" required>${pessoasOpcoes(d.pessoas, x.pessoa_id, 'Escolha')}</select></label>
+        <label><span>Tipo</span><select name="tipo">${opcoes(d.tipos || {}, x.tipo || 'contrato')}</select></label>
+        <label><span>Título</span><input name="titulo" maxlength="200" required value="${esc(x.titulo || '')}"></label>
+        <label><span>Status</span><select name="status">${opcoes({ ativo: 'Ativo', encerrado: 'Encerrado' }, x.status || 'ativo')}</select></label>
+        <label><span>Início</span><input type="date" name="inicio" value="${esc(x.inicio || '')}"></label><label><span>Renovação</span><input type="date" name="renovacao" value="${esc(x.renovacao || '')}"></label></div>
+        <label><span>Link do arquivo (https://)</span><input type="url" name="link" maxlength="1000" value="${esc(x.link || '')}"></label>
+        <label><span>Observação</span><textarea name="observacao" rows="2" maxlength="2000">${esc(x.observacao || '')}</textarea></label>
+        <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar documento</button></div></form></div>` });
+    } else {
+      const f = estado.v2.filtro || 'todos';
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais documentos">${[['todos', 'Todos', ativos.length], ['renovar', 'A vencer', renovar.length], ['vencidos', 'Vencidos', venc.length], ['sem', 'Sem validade', semVal]].map(([k, r, n]) => `<button type="button" role="radio" data-v2p-filtro="${k}" aria-checked="${f === k}">${r} <span class="d3m-e-pes-n">${n}</span></button>`).join('')}</span>`;
+      folha = `<section class="d3m-e-folha cresce" aria-label="Por colaborador"><div class="d3m-e-cab"><b>Por colaborador</b><span class="d3m-e-cab-dir">${seg}</span></div>${listaDocsE(d)}</section>`;
+    }
+    const tipos = Object.entries(d.tipos || {}).map(([k, nome]) => [k, nome, ativos.filter((x) => x.tipo === k).length]).filter(([, , n]) => n);
+    const lado = consE('O aviso', txtE(`${dias === 30 ? 'Trinta' : dias} dias antes de um documento vencer, o RH é avisado. Vencido, ele sobe para o topo da lista.`))
+      + (pedem.length ? consE('Para renovar', pedem.slice(0, 5).map((x) => vlinE('Renovar', `${x.titulo} · ${primeiroNome(x.pessoa_nome)} · ${x.situacao === 'vencido' ? 'venceu' : 'vence'} ${br(x.renovacao)}`, `data-vp-editar-documento="${esc(x.id)}" data-foco="renovacao"`)).join(''), plural(pedem.length, 'documento', 'documentos')) : '')
+      + (tipos.length || encerrados ? consE('Tipos', [...tipos, ...(encerrados ? [['encerrado', 'Encerrados', encerrados]] : [])].map(([k, nome, n]) => `<button type="button" class="d3m-vlin${estado.v2.tipo === k ? ' on' : ''}" data-v2p-tipo="${esc(k)}" aria-pressed="${estado.v2.tipo === k}"><span><b>${esc(nome)}</b> · ${n}</span>${icE(estado.v2.tipo === k ? 'certo' : 'depois')}</button>`).join('')) : '')
+      + consE('Abrir', vlinE('Pedidos ao RH', '', 'data-vp-aba="rh"') + vlinE('Recrutamento', '', 'data-vp-aba="recrutamento"'));
+    const busca = docs.length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar pessoa ou documento" aria-label="Buscar pessoa ou documento" value="${esc(estado.v2.busca)}">` : '';
+    const acao = estado.form === 'documento' ? '' : `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="documento">${icE('mais')}Novo documento</button>`;
+    const sub = `contratos e documentos do time · ${!docs.length ? 'nenhum cadastrado' : venc.length ? plural(venc.length, 'vencido', 'vencidos') : renovar.length ? `${renovar.length} a vencer` : 'tudo em dia'}`;
+    return { sub, acoes: busca, acao, main: `<div class="d3m-e-main">${kpis}${folha}</div>`, lado };
+  }
+  // ---------- Academy (prancha V2-M-Academy) ----------
+  // Três cartões de número, a folha "Trilhas no ar" (No ar | Minhas) com a trilha que abre no lugar (as aulas que se
+  // marcam ali mesmo, e quem administra edita e atribui) e, sem trilha, os três passos. A busca e quem monta ficam na
+  // consulta; quem não monta pede uma trilha ao RH por lá.
+  function listaTrilhasE(d) {
+    const todas = trilhasDaTela(d), lista = trilhasFiltradas(d);
+    const linhas = lista.map((t) => {
+      const pr = progressoDe(t), at = t.atribuidas || [], fim = at.filter((a) => a.progresso?.pct >= 100).length;
+      const doTime = d.gestao && !t.modelo, pct = Math.round(doTime ? (at.length ? fim / at.length * 100 : 0) : pr.pct);
+      const texto = doTime ? (at.length ? `${fim} de ${at.length} ${fim === 1 ? 'terminou' : 'terminaram'}` : 'ninguém atribuído') : `${pr.concluidas} de ${plural(pr.total, 'aula', 'aulas')}`;
+      return linhaAbre(t.id, `<span class="d3m-e-pes-lin-t"><b>${esc(t.nome)}</b><small class="d3m-e-pes-lin-s">${esc(aulasTexto(t.aulas))}${t.minha ? ' · atribuída a você' : t.modelo ? ' · modelo' : ''}</small></span>`,
+        `<span class="d3m-e-pes-prog${pct >= 60 ? ' g' : ''}" style="--v:${pct}%" aria-hidden="true"></span><span class="d3m-e-pes-conta" title="${esc(texto)}">${esc(texto)}</span>`, detalheTrilha(t, d), `a trilha ${t.nome}`);
+    }).join('');
+    const vazio = todas.length ? estadoE({ tipo: 'vazio', icone: 'vazio', titulo: 'Nenhuma trilha neste filtro', texto: 'Troque o filtro ou a busca.' }) : '';
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${linhas || vazio}</div>`;
+  }
+  function academyE(d) {
+    const h = d.hoje || hoje(), todas = trilhasDaTela(d), reais = todas.filter((t) => !t.modelo), feitas = new Set((d.feitas || []).map(String));
+    const minha = todas.find((t) => t.minha && progressoDe(t).pct < 100) || todas.find((t) => t.minha), prM = minha ? progressoDe(minha) : null;
+    const faltam = prM ? prM.total - prM.concluidas : 0, total = contaAulas(todas.flatMap((t) => t.aulas || []));
+    const pendentes = d.gestao ? reais.flatMap((t) => (t.atribuidas || []).filter((a) => (a.progresso?.pct || 0) < 100).map((a) => ({ a, t, atraso: a.prazo && a.prazo < h ? entre(a.prazo, h) : 0 })))
+      .sort((x, y) => y.atraso - x.atraso || (x.a.progresso?.pct || 0) - (y.a.progresso?.pct || 0)) : [];
+    // Aulas feitas: as do time (quem recebeu trilha) para quem administra; as suas para os outros.
+    const minhas = todas.filter((t) => t.minha).map(progressoDe);
+    const [fe, to] = d.gestao ? [reais.reduce((s, t) => s + (t.atribuidas || []).reduce((x, a) => x + (Number(a.progresso?.concluidas) || 0), 0), 0), reais.reduce((s, t) => s + (t.atribuidas || []).reduce((x, a) => x + (Number(a.progresso?.total) || 0), 0), 0)]
+      : [minhas.reduce((s, p) => s + p.concluidas, 0), minhas.reduce((s, p) => s + p.total, 0)];
+    const sem = (t) => `<span class="d3m-e-pes-sem">${t}</span>`;
+    const kpis = `<div class="d3m-e-kpis" style="--n:3">${kpiE({ rotulo: 'Trilhas no ar', valor: String(todas.length), icone: 'agenda', selo: 't', sub: todas.length ? `${plural(total.videos, 'vídeo', 'vídeos')} · ${total.docs} ${total.docs === 1 ? 'doc' : 'docs'}` : 'nenhuma' })}`
+      + `${kpiE({ rotulo: 'Aulas feitas', valor: to ? String(fe) : sem('sem dado'), de: to ? ` / ${to}` : '', icone: 'certo', selo: 'g', anel: to ? fe / to * 100 : null, sub: to ? (d.gestao ? 'do time' : 'suas') : d.gestao ? 'ninguém atribuído' : 'sem trilha' })}`
+      + `${kpiE({ rotulo: 'A sua trilha', valor: prM ? String(prM.pct) : sem('nenhuma'), de: prM ? '%' : '', icone: 'alta', selo: 'roxo', sub: !minha ? 'nada atribuído a você' : faltam ? `${esc(minha.nome)} · ${faltam === 1 ? 'falta 1 aula' : `faltam ${faltam} aulas`}` : `${esc(minha.nome)} · concluída`, attrs: minha && faltam ? `data-v2p-abre="${esc(minha.id)}" data-abrir="1" title="Continuar a ${esc(minha.nome)}"` : '' })}</div>`;
+    let folha;
+    if (estado.form === 'trilha') folha = folhaE({ titulo: estado.editar?.id ? 'Editar trilha' : 'Nova trilha', cls: 'cresce', dir: '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>', corpo: `<div class="d3m-e-rola d3m-e-pes-form">${formTrilha()}</div>` });
+    else {
+      const f = estado.v2.filtro === 'minhas' ? 'minhas' : 'ar';
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais trilhas">${[['ar', 'No ar', todas.length], ['minhas', 'Minhas', todas.filter((t) => t.minha).length]].map(([k, r, n]) => `<button type="button" role="radio" data-v2p-filtro="${k}" aria-checked="${f === k}">${r} <span class="d3m-e-pes-n">${n}</span></button>`).join('')}</span>`;
+      const corpo = todas.length ? listaTrilhasE(d)
+        : `<div class="d3m-e-rola">${estadoE({ tipo: 'vazio', icone: 'agenda', grande: true, titulo: 'Nenhuma trilha ainda', texto: d.gestao ? 'Monte a primeira com os vídeos e documentos que todo mundo que chega precisa ver.' : 'Quando os donos montarem uma trilha, ela aparece aqui, com as aulas e o seu progresso.', acao: d.gestao && d.provisionado !== false ? btnEstadoE('Montar a primeira trilha', 'data-vp-trilha-modelo') : '' })}</div>`
+          + passosE([['A trilha', 'Um assunto, com aulas em vídeo ou documento.'], ['A sua trilha', 'A que foi atribuída a você, com prazo.'], ['O progresso', 'Quantas aulas você viu e o que falta.']]);
+      folha = `<section class="d3m-e-folha cresce" aria-label="Trilhas"><div class="d3m-e-cab"><b>${f === 'minhas' ? 'Minhas trilhas' : 'Trilhas no ar'}</b><span class="d3m-e-cab-dir">${seg}</span></div>${corpo}</section>`;
+    }
+    const lado = consE('Quem monta', txtE('Os donos montam as trilhas. Quem está entrando recebe a sua pelo onboarding do time.') + (d.gestao === false ? vlinE('Pedir uma trilha', 'ao RH', 'data-v2p-pedir-trilha') : ''))
+      + (pendentes.length ? consE('Pede atenção', pendentes.slice(0, 4).map(({ a, t, atraso }) => vlinE(primeiroNome(a.nome), `${t.nome} · ${atraso ? `atrasada há ${plural(atraso, 'dia', 'dias')}` : a.progresso?.pct ? `aula ${a.progresso.concluidas} de ${a.progresso.total}` : 'não começou'}`, `data-v2p-abre="${esc(t.id)}" data-abrir="1"`)).join(''), plural(pendentes.length, 'pessoa', 'pessoas')) : '')
+      + consE('Buscar', `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="trilha, vídeo ou documento" aria-label="Buscar trilha, vídeo ou documento" value="${esc(estado.v2.busca)}">`)
+      + semMigracao(d).replace('class="vp-nota"', 'class="d3m-e-lado-txt"');
+    const acao = d.gestao && d.provisionado !== false && estado.form !== 'trilha' && todas.length ? `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="trilha">${icE('mais')}Nova trilha</button>` : '';
+    const sub = `trilhas de treinamento da Vybe · ${todas.length ? plural(reais.length || todas.length, 'trilha no ar', 'trilhas no ar') : 'nenhuma trilha no ar'}${minha && faltam ? ` · ${faltam === 1 ? 'falta 1 aula' : `faltam ${faltam} aulas`} na sua` : ''}`;
+    return { sub, acao, main: `<div class="d3m-e-main">${kpis}${folha}</div>`, lado };
+  }
+  const DESENHO_E = { produtividade: produtividadeE, rh: rhE, recrutamento: recrutamentoE, documentos: documentosE, academy: academyE };
+
   function htmlCorpo() {
     const d = estado.dados[estado.aba];
     if (!d) return estado.erro ? vazio('Não deu para abrir agora', estado.erro, acao('Tentar de novo', 'data-vp-recarregar')) : '<p class="vp-carregando" role="status">Carregando…</p>';
     return (estado.erro ? `<p class="vp-erro">Não foi possível atualizar: ${esc(estado.erro)} <button type="button" class="vp-link" data-vp-recarregar>Tentar de novo</button></p>` : '') + DESENHO[estado.aba](d);
   }
   function htmlPainel() {
+    if (E.has(estado.aba)) return htmlPainelE();
     // Aberto pelo dock, a janela mostra só as abas daquele item (opções { abas, rotulo }); com uma aba só, sem barra de abas.
     const g = gestao(), abas = ABAS.filter(([k]) => (g || !SO_GESTAO.has(k)) && (!estado.soAbas || estado.soAbas.has(k)));
     // Direção 3: o período do Recrutamento fica na barra de filtro; no cabeçalho só as abas, a ajuda e a ação.
@@ -1439,9 +1885,10 @@
   function pintar() {
     const janela = estado.janela; if (!janela) return;
     const corpo = janela.querySelector?.('.vp-corpo'), rolagem = corpo?.scrollTop || 0;
-    // Direção V2 (prancha V2-M-Projetos): no computador, a aba Projetos tem o esqueleto novo (painelPj2).
+    // Direção V2 (prancha V2-M-Projetos): no computador, a aba Projetos tem o esqueleto novo (painelPj2);
+    // as outras abas do RH e a Academy vão para o esqueleto E (htmlPainelE, pelo htmlPainel).
     const pj2 = v2pj(), foco = pj2 && document.activeElement?.id === 'pj2-busca';
-    janela.className = 'vp-janela' + (V2.has(estado.aba) ? ' v2p-janela' : '') + (pj2 ? ' d3m-c-janela' : '');
+    janela.className = 'vp-janela' + (pj2 ? ' v2p-janela d3m-c-janela' : E.has(estado.aba) ? ' d3m-e-pes-janela' : V2.has(estado.aba) ? ' v2p-janela' : '');
     janela.innerHTML = pj2 ? painelPj2() : htmlPainel();
     if (foco) { const b = janela.querySelector('#pj2-busca'); b?.focus(); try { b?.setSelectionRange(b.value.length, b.value.length); } catch { /* campo sem seleção */ } }
     const novo = janela.querySelector?.('.vp-corpo'); if (novo) novo.scrollTop = rolagem;
@@ -1510,7 +1957,9 @@
     const t = e.target, perto = (s) => t?.closest?.(s), d = estado.dados[estado.aba] || {};
     if (t === estado.raiz) { fechar(); return; }
     let b;
-    if ((b = perto('[data-v2p-abre]'))) abrirLinha(b.dataset.v2pAbre, b.dataset.abrir === '1');
+    if ((b = perto('[data-vp-ir]'))) irPeloMenu(b.dataset.vpIr);
+    else if ((b = perto('[data-vp-vaga-ir]'))) { estado.vaga = b.dataset.vpVagaIr || ''; estado.v2.aberta = ''; pintar(); }
+    else if ((b = perto('[data-v2p-abre]'))) abrirLinha(b.dataset.v2pAbre, b.dataset.abrir === '1');
     else if ((b = perto('[data-v2p-carta]'))) moverBaralho(Number(b.dataset.v2pCarta));
     else if ((b = perto('[data-v2p-decidir]'))) decidir(b);
     else if ((b = perto('[data-v2p-recusar]'))) {
@@ -1542,7 +1991,10 @@
     else if (perto('[data-vp-recarregar]')) carregar();
     else if ((b = perto('[data-vp-proj-zoom]'))) { estado.projZoom = b.dataset.vpProjZoom; pintar(); }
     else if ((b = perto('[data-vp-proj-filtro]'))) { estado.projFiltro = b.dataset.vpProjFiltro; pintar(); }
-    else if ((b = perto('[data-vp-abrir-form]'))) abrirForm(b.dataset.vpAbrirForm, b.dataset.vpAbrirForm === 'projeto' ? { inicio: hoje(), fim: somarDias(hoje(), 14), etapas: [{}] } : b.dataset.vpAbrirForm === 'trilha' ? { aulas: [{}] } : b.dataset.vpAbrirForm === 'candidato' && b.dataset.vaga ? { vaga_id: b.dataset.vaga } : null);
+    else if ((b = perto('[data-vp-abrir-form]'))) {
+      if (b.dataset.tipo) estado.tipoPedido = b.dataset.tipo; // "O que dá para pedir": o formulário já no tipo escolhido
+      abrirForm(b.dataset.vpAbrirForm, b.dataset.vpAbrirForm === 'projeto' ? { inicio: hoje(), fim: somarDias(hoje(), 14), etapas: [{}] } : b.dataset.vpAbrirForm === 'trilha' ? { aulas: [{}] } : b.dataset.vpAbrirForm === 'candidato' && b.dataset.vaga ? { vaga_id: b.dataset.vaga } : null);
+    }
     else if (perto('[data-vp-fechar-form]')) { estado.form = ''; estado.editar = null; pintar(); }
     else if ((b = perto('[data-vp-pessoa]'))) { estado.pessoa = b.dataset.vpPessoa; carregar(); }
     else if ((b = perto('[data-vp-periodo]'))) { estado.periodo = b.dataset.vpPeriodo; carregar(); }
