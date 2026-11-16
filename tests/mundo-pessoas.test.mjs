@@ -85,7 +85,7 @@ test('gestão: ranking, pesos, metas e as abas de Recrutamento e Documentos', as
   t.P._teste.ver('carga'); assert.match(t.html(), /Sobrecarregada/, 'a carga da semana fica na Produtividade dos donos');
   t.P._teste.ver('pesos'); assert.match(t.html(), /data-vp-form="pesos"/); t.P._teste.ver('metas'); assert.match(t.html(), /data-vp-form="metas"/);
   await t.P.abrir('recrutamento');
-  assert.match(t.html(), /Fulana/); assert.match(t.html(), /vs mês anterior/); assert.match(t.html(), /Mensal/);
+  assert.match(t.html(), /Fulana/); assert.match(t.html(), /▼ 3 dias/); assert.match(t.html(), /Mensal/);
   await t.P.abrir('documentos');
   assert.match(t.html(), /Vence em 20\/11/); assert.match(t.html(), /data-vp-editar-documento="1"[^>]*>Renovar</);
 });

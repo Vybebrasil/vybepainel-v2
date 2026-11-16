@@ -45,7 +45,7 @@ function montar() {
 
 // V2 · grupo E (pranchas V2-M-RH-* e V2-M-Academy, 16/11/2026): as telas já no esqueleto novo saem do teste da Direção 3
 // e ganham o do vidro fumê; as outras seguem com a proteção de antes até chegar a vez delas.
-const E_FEITAS = ['produtividade', 'rh'];
+const E_FEITAS = ['produtividade', 'rh', 'recrutamento'];
 test('V2 · grupo E: o título no vidro, as abas de antes escondidas no DOM e sem o bloco laranja', async () => {
   const t = montar();
   for (const aba of E_FEITAS) {
@@ -99,11 +99,12 @@ test('Pedidos: rótulos curtos e o 1º que vence; Documentos: linha do tempo dos
   assert.match(h, /<span>Pessoa<\/span><span>Docs<\/span><span>Situação<\/span>/);
 });
 
-test('Recrutamento: o período sai do cabeçalho e vai para a barra de filtro', async () => {
+test('Recrutamento: o período Mensal | Anual no topo, no vidro, e o mês na cabeça do funil', async () => {
   const t = montar();
   await t.P.abrir('academy'); await t.P.abrir('recrutamento'); // a primeira resposta diz que é gestão
   const h = t.html(), topo = h.slice(0, h.indexOf('vp-corpo'));
-  assert.doesNotMatch(topo, /vp-periodo/); assert.match(h, /data-vp-abrir-form="etapas">Etapas<\/button><div class="vp-periodo">/);
+  assert.match(topo, /class="d3m-e-per" role="group" aria-label="Período"><button type="button" data-vp-periodo="mensal" aria-pressed="true">Mensal/);
+  assert.match(h, /data-vp-ref-ir="\d{4}-\d{2}" aria-label="Mês anterior"/);
 });
 
 test('CSS do Time: sem !important nem html body.mundo, tokens --d3-* e o prefixo da janela', () => {

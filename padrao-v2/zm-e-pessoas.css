@@ -86,6 +86,10 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
   #vv-pessoas .d3m-e-pes-mesc{grid-template-columns:minmax(0,1fr);justify-items:center}
   #vv-pessoas .d3m-e-pes-comps{width:100%;grid-template-columns:minmax(0,1fr)}
   #vv-pessoas .d3m-e-acoes > input.d3m-e-pes-busca[type=search]{flex:1 1 140px;width:auto;min-width:0}
+  /* A cabeça da folha quebra em duas linhas: o título em cima, o mês e o alternador embaixo. */
+  #vv-pessoas .d3m-e-folha > .d3m-e-cab{flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+  #vv-pessoas .d3m-e-folha > .d3m-e-cab > .d3m-e-cab-dir{flex:1 1 100%;min-width:0;flex-wrap:wrap;white-space:normal}
+  #vv-pessoas .d3m-e-folha > .d3m-e-cab .d3m-e-seg{flex-wrap:wrap}
 }
 
 /* ---------- Pedidos e calendário ---------- */
@@ -139,3 +143,35 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
   #vv-pessoas .d3m-e-pes-grade{flex:none;grid-template-rows:24px repeat(var(--sem,5),64px);margin:0 8px 12px}
   #vv-pessoas .d3m-e-pes-dia{padding:4px}
 }
+
+/* ---------- Recrutamento e Documentos ---------- */
+/* "sem dado" no cartão de número: o mesmo tamanho, em cinza. */
+#vv-pessoas .d3m-e-pes-sem{color:var(--d3-rotulo)}
+/* Os três passos embaixo do vazio (cartões de véu com o número de 22). */
+#vv-pessoas .d3m-e-pes-passos{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;border-top:1px solid var(--d3-divisa)}
+#vv-pessoas .d3m-e-pes-passo{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:120px;padding:14px 16px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-veu);font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-pessoas .d3m-e-pes-passo > i{display:grid;place-items:center;width:22px;height:22px;margin-bottom:8px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-pessoas .d3m-e-pes-passo > b{font-weight:600;color:var(--d3-tinta)}
+/* O funil: uma coluna por etapa com o número e a barra. */
+#vv-pessoas .d3m-e-pes-funil{flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;padding:12px 16px;border-top:1px solid var(--d3-divisa)}
+#vv-pessoas .d3m-e-pes-fun{display:flex;flex-direction:column;gap:4px;min-width:0}
+#vv-pessoas .d3m-e-pes-fun > b{font:600 18px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#vv-pessoas .d3m-e-pes-fun > i{display:block;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--d3-tinta) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-fun.r > i{background:linear-gradient(90deg,var(--d3-perigo) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-fun.g > i{background:linear-gradient(90deg,var(--d3-pronto) var(--v,0%),var(--d3-veu-forte) var(--v,0%))}
+#vv-pessoas .d3m-e-pes-funil + .d3m-e-rola{border-top:1px solid var(--d3-divisa)}
+/* As etapas com gente, em selos, ao lado do nome da vaga. */
+#vv-pessoas .d3m-e-pes-etps{flex:none;display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:55%}
+#vv-pessoas .d3m-e-folha .v2p-det{padding-bottom:12px}
+#vv-pessoas .d3m-e-folha .v2p-det-acoes{display:flex;gap:6px;margin-top:8px}
+#vv-pessoas .d3m-e-folha .v2p-det-acoes > .d3v-btn{height:28px;padding:0 10px}
+/* Documentos: cada documento da pessoa numa linha (nome, selo, Abrir e Editar). */
+#vv-pessoas .d3m-e-folha .v2p-doc{display:flex;align-items:center;gap:10px;margin:0;padding:6px 0}
+#vv-pessoas .d3m-e-folha .v2p-doc-nome{flex:1 1 auto;min-width:0;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){
+  #vv-pessoas .d3m-e-pes-passos{grid-template-columns:minmax(0,1fr)}
+  #vv-pessoas .d3m-e-pes-passo{min-height:0}
+  #vv-pessoas .d3m-e-pes-funil{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* A linha da consulta escolhida (vaga, tipo de documento). */
+#vv-pessoas .d3m-lado .d3m-vlin.on{background:var(--d3-fume-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-fume-borda)}

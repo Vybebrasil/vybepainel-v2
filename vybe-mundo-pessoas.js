@@ -1412,13 +1412,13 @@
 
   // ---------- desenho ----------
   const DESENHO = { produtividade: htmlProdutividade, rh: htmlRh, projetos: htmlProjetos, academy: htmlAcademy, recrutamento: htmlRecrutamento, documentos: htmlDocumentos };
-  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaAcademy, recrutamento: listaRecrutamento, documentos: listaDocumentos, projetos: listaProjetos };
+  const LISTA_V2 = { produtividade: listaMesE, rh: listaPedidosE, academy: listaAcademy, recrutamento: listaVagasE, documentos: listaDocumentos, projetos: listaProjetos };
   // ---------- V2 · grupo E (pranchas V2-M-RH-*, V2-M-Academy, aprovadas pelo Paulo em 16/11/2026) ----------
   // O esqueleto novo das telas do RH: a janela de vidro fumê, o título no vidro (com a seta que troca de tela do setor),
   // a coluna de trabalho em folhas claras e a coluna de consulta de 316 direto no vidro. As peças .d3m-e-* são as da
   // casca do grupo (padrao-v2/zm-e-casca.css); as locais desta janela ficam em padrao-v2/zm-e-pessoas.css. Cada tela
   // devolve { sub, acoes, main, lado }; as funções, os data-* e os formulários de antes seguem os mesmos.
-  const E = new Set(['produtividade', 'rh']);
+  const E = new Set(['produtividade', 'rh', 'recrutamento']);
   const IC_E = { lupa: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>', ajuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', mais: '<path d="M12 5v14M5 12h14"/>',
     depois: '<path d="M9 6l6 6-6 6"/>', antes: '<path d="M15 6l-6 6 6 6"/>', baixo: '<path d="M6 9l6 6 6-6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>', certo: '<path d="M5 12l4 4 10-10"/>', fora: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>' };
   const icE = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${IC_E[n] || ''}</svg>`;
@@ -1669,7 +1669,86 @@
     const acao = estado.form === 'pedido' ? '' : `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="pedido">${icE('mais')}Nova solicitação</button>`;
     return { sub, acoes: busca, acao, main, lado };
   }
-  const DESENHO_E = { produtividade: produtividadeE, rh: rhE };
+  // ---------- Recrutamento (prancha V2-M-RH-Recrutamento) ----------
+  // Três cartões de número, a folha do funil do mês (Abertas | Retorno pendente | Fechadas) com a vaga que abre no lugar
+  // e, sem vaga, os três passos. Os formulários de vaga, candidato e etapas abrem na própria folha. Na consulta: quem vê,
+  // quem espera retorno (abre o candidato para mover de etapa) e os atalhos.
+  const kpiE = (o) => (typeof d3mEKpi === 'function' ? d3mEKpi(o)
+    : `<div class="d3m-e-kpi${o.tom ? ' ' + o.tom : ''}"><span class="d3m-e-kpi-topo"><span>${esc(o.rotulo)}</span></span><span class="d3m-e-kpi-baixo"><span class="d3m-e-kpi-txt"><b class="d3m-e-kpi-v">${o.valor}${o.de ? `<small class="d3m-e-kpi-de">${o.de}</small>` : ''}</b><small class="d3m-e-kpi-sub">${o.sub || ''}</small></span></span></div>`);
+  const passosE = (lista) => `<div class="d3m-e-pes-passos" role="list">${lista.map(([t, x], i) => `<div class="d3m-e-pes-passo" role="listitem"><i aria-hidden="true">${i + 1}</i><b>${esc(t)}</b><span>${esc(x)}</span></div>`).join('')}</div>`;
+  function listaVagasE(d) {
+    const { h, etapas, vagas, pendIds } = contaRecrutamento(d), f = estado.v2.filtro || 'abertas', cands = d.candidatos || [];
+    const daVaga = (v) => cands.filter((c) => c.vaga_id === v.id);
+    const lista = vagas.filter((v) => (f === 'fechadas' ? v.status !== 'aberta' : v.status === 'aberta') && (f !== 'pendente' || daVaga(v).some((c) => pendIds.has(c.id)))
+      && (!estado.vaga || v.id === estado.vaga) && bate(v.titulo, v.cargo || '', ...daVaga(v).map((c) => c.nome)));
+    const linhas = lista.map((v) => {
+      const cs = daVaga(v), comGente = etapas.map((e, i) => [e, i, cs.filter((c) => c.etapa === e)]).filter(([, , l]) => l.length);
+      const dias = v.aberta_em ? Math.max(0, entre(v.aberta_em, h)) : null;
+      const sub = [v.status === 'aberta' ? (dias == null ? '' : `aberta há ${plural(dias, 'dia', 'dias')}`) : v.status === 'pausada' ? 'pausada' : `fechada${v.fechada_em ? ' em ' + br(v.fechada_em) : ''}`, v.cargo || ''].filter(Boolean).join(' · ');
+      const detalhe = `<div class="v2p-det">${comGente.length ? `<div class="v2p-etp">${comGente.map(([e, , l]) => `<div class="v2p-etp-card"><p class="v2p-sub">${esc(e)}${l.some((c) => pendIds.has(c.id)) ? ' · <span class="v2p-ruim">sem retorno</span>' : ''}</p>${l.map((c) => `<button type="button" class="v2p-etp-nome${pendIds.has(c.id) ? ' at' : ''}" data-vp-editar-candidato="${esc(c.id)}" title="${esc(c.nome)}: abrir e mover de etapa" aria-label="${esc(c.nome)}, em ${esc(e)}: abrir">${esc(c.nome)}</button>`).join('')}</div>`).join('')}</div>` : '<p class="v2p-sub">Nenhum candidato nesta vaga ainda.</p>'}
+        ${v.descricao ? `<p class="v2p-sub">${esc(v.descricao)}</p>` : ''}
+        <div class="v2p-det-acoes"><button type="button" class="d3v-btn d3m-e-fio" data-vp-abrir-form="candidato" data-vaga="${esc(v.id)}">Novo candidato</button><button type="button" class="d3v-btn d3m-e-fio" data-vp-editar-vaga="${esc(v.id)}">Editar vaga</button></div></div>`;
+      return linhaAbre(v.id, `<span class="d3m-e-pes-lin-t"><b>${esc(v.titulo)} <span class="d3m-e-pes-n">${cs.length}</span></b><small class="d3m-e-pes-lin-s">${esc(sub || 'vaga')}</small></span>`,
+        `<span class="d3m-e-pes-etps">${comGente.map(([e, i, l]) => `<span class="d3m-e-pes-selo${/^reprovad/i.test(e) ? ' r' : /^(aprovad|contratad)/i.test(e) ? ' g' : ''}">${esc(e)} ${l.length}</span>`).join('')}</span>`, detalhe, `a vaga ${v.titulo}`);
+    }).join('');
+    const vazioF = f === 'fechadas' ? ['Nenhuma vaga fechada', 'As vagas fechadas ficam guardadas aqui.'] : f === 'pendente' ? ['Ninguém esperando retorno', `Ninguém parado no funil há mais de ${DIAS_RETORNO} dias.`] : ['Nenhuma vaga com essa busca', 'Confira o que foi digitado.'];
+    return `<div class="d3m-e-rola d3m-e-pes-lista" data-v2p-lista>${linhas || estadoE({ tipo: 'vazio', icone: 'pessoas', titulo: vazioF[0], texto: vazioF[1] })}</div>`;
+  }
+  function recrutamentoE(d) {
+    const ind = d.indicadores || {}, R = contaRecrutamento(d), { h, etapas, vagas, pendentes } = R, todos = d.candidatos || [];
+    const abertas = vagas.filter((v) => v.status === 'aberta'), fechadas = vagas.length - abertas.length, nomeVaga = Object.fromEntries(vagas.map((v) => [v.id, v.titulo]));
+    const anual = estado.periodo === 'anual', ref = estado.ref || h.slice(0, 7), corte = anual ? ref.slice(0, 4) : ref;
+    const entraram = todos.filter((c) => diaIso(c.criado_em).startsWith(corte)).length, antiga = abertas.map((v) => v.aberta_em).filter(Boolean).sort()[0];
+    const tm = ind.tempoMedio || {}, vs = ind.vs?.delta == null ? '' : ind.vs.delta === 0 ? ' · igual ao anterior' : ` · ${ind.vs.delta > 0 ? '▲' : '▼'} ${Math.abs(ind.vs.delta)} dias`;
+    const nAb = ind.abertas ?? abertas.length;
+    const kpis = `<div class="d3m-e-kpis" style="--n:3">${kpiE({ rotulo: 'Vagas abertas', valor: String(nAb), icone: 'pessoas', selo: 't', sub: antiga ? `mais antiga · ${plural(Math.max(0, entre(antiga, h)), 'dia', 'dias')}` : fechadas ? plural(fechadas, 'fechada', 'fechadas') : 'nenhuma' })}`
+      + `${kpiE({ rotulo: 'Candidatos', valor: String(ind.candidatos ?? todos.length), icone: 'alta', selo: 'roxo', sub: entraram ? `+${entraram} no ${anual ? 'ano' : 'mês'}` : `nenhum no ${anual ? 'ano' : 'mês'}` })}`
+      + `${kpiE({ rotulo: 'Tempo até contratar', valor: tm.dias == null ? '<span class="d3m-e-pes-sem">sem dado</span>' : String(tm.dias), de: tm.dias == null ? '' : tm.dias === 1 ? ' dia' : ' dias', icone: 'relogio', selo: 'i', sub: `${tm.contratacoes ? plural(tm.contratacoes, 'contratação', 'contratações') : 'sem contratação ainda'}${tm.dias == null ? '' : vs}` })}</div>`;
+    const f = estado.v2.filtro || 'abertas', fechar = '<button type="button" class="d3m-e-elo" data-vp-fechar-form>Fechar</button>';
+    let folha;
+    if (estado.form === 'vaga') {
+      const v = estado.editar || {};
+      folha = folhaE({ titulo: v.id ? 'Editar vaga' : 'Nova vaga', cls: 'cresce', dir: fechar, corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="vaga" class="vp-form"><input type="hidden" name="id" value="${esc(v.id || '')}"><div class="vp-grade">
+        <label><span>Título</span><input name="titulo" maxlength="200" required value="${esc(v.titulo || '')}"></label><label><span>Cargo</span><input name="cargo" maxlength="100" value="${esc(v.cargo || '')}"></label>
+        <label><span>Status</span><select name="status">${opcoes({ aberta: 'Aberta', pausada: 'Pausada', fechada: 'Fechada' }, v.status || 'aberta')}</select></label></div>
+        <label><span>Descrição</span><textarea name="descricao" rows="2" maxlength="2000">${esc(v.descricao || '')}</textarea></label>
+        <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar vaga</button></div></form></div>` });
+    } else if (estado.form === 'candidato') {
+      const c = estado.editar || {};
+      folha = folhaE({ titulo: c.id ? c.nome || 'Candidato' : 'Novo candidato', cls: 'cresce', dir: fechar, corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="candidato" class="vp-form"><input type="hidden" name="id" value="${esc(c.id || '')}"><div class="vp-grade">
+        <label><span>Nome</span><input name="nome" maxlength="200" required value="${esc(c.nome || '')}"></label><label><span>Contato</span><input name="contato" maxlength="200" value="${esc(c.contato || '')}"></label>
+        <label><span>Vaga</span><select name="vaga_id" required>${vagas.map((v) => `<option value="${esc(v.id)}"${v.id === (c.vaga_id || estado.vaga) ? ' selected' : ''}>${esc(v.titulo)}</option>`).join('')}</select></label>
+        <label><span>Etapa</span><select name="etapa">${etapas.map((e) => `<option${e === (c.etapa || etapas[0]) ? ' selected' : ''}>${esc(e)}</option>`).join('')}</select></label></div>
+        <label><span>Observação</span><textarea name="observacao" rows="2" maxlength="2000">${esc(c.observacao || '')}</textarea></label>
+        ${c.id ? `<p class="vp-nota">No funil desde ${br(diaIso(c.criado_em))}${c.contratado_em ? ` · contratado em ${br(diaIso(c.contratado_em))}` : ''}.</p>` : ''}
+        <div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar candidato</button></div></form></div>` });
+    } else if (estado.form === 'etapas') {
+      folha = folhaE({ titulo: 'Etapas do funil', cls: 'cresce', dir: fechar, corpo: `<div class="d3m-e-rola d3m-e-pes-form"><form data-vp-form="etapas" class="vp-form"><label><span>Etapas do funil (uma por linha, na ordem)</span><textarea name="etapas" rows="5">${esc(etapas.join('\n'))}</textarea></label>
+        <p class="vp-nota">A etapa chamada Aprovado (ou Contratado) conta como contratação; a última é a de saída.</p><div class="vp-botoes">${sec('Cancelar', 'data-vp-fechar-form')}<button type="submit" class="vp-acao">Salvar etapas</button></div></form></div>` });
+    } else {
+      const seg = `<span class="d3m-e-seg" role="radiogroup" aria-label="Quais vagas">${[['abertas', 'Abertas', abertas.length], ['pendente', 'Retorno pendente', pendentes.length], ['fechadas', 'Fechadas', fechadas]].map(([k, r, n]) => `<button type="button" role="radio" data-v2p-filtro="${k}" aria-checked="${f === k}">${r} <span class="d3m-e-pes-n">${n}</span></button>`).join('')}</span>`;
+      const noFunil = todos.filter((c) => R.abertasIds.has(c.vaga_id)), maior = Math.max(1, ...etapas.map((e) => noFunil.filter((c) => c.etapa === e).length));
+      const funil = noFunil.length ? `<div class="d3m-e-pes-funil" role="list" aria-label="Candidatos por etapa">${etapas.map((e) => { const n = noFunil.filter((c) => c.etapa === e).length; return `<span class="d3m-e-pes-fun${/^reprovad/i.test(e) ? ' r' : /^(aprovad|contratad)/i.test(e) ? ' g' : ''}" role="listitem"><small class="d3m-e-pes-lin-s">${esc(e)}</small><b>${n}</b><i style="--v:${Math.round(n / maior * 100)}%"></i></span>`; }).join('')}</div>` : '';
+      const corpo = !vagas.length
+        ? `<div class="d3m-e-rola">${estadoE({ tipo: 'vazio', icone: 'pessoas', grande: true, titulo: 'Nenhuma vaga aberta', texto: 'Abra a primeira para começar a receber candidatos no funil.', acao: btnEstadoE('Nova vaga', 'data-vp-abrir-form="vaga"') })}</div>`
+          + passosE([['A vaga', 'Cargo, descrição e o que se espera.'], ['As etapas', 'São configuráveis; cada candidato anda por elas.'], ['Aprovado ou contratado', 'Conta no tempo médio de contratação.']])
+        : funil + listaVagasE(d);
+      folha = `<section class="d3m-e-folha cresce" aria-label="Funil"><div class="d3m-e-cab"><b>Funil de ${esc(anual ? ref.slice(0, 4) : mesNomeE(ref))}</b><span class="d3m-e-cab-dir">${mesNavE(ref, 'data-vp-ref-ir')}${seg}</span></div>${corpo}</section>`;
+    }
+    const main = `<div class="d3m-e-main">${kpis}${folha}</div>`;
+    const lado = consE('Quem vê', txtE('Só os donos e quem administra. A equipe não vê as vagas nem os candidatos.'))
+      + (pendentes.length ? consE('Esperando retorno', pendentes.slice(0, 5).map((c) => vlinE(c.nome, `${nomeVaga[c.vaga_id] || ''} · ${plural(R.idade(c), 'dia', 'dias')}`, `data-vp-editar-candidato="${esc(c.id)}"`)).join(''), `há mais de ${DIAS_RETORNO} dias`) : '')
+      // Com mais de uma vaga, escolher uma só (antes, a escolha "Vaga" dos Filtros): o funil e a lista ficam nela.
+      + (vagas.length > 1 ? consE('Por vaga', [['', 'Todas as vagas', todos.length], ...vagas.filter((v) => v.status === 'aberta' || v.id === estado.vaga).map((v) => [v.id, v.titulo, todos.filter((c) => c.vaga_id === v.id).length])]
+        .map(([id, nome, n]) => `<button type="button" class="d3m-vlin${(estado.vaga || '') === id ? ' on' : ''}" data-vp-vaga-ir="${esc(id)}" aria-pressed="${(estado.vaga || '') === id}"><span><b>${esc(nome)}</b> · ${plural(n, 'candidato', 'candidatos')}</span>${icE((estado.vaga || '') === id ? 'certo' : 'depois')}</button>`).join('')) : '')
+      + consE('Abrir', vlinE('Configurar as etapas', etapas.length ? plural(etapas.length, 'etapa', 'etapas') : '', 'data-vp-abrir-form="etapas"') + vlinE('Documentos do time', '', 'data-vp-aba="documentos"'));
+    const per = `<span class="d3m-e-per" role="group" aria-label="Período"><button type="button" data-vp-periodo="mensal" aria-pressed="${!anual}">Mensal</button><button type="button" data-vp-periodo="anual" aria-pressed="${anual}">Anual</button></span>`;
+    const busca = vagas.length ? `<input type="search" class="d3m-e-pes-busca" data-v2p-busca placeholder="Buscar vaga ou candidato" aria-label="Buscar vaga ou candidato" value="${esc(estado.v2.busca)}">` : '';
+    const acao = estado.form === 'vaga' ? '' : `<button type="button" class="d3v-btn d3m-e-claro" data-vp-abrir-form="vaga">${icE('mais')}Nova vaga</button>`;
+    const sub = `só os donos e quem administra · ${nAb ? plural(nAb, 'vaga aberta', 'vagas abertas') : 'nenhuma vaga aberta'}${pendentes.length ? ` · ${plural(pendentes.length, 'espera', 'esperam')} retorno` : ''}`;
+    return { sub, acoes: per + busca, acao, main, lado };
+  }
+  const DESENHO_E = { produtividade: produtividadeE, rh: rhE, recrutamento: recrutamentoE };
 
   function htmlCorpo() {
     const d = estado.dados[estado.aba];
@@ -1771,6 +1850,7 @@
     if (t === estado.raiz) { fechar(); return; }
     let b;
     if ((b = perto('[data-vp-ir]'))) irPeloMenu(b.dataset.vpIr);
+    else if ((b = perto('[data-vp-vaga-ir]'))) { estado.vaga = b.dataset.vpVagaIr || ''; estado.v2.aberta = ''; pintar(); }
     else if ((b = perto('[data-v2p-abre]'))) abrirLinha(b.dataset.v2pAbre, b.dataset.abrir === '1');
     else if ((b = perto('[data-v2p-carta]'))) moverBaralho(Number(b.dataset.v2pCarta));
     else if ((b = perto('[data-v2p-decidir]'))) decidir(b);

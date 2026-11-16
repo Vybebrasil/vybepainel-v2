@@ -57,7 +57,8 @@ const ordem = (h, ...trechos) => { let i = -1; for (const t of trechos) { const 
 
 test('as quatro telas seguem a ordem do quadro: título, fala do VYBES, três números, filtro, Pede ação e lista', async () => {
   const t = montar();
-  for (const [aba, pe] of [['academy', 'monta: donos e RH'], ['recrutamento', 'Vagas abertas'], ['documentos', 'Por colaborador']]) {
+  // Recrutamento já está no esqueleto do grupo E (teste próprio, abaixo).
+  for (const [aba, pe] of [['academy', 'monta: donos e RH'], ['documentos', 'Por colaborador']]) {
     await t.P.abrir(aba);
     const h = t.html();
     assert.equal(t.janela().className, 'vp-janela v2p-janela', aba);
@@ -105,24 +106,21 @@ test('Pedidos e calendário de quem pediu: sem botões de decisão, com o própr
   assert.doesNotMatch(h, /responderam/, 'quem não é da gestão não vê quantos responderam o clima');
 });
 
-test('Recrutamento: período na barra de filtro, quem espera retorno em Pede ação, funil e vaga que abre no lugar', async () => {
+test('Recrutamento (prancha V2-M-RH-Recrutamento): três números, o funil do mês com a vaga que abre no lugar e quem espera retorno na consulta', async () => {
   const t = montar();
   await t.P.abrir('academy'); await t.P.abrir('recrutamento'); // a primeira resposta diz que é gestão
   let h = t.html();
-  assert.match(h, /data-vp-abrir-form="vaga">Nova vaga<\/button><button[^>]*data-vp-ajuda/); assert.match(h, /data-vp-abrir-form="etapas">Etapas<\/button><div class="vp-periodo">/);
-  assert.match(h, /<b>1 vaga aberta, 2 candidatos\.<\/b> 1 espera retorno há mais de 5 dias/);
-  assert.match(h, /mais antiga · 34 dias/); assert.match(h, /1 contratação · <span class="vp-vs bom">▼ 3 dias vs mês anterior/);
-  assert.match(h, /aria-pressed="true" data-v2p-filtro="abertas">Abertas <b>1<\/b>/); assert.match(h, /data-v2p-filtro="pendente">Retorno pendente <b>1<\/b>/); assert.match(h, /data-v2p-filtro="fechadas">Fechadas <b>1<\/b>/);
-  assert.match(h, /class="v2p-pill r">8 dias<\/span><p><b>Fulana Um<\/b> · Designer<br><span class="v2p-sub">em Entrevista · no funil desde 04\/11/);
-  assert.match(h, /<select data-vp-mover="1">/, 'o candidato muda de etapa na própria linha');
-  assert.match(h, /<h3>Funil de novembro<\/h3><small>2 candidatos na vaga aberta/); assert.doesNotMatch(h, /<div class="v2p-fun"><span>Aprovado/, 'etapa sem candidato não aparece');
-  assert.match(h, /class="v2-abre v2p-linha" data-linha="1" aria-expanded="false"/); assert.match(h, /Triagem 1<\/span><span class="v2p-pill a">Entrevista 1</);
+  ordem(h, 'class="d3m-e-topo"', 'Recursos Humanos · só os donos e quem administra · 1 vaga aberta', 'data-vp-periodo="mensal"', 'data-v2p-busca', 'data-vp-abrir-form="vaga"', 'Vagas abertas', 'Candidatos', 'Tempo até contratar', 'Funil de novembro', '<aside class="d3m-lado"', 'Quem vê', 'Esperando retorno', 'Configurar as etapas');
+  assert.match(h, /mais antiga · 34 dias/); assert.match(h, /1 contratação · ▼ 3 dias/);
+  assert.match(h, /data-v2p-filtro="abertas" aria-checked="true">Abertas <span class="d3m-e-pes-n">1</); assert.match(h, /data-v2p-filtro="pendente" aria-checked="false">Retorno pendente <span class="d3m-e-pes-n">1</); assert.match(h, /data-v2p-filtro="fechadas" aria-checked="false">Fechadas <span class="d3m-e-pes-n">1</);
+  assert.match(h, /data-vp-editar-candidato="1"><span><b>Fulana Um<\/b> · Designer · 8 dias/, 'quem espera retorno abre o candidato para mover de etapa');
+  assert.match(h, /class="d3m-e-pes-fun" role="listitem"><small class="d3m-e-pes-lin-s">Triagem<\/small><b>1<\/b>/, 'o funil por etapa');
+  assert.match(h, /class="v2-abre v2p-linha" data-linha="1" aria-expanded="false"/); assert.match(h, /class="d3m-e-pes-selo">Triagem 1<\/span><span class="d3m-e-pes-selo">Entrevista 1</);
   assert.match(h, /class="v2p-etp-nome at" data-vp-editar-candidato="1"[^>]*>Fulana Um</, 'cartão da etapa com o nome (quadro D3-Recrutamento)');
-  assert.match(h, /<span>Vaga<\/span><span>Aberta<\/span><span>Conduz<\/span><span>Etapas<\/span>/); assert.match(h, /class="d3p-vg-aberta[^"]*"[^>]*>34 dias</); assert.match(h, /data-vp-abrir-form="candidato" data-vaga="1">Novo candidato</); assert.match(h, /data-vp-editar-vaga="1">Editar vaga</);
-  assert.match(h, /\+ 1 vaga fechada recolhida · <button[^>]*data-v2p-filtro="fechadas">mostrar</); assert.doesNotMatch(h, /Redator/);
+  assert.match(h, /data-vp-abrir-form="candidato" data-vaga="1">Novo candidato</); assert.match(h, /data-vp-editar-vaga="1">Editar vaga</);
+  assert.doesNotMatch(h, /Redator/); assert.match(h, /data-vp-vaga-ir="1"/, 'com mais de uma vaga, escolher uma na consulta');
   t.clicar('[data-v2p-filtro]', { v2pFiltro: 'fechadas' }); h = t.html();
-  assert.match(h, /<h3>Vagas fechadas<\/h3>/); assert.match(h, /Redator/);
-  t.clicar('[data-v2p-filtros]'); assert.match(t.html(), /class="vb-escolha|data-vp-vaga/, 'Filtros guarda a escolha de vaga');
+  assert.match(h, /data-v2p-filtro="fechadas" aria-checked="true"/); assert.match(h, /Redator/);
 });
 
 test('Documentos: o vencido em destaque, Renovar abre o documento e quem está em dia fica recolhido', async () => {
