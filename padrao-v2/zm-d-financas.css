@@ -144,6 +144,20 @@ label.d3m-d-vbtn{cursor:pointer}
 .d3m-d-fm-passo > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 .d3m-d-fm-passo-n{display:grid;place-items:center;width:22px;height:22px;margin-bottom:4px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra);font:600 11px var(--vv-texto,Inter,sans-serif)}
 .d3m-d-selo.a{background:var(--d3m-d-ambar)}
+/* Relatórios e projeção: o relatório e o E se lado a lado; o rótulo entre as tabelas; o eixo com o saldo do mês. */
+.d3m-d-fm-par.d3m-d-fm-proj{grid-template-columns:minmax(0,1fr) 336px;min-height:0}
+.d3m-d-fm-rot{margin:0;padding:10px 16px 4px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-d-fm-c .b{font-weight:600}
+.d3m-d-fm-graf{padding-top:4px}
+.d3m-d-fm .d3m-d-fm-cab > h3:empty{display:none}
+.d3m-d-fm .d3m-d-fm-cab > h3:empty + .d3m-d-fm-dir{margin-left:0}
+.d3m-d-fm .d3m-d-fm-cab > h3:empty + .d3m-d-fm-dir .d3m-d-fm-ficha{height:30px;font-size:var(--d3-fs-texto)}
+.d3m-d-fm-leg-graf{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin:0;padding:0 16px 4px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-d-fm-graf > .d3m-d-fm-leg-graf{padding:0 0 4px}
+.d3m-d-fm .d3f-eixo > :is(span,b){display:flex;flex-direction:column;align-items:center;gap:1px}
+.d3m-d-fm .d3f-eixo small{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-d-fm .d3f-eixo .proj small{color:var(--d3-agente)}
+.d3m-d-fm-ese .d3m-d-fm-painel{padding-top:0}
 /* Dois cartões lado a lado embaixo do principal. */
 .d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:150px}
 .d3m-d-fm-pesa{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-height:100%;box-sizing:border-box}
@@ -161,6 +175,7 @@ label.d3m-d-vbtn{cursor:pointer}
   .d3m-d-fm-olho{min-height:38px}
 }
 @media (max-width:1320px){
+  .d3m-d-fm-par.d3m-d-fm-proj{grid-template-columns:minmax(0,1fr) 280px}
   .d3m-d-fm-grade{grid-template-columns:minmax(0,1fr) 248px}
   .d3m-d-fm-dir .d3m-d-fm-ficha{padding:0 6px}
 }

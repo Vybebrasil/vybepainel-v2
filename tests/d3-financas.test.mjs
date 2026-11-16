@@ -156,13 +156,23 @@ test('Gastos fixos: o que não apareceu no extrato pede ação, editar no lugar 
 
 test('Projeção: caixa em linha com o ponto no hoje, a tabela à vista e o "E se…"', () => {
   const V = telas(), d = dados();
-  const html = V.telas.projecao({ d, filtro: {} });
-  comum(html, 'projecao', 4);
-  assert.match(html, /No ritmo atual, o caixa vai a <b>/);
+  let html = V.telas.projecao({ d, filtro: {} });
+  // Padrão V2 (prancha V2-M-Financas-Projecao): o molde; o laranja diz onde o caixa chega e guarda o cenário.
+  molde(html, 'projecao');
+  assert.match(html, /Vorcaro · (no ritmo de hoje|o caixa fica negativo)<\/span>[\s\S]*class="d3m-lar-num">[^<]+<\/b><span class="d3-acao-frase">reais em caixa em [a-zç]+<\/span><small>Entram R\$ [^<]+ e saem R\$ [^<]+ por mês\./);
+  assert.match(html, /data-fx="foco" data-valor="cenario">Montar um cenário<[\s\S]*data-fx="cenario-focar" title="Guardar o cenário">Guardar</);
+  assert.match(html, /data-fx="horizonte" data-valor="6" aria-pressed="true">6 meses/);
   assert.match(html, /<svg class="d3-graf fx-graf"[\s\S]*<polyline points="[^"]+" class="meta"\/>[\s\S]*<circle/, 'realizado cheio, como está tracejado, ponto no hoje');
+  assert.match(html, /class="d3f-eixo"><span>[a-z]{3}<small>/, 'o eixo com o saldo de cada mês');
+  assert.match(html, />Realizado<[\s\S]*Entrou[\s\S]*Saiu[\s\S]*Resultado[\s\S]*A conferir/);
   assert.match(html, /class="fx-tab fx-tab-proj"[\s\S]*Saldo · como está/); assert.doesNotMatch(html, /Ver a tabela mês a mês/, 'a tabela fica à vista');
-  assert.match(html, /E se…[\s\S]*data-fx="novo-mais"[\s\S]*data-fx="cenario-salvar"/);
-  assert.match(html, /Fluxo realizado[\s\S]*fx-fluxo-b[\s\S]*Resultado por grupo/);
+  assert.match(html, /data-fx-card="cenario"[\s\S]*E se…[\s\S]*data-fx="novo-mais"[\s\S]*data-fx="cenario-salvar"/);
+  // "Resultado por grupo" é a segunda aba do mesmo cartão.
+  assert.match(html, /data-fx="proj-aba" data-valor="grupos" aria-pressed="false">Resultado por grupo/); assert.doesNotMatch(html, /class="fx-tab fx-dre"/);
+  V._teste.ui.projecao.aba = 'grupos';
+  html = V.telas.projecao({ d, filtro: {} });
+  assert.match(html, /data-fx="proj-aba" data-valor="grupos" aria-pressed="true">Resultado por grupo[\s\S]*class="fx-tab fx-dre"/);
+  V._teste.ui.projecao.aba = 'caixa';
 });
 
 test('Vorcaro (prancha V2-M-Financeiro): três números, Pede decisão, o laranja com o lançamento do WhatsApp e as telas de Finanças no vidro', () => {

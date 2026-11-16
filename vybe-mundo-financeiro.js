@@ -53,7 +53,7 @@
     fixos: { mes: '', novo: false, editando: '' },
     vorcaro: { mao: false, frente: '', baixo: '' },
     vales: { aberta: '', chip: 'todos', ajuste: '', combinado: false },
-    projecao: { horizonte: 6, cenario: { cortes: {}, economias: {}, clientes_novos: [], clientes_perdidos: {}, gastos_novos: [], ajuste_entradas_pct: 0 }, nome: '', base: null },
+    projecao: { horizonte: 6, aba: 'caixa', cenario: { cortes: {}, economias: {}, clientes_novos: [], clientes_perdidos: {}, gastos_novos: [], ajuste_entradas_pct: 0 }, nome: '', base: null },
   };
   let anfitriao = {}; // { d, repintar, recarregar } da última pintura (janela do Comercial)
   const avisar = (texto, tipo = 'error') => { try { if (typeof showToast === 'function') return showToast(texto, tipo, 4500); } catch { /* sem aviso */ } console.warn('[financeiro]', texto); };
@@ -544,34 +544,43 @@
   function projecao(ctx) {
     anfitriao = ctx;
     const d = ctx.d, u = ui.projecao, base = d.projecao?.base;
-    const partes = [topo('Relatórios e projeção', '', `<span class="fv2-seg" role="group" aria-label="Horizonte">${[3, 6, 12].map((n) => `<button type="button" data-fx="horizonte" data-valor="${n}" aria-pressed="${u.horizonte === n}">${n} meses</button>`).join('')}</span>`)];
+    // Padrão V2 (prancha V2-M-Financas-Projecao): o molde. "Caixa mês a mês" (o gráfico, o realizado e o projetado) e
+    // "Resultado por grupo" são duas abas do mesmo cartão; o "E se…" fica ao lado e muda na hora; o laranja do Vorcaro diz
+    // onde o caixa chega no ritmo de hoje, com "Montar um cenário" e "Guardar o cenário".
+    const horizonte = M().seg([3, 6, 12].map((n) => [`${n} meses`, `data-fx="horizonte" data-valor="${n}"`, u.horizonte === n]), 'Horizonte');
     if (!base || !base.meses_usados?.length) {
-      partes.push(acao('Sem mês fechado e conferido para projetar.', 'Ir ao extrato', 'data-fx="ir-aba" data-valor="extrato"'));
-      return casca(partes, 'projecao');
+      return M().molde({ tela: 'fx-projecao', aba: 'projecao', titulo: 'Relatórios e projeção', d, repintar, sub: 'caixa realizado e projetado · sem mês fechado ainda', ferr: horizonte,
+        corpo: M().folha({ titulo: 'Caixa mês a mês', corpo: '<div class="d3m-d-fm-vazio"><p>Sem mês fechado e conferido para projetar.</p><button type="button" class="fv2-btn s d3f-escuro" data-fx="ir-aba" data-valor="extrato">Ir ao extrato</button></div>', rotulo: 'caixa' }) });
     }
     const cen = cenarioAtual(d);
     const hoje = X().projetar(base, {}, u.horizonte), com = X().projetar(base, cen, u.horizonte);
     const mexeu = Boolean(cen.cortes.length || cen.economias.length || cen.clientes_novos.length || cen.clientes_perdidos.length || cen.gastos_novos.length || cen.ajuste_entradas_pct);
     const diff = Math.round((com.saldo_final - hoje.saldo_final) * 100) / 100, ultimo = hoje.meses[hoje.meses.length - 1]?.mes || '';
-    const queda = Math.round((hoje.saldo_final - base.saldo_hoje) * 100) / 100;
     const entra = sumObj(base.entradas_por_categoria), sai = sumObj(base.saidas_por_categoria);
-    partes.push(acao(`No ritmo atual, o caixa vai a <b>${esc(mil(hoje.saldo_final))}</b> em ${esc(soMes(ultimo))}.${hoje.primeiro_mes_negativo ? ` Negativo em ${esc(soMes(hoje.primeiro_mes_negativo))}.` : ''}`,
-      'Guardar o cenário', 'data-fx="cenario-focar"'));
-    const usados = base.meses_usados.map((m) => mes3(m));
-    partes.push(nums([
-      { rotulo: 'Caixa hoje', valor: mil(base.saldo_hoje), tom: base.saldo_hoje < 0 ? 'r' : '', serie: (d.serie || []).filter((s) => s.saldo_final != null).slice(-6).map((s) => s.saldo_final),
-        sub: (d.serie || []).find((s) => s.saldo_final != null) ? `${mes3(d.serie.find((s) => s.saldo_final != null).mes)} ${mil(d.serie.find((s) => s.saldo_final != null).saldo_final)}` : '' },
-      { rotulo: `Em ${u.horizonte} meses · como está`, valor: mil(hoje.saldo_final), tom: hoje.saldo_final < 0 ? 'r' : queda < 0 ? 'a' : 'g', sub: `<span class="${queda < 0 ? 'd3f-a' : 'd3f-g'}">${queda < 0 ? '−' : '+'}${esc(mil(Math.abs(queda)).replace('-', ''))}</span>` },
-      { rotulo: `Em ${u.horizonte} meses · com o cenário`, valor: mil(com.saldo_final), tom: !mexeu ? 'q' : com.saldo_final < 0 ? 'r' : com.saldo_final >= hoje.saldo_final ? 'g' : 'a',
-        sub: mexeu ? `<span class="${diff >= 0 ? 'd3f-g' : 'd3f-a'}">${diff >= 0 ? '+' : '−'}${esc(mil(Math.abs(diff)))} · ${com.primeiro_mes_negativo ? `negativo em ${esc(mes3(com.primeiro_mes_negativo))}` : 'sem negativo'}</span>` : 'mexa no E se…' },
-      { rotulo: `Por mês · ${usados.length > 1 ? `${usados[0]} a ${usados[usados.length - 1]}` : usados[0]}`, valor: mil(entra - sai), tom: entra - sai < 0 ? 'r' : 'g',
-        sub: duas(entra, sai, `entra ${esc(mil(entra).replace('R$ ', ''))}`, `sai ${esc(mil(sai).replace('R$ ', ''))}`) },
-    ]));
+    const usados = base.meses_usados.map((m) => soMes(m));
     const leg = `<span class="d3f-leg"><i></i>realizado</span><span class="d3f-leg proj"><i></i>como está</span>${mexeu ? '<span class="d3f-leg cen"><i></i>com o cenário</span>' : ''}`;
-    partes.push(`<div class="fx-duas fx-proj"><div class="fx-col">${card('Caixa mês a mês', grafico(d, hoje, com, mexeu) + tabelaProj(hoje, com, mexeu), leg, 'fx-caixa')}
-      <div class="fx-par">${card('Fluxo realizado', fluxoRealizado(d), '<span class="d3f-leg"><i></i>entrou</span><span class="d3f-leg cinza"><i></i>saiu</span>')}${card('Resultado por grupo', dreHtml(d), 'em mil')}</div></div>
-      <div class="fx-col fx-lado">${cenarioHtml(d, base)}</div></div>`);
-    return casca(partes, 'projecao');
+    const abas = M().fichas([{ nome: 'Caixa mês a mês', on: u.aba !== 'grupos', attrs: 'data-fx="proj-aba" data-valor="caixa"' }, { nome: 'Resultado por grupo', on: u.aba === 'grupos', attrs: 'data-fx="proj-aba" data-valor="grupos"' }], 'Abas do relatório');
+    const corpoCaixa = `<div class="d3m-d-fm-painel d3m-d-fm-graf"><p class="d3m-d-fm-leg-graf">em mil reais ${leg}</p>${grafico(d, hoje, com, mexeu)}</div><p class="d3m-d-fm-rot">Realizado</p>${realizadoHtml(d)}<p class="d3m-d-fm-rot">Projetado</p><div class="d3m-d-fm-painel">${tabelaProj(hoje, com, mexeu)}</div>`;
+    const relatorio = M().folha({ titulo: '', dir: abas, rotulo: 'caixa', cls: 'fx-caixa',
+      corpo: u.aba === 'grupos' ? `<p class="d3m-d-fm-leg-graf">em mil reais, últimos 4 meses</p><div class="d3m-d-fm-painel">${dreHtml(d)}</div>` : corpoCaixa });
+    const ese = M().folha({ titulo: 'E se…', dir: 'muda na hora · <button type="button" class="d3m-d-fm-elo" data-fx="cenario-limpar">limpar</button>', rotulo: 'cenario', cls: 'd3m-d-fm-ese',
+      corpo: `<div class="d3m-d-fm-painel">${cenarioHtml(d, base)}</div>`,
+      olho: mexeu ? M().olho([[esc(mil(com.saldo_final)), `com o cenário em ${esc(mes3(ultimo))}`, com.saldo_final < 0 ? 'r' : com.saldo_final >= hoje.saldo_final ? 'g' : 'a'], [`${diff >= 0 ? '+' : '−'}${esc(mil(Math.abs(diff)))}`, com.primeiro_mes_negativo ? `negativo em ${esc(mes3(com.primeiro_mes_negativo))}` : 'sem negativo']]) : '' });
+    const laranja = M().laranja({ rot: hoje.primeiro_mes_negativo ? 'o caixa fica negativo' : 'no ritmo de hoje', num: mil(hoje.saldo_final).replace('R$ ', ''), frase: `reais em caixa em ${esc(soMes(ultimo))}`,
+      apoio: `Entram ${esc(mil(entra))} e saem ${esc(mil(sai))} por mês.${hoje.primeiro_mes_negativo ? ` Negativo em ${esc(soMes(hoje.primeiro_mes_negativo))}.` : ''}`,
+      bts: [['Montar um cenário', 'data-fx="foco" data-valor="cenario"'], ['Guardar', 'data-fx="cenario-focar" title="Guardar o cenário"']] });
+    return M().molde({ tela: 'fx-projecao', aba: 'projecao', titulo: 'Relatórios e projeção', d, repintar,
+      sub: `caixa realizado e projetado · média de ${usados.length > 1 ? `${esc(usados[0])} a ${esc(usados[usados.length - 1])}` : esc(usados[0])}`, ferr: horizonte, laranja,
+      corpo: `<div class="d3m-d-fm-par d3m-d-fm-proj">${relatorio}${ese}</div>` });
+  }
+  // O realizado mês a mês (prancha V2-M-Financas-Projecao): entrou, saiu, resultado e o que falta conferir, em mil.
+  function realizadoHtml(d) {
+    const s = (d.serie || []).slice(-4);
+    if (!s.length) return '<p class="d3m-d-fm-vazio">Sem extrato ainda.</p>';
+    const COLS = [[0, ''], ...s.map(() => [90, '', 'r'])];
+    const linha = (rot, f, cls = '') => M().tr(COLS, [rot, ...s.map((m) => { const v = f(m); return `<span class="${cls}${typeof v === 'number' && v < 0 ? ' r' : ''}">${typeof v === 'number' ? esc(emMil(v)) : esc(v)}</span>`; })]);
+    return `<div class="d3m-d-fm-th">${COLS.map(([w], i) => `<span class="d3m-d-fm-c${w ? ' r' : ' f'}"${w ? ` style="--w:${w}px"` : ''}>${i ? esc(mes3(s[i - 1].mes)) : ''}</span>`).join('')}</div>`
+      + linha('Entrou', (m) => m.entradas) + linha('Saiu', (m) => m.saidas + m.cartao) + linha('Resultado', (m) => m.resultado, 'b') + linha('A conferir', (m) => String(m.a_revisar || 0), 'q');
   }
   const sumObj = (o) => Object.values(o || {}).reduce((s, v) => s + (Number(v) || 0), 0);
   const emMil = (v) => { const n = Number(v) || 0; return `${n < 0 ? '−' : ''}${(Math.abs(n) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`; };
@@ -598,7 +607,7 @@
       ${projHoje.length > 1 ? `<polyline points="${fmt(projHoje)}" class="meta"/>` : ''}${mexeu && projCom.length > 1 ? `<polyline points="${fmt(projCom)}" class="com"/>` : ''}
       ${ptsReal.length > 1 ? `<polyline points="${fmt(ptsReal)}"/>` : ''}${fim ? `<circle cx="${fim[0].toFixed(1)}" cy="${fim[1].toFixed(1)}" r="5"/>` : ''}
     </svg>${mexeu ? rot(com.saldo_final, 'cen', y(com.saldo_final)) : ''}${rot(hoje.saldo_final, 'proj', y(hoje.saldo_final))}${fim ? `<span class="d3f-rot hoje" style="top:${(fim[1] / H * 100).toFixed(1)}%;left:${(fim[0] / W * 100).toFixed(1)}%">hoje · ${esc(mil(real[nReal - 1].saldo))}</span>` : ''}</div>
-      <div class="d3f-eixo">${pontos.map((p, i) => (i === nReal - 1 ? `<b>${esc(mes3(p.mes))}</b>` : `<span>${esc(mes3(p.mes))}</span>`)).join('')}</div>`;
+      <div class="d3f-eixo">${pontos.map((p, i) => `<${i === nReal - 1 ? 'b' : 'span'}${i >= nReal ? ' class="proj"' : ''}>${esc(mes3(p.mes))}<small>${esc(emMil(mexeu && i >= nReal ? p.com : p.saldo))}</small></${i === nReal - 1 ? 'b' : 'span'}>`).join('')}</div>`;
   }
   function tabelaProj(hoje, com, mexeu) {
     const m = hoje.meses, c = (v) => (v < 0 ? ' class="fx-neg"' : '');
@@ -1193,6 +1202,8 @@
       }
       // Projeção
       case 'horizonte': ui.projecao.horizonte = Number(valor) || 6; return repintar();
+      // Projeção V2: Caixa mês a mês e Resultado por grupo são duas abas do mesmo cartão.
+      case 'proj-aba': ui.projecao.aba = valor === 'grupos' ? 'grupos' : 'caixa'; return repintar();
       case 'novo-mais': ui.projecao.cenario.clientes_novos.push({ quantos: 1, valor: '', a_partir: 1 }); return repintar();
       case 'novo-tirar': ui.projecao.cenario.clientes_novos.splice(Number(valor), 1); return repintar();
       case 'gasto-mais': ui.projecao.cenario.gastos_novos.push({ nome: '', valor: '', a_partir: 1 }); return repintar();
