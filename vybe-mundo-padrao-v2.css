@@ -14045,6 +14045,85 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
   .d3m-c-corpo > .d3m-lado{overflow:visible}
 }
 
+/* ===== padrao-v2/zm-c-comercial.css ===== */
+/* DIREÇÃO V2 · FORNECEDORES (prancha V2-M-Fornecedores, 16/11/2026) e as peças que Fornecedores e Creators dividem (.m2-*).
+   A janela (#vv-comercial) ganha .d3m-c-janela (zm-c-base.css) quando uma destas abas está nela, no computador. A folha
+   traz uma linha por fornecedor; a consulta, o cartão laranja do Nestor, o mês e os atalhos. Só tokens --d3-*. */
+.m2-aviso{flex:none;margin:-8px 0;padding:0;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-pronto-claro)}
+.m2-aviso.erro{color:var(--d3-perigo-vidro)}
+.m2-laranja{flex:none;min-height:244px}
+.m2-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.m2-tile{display:flex;flex-direction:column;gap:3px;min-width:0;padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.m2-tile > b{font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.m2-tile > span{font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado);white-space:nowrap}
+.m2-nota{margin:0;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.m2-mais > svg{transition:transform .15s}
+.m2-mais[aria-expanded="true"] > svg{transform:rotate(90deg)}
+.m2-mais-l{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.m2-mais-l > .d3m-vlin{height:30px}
+.m2-mais-l > .d3m-vlin[aria-checked="true"]{background:var(--d3-folha);color:var(--d3-tinta)}
+.m2-mais-l > .d3m-vlin > .d3m-vn{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
+/* O pé "De olho" da folha: os números que filtram a lista. */
+.m2-pe{flex:none;display:flex;align-items:center;min-height:44px;margin-top:auto;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+.m2-pe-rot{margin-right:14px}
+.m2-pe > :is(span,button):not(.m2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
+.m2-pe > .m2-pe-rot + :is(span,button){padding-left:0;border-left:0}
+.m2-pe > button{cursor:pointer}
+.m2-pe > button:hover,.m2-pe > button[aria-checked="true"]{color:var(--d3-tinta)}
+.m2-pe > button[aria-checked="true"]{text-decoration:underline;text-underline-offset:3px}
+.m2-pe > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.m2-pe b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.m2-pe .g b{color:var(--d3-pronto)}
+.m2-pe .a b{color:var(--d3-ambar)}
+/* O campo que completa o cadastro no lugar (BV ou contato) e os botões da linha aberta. */
+.m2-campo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+.m2-campo > label{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.m2-campo > label > b{font-weight:600}
+:is(#vv-comercial,#vv-whatsapp).d3m-c-janela .m2-campo > input{flex:0 1 240px;width:240px;min-width:0;height:28px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+:is(#vv-comercial,#vv-whatsapp).d3m-c-janela .m2-campo > input.curto{flex-basis:96px;width:96px}
+:is(#vv-comercial,#vv-whatsapp).d3m-c-janela .m2-campo > input:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.m2-acoes{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.d3m-c-btn.c.ruim{color:var(--d3-perigo)}
+.d3m-c-btn.c.k[data-estado="indo"]{opacity:.6;cursor:progress}
+.d3m-c-btn.c.k[data-estado="feito"]{background:var(--d3-pronto)}
+/* FORNECEDORES: a folha das linhas. */
+.fo2-folha{min-height:0}
+.fo2-cab,.fo2-lin{display:grid;grid-template-columns:60px minmax(0,1fr) minmax(0,160px) 84px minmax(0,150px) 104px 104px;align-items:center;gap:0 10px;padding:0 16px;box-sizing:border-box}
+.fo2-cab{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.fo2-lista{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.fo2-abre{flex:none;border-top:1px solid var(--d3-divisa)}
+.fo2-lin{height:52px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.fo2-abre:hover > .fo2-lin,.fo2-abre[aria-expanded="true"] > .fo2-lin{background:var(--d3-veu)}
+.fo2-g{font-weight:500;color:var(--d3-rotulo);white-space:nowrap}
+.fo2-g.r{color:var(--d3-perigo)}
+.fo2-nome{min-width:0;font-size:var(--d3-fs-texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fo2-nome > b{font-weight:600}
+.fo2-nome > span{color:var(--d3-rotulo)}
+.fo2-c{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.fo2-c.m{color:var(--d3-rotulo)}
+.fo2-c.a{font-weight:500;color:var(--d3-ambar)}
+.fo2-c > b.r{font-weight:500;color:var(--d3-perigo)}
+.fo2-ac{display:flex;justify-content:flex-end;min-width:0}
+.fo2-det{display:none;flex-direction:column;gap:8px;padding:6px 16px 14px 86px;background:var(--d3-veu);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.fo2-abre[aria-expanded="true"] > .fo2-det{display:flex}
+.fo2-det > p{margin:0}
+.fo2-det > p > b{font-weight:600}
+.fo2 .d3v-estado{flex:1 1 auto}
+/* Janela baixa (1366 x 768): o laranja e a consulta encolhem para nada rolar. */
+@media (max-height:820px){.m2-laranja{min-height:0}.m2-laranja .d3m-lar-num{font-size:44px}.m2-tile{padding:6px 10px}.fo2-lin{height:46px}}
+@media (max-width:1400px){.fo2-cab,.fo2-lin{grid-template-columns:52px minmax(0,1fr) minmax(0,140px) 64px minmax(0,112px) 92px 100px;gap:0 8px}}
+@media (max-width:1100px){
+  .fo2-folha{height:560px}
+  .fo2-cab,.fo2-lin{grid-template-columns:52px minmax(0,1fr) minmax(0,130px) 64px 100px}
+  .fo2-cab > :is(:nth-child(5),:nth-child(6)),.fo2-lin > :is(:nth-child(5),:nth-child(6)){display:none}
+}
+/* Contraste: o âmbar escurece sobre a linha realçada e o botão vazado do laranja fica direto no laranja. */
+.fo2-abre:hover .fo2-c.a,.fo2-abre[aria-expanded="true"] .fo2-c.a{color:var(--d3-ajuste)}
+.m2-laranja .d3m-btn.l.s{background:none}
+.m2-laranja .d3m-btn.l.s:hover{background:var(--d3-fume-veu)}
+/* A folha do formulário (a de sempre) abre por cima da janela de vidro: a letra volta a ser a tinta. */
+#vv-comercial.d3m-c-janela :is(.vc-folha,.vc-abas){color:var(--d3-tinta)}
+
 /* ===== padrao-v2/zm-c-impressoes.css ===== */
 /* DIREÇÃO V2 · IMPRESSÕES (pranchas V2-M-Impressoes, V2-M-Impressoes-Etapas e V2-M-Impressoes-Lista, 16/11/2026). A janela
    (#vv-impressoes) ganha .d3m-c-janela (zm-c-base.css). Linhas: o funil das 7 etapas no vidro, a folha com uma linha por
