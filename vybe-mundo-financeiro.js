@@ -173,7 +173,7 @@
     // Quadro D3-Extrato: o título, as fichas, a Categoria e a busca numa linha só, no alto do cartão.
     const lancs = `<section class="fv2-card d3f-tabela fx-lancs" data-fx-card="lancamentos"><div class="fv2-card-topo fx-lancs-topo"><h2>Lançamentos</h2>${filtrosHtml}</div>${corpo}</section>`;
     partes.push(`<div class="fx-duas fx-duas-extrato"><div class="fx-col">${lancs}</div>
-      <div class="fx-col fx-lado">${r ? card('Para onde foi', porCategoriaHtml(d, r), 'de verdade') : ''}${regrasHtml(d)}${importacoesHtml(d)}</div></div>`);
+      <div class="fx-col fx-lado">${r ? card('Para onde foi', porCategoriaHtml(d, r), 'de verdade') : ''}${regrasHtml(d)}${importacoesHtml(d)}${lixeiraHtml(d)}</div></div>`);
     return casca(partes, 'extrato');
   }
   function linhaExtrato(d, t) {
@@ -225,6 +225,7 @@
         <span class="fv2-seg" role="group" aria-label="Situação">${['pago', 'nao_pago', 'em_aberto'].map((s) => `<button type="button" data-fx="status" data-valor="${s}" data-id="${esc(t.id)}" aria-pressed="${t.real.status === s}">${STATUS_NOME[s]}</button>`).join('')}</span>
         ${partes ? `<button type="button" class="fv2-btn s" data-fx="parte-mais" data-valor="${esc(t.id)}">+ parte</button>${falta > 0 ? `<button type="button" class="fv2-btn s" data-fx="parte-resto" data-valor="${esc(t.id)}">Resto: ${esc(rs(falta))}</button>` : ''}<button type="button" class="fv2-btn s" data-fx="parte-desfazer" data-valor="${esc(t.id)}">Não dividir</button>`
           : `<button type="button" class="fv2-btn s" data-fx="dividir" data-valor="${esc(t.id)}">${entrada ? 'Dividir entre clientes' : 'Dividir em partes'}</button>`}
+        <button type="button" class="fv2-btn s fv2-perigo" data-fx="lanc-apagar" data-valor="${esc(t.id)}">Apagar</button>
         <button type="button" class="fv2-btn s" data-fx="regra-de" data-valor="${esc(t.id)}" title="Sempre que aparecer${contra ? ` “${esc(contra.split(' ').slice(0, 2).join(' '))}”` : ' este histórico'}, fazer assim">Sempre assim</button>
         <button type="button" class="fv2-btn d3f-escuro v2-estado" data-fx="salvar-lanc" data-valor="${esc(t.id)}">Salvar e conferir</button></div>
       ${ui.extrato.regra === t.id ? regraForm(d, t) : ''}
@@ -249,6 +250,12 @@
     const corpo = `${minhas.length ? minhas.map((r) => `<div class="fx-mini"><span><b>“${esc(r.quando?.contem)}”</b> → ${esc(nomeCat(d, r.categoria))}${r.pessoa_nome ? ` · para ${esc(r.pessoa_nome)}` : ''}${r.quem ? ` · ${esc(r.quem)}` : ''}${r.cliente_nome ? ` · ${esc(r.cliente_nome)}` : ''}${r.fixo_id ? ` · fixo ${esc((d.fixos || []).find((f) => f.id === r.fixo_id)?.nome || '')}` : ''}</span><button type="button" class="fv2-link" data-fx="regra-tirar" data-valor="${esc(r.id)}">tirar</button></div>`).join('') : '<p class="fv2-sub">Nenhuma regra sua ainda.</p>'}
       <details class="fx-det"><summary>Prontas · ${n0(prontas.length)}</summary>${prontas.map((r) => `<p class="fv2-sub">“${esc(r.quando.contem || r.quando.comeca)}” → ${esc(nomeCat(d, r.categoria))}${r.revisar ? ' (você confere)' : ''}</p>`).join('')}</details>`;
     return card('Regras', corpo);
+  }
+  // Apagados (15/11/2026): ficam aqui para voltar com um toque; o do banco não volta sozinho ao reimportar.
+  function lixeiraHtml(d) {
+    const l = d.apagados || [];
+    if (!l.length) return '';
+    return card('Apagados', `<details class="fx-det"><summary>${quantos(d.total_apagados || l.length, 'lançamento apagado', 'lançamentos apagados')}</summary>${l.map((a) => `<div class="fx-mini"><span>${esc(dataCurta(a.data))} · ${esc(a.historico)}${a.apagado_por ? ` · apagou ${esc(a.apagado_por)}` : ''}</span><span><b>${esc(comSinal(a.valor))}</b> <button type="button" class="fv2-btn s v2-estado" data-fx="lanc-restaurar" data-valor="${esc(a.id)}">Restaurar</button></span></div>`).join('')}</details>`);
   }
   function importacoesHtml(d) {
     const l = (d.importacoes || []).slice(-4).reverse();
@@ -730,9 +737,13 @@
         ${campo('Para onde foi', `<select name="categoria" class="fx-sel">${opcoesCat(d, 'a_classificar')}</select>`)}
         ${campo('Cliente', `<select name="cliente_id" class="fx-sel">${opcoesCliente(d, '')}</select>`)}
         ${campo('Quem', '<input name="quem" class="fx-in">')}
-        ${campo('Situação', `<select name="status" class="fx-sel">${['pago', 'nao_pago', 'em_aberto'].map((s) => `<option value="${s}">${STATUS_NOME[s]}</option>`).join('')}</select>`)}
-        ${campo('O que foi', '<input name="texto" class="fx-in">', 'largo')}
-      </div><div class="fx-linha-acoes fx-fim"><button type="button" class="fv2-btn s" data-fx="mao-abrir">Cancelar</button><button type="button" class="fv2-btn s d3f-escuro v2-estado" data-fx="mao-salvar">Lançar</button></div>`, '', 'fx-form-caixa');
+        ${campo('Situação', `<select name="status" class="fx-sel">${['pago', 'nao_pago', 'em_aberto'].map((s) => `<option value="${s}"${(ui.vorcaro.status || 'pago') === s ? ' selected' : ''}>${STATUS_NOME[s]}</option>`).join('')}</select>`)}
+        ${campo('O que foi', '<input name="texto" class="fx-in" placeholder="aluguel, Adobe, internet…">', 'largo')}
+        ${campo('Repete todo mês?', `<select name="repete" class="fx-sel" data-fx-campo="mao-repete"><option value="">Não, só esta vez</option><option value="sim">Sim, é conta fixa</option></select>`, 'fx-so-saida')}
+        <span class="fx-so-fixo" hidden>${campo('Vence todo dia', `<input name="fixo_dia" type="number" min="1" max="31" step="1" inputmode="numeric" class="fx-in" placeholder="o do dia acima">`)}</span>
+        <span class="fx-so-fixo" hidden>${campo('Como paga', `<select name="fixo_forma" class="fx-sel">${Object.entries(FORMA_NOME).map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>`)}</span>
+      </div>
+      <p class="fv2-sub fx-so-fixo" hidden>Vira gasto fixo: aparece todo mês em Contas a pagar e o Vorcaro avisa se não sair.</p><div class="fx-linha-acoes fx-fim"><button type="button" class="fv2-btn s" data-fx="mao-abrir">Cancelar</button><button type="button" class="fv2-btn s d3f-escuro v2-estado" data-fx="mao-salvar">Lançar</button></div>`, '', 'fx-form-caixa');
   }
 
   // =====================================================================================================
@@ -888,6 +899,28 @@
         return repintar();
       }
       case 'parte-desfazer': delete ue.partes[valor]; return repintar();
+      case 'lanc-apagar': {
+        const tr = (d.transacoes || []).find((x) => x.id === valor); if (!tr) return;
+        const doBanco = tr.banco.saldo != null;
+        if (doBanco && typeof perguntarNoPainel === 'function') {
+          const ok = await perguntarNoPainel({ titulo: 'Apagar este lançamento do banco?', perigo: true, confirmar: 'Apagar',
+            texto: `${dataCurta(tr.banco.data)} · ${tr.banco.historico} · ${comSinal(tr.banco.valor)}. Ele sai das contas e não volta ao reimportar o extrato. Fica em "Apagados", no Extrato, de onde volta com um toque.` });
+          if (!ok) return;
+        }
+        indo(b);
+        const r = await gravar({ acao: 'apagar', id: valor });
+        if (r) {
+          if (ue.aberta === valor) ue.aberta = '';
+          repintar();
+          if (typeof mostrarDesfazer === 'function') mostrarDesfazer('Lançamento apagado.', () => gravar({ acao: 'restaurar', id: valor }, 'Lançamento de volta.'));
+        } else voltou(b);
+        return;
+      }
+      case 'lanc-restaurar': {
+        indo(b);
+        if (!(await gravar({ acao: 'restaurar', id: valor }, 'Lançamento de volta.'))) voltou(b);
+        return;
+      }
       case 'salvar-lanc': {
         const ed = b.closest('[data-fx-editor]'); if (!ed) return;
         lerPartes(valor);
@@ -1037,8 +1070,11 @@
         const f = formDe(b, 'mao'); if (!f) return;
         const v = valoresDe(f);
         indo(b);
-        const r = await gravar({ acao: 'lancar_mao', lancamento: { ...v, valor: numero(v.valor), cliente_nome: nomeCliente(d, v.cliente_id) } }, 'Lançado.');
-        if (r) { ui.vorcaro.mao = false; repintar(); } else voltou(b);
+        const repete = v.repete === 'sim' && v.tipo === 'saida';
+        const fixo = repete ? { repete: true, nome: v.texto || v.quem, dia: v.fixo_dia ? Number(v.fixo_dia) : undefined, forma: v.fixo_forma } : undefined;
+        for (const k of ['repete', 'fixo_dia', 'fixo_forma']) delete v[k];
+        const r = await gravar({ acao: 'lancar_mao', lancamento: { ...v, valor: numero(v.valor), cliente_nome: nomeCliente(d, v.cliente_id) }, fixo }, repete ? 'Lançado e cadastrado como conta fixa.' : 'Lançado.');
+        if (r) { ui.vorcaro.mao = false; ui.vorcaro.status = ''; repintar(); } else voltou(b);
         return;
       }
       case 'proposta-frente': ui.vorcaro.frente = valor; return repintar();
@@ -1061,9 +1097,18 @@
     const i = doMes.findIndex((t) => t.id === depoisDe);
     return doMes.slice(i + 1).find((t) => !t.real.conferido)?.id || '';
   }
+  // Lançar à mão: "Repete todo mês?" só para saída; com "sim", aparecem o dia do vencimento e a forma de pagar.
+  function mostrarFixoMao(form) {
+    if (!form) return;
+    const saida = form.querySelector('select[name="tipo"]')?.value !== 'entrada';
+    const sim = saida && form.querySelector('[name="repete"]')?.value === 'sim';
+    for (const el of form.querySelectorAll('.fx-so-saida')) el.hidden = !saida;
+    for (const el of form.closest('.fx-form-caixa, .fv2-card')?.querySelectorAll('.fx-so-fixo') || []) el.hidden = !sim;
+  }
   function aoMudar(ev) {
     const t = ev.target;
     if (t.matches?.('[data-fx-arquivo]')) { const f = t.files?.[0]; if (f) previa(f); t.value = ''; return; }
+    if (t.matches?.('[data-fx-form="mao"] select[name="tipo"], [data-fx-campo="mao-repete"]')) { mostrarFixoMao(t.closest('[data-fx-form="mao"]')); return; }
     const c = t.dataset?.fxCampo; if (!c || !t.closest('.fx')) return;
     const cen = ui.projecao.cenario, i = Number(t.dataset.valor);
     switch (c) {
@@ -1088,5 +1133,7 @@
   }
 
   const telas = Object.freeze({ vorcaro, extrato, clientes_mes: clientesMes, cartao, fixos, projecao, vales });
-  window.VybeFinanceiro = Object.freeze({ telas, abrirPessoa, _teste: { cartaoPessoa, ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise } });
+  // Contas a pagar › "Lançar à mão" abre o formulário já aberto, como saída ainda não paga.
+  function abrirLancarMao({ status = '' } = {}) { ui.vorcaro.mao = true; ui.vorcaro.status = status; }
+  window.VybeFinanceiro = Object.freeze({ telas, abrirPessoa, abrirLancarMao, _teste: { cartaoPessoa, ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise } });
 })();

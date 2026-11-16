@@ -65,7 +65,7 @@ test('Recebimentos: mês vazio fica uma linha com o botão de lançar; lançamen
   const d = { ...RECEBIMENTOS(), fonte: 'Extrato do banco' }; d.recebiveis[0].id = 'ext:77';
   const html = F.telas.recebimentos({ d, filtro: {}, atrasadas: [d.recebiveis[0]] });
   assert.doesNotMatch(html, /data-fv="receber" data-valor="ext:77"/); assert.match(html, /pelo extrato/); assert.match(html, /Conferir no Extrato/);
-  assert.match(html, /data-fv="ir" data-valor="vorcaro">[\s\S]*Lançar à mão/); assert.match(html, /fv2-pill b">Extrato/); assert.doesNotMatch(html, /Vybe Finanças/);
+  assert.match(html, /data-fv="ir" data-valor="vorcaro" data-mao="pago">[\s\S]*Lançar à mão/); assert.match(html, /fv2-pill b">Extrato/); assert.doesNotMatch(html, /Vybe Finanças/);
 });
 
 const CONTAS = () => {
