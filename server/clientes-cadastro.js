@@ -56,13 +56,6 @@ export const CAMPOS_CADASTRO = Object.freeze([
   { chave: 'bio_instagram', rotulo: 'Bio do Instagram', secao: 'canais', tipo: 'longo', max: 300, largo: true,
     dica: 'Como está no perfil. Aparece no Feed do Painel de trabalho, em cima da grade.' },
   { chave: 'site', rotulo: 'Site', secao: 'canais', tipo: 'url' },
-  // O ritmo do feed (Paulo, 15/11/2026: "tem cliente que tem 5, 6"): quantos posts por semana o Feed do Painel cobra
-  // (os X vermelhos) e em que dias. "Seguir o calendário" não cobra nada: mostra só o que está cadastrado.
-  { chave: 'feed_por_semana', rotulo: 'Posts no feed por semana', secao: 'canais', tipo: 'opcao',
-    opcoes: ['Seguir o calendário', '1', '2', '3', '4', '5', '6', '7'],
-    dica: 'O Feed marca com X os dias que faltam. Vazio vale 3 por semana.' },
-  { chave: 'feed_dias', rotulo: 'Dias do feed', secao: 'canais', tipo: 'dias',
-    dica: 'Dias em que o post costuma sair, como seg, qua, sex. Vazio: seg, qua, sex, ter, qui, sáb, dom, nessa ordem.' },
   { chave: 'grupo_whatsapp', rotulo: 'Grupo do WhatsApp com o cliente', secao: 'canais', tipo: 'texto', max: 160, largo: true,
     dica: 'O nome do grupo como aparece no WhatsApp. É por ele que o VYBES reconhece o cliente.', obrigatorio: true },
   { chave: 'logo_url', rotulo: 'Logo (link no Drive)', secao: 'canais', tipo: 'url', largo: true },
@@ -129,14 +122,6 @@ export function limparCampo(campo, bruto) {
     case 'opcao':
       if (!campo.opcoes.includes(v)) throw invalido(`${campo.rotulo}: escolha uma das opções.`);
       return v;
-    case 'dias': {
-      // "Seg, qua e sex" / "segunda,quarta" → "seg,qua,sex", na ordem da semana.
-      const ordem = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
-      const achados = v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z]+/).filter(Boolean)
-        .filter((p) => p !== 'e').map((p) => p.slice(0, 3));
-      if (!achados.length || achados.some((d) => !ordem.includes(d))) throw invalido(`${campo.rotulo}: use seg, ter, qua, qui, sex, sab ou dom.`);
-      return ordem.filter((d) => achados.includes(d)).join(',');
-    }
     default:
       return v.slice(0, campo.max || 200);
   }
