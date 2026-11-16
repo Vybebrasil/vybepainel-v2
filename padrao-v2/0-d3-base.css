@@ -35,6 +35,71 @@
      texto: texto e botão · destaque: nome na linha, frase do bloco de ação · titulo: título de cartão e janela ·
      numero: título de tela e número de cartão. Tamanho de vitrine (34, 36, 52) e clamp() ficam onde estão. */
   --d3-fs-mini:11px; --d3-fs-apoio:12px; --d3-fs-texto:13px; --d3-fs-destaque:15px; --d3-fs-titulo:18px; --d3-fs-numero:28px;
+  /* Temas (Paulo, 16/11/2026: "criar um tema white e um dark"). Tokens que só existem por causa dos três temas, aqui com o
+     valor do Fumê: contra = a letra sobre um preenchimento de tinta (botão cheio da folha); fume-contra = a letra sobre um
+     preenchimento de fume-texto (o escolhido no vidro: o ativo do menu, a aba marcada); fume-texto2 e fume-meta = o segundo
+     tom e o apagado de enfeite no vidro; acao-texto-fixa e agente-fixo = as cores que ficam sobre branco fixo (o botão
+     branco dentro do laranja), iguais em todo tema; tema-fundo = a cor chapada do ambiente (atrás do degradê); ambiente-veu = o véu que entra
+     entre o ambiente e a tela quando ela fica direto nele, sem a janela de vidro (o Hoje no celular). */
+  --d3-contra:#FFFFFF; --d3-fume-contra:#1F1D1A; --d3-fume-texto2:rgba(255,255,255,.86); --d3-fume-meta:rgba(255,255,255,.4);
+  --d3-acao-texto-fixa:#A83D08; --d3-agente-fixo:#6E56CF; --d3-tema-fundo:#6B5F55; --d3-ambiente-veu:rgba(18,15,13,.44);
+}
+
+/* ===================================================================================================================
+   OS TRÊS TEMAS. Mesmas peças, mesma estrutura; só os valores mudam. html[data-d3-tema] diz qual vale (vybe-tema.js);
+   o atributo em qualquer outro elemento aplica o tema só ali dentro (as prévias da tela de escolha). Sem atributo vale o
+   :root acima, que é o Fumê.
+   Camadas: ambiente (a luz atrás de tudo) · fume (o vidro do HUD e das janelas V2, com a letra fume-texto) · folha (o
+   cartão por cima, com tinta e rotulo). As cores de função têm duas versões: a da folha (perigo, pronto, ajuste, info,
+   acao-texto, ambar, agente-texto) e a do vidro (as terminadas em -claro e a perigo-vidro). Todas dão 4,5:1 ou mais sobre
+   a camada delas em cada tema (conferido em tests/temas-tutorial.test.mjs).
+   Tela nova: use só estes tokens, nunca cor escrita, e ela já sai nos três temas.
+   =================================================================================================================== */
+[data-d3-tema="fume"]{
+  --d3-ambiente:radial-gradient(48% 58% at 10% 12%,#CFA06C 0%,rgba(207,160,108,0) 70%),radial-gradient(46% 56% at 92% 18%,#9FB1BA 0%,rgba(159,177,186,0) 70%),radial-gradient(60% 55% at 72% 104%,#94623C 0%,rgba(148,98,60,0) 70%),radial-gradient(42% 48% at 22% 100%,#46545B 0%,rgba(70,84,91,0) 70%),#6B5F55;
+  --d3-tema-fundo:#6B5F55; --d3-ambiente-veu:rgba(18,15,13,.44);
+  --d3-fume:rgba(34,28,23,.66); --d3-fume-forte:rgba(30,25,21,.82); --d3-fume-borda:rgba(255,255,255,.2); --d3-fume-veu:rgba(255,255,255,.1); --d3-fume-veu-forte:rgba(255,255,255,.18);
+  --d3-fume-texto:#FFFFFF; --d3-fume-apagado:rgba(255,255,255,.84); --d3-fume-texto2:rgba(255,255,255,.86); --d3-fume-meta:rgba(255,255,255,.4); --d3-fume-escuro:rgba(18,15,13,.5); --d3-fume-painel:#2B2520; --d3-fume-contra:#1F1D1A;
+  --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
+  --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
+  --d3-folha:rgba(255,255,255,.9); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.55); --d3-cartao:#FFFFFF; --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
+  --d3-tinta:#1F1D1A; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5; --d3-rotulo:rgba(31,29,26,.68); --d3-divisa:rgba(31,29,26,.07); --d3-veu:rgba(31,29,26,.07); --d3-veu-forte:rgba(31,29,26,.12); --d3-contra:#FFFFFF;
+  --d3-acao-texto:#A83D08; --d3-perigo:#B42318; --d3-ajuste:#7A4A00; --d3-pronto:#11613A; --d3-info:#1E4A9A; --d3-ambar:#8F5600; --d3-agente-texto:#4B36A8;
+  --d3-perigo-veu:#FDECEE; --d3-ajuste-veu:#FFF4D6; --d3-pronto-veu:#E8F5EC; --d3-info-veu:#E7EEFB; --d3-agente-veu:#EEEAFB;
+}
+/* CLARO: o ambiente é uma luz de manhã, o vidro é branco translúcido com letra escura e a folha é branca. O escolhido no
+   vidro inverte (preenchimento escuro, letra branca). As cores de função do vidro são as mesmas da folha. */
+[data-d3-tema="claro"]{
+  --d3-ambiente:radial-gradient(48% 58% at 10% 12%,#F6E4CC 0%,rgba(246,228,204,0) 70%),radial-gradient(46% 56% at 92% 18%,#D9E3E8 0%,rgba(217,227,232,0) 70%),radial-gradient(60% 55% at 72% 104%,#F0D6BE 0%,rgba(240,214,190,0) 70%),radial-gradient(42% 48% at 22% 100%,#DDE4E2 0%,rgba(221,228,226,0) 70%),#ECE8E1;
+  --d3-tema-fundo:#ECE8E1; --d3-ambiente-veu:rgba(255,255,255,0);
+  --d3-fume:rgba(255,255,255,.62); --d3-fume-forte:rgba(253,252,250,.96); --d3-fume-borda:rgba(31,29,26,.1); --d3-fume-veu:rgba(31,29,26,.06); --d3-fume-veu-forte:rgba(31,29,26,.11);
+  --d3-fume-texto:#1F1D1A; --d3-fume-apagado:rgba(31,29,26,.74); --d3-fume-texto2:rgba(31,29,26,.84); --d3-fume-meta:rgba(31,29,26,.36); --d3-fume-escuro:rgba(255,255,255,.55); --d3-fume-painel:#FBFAF7; --d3-fume-contra:#FFFFFF;
+  --d3-acao-claro:#A83D08; --d3-perigo-claro:#B42318; --d3-pronto-claro:#11613A; --d3-ajuste-claro:#7A4A00; --d3-info-claro:#1E4A9A; --d3-agente-claro:#4B36A8; --d3-perigo-vidro:#B42318;
+  --d3-mod-operacao-claro:#A83D08; --d3-mod-negocio-claro:#6D28D9; --d3-mod-time-claro:#0B6478; --d3-mod-vybe-claro:#116B33;
+  --d3-folha:rgba(255,255,255,.94); --d3-folha-sombra:0 14px 30px -22px rgba(88,66,44,.4); --d3-cartao:#FFFFFF; --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
+  --d3-tinta:#1F1D1A; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5; --d3-rotulo:rgba(31,29,26,.68); --d3-divisa:rgba(31,29,26,.07); --d3-veu:rgba(31,29,26,.07); --d3-veu-forte:rgba(31,29,26,.12); --d3-contra:#FFFFFF;
+  --d3-acao-texto:#A83D08; --d3-perigo:#B42318; --d3-ajuste:#7A4A00; --d3-pronto:#11613A; --d3-info:#1E4A9A; --d3-ambar:#8F5600; --d3-agente-texto:#4B36A8;
+  --d3-perigo-veu:#FDECEE; --d3-ajuste-veu:#FFF4D6; --d3-pronto-veu:#E8F5EC; --d3-info-veu:#E7EEFB; --d3-agente-veu:#EEEAFB;
+}
+/* ESCURO: o ambiente quase preto, com um resto de luz quente; o vidro é grafite com letra branca (como no Fumê). Os
+   tokens da folha (regra seguinte) só escurecem dentro das telas que já estão no padrão V2: as telas antigas ainda têm
+   cor escrita para fundo claro e continuam em folha clara, legíveis, até serem remontadas. */
+[data-d3-tema="escuro"]{
+  --d3-ambiente:radial-gradient(48% 58% at 10% 12%,#2E241B 0%,rgba(46,36,27,0) 70%),radial-gradient(46% 56% at 92% 18%,#1C2529 0%,rgba(28,37,41,0) 70%),radial-gradient(60% 55% at 72% 104%,#2C1D13 0%,rgba(44,29,19,0) 70%),radial-gradient(42% 48% at 22% 100%,#161B1D 0%,rgba(22,27,29,0) 70%),#121110;
+  --d3-tema-fundo:#121110; --d3-ambiente-veu:rgba(0,0,0,0);
+  --d3-fume:rgba(30,28,27,.74); --d3-fume-forte:rgba(24,23,22,.94); --d3-fume-borda:rgba(255,255,255,.12); --d3-fume-veu:rgba(255,255,255,.08); --d3-fume-veu-forte:rgba(255,255,255,.15);
+  --d3-fume-texto:#FFFFFF; --d3-fume-apagado:rgba(255,255,255,.8); --d3-fume-texto2:rgba(255,255,255,.86); --d3-fume-meta:rgba(255,255,255,.4); --d3-fume-escuro:rgba(0,0,0,.36); --d3-fume-painel:#1F1E1C; --d3-fume-contra:#1F1D1A;
+  --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
+  --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
+}
+/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), .pv2-casa (Produção) e qualquer raiz
+   com a classe d3-tema. Tela remontada no padrão V2 entra aqui (ou leva a classe) e passa a escurecer junto.
+   .d3-previa é a prévia da tela de escolha: leva o tema no próprio elemento e não herda o da página. */
+[data-d3-tema="escuro"] :is(#vv-hoje,.pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
+  --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
+  --d3-tinta:#F4F2ED; --d3-texto2:#D8D4CD; --d3-apagado:#ABA69E; --d3-meta:#75706A; --d3-rotulo:rgba(244,242,237,.7); --d3-divisa:rgba(255,255,255,.08); --d3-veu:rgba(255,255,255,.07); --d3-veu-forte:rgba(255,255,255,.13); --d3-contra:#1F1D1A;
+  --d3-cart-vinicius:#F2A678; --d3-cart-ewerton:#9DBBFF; --d3-acao-texto:#F2A678; --d3-perigo:#FF9C8F; --d3-ajuste:#F2C46D; --d3-pronto:#7FD8A4; --d3-info:#9DBBFF; --d3-ambar:#F2C46D; --d3-agente-texto:#B9A8FF;
+  --d3-perigo-veu:rgba(255,156,143,.15); --d3-ajuste-veu:rgba(242,196,109,.15); --d3-pronto-veu:rgba(127,216,164,.15); --d3-info-veu:rgba(157,187,255,.15); --d3-agente-veu:rgba(185,168,255,.17);
 }
 
 /* Bloco de ação: a única faixa laranja da tela. Frase curta, avatar do agente branco e um botão branco. */

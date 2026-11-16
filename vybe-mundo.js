@@ -22,18 +22,10 @@
   // login (Entrar no Irecity) ou na Aparência. Assim ninguém da equipe é pego de surpresa ao publicar.
   // O Irecity é o Vybe OS (Paulo, 07/11/2026: "quero me livrar do modo legado"). Não há mais escolha nem
   // lembrança por navegador. Porta de emergência: ?legado=1 no endereço (só nesta abertura da página).
-  // Tema claro / escuro / automático (Paulo, 07/11/2026). A chave não começa com "vybe" para o Sair não apagar.
-  const CHAVE_TEMA = 'irecity.tema';
-  const temaEscolhido = () => { try { return localStorage.getItem(CHAVE_TEMA) || 'claro'; } catch { return 'claro'; } };
-  const sistemaEscuro = () => { try { return matchMedia('(prefers-color-scheme: dark)').matches; } catch { return false; } };
-  function aplicarTema(t = temaEscolhido()) {
-    const escuro = t === 'escuro' || (t === 'auto' && sistemaEscuro());
-    document.documentElement?.classList?.toggle('tema-escuro', escuro);
-    document.documentElement?.style && (document.documentElement.style.colorScheme = escuro ? 'dark' : 'light');
-  }
-  function trocarTema(t) { try { localStorage.setItem(CHAVE_TEMA, t); } catch {} aplicarTema(t); }
-  aplicarTema();
-  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (temaEscolhido() === 'auto') aplicarTema(); }); } catch {}
+  // Tema (Paulo, 16/11/2026): Fumê, Claro, Escuro ou Auto. A escolha, a guarda ("irecity.tema", que o Sair não apaga) e a
+  // aplicação moram em vybe-tema.js (window.VybeTema); aqui ficam só os atalhos que o menu da Conta usa.
+  const temaEscolhido = () => window.VybeTema?.escolhido?.() || 'fume';
+  function trocarTema(t) { window.VybeTema?.trocar?.(t); }
   const pedeLegado = (() => { try { return new URLSearchParams(location.search).get('legado') === '1'; } catch { return false; } })();
   let ligado = !pedeLegado;
   const semWebGL = (() => { try { const c = document.createElement('canvas'); return !(c.getContext('webgl2') || c.getContext('webgl')); } catch { return true; } })();
@@ -4214,7 +4206,7 @@
       + '<p class="vv-menu-grupo">Gestão</p>' + item('atualizar', 'Atualizar dados', '')
       + (podeVerComo() ? item('vercomo', verComo ? 'Ver como outra pessoa' : 'Ver como…', verComo ? `agora: ${esc(pessoaVista()?.name || '')}` : 'a tela de outra pessoa') : '')
       + (dono ? item('recado', 'Recado para todos', 'aparece na tela de toda a equipe') : '')
-      + `<div class="vv-menu-tema-linha" role="group" aria-label="Aparência"><span>Aparência</span><span class="vb-alternar">${temaBt('claro', 'Claro')}${temaBt('escuro', 'Escuro')}${temaBt('auto', 'Auto')}</span></div>`
+      + `<div class="vv-menu-tema-linha" role="group" aria-label="Aparência"><span>Aparência</span><span class="vb-alternar">${temaBt('fume', 'Fumê')}${temaBt('claro', 'Claro')}${temaBt('escuro', 'Escuro')}${temaBt('auto', 'Auto')}</span></div>`
       + item('ajustes', 'Mais ajustes de aparência', 'vidro, movimento e o mundo nos módulos')
       + '<hr>' + item('sair', 'Sair', '', 'vv-menu-perigo')
       + `<div class="vv-menu-mais" role="group" aria-label="Mais">${window.VybeBoletim?.podeVer?.() ? item('boletim', 'Boletim dos agentes', '') : ''}${item('notas', 'Notas', '')}${item('ajuda', 'Ajuda do VYBES', '')}</div>`;

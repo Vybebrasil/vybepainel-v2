@@ -1,0 +1,109 @@
+/* TEMAS E TUTORIAL DO VYBES (Paulo, 16/11/2026: "criar um tema white e um dark"; o VYBES recebe quem chega, mostra os três
+   temas e explica cada tela na primeira vez). Última folha da junção (zt- vem depois de z-direcao e dos zm-*).
+   Os valores de cada tema moram em 0-d3-base.css ([data-d3-tema]); aqui fica só o que os tokens sozinhos não resolvem:
+   1 · os pares de cor que precisam inverter juntos; 2 · os lugares que trocam de camada; 3 · a troca suave de tema;
+   4 · a escolha do tema na Conta; 5 · a tela de boas-vindas com as prévias; 6 · o passo a passo de cada tela.
+   Sem !important, sem html body.mundo e sem :has com [style]. Nenhum keyframe começa em opacity 0. */
+
+/* 1 · PARES. No vidro, o escolhido é um preenchimento de fume-texto: a letra por cima é fume-contra (escura no Fumê e no
+   Escuro, branca no Claro). Na folha, o botão cheio é um preenchimento de tinta: a letra por cima é contra (branca onde a
+   tinta é escura, escura onde a tinta é clara). São os mesmos seletores de z-direcao.css, com a mesma força, mais abaixo
+   na folha; no Fumê o resultado é idêntico ao de antes. */
+body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar),body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-trilho="hoje"][aria-current],
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:not(.vv-busca-larga):not([data-ferr="conta"]):is([aria-pressed="true"],[aria-expanded="true"]),body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu[open] > summary.vv-botao,
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao[data-ferr="conta"],
+#vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar,
+#vv-dock-salas-faixa .vq-dock .vq-conta,
+#vv-dock-salas-faixa .vq-dock .vq-voz button,
+#vv-hoje .d3q .d3h-topo .vv-seg > button[aria-selected="true"],#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+#vv-hoje .d3q .d3h-mes-dias > button.hoje,
+#vv-hoje .d3q .d3h-topo .v2o-periodo > button[aria-selected="true"],
+#vv-hoje .d3q .d3h-topo .v2o-periodo.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button[aria-checked="true"],
+body.mundo #mundo-hud .vv-avisos-painel .vv-avisos-pe > .vc-sec:last-child,
+body.mundo .vv-conversa .vv-conversa-abas.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+body.mundo .vv-conversa .vv-conversa-abas.vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+body.mundo .vv-conversa .vv-conversa-msg.vv-conversa-msg.meu,
+body.mundo .vv-conversa .vv-conversa-msg.vv-conversa-msg.meu :is(p,b),
+body.mundo .vv-conversa .vv-conversa-enviar.vv-conversa-enviar,body.mundo .vv-conversa .vv-conversa-acao.vv-conversa-acao,
+body.mundo #v2j-busca .spotlight-abas button[aria-selected="true"],
+.vv-tour-raiz .vv-tour-balao :is(.vv-tour-principal,.vv-tour-prox),
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button[aria-checked="true"],
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo,
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 #pv2-vistas button[aria-checked="true"],
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 .pv2-btn.d3p-novo{color:var(--d3-fume-contra)}
+body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-trilho="hoje"][aria-current] > svg,
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:not(.vv-busca-larga):not([data-ferr="conta"]):is([aria-pressed="true"],[aria-expanded="true"]) > svg,body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu[open] > summary.vv-botao > svg,
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao[data-ferr="conta"] > svg{color:var(--d3-fume-contra);stroke:var(--d3-fume-contra)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo > svg{stroke:var(--d3-fume-contra)}
+#vv-hoje .d3q .d3h-topo .vv-seg,#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b){--ds-on-texto:var(--d3-fume-contra)}
+body.mundo .vv-conversa .vv-conversa-msg.vv-conversa-msg.meu time{color:var(--d3-fume-contra);opacity:.72}
+.d3v-btn,
+#vv-hoje .d3q .d3h-btn.k,
+#vv-hoje .d3q .d3h-filtros > .d3h-btn[aria-pressed="true"],
+#vv-hoje .d3q.d3h-co .v2o-btn.k,
+#vv-hoje .d3q.d3h-qd .v2vb-aba:is([aria-selected="true"],[aria-pressed="true"],.on,.ativa),
+.d3m-btn,
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-filtros-rot.tem{color:var(--d3-contra)}
+.d3v-selo > svg,
+#vv-hoje .d3h-num-selo > svg{stroke:var(--d3-contra)}
+
+/* 2 · CAMADAS. Onde a tela troca os tokens da folha pelos do vidro (a coluna de consulta do Hoje, os menus do HUD), o que
+   estava escrito em branco passa a sair do tema. Dentro do laranja, que é igual nos três temas, as cores que ficam sobre o
+   botão branco continuam as de fundo claro. */
+#vv-hoje .d3q > .d3h-lado{--d3-tinta:var(--d3-fume-texto);--d3-texto2:var(--d3-fume-texto2);--d3-meta:var(--d3-fume-meta);--d3-contra:var(--d3-fume-contra)}
+body.mundo #mundo-hud :is(.vv-setor,.vv-menu-conta,.vv-avisos-painel,#vv-agenda,.vv-mais-lista),body.mundo .vv-conversa.vv-conversa{--d3-contra:var(--d3-fume-contra)}
+:is(.d3v-laranja,.d3m-laranja,.d3-acao){--d3-acao-texto:var(--d3-acao-texto-fixa);--d3-agente:var(--d3-agente-fixo);--d3-agente-texto:#4B36A8;
+  --d3-fume-texto:#FFFFFF;--d3-fume-apagado:rgba(255,255,255,.88);--d3-fume-texto2:rgba(255,255,255,.88);--d3-fume-veu:rgba(255,255,255,.16);--d3-fume-veu-forte:rgba(255,255,255,.24);--d3-fume-borda:rgba(255,255,255,.38);--d3-fume-contra:var(--d3-acao-texto-fixa)}
+/* A faixa da barra de rolagem da página (scrollbar-gutter) mostra o fundo do html: ele acompanha o ambiente do tema. */
+html[data-d3-tema]:has(body.mundo){background:var(--d3-tema-fundo)}
+/* O nome do cliente leva a cor da carteira (Vinícius laranja, Ewerton azul): na folha escura, a versão clara das duas. */
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,.pv2-casa,.d3-tema) .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,.pv2-casa,.d3-tema) .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
+
+/* 3 · A TROCA DE TEMA. A foto do tema de antes some por cima do novo (de 1 a 0); o novo já está inteiro por baixo. */
+@keyframes d3TemaSai{from{opacity:1}to{opacity:0}}
+html.d3-tema-trocando::view-transition-old(root){z-index:1;mix-blend-mode:normal;animation:d3TemaSai .42s cubic-bezier(.4,0,.2,1) both}
+html.d3-tema-trocando::view-transition-new(root){z-index:0;mix-blend-mode:normal;animation:none}
+@media (prefers-reduced-motion:reduce){html.d3-tema-trocando::view-transition-old(root){animation:none;opacity:0}}
+
+/* 4 · A ESCOLHA NA CONTA. Menu do topo: quatro opções na mesma linha (Fumê, Claro, Escuro, Auto). Minha conta: a aba que
+   estica passa por quatro casas de 68 px. */
+body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha{gap:8px}
+body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button{padding:0 8px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button,#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button + button{width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > .d3c-seg-ind{left:4px;width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="claro"] > .d3c-seg-ind{left:72px;width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="escuro"] > .d3c-seg-ind{left:140px;width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="auto"] > .d3c-seg-ind{left:208px;width:68px}
+
+/* 2b · ACERTOS MEDIDOS (contraste de 4,5:1 nos três temas, no Hoje, na Produção e nos menus). */
+/* Avatar de agente e a sua foto no menu: preenchimento de cor, letra branca em todo tema. */
+#vv-hoje .d3q > .d3h-lado .d3h-av.ag,#vv-hoje .d3h-co .v2o-heitor-av,body.mundo #mundo-hud .vv-menu-conta .vv-menu-av{color:var(--d3-escuro-texto)}
+/* O botão de véu dentro do laranja: véu mais fino, para a letra branca passar de 4,5:1 (estava em 4,4). */
+#vv-hoje .d3q .d3v-laranja :is(.d3-acao-btn,.d3h-btn){background:rgba(255,255,255,.09)}
+/* O dia com compromisso no mês: a cor do compromisso um tom abaixo, com o número branco (estava em 3,7:1). */
+#vv-hoje .d3q .d3h-mes-dias > button.tem{background:color-mix(in srgb,var(--c) 74%,#000);color:var(--d3-escuro-texto)}
+#vv-hoje .d3q .d3h-mes-dias > button.hoje.tem{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+/* A estrela das datas na agenda do topo: a cor de aviso e a de perigo do tema, no lugar das escritas. */
+body.mundo #mundo-hud #vv-agenda .vd-chip > i{color:var(--d3-ajuste)}
+body.mundo #mundo-hud #vv-agenda .vd-chip.feriado > i{color:var(--d3-perigo)}
+/* O que a folha antiga prende com cor escrita (título de módulo, fila do Danilo, cliente sem carteira): o preenchimento do
+   texto sai do tema, sem brigar com o !important de lá. */
+:where([data-d3-tema]) .pv2-casa :is(h1,h2,h3,h4){-webkit-text-fill-color:var(--d3-tinta)}
+:where([data-d3-tema]) .pv2-casa #pv2-semana #pv2-filtros-rot:not(.tem){-webkit-text-fill-color:var(--d3-tinta)}
+.pv2-casa :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cli:not([data-carteira="vinicius"]):not([data-carteira="ewerton"]){color:var(--d3-tinta)}
+#vv-hoje .d3q .d3h-danilo .vs-bloco-cabeca b{-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3q .d3h-danilo .vv-vazio{-webkit-text-fill-color:var(--d3-apagado)}
+/* A etiqueta verde sobre o vidro (WhatsApp "esperando"): o verde do tema puxado para a letra do vidro (estava em 3,9:1). */
+#vv-hoje .d3q > .d3h-lado .d3h-pill.g{color:color-mix(in srgb,var(--d3-pronto) 58%,var(--d3-fume-texto))}
+/* Celular: o Hoje fica direto no ambiente, sem a janela de vidro. No Fumê a letra branca caía sobre as manchas de luz
+   (2,3:1): um véu do tema entra entre o ambiente e a tela. O Criar é laranja cheio: letra e ícone brancos em todo tema. */
+@media (max-width:900px){
+  body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){background:var(--d3-ambiente-veu)}
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar,body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar,
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar > svg,body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar > svg{color:var(--d3-escuro-texto);stroke:var(--d3-escuro-texto)}
+}
+/* A sua foto no seletor "Dia de" (o Hoje de Minhas tarefas): fundo do tema, para as iniciais passarem de 4,5:1 no celular. */
+#vv-hoje .d3q .d3h-topo .v2t-chip > i{background:var(--d3-fume-escuro)}

@@ -266,18 +266,16 @@ function corpoDaSecao(chave, eu) {
   return blocoPerfil(eu);
 }
 
-const CHAVE_TEMA_DA_CONTA = 'irecity.tema';
-function temaDaConta() { try { return localStorage.getItem(CHAVE_TEMA_DA_CONTA) || 'claro'; } catch { return 'claro'; } }
-// A mesma chave e a mesma classe que o menu da conta usa no topo: o tema vale só para este navegador.
-function trocarTemaDaConta(tema) {
-  try { localStorage.setItem(CHAVE_TEMA_DA_CONTA, tema); } catch { /* sem armazenamento: vale só nesta abertura */ }
-  const raiz = document.documentElement;
-  raiz.classList.toggle('tema-escuro', tema === 'escuro');
-  raiz.style.colorScheme = tema === 'escuro' ? 'dark' : 'light';
+// O tema é o mesmo do menu da Conta no topo (vybe-tema.js, window.VybeTema): Fumê, Claro, Escuro ou Auto, só neste navegador.
+function temaDaConta() { return globalThis.VybeTema?.escolhido?.() || 'fume'; }
+function marcarTemaDaConta(tema = temaDaConta()) {
   document.querySelectorAll('[data-tema-conta]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.temaConta === tema)));
   // A aba preta estica até a escolha (Direção 3: "aba que estica").
   document.querySelectorAll('.d3c-seg').forEach((s) => { s.dataset.tema = tema; });
 }
+function trocarTemaDaConta(tema) { globalThis.VybeTema?.trocar?.(tema); marcarTemaDaConta(tema); }
+// Trocado em outro lugar (menu do topo, boas-vindas do VYBES), a linha daqui acompanha.
+if (typeof document !== 'undefined') document.addEventListener?.('vybe:tema', (e) => marcarTemaDaConta(e.detail?.escolhido));
 
 // A senha abre no lugar, na própria linha, sem trocar de tela.
 function alternarSenhaDaConta(abrir) {
@@ -317,7 +315,7 @@ function blocoPerfil(eu) {
     </div>
     ${blocoContaAI()}
     <div class="v2c-lin v2c-dado"><span>Tema</span><span class="v2c-sub">só para você</span>
-      <span class="v2c-seg d3c-seg" role="radiogroup" aria-label="Tema" data-tema="${tema === 'escuro' ? 'escuro' : 'claro'}"><i class="d3c-seg-ind" aria-hidden="true"></i>${temaBotao('claro', 'Claro')}${temaBotao('escuro', 'Escuro')}</span></div>
+      <span class="v2c-seg d3c-seg d3c-seg-tema" role="radiogroup" aria-label="Tema" data-tema="${tema}"><i class="d3c-seg-ind" aria-hidden="true"></i>${temaBotao('fume', 'Fumê')}${temaBotao('claro', 'Claro')}${temaBotao('escuro', 'Escuro')}${temaBotao('auto', 'Auto')}</span></div>
     <p class="v2c-sub v2c-nota">nome e e-mail · cadastro da equipe</p>`;
 }
 

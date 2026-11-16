@@ -37,6 +37,71 @@
      texto: texto e botão · destaque: nome na linha, frase do bloco de ação · titulo: título de cartão e janela ·
      numero: título de tela e número de cartão. Tamanho de vitrine (34, 36, 52) e clamp() ficam onde estão. */
   --d3-fs-mini:11px; --d3-fs-apoio:12px; --d3-fs-texto:13px; --d3-fs-destaque:15px; --d3-fs-titulo:18px; --d3-fs-numero:28px;
+  /* Temas (Paulo, 16/11/2026: "criar um tema white e um dark"). Tokens que só existem por causa dos três temas, aqui com o
+     valor do Fumê: contra = a letra sobre um preenchimento de tinta (botão cheio da folha); fume-contra = a letra sobre um
+     preenchimento de fume-texto (o escolhido no vidro: o ativo do menu, a aba marcada); fume-texto2 e fume-meta = o segundo
+     tom e o apagado de enfeite no vidro; acao-texto-fixa e agente-fixo = as cores que ficam sobre branco fixo (o botão
+     branco dentro do laranja), iguais em todo tema; tema-fundo = a cor chapada do ambiente (atrás do degradê); ambiente-veu = o véu que entra
+     entre o ambiente e a tela quando ela fica direto nele, sem a janela de vidro (o Hoje no celular). */
+  --d3-contra:#FFFFFF; --d3-fume-contra:#1F1D1A; --d3-fume-texto2:rgba(255,255,255,.86); --d3-fume-meta:rgba(255,255,255,.4);
+  --d3-acao-texto-fixa:#A83D08; --d3-agente-fixo:#6E56CF; --d3-tema-fundo:#6B5F55; --d3-ambiente-veu:rgba(18,15,13,.44);
+}
+
+/* ===================================================================================================================
+   OS TRÊS TEMAS. Mesmas peças, mesma estrutura; só os valores mudam. html[data-d3-tema] diz qual vale (vybe-tema.js);
+   o atributo em qualquer outro elemento aplica o tema só ali dentro (as prévias da tela de escolha). Sem atributo vale o
+   :root acima, que é o Fumê.
+   Camadas: ambiente (a luz atrás de tudo) · fume (o vidro do HUD e das janelas V2, com a letra fume-texto) · folha (o
+   cartão por cima, com tinta e rotulo). As cores de função têm duas versões: a da folha (perigo, pronto, ajuste, info,
+   acao-texto, ambar, agente-texto) e a do vidro (as terminadas em -claro e a perigo-vidro). Todas dão 4,5:1 ou mais sobre
+   a camada delas em cada tema (conferido em tests/temas-tutorial.test.mjs).
+   Tela nova: use só estes tokens, nunca cor escrita, e ela já sai nos três temas.
+   =================================================================================================================== */
+[data-d3-tema="fume"]{
+  --d3-ambiente:radial-gradient(48% 58% at 10% 12%,#CFA06C 0%,rgba(207,160,108,0) 70%),radial-gradient(46% 56% at 92% 18%,#9FB1BA 0%,rgba(159,177,186,0) 70%),radial-gradient(60% 55% at 72% 104%,#94623C 0%,rgba(148,98,60,0) 70%),radial-gradient(42% 48% at 22% 100%,#46545B 0%,rgba(70,84,91,0) 70%),#6B5F55;
+  --d3-tema-fundo:#6B5F55; --d3-ambiente-veu:rgba(18,15,13,.44);
+  --d3-fume:rgba(34,28,23,.66); --d3-fume-forte:rgba(30,25,21,.82); --d3-fume-borda:rgba(255,255,255,.2); --d3-fume-veu:rgba(255,255,255,.1); --d3-fume-veu-forte:rgba(255,255,255,.18);
+  --d3-fume-texto:#FFFFFF; --d3-fume-apagado:rgba(255,255,255,.84); --d3-fume-texto2:rgba(255,255,255,.86); --d3-fume-meta:rgba(255,255,255,.4); --d3-fume-escuro:rgba(18,15,13,.5); --d3-fume-painel:#2B2520; --d3-fume-contra:#1F1D1A;
+  --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
+  --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
+  --d3-folha:rgba(255,255,255,.9); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.55); --d3-cartao:#FFFFFF; --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
+  --d3-tinta:#1F1D1A; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5; --d3-rotulo:rgba(31,29,26,.68); --d3-divisa:rgba(31,29,26,.07); --d3-veu:rgba(31,29,26,.07); --d3-veu-forte:rgba(31,29,26,.12); --d3-contra:#FFFFFF;
+  --d3-acao-texto:#A83D08; --d3-perigo:#B42318; --d3-ajuste:#7A4A00; --d3-pronto:#11613A; --d3-info:#1E4A9A; --d3-ambar:#8F5600; --d3-agente-texto:#4B36A8;
+  --d3-perigo-veu:#FDECEE; --d3-ajuste-veu:#FFF4D6; --d3-pronto-veu:#E8F5EC; --d3-info-veu:#E7EEFB; --d3-agente-veu:#EEEAFB;
+}
+/* CLARO: o ambiente é uma luz de manhã, o vidro é branco translúcido com letra escura e a folha é branca. O escolhido no
+   vidro inverte (preenchimento escuro, letra branca). As cores de função do vidro são as mesmas da folha. */
+[data-d3-tema="claro"]{
+  --d3-ambiente:radial-gradient(48% 58% at 10% 12%,#F6E4CC 0%,rgba(246,228,204,0) 70%),radial-gradient(46% 56% at 92% 18%,#D9E3E8 0%,rgba(217,227,232,0) 70%),radial-gradient(60% 55% at 72% 104%,#F0D6BE 0%,rgba(240,214,190,0) 70%),radial-gradient(42% 48% at 22% 100%,#DDE4E2 0%,rgba(221,228,226,0) 70%),#ECE8E1;
+  --d3-tema-fundo:#ECE8E1; --d3-ambiente-veu:rgba(255,255,255,0);
+  --d3-fume:rgba(255,255,255,.62); --d3-fume-forte:rgba(253,252,250,.96); --d3-fume-borda:rgba(31,29,26,.1); --d3-fume-veu:rgba(31,29,26,.06); --d3-fume-veu-forte:rgba(31,29,26,.11);
+  --d3-fume-texto:#1F1D1A; --d3-fume-apagado:rgba(31,29,26,.74); --d3-fume-texto2:rgba(31,29,26,.84); --d3-fume-meta:rgba(31,29,26,.36); --d3-fume-escuro:rgba(255,255,255,.55); --d3-fume-painel:#FBFAF7; --d3-fume-contra:#FFFFFF;
+  --d3-acao-claro:#A83D08; --d3-perigo-claro:#B42318; --d3-pronto-claro:#11613A; --d3-ajuste-claro:#7A4A00; --d3-info-claro:#1E4A9A; --d3-agente-claro:#4B36A8; --d3-perigo-vidro:#B42318;
+  --d3-mod-operacao-claro:#A83D08; --d3-mod-negocio-claro:#6D28D9; --d3-mod-time-claro:#0B6478; --d3-mod-vybe-claro:#116B33;
+  --d3-folha:rgba(255,255,255,.94); --d3-folha-sombra:0 14px 30px -22px rgba(88,66,44,.4); --d3-cartao:#FFFFFF; --d3-areia:#EAE6DE; --d3-trilho:#F3F1EC; --d3-linha:#F1EDE6; --d3-borda:#E6E0D6;
+  --d3-tinta:#1F1D1A; --d3-texto2:#4A463F; --d3-apagado:#6B665E; --d3-meta:#B5AFA5; --d3-rotulo:rgba(31,29,26,.68); --d3-divisa:rgba(31,29,26,.07); --d3-veu:rgba(31,29,26,.07); --d3-veu-forte:rgba(31,29,26,.12); --d3-contra:#FFFFFF;
+  --d3-acao-texto:#A83D08; --d3-perigo:#B42318; --d3-ajuste:#7A4A00; --d3-pronto:#11613A; --d3-info:#1E4A9A; --d3-ambar:#8F5600; --d3-agente-texto:#4B36A8;
+  --d3-perigo-veu:#FDECEE; --d3-ajuste-veu:#FFF4D6; --d3-pronto-veu:#E8F5EC; --d3-info-veu:#E7EEFB; --d3-agente-veu:#EEEAFB;
+}
+/* ESCURO: o ambiente quase preto, com um resto de luz quente; o vidro é grafite com letra branca (como no Fumê). Os
+   tokens da folha (regra seguinte) só escurecem dentro das telas que já estão no padrão V2: as telas antigas ainda têm
+   cor escrita para fundo claro e continuam em folha clara, legíveis, até serem remontadas. */
+[data-d3-tema="escuro"]{
+  --d3-ambiente:radial-gradient(48% 58% at 10% 12%,#2E241B 0%,rgba(46,36,27,0) 70%),radial-gradient(46% 56% at 92% 18%,#1C2529 0%,rgba(28,37,41,0) 70%),radial-gradient(60% 55% at 72% 104%,#2C1D13 0%,rgba(44,29,19,0) 70%),radial-gradient(42% 48% at 22% 100%,#161B1D 0%,rgba(22,27,29,0) 70%),#121110;
+  --d3-tema-fundo:#121110; --d3-ambiente-veu:rgba(0,0,0,0);
+  --d3-fume:rgba(30,28,27,.74); --d3-fume-forte:rgba(24,23,22,.94); --d3-fume-borda:rgba(255,255,255,.12); --d3-fume-veu:rgba(255,255,255,.08); --d3-fume-veu-forte:rgba(255,255,255,.15);
+  --d3-fume-texto:#FFFFFF; --d3-fume-apagado:rgba(255,255,255,.8); --d3-fume-texto2:rgba(255,255,255,.86); --d3-fume-meta:rgba(255,255,255,.4); --d3-fume-escuro:rgba(0,0,0,.36); --d3-fume-painel:#1F1E1C; --d3-fume-contra:#1F1D1A;
+  --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
+  --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
+}
+/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), .pv2-casa (Produção) e qualquer raiz
+   com a classe d3-tema. Tela remontada no padrão V2 entra aqui (ou leva a classe) e passa a escurecer junto.
+   .d3-previa é a prévia da tela de escolha: leva o tema no próprio elemento e não herda o da página. */
+[data-d3-tema="escuro"] :is(#vv-hoje,.pv2-casa,.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
+  --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
+  --d3-tinta:#F4F2ED; --d3-texto2:#D8D4CD; --d3-apagado:#ABA69E; --d3-meta:#75706A; --d3-rotulo:rgba(244,242,237,.7); --d3-divisa:rgba(255,255,255,.08); --d3-veu:rgba(255,255,255,.07); --d3-veu-forte:rgba(255,255,255,.13); --d3-contra:#1F1D1A;
+  --d3-cart-vinicius:#F2A678; --d3-cart-ewerton:#9DBBFF; --d3-acao-texto:#F2A678; --d3-perigo:#FF9C8F; --d3-ajuste:#F2C46D; --d3-pronto:#7FD8A4; --d3-info:#9DBBFF; --d3-ambar:#F2C46D; --d3-agente-texto:#B9A8FF;
+  --d3-perigo-veu:rgba(255,156,143,.15); --d3-ajuste-veu:rgba(242,196,109,.15); --d3-pronto-veu:rgba(127,216,164,.15); --d3-info-veu:rgba(157,187,255,.15); --d3-agente-veu:rgba(185,168,255,.17);
 }
 
 /* Bloco de ação: a única faixa laranja da tela. Frase curta, avatar do agente branco e um botão branco. */
@@ -12972,3 +13037,114 @@ body.mundo .vv-gestao:has(> .vs-agencia){padding:16px;overflow:hidden;border:0;b
   .vs-agencia .d3m-d-g-sem-graf,.vs-agencia .d3m-d-g-eixo{display:block}
   .vs-agencia .d3m-d-g-eixo{display:flex}
 }
+
+/* ===== padrao-v2/zt-temas.css ===== */
+/* TEMAS E TUTORIAL DO VYBES (Paulo, 16/11/2026: "criar um tema white e um dark"; o VYBES recebe quem chega, mostra os três
+   temas e explica cada tela na primeira vez). Última folha da junção (zt- vem depois de z-direcao e dos zm-*).
+   Os valores de cada tema moram em 0-d3-base.css ([data-d3-tema]); aqui fica só o que os tokens sozinhos não resolvem:
+   1 · os pares de cor que precisam inverter juntos; 2 · os lugares que trocam de camada; 3 · a troca suave de tema;
+   4 · a escolha do tema na Conta; 5 · a tela de boas-vindas com as prévias; 6 · o passo a passo de cada tela.
+   Sem !important, sem html body.mundo e sem :has com [style]. Nenhum keyframe começa em opacity 0. */
+
+/* 1 · PARES. No vidro, o escolhido é um preenchimento de fume-texto: a letra por cima é fume-contra (escura no Fumê e no
+   Escuro, branca no Claro). Na folha, o botão cheio é um preenchimento de tinta: a letra por cima é contra (branca onde a
+   tinta é escura, escura onde a tinta é clara). São os mesmos seletores de z-direcao.css, com a mesma força, mais abaixo
+   na folha; no Fumê o resultado é idêntico ao de antes. */
+body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar),body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-trilho="hoje"][aria-current],
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:not(.vv-busca-larga):not([data-ferr="conta"]):is([aria-pressed="true"],[aria-expanded="true"]),body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu[open] > summary.vv-botao,
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao[data-ferr="conta"],
+#vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar,
+#vv-dock-salas-faixa .vq-dock .vq-conta,
+#vv-dock-salas-faixa .vq-dock .vq-voz button,
+#vv-hoje .d3q .d3h-topo .vv-seg > button[aria-selected="true"],#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+#vv-hoje .d3q .d3h-mes-dias > button.hoje,
+#vv-hoje .d3q .d3h-topo .v2o-periodo > button[aria-selected="true"],
+#vv-hoje .d3q .d3h-topo .v2o-periodo.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button[aria-checked="true"],
+body.mundo #mundo-hud .vv-avisos-painel .vv-avisos-pe > .vc-sec:last-child,
+body.mundo .vv-conversa .vv-conversa-abas.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+body.mundo .vv-conversa .vv-conversa-abas.vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
+body.mundo .vv-conversa .vv-conversa-msg.vv-conversa-msg.meu,
+body.mundo .vv-conversa .vv-conversa-msg.vv-conversa-msg.meu :is(p,b),
+body.mundo .vv-conversa .vv-conversa-enviar.vv-conversa-enviar,body.mundo .vv-conversa .vv-conversa-acao.vv-conversa-acao,
+body.mundo #v2j-busca .spotlight-abas button[aria-selected="true"],
+.vv-tour-raiz .vv-tour-balao :is(.vv-tour-principal,.vv-tour-prox),
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button[aria-checked="true"],
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo,
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 #pv2-vistas button[aria-checked="true"],
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 .pv2-btn.d3p-novo{color:var(--d3-fume-contra)}
+body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-trilho="hoje"][aria-current] > svg,
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:not(.vv-busca-larga):not([data-ferr="conta"]):is([aria-pressed="true"],[aria-expanded="true"]) > svg,body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu[open] > summary.vv-botao > svg,
+body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao[data-ferr="conta"] > svg{color:var(--d3-fume-contra);stroke:var(--d3-fume-contra)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo > svg{stroke:var(--d3-fume-contra)}
+#vv-hoje .d3q .d3h-topo .vv-seg,#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b){--ds-on-texto:var(--d3-fume-contra)}
+body.mundo .vv-conversa .vv-conversa-msg.vv-conversa-msg.meu time{color:var(--d3-fume-contra);opacity:.72}
+.d3v-btn,
+#vv-hoje .d3q .d3h-btn.k,
+#vv-hoje .d3q .d3h-filtros > .d3h-btn[aria-pressed="true"],
+#vv-hoje .d3q.d3h-co .v2o-btn.k,
+#vv-hoje .d3q.d3h-qd .v2vb-aba:is([aria-selected="true"],[aria-pressed="true"],.on,.ativa),
+.d3m-btn,
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-filtros-rot.tem{color:var(--d3-contra)}
+.d3v-selo > svg,
+#vv-hoje .d3h-num-selo > svg{stroke:var(--d3-contra)}
+
+/* 2 · CAMADAS. Onde a tela troca os tokens da folha pelos do vidro (a coluna de consulta do Hoje, os menus do HUD), o que
+   estava escrito em branco passa a sair do tema. Dentro do laranja, que é igual nos três temas, as cores que ficam sobre o
+   botão branco continuam as de fundo claro. */
+#vv-hoje .d3q > .d3h-lado{--d3-tinta:var(--d3-fume-texto);--d3-texto2:var(--d3-fume-texto2);--d3-meta:var(--d3-fume-meta);--d3-contra:var(--d3-fume-contra)}
+body.mundo #mundo-hud :is(.vv-setor,.vv-menu-conta,.vv-avisos-painel,#vv-agenda,.vv-mais-lista),body.mundo .vv-conversa.vv-conversa{--d3-contra:var(--d3-fume-contra)}
+:is(.d3v-laranja,.d3m-laranja,.d3-acao){--d3-acao-texto:var(--d3-acao-texto-fixa);--d3-agente:var(--d3-agente-fixo);--d3-agente-texto:#4B36A8;
+  --d3-fume-texto:#FFFFFF;--d3-fume-apagado:rgba(255,255,255,.88);--d3-fume-texto2:rgba(255,255,255,.88);--d3-fume-veu:rgba(255,255,255,.16);--d3-fume-veu-forte:rgba(255,255,255,.24);--d3-fume-borda:rgba(255,255,255,.38);--d3-fume-contra:var(--d3-acao-texto-fixa)}
+/* A faixa da barra de rolagem da página (scrollbar-gutter) mostra o fundo do html: ele acompanha o ambiente do tema. */
+html[data-d3-tema]:has(body.mundo){background:var(--d3-tema-fundo)}
+/* O nome do cliente leva a cor da carteira (Vinícius laranja, Ewerton azul): na folha escura, a versão clara das duas. */
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,.pv2-casa,.d3-tema) .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
+:where([data-d3-tema="escuro"]) :is(#vv-hoje,.pv2-casa,.d3-tema) .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
+
+/* 3 · A TROCA DE TEMA. A foto do tema de antes some por cima do novo (de 1 a 0); o novo já está inteiro por baixo. */
+@keyframes d3TemaSai{from{opacity:1}to{opacity:0}}
+html.d3-tema-trocando::view-transition-old(root){z-index:1;mix-blend-mode:normal;animation:d3TemaSai .42s cubic-bezier(.4,0,.2,1) both}
+html.d3-tema-trocando::view-transition-new(root){z-index:0;mix-blend-mode:normal;animation:none}
+@media (prefers-reduced-motion:reduce){html.d3-tema-trocando::view-transition-old(root){animation:none;opacity:0}}
+
+/* 4 · A ESCOLHA NA CONTA. Menu do topo: quatro opções na mesma linha (Fumê, Claro, Escuro, Auto). Minha conta: a aba que
+   estica passa por quatro casas de 68 px. */
+body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha{gap:8px}
+body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button{padding:0 8px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button,#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button + button{width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > .d3c-seg-ind{left:4px;width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="claro"] > .d3c-seg-ind{left:72px;width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="escuro"] > .d3c-seg-ind{left:140px;width:68px}
+#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="auto"] > .d3c-seg-ind{left:208px;width:68px}
+
+/* 2b · ACERTOS MEDIDOS (contraste de 4,5:1 nos três temas, no Hoje, na Produção e nos menus). */
+/* Avatar de agente e a sua foto no menu: preenchimento de cor, letra branca em todo tema. */
+#vv-hoje .d3q > .d3h-lado .d3h-av.ag,#vv-hoje .d3h-co .v2o-heitor-av,body.mundo #mundo-hud .vv-menu-conta .vv-menu-av{color:var(--d3-escuro-texto)}
+/* O botão de véu dentro do laranja: véu mais fino, para a letra branca passar de 4,5:1 (estava em 4,4). */
+#vv-hoje .d3q .d3v-laranja :is(.d3-acao-btn,.d3h-btn){background:rgba(255,255,255,.09)}
+/* O dia com compromisso no mês: a cor do compromisso um tom abaixo, com o número branco (estava em 3,7:1). */
+#vv-hoje .d3q .d3h-mes-dias > button.tem{background:color-mix(in srgb,var(--c) 74%,#000);color:var(--d3-escuro-texto)}
+#vv-hoje .d3q .d3h-mes-dias > button.hoje.tem{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+/* A estrela das datas na agenda do topo: a cor de aviso e a de perigo do tema, no lugar das escritas. */
+body.mundo #mundo-hud #vv-agenda .vd-chip > i{color:var(--d3-ajuste)}
+body.mundo #mundo-hud #vv-agenda .vd-chip.feriado > i{color:var(--d3-perigo)}
+/* O que a folha antiga prende com cor escrita (título de módulo, fila do Danilo, cliente sem carteira): o preenchimento do
+   texto sai do tema, sem brigar com o !important de lá. */
+:where([data-d3-tema]) .pv2-casa :is(h1,h2,h3,h4){-webkit-text-fill-color:var(--d3-tinta)}
+:where([data-d3-tema]) .pv2-casa #pv2-semana #pv2-filtros-rot:not(.tem){-webkit-text-fill-color:var(--d3-tinta)}
+.pv2-casa :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cli:not([data-carteira="vinicius"]):not([data-carteira="ewerton"]){color:var(--d3-tinta)}
+#vv-hoje .d3q .d3h-danilo .vs-bloco-cabeca b{-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3q .d3h-danilo .vv-vazio{-webkit-text-fill-color:var(--d3-apagado)}
+/* A etiqueta verde sobre o vidro (WhatsApp "esperando"): o verde do tema puxado para a letra do vidro (estava em 3,9:1). */
+#vv-hoje .d3q > .d3h-lado .d3h-pill.g{color:color-mix(in srgb,var(--d3-pronto) 58%,var(--d3-fume-texto))}
+/* Celular: o Hoje fica direto no ambiente, sem a janela de vidro. No Fumê a letra branca caía sobre as manchas de luz
+   (2,3:1): um véu do tema entra entre o ambiente e a tela. O Criar é laranja cheio: letra e ícone brancos em todo tema. */
+@media (max-width:900px){
+  body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){background:var(--d3-ambiente-veu)}
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar,body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar,
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar > svg,body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar > svg{color:var(--d3-escuro-texto);stroke:var(--d3-escuro-texto)}
+}
+/* A sua foto no seletor "Dia de" (o Hoje de Minhas tarefas): fundo do tema, para as iniciais passarem de 4,5:1 no celular. */
+#vv-hoje .d3q .d3h-topo .v2t-chip > i{background:var(--d3-fume-escuro)}
