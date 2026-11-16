@@ -1,0 +1,118 @@
+/* ===================================================================================================================
+   V2 · GRUPO E · PERFORMANCE (prancha V2-M-Performance, aprovada pelo Paulo em 16/11/2026). O HTML sai de
+   vybe-mundo-performance.js (VybePerformance.html): a casca .d3m-e-* (zm-e-casca.css), quatro cartões de número, a
+   folha "Onde a fila está", "Pede ação" e "Entregas por semana" lado a lado e, direto no vidro, o cartão laranja do
+   Heitor, as outras leituras da Gestão e as pessoas. A tela abre na camada da Gestão (.vv-gestao), não num quadro.
+   =================================================================================================================== */
+
+/* A camada da Gestão com a Performance aberta vira a janela de vidro fumê. A regra antiga do material das janelas
+   (vybe-mundo.css) tem o peso de um id por causa do :is(#…): o :is(.vv-gestao,#vv-gestao) daqui só empata esse peso. */
+body.mundo :is(.vv-gestao,#vv-gestao):has(> .vv-perf){padding:16px;border:0;border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto)}
+body.mundo :is(.vv-gestao,#vv-gestao) > .vv-perf{max-width:none;margin:0;padding:0}
+@media (min-width:901px){
+  body.mundo :is(.vv-gestao,#vv-gestao):has(> .vv-perf){overflow:hidden}
+  body.mundo :is(.vv-gestao,#vv-gestao) > .vv-perf{height:100%}
+}
+/* Esta janela não tem os botões de tela cheia e fechar: o topo usa a largura toda. */
+.d3m-e-perf > .d3m-e-topo{padding-right:0}
+
+/* "Onde a fila está": cabeçalho de colunas (24), uma linha de 44 por etapa e o pé com as atrasadas por cliente. */
+.d3m-e-fx-cab,.d3m-e-fx-lin{display:flex;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
+.d3m-e-fx-cab{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-e-fx-lista{flex:none;display:flex;flex-direction:column;min-height:0}
+.d3m-e-perf-fila.todas > .d3m-e-fx-lista{max-height:220px;overflow-y:auto;scrollbar-width:thin}
+.d3m-e-fx-lin{flex:none;height:44px;border-top:1px solid var(--d3-divisa)}
+.d3m-e-fx-st{flex:none;display:flex;align-items:center;width:150px;min-width:0}
+.d3m-e-fx-barra,.d3m-e-fx-barra-rot{flex:1 1 0;min-width:0}
+.d3m-e-fx-barra{height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+.d3m-e-fx-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:2px;background:var(--d3-texto2)}
+.d3m-e-fx-n,.d3m-e-fx-at{appearance:none;flex:none;margin:0;padding:0;border:0;border-radius:4px;background:none;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-fx-n{width:40px;font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-e-fx-at{width:110px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-perigo)}
+.d3m-e-fx-cab > .d3m-e-fx-at,.d3m-e-fx-at.calmo{color:var(--d3-rotulo)}
+button:is(.d3m-e-fx-n,.d3m-e-fx-at){cursor:pointer}
+button:is(.d3m-e-fx-n,.d3m-e-fx-at):hover{text-decoration:underline}
+button:is(.d3m-e-fx-n,.d3m-e-fx-at):focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+button.d3m-e-fx-at[aria-pressed="true"]{font-weight:600}
+.d3m-e-fx-pe{flex:none;display:flex;align-items:center;gap:16px;height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);overflow:hidden;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+.d3m-e-fx-pe-rot{flex:none;color:var(--d3-rotulo)}
+.d3m-e-fx-cli{flex:0 1 auto;display:inline-flex;align-items:center;gap:6px;min-width:0}
+.d3m-e-fx-cli > .d3v-foto{width:20px;height:20px;border-radius:6px;font-size:10px}
+.d3m-e-fx-cli > b{flex:0 1 auto;display:block;min-width:56px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-perf .d3m-e-fx-pe .d3m-e-fx-cli .cliente-carteira{--carteira-texto:var(--d3-tinta);display:inline;padding:0;border-radius:0;background:none;font:inherit}
+.d3m-e-perf .d3m-e-fx-cli .cliente-carteira::before{content:none}
+.d3m-e-fx-cli > span{flex:none;color:var(--d3-rotulo)}
+.d3m-e-fx-pe > .d3m-e-elo{margin-left:auto}
+
+/* "Pede ação" e "Entregas por semana", lado a lado, ocupando o que sobra; só a lista de dentro rola. */
+.d3m-e-par{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.d3m-e-par > .d3m-e-folha{min-height:0}
+.d3m-e-pd-lin{flex:none;display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa)}
+.d3m-e-pd-lin:last-child{border-bottom:0}
+.d3m-e-pd-n{flex:none;width:44px;font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-e-pd-n.r{color:var(--d3-perigo)}
+.d3m-e-pd-n.a{color:var(--d3-ambar)}
+.d3m-e-pd-txt{flex:1 1 auto;min-width:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-e-pd-txt > b{font-weight:600}
+.d3m-e-pd-txt > span{color:var(--d3-rotulo)}
+.d3m-e-pd-zer{flex:none;display:flex;align-items:center;height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);overflow:hidden;white-space:nowrap}
+.d3m-e-pd-zer-rot{flex:none;margin-right:14px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-pd-z{flex:none;display:flex;align-items:baseline;gap:5px;padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
+.d3m-e-pd-z:first-child,.d3m-e-pd-zer-rot + .d3m-e-pd-z{padding-left:0;border-left:0}
+.d3m-e-pd-z > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-e-pd-z-rot{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-pd-z.mais{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+.d3m-e-pd-z.mais.curta{display:none}
+
+/* Entregas: o gráfico em linha ocupa o que sobra e os três números ficam no pé (a mesma faixa dos zerados). */
+.d3m-e-perf .d3m-e-ent-graf{flex:1 1 0;display:flex;flex-direction:column;min-height:0;padding:10px 16px 6px}
+.d3m-e-perf .d3m-e-ent-graf > .d3-graf{flex:1 1 0;display:block;width:100%;height:auto;min-height:0;margin:0}
+.d3m-e-perf .d3m-e-ent-graf > .d3g-eixo{flex:none;display:flex;justify-content:space-between;gap:4px;margin:4px 0 0;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.d3m-e-perf .d3m-e-ent-graf > .d3g-eixo > .on{color:var(--d3-tinta);font-weight:600}
+.d3m-e-perf-ent > .d3m-e-rola{overflow:hidden}
+.d3m-e-mini-v{appearance:none;margin:0;padding:0;border:0;border-radius:4px;background:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums;cursor:pointer}
+.d3m-e-mini-v:hover{text-decoration:underline}
+.d3m-e-mini-v:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+
+/* O cartão laranja: 252 de altura, com o segundo círculo de luz da prancha. */
+.d3m-e-perf-lar{flex:none;min-height:252px}
+.d3m-e-perf-lar::after{content:"";position:absolute;z-index:0;right:18px;top:58px;width:56px;height:56px;border-radius:50%;background:var(--d3-escuro-texto);opacity:.06;pointer-events:none}
+
+/* As tabelas (departamento, formato, pessoa e cliente) numa folha só, que rola por dentro. */
+.d3m-e-perf-tabelas .d3v-btn > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-e-perf-tabs{display:flex;flex-direction:column;gap:14px;padding:16px;color:var(--d3-tinta)}
+.d3m-e-perf .d3m-e-perf-tabs small{color:var(--d3-rotulo)}
+
+/* Janela baixa (notebook de 768): as linhas encolhem para as três faixas caberem sem rolar a tela. */
+@media (min-width:901px) and (max-height:820px){
+  .d3m-e-perf .d3m-e-kpi{height:96px;padding:10px 14px}
+  .d3m-e-perf .d3m-e-cab{min-height:38px}
+  .d3m-e-perf .d3m-e-fx-cab{height:20px}
+  .d3m-e-perf .d3m-e-fx-lin{height:34px}
+  .d3m-e-perf .d3m-e-fx-pe,.d3m-e-perf .d3m-e-pd-zer{height:36px}
+  .d3m-e-perf .d3m-e-pd-lin{min-height:40px}
+  .d3m-e-perf-lar{min-height:200px}
+  .d3m-e-perf .d3m-e-perf-lar .d3m-lar-num{font-size:44px}
+  .d3m-e-perf .d3m-lado{gap:10px}
+  .d3m-e-perf .d3m-lado .d3m-vlin{height:30px}
+}
+/* Até 1400 de largura o pé da fila mostra dois clientes (o terceiro fica no "abrir as N") e o dos zerados, dois (o "+N" conta o terceiro). */
+@media (min-width:901px) and (max-width:1400px){
+  .d3m-e-fx-pe > .d3m-e-fx-cli:nth-of-type(n+4),.d3m-e-pd-zer > .d3m-e-pd-z.terceiro,.d3m-e-pd-z.mais.larga{display:none}
+  .d3m-e-pd-z.mais.curta{display:flex}
+}
+/* Telas menores: uma coluna, a janela rola. */
+@media (max-width:900px){
+  body.mundo :is(.vv-gestao,#vv-gestao):has(> .vv-perf){padding:12px;border-radius:0 0 16px 16px}
+  .d3m-e-par{display:flex;flex-direction:column;flex:none}
+  .d3m-e-par > .d3m-e-folha .d3m-e-rola{max-height:none}
+  .d3m-e-fx-st{width:112px}
+  .d3m-e-fx-at{width:84px}
+  .d3m-e-fx-pe,.d3m-e-pd-zer{flex-wrap:wrap;height:auto;gap:6px 12px;padding:10px 16px;white-space:normal}
+  .d3m-e-pd-lin{flex-wrap:wrap;padding:8px 16px}
+  .d3m-e-pd-txt{flex-basis:calc(100% - 60px);white-space:normal}
+  .d3m-e-pd-lin > .d3v-btn{margin-left:54px}
+  .d3m-e-perf-lar{min-height:0}
+  .d3m-e-perf .d3m-e-ent-graf{flex:none;height:150px;box-sizing:border-box}
+  .d3m-e-fx-barra-rot{overflow:hidden;text-overflow:ellipsis}
+}

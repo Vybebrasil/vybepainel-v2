@@ -1140,7 +1140,7 @@ function vbEstadoHtml({ tipo = 'vazio', titulo = '', texto = '', acao = '', icon
 }
 // V2 · grupo E (pranchas V2-M-Estados e V2-M-*, 16/11/2026): as peças locais .d3m-e-* (CSS em padrao-v2/zm-e-casca.css e
 // zm-e-estados.css). Ficam aqui, ao lado de vbEstadoHtml, até subirem para a família comum (.d3m-*).
-const D3ME_IC = { vazio: '<path d="M5 12l4 4 10-10"/>', erro: '<path d="M12 7v6M12 17h.01"/>', relogio: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', baixo: '<path d="M6 9l6 6 6-6"/>', depois: '<path d="M9 6l6 6-6 6"/>' };
+const D3ME_IC = { vazio: '<path d="M5 12l4 4 10-10"/>', erro: '<path d="M12 7v6M12 17h.01"/>', relogio: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', baixo: '<path d="M6 9l6 6 6-6"/>', depois: '<path d="M9 6l6 6-6 6"/>', alta: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>' };
 function d3mEIc(nome) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${D3ME_IC[nome] || D3ME_IC.vazio}</svg>`; }
 function d3mEEsc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 // Botão do estado: cheio (o primeiro passo do vazio) ou de contorno (sec: "Tentar de novo" do erro). attrs: onclick, data-*.
