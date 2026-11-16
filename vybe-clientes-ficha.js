@@ -589,7 +589,7 @@ function demandasDaFichaHtml(nome) {
     else if (FICHA_ABA === 'financeiro') naFolha(financeiroDaFichaHtml(nome));
     else if (FICHA_ABA === 'ecossistema') naFolha(ecossistemaDaFichaHtml(nome));
     else if (FICHA_ABA === 'cerebro') naFolha(cerebroDaFichaHtml(nome));
-    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naFolha(window.VybeReunioes.reunioesHtml(nome));
+    else if (FICHA_ABA === 'reunioes' && window.VybeReunioes) naAba(window.VybeReunioes.reunioesHtml(nome));
     else if (FICHA_ABA === 'onboarding' && window.VybeReunioes) naFolha(window.VybeReunioes.onboardingHtml(nome));
     else if (FICHA_ABA === 'conteudo') naAba(conteudoDaFichaHtml(nome));
     else if (FICHA_ABA === 'demandas') naAba(demandasDaFichaHtml(nome));

@@ -100,6 +100,55 @@
 /* Com a lista da aba na tela, as ações das marcadas ficam no pé dela: a barra de lote do painel dá lugar. */
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba="conteudo"],[data-fv2-aba="demandas"]) #lote-deck{display:none}
 
+/* 3 · Linhas de uma folha (fv2-tb): o que as abas Reuniões, Onboarding, Ecossistema e Cérebro listam. */
+#painel-clientes .fv2-tb{margin:0;padding:0;list-style:none}
+#painel-clientes .fv2-tb-lin{appearance:none;display:flex;align-items:center;gap:12px;width:100%;min-height:44px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif);text-align:left;list-style:none}
+#painel-clientes button.fv2-tb-lin{cursor:pointer}
+#painel-clientes button.fv2-tb-lin:hover{background:var(--d3-veu)}
+#painel-clientes button.fv2-tb-lin:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#painel-clientes .fv2-tb-lin > svg{flex:none;width:14px;height:14px;fill:none;stroke:var(--d3-rotulo);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-tb-txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-tb-txt > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-n{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal;font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-est{flex:none;display:inline-flex;align-items:center;gap:6px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
+#painel-clientes .fv2-est > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
+#painel-clientes .fv2-est.g > i{background:var(--d3-pronto)}
+#painel-clientes .fv2-est.r > i{background:var(--d3-perigo)}
+#painel-clientes .fv2-est.a > i{background:var(--d3-ambar)}
+#painel-clientes .fv2-est.b > i{background:var(--d3-info)}
+
+/* 4 · Aba Reuniões: a reunião em foco (pauta e ata lado a lado; no pé, a gravação), a pauta sugerida e as outras. */
+#painel-clientes .fv2-reu{flex:0 1 auto;min-height:148px}
+#painel-clientes .fv2-reu-corpo{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-reu-2{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+#painel-clientes .fv2-reu-parte{display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px 16px 14px}
+#painel-clientes .fv2-reu-parte + .fv2-reu-parte{border-left:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-reu-parte > ul{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+#painel-clientes .fv2-reu-parte > ul > li{display:flex;align-items:baseline;gap:9px;margin:0;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-parte > ul > li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--d3-meta);transform:translateY(-1px)}
+#painel-clientes .fv2-reu-parte > p{margin:0;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-parte > p.fv2-reu-sem{color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-mais{border-top:1px solid var(--d3-divisa)}
+#painel-clientes .fv2-reu-mais > summary{display:flex;align-items:center;min-height:40px;padding:0 16px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);list-style:none;cursor:pointer}
+#painel-clientes .fv2-reu-mais > summary::-webkit-details-marker{display:none}
+#painel-clientes .fv2-reu-mais > summary:hover{background:var(--d3-veu)}
+#painel-clientes .fv2-reu-mais > summary:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#painel-clientes .fv2-reu-mais-c{padding:0 16px 14px;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-mais-c h5{margin:10px 0 4px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-mais-c p{margin:0 0 6px}
+#painel-clientes .fv2-reu-pe{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-estado{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#painel-clientes .fv2-reu-estado > b{font-weight:600;color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-mic{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-veu-forte);color:var(--d3-tinta)}
+#painel-clientes .fv2-reu-mic.on{background:var(--d3-agente);color:var(--d3-contra,var(--d3-escuro-texto))}
+#painel-clientes .fv2-reu-mic > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#painel-clientes .fv2-reu-bts{flex:none;display:inline-flex;gap:8px}
+#painel-clientes .fv2-reu-bts > a.d3v-btn{text-decoration:none}
+#painel-clientes .fv2-reu-lin .fv2-tb-txt{color:var(--d3-rotulo)}
+#painel-clientes .fv2-reu-dia{flex:0 0 76px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+#painel-clientes .fv2-duas > .fv2-lado div.d3m-vlin:hover{background:var(--d3-fume-veu)}
+#painel-clientes .fv2-lado a.d3m-vlin{text-decoration:none}
+
 /* 9 · Telas menores: uma coluna (a ficha rola por dentro da janela) e a linha da lista em dois andares. */
 @media (max-width:1180px){
   #painel-clientes #client-master-detail > .fv2-aba{height:auto}
