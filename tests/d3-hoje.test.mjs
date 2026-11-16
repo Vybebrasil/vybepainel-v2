@@ -84,7 +84,9 @@ test('folha d3-hoje.css: tokens --d3-*, sem !important, sem html body.mundo, pre
 
 test('Centro e Minha sala pelos quadros: o 3D dentro de um cartão da grade, números, prédio, online, salas, Agora, Seu dia, Conquistas e Datas', () => {
   const c = trecho('  function pintarCentroD3(', '  function filtrarCidade(');
-  for (const t of ['class="d3c-cartao d3c-mapa"', 'data-d3-cheio>Entrar no mapa', "num('Online agora'", "num('Em salas'", "num('Lojas com atraso'", "num('Peças em aberto'", 'aria-label="Prédio · elevador"', 'data-andar=', 'aria-label="Online agora"', 'aria-label="Salas"', 'data-entrar-zona=', 'class="d3c-cartao d3c-lojas"', 'data-d3-loja=', 'class="d3c-cartao d3c-modulos"']) assert.ok(c.includes(t), t);
+  // V2 (prancha V2-M-Centro, 16/11/2026): o mesmo painel no esqueleto novo (tiras, cartão da cena, consulta no vidro).
+  for (const t of ['class="d3c-mapa d3m-f-cena"', 'data-d3-cheio>Entrar no mapa', "tira('Online agora'", "tira('Em salas'", "tira('Lojas com atraso'", "tira('Peças em aberto'", 'aria-label="Prédio · elevador"', 'aria-label="Online agora"', 'aria-label="Salas"', 'data-entrar-zona=', 'aria-label="Lojas por atraso"', 'data-d3-loja=', 'data-loja-apertada', 'data-filtro-cidade=', 'data-busca-loja', 'data-vista="cidade"', 'data-vista="predio"']) assert.ok(c.includes(t), t);
+  assert.ok(!c.includes('d3c-modulos') && !c.includes('class="d3c-mod"'), 'os oito cartões de módulo saíram do Centro: já estão no menu');
   assert.ok(js.includes("set('--d3c-mx', r.left)"), 'o mapa desenha no retângulo do cartão');
   assert.ok(css.includes('body.mundo.d3c-painel #mundo > :is(canvas,.mundo-rotulos,.mundo-vinheta){inset:auto;left:var(--d3c-mx'));
   const s = trecho('  function pintarSalaD3(', '  async function abrirMinhaSala(');
