@@ -71,62 +71,87 @@ function telaDeAutomacoes({ admin = true, regras } = {}) {
 }
 const regra = (id, nome, ativa, total, mes) => ({ id, nome, ativa, gatilho: { tipo: 'status', para: 'aprovado' }, condicao: null, acoes: [{ tipo: 'grupo', para: 'saida' }], execucoes_total: total, execucoes_30_dias: mes, ultima_em: '2026-11-12T10:00:00Z' });
 
-test('Automações: cabeçalho com Regras/Falhas, Mais e Nova regra; fala do agente, três números, "Pede ação" e regras em linha', () => {
+test('Automações (prancha V2-M-Automacoes): título no vidro com Nova regra, uma folha com Regras e Falhas, três números, a lista em linha e a consulta com o laranja, o que a regra faz e o que pede ação', () => {
   const { c, no, raiz } = telaDeAutomacoes({ regras: [regra(1, 'Aprovado vira Saída', true, 88, 61), regra(2, 'Outra', true, 5, 3), regra(3, 'Parada de vez', false, 12, 0), regra(4, 'Quarta', true, 1, 1), regra(5, 'Quinta', true, 1, 1), regra(6, 'Sexta', true, 1, 1)] });
-  assert.match(raiz.innerHTML, /<h2>Automações<\/h2><div class="v2g-seg ar-abas" role="radiogroup"/);
-  // Acabamento 15/11: "Nova regra" branca (preta ficava igual à aba selecionada); o único laranja cheio é o bloco de ação.
-  assert.match(raiz.innerHTML, /class="v2g-btn auto-novo" onclick="editarAutomacao\(null\)">.*Nova regra</);
-  assert.doesNotMatch(raiz.innerHTML, /class="v2g-btn p/, 'nenhum botão laranja fora do bloco de ação');
-  assert.ok(raiz.innerHTML.indexOf('id="auto-fala"') < raiz.innerHTML.indexOf('id="auto-kpis"') && raiz.innerHTML.indexOf('id="auto-kpis"') < raiz.innerHTML.indexOf('id="auto-pede"'), 'ação, números, pede ação');
-  // Sem falha não há ação: a frase do agente vai na nota branca.
-  assert.match(no('auto-fala').innerHTML, /class="d3-nota"[\s\S]*5 regras ligadas fizeram 67 ações em 30 dias\./);
-  assert.equal((no('auto-kpis').innerHTML.match(/class="d3-num[ "]/g) || []).length, 4, 'quatro números');
-  assert.match(no('auto-kpis').innerHTML, /Regras ligadas<\/span><b class="d3-num-v">5<small> \/ 6<\/small><\/b><span class="d3-barra" style="--v:83%">/);
-  assert.match(no('auto-kpis').innerHTML, /Por tipo · 30 dias/);
-  assert.match(no('auto-pede').innerHTML, /Conferindo as falhas…|Desligada/);
+  assert.match(raiz.innerHTML, /<div class="d3m-e-tela d3m-e-auto" data-vazia="false">/);
+  assert.match(raiz.innerHTML, /<span class="d3m-e-h" role="heading" aria-level="2">Automações<\/span><span class="d3m-e-sub">regras que movem as demandas sozinhas · 6 regras, 5 ligadas<\/span>/);
+  assert.match(raiz.innerHTML, /<div class="d3m-e-cab"><b>Regras<\/b><div class="d3m-e-seg ar-abas" role="radiogroup"/, 'Regras e Falhas no alternador da cabeça da folha');
+  // Prancha: "Nova regra" é a pastilha branca do topo; o único laranja cheio é o cartão do agente, quando há falha.
+  assert.match(raiz.innerHTML, /class="d3v-btn d3m-e-claro auto-novo" onclick="editarAutomacao\(null\)">.*Nova regra</);
+  assert.doesNotMatch(raiz.innerHTML, /class="v2g-btn p/, 'nenhum botão laranja fora do cartão de ação');
+  const pos = (id) => raiz.innerHTML.indexOf(`id="${id}"`);
+  assert.ok(pos('auto-kpis') > 0 && pos('auto-kpis') < pos('auto-regras-lista') && pos('auto-regras-lista') < pos('auto-fala') && pos('auto-fala') < pos('auto-tipos') && pos('auto-tipos') < pos('auto-pede'), 'a folha (números e lista) e depois a consulta (ação, o que a regra faz, pede ação)');
+  // Sem falha não há ação: o laranja não aparece.
+  assert.equal(no('auto-fala').hidden, true); assert.equal(no('auto-fala').innerHTML, '');
+  assert.equal((no('auto-kpis').innerHTML.match(/class="d3m-e-au-num[ "]/g) || []).length, 3, 'três números');
+  assert.match(no('auto-kpis').innerHTML, /<b>5<small class="d3m-e-au-de"> \/ 6<\/small><\/b><span>Regras ligadas<\/span>/);
+  assert.match(no('auto-kpis').innerHTML, /<b>67<\/b><span>Ações em 30 dias<\/span>/);
+  // O que uma regra pode fazer: as três linhas da prancha, com quantas vezes cada tipo rodou em 30 dias.
+  assert.match(no('auto-tipos').innerHTML, /<b>Mover<\/b> · trocar o grupo ou o status da peça<\/span><b class="d3m-vn">67<\/b>[\s\S]*<b>Atribuir<\/b> · dar um dono<\/span><b class="d3m-vn">0<\/b>[\s\S]*<b>Avisar<\/b> · no grupo ou a uma pessoa<\/span><b class="d3m-vn">0<\/b>/);
   const lista = no('auto-regras-lista').innerHTML;
-  assert.equal((lista.match(/class="v2-abre v2r-regra/g) || []).length, 6, 'a lista inteira, como o quadro D3-Automacoes (até 8 na frente)');
+  assert.equal((lista.match(/class="v2-abre d3m-e-au-regra/g) || []).length, 6, 'a lista inteira (até 8 na frente)');
   assert.doesNotMatch(lista, /regras recolhidas/); assert.match(lista, /clicar na regra abre e edita/);
-  assert.match(lista, /role="switch" aria-checked="true"[\s\S]*?<em>Quando<\/em> o status virar “aprovado”[\s\S]*?<em>então<\/em> move para Saída de Publicações<\/span><\/button>[\s\S]*?<span class="v2g-sub v2r-n">88 ações<\/span>[\s\S]*?aria-label="Testar regra Aprovado vira Saída"[^>]*>Testar</);
+  assert.match(lista, /role="switch" aria-checked="true"[\s\S]*?<em class="d3m-e-au-q">Quando<\/em> o status virar “aprovado”[\s\S]*?<em class="d3m-e-au-q">então<\/em> move para Saída de Publicações<\/span><\/button>[\s\S]*?<span class="d3m-e-au-n">88 ações<\/span>[\s\S]*?aria-label="Testar regra Aprovado vira Saída"[^>]*>Testar</);
   assert.match(no('auto-regras-chips').innerHTML, /Todas <b>6<\/b>[\s\S]*Ligadas <b>5<\/b>[\s\S]*Desligadas <b>1<\/b>[\s\S]*>Filtros</);
+  // Pede ação: a regra desligada, com a saída na linha.
+  assert.match(no('auto-pede').innerHTML, /<span class="d3m-e-au-selo">Desligada<\/span> <b>Parada de vez<\/b> · chegou a rodar 12 vezes<\/p><button type="button" class="d3v-btn s vidro" onclick="alternarAutomacao\(3\)">Ligar</);
 
-  // As falhas chegam: a fala, o número e o "Pede ação" passam a contar as pendentes, com as duas saídas na linha.
+  // As falhas chegam: o laranja do agente aparece com a frase e as duas saídas, e o número passa a contar as pendentes.
   c.aoLerFalhasDeAutomacoes([{ estado: 'pendente', item: 'vybe:1', ocorrencia: '7', titulo: 'Post <b>', motivo: 'sem responsável' }, { estado: 'resolvida', item: 'vybe:2', titulo: 'x', motivo: 'y' }]);
-  assert.match(no('auto-fala').innerHTML, /1 falha espera alguém: sem responsável\./);
-  assert.match(no('auto-fala').innerHTML, /class="d3-acao-btn" onclick="trocarAbaAutomacoes\('falhas'\)">Ver a falha</);
-  assert.match(no('auto-kpis').innerHTML, /class="d3-num r"><span class="d3-num-rot">Falhas<\/span><b class="d3-num-v">1<\/b>/);
-  const pede = no('auto-pede').innerHTML;
-  assert.match(pede, /<span class="v2g-pill r">Falhou<\/span><p><b>Post &lt;b&gt;<\/b> · sem responsável<\/p>/, 'o texto da falha não vira HTML');
-  assert.match(pede, /diagnosticarAutomacao\(this\.dataset\.item,this\)">Ver diagnóstico<[\s\S]*retomarEncaminhamentoDaPeca\(this\.dataset\.item,this\.dataset\.evento,this\)">Tentar de novo</);
-  assert.match(pede, /<span class="v2g-pill a">Desligada<\/span><p><b>Parada de vez<\/b> · chegou a rodar 12 vezes<\/p>\s*<button type="button" class="v2g-btn s" onclick="alternarAutomacao\(3\)">Ligar</);
+  const fala = no('auto-fala').innerHTML;
+  assert.equal(no('auto-fala').hidden, false);
+  assert.match(fala, /class="d3m-laranja d3m-e-au-lar"[\s\S]*Cícero · Automação[\s\S]*<b class="d3m-lar-num">1<\/b><span class="d3-acao-frase">1 falha espera alguém: sem responsável\.<\/span><small class="d3m-lar-sub">Post &lt;b&gt;<\/small>/, 'o texto da falha não vira HTML');
+  assert.match(fala, /retomarEncaminhamentoDaPeca\(this\.dataset\.item,this\.dataset\.evento,this\)">Tentar de novo<[\s\S]*diagnosticarAutomacao\(this\.dataset\.item,this\)">Ver diagnóstico</);
+  assert.match(no('auto-kpis').innerHTML, /class="d3m-e-au-num r"><b>1<\/b><span>Falhas<\/span>/);
+  // Várias falhas: as do mesmo motivo contam juntas e "Ver as N" leva à aba Falhas.
+  c.aoLerFalhasDeAutomacoes([1, 2, 3].map((i) => ({ estado: 'pendente', item: `vybe:${i}`, ocorrencia: String(i), titulo: `Peça ${i}`, motivo: i < 3 ? 'sem responsável' : 'grupo sumiu' })));
+  assert.match(no('auto-fala').innerHTML, /3 falhas esperam alguém\.<\/span><small class="d3m-lar-sub">2 falhas · sem responsável; 1 falha · grupo sumiu<\/small>[\s\S]*onclick="trocarAbaAutomacoes\('falhas'\)">Ver as 3</);
 
   // Busca e fichas repintam só a lista (a busca não perde o foco).
   c.buscarRegras('parada');
-  assert.equal((no('auto-regras-lista').innerHTML.match(/class="v2-abre v2r-regra/g) || []).length, 1);
+  assert.equal((no('auto-regras-lista').innerHTML.match(/class="v2-abre d3m-e-au-regra/g) || []).length, 1);
   c.buscarRegras(''); c.filtrarRegras('ligada');
-  assert.equal((no('auto-regras-lista').innerHTML.match(/class="v2-abre v2r-regra/g) || []).length, 5, 'recorte mostra todas as que casam');
+  assert.equal((no('auto-regras-lista').innerHTML.match(/class="v2-abre d3m-e-au-regra/g) || []).length, 5, 'recorte mostra todas as que casam');
+  c.buscarRegras('nada-que-exista');
+  assert.match(no('auto-regras-lista').innerHTML, /Nenhuma regra neste recorte[\s\S]*onclick="limparRecorteDeRegras\(\)">Ver todas</);
 });
 
-test('Automações: sem regra, uma frase e o botão; quem não administra não liga, não testa e não cria', () => {
-  const vazia = telaDeAutomacoes({ regras: [] }).raiz.innerHTML;
-  // Acabamento 15/11: a ação do vazio mora no bloco laranja; o "Nova regra" do topo não repete.
-  assert.match(vazia, /Nenhuma regra ainda\. Uma regra move, atribui ou avisa sozinha quando uma peça muda\.<\/span><button type="button" class="d3-acao-btn" onclick="editarAutomacao\(null\)">Criar a primeira regra<\/button>/);
-  assert.doesNotMatch(vazia, /Nova regra<\/button>/);
-  assert.doesNotMatch(vazia, /id="auto-kpis"|id="auto-pede"/);
+test('Automações: sem regra, o vazio da prancha com os três passos; quem não administra não liga, não testa e não cria', () => {
+  const tela = telaDeAutomacoes({ regras: [] }), vazia = tela.raiz.innerHTML;
+  assert.match(vazia, /<div class="d3m-e-tela d3m-e-auto" data-vazia="true">/);
+  assert.match(vazia, /nenhuma regra ainda<\/span>/);
+  assert.match(vazia, /<b>Nenhuma regra ainda<\/b><span>Uma regra move, atribui ou avisa sozinha quando uma peça muda\.<\/span><button type="button" class="d3m-e-estado-btn" onclick="editarAutomacao\(null\)">Criar a primeira regra<\/button>/);
+  // Prancha: o topo mantém "Nova regra" e o pé da folha ensina as três partes de uma regra.
+  assert.match(vazia, /class="d3v-btn d3m-e-claro auto-novo"/);
+  assert.match(vazia, /class="d3m-e-au-passos"[\s\S]*<b>Quando<\/b>[\s\S]*<b>Se<\/b>[\s\S]*<b>Então<\/b>/);
+  assert.doesNotMatch(vazia, /id="auto-kpis"|id="auto-regras-lista"|id="auto-fala"|data-aba-botao="registro"/);
+  assert.match(tela.no('auto-tipos').innerHTML, /<b>Mover<\/b>[\s\S]*<b>Atribuir<\/b>[\s\S]*<b>Avisar<\/b>/);
+  assert.doesNotMatch(tela.no('auto-tipos').innerHTML, /d3m-vn/, 'sem regra não há contagem');
+  assert.match(tela.no('auto-pede').innerHTML, /Conferindo as falhas…/);
+  tela.c.aoLerFalhasDeAutomacoes([]);
+  assert.match(tela.no('auto-pede').innerHTML, /Quando uma regra não consegue rodar, a falha aparece aqui com o motivo, e nada é movido\./);
+  // Recalcular e Sincronizar (o "Mais" de antes) moram em "Manutenção", no fim da consulta, só para quem administra.
+  assert.match(vazia, /<b>Manutenção<\/b>[\s\S]*recalcularPrioridadesAgora\(this\)[\s\S]*>Recalcular prioridades<[\s\S]*sincronizarRegrasDoSistema\(this\)[\s\S]*>Sincronizar regras do sistema</);
   const { raiz, no } = telaDeAutomacoes({ admin: false, regras: [regra(1, 'Uma', true, 2, 1), regra(2, 'Duas', false, 0, 0)] });
-  assert.doesNotMatch(raiz.innerHTML, /Nova regra|Recalcular prioridades/);
+  assert.doesNotMatch(raiz.innerHTML, /Nova regra|Recalcular prioridades|Manutenção/);
   const lista = no('auto-regras-lista').innerHTML;
   assert.doesNotMatch(lista, /role="switch"|Testar regra|Editar a regra/);
-  assert.match(lista, /<span class="v2g-pill g">Ligada<\/span>[\s\S]*<span class="v2g-pill n">Desligada<\/span>/);
+  assert.match(lista, /<span class="d3m-e-au-pill g">Ligada<\/span>[\s\S]*<span class="d3m-e-au-pill n">Desligada<\/span>/);
   assert.match(lista, /clicar na regra abre<\/p>/);
+  assert.doesNotMatch(no('auto-pede').innerHTML, />Ligar</, 'quem não administra não liga');
+  const semAdmin = telaDeAutomacoes({ admin: false, regras: [] }).raiz.innerHTML;
+  assert.doesNotMatch(semAdmin, /Criar a primeira regra|Nova regra/);
+  assert.match(semAdmin, /Quando quem administra criar uma, ela aparece aqui\./);
 });
 
-test('Automações: o registro vira uma linha por ação, com o selo do que a regra fez', () => {
-  const { c, no } = telaDeAutomacoes({ regras: [regra(1, 'Aprovado vira Saída', true, 88, 61)] });
+test('Automações: o registro vira uma linha por ação, com o selo do que a regra fez, na aba Últimas ações', () => {
+  const { c, no, raiz } = telaDeAutomacoes({ regras: [regra(1, 'Aprovado vira Saída', true, 88, 61)] });
+  assert.match(raiz.innerHTML, /data-aba-botao="registro" aria-checked="false" onclick="trocarAbaAutomacoes\('registro'\)">Últimas ações</);
+  assert.ok(raiz.innerHTML.indexOf('data-aba="regras"') < raiz.innerHTML.indexOf('data-aba="falhas"') && raiz.innerHTML.indexOf('data-aba="falhas"') < raiz.innerHTML.indexOf('data-aba="registro"'));
   c.execs = [['grupo → saida'], ['responsáveis replace'], ['notificação'], ['status → aprovado'], [], ['grupo → saida'], ['notificação'], ['grupo → saida']].map((feitas, i) => ({ em: '2026-11-10T12:00:00Z', titulo: 'Peça ' + i, automacao: 'Aprovado vira Saída', feitas, evento: { tipo: 'status', de: 'a', para: 'b' } }));
   vm.runInContext('EXECUCOES = execs; pintarHistorico();', c);
   const h = no('auto-historico').innerHTML;
-  assert.deepEqual([...h.matchAll(/class="v2g-pill \w">(\w+)</g)].map((m) => m[1]), ['Moveu', 'Atribuiu', 'Avisou', 'Mudou', 'Rodou', 'Moveu'], 'seis na frente');
-  assert.match(h, /\+ 2 ações · <a href="#" role="button" class="v2g-link" onclick="mostrarHistoricoInteiro\(true\);return false">mostrar</);
+  assert.deepEqual([...h.matchAll(/class="d3m-e-au-selo \w">(\w+)</g)].map((m) => m[1]), ['Moveu', 'Atribuiu', 'Avisou', 'Mudou', 'Rodou', 'Moveu'], 'seis na frente');
+  assert.match(h, /\+ 2 ações · <a href="#" role="button" class="d3m-e-au-elo" onclick="mostrarHistoricoInteiro\(true\);return false">mostrar</);
   assert.match(no('auto-regras-lista').innerHTML, /A última ação foi em Peça 0,/, 'a regra aberta diz a última ação dela');
 });
