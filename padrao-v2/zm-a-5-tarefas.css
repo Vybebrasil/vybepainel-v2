@@ -1,0 +1,141 @@
+/* MÓDULOS V2 · GRUPO A · MINHAS TAREFAS (prancha V2-M-Minhas-Tarefas, aprovada pelo Paulo em 16/11/2026). O módulo aberto
+   pelo menu lateral, na mesma janela de vidro do Hoje: uma folha só com a fila na ordem do dia (o grupo, o cliente e a
+   peça, a trilha de etapas, o status e a data) e o pé "De olho"; direto no vidro, o laranja com a primeira da fila, o que
+   voltou com ajuste, os compromissos, o WhatsApp e a ordem. As peças .d3m-a-* comuns (folha, cabeça, pé, seletor, filtro)
+   vêm de zm-a-1-producao.css; a trilha (.d3m-trilha) e as linhas de consulta (.d3m-cons, .d3m-vlin), de z-direcao.css. */
+#vv-hoje .d3m-a-mt .d3q-main > .d3m-a-mt-folha{flex:1 1 0;min-height:0}
+#vv-hoje .d3m-a-mt .d3m-a-cab > h3{font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3m-a-mt .d3m-a-cab > h3 > span + span{font-weight:400;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-mt .d3m-a-seg > button,#vv-hoje .d3m-a-mt .d3m-a-filtro{flex:none;border:0;box-shadow:none;color:var(--d3-tinta);-webkit-text-fill-color:currentColor}
+#vv-hoje .d3m-a-mt .d3m-a-seg > button{background:none}
+#vv-hoje .d3m-a-mt .d3m-a-seg > button:hover{background:var(--d3-veu)}
+#vv-hoje .d3m-a-mt .d3m-a-seg > button[aria-checked="true"]{background:var(--d3-veu-forte);font-weight:600}
+#vv-hoje .d3m-a-mt .d3m-a-seg > button > b{font-weight:400;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+#vv-hoje .d3m-a-mt .d3m-a-seg > button > b.r{color:var(--d3-perigo);-webkit-text-fill-color:var(--d3-perigo)}
+#vv-hoje .d3m-a-mt .d3m-a-filtro{max-width:none;overflow:visible;background:none;font-weight:500}
+#vv-hoje .d3m-a-mt .d3m-a-filtro:hover{background:var(--d3-veu)}
+#vv-hoje .d3m-a-mt .d3m-a-filtro[aria-checked="true"]{background:var(--d3-veu-forte);font-weight:600}
+#vv-hoje .d3m-a-mt .d3m-a-mt-busca{appearance:none;flex:0 1 132px;min-width:72px;height:26px;margin:0;padding:0 9px;box-sizing:border-box;border:0;border-radius:7px;background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-busca::placeholder{color:var(--d3-rotulo);opacity:1}
+#vv-hoje .d3m-a-mt .d3m-a-mt-busca:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+/* A linha: grupo (60), foto (28), cliente e peça, a trilha (104), o status (128) e a data (104), como na prancha. */
+#vv-hoje .d3m-a-mt-cols,#vv-hoje .d3m-a-mt-lin{display:grid;grid-template-columns:60px 28px minmax(0,1fr) 112px 128px 104px;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
+#vv-hoje .d3m-a-mt-cols{flex:none;height:24px;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#vv-hoje .d3m-a-mt-cols > span:last-child{text-align:right}
+#vv-hoje .d3m-a-mt .v2-lista.d3m-a-mt-lista{flex:1 1 0;display:flex;flex-direction:column;min-height:0;padding:0;border-radius:0;background:none;box-shadow:none;overflow-y:auto;scrollbar-width:thin}
+#vv-hoje .d3m-a-mt .d3m-a-mt-lista > *{flex:none}
+#vv-hoje .d3m-a-mt .d3m-a-mt-lista > .d3v-estado{flex:1 1 auto;border-top:1px solid var(--d3-divisa)}
+#vv-hoje .d3m-a-mt .v2-linha.d3m-a-mt-l{border-top:1px solid var(--d3-divisa)}
+#vv-hoje .d3m-a-mt-lin{height:44px;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .d3m-a-mt-l[aria-expanded="true"] > .d3m-a-mt-lin,#vv-hoje .d3m-a-mt-lin:hover{background:var(--d3m-a-veu-fraco)}
+#vv-hoje .d3m-a-mt-q{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
+#vv-hoje .d3m-a-mt-q.r{color:var(--d3-perigo)}
+#vv-hoje .d3m-a-mt-q.a{color:var(--d3-ambar)}
+#vv-hoje .d3m-a-mt-q.g{color:var(--d3-pronto)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-nome{appearance:none;display:block;min-width:0;height:32px;margin:0;padding:0;border:0;border-radius:6px;background:none;box-shadow:none;color:var(--d3-tinta);-webkit-text-fill-color:currentColor;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#vv-hoje .d3m-a-mt .d3m-a-mt-nome:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#vv-hoje .d3m-a-mt-nome b{font-weight:600}
+#vv-hoje .d3m-a-mt-nome b + span{color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-mt-l.feita .d3m-a-mt-nome .v2-risca.feita{color:var(--d3-rotulo)}
+#vv-hoje .d3m-a-mt-tr{display:flex;align-items:center}
+#vv-hoje .d3m-a-mt-st{display:flex;align-items:center;min-width:0;font-size:var(--d3-fs-apoio)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-st .vv-demanda-status{appearance:none;display:inline-flex;align-items:center;max-width:100%;height:26px;margin:0 0 0 -6px;padding:0 6px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);cursor:pointer}
+#vv-hoje .d3m-a-mt .d3m-a-mt-st .vv-demanda-status:hover{background:var(--d3-veu)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-st .vv-demanda-status:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+#vv-hoje .d3m-a-mt-st .d3v-st{min-width:0;font-size:var(--d3-fs-apoio);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-hoje .d3m-a-mt-dt{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+#vv-hoje .d3m-a-mt-dt.r{color:var(--d3-perigo)}
+#vv-hoje .d3m-a-mt-dt.a{color:var(--d3-ambar)}
+#vv-hoje .d3m-a-mt-dt.g{color:var(--d3-pronto)}
+#vv-hoje .d3m-a-mt-dt > [data-editar-data]{border-radius:4px;cursor:pointer}
+#vv-hoje .d3m-a-mt-dt > [data-editar-data]:hover{text-decoration:underline;text-underline-offset:3px}
+#vv-hoje .d3m-a-mt-grp{display:flex;align-items:center;gap:8px;height:30px;padding:0 16px;border-top:1px solid var(--d3-divisa);background:var(--d3m-a-veu-fraco);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vv-hoje .d3m-a-mt-grp > b{font-weight:400;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+/* A linha aberta no lugar: as etapas com nome, o porquê, os anexos e os botões (Marcar pronta, Passar bastão, Abrir). */
+#vv-hoje .d3m-a-mt .v2t-det.d3m-a-mt-det{margin:0 16px 12px 114px;padding:12px 14px;border-radius:12px;background:var(--d3-veu)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det :is(.v2t-etapa,.v2t-det-linha){font-size:var(--d3-fs-apoio);color:var(--d3-tinta)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det .v2t-etapa.agora{font-weight:600}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det .v2t-etapa.ok > i{background:var(--d3-tinta)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det .v2t-etapa.agora > i{box-shadow:inset 0 0 0 2px var(--d3-acao)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det .d3h-btn{height:30px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det .d3h-btn.k{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font-weight:600}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det .focus-brief-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:none}
+/* O pé "De olho": cada número filtra a lista. */
+#vv-hoje .d3m-a-mt .d3m-a-mt-olho{appearance:none;flex:none;display:inline-flex;align-items:baseline;gap:5px;height:24px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#vv-hoje .d3m-a-mt .d3m-a-mt-olho:hover{color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-olho:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+#vv-hoje .d3m-a-mt-pe > span:first-child{margin-right:14px}
+#vv-hoje .d3m-a-mt-pe > span:first-child + .d3m-a-mt-olho{padding-left:0;border-left:0}
+#vv-hoje .d3m-a-mt-olho > b{font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#vv-hoje .d3m-a-mt-olho > b.r{color:var(--d3-perigo);-webkit-text-fill-color:var(--d3-perigo)}
+#vv-hoje .d3m-a-mt-olho > b.g{color:var(--d3-pronto);-webkit-text-fill-color:var(--d3-pronto)}
+#vv-hoje .d3m-a-mt .d3m-a-mt-pe > .d3m-a-mt-todas{margin-left:auto}
+/* A coluna de consulta, direto no vidro: começa na altura da folha (o topo fica para os botões da barra). */
+#vv-hoje .d3m-a-mt > .d3m-a-mt-lado{gap:12px;padding-top:64px}
+#vv-hoje .d3m-a-mt-lado > .d3v-laranja{min-height:216px}
+#vv-hoje .d3m-a-mt-lado > .d3v-laranja .d3-acao-btn.d3v-veu{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+#vv-hoje .d3m-a-mt-lado > .d3v-laranja .d3-acao-btn.d3v-veu:hover{background:rgba(255,255,255,.18)}
+#vv-hoje .d3m-a-mt-lado .d3m-cons-cab > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-mt-lado .d3m-cons-cab > span{color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado)}
+#vv-hoje .d3m-a-mt-lado .d3m-vlin{height:40px;border:0;box-shadow:none;color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-mt-lado .d3m-vlin > span{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--d3-fume-apagado);-webkit-text-fill-color:var(--d3-fume-apagado)}
+#vv-hoje .d3m-a-mt-lado .d3m-vlin > span > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-mt-lado .d3m-vlin > .d3v-foto{width:22px;height:22px;border-radius:7px;font-size:9px}
+#vv-hoje .d3m-a-mt-lado .d3m-vlin > i.d3v-foto{background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+#vv-hoje .d3m-a-mt-lado .d3m-vlin > svg{flex:none;width:14px;height:14px;fill:none;stroke:var(--d3-fume-apagado);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#vv-hoje .d3m-a-mt-lado .d3m-cons > .d3h-mais{align-self:flex-start;color:var(--d3-fume-texto)}
+/* Para a coluna caber sem rolar: dois compromissos e uma conversa à vista (o resto fica no "abrir" e no número da cabeça);
+   em tela alta, três e duas. */
+#vv-hoje .d3m-a-mt-lado .d3h-agenda .d3h-ag:nth-of-type(n+3),#vv-hoje .d3m-a-mt-lado .d3h-zapc .d3h-zap:nth-of-type(n+2){display:none}
+@media (min-height:1000px){
+  #vv-hoje .d3m-a-mt-lado .d3h-agenda .d3h-ag:nth-of-type(3),#vv-hoje .d3m-a-mt-lado .d3h-zapc .d3h-zap:nth-of-type(2){display:flex}
+}
+/* Telas baixas (1366 × 768): o laranja um degrau menor, para a coluna caber sem rolar. */
+@media (max-height:800px){
+  #vv-hoje .d3m-a-mt-lado > .d3v-laranja{min-height:176px}
+  #vv-hoje .d3m-a-mt > .d3m-a-mt-lado{gap:10px}
+  #vv-hoje .d3m-a-mt-lado .d3m-vlin{height:36px}
+  #vv-hoje .d3m-a-mt-lado .d3m-cons > .d3m-vlin:nth-of-type(n+2){display:none}
+}
+/* Janela estreita: a frase de apoio do título sai antes de apertar os filtros. */
+@media (max-width:1320px){
+  #vv-hoje .d3m-a-mt .d3m-a-cab > h3 > span + span{display:none}
+}
+/* Uma coluna: a consulta desce para baixo da folha, que deixa de esticar. */
+@media (max-width:1180px){
+  #vv-hoje .d3m-a-mt .d3q-main > .d3m-a-mt-folha{flex:none}
+  #vv-hoje .d3m-a-mt .v2-lista.d3m-a-mt-lista{flex:none;overflow:visible}
+  #vv-hoje .d3m-a-mt > .d3m-a-mt-lado{padding-top:0}
+}
+/* Celular: o laranja primeiro, depois a folha e a consulta; a linha em dois andares (a peça em cima; a trilha, o status
+   e a data embaixo) e os filtros rolam de lado dentro da cabeça. */
+@media (max-width:900px){
+  #vv-hoje.d3h-tela > .d3q.d3m-a-mt{display:flex;flex-direction:column;gap:12px}
+  #vv-hoje .d3m-a-mt > .d3q-main,#vv-hoje .d3m-a-mt > .d3m-a-mt-lado{display:contents}
+  #vv-hoje .d3m-a-mt .d3h-topo{order:0}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-lado > .d3v-laranja{order:1;min-height:0}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-folha{order:2}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-lado > :not(.d3v-laranja){order:3}
+  #vv-hoje .d3m-a-mt .d3m-a-cab{flex-wrap:wrap;gap:8px;padding:10px 14px}
+  #vv-hoje .d3m-a-mt .d3m-a-cab > h3{flex:1 1 100%}
+  #vv-hoje .d3m-a-mt .d3m-a-cab > h3 > span + span{display:none}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-busca{flex:1 1 120px;height:34px}
+  #vv-hoje .d3m-a-mt .d3m-a-seg{flex:1 1 100%;order:3;min-width:0;overflow-x:auto;scrollbar-width:none}
+  #vv-hoje .d3m-a-mt .d3m-a-seg > button{height:34px}
+  #vv-hoje .d3m-a-mt .d3m-a-div{display:none}
+  #vv-hoje .d3m-a-mt .d3m-a-filtro{height:34px}
+  #vv-hoje .d3m-a-mt-cols{display:none}
+  #vv-hoje .d3m-a-mt-lin{grid-template-columns:28px auto minmax(0,1fr) auto;grid-template-areas:"f n n n" "f t s d";gap:2px 8px;height:auto;min-height:60px;padding:8px 14px}
+  #vv-hoje .d3m-a-mt-lin > .d3m-a-mt-q{display:none}
+  #vv-hoje .d3m-a-mt-lin > .d3v-foto{grid-area:f;align-self:start;margin-top:2px}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-nome{grid-area:n;height:24px}
+  #vv-hoje .d3m-a-mt-tr{grid-area:t}
+  #vv-hoje .d3m-a-mt-tr > .d3m-trilha > i{width:8px}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-st .vv-demanda-status{margin-left:0;padding:0}
+  #vv-hoje .d3m-a-mt-st{grid-area:s}
+  #vv-hoje .d3m-a-mt-dt{grid-area:d}
+  #vv-hoje .d3m-a-mt .v2t-det.d3m-a-mt-det{margin-left:14px;margin-right:14px}
+  #vv-hoje .d3m-a-mt-pe{flex-wrap:wrap;gap:4px 0;padding:8px 14px}
+  #vv-hoje .d3m-a-mt-pe > span:first-child{flex:1 1 100%}
+  #vv-hoje .d3m-a-mt-lado .d3m-vlin{height:44px}
+}
