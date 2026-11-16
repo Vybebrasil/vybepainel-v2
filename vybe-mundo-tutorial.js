@@ -855,12 +855,19 @@
     if (conferePendente) G.clearTimeout?.(conferePendente);
     conferePendente = G.setTimeout?.(() => { conferePendente = null; conferirTela(); }, ms);
   }
+  // Quem está no meio de uma ação (o menu de status ou de responsável, a caixa da troca de status, a gaveta da peça) não
+  // ganha o roteiro por cima. O fundo do passeio é transparente e segura os cliques: o roteiro abria 700 ms depois do
+  // clique que abriu o menu e a escolha seguinte caía no fundo, sem efeito (Reriston, 16/11/2026: "não conseguiu nem
+  // mudar o responsável nem o status"). O roteiro espera a janela fechar e entra depois.
+  const EM_ACAO = ['#status-editor', '#dono-editor', '.status-editor', '#workflow-modal', '#workspace-drawer', '#cartao-rapido', 'dialog[open]'];
+  const pessoaEmAcao = () => Boolean(acharAlvo(EM_ACAO));
   // Chamado depois de cada clique (a tela pode ter mudado) e quando o painel abre. Barato: só procura os seletores `se`.
   function conferirTela() {
     if (!doc?.body || passeio || ajudaAtual || boasVindasAtual || !TELAS.length) return false;
     if (doc.body.classList?.contains('auth-pending')) return false;
     const id = roteiroPendente();
     if (!id) { confereTentativas = 0; return false; }
+    if (pessoaEmAcao()) { agendarConferir(1200); return false; }
     if (iniciar({ passeio: passeioDaTela(id) })) { confereTentativas = 0; return true; }
     // A tela abriu mas ainda não desenhou as partes: confere de novo, até três vezes.
     if (!passeio && confereTentativas < 3) { confereTentativas++; agendarConferir(900); } else confereTentativas = 0;
