@@ -95,3 +95,22 @@ test('Notas pequena: vidro fumê, contagem de notas e cadernos embaixo do títul
   assert.match(notas, /janela\.className = 'notas-janela d3-tema'/);
 });
 
+test('Aparência: os quatro temas ligados ao VybeTema, a barra do vidro com as pontas e as chaves na folha', () => {
+  const ap = ler('vybe-appearance.js');
+  assert.match(ap, /\[\['fume', 'Fumê', 'o padrão'\], \['claro', 'Claro', 'luz de manhã'\], \['escuro', 'Escuro', 'para a noite'\], \['auto', 'Auto', 'segue o sistema'\]\]/);
+  assert.match(ap, /if \(r\?\.checked\) window\.VybeTema\?\.trocar\?\.\(r\.value\)/);
+  assert.match(ap, /document\.addEventListener\('vybe:tema', marcarTema\)/);
+  assert.match(ap, /<small><span>mais transparente · 65%<\/span><span>mais sólido · 100%<\/span><\/small>/);
+  assert.match(ap, /<footer class="appearance-pe"><p>O tema também troca no menu da sua conta\.<\/p><button class="appearance-done" value="done">Concluído<\/button><\/footer>/);
+  // ids e o gatilho de sempre
+  for (const t of ['id="appearance-glass"', 'id="appearance-value"', 'id="appearance-motion"', "closest('[data-open-appearance]')"]) assert.ok(ap.includes(t), t);
+  const mundo = ler('vybe-mundo.js');
+  assert.match(mundo, /const folha = form\.querySelector\('\.appearance-folha'\);/);
+  assert.match(mundo, /<b>Mundo voxel nos módulos<\/b><small>Irecê e o Prédio da Vybe · precisa de WebGL<\/small>/);
+  const css = ler('padrao-v2/zm-r-a-4-aparencia.css');
+  assert.match(css, /\.appearance-temas\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.appearance-tema:has\(> input:checked\) \.appearance-previa\{box-shadow:0 0 0 2px var\(--d3-folha\),0 0 0 4px var\(--d3-tinta\)\}/);
+  const legado = ler('vybe-mundo.css');
+  assert.match(legado, /dialog\.appearance-dialog:not\(#vv-x\)\{background:var\(--d3-fume-forte\)!important/);
+});
+

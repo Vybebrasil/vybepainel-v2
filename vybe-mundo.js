@@ -6238,8 +6238,10 @@
     if (form && !form.querySelector('#appearance-mundo')) {
       const rotulo = document.createElement('label');
       rotulo.className = 'appearance-check';
-      rotulo.innerHTML = `<input id="appearance-mundo" type="checkbox"${semWebGL ? ' disabled' : ''}>Mundo voxel na tela de módulos (Irecê e o Prédio da Vybe)`;
-      form.querySelector('.appearance-done')?.before(rotulo);
+      // Prancha V2-R-Aparencia: a chave entra na folha, com nome e frase, como Reduzir movimento.
+      rotulo.innerHTML = `<span class="appearance-check-txt"><b>Mundo voxel nos módulos</b><small>Irecê e o Prédio da Vybe · precisa de WebGL</small></span><input id="appearance-mundo" type="checkbox" role="switch"${semWebGL ? ' disabled' : ''}>`;
+      const folha = form.querySelector('.appearance-folha');
+      if (folha) folha.append(rotulo); else form.querySelector('.appearance-done')?.before(rotulo);
       const caixa = rotulo.querySelector('input');
       document.addEventListener('click', (e) => { if (e.target.closest('[data-open-appearance]')) caixa.checked = ligado; });
       caixa.addEventListener('change', () => ligar(caixa.checked));

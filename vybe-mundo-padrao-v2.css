@@ -17788,6 +17788,82 @@ body.mundo #fc-overlay .nd-fala{border-radius:12px;background:var(--d3-agente-ve
   #v2-notas.v2nt{width:auto}
 }
 
+/* ===== padrao-v2/zm-r-a-4-aparencia.css ===== */
+/* ===================================================================================================================
+   V2 · R · APARÊNCIA (prancha V2-R-Aparencia, 19/11/2026). A janela (dialog.appearance-dialog) vira a casca V2: vidro
+   fumê de canto 20 com o título de 20 e a frase; numa folha de canto 12 os quatro temas em miniatura (Fumê, Claro,
+   Escuro e Auto, ligados ao window.VybeTema; o escolhido com o contorno e o ✓), a barra do Vidro com o valor à direita
+   e as pontas embaixo, e as chaves (Reduzir movimento, Mundo voxel) em linhas com nome e frase; no pé, no vidro, a dica
+   e Concluído no botão claro. As regras antigas com !important (vybe-mundo.css) leem os tokens e as variáveis --ap-cor e
+   --ap-apoio, postas aqui por peça; sem !important novo.
+   =================================================================================================================== */
+dialog.appearance-dialog.appearance-dialog{width:min(560px,calc(100vw - 32px));padding:16px;box-sizing:border-box}
+dialog.appearance-dialog.appearance-dialog form{gap:12px}
+dialog.appearance-dialog.appearance-dialog > form > header{--ap-cor:var(--d3-fume-texto);--ap-apoio:var(--d3-fume-apagado);gap:12px;min-height:40px}
+dialog.appearance-dialog.appearance-dialog .appearance-nome{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+dialog.appearance-dialog.appearance-dialog h2{margin:0;font:600 20px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em}
+dialog.appearance-dialog.appearance-dialog .appearance-nome small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog header button{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:var(--d3-r-botao);font:400 18px/1 var(--vv-texto,Inter,sans-serif);cursor:pointer}
+dialog.appearance-dialog.appearance-dialog header button:hover{background:var(--d3-fume-borda)}
+dialog.appearance-dialog.appearance-dialog header button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* A folha. */
+dialog.appearance-dialog.appearance-dialog .appearance-folha{display:flex;flex-direction:column;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta);overflow:hidden}
+
+/* Os quatro temas. */
+dialog.appearance-dialog.appearance-dialog .appearance-temas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0;padding:14px 14px 16px;border:0;border-bottom:1px solid var(--d3-divisa)}
+dialog.appearance-dialog.appearance-dialog .appearance-temas > legend{float:left;grid-column:1 / -1;width:100%;margin:0 0 8px;padding:0;color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-tema{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0;cursor:pointer}
+dialog.appearance-dialog.appearance-dialog .appearance-tema > input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+dialog.appearance-dialog.appearance-dialog .appearance-tema > b{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font:500 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-tema > small{font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-tema:has(> input:checked) > b::after{content:"✓";font-size:var(--d3-fs-apoio)}
+dialog.appearance-dialog.appearance-dialog .appearance-previa{position:relative;display:block;aspect-ratio:16 / 9;border-radius:var(--d3-r-botao);background:var(--d3-ambiente);box-shadow:inset 0 0 0 1px var(--d3-divisa);overflow:hidden}
+dialog.appearance-dialog.appearance-dialog .appearance-tema:has(> input:checked) .appearance-previa{box-shadow:0 0 0 2px var(--d3-folha),0 0 0 4px var(--d3-tinta)}
+dialog.appearance-dialog.appearance-dialog .appearance-tema:has(> input:focus-visible) .appearance-previa{outline:2px solid var(--d3-tinta);outline-offset:5px}
+dialog.appearance-dialog.appearance-dialog .appearance-previa i{position:absolute;display:block}
+dialog.appearance-dialog.appearance-dialog .appearance-previa .ap-hud{left:7%;top:12%;bottom:12%;width:8%;border-radius:3px;background:var(--d3-fume)}
+dialog.appearance-dialog.appearance-dialog .appearance-previa .ap-janela{left:20%;right:7%;top:12%;bottom:12%;border-radius:4px;background:var(--d3-fume-forte)}
+dialog.appearance-dialog.appearance-dialog .appearance-previa .ap-janela::before{content:"";position:absolute;left:10%;top:16%;width:34%;height:9%;border-radius:2px;background:var(--d3-fume-texto)}
+dialog.appearance-dialog.appearance-dialog .appearance-previa .ap-folha{left:10%;right:10%;top:40%;bottom:16%;border-radius:3px;background:var(--d3-folha)}
+dialog.appearance-dialog.appearance-dialog .appearance-previa-metade{position:absolute;inset:0;background:var(--d3-ambiente);clip-path:polygon(100% 0,100% 100%,0 100%)}
+
+/* Vidro: rótulo e valor na mesma linha, a barra e as pontas embaixo. */
+dialog.appearance-dialog.appearance-dialog .appearance-field{display:grid;gap:8px;padding:14px;border-bottom:1px solid var(--d3-divisa)}
+dialog.appearance-dialog.appearance-dialog .appearance-range-label{display:flex;justify-content:space-between;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-range-label output{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+dialog.appearance-dialog.appearance-dialog .appearance-field > input[type=range]{width:100%;margin:4px 0;accent-color:var(--d3-tinta)}
+dialog.appearance-dialog.appearance-dialog .appearance-field > small{display:flex;justify-content:space-between;gap:12px;font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-field > small > span{--ap-cor:var(--d3-rotulo)}
+
+/* As chaves: nome e frase à esquerda, o interruptor de 34 à direita. */
+dialog.appearance-dialog.appearance-dialog .appearance-check{display:flex;align-items:center;gap:12px;margin:0;padding:12px 14px;border-top:1px solid var(--d3-divisa);cursor:pointer}
+dialog.appearance-dialog.appearance-dialog .appearance-field + .appearance-check{border-top:0}
+dialog.appearance-dialog.appearance-dialog .appearance-check-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+dialog.appearance-dialog.appearance-dialog .appearance-check-txt b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-check-txt small{font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:34px;height:20px;margin:0;border-radius:999px;background:var(--d3-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-borda);cursor:pointer;transition:background-color .2s}
+dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--d3-cartao);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .2s var(--vv-suave,cubic-bezier(.22,1,.36,1))}
+dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]:checked{background:var(--d3-tinta);box-shadow:none}
+dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]:checked::after{transform:translateX(14px);background:var(--d3-contra)}
+dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
+dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+
+/* Pé no vidro. */
+dialog.appearance-dialog.appearance-dialog .appearance-pe{--ap-apoio:var(--d3-fume-texto2);display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:0;border:0;background:none}
+dialog.appearance-dialog.appearance-dialog .appearance-pe > p{margin:0;font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif)}
+dialog.appearance-dialog.appearance-dialog .appearance-done{flex:none;width:auto;height:34px;min-height:0;padding:0 14px;border-radius:var(--d3-r-botao);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+dialog.appearance-dialog.appearance-dialog .appearance-done:hover{background:var(--d3-fume-texto2)}
+dialog.appearance-dialog.appearance-dialog .appearance-done:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+@media (max-width:520px){
+  dialog.appearance-dialog.appearance-dialog .appearance-temas{grid-template-columns:repeat(2,minmax(0,1fr))}
+  dialog.appearance-dialog.appearance-dialog .appearance-pe{flex-wrap:wrap}
+}
+@media (prefers-reduced-motion:reduce){
+  dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox],dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]::after{transition:none}
+}
+
 /* ===== padrao-v2/zm-r-b-1-saude.css ===== */
 /* ===================================================================================================================
    V2 · R · SAÚDE DA CARTEIRA (prancha V2-R-Saude-Carteira, aprovada pelo Paulo). A janela #vv-carteira já vira vidro fumê

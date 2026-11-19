@@ -2940,14 +2940,14 @@ body.mundo.mundo-modulo.mundo-tela-cheia .vv-canto-modulo{top:17px;right:17px}
 @media (max-width:600px){.vv-canto-modulo{top:12px;right:12px}}
 
 /* ===== Aparência: a janela segue a pele clara (vinha escura do layout antigo) ===== */
-html body.mundo dialog.appearance-dialog:not(#vv-x){background:rgba(255,255,255,.97)!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;backdrop-filter:blur(18px)}
+html body.mundo dialog.appearance-dialog:not(#vv-x){background:var(--d3-fume-forte)!important;color:var(--d3-fume-texto)!important;border:1px solid var(--d3-fume-borda)!important;border-radius:var(--d3-r-janela)!important;box-shadow:0 40px 80px -30px rgba(0,0,0,.85)!important;backdrop-filter:blur(36px) saturate(1.2)}
 html body.mundo dialog.appearance-dialog::backdrop{background:rgba(31,29,26,.28);backdrop-filter:blur(3px)}
-html body.mundo .appearance-dialog :is(h2,label,span,output,strong):not(#vv-x){color:#1F1D1A!important}
-html body.mundo .appearance-dialog :is(p,small):not(#vv-x){color:#6B665E!important}
-html body.mundo .appearance-dialog header button:not(#vv-x){background:#F3EFE8!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
+html body.mundo .appearance-dialog :is(h2,label,span,output,strong):not(#vv-x){color:var(--ap-cor,var(--d3-tinta))!important}
+html body.mundo .appearance-dialog :is(p,small):not(#vv-x){color:var(--ap-apoio,var(--d3-rotulo))!important}
+html body.mundo .appearance-dialog header button:not(#vv-x){background:var(--d3-fume-veu-forte)!important;color:var(--d3-fume-texto)!important;border:0 solid transparent!important}
 html body.mundo .appearance-dialog input[type="range"]{accent-color:var(--d3-tinta,#1F1D1A)}
 html body.mundo .appearance-dialog input[type="checkbox"]{accent-color:var(--d3-tinta,#1F1D1A)}
-html body.mundo .appearance-dialog .appearance-done:not(#vv-x){background:var(--d3-tinta,#1F1D1A)!important;color:#fff!important;border:0!important}
+html body.mundo .appearance-dialog .appearance-done:not(#vv-x){background:var(--d3-fume-texto)!important;color:var(--d3-fume-contra)!important;border:0!important}
 
 /* ===== Briefing aberto: folha branca de verdade (o vidro escuro com o texto já escurecido ficava ilegível) ===== */
 html body.mundo .brief-overlay:not(#vv-x){background:rgba(31,29,26,.32)!important;backdrop-filter:blur(8px) saturate(1.05)!important}

@@ -119,7 +119,7 @@ test('Conversa e Notas: a coluna para acima do dock; a aba Notas abre as Notas (
   assert.ok(conversa.includes("if (aba === 'notas') { abrirNotasNaColuna(); return; }"));
   // Quadro "Janelas do topo" (12/11/2026): no mundo as Notas abrem na janela de 340 embaixo do ícone; a grande é a solta.
   assert.ok(notas.includes("if (notasNoMundo()) return document.getElementById('v2-notas') ? fecharNotas() : abrirNotasNoTopo();"));
-  assert.ok(notas.includes("janela.className = 'notas-janela';") && !notas.includes("' na-coluna'"));
+  assert.ok(notas.includes("janela.className = 'notas-janela d3-tema';") && !notas.includes("' na-coluna'"));
   assert.ok(notas.includes('class="notas-discreto"'), 'renomear e apagar como botões discretos');
   assert.ok(notas.includes("notasIcone('fechar')") && !notas.includes("'⤢'") && !notas.includes("'▣'"), 'ícones desenhados no lugar de ⤢ ▣ —');
   assert.ok(ccss.includes('.vv-conversa-topo{flex:none;display:flex;flex-direction:row;'), 'abas e X na mesma linha');
