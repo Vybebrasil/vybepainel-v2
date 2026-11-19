@@ -78,7 +78,9 @@ test('confirmação: janela só para apagar, Cancelar e Apagar vermelho; confirm
 test('portões e contexto de status: etapas em pílula, botões em pílula, primário preto, erro embaixo do campo', () => {
   const portoes = ler('vybe-portoes.js'), status = ler('vybe-status.js');
   assert.match(portoes, /function etapasDoPortao\(destino\)/);
-  assert.equal((portoes.match(/class="pt-btn k"/g) || []).length >= 3, true);
+  // V2-S (19/11/2026): as três conferências (qualidade, material e visual) saem da mesma janela, com o primário .vbj-btn.k.
+  assert.equal((portoes.match(/class="(?:pt-btn|vbj-btn) k"/g) || []).length >= 2, true);
+  assert.equal((portoes.match(/janelaDeConferenciaHtml\(\{/g) || []).length >= 3, true);
   assert.doesNotMatch(portoes, /class="workflow-primary"/);
   assert.doesNotMatch(portoes, /Validar e continuar →|Confirmar ✓|← Voltar/);
   assert.match(portoes, /document\.getElementById\('conferencia-confirmar'\)/);

@@ -292,9 +292,10 @@ async function editarBriefing(itemId, { valor = null, semBriefing = false, orige
     titulo: semBriefing ? 'Esta atividade ainda não tem briefing'
       : valor !== null ? (existente ? 'Trocar o briefing por este comentário' : 'Usar comentário como briefing')
       : existente ? 'Editar briefing' : 'Adicionar briefing',
-    texto: origem || 'O briefing aparece no botão Briefing da peça e no Modo Foco de quem produz. Fica no log quem salvou e quando.',
+    texto: origem || 'aparece no Briefing da peça e no Modo Foco de quem produz',
+    nota: 'Fica no histórico: quem salvou e quando.',
     confirmar: 'Salvar briefing', larga: true,
-    campo: { valor: atual, dica: 'Objetivo, texto da arte, legenda, referências…', linhas: 18 },
+    campo: { valor: atual, dica: 'Objetivo, texto da arte, legenda, referências…', linhas: 18, rotulo: 'Briefing' },
   });
   if (texto === null || texto === undefined) return;
   if (!String(texto).trim() && !existente) return;

@@ -9101,6 +9101,252 @@ body.mundo #workflow-modal.status-context-dialog{--vybe-orange-soft:var(--d3-tin
   #vv-pessoas .v2pj-ctl{margin-left:0}
 }
 
+/* ===== padrao-v2/s-b.css ===== */
+/* ===================================================================================================================
+   V2 · S · FRENTE B (pranchas V2-S-Datas-da-Peca, V2-S-Conferir-Status, V2-S-Pergunta e V2-S-Previa-Grande, 19/11/2026).
+   Uma janela só, a peça vbj: vidro fumê de canto 20, título de 20 com a frase embaixo (avatar do cliente quando é de uma
+   peça), o fechar de 34, campos brancos de 36 com o rótulo de 12 em cima e o pé com a nota à esquerda e os botões de 34
+   (contorno e o claro) à direita. Ela mora em três casas: o #workflow-modal de sempre (datas, conferência, roteiros e
+   captação), a pergunta do painel (#cli-pergunta) e a prévia grande (#previa-grande). Classes novas (vbj-, vbd-, vbc-,
+   vbp-, vbg-) para não herdar o desenho antigo; a casca do #workflow-modal troca só as variáveis --wm-*. Só tokens --d3-*,
+   sem !important novo: os três temas saem daqui (a classe d3-tema escurece a folha no Escuro).
+   =================================================================================================================== */
+
+/* 1. A casca no #workflow-modal: só as variáveis que a regra antiga (com !important) já lê. */
+body.mundo #workflow-modal.vbj{
+  --wm-fundo:var(--d3-fume-forte);--wm-cor:var(--d3-fume-texto);--wm-pad:16px;--wm-sombra:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);
+  --wm-campo:var(--d3-cartao);--wm-campo-borda:var(--d3-veu-forte);--wm-rolagem:hidden;--wm-largura:min(560px,calc(100vw - 32px));
+  display:flex;flex-direction:column;gap:12px;max-height:calc(100dvh - 120px);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2)}
+body.mundo #workflow-modal.vbj.vbc{--wm-largura:min(968px,calc(100vw - 32px))}
+body.mundo #workflow-modal.vbj.vbp-capt{--wm-largura:min(640px,calc(100vw - 32px))}
+
+/* 2. A pergunta do painel: o mesmo vidro, no centro, sobre o véu do ambiente. */
+#cli-pergunta.vbp-fundo{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:16px;background:var(--d3-ambiente-veu);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#cli-pergunta>.vbj{display:flex;flex-direction:column;gap:12px;box-sizing:border-box;width:min(560px,100%);max-height:calc(100dvh - 32px);padding:16px;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);color:var(--d3-fume-texto);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);font-family:var(--vv-texto,Inter,sans-serif);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2)}
+
+/* 3. As peças comuns da janela. */
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-cab{display:flex;align-items:center;gap:10px;min-width:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-titulo{margin:0;padding:0;border:0;background:none;color:var(--d3-fume-texto);font:600 20px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-sub{color:var(--d3-fume-apagado);font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbj-av,.vbj-av.g){flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:var(--d3-r-botao);background:color-mix(in srgb,var(--c,var(--d3-fume-painel)) 70%,var(--d3-tinta-fixa));color:var(--d3-escuro-texto);font:600 12px/1 var(--vv-texto,Inter,sans-serif);letter-spacing:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-av.g{width:36px;height:36px;border-radius:var(--d3-r-caixa);font-size:13.5px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbj-x,.vbj-ic){flex:none;display:grid;place-items:center;width:34px;height:34px;min-width:34px;min-height:34px;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);box-shadow:none;cursor:pointer}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbj-x,.vbj-ic):hover{background:var(--d3-fume-borda)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbj-x,.vbj-ic,.vbj-btn):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;height:34px;min-height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 13px/1 var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none;text-decoration:none;white-space:nowrap;cursor:pointer}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn:hover{background:var(--d3-fume-veu-forte)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn.k{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn.k:hover{background:var(--d3-fume-texto2)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn.k.perigo{background:var(--d3-perigo);color:var(--d3-contra)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn:disabled{opacity:.55;cursor:default}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn.k:disabled:hover{background:var(--d3-fume-texto)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn.vbj-txt{padding:0 6px;background:none;box-shadow:none}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn.vbj-txt:hover{background:var(--d3-fume-veu)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn.vbj-perigo{color:var(--d3-perigo-vidro)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-btn[hidden]{display:none}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-pe{flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin:0;padding:0;border:0;background:none}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-pe>:is(.vbj-nota,.vbj-passos,.vbj-esp){margin-right:auto}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-pe>.vbj-perigo+.vbj-esp{margin-right:0;flex:1}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbj-nota,.vbj-passos){display:inline-flex;align-items:center;gap:8px;color:var(--d3-fume-apagado);font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-tracos{display:inline-flex;gap:4px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-tracos i{width:18px;height:4px;border-radius:2px;background:var(--d3-fume-veu-forte)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-tracos i.on{background:var(--d3-fume-texto)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-st{display:inline-flex;align-items:center;gap:6px;color:var(--d3-fume-texto);font:500 12px/1.2 var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-st i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-fume-meta))}
+/* Os campos: brancos, 36 de altura, rótulo de 12 em cima; foco com 2px de tinta. */
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),select,textarea){box-sizing:border-box;width:100%;min-height:36px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:400 13px/1.4 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) textarea{padding:10px 12px;resize:vertical;line-height:1.5}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(input,select,textarea)::placeholder{color:var(--d3-rotulo);opacity:1}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(input,select,textarea):focus{outline:0;box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+
+/* 4. V2-S-Datas-da-Peca: Prazo → Veiculação, a régua do Prazo de Ouro e o motivo só fora do padrão. */
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-datas{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);align-items:end;gap:10px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbd-campo,.vbd-motivo){display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbd-campo,.vbd-motivo)>span{color:var(--d3-fume-apagado);font:400 12px/1.25 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-motivo[hidden]{display:none}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-motivo textarea{min-height:64px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-seta{display:grid;place-items:center;height:36px;color:var(--d3-fume-apagado)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-estado{display:flex;flex-direction:column;gap:12px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-regra{display:flex;align-items:center;gap:12px;min-height:58px;box-sizing:border-box;padding:10px 14px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 3px 0 0 var(--vbd-cor,var(--d3-fume-meta))}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-regra.vbd-risco{--vbd-cor:var(--d3-perigo-claro)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-regra.vbd-ok{--vbd-cor:var(--d3-pronto-claro)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-regra.vbd-folga{--vbd-cor:var(--d3-info-claro)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-regra-txt{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-regra-txt b{color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-regra-txt span{color:var(--d3-fume-apagado);font:400 12.5px/1.35 var(--vv-texto,Inter,sans-serif)}
+
+/* 5. V2-S-Conferir-Status: a peça com de → para, as caixas com o contador e a prévia ao lado. */
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-grade{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;height:min(470px,calc(100dvh - 200px))}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbc-esq,.vbc-dir){display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-peca{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-peca-txt{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-peca-txt b{color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-peca-txt span{color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-de-para{flex:none;display:inline-flex;align-items:center;gap:10px;color:var(--d3-fume-apagado)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-lista-cab{display:flex;align-items:center;justify-content:space-between;gap:12px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-lista-cab>b{color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-conta{display:inline-flex;align-items:center;gap:8px;color:var(--d3-fume-apagado);font:400 12px/1 var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-conta b{font-weight:400}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-barra{position:relative;width:64px;height:4px;border-radius:2px;background:var(--d3-fume-veu-forte);overflow:hidden}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-barra i{position:absolute;inset:0 auto 0 0;width:var(--p,0%);border-radius:2px;background:var(--d3-fume-texto);transition:width .2s ease}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-checks{display:flex;flex-direction:column;gap:10px;margin:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-check{position:relative;display:flex;align-items:center;gap:12px;min-height:48px;box-sizing:border-box;margin:0;padding:10px 14px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:500 13px/1.35 var(--vv-texto,Inter,sans-serif);cursor:pointer}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-check:hover{background:var(--d3-fume-veu-forte)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-check:has(input:checked){background:var(--d3-fume-veu-forte)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-check input{position:absolute;width:1px;height:1px;margin:0;opacity:0;pointer-events:none}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-caixa{flex:none;display:grid;place-items:center;width:18px;height:18px;box-sizing:border-box;border-radius:5px;box-shadow:inset 0 0 0 1.5px var(--d3-fume-apagado);color:transparent}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-check input:checked+.vbc-caixa{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-check input:focus-visible+.vbc-caixa{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-check-txt{min-width:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-nota{margin:0;color:var(--d3-fume-apagado);font:400 12.5px/1.45 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-prev-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-prev-cab b{color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) #vbc-prev-info{color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-palco{position:relative;flex:1;min-height:0;display:grid;place-items:center;border-radius:12px;background:var(--d3-fume-escuro);overflow:hidden}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-palco img{display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;cursor:zoom-in}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-seta{position:absolute;top:50%;transform:translateY(-50%);background:var(--d3-fume-forte)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-seta.antes{left:10px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-seta.depois{right:10px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-legenda{position:absolute;left:10px;right:10px;bottom:10px;justify-self:center;width:max-content;max-width:calc(100% - 20px);box-sizing:border-box;padding:4px 10px;border-radius:var(--d3-r-botao);background:var(--d3-fume-forte);color:var(--d3-fume-texto);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 auto}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-vazio{display:flex;flex-direction:column;gap:4px;max-width:260px;padding:16px;text-align:center;color:var(--d3-fume-apagado);font:400 12.5px/1.45 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-vazio b{color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-prev-acoes{display:flex;flex-wrap:wrap;gap:8px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-prev-acoes:empty{display:none}
+
+/* 6. V2-S-Pergunta: texto longo, campos e confirmação. */
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-campo{display:flex;flex-direction:column;gap:6px;margin:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-campo>span{color:var(--d3-fume-apagado);font:400 12px/1.25 var(--vv-texto,Inter,sans-serif)}
+#cli-pergunta>.vbj.longa .vbp-campo textarea{height:236px;min-height:120px;max-height:calc(100dvh - 260px)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbp-nota,.vbp-dica){margin:0;color:var(--d3-fume-apagado);font:400 12.5px/1.45 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-erro{margin:0;color:var(--d3-perigo-vidro);font:500 12.5px/1.45 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-previa{display:flex;flex-direction:column;gap:6px;margin:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-previa img{display:block;max-width:100%;max-height:min(40vh,320px);margin:0 auto;border-radius:var(--d3-r-caixa);object-fit:contain;background:var(--d3-fume-escuro)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-previa.sem-previa img{display:none}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-previa figcaption{color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);text-align:center}
+/* Os formulários (roteiros e captação): rótulo de 12 em cima de cada campo. */
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;margin:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form>.vbj-pe{position:sticky;bottom:0;z-index:1;margin-top:auto;padding-top:8px;background:var(--d3-fume-painel);box-shadow:0 -10px 12px -6px var(--d3-fume-painel)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbp-form,.vbp-linha)>label{display:flex;flex-direction:column;gap:6px;margin:0;color:var(--d3-fume-apagado);font:400 12px/1.25 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-linha{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-quando{display:flex;flex-direction:column;gap:2px;margin:0;color:var(--d3-fume-texto);font:600 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-quando small{color:var(--d3-fume-apagado);font:400 12.5px/1.45 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form>.vbp-add{align-self:flex-start}
+/* A lista de peças da captação numa folha clara sobre o vidro. */
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form fieldset{display:flex;flex-direction:column;gap:8px;min-width:0;margin:0;padding:12px 14px;border:0;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form fieldset[hidden]{display:none}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form fieldset legend{float:left;width:100%;margin:0 0 4px;padding:0;color:var(--d3-tinta);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form fieldset .vbj-btn{align-self:flex-start;background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form fieldset .vbj-btn:hover{background:var(--d3-veu-forte)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form fieldset :is(input:not([type=checkbox]):not([type=radio]),select,textarea){box-shadow:inset 0 0 0 1px var(--d3-borda)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-escolha-linha{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:6px 8px}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-escolha{display:flex;align-items:center;gap:10px;min-width:0;min-height:44px;box-sizing:border-box;margin:0;padding:8px 12px;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);cursor:pointer}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-escolha:hover{background:var(--d3-trilho)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-escolha>span{display:flex;flex-direction:column;gap:1px;min-width:0}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-escolha b{color:var(--d3-tinta);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-escolha small{color:var(--d3-rotulo);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-escolha input[type=checkbox]:checked{background-color:var(--d3-tinta);border-color:var(--d3-tinta)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-editar-btn{height:34px;margin:5px 0 0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 12px/1 var(--vv-texto,Inter,sans-serif);cursor:pointer}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) :is(.vbp-editar-btn:hover,.vbp-editar-btn[aria-expanded=true]){background:var(--d3-veu-forte)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-folha-dica{margin:0;color:var(--d3-rotulo);font:400 12px/1.45 var(--vv-texto,Inter,sans-serif)}
+:is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbp-form fieldset .vb-link{padding:0;border:0;background:none;color:var(--d3-tinta);font:500 12.5px/1.45 var(--vv-texto,Inter,sans-serif);text-align:left;text-decoration:underline;white-space:normal;cursor:pointer}
+/* A gravação que não aconteceu: as duas saídas como linhas no vidro. */
+#workflow-modal.vbj .vbp-opcoes{display:flex;flex-direction:column;gap:10px}
+#workflow-modal.vbj .vbp-opcao{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;box-sizing:border-box;padding:10px 14px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto);text-align:left;cursor:pointer}
+#workflow-modal.vbj .vbp-opcao:hover{background:var(--d3-fume-veu-forte)}
+#workflow-modal.vbj .vbp-opcao>span:not(.vbp-opcao-ic){flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+#workflow-modal.vbj .vbp-opcao b{color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+#workflow-modal.vbj .vbp-opcao small{color:var(--d3-fume-apagado);font:400 12.5px/1.4 var(--vv-texto,Inter,sans-serif)}
+#workflow-modal.vbj .vbp-opcao-ic{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+#workflow-modal.vbj .vbp-opcao-ic svg{width:18px;height:18px}
+#workflow-modal.vbj .vbp-opcao>i{font-style:normal;color:var(--d3-fume-apagado)}
+
+/* 7. V2-S-Previa-Grande: a janela de 1216, a barra das peças, a arte com as setas ao lado e a ficha de 300. */
+body.mundo #previa-grande.vbg{padding:16px;background:var(--d3-ambiente-veu);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+body.mundo #previa-grande.vbg .vbg-janela{display:flex;flex-direction:column;gap:12px;box-sizing:border-box;width:min(1216px,100%);height:min(776px,calc(100dvh - 32px));padding:16px;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);color:var(--d3-fume-texto);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);font-family:var(--vv-texto,Inter,sans-serif);overflow:hidden;-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2)}
+body.mundo #previa-grande.vbg .vbg-topo-acoes{display:flex;gap:8px;margin-left:auto}
+body.mundo #previa-grande.vbg.com-ficha .vbg-topo-acoes{display:none}
+body.mundo #previa-grande.vbg .vbg-corpo{flex:1;min-height:0;display:flex;gap:24px}
+body.mundo #previa-grande.vbg .vbg-midia{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+body.mundo #previa-grande.vbg .vbg-pecas{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+body.mundo #previa-grande.vbg .vbg-pecas[hidden]{display:none}
+body.mundo #previa-grande.vbg #previa-peca-antes{justify-self:start}
+body.mundo #previa-grande.vbg #previa-peca-depois{justify-self:end}
+body.mundo #previa-grande.vbg .vbg-peca-info{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;text-align:center}
+body.mundo #previa-grande.vbg #previa-peca-nome{display:block;max-width:100%;color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mundo #previa-grande.vbg #previa-peca-onde{display:block;padding:0;background:none;color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #previa-grande.vbg .vbg-palco{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:16px}
+body.mundo #previa-grande.vbg .vbg-media{flex:0 1 auto;min-width:0;height:100%;display:flex;align-items:center;justify-content:center}
+body.mundo #previa-grande.vbg .vbg-media :is(img,video){display:block;width:auto;height:auto;max-width:100%;max-height:100%;border-radius:12px;object-fit:contain;box-shadow:0 30px 60px -30px rgba(0,0,0,.9)}
+body.mundo #previa-grande.vbg .vbg-media iframe{width:min(720px,100%);height:100%;border:0;border-radius:12px}
+body.mundo #previa-grande.vbg #previa-grande-nome.vbg-legenda{flex:none;align-self:center;max-width:100%;color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mundo #previa-grande.vbg #previa-grande-nome.vbg-legenda:empty{display:none}
+body.mundo #previa-grande.vbg .previa-ficha{flex:none;display:flex;flex-direction:column;gap:12px;width:300px;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--d3-fume-texto);overflow-y:auto;scrollbar-width:thin}
+body.mundo #previa-grande.vbg .previa-ficha[hidden]{display:none}
+body.mundo #previa-grande.vbg .vbg-ficha-cab{display:flex;align-items:center;gap:10px}
+body.mundo #previa-grande.vbg .vbg-ficha-tit{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+body.mundo #previa-grande.vbg .vbg-ficha-tit .previa-ficha-nome{margin:0;color:var(--d3-fume-texto);font:600 13px/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #previa-grande.vbg .vbg-ficha-tit>span{color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #previa-grande.vbg .previa-ficha-dados{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0;margin:0}
+body.mundo #previa-grande.vbg .previa-ficha-dados :is(dt,dd){display:flex;align-items:center;min-height:32px;margin:0;border-top:1px solid var(--d3-fume-veu);font:400 12.5px/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #previa-grande.vbg .previa-ficha-dados dt{color:var(--d3-fume-apagado)}
+body.mundo #previa-grande.vbg .previa-ficha-dados dd{justify-content:flex-end;padding-left:12px;color:var(--d3-fume-texto);text-align:right}
+body.mundo #previa-grande.vbg .previa-ficha-vazio{color:var(--d3-fume-apagado)}
+body.mundo #previa-grande.vbg .previa-ficha-clientes{display:flex;flex-wrap:wrap;gap:6px}
+body.mundo #previa-grande.vbg .vbg-ficha-acoes{display:flex;flex-wrap:wrap;gap:8px}
+body.mundo #previa-grande.vbg .previa-ficha-legenda{display:flex;flex-direction:column;gap:4px;margin:0;padding:10px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+body.mundo #previa-grande.vbg .previa-ficha-rotulo{color:var(--d3-fume-apagado);font:400 12px/1.3 var(--vv-texto,Inter,sans-serif);text-transform:none;letter-spacing:0}
+body.mundo #previa-grande.vbg .previa-ficha-legenda p{margin:0;color:var(--d3-fume-texto);font:400 12.5px/1.5 var(--vv-texto,Inter,sans-serif);white-space:pre-line}
+body.mundo #previa-grande.vbg .vbg-ficha-pe{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+body.mundo #previa-grande.vbg .vbg-ficha-pe .vbj-btn{width:100%}
+/* Sem arte: o estado diz o que fazer (carregando, erro, só link ou "Entregar material"), no vidro. */
+body.mundo #previa-grande.vbg .vbg-media .previa-grande-estado{display:grid;place-items:center}
+body.mundo #previa-grande.vbg .vbg-media .vb-estado{max-width:360px;padding:24px 22px;border:0;border-radius:var(--d3-r-cartao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto);text-align:center}
+body.mundo #previa-grande.vbg .vbg-media .vb-estado :is(b,h3,strong){color:var(--d3-fume-texto)}
+body.mundo #previa-grande.vbg .vbg-media .vb-estado p{color:var(--d3-fume-apagado)}
+body.mundo #previa-grande.vbg .vbg-media .vb-estado .vb-botao{height:34px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);box-shadow:none}
+body.mundo #previa-grande.vbg .vbg-media .vb-estado .vb-botao.principal{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
+body.mundo #previa-grande.vbg .vbg-media :is(.previa-capa-selo,.previa-capa-aviso,.previa-video-abrir){color:var(--d3-fume-texto)}
+
+/* 8. O aviso curto no mesmo vidro (V2-S-Pergunta, canto): ícone de 22, título de 13, a frase e até duas ações. */
+body.mundo #vv-wa-avisos{width:min(420px,calc(100vw - 2*var(--vv-m,14px)))}
+body.mundo #vv-wa-avisos .vv-aviso-curto{grid-template-columns:22px minmax(0,1fr) 34px;align-items:start;gap:10px;padding:14px 16px;border:0;border-radius:var(--d3-r-ilha);background:var(--d3-fume-forte);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 24px 48px -24px rgba(0,0,0,.7);color:var(--d3-fume-texto);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2)}
+body.mundo #vv-wa-avisos .vv-aviso-curto-ic{width:22px;height:22px;border-radius:7px;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+body.mundo #vv-wa-avisos .vv-aviso-curto-ic svg{width:13px;height:13px}
+body.mundo #vv-wa-avisos .vv-aviso-curto-txt b{color:var(--d3-fume-texto);font:600 13px/1.35 var(--vv-texto,Inter,sans-serif)}
+body.mundo #vv-wa-avisos .vv-aviso-curto-txt small{color:var(--d3-fume-apagado);font:400 12.5px/1.45 var(--vv-texto,Inter,sans-serif)}
+body.mundo #vv-wa-avisos .vv-aviso-curto-acoes{gap:8px;margin-top:8px}
+body.mundo #vv-wa-avisos .vv-aviso-curto-acoes :is(.vc-acao,.vc-sec){height:34px;min-height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 13px/1 var(--vv-texto,Inter,sans-serif)}
+body.mundo #vv-wa-avisos .vv-aviso-curto-acoes .vc-acao{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+body.mundo #vv-wa-avisos .vv-aviso-curto .vv-aviso-curto-x{width:34px;min-width:34px;height:34px;min-height:34px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+body.mundo #vv-wa-avisos .vv-aviso-curto.erro{box-shadow:inset 0 0 0 1px var(--d3-perigo-claro),0 24px 48px -24px rgba(0,0,0,.7)}
+body.mundo #vv-wa-avisos .vv-aviso-curto.erro .vv-aviso-curto-ic{background:var(--d3-perigo-vidro);color:var(--d3-tinta-fixa)}
+body.mundo #vv-wa-avisos.compacto .vv-aviso-curto{grid-template-columns:22px minmax(0,1fr) auto;padding:8px 8px 8px 12px}
+
+/* 9. Telas menores: nada cobre, nada rola para o lado. A conferência empilha (prévia embaixo) e a prévia grande desce a
+   ficha para baixo da arte. */
+@media (max-width:860px){
+  :is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-grade{grid-template-columns:minmax(0,1fr);height:auto;overflow-y:auto}
+  :is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-dir .vbc-palco{flex:none;height:240px}
+  body.mundo #previa-grande.vbg .vbg-corpo{flex-direction:column;overflow-y:auto}
+  body.mundo #previa-grande.vbg .vbg-midia{flex:none;height:min(62dvh,560px)}
+  body.mundo #previa-grande.vbg .previa-ficha{width:auto;overflow:visible}
+}
+@media (max-width:600px){
+  body.mundo #workflow-modal.vbj{--wm-largura:calc(100vw - 16px);max-height:calc(100dvh - 24px)}
+  #cli-pergunta.vbp-fundo{padding:8px}
+  body.mundo #previa-grande.vbg{padding:0}
+  body.mundo #previa-grande.vbg .vbg-janela{width:100%;height:100dvh;border-radius:0}
+  :is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-datas{grid-template-columns:minmax(0,1fr)}
+  :is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbd-seta{display:none}
+  :is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbc-peca{flex-wrap:wrap}
+  :is(#workflow-modal.vbj,#cli-pergunta>.vbj,#previa-grande .vbg-janela) .vbj-titulo{white-space:normal}
+  body.mundo #previa-grande.vbg .vbg-pecas{grid-template-columns:auto 1fr auto}
+  body.mundo #previa-grande.vbg .vbg-pecas .vbj-btn{padding:0 10px;font-size:0;gap:0}
+  body.mundo #previa-grande.vbg .vbg-topo-acoes{display:none}
+}
+
 /* ===== padrao-v2/s-d.css ===== */
 /* ===================================================================================================================
    V2 · S · FRENTE D (pranchas V2-S aprovadas pelo Paulo em 19/11/2026: "Aprovado, implementa"). Quatro famílias:

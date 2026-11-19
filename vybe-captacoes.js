@@ -882,10 +882,10 @@ document.addEventListener("keydown", (ev) => {
 
 // Os formulários (Marcar, Levar peças, Fechar gravação) abrem num painel do
 // lado direito, com o calendário à vista, em vez da janela no meio da tela.
+// As janelas da captação são a peça V2-S-Pergunta na forma "campos" (prancha de 19/11/2026): vidro fumê no centro,
+// título com a frase embaixo, campos com rótulo em cima, a lista de peças numa folha e o pé com Cancelar e o verbo.
 function captAbrirFolha(html) {
-  openWorkflowModal(html);
-  document.getElementById("workflow-modal")?.classList.add("capt-folha");
-  document.getElementById("workflow-backdrop")?.classList.add("capt-folha-fundo");
+  abrirJanelaV2(html, "vbp vbp-capt");
 }
 
 function captMarcarEm(dia, hora) { captNovoEvento({ dia, inicio: hora }, AG_ULTIMO_TOQUE); }
@@ -971,34 +971,33 @@ function captAbrirMontar(clienteId, { dia = "", inicio = "", evento = "" } = {})
   const outrosClientes = (CAPT.clientes || []).filter((c) => c.id && !fila.some((x) => x.cliente.id === c.id));
   if (!fila.length && !g && !outrosClientes.length) { showToast("Nenhuma peça esperando captação agora.", "info"); return; }
   const fim = inicio && agMin(inicio) !== null ? agHora(Math.min(23 * 60 + 30, agMin(inicio) + 120)) : "11:00";
-  const quando = ev ? `<p class="capt-quando-fixo">${safeText(captDiaLongo(ev.dia))} · ${safeText(agHorario(ev))}${ev.local ? ` · ${safeText(ev.local)}` : ""}<small>Já está no Google Agenda. As peças entram nessa captação, sem criar outro evento.</small></p>`
-    : `<div class="capt-campos"><label>Dia<input type="date" name="dia" required value="${safeText(dia || g?.proxima?.dia || agSomar(captHoje(), 1))}" min="${captHoje()}"></label>
+  const quando = ev ? `<p class="vbp-quando">${safeText(captDiaLongo(ev.dia))} · ${safeText(agHorario(ev))}${ev.local ? ` · ${safeText(ev.local)}` : ""}<small>Já está no Google Agenda. As peças entram nessa captação, sem criar outro evento.</small></p>`
+    : `<div class="vbp-linha"><label>Dia<input type="date" name="dia" required value="${safeText(dia || g?.proxima?.dia || agSomar(captHoje(), 1))}" min="${captHoje()}"></label>
       <label>Começa<input type="time" name="inicio" value="${safeText(inicio || "09:00")}"></label><label>Termina<input type="time" name="fim" value="${safeText(fim)}"></label></div>
       <label>Local<input name="local" maxlength="300" placeholder="Ex.: no restaurante, estúdio da Vybe"></label>`;
-  captAbrirFolha(`<div class="workflow-kicker"><span>Captação</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">${ev ? "Levar peças para a captação" : "Marcar captação"}</h2>
-    <form class="capt-form" onsubmit="event.preventDefault();captMontar(this)" data-evento="${safeText(evento)}">
-      ${g ? `<input type="hidden" name="cliente" value="${safeText(g.cliente.id)}"><p class="capt-detalhe-cliente">${safeText(g.cliente.nome)}</p>`
+  captAbrirFolha(`${vbjTopoHtml({ titulo: ev ? "Levar peças para a captação" : "Marcar captação", sub: g ? `Captação · ${g.cliente.nome}` : "Captação · escolha o cliente, as peças e o horário", av: g ? vbjAvatarHtml(g.cliente.nome, "vbj-av g") : "" })}
+    <form class="vbp-form" onsubmit="event.preventDefault();captMontar(this)" data-evento="${safeText(evento)}">
+      ${g ? `<input type="hidden" name="cliente" value="${safeText(g.cliente.id)}">`
         : `<label>Cliente<select name="cliente" required onchange="captPecasDoForm(this.form,this.value)"><option value="">Escolha o cliente</option>${fila.map((x) => `<option value="${safeText(x.cliente.id)}">${safeText(x.cliente.nome)} (${captPlural(x.pecas.length, "peça", "peças")})</option>`).join("")}${outrosClientes.map((c) => `<option value="${safeText(c.id)}">${safeText(c.nome)}</option>`).join("")}</select></label>`}
       <fieldset class="capt-pecas-form"${g ? ` data-cliente="${safeText(g.cliente.id)}" data-nome="${safeText(g.cliente.nome)}"` : " hidden"}>${g ? captPecasFieldset(g, ev) : ""}</fieldset>
-      ${g ? `<button type="button" class="vb-botao capt-add-nova" onclick="closeWorkflowModal();captCadastrar('${jsArg(g.cliente.nome)}')"><span aria-hidden="true">+</span> Cadastrar peça nova de ${safeText(g.cliente.nome)}</button>` : ""}
+      ${g ? `<button type="button" class="vbj-btn vbp-add" onclick="closeWorkflowModal();captCadastrar('${jsArg(g.cliente.nome)}')"><span aria-hidden="true">+</span> Cadastrar peça nova de ${safeText(g.cliente.nome)}</button>` : ""}
       ${quando}
       <label>Observação<textarea name="observacao" rows="2" maxlength="2000" placeholder="O que levar, quem acompanha…"></textarea></label>
-      <p class="capt-erro" role="alert" hidden></p>
-      <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">${ev ? "Levar as peças" : "Marcar captação"}</button></div>
+      <p class="vbp-erro" role="alert" hidden></p>
+      <div class="vbj-pe"><span class="vbj-esp"></span><button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="vbj-btn k">${ev ? "Levar as peças" : "Marcar captação"}</button></div>
     </form>`);
-  if (g) captCarregarLigaveis(document.querySelector(".capt-form .capt-pecas-form"));
+  if (g) captCarregarLigaveis(document.querySelector(".vbp-form .capt-pecas-form"));
 }
 // Uma peça na lista da janela. As da fila vêm marcadas; as outras do cliente,
 // desmarcadas, com o status para dizer em que pé está.
 function captEscolhaHtml(p, { marcada = true, comStatus = false } = {}) {
   const pr = captPrazo(p);
-  return `<label class="capt-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, comStatus ? p.status : "", pr.texto].filter(Boolean).join(" · "))}${p.sem_material ? ` · ${captFaltaRotulo(p)}` : ""}${p.tipo === "video" && !captTemRoteiro(p) ? " · sem roteiro" : ""}</small></span></label>`;
+  return `<label class="vbp-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, comStatus ? p.status : "", pr.texto].filter(Boolean).join(" · "))}${p.sem_material ? ` · ${captFaltaRotulo(p)}` : ""}${p.tipo === "video" && !captTemRoteiro(p) ? " · sem roteiro" : ""}</small></span></label>`;
 }
 function captPecasFieldset(g, ev = null) {
   const pecas = ev ? captPendentesDo(g.cliente.id, ev) : g.pecas;
   return `<legend>Peças (${pecas.length})</legend>${pecas.map((p) => captEscolhaHtml(p)).join("")}
-    <div class="capt-ligaveis" aria-live="polite"><p class="capt-discreto">Buscando as outras peças de ${safeText(g.cliente.nome)}…</p></div>`;
+    <div class="capt-ligaveis" aria-live="polite"><p class="vbp-folha-dica">Buscando as outras peças de ${safeText(g.cliente.nome)}…</p></div>`;
 }
 function captPecasDoForm(form, clienteId) {
   const fs = form.querySelector(".capt-pecas-form");
@@ -1024,15 +1023,15 @@ async function captCarregarLigaveis(fs) {
     const legenda = fs.querySelector("legend");
     if (legenda) legenda.textContent = `Peças (${ja.size + lista.length})`;
     caixa.innerHTML = lista.length
-      ? `<p class="capt-discreto">Outras peças de ${safeText(nome)} ainda não finalizadas. Marque as que vão nesta captação:</p>${lista.map((p) => captEscolhaHtml(p, { marcada: false, comStatus: true })).join("")}`
-      : `<p class="capt-discreto">${ja.size ? "Nenhuma outra peça" : "Nenhuma peça"} de ${safeText(nome)} por fazer. Se vai gravar algo novo, cadastre abaixo.</p>`;
+      ? `<p class="vbp-folha-dica">Outras peças de ${safeText(nome)} ainda não finalizadas. Marque as que vão nesta captação:</p>${lista.map((p) => captEscolhaHtml(p, { marcada: false, comStatus: true })).join("")}`
+      : `<p class="vbp-folha-dica">${ja.size ? "Nenhuma outra peça" : "Nenhuma peça"} de ${safeText(nome)} por fazer. Se vai gravar algo novo, cadastre abaixo.</p>`;
   } catch (x) {
     if (!caixa.isConnected) return;
-    caixa.innerHTML = `<p class="capt-discreto">Não deu para buscar as outras peças: ${safeText(x.message)}</p><button type="button" class="vb-link" onclick="captCarregarLigaveis(this.closest('.capt-pecas-form'))">Tentar de novo</button>`;
+    caixa.innerHTML = `<p class="vbp-folha-dica">Não deu para buscar as outras peças: ${safeText(x.message)}</p><button type="button" class="vb-link" onclick="captCarregarLigaveis(this.closest('.capt-pecas-form'))">Tentar de novo</button>`;
   }
 }
 async function captMontar(form) {
-  const f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]"), rotulo = botao.textContent;
+  const f = new FormData(form), erro = form.querySelector(".vbp-erro"), botao = form.querySelector("[type=submit]"), rotulo = botao.textContent;
   const pecas = f.getAll("peca"), cliente = f.get("cliente"), evento = form.dataset.evento;
   const ev = evento ? captTodos().find((e) => e.id === evento) : null;
   if (!cliente) { erro.textContent = "Escolha o cliente."; erro.hidden = false; return; }
@@ -1084,20 +1083,18 @@ function captAbrirReagendar(id) {
   if (!e) { showToast("Este evento não está mais na tela. Atualize.", "info"); return; }
   agCartaoFechar();
   const ini = e.inicio || "", fim = e.fim || "";
-  captAbrirFolha(`<div class="workflow-kicker"><span>${e.tipo === "captacao" ? "Captação" : "Agenda"}</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">Reagendar</h2>
-    <p class="capt-quando-fixo">${safeText(agPartesDoTitulo(e).nome)} · estava em ${safeText(captDiaLongo(e.dia).toLowerCase())}${e.inicio ? `, ${safeText(agHorario(e))}` : ""}</p>
-    <form class="capt-form" onsubmit="event.preventDefault();captReagendar(this,'${jsArg(e.id)}')">
-      <label>Novo dia<input type="date" name="dia" value="${safeText(e.dia)}" required></label>
-      <div class="capt-novo-quando"><input type="time" name="inicio" value="${safeText(ini)}" aria-label="Começa"><span aria-hidden="true">–</span><input type="time" name="fim" value="${safeText(fim)}" aria-label="Termina"></div>
-      <p class="capt-discreto">${e.nossa?.pecas?.length ? "As peças continuam ligadas a esta captação. " : ""}Muda também no Google Agenda.</p>
-      <p class="capt-erro" role="alert" hidden></p>
-      <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Reagendar</button></div>
+  captAbrirFolha(`${vbjTopoHtml({ titulo: "Reagendar", sub: `${agPartesDoTitulo(e).nome} · estava em ${captDiaLongo(e.dia).toLowerCase()}${e.inicio ? `, ${agHorario(e)}` : ""}` })}
+    <form class="vbp-form" onsubmit="event.preventDefault();captReagendar(this,'${jsArg(e.id)}')">
+      <div class="vbp-linha"><label>Novo dia<input type="date" name="dia" value="${safeText(e.dia)}" required></label>
+      <label>Começa<input type="time" name="inicio" value="${safeText(ini)}"></label><label>Termina<input type="time" name="fim" value="${safeText(fim)}"></label></div>
+      <p class="vbp-dica">${e.nossa?.pecas?.length ? "As peças continuam ligadas a esta captação. " : ""}Muda também no Google Agenda.</p>
+      <p class="vbp-erro" role="alert" hidden></p>
+      <div class="vbj-pe"><span class="vbj-esp"></span><button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="vbj-btn k">Reagendar</button></div>
     </form>`);
-  setTimeout(() => document.querySelector(".capt-form [name=dia]")?.focus(), 40);
+  setTimeout(() => document.querySelector(".vbp-form [name=dia]")?.focus(), 40);
 }
 async function captReagendar(form, id) {
-  const e = captAcharEvento(id), f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]");
+  const e = captAcharEvento(id), f = new FormData(form), erro = form.querySelector(".vbp-erro"), botao = form.querySelector("[type=submit]");
   const mostrar = (t) => { erro.textContent = t; erro.hidden = false; };
   if (!e) return mostrar("Este evento não está mais na tela. Feche e atualize.");
   const dados = { dia: String(f.get("dia") || ""), inicio: String(f.get("inicio") || ""), fim: String(f.get("fim") || "") };
@@ -1115,13 +1112,11 @@ function captAbrirNaoGravou(id) {
   const e = captAcharEvento(id);
   if (!e) { showToast("Esta captação não está mais na tela. Atualize.", "info"); return; }
   agCartaoFechar();
-  const ic = (d) => `<span class="pv-opcao-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`;
-  captAbrirFolha(`<div class="workflow-kicker"><span>Captação</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">A gravação não aconteceu</h2>
-    <p class="capt-quando-fixo">${safeText(agPartesDoTitulo(e).nome)} · ${safeText(captDiaLongo(e.dia))}${e.inicio ? ` · ${safeText(agHorario(e))}` : ""}</p>
-    <div class="pv-opcoes">
-      <button type="button" class="pv-opcao" style="--c:#7aa7ff" onclick="captAbrirReagendar('${jsArg(e.id)}')">${ic('<rect x="3.5" y="4.5" width="13" height="12" rx="2"/><path d="M3.5 8.5h13M7 3v3M13 3v3"/>')}<span><b>Remarcar para outro dia</b><small class="capt-discreto">${e.nossa?.pecas?.length ? "As peças continuam ligadas." : "Muda o evento no Google Agenda."}</small></span><i>→</i></button>
-      <button type="button" class="pv-opcao" style="--c:#ff6b8a" onclick="captApagar('${jsArg(e.id)}',true)">${ic('<path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6"/>')}<span><b>Tirar da agenda</b><small class="capt-discreto">Caiu a pauta. ${e.nossa?.pecas?.length ? 'As peças não gravadas voltam para "Agendar Captação".' : "O evento sai do Google Agenda."}</small></span><i>→</i></button>
+  const ic = (d) => `<span class="vbp-opcao-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`;
+  captAbrirFolha(`${vbjTopoHtml({ titulo: "A gravação não aconteceu", sub: `${agPartesDoTitulo(e).nome} · ${captDiaLongo(e.dia)}${e.inicio ? ` · ${agHorario(e)}` : ""}` })}
+    <div class="vbp-opcoes">
+      <button type="button" class="vbp-opcao" style="--c:#7aa7ff" onclick="captAbrirReagendar('${jsArg(e.id)}')">${ic('<rect x="3.5" y="4.5" width="13" height="12" rx="2"/><path d="M3.5 8.5h13M7 3v3M13 3v3"/>')}<span><b>Remarcar para outro dia</b><small class="vbp-folha-dica">${e.nossa?.pecas?.length ? "As peças continuam ligadas." : "Muda o evento no Google Agenda."}</small></span><i>→</i></button>
+      <button type="button" class="vbp-opcao" style="--c:#ff6b8a" onclick="captApagar('${jsArg(e.id)}',true)">${ic('<path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6"/>')}<span><b>Tirar da agenda</b><small class="vbp-folha-dica">Caiu a pauta. ${e.nossa?.pecas?.length ? 'As peças não gravadas voltam para "Agendar Captação".' : "O evento sai do Google Agenda."}</small></span><i>→</i></button>
     </div>`);
 }
 async function captApagar(id, decidido = false) {
@@ -1151,32 +1146,30 @@ function captAbrirFechar(eventoId) {
   const k = e.nossa;
   const ligadas = k ? k.pecas : [];
   const esperando = e.cliente_id ? captPendentesDo(e.cliente_id, e).filter((p) => !ligadas.some((l) => l.id === p.id)) : [];
-  const escolha = (p, marcada, extra = "") => { const pr = captPrazo(p); return `<div class="capt-escolha-linha"><label class="capt-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}${p.gravado ? " disabled" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, pr.texto, extra].filter(Boolean).join(" · "))}</small></span></label>
-    <button type="button" class="capt-editar-btn" onclick="captEditarPeca(this)" aria-expanded="false" title="Gravou diferente? Mude o título ou o dia de ir ao ar">Editar</button>
+  const escolha = (p, marcada, extra = "") => { const pr = captPrazo(p); return `<div class="vbp-escolha-linha"><label class="vbp-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"${marcada ? " checked" : ""}${p.gravado ? " disabled" : ""}><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, pr.texto, extra].filter(Boolean).join(" · "))}</small></span></label>
+    <button type="button" class="vbp-editar-btn" onclick="captEditarPeca(this)" aria-expanded="false" title="Gravou diferente? Mude o título ou o dia de ir ao ar">Editar</button>
     <div class="capt-editar" data-peca="${safeText(p.id)}" hidden><label><span class="sr-only">Título</span><input name="ed_titulo" maxlength="200" value="${safeText(p.titulo)}" data-antes="${safeText(p.titulo)}"></label>
     <label title="Vai ao ar"><span class="sr-only">Vai ao ar</span><input type="date" name="ed_veiculacao" value="${safeText(p.veiculacao || "")}" data-antes="${safeText(p.veiculacao || "")}"></label></div></div>`; };
   const nome = e.cliente || k?.cliente || "";
-  captAbrirFolha(`<div class="workflow-kicker"><span>Captação</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">Fechar gravação</h2>
-    <p class="capt-quando-fixo">${safeText(nome || e.titulo)} · ${safeText(captDiaLongo(e.dia))} · ${safeText(agHorario(e))}${e.local ? ` · ${safeText(e.local)}` : ""}</p>
-    <form class="capt-form" onsubmit="event.preventDefault();captFechar(this)" data-evento="${safeText(e.id)}">
+  captAbrirFolha(`${vbjTopoHtml({ titulo: "Fechar gravação", sub: `${nome || e.titulo} · ${captDiaLongo(e.dia)} · ${agHorario(e)}${e.local ? ` · ${e.local}` : ""}`, av: nome ? vbjAvatarHtml(nome, "vbj-av g") : "" })}
+    <form class="vbp-form" onsubmit="event.preventDefault();captFechar(this)" data-evento="${safeText(e.id)}">
       <fieldset class="capt-pecas-form"><legend>O que foi gravado</legend>
         ${ligadas.map((p) => escolha(p, true, p.gravado ? "já marcada como gravada" : "")).join("")}
-        ${esperando.length ? `${ligadas.length ? '<p class="capt-discreto">Também esperando captação deste cliente:</p>' : ""}${esperando.map((p) => escolha(p, false, p.sem_material ? captFaltaRotulo(p) : "")).join("")}` : ""}
-        ${!ligadas.length && !esperando.length ? `<p class="capt-discreto">Nenhuma peça de ${safeText(nome || "este cliente")} esperando captação.</p>` : ""}
+        ${esperando.length ? `${ligadas.length ? '<p class="vbp-folha-dica">Também esperando captação deste cliente:</p>' : ""}${esperando.map((p) => escolha(p, false, p.sem_material ? captFaltaRotulo(p) : "")).join("")}` : ""}
+        ${!ligadas.length && !esperando.length ? `<p class="vbp-folha-dica">Nenhuma peça de ${safeText(nome || "este cliente")} esperando captação.</p>` : ""}
         ${e.cliente_id || k?.cliente_id ? `<div class="capt-outras" data-cliente="${safeText(e.cliente_id || k?.cliente_id)}"><button type="button" class="vb-link" onclick="captVerOutras(this)">Gravou outra peça de ${safeText(nome || "este cliente")}? Ver Reels, vídeos e fotos dele</button></div>` : ""}
       </fieldset>
       <fieldset class="capt-pecas-form capt-novas-form"><legend>Gravou algo que não estava no sistema?</legend>
         <div class="capt-novas"></div>
-        <button type="button" class="vb-botao capt-add-nova" onclick="captNovaPeca(this.form)"><span aria-hidden="true">+</span> Adicionar peça gravada</button>
-        <p class="capt-discreto">Entra no painel já gravada, com a pasta do Drive, e segue para a edição como qualquer peça cadastrada.</p>
+        <button type="button" class="vbj-btn vbp-add" onclick="captNovaPeca(this.form)"><span aria-hidden="true">+</span> Adicionar peça gravada</button>
+        <p class="vbp-folha-dica">Entra no painel já gravada, com a pasta do Drive, e segue para a edição como qualquer peça cadastrada.</p>
       </fieldset>
       <label>Pasta do material no Drive<input type="url" name="drive" inputmode="url" maxlength="2000" placeholder="https://drive.google.com/drive/folders/…"></label>
-      <p class="capt-discreto">O link vai para cada peça marcada como material bruto, para a edição achar o arquivo.</p>
+      <p class="vbp-dica">O link vai para cada peça marcada como material bruto, para a edição achar o arquivo.</p>
       ${captRoteiroCampo(ligadas)}
       <label>Observação<textarea name="observacao" rows="2" maxlength="2000" placeholder="Ex.: supino gravado a mais; faltou o depoimento"></textarea></label>
-      <p class="capt-erro" role="alert" hidden></p>
-      <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Fechar gravação</button></div>
+      <p class="vbp-erro" role="alert" hidden></p>
+      <div class="vbj-pe"><span class="vbj-esp"></span><button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="vbj-btn k">Fechar gravação</button></div>
     </form>`);
 }
 // Outras peças do cliente (Paulo, 27/10/2026: "não apareceu o Reels da Mr Fit
@@ -1191,9 +1184,9 @@ async function captVerOutras(botao) {
     const ja = new Set([...form.querySelectorAll("input[name=peca]")].map((i) => i.value));
     const lista = (r.pecas || []).filter((p) => !ja.has(p.id));
     const CAPT_ROTULO = { captacao_feita: "já tinha captação feita", captacao_agendada: "captação agendada", agendar_captacao: "agendar captação" };
-    caixa.innerHTML = lista.length ? `<p class="capt-discreto">Outras peças do cliente (foto e vídeo ainda por fazer):</p>${lista.map((p) => { const pr = captPrazo(p);
-      return `<div class="capt-escolha-linha"><label class="capt-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, p.status, pr.texto, CAPT_ROTULO[p.captacao_chave] || "", p.tem_material ? "já tem material" : ""].filter(Boolean).join(" · "))}</small></span></label></div>`; }).join("")}`
-      : `<p class="capt-discreto">Não há outras peças de foto ou vídeo deste cliente por fazer. Se gravou algo novo, adicione abaixo.</p>`;
+    caixa.innerHTML = lista.length ? `<p class="vbp-folha-dica">Outras peças do cliente (foto e vídeo ainda por fazer):</p>${lista.map((p) => { const pr = captPrazo(p);
+      return `<div class="vbp-escolha-linha"><label class="vbp-escolha"><input type="checkbox" name="peca" value="${safeText(p.id)}"><span><b>${safeText(p.titulo)}</b><small>${safeText([p.formato, p.status, pr.texto, CAPT_ROTULO[p.captacao_chave] || "", p.tem_material ? "já tem material" : ""].filter(Boolean).join(" · "))}</small></span></label></div>`; }).join("")}`
+      : `<p class="vbp-folha-dica">Não há outras peças de foto ou vídeo deste cliente por fazer. Se gravou algo novo, adicione abaixo.</p>`;
   } catch (x) { botao.disabled = false; botao.textContent = "Tentar de novo"; showToast(x.message, "err", 6000); }
 }
 
@@ -1247,9 +1240,9 @@ function captNovaPeca(form) {
 // ou pede o link.
 function captRoteiroCampo(pecas) {
   const docs = [...new Map((pecas || []).filter((p) => p.roteiro_doc).map((p) => [p.roteiro_doc.link, p.roteiro_doc])).values()];
-  const ja = docs.length ? `<p class="capt-discreto">Já ligado: ${docs.map((d) => `<a class="vb-link" href="${safeText(d.link)}" target="_blank" rel="noopener">${safeText(d.titulo)}</a>`).join(", ")}</p>` : "";
+  const ja = docs.length ? `<p class="vbp-dica">Já ligado: ${docs.map((d) => `<a class="vb-link" href="${safeText(d.link)}" target="_blank" rel="noopener">${safeText(d.titulo)}</a>`).join(", ")}</p>` : "";
   return `<label>Roteiro no Google Docs<input type="url" name="roteiro" inputmode="url" maxlength="2000" placeholder="https://docs.google.com/document/d/…"></label>
-    ${ja || '<p class="capt-discreto">O doc fica no Gmail da agência; o link liga o roteiro às peças gravadas e entra na aba Roteiros.</p>'}`;
+    ${ja || '<p class="vbp-dica">O doc fica no Gmail da agência; o link liga o roteiro às peças gravadas e entra na aba Roteiros.</p>'}`;
 }
 async function captLigarRoteiro(form, captacaoId) {
   const link = String(new FormData(form).get("roteiro") || "").trim(), botao = form.querySelector("button");
@@ -1260,7 +1253,7 @@ async function captLigarRoteiro(form, captacaoId) {
 }
 
 async function captFechar(form) {
-  const f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]"), rotulo = botao.textContent;
+  const f = new FormData(form), erro = form.querySelector(".vbp-erro"), botao = form.querySelector("[type=submit]"), rotulo = botao.textContent;
   const e = captTodos().find((x) => x.id === form.dataset.evento);
   // As já gravadas vêm desabilitadas (não saem pelo FormData), mas continuam gravadas.
   const gravadas = [...f.getAll("peca"), ...[...form.querySelectorAll('input[name=peca]:disabled:checked')].map((i) => i.value)];

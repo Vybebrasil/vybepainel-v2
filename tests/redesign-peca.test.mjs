@@ -81,11 +81,12 @@ test('prévia: datas sem fuso e legenda saída do briefing', () => {
 
 test('prévia: ficha ao lado com status, cliente e datas pelo padrão; sem material, "Ainda sem material" e entregar', () => {
   const ficha = trecho(material, 'function fichaDaPreviaHtml', 'function pintarFichaDaPrevia');
-  for (const p of ['statusCor(local)', 'nomesCli.map(cliCor)', "linha('Prazo'", "pedido ? 'Conclusão' : 'Veicula'", "linha('Quem fez'", 'openItemWorkspace(']) assert.ok(ficha.includes(p), p);
+  for (const p of ['statusCor(local)', 'nomesCli.map(cliCor)', "linha('Prazo'", "pedido ? 'Conclusão' : 'Veiculação'", "linha('Quem fez'", "linha('Formato'", '>Abrir a peça<', 'openItemWorkspace(']) assert.ok(ficha.includes(p), p);
   assert.match(material, /<aside id="previa-ficha" class="previa-ficha" aria-label="Sobre a peça" hidden><\/aside>/);
   assert.match(material, /ficha\.hidden = !PREVIA_PECA;/, 'portão e arquivo solto: sem ficha');
   assert.match(material, /titulo: 'Ainda sem material'[^]*?vb-botao principal" onclick="trocarMaterialDaPrevia\(event\)">Entregar material/);
-  assert.match(material, /conta\.hidden = PREVIA_MATERIAL\.length < 2; conta\.textContent = `\$\{PREVIA_GRANDE_INDICE \+ 1\} de \$\{PREVIA_MATERIAL\.length\}`/);
+  // V2-S-Previa-Grande (19/11/2026): a contagem desceu para a legenda embaixo da arte.
+  assert.match(material, /nome\.textContent = `arquivo \$\{PREVIA_GRANDE_INDICE \+ 1\} de \$\{PREVIA_MATERIAL\.length\} · /);
 });
 
 test('prévia: escuro só atrás da mídia no mundo; o visual antigo escopado fora dele, sem !important novo', () => {
