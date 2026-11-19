@@ -528,7 +528,8 @@ function feedPintarPalco(camada, lista, i) {
     // O conteúdo só de quem aparece; o mesmo HTML não é trocado (a rolagem e o foco ficam onde estavam).
     if (ad <= FEED_VIZINHOS) {
       const html = feedClienteHtml(cli);
-      if (cel.vfdHtml !== html) { cel.querySelector('.vfd-cel-rola').innerHTML = html; cel.vfdHtml = html; feedLigarMais(cel); }
+      if (cel.vfdHtml !== html) { cel.querySelector('.vfd-cel-rola').innerHTML = html; cel.vfdHtml = html; }
+      feedLigarMais(cel);
     }
   });
   [...palco.children].forEach((x) => { if (x.dataset.cli && !vivos.has(x.dataset.cli)) x.remove(); });
@@ -1119,7 +1120,8 @@ function feedV2Pintar(wrap) {
     feedLigarMais(cel);
     feedV2Troca(lado, feedV2LadoHtml(cli, g));
     wrap.classList.toggle('vfd-com-sel', Boolean(FEED.sel?.cliente === cli.nome && FEED.sel.isos.size));
-    wrap.querySelector('.vfd2-cli.on')?.scrollIntoView?.({ block: 'nearest' });
+    // Só quando o cliente muda: repintar (artes chegando, mais uma parte da grade) não puxa a tela de volta para a lista.
+    if (wrap.vfdCliVisto !== cli.nome) { wrap.vfdCliVisto = cli.nome; wrap.querySelector('.vfd2-cli.on')?.scrollIntoView?.({ block: 'nearest' }); }
   }
   // No topo da janela: o período (4 semanas ou o mês) e as setas que passam de cliente.
   const n = ordenada.length, prox = n > 1 ? ordenada[(i + 1) % n] : null, ant = n > 1 ? ordenada[(i - 1 + n) % n] : null;
