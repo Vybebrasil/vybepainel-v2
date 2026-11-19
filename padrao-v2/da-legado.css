@@ -47,15 +47,24 @@
 #vv-whatsapp .d3w .v2w-bl.eu > small,#vv-whatsapp .d3w .v2w-bl.eu > small > i,#vv-whatsapp .d3w .v2w-bl.eu > :is(.v2w-apagada,.v2w-midia){color:color-mix(in srgb,var(--d3-contra) 82%,transparent)}
 #vv-whatsapp .d3w .v2w-msgs > .v2w-bl.eu > .v2w-citada{background:color-mix(in srgb,var(--d3-contra) 14%,transparent);color:var(--d3-contra)}
 #vv-whatsapp .d3w .v2w-msgs > .v2w-bl > .v2w-citada{background:var(--d3-veu)}
+#vv-whatsapp .d3w :is(.v2w-nl,.v2w-q){color:var(--d3-contra)}
+#vv-whatsapp .d3w .v2w-seg.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"] .v2w-q{background:color-mix(in srgb,var(--d3-contra) 18%,transparent);color:var(--d3-contra)}
+/* A sigla do cliente vem na cor da carteira (--c, escrita pelo JS). Puxada para a tinta, fica legível nos três temas: no
+   Escuro a cor pura dava 2,2:1 sobre o círculo escuro. */
+#vv-whatsapp .d3w .v2w-av.cliente{color:color-mix(in srgb,var(--c,var(--d3-acao)) 55%,var(--d3-tinta))}
 
 /* 3 · dois ids vencem a regra antiga (um id) sem important; o foco antigo (important) continua valendo. */
 #painel-conta #conta-root :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),select,textarea){
   border:1px solid var(--d3-apagado);border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:none;color:var(--d3-tinta)}
 #painel-conta #conta-root :is(input,textarea)::placeholder{color:var(--d3-apagado);opacity:1}
+/* No Escuro, a borda do campo em foco (regra antiga com important, lê --ds-foco-borda) usa o laranja do vidro: o da folha
+   dava 2,4:1 contra o campo escuro. */
+[data-d3-tema="escuro"] #painel-conta{--ds-foco-borda:var(--d3-acao-claro)}
 body.mundo .d3m-e-ct-rot.conta-ai-rotulo{font-size:var(--d3-fs-apoio)}
 
 /* 4 */
-.agv2 .fechar{--agv2-cor:var(--d3-mod-vybe);--agv2-clara:var(--d3-mod-vybe-claro)}
+/* .fechar dobrado: zm-c-agenda.css vem depois na junção e tem a mesma força. */
+.agv2 .fechar.fechar{--agv2-cor:var(--d3-mod-vybe);--agv2-clara:var(--d3-mod-vybe-claro)}
 .agv2 .agv2-ev.fechar{background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--d3-mod-vybe) 72%,var(--d3-tinta-fixa)) 6px 12px),var(--agv2-cor)}
 
 /* 5 */

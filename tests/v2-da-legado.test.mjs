@@ -38,7 +38,7 @@ test('o campo da Conta vence a regra antiga de campos com dois ids e só usa tok
 });
 
 test('a gravação sem fechar fica no verde da captação, não no laranja da ação', () => {
-  const c = decl(regra(frag, '.agv2 .fechar{'));
+  const c = decl(regra(frag, '.agv2 .fechar.fechar{'));
   assert.equal(c['--agv2-cor'], 'var(--d3-mod-vybe)');
   assert.ok(!/--d3-acao\b/.test(regra(frag, '.agv2 .agv2-ev.fechar{')));
 });
