@@ -19,9 +19,9 @@ test('D3 · CSS da seção: preso às janelas, sem !important, sem html body.mun
 });
 
 test('D3 · Agentes: a tela principal é a prancha V2-M-Agentes; a fila em lista (a um clique) segue com o bloco de ação e os quatro números', () => {
-  assert.match(ag, /const emM = \(\) => st\.vista === 'fila' && !st\.lista;/);
+  assert.match(ag, /const emM = \(\) => st\.vista === 'fila';/);
   assert.match(ag, /if \(!st\.lista\) return filaMHtml\(\{ F, dono, lendo \}\);/);
-  const m = ag.slice(ag.indexOf('  function filaMHtml('), ag.indexOf('  function filaHtml() {'));
+  const m = ag.slice(ag.indexOf('  function laranjaFilaHtml('), ag.indexOf('  function filaHtml() {'));
   assert.match(m, /const it = n \? F\.decidir\[st\.frente\] : null, c = it \? cartaDe\(it\) : null;/);
   assert.match(m, /class="d3m-btn l v2-estado" \$\{c\.sim\[1\]\}\$\{trava\}[\s\S]*class="d3m-btn l s" \$\{c\.nao\[1\]\}\$\{trava\}/, 'as mesmas rotas do baralho');
   assert.match(m, /<h3>Para você decidir<\/h3>/);

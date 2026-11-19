@@ -105,3 +105,17 @@ test('Comercial: Metas é a terceira visão do funil (Quadro, Lista, Metas), com
   assert.match(js, /'metas-pessoa': formMetasPessoa,/);
   guardaCss(cssR('zm-r-b-6-metas.css'), 'zm-r-b-6-metas.css');
 });
+
+test('Agentes: a fila em lista no vidro, com Cartões | Lista e os filtros por tipo (Todos, Para decidir, Esperando, Achados)', () => {
+  const js = ler('vybe-mundo-agentes.js');
+  assert.match(js, /const emM = \(\) => st\.vista === 'fila';/);
+  assert.match(js, /if \(emM\(\)\) return listaMHtml\(\{ F, dono, lendo \}\);/);
+  assert.match(js, /const TIPOS_FILA = \[\['todos', 'Todos'\], \['decidir', 'Para decidir'\], \['esperando', 'Esperando'\], \['achados', 'Achados'\]\];/);
+  const lista = js.slice(js.indexOf('  function listaMHtml('), js.indexOf('  function filaMHtml('));
+  naOrdem(lista, ["secao('Para decidir'", "secao('Achados urgentes'", "secao('Esperando confirmação'", "secao('Achados para acompanhar'", 'data-vga-tipo-fila=', '<b>Por agente</b>', 'laranjaFilaHtml(F, dono, lendo)', 'centralMHtml()']);
+  assert.match(lista, /itemFilaHtml\(it, dono\)/, 'as linhas são as de sempre, com as mesmas rotas de decidir');
+  assert.match(js, /if \(b\.dataset\.vgaTipoFila\) \{ st\.tipoFila = b\.dataset\.vgaTipoFila; pintar\(\); return; \}/);
+  assert.match(js, /if \(b\.hasAttribute\('data-vga-cartoes'\)\) \{ st\.lista = false; pintar\(\); return; \}/);
+  assert.match(js, /data-vga-cartoes aria-pressed="\$\{!st\.lista\}">Cartões<\/button><button type="button" data-vga-lista="1" aria-pressed="\$\{Boolean\(st\.lista\)\}">Lista<\/button>/);
+  guardaCss(cssR('zm-r-b-7-agentes.css'), 'zm-r-b-7-agentes.css');
+});
