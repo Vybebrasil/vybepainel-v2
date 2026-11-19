@@ -1,0 +1,152 @@
+/* ===================================================================================================================
+   CORREÇÕES DO CONFERE DE DIRETOR DE ARTE · FRENTE DA-2 · PEÇA DE CAMPO E CONTROLE (19/11/2026). O Paulo pediu "um confere
+   geral como diretor de arte… muita coisinha mal diagramada". Referência aprovada: a busca da aba Grupos da Produção
+   (s-f.css, PR #747). Aqui ela vira UMA peça para todos os campos e buscas, e os controles pequenos entram na régua.
+   1. O campo. A regra antiga de vybe-mundo.css pinta todo input, select e textarea do módulo (com important) lendo
+      --d3-cartao (fundo), --ds-linha (contorno), --d3-tinta (letra), --ds-r-botao (canto) e --ds-foco* (foco). No Fumê e
+      no Escuro isso dava campo branco sobre o vidro, e o contorno ficava entre 1,01 e 1,26:1. Sem regra forçada, o campo
+      redefine as cinco: fundo transparente, letra da superfície onde ele está (currentColor herda a cor do pai: clara no
+      vidro, escura na folha), contorno com 68% dessa letra (≥3:1 nos três temas), canto 8 e foco de 1 px na mesma letra
+      (sem o anel laranja). Tudo com especificidade zero (:where): onde um fragmento já escolheu as variáveis, ele vale.
+      Conversas (#vv-whatsapp) e Conta (.d3m-e-conta) ficam com a frente da-3; o modal antigo (.workflow-modal) também
+      fica fora, como na regra antiga.
+   2. As opções do select. Com a letra herdada, a lista nativa abriria letra clara no fundo claro; a opção volta ao par
+      sólido do painel.
+   3. O texto de exemplo (placeholder) com 72% da letra do campo.
+   4. O × de limpar das buscas: dentro do campo, na cor da letra (máscara, sem cor fixa).
+   5. A lupa das buscas sem moldura: desenhada com gradientes na cor da letra, dentro do campo, à esquerda.
+   6. As buscas da barra do módulo (.d3m-c-busca: Fornecedores, Creators, Conversas, Planejamentos, Impressões, Agenda,
+      Projetos). Fechada é o botão da lupa; aberta (no foco ou com texto) vira a peça: lupa e × dentro, contorno no
+      conjunto, campo transparente, canto 8. Antes: lupa num quadrado escuro e o campo branco ao lado.
+   7. As buscas sem moldura (Planejamentos e Impressões no celular, Minhas tarefas, Hoje, Reuniões, Onboarding,
+      Toolkit, Academy, Coordenação): lupa dentro, × dentro, canto 8, altura 34 e texto de exemplo curto que cabe.
+   8. Rótulos de campo em 12 px (Toolkit, ROI, Onboarding, Reuniões, Importar extrato).
+   9. Chips de 26 px com canto 7 passam a 28 px com canto 8 (Clientes, Finanças, Reuniões, Onboarding, Equipe, Loja,
+      Ranking, Conquistas, Carteira).
+   10. Segmentados de 30 px passam a 28 px, na moldura de 34 (Agora/Mês a mês, Mensal, Semana, Livre, Loja, Novembro…).
+       A régua .vst-dia da Produção fica com a frente da-4.
+   11. Botões genéricos fora de 34/28 px ou com canto fora de 8.
+   =================================================================================================================== */
+
+/* 1 */
+/* As variáveis (valem também onde a regra antiga do módulo ainda pinta o campo). */
+:where(body.mundo) :where(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input[type="tel"],input[type="password"],input:not([type]),select,textarea):where(:not(.workflow-modal *,#vv-whatsapp *,.d3m-e-conta *)){
+  --d3-cartao:transparent;
+  --ds-linha:color-mix(in srgb,currentColor 68%,transparent);
+  --d3-tinta:currentColor;
+  --ds-r-botao:var(--d3-r-botao);
+  --ds-foco-borda:currentColor;
+  --ds-foco:0 0 0 1px currentColor;
+}
+/* A peça. Nas telas V2 a regra antiga não entra (o corpo não leva .mundo-modulo) e cada fragmento pintava o seu campo:
+   branco no vidro, contorno em sombra clara (1,01 a 1,36:1), cantos de 4, 7, 10, 16 e 999. Aqui o campo lê as mesmas
+   variáveis acima, com dois ids de peso para vencer as regras de tela. Quem desenha o campo na moldura (busca da barra,
+   busca de Grupos, menu de status) põe --ds-linha:transparent no input, como o s-f.css já faz. Selects invisíveis por
+   cima de um chip (.ofc-status, .v2cr-escolhe) e os valores em linha do extrato (.d3m-d-fx-campos) ficam fora. */
+body.mundo :is(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input[type="tel"],input[type="password"],input:not([type]),select,textarea):not(:where(.workflow-modal *,#vv-whatsapp *,.d3m-e-conta *,.ofc-status *,.v2cr-escolhe *,.d3m-d-fx-campos *,.d3m-c-busca *,.d3m-a-busca *)):is(#vv-h,*):is(#vv-h,*){
+  border:1px solid var(--ds-linha);border-radius:var(--ds-r-botao);
+  background-color:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none;
+}
+body.mundo :is(input,select,textarea):not(:where(.workflow-modal *,#vv-whatsapp *,.d3m-e-conta *,.d3m-c-busca *,.d3m-a-busca *)):is(#vv-h,*):is(#vv-h,*):focus-visible{outline:2px solid currentColor;outline-offset:1px;box-shadow:none}
+/* Os valores em linha do extrato do Vorcaro: sem moldura (linha de lista), canto 8 como os outros. */
+.d3m-d-fx-campos :is(select,input):is(#vv-h,*):is(#vv-h,*){border-radius:var(--d3-r-botao)}
+
+/* 2 */
+:where(body.mundo) :where(select:not(:where(.workflow-modal *,#vv-whatsapp *,.d3m-e-conta *))) :where(option,optgroup){
+  --d3-cartao:var(--d3-fume-painel);
+  --d3-tinta:var(--d3-fume-texto);
+  background-color:var(--d3-fume-painel);
+  color:var(--d3-fume-texto);
+}
+
+/* 3 */
+:where(body.mundo) :where(input,textarea):where(:not(.workflow-modal *,#vv-whatsapp *,.d3m-e-conta *))::placeholder{color:color-mix(in srgb,currentColor 72%,transparent);opacity:1}
+
+/* 4 */
+:where(body.mundo) :where(input[type="search"]):where(:not(#vv-whatsapp *,.d3m-e-conta *))::-webkit-search-cancel-button{
+  -webkit-appearance:none;appearance:none;flex:none;width:14px;height:14px;margin:0 0 0 6px;
+  background-color:currentColor;filter:none;cursor:pointer;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/14px 14px no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/14px 14px no-repeat;
+}
+/* A regra das buscas de Onboarding e Reuniões invertia o × nativo (filter) para clarear; com a máscara não precisa. */
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca):is(.ob2-busca,.rv2-busca,#vv-h) > input::-webkit-search-cancel-button{filter:none}
+
+/* 6 */
+.d3m-c-busca:is(.d3m-c-busca,#vv-h):has(> input:is(:focus,:not(:placeholder-shown))){gap:0;padding:0 8px 0 0;background:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 68%,transparent)}
+.d3m-c-busca:is(.d3m-c-busca,#vv-h):has(> input:is(:focus)){box-shadow:inset 0 0 0 2px currentColor}
+.d3m-c-busca:is(.d3m-c-busca,#vv-h) > input{--ds-linha:transparent;--ds-foco-borda:transparent;--ds-foco:none;border:0;background-color:transparent;color:inherit;box-shadow:none;outline:0}
+/* O foco fica no conjunto: o anel laranja que cada módulo põe no input focado (vybe-mundo-*.css) sai daqui. */
+.d3m-c-busca:is(.d3m-c-busca,#vv-h) > input:is(#vv-h,*):is(:focus,:focus-visible){outline:0;box-shadow:none}
+.d3m-c-busca:is(.d3m-c-busca,#vv-h) > input:is(:focus,:not(:placeholder-shown)){margin-right:0;padding:0 2px 0 0}
+
+/* 5 + 7 */
+#vv-hoje .d3m-a-mt .d3m-a-mt-busca:is(.d3m-a-mt-busca,#vv-h),
+#vv-hoje .d3h-filtros .v2t-busca:is(.v2t-busca,#vv-h),
+#vv-hoje .d3h-co .v2o-sem-busca:is(.v2o-sem-busca,#vv-h),
+:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-busca:is(.p2-busca,#vv-h),
+#vv-reunioes .v2r-busca:is(.v2r-busca,#vv-h),
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca) > input:is(input,#vv-h),
+#vv-ferramentas .d3m-e-acoes > input.d3m-e-tk-busca[type=search]:is(input,#vv-h),
+#vv-pessoas :is(.d3m-e-acoes,.d3m-cons) > input.d3m-e-pes-busca[type=search]:is(input,#vv-h){
+  height:34px;padding:0 8px 0 32px;border-radius:var(--d3-r-botao);
+  background-image:
+    radial-gradient(circle closest-side,transparent 0 calc(100% - 3px),currentColor calc(100% - 2.6px) calc(100% - .6px),transparent 100%),
+    linear-gradient(45deg,transparent 0 calc(50% - 1.1px),currentColor calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1.1px));
+  background-size:11px 11px,6px 6px;
+  background-position:11px calc(50% - 2px),19px calc(50% + 5px);
+  background-repeat:no-repeat;
+  font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);
+}
+/* Onboarding e Reuniões: fechada é o botão da lupa (34 × 34, com o mesmo contorno, sem texto); aberta é a peça. */
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca) > input:is(input,#vv-h):not(:focus):not(.tem){width:34px;padding:0 0 0 32px}
+/* Hoje: fechada também é o botão da lupa; aberta mostra o texto de exemplo. */
+#vv-hoje .d3h-filtros .v2t-busca:is(.v2t-busca,#vv-h):not(:focus):placeholder-shown{flex:0 0 34px;width:34px;max-width:34px;padding:0 0 0 32px}
+#vv-hoje .d3h-filtros .v2t-busca:is(.v2t-busca,#vv-h):is(:focus,:not(:placeholder-shown)){flex:1 1 160px;max-width:220px}
+
+/* Minhas tarefas: a busca fica na linha dos chips de 28, no compacto da peça. */
+#vv-hoje .d3m-a-mt .d3m-a-mt-busca:is(.d3m-a-mt-busca,#vv-h){height:28px;min-height:0}
+@media (max-width:768px){#vv-hoje .d3m-a-mt .d3m-a-mt-busca:is(.d3m-a-mt-busca,#vv-h){height:34px}}
+/* Toolkit: "Buscar ferramenta" cabe inteiro com a lupa dentro. */
+#vv-ferramentas .d3m-e-acoes > input.d3m-e-tk-busca[type=search]:is(input,#vv-h){width:196px}
+@media (max-width:768px){#vv-ferramentas .d3m-e-acoes > input.d3m-e-tk-busca[type=search]:is(input,#vv-h){width:auto}}
+/* O botão de cor do Toolkit tem a forma do campo: 34 como os campos ao lado. */
+#vv-ferramentas .d3m-e-tk-fer :is(input.d3m-e-tk-in,button.d3m-e-tk-in):is(.d3m-e-tk-in,#vv-h){height:34px;min-height:34px}
+
+/* 8 */
+#vv-ferramentas .d3m-r-tk-campo:is(.d3m-r-tk-campo,#vv-h),
+:is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca):is(label,#vv-h),
+.d3m-d-ferr > label.d3m-d-vbtn:is(.d3m-d-vbtn,#vv-h){font-size:var(--d3-fs-apoio)}
+
+/* 9 */
+#painel-clientes .cv2-chip:is(.cv2-chip,#vv-h),
+:is(#vv-carteira,#vv-reunioes) :is(.ob2,.rv2) :is(.ob2-chip,.rv2-chip):is(button,#vv-h),
+.d3m-d-fm-ficha:is(.d3m-d-fm-ficha,#vv-h),
+.d3m-e-seg:is(.d3m-e-seg,#vv-h) > button,
+.d3m-d-pk-seg:is(.d3m-d-pk-seg,#vv-h) > button,
+#office-catalogo.d3m-f-lojaj :is(.d3m-f-itens,.d3m-f-conq) .v2l-chip:is(.v2l-chip,#vv-h),
+#office-catalogo.d3m-f-lojaj .v2l-conq-chips > .v2l-chip:is(.v2l-chip,#vv-h),
+#ofc-ranking .d3m-f-rk-folha .v2r-chip:is(.v2r-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
+/* A ficha de Finanças sem título já era a maior (30): fica em 28 como as irmãs. */
+.d3m-d-fm .d3m-d-fm-cab > h3:empty + .d3m-d-fm-dir .d3m-d-fm-ficha:is(.d3m-d-fm-ficha,#vv-h){height:28px}
+
+/* 10 */
+.d3m-d-seg:is(.d3m-d-seg,#vv-h),
+:is(.d3m-a-vseg,.d3m-c-seg,.d3m-e-per):is(.d3m-a-vseg,.d3m-c-seg,.d3m-e-per,#vv-h){height:34px}
+.d3m-d-seg:is(.d3m-d-seg,#vv-h) > button,
+.d3m-e-per:is(.d3m-e-per,#vv-h) > button,
+:is(.d3m-a-vseg,.d3m-c-seg):is(.d3m-a-vseg,.d3m-c-seg,#vv-h) > button{height:28px}
+#d3-sala.d3m-f-mundo :is(.d3m-f-humor,.d3m-f-foco) > .d3m-f-chip:is(.d3m-f-chip,#vv-h),
+.d3c-chips.d3m-f-chips > .d3m-f-chip:is(.d3m-f-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
+:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-seg:is(.p2-seg,#vv-h){padding:3px;border-radius:var(--d3-r-caixa)}
+:is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-seg:is(.p2-seg,#vv-h) > button{height:28px;border-radius:var(--d3-r-botao)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg:is(.fv2-seg,#vv-h){padding:3px;border-radius:var(--d3-r-caixa)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg:is(.fv2-seg,#vv-h) button{height:28px;border-radius:var(--d3-r-botao)}
+
+/* 11 */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn:is(.fv2-btn,#vv-h){height:34px;border-radius:var(--d3-r-botao)}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.s:is(.s,#vv-h){height:28px}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip:is(.fv2-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
+.d3-acao > .d3-acao-btn:is(.d3-acao-btn,#vv-h){height:34px;border-radius:var(--d3-r-botao)}
+.d3m-lar-bts > .d3m-btn:is(.d3m-btn,#vv-h){height:34px;box-sizing:border-box}
+.d3m-e-acoes > .d3v-btn:is(.d3v-btn,#vv-h){height:34px;box-sizing:border-box}
