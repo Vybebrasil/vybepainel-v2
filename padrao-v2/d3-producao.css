@@ -447,25 +447,12 @@ button.d3s-lin-txt{cursor:pointer}
 .vv-gestao .d3g > .d3-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;white-space:normal}
 .vv-gestao .d3g > .d3-acao .d3s-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;letter-spacing:0;opacity:.82}
 .vv-gestao .d3g > .d3-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:var(--d3-fs-destaque)}
-.vv-gestao .d3g-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.vv-gestao .d3g-nums > .d3-num{position:relative;margin:0;padding:14px 16px;border:0;border-radius:18px;font:inherit;color:var(--d3-tinta);text-align:left;box-shadow:none}
-.vv-gestao .d3g-nums > button.d3-num{appearance:none;cursor:pointer;transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s}
-.vv-gestao .d3g-nums > button.d3-num:hover{box-shadow:inset 0 0 0 1px var(--d3-borda)}
-.vv-gestao .d3g-nums > button.d3-num:active{transform:scale(.98)}
-.vv-gestao .d3g-nums > .d3-num > .d3-num-rot{font-size:var(--d3-fs-texto);font-weight:500}
-.vv-gestao .d3g-nums > .d3-num > .d3-num-v{font-size:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vv-gestao .d3g-nums > .d3-num > .d3-num-v small{font-size:var(--d3-fs-titulo);font-weight:600;color:var(--d3-apagado)}
-.vv-gestao .d3g-nums > .d3-num > .d3-graf{position:absolute;right:16px;top:30px;width:90px;height:28px}
-.vv-gestao .d3g-nums > .d3-num > .d3-barra{margin-top:4px}
 .vv-gestao .d3g-sub{min-width:0;font-size:var(--d3-fs-texto);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-gestao .d3g-sub.r{color:var(--d3-perigo)}
 .vv-gestao .d3g-sub.a{color:var(--d3-ajuste)}
 .vv-gestao .d3g-sub .d3-selo-donos{height:18px;margin-left:4px;font-size:var(--d3-fs-mini)}
-.vv-gestao .d3g-set{display:grid;grid-template-columns:120px minmax(0,1fr) auto;align-items:start;gap:12px;padding:12px 16px;border-top:1px solid var(--d3-linha)}
-.vv-gestao .d3g-set .g2-btn{height:30px;padding:0 12px}
 .vv-gestao .d3s-chip.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
 .vv-gestao .d3s-ver .d3s-pill > i{width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
-.vv-gestao .d3g-semana .d3s-ver .g2-btn{margin-left:auto}
 .vv-gestao svg.d3g-graf{display:block;width:100%;height:150px}
 .vv-gestao svg.d3g-graf polyline{vector-effect:non-scaling-stroke}
 .vv-gestao .d3g-eixo{display:flex;justify-content:space-between;margin:6px 0 8px;font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
@@ -474,17 +461,10 @@ button.d3s-lin-txt{cursor:pointer}
    setor" cortava as pílulas ("11 ao ar hoje se"). Abaixo de 900 px de painel, uma coluna; abaixo de 640, o nome do setor
    sobe. */
 .vv-gestao .d3g{container:d3gestao / inline-size}
-@container d3gestao (max-width:640px){
-  .vv-gestao .d3g-set{grid-template-columns:minmax(0,1fr) auto}
-}
 @media (max-width:720px){
-  .vv-gestao .d3g-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .vv-gestao .d3g-nums > .d3-num > .d3-num-v{font-size:var(--d3-fs-numero)}
-  .vv-gestao .d3g-nums > .d3-num > .d3-graf{display:none}
   .vv-gestao .d3g > .d3-acao{flex-wrap:wrap}
   .vv-gestao .d3g > .d3-acao > .d3-acao-frase{flex:1 1 calc(100% - 52px);font-size:var(--d3-fs-destaque)}
   .vv-gestao .d3g > .d3-acao > .d3-acao-btn{margin-left:50px}
-  .vv-gestao .d3g-set{grid-template-columns:minmax(0,1fr) auto}
 }
 /* O leque da aprovação (Paulo, 15/11/2026, "card fan" de referência): as artes da fila abertas como cartas na mão, a
    da vez de pé no meio, as vizinhas giradas para os lados; passar de peça gira o leque com mola. A carta de informações
