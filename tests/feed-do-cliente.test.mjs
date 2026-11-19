@@ -183,16 +183,16 @@ test('API da Meta (Business Discovery): bio, site, seguindo e posts; token no ca
   assert.match(ler('vybe-feed.js'), /const bioTxt = String\(p\?\.bio \|\| cli\.bio \|\| ''\)\.trim\(\);/);
 });
 
-test('grade contínua: sem o perfil incorporado, o corte pelo mais longe, o no ar com as peças publicadas e cliente sem repetição', () => {
+test('grade contínua: sem o perfil incorporado, tudo do calendário na grade, o no ar com todas as peças publicadas e cliente sem repetição', () => {
   const feed = ler('vybe-feed.js');
   assert.doesNotMatch(feed, /<iframe/, 'o perfil incorporado repetia o cabeçalho e quebrava a grade');
-  assert.ok(feed.includes('const futuro = g.futuro.slice(-gradeMax);'));
+  assert.ok(feed.includes('const futuro = g.grade;'), 'sem corte: a grade rola (Paulo, 19/11/2026)');
   const itens = [];
   for (let d = 0; d < 20; d += 1) itens.push({ id: `f${d}`, cliente: 'Lions', formato: 'Card', veiculacao_iso: `2026-12-${String(1 + d).padStart(2, '0')}`, status: 'A Fazer' });
   for (let d = 1; d <= 12; d += 1) itens.push({ id: `p${d}`, cliente: 'Lions', formato: 'Card', veiculacao_iso: `2026-11-${String(d).padStart(2, '0')}`, status: 'Finalizado' });
   const c = ambiente(itens);
   const g = vm.runInContext("feedMontar({ nome: 'Lions', usuario: '' })", c);
-  assert.equal(g.noAr.length, 9, 'as 9 últimas publicadas');
+  assert.equal(g.noAr.length, 12, 'todas as publicadas do quadro (antes eram só as 9 últimas)');
   assert.deepEqual([...g.noAr].slice(0, 2).map((x) => x.item.id), ['p12', 'p11']);
   const html = vm.runInContext("feedClienteHtml({ nome: 'Lions', usuario: '', heads: [], carteira: '', bio: '', site: '' })", c);
   const datas = [...html.matchAll(/data-vfd-alvo="(\d{4}-\d{2}-\d{2})"/g)].map((m) => m[1]);

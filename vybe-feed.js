@@ -22,8 +22,10 @@ let feedAberto = (() => { try { return localStorage.getItem(FEED_LEMBRA) === '1'
 const FEED = { carteira: 'all', head: 'all', cliente: 'all', perfis: new Map(), pedindo: new Set(), artes: new Map(), pedindoArtes: new Set(), arrastando: null, salvando: false,
   // vista: 'semanas' (as próximas 4) ou 'mes' (FEED.mes 'AAAA-MM'). sel: as datas marcadas de um cliente para o lote.
   // lote: o painel "+ Em lote" aberto. intercalar: a prévia da troca de datas. atualizar: o painel do favorito.
-  vista: 'semanas', mes: '', sel: null, lote: null, intercalar: null, atualizar: null };
-const FEED_SEMANAS = 4, FEED_POR_SEMANA = 3, FEED_GRADE_MAX = 15, FEED_LOTE_MAX = 20;
+  vista: 'semanas', mes: '', sel: null, lote: null, intercalar: null, atualizar: null,
+  // noArMax: quantas peças do que já saiu cada cliente desenha (cresce ao rolar até o fim da grade).
+  noArMax: new Map() };
+const FEED_SEMANAS = 4, FEED_POR_SEMANA = 3, FEED_LOTE_MAX = 20;
 // Os dias bons para um post quando a semana tem buraco: seg, qua, sex; depois ter, qui, sáb, dom (0 = segunda).
 const FEED_DIAS_PADRAO = [0, 2, 4, 1, 3, 5, 6];
 // Os formatos do lote, com o nome que o cadastro usa para cada um.
@@ -208,7 +210,13 @@ function feedMontar(cli) {
   const sel = FEED.sel?.cliente === cli.nome ? FEED.sel : null;
   const livres = sel ? [...sel.isos].filter((iso) => !buracos.some((b) => b.iso === iso) && !ocupados.has(iso)).map((iso) => ({ iso, buraco: true, livre: true, sazonal: feedSazonal(iso) })) : [];
   for (const b of [...buracos, ...livres]) b.marcado = Boolean(sel?.isos.has(b.iso));
-  const futuro = [...futuras, ...buracos, ...livres].sort((a, b) => b.iso.localeCompare(a.iso) || Number(Boolean(a.buraco)) - Number(Boolean(b.buraco)));
+  const ordem = (a, b) => b.iso.localeCompare(a.iso) || Number(Boolean(a.buraco)) - Number(Boolean(b.buraco));
+  const futuro = [...futuras, ...buracos, ...livres].sort(ordem);
+  // A grade rola com tudo o que o cliente tem no calendário (Paulo, 19/11/2026: "não tá mostrando todos os posts.. pode
+  // deixar rolar o feed com o que tiver no calendário pra ver tudo"): o que vem depois da janela (e, no mês adiante, o
+  // que vem antes dele) entra em cima, pela data. Buraco e data livre continuam só dentro da janela.
+  const fora = todas.filter((x) => x.iso >= hoje && (x.iso < inicio || x.iso > fim)).map((x) => ({ ...x, fora: true }));
+  const grade = [...futuro, ...fora].sort(ordem);
   const perfil = cli.usuario ? FEED.perfis.get(cli.usuario) : null;
   const publicadas = todas.filter((x) => x.iso < hoje).sort((a, b) => b.iso.localeCompare(a.iso)).map((x) => ({ ...x, passado: true }));
   // Com a captura (o feed lido uma vez no navegador da Vybe), o que a Vybe publicou depois dela entra na frente dos
@@ -217,7 +225,7 @@ function feedMontar(cli) {
   const desde = perfil?.fonte === 'captura' ? String(perfil.capturado_em || '').slice(0, 10) : '';
   const noAr = perfil?.posts?.length
     ? [...(desde ? publicadas.filter((x) => x.iso > desde) : []), ...perfil.posts.map((p) => ({ ig: p }))]
-    : publicadas.slice(0, 9);
+    : publicadas;
   // Três do mesmo formato em seguida, na ordem em que vão ao ar: a grade fica repetida.
   const seq = futuras.slice().sort((a, b) => a.iso.localeCompare(b.iso));
   let repetido = null;
@@ -225,7 +233,7 @@ function feedMontar(cli) {
   const semArte = futuras.filter((x) => FEED.artes.has(String(x.item.id)) && !FEED.artes.get(String(x.item.id))).length;
   const atrasadas = futuras.filter(feedAtrasada).length;
   const noMes = jan.modo === 'mes' ? todas.filter((x) => x.iso >= jan.ini && x.iso <= fim) : [];
-  return { futuro, noAr, futuras, buracos, livres, depois, perfil, repetido, semArte, atrasadas, jan, noMes, ocupados };
+  return { futuro, grade, fora, noAr, futuras, buracos, livres, depois, perfil, repetido, semArte, atrasadas, jan, noMes, ocupados };
 }
 
 function feedFiltrados() {
@@ -248,6 +256,41 @@ function feedNumeroIg(n) {
   if (v >= 1e6) return `${(v / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
   if (v >= 1e4) return `${(v / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`;
   return v.toLocaleString('pt-BR');
+}
+
+// O que já saiu desenha por partes (Paulo, 19/11/2026: rolar o feed para ver tudo, sem travar): FEED_NO_AR_LOTE
+// de cada vez; um marcador no fim da grade pede a próxima parte quando chega perto da vista.
+const FEED_NO_AR_LOTE = 36;
+function feedNoArLimite(nome) { return FEED.noArMax.get(nome) || FEED_NO_AR_LOTE; }
+function feedNoArHtml(cli, g) {
+  const lim = feedNoArLimite(cli.nome);
+  const html = g.noAr.slice(0, lim).map((t) => feedTileHtml(t, cli)).join('');
+  return g.noAr.length > lim ? `${html}<span class="vfd-mais" data-vfd-mais="${feedEsc(cli.nome)}" aria-hidden="true"></span>` : html;
+}
+const FEED_MAIS_OBS = new WeakMap();
+function feedLigarMais(raiz) {
+  if (!raiz || typeof IntersectionObserver !== 'function') return;
+  raiz.querySelectorAll('[data-vfd-mais]').forEach((el) => {
+    if (el.vfdObservado) return; el.vfdObservado = true;
+    // A raiz é quem rola (a grade); sem rolagem própria (celular estreito), a própria tela.
+    const rola = el.closest('.vfd2-rola, .vfd-cel-rola');
+    const raizIo = rola && /auto|scroll/.test(getComputedStyle(rola).overflowY) ? rola : document;
+    let obs = FEED_MAIS_OBS.get(raizIo);
+    if (!obs) {
+      obs = new IntersectionObserver((vistos) => {
+        let mudou = false;
+        for (const v of vistos) {
+          if (!v.isIntersecting) continue;
+          obs.unobserve(v.target);
+          const nome = v.target.dataset.vfdMais;
+          FEED.noArMax.set(nome, feedNoArLimite(nome) + FEED_NO_AR_LOTE); mudou = true;
+        }
+        if (mudou && feedAberto) renderFeedDoCliente();
+      }, { root: raizIo === document ? null : raizIo, rootMargin: '0px 0px 600px 0px' });
+      FEED_MAIS_OBS.set(raizIo, obs);
+    }
+    obs.observe(el);
+  });
 }
 
 function feedTileHtml(t, cli) {
@@ -296,9 +339,8 @@ function feedClienteHtml(cli) {
   const g = feedMontar(cli);
   const p = g.perfil && !g.perfil.erro ? g.perfil : null;
   // Corta pelo mais longe, nunca pelo mais perto: o que sai primeiro encosta no que já está no ar. No mês, tudo.
-  const gradeMax = g.jan.modo === 'mes' ? Infinity : Math.min(30, Math.max(FEED_GRADE_MAX, Math.ceil(g.futuro.length / 3) * 3));
-  const futuro = g.futuro.slice(-gradeMax);
-  const resto = g.futuro.length - futuro.length;
+  // Tudo o que o cliente tem no calendário, sem corte: a grade rola por dentro do celular.
+  const futuro = g.grade;
   const contaFmt = (lista) => FEED_FORMATOS.map((f) => [f, lista.filter((x) => x.fmt.chave === f.chave).length]).filter(([, n]) => n).map(([f, n]) => `${n} ${f.nome}`).join(', ');
   const avisos = [
     g.jan.modo === 'mes' ? `<span class="vfd-aviso" title="Peças de feed com veiculação ${feedEsc(g.jan.rotulo)}">${feedPlural(g.noMes.length, 'post', 'posts')} ${feedEsc(g.jan.rotulo)}${g.noMes.length ? ` · ${feedEsc(contaFmt(g.noMes))}` : ''}</span>`
@@ -307,9 +349,8 @@ function feedClienteHtml(cli) {
     g.atrasadas ? `<span class="vfd-aviso r" title="Prazo de ouro vencido e a peça ainda não está em Para agendar">${feedPlural(g.atrasadas, 'peça atrasada', 'peças atrasadas')}</span>` : '',
     g.semArte ? `<span class="vfd-aviso a">${feedPlural(g.semArte, 'peça sem arte', 'peças sem arte')}</span>` : '',
     g.repetido ? `<span class="vfd-aviso a" title="Três ${feedEsc(g.repetido)} seguidos deixam a grade repetida: use Intercalar formatos ou arraste">3 ${feedEsc(g.repetido)} seguidos</span>` : '',
-    resto > 0 ? `<span class="vfd-aviso" title="A grade mostra as ${gradeMax} mais próximas">+ ${feedPlural(resto, 'item mais longe', 'itens mais longe')}</span>` : '',
     p?.fonte === 'captura' ? `<span class="vfd-aviso" title="O feed atual foi lido no Instagram nesse dia; o que a Vybe publica depois entra na frente sozinho">feed lido em ${feedDm(String(p.capturado_em || '').slice(0, 10))}</span>` : '',
-    g.depois ? `<span class="vfd-aviso">${feedPlural(g.depois, 'peça depois', 'peças depois')} de ${feedDm(g.jan.fim)}</span>` : '',
+    g.depois ? `<span class="vfd-aviso" title="Estão na grade, acima das próximas semanas">${feedPlural(g.depois, 'peça depois', 'peças depois')} de ${feedDm(g.jan.fim)}</span>` : '',
   ].filter(Boolean).join('');
   const iniciais = cli.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
   const foto = p?.foto ? `<img src="${feedEsc(feedFotoIg(p.foto))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${jsArg(iniciais)}'}))">` : `<span>${feedEsc(iniciais)}</span>`;
@@ -329,7 +370,7 @@ function feedClienteHtml(cli) {
   ].filter(Boolean).join('');
   // Uma grade só, contínua (Paulo, 15/11/2026: "tem que ter continuidade"): o que vai sair em cima e, colado, o que
   // está no ar.
-  const noAr = g.noAr.map((t) => feedTileHtml(t, cli)).join('');
+  const noAr = feedNoArHtml(cli, g);
   return `<section class="vfd-cliente${FEED.sel?.cliente === cli.nome && FEED.sel.isos.size ? ' vfd-com-sel' : ''}" aria-label="Feed de ${feedEsc(cli.nome)}">
     <header class="vfd-ig">
       <div class="vfd-ig-topo"><span class="vfd-ig-foto">${foto}</span><div class="vfd-ig-nums">${nums}</div></div>
@@ -487,7 +528,7 @@ function feedPintarPalco(camada, lista, i) {
     // O conteúdo só de quem aparece; o mesmo HTML não é trocado (a rolagem e o foco ficam onde estavam).
     if (ad <= FEED_VIZINHOS) {
       const html = feedClienteHtml(cli);
-      if (cel.vfdHtml !== html) { cel.querySelector('.vfd-cel-rola').innerHTML = html; cel.vfdHtml = html; }
+      if (cel.vfdHtml !== html) { cel.querySelector('.vfd-cel-rola').innerHTML = html; cel.vfdHtml = html; feedLigarMais(cel); }
     }
   });
   [...palco.children].forEach((x) => { if (x.dataset.cli && !vivos.has(x.dataset.cli)) x.remove(); });
@@ -602,7 +643,8 @@ async function feedPedirPerfis(lista) {
 
 async function feedPedirArtes(lista) {
   // As capas do que vai sair e, sem os posts do Instagram, também das peças já publicadas (o "no ar" da grade).
-  const ids = [...new Set(lista.flatMap((c) => { const g = feedMontar(c); return [...g.futuras, ...g.noAr.filter((x) => x.passado)]; })
+  // A grade inteira (o calendário todo à frente) e o que já saiu até a próxima parte do "por partes".
+  const ids = [...new Set(lista.flatMap((c) => { const g = feedMontar(c); return [...g.grade.filter((x) => x.item), ...g.noAr.slice(0, feedNoArLimite(c.nome) + FEED_NO_AR_LOTE).filter((x) => x.passado)]; })
     .filter((x) => !x.request).map((x) => String(x.item.id)))]
     .filter((id) => !FEED.artes.has(id) && !FEED.pedindoArtes.has(id)).slice(0, 300);
   if (!ids.length) return;
@@ -966,18 +1008,18 @@ function feedV2ListaHtml(lista, montados, cli, todos) {
 // A grade do cliente, como no Instagram: o perfil em cima; o que vai sair (o mais novo em cima) e, colado, o que está no ar.
 function feedV2GradeHtml(cli, g) {
   const p = g.perfil && !g.perfil.erro ? g.perfil : null;
-  const gradeMax = g.jan.modo === 'mes' ? Infinity : Math.min(30, Math.max(FEED_GRADE_MAX, Math.ceil(g.futuro.length / 3) * 3));
-  const futuro = g.futuro.slice(-gradeMax), resto = g.futuro.length - futuro.length;
+  // Tudo o que o cliente tem no calendário, sem corte: a grade rola por dentro da folha.
+  const futuro = g.grade, aSair = futuro.filter((t) => t.item).length;
   const usuario = cli.usuario ? `<a class="vfd-ig-user" href="https://www.instagram.com/${feedEsc(cli.usuario)}/" target="_blank" rel="noopener noreferrer">${feedEsc(cli.usuario)}</a>` : `<span class="vfd-ig-user vfd-sem-insta">${feedEsc(cli.nome)}</span>`;
   const nums = p ? `${feedNumeroIg(p.total_posts)} posts · ${feedNumeroIg(p.seguidores)} seguidores` : cli.usuario ? 'lendo o Instagram…' : 'sem Instagram no cadastro';
   const bio = String(p?.bio || cli.bio || '').trim();
-  const noAr = g.noAr.map((t) => feedTileHtml(t, cli)).join('');
+  const noAr = feedNoArHtml(cli, g);
   const lido = p?.fonte === 'captura' ? `feed lido em ${feedDm(String(p.capturado_em || '').slice(0, 10))}` : p?.fonte === 'meta' ? 'pela conta da Meta' : p ? 'do perfil público' : noAr ? 'as últimas veiculadas' : '';
   return `<div class="vfd2-perfil">${feedV2Foto(cli, 'vfd2-avatar')}<div><p class="vfd2-user">${usuario}</p><p class="vfd2-nums">${feedEsc(nums)}</p>${bio ? `<p class="vfd2-bio" title="${feedEsc(bio)}">${feedEsc(bio.split('\n')[0])}</p>` : ''}</div></div>
     <div class="vfd2-rola" data-vfd2-rola="${feedEsc(cli.nome)}">
-      <p class="vfd2-rot"><span>a sair, o mais novo em cima</span><span>${resto > 0 ? `mais ${feedPlural(resto, 'item', 'itens')} mais longe` : g.depois ? `${feedPlural(g.depois, 'peça', 'peças')} depois de ${feedDm(g.jan.fim)}` : ''}</span></p>
+      <p class="vfd2-rot"><span>a sair, o mais novo em cima</span><span>${aSair ? `${feedPlural(aSair, 'post', 'posts')} até ${feedDm(futuro[0].iso)}` : ''}</span></p>
       <div class="vfd-grade" data-vfd-grade="${feedEsc(cli.nome)}">${futuro.map((t) => feedTileHtml(t, cli)).join('') || `<p class="vfd-vazio">Nada programado ${feedEsc(g.jan.rotulo)}.</p>`}</div>
-      <p class="vfd2-rot"><span>no ar</span><span>${feedEsc(lido)}</span></p>
+      <p class="vfd2-rot vfd2-hoje" data-vfd2-hoje><span>no ar</span><span>até hoje, ${feedEsc(feedQuando(g.jan.hoje))}${lido ? ` · ${feedEsc(lido)}` : ''}</span></p>
       <div class="vfd-grade">${noAr || '<p class="vfd-vazio">Nada no ar ainda por aqui.</p>'}</div>
     </div>`;
 }
@@ -1066,9 +1108,15 @@ function feedV2Pintar(wrap) {
   if (!cli) {
     feedV2Troca(cel, '<p class="d3v-estado"><b>Nenhum cliente neste filtro.</b>Troque a carteira ou o head para ver os feeds.</p>'); feedV2Troca(lado, '');
   } else {
-    const g = montados.get(cli.nome), rola = cel.querySelector('.vfd2-rola'), topo = rola && rola.dataset.vfd2Rola === cli.nome ? rola.scrollTop : 0;
+    const g = montados.get(cli.nome), rola = cel.querySelector('.vfd2-rola'), chave = `${cli.nome}|${FEED.vista}|${FEED.mes}`;
+    const topo = rola && rola.dataset.vfd2Rola === cli.nome && cel.vfdChave === chave ? rola.scrollTop : null;
     cel.setAttribute('aria-label', `Feed de ${cli.nome}`);
-    if (feedV2Troca(cel, feedV2GradeHtml(cli, g)) && topo) { const novo = cel.querySelector('.vfd2-rola'); if (novo) novo.scrollTop = topo; }
+    if (feedV2Troca(cel, feedV2GradeHtml(cli, g))) {
+      const novo = cel.querySelector('.vfd2-rola');
+      if (novo && topo != null) novo.scrollTop = topo; else if (novo) feedV2Ancorar(novo, g.jan);
+    }
+    cel.vfdChave = chave;
+    feedLigarMais(cel);
     feedV2Troca(lado, feedV2LadoHtml(cli, g));
     wrap.classList.toggle('vfd-com-sel', Boolean(FEED.sel?.cliente === cli.nome && FEED.sel.isos.size));
     wrap.querySelector('.vfd2-cli.on')?.scrollIntoView?.({ block: 'nearest' });
@@ -1085,6 +1133,16 @@ function feedV2Pintar(wrap) {
   // As fotos da lista são as do perfil de cada cliente; as artes, só do cliente à mostra.
   feedPedirPerfis(ordenada);
   if (cli) feedPedirArtes([cli]);
+}
+// A posição de abrir: a peça mais nova dentro da janela (as próximas semanas ou o mês) no alto da grade; o que vem
+// depois fica acima, a um rolar de distância.
+function feedV2Ancorar(rola, jan) {
+  const ir = () => {
+    const alvo = [...rola.querySelectorAll('.vfd-grade[data-vfd-grade] > [data-vfd-alvo]')].find((el) => el.dataset.vfdAlvo <= jan.fim);
+    if (!alvo) { rola.scrollTop = 0; return; }
+    rola.scrollTop = Math.max(0, alvo.getBoundingClientRect().top - rola.getBoundingClientRect().top + rola.scrollTop - 24);
+  };
+  ir(); if (typeof requestAnimationFrame === 'function') requestAnimationFrame(ir);
 }
 // ← e → passam de cliente enquanto o Feed está aberto na janela (fora de campo de texto e sem nada por cima).
 function feedV2Teclas() {
