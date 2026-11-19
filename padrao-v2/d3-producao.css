@@ -173,7 +173,7 @@ button.d3-num.d3p-num:active{transform:scale(.98)}
 #pv2-demandas.pv2 .d3d-tar{font-size:var(--d3-fs-texto);color:var(--d3-apagado);font-variant-numeric:tabular-nums}
 #pv2-demandas.pv2 .d3d-tar.ok{font-weight:600;color:var(--d3-pronto)}
 #pv2-demandas.pv2 .pv2-det{margin:0;padding:4px 18px 10px 112px;border-radius:0;background:transparent}
-#pv2-demandas.pv2 .pv2-det .pv2-btn.s{height:30px;background:var(--d3-cartao);box-shadow:none}
+#pv2-demandas.pv2 .pv2-det .pv2-btn.s{height:28px;background:var(--d3-cartao);box-shadow:none}
 #pv2-demandas.pv2 .pv2-det .pv2-btn.s.k{background:var(--d3-tinta);color:var(--d3-contra)}
 #pv2-demandas.pv2 .pv2-grupo > .d3p-mais{height:30px;margin:0}
 #pv2-demandas.pv2 .pv2-pe-geral,#pv2-demandas.pv2 .pv2-nada{padding:10px 18px;border-top:1px solid var(--d3-linha)}
