@@ -61,3 +61,16 @@ test('Cérebro do cliente nas pranchas V2-R: a ficha em 3 × 3, a atividade em t
   for (const t of [ficha, ativ, sin, lado]) assert.doesNotMatch(t, /<small>/);
   guardaCss(cssR('zm-r-b-3-cerebro.css'), 'zm-r-b-3-cerebro.css');
 });
+
+test('Loja: Inventário e Carteira nas pranchas V2-R, com as funções de compra, troca e ficha de sempre', () => {
+  const loja = ler('vybe-escritorio-loja.js'), ed = ler('vybe-escritorio-editor.js');
+  assert.match(loja, /if \(\(aba === "carteira" \|\| aba === "inventario"\) && document\.getElementById\("office-catalogo"\)\?\.classList\.contains\("d3m-f-lojaj"\)\) return escritorioLojaLadoV2Html\(aba\);/);
+  assert.match(ed, /d\.classList\.contains\("d3m-f-lojaj"\) && typeof escritorioCarteiraV2Html === "function" \? escritorioCarteiraV2Html\(\) : `<div class="ofc-catj-carteira">\$\{escritorioCarteiraHtml\(\)\}<\/div>`/);
+  const ct = loja.slice(loja.indexOf('function escritorioCarteiraV2Html('), loja.indexOf('function escritorioLojaLadoV2Html('));
+  naOrdem(ct, ['"Saldo disponível"', '"Nível"', '"Nesta semana"', 'Últimos 7 dias', 'De onde vieram', '["tudo", "Tudo"], ["compras", "Compras"], ["vendas", "Vendas"], ["devolucoes", "Devoluções"]', 'Histórico de compras', 'abrirPreviaMovelEscritorio(']);
+  const lado = loja.slice(loja.indexOf('function escritorioLojaLadoV2Html('));
+  naOrdem(lado, ['Como ganhar mais', 'Preços e raridades', 'Meu perfil', 'proposta de troca', 'Ver a troca', "responderTrocaEscritorio('", 'Guarda-roupa', 'abrirTrocaEscritorio()']);
+  assert.match(ed, /<i class="ofc-movel-onde">\$\{meu\.noQuarto \? "no quarto" : "guardado"\}<\/i>/);
+  assert.match(ed, /item\("todos", "Todos", /);
+  guardaCss(cssR('zm-r-b-4-loja.css'), 'zm-r-b-4-loja.css');
+});

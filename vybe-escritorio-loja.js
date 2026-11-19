@@ -288,6 +288,8 @@ function escritorioLojaCabem() {
 // ganhos por área e o ranking. Os números são os mesmos de antes (saldo, peças que cabem, troféus, próximo troféu).
 function escritorioLojaKpisHtml() {
   const eco = escritorio.base?.economia, marcos = escritorioMarcosDaLoja(), aba = escritorio.cat?.aba || "loja";
+  // Inventário e Carteira nas pranchas V2-R (só na janela de vidro do mundo; fora dele, a consulta de sempre).
+  if ((aba === "carteira" || aba === "inventario") && document.getElementById("office-catalogo")?.classList.contains("d3m-f-lojaj")) return escritorioLojaLadoV2Html(aba);
   const saldo = Number(eco?.saldo || 0), cabem = escritorioLojaCabem(), comuns = escritorioCabemNoSaldo?.total || 0;
   const seta = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
   const ir = (chave, rotulo, apoio) => `<button type="button" class="d3m-vlin" onclick="escritorio.cat.aba='${chave}';escritorio.cat.ver=60;${chave === "inventario" ? "carregarTrocasEscritorio();" : ""}redesenharCatalogoJanelaEscritorio()"><span><b>${rotulo}</b> <span class="d3m-f-ap">· ${apoio}</span></span>${seta}</button>`;
@@ -461,4 +463,80 @@ function escritorioAbrirEscadaLoja(botao, id) {
   for (const e of linha.parentElement.querySelectorAll('.v2l-esc[aria-expanded="true"]')) { e.setAttribute("aria-expanded", "false"); e.querySelector(".v2l-lin")?.setAttribute("aria-expanded", "false"); }
   linha.setAttribute("aria-expanded", String(abre)); botao.setAttribute("aria-expanded", String(abre));
   escritorio.cqAberta = abre ? id : null;
+}
+
+// ---------------------------------------------------------------------------
+// Inventário e Carteira nas pranchas V2-R-Loja-Inventario e V2-R-Loja-Carteira (aprovadas pelo Paulo). Os dados são os
+// mesmos de antes (economia do Escritório: saldo, ritmo dos 7 dias, ganhos, pontos, histórico, marcos e raridades); a
+// compra, a venda, a troca e a ficha do móvel continuam nas funções de sempre.
+const V2R_SETA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+function escritorioCarteiraV2Html() {
+  const c = escritorio.base?.economia;
+  if (!c?.disponivel) return `<p class="ofc-nota">${safeText(c?.motivo || "A carteira aparece quando a loja do escritório estiver ativa.")}</p>`;
+  const p = c.pontos || null, r = c.ritmo || null, dias = r?.dias || [];
+  const semana = dias.reduce((t, d) => t + Number(d.moedas || 0), 0), xpSemana = dias.reduce((t, d) => t + Number(d.xp || 0), 0);
+  const cabem = typeof escritorioLojaCabem === "function" ? escritorioLojaCabem() : 0;
+  const pct = p?.xpProximo ? Math.max(0, Math.min(100, Math.round((p.xp / p.xpProximo) * 100))) : 0;
+  const anel = `<svg class="d3m-r-lj-anel" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" class="f"/><circle cx="18" cy="18" r="15" class="v" style="stroke-dasharray:${(pct * 0.9425).toFixed(1)} 94.25"/></svg>`;
+  const mini = (() => { const v = dias.map((d) => Number(d.moedas || 0)); if (v.length < 2) return ""; const mx = Math.max(1, ...v), w = 84, h = 36;
+    const fio = v.map((n, i) => `${i ? "L" : "M"}${(2 + (i * (w - 4)) / (v.length - 1)).toFixed(1)} ${(h - 3 - (n / mx) * (h - 6)).toFixed(1)}`).join(" ");
+    return `<svg class="d3m-r-lj-mini" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path class="veu" d="${fio} V${h} H2 Z"/><path class="fio" d="${fio}"/></svg>`; })();
+  const num = (rot, ic, tom, v, de, sub, graf = "") => `<div class="d3m-e-folha d3m-r-lj-num"><span class="d3m-r-lj-num-cab"><span>${rot}</span><i class="d3m-r-lj-selo ${tom}" aria-hidden="true">${ic}</i></span><span class="d3m-r-lj-num-pe"><span><b>${v}${de ? `<small> ${de}</small>` : ""}</b><small>${sub}</small></span>${graf}</span></div>`;
+  const nums = `<div class="d3m-r-lj-nums">${num("Saldo disponível", "$", "", v2lNum(c.saldo), "moedas", cabem ? `cabem ${v2lNum(cabem)} peças da loja` : "piso, parede e bloco são grátis")}
+    ${p ? num("Nível", "★", "l", String(p.nivel), `· ${v2lNum(p.xpTotal ?? p.xp)} XP`, `faltam ${v2lNum(Math.max(0, p.xpProximo - p.xp))} XP para o ${p.nivel + 1}`, anel) : num("Nível", "★", "l", "—", "", "sem pontos ainda")}
+    ${num("Nesta semana", "↗", "g", `${semana >= 0 ? "+" : "−"}${v2lNum(Math.abs(semana))}`, "", dias.length ? `moedas ganhas em ${dias.length} dias` : "sem ritmo ainda", mini)}</div>`;
+  const nomeDia = (iso) => ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"][new Date(iso + "T12:00:00").getDay()];
+  const mxM = Math.max(1, ...dias.map((d) => Number(d.moedas || 0))), mxX = Math.max(1, ...dias.map((d) => Number(d.xp || 0)));
+  const faixas = (c.loja?.raridades || []).map((x) => x.preco).filter((v) => v > Number(c.saldo || 0)).sort((a, b) => a - b);
+  const alvo = faixas[0] || null, previsao = r?.porDia > 0 && alvo ? `No seu ritmo, ${v2lNum(alvo)} moedas cabem no saldo em cerca de ${Math.max(1, Math.ceil((alvo - Number(c.saldo || 0)) / r.porDia))} dias.` : r?.porDia > 0 ? `Você ganha cerca de ${String(r.porDia).replace(".", ",")} moedas por dia.` : "Sem ganho nos últimos dias.";
+  const barras = `<section class="d3m-e-folha d3m-r-lj-dias" aria-label="Últimos 7 dias"><div class="d3m-e-cab"><b>Últimos 7 dias <span>· ${semana >= 0 ? "+" : "−"}${v2lNum(Math.abs(semana))} moedas, +${v2lNum(xpSemana)} XP</span></b><span class="d3m-e-cab-dir"><span class="d3m-r-lj-leg"><i class="m"></i>moedas</span><span class="d3m-r-lj-leg"><i class="x"></i>XP</span></span></div>
+    ${dias.length ? `<ol class="d3m-r-lj-barras" aria-label="Moedas e XP por dia">${dias.map((d) => `<li title="${nomeDia(d.dia)} ${d.dia.slice(8, 10)}/${d.dia.slice(5, 7)}: ${d.moedas} moedas e ${d.xp} XP"><span class="d3m-r-lj-col"><i class="m" style="--v:${Math.round((Math.max(0, d.moedas) / mxM) * 100)}%"></i><i class="x" style="--v:${Math.round((Math.max(0, d.xp) / mxX) * 100)}%"></i></span><small>${nomeDia(d.dia)}</small></li>`).join("")}</ol>` : '<p class="d3m-r-lj-nada">Ainda sem moedas nos últimos dias.</p>'}
+    <p class="d3m-r-lj-prev">${safeText(previsao)}</p></section>`;
+  const ganhos = (p?.ganhos || []).filter((g) => Number(g.moedas) || Number(g.pontos));
+  const mes = new Date().toLocaleDateString("pt-BR", { month: "long" });
+  const vieram = `<section class="d3m-e-folha d3m-r-lj-vieram" aria-label="De onde vieram"><div class="d3m-e-cab"><b>De onde vieram <span>· ${safeText(mes)}</span></b></div>
+    <ul class="d3m-r-lj-lista">${ganhos.map((g) => `<li><span><b>${safeText(g.descricao)}</b> <span>· ${g.vezes === 1 ? "1 vez" : `${g.vezes} vezes`}</span></span><em class="${Number(g.moedas) < 0 ? "r" : "g"}">${Number(g.moedas) >= 0 ? "+" : "−"}${v2lNum(Math.abs(Number(g.moedas)))}</em></li>`).join("") || '<li class="d3m-r-lj-nada">Nenhum ganho registrado neste mês.</li>'}</ul></section>`;
+  // O extrato das compras, vendas, kits e devoluções, com onde cada coisa está agora.
+  const h = Array.isArray(c.historico) ? c.historico : [], filtro = escritorio.cat?.hist || "tudo";
+  const TIPOS = { compra: "Comprou", kit: "Kit", venda: "Vendeu", devolucao: "Devolução" };
+  const doFiltro = { tudo: () => true, compras: (x) => x.tipo === "compra" || x.tipo === "kit", vendas: (x) => x.tipo === "venda", devolucoes: (x) => x.tipo === "devolucao" }[filtro] || (() => true);
+  const meus = new Map((typeof escritorioMeuInventario === "function" ? escritorioMeuInventario() : []).map((i) => [i.classe, i]));
+  const onde = (x) => { const classe = x.classes?.[0] || ""; if (x.tipo === "venda") return "saiu do inventário"; if (x.tipo === "devolucao") return "voltou para a loja"; if (x.tipo === "kit") return `${x.unidades} peças no quarto`;
+    if (classe.startsWith("roupa:")) return "no guarda-roupa"; if ((escritorio.base?.quartos?.essenciais || []).includes(classe)) return "grátis agora";
+    const i = meus.get(classe); if (!i) return "não está mais com você"; return i.noQuarto ? "no quarto" : "guardado"; };
+  const quando = (iso) => { const d = new Date(iso); return Number.isNaN(+d) ? "" : `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}, ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`; };
+  const nomeDo = (x) => { const classe = x.classes?.[0] || ""; return x.tipo === "kit" ? `Kit ${x.kit}` : classe.startsWith("roupa:") ? "Roupa do avatar" : `${x.unidades > 1 ? `${x.unidades} × ` : ""}${escritorioNomeDaClasse(classe)}`; };
+  const seg = [["tudo", "Tudo"], ["compras", "Compras"], ["vendas", "Vendas"], ["devolucoes", "Devoluções"]].map(([k, n]) => `<button type="button" aria-pressed="${filtro === k}" onclick="escritorio.cat.hist='${k}';desenharCatalogoJanelaEscritorio()">${n}</button>`).join("");
+  const linhas = h.filter(doFiltro);
+  const hist = `<section class="d3m-e-folha d3m-r-lj-hist" aria-label="Histórico de compras"><div class="d3m-e-cab"><b>Histórico de compras <span>· o extrato da sua carteira</span></b><span class="d3m-e-seg" role="group" aria-label="Filtrar o histórico">${seg}</span></div>
+    ${linhas.length ? `<div class="d3m-r-lj-tl d3m-r-lj-tc" aria-hidden="true"><span>O quê</span><span>Onde está</span><span>Quando</span><span>Valor</span></div><div class="d3m-e-rola">${linhas.map((x) => { const classe = x.classes?.[0] || "", abre = classe && !classe.startsWith("roupa:") && x.tipo !== "kit";
+      return `<${abre ? `button type="button" onclick="abrirPreviaMovelEscritorio('${safeText(classe)}')"` : "div"} class="d3m-r-lj-tl"><span><b>${TIPOS[x.tipo] || "Movimento"}</b> · ${safeText(nomeDo(x))}</span><span>${safeText(onde(x))}</span><span>${quando(x.em)}</span><em class="${x.valor > 0 ? "g" : x.valor < 0 ? "r" : ""}">${x.valor > 0 ? "+" : x.valor < 0 ? "−" : ""}${v2lNum(Math.abs(x.valor))}</em></${abre ? "button" : "div"}>`; }).join("")}</div>`
+      : `<p class="d3m-r-lj-nada">${h.length ? "Nada neste filtro." : "Nenhuma compra ainda."}</p>`}</section>`;
+  return `<div class="d3m-r-lj-ct">${nums}<div class="d3m-r-lj-meio">${barras}${vieram}</div>${hist}</div>`;
+}
+// A consulta da Carteira e do Inventário (prancha V2-R): o que paga moedas, os preços e os atalhos; no Inventário, a
+// troca que espera você, o saldo e os atalhos do guarda-roupa e da troca.
+function escritorioLojaLadoV2Html(aba) {
+  const eco = escritorio.base?.economia, marcos = escritorioMarcosDaLoja();
+  const ir = (chave, rotulo, apoio) => `<button type="button" class="d3m-vlin" onclick="escritorio.cat.aba='${chave}';escritorio.cat.ver=60;${chave === "inventario" ? "carregarTrocasEscritorio();" : ""}redesenharCatalogoJanelaEscritorio()"><span><b>${rotulo}</b> <span class="d3m-f-ap">· ${apoio}</span></span>${V2R_SETA}</button>`;
+  if (aba === "carteira") {
+    const r = marcos ? escritorioConquistasResumo(marcos) : null;
+    const prox = (r?.andamento || []).slice(0, 4).map((x) => { const dp = x.degraus.find((d) => d.nivel === x.proximo.nivel); return `<p class="d3m-vlin d3m-r-lj-paga"><span><b>${safeText(x.nome)}</b> <span class="d3m-f-ap">· faltam ${v2lNum(x.proximo.meta - x.valor)}</span></span><b class="d3m-vn">${dp ? `+${v2lNum(dp.moedas)}` : ""}</b></p>`; }).join("");
+    const raridades = (eco?.loja?.raridades || []).map((x) => `<span><span>${safeText(x.nome)}</span><b>${v2lNum(x.preco)}</b></span>`).join("");
+    const meuId = escritorio.base?.eu;
+    return `<section class="d3m-cons" aria-label="Como ganhar mais"><div class="d3m-cons-cab"><b>Como ganhar mais</b><span>os próximos troféus</span></div>${prox || '<p class="d3m-vvazio">Entregas, missões do dia e troféus pagam moedas.</p>'}</section>
+      <section class="d3m-cons" aria-label="Preços e raridades"><div class="d3m-cons-cab"><b>Preços e raridades</b><span>moedas</span></div><div class="d3m-r-lj-precos"><span><span>Essenciais</span><b>grátis</b></span>${raridades || "<span><span>Extras</span><b>25</b></span>"}</div>${eco?.loja ? '<p class="d3m-f-ganhar">Muito raros e lendários só na vitrine semanal; o estoque é da equipe.</p>' : ""}</section>
+      <section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>${ir("loja", "Loja", "gastar o saldo")}${ir("inventario", "Inventário", "o que já é seu")}${meuId != null ? `<button type="button" class="d3m-vlin" onclick="abrirFichaEscritorio(escritorio.base.eu)"><span><b>Meu perfil</b> <span class="d3m-f-ap">· nível e pontos</span></span>${V2R_SETA}</button>` : ""}</section>`;
+  }
+  const nomeDe = (id) => String((escritorio.base?.equipe || []).find((x) => String(x.id) === String(id))?.nome || "Alguém").split(" ")[0];
+  const aberta = (escritorio.trocas?.recebidas || []).find((x) => x.estado === "aberta");
+  const nomeItem = (l) => { const it = (l || [])[0]; const classe = Array.isArray(it) ? it[0] : typeof it === "string" ? it : it?.classe; return classe ? escritorioNomeDaClasse(classe) : "um móvel"; };
+  const lar = aberta ? `<section class="d3m-laranja d3m-f-lar" aria-label="Proposta de troca"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${safeText(nomeDe(aberta.de_pessoa).slice(0, 1))}</span>${safeText(nomeDe(aberta.de_pessoa))} · proposta de troca</span>
+    <div class="d3m-lar-txt"><span class="d3-acao-frase">Quer ${safeText(nomeItem(aberta.pede))} pelo ${safeText(nomeItem(aberta.oferece))}</span><small class="d3m-f-lar-ap">Nada sai do seu quarto sem o seu sim.</small>
+    <div class="d3m-lar-bts"><button type="button" class="d3m-btn l" onclick="escritorio.cat.inv='trocas';redesenharCatalogoJanelaEscritorio()">Ver a troca</button><button type="button" class="d3m-btn l s" onclick="responderTrocaEscritorio('${safeText(aberta.id)}','recusar',this)">Recusar</button></div></div></section>` : "";
+  const saldo = `<section class="d3m-cons" aria-label="Seu saldo"><div class="d3m-cons-cab"><b>Seu saldo</b><span>VybeCoins</span></div><p class="d3m-vlin d3m-r-lj-paga"><span><b>${eco ? v2lNum(eco.saldo) : "…"}</b> <span class="d3m-f-ap">· piso, parede e bloco são grátis</span></span></p></section>`;
+  const roupas = (eco?.inventario || []).filter((i) => String(i.classe).startsWith("roupa:") && Number(i.quantidade) > 0).length;
+  return `${lar}${saldo}<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+    <button type="button" class="d3m-vlin" onclick="document.getElementById('office-catalogo')?.close();criador.armario='guarda';abrirAberturaEscritorio('personagem')"><span><b>Guarda-roupa</b> <span class="d3m-f-ap">· ${roupas === 1 ? "1 roupa" : `${roupas} roupas`}</span></span>${V2R_SETA}</button>
+    <button type="button" class="d3m-vlin" onclick="abrirTrocaEscritorio()"><span><b>Propor troca</b> <span class="d3m-f-ap">· com alguém da equipe</span></span>${V2R_SETA}</button>${ir("loja", "Loja", "comprar mais")}</section>`;
 }

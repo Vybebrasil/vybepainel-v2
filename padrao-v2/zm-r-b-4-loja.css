@@ -1,0 +1,100 @@
+/* ===================================================================================================================
+   V2 · R · LOJA: INVENTÁRIO E CARTEIRA (pranchas V2-R-Loja-Inventario e V2-R-Loja-Carteira, aprovadas pelo Paulo). A
+   janela de vidro, o topo e a consulta são os da prancha V2-M-Loja (zm-f-loja.css). Inventário: as fichas com o número
+   à parte, "de onde vieram" numa linha discreta e a grade de cartões grandes com onde o móvel está. Carteira: a folha
+   dos itens some e no lugar dela entram três números, os últimos 7 dias, de onde vieram e o histórico. Só tokens.
+   =================================================================================================================== */
+.ofc-movel-onde{display:none}
+/* A parte escolhida no topo: preenchimento fume-texto, letra fume-contra (no Claro a letra sumia). */
+#office-catalogo.d3m-f-lojaj .d3m-f-partes > button[aria-pressed="true"]{color:var(--d3-fume-contra)}
+
+/* INVENTÁRIO */
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .v2l-chip > .v2l-chip-n{margin-left:4px;font-weight:400;color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:0 16px 8px}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas > .ofc-cat-rot{margin-right:8px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas .ofc-cat-chip{height:26px;padding:0 8px;border:0;border-radius:7px;background:none;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas .ofc-cat-chip::before{content:none}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas .ofc-cat-chip > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas .ofc-cat-chip[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas .ofc-cat-chip:disabled{color:var(--d3-rotulo)}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-faixas .ofc-ordem-chips{display:inline-flex;gap:2px;margin-left:auto;padding-left:10px;border-left:1px solid var(--d3-divisa)}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-info{display:none}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:min-content;align-content:start;gap:16px 12px;padding:12px 16px 16px}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel > :is(span,em){margin:0;text-align:left}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel{position:relative;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:2px;min-width:0;height:auto;min-height:0;margin:0;padding:0;border:0;border-radius:12px;background:none;box-shadow:none;color:var(--d3-tinta);text-align:left;cursor:pointer}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel > img{display:block;width:100%;height:150px;margin:0 0 6px;padding:24px;box-sizing:border-box;border-radius:12px;background:var(--d3-veu);object-fit:contain;image-rendering:pixelated}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel > span{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel > .ofc-movel-linha{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel > .ofc-movel-onde{position:absolute;left:8px;top:8px;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-folha);color:var(--d3-tinta);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);font-style:normal}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel:hover > img{background:var(--d3-veu-forte)}
+#office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+
+/* CARTEIRA: a folha dos itens vira transparente; as folhas são as da prancha. */
+#office-catalogo.d3m-f-lojaj[data-aba="carteira"] .d3m-f-itens{background:none;box-shadow:none;overflow:visible}
+#office-catalogo.d3m-f-lojaj[data-aba="carteira"] .d3m-f-itens > :is(.d3m-e-cab,.v2l-painel,.d3m-f-faixas,.d3m-f-info){display:none}
+#office-catalogo.d3m-f-lojaj[data-aba="carteira"] .d3m-f-grade{display:flex;padding:0;border-top:0;overflow:hidden}
+.d3m-r-lj-ct{flex:1 1 auto;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.d3m-r-lj-nums{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.d3m-r-lj-num{justify-content:space-between;height:104px;padding:14px}
+.d3m-r-lj-num-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+.d3m-r-lj-selo{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-contra);font:700 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);font-style:normal}
+.d3m-r-lj-selo.l{background:var(--d3-agente);color:var(--d3-escuro-texto)}
+.d3m-r-lj-selo.g{background:var(--d3-pronto);color:var(--d3-contra)}
+.d3m-r-lj-num-pe{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.d3m-r-lj-num-pe > span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-r-lj-num-pe b{font:600 var(--d3-fs-numero)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3m-r-lj-num-pe b > small{font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);letter-spacing:0;color:var(--d3-rotulo)}
+.d3m-r-lj-num-pe > span > small{font-size:var(--d3-fs-mini);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-r-lj-anel{flex:none;width:36px;height:36px;transform:rotate(-90deg)}
+.d3m-r-lj-anel > circle{fill:none;stroke-width:4}
+.d3m-r-lj-anel > .f{stroke:var(--d3-veu-forte)}
+.d3m-r-lj-anel > .v{stroke:var(--d3-agente);stroke-linecap:round}
+.d3m-r-lj-mini{flex:none;width:84px;height:36px;overflow:visible;color:var(--d3-pronto)}
+.d3m-r-lj-mini > .veu{fill:currentColor;stroke:none;opacity:.14}
+.d3m-r-lj-mini > .fio{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.d3m-r-lj-meio{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px;min-height:0}
+.d3m-r-lj-meio > .d3m-e-folha{min-height:0}
+.d3m-r-lj-leg{display:inline-flex;align-items:center;gap:5px}
+.d3m-r-lj-leg > i,.d3m-r-lj-col > i{display:block;border-radius:2px}
+.d3m-r-lj-leg > i{width:8px;height:8px}
+.d3m-r-lj-leg > i.m,.d3m-r-lj-col > i.m{background:var(--d3-tinta)}
+.d3m-r-lj-leg > i.x,.d3m-r-lj-col > i.x{background:var(--d3-meta)}
+.d3m-r-lj-barras{flex:1 1 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;min-height:60px;margin:0;padding:8px 16px 0;list-style:none;border-top:1px solid var(--d3-divisa)}
+.d3m-r-lj-barras > li{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:0}
+.d3m-r-lj-col{flex:1 1 auto;display:flex;align-items:flex-end;justify-content:center;gap:4px;width:100%;min-height:0}
+.d3m-r-lj-col > i{width:12px;height:var(--v,0%);min-height:2px}
+.d3m-r-lj-barras small{font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+.d3m-r-lj-prev{flex:none;margin:0;padding:8px 16px 12px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-r-lj-lista{flex:1 1 auto;margin:0;padding:0;list-style:none;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+.d3m-r-lj-lista > li{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;padding:0 16px;border-bottom:1px solid var(--d3-divisa);font-size:var(--d3-fs-apoio)}
+.d3m-r-lj-lista > li > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-r-lj-lista > li > span > span{color:var(--d3-rotulo)}
+.d3m-r-lj-lista em,.d3m-r-lj-tl > em{flex:none;font-style:normal;font-weight:600;font-variant-numeric:tabular-nums}
+:is(.d3m-r-lj-lista,.d3m-r-lj-tl) em.g{color:var(--d3-pronto)}
+:is(.d3m-r-lj-lista,.d3m-r-lj-tl) em.r{color:var(--d3-perigo)}
+.d3m-r-lj-nada{margin:0;padding:12px 16px;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-r-lj-hist{flex:1 1 0;min-height:150px}
+.d3m-r-lj-tl{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) 160px 110px 60px;align-items:center;gap:10px;width:100%;min-height:34px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-bottom:1px solid var(--d3-divisa);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left}
+button.d3m-r-lj-tl{cursor:pointer}
+button.d3m-r-lj-tl:hover{background:var(--d3-veu)}
+button.d3m-r-lj-tl:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-r-lj-tl > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-r-lj-tl > span:nth-child(2),.d3m-r-lj-tl > span:nth-child(3){color:var(--d3-rotulo)}
+.d3m-r-lj-tl > em{text-align:right}
+.d3m-r-lj-tc{flex:none;min-height:26px;font-size:var(--d3-fs-mini);color:var(--d3-rotulo);border-top:1px solid var(--d3-divisa)}
+.d3m-r-lj-tc > span:last-child{text-align:right}
+/* A consulta: o que paga moedas e os preços. */
+.d3m-r-lj-paga{cursor:default}
+.d3m-r-lj-paga:hover{background:var(--d3-fume-veu)}
+.d3m-r-lj-precos{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);font-size:var(--d3-fs-apoio)}
+.d3m-r-lj-precos > span{display:flex;justify-content:space-between;gap:8px}
+.d3m-r-lj-precos > span > b{font-variant-numeric:tabular-nums}
+
+@media (max-height:820px){
+  #office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade > .ofc-movel > img{height:118px;padding:18px}
+  .d3m-r-lj-num{height:92px;padding:12px}
+}
+@media (max-width:1100px){
+  #office-catalogo.d3m-f-lojaj[data-aba="inventario"] .d3m-f-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d3m-r-lj-nums,.d3m-r-lj-meio{grid-template-columns:minmax(0,1fr)}
+}

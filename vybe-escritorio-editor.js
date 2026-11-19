@@ -1034,7 +1034,7 @@ function escritorioCartaoMovel(m, opcoes) {
   const faixa = (meu && i.marco ? "Prêmio · " : "") + (!comum && i.raridade !== "comum" ? `${safeText(i.nome)} · ` : "");
   const arrasta = Boolean(escritorio.edicao) && escritorioPodeColocarMovel(m.classe);
   const desejo = !meu && escritorioDesejos().has(m.classe) ? '<i class="ofc-movel-desejo" title="Na sua lista de desejos">Quero</i>' : "";
-  return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${travado ? " indisponivel" : ""}${q === Infinity && !meu ? " gratis" : ""}${!comum && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${arrasta}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)} · clique para ver a ficha${arrasta ? " ou arraste para o mapa" : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha${travado ? " nao" : ""}">${faixa}${safeText(estado)}</em>${desejo}${etiquetaJogo}</button>`;
+  return `<button type="button" data-classe="${safeText(m.classe)}" class="ofc-movel compacto${travado ? " indisponivel" : ""}${q === Infinity && !meu ? " gratis" : ""}${!comum && i.raridade !== "comum" ? " r-" + safeText(i.raridade) : ""}" draggable="${arrasta}" ondragstart="arrastarDoCatalogoEscritorio(event,'${safeText(m.classe)}')" ondragend="escritorio.arrastandoCatalogo=null;escritorio.mapa?.previa(null)" onclick="abrirPreviaMovelEscritorio('${safeText(m.classe)}')" title="${safeText(nome)} · clique para ver a ficha${arrasta ? " ou arraste para o mapa" : ""}"><img loading="lazy" src="https://www.habboassets.com/imaging/furniture/${encodeURIComponent(m.classe)}.png?size=64" alt="" onerror="miniaturaLocalEscritorio(this,'${safeText(m.classe)}')"><span>${safeText(nome)}</span><em class="ofc-movel-linha${travado ? " nao" : ""}">${faixa}${safeText(estado)}</em>${desejo}${etiquetaJogo}${meu ? `<i class="ofc-movel-onde">${meu.noQuarto ? "no quarto" : "guardado"}</i>` : ""}</button>`;
 }
 // O que a loja sabe do móvel: faixa, preço, restantes, se está na vitrine e se
 // vem só por marco. Quem não está na tabela é comum (preço único); sem a tabela
@@ -1124,8 +1124,8 @@ function redesenharCatalogoJanelaEscritorio() {
 function escritorioArvoreInventarioHtml() {
   const meus = typeof escritorioMeuInventario === "function" ? escritorioMeuInventario() : [];
   const f = escritorio.cat, trocas = (escritorio.trocas?.recebidas || []).filter((x) => x.estado === "aberta").length;
-  const item = (chave, rotulo, n) => `<button type="button" class="v2l-chip" aria-pressed="${f.inv === chave}" onclick="escritorio.cat.inv='${chave}';redesenharCatalogoJanelaEscritorio()">${rotulo}${n != null ? ` · ${n}` : ""}</button>`;
-  return item("todos", "Todos os seus", meus.reduce((t, i) => t + i.total, 0)) + item("guardados", "Guardados", meus.reduce((t, i) => t + i.guardados, 0))
+  const item = (chave, rotulo, n) => `<button type="button" class="v2l-chip" aria-pressed="${f.inv === chave}" onclick="escritorio.cat.inv='${chave}';redesenharCatalogoJanelaEscritorio()">${rotulo}${n != null ? ` <b class="v2l-chip-n">${n}</b>` : ""}</button>`;
+  return item("todos", "Todos", meus.reduce((t, i) => t + i.total, 0)) + item("guardados", "Guardados", meus.reduce((t, i) => t + i.guardados, 0))
     + item("quarto", "No quarto", meus.reduce((t, i) => t + i.noQuarto, 0)) + item("essenciais", "Essenciais grátis", (escritorio.base?.quartos?.essenciais || []).length) + item("trocas", "Trocas", trocas || null);
 }
 function desenharInventarioJanelaEscritorio(d) {
@@ -1157,7 +1157,7 @@ function desenharInventarioJanelaEscritorio(d) {
     .filter((i) => !busca || escritorioBuscaCombina(escritorioNomeDaClasse(i.classe) + " " + i.classe, busca))
     .sort(ordens[f.ordemInv] || ordens.nome);
   const contaOrigem = (t) => (escritorioMeuInventario?.() || []).filter((i) => (origens[i.classe] || []).includes(t)).length;
-  d.querySelector("#office-catj-faixas").innerHTML = `${[["premio", "Prêmios"], ["compra", "Comprados"], ["presente", "Presentes"], ["troca", "Trocas"]].map(([k, n]) => `<button type="button" class="ofc-cat-chip" aria-pressed="${f.origem === k}" ${contaOrigem(k) ? "" : "disabled"} onclick="escritorio.cat.origem=escritorio.cat.origem==='${k}'?'':'${k}';desenharCatalogoJanelaEscritorio()">${n} <small>${contaOrigem(k)}</small></button>`).join("")}
+  d.querySelector("#office-catj-faixas").innerHTML = `<span class="ofc-cat-rot">de onde vieram</span>${[["premio", "Prêmios"], ["compra", "Comprados"], ["presente", "Presentes"], ["troca", "Trocas"]].map(([k, n]) => `<button type="button" class="ofc-cat-chip" aria-pressed="${f.origem === k}" ${contaOrigem(k) ? "" : "disabled"} onclick="escritorio.cat.origem=escritorio.cat.origem==='${k}'?'':'${k}';desenharCatalogoJanelaEscritorio()">${n} <small>${contaOrigem(k)}</small></button>`).join("")}
 ${escritorioOrdemChipsHtml("ordemInv", f.ordemInv || "nome", [["nome", "A–Z"], ["raros", "Mais raros"], ["quantidade", "Mais unidades"]])}`;
   const todos = [...escritorioCatalogo, ...ESCRITORIO_COMPUTADORES];
   const roupas = (escritorio.base?.economia?.inventario || []).filter((i) => String(i.classe).startsWith("roupa:") && Number(i.quantidade) > 0).length;
@@ -1186,7 +1186,7 @@ function escritorioLojaTopo(d) {
 function escritorioLojaTituloFolha() {
   const d = document.getElementById("office-catalogo"), t = d?.querySelector("#d3m-f-loja-tit");
   if (!t) return;
-  const f = escritorio.cat, n = d.querySelectorAll("#office-catj-grade .v2l-item").length;
+  const f = escritorio.cat, n = d.querySelectorAll("#office-catj-grade :is(.v2l-item,.ofc-movel)").length;
   const capa = d.classList.contains("na-capa") && f.aba === "loja";
   const nome = f.aba === "inventario" ? "Seus móveis" : f.aba === "carteira" ? "Carteira" : capa ? "Destaques" : f.desejos ? "Desejos" : f.busca ? "Busca" : f.categoria && f.categoria !== "*" ? (typeof escritorioRotuloCategoria === "function" ? escritorioRotuloCategoria(String(f.categoria).replace(/^secao:/, "")) : f.categoria) : "Catálogo";
   const conta = f.aba === "carteira" ? "" : capa || f.aba === "inventario" ? `${n.toLocaleString("pt-BR")} ${n === 1 ? "item" : "itens"}` : d.querySelector("#office-catj-info > b")?.textContent || "";
@@ -1202,7 +1202,8 @@ function desenharCatalogoJanelaEscritorioDentro() {
     d.querySelector("#v2l-painel")?.setAttribute("aria-expanded", "false");
     d.querySelector("#office-catj-faixas").innerHTML = "";
     d.querySelector("#office-catj-info").innerHTML = "";
-    d.querySelector("#office-catj-grade").innerHTML = `<div class="ofc-catj-carteira">${escritorioCarteiraHtml()}</div>`;
+    // No mundo, a Carteira da prancha V2-R-Loja-Carteira (vybe-escritorio-loja.js); fora dele, a de sempre.
+    d.querySelector("#office-catj-grade").innerHTML = d.classList.contains("d3m-f-lojaj") && typeof escritorioCarteiraV2Html === "function" ? escritorioCarteiraV2Html() : `<div class="ofc-catj-carteira">${escritorioCarteiraHtml()}</div>`;
     return;
   }
   d.querySelector(".v2l-filtros").hidden = false;
