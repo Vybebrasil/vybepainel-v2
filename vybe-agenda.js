@@ -714,15 +714,15 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${linha('Prazo', data(item.prazo_iso))}
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
+      ${/* Bia (Coordenação, 18/11/2026): "editar tudo dentro do cartão da atividade". O formato fica no bloco de cima,
+           como 5º campo, junto de status, responsável, prazo e veiculação; o mesmo botão de antes (pillEditavel). */ ''}
+      ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
     </div>
-    ${/* Bia (Coordenação, 18/11/2026): "editar tudo dentro do cartão da atividade". Na prancha V2-R (19/11) o formato
-         desce para a grade de "Mais campos", com o mesmo botão de antes (pillEditavel): continua editável ali. */ ''}
     <details class="cr-mais"${window.CR_MAIS_ABERTO ? ' open' : ''} ontoggle="window.CR_MAIS_ABERTO=this.open">
-      <summary>Mais campos<small class="cr-mais-dica">clientes, grupo, ${ehDemanda ? 'tipo' : 'formato'}…</small><small class="cr-mais-recolher">recolher</small></summary>
+      <summary>Mais campos<small class="cr-mais-dica">clientes, grupo, prioridade…</small><small class="cr-mais-recolher">recolher</small></summary>
     <div class="cr-campos cr-grade">
       ${linha('Clientes', botaoClientesDoItem(item))}
       ${linha('Grupo', botaoDeGrupo(item))}
-      ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
       ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}

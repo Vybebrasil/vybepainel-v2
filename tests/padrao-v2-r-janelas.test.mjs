@@ -56,6 +56,9 @@ test('Cartão rápido: vidro fumê, quatro campos em cima, Mais campos em grade,
   assert.match(agenda, /<small class="cr-mais-recolher">recolher<\/small>/);
   assert.match(agenda, /linha\('OFF e áudio'/);
   assert.match(agenda, /linha\('Cadastro', /);
+  // Bia (18/11/2026): o formato fica no bloco de cima, como 5º campo, e não se repete em Mais campos.
+  const ess = agenda.slice(agenda.indexOf('cr-campos cr-essenciais'), agenda.indexOf('<details class="cr-mais"'));
+  assert.ok(ess.includes("'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato')"));
   // o fluxo e os botões de sempre
   for (const t of ["openStatusEditor", "vybeDono(item, 'cr-dono'", "openPlanningEditor", "renomearPeca", "abrirClientesDoItem", "abrirSeletorDeGrupo", "ontoggle=\"window.CR_MAIS_ABERTO=this.open\""]) assert.ok(agenda.includes(t), t);
 });
