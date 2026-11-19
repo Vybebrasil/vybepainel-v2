@@ -541,9 +541,10 @@ function gavetaLinkHtml() {
           ${gavetaObjetivoHtml(item)}<span class="gv2-vao"></span>${gavetaAtrasoDesktopHtml(item)}</div>
       </div>
       ${gavetaEtapasHtml(item)}
-      <div class="gv2-bloco">
+      <div class="gv2-bloco${typeof pillEditavel === 'function' ? ' gv2-com-formato' : ''}">
         <div class="gv2-cmp"><small>Prazo interno</small><span class="gv2-dado${gavetaDataVencida(item.prazo_iso, item) ? ' r' : ''}" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.prazo) || '—')}</span></div>
         <div class="gv2-cmp"><small>${ehPedido ? 'Conclusão' : 'Veiculação'}</small><span class="gv2-dado${gavetaDataVencida(item.veiculacao_iso, item) ? ' r' : ''}" role="button" tabindex="0" onclick="openPlanningEditor('${id}')" onkeydown="if(event.key==='Enter')openPlanningEditor('${id}')" title="Editar prazo e veiculação">${safeText(data(item.veiculacao) || '—')}</span></div>
+        ${typeof pillEditavel === 'function' ? `<div class="gv2-cmp gv2-formato"><small>${ehPedido ? 'Tipo' : 'Formato'}</small>${pillEditavel(item, 'formato')}</div>` : ''}
         <div class="gv2-cmp"><small>Responsável</small>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'gv2-dono', { comNome: true }) : ''}</div>
       </div>
       <div class="gv2-seg" role="radiogroup" aria-label="Partes da peça">${aba('resumo', 'Resumo')}${aba('arquivos', 'Arquivos', assets.length)}${aba('conversa', 'Conversa', updates.length)}${aba('historico', 'Histórico')}</div>

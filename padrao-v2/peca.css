@@ -529,3 +529,16 @@ body.mundo #dono-editor{--ds-acao:var(--d3-tinta,#1F1D1A);--ds-acao-hover:var(--
 
 /* Portão do motivo da troca de status (openStatusContextGate): o foco do campo em tinta, sem o contorno laranja. */
 body.mundo #workflow-modal.status-context-dialog{--vybe-orange-soft:var(--d3-tinta,#1F1D1A)}
+
+/* Formato no cartão da atividade (Bia, 18/11/2026: "editar tudo dentro do cartão"): o formato entra no bloco de dados ao
+   lado das datas e do responsável, com o mesmo editor das tabelas (pillEditavel/abrirEscolha). */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-bloco.gv2-com-formato{grid-template-columns:1fr 1fr 1fr 1.3fr}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-formato .grupo-pill-btn{appearance:none;display:inline-flex;align-items:center;max-width:100%;height:28px;margin:-5px 0 -5px -10px;padding:0 10px;border:0;border-radius:10px;background:none;box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-formato .grupo-pill-btn:hover{box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-formato .grupo-pill-btn:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-formato .grupo-pill-btn :is(.pill,[class*="pill"],span){min-width:0;height:auto;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:inherit;font:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-formato .grupo-pill-btn :is(i,svg,.status-dot,[class*="dot"]){display:none}
+@media (max-width:900px){
+  body.mundo #workspace-drawer.gv2-gaveta .gv2-bloco.gv2-com-formato{grid-template-columns:1fr 1fr}
+  body.mundo #workspace-drawer.gv2-gaveta .gv2-bloco.gv2-com-formato > :last-child{grid-column:auto}
+}

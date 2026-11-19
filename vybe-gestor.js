@@ -2229,11 +2229,22 @@ function pv2MesHtml({ meta, grouped, clients, semCarteira, escolhido }) {
 // guarda as outras seis atrás de "Colunas". Cada célula é o mesmo editor de sempre (clientes, formato, status, datas,
 // responsável); "Marcar várias" liga as caixas e a barra de lote; o menu do grupo (renomear, cor, ordem, apagar) fica na
 // cabeça da folha.
-let pv2GruposSel = '', pv2GruposFiltro = 'todos', pv2GruposColunas = false, pv2GruposLote = false;
+// Bia (Coordenação, 18/11/2026): "selecionar mais de um pra fazer alterações", "filtrar pro status" e "editar tudo dentro
+// do cartão da atividade". As caixas de marcar ficam sempre à vista (a de cima marca o que está no recorte), a barra de
+// lote é a de sempre (#lote-deck, montarDeckDeLote em vybe-agenda.js, que grava pelo /api/conteudo), o status filtra na
+// cabeça da folha e a linha abre a gaveta, onde título, status, datas, responsável e formato se editam ali mesmo.
+let pv2GruposSel = '', pv2GruposFiltro = 'todos', pv2GruposColunas = false, pv2GruposLote = false, pv2GruposStatus = '';
 const PV2_GRUPOS_EXTRAS = ['captacao', 'tipo_conteudo', 'off_audio', 'prioridade'];
 const pv2GruposRedesenha = () => renderVisaoDeGrupos('producao');
 function pv2GruposEscolher(id) { pv2GruposSel = String(id); pv2GruposRedesenha(); }
 function pv2GruposFiltrar(f) { pv2GruposFiltro = f; pv2GruposRedesenha(); }
+function pv2GruposFiltrarStatus(st) { pv2GruposStatus = String(st || ''); pv2GruposRedesenha(); }
+// Marca (ou desmarca) tudo o que está no recorte da folha (grupo, filtro e status), não só as linhas à mostra.
+function pv2GruposMarcarRecorte(marcar) {
+  const itens = pv2Vista.grupos?.exporta?.itens || [];
+  for (const i of itens) { if (marcar) SELECIONADAS.add(String(i.id)); else SELECIONADAS.delete(String(i.id)); }
+  if (typeof repintarOndeHaSelecao === 'function') repintarOndeHaSelecao(); else pv2GruposRedesenha();
+}
 function pv2GruposAlternar(qual) {
   if (qual === 'colunas') pv2GruposColunas = !pv2GruposColunas;
   if (qual === 'lote') { pv2GruposLote = !pv2GruposLote; if (!pv2GruposLote && SELECIONADAS.size && typeof limparSelecao === 'function') limparSelecao(); }
@@ -2277,18 +2288,25 @@ function pv2GruposHtml({ grupos, quadro }) {
   const grupo = grupos.find((g) => g.id === pv2GruposSel) || { id: '', nome: 'Sem grupo', itens: [] };
   const total = grupos.reduce((s, g) => s + g.itens.length, 0);
   const semDono = grupo.itens.filter(pv2SemDono), vencidas = grupo.itens.filter((i) => pv2GrupoVencida(i, hoje));
-  const recorte = pv2GruposFiltro === 'semdono' ? semDono : pv2GruposFiltro === 'vencidas' ? vencidas : grupo.itens;
+  const doFiltro = pv2GruposFiltro === 'semdono' ? semDono : pv2GruposFiltro === 'vencidas' ? vencidas : grupo.itens;
+  // O filtro de status da cabeça: os status que o grupo tem, com quantas peças; um status que sumiu do grupo volta a "todos".
+  const stDe = (i) => String(i.status || '').trim() || 'Sem status';
+  const contaSt = new Map(); for (const i of grupo.itens) contaSt.set(stDe(i), (contaSt.get(stDe(i)) || 0) + 1);
+  if (pv2GruposStatus && !contaSt.has(pv2GruposStatus)) pv2GruposStatus = '';
+  const recorte = pv2GruposStatus ? doFiltro.filter((i) => stDe(i) === pv2GruposStatus) : doFiltro;
   const todos = gruposExpandidos.has(grupo.id), visiveis = todos ? recorte : recorte.slice(0, LINHAS_POR_GRUPO), restam = recorte.length - visiveis.length;
-  const lote = pv2GruposLote || SELECIONADAS.size > 0, extras = pv2GruposColunas;
+  // As caixas de marcar ficam sempre à vista (Bia, 18/11): marcar várias não depende mais de achar o "Marcar várias".
+  const lote = true, extras = pv2GruposColunas;
+  const marcadasAqui = recorte.filter((i) => SELECIONADAS.has(String(i.id))).length;
   const th = (campo, rotulo) => { const on = ORDEM.campo === campo; return `<th${on ? ` aria-sort="${ORDEM.desc ? 'descending' : 'ascending'}"` : ''}><button type="button" class="d3m-a-th${on ? ' on' : ''}" onclick="ordenarPor('${campo}')" title="Ordenar por ${rotulo}${on ? (ORDEM.desc ? ' (maior para menor)' : ' (menor para maior)') : ''}">${rotulo}${on ? `<i aria-hidden="true">${ORDEM.desc ? '↓' : '↑'}</i>` : ''}</button></th>`; };
   const todasMarcadas = recorte.length > 0 && recorte.every((i) => SELECIONADAS.has(String(i.id)));
-  const cabeca = (lote ? `<th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''} aria-label="Selecionar tudo em ${safeText(grupo.nome)}" onchange="selecionarGrupo('${jsArg(grupo.id)}',this.checked,'${quadro}')"></th>` : '')
+  const cabeca = (lote ? `<th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''} aria-label="Selecionar ${recorte.length === grupo.itens.length ? 'tudo' : `as ${recorte.length} do filtro`} em ${safeText(grupo.nome)}" title="${todasMarcadas ? 'Desmarcar' : 'Marcar'} ${recorte.length === 1 ? 'a peça' : `as ${recorte.length} peças`}${recorte.length === grupo.itens.length ? ' do grupo' : ' deste filtro'}" onchange="pv2GruposMarcarRecorte(this.checked)"></th>` : '')
     + th('id', 'ID') + th('nome', 'Conteúdo') + th('cliente', 'Cliente') + th('formato', 'Formato') + th('status', 'Status') + th('prazo_iso', 'Prazo') + th('veiculacao_iso', 'No ar') + th('responsavel', 'Quem')
     + (extras ? th('captacao', 'Captação') + th('tipo_conteudo', 'Tipo') + th('off_audio', 'OFF') + th('prioridade', 'Prioridade') + th('cadastrado_por', 'Cadastrou') + th('criado_em', 'Quando') : '');
   const fil = (id, rotulo, n, tom) => `<button type="button" role="radio" aria-checked="${pv2GruposFiltro === id}" onclick="pv2GruposFiltrar('${id}')">${rotulo} <b${tom && n ? ` class="${tom}"` : ''}>${n}</b></button>`;
   const editavel = typeof grupoEditavelNaTela === 'function' && grupoEditavelNaTela(quadro, grupo.id);
   const corpo = !grupo.itens.length ? `<p class="d3v-estado"><b>Nenhuma peça neste grupo.</b>${buscaClienteConteudos ? 'A busca não encontrou nada aqui.' : 'Use o + para cadastrar a primeira.'}</p>`
-    : !recorte.length ? `<p class="d3v-estado"><b>${pv2GruposFiltro === 'semdono' ? 'Todas as peças deste grupo têm responsável.' : 'Nenhuma peça vencida neste grupo.'}</b></p>`
+    : !recorte.length ? `<p class="d3v-estado"><b>${pv2GruposStatus && doFiltro.length ? `Nenhuma peça em ${safeText(pv2GruposStatus)} neste recorte.` : pv2GruposFiltro === 'semdono' ? 'Todas as peças deste grupo têm responsável.' : 'Nenhuma peça vencida neste grupo.'}</b></p>`
     : `<div class="d3m-a-g-rola"><table class="d3m-a-g-tab grupo-tabela${extras ? ' larga' : ''}"><thead><tr>${cabeca}</tr></thead><tbody>${visiveis.map((i) => pv2GrupoLinha(i, { lote, extras, hoje })).join('')}</tbody></table></div>`;
   // A coluna de consulta: os grupos, a busca, o que esta aba é e o trabalho em lote.
   const mesTxt = (() => { try { return new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(managerCalendarMonthMeta().first); } catch { return ''; } })();
@@ -2297,13 +2315,17 @@ function pv2GruposHtml({ grupos, quadro }) {
   const busca = `<label class="d3m-a-busca"><span class="pv2-oculto">Buscar por cliente, conteúdo ou ID</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><input id="busca-cliente-conteudos" type="search" autocomplete="off" placeholder="por cliente, conteúdo ou ID" value="${safeText(buscaClienteConteudos)}" oninput="buscarClienteConteudos(this.value)"></label>`;
   const lado = pv2Cons('Grupos', `${total} ${pv2Pl(total, 'peça', 'peças')}`, lista) + pv2Cons('Buscar', '', busca)
     + `<section class="d3m-cons d3m-a-nota-v"><div class="d3m-cons-cab"><b>Esta aba é a tabela crua</b></div><p>Serve para conferir e corrigir em lote. Para trabalhar o dia, a Semana mostra só o que publica.</p></section>`
-    + pv2Cons('Em lote', '', pv2Vlin('<b>Marcar várias</b> · mudar data, dono ou status', "pv2GruposAlternar('lote')", lote ? 'Esconder as caixas de marcar' : 'Mostrar as caixas de marcar', ` role="switch" aria-checked="${lote}"`)
+    + pv2Cons('Em lote', SELECIONADAS.size ? `${SELECIONADAS.size} ${pv2Pl(SELECIONADAS.size, 'marcada', 'marcadas')}` : '', (recorte.length ? pv2Vlin(`<b>${todasMarcadas ? 'Desmarcar' : 'Marcar'} ${recorte.length === 1 ? 'a peça' : `as ${recorte.length}`}</b> · ${recorte.length === grupo.itens.length ? 'do grupo' : 'deste filtro'}`, `pv2GruposMarcarRecorte(${!todasMarcadas})`, 'A barra de baixo muda status, responsável, prazo e veiculação de todas de uma vez') : '')
+      + (SELECIONADAS.size ? pv2Vlin(`<b>Limpar a seleção</b> · ${SELECIONADAS.size} ${pv2Pl(SELECIONADAS.size, 'marcada', 'marcadas')}`, 'limparSelecao()', 'Desmarcar todas (Esc)') : '')
       + pv2Vlin('<b>Exportar a tabela</b>', 'pv2GruposExportar()', 'Baixar a lista deste grupo em planilha (CSV)'));
   pv2Vista.grupos = { linha, lado, exporta: { nome: grupo.nome, itens: recorte } };
-  return `<section class="d3m-a-folha d3m-a-gr" data-grupo="${safeText(grupo.id)}" data-quadro="${quadro}" data-previa-sequencia="${safeText(grupo.nome)}" aria-label="Grupo ${safeText(grupo.nome)}">
+  const opSt = [...contaSt.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
+  const filtroSt = `<label class="d3m-a-g-st${pv2GruposStatus ? ' tem' : ''}" title="Filtrar a folha por status"><select aria-label="Filtrar ${safeText(grupo.nome)} por status" onchange="pv2GruposFiltrarStatus(this.value)"><option value="">Status</option>${opSt.map(([st, n]) => `<option value="${safeText(st)}"${st === pv2GruposStatus ? ' selected' : ''}>${safeText(st)} · ${n}</option>`).join('')}</select></label>`;
+  return `<section class="d3m-a-folha d3m-a-gr${SELECIONADAS.size ? ' tem-lote' : ''}" data-grupo="${safeText(grupo.id)}" data-quadro="${quadro}" data-previa-sequencia="${safeText(grupo.nome)}" aria-label="Grupo ${safeText(grupo.nome)}">
       <div class="d3m-a-cab"><h3><span${editavel ? ` ondblclick="renomearGrupoPeloNome(event,'${quadro}','${jsArg(grupo.id)}')" title="Clique duplo para renomear"` : ''}>${safeText(grupo.nome)}</span> <span>· ${grupo.itens.length} ${pv2Pl(grupo.itens.length, 'peça', 'peças')}</span></h3>
         <span class="d3m-a-setas">${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome) : ''}<button type="button" class="d3v-btn txt ico s grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${jsArg(grupo.id)}')" aria-label="Adicionar conteúdo em ${safeText(grupo.nome)}" title="Novo conteúdo neste grupo">${D3P_MAIS}</button></span>
         <span class="d3m-a-seg" role="radiogroup" aria-label="Recorte do grupo">${fil('todos', 'Todos', grupo.itens.length, '')}${fil('semdono', 'Sem responsável', semDono.length, 'a')}${fil('vencidas', 'Vencidas', vencidas.length, 'r')}</span>
+        ${filtroSt}
         <i class="d3m-a-div" aria-hidden="true"></i>
         <span class="d3m-a-seg"><button type="button" role="switch" aria-checked="${extras}" onclick="pv2GruposAlternar('colunas')" title="${extras ? 'Esconder as seis colunas a mais' : 'Mostrar captação, tipo, OFF, prioridade, quem cadastrou e quando'}">Colunas</button><button type="button" role="switch" aria-checked="${ORDEM.campo === 'status'}" onclick="ordenarPor('status')" title="Ordenar a lista pelo status">Por status</button></span></div>
       ${corpo}

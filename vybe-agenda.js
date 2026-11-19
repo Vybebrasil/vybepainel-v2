@@ -702,14 +702,16 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${linha('Prazo', data(item.prazo_iso))}
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
+      ${/* Bia (Coordenação, 18/11/2026): "editar tudo dentro do cartão da atividade". O formato sobe para o essencial,
+           junto de título, status, responsável, prazo e veiculação; o mesmo botão de antes (pillEditavel). */ ''}
+      ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
     </div>
     <details class="cr-mais"${window.CR_MAIS_ABERTO ? ' open' : ''} ontoggle="window.CR_MAIS_ABERTO=this.open">
-      <summary>Mais campos<small>clientes, grupo, ${ehDemanda ? 'tipo' : 'formato, captação'}, prioridade…</small></summary>
+      <summary>Mais campos<small>clientes, grupo, ${ehDemanda ? '' : 'captação, '}prioridade…</small></summary>
     <div class="cr-campos">
       ${linha('Clientes', botaoClientesDoItem(item))}
       ${linha('Grupo', botaoDeGrupo(item))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
-      ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}
       ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
       ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
@@ -2046,6 +2048,9 @@ async function escolherValor(itemId, campo, chave) {
   if (!deuCerto) return;
   espelharEscolhaNaDemanda(itemId, campo, rotulo);
   applyOutboundItemPatch(itemId, { [campo]: rotulo }, campo);
+  // Escolhido pela gaveta aberta (o formato no cartão da atividade): a gaveta mostra o valor novo sem perder o rascunho.
+  const gaveta = document.getElementById('workspace-drawer');
+  if (gaveta && typeof activeWorkspaceItemId !== 'undefined' && String(activeWorkspaceItemId) === String(itemId)) atualizarGavetaPreservandoRascunhos(findOperationalItem(itemId) || { id: itemId }, gaveta);
 }
 
 function linhaDeGrupoHtml(item, compacta = false) {
