@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const ler = (f) => readFileSync(f, 'utf8');
-const fragmentos = ['padrao-v2/zm-h-1-janelas.css', 'padrao-v2/zm-h-2-menus.css', 'padrao-v2/zm-h-3-gaveta.css'];
+const fragmentos = ['padrao-v2/zm-h-1-janelas.css', 'padrao-v2/zm-h-2-menus.css', 'padrao-v2/zm-h-3-gaveta.css', 'padrao-v2/zm-h-4-cadastro.css'];
 
 test('fragmentos do grupo H: sem !important, sem html body.mundo, sem :has com [style], sem cor escrita', () => {
   for (const f of fragmentos) {
@@ -69,4 +69,12 @@ test('gaveta da peça na linha V2: abas sem preto, botões de 34 com canto 8, la
   const mundo = ler('vybe-mundo.css');
   assert.match(mundo, /#workspace-drawer button:not\(\.workspace-action\)[^{]*\{background:var\(--d3-veu\)!important/);
   assert.ok(ler('vybe-gaveta.js').includes('<span class="gv2-rot-campo" aria-hidden="true">Status</span>${pillHtmlDemanda'));
+});
+
+test('nova demanda e novo conteúdo: fichas e botões com canto 8, escolhido em tinta, Continuar no laranja', () => {
+  const css = ler('padrao-v2/zm-h-4-cadastro.css');
+  assert.ok(css.includes('.nd .nd-chip{height:28px;padding:0 10px;border-radius:var(--d3-r-botao)'));
+  assert.ok(css.includes('.nd .nd-chip.on{background:var(--d3-tinta);color:var(--d3-contra)}'));
+  assert.ok(css.includes('.nd .nd-btn.k{background:var(--d3-acao)'));
+  assert.ok(ler('vybe-mundo.css').includes('.fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:var(--d3-acao)!important'));
 });
