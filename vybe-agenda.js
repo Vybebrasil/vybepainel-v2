@@ -3027,6 +3027,12 @@ function renderAgendaDeDemandas() {
   if (botao) botao.setAttribute('aria-expanded', String(agendaDeDemandasAberta));
   if (!agendaDeDemandasAberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
+  // Na tela V2 das Demandas o mês é o da prancha V2-S-Calendario-Demandas (domingo a sábado, ponto = status, coluna
+  // com o dia, as sem data e a legenda); o arraste e o cartão rápido são os mesmos daqui.
+  if (typeof pv2dPintarCalendario === 'function' && document.getElementById('pv2-demandas')?.contains?.(wrap)) {
+    pv2dPintarCalendario(wrap, meta, managerCalendarItems({ apenas: 'request' }), HOJE_ISO || META?.today_iso || '');
+    return;
+  }
 
   const porDia = new Map();
   itens.forEach(i => {

@@ -32,27 +32,27 @@ test('Minhas tarefas V2: pelo menu lateral o módulo abre no esqueleto da pranch
 
 test('Demandas V2: a folha por urgência, a consulta ao lado e o Calendário, com os mesmos ids, funções e comandos de antes', () => {
   const src = ler('vybe-demandas.js');
-  const ini = src.indexOf('// ─── Padrão V2 · Demandas pela prancha V2-M-Demandas');
+  const ini = src.indexOf('// ─── Padrão V2 · Demandas pelas pranchas V2-M-Demandas');
   assert.ok(ini > 0, 'o bloco da prancha existe');
   const dm = src.slice(ini, src.indexOf('try { pv2dMontar(); } catch', ini));
-  // Topo, folha e consulta, na ordem da prancha.
+  // Topo, folha e coluna, na ordem da prancha (V2-S-Filtros-Demandas, 19/11/2026: os filtros à vista na folha).
   const naOrdem = (texto, partes) => { let p = -1; for (const parte of partes) { const i = texto.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; } };
   naOrdem(dm, ['id="pv2d-troca"', '<h2>Demandas</h2>', 'id="pv2d-data"', 'id="pv2d-vistas" role="radiogroup"', 'data-vista="lista"', 'data-vista="calendario"', 'id="pv2d-busca"', 'id="pv2d-busca-bt"', 'id="pv2d-colunas"', 'Nova demanda</button>',
-    'id="pv2d-folha"', 'id="pv2d-chips" role="radiogroup"', 'id="pv2d-por-status" role="switch"', 'id="pv2d-lista"', 'id="pv2d-pe"', 'id="pv2d-lado"', 'id="pv2d-alto"', 'id="pv2d-tipos"', 'id="pv2d-abrir"']);
+    'id="pv2d-folha"', 'id="pv2d-ativos"', 'id="pv2d-filtros" role="group"', 'id="pv2d-lista"', 'id="pv2d-pe"', 'id="pv2d-cal"', 'id="pv2d-lado"']);
   // Os comandos de sempre: busca, visões, agenda, ordenação, colunas, cadastro, status, responsável e a peça.
   for (const f of ['oninput="buscarClienteDemandas(this.value)"', "onclick=\"escolherVisaoDemanda('${id}')\"", 'alternarAgendaDeDemandas()', 'function pv2dOrdenar(campo) { ordenarPor(campo); pv2dPintar(); }', "onclick=\"cadastrarNoGrupo('demandas','')\"",
-    'data-coluna="dem-coluna-id"', 'data-coluna="dem-coluna-cadastro"', "document.getElementById('dem-coluna-id')", '<span class="pv2-cs">${pv2StatusBotao(d)}</span>', 'openOwnerEditor(', 'openItemWorkspace(', 'alternarSelecao(', 'data-editar-data=', 'data-vt=', 'pv2EtapasHtml(d)'])
+    "chave('dem-coluna-id', 'Mostrar ID')", "chave('dem-coluna-cadastro', 'Mostrar cadastro e criação')", 'document.getElementById(id)?.checked', '<span class="pv2-cs">${pv2StatusBotao(d)}</span>', 'openOwnerEditor(', 'openItemWorkspace(', 'alternarSelecao(', 'data-editar-data=', 'data-vt=', 'pv2EtapasHtml(d)'])
     assert.ok(dm.includes(f), `Demandas mantém ${f}`);
   // O que era da tela antiga segue vivo pelos mesmos ids, guardado na reserva ou dentro do ⋯.
   for (const id of ['demanda-resumo', 'kpi-grid-demandas', 'dem-visoes', 'grupos-board-demandas', 'panel-demandas-semana', 'panel-demandas-dia', 'panel-demandas-esteira']) assert.ok(dm.includes(`'${id}'`), `reserva ou ⋯ guarda #${id}`);
   assert.match(dm, /reserva\.id = 'pv2-demandas-reserva'; reserva\.hidden = true;/);
   // Escolhas em radio e switch: a folha antiga pinta aria-pressed, aria-selected e role="tab" à força.
   assert.doesNotMatch(dm.slice(0, dm.indexOf('// ─── Padrão v2 · IA e custos') > 0 ? dm.indexOf('// ─── Padrão v2 · IA e custos') : dm.length), /aria-pressed|aria-selected|role="tab"/);
-  // Urgência (Agora, Semana, Depois), Por status e Grupos; o laranja do Heitor e o pé De olho.
-  assert.match(dm, /const PV2D_URGENCIA = \[\['Agora', 'r'\], \['Semana', ''\], \['Depois', ''\]/);
+  // Urgência, Por status e Grupos no ⋯; sem laranja (a prancha não tem): o que ele pedia é número do Resumo que filtra.
   assert.match(dm, /function pv2dArrumar\(modo\) \{ pv2dModo = \['urgencia', 'status', 'grupos'\]\.includes\(modo\)/);
-  assert.match(dm, /pv2Laranja\(\{ agente: 'H', \.\.\.cartao \}\)/);
-  assert.match(dm, /<span>De olho<\/span>/);
+  assert.match(dm, /\[\['urgencia', 'Por urgência'\], \['status', 'Por status'\], \['grupos', 'Grupos do quadro'\]\]/);
+  assert.doesNotMatch(dm, /pv2Laranja\(/);
+  assert.match(dm, /function pv2dResumoNumeros\(todas\)/);
   // A janela sabe qual quadro está aberto: a folha das Demandas se prende a isso, sem :has.
   // (O data-quadro da main, que escolhe a janela das telas do grupo E, continua logo antes.)
   assert.match(src, /activeBoard = board;\r?\n(?: {2}\/\/[^\n]*\n| {2}if \(document\.body && document\.body\.dataset\.quadro !== board\) document\.body\.dataset\.quadro = board;\r?\n)* {2}if \(document\.body\) document\.body\.dataset\.pv2Quadro = board;/);
