@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const ler = (f) => readFileSync(f, 'utf8');
-const fragmentos = ['padrao-v2/zm-h-1-janelas.css', 'padrao-v2/zm-h-2-menus.css'];
+const fragmentos = ['padrao-v2/zm-h-1-janelas.css', 'padrao-v2/zm-h-2-menus.css', 'padrao-v2/zm-h-3-gaveta.css'];
 
 test('fragmentos do grupo H: sem !important, sem html body.mundo, sem :has com [style], sem cor escrita', () => {
   for (const f of fragmentos) {
@@ -58,4 +58,15 @@ test('janelaV2DoPortao: só a janela com o cartão da peça escurece junto no te
   assert.equal(ctx.janelaV2DoPortao('<div class="workflow-kicker">Ficha do móvel</div>'), false);
   assert.equal(ctx.janelaV2DoPortao(undefined), false);
   assert.match(fonte, /modal\.innerHTML=html; if\(janelaV2DoPortao\(html\)\) modal\.classList\.add\('d3-tema'\);/);
+});
+
+test('gaveta da peça na linha V2: abas sem preto, botões de 34 com canto 8, laranja só no botão que leva adiante', () => {
+  const css = ler('padrao-v2/zm-h-3-gaveta.css');
+  assert.ok(css.includes('.gv2-aba[aria-checked="true"]{background:var(--d3-cartao)'));
+  assert.ok(css.includes('.gv2-pe .gv2-btn{height:34px;padding:0 14px;border-radius:var(--d3-r-botao)'));
+  assert.match(css, /\.gv2-avancar\{[^}]*background:var\(--d3-acao\)/);
+  assert.ok(css.includes('.gv2-obj-grupo > .gv2-sub{display:inline;order:-1'));
+  const mundo = ler('vybe-mundo.css');
+  assert.match(mundo, /#workspace-drawer button:not\(\.workspace-action\)[^{]*\{background:var\(--d3-veu\)!important/);
+  assert.ok(ler('vybe-gaveta.js').includes('<span class="gv2-rot-campo" aria-hidden="true">Status</span>${pillHtmlDemanda'));
 });

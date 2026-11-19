@@ -17193,6 +17193,94 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2-capt{display:inline-flex;align-item
 body.mundo #workspace-drawer.gv2-gaveta .gv2-capt-v{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 body.mundo #workspace-drawer.gv2-gaveta .gv2-cel-topo .gv2-capt{margin-left:6px}
 
+/* A GAVETA NA LINHA V2. Era a gaveta branca do moodboard de 12/11 (título de 26 em 700, abas em pílula com a escolhida
+   preta, bloco #F9F8F5, botões em pílula e o botão preto de 46 no pé). Agora: folha com tokens, ícones e botões de 34 com
+   canto 8, título de 24 em 600, abas num trilho de véu com a escolhida em pastilha de folha, blocos no véu com canto 12,
+   rótulos de 12 em caixa normal e um laranja só, o do botão que leva a peça adiante. O fundo forçado dos botões da gaveta
+   (vybe-mundo.css, com !important) passou a ser o véu. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2{background:var(--d3-cartao);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sub{color:var(--d3-rotulo)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-id:hover{color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo :is(.gv2-ic,.vybe-link.so-icone,.workspace-mais > summary){border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo :is(.gv2-ic,.vybe-link.so-icone,.workspace-mais > summary):hover{background:var(--d3-veu-forte);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais[open] > summary{background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu{border-radius:12px;background:var(--d3-cartao);box-shadow:0 0 0 1px var(--d3-veu),0 18px 40px -18px rgba(0,0,0,.55)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu :is(button,a){border-radius:var(--d3-r-botao);background-color:transparent;color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu :is(button,a):hover{background-color:var(--d3-veu)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-topo .workspace-mais-menu hr{background:var(--d3-divisa)}
+
+/* Título, cliente, status, captação e objetivo. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-titulo{font:600 24px/1.15 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-clientes .cliente-carteira{font-weight:500}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-status{height:26px;border-radius:var(--d3-r-botao)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-st{height:26px;padding:0 8px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-status:hover .gv2-st{background:var(--d3-veu-forte);box-shadow:none}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-pill{height:26px;padding:0 8px;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer.gv2-gaveta :is(.gv2-pill.b,.gv2-pill.n){background:var(--d3-veu);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-pill.n{color:var(--d3-rotulo)}
+/* O objetivo também diz o que é: o rótulo que estava escondido aparece antes, como os outros. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-obj-grupo{gap:6px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-obj-grupo > .gv2-sub{display:inline;order:-1;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-transform:capitalize}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-obj-menu{border-radius:12px;background:var(--d3-cartao);box-shadow:0 0 0 1px var(--d3-veu),0 18px 40px -18px rgba(0,0,0,.55)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-etapas-barra > i{height:4px;border-radius:2px;background:var(--d3-veu-forte)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-etapas-nomes{color:var(--d3-rotulo)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-etapas-nomes > b{font-weight:600}
+
+/* Datas e responsável: o bloco no véu, rótulo de 12, valor em 600; passar o mouse acende o véu forte. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-bloco{border-radius:12px;background:var(--d3-veu)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-cmp small{color:var(--d3-rotulo)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-dado{border-radius:var(--d3-r-botao);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-dado.r{color:var(--d3-perigo)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-dado:hover{box-shadow:none;background:var(--d3-veu-forte)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-dono{border-radius:var(--d3-r-botao)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-dono:hover{border-color:transparent}
+
+/* Abas: trilho de véu (canto 10), aba de 28 (canto 8), a escolhida em pastilha de folha, sem preto. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-seg{padding:3px;gap:2px;border-radius:var(--d3-r-caixa);background:var(--d3-veu)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-aba{height:28px;padding:0 12px;border-radius:var(--d3-r-botao);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-aba:hover{background:var(--d3-veu);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-aba[aria-checked="true"]{background:var(--d3-cartao);color:var(--d3-tinta);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.14);animation:none}
+
+/* Corpo. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sec-topo h3{font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-lk{color:var(--d3-tinta);font-size:var(--d3-fs-apoio)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-lk:hover{color:var(--d3-tinta);text-decoration-thickness:2px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-texto{color:var(--d3-texto2)}
+body.mundo #workspace-drawer.gv2-gaveta :is(.gv2-texto.vazio,.gv2-vazio){color:var(--d3-rotulo)}
+body.mundo #workspace-drawer.gv2-gaveta :is(.gv2-contexto,.gv2-ficha,.gv2-sol-ctx){border-radius:12px;background:var(--d3-veu)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-ficha > summary{border-radius:12px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-ficha > summary:hover{box-shadow:inset 0 0 0 1.5px var(--d3-veu-forte)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-ficha > summary b{font-weight:600}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-sol-ctx b{font-weight:600}
+body.mundo #workspace-drawer.gv2-gaveta .workspace-dropzone{border-color:var(--d3-veu-forte);border-radius:12px;background:var(--d3-veu)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-col > .material-bruto{background:var(--d3-veu)}
+
+/* Pé: a linha de atualização no véu e os botões de 34 com canto 8; o botão que leva a peça adiante é o laranja. */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-pe{background:var(--d3-cartao);border-top:1px solid var(--d3-divisa)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-campo{height:34px;padding:0 12px;border-radius:var(--d3-r-caixa)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-pe .gv2-campo{height:34px;background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-pe .gv2-campo::placeholder{color:var(--d3-rotulo)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-campo:focus{outline:2px solid var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-btn,
+body.mundo #workspace-drawer.gv2-gaveta .gv2-pe .gv2-btn{height:34px;padding:0 14px;border-radius:var(--d3-r-botao);box-shadow:none;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-pe .gv2-btn:hover{box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-avancar{height:40px;min-height:40px;border-radius:var(--d3-r-botao);background:var(--d3-acao);color:var(--d3-escuro-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-avancar:hover{background:var(--d3-acao-texto-fixa)}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-avancar[data-estado="feito"]{background:var(--d3-pronto)}
+
+/* Log de atividade (abre por cima da gaveta): o mesmo vocabulário. */
+body.mundo #workspace-drawer.gv2-gaveta .log-atividade{background:var(--d3-cartao);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .log-topo b{color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .log-voltar{height:34px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .log-filtros{border-bottom-color:var(--d3-divisa)}
+body.mundo #workspace-drawer.gv2-gaveta .log-filtros button{height:28px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta .log-filtros button.ativo{background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #workspace-drawer.gv2-gaveta .log-dia-rotulo{background:var(--d3-cartao);color:var(--d3-rotulo)}
+body.mundo #workspace-drawer.gv2-gaveta .log-linha{border-top-color:var(--d3-divisa)}
+body.mundo #workspace-drawer.gv2-gaveta .log-oque{color:var(--d3-texto2)}
+body.mundo #workspace-drawer.gv2-gaveta .log-oque b{color:var(--d3-tinta)}
+body.mundo #workspace-drawer.gv2-gaveta :is(.log-hora,.log-nota){color:var(--d3-rotulo)}
+
 /* ===== padrao-v2/zt-temas.css ===== */
 /* TEMAS E TUTORIAL DO VYBES (Paulo, 16/11/2026: "criar um tema white e um dark"; o VYBES recebe quem chega, mostra os três
    temas e explica cada tela na primeira vez). Última folha da junção (zt- vem depois de z-direcao e dos zm-*).
