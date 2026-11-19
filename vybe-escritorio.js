@@ -1047,6 +1047,9 @@ function atualizarDockEscritorio() {
   // Com o escritório disponível, o caminho de volta fica sempre à mão.
   const noEscritorio = typeof activeBoard !== "undefined" && activeBoard === "escritorio";
   dock.hidden = !escritorio.base || noEscritorio;
+  // body.com-office-dock no lugar de body:has(#office-dock:not([hidden])) no CSS: o :has no body fazia cada mudança na
+  // página reconferir a árvore inteira (confere 19/11/2026). Só grava quando muda.
+  if (document.body && document.body.classList.contains("com-office-dock") === dock.hidden) document.body.classList.toggle("com-office-dock", !dock.hidden);
   const assinatura = JSON.stringify([
     escritorio.conectado,
     escritorio.online.map((p) => [p.id, p.status, p.sala]),

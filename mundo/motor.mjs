@@ -8,6 +8,8 @@ import { ESTILO, prepararRenderer, luzDoEstilo, acabamentoDeMaquete } from './es
 
 const limitar = (v, a, b) => Math.max(a, Math.min(b, v));
 const suave = (t) => 1 - Math.pow(1 - t, 3);
+// Teto de quadros com a cena mexendo: 60 qps (16,7 ms), com folga para o tremor do relógio da tela.
+export const QUADRO_MIN_MS = 1000 / 60 - 2;
 
 // Em repouso só confere relógios/visibilidade duas vezes por segundo; nenhum quadro é desenhado.
 export function criarAgendadorQuadros(passo, { frame = requestAnimationFrame, cancelarFrame = cancelAnimationFrame, timer = setTimeout, cancelarTimer = clearTimeout, agora = () => performance.now() } = {}) {
@@ -22,6 +24,13 @@ export function criarAgendadorQuadros(passo, { frame = requestAnimationFrame, ca
     if (encerrado) return;
     const continuar = passo(t);
     if (encerrado) return;
+    // Número = "o próximo quadro só daqui a N ms" (enfeite a 30 qps com a cena parada): espera num relógio, sem pedir
+    // RAF a cada volta da tela só para pular o quadro (eram 130 a 180 RAF/s com a cidade parada; confere 19/11/2026).
+    if (raf === null && typeof continuar === 'number' && continuar >= 1) {
+      if (espera !== null) cancelarTimer(espera);
+      espera = timer(() => { espera = null; if (!encerrado && raf === null) raf = frame(executar); }, continuar);
+      return;
+    }
     // Uma atualização dentro de passo pode ter pedido o próximo RAF; não deixe um timer paralelo.
     if (continuar || raf !== null) acordar();
     else espera = timer(() => { espera = null; executar(agora()); }, 500);
@@ -290,22 +299,30 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   }
   function removerRotulo(r) { invalidar(); r.el.remove(); const i = rotulos.indexOf(r); if (i >= 0) rotulos.splice(i, 1); }
   const v3 = new THREE.Vector3();
-  let quadro = 0, recolidir = 0, refeitas = false;
-  function posicionarRotulos() {
+  let quadro = 0, recolidir = 0, refeitas = false, chaveColisao = '';
+  // Os pinos estão parados no mundo (pos é cópia): só saem do lugar quando a câmera ou a tela mudam.
+  const chaveDaCamera = () => `${camera.matrixWorld.elements.map((n) => n.toFixed(3)).join()}|${camera.projectionMatrix.elements.map((n) => n.toFixed(4)).join()}|${W}x${H}`;
+  function posicionarRotulos(sujoAgora = true) {
     const caixas = [];
+    let mudouVisivel = false;
     for (const r of rotulos) {
       v3.copy(r.pos).project(camera);
       const longe = camera.position.distanceTo(r.pos) > r.distMax;
       const fora = v3.z > 1 || v3.x < -1.1 || v3.x > 1.1 || v3.y < -1.1 || v3.y > 1.1;
       const mostra = !longe && !fora && !r.el.hidden;
-      if (mostra !== r.visivel) { r.visivel = mostra; r.el.classList.toggle('escondido', !mostra); }
+      if (mostra !== r.visivel) { r.visivel = mostra; r.el.classList.toggle('escondido', !mostra); mudouVisivel = true; }
       if (!mostra) continue;
       r.x = (v3.x * 0.5 + 0.5) * W; r.y = (-v3.y * 0.5 + 0.5) * H;
       caixas.push(r);
     }
     // A cada 4 quadros resolve as colisões, sem empilhar nome em cima de nome:
     // pino fixo (cliente) que encosta noutro pino junta-se a ele ("+N"); nome comum que encosta some.
-    if (quadro % 4 === 0 || recolidir > 0) {
+    // Com a câmera parada e nada novo (quadro só de enfeite), a conta ficaria igual: refaz no máximo 1 vez por segundo
+    // (a leitura de offsetWidth força layout; eram 7,5 por segundo com a cidade parada, confere 19/11/2026).
+    const chave = chaveDaCamera();
+    const algoMudou = sujoAgora || mudouVisivel || chave !== chaveColisao || quadro % 30 === 0;
+    if ((quadro % 4 === 0 && algoMudou) || recolidir > 0) {
+      chaveColisao = chave;
       recolidir = Math.max(0, recolidir - 1);
       caixas.sort((a, b) => (b.fixo - a.fixo) || b.prioridade - a.prioridade || a.y - b.y);
       const postos = [];
@@ -331,7 +348,12 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       // Até 3 conferências seguidas (sem ficar trocando para sempre): o motor só desenha quando algo muda.
       if (mudouMais && !refeitas) { recolidir = 3; refeitas = true; invalidar(); } else if (!mudouMais) refeitas = false;
     }
-    for (const r of caixas) { const [x, y] = dentroDaTela(r); r.el.style.transform = `translate(-50%,-100%) translate(${x.toFixed(1)}px,${(y + r.desce).toFixed(1)}px)`; }
+    // Só grava o transform que mudou: o mesmo valor ainda invalida o estilo do pino a cada quadro.
+    for (const r of caixas) {
+      const [x, y] = dentroDaTela(r);
+      const tf = `translate(-50%,-100%) translate(${x.toFixed(1)}px,${(y + r.desce).toFixed(1)}px)`;
+      if (tf !== r.tf) { r.tf = tf; r.el.style.transform = tf; }
+    }
   }
   // Quarta rodada (11/11/2026): no celular (390 px) o nome do pino perto da borda saía da tela ("Papelaria · 4
   // atrasadas" cortado à esquerda, "DiaCenter" à direita). O rótulo fica inteiro na tela, a 4 px da borda; o ponto do
@@ -378,7 +400,10 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // de 1 min sem mexer na tela"; 07/11/2026: "não ficar renderizando a cidade toda o tempo todo").
     const parado = performance.now() - ultimaAcao;
     if (!interagindo && !sujo && parado > 60000) { estacionado = true; return false; }
-    if (!interagindo && t - ultimo < 33) return true;
+    // Mexendo, no máximo 60 qps (tela de 120/144 Hz desenhava o dobro sem ganho visível). Parado, o próximo quadro de
+    // enfeite espera num relógio (o agendador recebe os ms), sem um RAF por volta da tela só para pular o quadro.
+    if (interagindo && t - ultimo < QUADRO_MIN_MS) return true;
+    if (!interagindo && t - ultimo < 33) return Math.min(33, Math.max(1, Math.round(33 - (t - ultimo))));
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
@@ -411,8 +436,10 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     composer.render();
     medida.ms = medida.ms * .9 + (performance.now() - t0) * .1; medida.quadros++;
     conferirQualidade(t, interagindo || movendo);
-    posicionarRotulos();
+    posicionarRotulos(sujo || movendo || interagindo || mudouLivre);
     sujo = false;
+    // Só enfeite andando (câmera parada): o próximo quadro já vai direto para o relógio de 30 qps.
+    if (animando && !(movendo || interagindo || mudouLivre)) return 33;
     return Boolean(movendo || interagindo || mudouLivre || animando);
   }
   // Qualidade automática (Paulo, 08/11/2026: "não pode pesar nem esquentar o PC"): mexendo na cena, se os quadros

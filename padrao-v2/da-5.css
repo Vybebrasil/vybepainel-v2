@@ -1,0 +1,25 @@
+/* Frente da-5 (otimização, confere de diretor de arte, 19/11/2026).
+   1. O ponto que pulsa no pino do VYBES (.rotulo-vybes i) e no ser (.vv-ser i) animava box-shadow: isso recalcula o
+      estilo e repinta a cada quadro, mesmo com o pino escondido e com um módulo cobrindo o mundo (o confere mediu de
+      490 a 700 recálculos em 4 s parado no Hoje e no Centro). O anel agora é um ::after que cresce e some só com
+      transform e opacity, que o navegador anima fora da linha principal. Mesmo desenho e mesmo ritmo.
+   2. Pino escondido (.escondido, .colide) e Escritório coberto pelo mundo (body.mundo-sobre-escritorio, o painel fica
+      visibility:hidden) não animam: o enfeite infinito pausa onde ninguém vê. Pausa só o que é infinito e decorativo;
+      animação de entrada não é tocada (armadilha do html.vb-ocioso). */
+@keyframes da5PulsoAnel{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:0;transform:scale(var(--da5-anel-k,2.25))}}
+.rotulo-vybes i,.vv-ser i{position:relative;animation:none;box-shadow:none}
+.rotulo-vybes i::after,.vv-ser i::after{content:"";position:absolute;inset:0;border-radius:50%;background:#FFE3C8;pointer-events:none;animation:da5PulsoAnel 2s infinite}
+.vv-ser i::after{--da5-anel-k:1.833;animation-duration:2.4s}
+.mundo-rotulo:is(.escondido,.colide) i::after{animation-play-state:paused}
+/* 3. O anel dos agentes (d3PulsaAnel, 0-d3-base.css) lê var() dentro do @keyframes: assim o navegador não consegue
+      animar fora da linha principal e recalculava o estilo do Hoje a cada quadro (461 vezes em 4 s parado). Os mesmos
+      valores, escritos direto: 0,55 de opacidade no começo; escala (lado + 16) / lado = 1,571 (28 px) e 1,667 (24 px). */
+@keyframes da5AnelAgente{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:0;transform:scale(1.571)}}
+@keyframes da5AnelAgente24{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:0;transform:scale(1.667)}}
+.d3-agente-av::after{animation-name:da5AnelAgente}
+.d3-agente-av.d3h-av::after,#vv-hoje .d3h-danilo .vcr-fila .vcr-av::after{animation-name:da5AnelAgente24}
+/* O dock do Escritório é redesenhado a toda hora e reinicia o pulso do balão de planejamento (plj-pulso, box-shadow)
+   e o brilho do cartão do centro, tudo dentro do painel escondido atrás do mundo. Pausado, não custa nada; ao voltar
+   para o Escritório a classe sai e tudo continua de onde estava. */
+body.mundo-sobre-escritorio #painel-escritorio *,body.mundo-sobre-escritorio #painel-escritorio *::before,body.mundo-sobre-escritorio #painel-escritorio *::after{animation-play-state:paused}
+@media (prefers-reduced-motion: reduce){.rotulo-vybes i::after,.vv-ser i::after{animation:none;opacity:0}}
