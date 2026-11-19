@@ -5506,6 +5506,18 @@ body.mundo :is(input,select,textarea):not(:where(.workflow-modal *,#vv-whatsapp 
 /* O botão de cor do Toolkit tem a forma do campo: 34 como os campos ao lado. */
 #vv-ferramentas .d3m-e-tk-fer :is(input.d3m-e-tk-in,button.d3m-e-tk-in):is(.d3m-e-tk-in,#vv-h){height:34px;min-height:34px}
 
+/* Toolkit (QR, Link do WhatsApp, ROI) no tablet e no celular: a grade das duas folhas crescia com flex 1 1 0 dentro de uma
+   coluna sem altura e ficava com 0 px; a folha dos campos era esmagada numa faixa clara de 16 px com os campos cortados
+   (era o "campo branco" do confere em 768 e 375). Ali a grade fica com a altura do conteúdo e a página rola. */
+@media (max-width:900px){
+  #vv-ferramentas .d3m-r-tk:is(.d3m-r-tk,#vv-h){flex:none}
+  #vv-ferramentas .d3m-r-tk:is(.d3m-r-tk,#vv-h) > .d3m-e-folha{min-height:auto}
+  #vv-ferramentas .d3m-r-tk-form:is(.d3m-r-tk-form,#vv-h){overflow:visible}
+  #vv-ferramentas .d3m-r-tk-previa:is(.d3m-r-tk-previa,#vv-h){flex:none;min-height:240px}
+}
+/* "Hora de publicação" (Produção, detalhe da peça): o rótulo em volta é apagado; o contorno usa a letra inteira dele. */
+.d3p-hora-campo:is(.d3p-hora-campo,#vv-h) > input{--ds-linha:currentColor}
+
 /* 8 */
 #vv-ferramentas .d3m-r-tk-campo:is(.d3m-r-tk-campo,#vv-h),
 :is(#vv-carteira,#vv-reunioes) :is(.ob2-busca,.rv2-busca):is(label,#vv-h),
@@ -5540,9 +5552,9 @@ body.mundo :is(input,select,textarea):not(:where(.workflow-modal *,#vv-whatsapp 
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn:is(.fv2-btn,#vv-h){height:34px;border-radius:var(--d3-r-botao)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.s:is(.s,#vv-h){height:28px}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip:is(.fv2-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
-.d3-acao > .d3-acao-btn:is(.d3-acao-btn,#vv-h){height:34px;border-radius:var(--d3-r-botao)}
-.d3m-lar-bts > .d3m-btn:is(.d3m-btn,#vv-h){height:34px;box-sizing:border-box}
-.d3m-e-acoes > .d3v-btn:is(.d3v-btn,#vv-h){height:34px;box-sizing:border-box}
+.d3-acao > .d3-acao-btn:is(.d3-acao-btn,#vv-h):is(#vv-h,*){height:34px;border-radius:var(--d3-r-botao)}
+.d3m-lar-bts > .d3m-btn:is(.d3m-btn,#vv-h){flex-shrink:0;height:34px;min-height:34px;box-sizing:border-box}
+.d3m-e-acoes > .d3v-btn:is(.d3v-btn,#vv-h){flex-shrink:0;height:34px;min-height:34px;box-sizing:border-box}
 
 /* ===== padrao-v2/da-casca.css ===== */
 /* ======================================================================================
