@@ -403,7 +403,7 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
     // Mexendo, no máximo 60 qps (tela de 120/144 Hz desenhava o dobro sem ganho visível). Parado, o próximo quadro de
     // enfeite espera num relógio (o agendador recebe os ms), sem um RAF por volta da tela só para pular o quadro.
     if (interagindo && t - ultimo < QUADRO_MIN_MS) return true;
-    if (!interagindo && t - ultimo < 33) return Math.max(1, Math.round(33 - (t - ultimo)));
+    if (!interagindo && t - ultimo < 33) return Math.min(33, Math.max(1, Math.round(33 - (t - ultimo))));
     const dt = Math.min(0.05, (t - ultimo) / 1000); ultimo = t; quadro++;
     // Inércia ao soltar o arrasto.
     if (!arrasto && vel.lengthSq() > 0.01) { arrastar(vel.x, vel.y); vel.multiplyScalar(0.92); sujo = true; }
