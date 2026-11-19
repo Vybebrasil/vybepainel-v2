@@ -182,10 +182,11 @@ function notasAplicarGeometria(janela) {
   const g = notasGeometria();
   if (g.modo === 'cheia') { janela.classList.add('cheia'); return; }
   if (g.modo === 'barra') { janela.classList.add('barra'); }
-  const largura = Math.min(Math.max(Number(g.largura) || 520, 340), window.innerWidth - 16);
-  const altura = Math.min(Math.max(Number(g.altura) || 560, 240), window.innerHeight - 16);
-  const esquerda = Math.min(Math.max(Number(g.esquerda ?? (window.innerWidth - largura - 24)), 8), Math.max(8, window.innerWidth - largura - 8));
-  const topo = Math.min(Math.max(Number(g.topo ?? 96), 8), Math.max(8, window.innerHeight - 80));
+  // Sem tamanho guardado, a janela nasce com as três colunas da prancha V2-R-Notas (cadernos, lista e a nota aberta).
+  const largura = Math.min(Math.max(Number(g.largura) || 880, 340), window.innerWidth - 16);
+  const altura = Math.min(Math.max(Number(g.altura) || 630, 240), window.innerHeight - 16);
+  const esquerda = Math.min(Math.max(Number(g.esquerda ?? (g.largura ? window.innerWidth - largura - 24 : 112)), 8), Math.max(8, window.innerWidth - largura - 8));
+  const topo = Math.min(Math.max(Number(g.topo ?? 64), 8), Math.max(8, window.innerHeight - 80));
   Object.assign(janela.style, { width: `${largura}px`, height: `${altura}px`, left: `${esquerda}px`, top: `${topo}px` });
 }
 
@@ -274,7 +275,7 @@ async function abrirNotas() {
 function criarNotasGrande() {
   const janela = document.createElement('section');
   janela.id = 'notas-janela';
-  janela.className = 'notas-janela';
+  janela.className = 'notas-janela d3-tema'; // d3-tema: as folhas escurecem no tema Escuro (prancha V2-R-Notas)
   janela.setAttribute('role', 'dialog');
   janela.setAttribute('aria-label', 'Suas notas');
   janela.innerHTML = '<div class="workspace-loading">Carregando suas notas…</div>';
@@ -290,7 +291,7 @@ function criarNotasGrande() {
 async function abrirNotasNoTopo() {
   const janela = document.createElement('section');
   janela.id = 'v2-notas';
-  janela.className = 'v2nt';
+  janela.className = 'v2nt d3-tema';
   janela.setAttribute('role', 'dialog');
   janela.setAttribute('aria-labelledby', 'v2nt-titulo');
   janela.innerHTML = `${notasCabTopoHtml()}<div class="v2nt-corpo"><p class="v2nt-vazio">Carregando suas notas…</p></div>`;
@@ -329,18 +330,21 @@ function abrirNotasGrande() {
   notasGuardarGeometria({ modo: 'solta' });
   notasAplicarGeometria(janela);
   pintarNotas();
+  // Aberta direto (sem a pequena antes), a grande ainda não tem a lista: busca no servidor.
+  if (!NOTAS_CADERNOS.length) recarregarNotas();
 }
 
 function notasCabTopoHtml() {
   const naNota = NOTAS_ESTADO === 'nota' && NOTA_ABERTA;
   const total = NOTAS_BUSCA ? NOTAS.length : NOTAS_CADERNOS.reduce((t, c) => t + (Number(c.notas) || 0), 0);
+  const nCad = NOTAS_CADERNOS.length;
   const etiqueta = naNota ? '' : NOTAS_BUSCA
     ? `${total} ${total === 1 ? 'achada' : 'achadas'}`
-    : `${total} ${total === 1 ? 'nota' : 'notas'}`;
+    : `${total} ${total === 1 ? 'nota' : 'notas'} · ${nCad} ${nCad === 1 ? 'caderno' : 'cadernos'}`;
+  // Prancha V2-R-Notas (19/11/2026): a contagem vira a frase embaixo do título, no lugar da etiqueta.
   return `<div class="v2nt-cab">
       ${naNota ? `<button type="button" class="v2nt-ib" onclick="voltarParaAsNotas()" aria-label="Voltar para as notas" title="Voltar para as notas">${notasIcone('voltar')}</button>` : ''}
-      <h2 id="v2nt-titulo">Notas</h2>
-      ${etiqueta ? `<span class="v2nt-pill">${safeText(etiqueta)}</span>` : ''}
+      <span class="v2nt-nome"><h2 id="v2nt-titulo">Notas</h2>${etiqueta ? `<small class="v2nt-pill">${safeText(etiqueta)}</small>` : ''}</span>
       <button type="button" class="v2nt-btn" onclick="abrirNotasGrande()" title="Abrir a janela grande: arrastar, redimensionar, menu do caderno e demanda ligada">Abrir grande</button>
       <button type="button" class="v2nt-ib" onclick="fecharNotas()" aria-label="Fechar as notas" title="Fechar (Esc)">${notasIcone('fechar')}</button>
     </div>`;
@@ -370,7 +374,7 @@ function pintarNotasNoTopo() {
       <p class="v2nt-g">${safeText(rotulo)}</p>
       ${linhas || `<p class="v2nt-vazio">${NOTAS_BUSCA ? 'Nenhuma nota com essa palavra.' : 'Caderno vazio. Crie a primeira nota.'}</p>`}
     </div>
-    <div class="v2nt-pe"><span class="v2nt-dica">salva sozinha enquanto você escreve</span><button type="button" class="v2nt-btn p" onclick="novaNota()">Nova nota</button></div>`;
+    <div class="v2nt-pe"><span class="v2nt-dica">Salva sozinha enquanto você escreve.</span><button type="button" class="v2nt-btn p" onclick="novaNota()">Nova nota</button></div>`;
   const novo = janela.querySelector('.v2nt-corpo');
   if (novo) novo.scrollTop = rolagem;
 }
@@ -436,10 +440,13 @@ function notasCantoHtml() {
 function notasTopoHtml() {
   const cheia = document.getElementById('notas-janela')?.classList.contains('cheia');
   const barra = document.getElementById('notas-janela')?.classList.contains('barra');
+  // Prancha V2-R-Notas (19/11/2026): a nota abre na terceira coluna, então o topo fica sempre "Notas", com a frase de
+  // quantos cadernos e como mexer na janela. O voltar só aparece quando a janela está estreita e a lista sai da frente.
   const naNota = NOTAS_ESTADO === 'nota' && !barra;
+  const n = NOTAS_CADERNOS.length;
   return `<div class="notas-topo" onpointerdown="notasArrastar(event)">
       ${naNota ? `<button type="button" class="notas-voltar" onclick="voltarParaAsNotas()" aria-label="Voltar para as notas">${notasIcone('voltar')}</button>` : ''}
-      <b>${naNota ? safeText(NOTA_ABERTA?.titulo || 'Nota') : 'Notas'}</b>
+      <span class="notas-topo-nome"><b>Notas</b>${barra ? '' : `<small>${n} ${n === 1 ? 'caderno' : 'cadernos'} · arraste pelo topo, mude o tamanho pelo canto</small>`}</span>
       <div class="notas-topo-acoes">
         ${barra ? '' : `<button type="button" class="notas-icone" onclick="expandirNotas()" title="${cheia ? 'Voltar ao tamanho' : 'Expandir para a tela'}" aria-label="Expandir">${notasIcone(cheia ? 'reduzir' : 'expandir')}</button>`}
         <button type="button" class="notas-icone" onclick="encolherNotas()" title="${barra ? 'Abrir a janela' : 'Encolher para uma barrinha'}" aria-label="Encolher">${notasIcone(barra ? 'janela' : 'encolher')}</button>
@@ -454,11 +461,19 @@ function pintarNotas() {
   if (!janela) return;
   if (janela.classList.contains('barra')) { janela.innerHTML = notasTopoHtml(); return; }
   if (NOTAS_ESTADO === 'nota') return pintarNotaAberta();
+  janela.innerHTML = notasGrandeHtml();
+}
+
+// As três colunas da janela grande: cadernos (com Renomear e Apagar do escolhido no pé), a lista com a busca e
+// "Nova nota", e a nota aberta (ou o convite para abrir uma). Lista e nota juntas, como na prancha V2-R-Notas.
+function notasGrandeHtml() {
   const doCaderno = NOTAS.filter((n) => NOTAS_BUSCA || (n.caderno || CADERNO_PADRAO_TELA) === NOTAS_CADERNO);
+  const aberta = NOTAS_ESTADO === 'nota' && NOTA_ABERTA ? NOTA_ABERTA : null;
+  const ehAberta = (n) => Boolean(aberta && aberta.id != null && Number(aberta.id) === Number(n.id));
   const lista = doCaderno.length
     ? doCaderno.map((n) => {
       const peca = n.item_ref && typeof findOperationalItem === 'function' ? findOperationalItem(n.item_ref) : null;
-      return `<button type="button" class="notas-item" onclick="abrirNota(${n.id})">
+      return `<button type="button" class="notas-item${ehAberta(n) ? ' ativa' : ''}"${ehAberta(n) ? ' aria-current="true"' : ''} onclick="abrirNota(${n.id})">
         <b>${safeText(n.titulo || 'Sem título')}</b>
         <small>${safeText(notasResumo(n) || 'Nota vazia')}</small>
         <span class="notas-item-pe">${safeText(quandoNaBahia(n.atualizado_em))}${
@@ -470,25 +485,25 @@ function pintarNotas() {
   const cadernos = NOTAS_CADERNOS.map((c) => `<button type="button" class="notas-caderno ${c.nome === NOTAS_CADERNO && !NOTAS_BUSCA ? 'ativo' : ''}"
       onclick="escolherCaderno(decodeURIComponent('${encodeURIComponent(c.nome)}'))">
       <span>${safeText(c.nome)}</span><i>${c.notas}</i></button>`).join('');
-  janela.innerHTML = `${notasTopoHtml()}
-    <div class="notas-conteudo">
+  return `${notasTopoHtml()}
+    <div class="notas-conteudo notas-3${aberta ? ' com-nota' : ''}">
       <aside class="notas-cadernos">
         ${cadernos}
         <button type="button" class="notas-caderno novo" onclick="novoCaderno()">+ Caderno</button>
-        ${NOTAS_CADERNOS.length ? `<details class="notas-menu notas-caderno-acoes">
-          <summary class="notas-discreto" aria-label="Mais ações do caderno ${safeText(NOTAS_CADERNO)}" title="Renomear ou apagar o caderno">${notasIcone('mais')}<span>Caderno</span></summary>
-          <div class="notas-menu-lista" role="menu">
-            <button type="button" role="menuitem" class="notas-discreto" onclick="renomearCadernoAtual()" title="Renomear o caderno ${safeText(NOTAS_CADERNO)}">${notasIcone('renomear')}<span>Renomear</span></button>
-            <button type="button" role="menuitem" class="notas-discreto perigo" onclick="apagarCadernoAtual()" title="Apagar o caderno ${safeText(NOTAS_CADERNO)} (as notas vão para outro caderno)">${notasIcone('apagar')}<span>Apagar</span></button></div></details>` : ''}
+        ${NOTAS_CADERNOS.length ? `<div class="notas-caderno-acoes" role="group" aria-label="Caderno escolhido: ${safeText(NOTAS_CADERNO)}">
+          <span class="notas-caderno-rot">Caderno escolhido</span>
+          <button type="button" class="notas-discreto" onclick="renomearCadernoAtual()" title="Renomear o caderno ${safeText(NOTAS_CADERNO)}">Renomear</button>
+          <button type="button" class="notas-discreto perigo" onclick="apagarCadernoAtual()" title="Apagar o caderno ${safeText(NOTAS_CADERNO)} (as notas vão para outro caderno)">Apagar</button></div>` : ''}
       </aside>
       <div class="notas-lista">
         <div class="notas-barra">
-          <input type="search" placeholder="Buscar em todas as notas…" value="${safeText(NOTAS_BUSCA)}"
+          <input type="search" placeholder="Buscar em todas as notas" value="${safeText(NOTAS_BUSCA)}"
             oninput="buscarNotas(this.value)" aria-label="Buscar nas suas notas">
           <button type="button" class="notas-acao primaria" onclick="novaNota()">+ Nova nota</button>
         </div>
         <div class="notas-rolagem">${lista}</div>
       </div>
+      ${aberta ? notaGrandeHtml() : '<div class="notas-editor notas-editor-vazio"><p>Escolha uma nota na lista ou crie uma nova.</p></div>'}
     </div>${notasCantoHtml()}`;
 }
 
@@ -582,17 +597,14 @@ function voltarParaAsNotas() {
 
 function notasFerramentasHtml() {
   const b = (rotulo, acao, titulo) => `<button type="button" onclick="${acao}" title="${titulo}">${rotulo}</button>`;
+  // Prancha V2-R-Notas: as fichas Título, Lista, Caixinha, N e Emoji; "Salvar agora" e "Apagar a nota" ficam no menu
+  // do pé da nota, ao lado de Mandar para a peça e Pronto.
   return `<div class="notas-ferramentas">
-      ${b('# Título', "aplicarNaNota('titulo')", 'Título da seção')}
-      ${b('• Lista', "aplicarNaNota('lista')", 'Item de lista')}
-      ${b('☑ Checklist', "aplicarNaNota('check')", 'Caixinha para marcar')}
+      ${b('Título', "aplicarNaNota('titulo')", 'Título da seção')}
+      ${b('Lista', "aplicarNaNota('lista')", 'Item de lista')}
+      ${b('Caixinha', "aplicarNaNota('check')", 'Caixinha para marcar')}
       ${b('<b>N</b>', "aplicarNaNota('negrito')", 'Negrito')}
-      ${b('😀 Emoji', 'alternarEmojis()', 'Inserir emoji')}
-      <span class="notas-ferramentas-fim">
-        <button type="button" class="notas-acao" onclick="salvarNotaAgora()">Salvar</button>
-        <details class="notas-menu"><summary class="notas-icone" aria-label="Mais ações da nota" title="Mais ações da nota">${notasIcone('mais')}</summary>
-          <div class="notas-menu-lista" role="menu"><button type="button" role="menuitem" class="notas-discreto perigo" onclick="apagarNotaAberta()">${notasIcone('apagar')}<span>Apagar a nota</span></button></div></details>
-      </span>
+      ${b('Emoji', 'alternarEmojis()', 'Inserir emoji')}
     </div>${NOTAS_EMOJI_ABERTO ? notasEmojisHtml() : ''}`;
 }
 
@@ -642,29 +654,41 @@ function pintarNotaAberta() {
 }
 
 function pintarNotaGrande(janela) {
+  janela.innerHTML = notasGrandeHtml();
+}
+
+// A nota aberta na terceira coluna: título, "sobre a peça" com Abrir a peça e Desligar (ou Ligar a uma demanda), as
+// ferramentas de escrita, as linhas e o pé com quando salvou, o menu da nota, Mandar para a peça e Pronto.
+function notaGrandeHtml() {
   const peca = NOTA_ABERTA.item_ref && typeof findOperationalItem === 'function'
     ? findOperationalItem(NOTA_ABERTA.item_ref) : null;
   const sobre = NOTA_ABERTA.item_ref
-    ? `<div class="notas-sobre"><span>sobre</span><b>${safeText(peca?.nome || NOTA_ABERTA.item_ref)}</b>
+    ? `<div class="notas-sobre"><span>sobre <b>${safeText(peca?.nome || NOTA_ABERTA.item_ref)}</b></span>
         <button type="button" onclick="openItemWorkspace('${jsArg(NOTA_ABERTA.item_ref)}')">Abrir a peça</button>
-        <button type="button" onclick="mandarNotaParaPeca()">Mandar para a peça</button>
-        <button type="button" onclick="ligarNotaAPeca('')" title="Desligar desta peça">×</button></div>`
+        <button type="button" onclick="ligarNotaAPeca('')" title="Desligar desta peça">Desligar</button></div>`
     : `<div class="notas-sobre"><span>${safeText(NOTA_ABERTA.caderno || CADERNO_PADRAO_TELA)}</span>
         <button type="button" onclick="escolherPecaDaNota()">Ligar a uma demanda</button></div>`;
-  janela.innerHTML = `${notasTopoHtml()}
-    <div class="notas-conteudo nota">
-      <input class="notas-titulo" value="${safeText(NOTA_ABERTA.titulo)}" placeholder="Título da nota"
-        oninput="editarNota('titulo',this.value)" aria-label="Título da nota">
-      ${sobre}
-      ${notasBuscaPecaHtml()}
-      ${notasFerramentasHtml()}
+  return `<div class="notas-editor nota">
+      <div class="notas-editor-cab">
+        <input class="notas-titulo" value="${safeText(NOTA_ABERTA.titulo)}" placeholder="Título da nota"
+          oninput="editarNota('titulo',this.value)" aria-label="Título da nota">
+        ${sobre}
+        ${notasBuscaPecaHtml()}
+        ${notasFerramentasHtml()}
+      </div>
       <div class="nota-folha" onclick="if(event.target===this)focarLinha(${NOTA_LINHAS.length - 1})">
         ${NOTA_LINHAS.map(notasLinhaHtml).join('')}
       </div>
-      <p class="notas-pe" id="notas-pe">${NOTA_ABERTA.id
-        ? `Salva ${safeText(quandoNaBahia(NOTA_ABERTA.atualizado_em || new Date().toISOString()))}`
-        : 'Salva sozinha enquanto você escreve.'}</p>
-    </div>${notasCantoHtml()}`;
+      <div class="notas-editor-pe">
+        <p class="notas-pe" id="notas-pe">${NOTA_ABERTA.id
+          ? `Salva ${safeText(quandoNaBahia(NOTA_ABERTA.atualizado_em || new Date().toISOString()))}`
+          : 'Salva sozinha enquanto você escreve.'}</p>
+        <details class="notas-menu"><summary class="notas-icone" aria-label="Mais ações da nota" title="Mais ações da nota">${notasIcone('mais')}</summary>
+          <div class="notas-menu-lista" role="menu"><button type="button" role="menuitem" class="notas-discreto" onclick="salvarNotaAgora()">Salvar agora</button><button type="button" role="menuitem" class="notas-discreto perigo" onclick="apagarNotaAberta()">${notasIcone('apagar')}<span>Apagar a nota</span></button></div></details>
+        ${NOTA_ABERTA.item_ref ? '<button type="button" class="notas-acao" onclick="mandarNotaParaPeca()">Mandar para a peça</button>' : ''}
+        <button type="button" class="notas-acao primaria" onclick="voltarParaAsNotas()">Pronto</button>
+      </div>
+    </div>`;
 }
 
 // Qualquer ação de fora (marcar caixinha, barra de ferramentas, emoji, trocar

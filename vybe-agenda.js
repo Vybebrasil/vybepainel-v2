@@ -677,18 +677,30 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
 
   const cartao = document.createElement('div');
   cartao.id = 'cartao-rapido';
-  cartao.className = 'cartao-rapido';
+  // d3-tema: no tema Escuro as folhas de dentro escurecem junto (prancha V2-R-Cartao-Rapido, 19/11/2026).
+  cartao.className = 'cartao-rapido d3-tema';
   const linha = (rotulo, conteudo) => `<div class="cr-linha"><span>${rotulo}</span><div>${conteudo}</div></div>`;
   // O campo de data nativo aparecia como "17 /09/2026" e salvava uma data de cada
   // vez, sem conferir o Prazo de Ouro. Vira a data no formato do painel e abre o
   // editor de planejamento — o mesmo da ficha da gaveta e das linhas do Foco.
   const data = (iso) => `<button type="button" class="cr-data" onclick="event.stopPropagation();openPlanningEditor('${jsArg(item.id)}')"
-      title="Editar prazo e ${source === 'request' ? 'conclusão' : 'veiculação'}">${safeText(planningDateBr(iso) === 'não definido' ? '—' : planningDateBr(iso))}</button>`;
+      title="Editar prazo e ${source === 'request' ? 'conclusão' : 'veiculação'}">${safeText(dataCurta(iso))}</button>`;
   const ehDemanda = source === 'request';
+  // Prancha V2-R-Cartao-Rapido (19/11/2026): a data aparece curta, com o dia da semana ("qui, 19/11"); o cliente ganha
+  // o avatar e a linha "peça #id"; os quatro campos principais ficam em cima e o resto, o formato junto, em "Mais
+  // campos" numa grade de duas colunas (os botões de editar são os mesmos de antes).
+  const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const dataCurta = (iso) => {
+    const d = /^\d{4}-\d{2}-\d{2}/.test(String(iso || '')) ? new Date(`${String(iso).slice(0, 10)}T12:00:00`) : null;
+    return d && !Number.isNaN(d.getTime()) ? `${DIA_SEM[d.getDay()]}, ${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '—';
+  };
+  const palavrasCli = String(item.cliente || '?').split(/\s+/).filter(Boolean);
+  const siglaCli = (palavrasCli.length > 1 ? palavrasCli.slice(0, 2).map((x) => x[0]).join('') : (palavrasCli[0] || '?').slice(0, 2)).toUpperCase();
+  const cadastro = (() => { const c = cadastroDaPeca(item); const dia = /^\d{2}\/\d{2}/.test(c.quando || '') ? c.quando.slice(0, 5) : ''; return [c.quem, dia].filter(Boolean).join(' · ') || '—'; })();
 
   cartao.innerHTML = `
     <div class="cr-topo">
-      <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}</div>
+      <div class="cr-cliente"><span class="cr-av" aria-hidden="true">${safeText(siglaCli)}</span><span class="cr-quem"><b>${safeText(item.cliente || 'Sem cliente')}</b><small>${ehDemanda ? 'demanda' : 'peça'} ${vybeChipId(item)}</small></span></div>
       <div class="cr-topo-acoes">${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item, { mover: !ehDemanda })}<button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button></div>
     </div>
     <div class="cr-titulo" role="button" tabindex="0"
@@ -702,20 +714,20 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${linha('Prazo', data(item.prazo_iso))}
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
-      ${/* Bia (Coordenação, 18/11/2026): "editar tudo dentro do cartão da atividade". O formato sobe para o essencial,
-           junto de título, status, responsável, prazo e veiculação; o mesmo botão de antes (pillEditavel). */ ''}
+      ${/* Bia (Coordenação, 18/11/2026): "editar tudo dentro do cartão da atividade". O formato fica no bloco de cima,
+           como 5º campo, junto de status, responsável, prazo e veiculação; o mesmo botão de antes (pillEditavel). */ ''}
       ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
     </div>
     <details class="cr-mais"${window.CR_MAIS_ABERTO ? ' open' : ''} ontoggle="window.CR_MAIS_ABERTO=this.open">
-      <summary>Mais campos<small>clientes, grupo, ${ehDemanda ? '' : 'captação, '}prioridade…</small></summary>
-    <div class="cr-campos">
+      <summary>Mais campos<small class="cr-mais-dica">clientes, grupo, prioridade…</small><small class="cr-mais-recolher">recolher</small></summary>
+    <div class="cr-campos cr-grade">
       ${linha('Clientes', botaoClientesDoItem(item))}
       ${linha('Grupo', botaoDeGrupo(item))}
+      ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}
-      ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
-      ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
-      ${(() => { const c = cadastroDaPeca(item); return linha('Cadastrado por', `<span class="cr-texto">${safeText(c.quem)}</span>`) + linha('Criado em', `<span class="cr-texto">${safeText(c.quando)}</span>`); })()}
+      ${ehDemanda ? '' : linha('OFF e áudio', pillEditavel(item, 'off_audio'))}
+      ${linha('Cadastro', `<span class="cr-texto">${safeText(cadastro)}</span>`)}
     </div>
     </details>
     ${ehDemanda ? `<div class="cr-recursos" id="cr-recursos-${safeText(item.id)}" role="status">Carregando briefing e material…</div>` : ''}
@@ -727,7 +739,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
         title="Arquivos, histórico e entrega">${ehDemanda ? 'Abrir a demanda' : 'Abrir a peça'}</button>
     </div>`;
   document.body.append(fundo, cartao);
-  ancorarPopover(cartao, rect);
+  ancorarCartaoNaLinha(cartao, rect);
   // As subdemandas chegam numa pergunta só, depois que o cartão já está na tela:
   // esperar por elas atrasaria a abertura por causa de uma seção.
   if (ehDemanda && typeof subitensHtml === 'function') {
@@ -737,7 +749,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       caixa.innerHTML = subitensHtml(detalhe, item);
       const recursos = document.getElementById(`cr-recursos-${item.id}`);
       if (recursos) recursos.innerHTML = blocoDoBriefingHtml(detalhe, item) + faixaDeMaterialBrutoHtml(detalhe, item, {compacta:true});
-      ancorarPopover(cartao, rect);
+      ancorarCartaoNaLinha(cartao, rect);
     }).catch(() => {
       const caixa = document.getElementById(`cr-subs-${item.id}`);
       if (caixa) caixa.innerHTML = '<div class="cr-subs-carregando">Não foi possível carregar as subdemandas.</div>';
@@ -750,6 +762,22 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   CARTAO_ABERTO = { id: String(itemId), source, origem,
     rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
             width: rect.width, height: rect.height } };
+}
+
+// O cartão é preso à linha (prancha V2-R-Cartao-Rapido, 19/11/2026): abre embaixo ou em cima dela, como todo popover;
+// quando não cabe nem embaixo nem em cima e acabaria cobrindo a própria linha, passa para o lado (direita, senão
+// esquerda), centrado na altura dela e sem sair da tela.
+function ancorarCartaoNaLinha(cartao, rect) {
+  ancorarPopover(cartao, rect);
+  const c = cartao.getBoundingClientRect(), margem = 10;
+  const cobre = c.top < rect.bottom && c.bottom > rect.top && c.left < rect.right && c.right > rect.left;
+  if (!cobre) return;
+  const lado = rect.right + 16 + c.width <= window.innerWidth - margem ? rect.right + 16
+    : rect.left - 16 - c.width >= margem ? rect.left - 16 - c.width : null;
+  if (lado == null) return;
+  const topo = Math.max(margem, Math.min(rect.top + rect.height / 2 - c.height / 2, window.innerHeight - c.height - margem));
+  cartao.style.left = `${Math.round(lado)}px`;
+  cartao.style.top = `${Math.round(topo)}px`;
 }
 
 function verPreviaDoCartao(itemId) {
@@ -3198,15 +3226,22 @@ async function abrirClientesDoItem(itemId, event) {
   document.querySelector('.clientes-vinculo-dialog')?.remove();
   const origem = event?.currentTarget;
   const dialog = document.createElement('dialog');
-  dialog.className = 'clientes-vinculo-dialog';
+  // Prancha V2-R-Clientes-do-Item (19/11/2026): "Clientes da peça", com o nome dela e "a peça continua uma só" no vidro;
+  // numa folha a busca e a lista em dois grupos (os escolhidos e os outros, com avatar e "inativo"); no pé a contagem,
+  // Cancelar e Salvar clientes. d3-tema: no tema Escuro a folha escurece junto.
+  dialog.className = 'clientes-vinculo-dialog d3-tema';
   dialog.setAttribute('aria-labelledby', 'clientes-vinculo-titulo');
-  dialog.innerHTML = `<h2 id="clientes-vinculo-titulo">Clientes da atividade</h2>
-    <p>Selecione um ou mais clientes. A atividade continua sendo uma só.</p>
-    <input type="search" aria-label="Buscar cliente" placeholder="Buscar cliente…" aria-label="Buscar cliente">
-    <div class="clientes-vinculo-lista">Carregando clientes…</div>
-    <output class="clientes-vinculo-contagem" aria-live="polite"></output>
-    <p class="clientes-vinculo-erro" role="alert"></p>
-    <footer><button type="button" data-cancelar>Cancelar</button><button type="button" data-salvar disabled>Salvar clientes</button></footer>`;
+  const itemDoVinculo = (typeof findOperationalItem === 'function' && findOperationalItem(itemId))
+    || (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId)) || null;
+  dialog.innerHTML = `<header class="clientes-vinculo-cab"><span><h2 id="clientes-vinculo-titulo">Clientes da peça</h2>
+      <p>${itemDoVinculo?.nome ? `${safeText(itemDoVinculo.nome)} · ` : ''}a peça continua uma só</p></span>
+      <button type="button" class="clientes-vinculo-x" data-cancelar-x aria-label="Fechar">×</button></header>
+    <div class="clientes-vinculo-folha">
+      <input type="search" aria-label="Buscar cliente" placeholder="Buscar cliente">
+      <div class="clientes-vinculo-lista">Carregando clientes…</div>
+      <p class="clientes-vinculo-erro" role="alert"></p>
+    </div>
+    <footer><output class="clientes-vinculo-contagem" aria-live="polite"></output><button type="button" data-cancelar>Cancelar</button><button type="button" data-salvar disabled>Salvar clientes</button></footer>`;
   document.body.append(dialog); dialog.showModal();
   const salvar = dialog.querySelector('[data-salvar]');
   const cancelar = dialog.querySelector('[data-cancelar]');
@@ -3217,6 +3252,7 @@ async function abrirClientesDoItem(itemId, event) {
   let gravando = false;
   const fechar = () => { if (!gravando) { dialog.close(); dialog.remove(); if(origem?.isConnected) origem.focus(); } };
   cancelar.onclick = fechar;
+  dialog.querySelector('[data-cancelar-x]').onclick = fechar;
   dialog.addEventListener('keydown', e => { if(e.key==='Escape') { e.preventDefault(); e.stopPropagation(); fechar(); } });
   dialog.addEventListener('cancel', e => { e.preventDefault(); fechar(); });
   const chamar = async (acao, extra={}) => {
@@ -3229,17 +3265,32 @@ async function abrirClientesDoItem(itemId, event) {
     const data = await chamar('clientes_opcoes');
     if (!dialog.isConnected) return;
     lista.textContent = '';
-    for (const c of data.clientes) {
+    // Dois grupos, na ordem de quando a janela abriu: os escolhidos em cima, os outros embaixo (com quantos ativos e
+    // inativos). Cada linha: a caixinha, o avatar com as iniciais, o nome e, se for o caso, "inativo".
+    const sigla = (nome) => { const p = String(nome || '?').split(/\s+/).filter(Boolean); return (p.length > 1 ? p.slice(0, 2).map((x) => x[0]).join('') : (p[0] || '?').slice(0, 2)).toUpperCase(); };
+    const linha = (c) => {
       const label = document.createElement('label');
       label.dataset.busca = c.nome.toLocaleLowerCase('pt-BR');
       const check = document.createElement('input'); check.type='checkbox'; check.value=c.id; check.checked=c.selecionado;
-      label.append(check, document.createTextNode(c.nome + (c.ativo ? '' : ' (inativo)'))); lista.append(label);
+      const av = document.createElement('span'); av.className = 'clientes-vinculo-av'; av.setAttribute('aria-hidden', 'true'); av.textContent = sigla(c.nome);
+      const nome = document.createElement('span'); nome.className = 'clientes-vinculo-nome'; nome.textContent = c.nome;
+      label.append(check, av, nome);
+      if (!c.ativo) { label.classList.add('inativo'); const t = document.createElement('small'); t.className = 'clientes-vinculo-inativo'; t.textContent = 'inativo'; label.append(t); }
+      return label;
+    };
+    const grupo = (texto) => { const g = document.createElement('p'); g.className = 'clientes-vinculo-grupo'; g.textContent = texto; return g; };
+    const escolhidos = data.clientes.filter((c) => c.selecionado), outros = data.clientes.filter((c) => !c.selecionado);
+    const inativos = outros.filter((c) => !c.ativo).length, ativos = outros.length - inativos;
+    if (escolhidos.length) { lista.append(grupo(`Escolhidos · ${escolhidos.length}`)); escolhidos.forEach((c) => lista.append(linha(c))); }
+    if (outros.length) {
+      lista.append(grupo(`${escolhidos.length ? 'Os outros' : 'Clientes'} · ${ativos} ${ativos === 1 ? 'ativo' : 'ativos'}${inativos ? ` e ${inativos} ${inativos === 1 ? 'inativo' : 'inativos'}` : ''}`));
+      outros.forEach((c) => lista.append(linha(c)));
     }
     const selecionados = () => [...lista.querySelectorAll('input:checked')].map(c => c.value);
-    const atualizar = () => { const n=selecionados().length; salvar.disabled = gravando || !n; dialog.querySelector('output').textContent=`${n} cliente${n===1?'':'s'} selecionado${n===1?'':'s'}`; };
+    const atualizar = () => { const n=selecionados().length; salvar.disabled = gravando || !n; dialog.querySelector('output').textContent=`${n} escolhido${n===1?'':'s'}`; };
     lista.addEventListener('change', atualizar); atualizar();
     busca.disabled = false;
-    busca.oninput = () => { const q=busca.value.trim().toLocaleLowerCase('pt-BR'); lista.querySelectorAll('label').forEach(l=>l.hidden=!l.dataset.busca.includes(q)); };
+    busca.oninput = () => { const q=busca.value.trim().toLocaleLowerCase('pt-BR'); lista.querySelectorAll('label').forEach(l=>l.hidden=!l.dataset.busca.includes(q)); lista.querySelectorAll('.clientes-vinculo-grupo').forEach(g=>g.hidden=Boolean(q)); };
     salvar.onclick = async () => {
       if (gravando) return; gravando=true; atualizar(); cancelar.disabled=true; erro.textContent=''; salvar.textContent='Salvando…';
       lista.querySelectorAll('input').forEach(i=>i.disabled=true);

@@ -1,0 +1,146 @@
+/* ===================================================================================================================
+   V2 · R · NOVA DEMANDA (prancha V2-R-Nova-Demanda, 19/11/2026). A janela (#fc-overlay .nd, cadastros_governed_v2.js)
+   vira a casca V2: vidro fumê de canto 20, título de 20 com "etapa N de 3 · ... · Ctrl+Enter cria, Esc fecha" e os
+   três tracinhos; as três colunas em folhas de canto 12 (a da vez com o fio de tinta); no O quê as duas entradas com o
+   ponto de rádio e a frase; no Para quem os clientes com avatar e o responsável numa caixa com Aceitar; no Quando "A
+   data do cliente é", o seletor Veiculação/Conclusão, a frase da regra, os dias, o prazo interno por extenso e a semana
+   em barras por pessoa (régua de 6 peças); embaixo a faixa "Como chega na equipe" com Criar em escala e Mais campos; no
+   pé, no vidro, o calendário sazonal, Voltar e Continuar no botão claro.
+   O seletor dobra o id (#fc-overlay#fc-overlay) para passar das regras de peca.css e zm-h-4-cadastro.css sem !important.
+   =================================================================================================================== */
+/* d3-tema fica nas três folhas e na faixa (no Escuro elas escurecem); Mais campos, fora da prancha, segue folha clara. */
+body.mundo #fc-overlay#fc-overlay .nd{--fc-apoio:var(--d3-fume-apagado)}
+body.mundo #fc-overlay#fc-overlay :is(.nd-etapas,.nd-previa,.nd-mais){--fc-apoio:var(--d3-rotulo)}
+body.mundo #fc-overlay#fc-overlay .nd{width:min(1300px,calc(100vw - 32px));max-height:calc(100dvh - 32px);gap:12px;padding:16px;box-sizing:border-box;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);color:var(--d3-fume-texto)}
+
+/* Topo no vidro. */
+body.mundo #fc-overlay#fc-overlay .nd-topo{display:flex;align-items:center;gap:12px;min-height:40px;padding:0;border:0}
+body.mundo #fc-overlay#fc-overlay .nd-titulos{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+body.mundo #fc-overlay#fc-overlay .nd-topo h1{margin:0;color:var(--d3-fume-texto);font:600 20px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em}
+body.mundo #fc-overlay#fc-overlay .nd .nd-topo .fc-trilha-texto{--fc-apoio:var(--d3-fume-apagado);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-tracos{flex:none;display:inline-flex;gap:4px}
+body.mundo #fc-overlay#fc-overlay .nd-tracos > i{width:16px;height:3px;border-radius:2px;background:var(--d3-fume-veu-forte)}
+body.mundo #fc-overlay#fc-overlay .nd-tracos > i.on{background:var(--d3-fume-texto)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-x{display:grid;place-items:center;width:34px;height:34px;padding:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-x:hover{background:var(--d3-fume-borda)}
+body.mundo #fc-overlay#fc-overlay .nd-barra{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Corpo: as três folhas lado a lado. */
+body.mundo #fc-overlay#fc-overlay .nd-corpo{gap:12px;margin:0;padding:0}
+body.mundo #fc-overlay#fc-overlay .nd-etapas{gap:12px}
+body.mundo #fc-overlay#fc-overlay .nd-mais{margin-top:-12px}
+body.mundo #fc-overlay#fc-overlay .nd-mais[aria-expanded="true"]{margin-top:0}
+body.mundo #fc-overlay#fc-overlay .nd-card{padding:14px 16px;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta);box-shadow:none}
+body.mundo #fc-overlay#fc-overlay .nd-etapa{gap:10px;min-height:0}
+body.mundo #fc-overlay#fc-overlay .nd-etapa.agora{background:var(--d3-folha);box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd-cab{gap:8px}
+body.mundo #fc-overlay#fc-overlay .nd-cab h2{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd-cab .nd-sub{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-num{width:22px;height:22px;background:transparent;box-shadow:inset 0 0 0 1.5px var(--d3-meta);color:var(--d3-texto2)}
+body.mundo #fc-overlay#fc-overlay .nd-num.on{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra)}
+body.mundo #fc-overlay#fc-overlay .nd-num.ok{background:var(--d3-veu-forte);box-shadow:none;color:var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-sub{color:var(--d3-rotulo)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-rot{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+
+/* O quê: as duas entradas com o ponto de rádio e a frase. */
+body.mundo #fc-overlay#fc-overlay .nd .nd-tipo{gap:12px;height:48px;min-height:48px;padding:0 14px;border-radius:var(--d3-r-caixa);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-tipo:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-tipo.on{background:transparent;box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-radio{flex:none;width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-meta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-tipo.on .nd-radio{box-shadow:inset 0 0 0 5px var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-tipo-txt{gap:2px;text-align:left}
+body.mundo #fc-overlay#fc-overlay .nd .nd-tipo-txt b{font:600 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-tipo-txt small{color:var(--d3-rotulo);font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif)}
+
+/* Fichas e campos na folha. */
+body.mundo #fc-overlay#fc-overlay .nd .nd-fileira{gap:6px}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip{height:26px;padding:0 9px;border-radius:6px;background:transparent;box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip:hover{background:var(--d3-veu);box-shadow:inset 0 0 0 1px var(--d3-meta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip.on{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra);font-weight:600}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip.nd-novo,body.mundo #fc-overlay#fc-overlay .nd .nd-lk{color:var(--d3-tinta);text-decoration:underline;text-underline-offset:2px}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip.nd-novo{box-shadow:none}
+body.mundo #fc-overlay#fc-overlay .nd :is(.nd-campo,.nd-busca,.nd-area){background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);border-radius:var(--d3-r-botao)}
+body.mundo #fc-overlay#fc-overlay .nd :is(.nd-campo,.nd-busca,.nd-area):focus{background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd :is(.nd-campo,.nd-busca,.nd-area).er{box-shadow:inset 0 0 0 1.5px var(--d3-perigo)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-busca{padding-left:32px;background:var(--d3-cartao) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center/13px}
+
+/* Para quem: o avatar do cliente na ficha e o responsável numa caixa. */
+body.mundo #fc-overlay#fc-overlay .nd .nd-cli-av{flex:none;display:grid;place-items:center;width:18px;height:18px;margin-left:-4px;border-radius:5px;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 8.5px var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip.on .nd-cli-av{background:var(--d3-contra);color:var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip .nd-cli{gap:0;font-weight:inherit}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip .nd-cli::before{content:none}
+body.mundo #fc-overlay#fc-overlay .nd .nd-chip:has(> .nd-cli-av){gap:6px;padding-left:6px}
+body.mundo #fc-overlay#fc-overlay .nd-resp{display:flex;flex-direction:column;gap:8px;margin-top:2px;padding:12px;border-radius:var(--d3-r-caixa);background:var(--d3-veu)}
+body.mundo #fc-overlay#fc-overlay .nd-resp > .nd-rot{color:var(--d3-tinta);font-weight:600}
+body.mundo #fc-overlay#fc-overlay .nd-fala{display:block;padding:0;border-radius:0;background:none}
+body.mundo #fc-overlay#fc-overlay .nd-fala-txt{gap:8px}
+body.mundo #fc-overlay#fc-overlay .nd-porque{margin:0;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-fala-acoes{gap:8px}
+body.mundo #fc-overlay#fc-overlay .nd-sugerido{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-av{width:22px;height:22px;background:var(--d3-cartao);box-shadow:0 0 0 2px var(--d3-veu);color:var(--d3-texto2);font-size:8.5px}
+body.mundo #fc-overlay#fc-overlay .nd .nd-fala .nd-btn.s{height:30px;padding:0 12px;background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
+body.mundo #fc-overlay#fc-overlay .nd .nd-fala .nd-btn.s.feito{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+body.mundo #fc-overlay#fc-overlay .nd-ou{flex-wrap:wrap;gap:8px;color:var(--d3-texto2)}
+body.mundo #fc-overlay#fc-overlay .nd-ou .nd-lk{text-decoration:none;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-ou .nd-triagem{margin-left:auto;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+
+/* Quando: o seletor, a frase da regra, os dias, o prazo por extenso e a semana por pessoa. */
+body.mundo #fc-overlay#fc-overlay .nd-seg{align-self:stretch;display:flex;padding:3px;border-radius:var(--d3-r-botao);background:var(--d3-veu)}
+body.mundo #fc-overlay#fc-overlay .nd-seg span{flex:1;height:28px;padding:0 12px;border-radius:6px;color:var(--d3-texto2);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-seg .on{background:var(--d3-cartao);color:var(--d3-tinta);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12);animation:none}
+body.mundo #fc-overlay#fc-overlay .nd-regra-data{margin:-4px 0 0;font:400 var(--d3-fs-mini)/1.35 var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-dia{padding:7px 0;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-rotulo);font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-dia b{color:var(--d3-tinta);font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-dia.on{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-dia.on b{color:var(--d3-contra)}
+body.mundo #fc-overlay#fc-overlay .nd-trilhos{display:flex;flex-direction:column}
+body.mundo #fc-overlay#fc-overlay .nd-trilho{position:relative;gap:8px;min-height:30px;padding:2px 0;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-trilho > i{display:none}
+body.mundo #fc-overlay#fc-overlay .nd-trilho .nd-sub{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-trilho > b,body.mundo #fc-overlay#fc-overlay .nd-prazo-txt{margin-left:auto;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-prazo-txt::after{content:"✎";margin-left:6px;color:var(--d3-rotulo);font-weight:400}
+body.mundo #fc-overlay#fc-overlay .nd .nd-prazo{position:absolute;right:0;top:0;bottom:0;width:120px;height:auto;margin:0;padding:0;opacity:0;cursor:pointer}
+body.mundo #fc-overlay#fc-overlay .nd .nd-prazo:focus-visible{opacity:1;background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+body.mundo #fc-overlay#fc-overlay .nd-trilho:has(.nd-prazo:hover) .nd-prazo-txt{text-decoration:underline}
+body.mundo #fc-overlay#fc-overlay .nd-semana{display:flex;flex-direction:column;gap:6px;margin-top:4px;padding:12px;border-radius:var(--d3-r-caixa);background:var(--d3-veu)}
+body.mundo #fc-overlay#fc-overlay .nd-semana:empty{display:none}
+body.mundo #fc-overlay#fc-overlay .nd-semana-topo{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 2px}
+body.mundo #fc-overlay#fc-overlay .nd-semana-topo .nd-rot{color:var(--d3-tinta);font-weight:600}
+body.mundo #fc-overlay#fc-overlay .nd-semana-topo .nd-sub{font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-carga{display:grid;grid-template-columns:64px minmax(0,1fr) 32px;align-items:center;gap:10px;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-carga > span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mundo #fc-overlay#fc-overlay .nd-carga .d3-barra{height:3px;background:var(--d3-veu-forte)}
+body.mundo #fc-overlay#fc-overlay .nd-carga > b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+body.mundo #fc-overlay#fc-overlay .nd-carga.passou .d3-barra > i{background:var(--d3-perigo)}
+body.mundo #fc-overlay#fc-overlay .nd-carga.passou > b{color:var(--d3-perigo)}
+
+/* A faixa "Como chega na equipe". */
+body.mundo #fc-overlay#fc-overlay .nd-previa{gap:12px;min-height:44px;padding:6px 14px}
+body.mundo #fc-overlay#fc-overlay .nd-previa-txt{display:flex;align-items:center;gap:10px;min-width:0}
+body.mundo #fc-overlay#fc-overlay .nd-previa-rot{flex:none;margin:0;color:var(--d3-tinta);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-previa-linha{flex:1;min-width:0;flex-wrap:nowrap;gap:8px;margin:0;overflow:hidden;white-space:nowrap;color:var(--d3-texto2);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-previa-linha > b{color:var(--d3-tinta);font-weight:600}
+body.mundo #fc-overlay#fc-overlay .nd-previa-linha .nd-sub{overflow:hidden;text-overflow:ellipsis}
+body.mundo #fc-overlay#fc-overlay .nd-escala{flex:none;text-decoration:none;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd-previa #fc-mais-chip{flex:none;height:30px;padding:0 10px;box-shadow:inset 0 0 0 1px var(--d3-meta)}
+
+/* O pé no vidro. */
+body.mundo #fc-overlay#fc-overlay .nd-pe{gap:8px}
+body.mundo #fc-overlay#fc-overlay .nd .nd-sazonal{flex:none;padding:0 2px;color:var(--d3-fume-texto);text-decoration:none;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-sazonal:hover{text-decoration:underline}
+body.mundo #fc-overlay#fc-overlay .nd .nd-pe > .nd-sub{--fc-apoio:var(--d3-fume-apagado);color:var(--d3-fume-apagado)}
+body.mundo #fc-overlay#fc-overlay .nd .nd-pe > .nd-sub.falta{color:var(--d3-ajuste-claro)}
+body.mundo #fc-overlay#fc-overlay .nd-pe .nd-btn{height:34px;background:transparent;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
+body.mundo #fc-overlay#fc-overlay .nd-pe .nd-btn:hover{background:var(--d3-fume-veu)}
+body.mundo #fc-overlay#fc-overlay .nd-pe .nd-btn.k{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+body.mundo #fc-overlay#fc-overlay .nd-pe .nd-btn.k:hover{background:var(--d3-fume-texto2)}
+body.mundo #fc-overlay#fc-overlay .nd :is(.nd-btn,.nd-x,.nd-sazonal):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+body.mundo #fc-overlay#fc-overlay .nd-card :is(.nd-btn,.nd-chip,.nd-tipo,.nd-dia,.nd-lk):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+
+@media (max-width:900px){
+  body.mundo #fc-overlay#fc-overlay .nd{width:100vw;max-height:100dvh;height:100dvh;border-radius:0}
+  body.mundo #fc-overlay#fc-overlay .nd-previa,body.mundo #fc-overlay#fc-overlay .nd-previa-txt{flex-wrap:wrap}
+  body.mundo #fc-overlay#fc-overlay .nd-previa-linha{flex-wrap:wrap;white-space:normal}
+  body.mundo #fc-overlay#fc-overlay .nd-pe{flex-wrap:wrap}
+  body.mundo #fc-overlay#fc-overlay .nd .nd-sazonal{flex:1 1 100%}
+}

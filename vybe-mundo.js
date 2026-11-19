@@ -2505,21 +2505,30 @@
   function criarPainelHtml(onde) {
     const prev = typeof window.fcPreviaDoCriar === 'function' ? window.fcPreviaDoCriar(criarBoard) : null;
     const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
-    const op = (board, nome, sub) => `<button type="button" role="radio" class="v2cr-op" data-criar-board="${board}" aria-checked="${criarBoard === board}"><b>${nome}</b><small>${sub}</small></button>`;
-    const tipo = (id, ic, nome, sub) => `<button type="button" class="v2cr-tipo" data-criar="${id}">${svg(ic)}<b>${nome}</b><small>${sub}</small></button>`;
+    // Na janela (prancha V2-R-Criar, 19/11/2026): a escolha leva o ponto de rádio, o cliente tem rótulo e avatar, a
+    // prévia vira rótulo e valor com o status no pé e cada tipo diz o que abre. O Criar dentro do Hoje fica como estava.
+    const jan = onde === 'janela';
+    const op = (board, nome, sub) => `<button type="button" role="radio" class="v2cr-op" data-criar-board="${board}" aria-checked="${criarBoard === board}">${jan ? '<i class="v2cr-radio" aria-hidden="true"></i>' : ''}<b>${nome}</b><small>${sub}</small></button>`;
+    const tipo = (id, ic, nome, sub, abre) => `<button type="button" class="v2cr-tipo" data-criar="${id}">${jan ? `<span class="v2cr-ic" aria-hidden="true">${svg(ic)}</span>` : svg(ic)}<b>${nome}</b><small>${sub}</small>${jan ? `<em class="v2cr-abre">${abre}<i aria-hidden="true">›</i></em>` : ''}</button>`;
+    const sigla = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
+    const kv = (rot, valor) => `<span class="v2cr-kv"><small>${rot}</small><span>${valor}</span></span>`;
+    const prevHtml = jan
+      ? `<div class="v2cr-prev"><b>Como chega na equipe</b>${kv(`${esc(prev?.formato || 'Formato')} e título`, 'a escolher')}${kv('Cliente', criarCliente ? esc(criarCliente) : 'no próximo passo')}${kv('Grupo', esc(prev?.grupo || 'pela regra de entrada'))}${kv('Prazos', 'calculados no passo 3')}${kv('Equipe', esc(prev?.equipe || 'definida na triagem'))}${prev?.status ? `<span class="v2cr-st" style="--c:${esc(prev.cor || '#8A847A')}"><i aria-hidden="true"></i>${esc(prev.status)}</span>` : ''}</div>`
+      : `<div class="v2cr-prev"><b>Como chega na equipe</b><span>${esc(prev?.formato || 'Formato')} · título pendente</span><span>${criarCliente ? cliCor(criarCliente) : 'Cliente: no próximo passo'}</span><span>Grupo: ${esc(prev?.grupo || 'pela regra de entrada')}</span><span>Prazos: pendentes</span><span>Equipe: ${esc(prev?.equipe || 'definida na triagem')}</span>${prev?.status ? `<span class="v2cr-pill" style="--c:${esc(prev.cor || '#8A847A')}">${esc(prev.status)}</span>` : ''}</div>`;
+    const cliHtml = criarCliente ? `<span class="v2cr-cli">${jan ? `<span class="v2cr-av" aria-hidden="true">${esc(sigla(criarCliente))}</span><b>${esc(criarCliente)}</b>` : cliCor(criarCliente)}<button type="button" data-criar="sem-cliente" aria-label="Tirar ${esc(criarCliente)}">${svg(ICO.x)}</button></span>` : '';
     return `<section class="v2cr" aria-label="Criar">
-      <div class="v2cr-topo"><h3>Criar</h3><small>o cartão abre no lugar, sem trocar de tela</small>${onde === 'janela' ? `<button type="button" class="v2cr-x" data-criar="sair" aria-label="Fechar">${svg(ICO.x)}</button>` : ''}</div>
+      <div class="v2cr-topo"><h3>Criar</h3><small>${jan ? 'o que entra na Vybe começa aqui · ' : ''}o cartão abre no lugar, sem trocar de tela</small>${jan ? `<button type="button" class="v2cr-x" data-criar="sair" aria-label="Fechar">${svg(ICO.x)}</button>` : ''}</div>
       <div class="v2-abre v2cr-dem" aria-expanded="${criarAberto}">
-        <button type="button" class="v2cr-lin" data-criar="demanda" aria-expanded="${criarAberto}">${svg(ICO.demanda)}<span class="v2cr-nome"><b>Demanda</b><small>conteúdo que a Vybe produz ou pedido que chega</small></span><span class="v2cr-passo" aria-hidden="true"><i class="on"></i><i></i><i></i></span><small class="v2cr-etapa">1 de 3 · O quê</small></button>
+        <button type="button" class="v2cr-lin" data-criar="demanda" aria-expanded="${criarAberto}">${jan ? `<span class="v2cr-ic" aria-hidden="true">${svg(ICO.demanda)}</span>` : svg(ICO.demanda)}<span class="v2cr-nome"><b>Demanda</b><small>conteúdo que a Vybe produz ou pedido que chega</small></span><span class="v2cr-passo" aria-hidden="true"><i class="on"></i><i></i><i></i></span><small class="v2cr-etapa">1 de 3 · ${jan ? 'o quê' : 'O quê'}</small></button>
         <div class="v2-mais"${criarAberto ? '' : ' inert'}><div><div class="v2cr-det">
           <div class="v2cr-esq"><div class="v2cr-ops" role="radiogroup" aria-label="Onde a demanda entra">${op('producao', 'Produção de conteúdo', 'o que a Vybe produz e publica')}${op('demandas', 'Solicitação de demanda', 'pedido que chega e passa por triagem')}</div>
-            <p class="v2cr-clis">${criarCliente ? `<span class="v2cr-cli">${cliCor(criarCliente)}<button type="button" data-criar="sem-cliente" aria-label="Tirar ${esc(criarCliente)}">${svg(ICO.x)}</button></span>` : ''}<label class="v2cr-chip v2cr-escolhe"><span>${criarCliente ? 'trocar cliente' : '+ cliente'}</span><select data-criar-cliente aria-label="Cliente da demanda"><option value="">Escolher cliente</option>${clientes.map((c) => `<option${c === criarCliente ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></label><button type="button" class="v2cr-chip" data-criar="sazonal">Calendário sazonal</button></p></div>
-          <div class="v2cr-prev"><b>Como chega na equipe</b><span>${esc(prev?.formato || 'Formato')} · título pendente</span><span>${criarCliente ? cliCor(criarCliente) : 'Cliente: no próximo passo'}</span><span>Grupo: ${esc(prev?.grupo || 'pela regra de entrada')}</span><span>Prazos: pendentes</span><span>Equipe: ${esc(prev?.equipe || 'definida na triagem')}</span>${prev?.status ? `<span class="v2cr-pill" style="--c:${esc(prev.cor || '#8A847A')}">${esc(prev.status)}</span>` : ''}</div>
+            ${jan ? '<span class="v2cr-rot">Cliente</span>' : ''}<p class="v2cr-clis">${cliHtml}<label class="v2cr-chip v2cr-escolhe"><span>${criarCliente ? 'trocar cliente' : '+ cliente'}</span><select data-criar-cliente aria-label="Cliente da demanda"><option value="">Escolher cliente</option>${clientes.map((c) => `<option${c === criarCliente ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></label><button type="button" class="v2cr-chip" data-criar="sazonal">Calendário sazonal</button></p></div>
+          ${prevHtml}
         </div>
         <div class="v2cr-acoes"><button type="button" class="v2cr-btn" data-criar="fechar">Fechar</button><button type="button" class="v2cr-btn k" data-criar="continuar">Continuar</button></div></div></div>
       </div>
-      <div class="v2cr-tipos">${tipo('planejamento', ICO.plan, 'Planejamento', 'o mês de um cliente, peça a peça')}${tipo('conteudo', ICO.peca, 'Conteúdo', 'uma peça avulsa, no cadastro da produção')}${tipo('reuniao', ICO.reuniao, 'Reunião', 'grava, transcreve e sugere demandas')}</div>
-      <p class="v2cr-pe">Demanda e Conteúdo seguem para o cadastro completo; Planejamento e Reunião abrem as telas deles.</p>
+      <div class="v2cr-tipos">${tipo('planejamento', ICO.plan, 'Planejamento', 'o mês de um cliente, peça a peça', 'abre Planejamentos')}${tipo('conteudo', ICO.peca, 'Conteúdo', jan ? 'uma peça avulsa, já no cadastro da produção' : 'uma peça avulsa, no cadastro da produção','abre o cadastro completo')}${tipo('reuniao', ICO.reuniao, 'Reunião', 'grava, transcreve e sugere demandas', 'abre Reuniões')}</div>
+      ${jan ? '' : '<p class="v2cr-pe">Demanda e Conteúdo seguem para o cadastro completo; Planejamento e Reunião abrem as telas deles.</p>'}
     </section>`;
   }
   function pintarCriar() {
@@ -2543,7 +2552,8 @@
     let j = document.getElementById('vv-criar');
     if (!j) {
       j = document.createElement('div'); j.id = 'vv-criar'; j.className = 'v2cr-camada';
-      j.innerHTML = '<div class="v2cr-janela" role="dialog" aria-modal="true" aria-label="Criar"></div>';
+      // d3-tema: no tema Escuro a folha de dentro escurece junto (janela V2, prancha V2-R-Criar).
+      j.innerHTML = '<div class="v2cr-janela d3-tema" role="dialog" aria-modal="true" aria-label="Criar"></div>';
       j.addEventListener('click', (e) => { if (e.target === j) fecharCriar(); });
       document.body.append(j);
     }
@@ -6228,8 +6238,10 @@
     if (form && !form.querySelector('#appearance-mundo')) {
       const rotulo = document.createElement('label');
       rotulo.className = 'appearance-check';
-      rotulo.innerHTML = `<input id="appearance-mundo" type="checkbox"${semWebGL ? ' disabled' : ''}>Mundo voxel na tela de módulos (Irecê e o Prédio da Vybe)`;
-      form.querySelector('.appearance-done')?.before(rotulo);
+      // Prancha V2-R-Aparencia: a chave entra na folha, com nome e frase, como Reduzir movimento.
+      rotulo.innerHTML = `<span class="appearance-check-txt"><b>Mundo voxel nos módulos</b><small>Irecê e o Prédio da Vybe · precisa de WebGL</small></span><input id="appearance-mundo" type="checkbox" role="switch"${semWebGL ? ' disabled' : ''}>`;
+      const folha = form.querySelector('.appearance-folha');
+      if (folha) folha.append(rotulo); else form.querySelector('.appearance-done')?.before(rotulo);
       const caixa = rotulo.querySelector('input');
       document.addEventListener('click', (e) => { if (e.target.closest('[data-open-appearance]')) caixa.checked = ligado; });
       caixa.addEventListener('change', () => ligar(caixa.checked));

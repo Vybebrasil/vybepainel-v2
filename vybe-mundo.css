@@ -456,11 +456,11 @@ body.mundo :is(#workspace-drawer,#notif-caixa) :is(select,input:not([type=checkb
 body.mundo .spotlight-dialog :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px;color:#1F1D1A;border:1px solid #E6E0D6;box-shadow:none}
 /* Direção 3 (quadros D3-Fam-Formularios e D3-Fam-Confirmacoes, limpeza de 14/11/2026): na janela de confirmação o campo
    é o trilho claro, sem borda, e não o branco forçado. */
-body.mundo :is(#workflow-modal,.workflow-modal) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:var(--d3-veu) var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:var(--d3-tinta)!important;border:1px solid transparent!important;border-radius:var(--d3-r-caixa)!important;box-shadow:none!important}
+body.mundo :is(#workflow-modal,.workflow-modal) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:var(--wm-campo,var(--d3-veu)) var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:var(--d3-tinta)!important;border:1px solid var(--wm-campo-borda,transparent)!important;border-radius:var(--d3-r-caixa)!important;box-shadow:none!important}
 body.mundo :is(#workflow-modal,.workflow-modal) textarea{border-radius:var(--d3-r-caixa)!important}
-body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-field>span,.workflow-title,.context-title,.workflow-item,.context-item,.workflow-check){color:var(--d3-tinta)!important}
-body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-actions,.context-actions){background:var(--d3-cartao)!important;border-top:1px solid var(--d3-divisa)!important}
-body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:var(--d3-tinta)!important}
+body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-field>span,.workflow-title,.context-title,.workflow-item,.context-item,.workflow-check){color:var(--wm-titulo-cor,var(--d3-tinta))!important}
+body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-actions,.context-actions){background:var(--wm-pe-fundo,var(--d3-cartao))!important;border-top:1px solid var(--wm-pe-linha,var(--d3-divisa))!important}
+body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:var(--wm-sec-cor,var(--d3-tinta))!important}
 body.mundo :is(#workspace-drawer,.spotlight-dialog,#notif-caixa) :is(h1,h2,h3,h4,b,strong){color:#1F1D1A}
 body.mundo :is(#workspace-drawer) :is(.workspace-section,.workspace-mais-menu,.workspace-textarea){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important}
 /* Aviso de planejamento: no mundo ele mora no sino do topo (auditoria 09/11, D8); o flutuante não volta. */
@@ -548,12 +548,12 @@ body.mundo.mundo-modulo .plj-aviso.recolhido{left:auto!important;right:calc(var(
    O Ranking em página (.rk2-janela) não escurece nem desfoca o que fica ao lado. */
 body.mundo .workflow-backdrop:not(:has(+ .rk2-janela)){background:rgba(31,29,26,.28)!important;backdrop-filter:blur(6px) saturate(1.1)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo){
-  background:var(--d3-cartao)!important;background-image:none!important;border:0!important;border-radius:var(--d3-r-janela)!important;
-  box-shadow:0 0 0 1px var(--d3-veu),0 30px 70px -28px rgba(0,0,0,.6)!important;padding:20px 24px!important;color:var(--d3-tinta)!important;font-family:var(--vv-texto)!important}
+  background:var(--wm-fundo,var(--d3-cartao))!important;background-image:none!important;border:0!important;border-radius:var(--d3-r-janela)!important;
+  box-shadow:var(--wm-sombra,0 0 0 1px var(--d3-veu),0 30px 70px -28px rgba(0,0,0,.6))!important;padding:var(--wm-pad,20px 24px)!important;color:var(--wm-cor,var(--d3-tinta))!important;font-family:var(--vv-texto)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-kicker){color:var(--d3-rotulo)!important;font:400 var(--d3-fs-apoio) var(--vv-texto)!important;letter-spacing:0;background:none!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-close{width:34px;height:34px;border-radius:var(--d3-r-botao)!important;background:var(--d3-veu)!important;color:var(--d3-tinta)!important;border:0!important;box-shadow:none}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-title{color:var(--d3-tinta)!important;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo, var(--vv-texto))!important;letter-spacing:-.01em;margin:6px 0 4px!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-copy,.workflow-hint){color:var(--d3-rotulo)!important;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-close{width:34px;height:34px;border-radius:var(--d3-r-botao)!important;background:var(--wm-x-fundo,var(--d3-veu))!important;color:var(--wm-x-cor,var(--d3-tinta))!important;border:0!important;box-shadow:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-title{color:var(--wm-titulo-cor,var(--d3-tinta))!important;font:600 var(--wm-titulo-fs,var(--d3-fs-titulo))/1.25 var(--wm-titulo-fonte,var(--vv-titulo, var(--vv-texto)))!important;letter-spacing:-.01em;margin:var(--wm-titulo-margem,6px 0 4px)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-copy,.workflow-hint){color:var(--wm-apoio,var(--d3-rotulo))!important;font:400 var(--wm-apoio-fs,var(--d3-fs-texto))/1.5 var(--vv-texto)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item,.workflow-check,.plj-mes){background:var(--d3-veu)!important;border:0!important;border-radius:var(--d3-r-caixa)!important;color:var(--d3-tinta)!important;box-shadow:none}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .plj-mes{padding:12px 14px!important;box-shadow:inset 3px 0 0 var(--vv-laranja),0 1px 2px rgba(31,29,26,.04)!important;transition:transform .15s var(--vv-mola),box-shadow .15s}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .plj-mes:hover{transform:translateY(-1px);box-shadow:inset 3px 0 0 var(--vv-laranja),0 8px 20px rgba(31,29,26,.08)!important}
@@ -568,12 +568,12 @@ body.mundo .workflow-modal .plj-avisos>li{background:#fff!important;border:1px s
 body.mundo .workflow-modal .plj-avisos :is(summary,b){color:#1F1D1A!important}
 body.mundo .workflow-modal .plj-avisos button{background:#FAF8F4!important;color:#1F1D1A!important;border:1px solid #ECE6DC!important;border-radius:6px!important}
 body.mundo .workflow-modal .plj-avisos small{color:#6E6A62!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-actions,.context-actions){position:sticky;bottom:-20px;margin:16px -24px -20px!important;box-shadow:0 20px 0 var(--d3-cartao);padding:12px 24px!important;background:var(--d3-cartao)!important;border-top:1px solid var(--d3-divisa)!important;border-radius:0 0 20px 20px;backdrop-filter:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-actions,.context-actions){position:sticky;bottom:-20px;margin:var(--wm-pe-margem,16px -24px -20px)!important;box-shadow:0 20px 0 var(--wm-pe-fundo,var(--d3-cartao));padding:var(--wm-pe-pad,12px 24px)!important;background:var(--wm-pe-fundo,var(--d3-cartao))!important;border-top:1px solid var(--wm-pe-linha,var(--d3-divisa))!important;border-radius:0 0 20px 20px;backdrop-filter:none}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-secondary,.workflow-primary){height:34px;padding:0 14px!important;border-radius:var(--d3-r-botao)!important;font:500 var(--d3-fs-texto) var(--vv-texto)!important;letter-spacing:0!important}
 /* Direção 3 (quadro D3-Fam-Confirmacoes, limpeza de 14/11/2026): cancelar no trilho claro e confirmar preto; o laranja
    cheio fica só no bloco de ação da tela. */
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-secondary{background:var(--d3-veu)!important;color:var(--d3-tinta)!important;border:0!important;box-shadow:none}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-primary{background:var(--d3-acao)!important;color:var(--d3-escuro-texto)!important;border:0!important;box-shadow:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-secondary{background:var(--wm-sec-fundo,var(--d3-veu))!important;color:var(--wm-sec-cor,var(--d3-tinta))!important;border:0!important;box-shadow:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-primary{background:var(--wm-pri-fundo,var(--d3-acao))!important;color:var(--wm-pri-cor,var(--d3-escuro-texto))!important;border:0!important;box-shadow:none}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-name){color:var(--d3-tinta)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-client){color:var(--d3-rotulo)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-field span:not(.vb-obrig){color:var(--d3-tinta)!important;font:500 var(--d3-fs-apoio) var(--vv-texto)!important}
@@ -618,7 +618,7 @@ body.mundo .day-pending-tabs button.has-pending{color:#B4510E!important}
 body.mundo .badge.badge-date{background:#F2EEE7!important;color:#4A463F!important}
 body.mundo .tab-btn.e-hoje{color:#B4510E!important}
 body.mundo .item-name.item-workspace-link{color:#1F1D1A!important}
-body.mundo .owner-avatar-add{color:#0D74CE!important;border-color:#BBD8F7!important}
+body.mundo .owner-avatar-add{color:var(--d3-info)!important;border-color:#BBD8F7!important}
 body.mundo .ai-setting-save{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;border-radius:6px!important}
 body.mundo .cli-painel.novo{background:#E6F6EC!important;color:#12804A!important;border-color:#B5E3C7!important}
 body.mundo td.cli-editavel{color:#4A463F!important}
@@ -1609,10 +1609,10 @@ html body.mundo.mundo-modulo .notif-meta{color:#6B665E!important}
 html body.mundo.mundo-modulo .resumo-item.risco b{color:#DB001C!important}
 html body.mundo.mundo-modulo .ops-clear-btn:not(.is-idle){color:#DB001C!important}
 html body.mundo.mundo-modulo .icone-btn{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-cliente{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-fechar{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-titulo{color:#006CBD!important}
-html body.mundo.mundo-modulo .cr-linha>span{color:#6B665E!important}
+html body.mundo.mundo-modulo .cr-cliente{color:var(--d3-fume-apagado)!important}
+html body.mundo.mundo-modulo .cr-fechar{color:var(--d3-fume-texto)!important}
+html body.mundo.mundo-modulo .cr-titulo{color:var(--d3-fume-texto)!important}
+html body.mundo.mundo-modulo .cr-linha>span{color:var(--d3-rotulo)!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary{color:#6B665E!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary::after{color:#6B665E!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary small{color:#6B665E!important}
@@ -1747,9 +1747,9 @@ html body.mundo.mundo-modulo .manager-calendar-fora{color:#6B665E!important}
 html body.mundo.mundo-modulo .manager-calendar-day-head b{color:#6B665E!important}
 html body.mundo.mundo-modulo .manager-calendar-day.is-today .manager-calendar-day-head b{color:#6B665E!important}
 html body.mundo.mundo-modulo .grupo-cadastro{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-texto{color:#6B665E!important}
+html body.mundo.mundo-modulo .cr-texto{color:var(--d3-tinta)!important}
 html body.mundo.mundo-modulo .status-context-dialog .workflow-field>span{color:#6B665E!important}
-html body.mundo.mundo-modulo .context-field-help{color:#6B665E!important}
+html body.mundo.mundo-modulo .context-field-help{color:var(--wm-ajuda,var(--d3-rotulo))!important}
 html body.mundo.mundo-modulo .context-actions>small{color:#6B665E!important}
 html body.mundo.mundo-modulo #context-review dt{color:#6B665E!important}
 html body.mundo.mundo-modulo #context-step-error{color:#DB001D!important}
@@ -2599,8 +2599,8 @@ html body.mundo.mundo-modulo .vybe-desktop .focus-lente-opcao{color:#6B665E!impo
 html body.mundo.mundo-modulo .vybe-desktop .focus-next-btn{color:#6B665E!important}
 html body.mundo.mundo-modulo .vybe-desktop .focus-command-btn{color:#6B665E!important}
 html body.mundo.mundo-modulo .vybe-desktop .focus-daily-plan-row > span{color:#6B665E!important}
-html body.mundo.mundo-modulo .clientes-vinculo-dialog p{color:#6B665E!important}
-html body.mundo.mundo-modulo .clientes-vinculo-dialog .clientes-vinculo-erro{color:#DB0023!important}
+html body.mundo.mundo-modulo .clientes-vinculo-dialog p{color:var(--cv-apoio,var(--d3-rotulo))!important}
+html body.mundo.mundo-modulo .clientes-vinculo-dialog .clientes-vinculo-erro{color:var(--d3-perigo)!important}
 html body.mundo.mundo-modulo .grupo-adicionar{color:#B24F00!important}
 html body.mundo.mundo-modulo .grupo-cabecalho .grupo-adicionar{color:#6B665E!important}
 html body.mundo.mundo-modulo .grupo-cabecalho .grupo-adicionar{color:#B24F00!important}
@@ -2679,7 +2679,7 @@ html body.mundo.mundo-modulo .vybe-desktop > .app-header .board-switch-btn{color
 /* ===== Contraste (WCAG AA) nos módulos: medido com a fórmula oficial, ajustado por família ===== */
 /* Laranja com texto branco: o tom de ação mais fundo, que passa de 4,5:1 */
 body.mundo{--vv-acao:#C2490C}
-html body.mundo.mundo-modulo .board-switch-btn.active,html body.mundo .ai-setting-save,html body.mundo .workflow-modal .workflow-primary,html body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--vv-acao)!important}
+html body.mundo.mundo-modulo .board-switch-btn.active,html body.mundo .ai-setting-save,html body.mundo .workflow-modal .workflow-primary,html body.mundo .ofc-ficha .ofc-ficha-acoes button:first-child{background:var(--wm-pri-fundo,var(--vv-acao))!important}
 /* Rótulos coloridos pequenos (kicker, etiqueta, "Hoje" do dia): mesmo tom, escurecido. Só o texto: o kicker que leva
    botão (o X da janela) escurecia o botão junto e o X ficava um quadrado cinza (Paulo, 09/11/2026). */
 html body.mundo :is(.pv-etiqueta,.workspace-eyebrow,[class*="-kicker"],.day-today-label,.client-module-kicker):not(:has(button,a,input,select)),html body.mundo [class*="-kicker"]:has(button,a,input,select) > :not(button,a,input,select):not(:has(button,a,input,select)){filter:brightness(.6) saturate(1.35)}
@@ -2757,16 +2757,16 @@ body.mundo-lobby #mundo canvas{pointer-events:none}
 #login-gate.irecity :is(.login-outro,.login-voltar){color:#6B665E!important;background:none!important}
 
 /* ===== Cartão rápido da peça (abre ao clicar numa peça da agenda): vidro claro ===== */
-html body.mundo .cartao-rapido{background:rgba(255,255,255,.96)!important;background-image:none!important;color:#1F1D1A!important;border:1px solid rgba(255,255,255,.95)!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22),0 2px 6px rgba(31,29,26,.08)!important;backdrop-filter:blur(18px)}
-html body.mundo .cartao-rapido :is(.cr-titulo){color:#1F1D1A!important;font:700 16px/1.3 var(--vv-texto)!important}
-html body.mundo .cartao-rapido :is(.cr-cliente,.cr-linha>span:first-child,.cr-linha>label:first-child,.cr-texto){color:#6B665E!important}
+html body.mundo .cartao-rapido{background:var(--d3-fume-forte)!important;background-image:none!important;color:var(--d3-fume-texto)!important;border:1px solid var(--d3-fume-borda)!important;border-radius:var(--d3-r-janela)!important;box-shadow:0 40px 80px -30px rgba(0,0,0,.85)!important;backdrop-filter:blur(36px) saturate(1.2)}
+html body.mundo .cartao-rapido :is(.cr-titulo){color:var(--d3-fume-texto)!important;font:600 var(--d3-fs-titulo)/1.3 var(--vv-texto)!important}
+html body.mundo .cartao-rapido :is(.cr-cliente,.cr-linha>span:first-child,.cr-linha>label:first-child,.cr-texto){color:var(--d3-rotulo)!important}
 html body.mundo .cartao-rapido .cr-linha{border-bottom:1px solid #F2EEE7;padding:3px 0}
-html body.mundo .cartao-rapido :is(.cr-data,.cr-linha button:not(.pill):not([class*="pill"]),.cr-linha select,.cr-grupo-pill,.grupo-pill-btn){background:#FAF8F4!important;color:#1F1D1A!important;border:1px solid #ECE6DC!important;border-radius:6px!important}
-html body.mundo .cartao-rapido :is(.cr-topo-acoes button){background:#fff!important;color:#6B665E!important;border:1px solid #E6E0D6!important;border-radius:6px!important}
-html body.mundo .cartao-rapido .cr-fechar{color:#6B665E!important}
-html body.mundo .cartao-rapido .cr-rodape{border-top:1px solid #ECE6DC!important}
+html body.mundo .cartao-rapido :is(.cr-data,.cr-linha button:not(.pill):not([class*="pill"]),.cr-linha select,.cr-grupo-pill,.grupo-pill-btn){background:transparent!important;color:var(--d3-tinta)!important;border:0 solid transparent!important;border-radius:var(--d3-r-botao)!important}
+html body.mundo .cartao-rapido :is(.cr-topo-acoes button){background:var(--d3-fume-veu-forte)!important;color:var(--d3-fume-texto)!important;border:0 solid transparent!important;border-radius:var(--d3-r-botao)!important}
+html body.mundo .cartao-rapido .cr-fechar{color:var(--d3-fume-texto)!important}
+html body.mundo .cartao-rapido .cr-rodape{border-top:0 solid transparent!important}
 html body.mundo .cartao-rapido .cr-abrir{font-weight:700}
-html body.mundo .cartao-rapido .cliente-carteira{padding:2px 8px!important;border-radius:7px!important;background:var(--carteira-fundo)!important;color:var(--carteira-texto)!important}
+html body.mundo .cartao-rapido .cliente-carteira{padding:0!important;border-radius:var(--d3-r-botao)!important;background:transparent!important;color:var(--d3-tinta)!important}
 html body.mundo #cartao-rapido-fundo{background:rgba(31,29,26,.08)!important}
 
 /* Abas do topo: ícones com a cor de cada módulo (o Paulo prefere colorido); só a transição suave. */
@@ -2940,14 +2940,14 @@ body.mundo.mundo-modulo.mundo-tela-cheia .vv-canto-modulo{top:17px;right:17px}
 @media (max-width:600px){.vv-canto-modulo{top:12px;right:12px}}
 
 /* ===== Aparência: a janela segue a pele clara (vinha escura do layout antigo) ===== */
-html body.mundo dialog.appearance-dialog:not(#vv-x){background:rgba(255,255,255,.97)!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;backdrop-filter:blur(18px)}
+html body.mundo dialog.appearance-dialog:not(#vv-x){background:var(--d3-fume-forte)!important;color:var(--d3-fume-texto)!important;border:1px solid var(--d3-fume-borda)!important;border-radius:var(--d3-r-janela)!important;box-shadow:0 40px 80px -30px rgba(0,0,0,.85)!important;backdrop-filter:blur(36px) saturate(1.2)}
 html body.mundo dialog.appearance-dialog::backdrop{background:rgba(31,29,26,.28);backdrop-filter:blur(3px)}
-html body.mundo .appearance-dialog :is(h2,label,span,output,strong):not(#vv-x){color:#1F1D1A!important}
-html body.mundo .appearance-dialog :is(p,small):not(#vv-x){color:#6B665E!important}
-html body.mundo .appearance-dialog header button:not(#vv-x){background:#F3EFE8!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
+html body.mundo .appearance-dialog :is(h2,label,span,output,strong):not(#vv-x){color:var(--ap-cor,var(--d3-tinta))!important}
+html body.mundo .appearance-dialog :is(p,small):not(#vv-x){color:var(--ap-apoio,var(--d3-rotulo))!important}
+html body.mundo .appearance-dialog header button:not(#vv-x){background:var(--d3-fume-veu-forte)!important;color:var(--d3-fume-texto)!important;border:0 solid transparent!important}
 html body.mundo .appearance-dialog input[type="range"]{accent-color:var(--d3-tinta,#1F1D1A)}
 html body.mundo .appearance-dialog input[type="checkbox"]{accent-color:var(--d3-tinta,#1F1D1A)}
-html body.mundo .appearance-dialog .appearance-done:not(#vv-x){background:var(--d3-tinta,#1F1D1A)!important;color:#fff!important;border:0!important}
+html body.mundo .appearance-dialog .appearance-done:not(#vv-x){background:var(--d3-fume-texto)!important;color:var(--d3-fume-contra)!important;border:0!important}
 
 /* ===== Briefing aberto: folha branca de verdade (o vidro escuro com o texto já escurecido ficava ilegível) ===== */
 html body.mundo .brief-overlay:not(#vv-x){background:rgba(31,29,26,.32)!important;backdrop-filter:blur(8px) saturate(1.05)!important}
@@ -3136,10 +3136,10 @@ html body.mundo .cb-palco-acoes .vb-botao:not(#vv-x){background:rgba(255,255,255
 html body.mundo .cb-palco-acoes .vb-botao:hover:not(#vv-x){border-color:#C2490C!important;color:#C2490C!important}
 
 /* ===== Cadastro rápido e botão principal das janelas ===== */
-html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:#6B665E!important}
+html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:var(--fc-apoio,var(--d3-rotulo))!important}
 html body.mundo #fc-overlay .fc-modal:not(#vv-x){color-scheme:light}
-html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:var(--d3-acao)!important;color:var(--d3-escuro-texto)!important;box-shadow:none!important;border-radius:var(--d3-r-botao)!important}
-html body.mundo .workflow-primary:hover:not(#vv-x){background:var(--d3-acao-texto-fixa)!important}
+html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:var(--wm-pri-fundo,var(--d3-acao))!important;color:var(--wm-pri-cor,var(--d3-escuro-texto))!important;box-shadow:none!important;border-radius:var(--d3-r-botao)!important}
+html body.mundo .workflow-primary:hover:not(#vv-x){background:var(--wm-pri-hover,var(--d3-acao-texto-fixa))!important}
 
 /* ======================================================================================
    DESIGN SYSTEM · LARANJA ÚNICO (Paulo, 07/11/2026: "olha os botões laranjas todos diferentes…
@@ -3336,11 +3336,11 @@ html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(h3,h4,b,strong,.capt-detal
 html body.mundo :is(.ag-cartao,.capt-menu-painel) :is(p,small,.capt-detalhe-quando,.capt-progresso,.capt-discreto,.capt-menu-rotulo):not(#ds-a):not(#ds-b){color:#6B665E!important}
 html body.mundo :is(.ag-cartao,.capt-menu-painel) .vb-link:not(.capt-gerir > .vb-link):not(#ds-a):not(#ds-b){background:transparent!important;color:var(--d3-link,#C2490C)!important;border:0!important}
 html body.mundo .ag-cartao-fechar:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:6px!important}
-html body.mundo :is(section.notas-janela,#notas-janela):not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22)!important;color-scheme:light}
-html body.mundo #notas-janela :is(.notas-caderno,button:not(.workflow-primary):not([role="tab"]):not(.notas-discreto)):not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
-html body.mundo #notas-janela :is(.notas-caderno.ativo,.notas-caderno.active,.notas-caderno[aria-pressed="true"]):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important}
-html body.mundo #notas-janela :is(.notas-item-pe,small):not(#ds-a):not(#ds-b){color:#6B665E!important}
-html body.mundo #notas-janela :is(textarea,input):not(#ds-a):not(#ds-b){background:#FFFCF6!important;color:#1F1D1A!important;border:1px solid var(--ds-linha,#E6E0D6)!important}
+html body.mundo :is(section.notas-janela,#notas-janela):not(#ds-a):not(#ds-b){background:var(--d3-fume-forte)!important;background-image:none!important;color:var(--d3-fume-texto)!important;border:1px solid var(--d3-fume-borda)!important;border-radius:var(--d3-r-janela)!important;box-shadow:0 40px 80px -30px rgba(0,0,0,.85)!important;color-scheme:light}
+html body.mundo #notas-janela :is(.notas-caderno,button:not(.workflow-primary):not([role="tab"]):not(.notas-discreto)):not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:var(--nt-fundo,transparent)!important;color:var(--nt-cor,inherit)!important;border:1px solid var(--nt-borda,transparent)!important}
+html body.mundo #notas-janela :is(.notas-caderno.ativo,.notas-caderno.active,.notas-caderno[aria-pressed="true"]):not(#ds-a):not(#ds-b){background:var(--nt-fundo,var(--d3-fume-texto))!important;color:var(--nt-cor,var(--d3-fume-contra))!important}
+html body.mundo #notas-janela :is(.notas-item-pe,small):not(#ds-a):not(#ds-b){color:var(--nt-apoio,var(--d3-rotulo))!important}
+html body.mundo #notas-janela :is(textarea,input):not(#ds-a):not(#ds-b){background:var(--nt-fundo,var(--d3-cartao))!important;color:var(--nt-cor,var(--d3-tinta))!important;border:1px solid var(--nt-borda,var(--d3-borda))!important}
 html body.mundo .workspace-mais-menu:not(#ds-a):not(#ds-b){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha,#E6E0D6)!important;border-radius:8px!important;box-shadow:0 18px 40px rgba(31,29,26,.18)!important;color:#1F1D1A!important}
 html body.mundo .workspace-mais-menu :is(button,a):not(.perigo):not(#ds-a):not(#ds-b){background:transparent!important;color:#1F1D1A!important;border:0!important}
 html body.mundo .workspace-mais-menu :is(button,a):hover:not(#ds-a):not(#ds-b){background:#FAF5EE!important}
@@ -3349,8 +3349,8 @@ html body.mundo .cli-pergunta-caixa:not(#ds-a):not(#ds-b){background:#FFFFFF!imp
 html body.mundo .cli-pergunta-caixa :is(h3,b,strong):not(#ds-a):not(#ds-b){color:#1F1D1A!important}
 html body.mundo .cli-pergunta-caixa :is(p,small,label):not(#ds-a):not(#ds-b){color:#6B665E!important}
 /* cartão rápido: seta, traço vazio e trecho do briefing legíveis */
-html body.mundo #cartao-rapido :is(.grupo-vazio,.workspace-empty,.brief-abrir-trecho):not(#ds-a):not(#ds-b){color:#6B665E!important}
-html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:#6B665E!important}
+html body.mundo #cartao-rapido :is(.grupo-vazio,.workspace-empty,.brief-abrir-trecho):not(#ds-a):not(#ds-b){color:var(--d3-rotulo)!important}
+html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:var(--d3-rotulo)!important}
 
 /* ===== Menu da conta (topo do mapa) ===== */
 .vv-menu-conta{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:250px;padding:6px;border-radius:10px;background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:0 20px 44px rgba(31,29,26,.2);pointer-events:auto;animation:vv-surge .16s cubic-bezier(.2,.8,.2,1) both}
@@ -4449,10 +4449,10 @@ html body.mundo .prod-v2-date-btn.today :is(.p-day,.p-date),html body.mundo .pro
 html body.mundo .p-cal-col-head :is(b,span,small){color:#4A463F!important}
 html body.mundo .p-cal-col.today .p-cal-col-head :is(b,span){color:#C2410C!important}
 html body.mundo .p-cal-col.today{background:#FFF7EF!important}
-html body.mundo .notas-janela .notas-topo :is(b,h2,h3,strong){color:#1F1D1A!important}
+html body.mundo .notas-janela .notas-topo :is(b,h2,h3,strong){color:var(--d3-fume-texto)!important}
 html body.mundo .notas-janela{color:#1F1D1A}
-html body.mundo .notas-janela :is(b,strong,h2,h3,h4,summary,label){color:#1F1D1A!important}
-html body.mundo .notas-janela :is(small,time,.notas-meta){color:#6B665E!important}
+html body.mundo .notas-janela :is(b,strong,h2,h3,h4,summary,label){color:var(--nt-forte,var(--d3-tinta))!important}
+html body.mundo .notas-janela :is(small,time,.notas-meta){color:var(--nt-apoio,var(--d3-rotulo))!important}
 
 /* Auditoria 09/11 (D3): a barra fixa da Direção de arte ficava transparente e o texto passava por trás ao rolar. */
 html body.mundo .da-barra:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){background:#FBF9F5;border-color:rgba(31,29,26,.1);box-shadow:0 6px 16px -10px rgba(31,29,26,.35);-webkit-backdrop-filter:none;backdrop-filter:none}

@@ -1,0 +1,102 @@
+/* ===================================================================================================================
+   V2 · R · CRIAR (prancha V2-R-Criar, 19/11/2026). A janela do botão Criar (#vv-criar) sai da folha clara de canto 28 e
+   vira a casca V2: vidro fumê de canto 20 com o título de 20 e a frase "o que entra na Vybe começa aqui", a Demanda numa
+   folha de canto 12 (cabeçalho de 56 com o ícone de 22 em tinta, as escolhas com o ponto de rádio, o cliente com rótulo
+   e avatar, a prévia em rótulo e valor com o status no pé e o pé com fio) e os três tipos em folhas de 128 que dizem o
+   que abrem. Só tokens: os três temas saem daqui. O Criar dentro do Hoje (#vv-hoje .v2cr) não muda.
+   =================================================================================================================== */
+#vv-criar.v2cr-camada{padding:min(14vh,128px) 16px 24px;background:var(--d3-fume-escuro)}
+#vv-criar .v2cr-janela{width:min(840px,100%);padding:16px;box-sizing:border-box;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);color:var(--d3-fume-texto)}
+#vv-criar .v2cr.v2cr{gap:12px;color:var(--d3-fume-texto)}
+
+/* Cabeçalho: título de 20 com a frase embaixo e o fechar de 34 à direita. */
+#vv-criar .v2cr .v2cr-topo{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;column-gap:12px;row-gap:3px;min-height:40px}
+#vv-criar .v2cr .v2cr-topo > h3{grid-column:1;grid-row:1;font:600 20px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em;color:var(--d3-fume-texto)}
+#vv-criar .v2cr .v2cr-topo > small{grid-column:1;grid-row:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+/* O fechar ganha da casca antiga (casca.css, com dois :not(#id)) pela mesma via. */
+#vv-criar .v2cr .v2cr-x:not(#v2-canto-a):not(#v2-canto-b){grid-column:2;grid-row:1 / span 2;width:34px;height:34px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);min-width:34px;min-height:34px;border:0;box-shadow:none;color:var(--d3-fume-texto)}
+#vv-criar .v2cr .v2cr-x:not(#v2-canto-a):not(#v2-canto-b):hover{border:0;background:var(--d3-fume-borda);color:var(--d3-fume-texto)}
+#vv-criar .v2cr .v2cr-x:not(#v2-canto-a):not(#v2-canto-b) > svg{width:14px;height:14px;stroke-width:2}
+#vv-criar .v2cr .v2cr-x:not(#v2-canto-a):not(#v2-canto-b):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* A folha da Demanda. */
+#vv-criar .v2cr .v2cr-dem{padding:0;border-radius:12px;background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta);overflow:hidden}
+#vv-criar .v2cr .v2cr-dem[aria-expanded="false"]{padding-bottom:0}
+#vv-criar .v2cr .v2cr-lin{gap:12px;height:56px;padding:0 16px;box-sizing:border-box;color:var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-ic{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-contra)}
+#vv-criar .v2cr .v2cr-ic > svg{width:13px;height:13px;color:currentColor;stroke:currentColor}
+#vv-criar .v2cr .v2cr-nome{gap:3px}
+#vv-criar .v2cr .v2cr-nome > b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr :is(.v2cr-nome > small,.v2cr-etapa){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-criar .v2cr .v2cr-passo{gap:3px}
+#vv-criar .v2cr .v2cr-passo > i{width:14px;height:4px;border-radius:2px;background:var(--d3-veu-forte)}
+#vv-criar .v2cr .v2cr-passo > i.on{background:var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-etapa{margin-left:-4px}
+
+#vv-criar .v2cr .v2cr-det{grid-template-columns:minmax(0,1fr) 268px;gap:16px;padding:0 16px 16px}
+#vv-criar .v2cr .v2cr-esq{gap:12px}
+#vv-criar .v2cr .v2cr-ops{gap:12px}
+
+/* As duas escolhas: caixa de 60 com o ponto de rádio; a marcada leva o contorno de 2 em tinta. */
+#vv-criar .v2cr .v2cr-op{display:grid;grid-template-columns:18px minmax(0,1fr);grid-template-rows:auto auto;align-content:center;column-gap:12px;row-gap:3px;height:60px;padding:0 14px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-op:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-op[aria-checked="true"]{background:transparent;box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-radio{grid-column:1;grid-row:1 / span 2;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-meta)}
+#vv-criar .v2cr .v2cr-op[aria-checked="true"] .v2cr-radio{box-shadow:inset 0 0 0 5px var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-op > b{grid-column:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr .v2cr-op > small{grid-column:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+
+/* Cliente: rótulo em cima, o escolhido com avatar de 26 e o x; "trocar cliente" e "Calendário sazonal" como links. */
+#vv-criar .v2cr .v2cr-rot{margin-bottom:-6px;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-criar .v2cr .v2cr-clis{gap:8px}
+#vv-criar .v2cr .v2cr-cli{gap:8px;height:34px;padding:0 6px 0 4px;box-sizing:border-box;border-radius:var(--d3-r-botao);box-shadow:inset 0 0 0 1px var(--d3-borda);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-cli > b{font-weight:600}
+#vv-criar .v2cr .v2cr-av{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr .v2cr-cli > button{width:22px;height:22px;color:var(--d3-rotulo)}
+#vv-criar .v2cr .v2cr-cli > button:hover{color:var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-chip{height:30px;padding:0 11px;border-radius:var(--d3-r-botao);background:transparent;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr .v2cr-chip:hover{background:var(--d3-veu);box-shadow:none}
+#vv-criar .v2cr .v2cr-clis > .v2cr-escolhe:first-child{box-shadow:inset 0 0 0 1px var(--d3-borda)}
+
+/* Prévia: rótulo e valor por linha, o status com o ponto no pé. */
+#vv-criar .v2cr .v2cr-prev{align-items:stretch;gap:9px;padding:14px;border-radius:12px;background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr .v2cr-prev > b{color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr .v2cr-kv{display:flex;justify-content:space-between;gap:10px;min-width:0}
+#vv-criar .v2cr .v2cr-kv > small{flex:none;font:inherit;color:var(--d3-rotulo);white-space:nowrap}
+#vv-criar .v2cr .v2cr-kv > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+#vv-criar .v2cr .v2cr-st{display:inline-flex;align-items:center;gap:6px;margin-top:auto;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#vv-criar .v2cr .v2cr-st > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c,var(--d3-meta))}
+
+/* Pé da folha: fio em cima, Fechar com contorno e Continuar em tinta, botões de 34. */
+#vv-criar .v2cr .v2cr-acoes{gap:8px;padding:12px 16px;border-top:1px solid var(--d3-divisa)}
+#vv-criar .v2cr .v2cr-btn{height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr .v2cr-btn:hover{background:var(--d3-veu)}
+#vv-criar .v2cr .v2cr-btn.k{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra);font-weight:600}
+#vv-criar .v2cr .v2cr-btn.k:hover{background:var(--d3-texto2)}
+
+/* Os três tipos: folhas de 128 com o ícone de 22, nome, frase e o que abrem. */
+#vv-criar .v2cr .v2cr-tipos{gap:12px}
+#vv-criar .v2cr .v2cr-tipo{justify-content:flex-start;gap:6px;height:128px;padding:16px;border-radius:12px;background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-tipo:hover{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-tipo > .v2cr-ic{margin-bottom:auto;background:var(--d3-apagado)}
+#vv-criar .v2cr .v2cr-tipo > b{font:600 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif)}
+#vv-criar .v2cr .v2cr-tipo > small{font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-criar .v2cr .v2cr-abre{display:inline-flex;align-items:center;gap:6px;font:500 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-tinta)}
+#vv-criar .v2cr .v2cr-abre > i{font-style:normal}
+
+/* Foco: contorno de tinta dentro da folha. */
+#vv-criar .v2cr :is(.v2cr-dem,.v2cr-tipos) :is(button,select):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#vv-criar .v2cr .v2cr-escolhe:focus-within{outline:2px solid var(--d3-tinta);outline-offset:2px}
+
+@media (max-width:760px){
+  #vv-criar .v2cr .v2cr-det{grid-template-columns:minmax(0,1fr)}
+  #vv-criar .v2cr .v2cr-tipos{grid-template-columns:minmax(0,1fr)}
+  #vv-criar .v2cr .v2cr-tipo{height:auto}
+  #vv-criar .v2cr .v2cr-tipo > .v2cr-ic{margin-bottom:4px}
+  #vv-criar .v2cr .v2cr-topo > small{white-space:normal}
+}
+@media (max-width:560px){
+  #vv-criar.v2cr-camada{padding:12px}
+  #vv-criar .v2cr-janela{padding:12px;border-radius:var(--d3-r-janela)}
+  #vv-criar .v2cr :is(.v2cr-passo,.v2cr-etapa){display:none}
+}

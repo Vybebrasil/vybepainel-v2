@@ -39,8 +39,11 @@ function completudeDoCadastro(f) {
 
 function campoDoCadastroHtml(campo, valor) {
   const id = `cad-${campo.chave}`;
-  const obrig = campo.obrigatorio ? ' <i class="cad-obrig" title="Essencial para o cadastro completo">•</i>' : '';
-  const dica = campo.dica ? `<small>${fichaEsc(campo.dica)}</small>` : '';
+  // Prancha V2-R-Cadastro-Cliente (19/11/2026): marca-se o que é opcional ("· opcional"), não o obrigatório; o que
+  // falta para fechar a ficha aparece embaixo do campo (pintarPassosDoCadastro liga a classe cad-falta).
+  const obrig = campo.obrigatorio ? '' : ' <i class="cad-opc">· opcional</i>';
+  const dica = (campo.dica ? `<small>${fichaEsc(campo.dica)}</small>` : '')
+    + (campo.obrigatorio ? `<small class="cad-erro-campo" id="${id}-falta" aria-live="polite"></small>` : '');
   let entrada;
   if (campo.tipo === 'longo') {
     entrada = `<textarea id="${id}" rows="4" maxlength="${campo.max || 4000}">${fichaEsc(valor)}</textarea>`;
@@ -58,7 +61,7 @@ function campoDoCadastroHtml(campo, valor) {
       ? `<datalist id="${id}-lista">${segmentosExistentes().map((s) => `<option value="${fichaEsc(s)}">`).join('')}</datalist>` : '';
     entrada = `<input id="${id}" type="${tipo}" value="${fichaEsc(valor)}" ${ph ? `placeholder="${ph}"` : ''} ${lista ? `list="${id}-lista"` : ''} ${campo.tipo === 'dia' ? 'min="1" max="31"' : ''} autocomplete="off">${lista}`;
   }
-  return `<label class="cad-campo${campo.largo ? ' largo' : ''}"><span>${fichaEsc(campo.rotulo)}${obrig}</span>${entrada}${dica}</label>`;
+  return `<label class="cad-campo${campo.largo ? ' largo' : ''}"${campo.obrigatorio ? ` data-obrig="${campo.chave}"` : ''}><span>${fichaEsc(campo.rotulo)}${obrig}</span>${entrada}${dica}</label>`;
 }
 
 function abrirCadastroCompleto(nome = '', { etapa = '', depois = null } = {}) {
@@ -71,44 +74,53 @@ function abrirCadastroCompleto(nome = '', { etapa = '', depois = null } = {}) {
   const id = f ? String(f.id) : '';
   if (nome && !id) return showToast('Este cliente ainda não tem cadastro próprio. Crie a ficha dele em "Só na operação".', 'warning', 5000);
   const secoes = CADASTRO_DEF.secoes;
-  CADASTRO_ABERTO = { id, nome: f?.nome || '', etapa: secoes.some((s) => s.id === etapa) ? etapa : secoes[0].id, depois };
+  // vistas: as etapas que já mostram o que falta embaixo do campo. Cliente que já existe mostra tudo desde o começo;
+  // cliente novo mostra a etapa quando a pessoa sai dela ou tenta cadastrar.
+  CADASTRO_ABERTO = { id, nome: f?.nome || '', etapa: secoes.some((s) => s.id === etapa) ? etapa : secoes[0].id, depois,
+    vistas: new Set(id ? secoes.map((s) => s.id) : []) };
   const drive = nome && typeof clientMasterLinkedData === 'function' ? clientMasterLinkedData(nome).drive || '' : '';
 
   const corpo = secoes.map((s) => {
     const campos = CADASTRO_DEF.campos.filter((c) => c.secao === s.id);
-    const extra = s.id === 'empresa' ? `<label class="cad-campo largo"><span>Nome do cliente no painel <i class="cad-obrig">•</i></span>
+    const extra = s.id === 'empresa' ? `<label class="cad-campo largo"${id ? '' : ' data-obrig="nome"'}><span>Nome do cliente no painel</span>
         <input id="cad-nome" type="text" maxlength="200" value="${fichaEsc(f?.nome || '')}" ${id ? 'disabled' : ''} placeholder="Como o time chama o cliente. Ex.: Academia Lions" autocomplete="off">
-        <small>${id ? 'Para trocar o nome, use “renomear” em Conta → Clientes: o nome muda em todo o painel.' : 'É o nome que aparece no calendário, na produção, no Hub e para o VYBES.'}</small></label>` : '';
-    const pasta = s.id === 'canais' ? `<label class="cad-campo largo"><span>Pasta do cliente no Drive</span>
+        ${id ? '<small class="cad-trava">O nome no painel muda em Conta, Clientes, renomear: assim ele troca em todo o painel.</small>' : '<small>Aparece no calendário, na produção, no Hub e para o VYBES.</small><small class="cad-erro-campo" id="cad-nome-falta" aria-live="polite"></small>'}</label>` : '';
+    const pasta = s.id === 'canais' ? `<label class="cad-campo largo"><span>Pasta do cliente no Drive <i class="cad-opc">· opcional</i></span>
         <input id="cad-pasta_drive" type="url" value="${fichaEsc(drive)}" placeholder="https://drive.google.com/…" autocomplete="off">
         <small>Peças, planejamentos e o VYBES usam esta pasta.</small></label>` : '';
     return `<fieldset class="cad-etapa" data-etapa="${s.id}" ${s.id === CADASTRO_ABERTO.etapa ? '' : 'hidden'}>
       <legend>${fichaEsc(s.titulo)}</legend><div class="cad-grade">${extra}${campos.map((c) => campoDoCadastroHtml(c, valorDoCadastro(f, c))).join('')}${pasta}</div></fieldset>`;
   }).join('');
 
+  // Prancha V2-R-Cadastro-Cliente (19/11/2026): só o cadastro do cliente (demanda e conteúdo são a Nova demanda). No
+  // vidro o nome (com o avatar, se já existe) e a frase de quanto falta; as etapas dizem o que falta em cada uma; numa
+  // folha o título da etapa e os campos; no pé, no vidro, Voltar (ou Cancelar na primeira), Continuar e salvar.
+  const sigla = (n) => { const p = String(n || '?').split(/\s+/).filter(Boolean); return (p.length > 1 ? p.slice(0, 2).map((x) => x[0]).join('') : (p[0] || '?').slice(0, 2)).toUpperCase(); };
   openWorkflowModal(`<div class="cad-janela" role="dialog" aria-modal="true" aria-labelledby="cad-titulo">
-    <div class="workflow-kicker"><span>Vybe OS · Cadastro do cliente</span>
-      <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title" id="cad-titulo">${id ? fichaEsc(f.nome) : 'Novo cliente'}</h2>
-    <p class="workflow-copy">Um cadastro só para o ecossistema inteiro: o que for preenchido aqui vale no Vybe OS, no cérebro, nos bots e no Hub. Os itens com <i class="cad-obrig">•</i> completam a ficha.</p>
+    <header class="cad-cab">${id ? `<span class="cad-av" aria-hidden="true">${fichaEsc(sigla(f.nome))}</span>` : ''}
+      <span class="cad-cab-txt"><h2 class="workflow-title" id="cad-titulo">${id ? fichaEsc(f.nome) : 'Novo cliente'}</h2>
+      <p class="workflow-copy" id="cad-sub">${id ? 'cadastro do cliente' : 'um cadastro só: vale no Vybe OS, no cérebro, nos bots e no Hub'}</p></span>
+      <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></header>
     <nav class="cad-passos" aria-label="Etapas do cadastro">${secoes.map((s, i) =>
-      `<button type="button" data-etapa="${s.id}" class="${s.id === CADASTRO_ABERTO.etapa ? 'ativo' : ''}" onclick="irParaEtapaDoCadastro('${s.id}')"><b>${i + 1}</b>${fichaEsc(s.titulo)}</button>`).join('')}</nav>
-    <form class="cad-corpo" onsubmit="event.preventDefault()">${corpo}</form>
-    <p class="ciclo-erro" id="cad-erro" role="alert"></p>
+      `<button type="button" data-etapa="${s.id}" class="${s.id === CADASTRO_ABERTO.etapa ? 'ativo' : ''}" onclick="irParaEtapaDoCadastro('${s.id}')"><b>${i + 1} · ${fichaEsc(s.titulo)}</b><small class="cad-passo-falta"></small></button>`).join('')}</nav>
+    <div class="cad-folha"><form class="cad-corpo" onsubmit="event.preventDefault()">${corpo}</form>
+    <p class="ciclo-erro" id="cad-erro" role="alert"></p></div>
     <div class="workflow-actions cad-acoes">
       <button type="button" class="workflow-secondary" id="cad-voltar" onclick="passoDoCadastro(-1)">Voltar</button>
       <span class="cli-espaco"></span>
-      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
+      <button type="button" class="workflow-secondary cad-cancelar" onclick="closeWorkflowModal()">Cancelar</button>
       <button type="button" class="workflow-secondary" id="cad-seguir" onclick="passoDoCadastro(1)">Continuar</button>
       <button type="button" class="workflow-primary" id="cad-salvar" onclick="salvarCadastroCompleto(this)">${id ? 'Salvar cadastro' : 'Cadastrar cliente'}</button>
     </div></div>`);
-  document.getElementById('workflow-modal')?.classList.add('cad-modal');
+  // cad-cliente: a pele V2 desta janela (padrao-v2/zm-r-a-6-cadastro-cliente.css); d3-tema: a folha escurece no Escuro.
+  document.getElementById('workflow-modal')?.classList.add('cad-modal', 'cad-cliente', 'd3-tema');
   pintarPassosDoCadastro();
   setTimeout(() => document.querySelector(`.cad-etapa[data-etapa="${CADASTRO_ABERTO.etapa}"] :is(input:not([disabled]),select,textarea)`)?.focus(), 40);
 }
 
 function irParaEtapaDoCadastro(etapa) {
   if (!CADASTRO_ABERTO) return;
+  if (CADASTRO_ABERTO.etapa && CADASTRO_ABERTO.etapa !== etapa) CADASTRO_ABERTO.vistas?.add(CADASTRO_ABERTO.etapa);
   CADASTRO_ABERTO.etapa = etapa;
   document.querySelectorAll('.cad-etapa').forEach((el) => { el.hidden = el.dataset.etapa !== etapa; });
   pintarPassosDoCadastro();
@@ -120,18 +132,42 @@ function passoDoCadastro(direcao) {
   const alvo = ids[Math.max(0, Math.min(ids.length - 1, i + direcao))];
   if (alvo) irParaEtapaDoCadastro(alvo);
 }
+// O que falta em cada etapa: os campos essenciais vazios (o nome também, no cliente novo).
+function faltasDoCadastro() {
+  const vazio = (chave) => !String(document.getElementById(`cad-${chave}`)?.value || '').trim();
+  const porEtapa = {};
+  for (const s of CADASTRO_DEF.secoes) porEtapa[s.id] = [];
+  for (const c of CADASTRO_DEF.campos) if (c.obrigatorio && porEtapa[c.secao] && vazio(c.chave)) porEtapa[c.secao].push(c.chave);
+  if (!CADASTRO_ABERTO?.id && porEtapa.empresa && document.getElementById('cad-nome') && vazio('nome')) porEtapa.empresa.unshift('nome');
+  return porEtapa;
+}
 function pintarPassosDoCadastro() {
   const ids = CADASTRO_DEF.secoes.map((s) => s.id);
   const i = ids.indexOf(CADASTRO_ABERTO?.etapa);
+  const faltas = faltasDoCadastro();
   document.querySelectorAll('.cad-passos button').forEach((b) => {
     const etapa = b.dataset.etapa;
     b.classList.toggle('ativo', etapa === CADASTRO_ABERTO.etapa);
     b.setAttribute('aria-current', etapa === CADASTRO_ABERTO.etapa ? 'step' : 'false');
-    // Etapa com essencial vazio ganha um ponto: dá para ver o que falta sem abrir cada uma.
-    const falta = CADASTRO_DEF.campos.some((c) => c.secao === etapa && c.obrigatorio && !String(document.getElementById(`cad-${c.chave}`)?.value || '').trim());
-    b.classList.toggle('falta', falta);
+    // Cada etapa diz o que falta ("faltam 5", "falta 1") ou que está completa.
+    const n = (faltas[etapa] || []).length;
+    b.classList.toggle('falta', n > 0);
+    const rotulo = b.querySelector('.cad-passo-falta');
+    if (rotulo) rotulo.textContent = n ? `${n === 1 ? 'falta' : 'faltam'} ${n}` : 'completo';
   });
-  const voltar = document.getElementById('cad-voltar'); if (voltar) voltar.disabled = i <= 0;
+  // Embaixo de cada campo essencial vazio, nas etapas já vistas: "Falta para fechar a ficha".
+  document.querySelectorAll('.cad-corpo [data-obrig]').forEach((l) => {
+    const etapa = l.closest('.cad-etapa')?.dataset.etapa;
+    const falta = (faltas[etapa] || []).includes(l.dataset.obrig) && Boolean(CADASTRO_ABERTO.vistas?.has(etapa));
+    l.classList.toggle('cad-falta', falta);
+    const aviso = l.querySelector('.cad-erro-campo'); if (aviso) aviso.textContent = falta ? 'Falta para fechar a ficha' : '';
+    l.querySelector('input,select,textarea')?.setAttribute('aria-invalid', falta ? 'true' : 'false');
+  });
+  const total = Object.values(faltas).reduce((t, l) => t + l.length, 0);
+  const sub = document.getElementById('cad-sub');
+  if (sub && CADASTRO_ABERTO.id) sub.textContent = `cadastro do cliente · ${total ? `falta${total === 1 ? '' : 'm'} ${total} ${total === 1 ? 'coisa' : 'coisas'} para fechar a ficha` : 'ficha completa'}`;
+  const voltar = document.getElementById('cad-voltar'); if (voltar) { voltar.disabled = i <= 0; voltar.hidden = i <= 0; }
+  document.querySelector('.cad-acoes')?.classList.toggle('cad-primeira', i <= 0);
   const seguir = document.getElementById('cad-seguir'); if (seguir) seguir.hidden = i >= ids.length - 1;
 }
 document.addEventListener('input', (e) => { if (e.target?.closest?.('.cad-corpo')) pintarPassosDoCadastro(); });
@@ -146,6 +182,8 @@ async function salvarCadastroCompleto(botao) {
     if (el) campos[c.chave] = String(el.value ?? '').trim();
   }
   const nome = aberto.id ? aberto.nome : String(document.getElementById('cad-nome')?.value || '').trim();
+  // Ao tentar salvar, todas as etapas passam a mostrar o que falta embaixo do campo.
+  CADASTRO_DEF.secoes.forEach((s) => aberto.vistas?.add(s.id)); pintarPassosDoCadastro();
   if (!nome) { irParaEtapaDoCadastro('empresa'); if (erro) erro.textContent = 'Escreva o nome do cliente.'; return; }
   const pasta = String(document.getElementById('cad-pasta_drive')?.value || '').trim();
   if (pasta && typeof linkDeCliente === 'function' && !linkDeCliente(pasta)) {

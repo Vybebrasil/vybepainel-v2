@@ -20,7 +20,7 @@
 .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){border-radius:14px!important;border:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important}
 .workflow-kicker,.workflow-kicker>span{font:400 var(--d3-fs-apoio,12px) var(--vv-texto,var(--mac-ui))!important;letter-spacing:0!important;text-transform:none!important;color:#ff9a5c!important}
 .workflow-title,.context-title{font-family:var(--pv-titulo)!important;font-weight:700!important;letter-spacing:-.015em!important}
-.workflow-copy,.context-field-help,.workflow-hint{color:#a8a39c!important}
+.workflow-copy,.context-field-help,.workflow-hint{color:var(--wm-ajuda,#a8a39c)!important}
 .workflow-close{width:30px!important;height:30px!important;border-radius:6px!important;border:1px solid var(--pv-borda)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important}
 .workflow-item,.context-item{border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important;box-shadow:var(--pv-brilho)!important;padding:10px 14px!important}
 .workflow-field>span{color:#ece8e3!important;font:600 12.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none!important}
@@ -34,7 +34,7 @@
 .workflow-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 14px 28px -10px #e8602e!important}
 .workflow-secondary{border-color:transparent!important;background:none!important;color:#a8a39c!important;font:600 13px var(--mac-ui)!important}
 .workflow-secondary:hover{color:#fff!important;background:rgba(255,255,255,.05)!important}
-.context-progress{font:600 12px var(--mac-ui)!important;color:#ff9a5c!important}
+.context-progress{font:var(--wm-progresso-fonte,600 12px var(--mac-ui))!important;color:var(--wm-progresso-cor,#ff9a5c)!important}
 .status-context-preview{border-radius:10px!important;border:1px solid var(--pv-linha)!important;background:#0e1016!important;overflow:hidden}
 .status-context-dialog .dono-ficha{border-radius:8px!important;border:1px solid var(--pv-linha)!important;background:var(--pv-tile)!important}
 
@@ -732,13 +732,13 @@
 .context-passos li.atual i{border-color:transparent;background:var(--pv-laranja);color:#1b0d06}
 .context-passos li.feito i{border-color:transparent;background:#46d48c;color:#06240f;font-size:0}
 .context-passos li.feito i::before{content:"✓";font-size:11px}
-#context-progress{display:none!important}
+#context-progress{display:var(--wm-progresso-display,none)!important}
 .status-context-dialog .workflow-item{margin:10px 0 0!important}
 .context-passos li span,.context-passos li span.complete{height:auto!important;flex:0 1 auto!important;border-radius:0!important;background:none!important}
 /* A pergunta do passo como título (como no desenho), não um rótulo pequeno */
 .status-context-dialog [data-context-step] > .workflow-field > span:first-child{display:block;color:#fff!important;font:700 19px/1.2 var(--pv-titulo)!important;letter-spacing:-.01em;text-transform:none!important}
-.status-context-dialog [data-context-step] .context-field-help{color:#a8a39c!important;font-size:12.5px!important}
-.status-context-dialog .context-title{display:none!important}
+.status-context-dialog [data-context-step] .context-field-help{color:var(--wm-ajuda,#a8a39c)!important;font-size:12.5px!important}
+.status-context-dialog .context-title{display:var(--wm-titulo-display,none)!important}
 /* Passagem de bastão em 3 passos */
 .bastao-passos{margin:6px 0 12px!important}
 .bastao-onde{margin-right:auto;color:#7d7870;font-size:11.5px}

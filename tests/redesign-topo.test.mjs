@@ -17,13 +17,13 @@ test('Criar (08/64): "Etapa N de 5" na trilha, calendário sazonal junto das op�
   assert.match(cad, /onclick="fcIrPara\(\$\{i\}\)"/, 'as etapas continuam clicáveis');
   assert.doesNotMatch(cad, /aria-label="Cadastro rápido"|>Cadastro rápido</);
   assert.doesNotMatch(cad, /class="fc-kicker"/);
-  assert.match(cad, /onclick="abrirCalendarioSazonal\(\)">Começar pelo calendário sazonal<\/button><\/p>`;/, 'o atalho mora no cartão da primeira etapa');
-  assert.ok(cad.indexOf('function fcCartaoOQueHtml(') < cad.indexOf('Começar pelo calendário sazonal'));
+  // Prancha V2-R-Nova-Demanda (19/11/2026): o atalho do calendário sazonal desce para o pé da janela, à esquerda.
+  assert.match(cad, /<div class="nd-pe">\s*<button type="button" class="nd-lk nd-sazonal" onclick="abrirCalendarioSazonal\(\)">Começar pelo calendário sazonal<\/button>/, 'o atalho mora no pé da janela');
   assert.match(css, /body\.mundo #fc-overlay\{[^}]*backdrop-filter:none!important\}/);
   assert.doesNotMatch(css, /#fc-overlay[^{]*\{[^}]*backdrop-filter:blur/);
   assert.match(css, /body\.mundo #fc-overlay \.fc-side-col\{[^}]*background:#F3F1EC\}/);
   assert.doesNotMatch(css, /body\.mundo #fc-overlay \.fc-modal :is\([^)]*\.fc-preview-card/, 'a prévia não tem sombra de cartão flutuando');
-  assert.match(cad, /Como vai chegar na equipe/);
+  assert.match(cad, /Como chega na equipe/); // prancha V2-R-Nova-Demanda (19/11/2026)
 });
 
 function spotlight({ recentes = [], itens = [] } = {}) {
@@ -84,9 +84,10 @@ test('Sino (41): "Marcar como lidos" sempre que houver avisos; sem nada novo, o 
   assert.match(core, /globalThis\.ULTIMO_AVISO_CURTO = \{ titulo: String\(titulo\)/);
 });
 
-test('Notas (42): Renomear e Apagar no menu de três pontos do caderno e da nota', () => {
-  assert.match(notas, /<details class="notas-menu notas-caderno-acoes">/);
-  assert.match(notas, /aria-label="Mais ações do caderno/);
+test('Notas (42): Renomear e Apagar do caderno escolhido no pé dos cadernos; a nota no menu de três pontos', () => {
+  // Prancha V2-R-Notas (19/11/2026): "Caderno escolhido" com Renomear e Apagar à vista, no pé da coluna dos cadernos.
+  assert.match(notas, /<div class="notas-caderno-acoes" role="group" aria-label="Caderno escolhido: /);
+  assert.match(notas, /<span class="notas-caderno-rot">Caderno escolhido<\/span>/);
   assert.match(notas, /aria-label="Mais ações da nota"/);
   assert.doesNotMatch(notas, /<button type="button" class="notas-acao perigo" onclick="apagarNotaAberta\(\)">Apagar<\/button>/);
   assert.match(notas, /onclick="renomearCadernoAtual\(\)"/);
@@ -100,7 +101,7 @@ test('TV (44): em cima do dock, sem fundo desfocado, fonte num alternador e sem 
   assert.ok(esc.includes('const idPassando = '), 'o clipe que está passando continua no alto');
   // Limpeza de 14/11/2026: a regra de .ofc-tv-janela saiu na poda das regras mortas (nenhum JS/HTML monta mais .ofc-tv-janela).
   assert.match(css, /body\.mundo \.ofc-tv-tela span\{[^}]*background:rgba\(255,255,255,\.14\)/);
-  assert.match(ler('vybe-styles.css'), /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\):not\(body\.mundo \.ofc-menu-jogo\):not\(\.vb-sem-acesso-janela\)\)\{width:min\(940px,94vw\)!important/);
+  assert.match(ler('vybe-styles.css'), /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\):not\(body\.mundo \.ofc-menu-jogo\):not\(\.vb-sem-acesso-janela\)\)\{width:var\(--wm-largura,min\(940px,94vw\)\)!important/);
 });
 
 test('Música (44/45): fora de uma sala com som, o aviso curto de sempre com "Entrar no Lounge", também fora do escritório', () => {
