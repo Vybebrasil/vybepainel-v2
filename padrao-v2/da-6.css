@@ -1,0 +1,7 @@
+/* Frente da-6 (3D leve, confere de diretor de arte, 19/11/2026).
+   Foto de pessoa esperando o boneco voxel: na primeira abertura neste navegador o pacote de retratos (mundo-retratos.js)
+   ainda não chegou. Em vez da pixel art do Habbo (Paulo: "nada de pixel art do Habbo"), o lugar da foto brilha como um
+   carregando, no mesmo jeito do móvel esperando (vybe-mundo.css, movel-esperando). O canto e o tamanho são os da própria
+   foto; só o desenho de dentro espera. Da segunda abertura em diante o retrato sai da guarda do navegador, sem espera. */
+body.mundo img.avatar-esperando{object-position:-9999px -9999px;background:linear-gradient(100deg,var(--d3-trilho) 30%,var(--d3-cartao) 50%,var(--d3-trilho) 70%) 0 0/300% 100%;animation:vv-retrato-espera 1.2s linear infinite}
+@media (prefers-reduced-motion: reduce){body.mundo img.avatar-esperando{animation:none}}

@@ -31,16 +31,22 @@ const nome3d = `sinuca-3d-${createHash('sha256').update(cena3d).digest('hex').sl
 // Mundo voxel (Irecê + Prédio da Vybe): o mesmo esquema da sinuca. O three.js
 // vem junto e só baixa quando o mundo abre; o relevo/ruas (assets/mundo/irece.json)
 // vai com hash. vybe-mundo.js aponta para os dois pelos caminhos fixos abaixo.
-const mundo3d = (await build({ entryPoints: ['mundo/mundo-3d.mjs'], bundle: true, format: 'esm', minify: true,
-  target: 'es2022', write: false, legalComments: 'none' })).outputFiles[0].text;
-const nomeMundo = `mundo-3d-${createHash('sha256').update(mundo3d).digest('hex').slice(0, 12)}.js`;
+// Três entradas (confere da-6, 19/11/2026): mundo-leve (agentes e planta, sem three.js), mundo-retratos (os bonecos
+// voxel das fotos do painel) e mundo-3d (Irecê, Prédio, andares e quartos). O que elas têm em comum sai em pedaços
+// compartilhados (mundo-parte-*): abrir o mundo depois de um retrato não baixa o three.js de novo.
+const ENTRADAS_MUNDO = ['mundo-3d', 'mundo-leve', 'mundo-retratos'];
+const arquivosMundo = (await build({ entryPoints: Object.fromEntries(ENTRADAS_MUNDO.map((n) => [n, `mundo/${n}.mjs`])),
+  bundle: true, splitting: true, format: 'esm', minify: true, target: 'es2022', write: false, legalComments: 'none',
+  outdir: 'dist/assets/mundo', entryNames: '[name]-[hash]', chunkNames: 'mundo-parte-[hash]' })).outputFiles
+  .map((f) => ({ nome: f.path.split(/[\\/]/).pop(), texto: f.text }));
+const nomeDaEntrada = (n) => arquivosMundo.find((f) => f.nome.startsWith(n + '-') && !f.nome.startsWith('mundo-parte-')).nome;
 const irece = await readFile('assets/mundo/irece.json');
 const nomeIrece = `irece-${createHash('sha256').update(irece).digest('hex').slice(0, 12)}.json`;
 // Base pública de empresas de Irecê (CNPJ) para o CRM de prospecção do 1º andar: também com hash.
 const crmIrece = await readFile('assets/mundo/crm-irece.json');
 const nomeCrm = `crm-irece-${createHash('sha256').update(crmIrece).digest('hex').slice(0, 12)}.json`;
 const com3d = (codigo) => codigo.replace('"/assets/jogos/sinuca-3d.js"', JSON.stringify(`/assets/jogos/${nome3d}`))
-  .replaceAll('"/assets/mundo/mundo-3d.js"', JSON.stringify(`/assets/mundo/${nomeMundo}`))
+  .replace(/"\/assets\/mundo\/(mundo-3d|mundo-leve|mundo-retratos)\.js"/g, (_, n) => JSON.stringify(`/assets/mundo/${nomeDaEntrada(n)}`))
   .replaceAll('"/assets/mundo/irece.json"', JSON.stringify(`/assets/mundo/${nomeIrece}`))
   .replaceAll('"/assets/mundo/crm-irece.json"', JSON.stringify(`/assets/mundo/${nomeCrm}`));
 // Artes dos jogos (o pano da sinuca, cartas, fichas): caminho fixo, mas o
@@ -52,7 +58,7 @@ const comArtes = (codigo) => artesJogos.reduce((c, [de, para]) => c.replaceAll(d
 const modulos = await Promise.all(fontes.map(async (fonte) => ({ fonte,
   ...(await transform(comArtes(com3d(comSprites(await readFile(fonte,'utf8')))), { loader:'js', minifyWhitespace:true,
     minifySyntax:true, minifyIdentifiers:false, target:'es2022', legalComments:'none' })) })));
-for (const m of modulos) if (/"\/assets\/mundo\/(mundo-3d\.js|irece\.json|crm-irece\.json)"/.test(m.code))
+for (const m of modulos) if (/"\/assets\/mundo\/(mundo-3d\.js|mundo-leve\.js|mundo-retratos\.js|irece\.json|crm-irece\.json)"/.test(m.code))
   throw new Error(`Build: ${m.fonte} ainda pede um arquivo do mundo sem hash (daria 404 em produção).`);
 const css = await transform(comArtes(await readFile('vybe-styles.css', 'utf8')), { loader: 'css', minify: true });
 await mkdir('dist/assets', { recursive: true });
@@ -109,8 +115,8 @@ await mkdir('dist/assets/jogos', { recursive: true });
 for (const f of await readdir('dist/assets/jogos')) if (/^sinuca-3d-[a-f0-9]{12}\.js$/.test(f)) await unlink(`dist/assets/jogos/${f}`);
 await writeFile(`dist/assets/jogos/${nome3d}`, cena3d);
 await mkdir('dist/assets/mundo', { recursive: true });
-for (const f of await readdir('dist/assets/mundo')) if (/^(mundo-3d-[a-f0-9]{12}\.js|(crm-)?irece-[a-f0-9]{12}\.json)$/.test(f)) await unlink(`dist/assets/mundo/${f}`);
-await writeFile(`dist/assets/mundo/${nomeMundo}`, mundo3d);
+for (const f of await readdir('dist/assets/mundo')) if (/^(mundo-3d-[a-f0-9]{12}\.js|mundo-(3d|leve|retratos|parte)-[A-Z0-9]{8}\.js|(crm-)?irece-[a-f0-9]{12}\.json)$/.test(f)) await unlink(`dist/assets/mundo/${f}`);
+for (const f of arquivosMundo) await writeFile(`dist/assets/mundo/${f.nome}`, f.texto);
 await writeFile(`dist/assets/mundo/${nomeIrece}`, irece);
 await writeFile(`dist/assets/mundo/${nomeCrm}`, crmIrece);
 for (const f of (await readdir('assets/jogos')).filter((f) => /\.webp$/.test(f))) await writeFile(`dist/assets/jogos/${f}`, await readFile(`assets/jogos/${f}`));

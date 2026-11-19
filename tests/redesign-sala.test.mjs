@@ -54,7 +54,7 @@ test('a faixa fica acima do quarto (o palco desce), e o Hoje leva a Agenda na sa
   assert.ok(!css.includes('--vq-dir'), 'sem a coluna da Agenda à direita');
   assert.ok(js.includes('function pintarHoje() { desenharHoje(); agendaNoHoje(); }'));
   assert.match(js, /function agendaNoHoje\(\) \{[\s\S]*?if \(!body\.classList\.contains\('mundo-quarto'\)[\s\S]*?sec\?\.remove\(\); return; \}/, 'fora da sala o Hoje não muda');
-  assert.ok(js.includes('el.innerHTML = agendaListaHtml(centroAberto ? 3 : 6);'), 'a gaveta e o Hoje usam a mesma lista');
+  assert.ok(js.includes('const lista = agendaListaHtml(centroAberto ? 3 : 6);'), 'a gaveta e o Hoje usam a mesma lista');
   const novoCss = css.slice(css.indexOf('/* Quadro 34 do redesign'));
   const bloco = novoCss.slice(novoCss.indexOf('@media (max-width:900px){html body.mundo.mundo-quarto #vv-hoje{display:none}}'), novoCss.indexOf('/* Dock de baixo da sala'));
   assert.ok(!bloco.includes('!important'), 'CSS novo sem !important');

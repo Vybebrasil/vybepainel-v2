@@ -32,6 +32,7 @@ function naoEncontrado(res) {
   res.end(paginaD3Html({ titulo: 'Não encontrado.', rotulo: '404', texto: 'Este endereço não existe no Vybe OS.', acao: { texto: 'Abrir o Vybe OS', href: '/' } }));
 }
 
+let pacoteMundo = null;
 export function createDevServer() {
   return createServer(async (req, res) => {
     try {
@@ -95,12 +96,22 @@ export function createDevServer() {
       // pelo código, não pelo index.html.
       const daArte = /^assets\/jogos\/(sons\/)?[\w-]+\.(webp|ogg)$/.test(file) || file === 'assets/vybes-ser.webp' || /^assets\/vybes-fala\/[\w-]+\.(mp3|json)$/.test(file);
       // Mundo voxel: no build vai empacotado com hash; aqui é empacotado na hora, para editar e recarregar.
-      if (file === 'assets/mundo/mundo-3d.js' && ['GET','HEAD'].includes(req.method) && ROOT === PROJECT) {
-        const { build } = await import('esbuild');
-        const r = await build({ entryPoints: [resolve(PROJECT, 'mundo/mundo-3d.mjs')], bundle: true, format: 'esm', write: false, target: 'es2022', sourcemap: 'inline' });
-        res.writeHead(200, { 'Content-Type': TYPES['.js'] }); res.end(req.method === 'HEAD' ? undefined : r.outputFiles[0].text); return;
+      // Três entradas (mundo-3d, mundo-leve, mundo-retratos) e os pedaços em comum (mundo-parte-*), como no build:
+      // pedir uma entrada refaz o pacote; os pedaços saem do último pacote feito.
+      const daEntrada = /^assets\/mundo\/(mundo-3d|mundo-leve|mundo-retratos)\.js$/.test(file), daParte = /^assets\/mundo\/mundo-parte-[A-Z0-9]+\.js$/.test(file);
+      if ((daEntrada || daParte) && ['GET','HEAD'].includes(req.method) && ROOT === PROJECT) {
+        if (daEntrada || !pacoteMundo) {
+          const { build } = await import('esbuild');
+          const r = await build({ entryPoints: Object.fromEntries(['mundo-3d', 'mundo-leve', 'mundo-retratos'].map((n) => [n, resolve(PROJECT, `mundo/${n}.mjs`)])), bundle: true, splitting: true, format: 'esm', write: false, target: 'es2022', sourcemap: 'inline', outdir: resolve(PROJECT, 'assets/mundo'), entryNames: '[name]', chunkNames: 'mundo-parte-[hash]' });
+          pacoteMundo = new Map(r.outputFiles.map((f) => [f.path.split(/[\\/]/).pop(), f.text]));
+        }
+        const texto = pacoteMundo.get(file.split('/').pop());
+        if (texto === undefined) { naoEncontrado(res); return; }
+        res.writeHead(200, { 'Content-Type': TYPES['.js'] }); res.end(req.method === 'HEAD' ? undefined : texto); return;
       }
-      const doMundo = file === 'assets/mundo/irece.json' || file === 'assets/mundo/crm-irece.json';
+      // No --build o mundo vai com hash em dist/assets/mundo; o index.html não cita esses arquivos (antes dava 404).
+      const doMundo = file === 'assets/mundo/irece.json' || file === 'assets/mundo/crm-irece.json'
+        || (ROOT !== PROJECT && /^assets\/mundo\/mundo-(3d|leve|retratos|parte)-[A-Z0-9]{8}\.js$/.test(file));
       if ((!publicFiles.has(file) && !daArte && !doMundo) || !['GET','HEAD'].includes(req.method)) { naoEncontrado(res); return; }
       let data=await readFile(resolve(ROOT,file));
       if(file==='index.html') data=Buffer.from(data.toString().replace('</body>',

@@ -96,7 +96,8 @@ test('retrato voxel do móvel: o mesmo voxel do quarto, uma foto por vez, só pa
   assert.match(readFileSync('mundo/mundo-3d.mjs', 'utf8'), /export \{ abrirQuarto, retratoDoMovel \} from '\.\/quarto\.mjs'/);
   const mundo = readFileSync('vybe-mundo.js', 'utf8');
   const ramo = mundo.slice(mundo.indexOf("if (/\\/imaging\\/furniture\\//.test(u.pathname)) {"), mundo.indexOf('const fig = q.get'));
-  assert.match(ramo, /modAvatar\.retratoDoMovel\?\.\(classe[,)]/);
+  // Confere da-6: o retrato do móvel vem do mundo-3d (m3d), baixado só quando o móvel está à vista.
+  assert.match(ramo, /m3d\.retratoDoMovel\?\.\(classe[,)]/);
   assert.match(ramo, /img\.dataset\.movel === classe/);
 });
 

@@ -32,8 +32,10 @@ let vybesConferidoEm = 0;
 async function conferirCartaoVybes(forcar = false) {
   const cartao = document.getElementById('station-vybes'), linha = document.getElementById('metrica-vybes');
   const gate = document.getElementById('mode-gate');
-  if (!cartao || !linha || !gate || getComputedStyle(gate).display === 'none' || document.hidden) return;
+  // O prazo vem antes do getComputedStyle (confere da-6): a cada 10 s ele obrigava o navegador a recalcular o estilo
+  // da página só para descobrir que ainda não era hora de perguntar.
   if (!forcar && Date.now() - vybesConferidoEm < 120e3) return;
+  if (!cartao || !linha || !gate || document.hidden || getComputedStyle(gate).display === 'none') return;
   vybesConferidoEm = Date.now();
   try {
     const r = await fetch('/api/painel?area=vybes', { credentials: 'same-origin' });
@@ -41,9 +43,10 @@ async function conferirCartaoVybes(forcar = false) {
     const { noAr, agir, whatsapp } = await r.json();
     cartao.classList.toggle('fora', !noAr);
     // Central no ar com o WhatsApp do bot desconectado: abre normal; só o que sai no WhatsApp espera ele voltar.
-    linha.innerHTML = noAr && whatsapp === false ? '<b>WhatsApp desconectado</b><span>a central está no ar; envios esperam o WhatsApp voltar</span>'
+    const html = noAr && whatsapp === false ? '<b>WhatsApp desconectado</b><span>a central está no ar; envios esperam o WhatsApp voltar</span>'
       : noAr ? `<b>Ao vivo</b><span>${agir ? 'você vê e pede ações' : 'você acompanha tudo'}</span>`
       : '<b>Fora do ar</b><span>volta quando o PC do Paulo ligar</span>';
+    if (linha.innerHTML !== html) linha.innerHTML = html;
   } catch { cartao.classList.remove('fora'); linha.textContent = ''; vybesConferidoEm = Date.now() - 105e3; } // tenta de novo em 15 s
 }
 setInterval(conferirCartaoVybes, 10e3);
