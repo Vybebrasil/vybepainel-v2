@@ -28,7 +28,7 @@ const marcosDemo=()=>MARCOS.map((m,k)=>{const especial=['implementacoes','motion
   const nivel=degraus.filter(d=>d.ok).length,proximo=degraus[nivel]||null;
   return {id:m.id,nome:m.nome,criterio:criterioDoMarco(m.id),nivel,nomeNivel:NIVEIS_DEMO[nivel]||'',social:false,valor,unidade:m.unidade,proximo:proximo?{nivel:proximo.nivel,nome:proximo.nome,meta:proximo.meta,classe:proximo.classe}:null,degraus,ok:nivel>0,em:nivel?em:null,dica:proximo?`${proximo.meta} ${m.unidade}`:'Nível máximo',moveis:[(proximo||degraus.at(-1)).classe]};});
 import { GRUPOS_PADRAO, CORES_DE_GRUPO } from '../server/grupos.js';
-import { SECOES_CADASTRO, CAMPOS_CADASTRO, separarCampos, estadoNoEcossistema } from '../server/clientes-cadastro.js';
+import { SECOES_CADASTRO, CAMPOS_CADASTRO, separarCampos, estadoNoEcossistema, limparRegraDoFeed } from '../server/clientes-cadastro.js';
 // Cadastro de clientes fictício, em estados diferentes (completo, pela metade, só o nome), para a ficha e o
 // Ecossistema aparecerem como na operação. Fica em memória: reiniciar a prévia volta ao começo.
 const CLIENTES_DEMO=['Academia Lions','Alpha1','Antonov','Brussolo Ristorante','ConectaSim','Copirecê','DiaCenter','DiaLab','Gonzalez','Hebravet','Hellen','Mangaba AI','Serra Grande Bebidas','VOA','Experimente Papelaria']
@@ -58,6 +58,10 @@ function clientesDemo(req,res,url,body,reply){
         if(d.campos)aplicarDemo(c,d.campos);return reply(200,{ok:true,cliente:{id:c.id,nome:c.nome,ativo:true},...(ja?{ja_existia:true}:{})});}
       if(d.acao==='cadastro'){const c=CLIENTES_DEMO.find(x=>String(x.id)===String(d.id));if(!c)return reply(404,{error:'Cliente não encontrado.'});
         aplicarDemo(c,d.campos);return reply(200,{ok:true,cliente:{id:c.id,nome:c.nome}});}
+      // A regra do feed (Produção › Feed): grava só na memória do demo, pela mesma validação do servidor.
+      if(d.acao==='feed_regra'){const c=CLIENTES_DEMO.find(x=>String(x.id)===String(d.id));if(!c)return reply(404,{error:'Cliente não encontrado.'});
+        const feed=d.regra==null?null:limparRegraDoFeed(d.regra);c.cadastro={...(c.cadastro||{})};if(feed)c.cadastro.feed=feed;else delete c.cadastro.feed;
+        return reply(200,{ok:true,cliente:{id:c.id,nome:c.nome},feed});}
     }catch(e){return reply(e.status||400,{error:e.message});}
     if(d.acao==='atas')return reply(200,{ok:true,atas:[],eventos:[]});
     return reply(200,{ok:true});}

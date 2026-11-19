@@ -32,7 +32,7 @@ import { areaComercial } from '../server/comercial-api.js';
 // Vybe Finanças (Supabase do app de finanças), só leitura: GET area=vybe_financas&parte=comercial|carteira|rh.
 import { areaVybeFinancas } from '../server/vybe-financas-api.js';
 import { areaFinanceiro, areaFinanceiroBot } from '../server/financeiro.js';
-import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, separarCampos as separarCamposDoCadastro, estadoNoEcossistema } from '../server/clientes-cadastro.js';
+import { SECOES_CADASTRO, CAMPOS_CADASTRO, garantirSchemaDoCadastro, salvarCadastro, salvarRegraDoFeed, separarCampos as separarCamposDoCadastro, estadoNoEcossistema } from '../server/clientes-cadastro.js';
 import { areaMcp, garantirTabelaDeRegistros } from '../server/mcp-ecossistema.js';
 import { cadastrarDemandasDaReuniao, garantirSchemaReunioes, listarReunioes, salvarReuniao, registrarGravacao, sugerirPauta, linkDoOnboarding, respostasDoOnboarding, podeMexer, paginaDoOnboarding, salvarOnboarding, TIPOS_REUNIAO, QUESTOES, ACESSOS_PEDIDOS } from '../server/reunioes.js';
 import { aprovacoesDaPessoa } from '../server/aprovacoes.js';
@@ -983,6 +983,11 @@ export async function areaClientes(req, res, quem) {
     }
     if (acao === 'cadastro') {
       try { const salvo = await salvarCadastro(db, id, req.body?.campos, { veDinheiro: podeDinheiro }); return res.status(200).json({ ...salvo, financas: { estado: 'desligado' } }); }
+      catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
+    }
+    // A regra do feed do cliente (Produção › Feed): mesma tranca do cadastro, só a chave cadastro.feed.
+    if (acao === 'feed_regra') {
+      try { return res.status(200).json(await salvarRegraDoFeed(db, id, req.body?.regra ?? null)); }
       catch (erro) { if (erro.status) return res.status(erro.status).json({ error: erro.message }); throw erro; }
     }
     if (acao === 'ficha') {
