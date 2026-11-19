@@ -39,3 +39,5 @@
 
 /* ---------- Gestão · Agência, "Esta semana" no vidro: a linha fina é o Finalizado, a cheia é a produção pronta ---------- */
 .vs-agencia .d3m-d-g-sem-graf > .fio.vsg-fin{stroke:var(--d3-pronto-claro);stroke-width:1.6}
+/* No celular, a legenda da Semana com três itens cabe na linha do título: o traço encurta. */
+@media (max-width:600px){#vv-hoje .d3h-semana .d3h-leg > i{width:8px}}

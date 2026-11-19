@@ -1383,7 +1383,7 @@
   const utilDono = () => window.VybeDono?.util || {};
   const prontasSemD3 = (S = {}) => (typeof utilDono().prontasDaSemana === 'function' ? utilDono().prontasDaSemana(S)
     : { prontas: Number(S.previstasEntregues ?? S.entregues) || 0, finalizadas: Number(S.previstasEntregues ?? S.entregues) || 0, paraAgendar: 0, agendadas: 0, previstas: Number(S.previstas) || 0 });
-  const resumoProntasD3 = (c, o) => (typeof utilDono().resumoProntas === 'function' ? utilDono().resumoProntas(c, o) : `${n0(c.finalizadas)} finalizadas`);
+  const resumoProntasD3 = (c, o) => (typeof utilDono().resumoProntas === 'function' ? utilDono().resumoProntas(c, o) : `${n0(c.finalizadas)} ${Number(c.finalizadas) === 1 ? 'finalizada' : 'finalizadas'}`);
   const faseProntaD3 = (d) => (typeof utilDono().faseDaPronta === 'function' ? utilDono().faseDaPronta(d) : situacaoDaPeca(d) === 'concluida' ? 'finalizado' : '');
   // Semana em linha: prontas (acumuladas até hoje) contra previstas (tracejada). Tocar num dia escolhe o dia: o pé passa a
   // contar só ele (Prontas, Em produção, Atrasadas) e "lista" abre as peças daquele dia; tocar de novo volta à semana.

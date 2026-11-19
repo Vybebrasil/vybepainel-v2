@@ -81,8 +81,9 @@ test('Visão do setor: "Prontas por dia" conta de segunda a domingo pela data do
   assert.equal((html.match(/class="vst-dia( hoje)?"/g) || []).length, 7);
   assert.match(html, /seg 16/);
   assert.match(html, /dom 22/);
-  assert.match(html, /ter 17<\/span><span class="vst-dia-barra" style="--v:50%"><i><\/i><\/span><b>1 de 2<\/b>/);
+  // Frente S-g (19/11/2026): a barra empilha Finalizado (--v) e Para agendar/Agendado (--c, tom claro).
+  assert.match(html, /ter 17<\/span><span class="vst-dia-barra vsg-pilha" style="--v:50%;--c:0%"><i><\/i><i class="vsg-clara"><\/i><\/span><b>1 de 2<\/b>/);
   assert.match(html, /class="vst-dia hoje" data-espiar="semdia:2026-11-19\|veiculacao_iso"/);
-  assert.match(html, /qui 19 · hoje<\/span><span class="vst-dia-barra" style="--v:0%"><i><\/i><\/span><b>0 de 0<\/b>/, 'sem veiculação a peça não entra no dia');
-  assert.match(html, /<small>1 de 2 na semana<\/small>/);
+  assert.match(html, /qui 19 · hoje<\/span><span class="vst-dia-barra vsg-pilha" style="--v:0%;--c:0%"><i><\/i><i class="vsg-clara"><\/i><\/span><b>0 de 0<\/b>/, 'sem veiculação a peça não entra no dia');
+  assert.match(html, /<b>1 de 2<\/b><\/small>/);
 });

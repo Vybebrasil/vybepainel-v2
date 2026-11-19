@@ -2385,7 +2385,7 @@ function pv2PintarSemana() {
     const feitas = l.filter(atividadeDoDiaConcluida), resto = l.filter((d) => !feitas.includes(d) && !isRequestItem(d) && typeof faseDaPronta === 'function');
     const paraAgendar = resto.filter((d) => faseDaPronta(d) === 'paraAgendar').length, agendadas = resto.filter((d) => faseDaPronta(d) === 'agendado').length;
     return { total: l.length, feitas: feitas.length, finalizadas: feitas.length, paraAgendar, agendadas, prontas: feitas.length + paraAgendar + agendadas }; };
-  const detalheDia = (t) => (typeof globalThis.VybeDono?.util?.resumoProntas === 'function' ? globalThis.VybeDono.util.resumoProntas(t) : `${t.feitas} finalizadas`);
+  const detalheDia = (t) => (typeof globalThis.VybeDono?.util?.resumoProntas === 'function' ? globalThis.VybeDono.util.resumoProntas(t) : `${t.feitas} ${t.feitas === 1 ? 'finalizada' : 'finalizadas'}`);
   const nomeDia = (iso) => `${new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '')} ${Number(iso.slice(8, 10))}`;
   if (rot && dias.length) {
     const a = dias[0].iso, b = dias[dias.length - 1].iso, mes = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' });

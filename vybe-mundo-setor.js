@@ -384,7 +384,7 @@
   // VybeDono.util.prontasDaSemana; o detalhe (resumoSem) diz quantas já estão em Finalizado. Só a semana usa esta conta.
   const prontasSem = (S = {}) => (typeof window.VybeDono?.util?.prontasDaSemana === 'function' ? window.VybeDono.util.prontasDaSemana(S)
     : { prontas: Number(S.previstasEntregues ?? S.entregues) || 0, finalizadas: Number(S.previstasEntregues ?? S.entregues) || 0, paraAgendar: 0, agendadas: 0, previstas: Number(S.previstas) || 0 });
-  const resumoSem = (c, o) => (typeof window.VybeDono?.util?.resumoProntas === 'function' ? window.VybeDono.util.resumoProntas(c, o) : `${num(c.finalizadas)} finalizadas`);
+  const resumoSem = (c, o) => (typeof window.VybeDono?.util?.resumoProntas === 'function' ? window.VybeDono.util.resumoProntas(c, o) : `${num(c.finalizadas)} ${Number(c.finalizadas) === 1 ? 'finalizada' : 'finalizadas'}`);
   // Prontas por dia: as peças com a data do cliente (a veiculação) em cada dia da semana e quantas estão com a produção
   // pronta (Paulo, 19/11/2026): Finalizado na cor cheia, Para agendar e Agendado no tom claro da mesma cor, empilhados.
   // O número conta as três; o detalhe (quantas finalizadas, para agendar e agendadas) vai no title e no aria-label.
@@ -395,7 +395,7 @@
     const dias = Array.from({ length: 7 }, (_, k) => new Date(seg + k * 864e5).toISOString().slice(0, 10));
     const NOMES = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], U = window.VybeDono?.util || {};
     const fase = typeof U.faseDaPronta === 'function' ? U.faseDaPronta : (d) => (/finaliz|feito|conclu/i.test(String(d?.status || '')) ? 'finalizado' : /para agendar/i.test(String(d?.status || '')) ? 'paraAgendar' : /agendad/i.test(String(d?.status || '')) ? 'agendado' : '');
-    const resumo = typeof U.resumoProntas === 'function' ? U.resumoProntas : (c) => `${c.finalizadas} finalizadas`;
+    const resumo = typeof U.resumoProntas === 'function' ? U.resumoProntas : (c) => `${num(c.finalizadas)} ${Number(c.finalizadas) === 1 ? 'finalizada' : 'finalizadas'}`;
     const CAMPO = { finalizado: 'finalizadas', paraAgendar: 'paraAgendar', agendado: 'agendadas' };
     const conta = dias.map(() => ({ n: 0, p: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0 }));
     for (const d of itens || []) {
@@ -1013,7 +1013,7 @@
       };
       vstNumerosMods = numerosMods;
       // Prancha V2-S-Visao-Setor: os quatro números, o Heitor à direita com o botão, e os cartões sem rolar.
-      const numerosV2 = `<div class="vst-nums">${vstNum({ rotulo: 'Prontas da semana', valor: num(prontas), de: num(S.previstas), k: 'g', anel: pctDe(prontas, S.previstas) ?? 0, sub: S.previstas ? resumoSem(PS, { curto: true }) : 'nada previsto', dica: `${S.previstas ? pct((Number(prontas) / S.previstas) * 100) + ' · ' : ''}${conta.prontas}` })}`
+      const numerosV2 = `<div class="vst-nums">${vstNum({ rotulo: 'Prontas da semana', valor: num(prontas), de: num(S.previstas), k: 'g', anel: pctDe(prontas, S.previstas) ?? 0, sub: S.previstas ? `${num(PS.finalizadas)} ${PS.finalizadas === 1 ? 'finalizada' : 'finalizadas'}` : 'nada previsto', dica: `${S.previstas ? pct((Number(prontas) / S.previstas) * 100) + ' · ' : ''}${conta.prontas}` })}`
         + vstNum({ rotulo: 'Atrasadas agora', valor: num(atrasadas), tom: atrasadas ? 'r' : '', k: 'r', sub: 'data do cliente vencida', espiar: atrasadas ? 'atrasadas' : '', dica: conta.atrasadas })
         + vstNum({ rotulo: 'Risco de furo', valor: num(emRisco), k: 'a', sub: 'próximos 2 dias', espiar: emRisco ? 'emRisco' : '', dica: conta.risco })
         + vstNum({ rotulo: 'Em aprovação', valor: num(emAprov), k: 'roxo', sub: `${num(espera)} ${espera === 1 ? 'espera' : 'esperam'} o cliente`, dica: 'Peças em Para aprovação ou com o cliente' }) + '</div>';

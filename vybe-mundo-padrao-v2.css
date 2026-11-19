@@ -10757,6 +10757,8 @@ body.mundo #workflow-modal.s-ed .plj-ed-pe :is(.workflow-secondary,.workflow-pri
 
 /* ---------- Gestão · Agência, "Esta semana" no vidro: a linha fina é o Finalizado, a cheia é a produção pronta ---------- */
 .vs-agencia .d3m-d-g-sem-graf > .fio.vsg-fin{stroke:var(--d3-pronto-claro);stroke-width:1.6}
+/* No celular, a legenda da Semana com três itens cabe na linha do título: o traço encurta. */
+@media (max-width:600px){#vv-hoje .d3h-semana .d3h-leg > i{width:8px}}
 
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
