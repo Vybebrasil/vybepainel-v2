@@ -177,6 +177,39 @@ export async function salvarCadastro(db, id, campos, opcoes = {}) {
   return { ok: true, cliente: r };
 }
 
+// ── a regra do feed do cliente (Paulo, 19/11/2026) ───────────────────────────
+// "Em cada cliente eu possa definir ou mudar essa regra de forma fácil ali mesmo
+// em Produção › Feed": quantos posts por semana (0 a 7), os dias em que pode sair
+// post (0 = segunda … 6 = domingo; dia fora da lista nunca vira "sem post") e
+// "sem buraco" para quem não tem meta fixa. Mora em cadastro.feed, sem coluna
+// nova. O salvarCadastro da ficha reescreve o cadastro a partir do que já está
+// lá, então a regra continua quando alguém salva a ficha.
+export function limparRegraDoFeed(bruto) {
+  if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) throw invalido('Informe a regra do feed.');
+  const n = Number(bruto.porSemana);
+  if (!Number.isInteger(n) || n < 0 || n > 7) throw invalido('Posts por semana: um número de 0 a 7.');
+  if (!Array.isArray(bruto.dias) || bruto.dias.length > 7) throw invalido('Escolha os dias em que pode sair post.');
+  const dias = [...new Set(bruto.dias.map(Number))];
+  if (dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) throw invalido('Dia da semana inválido.');
+  if (bruto.semBuraco !== undefined && typeof bruto.semBuraco !== 'boolean') throw invalido('"Sem buraco" precisa ser sim ou não.');
+  return { porSemana: n, dias: dias.sort((a, b) => a - b), semBuraco: bruto.semBuraco === true };
+}
+
+// regra null apaga (o cliente volta à regra de sempre). Um UPDATE só, que mexe
+// apenas na chave feed: o resto do cadastro fica como está.
+export async function salvarRegraDoFeed(db, id, bruto) {
+  if (!Number.isSafeInteger(Number(id)) || Number(id) <= 0) throw invalido('Informe o cliente.');
+  const regra = bruto === null ? null : limparRegraDoFeed(bruto);
+  await garantirSchemaDoCadastro(db);
+  const [r] = regra
+    ? await db`UPDATE vybe_clientes SET cadastro = COALESCE(cadastro, '{}'::jsonb) || jsonb_build_object('feed', ${JSON.stringify(regra)}::jsonb)
+        WHERE id=${Number(id)} AND apagado_em IS NULL RETURNING id, nome`
+    : await db`UPDATE vybe_clientes SET cadastro = COALESCE(cadastro, '{}'::jsonb) - 'feed'
+        WHERE id=${Number(id)} AND apagado_em IS NULL RETURNING id, nome`;
+  if (!r) throw Object.assign(new Error('Cliente não encontrado.'), { status: 404 });
+  return { ok: true, cliente: r, feed: regra };
+}
+
 // Lê o valor de um campo numa linha de vybe_clientes (coluna ou cadastro).
 export function valorDoCampo(linha, campo) {
   const bruto = campo.coluna ? linha?.[campo.coluna] : linha?.cadastro?.[campo.chave];
