@@ -13,7 +13,7 @@ import { tabelaRegras } from './assistente-regras.js';
 import { marcarEncaixe } from './assistente-encaixe.js';
 import { gruposDoQuadro } from './grupos.js';
 import { ehDonoPessoa } from './donos.js';
-import { idDoVybes } from './conta-vybes.js';
+import { idDoVybes, rotuloDoAgente } from './conta-vybes.js';
 
 const VALIDADE_MS = 5 * 60e3;
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -37,8 +37,10 @@ async function pessoaAtiva(sql, pessoaId) {
   if (!p.admin && ehDonoPessoa({ id: p.id, monday_user_id: p.monday_id })) p.admin = true;
   return p;
 }
-// No histórico da peça: "Fulano (WhatsApp)"; a conta do VYBES sai só "VYBES".
-const rotuloDoAutor = (p) => (p.servico ? p.nome : `${p.nome} (WhatsApp)`);
+// No histórico da peça: "Fulano (WhatsApp)"; a conta do VYBES sai "VYBES" ou, quando um agente agiu, com o nome dele
+// ("Heitor · VYBES"; server/conta-vybes.js rotuloDoAgente). O agente só vale para a conta de serviço: uma pessoa da
+// equipe nunca assina com o nome de um agente.
+const rotuloDoAutor = (p, agente = null) => (p.servico ? rotuloDoAgente(agente, p.nome) : `${p.nome} (WhatsApp)`);
 // O que falta na peça para o próximo passo (Paulo, 27/10/2026: "tem briefing? tem OFF? já foi mandado pro cliente?"):
 // o bot pergunta só o que estiver faltando. Briefing: o campo ou um comentário com as marcas do formulário. OFF e
 // captação: o rótulo escolhido no painel (vazio = ninguém marcou). Sem as tabelas (banco antigo), não pergunta nada.
@@ -462,7 +464,7 @@ export async function prepararAcao(sql, pessoaId, pedido, segredo, agora = Date.
   return { resumo, codigo: dados + '.' + assinar(dados, segredo), link: linkDaAtividade(c.ref), validade_min: 5 };
 }
 
-export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Date.now(), executar } = {}) {
+export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Date.now(), executar, agente = null } = {}) {
   const [dados, assinatura] = String(codigo || '').split('.');
   const esperada = dados ? assinar(dados, segredo) : '';
   if (!dados || !assinatura || assinatura.length !== esperada.length || !timingSafeEqual(Buffer.from(assinatura), Buffer.from(esperada))) throw invalido('Confirmação inválida.');
@@ -477,7 +479,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, 0, 'agendar_captacao', ${String(t.v)})
       ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
     if (!nova) throw invalido('Esta confirmação já foi usada.');
-    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p, agente), admin: p.admin } };
     const n = await (executar?.marcarEncaixe || marcarEncaixe)(sql, quem, t.v);
     return { feito: `✅ ${n} captação(ões) marcada(s) na agenda da Vybe. O Mizinho recebe o lembrete 1 hora e 30 minutos antes.`, link: null };
   }
@@ -501,7 +503,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, 0, 'criar', ${String(d.titulo).slice(0, 300)})
       ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
     if (!nova) throw invalido('Esta confirmação já foi usada.');
-    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p, agente), admin: p.admin } };
     const fazer = executar || await import('../api/conteudo.js');
     const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, ...(d.formato ? { formato: d.formato } : {}), ...(d.veiculacao ? { veiculacao: d.veiculacao } : {}), prazo: d.prazo, ...(d.briefing ? { briefing: d.briefing } : {}),
       ...(d.quadro === 'demandas' ? { board: BOARD_DEMANDAS_CRIACAO } : {}),
@@ -528,7 +530,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, ${c.id}, 'data', ${t.v.campo + ':' + t.v.data})
       ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
     if (!nova) throw invalido('Esta confirmação já foi usada.');
-    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p, agente), admin: p.admin } };
     const fazer = executar || await import('../api/conteudo.js');
     const r = await fazer.trocarData(sql, quem, { item: c.ref, campo: t.v.campo, data: t.v.data });
     return { feito: `✅ ${rotuloData(c, t.v.campo)} de "${c.titulo}" agora é *${curtoData(t.v.data)}*.${r?.aviso ? '\n⚠️ ' + r.aviso : ''}`, link: linkDaAtividade(c.ref) };
@@ -550,7 +552,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
   if (!nova) throw invalido('Esta confirmação já foi usada.');
   // Mesma sessão que o painel usa, identificada pela pessoa do vínculo.
-  const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
+  const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p, agente), admin: p.admin } };
   const fazer = executar || await import('../api/conteudo.js');
   if (t.a === 'comentar') {
     const proximos = await proximoPassoDe(sql, c, p.id);

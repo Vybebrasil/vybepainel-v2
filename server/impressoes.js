@@ -16,6 +16,11 @@
 //  - Mandar o arquivo, imprimir, ficar pronto ou entregar pede fornecedor. O primeiro envio grava o dia do pedido;
 //    "Entregue" grava o dia da entrega. Atrasada = previsão vencida e ainda não entregue.
 import { ehDonoPessoa } from './donos.js';
+import { nomeDoAgente, rotuloDoAgente } from './conta-vybes.js';
+// Registro feito pela conta do VYBES: quem aparece é o agente que assina a nota ("Nestor, pela conversa com…" vira
+// "Nestor · VYBES"; Paulo, 19/11/2026: "os comentários dos agentes vão como eles"). Sem assinatura válida, "VYBES".
+const ASSINA_NOTA = /^([\p{L}]+(?:[ -][\p{L}]+)*),/u;
+export const autorDoEvento = ({ autor_servico: servico, ...e }) => (servico ? { ...e, autor_nome: rotuloDoAgente(nomeDoAgente(ASSINA_NOTA.exec(String(e.nota || ''))?.[1] || ''), e.autor_nome) } : e);
 // Valor da impressão e cotações são dinheiro: só os quatro donos (auditoria 15/11/2026; antes ehGestao, que inclui a coordenação).
 const ehGestao = (pessoa) => ehDonoPessoa(pessoa);
 
@@ -82,9 +87,10 @@ async function ler(sql, pessoa, query = {}) {
     WHERE ${todas} OR i.etapa NOT IN ('entregue', 'cancelado') OR COALESCE(i.entregue_em, i.atualizado_em::date) >= (now() - interval '90 days')::date
     ORDER BY (i.etapa IN ('entregue', 'cancelado')), i.previsao NULLS LAST, i.id`;
   const ids = linhas.map((l) => l.id);
-  const eventos = ids.length ? await sql`SELECT e.impressao_id::text AS impressao_id, e.de, e.para, e.nota, p.nome AS autor_nome, e.em
+  const eventos = ids.length ? (await sql`SELECT e.impressao_id::text AS impressao_id, e.de, e.para, e.nota, p.nome AS autor_nome, e.em,
+        COALESCE((to_jsonb(p) ->> 'servico') = 'true', false) AS autor_servico
       FROM vybe_impressao_eventos e LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
-     WHERE e.impressao_id::text = ANY(${ids}::text[]) ORDER BY e.em, e.id` : [];
+     WHERE e.impressao_id::text = ANY(${ids}::text[]) ORDER BY e.em, e.id`).map(autorDoEvento) : [];
   const porImpressao = new Map();
   for (const e of eventos) (porImpressao.get(e.impressao_id) || porImpressao.set(e.impressao_id, []).get(e.impressao_id)).push(e);
   const impressoes = linhas.map((l) => {
