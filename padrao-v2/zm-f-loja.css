@@ -20,7 +20,7 @@ body.mundo #office-catalogo.d3m-f-lojaj[open]{position:fixed;top:var(--vv-m,14px
 #office-catalogo.d3m-f-lojaj .d3m-f-loja .d3m-e-sub{color:var(--d3-fume-apagado)}
 /* As partes no vidro: a escolhida clara (a regra antiga pinta button[aria-pressed] de branco; aqui volta ao vidro). */
 #office-catalogo.d3m-f-lojaj .d3m-f-partes > button{color:var(--d3-fume-texto);box-shadow:none}
-#office-catalogo.d3m-f-lojaj .d3m-f-partes > button[aria-pressed="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+#office-catalogo.d3m-f-lojaj .d3m-f-partes > button[aria-pressed="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
 #office-catalogo.d3m-f-lojaj .d3m-f-partes .v2l-conta{margin-left:4px;background:var(--d3-perigo);color:var(--d3-escuro-texto)}
 /* A busca mora no menu da lupa (Loja e Inventário); em Conquistas o topo mostra o saldo. */
 #office-catalogo.d3m-f-lojaj .d3m-f-loja-busca > .d3m-e-pop{padding:8px}
@@ -84,7 +84,7 @@ body.mundo #office-catalogo.d3m-f-lojaj[open]{position:fixed;top:var(--vv-m,14px
 #office-catalogo.d3m-f-lojaj .d3m-f-grade .v2l-pe > .v2l-pill.g{color:var(--d3-pronto);font-weight:600}
 #office-catalogo.d3m-f-lojaj .d3m-f-grade .v2l-btn.s{height:28px;padding:0 10px;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #office-catalogo.d3m-f-lojaj .d3m-f-grade .v2l-btn.s:hover{background:var(--d3-veu)}
-#office-catalogo.d3m-f-lojaj .d3m-f-grade .v2l-btn.s:is(.v2-estado,[aria-pressed="true"]){background:var(--d3-tinta);box-shadow:none;color:var(--d3-escuro-texto);font-weight:600}
+#office-catalogo.d3m-f-lojaj .d3m-f-grade .v2l-btn.s:is(.v2-estado,[aria-pressed="true"]){background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra);font-weight:600}
 #office-catalogo.d3m-f-lojaj .d3m-f-grade .v2l-btn.s:disabled{background:var(--d3-veu);box-shadow:none;color:var(--d3-rotulo)}
 #office-catalogo.d3m-f-lojaj .d3m-f-grade .v2l-btn.s:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
 #office-catalogo.d3m-f-lojaj .d3m-f-grade > .v2l-mais{grid-column:1/-1;justify-self:center;margin:14px 0;height:34px;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta)}

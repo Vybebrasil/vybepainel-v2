@@ -220,22 +220,22 @@ test('IA e custos: o CSS da tela é um fragmento do grupo E, com tokens, sem !im
 
 test('escolha única usa role="radio" com aria-checked (a visão ativa é branca) e a ficha ligada fica preta', () => {
   for (const js of [painel, dem, ia, prod.slice(prod.indexOf('const abaV2'))]) assert.ok(!/class="pv2-seg"[^>]*role="tablist"/.test(js));
-  assert.match(css, /\.pv2-seg button\[aria-checked="true"\]\{background:#FFFFFF;color:#1F1D1A;/);
-  assert.match(css, /\.pv2-chip:is\(\[aria-pressed="true"\],\[aria-selected="true"\]\)\{background:#1F1D1A;color:#FFFFFF;box-shadow:none\}/);
+  assert.match(css, /\.pv2-seg button\[aria-checked="true"\]\{background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));color:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));/);
+  assert.match(css, /\.pv2-chip:is\(\[aria-pressed="true"\],\[aria-selected="true"\]\)\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));box-shadow:none\}/);
 });
 
 test('o CSS do grupo traz as medidas do quadro e não força regra antiga', () => {
   assert.ok(!css.includes('!important'));
   assert.ok(!/html body\.mundo/.test(css));
-  assert.match(css, /\.pv2-card\{[^}]*border:0;border-radius:20px;background:#FFFFFF;/);
+  assert.match(css, /\.pv2-card\{[^}]*border:0;border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));/);
   assert.match(css, /\.pv2-btn\{[^}]*height:38px;[^}]*border-radius:999px;/);
   assert.match(css, /\.pv2-btn\.s\{height:30px;/);
-  assert.match(css, /\.pv2-btn\.p\{background:#C2490C;color:#FFFFFF;/);
-  assert.match(css, /\.pv2-btn\.k\{background:#1F1D1A;color:#FFFFFF;/);
+  assert.match(css, /\.pv2-btn\.p\{background:#C2490C;color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));/);
+  assert.match(css, /\.pv2-btn\.k\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));/);
   assert.match(css, /\.pv2-chip\{[^}]*height:30px;/);
   assert.match(css, /\.pv2-busca\{[^}]*height:36px;/);
   assert.match(css, /\.pv2-pill\{[^}]*height:22px;/);
-  assert.match(css, /\.pv2-sub\{[^}]*color:#6B665E\}/);
+  assert.match(css, /\.pv2-sub\{[^}]*color:(?:#6B665E|var\(--d3-(?:apagado)(?:,[^)]*\))?\))\}/);
   assert.match(css, /#pv2-demandas \.pv2-cs\{flex:none;width:124px;/);
   assert.match(css, /#pv2-demandas \.pv2-cp\{flex:none;width:66px\}/);
   assert.match(css, /#pv2-demandas \.pv2-cr\{[^}]*width:118px;/);

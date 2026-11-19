@@ -5,50 +5,50 @@
    (#painel-clientes e #vv-reunioes); nada aqui força regra antiga. */
 
 /* ===== Peças comuns às três telas (v2f- na Gestão e na ficha; v2r- na tela Reuniões) ===== */
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-card,.v2r-card){min-width:0;box-sizing:border-box;margin:0;padding:18px;border:0;border-radius:20px;background:#FFFFFF;box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);color:#1F1D1A;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),system-ui,sans-serif}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card,.v2r-card){min-width:0;box-sizing:border-box;margin:0;padding:18px;border:0;border-radius:20px;background:var(--d3-cartao);box-shadow:0 1px 2px rgba(31,29,26,.05),0 12px 24px -18px rgba(31,29,26,.22);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),system-ui,sans-serif}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-card,.v2r-card) :is(p,h3){margin:0}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo){display:flex;align-items:baseline;gap:8px;margin:0 0 2px}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo) > h3{flex:1;min-width:0;font:600 var(--d3-fs-destaque)/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:0;color:#1F1D1A}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-sub,.v2r-sub){font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-vazio,.v2r-vazio){padding:12px 0 2px;font-size:var(--d3-fs-texto);color:#6B665E}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo) > h3{flex:1;min-width:0;font:600 var(--d3-fs-destaque)/1.2 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:0;color:var(--d3-tinta)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-sub,.v2r-sub){font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-vazio,.v2r-vazio){padding:12px 0 2px;font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
 
 /* Botão em pílula: 38 no cabeçalho, 30 na linha (.s); .p é a ação da tela, .k confirma. */
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn){appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;height:38px;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:600 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer;box-shadow:inset 0 0 0 1px #E6E0D6;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .15s}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn){appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;height:38px;margin:0;padding:0 16px;border:0;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer;box-shadow:inset 0 0 0 1px var(--d3-borda);transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .15s}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):hover{background:#F6F3EE}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):active{transform:scale(.96)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn):disabled{opacity:.5;cursor:default}
 /* Direção 3: a ação principal do título é botão branco com "+"; o único laranja cheio da tela é o bloco de ação. */
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p{background:var(--d3-cartao,#FFFFFF);color:var(--d3-tinta,#1F1D1A);box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p{background:var(--d3-cartao,var(--d3-cartao));color:var(--d3-tinta,var(--d3-tinta));box-shadow:none}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p::before{content:"+";margin-right:2px;font-size:var(--d3-fs-destaque);font-weight:500}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p:hover{background:var(--d3-trilho,#F3F1EC)}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).k{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).p:hover{background:var(--d3-trilho,var(--d3-trilho))}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).k{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).k:hover{background:#34312C}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn).s{height:30px;padding:0 12px;font-size:var(--d3-fs-texto)}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn)[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn)[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 
 /* Ficha de filtro: 30 de altura, ligada em preto. */
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip){appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:#FFFFFF;color:#1F1D1A;font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:inset 0 0 0 1px #E6E0D6}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip){appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:30px;margin:0;padding:0 12px;border:0;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:inset 0 0 0 1px var(--d3-borda)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip) > b{font-weight:700}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip):hover{background:#F6F3EE}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip)[aria-pressed="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip)[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-chip,.v2r-chip):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
 
 /* Selo de estado. */
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill){appearance:none;flex:none;display:inline-flex;align-items:center;gap:5px;box-sizing:border-box;height:22px;margin:0;padding:0 9px;border:0;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).r{background:#FDECEE;color:#B42318}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).a{background:#FFF4D6;color:#7A4A00}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).g{background:#E8F5EC;color:#11613A}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).b{background:#E7EEFB;color:#1E4A9A}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).v{background:#EEEAFB;color:#4B36A8}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill){appearance:none;flex:none;display:inline-flex;align-items:center;gap:5px;box-sizing:border-box;height:22px;margin:0;padding:0 9px;border:0;border-radius:999px;background:var(--d3-linha);color:var(--d3-texto2);font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).b{background:var(--d3-info-veu);color:var(--d3-info)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pill,.v2r-pill).v{background:var(--d3-agente-veu);color:var(--d3-agente-texto)}
 :is(#painel-clientes,#vv-reunioes) button:is(.v2f-pill,.v2r-pill){cursor:pointer}
 :is(#painel-clientes,#vv-reunioes) button:is(.v2f-pill,.v2r-pill):hover{filter:brightness(.96)}
 
 /* A fala do agente dono da tela. */
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-fala,.v2r-fala){display:flex;align-items:center;gap:14px}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-fala-texto,.v2r-fala-texto){flex:1;min-width:0;font:400 var(--d3-fs-destaque)/1.45 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-fala-texto,.v2r-fala-texto) b{font-weight:700;color:#1F1D1A}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-quem,.v2r-quem){display:block;margin-bottom:2px;font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;color:#4B36A8}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-fala-texto,.v2r-fala-texto){flex:1;min-width:0;font:400 var(--d3-fs-destaque)/1.45 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-fala-texto,.v2r-fala-texto) b{font-weight:700;color:var(--d3-tinta)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-quem,.v2r-quem){display:block;margin-bottom:2px;font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;color:var(--d3-agente-texto)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-ag,.v2r-ag){flex:none;position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#6E56CF;color:#FFFFFF;font:700 var(--d3-fs-destaque)/1 var(--vv-texto,Inter),sans-serif}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-ag,.v2r-ag)::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid #6E56CF;opacity:0;animation:v2f-pulso 3.6s ease-out infinite}
 @keyframes v2f-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
@@ -56,35 +56,35 @@
 /* Três números. */
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-kpis,.v2r-kpis){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0;padding:0}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-kpis,.v2r-kpis)[hidden]{display:none}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > small{display:block;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;color:#1F1D1A}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > b.ruim{color:#B42318}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > small{display:block;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > b{display:block;margin:6px 0;font:700 34px/1.05 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em;color:var(--d3-tinta)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-kpi,.v2r-kpi) > b.ruim{color:var(--d3-perigo)}
 
 /* Linha de lista e avatar. */
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin){display:flex;align-items:center;gap:12px;min-width:0;padding:12px 0;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin){display:flex;align-items:center;gap:12px;min-width:0;padding:12px 0;border-top:1px solid var(--d3-linha);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo) + :is(.v2f-lin,.v2r-lin),
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-card-topo,.v2r-card-topo) + .v2-abre > :is(.v2f-lin,.v2r-lin){border-top:0}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin) > p{flex:1;min-width:0}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin) :is(b,strong){font-weight:700;color:#1F1D1A}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-av,.v2r-av){flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#EFEBE4;color:#4A463F;font:700 var(--d3-fs-mini)/1 var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-lin,.v2r-lin) :is(b,strong){font-weight:700;color:var(--d3-tinta)}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-av,.v2r-av){flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-linha);color:var(--d3-texto2);font:700 var(--d3-fs-mini)/1 var(--vv-texto,Inter),sans-serif;box-shadow:0 0 0 2px #FFFFFF}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-avs,.v2r-avs){flex:none;display:inline-flex;padding-left:8px}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-avs,.v2r-avs):empty{display:none}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-avs,.v2r-avs) > :is(.v2f-av,.v2r-av){margin-left:-8px}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-cli,.v2r-cli){display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#1F1D1A}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-cli,.v2r-cli){display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--d3-tinta)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-cli,.v2r-cli)::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,#C2490C)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-link,.v2r-link){appearance:none;margin:0;padding:0;border:0;background:none;color:#C2490C;font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-link,.v2r-link):hover{color:#8A3207}
-:is(#painel-clientes,#vv-reunioes) :is(.v2f-pe,.v2r-pe){padding-top:8px;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+:is(#painel-clientes,#vv-reunioes) :is(.v2f-pe,.v2r-pe){padding-top:8px;border-top:1px solid var(--d3-linha);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-botoes,.v2r-botoes){display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 /* O que abre no lugar: o texto da linha é o botão. */
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir){appearance:none;display:inline;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-abrir,.v2r-abrir):focus-visible{outline:2px solid #1F1D1A;outline-offset:2px;border-radius:4px}
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-cx){flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-:is(#painel-clientes,#vv-reunioes) .v2f-cx.ok{background:#1F1D1A;box-shadow:none}
+:is(#painel-clientes,#vv-reunioes) .v2f-cx.ok{background:var(--d3-tinta);box-shadow:none}
 
 /* ===== Gestão de clientes (#painel-clientes, renderClientesBoard em vybe-clientes.js) ===== */
 /* O fundo #F9F8F5 da janela do quadro: a sombra enche a janela inteira (que recorta pelo próprio canto). */
-#painel-clientes{background:var(--d3-areia,#EAE6DE);box-shadow:0 0 0 100vmax var(--d3-areia,#EAE6DE);color:#1F1D1A}
+#painel-clientes{background:var(--d3-areia,var(--d3-areia));box-shadow:0 0 0 100vmax var(--d3-areia,var(--d3-borda));color:var(--d3-tinta)}
 #painel-clientes > .container{display:flex;flex-direction:column;gap:16px;max-width:none;padding:26px 30px;container:v2f / inline-size}
 #painel-clientes > .container > *{margin-top:0;margin-bottom:0}
 #painel-clientes #clientes-hero{order:1;gap:12px}
@@ -98,35 +98,35 @@
 #painel-clientes #clientes-hero :is(.pv-ic,.pv-etiqueta,#clientes-frase){display:none}
 #painel-clientes #clientes-hero h2{margin:0;font-size:var(--d3-fs-numero);line-height:1.1;letter-spacing:-.01em}
 /* Tabela · Fichas · Cérebro (e as abas da ficha): trilho #EAE6DE, ligada branca. */
-#painel-clientes .v2f-q{margin-left:0;padding:0 6px;height:18px;border-radius:9px;background:#EAE6DE;color:#4A463F;font:600 var(--d3-fs-mini)/18px var(--vv-texto,Inter),sans-serif}
-#painel-clientes #clientes-aviso.v2f-fala{border:0;background:#FFFFFF;color:#1F1D1A}
+#painel-clientes .v2f-q{margin-left:0;padding:0 6px;height:18px;border-radius:9px;background:var(--d3-areia);color:var(--d3-texto2);font:600 var(--d3-fs-mini)/18px var(--vv-texto,Inter),sans-serif}
+#painel-clientes #clientes-aviso.v2f-fala{border:0;background:var(--d3-cartao);color:var(--d3-tinta)}
 #painel-clientes #clientes-aviso.v2f-fala[hidden]{display:none}
 /* Busca e filtros numa linha só: a busca cresce, as fichas vêm depois. */
 #painel-clientes .cli-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;padding:0;border:0;background:none}
 #painel-clientes .cli-barra > .clientes-visao{display:none}
 #painel-clientes .cli-barra > .cli-busca{order:-1;flex:1 1 200px;min-width:140px;margin:0}
 #painel-clientes .cli-barra > .cli-busca > svg{display:none}
-#painel-clientes .cli-barra > .cli-busca > input{width:100%;height:36px;box-sizing:border-box;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif}
-#painel-clientes .cli-barra > .cli-busca > input::placeholder{color:#6B665E}
+#painel-clientes .cli-barra > .cli-busca > input{width:100%;height:36px;box-sizing:border-box;padding:0 16px;border:0;border-radius:999px;background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif}
+#painel-clientes .cli-barra > .cli-busca > input::placeholder{color:var(--d3-apagado)}
 #painel-clientes .cli-barra > .cli-busca > input:focus-visible{outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
 #painel-clientes #grid-clientes-lista.em-tabela{display:block;margin:0;padding:0}
 
 /* A tabela num cartão: Cliente, Head, Saúde, Em aberto, Cadastro e a seta; a linha abre no lugar. */
 #painel-clientes :is(.v2f-th,.v2f-tr){display:grid;grid-template-columns:minmax(0,1.5fr) 124px 150px minmax(0,1.2fr) 130px var(--v2f-extras,) 16px;align-items:center;gap:14px}
-#painel-clientes .v2f-linha{border-top:1px solid #F1EDE6}
+#painel-clientes .v2f-linha{border-top:1px solid var(--d3-linha)}
 #painel-clientes .v2f-marcar{flex:none;width:16px;height:16px;margin:0;accent-color:#1F1D1A}
-#painel-clientes .v2f-vai{appearance:none;display:grid;place-items:center;width:16px;height:24px;margin:0;padding:0;border:0;background:none;color:#6B665E;cursor:pointer}
+#painel-clientes .v2f-vai{appearance:none;display:grid;place-items:center;width:16px;height:24px;margin:0;padding:0;border:0;background:none;color:var(--d3-apagado);cursor:pointer}
 #painel-clientes .v2f-vai > svg{transition:transform .2s}
 #painel-clientes .v2f-vai[aria-expanded="true"] > svg{transform:rotate(90deg)}
 #painel-clientes .v2f-vai:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px;border-radius:4px}
 #painel-clientes .v2f-cad{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 #painel-clientes .v2f-ck{display:inline-flex;align-items:center;gap:6px}
-#painel-clientes .v2f-feito{text-decoration:line-through;color:#6B665E}
+#painel-clientes .v2f-feito{text-decoration:line-through;color:var(--d3-apagado)}
 #painel-clientes .v2f-linha:last-of-type{margin-bottom:10px}
 /* A situação (Inativo, Sem cadastro) na linha e no cabeçalho da ficha vira o selo do padrão. */
-#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao{appearance:none;display:inline-flex;align-items:center;height:22px;margin:0;padding:0 9px;border:0;border-radius:999px;background:#EFEBE4;color:#4A463F;font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
-#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao.ativo{background:#E8F5EC;color:#11613A}
-#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao.nenhum{background:#FFF4D6;color:#7A4A00}
+#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao{appearance:none;display:inline-flex;align-items:center;height:22px;margin:0;padding:0 9px;border:0;border-radius:999px;background:var(--d3-linha);color:var(--d3-texto2);font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao.ativo{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+#painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao.nenhum{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
 #painel-clientes :is(.v2f-tr,.v2f-cabeca) button.cli-situacao{cursor:pointer}
 
 /* ===== Ficha do cliente (#panel-cliente-detalhe, renderClientMasterDetail e as abas de vybe-clientes-ficha.js) ===== */
@@ -142,18 +142,18 @@
 #painel-clientes .cliente-listas > section[hidden]{display:none}
 
 /* ===== Reuniões (#vv-reunioes, VybeReunioes.abrir em vybe-clientes-reunioes.js) ===== */
-.vc-camada > #vv-reunioes{height:100%;background:#F9F8F5;border:0;overflow:hidden;display:flex;flex-direction:column}
+.vc-camada > #vv-reunioes{height:100%;background:var(--d3-folha-leve);border:0;overflow:hidden;display:flex;flex-direction:column}
 @media (min-width:721px){.vc-camada > #vv-reunioes{border-radius:28px}}
-#vv-reunioes .v2r{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:26px 30px 0;container:v2r / inline-size;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),system-ui,sans-serif;color:#1F1D1A}
+#vv-reunioes .v2r{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:26px 30px 0;container:v2r / inline-size;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),system-ui,sans-serif;color:var(--d3-tinta)}
 #vv-reunioes .v2r p,#vv-reunioes .v2r h2,#vv-reunioes .v2r h3{margin:0}
-#vv-reunioes .v2r-x{appearance:none;flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border:0;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:inset 0 0 0 1px #E6E0D6;cursor:pointer}
+#vv-reunioes .v2r-x{appearance:none;flex:none;display:grid;place-items:center;width:38px;height:38px;margin:0;padding:0;border:0;border-radius:50%;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:inset 0 0 0 1px var(--d3-borda);cursor:pointer}
 #vv-reunioes .v2r-x:hover{background:#F6F3EE}
 #vv-reunioes .v2r-x:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
 #vv-reunioes .v2r-lista{display:flex;flex-direction:column}
-#vv-reunioes .v2r-busca{flex:1 1 140px;min-width:140px;height:36px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E0D6;color:#1F1D1A;font:400 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;appearance:none}
-#vv-reunioes .v2r-busca::placeholder{color:#6B665E}
+#vv-reunioes .v2r-busca{flex:1 1 140px;min-width:140px;height:36px;box-sizing:border-box;margin:0;padding:0 16px;border:0;border-radius:999px;background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;appearance:none}
+#vv-reunioes .v2r-busca::placeholder{color:var(--d3-apagado)}
 #vv-reunioes .v2r-busca:focus-visible{outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
-#vv-reunioes [data-v2r="pede"] > .v2r-pe{border-top:1px solid #F1EDE6}
+#vv-reunioes [data-v2r="pede"] > .v2r-pe{border-top:1px solid var(--d3-linha)}
 /* Formulário de Nova reunião: campo em pílula de 34, área de texto com raio 14. */
 #vv-reunioes :is(.v2r-inp,.v2r-pt):focus-visible{outline:0;box-shadow:inset 0 0 0 1.5px #1F1D1A}
 
@@ -188,7 +188,7 @@
 /* Fiel ao quadro */
 /* Ficha do cliente (D3-FichaCliente): a faixa de cima com Saúde, Clima do grupo e Onboarding. */
 #painel-clientes .d3f-ag{width:20px;height:20px;border-radius:999px;background:#6E56CF;color:#FFFFFF;display:inline-flex;align-items:center;justify-content:center;font:700 10px Inter,sans-serif}
-#painel-clientes :is(.d3f-faixa-pe,.d3f-faixa-vazio){margin:0;font-size:var(--d3-fs-texto);color:#4A463F}
+#painel-clientes :is(.d3f-faixa-pe,.d3f-faixa-vazio){margin:0;font-size:var(--d3-fs-texto);color:var(--d3-texto2)}
 
 /* Acabamento premium (15/11/2026, item 10): na pilha de avatares das Reuniões o segundo cobria as letras do primeiro
    ("PA" cortado debaixo do "CA"). Encostam menos (4 px em vez de 8), com o anel branco separando. */

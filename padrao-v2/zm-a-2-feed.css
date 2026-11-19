@@ -15,7 +15,7 @@ body.mundo.mundo-modulo[data-modo="gestor"]:not([data-pv2-vista="feed"]) #pv2-fe
 /* O seletor no vidro (o mesmo desenho das vistas do topo): caixa de véu, o escolhido branco. */
 #pv2-painel.pv2 .d3m-a-vseg,#feed-board.d3m-a-v2 .d3m-a-vseg{background:var(--d3-fume-veu);box-shadow:none}
 .d3m-a-vseg > button,#pv2-painel.pv2 .d3m-a-vseg > button{appearance:none;flex:0 1 auto;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-a-vseg > button[aria-checked="true"],#pv2-painel.pv2 .d3m-a-vseg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-a-vseg > button[aria-checked="true"],#pv2-painel.pv2 .d3m-a-vseg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > #feed-board.d3m-a-v2{flex:1 1 0;display:grid;grid-template-columns:248px 374px minmax(0,1fr);gap:16px;min-height:0;margin-top:0;margin-bottom:-48px;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta)}
 
 /* 2 · A lista dos clientes, no vidro. */
@@ -44,7 +44,7 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv
 .vfd2-cel{min-height:0}
 .vfd2-perfil{flex:none;display:flex;align-items:center;gap:12px;padding:16px 16px 10px}
 .vfd2-perfil > div{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
-.vfd2-avatar{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--d3-tinta);color:var(--d3-escuro-texto);font:600 var(--d3-fs-titulo) var(--vv-texto,Inter,sans-serif);font-style:normal}
+.vfd2-avatar{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-titulo) var(--vv-texto,Inter,sans-serif);font-style:normal}
 .vfd2-perfil p{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 .vfd2-perfil .vfd2-nums{color:var(--d3-rotulo)}
 #feed-board.d3m-a-v2 .vfd2-user > .vfd-ig-user{font:600 14px/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);text-decoration:none}
@@ -105,7 +105,7 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
 .vfd2-peca{background:var(--d3-veu);box-shadow:inset 0 -2px 0 var(--st,var(--d3-meta))}
 .vfd2-peca:hover{background:var(--d3-veu-forte)}
 .vfd2-peca > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vfd2-peca > small{flex:none;font-size:9px;color:var(--d3-rotulo)}
+.vfd2-peca > small{flex:none;font-size:9px;color:var(--d3-texto2)}
 .vfd2-peca.passou{color:var(--d3-rotulo)}
 .vfd2-x{background:var(--d3-perigo-veu)}
 .vfd2-x:hover{box-shadow:inset 0 0 0 1px var(--d3-perigo)}
@@ -124,7 +124,7 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
 .vfd2-marcadas-txt > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
 #feed-board.d3m-a-v2 .vfd2-fmt{flex:none;width:auto;height:34px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #feed-board.d3m-a-v2 .vfd2-fmt > option{color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
-#feed-board.d3m-a-v2 .vfd2-cadastrar{flex:none;background:var(--d3-fume-texto);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd2-cadastrar{flex:none;background:var(--d3-fume-texto);color:var(--d3-fume-contra);-webkit-text-fill-color:var(--d3-fume-contra)}
 .vfd2-painel{padding:4px}
 #feed-board.d3m-a-v2 .vfd2-painel > .vfd-ajuste{border:0;background:none}
 .vfd2-atalhos{display:flex;flex-direction:column;gap:8px}

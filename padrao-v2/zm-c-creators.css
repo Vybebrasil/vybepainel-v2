@@ -52,7 +52,7 @@
 .cr2-verso .m2-acoes{margin-top:auto}
 .cr2-verso .d3m-c-btn.c{box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
 .cr2-verso .d3m-c-btn.c:hover{background:var(--d3-fume-veu)}
-.cr2-verso .d3m-c-btn.c.k{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta-fixa)}
+.cr2-verso .d3m-c-btn.c.k{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra)}
 .cr2-verso .d3m-c-btn.c.ruim{color:var(--d3-perigo-vidro)}
 .cr2-verso .d3m-c-btn.c:focus-visible{outline-color:var(--d3-fume-texto)}
 /* A consulta: os nichos em barras; cada linha filtra a grade. */

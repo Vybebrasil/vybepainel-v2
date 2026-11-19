@@ -27,7 +27,7 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
 #painel-clientes .cv2-seg{order:1;flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
 #painel-clientes .cv2-seg > button{appearance:none;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
 #painel-clientes .cv2-seg > button:hover{background:var(--d3-fume-veu)}
-#painel-clientes .cv2-seg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+#painel-clientes .cv2-seg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 #painel-clientes .cv2-seg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 #painel-clientes .cv2-busca{order:2;flex:none;display:flex;margin:0}
 #painel-clientes .cv2-busca.aberta > .d3m-ico,#painel-clientes .cv2-busca:not(.aberta) > input{display:none}
@@ -35,7 +35,7 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
 #painel-clientes .cv2-busca > input:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 #painel-clientes .cv2-busca[hidden]{display:none}
 #painel-clientes .cv2-topo > .cv2-acoes > .d3m-ico{order:3}
-#painel-clientes .cv2-novo{order:4;appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+#painel-clientes .cv2-novo{order:4;appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);color:var(--d3-fume-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
 #painel-clientes .cv2-novo > svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 #painel-clientes .cv2-novo:hover{background:var(--d3-folha)}
 #painel-clientes .cv2-novo:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}

@@ -100,7 +100,7 @@
 .vc-im-acoes{justify-self:center;display:flex;align-items:center;gap:6px;padding:4px;border-radius:12px}
 .vc-im-btn{height:34px;min-width:140px;padding:0 18px;border:0;border-radius:9px;background:var(--vidro-forte);font:600 13px var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer;transition:background .18s ease,filter .18s ease}
 .vc-im-btn:hover{background:var(--d3-cartao)}
-.vc-im-btn.k{background:var(--d3-acao);color:var(--d3-cartao)}
+.vc-im-btn.k{background:var(--d3-acao);color:var(--d3-escuro-texto)}
 .vc-im-btn.k:hover{filter:brightness(1.06)}
 .vc-im-seta{width:34px;height:34px;border:0;border-radius:9px;background:transparent;font:500 18px/1 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
 .vc-im-seta:hover:not(:disabled){background:var(--vidro-forte)}

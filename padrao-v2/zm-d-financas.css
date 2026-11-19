@@ -17,8 +17,8 @@
 .d3m-d-fm .d3m-d-fm-nav{flex:none}
 .d3m-d-fm .d3m-d-fm-nav .d3m-vlin{flex:none;height:30px}
 .d3m-d-fm .d3m-d-fm-nav .d3m-vlin > .d3m-vn{min-width:0;color:var(--d3-fume-texto)}
-.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
-.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"] > .d3m-vn{color:var(--d3-tinta)}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"] > .d3m-vn{color:var(--d3-fume-contra)}
 /* As setas do mês no topo. */
 .d3m-d-fm-setas{flex:none;display:inline-flex;gap:4px}
 .d3m-d-fm-setas > .d3m-d-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -37,7 +37,7 @@
 .d3m-d-fm-ficha[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
 .d3m-d-fm-ficha > span{color:var(--d3-rotulo);font-weight:400;font-variant-numeric:tabular-nums}
 .d3m-d-fm-ficha > span.r{color:var(--d3-perigo)}
-.d3m-d-fm-ficha > span.a{color:var(--d3-ambar)}
+.d3m-d-fm-ficha > span.a{color:var(--d3-ajuste)}
 .d3m-d-fm-ficha > span.g{color:var(--d3-pronto)}
 .d3m-d-fm-ficha:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
 .d3m-d-fm-th,.d3m-d-fm-tr{display:flex;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
@@ -156,7 +156,7 @@ label.d3m-d-vbtn{cursor:pointer}
 .d3m-d-fm-graf > .d3m-d-fm-leg-graf{padding:0 0 4px}
 .d3m-d-fm .d3f-eixo > :is(span,b){display:flex;flex-direction:column;align-items:center;gap:1px}
 .d3m-d-fm .d3f-eixo small{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
-.d3m-d-fm .d3f-eixo .proj small{color:var(--d3-agente)}
+.d3m-d-fm .d3f-eixo .proj small{color:var(--d3-agente-texto)}
 .d3m-d-fm-ese .d3m-d-fm-painel{padding-top:0}
 /* Dois cartões lado a lado embaixo do principal. */
 .d3m-d-fm-par{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:150px}

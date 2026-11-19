@@ -31,7 +31,7 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 #painel-clientes .fv2-abas > button{flex:none;display:inline-flex;align-items:center;gap:6px}
 #painel-clientes .fv2-abas > button > svg{flex:none}
 #painel-clientes .fv2-abas .v2f-q{min-width:0;height:auto;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font-size:inherit;font-weight:400;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
-#painel-clientes .fv2-abas > button[aria-checked="true"] .v2f-q{color:var(--d3-rotulo)}
+#painel-clientes .fv2-abas > button[aria-checked="true"] .v2f-q{color:color-mix(in srgb,var(--d3-fume-contra) 68%,transparent)}
 #painel-clientes .fv2-acoes{flex:none;display:inline-flex;align-items:center;gap:8px;margin:0}
 /* Sem largura para tudo numa linha (janela estreita ou muitas abas), as abas descem para uma linha só delas. */
 @container fv2topo (max-width:1480px){

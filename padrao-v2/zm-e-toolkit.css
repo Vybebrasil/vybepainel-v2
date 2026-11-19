@@ -24,7 +24,7 @@ body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela{display:flex;f
 #vv-ferramentas .d3m-e-tk-fer{display:flex;flex-direction:column;gap:12px;min-height:0;padding:16px;overflow:hidden}
 #vv-ferramentas .d3m-e-tk-cab{display:flex;align-items:flex-start;gap:10px}
 #vv-ferramentas .d3m-e-tk-cab-t{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
-#vv-ferramentas .d3m-e-tk-ico{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto))}
+#vv-ferramentas .d3m-e-tk-ico{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-contra)}
 #vv-ferramentas .d3m-e-tk-ico.whatsapp{background:var(--d3-pronto)}
 #vv-ferramentas .d3m-e-tk-ico.roi{background:var(--d3-agente-texto)}
 #vv-ferramentas .d3m-e-tk-ico > svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -40,7 +40,7 @@ body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela{display:flex;f
 #vv-ferramentas .d3m-e-tk-cor > i{flex:none;width:14px;height:14px;border-radius:4px}
 #vv-ferramentas .d3m-e-tk-seg{height:36px;align-items:center}
 /* O botão preto da ferramenta (28, canto 8). */
-#vv-ferramentas .d3m-e-tk-btn{appearance:none;display:inline-flex;align-items:center;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-ferramentas .d3m-e-tk-btn{appearance:none;display:inline-flex;align-items:center;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
 #vv-ferramentas .d3m-e-tk-btn:hover{background:var(--d3-texto2)}
 #vv-ferramentas .d3m-e-tk-btn:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
 /* O resultado: a caixa de véu que ocupa o resto da folha. */
@@ -64,3 +64,10 @@ body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela{display:flex;f
   #vv-ferramentas .d3m-e-tk-tres{display:flex;flex-direction:column;flex:none}
   #vv-ferramentas .d3m-e-tk-fer{flex:none}
 }
+/* Temas (18/11): os quadros do formulário, do link e dos cartões vinham da folha antiga em #FFFFFF fixo e ficavam claros no
+   Escuro. Passam ao cartão e à borda do tema (o quadro do QR continua branco: o código precisa de fundo claro). */
+#vv-ferramentas.d3m-e-tk-janela :is(.vf-campos,.vf-link,.vf-cartao,.vf-recentes){background:var(--d3-cartao);border-color:var(--d3-borda)}
+#vv-ferramentas.d3m-e-tk-janela .vf-campos :is(input,select,textarea){color:var(--d3-tinta);background-color:var(--d3-cartao)}
+#vv-ferramentas.d3m-e-tk-janela .vf-campos label > span,#vv-ferramentas.d3m-e-tk-janela .vf-campo-escolha > span,#vv-ferramentas.d3m-e-tk-janela .vf-cor legend{color:var(--d3-texto2)}
+#vv-ferramentas.d3m-e-tk-janela :is(.vf-cor small,.vf-dica,.vf-link.vazio p){color:var(--d3-apagado)}
+#vv-ferramentas.d3m-e-tk-janela .vf-qr.vazio p{color:var(--d3-rotulo-fixo)}

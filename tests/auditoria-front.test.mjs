@@ -59,11 +59,11 @@ test('fala de agente sem ação vira cartão claro; com botão continua laranja'
 
 test('CSS da auditoria: filtros, contraste, foco, camadas antigas, agenda, loja e "Sem filtros"; sem !important', () => {
   assert.doesNotMatch(css, /!important|html body\.mundo/);
-  assert.match(css, /\.v2c-filtros > \.v2c-btn:is\(\.k,\[aria-expanded="true"\]\)[^{]*\{background:var\(--d3-tinta\);color:#FFFFFF\}/);
+  assert.match(css, /\.v2c-filtros > \.v2c-btn:is\(\.k,\[aria-expanded="true"\]\)[^{]*\{background:(?:var\(--d3-tinta\)|var\(--d3-(?:tinta|fume-contra|contra)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\}/);
   assert.match(css, /\.d3-num\.q\.q > \.d3-num-v\{color:var\(--vv-apagado/);
   assert.match(css, /\.vb-resumo-item\.zero\.zero[^{]*\{color:var\(--vv-apagado/);
-  assert.match(css, /\.g2-mais > summary > u\{color:#A83D08\}/);
-  assert.match(css, /--ds-foco:0 0 0 2px #FFFFFF,0 0 0 4px #1F1D1A/);
+  assert.match(css, /\.g2-mais > summary > u\{color:(?:#A83D08|var\(--d3-(?:acao-texto)(?:,[^)]*\))?\))\}/);
+  assert.match(css, /--ds-foco:0 0 0 2px (?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\)),0 0 0 4px (?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/);
   assert.match(css, /body\.mundo:not\(\.mundo-modulo\):not\(\.mundo-gestao\) > :is\(header\.app-header,\.container,\[id\^="painel-"\]:not\(#painel-escritorio\)\)\{visibility:hidden\}/);
   assert.match(css, /#pv2-agenda \.capt-fab\.capt-fab\{display:none\}/);
   assert.match(css, /\.ag-chip\.ag-chip span\{text-overflow:ellipsis\}/);

@@ -14,7 +14,7 @@ body.mundo #vv-agentes.vv-ag.d3m-d-m{display:flex;flex-direction:column;gap:16px
 /* Topo: a busca abre ao lado da lupa; a central sem sinal avisa ali. */
 .d3m-d-ag-topo .d3m-d-ag-busca::placeholder{color:var(--d3-fume-apagado)}
 .d3m-d-ag-topo .d3m-d-ag-busca:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-.d3m-d-ag-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+.d3m-d-ag-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
 .d3m-d-ag-sinal{display:inline-flex;align-items:center;gap:8px;font-size:var(--d3-fs-apoio);color:var(--d3-perigo-vidro);white-space:nowrap}
 
 /* A tela: a coluna principal e a coluna de consulta de 316 (a grade, igual à da Carteira e do Comercial, mora em z-direcao.css, seção 13). */
@@ -98,7 +98,7 @@ div.d3m-d-ag-central{cursor:default}
 .d3m-d-ag-lado .d3t-meta > summary::-webkit-details-marker{display:none}
 .d3m-d-ag-lado .d3t-meta-form{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 0;padding:8px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio)}
 .d3m-d-ag-lado .d3t-meta-form input{width:56px;height:28px;margin:0 4px;padding:0 6px;border:0;border-radius:6px;background:var(--d3-cartao);color:var(--d3-tinta);font:inherit}
-.d3m-d-ag-lado .d3t-meta-form button{appearance:none;height:28px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);color:var(--d3-tinta);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.d3m-d-ag-lado .d3t-meta-form button{appearance:none;height:28px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);color:var(--d3-fume-contra);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
 
 /* Tela baixa (1366 × 768): o alto e as células um degrau menores. */
 @media (max-height:820px){

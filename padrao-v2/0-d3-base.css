@@ -28,7 +28,7 @@
   --d3-fume-texto:#FFFFFF; --d3-fume-apagado:rgba(255,255,255,.84); --d3-fume-escuro:rgba(18,15,13,.5); --d3-fume-painel:#2B2520; --d3-rotulo-fixo:rgba(31,29,26,.68);
   --d3-folha:rgba(255,255,255,.9); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.55); --d3-rotulo:rgba(31,29,26,.68); --d3-divisa:rgba(31,29,26,.07); --d3-veu:rgba(31,29,26,.07); --d3-veu-forte:rgba(31,29,26,.12);
   --d3-tinta-fixa:#1F1D1A; --d3-ambar:#8F5600; --d3-perigo-vidro:#FFC4BC;
-  --d3-laranja:radial-gradient(52% 52% at 100% 0%,#EDA676 0%,rgba(237,166,118,0) 70%),linear-gradient(170deg,#C2490C 0%,#A83D08 100%);
+  --d3-laranja:radial-gradient(36% 44% at 100% 0%,rgba(237,166,118,.62) 0%,rgba(237,166,118,0) 70%),linear-gradient(170deg,#C2490C 0%,#A83D08 100%);
   --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
   /* Escala de fonte (acabamento premium, 15/11/2026): seis tamanhos inteiros no lugar dos 14 a 19 por tela e dos meios
      pixels (10,5 / 11,5 / 12,5 / 13,5 / 14,5). mini: selo, contador, legenda miúda · apoio: rótulo, chip, sublinha ·
@@ -38,11 +38,11 @@
   /* Temas (Paulo, 16/11/2026: "criar um tema white e um dark"). Tokens que só existem por causa dos três temas, aqui com o
      valor do Fumê: contra = a letra sobre um preenchimento de tinta (botão cheio da folha); fume-contra = a letra sobre um
      preenchimento de fume-texto (o escolhido no vidro: o ativo do menu, a aba marcada); fume-texto2 e fume-meta = o segundo
-     tom e o apagado de enfeite no vidro; acao-texto-fixa e agente-fixo = as cores que ficam sobre branco fixo (o botão
+     tom e o apagado de enfeite no vidro; acao-texto-fixa, agente-fixo, info-fixa e agente-texto-fixa = as cores que ficam sobre branco fixo (o botão
      branco dentro do laranja), iguais em todo tema; tema-fundo = a cor chapada do ambiente (atrás do degradê); ambiente-veu = o véu que entra
      entre o ambiente e a tela quando ela fica direto nele, sem a janela de vidro (o Hoje no celular). */
   --d3-contra:#FFFFFF; --d3-fume-contra:#1F1D1A; --d3-fume-texto2:rgba(255,255,255,.86); --d3-fume-meta:rgba(255,255,255,.4);
-  --d3-acao-texto-fixa:#A83D08; --d3-agente-fixo:#6E56CF; --d3-tema-fundo:#6B5F55; --d3-ambiente-veu:rgba(18,15,13,.44);
+  --d3-acao-texto-fixa:#A83D08; --d3-agente-fixo:#6E56CF; --d3-info-fixa:#1E4A9A; --d3-agente-texto-fixa:#4B36A8; --d3-folha-leve:#F9F8F5; --d3-tema-fundo:#6B5F55; --d3-ambiente-veu:rgba(18,15,13,.44);
 }
 
 /* ===================================================================================================================
@@ -92,15 +92,19 @@
   --d3-acao-claro:#E39A6A; --d3-perigo-claro:#FF9C8F; --d3-pronto-claro:#7FD8A4; --d3-ajuste-claro:#F2C46D; --d3-info-claro:#9DBBFF; --d3-agente-claro:#B9A8FF; --d3-perigo-vidro:#FFC4BC;
   --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
 }
-/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), as partes da Produção na vista Semana (a mesma
-   casa .pv2-casa guarda a Agenda, as Demandas e as outras vistas, que ainda são folha clara) e qualquer raiz
-   com a classe d3-tema. Tela remontada no padrão V2 entra aqui (ou leva a classe) e passa a escurecer junto.
+/* A folha escura. A lista é a das telas V2 (a raiz de cada uma): #vv-hoje (Hoje), a Produção inteira (.pv2-casa: Semana, Mês,
+   Feed, Grupos, Equipe e Agenda), as Demandas, Clientes e ficha, as visões gerais dos setores e a Gestão (.vv-gestao),
+   as janelas dos módulos (#vv-*), Diário, IA e custos, Automações, Conta, Equipe online, Loja e Ranking, e qualquer
+   raiz com a classe d3-tema (Paulo, 18/11: "no modo escuro, Minhas tarefas tá escuro, mas Visão geral tá claro").
+   Tela remontada no padrão V2 entra aqui (ou leva a classe) e passa a escurecer junto.
    .d3-previa é a prévia da tela de escolha: leva o tema no próprio elemento e não herda o da página. */
-[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] :is(#pv2-painel,#pv2-regua,#pv2-semana,#pv2-pe,#panel-week4),.d3-tema):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
-  --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
+[data-d3-tema="escuro"] :is(#vv-hoje,body[data-modo="gestor"][data-pv2-vista="semana"] :is(#pv2-painel,#pv2-regua,#pv2-semana,#pv2-pe,#panel-week4),.d3-tema,.pv2-casa,#painel-demandas,#painel-clientes,#painel-diario,#painel-ai-usage,#painel-automacoes,#painel-conta,.vv-gestao,#vv-pessoas,#vv-conteudo,#vv-planejamentos,#vv-comercial,#vv-impressoes,#vv-carteira,#vv-reunioes,#vv-agentes,#vv-ferramentas,#vv-placa,#office-catalogo,#ofc-ranking,#workspace-drawer,#status-editor,#dono-editor):not(.d3-previa *),.d3-previa[data-d3-tema="escuro"]{
+  --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-folha-leve:#262523; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
   --d3-tinta:#F4F2ED; --d3-texto2:#D8D4CD; --d3-apagado:#ABA69E; --d3-meta:#75706A; --d3-rotulo:rgba(244,242,237,.7); --d3-divisa:rgba(255,255,255,.08); --d3-veu:rgba(255,255,255,.07); --d3-veu-forte:rgba(255,255,255,.13); --d3-contra:#1F1D1A;
   --d3-cart-vinicius:#F2A678; --d3-cart-ewerton:#9DBBFF; --d3-acao-texto:#F2A678; --d3-perigo:#FF9C8F; --d3-ajuste:#F2C46D; --d3-pronto:#7FD8A4; --d3-info:#9DBBFF; --d3-ambar:#F2C46D; --d3-agente-texto:#B9A8FF;
   --d3-perigo-veu:rgba(255,156,143,.15); --d3-ajuste-veu:rgba(242,196,109,.15); --d3-pronto-veu:rgba(127,216,164,.15); --d3-info-veu:rgba(157,187,255,.15); --d3-agente-veu:rgba(185,168,255,.17);
+  /* as variáveis da folha antiga que as telas de módulo ainda leem */
+  --vv-tinta:var(--d3-tinta); --vv-apagado:var(--d3-apagado); --vv-linha:var(--d3-borda); --vv-papel:var(--d3-trilho);
 }
 
 /* Bloco de ação: a única faixa laranja da tela. Frase curta, avatar do agente branco e um botão branco. */

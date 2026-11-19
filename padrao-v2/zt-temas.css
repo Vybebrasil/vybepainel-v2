@@ -54,12 +54,14 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana
 #vv-hoje .d3q > .d3h-lado{--d3-tinta:var(--d3-fume-texto);--d3-texto2:var(--d3-fume-texto2);--d3-meta:var(--d3-fume-meta);--d3-contra:var(--d3-fume-contra)}
 body.mundo #mundo-hud :is(.vv-setor,.vv-menu-conta,.vv-avisos-painel,#vv-agenda,.vv-mais-lista),body.mundo .vv-conversa.vv-conversa{--d3-contra:var(--d3-fume-contra)}
 :is(.d3v-laranja,.d3m-laranja,.d3-acao){--d3-acao-texto:var(--d3-acao-texto-fixa);--d3-agente:var(--d3-agente-fixo);--d3-agente-texto:#4B36A8;
-  --d3-fume-texto:#FFFFFF;--d3-fume-apagado:rgba(255,255,255,.88);--d3-fume-texto2:rgba(255,255,255,.88);--d3-fume-veu:rgba(255,255,255,.16);--d3-fume-veu-forte:rgba(255,255,255,.24);--d3-fume-borda:rgba(255,255,255,.38);--d3-fume-contra:var(--d3-acao-texto-fixa)}
+  --d3-fume-texto:#FFFFFF;--d3-fume-apagado:rgba(255,255,255,.88);--d3-fume-texto2:rgba(255,255,255,.88);--d3-fume-veu:rgba(255,255,255,.16);--d3-fume-veu-forte:rgba(255,255,255,.24);--d3-fume-borda:rgba(255,255,255,.38);--d3-fume-contra:var(--d3-acao-texto-fixa);--d3-fume-escuro:rgba(18,15,13,.5)}
 /* A faixa da barra de rolagem da página (scrollbar-gutter) mostra o fundo do html: ele acompanha o ambiente do tema. */
 html[data-d3-tema]:has(body.mundo),html[data-d3-tema]:has(body.mundo.mundo-visivel:not(.mundo-centro)),html[data-d3-tema]:has(body.mundo.mundo-modulo){background:var(--d3-tema-fundo)}
-/* O nome do cliente leva a cor da carteira (Vinícius laranja, Ewerton azul): na folha escura, a versão clara das duas. */
-:where([data-d3-tema="escuro"]) :is(#vv-hoje,.d3-tema) .cliente-carteira[data-carteira="vinicius"],:where([data-d3-tema="escuro"]) :where(body[data-modo="gestor"][data-pv2-vista="semana"]) :is(#pv2-semana,#panel-week4) .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
-:where([data-d3-tema="escuro"]) :is(#vv-hoje,.d3-tema) .cliente-carteira[data-carteira="ewerton"],:where([data-d3-tema="escuro"]) :where(body[data-modo="gestor"][data-pv2-vista="semana"]) :is(#pv2-semana,#panel-week4) .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
+/* O nome do cliente leva a cor da carteira (Vinícius laranja, Ewerton azul): na folha escura, a versão clara das duas.
+   Cliente sem carteira: o apagado do tema (a folha antiga escrevia #6B665E, que some na folha escura). */
+body.mundo .cliente-carteira:where(:not([data-carteira="vinicius"]):not([data-carteira="ewerton"])){--carteira-texto:var(--d3-apagado)}
+:where([data-d3-tema="escuro"]) body.mundo .cliente-carteira[data-carteira="vinicius"]{--carteira-texto:var(--d3-cart-vinicius)}
+:where([data-d3-tema="escuro"]) body.mundo .cliente-carteira[data-carteira="ewerton"]{--carteira-texto:var(--d3-cart-ewerton)}
 
 /* 3 · A TROCA DE TEMA. A foto do tema de antes some por cima do novo (de 1 a 0); o novo já está inteiro por baixo. */
 @keyframes d3TemaSai{from{opacity:1}to{opacity:0}}
@@ -74,8 +76,6 @@ body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button{pad
 #conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button,#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button + button{width:68px}
 
 /* 2b · ACERTOS MEDIDOS (contraste de 4,5:1 nos três temas, no Hoje, na Produção e nos menus). */
-/* Avatar de agente e a sua foto no menu: preenchimento de cor, letra branca em todo tema. */
-#vv-hoje .d3q > .d3h-lado .d3h-av.ag,#vv-hoje .d3h-co .v2o-heitor-av,body.mundo #mundo-hud .vv-menu-conta .vv-menu-av{color:var(--d3-escuro-texto)}
 /* O botão de véu dentro do laranja: véu mais fino, para a letra branca passar de 4,5:1 (estava em 4,4). */
 #vv-hoje .d3q .d3v-laranja :is(.d3-acao-btn,.d3h-btn){background:rgba(255,255,255,.09)}
 /* O dia com compromisso no mês: a cor do compromisso um tom abaixo, com o número branco (estava em 3,7:1). */
@@ -100,6 +100,33 @@ body[data-modo="gestor"][data-pv2-vista="semana"] :is(#pv2-painel,#pv2-semana,#p
   body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar,body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar,
   body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar > svg,body.mundo #mundo-hud .vv-trilho .vv-trilho-btn.criar > svg{color:var(--d3-escuro-texto);stroke:var(--d3-escuro-texto)}
 }
+/* A folha antiga prende título, resumo e cabeçalho de tabela das telas de módulo em cor escrita (#1F1D1A e #6B665E, a maior
+   parte com !important): na folha escura do Escuro eles ficavam escuros sobre escuro. O preenchimento do texto sai do token
+   (só no Escuro; sem brigar com o !important), e o parágrafo solto sem classe usa o apagado. */
+:where([data-d3-tema="escuro"]) body.mundo :is(.container,[id^="painel-"]:not(#painel-escritorio),#vv-pessoas,#vv-conteudo,#vv-planejamentos,#vv-comercial,#vv-impressoes,#vv-carteira,#vv-reunioes,#vv-agentes,#vv-ferramentas,#vv-placa,#office-catalogo,#ofc-ranking,.vv-gestao) :is(h1,h2,h3,h4,.grupos-titulo,.resumo-conta,.capt-tb-titulo){-webkit-text-fill-color:var(--d3-tinta)}
+:where([data-d3-tema="escuro"]) body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) :is(th,.cli-th-volume){-webkit-text-fill-color:var(--d3-apagado)}
+:where([data-d3-tema="escuro"]) body.mundo.mundo-modulo.mundo-modulo :is(.container,[id^="painel-"]) :is(p,small,i,em):not([class]){color:var(--d3-apagado)}
+/* O agente que fala na visão do setor: círculo do cartão com a letra roxa; na folha escura o cartão escurece e a letra
+   passa ao roxo claro do tema. */
+:where([data-d3-tema="escuro"]) .vv-gestao.vv-gestao .g2-fala .g2-ag{color:var(--d3-agente-texto)}
+/* Cadastro da ficha: o cartão antigo pinta o fundo com var(--surface) e !important; a superfície passa a ser o cartão do tema.
+   Conta: o rótulo da linha de IA preso em #6B665E pela folha antiga. */
+#painel-clientes .fv2-aba-folha .cad-ficha{--surface:var(--d3-cartao)}
+#painel-clientes .fv2-aba-folha .cad-ficha > p{-webkit-text-fill-color:var(--d3-apagado)}
+#painel-clientes .fv2-aba-folha .cad-ficha .cli-lapis:not(.criar){-webkit-text-fill-color:var(--d3-apagado)}
+#painel-clientes .fv2-aba-folha .cad-ficha .cli-lapis.criar{-webkit-text-fill-color:var(--d3-acao-texto)}
+body.mundo .d3m-e-ct-rot.conta-ai-rotulo{color:var(--d3-rotulo)}
+/* Passagem de bastão (#workflow-modal) e editor de responsável (#dono-editor), folha clara antiga: a foto de cada pessoa é um
+   círculo na cor dela; a folha antiga prende a letra da ficha em #6B665E (com !important, por isso o preenchimento do texto)
+   e a inicial herdava esse cinza (1,1 a 3,2:1). Inicial branca sobre a cor da pessoa com um véu escuro por cima: as cores
+   claras (azul-céu, âmbar, verde-água) davam 1,8:1 com o branco puro.
+   As sugestões rápidas ("Trocar a imagem") vinham com o cinza do tema escuro antigo sobre a folha clara (2,4:1). */
+#workflow-modal :is(.context-person,.dono-ficha) .owner-avatar-fallback,#dono-editor .owner-editor-person .owner-avatar-fallback{color:var(--d3-escuro-texto);-webkit-text-fill-color:var(--d3-escuro-texto);box-shadow:inset 0 0 0 40px rgba(18,15,13,.52)}
+#workflow-modal .pv-sugestoes button:not(.on){color:var(--d3-texto2)}
+/* Editor de responsável (#dono-editor, folha clara antiga): a regra da disciplina e o "pode ficar sem responsável" vinham
+   em #8B8B90 (3,4:1 no branco). */
+#dono-editor .dono-salvar{-webkit-text-fill-color:var(--d3-contra)}
+#dono-editor :is(.dono-regra,.dono-sem){color:var(--d3-apagado);-webkit-text-fill-color:var(--d3-apagado)}
 /* A sua foto no seletor "Dia de" (o Hoje de Minhas tarefas): fundo do tema, para as iniciais passarem de 4,5:1 no celular. */
 #vv-hoje .d3q .d3h-topo :is(.d3h-dia > summary,button.d3h-dia) > i{background:var(--d3-fume-escuro)}
 

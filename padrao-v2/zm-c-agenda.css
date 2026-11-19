@@ -14,8 +14,8 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 
 /* As cores da agenda: captação verde, reunião roxa, compromisso azul e a gravação sem fechar no laranja. */
 .agv2 .t-captacao{--agv2-cor:var(--d3-mod-vybe);--agv2-clara:var(--d3-mod-vybe-claro)}
-.agv2 .t-reuniao{--agv2-cor:var(--d3-agente-texto);--agv2-clara:var(--d3-agente-claro)}
-.agv2 .t-outro{--agv2-cor:var(--d3-info);--agv2-clara:var(--d3-info-claro)}
+.agv2 .t-reuniao{--agv2-cor:var(--d3-agente-texto-fixa);--agv2-clara:var(--d3-agente-claro)}
+.agv2 .t-outro{--agv2-cor:var(--d3-info-fixa);--agv2-clara:var(--d3-info-claro)}
 .agv2 .fechar{--agv2-cor:var(--d3-acao);--agv2-clara:var(--d3-acao-claro)}
 .agv2-folha.carregando{opacity:.7}
 .agv2-legenda{flex:none;display:inline-flex;align-items:center;gap:2px}
@@ -34,7 +34,7 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 .agv2-dia{appearance:none;display:flex;align-items:center;gap:6px;min-width:0;margin:0;padding:0 4px 0 6px;border:0;border-left:1px solid var(--d3-divisa);border-radius:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
 .agv2-dia:hover{background:var(--d3-veu)}
 .agv2-dia > b{flex:none;font-weight:500;white-space:nowrap}
-.agv2-dia.hoje > b{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-escuro-texto);font-weight:600}
+.agv2-dia.hoje > b{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:7px;background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 .agv2-dia > span{min-width:0;font-size:var(--d3-fs-mini);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .agv2-dia:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
 .agv2-todo{flex:none;display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));border-top:1px solid var(--d3-divisa)}

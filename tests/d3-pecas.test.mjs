@@ -19,7 +19,7 @@ test('gaveta: etapas em barra, atraso no canto, data vencida em vermelho e o Res
   assert.match(gaveta, /<div class="gv2-resumo"><div class="gv2-col">/);
   for (const f of ['gavetaArquivosPreviaHtml(assets, entrega)', 'gavetaConversaPreviaHtml(updates)', 'gavetaFichaResumoHtml(detail, item)', "abrirLogDaPeca('${id}')"]) assert.ok(gaveta.includes(f), f);
   assert.match(peca, /\.gv2-resumo\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
-  assert.match(peca, /\.gv2-aba\[aria-checked="true"\]\{background:var\(--d3-tinta,#1F1D1A\);color:#FFFFFF/);
+  assert.match(peca, /\.gv2-aba\[aria-checked="true"\]\{background:var\(--d3-tinta,(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))\);color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
 });
 
 test('pílula de status: clara com a bolinha; cheia só em Alteração, Atrasada e Finalizado', () => {
@@ -38,17 +38,17 @@ test('status: lista inteira com "Todos · N" e o visto; Ordem e próximo passo e
 });
 
 test('famílias: aba escolhida preta, ícone do vazio em círculo claro, obrigatório em âmbar, desfazer em pílula', () => {
-  assert.match(fam, /\[role="tab"\]:is\(\[aria-selected="true"\],\.ativa,\.active\)\{background:var\(--d3-tinta,#1F1D1A\);color:#FFFFFF/);
-  assert.match(fam, /\.vb-estado-icone\{[^}]*width:52px;height:52px;border-radius:50%;background:var\(--d3-trilho,#F3F1EC\)/);
-  assert.match(fam, /\.vb-obrig\.vb-obrig:not\(#vb-a\)\{[^}]*color:var\(--d3-ajuste,#7A4A00\)\}/);
+  assert.match(fam, /\[role="tab"\]:is\(\[aria-selected="true"\],\.ativa,\.active\)\{background:var\(--d3-tinta,(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))\);color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(fam, /\.vb-estado-icone\{[^}]*width:52px;height:52px;border-radius:50%;background:var\(--d3-trilho,(?:#F3F1EC|var\(--d3-(?:trilho)(?:,[^)]*\))?\))\)/);
+  assert.match(fam, /\.vb-obrig\.vb-obrig:not\(#vb-a\)\{[^}]*color:var\(--d3-ajuste,(?:#7A4A00|var\(--d3-(?:ajuste)(?:,[^)]*\))?\))\)\}/);
   assert.match(d3, /body\.mundo #v2-desfazer button\{[^}]*background:rgba\(255,255,255,\.16\)/);
 });
 
 test('menu lateral e topo: Criar branco, módulo ativo branco com o ícone do módulo, barra do topo branca, + preto no celular', () => {
-  assert.match(d3, /\.vv-trilho-btn\.criar\{background:#FFFFFF;/);
+  assert.match(d3, /\.vv-trilho-btn\.criar\{background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));/);
   assert.match(d3, /\[aria-current\]:not\(\.criar\):not\(\[data-trilho="hoje"\]\) > svg\{color:var\(--d3-mod,#C2490C\)/);
-  assert.match(d3, /\.vv-ilha\.vv-barra-topo\{background:#FFFFFF;box-shadow:none\}/);
-  assert.match(d3, /@media \(max-width:900px\)\{[^@]*\.vv-trilho-btn\.criar\{background:var\(--d3-tinta,#1F1D1A\)/);
+  assert.match(d3, /\.vv-ilha\.vv-barra-topo\{background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));box-shadow:none\}/);
+  assert.match(d3, /@media \(max-width:900px\)\{[^@]*\.vv-trilho-btn\.criar\{background:var\(--d3-tinta,(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))\)/);
 });
 
 test('fragmentos do grupo: sem !important e sem html body.mundo; entram no juntado', () => {

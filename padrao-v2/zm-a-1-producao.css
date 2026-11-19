@@ -23,7 +23,7 @@
 .d3m-a-seg > button > b.r{color:var(--d3-perigo)}
 .d3m-a-seg > button > b.a{color:var(--d3-ambar)}
 .d3m-a-filtro{max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.d3m-a-filtro.tem{background:var(--d3-tinta);color:var(--d3-escuro-texto);font-weight:600}
+.d3m-a-filtro.tem{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 .d3m-a-seg > button:focus-visible,.d3m-a-filtro:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
 .d3m-a-div{flex:none;width:1px;height:16px;background:var(--d3-veu-forte)}
 .d3m-a-pe{flex:none;display:flex;align-items:center;gap:0;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
@@ -68,9 +68,9 @@ body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3m-troca > summary{color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3m-troca > summary > h2{font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3p-data{flex:none;margin:0;font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap}
-body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel :is(#pv2-vistas > button,.d3p-novo):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3p-novo > svg{stroke:var(--d3-tinta)}
+body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3p-novo > svg{stroke:var(--d3-fume-contra)}
 /* A folha da vista ocupa a altura que sobra. A caixa de antes (#manager-calendar, #grupos-board, #panel-team) some do desenho
    (display:contents: a folha antiga pinta o fundo dela com força) e a folha vira filha direta da casa. O que abrir por cima
    (a fila do que pede ação, a de hoje) vira folha também. */

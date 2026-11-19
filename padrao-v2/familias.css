@@ -7,12 +7,12 @@
    Os :not(#vb-a) só sobem a força acima das regras antigas de cada módulo (com id da janela); nada aqui força regra com importância. */
 
 /* ===== 1. ABAS ===== */
-body.mundo .vb-abas.vb-abas:not(#vb-a):not(#vb-b){--ds-on-fundo:#1F1D1A;--ds-on-texto:#FFFFFF;--ds-on-borda:transparent;position:relative;isolation:isolate;display:inline-flex;flex-wrap:nowrap;align-items:center;align-self:flex-start;gap:0;width:auto;max-width:100%;min-width:0;height:auto;box-sizing:border-box;margin-left:0;padding:4px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+body.mundo .vb-abas.vb-abas:not(#vb-a):not(#vb-b){--ds-on-fundo:#1F1D1A;--ds-on-texto:#FFFFFF;--ds-on-borda:transparent;position:relative;isolation:isolate;display:inline-flex;flex-wrap:nowrap;align-items:center;align-self:flex-start;gap:0;width:auto;max-width:100%;min-width:0;height:auto;box-sizing:border-box;margin-left:0;padding:4px;border:0;border-radius:999px;background:var(--d3-trilho,var(--d3-trilho));box-shadow:none;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 body.mundo .vb-abas.vb-abas:not(#vb-a):not(#vb-b)::-webkit-scrollbar{display:none}
 body.mundo .vb-abas.vb-abas-com-mais:not(#vb-a):not(#vb-b){overflow:visible}
-body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{position:relative;z-index:1;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;height:32px;min-height:0;min-width:0;margin:0;padding:0 14px;border:0;border-radius:999px;background:transparent;box-shadow:none;color:var(--d3-texto2,#4A463F);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:0;text-transform:none;white-space:nowrap;cursor:pointer;transition:color .2s,background-color .2s}
-body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:hover{color:#1F1D1A;background:transparent}
-body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:var(--d3-tinta,#1F1D1A);color:#FFFFFF;font-weight:600;box-shadow:none}
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{position:relative;z-index:1;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;height:32px;min-height:0;min-width:0;margin:0;padding:0 14px;border:0;border-radius:999px;background:transparent;box-shadow:none;color:var(--d3-texto2,var(--d3-texto2));font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:0;text-transform:none;white-space:nowrap;cursor:pointer;transition:color .2s,background-color .2s}
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:hover{color:var(--d3-tinta);background:transparent}
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:var(--d3-tinta,var(--d3-tinta));color:var(--d3-contra);font-weight:600;box-shadow:none}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:1px}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"].vb-aba-fora{display:none}
 /* Abas que não cabem (quadro D3-Celular): primeiro apertam na largura toda, com texto de 12; só depois vão para o "Mais". */
@@ -25,61 +25,61 @@ body.mundo .vb-abas.vb-abas-justas:not(#vb-a):not(#vb-b) [role="tab"]{gap:4px;pa
 /* A pílula que desliza: desenhada pela lista, na posição da aba selecionada (--vb-aba-x/--vb-aba-w, postas por vbArrumarAbas). */
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b){--ds-on-fundo:transparent}
 body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){background:transparent;box-shadow:none;color:#FFFFFF}
-body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b)::before{content:"";position:absolute;z-index:0;left:0;top:4px;bottom:4px;width:var(--vb-aba-w,0px);transform:translateX(var(--vb-aba-x,0px));border-radius:999px;background:var(--d3-tinta,#1F1D1A);box-shadow:none;transition:transform .32s cubic-bezier(.32,.72,0,1),width .32s cubic-bezier(.32,.72,0,1);pointer-events:none}
+body.mundo .vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b)::before{content:"";position:absolute;z-index:0;left:0;top:4px;bottom:4px;width:var(--vb-aba-w,0px);transform:translateX(var(--vb-aba-x,0px));border-radius:999px;background:var(--d3-tinta,var(--d3-tinta));box-shadow:none;transition:transform .32s cubic-bezier(.32,.72,0,1),width .32s cubic-bezier(.32,.72,0,1);pointer-events:none}
 /* Contador (Direção 3): pílula branca de 18 sobre o trilho; na aba escolhida, translúcida sobre o preto. O zero some (vbArrumarAbas põe hidden). */
-body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"] .vb-aba-n{display:inline-block;flex:none;min-width:18px;height:18px;box-sizing:border-box;margin:0;padding:0 6px;border:0;border-radius:9px;background:#FFFFFF;color:var(--d3-tinta,#1F1D1A);font:700 var(--d3-fs-mini)/18px var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;text-align:center;opacity:1}
+body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"] .vb-aba-n{display:inline-block;flex:none;min-width:18px;height:18px;box-sizing:border-box;margin:0;padding:0 6px;border:0;border-radius:9px;background:var(--d3-cartao);color:var(--d3-tinta,var(--d3-tinta));font:700 var(--d3-fs-mini)/18px var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;text-align:center;opacity:1}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active) .vb-aba-n{background:rgba(255,255,255,.18);color:#FFFFFF}
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"] .vb-aba-n[hidden]{display:none}
 /* A aba escolhida estica ao chegar (Direção 3, "aba que estica"); na lista que desliza quem anda é a pílula. */
 body.mundo .vb-abas:not(.vb-abas-desliza):not(#vb-a):not(#vb-b) [role="tab"]:is([aria-selected="true"],.ativa,.active){animation:d3AbaEstica .34s cubic-bezier(.32,.72,0,1) both}
 /* "Mais": as abas da sétima em diante, num menu do mesmo desenho do menu de linha. */
 body.mundo .vb-abas .vb-abas-mais{position:relative;z-index:2;flex:none}
-body.mundo .vb-abas .vb-abas-mais > summary{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;color:var(--d3-texto2,#4A463F);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap;cursor:pointer;list-style:none}
+body.mundo .vb-abas .vb-abas-mais > summary{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;color:var(--d3-texto2,var(--d3-texto2));font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap;cursor:pointer;list-style:none}
 body.mundo .vb-abas .vb-abas-mais > summary::-webkit-details-marker{display:none}
 body.mundo .vb-abas .vb-abas-mais > summary svg{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-body.mundo .vb-abas .vb-abas-mais > summary:hover,body.mundo .vb-abas .vb-abas-mais[open] > summary{color:#1F1D1A}
+body.mundo .vb-abas .vb-abas-mais > summary:hover,body.mundo .vb-abas .vb-abas-mais[open] > summary{color:var(--d3-tinta)}
 
 /* ===== 2. MENU DE LINHA (e o menu do "Mais" das abas) ===== */
 body.mundo .vb-menu-linha{position:relative;display:inline-block;flex:none}
 body.mundo .vb-menu-linha > summary{list-style:none}
 body.mundo .vb-menu-linha > summary::-webkit-details-marker{display:none}
-body.mundo .vb-pt3{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;box-sizing:border-box;padding:0;border:0;border-radius:50%;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .2s,color .2s}
+body.mundo .vb-pt3{appearance:none;flex:none;display:grid;place-items:center;width:30px;height:30px;box-sizing:border-box;padding:0;border:0;border-radius:50%;background:var(--d3-trilho,var(--d3-trilho));color:var(--d3-tinta,var(--d3-tinta));cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1),background-color .2s,color .2s}
 body.mundo .vb-pt3:active{transform:scale(.92)}
 body.mundo .vb-pt3:hover{background:var(--d3-borda,#E6E0D6)}
-body.mundo .vb-menu-linha[open] > .vb-pt3{background:var(--d3-tinta,#1F1D1A);color:#FFFFFF}
+body.mundo .vb-menu-linha[open] > .vb-pt3{background:var(--d3-tinta,var(--d3-tinta));color:var(--d3-contra)}
 body.mundo .vb-pt3:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 body.mundo :is(.vb-menu-linha,.vb-abas-mais) > .vb-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60}
-body.mundo .vb-menu.vb-menu:not(#vb-a){display:flex;flex-direction:column;width:max-content;min-width:190px;max-width:min(320px,86vw);box-sizing:border-box;margin:0;padding:6px;border:0;border-radius:16px;background:#FFFFFF;color:#1F1D1A;box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45);transform-origin:100% 0;animation:vb-menu .22s cubic-bezier(.34,1.3,.64,1) both}
+body.mundo .vb-menu.vb-menu:not(#vb-a){display:flex;flex-direction:column;width:max-content;min-width:190px;max-width:min(320px,86vw);box-sizing:border-box;margin:0;padding:6px;border:0;border-radius:16px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45);transform-origin:100% 0;animation:vb-menu .22s cubic-bezier(.34,1.3,.64,1) both}
 @keyframes vb-menu{from{transform:scale(.6)}to{transform:none}}
-body.mundo .vb-menu:not(#vb-a) .vb-mi{appearance:none;display:flex;align-items:center;gap:8px;width:100%;height:34px;min-height:0;box-sizing:border-box;margin:0;padding:0 12px;border:0;border-radius:10px;background:transparent;box-shadow:none;color:#1F1D1A;font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);text-align:left;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
-body.mundo .vb-menu:not(#vb-a) .vb-mi:hover,body.mundo .vb-menu:not(#vb-a) .vb-mi:focus-visible{background:#F3F1EC;outline:none}
-body.mundo .vb-menu:not(#vb-a) .vb-mi > svg{flex:none;color:var(--d3-apagado,#6B665E)}
+body.mundo .vb-menu:not(#vb-a) .vb-mi{appearance:none;display:flex;align-items:center;gap:8px;width:100%;height:34px;min-height:0;box-sizing:border-box;margin:0;padding:0 12px;border:0;border-radius:10px;background:transparent;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);text-align:left;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
+body.mundo .vb-menu:not(#vb-a) .vb-mi:hover,body.mundo .vb-menu:not(#vb-a) .vb-mi:focus-visible{background:var(--d3-trilho);outline:none}
+body.mundo .vb-menu:not(#vb-a) .vb-mi > svg{flex:none;color:var(--d3-apagado,var(--d3-apagado))}
 body.mundo .vb-menu:not(#vb-a) .vb-mi[disabled]{opacity:.4;cursor:default;background:transparent}
-body.mundo .vb-menu:not(#vb-a) .vb-mi.vb-mi-apaga{margin-top:5px;border-radius:0 0 10px 10px;box-shadow:0 -1px 0 #F1EDE6;color:#B42318}
-body.mundo .vb-menu:not(#vb-a) .vb-mi.vb-mi-apaga:hover{background:#FDECEE}
+body.mundo .vb-menu:not(#vb-a) .vb-mi.vb-mi-apaga{margin-top:5px;border-radius:0 0 10px 10px;box-shadow:0 -1px 0 var(--d3-linha);color:var(--d3-perigo)}
+body.mundo .vb-menu:not(#vb-a) .vb-mi.vb-mi-apaga:hover{background:var(--d3-perigo-veu)}
 /* Linha de duas escolhas dentro do menu (ex.: mover para cima / para baixo): conta como um item só. */
-body.mundo .vb-menu:not(#vb-a) .vb-mi-par{display:flex;align-items:center;gap:2px;padding-left:12px;font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
+body.mundo .vb-menu:not(#vb-a) .vb-mi-par{display:flex;align-items:center;gap:2px;padding-left:12px;font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);color:var(--d3-apagado)}
 body.mundo .vb-menu:not(#vb-a) .vb-mi-par > span{flex:1;white-space:nowrap}
-body.mundo .vb-menu:not(#vb-a) .vb-mi-par > .vb-mi{width:auto;padding:0 10px;color:#1F1D1A}
+body.mundo .vb-menu:not(#vb-a) .vb-mi-par > .vb-mi{width:auto;padding:0 10px;color:var(--d3-tinta)}
 /* O menu do grupo do quadro (vybe-grupos.js) é um menu de linha solto, ancorado no botão. */
 body.mundo #grupo-menu.vb-menu:not(#vb-a){position:fixed;z-index:9000;animation-name:vb-menu}
-body.mundo #grupo-menu .vb-menu-titulo{margin:4px 12px 6px;font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.mundo #grupo-menu .vb-menu-titulo{margin:4px 12px 6px;font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,system-ui,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.mundo #grupo-menu .grupo-menu-cores{margin:0 0 4px;padding:6px 12px 8px;border:0}
-body.mundo :is(#grupos-board,#grupos-board-demandas) .grupo-menu-btn:not(#vb-a){appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);box-shadow:none;cursor:pointer}
+body.mundo :is(#grupos-board,#grupos-board-demandas) .grupo-menu-btn:not(#vb-a){appearance:none;display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:var(--d3-trilho,var(--d3-trilho));color:var(--d3-tinta,var(--d3-tinta));box-shadow:none;cursor:pointer}
 body.mundo :is(#grupos-board,#grupos-board-demandas) .grupo-menu-btn:not(#vb-a) svg{width:16px;height:16px}
 body.mundo #grupo-menu-fundo{position:fixed;inset:0;z-index:8999;background:transparent}
 
 /* ===== 3. GAVETA: 520 pela direita, uma ação embaixo, fecha por X, Esc ou clique fora (a da peça está em peca.css) ===== */
-body.mundo .prod-v2-overlay .prod-v2-drawer.prod-v2-drawer:not(#vb-a){left:auto;top:12px;right:12px;bottom:12px;height:auto;width:520px;max-width:calc(100vw - 24px);box-sizing:border-box;border:0;border-radius:24px;background:#FFFFFF;backdrop-filter:none;color:#1F1D1A;box-shadow:-14px 0 40px -18px rgba(31,29,26,.45);overflow:auto}
+body.mundo .prod-v2-overlay .prod-v2-drawer.prod-v2-drawer:not(#vb-a){left:auto;top:12px;right:12px;bottom:12px;height:auto;width:520px;max-width:calc(100vw - 24px);box-sizing:border-box;border:0;border-radius:24px;background:var(--d3-cartao);backdrop-filter:none;color:var(--d3-tinta);box-shadow:-14px 0 40px -18px rgba(31,29,26,.45);overflow:auto}
 body.mundo .prod-v2-overlay.prod-v2-overlay:not(#vb-a){background:rgba(31,29,26,.18);backdrop-filter:none}
-body.mundo .prod-v2-drawer:not(#vb-a) :is(.p-draw-head,.p-draw-title b){color:#1F1D1A}
-body.mundo .prod-v2-drawer:not(#vb-a) .p-draw-close{width:34px;height:34px;border:0;border-radius:50%;background:#F3F1EC;color:#1F1D1A}
+body.mundo .prod-v2-drawer:not(#vb-a) :is(.p-draw-head,.p-draw-title b){color:var(--d3-tinta)}
+body.mundo .prod-v2-drawer:not(#vb-a) .p-draw-close{width:34px;height:34px;border:0;border-radius:50%;background:var(--d3-trilho);color:var(--d3-tinta)}
 body.mundo .manager-command-drawer.manager-command-drawer.open:not(#vb-a){left:auto;top:12px;right:12px;bottom:12px;z-index:640;box-shadow:-14px 0 40px -18px rgba(31,29,26,.45);height:auto;width:520px;max-width:calc(100vw - 24px);border-radius:24px;overflow:auto}
-body.mundo .manager-command-drawer:not(#vb-a) .manager-command-close{width:34px;height:34px;border:0;border-radius:50%;background:#F3F1EC;color:#1F1D1A}
+body.mundo .manager-command-drawer:not(#vb-a) .manager-command-close{width:34px;height:34px;border:0;border-radius:50%;background:var(--d3-trilho);color:var(--d3-tinta)}
 
 /* ===== 4. FORMULÁRIO: etapas como barra (quadro D3-Fam-Gavetas, "Nova demanda"), "obrigatório" no rótulo, erro embaixo do campo ===== */
 /* Os nomes numa linha (o primeiro à esquerda, o último à direita) e a barra de 4px embaixo: feita e atual em tinta, o resto no trilho. */
-body.mundo .vb-etapas{display:flex;align-items:stretch;gap:0;min-width:0;margin:6px 0 14px;font:600 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
+body.mundo .vb-etapas{display:flex;align-items:stretch;gap:0;min-width:0;margin:6px 0 14px;font:600 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);color:var(--d3-apagado)}
 body.mundo .vb-etapas > i{display:none}
 body.mundo .vb-etapas > .vb-etapa{position:relative;flex:1 1 0;display:flex;justify-content:center;gap:4px;min-width:0;height:auto;padding:0 0 10px;white-space:nowrap}
 body.mundo .vb-etapas > .vb-etapa:first-of-type{justify-content:flex-start}
@@ -87,14 +87,14 @@ body.mundo .vb-etapas > .vb-etapa:last-of-type{justify-content:flex-end}
 body.mundo .vb-etapas > .vb-etapa::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--d3-linha)}
 body.mundo .vb-etapas > .vb-etapa:first-of-type::after{border-radius:999px 0 0 999px}
 body.mundo .vb-etapas > .vb-etapa:last-of-type::after{border-radius:0 999px 999px 0}
-body.mundo .vb-etapas > .vb-etapa:is(.feito,.atual){color:#1F1D1A}
-body.mundo .vb-etapas > .vb-etapa:is(.feito,.atual)::after{background:#1F1D1A;transform-origin:left center;animation:vbEtapaCresce .6s cubic-bezier(.32,.72,0,1) both}
+body.mundo .vb-etapas > .vb-etapa:is(.feito,.atual){color:var(--d3-tinta)}
+body.mundo .vb-etapas > .vb-etapa:is(.feito,.atual)::after{background:var(--d3-tinta);transform-origin:left center;animation:vbEtapaCresce .6s cubic-bezier(.32,.72,0,1) both}
 @keyframes vbEtapaCresce{from{transform:scaleX(0)}}
 body.mundo .vb-etapas > .vb-etapa:not(.feito):not(.atual){font-weight:400}
 body.mundo .vb-etapas > .vb-etapa > b,body.mundo .vb-etapas > .vb-etapa > em{font:inherit;font-style:normal;color:inherit;overflow:hidden;text-overflow:ellipsis}
 body.mundo .vb-etapas.muitas > .vb-etapa:not(.atual) > em{display:none}
-body.mundo .vb-obrig.vb-obrig:not(#vb-a){display:inline;margin-left:6px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;color:var(--d3-ajuste,#7A4A00)}
-body.mundo .vb-erro,body.mundo #context-step-error.vb-erro{display:flex;align-items:center;gap:6px;margin:4px 0 0 4px;font:500 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,system-ui,sans-serif);color:#B42318}
+body.mundo .vb-obrig.vb-obrig:not(#vb-a){display:inline;margin-left:6px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,system-ui,sans-serif);font-style:normal;color:var(--d3-ajuste,var(--d3-ajuste))}
+body.mundo .vb-erro,body.mundo #context-step-error.vb-erro{display:flex;align-items:center;gap:6px;margin:4px 0 0 4px;font:500 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,system-ui,sans-serif);color:var(--d3-perigo)}
 body.mundo .vb-erro[hidden]{display:none}
 body.mundo .vb-erro svg{flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 body.mundo :is(input,textarea,select).vb-campo-erro:not(#vb-a),body.mundo #workflow-modal :is(input,textarea,select)[aria-invalid="true"]:not(#vb-a){box-shadow:inset 0 0 0 1.5px #B42318;border-color:#B42318}
@@ -102,12 +102,12 @@ body.mundo .vb-campo-erro[role="group"]:not(#vb-a),body.mundo .workflow-field.vb
 
 /* ===== 5. CONFIRMAÇÃO: janela só para apagar (Cancelar e Apagar vermelho) ===== */
 #vb-apagar{position:fixed;inset:0;z-index:2147482500;display:grid;place-items:center;padding:16px;box-sizing:border-box;background:rgba(31,29,26,.28);animation:vb-apagar-fundo .18s ease both}
-#vb-apagar .vb-apagar-caixa{width:min(400px,100%);box-sizing:border-box;padding:18px;border-radius:20px;background:#FFFFFF;color:#1F1D1A;font-family:var(--vv-texto,Inter,system-ui,sans-serif);box-shadow:0 2px 4px rgba(31,29,26,.08),0 30px 60px -30px rgba(31,29,26,.55);animation:vb-apagar-entra .26s cubic-bezier(.34,1.3,.64,1) both}
-#vb-apagar .vb-apagar-t{margin:0;font:600 var(--d3-fs-destaque)/1.3 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:#1F1D1A;overflow-wrap:anywhere}
-#vb-apagar .vb-apagar-x{margin:4px 0 0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:#6B665E;white-space:pre-line;overflow-wrap:anywhere}
+#vb-apagar .vb-apagar-caixa{width:min(400px,100%);box-sizing:border-box;padding:18px;border-radius:20px;background:var(--d3-cartao);color:var(--d3-tinta);font-family:var(--vv-texto,Inter,system-ui,sans-serif);box-shadow:0 2px 4px rgba(31,29,26,.08),0 30px 60px -30px rgba(31,29,26,.55);animation:vb-apagar-entra .26s cubic-bezier(.34,1.3,.64,1) both}
+#vb-apagar .vb-apagar-t{margin:0;font:600 var(--d3-fs-destaque)/1.3 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta);overflow-wrap:anywhere}
+#vb-apagar .vb-apagar-x{margin:4px 0 0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:pre-line;overflow-wrap:anywhere}
 #vb-apagar .vb-apagar-acoes{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 #vb-apagar .vb-apagar-acoes > button{flex:1 1 0}
-#vb-apagar .vb-apagar-acoes button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none;color:#1F1D1A;font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+#vb-apagar .vb-apagar-acoes button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-trilho,var(--d3-trilho));box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
 #vb-apagar .vb-apagar-acoes button:active{transform:scale(.96)}
 #vb-apagar .vb-apagar-acoes .vb-apagar-nao:hover{background:var(--d3-borda,#E6E0D6)}
 #vb-apagar .vb-apagar-acoes .vb-apagar-sim{background:#B42318;box-shadow:none;color:#FFFFFF;font-weight:600}
@@ -119,29 +119,29 @@ body.mundo .vb-campo-erro[role="group"]:not(#vb-a),body.mundo .workflow-field.vb
 /* ===== 6. VAZIO E CARREGANDO ===== */
 body.mundo .vb-estado.vb-estado:not(#vb-a){display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 12px 20px;text-align:center}
 /* Direção 3: o ícone num círculo #F3F1EC de 52, a frase em 17 e a ação preta; o laranja fica só para o bloco de ação. */
-body.mundo .vb-estado:not(#vb-a) .vb-estado-icone{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A)}
-body.mundo .vb-estado.erro:not(#vb-a) .vb-estado-icone{background:var(--d3-perigo-veu,#FDECEE);color:#B42318}
+body.mundo .vb-estado:not(#vb-a) .vb-estado-icone{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--d3-trilho,var(--d3-trilho));color:var(--d3-tinta,var(--d3-tinta))}
+body.mundo .vb-estado.erro:not(#vb-a) .vb-estado-icone{background:var(--d3-perigo-veu,var(--d3-perigo-veu));color:var(--d3-perigo)}
 body.mundo .vb-estado:not(#vb-a) .vb-estado-icone svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-body.mundo .vb-estado:not(#vb-a) > b{max-width:46ch;font:600 var(--d3-fs-titulo)/1.3 var(--vv-titulo,"Inter Tight",Inter,system-ui,sans-serif);color:#1F1D1A}
-body.mundo .vb-estado:not(#vb-a) > p{max-width:46ch;margin:-4px 0 0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,system-ui,sans-serif);color:#6B665E}
+body.mundo .vb-estado:not(#vb-a) > b{max-width:46ch;font:600 var(--d3-fs-titulo)/1.3 var(--vv-titulo,"Inter Tight",Inter,system-ui,sans-serif);color:var(--d3-tinta)}
+body.mundo .vb-estado:not(#vb-a) > p{max-width:46ch;margin:-4px 0 0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,system-ui,sans-serif);color:var(--d3-apagado)}
 /* A ação do vazio é um botão pequeno preto em pílula, venha com a classe que vier. */
-body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:auto;height:36px;min-height:0;margin:2px 0 0;padding:0 16px;border:0;border-radius:999px;background:#1F1D1A;box-shadow:none;color:#FFFFFF;font:600 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);text-decoration:none;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
+body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:auto;height:36px;min-height:0;margin:2px 0 0;padding:0 16px;border:0;border-radius:999px;background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra);font:600 var(--d3-fs-texto)/1 var(--vv-texto,Inter,system-ui,sans-serif);text-decoration:none;text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
 body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child:hover{background:#000000}
 body.mundo .vb-estado:not(#vb-a) > :is(button,a):last-child:focus-visible{outline:2px solid var(--ds-acao,#C2490C);outline-offset:2px}
 /* Sem acesso (D3-Fam-Estados): o nome da área com o selo "só donos" e Voltar em pílula clara; a janela é pequena e a tela
    de baixo fica onde estava. */
 body.mundo .vb-estado.sem-acesso:not(#vb-a) > b{display:inline-flex;align-items:center;gap:8px}
-body.mundo .vb-estado.sem-acesso:not(#vb-a) .vb-estado-selo{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,system-ui,sans-serif)}
+body.mundo .vb-estado.sem-acesso:not(#vb-a) .vb-estado-selo{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho,var(--d3-trilho));color:var(--d3-tinta,var(--d3-tinta));font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,system-ui,sans-serif)}
 body.mundo .vb-estado.sem-acesso:not(#vb-a) .vb-estado-selo svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child{background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A)}
-body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child:hover{background:#EAE6DE}
+body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child{background:var(--d3-trilho,var(--d3-trilho));color:var(--d3-tinta,var(--d3-tinta))}
+body.mundo .vb-estado.sem-acesso:not(#vb-a):not(#vb-b) > button:last-child:hover{background:var(--d3-areia)}
 body.mundo #workflow-modal.vb-sem-acesso-janela{width:min(380px,calc(100vw - 32px))}
 /* Esqueleto: a forma da tela (linha de lista, cartão ou parágrafo), com o brilho que passa. */
 body.mundo .vb-esq.vb-esq:not(#vb-a){display:flex;flex-direction:column;gap:0;padding:4px 0}
 body.mundo .vb-esq.cartoes:not(#vb-a){display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
 body.mundo .vb-esq.texto:not(#vb-a){gap:9px}
 body.mundo .vb-esq .vb-sk{display:block;flex:none;border-radius:6px;background:linear-gradient(90deg,#EFEBE4 0,#F8F5EF 40%,#EFEBE4 80%);background-size:200% 100%;animation:vb-sk-brilho 1.6s linear infinite}
-body.mundo .vb-esq .vb-esq-lin + .vb-esq-lin{border-top:1px solid var(--d3-linha,#F1EDE6)}
+body.mundo .vb-esq .vb-esq-lin + .vb-esq-lin{border-top:1px solid var(--d3-linha,var(--d3-linha))}
 body.mundo .vb-esq .vb-esq-lin{display:flex;align-items:center;gap:10px;padding:10px 0}
 body.mundo .vb-esq .vb-esq-av{width:28px;height:28px;border-radius:50%}
 body.mundo .vb-esq .vb-esq-txt{flex:0 1 100%;height:10px}
@@ -158,7 +158,7 @@ body.mundo .vb-esq .vb-esq-texto:nth-child(3n){width:90%}
 body.mundo #workflow-modal .vb-etapas{margin:12px 0 14px}
 body.mundo #workflow-modal .context-actions > div{display:flex;gap:8px}
 body.mundo #workflow-modal .pt-btn.pt-btn[disabled]{opacity:.45;cursor:default}
-body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
+body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:var(--d3-tinta)}
 
 @media (max-width:640px){
   /* Celular: abas e segmentos de 36 (como o resto dos controles de toque); o que não cabe vai para o "Mais" (vbArrumarAbas). */
@@ -184,40 +184,40 @@ body.mundo #workflow-modal .pt-btn.k[disabled]:hover{background:#1F1D1A}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st :is(.pv2-st-seta,.pv2-st-ok){flex:none;display:inline-grid;place-items:center;width:10px;height:10px}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st .pv2-st-ok svg{width:11px;height:11px;stroke-width:3.5}
-:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.r{background:#FDECEE;color:#B42318}
-:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.a{background:#FFF4D6;color:#7A4A00}
-:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.g{background:#E8F5EC;color:#11613A}
-:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.b{background:#E7EEFB;color:#1E4A9A}
-:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.v{background:#EEEAFB;color:#4B36A8}
-:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.n{background:#EFEBE4;color:#4A463F}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.b{background:var(--d3-info-veu);color:var(--d3-info)}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.v{background:var(--d3-agente-veu);color:var(--d3-agente-texto)}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st.n{background:var(--d3-linha);color:var(--d3-texto2)}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st:hover{box-shadow:inset 0 0 0 1px currentColor}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st:active{transform:scale(.96)}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st:focus-visible{outline:2px solid #1F1D1A;outline-offset:2px}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st[aria-expanded="true"]{box-shadow:0 0 0 2px #1F1D1A}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st[aria-expanded="true"] .pv2-st-seta svg{transform:rotate(180deg)}
-:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st[data-estado="indo"]{pointer-events:none;background:#FFFFFF;color:transparent;box-shadow:inset 0 0 0 1px #E6E0D6}
+:is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st[data-estado="indo"]{pointer-events:none;background:var(--d3-cartao);color:transparent;box-shadow:inset 0 0 0 1px var(--d3-borda)}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st[data-estado="indo"]::after{width:10px;height:10px}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st[data-estado="indo"] > *{visibility:hidden}
 :is(#grupos-board,#grupos-board-demandas,#cartao-rapido) .pv2-st[data-estado="feito"]{pointer-events:none;background:#11613A;color:#FFFFFF;box-shadow:none}
-#status-editor .v2-st-op .v2-st-pilula{display:inline-flex;align-items:center;height:22px;max-width:100%;padding:0 9px;border-radius:999px;background:color-mix(in srgb,var(--c,#6B665E) 16%,#FFFFFF);color:color-mix(in srgb,var(--c,#6B665E) 72%,#1F1D1A);font:600 var(--d3-fs-apoio)/22px var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#status-editor .v2-st-op .v2-st-pilula.r{background:#FDECEE;color:#B42318}
-#status-editor .v2-st-op .v2-st-pilula.a{background:#FFF4D6;color:#7A4A00}
-#status-editor .v2-st-op .v2-st-pilula.g{background:#E8F5EC;color:#11613A}
-#status-editor .v2-st-op .v2-st-pilula.b{background:#E7EEFB;color:#1E4A9A}
-#status-editor .v2-st-op .v2-st-pilula.v{background:#EEEAFB;color:#4B36A8}
-#status-editor .v2-st-op .v2-st-pilula.n{background:#EFEBE4;color:#4A463F}
-#status-editor .v2-st-todos .v2-st-todos-txt{color:#1F1D1A;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+#status-editor .v2-st-op .v2-st-pilula{display:inline-flex;align-items:center;height:22px;max-width:100%;padding:0 9px;border-radius:999px;background:color-mix(in srgb,var(--c,#6B665E) 16%,var(--d3-cartao));color:color-mix(in srgb,var(--c,var(--d3-apagado)) 72%,var(--d3-tinta));font:600 var(--d3-fs-apoio)/22px var(--vv-texto,Inter,system-ui,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status-editor .v2-st-op .v2-st-pilula.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#status-editor .v2-st-op .v2-st-pilula.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
+#status-editor .v2-st-op .v2-st-pilula.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+#status-editor .v2-st-op .v2-st-pilula.b{background:var(--d3-info-veu);color:var(--d3-info)}
+#status-editor .v2-st-op .v2-st-pilula.v{background:var(--d3-agente-veu);color:var(--d3-agente-texto)}
+#status-editor .v2-st-op .v2-st-pilula.n{background:var(--d3-linha);color:var(--d3-texto2)}
+#status-editor .v2-st-todos .v2-st-todos-txt{color:var(--d3-tinta);font-weight:600;text-decoration:underline;text-underline-offset:3px}
 
 /* ===== Escolha (vbEscolhaHtml) na Direção 3: pílula clara #F3F1EC também quando há valor escolhido (o tom de pêssego
    de vybe-mundo.css, .vb-escolha > summary.vb-escolha-com, era do padrão antigo). ===== */
-body.mundo .vb-escolha > summary.vb-chip{height:32px;min-height:0;padding:0 10px 0 12px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none;color:var(--d3-tinta,#1F1D1A)}
-body.mundo .vb-escolha > summary.vb-chip.vb-escolha-com{border:0;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A)}
+body.mundo .vb-escolha > summary.vb-chip{height:32px;min-height:0;padding:0 10px 0 12px;border:0;border-radius:999px;background:var(--d3-trilho,var(--d3-trilho));box-shadow:none;color:var(--d3-tinta,var(--d3-tinta))}
+body.mundo .vb-escolha > summary.vb-chip.vb-escolha-com{border:0;background:var(--d3-trilho,var(--d3-trilho));color:var(--d3-tinta,var(--d3-tinta))}
 body.mundo .vb-escolha > summary.vb-chip:hover{background:var(--d3-borda,#E6E0D6)}
-body.mundo .vb-escolha > summary.vb-chip .vb-escolha-rotulo{color:var(--d3-apagado,#6B665E);opacity:1}
-body.mundo .vb-escolha[open] > summary.vb-chip{background:#FFFFFF;box-shadow:inset 0 0 0 1.5px var(--d3-tinta,#1F1D1A)}
+body.mundo .vb-escolha > summary.vb-chip .vb-escolha-rotulo{color:var(--d3-apagado,var(--d3-apagado));opacity:1}
+body.mundo .vb-escolha[open] > summary.vb-chip{background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-tinta,#1F1D1A)}
 
 /* ===== 7. CAMPO DA PERGUNTA DO PAINEL (perguntarNoPainel, .cli-pergunta): o campo do padrão, fundo #F3F1EC sem borda
    laranja; no foco fica branco com o contorno em tinta (D3-Fam-Formularios). Vale para "Sem briefing" e as outras. ===== */
-body.mundo .cli-pergunta-caixa :is(input,textarea){border:0;background:var(--d3-trilho,#F3F1EC);color:var(--d3-tinta,#1F1D1A);box-shadow:none;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif)}
-body.mundo .cli-pergunta-caixa :is(input,textarea)::placeholder{color:var(--d3-apagado,#6B665E)}
-body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:var(--d3-cartao,#FFFFFF);box-shadow:inset 0 0 0 1.5px var(--d3-tinta,#1F1D1A)}
+body.mundo .cli-pergunta-caixa :is(input,textarea){border:0;background:var(--d3-trilho,var(--d3-trilho));color:var(--d3-tinta,var(--d3-tinta));box-shadow:none;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif)}
+body.mundo .cli-pergunta-caixa :is(input,textarea)::placeholder{color:var(--d3-apagado,var(--d3-apagado))}
+body.mundo .cli-pergunta-caixa :is(input,textarea):focus{outline:0;background:var(--d3-cartao,var(--d3-cartao));box-shadow:inset 0 0 0 1.5px var(--d3-tinta,#1F1D1A)}

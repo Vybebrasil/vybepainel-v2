@@ -94,7 +94,7 @@ test('Agenda: topo com Semana, Mês e Roteiros; Feed e Calendário no menu Mais;
   assert.equal(ctx.window.productionV2View, 'captacoes'); assert.deepEqual(chamadas.splice(0), [['render']]);
   ctx.window.prodAgendaVista('mes'); assert.deepEqual(chamadas.splice(0), [['vista', 'mes']]);
   ctx.window.prodAgendaVista('roteiros'); assert.deepEqual(chamadas.splice(0), [['parte', 'roteiros']]);
-  assert.match(css, /#pv2-agenda-topo\.pv2 \.d3ag-vistas > button\[aria-checked="true"\]\{background:var\(--d3-tinta\);color:#FFFFFF/);
+  assert.match(css, /#pv2-agenda-topo\.pv2 \.d3ag-vistas > button\[aria-checked="true"\]\{background:(?:var\(--d3-tinta\)|var\(--d3-(?:tinta|fume-contra|contra)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
 });
 
 // ---------- Fila do Danilo: Confirmar N faz as N confirmações da linha, uma por vez, com o fetch dublê ----------

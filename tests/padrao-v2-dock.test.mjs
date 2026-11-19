@@ -121,20 +121,20 @@ test('fragmento do dock: medidas do quadro, sem !important e sem html body.mundo
   assert.equal((semTexto.match(/\{/g) || []).length, (semTexto.match(/\}/g) || []).length, 'toda regra fecha');
   // painel: inteiro na tela, em cima do botão
   assert.match(css, /#office-ajustes-audio\.v2k-som\{--v2k-l:360px;position:fixed;[^}]*left:clamp\(12px,calc\(var\(--v2k-x,50vw\) - var\(--v2k-l\) \/ 2\),calc\(100vw - var\(--v2k-l\) - 12px\)\);[^}]*bottom:var\(--v2k-pe,[^}]*border-radius:24px/);
-  assert.match(css, /#office-ajustes-audio \.v2k-seg button:is\(\[aria-selected="true"\],\[aria-pressed="true"\]\)\{background:#FFFFFF;color:#1F1D1A/);
+  assert.match(css, /#office-ajustes-audio \.v2k-seg button:is\(\[aria-selected="true"\],\[aria-pressed="true"\]\)\{background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));color:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/);
   assert.match(css, /#office-ajustes-audio \.v2k-btn\.s\{height:30px;padding:0 12px;font-size:var\(--d3-fs-texto\)\}/);
-  assert.match(css, /#office-ajustes-audio \.v2k-btn\.k\{background:#1F1D1A;color:#FFFFFF/);
+  assert.match(css, /#office-ajustes-audio \.v2k-btn\.k\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   // dock: pílula branca, botão 54×48 raio 16, ligado preto, desligado cinza, contador verde
-  assert.match(css, /#vv-dock-salas-faixa > \.vq-dock\.vv-dock-salas\{align-items:center;gap:4px;padding:8px;border:0;border-radius:999px;background:#FFFFFF/);
+  assert.match(css, /#vv-dock-salas-faixa > \.vq-dock\.vv-dock-salas\{align-items:center;gap:4px;padding:8px;border:0;border-radius:999px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-item\{[^}]*width:auto;min-width:54px;height:48px;padding:0 6px;border:0;border-radius:16px/, 'cresce para caber o nome (Minha sala)');
-  assert.match(css, /body\[data-som-aba="tv"\] #vv-dock-salas-faixa \.vq-dock \.vq-item\[data-dock="tv"\]\{background:#C2490C;color:#FFFFFF\}/);
+  assert.match(css, /body\[data-som-aba="tv"\] #vv-dock-salas-faixa \.vq-dock \.vq-item\[data-dock="tv"\]\{background:#C2490C;color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\}/);
   assert.match(css, /body\.ver-voz #vv-dock-salas-faixa \.vq-dock \.vq-item\[data-dock="salas"\]/);
-  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-item:disabled\{opacity:1;color:#6B665E/);
-  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-conta\.on\{background:#11613A\}/);
-  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-voz\{[^}]*height:48px;[^}]*border-radius:999px;background:#F3F1EC/);
+  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-item:disabled\{opacity:1;color:(?:#6B665E|var\(--d3-(?:apagado)(?:,[^)]*\))?\))/);
+  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-conta\.on\{background:(?:#11613A|var\(--d3-(?:pronto)(?:,[^)]*\))?\))\}/);
+  assert.match(css, /#vv-dock-salas-faixa \.vq-dock \.vq-voz\{[^}]*height:48px;[^}]*border-radius:999px;background:(?:#F3F1EC|var\(--d3-(?:trilho)(?:,[^)]*\))?\))/);
   // salas e chat: as mesmas peças
   assert.match(css, /#vv-dock-salas-faixa > \.vv-chamada\{gap:0;padding:0;border:0;border-radius:24px/);
-  assert.match(css, /\.vv-conversa \.vv-conversa-msg\.vv-conversa-msg\.meu\{border-radius:16px 16px 4px 16px;background:#1F1D1A;color:#FFFFFF\}/);
-  assert.match(css, /\.vv-conversa \.vv-conversa-enviar\.vv-conversa-enviar,[^{]*\{height:30px;padding:0 12px;border-radius:999px;background:#1F1D1A/);
+  assert.match(css, /\.vv-conversa \.vv-conversa-msg\.vv-conversa-msg\.meu\{border-radius:16px 16px 4px 16px;background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\}/);
+  assert.match(css, /\.vv-conversa \.vv-conversa-enviar\.vv-conversa-enviar,[^{]*\{height:30px;padding:0 12px;border-radius:999px;background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/);
   assert.match(css, /@media \(prefers-reduced-motion:reduce\)\{\s*#office-ajustes-audio\.v2k-som\{animation:none\}/);
 });

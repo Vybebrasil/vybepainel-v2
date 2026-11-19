@@ -8,16 +8,16 @@
 /* Cabeçalho: título, alternador e o único botão cheio da tela. A frase que explicava a tela desce para o pé. */
 #painel-diario .container > .vb-cabecalho{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 16px;padding:0}
 #painel-diario .vb-cabecalho-texto{flex:1 1 220px;min-width:0}
-#painel-diario .vb-cabecalho-texto h2{margin:0;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:#1F1D1A}
+#painel-diario .vb-cabecalho-texto h2{margin:0;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;color:var(--d3-tinta)}
 #painel-diario .vb-cabecalho-texto p{display:none}
 #painel-diario .vb-cabecalho-acoes{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0}
-#painel-diario .v2d-seg{display:inline-flex;margin:0;padding:4px;border:0;border-radius:999px;background:var(--d3-trilho,#F3F1EC);box-shadow:none}
-#painel-diario .v2d-seg > button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:#6B665E;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;letter-spacing:0;text-transform:none;cursor:pointer}
-#painel-diario .v2d-seg > button[aria-checked="true"]{background:#1F1D1A;color:#FFFFFF;box-shadow:none}
-#painel-diario .v2d-acao{appearance:none;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;min-width:138px;margin:0;padding:0 18px;border:0;border-radius:999px;background:#1F1D1A;color:#FFFFFF;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:none;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),background-color .2s}
+#painel-diario .v2d-seg{display:inline-flex;margin:0;padding:4px;border:0;border-radius:999px;background:var(--d3-trilho,var(--d3-trilho));box-shadow:none}
+#painel-diario .v2d-seg > button{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:30px;margin:0;padding:0 14px;border:0;border-radius:999px;background:none;color:var(--d3-apagado);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;letter-spacing:0;text-transform:none;cursor:pointer}
+#painel-diario .v2d-seg > button[aria-checked="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
+#painel-diario .v2d-acao{appearance:none;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;min-width:138px;margin:0;padding:0 18px;border:0;border-radius:999px;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;box-shadow:none;transition:transform .14s var(--vv-mola,cubic-bezier(.34,1.56,.64,1)),background-color .2s}
 #painel-diario .v2d-acao:hover{background:#000000}
 #painel-diario .v2d-acao:active{transform:scale(.96)}
-#painel-diario .v2d-acao.v2-estado[data-estado="indo"]{background:#1F1D1A;color:transparent}
+#painel-diario .v2d-acao.v2-estado[data-estado="indo"]{background:var(--d3-tinta);color:transparent}
 #painel-diario .v2d-acao.v2-estado[data-estado="indo"]::after{border-color:rgba(255,255,255,.45);border-top-color:#FFFFFF}
 #painel-diario .v2d-acao.v2-estado.v2-estado[data-estado="feito"]{background:#11613A;color:#FFFFFF;box-shadow:none}
 /* Acabamento premium (15/11/2026, item 5): no cabeçalho o "Registrar agora" ficava preto ao lado da aba escolhida, também
@@ -31,7 +31,7 @@
 /* O corpo da tela. */
 @keyframes v2d-pulso{0%{opacity:.5;transform:scale(.85)}70%,100%{opacity:0;transform:scale(1.25)}}
 #painel-diario :is(.v2d-registros,.v2d-mudou){display:flex;flex-direction:column}
-#painel-diario :is(.v2d-topo small,.v2d-pe,.v2d-sub,.v2d-nada){font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#6B665E}
+#painel-diario :is(.v2d-topo small,.v2d-pe,.v2d-sub,.v2d-nada){font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado)}
 #painel-diario .v2d-pe{margin-top:auto;padding-top:8px}
 
 /* Registros: a linha do tempo. A linha abre no lugar (.v2-abre). */

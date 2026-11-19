@@ -20,18 +20,18 @@
 .d3m-c-pop > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
 .d3m-c-pop-rot{padding:6px 10px 4px;font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
 .d3m-c-seg > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-c-seg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta-fixa);font-weight:600}
+.d3m-c-seg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 .d3m-c-seg > button > b{font-weight:400;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
 .d3m-c-seg > button[aria-checked="true"] > b{color:var(--d3-rotulo-fixo)}
 .d3m-c-ico > svg,.d3m-c-btn > svg,.d3m-c-busca > svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.d3m-c-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta-fixa);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
+.d3m-c-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
 .d3m-c-btn:hover{background:var(--d3-folha)}
 .d3m-c-btn.v{background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font-weight:500}
 .d3m-c-btn.v:hover{background:var(--d3-fume-veu-forte)}
 /* Na folha clara: contorno fino, 28 px. */
 .d3m-c-btn.c{height:28px;padding:0 10px;background:none;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font-weight:500}
 .d3m-c-btn.c:hover{background:var(--d3-veu)}
-.d3m-c-btn.c.k{background:var(--d3-tinta);box-shadow:none;color:var(--d3-escuro-texto);font-weight:600}
+.d3m-c-btn.c.k{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra);font-weight:600}
 .d3m-c-btn.c.k:hover{background:var(--d3-texto2)}
 :is(.d3m-c-ico,.d3m-c-btn,.d3m-c-seg > button):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 .d3m-c-btn.c:focus-visible{outline-color:var(--d3-acao)}
@@ -54,7 +54,7 @@
 .d3m-c-menu > summary::-webkit-details-marker{display:none}
 .d3m-c-pop.dir{left:auto;right:0;max-height:min(420px,60vh);overflow-y:auto;scrollbar-width:thin}
 .d3m-c-pop > button > small{margin-left:auto;padding-left:12px;font-size:var(--d3-fs-mini);color:var(--d3-fume-apagado)}
-.d3m-c-ico.on{background:var(--d3-fume-texto);color:var(--d3-tinta-fixa)}
+.d3m-c-ico.on{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
 /* Fichas na cabeça da folha: texto de 28 px; a escolhida fica no véu forte. */
 .d3m-c-abas{flex:none;display:inline-flex;align-items:center;gap:2px}
 .d3m-c-abas > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}

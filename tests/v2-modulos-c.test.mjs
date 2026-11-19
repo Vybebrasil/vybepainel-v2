@@ -39,8 +39,8 @@ test('Agenda V2: grade de horas no computador, com as mesmas funções; no celul
   // A gravação sem fechar vai no laranja; captação verde, reunião roxa, compromisso azul.
   assert.match(capt, /\$\{e\.estado\?\.chave === "fechar" \? " fechar" : ""\}/);
   assert.match(css, /\.agv2 \.t-captacao\{--agv2-cor:var\(--d3-mod-vybe\)/);
-  assert.match(css, /\.agv2 \.t-reuniao\{--agv2-cor:var\(--d3-agente-texto\)/);
-  assert.match(css, /\.agv2 \.t-outro\{--agv2-cor:var\(--d3-info\)/);
+  assert.match(css, /\.agv2 \.t-reuniao\{--agv2-cor:var\(--d3-agente-texto(-fixa)?\)/);
+  assert.match(css, /\.agv2 \.t-outro\{--agv2-cor:var\(--d3-info(-fixa)?\)/);
   assert.match(css, /\.agv2 \.fechar\{--agv2-cor:var\(--d3-acao\)/);
   // A consulta: o cartão laranja resolve a mais urgente; "Antes de gravar" abre o que precisa de você.
   const lado = capt.slice(capt.indexOf('function agv2LaranjaHtml('), capt.indexOf('function agv2Html('));
@@ -142,7 +142,7 @@ test('Fornecedores V2: uma linha por fornecedor na folha, com os campos e os bot
   assert.ok(com.includes('<b>Não foi possível abrir ${nome}</b>${esc(erro)}') && tela.includes('<b>Nenhum fornecedor ainda</b>'));
   assert.match(css, /\.fo2-lista\{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto/);
   assert.match(css, /\.fo2-abre\[aria-expanded="true"\] > \.fo2-det\{display:flex\}/);
-  assert.match(css, /#vv-comercial\.d3m-c-janela :is\(\.vc-folha,\.vc-abas\)\{color:var\(--d3-tinta\)\}/);
+  assert.match(css, /#vv-comercial\.d3m-c-janela :is\(\.vc-folha,\.vc-abas\)\{color:(?:var\(--d3-tinta\)|var\(--d3-(?:tinta|fume-contra|contra)(?:,[^)]*\))?\))\}/);
 });
 
 test('Creators V2: as pessoas em grade, o cartão vira no lugar com as campanhas e os botões de sempre', () => {

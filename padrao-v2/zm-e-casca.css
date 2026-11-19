@@ -69,7 +69,7 @@
 
 /* Período no vidro (36 px, canto 10; a escolhida numa pastilha branca). */
 .d3m-e-per > button{appearance:none;display:inline-flex;align-items:center;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-e-per > button:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-e-per > button:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 .d3m-e-per > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
 /* "Como funciona": o botão de ícone que abre uma nota (a mesma caixa da seta do título, presa à direita). */
 .d3m-e-ajuda{align-self:center}
