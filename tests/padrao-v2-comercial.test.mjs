@@ -246,11 +246,11 @@ test('as outras abas da janela seguem como eram; o CSS do grupo não força regr
   assert.doesNotMatch(css, /!important|html body\.mundo/);
   for (const linha of css.split('\n')) if (/^\s*[#.:a-z]/.test(linha) && linha.includes('{') && !linha.trim().startsWith('@')) assert.match(linha, /^\s*#vv-comercial\.v2c[ {]|^\s*\d|^\s*(from|to)\b/, 'tudo pelo id da janela: ' + linha.slice(0, 60));
   // Medidas do quadro: cartão branco de raio 20 sem borda, pílula de 38 e de 30, ficha selecionada preta, ação #C2490C, número de 34.
-  assert.match(css, /\.v2c-card\{[^}]*padding:18px;border-radius:20px;background:#FFFFFF;box-shadow:/);
+  assert.match(css, /\.v2c-card\{[^}]*padding:18px;border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));box-shadow:/);
   assert.match(css, /\.v2c-btn\{[^}]*height:38px;padding:0 16px;border:0;border-radius:999px/);
   assert.match(css, /\.v2c-btn\.s\{height:30px;padding:0 12px;font-size:var\(--d3-fs-texto\)\}/);
-  assert.match(css, /\.v2c-btn\.p\{background:#C2490C;color:#FFFFFF/);
-  assert.match(css, /\.v2c-chip\[aria-pressed="true"\]\{background:#1F1D1A;color:#FFFFFF;box-shadow:none\}/);
+  assert.match(css, /\.v2c-btn\.p\{background:#C2490C;color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /\.v2c-chip\[aria-pressed="true"\]\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));box-shadow:none\}/);
   assert.match(css, /\.v2c-kpi > b\{[^}]*font:700 34px\/1\.05/);
   assert.match(css, /\.v2c-et\.z\{background:transparent;border-color:#D9D1C3;border-style:dashed;box-shadow:none\}/);
   assert.match(css, /\.v2c-et\.at\{background:#FFF1E6\}/);

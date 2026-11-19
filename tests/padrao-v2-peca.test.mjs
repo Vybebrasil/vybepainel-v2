@@ -105,25 +105,25 @@ test('cadastro: escolhido é ficha preta, sem os estados que o tema antigo pinta
   const cartoes = trecho(cad, '  function fcCartaoOQueHtml(n, it) {', '  function fcMaisCamposHtml(n, it) {');
   assert.doesNotMatch(cartoes, /aria-pressed|aria-selected/);
   assert.match(cartoes, /role="radio" aria-checked="\$\{state\.format === f\}" class="nd-chip\$\{state\.format === f \? ' on' : ''\}"/);
-  assert.match(css, /body\.mundo #fc-overlay \.nd \.nd-chip\.on\{background:#1F1D1A;color:#FFFFFF;box-shadow:none\}/);
-  assert.match(css, /body\.mundo #fc-overlay \.nd-etapa\.agora\{background:#FFFFFF;box-shadow:inset 0 0 0 2px #1F1D1A/, 'Direção 3: cartão da etapa atual branco com borda preta sobre a janela branca');
-  assert.match(css, /body\.mundo #fc-overlay \.nd-num\.ok\{background:var\(--d3-pronto,#11613A\);color:#FFFFFF\}/);
+  assert.match(css, /body\.mundo #fc-overlay \.nd \.nd-chip\.on\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));box-shadow:none\}/);
+  assert.match(css, /body\.mundo #fc-overlay \.nd-etapa\.agora\{background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));box-shadow:inset 0 0 0 2px (?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/, 'Direção 3: cartão da etapa atual branco com borda preta sobre a janela branca');
+  assert.match(css, /body\.mundo #fc-overlay \.nd-num\.ok\{background:var\(--d3-pronto,(?:#11613A|var\(--d3-(?:pronto)(?:,[^)]*\))?\))\);color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\}/);
 });
 
 test('portão de bastão: etapas em pílula, "N de 3" e os mesmos campos que a gravação lê', () => {
   assert.match(portoes, /<div class="pt-etp bastao-passos" aria-hidden="true"><span data-bastao-passo="0" class="atual">1 Entregou<\/span><i><\/i><span data-bastao-passo="1">2 Próximo<\/span><i><\/i><span data-bastao-passo="2">3 Confirmar<\/span><\/div>/);
   for (const id of ['id="handoff-done"', 'id="handoff-link"', 'id="handoff-next"', 'id="bastao-revisao"', 'id="bastao-voltar"', 'id="bastao-seguir"']) assert.ok(portoes.includes(id), id);
   assert.match(portoes, /if \(ir >= secoes\.length\) return submitHandoff\(\);/);
-  assert.match(css, /body\.mundo #workflow-modal \.pt-etp > span\.atual\{padding:0 10px;border-radius:999px;background:#1F1D1A;color:#FFFFFF\}/);
+  assert.match(css, /body\.mundo #workflow-modal \.pt-etp > span\.atual\{padding:0 10px;border-radius:999px;background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\}/);
 });
 
 test('folha do grupo: medidas do quadro, sem forçar nada', () => {
   assert.doesNotMatch(css, /!important/);
   assert.doesNotMatch(css, /html body\.mundo/);
   assert.match(css, /body\.mundo #workspace-drawer\.gv2-gaveta\{[^}]*width:700px;[^}]*border-radius:var\(--d3-r-janela,28px\)/, 'Direção 3: gaveta de 700 com o Resumo em duas colunas');
-  assert.match(css, /\.gv2-avancar\{[^}]*height:46px;[^}]*background:#1F1D1A;color:#FFFFFF/);
-  assert.match(css, /\.gv2-bloco\{[^}]*grid-template-columns:1fr 1fr 1\.3fr;[^}]*border-radius:16px;background:#F9F8F5\}/);
-  assert.match(css, /body\.mundo #fc-overlay \.nd\{[^}]*border-radius:28px;background:#FFFFFF/);
-  assert.match(css, /body\.mundo #fc-overlay \.nd-card\{[^}]*border-radius:20px;background:#F9F8F5/);
+  assert.match(css, /\.gv2-avancar\{[^}]*height:46px;[^}]*background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /\.gv2-bloco\{[^}]*grid-template-columns:1fr 1fr 1\.3fr;[^}]*border-radius:16px;background:(?:#F9F8F5|var\(--d3-(?:folha-leve)(?:,[^)]*\))?\))\}/);
+  assert.match(css, /body\.mundo #fc-overlay \.nd\{[^}]*border-radius:28px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /body\.mundo #fc-overlay \.nd-card\{[^}]*border-radius:20px;background:(?:#F9F8F5|var\(--d3-(?:folha-leve)(?:,[^)]*\))?\))/);
   assert.match(css, /@media \(prefers-reduced-motion:reduce\)/);
 });

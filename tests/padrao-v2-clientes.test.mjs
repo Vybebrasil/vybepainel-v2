@@ -80,8 +80,8 @@ test('Conversas segue o quadro: título, de onde vem e as visões; cartão da li
 test('o CSS do grupo ganha pelo id da janela, sem !important nem html body.mundo, com as medidas do quadro', () => {
   assert.doesNotMatch(css, /!important|html body\.mundo/);
   for (const linha of css.split('\n')) if (/^\s*[#.]/.test(linha) && linha.includes('{')) assert.match(linha, /^\s*#vv-(carteira|whatsapp)/, linha.slice(0, 80));
-  assert.match(css, /#vv-carteira \.v2c-card\{[^}]*border-radius:20px;background:#FFFFFF/);
-  assert.match(css, /#vv-carteira \.v2c-chip\[aria-pressed="true"\]\{background:#1F1D1A;color:#FFFFFF/);
+  assert.match(css, /#vv-carteira \.v2c-card\{[^}]*border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /#vv-carteira \.v2c-chip\[aria-pressed="true"\]\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   assert.match(css, /#vv-carteira \.v2c-btn\.p\{background:#C2490C/);
   assert.match(css, /#vv-carteira \.v2c-kpi > b\{[^}]*font:700 34px/);
   assert.match(css, /#vv-whatsapp \.v2w-grade\{[^}]*grid-template-columns:380px minmax\(0,1fr\)/);

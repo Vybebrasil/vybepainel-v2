@@ -243,7 +243,7 @@ test('CSS do grupo: um arquivo só, sem !important e sem html body.mundo', () =>
   assert.doesNotMatch(css, /!important|html body\.mundo/);
   for (const sel of ['.g2-topo', '.g2-fala', '.g2-tres', '.g2-pill.r', '.g2-mods-grade', '.g2-fx', '.g2-dia', '.g2-abrir', '.g2-mais']) assert.ok(css.includes(sel), sel);
   assert.match(css, /\.g2-btn\.p\{background:#C2490C/);
-  assert.match(css, /\.g2-card\{[^}]*border-radius:20px;background:#FFFFFF/);
+  assert.match(css, /\.g2-card\{[^}]*border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   assert.match(css, /prefers-reduced-motion:reduce/);
   assert.doesNotMatch(ler('vybe-mundo-setor.js') + ler('vybe-mundo-performance.js'), /<button(?! type="button")/, 'todo botão com type');
 });

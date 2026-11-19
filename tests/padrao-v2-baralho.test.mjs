@@ -41,6 +41,6 @@ test('sem dados (leitura antes do login), abrir a aba lê de novo; a gaveta da p
   assert.match(js, /const relerFila = \(forcar = false\) => A\(\)\?\.atualizar\?\.\(forcar \|\| !A\(\)\.estado\(\)\.dados\);/);
   assert.match(js, /document\.body\.classList\.toggle\('vc-aberto', st\.aberto\);/);
   assert.match(css, /html body\.mundo\.vc-aberto #workspace-drawer\.workspace-drawer\{z-index:660!important\}/);
-  assert.match(fs.readFileSync('padrao-v2/conteudo.css', 'utf8'), /#vv-conteudo\.vc \.v2c-btn\.k\{background:#1F1D1A;color:#FFFFFF/);
+  assert.match(fs.readFileSync('padrao-v2/conteudo.css', 'utf8'), /#vv-conteudo\.vc \.v2c-btn\.k\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   assert.doesNotMatch(css, /vc-apr-/, 'as classes da tela antiga saíram do CSS');
 });

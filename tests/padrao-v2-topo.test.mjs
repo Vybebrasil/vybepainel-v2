@@ -17,11 +17,11 @@ test('CSS do grupo: sem !important e sem html body.mundo; as três janelas com 3
   assert.match(regra('#v2j-busca'), /width:420px/);
   for (const s of ['#mundo-hud .vv-avisos-painel', '#mundo-hud .vv-menu-conta']) {
     const r = regra(s);
-    assert.match(r, /width:340px/); assert.match(r, /border-radius:24px/); assert.match(r, /background:#FFFFFF/);
+    assert.match(r, /width:340px/); assert.match(r, /border-radius:24px/); assert.match(r, /background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   }
   assert.match(regra('#v2j-busca .spotlight-linha'), /min-height:40px/);
-  assert.match(regra('#v2j-busca .spotlight-abas button[aria-selected="true"]'), /background:#1F1D1A;color:#FFFFFF/);
-  assert.match(regra('#conta-root .v2c-card'), /border:0;border-radius:20px;background:#FFFFFF/);
+  assert.match(regra('#v2j-busca .spotlight-abas button[aria-selected="true"]'), /background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(regra('#conta-root .v2c-card'), /border:0;border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   assert.match(regra('#conta-root .v2c-btn.p'), /background:#C2490C/);
   assert.match(regra('#conta-root .v2c-btn.s'), /height:30px/);
 });

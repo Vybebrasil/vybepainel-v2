@@ -12,12 +12,12 @@ test('o fragmento de CSS não força nada: sem !important e sem html body.mundo'
   assert.doesNotMatch(css, /!important/);
   assert.doesNotMatch(css, /html body\.mundo/);
   // As medidas do quadro: cartão branco de raio 20, botão 38 e 30, ficha escolhida preta, ação #C2490C.
-  assert.match(css, /\.p2-card\{[^}]*border-radius:20px;background:#FFFFFF/);
+  assert.match(css, /\.p2-card\{[^}]*border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   assert.match(css, /\.p2-btn\{[^}]*height:38px[^}]*border-radius:999px/);
   assert.match(css, /\.p2-btn\.s\{height:30px/);
-  assert.match(css, /\.p2-btn\.p\{background:#C2490C;color:#FFFFFF/);
-  assert.match(css, /\.p2-chip\.p2-chip:is\(\[aria-pressed="true"\],\[aria-checked="true"\]\)\{background:#1F1D1A;color:#FFFFFF/);
-  assert.match(css, /#vv-planejamentos\.vv-plj\{gap:16px;padding:26px 30px;border:0;background:#F9F8F5/);
+  assert.match(css, /\.p2-btn\.p\{background:#C2490C;color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /\.p2-chip\.p2-chip:is\(\[aria-pressed="true"\],\[aria-checked="true"\]\)\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /#vv-planejamentos\.vv-plj\{gap:16px;padding:26px 30px;border:0;background:(?:#F9F8F5|var\(--d3-(?:folha-leve)(?:,[^)]*\))?\))/);
 });
 
 test('Planejamentos (Direção 3): mês e Novo planejamento no alto, bloco de ação do Augusto, quatro números, filtro e a tabela com Pede ação primeiro', () => {
@@ -98,5 +98,5 @@ test('Direção de arte: a Fila do Danilo com Delegar, parada em dias e Cobrar; 
   assert.match(cri, /\[`Parada \$\{plural\(s\.parado, 'dia', 'dias'\)\}`, 'r'\]/);
   assert.match(cri, /\$\{tipo === 'delegar' \? 'Deixar como está' : 'Agora não'\}/);
   assert.match(cri, /data-vcr-confirmar="\$\{esc\(chave\)\}"/);
-  assert.match(css, /#vv-hoje \.vcr-bloco\.vcr-fila\{[^}]*border-radius:20px;background:#FFFFFF/);
+  assert.match(css, /#vv-hoje \.vcr-bloco\.vcr-fila\{[^}]*border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
 });

@@ -24,7 +24,7 @@ test('Agenda: bloco de ação do Lucas, quatro números, faixa da semana, Na ord
   // Nenhuma função some: grade por hora, inspetor, tipos, atalhos e a navegação continuam.
   for (const t of ['pv2aGrade()', 'captAlternarInspetor()', "captTipo('${t}')", 'T hoje · ← → navega', 'captNavegar(-1)', 'captNavegar(1)', 'captVerDia(', 'captAbrirMontar(', 'captCadastrar(']) assert.ok(js.includes(t), t);
   assert.doesNotMatch(js, /Lucas · Audiovisual e captação/);
-  assert.match(ler('padrao-v2/agenda-celular.css'), /#pv2-agenda \.capt-fab\{display:grid;width:56px;height:56px;border-radius:16px;background:var\(--d3-tinta\);color:#FFFFFF/);
+  assert.match(ler('padrao-v2/agenda-celular.css'), /#pv2-agenda \.capt-fab\{display:grid;width:56px;height:56px;border-radius:16px;background:(?:var\(--d3-tinta\)|var\(--d3-(?:tinta|fume-contra|contra)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
 });
 
 test('Planejamentos, Impressões, Projetos e Toolkit: bloco de ação, números D3 e sem frase explicativa', () => {

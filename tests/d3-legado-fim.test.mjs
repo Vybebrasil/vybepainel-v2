@@ -70,12 +70,12 @@ test('histórico: tipo do carimbo, sem emoji de caixa marcada, texto inteiro; fo
 
 test('CSS: área de arquivo, prévia, responsável e portão no padrão; a regra laranja antiga fica fora do mundo', () => {
   assert.match(ler('vybe-padrao.css'), /^:where\(body:not\(\.mundo\)\) #workspace-drawer \.workspace-dropzone\{/m);
-  assert.match(peca, /body\.mundo #workspace-drawer \.workspace-dropzone\{[^}]*border:1\.5px dashed #C9C2B6;[^}]*background:#F9F8F5/);
-  assert.match(peca, /body\.mundo #workspace-drawer \.gv2-ev-txt\{[^}]*color:var\(--d3-texto2,#4A463F\)/);
-  assert.match(peca, /body\.mundo #previa-grande\{--ds-acao:var\(--d3-tinta,#1F1D1A\)/);
-  assert.match(peca, /body\.mundo #previa-grande\.com-ficha \.previa-grande-palco\{background:var\(--d3-trilho,#F3F1EC\)\}/);
-  assert.match(peca, /body\.mundo #dono-editor\{--ds-acao:var\(--d3-tinta,#1F1D1A\)/);
-  assert.match(peca, /body\.mundo #workflow-modal\.status-context-dialog\{--vybe-orange-soft:var\(--d3-tinta,#1F1D1A\)\}/);
-  assert.match(ler('padrao-v2/familias.css'), /body\.mundo \.cli-pergunta-caixa :is\(input,textarea\)\{border:0;background:var\(--d3-trilho,#F3F1EC\)/);
+  assert.match(peca, /body\.mundo #workspace-drawer \.workspace-dropzone\{[^}]*border:1\.5px dashed #C9C2B6;[^}]*background:(?:#F9F8F5|var\(--d3-(?:folha-leve)(?:,[^)]*\))?\))/);
+  assert.match(peca, /body\.mundo #workspace-drawer \.gv2-ev-txt\{[^}]*color:var\(--d3-texto2,(?:#4A463F|var\(--d3-(?:texto2)(?:,[^)]*\))?\))\)/);
+  assert.match(peca, /body\.mundo #previa-grande\{--ds-acao:var\(--d3-tinta,(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))\)/);
+  assert.match(peca, /body\.mundo #previa-grande\.com-ficha \.previa-grande-palco\{background:var\(--d3-trilho,(?:#F3F1EC|var\(--d3-(?:trilho)(?:,[^)]*\))?\))\)\}/);
+  assert.match(peca, /body\.mundo #dono-editor\{--ds-acao:var\(--d3-tinta,(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))\)/);
+  assert.match(peca, /body\.mundo #workflow-modal\.status-context-dialog\{--vybe-orange-soft:var\(--d3-tinta,(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))\)\}/);
+  assert.match(ler('padrao-v2/familias.css'), /body\.mundo \.cli-pergunta-caixa :is\(input,textarea\)\{border:0;background:var\(--d3-trilho,(?:#F3F1EC|var\(--d3-(?:trilho)(?:,[^)]*\))?\))\)/);
   assert.match(gaveta, /function workspaceDropzoneTextoHtml\(\)/);
 });

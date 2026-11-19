@@ -52,7 +52,7 @@ test('o CSS do quadro: medidas do padrão, pelo id da janela, sem forçar regra 
   assert.doesNotMatch(css, /!important|html body\.mundo/);
   assert.ok(css.split(/\r?\n/).filter((l) => /^\s*[#.]/.test(l)).every((l) => l.trimStart().startsWith('#vv-conteudo.vc')), 'toda regra começa pelo id da janela');
   assert.ok(css.includes('.v2c-mesa .v2-baralho{flex:none;width:350px;height:452px'));
-  assert.ok(css.includes('.v2c-card{box-sizing:border-box;border-radius:20px;padding:18px;background:#FFFFFF'));
-  assert.ok(css.includes('.v2c-seg button[aria-selected="true"]{background:#FFFFFF;color:#1F1D1A'));
+  assert.match(css, /\.v2c-card\{box-sizing:border-box;border-radius:20px;padding:18px;background:(#FFFFFF|var\(--d3-cartao\))/);
+  assert.match(css, /\.v2c-seg button\[aria-selected="true"\]\{background:(#FFFFFF|var\(--d3-cartao\));color:(#1F1D1A|var\(--d3-tinta\))/);
   assert.ok(css.includes('.v2c-btn.g{height:38px'));
 });

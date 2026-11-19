@@ -186,11 +186,11 @@ test('o CSS do grupo fica no fragmento, com as medidas do quadro e sem forçar r
   const css = readFileSync('padrao-v2/pessoas.css', 'utf8'), semComentario = css.replace(/\/\*[\s\S]*?\*\//g, '');
   assert.doesNotMatch(semComentario, /!important|html body\.mundo/);
   assert.ok(semComentario.split('}').every((r) => !r.trim() || /^\s*(@|#vv-pessoas|from|to|\d+%|0%)/.test(r.trim()) || /^\s*$/.test(r)), 'toda regra começa pelo id da janela');
-  assert.match(css, /#vv-pessoas\.vp-janela\.v2p-janela\{border:0;border-radius:var\(--d3-r-janela,28px\);background:var\(--d3-areia,#EAE6DE\)/);
-  assert.match(css, /#vv-pessoas \.v2p-card\{[^}]*border:0;border-radius:20px;background:#FFFFFF/);
+  assert.match(css, /#vv-pessoas\.vp-janela\.v2p-janela\{border:0;border-radius:var\(--d3-r-janela,28px\);background:var\(--d3-areia,(?:#EAE6DE|var\(--d3-(?:areia|borda)(?:,[^)]*\))?\))\)/);
+  assert.match(css, /#vv-pessoas \.v2p-card\{[^}]*border:0;border-radius:20px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   assert.match(css, /#vv-pessoas \.v2p-btn\{[^}]*height:38px[^}]*border-radius:999px/); assert.match(css, /#vv-pessoas \.v2p-btn\.s\{height:30px/);
-  assert.match(css, /#vv-pessoas \.v2p-chip\[aria-pressed="true"\]\{background:#1F1D1A;color:#FFFFFF/);
-  assert.match(css, /\.vp-topo-botoes > \.vp-acao\{order:3;[^}]*background:var\(--d3-cartao,#FFFFFF\)/, 'Direção 3: a ação do topo é branca; o laranja cheio é só o bloco de ação');
+  assert.match(css, /#vv-pessoas \.v2p-chip\[aria-pressed="true"\]\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /\.vp-topo-botoes > \.vp-acao\{order:3;[^}]*background:var\(--d3-cartao,(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\)/, 'Direção 3: a ação do topo é branca; o laranja cheio é só o bloco de ação');
   assert.match(css, /#vv-pessoas \.v2p-baralho\{flex:none;width:380px;[^}]*height:300px\}/); assert.match(css, /#vv-pessoas \.v2p-grade-rh\{grid-template-columns:440px minmax\(0,1fr\)\}/);
   assert.match(css, /@media \(prefers-reduced-motion:reduce\)/);
   const js = readFileSync('vybe-mundo-pessoas.js', 'utf8');

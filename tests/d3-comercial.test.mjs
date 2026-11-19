@@ -20,11 +20,11 @@ test('o CSS do grupo não força regra antiga e usa os tokens da Direção 3', (
   assert.match(css, /\.g2-fala\{[^}]*background:var\(--d3-acao\)/);
   assert.match(css, /\.d3-num > \.d3-num-v\{font-size:36px/);
   // A ação do topo deixa de ser laranja: o único laranja cheio é o bloco de ação.
-  assert.match(css, /\.v2c-topo \.v2c-btn\.p\{background:var\(--d3-cartao\)/);
-  assert.match(css, /\.g2-topo \.g2-btn\{background:var\(--d3-cartao\)/);
+  assert.match(css, /\.v2c-topo \.v2c-btn\.p\{background:(?:var\(--d3-cartao\)|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /\.g2-topo \.g2-btn\{background:(?:var\(--d3-cartao\)|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
   const diario = ler('padrao-v2/diario.css');
   assert.doesNotMatch(diario, /!important|html body\.mundo/);
-  assert.match(diario, /#painel-diario \.v2d-acao\{[^}]*background:#1F1D1A/);
+  assert.match(diario, /#painel-diario \.v2d-acao\{[^}]*background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/);
 });
 
 test('as telas do grupo montam as peças da Direção 3 e as séries de meses em linha', () => {

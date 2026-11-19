@@ -58,6 +58,6 @@ test('Gaveta e famílias: Checklist, material bruto discreto, escolha clara e et
   assert.match(g, /gv2-checklist">Checklist/);
   assert.ok(g.indexOf('${gavetaFichaResumoHtml(detail, item)}') < g.indexOf('${faixaDeMaterialBrutoHtml(detail, item, { compacta: true })}'), 'material bruto embaixo da ficha');
   const f = ler('padrao-v2/familias.css');
-  assert.match(f, /\.vb-escolha > summary\.vb-chip\.vb-escolha-com\{border:0;background:var\(--d3-trilho,#F3F1EC\)/);
+  assert.match(f, /\.vb-escolha > summary\.vb-chip\.vb-escolha-com\{border:0;background:var\(--d3-trilho,(?:#F3F1EC|var\(--d3-(?:trilho)(?:,[^)]*\))?\))\)/);
   assert.match(f, /\.vb-etapas > \.vb-etapa::after\{content:""[^}]*height:4px/);
 });

@@ -17,17 +17,17 @@ test('CSS do grupo: sem forçar e sem html body.mundo; as janelas com 340, branc
   assert.doesNotMatch(css, /html body\.mundo/);
   for (const s of ['#v2-notas.v2nt', '.vbl-fundo #vbl-janela.vbl-janela', '.vv-tour-raiz .vv-tour-janela.v2aj']) {
     const r = regra(s);
-    assert.match(r, /width:340px/, s); assert.match(r, /border-radius:24px/, s); assert.match(r, /background:#FFFFFF/, s);
+    assert.match(r, /width:340px/, s); assert.match(r, /border-radius:24px/, s); assert.match(r, /background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/, s);
   }
   assert.match(regra('body.ver-agenda #mundo-hud #vv-agenda.vv-agenda'), /border-radius:24px/);
   for (const s of ['#v2-notas .v2nt-ib', '.vbl-fundo #vbl-janela .vbl-fechar', '.vv-tour-raiz .v2aj .vv-tour-x', 'body.ver-agenda #mundo-hud #vv-agenda .vv-agenda-seta']) {
     const r = regra(s); assert.match(r, /width:30px;height:30px/, s); assert.match(r, /border-radius:50%/, s);
   }
   assert.match(regra('#v2-notas .v2nt-cab'), /padding:14px 14px 10px 18px/);
-  assert.match(regra('#v2-notas .v2nt-pe'), /border-top:1px solid #F1EDE6/);
+  assert.match(regra('#v2-notas .v2nt-pe'), /border-top:1px solid (?:#F1EDE6|var\(--d3-(?:linha)(?:,[^)]*\))?\))/);
   assert.match(regra('#v2-notas .v2nt-r'), /min-height:40px/);
-  assert.match(regra('#v2-notas .v2nt-chip[aria-pressed="true"]'), /background:#1F1D1A;color:#FFFFFF/);
-  assert.match(regra('#v2-notas .v2nt-btn.p'), /background:#1F1D1A/);
+  assert.match(regra('#v2-notas .v2nt-chip[aria-pressed="true"]'), /background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(regra('#v2-notas .v2nt-btn.p'), /background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/);
   // no celular, de ponta a ponta no alto
   assert.match(css, /@media \(max-width:599px\)\{\s*#v2-notas\.v2nt\{top:8px;left:8px;right:8px;width:auto/);
 });

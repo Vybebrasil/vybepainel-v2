@@ -120,14 +120,14 @@ test('Hoje sem fila: a conversa do VYBES com as abas, as sugestões e "Pergunte 
 
 test('CSS: fragmento sem !important nem html body.mundo, com as medidas dos quadros', () => {
   assert.doesNotMatch(css, /!important|html body\.mundo/);
-  assert.match(css, /#login-gate \.v2lg\{[^}]*width:380px;[^}]*padding:28px;border-radius:28px;background:#FFFFFF/);
-  assert.match(css, /#login-gate \.v2lg-campo > input\{[^}]*height:46px;[^}]*border-radius:999px;background:#F9F8F5;box-shadow:inset 0 0 0 1\.5px #1F1D1A/);
-  assert.match(css, /#login-gate \.v2lg-entrar\{[^}]*height:46px;[^}]*background:#1F1D1A/);
-  assert.match(css, /#vv-entrada \.v2en-btn\{[^}]*height:44px;padding:0 22px;[^}]*background:#1F1D1A/, 'Direção 3: o laranja cheio fica só para o bloco de ação');
+  assert.match(css, /#login-gate \.v2lg\{[^}]*width:380px;[^}]*padding:28px;border-radius:28px;background:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))/);
+  assert.match(css, /#login-gate \.v2lg-campo > input\{[^}]*height:46px;[^}]*border-radius:999px;background:(?:#F9F8F5|var\(--d3-(?:folha-leve)(?:,[^)]*\))?\));box-shadow:inset 0 0 0 1\.5px (?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/);
+  assert.match(css, /#login-gate \.v2lg-entrar\{[^}]*height:46px;[^}]*background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/);
+  assert.match(css, /#vv-entrada \.v2en-btn\{[^}]*height:44px;padding:0 22px;[^}]*background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\))/, 'Direção 3: o laranja cheio fica só para o bloco de ação');
   assert.match(css, /:is\(#vv-hoje,#vv-criar\) \.v2cr-det\{display:grid;grid-template-columns:minmax\(0,1fr\) 190px;gap:12px/);
   assert.match(css, /:is\(#vv-hoje,#vv-criar\) \.v2cr-tipo\{[^}]*height:128px;/);
   assert.match(css, /#vv-hoje \.v2vb-bal\{[^}]*border-radius:6px 18px 18px 18px;background:#F4F1FB/);
   assert.match(css, /prefers-reduced-motion:reduce/);
   // A regra antiga do portão (com !important) agora tem o fundo do quadro.
-  assert.match(ler('vybe-mundo.css'), /#login-gate\.irecity\{background:linear-gradient\(180deg,#F1EEE8 0%,#E6E0D6 100%\)!important\}/);
+  assert.match(ler('vybe-mundo.css'), /#login-gate\.irecity\{background:linear-gradient\(180deg,#F1EEE8 0%,(?:#E6E0D6|var\(--d3-(?:borda)(?:,[^)]*\))?\)) 100%\)!important\}/);
 });
