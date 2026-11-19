@@ -1642,13 +1642,26 @@
     if (!lista?.length) return `<p class="vv-vazio">${vazio}</p>`;
     return lista.slice(0, max).map((p) => `<button type="button" class="vv-g-linha peca" data-hoje-acao="peca" data-valor="${esc(p.id)}"><b>${esc(p.nome || 'Peça')}</b><small class="vv-g-meta">${metaPeca(p)}</small><em class="vv-g-datas">${datasPeca(p)}</em></button>`).join('') + (lista.length > 8 ? `<p class="vv-dica">+ ${lista.length - 8}</p>` : '');
   }
+  // Lista rápida (prancha V2-S-Lista-Rapida, 19/11/2026): a linha de peça é a logo do cliente, o nome, "cliente · status" e,
+  // à direita, as duas datas com nome (prazo e no ar); a data do cliente que já passou fica vermelha, a de hoje diz "hoje".
+  const espiarDia = (iso) => { const x = String(iso || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : ''; };
+  function linhaEspiarPeca(p, hoje = (typeof HOJE_ISO === 'string' && HOJE_ISO) || new Date().toISOString().slice(0, 10)) {
+    const cli = String(p.cliente || '').trim();
+    const av = cli && typeof logoDoClienteHtml === 'function' ? logoDoClienteHtml(cli, { classe: 'vle-av' }) : `<i class="vle-av" aria-hidden="true">${esc((cli || '?').slice(0, 2).toUpperCase())}</i>`;
+    const data = (rot, iso, cliente) => { const d = espiarDia(iso); if (!d) return ''; const txt = d === hoje ? 'hoje' : `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+      return `<span><i>${rot}</i> <b class="${cliente && d < hoje ? 'r' : ''}">${txt}</b></span>`; };
+    const sub = [cli || 'Sem cliente', String(p.status || '').trim()].filter(Boolean).join(' · ');
+    return `<button type="button" class="vv-g-linha peca vle-linha" data-hoje-acao="peca" data-valor="${esc(p.id)}">${av}<span class="vle-txt"><b>${esc(p.nome || 'Peça')}</b><small>${esc(sub)}</small></span><span class="vle-datas">${data('prazo', p.prazo_iso, false)}${data('no ar', p.veiculacao_iso, true)}</span></button>`;
+  }
+  const linhasEspiar = (lista = [], vazio = '') => (lista.length ? lista.map((p) => linhaEspiarPeca(p)).join('') : `<p class="vv-vazio">${esc(vazio)}</p>`);
   // ---------- Espiar: o número abre o que está por trás dele (Paulo, 08/11: "ver 69 atrasadas e clicar nele") ----------
   // Passar o mouse mostra a prévia; clicar fixa o mini painel (X, Esc e clique fora fecham). Cada linha leva à peça ou ao cliente.
   const espiaoEl = document.createElement('div');
   espiaoEl.className = 'vv-espiar'; espiaoEl.hidden = true; espiaoEl.setAttribute?.('role', 'dialog');
   document.body.append?.(espiaoEl);
   let espiaoFixo = false, espiaoAncora = null, espiaoTimer = null;
-  const ESPIAR = { atrasadas: ['Atrasadas', 'u1', 'Nada atrasado.', 'agora'], emRisco: ['Risco de furo (2 dias)', 'u2', 'Nada com risco de furo.', 'agora'], faltam: ['Ainda não feitas hoje', '', 'Tudo de hoje feito.', 'agora'] };
+  const ESPIAR = { atrasadas: ['Atrasadas', 'u1', 'Nada atrasado.', 'agora'], emRisco: ['Risco de furo (2 dias)', 'u2', 'Nada com risco de furo.', 'agora'], faltam: ['Vão ao ar hoje', '', 'Tudo de hoje feito.', 'agora'] };
+  let espiaoAba = 0;
   // Outros módulos (Comercial, Carteira…) publicam as listas por trás dos números deles:
   // window.VybeEspiarProvedores[prefixo] = (resto) => ({ titulo, n, cls, itens: [{ nome, sub, dir, cls }], clicar(item), rodape })
   const PROVEDORES = (window.VybeEspiarProvedores = window.VybeEspiarProvedores || {});
@@ -1674,7 +1687,21 @@
       if (fk === 'pessoa') lista = (N.time || []).find((t) => t.pessoa === valor)?.lista?.[tipo] || [];
       if (fk === 'cliente') lista = (N.clientes || []).find((c) => c.cliente === valor)?.lista?.[tipo] || [];
       if (fk === 'head') lista = (N.heads || []).find((h) => h.head === valor)?.lista?.[tipo] || [];
-      return { titulo: rot, sub: valor, n: lista.length, cls, aba: fk === 'head' ? 'carteiras' : aba, corpo: listaPecas(lista, vazio, 40) + (lista.length > 40 ? `<p class="vv-dica">e mais ${lista.length - 40} na Gestão.</p>` : '') };
+      const hojeIso = H.dia || (typeof HOJE_ISO === 'string' && HOJE_ISO) || new Date().toISOString().slice(0, 10);
+      const pl = (n, um, varios) => `${n0(n)} ${Number(n) === 1 ? um : varios}`;
+      // As abas da prancha: o recorte que separa o que é grave do que só passou do prazo interno.
+      let abas = null, desc = '', ordem = tipo === 'atrasadas' ? 'mais antigas primeiro' : tipo === 'emRisco' ? 'pela data do cliente' : 'as paradas primeiro';
+      if (tipo === 'atrasadas') {
+        const furando = lista.filter((p) => p.furando ?? (() => { const v = espiarDia(p.veiculacao_iso); return v && v < hojeIso; })()), soPrazo = lista.filter((p) => !furando.includes(p));
+        desc = `${pl(furando.length, 'furando', 'furando')} a data do cliente`;
+        if (furando.length && soPrazo.length) abas = [{ rotulo: 'Furando a data', lista: furando, vazio }, { rotulo: 'Só o prazo', lista: soPrazo, vazio }];
+      } else if (tipo === 'faltam' && !fk) {
+        const prontas = L.prontas || [];
+        desc = `${pl(prontas.length, 'pronta', 'prontas')} · ${pl(lista.length, 'ainda não está', 'ainda não estão')} Finalizado`;
+        if (prontas.length) abas = [{ rotulo: 'Ainda não prontas', lista, vazio }, { rotulo: 'Prontas', lista: prontas, vazio: 'Nenhuma pronta ainda.' }];
+        return { titulo: rot, sub: valor, desc, n: lista.length + prontas.length, cls, aba: fk === 'head' ? 'carteiras' : aba, ordem, abas: abas && abas.map((a) => ({ ...a, n: a.lista.length, corpo: linhasEspiar(a.lista, a.vazio) })), corpo: linhasEspiar(lista, vazio) };
+      } else if (tipo === 'emRisco') desc = 'vão ao ar nos próximos 2 dias e não estão prontas';
+      return { titulo: rot, sub: valor, desc, n: lista.length, cls, aba: fk === 'head' ? 'carteiras' : aba, ordem, abas: abas && abas.map((a) => ({ ...a, n: a.lista.length, corpo: linhasEspiar(a.lista, a.vazio) })), corpo: linhasEspiar(lista, vazio) };
     }
     if (tipo === 'sem3') return { titulo: 'Clientes sem 3 posts na semana', n: (C.sem3 || []).length, cls: 'u2', aba: 'semana', corpo: (C.sem3 || []).map((x) => linhaCli(x.cliente, `${n0(x.qtd)}/3`)).join('') || '<p class="vv-vazio">Todos com 3 posts.</p>' };
     if (tipo === 'semConteudo') return { titulo: 'Clientes sem nenhum post na semana', n: (C.semConteudo || []).length, cls: 'u1', aba: 'semana', corpo: (C.semConteudo || []).map((c) => linhaCli(nomeCli(c), '0/3')).join('') || '<p class="vv-vazio">Nenhum.</p>' };
@@ -1693,25 +1720,63 @@
     }
     return null;
   }
+  // Prancha V2-S-Lista-Rapida: o número grande com o que ele conta, a frase de apoio, as abas do recorte (quando há), as
+  // linhas que cabem sem rolar e o pé com "8 de 147 · a ordem" e o caminho para ver todas. Fixado (clique), o fundo
+  // escurece atrás; na prévia do mouse, não.
+  const espiaoFundo = document.createElement('div');
+  espiaoFundo.className = 'vle-fundo'; espiaoFundo.hidden = true;
+  document.body.append?.(espiaoFundo);
+  const titEspiar = (t) => { const x = String(t || ''); return /^[A-ZÀ-Ú][a-zà-ú]/.test(x) ? x.charAt(0).toLocaleLowerCase('pt-BR') + x.slice(1) : x; };
+  function pintarEspiar() {
+    const c = espiaoAtual; if (!c) return;
+    const abas = Array.isArray(c.abas) && c.abas.length > 1 ? c.abas : null;
+    if (!abas || espiaoAba >= abas.length) espiaoAba = 0;
+    const corpo = abas ? abas[espiaoAba].corpo : c.corpo, total = abas ? abas[espiaoAba].n : null;
+    const apoio = [c.sub, c.desc].filter(Boolean).join(' · ');
+    espiaoEl.innerHTML = `<div class="vle-topo"><span class="vle-tit"><span class="vle-n"><b class="t-${esc(c.cls || '')}">${n0(c.n)}</b> <b>${esc(titEspiar(c.titulo))}</b></span>${apoio ? `<small>${esc(apoio)}</small>` : ''}</span><button type="button" class="vle-x" data-espiar-fechar aria-label="Fechar" title="Fechar (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      ${abas ? `<div class="vle-abas" role="radiogroup" aria-label="Recorte">${abas.map((a, i) => `<button type="button" role="radio" aria-checked="${i === espiaoAba}" data-espiar-aba="${i}">${esc(a.rotulo)} · ${n0(a.n)}</button>`).join('')}</div>` : ''}
+      <div class="vv-espiar-lista vle-lista">${corpo}</div>
+      <div class="vle-pe"><small class="vle-conta"></small>${c.aba ? `<button type="button" class="vle-btn" data-espiar-gestao="${esc(c.aba)}">Ver todas na Gestão</button>` : ''}</div>`;
+    // Nada rola: as linhas que não cabem saem, e o pé diz quantas estão à vista ("8 de 147").
+    const lista = espiaoEl.querySelector('.vle-lista'), linhas = [...lista.querySelectorAll('.vv-g-linha')];
+    const conta = espiaoEl.querySelector('.vle-conta');
+    let vistas = linhas.length;
+    // O limite é a altura máxima do painel menos o pé (a lista nem sempre encolhe sozinha quando outra regra do módulo
+    // manda no display do painel).
+    const pe = espiaoEl.querySelector('.vle-pe'), maxH = parseFloat(espiaoEl.style.maxHeight) || espiaoEl.clientHeight;
+    const fim = Math.min(lista.getBoundingClientRect().bottom, espiaoEl.getBoundingClientRect().top + maxH - (pe ? pe.offsetHeight : 0));
+    if (linhas.some((l) => l.getBoundingClientRect().bottom > fim + 1)) {
+      for (const l of linhas) if (l.getBoundingClientRect().bottom > fim + 1) { l.hidden = true; vistas--; }
+      for (const b of lista.querySelectorAll('.vv-espiar-bloco')) if (![...b.querySelectorAll('.vv-g-linha')].some((l) => !l.hidden)) b.hidden = true;
+    }
+    const n = total ?? (linhas.length || null);
+    if (conta) conta.textContent = !espiaoFixo ? 'Clique no número para fixar' : n ? [`${n0(vistas)} de ${n0(Math.max(n, vistas))}`, c.ordem || c.rodape || ''].filter(Boolean).join(' · ') : (c.rodape || '');
+  }
   function mostrarEspiar(ancora, fixo) {
     const c = conteudoEspiar(ancora.dataset.espiar); if (!c) return;
-    espiaoAtual = c;
+    if (espiaoAtual?.chave !== ancora.dataset.espiar) espiaoAba = 0;
+    espiaoAtual = c; c.chave = ancora.dataset.espiar;
     clearTimeout(espiaoTimer); espiaoTimer = null; espiaoAncora = ancora; espiaoFixo = fixo;
-    espiaoEl.classList.toggle('fixo', fixo); espiaoEl.setAttribute('aria-label', c.titulo);
-    espiaoEl.innerHTML = `<div class="vv-espiar-topo"><span><b class="t-${c.cls}">${n0(c.n)}</b> ${esc(c.titulo)}${c.sub ? `<small>${esc(c.sub)}</small>` : ''}</span><button type="button" class="vv-espiar-x" data-espiar-fechar aria-label="Fechar" title="Fechar (Esc)">×</button></div>
-      <div class="vv-espiar-lista">${c.corpo}</div>
-      <div class="vv-espiar-pe">${fixo ? `<small>${esc(c.rodape || '')}</small>` : '<small>Clique no número para fixar</small>'}${c.aba ? `<button type="button" class="vv-num" data-espiar-gestao="${c.aba}">Ver na Gestão →</button>` : ''}</div>`;
+    espiaoEl.classList.toggle('fixo', fixo); espiaoEl.classList.add('d3-tema'); espiaoEl.setAttribute('aria-label', c.titulo);
+    espiaoFundo.hidden = !fixo;
     espiaoEl.hidden = false;
-    const r = ancora.getBoundingClientRect(), w = Math.min(380, innerWidth - 16);
+    const r = ancora.getBoundingClientRect(), w = Math.min(572, innerWidth - 16);
     espiaoEl.style.width = w + 'px';
     espiaoEl.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
-    const h = Math.min(espiaoEl.offsetHeight, innerHeight - 16), embaixo = r.bottom + 8 + h < innerHeight;
-    espiaoEl.style.top = (embaixo ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px';
+    // A altura vem do espaço: embaixo do número se couber a lista inteira; senão, em cima ou no maior dos dois lados.
+    const cabeEmbaixo = innerHeight - r.bottom - 14, cabeEmCima = r.top - 14;
+    const embaixo = cabeEmbaixo >= Math.min(700, innerHeight * 0.6) || cabeEmbaixo >= cabeEmCima;
+    const alto = Math.max(220, Math.min(700, embaixo ? cabeEmbaixo : cabeEmCima, innerHeight - 16));
+    espiaoEl.style.maxHeight = alto + 'px';
+    espiaoEl.style.top = '0px';
+    pintarEspiar();
+    const h = espiaoEl.offsetHeight;
+    espiaoEl.style.top = (embaixo ? Math.min(r.bottom + 6, innerHeight - h - 8) : Math.max(8, r.top - h - 6)) + 'px';
   }
   // Fechar o mini painel fixo devolve o foco ao número que o abriu (quando o foco estava nele ou se perdeu).
   function fecharEspiar() {
     const volta = espiaoFixo ? espiaoAncora : null, foco = document.activeElement;
-    clearTimeout(espiaoTimer); espiaoTimer = null; espiaoEl.hidden = true; espiaoFixo = false; espiaoAncora = null;
+    clearTimeout(espiaoTimer); espiaoTimer = null; espiaoEl.hidden = true; espiaoFundo.hidden = true; espiaoFixo = false; espiaoAncora = null;
     if (volta?.isConnected && (!foco || foco === document.body || espiaoEl.contains(foco))) volta.focus?.({ preventScroll: true });
   }
   const ponteiroFino = () => !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
@@ -1738,6 +1803,7 @@
   espiaoEl.addEventListener?.('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.espiarFechar !== undefined) { fecharEspiar(); return; }
+    if (b.dataset.espiarAba !== undefined) { espiaoAba = Number(b.dataset.espiarAba) || 0; espiaoFixo = true; espiaoEl.classList.add('fixo'); espiaoFundo.hidden = false; pintarEspiar(); return; }
     if (b.dataset.espiarItem !== undefined) { const c = espiaoAtual, it = c?.itens?.[Number(b.dataset.espiarItem)]; fecharEspiar(); if (it) c.clicar?.(it); return; }
     if (b.dataset.espiarGestao !== undefined) { const aba = b.dataset.espiarGestao; fecharEspiar(); abrirGestao(aba); return; }
     if (b.dataset.hojeAcao === 'peca') { fecharEspiar(); chamar('openItemWorkspace', String(b.dataset.valor)); return; }

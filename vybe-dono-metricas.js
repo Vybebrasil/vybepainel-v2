@@ -413,7 +413,7 @@
     const responsavelDe = (p) => (p.ids.length
       ? p.ids.map((pid, i) => nomeDoResponsavel(pid, p.d, i, p.ids)).join(', ')
       : String(p.d.responsavel || '').trim());
-    const peca = (p) => ({ id: p.id, nome: p.nome, cliente: p.clientes[0], status: p.status, veiculacao_iso: p.veic, prazo_iso: p.prazo, responsavel: responsavelDe(p) });
+    const peca = (p) => ({ id: p.id, nome: p.nome, cliente: p.clientes[0], status: p.status, veiculacao_iso: p.veic, prazo_iso: p.prazo, responsavel: responsavelDe(p), furando: Boolean(p.furo && !p.aguardaPostar) });
     const rotuloDe = (p) => ROTULOS.get(p.chave) || p.status || 'Sem status';
     const porData = (a, b) => (a.dataMin < b.dataMin ? -1 : a.dataMin > b.dataMin ? 1 : a.nome < b.nome ? -1 : a.nome > b.nome ? 1 : 0);
     const porAtraso = (a, b) => (Number(b.furo) - Number(a.furo)) || porData(a, b);
@@ -546,7 +546,8 @@
       esquecidas: esquecidas.length,
       paraAgendar: { hoje: paraAgendarHoje.length, vencidas: paraAgendarVencidas.length, agendadasVencidas: agendadasVencidas.length },
       feitasPorStatus: contarPorStatus(feitasHoje),
-      lista: { faltam: faltam.map(peca), emRisco: emRisco.map(peca), atrasadas: atrasadas.map(peca), semDono: semDonoAbertas.sort(porData).map(peca) },
+      // prontas: as previstas para hoje que já estão entregues (a aba Prontas da lista rápida, prancha V2-S-Lista-Rapida).
+      lista: { faltam: faltam.map(peca), prontas: previstasHoje.filter((p) => p.entregue).sort(porData).map(peca), emRisco: emRisco.map(peca), atrasadas: atrasadas.map(peca), semDono: semDonoAbertas.sort(porData).map(peca) },
     };
 
     // ── Semana ───────────────────────────────────────────────────────────────────
