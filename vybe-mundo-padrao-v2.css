@@ -9353,7 +9353,8 @@ body.mundo #workflow-modal.status-context-dialog{--vybe-orange-soft:var(--d3-tin
 #office-ficha .pf2-painel :is(.ofc-escada-barra,.ofc-dia-barra){display:block;height:4px;border-radius:2px;background:var(--d3-fume-veu-forte);overflow:hidden}
 #office-ficha .pf2-painel :is(.ofc-escada-barra,.ofc-dia-barra) > i{display:block;height:100%;background:var(--d3-fume-texto)}
 @media (max-width:900px){
-  #office-ficha .pf2-corpo{grid-template-columns:minmax(0,1fr);overflow-y:auto}
+  #office-ficha .pf2-corpo{display:flex;flex-direction:column;gap:16px;overflow-y:auto;overscroll-behavior:contain}
+  #office-ficha :is(.pf2-lado,.pf2-principal,.pf2-painel){flex:none;min-height:auto;height:auto}
   #office-ficha .pf2-lado{overflow:visible}
   #office-ficha .pf2-palco{height:200px}
   #office-ficha .pf2-acoes{margin-top:0}
