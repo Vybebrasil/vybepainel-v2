@@ -211,7 +211,7 @@ test('IA e custos: o CSS da tela é um fragmento do grupo E, com tokens, sem !im
   const tela = ler('padrao-v2/zm-e-ia.css').replace(/\/\*[\s\S]*?\*\//g, ''), casca = ler('padrao-v2/zm-e-casca.css'); // sem os comentários
   assert.doesNotMatch(tela, /!important|html body\.mundo|#[0-9A-Fa-f]{3,8}\b|:has\([^)]*\[style/);
   assert.doesNotMatch(tela.replace(/box-shadow:[^;}]*/g, ''), /rgba?\(/, 'rgba só em sombra');
-  assert.match(casca, /body\.mundo\.mundo-modulo:is\(\[data-quadro="diario"\],\[data-quadro="ai-usage"\][^)]*\) #mundo-moldura\{[^}]*background:var\(--d3-fume\)/, 'a janela da IA é vidro fumê');
+  assert.match(ler('padrao-v2/z-direcao.css'), /body\.mundo\.mundo-modulo:is\(\[data-quadro="diario"\],\[data-quadro="ai-usage"\][^)]*\) #mundo-moldura\{[^}]*background:var\(--d3-fume\)/, 'a janela da IA é vidro fumê');
   assert.match(tela, /body\.mundo\.mundo-modulo\[data-quadro="ai-usage"\] #painel-ai-usage\{position:absolute;inset:0;/);
   for (const sel of ['.d3m-e-ia-lin', '.d3m-e-ia-cols', '.d3m-e-ia-gx', '.d3m-e-ia-form', '.d3m-e-ia-lar']) assert.ok(tela.includes(sel), sel);
   assert.match(tela, /@media \(max-width:900px\)/);
@@ -240,7 +240,6 @@ test('o CSS do grupo traz as medidas do quadro e não força regra antiga', () =
   assert.match(css, /#pv2-demandas \.pv2-cp\{flex:none;width:66px\}/);
   assert.match(css, /#pv2-demandas \.pv2-cr\{[^}]*width:118px;/);
   assert.match(css, /#pv2-agenda \.pv2a-duas\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.15fr\);gap:14px/);
-  assert.match(css, /#pv2-ia \.pv2i-tres\{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px\}/);
   assert.match(css, /\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:14px;/);
   assert.match(css, /prefers-reduced-motion:reduce/);
 });

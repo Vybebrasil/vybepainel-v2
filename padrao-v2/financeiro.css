@@ -2,7 +2,6 @@
    Relatórios e projeção (vybe-mundo-financeiro.js). Moram na janela do Comercial como as telas de financas.css e usam as
    mesmas peças (fv2-*); aqui só o que é delas (fx-*). Cartão branco de raio 20, pílulas, uma ação laranja por tela. */
 #vv-comercial .fx .fx-kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-#vv-comercial .fx .fx-kpis-4 .fv2-kpi > b{font-size:var(--d3-fs-numero)}
 #vv-comercial .fx-duas{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px;align-items:start}
 #vv-comercial .fx-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 #vv-comercial .fx-rot{margin:14px 0 4px;font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,system-ui,sans-serif);letter-spacing:.04em;text-transform:uppercase;color:#8A847A}
@@ -162,7 +161,6 @@
   #vv-comercial .fx-proj .fx-cenario{position:static}
 }
 @container fv2 (max-width:560px){
-  #vv-comercial .fx .fx-kpis-4 .fv2-kpi > b{font-size:22px}
   #vv-comercial .fx-editor{margin-left:0}
   #vv-comercial .fx-campo.largo{grid-column:auto}
   #vv-comercial .fx-parte{grid-template-columns:90px minmax(0,1fr) 30px}

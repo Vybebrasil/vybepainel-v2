@@ -45,7 +45,8 @@ test('CSS da prancha (zm-d-agentes.css): só tokens --d3-*, sem !important, sem 
     for (const s of r.slice(0, -1).split(/,(?![^(]*\))/)) assert.match(s.trim(), /^(body\.mundo #vv-agentes\.vv-ag\.d3m-d-m|#vv-agentes\.d3m-d-m|(div)?\.d3m-d-ag)/, s);
   }
   assert.match(regras, /body\.mundo #vv-agentes\.vv-ag\.d3m-d-m\{[^}]*background:var\(--d3-fume\)/);
-  assert.match(regras, /\.d3m-d-ag\{display:grid;grid-template-columns:minmax\(0,1fr\) 316px;gap:16px/);
+  // a grade de 316 é a regra agrupada de z-direcao.css (seção 13), a mesma da Carteira e do Comercial
+  assert.match(ler('padrao-v2/z-direcao.css'), /\.d3m-d-ag,\.d3m-d-ct,\.d3m-d-cm\{display:grid;grid-template-columns:minmax\(0,1fr\) 316px;gap:16px/);
   assert.match(regras, /\.d3m-d-ag-grade\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\);grid-auto-rows:minmax\(88px,110px\)/);
   assert.match(regras, /\.d3m-d-ag-ped\{[^}]*height:64px/);
   assert.match(regras, /\.d3m-d-ag-av\{[^}]*width:40px;height:40px;border-radius:50%;background:var\(--d3-agente\)/);

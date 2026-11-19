@@ -166,7 +166,6 @@
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-gr > .fv2-pill{justify-self:start}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-gr > .fv2-valor{min-width:0}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-zero{opacity:.6}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-traco{color:var(--d3-meta)}
 /* inadimplência: a régua e as faixas */
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-mk.r{color:var(--d3-perigo);font-weight:600}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-faixa > p{color:var(--d3-texto2)}
@@ -231,13 +230,8 @@
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fixos .fx-item-txt > *{display:inline;overflow:visible}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item-txt small.d3f-r{color:var(--d3-perigo)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-editar{justify-self:end;color:var(--d3-texto2);text-decoration:none;font-size:var(--d3-fs-texto)}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-alerta{margin:0 -10px;padding:0 10px;border-radius:12px;background:color-mix(in srgb,var(--d3-perigo-veu) 55%,var(--d3-cartao))}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-alerta .fx-dia{color:var(--d3-perigo)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-form-caixa .fx-grade{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:4px 0}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-item .fv2-det{display:block}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-card-meio{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-card-meio .fv2-chip{height:28px;background:var(--d3-trilho)}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-card-meio .fv2-chip[aria-pressed="true"]{background:var(--d3-tinta)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-pag{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:10px;justify-content:stretch}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-pag > span:nth-child(2){color:var(--d3-apagado);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-criterios{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -384,51 +378,6 @@
   :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-fila-l small{display:none}
   :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-provavel{grid-template-columns:minmax(0,1fr) auto}
   :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-provavel > .fv2-btn{grid-column:1 / -1;justify-self:start}
-}
-
-/* ---------- IA e custos (#pv2-ia, desenhada por vybe-demandas.js) ---------- */
-#pv2-ia.d3f{display:flex;flex-direction:column;gap:14px}
-#pv2-ia.d3f .pv2-topo{gap:8px 10px}
-#pv2-ia.d3f .pv2-topo .d3f-tit > h2{flex:none}
-#pv2-ia.d3f .pv2-seg button[aria-checked="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none;animation:d3fAba .4s cubic-bezier(.22,1,.36,1) both}
-#pv2-ia.d3f .pv2-btn{box-shadow:none}
-#pv2-ia.d3f .pv2-btn.d3f-escuro{background:var(--d3-tinta);color:#FFFFFF}
-/* Acabamento premium (15/11/2026, item 5): "30 dias" (aba escolhida) e "Definir teto" eram duas pílulas pretas lado a lado.
-   A aba fica no trilho do D3 (o fundo areia sumia na janela areia) e o botão do topo é secundário, branco. */
-#pv2-ia.d3f .pv2-topo > .pv2-seg{background:var(--d3-cartao)}
-#pv2-ia.d3f .pv2-topo > .pv2-btn.d3f-escuro{background:var(--d3-cartao);color:var(--d3-tinta)}
-#pv2-ia.d3f .pv2-topo > .pv2-btn.d3f-escuro:hover{background:var(--d3-trilho)}
-#pv2-ia.d3f .pv2i-baixo{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-#pv2-ia.d3f .pv2-card{padding:14px 18px 10px;border-radius:var(--d3-r-cartao);box-shadow:none}
-#pv2-ia.d3f .pv2i-cab h3{font:700 var(--d3-fs-destaque)/1.2 var(--vv-texto,Inter,sans-serif)}
-#pv2-ia.d3f .pv2-lin{gap:10px;padding:10px 0;border-top-color:var(--d3-linha)}
-#pv2-ia.d3f .pv2-linha[aria-expanded="true"]{margin:0 -10px;padding:0 10px;border-radius:14px;background:var(--d3-trilho)}
-#pv2-ia.d3f .pv2i-mais{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 10px}
-#pv2-ia.d3f .pv2i-ficha{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:var(--d3-cartao);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-texto2)}
-#pv2-ia.d3f .pv2i-fichas{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:auto;padding-top:10px;border-top:1px solid var(--d3-linha)}
-#pv2-ia.d3f .pv2i-fichas > .pv2i-ficha{background:var(--d3-trilho)}
-#pv2-ia.d3f .pv2i-fichas > .pv2-menu{margin-left:auto}
-#pv2-ia.d3f .pv2i-graf{position:relative;padding-top:16px}
-#pv2-ia.d3f .pv2i-pico{position:absolute;top:0;right:0;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-ajuste)}
-#pv2-ia.d3f .pv2i-gx{grid-template-columns:26px 70px minmax(0,1fr) 72px;gap:10px;padding:8px 0;border-top-color:var(--d3-linha)}
-#pv2-ia.d3f .pv2i-gx > .pv2-av{width:26px;height:26px;font-size:var(--d3-fs-mini)}
-#pv2-ia.d3f .pv2i-quem,#pv2-ia.d3f .pv2i-que{display:flex;flex-direction:column;min-height:100%}
-#pv2-ia.d3f .pv2i-pe{margin-top:auto;padding-top:10px}
-/* "Por cliente" / "Por pessoa" no pé do Com quem (D3-IaCustos, 14/11/2026) */
-#pv2-ia.d3f .pv2i-quem .pv2i-pe{display:flex;align-items:center;justify-content:space-between;gap:8px}
-#pv2-ia.d3f .pv2i-recorte{margin-left:auto}
-@media (prefers-reduced-motion:reduce){#pv2-ia.d3f .pv2-seg button[aria-checked="true"]{animation:none}}
-@media (max-width:1100px){#pv2-ia.d3f.d3f .pv2i-baixo{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#pv2-ia.d3f.d3f .pv2i-baixo > .d3f-coluna{grid-column:1 / -1}}
-@media (max-width:900px){#pv2-ia.d3f.d3f .d3f-nums{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:640px){
-  #pv2-ia.d3f.d3f .pv2i-baixo{grid-template-columns:minmax(0,1fr)}
-  #pv2-ia.d3f.d3f .d3-acao{flex-wrap:wrap}
-  #pv2-ia.d3f.d3f .d3-acao-frase{flex-basis:calc(100% - 50px);font-size:var(--d3-fs-destaque)}
-  #pv2-ia.d3f.d3f .d3-acao > .d3-acao-btn{margin-left:50px}
-  #pv2-ia.d3f.d3f .d3-num > .d3-num-v{font-size:22px}
-  #pv2-ia.d3f.d3f .d3-num > .d3-graf{grid-column:1 / -1;width:100%;height:22px}
-  #pv2-ia.d3f.d3f .d3-num{padding:10px 12px;overflow:hidden}
-  #pv2-ia.d3f.d3f .d3f-sub{white-space:normal}
 }
 
 /* ---------- Rodada "fiel ao quadro" (14/11/2026) ---------- */

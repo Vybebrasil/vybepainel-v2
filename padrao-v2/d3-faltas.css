@@ -60,5 +60,4 @@
 
 /* ===== 5. CLIENTES · RÓTULO GESTÃO AO LADO DO TÍTULO ===== */
 #painel-clientes #clientes-hero .pv-cabeca > div{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:14px;min-width:0}
-#painel-clientes #clientes-hero .d3c-modo{font:400 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap}
 #vv-hoje .d3h-co .d3h-cartao > .v2o-lote{padding:12px 18px 6px}

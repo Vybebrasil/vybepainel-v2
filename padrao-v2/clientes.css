@@ -120,7 +120,6 @@
 #vv-carteira .v2c-vazio > p{flex:1 1 200px}
 /* ajuda e "Mês a mês" */
 #vv-carteira .v2c-ajuda > .vc-ajuda{margin:0;padding:0;border:0;background:none}
-#vv-carteira .v2c-ajuda > .vc-esteira{padding:8px 0 0}
 #vv-carteira .v2c-card > .vc-serie{margin-top:10px;border:0;padding:10px 0 0}
 #vv-carteira .v2c-contas > .vc-secao{margin:0}
 #vv-carteira .v2c-contas .vc-contas td,#vv-carteira .v2c-contas .vc-contas .vc-num-espiar{color:#1F1D1A}

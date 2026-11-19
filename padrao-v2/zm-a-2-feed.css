@@ -13,12 +13,9 @@ body.mundo.mundo-modulo[data-modo="gestor"]:not([data-pv2-vista="feed"]) #pv2-fe
 .d3m-a-feed-ctl:empty{display:none}
 .d3m-a-feed-ctl > .d3m-ico:disabled{opacity:.4;cursor:default}
 /* O seletor no vidro (o mesmo desenho das vistas do topo): caixa de véu, o escolhido branco. */
-.d3m-a-vseg{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
 #pv2-painel.pv2 .d3m-a-vseg,#feed-board.d3m-a-v2 .d3m-a-vseg{background:var(--d3-fume-veu);box-shadow:none}
 .d3m-a-vseg > button,#pv2-painel.pv2 .d3m-a-vseg > button{appearance:none;flex:0 1 auto;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-a-vseg > button:hover{background:var(--d3-fume-veu)}
 .d3m-a-vseg > button[aria-checked="true"],#pv2-painel.pv2 .d3m-a-vseg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
-.d3m-a-vseg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > #feed-board.d3m-a-v2{flex:1 1 0;display:grid;grid-template-columns:248px 374px minmax(0,1fr);gap:16px;min-height:0;margin-top:0;margin-bottom:-48px;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta)}
 
 /* 2 · A lista dos clientes, no vidro. */

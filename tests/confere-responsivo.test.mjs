@@ -24,9 +24,12 @@ test('Minha sala no quadro: o dock não herda o recuo do quarto antigo', () => {
 });
 
 test('colunas pelo tamanho do painel: Conta, Planejamentos, visão do setor, tarefas, coluna do meio da sala e Gestão', () => {
-  for (const nome of ['d3conta', 'd3pl', 'd3setor', 'd3htf', 'd3sc2', 'd3gestao']) {
+  // d3sc2 saiu com a grade antiga da Minha sala (.d3s-grade), que a sala V2 (.d3m-f-corpo) não gera mais
+  for (const nome of ['d3conta', 'd3pl', 'd3setor', 'd3htf', 'd3gestao']) {
     assert.match(junto, new RegExp(`container:${nome} / inline-size`), `${nome}: container`);
-    assert.match(junto, new RegExp(`@container ${nome} \\(max-width:\\d+px\\)`), `${nome}: consulta`);
+    // d3conta e d3gestao: as consultas eram da grade antiga da Conta (.d3c-cols) e dos números/ajustes da Gestão
+    // (.d3g-nums, .d3g-set), que as telas V2 não geram mais (limpeza de 16 e 18/11/2026)
+    if (nome !== 'd3conta' && nome !== 'd3gestao') assert.match(junto, new RegExp(`@container ${nome} \\(max-width:\\d+px\\)`), `${nome}: consulta`);
   }
 });
 

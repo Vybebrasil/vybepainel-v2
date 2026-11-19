@@ -6,7 +6,6 @@
    pelos seletores dos fragmentos (mesma especificidade; esta camada vem por último na junção), etiqueta continua pílula. */
 .d3-acao > .d3-acao-btn,
 :is(#vv-agentes,#automacoes-root) .v2g-btn,
-:is(#vv-agentes,#automacoes-root) .v2g-seg > button,
 :is([data-vc="ajuda"],[data-vc-ajuda],[data-vp-ajuda]):is(button,a,summary):not(.vb-janela-x):not(#v2-canto-a):not(#v2-canto-b),
 #vv-carteira .v2c-btn,
 #vv-carteira .v2c-seg > button,
@@ -18,7 +17,6 @@
 #automacoes-root .auto-c-botoes > .v2g-btn,
 body.mundo #ops-clear-btn.ops-clear-btn,
 #vv-carteira .v2c .d3c-sel,
-#vv-comercial.v2c.d3c .d3c-fim-b,
 #vv-hoje .d3h-co .v2o-fichas,
 #vv-hoje .d3h-co .v2o-fichas > button,
 #pv2-agenda-topo.pv2 .d3ag-vistas > button,
@@ -37,10 +35,6 @@ body.mundo #ops-clear-btn.ops-clear-btn,
 #vv-hoje .d3h-danilo .vcr-fila .vcr-sug-acoes .vc-sec,
 #vv-hoje .d3h-danilo .vcr-fila .vcr-lote > button,
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-barra .v2n-seg > button,
-#d3-centro .d3c-entrar,
-#d3-centro .d3c-btn,
-#d3-sala .d3s-humor > button,
-#d3-sala .d3s-btn,
 #mundo-hud .vv-topo-sala-entrar,
 dialog.clientes-vinculo-dialog.clientes-vinculo-dialog footer button,
 #cartao-rapido .cr-rodape .cr-abrir,
@@ -57,7 +51,6 @@ body.mundo :is(#workspace-drawer,#brief-overlay) :is(.material-bruto-abrir,.mate
 #vv-agentes.v2a .d3t-sinal > button,
 #painel-diario .v2d-seg > button,
 #painel-diario .v2d-acao,
-#painel-diario .v2d-btn,
 #office-ajustes-audio .v2k-btn,
 #vv-dock-salas-faixa > .vq-dock.vv-dock-salas,
 #vv-dock-salas-faixa .vq-dock .vq-voz,
@@ -76,16 +69,12 @@ body.mundo .vb-abas .vb-abas-mais > summary,
 body.mundo .vb-estado:not(#vb-a):not(#vb-b) > :is(button,a):last-child,
 .vfd-voltar,
 :is(#painel-clientes,#vv-reunioes) :is(.v2f-btn,.v2r-btn),
-#painel-clientes .v2f-seg > button,
 #painel-clientes :is(.v2f-tr,.v2f-cabeca) .cli-situacao,
-#vv-reunioes .v2r-inp,
 :is(#vv-comercial,.vv-setor-visao) .fv2-btn,
 #vv-comercial .fx-filtros-sel,#vv-comercial .fv2-filtros > .fx-sel,
 .vv-gestao .g2-btn,
 .vv-gestao .g2-topo :is(.g2-seg,.vs-alternar) > button,
-#office-catalogo .v2l-seg > button,
 #office-catalogo .v2l-btn,
-#ofc-ranking .v2r-seg > button,
 #ofc-ranking .v2r-btn,
 #vv-decorar#vv-decorar .v2s-modo,
 #vv-decorar#vv-decorar :is(.vv-decorar-botao,.vv-decorar-salvar),
@@ -115,8 +104,6 @@ body.mundo #workspace-drawer .gv2-ev .workspace-update-tools button,
 #mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button,
 #mundo-hud .vv-menu-conta button[data-conta-acao="sair"] b,
 #conta-root .v2c-btn{border-radius:var(--d3-r-botao)}
-:is(#vv-agentes,#automacoes-root) .v2g-seg,
-:is(#vv-agentes,#automacoes-root) .v2g-busca,
 #vv-carteira .v2c-seg,
 #vv-carteira .v2c-busca,
 #vv-carteira .v2c-painel :is(select,input),
@@ -135,11 +122,8 @@ body.mundo #workspace-drawer .gv2-ev .workspace-update-tools button,
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-busca,
 #vv-hoje .d3h-topo .vv-seg,
 #vv-hoje .d3h-filtros .v2t-busca,
-#vv-placa .v2e .v2n-cab > .v2e-busca,
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-barra > .v2n-busca,
 #vv-pessoas.v2p-janela .vp-topo-botoes > .d3p-abas,
-#conta-root #v2c.d3c .d3c-seg > .d3c-seg-ind,
-#vv-placa .v2e .v2e-filtros > .v2n-busca,
 #painel-diario .v2d-seg,
 #office-ajustes-audio .v2k-seg,
 #office-ajustes-audio .v2k-seg button,
@@ -154,7 +138,6 @@ body.mundo .vb-abas.vb-abas:not(#vb-a):not(#vb-b),
 body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"],
 .vfd-sel select,
 .vfd-mes,
-#painel-clientes .v2f-seg,
 #painel-clientes .cli-barra > .cli-busca > input,
 #vv-reunioes .v2r-busca,
 :is(#vv-comercial,.vv-setor-visao) .fv2-seg,
@@ -162,9 +145,7 @@ body.mundo .vb-abas:not(#vb-a):not(#vb-b) [role="tab"],
 :is(#vv-comercial,.vv-setor-visao) .fv2-busca,
 .vv-gestao .g2-topo :is(.g2-seg,.vs-alternar),
 .vv-gestao .g2-topo .vs-periodo select[data-vs-mes],
-#office-catalogo .v2l-seg,
 #office-catalogo .v2l-busca,
-#ofc-ranking .v2r-seg,
 input.vb-no-lugar,
 #v2-notas .v2nt-busca,
 :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-seg,
@@ -183,7 +164,6 @@ body.mundo #fc-overlay .nd-seg span,
 #vv-pessoas .v2p-mes,
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-seg,
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-busca,
-#vv-ferramentas .p2-campo,
 #vv-pessoas .v2pj-seg,
 #workflow-modal .fx-linha select,
 #v2j-busca #spotlight-input,
@@ -261,7 +241,6 @@ body.mundo #mundo-hud .vv-barra-topo :is(.vv-botao,summary):focus-visible{outlin
 #vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto{background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda)}
 #vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto-ic{background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
 #vv-wa-avisos.pilula:not(.aberto) .vv-aviso-curto-txt b{color:var(--d3-fume-texto)}
-#vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar{background:var(--d3-fume-texto);color:var(--d3-tinta)}
 #vv-dock-salas-faixa .vq-dock .vq-item.voz{background:var(--d3-fume-veu)}
 #vv-dock-salas-faixa .vq-dock .vq-item:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 #vv-dock-salas-faixa .vq-dock .vq-sep{background:var(--d3-fume-borda)}
@@ -1115,7 +1094,7 @@ body.mundo #v2j-busca :is(.v2j-cab,.v2j-pe,.spotlight-lista){border-color:var(--
 /* 12 · PRODUÇÃO (Painel de trabalho) NA PRANCHA V2-M-Producao. Vale na vista Semana (as outras vistas seguem como estavam
    até a prancha de cada uma). A janela é vidro fumê; a casa vira uma coluna da altura da janela, com a coluna de consulta
    presa à direita; o cartão do dia é a cabeça (#pv2-semana), a lista (a semana ativa) e o pé "De olho" (#pv2-pe). */
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #mundo-moldura,body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="producao"][data-agv2] #mundo-moldura,body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"],[data-quadro="automacoes"],[data-quadro="conta"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.pv2-casa{position:relative;display:flex;flex-direction:column;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:540px;margin:0;padding:16px 348px 16px 16px;color:var(--d3-tinta)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.pv2-casa > *{flex:none;min-width:0;margin-left:-14px;margin-right:318px}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel{display:block;margin:2px -14px 16px -14px;padding:0;background:none;box-shadow:none}
@@ -1134,15 +1113,15 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-lado{p
 #pv2-painel .d3m-modos > .pv2-pop{left:0;right:0;top:auto;bottom:calc(100% + 6px)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3m-troca > summary > h2{color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-data{font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas{flex:none;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas{flex:none;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel :is(#pv2-vistas > button,.pv2-busca,.d3p-novo):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca{flex:0 0 34px;width:34px;max-width:34px;min-width:0;height:34px;padding:0 0 0 32px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background-color:var(--d3-fume-veu-forte);background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2711%27 cy=%2711%27 r=%276%27/%3E%3Cpath d=%27m20 20-4.5-4.5%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:9px center;background-size:16px;box-shadow:none;color:var(--d3-fume-texto);cursor:pointer;transition:max-width .2s,flex-basis .2s}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca::placeholder{color:transparent}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca:focus{flex-basis:200px;width:200px;max-width:200px;padding-right:10px;cursor:text}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca:focus::placeholder{color:var(--d3-fume-apagado)}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo{flex:none;height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .pv2-btn.d3p-novo{flex:none;height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo > svg{stroke:var(--d3-tinta)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-alto{display:block;margin:0;padding:0}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-alto > .d3m-laranja{min-height:244px;margin:0}
@@ -1301,10 +1280,10 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(6){flex:0 0 112px;text-align:right}
 
 /* terceira leva da Produção */
-.d3m-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
+.d3m-ico,.d3m-c-ico,.d3m-e-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
 .d3m-ico:hover{background:var(--d3-fume-veu)}
-.d3m-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-.d3m-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-ico:focus-visible,.d3m-d-ico:focus-visible,.d3m-e-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-ico > svg,.d3m-d-ico > svg,.d3m-e-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 /* A folha antiga prende a cor de títulos e de letras miúdas dentro de módulo; o preenchimento do texto resolve sem brigar. */
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 .d3m-troca > summary > h2{-webkit-text-fill-color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .d3m-regua .d3m-dia:not(.d3m-on) small{-webkit-text-fill-color:var(--d3-fume-apagado)}
@@ -1335,3 +1314,33 @@ body.mundo #v2j-busca.spotlight-dialog,body.mundo dialog#v2j-busca{background:va
 body.mundo #v2j-busca #spotlight-input{border:0;background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
 /* A folha da aparência pinta todo diálogo com var(--glass) (com !important): a busca troca a variável, não a regra. */
 body.mundo #v2j-busca{--glass:var(--d3-fume-painel)}
+
+/* 13 · PEÇAS REPETIDAS DOS GRUPOS, PROMOVIDAS (limpeza de 16/11/2026). Cada grupo de telas tinha escrito a mesma regra
+   com a própria classe; aqui fica uma regra só com os seletores agrupados (o HTML de cada tela continua igual). Novas
+   telas usam as peças d3m-* acima em vez de copiar. */
+/* botão de ícone no vidro · sob o mouse (C e E) */
+.d3m-c-ico:hover,.d3m-e-ico:hover{background:var(--d3-fume-borda)}
+/* seletor de vista no vidro */
+.d3m-a-vseg,.d3m-c-seg,.d3m-e-per{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+/* seletor de vista no vidro · sob o mouse */
+.d3m-a-vseg > button:hover,.d3m-c-seg > button:hover,.d3m-d-seg > button:hover,.d3m-e-per > button:hover{background:var(--d3-fume-veu)}
+/* seletor de vista no vidro · foco */
+.d3m-a-vseg > button:focus-visible,.d3m-d-seg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* coluna de consulta de 316 (Agentes, Carteira, Comercial) */
+.d3m-d-ag,.d3m-d-ct,.d3m-d-cm{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* busca no vidro do topo (Agentes, Carteira, Comercial) */
+.d3m-d-ag-topo .d3m-d-ag-busca,.d3m-d-ct-topo .d3m-d-ct-busca,.d3m-d-cm-topo .d3m-d-cm-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+/* aviso no vidro (Agentes, Comercial) */
+.d3m-d-ag-aviso,.d3m-d-cm-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.4}
+/* folha clara de Clientes e da ficha */
+#painel-clientes .cv2-folha,#painel-clientes .fv2-folha{display:flex;flex-direction:column;min-width:0;min-height:0;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* pé "De olho" da folha (Impressões, Planejamentos, Projetos) */
+.imp2-pe,.plj2-pe,.pj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+/* pé "De olho" · número */
+.m2-pe b,.imp2-pe b,.plj2-pe > span > b,.pj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+/* pé "De olho" · item com divisória */
+.m2-pe > :is(span,button):not(.m2-pe-rot),.imp2-pe > :is(span,button):not(.imp2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
+/* pastilha branca do topo (Pessoas, Toolkit) */
+#vv-pessoas .d3m-e-pes > .d3m-e-pes-aviso,#vv-ferramentas .d3m-e-tk > .d3m-e-tk-aviso{position:absolute;z-index:6;top:22px;left:50%;translate:-50% 0;margin:0;padding:6px 12px;border-radius:999px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* avatar redondo de iniciais (Jogos, Equipe) */
+.d3m-f-jav,.d3m-g-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}

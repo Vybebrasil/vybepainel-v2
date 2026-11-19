@@ -43,11 +43,9 @@ button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{
 .plj2-det > .d3pl-av.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
 .plj2-vao{flex:1 1 auto}
 /* O pé "De olho", da mesma folha. */
-.plj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .plj2-pe-rot{margin-right:14px}
 .plj2-pe > span + span{padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
 .plj2-pe > .plj2-pe-rot + span{padding-left:0;border-left:0}
-.plj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .plj2-pe > span.r > b{color:var(--d3-perigo)}
 .plj2-pe > span.a > b{color:var(--d3-ambar)}
 /* A consulta. */

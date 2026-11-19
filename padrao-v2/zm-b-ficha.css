@@ -6,7 +6,6 @@
    z-direcao.css (d3m-*, d3v-*) e de zm-b-clientes.css (cv2-cab, cv2-chip, cv2-seg, cv2-novo, cv2-foto, cv2-laranja). */
 
 /* 1 · A janela e o esqueleto (data-cv2="ficha" é posto por marcarTelaDeClientes). */
-body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes{box-sizing:border-box;height:calc(100% + 4px);margin:0 -16px 0 -2px;background:none;box-shadow:none}
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes > .container{display:flex;flex-direction:column;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:480px;margin:0;color:var(--d3-tinta)}
 /* A folha de antes prende o espaçamento da casa (22px 30px 36px, forçado): a ficha volta para a borda de 16 px por margem. */
@@ -42,7 +41,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 /* 3 · O Resumo: três colunas da altura da janela; só as listas rolam por dentro. */
 #painel-clientes .fv2-resumo{display:grid;grid-template-columns:minmax(0,1fr) 340px 300px;gap:16px;height:100%;min-height:0;margin:0;padding:0}
 #painel-clientes .fv2-col{display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0}
-#painel-clientes .fv2-folha{display:flex;flex-direction:column;min-width:0;min-height:0;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 #painel-clientes .fv2-cab-lado{flex:none;display:inline-flex;align-items:center;gap:8px;margin-left:auto;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
 #painel-clientes .fv2-cab-lado > .cv2-chip{color:var(--d3-tinta);font-weight:500}
 #painel-clientes .fv2-entregas{flex:none}
@@ -125,8 +123,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 #painel-clientes .fv2-aba-folha[data-aba="financeiro"]{padding:0}
 #painel-clientes .fv2-fin{display:flex;flex-direction:column;min-height:100%}
 #painel-clientes .fv2-fin > .cv2-cab{flex-wrap:wrap;row-gap:8px;padding-top:8px;padding-bottom:8px}
-#painel-clientes .fv2-fin-alto{display:flex;flex-direction:column;gap:6px;padding:20px 16px;border-top:1px solid var(--d3-divisa)}
-#painel-clientes .fv2-fin-valor{font:600 44px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.03em;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 #painel-clientes .fv2-fin-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;border-top:1px solid var(--d3-divisa)}
 #painel-clientes .fv2-fin-campo{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-right:1px solid var(--d3-divisa)}
 #painel-clientes .fv2-fin-campo > b{font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}

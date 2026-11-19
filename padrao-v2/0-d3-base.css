@@ -128,8 +128,6 @@
 .d3-barra > i{position:absolute;inset:0 auto 0 0;width:var(--v,0%);border-radius:inherit;background:var(--d3-tinta)}
 
 /* Cliente: ponto + nome na cor da carteira. */
-.d3-cli{display:inline-flex;align-items:center;gap:6px;min-width:0;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--cart,var(--d3-tinta));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.d3-cli::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:currentColor}
 .d3-selo-donos{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-apagado);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);vertical-align:middle}
 
 /* MOVIMENTOS · a versão de uma vez só (no quadro rodavam em ciclo de 6s para mostrar; na tela acontecem quando a peça aparece). */
@@ -166,7 +164,6 @@
 .d3-agente-av{position:relative;isolation:isolate;box-shadow:none}
 .d3-agente-av::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:50%;background:var(--d3-agente);pointer-events:none;animation:d3PulsaAnel 2.4s ease-in-out infinite}
 .d3-agente-av.v2g-av.lil{isolation:auto}
-.d3t-ped-cab{isolation:isolate}
 :is(#vv-agentes,#automacoes-root) .v2g-av.d3-agente-av{box-shadow:none}
 .d3-agente-av.d3h-av{--d3-anel-k:1.667}
 .d3-chegou{overflow:hidden;animation:d3LinhaNova .45s cubic-bezier(.22,1,.36,1) both}

@@ -12,7 +12,6 @@
 body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[aria-current]:not(.criar),body.mundo #mundo-hud .vv-trilho .vv-trilho-btn[data-trilho="hoje"][aria-current],
 body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao:not(.vv-busca-larga):not([data-ferr="conta"]):is([aria-pressed="true"],[aria-expanded="true"]),body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu[open] > summary.vv-botao,
 body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao[data-ferr="conta"],
-#vv-dock-salas-faixa .vq-dock .vq-item.vq-entrar,
 #vv-dock-salas-faixa .vq-dock .vq-conta,
 #vv-dock-salas-faixa .vq-dock .vq-voz button,
 #vv-hoje .d3q .d3h-topo .vv-seg > button[aria-selected="true"],#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"],
@@ -73,10 +72,6 @@ html.d3-tema-trocando::view-transition-new(root){z-index:0;mix-blend-mode:normal
 body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha{gap:8px}
 body.mundo #mundo-hud .vv-menu-conta .vv-menu-tema-linha .vb-alternar button{padding:0 8px}
 #conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button,#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > button + button{width:68px}
-#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema > .d3c-seg-ind{left:4px;width:68px}
-#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="claro"] > .d3c-seg-ind{left:72px;width:68px}
-#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="escuro"] > .d3c-seg-ind{left:140px;width:68px}
-#conta-root #v2c.d3c .d3c-seg.d3c-seg-tema[data-tema="auto"] > .d3c-seg-ind{left:208px;width:68px}
 
 /* 2b · ACERTOS MEDIDOS (contraste de 4,5:1 nos três temas, no Hoje, na Produção e nos menus). */
 /* Avatar de agente e a sua foto no menu: preenchimento de cor, letra branca em todo tema. */

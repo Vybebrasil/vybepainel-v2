@@ -52,7 +52,6 @@ button.d3m-g-sala:focus-visible{outline:2px solid var(--d3-acao);outline-offset:
 .d3m-g-selo{flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:7px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
 .d3m-g-selo.g{background:var(--d3-pronto-veu)}
 .d3m-g-selo > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.d3m-g-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
 .d3m-g-av.on{box-shadow:0 0 0 2px var(--d3-pronto)}
 .d3m-g-avs{flex:none;display:inline-flex}
 .d3m-g-avs > .d3m-g-av + .d3m-g-av{margin-left:-6px}

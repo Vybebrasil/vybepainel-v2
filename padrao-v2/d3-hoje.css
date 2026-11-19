@@ -21,11 +21,6 @@
 #vv-hoje .d3h-topo .vv-seg > button[aria-selected="true"]{background:var(--d3-tinta);color:#FFFFFF;font-weight:600;animation:d3hAbaEstica .35s cubic-bezier(.22,1,.36,1) both}
 #vv-hoje .d3h-topo .vv-hoje-criar{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none;cursor:pointer}
 #vv-hoje .d3h-topo .vv-hoje-criar > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
-#vv-hoje .d3h-online{display:inline-flex;align-items:center;gap:8px;min-width:0}
-#vv-hoje .d3h-avs{display:inline-flex}
-#vv-hoje .d3h-avs > i{display:grid;place-items:center;width:26px;height:26px;margin-left:-6px;border-radius:50%;background:var(--d3-trilho);box-shadow:0 0 0 2px var(--d3-areia);color:var(--d3-tinta);font:700 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
-#vv-hoje .d3h-avs > i:first-child{margin-left:0}
-#vv-hoje .d3h-online > small{font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @keyframes d3hAbaEstica{from{transform:scaleX(.7);opacity:.4}to{transform:none;opacity:1}}
 
 /* A faixa laranja: frase grande, o rosto do agente pulsando, os passos numerados e um botão branco. */
@@ -156,8 +151,6 @@
 #vv-hoje .d3h-decidir-acoes{display:flex;align-items:center;gap:8px}
 #vv-hoje .d3h-decidir-acoes > .d3h-btn{flex:1 1 auto;padding:0 10px;white-space:nowrap}
 #vv-hoje .d3h-decidir-acoes > .d3h-passo{flex:none;width:36px;padding:0;font:600 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif)}
-#vv-hoje .d3h-fila{display:flex;flex-wrap:wrap;gap:4px 12px;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
-#vv-hoje .d3h-fila b{color:var(--d3-tinta)}
 
 /* Semana em linha: prontas contra previstas, os dias embaixo (o escolhido em preto) e o pé com o que o dia tem. */
 #vv-hoje .d3h-semana > .d3h-corpo{padding:0 16px}
@@ -400,20 +393,7 @@ body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loj
 
 /* EQUIPE ONLINE (quadro D3-EquipeOnline; o resto do desenho em d3-time.css): data ao lado do título, a barra segmentada
    das missões (uma fatia por missão; vermelha a atrasada, verde a feita), a busca no cabeçalho do cartão e a missão que risca. */
-#vv-placa .v2e .v2e-topo > h1{flex:none;margin-right:0}
-#vv-placa .v2e .v2e-topo > .v2e-data{align-self:center;margin-right:auto;font:400 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap}
-#vv-placa .v2e .v2e-seg{display:flex;gap:3px;margin:0 16px 8px}
-#vv-placa .v2e .v2e-seg > i{flex:1;height:6px;border-radius:999px;background:var(--d3-linha);animation:d3hSegChega .5s cubic-bezier(.22,1,.36,1) both}
-#vv-placa .v2e .v2e-seg > i.r{background:var(--d3-perigo)}
-#vv-placa .v2e .v2e-seg > i.ok{background:var(--d3-pronto)}
-#vv-placa .v2e .v2e-seg > i:nth-child(2){animation-delay:.05s}
-#vv-placa .v2e .v2e-seg > i:nth-child(3){animation-delay:.1s}
-#vv-placa .v2e .v2e-seg > i:nth-child(n+4){animation-delay:.15s}
-#vv-placa .v2e .v2e-cx.ok{background:var(--d3-pronto);box-shadow:none}
-#vv-placa .v2e .v2n-cab > .v2e-busca{flex:1 1 140px;min-width:0;max-width:240px;height:32px;margin-left:auto;padding:0 14px;border:0;border-radius:999px;background:var(--d3-trilho);box-shadow:none;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
-#vv-placa .v2e .v2n-cab > .v2e-busca + .v2n-sub{flex:none;white-space:nowrap}
 @keyframes d3hSegChega{from{transform:scaleX(0)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){#vv-placa .v2e .v2e-seg > i{animation:none}}
 
 /* ENTRADA (quadro D3-Entrada; a janela e o "Continuar" em entrada.css): faixa laranja, linhas Agora/Depois/Em seguida,
    três números que levam ao Hoje, a Minhas tarefas e às Aprovações, e a agenda do dia. */
@@ -486,7 +466,6 @@ body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loj
 #ofc-ranking .d3r-pr{text-align:right;font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
 #ofc-ranking .d3r-pe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 0;padding:10px 16px 2px;border-top:1px solid var(--d3-linha);font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
 #ofc-ranking .d3r-ficha{height:26px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font-weight:600}
-#ofc-ranking .d3r-dir{display:flex;flex-direction:column;gap:14px;min-width:0}
 #ofc-ranking .d3r-xp{padding:14px 16px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
 #ofc-ranking .d3r-cab2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
 #ofc-ranking .d3r-cab2 > b{font:700 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
@@ -536,11 +515,6 @@ body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loj
   #vv-hoje .d3h-danilo .vcr-fila .vcr-lin-meio{flex:1 1 calc(100% - 80px)}
   #vv-hoje .d3h-danilo .vcr-fila .vcr-sug-acoes{margin-left:auto}
 }
-@media (max-width:760px){
-  #vv-placa .v2e .v2e-predio > .v2n-cab{flex-wrap:wrap;row-gap:8px}
-  #vv-placa .v2e .v2e-predio > .v2n-cab > h2{white-space:nowrap}
-  #vv-placa .v2e .v2n-cab > .v2e-busca{order:3;flex:1 1 100%;max-width:none;margin-left:0}
-}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-sug.vcr-lin{flex-direction:row;flex-wrap:nowrap}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-lote{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:auto;padding:10px 0 0;border-top:1px solid var(--d3-linha)}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-lote > .vcr-pe-conta,#vv-hoje .d3h-danilo .vcr-fila .vcr-lote > .vcr-conf{flex:1 1 200px;min-width:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
@@ -571,7 +545,7 @@ body.mundo.d3c-painel #mundo > .mundo-fonte{display:none}
 body.mundo.d3c-painel #mundo > .mundo-carregando{left:calc(var(--d3c-mx,0px) + var(--d3c-mw,100vw) / 2);top:calc(var(--d3c-my,0px) + var(--d3c-mh,100vh) / 2)}
 #mundo-hud > #d3-centro{display:none}
 body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:var(--vv-livre-esq,250px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif)}
-#d3-centro > *,#d3-centro .d3c-grade > *,#d3-centro .d3c-col1 > *{pointer-events:auto}
+#d3-centro > *{pointer-events:auto}
 #d3-centro :is(h3,p){margin:0}
 /* Título: Vybelândia e a data à esquerda; a busca e Centro/Prédio à direita. */
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .vv-legenda-cidade.v2m-barra{position:static;inset:auto;display:flex;align-items:center;gap:12px;margin:0;padding:0;background:none;box-shadow:none}
@@ -602,61 +576,21 @@ body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-fala.d3h-acao > .d
 #d3-centro .d3c-num .d3-num-v > small{font:600 var(--d3-fs-destaque) var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-apagado)}
 #d3-centro .d3c-num.r .d3-num-v{color:var(--d3-perigo)}
 #d3-centro .d3c-sub{font-size:var(--d3-fs-texto);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#d3-centro .d3c-avs,#d3-centro .d3c-pes > i:first-child{display:inline-flex}
-#d3-centro .d3c-avs > i,#d3-centro .d3c-pes > i{display:grid;place-items:center;width:28px;height:28px;margin-left:-6px;border-radius:50%;background:var(--d3-trilho);box-shadow:0 0 0 2px var(--d3-cartao);font:700 10px var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-tinta)}
-#d3-centro .d3c-avs > i:first-child{margin-left:0}
 /* A grade: mapa e módulos | prédio | online e salas. */
-#d3-centro .d3c-grade{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,.85fr);gap:14px;min-height:0}
-#d3-centro .d3c-col1,#d3-centro .d3c-col2,#d3-centro .d3c-col3{display:flex;flex-direction:column;gap:14px;min-height:0;min-width:0}
 #d3-centro .d3c-mapa{position:relative;flex:1 1 auto;min-height:220px;border-radius:var(--d3-r-cartao);background:transparent;box-shadow:inset 0 0 0 1px rgba(31,29,26,.06);pointer-events:none}
 #d3-centro .d3c-mapa > *{pointer-events:auto}
-#d3-centro .d3c-cartao.d3c-mapa{padding:0;background:transparent}
-#d3-centro > .d3c-grade,#d3-centro .d3c-grade > .d3c-col1{pointer-events:none}
 #d3-centro .d3c-chips{position:absolute;top:12px;left:12px;display:flex;flex-wrap:wrap;gap:6px}
 #d3-centro .d3c-chip{appearance:none;display:inline-flex;align-items:center;height:28px;padding:0 10px;border:0;border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:0 6px 14px -10px rgba(31,29,26,.5)}
 #d3-centro button.d3c-chip{cursor:pointer}
 #d3-centro .d3c-chip.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
 #d3-centro .d3c-chip[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
-#d3-centro .d3c-entrar{appearance:none;position:absolute;left:12px;bottom:12px;height:40px;padding:0 18px;border:0;border-radius:999px;background:var(--d3-tinta);color:#FFFFFF;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
-#d3-centro .d3c-cartao{box-sizing:border-box;min-height:0;padding:14px 16px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
 #d3-centro .d3c-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px}
 #d3-centro .d3c-cab > h3{font:700 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif)}
 #d3-centro .d3c-cab > small{font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
-#d3-centro .d3c-mods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-#d3-centro .d3c-mod{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;margin:0;padding:8px 10px;border:0;border-radius:14px;background:var(--d3-trilho);color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
-#d3-centro .d3c-mod > b{font:600 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif)}
-#d3-centro .d3c-mod > small{max-width:100%;font-size:var(--d3-fs-apoio);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#d3-centro .d3c-mod > small.r{color:var(--d3-perigo)}
-#d3-centro .d3c-mod > small.g{color:var(--d3-pronto)}
-#d3-centro .d3c-predio{flex:1 1 auto;display:flex;flex-direction:column;overflow:hidden;padding-bottom:10px}
-#d3-centro .d3c-andar{appearance:none;display:grid;grid-template-columns:24px minmax(0,1fr) auto 8px;align-items:center;gap:10px;width:100%;margin:0;padding:8px 0;border:0;border-top:1px solid var(--d3-linha);background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
-#d3-centro .d3c-andar-n{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:var(--d3-trilho);font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
-#d3-centro .d3c-andar > b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#d3-centro .d3c-andar > small{font-size:var(--d3-fs-texto);color:var(--d3-apagado);white-space:nowrap}
-#d3-centro .d3c-andar > i{width:7px;height:7px;border-radius:50%;background:var(--s)}
 #d3-centro .d3c-pe{margin-top:auto;padding-top:8px;border-top:1px solid var(--d3-linha);font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
 #d3-centro .d3c-pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-texto2);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 #d3-centro .d3c-pill.g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
 #d3-centro .d3c-pill.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
-#d3-centro .d3c-pes{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--d3-linha)}
-#d3-centro .d3c-pes > i{margin-left:0;box-shadow:none}
-#d3-centro .d3c-pes > b{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#d3-centro .d3c-pes > em{font-style:normal;font-weight:600;color:var(--d3-pronto)}
-#d3-centro .d3c-pes > small{font-size:var(--d3-fs-texto);color:var(--d3-apagado);white-space:nowrap}
-#d3-centro .d3c-fora{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding-top:8px;font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
-#d3-centro .d3c-sala{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--d3-linha)}
-#d3-centro .d3c-sala > b{min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#d3-centro .d3c-sala > small{flex:1;font-size:var(--d3-fs-texto);color:var(--d3-apagado);white-space:nowrap}
-#d3-centro .d3c-btn{appearance:none;height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
-#d3-centro .d3c-link{appearance:none;margin-top:6px;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-decoration-color:var(--d3-borda);text-underline-offset:3px;cursor:pointer}
-#d3-centro .d3c-vazio{padding:8px 0;border-top:1px solid var(--d3-linha);font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
-#d3-centro .d3c-col3{overflow:hidden}
-#d3-centro .d3c-lojas{display:none;flex:1 1 auto;overflow:hidden}
-#d3-centro .d3c-loja{appearance:none;display:grid;grid-template-columns:minmax(0,1fr) 70px 24px;align-items:center;gap:10px;width:100%;margin:0;padding:7px 0;border:0;border-top:1px solid var(--d3-linha);background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
-#d3-centro .d3c-loja-nome{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-#d3-centro .d3c-loja .d3-barra.r > i{background:var(--d3-perigo)}
-#d3-centro .d3c-loja > b{text-align:right}
-#d3-centro .d3c-loja > b.r{color:var(--d3-perigo)}
 #d3-centro .cliente-carteira{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:0;border:0;background:none;box-shadow:none;color:var(--carteira-texto,var(--d3-tinta));font:inherit;font-weight:600}
 #d3-centro .cliente-carteira::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
 /* Controles do mapa dentro do cartão (canto de baixo à direita). */
@@ -665,7 +599,6 @@ body.mundo.mundo-centro.d3c-painel #mundo-hud > .vv-controles > .v2m-dica{displa
 /* D3-Loja: a loja aberta ocupa o meio (no lugar do prédio) e a direita vira a lista de lojas por atraso. */
 body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){left:var(--d3c-px,0px);top:var(--d3c-py,0px);right:auto;bottom:auto;width:var(--d3c-pw,360px);max-height:var(--d3c-ph,60vh);box-sizing:border-box;overflow:auto;border-radius:var(--d3-r-cartao)}
 body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d3m-loja) > #d3-centro :is(.d3c-predio,.d3c-online,.d3c-salas,.d3c-mods-slot){display:none}
-body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d3m-loja) > #d3-centro .d3c-lojas{display:block}
 /* No cartão do meio fica o que o quadro D3-Loja mostra (números, em aberto, semana, quem está, botões), para caber sem
    rolar; a saúde, o mês e o resto do cliente seguem em "Ficha" e no celular, onde a ficha é a própria página. */
 @media (min-width:901px){
@@ -675,21 +608,17 @@ body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d
 }
 @media (max-width:900px){
   body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{top:calc(var(--vv-m,8px) + 488px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;pointer-events:auto}
-  #d3-centro .d3c-tit{position:fixed;top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px)}
   #d3-centro .d3c-faixa{position:fixed;top:calc(var(--vv-m,8px) + 198px);left:var(--vv-m,8px);right:var(--vv-m,8px)}
   #d3-centro .d3c-mapa{position:fixed;top:calc(var(--vv-m,8px) + 276px);left:var(--vv-m,8px);right:var(--vv-m,8px);height:202px;min-height:0}
   body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.vv-ilha{display:none}
-  #d3-centro .d3c-grade,#d3-centro .d3c-col1{display:contents}
   #d3-centro .d3c-nums{grid-template-columns:repeat(2,minmax(0,1fr));flex:none}
   #d3-centro :is(.d3c-mods-slot,.d3c-col2,.d3c-col3){flex:none}
-  #d3-centro .d3c-mods{grid-template-columns:repeat(2,minmax(0,1fr))}
   body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .vv-legenda-cidade.v2m-barra{flex-wrap:wrap;row-gap:8px}
   #d3-centro .v2m-barra h1{font-size:24px}
   #d3-centro .v2m-barra > .v2n-busca{order:4;flex:1 1 100%;margin-left:0}
   #d3-centro .d3c-faixa > .v2m-fala.d3h-acao{padding:10px 12px;font-size:var(--d3-fs-destaque)}
   #d3-centro .v2m-fala.d3h-acao > .d3-acao-frase > span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   #d3-centro .v2m-fala.d3h-acao > .d3-acao-btn{height:34px;padding:0 12px;font-size:var(--d3-fs-texto)}
-  #d3-centro .d3c-col3{overflow:visible}
   body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){left:var(--vv-m,8px);right:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 488px);bottom:76px;width:auto;max-height:none}
 }
 
@@ -700,16 +629,11 @@ body.mundo.d3s-painel #mundo-andar.quarto{background:var(--d3-areia)}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .andar-palco{inset:auto;left:var(--d3s-qx,0px);top:var(--d3s-qy,0px);width:var(--d3s-qw,100%);height:var(--d3s-qh,100%);border-radius:var(--d3-r-cartao);overflow:hidden}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto > .quarto-estado{position:absolute;left:var(--d3s-qx,0px);top:var(--d3s-qy,0px);width:var(--d3s-qw,100%);height:var(--d3s-qh,100%)}
 #mundo-andar > #d3-sala{position:absolute;z-index:3;top:var(--vv-palco-topo,74px);left:calc(var(--vv-palco-esq,244px) + 8px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);gap:12px;pointer-events:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif)}
-#d3-sala > *,#d3-sala .d3s-grade > *{pointer-events:auto}
+#d3-sala > *{pointer-events:auto}
 /* A grade em si deixa passar o toque: o cartão do quarto é um buraco, e arrastar, girar e dar zoom chegam ao 3D por
    baixo, como antes (Paulo, 14/11/2026: "deixa mexer a tela do 3D no lugar de fixa"). */
-#d3-sala > .d3s-grade{pointer-events:none}
 #d3-sala :is(h3,p){margin:0}
 body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{position:static;inset:auto;display:flex;align-items:center;gap:12px;min-height:0;margin:0;padding:0;border:0;background:none;box-shadow:none}
-#d3-sala .quarto-cab .quarto-cab-nome{display:flex;align-items:baseline;gap:10px;flex-direction:row-reverse;justify-content:flex-end}
-#d3-sala .quarto-cab .quarto-cab-nome > b{font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta)}
-#d3-sala .quarto-cab .quarto-cab-nome > small{font:400 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
-#d3-sala .quarto-cab .quarto-quem{min-width:0}
 #d3-sala .quarto-cab .quarto-acoes{margin-left:auto}
 #d3-sala .d3s-acao{padding:14px 18px;border-radius:22px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
 #d3-sala .d3s-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:1px;min-width:0}
@@ -723,32 +647,10 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{posi
 #d3-sala .d3s-num .d3-num-v{font-size:var(--d3-fs-numero);animation:d3NumChega .55s cubic-bezier(.22,1,.36,1) both}
 #d3-sala .d3s-num .d3-num-v > small{font:600 var(--d3-fs-destaque) var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-apagado)}
 #d3-sala .d3s-sub{font-size:var(--d3-fs-texto);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#d3-sala .d3s-grade{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.85fr);gap:14px;min-height:0}
-#d3-sala .d3s-col2,#d3-sala .d3s-col3{display:flex;flex-direction:column;gap:14px;min-height:0;min-width:0;overflow:hidden}
 /* Janela baixa (app do Mac com 650 de altura): o cartão não encolhe abaixo do conteúdo, a coluna rola por dentro.
    Antes o Humor do cartão Agora passava por cima do Seu dia (regra "nada cobre"). */
-#d3-sala .d3s-grade > :is(.d3s-col2,.d3s-col3){overflow-y:auto;scrollbar-width:thin}
-#d3-sala .d3s-grade > :is(.d3s-col2,.d3s-col3) > .d3s-cartao{flex-shrink:0}
 #d3-sala .d3s-quarto{min-height:220px;border-radius:var(--d3-r-cartao);box-shadow:inset 0 0 0 1px rgba(31,29,26,.06);pointer-events:none}
-#d3-sala .d3s-cartao{box-sizing:border-box;min-height:0;padding:14px 16px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
-#d3-sala .d3s-quarto.d3s-cartao{background:transparent;padding:0}
-#d3-sala .d3s-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-bottom:8px}
-#d3-sala .d3s-cab > h3{font:700 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif)}
-#d3-sala .d3s-cab > small{font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
 #d3-sala .d3s-peca{appearance:none;display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
-#d3-sala .d3s-thumb{flex:none;width:56px;height:56px;border-radius:12px;background:var(--d3-ajuste-veu)}
-#d3-sala .d3s-peca-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-#d3-sala .d3s-peca-txt > b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#d3-sala .d3s-rot{margin-top:10px;font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
-#d3-sala .d3s-humor{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-#d3-sala .d3s-humor > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
-#d3-sala .d3s-humor > button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
-#d3-sala .d3s-humor > button:disabled{cursor:default;opacity:.6}
-#d3-sala .d3s-humor i{width:7px;height:7px;border-radius:50%;background:var(--d3-meta)}
-#d3-sala .d3s-humor i.disponivel{background:var(--d3-pronto)}
-#d3-sala .d3s-humor i.foco{background:#FFFFFF;box-shadow:inset 0 0 0 2px var(--d3-tinta)}
-#d3-sala .d3s-humor i.reuniao{background:var(--d3-ajuste)}
-#d3-sala .d3s-dia{flex:1 1 auto;display:flex;flex-direction:column;overflow:hidden}
 #d3-sala .d3s-lista{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 #d3-sala .d3s-lin{appearance:none;display:flex;align-items:center;gap:10px;width:100%;margin:0;padding:8px 0;border:0;border-top:1px solid var(--d3-linha);background:none;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
 #d3-sala .d3s-lin > i{flex:none;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-borda)}
@@ -756,52 +658,18 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{posi
 #d3-sala .d3s-lin > .v2-risca{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Coluna do meio estreita (1024 com o menu aberto, ~230 px): "Agora" mostrava "Ca..." e o cliente sumia, e no "Seu dia"
    o nome da peça virava "Car...". Abaixo de 300 px o nome ganha duas linhas e a data e o cliente descem. */
-#d3-sala .d3s-col2{container:d3sc2 / inline-size}
 @container d3sc2 (max-width:300px){
   #d3-sala .d3s-peca{flex-wrap:wrap;row-gap:6px}
-  #d3-sala .d3s-thumb{width:40px;height:40px}
-  #d3-sala .d3s-peca-txt{flex:1 1 calc(100% - 52px)}
-  #d3-sala .d3s-peca-txt > b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   #d3-sala .d3s-peca > :last-child:not(.d3s-peca-txt){margin-left:52px}
   #d3-sala .d3s-lin{flex-wrap:wrap;row-gap:2px}
   #d3-sala .d3s-lin > .v2-risca{flex:1 1 calc(100% - 28px)}
   #d3-sala .d3s-lin > .cliente-carteira{max-width:calc(100% - 28px);margin-left:28px}
-  #d3-sala .d3s-peca-txt > span > .cliente-carteira{max-width:100%}
 }
-#d3-sala .d3s-venc{flex:none;font-style:normal;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-perigo)}
 #d3-sala .cliente-carteira{display:inline-flex;align-items:center;gap:5px;max-width:40%;padding:0;border:0;background:none;box-shadow:none;color:var(--carteira-texto,var(--d3-tinta));font:inherit;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #d3-sala .cliente-carteira::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
 #d3-sala .d3s-pe{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:10px;border-top:1px solid var(--d3-linha)}
-#d3-sala .d3s-btn{appearance:none;height:34px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
-#d3-sala .d3s-btn.k{background:var(--d3-tinta);color:#FFFFFF}
-#d3-sala .d3s-niveis{display:flex;gap:10px;padding-bottom:8px;font-size:var(--d3-fs-texto);color:var(--d3-texto2)}
-#d3-sala .d3s-niveis > span{display:inline-flex;align-items:center;gap:5px}
-#d3-sala .d3s-niveis i{width:9px;height:9px;border-radius:50%;background:var(--d3-cart-vinicius)}
-#d3-sala .d3s-niveis i.n2{background:var(--d3-meta)}
-#d3-sala .d3s-niveis i.n3{background:var(--d3-ajuste)}
-#d3-sala .d3s-niveis i.n4{background:var(--d3-info)}
-#d3-sala .d3s-marco{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid var(--d3-linha)}
-#d3-sala .d3s-marco > p{display:flex;justify-content:space-between;gap:8px}
-#d3-sala .d3s-marco small{font-size:var(--d3-fs-apoio);color:var(--d3-apagado)}
-#d3-sala .d3s-conq{flex:1 1 auto;display:flex;flex-direction:column;overflow:hidden}
-#d3-sala .d3s-data{display:grid;grid-template-columns:48px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid var(--d3-linha)}
-#d3-sala .d3s-data > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Datas: "N sem peça" à direita, em âmbar (quadro D3-MinhaSala). */
-#d3-sala .d3s-data.falta{grid-template-columns:48px minmax(0,1fr) auto}
-#d3-sala .d3s-data.falta > b{color:var(--d3-ajuste)}
-#d3-sala .d3s-data > em{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-ajuste);white-space:nowrap}
 /* Agora: o foco no cabeçalho ("foco · mm:ss" com Parar, ou Iniciar foco) e a cor da sala em bolinhas. */
-#d3-sala .d3s-cab > .d3s-foco{display:inline-flex;align-items:center;gap:8px;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);white-space:nowrap}
-#d3-sala .d3s-foco > b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--d3-tinta)}
-#d3-sala .d3s-foco .d3s-btn{height:28px;padding:0 12px;font-size:var(--d3-fs-texto)}
-#d3-sala .d3s-foco.on .d3s-btn{background:var(--d3-tinta);color:var(--d3-cartao)}
 #d3-sala .d3s-cor{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
-#d3-sala .d3s-cor > .d3s-rot{margin:0}
-#d3-sala .d3s-cores{display:flex;gap:8px}
-#d3-sala .d3s-cores > button{appearance:none;width:24px;height:24px;margin:0;padding:0;border:0;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px var(--d3-linha);cursor:pointer}
-#d3-sala .d3s-cores > button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--d3-cartao),0 0 0 4px var(--d3-tinta)}
-#d3-sala .d3s-cores > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:3px}
-#d3-sala .d3s-cores > button:disabled{cursor:default;opacity:.6}
 body.mundo.mundo-quarto.d3s-painel.d3s-com-cor #mundo-andar.quarto > .andar-palco{background:var(--d3s-cor)}
 #d3-sala .d3s-mais{appearance:none;align-self:flex-start;margin-top:6px;padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-decoration-color:var(--d3-borda);text-underline-offset:3px;cursor:pointer}
 #d3-sala .d3s-vazio{padding:6px 0;font-size:var(--d3-fs-texto);color:var(--d3-apagado)}
@@ -811,27 +679,15 @@ body.mundo.mundo-quarto.d3s-painel.d3s-com-cor #mundo-andar.quarto > .andar-palc
 #d3-sala .d3s-num.r .d3-num-v{color:var(--d3-perigo)}
 #d3-sala .d3s-num.a .d3-num-v{color:var(--d3-ajuste)}
 /* Seu dia: "Para adiantar" quando o dia está leve; a data no lugar do vencimento. */
-#d3-sala .d3s-adiantar{margin-top:10px;padding-bottom:4px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
 #d3-sala .d3s-lin > .d3h-qd{flex:none;font-size:var(--d3-fs-apoio);color:var(--d3-apagado);white-space:nowrap}
-/* Sua semana: um dia por linha, barra da carga contra o limite de 5. */
-#d3-sala .d3s-dia-carga{display:grid;grid-template-columns:44px minmax(0,1fr) 40px;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--d3-linha)}
-#d3-sala .d3s-dia-carga > b{font-weight:600;font-size:var(--d3-fs-texto)}
-#d3-sala .d3s-dia-carga > small{font-size:var(--d3-fs-apoio);color:var(--d3-apagado);text-align:right}
-#d3-sala .d3s-dia-carga.hoje > b{color:var(--d3-acao)}
-#d3-sala .d3s-dia-carga.cheio > small{color:var(--d3-perigo);font-weight:600}
-#d3-sala .d3s-dia-carga.cheio .d3-barra > i{background:var(--d3-perigo)}
 /* Decorar: a barra de itens entra embaixo, dentro do cartão do quarto. */
 body.mundo.d3s-painel #vv-decorar#vv-decorar{left:calc(var(--d3s-qx,16px) + 10px);right:auto;width:calc(var(--d3s-qw,60vw) - 20px);bottom:calc(var(--d3s-qb,90px) + 10px);max-height:calc(var(--d3s-qh,50vh) * .55)}
 @media (max-width:900px){
   #mundo-andar > #d3-sala{top:calc(var(--vv-m,8px) + 436px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:calc(var(--vv-dock-alto,64px) + 2 * var(--vv-m,8px) + 4px);display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;pointer-events:auto}
-  #d3-sala .d3s-tit{position:fixed;top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px)}
-  #d3-sala .d3s-faixa{position:fixed;top:calc(var(--vv-m,8px) + 162px);left:var(--vv-m,8px);right:var(--vv-m,8px)}
   #d3-sala .d3s-quarto{position:fixed;top:calc(var(--vv-m,8px) + 226px);left:var(--vv-m,8px);right:var(--vv-m,8px);height:200px;min-height:0}
-  #d3-sala .d3s-grade{display:contents}
   #d3-sala :is(.d3s-nums,.d3s-col2,.d3s-col3){flex:none;overflow:visible}
   #d3-sala .d3s-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
   body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{flex-wrap:wrap;row-gap:6px}
-  #d3-sala .quarto-cab .quarto-cab-nome > b{font-size:24px}
   #d3-sala .quarto-cab .quarto-acoes{margin-left:0}
   #d3-sala .d3s-acao.d3-acao{flex-wrap:nowrap;padding:10px 12px;font-size:var(--d3-fs-destaque)}
   #d3-sala .d3s-acao > .d3-acao-frase{flex:1 1 auto;overflow:hidden}
@@ -865,7 +721,6 @@ body.mundo.d3s-painel #vv-decorar#vv-decorar{left:calc(var(--d3s-qx,16px) + 10px
 /* Ranking: uma página na área do conteúdo (não janela por cima da tela borrada), a ordem do quadro e Jogos num cartão. */
 body.mundo:has(#workflow-modal.rk2-janela) #workflow-backdrop#workflow-backdrop{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(--vv-palco-topo,74px);left:calc(var(--vv-palco-esq,244px) + 8px);right:var(--vv-m,14px);bottom:calc(var(--vv-dock-alto,74px) + 12px);width:auto;height:auto;max-width:none;max-height:none;margin:0;transform:none;border-radius:var(--d3-r-janela);background:var(--d3-areia);box-shadow:none;opacity:1}
-#ofc-ranking .v2r-topo > .v2r-btn{height:auto;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-apagado);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-decoration-color:var(--d3-borda);text-underline-offset:3px}
 #ofc-ranking .d3r-tab-cab{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 16px 8px}
 #ofc-ranking .d3r-tab-cab > h3{margin:0;font:700 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 #ofc-ranking .d3r-tab-cab > .v2r-chips{margin:0}
@@ -891,14 +746,6 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 #mundo-hud .vv-menu-conta .vv-menu-selo.g > i{background:var(--d3-pronto)}
 #mundo-hud .vv-menu-conta .vv-menu-selo.a > i{background:var(--d3-ajuste)}
 #mundo-hud .vv-menu-conta > .vv-menu-mais{order:4;flex:0 0 calc(100% + 24px);display:flex;flex-direction:column;margin:8px -12px 0;padding:8px 12px 10px;border-top:8px solid var(--d3-areia)}
-/* Equipe online: busca e filtros no cabeçalho de "No prédio agora"; o Escritório no pé de Missões do dia. */
-#vv-placa .v2e .v2n-cab.d3e-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-#vv-placa .v2e .d3e-cab > .v2e-busca{flex:1 1 160px;max-width:240px;margin-left:auto}
-#vv-placa .v2e .d3e-cab > .d3e-filtros{display:inline-flex;flex-wrap:wrap;gap:6px;margin:0;padding:0}
-#vv-placa .v2e .d3e-cab > .d3e-filtros > .v2n-chip{height:32px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);box-shadow:none;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
-#vv-placa .v2e .d3e-cab > .d3e-filtros > .v2n-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
-#vv-placa .v2e .d3e-pe{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
-#vv-placa .v2e .v2e-missoes .d3e-portas{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:auto 0 0;padding:10px 16px 4px;border-top:1px solid var(--d3-linha)}
 /* Celular (quadro D3-Celular): o Hoje sem moldura dupla, as quatro abas numa linha, e em Minhas tarefas o cartão
    Feitas/Atrasadas no lugar dos números e a lista em grupos (Atrasadas, Hoje, Amanhã). */
 @media (max-width:900px){
@@ -922,11 +769,6 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 }
 @container hoje (max-width:760px){
   #vv-hoje .d3h-filtros,#vv-hoje .d3h-filtros > .v2t-fichas{flex-wrap:wrap;overflow:visible}
-}
-#vv-placa .v2e .d3e-cab > h2{flex:1 0 auto;white-space:nowrap}
-@media (max-width:760px){
-  #vv-placa .v2e .d3e-cab > h2{flex:1 0 100%}
-  #vv-placa .v2e .d3e-cab > .v2e-busca{flex:1 1 100%;max-width:none;margin-left:0}
 }
 @media (max-width:900px){
   body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d3m-loja) > #d3-centro :is(.d3c-nums,.d3c-mods-slot,.d3c-col2,.d3c-col3){display:none}

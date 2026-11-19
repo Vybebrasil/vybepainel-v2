@@ -17,7 +17,6 @@ body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela{display:flex;f
 #vv-ferramentas .d3m-e-acoes > input.d3m-e-tk-busca[type=search]::placeholder{color:var(--d3-fume-apagado)}
 #vv-ferramentas .d3m-e-acoes > input.d3m-e-tk-busca[type=search]:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
 /* O aviso ("Link copiado."): uma pastilha no alto, só quando tem texto. */
-#vv-ferramentas .d3m-e-tk > .d3m-e-tk-aviso{position:absolute;z-index:6;top:22px;left:50%;translate:-50% 0;margin:0;padding:6px 12px;border-radius:999px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 #vv-ferramentas .d3m-e-tk > .d3m-e-tk-aviso:empty{display:none}
 
 /* Visão geral: três folhas da altura da janela. */

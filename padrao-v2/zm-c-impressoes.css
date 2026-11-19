@@ -52,14 +52,11 @@
 /* A ficha de sempre, aberta no lugar. */
 .imp2-det{padding:4px 16px 14px 120px;background:var(--d3-veu)}
 .imp2-det > .vi-ficha,.imp2-painel > .vi-ficha{position:static;width:auto;max-width:none;margin:0;border:0;border-radius:12px;box-shadow:none}
-.imp2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .imp2-pe-rot{margin-right:14px}
-.imp2-pe > :is(span,button):not(.imp2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
 .imp2-pe > .imp2-pe-rot + :is(span,button){padding-left:0;border-left:0}
 .imp2-pe > button{cursor:pointer}
 .imp2-pe > button:hover,.imp2-pe > button[aria-checked="true"]{color:var(--d3-tinta)}
 .imp2-pe > button[aria-checked="true"]{text-decoration:underline;text-underline-offset:3px}
-.imp2-pe b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .imp2-pe .r > b,.imp2-pe .r b{color:var(--d3-perigo)}
 .imp2-pe .a b{color:var(--d3-ambar)}
 .imp2-pe .g b{color:var(--d3-pronto)}

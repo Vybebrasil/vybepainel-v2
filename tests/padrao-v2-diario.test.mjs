@@ -170,7 +170,8 @@ test('Diário: o CSS da prancha V2 fica nos fragmentos do grupo E, só com token
   }
   const casca = ler('padrao-v2/zm-e-casca.css'), tela = ler('padrao-v2/zm-e-diario.css');
   // A janela de vidro fumê pelo quadro aberto, o quadro preso à janela e só a lista rolando por dentro.
-  assert.match(casca, /body\.mundo\.mundo-modulo:is\([^)]*\[data-quadro="diario"\][^)]*\) #mundo-moldura\{[^}]*background:var\(--d3-fume\)/);
+  // A janela fumê é a regra agrupada de z-direcao.css (limpeza de 16/11/2026: as sete cópias viraram uma).
+  assert.match(ler('padrao-v2/z-direcao.css'), /body\.mundo\.mundo-modulo:is\([^)]*\[data-quadro="diario"\][^)]*\) #mundo-moldura\{[^}]*background:var\(--d3-fume\)/);
   assert.match(casca, /\.d3m-e-corpo\{[^}]*grid-template-columns:minmax\(0,1fr\) 316px/);
   assert.match(tela, /body\.mundo\.mundo-modulo\[data-quadro="diario"\] #painel-diario\{position:absolute;inset:0/);
   assert.match(tela, /#painel-diario > \.container > \.vb-cabecalho\{display:none\}/);

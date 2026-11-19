@@ -55,7 +55,6 @@ test('fala de agente sem ação vira cartão claro; com botão continua laranja'
   // V2 (prancha V2-M-Equipe-Online): na Equipe online a fala virou o cartão laranja da consulta; sem ação, sai sem botão.
   assert.match(mundo, /class="d3m-laranja d3m-f-lar d3m-g-lar"[^`]*\$\{bts \? `<div class="d3m-lar-bts">/);
   assert.match(css, /\.g2-fala\.g2-fala-quieta\{background:var\(--d3-cartao/);
-  assert.match(css, /\.v2n-fala\.v2n-fala-quieta\{background:var\(--d3-cartao/);
 });
 
 test('CSS da auditoria: filtros, contraste, foco, camadas antigas, agenda, loja e "Sem filtros"; sem !important', () => {
@@ -68,7 +67,6 @@ test('CSS da auditoria: filtros, contraste, foco, camadas antigas, agenda, loja 
   assert.match(css, /body\.mundo:not\(\.mundo-modulo\):not\(\.mundo-gestao\) > :is\(header\.app-header,\.container,\[id\^="painel-"\]:not\(#painel-escritorio\)\)\{visibility:hidden\}/);
   assert.match(css, /#pv2-agenda \.capt-fab\.capt-fab\{display:none\}/);
   assert.match(css, /\.ag-chip\.ag-chip span\{text-overflow:ellipsis\}/);
-  assert.match(css, /#office-catalogo \.v2l-grade\.v2l-grade\{grid-template-columns:repeat\(auto-fill,minmax\(180px,1fr\)\)\}/);
   assert.match(css, /body\.mundo #ops-clear-btn\.ops-clear-btn\{/);
   assert.match(ler('vybe-padrao.css'), /:where\(body:not\(\.mundo\)\) \.ops-clear-btn\{height:32px!important;/);
   assert.ok(ler('vybe-mundo-padrao-v2.css').includes('body.mundo #ops-clear-btn.ops-clear-btn{'), 'o juntador já levou o fragmento');
