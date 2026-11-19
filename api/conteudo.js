@@ -904,6 +904,15 @@ export async function criarConteudoNaTransacao(sql, quem, dados) {
   await registrarEvento(sql, novo.id, {
     tipo: 'criacao', para: titulo, autorId, texto: autorTexto,
   });
+  // IMPRESSO SEM DONO ESPERA O NESTOR (Paulo, 19/11/2026: "impresso: quem vai ditar as regras é o Nestor"). A regra geral de
+  // Design & Edição não vale para Impresso (vybe-perfis.js cadastrosDestiny); a peça fica "aguardando o Nestor", que propõe
+  // responsável, prazo e gráfica pelas regras dele (server/impressoes.js). O estado sai da própria peça (Impresso sem
+  // responsável); esta linha só deixa isso escrito no histórico. aguarda_nestor: false quando quem cria já põe alguém depois.
+  if (!responsaveis.length && /impresso/i.test(String(formato || '')) && dados.aguarda_nestor !== false) {
+    await registrarEvento(sql, novo.id, {
+      tipo: 'automacao', texto: 'Impresso aguarda o Nestor', para: 'responsável, prazo e gráfica pelas regras do Nestor (Compras)',
+    });
+  }
 
   const replica = 'desativada';
   const mondayId = null;

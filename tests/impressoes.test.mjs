@@ -14,7 +14,7 @@ async function banco(t) {
   await db.exec(`CREATE TABLE vybe_pessoas (id bigint PRIMARY KEY, nome text, ativo boolean, pode_entrar boolean, monday_user_id text, admin boolean DEFAULT false);
     CREATE TABLE vybe_clientes (id bigint PRIMARY KEY, nome text, ativo boolean DEFAULT true, nao_e_cliente boolean DEFAULT false, apagado_em timestamptz);
     CREATE TABLE vybe_status (board_id bigint, chave text, rotulo text, final boolean, PRIMARY KEY (board_id, chave));
-    CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, board_id bigint, titulo text, formato text, status_chave text, prazo date, removido_em timestamptz, status_em timestamptz, criado_em timestamptz);
+    CREATE TABLE vybe_conteudos (id bigint PRIMARY KEY, board_id bigint, titulo text, formato text, status_chave text, prazo date, removido_em timestamptz, status_em timestamptz, criado_em timestamptz, briefing text, veiculacao date, atualizado_em timestamptz);
     CREATE TABLE vybe_conteudo_clientes (conteudo_id bigint, cliente_id bigint);
     CREATE TABLE vybe_conteudo_responsaveis (conteudo_id bigint, pessoa_id bigint, ordem int, PRIMARY KEY (conteudo_id, pessoa_id));
     CREATE TABLE vybe_projetos (id bigserial PRIMARY KEY, nome text, cliente_id bigint, inicio date DEFAULT now(), status text DEFAULT 'planejado');
