@@ -7,6 +7,7 @@
 //     e da migração 2026-10-14-carteira-head.sql; ou
 //  2. é a pessoa de VYBE_AI_ADMIN_PESSOA_ID (o Paulo, como sempre foi no crachá); ou
 //  3. está em VYBE_DONOS_IDS (ids de vybe_pessoas separados por vírgula), para fixar pelo id do painel sem mexer aqui.
+//  4. é a conta do VYBES (VYBE_VYBES_PESSOA_ID, server/conta-vybes.js): pelo id da variável, nunca pela marca `servico`.
 // "Quem administra" (vybe_pessoas.admin) continua sendo outra coisa: cada módulo decide se admin também passa.
 export const DONOS_MONDAY = Object.freeze({ '68035537': 'Paulo', '68035653': 'Vinícius', '68036687': 'Ewerton', '68997024': 'Deivid' });
 
@@ -21,6 +22,7 @@ export function ehDonoPessoa(pessoa, env = process.env) {
   const id = Number(pessoa.id);
   if (!Number.isSafeInteger(id) || id <= 0) return false;
   if (String(env?.VYBE_AI_ADMIN_PESSOA_ID || '').trim() === String(id)) return true;
+  if (String(env?.VYBE_VYBES_PESSOA_ID || '').trim() === String(id)) return true;
   return idsDoEnv(env).has(String(id));
 }
 

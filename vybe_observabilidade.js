@@ -49,8 +49,8 @@ export async function indicadoresIndependencia(sql) {
       (SELECT COUNT(*)::int FROM vybe_clientes) AS clientes,
       (SELECT COUNT(*)::int FROM vybe_acessos) AS acessos,
       (SELECT COUNT(*)::int FROM vybe_acessos WHERE cliente_id IS NULL) AS acessos_sem_cliente,
-      (SELECT COUNT(*)::int FROM vybe_pessoas WHERE ativo) AS pessoas_ativas,
-      (SELECT COUNT(*)::int FROM vybe_pessoas WHERE ativo AND foto_url IS NULL) AS pessoas_sem_foto`,
+      (SELECT COUNT(*)::int FROM vybe_pessoas p WHERE ativo AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true') AS pessoas_ativas,
+      (SELECT COUNT(*)::int FROM vybe_pessoas p WHERE ativo AND foto_url IS NULL AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true') AS pessoas_sem_foto`,
     sql`SELECT
       (SELECT COUNT(*)::int FROM vybe_conteudo_eventos) AS eventos,
       (SELECT COUNT(*)::int FROM vybe_conteudo_updates) AS updates,

@@ -1256,7 +1256,9 @@ export async function sincronizarEquipe() {
       -- Quem foi desativado no Vybe OS continua fora, mesmo ativo no Monday; e
       -- quem foi apagado nao recebe o e-mail de volta.
       ativo = CASE WHEN vybe_pessoas.ciclo_em IS NULL THEN TRUE ELSE vybe_pessoas.ativo END
-    WHERE vybe_pessoas.apagado_em IS NULL`;
+    -- Conta de serviço (VYBES, migrations/2026-11-18-usuario-vybes.sql) não está no Monday e não tem o id dele, então
+    -- nunca casa aqui; a trava fica explícita mesmo assim. E nada nesta carga apaga ou desativa quem não veio do Monday.
+    WHERE vybe_pessoas.apagado_em IS NULL AND (to_jsonb(vybe_pessoas) ->> 'servico') IS DISTINCT FROM 'true'`;
 
   const linhas = await sql`SELECT nome, email, pode_entrar FROM vybe_pessoas
     WHERE email IS NOT NULL ORDER BY pode_entrar DESC, nome`;

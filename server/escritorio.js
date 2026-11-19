@@ -571,6 +571,9 @@ export async function areaEscritorio(req, res, quem, sql) {
           sql,
           pessoa,
           String(req.body?.sala || ""),
+          process.env,
+          // O aparelho só separa as conexões da mesma pessoa; quem é continua vindo da sessão.
+          { aparelho: req.body?.aparelho },
         )),
       });
     } catch (e) {

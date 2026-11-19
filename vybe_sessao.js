@@ -73,11 +73,12 @@ export async function definirSenha(email, senha, { admin = null } = {}) {
   const sql = database();
   const sal = randomBytes(16).toString('hex');
   const hash = (await derivar(senha, sal)).toString('hex');
-  const linhas = await sql`UPDATE vybe_pessoas
+  const linhas = await sql`UPDATE vybe_pessoas p
     SET senha_hash = ${hash}, senha_sal = ${sal}, pode_entrar = TRUE,
         tentativas = 0, bloqueado_ate = NULL,
         admin = COALESCE(${admin}::boolean, admin), sessao_versao = sessao_versao + 1
     WHERE LOWER(email) = LOWER(${String(email)})
+      AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' -- conta de serviço (VYBES) nunca tem senha
     RETURNING id, nome, email, admin, pode_entrar, sessao_versao AS versao`;
   if (!linhas.length) throw publico(`Ninguém cadastrado com o e-mail ${email}.`);
   return linhas[0];
@@ -247,6 +248,7 @@ export async function listarPessoas() {
   const linhas = await sql`SELECT id, nome, email, pode_entrar, ativo, tentativas, bloqueado_ate,
       (senha_hash IS NOT NULL) AS tem_senha, ultimo_acesso, to_jsonb(p) ->> 'monday_user_id' AS monday_user_id
     FROM vybe_pessoas p WHERE email IS NOT NULL AND apagado_em IS NULL
+      AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' -- a conta do VYBES não é da equipe (server/conta-vybes.js)
     ORDER BY ativo DESC, pode_entrar DESC, nome`;
   // Quem administra é dono ou coordenação (Paulo, 13/11/2026), pela mesma regra da sessão; a marca antiga não conta.
   return linhas.map(({ monday_user_id: m, ...p }) => {
@@ -261,13 +263,14 @@ export async function listarPessoas() {
 export async function definirAcesso(email, { pode_entrar = null, admin = null, destravar = false } = {}) {
   await garantirSchemaSessao();
   const sql = database();
-  const linhas = await sql`UPDATE vybe_pessoas
+  const linhas = await sql`UPDATE vybe_pessoas p
     SET pode_entrar = COALESCE(${pode_entrar}::boolean, pode_entrar),
         admin       = COALESCE(${admin}::boolean, admin),
         sessao_versao = sessao_versao + CASE WHEN ${pode_entrar}::boolean IS NOT NULL OR ${admin}::boolean IS NOT NULL THEN 1 ELSE 0 END,
         tentativas    = CASE WHEN ${destravar}::boolean THEN 0 ELSE tentativas END,
         bloqueado_ate = CASE WHEN ${destravar}::boolean THEN NULL ELSE bloqueado_ate END
     WHERE LOWER(email) = LOWER(${String(email)})
+      AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' -- conta de serviço (VYBES) nunca entra no painel
     RETURNING id, nome, email, admin, pode_entrar`;
   if (!linhas.length) throw new Error(`Ninguém cadastrado com o e-mail ${email}.`);
   return linhas[0];

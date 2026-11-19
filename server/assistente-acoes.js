@@ -13,6 +13,7 @@ import { tabelaRegras } from './assistente-regras.js';
 import { marcarEncaixe } from './assistente-encaixe.js';
 import { gruposDoQuadro } from './grupos.js';
 import { ehDonoPessoa } from './donos.js';
+import { idDoVybes } from './conta-vybes.js';
 
 const VALIDADE_MS = 5 * 60e3;
 const normal = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -23,14 +24,21 @@ const invalido = (mensagem) => Object.assign(new Error(mensagem), { status: 400,
 const b64 = (s) => Buffer.from(s).toString('base64url');
 const assinar = (dados, segredo) => createHmac('sha256', segredo).update('vybe-ai-acao-v1:' + dados).digest('base64url');
 
+// A conta do VYBES (server/conta-vybes.js) não entra no painel (pode_entrar FALSE), mas age como o bot: passa só pelo id
+// de VYBE_VYBES_PESSOA_ID e com a marca de serviço. Ela é dona pela variável (server/donos.js), então p.admin vira true.
 async function pessoaAtiva(sql, pessoaId) {
-  const [p] = await sql`SELECT id::text AS id, nome, email, COALESCE(admin, false) AS admin, monday_user_id::text AS monday_id
-    FROM vybe_pessoas WHERE id = ${pessoaId} AND ativo IS TRUE AND pode_entrar IS TRUE`;
+  const vybes = idDoVybes() || 0;
+  const [p] = await sql`SELECT id::text AS id, nome, email, COALESCE(admin, false) AS admin, monday_user_id::text AS monday_id,
+      (to_jsonb(p) ->> 'servico') = 'true' AS servico
+    FROM vybe_pessoas p WHERE id = ${pessoaId} AND ativo IS TRUE
+      AND (pode_entrar IS TRUE OR (id = ${vybes} AND (to_jsonb(p) ->> 'servico') = 'true'))`;
   if (!p) throw negar('Pessoa sem acesso ao Vybe OS.');
   // Dono pelo WhatsApp tem o mesmo que no painel: tudo (vybe_sessao.js; Paulo, 10/11/2026).
   if (!p.admin && ehDonoPessoa({ id: p.id, monday_user_id: p.monday_id })) p.admin = true;
   return p;
 }
+// No histórico da peça: "Fulano (WhatsApp)"; a conta do VYBES sai só "VYBES".
+const rotuloDoAutor = (p) => (p.servico ? p.nome : `${p.nome} (WhatsApp)`);
 // O que falta na peça para o próximo passo (Paulo, 27/10/2026: "tem briefing? tem OFF? já foi mandado pro cliente?"):
 // o bot pergunta só o que estiver faltando. Briefing: o campo ou um comentário com as marcas do formulário. OFF e
 // captação: o rótulo escolhido no painel (vazio = ninguém marcou). Sem as tabelas (banco antigo), não pergunta nada.
@@ -469,7 +477,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, 0, 'agendar_captacao', ${String(t.v)})
       ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
     if (!nova) throw invalido('Esta confirmação já foi usada.');
-    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
     const n = await (executar?.marcarEncaixe || marcarEncaixe)(sql, quem, t.v);
     return { feito: `✅ ${n} captação(ões) marcada(s) na agenda da Vybe. O Mizinho recebe o lembrete 1 hora e 30 minutos antes.`, link: null };
   }
@@ -493,7 +501,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, 0, 'criar', ${String(d.titulo).slice(0, 300)})
       ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
     if (!nova) throw invalido('Esta confirmação já foi usada.');
-    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
     const fazer = executar || await import('../api/conteudo.js');
     const r = await fazer.criarConteudo(sql, quem, { titulo: d.titulo, cliente: d.cliente, ...(d.formato ? { formato: d.formato } : {}), ...(d.veiculacao ? { veiculacao: d.veiculacao } : {}), prazo: d.prazo, ...(d.briefing ? { briefing: d.briefing } : {}),
       ...(d.quadro === 'demandas' ? { board: BOARD_DEMANDAS_CRIACAO } : {}),
@@ -520,7 +528,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     const [nova] = await sql`INSERT INTO vybe_ai_acoes(codigo_hash, pessoa_id, conteudo_id, acao, valor) VALUES (${hashCodigo}, ${p.id}, ${c.id}, 'data', ${t.v.campo + ':' + t.v.data})
       ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
     if (!nova) throw invalido('Esta confirmação já foi usada.');
-    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
+    const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
     const fazer = executar || await import('../api/conteudo.js');
     const r = await fazer.trocarData(sql, quem, { item: c.ref, campo: t.v.campo, data: t.v.data });
     return { feito: `✅ ${rotuloData(c, t.v.campo)} de "${c.titulo}" agora é *${curtoData(t.v.data)}*.${r?.aviso ? '\n⚠️ ' + r.aviso : ''}`, link: linkDaAtividade(c.ref) };
@@ -542,7 +550,7 @@ export async function confirmarAcao(sql, pessoaId, codigo, segredo, { agora = Da
     ON CONFLICT (codigo_hash) DO NOTHING RETURNING codigo_hash`;
   if (!nova) throw invalido('Esta confirmação já foi usada.');
   // Mesma sessão que o painel usa, identificada pela pessoa do vínculo.
-  const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: `${p.nome} (WhatsApp)`, admin: p.admin } };
+  const quem = { tipo: 'sessao', pessoa: { id: Number(p.id), email: p.email, nome: rotuloDoAutor(p), admin: p.admin } };
   const fazer = executar || await import('../api/conteudo.js');
   if (t.a === 'comentar') {
     const proximos = await proximoPassoDe(sql, c, p.id);

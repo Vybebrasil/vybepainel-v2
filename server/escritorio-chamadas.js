@@ -48,11 +48,22 @@ async function realtimeKitRequest(env, pathname, init = {}) {
     throw Object.assign(new Error("A Cloudflare devolveu uma resposta de chamada inválida."), { status: 502, code: "realtimekit_error" });
   return payload.data;
 }
+// O participante da chamada é por aparelho, não por pessoa (Paulo, 18/11/2026: ouvia no Windows e no Mac ao mesmo tempo
+// e caía). O RealtimeKit aceita uma conexão por participante: renovar o token do mesmo participante em outro aparelho
+// derruba o primeiro. O navegador manda um id próprio dele (vybe-escritorio.js, guardado no localStorage); dentro do
+// mesmo navegador a voz já fica numa aba só, então recarregar ou trocar de aba continua reaproveitando o participante.
+// Sem o id (tela antiga), a chave é a de sempre, por pessoa.
+const APARELHO = /^[A-Za-z0-9_-]{8,64}$/;
+export function chaveDoParticipante(pessoaId, sala, aparelho) {
+  const base = "p:" + String(pessoaId) + ":" + sala;
+  return typeof aparelho === "string" && APARELHO.test(aparelho) ? base + ":" + aparelho : base;
+}
 export async function prepararChamadaEscritorio(
   sql,
   pessoa,
   sala,
   env = process.env,
+  { aparelho = null } = {},
 ) {
   exigirSaidaExternaAtiva();
   // A conversa por voz é da zona do mapa (sala individual ou espaço).
@@ -80,9 +91,10 @@ export async function prepararChamadaEscritorio(
       id = m.id;
       await tx`INSERT INTO vybe_escritorio_salas(sala,reuniao_id) VALUES(${sala},${id})`;
     }
-    // A mesma pessoa reaproveita o mesmo participante (só renova o token):
-    // reconectar ou abrir outra aba não deixa um "fantasma" falando junto.
-    const chave = "p:" + String(pessoa.id) + ":" + sala;
+    // O mesmo aparelho reaproveita o mesmo participante (só renova o token): reconectar não deixa um "fantasma"
+    // falando junto e não cria custo novo. Outro aparelho da mesma pessoa tem participante próprio e não derruba este.
+    // Participante parado expira no RealtimeKit como antes; a renovação falha e cria outro abaixo.
+    const chave = chaveDoParticipante(pessoa.id, sala, aparelho);
     const [guardado] = await tx`SELECT reuniao_id FROM vybe_escritorio_salas WHERE sala=${chave}`;
     if (guardado?.reuniao_id) {
       try {

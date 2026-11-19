@@ -109,9 +109,10 @@ export async function clientesComMensalidade(sql) {
 }
 
 // O time (sócios incluídos) para o "Para quem" do extrato e a conta de cada pessoa. Sem a tabela: ninguém.
+// A conta do VYBES (servico, server/conta-vybes.js) não recebe nem paga: fica fora.
 export async function pessoasDoTime(sql) {
-  try { return await sql`SELECT id::text, nome FROM vybe_pessoas WHERE COALESCE(ativo, true) ORDER BY nome`; }
-  catch (e) { if (e.code !== '42P01' && e.code !== '42703') throw e; try { return await sql`SELECT id::text, nome FROM vybe_pessoas ORDER BY nome`; } catch { return []; } }
+  try { return await sql`SELECT id::text, nome FROM vybe_pessoas p WHERE COALESCE(ativo, true) AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' ORDER BY nome`; }
+  catch (e) { if (e.code !== '42P01' && e.code !== '42703') throw e; try { return await sql`SELECT id::text, nome FROM vybe_pessoas p WHERE (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true' ORDER BY nome`; } catch { return []; } }
 }
 // A conta de cada pessoa (combinado × pago × vale), para quem tem salário combinado ou lançamento atribuído.
 export function contasDasPessoas(base, pessoas = [], { hoje }) {
