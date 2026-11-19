@@ -133,3 +133,33 @@ test('Clientes da peça: título novo, nome da peça, dois grupos, avatar e "ina
   assert.match(css, /footer button\[data-salvar\]\{background:var\(--d3-fume-texto\);box-shadow:none;color:var\(--d3-fume-contra\)/);
 });
 
+test('Cadastro do cliente: marca o opcional, cada etapa diz o que falta e o erro fica embaixo do campo', async () => {
+  const ficha = ler('vybe-clientes-ficha.js');
+  assert.match(ficha, /const obrig = campo\.obrigatorio \? '' : ' <i class="cad-opc">· opcional<\/i>';/);
+  assert.ok(!ficha.includes('class="cad-obrig"'), 'o ponto de obrigatório saiu');
+  assert.match(ficha, /rotulo\.textContent = n \? `\$\{n === 1 \? 'falta' : 'faltam'\} \$\{n\}` : 'completo'/);
+  assert.match(ficha, /aviso\.textContent = falta \? 'Falta para fechar a ficha' : ''/);
+  assert.match(ficha, /classList\.add\('cad-modal', 'cad-cliente', 'd3-tema'\)/);
+  assert.match(ficha, /um cadastro só: vale no Vybe OS, no cérebro, nos bots e no Hub/);
+  // cadastro de cliente é só cliente: nada de demanda ou conteúdo nesta janela
+  const ini = ficha.indexOf('function abrirCadastroCompleto'), fim = ficha.indexOf('function irParaEtapaDoCadastro');
+  assert.doesNotMatch(ficha.slice(ini, fim), /openCadastrosGoverned|cad-route|cad-format/);
+  for (const t of ['onclick="passoDoCadastro(-1)"', 'onclick="passoDoCadastro(1)"', 'onclick="salvarCadastroCompleto(this)"', "onclick=\"irParaEtapaDoCadastro('${s.id}')\""]) assert.ok(ficha.includes(t), t);
+  // o campo renderizado
+  const ini2 = ficha.indexOf('function campoDoCadastroHtml'), fim2 = ficha.indexOf('function abrirCadastroCompleto');
+  const campo = new Function('fichaEsc', `${ficha.slice(ini2, fim2)}; return campoDoCadastroHtml;`)((v) => String(v ?? ''));
+  const opc = campo({ chave: 'razao', rotulo: 'Razão social', tipo: 'texto' }, '');
+  assert.match(opc, /<span>Razão social <i class="cad-opc">· opcional<\/i><\/span>/);
+  assert.doesNotMatch(opc, /data-obrig/);
+  const obr = campo({ chave: 'cidade', rotulo: 'Cidade', tipo: 'texto', obrigatorio: true }, '');
+  assert.match(obr, /data-obrig="cidade"><span>Cidade<\/span>/);
+  assert.match(obr, /<small class="cad-erro-campo" id="cad-cidade-falta" aria-live="polite"><\/small>/);
+  const css = ler('padrao-v2/zm-r-a-6-cadastro-cliente.css');
+  assert.match(css, /--wm-fundo:var\(--d3-fume-forte\)/);
+  assert.match(css, /\.cad-campo\.cad-falta :is\(input,select,textarea\)\{--wm-campo-borda:var\(--d3-perigo\)/);
+  const mundo = ler('vybe-mundo.css');
+  assert.match(mundo, /background:var\(--wm-fundo,var\(--d3-cartao\)\)!important/);
+  assert.match(mundo, /\.workflow-primary\{background:var\(--wm-pri-fundo,var\(--d3-acao\)\)!important/);
+  assert.match(ler('vybe-styles.css'), /\{width:var\(--wm-largura,min\(940px,94vw\)\)!important\}/);
+});
+

@@ -35,10 +35,11 @@ test('janelas dos portões: botão de 34 com canto 8, laranja só na ação prin
 });
 
 test('casca antiga com !important agora usa tokens (o número de !important não sobe)', () => {
+  // Prancha V2-R-Cadastro-Cliente (19/11/2026): os valores viram variáveis --wm-* com o token de antes como reserva.
   const mundo = ler('vybe-mundo.css');
-  assert.match(mundo, /:not\(\.ofc-menu-jogo\)\{\r?\n  background:var\(--d3-cartao\)!important;[^}]*border-radius:var\(--d3-r-janela\)!important/);
-  assert.match(mundo, /\.workflow-title\{color:var\(--d3-tinta\)!important;font:600 var\(--d3-fs-titulo\)/);
-  assert.match(mundo, /\.workflow-primary\{background:var\(--d3-acao\)!important/);
+  assert.match(mundo, /:not\(\.ofc-menu-jogo\)\{\r?\n  background:var\(--wm-fundo,var\(--d3-cartao\)\)!important;[^}]*border-radius:var\(--d3-r-janela\)!important/);
+  assert.match(mundo, /\.workflow-title\{color:var\(--wm-titulo-cor,var\(--d3-tinta\)\)!important;font:600 var\(--wm-titulo-fs,var\(--d3-fs-titulo\)\)/);
+  assert.match(mundo, /\.workflow-primary\{background:var\(--wm-pri-fundo,var\(--d3-acao\)\)!important/);
   assert.match(mundo, /html body\.mundo \.status-editor:not\(#vv-x\)\{background:var\(--d3-fume-painel\)!important/);
   assert.doesNotMatch(mundo, /\.workflow-title\{color:#1F1D1A!important;font:800 26px/);
 });
@@ -76,5 +77,5 @@ test('nova demanda e novo conteúdo: fichas e botões com canto 8, escolhido em 
   assert.ok(css.includes('.nd .nd-chip{height:28px;padding:0 10px;border-radius:var(--d3-r-botao)'));
   assert.ok(css.includes('.nd .nd-chip.on{background:var(--d3-tinta);color:var(--d3-contra)}'));
   assert.ok(css.includes('.nd .nd-btn.k{background:var(--d3-acao)'));
-  assert.ok(ler('vybe-mundo.css').includes('.fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:var(--d3-acao)!important'));
+  assert.ok(ler('vybe-mundo.css').includes('.fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:var(--wm-pri-fundo,var(--d3-acao))!important'));
 });
