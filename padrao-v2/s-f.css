@@ -1,0 +1,140 @@
+/* ===================================================================================================================
+   V2 · RODADA S · FRENTE F · GRUPOS DA PRODUÇÃO (Paulo, 19/11/2026: "no painel de trabalho (em grupos) também quero
+   poder filtrar por cliente.. clicar na tabela e ordenar por crescente ou decrescente também (E O CONTRASTE ainda ficou
+   estranho (o selecionar branco com a barra do topo..."). Pranchas de referência: V2-M-Producao-Grupos,
+   V2-S-Filtros-Demandas e V2-Principios.
+   1. O selecionado da cabeça da folha fica cheio de tinta com a letra contrária. Antes: véu forte (1,27:1 contra a barra)
+      e o select de Status pintado de branco pela regra antiga de campos (1,01:1 no Claro, 1,19:1 no Fumê).
+   2. "Status · todos" e "Cliente · todos" viram botões com contorno (o select nativo saiu), numa linha embaixo da cabeça, e
+      abrem o menu de vidro.
+   3. Os filtros ligados em chips, cada um sai no ×.
+   4. O menu do filtro (Cliente com busca e marcação de vários; Status de um).
+   5. O grupo escolhido na coluna da direita leva contorno no Claro e no Escuro (antes 1,09:1 e 1,2:1 contra a lista).
+   6. O cabeçalho da tabela diz para onde vai ordenar.
+   7. O bloco Captação no menu de status da peça.
+   8. O campo Buscar da coluna da direita. A regra antiga de campos (vybe-mundo.css) pinta todo input de branco à força
+      (important), mas lê as variáveis --d3-cartao, --ds-linha e --d3-tinta: aqui o input redefine as três para o campo
+      de vidro, sem regra forçada. Antes no Fumê: fundo branco com letra branca (1:1) e o aro 1,36:1 contra a coluna.
+   9. A faixa antiga da pessoa ("Paulo · 1 pessoa · 77 entregas…") sai com a V2 de Grupos: a pessoa já está num chip e os
+      números dela foram para a linha dos chips (.s-f-pessoa).
+   10. A coluna Captação ao lado do Status (à mostra por padrão; "Colunas" esconde). Com ela a tabela tem uma coluna a
+      mais: o ID mostra só o número, o Formato fica justo, a Captação e o Cliente quebram em duas linhas em vez de cortar,
+      a coluna de consulta fica com 260 px até 1600 e, abaixo de 1500, a seta do Status só aparece no hover e no foco.
+      Prazo e Veiculação ficam inteiros.
+   11. O campo Buscar é uma peça só: lupa e × dentro do campo, largura da coluna, canto 8.
+   =================================================================================================================== */
+
+/* 1 */
+#grupos-board.d3m-a-v2 .d3m-a-cab .d3m-a-seg > button:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
+#grupos-board.d3m-a-v2 .d3m-a-cab .d3m-a-seg > button:is([aria-pressed="true"],[aria-checked="true"]) > b{color:inherit}
+#grupos-board.d3m-a-v2 .d3m-a-cab .d3m-a-seg > button:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+
+/* 2 */
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-filtro{appearance:none;flex:0 1 auto;display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:210px;height:28px;margin:0;padding:0 7px 0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-rotulo);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-transform:none;letter-spacing:0;white-space:nowrap;cursor:pointer}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-filtro > b{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-filtro > svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-filtro[aria-expanded="true"] > svg{transform:rotate(180deg)}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-filtro:hover{background:var(--d3-veu)}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-filtro.tem{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra)}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-filtro:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+
+/* 3 */
+#grupos-board.d3m-a-v2 .s-f-ativos{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;padding:2px 16px 10px}
+#grupos-board.d3m-a-v2 .s-f-conta{margin:0 2px 0 6px;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
+#grupos-board.d3m-a-v2 .s-f-conta > b{color:var(--d3-tinta);font-weight:600;font-variant-numeric:tabular-nums}
+#grupos-board.d3m-a-v2 .s-f-chip{appearance:none;flex:0 1 auto;display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:260px;height:28px;margin:0;padding:0 4px 0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu-forte);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-transform:none;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#grupos-board.d3m-a-v2 .s-f-chip > i{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:6px;font-style:normal}
+#grupos-board.d3m-a-v2 .s-f-chip > i > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+#grupos-board.d3m-a-v2 .s-f-chip:hover > i{background:var(--d3-veu-forte)}
+#grupos-board.d3m-a-v2 .s-f-limpar{appearance:none;flex:none;height:28px;margin:0 0 0 auto;padding:0 8px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#grupos-board.d3m-a-v2 :is(.s-f-chip,.s-f-limpar):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:1px}
+
+/* 4 */
+body.mundo .status-editor:is(.status-editor,#vv-h).s-f-menu{width:280px;max-width:calc(100vw - 24px)}
+body.mundo .status-editor:is(.status-editor,#vv-h).s-f-menu .s-f-busca{width:100%}
+body.mundo .status-editor:is(.status-editor,#vv-h).s-f-menu .v2-st-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-lista{display:flex;flex-direction:column;gap:2px}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-op{appearance:none;display:flex;align-items:center;gap:8px;width:100%;min-height:34px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;text-transform:none;letter-spacing:0;cursor:pointer}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-op > span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-op > b{flex:none;font-weight:400;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-op > :first-child:not(span){flex:none;width:22px;height:22px;border-radius:6px;font-size:10px}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-op:hover{background:var(--d3-fume-veu)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-op[aria-checked="true"]{background:var(--d3-fume-veu-forte);font-weight:600}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-op.vazio > :is(span,b){color:var(--d3-fume-apagado)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-visto{flex:none;display:grid;place-items:center;font-style:normal}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-visto > svg{width:14px;height:14px;fill:none;stroke:var(--d3-fume-texto);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-tirar{margin-top:4px;border-top:1px solid var(--d3-fume-borda);border-radius:0 0 var(--d3-r-botao) var(--d3-r-botao);color:var(--d3-fume-apagado)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-nada{margin:6px 10px;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif)}
+
+/* 5 */
+html:is([data-d3-tema="claro"],[data-d3-tema="escuro"]) .d3m-a-lado-v .d3m-a-grupo.on,
+html:is([data-d3-tema="claro"],[data-d3-tema="escuro"]) .d3m-a-lado-v .d3m-a-grupo.on:hover{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+
+/* 6 */
+#grupos-board.d3m-a-v2 .d3m-a-th{cursor:pointer}
+#grupos-board.d3m-a-v2 .d3m-a-th{gap:3px}
+#grupos-board.d3m-a-v2 .d3m-a-th > i.s-f-seta{flex:none;display:inline-grid;place-items:center;min-width:11px;font-style:normal;font-weight:400;color:var(--d3-rotulo)}
+#grupos-board.d3m-a-v2 .d3m-a-th > i.s-f-seta > svg{display:block;width:11px;height:11px}
+#grupos-board.d3m-a-v2 .d3m-a-th.on > i.s-f-seta{font-weight:600;color:var(--d3-tinta)}
+#grupos-board.d3m-a-v2 .d3m-a-th:not(.on):hover > i.s-f-seta{color:var(--d3-tinta)}
+/* No Escuro a cabeça fixa da tabela ficava com o papel claro (#F3F1EC, regra antiga forçada em vybe-mundo.css) sob a letra
+   clara, 1:1. Sem regra forçada: uma camada na cor da folha por baixo do texto (z-index -1 dentro da th, que é sticky). */
+html[data-d3-tema="escuro"] #grupos-board.d3m-a-v2 .d3m-a-g-tab thead th::before{content:"";position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--d3-tinta) 6%,var(--d3-folha))}
+#grupos-board.d3m-a-v2 .d3m-a-th:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:1px}
+
+/* 7 */
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-cap-cab{margin-top:4px;padding-top:10px;border-top:1px solid var(--d3-fume-borda)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-cap-op.s-f-cap-on{background:var(--d3-fume-veu-forte);font-weight:600}
+body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-cap-op .status-editor-check{margin-left:auto;display:inline-grid;place-items:center;background:none}
+
+/* 8 */
+#pv2-lado-v .d3m-a-busca{box-shadow:inset 0 0 0 1px var(--d3-fume-apagado)}
+#pv2-lado-v .d3m-a-busca:focus-within{box-shadow:inset 0 0 0 2px var(--d3-fume-texto)}
+#pv2-lado-v .d3m-a-busca > input#busca-cliente-conteudos{--d3-cartao:transparent;--ds-linha:transparent;--d3-tinta:var(--d3-fume-texto)}
+/* O foco: a regra antiga dá ao input uma borda e um anel laranja (lê --ds-foco-borda e --ds-foco); o anel fica no campo inteiro. */
+#pv2-lado-v .d3m-a-busca > input#busca-cliente-conteudos:focus-visible{--ds-foco-borda:transparent;--ds-foco:none}
+
+/* 9 */
+body.mundo[data-pv2-vista="grupos"] #ops-selection-summary[data-s-f-chips]{display:none}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-pessoa{margin-left:auto}
+
+/* 10 */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(9){width:60px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(8){width:auto}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(7){width:15%}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(6){width:78px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(5){width:142px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(4){width:156px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(3){width:62px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(2){width:94px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(1){width:74px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td:nth-child(5) .grupo-pill-btn{padding:0 6px}
+/* Captação: a pílula cresce para duas linhas em vez de cortar o rótulo. */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap{white-space:normal}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn{height:auto;min-height:22px;max-width:100%;padding:3px 8px;border-radius:11px;text-align:left}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn :is(.pill,[class*="pill"],span){display:block;min-width:0;white-space:normal;line-height:1.2;text-wrap:balance}
+/* Cliente: o nome quebra em duas linhas ao lado da foto, sem reticências. */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.d3m-a-g-cli{white-space:normal}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.d3m-a-g-cli > .clientes-vinculo-btn{height:auto;min-height:26px;padding:2px 4px;text-align:left;line-height:1.2;vertical-align:middle}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.d3m-a-g-cli .cliente-carteira{white-space:normal;overflow:visible;text-overflow:clip}
+/* Até 1600 px a coluna de consulta fica com 260 px, e a folha ganha os 56 px. */
+@media (min-width:1181px) and (max-width:1599px){
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="grupos"] #pv2-lado:is(#pv2-lado,#vv-h){width:260px}
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="grupos"] .container.pv2-casa:is(.pv2-casa,#vv-h) > .d3m-a-v2{margin-right:262px}
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="grupos"] .container.pv2-casa:is(.pv2-casa,#vv-h) > .d3m-a-v2 > .d3m-a-folha{margin-right:262px}
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(4){width:122px}
+}
+/* Abaixo de 1500 px o Status mostra a bolinha e o rótulo inteiro; a seta volta no hover e no foco. */
+@media (max-width:1499px){
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(5){width:122px}
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab .pv2-st.pv2-st > .pv2-st-seta{display:none}
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab .pv2-st.pv2-st:is(:hover,:focus-visible) > .pv2-st-seta{display:inline-flex}
+}
+
+/* 11 */
+#pv2-lado-v .d3m-a-busca{width:100%;box-sizing:border-box;gap:8px;padding:0 6px 0 12px;border-radius:var(--d3-r-botao)}
+#pv2-lado-v .d3m-a-busca > input#busca-cliente-conteudos::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x{appearance:none;flex:none;display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:6px;background:none;box-shadow:none;color:var(--d3-fume-texto);cursor:pointer}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x:hover{background:var(--d3-fume-veu-forte)}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
