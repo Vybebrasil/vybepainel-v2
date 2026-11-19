@@ -27,3 +27,17 @@ export function pessoaDaAcao(pessoaId, corpo, contexto, env = process.env) {
   if (!vybes || !adm || pessoaId !== adm || contexto?.tipo !== 'privado') return pessoaId;
   return vybes;
 }
+
+// Nome do agente (Paulo, 19/11/2026: "os comentários e mensagens dos agentes vão como eles"). A conta continua a do
+// VYBES (mesmo id, mesma permissão); só o nome que aparece no comentário e no histórico muda para "Heitor · VYBES".
+// O bot manda `agente` junto do `como: 'vybes'`; aqui ele é conferido de novo: até 40 caracteres, só letras (com
+// acento), espaço e hífen. Qualquer outra coisa (ou "VYBES") volta null, e o nome fica só "VYBES", como antes.
+const NOME_AGENTE = /^[\p{L}]+(?:[ -][\p{L}]+)*$/u;
+export function nomeDoAgente(v) {
+  if (typeof v !== 'string') return null;
+  const s = v.normalize('NFC').replace(/\s+/g, ' ').trim();
+  if (!s || s.length > 40 || !NOME_AGENTE.test(s) || s.toUpperCase() === 'VYBES') return null;
+  return s;
+}
+// O que aparece como autor: "Heitor · VYBES"; sem agente válido, o nome da conta ("VYBES").
+export const rotuloDoAgente = (agente, nomeDaConta = 'VYBES') => (nomeDoAgente(agente) ? `${nomeDoAgente(agente)} · ${nomeDaConta || 'VYBES'}` : nomeDaConta || 'VYBES');

@@ -8,6 +8,7 @@ import { MARCAS_BRIEFING } from './briefing.js';
 import { textoDoHistorico } from './texto-historico.js';
 import { regrasDaPeca } from './assistente-regras.js';
 import { videosDaPasta, notaDoVideo } from './drive-videos.js';
+import { rotuloDoAgente } from './conta-vybes.js';
 
 const IMAGEM = /^(png|jpe?g|webp)$/i;
 const MAX_DIRETO = 2.5 * 1024 * 1024; // A resposta da função cabe em ~4 MB; acima disso vai a miniatura do Drive.
@@ -132,15 +133,17 @@ export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = toke
   return { peca: { ref: referencia(c), titulo: c.titulo, formato: c.formato }, midias, total: entrega.length + (doLink ? 1 : 0) };
 }
 
-// Opinião como comentário da Vybe AI (autor "Vybe IA"), pela mesma função de comentar do painel.
+// Opinião do Danilo como comentário (autor "Danilo · VYBES"; sem a conta do VYBES, "Vybe IA"), pela mesma função de comentar do painel.
 export async function comentarRevisao(sql, ref, texto, { executar, autorId = null } = {}) {
   const c = await pecaDaReferencia(sql, ref);
   const corpo = String(texto || '').trim().slice(0, 3000);
   if (!corpo) throw new TypeError('Revisão vazia.');
   const fazer = executar || await import('../api/conteudo.js');
-  // Com a conta do VYBES (server/conta-vybes.js), o comentário sai com o autor VYBES; sem ela, "Vybe IA", como antes.
+  // Com a conta do VYBES (server/conta-vybes.js), o comentário sai com a conta VYBES e o nome do agente que revisou
+  // ("Danilo · VYBES"; Paulo, 19/11/2026: "os comentários dos agentes vão como eles"); sem ela, "Vybe IA", como antes.
   const [vybes] = autorId ? await sql`SELECT nome, email FROM vybe_pessoas p WHERE id = ${Number(autorId)} AND ativo IS TRUE AND (to_jsonb(p) ->> 'servico') = 'true'` : [];
-  const quem = vybes?.email ? { tipo: 'sessao', pessoa: { id: Number(autorId), nome: vybes.nome, email: vybes.email } } : { tipo: 'sistema', pessoa: { nome: 'Vybe IA' } };
-  await fazer.comentar(sql, quem,{ item: referencia(c), texto: '🤖 Revisão da Vybe IA (opinião; o status não muda)\n\n' + corpo });
+  const quem = vybes?.email ? { tipo: 'sessao', pessoa: { id: Number(autorId), nome: rotuloDoAgente('Danilo', vybes.nome), email: vybes.email } } : { tipo: 'sistema', pessoa: { nome: 'Vybe IA' } };
+  const cabeca = vybes?.email ? '🤖 Revisão do Danilo, direção de arte do VYBES (opinião; o status não muda)' : '🤖 Revisão da Vybe IA (opinião; o status não muda)';
+  await fazer.comentar(sql, quem,{ item: referencia(c), texto: cabeca + '\n\n' + corpo });
   return { ok: true, link: linkDaAtividade(referencia(c)) };
 }

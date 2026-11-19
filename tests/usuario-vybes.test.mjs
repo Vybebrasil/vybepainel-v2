@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { conexao } from './postgres.mjs';
-import { idDoVybes, pessoaDaAcao, EMAIL_VYBES } from '../server/conta-vybes.js';
+import { idDoVybes, pessoaDaAcao, EMAIL_VYBES, nomeDoAgente, rotuloDoAgente } from '../server/conta-vybes.js';
 import { ehDonoPessoa } from '../server/donos.js';
 
 // Conta própria do VYBES (Paulo, 18/11/2026): migrations/2026-11-18-usuario-vybes.sql e server/conta-vybes.js.
@@ -197,11 +197,11 @@ test('ações: a conta do VYBES age (dona pela variável) e sai com o próprio n
   await assert.rejects(prepararAcao(sql, Number(outro.id), pedido, segredo), /Pessoa sem acesso/);
   // No histórico da peça, "VYBES" (sem o "(WhatsApp)" das pessoas).
   const fonte = readFileSync('server/assistente-acoes.js', 'utf8');
-  assert.equal((fonte.match(/nome: rotuloDoAutor\(p\)/g) || []).length, 4);
+  assert.equal((fonte.match(/nome: rotuloDoAutor\(p, agente\)/g) || []).length, 4);
   assert.doesNotMatch(fonte, /nome: `\$\{p\.nome\} \(WhatsApp\)`/);
 });
 
-test('revisão de arte do Danilo: com a conta do VYBES o comentário sai com o autor VYBES; sem ela, "Vybe IA"', async (t) => {
+test('revisão de arte do Danilo: com a conta do VYBES o comentário sai como "Danilo · VYBES"; sem ela, "Vybe IA"', async (t) => {
   const { db, sql, vybes } = await bancoComVybes();
   t.after(() => db.close());
   await db.exec(`CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text);
@@ -215,7 +215,7 @@ test('revisão de arte do Danilo: com a conta do VYBES o comentário sai com o a
   await comentarRevisao(sql, '555', 'ok', { executar });
   // Um id que não é conta de serviço não vira autor por aqui.
   await comentarRevisao(sql, '555', 'ok', { executar, autorId: 1 });
-  assert.deepEqual(feitos[0], { tipo: 'sessao', pessoa: { id: Number(vybes), nome: 'VYBES', email: 'vybes@vybe.local' } });
+  assert.deepEqual(feitos[0], { tipo: 'sessao', pessoa: { id: Number(vybes), nome: 'Danilo · VYBES', email: 'vybes@vybe.local' } });
   assert.equal(feitos[1].pessoa.nome, 'Vybe IA'); assert.equal(feitos[2].pessoa.nome, 'Vybe IA');
 });
 
@@ -228,4 +228,81 @@ test('bot: as consultas da administração gravam com o autor VYBES e as ações
   // O pacote de produção continua sendo do dono que deu o ok (não passa pelo como: 'vybes').
   const pacote = fonte.slice(fonte.indexOf("consulta === 'pacote_executar' || consulta === 'pacote_recusar'"));
   assert.match(pacote.slice(0, 300), /const pessoaId = await autorizarConversa\(banco, jid, contexto, segredo, config\);/);
+});
+
+// ---------- 5. o nome do agente (Paulo, 19/11/2026: "os comentários e mensagens dos agentes vão como eles") ----------
+test('nome do agente: só letras, espaço e hífen, até 40; o resto (e "VYBES") fica só VYBES', () => {
+  for (const [v, esperado] of [['Heitor', 'Heitor'], ['  Alex  ', 'Alex'], ['Otávio', 'Otávio'], ['Cícero', 'Cícero'], ['Ana Maria', 'Ana Maria'], ['Jean-Luc', 'Jean-Luc']]) assert.equal(nomeDoAgente(v), esperado, v);
+  for (const v of [undefined, null, '', ' ', 'VYBES', 'vybes', 'Heitor <b>', 'Heitor1', 'Paulo (WhatsApp)', 'Heitor · VYBES', '-Heitor', 'Heitor-', 'a'.repeat(41), 42, ['Heitor'], { nome: 'Heitor' }]) assert.equal(nomeDoAgente(v), null, String(v));
+  assert.equal(rotuloDoAgente('Heitor'), 'Heitor · VYBES');
+  assert.equal(rotuloDoAgente('Heitor', 'VYBES'), 'Heitor · VYBES');
+  assert.equal(rotuloDoAgente(''), 'VYBES'); assert.equal(rotuloDoAgente('<script>', 'VYBES'), 'VYBES');
+});
+
+test('ações: com o agente, o comentário sai "Heitor · VYBES" pela conta do VYBES; sem agente, "VYBES"; pessoa da equipe nunca assina como agente', async (t) => {
+  const { db, sql, vybes } = await bancoComVybes();
+  t.after(() => db.close());
+  const PROD = 7829537690;
+  await db.exec(`CREATE TABLE vybe_conteudos(id bigint PRIMARY KEY,monday_item_id bigint,titulo text,formato text,board_id bigint,status_chave text,removido_em timestamptz);
+    INSERT INTO vybe_conteudos VALUES(10,NULL,'Card A','Card',${PROD},'pode_fazer',NULL);
+    CREATE TABLE vybe_status(board_id bigint,chave text,rotulo text); INSERT INTO vybe_status VALUES(${PROD},'pode_fazer','Pode Fazer');
+    CREATE TABLE vybe_clientes(id bigint PRIMARY KEY,nome text); INSERT INTO vybe_clientes VALUES(7,'Hebravet');
+    CREATE TABLE vybe_conteudo_clientes(conteudo_id bigint,cliente_id bigint); INSERT INTO vybe_conteudo_clientes VALUES(10,7);
+    CREATE TABLE vybe_conteudo_responsaveis(conteudo_id bigint,pessoa_id bigint,ordem int DEFAULT 0);
+    CREATE TABLE vybe_cliente_pessoas(cliente_id bigint,pessoa_id bigint);`);
+  const { prepararAcao, confirmarAcao } = await import('../server/assistente-acoes.js');
+  const segredo = 's'.repeat(40), antes = process.env.VYBE_VYBES_PESSOA_ID;
+  t.after(() => { if (antes === undefined) delete process.env.VYBE_VYBES_PESSOA_ID; else process.env.VYBE_VYBES_PESSOA_ID = antes; });
+  process.env.VYBE_VYBES_PESSOA_ID = vybes;
+  const [jady] = await sql`SELECT id FROM vybe_pessoas WHERE email = 'jady@exemplo.invalid'`;
+  const feitos = [], executar = { comentar: async (_s, quem, a) => feitos.push({ quem, a }) };
+  const comentar = async (pessoa, agente) => {
+    const c = await prepararAcao(sql, Number(pessoa), { acao: 'comentar', item: 'vybe:10', texto: 'Veicula hoje e ainda está em Pode Fazer.' }, segredo);
+    await confirmarAcao(sql, Number(pessoa), c.codigo, segredo, { executar, ...(agente === undefined ? {} : { agente }) });
+    return feitos.at(-1).quem.pessoa;
+  };
+  const heitor = await comentar(vybes, 'Heitor');
+  assert.deepEqual({ id: heitor.id, nome: heitor.nome, email: heitor.email }, { id: Number(vybes), nome: 'Heitor · VYBES', email: EMAIL_VYBES });
+  assert.equal(feitos.at(-1).a.texto, 'Veicula hoje e ainda está em Pode Fazer.');
+  assert.equal((await comentar(vybes)).nome, 'VYBES');
+  assert.equal((await comentar(vybes, 'Heitor <img onerror=x>')).nome, 'VYBES');
+  assert.equal((await comentar(vybes, 'VYBES')).nome, 'VYBES');
+  // A mesma conta e a mesma permissão: só o nome muda.
+  assert.equal((await comentar(vybes, 'Alex')).id, Number(vybes));
+  assert.equal((await comentar(jady.id, 'Heitor')).nome, 'Jady (WhatsApp)');
+  // O uso único continua registrando a conta do VYBES.
+  const ids = (await sql`SELECT DISTINCT pessoa_id::text AS id FROM vybe_ai_acoes ORDER BY 1`).map((x) => x.id);
+  assert.deepEqual(ids.sort(), [String(jady.id), vybes].sort());
+});
+
+test('servidor: o agente vale só quando a ação virou do VYBES, e passa pela conferência do nome', () => {
+  const fonte = readFileSync('server/assistente-servico.js', 'utf8');
+  assert.match(fonte, /const agente = pessoaId === idDoVybes\(config\) \? nomeDoAgente\(req\.body\?\.agente\) : null;/);
+  assert.match(fonte, /confirmarAcao\(banco, pessoaId, req\.body\?\.codigo, segredo, \{ agente \}\)/);
+});
+
+test('Impressões: registro do Nestor pela conta do VYBES aparece "Nestor · VYBES"; pessoa da equipe segue com o nome dela', async (t) => {
+  const { db, sql, vybes } = await bancoComVybes();
+  t.after(() => db.close());
+  const fonte = readFileSync('server/impressoes.js', 'utf8');
+  assert.match(fonte, /COALESCE\(\(to_jsonb\(p\) ->> 'servico'\) = 'true', false\) AS autor_servico/);
+  assert.match(fonte, /\.map\(autorDoEvento\)/);
+  // A mesma consulta dos eventos, executada aqui, e o mesmo tratamento do servidor.
+  await db.exec(`CREATE TABLE vybe_impressao_eventos(id bigserial PRIMARY KEY, impressao_id bigint, de text, para text, nota text, autor_id bigint, em timestamptz DEFAULT now());
+    INSERT INTO vybe_impressao_eventos(impressao_id, de, para, nota, autor_id) VALUES
+      (1, NULL, 'orcamento', 'Nestor, pela conversa com Gráfica X: “sai sexta”', ${vybes}),
+      (1, 'orcamento', 'aprovado', 'Aprovado pelo cliente', 1),
+      (1, 'aprovado', 'aprovado', 'sem assinatura', ${vybes}),
+      (1, 'aprovado', 'pronto', '<b>, pela conversa', ${vybes});`);
+  const ids = ['1'];
+  const trecho = fonte.slice(fonte.indexOf('const eventos = ids.length ?'), fonte.indexOf('const porImpressao'));
+  assert.match(trecho, /FROM vybe_impressao_eventos e LEFT JOIN vybe_pessoas p ON p\.id = e\.autor_id/);
+  const linhas = await sql`SELECT e.impressao_id::text AS impressao_id, e.de, e.para, e.nota, p.nome AS autor_nome, e.em,
+        COALESCE((to_jsonb(p) ->> 'servico') = 'true', false) AS autor_servico
+      FROM vybe_impressao_eventos e LEFT JOIN vybe_pessoas p ON p.id = e.autor_id
+     WHERE e.impressao_id::text = ANY(${ids}::text[]) ORDER BY e.em, e.id`;
+  const { autorDoEvento } = await import('../server/impressoes.js');
+  const eventos = linhas.map(autorDoEvento);
+  assert.deepEqual(eventos.map((e) => e.autor_nome), ['Nestor · VYBES', 'Paulo', 'VYBES', 'VYBES']);
+  assert.ok(eventos.every((e) => !('autor_servico' in e)));
 });

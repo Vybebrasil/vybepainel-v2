@@ -21,7 +21,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
 import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
-import { idDoVybes, pessoaDaAcao } from './conta-vybes.js';
+import { idDoVybes, nomeDoAgente, pessoaDaAcao } from './conta-vybes.js';
 import { minhasDemandas } from './assistente-consultas.js';
 import { rotinaDoDia, diasPessoais, riscos } from './assistente-rotinas.js';
 import { prepararAcao, confirmarAcao, opcoesDeCriacao } from './assistente-acoes.js';
@@ -78,9 +78,12 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       const banco = criarBanco();
       // Agente do VYBES agindo sozinho (o bot manda `como: 'vybes'`): a ação sai com o autor VYBES (server/conta-vybes.js).
       const pessoaId = pessoaDaAcao(await autorizarConversa(banco, jid, contexto, segredo, config), req.body, contexto, config);
+      // Qual agente agiu (Heitor, Alex…): só o nome que aparece no comentário; a conta e a permissão seguem as do VYBES.
+      // Vale só quando a ação virou mesmo do VYBES e o nome passa na conferência (server/conta-vybes.js nomeDoAgente).
+      const agente = pessoaId === idDoVybes(config) ? nomeDoAgente(req.body?.agente) : null;
       try {
         if (consulta === 'acao_preparar') return res.status(200).json({ ok: true, ...(await prepararAcao(banco, pessoaId, req.body?.pedido, segredo)) });
-        return res.status(200).json({ ok: true, ...(await confirmarAcao(banco, pessoaId, req.body?.codigo, segredo)) });
+        return res.status(200).json({ ok: true, ...(await confirmarAcao(banco, pessoaId, req.body?.codigo, segredo, { agente })) });
       } catch (erro) {
         if (erro.publica) return res.status(200).json({ ok: true, recusa: String(erro.message).slice(0, 1500) });
         throw erro;
@@ -129,8 +132,9 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
       const [adm] = await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND admin IS TRUE AND ativo IS TRUE`;
       if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.', motivo: 'nao_admin' });
-      // O que o bot grava sozinho daqui (Nestor em Impressões, opinião do Danilo na peça) sai com o autor VYBES quando
-      // VYBE_VYBES_PESSOA_ID existe; sem ela, com a conta administradora, como antes (server/conta-vybes.js).
+      // O que o bot grava sozinho daqui (Nestor em Impressões, opinião do Danilo na peça) sai com a conta do VYBES quando
+      // VYBE_VYBES_PESSOA_ID existe; sem ela, com a conta administradora, como antes (server/conta-vybes.js). O nome que
+      // aparece é o do agente ("Danilo · VYBES", "Nestor · VYBES"): comentarRevisao e impressoes.js listar.
       const autorId = idDoVybes(config) ?? pessoaId;
       // VYBES: o estado que a central do PC do Paulo mostra, publicado para o módulo VYBES do painel (server/vybes.js).
       if (consulta === 'vybes_publicar') return res.status(200).json({ ok: true, ...(await guardarEstadoVybes(banco, req.body?.estado)) });
