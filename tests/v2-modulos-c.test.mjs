@@ -29,7 +29,7 @@ test('Agenda V2: grade de horas no computador, com as mesmas funções; no celul
   assert.match(prod, /if \(agV2\) document\.body\.dataset\.agv2 = window\.productionV2View \|\| 'captacoes'; else delete document\.body\.dataset\.agv2;/);
   assert.match(prod, /\$\{agv2TopoHtml\(\)\}/);
   // O topo: Semana | Mês | Roteiros, as setas e Marcar captação; Dia, Feed e Calendário na seta do título.
-  for (const t of ["prodAgendaVista('${v}')", 'captNavegar(-1)', 'captNavegar(1)', 'captMarcarCaptacao()', "captVista('dia')", "window.setProdV2View('feed')", "window.setProdV2View('calendar')", 'captAlternarInspetor()', 'T hoje · ← → navega']) assert.ok(capt.includes(t), t);
+  for (const t of ["prodAgendaVista('${v}')", 'captNavegar(-1)', 'captNavegar(1)', 'captMarcarCaptacao()', '["dia", "Dia"]', "window.setProdV2View('feed')", "window.setProdV2View('calendar')", 'captAlternarInspetor()', 'T hoje · ← → navega']) assert.ok(capt.includes(t), t);
   // A grade: bloco abre o cartão e a prévia, horário vazio marca, cliente arrastado marca, o dia abre o Dia, a legenda filtra.
   const grade = capt.slice(capt.indexOf('function agv2BlocoHtml('), capt.indexOf('function agv2LaranjaHtml('));
   for (const t of ['captSelecionar(', "agPreviaEntrar(this,'captPreviaHtml')", 'agv2Clicar(event,', 'agv2Soltar(event,', 'agSobre(event)', "captVerDia('${d}')", 'class="agv2-agora"']) assert.ok(grade.includes(t), t);

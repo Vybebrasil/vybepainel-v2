@@ -29,3 +29,19 @@ test('Saúde da carteira na prancha V2-R: vidro como Contratos e Churn, quatro n
   assert.match(tela, /nota\$\{din \? ' e receita' : ''\}/);
   guardaCss(cssR('zm-r-b-1-saude.css'), 'zm-r-b-1-saude.css');
 });
+
+test('Agenda: a aba Dia ao lado de Semana, Mês e Roteiros; Mês e Dia nas pranchas V2-R, com as funções de sempre', () => {
+  const js = ler('vybe-captacoes.js'), prod = ler('production_governed_v2.js');
+  assert.match(js, /const seg = \[\["dia", "Dia"\], \["semana", "Semana"\], \["mes", "Mês"\], \["roteiros", "Roteiros"\]\]/);
+  assert.doesNotMatch(js.slice(js.indexOf('function agv2TopoHtml()'), js.indexOf('function d3mcTrocaHtml(')), /captVista\('dia'\)" title="Dia \(D\)"/, 'o Dia saiu da seta do título');
+  assert.match(prod, /v === 'mes' \|\| v === 'dia' \? atual === v/);
+  assert.match(prod, /captVerDia\(atual === 'mes' \|\| CAPT\.semana === agSegunda\(h\) \? h : CAPT\.semana\)/);
+  const r = js.slice(js.indexOf('// MÊS e DIA nas pranchas V2-R'), js.indexOf('function agv2Html({ todos, pend }) {'));
+  naOrdem(r, ['function agv2MesHtml(', 'data-comemorativa=', "captVerDia('${dia}')", 'function agv2LadoMesHtml(', '<b>Datas que pedem peça</b>', '<b>Hoje, hora a hora</b>',
+    'function agv2RoteiroDoDiaHtml(', 'captAbrirFechar(', 'captAbrirMontar(', 'captSelecionar(', 'captGravado(', 'Escrever roteiro', 'function agv2DiaHtml(', 'agv2GradeHtml(eventos, [dia])', 'peça sem roteiro', 'function agv2LadoDiaHtml(', 'Ainda de ontem', 'Amanhã']);
+  // O small leva classe: a regra antiga de small sem classe dentro da .container não pinta por cima.
+  assert.doesNotMatch(r, /<small>/);
+  assert.match(js, /if \(CAPT\.vista === "dia"\) return `<div id="agv2" class="d3m-c-corpo agv2 agv2-v-dia">/);
+  assert.match(js, /const corpo = CAPT\.vista === "mes" \? agv2MesHtml\(eventos\) : agv2GradeHtml\(eventos\);/);
+  guardaCss(cssR('zm-r-b-2-agenda.css'), 'zm-r-b-2-agenda.css');
+});
