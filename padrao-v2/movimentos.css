@@ -13,11 +13,11 @@ html[data-vb-voo="chip"]::view-transition-old(*):only-child{animation:vb-vt-sai 
 
 /* 5 · Edita no lugar: o campo de data ocupa o lugar do texto, na mesma pílula. */
 .vb-editando{display:inline-flex;align-items:center}
-input.vb-no-lugar{appearance:none;height:28px;max-width:150px;box-sizing:border-box;margin:0;padding:0 10px;border:0;border-radius:999px;background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#1F1D1A;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color-scheme:light}
+input.vb-no-lugar{appearance:none;height:28px;max-width:150px;box-sizing:border-box;margin:0;padding:0 10px;border:0;border-radius:999px;background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px #1F1D1A;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color-scheme:light}
 .vb-gravando input.vb-no-lugar{opacity:.6;box-shadow:inset 0 0 0 1.5px #B5AFA5}
-.vb-no-lugar-erro{display:inline-block;margin-left:6px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal;color:#B42318}
+.vb-no-lugar-erro{display:inline-block;margin-left:6px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-perigo)}
 [data-editar-data]{cursor:text;border-radius:999px;transition:background .15s}
-[data-editar-data]:hover{background:#F3F1EC;box-shadow:0 0 0 3px #F3F1EC}
+[data-editar-data]:hover{background:var(--d3-trilho);box-shadow:0 0 0 3px #F3F1EC}
 
 /* 10 · Cor do humor: do vermelho (0) ao verde (100), devagar. A faixa à esquerda leva a cor cheia; o fundo, um véu. */
 .v2-humor:not(#vb-h1):not(#vb-h2){--humor-cor:hsl(calc(var(--humor,50) * 1.2) 62% 42%);--humor-veu:hsl(calc(var(--humor,50) * 1.2) 70% 97%);

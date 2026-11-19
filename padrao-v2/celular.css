@@ -20,48 +20,48 @@ body.mundo #workspace-drawer.gv2-gaveta .gv2 > :is(.gv2-cel,.gv2-pega){display:n
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-pega > i{display:block;width:36px;height:5px;border-radius:3px;background:#D9D3C8}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-pega:focus-visible{outline:2px solid #C2490C;outline-offset:-4px}
 
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-cel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overscroll-behavior:contain;color:#1F1D1A}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2 > .gv2-cel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overscroll-behavior:contain;color:var(--d3-tinta)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel :is(p,h2){margin:0}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo{flex:none;display:flex;align-items:center;gap:8px;min-height:44px}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-vao{flex:1}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill.r{background:#FDECEE;color:#B42318}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill.a{background:#FFF4D6;color:#7A4A00}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pill.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-st{display:inline-flex;align-items:center;min-width:0;height:44px;cursor:pointer}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-st .gv2-st{max-width:150px;overflow:hidden;text-overflow:ellipsis}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo :is(.gv2-cel-ic,.workspace-mais > summary){appearance:none;flex:none;display:grid;place-items:center;box-sizing:border-box;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;border:1px solid #E6E0D6;border-radius:50%;background:#FFFFFF;color:#1F1D1A;box-shadow:none;list-style:none;cursor:pointer}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo :is(.gv2-cel-ic,.workspace-mais > summary){appearance:none;flex:none;display:grid;place-items:center;box-sizing:border-box;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;border:1px solid var(--d3-borda);border-radius:50%;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none;list-style:none;cursor:pointer}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais > summary::-webkit-details-marker{display:none}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo :is(.gv2-cel-ic,.workspace-mais > summary) svg{width:16px;height:16px}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais{position:relative;flex:none}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu{position:absolute;z-index:6;top:50px;right:0;width:220px;box-sizing:border-box;display:flex;flex-direction:column;padding:6px;border-radius:16px;box-shadow:0 2px 4px rgba(31,29,26,.08),0 18px 30px -16px rgba(31,29,26,.45)}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu :is(button,a){appearance:none;display:flex;align-items:center;height:44px;min-height:44px;padding:0 12px;border:0;border-radius:10px;text-align:left;text-decoration:none;font:500 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:#1F1D1A;box-shadow:none}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu hr{width:100%;height:1px;margin:5px 0;border:0;background:#F1EDE6}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu :is(button,a){appearance:none;display:flex;align-items:center;height:44px;min-height:44px;padding:0 12px;border:0;border-radius:10px;text-align:left;text-decoration:none;font:500 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);box-shadow:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-topo .workspace-mais-menu hr{width:100%;height:1px;margin:5px 0;border:0;background:var(--d3-linha)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-titulo{font:700 var(--d3-fs-titulo)/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;overflow-wrap:anywhere}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli{display:flex;align-items:center;gap:8px;min-width:0}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-clientes{display:inline-flex;flex-wrap:wrap;gap:4px 8px;min-width:0;font-weight:600;color:#1F1D1A}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-clientes{display:inline-flex;flex-wrap:wrap;gap:4px 8px;min-width:0;font-weight:600;color:var(--d3-tinta)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-clientes .cliente-carteira{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-clientes .cliente-carteira::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--carteira-texto,#8A847A)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli > span:nth-child(2){white-space:nowrap}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cli .gv2-cel-dono{appearance:none;flex:none;display:inline-grid;place-items:center;min-width:44px;height:44px;min-height:44px;margin:0 0 0 auto;padding:0 4px;border:0;border-radius:999px;background:transparent;box-shadow:none;cursor:pointer}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte{flex:none;display:grid;place-items:center;box-sizing:border-box;width:100%;height:clamp(118px,24dvh,200px);margin:0;padding:0;border-radius:16px;background:#F3F1EC;overflow:hidden;text-decoration:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte{flex:none;display:grid;place-items:center;box-sizing:border-box;width:100%;height:clamp(118px,24dvh,200px);margin:0;padding:0;border-radius:16px;background:var(--d3-trilho);overflow:hidden;text-decoration:none}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte > img{display:block;width:100%;height:100%;object-fit:contain}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte.vazia{height:118px;border:1.5px dashed #D9D3C8;box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:#6B665E;cursor:pointer}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-arte.vazia{height:118px;border:1.5px dashed #D9D3C8;box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado);cursor:pointer}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas{flex:none}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas > .v2-barra{display:block}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas > p{padding-top:6px}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas > p b{color:#1F1D1A}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin{display:flex;align-items:center;gap:10px;box-sizing:border-box;min-height:44px;padding:8px 0;border-top:1px solid #F1EDE6;font-size:var(--d3-fs-texto);line-height:1.3}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-etapas > p b{color:var(--d3-tinta)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin{display:flex;align-items:center;gap:10px;box-sizing:border-box;min-height:44px;padding:8px 0;border-top:1px solid var(--d3-linha);font-size:var(--d3-fs-texto);line-height:1.3}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin:first-child{border-top:0}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > p{flex:1;min-width:0}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-lin > .gv2-sub{max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #C9C2B6;color:#FFFFFF}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.ok{background:#1F1D1A;box-shadow:none}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.vivo{box-shadow:inset 0 0 0 1.5px #1F1D1A;color:#1F1D1A}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.ok{background:var(--d3-tinta);box-shadow:none}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-cx.vivo{box-shadow:inset 0 0 0 1.5px #1F1D1A;color:var(--d3-tinta)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo .gv2-lk{display:inline-flex;align-items:center;min-height:44px;vertical-align:middle}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-tudo{margin-top:-8px}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-pe{flex:none;display:flex;gap:8px;margin-top:auto;padding-top:2px}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;height:44px;min-height:44px;padding:0 16px;border:1px solid #E6E0D6;border-radius:999px;background:#FFFFFF;color:#1F1D1A;box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
-  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn.k{flex:1;min-width:0;border-color:#1F1D1A;background:#1F1D1A;color:#FFFFFF}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;height:44px;min-height:44px;padding:0 16px;border:1px solid var(--d3-borda);border-radius:999px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:transform .14s cubic-bezier(.34,1.56,.64,1)}
+  body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn.k{flex:1;min-width:0;border-color:#1F1D1A;background:var(--d3-tinta);color:var(--d3-contra)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn:active{transform:scale(.96)}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn[data-estado="feito"]{background:#11613A;color:#FFFFFF}
   body.mundo #workspace-drawer.gv2-gaveta.gv2-folha .gv2-cel-btn.k[data-estado="indo"]::after{border-color:rgba(255,255,255,.35);border-top-color:#FFFFFF}

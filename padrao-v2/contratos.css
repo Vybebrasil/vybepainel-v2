@@ -3,10 +3,10 @@
    (#vv-carteira .v2c-*); aqui só o que estes quadros têm de próprio, com o prefixo v2k. Tudo ganha pelo id da janela. */
 
 /* número em âmbar (renovam em 30 dias) e o vermelho do que venceu */
-#vv-carteira .v2c-kpi.amarelo > b{color:#7A4A00}
+#vv-carteira .v2c-kpi.amarelo > b{color:var(--d3-ajuste)}
 
 /* Pede ação */
-#vv-carteira .v2k-acao{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 0;border-top:1px solid #F1EDE6;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:#1F1D1A}
+#vv-carteira .v2k-acao{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 0;border-top:1px solid var(--d3-linha);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta)}
 #vv-carteira .v2k-acao:first-child{border-top:0}
 #vv-carteira .v2k-acao > p{flex:1 1 200px;min-width:0;margin:0}
 #vv-carteira .v2k-acao b{font-weight:600}

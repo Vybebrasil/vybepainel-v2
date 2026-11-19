@@ -3208,7 +3208,7 @@ html body.mundo #fc-overlay .fc-escolha.marcada:not(.fc-cli):not(#ds-a):not(#ds-
 html body.mundo #fc-overlay .fc-helper-text:not(#ds-a){color:#6B665E!important}
 html body.mundo .resumo-grupo:not(.ativo):not(.active):not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
 html body.mundo .dono-ver-todos:not(#ds-a):not(#ds-b){color:#C2490C!important;background:transparent!important}
-html body.mundo .status-editor button:not(.status-editor-option):not(#ds-a):not(#ds-b){color:#1F1D1A!important}
+html body.mundo .status-editor button:not(.status-editor-option):not(#ds-a):not(#ds-b){color:var(--d3-tinta)!important}
 
 /* ======================================================================================
    DESIGN SYSTEM · ESCALA DE URGÊNCIA (Paulo, 07/11/2026: "tem que estar claro visualmente o que
@@ -3236,7 +3236,7 @@ html body.mundo.mundo-modulo :is(.acao-linha,.command-row,.manager-row,.focus-ta
 /* Direção: chips de formato e "Nova Demanda" na janela do comando do dia */
 html body.mundo .da-command-modal-list :is(span.fmt,span.pill):not(#ds-a):not(#ds-b){background:#F3EFE8!important;color:#3A3F44!important;border:1px solid var(--ds-linha)!important;filter:none!important}
 /* Editor de responsável: pessoa marcada = selecionado do sistema */
-html body.mundo .dono-pessoa:not(#ds-a):not(#ds-b){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
+html body.mundo .dono-pessoa:not(#ds-a):not(#ds-b){background:var(--d3-cartao)!important;color:var(--d3-tinta)!important;border:1px solid var(--ds-linha)!important}
 html body.mundo .dono-pessoa:is(.marcado,.ativo,.on,[aria-pressed="true"],[aria-checked="true"]):not(#ds-a):not(#ds-b),html body.mundo .dono-pessoa:has(input:checked):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important}
 html body.mundo .dono-pessoa *:not(img):not(#ds-a):not(#ds-b){color:inherit!important}
 /* Detalhes da peça: botões do painel lateral no padrão (sem grafite) */

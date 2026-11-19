@@ -64,3 +64,10 @@ body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela{display:flex;f
   #vv-ferramentas .d3m-e-tk-tres{display:flex;flex-direction:column;flex:none}
   #vv-ferramentas .d3m-e-tk-fer{flex:none}
 }
+/* Temas (18/11): os quadros do formulário, do link e dos cartões vinham da folha antiga em #FFFFFF fixo e ficavam claros no
+   Escuro. Passam ao cartão e à borda do tema (o quadro do QR continua branco: o código precisa de fundo claro). */
+#vv-ferramentas.d3m-e-tk-janela :is(.vf-campos,.vf-link,.vf-cartao,.vf-recentes){background:var(--d3-cartao);border-color:var(--d3-borda)}
+#vv-ferramentas.d3m-e-tk-janela .vf-campos :is(input,select,textarea){color:var(--d3-tinta);background-color:var(--d3-cartao)}
+#vv-ferramentas.d3m-e-tk-janela .vf-campos label > span,#vv-ferramentas.d3m-e-tk-janela .vf-campo-escolha > span,#vv-ferramentas.d3m-e-tk-janela .vf-cor legend{color:var(--d3-texto2)}
+#vv-ferramentas.d3m-e-tk-janela :is(.vf-cor small,.vf-dica,.vf-link.vazio p){color:var(--d3-apagado)}
+#vv-ferramentas.d3m-e-tk-janela .vf-qr.vazio p{color:var(--d3-rotulo-fixo)}

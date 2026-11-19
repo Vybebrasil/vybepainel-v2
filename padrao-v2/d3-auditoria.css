@@ -13,12 +13,12 @@
 #vv-carteira .v2c-kpi.quieto.quieto > b,#vv-comercial.v2c .v2c-kpi.quieto.quieto > b{color:var(--vv-apagado,#6B675F)}
 body.mundo .vb-resumo-item.zero.zero,:is(#vv-carteira,#vv-comercial,#mundo-hud) .vb-resumo-item.zero.zero,.vs-resumo .vb-resumo-item.zero.zero{color:var(--vv-apagado,#6B675F)}
 #vv-ferramentas.vc-janela :is(.vf-dica,.vf-cor small,.vf-qr.vazio p,.vf-link.vazio p){color:var(--vv-apagado,#6B675F)}
-.vv-gestao.vv-gestao .g2-mais > summary > u{color:#A83D08}
+.vv-gestao.vv-gestao .g2-mais > summary > u{color:var(--d3-acao-texto)}
 
 /* Fala de agente sem ação: cartão claro (laranja cheio só no bloco com botão). O submódulo do trilho não muda. */
-.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta{background:var(--d3-cartao,#FFFFFF);color:var(--d3-tinta)}
+.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta{background:var(--d3-cartao,var(--d3-cartao));color:var(--d3-tinta)}
 .vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-fala-lin > p{color:var(--d3-tinta)}
-.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-quem{color:var(--d3-agente-texto,#4B36A8);opacity:1}
+.vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-quem{color:var(--d3-agente-texto,var(--d3-agente-texto));opacity:1}
 .vv-gestao.vv-gestao .g2-fala.g2-fala-quieta .g2-ag{background:var(--d3-agente,#6E56CF);color:#FFFFFF}
 
 /* Anel de foco: baralho de aprovação e chips de filtro (o foco dos botões vem de --ds-foco, que vybe-mundo.css aplica). */
@@ -44,4 +44,4 @@ body.mundo:not(.mundo-modulo):not(.mundo-gestao) > :is(header.app-header,.contai
 
 /* "Sem filtros" do painel antigo no mundo: pílula clara lisa, sem o degradê escuro do tema antigo (que agora vale só fora
    do mundo, em vybe-padrao.css). */
-body.mundo #ops-clear-btn.ops-clear-btn{height:32px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-cartao,#FFFFFF);box-shadow:inset 0 0 0 1px var(--d3-linha,#E6E0D6);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif}
+body.mundo #ops-clear-btn.ops-clear-btn{height:32px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-cartao,var(--d3-cartao));box-shadow:inset 0 0 0 1px var(--d3-linha,var(--d3-borda));font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif}

@@ -30,7 +30,7 @@
 .d3t-meta{position:relative}
 .d3t-meta > summary{list-style:none;cursor:pointer}
 .d3t-meta > summary::-webkit-details-marker{display:none}
-.d3t-meta-form{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:240px;padding:10px 12px;border:1px solid var(--d3-linha,#E6E0D6);border-radius:12px;background:var(--d3-cartao,#fff);box-shadow:0 8px 24px rgba(0,0,0,.08);font-size:var(--d3-fs-texto)}
+.d3t-meta-form{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:240px;padding:10px 12px;border:1px solid var(--d3-linha,var(--d3-borda));border-radius:12px;background:var(--d3-cartao,var(--d3-cartao));box-shadow:0 8px 24px rgba(0,0,0,.08);font-size:var(--d3-fs-texto)}
 .d3t-meta-form input{width:60px;margin:0 4px 0 6px;padding:4px 6px;border:1px solid var(--d3-borda,#D8D2C6);border-radius:8px;font:inherit}
 .d3t-meta-msg{flex-basis:100%;color:var(--d3-apagado)}
 /* Visão do setor · limite por pessoa: um campo por pessoa ao lado do padrão. */

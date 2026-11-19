@@ -14,8 +14,8 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 
 /* As cores da agenda: captação verde, reunião roxa, compromisso azul e a gravação sem fechar no laranja. */
 .agv2 .t-captacao{--agv2-cor:var(--d3-mod-vybe);--agv2-clara:var(--d3-mod-vybe-claro)}
-.agv2 .t-reuniao{--agv2-cor:var(--d3-agente-texto);--agv2-clara:var(--d3-agente-claro)}
-.agv2 .t-outro{--agv2-cor:var(--d3-info);--agv2-clara:var(--d3-info-claro)}
+.agv2 .t-reuniao{--agv2-cor:var(--d3-agente-texto-fixa);--agv2-clara:var(--d3-agente-claro)}
+.agv2 .t-outro{--agv2-cor:var(--d3-info-fixa);--agv2-clara:var(--d3-info-claro)}
 .agv2 .fechar{--agv2-cor:var(--d3-acao);--agv2-clara:var(--d3-acao-claro)}
 .agv2-folha.carregando{opacity:.7}
 .agv2-legenda{flex:none;display:inline-flex;align-items:center;gap:2px}
