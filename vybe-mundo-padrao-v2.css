@@ -17181,6 +17181,18 @@ body.mundo .status-editor:is(.status-editor,#vv-h) :is(.dono-salvar,.escolha-sal
    vem daqui: o laranja da ação, já que dentro do painel --d3-tinta virou a letra clara. */
 body.mundo #dono-editor.status-editor{--ds-acao:var(--d3-acao);--ds-acao-hover:var(--d3-acao-texto-fixa);--ds-acao-sombra:none}
 
+/* ===== padrao-v2/zm-h-3-gaveta.css ===== */
+/* ===================================================================================================================
+   V2 · GRUPO H · GAVETA DA PEÇA (#workspace-drawer.gv2-gaveta, vybe-gaveta.js). Confere das telas antigas, 18/11/2026.
+   Status e captação separados (Paulo, 18/11: "são coisas diferentes"): cada um com o seu rótulo de 12 em caixa normal
+   na linha do cliente; a captação é uma etiqueta no véu (só leitura, troca na ficha).
+   =================================================================================================================== */
+body.mundo #workspace-drawer.gv2-gaveta .gv2-rot-campo{flex:none;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);letter-spacing:0;text-transform:none;white-space:nowrap}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-linha > .gv2-rot-campo{margin-left:4px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-capt{display:inline-flex;align-items:center;gap:6px;min-width:0}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-capt-v{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+body.mundo #workspace-drawer.gv2-gaveta .gv2-cel-topo .gv2-capt{margin-left:6px}
+
 /* ===== padrao-v2/zt-temas.css ===== */
 /* TEMAS E TUTORIAL DO VYBES (Paulo, 16/11/2026: "criar um tema white e um dark"; o VYBES recebe quem chega, mostra os três
    temas e explica cada tela na primeira vez). Última folha da junção (zt- vem depois de z-direcao e dos zm-*).
