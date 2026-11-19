@@ -14,7 +14,15 @@
   // Cliente com a cor da carteira (cliCor de vybe-core.js); fora do painel (testes), o nome escapado.
   function cliCor(n) { const g = globalThis.cliCor; return typeof g === 'function' && g !== cliCor ? g(n) : String(n ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
   const CHAVE = 'vybe.mundo.v1';
+  // Grava só o que mudou (confere da-6, 19/11/2026): escrever o mesmo hidden, texto ou atributo ainda conta como
+  // mudança no DOM e faz o navegador reconferir os :has da página; o relógio de 5 s fazia isso no Centro parado.
+  const mudarSe = (el, k, v) => { if (el && el[k] !== v) el[k] = v; };
   const MUNDO_JS = "/assets/mundo/mundo-3d.js";
+  // Confere da-6 (19/11/2026): o mundo-3d.js inteiro (Irecê, Prédio, andares, quartos) só baixa quando um deles abre.
+  // Na abertura do painel vêm só a leitura dos agentes (MUNDO_LEVE_JS, sem three.js) e, quando uma foto de pessoa
+  // precisa do boneco voxel e ele ainda não está guardado neste navegador, os retratos (MUNDO_RETRATOS_JS).
+  const MUNDO_LEVE_JS = "/assets/mundo/mundo-leve.js";
+  const MUNDO_RETRATOS_JS = "/assets/mundo/mundo-retratos.js";
   const MUNDO_DADOS = "/assets/mundo/irece.json";
   const MUNDO_CRM = "/assets/mundo/crm-irece.json";
   const body = document.body;
@@ -2050,7 +2058,7 @@
     // A sessão chega depois do primeiro desenho: a cada pintura, os cadeados e o "ver como" seguem quem entrou.
     conferirVerComo(); aplicarCadeados(); marcarVerComo();
     const el = hud.querySelector('#vv-hoje'); if (!el || body.classList.contains('mundo-cartoes')) return;
-    el.classList.add('d3h-tela'); // Direção 3: fundo areia atrás dos cartões brancos
+    if (!el.classList.contains('d3h-tela')) el.classList.add('d3h-tela'); // Direção 3: fundo areia atrás dos cartões brancos
     const fila = minhaFila(), hoje = hojeIso(), agora = new Date();
     const data = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     const h = agora.getHours(), saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
@@ -3789,7 +3797,7 @@
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d?.error || 'Agenda indisponível.');
       agendaEventos = (d.agenda || []).filter((e) => e.dia >= hoje); agendaEm = Date.now(); agendaErro = '';
-    } catch (e) { agendaEventos = null; agendaErro = e.message || 'Agenda indisponível.'; hud.querySelector('#vv-agenda-lista').innerHTML = `<p class="vv-dica">${esc(e.message)}</p>`; pintarHoje(); return; }
+    } catch (e) { agendaEventos = null; agendaErro = e.message || 'Agenda indisponível.'; { const l = hud.querySelector('#vv-agenda-lista'); l.innerHTML = `<p class="vv-dica">${esc(e.message)}</p>`; l.vvHtml = ''; } pintarHoje(); return; }
     pintarAgenda(); pintarHoje();
     const hoje2 = mundo?.diaNaBahia?.() || hojeIso();
     mundo?.definirCaptacoes?.(agendaEventos.filter((e) => e.dia === hoje2 && e.tipo === 'captacao' && e.cliente)
@@ -3802,7 +3810,8 @@
   function pintarAgenda() {
     const el = hud.querySelector('#vv-agenda-lista'); if (!el || !agendaEventos) return;
     pintarRoteiros();
-    el.innerHTML = agendaListaHtml(centroAberto ? 3 : 6);
+    const lista = agendaListaHtml(centroAberto ? 3 : 6);
+    if (el.vvHtml !== lista) { el.innerHTML = lista; el.vvHtml = lista; }
     agendaNoHoje();
   }
   // Os próximos 3 compromissos e as datas comemorativas: a lista da gaveta da Agenda (e da Agenda no Hoje da Minha sala).
@@ -3828,7 +3837,7 @@
   function pintarRoteiros() {
     const el = hud.querySelector('#vv-roteiros'); if (!el) return;
     const r = agendaEventos && mundo?.roteirosDaSemana ? mundo.roteirosDaSemana(agendaEventos, mundo.diaNaBahia?.() || hojeIso()) : null;
-    if (!r || (!r.dias.length && !r.juntar.length)) { el.hidden = true; el.innerHTML = ''; el.vvAss = ''; return; }
+    if (!r || (!r.dias.length && !r.juntar.length)) { mudarSe(el, 'hidden', true); if (el.vvAss !== '') { el.innerHTML = ''; el.vvAss = ''; } return; }
     const kmTxt = (v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
     const html = `<div class="vv-rotulo-secao" style="--c:#0E9A45"><i></i>Roteiro da semana</div>`
       + r.dias.slice(0, 3).map((d) => `<div class="vv-roteiro"><b>${esc(d.frase)}</b>
@@ -3836,7 +3845,7 @@
         ${d.km ? `<span>≈ ${kmTxt(d.km)} km${d.economia >= .1 ? ` · ${kmTxt(d.economia)} km a menos que na ordem da agenda` : ''}</span>` : ''}</div>`).join('')
       + r.juntar.slice(0, 2).map((j) => `<p class="vv-dica">${esc(j.frase)}</p>`).join('');
     if (el.vvAss !== html) { el.innerHTML = html; el.vvAss = html; }
-    el.hidden = false;
+    mudarSe(el, 'hidden', false);
   }
   // A agenda completa é a das Captações (módulo Produção): uma agenda só.
   function abrirAgenda(dia) {
@@ -4031,14 +4040,14 @@
     }});
     return fonteAgentes;
   }
-  const plantaDoPredio = () => mundo?.planta || modAvatar?.PLANTA || [];
+  const plantaDoPredio = () => mundo?.planta || modLeve?.PLANTA || [];
   // Salas do prédio também sem o 3D montado (Equipe, Perfil, Jogos com o Centro fechado davam erro em mundo.zonasDoPredio).
-  const zonas3d = () => mundo?.zonasDoPredio || modAvatar?.ZONAS_DO_PREDIO || {};
+  const zonas3d = () => mundo?.zonasDoPredio || modLeve?.ZONAS_DO_PREDIO || {};
   const horaAgentes = v => v ? new Date(v).toLocaleTimeString('pt-BR', { timeZone:'America/Bahia',hour:'2-digit',minute:'2-digit' }) : '';
   const dataAgentes = v => v ? new Date(v).toLocaleString('pt-BR', { timeZone:'America/Bahia',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit' }) : '';
   function estadoDoAgente(id) {
     const a = fonteAgentes?.ler().dados?.agentes.find(x => x.setor === id);
-    return (mundo || modAvatar)?.apresentarAgente?.(a) || { estado:'indisponivel',rotulo:'Sem leitura da central',cor:'#7A8B82',ultimos:[] };
+    return (mundo || modLeve)?.apresentarAgente?.(a) || { estado:'indisponivel',rotulo:'Sem leitura da central',cor:'#7A8B82',ultimos:[] };
   }
   function avisoDosAgentes() {
     const f = fonteAgentes?.ler();
@@ -4047,10 +4056,10 @@
   }
   function seloAgente(id) { const a = estadoDoAgente(id); return `<span class="vv-selo" data-estado-agente="${esc(id)}" style="--e:${a.cor}"><i></i>${esc(a.rotulo)}</span>`; }
   function atividadeDoAgenteHtml(id) {
-    const a = estadoDoAgente(id), ref = (mundo || modAvatar)?.referenciaDaPeca?.(a.ultimos?.find(e => e.estado === a.estado)?.ref);
+    const a = estadoDoAgente(id), ref = (mundo || modLeve)?.referenciaDaPeca?.(a.ultimos?.find(e => e.estado === a.estado)?.ref);
     const tarefa = a.tarefa ? esc(a.tarefa) : a.estado === 'sem_execucao' ? 'Sem execução registrada.' : a.estado === 'indisponivel' ? 'Aguardando leitura da central.' : 'Nenhuma atividade em curso.';
     const item = e => {
-      const ref = (mundo || modAvatar)?.referenciaDaPeca?.(e.ref), rotulo = {executando:'Executando',aguardando_aprovacao:'Aguardando aprovação',concluida:'Concluída',falhou:'Falhou'}[e.estado];
+      const ref = (mundo || modLeve)?.referenciaDaPeca?.(e.ref), rotulo = {executando:'Executando',aguardando_aprovacao:'Aguardando aprovação',concluida:'Concluída',falhou:'Falhou'}[e.estado];
       const corpo = `<small>${esc(dataAgentes(e.em))} · ${esc(rotulo)}</small><b>${esc(e.tarefa)}</b><span>${esc(e.resultado || e.erro || 'Sem resultado final.')} · ${esc(e.ferramenta)}</span>`;
       return ref ? `<button type="button" class="vv-linha-agente" data-hoje-acao="peca" data-valor="${esc(ref)}">${corpo}</button>` : `<div class="vv-linha-agente">${corpo}</div>`;
     };
@@ -4061,7 +4070,7 @@
       <div class="vv-rotulo-secao"><i></i>O que fez · últimos registros</div>${a.ultimos?.map(item).join('') || '<p class="vv-dica">Sem registros recebidos para este setor.</p>'}`;
   }
   function pintarAtividadeAgentes() {
-    if (!mundo && !modAvatar) return;
+    if (!mundo && !modLeve) return;
     const f = fonteAgentes?.ler(); mundo?.atividadeAgentes(f?.dados?.agentes || [], Boolean(f?.dados && !f.erro));
     window.VybeAgentes?.repintar?.();
     pintarSituacaoDosAndares();
@@ -4072,8 +4081,8 @@
     hud.querySelectorAll('[data-indicador-agente]').forEach(el => { const a = estadoDoAgente(el.dataset.indicadorAgente); el.style.setProperty('--e',a.cor); el.title = a.rotulo; });
   }
   async function carregarAgentes(forcar=false) {
-    if (!mundo && !modAvatar) return;
-    if (!fonteAgentes) criarFonte(mundo || modAvatar);
+    if (!mundo && !modLeve) return;
+    if (!fonteAgentes) criarFonte(mundo || modLeve);
     if (body.classList.contains('auth-pending')) { fonteAgentes?.limpar(); pintarAtividadeAgentes(); return; }
     if (document.hidden || body.classList.contains('mundo-lobby')) return;
     await fonteAgentes?.atualizar(forcar); pintarAtividadeAgentes();
@@ -4324,8 +4333,16 @@
     const pid = String(el.dataset.pessoa || '');
     let vivo = true, cena = null;
     const canvas = document.createElement('canvas'); canvas.className = 'vv-vitrine-3d'; el.append(canvas); el.classList.add('vv-vitrine');
-    (modAvatar ? Promise.resolve(modAvatar) : import(MUNDO_JS)).then(async (m) => {
-      modAvatar = modAvatar || m; if (!vivo || !el.isConnected) return;
+    // Confere da-6: a vitrine do saguão escondido atrás do mundo baixava o mundo-3d.js inteiro na abertura do painel.
+    // O quarto só é montado quando a vitrine aparece na tela (ficha, entrada, criador).
+    let olho = null;
+    const aparecer = new Promise((ok) => {
+      if (typeof IntersectionObserver !== 'function') { ok(); return; }
+      olho = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { olho.disconnect(); ok(); } });
+      olho.observe(el);
+    });
+    aparecer.then(() => (vivo && el.isConnected ? import(MUNDO_JS) : null)).then(async (m) => {
+      if (!m || !vivo || !el.isConnected) return;
       let sala = null; try { sala = pid ? fn('escritorioDonos')?.()?.get(pid) : null; } catch { /* sem base */ }
       const base = sala ? quartoDaSala(sala.id) : null;
       const quarto = { id: 'vitrine-' + (pid || 'x'), nome: '', w: 3, h: 3, piso: base?.piso, parede: base?.parede, ehDeParede: base?.ehDeParede, itens: [] };
@@ -4340,7 +4357,7 @@
       cena.itens(itens);
       medidasDoHabbo(itens, m).then((l) => { if (vivo && l.length) cena?.medidas?.(l); });
     }).catch((err) => console.error('[mundo] vitrine', err));
-    return { destruir() { vivo = false; try { cena?.destruir(); } catch { /* já fechada */ } canvas.remove(); } };
+    return { destruir() { vivo = false; olho?.disconnect(); try { cena?.destruir(); } catch { /* já fechada */ } canvas.remove(); } };
   }
   window.vybeVitrineVoxel = vitrineVoxel;
   // A ficha no mundo: o boneco na vitrine voxel do quarto dele (acima); "ir para o quarto" leva à sala da pessoa no
@@ -4673,8 +4690,9 @@
   document.addEventListener?.('vybe:aviso-no-sino', () => { pintarSelosDeAviso(); const p = hud.querySelector('.vv-avisos-painel'); if (p && !p.contains(document.activeElement)) pintarAvisos(); });
   function pintarSelosDeAviso() {
     const n = naoLidasDoPainel() + avisosPlanejamento() + curtosNaoVistos().length, el = hud.querySelector('#vv-badge-avisos'), b = hud.querySelector('[data-ferr="avisos"]');
-    if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); }
-    b?.setAttribute('aria-label', n ? `Avisos · ${n} para ver` : 'Avisos');
+    if (el) { mudarSe(el, 'hidden', !n); mudarSe(el, 'textContent', n > 99 ? '99+' : String(n)); }
+    const rotuloAvisos = n ? `Avisos · ${n} para ver` : 'Avisos';
+    if (b && b.getAttribute('aria-label') !== rotuloAvisos) b.setAttribute('aria-label', rotuloAvisos);
   }
   // ---------- Celular (fase 3d, quadro 47) ----------
   // No celular o topo fica com busca, avisos e conta; a barra de baixo tem cinco lugares (Hoje, Produção, Criar no meio,
@@ -5250,13 +5268,51 @@
   // ---------- Avatares voxel no lugar dos bonecos do Habbo (em todo o painel, com o mundo ligado) ----------
   // Toda <img> do imager do Habbo vira o avatar voxel da mesma figura. O dado é o mesmo (perfil.figura);
   // muda só o desenho. Desligado o mundo, nada é trocado.
-  let modAvatar = null;
+  // Confere da-6 (19/11/2026): os bonecos vêm do pacote de retratos (MUNDO_RETRATOS_JS), não do mundo-3d.js inteiro; o
+  // retrato pronto fica guardado neste navegador (Cache Storage, uma guarda por versão do pacote) e, da segunda abertura
+  // em diante, a foto voxel aparece sem baixar nem rodar o three.js. A foto fora de vista espera aparecer; até o boneco
+  // chegar, o lugar dela brilha como um carregando (avatar-esperando), sem a pixel art do Habbo.
+  let modAvatar = null, pedidoRetratos = null;
+  function garantirRetratos() {
+    if (modAvatar) return Promise.resolve(modAvatar);
+    if (!pedidoRetratos) pedidoRetratos = import(MUNDO_RETRATOS_JS).then((m) => { modAvatar = modAvatar || m; modLeve = modLeve || m; return modAvatar; }).catch((e) => { pedidoRetratos = null; throw e; });
+    return pedidoRetratos;
+  }
+  const GUARDA_RETRATOS = 'vybe-retratos|' + MUNDO_RETRATOS_JS;
+  const retratosNaMemoria = new Map();
+  let guardaAberta = null;
+  function abrirGuarda() {
+    if (guardaAberta) return guardaAberta;
+    guardaAberta = (async () => {
+      if (typeof caches === 'undefined') return null;
+      // Guardas de versões antigas do pacote saem (o boneco pode ter mudado).
+      try { for (const k of await caches.keys()) if (k.startsWith('vybe-retratos|') && k !== GUARDA_RETRATOS) await caches.delete(k); } catch { /* sem limpeza */ }
+      return caches.open(GUARDA_RETRATOS);
+    })().catch(() => null);
+    return guardaAberta;
+  }
+  const chaveDoRetrato = (fig, o) => `/vybe-retrato/${o.cabeca ? 'cabeca' : 'corpo'}/${encodeURIComponent(String(o.direcao))}/${encodeURIComponent(fig)}`;
+  function retratoGuardado(chave) {
+    if (!retratosNaMemoria.has(chave)) retratosNaMemoria.set(chave, abrirGuarda().then(async (g) => { const r = g && await g.match(chave); return r ? URL.createObjectURL(await r.blob()) : ''; }).catch(() => ''));
+    return retratosNaMemoria.get(chave);
+  }
+  function guardarRetrato(chave, url) {
+    if (!String(url).startsWith('data:')) return;
+    retratosNaMemoria.set(chave, Promise.resolve(url));
+    abrirGuarda().then(async (g) => { if (g) await g.put(chave, new Response(await (await fetch(url)).blob(), { headers: { 'Content-Type': 'image/png' } })); }).catch(() => {});
+  }
+  // Fotos de pessoa que ainda esperam o boneco: com alguma esperando, o pacote de retratos baixa quando o navegador folga.
+  let retratosPedidos = false;
+  function pedirRetratosNaFolga() {
+    if (retratosPedidos || modAvatar) return; retratosPedidos = true;
+    const depois = (f) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 6000 }) : setTimeout(f, 2000));
+    depois(() => garantirRetratos().then(() => document.querySelectorAll('img.avatar-esperando').forEach((i) => { i.dataset.voxel = ''; trocarAvatar(i); })).catch(() => { retratosPedidos = false; }));
+  }
   const HABBO = /^https:\/\/www\.(habbo\.com\/habbo-imaging|habboassets\.com\/imaging)\//;
   async function trocarAvatar(img) {
     if (!ligado || !img || img.dataset.voxel === '1') return;
     const src = img.getAttribute('src') || ''; if (!HABBO.test(src)) return;
     try {
-      modAvatar = modAvatar || await import(MUNDO_JS);
       const u = new URL(src), q = u.searchParams;
       // Imagem de móvel (Loja, inventário, troféus; redesign fase 3c, "tudo que é imagem é voxel"): o retrato do móvel
       // em voxel, montado como a Minha sala o monta (retratoDoMovel). Peça de parede ou sem voxel fica com a arte de sempre.
@@ -5270,18 +5326,33 @@
         // Enquanto o voxel não chega, a pixel art do Habbo não aparece (Paulo: "nada de pixel art do Habbo"): o lugar da
         // imagem brilha como um carregando. Só um móvel que nem o quarto consegue montar em voxel volta à arte de sempre.
         img.classList.add('movel-esperando');
-        const pronto = (url) => { if (img.dataset.movel !== classe) return; img.classList.remove('movel-esperando'); if (!url) img.classList.add('movel-habbo'); if (url && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.classList.add('movel-voxel'); } };
+        const pronto = (url) => { if (img.dataset.movel !== classe) return; img.classList.remove('movel-esperando'); if (!url) img.classList.add('movel-habbo'); if (url && img.isConnected) { img.dataset.habbo = src; img.onerror = null; img.src = url; img.style.aspectRatio = 'auto 1 / 1'; img.classList.add('movel-voxel'); } };
         // Pulada na fila se a imagem sair de vista antes da vez dela; volta a pedir quando reaparecer (o observador de src).
         const vivo = () => img.isConnected && img.offsetParent !== null && img.dataset.movel === classe;
-        modAvatar.retratoDoMovel?.(classe, 96, vivo).then((url) => { if (!url && !vivo()) { img.dataset.voxel = ''; reVer?.observe(img); return; } pronto(url); }, () => pronto(''));
+        // O retrato do móvel é montado pelo quarto (mundo-3d.js): móvel fora de vista não baixa o mundo; espera aparecer.
+        if (!vivo()) { img.dataset.voxel = ''; reVer?.observe(img); return; }
+        const m3d = await import(MUNDO_JS);
+        m3d.retratoDoMovel?.(classe, 96, vivo).then((url) => { if (!url && !vivo()) { img.dataset.voxel = ''; reVer?.observe(img); return; } pronto(url); }, () => pronto(''));
         return;
       }
       const fig = q.get('figure') || '', opcoes = { cabeca: q.get('headonly') === '1', direcao: q.get('direction') || 2 };
-      const url = modAvatar.avatarVoxel(fig, opcoes);
-      img.dataset.voxel = '1'; img.dataset.habbo = src; img.src = url; img.classList.add('avatar-voxel');
-      // Em seguida o retrato fiel (cabelo, roupas, óculos e acessórios do Habbo da pessoa, como no quarto).
-      modAvatar.avatarVoxelFiel?.(fig, opcoes).then((fiel) => { if (fiel && img.dataset.habbo === src && img.isConnected) img.src = fiel; }).catch(() => {});
-    } catch (e) { console.error('[mundo] avatar', e); }
+      const chave = chaveDoRetrato(fig, opcoes);
+      img.dataset.voxel = '1'; img.dataset.habbo = src; img.style.aspectRatio = 'auto 4 / 5';
+      const pronto = (url) => { if (img.dataset.habbo !== src) return; img.classList.remove('avatar-esperando'); img.src = url; img.classList.add('avatar-voxel'); };
+      const guardado = await retratoGuardado(chave);
+      if (img.dataset.habbo !== src) return; // a foto trocou de pessoa enquanto lia a guarda
+      if (guardado) { pronto(guardado); return; }
+      if (!modAvatar) {
+        img.classList.add('avatar-esperando');
+        // Fora de vista: espera aparecer (ou o pacote chegar por outra foto) em vez de baixar o three.js agora.
+        if (img.offsetParent === null) { img.dataset.voxel = ''; reVer?.observe(img); pedirRetratosNaFolga(); return; }
+      }
+      const m = await garantirRetratos();
+      if (img.dataset.habbo !== src) return;
+      pronto(m.avatarVoxel(fig, opcoes));
+      // Em seguida o retrato fiel (cabelo, roupas, óculos e acessórios do Habbo da pessoa, como no quarto), que fica guardado.
+      m.avatarVoxelFiel?.(fig, opcoes).then((fiel) => { if (!fiel) return; guardarRetrato(chave, fiel); if (img.dataset.habbo === src && img.isConnected) img.src = fiel; }).catch(() => {});
+    } catch (e) { img.classList.remove('avatar-esperando'); console.error('[mundo] avatar', e); }
   }
   // Móvel pulado na fila por estar fora de vista: pede de novo quando a imagem aparecer.
   const reVer = typeof IntersectionObserver === 'function' ? new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { reVer.unobserve(e.target); trocarAvatar(e.target); } }) : null;
@@ -5300,8 +5371,8 @@
     ligarCatalogoVoxel.feito = true;
     const original = window.carregarCatalogoEscritorio;
     const traduzir = () => {
-      if (!ligado || !modAvatar?.CATALOGO || typeof escritorioCatalogo === 'undefined' || !Array.isArray(escritorioCatalogo) || escritorioCatalogo.voxel) return;
-      const proprias = new Map(modAvatar.CATALOGO.map((p) => [p.classe, p]));
+      if (!ligado || !modLeve?.CATALOGO || typeof escritorioCatalogo === 'undefined' || !Array.isArray(escritorioCatalogo) || escritorioCatalogo.voxel) return;
+      const proprias = new Map(modLeve.CATALOGO.map((p) => [p.classe, p]));
       // Só o nome das peças próprias muda (categoria e classe ficam: os filtros da Loja dependem delas).
       const novo = escritorioCatalogo.map((it) => { const p = proprias.get(it.classe); return p ? { ...it, nome: p.nome, vybeCategoria: p.categoria, voxel: true } : it; });
       novo.voxel = true;
@@ -5309,7 +5380,7 @@
       // Seção "Catálogo Vybe" no topo da Loja, com uma subcategoria por grupo de peça voxel.
       try {
         if (typeof ESCRITORIO_SECOES_CATALOGO !== 'undefined' && !ESCRITORIO_SECOES_CATALOGO.some(([t]) => t === 'Catálogo Vybe')) {
-          const subs = [...new Set(modAvatar.CATALOGO.map((p) => p.categoria))].map((c) => 'Vybe · ' + c);
+          const subs = [...new Set(modLeve.CATALOGO.map((p) => p.categoria))].map((c) => 'Vybe · ' + c);
           for (const c of subs) ESCRITORIO_GRUPOS_CATALOGO.push([c, (m) => m.voxel && 'Vybe · ' + m.vybeCategoria === c]);
           ESCRITORIO_SECOES_CATALOGO.splice(1, 0, ['Catálogo Vybe', subs]);
           if (typeof ESCRITORIO_SECOES_LOJA !== 'undefined') ESCRITORIO_SECOES_LOJA.unshift(['Catálogo Vybe', 'estrela']);
@@ -5464,7 +5535,7 @@
     const porSala = new Map();
     for (const o of presencaDoEscritorio()) if (o.zona && o.zona !== 'recepcao') porSala.set(o.zona, [...(porSala.get(o.zona) || []), o]);
     const [zona, gente] = [...porSala.entries()].sort((a, b) => b[1].length - a[1].length)[0] || [];
-    if (!zona) { p.hidden = true; p.innerHTML = ''; return; }
+    if (!zona) { mudarSe(p, 'hidden', true); if (p.innerHTML) p.innerHTML = ''; return; }
     const dentro = String(e?.zona || '') === String(zona), nome = nomeZona(zona);
     const iniciais = (n) => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
     // A mesma fase do dock: "Dentro" só na chamada; conectando gira; caiu oferece Tentar de novo; o Entrar de outra sala
@@ -5476,13 +5547,13 @@
       dentro ? estado || (['na-sala', 'sem-voz', 'indisponivel'].includes(st.fase) ? '<span class="vv-topo-sala-dentro">Dentro</span>' : `<button type="button" class="vv-topo-sala-entrar" data-voz-tentar title="Entrar na chamada de ${esc(nome)}">Entrar</button>`)
         : !e?.conectado && estado ? estado : `<button type="button" class="vv-topo-sala-entrar" data-entrar-zona="${esc(zona)}" title="Entrar em ${esc(nome)}">Entrar</button>`}`;
     if (p.innerHTML !== html) p.innerHTML = html;
-    p.hidden = false;
+    mudarSe(p, 'hidden', false);
   }
   function pintarChamada() {
     const e = typeof escritorio !== 'undefined' ? escritorio : null;
     // A voz continua dentro dos módulos (como no Discord): lá a barra fica compacta.
     const ver = ligado && !body.classList.contains('auth-pending') && Boolean(e);
-    const antes = barra.hidden; barra.hidden = !ver;
+    const antes = barra.hidden; if (barra.hidden !== !ver) barra.hidden = !ver; // só grava quando muda (confere da-6)
     if (!ver) return;
     if (antes) window.VybeTutorial?.dica?.('chamada');
     const Z = zonas3d(), eu = String(e.base?.eu || '');
@@ -5787,7 +5858,7 @@
     const e = typeof escritorio !== 'undefined' ? escritorio : null, canal = fn('escritorioCanal')?.();
     const naChamada = Boolean(!e?.vozPausada && e?.conectado && canal && e.chamada && e.canalChamada === canal);
     const originais = (naChamada ? [...(media?.querySelectorAll('video') || [])] : []).filter((v) => v.srcObject);
-    palco.querySelector('[data-palco="parar"]').hidden = !e?.chamada?.self?.screenShareEnabled;
+    { const parar = palco.querySelector('[data-palco="parar"]'), esconder = !e?.chamada?.self?.screenShareEnabled; if (parar.hidden !== esconder) parar.hidden = esconder; }
     const atuais = new Set(originais.map((v) => v.srcObject));
     palco.querySelectorAll('video').forEach((v) => { if (!atuais.has(v.srcObject)) v.closest('.vv-palco-video')?.remove(); });
     for (const v of originais) {
@@ -6196,7 +6267,7 @@
       // Logo depois do login, a entrada (quadro "Login e entrada") vem antes de tudo; o passeio espera ela fechar.
       if (window.VYBE_ACABOU_DE_ENTRAR && !APP_AGENDA) { window.VYBE_ACABOU_DE_ENTRAR = false; vigiarContinuar(); mostrarEntrada(); }
       if (!sincronizar.tour) { sincronizar.tour = true; setTimeout(() => { if (entradaAberta) tourDepoisDaEntrada = true; else window.VybeTutorial?.iniciar?.(); }, 1200); }
-      if (centroAberto) { carregar(); mundo?.pausar(false); } else { mundo?.pausar(true); void garantirModulo(); } pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
+      if (centroAberto) { carregar(); mundo?.pausar(false); } else { mundo?.pausar(true); void garantirLeve(); } pintarClientes(); pintarHoje(); ajustarAreaLivre(); carregarAgenda(); observarPresenca(); pintarPresenca(); void carregarAgentes();
       if (!timer) timer = setInterval(() => { pintarClientes(); pintarPresenca(); carregarAgenda(); pintarHoje(); void carregarAgentes(); }, 5000);
     } else {
       mundo?.pausar(true); if (cartao()) cartao().hidden = true;
@@ -6235,12 +6306,17 @@
     mundo?.pausar(true); if (cartao()) cartao().hidden = true;
     sincronizar();
   }
-  // O módulo JS (avatares, planta e leitura dos agentes) carrega quando o navegador folga, sem montar a cena.
-  let modulo3d = null;
+  // A leitura dos agentes e a planta (mundo-leve.js, sem three.js) carregam quando o navegador folga, sem montar a cena.
+  // Confere da-6: antes era o mundo-3d.js inteiro, baixado e rodado em toda abertura do painel.
+  let modLeve = null, pedidoLeve = null;
+  function garantirLeve() {
+    if (modLeve) { criarFonte(modLeve); return Promise.resolve(modLeve); }
+    if (!pedidoLeve) pedidoLeve = import(MUNDO_LEVE_JS).then((m) => { modLeve = modLeve || m; criarFonte(modLeve); void carregarAgentes(); return modLeve; }).catch(() => { pedidoLeve = null; return null; });
+    return pedidoLeve;
+  }
+  // De fora (página Agentes, Boletim): a leitura dos agentes e os retratos voxel (avatarDoAgente), como antes.
   function garantirModulo() {
-    if (modAvatar) { criarFonte(modAvatar); return Promise.resolve(modAvatar); }
-    if (!modulo3d) modulo3d = import(MUNDO_JS).then((m) => { modAvatar = modAvatar || m; criarFonte(m); void carregarAgentes(); return m; }).catch(() => { modulo3d = null; return null; });
-    return modulo3d;
+    return garantirLeve().then((leve) => garantirRetratos().catch(() => leve));
   }
   function ligar(sim) {
     ligado = !!sim;
@@ -6301,11 +6377,23 @@
     if (body.style.getPropertyValue('--vv-pe-base') !== pe) body.style.setProperty('--vv-pe-base', pe);
     if (body.style.getPropertyValue('--vv-pe-agenda') !== (hAviso + hVoz + hMus + hDock) + 'px') body.style.setProperty('--vv-pe-agenda', (hAviso + hVoz + hMus + hDock) + 'px');
   }
+  // Confere da-6 (19/11/2026): o que está aberto vira classe no body, no lugar de body:has(#vv-placa:not([hidden])) e
+  // parecidos no CSS. Um :has no body faz cada mudança de hidden em qualquer canto da página reconferir o body inteiro
+  // (64 ms por vez no Centro parado); a classe só muda quando a janela abre ou fecha. Roda no mesmo observador que já
+  // vigia o hidden do body, antes do próximo quadro: o CSS vê a mudança na mesma pintura em que o :has via.
+  const JANELAS_DO_LADO = ['vv-pessoas', 'vv-ferramentas', 'vv-comercial', 'vv-carteira', 'vv-conteudo', 'vv-impressoes'];
+  function marcarAbertos() {
+    const ver = (el) => Boolean(el && !el.hidden), p = document.getElementById('vv-placa');
+    const marcas = { 'com-placa': ver(p), 'com-placa-camada': ver(p) && Boolean(p.querySelector('.vv-camada')),
+      'com-chamada': Boolean(hud.querySelector('.vv-chamada:not([hidden])')), 'com-setor-visao': Boolean(document.querySelector('.vv-setor-visao:not([hidden])')),
+      'com-janela-lado': JANELAS_DO_LADO.some((id) => ver(document.getElementById(id))) };
+    for (const [c, sim] of Object.entries(marcas)) if (body.classList.contains(c) !== sim) body.classList.toggle(c, sim);
+  }
   function iniciar() {
     let palcoAgendado = false;
-    new MutationObserver(() => { if (palcoAgendado) return; palcoAgendado = true; setTimeout(() => { palcoAgendado = false; try { marcarPalco(); } catch (e) { console.error('[mundo] palco', e); } }, 40); }).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    new MutationObserver(() => { marcarAbertos(); if (palcoAgendado) return; palcoAgendado = true; setTimeout(() => { palcoAgendado = false; try { marcarPalco(); } catch (e) { console.error('[mundo] palco', e); } }, 40); }).observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
     const moldura = document.createElement('div'); moldura.id = 'mundo-moldura';
-    body.append(raiz, moldura, hud);
+    body.append(raiz, moldura, hud); marcarAbertos();
     const gate = document.getElementById('mode-gate');
     if (gate) new MutationObserver(sincronizar).observe(gate, { attributes: true, attributeFilter: ['class'] });
     const barra = document.querySelector('.board-switch-bar');
@@ -6333,7 +6421,7 @@
     if (ligado) {
       trocarAvataresEm(document.body);
       const depois = (f) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 1500));
-      depois(() => garantirModulo().then((m) => { if (m) ligarCatalogoVoxel(); }));
+      depois(() => garantirLeve().then((m) => { if (m) ligarCatalogoVoxel(); }));
     }
   }
   // Classe aplicada antes do primeiro desenho, para a tela de módulos não piscar no tema antigo.

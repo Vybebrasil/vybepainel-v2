@@ -299,27 +299,45 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
   }
   function removerRotulo(r) { invalidar(); r.el.remove(); const i = rotulos.indexOf(r); if (i >= 0) rotulos.splice(i, 1); }
   const v3 = new THREE.Vector3();
-  let quadro = 0, recolidir = 0, refeitas = false, chaveColisao = '';
-  // Os pinos estão parados no mundo (pos é cópia): só saem do lugar quando a câmera ou a tela mudam.
-  const chaveDaCamera = () => `${camera.matrixWorld.elements.map((n) => n.toFixed(3)).join()}|${camera.projectionMatrix.elements.map((n) => n.toFixed(4)).join()}|${W}x${H}`;
+  let quadro = 0, recolidir = 0, refeitas = false, chaveColisao = -1, versaoCamera = 0;
+  // Os pinos estão parados no mundo (pos é cópia): só saem do lugar quando a câmera, a tela ou o próprio pino mudam.
+  // Confere da-6 (19/11/2026): antes cada quadro montava um texto com as 32 casas das duas matrizes da câmera (toFixed)
+  // e projetava todos os pinos de novo, mesmo com a cidade parada. Agora compara os números direto e só reprojeta o pino
+  // que andou (o VYBES boiando no Prédio).
+  const camAntes = new Float64Array(34);
+  function cameraMudou() {
+    const a = camera.matrixWorld.elements, b = camera.projectionMatrix.elements;
+    let mudou = camAntes[32] !== W || camAntes[33] !== H; camAntes[32] = W; camAntes[33] = H;
+    for (let i = 0; i < 16; i++) {
+      if (camAntes[i] !== a[i]) { camAntes[i] = a[i]; mudou = true; }
+      if (camAntes[16 + i] !== b[i]) { camAntes[16 + i] = b[i]; mudou = true; }
+    }
+    return mudou;
+  }
   function posicionarRotulos(sujoAgora = true) {
     const caixas = [];
     let mudouVisivel = false;
+    const camMudou = cameraMudou(); if (camMudou) versaoCamera++;
     for (const r of rotulos) {
-      v3.copy(r.pos).project(camera);
-      const longe = camera.position.distanceTo(r.pos) > r.distMax;
-      const fora = v3.z > 1 || v3.x < -1.1 || v3.x > 1.1 || v3.y < -1.1 || v3.y > 1.1;
-      const mostra = !longe && !fora && !r.el.hidden;
+      const p = r.pos;
+      if (camMudou || r.px !== p.x || r.py !== p.y || r.pz !== p.z) {
+        r.px = p.x; r.py = p.y; r.pz = p.z;
+        v3.copy(p).project(camera);
+        const longe = camera.position.distanceTo(p) > r.distMax;
+        const fora = v3.z > 1 || v3.x < -1.1 || v3.x > 1.1 || v3.y < -1.1 || v3.y > 1.1;
+        r.naTela = !longe && !fora;
+        r.x = (v3.x * 0.5 + 0.5) * W; r.y = (-v3.y * 0.5 + 0.5) * H;
+      }
+      const mostra = r.naTela && !r.el.hidden;
       if (mostra !== r.visivel) { r.visivel = mostra; r.el.classList.toggle('escondido', !mostra); mudouVisivel = true; }
       if (!mostra) continue;
-      r.x = (v3.x * 0.5 + 0.5) * W; r.y = (-v3.y * 0.5 + 0.5) * H;
       caixas.push(r);
     }
     // A cada 4 quadros resolve as colisões, sem empilhar nome em cima de nome:
     // pino fixo (cliente) que encosta noutro pino junta-se a ele ("+N"); nome comum que encosta some.
     // Com a câmera parada e nada novo (quadro só de enfeite), a conta ficaria igual: refaz no máximo 1 vez por segundo
     // (a leitura de offsetWidth força layout; eram 7,5 por segundo com a cidade parada, confere 19/11/2026).
-    const chave = chaveDaCamera();
+    const chave = versaoCamera;
     const algoMudou = sujoAgora || mudouVisivel || chave !== chaveColisao || quadro % 30 === 0;
     if ((quadro % 4 === 0 && algoMudou) || recolidir > 0) {
       chaveColisao = chave;
@@ -327,9 +345,14 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       caixas.sort((a, b) => (b.fixo - a.fixo) || b.prioridade - a.prioridade || a.y - b.y);
       const postos = [];
       for (const r of caixas) {
-        const w = r.el.offsetWidth, h = r.el.offsetHeight;
-        r.junto = 0; r.oculto = false; r.desce = 0; r.w = w; r.h = h;
-        if (!w || !h) { r.oculto = true; continue; } // escondido pela vista (CSS): não ocupa lugar
+        const w0 = r.el.offsetWidth, h0 = r.el.offsetHeight;
+        r.junto = 0; r.oculto = false; r.desce = 0; r.w = w0; r.h = h0;
+        if (!w0 || !h0) { r.oculto = true; continue; } // escondido pela vista (CSS): não ocupa lugar
+        // Com a câmera parada, a caixa do pino só cresce: a linha "+N clientes aqui perto" aumenta o pino, o pino maior
+        // batia no vizinho, perdia o "+N", encolhia e voltava a caber, trocando a cada segundo (confere da-6: 8 trocas em
+        // 10 s no Prédio parado). Guardando o maior tamanho até a câmera mexer, a conta para num resultado só.
+        if (r.chaveTam !== chave) { r.chaveTam = chave; r.wMax = 0; r.hMax = 0; }
+        const w = r.wMax = Math.max(w0, r.wMax), h = r.hMax = Math.max(h0, r.hMax);
         const [x, y] = dentroDaTela(r);
         const bate = postos.find((p) => Math.abs(p.x - x) < (p.w + w) / 2 - 2 && Math.abs(p.y - y) < (p.h + h) / 2 - 1);
         if (bate) { r.oculto = true; if (r.fixo && bate.r.fixo) bate.r.junto++; continue; }
@@ -348,8 +371,10 @@ export function criarMotor(canvas, { reduzirMovimento = false } = {}) {
       // Até 3 conferências seguidas (sem ficar trocando para sempre): o motor só desenha quando algo muda.
       if (mudouMais && !refeitas) { recolidir = 3; refeitas = true; invalidar(); } else if (!mudouMais) refeitas = false;
     }
-    // Só grava o transform que mudou: o mesmo valor ainda invalida o estilo do pino a cada quadro.
+    // Só grava o transform que mudou: o mesmo valor ainda invalida o estilo do pino a cada quadro. Pino colidido está
+    // apagado (.colide): não segue o VYBES boiando (eram ~6 gravações por segundo num pino que ninguém via).
     for (const r of caixas) {
+      if (r.oculto) continue;
       const [x, y] = dentroDaTela(r);
       const tf = `translate(-50%,-100%) translate(${x.toFixed(1)}px,${(y + r.desce).toFixed(1)}px)`;
       if (tf !== r.tf) { r.tf = tf; r.el.style.transform = tf; }

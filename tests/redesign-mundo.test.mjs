@@ -43,8 +43,9 @@ test('32 · Hoje mais estreito na Cidade e o topo começa depois dele, com a bus
 test('33 e 43 · controles do mapa ficam no canto acima do dock; o balão das Camadas abre ao lado', () => {
   const css = ler('vybe-mundo.css');
   assert.doesNotMatch(css, /\.vv-controles\{right:calc\(var\(--vv-m\) \* 2 \+ 360px\)\}/);
-  assert.match(css, /body\.mundo\.mundo-centro:has\(#vv-placa:not\(\[hidden\]\)\) \.vv-controles\{flex-direction:row\}/);
-  assert.match(css, /body\.mundo\.mundo-centro:has\(#vv-placa:not\(\[hidden\]\) \.vv-camada\) \.vv-controles\{flex-direction:column\}/);
+  // Confere da-6: a placa aberta (e com camadas) é classe no body, ligada por marcarAbertos (vybe-mundo.js).
+  assert.match(css, /body\.mundo\.mundo-centro\.com-placa:not\(#sem-placa\) \.vv-controles\{flex-direction:row\}/);
+  assert.match(css, /body\.mundo\.mundo-centro\.com-placa-camada:not\(#sem-placa\):not\(\.sem-placa\) \.vv-controles\{flex-direction:column\}/);
   assert.match(css, /body\.mundo\.mundo-centro \.vv-placa:not\(:has\(\.vv-camada\)\)\{max-height:calc\(/);
 });
 
@@ -85,7 +86,7 @@ test('35 a 37 · ícones de móvel e troféu em voxel: parede também, guardados
   assert.match(ler('mundo/moveis-habbo.mjs'), /export const guardado = /);
   const mundo = ler('vybe-mundo.js');
   assert.match(mundo, /img\.classList\.add\('movel-esperando'\)/);
-  assert.match(mundo, /modAvatar\.retratoDoMovel\?\.\(classe, 96, vivo\)/);
+  assert.match(mundo, /m3d\.retratoDoMovel\?\.\(classe, 96, vivo\)/);
   assert.match(ler('vybe-mundo.css'), /body\.mundo img\.movel-esperando,body\.mundo img\[src\*="habboassets\.com\/imaging\/furniture\/"\]:not\(\.movel-habbo\)\{object-position:-9999px -9999px/);
 });
 

@@ -230,8 +230,8 @@ body.mundo-cartoes .vv-hoje{display:none}
 .vv-pergunta button{width:34px;height:34px;border:0;border-radius:6px;background:var(--vv-tinta);color:#fff;font:700 15px var(--vv-texto);cursor:pointer}
 /* Agenda: aba de vidro no canto direito, recolhível (a mesma agenda das Captações). */
 .vv-agenda{position:absolute;right:var(--vv-m);top:calc(var(--vv-m) + 60px);width:300px;pointer-events:auto;padding:10px;border-radius:12px;border:1px solid var(--vv-vidro-borda);background:var(--vv-vidro-leve);backdrop-filter:var(--vv-desfoque);-webkit-backdrop-filter:var(--vv-desfoque);box-shadow:var(--vv-sombra)}
-#mundo-hud:has(.vv-placa:not([hidden])) .vv-agenda{display:none}
-@media (max-width:1400px){#mundo-hud:has(.vv-placa:not([hidden])) .vv-hoje{display:none}}
+.com-placa:not(.sem-placa) #mundo-hud .vv-agenda{display:none}
+@media (max-width:1400px){.com-placa:not(.sem-placa) #mundo-hud .vv-hoje{display:none}}
 .vv-agenda-topo{appearance:none;border:0;background:none;width:100%;display:flex;align-items:center;gap:7px;padding:2px 4px 8px;cursor:pointer;color:var(--vv-tinta)}
 .vv-agenda-topo svg{width:16px;height:16px;color:var(--vv-laranja-escuro)}
 .vv-agenda-topo b{font:800 11.5px var(--vv-texto);letter-spacing:0;text-transform:none}
@@ -3046,7 +3046,7 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
 @media (min-width:901px){.vv-chamada{left:calc(var(--vv-livre-esq, 100px) + 10px)!important}}
 
 /* com a barra de chamada visível, o aviso de planejamentos sobe e não encosta nela */
-@media (min-width:901px){body.mundo:not(.mundo-modulo):has(#mundo-hud .vv-chamada:not([hidden])) .plj-aviso{bottom:calc(var(--vv-m) + var(--vv-voz-alto,56px) + 14px)!important}}
+@media (min-width:901px){body.mundo.com-chamada:not(.mundo-modulo):not(#sem-chamada):not(.sem-chamada) .plj-aviso{bottom:calc(var(--vv-m) + var(--vv-voz-alto,56px) + 14px)!important}}
 
 /* ===== Hover do agente no andar: a operação dele ===== */
 .mundo-rotulo.rotulo-agente .det{display:none}
@@ -3583,7 +3583,7 @@ body.mundo.mundo-centro #mundo{background:linear-gradient(180deg,#9FD3F0 0%,#CBE
 .mundo-rotulo.rotulo-loja.atrasada{border-color:#E5484D;box-shadow:0 0 0 2px rgba(229,72,77,.25),0 6px 16px rgba(31,29,26,.16)}
 /* No Centro o Hoje (esquerda) e a Agenda (direita) continuam à vista (Paulo, 08/11/2026); a Agenda sai da frente só
    quando o painel do prédio/andar abre no mesmo canto. */
-body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-agenda{display:none}
+body.mundo.mundo-centro.com-placa:not(#sem-placa) .vv-agenda{display:none}
 /* A Agenda termina acima dos controles do mapa (zoom, girar, tudo, hora): nada cobre os botões; o resto rola. */
 body.mundo.mundo-centro .vv-agenda{max-height:calc(100% - var(--vv-m) - 60px - 340px);overflow:auto;scrollbar-width:thin}
 
@@ -3821,8 +3821,8 @@ html body.mundo.mundo-modulo .app-header .header-row1{min-height:0!important}
 /* Varredura 08/11/2026 (2): placas em tela cheia por cima do HUD; Conversa na coluna da direita; botões do canto
    das telas antigas ao lado da barra de ícones; zoom do Centro fora do painel do elevador. */
 html body.mundo:not(.mundo-centro) .vv-placa:not([hidden]){z-index:20}
-html body.mundo:not(.mundo-centro):not(.mundo-modulo):has(#vv-placa:not([hidden])) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
-html body.mundo:not(.mundo-centro):has(#vv-placa:not([hidden])) .plj-aviso{visibility:hidden}
+html body.mundo.com-placa:not(.mundo-centro):not(.mundo-modulo):not(#sem-placa) #mundo-hud > :is(.vv-topo,.vv-agenda,.vv-chamada){visibility:hidden}
+html body.mundo.com-placa:not(.mundo-centro):not(#sem-placa) .plj-aviso{visibility:hidden}
 html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:auto!important;right:var(--vv-m)!important;top:var(--vv-palco-topo)!important;bottom:var(--vv-coluna-fundo,var(--vv-m))!important;width:var(--vv-col)!important;max-height:none!important;min-height:0!important;z-index:705}
 @media (max-width:900px){html body.mundo:not(.mundo-centro) .vv-conversa:not(#ds-a){left:var(--vv-m)!important;width:auto!important;top:calc(var(--vv-m) + 56px)!important;bottom:var(--vv-coluna-fundo,calc(64px + 2 * var(--vv-m)))!important}}
 /* X do Cadastro rápido visível no papel claro (antes: #ece8e3 sobre creme, sumia). Paulo: "não tem o x de fechar". */
@@ -5043,7 +5043,7 @@ body.mundo :is(.dias-layout-btn,.conta-ensaio){min-height:var(--pc-h-p);padding:
 body.mundo :is(.vc-acao,.vc-sec,.vp-acao,.vp-sec,.vf-botao,.vi-botao,.conta-botao.primario,.auto-novo,.quadro-novo):is(:disabled,.desligado){background:var(--pc-desligado-fundo);border-color:transparent;color:var(--pc-desligado-texto);box-shadow:none;opacity:1;cursor:not-allowed}
 /* A visão geral de um setor também é uma janela: os avisos descem para baixo do cabeçalho dela (a varredura de
    10/11/2026 achou o aviso em cima de Mensal/Anual, atualizar e fechar). */
-body.mundo:has(.vv-setor-visao:not([hidden])) #vv-wa-avisos{top:calc(var(--vv-m,14px) + 136px)}
+body.mundo.com-setor-visao:not(.sem-setor-visao) #vv-wa-avisos{top:calc(var(--vv-m,14px) + 136px)}
 /* Menu de escolha (select): a mesma seta em todo navegador e sistema, no lugar da seta nativa. */
 body.mundo select:not([multiple]):not([size]){appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B675F' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:13px;padding-right:32px}
 /* O espaço da seta vence o padding dos campos de cada módulo (que usam um id na regra). */
@@ -5114,7 +5114,7 @@ body.mundo .ofc-tv-desligar:hover{background:#FDECEE}
 /* Legenda da Cidade (fase 3b): só no Centro, no canto de cima, abaixo do topo; o número e a frase dizem a situação. */
 body.mundo .vv-legenda-cidade{display:none}
 body.mundo.mundo-centro:not(.mundo-modulo) .vv-legenda-cidade{position:absolute;top:calc(var(--vv-m,14px) + 62px);right:var(--vv-m,14px);display:flex;gap:12px;align-items:center;padding:7px 12px;border-radius:12px;font:600 12px var(--vv-texto,"Inter"),sans-serif;color:#6B665E;pointer-events:auto}
-body.mundo:is(:has(#vv-placa:not([hidden])),:has(.vv-vistas [data-vista="predio"][aria-pressed="true"])) .vv-legenda-cidade{display:none}
+body.mundo:is(.com-placa:not(#sem-placa),:has(.vv-vistas [data-vista="predio"][aria-pressed="true"])) .vv-legenda-cidade{display:none}
 /* Camadas (fase 3b, quadro 43): balão compacto à esquerda dos controles do mapa; o mapa continua à vista. */
 body.mundo .vv-placa:has(.vv-camada){position:absolute;top:auto;left:auto;bottom:96px;right:calc(var(--vv-m,14px) + 54px);width:290px;max-height:min(70vh,520px);padding:14px 14px 10px}
 body.mundo .vv-placa:has(.vv-camada) h3{margin:0 0 10px;font:650 15px var(--vv-titulo,"Inter Tight"),sans-serif}
@@ -5547,7 +5547,7 @@ body.mundo .notas-janela .notas-discreto.perigo:hover{background:#FDECEE;color:#
 
 /* Academy (quadro 40): o vazio com o ícone, a frase e o botão de começar. */
 /* Os avisos do WhatsApp descem para baixo do cabeçalho das janelas dos módulos (não cobrem Nova trilha, atualizar e fechar). */
-body.mundo:has(:is(#vv-pessoas,#vv-ferramentas,#vv-comercial,#vv-carteira,#vv-conteudo,#vv-impressoes):not([hidden])) #vv-wa-avisos{top:calc(var(--vv-m,14px) + 136px)}
+body.mundo.com-janela-lado:not(#sem-janela-lado) #vv-wa-avisos{top:calc(var(--vv-m,14px) + 136px)}
 
 /* ===== Celular (quadro 47), até 600 px: topo com busca, avisos e conta; barra de baixo com cinco lugares e Criar no
    meio; o dock das salas vira um cartão fora de uma sala; o "Mais" junta o resto. Nada cortado, nada rolando de lado. */
@@ -6108,8 +6108,8 @@ body.mundo .mundo-rotulo.rotulo-loja[data-mais]::after{content:attr(data-mais-te
 /* 33 e 43 · Controles do mapa no canto, acima do dock, também com o elevador (ou outro painel) aberto: em vez de pular para
    o meio da tela, viram uma fileira e o painel termina acima dela. O balão das Camadas abre ao lado da coluna. */
 @media (min-width:901px){
-  body.mundo.mundo-centro:has(#vv-placa:not([hidden])) .vv-controles{flex-direction:row}
-  body.mundo.mundo-centro:has(#vv-placa:not([hidden]) .vv-camada) .vv-controles{flex-direction:column}
+  body.mundo.mundo-centro.com-placa:not(#sem-placa) .vv-controles{flex-direction:row}
+  body.mundo.mundo-centro.com-placa-camada:not(#sem-placa):not(.sem-placa) .vv-controles{flex-direction:column}
   body.mundo.mundo-centro .vv-placa:not(:has(.vv-camada)){max-height:calc(100dvh - var(--vv-m) - 64px - 96px - 60px)}
 }
 /* 43 · Prospecção desligada: sem as etapas nem a legenda (o display:flex das regras antigas vencia o hidden). */
