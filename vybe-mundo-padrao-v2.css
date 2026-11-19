@@ -4761,6 +4761,21 @@ dialog.appearance-dialog.appearance-dialog .appearance-done:hover{background:var
 #previa-grande .previa-grande-palco :is(img,video){border-radius:12px}
 @media (max-width:640px){#previa-grande .previa-grande-vidro{border-radius:0}#previa-grande .previa-grande-palco{border-radius:16px}}
 
+/* ===== padrao-v2/d3-palco.css ===== */
+/* Palco da chamada solto (Paulo, 18/11/2026: "isso tá fixo... deixa quem tá assistindo poder mover e redimensionar").
+   O topo "Na chamada" arrasta (vybe-mundo.js põe left/top/width na própria janela, sempre dentro da tela, sem passar
+   do trilho nem do dock) e a alça do canto muda o tamanho. Solto, o vídeo perde o teto de 240 px e segue a proporção do
+   stream (16:9 enquanto ela não chega). A faixa de baixo do palco é da alça, para não cobrir o controle do vídeo. */
+.vv-palco{padding-bottom:20px}
+.vv-palco-topo{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.vv-palco.vv-mexendo,.vv-palco.vv-mexendo .vv-palco-topo{cursor:grabbing;user-select:none;-webkit-user-select:none}
+.vv-palco.vv-solto{box-sizing:border-box}
+.vv-palco.vv-solto .vv-palco-video video{max-height:none;aspect-ratio:auto 16/9}
+.vv-palco-alca{position:absolute;right:3px;bottom:3px;z-index:2;width:16px;height:16px;border-radius:var(--d3-r-botao);cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 0 46%,var(--d3-fume-apagado) 46% 54%,transparent 54% 66%,var(--d3-fume-apagado) 66% 74%,transparent 74%)}
+.vv-palco-alca:hover,.vv-palco.vv-mexendo .vv-palco-alca{background-color:var(--d3-fume-veu-forte)}
+.vv-palco:fullscreen{padding-bottom:8px}
+.vv-palco:fullscreen .vv-palco-alca{display:none}
+
 /* ===== padrao-v2/d3-pecas.css ===== */
 /* DIREÇÃO 3 · PEÇAS COMUNS (quadros D3-Gaveta, D3-StatusMenu, D3-NovaDemanda, D3-Entrada, D3-Topo, D3-Celular e as famílias
    D3-Fam-Abas, -Formularios, -Confirmacoes, -Estados e -Gavetas; 13/11/2026). O que já tinha fragmento próprio foi trocado
