@@ -1,0 +1,396 @@
+/* ===================================================================================================================
+   V2 · S · FRENTE D (pranchas V2-S aprovadas pelo Paulo em 19/11/2026: "Aprovado, implementa"). Quatro famílias:
+   Automações › Nova regra (rg2-*), Meu perfil com as conquistas (pf2-*), Seu personagem (vv-personagem-*) e Recado para
+   todos (#ofc-aviso-novo). Só tokens --d3-*, sem !important: onde o legado força cor com !important (as classes auto-*,
+   .ofc-ficha, .ofc-hud-id, .vb-chip, o h3 do personagem), a peça nova usa classe própria e o legado deixa de pegar.
+   =================================================================================================================== */
+
+/* ── 1. AUTOMAÇÕES › NOVA REGRA (vybe-automacoes-ui.js, pintarConstrutor) ──────────────────────────────────────────
+   A folha com os quatro passos em duas colunas e, no vidro, a coluna de 316 com a frase, Testar, Cancelar e Criar. */
+#automacoes-root .d3m-e-auto:has(> #auto-editor:not(:empty)) .auto-novo{display:none}
+#automacoes-root .d3m-e-auto > #auto-editor:not(:empty){display:flex;overflow:visible;border-radius:0}
+#automacoes-root .regra-v2{--ds-r-botao:var(--d3-r-botao);--ds-linha:var(--d3-borda);flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;font-family:var(--vv-texto,Inter),sans-serif}
+#automacoes-root .regra-v2:focus{outline:none}
+#automacoes-root .rg2-folha{min-height:0;display:flex;flex-direction:column;border-radius:var(--d3-r-ilha);background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);overflow:hidden}
+#automacoes-root .rg2-cab{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;padding:0 16px;border-bottom:1px solid var(--d3-divisa)}
+#automacoes-root .rg2-cab h3{margin:0;color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter),sans-serif;letter-spacing:0;white-space:nowrap}
+#automacoes-root .rg2-cab h3 > span{color:var(--d3-tinta)}
+#automacoes-root .rg2-cab > span{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#automacoes-root .rg2-colunas{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+#automacoes-root .rg2-col{min-width:0}
+#automacoes-root .rg2-col + .rg2-col{border-left:1px solid var(--d3-divisa)}
+#automacoes-root .rg2-passo{display:flex;gap:12px;padding:14px 16px}
+#automacoes-root .rg2-passo + .rg2-passo{border-top:1px solid var(--d3-divisa)}
+#automacoes-root .rg2-n{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-passo-corpo{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+#automacoes-root .rg2-passo-t{color:var(--d3-tinta);font:600 var(--d3-fs-texto)/24px var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-passo-t small{color:var(--d3-rotulo);font-size:inherit;font-weight:400}
+/* O gatilho: três opções num alternador de 34. */
+#automacoes-root .rg2-seg{display:inline-flex;gap:2px;height:34px;max-width:100%;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-veu)}
+#automacoes-root .rg2-seg > button{height:28px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#automacoes-root .rg2-seg > button[aria-checked="true"]{background:var(--d3-cartao);font-weight:600;box-shadow:0 2px 6px -2px rgba(0,0,0,.25)}
+#automacoes-root .rg2-seg > button:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:1px}
+/* Os campos: rótulo de 12 em cima, caixa de 36 com o contorno. */
+#automacoes-root .rg2-par{align-self:stretch;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+#automacoes-root .rg2-campo{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
+#automacoes-root .rg2-rot{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#automacoes-root .rg2-rot small{font-size:inherit}
+#automacoes-root .rg2-dica{margin:0;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-sel{position:relative;display:block;min-width:0}
+#automacoes-root .rg2-sel::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;margin-top:-5px;border:solid var(--d3-tinta-fixa);border-width:0 1.5px 1.5px 0;transform:rotate(45deg);pointer-events:none}
+#automacoes-root :is(.rg2-sel > select,.rg2-texto,.rg2-resumo){display:block;width:100%;height:36px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/36px var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#automacoes-root .rg2-sel > select{appearance:none;-webkit-appearance:none;padding-right:30px;cursor:pointer}
+#automacoes-root .rg2-texto{line-height:normal}
+#automacoes-root .rg2-resumo.vazio > span{color:var(--d3-rotulo)}
+#automacoes-root .rg2-texto::placeholder{color:var(--d3-rotulo-fixo)}
+#automacoes-root :is(.rg2-sel > select,.rg2-texto,.rg2-resumo):focus-visible{outline:0;box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+/* Escolha de vários (formato, grupo, pessoas): o resumo é o campo; a lista de marcar abre por cima, sem empurrar nada. */
+#automacoes-root .rg2-varios{position:relative;min-width:0;align-self:stretch}
+#automacoes-root .rg2-resumo{position:relative;padding-right:30px;list-style:none;cursor:pointer}
+#automacoes-root .rg2-resumo::-webkit-details-marker{display:none}
+/* A cor vai no span: o legado pinta todo <summary> de um módulo aberto de escuro com !important (no tema Escuro sumia). */
+#automacoes-root .rg2-resumo > span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-tinta)}
+#automacoes-root .rg2-resumo::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;margin-top:-5px;border:solid var(--d3-tinta);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+#automacoes-root .rg2-varios[open] > .rg2-resumo::after{margin-top:-1px;transform:rotate(225deg)}
+#automacoes-root .rg2-lista{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);display:flex;flex-direction:column;gap:2px;max-height:240px;padding:6px;box-sizing:border-box;overflow-y:auto;scrollbar-width:thin;border-radius:var(--d3-r-caixa);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda),0 18px 36px -16px rgba(0,0,0,.45)}
+#automacoes-root .rg2-op{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif;text-align:left;cursor:pointer}
+#automacoes-root .rg2-op:hover{background:var(--d3-veu)}
+#automacoes-root .rg2-op[aria-pressed="true"]{background:var(--d3-veu-forte);font-weight:600}
+#automacoes-root .rg2-op[aria-pressed="true"]::after{content:"✓";margin-left:auto}
+#automacoes-root .rg2-op > i{flex:none;width:8px;height:8px;border-radius:50%}
+#automacoes-root .rg2-nada{padding:8px 10px;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif}
+/* Faça isto: uma linha por ação (nome em cima, a escolha embaixo e o × de 34) e as que faltam em fichas de 28. */
+#automacoes-root .rg2-acoes{align-self:stretch;display:flex;flex-direction:column;gap:6px}
+#automacoes-root .rg2-acao{display:flex;align-items:center;gap:10px;min-height:44px;padding:5px 6px 5px 12px;box-sizing:border-box;border-radius:var(--d3-r-caixa);box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+#automacoes-root .rg2-acao-meio{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#automacoes-root .rg2-acao-meio > b{color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-acao .rg2-resumo{width:auto;max-width:100%;height:20px;padding:0 22px 0 0;background:none;box-shadow:none;color:var(--d3-rotulo);font-size:var(--d3-fs-apoio);line-height:20px}
+#automacoes-root .rg2-acao .rg2-resumo::after{right:6px;width:5px;height:5px;margin-top:-4px;border-color:var(--d3-rotulo)}
+#automacoes-root .rg2-acao .rg2-resumo:focus-visible{box-shadow:none;outline:2px solid var(--d3-tinta);outline-offset:1px;border-radius:4px}
+#automacoes-root .rg2-acao .rg2-varios{align-self:flex-start;max-width:100%}
+#automacoes-root .rg2-acao .rg2-lista{right:auto;min-width:220px}
+#automacoes-root .rg2-acao .rg2-texto{height:30px;margin-top:2px}
+#automacoes-root .rg2-tirar{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);cursor:pointer}
+#automacoes-root .rg2-tirar:hover{background:var(--d3-veu)}
+#automacoes-root .rg2-tirar svg,#automacoes-root .rg2-somar svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+#automacoes-root .rg2-somar svg{width:14px;height:14px}
+#automacoes-root .rg2-somas{display:flex;flex-wrap:wrap;gap:6px}
+#automacoes-root .rg2-somar{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#automacoes-root .rg2-somar:hover{background:var(--d3-veu)}
+#automacoes-root :is(.rg2-tirar,.rg2-somar,.rg2-op):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:1px}
+/* A coluna do vidro. */
+#automacoes-root .rg2-lado{min-width:0;display:flex;flex-direction:column;gap:16px;color:var(--d3-fume-texto)}
+#automacoes-root .rg2-bloco{display:flex;flex-direction:column;gap:6px}
+#automacoes-root .rg2-bloco-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+#automacoes-root .rg2-bloco-cab > span{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-bloco-t{color:var(--d3-fume-texto);font:600 var(--d3-fs-texto)/18px var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-bloco-p{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-frase{display:block;padding:14px;border-radius:12px;background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-destaque)/1.5 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-frase b{font-weight:600}
+#automacoes-root .rg2-frase.incompleta{color:var(--d3-fume-apagado);font-size:var(--d3-fs-texto)}
+#automacoes-root .rg2-problema{display:block;margin-top:8px;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter),sans-serif;font-style:normal}
+#automacoes-root .rg2-ensaio{margin:0;padding:10px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-escuro);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter),sans-serif}
+#automacoes-root .rg2-botoes{display:flex;justify-content:space-between;gap:8px}
+#automacoes-root .rg2-lado .v2g-btn{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#automacoes-root .rg2-lado .v2g-btn.rg2-fio{background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-meta);color:var(--d3-fume-texto)}
+#automacoes-root .rg2-lado .v2g-btn.rg2-fio:hover{background:var(--d3-fume-veu-forte)}
+#automacoes-root .rg2-lado .v2g-btn.k.rg2-criar{width:100%;background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+#automacoes-root .rg2-lado .v2g-btn.k.rg2-criar:hover:not(:disabled){background:var(--d3-fume-apagado)}
+#automacoes-root .rg2-lado .v2g-btn.k.rg2-criar:disabled{opacity:1;background:var(--d3-fume-veu);color:var(--d3-fume-apagado);cursor:not-allowed}
+#automacoes-root .rg2-lado .v2g-btn:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+@media (max-width:1180px){
+  #automacoes-root .regra-v2{grid-template-columns:minmax(0,1fr) 260px}
+}
+@media (max-width:900px){
+  #automacoes-root .d3m-e-auto > #auto-editor:not(:empty){display:block}
+  #automacoes-root .regra-v2{grid-template-columns:minmax(0,1fr)}
+  #automacoes-root .rg2-folha{overflow:visible}
+  #automacoes-root .rg2-colunas{flex:none;grid-template-columns:minmax(0,1fr)}
+  #automacoes-root .rg2-col + .rg2-col{border-left:0;border-top:1px solid var(--d3-divisa)}
+  #automacoes-root .rg2-cab > span{display:none}
+  #automacoes-root .rg2-par{grid-template-columns:minmax(0,1fr)}
+  #automacoes-root .rg2-seg{height:auto;flex-wrap:wrap}
+}
+
+/* ── Janela de vidro das três famílias de janela (Recado, Personagem e Meu perfil): fumê forte, canto 20, 16 de
+   respiro, contorno de 1 e o × de 34 no canto. O palco (prévia do boneco e do recado) é o degradê noturno. */
+:is(#ofc-aviso-novo.rc2,#office-ficha.pf2,.vv-personagem.vv-personagem){--ds-r-botao:var(--d3-r-botao);--ds-linha:var(--d3-borda);--d3s-palco:linear-gradient(160deg,var(--d3-fume-painel) 0%,var(--d3-agente) 60%,var(--d3-agente-claro) 100%)}
+
+/* ── 2. MEU PERFIL E CONQUISTAS (vybe-escritorio-ficha.js, escritorioFichaV2Html e escritorioConquistasFichaV2Html) ──
+   A janela de vidro de 1214 × 774: a coluna de 288 com o boneco, o nível, os três números e as ações no pé; à direita as
+   abas com a contagem e o painel. Em Conquistas: o cartão claro do título (o destaque da tela, sem laranja), a faixa do
+   próximo troféu e a estante em lista por nível, quatro por linha. Os pontos de cor dos níveis são só sinal. */
+#office-ficha.pf2{--pf2-n4:var(--d3-mod-time-claro);--pf2-n3:var(--d3-ajuste-claro);--pf2-n2:var(--d3-meta);--pf2-n1:var(--d3-acao-claro);width:min(1214px,calc(100vw - 32px));max-width:none;height:min(774px,calc(100vh - 32px));max-height:none;margin:auto;padding:16px;box-sizing:border-box;border:0;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);color:var(--d3-fume-texto);overflow:hidden;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter),sans-serif}
+#office-ficha.pf2[open]{display:flex;flex-direction:column;gap:12px}
+#office-ficha.pf2::backdrop{background:var(--d3-ambiente-veu);-webkit-backdrop-filter:none;backdrop-filter:none}
+#office-ficha.pf2 *,#office-ficha.pf2 *::before,#office-ficha.pf2 *::after{box-sizing:border-box}
+#office-ficha .pf2-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px}
+#office-ficha .pf2-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
+#office-ficha .pf2-tit h2{margin:0;color:var(--d3-fume-texto);font:600 20px/1.15 var(--vv-texto,Inter),sans-serif;letter-spacing:-.01em;white-space:nowrap}
+#office-ficha .pf2-tit > span{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#office-ficha .pf2-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
+#office-ficha .pf2-x:hover{background:var(--d3-fume-borda)}
+#office-ficha .pf2-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+#office-ficha .pf2-corpo{flex:1;min-height:0;display:grid;grid-template-columns:288px minmax(0,1fr);gap:24px}
+/* Coluna do jogador */
+#office-ficha .pf2-lado{min-height:0;display:flex;flex-direction:column;gap:12px;overflow-y:auto;scrollbar-width:none}
+#office-ficha .pf2-palco{position:relative;flex:none;height:260px;border-radius:var(--d3-r-caixa);background:var(--d3s-palco);overflow:hidden}
+#office-ficha .pf2-palco > .vb-vitrine{position:absolute;inset:0;width:100%;height:100%}
+#office-ficha .pf2-id{display:flex;flex-direction:column;gap:2px;min-width:0;margin-top:8px}
+#office-ficha .pf2-id > b{color:var(--d3-fume-texto);font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#office-ficha .pf2-titulo-mapa{color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-status{display:flex;align-items:center;gap:6px;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-ponto{flex:none;width:6px;height:6px;border-radius:50%;background:var(--st,var(--d3-fume-apagado))}
+#office-ficha .pf2-nivel{display:flex;align-items:center;gap:10px;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter),sans-serif;color:var(--d3-fume-apagado)}
+#office-ficha .pf2-nivel > b{flex:none;color:var(--d3-fume-texto);font-weight:600;font-size:var(--d3-fs-texto)}
+#office-ficha .pf2-nivel > span:last-child{flex:none}
+#office-ficha .pf2-barra{position:relative;flex:1;display:block;min-width:40px;height:4px;border-radius:2px;background:var(--d3-fume-veu-forte);overflow:hidden}
+#office-ficha .pf2-barra > i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--d3-fume-texto)}
+#office-ficha .pf2-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#office-ficha .pf2-nums > span{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte)}
+#office-ficha .pf2-nums b{color:var(--d3-fume-texto);font:600 var(--d3-fs-destaque)/1.2 var(--vv-texto,Inter),sans-serif;font-variant-numeric:tabular-nums}
+#office-ficha .pf2-nums small{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-link{align-self:flex-start;height:auto;padding:0;border:0;background:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter),sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#office-ficha .pf2-acoes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+#office-ficha :is(.pf2-btn,.pf2-op){display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-meta);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#office-ficha :is(.pf2-btn,.pf2-op):hover{background:var(--d3-fume-veu-forte)}
+#office-ficha .pf2-acoes .pf2-btn{width:100%}
+#office-ficha :is(.pf2-btn,.pf2-op,.pf2-x,.pf2-link,.pf2-mais,.pf2-abas button,.pf2-modo button):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* Abas e painel */
+#office-ficha .pf2-principal{min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+#office-ficha .pf2-abas{flex:none;display:flex;gap:2px;padding:4px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+#office-ficha .pf2-abas button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:transparent;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer}
+#office-ficha .pf2-abas button:hover{background:var(--d3-fume-veu-forte)}
+#office-ficha .pf2-abas button > span{color:var(--d3-fume-apagado);font-size:var(--d3-fs-apoio);font-variant-numeric:tabular-nums}
+#office-ficha .pf2-abas button[aria-selected="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
+#office-ficha .pf2-abas button[aria-selected="true"] > span{color:var(--d3-fume-contra);font-weight:400}
+#office-ficha .pf2-painel{flex:1;display:block;min-height:0;max-height:none;margin:0;padding:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--d3-fume-veu-forte) transparent;color:var(--d3-fume-texto)}
+/* Conquistas: o cartão do título */
+#office-ficha .pf2-cq{display:flex;flex-direction:column;gap:12px}
+#office-ficha .pf2-titulo-cartao{display:flex;align-items:center;gap:24px;padding:16px;border-radius:var(--d3-r-ilha);background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+#office-ficha .pf2-titulo-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#office-ficha .pf2-titulo-txt small,#office-ficha .pf2-titulo-txt > span{color:var(--d3-fume-contra);opacity:.78;font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-titulo-txt b{color:var(--d3-fume-contra);font:600 var(--d3-fs-titulo)/1.25 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-medalhas{display:flex;gap:14px}
+#office-ficha .pf2-medalhas > span{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:36px}
+#office-ficha .pf2-medalhas b{color:var(--d3-fume-contra);font:600 var(--d3-fs-destaque)/1.1 var(--vv-texto,Inter),sans-serif;font-variant-numeric:tabular-nums}
+#office-ficha .pf2-medalhas small{color:var(--d3-fume-contra);opacity:.78;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-titulo-cartao .pf2-btn.k{flex:none;background:var(--d3-fume-contra);box-shadow:none;color:var(--d3-fume-texto);font-weight:600}
+#office-ficha .pf2-titulo-cartao .pf2-btn.k:hover{opacity:.88;background:var(--d3-fume-contra)}
+#office-ficha .pf2-titulos{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+#office-ficha .pf2-ops{display:flex;flex-wrap:wrap;gap:6px}
+#office-ficha .pf2-op[aria-pressed="true"]{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+/* O próximo troféu */
+#office-ficha .pf2-proximo{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 16px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte)}
+#office-ficha .pf2-taca{flex:none;display:grid;place-items:center;color:var(--d3-fume-texto)}
+#office-ficha .pf2-taca svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#office-ficha .pf2-proximo-txt{flex:1;min-width:0;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#office-ficha .pf2-proximo-txt b{color:var(--d3-fume-texto);font-weight:600}
+#office-ficha .pf2-proximo .pf2-barra{flex:0 0 160px}
+/* A estante por nível */
+#office-ficha .pf2-estante-cab{display:flex;align-items:center;gap:12px;margin-top:4px}
+#office-ficha .pf2-estante-cab > b{flex:1;color:var(--d3-fume-texto);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-modo{display:inline-flex;gap:2px;padding:3px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu)}
+#office-ficha .pf2-modo button{height:24px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#office-ficha .pf2-modo button[aria-pressed="true"]{background:var(--d3-fume-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-fume-meta);font-weight:600}
+#office-ficha .pf2-nivel-grupo{display:flex;flex-direction:column;gap:6px}
+#office-ficha .pf2-nv{display:inline-flex;align-items:center;gap:6px;margin:0;color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-nv > i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--d3-fume-apagado)}
+#office-ficha .pf2-nv.n4 > i{background:var(--pf2-n4)}
+#office-ficha .pf2-nv.n3 > i{background:var(--pf2-n3)}
+#office-ficha .pf2-nv.n2 > i{background:var(--pf2-n2)}
+#office-ficha .pf2-nv.n1 > i{background:var(--pf2-n1)}
+#office-ficha .pf2-nv > b{font-weight:600;font-size:var(--d3-fs-texto)}
+#office-ficha .pf2-nv > span{color:var(--d3-fume-apagado)}
+#office-ficha :is(.pf2-pecas,.pf2-escadas){display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
+#office-ficha .pf2-pecas > li{display:flex;align-items:center;gap:8px;min-width:0;height:36px;padding:0 12px 0 8px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte)}
+#office-ficha .pf2-pecas > li > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-fume-texto)}
+#office-ficha .pf2-mini{flex:none;display:grid;place-items:center;width:24px;height:24px;overflow:hidden}
+#office-ficha .pf2-mini :is(img,canvas){max-width:24px;max-height:24px;object-fit:contain;image-rendering:pixelated}
+#office-ficha .pf2-mini.falta{opacity:.45;filter:grayscale(1)}
+#office-ficha .pf2-mais{align-self:flex-start;height:auto;padding:0;border:0;background:none;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter),sans-serif;cursor:pointer}
+#office-ficha .pf2-mais:hover{color:var(--d3-fume-texto)}
+#office-ficha .pf2-vazio{margin:0;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter),sans-serif}
+/* Por categoria: as fichas e as escadas em linha (nível, barra e o que falta) */
+#office-ficha .pf2-cats{display:flex;flex-wrap:wrap;gap:6px}
+#office-ficha .pf2-escadas{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#office-ficha .pf2-esc{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte)}
+#office-ficha .pf2-esc .pf2-mini{width:32px;height:32px}
+#office-ficha .pf2-esc .pf2-mini :is(img,canvas){max-width:32px;max-height:32px}
+#office-ficha .pf2-esc-meio{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+#office-ficha .pf2-esc-nome{display:flex;align-items:center;gap:8px;min-width:0}
+#office-ficha .pf2-esc-nome > b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+#office-ficha .pf2-esc .pf2-barra{flex:none;width:100%}
+#office-ficha .pf2-esc small{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#office-ficha .pf2-premio{flex:none;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter),sans-serif;text-align:right}
+/* As outras abas (Resumo, Como ganhar, Inventário, Trabalho) seguem com as peças de antes, no vidro */
+#office-ficha .pf2-painel :where(h4,b,strong){color:var(--d3-fume-texto)}
+#office-ficha .pf2-painel :where(small,p,.ofc-nota){color:var(--d3-fume-apagado)}
+#office-ficha .pf2-painel .ofc-hud-bloco,#office-ficha .pf2-painel .vb-jogo-cartao{margin:0 0 12px;padding:14px 16px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+#office-ficha .pf2-painel .ofc-hud-bloco-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+#office-ficha .pf2-painel h4{margin:0;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-painel .office-text-button{color:var(--d3-fume-texto)}
+#office-ficha .pf2-painel :is(.ofc-hud-ganhos,.ofc-hud-regras,.ofc-hud-proximos,.ofc-hud-conquistas){margin:0;padding:0;list-style:none}
+#office-ficha .pf2-painel :is(.ofc-hud-ganhos,.ofc-hud-regras,.ofc-hud-proximos,.ofc-hud-conquistas) > li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--d3-fume-veu-forte)}
+#office-ficha .pf2-painel :is(.ofc-hud-ganhos,.ofc-hud-regras,.ofc-hud-proximos,.ofc-hud-conquistas) > li:first-child{border-top:0}
+#office-ficha .pf2-painel .ofc-hud-proximos > li{justify-content:flex-start}
+#office-ficha .pf2-painel .ofc-hud-proximos > li > span:last-child{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+#office-ficha .pf2-painel .ofc-cq-arte{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte)}
+#office-ficha .pf2-painel .ofc-cq-arte img{max-width:32px;max-height:32px}
+#office-ficha .pf2-painel .ofc-escada-nivel{display:inline-flex;align-items:center;height:18px;margin-left:6px;padding:0 6px;border-radius:6px;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:500 var(--d3-fs-mini)/1 var(--vv-texto,Inter),sans-serif;font-style:normal}
+#office-ficha .pf2-painel :is(.ofc-hud-ganhos,.ofc-hud-regras) li > span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+#office-ficha .pf2-painel .ofc-hud-chips{display:flex;gap:6px;flex:none}
+#office-ficha .pf2-painel .ofc-hud-chip{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:6px;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif}
+#office-ficha .pf2-painel .ofc-hud-chip svg{width:14px;height:14px}
+#office-ficha .pf2-painel .ofc-hud-sub{margin:4px 0 8px}
+#office-ficha .pf2-painel .ofc-hud-inventario{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:0 0 16px;padding:0;list-style:none}
+#office-ficha .pf2-painel .ofc-hud-inventario > li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 8px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;text-align:center}
+#office-ficha .pf2-painel .ofc-hud-inventario img{max-width:48px;max-height:48px;image-rendering:pixelated}
+#office-ficha .pf2-painel :is(.ofc-escada-barra,.ofc-dia-barra){display:block;height:4px;border-radius:2px;background:var(--d3-fume-veu-forte);overflow:hidden}
+#office-ficha .pf2-painel :is(.ofc-escada-barra,.ofc-dia-barra) > i{display:block;height:100%;background:var(--d3-fume-texto)}
+@media (max-width:900px){
+  #office-ficha .pf2-corpo{grid-template-columns:minmax(0,1fr);overflow-y:auto}
+  #office-ficha .pf2-lado{overflow:visible}
+  #office-ficha .pf2-palco{height:200px}
+  #office-ficha .pf2-acoes{margin-top:0}
+  #office-ficha .pf2-principal{min-height:auto}
+  #office-ficha .pf2-painel{overflow:visible}
+  #office-ficha .pf2-abas{overflow-x:auto;scrollbar-width:none}
+  #office-ficha .pf2-titulo-cartao{flex-wrap:wrap;gap:12px}
+  #office-ficha :is(.pf2-pecas,.pf2-escadas){grid-template-columns:repeat(2,minmax(0,1fr))}
+  #office-ficha .pf2-proximo .pf2-barra{flex-basis:80px}
+  #office-ficha .pf2-tit h2,#office-ficha .pf2-tit > span{white-space:normal}
+}
+
+/* ── 3. SEU PERSONAGEM (vybe-mundo-personagem.js): a janela de vidro de 976 × 680, a prévia de 320 à esquerda com
+   Aleatório e Girar embaixo, as sete abas, a grade de cinco quadros, a cor e o pé com a nota, Cancelar e Salvar.
+   .vv-personagem.vv-personagem dobra a classe para passar o vybe-mundo-personagem.css e o d3-legado.css sem !important. */
+.vv-personagem.vv-personagem{width:min(976px,calc(100vw - 32px));height:min(680px,calc(100vh - 32px));padding:16px;border:0;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);color:var(--d3-fume-texto);color-scheme:dark;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter),sans-serif}
+.vv-personagem-fundo{background:var(--d3-ambiente-veu);-webkit-backdrop-filter:none;backdrop-filter:none}
+.vv-personagem.vv-personagem .vv-personagem-topo{align-items:center;gap:12px;padding:0 0 12px}
+.vv-personagem.vv-personagem .vv-personagem-titulo h2{margin:0;color:var(--d3-fume-texto);font:600 20px/1.15 var(--vv-texto,Inter),sans-serif;letter-spacing:-.01em}
+.vv-personagem.vv-personagem .vv-personagem-titulo p{margin:3px 0 0;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif}
+.vv-personagem.vv-personagem .vv-personagem-x{border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-x:hover{background:var(--d3-fume-borda);color:var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-estado b{color:var(--d3-fume-texto);font:600 var(--d3-fs-titulo)/1.3 var(--vv-texto,Inter),sans-serif}
+.vv-personagem.vv-personagem .vv-personagem-estado p{color:var(--d3-fume-apagado)}
+.vv-personagem.vv-personagem .vv-personagem-girando{border-color:var(--d3-fume-veu-forte);border-top-color:var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-corpo.pronto{grid-template-columns:320px minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:24px;padding:0}
+/* A coluna da prévia: palco no degradê noturno e a linha Aleatório · Girar */
+.vv-personagem.vv-personagem .vv-personagem-coluna{grid-row:1;grid-column:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.vv-personagem.vv-personagem .vv-personagem-palco{flex:1;min-height:0;margin:0;border:0;border-radius:var(--d3-r-caixa);background:var(--d3s-palco)}
+.vv-personagem.vv-personagem .vv-personagem-palco::before{background:radial-gradient(closest-side,rgba(0,0,0,.35),rgba(0,0,0,0))}
+.vv-personagem.vv-personagem .vv-personagem-giro{position:static;flex:none;display:flex;gap:8px;padding:0;border:0;border-radius:0;background:none}
+.vv-personagem.vv-personagem .vv-personagem-giro button{display:inline-flex;align-items:center;gap:6px;width:auto;height:34px;padding:0 14px;color:var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-giro svg{width:14px;height:14px}
+/* Botões: fio (fumê com contorno) e o cheio claro do Salvar; nenhum laranja na janela */
+.vv-personagem.vv-personagem :is(.vv-personagem-sec,.vv-personagem-principal){height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif}
+.vv-personagem.vv-personagem .vv-personagem-sec{background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-meta);color:var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-sec:hover:not(:disabled){background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-principal{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+.vv-personagem.vv-personagem .vv-personagem-principal:hover:not(:disabled){background:var(--d3-fume-apagado)}
+.vv-personagem.vv-personagem :is(button,[tabindex="0"]):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px;box-shadow:none}
+/* As abas: trilho fumê, a escolhida cheia de fume-texto */
+.vv-personagem.vv-personagem .vv-personagem-abas{gap:2px;padding:4px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.vv-personagem.vv-personagem .vv-personagem-abas button{flex:0 0 auto;height:28px;padding:0 12px;border-radius:var(--d3-r-botao);background:transparent;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif}
+.vv-personagem.vv-personagem .vv-personagem-abas button:hover{background:var(--d3-fume-veu-forte)}
+.vv-personagem.vv-personagem .vv-personagem-abas button[aria-selected="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600;box-shadow:none}
+.vv-personagem.vv-personagem .vv-personagem-opcoes{padding:16px 0 8px;scrollbar-color:var(--d3-fume-veu-forte) transparent}
+/* Roupa: Camisa, Casaco, Calça e Sapato num alternador menor dentro da aba */
+.vv-personagem.vv-personagem .vv-personagem-roupa{display:inline-flex;gap:2px;margin:0 0 16px;padding:3px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu)}
+.vv-personagem.vv-personagem .vv-personagem-roupa button{appearance:none;margin:0;height:28px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;cursor:pointer}
+.vv-personagem.vv-personagem .vv-personagem-roupa button[aria-checked="true"]{background:var(--d3-fume-veu-forte);font-weight:600;box-shadow:inset 0 0 0 1px var(--d3-fume-meta)}
+/* Grupo: o nome à esquerda, a contagem ou a dica à direita */
+.vv-personagem.vv-personagem .vv-personagem-grupo + .vv-personagem-grupo{margin-top:20px}
+.vv-personagem.vv-personagem .vv-personagem-grupo-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px}
+.vv-personagem.vv-personagem .vv-personagem-grupo-cab b{color:var(--d3-fume-texto);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter),sans-serif}
+.vv-personagem.vv-personagem .vv-personagem-grupo-cab span{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;text-align:right}
+.vv-personagem.vv-personagem .vv-personagem-dica{color:var(--d3-fume-apagado)}
+/* A grade: cinco quadros de 76; o escolhido fica claro (fume-texto) */
+.vv-personagem.vv-personagem .vv-personagem-pecas{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.vv-personagem.vv-personagem .vv-personagem-peca{aspect-ratio:auto;height:76px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte)}
+.vv-personagem.vv-personagem .vv-personagem-peca:hover{border:0;background:var(--d3-fume-veu-forte)}
+.vv-personagem.vv-personagem .vv-personagem-peca[aria-pressed="true"]{border:0;background:var(--d3-fume-texto);box-shadow:none}
+.vv-personagem.vv-personagem .vv-personagem-peca.nenhum span{color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif}
+.vv-personagem.vv-personagem .vv-personagem-peca.nenhum[aria-pressed="true"] span{color:var(--d3-fume-contra)}
+.vv-personagem.vv-personagem .vv-personagem-mais{margin-top:10px}
+/* A cor: quadradinhos de 32 com canto 8; a escolhida ganha o anel claro */
+.vv-personagem.vv-personagem .vv-personagem-amostra{width:32px;height:32px;padding:0;border:0;border-radius:var(--d3-r-botao);background:transparent}
+.vv-personagem.vv-personagem .vv-personagem-amostra i{border-radius:var(--d3-r-botao);box-shadow:inset 0 0 0 1px var(--d3-fume-meta)}
+.vv-personagem.vv-personagem .vv-personagem-amostra:hover:not(:disabled){border:0}
+.vv-personagem.vv-personagem .vv-personagem-amostra[aria-pressed="true"],.vv-personagem.vv-personagem .vv-personagem-amostra[aria-pressed="true"]:hover{border:0;box-shadow:0 0 0 2px var(--d3-fume-forte),0 0 0 4px var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-chip{border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-meta);color:var(--d3-fume-texto)}
+.vv-personagem.vv-personagem .vv-personagem-chip[aria-pressed="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+/* O pé: a nota e os avisos à esquerda, Cancelar e Salvar à direita */
+.vv-personagem.vv-personagem .vv-personagem-rodape{padding:12px 0 0;border-top:0}
+.vv-personagem.vv-personagem .vv-personagem-msgs p{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter),sans-serif}
+.vv-personagem.vv-personagem :is(.vv-personagem-nota,.vv-personagem-aviso){color:var(--d3-fume-apagado)}
+.vv-personagem.vv-personagem .vv-personagem-erro{color:var(--d3-perigo-vidro);font-weight:500}
+.vv-personagem.vv-personagem .vv-personagem-msgs:has(> .vv-personagem-aviso:not([hidden]),> .vv-personagem-erro:not([hidden])) .vv-personagem-nota{display:none}
+@media (max-width:720px){
+  .vv-personagem.vv-personagem{width:calc(100vw - 16px);height:calc(100dvh - 16px);padding:12px}
+  .vv-personagem.vv-personagem .vv-personagem-corpo.pronto{grid-template-columns:minmax(0,1fr);grid-template-rows:clamp(230px,36dvh,300px) minmax(0,1fr) auto;padding:0}
+  .vv-personagem.vv-personagem .vv-personagem-coluna{margin-bottom:12px}
+  .vv-personagem.vv-personagem .vv-personagem-pecas{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .vv-personagem.vv-personagem .vv-personagem-peca{height:68px}
+  .vv-personagem.vv-personagem .vv-personagem-msgs{flex-basis:100%}
+}
+
+/* ── 4. RECADO PARA TODOS (vybe-escritorio.js, abrirMandarAvisoEscritorio) ──────────────────────────────────────── */
+#ofc-aviso-novo.rc2{width:min(896px,calc(100vw - 32px));max-width:none;height:min(620px,calc(100vh - 32px));max-height:none;margin:auto;padding:16px;box-sizing:border-box;border:0;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);color:var(--d3-fume-texto);overflow:hidden;font-family:var(--vv-texto,Inter),sans-serif}
+#ofc-aviso-novo.rc2::backdrop{background:var(--d3-ambiente-veu);-webkit-backdrop-filter:none;backdrop-filter:none}
+#ofc-aviso-novo .rc2-form{height:100%;display:flex;flex-direction:column;gap:12px;margin:0}
+#ofc-aviso-novo .rc2-topo{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px}
+#ofc-aviso-novo .rc2-tit{display:flex;flex-direction:column;gap:3px;min-width:0}
+#ofc-aviso-novo .rc2-tit h2{margin:0;color:var(--d3-fume-texto);font:600 20px/1.15 var(--vv-texto,Inter),sans-serif;letter-spacing:-.01em;white-space:nowrap}
+#ofc-aviso-novo .rc2-tit > span{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ofc-aviso-novo .rc2-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
+#ofc-aviso-novo .rc2-x:hover{background:var(--d3-fume-borda)}
+#ofc-aviso-novo .rc2-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+#ofc-aviso-novo .rc2-corpo{flex:1;min-height:0;display:flex;gap:24px}
+#ofc-aviso-novo .rc2-campos{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
+#ofc-aviso-novo .rc2-campo{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
+#ofc-aviso-novo .rc2-campo > span:first-child,#ofc-aviso-novo .rc2-rot{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#ofc-aviso-novo .rc2-par{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#ofc-aviso-novo .rc2-campo :is(input,textarea,select){display:block;width:100%;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter),sans-serif}
+#ofc-aviso-novo .rc2-campo :is(input,select){height:36px}
+#ofc-aviso-novo .rc2-campo textarea{height:120px;padding:9px 10px;resize:none}
+#ofc-aviso-novo .rc2-campo :is(input,textarea)::placeholder{color:var(--d3-rotulo-fixo)}
+#ofc-aviso-novo .rc2-campo :is(input,textarea,select):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+#ofc-aviso-novo .rc2-sel{position:relative;display:block}
+#ofc-aviso-novo .rc2-sel > select{appearance:none;-webkit-appearance:none;padding-right:30px;cursor:pointer}
+#ofc-aviso-novo .rc2-sel::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;margin-top:-5px;border:solid var(--d3-tinta-fixa);border-width:0 1.5px 1.5px 0;transform:rotate(45deg);pointer-events:none}
+#ofc-aviso-novo .rc2-nota{margin:0;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter),sans-serif}
+#ofc-aviso-novo .rc2-erro{margin:0;color:var(--d3-perigo-vidro);font:500 var(--d3-fs-apoio)/1.5 var(--vv-texto,Inter),sans-serif}
+#ofc-aviso-novo .rc2-erro:empty{display:none}
+#ofc-aviso-novo .rc2-lado{flex:none;width:400px;display:flex;flex-direction:column;gap:8px;min-height:0}
+#ofc-aviso-novo .rc2-previa{flex:1;min-height:0;display:flex}
+/* A prévia: o cartão do recado como a equipe vê (o laranja do Entendi de antes saiu: um laranja por tela). */
+#ofc-aviso-novo .rc2-cartao{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--d3-r-ilha);background:var(--d3-fume-painel);box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+#ofc-aviso-novo .rc2-de{display:flex;align-items:center;gap:8px;color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter),sans-serif}
+#ofc-aviso-novo .rc2-de b{font-weight:600}
+#ofc-aviso-novo .rc2-av{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:600 10px/1 var(--vv-texto,Inter),sans-serif;overflow:hidden}
+#ofc-aviso-novo .rc2-av img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+#ofc-aviso-novo .rc2-palco{position:relative;flex:1;min-height:120px;display:grid;place-items:center;border-radius:var(--d3-r-caixa);background:var(--d3s-palco);overflow:hidden}
+#ofc-aviso-novo .rc2-palco > .vb-vitrine{position:absolute;inset:0;width:100%;height:100%}
+#ofc-aviso-novo .rc2-arte{display:grid;place-items:center;width:96px;height:96px}
+#ofc-aviso-novo .rc2-arte img,#ofc-aviso-novo .rc2-arte canvas{max-width:96px;max-height:96px;image-rendering:pixelated}
+#ofc-aviso-novo .rc2-cartao h3{margin:0;color:var(--d3-fume-texto);font:600 20px/1.2 var(--vv-texto,Inter),sans-serif;letter-spacing:-.01em;overflow-wrap:anywhere}
+#ofc-aviso-novo .rc2-cartao p{margin:0;color:var(--d3-fume-apagado);font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter),sans-serif;overflow-wrap:anywhere;max-height:4.4em;overflow:hidden}
+#ofc-aviso-novo .rc2-cartao-acoes{display:flex;gap:8px}
+#ofc-aviso-novo :is(.rc2-ign,.rc2-ok,.rc2-btn){display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#ofc-aviso-novo :is(.rc2-ign,.rc2-btn){background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-meta);color:var(--d3-fume-texto)}
+#ofc-aviso-novo :is(.rc2-ok,.rc2-btn.k){background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+#ofc-aviso-novo .rc2-ok{flex:1}
+#ofc-aviso-novo .rc2-btn{cursor:pointer}
+#ofc-aviso-novo .rc2-btn:hover{background:var(--d3-fume-veu-forte)}
+#ofc-aviso-novo .rc2-btn.k:hover{background:var(--d3-fume-apagado)}
+#ofc-aviso-novo .rc2-btn:disabled{opacity:.55;cursor:progress}
+#ofc-aviso-novo :is(.rc2-btn,.rc2-x):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+#ofc-aviso-novo .rc2-pe{flex:none;display:flex;justify-content:flex-end;gap:8px}
+@media (max-width:820px){
+  #ofc-aviso-novo.rc2{height:calc(100vh - 32px)}
+  #ofc-aviso-novo .rc2-corpo{flex-direction:column;overflow-y:auto;gap:16px}
+  #ofc-aviso-novo .rc2-lado{width:auto;flex:none;height:360px}
+  #ofc-aviso-novo .rc2-tit h2,#ofc-aviso-novo .rc2-tit > span{white-space:normal}
+}

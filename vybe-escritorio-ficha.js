@@ -403,6 +403,81 @@ const escritorioFichaIcone = (nome) => ({
   estrela: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.6 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8 6.3 20.1l1.5-6.4L2.9 9.4l6.5-.6z" fill="#ffd166" stroke="#a8761a" stroke-width="1.2" stroke-linejoin="round"/></svg>',
   caixa: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v9l-8 4-8-4z" fill="#c58a52" stroke="#6e4220" stroke-width="1.3" stroke-linejoin="round"/><path d="M4 8l8 4 8-4M12 12v9" fill="none" stroke="#6e4220" stroke-width="1.3"/></svg>',
 }[nome] || "");
+// V2 · S · Meu perfil (prancha V2-S-Perfil-Conquistas, aprovada pelo Paulo em 19/11/2026). No mundo, a ficha é a janela de
+// vidro: à esquerda o boneco, nome, status, nível com a barra e o que falta, três números (moedas, conquistas, troféus)
+// e as ações; à direita as abas com a contagem e, em Conquistas, o título com a contagem por nível, o próximo troféu e a
+// estante em lista agrupada por nível (com a miniatura voxel de cada troféu). Classes pf2-*: as ofc-ficha/ofc-hud-*
+// levam cor com !important no legado. Fora do mundo, a ficha antiga continua igual.
+const ESCRITORIO_NIVEIS_V2 = ["", "Bronze", "Prata", "Ouro", "Diamante"];
+const ESCRITORIO_ESTANTE_VISTA = 8;
+function escritorioFichaV2() { return typeof document !== "undefined" && !!document.body?.classList?.contains("mundo"); }
+const escritorioTacaV2 = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6M10 17h4"/></svg>';
+// A estante por nível, do Diamante ao Bronze: só os troféus já ganhos (os que têm móvel), na ordem das escadas.
+function escritorioEstantePorNivel(marcos) {
+  const ganhos = (marcos || []).flatMap((x) => (x.degraus || []).filter((d) => d.ok && d.classe).map((d) => ({ classe: d.classe, nivel: d.nivel, nome: d.nome, escada: x.nome })));
+  return [4, 3, 2, 1].map((n) => ({ nivel: n, nome: ESCRITORIO_NIVEIS_V2[n], itens: ganhos.filter((g) => g.nivel === n) })).filter((g) => g.itens.length);
+}
+function escritorioConquistasFichaV2Html(marcos, { meu = false } = {}) {
+  const N = ESCRITORIO_NIVEIS_V2, num = (n) => Number(n || 0).toLocaleString("pt-BR");
+  const pct = (x) => { if (!x.proximo) return 100; const antes = x.degraus.filter((d) => d.ok).at(-1)?.meta || 0; return Math.max(0, Math.min(100, Math.round(((x.valor - antes) / Math.max(1, x.proximo.meta - antes)) * 100))); };
+  const porNivel = [1, 2, 3, 4].map((n) => marcos.reduce((t, x) => t + x.degraus.filter((d) => d.ok && d.nivel === n && !x.social).length, 0));
+  const melhor = marcos.filter((x) => x.nivel && !x.social).sort((a, b) => b.nivel - a.nivel || b.valor - a.valor)[0];
+  const trofeu = melhor?.degraus.filter((d) => d.ok).at(-1);
+  const copas = (meu ? escritorio.base?.economia?.titulos || [] : []).filter((t) => /^copa_/.test(t.chave)).map((t) => ({ ...t, nivel: 4, de: "Copa Vybe" }));
+  const titulos = [...copas, ...marcos.flatMap((x) => x.degraus.filter((d) => d.ok && d.titulo).map((d) => ({ chave: `${x.id}:${d.nivel}`, texto: d.titulo, nivel: x.social ? 1 : d.nivel, de: x.nome })))];
+  const atual = meu ? (escritorio.base?.equipe || []).find((e) => String(e.id) === String(escritorio.base?.eu))?.titulo || null : null;
+  const escolha = escritorio.perfil?.titulo || "";
+  const grupos = escritorioEstantePorNivel(marcos), qtdTrofeus = grupos.reduce((t, g) => t + g.itens.length, 0);
+  const andamento = marcos.filter((x) => x.proximo && x.valor > 0 && !x.social).sort((a, b) => pct(b) - pct(a));
+  const proximo = andamento[0];
+  const modo = escritorio.pfCqModo === "categorias" ? "categorias" : "estante";
+  const repinta = "abrirFichaEscritorio(escritorio.fichaDe,true)";
+  const tituloTexto = meu ? atual?.texto || (titulos.length ? "Sem título" : "Nenhum título ainda") : melhor?.titulo || "Sem conquistas ainda";
+  const cartao = `<section class="pf2-titulo-cartao"><div class="pf2-titulo-txt"><small>${meu ? "Seu título no mapa" : "Maior conquista"}</small><b>${safeText(tituloTexto)}</b><span>${trofeu ? `maior troféu: ${safeText(melhor.nome)} ${safeText(trofeu.nome)}` : "cada nível de conquista dá um troféu e um título"}</span></div>
+<div class="pf2-medalhas">${[4, 3, 2, 1].map((n) => `<span class="n${n}"><b>${num(porNivel[n - 1])}</b><small>${N[n]}</small></span>`).join("")}</div>
+${meu && titulos.length ? `<button type="button" class="pf2-btn k" aria-expanded="${!!escritorio.cqTitulos}" onclick="escritorio.cqTitulos=!escritorio.cqTitulos;${repinta}">${escritorio.cqTitulos ? "Fechar títulos" : `Trocar título · ${titulos.length}`}</button>` : ""}</section>`;
+  const escolher = meu && escritorio.cqTitulos && titulos.length ? `<section class="pf2-titulos" aria-label="Escolher título">${[4, 3, 2, 1].map((n) => { const l = titulos.filter((t) => t.nivel === n); return l.length ? `<div class="pf2-titulos-nivel"><p class="pf2-nv n${n}"><i aria-hidden="true"></i><b>${N[n]}</b></p><div class="pf2-ops">${l.map((t) => `<button type="button" class="pf2-op" aria-pressed="${atual?.chave === t.chave}" title="${safeText(t.de)}" onclick="escolherTituloEscritorio('${safeText(t.chave)}')">${safeText(t.texto)}</button>`).join("")}</div></div>` : ""; }).join("")}<div class="pf2-ops"><button type="button" class="pf2-op" aria-pressed="${escolha === "nenhum"}" onclick="escolherTituloEscritorio('nenhum')">Não mostrar título</button></div></section>` : "";
+  const prox = proximo ? `<section class="pf2-proximo"><span class="pf2-taca">${escritorioTacaV2}</span><span class="pf2-proximo-txt"><b>Próximo troféu</b> · ${safeText(proximo.nome)} ${safeText(proximo.proximo.nome)} · ${num(proximo.valor)} de ${num(proximo.proximo.meta)}</span><span class="pf2-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct(proximo)}" aria-label="Até o próximo troféu"><i style="width:${pct(proximo)}%"></i></span></section>` : "";
+  const alternar = `<span class="pf2-modo" role="group" aria-label="Ver a estante"><button type="button" aria-pressed="${modo === "estante"}" onclick="escritorio.pfCqModo='estante';${repinta}">Por nível</button><button type="button" aria-pressed="${modo === "categorias"}" onclick="escritorio.pfCqModo='categorias';${repinta}">Por categoria</button></span>`;
+  const cab = `<div class="pf2-estante-cab"><b>${modo === "estante" ? `Sua estante · ${qtdTrofeus} ${qtdTrofeus === 1 ? "troféu" : "troféus"}` : "Por categoria"}</b>${alternar}${meu ? `<button type="button" class="pf2-link" onclick="document.getElementById('office-ficha').close();abrirConquistasEscritorio()">Ver todas</button>` : ""}</div>`;
+  let lista = "";
+  if (modo === "estante") {
+    const abertos = escritorio.pfEstante || {};
+    lista = grupos.length ? grupos.map((g) => { const ver = abertos[g.nivel] ? g.itens : g.itens.slice(0, ESCRITORIO_ESTANTE_VISTA), resto = g.itens.length - ver.length;
+      return `<div class="pf2-nivel-grupo"><p class="pf2-nv n${g.nivel}"><i aria-hidden="true"></i><b>${g.nome}</b><span>${num(g.itens.length)}</span></p><ul class="pf2-pecas">${ver.map((t) => `<li title="${safeText(t.escada)} ${safeText(t.nome)}"><span class="pf2-mini">${escritorioMiniaturaHtml(t.classe)}</span><span>${safeText(t.escada)}</span></li>`).join("")}</ul>${resto > 0 || abertos[g.nivel] ? `<button type="button" class="pf2-mais" aria-expanded="${!!abertos[g.nivel]}" onclick="(escritorio.pfEstante||={})[${g.nivel}]=!escritorio.pfEstante[${g.nivel}];${repinta}">${resto > 0 ? `e mais ${num(resto)}` : "mostrar menos"}</button>` : ""}</div>`; }).join("")
+      : '<p class="pf2-vazio">Os troféus que você ganhar aparecem aqui, prontos para expor no quarto.</p>';
+  } else {
+    // As categorias de sempre (Entregas, Produção, Ritmo…), com cada escada numa linha: nível, barra e o que falta.
+    const cats = [["perto", "Perto de subir", null], ...ESCRITORIO_GRUPOS_CONQUISTA.map(([k, nome, , ids]) => [k, nome, ids])];
+    const daAba = (ids) => ids ? ids.map((id) => marcos.find((m) => m.id === id)).filter(Boolean) : andamento.slice(0, 8);
+    const visiveis = cats.filter(([, , ids]) => daAba(ids).length);
+    const aba = visiveis.some(([k]) => k === escritorio.cqAba) ? escritorio.cqAba : visiveis[0]?.[0];
+    const ids = (cats.find(([k]) => k === aba) || cats[0])[2];
+    const linha = (x) => { const p = x.proximo, dp = p && x.degraus.find((d) => d.nivel === p.nivel), mostra = x.degraus.filter((d) => d.ok).at(-1) || p || x.degraus.at(-1);
+      const texto = x.social ? (x.nivel ? "conquistado" : x.dica || "ainda não") : p ? `${num(x.valor)} de ${num(p.meta)} · faltam ${num(p.meta - x.valor)} para ${p.nome}` : `${num(x.valor)} ${x.unidade} · escada completa`;
+      return `<li class="pf2-esc" title="${safeText(x.criterio || "")}"><span class="pf2-mini${x.nivel ? "" : " falta"}">${mostra?.classe ? escritorioMiniaturaHtml(mostra.classe) : ""}</span><span class="pf2-esc-meio"><span class="pf2-esc-nome"><b>${safeText(x.nome)}</b>${x.nomeNivel ? `<span class="pf2-nv n${x.nivel}"><i aria-hidden="true"></i>${safeText(x.nomeNivel)}</span>` : ""}</span><span class="pf2-barra"><i style="width:${x.social ? (x.nivel ? 100 : 0) : pct(x)}%"></i></span><small>${safeText(texto)}</small></span>${dp ? `<span class="pf2-premio">+${num(dp.moedas)} moedas<br>+${num(dp.pontos)} XP</span>` : ""}</li>`; };
+    lista = `<div class="pf2-cats">${visiveis.map(([k, nome, l]) => `<button type="button" class="pf2-op" aria-pressed="${k === aba}" onclick="escolherAbaConquistasEscritorio('${k}')">${safeText(nome)}${l ? ` · ${daAba(l).filter((x) => x.nivel).length}/${daAba(l).length}` : ""}</button>`).join("")}</div><ul class="pf2-escadas">${daAba(ids).map(linha).join("") || '<li class="pf2-vazio">Nada aqui ainda.</li>'}</ul>`;
+  }
+  return `<div class="pf2-cq">${cartao}${escolher}${prox}${cab}${lista}</div>`;
+}
+// A casca da ficha no mundo: recebe o que abrirFichaEscritorio já calculou.
+function escritorioFichaV2Html(f) {
+  const num = (n) => Number(n || 0).toLocaleString("pt-BR");
+  const primeiro = String(f.pessoa.nome || "").split(" ")[0];
+  const lugar = f.lugar === "Fora do escritório" ? "fora do escritório" : f.lugar;
+  const contagem = { conquistas: f.trofeus, inventario: f.moveis };
+  const nums = f.jogo ? `<div class="pf2-nums"><span><b data-vb-contar="${Number(f.jogo.saldo)}" data-vb-chave="moedas-${f.sid}">${num(f.jogo.saldo)}</b><small>moedas</small></span><span><b>${num(f.conquistas)}</b><small>conquistas</small></span><span><b>${num(f.trofeus)}</b><small>troféus</small></span></div>`
+    : f.pub === null ? '<p class="pf2-vazio" role="alert">Não deu para carregar moedas e inventário agora.</p>' : "";
+  const titulo = f.pessoa.titulo?.texto ? `<span class="pf2-titulo-mapa">${safeText(f.pessoa.titulo.texto)}</span>` : "";
+  return `<div class="pf2-topo"><div class="pf2-tit"><h2 id="pf2-titulo">${f.eu ? "Meu perfil" : `Perfil de ${safeText(primeiro)}`}</h2><span>nível, conquistas e títulos · abre da Conta, do Ranking e do mapa</span></div><button type="button" class="pf2-x" onclick="this.closest('dialog').close()" aria-label="Fechar" title="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<div class="pf2-corpo"><aside class="pf2-lado"><div class="pf2-palco">${escritorioVitrineHtml("ofc-hud-vitrine", f.pessoa.id, { zoom: 1.7, desce: 0.24 })}</div>
+<div class="pf2-id"><b id="office-ficha-nome">${safeText(f.pessoa.nome)}</b>${titulo}<span class="pf2-status"><i class="pf2-ponto" style="--st:${f.cor}"></i>${safeText(String(f.status).toLowerCase())} · ${safeText(lugar)}${f.funcao ? ` · ${f.funcao}` : ""}</span></div>
+${f.nivel != null ? `<div class="pf2-nivel"><b>Nível ${f.nivel}</b><span class="pf2-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${f.xpProx}" aria-valuenow="${f.xp}" aria-label="XP até o próximo nível"><i style="width:${f.pct}%"></i></span><span>faltam ${num(Math.max(0, (f.xpProx || 0) - (f.xp || 0)))} XP</span></div>` : ""}
+${nums}${f.rk?.posicao ? `<button type="button" class="pf2-link pf2-rk" onclick="abrirRankingEscritorio('geral')">${f.rk.posicao}º no ranking da semana</button>` : ""}
+<div class="pf2-acoes">${f.acoes.map(([r, on]) => `<button type="button" class="pf2-btn" onclick="${on}">${r}</button>`).join("")}</div></aside>
+<div class="pf2-principal"><div class="pf2-abas" role="tablist" aria-label="Perfil">${f.abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === f.aba}" tabindex="${k === f.aba ? 0 : -1}" onclick="escolherAbaFichaEscritorio('${f.sid}','${k}')">${r}${contagem[k] ? ` <span>${num(contagem[k])}</span>` : ""}</button>`).join("")}</div>
+<div class="ofc-hud-corpo pf2-painel" role="tabpanel">${f.corpo}</div></div></div>`;
+}
 function escolherAbaFichaEscritorio(id, aba) { escritorio.fichaAba = aba; abrirFichaEscritorio(id, true); document.querySelector("#office-ficha .ofc-hud-corpo")?.classList.add("ofc-entra"); }
 function abrirFichaEscritorio(id, semAtualizar = false) {
   const b = escritorio.base;
@@ -472,7 +547,7 @@ ${!veNumeros && jogo?.marcos?.length ? `<section class="ofc-hud-bloco"><h4>Últi
 ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) => grupoDe.get(r) === gi); return l.length ? `<section class="ofc-hud-bloco"><div class="ofc-hud-bloco-topo"><h4>${titulo}</h4><small>${dica}</small></div><ul class="ofc-hud-regras">${l.map((r) => `<li><span><b>${safeText(r.descricao)}</b>${r.parte ? `<small>${escritorioParteDoBoloTexto(r.parte)}</small>` : r.por_complexidade ? "<small>Vale mais conforme o formato da peça (Reels, Carrossel…).</small>" : ""}${r.entrega && gi !== 3 ? "<small>Conta na meta da semana.</small>" : ""}</span><span class="ofc-hud-chips">${chips(r.moedas, r.pontos)}</span></li>`).join("")}</ul></section>` : ""; }).join("")}`;
   } else if (aba === "conquistas") {
     if (veNumeros && marcos) {
-      corpo = `<div class="ofc-cq-na-ficha">${escritorioConquistasCorpoHtml(marcos, { meu: eu })}</div>`;
+      corpo = escritorioFichaV2() ? escritorioConquistasFichaV2Html(marcos, { meu: eu }) : `<div class="ofc-cq-na-ficha">${escritorioConquistasCorpoHtml(marcos, { meu: eu })}</div>`;
     } else corpo = jogo?.marcos?.length ? `<ul class="ofc-hud-conquistas">${[...jogo.marcos].sort((a, b) => (b.nivel || 0) - (a.nivel || 0)).map((x) => `<li class="ok" title="${safeText(x.dica || "")}"><span class="ofc-hud-medalha">${x.classe ? escritorioMiniaturaHtml(x.classe) : escritorioFichaIcone("estrela")}</span><span><b>${safeText(x.nome)}</b><small>${safeText(x.dica || "")}</small></span></li>`).join("")}</ul>` : pub === undefined ? carregando("Carregando as conquistas…") : '<p class="ofc-nota">Nenhuma conquista ainda.</p>';
   } else if (aba === "inventario") {
     const inv = (jogo?.inventario || []).filter((i) => !String(i.classe).startsWith("roupa:"));
@@ -495,7 +570,22 @@ ${ordem.map((gi) => { const [titulo, dica] = grupos[gi], l = regras.filter((r) =
   const rk = (typeof escritorioRanking !== "undefined" ? escritorioRanking : null)?.dados?.semana?.pessoas?.find((p) => p.id === String(id));
   // Cartão do jogador (21/10/2026, a linguagem do Provador): o pedestal
   // brilha na cor do troféu mais alto da pessoa (Bronze a Diamante).
+  if (escritorioFichaV2()) {
+    // As mesmas ações da ficha antiga, com os mesmos destinos; o quarto se chama sala, como na prancha.
+    const acoes = [
+      ...(quarto ? [[eu ? "Ir para a minha sala" : "Entrar na sala", `${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')`]] : []),
+      ...(!eu && online ? [["Chamar para cá", `${fechar}chamarParaSalaEscritorio('${sid}')`], ["Convidar para conversar", `${fechar}convidarConversaEscritorio('${sid}')`]] : []),
+      ...(eu ? [["Personalizar aparência", `${fechar}personalizarEscritorio()`], ...(escritorioMinhaMesa() ? [["Piso e paredes", `${fechar}abrirEstiloSalaEscritorio()`]] : [])]
+        : [["Deixar recado", `${fechar}abrirRecadosEscritorio('${sid}')`], ...(online ? [["Ir até", `${fechar}escritorioIrAte('${sid}')`]] : []), ["Dar um móvel de presente", `${fechar}abrirPresenteEscritorio('${sid}')`]]),
+      ...(b.paulo ? [["Dar VybeCoins", `${fechar}abrirMoedasEscritorio('${sid}')`]] : []),
+    ];
+    const trofeus = marcos ? escritorioEstantePorNivel(marcos).reduce((t, g) => t + g.itens.length, 0) : (jogo?.marcos || []).filter((x) => x.classe).length;
+    d.className = "pf2";
+    d.setAttribute("aria-labelledby", "pf2-titulo");
+    d.innerHTML = escritorioFichaV2Html({ pessoa, eu, sid, nivel, xp, xpProx, pct, jogo, pub, conquistas, trofeus, moveis, rk, status, cor, lugar, funcao, abas, aba, corpo, acoes });
+  } else {
   d.className = `ofc-ficha jogador${vitrine[0] ? " tier-n" + vitrine[0].nivel : ""}`;
+  d.setAttribute("aria-labelledby", "office-ficha-nome");
   d.innerHTML = `<div class="ofc-hud-topo"><div class="ofc-hud-boneco ofc-hud-palco">${escritorioVitrineHtml("ofc-hud-vitrine", pessoa.id, { zoom: 1.7, desce: 0.24 })}</div>
 <div class="ofc-hud-id"><h3 id="office-ficha-nome">${safeText(pessoa.nome)}</h3>${pessoa.titulo?.texto ? `<em class="ofc-hud-titulo vb-titulo n${Number(pessoa.titulo.nivel) || 1}">${safeText(pessoa.titulo.texto)}</em>` : ""}<small><i class="ofc-ponto" style="--st:${cor}"></i>${safeText(status)} · ${safeText(lugar)}${funcao ? ` · ${funcao}` : ""}</small>
 ${nivel != null ? `<div class="ofc-hud-nivel"><span class="ofc-hud-selo" title="Nível">${nivel}</span><span class="ofc-hud-xp"><span class="ofc-dia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="${xpProx}" aria-valuenow="${xp}" aria-label="XP até o próximo nível"><i style="width:${pct}%"></i></span><small>${xp} de ${xpProx} XP para o nível ${nivel + 1}</small></span></div>` : ""}
@@ -505,6 +595,7 @@ ${vitrine.length ? `<div class="ofc-hud-vitrine" aria-label="Troféus em destaqu
 <div class="ofc-hud-abas" role="tablist" aria-label="Ficha">${abas.map(([k, r]) => `<button type="button" role="tab" aria-selected="${k === aba}" onclick="escolherAbaFichaEscritorio('${sid}','${k}')">${r}</button>`).join("")}</div>
 <div class="ofc-hud-corpo" role="tabpanel">${corpo}</div>
 <div class="ofc-ficha-acoes">${quarto ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrParaAmbiente('${safeText(quarto.id)}')">${eu ? "Ir para o meu quarto" : "Entrar no quarto"}</button>` : ""}${!eu && online ? `<button type="button" class="ofc-secundario" onclick="${fechar}chamarParaSalaEscritorio('${sid}')">Chamar para cá</button><button type="button" class="ofc-secundario" onclick="${fechar}convidarConversaEscritorio('${sid}')">Convidar para conversar</button>` : ""}${eu ? `<button type="button" class="ofc-secundario" onclick="${fechar}personalizarEscritorio()">Personalizar aparência</button>${escritorioMinhaMesa() ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirEstiloSalaEscritorio()">Piso e paredes da sala</button>` : ""}` : `<button type="button" class="ofc-secundario" onclick="${fechar}abrirRecadosEscritorio('${sid}')">Deixar recado</button>${online ? `<button type="button" class="ofc-secundario" onclick="${fechar}escritorioIrAte('${sid}')">Ir até</button>` : ""}<button type="button" class="ofc-secundario" onclick="${fechar}abrirPresenteEscritorio('${sid}')">Dar um móvel de presente</button>`}${b.paulo ? `<button type="button" class="ofc-secundario" onclick="${fechar}abrirMoedasEscritorio('${sid}')">Dar VybeCoins</button>` : ""}</div>`;
+  }
   if (!d.open) d.showModal();
   if (typeof vbAnimarContagens === "function") vbAnimarContagens(d);
   if (typeof escritorioMontarVitrines === "function") escritorioMontarVitrines(d);

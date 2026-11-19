@@ -1280,7 +1280,9 @@ function vbErroNoCampo(campo, mensagem = '') {
 // some); passou de 6 abas, o resto vai em "Mais". Vale para toda lista de abas (role="tablist") do mundo, inclusive as
 // que os módulos ainda desenham do jeito antigo: a peça não troca o HTML de ninguém, só marca a lista (.vb-abas), esconde
 // as abas que sobram (.vb-aba-fora) e põe o menu "Mais" no fim, que clica na aba de verdade (os ouvintes são os de sempre).
-const VB_ABAS_FORA = '.v2t-fichas, .ag-faixa, [aria-orientation="vertical"]';
+// As sete partes do Seu personagem (prancha V2-S-Personagem) e as abas do Meu perfil (V2-S-Perfil-Conquistas, 19/11/2026)
+// têm o desenho da prancha e cabem na janela: ficam fora da peça.
+const VB_ABAS_FORA = '.v2t-fichas, .ag-faixa, .vv-personagem-abas, .pf2-abas, [aria-orientation="vertical"]';
 const VB_ABAS_DONO = '[class*="ofc-"], [class*="snc-"], [class*="prov-"], .spotlight, #spotlight, .spotlight-dialog';
 const VB_ABAS_POSICAO = new Map();
 const VB_ABAS_MAX = 6;

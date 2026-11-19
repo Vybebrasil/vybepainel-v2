@@ -35,9 +35,17 @@
   // personagem peça a peça"): uma aba por tipo de item do Habbo. Cada item é uma peça voxel própria (pecaVoxelDoHabbo em
   // mundo/moveis-habbo.mjs) e a grade mostra a pessoa vestindo cada um. A figura salva continua a do Habbo.
   const ABAS = [['hd', 'Rosto'], ['hr', 'Cabelo'], ['ha', 'Chapéu'], ['ea', 'Óculos'], ['fa', 'Máscara'], ['he', 'Na cabeça'], ['ch', 'Camisa'], ['cc', 'Casaco'], ['lg', 'Calça'], ['sh', 'Sapato']];
+  // V2 · S (prancha V2-S-Personagem, 19/11/2026): sete abas na tela; Camisa, Casaco, Calça e Sapato moram em "Roupa", num
+  // alternador dentro dela. A lista ABAS segue com os dez tipos (o Aleatório e a gravação passam por todos).
+  const ABAS_VISTAS = [['hd', 'Rosto'], ['hr', 'Cabelo'], ['ha', 'Chapéu'], ['ea', 'Óculos'], ['fa', 'Máscara'], ['he', 'Na cabeça'], ['roupa', 'Roupa']];
+  const ROUPA = ['ch', 'cc', 'lg', 'sh'];
+  const NOME_DO_GRUPO = { hr: 'Corte' };
+  const abaVista = (t) => (ROUPA.includes(t) ? 'roupa' : t);
   const OPCIONAL = new Set(['hr', 'ha', 'ea', 'fa', 'he', 'cc', 'sh']);
   const DA_CABECA = new Set(['hd', 'hr', 'ha', 'ea', 'fa', 'he']);
-  const POR_PAGINA = 24;
+  // Três linhas de cinco quadros (prancha V2-S-Personagem): o "Sem" ocupa um lugar quando a parte é opcional.
+  const POR_PAGINA = 15;
+  const primeiraPagina = (t) => POR_PAGINA - (OPCIONAL.has(t) ? 1 : 0);
   // Funções do Escritório que esta janela usa (vybe-escritorio-abertura.js).
   const NECESSARIAS = ['criadorDaFigura', 'criadorFigura', 'criadorConjunto', 'criadorServe', 'criadorPaleta', 'criadorCarregarCatalogo', 'salvarPersonagemEscritorio'];
   // O avatarVoxel numera as 8 direções fora da ordem do giro (ângulos -.6, -.3, .3, .6, 2.6, 3, -2.6, -3).
@@ -47,7 +55,7 @@
     aberto: false, fase: '', erro: '', aviso: '', seq: 0, seqMini: 0, pode: {},
     fundo: null, raiz: null, corpo: null, refs: {},
     mod: null, paletas: null, base: null, salva: '', f: null, figura: '', escolha: null,
-    aba: 'hr', mostrar: {}, salvando: false, previa: null, tela: null, giro: 3, arrasto: 0,
+    aba: 'hr', abaRoupa: 'ch', mostrar: {}, salvando: false, previa: null, tela: null, giro: 3, arrasto: 0,
     entrandoDesde: 0, vigia: 0, focoAntes: null,
   };
 
@@ -239,20 +247,24 @@
     raiz.hidden = true;
     const topo = el('div', 'vv-personagem-topo');
     const titulo = el('div', 'vv-personagem-titulo');
-    titulo.innerHTML = '<span class="vv-personagem-kicker">Irecity</span><h2 id="vv-personagem-titulo">Seu personagem</h2><p id="vv-personagem-sub">O mesmo boneco que a equipe vê no mapa.</p>';
+    titulo.innerHTML = '<h2 id="vv-personagem-titulo">Seu personagem</h2><p id="vv-personagem-sub">Irecity · abre de Meu perfil › Personalizar aparência</p>';
     const x = el('button', 'vv-personagem-x', { type: 'button', 'aria-label': 'Fechar', title: 'Fechar (Esc)' });
     x.innerHTML = ICONE.fechar;
     x.addEventListener('click', () => fechar());
     topo.append(titulo, x);
     const corpo = el('div', 'vv-personagem-corpo');
+    // A coluna da prévia: o palco grande e, embaixo, Aleatório e Girar (arrastar o boneco também gira).
+    const coluna = el('div', 'vv-personagem-coluna');
     const palco = el('div', 'vv-personagem-palco');
-    const giro = el('div', 'vv-personagem-giro', { role: 'group', 'aria-label': 'Girar o boneco' });
-    giro.innerHTML = `<button type="button" data-vp="girar" data-valor="-1" aria-label="Girar para a esquerda" title="Girar para a esquerda">${ICONE.esquerda}</button><button type="button" data-vp="girar" data-valor="1" aria-label="Girar para a direita" title="Girar para a direita">${ICONE.direita}</button>`;
-    palco.append(giro);
+    const giro = el('div', 'vv-personagem-giro', { role: 'group', 'aria-label': 'Boneco' });
+    coluna.append(palco, giro);
     const lado = el('div', 'vv-personagem-lado');
     lado.addEventListener('keydown', aoTeclarAbas);
     const rodape = el('div', 'vv-personagem-rodape');
     const msgs = el('div', 'vv-personagem-msgs');
+    const nota = el('p', 'vv-personagem-nota');
+    nota.textContent = 'o mesmo boneco que a equipe vê no mapa';
+    msgs.append(nota);
     const aviso = el('p', 'vv-personagem-aviso', { role: 'status', 'aria-live': 'polite' });
     const erro = el('p', 'vv-personagem-erro', { role: 'alert' });
     msgs.append(aviso, erro);
@@ -264,7 +276,7 @@
     // ao mundo; o Esc e o Tab são tratados antes, na captura (aoTeclar).
     raiz.addEventListener('keydown', (ev) => ev.stopPropagation?.());
     document.body.append(fundo, raiz);
-    Object.assign(st, { fundo, raiz, corpo, refs: { x, palco, lado, rodape, aviso, erro, acoes } });
+    Object.assign(st, { fundo, raiz, corpo, refs: { x, coluna, palco, giro, lado, rodape, aviso, erro, acoes } });
   }
   function pintar() {
     if (!st.raiz) return;
@@ -289,25 +301,34 @@
     return caixa('Não deu para abrir o criador', st.erro, '<button type="button" class="vv-personagem-sec" data-vp="recarregar">Tentar de novo</button>', 'alert');
   }
   function pintarPronto() {
-    const { palco, lado, rodape, aviso, erro, acoes } = st.refs;
+    const { coluna, giro, lado, rodape, aviso, erro, acoes } = st.refs;
     st.corpo.className = 'vv-personagem-corpo pronto';
-    if (palco.parentNode !== st.corpo) { st.corpo.innerHTML = ''; st.corpo.append(palco, lado, rodape); }
+    if (coluna.parentNode !== st.corpo) { st.corpo.innerHTML = ''; st.corpo.append(coluna, lado, rodape); }
     montarPrevia();
-    lado.innerHTML = `<div class="vv-personagem-abas" role="tablist" aria-label="Partes do personagem">${ABAS.map(([id, nome]) => `<button type="button" role="tab" id="vv-personagem-aba-${id}" data-vp="aba" data-valor="${id}" aria-selected="${st.aba === id}" aria-controls="vv-personagem-painel" tabindex="${st.aba === id ? 0 : -1}">${nome}</button>`).join('')}</div>
-      <div class="vv-personagem-opcoes" id="vv-personagem-painel" role="tabpanel" aria-labelledby="vv-personagem-aba-${st.aba}">${opcoesHtml()}</div>`;
+    giro.innerHTML = `<button type="button" class="vv-personagem-sec" data-vp="aleatorio"${st.salvando ? ' disabled' : ''}>${ICONE.dado}Aleatório</button><button type="button" class="vv-personagem-sec" data-vp="girar" data-valor="1" title="Girar o boneco (ou arraste)">${ICONE.direita}Girar</button>`;
+    const vista = abaVista(st.aba);
+    lado.innerHTML = `<div class="vv-personagem-abas" role="tablist" aria-label="Partes do personagem">${ABAS_VISTAS.map(([id, nome]) => `<button type="button" role="tab" id="vv-personagem-aba-${id}" data-vp="aba" data-valor="${id}" aria-selected="${vista === id}" aria-controls="vv-personagem-painel" tabindex="${vista === id ? 0 : -1}">${nome}</button>`).join('')}</div>
+      <div class="vv-personagem-opcoes" id="vv-personagem-painel" role="tabpanel" aria-labelledby="vv-personagem-aba-${vista}">${opcoesHtml()}</div>`;
     pintarMiniaturas();
     aviso.textContent = st.aviso;
     aviso.hidden = !st.aviso;
     erro.hidden = !erro.textContent;
-    acoes.innerHTML = `<button type="button" class="vv-personagem-sec" data-vp="aleatorio"${st.salvando ? ' disabled' : ''}>${ICONE.dado}Aleatório</button>
-      <button type="button" class="vv-personagem-sec" data-vp="cancelar">Cancelar</button>
+    acoes.innerHTML = `<button type="button" class="vv-personagem-sec" data-vp="cancelar">Cancelar</button>
       <button type="button" class="vv-personagem-principal" data-vp="salvar"${st.salvando ? ' disabled aria-busy="true"' : ''}>${st.salvando ? 'Salvando…' : 'Salvar'}</button>`;
   }
-  const grupo = (titulo, conteudo, dica = '') => `<section class="vv-personagem-grupo"><h3>${esc(titulo)}</h3>${conteudo}${dica ? `<p class="vv-personagem-dica">${esc(dica)}</p>` : ''}</section>`;
+  // O título do grupo em <b> (o h3 leva cor com !important no legado) e, à direita, a contagem ou a dica.
+  const grupo = (titulo, conteudo, lado = '') => `<section class="vv-personagem-grupo"><div class="vv-personagem-grupo-cab"><b>${esc(titulo)}</b>${lado ? `<span>${esc(lado)}</span>` : ''}</div>${conteudo}</section>`;
+  // Quantas opções a aba tem e quantas delas vieram da loja (as que têm preço: a pessoa comprou ou já vestia).
+  function contagemDaAba(t, lista) {
+    const preco = fn('criadorPrecoRoupa');
+    const daLoja = preco ? lista.filter((c) => Number(preco(`roupa:${t}-${c[0]}`)) > 0).length : 0;
+    return `${lista.length} ${lista.length === 1 ? 'opção' : 'opções'}${daLoja ? ` · ${daLoja} da loja` : ''}`;
+  }
   // A aba do tipo: a grade de itens (a pessoa vestindo cada um, em voxel) e as cores oficiais do item escolhido.
   function opcoesHtml() {
     const t = st.aba, atual = st.f.partes[t], lista = conjuntosPara(t, st.f.g, atual?.id);
-    const n = st.mostrar[t] || POR_PAGINA, nome = ABAS.find(([x]) => x === t)?.[1] || '';
+    const n = st.mostrar[t] || primeiraPagina(t), nome = ABAS.find(([x]) => x === t)?.[1] || '', titulo = NOME_DO_GRUPO[t] || nome;
+    const roupa = ROUPA.includes(t) ? `<div class="vv-personagem-roupa" role="radiogroup" aria-label="Roupa">${ABAS.filter(([x]) => ROUPA.includes(x)).map(([x, rot]) => `<button type="button" role="radio" data-vp="aba" data-valor="${x}" aria-checked="${t === x}">${rot}</button>`).join('')}</div>` : '';
     const sem = OPCIONAL.has(t) ? `<button type="button" class="vv-personagem-peca nenhum" data-vp="peca" data-t="${t}" data-id="" aria-pressed="${!atual}" title="Sem ${esc(nome.toLowerCase())}"><span aria-hidden="true">Sem</span></button>` : '';
     const itens = lista.slice(0, n).map((c) => {
       const fig = fn('criadorFigura')(figuraCom(t, c[0]));
@@ -316,8 +337,8 @@
     const mais = lista.length > n ? `<button type="button" class="vv-personagem-sec vv-personagem-mais" data-vp="mais">Mais ${Math.min(POR_PAGINA, lista.length - n)} de ${lista.length - n}</button>` : '';
     const vazio = !lista.length && !sem ? '<p class="vv-personagem-dica">Você ainda não tem itens desse tipo: eles vêm da loja de roupas do Escritório.</p>' : '';
     const pal = atual?.cores?.length ? fn('criadorPaleta')(t) || [] : [];
-    const cores = pal.length ? grupo('Cor', `<div class="vv-personagem-grade" role="group" aria-label="Cor">${pal.map(([id, hex], i) => `<button type="button" class="vv-personagem-amostra" data-vp="cor" data-t="${t}" data-valor="${id}" aria-pressed="${atual.cores[0] === id}" aria-label="Cor ${i + 1} de ${pal.length}" style="--c:#${esc(String(hex).replace('#', ''))}"><i aria-hidden="true"></i></button>`).join('')}</div>`) : '';
-    return grupo(nome, `<div class="vv-personagem-pecas" role="group" aria-label="${esc(nome)}">${sem}${itens}</div>${mais}`) + vazio + cores;
+    const cores = pal.length ? grupo('Cor', `<div class="vv-personagem-grade" role="group" aria-label="Cor">${pal.map(([id, hex], i) => `<button type="button" class="vv-personagem-amostra" data-vp="cor" data-t="${t}" data-valor="${id}" aria-pressed="${atual.cores[0] === id}" aria-label="Cor ${i + 1} de ${pal.length}" style="--c:#${esc(String(hex).replace('#', ''))}"><i aria-hidden="true"></i></button>`).join('')}</div>`, `a cor vale para ${t === 'hr' ? 'o corte escolhido' : 'a peça escolhida'}`) : '';
+    return roupa + grupo(titulo, `<div class="vv-personagem-pecas" role="group" aria-label="${esc(nome)}">${sem}${itens}</div>${mais}`, contagemDaAba(t, lista)) + vazio + cores;
   }
   // Miniaturas: a rápida na hora, a montada pelas peças do Habbo em seguida (uma de cada vez, só da aba aberta).
   async function pintarMiniaturas() {
@@ -400,21 +421,26 @@
     if (vp === 'entrar') { entrarNoEscritorio(); return; }
     if (vp === 'recarregar') { carregar(); return; }
     if (st.fase !== 'pronto' || st.salvando) return;
-    if (vp === 'aba' && ABAS.some(([id]) => id === valor)) { st.aba = valor; st.aviso = ''; pintar(); }
+    if (vp === 'aba' && (valor === 'roupa' || ABAS.some(([id]) => id === valor))) {
+      st.aba = valor === 'roupa' ? st.abaRoupa : valor;
+      if (ROUPA.includes(st.aba)) st.abaRoupa = st.aba;
+      st.aviso = ''; pintar();
+    }
     else if (vp === 'girar') passo(Number(valor) < 0 ? -1 : 1);
     else if (vp === 'aleatorio') sortear();
     else if (vp === 'peca' && ABAS.some(([t]) => t === alvo.dataset.t)) vestirPeca(alvo.dataset.t, alvo.dataset.id === '' ? null : Number(alvo.dataset.id));
     else if (vp === 'cor' && st.f.partes[alvo.dataset.t]) pintarPeca(alvo.dataset.t, valor);
-    else if (vp === 'mais') { st.mostrar[st.aba] = (st.mostrar[st.aba] || POR_PAGINA) + POR_PAGINA; pintar(); }
+    else if (vp === 'mais') { st.mostrar[st.aba] = (st.mostrar[st.aba] || primeiraPagina(st.aba)) + POR_PAGINA; pintar(); }
   }
   function aoTeclarAbas(ev) {
-    const aba = ev.target?.dataset?.vp === 'aba' ? ev.target.dataset.valor : null;
+    const aba = ev.target?.dataset?.vp === 'aba' && ev.target.getAttribute?.('role') === 'tab' ? ev.target.dataset.valor : null;
     if (!aba || (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight')) return;
     ev.preventDefault?.();
-    const i = ABAS.findIndex(([id]) => id === aba), n = ABAS.length;
-    st.aba = ABAS[(i + (ev.key === 'ArrowRight' ? 1 : n - 1)) % n][0];
+    const i = ABAS_VISTAS.findIndex(([id]) => id === aba), n = ABAS_VISTAS.length;
+    const prox = ABAS_VISTAS[(i + (ev.key === 'ArrowRight' ? 1 : n - 1)) % n][0];
+    st.aba = prox === 'roupa' ? st.abaRoupa : prox;
     pintar();
-    st.raiz.querySelector?.(`[data-vp="aba"][data-valor="${st.aba}"]`)?.focus?.();
+    st.raiz.querySelector?.(`[role="tab"][data-valor="${prox}"]`)?.focus?.();
   }
   // Esc fecha só esta janela (o mundo não recebe o Esc); uma janela por cima dela (confirmação) fecha antes.
   function aoTeclar(ev) {
@@ -468,7 +494,7 @@
     garantirRaiz();
     if (st.aberto) { focar(); return; }
     st.focoAntes = document.activeElement || null;
-    Object.assign(st, { aberto: true, aba: 'hr', entrandoDesde: 0, venceuPintado: false });
+    Object.assign(st, { aberto: true, aba: 'hr', abaRoupa: 'ch', entrandoDesde: 0, venceuPintado: false });
     st.refs.erro.textContent = '';
     st.vigia = setInterval(vigiar, VIGIA_MS);
     document.addEventListener?.('keydown', aoTeclar, true);
