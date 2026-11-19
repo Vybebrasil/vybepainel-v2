@@ -618,7 +618,7 @@ body.mundo .day-pending-tabs button.has-pending{color:#B4510E!important}
 body.mundo .badge.badge-date{background:#F2EEE7!important;color:#4A463F!important}
 body.mundo .tab-btn.e-hoje{color:#B4510E!important}
 body.mundo .item-name.item-workspace-link{color:#1F1D1A!important}
-body.mundo .owner-avatar-add{color:#0D74CE!important;border-color:#BBD8F7!important}
+body.mundo .owner-avatar-add{color:var(--d3-info)!important;border-color:#BBD8F7!important}
 body.mundo .ai-setting-save{background:var(--vv-laranja)!important;color:#fff!important;border:0!important;border-radius:6px!important}
 body.mundo .cli-painel.novo{background:#E6F6EC!important;color:#12804A!important;border-color:#B5E3C7!important}
 body.mundo td.cli-editavel{color:#4A463F!important}
@@ -1609,10 +1609,10 @@ html body.mundo.mundo-modulo .notif-meta{color:#6B665E!important}
 html body.mundo.mundo-modulo .resumo-item.risco b{color:#DB001C!important}
 html body.mundo.mundo-modulo .ops-clear-btn:not(.is-idle){color:#DB001C!important}
 html body.mundo.mundo-modulo .icone-btn{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-cliente{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-fechar{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-titulo{color:#006CBD!important}
-html body.mundo.mundo-modulo .cr-linha>span{color:#6B665E!important}
+html body.mundo.mundo-modulo .cr-cliente{color:var(--d3-fume-apagado)!important}
+html body.mundo.mundo-modulo .cr-fechar{color:var(--d3-fume-texto)!important}
+html body.mundo.mundo-modulo .cr-titulo{color:var(--d3-fume-texto)!important}
+html body.mundo.mundo-modulo .cr-linha>span{color:var(--d3-rotulo)!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary{color:#6B665E!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary::after{color:#6B665E!important}
 html body.mundo.mundo-modulo .workspace-recolhida > summary small{color:#6B665E!important}
@@ -1747,7 +1747,7 @@ html body.mundo.mundo-modulo .manager-calendar-fora{color:#6B665E!important}
 html body.mundo.mundo-modulo .manager-calendar-day-head b{color:#6B665E!important}
 html body.mundo.mundo-modulo .manager-calendar-day.is-today .manager-calendar-day-head b{color:#6B665E!important}
 html body.mundo.mundo-modulo .grupo-cadastro{color:#6B665E!important}
-html body.mundo.mundo-modulo .cr-texto{color:#6B665E!important}
+html body.mundo.mundo-modulo .cr-texto{color:var(--d3-tinta)!important}
 html body.mundo.mundo-modulo .status-context-dialog .workflow-field>span{color:#6B665E!important}
 html body.mundo.mundo-modulo .context-field-help{color:#6B665E!important}
 html body.mundo.mundo-modulo .context-actions>small{color:#6B665E!important}
@@ -2757,16 +2757,16 @@ body.mundo-lobby #mundo canvas{pointer-events:none}
 #login-gate.irecity :is(.login-outro,.login-voltar){color:#6B665E!important;background:none!important}
 
 /* ===== Cartão rápido da peça (abre ao clicar numa peça da agenda): vidro claro ===== */
-html body.mundo .cartao-rapido{background:rgba(255,255,255,.96)!important;background-image:none!important;color:#1F1D1A!important;border:1px solid rgba(255,255,255,.95)!important;border-radius:12px!important;box-shadow:0 24px 60px rgba(31,29,26,.22),0 2px 6px rgba(31,29,26,.08)!important;backdrop-filter:blur(18px)}
-html body.mundo .cartao-rapido :is(.cr-titulo){color:#1F1D1A!important;font:700 16px/1.3 var(--vv-texto)!important}
-html body.mundo .cartao-rapido :is(.cr-cliente,.cr-linha>span:first-child,.cr-linha>label:first-child,.cr-texto){color:#6B665E!important}
+html body.mundo .cartao-rapido{background:var(--d3-fume-forte)!important;background-image:none!important;color:var(--d3-fume-texto)!important;border:1px solid var(--d3-fume-borda)!important;border-radius:var(--d3-r-janela)!important;box-shadow:0 40px 80px -30px rgba(0,0,0,.85)!important;backdrop-filter:blur(36px) saturate(1.2)}
+html body.mundo .cartao-rapido :is(.cr-titulo){color:var(--d3-fume-texto)!important;font:600 var(--d3-fs-titulo)/1.3 var(--vv-texto)!important}
+html body.mundo .cartao-rapido :is(.cr-cliente,.cr-linha>span:first-child,.cr-linha>label:first-child,.cr-texto){color:var(--d3-rotulo)!important}
 html body.mundo .cartao-rapido .cr-linha{border-bottom:1px solid #F2EEE7;padding:3px 0}
-html body.mundo .cartao-rapido :is(.cr-data,.cr-linha button:not(.pill):not([class*="pill"]),.cr-linha select,.cr-grupo-pill,.grupo-pill-btn){background:#FAF8F4!important;color:#1F1D1A!important;border:1px solid #ECE6DC!important;border-radius:6px!important}
-html body.mundo .cartao-rapido :is(.cr-topo-acoes button){background:#fff!important;color:#6B665E!important;border:1px solid #E6E0D6!important;border-radius:6px!important}
-html body.mundo .cartao-rapido .cr-fechar{color:#6B665E!important}
-html body.mundo .cartao-rapido .cr-rodape{border-top:1px solid #ECE6DC!important}
+html body.mundo .cartao-rapido :is(.cr-data,.cr-linha button:not(.pill):not([class*="pill"]),.cr-linha select,.cr-grupo-pill,.grupo-pill-btn){background:transparent!important;color:var(--d3-tinta)!important;border:0 solid transparent!important;border-radius:var(--d3-r-botao)!important}
+html body.mundo .cartao-rapido :is(.cr-topo-acoes button){background:var(--d3-fume-veu-forte)!important;color:var(--d3-fume-texto)!important;border:0 solid transparent!important;border-radius:var(--d3-r-botao)!important}
+html body.mundo .cartao-rapido .cr-fechar{color:var(--d3-fume-texto)!important}
+html body.mundo .cartao-rapido .cr-rodape{border-top:0 solid transparent!important}
 html body.mundo .cartao-rapido .cr-abrir{font-weight:700}
-html body.mundo .cartao-rapido .cliente-carteira{padding:2px 8px!important;border-radius:7px!important;background:var(--carteira-fundo)!important;color:var(--carteira-texto)!important}
+html body.mundo .cartao-rapido .cliente-carteira{padding:0!important;border-radius:var(--d3-r-botao)!important;background:transparent!important;color:var(--d3-tinta)!important}
 html body.mundo #cartao-rapido-fundo{background:rgba(31,29,26,.08)!important}
 
 /* Abas do topo: ícones com a cor de cada módulo (o Paulo prefere colorido); só a transição suave. */
@@ -3349,8 +3349,8 @@ html body.mundo .cli-pergunta-caixa:not(#ds-a):not(#ds-b){background:#FFFFFF!imp
 html body.mundo .cli-pergunta-caixa :is(h3,b,strong):not(#ds-a):not(#ds-b){color:#1F1D1A!important}
 html body.mundo .cli-pergunta-caixa :is(p,small,label):not(#ds-a):not(#ds-b){color:#6B665E!important}
 /* cartão rápido: seta, traço vazio e trecho do briefing legíveis */
-html body.mundo #cartao-rapido :is(.grupo-vazio,.workspace-empty,.brief-abrir-trecho):not(#ds-a):not(#ds-b){color:#6B665E!important}
-html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:#6B665E!important}
+html body.mundo #cartao-rapido :is(.grupo-vazio,.workspace-empty,.brief-abrir-trecho):not(#ds-a):not(#ds-b){color:var(--d3-rotulo)!important}
+html body.mundo #cartao-rapido i:not(#ds-a):not(#ds-b){color:var(--d3-rotulo)!important}
 
 /* ===== Menu da conta (topo do mapa) ===== */
 .vv-menu-conta{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:250px;padding:6px;border-radius:10px;background:#FFFFFF;border:1px solid #E6E0D6;box-shadow:0 20px 44px rgba(31,29,26,.2);pointer-events:auto;animation:vv-surge .16s cubic-bezier(.2,.8,.2,1) both}

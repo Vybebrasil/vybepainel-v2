@@ -17504,6 +17504,108 @@ body.mundo #fc-overlay .nd-fala{border-radius:12px;background:var(--d3-agente-ve
   #vv-criar .v2cr :is(.v2cr-passo,.v2cr-etapa){display:none}
 }
 
+/* ===== padrao-v2/zm-r-a-2-cartao.css ===== */
+/* ===================================================================================================================
+   V2 · R · CARTÃO RÁPIDO (prancha V2-R-Cartao-Rapido, 19/11/2026). O popover preso à linha (#cartao-rapido) vira a casca
+   V2: vidro fumê de canto 20; em cima o avatar do cliente com "peça #id" e os botões de 34 (link, mais ações, fechar); o
+   título de 18 com o lápis; os quatro campos principais numa folha de linhas de 40 (rótulo à esquerda, valor à direita);
+   "Mais campos" noutra folha, numa grade de duas colunas com rótulo em cima; no pé, "Ver prévia" como link e "Abrir a
+   peça" no botão claro. A casca (fundo, borda, título e os botões das linhas) vem das regras antigas de vybe-mundo.css,
+   que têm !important e agora usam os tokens; aqui fica o resto, sem !important.
+   =================================================================================================================== */
+#cartao-rapido.cartao-rapido{width:min(384px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-sizing:border-box;display:flex;flex-direction:column;gap:12px;padding:16px;overflow-y:auto;scrollbar-width:thin;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+
+/* Topo: avatar de 34, o cliente em 15 e "peça #id" embaixo; à direita os três botões de 34. */
+#cartao-rapido.cartao-rapido .cr-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:0;border:0}
+#cartao-rapido.cartao-rapido .cr-cliente{display:flex;align-items:center;gap:10px;min-width:0;font:inherit}
+#cartao-rapido.cartao-rapido .cr-av{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:var(--d3-r-botao);background:var(--d3-fume-painel);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-quem{display:flex;flex-direction:column;gap:1px;min-width:0}
+#cartao-rapido.cartao-rapido .cr-quem > b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-fume-texto);font:600 var(--d3-fs-destaque)/1.2 var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-quem > small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-quem .vybe-id{display:inline;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:copy}
+#cartao-rapido.cartao-rapido .cr-quem .vybe-id:hover{color:var(--d3-fume-texto);text-decoration:underline}
+#cartao-rapido.cartao-rapido .cr-topo-acoes{flex:none;display:flex;align-items:center;gap:8px}
+#cartao-rapido.cartao-rapido .cr-topo-acoes :is(button,summary){display:grid;place-items:center;width:34px;height:34px;min-width:34px;padding:0;box-sizing:border-box;list-style:none;cursor:pointer;font:400 18px/1 var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-topo-acoes summary{border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
+#cartao-rapido.cartao-rapido .cr-topo-acoes summary::-webkit-details-marker{display:none}
+#cartao-rapido.cartao-rapido .cr-topo-acoes :is(button,summary):hover{background:var(--d3-fume-borda)}
+#cartao-rapido.cartao-rapido .cr-topo-acoes :is(button,summary) svg{width:15px;height:15px;color:currentColor;stroke:currentColor}
+#cartao-rapido.cartao-rapido .cr-topo-acoes .cr-fechar{font-size:0}
+#cartao-rapido.cartao-rapido .cr-topo-acoes .vybe-link > span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#cartao-rapido.cartao-rapido .cr-topo-acoes .workspace-mais-menu{z-index:3}
+#cartao-rapido.cartao-rapido .cr-topo-acoes .workspace-mais-menu button{display:flex;width:auto;height:auto;min-height:34px;padding:0 12px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+
+/* Título de 18 com o lápis (clicar renomeia ali mesmo, como antes). */
+#cartao-rapido.cartao-rapido .cr-titulo{display:flex;align-items:center;gap:8px;margin:0;padding:0;cursor:text}
+#cartao-rapido.cartao-rapido .cr-titulo::after{content:"";flex:none;width:13px;height:13px;background:var(--d3-fume-apagado);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E") center/contain no-repeat}
+#cartao-rapido.cartao-rapido .cr-titulo[data-editando="1"]::after{display:none}
+#cartao-rapido.cartao-rapido .cr-titulo:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px;border-radius:4px}
+
+/* As duas folhas. */
+#cartao-rapido.cartao-rapido :is(.cr-essenciais,.cr-mais){margin:0;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta);overflow:hidden}
+#cartao-rapido.cartao-rapido .cr-essenciais{display:flex;flex-direction:column;gap:0;padding:0}
+#cartao-rapido.cartao-rapido .cr-essenciais .cr-linha{display:grid;grid-template-columns:108px minmax(0,1fr);align-items:center;gap:8px;min-height:40px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);background:transparent}
+#cartao-rapido.cartao-rapido .cr-essenciais .cr-linha:first-child{border-top:0}
+#cartao-rapido.cartao-rapido .cr-linha > span:first-child{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none}
+#cartao-rapido.cartao-rapido .cr-linha > div{min-width:0;display:flex;align-items:center;justify-content:flex-start;text-align:left}
+
+/* Os valores: texto de 13 em tinta, sem caixa; o botão de editar continua ali (a área de clique é a linha do valor). */
+#cartao-rapido.cartao-rapido .cr-linha :is(.cr-data,.grupo-pill-btn,.cr-grupo-pill,.clientes-vinculo-btn,.owner-editor-trigger){display:inline-flex;align-items:center;gap:6px;min-height:28px;max-width:100%;margin:0 0 0 -6px;padding:0 6px;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#cartao-rapido.cartao-rapido .cr-linha :is(.cr-data,.grupo-pill-btn,.cr-grupo-pill,.clientes-vinculo-btn,.owner-editor-trigger):hover{background:var(--d3-veu)}
+#cartao-rapido.cartao-rapido .cr-linha :is(button,select):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:1px}
+#cartao-rapido.cartao-rapido .cr-linha .pill{display:inline;height:auto;padding:0;border:0;background:none;color:inherit;font:inherit}
+#cartao-rapido.cartao-rapido .cr-linha .pill > i,#cartao-rapido.cartao-rapido .cr-linha .status-editor-dot,#cartao-rapido.cartao-rapido .clientes-vinculo-btn > i{display:none}
+#cartao-rapido.cartao-rapido .cr-linha .cliente-carteira{padding:0;background:none;color:var(--d3-tinta);font:inherit}
+/* Os valores em 400, sem a caixa tracejada do vazio (regras antigas com dois ou quatro :not(#id) pedem a mesma via). */
+#cartao-rapido.cartao-rapido .cr-linha > div :is(span,b):not(#ds-a):not(#ds-b):not(#vv-c):not(#vv-d){font-weight:400}
+#cartao-rapido.cartao-rapido .cr-linha .grupo-vazio:not(#ds-a):not(#ds-b){min-width:0;height:auto;padding:0;border:0;background:none}
+#cartao-rapido.cartao-rapido .cr-texto{font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+
+/* Status: ponto na cor do status, o nome e a seta, sem pílula. */
+#cartao-rapido.cartao-rapido .cr-linha .pv2-st.pv2-st{gap:6px;height:28px;margin-left:-6px;padding:0 6px;border-radius:var(--d3-r-botao);background:transparent;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/28px var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-linha .pv2-st.pv2-st::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-meta))}
+#cartao-rapido.cartao-rapido .cr-linha .pv2-st.pv2-st:hover{background:var(--d3-veu);box-shadow:none}
+#cartao-rapido.cartao-rapido .cr-linha .pv2-st.pv2-st .pv2-st-seta{color:var(--d3-tinta)}
+
+/* Responsável: o + num círculo de 24 com contorno. */
+#cartao-rapido.cartao-rapido .cr-dono .owner-avatar-add:not(#vv-a):not(#vv-b):not(#vv-c):not(#vv-d){display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 1px var(--d3-meta);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1 var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-dono .owner-nomes:not(#ds-a):not(#ds-b):not(#vv-c):not(#vv-d){font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+
+/* Mais campos: cabeçalho de 38 com "recolher" à direita e a grade de duas colunas. */
+#cartao-rapido.cartao-rapido .cr-mais > summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;padding:0 14px;list-style:none;cursor:pointer;color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-mais > summary::-webkit-details-marker{display:none}
+#cartao-rapido.cartao-rapido .cr-mais > summary::after{content:none}
+#cartao-rapido.cartao-rapido .cr-mais > summary > small{flex:none;margin-left:auto;opacity:1;display:inline-flex;align-items:center;gap:4px;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido.cartao-rapido .cr-mais > summary > small::after{content:"";width:6px;height:6px;margin:0 2px 3px 2px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+#cartao-rapido.cartao-rapido .cr-mais[open] > summary > .cr-mais-dica,#cartao-rapido.cartao-rapido .cr-mais:not([open]) > summary > .cr-mais-recolher{display:none}
+#cartao-rapido.cartao-rapido .cr-mais:not([open]) > summary > .cr-mais-dica::after{transform:rotate(-45deg);margin-bottom:0}
+#cartao-rapido.cartao-rapido .cr-mais > summary:hover{background:var(--d3-veu)}
+#cartao-rapido.cartao-rapido .cr-mais > summary:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:-2px}
+#cartao-rapido.cartao-rapido .cr-grade{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;padding:0;border-top:1px solid var(--d3-divisa)}
+#cartao-rapido.cartao-rapido .cr-grade .cr-linha > div{justify-content:flex-start}
+#cartao-rapido.cartao-rapido .cr-grade .cr-linha{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-height:50px;margin:0;padding:7px 14px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);background:transparent}
+#cartao-rapido.cartao-rapido .cr-grade .cr-linha:nth-child(-n+2){border-top:0}
+#cartao-rapido.cartao-rapido .cr-grade .cr-linha:nth-child(2n){border-left:1px solid var(--d3-divisa)}
+#cartao-rapido.cartao-rapido .cr-grade .cr-linha :is(.cr-data,.grupo-pill-btn,.cr-grupo-pill,.clientes-vinculo-btn,.owner-editor-trigger){min-height:22px}
+
+/* Pé: "Ver prévia" como link no vidro e "Abrir a peça" no botão claro de 34. */
+#cartao-rapido.cartao-rapido .cr-rodape{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:0}
+#cartao-rapido.cartao-rapido .cr-rodape .cr-previa{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:transparent;color:var(--d3-fume-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#cartao-rapido.cartao-rapido .cr-rodape .cr-previa:hover{background:var(--d3-fume-veu)}
+#cartao-rapido.cartao-rapido .cr-rodape .cr-previa svg{width:15px;height:15px}
+#cartao-rapido.cartao-rapido .cr-rodape .cr-abrir{flex:none;margin-left:auto;height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);color:var(--d3-fume-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#cartao-rapido.cartao-rapido .cr-rodape .cr-abrir:hover{background:var(--d3-fume-texto2)}
+#cartao-rapido.cartao-rapido .cr-rodape :is(button):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* Demanda: briefing e subdemandas entram como folhas também. */
+#cartao-rapido.cartao-rapido :is(.cr-recursos,.cr-subs){margin:0;padding:10px 14px;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif)}
+
+@media (max-width:560px){
+  #cartao-rapido.cartao-rapido .cr-grade{grid-template-columns:minmax(0,1fr)}
+  #cartao-rapido.cartao-rapido .cr-grade .cr-linha:nth-child(2){border-top:1px solid var(--d3-divisa)}
+  #cartao-rapido.cartao-rapido .cr-grade .cr-linha:nth-child(2n){border-left:0}
+}
+
 /* ===== padrao-v2/zm-r-b-1-saude.css ===== */
 /* ===================================================================================================================
    V2 · R · SAÚDE DA CARTEIRA (prancha V2-R-Saude-Carteira, aprovada pelo Paulo). A janela #vv-carteira já vira vidro fumê

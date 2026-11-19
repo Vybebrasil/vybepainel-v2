@@ -677,18 +677,30 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
 
   const cartao = document.createElement('div');
   cartao.id = 'cartao-rapido';
-  cartao.className = 'cartao-rapido';
+  // d3-tema: no tema Escuro as folhas de dentro escurecem junto (prancha V2-R-Cartao-Rapido, 19/11/2026).
+  cartao.className = 'cartao-rapido d3-tema';
   const linha = (rotulo, conteudo) => `<div class="cr-linha"><span>${rotulo}</span><div>${conteudo}</div></div>`;
   // O campo de data nativo aparecia como "17 /09/2026" e salvava uma data de cada
   // vez, sem conferir o Prazo de Ouro. Vira a data no formato do painel e abre o
   // editor de planejamento — o mesmo da ficha da gaveta e das linhas do Foco.
   const data = (iso) => `<button type="button" class="cr-data" onclick="event.stopPropagation();openPlanningEditor('${jsArg(item.id)}')"
-      title="Editar prazo e ${source === 'request' ? 'conclusão' : 'veiculação'}">${safeText(planningDateBr(iso) === 'não definido' ? '—' : planningDateBr(iso))}</button>`;
+      title="Editar prazo e ${source === 'request' ? 'conclusão' : 'veiculação'}">${safeText(dataCurta(iso))}</button>`;
   const ehDemanda = source === 'request';
+  // Prancha V2-R-Cartao-Rapido (19/11/2026): a data aparece curta, com o dia da semana ("qui, 19/11"); o cliente ganha
+  // o avatar e a linha "peça #id"; os quatro campos principais ficam em cima e o resto, o formato junto, em "Mais
+  // campos" numa grade de duas colunas (os botões de editar são os mesmos de antes).
+  const DIA_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const dataCurta = (iso) => {
+    const d = /^\d{4}-\d{2}-\d{2}/.test(String(iso || '')) ? new Date(`${String(iso).slice(0, 10)}T12:00:00`) : null;
+    return d && !Number.isNaN(d.getTime()) ? `${DIA_SEM[d.getDay()]}, ${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '—';
+  };
+  const palavrasCli = String(item.cliente || '?').split(/\s+/).filter(Boolean);
+  const siglaCli = (palavrasCli.length > 1 ? palavrasCli.slice(0, 2).map((x) => x[0]).join('') : (palavrasCli[0] || '?').slice(0, 2)).toUpperCase();
+  const cadastro = (() => { const c = cadastroDaPeca(item); const dia = /^\d{2}\/\d{2}/.test(c.quando || '') ? c.quando.slice(0, 5) : ''; return [c.quem, dia].filter(Boolean).join(' · ') || '—'; })();
 
   cartao.innerHTML = `
     <div class="cr-topo">
-      <div class="cr-cliente">${safeText(item.cliente || 'Sem cliente')} ${vybeChipId(item)}</div>
+      <div class="cr-cliente"><span class="cr-av" aria-hidden="true">${safeText(siglaCli)}</span><span class="cr-quem"><b>${safeText(item.cliente || 'Sem cliente')}</b><small>${ehDemanda ? 'demanda' : 'peça'} ${vybeChipId(item)}</small></span></div>
       <div class="cr-topo-acoes">${botaoDeLinkHtml(item)}${menuDeAcoesDaPecaHtml(item, { mover: !ehDemanda })}<button type="button" class="cr-fechar" onclick="fecharCartaoRapido()" aria-label="Fechar">×</button></div>
     </div>
     <div class="cr-titulo" role="button" tabindex="0"
@@ -702,20 +714,20 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       ${linha('Responsável', vybeDono(item, 'cr-dono', { comNome: true }))}
       ${linha('Prazo', data(item.prazo_iso))}
       ${linha(ehDemanda ? 'Conclusão' : 'Veiculação', data(ehDemanda ? item.conclusao_iso : item.veiculacao_iso))}
-      ${/* Bia (Coordenação, 18/11/2026): "editar tudo dentro do cartão da atividade". O formato sobe para o essencial,
-           junto de título, status, responsável, prazo e veiculação; o mesmo botão de antes (pillEditavel). */ ''}
-      ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
     </div>
+    ${/* Bia (Coordenação, 18/11/2026): "editar tudo dentro do cartão da atividade". Na prancha V2-R (19/11) o formato
+         desce para a grade de "Mais campos", com o mesmo botão de antes (pillEditavel): continua editável ali. */ ''}
     <details class="cr-mais"${window.CR_MAIS_ABERTO ? ' open' : ''} ontoggle="window.CR_MAIS_ABERTO=this.open">
-      <summary>Mais campos<small>clientes, grupo, ${ehDemanda ? '' : 'captação, '}prioridade…</small></summary>
-    <div class="cr-campos">
+      <summary>Mais campos<small class="cr-mais-dica">clientes, grupo, ${ehDemanda ? 'tipo' : 'formato'}…</small><small class="cr-mais-recolher">recolher</small></summary>
+    <div class="cr-campos cr-grade">
       ${linha('Clientes', botaoClientesDoItem(item))}
       ${linha('Grupo', botaoDeGrupo(item))}
+      ${linha(ehDemanda ? 'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato'))}
+      ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
       ${ehDemanda ? '' : linha('Captação', pillEditavel(item, 'captacao'))}
       ${ehDemanda ? '' : linha('Tipo', pillEditavel(item, 'tipo_conteudo'))}
-      ${ehDemanda ? '' : linha('OFF / áudio', pillEditavel(item, 'off_audio'))}
-      ${linha('Prioridade', pillEditavel(item, 'prioridade'))}
-      ${(() => { const c = cadastroDaPeca(item); return linha('Cadastrado por', `<span class="cr-texto">${safeText(c.quem)}</span>`) + linha('Criado em', `<span class="cr-texto">${safeText(c.quando)}</span>`); })()}
+      ${ehDemanda ? '' : linha('OFF e áudio', pillEditavel(item, 'off_audio'))}
+      ${linha('Cadastro', `<span class="cr-texto">${safeText(cadastro)}</span>`)}
     </div>
     </details>
     ${ehDemanda ? `<div class="cr-recursos" id="cr-recursos-${safeText(item.id)}" role="status">Carregando briefing e material…</div>` : ''}
@@ -727,7 +739,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
         title="Arquivos, histórico e entrega">${ehDemanda ? 'Abrir a demanda' : 'Abrir a peça'}</button>
     </div>`;
   document.body.append(fundo, cartao);
-  ancorarPopover(cartao, rect);
+  ancorarCartaoNaLinha(cartao, rect);
   // As subdemandas chegam numa pergunta só, depois que o cartão já está na tela:
   // esperar por elas atrasaria a abertura por causa de uma seção.
   if (ehDemanda && typeof subitensHtml === 'function') {
@@ -737,7 +749,7 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
       caixa.innerHTML = subitensHtml(detalhe, item);
       const recursos = document.getElementById(`cr-recursos-${item.id}`);
       if (recursos) recursos.innerHTML = blocoDoBriefingHtml(detalhe, item) + faixaDeMaterialBrutoHtml(detalhe, item, {compacta:true});
-      ancorarPopover(cartao, rect);
+      ancorarCartaoNaLinha(cartao, rect);
     }).catch(() => {
       const caixa = document.getElementById(`cr-subs-${item.id}`);
       if (caixa) caixa.innerHTML = '<div class="cr-subs-carregando">Não foi possível carregar as subdemandas.</div>';
@@ -750,6 +762,22 @@ function abrirCartaoRapido(itemId, event, source = 'content') {
   CARTAO_ABERTO = { id: String(itemId), source, origem,
     rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
             width: rect.width, height: rect.height } };
+}
+
+// O cartão é preso à linha (prancha V2-R-Cartao-Rapido, 19/11/2026): abre embaixo ou em cima dela, como todo popover;
+// quando não cabe nem embaixo nem em cima e acabaria cobrindo a própria linha, passa para o lado (direita, senão
+// esquerda), centrado na altura dela e sem sair da tela.
+function ancorarCartaoNaLinha(cartao, rect) {
+  ancorarPopover(cartao, rect);
+  const c = cartao.getBoundingClientRect(), margem = 10;
+  const cobre = c.top < rect.bottom && c.bottom > rect.top && c.left < rect.right && c.right > rect.left;
+  if (!cobre) return;
+  const lado = rect.right + 16 + c.width <= window.innerWidth - margem ? rect.right + 16
+    : rect.left - 16 - c.width >= margem ? rect.left - 16 - c.width : null;
+  if (lado == null) return;
+  const topo = Math.max(margem, Math.min(rect.top + rect.height / 2 - c.height / 2, window.innerHeight - c.height - margem));
+  cartao.style.left = `${Math.round(lado)}px`;
+  cartao.style.top = `${Math.round(topo)}px`;
 }
 
 function verPreviaDoCartao(itemId) {

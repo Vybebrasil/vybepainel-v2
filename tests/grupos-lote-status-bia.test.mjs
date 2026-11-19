@@ -73,10 +73,13 @@ test('Grupos: o status filtra a folha pela cabeça, com a contagem de cada um', 
 });
 
 test('Cartão da atividade: título, status, responsável, prazo, veiculação e formato editáveis ali mesmo', () => {
+  // Prancha V2-R-Cartao-Rapido (19/11/2026): os quatro principais em cima; o formato desce para a grade de Mais campos,
+  // com o mesmo botão de editar (continua editável dentro do cartão, como a Bia pediu).
   const ini = agenda.indexOf('cartao.innerHTML = `'), ess = agenda.slice(agenda.indexOf('cr-campos cr-essenciais', ini), agenda.indexOf('<details class="cr-mais"', ini));
-  for (const r of ["linha('Status'", "linha('Responsável'", "linha('Prazo'", "'Conclusão' : 'Veiculação'", "'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato')"]) assert.ok(ess.includes(r), r);
+  for (const r of ["linha('Status'", "linha('Responsável'", "linha('Prazo'", "'Conclusão' : 'Veiculação'"]) assert.ok(ess.includes(r), r);
+  assert.ok(!ess.includes("pillEditavel(item, 'formato')"), 'o formato sai dos quatro principais');
   const mais = agenda.slice(agenda.indexOf('<details class="cr-mais"', ini), agenda.indexOf('</details>', ini));
-  assert.ok(!mais.includes("pillEditavel(item, 'formato')"), 'o formato não fica repetido em Mais campos');
+  assert.equal(mais.split("pillEditavel(item, 'formato')").length - 1, 1, 'o formato aparece uma vez, em Mais campos');
   assert.match(agenda, /class="cr-titulo" role="button" tabindex="0"\s+onclick="event\.stopPropagation\(\);renomearPeca/);
   // A gaveta da peça não muda aqui (outro agente cuida dela): "Abrir a peça" segue levando a ela.
   assert.match(agenda, /ehDemanda \? `openDemandaWorkspace\('\$\{jsArg\(item\.id\)\}'\)` : `openItemWorkspace\('\$\{jsArg\(item\.id\)\}'\)`/);

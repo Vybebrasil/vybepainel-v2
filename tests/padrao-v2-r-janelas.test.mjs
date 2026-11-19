@@ -42,3 +42,29 @@ test('Criar: janela no vidro fumê, folha de canto 12, escolha com rádio, prév
   // o Criar dentro do Hoje mantém a frase do pé
   assert.match(js, /\$\{jan \? '' : '<p class="v2cr-pe">Demanda e Conteúdo seguem/);
 });
+
+test('Cartão rápido: vidro fumê, quatro campos em cima, Mais campos em grade, preso ao lado da linha quando cobriria', () => {
+  const css = ler('padrao-v2/zm-r-a-2-cartao.css');
+  assert.match(css, /\.cr-essenciais \.cr-linha\{display:grid;grid-template-columns:108px minmax\(0,1fr\)/);
+  assert.match(css, /\.cr-grade\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.cr-rodape \.cr-abrir\{[^}]*background:var\(--d3-fume-texto\);color:var\(--d3-fume-contra\)/);
+  const mundo = ler('vybe-mundo.css');
+  assert.match(mundo, /html body\.mundo \.cartao-rapido\{background:var\(--d3-fume-forte\)!important;[^}]*border-radius:var\(--d3-r-janela\)!important/);
+  const agenda = ler('vybe-agenda.js');
+  assert.match(agenda, /cartao\.className = 'cartao-rapido d3-tema'/);
+  assert.match(agenda, /function ancorarCartaoNaLinha\(cartao, rect\)/);
+  assert.match(agenda, /<small class="cr-mais-recolher">recolher<\/small>/);
+  assert.match(agenda, /linha\('OFF e áudio'/);
+  assert.match(agenda, /linha\('Cadastro', /);
+  // o fluxo e os botões de sempre
+  for (const t of ["openStatusEditor", "vybeDono(item, 'cr-dono'", "openPlanningEditor", "renomearPeca", "abrirClientesDoItem", "abrirSeletorDeGrupo", "ontoggle=\"window.CR_MAIS_ABERTO=this.open\""]) assert.ok(agenda.includes(t), t);
+});
+
+test('Cartão rápido: data curta com o dia da semana', async () => {
+  const agenda = ler('vybe-agenda.js');
+  const ini = agenda.indexOf("const DIA_SEM = "), fim = agenda.indexOf('const palavrasCli');
+  const dataCurta = new Function(`${agenda.slice(ini, fim)}; return dataCurta;`)();
+  assert.equal(dataCurta('2026-11-19'), 'qui, 19/11');
+  assert.equal(dataCurta('2026-11-20T10:00:00Z'), 'sex, 20/11');
+  assert.equal(dataCurta(''), '—');
+});
