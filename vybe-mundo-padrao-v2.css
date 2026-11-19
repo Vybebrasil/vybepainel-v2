@@ -4427,7 +4427,7 @@ button.d3-num.d3p-num:active{transform:scale(.98)}
 #pv2-demandas.pv2 .d3d-tar{font-size:var(--d3-fs-texto);color:var(--d3-apagado);font-variant-numeric:tabular-nums}
 #pv2-demandas.pv2 .d3d-tar.ok{font-weight:600;color:var(--d3-pronto)}
 #pv2-demandas.pv2 .pv2-det{margin:0;padding:4px 18px 10px 112px;border-radius:0;background:transparent}
-#pv2-demandas.pv2 .pv2-det .pv2-btn.s{height:30px;background:var(--d3-cartao);box-shadow:none}
+#pv2-demandas.pv2 .pv2-det .pv2-btn.s{height:28px;background:var(--d3-cartao);box-shadow:none}
 #pv2-demandas.pv2 .pv2-det .pv2-btn.s.k{background:var(--d3-tinta);color:var(--d3-contra)}
 #pv2-demandas.pv2 .pv2-grupo > .d3p-mais{height:30px;margin:0}
 #pv2-demandas.pv2 .pv2-pe-geral,#pv2-demandas.pv2 .pv2-nada{padding:10px 18px;border-top:1px solid var(--d3-linha)}
@@ -5546,6 +5546,96 @@ body.mundo .d3m-e-ct-rot.conta-ai-rotulo{font-size:var(--d3-fs-apoio)}
 
 /* 6 */
 .v2-risca.feita{color:var(--d3-apagado)}
+
+/* ===== padrao-v2/da-producao.css ===== */
+/* ===================================================================================================================
+   CORREÇÕES DO CONFERE DE DIRETOR DE ARTE · FRENTE DA-4 · PRODUÇÃO, DEMANDAS E APROVAÇÃO (19/11/2026). O Paulo pediu
+   "um confere geral como diretor de arte… muita coisinha mal diagramada e mal feita… vê responsividade de tudo". Telas:
+   Produção (Semana, Mês, Feed e Equipe; Grupos foi aprovado nos PRs #747 e #751 e fica como está), Demandas, Direção de
+   arte, Agenda, Minhas tarefas e Visão do setor. Régua: botão 34 (28 no compacto), canto 8, rótulo 12, um laranja por
+   tela e alvo de toque de 34 no celular. Só tokens --d3-*, nenhum important. Este fragmento entra antes de gestao, paineis,
+   s-*, z-* e zm-* na junção (ordem alfabética), por isso as regras repetem uma classe ou um id para vencer as de lá
+   sem depender da ordem. O que nasceu em arquivo desta frente foi corrigido lá mesmo (z-direcao.css e d3-producao.css).
+   1. Régua de dias da Visão do setor (.vst-dia, "seg 16 · 5 de 11"): era linha de 30 px com canto 0 e fio em cima.
+      Vira a linha de lista do padrão: 28 px, canto 8, sem fio (o véu do passar do mouse já separa), 34 no celular.
+   2. Segmentados: a moldura passa a 34 e o botão a 28 (padrão do segmentado V2, como o de Automações).
+      Vale para o .pv2-seg de todos os painéis da Produção e para "Produção | Clientes | …" da Visão do setor.
+   3. Botão pequeno dos painéis (.pv2-btn.s: "Abrir a peça", "Trocar responsável") e o "Resolver" da Visão do setor:
+      30 → 28; no celular, 34.
+   4. Rótulo "Marcar" do lote em 12.
+   5. Demandas: chave "Mostrar ID" (36 → 34) e "Nova demanda" no celular (36 → 34).
+   6. Feed: dias do calendário em 34 (eram 36) e 28 em tela baixa (eram 30) e o nome da data comemorativa em até 3 linhas antes de cortar.
+   7. Direção de arte: linhas do time (.d3m-a-da-pes) com canto 8 e 34 de altura; a fila do Danilo sem caixa alta,
+      botões em 28 ("Cobrar") e 34 ("Confirmar"), e o tipo, a pessoa e as ações
+      descem para a segunda linha (ações à direita), em vez de empurrar o "Cobrar" para fora do cartão (e o nome da peça, que sumia
+      espremido, volta a aparecer).
+   8. Um laranja por tela. Agenda: a gravação que falta fechar deixa de ser laranja (o cartão do Lucas já é o laranja da
+      tela); fica na cor da captação com um anel por dentro, e o selo "falta fechar" continua. Equipe: "em produção" sai
+      do laranja e vai para o roxo dos agentes (o cartão do Heitor é o laranja da tela).
+   9. Celular (até 480 px): o subtítulo da Direção de arte ("quinta, 19 nov · 2 esperam revisão · …") quebra linha em
+      vez de passar 41 px da caixa; e alvo de toque de 34 (a altura do botão) em todo controle destas telas. Ficam de fora o calendário do mês (dia e
+      chip do mês da Agenda e da Produção, que viram grade de 7 colunas) e o evento da semana da Agenda, cuja altura é a
+      duração.
+   =================================================================================================================== */
+
+/* 1. Régua de dias da Visão do setor */
+.vst .vst-dias-lista{gap:0}
+.vst .vst-dia.vst-dia{height:28px;border-top:0;border-radius:var(--d3-r-botao)}
+
+/* 2. Segmentados */
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-seg.pv2-seg{padding:3px;box-sizing:border-box}
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-seg.pv2-seg button{height:28px}
+.vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-casa .g2-topo .g2-seg{height:34px}
+.vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-casa .g2-topo .g2-seg > button{height:28px}
+
+/* 3. Botão pequeno */
+:is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-btn.s.s{height:28px}
+.vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-casa .vst-lin .g2-btn{height:28px}
+
+/* 4. Rótulo do lote */
+:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas) .pv2-det .pv2-lote{font-size:var(--d3-fs-apoio)}
+
+/* 5. Demandas */
+#pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-chave.s-dm-chave{height:34px}
+
+/* 6. Feed */
+.vfd2-cal .vfd2-sem.vfd2-sem{min-height:34px}
+.vfd2-cal .vfd2-dia.vfd2-dia{height:34px}
+@media (max-height:800px){
+  .vfd2-cal .vfd2-sem.vfd2-sem{min-height:28px}
+  .vfd2-cal .vfd2-dia.vfd2-dia{height:28px}
+}
+#feed-board.d3m-a-v2 .vfd-x .vfd-x-data{-webkit-line-clamp:3}
+
+/* 7. Direção de arte */
+@media (min-width:761px){
+  #vv-hoje .d3m-a-da .d3m-a-da-pes.d3m-a-da-pes{height:34px;border-top:0;border-radius:var(--d3-r-botao)}
+}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-q.vcr-q{font-weight:600;letter-spacing:0;text-transform:none}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-sug.vcr-lin.vcr-lin{flex-wrap:wrap;row-gap:6px}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-sug.vcr-lin.vcr-lin > .vcr-lin-meio{flex:1 1 calc(100% - 74px)}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-sug.vcr-lin.vcr-lin > .vcr-sug-acoes{flex:1 1 auto;justify-content:flex-end;margin-left:0}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-sug-acoes.vcr-sug-acoes :is(.vc-acao,.vc-sec){height:28px;min-height:28px;border-radius:var(--d3-r-botao)}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-sug-acoes.vcr-sug-acoes .vcr-adiar{width:28px}
+#vv-hoje .d3h-danilo .vcr-lote.vcr-lote > .vc-acao{height:34px;border-radius:var(--d3-r-botao)}
+
+/* 8. Um laranja por tela */
+.agv2 .agv2-ev.fechar{--agv2-cor:var(--d3-mod-vybe);--agv2-clara:var(--d3-mod-vybe-claro);box-shadow:inset 0 0 0 2px var(--d3-escuro-texto)}
+:is(.d3m-a-eq-leg,.d3m-a-eq-b){--d3m-a-producao:var(--d3-agente)}
+
+/* 9. Celular */
+@media (max-width:480px){
+  .vst .vst-dia.vst-dia{height:34px}
+  #vv-hoje .d3q .d3h-ola > small{max-width:100%;white-space:normal}
+  :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-btn.s.s{height:34px}
+  :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#pv2-ia) .pv2-seg.pv2-seg button{height:34px}
+  .vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-casa .g2-topo .g2-seg{height:40px}
+  .vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-casa .g2-topo .g2-seg > button{height:34px}
+  .vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-casa .vst-lin .g2-btn{height:34px}
+  #pv2-demandas.pv2.d3m-a-dm .pv2-btn.d3p-novo.d3p-novo{height:34px}
+  body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses.capt-meses button{height:34px;border-radius:var(--d3-r-botao)}
+  :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#vv-hoje,.vv-setor-visao) :is(button,summary,a[href],[role="button"],input:not([type="checkbox"]):not([type="radio"]),select):not(.capt-mes *,.d3m-a-dia-pcs *,.agv2-ev,.pv2-av){min-width:34px;min-height:34px}
+}
 
 /* ===== padrao-v2/diario.css ===== */
 /* ======================================================================================
@@ -12238,8 +12328,8 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
   #vv-hoje .d3q-main > .d3q-meio > :not(.d3q-acao){order:4}
   #vv-hoje .d3q-main > .d3q-pe{order:5}
   #vv-hoje .d3q .d3h-ola > h2{font-size:22px}
-  #vv-hoje .d3q .d3h-topo .vv-seg{display:flex;width:100%;height:40px}
-  #vv-hoje .d3q .d3h-topo .vv-seg > button{flex:1 1 auto;height:34px;padding:0 6px;font-size:var(--d3-fs-texto)}
+  #vv-hoje .d3q .d3h-topo .vv-seg,#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b){display:flex;width:100%;height:40px}
+  #vv-hoje .d3q .d3h-topo .vv-seg > button,#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{flex:1 1 auto;height:34px;padding:0 6px;font-size:var(--d3-fs-texto)}
   #vv-hoje .d3q .d3h-topo-dir{flex:1 1 100%;flex-wrap:wrap}
   #vv-hoje .d3q .d3h-nums{gap:8px}
   #vv-hoje .d3q .d3h-num{height:auto;min-height:96px;padding:12px;border-radius:14px}
@@ -12652,7 +12742,9 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel{display:block;margin:2px -14px 16px -14px;padding:0;background:none;box-shadow:none}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel > .d3m-topo{display:flex;align-items:center;gap:8px;min-height:48px;margin:0;padding:0 104px 0 0;color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-lado{position:absolute;right:16px;top:72px;bottom:-4px;width:316px;overflow-y:auto;scrollbar-width:none}
-#pv2-painel .d3m-tit{display:flex;flex-direction:column;gap:3px;min-width:0;margin-right:auto}
+#pv2-painel .d3m-tit{display:flex;flex-direction:column;gap:3px;min-width:0;max-width:100%;margin-right:auto;box-sizing:border-box}
+#pv2-painel .d3m-tit > *{min-width:0;max-width:100%}
+#pv2-painel .d3m-tit > .d3p-data{overflow:hidden;text-overflow:ellipsis}
 #pv2-painel .d3m-troca{position:relative}
 #pv2-painel .d3m-troca > summary{display:inline-flex;align-items:center;gap:6px;list-style:none;cursor:pointer;border-radius:var(--d3-r-botao)}
 #pv2-painel .d3m-troca > summary::-webkit-details-marker{display:none}
@@ -12665,8 +12757,8 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-lado{p
 #pv2-painel .d3m-modos > .pv2-pop{left:0;right:0;top:auto;bottom:calc(100% + 6px)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3m-troca > summary > h2{color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-data{font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas{flex:none;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas{flex:none;gap:2px;height:34px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button{height:28px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel :is(#pv2-vistas > button,.pv2-busca,.d3p-novo):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca{flex:0 0 34px;width:34px;max-width:34px;min-width:0;height:34px;padding:0 0 0 32px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background-color:var(--d3-fume-veu-forte);background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2711%27 cy=%2711%27 r=%276%27/%3E%3Cpath d=%27m20 20-4.5-4.5%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:9px center;background-size:16px;box-shadow:none;color:var(--d3-fume-texto);cursor:pointer;transition:max-width .2s,flex-basis .2s}
@@ -12739,9 +12831,9 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(1){flex:0 0 44px}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(2){flex:0 0 28px}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(3){flex:1 1 auto}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(4){flex:0 0 96px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(5){flex:0 0 150px}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(6){flex:0 0 112px}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(4){flex:0 0 120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(5){flex:0 0 126px}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(6){flex:0 0 80px}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cab{position:absolute;right:16px;top:0;height:24px;display:flex;align-items:center;margin:0;padding:0;border:0;background:none}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cab > :not(.pv2-dia-menu){display:none}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cab > .pv2-dia-menu > summary{font-size:0;list-style:none;cursor:pointer;border-radius:4px}
@@ -12758,9 +12850,9 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-t{flex:1 1 auto;min-width:0;margin:0;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-t .pv2-cli{font-weight:600}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-t .pv2-cli::before{content:none}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-trilha{flex:0 0 96px}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-r{flex:0 0 150px;display:flex;align-items:center;gap:8px;min-width:0;margin:0}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-avs{flex:0 0 112px;display:flex;justify-content:flex-end}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-trilha{flex:0 0 120px}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-r{flex:0 0 126px;display:flex;align-items:center;gap:8px;min-width:0;margin:0}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-avs{flex:0 0 80px;display:flex;justify-content:flex-end}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3p-quando{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-nada{margin:0;padding:28px 16px;border-top:1px solid var(--d3-divisa);text-align:center;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-det{padding:0 16px 12px 108px}
@@ -12813,7 +12905,7 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana.pv2 .pv2-seg button[aria-checked="true"]{background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-r .pv2-st.pv2-st{height:auto;padding:0;border-radius:4px;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-r .pv2-st.pv2-st::before{content:"";flex:none;width:7px;height:7px;margin-right:1px;border-radius:50%;background:var(--st,var(--d3-meta))}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-av{width:24px;height:24px}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-av{width:28px;height:28px}
 
 /* segunda leva da Produção */
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 .d3m-troca > summary > h2{color:var(--d3-fume-texto)}
@@ -12829,7 +12921,7 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 .d3m-modos > summary.d3m-vlin > span > b{color:var(--d3-fume-texto)}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-cab > .pv2-dia-menu > summary > *{display:none}
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .pv2-av:not(.sd){border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif)}
-.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(6){flex:0 0 112px;text-align:right}
+.pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(6){flex:0 0 80px;text-align:right}
 
 /* terceira leva da Produção */
 .d3m-ico,.d3m-c-ico,.d3m-e-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
