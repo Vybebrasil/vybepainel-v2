@@ -349,14 +349,14 @@ function feedTileHtml(t, cli) {
   if (t.ig) {
     const p = t.ig, icone = p.tipo === 'carrossel' ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Carrossel"></i>' : p.tipo === 'video' ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo"></i>' : '';
     return `<a class="vfd-t vfd-ig${t.primeiroNoAr ? ' vfd-hoje' : ''}" data-vfd-chave="ig:${feedEsc(p.codigo || p.link || '')}" href="${feedEsc(p.link)}" target="_blank" rel="noopener noreferrer" title="${p.data ? `No ar desde ${feedEsc(feedDm(String(p.data).slice(0, 10)))}` : 'No ar'}${p.fixado ? ' (fixado)' : ''}: abrir no Instagram">
-      <img src="${feedEsc(feedFotoIg(p.imagem))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${icone}${feedSeloNoAr(t)}</a>`;
+      <img src="${feedEsc(feedFotoIg(p.imagem))}" alt="" width="480" height="600" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${icone}${feedSeloNoAr(t)}</a>`;
   }
   const it = t.item, id = String(it.id), arte = t.request ? null : FEED.artes.get(id);
   const nome = String(it.nome || it.titulo || 'Peça');
   const status = typeof statusEmFrase === 'function' ? statusEmFrase(it.status || '') : String(it.status || '');
   const quando = feedQuando(t.iso);
   const corpo = arte?.thumb
-    ? `<img src="${feedEsc(String(arte.thumb).replace(/sz=\d+/, 'sz=480'))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${/^(mp4|mov|m4v|webm|avi)$/i.test(String(arte.extensao || '')) ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo: frame do Drive"></i>' : arte.total > 1 ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Mais de um arquivo"></i>' : ''}`
+    ? `<img src="${feedEsc(String(arte.thumb).replace(/sz=\d+/, 'sz=480'))}" alt="" width="480" height="600" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${/^(mp4|mov|m4v|webm|avi)$/i.test(String(arte.extensao || '')) ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo: frame do Drive"></i>' : arte.total > 1 ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Mais de um arquivo"></i>' : ''}`
     : `<span class="vfd-prov vfd-prov-${feedEsc(t.fmt.chave)}"><b>${feedEsc(t.fmt.nome)}</b><small>${feedEsc(nome)}</small></span>`;
   if (t.passado) return `<div class="vfd-t vfd-passado${t.primeiroNoAr ? ' vfd-hoje' : ''}" data-vfd-chave="i:${feedEsc(id)}" title="${feedEsc(nome)} · veiculada em ${feedEsc(feedDm(t.iso))}">${corpo}${feedSeloNoAr(t)}</div>`;
   const atrasada = feedAtrasada(t);
@@ -394,7 +394,7 @@ function feedClienteHtml(cli) {
     g.depois ? `<span class="vfd-aviso" title="Estão na grade, acima das próximas semanas">${feedPlural(g.depois, 'peça depois', 'peças depois')} de ${feedDm(g.jan.fim)}</span>` : '',
   ].filter(Boolean).join('');
   const iniciais = cli.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
-  const foto = p?.foto ? `<img src="${feedEsc(feedFotoIg(p.foto))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${jsArg(iniciais)}'}))">` : `<span>${feedEsc(iniciais)}</span>`;
+  const foto = p?.foto ? `<img src="${feedEsc(feedFotoIg(p.foto))}" alt="" width="64" height="64" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${jsArg(iniciais)}'}))">` : `<span>${feedEsc(iniciais)}</span>`;
   const usuario = cli.usuario ? `<a class="vfd-ig-user" href="https://www.instagram.com/${feedEsc(cli.usuario)}/" target="_blank" rel="noopener noreferrer">${feedEsc(cli.usuario)}</a>${p?.verificado ? '<i class="vfd-ig-selo" aria-label="Verificado"></i>' : ''}` : '<span class="vfd-ig-user vfd-sem-insta">sem Instagram no cadastro</span>';
   const nums = `<span><b>${feedNumeroIg(p?.total_posts)}</b> posts</span><span><b>${feedNumeroIg(p?.seguidores)}</b> seguidores</span>`
     + (p?.seguindo != null ? `<span><b>${feedNumeroIg(p.seguindo)}</b> seguindo</span>` : `<span><b>${g.futuras.length}</b> a sair</span>`);
@@ -1031,7 +1031,7 @@ function feedV2Foto(cli, classe = 'd3v-foto') {
   const iniciais = cli.nome.trim().slice(0, 2).toUpperCase();
   // A mesma logo das outras telas (vybe-logo-cliente.js); sem esse arquivo, a foto do perfil que o Feed leu.
   if (typeof logoDoClienteHtml === 'function') return logoDoClienteHtml(cli.nome, { classe, iniciais });
-  return p && !p.erro && p.foto ? `<img class="${classe}" src="${feedEsc(feedFotoIg(p.foto))}" alt="" loading="lazy">` : `<i class="${classe}" aria-hidden="true">${feedEsc(iniciais)}</i>`;
+  return p && !p.erro && p.foto ? `<img class="${classe}" src="${feedEsc(feedFotoIg(p.foto))}" alt="" width="64" height="64" loading="lazy">` : `<i class="${classe}" aria-hidden="true">${feedEsc(iniciais)}</i>`;
 }
 function feedV2Troca(el, html) { if (el && el.vfdHtml !== html) { el.innerHTML = html; el.vfdHtml = html; return true; } return false; }
 // A lista dos clientes, direto no vidro: quantos são, quantos posts faltam, a carteira e cada cliente com os buracos dele.

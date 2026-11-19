@@ -3808,7 +3808,7 @@ body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d
   body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){padding-top:14px;padding-bottom:12px}
 }
 @media (max-width:900px){
-  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{top:calc(var(--vv-m,8px) + 488px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;pointer-events:auto}
+  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{top:calc(var(--vv-m,8px) + 488px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;pointer-events:auto}
   #d3-centro .d3c-faixa{position:fixed;top:calc(var(--vv-m,8px) + 198px);left:var(--vv-m,8px);right:var(--vv-m,8px)}
   #d3-centro .d3c-mapa{position:fixed;top:calc(var(--vv-m,8px) + 276px);left:var(--vv-m,8px);right:var(--vv-m,8px);height:202px;min-height:0}
   body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.vv-ilha{display:none}
@@ -3820,7 +3820,7 @@ body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d
   #d3-centro .d3c-faixa > .v2m-fala.d3h-acao{padding:10px 12px;font-size:var(--d3-fs-destaque)}
   #d3-centro .v2m-fala.d3h-acao > .d3-acao-frase > span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   #d3-centro .v2m-fala.d3h-acao > .d3-acao-btn{height:34px;padding:0 12px;font-size:var(--d3-fs-texto)}
-  body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){left:var(--vv-m,8px);right:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 488px);bottom:76px;width:auto;max-height:none}
+  body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){left:var(--vv-m,8px);right:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 488px);bottom:var(--vv-pe-janela,76px);width:auto;max-height:none}
 }
 
 /* MINHA SALA PELO QUADRO (D3-MinhaSala): o quarto 3D vai para o cartão da esquerda (--d3s-q*, medido em pintarSalaD3);
@@ -3934,7 +3934,7 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 #ofc-ranking .d3r-jg-card .v2r-mesa-jogos{margin:6px 0 0;padding-top:10px;border-top:1px solid var(--d3-linha)}
 #ofc-ranking .d3r-quem{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 0}
 #ofc-ranking .d3r-quem > .v2r-link{padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:underline;cursor:pointer}
-@media (max-width:900px){body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px}}
+@media (max-width:900px){body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px)}}
 /* Conta do topo: um título só, o X do tamanho certo, o selo do humor e Boletim/Notas/Ajuda num grupo no fim. */
 #mundo-hud .vv-menu-conta.vv-menu-conta::before{content:none;display:none}
 #mundo-hud .vv-menu-conta > .vv-menu-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px 6px 10px}
@@ -5390,6 +5390,69 @@ button.d3s-lin-txt{cursor:pointer}
 body.mundo-sobre-escritorio #painel-escritorio *,body.mundo-sobre-escritorio #painel-escritorio *::before,body.mundo-sobre-escritorio #painel-escritorio *::after{animation-play-state:paused}
 @media (prefers-reduced-motion: reduce){.rotulo-vybes i::after,.vv-ser i::after{animation:none;opacity:0}}
 
+/* ===== padrao-v2/da-7.css ===== */
+/* ======================================================================================
+   PADRÃO V2 · ACABAMENTO (correções do confere de diretor de arte, frente da-7, 19/11/2026)
+   O que as frentes da-1 a da-5 deixaram, corrigido na peça de origem. Só tokens --d3-*, sem !important.
+   ====================================================================================== */
+
+/* AS TELAS DO ESCRITÓRIO TERMINAM ACIMA DO DOCK NO TABLET (achados 629, 724 e os "coberto pelo dock" a 768). Até 900
+   o dock fica em cima da barra de baixo e, com os nomes, quebra em duas linhas; pintarDock (vybe-mundo.js) já mede a
+   distância do pé da tela ao topo dele em --vv-dock-alto, e as janelas dos módulos usam essa conta. As telas do
+   Escritório (Minha sala, Prédio e Centro, Jogos, Loja, Ranking, Equipe online) paravam a 76 px do pé, a altura só da
+   barra de baixo: o dock ficava por cima das tiras da semana, do ranking e da consulta. Um pé só para elas,
+   --vv-pe-janela (lido nos fragmentos de cada uma): acima do dock quando ele está à vista; sem ele (o cartão do Voz no
+   celular, --vv-dock-alto 0), os mesmos 76 da barra de baixo. */
+@media (max-width:900px){
+  body.mundo{--vv-pe-janela:max(76px,calc(var(--vv-dock-alto,0px) + var(--vv-m,8px) + 6px))}
+
+  /* "Minha sala" no dock passava 3 px do botão: os nomes subiram a 12 (da-casca.css) e o botão continuava com 50 de
+     largura. O botão cresce com o nome; a quebra em duas linhas (dock.css) absorve. */
+  #vv-dock-salas-faixa .vq-dock .vq-item.vq-item{width:auto;min-width:50px}
+}
+
+/* A AGENDA NÃO VAZA NO TABLET (rolagem de 6 px a 768). A tela da Agenda sangra até a borda da janela com margem
+   negativa igual ao recuo do contêiner (30 px acima de 900), mas até 900 o recuo do contêiner é 14 px: sobravam
+   16 px de cada lado, o título encostava na borda da tela e a página rolava de lado. */
+@media (max-width:900px){
+  .agv2-tela.agv2-tela{margin-left:-14px;margin-right:-14px}
+}
+
+/* PÍLULAS DO TÍTULO DAS FINANÇAS COM A MESMA ALTURA (achado 165). Na linha do título o selo "só donos" tem 24 e a
+   pílula ao lado (Extrato, Agente) tinha 22. A pílula da linha do título fica com a altura do selo. */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-tit > .fv2-pill.fv2-pill{height:24px;box-sizing:border-box}
+
+/* BARRA DO TOPO ENTRE 901 E 1180 (achado 051). Acima de 1180 a barra é a linha de ícones de 34 com canto 8; nessa
+   faixa ela continuava com os botões antigos de 40 e canto 10 (vybe-mundo.css). Fica no padrão: 34, canto 8. */
+@media (min-width:901px) and (max-width:1180px){
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao.vv-botao:not(#v2-da7):not(#v2-da7b),
+  body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu > summary.vv-botao.vv-botao:not(#v2-da7):not(#v2-da7b){height:34px;min-height:34px;border-radius:var(--d3-r-botao)}
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao.vv-botao:not(.vv-busca-larga):not(#v2-da7):not(#v2-da7b),
+  body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu > summary.vv-botao.vv-botao:not(#v2-da7):not(#v2-da7b){width:34px;min-width:34px;padding:0;justify-content:center}
+  body.mundo #mundo-hud .vv-ferramentas > .vv-topo-sala.vv-topo-sala:not([hidden]){height:34px}
+}
+
+/* TOOLKIT ENTRE 901 E 1180 (achado 017 e a causa dele). Com a coluna de consulta (316 px) ao lado, as três ferramentas
+   ficavam com ~167 px cada a 1024: o nome quebrava palavra por palavra ("QR / Code"), o "mais opções" passava por cima do
+   título, o PNG/SVG e a cor saíam do cartão e o "Olá! Quero saber mais." cortava no campo. Nessa faixa a consulta desce
+   para depois das ferramentas (como abaixo de 900) e as três ficam lado a lado com a largura da janela; a janela rola
+   por dentro quando precisa. */
+@media (min-width:901px) and (max-width:1180px){
+  body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela.d3m-e-tk-janela{overflow-y:auto}
+  #vv-ferramentas .d3m-e-tk.d3m-e-tk{flex:none}
+  #vv-ferramentas .d3m-e-tk > .vf-corpo.d3m-e-corpo.d3m-e-corpo{grid-template-columns:minmax(0,1fr);flex:none}
+  #vv-ferramentas .d3m-e-tk > .vf-corpo.d3m-e-corpo > .d3m-lado{overflow:visible}
+  #vv-ferramentas .d3m-e-tk-tres.d3m-e-tk-tres{flex:none}
+}
+
+/* ELEVADOR REPETIDO NO PRÉDIO ATÉ 900 (algo cobre algo a 768 e 375). Acima de 900 a placa antiga do elevador
+   (#vv-placa com .vv-elevador-lista) já sai, porque a folha do elevador do Prédio (.d3m-f-elev) é a lista dos andares
+   (zm-f-predio.css). Até 900 ela continuava aberta por cima do mapa e da folha nova, meio transparente, com o Fechar e o
+   "Tela cheia" embolados no topo. Sai também; a placa continua para um andar, um agente ou as camadas. */
+@media (max-width:900px){
+  body.mundo.mundo-centro.mundo-predio.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .vv-elevador-lista):not(#v2-da7){display:none}
+}
+
 /* ===== padrao-v2/da-campos.css ===== */
 /* ===================================================================================================================
    CORREÇÕES DO CONFERE DE DIRETOR DE ARTE · FRENTE DA-2 · PEÇA DE CAMPO E CONTROLE (19/11/2026). O Paulo pediu "um confere
@@ -5541,8 +5604,11 @@ body.mundo :is(input,select,textarea):not(:where(.workflow-modal *,#vv-whatsapp 
 .d3m-d-seg:is(.d3m-d-seg,#vv-h) > button,
 .d3m-e-per:is(.d3m-e-per,#vv-h) > button,
 :is(.d3m-a-vseg,.d3m-c-seg):is(.d3m-a-vseg,.d3m-c-seg,#vv-h) > button{height:28px}
-#d3-sala.d3m-f-mundo :is(.d3m-f-humor,.d3m-f-foco) > .d3m-f-chip:is(.d3m-f-chip,#vv-h),
-.d3c-chips.d3m-f-chips > .d3m-f-chip:is(.d3m-f-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
+#d3-sala.d3m-f-mundo :is(.d3m-f-humor,.d3m-f-foco) > .d3m-f-chip:is(.d3m-f-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
+/* O chip do mapa (Prédio e Centro) fica com 28 numa linha, mas cabe no cartão: no Prédio a 1024 o cartão do 3D tem
+   ~127 px e "andar 2 · Criação e Audiovisual" (228 px) saía do cartão por cima da lista dos andares (achado 195, da-7).
+   Se o nome não couber numa linha, o chip quebra e cresce. */
+.d3c-chips.d3m-f-chips > .d3m-f-chip:is(.d3m-f-chip,#vv-h){height:auto;min-height:28px;max-width:100%;padding-top:4px;padding-bottom:4px;box-sizing:border-box;border-radius:var(--d3-r-botao);white-space:normal;line-height:1.3;text-align:left}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-seg:is(.p2-seg,#vv-h){padding:3px;border-radius:var(--d3-r-caixa)}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-seg:is(.p2-seg,#vv-h) > button{height:28px;border-radius:var(--d3-r-botao)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg:is(.fv2-seg,#vv-h){padding:3px;border-radius:var(--d3-r-caixa)}
@@ -18780,8 +18846,8 @@ body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.
 
 /* Celular: o mapa fica preso no alto, no cartão; as tiras e a consulta rolam embaixo dele. */
 @media (max-width:900px){
-  body.mundo.mundo-centro.d3c-painel #mundo::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:76px}
-  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-height:0;padding:12px;overflow:hidden;pointer-events:none}
+  body.mundo.mundo-centro.d3c-painel #mundo::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px)}
+  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);min-height:0;padding:12px;overflow:hidden;pointer-events:none}
   #d3-centro.d3m-f-mundo > .d3m-e-topo .d3m-e-h{font-size:20px}
   #d3-centro.d3m-f-mundo > .d3m-e-topo .d3m-e-per > button{padding:0 9px}
   #d3-centro.d3m-f-mundo > .d3m-e-topo{flex-wrap:nowrap;margin-bottom:12px;pointer-events:auto}
@@ -18947,7 +19013,7 @@ body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:var(--vv-m,14px)
 }
 /* Celular: a janela rola inteira, uma coluna; as mesas em duas. */
 @media (max-width:900px){
-  body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;padding:12px;overflow-y:auto;overscroll-behavior:contain}
+  body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);padding:12px;overflow-y:auto;overscroll-behavior:contain}
   #vv-placa > .d3m-f-jogos{height:auto}
   #vv-placa > .d3m-f-jogos > .d3m-e-topo{align-items:flex-start}
   #vv-placa > .d3m-f-jogos .d3m-e-h{font-size:20px}
@@ -19075,7 +19141,7 @@ body.mundo #office-catalogo.d3m-f-lojaj[open]{position:fixed;top:var(--vv-m,14px
   .d3m-f-saldo-n{font-size:28px}
 }
 @media (max-width:900px){
-  body.mundo #office-catalogo.d3m-f-lojaj[open]{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;height:auto;max-height:none;margin:0}
+  body.mundo #office-catalogo.d3m-f-lojaj[open]{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);height:auto;max-height:none;margin:0}
   #office-catalogo.d3m-f-lojaj > .d3m-f-loja{padding:12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
   #office-catalogo.d3m-f-lojaj .d3m-f-loja{height:auto}
   #office-catalogo.d3m-f-lojaj .d3m-f-loja > .d3m-e-topo{flex-wrap:wrap;align-items:flex-start}
@@ -19200,7 +19266,7 @@ body.mundo #ofc-ranking .d3m-f-rk .d3m-f-rk-pe b{color:var(--d3-tinta)}
 #ofc-ranking .d3m-f-rk .d3m-f-ap{color:var(--d3-fume-apagado)}
 
 @media (max-width:900px){
-  body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-width:calc(100% - 2 * var(--vv-m,8px))}
+  body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);min-width:calc(100% - 2 * var(--vv-m,8px))}
   #ofc-ranking.rk2:has(> .d3m-f-rk){padding:12px;overflow-y:auto;overscroll-behavior:contain}
   #ofc-ranking > .d3m-f-rk{height:auto}
   #ofc-ranking > .d3m-f-rk > .d3m-e-topo{flex-wrap:wrap;align-items:flex-start}
@@ -19289,8 +19355,8 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala.d3m-f-mundo .qua
 
 /* Celular: o quarto fica preso no alto, no cartão; as tiras e a consulta rolam embaixo dele. */
 @media (max-width:900px){
-  body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:76px}
-  body.mundo #mundo-andar > #d3-sala.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-height:0;padding:12px;overflow:hidden;pointer-events:none}
+  body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px)}
+  body.mundo #mundo-andar > #d3-sala.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);min-height:0;padding:12px;overflow:hidden;pointer-events:none}
   #d3-sala.d3m-f-mundo > .d3m-f-topo{flex-wrap:nowrap;gap:8px;min-height:0;margin-bottom:12px}
   body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala.d3m-f-mundo .quarto-cab{flex-wrap:wrap;gap:8px}
   #d3-sala.d3m-f-mundo .quarto-cab .d3m-e-h{font-size:20px}
@@ -19400,7 +19466,7 @@ button.d3m-g-sala:focus-visible{outline:2px solid var(--d3-acao);outline-offset:
 }
 /* Celular: a janela rola inteira, uma coluna; as fichas em duas. */
 @media (max-width:900px){
-  body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-g-equipe){top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;padding:12px;overflow-y:auto;overscroll-behavior:contain}
+  body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-g-equipe){top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);padding:12px;overflow-y:auto;overscroll-behavior:contain}
   #vv-placa > .d3m-g-equipe{height:auto}
   #vv-placa > .d3m-g-equipe > .d3m-e-topo{flex-wrap:wrap;align-items:flex-start}
   #vv-placa > .d3m-g-equipe .d3m-e-h{font-size:20px}

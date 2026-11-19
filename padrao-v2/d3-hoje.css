@@ -607,7 +607,7 @@ body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d
   body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){padding-top:14px;padding-bottom:12px}
 }
 @media (max-width:900px){
-  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{top:calc(var(--vv-m,8px) + 488px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;pointer-events:auto}
+  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro{top:calc(var(--vv-m,8px) + 488px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;pointer-events:auto}
   #d3-centro .d3c-faixa{position:fixed;top:calc(var(--vv-m,8px) + 198px);left:var(--vv-m,8px);right:var(--vv-m,8px)}
   #d3-centro .d3c-mapa{position:fixed;top:calc(var(--vv-m,8px) + 276px);left:var(--vv-m,8px);right:var(--vv-m,8px);height:202px;min-height:0}
   body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.vv-ilha{display:none}
@@ -619,7 +619,7 @@ body.mundo.mundo-centro.d3c-painel #mundo-hud:has(> #vv-placa:not([hidden]) > .d
   #d3-centro .d3c-faixa > .v2m-fala.d3h-acao{padding:10px 12px;font-size:var(--d3-fs-destaque)}
   #d3-centro .v2m-fala.d3h-acao > .d3-acao-frase > span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   #d3-centro .v2m-fala.d3h-acao > .d3-acao-btn{height:34px;padding:0 12px;font-size:var(--d3-fs-texto)}
-  body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){left:var(--vv-m,8px);right:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 488px);bottom:76px;width:auto;max-height:none}
+  body.mundo.mundo-centro.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loja){left:var(--vv-m,8px);right:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 488px);bottom:var(--vv-pe-janela,76px);width:auto;max-height:none}
 }
 
 /* MINHA SALA PELO QUADRO (D3-MinhaSala): o quarto 3D vai para o cartão da esquerda (--d3s-q*, medido em pintarSalaD3);
@@ -733,7 +733,7 @@ body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{position:fixed;top:var(
 #ofc-ranking .d3r-jg-card .v2r-mesa-jogos{margin:6px 0 0;padding-top:10px;border-top:1px solid var(--d3-linha)}
 #ofc-ranking .d3r-quem{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 0}
 #ofc-ranking .d3r-quem > .v2r-link{padding:0;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:underline;cursor:pointer}
-@media (max-width:900px){body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px}}
+@media (max-width:900px){body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px)}}
 /* Conta do topo: um título só, o X do tamanho certo, o selo do humor e Boletim/Notas/Ajuda num grupo no fim. */
 #mundo-hud .vv-menu-conta.vv-menu-conta::before{content:none;display:none}
 #mundo-hud .vv-menu-conta > .vv-menu-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px 6px 10px}

@@ -52,7 +52,7 @@ body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:var(--vv-m,14px)
 }
 /* Celular: a janela rola inteira, uma coluna; as mesas em duas. */
 @media (max-width:900px){
-  body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;padding:12px;overflow-y:auto;overscroll-behavior:contain}
+  body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);padding:12px;overflow-y:auto;overscroll-behavior:contain}
   #vv-placa > .d3m-f-jogos{height:auto}
   #vv-placa > .d3m-f-jogos > .d3m-e-topo{align-items:flex-start}
   #vv-placa > .d3m-f-jogos .d3m-e-h{font-size:20px}

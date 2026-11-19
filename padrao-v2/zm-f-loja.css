@@ -112,7 +112,7 @@ body.mundo #office-catalogo.d3m-f-lojaj[open]{position:fixed;top:var(--vv-m,14px
   .d3m-f-saldo-n{font-size:28px}
 }
 @media (max-width:900px){
-  body.mundo #office-catalogo.d3m-f-lojaj[open]{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;height:auto;max-height:none;margin:0}
+  body.mundo #office-catalogo.d3m-f-lojaj[open]{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);height:auto;max-height:none;margin:0}
   #office-catalogo.d3m-f-lojaj > .d3m-f-loja{padding:12px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
   #office-catalogo.d3m-f-lojaj .d3m-f-loja{height:auto}
   #office-catalogo.d3m-f-lojaj .d3m-f-loja > .d3m-e-topo{flex-wrap:wrap;align-items:flex-start}

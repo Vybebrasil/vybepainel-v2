@@ -148,8 +148,11 @@ body.mundo :is(input,select,textarea):not(:where(.workflow-modal *,#vv-whatsapp 
 .d3m-d-seg:is(.d3m-d-seg,#vv-h) > button,
 .d3m-e-per:is(.d3m-e-per,#vv-h) > button,
 :is(.d3m-a-vseg,.d3m-c-seg):is(.d3m-a-vseg,.d3m-c-seg,#vv-h) > button{height:28px}
-#d3-sala.d3m-f-mundo :is(.d3m-f-humor,.d3m-f-foco) > .d3m-f-chip:is(.d3m-f-chip,#vv-h),
-.d3c-chips.d3m-f-chips > .d3m-f-chip:is(.d3m-f-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
+#d3-sala.d3m-f-mundo :is(.d3m-f-humor,.d3m-f-foco) > .d3m-f-chip:is(.d3m-f-chip,#vv-h){height:28px;border-radius:var(--d3-r-botao)}
+/* O chip do mapa (Prédio e Centro) fica com 28 numa linha, mas cabe no cartão: no Prédio a 1024 o cartão do 3D tem
+   ~127 px e "andar 2 · Criação e Audiovisual" (228 px) saía do cartão por cima da lista dos andares (achado 195, da-7).
+   Se o nome não couber numa linha, o chip quebra e cresce. */
+.d3c-chips.d3m-f-chips > .d3m-f-chip:is(.d3m-f-chip,#vv-h){height:auto;min-height:28px;max-width:100%;padding-top:4px;padding-bottom:4px;box-sizing:border-box;border-radius:var(--d3-r-botao);white-space:normal;line-height:1.3;text-align:left}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-seg:is(.p2-seg,#vv-h){padding:3px;border-radius:var(--d3-r-caixa)}
 :is(#vv-planejamentos,#vv-impressoes,#vv-ferramentas) .p2-seg:is(.p2-seg,#vv-h) > button{height:28px;border-radius:var(--d3-r-botao)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg:is(.fv2-seg,#vv-h){padding:3px;border-radius:var(--d3-r-caixa)}

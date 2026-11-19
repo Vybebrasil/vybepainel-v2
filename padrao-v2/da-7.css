@@ -1,0 +1,61 @@
+/* ======================================================================================
+   PADRÃO V2 · ACABAMENTO (correções do confere de diretor de arte, frente da-7, 19/11/2026)
+   O que as frentes da-1 a da-5 deixaram, corrigido na peça de origem. Só tokens --d3-*, sem !important.
+   ====================================================================================== */
+
+/* AS TELAS DO ESCRITÓRIO TERMINAM ACIMA DO DOCK NO TABLET (achados 629, 724 e os "coberto pelo dock" a 768). Até 900
+   o dock fica em cima da barra de baixo e, com os nomes, quebra em duas linhas; pintarDock (vybe-mundo.js) já mede a
+   distância do pé da tela ao topo dele em --vv-dock-alto, e as janelas dos módulos usam essa conta. As telas do
+   Escritório (Minha sala, Prédio e Centro, Jogos, Loja, Ranking, Equipe online) paravam a 76 px do pé, a altura só da
+   barra de baixo: o dock ficava por cima das tiras da semana, do ranking e da consulta. Um pé só para elas,
+   --vv-pe-janela (lido nos fragmentos de cada uma): acima do dock quando ele está à vista; sem ele (o cartão do Voz no
+   celular, --vv-dock-alto 0), os mesmos 76 da barra de baixo. */
+@media (max-width:900px){
+  body.mundo{--vv-pe-janela:max(76px,calc(var(--vv-dock-alto,0px) + var(--vv-m,8px) + 6px))}
+
+  /* "Minha sala" no dock passava 3 px do botão: os nomes subiram a 12 (da-casca.css) e o botão continuava com 50 de
+     largura. O botão cresce com o nome; a quebra em duas linhas (dock.css) absorve. */
+  #vv-dock-salas-faixa .vq-dock .vq-item.vq-item{width:auto;min-width:50px}
+}
+
+/* A AGENDA NÃO VAZA NO TABLET (rolagem de 6 px a 768). A tela da Agenda sangra até a borda da janela com margem
+   negativa igual ao recuo do contêiner (30 px acima de 900), mas até 900 o recuo do contêiner é 14 px: sobravam
+   16 px de cada lado, o título encostava na borda da tela e a página rolava de lado. */
+@media (max-width:900px){
+  .agv2-tela.agv2-tela{margin-left:-14px;margin-right:-14px}
+}
+
+/* PÍLULAS DO TÍTULO DAS FINANÇAS COM A MESMA ALTURA (achado 165). Na linha do título o selo "só donos" tem 24 e a
+   pílula ao lado (Extrato, Agente) tinha 22. A pílula da linha do título fica com a altura do selo. */
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3f-tit > .fv2-pill.fv2-pill{height:24px;box-sizing:border-box}
+
+/* BARRA DO TOPO ENTRE 901 E 1180 (achado 051). Acima de 1180 a barra é a linha de ícones de 34 com canto 8; nessa
+   faixa ela continuava com os botões antigos de 40 e canto 10 (vybe-mundo.css). Fica no padrão: 34, canto 8. */
+@media (min-width:901px) and (max-width:1180px){
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao.vv-botao:not(#v2-da7):not(#v2-da7b),
+  body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu > summary.vv-botao.vv-botao:not(#v2-da7):not(#v2-da7b){height:34px;min-height:34px;border-radius:var(--d3-r-botao)}
+  body.mundo #mundo-hud .vv-barra-topo .vv-ferramentas > .vv-botao.vv-botao:not(.vv-busca-larga):not(#v2-da7):not(#v2-da7b),
+  body.mundo #mundo-hud .vv-barra-topo .vv-mais-menu > summary.vv-botao.vv-botao:not(#v2-da7):not(#v2-da7b){width:34px;min-width:34px;padding:0;justify-content:center}
+  body.mundo #mundo-hud .vv-ferramentas > .vv-topo-sala.vv-topo-sala:not([hidden]){height:34px}
+}
+
+/* TOOLKIT ENTRE 901 E 1180 (achado 017 e a causa dele). Com a coluna de consulta (316 px) ao lado, as três ferramentas
+   ficavam com ~167 px cada a 1024: o nome quebrava palavra por palavra ("QR / Code"), o "mais opções" passava por cima do
+   título, o PNG/SVG e a cor saíam do cartão e o "Olá! Quero saber mais." cortava no campo. Nessa faixa a consulta desce
+   para depois das ferramentas (como abaixo de 900) e as três ficam lado a lado com a largura da janela; a janela rola
+   por dentro quando precisa. */
+@media (min-width:901px) and (max-width:1180px){
+  body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela.d3m-e-tk-janela{overflow-y:auto}
+  #vv-ferramentas .d3m-e-tk.d3m-e-tk{flex:none}
+  #vv-ferramentas .d3m-e-tk > .vf-corpo.d3m-e-corpo.d3m-e-corpo{grid-template-columns:minmax(0,1fr);flex:none}
+  #vv-ferramentas .d3m-e-tk > .vf-corpo.d3m-e-corpo > .d3m-lado{overflow:visible}
+  #vv-ferramentas .d3m-e-tk-tres.d3m-e-tk-tres{flex:none}
+}
+
+/* ELEVADOR REPETIDO NO PRÉDIO ATÉ 900 (algo cobre algo a 768 e 375). Acima de 900 a placa antiga do elevador
+   (#vv-placa com .vv-elevador-lista) já sai, porque a folha do elevador do Prédio (.d3m-f-elev) é a lista dos andares
+   (zm-f-predio.css). Até 900 ela continuava aberta por cima do mapa e da folha nova, meio transparente, com o Fechar e o
+   "Tela cheia" embolados no topo. Sai também; a placa continua para um andar, um agente ou as camadas. */
+@media (max-width:900px){
+  body.mundo.mundo-centro.mundo-predio.d3c-painel:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .vv-elevador-lista):not(#v2-da7){display:none}
+}

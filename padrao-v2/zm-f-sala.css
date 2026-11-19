@@ -75,8 +75,8 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala.d3m-f-mundo .qua
 
 /* Celular: o quarto fica preso no alto, no cartão; as tiras e a consulta rolam embaixo dele. */
 @media (max-width:900px){
-  body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:76px}
-  body.mundo #mundo-andar > #d3-sala.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-height:0;padding:12px;overflow:hidden;pointer-events:none}
+  body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px)}
+  body.mundo #mundo-andar > #d3-sala.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);min-height:0;padding:12px;overflow:hidden;pointer-events:none}
   #d3-sala.d3m-f-mundo > .d3m-f-topo{flex-wrap:nowrap;gap:8px;min-height:0;margin-bottom:12px}
   body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala.d3m-f-mundo .quarto-cab{flex-wrap:wrap;gap:8px}
   #d3-sala.d3m-f-mundo .quarto-cab .d3m-e-h{font-size:20px}
