@@ -31,8 +31,9 @@ test('folha: etapas em texto com a atual em negrito, barra e lista na mesma orde
   const c = folhaNoVm({ item: { id: '7', nome: 'Card · Promoção', cliente: 'Cliente A', status: 'Para aprovação', veiculacao: '14/11', prazo_iso: '2026-11-11' }, opcoes: OPCOES });
   assert.match(c.html, /Criação, <b>aprovação interna<\/b>, cliente, pronta/);
   assert.match(c.html, /class="v2-barra" style="--v:50%/);
-  assert.match(c.html, /<span class="gv2-cel-pill r">Atrasada 2 dias<\/span>/);
-  assert.match(c.html, /veicula 14\/11/);
+  // Paulo, 18/11/2026: a data diz o que é ("Prazo venceu há…", "veic.").
+  assert.match(c.html, /<span class="gv2-cel-pill r">Prazo venceu há 2 dias<\/span>/);
+  assert.match(c.html, /veic\. 14\/11/);
   assert.equal((c.html.match(/class="gv2-cel-lin"/g) || []).length, 4, 'uma linha por etapa quando a peça não tem subdemandas');
   assert.match(c.html, /gv2-cel-cx ok[\s\S]*gv2-cel-cx vivo[\s\S]*gv2-cel-cx vazio/);
   assert.equal(c.etapaDaPeca({ status: 'Ag. Aprovação Cliente' }), 2);

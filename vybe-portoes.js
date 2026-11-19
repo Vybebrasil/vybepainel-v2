@@ -109,7 +109,10 @@ function workflowItemHtml(item, target='') {
 // Etapas do portão em pílula (família Formulário do padrão v2): conferir é a 1, a troca de status é a 2.
 function etapasDoPortao(destino) { return typeof vbEtapasHtml === 'function' ? vbEtapasHtml(['Conferir', `Mudar para ${destino || 'o status novo'}`], 0) : ''; }
 function closeWorkflowModal() { const origem=document.getElementById('workflow-modal')?.returnFocus; document.getElementById('workflow-backdrop')?.remove(); document.getElementById('workflow-modal')?.remove(); pendingWorkflowChange = null; if(origem?.isConnected) origem.focus(); }
-function openWorkflowModal(html) { document.getElementById('workflow-backdrop')?.remove(); document.getElementById('workflow-modal')?.remove(); const back=document.createElement('div'); back.id='workflow-backdrop'; back.className='workflow-backdrop'; back.onclick=closeWorkflowModal; const modal=document.createElement('section'); modal.id='workflow-modal'; modal.className='workflow-modal'; modal.innerHTML=html; document.body.append(back,modal); }
+function openWorkflowModal(html) { document.getElementById('workflow-backdrop')?.remove(); document.getElementById('workflow-modal')?.remove(); const back=document.createElement('div'); back.id='workflow-backdrop'; back.className='workflow-backdrop'; back.onclick=closeWorkflowModal; const modal=document.createElement('section'); modal.id='workflow-modal'; modal.className='workflow-modal'; modal.innerHTML=html; if(janelaV2DoPortao(html)) modal.classList.add('d3-tema'); document.body.append(back,modal); }
+// Portão da peça (o cartão da peça de workflowItemHtml no topo): a janela é toda escrita com os tokens V2
+// (padrao-v2/zm-h-1-janelas.css), então leva d3-tema e escurece junto no tema Escuro. As outras janelas ficam folha clara.
+function janelaV2DoPortao(html) { return /class="workflow-item"/.test(String(html||'')); }
 // Todo registro de histórico do painel passa por aqui — checklist de qualidade,
 // troca de responsáveis, ajuste de prazo. Ligando esta função, o histórico
 // inteiro passa a nascer no banco da Vybe em vez de nascer no Monday.

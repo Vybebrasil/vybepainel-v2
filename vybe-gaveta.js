@@ -219,6 +219,13 @@ function gavetaPilulaHtml(status, cor, seta = '') {
   const cheia = /altera/i.test(s) ? ' a' : /atrasad/i.test(s) ? ' r' : /finaliz/i.test(s) ? ' g' : '';
   return `<span class="gv2-st${cheia}" style="--c:${c}">${safeText(status || 'Sem status')}${seta}</span>`;
 }
+// Paulo, 18/11/2026: "juntou status e status de captação... são coisas diferentes". O status da peça e o da captação
+// ficam em campos separados, cada um com o seu rótulo; a captação se troca na ficha (o mesmo campo de sempre).
+function gavetaCaptacaoHtml(item) {
+  const capt = String(item?.captacao || '').trim();
+  if (!capt || capt === '—') return '';
+  return `<span class="gv2-capt" title="Status da captação · troca na ficha da peça"><span class="gv2-rot-campo">Captação</span><span class="gv2-capt-v">${safeText(capt)}</span></span>`;
+}
 function gavetaObjetivoHtml(item) {
   const vc = typeof window !== 'undefined' ? window.VybeConteudo : null;
   if (!vc?.campoObjetivoHtml || (typeof isRequestItem === 'function' && isRequestItem(item))) return '';
@@ -295,7 +302,7 @@ function gavetaAtrasoHtml(item) {
   const p = String(item?.prazo_iso || '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(p) || etapaDaPeca(item) === 3) return '';
   const dias = Math.round((Date.parse(gavetaHojeIso()) - Date.parse(p)) / 864e5);
-  if (dias > 0) return `<span class="gv2-cel-pill r">Atrasada ${dias} ${dias === 1 ? 'dia' : 'dias'}</span>`;
+  if (dias > 0) return `<span class="gv2-cel-pill r">Prazo venceu há ${dias} ${dias === 1 ? 'dia' : 'dias'}</span>`;
   return dias === 0 ? '<span class="gv2-cel-pill a">Prazo hoje</span>' : '';
 }
 // Aprovar e Pedir alteração só aparecem na aprovação interna e quando o quadro da peça tem os dois status de destino;
@@ -347,7 +354,7 @@ function gavetaCelularHtml(detail, item, assets) {
   const ehPedido = typeof isRequestItem === 'function' ? isRequestItem(item) : false;
   const clientes = (typeof clientesDoItem === 'function' ? clientesDoItem(item) : [item.cliente]).filter(Boolean);
   const data = ehPedido ? item.conclusao || item.veiculacao : item.veiculacao;
-  const quando = data && data !== '—' ? `${ehPedido ? 'conclusão' : 'veicula'} ${safeText(data)}` : (ehPedido ? 'sem data de conclusão' : 'sem veiculação');
+  const quando = data && data !== '—' ? `${ehPedido ? 'conclusão' : 'veic.'} ${safeText(data)}` : (ehPedido ? 'sem data de conclusão' : 'sem veiculação');
   const imagem = (assets || []).find((a) => (a?.public_url || a?.url) && /\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(String(a.name || a.file_extension || a.public_url || a.url || '')));
   const previa = imagem
     ? `<a class="gv2-cel-arte" href="${safeText(imagem.public_url || imagem.url)}" target="_blank" rel="noopener"><img src="${safeText(imagem.public_url || imagem.url)}" alt="Prévia da arte de ${safeText(item.nome)}" loading="lazy"></a>`
@@ -370,7 +377,7 @@ function gavetaCelularHtml(detail, item, assets) {
       ? `<button type="button" class="gv2-cel-btn k principal v2-estado" onclick="gavetaAvancar('${id}',this)"><span class="gv2-avancar-texto">${safeText(/^para\s/i.test(proximo.label) ? `Enviar ${proximo.label.charAt(0).toLowerCase()}${proximo.label.slice(1)}` : `Enviar para ${proximo.label}`)}</span></button>`
       : `<button type="button" class="gv2-cel-btn k principal" onclick="openStatusEditor(event,'${id}')">Trocar status</button>`;
   return `<div class="gv2-cel">
-      <div class="gv2-cel-topo">${gavetaAtrasoHtml(item)}<span class="gv2-cel-st" role="button" tabindex="0" aria-label="Status: ${safeText(item.status)}. Trocar" onclick="openStatusEditor(event,'${id}')" onkeydown="if(event.key==='Enter'||event.key===' ')openStatusEditor(event,'${id}')">${gavetaPilulaHtml(item.status, item.status_color, GAVETA_ICONE.seta)}</span><span class="gv2-cel-vao"></span>
+      <div class="gv2-cel-topo">${gavetaAtrasoHtml(item)}<span class="gv2-cel-st" role="button" tabindex="0" aria-label="Status: ${safeText(item.status)}. Trocar" onclick="openStatusEditor(event,'${id}')" onkeydown="if(event.key==='Enter'||event.key===' ')openStatusEditor(event,'${id}')">${gavetaPilulaHtml(item.status, item.status_color, GAVETA_ICONE.seta)}</span>${gavetaCaptacaoHtml(item)}<span class="gv2-cel-vao"></span>
         ${menuDeAcoesDaPecaHtml(item, { linkELog: true })}<button type="button" class="gv2-cel-ic" onclick="closeItemWorkspace()" aria-label="Fechar">${GAVETA_ICONE.fechar}</button></div>
       <h2 class="gv2-cel-titulo">${safeText(item.nome)}</h2>
       <p class="gv2-sub gv2-cel-cli"><span class="gv2-clientes">${clientes.map(cliCor).join(' ') || 'Cliente não informado'}</span><span>${quando}</span>${typeof ownerEditorTrigger === 'function' ? ownerEditorTrigger(item, 'gv2-cel-dono') : ''}</p>
@@ -536,9 +543,9 @@ function gavetaLinkHtml() {
       <div class="gv2-cab">
         <h2 class="gv2-titulo" id="workspace-titulo" title="Clique para renomear" onclick="renomearPeca('${item.id}',event)">${safeText(item.nome)}</h2>
         <div class="gv2-linha"><span class="gv2-clientes">${clientes.map(cliCor).join(' ') || 'Cliente não informado'}</span>
-          <span class="gv2-status" role="button" tabindex="0" title="Trocar status" aria-label="Status: ${safeText(item.status)}. Trocar" onclick="openStatusEditor(event,'${id}')"
+          <span class="gv2-rot-campo" aria-hidden="true">Status</span><span class="gv2-status" role="button" tabindex="0" title="Trocar status" aria-label="Status: ${safeText(item.status)}. Trocar" onclick="openStatusEditor(event,'${id}')"
             onkeydown="if(event.key==='Enter'||event.key===' ')openStatusEditor(event,'${id}')">${gavetaPilulaHtml(item.status, item.status_color, GAVETA_ICONE.seta)}</span>
-          ${gavetaObjetivoHtml(item)}<span class="gv2-vao"></span>${gavetaAtrasoDesktopHtml(item)}</div>
+          ${gavetaCaptacaoHtml(item)}${gavetaObjetivoHtml(item)}<span class="gv2-vao"></span>${gavetaAtrasoDesktopHtml(item)}</div>
       </div>
       ${gavetaEtapasHtml(item)}
       <div class="gv2-bloco">
@@ -666,7 +673,7 @@ function renderDemandaWorkspace(detail, item) {
     drawer.innerHTML = `<div class="gv2 gv2-sol">${pega}
       <div class="gv2-topo"><button type="button" class="workspace-voltar" onclick="closeItemWorkspace()" aria-label="Voltar" title="Voltar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><p class="gv2-sub gv2-onde">Solicitação · nº ${safeText(String(item.id).replace(/^vybe:/, ''))}</p>${botaoDeLinkHtml(item, { icone: true })}${botaoDoLogHtml(item.id, { demanda: true, icone: true })}<button class="gv2-ic gv2-fechar" type="button" onclick="closeItemWorkspace()" aria-label="Fechar" title="Fechar (Esc)">${fechar}</button></div>
       <div class="gv2-cab"><h2 class="gv2-titulo">${safeText(item.nome)}</h2>
-        <div class="gv2-linha"><span class="gv2-clientes">${cliente}</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}${item.tipo && item.tipo !== '—' ? `<span class="gv2-pill n">${safeText(item.tipo)}</span>` : ''}<span class="gv2-vao"></span>${solicitacaoAtrasoHtml(item)}</div></div>
+        <div class="gv2-linha"><span class="gv2-clientes">${cliente}</span><span class="gv2-rot-campo" aria-hidden="true">Status</span>${pillHtmlDemanda(item.status,item.status_color,item.status_border)}${item.tipo && item.tipo !== '—' ? `<span class="gv2-rot-campo" aria-hidden="true">Tipo</span><span class="gv2-pill n">${safeText(item.tipo)}</span>` : ''}<span class="gv2-vao"></span>${solicitacaoAtrasoHtml(item)}</div></div>
       <div class="gv2-bloco">
         <div class="gv2-cmp"><small>Prazo</small>${dado(item.prazo, item.prazo_iso)}</div>
         <div class="gv2-cmp"><small>Conclusão</small>${dado(item.conclusao, item.conclusao_iso)}</div>
@@ -711,7 +718,7 @@ function solicitacaoAtrasoHtml(item) {
   const p = String(item?.prazo_iso || '').slice(0, 10);
   if (!solicitacaoVencida(p, item)) return '';
   const dias = Math.round((Date.parse(solicitacaoHojeIso()) - Date.parse(p)) / 864e5);
-  return dias > 0 ? `<span class="gv2-atraso r">Atrasada ${dias} ${dias === 1 ? 'dia' : 'dias'}</span>` : '';
+  return dias > 0 ? `<span class="gv2-atraso r">Prazo venceu há ${dias} ${dias === 1 ? 'dia' : 'dias'}</span>` : '';
 }
 // Contexto da solicitação em bloco (como a ficha da peça): só os campos que a solicitação tem, rótulo curto e valor.
 function solicitacaoContextoHtml(item) {

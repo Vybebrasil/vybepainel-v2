@@ -1,0 +1,60 @@
+/* ===================================================================================================================
+   V2 · GRUPO H · MENUS QUE ABREM DA LINHA (confere das telas antigas, 18/11/2026). Troca de status, responsável e as
+   outras escolhas que usam a caixa .status-editor (data, formato, prioridade, grupo, lote, dia do calendário, listas da
+   carteira). Abriam como cartão branco da Direção 3, com status em pílula e botão preto de 26. Agora são o mesmo painel de
+   vidro fumê fechado dos menus do HUD (z-direcao.css, seção 9): canto 16, letra clara, rótulo em caixa normal, a linha
+   acende no mouse e um só botão cheio (claro) por painel. Os tokens da folha trocam para os do vidro aqui dentro, então
+   peça escrita com --d3-tinta já sai certa. O fundo, a letra e o canto do painel vêm de vybe-mundo.css (regra antiga com
+   !important, agora com os tokens). O :is(.status-editor,#vv-h) dá peso de id às regras, para vencer as antigas presas
+   em #status-editor (status.css). Vale nos três temas: no Claro o vidro é branco translúcido com letra escura.
+   =================================================================================================================== */
+body.mundo .status-editor:is(.status-editor,#vv-h){
+  --d3-tinta:var(--d3-fume-texto);--d3-texto2:var(--d3-fume-texto2);--d3-apagado:var(--d3-fume-apagado);--d3-rotulo:var(--d3-fume-apagado);--d3-meta:var(--d3-fume-meta);
+  --d3-linha:var(--d3-fume-borda);--d3-borda:var(--d3-fume-borda);--d3-divisa:var(--d3-fume-borda);--d3-trilho:var(--d3-fume-veu);--d3-areia:var(--d3-fume-veu);--d3-cartao:var(--d3-fume-veu);
+  --d3-veu:var(--d3-fume-veu);--d3-veu-forte:var(--d3-fume-veu-forte);--d3-contra:var(--d3-fume-contra);
+  --d3-perigo:var(--d3-perigo-vidro);--d3-pronto:var(--d3-pronto-claro);--d3-ajuste:var(--d3-ajuste-claro);--d3-ambar:var(--d3-ajuste-claro);--d3-info:var(--d3-info-claro);--d3-acao-texto:var(--d3-acao-claro);
+  padding:6px;font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif)}
+body.mundo .status-editor:is(.status-editor,#vv-h) :is(button,input,a,summary):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px;box-shadow:none}
+
+/* Cabeça: o nome do menu em 12, caixa normal. */
+body.mundo .status-editor:is(.status-editor,#vv-h) .status-editor-head{padding:6px 10px 8px;font:500 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-cab small{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-meta)}
+
+/* Troca de status: cada status é uma linha de 34 com a bolinha da cor dele; o atual num véu mais forte com o visto. */
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-op{min-height:34px;gap:8px;padding:0 10px;box-shadow:none}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-op .v2-st-pilula,
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-op .v2-st-pilula:is(.n,.b,.v,.a,.r,.g){display:inline-flex;align-items:center;gap:8px;height:auto;padding:0;border-radius:0;background:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-op .v2-st-pilula::before,
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-op .v2-st-pilula:is(.a,.r,.g)::before{content:"";display:block;flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,var(--d3-fume-apagado))}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-dica{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-meta)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-op .status-editor-check svg{stroke:var(--d3-fume-texto)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-todos{min-height:34px;margin-top:4px;border-top:1px solid var(--d3-fume-borda);border-radius:0 0 var(--d3-r-botao) var(--d3-r-botao)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-todos .v2-st-todos-txt{color:var(--d3-fume-texto);font-weight:500;text-decoration:none}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-fluxo{min-height:34px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-fluxo svg{stroke:currentColor}
+
+/* Responsável: a regra da disciplina apagada, a busca no véu, cada pessoa numa linha (sem cartão branco), Salvar claro. */
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-regra{margin:0 10px 8px;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+body.mundo .status-editor:is(.status-editor,#vv-h) :is(.dono-busca,input[type="search"],input[type="text"],input[type="date"],select){box-sizing:border-box;height:34px;margin:0 0 6px;padding:0 10px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none;color-scheme:dark}
+html[data-d3-tema="claro"] body.mundo .status-editor:is(.status-editor,#vv-h) :is(.dono-busca,input[type="search"],input[type="text"],input[type="date"],select){color-scheme:light}
+body.mundo .status-editor:is(.status-editor,#vv-h) :is(.dono-busca,input)::placeholder{color:var(--d3-fume-meta)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-lista{display:flex;flex-direction:column;gap:2px}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-pessoa{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);box-shadow:none;text-align:left}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-pessoa:hover{background:var(--d3-fume-veu)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-pessoa:is(.ativo,.on,.selected,[aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-veu-forte)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-pessoa .owner-avatar-fallback{width:26px;height:26px;border-radius:8px;color:var(--d3-tinta-fixa)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-nome b{color:var(--d3-fume-texto);font:500 var(--d3-fs-texto)/1.25 var(--vv-texto,Inter,sans-serif)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-nome small{color:var(--d3-fume-apagado);font:400 var(--d3-fs-mini)/1.25 var(--vv-texto,Inter,sans-serif)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .owner-editor-person-check{color:var(--d3-fume-texto)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-ver-todos{height:30px;margin:4px 0 0;padding:0 10px;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-align:left}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-ver-todos:hover{background:var(--d3-fume-veu)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-sem{display:flex;align-items:center;gap:8px;margin:4px 10px;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-sem input{accent-color:var(--d3-fume-texto)}
+body.mundo .status-editor:is(.status-editor,#vv-h) .dono-rodape{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;padding:8px 4px 2px;border-top:1px solid var(--d3-fume-borda)}
+/* O botão cheio do painel: a pastilha clara (como no HUD), 34 px, canto 8. */
+body.mundo .status-editor:is(.status-editor,#vv-h) :is(.dono-salvar,.escolha-salvar,.lote-aplicar,button.principal,button.k){height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);color:var(--d3-fume-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none}
+body.mundo .status-editor:is(.status-editor,#vv-h) :is(.dono-salvar,.escolha-salvar,.lote-aplicar,button.principal,button.k):hover{background:var(--d3-fume-apagado)}
+body.mundo .status-editor:is(.status-editor,#vv-h) :is(.dono-salvar,.escolha-salvar,.lote-aplicar,button.principal,button.k):disabled{background:var(--d3-fume-veu);color:var(--d3-fume-meta)}
+/* O Salvar do responsável é pintado pela regra do laranja único (vybe-mundo.css, --ds-acao com !important); a variável
+   vem daqui: o laranja da ação, já que dentro do painel --d3-tinta virou a letra clara. */
+body.mundo #dono-editor.status-editor{--ds-acao:var(--d3-acao);--ds-acao-hover:var(--d3-acao-texto-fixa);--ds-acao-sombra:none}

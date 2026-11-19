@@ -5533,13 +5533,13 @@ button.subitem-marca:hover{transform:scale(1.35)}
 
 .workflow-field input,.workflow-field select,.workflow-field textarea{
 
-  width:100%;box-sizing:border-box;min-height:44px;padding:11px 13px!important;
+  width:100%;box-sizing:border-box;min-height:44px;padding:9px 12px!important;
 
   border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;
 
   background:rgba(0,0,0,.3)!important;color:#f2f2f5!important;
 
-  font:600 13.5px var(--mac-ui)!important;
+  font:400 var(--d3-fs-texto,13px) var(--vv-texto,var(--mac-ui))!important;
 
   transition:border-color .14s var(--curva,ease),box-shadow .14s var(--curva,ease)}
 

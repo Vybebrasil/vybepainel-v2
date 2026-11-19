@@ -1,0 +1,55 @@
+/* ===================================================================================================================
+   V2 · GRUPO H · NOVA DEMANDA E NOVO CONTEÚDO (#fc-overlay .nd, cadastros_governed_v2.js). Confere das telas antigas,
+   18/11/2026. O formulário em três cartões continua o mesmo (O quê, Para quem, Quando); muda a pele, que era a do
+   moodboard de 12/11: fichas e botões em pílula branca, escolhido preto, título de 28 em 700, botão preto no pé. Agora:
+   folha com tokens, fichas de 28 e botões de 34 com canto 8 no véu, escolhido em tinta, campos no véu com canto 10,
+   título de 24 em 600 e um laranja só, o Continuar/Criar (a cor dele vem da regra antiga com !important de
+   vybe-mundo.css, que agora usa --d3-acao).
+   =================================================================================================================== */
+body.mundo #fc-overlay .nd{border-radius:var(--d3-r-janela);background:var(--d3-cartao);color:var(--d3-tinta)}
+body.mundo #fc-overlay .nd .nd-sub{color:var(--d3-rotulo)}
+body.mundo #fc-overlay .nd-topo h1{font:600 24px/1.15 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;color:var(--d3-tinta)}
+body.mundo #fc-overlay .nd-barra{height:4px;background:var(--d3-veu-forte)}
+body.mundo #fc-overlay .nd-barra > i{background:var(--d3-tinta)}
+
+/* Botões e fichas. */
+body.mundo #fc-overlay .nd .nd-btn{height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);box-shadow:none;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay .nd .nd-btn:hover{background:var(--d3-veu-forte);box-shadow:none}
+body.mundo #fc-overlay .nd .nd-btn.s{height:28px;padding:0 10px}
+body.mundo #fc-overlay .nd .nd-btn.k{background:var(--d3-acao);color:var(--d3-escuro-texto);font-weight:600}
+body.mundo #fc-overlay .nd .nd-btn.k:hover{background:var(--d3-acao-texto-fixa)}
+body.mundo #fc-overlay .nd .nd-btn.feito{background:var(--d3-pronto);color:var(--d3-escuro-texto)}
+body.mundo #fc-overlay .nd .nd-x{width:34px}
+body.mundo #fc-overlay .nd .nd-chip{height:28px;padding:0 10px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);box-shadow:none;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay .nd .nd-chip:hover{background:var(--d3-veu-forte);box-shadow:none}
+body.mundo #fc-overlay .nd .nd-chip.on{background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #fc-overlay .nd .nd-chip.nd-novo{background:transparent;color:var(--d3-tinta)}
+body.mundo #fc-overlay .nd .nd-chip.nd-perigo{color:var(--d3-perigo)}
+body.mundo #fc-overlay .nd .nd-lk.escuro{color:var(--d3-texto2)}
+body.mundo #fc-overlay .nd .nd-lk:hover,body.mundo #fc-overlay .nd .nd-lk.escuro:hover{color:var(--d3-tinta)}
+body.mundo #fc-overlay .nd .nd-rot{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+body.mundo #fc-overlay .nd .nd-rot > span{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay .nd .nd-rot > span.nd-neutro{color:var(--d3-rotulo)}
+
+/* Campos no véu, canto 10; o foco é um fio de tinta. */
+body.mundo #fc-overlay .nd :is(.nd-campo,.nd-busca,.nd-area){background:var(--d3-veu);color:var(--d3-tinta);box-shadow:none}
+body.mundo #fc-overlay .nd :is(.nd-campo,.nd-busca){height:34px;padding:0 12px;border-radius:var(--d3-r-caixa)}
+body.mundo #fc-overlay .nd .nd-area{border-radius:var(--d3-r-caixa)}
+body.mundo #fc-overlay .nd :is(.nd-campo,.nd-busca,.nd-area)::placeholder{color:var(--d3-rotulo)}
+body.mundo #fc-overlay .nd :is(.nd-campo,.nd-busca,.nd-area):focus{background:var(--d3-veu);box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+body.mundo #fc-overlay .nd :is(.nd-campo,.nd-busca,.nd-area).er{box-shadow:inset 0 0 0 1.5px var(--d3-perigo)}
+body.mundo #fc-overlay .nd .nd-erro{color:var(--d3-perigo)}
+body.mundo #fc-overlay .nd .nd-av{background:var(--d3-veu-forte);color:var(--d3-texto2)}
+
+/* Os três cartões: véu com canto 16; o da vez em folha com um fio fino de tinta (não o contorno preto de 2). */
+body.mundo #fc-overlay .nd-card{border-radius:var(--d3-r-cartao);background:var(--d3-veu)}
+body.mundo #fc-overlay .nd-etapa.agora{background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-veu-forte),0 14px 30px -22px rgba(0,0,0,.45)}
+body.mundo #fc-overlay .nd-cab h2{font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+body.mundo #fc-overlay .nd-num{width:20px;height:20px;background:var(--d3-veu-forte);color:var(--d3-texto2);font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+body.mundo #fc-overlay .nd-num.on{background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #fc-overlay .nd .nd-tipo{height:56px;min-height:56px;border-radius:12px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:0 0 0 1px var(--d3-veu)}
+body.mundo #fc-overlay .nd .nd-tipo.on{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+body.mundo #fc-overlay .nd .nd-ico{width:32px;height:32px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-texto2)}
+body.mundo #fc-overlay .nd .nd-tipo.on .nd-ico{background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #fc-overlay .nd .nd-tipo-txt b{font-weight:600}
+body.mundo #fc-overlay .nd-fala{border-radius:12px;background:var(--d3-agente-veu)}

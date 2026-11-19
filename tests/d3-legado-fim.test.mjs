@@ -43,7 +43,8 @@ test('gaveta da Solicitação: abas Resumo, Arquivos e Histórico; contexto em b
   assert.match(h, /<small>Aberta<\/small><b class="">03\/11 · Paulo<\/b>/);
   assert.match(h, /<small>Tarefas<\/small><b class="">1 de 4<\/b>/);
   assert.doesNotMatch(h, /pertence à Central de Demandas/);
-  assert.match(h, /<span class="gv2-atraso r">Atrasada 4 dias<\/span>/, 'prazo vencido em vermelho, conclusão não');
+  // Paulo, 18/11/2026: o atraso diz que é o prazo.
+  assert.match(h, /<span class="gv2-atraso r">Prazo venceu há 4 dias<\/span>/, 'prazo vencido em vermelho, conclusão não');
   assert.match(h, /<b class="r">10\/11<\/b>/);
   assert.match(h, /<b class="">20\/11<\/b>/);
   assert.match(h, /\+ adicionar/, 'sem briefing, o link de pôr briefing (como na gaveta de Conteúdo)');

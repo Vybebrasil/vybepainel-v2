@@ -452,15 +452,15 @@ body.mundo :is(#workspace-drawer,#workflow-modal,.workflow-modal,.spotlight-dial
 body.mundo #workspace-drawer{background:#FAF8F4!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none;border-left:1px solid var(--vv-vidro-borda)!important;box-shadow:var(--vv-sombra)!important}
 body.mundo .spotlight-dialog{background:#FFFFFF;backdrop-filter:none;-webkit-backdrop-filter:none;border:0!important;border-radius:24px;box-shadow:0 2px 4px rgba(31,29,26,.06),0 24px 40px -24px rgba(31,29,26,.35);color:#1F1D1A}
 body.mundo #notif-caixa{background:var(--vv-vidro-forte)!important;border:1px solid var(--vv-vidro-borda)!important;border-radius:var(--vv-r-cartao)!important;box-shadow:var(--vv-sombra)!important;backdrop-filter:var(--vv-desfoque)!important}
-body.mundo :is(#workspace-drawer,#notif-caixa) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
+body.mundo :is(#workspace-drawer,#notif-caixa) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:var(--d3-veu) var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:var(--d3-tinta)!important;border:1px solid transparent!important;box-shadow:none!important}
 body.mundo .spotlight-dialog :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px;color:#1F1D1A;border:1px solid #E6E0D6;box-shadow:none}
 /* Direção 3 (quadros D3-Fam-Formularios e D3-Fam-Confirmacoes, limpeza de 14/11/2026): na janela de confirmação o campo
    é o trilho claro, sem borda, e não o branco forçado. */
-body.mundo :is(#workflow-modal,.workflow-modal) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#F3F1EC var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:#1F1D1A!important;border:1px solid transparent!important;border-radius:999px!important;box-shadow:none!important}
-body.mundo :is(#workflow-modal,.workflow-modal) textarea{border-radius:16px!important}
-body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-field>span,.workflow-title,.context-title,.workflow-item,.context-item,.workflow-check){color:#1F1D1A!important}
-body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-actions,.context-actions){background:#FAF8F4!important;border-top:1px solid #F1EDE6!important}
-body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:#1F1D1A!important}
+body.mundo :is(#workflow-modal,.workflow-modal) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:var(--d3-veu) var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:var(--d3-tinta)!important;border:1px solid transparent!important;border-radius:var(--d3-r-caixa)!important;box-shadow:none!important}
+body.mundo :is(#workflow-modal,.workflow-modal) textarea{border-radius:var(--d3-r-caixa)!important}
+body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-field>span,.workflow-title,.context-title,.workflow-item,.context-item,.workflow-check){color:var(--d3-tinta)!important}
+body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-actions,.context-actions){background:var(--d3-cartao)!important;border-top:1px solid var(--d3-divisa)!important}
+body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:var(--d3-tinta)!important}
 body.mundo :is(#workspace-drawer,.spotlight-dialog,#notif-caixa) :is(h1,h2,h3,h4,b,strong){color:#1F1D1A}
 body.mundo :is(#workspace-drawer) :is(.workspace-section,.workspace-mais-menu,.workspace-textarea){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important}
 /* Aviso de planejamento: no mundo ele mora no sino do topo (auditoria 09/11, D8); o flutuante não volta. */
@@ -548,13 +548,13 @@ body.mundo.mundo-modulo .plj-aviso.recolhido{left:auto!important;right:calc(var(
    O Ranking em página (.rk2-janela) não escurece nem desfoca o que fica ao lado. */
 body.mundo .workflow-backdrop:not(:has(+ .rk2-janela)){background:rgba(31,29,26,.28)!important;backdrop-filter:blur(6px) saturate(1.1)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo){
-  background:#FAF8F4!important;background-image:none!important;border:1px solid rgba(255,255,255,.9)!important;border-radius:12px!important;
-  box-shadow:0 30px 80px rgba(31,29,26,.22),0 2px 8px rgba(31,29,26,.08)!important;padding:22px 24px!important;color:#1F1D1A!important;font-family:var(--vv-texto)!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-kicker){color:#6B665E!important;font:600 12px var(--vv-texto)!important;letter-spacing:0;background:none!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-close{width:34px;height:34px;border-radius:8px!important;background:#fff!important;color:#6B665E!important;border:1px solid #E6E0D6!important;box-shadow:var(--vv-sombra-curta)}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-title{color:#1F1D1A!important;font:800 26px/1.15 var(--vv-titulo, var(--vv-texto))!important;letter-spacing:-.02em;margin:10px 0 6px!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-copy,.workflow-hint){color:#6B665E!important;font:500 13px/1.5 var(--vv-texto)!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item,.workflow-check,.plj-mes){background:#fff!important;border:1px solid #ECE6DC!important;border-radius:8px!important;color:#1F1D1A!important;box-shadow:0 1px 2px rgba(31,29,26,.04)}
+  background:var(--d3-cartao)!important;background-image:none!important;border:0!important;border-radius:var(--d3-r-janela)!important;
+  box-shadow:0 0 0 1px var(--d3-veu),0 30px 70px -28px rgba(0,0,0,.6)!important;padding:20px 24px!important;color:var(--d3-tinta)!important;font-family:var(--vv-texto)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-kicker){color:var(--d3-rotulo)!important;font:400 var(--d3-fs-apoio) var(--vv-texto)!important;letter-spacing:0;background:none!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-close{width:34px;height:34px;border-radius:var(--d3-r-botao)!important;background:var(--d3-veu)!important;color:var(--d3-tinta)!important;border:0!important;box-shadow:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-title{color:var(--d3-tinta)!important;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo, var(--vv-texto))!important;letter-spacing:-.01em;margin:6px 0 4px!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-copy,.workflow-hint){color:var(--d3-rotulo)!important;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item,.workflow-check,.plj-mes){background:var(--d3-veu)!important;border:0!important;border-radius:var(--d3-r-caixa)!important;color:var(--d3-tinta)!important;box-shadow:none}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .plj-mes{padding:12px 14px!important;box-shadow:inset 3px 0 0 var(--vv-laranja),0 1px 2px rgba(31,29,26,.04)!important;transition:transform .15s var(--vv-mola),box-shadow .15s}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .plj-mes:hover{transform:translateY(-1px);box-shadow:inset 3px 0 0 var(--vv-laranja),0 8px 20px rgba(31,29,26,.08)!important}
 body.mundo .workflow-modal .plj-mes b{color:#1F1D1A!important;font:700 13.5px var(--vv-texto)!important}
@@ -568,15 +568,15 @@ body.mundo .workflow-modal .plj-avisos>li{background:#fff!important;border:1px s
 body.mundo .workflow-modal .plj-avisos :is(summary,b){color:#1F1D1A!important}
 body.mundo .workflow-modal .plj-avisos button{background:#FAF8F4!important;color:#1F1D1A!important;border:1px solid #ECE6DC!important;border-radius:6px!important}
 body.mundo .workflow-modal .plj-avisos small{color:#6E6A62!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-actions,.context-actions){position:sticky;bottom:-22px;margin:16px -24px -22px!important;box-shadow:0 22px 0 rgba(250,248,244,1);padding:12px 24px!important;background:rgba(250,248,244,.96)!important;border-top:1px solid #F1EDE6!important;border-radius:0 0 12px 12px;backdrop-filter:blur(8px)}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-secondary,.workflow-primary){height:36px;padding:0 16px!important;border-radius:999px!important;font:600 13.5px var(--vv-texto)!important;letter-spacing:0!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-actions,.context-actions){position:sticky;bottom:-20px;margin:16px -24px -20px!important;box-shadow:0 20px 0 var(--d3-cartao);padding:12px 24px!important;background:var(--d3-cartao)!important;border-top:1px solid var(--d3-divisa)!important;border-radius:0 0 20px 20px;backdrop-filter:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-secondary,.workflow-primary){height:34px;padding:0 14px!important;border-radius:var(--d3-r-botao)!important;font:500 var(--d3-fs-texto) var(--vv-texto)!important;letter-spacing:0!important}
 /* Direção 3 (quadro D3-Fam-Confirmacoes, limpeza de 14/11/2026): cancelar no trilho claro e confirmar preto; o laranja
    cheio fica só no bloco de ação da tela. */
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-secondary{background:#F3F1EC!important;color:#1F1D1A!important;border:0!important;box-shadow:none}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-primary{background:#1F1D1A!important;color:#fff!important;border:0!important;box-shadow:none}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-name){color:#1F1D1A!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-client){color:var(--vv-lilas,#8E4EC6)!important}
-body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-field span:not(.vb-obrig){color:#6B665E!important;font:600 11.5px var(--vv-texto)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-secondary{background:var(--d3-veu)!important;color:var(--d3-tinta)!important;border:0!important;box-shadow:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-primary{background:var(--d3-acao)!important;color:var(--d3-escuro-texto)!important;border:0!important;box-shadow:none}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-name){color:var(--d3-tinta)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) :is(.workflow-item-client){color:var(--d3-rotulo)!important}
+body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo) .workflow-field span:not(.vb-obrig){color:var(--d3-tinta)!important;font:500 var(--d3-fs-apoio) var(--vv-texto)!important}
 
 
 /* ===== Sobras do tema escuro (achadas pela varredura de contraste em cada módulo) ===== */
@@ -3096,26 +3096,26 @@ body.mundo-predio .mundo-rotulo:is(.rotulo-cliente,.rotulo-van,.rotulo-prospect,
    Direção 3 (quadro D3-StatusMenu, limpeza de 14/11/2026): cartão branco de canto 20 sem borda, opções de canto 12,
    passar o mouse e o atual no trilho #F3F1EC (o atual sem laranja) e o visto em tinta. O !important fica porque
    vybe-padrao.css pinta o menu escuro com !important em todo o sistema. */
-html body.mundo .status-editor:not(#vv-x){background:#FFFFFF!important;backdrop-filter:none!important;border:0!important;border-radius:20px!important;box-shadow:0 2px 6px rgba(31,29,26,.1),0 24px 44px -20px rgba(31,29,26,.55)!important;color:#1F1D1A!important;color-scheme:light;max-height:min(420px,calc(100vh - 40px))!important;overflow:auto!important}
-html body.mundo .status-editor-head:not(#vv-x),html body.mundo .status-editor-head *:not(#vv-x){color:#6B665E!important}
-html body.mundo .status-editor-option:not(#vv-x){color:#1F1D1A!important;background:transparent!important;border-radius:12px!important}
-html body.mundo .status-editor-option:hover:not(#vv-x){background:#F3F1EC!important}
-html body.mundo .status-editor-option.current:not(#vv-x){background:#F3F1EC!important;font-weight:600!important}
-html body.mundo .status-editor-check:not(#vv-x){color:#1F1D1A!important}
+html body.mundo .status-editor:not(#vv-x){background:var(--d3-fume-painel)!important;backdrop-filter:none!important;border:0!important;border-radius:var(--d3-r-ilha)!important;box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -30px rgba(0,0,0,.7)!important;color:var(--d3-fume-texto)!important;color-scheme:normal;max-height:min(420px,calc(100vh - 40px))!important;overflow:auto!important}
+html body.mundo .status-editor-head:not(#vv-x),html body.mundo .status-editor-head *:not(#vv-x){color:var(--d3-fume-apagado)!important}
+html body.mundo .status-editor-option:not(#vv-x){color:var(--d3-fume-texto)!important;background:transparent!important;border-radius:var(--d3-r-botao)!important}
+html body.mundo .status-editor-option:hover:not(#vv-x){background:var(--d3-fume-veu)!important}
+html body.mundo .status-editor-option.current:not(#vv-x){background:var(--d3-fume-veu-forte)!important;font-weight:600!important}
+html body.mundo .status-editor-check:not(#vv-x){color:var(--d3-fume-texto)!important}
 html body.mundo .status-editor-backdrop{background:rgba(31,29,26,.08)!important}
 
 /* ===== Opções das janelas de contexto (bloqueio, direção…): cartão branco, texto escuro ===== */
-html body.mundo .pv-opcao:not(#vv-x){background:#FFFFFF!important;border:1px solid #E6E0D6!important;color:#1F1D1A!important;box-shadow:0 1px 2px rgba(31,29,26,.04)!important}
-html body.mundo .pv-opcao:is(:hover,:focus-visible):not(#vv-x){background:color-mix(in srgb,var(--c,#C2490C) 8%,#FFFFFF)!important;border-color:color-mix(in srgb,var(--c,#C2490C) 45%,#FFFFFF)!important}
-html body.mundo .pv-opcao :is(b,strong,span:not(.pv-opcao-ic)):not(#vv-x){color:#1F1D1A!important}
-html body.mundo .pv-opcao small:not(#vv-x){color:#6B665E!important}
+html body.mundo .pv-opcao:not(#vv-x){background:var(--d3-veu)!important;border:0!important;color:var(--d3-tinta)!important;box-shadow:none!important}
+html body.mundo .pv-opcao:is(:hover,:focus-visible):not(#vv-x){background:var(--d3-veu-forte)!important;border-color:transparent!important}
+html body.mundo .pv-opcao :is(b,strong,span:not(.pv-opcao-ic)):not(#vv-x){color:var(--d3-tinta)!important}
+html body.mundo .pv-opcao small:not(#vv-x){color:var(--d3-rotulo)!important}
 html body.mundo .pv-opcao-ic:not(#vv-x){filter:saturate(1.4) brightness(.72)}
 /* janelas de workflow: rótulo, passos e destino legíveis no claro */
-html body.mundo .workflow-modal .workflow-kicker:not(#vv-x),html body.mundo .workflow-modal .workflow-kicker > span:not(#vv-x){color:#6B665E!important}
-html body.mundo .pv-passos span.on:not(#vv-x){color:#1F1D1A!important;font-weight:700!important}
-html body.mundo .pv-passos span:not(.on):not(#vv-x){color:#6B665E!important}
-html body.mundo .workflow-item-destino:not(#vv-x){color:#1F4FA8!important;background:#EAF1FF!important}
-html body.mundo .workflow-item-client:not(#vv-x){color:#A3366F!important}
+html body.mundo .workflow-modal .workflow-kicker:not(#vv-x),html body.mundo .workflow-modal .workflow-kicker > span:not(#vv-x){color:var(--d3-rotulo)!important}
+html body.mundo .pv-passos span.on:not(#vv-x){color:var(--d3-tinta)!important;font-weight:600!important}
+html body.mundo .pv-passos span:not(.on):not(#vv-x){color:var(--d3-rotulo)!important}
+html body.mundo .workflow-item-destino:not(#vv-x){color:var(--d3-info)!important;background:var(--d3-info-veu)!important}
+html body.mundo .workflow-item-client:not(#vv-x){color:var(--d3-rotulo)!important}
 
 /* ===== Cérebro do cliente (Clientes): no padrão claro (era o último quadro grafite) ===== */
 html body.mundo .vybes-cerebro-shell.cb:not(#vv-x){background:#F3F1EC!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;color-scheme:light}
@@ -3138,8 +3138,8 @@ html body.mundo .cb-palco-acoes .vb-botao:hover:not(#vv-x){border-color:#C2490C!
 /* ===== Cadastro rápido e botão principal das janelas ===== */
 html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:#6B665E!important}
 html body.mundo #fc-overlay .fc-modal:not(#vv-x){color-scheme:light}
-html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:#1F1D1A!important;color:#FFFFFF!important;box-shadow:none!important;border-radius:999px!important}
-html body.mundo .workflow-primary:hover:not(#vv-x){background:#A93D08!important}
+html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:var(--d3-acao)!important;color:var(--d3-escuro-texto)!important;box-shadow:none!important;border-radius:var(--d3-r-botao)!important}
+html body.mundo .workflow-primary:hover:not(#vv-x){background:var(--d3-acao-texto-fixa)!important}
 
 /* ======================================================================================
    DESIGN SYSTEM · LARANJA ÚNICO (Paulo, 07/11/2026: "olha os botões laranjas todos diferentes…
@@ -3240,8 +3240,8 @@ html body.mundo .dono-pessoa:not(#ds-a):not(#ds-b){background:#FFFFFF!important;
 html body.mundo .dono-pessoa:is(.marcado,.ativo,.on,[aria-pressed="true"],[aria-checked="true"]):not(#ds-a):not(#ds-b),html body.mundo .dono-pessoa:has(input:checked):not(#ds-a):not(#ds-b){background:var(--ds-sel-fundo)!important;color:var(--ds-sel-texto)!important;border-color:var(--ds-sel-borda)!important}
 html body.mundo .dono-pessoa *:not(img):not(#ds-a):not(#ds-b){color:inherit!important}
 /* Detalhes da peça: botões do painel lateral no padrão (sem grafite) */
-html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(.ativo):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid var(--ds-linha)!important}
-html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:#1F1D1A!important;color:#FFFFFF!important;border:0!important;box-shadow:none!important}
+html body.mundo #workspace-drawer button:not(.workspace-action):not(.primary):not(.principal):not(.perigo):not([class*="close"]):not(.ativo):not(#ds-a):not(#ds-b):not(#ds-c){background:var(--d3-veu)!important;color:var(--d3-tinta)!important;border:1px solid transparent!important}
+html body.mundo #workspace-drawer .workspace-action:not(#ds-a):not(#ds-b):not(#ds-c){background:var(--d3-tinta)!important;color:var(--d3-contra)!important;border:0!important;box-shadow:none!important}
 
 /* HUD do mapa segue o mesmo selecionado (era preto cheio) */
 html body.mundo .vv-barra-topo .vv-botao[aria-pressed="true"]:not(#ds-a):not(#ds-b){background:var(--ds-on-fundo)!important;color:var(--ds-on-texto)!important;box-shadow:inset 0 0 0 1px var(--ds-on-borda)!important}
