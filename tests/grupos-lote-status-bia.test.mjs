@@ -28,7 +28,7 @@ function montar() {
     renderVisaoDeGrupos: () => { ctx.repintou = (ctx.repintou || 0) + 1; }, repintou: 0,
   });
   const codigo = [
-    linhaDe(gestor, 'let pv2GruposSel = '), linhaDe(gestor, 'const PV2_GRUPOS_EXTRAS = '), linhaDe(gestor, 'const pv2GruposRedesenha = '),
+    linhaDe(gestor, 'let pv2GruposSel = '), linhaDe(gestor, 'let pv2GruposCaptacao = '), linhaDe(gestor, 'const PV2_GRUPOS_EXTRAS = '), linhaDe(gestor, 'const pv2GruposRedesenha = '),
     linhaDe(gestor, 'const pv2Vista = '), linhaDe(gestor, 'const pv2Pl = '), fatia(gestor, 'function pv2Cons('), fatia(gestor, 'function pv2Vlin('),
     linhaDe(gestor, 'function pv2GruposFiltrarStatus('), fatia(gestor, 'function pv2GruposMarcarRecorte('), linhaDe(gestor, 'const pv2GrupoVencida = '),
     gestor.slice(gestor.indexOf('const pv2GruposClientes = new Set();'), gestor.indexOf('function pv2GruposChavePrefs(')),

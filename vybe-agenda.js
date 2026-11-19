@@ -1577,8 +1577,9 @@ const CAMPOS_ORDENAVEIS = {
   previa:        { rotulo: 'Prévia',      valor: (i) => (typeof jaTemMaterial === 'function' && jaTemMaterial(i)) ? '0' : '1' },
   cliente:       { rotulo: 'Cliente',     valor: (i) => String(i.cliente || '') },
   responsavel:   { rotulo: 'Responsável', valor: (i) => String(i.responsavel || '') },
-  status:        { rotulo: 'Status',      valor: (i) => String(i.status || '') },
-  captacao:      { rotulo: 'Captação',    valor: (i) => String(i.captacao || '') },
+  // Status e Captação seguem o fluxo (a ordem do catálogo da coluna), não o alfabeto (Paulo, 19/11/2026).
+  status:        { rotulo: 'Status',      valor: (i) => posicaoNoCatalogo('status', i) },
+  captacao:      { rotulo: 'Captação',    valor: (i) => posicaoNoCatalogo('captacao', i) },
   formato:       { rotulo: 'Formato',     rotuloDemandas: 'Tipo de demanda', valor: (i) => String(i.formato || '') },
   tipo_conteudo: { rotulo: 'Tipo',        valor: (i) => String(i.tipo_conteudo || '') },
   off_audio:     { rotulo: 'OFF',         valor: (i) => String(i.off_audio || '') },
@@ -1595,19 +1596,37 @@ const CAMPOS_ORDENAVEIS = {
   criado_em:     { rotulo: 'Criado em',   valor: (i) => valorDeData(cadastroDaPeca(i).ordem) },
 };
 
+// A posição do valor no catálogo da coluna (o fluxo de Status, as etapas de Captação). Valor fora do catálogo (um status
+// de outro quadro, uma etiqueta apagada) vai para o fim junto do vazio, subindo ou descendo, para não abrir a lista.
+function posicaoNoCatalogo(campo, i) {
+  const v = String(i?.[campo] ?? '').trim();
+  if (!v || v === '—') return '';
+  let rotulos = [];
+  try {
+    rotulos = campo === 'status' && typeof operationalStatusOptions === 'function'
+      ? operationalStatusOptions(i).map((o) => o.label)
+      : typeof catalogoDoCampo === 'function' ? catalogoDoCampo(campo, i).map((o) => o.rotulo) : [];
+  } catch { rotulos = []; }
+  const k = rotulos.findIndex((r) => String(r ?? '').trim().localeCompare(v, 'pt-BR', { sensitivity: 'base' }) === 0);
+  return k >= 0 ? k : '';
+}
+
 function ordenarItens(itens) {
   const cfg = CAMPOS_ORDENAVEIS[ORDEM.campo] || CAMPOS_ORDENAVEIS.veiculacao_iso;
   const sinal = ORDEM.desc ? -1 : 1;
+  // O valor de cada peça sai uma vez só (o de Status e Captação consulta o catálogo).
+  const chave = new Map(itens.map((i) => [i, cfg.valor(i)]));
   return [...itens].sort((a, b) => {
-    const x = cfg.valor(a);
-    const y = cfg.valor(b);
+    const x = chave.get(a);
+    const y = chave.get(b);
     // Vazio vai sempre para o fim, subindo ou descendo: uma peça sem prazo não
     // é "a mais antiga", é uma peça sem prazo.
     const xVazio = x === '' || x === '—';
     const yVazio = y === '' || y === '—';
     if (xVazio !== yVazio) return xVazio ? 1 : -1;
     if (typeof x === 'number') return (x - y) * sinal;
-    return x.localeCompare(y, 'pt-BR', { numeric: true }) * sinal;
+    // Texto em pt-BR sem diferença de acento nem de maiúscula ("ágil" junto de "Agil").
+    return x.localeCompare(y, 'pt-BR', { numeric: true, sensitivity: 'base' }) * sinal;
   });
 }
 
@@ -2507,6 +2526,8 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
   wrap.classList.toggle('d3m-a-v2', gruposV2);
+  // Com a V2 de Grupos, a pessoa aparece nos chips da folha: a faixa antiga de cima sai (s-f.css).
+  if (quadro === 'producao') document.getElementById('ops-selection-summary')?.toggleAttribute('data-s-f-chips', gruposV2);
   if (gruposV2) { wrap.innerHTML = pv2GruposHtml({ grupos, quadro, base: semCliente }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
 
   const peca = (n) => quadro === 'demandas'

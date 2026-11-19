@@ -88,7 +88,7 @@ test('Ordem: data ordena como data, crescente no primeiro clique e decrescente n
 test('Ordem: o cabeçalho da V2 marca aria-sort e a seta, a escolha é guardada e o foco volta ao cabeçalho', () => {
   const pv2 = trecho(gestor, 'function pv2GruposHtml(', '\n}\n');
   assert.match(pv2, /aria-sort="\$\{ORDEM\.desc \? 'descending' : 'ascending'\}"/);
-  assert.match(pv2, /\$\{ORDEM\.desc \? '↓' : '↑'\}/);
+  assert.match(pv2, /<i class="s-f-seta" aria-hidden="true">\$\{on \? \(ORDEM\.desc \? '↓' : '↑'\) : pv2SetaDupla\}<\/i>/, 'todo cabeçalho mostra ↕; o ativo, ↑ ou ↓');
   const ordenar = trecho(agenda, 'function ordenarPor(', 'function cabecalhoOrdenavel(');
   assert.match(ordenar, /pv2GruposGuardar\(\)/, 'a ordem de Produção fica guardada como a das Demandas');
   assert.match(ordenar, /\.focus\(\)/, 'quem ordena pelo teclado não perde o lugar');
@@ -107,6 +107,8 @@ test('Contraste: o select branco da cabeça saiu; filtros viram botões com menu
   assert.match(css, /\.d3m-a-seg > button:is\(\[aria-pressed="true"\],\[aria-checked="true"\]\)\{background:var\(--d3-tinta\);color:var\(--d3-contra\)/);
   assert.match(css, /\.s-f-filtro\.tem\{background:var\(--d3-tinta\);box-shadow:none;color:var\(--d3-contra\)\}/);
   const tokens = [...css.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]).filter((t) => !t.startsWith('--d3-') && t !== '--vv-texto');
+  // A única variável fora do --d3- é a --ds-linha, redefinida (não lida) para apagar a borda que a regra antiga dá ao input.
+  assert.deepEqual([...css.matchAll(/(--[a-z0-9-]+):/g)].map((m) => m[1]).filter((t) => !t.startsWith('--d3-')), ['--ds-linha']);
   assert.deepEqual(tokens, [], 'só tokens --d3-*');
   assert.ok(ler('vybe-mundo-padrao-v2.css').includes('.s-f-filtro.tem{'), 'o juntado traz o fragmento');
 });
@@ -136,4 +138,64 @@ test('Status de captação: a peça com captação mostra os dois blocos, cada u
   assert.equal((menu.match(/\$\{fluxoBtn\}\$\{captacao\}/g) || []).length, 2, 'nos dois jeitos do menu (curto e "Todos os N status")');
   assert.match(menu, /updateFocusStatus\('\$\{item\.id\}'/, 'o Status segue gravando pelo caminho de sempre');
   assert.match(gestor, /op\.hasAttribute\('data-captacao'\)/, 'escolher captação não faz a pílula de status girar');
+});
+
+test('Ordem: texto em pt-BR sem acento nem maiúscula; Status e Captação seguem o fluxo do catálogo', () => {
+  const c = contextoGrupos({
+    operationalStatusOptions: () => [{ label: 'A Fazer' }, { label: 'Em Andamento' }, { label: 'Para aprovação' }, { label: 'Finalizado' }],
+    catalogoDoCampo: (campo) => (campo === 'captacao' ? [{ rotulo: 'Agendar Captação' }, { rotulo: 'Captação agendada' }, { rotulo: 'Captado' }] : []),
+  });
+  const ids = (lista) => js(c.ordenarItens(lista).map((i) => i.id));
+  const clientes = [{ id: 'z', cliente: 'Zeta' }, { id: 'o', cliente: 'ágora' }, { id: 'b', cliente: 'Abelha' }, { id: 'g', cliente: 'Ágil' }, { id: 'v', cliente: '' }];
+  vm.runInContext('ORDEM = { campo: "cliente", desc: false };', c);
+  assert.deepEqual(ids(clientes), ['b', 'g', 'o', 'z', 'v'], 'o "Á" não vai para depois do Z; vazio no fim');
+  vm.runInContext('ORDEM = { campo: "cliente", desc: true };', c);
+  assert.deepEqual(ids(clientes), ['z', 'o', 'g', 'b', 'v']);
+  vm.runInContext('ORDEM = { campo: "responsavel", desc: false };', c);
+  assert.deepEqual(ids([{ id: '1', responsavel: 'paulo' }, { id: '2', responsavel: 'Ewerton' }, { id: '3', responsavel: 'Érica' }]), ['3', '2', '1']);
+  const st = [{ id: 'f', status: 'Finalizado' }, { id: 'a', status: 'A Fazer' }, { id: 'p', status: 'para aprovação' }, { id: 'e', status: 'Em Andamento' }, { id: 'x', status: '' }];
+  vm.runInContext('ORDEM = { campo: "status", desc: false };', c);
+  assert.deepEqual(ids(st), ['a', 'e', 'p', 'f', 'x'], 'a ordem do fluxo, não a alfabética (Finalizado viria antes de Para aprovação)');
+  vm.runInContext('ORDEM = { campo: "status", desc: true };', c);
+  assert.deepEqual(ids(st), ['f', 'p', 'e', 'a', 'x']);
+  vm.runInContext('ORDEM = { campo: "captacao", desc: false };', c);
+  assert.deepEqual(ids([{ id: '3', captacao: 'Captado' }, { id: '1', captacao: 'Agendar Captação' }, { id: '0', captacao: '—' }, { id: '2', captacao: 'Captação agendada' }]), ['1', '2', '3', '0']);
+});
+
+test('Captação: coluna própria ao lado do Status, à mostra por padrão, com pílula e menu só dela; "Colunas" esconde', () => {
+  const pv2 = trecho(gestor, 'function pv2GruposHtml(', '\n}\n'), linha = trecho(gestor, 'function pv2GrupoLinha(', '\n}\n');
+  assert.match(pv2, /cap = pv2GruposCaptacao && quadro === 'producao'/, 'nas solicitações a coluna não aparece');
+  assert.ok(pv2.includes("th('status', 'Status') + (cap ? th('captacao', 'Captação') : '') + th('prazo_iso', 'Prazo')"), 'Captação logo depois do Status');
+  assert.ok(!pv2.includes("extras ? th('captacao'"), 'não fica mais entre as colunas escondidas');
+  const iSt = linha.indexOf('pv2StatusBotao(item)'), iCap = linha.indexOf("${pillEditavel(item, 'captacao')}"), iPrazo = linha.indexOf("data('prazo'");
+  assert.ok(iSt > 0 && iSt < iCap && iCap < iPrazo, 'a célula da Captação fica entre Status e Prazo');
+  assert.ok(linha.includes('(cap ? `<td class="s-f-cap" data-label="Captação"'), 'a pílula abre o seletor da coluna (abrirEscolha → escolherValor)');
+  assert.ok(linha.includes("PV2_GRUPOS_EXTRAS.filter((c) => c !== 'captacao')"));
+  assert.ok(gestor.includes('let pv2GruposCaptacao = true;'));
+  assert.ok(gestor.includes('pv2GruposCaptacao = salvo.semCaptacao !== true;'), 'quem escondeu continua sem ela');
+  assert.ok(pv2.includes('data-s-f="colunas" aria-haspopup="dialog"'), '"Colunas" abre o menu com Captação e as outras cinco');
+  assert.ok(gestor.includes("op('captacao', 'Captação', pv2GruposCaptacao)"));
+  // A pílula de Status da tabela abre só o bloco Status; o menu da peça (fora da tabela) segue com os dois.
+  const menu = trecho(status, 'function openStatusEditor(', 'function pecaTemCaptacao(');
+  assert.ok(menu.includes("const daTabela = Boolean(event.currentTarget?.closest?.('#grupos-board.d3m-a-v2 .d3m-a-g-tab'));"));
+  assert.ok(menu.includes("const captacao = !daTabela && typeof blocoDeCaptacaoHtml === 'function'"));
+  const css = ler('padrao-v2/s-f.css');
+  assert.ok(css.includes('.s-f-com-cap:not(.larga) th:nth-last-child(3){width:62px}'), 'Prazo inteiro');
+  assert.ok(css.includes('.s-f-com-cap:not(.larga) th:nth-last-child(2){width:94px}'), 'Veiculação inteira');
+  assert.match(css, /\.d3m-a-th > i\.s-f-seta\{[^}]*color:var\(--d3-rotulo\)\}/);
+  assert.match(css, /\.d3m-a-th\.on > i\.s-f-seta\{[^}]*color:var\(--d3-tinta\)\}/);
+});
+
+test('Busca e faixa da pessoa: o campo usa os tokens do vidro sem regra forçada e a faixa antiga sai com a V2', () => {
+  const css = ler('padrao-v2/s-f.css');
+  assert.ok(css.includes('input#busca-cliente-conteudos{--d3-cartao:transparent;--ds-linha:transparent;--d3-tinta:var(--d3-fume-texto)}'), 'a regra antiga lê essas três variáveis');
+  assert.match(css, /#pv2-lado-v \.d3m-a-busca\{box-shadow:inset 0 0 0 1px var\(--d3-fume-apagado\)\}/, 'contorno visível');
+  assert.match(css, /#pv2-lado-v \.d3m-a-busca\{[^}]*border-radius:var\(--d3-r-botao\)/, 'canto 8');
+  assert.ok(gestor.includes('placeholder="Cliente, conteúdo ou ID"'));
+  assert.ok(gestor.includes('class="s-f-busca-x" onclick="event.preventDefault();pv2GruposTirarBusca()'), 'o × fica dentro do campo');
+  assert.ok(css.includes('body.mundo[data-pv2-vista="grupos"] #ops-selection-summary[data-s-f-chips]{display:none}'));
+  assert.ok(trecho(agenda, 'function renderVisaoDeGrupos(', 'const peca = (n)').includes("if (quadro === 'producao') document.getElementById('ops-selection-summary')?.toggleAttribute('data-s-f-chips', gruposV2);"));
+  const pv2 = trecho(gestor, 'function pv2GruposHtml(', '\n}\n');
+  assert.ok(pv2.includes('opsSelectionNumeros()'), 'os números da faixa (entregas, riscos, vencem hoje) vão para a linha dos chips');
+  assert.match(gestor, /function renderOpsSelectionSummary\(\)\{[\s\S]*?const \{ scope, risks, due \}=opsSelectionNumeros\(\);/, 'a faixa antiga e os chips contam igual');
 });

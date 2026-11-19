@@ -155,7 +155,9 @@ function openStatusEditor(event, itemId) {
   // Paulo, 19/11/2026: o menu separa Status (produção) e Status de captação, como as duas colunas da tabela de Grupos.
   // Peça com captação mostra os dois blocos, cada um gravando no próprio campo pelas mesmas funções da tabela
   // (updateFocusStatus e escolherValor). Peça sem captação (ou solicitação) mostra só Status, como antes.
-  const captacao = typeof blocoDeCaptacaoHtml === 'function' ? blocoDeCaptacaoHtml(item) : '';
+  // Na tabela de Grupos da V2 a Captação tem coluna e pílula próprias: a pílula de Status abre só o bloco Status.
+  const daTabela = Boolean(event.currentTarget?.closest?.('#grupos-board.d3m-a-v2 .d3m-a-g-tab'));
+  const captacao = !daTabela && typeof blocoDeCaptacaoHtml === 'function' ? blocoDeCaptacaoHtml(item) : '';
   const cabeca = captacao
     ? `<div class="status-editor-head v2-st-cab"><span>Status</span><small>agora: ${safeText(item.status || 'sem status')}</small></div>`
     : `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>`;

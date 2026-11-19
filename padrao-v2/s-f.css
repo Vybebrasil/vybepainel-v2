@@ -12,6 +12,14 @@
    5. O grupo escolhido na coluna da direita leva contorno no Claro e no Escuro (antes 1,09:1 e 1,2:1 contra a lista).
    6. O cabeçalho da tabela diz para onde vai ordenar.
    7. O bloco Captação no menu de status da peça.
+   8. O campo Buscar da coluna da direita. A regra antiga de campos (vybe-mundo.css) pinta todo input de branco à força
+      (important), mas lê as variáveis --d3-cartao, --ds-linha e --d3-tinta: aqui o input redefine as três para o campo
+      de vidro, sem regra forçada. Antes no Fumê: fundo branco com letra branca (1:1) e o aro 1,36:1 contra a coluna.
+   9. A faixa antiga da pessoa ("Paulo · 1 pessoa · 77 entregas…") sai com a V2 de Grupos: a pessoa já está num chip e os
+      números dela foram para a linha dos chips (.s-f-pessoa).
+   10. A coluna Captação ao lado do Status (à mostra por padrão; "Colunas" esconde). Com ela a tabela tem uma coluna a
+      mais e as larguras fixas se refazem para caber em 1366 sem rolar de lado; Prazo e Veiculação ficam inteiros.
+   11. O campo Buscar é uma peça só: lupa e × dentro do campo, largura da coluna, canto 8.
    =================================================================================================================== */
 
 /* 1 */
@@ -61,10 +69,48 @@ html:is([data-d3-tema="claro"],[data-d3-tema="escuro"]) .d3m-a-lado-v .d3m-a-gru
 html:is([data-d3-tema="claro"],[data-d3-tema="escuro"]) .d3m-a-lado-v .d3m-a-grupo.on:hover{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
 
 /* 6 */
-#grupos-board.d3m-a-v2 .d3m-a-th:not(.on):is(:hover,:focus-visible)::after{content:"↑";color:var(--d3-rotulo)}
+#grupos-board.d3m-a-v2 .d3m-a-th{cursor:pointer}
+#grupos-board.d3m-a-v2 .d3m-a-th{gap:3px}
+#grupos-board.d3m-a-v2 .d3m-a-th > i.s-f-seta{flex:none;display:inline-grid;place-items:center;min-width:11px;font-style:normal;font-weight:400;color:var(--d3-rotulo)}
+#grupos-board.d3m-a-v2 .d3m-a-th > i.s-f-seta > svg{display:block;width:11px;height:11px}
+#grupos-board.d3m-a-v2 .d3m-a-th.on > i.s-f-seta{font-weight:600;color:var(--d3-tinta)}
+#grupos-board.d3m-a-v2 .d3m-a-th:not(.on):hover > i.s-f-seta{color:var(--d3-tinta)}
+/* No Escuro a cabeça fixa da tabela ficava com o papel claro (#F3F1EC, regra antiga forçada em vybe-mundo.css) sob a letra
+   clara, 1:1. Sem regra forçada: uma camada na cor da folha por baixo do texto (z-index -1 dentro da th, que é sticky). */
+html[data-d3-tema="escuro"] #grupos-board.d3m-a-v2 .d3m-a-g-tab thead th::before{content:"";position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--d3-tinta) 6%,var(--d3-folha))}
 #grupos-board.d3m-a-v2 .d3m-a-th:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:1px}
 
 /* 7 */
 body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-cap-cab{margin-top:4px;padding-top:10px;border-top:1px solid var(--d3-fume-borda)}
 body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-cap-op.s-f-cap-on{background:var(--d3-fume-veu-forte);font-weight:600}
 body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-cap-op .status-editor-check{margin-left:auto;display:inline-grid;place-items:center;background:none}
+
+/* 8 */
+#pv2-lado-v .d3m-a-busca{box-shadow:inset 0 0 0 1px var(--d3-fume-apagado)}
+#pv2-lado-v .d3m-a-busca:focus-within{box-shadow:inset 0 0 0 2px var(--d3-fume-texto)}
+#pv2-lado-v .d3m-a-busca > input#busca-cliente-conteudos{--d3-cartao:transparent;--ds-linha:transparent;--d3-tinta:var(--d3-fume-texto)}
+
+/* 9 */
+body.mundo[data-pv2-vista="grupos"] #ops-selection-summary[data-s-f-chips]{display:none}
+#grupos-board.d3m-a-v2 .s-f-ativos .s-f-pessoa{margin-left:auto}
+
+/* 10 */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(9){width:84px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(8){width:24%}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(7){width:21%}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(6){width:80px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(5){width:108px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(4){width:104px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(3){width:62px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(2){width:94px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(1){width:74px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn{max-width:100%;overflow:hidden}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn :is(.pill,[class*="pill"],span){display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 11 */
+#pv2-lado-v .d3m-a-busca{width:100%;box-sizing:border-box;gap:8px;padding:0 6px 0 12px;border-radius:var(--d3-r-botao)}
+#pv2-lado-v .d3m-a-busca > input#busca-cliente-conteudos::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x{appearance:none;flex:none;display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:6px;background:none;box-shadow:none;color:var(--d3-fume-texto);cursor:pointer}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x:hover{background:var(--d3-fume-veu-forte)}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+#pv2-lado-v .d3m-a-busca > .s-f-busca-x > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
