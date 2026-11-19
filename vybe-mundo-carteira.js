@@ -473,6 +473,114 @@
       <section class="v2c-card v2c-quadro" aria-label="${esc(TITULO_DO_FILTRO[estado.risco] || TITULO_DO_FILTRO.todos)}"><button type="button" class="d3c-ordem" data-vc-ordem-gira title="Mudar a ordem">${ROTULO_DA_ORDEM[estado.ordem.saude] || ROTULO_DA_ORDEM.risco}</button>
         ${corpoLista}${pe}</section>` };
   }
+  // ===== Saúde da carteira na prancha V2-R-Saude-Carteira (19/11/2026) =====
+  // A janela vira vidro fumê, como Contratos e Churn (TELAS_M): o topo com Agora / Mês a mês, o head e o "Como funciona";
+  // quatro números em folha; a folha da lista com os filtros na cabeça, a ordem e o pé "Mais"; e, ao lado, o laranja do
+  // Mateus (o que mais tira ponto, numa frase), "O que mais pesa", "Como tira ponto" e "Abrir". Os mesmos data-vc-* de antes.
+  const PESA_ROTULO = { 'atraso de veiculação': 'Veiculação vencida', 'prazo interno vencido': 'Prazo interno vencido', 'risco de furo': 'Risco de furo', 'peça voltando para alteração': 'Volta para alteração',
+    'aprovação parada': 'Aprovação parada', 'calendário abaixo da meta': 'Menos posts que a meta', 'entrega fora do prazo': 'Entrega fora do prazo', 'fim de contrato': 'Fim de contrato',
+    'pagamento em atraso': 'Pagamento em atraso', 'NPS baixo': 'NPS baixo', 'falta de reunião': 'Sem reunião', 'clima do grupo': 'Clima do grupo', 'outros sinais': 'Outros sinais' };
+  const ICS = { linha: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l5-5 4 3 7-7"/><path d="M15 7h5v5"/></svg>', ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>' };
+  function linhaSaudeM(c, casa) {
+    const chave = `c:${c.nome}`, aberto = estado.abertos.has(chave), tempo = c.id && casa ? casa.get(c.id) : null;
+    const ruins = ruinsDe(c), bons = c.motivos.filter((m) => m.tom !== 'ruim'), perdeu = ruins.reduce((t, m) => t - m.pontos, 0);
+    const vencidas = c.numeros?.atrasadas || 0, tom = TOM_DO_RISCO[c.risco] || 'a';
+    const perdas = ruins.length ? ruins.slice(0, 3).map((m) => `<span${noTeto(m) ? ` title="${esc(`O teto deste sinal é −${tetoDa(m)}: mais peças não tiram mais ponto`)}"` : ''}><b${ehVencida(m) ? ' class="r"' : ''}>−${-m.pontos}</b> · ${esc(perdaCurta(m, c))}</span>`).join('')
+      : `<span class="g">${esc(bons[0]?.texto || 'sem sinal de alerta')}</span>`;
+    const head = c.heads.length ? `<i class="d3m-r-sc-hav" aria-hidden="true">${esc(duasLetras(c.heads[0]))}</i><span>${esc(primeiroNome(c.heads[0]))}${c.heads.length > 1 ? ` +${c.heads.length - 1}` : ''}</span>` : '<span class="d3m-r-sc-vago">sem head</span>';
+    const risco = String(c.rotuloRisco || '').replace(/^Risco /, '').replace(/^./, (l) => l.toUpperCase());
+    const rodape = [c.heads.join(', ') || 'sem head', c.carteira ? `carteira ${c.carteira}` : '', tempo ? casaTxt(tempo) : '', tempo ? (tempo.temContrato ? contratoTxt(tempo) : 'sem contrato registrado') : ''].filter(Boolean).join(' · ');
+    return `<li class="d3m-r-sc-li" data-vc-linha="${esc(chave)}" aria-expanded="${aberto}"><div class="d3m-r-sc-lin">
+        <button type="button" class="d3m-r-sc-abre" data-vc-abrir="${esc(chave)}" aria-expanded="${aberto}" aria-label="${esc(`${c.nome}, nota ${c.score}, ${c.rotuloRisco}${perdeu ? `, perdeu ${perdeu} pontos` : ''}`)}">
+          <b class="d3m-r-sc-nota ${tom}">${c.score}</b><span class="d3m-r-sc-cli">${avM(c.nome)}<b>${esc(c.nome)}</b></span><span class="d3m-r-sc-head">${head}</span>
+          <span class="d3m-r-sc-risco"><i class="${tom}" aria-hidden="true"></i>${esc(risco)}</span><span class="d3m-r-sc-perdas">${perdas}</span></button>
+        ${btnFolha(vencidas > 1 ? `Abrir as ${vencidas}` : vencidas === 1 ? 'Abrir a peça' : 'Abrir o cliente', `data-vc-cliente="${esc(c.nome)}"`)}</div>
+      <div class="d3m-r-sc-det">${ruins.map((m) => `<span><b class="${ehVencida(m) ? 'r' : ''}">−${-m.pontos}</b><span>${esc(m.texto)}${noTeto(m) ? `, no teto de −${tetoDa(m)}` : ''}</span></span>`).join('')}
+        ${bons.map((m) => `<span><b class="g">ok</b><span>${esc(m.texto)}</span></span>`).join('')}<small>${esc(rodape)}</small></div></li>`;
+  }
+  function abaSaudeM() {
+    const r = estado.saude, agoraHora = new Date().toTimeString().slice(0, 5);
+    const ajudaDe = (fonte) => `<div class="vc-ajuda" role="note"><b>Como a nota é feita</b><p>Cada cliente ativo começa com 100 e perde pontos por peça vencida, risco de furo, volta para alteração, aprovação parada, entrega fora do prazo, calendário abaixo da meta, contrato vencendo, pagamento atrasado, NPS baixo, muito tempo sem reunião e clima ruim no grupo. Abaixo de 50 é risco alto; de 50 a 74, médio.${fonte ? ` ${esc(fonte)}` : ''}</p></div>`;
+    const casca = (main, lado = '') => `<div class="d3m-d-ct d3m-r-sc" data-tela="saude-v2"><div class="d3m-d-ct-main">${main}</div><aside class="d3m-lado d3m-d-ct-lado" aria-label="Consulta">${lado}</aside></div>`;
+    if (!S() || !window.VybeDono) return { topo: { semTroca: true, sub: 'nota de 0 a 100' }, ajuda: ajudaDe(''), corpo: casca(`<section class="d3m-d-folha d3m-d-ct-folha so">${vazioM('A conta da saúde não carregou nesta página.', btnFolha('Atualizar a página', 'data-vc-atualizar', true))}</section>`) };
+    if (!r || !r.clientes.length) return { topo: { semTroca: true, sub: 'nota de 0 a 100' }, ajuda: ajudaDe(''), corpo: casca(`<section class="d3m-d-folha d3m-d-ct-folha so">${vazioM(cadastro().length ? 'Nenhum cliente ativo com peças no painel ainda.' : 'O cadastro de clientes ainda não carregou.', btnFolha('Carregar de novo', 'data-vc-recarregar', true))}</section>`) };
+    espiarCarteira.saude = r;
+    const h = S().historicoSaude({ meses: estado.servidor?.historico?.meses || [], atual: r.resumo, hoje: r.dia });
+    const headsDe = (c) => (c.heads.length ? c.heads : [S().SEM_HEAD]);
+    const heads = [...new Set(r.clientes.flatMap(headsDe))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const ctr = contratosAgora();
+    if (ctr) espiarCarteira.contratos = ctr;
+    const casa = ctr ? new Map(ctr.linhas.map((l) => [l.id, l])) : null;
+    const contas = S().contasPorHead({ clientes: r.clientes, base: estado.servidor?.clientes || [], contratos: listaContratos() });
+    espiarCarteira.heads = contas;
+    const fonte = r.fonte.sinais === 'servidor' ? 'Alteração e aprovação pelo histórico de status (30 e 60 dias).' : 'Alteração e aprovação pelo que está na tela agora (o histórico do servidor não respondeu).';
+    const ferr = `<span class="d3m-d-seg" role="group" aria-label="Visão">${[['agora', 'Agora'], ['meses', 'Mês a mês']].map(([k, rot]) => `<button type="button" data-vc-visao="${k}" aria-pressed="${estado.visao === k}">${rot}</button>`).join('')}</span>
+      <select class="d3m-d-sel" data-vc-head aria-label="Filtrar por head"><option value="todos">Head: todos</option>${heads.map((x) => `<option value="${esc(x)}"${estado.head === x ? ' selected' : ''}>Head: ${esc(x)}</option>`).join('')}</select>`;
+    const mais = [['risco', 'Pior nota primeiro'], ['melhor', 'Melhor nota primeiro'], ['nome', 'Nome A–Z']].map(([k, rot]) => `<button type="button" role="menuitem" data-vc-ordem-saude="${k}"${estado.ordem.saude === k ? ' aria-current="true"' : ''}>${rot}</button>`);
+    const topo = { semTroca: true, sub: `${plural(r.clientes.length, 'cliente ativo', 'clientes ativos')} · nota de 0 a 100 · lida às ${agoraHora}`, ferr, mais };
+    const din = veDinheiro();
+    const abrirM = `<nav class="d3m-cons d3m-d-ct-abrir" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+      <button type="button" class="d3m-vlin" data-vc-visao="${estado.visao === 'meses' ? 'agora' : 'meses'}" aria-pressed="${estado.visao === 'meses'}"><span><b>${estado.visao === 'meses' ? 'Clientes agora' : 'Contas por head'}</b> · ${estado.visao === 'meses' ? 'a lista de quem precisa de você' : `nota${din ? ' e receita' : ''}`}</span>${ICQ.seta}</button>
+      <button type="button" class="d3m-vlin" data-vc-ir="churn"><span><b>Churn e contratos</b></span>${ICQ.seta}</button></nav>`;
+    // "Mês a mês": a média guardada de cada mês e as contas por head, nas folhas.
+    if (estado.visao === 'meses') {
+      return { topo, ajuda: ajudaDe(fonte), corpo: casca(`<section class="d3m-d-folha d3m-d-ct-folha d3m-r-sc-meses" aria-label="Média mês a mês"><div class="d3m-d-cab"><h3>Média mês a mês</h3></div>${serieHtml(h)}</section>
+        ${contas.length ? `<section class="d3m-d-folha d3m-d-ct-folha d3m-r-sc-contas" aria-label="Contas por head">${contasHtml(contas)}</section>` : ''}`, abrirM) };
+    }
+    const noFiltro = { precisam: precisaDeVoce, todos: () => true }[estado.risco] || ((c) => c.risco === estado.risco);
+    let lista = r.clientes.filter((c) => noFiltro(c) && (estado.head === 'todos' || headsDe(c).includes(estado.head)));
+    if (estado.ordem.saude === 'melhor') lista = [...lista].reverse();
+    else if (estado.ordem.saude === 'nome') lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const precisam = r.clientes.filter(precisaDeVoce), tranquilos = r.clientes.filter((c) => c.risco === 'baixo');
+    const v = h.variacao.media, mudou = v && v.direcao !== 'igual' && v.anterior != null ? `${v.direcao === 'sobe' ? 'subiu' : 'caiu'} ${Math.abs(v.delta)} no mês` : '';
+    const riscoDaMedia = S().riscoDaNota(r.resumo.media ?? 0);
+    const vencidasTotal = r.clientes.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0), vencidasBaixo = precisam.reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0);
+    const diaria = typeof d3Series === 'function' && typeof d3SerieValores === 'function' ? d3SerieValores(d3Series('carteira', () => pintar())?.media) : null;
+    const serieMedia = diaria || (h.serie || []).map((m) => m.media);
+    const corte = S().REGRAS?.riscoMedio ?? 75;
+    const numeros = `<div class="d3m-d-nums d3m-r-sc-nums">
+      ${numMq({ rotulo: 'Nota média', selo: 'tinta', ic: ICS.linha, valor: String(r.resumo.media ?? '—'), de: '/ 100', tom: TOM_DO_RISCO[riscoDaMedia] === 'r' ? 'r' : '', graf: miniMq(serieMedia), sub: `${mudou || plural(r.clientes.length, 'ativo', 'ativos')}${metaSub()}` })}
+      ${numMq({ rotulo: 'Precisam de você', selo: precisam.length ? 'r' : '', ic: ICQ.alerta, valor: String(precisam.length), de: `/ ${r.clientes.length}`, sub: `risco alto ou nota abaixo de ${LIMITE_PRECISA}`, attrs: `data-vc-risco="precisam" aria-pressed="${estado.risco === 'precisam'}"` })}
+      ${numMq({ rotulo: 'Tranquilos', selo: 'g', ic: ICS.ok, valor: String(tranquilos.length), de: `/ ${r.clientes.length}`, sub: tranquilos.length ? `risco baixo · nota ${corte} ou mais` : `ninguém com ${corte} ou mais`, attrs: `data-vc-risco="baixo" aria-pressed="${estado.risco === 'baixo'}"` })}
+      ${numMq({ rotulo: 'Peças vencidas', selo: vencidasTotal ? 'r' : '', ic: ICQ.relogio, valor: String(vencidasTotal), tom: vencidasTotal ? 'r' : '', sub: vencidasTotal && precisam.length ? `${vencidasBaixo} nos ${precisam.length} de baixo` : vencidasTotal ? 'na carteira' : 'nenhuma peça vencida', attrs: vencidasTotal ? 'data-vc-atrasadas' : '' })}</div>`;
+    const conta = (k) => (k === 'precisam' ? precisam.length : k === 'todos' ? r.clientes.length : r.resumo[k]);
+    const FILTROS = [['precisam', 'Precisam de você'], ['todos', 'Todos'], ['alto', 'Risco alto'], ['medio', 'Risco médio'], ['baixo', 'Risco baixo']];
+    const nomeFiltro = (FILTROS.find(([k]) => k === estado.risco) || FILTROS[1])[1];
+    const limite = estado.limite.saude || 6, resto = lista.length - limite, recolhidos = estado.risco === 'precisam' ? r.clientes.length - precisam.length : 0;
+    const semNinguem = estado.risco === 'precisam' && estado.head === 'todos' ? 'Ninguém precisa de você agora.' : 'Nenhum cliente neste filtro.';
+    const cab = `<div class="d3m-r-sc-cab" aria-hidden="true"><span>Nota</span><span>Cliente</span><span>Head</span><span>Risco</span><span>O que tirou ponto</span><span></span></div>`;
+    const pe = resto > 0 || recolhidos ? `<div class="d3m-r-sc-pe"><span>Mais</span>${resto > 0 ? `<button type="button" data-vc-mais="saude"><b>+${resto}</b><small>${resto === 1 ? 'cliente' : 'clientes'} neste filtro</small></button>` : ''}${recolhidos ? `<button type="button" data-vc-risco="todos"><b>+${recolhidos}</b><small>sem urgência, em Todos</small></button>` : ''}</div>` : '';
+    const folhaLista = `<section class="d3m-d-folha d3m-d-ct-folha d3m-r-sc-folha" aria-label="${esc(TITULO_DO_FILTRO[estado.risco] || TITULO_DO_FILTRO.todos)}"><div class="d3m-d-cab"><h3>${esc(nomeFiltro)} <small>· ${lista.length} de ${r.clientes.length}</small></h3>
+        ${segM('Filtrar por risco', FILTROS.map(([k, rot]) => [`data-vc-risco="${k}"`, rot, conta(k), estado.risco === k, k === 'alto' ? 'r' : '']))}
+        <button type="button" class="d3m-d-elo d3m-r-sc-ordem" data-vc-ordem-gira title="Mudar a ordem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg>${ROTULO_DA_ORDEM[estado.ordem.saude] || ROTULO_DA_ORDEM.risco}</button></div>
+      ${lista.length ? `${cab}<ol class="d3m-r-sc-lista">${lista.slice(0, limite).map((c) => linhaSaudeM(c, casa)).join('')}</ol>` : vazioM(semNinguem, btnFolha('Ver todos', 'data-vc-risco="todos" data-vc-limpar'))}${pe}</section>`;
+    // O lado: o laranja do Mateus com o que mais tira ponto (a mesma conta de falaDaSaude), o que pesa e as regras.
+    const soma = new Map();
+    for (const c of r.clientes) for (const m of ruinsDe(c)) { const k = causaDe(m), x = soma.get(k) || { pontos: 0, clientes: new Set() }; x.pontos -= m.pontos; x.clientes.add(c); soma.set(k, x); }
+    const causas = [...soma.entries()].sort((a, b) => b[1].pontos - a[1].pontos);
+    const [causa, x] = causas[0] || [], media = r.resumo.media;
+    let laranja = '';
+    if (causa) {
+      const n = x.clientes.size, deAtraso = causa === 'atraso de veiculação' || causa === 'prazo interno vencido', vencidas = deAtraso ? [...x.clientes].reduce((t, c) => t + (c.numeros?.atrasadas || 0), 0) : 0;
+      const semEla = Math.round(r.clientes.reduce((t, c) => t + Math.min(100, c.score + ruinsDe(c).filter((m) => causaDe(m) === causa).reduce((s, m) => s - m.pontos, 0)), 0) / r.clientes.length);
+      laranja = deAtraso && vencidas
+        ? larMq(AGENTE, AGENTE.papel, vencidas, `${vencidas === 1 ? 'vencida' : 'vencidas'} em ${plural(n, 'cliente', 'clientes')}`, `${vencidas === 1 ? 'Resolvida' : 'Resolvidas'}, a nota média vai de ${esc(media)} para ${semEla}.`,
+          `${btnLar(vencidas === 1 ? 'Ver a peça' : `Ver as ${vencidas}`, 'data-vc-atrasadas')}${btnLar('Ver por cliente', 'data-vc-risco="todos" data-vc-limpar', true)}`)
+        : larMq(AGENTE, AGENTE.papel, n, `${n === 1 ? 'cliente' : 'clientes'} com ${esc(causa)}`, `Resolvido, a nota média vai de ${esc(media)} para ${semEla}.`,
+          btnLar(n === 1 ? 'Ver o cliente' : `Ver os ${n}`, 'data-vc-risco="todos" data-vc-limpar'));
+    }
+    const pesa = causas.slice(0, 4);
+    const pesaM = `<section class="d3m-cons" aria-label="O que mais pesa"><div class="d3m-cons-cab"><b>O que mais pesa</b><span>na carteira</span></div>${pesa.length
+      ? `<div class="d3m-r-sc-pesa">${pesa.map(([k, y]) => `<span><span><span>${esc(PESA_ROTULO[k] || k)}</span><span>${plural(y.clientes.size, 'cliente', 'clientes')}</span></span><i style="--v:${Math.round((y.clientes.size / r.clientes.length) * 100)}%"></i></span>`).join('')}</div>`
+      : '<p class="d3m-vvazio">Ninguém perdeu ponto.</p>'}</section>`;
+    const R = S().REGRAS || {};
+    const regra1 = [R.furo ? `−${R.furo} vencida` : '', R.prazoVencido ? `−${R.prazoVencido} prazo interno` : ''].filter(Boolean).join(' · ');
+    const regra2 = [R.ajuste ? `−${R.ajuste} alteração` : '', R.risco ? `−${R.risco} risco de furo` : ''].filter(Boolean).join(' · ');
+    const comoM = `<section class="d3m-cons" aria-label="Como tira ponto"><div class="d3m-cons-cab"><b>Como tira ponto</b><span>a nota começa em 100</span></div>
+      ${regra1 ? `<button type="button" class="d3m-vlin" data-vc-como aria-expanded="${estado.ajuda}"><span><b>${esc(regra1)}</b>${R.tetoAtraso ? ` · teto −${R.tetoAtraso}` : ''}</span></button>` : ''}
+      ${regra2 ? `<button type="button" class="d3m-vlin" data-vc-como aria-expanded="${estado.ajuda}"><span><b>${esc(regra2)}</b></span>${ICQ.seta}</button>` : ''}</section>`;
+    return { topo, ajuda: ajudaDe(fonte), corpo: casca(`${numeros}${folhaLista}`, `${laranja}${pesaM}${comoM}${abrirM}`) };
+  }
   // Contas por head: quantos clientes cada head tem, a nota média da carteira dele e a receita mensal.
   function contasHtml(contas) {
     if (!contas.length) return '';
@@ -744,7 +852,7 @@
   // ---------- Peças das pranchas V2-M-Contratos e V2-M-Churn (16/11/2026) ----------
   // As duas telas saem da janela clara: o topo e a tela ficam direto no vidro fumê (padrao-v2/zm-d-carteira.css), com as
   // peças .d3m-d-* de zm-d-0-pecas.css e as .d3m-* de z-direcao.css. Cada aba devolve { topo, ajuda, corpo }.
-  const TELAS_M = new Set(['contratos', 'churn']);
+  const TELAS_M = new Set(['contratos', 'churn', 'saude']);
   const svgM = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const ICQ = { baixo: svgM('<path d="M6 9l6 6 6-6"/>'), seta: svgM('<path d="M9 6l6 6-6 6"/>'), busca: svgM('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svgM('<path d="M5 12h.01M12 12h.01M19 12h.01"/>'),
     mais: svgM('<path d="M12 5v14M5 12h14"/>'), ajuda: svgM('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>'),
@@ -769,8 +877,8 @@
   function topoMq(t) {
     const nome = TITULO_DA_ABA[estado.aba], outras = abasVisiveis().filter(([k]) => !TELAS_M.has(k));
     const itens = [...(t?.mais || []), '<button type="button" role="menuitem" data-vc-fechar>Fechar</button>'];
-    return `<div class="d3m-d-topo d3m-d-ct-topo"><div class="d3m-d-tit"><details class="d3m-d-troca"><summary aria-label="${esc(nome)}: ir a outra tela do Comercial"><h2 id="vc-titulo">${esc(nome)}</h2>${ICQ.baixo}</summary>
-        <div class="d3m-d-pop">${VISTAS_COM.map(([id, n]) => `<button type="button" data-vc-ir="${id}"${id === estado.aba ? ' aria-current="page"' : ''}>${esc(n)}</button>`).join('')}${outras.map(([k, r]) => `<button type="button" data-vc-aba="${k}">${esc(r)}</button>`).join('')}</div></details>
+    return `<div class="d3m-d-topo d3m-d-ct-topo"><div class="d3m-d-tit">${t?.semTroca ? `<h2 id="vc-titulo">${esc(nome)}</h2>` : `<details class="d3m-d-troca"><summary aria-label="${esc(nome)}: ir a outra tela do Comercial"><h2 id="vc-titulo">${esc(nome)}</h2>${ICQ.baixo}</summary>
+        <div class="d3m-d-pop">${VISTAS_COM.map(([id, n]) => `<button type="button" data-vc-ir="${id}"${id === estado.aba ? ' aria-current="page"' : ''}>${esc(n)}</button>`).join('')}${outras.map(([k, r]) => `<button type="button" data-vc-aba="${k}">${esc(r)}</button>`).join('')}</div></details>`}
         <span class="d3m-d-sub">${t?.sub || esc(FRASE_DA_ABA[estado.aba])}</span></div>
       <div class="d3m-d-ferr">${t?.ferr || ''}<button type="button" class="d3m-d-ico" data-vc-como aria-expanded="${estado.ajuda}" aria-label="Como funciona" title="Como funciona">${ICQ.ajuda}</button>
         <details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais opções" title="Mais opções">${ICQ.pontos}</summary><div class="d3m-d-pop" role="menu">${itens.join('')}</div></details>${t?.acao || ''}</div></div>`;
@@ -1156,7 +1264,7 @@
   // Contratos e Churn: a janela em vidro fumê, com o topo e a tela direto no vidro.
   function htmlDaJanelaM() {
     const lendo = estado.carregando && !estado.servidor && !estado.saude;
-    const t = lendo ? { topo: null, ajuda: '', corpo: '<p class="vc-carregando" role="status">Lendo a carteira…</p>' } : (estado.aba === 'churn' ? abaChurn : abaContratos)();
+    const t = lendo ? { topo: null, ajuda: '', corpo: '<p class="vc-carregando" role="status">Lendo a carteira…</p>' } : ({ churn: abaChurn, contratos: abaContratos, saude: abaSaudeM }[estado.aba] || abaContratos)();
     const erro = estado.erro && !estado.carregando ? `<p class="vc-erro" role="alert">${esc(estado.erro)} ${btnFolha('Tentar de novo', 'data-vc-recarregar')}</p>` : '';
     return `${topoMq(t.topo)}<p class="vc-aviso" role="status" aria-live="polite">${esc(estado.aviso)}</p>${estado.ajuda ? t.ajuda || '' : ''}
       <div class="vc-corpo d3m-d-m-corpo" id="vc-corpo" role="tabpanel">${erro}${t.corpo}</div>`;
@@ -1234,6 +1342,7 @@
     if (d.vcVisao) { estado.visao = d.vcVisao; return pintar(); }
     if ('vcFiltros' in d) { estado.filtros = !estado.filtros; return pintar(); }
     if (d.vcHeadFicha) { estado.head = estado.head === d.vcHeadFicha ? 'todos' : d.vcHeadFicha; delete estado.limite.saude; return pintar(); }
+    if (d.vcOrdemSaude) { estado.ordem.saude = d.vcOrdemSaude; b.closest?.('details')?.removeAttribute?.('open'); return pintar(); }
     if ('vcOrdemGira' in d) { const o = ['risco', 'melhor', 'nome']; estado.ordem.saude = o[(o.indexOf(estado.ordem.saude) + 1) % o.length]; return pintar(); }
     if (d.vcEtapaOnb) { estado.etapaOnb = d.vcEtapaOnb; if ('vcLimpar' in d) estado.buscaOnb = ''; return pintar(); }
     if ('vcNovo' in d) { estado.novoOnb = !estado.novoOnb; if (!estado.novoOnb) estado.contratoNovo = false; pintar(); if (estado.novoOnb) estado.janela.querySelector?.('.vc-onb-caminho')?.focus?.(); return; }

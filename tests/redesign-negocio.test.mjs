@@ -347,10 +347,11 @@ test('Churn (prancha V2-M-Churn): o laranja, três números em folha, as saídas
   assert.match(js, /const estadoVazio = \(titulo, texto = '', botao = ''\) => \(typeof vbEstadoHtml === 'function' \? vbEstadoHtml\(\{ titulo, texto, acao: botao \}\)/, 'o vazio é a peça do padrão');
 });
 
-test('Saúde da carteira: título igual ao do dock (a tela é o quadro do padrão v2); o Churn é a janela em vidro', async () => {
+test('Saúde da carteira: título igual ao do dock (prancha V2-R-Saude-Carteira, vidro como o Churn); o Churn é a janela em vidro', async () => {
   const { ctx, janela } = carteira({ resposta: semTabelas });
   await ctx.VybeCarteira.abrir('saude', { abas: ['saude'], rotulo: 'Clientes' }); await esperar();
-  assert.match(janela().innerHTML, /<div class="v2c" data-tela="saude"><div class="v2c-topo"><h2 id="vc-titulo">Saúde da carteira<\/h2>/);
+  assert.match(janela().innerHTML, /<div class="d3m-d-topo d3m-d-ct-topo"><div class="d3m-d-tit"><h2 id="vc-titulo">Saúde da carteira<\/h2>/);
+  assert.match(janela().innerHTML, /data-tela="saude-v2"/);
   assert.doesNotMatch(janela().innerHTML, /class="vc-frase"|class="vc-resumo"/, 'o quadro não tem a frase nem a linha de números antiga');
   await ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
   assert.match(janela().innerHTML, /<div class="d3m-d-topo d3m-d-ct-topo">[\s\S]*<h2 id="vc-titulo">Churn<\/h2>/, 'o Churn é a janela em vidro da prancha V2-M-Churn');
