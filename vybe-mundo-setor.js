@@ -380,22 +380,36 @@
     return `<section class="vst-card vst-pede" aria-label="Pede ação, na ordem"><div class="vst-topo"><h3>Pede ação, na ordem</h3><small>o mais grave primeiro</small><button type="button" class="vst-mais" data-vst-mais hidden></button></div>`
       + `<div class="vst-rolo">${linhas.join('') || '<p class="vst-vazio">Nada pedindo ação na produção agora.</p>'}</div></section>`;
   }
-  // Prontas por dia: as peças com a data do cliente (a veiculação) em cada dia da semana e quantas já
-  // estão Finalizado. O dia abre a lista das peças dele.
+  // Prontas da semana (Paulo, 19/11/2026): a produção pronta (Finalizado, Para agendar e Agendado), pela regra única de
+  // VybeDono.util.prontasDaSemana; o detalhe (resumoSem) diz quantas já estão em Finalizado. Só a semana usa esta conta.
+  const prontasSem = (S = {}) => (typeof window.VybeDono?.util?.prontasDaSemana === 'function' ? window.VybeDono.util.prontasDaSemana(S)
+    : { prontas: Number(S.previstasEntregues ?? S.entregues) || 0, finalizadas: Number(S.previstasEntregues ?? S.entregues) || 0, paraAgendar: 0, agendadas: 0, previstas: Number(S.previstas) || 0 });
+  const resumoSem = (c, o) => (typeof window.VybeDono?.util?.resumoProntas === 'function' ? window.VybeDono.util.resumoProntas(c, o) : `${num(c.finalizadas)} finalizadas`);
+  // Prontas por dia: as peças com a data do cliente (a veiculação) em cada dia da semana e quantas estão com a produção
+  // pronta (Paulo, 19/11/2026): Finalizado na cor cheia, Para agendar e Agendado no tom claro da mesma cor, empilhados.
+  // O número conta as três; o detalhe (quantas finalizadas, para agendar e agendadas) vai no title e no aria-label.
+  // A regra é a única de VybeDono.util.faseDaPronta. O dia abre a lista das peças dele.
   function vstDias(itens, hoje) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(hoje || ''))) return '';
     const base = Date.parse(hoje + 'T12:00:00Z'), w = new Date(base).getUTCDay(), seg = base - ((w + 6) % 7) * 864e5;
     const dias = Array.from({ length: 7 }, (_, k) => new Date(seg + k * 864e5).toISOString().slice(0, 10));
-    const NOMES = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], conta = dias.map(() => ({ n: 0, p: 0 }));
-    const sit = typeof window.situacaoDaPecaNoMundo === 'function' ? window.situacaoDaPecaNoMundo : null;
+    const NOMES = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], U = window.VybeDono?.util || {};
+    const fase = typeof U.faseDaPronta === 'function' ? U.faseDaPronta : (d) => (/finaliz|feito|conclu/i.test(String(d?.status || '')) ? 'finalizado' : /para agendar/i.test(String(d?.status || '')) ? 'paraAgendar' : /agendad/i.test(String(d?.status || '')) ? 'agendado' : '');
+    const resumo = typeof U.resumoProntas === 'function' ? U.resumoProntas : (c) => `${c.finalizadas} finalizadas`;
+    const CAMPO = { finalizado: 'finalizadas', paraAgendar: 'paraAgendar', agendado: 'agendadas' };
+    const conta = dias.map(() => ({ n: 0, p: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0 }));
     for (const d of itens || []) {
       const k = dias.indexOf(String(d.veiculacao_iso || '').slice(0, 10)); if (k < 0) continue;
       conta[k].n++;
-      if (sit ? sit(d) === 'concluida' : /finaliz/i.test(String(d.status || ''))) conta[k].p++;
+      const f = fase(d); if (f) { conta[k].p++; conta[k][CAMPO[f]]++; }
     }
-    const total = conta.reduce((s, c) => s + c.n, 0), prontas = conta.reduce((s, c) => s + c.p, 0);
-    const linhas = dias.map((dia, k) => `<button type="button" class="vst-dia${dia === hoje ? ' hoje' : ''}" data-espiar="semdia:${dia}|veiculacao_iso" title="Ver as peças de ${esc(NOMES[k])} ${esc(dia.slice(8, 10))}"><span>${NOMES[k]} ${Number(dia.slice(8, 10))}${dia === hoje ? ' · hoje' : ''}</span><span class="vst-dia-barra" style="--v:${conta[k].n ? Math.round((conta[k].p / conta[k].n) * 100) : 0}%"><i></i></span><b>${num(conta[k].p)} de ${num(conta[k].n)}</b></button>`).join('');
-    return `<div class="vst-dias" aria-label="Prontas por dia"><div class="vst-topo"><h3>Prontas por dia</h3><small>${num(prontas)} de ${num(total)} na semana</small></div><div class="vst-dias-lista">${linhas}</div></div>`;
+    const soma = (c) => conta.reduce((s, x) => s + x[c], 0), total = soma('n'), prontas = soma('p');
+    const semana = { finalizadas: soma('finalizadas'), paraAgendar: soma('paraAgendar'), agendadas: soma('agendadas') };
+    const pctDe = (x, n) => (n ? Math.round((x / n) * 1000) / 10 : 0);
+    const linhas = dias.map((dia, k) => { const c = conta[k], det = c.n ? ` · ${num(c.p)} de ${num(c.n)} prontas: ${resumo(c)}` : ' · nada previsto';
+      return `<button type="button" class="vst-dia${dia === hoje ? ' hoje' : ''}" data-espiar="semdia:${dia}|veiculacao_iso" title="Ver as peças de ${esc(NOMES[k])} ${esc(dia.slice(8, 10))}${esc(det)}" aria-label="${esc(`${NOMES[k]} ${Number(dia.slice(8, 10))}${det}`)}"><span>${NOMES[k]} ${Number(dia.slice(8, 10))}${dia === hoje ? ' · hoje' : ''}</span><span class="vst-dia-barra vsg-pilha" style="--v:${pctDe(c.finalizadas, c.n)}%;--c:${pctDe(c.p - c.finalizadas, c.n)}%"><i></i><i class="vsg-clara"></i></span><b>${num(c.p)} de ${num(c.n)}</b></button>`; }).join('');
+    const leg = `<span class="vsg-leg"><i></i>finalizado</span><span class="vsg-leg c"><i></i>para agendar ou agendado</span>`;
+    return `<div class="vst-dias" aria-label="Prontas por dia"><div class="vst-topo"><h3>Prontas por dia</h3><small class="vsg-topo" title="${esc(`${num(prontas)} de ${num(total)} prontas na semana: ${resumo(semana)}`)}">${leg}<b>${num(prontas)} de ${num(total)}</b></small></div><div class="vst-dias-lista">${linhas}</div></div>`;
   }
   // O pé dos módulos: os que têm número, na ordem do setor; o resto abre pelo "Produção ⌄" do topo e pela barra lateral.
   function vstModsPe(numeros = {}) {
@@ -566,11 +580,11 @@
       // A saúde do cliente é a nota da Saúde da carteira (auditoria 15/11, item 32): "em risco alto" aqui é o mesmo número
       // do filtro Risco alto da carteira. A saúde da produção de cada cliente (N.clientes) continua nas abas da Gestão.
       const riscoAlto = saude.filter((c) => c.risco === 'alto').length;
-      const pctSemana = S.previstas ? ((S.previstasEntregues ?? S.entregues) / S.previstas) * 100 : null;
+      const PS = prontasSem(S), pctSemana = S.previstas ? (PS.prontas / S.previstas) * 100 : null;
       const e = typeof escritorio !== 'undefined' ? escritorio : null, online = (e?.conectado ? e.onlineTodos || e.online : e?.lobbyOnline) || [];
       const kpis = dinheiro + comercial
         + kpi({ icone: 'coracao', titulo: 'Clientes ativos', valor: num(C.clientesAtivos), sub: `saúde média ${media == null ? '—' : num(media)} · ${num(riscoAlto)} em risco alto`, cls: riscoAlto ? 'atencao' : '' })
-        + kpi({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${num(S.previstasEntregues ?? S.entregues)}<i>/${num(S.previstas)}</i>`, sub: pctSemana != null ? pct(pctSemana) : 'nenhuma prevista' })
+        + kpi({ icone: 'aperto', titulo: 'Previstas da semana prontas', valor: `${num(PS.prontas)}<i>/${num(S.previstas)}</i>`, sub: pctSemana != null ? `${pct(pctSemana)} · ${resumoSem(PS, { curto: true })}` : 'nenhuma prevista' })
         + kpi({ icone: 'alerta', titulo: 'Atrasadas agora', valor: num(H.atrasadas), sub: `${num(H.emRisco)} com risco de furo`, cls: H.atrasadas ? 'ruim' : '' })
         + kpi({ icone: 'relogio', titulo: 'No prazo', valor: pct(Hi.mediaNoPrazoPct), sub: 'últimas 12 semanas', cls: Hi.mediaNoPrazoPct != null && Hi.mediaNoPrazoPct < 80 ? 'atencao' : '' })
         + kpi({ icone: 'calendario', titulo: 'Próxima semana', valor: `${num(P.proximaSemana?.previstas)}<i>/${num(P.proximaSemana?.capacidadeMediana)}</i>`, sub: 'previstas / capacidade', cls: P.proximaSemana?.risco === 'alto' ? 'ruim' : P.proximaSemana?.risco === 'medio' ? 'atencao' : '' })
@@ -584,7 +598,7 @@
       const time = [...(N?.time || [])].sort((a, b) => (b.abertas || 0) - (a.abertas || 0)).slice(0, 6);
       const ir = (setor, rotulo) => `<button type="button" class="vs-abrir" data-setor-ir="${esc(setor)}" aria-label="Abrir ${esc(rotulo)}">${esc(rotulo)} →</button>`;
       // ---- Padrão v2 (quadro "Gestão"): a frase do VYBES, três números, o que pede ação por setor e a semana por dia ----
-      const prontas = S.previstasEntregues ?? S.entregues, falt = Number(H.faltam) || 0, atr = Number(H.atrasadas) || 0, furos = Number(H.furosProducao ?? H.furos ?? atr) || 0, prox = P.proximaSemana || {};
+      const prontas = PS.prontas, falt = Number(H.faltam) || 0, atr = Number(H.atrasadas) || 0, furos = Number(H.furosProducao ?? H.furos ?? atr) || 0, prox = P.proximaSemana || {};
       const criticos = riscoAlto, abertas = abertasAgora(typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : null, H.dia);
       const inaL = temVF ? vf.inadimplencia?.clientes || [] : ina.clientes || [], inaTotal = Number(temVF ? vf.inadimplencia?.total : ina.total) || 0;
       const mesNome = per.tipo === 'anual' ? mes.slice(0, 4) : MESES[Number(mes.slice(5, 7)) - 1] || '';
@@ -594,12 +608,12 @@
         + (falt ? ` O que pesa hoje é a Produção: ${pl(falt, 'vai', 'vão')} ao ar sem estar ${falt === 1 ? 'pronta' : 'prontas'}.` : '');
       const contaL = [
         `<b>Atrasada</b>: a data do cliente (veiculação; sem ela, o prazo) já passou e a peça não foi entregue. Pausadas e esquecidas ficam fora. Agora: ${num(H.furos ?? furos)} com a veiculação vencida (${num(furos)} sem estar prontas e ${num(H.semPostar ?? 0)} prontas, a conferir se saíram) e ${num(H.prazoInternoVencido ?? 0)} só com o prazo interno.`,
-        `<b>Prontas da semana</b>: das ${num(S.previstas)} peças com data nesta semana, ${num(prontas)} já foram entregues.`,
+        `<b>Prontas da semana</b>: das ${num(S.previstas)} peças com data nesta semana, ${num(prontas)} estão com a produção pronta (${resumoSem(PS)}). Pronta aqui é Finalizado, Para agendar ou Agendado; atraso segue só com Finalizado.`,
         `<b>Ao ar hoje</b>: ${num(H.previstas ?? 0)} previstas para hoje, ${num(falt)} ainda sem estar ${falt === 1 ? 'pronta' : 'prontas'}.`,
       ];
       const corSaude = media == null ? '' : media < 50 ? '#B42318' : media < 70 ? '#9A5B00' : '#11613A';
       const numerosHtml = tres([
-        { rotulo: 'Prontas da semana', valor: num(prontas), de: `de ${num(S.previstas)}`, barra: pctDe(prontas, S.previstas) ?? 0, cor: '#11613A', sub: `${pctSemana != null ? pct(pctSemana) : 'nenhuma prevista'} · semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}` },
+        { rotulo: 'Prontas da semana', valor: num(prontas), de: `de ${num(S.previstas)}`, barra: pctDe(prontas, S.previstas) ?? 0, cor: '#11613A', sub: `${pctSemana != null ? `${pct(pctSemana)} · ${resumoSem(PS, { curto: true })}` : 'nenhuma prevista'} · semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}` },
         { rotulo: 'Atrasadas agora', valor: num(atr), tom: atr ? 'ruim' : '', barra: pctDe(atr, abertas), cor: '#B42318', espiar: atr ? 'atrasadas' : '', sub: `${num(H.emRisco)} com risco de furo em 2 dias${Number(H.emRisco) ? ` · ${elo('ver quais', 'data-espiar="emRisco"')}` : ''}` },
         { rotulo: 'Clientes ativos', valor: num(C.clientesAtivos), barra: media == null ? null : Math.round(media), cor: corSaude, sub: `saúde média ${media == null ? 'sem dado' : num(media)} · ${num(criticos)} em risco alto · ${elo('abrir a carteira', 'data-setor-sub="carteira"')}` },
       ]);
@@ -714,18 +728,21 @@
       const laranja = `<section class="d3m-laranja d3m-d-g-pesa" aria-label="O que pede ação agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · onde pesa agora</span>
         <div class="d3m-lar-txt">${pesa.n != null ? `<b class="d3m-lar-num">${num(pesa.n)}</b>` : ''}<span class="d3-acao-frase">${pesa.frase}</span><small>${pesa.apoio}</small>
         <div class="d3m-lar-bts">${pesa.botao ? `<button type="button" class="d3m-btn l" ${pesa.attrs}>${pesa.botao}</button>` : ''}<button type="button" class="d3m-btn l s" data-gestao-aba="performance">Ver por etapa</button></div></div></section>`;
-      // Esta semana, direto no vidro: prontas e previstas acumuladas por dia; a linha das prontas para em hoje.
-      const dias7 = (S.porDia || []).slice(0, 7), iHojeDia = dias7.findIndex((d) => d.dia === H.dia);
+      // Esta semana, direto no vidro: prontas e previstas acumuladas por dia. Com o dado novo (19/11/2026), a linha das
+      // prontas é das previstas de cada dia com a produção pronta (Finalizado, Para agendar, Agendado) e vai até domingo;
+      // com o dado antigo, as entregues no dia, até hoje.
+      const dias7 = (S.porDia || []).slice(0, 7), iHojeDia = dias7.findIndex((d) => d.dia === H.dia), comProntas = dias7.some((d) => d.prontas != null);
       let a1 = 0, a2 = 0;
-      const prevAc = dias7.map((d) => (a2 += Number(d.previstas) || 0)), feitAc = dias7.map((d) => (a1 += Number(d.entregues) || 0)).slice(0, iHojeDia >= 0 ? iHojeDia + 1 : dias7.length);
+      let a3 = 0; const finAc = comProntas ? dias7.map((d) => (a3 += Number(d.finalizadas) || 0)) : [];
+      const prevAc = dias7.map((d) => (a2 += Number(d.previstas) || 0)), feitAc = comProntas ? dias7.map((d) => (a1 += Number(d.prontas) || 0)) : dias7.map((d) => (a1 += Number(d.entregues) || 0)).slice(0, iHojeDia >= 0 ? iHojeDia + 1 : dias7.length);
       const DIAC = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], hojeD = dias7[iHojeDia] || {};
       const topoSem = Math.max(1, ...prevAc, ...feitAc), xs = (i) => 8 + (i * 264) / Math.max(1, dias7.length - 1), ys = (v) => 80 - ((Number(v) || 0) * 66) / topoSem;
       const fio = (l) => l.map((v, i) => `${i ? 'L' : 'M'}${xs(i).toFixed(1)} ${ys(v).toFixed(1)}`).join(' '), fimS = feitAc.length - 1;
-      const grafSemana = dias7.length > 1 ? `<svg class="d3m-d-g-sem-graf" viewBox="0 0 284 92" preserveAspectRatio="none" role="img" aria-label="Prontas e previstas da semana, acumuladas por dia"><path class="meta" d="${fio(prevAc)}"/>${feitAc.length > 1 ? `<path class="fio" d="${fio(feitAc)}"/>` : ''}${fimS >= 0 ? `<circle cx="${xs(fimS).toFixed(1)}" cy="${ys(feitAc[fimS]).toFixed(1)}" r="3.5"/>` : ''}</svg>
+      const grafSemana = dias7.length > 1 ? `<svg class="d3m-d-g-sem-graf" viewBox="0 0 284 92" preserveAspectRatio="none" role="img" aria-label="${comProntas ? `Finalizadas, prontas e previstas da semana, acumuladas por dia: ${esc(resumoSem(PS))}` : 'Prontas e previstas da semana, acumuladas por dia'}"><path class="meta" d="${fio(prevAc)}"/>${feitAc.length > 1 ? `<path class="fio" d="${fio(feitAc)}"/>` : ''}${finAc.length > 1 ? `<path class="fio vsg-fin" d="${fio(finAc)}"/>` : ''}${fimS >= 0 ? `<circle cx="${xs(fimS).toFixed(1)}" cy="${ys(feitAc[fimS]).toFixed(1)}" r="3.5"/>` : ''}</svg>
         <span class="d3m-d-g-eixo">${dias7.map((d, i) => `<span${i === iHojeDia ? ' class="on"' : ''}>${DIAC[diaDe(d.dia)]}</span>`).join('')}</span>` : '<span class="d3m-d-g-sem-vazio">Os dias da semana aparecem quando a produção carregar.</span>';
-      const semanaV2 = `<section class="d3m-cons d3m-d-g-semana" aria-label="Esta semana"><div class="d3m-cons-cab"><b>Esta semana</b><span>prontas e previstas</span></div>
+      const semanaV2 = `<section class="d3m-cons d3m-d-g-semana" aria-label="Esta semana"><div class="d3m-cons-cab"><b>Esta semana</b><span${comProntas ? ' title="Prontas na semana: Finalizado, Para agendar e Agendado. A linha fina é só o Finalizado."' : ''}>${comProntas ? 'finalizadas, prontas e previstas' : 'prontas e previstas'}</span></div>
         <button type="button" class="d3m-d-g-sem" data-gestao-aba="semana" title="Ver a semana">${grafSemana}
-        <span class="d3m-d-g-minis"><span><b>${num(hojeD.entregues || 0)} / ${num(hojeD.previstas || 0)}</b><small>hoje</small></span><span><b>${num(prontas)} / ${num(S.previstas)}</b><small>na semana</small></span><span><b>${num(prox.previstas)}</b><small>semana que vem</small></span></span></button></section>`;
+        <span class="d3m-d-g-minis"><span title="${esc(resumoSem(hojeD))}"><b>${num((comProntas ? hojeD.prontas : hojeD.entregues) || 0)} / ${num(hojeD.previstas || 0)}</b><small>hoje</small></span><span title="${esc(resumoSem(PS))}"><b>${num(prontas)} / ${num(S.previstas)}</b><small>na semana</small></span><span><b>${num(prox.previstas)}</b><small>semana que vem</small></span></span></button></section>`;
       // Abrir: cinco caminhos na coluna; os outros ficam no menu do título (pintarEm).
       const SETA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
       const vai = (nome, apoio, attrs) => `<button type="button" class="d3m-vlin" ${attrs}><span><b>${esc(nome)}</b> <small>· ${esc(apoio)}</small></span>${SETA}</button>`;
@@ -948,7 +965,7 @@
       // Redesign (quadro 15, 10/11/2026): "Pede ação" primeiro, cada linha com o botão de resolver; os seis números viram
       // uma linha de resumo (zero discreto) e o gráfico só aparece com histórico. Os mesmos números e alertas de antes.
       const atrasadas = H.atrasadas ?? (L.atrasadas || []).length, emRisco = H.emRisco ?? (L.emRisco || []).length;
-      const prontas = S.previstasEntregues ?? S.entregues;
+      const PS = prontasSem(S), prontas = PS.prontas;
       const resumo = resumoProducao({ prontas, previstas: S.previstas, entregues: S.entregues, noPrazo: Hi.mediaNoPrazoPct, atrasadas, emRisco, emAprov, prox, fila: minhas.length, filaAtr: minhasAtr });
       const semanas = (Hi.semanas || []).slice(-12).map((s) => ({ ...s, rotulo: diaMes(s.inicio) }));
       const comHistorico = semanas.filter((s) => Number(s.previstas) > 0 || Number(s.entregues) > 0).length >= 2;
@@ -974,7 +991,7 @@
       const botaoD3 = atrasadas ? `<button type="button" class="d3-acao-btn" data-espiar="atrasadas">${atrasadas === 1 ? 'Resolver a atrasada' : `Resolver as ${num(atrasadas)}`}</button>`
         : falt ? irAba('gestor', 'Ver a semana').replace('class="g2-btn s"', 'class="d3-acao-btn"') : '';
       const conta = {
-        prontas: `Prontas da semana: das ${num(S.previstas)} peças com data nesta semana, ${num(prontas)} já foram entregues (${pl(S.entregues, 'entrega registrada', 'entregas registradas')} na semana). Semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}.`,
+        prontas: `Prontas da semana: das ${num(S.previstas)} peças com data nesta semana, ${num(prontas)} estão com a produção pronta: ${resumoSem(PS)} (${pl(S.entregues, 'entrega registrada', 'entregas registradas')} na semana). Pronta aqui é Finalizado, Para agendar ou Agendado; atraso segue só com Finalizado. Semana que vem: ${pl(prox.previstas, 'prevista', 'previstas')}.`,
         atrasadas: `Atrasada: a data do cliente (veiculação; sem ela, o prazo) já passou e a peça não foi entregue. Pausadas e esquecidas ficam fora. Agora: ${num(H.furos ?? atrasadas)} com a veiculação vencida e ${num(H.prazoInternoVencido ?? 0)} só com o prazo interno. No prazo: ${Hi.mediaNoPrazoPct == null ? 'sem histórico ainda' : pct(Hi.mediaNoPrazoPct)}.`,
         risco: 'Risco de furo: vão ao ar nos próximos 2 dias e ainda não estão prontas.',
       };
@@ -996,7 +1013,7 @@
       };
       vstNumerosMods = numerosMods;
       // Prancha V2-S-Visao-Setor: os quatro números, o Heitor à direita com o botão, e os cartões sem rolar.
-      const numerosV2 = `<div class="vst-nums">${vstNum({ rotulo: 'Prontas da semana', valor: num(prontas), de: num(S.previstas), k: 'g', anel: pctDe(prontas, S.previstas) ?? 0, sub: S.previstas ? `${pct((Number(prontas) / S.previstas) * 100)} · pronta é só Finalizado` : 'nada previsto', dica: conta.prontas })}`
+      const numerosV2 = `<div class="vst-nums">${vstNum({ rotulo: 'Prontas da semana', valor: num(prontas), de: num(S.previstas), k: 'g', anel: pctDe(prontas, S.previstas) ?? 0, sub: S.previstas ? resumoSem(PS, { curto: true }) : 'nada previsto', dica: `${S.previstas ? pct((Number(prontas) / S.previstas) * 100) + ' · ' : ''}${conta.prontas}` })}`
         + vstNum({ rotulo: 'Atrasadas agora', valor: num(atrasadas), tom: atrasadas ? 'r' : '', k: 'r', sub: 'data do cliente vencida', espiar: atrasadas ? 'atrasadas' : '', dica: conta.atrasadas })
         + vstNum({ rotulo: 'Risco de furo', valor: num(emRisco), k: 'a', sub: 'próximos 2 dias', espiar: emRisco ? 'emRisco' : '', dica: conta.risco })
         + vstNum({ rotulo: 'Em aprovação', valor: num(emAprov), k: 'roxo', sub: `${num(espera)} ${espera === 1 ? 'espera' : 'esperam'} o cliente`, dica: 'Peças em Para aprovação ou com o cliente' }) + '</div>';

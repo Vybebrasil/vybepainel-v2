@@ -77,6 +77,11 @@
 // Semana
 // - previstas = peças com a data da peça na semana; entregues = peças com o dia da
 //   entrega na semana; porDia = os 7 dias, de segunda a domingo.
+// - previstasEntregues = previstas já em Finalizado. previstasProntas = previstas com a
+//   produção pronta (Finalizado, Para agendar e Agendado; Paulo, 19/11/2026), com
+//   previstasParaAgendar e previstasAgendadas à parte. Cada dia de porDia (e de
+//   graficoSemana.porDia) traz prontas, finalizadas, paraAgendar e agendadas das previstas
+//   do dia. Só os contadores e gráficos da semana usam as prontas; atraso segue Finalizado.
 //
 // Cobertura (meta de 3 posts por semana, Cérebro do cliente)
 // - Conta os conteúdos (não as solicitações) de cada cliente ativo com a data da peça
@@ -190,6 +195,39 @@
   const ENTREGUE = new Set(['finalizado', 'finalizada', 'concluido', 'concluida', 'concluidos', 'concluidas']);
   const finalizado = (status) => ENTREGUE.has(chaveStatus(status));
   const AGUARDA_POSTAR = new Set(['para agendar', 'agendado']);
+  // Pronta da produção (Paulo, 19/11/2026: "olhando pra semana [...] não devia contar como um pronto na contagem e no
+  // gráfico?"): SÓ nos contadores e gráficos da semana, a peça cuja produção acabou conta como pronta — Finalizado,
+  // Para agendar (falta a Tainara agendar) e Agendado (ela agendou, falta sair). A tela mostra quantas já estão em
+  // Finalizado ao lado. Atrasadas, furando, risco, relatórios e o resto seguem só com Finalizado (finalizado acima).
+  // faseDaPronta(item ou status): 'finalizado' | 'paraAgendar' | 'agendado' | '' (a produção ainda não acabou).
+  const faseDaPronta = (x) => {
+    const k = chaveStatus(x && typeof x === 'object' ? x.status : x);
+    return ENTREGUE.has(k) ? 'finalizado' : k === 'para agendar' ? 'paraAgendar' : k === 'agendado' ? 'agendado' : '';
+  };
+  const prontaDaProducao = (x) => faseDaPronta(x) !== '';
+  // Conta uma lista de peças (ou de status) nas três fases: { total, prontas, finalizadas, paraAgendar, agendadas }.
+  const CAMPO_DA_FASE = Object.freeze({ finalizado: 'finalizadas', paraAgendar: 'paraAgendar', agendado: 'agendadas' });
+  const contarProntas = (lista) => {
+    const c = { total: 0, prontas: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0 };
+    for (const x of lista || []) { c.total++; const f = faseDaPronta(x); if (f) { c.prontas++; c[CAMPO_DA_FASE[f]]++; } }
+    return c;
+  };
+  // Os números de "Prontas da semana" de um bloco semana (calcular().semana): sem os campos novos (dado antigo), cai
+  // nas entregues (só Finalizado). Devolve { prontas, finalizadas, paraAgendar, agendadas, previstas }.
+  const prontasDaSemana = (S = {}) => {
+    const finalizadas = Number(S.previstasEntregues ?? S.entregues) || 0;
+    const paraAgendar = Number(S.previstasParaAgendar) || 0, agendadas = Number(S.previstasAgendadas) || 0;
+    return { prontas: S.previstasProntas != null ? Number(S.previstasProntas) || 0 : finalizadas + paraAgendar + agendadas, finalizadas, paraAgendar, agendadas, previstas: Number(S.previstas) || 0 };
+  };
+  // A frase curta do detalhe: "1 finalizada · 6 para agendar · 2 agendadas" (o que é zero sai; Finalizado sempre fica).
+  // { curto: true } (o sub dos contadores, que tem uma linha): com Para agendar e Agendado juntos, "12 finalizadas · 24 a postar".
+  const resumoProntas = (c = {}, { curto = false } = {}) => (curto && Number(c.paraAgendar) && Number(c.agendadas)
+    ? `${Number(c.finalizadas) || 0} ${Number(c.finalizadas) === 1 ? 'finalizada' : 'finalizadas'} · ${Number(c.paraAgendar) + Number(c.agendadas)} a postar`
+    : [
+    `${Number(c.finalizadas) || 0} ${Number(c.finalizadas) === 1 ? 'finalizada' : 'finalizadas'}`,
+    Number(c.paraAgendar) ? `${c.paraAgendar} para agendar` : '',
+    Number(c.agendadas) ? `${c.agendadas} ${Number(c.agendadas) === 1 ? 'agendada' : 'agendadas'}` : '',
+  ].filter(Boolean).join(' · '));
   const PAUSADA = new Set(['segurar post']);
   const NAO_COMECOU = new Set(['a fazer', 'pode fazer']);
   const TRAVADA = new Set(['alteracao', 'falta info', 'falta d a', 'falta off', 'aguardo', 'aguardo redacao', 'ag interno']);
@@ -307,12 +345,12 @@
     const primeiroDiaContado = semanasHist[0], ultimoDiaContado = somarDias(semanasFuturas[semanasFuturas.length - 1], 6);
     const contaSemana = new Map([...semanasHist, ...semanasFuturas].map((s) => [s, { previstas: 0, abertas: 0, entregues: 0, noPrazo: 0, atrasadasEntregues: 0 }]));
     const diasDaSemana = Array.from({ length: 7 }, (_, i) => somarDias(inicioSem, i));
-    const contaDia = new Map(diasDaSemana.map((d) => [d, { previstas: 0, entregues: 0 }]));
+    const contaDia = new Map(diasDaSemana.map((d) => [d, { previstas: 0, entregues: 0, prontas: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0 }]));
     // O recorte do gráfico não muda o hoje real, os alertas ou a cobertura da agência.
     const campoGrafico = graficoSemana?.campo === 'prazo' ? 'prazo' : 'veiculacao';
     const inicioGrafico = inicioDaSemana(soData(graficoSemana?.referencia) || dia);
     const diasGrafico = Array.from({ length: 7 }, (_, i) => somarDias(inicioGrafico, i));
-    const contaGrafico = new Map(diasGrafico.map((d) => [d, { previstas: 0, entregues: 0 }]));
+    const contaGrafico = new Map(diasGrafico.map((d) => [d, { previstas: 0, entregues: 0, prontas: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0 }]));
     const cacheSemana = new Map();
     const semanaDe = (iso) => { let s = cacheSemana.get(iso); if (!s) { s = inicioDaSemana(iso); cacheSemana.set(iso, s); } return s; };
     // Dias parada: poucos dias distintos para milhares de peças.
@@ -387,9 +425,12 @@
         diaStatus, idade: desde ? Math.max(0, diasAteHoje(desde)) : null,
         ids: idsDe(d),
         conteudo: d.origem !== 'solicitacao',
+        // Pronta da produção (só para a semana): entregue é Finalizado; senão Para agendar ou Agendado (faseDaPronta).
+        fase: '',
         pausada: false, esquecida: false, furo: false, prazoVencido: false, atrasada: false,
         naJanela: false, esperaCliente: false, semAndamento: false, emRisco: false,
       };
+      p.fase = p.entregue ? 'finalizado' : chave === 'para agendar' ? 'paraAgendar' : chave === 'agendado' ? 'agendado' : '';
       if (p.entregue && !diaStatus) entreguesSemDia++;
       if (!p.entregue) {
         p.pausada = PAUSADA.has(chave);
@@ -422,6 +463,9 @@
     const previstasHoje = [], feitasHoje = [], atrasadas = [], emRisco = [], esquecidas = [];
     const paraAgendarHoje = [], paraAgendarVencidas = [], agendadasVencidas = [], travadas = [], esperando = [], semResponsavel = [], semBriefing = [], semDonoAbertas = [];
     let previstasEntreguesSemana = 0;
+    // As previstas da semana com a produção pronta (faseDaPronta): Finalizado, Para agendar e Agendado.
+    const prontasSemana = { prontas: 0, paraAgendar: 0, agendadas: 0 };
+    const somaFase = (c, p) => { if (!p.fase) return; c.prontas++; c[CAMPO_DA_FASE[p.fase]]++; };
     const entreguesPorStatusSemana = new Map();
     const gargalos = new Map();
     const porPessoa = new Map();
@@ -465,14 +509,14 @@
       }
       // Semanas e dias
       const previstoGrafico = contaGrafico.get(campoGrafico === 'prazo' ? p.prazo : p.veic);
-      if (previstoGrafico) previstoGrafico.previstas++;
+      if (previstoGrafico) { previstoGrafico.previstas++; somaFase(previstoGrafico, p); }
       const entregueGrafico = p.entregue && contaGrafico.get(p.diaStatus);
       if (entregueGrafico) entregueGrafico.entregues++;
       if (p.data && p.data >= primeiroDiaContado && p.data <= ultimoDiaContado) {
         const s = contaSemana.get(semanaDe(p.data));
         if (s) { s.previstas++; if (!p.entregue) s.abertas++; }
         const c = contaDia.get(p.data);
-        if (c) { c.previstas++; if (p.entregue) previstasEntreguesSemana++; }
+        if (c) { c.previstas++; if (p.entregue) previstasEntreguesSemana++; somaFase(c, p); if (p.fase) { prontasSemana.prontas++; if (p.fase !== 'finalizado') prontasSemana[CAMPO_DA_FASE[p.fase]]++; } }
       }
       if (p.entregue && p.diaStatus && p.diaStatus >= primeiroDiaContado && p.diaStatus <= ultimoDiaContado) {
         const s = contaSemana.get(semanaDe(p.diaStatus));
@@ -556,6 +600,8 @@
       inicio: inicioSem, fim: fimSem,
       previstas: estaSemana.previstas, entregues: estaSemana.entregues,
       previstasEntregues: previstasEntreguesSemana,
+      // Prontas da semana (Paulo, 19/11/2026): Finalizado + Para agendar + Agendado; previstasEntregues fica só Finalizado.
+      previstasProntas: prontasSemana.prontas, previstasParaAgendar: prontasSemana.paraAgendar, previstasAgendadas: prontasSemana.agendadas,
       entreguesPorStatus: Object.fromEntries(entreguesPorStatusSemana),
       porDia: diasDaSemana.map((d) => ({ dia: d, ...contaDia.get(d) })),
     };
@@ -844,7 +890,9 @@
     // entregue: a mesma regra de "Entregue" das contas acima (usada pela Carteira, vybe-carteira-saude.js).
     util: Object.freeze({ diaLocal, diaDe, somarDias, diasEntre, inicioDaSemana, mediana, chaveStatus, ativoNoCadastro, pessoasDe,
       // finalizado: a função única de "pronta" para as telas (a mesma de entregue).
-      entregue: finalizado, finalizado, headsDe, SEM_HEAD, situacaoDaPeca,
+      entregue: finalizado, finalizado, headsDe,
+      // Só para os contadores e gráficos da SEMANA: a produção pronta (Finalizado, Para agendar, Agendado). Ver faseDaPronta.
+      faseDaPronta, prontaDaProducao, contarProntas, prontasDaSemana, resumoProntas, SEM_HEAD, situacaoDaPeca,
       // semDono(d): a regra única de "peça sem dono" (o Painel e a Performance devem usar esta, não a própria).
       semDono, SEM_CADASTRO }),
   });

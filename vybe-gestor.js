@@ -2378,22 +2378,29 @@ function pv2PintarSemana() {
   const modoAgora = viewMode === 'client' ? 'cliente' : DIAS_EM_COLUNAS ? 'dia' : 'grade';
   const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const escolhido = dias.some((d) => d.iso === pv2Dia) ? pv2Dia : dias.some((d) => d.iso === hojeIso) ? hojeIso : dias[0]?.iso || '';
-  const doDia = (iso) => { const l = (typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira) : []).filter((d) => dataDoCartaoDia(d) === iso); return { total: l.length, feitas: l.filter(atividadeDoDiaConcluida).length }; };
+  // Na régua da semana, pronta é a produção pronta (Paulo, 19/11/2026): Finalizado (feitas) e, das peças de conteúdo,
+  // Para agendar e Agendado (VybeDono.util.faseDaPronta). A barra empilha: Finalizado cheio, os outros no tom claro.
+  const faseDaPronta = globalThis.VybeDono?.util?.faseDaPronta;
+  const doDia = (iso) => { const l = (typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira) : []).filter((d) => dataDoCartaoDia(d) === iso);
+    const feitas = l.filter(atividadeDoDiaConcluida), resto = l.filter((d) => !feitas.includes(d) && !isRequestItem(d) && typeof faseDaPronta === 'function');
+    const paraAgendar = resto.filter((d) => faseDaPronta(d) === 'paraAgendar').length, agendadas = resto.filter((d) => faseDaPronta(d) === 'agendado').length;
+    return { total: l.length, feitas: feitas.length, finalizadas: feitas.length, paraAgendar, agendadas, prontas: feitas.length + paraAgendar + agendadas }; };
+  const detalheDia = (t) => (typeof globalThis.VybeDono?.util?.resumoProntas === 'function' ? globalThis.VybeDono.util.resumoProntas(t) : `${t.feitas} finalizadas`);
   const nomeDia = (iso) => `${new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '')} ${Number(iso.slice(8, 10))}`;
   if (rot && dias.length) {
     const a = dias[0].iso, b = dias[dias.length - 1].iso, mes = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { month: 'long', timeZone: 'UTC' });
     const semanaTxt = a.slice(0, 7) === b.slice(0, 7) ? `${a.slice(8, 10)} a ${b.slice(8, 10)} de ${mes(b)}` : `${a.slice(8, 10)} de ${mes(a)} a ${b.slice(8, 10)} de ${mes(b)}`;
     const t = doDia(escolhido);
     const texto = modoAgora === 'dia' && escolhido ? `${escolhido === hojeIso ? 'Hoje, ' : ''}${nomeDia(escolhido)}` : semanaTxt;
-    const resto = modoAgora === 'dia' && escolhido ? ` · ${t.feitas} de ${t.total} ${t.total === 1 ? 'pronta' : 'prontas'}` : '';
+    const resto = modoAgora === 'dia' && escolhido ? ` · ${t.prontas} de ${t.total} ${t.total === 1 ? 'pronta' : 'prontas'}${t.prontas ? ` (${detalheDia(t)})` : ''}` : '';
     const html = `${safeText(texto)}<span>${safeText(resto)}</span>`;
     if (rot.dataset.txt !== html) { rot.dataset.txt = html; rot.innerHTML = html; }
   }
   // A régua da semana: cada dia com as prontas sobre o total e a barra; o escolhido fica claro. As setas passam a semana.
   const li = pilulasDeSemana(), at = document.getElementById(`tab-s${currentWeek}-label`), ix = li.indexOf(at);
   pv2Trocar(document.getElementById('pv2-regua'), `<button type="button" class="d3m-regua-seta" data-passo="-1" onclick="passarSemana(-1)" aria-label="Semana anterior"${ix <= 0 ? ' disabled' : ''}>${PV2_IC.antes}</button>`
-    + dias.map((d) => { const t = doDia(d.iso), pct = t.total ? Math.round(t.feitas * 100 / t.total) : 0;
-      return `<button type="button" class="d3m-dia${modoAgora === 'dia' && d.iso === escolhido ? ' d3m-on' : ''}" data-dia="${d.iso}" onclick="pv2EscolherDia('${d.iso}')" title="Ver ${nomeDia(d.iso)}" aria-label="${nomeDia(d.iso)}: ${t.feitas} de ${t.total} prontas${modoAgora === 'dia' && d.iso === escolhido ? ', dia escolhido' : ''}"><span><b><i class="d3m-a-dsem">${nomeDia(d.iso).split(' ')[0]}</i> ${Number(d.iso.slice(8, 10))}</b>${d.iso === hojeIso ? '<small>hoje</small>' : ''}</span><span><b class="d3m-dia-n">${t.feitas}<small> / ${t.total}</small></b><i class="d3m-dia-b" style="--v:${pct}%"><i></i></i></span></button>`; }).join('')
+    + dias.map((d) => { const t = doDia(d.iso), pct = t.total ? Math.round(t.feitas * 1000 / t.total) / 10 : 0, pctC = t.total ? Math.round((t.prontas - t.feitas) * 1000 / t.total) / 10 : 0;
+      return `<button type="button" class="d3m-dia${modoAgora === 'dia' && d.iso === escolhido ? ' d3m-on' : ''}" data-dia="${d.iso}" onclick="pv2EscolherDia('${d.iso}')" title="Ver ${nomeDia(d.iso)}${t.total ? ` · ${t.prontas} de ${t.total} prontas: ${detalheDia(t)}` : ''}" aria-label="${nomeDia(d.iso)}: ${t.prontas} de ${t.total} prontas${t.prontas ? `, ${detalheDia(t)}` : ''}${modoAgora === 'dia' && d.iso === escolhido ? ', dia escolhido' : ''}"><span><b><i class="d3m-a-dsem">${nomeDia(d.iso).split(' ')[0]}</i> ${Number(d.iso.slice(8, 10))}</b>${d.iso === hojeIso ? '<small>hoje</small>' : ''}</span><span><b class="d3m-dia-n">${t.prontas}<small> / ${t.total}</small></b><i class="d3m-dia-b vsg-pilha" style="--v:${pct}%;--c:${pctC}%"><i></i><i class="vsg-clara"></i></i></span></button>`; }).join('')
     + `<button type="button" class="d3m-regua-seta" data-passo="1" onclick="passarSemana(1)" aria-label="Próxima semana"${ix < 0 || ix >= li.length - 1 ? ' disabled' : ''}>${PV2_IC.depois}</button>`
     + (at?.classList.contains('e-hoje') ? '' : '<button type="button" class="d3m-regua-hoje" id="pv2-semana-hoje" onclick="semanaDeHoje()">Hoje</button>'));
   const lista = pilulasDeSemana(), atual = document.getElementById(`tab-s${currentWeek}-label`), i = lista.indexOf(atual);
