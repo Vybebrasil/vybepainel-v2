@@ -369,11 +369,29 @@ function alternarProntoDoBastao(botao) {
   const feito = document.getElementById('handoff-done');
   if (feito) feito.value = marcados.join(' · ');
 }
-function openHandoffGate(item, option=null) { pendingWorkflowChange={item,option,manual:!option}; const target=option?.label || 'próxima pessoa ou etapa'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Passagem de bastão</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Deixe a próxima etapa pronta</h2><p class="workflow-copy">Registre o contexto mínimo para que o trabalho siga sem perda de informação.</p>${workflowItemHtml(item,target)}<div class="pt-etp bastao-passos" aria-hidden="true"><span data-bastao-passo="0" class="atual">1 Entregou</span><i></i><span data-bastao-passo="1">2 Próximo</span><i></i><span data-bastao-passo="2">3 Confirmar</span></div>
-<section data-bastao="0"><label class="workflow-field"><span>O que você deixou pronto?</span><textarea id="handoff-done" rows="3" placeholder="Ex.: Arte revisada, versão final aprovada internamente e arquivo anexado."></textarea></label><label class="workflow-field"><span>Link ou arquivo de referência (opcional)</span><input id="handoff-link" type="url" placeholder="https://drive.google.com/... ou link do arquivo"></label></section>
-<section data-bastao="1" hidden><label class="workflow-field"><span>O que precisa acontecer agora?</span><textarea id="handoff-next" rows="3" placeholder="Ex.: Tainara deve conferir a legenda e agendar para segunda-feira."></textarea></label></section>
-<section data-bastao="2" hidden><div class="workflow-field"><span>Confira antes de registrar</span></div><dl id="bastao-revisao" class="bastao-revisao"></dl></section>
-<div class="workflow-actions pt-pe"><small id="bastao-onde" class="bastao-onde">1 de 3</small><button type="button" id="bastao-voltar" class="pt-btn" onclick="passoDoBastao(-1)">Cancelar</button><button type="button" id="bastao-seguir" class="pt-btn k" onclick="passoDoBastao(1)">Continuar</button></div>`); facilitarPassagemDeBastao(item, option); BASTAO_FIM = `Registrar e ${option ? 'atualizar o status' : 'salvar'}`; }
+// Rodada S (frente e): a passagem de bastão na casca das janelas V2 (vbj, padrao-v2/s-b.css), como os portões da rodada
+// R (prancha V2-R-Janelas-Temas): no vidro o nome do pedido, "1 de 3 · entregou" e o fechar; numa folha a peça com o
+// de → para, as etapas com nome e a pergunta da vez; no pé, no vidro, os traços, "Nada muda até você confirmar." e os
+// botões. Os ids que submitHandoff e passoDoBastao leem são os mesmos; o desenho mora em padrao-v2/s-e.css (vbb-*),
+// só com tokens, e sai nos três temas.
+const BASTAO_ETAPAS = ['Entregou', 'Próximo', 'Confirmar'];
+function openHandoffGate(item, option=null) {
+  pendingWorkflowChange={item,option,manual:!option};
+  const target=option?.label || '';
+  const formato=String(item.formato || item.tipo || '').trim();
+  const html=`${vbjTopoHtml({ titulo: 'Passar o bastão', sub: `1 de ${BASTAO_ETAPAS.length} · ${BASTAO_ETAPAS[0].toLowerCase()}`, idTitulo: 'bastao-titulo' })}
+<div class="vbb-folha">
+<div class="vbc-peca vbb-peca">${vbjAvatarHtml(item.cliente)}<span class="vbc-peca-txt"><b>${safeText(item.nome || 'Sem título')}</b><span>${safeText([item.cliente || 'Cliente não informado', formato].filter(Boolean).join(' · '))}</span></span><span class="vbc-de-para">${vbjStatusHtml(item.status, item.status_color)}${item.status ? vbjIcone('dir', 14) : ''}${target && target !== item.status ? vbjStatusHtml(target, option?.color) : `<span class="vbb-alvo">${safeText(target || 'próxima pessoa ou etapa')}</span>`}</span></div>
+<div class="vbb-etapas" aria-hidden="true">${BASTAO_ETAPAS.map((nome, i) => `<span data-bastao-passo="${i}"${i ? '' : ' class="atual"'}>${nome}</span>`).join('')}</div>
+<div class="vbb-corpo">
+<section data-bastao="0"><p class="vbb-q">O que você deixou pronto?</p><label class="vbb-campo"><span class="vbb-rot">Marque ou escreva</span><textarea id="handoff-done" rows="3" placeholder="Ex.: Arte revisada, versão final aprovada internamente e arquivo anexado."></textarea></label><label class="vbb-campo"><span class="vbb-rot">Link ou arquivo de referência (opcional)</span><input id="handoff-link" type="url" placeholder="https://drive.google.com/... ou link do arquivo"></label></section>
+<section data-bastao="1" hidden><p class="vbb-q">O que precisa acontecer agora?</p><label class="vbb-campo"><span class="vbb-rot">O próximo passo, para quem pega</span><textarea id="handoff-next" rows="3" placeholder="Ex.: Tainara deve conferir a legenda e agendar para segunda-feira."></textarea></label></section>
+<section data-bastao="2" hidden><p class="vbb-q">Confira antes de registrar</p><dl id="bastao-revisao" class="bastao-revisao vbb-revisao"></dl></section>
+</div></div>
+<div class="vbj-pe"><span class="vbj-passos"><span class="vbj-tracos" aria-hidden="true">${BASTAO_ETAPAS.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</span><span><span id="bastao-onde">1 de ${BASTAO_ETAPAS.length}</span> · nada muda até você confirmar.</span></span><button type="button" id="bastao-voltar" class="vbj-btn" onclick="passoDoBastao(-1)">Cancelar</button><button type="button" id="bastao-seguir" class="vbj-btn k" onclick="passoDoBastao(1)">Continuar</button></div>`;
+  if (typeof abrirJanelaV2 === 'function') abrirJanelaV2(html, 'vbb'); else openWorkflowModal(html);
+  facilitarPassagemDeBastao(item, option); BASTAO_FIM = `Registrar e ${option ? 'atualizar o status' : 'salvar'}`;
+}
 // Uma pergunta por vez (direção de arte): Entregou → Próximo → Confirmar. Os
 // campos são os mesmos (submitHandoff lê handoff-done, handoff-next e
 // handoff-link); só um passo fica à vista e o último mostra o resumo.
@@ -389,6 +407,9 @@ function passoDoBastao(dir) {
   const v = (id) => String(document.getElementById(id)?.value || '').trim();
   if (ir === secoes.length - 1) { const rev = document.getElementById('bastao-revisao'); if (rev) rev.innerHTML = [['Pronto', v('handoff-done')], ['Próximo passo', v('handoff-next')], ['Link', v('handoff-link')]].map(([k, x]) => `<div><dt>${k}</dt><dd>${safeText(x || '—')}</dd></div>`).join(''); }
   document.getElementById('bastao-onde').textContent = `${ir + 1} de ${secoes.length}`;
+  modal.querySelectorAll('.vbj-tracos i').forEach((t, i) => t.classList.toggle('on', i <= ir));
+  const sub = modal.classList.contains('vbb') ? modal.querySelector('.vbj-sub') : null;
+  if (sub) sub.textContent = `${ir + 1} de ${secoes.length} · ${String(BASTAO_ETAPAS[ir] || '').toLowerCase()}`;
   document.getElementById('bastao-voltar').textContent = ir ? 'Voltar' : 'Cancelar';
   document.getElementById('bastao-seguir').textContent = ir === secoes.length - 1 ? BASTAO_FIM : 'Continuar';
   secoes[ir].querySelector('textarea,input')?.focus();

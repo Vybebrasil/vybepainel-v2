@@ -1,0 +1,185 @@
+/* Rodada S, frente e (19/11/2026).
+   1 · Fornecedores e Creators na casa da Visão do setor (prancha V2-S-Visao-Setor): as peças de base (vst-*) são as da
+   Visão da Produção (padrao-v2/s-a.css); aqui ficam a casca dentro da janela do Comercial (.d3m-c-corpo.vsx) e o que é
+   só destas duas telas (vsx-*): o botão da linha do "Pede ação", a lista que abre no lugar, as fichas, o "Por status"
+   que filtra e os atalhos no vidro.
+   2 e 3 · Na janela Requer ação (#v2-fila): o chip do recorte ("Só …") e o "Heitor sugere" com nomes e "Distribuir assim".
+   Só tokens --d3-*; nada de !important; nada de :has. */
+
+/* ---------- 1 · A casa dentro da janela do Comercial ---------- */
+#vv-comercial .d3m-c-corpo.vsx{grid-template-columns:minmax(0,1fr) minmax(260px,316px);gap:12px;overflow:hidden}
+.vsx .vst-esq > .vsx-ajuda{flex:none}
+.vsx .vst-esq > .vsx-ajuda .d3m-cons{margin:0}
+.vst .vst-selo[data-k="i"]{background:var(--d3-info)}
+.vsx .vst-num-txt > small{max-width:100%}
+/* O botão da linha do "Pede ação" (o que resolve), na folha. */
+.vsx .vsx-bt{flex:none;display:inline-flex;align-items:center;height:34px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.vsx .vsx-bt:hover{background:var(--d3-veu)}
+.vsx .vsx-bt:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+/* A lista do setor: fichas, as linhas que abrem no lugar e o "+N" do topo. */
+.vsx .vsx-fichas{flex:none;display:flex;align-items:center;gap:8px;min-width:0;padding:0 16px 10px;overflow:hidden}
+.vsx .vsx-seg{flex:none;display:inline-flex;gap:2px;height:34px;padding:2px;box-sizing:border-box;border-radius:var(--d3-r-botao);background:var(--d3-veu)}
+.vsx .vsx-seg > button{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.vsx .vsx-seg > button > b{font-weight:600;font-variant-numeric:tabular-nums}
+.vsx .vsx-seg > button[aria-checked="true"]{background:var(--d3-cartao);box-shadow:var(--d3-folha-sombra);font-weight:600}
+.vsx .vsx-seg > button:not([aria-checked="true"]):hover{background:var(--d3-veu-forte)}
+.vsx .vsx-nicho{position:relative;flex:none}
+.vsx .vsx-nicho > summary{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;box-sizing:border-box;border-radius:var(--d3-r-botao);box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);list-style:none;cursor:pointer;white-space:nowrap}
+.vsx .vsx-nicho > summary::-webkit-details-marker{display:none}
+.vsx .vsx-nicho > summary.on{background:var(--d3-veu-forte);font-weight:600}
+.vsx .vsx-nicho > summary svg{width:14px;height:14px}
+.vsx .vsx-ordem{flex:none;display:inline-flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.vsx .vsx-ordem[aria-checked="true"]{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra);font-weight:600}
+.vsx :is(.vsx-seg > button,.vsx-nicho > summary,.vsx-ordem):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+.vsx .vsx-rolo{display:flex;flex-direction:column}
+.vsx .vsx-abre{flex:none;border-top:1px solid var(--d3-divisa)}
+.vsx .vsx-abre[aria-expanded="true"]{background:var(--d3-veu)}
+.vsx .vsx-lin{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;height:52px;margin:0;padding:0 16px;box-sizing:border-box;border:0;background:transparent;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
+.vsx .vsx-lin:hover{background:var(--d3-veu)}
+.vsx .vsx-lin:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:-2px}
+.vsx .vsx-av{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter,sans-serif);font-style:normal}
+.vsx .vsx-lin-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.vsx .vsx-lin-txt > b{font-size:var(--d3-fs-texto);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsx .vsx-lin-txt > b > span{font-weight:400;color:var(--d3-rotulo)}
+.vsx .vsx-lin-txt > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsx .vsx-lin-txt em{font-style:normal;font-weight:600}
+.vsx .vsx-lin-txt em.a{color:var(--d3-ajuste)}
+.vsx .vsx-lin-txt em.g{color:var(--d3-pronto)}
+.vsx .vsx-lin-n{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:56px}
+.vsx .vsx-lin-n > b{font:600 16px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);font-variant-numeric:tabular-nums}
+.vsx .vsx-lin-n > b.r{color:var(--d3-perigo)}
+.vsx .vsx-lin-n > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap}
+.vsx .vsx-det{display:none;padding:2px 16px 12px 60px;font-size:var(--d3-fs-apoio);line-height:1.5;color:var(--d3-texto2)}
+.vsx .vsx-abre[aria-expanded="true"] > .vsx-det{display:block}
+.vsx .vsx-det > p{margin:0 0 4px}
+.vsx .vsx-det > p > b{font-weight:600;color:var(--d3-tinta)}
+.vsx .vsx-det .cr2-k > span.g{color:var(--d3-pronto);font-weight:600}
+.vsx .vsx-det .cr2-k > span.m{color:var(--d3-rotulo)}
+.vsx .vsx-det .m2-campo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0}
+.vsx .vsx-det .m2-campo > label{flex:1 1 100%;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.vsx .vsx-det .m2-campo > input{flex:1 1 160px;min-width:0;height:34px;padding:0 10px;box-sizing:border-box;border:1px solid var(--d3-veu-forte);border-radius:var(--d3-r-botao);background:var(--d3-cartao);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.vsx .vsx-det .m2-campo > input.curto{flex:0 0 96px}
+.vsx .vsx-det .m2-acoes{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0}
+.vsx .vst-vazio,.vsx .vsx-rolo > .d3v-estado{margin:0;border-top:1px solid var(--d3-divisa)}
+/* "Por status" e "Por nicho" no vidro: cada linha é um botão que filtra a lista (de novo, tira o filtro). */
+.vst .vst-dir .vsx-st{width:100%;height:30px;margin:0;padding:0 6px;box-sizing:border-box;border:0;border-radius:6px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.vst .vst-dir .vsx-st:hover{background:var(--d3-fume-veu)}
+.vst .vst-dir .vsx-st[aria-checked="true"]{background:var(--d3-fume-veu-forte)}
+.vst .vst-dir .vsx-st[aria-checked="true"] .d3s-pill{font-weight:600}
+.vst .vst-dir .vsx-st:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+.vst .vst-dir > .vsx-status{flex:none}
+.vsx .vst-dir{gap:10px}
+.vsx .vst-dir > .vsx-status > .d3s-topo small{color:var(--d3-fume-texto2)}
+.vst .vst-dir .vsx-st{grid-template-columns:minmax(0,1fr) minmax(48px,110px) 24px}
+.vsx .vst-dir > .vsx-nichos{flex:0 1 auto;min-height:0;overflow:hidden}
+/* O mês com as gráficas, Por nicho e Abrir: direto no vidro. */
+.vsx :is(.vsx-mes,.vsx-abrir,.vsx-nichos){flex:none;display:flex;flex-direction:column;gap:4px;color:var(--d3-fume-texto)}
+.vsx .vsx-abrir-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-height:20px;margin:0 0 2px}
+.vsx .vsx-abrir-cab > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.vsx .vsx-abrir-cab > span{font-size:var(--d3-fs-apoio);color:var(--d3-fume-texto2)}
+.vsx .vsx-mes .m2-tiles{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0 8px}
+.vsx .vsx-mes .m2-tile{display:flex;flex-direction:row;align-items:baseline;gap:4px;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.vsx .vsx-mes .m2-tile > b{font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsx .vsx-mes .m2-tile > span{font-size:var(--d3-fs-apoio);color:var(--d3-fume-texto2);white-space:nowrap}
+.vsx .vsx-ir{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:34px;margin:0;padding:0 8px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:transparent;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.vsx .vsx-ir > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--d3-fume-texto2)}
+.vsx .vsx-ir > span > b{font-weight:600;color:var(--d3-fume-texto)}
+.vsx .vsx-ir svg{flex:none;width:16px;height:16px}
+.vsx .vsx-ir:hover,.vsx .vsx-ir[aria-expanded="true"]{background:var(--d3-fume-veu)}
+.vsx .vsx-ir:focus-visible,.vsx .vsx-elo:focus-visible,.vsx .vsx-cats > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+.vsx .vsx-cats{display:flex;flex-wrap:wrap;gap:4px;padding:2px 0 4px}
+.vsx .vsx-cats > button{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.vsx .vsx-cats > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
+.vsx .vsx-elo{align-self:flex-start;height:30px;padding:0 6px;border:0;border-radius:var(--d3-r-botao);background:transparent;color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+.vsx .vsx-elo:hover{text-decoration:underline}
+.vsx .vsx-nota{margin:0;font-size:var(--d3-fs-apoio);color:var(--d3-fume-texto2)}
+/* Altura menor (1366×768): o cartão laranja aperta para sobrar o "Por status" e os atalhos. */
+@media (max-height:820px){
+  .vsx .vst-laranja{gap:6px;padding:12px 14px}
+  .vsx .vst-lar-num{font-size:36px}
+  .vsx .vst-lar-txt{gap:4px}
+  .vsx .vst-lar-tit{font-size:17px}
+  .vsx .vst-num{height:104px}
+  .vst .vst-dir .vsx-st{height:26px}
+}
+@media (max-width:1100px){
+  #vv-comercial .d3m-c-corpo.vsx{grid-template-columns:minmax(0,1fr);overflow:auto}
+  .vsx .vst-cols{min-height:520px}
+  .vsx .vst-dir{overflow:visible}
+}
+
+/* ---------- 4 · Legado: o véu da janela V2 (.vbj) é o do tema (Fumê .44), como #cli-pergunta; a regra antiga lê --wm-veu ---------- */
+.workflow-backdrop:has(+ .vbj){--wm-veu:var(--d3-ambiente-veu)}
+
+/* ---------- 2 · O chip do recorte na janela Requer ação ---------- */
+#v2-fila .vfa-filtro.vfa-recorte{flex:none;gap:6px;margin-right:6px;background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
+#v2-fila .vfa-filtro.vfa-recorte:hover{background:var(--d3-texto2)}
+#v2-fila .vfa-filtro.vfa-recorte svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+
+/* ---------- 3 · Heitor sugere, com nomes ---------- */
+#v2-fila .vfa-sugs{display:flex;flex-direction:column;gap:2px}
+#v2-fila .vfa-sug{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;height:34px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:transparent;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+#v2-fila .vfa-sug:hover{background:var(--d3-fume-veu)}
+#v2-fila .vfa-sug:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
+#v2-fila .vfa-sug-p{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--d3-fume-apagado)}
+#v2-fila .vfa-sug > i{font-style:normal;color:var(--d3-fume-apagado)}
+#v2-fila .vfa-sug > b{font-weight:600;white-space:nowrap}
+#v2-fila .vfa-dist{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#v2-fila .vfa-dist-q{flex:1 1 100%;font-size:var(--d3-fs-apoio);color:var(--d3-fume-texto)}
+#v2-fila .vfa-dist-bts{display:flex;gap:8px}
+#v2-fila .vfa-dist .vfa-btn{box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
+#v2-fila .vfa-dist .vfa-btn:not(:disabled):hover{background:var(--d3-fume-veu)}
+#v2-fila .vfa-dist .vfa-btn.k{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+#v2-fila .vfa-dist .vfa-btn.k:not(:disabled):hover{background:var(--d3-fume-apagado)}
+#v2-fila .vfa-dist .vfa-btn:disabled{color:var(--d3-fume-contra)}
+#v2-fila .vfa-dist .vfa-btn:focus-visible{outline:2px solid var(--d3-fume-texto)}
+#v2-fila .vfa-nota.r{color:var(--d3-perigo-vidro)}
+
+/* ---------- 5 · Passagem de bastão na casca V2 (prancha V2-R-Janelas-Temas): a folha com a peça, as etapas e a pergunta ---------- */
+#workflow-modal.vbb .vbb-folha{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:var(--d3-r-caixa);background:var(--d3-folha);color:var(--d3-tinta);overflow:hidden}
+#workflow-modal.vbb .vbb-peca{margin:12px 12px 0;padding:0 2px;background:transparent}
+#workflow-modal.vbb .vbb-peca .vbc-peca-txt b{color:var(--d3-tinta)}
+#workflow-modal.vbb .vbb-peca .vbc-peca-txt span,#workflow-modal.vbb .vbb-peca .vbc-de-para{color:var(--d3-rotulo)}
+#workflow-modal.vbb .vbb-peca .vbj-st{color:var(--d3-tinta)}
+#workflow-modal.vbb .vbb-alvo{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+#workflow-modal.vbb .vbb-etapas{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 14px 0;padding:0 0 10px;border-bottom:1px solid var(--d3-divisa)}
+#workflow-modal.vbb .vbb-etapas > span{padding-top:8px;border-top:3px solid var(--d3-veu-forte);color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif)}
+#workflow-modal.vbb .vbb-etapas > span:is(.feito,.atual){border-top-color:var(--d3-tinta);color:var(--d3-tinta)}
+#workflow-modal.vbb .vbb-etapas > span.atual{font-weight:600}
+#workflow-modal.vbb .vbb-corpo{flex:1 1 auto;min-height:0;padding:12px 14px 14px;overflow-y:auto;scrollbar-width:thin}
+#workflow-modal.vbb .vbb-corpo > section{display:flex;flex-direction:column;gap:10px}
+#workflow-modal.vbb .vbb-corpo > section[hidden]{display:none}
+#workflow-modal.vbb .vbb-q{margin:0;color:var(--d3-tinta);font:600 14px/1.3 var(--vv-texto,Inter,sans-serif)}
+#workflow-modal.vbb .vbb-campo{display:flex;flex-direction:column;gap:6px;margin:0}
+#workflow-modal.vbb .vbb-rot{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#workflow-modal.vbb #handoff-prontos{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+#workflow-modal.vbb #handoff-prontos > button{display:inline-flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#workflow-modal.vbb #handoff-prontos > button:hover{background:var(--d3-veu)}
+#workflow-modal.vbb #handoff-prontos > button.on::before{content:"✓";margin-right:6px;color:currentColor}
+#workflow-modal.vbb .vbj-pe{flex-wrap:nowrap}
+#workflow-modal.vbb .vbj-pe .vbj-passos{flex:1 1 auto;min-width:0;color:var(--d3-fume-texto2);white-space:normal}
+#workflow-modal.vbb .vbj-pe .vbj-btn{flex:none}
+#workflow-modal.vbb #handoff-prontos > button.on{background:var(--d3-tinta);box-shadow:none;color:var(--d3-contra);font-weight:600}
+#workflow-modal.vbb #handoff-prontos > button:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#workflow-modal.vbb .vbb-revisao{margin:0;border:1px solid var(--d3-divisa);border-radius:var(--d3-r-botao)}
+#workflow-modal.vbb .vbb-revisao > div{border-top-color:var(--d3-divisa)}
+#workflow-modal.vbb .vbb-revisao dt{color:var(--d3-rotulo)}
+#workflow-modal.vbb .vbb-revisao dd{color:var(--d3-tinta)}
+@media (max-width:600px){
+  #workflow-modal.vbb .vbb-peca .vbc-peca-txt{flex:1 1 calc(100% - 52px)}
+  #workflow-modal.vbb .vbb-peca :is(.vbc-de-para,.vbb-alvo){flex:1 1 100%;flex-wrap:wrap;gap:6px 10px}
+  #workflow-modal.vbb .vbj-pe{flex-wrap:wrap;row-gap:10px}
+  #workflow-modal.vbb .vbj-pe .vbj-passos{flex:1 1 100%}
+  #workflow-modal.vbb .vbj-pe .vbj-btn{flex:1 1 auto;min-width:0;padding:0 12px}
+}
+@media (max-width:820px){
+  body.mundo #workflow-modal.s-ed .plj-ed.plj-ed-v2{grid-template-rows:auto auto;overflow:visible}
+  body.mundo #workflow-modal.s-ed .plj-ed-v2 > .plj-ed-folha{overflow:visible}
+  body.mundo #workflow-modal.s-ed .plj-ed-portas{flex:1 1 100%;min-width:0}
+  body.mundo #workflow-modal.s-ed .plj-ed-folha > .plj-ed-detalhe{overflow:visible}
+  body.mundo #workflow-modal.s-ed .plj-ed-folha .plj-ed-detalhe > :is(.plj-ed-bloco,.plj-ed-acrescentar){width:auto;min-width:0}
+}
+@media (max-width:640px){
+  #vv-comercial.v2c .v2c-abre > .v2c-lin{flex-wrap:wrap;gap:8px 12px}
+  #vv-comercial.v2c .v2c-abre > .v2c-lin > .v2c-lin-txt{flex:1 1 calc(100% - 120px)}
+}
