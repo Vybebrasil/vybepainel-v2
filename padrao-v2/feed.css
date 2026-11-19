@@ -27,7 +27,7 @@
 .vfd-arrastando{opacity:.35}
 .vfd-sobre{box-shadow:inset 0 0 0 3px var(--d3-acao)}
 .vfd-data{position:absolute;left:4px;bottom:4px;max-width:calc(100% - 8px);padding:1px 6px;border-radius:999px;background:var(--d3-cartao);font:600 var(--d3-fs-mini)/1.5 var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vfd-data.vfd-futuro{background:var(--d3-tinta);color:var(--d3-cartao)}
+.vfd-data.vfd-futuro{background:var(--d3-tinta);color:var(--d3-contra)}
 .vfd-tipo{position:absolute;top:6px;right:6px;width:14px;height:14px;border-radius:3px;border:2px solid var(--d3-cartao)}
 .vfd-tipo-carrossel{box-shadow:3px -3px 0 -1px var(--d3-cartao)}
 .vfd-tipo-video{border-radius:50%}
@@ -57,7 +57,7 @@
 /* Data livre (o lote passou dos X) e data marcada para o lote. */
 .vfd-livre{background:var(--d3-trilho);color:var(--d3-texto2)}
 .vfd-livre .vfd-x-marca{display:none}
-.vfd-marcado{background:var(--d3-tinta);color:var(--d3-cartao)}
+.vfd-marcado{background:var(--d3-tinta);color:var(--d3-contra)}
 .vfd-marcado .vfd-x-marca::before,.vfd-marcado .vfd-x-marca::after{background:var(--d3-cartao)}
 .vfd-marcado .vfd-x-data{color:var(--d3-cartao)}
 .vfd-marcado .vfd-x-marca{display:block;width:30%}
@@ -73,7 +73,7 @@
 /* Fichas de carteira do feed (as do Painel são presas ao #pv2-painel) e o topo longe dos botões da janela. */
 .vfd-chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border:0;border-radius:999px;background:var(--d3-cartao);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
 .vfd-chip:hover{background:var(--d3-trilho)}
-.vfd-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
+.vfd-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
 .vfd-sel select{appearance:none;padding:0 10px;background:var(--d3-trilho)}
 /* Cabeçalho de perfil do Instagram (Paulo, 15/11/2026: "é pra ficar tipo o feed mesmo do Insta, bio, tudo certinho"):
    foto redonda, os números ao lado, o @ com o selo, o nome, a bio e o link; a barra da grade; a grade colada. */
@@ -103,15 +103,15 @@
 .vfd-acao-a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
 .vfd-acao{height:32px;padding:0 12px;border:0;border-radius:8px;background:var(--d3-trilho);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-tinta);cursor:pointer}
 .vfd-acao:hover{background:var(--d3-linha)}
-.vfd-acao[aria-expanded="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
-.vfd-acao-p{background:var(--d3-acao);color:var(--d3-cartao)}
+.vfd-acao[aria-expanded="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
+.vfd-acao-p{background:var(--d3-acao);color:var(--d3-escuro-texto)}
 .vfd-acao-p:hover{background:var(--d3-acao);filter:brightness(.95)}
 .vfd-acao:disabled{opacity:.5;cursor:default}
 .vfd-ajuste{display:flex;flex-direction:column;gap:6px;width:100%;padding:10px;box-sizing:border-box;border:1px solid var(--d3-borda);border-radius:var(--d3-r-cartao);background:var(--d3-cartao)}
 .vfd-ajuste-tit{margin:2px 0 0;font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif;text-transform:uppercase;letter-spacing:.04em;color:var(--d3-apagado)}
 .vfd-ajuste-op{display:flex;flex-wrap:wrap;gap:4px}
 .vfd-ajuste-op .vfd-chip{height:30px;padding:0 10px;font-size:var(--d3-fs-apoio);background:var(--d3-trilho)}
-.vfd-ajuste-op .vfd-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-cartao)}
+.vfd-ajuste-op .vfd-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
 .vfd-ajuste-nota{margin:0;font-size:var(--d3-fs-mini);color:var(--d3-apagado)}
 .vfd-ajuste-pe{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
 /* A etapa da peça (o status do calendário) e o prazo de ouro vencido. */
@@ -135,7 +135,7 @@
 .vfd-barra-tit b{color:var(--d3-tinta)}
 .vfd-trocas,.vfd-passos{margin:0;padding-left:18px;font-size:var(--d3-fs-apoio);color:var(--d3-texto2)}
 .vfd-trocas li,.vfd-passos li{margin:2px 0}
-.vfd-favorito{display:inline-flex;align-items:center;height:28px;margin:4px 0;padding:0 12px;border-radius:8px;background:var(--d3-acao);font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao);text-decoration:none;cursor:grab}
+.vfd-favorito{display:inline-flex;align-items:center;height:28px;margin:4px 0;padding:0 12px;border-radius:8px;background:var(--d3-acao);font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-escuro-texto);text-decoration:none;cursor:grab}
 /* A camada do Feed (Paulo, 15/11/2026: "vem um hover pra frente com o feed do cliente, tela cheia por cima... fluido"
    e "olha as referências... muito mais premium", painéis de vidro do visionOS): o Vybe OS escurecido e desfocado atrás,
    a barra de cima em cápsula de vidro, o celular da frente em vidro fosco claro e os vizinhos virados para o centro,
@@ -217,7 +217,7 @@ body.vfd-aberto .fc-overlay{z-index:743}
 .vfd-pontos i.on{width:16px;border-radius:3px;background:var(--d3-cartao)}
 .vfd-c-vazio{align-self:center;justify-self:center;max-width:360px;border-radius:20px}
 /* A peça abriu por inteiro: o botão traz o Feed de volta. */
-.vfd-voltar{position:fixed;left:50%;bottom:24px;z-index:745;transform:translateX(-50%);height:44px;padding:0 20px;border:0;border-radius:999px;background:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-cartao);cursor:pointer;box-shadow:0 14px 30px -12px color-mix(in srgb,var(--d3-tinta) 70%,transparent)}
+.vfd-voltar{position:fixed;left:50%;bottom:24px;z-index:745;transform:translateX(-50%);height:44px;padding:0 20px;border:0;border-radius:999px;background:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;color:var(--d3-contra);cursor:pointer;box-shadow:0 14px 30px -12px color-mix(in srgb,var(--d3-tinta) 70%,transparent)}
 @media (prefers-reduced-motion:reduce){.vfd-cel,.vfd-camada,.vfd-c-topo{transition:none}}
 @media (max-width:700px){
   .vfd-camada{padding:10px 8px 12px}

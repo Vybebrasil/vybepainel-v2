@@ -17,7 +17,7 @@
 #vv-pessoas.v2p-janela .vp-topo-botoes > .d3p-abas[hidden]{display:none}
 #vv-pessoas.v2p-janela .vp-topo-botoes > .d3p-abas > button{position:relative;flex:none;height:32px;margin:0;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--d3-texto2);font:500 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;box-shadow:none;transition:background-color .25s cubic-bezier(.22,1,.36,1),color .25s}
 #vv-pessoas.v2p-janela .vp-topo-botoes > .d3p-abas > button::after{display:none}
-#vv-pessoas.v2p-janela .vp-topo-botoes > .d3p-abas > button[aria-selected="true"]{background:var(--d3-tinta);color:#FFFFFF;font-weight:600;animation:d3pAbaEstica .35s cubic-bezier(.22,1,.36,1) both}
+#vv-pessoas.v2p-janela .vp-topo-botoes > .d3p-abas > button[aria-selected="true"]{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600;animation:d3pAbaEstica .35s cubic-bezier(.22,1,.36,1) both}
 @keyframes d3pAbaEstica{from{transform:scaleX(.82)}to{transform:none}}
 #vv-pessoas.v2p-janela .vp-periodo .vb-mes{height:40px;box-shadow:none}
 #vv-pessoas.v2p-janela .vp-corpo{gap:14px;padding:14px 30px 26px}
@@ -35,7 +35,7 @@
 #vv-pessoas.v2p-janela .v2p-fala .v2p-quem{display:block;margin-bottom:2px;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:#FFFFFF;opacity:.82}
 #vv-pessoas.v2p-janela .v2p-fala > .v2p-btn{flex:none;height:40px;padding:0 20px;background:#FFFFFF;box-shadow:none;color:var(--d3-acao-texto);font:700 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif}
 #vv-pessoas.v2p-janela .v2p-fala > .v2p-btn:hover{background:#FFF4EE}
-#vv-pessoas.v2p-janela .v2p-fala > .v2p-btn[aria-expanded="true"]{background:var(--d3-tinta);color:#FFFFFF}
+#vv-pessoas.v2p-janela .v2p-fala > .v2p-btn[aria-expanded="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
 
 /* Números: rótulo, número que chega (com o "/ 18" menor), linha ou barra e o pé curto. */
 #vv-pessoas.v2p-janela .v2p-kpi.d3-num{gap:6px;padding:12px 16px;border-radius:18px}
@@ -64,7 +64,7 @@
 #vv-pessoas.v2p-janela .v2p-btn.s:not(.k):hover{background:var(--d3-borda)}
 #vv-pessoas.v2p-janela .v2p-barra-f > .vp-periodo{display:flex;align-items:center;gap:8px}
 #vv-pessoas.v2p-janela .v2p-barra-f > .vp-periodo .vp-seg{background:#FFFFFF}
-#vv-pessoas.v2p-janela .v2p-barra-f > .vp-periodo .vp-seg button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+#vv-pessoas.v2p-janela .v2p-barra-f > .vp-periodo .vp-seg button[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 #vv-pessoas.v2p-janela .v2p-barra-f > .vp-periodo .vb-mes{height:36px}
 #vv-pessoas.v2p-janela .v2p-pe{display:flex;align-items:center;gap:8px}
 
@@ -170,7 +170,7 @@
 #conta-root #v2c.d3c .v2c-topo h1{flex:0 1 auto;font:700 var(--d3-fs-numero)/1.1 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.02em}
 #conta-root #v2c.d3c .v2c-topo .v2c-btn{height:40px;padding:0 16px;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;box-shadow:none}
 #conta-root #v2c.d3c .v2c-topo .v2c-btn:not(.k){background:var(--d3-cartao);color:var(--d3-tinta)}
-#conta-root #v2c.d3c .v2c-topo .v2c-btn.k{background:var(--d3-tinta);color:#FFFFFF}
+#conta-root #v2c.d3c .v2c-topo .v2c-btn.k{background:var(--d3-tinta);color:var(--d3-contra)}
 #conta-root #v2c.d3c .d3-acao .d3-acao-av{width:36px;height:36px;font-size:var(--d3-fs-destaque)}
 #conta-root #v2c.d3c .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:2px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF;-webkit-text-fill-color:#FFFFFF}
 #conta-root #v2c.d3c .d3-acao .d3c-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.82}
@@ -199,13 +199,13 @@
    lado e a Equipe embaixo, na largura toda (abaixo de 900 px de painel). */
 #conta-root #v2c.d3c{container:d3conta / inline-size}
 #conta-root #v2c.d3c .v2c-btn.s{height:30px;padding:0 12px;background:var(--d3-trilho);box-shadow:none;font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif}
-#conta-root #v2c.d3c .v2c-btn.s.k{background:var(--d3-tinta);color:#FFFFFF;-webkit-text-fill-color:#FFFFFF}
+#conta-root #v2c.d3c .v2c-btn.s.k{background:var(--d3-tinta);color:var(--d3-contra);-webkit-text-fill-color:var(--d3-contra)}
 #conta-root #v2c.d3c .v2c-btn.s:hover{background:var(--d3-borda)}
 #conta-root #v2c.d3c .v2c-btn.s.k:hover{background:#000000}
 #conta-root #v2c.d3c .v2c-btn.s:disabled{background:var(--d3-trilho);color:var(--d3-apagado);-webkit-text-fill-color:var(--d3-apagado)}
 #conta-root #v2c.d3c .v2c-pill{height:22px;font-size:var(--d3-fs-apoio)}
 #conta-root #v2c.d3c .v2c-pill.n{background:var(--d3-trilho);color:var(--d3-tinta)}
-#conta-root #v2c.d3c .v2c-pill.d3c-dono{background:var(--d3-tinta);color:#FFFFFF;-webkit-text-fill-color:#FFFFFF}
+#conta-root #v2c.d3c .v2c-pill.d3c-dono{background:var(--d3-tinta);color:var(--d3-contra);-webkit-text-fill-color:var(--d3-contra)}
 
 /* Seu perfil. */
 #conta-root #v2c.d3c .v2c-perfil{padding:16px 18px 10px}
@@ -287,7 +287,7 @@
 :is(#vv-agentes,#automacoes-root) .d3t-pil.cheia-g{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
 :is(#vv-agentes,#automacoes-root) .d3t-pe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:10px 0 0;border-top:1px solid var(--d3-linha)}
 :is(#vv-agentes,#automacoes-root) .d3t-pe .v2g-chip{height:28px;padding:0 10px;border-radius:999px;background:var(--d3-trilho);box-shadow:none;font-weight:600}
-:is(#vv-agentes,#automacoes-root) .d3t-pe .v2g-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
+:is(#vv-agentes,#automacoes-root) .d3t-pe .v2g-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
 :is(#vv-agentes,#automacoes-root) .v2g-btn.s:not(.k){background:var(--d3-trilho);box-shadow:none}
 :is(#vv-agentes,#automacoes-root) .v2g-btn.s:not(.k):hover{background:var(--d3-borda)}
 

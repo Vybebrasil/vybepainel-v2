@@ -10,13 +10,13 @@
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .d3c-meta{flex:1 1 120px;min-width:0;font:400 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-seg{background:var(--d3-trilho)}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-seg > button{height:32px;color:var(--d3-texto2);font-size:var(--d3-fs-texto)}
-#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-seg > button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-seg > button[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-btn{height:30px;background:var(--d3-trilho);box-shadow:none;color:var(--d3-tinta)}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-btn:hover{background:#E9E5DD;box-shadow:none}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-btn.g{height:40px;padding:0 16px;font-size:var(--d3-fs-texto)}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-topo .v2c-btn.g{background:var(--d3-cartao)}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-btn.d3c-novo::before{content:"+";margin-right:2px;font-size:var(--d3-fs-destaque);font-weight:500}
-#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-btn:is(.k,[aria-expanded="true"]){background:var(--d3-tinta);color:#FFFFFF}
+#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-btn:is(.k,[aria-expanded="true"]){background:var(--d3-tinta);color:var(--d3-contra)}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-x{width:40px;height:40px;background:var(--d3-cartao);box-shadow:none}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-card{padding:16px 18px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);box-shadow:none}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-card-topo > h2{font-size:var(--d3-fs-destaque);font-weight:700}
@@ -49,7 +49,7 @@
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-chips{gap:6px}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-chip{height:32px;background:var(--d3-trilho);box-shadow:none;font-size:var(--d3-fs-texto)}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-chip:hover{background:#E9E5DD;box-shadow:none}
-#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-filtros > .v2c-btn{height:32px;background:var(--d3-cartao)}
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-busca{height:38px;background:var(--d3-cartao);box-shadow:none}
 #vv-carteira .v2c .d3c-ponto{flex:none;display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--d3-apagado)}
@@ -180,8 +180,8 @@
 #vv-whatsapp .d3w .v2w-topo > .v2w-sub{flex:1 1 160px;font-size:var(--d3-fs-destaque);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vv-whatsapp .d3w .v2w-seg{background:var(--d3-trilho)}
 #vv-whatsapp .d3w .v2w-seg > button{height:32px;color:var(--d3-texto2);font-size:var(--d3-fs-texto)}
-#vv-whatsapp .d3w .v2w-seg > button[aria-selected="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
-#vv-whatsapp .d3w .v2w-q{background:var(--d3-tinta);color:#FFFFFF}
+#vv-whatsapp .d3w .v2w-seg > button[aria-selected="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
+#vv-whatsapp .d3w .v2w-q{background:var(--d3-tinta);color:var(--d3-contra)}
 #vv-whatsapp .d3w .v2w-seg > button[aria-selected="true"] .v2w-q{background:#FFFFFF;color:var(--d3-tinta)}
 #vv-whatsapp .d3w .v2w-x{width:40px;height:40px;background:var(--d3-cartao);box-shadow:none}
 #vv-whatsapp .d3w > .d3-acao{flex:none;padding:16px 20px;border-radius:22px}
@@ -192,7 +192,7 @@
 #vv-whatsapp .d3w .v2w-card{box-shadow:none}
 #vv-whatsapp .d3w .v2w-busca{background:var(--d3-trilho);box-shadow:none}
 #vv-whatsapp .d3w .v2w-chip{height:32px;background:var(--d3-trilho);box-shadow:none;font-size:var(--d3-fs-texto)}
-#vv-whatsapp .d3w .v2w-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
+#vv-whatsapp .d3w .v2w-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
 #vv-whatsapp .d3w .v2w-cv.on{background:var(--d3-trilho);box-shadow:inset 3px 0 0 var(--d3-tinta)}
 #vv-whatsapp .d3w .v2w-nl{background:var(--d3-tinta)}
 #vv-whatsapp .d3w .v2w-arroba{color:var(--d3-agente)}
@@ -201,7 +201,7 @@
 #vv-whatsapp .d3w .v2w-sep{display:flex;align-items:center;gap:10px;align-self:stretch;color:var(--d3-tinta)}
 #vv-whatsapp .d3w .v2w-sep::before,#vv-whatsapp .d3w .v2w-sep::after{content:"";flex:1;height:1px;background:var(--d3-borda)}
 #vv-whatsapp .d3w .v2w-bl{background:var(--d3-trilho)}
-#vv-whatsapp .d3w .v2w-bl.eu{background:var(--d3-tinta);color:#FFFFFF}
+#vv-whatsapp .d3w .v2w-bl.eu{background:var(--d3-tinta);color:var(--d3-contra)}
 #vv-whatsapp .d3w .v2w-bl.eu > small,#vv-whatsapp .d3w .v2w-bl.eu > small > i{color:rgba(255,255,255,.82)}
 #vv-whatsapp .d3w .v2w-bl.agt{background:#EEEAFB}
 #vv-whatsapp .d3w .v2w-bl.agt > small{color:var(--d3-agente)}
@@ -235,5 +235,5 @@
   #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .d3-acao > .d3-acao-frase{flex:1 1 calc(100% - 52px);font-size:var(--d3-fs-destaque)}
   #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .d3-acao > .d3-acao-btn{margin-left:50px}
 }#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-corpo .v2c-btn{background:var(--d3-trilho)}
-#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-corpo .v2c-btn:is(.k,[aria-expanded="true"]){background:var(--d3-tinta);color:#FFFFFF}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-corpo .v2c-btn:is(.k,[aria-expanded="true"]){background:var(--d3-tinta);color:var(--d3-contra)}
 

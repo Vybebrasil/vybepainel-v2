@@ -6,7 +6,7 @@
 
 /* Saúde da carteira: "Filtros" aberto fica preto com texto branco (antes, branco sobre branco). */
 #vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-filtros > .v2c-btn:is(.k,[aria-expanded="true"]),
-#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-filtros > .v2c-btn:is(.k,[aria-expanded="true"]):hover{background:var(--d3-tinta);color:#FFFFFF}
+#vv-carteira .v2c:is([data-tela="saude"],[data-tela="onboarding"]) .v2c-filtros > .v2c-btn:is(.k,[aria-expanded="true"]):hover{background:var(--d3-tinta);color:var(--d3-contra)}
 
 /* Contraste mínimo 4.5:1 (texto) e 3:1 (número grande). */
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .d3-num.q.q > .d3-num-v{color:var(--vv-apagado,#6B675F)}

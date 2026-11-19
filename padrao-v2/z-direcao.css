@@ -252,7 +252,7 @@ body.mundo #mundo-hud .vv-barra-topo :is(.vv-botao,summary):focus-visible{outlin
 /* 3 · A FAMÍLIA DE PEÇAS (prancha V2-Pecas). Classes soltas, para qualquer tela: botão de 34 px com canto 8 em três
    papéis, rótulo, selo, foto do cliente, etiqueta e os estados (vazio, carregando, erro). As peças antigas do Hoje
    (d3h-btn, d3h-link, d3h-pill) recebem os mesmos valores mais abaixo. */
-.d3v-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-escuro-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer;transition:background-color .2s,box-shadow .2s}
+.d3v-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer;transition:background-color .2s,box-shadow .2s}
 .d3v-btn:hover{background:var(--d3-texto2)}
 .d3v-btn.sec{background:var(--d3-veu);color:var(--d3-tinta);font-weight:500}
 .d3v-btn.sec:hover{background:var(--d3-veu-forte)}
@@ -366,7 +366,7 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
 /* Botões do Hoje: a mesma família (34 px, canto 8; 28 px só dentro de linha). */
 #vv-hoje .d3q .d3h-btn{height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #vv-hoje .d3q .d3h-btn:hover{background:var(--d3-veu-forte)}
-#vv-hoje .d3q .d3h-btn.k{background:var(--d3-tinta);color:var(--d3-escuro-texto);font-weight:600}
+#vv-hoje .d3q .d3h-btn.k{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #vv-hoje .d3q .d3h-btn.k:hover{background:var(--d3-texto2)}
 #vv-hoje .d3q .d3h-btn.s{height:28px;padding:0 10px}
 #vv-hoje .d3q .d3h-btn:disabled{background:var(--d3-veu);color:var(--d3-meta)}
@@ -506,7 +506,7 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
 #vv-hoje .d3q .d3h-filtros .v2t-ficha[aria-selected="true"]{background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
 #vv-hoje .d3q .d3h-filtros .v2t-busca{height:28px;border-radius:var(--d3-r-botao);background-color:var(--d3-veu);margin-left:auto}
 #vv-hoje .d3q .d3h-filtros > .d3h-btn{margin-left:4px}
-#vv-hoje .d3q .d3h-filtros > .d3h-btn[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+#vv-hoje .d3q .d3h-filtros > .d3h-btn[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
 #vv-hoje .d3q .d3h-cartao .v2-lista.d3h-lista{flex:1 1 auto;min-height:0;padding:0;border-radius:0;background:none;box-shadow:none;overflow-y:auto;scrollbar-width:thin}
 #vv-hoje .d3q .d3h-lista > .d3h-vazio{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 auto;gap:6px;border-top:1px solid var(--d3-divisa);text-align:center;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 #vv-hoje .d3q .d3h-lista > .d3h-vazio::before{content:"";width:26px;height:26px;border-radius:7px;background:var(--d3-pronto) url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272.6%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M5 12l4 4 10-10%27/%3E%3C/svg%3E") center / 14px no-repeat}
@@ -569,7 +569,7 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
 #vv-hoje .d3q > .d3h-lado .cliente-carteira{--carteira-texto:var(--d3-fume-texto)}
 #vv-hoje .d3q > .d3h-lado .d3h-agl > small{font-weight:400;color:var(--d3-fume-apagado)}
 #vv-hoje .d3q > .d3h-lado .d3h-av{background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto)}
-#vv-hoje .d3q > .d3h-lado .d3h-av.ag{background:var(--d3-agente);color:var(--d3-fume-texto)}
+#vv-hoje .d3q > .d3h-lado .d3h-av.ag{background:var(--d3-agente);color:var(--d3-escuro-texto)}
 #vv-hoje .d3q > .d3h-lado .d3h-vazio{margin:0;padding:10px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-apagado)}
 #vv-hoje .d3q > .d3h-lado .d3h-link{color:var(--d3-fume-texto)}
 #vv-hoje .d3q > .d3h-lado .d3h-mais{align-self:flex-start;padding:2px 0}
@@ -795,7 +795,7 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
 /* Botões, campos e avisos da grade: a mesma família (34 px; 28 px dentro de linha e de célula; canto 8). */
 #vv-hoje .d3q.d3h-co .v2o-btn{height:28px;padding:0 10px;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none}
 #vv-hoje .d3q.d3h-co .v2o-btn:hover{background:var(--d3-veu-forte)}
-#vv-hoje .d3q.d3h-co .v2o-btn.k{background:var(--d3-tinta);color:var(--d3-escuro-texto);font-weight:600}
+#vv-hoje .d3q.d3h-co .v2o-btn.k{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #vv-hoje .d3q.d3h-co .v2o-btn.k:hover{background:var(--d3-texto2)}
 #vv-hoje .d3q.d3h-co .v2o-btn.ic{width:28px;padding:0}
 #vv-hoje .d3q.d3h-co :is(.v2o-btn,.v2o-chip,.v2o-gp-d,.v2o-fichas > button,.v2o-ind,.v2o-heitor-cab,select,input):focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
@@ -855,7 +855,7 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
 #vv-hoje .d3q.d3h-qd :is(.v2vb-aba,.v2vb-chip){height:28px;padding:0 10px;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #vv-hoje .d3q.d3h-qd :is(.v2vb-aba,.v2vb-chip):hover{background:var(--d3-veu-forte);box-shadow:none}
 #vv-hoje .d3q.d3h-qd .v2vb-bal :is(p,span){white-space:normal;overflow-wrap:anywhere}
-#vv-hoje .d3q.d3h-qd .v2vb-aba:is([aria-selected="true"],[aria-pressed="true"],.on,.ativa){background:var(--d3-tinta);color:var(--d3-escuro-texto);font-weight:600}
+#vv-hoje .d3q.d3h-qd .v2vb-aba:is([aria-selected="true"],[aria-pressed="true"],.on,.ativa){background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #vv-hoje .d3q.d3h-qd .v2vb-tar > small{font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none;color:var(--d3-rotulo)}
 #vv-hoje .d3q.d3h-qd .v2vb-bal{border-radius:12px;background:var(--d3-agente-veu);font-size:var(--d3-fs-texto)}
 #vv-hoje .d3q.d3h-qd .d3q-pe > .v2cr{padding:0 0 12px;gap:8px}
@@ -906,7 +906,7 @@ body.mundo #mundo-hud .vv-menu-conta.vv-menu-conta::before{content:none}
 body.mundo #mundo-hud .vv-menu-conta > .vv-menu-cab > h2{font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
 body.mundo #mundo-hud :is(.vv-menu-conta,.vv-avisos-painel) button.vc-ico,body.mundo .vv-conversa .vv-conversa-x.vv-conversa-x{width:30px;height:30px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:none;color:var(--d3-fume-texto)}
 body.mundo #mundo-hud :is(.vv-menu-conta,.vv-avisos-painel) button.vc-ico:hover,body.mundo .vv-conversa .vv-conversa-x.vv-conversa-x:hover{background:var(--d3-fume-veu-forte)}
-body.mundo #mundo-hud .vv-menu-conta .vv-menu-av{border-radius:12px;background:var(--d3-acao);color:var(--d3-fume-texto);font-weight:600}
+body.mundo #mundo-hud .vv-menu-conta .vv-menu-av{border-radius:12px;background:var(--d3-acao);color:var(--d3-escuro-texto);font-weight:600}
 body.mundo #mundo-hud .vv-menu-conta .vv-menu-quem b{font-weight:600;color:var(--d3-fume-texto)}
 body.mundo #mundo-hud .vv-menu-conta .vv-menu-quem small{font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}
 body.mundo #mundo-hud .vv-menu-conta .vv-menu-selo,body.mundo #mundo-hud .vv-menu-conta .vv-menu-selo.g{padding:0;background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
@@ -1055,7 +1055,7 @@ body.mundo #v2j-busca :is(.v2j-cab,.v2j-pe,.spotlight-lista){border-color:var(--
 .d3m-laranja .d3m-lar-txt > .d3-acao-frase{flex:none;overflow:visible;white-space:normal;font:600 19px/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
 .d3m-lar-txt > small{font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
 .d3m-lar-bts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.d3m-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-escuro-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.d3m-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
 .d3m-btn.l{background:var(--d3-escuro-texto);color:var(--d3-acao-texto)}
 .d3m-btn.l:hover{background:rgba(255,255,255,.9)}
 .d3m-btn.l.s{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.5);color:var(--d3-escuro-texto);font-weight:500}
@@ -1163,7 +1163,7 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana :is(#pv2-modo,#pv2-abas) > button[aria-checked="true"]{background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-abas > i{display:none}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-filtros-rot{color:var(--d3-tinta);font-weight:500}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-filtros-rot.tem{background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-filtros-rot.tem{background:var(--d3-tinta);color:var(--d3-contra)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-semana #pv2-filtros-menu{position:relative;padding-left:10px;border-left:1px solid var(--d3-veu-forte)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.pv2-casa > .week-panel.active{flex:1 1 0;min-height:0;margin-top:0;margin-bottom:0;padding:0;overflow-y:auto;scrollbar-width:thin;border-radius:0;background:var(--d3-folha);box-shadow:none}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-pe{display:flex;align-items:center;min-height:44px;margin-top:0;margin-bottom:-40px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);border-radius:0 0 16px 16px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);overflow:hidden}

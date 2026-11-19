@@ -149,7 +149,7 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
 /* Os três passos embaixo do vazio (cartões de véu com o número de 22). */
 #vv-pessoas .d3m-e-pes-passos{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;border-top:1px solid var(--d3-divisa)}
 #vv-pessoas .d3m-e-pes-passo{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:120px;padding:14px 16px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-veu);font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
-#vv-pessoas .d3m-e-pes-passo > i{display:grid;place-items:center;width:22px;height:22px;margin-bottom:8px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-pessoas .d3m-e-pes-passo > i{display:grid;place-items:center;width:22px;height:22px;margin-bottom:8px;border-radius:50%;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal}
 #vv-pessoas .d3m-e-pes-passo > b{font-weight:600;color:var(--d3-tinta)}
 /* O funil: uma coluna por etapa com o número e a barra. */
 #vv-pessoas .d3m-e-pes-funil{flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;padding:12px 16px;border-top:1px solid var(--d3-divisa)}

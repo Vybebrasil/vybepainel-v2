@@ -44,7 +44,7 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv
 .vfd2-cel{min-height:0}
 .vfd2-perfil{flex:none;display:flex;align-items:center;gap:12px;padding:16px 16px 10px}
 .vfd2-perfil > div{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
-.vfd2-avatar{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--d3-tinta);color:var(--d3-escuro-texto);font:600 var(--d3-fs-titulo) var(--vv-texto,Inter,sans-serif);font-style:normal}
+.vfd2-avatar{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-titulo) var(--vv-texto,Inter,sans-serif);font-style:normal}
 .vfd2-perfil p{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 .vfd2-perfil .vfd2-nums{color:var(--d3-rotulo)}
 #feed-board.d3m-a-v2 .vfd2-user > .vfd-ig-user{font:600 14px/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);text-decoration:none}

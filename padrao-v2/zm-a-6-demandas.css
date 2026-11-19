@@ -51,7 +51,7 @@ body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #painel-demandas > .containe
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-pop .d3m-a-seg > button > b{margin-left:5px;font-weight:400;color:var(--d3-rotulo)}
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-filtros > summary{display:inline-flex;align-items:center;gap:6px;height:30px;max-width:none;padding:0 10px;border-radius:var(--d3-r-botao);background:var(--d3-veu);list-style:none;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-filtros > summary::-webkit-details-marker{display:none}
-#pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-filtros > summary.tem{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));-webkit-text-fill-color:var(--d3-contra,var(--d3-escuro-texto));font-weight:600}
+#pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-filtros > summary.tem{background:var(--d3-tinta);color:var(--d3-contra);-webkit-text-fill-color:var(--d3-contra);font-weight:600}
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-filtros > .pv2-pop-filtros{display:flex;flex-direction:column;gap:10px;width:auto;max-height:none;margin-top:10px;padding:0;overflow:visible}
 /* Os filtros de sempre dentro do ⋯: a caixa de cada filtro (Tipo, Cliente, Responsável…) abre no fluxo, embaixo do
    botão, em vez de flutuar e ficar cortada pela borda do ⋯; a contagem e as iniciais no cinza das linhas da lista (a
@@ -115,7 +115,7 @@ body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #painel-demandas > .containe
 /* A linha aberta no lugar: as etapas, quem faz e o prazo, marcar em lote, trocar o responsável e abrir a peça. */
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-lista .pv2-det{margin:0 16px 12px 86px;padding:12px 14px;border-radius:12px;background:var(--d3-veu)}
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-lista .pv2-det .pv2-btn{border-radius:var(--d3-r-botao);background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta);font-weight:500}
-#pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-lista .pv2-det .pv2-btn.k{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font-weight:600}
+#pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-lista .pv2-det .pv2-btn.k{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 /* Por status e pelos grupos do quadro: a faixa do grupo em cima das linhas dele. */
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-grp,#pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-lista .pv2-grp{display:flex;align-items:center;gap:8px;height:32px;margin:0;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);background:var(--d3m-a-veu-fraco);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-grp > b{font-weight:400;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}

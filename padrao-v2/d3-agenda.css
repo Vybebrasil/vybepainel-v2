@@ -24,7 +24,7 @@
 #pv2-agenda .d3ag-dia b{color:var(--d3-tinta);font-weight:700}
 #pv2-agenda .d3ag-dia .d3ag-dia-n > b{font-size:var(--d3-fs-destaque)}
 #pv2-agenda .d3ag-dia .d3ag-dia-n > b.zero{color:var(--d3-meta)}
-#pv2-agenda .d3ag-dia.hj{background:var(--d3-tinta);color:#FFFFFF}
+#pv2-agenda .d3ag-dia.hj{background:var(--d3-tinta);color:var(--d3-contra)}
 #pv2-agenda .d3ag-dia.hj b{color:#FFFFFF}
 #pv2-agenda .d3ag-selo{display:inline-flex;align-items:center;flex:none;height:18px;padding:0 6px;border-radius:999px;font:700 var(--d3-fs-mini) var(--vv-texto,Inter),sans-serif}
 #pv2-agenda .d3ag-selo.a{background:var(--d3-ajuste-veu);color:var(--d3-ajuste)}
@@ -74,9 +74,9 @@
 #pv2-agenda .d3ag-mini{appearance:none;justify-self:end;height:28px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:background .2s,transform .14s}
 #pv2-agenda .d3ag-mini:hover{background:var(--d3-borda)}
 #pv2-agenda .d3ag-mini:active{transform:scale(.96)}
-#pv2-agenda .d3ag-mini[aria-current]{background:var(--d3-tinta);color:#FFFFFF}
+#pv2-agenda .d3ag-mini[aria-current]{background:var(--d3-tinta);color:var(--d3-contra)}
 #pv2-agenda .d3ag-mini.b{background:#FFFFFF}
-#pv2-agenda .d3ag-mini.k{background:var(--d3-tinta);color:#FFFFFF}
+#pv2-agenda .d3ag-mini.k{background:var(--d3-tinta);color:var(--d3-contra)}
 #pv2-agenda .d3ag-mais{appearance:none;display:block;margin:4px 18px 0;padding:6px 0;border:0;background:transparent;color:var(--d3-apagado);font:600 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;cursor:pointer}
 #pv2-agenda .d3ag-abre > .v2-mais > div{min-height:0;overflow:hidden}
 #pv2-agenda .d3ag-det{display:flex;flex-direction:column;gap:8px;margin:0 18px 8px 128px;padding:10px 12px;border-radius:14px;background:var(--d3-trilho)}
@@ -113,7 +113,7 @@
 #pv2-agenda .d3ag-ferr{position:relative}
 #pv2-agenda .d3ag-ferr > .d3ag-ferr-btn{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-trilho);color:var(--d3-tinta);font:700 var(--d3-fs-destaque)/1 var(--vv-texto,Inter),sans-serif;list-style:none;cursor:pointer}
 #pv2-agenda .d3ag-ferr > .d3ag-ferr-btn::-webkit-details-marker{display:none}
-#pv2-agenda .d3ag-ferr > .d3ag-ferr-btn.tem{background:var(--d3-tinta);color:#FFFFFF}
+#pv2-agenda .d3ag-ferr > .d3ag-ferr-btn.tem{background:var(--d3-tinta);color:var(--d3-contra)}
 #pv2-agenda .d3ag-ferr > .pv2-pop{right:0;left:auto;width:min(320px,86vw);gap:8px}
 #pv2-agenda .d3ag-ferr .pv2-pop-linha{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 #pv2-agenda .d3ag-ferr .pv2-busca{flex:none;width:100%;height:38px;box-sizing:border-box}
@@ -148,7 +148,7 @@
 #vv-planejamentos .p2-menu > .p2-btn.d3pl-novo:hover{background:var(--d3-trilho)}
 /* o mês é um segmento com os meses (Direção 3): o escolhido fica escuro, como no quadro */
 #vv-planejamentos .p2-seg[aria-label="Mês"]{background:var(--d3-cartao)}
-#vv-planejamentos .p2-seg[aria-label="Mês"] > button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+#vv-planejamentos .p2-seg[aria-label="Mês"] > button[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 #vv-planejamentos .d3pl-nums{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;min-width:0}
 #vv-planejamentos .d3pl-nums > .d3-num{appearance:none;border:0;margin:0;text-align:left;color:var(--d3-tinta);font-family:inherit}
 #vv-planejamentos .d3pl-nums > button.d3-num{cursor:pointer}

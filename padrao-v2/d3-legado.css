@@ -25,12 +25,12 @@ dialog.clientes-vinculo-dialog.clientes-vinculo-dialog .clientes-vinculo-contage
 dialog.clientes-vinculo-dialog.clientes-vinculo-dialog .clientes-vinculo-erro{margin:8px 0 0;color:var(--d3-perigo);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 dialog.clientes-vinculo-dialog.clientes-vinculo-dialog footer{gap:8px;padding:14px 0 0}
 dialog.clientes-vinculo-dialog.clientes-vinculo-dialog footer button{height:36px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
-dialog.clientes-vinculo-dialog.clientes-vinculo-dialog footer button[data-salvar]{background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog footer button[data-salvar]{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 dialog.clientes-vinculo-dialog.clientes-vinculo-dialog footer button:disabled{opacity:.45}
 
 /* ===== 2. CARTÃO RÁPIDO (abrirCartaoRapido): "Abrir a peça" em preto, "Ver prévia" no secundário ===== */
 #cartao-rapido.cartao-rapido{border-radius:var(--d3-r-cartao)}
-#cartao-rapido .cr-rodape .cr-abrir{height:34px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-tinta);color:#FFFFFF;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#cartao-rapido .cr-rodape .cr-abrir{height:34px;padding:0 16px;border:0;border-radius:999px;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #cartao-rapido .cr-rodape .cr-abrir:hover{background:var(--d3-texto2)}
 #cartao-rapido .cr-rodape .cr-previa{height:34px;padding:0 14px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta)}
 
@@ -98,7 +98,7 @@ dialog.appearance-dialog.appearance-dialog{border:0;border-radius:var(--d3-r-car
 dialog.appearance-dialog.appearance-dialog::backdrop{background:var(--d3l-veu);-webkit-backdrop-filter:none;backdrop-filter:none}
 dialog.appearance-dialog.appearance-dialog header button{background:var(--d3-trilho);color:var(--d3-tinta);box-shadow:none}
 dialog.appearance-dialog.appearance-dialog :is(input[type=range],input[type=checkbox]){accent-color:var(--d3-tinta)}
-dialog.appearance-dialog.appearance-dialog .appearance-done{height:40px;min-height:0;border:0;border-radius:999px;background:var(--d3-tinta);color:#FFFFFF;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none}
+dialog.appearance-dialog.appearance-dialog .appearance-done{height:40px;min-height:0;border:0;border-radius:999px;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none}
 dialog.appearance-dialog.appearance-dialog .appearance-done:hover{background:var(--d3-texto2)}
 
 /* Seu personagem: "Salvar" preto, aba e amostra escolhidas na tinta. */
@@ -106,14 +106,14 @@ dialog.appearance-dialog.appearance-dialog .appearance-done:hover{background:var
 .vv-personagem .vv-personagem-principal{border-radius:999px;box-shadow:none}
 .vv-personagem .vv-personagem-sec{border-color:transparent;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta)}
 .vv-personagem .vv-personagem-sec:hover:not(:disabled){border-color:transparent;color:var(--d3-tinta)}
-.vv-personagem .vv-personagem-abas button[aria-selected="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+.vv-personagem .vv-personagem-abas button[aria-selected="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 .vv-personagem .vv-personagem-amostra[aria-pressed="true"],.vv-personagem .vv-personagem-amostra[aria-pressed="true"]:hover,.vv-personagem .vv-personagem-peca[aria-pressed="true"]{border-color:var(--d3-tinta);box-shadow:0 0 0 1px var(--d3-tinta)}
 .vv-personagem .vv-personagem-giro button:hover{color:var(--d3-tinta)}
 
 /* Meu perfil (ficha do Escritório): ação principal preta, as outras no secundário; barras de progresso na tinta. */
 #office-ficha .ofc-ficha-acoes{--vv-acao:var(--d3-tinta)}
 #office-ficha .ofc-ficha-acoes > button{border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);box-shadow:none}
-#office-ficha .ofc-ficha-acoes > button:first-child{background:var(--d3-tinta);color:#FFFFFF}
+#office-ficha .ofc-ficha-acoes > button:first-child{background:var(--d3-tinta);color:var(--d3-contra)}
 #office-ficha .office-text-button{color:var(--d3-tinta)}
 #office-ficha .ofc-hud-abas{--vv-laranja:var(--d3-tinta)}
 #office-ficha .ofc-dia-barra,#office-ficha .ofc-escada-barra{background:var(--d3-linha)}
@@ -131,7 +131,7 @@ dialog.appearance-dialog.appearance-dialog .appearance-done:hover{background:var
 #ofc-aviso-novo .aviso-form :is(input,textarea,select):focus-visible{outline:0;background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
 #ofc-aviso-novo .aviso-form-nota{color:var(--d3-apagado);font:500 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif)}
 #ofc-aviso-novo .aviso-form .ofc-nota{color:var(--d3-perigo)}
-#ofc-aviso-novo .aviso-form [type=submit]{height:40px;padding:0 18px;border:0;border-radius:999px;background:var(--d3-tinta);color:#FFFFFF;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none}
+#ofc-aviso-novo .aviso-form [type=submit]{height:40px;padding:0 18px;border:0;border-radius:999px;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none}
 #ofc-aviso-novo .aviso-form [type=submit]:active{transform:scale(.97)}
 #ofc-aviso-novo .aviso-form-previa{align-self:stretch;display:grid;align-content:center;padding:16px;border-radius:16px;background:var(--d3-areia)}
 
@@ -145,7 +145,7 @@ dialog.appearance-dialog.appearance-dialog .appearance-done:hover{background:var
 #ofc-tutorial .tut-acoes .tut-pular{color:var(--d3-apagado);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #ofc-tutorial .tut-acoes .tut-pular:hover{color:var(--d3-tinta)}
 #ofc-tutorial .tut-acoes :is(.abr-primario,.abr-secundario){height:36px;padding:0 16px;border:0;border-radius:999px;font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none;filter:none;transform:none}
-#ofc-tutorial .tut-acoes .abr-primario{background:var(--d3-tinta);color:#FFFFFF}
+#ofc-tutorial .tut-acoes .abr-primario{background:var(--d3-tinta);color:var(--d3-contra)}
 #ofc-tutorial .tut-acoes .abr-secundario{background:var(--d3-trilho);color:var(--d3-tinta);font-weight:500}
 #ofc-tutorial .tut-acoes :is(.tut-pular,.abr-primario,.abr-secundario):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
 
@@ -156,7 +156,7 @@ dialog.appearance-dialog.appearance-dialog .appearance-done:hover{background:var
 #previa-grande .previa-grande-topo{color:var(--d3-tinta)}
 #previa-grande #previa-grande-nome{color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #previa-grande .previa-grande-topo button:not(.x-fechar){height:34px;padding:0 14px;border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
-#previa-grande .previa-grande-topo button.previa-grande-trocar{background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+#previa-grande .previa-grande-topo button.previa-grande-trocar{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #previa-grande .previa-grande-topo .x-fechar{border:0;background:var(--d3-trilho);color:var(--d3-tinta)}
 #previa-grande .previa-grande-pecas{color:var(--d3-tinta)}
 #previa-grande .previa-peca-passo{border:0;border-radius:999px;background:var(--d3-trilho);color:var(--d3-tinta)}

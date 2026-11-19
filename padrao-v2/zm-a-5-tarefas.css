@@ -59,7 +59,7 @@
 #vv-hoje .d3m-a-mt .d3m-a-mt-det .v2t-etapa.ok > i{background:var(--d3-tinta)}
 #vv-hoje .d3m-a-mt .d3m-a-mt-det .v2t-etapa.agora > i{box-shadow:inset 0 0 0 2px var(--d3-acao)}
 #vv-hoje .d3m-a-mt .d3m-a-mt-det .d3h-btn{height:30px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
-#vv-hoje .d3m-a-mt .d3m-a-mt-det .d3h-btn.k{background:var(--d3-tinta);color:var(--d3-contra,var(--d3-escuro-texto));font-weight:600}
+#vv-hoje .d3m-a-mt .d3m-a-mt-det .d3h-btn.k{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #vv-hoje .d3m-a-mt .d3m-a-mt-det .focus-brief-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:none}
 /* O pé "De olho": cada número filtra a lista. */
 #vv-hoje .d3m-a-mt .d3m-a-mt-olho{appearance:none;flex:none;display:inline-flex;align-items:baseline;gap:5px;height:24px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);-webkit-text-fill-color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}

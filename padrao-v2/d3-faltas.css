@@ -29,7 +29,7 @@
 #pv2-agenda-topo.pv2 .d3ag-vistas{flex:none;display:inline-flex;align-items:center;gap:0;padding:4px;border-radius:999px;background:var(--d3-trilho)}
 #pv2-agenda-topo.pv2 .d3ag-vistas > button{appearance:none;height:32px;margin:0;padding:0 14px;border:0;border-radius:999px;background:transparent;box-shadow:none;color:var(--d3-texto2);font:500 var(--d3-fs-texto) var(--vv-texto,Inter),sans-serif;cursor:pointer;transition:background-color .25s cubic-bezier(.32,.72,0,1),color .25s}
 #pv2-agenda-topo.pv2 .d3ag-vistas > button:hover{color:var(--d3-tinta)}
-#pv2-agenda-topo.pv2 .d3ag-vistas > button[aria-checked="true"]{background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+#pv2-agenda-topo.pv2 .d3ag-vistas > button[aria-checked="true"]{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #pv2-agenda-topo.pv2 .d3ag-vistas > button:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
 #pv2-agenda-topo.pv2 .d3ag-mais > summary{gap:4px;height:40px;padding:0 14px;background:transparent;color:var(--d3-texto2);box-shadow:none}
 #pv2-agenda-topo.pv2 .d3ag-mais > summary:hover{color:var(--d3-tinta);box-shadow:inset 0 0 0 1px var(--d3-borda)}
@@ -50,7 +50,7 @@
 #vv-hoje .d3h-danilo .vcr-lote > button,#vv-hoje .d3h-co .v2o-lote > button{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;min-width:0;padding:0 16px;border:0;border-radius:999px;box-shadow:none;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:background-color .2s,color .2s,transform .14s cubic-bezier(.34,1.56,.64,1)}
 #vv-hoje .d3h-danilo .vcr-lote > .vc-sec{background:var(--d3-trilho);color:var(--d3-tinta)}
 #vv-hoje .d3h-danilo .vcr-lote > .vc-sec[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
-#vv-hoje .d3h-danilo .vcr-lote > .vc-acao,#vv-hoje .d3h-co .v2o-lote > .v2o-btn.k{min-width:120px;background:var(--d3-tinta);color:#FFFFFF;font-weight:600}
+#vv-hoje .d3h-danilo .vcr-lote > .vc-acao,#vv-hoje .d3h-co .v2o-lote > .v2o-btn.k{min-width:120px;background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #vv-hoje .d3h-danilo .vcr-lote > button:active,#vv-hoje .d3h-co .v2o-lote > button:active{transform:scale(.96)}
 #vv-hoje .d3h-danilo .vcr-lote > button:disabled,#vv-hoje .d3h-co .v2o-lote > button:disabled{cursor:default;opacity:.45;transform:none}
 #vv-hoje .d3h-danilo .vcr-lote > button.rodando:disabled,#vv-hoje .d3h-co .v2o-lote > button.rodando:disabled{opacity:1}

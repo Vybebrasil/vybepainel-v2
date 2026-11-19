@@ -119,7 +119,7 @@
 #vv-hoje .d3h-co .v2o-fichas > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:var(--d3-texto2);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:background .2s ease,color .2s ease}
 #vv-hoje .d3h-co .v2o-fichas > button > small{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
 #vv-hoje .d3h-co .v2o-fichas > button > small.a{color:var(--d3-ajuste)}
-#vv-hoje .d3h-co .v2o-fichas > button[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-cartao);font-weight:600}
+#vv-hoje .d3h-co .v2o-fichas > button[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 #vv-hoje .d3h-co .v2o-fichas > button[aria-pressed="true"] > small{color:var(--d3-meta)}
 #vv-hoje .d3h-co .v2o-gp-q{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
 
@@ -141,7 +141,7 @@
 #vv-hoje .d3h-co .v2o-heitor-cab > small{flex:1;min-width:0;color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vv-hoje .d3h-co .v2o-heitor-cab > svg{flex:none;transition:transform .25s ease}
 #vv-hoje .d3h-co .v2o-heitor-cab[aria-expanded="true"] > svg{transform:rotate(180deg)}
-#vv-hoje .d3h-co .v2o-heitor-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-agente);color:var(--d3-cartao);font:800 var(--d3-fs-apoio) var(--vv-titulo,Inter,sans-serif)}
+#vv-hoje .d3h-co .v2o-heitor-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-agente);color:var(--d3-escuro-texto);font:800 var(--d3-fs-apoio) var(--vv-titulo,Inter,sans-serif)}
 #vv-hoje .d3h-co .v2o-heitor > .v2-mais > div{display:flex;flex-direction:column;gap:14px}
 #vv-hoje .d3h-co .v2o-heitor[aria-expanded="true"] > .v2-mais > div{padding:0 14px 14px}
 #vv-hoje .d3h-co .v2o-heitor[aria-expanded="false"] > .v2-mais{visibility:hidden;transition:grid-template-rows .28s var(--vv-suave,cubic-bezier(.22,1,.36,1)),visibility 0s .28s}

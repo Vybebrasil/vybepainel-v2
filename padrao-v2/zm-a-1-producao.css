@@ -23,7 +23,7 @@
 .d3m-a-seg > button > b.r{color:var(--d3-perigo)}
 .d3m-a-seg > button > b.a{color:var(--d3-ambar)}
 .d3m-a-filtro{max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.d3m-a-filtro.tem{background:var(--d3-tinta);color:var(--d3-escuro-texto);font-weight:600}
+.d3m-a-filtro.tem{background:var(--d3-tinta);color:var(--d3-contra);font-weight:600}
 .d3m-a-seg > button:focus-visible,.d3m-a-filtro:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
 .d3m-a-div{flex:none;width:1px;height:16px;background:var(--d3-veu-forte)}
 .d3m-a-pe{flex:none;display:flex;align-items:center;gap:0;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}

@@ -11,7 +11,7 @@
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-selo-donos{gap:5px;height:24px;padding:0 10px;background:var(--d3-cartao);color:var(--d3-texto2)}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-selo-donos svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-data{font:400 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-apagado)}
-:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-escuro{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none}
+:is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-escuro{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none}
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3f-escuro:hover{background:#000000;box-shadow:none}
 /* o bloco de ação: quem fala em cima, a frase maior */
 :is(:is(#vv-comercial,.vv-setor-visao) .fv2.d3f,#pv2-ia.d3f) .d3-acao{padding:14px 20px;border-radius:22px}
@@ -90,19 +90,19 @@
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.p{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.p:hover{box-shadow:inset 0 0 0 1px var(--d3-tinta)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.d3f-cinza{background:var(--d3-trilho)}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.d3f-escuro{background:var(--d3-tinta);color:#FFFFFF}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.d3f-escuro{background:var(--d3-tinta);color:var(--d3-contra)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.fv2-seta{width:32px;height:32px;background:var(--d3-cartao)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-btn.fv2-perigo{background:var(--d3-cartao);color:var(--d3-perigo)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-mes > .d3f-mes{font:700 var(--d3-fs-destaque) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap}
 /* aba que estica: a escolhida fica preta e o fundo abre do meio para as pontas */
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg{background:var(--d3-trilho)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg button{height:32px;font-size:var(--d3-fs-texto);color:var(--d3-texto2)}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg button[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF;box-shadow:none;animation:d3fAba .4s cubic-bezier(.22,1,.36,1) both}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-seg button[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra);box-shadow:none;animation:d3fAba .4s cubic-bezier(.22,1,.36,1) both}
 @keyframes d3fAba{from{clip-path:inset(0 32% 0 32% round 999px)}to{clip-path:inset(0 0 0 0 round 999px)}}
 /* fichas e busca */
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip{height:32px;background:var(--d3-cartao);box-shadow:none;font-size:var(--d3-fs-texto)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f button.fv2-chip:hover{box-shadow:inset 0 0 0 1px var(--d3-borda)}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip[aria-pressed="true"]{background:var(--d3-tinta);color:#FFFFFF}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip[aria-pressed="true"]{background:var(--d3-tinta);color:var(--d3-contra)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip > b{font-weight:700}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip > b.r{color:var(--d3-perigo)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fv2-chip > b.g{color:var(--d3-pronto)}
@@ -322,7 +322,7 @@
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-atalho:hover > i{color:var(--d3-tinta)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos{display:flex;flex-direction:column;align-items:stretch;gap:4px;font-size:var(--d3-fs-texto)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos > span{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--d3-trilho)}
-:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos > span.on{background:var(--d3-tinta);color:#FFFFFF}
+:is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos > span.on{background:var(--d3-tinta);color:var(--d3-contra)}
 :is(#vv-comercial,.vv-setor-visao) .fv2.d3f .fx-passos > i{font-style:normal;text-align:center;color:var(--d3-meta);line-height:1}
 
 @media (prefers-reduced-motion:reduce){

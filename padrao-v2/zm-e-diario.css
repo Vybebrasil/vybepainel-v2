@@ -82,7 +82,7 @@ body.mundo #painel-diario{background:none}
 .d3m-e-leg > i.meta{margin-left:6px;background:none;border-top:2px dashed var(--d3-fume-apagado);height:0}
 
 /* As peças de um registro (a vista que abre com "Ver as peças") numa folha só, que rola por dentro. */
-#painel-diario #diario-detalhe .person-chip.active{background:var(--d3-tinta);color:var(--d3-escuro-texto)}
+#painel-diario #diario-detalhe .person-chip.active{background:var(--d3-tinta);color:var(--d3-contra)}
 #painel-diario #diario-detalhe{overflow-y:auto;padding:16px;border-radius:16px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra)}
 
 @media (max-width:900px){
