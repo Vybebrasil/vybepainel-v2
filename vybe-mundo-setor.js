@@ -318,12 +318,116 @@
     const tomDe = (st) => (typeof window.pv2Tom === 'function' ? window.pv2Tom(st) : 'n');
     const corDe = (st) => (typeof window.corDeStatus === 'function' ? window.corDeStatus(st)?.cor : '') || '';
     const pilula = (st) => { const t = tomDe(st), c = corDe(st); return `<span class="d3s-pill ${t}"${c && t === 'n' ? ` style="--d3-st:${esc(c)}"` : ''}>${t === 'n' ? '<i aria-hidden="true"></i>' : ''}${esc(st)}</span>`; };
-    return `<section class="d3s-card d3s-status" aria-label="Por status"><div class="d3s-topo"><h3>Por status</h3><small>${num(total)} em aberto</small></div><div class="d3s-rolo">${lista.map(([s, n]) => `<div class="d3s-st"><span class="d3s-st-p">${pilula(s)}</span><span class="d3-barra" style="--v:${Math.round((n / max) * 100)}%"><i></i></span><b>${num(n)}</b></div>`).join('') || '<p class="d3s-vazio">Nada em aberto.</p>'}</div></section>`;
+    return `<section class="d3s-card d3s-status" aria-label="Por status"><div class="d3s-topo"><h3>Por status</h3><small>${num(total)} em aberto</small></div><div class="d3s-rolo">${lista.map(([s, n]) => `<div class="d3s-st"${corDe(s) ? ` style="--d3-st:${esc(corDe(s))}"` : ""}><span class="d3s-st-p">${pilula(s)}</span><span class="d3-barra" style="--v:${Math.round((n / max) * 100)}%"><i></i></span><b>${num(n)}</b></div>`).join('') || '<p class="d3s-vazio">Nada em aberto.</p>'}</div></section>`;
   }
   // Módulos: um botão por aba do setor com o número dela (sem número, só o nome).
   function d3Modulos(numeros = {}, extras = []) {
     const itens = [...(ctx.subs || []).map((s) => ({ nome: s.nome, dica: s.dica, url: s.url, attrs: `data-setor-sub="${esc(s.id)}"`, ...(numeros[s.id] || {}) })), ...extras];
     return `<section class="d3s-card d3s-mods" aria-label="Módulos de ${esc(ctx.nome)}"><div class="d3s-topo"><h3>Módulos</h3><small>${num(itens.length)}</small></div><div class="d3s-mods-grade">${itens.map((m) => `<button type="button" class="d3s-mod" ${m.attrs || ''} title="${esc([m.dica, m.rotulo ? `${m.n} ${m.rotulo}` : ''].filter(Boolean).join(' · '))}"><span>${esc(m.curto || m.nome)}${m.url ? ' ↗' : ''}</span><b class="${m.tom || ''}">${m.n != null && m.n !== '—' ? m.n : ''}</b></button>`).join('')}</div></section>`;
+  }
+  // ---------- Prancha V2-S-Visao-Setor (rodada S, 19/11/2026): a Visão da Produção no vidro ----------
+  // Quatro números com o selo da cor do que contam; embaixo, "Pede ação, na ordem" (número, o que é numa linha, o porquê
+  // na outra e o Resolver) e "Pessoas · carga" com "Prontas por dia" e os módulos com número no pé; à direita, o cartão
+  // laranja do Heitor e "Por status" direto no vidro. O que não cabe sai e o "+N" do cabeçalho mostra o resto no lugar.
+  // O desenho mora em padrao-v2/s-a.css (classes vst-*).
+  const VST_SELO = {
+    g: '<path d="M5 12l4 4 10-10"/>', r: '<path d="M12 7v6M12 17h.01"/>', a: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    roxo: '<path d="M9 12l2 2 4-4"/><rect x="4" y="4" width="16" height="16" rx="3"/>',
+  };
+  function vstNum({ rotulo, valor, de = '', sub = '', k = 'g', tom = '', anel = null, espiar = '', dica = '' }) {
+    const tag = espiar ? `button type="button" data-espiar="${esc(espiar)}"` : 'div';
+    const pctAnel = anel == null ? null : Math.max(0, Math.min(100, Math.round(Number(anel) || 0)));
+    const graf = pctAnel == null ? '' : `<svg class="vst-anel" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17"/><circle cx="22" cy="22" r="17" stroke-dasharray="${(106.8 * pctAnel / 100).toFixed(1)} 106.8"/></svg>`;
+    return `<${tag} class="vst-num"${dica ? ` title="${esc(dica)}"` : ''}><span class="vst-num-topo"><span>${esc(rotulo)}</span><i class="vst-selo" data-k="${k}" aria-hidden="true"><svg viewBox="0 0 24 24">${VST_SELO[k]}</svg></i></span>`
+      + `<span class="vst-num-linha"><span class="vst-num-txt"><b class="vst-num-v${tom ? ' ' + tom : ''}">${valor}${de ? `<small> / ${de}</small>` : ''}</b>${sub ? `<small>${sub}</small>` : ''}</span>${graf}</span></${espiar ? 'button' : 'div'}>`;
+  }
+  // O cartão laranja (o único da tela): quem fala, o número grande, a frase, o apoio e até dois botões.
+  function vstLaranja({ agente = 'heitor', numero = '', titulo = '', apoio = '', botoes = [] }) {
+    const [nome, papel] = AGENTE[agente] || AGENTE.vybes, area = String(papel).split(' ')[0];
+    const bs = botoes.filter(Boolean).map((b, i) => `<button type="button" class="vst-lar-btn${i ? '' : ' k'}" ${b.attrs}>${esc(b.rot)}</button>`).join('');
+    return `<section class="vst-laranja" aria-label="${esc(nome)}, o que pede ação agora"><span class="vst-lar-rot"><i aria-hidden="true">${esc(nome.charAt(0))}</i>${esc(nome)} · ${esc(area)}</span>`
+      + `<span class="vst-lar-txt">${numero ? `<b class="vst-lar-num">${numero}</b>` : ''}<span class="vst-lar-tit">${titulo}</span>${apoio ? `<small>${apoio}</small>` : ''}</span>${bs ? `<span class="vst-lar-bts">${bs}</span>` : ''}</section>`;
+  }
+  // "Pede ação, na ordem": de cada alerta, o número, o título curto e o porquê. Os nomes das peças ficam na dica e na
+  // lista que o Resolver abre.
+  const VST_PEDE = [
+    [/furando a data/, () => 'Furando a data do cliente', () => 'veiculação já passou e a peça não está Finalizado'],
+    [/em Para agendar com a veiculação vencida/, () => 'Para agendar com a data vencida', () => 'a veiculação passou e não foi postada'],
+    [/com a data passada e sem Finalizado/, () => 'Agendadas a conferir', () => 'vencidas, esperando a conferência final'],
+    [/prazo interno vencido/, () => 'Prazo interno vencido', () => 'a data do cliente ainda não passou'],
+    [/ao ar hoje sem estar/, () => 'Vão ao ar hoje sem estar prontas', (m, x) => (x.H.previstas ? `${num(x.H.previstasFeitas || 0)} de ${num(x.H.previstas)} já ${Number(x.H.previstasFeitas) === 1 ? 'está' : 'estão'} Finalizado` : '')],
+    [/para agendar com veiculação hoje/, () => 'Para agendar com veiculação hoje', () => 'agendar ainda hoje'],
+    [/risco de furo nos próximos (\d+) dias/, (m) => `Risco de furo em ${m[1]} dias`, () => 'vão ao ar e ainda não estão prontas'],
+    [/sem nenhum conteúdo nesta semana/, (m, x) => (x.n === '1' ? 'Cliente sem conteúdo nesta semana' : 'Clientes sem conteúdo nesta semana'), (m, x) => x.nomes],
+    [/travad/, () => 'Travadas na produção', (m, x) => x.paren],
+    [/^Gargalo/, () => 'Gargalo na produção', (m, x) => x.nomes],
+    [/^Próxima semana/, () => 'Próxima semana cheia', (m, x) => x.nomes],
+    [/esperando o cliente/, () => 'Esperando o cliente', () => 'aprovação ou informação'],
+    [/na sua fila/, () => 'Atrasadas na sua fila', () => 'peças com você'],
+  ];
+  function vstPede(acoes, H = {}) {
+    const linhas = acoes.map((l, i) => {
+      const cab = String(l.cab || l.curto || '').trim(), paren = (cab.match(/\(([^)]*)\)\s*$/) || [])[1] || '', nomes = String(l.nomes || '').trim();
+      const n = (cab.match(/^(\d[\d.]*)/) || nomes.match(/^(\d[\d.]*)/) || [])[1] || (l.n != null ? String(l.n) : '');
+      const x = { H, n, paren, nomes };
+      const regra = VST_PEDE.find(([re]) => re.test(cab)), m = regra ? cab.match(regra[0]) : null;
+      const limpo = cab.replace(/\s*\([^)]*\)\s*$/, '').replace(/^\d[\d.]*\s+(peças?\s+)?/, '');
+      const tit = regra ? regra[1](m, x) : l.titulo || (limpo.charAt(0).toLocaleUpperCase('pt-BR') + limpo.slice(1));
+      const sub = (regra ? regra[2](m, x) : l.sub || paren || nomes) || '';
+      const dica = [cab, ...(l.det || []).map((d) => String(d).replace(/<[^>]*>/g, ''))].filter(Boolean).join(' · ');
+      return `<div class="vst-lin"><b class="vst-lin-n${i === 0 && l.tom === 'r' ? ' r' : ''}">${esc(n)}</b><span class="vst-lin-txt" title="${esc(dica)}"><b>${esc(tit)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${l.botao || ''}</div>`;
+    });
+    return `<section class="vst-card vst-pede" aria-label="Pede ação, na ordem"><div class="vst-topo"><h3>Pede ação, na ordem</h3><small>o mais grave primeiro</small><button type="button" class="vst-mais" data-vst-mais hidden></button></div>`
+      + `<div class="vst-rolo">${linhas.join('') || '<p class="vst-vazio">Nada pedindo ação na produção agora.</p>'}</div></section>`;
+  }
+  // Prontas por dia: as peças com a data do cliente (a veiculação) em cada dia da semana e quantas já
+  // estão Finalizado. O dia abre a lista das peças dele.
+  function vstDias(itens, hoje) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(hoje || ''))) return '';
+    const base = Date.parse(hoje + 'T12:00:00Z'), w = new Date(base).getUTCDay(), seg = base - ((w + 6) % 7) * 864e5;
+    const dias = Array.from({ length: 7 }, (_, k) => new Date(seg + k * 864e5).toISOString().slice(0, 10));
+    const NOMES = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'], conta = dias.map(() => ({ n: 0, p: 0 }));
+    const sit = typeof window.situacaoDaPecaNoMundo === 'function' ? window.situacaoDaPecaNoMundo : null;
+    for (const d of itens || []) {
+      const k = dias.indexOf(String(d.veiculacao_iso || '').slice(0, 10)); if (k < 0) continue;
+      conta[k].n++;
+      if (sit ? sit(d) === 'concluida' : /finaliz/i.test(String(d.status || ''))) conta[k].p++;
+    }
+    const total = conta.reduce((s, c) => s + c.n, 0), prontas = conta.reduce((s, c) => s + c.p, 0);
+    const linhas = dias.map((dia, k) => `<button type="button" class="vst-dia${dia === hoje ? ' hoje' : ''}" data-espiar="semdia:${dia}|veiculacao_iso" title="Ver as peças de ${esc(NOMES[k])} ${esc(dia.slice(8, 10))}"><span>${NOMES[k]} ${Number(dia.slice(8, 10))}${dia === hoje ? ' · hoje' : ''}</span><span class="vst-dia-barra" style="--v:${conta[k].n ? Math.round((conta[k].p / conta[k].n) * 100) : 0}%"><i></i></span><b>${num(conta[k].p)} de ${num(conta[k].n)}</b></button>`).join('');
+    return `<div class="vst-dias" aria-label="Prontas por dia"><div class="vst-topo"><h3>Prontas por dia</h3><small>${num(prontas)} de ${num(total)} na semana</small></div><div class="vst-dias-lista">${linhas}</div></div>`;
+  }
+  // O pé dos módulos: os que têm número, na ordem do setor; o resto abre pelo "Produção ⌄" do topo e pela barra lateral.
+  function vstModsPe(numeros = {}) {
+    const itens = (ctx.subs || []).map((s) => ({ s, x: numeros[s.id] || {} })).filter(({ x }) => x.n != null && x.n !== '' && x.n !== '—' && x.n !== '0');
+    return `<div class="vst-mods-pe"><span>Módulos</span>${itens.map(({ s, x }) => `<button type="button" data-setor-sub="${esc(s.id)}" title="${esc([s.dica, x.rotulo ? `${x.n} ${x.rotulo}` : ''].filter(Boolean).join(' · '))}"><b class="${x.tom || ''}">${x.n}</b>${esc(x.curto || s.nome)}</button>`).join('')}</div>`;
+  }
+  // Tudo o que é módulo do setor, no menu do título.
+  const vstModsMenu = (numeros = {}) => `<div class="vst-menu" role="menu" aria-label="Módulos de ${esc(ctx.nome)}">${(ctx.subs || []).map((s) => { const x = numeros[s.id] || {}; return `<button type="button" role="menuitem" data-setor-sub="${esc(s.id)}"${s.dica ? ` title="${esc(s.dica)}"` : ''}><span>${esc(s.nome)}${s.url ? ' ↗' : ''}</span>${x.n != null && x.n !== '—' ? `<b class="${x.tom || ''}">${x.n}</b>` : ''}</button>`; }).join('')}</div>`;
+  let vstNumerosMods = {};
+  // Nada rola: em cada lista (Pede ação e Pessoas), as linhas que passam do fim do cartão saem; o "+N" do topo mostra as
+  // seguintes no lugar e, no fim, volta ao começo.
+  function vstCaber(raiz) {
+    for (const rolo of raiz?.querySelectorAll?.('.vst-rolo') || []) {
+      const linhas = [...rolo.children].filter((x) => x.matches('.vst-lin, .d3s-pes')), mais = rolo.parentElement.querySelector('[data-vst-mais]');
+      const ini = Math.min(Number(rolo.dataset.ini) || 0, Math.max(0, linhas.length - 1));
+      linhas.forEach((l, i) => { l.hidden = i < ini; });
+      const fim = rolo.getBoundingClientRect().bottom;
+      let vistas = 0;
+      for (const l of linhas.slice(ini)) { if (l.hidden) continue; if (l.getBoundingClientRect().bottom > fim + 1) l.hidden = true; else vistas++; }
+      const depois = linhas.length - ini - vistas;
+      if (!mais) continue;
+      mais.hidden = !(depois > 0 || ini > 0);
+      mais.textContent = depois > 0 ? `+${num(depois)}` : 'voltar ao começo';
+      mais.dataset.prox = depois > 0 ? String(ini + Math.max(1, vistas)) : '0';
+      mais.setAttribute('aria-label', depois > 0 ? `Mostrar as próximas ${num(depois)}` : 'Voltar ao começo da lista');
+    }
+    // O pé dos módulos: o que passa da largura sai (todos seguem no menu do título).
+    for (const pe of raiz?.querySelectorAll?.('.vst-mods-pe') || []) {
+      const bts = [...pe.querySelectorAll('button')]; bts.forEach((x) => { x.hidden = false; });
+      const dir = pe.getBoundingClientRect().right - 8;
+      for (const x of bts) if (x.getBoundingClientRect().right > dir) x.hidden = true;
+    }
   }
   // Cliques do molde: a linha que abre no lugar e o atalho que abre o "mostrar" do pé. Devolve true quando tratou.
   function cliqueV2(b) {
@@ -389,7 +493,7 @@
     const botao = ids.length === 1 ? btn('Abrir a peça', `data-vs-peca="${esc(ids[0])}"`)
       : a.ref?.tipo === 'semana' ? irAba('gestor', 'Ver a semana')
         : a.ref ? btn(a.nivel === 4 ? 'Cobrar' : 'Resolver', `data-espiar="alerta:${i}"`) : '';
-    return { tom, pill, texto, botao, det, curto: cab.replace(/\s*\(.*\)\s*$/, '') };
+    return { tom, pill, texto, botao, det, curto: cab.replace(/\s*\(.*\)\s*$/, ''), cab, nomes };
   }
   // Os seis números da Produção numa linha (vbResumoHtml): o que pede atenção ganha o tom; zero fica discreto.
   function resumoProducao({ prontas, previstas, entregues, noPrazo, atrasadas, emRisco, emAprov, prox, fila, filaAtr }) {
@@ -885,12 +989,30 @@
         .replace(/ sem nenhum conteúdo nesta semana/, ' sem conteúdo').replace(/ com a data passada e sem Finalizado/, ' a conferir').replace(/ na janela de produção/, ' na produção').replace(/ esperando aprovação ou informação/, ' esperando o cliente');
       const curtas = acoes.map((l) => ({ ...l, dica: String(l.texto || '').replace(/<[^>]*>/g, ''), ...(/furando a data/i.test(String(l.texto || '')) ? { pill: String(l.pill || '').replace(/ atrasadas?$/, ''), texto: 'Furando a data' } : { texto: encurta(l.texto) }) }));
       const pedeD3 = d3Pede(curtas, { vazio: 'Nada pedindo ação na produção agora.', ver: [['Por semana', 'data-g2-mais'], ['Onde trava', 'data-g2-mais'], ['Cobertura', 'data-g2-mais'], ['Agenda', 'data-g2-mais']] });
-      const modsD3 = d3Modulos({
-        gestor: { curto: 'Painel', n: num(pedem), rotulo: pedem === 1 ? 'pede ação' : 'pedem ação' }, tarefas: { n: num(minhas.length), rotulo: 'na sua fila', tom: minhasAtr ? 'r' : '' },
+      const numerosMods = {
+        gestor: { curto: 'Painel', n: num(pedem), rotulo: pedem === 1 ? 'pede ação' : 'pedem ação' }, tarefas: { curto: 'Tarefas', n: num(minhas.length), rotulo: 'na sua fila', tom: minhasAtr ? 'r' : '' },
         demandas: solic == null ? {} : { n: num(solic), rotulo: 'em aberto' }, projetos: { curto: 'Projetos' }, agenda: Array.isArray(ag) ? { curto: 'Agenda', n: num(ag.length), rotulo: 'nos próximos 7 dias' } : { curto: 'Agenda' },
         conteudo: { curto: 'Aprovação', n: num(emAprov), rotulo: 'em aprovação' }, planejamentos: (C.semPlanejamento || []).length ? { n: `${num((C.semPlanejamento || []).length)} sem`, rotulo: 'sem planejamento', tom: 'r' } : { n: '0' },
-      }, [{ nome: 'Carga do time', attrs: 'data-g2-mais', n: num(maiorFila), rotulo: 'na maior fila' }]);
-      return `<div class="g2 d3s">${d3Acao({ agente: 'heitor', frase: fraseD3, botao: botaoD3 })}${numerosD3}<div class="d3s-tres">${pedeD3}${d3Pessoas(time, semDono, itens, H.dia)}<div class="d3s-lado">${d3PorStatus(itens)}${modsD3}</div></div>`
+      };
+      vstNumerosMods = numerosMods;
+      // Prancha V2-S-Visao-Setor: os quatro números, o Heitor à direita com o botão, e os cartões sem rolar.
+      const numerosV2 = `<div class="vst-nums">${vstNum({ rotulo: 'Prontas da semana', valor: num(prontas), de: num(S.previstas), k: 'g', anel: pctDe(prontas, S.previstas) ?? 0, sub: S.previstas ? `${pct((Number(prontas) / S.previstas) * 100)} · pronta é só Finalizado` : 'nada previsto', dica: conta.prontas })}`
+        + vstNum({ rotulo: 'Atrasadas agora', valor: num(atrasadas), tom: atrasadas ? 'r' : '', k: 'r', sub: 'data do cliente vencida', espiar: atrasadas ? 'atrasadas' : '', dica: conta.atrasadas })
+        + vstNum({ rotulo: 'Risco de furo', valor: num(emRisco), k: 'a', sub: 'próximos 2 dias', espiar: emRisco ? 'emRisco' : '', dica: conta.risco })
+        + vstNum({ rotulo: 'Em aprovação', valor: num(emAprov), k: 'roxo', sub: `${num(espera)} ${espera === 1 ? 'espera' : 'esperam'} o cliente`, dica: 'Peças em Para aprovação ou com o cliente' }) + '</div>';
+      // O botão "Ver a semana" do Heitor abre a janela "Requer ação" da semana (prancha V2-S-Ver-As-N) quando o Painel
+      // de trabalho está carregado; sem ela, o Painel de trabalho, como antes.
+      const verSemana = typeof window.filaV2Abrir === 'function' ? { rot: 'Ver a semana', attrs: 'data-vst-fila="acao"' } : temAba('gestor') ? { rot: 'Ver a semana', attrs: 'data-setor-sub="gestor"' } : null;
+      const apoioLar = gar ? `${esc(gar.status)} segura ${num(gar.qtd)}. Começar por elas destrava a semana.` : S.previstas ? `Semana em ${pct((Number(prontas) / S.previstas) * 100)}.` : '';
+      const laranjaV2 = atrasadas ? vstLaranja({ numero: num(atrasadas), titulo: `${Number(atrasadas) === 1 ? 'passou' : 'passaram'} da data do cliente`, apoio: apoioLar, botoes: [{ rot: atrasadas === 1 ? 'Resolver a atrasada' : `Resolver as ${num(atrasadas)}`, attrs: 'data-espiar="atrasadas"' }, verSemana] })
+        : falt ? vstLaranja({ numero: num(falt), titulo: `${falt === 1 ? 'vai' : 'vão'} ao ar hoje sem estar ${falt === 1 ? 'pronta' : 'prontas'}`, apoio: apoioLar, botoes: [{ rot: 'Ver quais', attrs: 'data-espiar="faltam"' }, verSemana] })
+          : vstLaranja({ titulo: 'Nada atrasado agora.', apoio: apoioLar, botoes: [verSemana] });
+      const pessoasV2 = d3Pessoas(time, semDono, itens, H.dia)
+        .replace('<h3>Pessoas · carga</h3>', '<h3>Pessoas · carga</h3><button type="button" class="vst-mais" data-vst-mais hidden></button>')
+        .replace('<div class="d3s-rolo">', '<div class="d3s-rolo vst-rolo">')
+        .replace('<b>Sem dono</b><small>a distribuir</small>', '<b>Sem responsável</b><small>a distribuir · o Heitor distribui</small>');
+      return `<div class="g2 vst"><div class="vst-esq">${numerosV2}<div class="vst-cols">${vstPede(acoes, H)}<section class="vst-card vst-pc" aria-label="Pessoas e prontas por dia">${pessoasV2}${vstDias(itens, H.dia)}${vstModsPe(numerosMods)}</section></div></div>`
+        + `<div class="vst-dir">${laranjaV2}${d3PorStatus(itens)}</div></div>`
         + mais('Entregas por semana, carga do time, onde trava, cobertura e agenda', resumo
         + linha(bloco('Entregas por semana', `previstas e entregues · mediana ${num(Hi.medianaEntregues)} por semana`, entregasHtml, { icone: 'alta', acao: abrirAba('gestor', 'Painel de trabalho') })
           + bloco('Carga do time', 'peças abertas por pessoa', deitadas(time.map((t) => ({ nome: t.pessoa, valor: t.abertas, cls: t.atrasadas ? 'atencao' : '', rotulo: `${num(t.abertas)}${t.atrasadas ? ` <small class="t-ruim">${num(t.atrasadas)} atras.</small>` : ''}`, sub: `${num(t.entregues7d)} entregue${Number(t.entregues7d) === 1 ? '' : 's'} em 7 dias` })), { vazio: 'Sem números do time.' }), { icone: 'pessoas', acao: abrirAba('tarefas', 'Minhas tarefas') }))
@@ -941,12 +1063,15 @@
     if (el.hidden || !ctx) return;
     el.classList?.toggle?.('fv2-casa', atual === 'setor:financas' && Boolean(window.VybeFinancas?.telas?.visao));
     // Direção 3: a Visão da Produção é o quadro D3-VisaoSetor (fundo areia, cartões brancos); os outros setores seguem.
-    el.classList?.toggle?.('d3s-casa', atual === 'setor:producao');
+    el.classList?.toggle?.('vst-casa', atual === 'setor:producao'); el.classList?.toggle?.('d3-tema', atual === 'setor:producao');
     const g = ++geracao, montar = PAINEIS[atual], comPeriodo = atual === 'setor:comercial' || atual === 'setor:financas';
     // Direção 3 (quadro D3-VisaoSetor): na Produção, o dia e a hora ao lado do título; o atualizar fica só no ícone.
     const subD3 = atual === 'setor:producao' ? `<small class="d3s-topo-sub">${esc(new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }).replace('.', '').replace('-feira', '').replace(' de ', ' '))} · ${hora()}</small>` : '';
-    el.innerHTML = `<div class="g2-topo vs-topo"><h2>${esc(ctx.nome)}</h2>${subD3}<span class="g2-seg" role="group" aria-label="Setores">${SETORES.map(([id, n]) => `<button type="button" data-setor-ir="${id}" aria-pressed="${id === atual}">${n}</button>`).join('')}</span>${comPeriodo ? barraPeriodo() : ''}
-      ${atual === 'setor:producao' ? `<button type="button" class="g2-btn g2-atualizar d3s-atualizar" data-setor-atualizar title="Atualizado ${hora()}" aria-label="Atualizar (atualizado ${hora()})">${I_VOLTA}</button>` : `<button type="button" class="g2-btn g2-atualizar" data-setor-atualizar title="Atualizar">${I_VOLTA}Atualizado ${hora()}</button>`}<span class="g2-vaga"></span><button type="button" class="g2-btn g2-fechar" data-setor-fechar aria-label="Fechar">${traco('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
+    const tituloV2 = atual === 'setor:producao'
+      ? `<details class="vst-titulo"><summary><h2>${esc(ctx.nome)}</h2>${traco('<path d="M6 9l6 6 6-6"/>')}</summary>${vstModsMenu(vstNumerosMods)}</details><small class="vst-sub">visão geral do setor · <button type="button" data-setor-atualizar title="Atualizar agora">atualizado ${hora()}</button></small>`
+      : `<h2>${esc(ctx.nome)}</h2>${subD3}`;
+    el.innerHTML = `<div class="g2-topo vs-topo">${tituloV2}<span class="g2-seg" role="group" aria-label="Setores">${SETORES.map(([id, n]) => `<button type="button" data-setor-ir="${id}" aria-pressed="${id === atual}">${n}</button>`).join('')}</span>${comPeriodo ? barraPeriodo() : ''}
+      ${atual === 'setor:producao' ? `<button type="button" class="g2-btn vst-ajuste" data-vst-ajuste aria-expanded="false" title="Mais números: entregas por semana, carga do time, onde trava, cobertura e agenda" aria-label="Mais números do setor">${traco('<path d="M4 7h11M19 7h1M4 17h3M11 17h9"/><circle cx="17" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>')}</button>` : `<button type="button" class="g2-btn g2-atualizar" data-setor-atualizar title="Atualizar">${I_VOLTA}Atualizado ${hora()}</button>`}<span class="g2-vaga"></span><button type="button" class="g2-btn g2-fechar" data-setor-fechar aria-label="Fechar">${traco('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>
       <div class="vv-g-corpo vs-corpo">${carregando()}</div>`;
     principal = '';
     let corpo;
@@ -961,6 +1086,7 @@
     }
     if (g !== geracao || el.hidden) return;
     el.querySelector('.vs-corpo').innerHTML = corpo;
+    if (atual === 'setor:producao') vstCaber(el);
     const vaga = el.querySelector('.g2-vaga'); if (vaga) vaga.innerHTML = principal;
     if (periodoSemEfeito && per.tipo === 'mensal' && per.mes === mesAtual()) { const barra = el.querySelector('.vs-topo .vs-periodo'); if (typeof barra?.remove === 'function') barra.remove(); }
   }
@@ -968,6 +1094,12 @@
   el.addEventListener('click', (ev) => {
     const b = ev.target.closest('button'); if (!b) return;
     if (cliqueV2(b)) return;
+    // Prancha V2-S-Visao-Setor: o "+N" mostra as linhas seguintes no lugar; o ajuste abre os números de baixo; o "Ver a
+    // semana" abre a janela Requer ação.
+    if (b.hasAttribute('data-vst-mais')) { const rolo = b.closest('section')?.querySelector('.vst-rolo'); if (rolo) { rolo.dataset.ini = b.dataset.prox || '0'; vstCaber(el); } return; }
+    if (b.hasAttribute('data-vst-ajuste')) { const d = el.querySelector('.vs-corpo > details.g2-mais'); if (d) { const gv = el.querySelector('.vs-corpo > .g2.vst'); if (gv) gv.style.height = d.open ? '' : gv.offsetHeight + 'px'; d.open = !d.open; b.setAttribute('aria-expanded', String(d.open)); el.classList.toggle('vst-ajuste-aberto', d.open); if (d.open) d.scrollIntoView?.({ block: 'start', behavior: 'smooth' }); else el.scrollTo?.({ top: 0, behavior: 'smooth' }); } return; }
+    if (b.dataset.vstFila) { const c = ctx; fechar(); c?.aoFechar?.(); setTimeout(() => window.filaV2Abrir?.(b.dataset.vstFila), 0); return; }
+    if (b.dataset.setorSub && b.closest('.vst-titulo')) b.closest('.vst-titulo').open = false;
     if (b.hasAttribute('data-setor-fechar')) { fechar(); ctx?.aoFechar?.(); return; }
     if (b.hasAttribute('data-setor-atualizar')) { cache.clear(); pintar(); return; }
     if (b.dataset.vsTipo) { per.tipo = b.dataset.vsTipo; pintar(); return; }
@@ -976,6 +1108,8 @@
     if (b.dataset.setorIr) ctx?.irSetor?.(b.dataset.setorIr);
     else if (b.dataset.setorSub) ctx?.abrirSub?.(b.dataset.setorSub);
   });
+  // O menu do título fecha com o clique fora dele.
+  el.addEventListener('click', (ev) => { const m = el.querySelector('.vst-titulo[open]'); if (m && !m.contains(ev.target)) m.open = false; }, true);
   el.addEventListener('change', (ev) => { if (ev.target.matches?.('[data-vs-mes]')) { per.mes = ev.target.value; pintar(); } });
 
   function abrir(setor, contexto) {

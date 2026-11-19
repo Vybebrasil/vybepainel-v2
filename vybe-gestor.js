@@ -1264,10 +1264,14 @@ function renderCompactSummary() {
   if (typeof pv2PintarAlto === 'function') pv2PintarAlto({ pct, feitas: done, total, hoje: todayItems.length, hojePendente: todayPending, pendentes, poucosPosts: clientesLow });
 }
 // Os links dos cartões: abrem a mesma fila da barra (Requer ação, Vence hoje) e descem até ela, sem fechar se já estiver aberta.
-function abrirDoResumo(nome) {
+function abrirDoResumo(nome, filtro = 'hoje') {
   const p = PAINEIS_DA_BARRA[nome];
   if (!p) return;
+  // A aba Vence hoje abre no recorte de quem chamou: "Ver as 12" (de hoje), "Ver as N" vencidas do mês, ou tudo (a ficha da barra).
+  if (nome === 'hoje') { FILA_V2.pedido = filtro; if (p.aberto() && FILA_V2.hoje !== filtro) filaV2Filtrar(filtro); }
   if (!p.aberto()) alternarPainelDaBarra(nome);
+  // No mundo a fila é a janela V2 (prancha V2-S-Ver-As-N): não há o que rolar até ela.
+  if (typeof pv2Ligado === 'function' && pv2Ligado()) return;
   setTimeout(() => document.getElementById(nome === 'hoje' ? 'ops-today-panel' : 'ops-action-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
 // "Ver qual": liga o "Crítico primeiro" (clientes com menos posts primeiro) e desce até a agenda da semana.
@@ -1338,7 +1342,7 @@ function opsTodayItems(){
   const today=opsTodayIso();
   return opsSelectedScope().filter(d=>opsOpenItem(d) && getDateIso(d)<=today).sort((a,b)=>{ const ad=getDateIso(a),bd=getDateIso(b); return ad.localeCompare(bd)||Number(a.operational_risk?.score??99)-Number(b.operational_risk?.score??99)||a.nome.localeCompare(b.nome); });
 }
-function toggleTodayQueue(){ alternarPainelDaBarra('hoje'); }
+function toggleTodayQueue(){ FILA_V2.pedido = 'todas'; alternarPainelDaBarra('hoje'); }
 function renderTodayQueue(){
   const painel=document.getElementById('ops-today-panel');
   if(!painel) return;
@@ -1476,15 +1480,23 @@ function renderTeamLoad() {
 // por cima, o outro é uma ação que acontece e acaba. Não são estado, e não
 // devem parecer estado.
 const PAINEIS_DA_BARRA = {
+  // No mundo (pv2Ligado) as duas filas são as abas da janela V2 (filaV2Abrir, prancha V2-S-Ver-As-N); fora dele, os
+  // painéis no lugar de antes.
   acao: {
     grupo: 'consulta', botao: 'ops-action-btn',
-    aberto: () => document.getElementById('ops-action-panel')?.classList.contains('open') || false,
-    definir: (v) => document.getElementById('ops-action-panel')?.classList.toggle('open', v),
+    aberto: () => (pv2Ligado() ? filaV2Aberta() && FILA_V2.aba === 'acao' : document.getElementById('ops-action-panel')?.classList.contains('open') || false),
+    definir: (v) => {
+      if (!pv2Ligado()) return document.getElementById('ops-action-panel')?.classList.toggle('open', v);
+      if (v) filaV2Abrir('acao'); else if (FILA_V2.aba === 'acao') filaV2Fechar();
+    },
   },
   hoje: {
     grupo: 'consulta', botao: 'ops-today-btn',
-    aberto: () => showTodayQueue,
-    definir: (v) => { showTodayQueue = v; document.getElementById('ops-today-panel')?.classList.toggle('open', v); },
+    aberto: () => (pv2Ligado() ? filaV2Aberta() && FILA_V2.aba === 'hoje' : showTodayQueue),
+    definir: (v) => {
+      if (!pv2Ligado()) { showTodayQueue = v; document.getElementById('ops-today-panel')?.classList.toggle('open', v); return; }
+      if (v) { filaV2Abrir('hoje', { hoje: FILA_V2.pedido || 'hoje' }); FILA_V2.pedido = ''; } else if (FILA_V2.aba === 'hoje') filaV2Fechar();
+    },
   },
   fechamento: {
     grupo: 'consulta', botao: 'ops-daily-close-btn',
@@ -1706,11 +1718,247 @@ function renderActionQueue() {
       <div class="acao-chips">${chips}</div>
     </div>
     ${blocos || '<div class="acao-vazio">Nada pendente nesta semana.</div>'}${rodape}`;
+  // A janela V2 das filas acompanha cada repintura (dados novos, peça marcada, status trocado).
+  if (typeof filaV2Aberta === 'function' && filaV2Aberta()) filaV2Pintar();
 }
 
 function toggleAllActionItems() {
   showAllActionItems = !showAllActionItems;
   renderActionQueue();
+}
+
+// ─── Padrão V2 · "Ver as N" vira janela (prancha V2-S-Ver-As-N, aprovada pelo Paulo em 19/11/2026) ──────────────────
+// No mundo (pv2Ligado) as duas filas da barra, Requer ação e Vence hoje, deixam de abrir no meio do Painel e viram UMA
+// janela com duas abas. Abre de todo lugar que já abria as filas: a ficha da barra, o "Ver as N" do Heitor, o pé
+// "De olho", a Visão geral, a Agenda e Creators (todos passam por alternarPainelDaBarra ou abrirDoResumo).
+// Esquerda: os motivos viram filtros, a lista vem em blocos por motivo (Vence hoje: por pessoa, como sempre foi) e cada
+// linha tem marcar, cliente, peça, status que troca ali, data com quanto falta e o atalho para o contexto. Clicar na
+// linha abre o cartão rápido. Direita: o bloco de lote (as mesmas funções da barra de lote), a contagem por motivo e o
+// que o Heitor sugere. O Heitor só sugere: "pela carga" leva à Coordenação, onde quem coordena confirma cada troca pelo
+// caminho de sempre (gravarResponsaveisDaPeca). Fora do mundo (?legado=1) as filas seguem no lugar de antes.
+const FILA_V2 = { aberta: false, aba: 'acao', motivo: '', hoje: 'hoje', limite: 0, pedido: '' };
+const FILA_V2_CURTO = { vencido: 'Prazo vencido', hoje: 'Vence hoje', alteracao: 'Alteração', info: 'Falta info', aprovacao: 'Aprovação', semdono: 'Sem responsável', andando: 'Em execução' };
+const FILA_V2_IC = {
+  x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  ir: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+  ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+  status: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3"/></svg>',
+  pessoa: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.6-3.4 3-5.5 6-5.5s5.4 2.1 6 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.7.8 2.8 2.6 3 5.2"/></svg>',
+  data: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+};
+function filaV2Aberta() { return FILA_V2.aberta && Boolean(document.getElementById('v2-fila')); }
+function filaV2Abrir(aba, { hoje = 'hoje' } = {}) {
+  FILA_V2.aba = aba === 'hoje' ? 'hoje' : 'acao';
+  if (FILA_V2.aba === 'hoje') FILA_V2.hoje = hoje;
+  if (!FILA_V2.aberta) FILA_V2.motivo = '';
+  FILA_V2.aberta = true; FILA_V2.limite = 0;
+  let jan = document.getElementById('v2-fila');
+  if (!jan) {
+    const fundo = document.createElement('div');
+    fundo.id = 'v2-fila-fundo'; fundo.className = 'vfa-fundo';
+    fundo.onclick = () => filaV2Fechar();
+    jan = document.createElement('section');
+    jan.id = 'v2-fila'; jan.className = 'vfa d3-tema';
+    jan.setAttribute('role', 'dialog'); jan.setAttribute('aria-modal', 'true'); jan.setAttribute('aria-labelledby', 'vfa-tit');
+    document.body.append(fundo, jan);
+    document.body.classList.add('vfa-aberta');
+  }
+  filaV2Pintar();
+  setTimeout(() => jan.querySelector('.vfa-aba[aria-checked="true"]')?.focus?.({ preventScroll: true }), 30);
+}
+function filaV2Fechar() {
+  FILA_V2.aberta = false;
+  document.getElementById('v2-fila')?.remove();
+  document.getElementById('v2-fila-fundo')?.remove();
+  document.body.classList.remove('vfa-aberta');
+  if (typeof pintarBarraDeComando === 'function') pintarBarraDeComando();
+}
+// As abas trocam a fila sem fechar a janela; a barra de comando fica sabendo (a ficha marcada é a da aba).
+function filaV2Aba(aba) {
+  if (FILA_V2.aba === aba) return;
+  FILA_V2.motivo = '';
+  filaV2Abrir(aba);
+  if (typeof pintarBarraDeComando === 'function') pintarBarraDeComando();
+}
+function filaV2Filtrar(chave) {
+  if (FILA_V2.aba === 'hoje') FILA_V2.hoje = chave;
+  else FILA_V2.motivo = FILA_V2.motivo === chave ? '' : chave;
+  FILA_V2.limite = 0;
+  filaV2Pintar();
+}
+function filaV2Mais() { showAllActionItems = !showAllActionItems; FILA_V2.limite = 0; filaV2Pintar(); }
+// Quanto falta para a data, em palavras: "venceu há 3 dias", "prazo hoje", "amanhã", "em 4 dias".
+function filaV2Quando(iso, hoje = opsTodayIso(), modo = typeof dateMode !== 'undefined' ? dateMode : 'prazo') {
+  if (!/^\d{4}-\d{2}-\d{2}/.test(String(iso || ''))) return { texto: 'sem data', tom: '' };
+  const dias = Math.round((new Date(String(iso).slice(0, 10) + 'T12:00:00') - new Date(String(hoje).slice(0, 10) + 'T12:00:00')) / 86400000);
+  if (dias < 0) return { texto: `venceu há ${-dias} ${dias === -1 ? 'dia' : 'dias'}`, tom: 'r' };
+  if (dias === 0) return { texto: `${modo === 'prazo' ? 'prazo' : 'no ar'} hoje`, tom: '' };
+  if (dias === 1) return { texto: 'amanhã', tom: '' };
+  return { texto: `em ${dias} dias`, tom: '' };
+}
+// Os grupos de cada aba. Requer ação: um bloco por motivo, na ordem de urgência. Vence hoje: um bloco por pessoa (a
+// pergunta ali é "o que cada um tem para entregar"), filtrado em De hoje, Já vencidas ou Todas.
+function filaV2Dados() {
+  const ordenar = (lista) => lista.sort((a, b) => (getDateIso(a) || '9999-12-31').localeCompare(getDateIso(b) || '9999-12-31')
+    || String(a.cliente).localeCompare(String(b.cliente), 'pt-BR'));
+  const acao = getActionItems(currentWeek);
+  const porMotivo = new Map(ACAO_MOTIVOS.map((m) => [m.chave, []]));
+  acao.forEach((d) => porMotivo.get(acaoMotivoDoItem(d)).push(d));
+  const hojeIso = opsTodayIso(), doDia = opsTodayItems();
+  const deHoje = doDia.filter((d) => getDateIso(d) === hojeIso), vencidas = doDia.filter((d) => getDateIso(d) < hojeIso);
+  if (FILA_V2.aba === 'acao') {
+    const filtros = [{ chave: '', rotulo: 'Todos', n: acao.length }, ...ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length).map((m) => ({ chave: m.chave, rotulo: FILA_V2_CURTO[m.chave] || m.rotulo, n: porMotivo.get(m.chave).length, tom: m.chave === 'vencido' ? 'r' : '' }))];
+    const grupos = ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length && (!FILA_V2.motivo || FILA_V2.motivo === m.chave))
+      .map((m) => ({ chave: m.chave, rotulo: m.rotulo, itens: ordenar(porMotivo.get(m.chave)), motivo: m }));
+    return { acao, doDia, deHoje, filtros, grupos, ativo: FILA_V2.motivo,
+      motivos: ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length).map((m) => ({ chave: m.chave, rotulo: m.rotulo, n: porMotivo.get(m.chave).length })),
+      semDono: acao.filter(pv2SemDono).length };
+  }
+  const base = FILA_V2.hoje === 'vencidas' ? vencidas : FILA_V2.hoje === 'todas' ? doDia : deHoje;
+  const motivoDoDia = (d) => (getDateIso(d) < hojeIso ? { chave: 'vencido', rotulo: 'Prazo vencido' } : { chave: 'hoje', rotulo: 'Vence hoje' });
+  const pessoas = new Map();
+  base.forEach((d) => opsOwners(d).forEach((u) => { const k = String(u.id); if (!pessoas.has(k)) pessoas.set(k, { u, itens: [] }); pessoas.get(k).itens.push(d); }));
+  const grupos = [...pessoas.values()].sort((a, b) => b.itens.length - a.itens.length || String(a.u.name).localeCompare(String(b.u.name), 'pt-BR'))
+    .map(({ u, itens }) => ({ chave: 'p' + u.id, rotulo: u.id === 'unassigned' ? 'Sem responsável' : firstName(u.name) || 'Sem responsável', pessoa: u, itens: ordenar(itens), porItem: motivoDoDia }));
+  const filtros = [{ chave: 'hoje', rotulo: 'De hoje', n: deHoje.length }, { chave: 'vencidas', rotulo: 'Já vencidas', n: vencidas.length, tom: 'r' }, { chave: 'todas', rotulo: 'Todas', n: doDia.length }];
+  const semDono = base.filter(pv2SemDono).length;
+  return { acao, doDia, deHoje, filtros, grupos, ativo: FILA_V2.hoje,
+    motivos: [{ chave: 'hoje', rotulo: 'Vence hoje', n: deHoje.length }, { chave: 'vencido', rotulo: 'Já vencidas', n: vencidas.length }], semDono };
+}
+function filaV2Linha(d, motivo) {
+  const id = String(d.id), marcada = SELECIONADAS.has(id);
+  const equipe = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+  const ids = (typeof assignedIds === 'function' ? assignedIds(d) : []).map(String);
+  const nomes = ids.map((x) => equipe.find((u) => String(u.id) === x)).filter(Boolean).map((u) => firstName(u.name));
+  const dono = nomes.join(', ') || String(d.responsavel || '').replace('—', '').split(',').map((n) => n.trim().split(' ')[0]).filter(Boolean).join(', ');
+  const cliente = clientesDoItem(d)[0] || '';
+  // Sem responsável pela regra única (pv2SemDono): id do Monday sem pessoa no cadastro tem dono, só não tem nome aqui.
+  const apoio = [clientesDoItem(d).join(' · ') || 'Sem cliente', pv2SemDono(d) ? 'sem responsável' : dono || 'responsável sem cadastro'].join(' · ');
+  const av = cliente && typeof logoDoClienteHtml === 'function' ? logoDoClienteHtml(cliente, { classe: 'vfa-av' })
+    : `<i class="vfa-av" aria-hidden="true">${safeText(String(cliente || '?').trim().slice(0, 2).toUpperCase())}</i>`;
+  const iso = getDateIso(d), q = filaV2Quando(iso);
+  const nome = safeText(d.nome || 'a atividade');
+  return `<article class="vfa-linha${marcada ? ' marcada' : ''}${pv2Chegou(d)}" data-id="${safeText(id)}" data-motivo="${safeText(motivo.chave)}"
+      onclick="acaoAbrirPeca('${jsArg(id)}',event)" title="Abrir ${nome} no cartão rápido">
+      <label class="vfa-marca" onclick="event.stopPropagation()"><input type="checkbox" ${marcada ? 'checked' : ''} data-id="${safeText(id)}"
+        onclick="filaV2Marcar(this,event)" aria-label="Marcar ${nome}"><i aria-hidden="true">${FILA_V2_IC.ok}</i></label>
+      ${av}
+      <span class="vfa-peca"><b>${safeText(d.nome || 'Sem título')}</b><small>${safeText(apoio)}</small></span>
+      <span class="vfa-st" onclick="event.stopPropagation()">${vybeStatus(d)}</span>
+      <span class="vfa-data" title="${safeText(d.operational_risk?.reason || motivo.rotulo)}"><b>${safeText(planningDateBr(iso).slice(0, 5) || '—')}</b><small class="${q.tom}">${safeText(q.texto)}</small></span>
+      <button type="button" class="vfa-ir" onclick="event.stopPropagation();filaV2Contexto('${jsArg(id)}')" aria-label="Abrir o contexto de ${nome}" title="Abrir o contexto">${FILA_V2_IC.ir}</button>
+    </article>`;
+}
+// O contexto abre a gaveta da peça (que mora abaixo das janelas): a janela sai da frente; a ficha da barra reabre a fila.
+function filaV2Contexto(id) { filaV2Fechar(); openItemWorkspace(String(id)); }
+function filaV2Marcar(campo, event) {
+  const ordem = [...document.querySelectorAll('#v2-fila .vfa-linha')].map((l) => l.dataset.id);
+  alternarSelecao(campo.dataset.id, campo.checked, event, ordem);
+}
+function filaV2Lista(D, limite) {
+  let resta = limite, escondidas = 0;
+  const blocos = D.grupos.map((g) => {
+    const vis = g.itens.slice(0, Math.max(0, resta)); resta -= vis.length; escondidas += g.itens.length - vis.length;
+    if (!vis.length) return '';
+    const marca = g.pessoa
+      ? `<span class="vfa-g-av" aria-hidden="true">${safeText(g.pessoa.id === 'unassigned' ? '–' : String(firstName(g.pessoa.name) || '?').slice(0, 2).toUpperCase())}</span>`
+      : `<i class="vfa-pt m-${safeText(g.chave)}" aria-hidden="true"></i>`;
+    return `<div class="vfa-grupo">${marca}<b>${safeText(g.rotulo)}</b><span>${g.itens.length}</span></div>`
+      + vis.map((d) => filaV2Linha(d, g.porItem ? g.porItem(d) : g.motivo)).join('');
+  }).join('');
+  return { html: blocos, escondidas };
+}
+function filaV2Pintar() {
+  const jan = document.getElementById('v2-fila'); if (!jan || !FILA_V2.aberta) return;
+  const D = filaV2Dados();
+  const acaoN = D.acao.length, hojeN = D.deHoje.length, vencidasN = D.doDia.length - hojeN;
+  const sem = META.weeks && META.weeks[currentWeek - 1], semana = sem?.startFmt ? `semana de ${sem.startFmt} a ${sem.endFmt}` : `semana ${currentWeek}`;
+  const tit = FILA_V2.aba === 'acao' ? 'Requer ação' : 'Vence hoje';
+  const sub = FILA_V2.aba === 'acao' ? `${semana} · na ordem de urgência` : `${planningDateBr(opsTodayIso())} · por pessoa · ${vencidasN} já ${vencidasN === 1 ? 'vencida' : 'vencidas'}`;
+  const aba = (chave, rotulo, n) => `<button type="button" role="radio" class="vfa-aba" aria-checked="${FILA_V2.aba === chave}" onclick="filaV2Aba('${chave}')">${rotulo}<span>${n}</span></button>`;
+  const filtros = D.filtros.map((f) => `<button type="button" role="radio" class="vfa-filtro" aria-checked="${D.ativo === f.chave}" onclick="filaV2Filtrar('${f.chave}')">${safeText(f.rotulo)}<span class="${f.tom || ''}">${f.n}</span></button>`).join('');
+  const max = Math.max(1, ...D.motivos.map((m) => m.n));
+  const motivos = D.motivos.map((m) => `<span class="vfa-mot"><span>${safeText(m.rotulo)}</span><i class="m-${safeText(m.chave)}"><u style="width:${Math.round((m.n / max) * 100)}%"></u></i><b>${m.n}</b></span>`).join('');
+  const marcadas = SELECIONADAS.size;
+  const desliga = marcadas ? '' : ' disabled';
+  const lote = `<div class="vfa-lote" role="group" aria-label="Mudar as marcadas de uma vez">
+      <span class="vfa-lote-topo"><b>${marcadas ? `${marcadas} ${marcadas === 1 ? 'marcada' : 'marcadas'}` : 'Nenhuma marcada'}</b>${marcadas
+        ? `<span><button type="button" class="vfa-elo" data-vfa-mais onclick="filaV2LoteMais(event)" aria-haspopup="menu">Mais</button><button type="button" class="vfa-elo" onclick="limparSelecao()">Desmarcar</button></span>`
+        : '<small>marque as linhas</small>'}</span>
+      <button type="button" class="vfa-btn"${desliga} onclick="loteStatus(event)">${FILA_V2_IC.status}Trocar o status</button>
+      <button type="button" class="vfa-btn"${desliga} onclick="loteResponsavel(event)">${FILA_V2_IC.pessoa}Passar para alguém</button>
+      <button type="button" class="vfa-btn"${desliga} onclick="filaV2LoteDatas(event)" aria-haspopup="menu">${FILA_V2_IC.data}Mudar as datas</button>
+    </div>`;
+  const heitor = `<section class="vfa-sec" aria-label="Heitor sugere"><div class="vfa-sec-topo"><b>Heitor sugere</b><span>Coordenação</span></div>
+      ${D.semDono ? `<button type="button" class="vfa-heitor" onclick="filaV2Heitor()"><span class="vfa-heitor-av" aria-hidden="true">HC</span><span class="vfa-heitor-txt"><b>${D.semDono} sem responsável</b> · pela carga</span>${FILA_V2_IC.ir}</button>
+      <p class="vfa-nota">Ele distribui e você confirma. Nada muda sem o seu sim.</p>`
+        : '<p class="vfa-nota">Ninguém sem responsável nesta fila. Quando houver, o Heitor sugere quem pega, pela carga.</p>'}</section>`;
+  jan.innerHTML = `<div class="vfa-topo">
+      <div class="vfa-tit"><h2 id="vfa-tit">${tit}</h2><span>${safeText(sub)}</span></div>
+      <div class="vfa-ferr"><div class="vfa-abas" role="radiogroup" aria-label="Filas">${aba('acao', 'Requer ação', acaoN)}${aba('hoje', 'Vence hoje', hojeN)}</div>
+        <button type="button" class="vfa-x" onclick="filaV2Fechar()" aria-label="Fechar" title="Fechar (Esc)">${FILA_V2_IC.x}</button></div>
+    </div>
+    <div class="vfa-corpo">
+      <div class="vfa-folha">
+        <div class="vfa-filtros" role="radiogroup" aria-label="Filtrar">${filtros}</div>
+        <div class="vfa-lista"></div>
+        <div class="vfa-pe"><span>Clicar na linha abre o cartão rápido da peça</span><span class="vfa-pe-mais"></span></div>
+      </div>
+      <div class="vfa-lado">${lote}
+        <section class="vfa-sec" aria-label="${FILA_V2.aba === 'acao' ? 'Por motivo' : 'Por data'}"><div class="vfa-sec-topo"><b>${FILA_V2.aba === 'acao' ? 'Por motivo' : 'Por data'}</b><span>${FILA_V2.aba === 'acao' ? `${acaoN} nesta semana` : `${D.doDia.length} no total`}</span></div><div class="vfa-mots">${motivos}</div></section>
+        ${heitor}</div>
+    </div>`;
+  // A lista mostra o que cabe sem rolar: começa grande e encolhe até caber; "Mostrar as outras N" abre o resto (aí a
+  // lista rola por dentro da folha, nunca a janela).
+  const lista = jan.querySelector('.vfa-lista'), pe = jan.querySelector('.vfa-pe-mais');
+  const total = D.grupos.reduce((s, g) => s + g.itens.length, 0);
+  const pintarLista = (lim) => {
+    const r = filaV2Lista(D, lim);
+    lista.innerHTML = r.html || `<p class="vfa-vazio">${FILA_V2.aba === 'acao' ? 'Nada pendente nesta semana.' : 'Nada para entregar aqui.'}</p>`;
+    pe.innerHTML = r.escondidas ? `<button type="button" class="vfa-elo" onclick="filaV2Mais()">Mostrar as outras ${r.escondidas}</button>`
+      : showAllActionItems && total > 6 ? '<button type="button" class="vfa-elo" onclick="filaV2Mais()">Mostrar menos</button>' : '';
+  };
+  if (showAllActionItems) { pintarLista(total); return; }
+  let lim = FILA_V2.limite || 14;
+  pintarLista(lim);
+  while (lim > 3 && lista.scrollHeight > lista.clientHeight + 1) { lim--; pintarLista(lim); }
+  FILA_V2.limite = lim;
+}
+// "Mudar as datas": prazo ou veiculação (conclusão nas demandas), pelo mesmo campo de data do lote.
+function filaV2LoteDatas(event) {
+  if (!SELECIONADAS.size) return;
+  const botao = event.currentTarget;
+  const ev = () => ({ preventDefault() {}, stopPropagation() {}, currentTarget: botao });
+  const demandas = [...SELECIONADAS].map(findOperationalItem).filter(Boolean).every(isRequestItem);
+  abrirMenuDeLote(event, 'Mudar as datas', [
+    { rotulo: 'Prazo', direto: true, cor: '#8A847A', aplicar: () => lotePrazo(ev(), 'prazo') },
+    { rotulo: demandas ? 'Conclusão' : 'Veiculação', direto: true, cor: '#8A847A', aplicar: () => lotePrazo(ev(), 'veiculacao') },
+  ], '');
+}
+// "Mais": o resto da barra de lote (grupo, formato, captação, prioridade e arquivar), as mesmas funções de antes.
+function filaV2LoteMais(event) {
+  if (!SELECIONADAS.size) return;
+  const botao = event.currentTarget;
+  const itens = [...SELECIONADAS].map(findOperationalItem).filter(Boolean);
+  const quadro = itens.length && itens.every(isRequestItem) ? 'demandas' : 'producao';
+  const ev = () => ({ preventDefault() {}, stopPropagation() {}, currentTarget: botao });
+  abrirMenuDeLote(event, 'Mais ações', [
+    { rotulo: 'Grupo', chamar: () => loteGrupo(ev(), quadro) },
+    { rotulo: quadro === 'demandas' ? 'Tipo' : 'Formato', chamar: () => loteEscolha(ev(), 'formato') },
+    ...(quadro === 'demandas' ? [] : [{ rotulo: 'Captação', chamar: () => loteEscolha(ev(), 'captacao') }]),
+    { rotulo: 'Prioridade', chamar: () => loteEscolha(ev(), 'prioridade') },
+    { rotulo: 'Arquivar', chamar: () => loteArquivar() },
+  ].map((o) => ({ ...o, direto: true, cor: '#8A847A', aplicar: o.chamar })), '');
+}
+// O Heitor sugere quem pega pela carga na Coordenação; lá quem coordena confirma cada troca (nada é distribuído sozinho).
+function filaV2Heitor() { filaV2Fechar(); if (typeof pv2AbrirCoordenacao === 'function') pv2AbrirCoordenacao(); }
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !filaV2Aberta()) return;
+    // O cartão rápido, um menu ou uma pergunta na frente tratam o próprio Esc.
+    if (['#cartao-rapido', '#status-editor', '#lote-editor', '#owner-editor', '#cli-pergunta', '#vybe-cal', '#workspace-drawer'].some((s) => document.querySelector(s)?.getClientRects().length)) return;
+    e.preventDefault(); e.stopPropagation(); filaV2Fechar();
+  }, true);
 }
 
 // ─── Meu Dia / Inteligência de gestão ─────────────────────────────────────────
@@ -2202,7 +2450,7 @@ function pv2MesHtml({ meta, grouped, clients, semCarteira, escolhido }) {
   const linha = `${nomeMes} de ${meta.year} · ${total} ${pv2Pl(total, 'peça', 'peças')} · ${prontas} ${pv2Pl(prontas, 'pronta', 'prontas')}${vencidas ? ` · ${vencidas} ${pv2Pl(vencidas, 'vencida', 'vencidas')} ${faixa}` : ''}`;
   const laranja = vencidas
     ? pv2Laranja({ quem: 'Heitor · o mês até aqui', numero: vencidas, titulo: `${pv2Pl(vencidas, 'vencida', 'vencidas')} ${faixa} de ${nomeMes}`, apoio: 'Em vermelho, o dia ainda tem peça aberta.',
-      botoes: `<button type="button" class="d3m-btn l" onclick="abrirDoResumo('hoje')">${vencidas === 1 ? 'Ver a vencida' : `Ver as ${vencidas}`}</button><button type="button" class="d3m-btn l s" onclick="abrirDiaDoCalendario(event,'${primeiroVencido}')" title="Abre o dia mais antigo com peça aberta: cada peça abre e muda de data">Dia mais antigo</button>` })
+      botoes: `<button type="button" class="d3m-btn l" onclick="abrirDoResumo('hoje','vencidas')">${vencidas === 1 ? 'Ver a vencida' : `Ver as ${vencidas}`}</button><button type="button" class="d3m-btn l s" onclick="abrirDiaDoCalendario(event,'${primeiroVencido}')" title="Abre o dia mais antigo com peça aberta: cada peça abre e muda de data">Dia mais antigo</button>` })
     : pv2Laranja({ quem: 'Heitor · o mês até aqui', numero: total ? prontas : '', titulo: total ? `de ${total} ${pv2Pl(total, 'peça pronta', 'peças prontas')} em ${nomeMes}` : `Nenhuma peça em ${nomeMes}`, apoio: total ? 'Nenhum dia para trás com peça aberta.' : 'Clique em um dia para cadastrar.',
       botoes: `<button type="button" class="d3m-btn l" onclick="managerCalendarAdd('${noMesAtual ? hoje : doMes[0].iso}')">Cadastrar</button>` });
   const maior = Math.max(1, semCarteira.length);

@@ -49,7 +49,7 @@ test('Mês: a folha com o resumo de cada dia mantém as funções do calendário
   const mes = gestor.slice(gestor.indexOf('function pv2MesHtml'), gestor.indexOf('// GRUPOS (prancha'));
   for (const f of ["abrirDiaDoCalendario(event,'${cell.iso}')", "managerCalendarAdd('${cell.iso}')", 'managerCalendarDragOver(event,this)', "managerCalendarDrop('${cell.iso}',event,this)", 'previaDoDiaAttrs(itens',
     'managerCalendarGoMonth(-1)', 'managerCalendarGoMonth(1)', 'managerCalendarGoToday()', "managerCalendarSetDateMode('veiculacao')", "managerCalendarSetDateMode('prazo')", 'abrirBuscaDeCliente(event)',
-    'managerCalendarTodos()', "managerCalendarSetCarteira('${id}')", 'alternarForaDoFeed()', "switchBoard('demandas'", 'managerCalendarOpenClientMaster()', "abrirDoResumo('hoje')"]) assert.ok(mes.includes(f), `Mês mantém ${f}`);
+    'managerCalendarTodos()', "managerCalendarSetCarteira('${id}')", 'alternarForaDoFeed()', "switchBoard('demandas'", 'managerCalendarOpenClientMaster()', "abrirDoResumo('hoje','vencidas')"]) assert.ok(mes.includes(f), `Mês mantém ${f}`);
   assert.ok(mes.includes('data-date="${cell.iso}"'), 'o dia guarda a data');
   assert.ok(mes.includes('atividadeDoDiaConcluida'), 'pronta é a regra de sempre (só Finalizado)');
 });
