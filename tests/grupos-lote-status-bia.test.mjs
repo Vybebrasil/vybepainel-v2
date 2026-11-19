@@ -24,13 +24,15 @@ function montar() {
     safeText: (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'), jsArg: (v) => String(v), pv2HojeIso: () => '2026-11-18',
     pv2SemDono: (i) => !i.responsavel, atividadeDoDiaConcluida: () => false, managerCalendarMonthMeta: () => ({ first: new Date('2026-11-01T12:00:00Z') }),
     pillEditavel: (i, c) => `<button class="grupo-pill-btn">${i[c] || ''}</button>`, pv2StatusBotao: (i) => `<button class="pv2-st">${i.status}</button>`, pv2Av: () => '', pv2Foto: () => '',
-    botaoClientesDoItem: () => '', botaoDePreviaNaLinha: () => '', clientesDoItem: () => ['Cliente'], cadastroDaPeca: () => ({ quem: '', quando: '' }), D3P_MAIS: '+', PV2_IC: { depois: '>' },
+    botaoClientesDoItem: () => '', botaoDePreviaNaLinha: () => '', clientesDoItem: () => ['Cliente'], cadastroDaPeca: () => ({ quem: '', quando: '' }), D3P_MAIS: '+', PV2_IC: { depois: '>', baixo: 'v', ok: 'ok' },
     renderVisaoDeGrupos: () => { ctx.repintou = (ctx.repintou || 0) + 1; }, repintou: 0,
   });
   const codigo = [
     linhaDe(gestor, 'let pv2GruposSel = '), linhaDe(gestor, 'const PV2_GRUPOS_EXTRAS = '), linhaDe(gestor, 'const pv2GruposRedesenha = '),
     linhaDe(gestor, 'const pv2Vista = '), linhaDe(gestor, 'const pv2Pl = '), fatia(gestor, 'function pv2Cons('), fatia(gestor, 'function pv2Vlin('),
     linhaDe(gestor, 'function pv2GruposFiltrarStatus('), fatia(gestor, 'function pv2GruposMarcarRecorte('), linhaDe(gestor, 'const pv2GrupoVencida = '),
+    gestor.slice(gestor.indexOf('const pv2GruposClientes = new Set();'), gestor.indexOf('function pv2GruposChavePrefs(')),
+    linhaDe(gestor, "let pv2GruposMenuQual = ''"),
     fatia(gestor, 'function pv2GrupoLinha('), fatia(gestor, 'function pv2GruposHtml('),
     'this.html = (g) => pv2GruposHtml({ grupos: g, quadro: "producao" }); this.filtrar = pv2GruposFiltrarStatus; this.marcar = pv2GruposMarcarRecorte; this.vista = () => pv2Vista;',
   ].join('\n');
@@ -64,9 +66,10 @@ test('Grupos: caixas de marcar sempre à vista, a de cima e "Marcar" marcam o re
 test('Grupos: o status filtra a folha pela cabeça, com a contagem de cada um', () => {
   const { ctx, grupos } = montar();
   let html = ctx.html(grupos);
-  assert.match(html, /<label class="d3m-a-g-st"[^>]*><select aria-label="Filtrar Redação por status" onchange="pv2GruposFiltrarStatus\(this\.value\)"><option value="">Status<\/option><option value="Pode Fazer">Pode Fazer · 2<\/option><option value="Alteração">Alteração · 1<\/option><\/select>/);
+  assert.match(html, /<button type="button" class="s-f-filtro" data-s-f="status" aria-haspopup="dialog" aria-expanded="false" onclick="pv2GruposAbrirMenu\(event,'status'\)"[^>]*>Status · <b>todos<\/b>/);
+  assert.deepEqual(JSON.parse(JSON.stringify(ctx.vista().grupos.filtros.status)), [['Pode Fazer', 2], ['Alteração', 1]], 'o menu traz cada status com a contagem');
   ctx.filtrar('Alteração'); html = ctx.html(grupos);
-  assert.equal((html.match(/<tr /g) || []).length, 1); assert.match(html, /Reels/); assert.match(html, /d3m-a-g-st tem/); assert.match(html, /value="Alteração" selected/);
+  assert.equal((html.match(/<tr /g) || []).length, 1); assert.match(html, /Reels/); assert.match(html, /class="s-f-filtro tem" data-s-f="status"[^>]*>Status · <b>Alteração<\/b>/); assert.match(html, /aria-label="Tirar o filtro Status: Alteração"/);
   assert.equal(ctx.vista().grupos.exporta.itens.length, 1, 'o exportar e o "marcar" seguem o filtro');
   ctx.filtrar('Agendado'); html = ctx.html(grupos);
   assert.equal((html.match(/<tr /g) || []).length, 3, 'status que não existe no grupo volta a todos');

@@ -2675,7 +2675,7 @@ function pv2GruposAbrirMenu(ev, qual) {
   botao.setAttribute('aria-expanded', 'true');
   pv2GruposPintarMenu();
   if (typeof ancorarPopover === 'function') ancorarPopover(menu, botao.getBoundingClientRect());
-  (menu.querySelector('input') || menu.querySelector('[aria-pressed="true"]') || menu.querySelector('button'))?.focus();
+  (menu.querySelector('input') || menu.querySelector('[aria-checked="true"]') || menu.querySelector('button'))?.focus();
 }
 function pv2GruposEscDoMenu(e) {
   if (e.key !== 'Escape' || !document.getElementById('s-f-menu')) return;
@@ -2687,12 +2687,12 @@ function pv2GruposPintarMenu({ soLista = false } = {}) {
   const visto = `<i class="s-f-visto" aria-hidden="true">${PV2_IC.ok}</i>`;
   if (pv2GruposMenuQual === 'status') {
     menu.innerHTML = '<div class="status-editor-head">Status</div>' + [['', 'Todos os status', f.total], ...f.status.map(([s, n]) => [s, s, n])]
-      .map(([v, r, n]) => { const on = (pv2GruposStatus || '') === v; return `<button type="button" class="s-f-op" aria-pressed="${on}" data-valor="${safeText(v)}" onclick="pv2GruposEscolherStatus(this.dataset.valor)"><span>${safeText(r)}</span><b>${n}</b>${on ? visto : ''}</button>`; }).join('');
+      .map(([v, r, n]) => { const on = (pv2GruposStatus || '') === v; return `<button type="button" class="s-f-op" role="radio" aria-checked="${on}" data-valor="${safeText(v)}" onclick="pv2GruposEscolherStatus(this.dataset.valor)"><span>${safeText(r)}</span><b>${n}</b>${on ? visto : ''}</button>`; }).join('');
     return;
   }
   const termo = pv2ChaveCliente(pv2GruposMenuBusca);
   const lista = f.clientes.filter(([n]) => !termo || pv2ChaveCliente(n).includes(termo));
-  const linhas = lista.map(([n, q]) => { const on = pv2GruposTemCliente(n); return `<button type="button" class="s-f-op${q ? '' : ' vazio'}" aria-pressed="${on}" data-cliente="${safeText(n)}" onclick="pv2GruposAlternarCliente(this.dataset.cliente)" title="${on ? 'Tirar' : 'Mostrar'} ${safeText(n)}">${pv2Foto(n)}<span>${safeText(n)}</span><b>${q}</b>${on ? visto : ''}</button>`; }).join('')
+  const linhas = lista.map(([n, q]) => { const on = pv2GruposTemCliente(n); return `<button type="button" class="s-f-op${q ? '' : ' vazio'}" role="checkbox" aria-checked="${on}" data-cliente="${safeText(n)}" onclick="pv2GruposAlternarCliente(this.dataset.cliente)" title="${on ? 'Tirar' : 'Mostrar'} ${safeText(n)}">${pv2Foto(n)}<span>${safeText(n)}</span><b>${q}</b>${on ? visto : ''}</button>`; }).join('')
     || `<p class="s-f-nada">${termo ? `Nenhum cliente com “${safeText(pv2GruposMenuBusca)}”.` : 'Nenhum cliente nas peças deste recorte.'}</p>`;
   if (soLista && menu.querySelector('.s-f-lista')) { menu.querySelector('.s-f-lista').innerHTML = linhas; return; }
   const n = pv2GruposClientes.size;
