@@ -93,7 +93,7 @@ test('Semana, Por dia: do mais sem fazer ao pronto, em quatro fases com rótulo,
 test('Grupos: um grupo por vez, com os editores de sempre em cada célula, o lote, a ordem por coluna e o menu do grupo', () => {
   const gestor = ler('vybe-gestor.js'), agenda = ler('vybe-agenda.js');
   assert.match(agenda, /const gruposV2 = quadro === 'producao' && !forcar && !emprestadaAoDa\(cfg\.alvo\)/);
-  assert.match(agenda, /if \(gruposV2\) \{ wrap\.innerHTML = pv2GruposHtml\(\{ grupos, quadro, base: semCliente \}\);/);
+  assert.match(agenda, /if \(gruposV2\) \{ wrap\.innerHTML = pv2GruposHtml\(\{ grupos, quadro, base: semCliente, semFiltro: cfg\.fonte\(\) \}\);/);
   const g = gestor.slice(gestor.indexOf('// GRUPOS (prancha'), gestor.indexOf('// EQUIPE (prancha'));
   for (const f of ["openItemWorkspace('${id}')", "alternarSelecao('${id}',this.checked,event)", "copiarId('${id}')", 'botaoDePreviaNaLinha(item)', 'botaoClientesDoItem(item)', "escolha('formato')", 'pv2StatusBotao(item)',
     "salvarDataNaLinha('${item.id}','${campo}',this)", 'pv2Av(item)', "selecionarGrupo('${jsArg(grupo.id)}',this.checked,'${quadro}')", "ordenarPor('${campo}')", 'botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome)',

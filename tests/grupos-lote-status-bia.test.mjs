@@ -28,10 +28,13 @@ function montar() {
     renderVisaoDeGrupos: () => { ctx.repintou = (ctx.repintou || 0) + 1; }, repintou: 0,
   });
   const codigo = [
-    linhaDe(gestor, 'let pv2GruposSel = '), linhaDe(gestor, 'let pv2GruposCaptacao = '), linhaDe(gestor, 'const PV2_GRUPOS_EXTRAS = '), linhaDe(gestor, 'const pv2GruposRedesenha = '),
+    linhaDe(gestor, 'let pv2GruposSel = '), linhaDe(gestor, 'let pv2GruposCaptacao = '), linhaDe(gestor, 'let pv2GruposComId = '), linhaDe(gestor, 'const PV2_GRUPOS_EXTRAS = '),
+    // Os filtros novos da folha (formato, captação, data) e as preferências que o desenho guarda.
+    gestor.slice(gestor.indexOf('const pv2GruposFormatos = new Set()'), gestor.indexOf('const pv2GruposRedesenha = ')), linhaDe(gestor, 'const pv2GruposRedesenha = '),
     linhaDe(gestor, 'const pv2Vista = '), linhaDe(gestor, 'const pv2Pl = '), fatia(gestor, 'function pv2Cons('), fatia(gestor, 'function pv2Vlin('),
     linhaDe(gestor, 'function pv2GruposFiltrarStatus('), fatia(gestor, 'function pv2GruposMarcarRecorte('), linhaDe(gestor, 'const pv2GrupoVencida = '),
     gestor.slice(gestor.indexOf('const pv2GruposClientes = new Set();'), gestor.indexOf('function pv2GruposChavePrefs(')),
+    gestor.slice(gestor.indexOf('function pv2GruposChavePrefs('), gestor.indexOf('const pv2GruposTemCliente')),
     linhaDe(gestor, "let pv2GruposMenuQual = ''"),
     fatia(gestor, 'function pv2GrupoLinha('), fatia(gestor, 'function pv2GruposHtml('),
     'this.html = (g) => pv2GruposHtml({ grupos: g, quadro: "producao" }); this.filtrar = pv2GruposFiltrarStatus; this.marcar = pv2GruposMarcarRecorte; this.vista = () => pv2Vista;',
