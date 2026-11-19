@@ -1736,7 +1736,12 @@ function toggleAllActionItems() {
 // linha abre o cartão rápido. Direita: o bloco de lote (as mesmas funções da barra de lote), a contagem por motivo e o
 // que o Heitor sugere. O Heitor só sugere: "pela carga" leva à Coordenação, onde quem coordena confirma cada troca pelo
 // caminho de sempre (gravarResponsaveisDaPeca). Fora do mundo (?legado=1) as filas seguem no lugar de antes.
-const FILA_V2 = { aberta: false, aba: 'acao', motivo: '', hoje: 'hoje', limite: 0, pedido: '' };
+// Rodada S (frente e): a janela também abre com um recorte do contexto ({ chave, rotulo, filtro }), vindo da Agenda
+// ("só o que é de captação e audiovisual") ou dos Creators ("só os clientes com creator em campanha"). O recorte vale
+// para as duas abas e sai pelo chip "Só …" ou ao abrir de novo sem ele. O Heitor mostra, com nome, quem pega cada peça
+// sem responsável (a mesma conta da Coordenação, pv2CoordSemana) e "Distribuir assim" grava as N, uma por vez, pelo
+// caminho da Coordenação (gravarResponsaveisDaPeca), só com o sim de um dono.
+const FILA_V2 = { aberta: false, aba: 'acao', motivo: '', hoje: 'hoje', limite: 0, pedido: '', recorte: null, heitor: { pergunta: false, rodando: false, i: 0, n: 0, resultado: null } };
 const FILA_V2_CURTO = { vencido: 'Prazo vencido', hoje: 'Vence hoje', alteracao: 'Alteração', info: 'Falta info', aprovacao: 'Aprovação', semdono: 'Sem responsável', andando: 'Em execução' };
 const FILA_V2_IC = {
   x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
@@ -1747,10 +1752,11 @@ const FILA_V2_IC = {
   data: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
 };
 function filaV2Aberta() { return FILA_V2.aberta && Boolean(document.getElementById('v2-fila')); }
-function filaV2Abrir(aba, { hoje = 'hoje' } = {}) {
+function filaV2Abrir(aba, { hoje = 'hoje', recorte = null } = {}) {
   FILA_V2.aba = aba === 'hoje' ? 'hoje' : 'acao';
   if (FILA_V2.aba === 'hoje') FILA_V2.hoje = hoje;
-  if (!FILA_V2.aberta) FILA_V2.motivo = '';
+  if (!FILA_V2.aberta) { FILA_V2.motivo = ''; FILA_V2.recorte = null; FILA_V2.heitor = { pergunta: false, rodando: false, i: 0, n: 0, resultado: null }; }
+  if (recorte && typeof recorte.filtro === 'function') FILA_V2.recorte = { chave: String(recorte.chave || ''), rotulo: String(recorte.rotulo || 'o recorte'), filtro: recorte.filtro };
   FILA_V2.aberta = true; FILA_V2.limite = 0;
   let jan = document.getElementById('v2-fila');
   if (!jan) {
@@ -1786,6 +1792,55 @@ function filaV2Filtrar(chave) {
   FILA_V2.limite = 0;
   filaV2Pintar();
 }
+function filaV2SemRecorte() { FILA_V2.recorte = null; FILA_V2.limite = 0; filaV2Pintar(); }
+// O recorte da Agenda: o que passa pela captação (audiovisual pela mesma regra da Coordenação, em Aguardo ou com
+// captação marcada na peça).
+function filaV2RecorteAgenda() {
+  const audiovisual = (d) => (window.VybeCoordenacao?.disciplinaDe ? window.VybeCoordenacao.disciplinaDe(d) === 'audiovisual' : /reels|v[íi]deo|motion|capta|anima/i.test(String(d?.formato || '')));
+  const captacao = (d) => String(d?.status || '') === 'Aguardo' || /^(sim|s|x|precisa|marcada?|agendada?)$/i.test(String(d?.captacao || '').trim());
+  return { chave: 'agenda', rotulo: 'captação e audiovisual', filtro: (d) => audiovisual(d) || captacao(d) };
+}
+function filaV2AbrirDaAgenda() { filaV2Abrir('acao', { recorte: filaV2RecorteAgenda() }); }
+// As sugestões do Heitor para as peças sem responsável desta fila: [{ d, para, nome }] na ordem da Coordenação.
+function filaV2Sugestoes(itens) {
+  const semDono = (itens || []).filter(pv2SemDono); if (!semDono.length) return { lista: [], semDono: 0, calculou: true };
+  let r = null; try { r = pv2CoordSemana(); } catch { r = null; }
+  const ids = new Set(semDono.map((d) => String(d.id))), T = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+  const lista = (r?.semDono || []).filter((x) => x.sugerido && ids.has(String(x.d?.id)))
+    .map((x) => ({ d: semDono.find((d) => String(d.id) === String(x.d.id)) || x.d, para: String(x.sugerido), nome: firstName((T.find((u) => String(u.id) === String(x.sugerido)) || {}).name || '') || 'alguém do time' }));
+  return { lista, semDono: semDono.length, calculou: Boolean(r) };
+}
+function filaV2PodeDistribuir() { try { return typeof SESSAO_ATUAL !== 'undefined' && Boolean(SESSAO_ATUAL?.dono); } catch { return false; } }
+// "Distribuir assim": o 1º clique só pergunta; o sim grava cada uma pela função de sempre, na ordem da lista.
+function filaV2Distribuir(passo) {
+  const H = FILA_V2.heitor; if (H.rodando || !filaV2PodeDistribuir()) return null;
+  if (passo === 'voltar') { H.pergunta = false; filaV2Pintar(); return null; }
+  if (passo !== 'sim') { H.pergunta = true; H.resultado = null; filaV2Pintar(); return null; }
+  const D = filaV2Dados(), S = filaV2Sugestoes(D.aba === 'hoje' ? D.base : D.acao);
+  return filaV2GravarSugestoes(S.lista);
+}
+async function filaV2GravarSugestoes(lista) {
+  const H = FILA_V2.heitor;
+  if (typeof gravarResponsaveisDaPeca !== 'function') { H.pergunta = false; H.resultado = { ok: 0, falhas: lista.length, n: lista.length, erro: 'O painel ainda não carregou a edição de responsáveis.' }; filaV2Pintar(); return H.resultado; }
+  Object.assign(H, { pergunta: false, rodando: true, i: 0, n: lista.length, resultado: null }); filaV2Pintar();
+  let ok = 0;
+  for (const x of lista) {
+    H.i += 1; filaV2Pintar();
+    try {
+      const atual = (typeof findOperationalItem === 'function' && findOperationalItem(String(x.d.id))) || x.d;
+      const antes = typeof assignedIds === 'function' ? assignedIds(atual).map(String) : [];
+      if (typeof armOutboundMutationGuard === 'function') armOutboundMutationGuard('responsáveis');
+      await gravarResponsaveisDaPeca(atual, [...new Set([...antes, x.para])]);
+      ok += 1;
+    } catch (e) { console.warn('[fila] Heitor não gravou', x.d?.id, e?.message || e); }
+  }
+  if (typeof saveProductionCache === 'function') saveProductionCache();
+  if (typeof renderIntegratedOperationalViews === 'function') renderIntegratedOperationalViews();
+  Object.assign(H, { rodando: false, resultado: { ok, falhas: lista.length - ok, n: lista.length } });
+  if (typeof showToast === 'function') showToast(ok === lista.length ? `${ok} ${ok === 1 ? 'peça distribuída' : 'peças distribuídas'} como o Heitor sugeriu.` : `${ok} de ${lista.length} distribuídas; as outras não gravaram.`, ok === lista.length ? 'ok' : 'erro', 4200);
+  filaV2Pintar();
+  return H.resultado;
+}
 function filaV2Mais() { showAllActionItems = !showAllActionItems; FILA_V2.limite = 0; filaV2Pintar(); }
 // Quanto falta para a data, em palavras: "venceu há 3 dias", "prazo hoje", "amanhã", "em 4 dias".
 function filaV2Quando(iso, hoje = opsTodayIso(), modo = typeof dateMode !== 'undefined' ? dateMode : 'prazo') {
@@ -1801,16 +1856,17 @@ function filaV2Quando(iso, hoje = opsTodayIso(), modo = typeof dateMode !== 'und
 function filaV2Dados() {
   const ordenar = (lista) => lista.sort((a, b) => (getDateIso(a) || '9999-12-31').localeCompare(getDateIso(b) || '9999-12-31')
     || String(a.cliente).localeCompare(String(b.cliente), 'pt-BR'));
-  const acao = getActionItems(currentWeek);
+  const corta = (l) => (FILA_V2.recorte?.filtro ? l.filter((d) => { try { return FILA_V2.recorte.filtro(d); } catch { return false; } }) : l);
+  const acao = corta(getActionItems(currentWeek));
   const porMotivo = new Map(ACAO_MOTIVOS.map((m) => [m.chave, []]));
   acao.forEach((d) => porMotivo.get(acaoMotivoDoItem(d)).push(d));
-  const hojeIso = opsTodayIso(), doDia = opsTodayItems();
+  const hojeIso = opsTodayIso(), doDia = corta(opsTodayItems());
   const deHoje = doDia.filter((d) => getDateIso(d) === hojeIso), vencidas = doDia.filter((d) => getDateIso(d) < hojeIso);
   if (FILA_V2.aba === 'acao') {
     const filtros = [{ chave: '', rotulo: 'Todos', n: acao.length }, ...ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length).map((m) => ({ chave: m.chave, rotulo: FILA_V2_CURTO[m.chave] || m.rotulo, n: porMotivo.get(m.chave).length, tom: m.chave === 'vencido' ? 'r' : '' }))];
     const grupos = ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length && (!FILA_V2.motivo || FILA_V2.motivo === m.chave))
       .map((m) => ({ chave: m.chave, rotulo: m.rotulo, itens: ordenar(porMotivo.get(m.chave)), motivo: m }));
-    return { acao, doDia, deHoje, filtros, grupos, ativo: FILA_V2.motivo,
+    return { aba: 'acao', acao, doDia, deHoje, filtros, grupos, ativo: FILA_V2.motivo,
       motivos: ACAO_MOTIVOS.filter((m) => porMotivo.get(m.chave).length).map((m) => ({ chave: m.chave, rotulo: m.rotulo, n: porMotivo.get(m.chave).length })),
       semDono: acao.filter(pv2SemDono).length };
   }
@@ -1822,7 +1878,7 @@ function filaV2Dados() {
     .map(({ u, itens }) => ({ chave: 'p' + u.id, rotulo: u.id === 'unassigned' ? 'Sem responsável' : firstName(u.name) || 'Sem responsável', pessoa: u, itens: ordenar(itens), porItem: motivoDoDia }));
   const filtros = [{ chave: 'hoje', rotulo: 'De hoje', n: deHoje.length }, { chave: 'vencidas', rotulo: 'Já vencidas', n: vencidas.length, tom: 'r' }, { chave: 'todas', rotulo: 'Todas', n: doDia.length }];
   const semDono = base.filter(pv2SemDono).length;
-  return { acao, doDia, deHoje, filtros, grupos, ativo: FILA_V2.hoje,
+  return { aba: 'hoje', base, acao, doDia, deHoje, filtros, grupos, ativo: FILA_V2.hoje,
     motivos: [{ chave: 'hoje', rotulo: 'Vence hoje', n: deHoje.length }, { chave: 'vencido', rotulo: 'Já vencidas', n: vencidas.length }], semDono };
 }
 function filaV2Linha(d, motivo) {
@@ -1876,7 +1932,8 @@ function filaV2Pintar() {
   const tit = FILA_V2.aba === 'acao' ? 'Requer ação' : 'Vence hoje';
   const sub = FILA_V2.aba === 'acao' ? `${semana} · na ordem de urgência` : `${planningDateBr(opsTodayIso())} · por pessoa · ${vencidasN} já ${vencidasN === 1 ? 'vencida' : 'vencidas'}`;
   const aba = (chave, rotulo, n) => `<button type="button" role="radio" class="vfa-aba" aria-checked="${FILA_V2.aba === chave}" onclick="filaV2Aba('${chave}')">${rotulo}<span>${n}</span></button>`;
-  const filtros = D.filtros.map((f) => `<button type="button" role="radio" class="vfa-filtro" aria-checked="${D.ativo === f.chave}" onclick="filaV2Filtrar('${f.chave}')">${safeText(f.rotulo)}<span class="${f.tom || ''}">${f.n}</span></button>`).join('');
+  const recorte = FILA_V2.recorte ? `<button type="button" class="vfa-filtro vfa-recorte" aria-checked="true" onclick="filaV2SemRecorte()" title="Tirar o recorte e ver tudo">Só ${safeText(FILA_V2.recorte.rotulo)}${FILA_V2_IC.x}</button>` : '';
+  const filtros = recorte + D.filtros.map((f) => `<button type="button" role="radio" class="vfa-filtro" aria-checked="${D.ativo === f.chave}" onclick="filaV2Filtrar('${f.chave}')">${safeText(f.rotulo)}<span class="${f.tom || ''}">${f.n}</span></button>`).join('');
   const max = Math.max(1, ...D.motivos.map((m) => m.n));
   const motivos = D.motivos.map((m) => `<span class="vfa-mot"><span>${safeText(m.rotulo)}</span><i class="m-${safeText(m.chave)}"><u style="width:${Math.round((m.n / max) * 100)}%"></u></i><b>${m.n}</b></span>`).join('');
   const marcadas = SELECIONADAS.size;
@@ -1889,10 +1946,7 @@ function filaV2Pintar() {
       <button type="button" class="vfa-btn"${desliga} onclick="loteResponsavel(event)">${FILA_V2_IC.pessoa}Passar para alguém</button>
       <button type="button" class="vfa-btn"${desliga} onclick="filaV2LoteDatas(event)" aria-haspopup="menu">${FILA_V2_IC.data}Mudar as datas</button>
     </div>`;
-  const heitor = `<section class="vfa-sec" aria-label="Heitor sugere"><div class="vfa-sec-topo"><b>Heitor sugere</b><span>Coordenação</span></div>
-      ${D.semDono ? `<button type="button" class="vfa-heitor" onclick="filaV2Heitor()"><span class="vfa-heitor-av" aria-hidden="true">HC</span><span class="vfa-heitor-txt"><b>${D.semDono} sem responsável</b> · pela carga</span>${FILA_V2_IC.ir}</button>
-      <p class="vfa-nota">Ele distribui e você confirma. Nada muda sem o seu sim.</p>`
-        : '<p class="vfa-nota">Ninguém sem responsável nesta fila. Quando houver, o Heitor sugere quem pega, pela carga.</p>'}</section>`;
+  const heitor = filaV2HeitorHtml(D);
   jan.innerHTML = `<div class="vfa-topo">
       <div class="vfa-tit"><h2 id="vfa-tit">${tit}</h2><span>${safeText(sub)}</span></div>
       <div class="vfa-ferr"><div class="vfa-abas" role="radiogroup" aria-label="Filas">${aba('acao', 'Requer ação', acaoN)}${aba('hoje', 'Vence hoje', hojeN)}</div>
@@ -1949,6 +2003,27 @@ function filaV2LoteMais(event) {
     { rotulo: 'Prioridade', chamar: () => loteEscolha(ev(), 'prioridade') },
     { rotulo: 'Arquivar', chamar: () => loteArquivar() },
   ].map((o) => ({ ...o, direto: true, cor: '#8A847A', aplicar: o.chamar })), '');
+}
+// "Heitor sugere" com nomes: até 3 linhas "peça → pessoa" (o resto no "+N", que leva à Coordenação), o atalho "pela
+// carga" de antes e, para dono, "Distribuir assim" com a pergunta antes de gravar.
+function filaV2HeitorHtml(D) {
+  const H = FILA_V2.heitor, S = filaV2Sugestoes(D.aba === 'hoje' ? D.base : D.acao), n = S.lista.length, dono = filaV2PodeDistribuir();
+  const cab = '<div class="vfa-sec-topo"><b>Heitor sugere</b><span>Coordenação</span></div>';
+  const R = H.resultado;
+  const feito = R ? `<p class="vfa-nota${R.falhas ? ' r' : ''}" role="status">${R.erro ? safeText(R.erro) : R.falhas ? `${R.ok} de ${R.n} distribuídas; ${R.falhas} não ${R.falhas === 1 ? 'gravou' : 'gravaram'}.` : `${R.ok} ${R.ok === 1 ? 'peça distribuída' : 'peças distribuídas'} como ele sugeriu.`}</p>` : '';
+  if (!S.semDono) return `<section class="vfa-sec" aria-label="Heitor sugere">${cab}${feito}<p class="vfa-nota">Ninguém sem responsável nesta fila. Quando houver, o Heitor sugere quem pega, pela carga.</p></section>`;
+  const linhas = S.lista.slice(0, 3).map((x) => `<button type="button" class="vfa-sug" onclick="acaoAbrirPeca('${jsArg(String(x.d.id))}',event)" title="${safeText(x.d.nome || 'A peça')} → ${safeText(x.nome)}: abrir no cartão rápido"><span class="vfa-sug-p">${safeText(x.d.nome || 'Sem título')}</span><i aria-hidden="true">→</i><b>${safeText(x.nome)}</b></button>`).join('');
+  const resto = S.semDono - Math.min(3, n);
+  const ir = `<button type="button" class="vfa-heitor" onclick="filaV2Heitor()"><span class="vfa-heitor-av" aria-hidden="true">HC</span><span class="vfa-heitor-txt"><b>${S.semDono} sem responsável</b> · ${resto > 0 ? `mais ${resto}` : 'pela carga'}</span>${FILA_V2_IC.ir}</button>`;
+  let acao = '';
+  if (dono && n) {
+    acao = H.rodando ? `<div class="vfa-dist"><button type="button" class="vfa-btn k" disabled aria-live="polite">Distribuindo ${H.i}/${H.n}…</button></div>`
+      : H.pergunta ? `<div class="vfa-dist" role="group" aria-label="Confirmar a distribuição"><span class="vfa-dist-q">Passar ${n} ${n === 1 ? 'peça' : 'peças'} como o Heitor sugere, uma por vez?</span><span class="vfa-dist-bts"><button type="button" class="vfa-btn" onclick="filaV2Distribuir('voltar')">Voltar</button><button type="button" class="vfa-btn k" onclick="filaV2Distribuir('sim')">Sim, distribuir ${n}</button></span></div>`
+        : `<div class="vfa-dist"><button type="button" class="vfa-btn k" onclick="filaV2Distribuir()">Distribuir assim (${n})</button></div>`;
+  }
+  const nota = !n ? `<p class="vfa-nota">${S.calculou ? 'Ninguém da disciplina tem folga para estas peças; veja na Coordenação.' : 'A conta da carga não carregou; veja na Coordenação.'}</p>`
+    : dono ? '' : '<p class="vfa-nota">Só um dono confirma a distribuição. Nada muda sem o sim.</p>';
+  return `<section class="vfa-sec" aria-label="Heitor sugere">${cab}${linhas ? `<div class="vfa-sugs">${linhas}</div>` : ''}${ir}${acao}${feito}${nota}</section>`;
 }
 // O Heitor sugere quem pega pela carga na Coordenação; lá quem coordena confirma cada troca (nada é distribuído sozinho).
 function filaV2Heitor() { filaV2Fechar(); if (typeof pv2AbrirCoordenacao === 'function') pv2AbrirCoordenacao(); }
@@ -2600,6 +2675,17 @@ function pv2FiltrarPessoa(id) {
   if (typeof filterByPerson === 'function') filterByPerson(String(id), document.querySelector(`#person-filter-bar .person-wrap[data-person-id="${CSS.escape(String(id))}"]`) || document.getElementById('person-all'));
   mostrarAgendaDaSemana();
 }
+// A conta do Heitor na semana (VybeCoordenacao.calcular), com o time de criação e os mesmos pontos e tetos da
+// Coordenação. Uma só para a Equipe e para a janela Requer ação (rodada S): quem sugere é sempre a mesma conta.
+function pv2CoordSemana(reserva = []) {
+  const C = typeof window !== 'undefined' ? window.VybeCoordenacao : null, E = typeof EQUIPES !== 'undefined' ? EQUIPES : { design: [], audiovisual: [] }, T = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+  const ids = [...new Set([...(E.design || []), ...(E.audiovisual || [])].map(String))];
+  if (!C?.calcular || !ids.length) return null;
+  const av = (id) => (E.audiovisual || []).map(String).includes(id);
+  const time = ids.map((id) => ({ id, nome: (T.find((u) => String(u.id) === id) || {}).name || id, papel: '', disciplina: av(id) ? 'audiovisual' : 'design', limiteSemana: typeof daCapacitySignal === 'function' ? daCapacitySignal({ id }, []).threshold : av(id) ? 24 : 14 }));
+  const abertas = (typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : reserva).filter((d) => !isFinishedItem(d) && !(typeof isRequestItem === 'function' && isRequestItem(d)));
+  return C.calcular({ itens: abertas, time, hoje: pv2HojeIso(), periodo: 'semana', peso: (d, u) => (typeof daEffortWeight === 'function' ? daEffortWeight(d, u) : 1) });
+}
 function pv2EquipePintar() {
   const painel = typeof document !== 'undefined' ? document.getElementById('panel-team') : null; if (!painel) return;
   const v2 = pv2Ligado() && panelMode === 'gestor';
@@ -2643,13 +2729,8 @@ function pv2EquipePintar() {
   // O limite da semana de cada pessoa da criação: os mesmos pontos e o mesmo teto da Coordenação.
   let limites = '';
   try {
-    const C = window.VybeCoordenacao, E = typeof EQUIPES !== 'undefined' ? EQUIPES : { design: [], audiovisual: [] }, T = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
-    const ids = [...new Set([...(E.design || []), ...(E.audiovisual || [])].map(String))];
-    if (C && ids.length) {
-      const av = (id) => (E.audiovisual || []).map(String).includes(id);
-      const time = ids.map((id) => ({ id, nome: (T.find((u) => String(u.id) === id) || {}).name || id, papel: '', disciplina: av(id) ? 'audiovisual' : 'design', limiteSemana: typeof daCapacitySignal === 'function' ? daCapacitySignal({ id }, []).threshold : av(id) ? 24 : 14 }));
-      const abertas = (typeof unifiedOperationalItems === 'function' ? unifiedOperationalItems() : itens).filter((d) => !isFinishedItem(d) && !(typeof isRequestItem === 'function' && isRequestItem(d)));
-      const r = C.calcular({ itens: abertas, time, hoje: pv2HojeIso(), periodo: 'semana', peso: (d, u) => (typeof daEffortWeight === 'function' ? daEffortWeight(d, u) : 1) });
+    const r = pv2CoordSemana(itens);
+    if (r) {
       const n0 = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
       limites = pv2Cons('Limite de cada um', 'pontos da semana / limite', (r.pessoas || []).slice().sort((a, b) => b.pct - a.pct).map((p) => `<button type="button" class="d3m-vlin" onclick="pv2FiltrarPessoa('${jsArg(p.id)}')" title="${safeText(firstName(p.nome))}: ${n0(p.pontos)} de ${p.limite} pontos na semana (${p.pct}%)"><i class="d3m-pes" aria-hidden="true">${safeText(pv2Iniciais(p.nome))}</i><span class="d3m-vnome">${safeText(firstName(p.nome))}</span><span class="d3m-vbarra${p.pct > 100 ? ' r' : p.pct >= 80 ? ' a' : ''}" style="--v:${Math.min(100, p.pct)}%"><i></i></span><span class="d3m-vn"><b>${n0(p.pontos)}</b> / ${p.limite}</span></button>`).join('') || '<p class="d3m-vvazio">Sem time de criação cadastrado.</p>');
     }

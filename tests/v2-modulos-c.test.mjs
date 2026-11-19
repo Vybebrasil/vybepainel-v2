@@ -135,13 +135,14 @@ test('Fornecedores V2: uma linha por fornecedor na folha, com os campos e os bot
   for (const t of ['data-v2-linha="fo:${id}"', 'data-v2="abre" data-id="fo:${id}"', 'data-v2-campo="forn:bv:${esc(f.id)}"', 'data-v2-campo="forn:contato:${esc(f.id)}"', 'data-v2="salvar-campo" data-id="forn:bv:${esc(f.id)}"',
     'data-vc="ver-impressoes" data-id="${id}"', 'data-vc="fornecedor" data-id="${id}"', 'data-vc="arquivar-forn" data-id="${id}"', 'data-vc="fornecedor">${IM.mais}Novo fornecedor', "buscaM('forn', 'Buscar fornecedor ou contato')",
     'data-v2="abre-um" data-id="fo:${esc(bvs[0].id)}"', 'C().filtrarFornecedores(', 'carregarEntregas();']) assert.ok(tela.includes(t), t);
-  // A ordem da prancha: Agora (o que falta) e Em dia; o pé "De olho"; o Nestor, o mês com as gráficas e os atalhos.
-  for (const t of ["[['Agora', lista.filter(incompleto)], ['Em dia'", '<span>Fornecedor</span><span>Contato</span><span>BV</span><span>Em andamento</span><span>Entrega média</span>', '<span class="m2-pe-rot">De olho</span>',
-    "'Nestor · falta para as Impressões'", '<span>com as gráficas</span>', '<b>Abrir</b>', "irM('creators', 'Creators'", 'só donos e administração']) assert.ok(tela.includes(t), t);
+  // Visão do setor (prancha V2-S-Visao-Setor): quatro números, Pede ação na ordem, o Nestor no laranja, Por status, o mês e os atalhos.
+  const visao = com.slice(com.indexOf('  const VSX_SELO = {'), com.indexOf('const M2 = '));
+  for (const t of ['vsxPede(', "'Nestor · Compras'", "vsxStatus('Por status'", 'Pede ação, na ordem']) assert.ok((t === 'Pede ação, na ordem' ? visao : tela).includes(t), t);
+  for (const t of [ 'Fornecedores · uso', 'vsxAbrir([', `vsxIr('data-m2="ir" data-id="creators"', 'Creators'`, 'só donos e administração']) assert.ok(tela.includes(t), t);
   // Erro (quem não pode ver) e vazio ficam no mesmo esqueleto.
   assert.ok(com.includes('<b>Não foi possível abrir ${nome}</b>${esc(erro)}') && tela.includes('<b>Nenhum fornecedor ainda</b>'));
-  assert.match(css, /\.fo2-lista\{flex:1 1 0;display:flex;flex-direction:column;min-height:0;overflow-y:auto/);
-  assert.match(css, /\.fo2-abre\[aria-expanded="true"\] > \.fo2-det\{display:flex\}/);
+  const se = ler('padrao-v2/s-e.css');
+  assert.match(se, /\.vsx-abre\[aria-expanded="true"\] > \.vsx-det\{/);
   assert.match(css, /#vv-comercial\.d3m-c-janela :is\(\.vc-folha,\.vc-abas\)\{color:(?:var\(--d3-tinta\)|var\(--d3-(?:tinta|fume-contra|contra)(?:,[^)]*\))?\))\}/);
 });
 
@@ -154,10 +155,11 @@ test('Creators V2: as pessoas em grade, o cartão vira no lugar com as campanhas
     'data-v2="abre-um" data-id="cc:${esc(pede[0].id)}"', 'C().filtrarCreators(', 'data-m2="nicho"', 'data-m2="ordem"']) assert.ok(tela.includes(t), t);
   // Quem só lê não vê os botões de editar nem o campo do contato.
   assert.ok(tela.includes('${edita && semContato(c) ? `<div class="m2-campo">') && tela.includes('${edita ? `<button type="button" class="d3m-c-btn" data-vc="creator">'));
-  for (const t of ['<span>· Irecê e região</span>', 'Maior engajamento</button>', '<span class="m2-pe-rot">De olho</span>', "'VYBES · falta o contato'", '<b>Por nicho</b>', '<b>Como funciona</b>', '<b>Nenhum creator cadastrado</b>']) assert.ok(tela.includes(t), t);
+  const visao = com.slice(com.indexOf('  const VSX_SELO = {'), com.indexOf('const M2 = '));
+  assert.ok(visao.includes('Pede ação, na ordem'), 'Pede ação, na ordem');
+  for (const t of ['vsxPede(', 'Creators · o mais grave', "vsxStatus('Por status'", '<b>Por nicho</b>', '<b>Como funciona</b>', '<b>Nenhum creator cadastrado</b>']) assert.ok(tela.includes(t), t);
   assert.match(com, /if \(t\.dataset\.m2 === 'nicho'\) \{ st\.filtro\.nicho = t\.dataset\.id \|\| ''; st\.v2\.aberta = ''; pintar\(\); return; \}/);
-  assert.match(css, /\.cr2-grade\{flex:1 1 0;display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);[^}]*overflow-y:auto/);
-  assert.match(css, /\.cr2-c\[aria-expanded="true"\] > \.cr2-verso\{display:flex\}/);
+  assert.match(ler('padrao-v2/s-e.css'), /\.vsx-abre\[aria-expanded="true"\] > \.vsx-det\{/);
 });
 
 test('Conversas V2: a lista no vidro, a conversa na folha e a consulta, com os mesmos data-wa-* e só leitura', () => {

@@ -1653,7 +1653,8 @@ function agv2LadoHtml(pend, todos) {
     ${deHoje.length > 4 ? `<button type="button" class="d3m-vlin" onclick="captVerDia('${hoje}')"><span class="d3m-vnome">Mais ${deHoje.length - 4} hoje</span>${AGV2_IC.depois}</button>` : ""}</div>` : "";
   const abrir = `<div class="d3m-cons agv2-abrir"><div class="d3m-cons-cab"><b>Abrir</b></div>
     <button type="button" class="d3m-vlin" onclick="prodAgendaVista('roteiros')"><span class="d3m-vnome"><b>Roteiros</b>${pend.roteiro.length ? ` · ${pend.roteiro.length} para escrever` : ""}</span>${AGV2_IC.depois}</button>
-    <button type="button" class="d3m-vlin" onclick="window.setProdV2View('feed')"><span class="d3m-vnome"><b>Feed</b></span>${AGV2_IC.depois}</button></div>`;
+    <button type="button" class="d3m-vlin" onclick="window.setProdV2View('feed')"><span class="d3m-vnome"><b>Feed</b></span>${AGV2_IC.depois}</button>
+    ${typeof filaV2AbrirDaAgenda === "function" ? `<button type="button" class="d3m-vlin" onclick="filaV2AbrirDaAgenda()" title="Requer ação só com o que passa pela captação e pelo audiovisual"><span class="d3m-vnome"><b>Requer ação</b> · captação e audiovisual</span>${AGV2_IC.depois}</button>` : ""}</div>`;
   return `<aside class="d3m-lado agv2-lado" aria-label="Consulta">${agv2LaranjaHtml(pend)}${antes}${hojeHtml}${abrir}</aside>`;
 }
 // MÊS e DIA nas pranchas V2-R-Agenda-Mes e V2-R-Agenda-Dia (aprovadas pelo Paulo, 19/11/2026). Mês: a grade do mês numa

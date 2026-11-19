@@ -385,12 +385,12 @@ body.mundo.mundo-modulo .board-switch-btn:not(.active){color:#6B665E!important}
 body.mundo.mundo-modulo :is(.global-search,.header-utilities-menu,.dem-filtro-popover,.dem-controles,.date-mode-bar){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo.mundo-modulo :is(.ops-action-btn,.ops-today-btn,.ops-close-btn,.ops-command-toggle,.btn-refresh,.mode-switch-btn){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important;box-shadow:none!important}
 body.mundo.mundo-modulo :is(.date-mode-bar,.dem-controles) :is(button.active,button[aria-pressed="true"]){background:#1F1D1A!important;color:#FFFFFF!important}
-body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) :is(summary,.client-name,.mes-passo,.mes-rotulo,.ops-action-count){color:#1F1D1A!important}
+body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) :is(summary,.client-name,.mes-passo,.mes-rotulo,.ops-action-count){color:var(--d3-tinta,#1F1D1A)!important}
 body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) .pv-kpi :is(b,span b){color:#1F1D1A}
 body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) .owner-avatar-fallback{color:#FFFFFF}
 body.mundo.mundo-modulo .workspace-heading h2{color:#1F1D1A!important}
 /* Ajustes por módulo (levantados no navegador em 06/11/2026): Demandas, Clientes e Produção/Captações. */
-body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) :is(h1,h2,h3,h4,.grupos-titulo,.resumo-conta,.capt-tb-titulo){color:#1F1D1A!important}
+body.mundo.mundo-modulo :is(.container,[id^="painel-"]:not(#painel-escritorio)) :is(h1,h2,h3,h4,.grupos-titulo,.resumo-conta,.capt-tb-titulo){color:var(--d3-tinta,#1F1D1A)!important}
 body.mundo.mundo-modulo :is(.quadro-toolbar,.capt-toolbar,.capt-menu-painel,.manager-calendar-client){background:#FFFFFF!important;color:#1F1D1A!important;border-color:#E6E0D6!important;box-shadow:var(--vv-sombra-curta)!important}
 body.mundo.mundo-modulo :is(.date-mode-btn,.vb-alternar,.clientes-visao-btn,.cli-marcar,.capt-menu-acao,.tipo-chip){background:#FFFFFF!important;color:#1F1D1A!important;border:1px solid #E6E0D6!important}
 body.mundo.mundo-modulo :is(.date-mode-btn,.clientes-visao-btn,.vb-alternar).active{background:#1F1D1A!important;color:#FFFFFF!important}
@@ -456,8 +456,8 @@ body.mundo :is(#workspace-drawer,#notif-caixa) :is(select,input:not([type=checkb
 body.mundo .spotlight-dialog :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:#FFFFFF var(--vv-seta-select,none) no-repeat right 10px center/13px;color:#1F1D1A;border:1px solid #E6E0D6;box-shadow:none}
 /* Direção 3 (quadros D3-Fam-Formularios e D3-Fam-Confirmacoes, limpeza de 14/11/2026): na janela de confirmação o campo
    é o trilho claro, sem borda, e não o branco forçado. */
-body.mundo :is(#workflow-modal,.workflow-modal) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:var(--wm-campo,var(--d3-veu)) var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:var(--d3-tinta)!important;border:1px solid var(--wm-campo-borda,transparent)!important;border-radius:var(--d3-r-caixa)!important;box-shadow:none!important}
-body.mundo :is(#workflow-modal,.workflow-modal) textarea{border-radius:var(--d3-r-caixa)!important}
+body.mundo :is(#workflow-modal,.workflow-modal):not(.vbj) :is(select,input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea){background:var(--wm-campo,var(--d3-veu)) var(--vv-seta-select,none) no-repeat right 10px center/13px!important;color:var(--d3-tinta)!important;border:1px solid var(--wm-campo-borda,transparent)!important;border-radius:var(--d3-r-caixa)!important;box-shadow:none!important}
+body.mundo :is(#workflow-modal,.workflow-modal):not(.vbj) textarea{border-radius:var(--d3-r-caixa)!important}
 body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-field>span,.workflow-title,.context-title,.workflow-item,.context-item,.workflow-check){color:var(--wm-titulo-cor,var(--d3-tinta))!important}
 body.mundo :is(#workflow-modal,.workflow-modal) :is(.workflow-actions,.context-actions){background:var(--wm-pe-fundo,var(--d3-cartao))!important;border-top:1px solid var(--wm-pe-linha,var(--d3-divisa))!important}
 body.mundo :is(#workflow-modal,.workflow-modal) .workflow-secondary{color:var(--wm-sec-cor,var(--d3-tinta))!important}
@@ -546,7 +546,7 @@ body.mundo.mundo-modulo .plj-aviso.recolhido{left:auto!important;right:calc(var(
    Vale para todas as janelas do painel (planejamentos, status, bastão, confirmações…).
    As mesas de jogo (.ofc-snc-*) e os menus de jogo têm a pele delas e ficam de fora.
    O Ranking em página (.rk2-janela) não escurece nem desfoca o que fica ao lado. */
-body.mundo .workflow-backdrop:not(:has(+ .rk2-janela)){background:rgba(31,29,26,.28)!important;backdrop-filter:blur(6px) saturate(1.1)!important}
+body.mundo .workflow-backdrop:not(:has(+ .rk2-janela)){background:var(--wm-veu,rgba(31,29,26,.28))!important;backdrop-filter:blur(6px) saturate(1.1)!important}
 body.mundo .workflow-modal:not(.ofc-snc-jogo):not(.ofc-snc-menu):not(.ofc-menu-jogo){
   background:var(--wm-fundo,var(--d3-cartao))!important;background-image:none!important;border:0!important;border-radius:var(--d3-r-janela)!important;
   box-shadow:var(--wm-sombra,0 0 0 1px var(--d3-veu),0 30px 70px -28px rgba(0,0,0,.6))!important;padding:var(--wm-pad,20px 24px)!important;color:var(--wm-cor,var(--d3-tinta))!important;font-family:var(--vv-texto)!important}
@@ -3171,9 +3171,9 @@ html body.mundo.mundo-modulo :is(.team-load-chip,.clientes-visao-btn,.manager-ca
 html body.mundo.mundo-modulo .team-load-chip:not(#ds-a):not(#ds-b):not(#ds-c){box-shadow:inset 3px 0 0 var(--load-color,#9AA3A8)!important}
 html body.mundo.mundo-modulo .team-load-chip *:not(img):not([class*="badge"]):not([class*="count"]):not(#ds-a):not(#ds-b):not(#ds-c){color:inherit!important}
 /* Campos: raio 12, borda fina, foco laranja. */
-html body.mundo.mundo-modulo :is(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input:not([type]),select,textarea):not(:where(.workflow-modal *)):not(#ds-a):not(#ds-b):not(#ds-c){background-color:#FFFFFF!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-botao)!important;color:#1F1D1A!important;box-shadow:none!important;color-scheme:light}
+html body.mundo.mundo-modulo :is(input[type="text"],input[type="search"],input[type="url"],input[type="email"],input[type="number"],input[type="date"],input[type="time"],input:not([type]),select,textarea):not(:where(.workflow-modal *)):not(#ds-a):not(#ds-b):not(#ds-c){background-color:var(--d3-cartao,#FFFFFF)!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-botao)!important;color:var(--d3-tinta,#1F1D1A)!important;box-shadow:none!important;color-scheme:light}
 /* Caixa de texto de várias linhas não é pílula (Paulo, 13/11/2026: o briefing virava um oval que cortava o texto). */
-html body.mundo textarea:not(#ds-a):not(#ds-b):not(#ds-c):not(#ds-d){border-radius:16px!important}
+html body.mundo textarea:not(#ds-a):not(#ds-b):not(#ds-c):not(#ds-d):not(:where(.vbj *)){border-radius:16px!important}
 html body.mundo.mundo-modulo :is(input,select,textarea):focus-visible:not(#ds-a):not(#ds-b):not(#ds-c){border-color:var(--ds-foco-borda,#C2490C)!important;box-shadow:var(--ds-foco)!important;outline:0!important}
 /* Cartões clicáveis: branco, raio 18, borda e sombra curta. */
 html body.mundo.mundo-modulo :is(.da-capacity-card,.da-command-daily-card,.da-week-rail-day:not(.active),.focus-daily-plan-row):not(#ds-a):not(#ds-b):not(#ds-c){background:#FFFFFF!important;background-image:none!important;border:1px solid var(--ds-linha)!important;border-radius:var(--ds-r-cartao)!important;box-shadow:0 1px 2px rgba(31,29,26,.04),0 8px 24px rgba(31,29,26,.05)!important}
@@ -3278,7 +3278,7 @@ body.eh-dono .vv-trilho-btn[data-trilho="gestao"]{display:flex}
 .vv-dono-linha .av.bot{background:#ECE9FF;color:#5B4BD6}
 
 
-.t-u1{color:#B42318!important;font-weight:700}.t-u2{color:#8A5A00!important;font-weight:700}
+.t-u1:not(.vle-n > b){color:#B42318!important;font-weight:700}.t-u2:not(.vle-n > b){color:#8A5A00!important;font-weight:700}
 
 
 /* ---------- Módulo Gestão ---------- */
@@ -3788,7 +3788,7 @@ html body.mundo:not(.mundo-centro) .plj-aviso.recolhido{width:auto!important;max
 
 /* Hierarquia única nos módulos (08/11/2026): título de seção = Inter Tight 14/600 na tinta; rótulo de cima = 12/600 cinza.
    Antes cada módulo tinha o seu laranja 10,5px (Carteira, Comercial, Pessoas, Missões...), parecendo telas diferentes. */
-html body.mundo :is(#vv-carteira h3,#vv-comercial .vc-secao h3,.vv-personagem-grupo h3,.vv-rel-secao h3,.vv-cli-rotulo){font:600 14px/1.3 var(--vv-titulo)!important;color:#2B2925!important;letter-spacing:-.005em!important}
+html body.mundo :is(#vv-carteira h3,#vv-comercial .vc-secao h3,.vv-personagem-grupo h3,.vv-rel-secao h3,.vv-cli-rotulo){font:600 14px/1.3 var(--vv-titulo)!important;color:var(--d3-tinta,#2B2925)!important;letter-spacing:-.005em!important}
 html body.mundo :is(#vv-carteira .vc-kicker,#vv-decorar .vv-decorar-kicker,#vv-missoes .vv-missoes-kicker,.vv-personagem-kicker,#vv-pessoas .vp-kicker,.vv-plj-kicker,.vv-rel-titulo small,#vv-decorar .vv-decorar-rotulo,#vv-conteudo .vc-previa-obj>span){font:600 12px/1.3 var(--vv-texto)!important;color:#6B665E!important}
 
 /* Avisos de mensagem do WhatsApp: no pé do palco, à esquerda (antes cobriam os botões do topo dos módulos). */

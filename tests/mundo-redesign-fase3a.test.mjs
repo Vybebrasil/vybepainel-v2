@@ -33,7 +33,7 @@ test('campos: a mesma seta de select em todo navegador; avisos abaixo do cabeça
   assert.match(css, /body\.mundo select:not\(\[multiple\]\):not\(\[size\]\)\{appearance:none;/);
   // Limpeza de 14/11/2026: a regra deixou de pegar a janela de confirmação (campo no trilho claro da Direção 3), com
   // :not(:where(...)), que não muda a especificidade.
-  assert.match(css, /select,textarea\)(?::not\(:where\(\.workflow-modal \*\)\))?:not\(#ds-a\):not\(#ds-b\):not\(#ds-c\)\{background-color:#FFFFFF!important;/, 'a regra dos campos não apaga a seta');
+  assert.match(css, /select,textarea\)(?::not\(:where\(\.workflow-modal \*\)\))?:not\(#ds-a\):not\(#ds-b\):not\(#ds-c\)\{background-color:(?:var\(--d3-cartao,#FFFFFF\)|#FFFFFF)!important;/, 'a regra dos campos não apaga a seta');
   assert.match(css, /body\.mundo:has\(\.vv-setor-visao:not\(\[hidden\]\)\) #vv-wa-avisos\{top:calc\(var\(--vv-m,14px\) \+ 136px\)\}/);
 });
 

@@ -110,8 +110,10 @@ test('cadastro: escolhido é ficha preta, sem os estados que o tema antigo pinta
   assert.match(css, /body\.mundo #fc-overlay \.nd-num\.ok\{background:var\(--d3-pronto,(?:#11613A|var\(--d3-(?:pronto)(?:,[^)]*\))?\))\);color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\}/);
 });
 
-test('portão de bastão: etapas em pílula, "N de 3" e os mesmos campos que a gravação lê', () => {
-  assert.match(portoes, /<div class="pt-etp bastao-passos" aria-hidden="true"><span data-bastao-passo="0" class="atual">1 Entregou<\/span><i><\/i><span data-bastao-passo="1">2 Próximo<\/span><i><\/i><span data-bastao-passo="2">3 Confirmar<\/span><\/div>/);
+test('portão de bastão: etapas com nome, "N de 3" e os mesmos campos que a gravação lê', () => {
+  // Rodada S (frente e): as etapas com nome na casca V2 (vbb-etapas), como os portões da rodada R.
+  assert.ok(portoes.includes('<div class="vbb-etapas" aria-hidden="true">${BASTAO_ETAPAS.map('), 'etapas com nome');
+  assert.ok(portoes.includes("const BASTAO_ETAPAS = ['Entregou', 'Próximo', 'Confirmar'];"), 'Entregou → Próximo → Confirmar');
   for (const id of ['id="handoff-done"', 'id="handoff-link"', 'id="handoff-next"', 'id="bastao-revisao"', 'id="bastao-voltar"', 'id="bastao-seguir"']) assert.ok(portoes.includes(id), id);
   assert.match(portoes, /if \(ir >= secoes\.length\) return submitHandoff\(\);/);
   assert.match(css, /body\.mundo #workflow-modal \.pt-etp > span\.atual\{padding:0 10px;border-radius:999px;background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\))\}/);
