@@ -18,7 +18,9 @@
    9. A faixa antiga da pessoa ("Paulo · 1 pessoa · 77 entregas…") sai com a V2 de Grupos: a pessoa já está num chip e os
       números dela foram para a linha dos chips (.s-f-pessoa).
    10. A coluna Captação ao lado do Status (à mostra por padrão; "Colunas" esconde). Com ela a tabela tem uma coluna a
-      mais e as larguras fixas se refazem para caber em 1366 sem rolar de lado; Prazo e Veiculação ficam inteiros.
+      mais: o ID mostra só o número, o Formato fica justo, a Captação e o Cliente quebram em duas linhas em vez de cortar,
+      a coluna de consulta fica com 260 px até 1600 e, abaixo de 1500, a seta do Status só aparece no hover e no foco.
+      Prazo e Veiculação ficam inteiros.
    11. O campo Buscar é uma peça só: lupa e × dentro do campo, largura da coluna, canto 8.
    =================================================================================================================== */
 
@@ -97,17 +99,37 @@ body.mundo[data-pv2-vista="grupos"] #ops-selection-summary[data-s-f-chips]{displ
 #grupos-board.d3m-a-v2 .s-f-ativos .s-f-pessoa{margin-left:auto}
 
 /* 10 */
-#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(9){width:84px}
-#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(8){width:24%}
-#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(7){width:21%}
-#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(6){width:80px}
-#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(5){width:108px}
-#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(4){width:104px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(9){width:60px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(8){width:auto}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(7){width:15%}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(6){width:78px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(5){width:142px}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(4){width:156px}
 #grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(3){width:62px}
 #grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(2){width:94px}
 #grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(1){width:74px}
-#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn{max-width:100%;overflow:hidden}
-#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn :is(.pill,[class*="pill"],span){display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td:nth-child(5) .grupo-pill-btn{padding:0 6px}
+/* Captação: a pílula cresce para duas linhas em vez de cortar o rótulo. */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap{white-space:normal}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn{height:auto;min-height:22px;max-width:100%;padding:3px 8px;border-radius:11px;text-align:left}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn :is(.pill,[class*="pill"],span){display:block;min-width:0;white-space:normal;line-height:1.2;text-wrap:balance}
+/* Cliente: o nome quebra em duas linhas ao lado da foto, sem reticências. */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.d3m-a-g-cli{white-space:normal}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.d3m-a-g-cli > .clientes-vinculo-btn{height:auto;min-height:26px;padding:2px 4px;text-align:left;line-height:1.2;vertical-align:middle}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.d3m-a-g-cli .cliente-carteira{white-space:normal;overflow:visible;text-overflow:clip}
+/* Até 1600 px a coluna de consulta fica com 260 px, e a folha ganha os 56 px. */
+@media (min-width:1181px) and (max-width:1599px){
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="grupos"] #pv2-lado:is(#pv2-lado,#vv-h){width:260px}
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="grupos"] .container.pv2-casa:is(.pv2-casa,#vv-h) > .d3m-a-v2{margin-right:262px}
+  body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="grupos"] .container.pv2-casa:is(.pv2-casa,#vv-h) > .d3m-a-v2 > .d3m-a-folha{margin-right:262px}
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(4){width:122px}
+}
+/* Abaixo de 1500 px o Status mostra a bolinha e o rótulo inteiro; a seta volta no hover e no foco. */
+@media (max-width:1499px){
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab.s-f-com-cap:not(.larga) th:nth-last-child(5){width:122px}
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab .pv2-st.pv2-st > .pv2-st-seta{display:none}
+  #grupos-board.d3m-a-v2 .d3m-a-g-tab .pv2-st.pv2-st:is(:hover,:focus-visible) > .pv2-st-seta{display:inline-flex}
+}
 
 /* 11 */
 #pv2-lado-v .d3m-a-busca{width:100%;box-sizing:border-box;gap:8px;padding:0 6px 0 12px;border-radius:var(--d3-r-botao)}

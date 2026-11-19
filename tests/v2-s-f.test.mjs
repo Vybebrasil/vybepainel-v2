@@ -199,3 +199,14 @@ test('Busca e faixa da pessoa: o campo usa os tokens do vidro sem regra forçada
   assert.ok(pv2.includes('opsSelectionNumeros()'), 'os números da faixa (entregas, riscos, vencem hoje) vão para a linha dos chips');
   assert.match(gestor, /function renderOpsSelectionSummary\(\)\{[\s\S]*?const \{ scope, risks, due \}=opsSelectionNumeros\(\);/, 'a faixa antiga e os chips contam igual');
 });
+
+test('Diagramação: ID só com o número, coluna de consulta de 260 px até 1600 e Status sem seta abaixo de 1500', () => {
+  const linha = trecho(gestor, 'function pv2GrupoLinha(', '\n}\n');
+  assert.ok(linha.includes("title=\"${safeText(item.id)} · clique para copiar o ID\">${safeText(String(item.id).replace(/^vybe:/, ''))}</td>"), 'o número na coluna, o ID inteiro no title');
+  assert.ok(linha.includes("copiarId('${id}')"), 'a cópia continua com o ID inteiro');
+  const css = ler('padrao-v2/s-f.css');
+  assert.match(css, /@media \(min-width:1181px\) and \(max-width:1599px\)\{[^@]*#pv2-lado:is\(#pv2-lado,#vv-h\)\{width:260px\}/);
+  assert.match(css, /@media \(max-width:1499px\)\{[^@]*\.pv2-st-seta\{display:none\}[^@]*:is\(:hover,:focus-visible\) > \.pv2-st-seta\{display:inline-flex\}/);
+  assert.match(css, /td\.s-f-cap \.grupo-pill-btn :is\(\.pill,\[class\*="pill"\],span\)\{display:block;min-width:0;white-space:normal/, 'a Captação quebra em vez de cortar');
+  assert.match(css, /td\.d3m-a-g-cli \.cliente-carteira\{white-space:normal;overflow:visible;text-overflow:clip\}/, 'o Cliente quebra em vez de cortar');
+});

@@ -2753,7 +2753,8 @@ function pv2GrupoLinha(item, { lote, extras, hoje, cap = false }) {
   const cad = extras ? cadastroDaPeca(item) : null;
   return `<tr class="${marcada ? 'marcada' : ''}${typeof pv2Chegou === 'function' ? pv2Chegou(item) : ''}" onclick="openItemWorkspace('${id}')" title="Abrir ${safeText(nome)}">`
     + (lote ? `<td class="grupo-marcar" onclick="${parar}"><input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(nome)}" onclick="${parar};alternarSelecao('${id}',this.checked,event)"></td>` : '')
-    + `<td class="grupo-id" onclick="${parar};copiarId('${id}')" title="ID da atividade · clique para copiar">${safeText(item.id)}</td>`
+    // Só o número na coluna (o "vybe:" é igual em todas e tomava a largura do Status); o ID inteiro fica no title e na cópia.
+    + `<td class="grupo-id" onclick="${parar};copiarId('${id}')" title="${safeText(item.id)} · clique para copiar o ID">${safeText(String(item.id).replace(/^vybe:/, ''))}</td>`
     + `<td class="d3m-a-g-nome"><span>${titulo}</span>${botaoDePreviaNaLinha(item)}</td>`
     + `<td class="d3m-a-g-cli" onclick="${parar}">${pv2Foto(clientesDoItem(item)[0] || '')}${botaoClientesDoItem(item)}</td>`
     + escolha('formato')
