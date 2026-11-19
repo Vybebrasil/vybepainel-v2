@@ -3226,15 +3226,22 @@ async function abrirClientesDoItem(itemId, event) {
   document.querySelector('.clientes-vinculo-dialog')?.remove();
   const origem = event?.currentTarget;
   const dialog = document.createElement('dialog');
-  dialog.className = 'clientes-vinculo-dialog';
+  // Prancha V2-R-Clientes-do-Item (19/11/2026): "Clientes da peça", com o nome dela e "a peça continua uma só" no vidro;
+  // numa folha a busca e a lista em dois grupos (os escolhidos e os outros, com avatar e "inativo"); no pé a contagem,
+  // Cancelar e Salvar clientes. d3-tema: no tema Escuro a folha escurece junto.
+  dialog.className = 'clientes-vinculo-dialog d3-tema';
   dialog.setAttribute('aria-labelledby', 'clientes-vinculo-titulo');
-  dialog.innerHTML = `<h2 id="clientes-vinculo-titulo">Clientes da atividade</h2>
-    <p>Selecione um ou mais clientes. A atividade continua sendo uma só.</p>
-    <input type="search" aria-label="Buscar cliente" placeholder="Buscar cliente…" aria-label="Buscar cliente">
-    <div class="clientes-vinculo-lista">Carregando clientes…</div>
-    <output class="clientes-vinculo-contagem" aria-live="polite"></output>
-    <p class="clientes-vinculo-erro" role="alert"></p>
-    <footer><button type="button" data-cancelar>Cancelar</button><button type="button" data-salvar disabled>Salvar clientes</button></footer>`;
+  const itemDoVinculo = (typeof findOperationalItem === 'function' && findOperationalItem(itemId))
+    || (DADOS_DEMANDAS || []).find((d) => String(d.id) === String(itemId)) || null;
+  dialog.innerHTML = `<header class="clientes-vinculo-cab"><span><h2 id="clientes-vinculo-titulo">Clientes da peça</h2>
+      <p>${itemDoVinculo?.nome ? `${safeText(itemDoVinculo.nome)} · ` : ''}a peça continua uma só</p></span>
+      <button type="button" class="clientes-vinculo-x" data-cancelar-x aria-label="Fechar">×</button></header>
+    <div class="clientes-vinculo-folha">
+      <input type="search" aria-label="Buscar cliente" placeholder="Buscar cliente">
+      <div class="clientes-vinculo-lista">Carregando clientes…</div>
+      <p class="clientes-vinculo-erro" role="alert"></p>
+    </div>
+    <footer><output class="clientes-vinculo-contagem" aria-live="polite"></output><button type="button" data-cancelar>Cancelar</button><button type="button" data-salvar disabled>Salvar clientes</button></footer>`;
   document.body.append(dialog); dialog.showModal();
   const salvar = dialog.querySelector('[data-salvar]');
   const cancelar = dialog.querySelector('[data-cancelar]');
@@ -3245,6 +3252,7 @@ async function abrirClientesDoItem(itemId, event) {
   let gravando = false;
   const fechar = () => { if (!gravando) { dialog.close(); dialog.remove(); if(origem?.isConnected) origem.focus(); } };
   cancelar.onclick = fechar;
+  dialog.querySelector('[data-cancelar-x]').onclick = fechar;
   dialog.addEventListener('keydown', e => { if(e.key==='Escape') { e.preventDefault(); e.stopPropagation(); fechar(); } });
   dialog.addEventListener('cancel', e => { e.preventDefault(); fechar(); });
   const chamar = async (acao, extra={}) => {
@@ -3257,17 +3265,32 @@ async function abrirClientesDoItem(itemId, event) {
     const data = await chamar('clientes_opcoes');
     if (!dialog.isConnected) return;
     lista.textContent = '';
-    for (const c of data.clientes) {
+    // Dois grupos, na ordem de quando a janela abriu: os escolhidos em cima, os outros embaixo (com quantos ativos e
+    // inativos). Cada linha: a caixinha, o avatar com as iniciais, o nome e, se for o caso, "inativo".
+    const sigla = (nome) => { const p = String(nome || '?').split(/\s+/).filter(Boolean); return (p.length > 1 ? p.slice(0, 2).map((x) => x[0]).join('') : (p[0] || '?').slice(0, 2)).toUpperCase(); };
+    const linha = (c) => {
       const label = document.createElement('label');
       label.dataset.busca = c.nome.toLocaleLowerCase('pt-BR');
       const check = document.createElement('input'); check.type='checkbox'; check.value=c.id; check.checked=c.selecionado;
-      label.append(check, document.createTextNode(c.nome + (c.ativo ? '' : ' (inativo)'))); lista.append(label);
+      const av = document.createElement('span'); av.className = 'clientes-vinculo-av'; av.setAttribute('aria-hidden', 'true'); av.textContent = sigla(c.nome);
+      const nome = document.createElement('span'); nome.className = 'clientes-vinculo-nome'; nome.textContent = c.nome;
+      label.append(check, av, nome);
+      if (!c.ativo) { label.classList.add('inativo'); const t = document.createElement('small'); t.className = 'clientes-vinculo-inativo'; t.textContent = 'inativo'; label.append(t); }
+      return label;
+    };
+    const grupo = (texto) => { const g = document.createElement('p'); g.className = 'clientes-vinculo-grupo'; g.textContent = texto; return g; };
+    const escolhidos = data.clientes.filter((c) => c.selecionado), outros = data.clientes.filter((c) => !c.selecionado);
+    const inativos = outros.filter((c) => !c.ativo).length, ativos = outros.length - inativos;
+    if (escolhidos.length) { lista.append(grupo(`Escolhidos · ${escolhidos.length}`)); escolhidos.forEach((c) => lista.append(linha(c))); }
+    if (outros.length) {
+      lista.append(grupo(`${escolhidos.length ? 'Os outros' : 'Clientes'} · ${ativos} ${ativos === 1 ? 'ativo' : 'ativos'}${inativos ? ` e ${inativos} ${inativos === 1 ? 'inativo' : 'inativos'}` : ''}`));
+      outros.forEach((c) => lista.append(linha(c)));
     }
     const selecionados = () => [...lista.querySelectorAll('input:checked')].map(c => c.value);
-    const atualizar = () => { const n=selecionados().length; salvar.disabled = gravando || !n; dialog.querySelector('output').textContent=`${n} cliente${n===1?'':'s'} selecionado${n===1?'':'s'}`; };
+    const atualizar = () => { const n=selecionados().length; salvar.disabled = gravando || !n; dialog.querySelector('output').textContent=`${n} escolhido${n===1?'':'s'}`; };
     lista.addEventListener('change', atualizar); atualizar();
     busca.disabled = false;
-    busca.oninput = () => { const q=busca.value.trim().toLocaleLowerCase('pt-BR'); lista.querySelectorAll('label').forEach(l=>l.hidden=!l.dataset.busca.includes(q)); };
+    busca.oninput = () => { const q=busca.value.trim().toLocaleLowerCase('pt-BR'); lista.querySelectorAll('label').forEach(l=>l.hidden=!l.dataset.busca.includes(q)); lista.querySelectorAll('.clientes-vinculo-grupo').forEach(g=>g.hidden=Boolean(q)); };
     salvar.onclick = async () => {
       if (gravando) return; gravando=true; atualizar(); cancelar.disabled=true; erro.textContent=''; salvar.textContent='Salvando…';
       lista.querySelectorAll('input').forEach(i=>i.disabled=true);

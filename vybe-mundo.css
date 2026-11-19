@@ -2599,8 +2599,8 @@ html body.mundo.mundo-modulo .vybe-desktop .focus-lente-opcao{color:#6B665E!impo
 html body.mundo.mundo-modulo .vybe-desktop .focus-next-btn{color:#6B665E!important}
 html body.mundo.mundo-modulo .vybe-desktop .focus-command-btn{color:#6B665E!important}
 html body.mundo.mundo-modulo .vybe-desktop .focus-daily-plan-row > span{color:#6B665E!important}
-html body.mundo.mundo-modulo .clientes-vinculo-dialog p{color:#6B665E!important}
-html body.mundo.mundo-modulo .clientes-vinculo-dialog .clientes-vinculo-erro{color:#DB0023!important}
+html body.mundo.mundo-modulo .clientes-vinculo-dialog p{color:var(--cv-apoio,var(--d3-rotulo))!important}
+html body.mundo.mundo-modulo .clientes-vinculo-dialog .clientes-vinculo-erro{color:var(--d3-perigo)!important}
 html body.mundo.mundo-modulo .grupo-adicionar{color:#B24F00!important}
 html body.mundo.mundo-modulo .grupo-cabecalho .grupo-adicionar{color:#6B665E!important}
 html body.mundo.mundo-modulo .grupo-cabecalho .grupo-adicionar{color:#B24F00!important}

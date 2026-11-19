@@ -114,3 +114,22 @@ test('Aparência: os quatro temas ligados ao VybeTema, a barra do vidro com as p
   assert.match(legado, /dialog\.appearance-dialog:not\(#vv-x\)\{background:var\(--d3-fume-forte\)!important/);
 });
 
+test('Clientes da peça: título novo, nome da peça, dois grupos, avatar e "inativo", contagem no pé', () => {
+  const agenda = ler('vybe-agenda.js');
+  assert.match(agenda, /<h2 id="clientes-vinculo-titulo">Clientes da peça<\/h2>/);
+  assert.ok(!agenda.includes('Clientes da atividade</h2>'), 'o título antigo saiu');
+  assert.match(agenda, /a peça continua uma só<\/p>/);
+  assert.match(agenda, /lista\.append\(grupo\(`Escolhidos · \$\{escolhidos\.length\}`\)\)/);
+  assert.match(agenda, /t\.className = 'clientes-vinculo-inativo'; t\.textContent = 'inativo'/);
+  assert.match(agenda, /textContent=`\$\{n\} escolhido\$\{n===1\?'':'s'\}`/);
+  assert.match(agenda, /dialog\.className = 'clientes-vinculo-dialog d3-tema'/);
+  // a busca segue sendo o primeiro campo (dialog.querySelector('input')) e os botões de sempre
+  const ini = agenda.indexOf('dialog.innerHTML = `<header class="clientes-vinculo-cab">');
+  const html = agenda.slice(ini, agenda.indexOf('`;', ini));
+  assert.ok(html.indexOf('<input type="search"') < html.indexOf('clientes-vinculo-lista'));
+  for (const t of ['data-cancelar>', 'data-salvar disabled', "chamar('clientes', {clientes:selecionados()})", "chamar('clientes_opcoes')"]) assert.ok(agenda.includes(t), t);
+  const css = ler('padrao-v2/zm-r-a-5-clientes-peca.css');
+  assert.match(css, /dialog\.clientes-vinculo-dialog\.clientes-vinculo-dialog\.d3-tema\{[^}]*background:var\(--d3-fume-forte\)/);
+  assert.match(css, /footer button\[data-salvar\]\{background:var\(--d3-fume-texto\);box-shadow:none;color:var\(--d3-fume-contra\)/);
+});
+

@@ -17864,6 +17864,55 @@ dialog.appearance-dialog.appearance-dialog .appearance-done:focus-visible{outlin
   dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox],dialog.appearance-dialog.appearance-dialog .appearance-check input[type=checkbox]::after{transition:none}
 }
 
+/* ===== padrao-v2/zm-r-a-5-clientes-peca.css ===== */
+/* ===================================================================================================================
+   V2 · R · CLIENTES DA PEÇA (prancha V2-R-Clientes-do-Item, 19/11/2026). A janela de vínculo (dialog.clientes-vinculo-
+   dialog) vira a casca V2: vidro fumê de canto 20 com "Clientes da peça", o nome da peça e "a peça continua uma só" e o
+   fechar de 34; numa folha de canto 12 a busca com lupa e a lista em dois grupos (os escolhidos e os outros), cada
+   linha com a caixinha, o avatar de 22, o nome e "inativo" quando for; no pé, no vidro, a contagem, Cancelar e Salvar
+   clientes no botão claro. A regra antiga sem !important (d3-legado) é vencida pela mesma via (dobrando a classe).
+   =================================================================================================================== */
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);display:flex;flex-direction:column;gap:12px;padding:16px;border:0;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);color:var(--d3-fume-texto)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema:not([open]){display:none}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema::backdrop{background:var(--d3-ambiente-veu)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema > header.clientes-vinculo-cab{flex:none;display:flex;flex-direction:row;align-items:center;justify-content:space-between;text-align:left;gap:12px;min-height:40px;margin:0;padding:0;border:0;background:none}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema > header.clientes-vinculo-cab > span{flex:1;align-items:flex-start;min-width:0;display:flex;flex-direction:column;gap:3px}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema h2{margin:0;color:var(--d3-fume-texto);font:600 20px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-cab p{--cv-apoio:var(--d3-fume-apagado);margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-x{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:400 18px/1 var(--vv-texto,Inter,sans-serif);cursor:pointer}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-x:hover{background:var(--d3-fume-borda)}
+
+/* A folha com a busca e a lista. */
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-folha{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta);overflow:hidden}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-folha::before{content:"";position:absolute;left:24px;top:22px;width:13px;height:13px;background:var(--d3-rotulo);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;pointer-events:none}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-folha > input{flex:none;width:auto;height:36px;margin:12px 12px 8px;padding:0 12px 0 34px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:inset 0 0 0 1px var(--d3-borda);color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-folha > input:focus{outline:0;box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-folha > input::placeholder{color:var(--d3-rotulo);opacity:1}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-lista{flex:1;min-height:0;max-height:min(360px,calc(100dvh - 260px));margin:0;padding:0 0 6px;overflow-y:auto;scrollbar-width:thin;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-grupo{margin:0;padding:8px 12px 6px;border-top:1px solid var(--d3-divisa);color:var(--d3-rotulo);font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-grupo:first-child{border-top:0;padding-top:4px}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-lista label{display:flex;align-items:center;gap:10px;min-height:38px;margin:0;padding:0 12px;border-top:1px solid var(--d3-divisa);border-radius:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-lista label[hidden],dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-grupo[hidden]{display:none}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-lista label:hover{background:var(--d3-veu)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-lista input{flex:none;width:16px;height:16px;margin:0;accent-color:var(--d3-tinta)}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-av{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--d3-tinta);color:var(--d3-contra);font:600 9px var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+dialog.clientes-vinculo-dialog.d3-tema label.inativo .clientes-vinculo-nome{color:var(--d3-rotulo)}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-inativo{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--d3-veu);color:var(--d3-texto2);font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-erro{margin:0;padding:0 12px 10px;color:var(--d3-perigo);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-erro:empty{display:none}
+
+/* O pé no vidro. */
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema footer{flex:none;display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:0;padding:0;border:0;background:none}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-contagem{flex:1;min-width:0;text-align:left;color:var(--d3-fume-texto2);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema footer button{height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema footer button:hover{background:var(--d3-fume-veu)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema footer button[data-salvar]{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font-weight:600}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema footer button[data-salvar]:hover{background:var(--d3-fume-texto2)}
+dialog.clientes-vinculo-dialog.clientes-vinculo-dialog.d3-tema footer button:disabled{opacity:.5;cursor:not-allowed}
+dialog.clientes-vinculo-dialog.d3-tema :is(footer button,.clientes-vinculo-x):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+dialog.clientes-vinculo-dialog.d3-tema .clientes-vinculo-lista label:focus-within{outline:2px solid var(--d3-tinta);outline-offset:-2px}
+
 /* ===== padrao-v2/zm-r-b-1-saude.css ===== */
 /* ===================================================================================================================
    V2 · R · SAÚDE DA CARTEIRA (prancha V2-R-Saude-Carteira, aprovada pelo Paulo). A janela #vv-carteira já vira vidro fumê
