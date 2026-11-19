@@ -210,3 +210,22 @@ test('Nova demanda: a semana por pessoa conta quem faz e quem tem peça no dia, 
   assert.equal(fn({ veic: '' }, { itens, users }), null);
 });
 
+test('Portão de motivo nos três temas: "Quem faz" no lugar de "Responsáveis", título do pedido e folha dentro do vidro', () => {
+  const st = ler('vybe-status.js');
+  assert.match(st, /\{nome:'Quem faz',campo:'status-context-next-owner',html:responsible\}/);
+  assert.match(st, /<span id="status-context-owners-label">Quem faz a próxima ação<em/);
+  assert.match(st, /rows\.push\(\['Quem faz',/);
+  assert.ok(!st.includes("nome:'Responsáveis'"), 'o nome antigo saiu da etapa');
+  assert.match(st, /\(\{ 'alteração': 'Pedir alteração' \}\)/);
+  assert.match(st, /<\/header><div class="status-gate-folha">/);
+  assert.match(st, /<small>Nada muda até você confirmar\.<\/small>/);
+  assert.match(st, /String\(etapas\[atual\]\.dataset\.name\|\|''\)\.toLowerCase\(\)/);
+  const css = ler('padrao-v2/zm-r-a-8-portao-temas.css');
+  assert.match(css, /#workflow-modal\.status-context-dialog\{[^}]*--wm-fundo:var\(--d3-fume-forte\)/);
+  assert.match(css, /--wm-titulo-display:block/);
+  assert.match(css, /\.v2-st-dica\.v2-st-dica\{color:var\(--d3-fume-apagado\)\}/, 'a dica do menu passa de 4,5:1');
+  const padrao = ler('vybe-padrao.css');
+  assert.match(padrao, /\.status-context-dialog \.context-title\{display:var\(--wm-titulo-display,none\)!important\}/);
+  assert.match(padrao, /\.context-progress\{font:var\(--wm-progresso-fonte,600 12px var\(--mac-ui\)\)!important;color:var\(--wm-progresso-cor,#ff9a5c\)!important\}/);
+});
+

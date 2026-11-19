@@ -18154,6 +18154,59 @@ body.mundo #fc-overlay#fc-overlay .nd-card :is(.nd-btn,.nd-chip,.nd-tipo,.nd-dia
   body.mundo #fc-overlay#fc-overlay .nd .nd-sazonal{flex:1 1 100%}
 }
 
+/* ===== padrao-v2/zm-r-a-8-portao-temas.css ===== */
+/* ===================================================================================================================
+   V2 · R · JANELAS NOS TRÊS TEMAS (prancha V2-R-Janelas-Temas, 19/11/2026). Conferência do menu de status e do portão
+   de motivo (openStatusContextGate, #workflow-modal.status-context-dialog) no Fumê, no Claro e no Escuro.
+   Portão: o vidro fumê por fora (o nome do pedido em 20, "1 de 5 · motivo" e o fechar de 34), uma folha por dentro com
+   a peça, as etapas com nome (Motivo, Origem, Quem faz, Referência, Revisão) e o formulário, e no pé, no vidro, "Nada
+   muda até você confirmar.", Cancelar de contorno e Continuar no botão claro. A casca vem das variáveis --wm-* (vybe-
+   mundo.css); sem !important novo.
+   Menu: a dica "próximo"/"voltar" sobe do cinza de enfeite para o apagado do vidro (o enfeite dava 2,2:1 a 3,7:1).
+   =================================================================================================================== */
+body.mundo #workflow-modal.status-context-dialog{
+  --wm-fundo:var(--d3-fume-forte);--wm-cor:var(--d3-fume-texto);--wm-pad:16px;--wm-sombra:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);
+  --wm-x-fundo:var(--d3-fume-veu-forte);--wm-x-cor:var(--d3-fume-texto);
+  --wm-titulo-fs:20px;--wm-titulo-fonte:var(--vv-texto,Inter,sans-serif);--wm-titulo-margem:0;
+  --wm-pe-fundo:transparent;--wm-pe-linha:transparent;--wm-pe-margem:12px 0 0;--wm-pe-pad:0;
+  --wm-ajuda:var(--d3-rotulo);--wm-titulo-display:block;--wm-progresso-display:block;--wm-progresso-cor:var(--d3-fume-apagado);--wm-progresso-fonte:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);
+  display:flex;flex-direction:column;-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2)}
+
+/* Topo no vidro: título e progresso à esquerda, o fechar à direita. */
+body.mundo #workflow-modal.status-context-dialog .context-header{flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:12px;row-gap:3px;align-items:center;margin:0 0 12px;padding:0;border:0;background:none}
+body.mundo #workflow-modal.status-context-dialog .context-header > .workflow-kicker{grid-column:2;grid-row:1 / span 2;min-height:0}
+body.mundo #workflow-modal.status-context-dialog .context-header > .workflow-kicker > span:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body.mundo #workflow-modal.status-context-dialog .context-header .workflow-close:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+body.mundo #workflow-modal.status-context-dialog .context-title{--wm-titulo-cor:var(--d3-fume-texto);grid-column:1;grid-row:1;margin:0;color:var(--d3-fume-texto);font:600 20px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em}
+body.mundo #workflow-modal.status-context-dialog .context-progress{grid-column:1;grid-row:2;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+
+/* A folha com a peça, as etapas e o formulário. */
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha{--wm-titulo-cor:var(--d3-tinta);flex:1;min-height:0;display:flex;flex-direction:column;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta);overflow:hidden}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha > .workflow-item{margin:12px 12px 0;padding:0 2px;background:transparent}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas{margin:10px 14px 0;padding-bottom:10px;border-bottom:1px solid var(--d3-divisa);color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas > .vb-etapa{justify-content:flex-start;gap:0;padding:8px 6px 0 0}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas > .vb-etapa::after{top:0;bottom:auto;height:3px;margin-right:6px;border-radius:2px;background:var(--d3-veu-forte)}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas > .vb-etapa:is(.feito,.atual){color:var(--d3-tinta)}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas > .vb-etapa:is(.feito,.atual)::after{background:var(--d3-tinta)}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas > .vb-etapa.atual{font-weight:600}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas > .vb-etapa > b{display:none}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .vb-etapas.muitas > .vb-etapa:not(.atual) > em{display:inline}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .context-scroll{flex:1;min-height:0;padding:12px 14px 14px;overflow-y:auto;scrollbar-width:thin}
+body.mundo #workflow-modal.status-context-dialog .status-gate-folha .context-field-help{color:var(--d3-rotulo)}
+
+/* O pé no vidro. */
+body.mundo #workflow-modal.status-context-dialog .context-actions{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;position:static;border-radius:0}
+body.mundo #workflow-modal.status-context-dialog .context-actions > small{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.status-context-dialog .context-actions > div{display:flex;gap:8px}
+body.mundo #workflow-modal.status-context-dialog .context-actions .pt-btn{background:transparent;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
+body.mundo #workflow-modal.status-context-dialog .context-actions .pt-btn:hover{background:var(--d3-fume-veu)}
+body.mundo #workflow-modal.status-context-dialog .context-actions .pt-btn.k{background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra)}
+body.mundo #workflow-modal.status-context-dialog .context-actions .pt-btn.k:hover{background:var(--d3-fume-texto2)}
+body.mundo #workflow-modal.status-context-dialog .context-actions .pt-btn:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* Menu de status: a dica legível nos três temas. */
+body.mundo .status-editor:is(.status-editor,#vv-h) .v2-st-dica.v2-st-dica{color:var(--d3-fume-apagado)}
+
 /* ===== padrao-v2/zm-r-b-1-saude.css ===== */
 /* ===================================================================================================================
    V2 · R · SAÚDE DA CARTEIRA (prancha V2-R-Saude-Carteira, aprovada pelo Paulo). A janela #vv-carteira já vira vidro fumê

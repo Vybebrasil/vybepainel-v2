@@ -1749,7 +1749,7 @@ html body.mundo.mundo-modulo .manager-calendar-day.is-today .manager-calendar-da
 html body.mundo.mundo-modulo .grupo-cadastro{color:#6B665E!important}
 html body.mundo.mundo-modulo .cr-texto{color:var(--d3-tinta)!important}
 html body.mundo.mundo-modulo .status-context-dialog .workflow-field>span{color:#6B665E!important}
-html body.mundo.mundo-modulo .context-field-help{color:#6B665E!important}
+html body.mundo.mundo-modulo .context-field-help{color:var(--wm-ajuda,var(--d3-rotulo))!important}
 html body.mundo.mundo-modulo .context-actions>small{color:#6B665E!important}
 html body.mundo.mundo-modulo #context-review dt{color:#6B665E!important}
 html body.mundo.mundo-modulo #context-step-error{color:#DB001D!important}
