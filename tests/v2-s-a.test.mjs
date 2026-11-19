@@ -67,7 +67,7 @@ test('Visão do setor: cada linha de "Pede ação" vira número, título curto e
   assert.match(html, /<b>Vão ao ar hoje sem estar prontas<\/b><small>1 de 17 já está Finalizado<\/small>/);
   assert.match(html, /<b>Risco de furo em 2 dias<\/b>/);
   assert.match(html, /<b>Cliente sem conteúdo nesta semana<\/b><small>Gonzalez<\/small>/);
-  assert.match(html, /<b class="vst-lin-n">2<\/b>.*<b>Na sua fila<\/b>/s);
+  assert.match(html, /<b class="vst-lin-n">2<\/b>.*<b>Atrasadas na sua fila<\/b><small>peças com você<\/small>/s);
   assert.equal((html.match(/vst-lin-n r/g) || []).length, 1, 'só o primeiro número grave fica vermelho');
 });
 

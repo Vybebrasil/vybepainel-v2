@@ -39,36 +39,34 @@ const numeros = () => ({
 const SUBS = [{ id: 'gestor', nome: 'Painel de trabalho' }, { id: 'tarefas', nome: 'Minhas tarefas' }, { id: 'conteudo', nome: 'Aprovação de conteúdo' }, { id: 'impressoes', nome: 'Impressões' }];
 const contexto = (N) => ({ nome: 'Produção', subs: SUBS, numeros: () => N, fila: () => ({ itens: [] }), agenda: () => [{ dia: '2026-11-13' }], abrirSub() {}, irSetor() {}, aoFechar() {} });
 
-test('Visão do setor: cabeçalho do quadro (setores em fichas, Atualizado e um botão cheio) e o molde na ordem', async () => {
+test('Visão do setor (prancha V2-S-Visao-Setor): topo com o menu dos módulos, números, Pede ação, Pessoas, o Heitor e o resto no ajuste', async () => {
   const t = montar();
   t.ctx.VybeSetor.abrir('setor:producao', contexto(numeros()));
   const topo = t.el.innerHTML;
-  assert.match(topo, /class="g2-topo vs-topo"><h2>Produção<\/h2><small class="d3s-topo-sub">[^<]+ · \d\d:\d\d<\/small><span class="g2-seg"/);
+  assert.match(topo, /class="g2-topo vs-topo"><details class="vst-titulo"><summary><h2>Produção<\/h2>/, '"Produção ⌄" abre os módulos');
+  assert.match(topo, /<small class="vst-sub">visão geral do setor · <button type="button" data-setor-atualizar title="Atualizar agora">atualizado \d\d:\d\d<\/button><\/small>/);
   for (const s of ['Produção', 'Clientes', 'Comercial', 'RH', 'Finanças']) assert.ok(topo.includes(`>${s}</button>`), s);
   assert.match(topo, /data-setor-ir="setor:producao" aria-pressed="true"/);
-  // Direção 3 (quadro D3-VisaoSetor): o atualizar fica só no ícone redondo; a hora vai na dica e ao lado do título.
-  assert.match(topo, /class="g2-btn g2-atualizar d3s-atualizar" data-setor-atualizar title="Atualizado \d\d:\d\d" aria-label="Atualizar \(atualizado \d\d:\d\d\)"><svg/);
-  assert.doesNotMatch(topo, /vs-atalhos|vv-cb-kicker/, 'sem o rótulo e sem as abas de cima');
+  assert.match(topo, /class="g2-btn vst-ajuste" data-vst-ajuste aria-expanded="false"/, 'o ajuste abre os números de baixo');
+  assert.match(topo, /data-setor-fechar/, 'o fechar continua');
   await esperar();
   const h = t.parte('.vs-corpo').innerHTML;
-  // Direção 3 (quadro D3-VisaoSetor): o botão do que pede ação mora no bloco laranja do Heitor, não no cabeçalho.
   assert.equal(t.parte('.g2-vaga').innerHTML, '', 'o topo não tem botão cheio');
-  assert.match(h, /class="d3-acao d3s-acao"[^>]*>.*Heitor · Coordenação<\/small><span class="d3s-frase">3 passaram da data do cliente\. Alteração segura 5\.<\/span><\/span><button type="button" class="d3-acao-btn" data-espiar="atrasadas">Resolver as 3<\/button>/s);
-  const ordem = ['d3s-acao', 'd3s-nums', 'd3s-pede', 'd3s-pessoas', 'd3s-status', 'd3s-mods', '<details class="g2-mais"'].map((c) => h.indexOf(c));
-  assert.ok(ordem.every((p, i) => p >= 0 && (i === 0 || p > ordem[i - 1])), 'bloco de ação, quatro números, pede ação, pessoas, status, módulos e o resto em mostrar');
-  assert.equal((h.match(/class="d3-num d3s-num/g) || []).length, 4, 'quatro números');
-  assert.match(h, /Prontas da semana<\/span><b class="d3-num-v">4<small> \/ 10<\/small><\/b><span class="d3-barra" style="--v:40%">/);
-  assert.match(h, /title="Atrasada: a data do cliente/, 'a conta que a fala abria fica na dica do número');
-  assert.match(h, /<span class="d3s-pill r">3<\/span><button type="button" class="d3s-lin-txt" data-g2-abre aria-expanded="true" title="Peças furando a data do cliente">Furando a data<\/button>/, 'a primeira linha já abre no lugar');
-  assert.match(h, /Card A, ia ao ar em 02\/11/);
-  assert.match(h, /<span class="d3s-pill r">Hoje<\/span>.*?data-vs-peca="10">Abrir a peça/s);
-  assert.match(h, /<span class="d3s-pill a">2 dias<\/span><button[^>]*><b>2<\/b> com risco de furo<\/button>/);
+  const ordem = ['vst-nums', 'vst-pede', 'd3s-pessoas', 'vst-dias', 'vst-mods-pe', 'vst-laranja', 'd3s-status', '<details class="g2-mais"'].map((c) => h.indexOf(c));
+  assert.ok(ordem.every((p, i) => p >= 0 && (i === 0 || p > ordem[i - 1])), ordem.join(','));
+  assert.equal((h.match(/class="vst-num"/g) || []).length, 4, 'quatro números');
+  assert.match(h, /title="Atrasada: a data do cliente/, 'a conta fica na dica do número');
+  assert.match(h, /<b class="vst-lar-num">3<\/b><span class="vst-lar-tit">passaram da data do cliente<\/span><small>Alteração segura 5\. Começar por elas destrava a semana\.<\/small>/);
+  assert.match(h, /class="vst-lar-btn k" data-espiar="atrasadas">Resolver as 3<\/button>/);
+  assert.match(h, /<b class="vst-lin-n r">3<\/b><span class="vst-lin-txt" title="[^"]*Card A, ia ao ar em 02\/11[^"]*"><b>Furando a data do cliente<\/b>/, 'os nomes das peças ficam na dica');
+  assert.match(h, /data-vs-peca="10">Abrir a peça/);
+  assert.match(h, /<b>Risco de furo em 2 dias<\/b>/);
   assert.match(h, /data-espiar="alerta:4">Cobrar/, 'esperando o cliente continua com o Cobrar');
-  for (const v of ['Por semana', 'Onde trava', 'Cobertura', 'Agenda']) assert.match(h, new RegExp(`class="d3s-chip" data-g2-mais>${v}<`), v);
   assert.match(h, /<b>Bia<\/b><small>2 atrasadas<\/small>/, 'pessoas e carga com as atrasadas de cada um');
-  assert.match(h, /data-setor-sub="conteudo" title="[^"]*"><span>Aprovação<\/span><b class="">0<\/b>/);
-  assert.match(h, /data-setor-sub="impressoes" title="[^"]*"><span>Impressões<\/span><b class=""><\/b>/, 'módulo sem número na tela não ganha número inventado');
-  assert.match(h, /data-g2-mais title="[^"]*"><span>Carga do time<\/span><b class="">6<\/b>/);
+  assert.match(h, /<b>Sem responsável<\/b><small>a distribuir · o Heitor distribui<\/small>/);
+  assert.match(h, /class="vst-mods-pe"><span>Módulos<\/span><button type="button" data-setor-sub="gestor"/);
+  assert.doesNotMatch(h, /data-setor-sub="impressoes"/, 'módulo sem número fica fora do pé (está no menu do título)');
+  assert.match(t.el.innerHTML, /role="menuitem" data-setor-sub="impressoes"/, 'o menu do título tem todos os módulos');
   const resto = h.slice(h.indexOf('<details class="g2-mais">'));
   for (const b of ['Entregas por semana', 'Carga do time', 'Onde trava', 'Clientes com atraso', 'Cobertura da semana', 'Próximos compromissos']) assert.ok(resto.includes(b), `${b} continua a um clique`);
 });

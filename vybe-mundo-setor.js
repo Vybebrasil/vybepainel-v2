@@ -363,6 +363,7 @@
     [/^Gargalo/, () => 'Gargalo na produção', (m, x) => x.nomes],
     [/^Próxima semana/, () => 'Próxima semana cheia', (m, x) => x.nomes],
     [/esperando o cliente/, () => 'Esperando o cliente', () => 'aprovação ou informação'],
+    [/na sua fila/, () => 'Atrasadas na sua fila', () => 'peças com você'],
   ];
   function vstPede(acoes, H = {}) {
     const linhas = acoes.map((l, i) => {

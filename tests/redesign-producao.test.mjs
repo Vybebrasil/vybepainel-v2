@@ -57,7 +57,7 @@ test('Produção: "Pede ação" vem primeiro, cada alerta com o botão de resolv
   assert.match(h, /data-setor-sub="gestor">Ver a semana/, 'a semana cheia leva ao Painel de trabalho');
   assert.match(h, /data-espiar="alerta:3">Cobrar/, 'esperando o cliente: cobrar');
   assert.doesNotMatch(h, /<b>2 clientes sem planejamento<\/b>/, 'nível 5 fica nos cartões de baixo');
-  assert.match(h, /<b>1 peça atrasada<\/b> na sua fila/);
+  assert.match(h, /<b class="vst-lin-n">1<\/b><span class="vst-lin-txt" title="[^"]*"><b>Atrasadas na sua fila<\/b><small>peças com você<\/small>/);
   assert.match(h, /<b>Post A<\/b>|Post A/);
 });
 

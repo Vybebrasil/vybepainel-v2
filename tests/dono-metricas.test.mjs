@@ -76,7 +76,7 @@ test('hoje: a veiculação diz o que está previsto; feitas no dia, faltam, atra
   assert.deepEqual(h.paraAgendar, { hoje: 0, vencidas: 1, agendadasVencidas: 0 });
   const furo = demandas.find((d) => d.nome === 'Furo da Beta');
   assert.deepEqual(h.lista.atrasadas[0], { id: furo.id, nome: 'Furo da Beta', cliente: 'Beta', status: 'Alteração',
-    veiculacao_iso: '2026-11-02', prazo_iso: '2026-10-27', responsavel: 'Jady' });
+    veiculacao_iso: '2026-11-02', prazo_iso: '2026-10-27', responsavel: 'Jady', furando: true });
 
   // Semana de segunda a domingo, um par por dia.
   assert.equal(r.semana.inicio, '2026-11-02');

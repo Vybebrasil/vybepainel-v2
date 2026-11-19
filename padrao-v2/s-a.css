@@ -157,7 +157,7 @@ body.vfa-aberta #lote-deck{display:none}
 .vv-espiar .vle-lista .vv-g-linha{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:center;width:100%;min-height:48px;margin:0;padding:6px 14px;box-sizing:border-box;border:0;border-top:1px solid var(--d3-divisa);border-radius:0;background:transparent;color:var(--d3-tinta);font:inherit;text-align:left;cursor:pointer}
 .vv-espiar .vle-lista .vv-g-linha:hover{background:var(--d3-veu)}
 .vv-espiar .vle-lista .vv-g-linha:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:-2px}
-.vv-espiar .vle-lista .vv-g-linha > b{grid-column:1;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-espiar .vle-lista .vv-g-linha > b{grid-column:1;color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-espiar .vle-lista .vv-g-linha > small{grid-column:1;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-espiar .vle-lista .vv-g-linha > em{grid-column:2;grid-row:1 / span 2;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-tinta);font-variant-numeric:tabular-nums;text-align:right}
 .vv-espiar .vle-lista .vv-g-linha > em:is(.t-u1,.t-ruim){color:var(--d3-perigo)}
@@ -167,7 +167,7 @@ body.vfa-aberta #lote-deck{display:none}
 .vv-espiar .vle-lista .vv-g-linha.vle-linha{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px}
 .vv-espiar .vle-av{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:7px;object-fit:cover;background:var(--d3-fume-painel);box-shadow:inset 0 0 0 1px var(--d3-divisa);color:var(--d3-fume-texto);font-size:10px;font-style:normal;font-weight:600}
 .vv-espiar .vle-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.vv-espiar .vle-txt b{font-size:var(--d3-fs-texto);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vv-espiar .vle-txt b{font-size:var(--d3-fs-texto);font-weight:600;color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-espiar .vle-txt small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-espiar .vle-datas{flex:none;width:112px;display:flex;flex-direction:column;gap:2px;text-align:right;font-size:var(--d3-fs-apoio);font-variant-numeric:tabular-nums}
 .vv-espiar .vle-datas i{font-style:normal;color:var(--d3-rotulo)}

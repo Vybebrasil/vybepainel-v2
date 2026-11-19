@@ -1832,7 +1832,8 @@ function filaV2Linha(d, motivo) {
   const nomes = ids.map((x) => equipe.find((u) => String(u.id) === x)).filter(Boolean).map((u) => firstName(u.name));
   const dono = nomes.join(', ') || String(d.responsavel || '').replace('—', '').split(',').map((n) => n.trim().split(' ')[0]).filter(Boolean).join(', ');
   const cliente = clientesDoItem(d)[0] || '';
-  const apoio = [clientesDoItem(d).join(' · ') || 'Sem cliente', dono || 'sem responsável'].join(' · ');
+  // Sem responsável pela regra única (pv2SemDono): id do Monday sem pessoa no cadastro tem dono, só não tem nome aqui.
+  const apoio = [clientesDoItem(d).join(' · ') || 'Sem cliente', pv2SemDono(d) ? 'sem responsável' : dono || 'responsável sem cadastro'].join(' · ');
   const av = cliente && typeof logoDoClienteHtml === 'function' ? logoDoClienteHtml(cliente, { classe: 'vfa-av' })
     : `<i class="vfa-av" aria-hidden="true">${safeText(String(cliente || '?').trim().slice(0, 2).toUpperCase())}</i>`;
   const iso = getDateIso(d), q = filaV2Quando(iso);
