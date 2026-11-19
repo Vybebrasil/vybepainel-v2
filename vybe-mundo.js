@@ -5557,6 +5557,120 @@
       catch { fn('escritorioAviso')?.('Não foi possível ampliar o vídeo. Tente pelo controle do vídeo.'); }
     }
   });
+  // Palco solto (Paulo, 18/11/2026: "isso tá fixo... deixa quem tá assistindo poder mover e redimensionar"): o topo
+  // "Na chamada" arrasta a janela, a alça do canto muda o tamanho com o vídeo na proporção do stream, e cada pessoa guarda
+  // o seu lugar neste navegador. Duplo clique no topo volta ao canto padrão; a janela do navegador mudou, ela volta para
+  // dentro da tela (sem passar do trilho nem do dock). A conta da caixa (palcoEncaixar) é pura e testada.
+  const PALCO_MIN = 280;
+  function palcoEncaixar(pedido, area, corpo) {
+    const larg = Math.max(0, area.dir - area.esq), alt = Math.max(0, area.fundo - area.topo);
+    const razoes = (corpo.razoes || []).map((r) => (r > 0 && Number.isFinite(r) ? r : 16 / 9));
+    const soma = razoes.reduce((s, r) => s + 1 / r, 0);
+    const min = Math.min(PALCO_MIN, larg);
+    let max = Math.min(larg, area.tela * 0.9);
+    if (soma > 0) max = Math.min(max, (alt - corpo.extra) / soma + corpo.folga);
+    max = Math.floor(Math.max(min, max));
+    const w = Math.round(Math.max(min, Math.min(max, Number(pedido.w) || PALCO_MIN)));
+    const h = Math.round(corpo.extra + soma * Math.max(0, w - corpo.folga));
+    const x = Math.round(Math.max(area.esq, Math.min(area.dir - w, Number(pedido.x) || 0)));
+    const y = Math.round(Math.max(area.topo, Math.min(area.fundo - Math.min(h, alt), Number(pedido.y) || 0)));
+    return { x, y, w, h, alto: Math.round(area.fundo - y) };
+  }
+  const chavePalco = () => 'vybe.mundo.palco.' + (String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || '') || 'anon');
+  const palcoTopo = palco.querySelector('.vv-palco-topo');
+  if (palcoTopo) palcoTopo.title = 'Arraste para mover · duplo clique volta ao canto';
+  const palcoAlca = document.createElement('span');
+  palcoAlca.className = 'vv-palco-alca'; palcoAlca.title = 'Arraste para mudar o tamanho'; palcoAlca.setAttribute?.('aria-hidden', 'true');
+  palco.append?.(palcoAlca);
+  let palcoPedido = null, palcoLido = '', palcoAssinatura = '';
+  function palcoArea() {
+    const m = parseFloat(getComputedStyle(body).getPropertyValue('--vv-m')) || 14;
+    const a = { esq: m, topo: m, dir: innerWidth - m, fundo: innerHeight - m, tela: innerWidth };
+    for (const el of [hud.querySelector('.vv-trilho'), faixaDock.hidden ? null : faixaDock.firstElementChild]) {
+      const r = el?.getClientRects?.().length ? el.getBoundingClientRect() : null;
+      if (!r || !r.width || !r.height) continue;
+      if (r.height >= r.width && r.left < innerWidth / 2) a.esq = Math.max(a.esq, Math.round(r.right + m)); // trilho em pé
+      else if (r.top > innerHeight / 2) a.fundo = Math.min(a.fundo, Math.round(r.top - m)); // dock ou barra embaixo
+    }
+    return a;
+  }
+  function palcoCorpo() {
+    const cs = getComputedStyle(palco), n = (v) => parseFloat(v) || 0;
+    const videos = palco.classList.contains('recolhido') ? [] : [...palco.querySelectorAll('.vv-palco-video video')];
+    return {
+      extra: n(cs.paddingTop) + n(cs.paddingBottom) + (palcoTopo?.offsetHeight || 0) + n(cs.rowGap) * videos.length,
+      folga: n(cs.paddingLeft) + n(cs.paddingRight),
+      razoes: videos.map((v) => (v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 16 / 9)),
+    };
+  }
+  function palcoSoltar(pedido, corpo = palcoCorpo()) {
+    const g = palcoEncaixar(pedido, palcoArea(), corpo), s = palco.style;
+    palco.classList.add('vv-solto');
+    s.left = g.x + 'px'; s.top = g.y + 'px'; s.right = 'auto'; s.bottom = 'auto'; s.width = g.w + 'px'; s.maxHeight = g.alto + 'px';
+    return g;
+  }
+  function palcoVoltarAoCanto() {
+    palcoPedido = null; palcoAssinatura = '';
+    palco.classList.remove('vv-solto');
+    for (const p of ['left', 'top', 'right', 'bottom', 'width', 'max-height']) palco.style.removeProperty(p);
+    try { localStorage.removeItem(chavePalco()); } catch { /* sem armazenamento */ }
+  }
+  // Chamado a cada pintura do palco e quando a tela muda: só refaz a conta quando algo que mexe na caixa mudou.
+  function palcoReencaixar(forcar) {
+    if (!palco.classList.contains('com-video') || document.fullscreenElement === palco) return;
+    const chave = chavePalco();
+    if (palcoLido !== chave) {
+      palcoLido = chave; palcoPedido = null;
+      try { const g = JSON.parse(localStorage.getItem(chave) || 'null'); if (g && [g.x, g.y, g.w].every(Number.isFinite)) palcoPedido = { x: g.x, y: g.y, w: g.w }; } catch { /* sem posição guardada */ }
+      forcar = true;
+    }
+    if (!palcoPedido) { if (palco.classList.contains('vv-solto')) palcoVoltarAoCanto(); return; }
+    const corpo = palcoCorpo();
+    const ass = [innerWidth, innerHeight, Math.round(corpo.extra), corpo.razoes.map((r) => r.toFixed(3)).join(',')].join('|');
+    if (!forcar && ass === palcoAssinatura) return;
+    palcoAssinatura = ass; palcoSoltar(palcoPedido, corpo);
+  }
+  function palcoSeguir(ev, alvo, pedidoDe) {
+    ev.preventDefault();
+    const corpo = palcoCorpo(), r = palco.getBoundingClientRect();
+    let mexeu = false;
+    alvo.setPointerCapture?.(ev.pointerId); palco.classList.add('vv-mexendo');
+    const mover = (e) => {
+      if (e.pointerId !== ev.pointerId) return;
+      if (!mexeu && Math.abs(e.clientX - ev.clientX) + Math.abs(e.clientY - ev.clientY) < 3) return;
+      mexeu = true; const g = palcoSoltar(pedidoDe(e, r, corpo), corpo); palcoPedido = { x: g.x, y: g.y, w: g.w };
+    };
+    const soltar = (e) => {
+      if (e.pointerId !== ev.pointerId) return;
+      alvo.removeEventListener('pointermove', mover); alvo.removeEventListener('pointerup', soltar); alvo.removeEventListener('pointercancel', soltar);
+      palco.classList.remove('vv-mexendo');
+      if (!mexeu) return;
+      palcoLido = chavePalco(); palcoAssinatura = '';
+      try { localStorage.setItem(palcoLido, JSON.stringify(palcoPedido)); } catch { /* vale até recarregar */ }
+    };
+    alvo.addEventListener('pointermove', mover); alvo.addEventListener('pointerup', soltar); alvo.addEventListener('pointercancel', soltar);
+  }
+  palcoTopo?.addEventListener('pointerdown', (ev) => {
+    if (ev.button !== 0 || ev.target.closest('button') || document.fullscreenElement === palco) return;
+    const dx = ev.clientX - palco.getBoundingClientRect().left, dy = ev.clientY - palco.getBoundingClientRect().top;
+    palcoSeguir(ev, palcoTopo, (e, r) => ({ x: e.clientX - dx, y: e.clientY - dy, w: r.width }));
+  });
+  palcoTopo?.addEventListener('dblclick', (ev) => { if (!ev.target.closest('button')) palcoVoltarAoCanto(); });
+  // A alça puxa no canto: a largura sai do que cobre o ponteiro (na horizontal ou, pela proporção, na vertical).
+  palcoAlca.addEventListener?.('pointerdown', (ev) => {
+    if (ev.button !== 0 || document.fullscreenElement === palco) return;
+    palcoSeguir(ev, palcoAlca, (e, r, c) => {
+      const soma = c.razoes.reduce((s, x) => s + 1 / x, 0);
+      const porX = r.width + e.clientX - ev.clientX, porY = soma > 0 ? (r.height + e.clientY - ev.clientY - c.extra) / soma + c.folga : porX;
+      return { x: r.left, y: r.top, w: Math.max(porX, porY) };
+    });
+  });
+  // Tela cheia é do navegador: a caixa solta sai do caminho e volta quando ela fecha.
+  document.addEventListener?.('fullscreenchange', () => {
+    if (document.fullscreenElement === palco) { palco.classList.remove('vv-solto'); for (const p of ['left', 'top', 'right', 'bottom', 'width', 'max-height']) palco.style.removeProperty(p); }
+    else { palcoAssinatura = ''; palcoReencaixar(true); }
+  });
+  if (typeof addEventListener === 'function') { let quadroPalco = 0; addEventListener('resize', () => { cancelAnimationFrame(quadroPalco); quadroPalco = requestAnimationFrame(() => palcoReencaixar(true)); }); }
   function trazerProPalco() {
     if (!ligado) return;
     // Espelho dos vídeos: o palco liga os próprios <video> ao mesmo MediaStream (mover o contêiner da
@@ -5573,10 +5687,12 @@
       const caixa = document.createElement('figure'); caixa.className = 'vv-palco-video';
       const nome = v.closest('.office-call-pessoa')?.querySelector('b')?.textContent || '';
       const novo = document.createElement('video'); novo.autoplay = true; novo.playsInline = true; novo.muted = true; novo.controls = true; novo.srcObject = v.srcObject;
+      novo.addEventListener('resize', () => palcoReencaixar());
       caixa.append(novo); if (nome) { const f = document.createElement('figcaption'); f.textContent = nome; caixa.append(f); }
       palco.append(caixa); novo.play?.().catch(() => {});
     }
     palco.classList.toggle('com-video', originais.length > 0);
+    palcoReencaixar();
     for (const id of ['office-tv', 'office-recado-rapido']) {
       const el = document.getElementById(id);
       if (el && el.parentElement !== document.body) { el.classList.add('vv-flutuante-ofc'); document.body.append(el); }
