@@ -680,7 +680,7 @@ const ACOES_DISPONIVEIS = [
 let ORIGEM_DO_CONSTRUTOR = null;
 function editarAutomacao(id) {
   const ativo = document.activeElement;
-  if (!RASCUNHO || !ativo?.closest?.('.auto-construtor')) ORIGEM_DO_CONSTRUTOR = ativo && ativo !== document.body ? ativo : null;
+  if (!RASCUNHO || !ativo?.closest?.('.regra-v2')) ORIGEM_DO_CONSTRUTOR = ativo && ativo !== document.body ? ativo : null;
   trocarAbaAutomacoes('regras'); // o construtor mora na aba Regras
   automacaoEmEdicao = id ? AUTOMACOES.find((a) => Number(a.id) === Number(id)) : null;
   const a = automacaoEmEdicao
@@ -695,11 +695,11 @@ function editarAutomacao(id) {
     acoes: JSON.parse(JSON.stringify(a.acoes || [])),
   };
   pintarConstrutor();
-  document.querySelector('#auto-editor .auto-construtor')?.focus({ preventScroll: true });
+  document.querySelector('#auto-editor .regra-v2')?.focus({ preventScroll: true });
 }
 
 function fecharConstrutor({ devolverFoco = true } = {}) {
-  const aberto = Boolean(document.querySelector('#auto-editor .auto-construtor'));
+  const aberto = Boolean(document.querySelector('#auto-editor .regra-v2'));
   RASCUNHO = null;
   const caixa = document.getElementById('auto-editor');
   if (caixa) caixa.innerHTML = '';
@@ -714,7 +714,7 @@ function fecharConstrutor({ devolverFoco = true } = {}) {
 if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || e.defaultPrevented || !RASCUNHO) return;
-    const construtor = document.querySelector('#auto-editor .auto-construtor');
+    const construtor = document.querySelector('#auto-editor .regra-v2');
     if (!construtor?.getClientRects().length || document.querySelector('#cli-pergunta, #vb-apagar, #workflow-modal, dialog[open]')) return;
     e.preventDefault(); e.stopPropagation();
     const campo = e.target?.closest?.('input, textarea, select');
@@ -826,166 +826,195 @@ function fraseDoRascunho() {
   return `Quando ${quando}${so ? `, e ${so}` : ''}, ${lista}.`;
 }
 
-function fichasDeEscolha(lista, atual, aoClicar, vazio = 'nada cadastrado') {
+// V2 · S · Nova regra (prancha V2-S-Automacoes-Regra, aprovada pelo Paulo em 19/11/2026). Os quatro passos numa folha de
+// duas colunas (1, 2 e 4 à esquerda; 3, as ações, à direita) e, direto no vidro, a frase "A regra vai ficar assim" com
+// Testar numa peça, Cancelar e Criar regra. As escolhas de um valor só são <select>; as de vários (formato, grupo e
+// pessoas) abrem uma lista de marcar por baixo do campo. Classes rg2-*: as antigas auto-* caem nas regras !important do
+// legado (vybe-padrao.css e vybe-mundo.css).
+const jsArgRegra = (v) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+function opcoesDoCatalogo(lista, atual, primeira = '') {
   const itens = CATALOGOS[lista] || [];
-  if (!itens.length) return `<span class="auto-vazio">${vazio}</span>`;
-  return itens.map((x) => {
-    const marcada = Array.isArray(atual)
-      ? atual.some((v) => String(v) === String(x.chave))
-      : String(atual || '') === String(x.chave);
-    const nome = lista === 'grupos' ? nomeDeGrupo(x.chave) : x.rotulo;
-    return `<button type="button" class="auto-ficha ${marcada ? 'marcada' : ''}"
-      onclick="${aoClicar.replace('{chave}', String(x.chave).replace(/'/g, "\\'"))}"
-      aria-pressed="${marcada}">${x.cor ? `<i style="background:${safeText(x.cor)}"></i>` : ''}${safeText(nome)}</button>`;
-  }).join('');
+  const nome = (x) => (lista === 'grupos' ? nomeDeGrupo(x.chave) : x.rotulo);
+  return `${primeira ? `<option value="">${safeText(primeira)}</option>` : ''}${itens.map((x) =>
+    `<option value="${safeText(x.chave)}"${String(atual || '') === String(x.chave) ? ' selected' : ''}>${safeText(nome(x))}</option>`).join('')}`;
+}
+function campoDeEscolhaRegra(rotulo, html, extra = '') {
+  return `<label class="rg2-campo"><span class="rg2-rot">${rotulo}</span><span class="rg2-sel">${html}</span>${extra}</label>`;
+}
+// Escolha de vários: o resumo parece um campo; aberto, a lista de marcar (aria-pressed) fica por baixo dele.
+function escolhaDeVariosRegra(k, lista, atuais, aoClicar, vazio, nada = 'nada cadastrado', prefixo = '') {
+  const itens = CATALOGOS[lista] || [];
+  const nome = (chave) => (lista === 'grupos' ? nomeDeGrupo(chave) : lista === 'pessoas' ? primeiroNome(nomeDePessoa(chave)) : rotuloDoCatalogo(lista, chave, chave));
+  const marcados = (atuais || []).map(nome);
+  const resumo = marcados.length ? prefixo + (marcados.length > 1 ? `${marcados.slice(0, -1).join(', ')} e ${marcados.at(-1)}` : marcados[0]) : vazio;
+  const corpo = itens.length ? itens.map((x) => {
+    const marcada = (atuais || []).some((v) => String(v) === String(x.chave));
+    return `<button type="button" class="rg2-op" aria-pressed="${marcada}" onclick="${safeText(aoClicar.replace('{chave}', jsArgRegra(x.chave)))}">${x.cor ? `<i style="background:${safeText(x.cor)}"></i>` : ''}${safeText(lista === 'grupos' ? nomeDeGrupo(x.chave) : x.rotulo)}</button>`;
+  }).join('') : `<span class="rg2-nada">${safeText(nada)}</span>`;
+  return `<details class="rg2-varios" data-k="${safeText(k)}"><summary class="rg2-resumo${marcados.length ? '' : ' vazio'}"><span>${safeText(resumo)}</span></summary><div class="rg2-lista" role="group">${corpo}</div></details>`;
+}
+
+// Escolha de um (o "para onde" de uma ação): o mesmo campo, a lista fecha ao escolher. Sem <select> aqui porque o
+// legado pinta todo campo de branco com !important, e na linha da ação a escolha é só a segunda linha do texto.
+function escolhaDeUmRegra(k, lista, atual, caminho, vazio) {
+  const itens = CATALOGOS[lista] || [];
+  const nome = (chave) => (lista === 'grupos' ? nomeDeGrupo(chave) : rotuloDoCatalogo(lista, chave, chave));
+  const corpo = itens.length ? itens.map((x) => {
+    const marcada = String(atual || '') === String(x.chave);
+    return `<button type="button" class="rg2-op" aria-pressed="${marcada}" onclick="${safeText(`this.closest('details').open=false;mexerNoRascunho('${caminho}','${jsArgRegra(x.chave)}')`)}">${x.cor ? `<i style="background:${safeText(x.cor)}"></i>` : ''}${safeText(nome(x.chave))}</button>`;
+  }).join('') : '<span class="rg2-nada">nada cadastrado</span>';
+  return `<details class="rg2-varios rg2-um" data-k="${safeText(k)}"><summary class="rg2-resumo${atual ? '' : ' vazio'}"><span>${safeText(atual ? `para ${nome(atual)}` : vazio)}</span></summary><div class="rg2-lista" role="group">${corpo}</div></details>`;
+}
+
+// A frase com as partes que decidem em negrito: o gatilho e a primeira ação.
+function fraseDoRascunhoHtml() {
+  const frase = fraseDoRascunho();
+  if (!frase) return '';
+  const quando = frasearGatilho(RASCUNHO.gatilho);
+  const acoes = (RASCUNHO.acoes || []).map(frasearAcao).filter(Boolean);
+  let html = safeText(frase);
+  for (const parte of [quando, acoes[0]]) if (parte) html = html.replace(safeText(parte), `<b>${safeText(parte)}</b>`);
+  return html;
+}
+
+// "Testar numa peça" do construtor: um ensaio SÓ NA TELA. A regra ainda não existe e o ensaio do servidor
+// (acao=ensaio) roda as regras já gravadas criando e apagando uma peça de verdade; por isso aqui nada vai ao servidor:
+// a peça de teste nasce do gatilho e da condição e recebe as ações em ordem, como o motor faz. Nada grava, nada avisa.
+function ensaioDoRascunho(r = RASCUNHO) {
+  if (!r) return null;
+  const g = r.gatilho || {}, c = r.condicao || {};
+  const peca = {
+    formato: (c.formato_em || c.formato_apenas || [])[0] || '',
+    grupo: (c.grupo_em || [])[0] || '',
+    status: g.tipo === 'status' ? g.para || '' : (c.status_em || [])[0] || '',
+    captacao: g.tipo === 'captacao' ? g.para || '' : (c.captacao_em || [])[0] || '',
+    responsaveis: [], comentarios: 0, avisos: 0,
+  };
+  const mudou = new Set();
+  for (const a of r.acoes || []) {
+    if (a.tipo === 'grupo' && a.para) { peca.grupo = a.para; mudou.add('grupo'); }
+    else if (a.tipo === 'status' && a.para) { peca.status = a.para; mudou.add('status'); }
+    else if (a.tipo === 'captacao' && a.para) { peca.captacao = a.para; mudou.add('captacao'); }
+    else if (a.tipo === 'responsaveis') {
+      const novas = (a.pessoas || []).map(String);
+      peca.responsaveis = a.modo === 'replace' ? novas : [...new Set([...peca.responsaveis, ...novas])];
+      mudou.add('responsaveis');
+    } else if (a.tipo === 'update') peca.comentarios += 1;
+    else if (a.tipo === 'notificar') peca.avisos += 1;
+  }
+  return { peca, mudou: [...mudou] };
+}
+let ENSAIO_DO_RASCUNHO = '';
+function ensaiarRascunho() {
+  if (!RASCUNHO) return;
+  const g = RASCUNHO.gatilho || {};
+  if ((g.tipo !== 'data' && !g.para) || !(RASCUNHO.acoes || []).length) {
+    ENSAIO_DO_RASCUNHO = 'Para testar, escolha o gatilho e pelo menos uma ação.';
+    pintarConstrutor();
+    return;
+  }
+  const { peca, mudou } = ensaioDoRascunho();
+  const linhas = [];
+  if (mudou.includes('status')) linhas.push(`status ${nomeDeStatus(peca.status)}`);
+  if (mudou.includes('grupo')) linhas.push(`no grupo ${nomeDeGrupo(peca.grupo)}`);
+  if (mudou.includes('captacao')) linhas.push(`captação ${nomeDeCaptacao(peca.captacao)}`);
+  if (mudou.includes('responsaveis')) linhas.push(peca.responsaveis.length ? `com ${peca.responsaveis.map((p) => primeiroNome(nomeDePessoa(p))).join(' e ')}` : 'sem responsável');
+  if (peca.comentarios) linhas.push(peca.comentarios === 1 ? 'um comentário escrito' : `${peca.comentarios} comentários escritos`);
+  if (peca.avisos) linhas.push('o responsável avisado');
+  const formato = peca.formato ? nomeDeFormato(peca.formato) : 'qualquer formato';
+  ENSAIO_DO_RASCUNHO = `Numa peça de ${formato}, quando ${frasearGatilho(g)}: ${linhas.length ? `fica ${linhas.join(', ')}` : 'nada muda (falta escolher para onde)'}. Ensaio só na tela: nada foi gravado nem avisado.`;
+  pintarConstrutor();
 }
 
 function pintarConstrutor() {
   const caixa = document.getElementById('auto-editor');
   if (!caixa) return;
-  if (!RASCUNHO) { caixa.innerHTML = ''; return; }
+  if (!RASCUNHO) { caixa.innerHTML = ''; ENSAIO_DO_RASCUNHO = ''; return; }
+  // A lista de marcar que estava aberta continua aberta depois de redesenhar (cada escolha redesenha a folha).
+  // O resultado do ensaio vale só para o desenho logo depois dele: qualquer mudança no rascunho o apaga.
+  const ensaio = ENSAIO_DO_RASCUNHO; ENSAIO_DO_RASCUNHO = '';
+  const abertaAntes = caixa.querySelector?.('details.rg2-varios[open]')?.dataset?.k || '';
   const r = RASCUNHO;
   const g = r.gatilho || {};
 
   const abas = [['status', 'um status mudar'], ['captacao', 'a captação mudar'], ['data', 'chegar uma data']]
-    .map(([tipo, rotulo]) => `<button type="button" class="auto-aba ${g.tipo === tipo ? 'ativa' : ''}"
-      onclick="trocarTipoDeGatilho('${tipo}')" aria-pressed="${g.tipo === tipo}">${rotulo}</button>`).join('');
+    .map(([tipo, rotulo]) => `<button type="button" role="radio" aria-checked="${g.tipo === tipo}" onclick="trocarTipoDeGatilho('${tipo}')">${rotulo}</button>`).join('');
 
   let quandoCorpo = '';
   if (g.tipo === 'data') {
-    quandoCorpo = `
-      <div class="auto-campo-linha">
-        <label>Qual data<select onchange="mexerNoRascunho('gatilho.campo',this.value)">
+    const dias = [[-3, '3 dias antes'], [-2, '2 dias antes'], [-1, '1 dia antes'], [0, 'no próprio dia'], [1, '1 dia depois']];
+    quandoCorpo = `<div class="rg2-par">
+        ${campoDeEscolhaRegra('Qual data', `<select onchange="mexerNoRascunho('gatilho.campo',this.value)">
           <option value="prazo" ${g.campo === 'prazo' ? 'selected' : ''}>o prazo de produção</option>
-          <option value="veiculacao" ${g.campo === 'veiculacao' ? 'selected' : ''}>a veiculação</option>
-        </select></label>
-        <label>Momento<select onchange="mexerNoRascunho('gatilho.dias',Number(this.value))">
-          <option value="-1" ${Number(g.dias) === -1 ? 'selected' : ''}>1 dia antes</option>
-          <option value="-2" ${Number(g.dias) === -2 ? 'selected' : ''}>2 dias antes</option>
-          <option value="-3" ${Number(g.dias) === -3 ? 'selected' : ''}>3 dias antes</option>
-          <option value="0" ${Number(g.dias) === 0 ? 'selected' : ''}>no próprio dia</option>
-          <option value="1" ${Number(g.dias) === 1 ? 'selected' : ''}>1 dia depois</option>
-        </select></label>
-      </div>
-      <p class="auto-dica">Regras por data rodam numa varredura por dia, de madrugada.</p>`;
+          <option value="veiculacao" ${g.campo === 'veiculacao' ? 'selected' : ''}>a veiculação</option></select>`)}
+        ${campoDeEscolhaRegra('Momento', `<select onchange="mexerNoRascunho('gatilho.dias',Number(this.value))">${dias.map(([v, t]) =>
+          `<option value="${v}" ${Number(g.dias) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`)}
+      </div>`;
   } else {
     const lista = g.tipo === 'captacao' ? 'captacao' : 'status';
-    quandoCorpo = `
-      <div class="auto-campo">
-        <span class="auto-campo-rotulo">Virar qual ${g.tipo === 'captacao' ? 'captação' : 'status'}?</span>
-        <div class="auto-fichas">${fichasDeEscolha(lista, g.para, `mexerNoRascunho('gatilho.para','{chave}')`)}</div>
-      </div>
-      <div class="auto-campo">
-        <span class="auto-campo-rotulo">Vindo de qual? <small>opcional, em branco vale qualquer um</small></span>
-        <div class="auto-fichas">
-          <button type="button" class="auto-ficha ${!g.de ? 'marcada' : ''}"
-            onclick="mexerNoRascunho('gatilho.de','')" aria-pressed="${!g.de}">qualquer um</button>
-          ${fichasDeEscolha(lista, g.de, `mexerNoRascunho('gatilho.de','{chave}')`)}
-        </div>
+    const qual = g.tipo === 'captacao' ? 'captação' : 'status';
+    quandoCorpo = `<div class="rg2-par">
+        ${campoDeEscolhaRegra(`Virar qual ${qual}?`, `<select onchange="mexerNoRascunho('gatilho.para',this.value)">${opcoesDoCatalogo(lista, g.para, (CATALOGOS[lista] || []).length ? 'escolha' : 'nada cadastrado')}</select>`)}
+        ${campoDeEscolhaRegra('Vindo de qual? <small>· opcional</small>', `<select onchange="mexerNoRascunho('gatilho.de',this.value)">${opcoesDoCatalogo(lista, g.de, 'qualquer um')}</select>`)}
       </div>`;
   }
 
+  const jaTem = (m) => (r.acoes || []).some((a) => a.tipo === m.tipo && (!m.modo || a.modo === m.modo));
   const acoes = (r.acoes || []).map((a, i) => {
-    let corpo = '';
-    if (a.tipo === 'grupo') {
-      corpo = `<div class="auto-fichas">${fichasDeEscolha('grupos', a.para, `mexerNoRascunho('acoes.${i}.para','{chave}')`)}</div>`;
-    } else if (a.tipo === 'status') {
-      corpo = `<div class="auto-fichas">${fichasDeEscolha('status', a.para, `mexerNoRascunho('acoes.${i}.para','{chave}')`)}</div>`;
-    } else if (a.tipo === 'captacao') {
-      corpo = `<div class="auto-fichas">${fichasDeEscolha('captacao', a.para, `mexerNoRascunho('acoes.${i}.para','{chave}')`)}</div>`;
+    let escolha = '';
+    if (a.tipo === 'grupo' || a.tipo === 'status' || a.tipo === 'captacao') {
+      const lista = a.tipo === 'grupo' ? 'grupos' : a.tipo;
+      escolha = escolhaDeUmRegra(`acao-${i}`, lista, a.para, `acoes.${i}.para`, 'escolha para onde');
     } else if (a.tipo === 'responsaveis') {
-      corpo = `<div class="auto-fichas">${fichasDeEscolha('pessoas', a.pessoas || [], `alternarPessoaDaAcao(${i},'{chave}')`, 'ninguém cadastrado')}</div>`;
+      escolha = escolhaDeVariosRegra(`acao-${i}`, 'pessoas', a.pessoas || [], `alternarPessoaDaAcao(${i},'{chave}')`, 'escolha quem', 'ninguém cadastrado', a.modo === 'replace' ? 'para ' : '');
     } else {
-      corpo = `<input type="text" class="auto-texto" value="${safeText(a.texto || '')}"
+      escolha = `<input type="text" class="rg2-texto" aria-label="Texto" value="${safeText(a.texto || '')}"
         placeholder="${a.tipo === 'notificar' ? 'Sua entrega vence amanhã: {titulo} ({cliente}).' : 'Encaminhado para agendamento.'}"
         oninput="RASCUNHO.acoes[${i}].texto=this.value">`;
     }
     const titulo = ACOES_DISPONIVEIS.find((m) => m.tipo === a.tipo && (!m.modo || m.modo === a.modo))?.rotulo || a.tipo;
-    return `<div class="auto-acao-caixa">
-      <div class="auto-acao-topo"><b>${safeText(titulo)}</b>
-        <button type="button" class="auto-acao-tirar" onclick="removerAcao(${i})" aria-label="Tirar esta ação">×</button></div>
-      ${corpo}</div>`;
+    return `<div class="rg2-acao"><span class="rg2-acao-meio"><b>${safeText(titulo)}</b>${escolha}</span>
+        <button type="button" class="rg2-tirar" onclick="removerAcao(${i})" aria-label="Tirar esta ação" title="Tirar esta ação"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`;
   }).join('');
+  const somar = ACOES_DISPONIVEIS.map((m, i) => (jaTem(m) ? '' : `<button type="button" class="rg2-somar" onclick="adicionarAcao(${i})"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>${safeText(m.rotulo)}</button>`)).join('');
 
-  const frase = fraseDoRascunho();
+  const passo = (n, titulo, corpo) => `<div class="rg2-passo"><span class="rg2-n" aria-hidden="true">${n}</span><div class="rg2-passo-corpo"><b class="rg2-passo-t">${titulo}</b>${corpo}</div></div>`;
+  const frase = fraseDoRascunhoHtml();
   const problema = problemaDoRascunho();
 
   caixa.innerHTML = `
-    <section class="auto-construtor" role="dialog" tabindex="-1" aria-label="${r.id ? 'Editar regra' : 'Nova regra'}">
-      <header class="auto-construtor-topo">
-        <div>
-          <span class="auto-kicker">${r.id ? 'Editando' : 'Montando'}</span>
-          <h3>${r.id ? 'Editar regra' : 'Nova regra'}</h3>
-        </div>
-        <button type="button" class="auto-construtor-fechar" onclick="fecharConstrutor()" aria-label="Fechar">×</button>
-      </header>
-
-      <div class="auto-bloco">
-        <span class="auto-bloco-numero"><i>1</i></span>
-        <div class="auto-bloco-corpo">
-          <h4>Quando isto acontecer</h4>
-          <div class="auto-abas">${abas}</div>
-          ${quandoCorpo}
-        </div>
-      </div>
-
-      <div class="auto-bloco">
-        <span class="auto-bloco-numero"><i>2</i></span>
-        <div class="auto-bloco-corpo">
-          <h4>Só se… <small>opcional</small></h4>
-          <div class="auto-campo">
-            <span class="auto-campo-rotulo">O formato for</span>
-            <div class="auto-fichas">${fichasDeEscolha('formatos', r.condicao?.formato_em || [], `alternarCondicao('formato_em','{chave}')`, 'nenhum formato cadastrado')}</div>
+    <section class="regra-v2" role="dialog" tabindex="-1" aria-label="${r.id ? 'Editar regra' : 'Nova regra'}">
+      <div class="rg2-folha">
+        <div class="rg2-cab"><h3><span>${r.id ? 'Editar regra' : 'Nova regra'}</span></h3><span>monta em frase · nada roda antes de ${r.id ? 'salvar' : 'criar'}</span></div>
+        <div class="rg2-colunas">
+          <div class="rg2-col">
+            ${passo(1, 'Quando isto acontecer', `<span class="rg2-seg" role="radiogroup" aria-label="Quando isto acontecer">${abas}</span>${quandoCorpo}`)}
+            ${passo(2, 'Só se… <small>· opcional</small>', `<div class="rg2-par">
+              <div class="rg2-campo"><span class="rg2-rot">O formato for</span>${escolhaDeVariosRegra('formato', 'formatos', r.condicao?.formato_em || [], `alternarCondicao('formato_em','{chave}')`, 'qualquer formato', 'nenhum formato cadastrado')}</div>
+              <div class="rg2-campo"><span class="rg2-rot">A peça estiver em</span>${escolhaDeVariosRegra('grupo', 'grupos', r.condicao?.grupo_em || [], `alternarCondicao('grupo_em','{chave}')`, 'qualquer grupo', 'nenhum grupo cadastrado')}</div>
+            </div>`)}
+            ${passo(4, 'Como ela vai se chamar', `<div class="rg2-par">
+              <label class="rg2-campo"><span class="rg2-rot">Nome</span><input type="text" class="rg2-texto" id="auto-f-nome" value="${safeText(r.nome)}" placeholder="Ex.: agendou, vai ao Danilo" oninput="RASCUNHO.nome=this.value"></label>
+              <label class="rg2-campo"><span class="rg2-rot">Ordem</span><input type="number" class="rg2-texto" value="${r.ordem}" oninput="RASCUNHO.ordem=Number(this.value)||50"><small class="rg2-dica">menor roda primeiro</small></label>
+              ${campoDeEscolhaRegra('Ligada', `<select onchange="mexerNoRascunho('ativa',this.value==='1')"><option value="1" ${r.ativa ? 'selected' : ''}>sim, vale assim que criar</option><option value="0" ${r.ativa ? '' : 'selected'}>não, fica desligada</option></select>`)}
+            </div>`)}
           </div>
-          <div class="auto-campo">
-            <span class="auto-campo-rotulo">A peça estiver em</span>
-            <div class="auto-fichas">${fichasDeEscolha('grupos', r.condicao?.grupo_em || [], `alternarCondicao('grupo_em','{chave}')`, 'nenhum grupo cadastrado')}</div>
+          <div class="rg2-col">
+            ${passo(3, 'Faça isto', `${acoes ? `<div class="rg2-acoes">${acoes}</div>` : '<p class="rg2-dica">Nenhuma ação ainda. Escolha a primeira abaixo.</p>'}${somar ? `<div class="rg2-somas">${somar}</div>` : ''}`)}
           </div>
         </div>
       </div>
-
-      <div class="auto-bloco">
-        <span class="auto-bloco-numero"><i>3</i></span>
-        <div class="auto-bloco-corpo">
-          <h4>Faça isto</h4>
-          ${acoes || '<p class="auto-dica">Nenhuma ação ainda. Escolha a primeira abaixo.</p>'}
-          <div class="auto-fichas auto-add">${ACOES_DISPONIVEIS.map((m, i) =>
-            `<button type="button" class="auto-ficha somar" onclick="adicionarAcao(${i})">+ ${safeText(m.rotulo)}</button>`).join('')}</div>
-        </div>
-      </div>
-
-      <div class="auto-bloco">
-        <span class="auto-bloco-numero"><i>4</i></span>
-        <div class="auto-bloco-corpo">
-          <h4>Como ela vai se chamar</h4>
-          <input type="text" class="auto-texto" id="auto-f-nome" value="${safeText(r.nome)}"
-            placeholder="Descreva a regra em uma frase" oninput="RASCUNHO.nome=this.value">
-          <div class="auto-campo-linha">
-            <label>Ordem <small>menor roda primeiro</small>
-              <input type="number" value="${r.ordem}" oninput="RASCUNHO.ordem=Number(this.value)||50"></label>
-            <label>Ligada
-              <select onchange="mexerNoRascunho('ativa',this.value==='1')">
-                <option value="1" ${r.ativa ? 'selected' : ''}>sim</option>
-                <option value="0" ${r.ativa ? '' : 'selected'}>não</option>
-              </select></label>
-          </div>
-        </div>
-      </div>
-
-      <aside class="auto-lado" aria-label="Prévia da regra">
-        <div class="auto-previa ${frase ? '' : 'incompleta'}" aria-live="polite">
-          <span>A regra vai ficar assim</span>
-          <b>${frase ? safeText(frase) : 'Escolha o gatilho e pelo menos uma ação para ver a frase.'}</b>
-          ${problema ? `<em class="auto-problema">${safeText(problema)}</em>` : ''}
-        </div>
-        <div class="auto-c-botoes">
-          <button type="button" class="v2g-btn" onclick="fecharConstrutor()">Cancelar</button>
-          <button type="button" class="v2g-btn k auto-criar" onclick="salvarAutomacao()" ${problema ? `disabled title="${safeText(problema)}"` : ''}>
-            ${r.id ? 'Salvar alterações' : 'Criar regra'}</button>
-        </div>
+      <aside class="rg2-lado" aria-label="Prévia da regra">
+        <div class="rg2-bloco"><b class="rg2-bloco-t">A regra vai ficar assim</b>
+          <div class="rg2-frase${frase ? '' : ' incompleta'}" aria-live="polite">${frase || 'Escolha o gatilho e pelo menos uma ação para ver a frase.'}${problema ? `<em class="rg2-problema">${safeText(problema)}</em>` : ''}</div></div>
+        ${ensaio ? `<p class="rg2-ensaio" role="status">${safeText(ensaio)}</p>` : ''}
+        <div class="rg2-botoes"><button type="button" class="v2g-btn rg2-fio" onclick="ensaiarRascunho()" title="Mostra o que a regra faria numa peça de teste, só na tela">Testar numa peça</button><button type="button" class="v2g-btn rg2-fio" onclick="fecharConstrutor()">Cancelar</button></div>
+        <button type="button" class="v2g-btn k rg2-criar" onclick="salvarAutomacao()" ${problema ? `disabled title="${safeText(problema)}"` : ''}>${r.id ? 'Salvar alterações' : 'Criar regra'}</button>
+        <div class="rg2-bloco"><span class="rg2-bloco-cab"><b class="rg2-bloco-t">Regras por data</b><span>rodam de madrugada</span></span><span class="rg2-bloco-p">Prazo de produção ou veiculação, de 3 dias antes a 1 dia depois.</span></div>
       </aside>
     </section>`;
-  caixa.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (abertaAntes) caixa.querySelector(`details.rg2-varios[data-k="${abertaAntes}"]`)?.setAttribute('open', '');
+  caixa.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
 }
 
 async function salvarAutomacao() {

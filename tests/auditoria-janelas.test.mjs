@@ -63,13 +63,15 @@ test('Automações › Nova regra: Esc e troca de tela fecham, foco volta, prév
   assert.match(fechar, /\.vv-trilho \[data-trilho\], \.vv-trilho \[data-submodulo\]/, 'clique no trilho fecha');
   assert.match(fechar, /origem\?\.isConnected/, 'o foco volta a quem abriu');
   const construtor = auto.slice(auto.indexOf('function pintarConstrutor'), auto.indexOf('async function salvarAutomacao'));
-  assert.match(construtor, /<span class="auto-bloco-numero"><i>1<\/i><\/span>/);
-  assert.match(construtor, /<div class="auto-previa /);
+  // V2 · S (prancha V2-S-Automacoes-Regra, 19/11/2026): passos numerados, a frase ao lado e Criar regra desligado com o motivo.
+  assert.match(construtor, /<span class="rg2-n" aria-hidden="true">\$\{n\}<\/span>/);
+  assert.match(construtor, /class="rg2-frase/);
   assert.doesNotMatch(construtor, /auto-frase-final|auto-salvar|auto-construtor-botoes/, 'fora das classes presas ao tema escuro');
-  assert.match(construtor, /class="v2g-btn k auto-criar" onclick="salvarAutomacao\(\)" \$\{problema \? `disabled/);
+  assert.match(construtor, /class="v2g-btn k rg2-criar" onclick="salvarAutomacao\(\)" \$\{problema \? \x60disabled/);
+  assert.match(construtor, /onclick="ensaiarRascunho\(\)"/, 'Testar numa peça é o ensaio na tela');
   assert.doesNotMatch(construtor, / — /, 'sem travessão nos textos do construtor');
-  assert.match(css, /#automacoes-root \.auto-c-botoes > \.v2g-btn\.k:disabled\{[^}]*background:var\(--d3-linha\);color:var\(--d3-apagado\)/);
-  assert.match(css, /#automacoes-root \.auto-bloco-numero > i\{[^}]*color:var\(--d3-tinta\)/, 'números sem laranja');
-  assert.match(css, /#automacoes-root \.auto-previa\{[^}]*background:var\(--d3-trilho\)/, 'prévia em cartão claro');
-  assert.match(css, /\.auto-construtor-topo\{[^}]*padding:20px 104px/, 'o × do construtor fica fora do canto ⛶ ✕');
+  const sd = ler('padrao-v2/s-d.css');
+  assert.match(sd, /#automacoes-root \.rg2-lado \.v2g-btn\.k\.rg2-criar:disabled\{[^}]*color:var\(--d3-fume-apagado\)/);
+  assert.match(sd, /#automacoes-root \.rg2-n\{[^}]*background:var\(--d3-tinta\)/, 'números sem laranja');
+  assert.ok(junto.includes('/* ===== padrao-v2/s-d.css ===== */'), 'o juntador levou o fragmento da frente d');
 });

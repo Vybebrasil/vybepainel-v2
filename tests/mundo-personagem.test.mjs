@@ -108,8 +108,9 @@ test('abre peça a peça com o boneco voxel; trocar a cor de uma peça e Salvar 
   assert.equal(t.raiz().hidden, false);
   await esperar();
   assert.deepEqual(t.ch.api.map(([a]) => a), ['roupas'], 'relê o que a pessoa pode vestir, como o Provador');
-  // Uma aba por tipo de item do Habbo; abre no cabelo, com o cabelo de hoje marcado na grade.
-  for (const tipo of ['hd', 'hr', 'ha', 'ea', 'fa', 'he', 'ch', 'cc', 'lg', 'sh']) assert.match(t.lado().innerHTML, new RegExp(`role="tab"[^>]*data-valor="${tipo}"`));
+  // Sete abas à vista (prancha V2-S-Personagem): as seis da cabeça e Roupa; abre no cabelo, com o cabelo de hoje marcado.
+  for (const tipo of ['hd', 'hr', 'ha', 'ea', 'fa', 'he', 'roupa']) assert.match(t.lado().innerHTML, new RegExp(`role="tab"[^>]*data-valor="${tipo}"`));
+  assert.equal((t.lado().innerHTML.match(/role="tab"/g) || []).length, 7);
   assert.match(t.lado().innerHTML, /data-vp="peca" data-t="hr" data-id="828" aria-pressed="true"/);
   assert.equal(t.achar('vv-personagem-tela').tagName, 'IMG', 'sem a prévia viva, a imagem do avatarVoxel');
   assert.equal(t.figuraDaPrevia(), FIG);
@@ -294,5 +295,27 @@ test('Irecity ligado: personalizarEscritorio abre o criador do mundo; fora dele,
   assert.equal(t.P.aberto(), true);
   assert.equal(t.ch.antigo, 1);
   await esperar();
+  t.P.fechar();
+});
+
+test('V2: a aba Roupa junta Camisa, Casaco, Calça e Sapato num alternador e lembra a última; o grupo mostra a contagem', async () => {
+  const t = preparar();
+  t.P.abrir();
+  await esperar();
+  assert.match(t.lado().innerHTML, /<b>Corte<\/b><span>\d+ opç(ão|ões)/, 'o cabelo se chama Corte e traz quantas opções há');
+  assert.match(t.lado().innerHTML, /a cor vale para o corte escolhido/);
+  assert.doesNotMatch(t.lado().innerHTML, /<h3>/, 'o título do grupo é <b>: o h3 leva cor com !important no legado');
+  t.clicar({ vp: 'aba', valor: 'roupa' });
+  assert.match(t.lado().innerHTML, /role="tab"[^>]*data-valor="roupa" aria-selected="true"/);
+  assert.match(t.lado().innerHTML, /role="radio" data-vp="aba" data-valor="ch" aria-checked="true">Camisa/);
+  for (const tipo of ['cc', 'lg', 'sh']) assert.match(t.lado().innerHTML, new RegExp(`role="radio" data-vp="aba" data-valor="${tipo}" aria-checked="false"`));
+  t.clicar({ vp: 'aba', valor: 'lg' });
+  assert.match(t.lado().innerHTML, /data-valor="lg" aria-checked="true"/);
+  assert.match(t.lado().innerHTML, /data-t="lg"/, 'a grade passa a ser a das calças');
+  t.clicar({ vp: 'aba', valor: 'hd' });
+  assert.doesNotMatch(t.lado().innerHTML, /vv-personagem-roupa/, 'fora da Roupa, sem o alternador');
+  t.clicar({ vp: 'aba', valor: 'roupa' });
+  assert.match(t.lado().innerHTML, /data-valor="lg" aria-checked="true"/, 'volta na última parte da roupa que a pessoa viu');
+  assert.match(t.achar('vv-personagem-giro').innerHTML, /data-vp="aleatorio"[^>]*>.*Aleatório<\/button><button[^>]*data-vp="girar" data-valor="1"/, 'Aleatório e Girar embaixo da prévia');
   t.P.fechar();
 });

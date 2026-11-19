@@ -6309,22 +6309,45 @@ async function responderAvisoEscritorio(resposta) {
   if (resposta === "conferiu") try { ESCRITORIO_DESTINOS_AVISO[a.destino]?.acao?.(); } catch {}
   try { await escritorioApi("aviso-visto", { id: a.id, resposta }); } catch {}
 }
+// V2 · S · Recado para todos (prancha V2-S-Recado-Todos, aprovada pelo Paulo em 19/11/2026): a janela de vidro com o
+// formulário à esquerda (Título, Mensagem, Leva para e Estilo lado a lado, a frase dos 7 dias) e, à direita, "Como a
+// equipe vai ver", a prévia do recado; no pé, Cancelar e "Mandar para todos" (34). Classes rc2-*: as aviso-* do cartão
+// de verdade levam cinza com !important no legado quando um módulo está aberto.
+function escritorioAvisoPreviaHtml(a) {
+  const estilo = ESCRITORIO_ESTILOS_AVISO[a.estilo] || ESCRITORIO_ESTILOS_AVISO.padrao, destino = ESCRITORIO_DESTINOS_AVISO[a.destino] || ESCRITORIO_DESTINOS_AVISO[""];
+  const autor = String(a.autor?.nome || "").split(" ")[0] || "Vybe";
+  const cabeca = typeof escritorioCabecaUrl === "function" && a.autor?.id ? escritorioCabecaUrl(a.autor.id) : "";
+  const iniciais = autor.slice(0, 2).toUpperCase();
+  const arte = a.destino === "reforma" ? escritorioVitrineHtml("aviso-vitrine", escritorio.base?.eu, { planta: "quadrado-max", zoom: 0, desce: 0 })
+    : `<span class="rc2-arte">${typeof escritorioMiniaturaHtml === "function" ? escritorioMiniaturaHtml({ loja: "val_c21_cashier", ranking: "trophy_fball_c26_wingedgold", conquistas: "prizetrophy", missoes: "exe_map", provador: "art_c20_clotheshanger" }[a.destino] || estilo.arte) : ""}</span>`;
+  return `<div class="rc2-cartao estilo-${safeText(a.estilo || "padrao")}" role="group" aria-labelledby="aviso-titulo-previa">
+  <div class="rc2-de"><span class="rc2-av" aria-hidden="true">${cabeca ? `<img src="${safeText(cabeca)}" alt="">` : safeText(iniciais)}</span><span>Recado de <b>${safeText(autor)}</b> para todos</span></div>
+  <div class="rc2-palco">${arte}</div>
+  <h3 id="aviso-titulo-previa">${safeText(a.titulo || "Título do recado")}</h3>
+  <p>${safeText(a.texto || "A mensagem aparece aqui.").replace(/\n/g, "<br>")}</p>
+  <div class="rc2-cartao-acoes" aria-hidden="true"><span class="rc2-ign">Ignorar</span><span class="rc2-ok">${destino.acao ? safeText(destino.rotulo) : "Entendi"}</span></div>
+</div>`;
+}
 function abrirMandarAvisoEscritorio() {
   document.getElementById("ofc-aviso-novo")?.remove();
   const el = document.createElement("dialog");
   el.id = "ofc-aviso-novo";
-  el.className = "ofc-aviso-novo";
+  el.className = "ofc-aviso-novo rc2";
+  el.setAttribute("aria-labelledby", "rc2-titulo");
   const opcoes = (obj, nome) => Object.entries(obj).map(([k, v]) => `<option value="${k}">${safeText(v[nome])}</option>`).join("");
-  el.innerHTML = `<form class="aviso-form" onsubmit="event.preventDefault();enviarAvisoEscritorio(this)" oninput="previaAvisoEscritorio(this)">
-  <div class="aviso-form-campos"><div class="aviso-form-topo"><b>Recado para todos</b><button type="button" class="ofc-x" onclick="this.closest('dialog').close()" aria-label="Fechar">×</button></div>
-   <label>Título<input name="titulo" maxlength="80" required minlength="3" placeholder="Ex.: Chegou emenda de Bacelar!"></label>
-   <label>Mensagem<textarea name="texto" maxlength="400" required minlength="3" rows="4" placeholder="O que todo mundo precisa saber"></textarea></label>
-   <label>Leva para<select name="destino">${opcoes(ESCRITORIO_DESTINOS_AVISO, "rotulo")}</select></label>
-   <label>Estilo<select name="estilo">${opcoes(ESCRITORIO_ESTILOS_AVISO, "nome")}</select></label>
-   <p class="aviso-form-nota">Aparece no meio da tela de toda a equipe (e na sua), uma vez para cada um, por 7 dias.</p>
-   <p class="ofc-nota" role="alert" id="aviso-form-erro"></p>
-   <button type="submit" class="vb-jogo-botao">Mandar para todos</button></div>
-  <div class="aviso-form-previa" id="aviso-form-previa" aria-label="Prévia"></div>
+  el.innerHTML = `<form class="rc2-form" onsubmit="event.preventDefault();enviarAvisoEscritorio(this)" oninput="previaAvisoEscritorio(this)" onchange="previaAvisoEscritorio(this)">
+  <div class="rc2-topo"><div class="rc2-tit"><h2 id="rc2-titulo">Recado para todos</h2><span>Conta › Recado para todos · só donos</span></div><button type="button" class="rc2-x" onclick="this.closest('dialog').close()" aria-label="Fechar" title="Fechar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="rc2-corpo">
+   <div class="rc2-campos">
+    <label class="rc2-campo"><span>Título</span><input name="titulo" maxlength="80" required minlength="3" placeholder="Ex.: Chegou a entrega do Natal"></label>
+    <label class="rc2-campo"><span>Mensagem</span><textarea name="texto" maxlength="400" required minlength="3" rows="5" placeholder="O que todo mundo precisa saber"></textarea></label>
+    <div class="rc2-par"><label class="rc2-campo"><span>Leva para</span><span class="rc2-sel"><select name="destino">${opcoes(ESCRITORIO_DESTINOS_AVISO, "rotulo")}</select></span></label><label class="rc2-campo"><span>Estilo</span><span class="rc2-sel"><select name="estilo">${opcoes(ESCRITORIO_ESTILOS_AVISO, "nome")}</select></span></label></div>
+    <p class="rc2-nota">Aparece no meio da tela de toda a equipe (e na sua), uma vez para cada um, por 7 dias.</p>
+    <p class="rc2-erro" role="alert" id="aviso-form-erro"></p>
+   </div>
+   <div class="rc2-lado"><b class="rc2-rot">Como a equipe vai ver</b><div class="rc2-previa" id="aviso-form-previa" aria-label="Prévia"></div></div>
+  </div>
+  <div class="rc2-pe"><button type="button" class="rc2-btn" onclick="this.closest('dialog').close()">Cancelar</button><button type="submit" class="rc2-btn k">Mandar para todos</button></div>
  </form>`;
   document.body.append(el);
   el.addEventListener("close", () => el.remove());
@@ -6337,7 +6360,7 @@ function previaAvisoEscritorio(form) {
   const d = Object.fromEntries(new FormData(form));
   const chave = d.destino + "|" + d.estilo;
   const eu = escritorio.base?.equipe?.find((p) => String(p.id) === String(escritorio.base?.eu));
-  alvo.innerHTML = escritorioAvisoCartaoHtml({ ...d, autor: { id: escritorio.base?.eu, nome: eu?.nome || "" } }, { previa: true });
+  alvo.innerHTML = escritorioAvisoPreviaHtml({ ...d, autor: { id: escritorio.base?.eu, nome: eu?.nome || "" } });
   alvo.dataset.chave = chave;
   escritorioMontarVitrines(alvo);
 }
