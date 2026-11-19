@@ -46,8 +46,8 @@ body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.
 
 /* Celular: o mapa fica preso no alto, no cartão; as tiras e a consulta rolam embaixo dele. */
 @media (max-width:900px){
-  body.mundo.mundo-centro.d3c-painel #mundo::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:76px}
-  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-height:0;padding:12px;overflow:hidden;pointer-events:none}
+  body.mundo.mundo-centro.d3c-painel #mundo::before{left:var(--vv-m,8px);top:calc(var(--vv-m,8px) + 56px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px)}
+  body.mundo.mundo-centro.d3c-painel #mundo-hud > #d3-centro.d3m-f-mundo{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);min-height:0;padding:12px;overflow:hidden;pointer-events:none}
   #d3-centro.d3m-f-mundo > .d3m-e-topo .d3m-e-h{font-size:20px}
   #d3-centro.d3m-f-mundo > .d3m-e-topo .d3m-e-per > button{padding:0 9px}
   #d3-centro.d3m-f-mundo > .d3m-e-topo{flex-wrap:nowrap;margin-bottom:12px;pointer-events:auto}

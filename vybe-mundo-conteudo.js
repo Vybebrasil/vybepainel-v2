@@ -345,7 +345,7 @@
     const foto = perfil && !perfil.erro && perfil.foto && typeof feedFotoIg === 'function' ? feedFotoIg(perfil.foto) : '';
     const iniciais = nome.split(/\s+/).filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
     const av = nome && typeof logoDoClienteHtml === 'function' ? logoDoClienteHtml(nome, { classe: '', iniciais })
-      : foto ? `<img src="${esc(foto)}" alt="" loading="lazy">` : esc(iniciais);
+      : foto ? `<img src="${esc(foto)}" alt="" width="64" height="64" loading="lazy">` : esc(iniciais);
     return { nome, usuario, foto, iniciais, av };
   }
   // O leque (Paulo, 15/11/2026: "melhora a forma de mostrar os conteúdos para aprovar... quero foda assim também", com o
@@ -543,7 +543,7 @@
   function miniV2(i, perto = true) {
     const ref = String(i.ref), thumb = st.thumbs[ref];
     if (perto && thumb === undefined) buscarThumb(ref);
-    return `<span class="d3m-a-ap-mini${thumb?.thumb ? '' : ' vazia'}">${thumb?.thumb ? `<img src="${esc(thumb.thumb)}" alt="" loading="lazy" data-vc-previa="${esc(ref)}">` : esc(String(i.formato || i.titulo || '?').trim().slice(0, 2).toUpperCase())}</span>`;
+    return `<span class="d3m-a-ap-mini${thumb?.thumb ? '' : ' vazia'}">${thumb?.thumb ? `<img src="${esc(thumb.thumb)}" alt="" width="480" height="600" loading="lazy" data-vc-previa="${esc(ref)}">` : esc(String(i.formato || i.titulo || '?').trim().slice(0, 2).toUpperCase())}</span>`;
   }
   // O título sem o formato na frente ("Reels - Treino de pernas" vira "Treino de pernas"): o formato já vai na etiqueta.
   const tituloV2 = (i) => { const t = String(i.titulo || 'Sem título').trim(), f = String(i.formato || '').trim(); const resto = f && normal(t).startsWith(normal(f)) ? t.slice(f.length).replace(/^[\s\-–:·|]+/, '') : ''; return resto || t; };
@@ -850,7 +850,7 @@
     if (p === undefined) return perto ? '<span class="vc-previa-msg">Buscando a prévia…</span>' : '';
     if (!p) return '<span class="vc-previa-msg">Sem arquivo anexado</span>';
     const selo = p.tipo === 'video' ? '<i class="vc-previa-selo vc-previa-play" aria-label="Vídeo">▶</i>' : p.n > 1 ? `<i class="vc-previa-selo vc-previa-n" aria-label="Carrossel com ${p.n} imagens">1/${p.n}</i>` : '';
-    if (p.thumb) return `<img src="${esc(p.thumb)}" alt="${esc(alt)}" loading="lazy" data-vc-previa="${esc(ref)}">${selo}`;
+    if (p.thumb) return `<img src="${esc(p.thumb)}" alt="${esc(alt)}" width="480" height="600" loading="lazy" data-vc-previa="${esc(ref)}">${selo}`;
     return `<span class="vc-previa-quadro">${p.tipo === 'video' ? '<i class="vc-previa-play" aria-hidden="true">▶</i>' : ''}<b>${esc(p.nome || 'Arquivo anexado')}</b></span>${p.tipo === 'video' ? '' : selo}`;
   }
   // A miniatura não abriu (o Drive ainda não liberou a prévia do arquivo): o detalhe da peça libera e traz de novo;
@@ -947,7 +947,7 @@
   function imerArte(i, grande) {
     const ref = String(i.ref), p = st.thumbs[ref];
     if (p === undefined) buscarThumb(ref);
-    if (p?.thumb) return `<img src="${esc(grande ? fotoGrande(p) : p.thumb)}" alt="${esc(`Arte de ${i.titulo || 'peça'}`)}" loading="lazy" data-vc-previa="${esc(ref)}">${p.tipo === 'video' ? '<i class="vc-im-play" aria-label="Vídeo">▶</i>' : p.n > 1 ? `<i class="vc-im-n" aria-label="Carrossel com ${p.n} imagens">1/${p.n}</i>` : ''}`;
+    if (p?.thumb) return `<img src="${esc(grande ? fotoGrande(p) : p.thumb)}" alt="${esc(`Arte de ${i.titulo || 'peça'}`)}" width="480" height="600" loading="lazy" data-vc-previa="${esc(ref)}">${p.tipo === 'video' ? '<i class="vc-im-play" aria-label="Vídeo">▶</i>' : p.n > 1 ? `<i class="vc-im-n" aria-label="Carrossel com ${p.n} imagens">1/${p.n}</i>` : ''}`;
     return `<span class="vc-im-sem"><b>${esc(i.formato || 'Peça')}</b><small>${p === undefined ? 'Buscando a arte…' : 'A arte ainda não foi anexada'}</small></span>`;
   }
   function imerMini(i, lado) {

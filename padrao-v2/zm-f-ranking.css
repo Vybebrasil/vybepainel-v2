@@ -62,7 +62,7 @@ body.mundo #ofc-ranking .d3m-f-rk .d3m-f-rk-pe b{color:var(--d3-tinta)}
 #ofc-ranking .d3m-f-rk .d3m-f-ap{color:var(--d3-fume-apagado)}
 
 @media (max-width:900px){
-  body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:76px;min-width:calc(100% - 2 * var(--vv-m,8px))}
+  body.mundo #workflow-modal.rk2-janela.ofc-ranking-janela.d3m-f-rkj{top:calc(var(--vv-m,8px) + 56px);left:var(--vv-m,8px);right:var(--vv-m,8px);bottom:var(--vv-pe-janela,76px);min-width:calc(100% - 2 * var(--vv-m,8px))}
   #ofc-ranking.rk2:has(> .d3m-f-rk){padding:12px;overflow-y:auto;overscroll-behavior:contain}
   #ofc-ranking > .d3m-f-rk{height:auto}
   #ofc-ranking > .d3m-f-rk > .d3m-e-topo{flex-wrap:wrap;align-items:flex-start}
