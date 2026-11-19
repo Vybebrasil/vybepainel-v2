@@ -1,6 +1,6 @@
 // Correções do confere de diretor de arte, frente da-4 (Paulo, 19/11/2026: "dá um confere geral como diretor de arte…
 // muita coisinha mal diagramada"): Produção, Demandas, Direção de arte, Agenda, Minhas tarefas e Visão do setor.
-// Confere a régua no CSS: botão 34 ou 28, canto 8, rótulo 12, um laranja por tela e alvo de toque de 32 no celular.
+// Confere a régua no CSS: botão 34 ou 28, canto 8, rótulo 12, um laranja por tela e alvo de toque de 34 no celular.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -53,7 +53,8 @@ test('colunas do dia: "Briefing até publicar" cabe e as colunas da linha acompa
   assert.ok(direcao.includes(UM + ' .pv2-r{flex:0 0 126px;'));
   assert.ok(direcao.includes(UM + ' .pv2-avs{flex:0 0 80px;'));
   assert.ok(direcao.includes(UM + ' .pv2-av{width:28px;height:28px}'));
-  assert.match(direcao, /#pv2-painel \.d3m-tit\{[^}]*box-sizing:border-box/, 'título não estoura a largura no celular');
+  assert.match(direcao, /#pv2-painel \.d3m-tit\{[^}]*max-width:100%;[^}]*box-sizing:border-box/, 'título não estoura a largura no celular');
+  assert.ok(direcao.includes('#pv2-painel .d3m-tit > .d3p-data{overflow:hidden;text-overflow:ellipsis}'), 'subtítulo corta com reticências em vez de rolar a página');
 });
 
 test('um laranja por tela: gravação a fechar na cor da captação e "em produção" fora do laranja', () => {
@@ -68,9 +69,9 @@ test('fila do Danilo: sem caixa alta, botões 28 e 34 com canto 8', () => {
   assert.match(bloco(frag, '#vv-hoje .d3h-danilo .vcr-lote.vcr-lote > .vc-acao'), /height:34px/);
 });
 
-test('celular: alvo de toque de 32 nas telas da frente, fora o calendário do mês e o evento da semana', () => {
+test('celular: alvo de toque de 34 nas telas da frente, fora o calendário do mês e o evento da semana', () => {
   const m = frag.slice(frag.indexOf('@media (max-width:480px){'));
-  assert.match(m, /min-width:32px;min-height:32px/);
+  assert.match(m, /min-width:34px;min-height:34px/);
   assert.match(m, /:not\(\.capt-mes \*,\.d3m-a-dia-pcs \*,\.agv2-ev,\.pv2-av\)/);
   for (const id of ['#pv2-painel', '#pv2-demandas', '#pv2-agenda', '#vv-hoje', '.vv-setor-visao']) assert.ok(m.includes(id), id);
 });

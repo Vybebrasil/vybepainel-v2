@@ -3,7 +3,7 @@
    "um confere geral como diretor de arte… muita coisinha mal diagramada e mal feita… vê responsividade de tudo". Telas:
    Produção (Semana, Mês, Feed e Equipe; Grupos foi aprovado nos PRs #747 e #751 e fica como está), Demandas, Direção de
    arte, Agenda, Minhas tarefas e Visão do setor. Régua: botão 34 (28 no compacto), canto 8, rótulo 12, um laranja por
-   tela e alvo de toque de 32 no celular. Só tokens --d3-*, nenhum important. Este fragmento entra antes de gestao, paineis,
+   tela e alvo de toque de 34 no celular. Só tokens --d3-*, nenhum important. Este fragmento entra antes de gestao, paineis,
    s-*, z-* e zm-* na junção (ordem alfabética), por isso as regras repetem uma classe ou um id para vencer as de lá
    sem depender da ordem. O que nasceu em arquivo desta frente foi corrigido lá mesmo (z-direcao.css e d3-producao.css).
    1. Régua de dias da Visão do setor (.vst-dia, "seg 16 · 5 de 11"): era linha de 30 px com canto 0 e fio em cima.
@@ -14,7 +14,7 @@
       30 → 28; no celular, 34.
    4. Rótulo "Marcar" do lote em 12.
    5. Demandas: chave "Mostrar ID" (36 → 34) e "Nova demanda" no celular (36 → 34).
-   6. Feed: dias do calendário em tela baixa (30 → 28) e o nome da data comemorativa em até 3 linhas antes de cortar.
+   6. Feed: dias do calendário em 34 (eram 36) e 28 em tela baixa (eram 30) e o nome da data comemorativa em até 3 linhas antes de cortar.
    7. Direção de arte: linhas do time (.d3m-a-da-pes) com canto 8 e 34 de altura; a fila do Danilo sem caixa alta,
       botões em 28 ("Cobrar") e 34 ("Confirmar"), e o tipo, a pessoa e as ações
       descem para a segunda linha (ações à direita), em vez de empurrar o "Cobrar" para fora do cartão (e o nome da peça, que sumia
@@ -23,7 +23,7 @@
       tela); fica na cor da captação com um anel por dentro, e o selo "falta fechar" continua. Equipe: "em produção" sai
       do laranja e vai para o roxo dos agentes (o cartão do Heitor é o laranja da tela).
    9. Celular (até 480 px): o subtítulo da Direção de arte ("quinta, 19 nov · 2 esperam revisão · …") quebra linha em
-      vez de passar 41 px da caixa; e alvo de toque de 32 em todo controle destas telas. Ficam de fora o calendário do mês (dia e
+      vez de passar 41 px da caixa; e alvo de toque de 34 (a altura do botão) em todo controle destas telas. Ficam de fora o calendário do mês (dia e
       chip do mês da Agenda e da Produção, que viram grade de 7 colunas) e o evento da semana da Agenda, cuja altura é a
       duração.
    =================================================================================================================== */
@@ -49,9 +49,11 @@
 #pv2-demandas.pv2.d3m-a-dm.s-dm .s-dm-chave.s-dm-chave{height:34px}
 
 /* 6. Feed */
+.vfd2-cal .vfd2-sem.vfd2-sem{min-height:34px}
+.vfd2-cal .vfd2-dia.vfd2-dia{height:34px}
 @media (max-height:800px){
-  .vfd2-cal .vfd2-sem{min-height:28px}
-  .vfd2-cal .vfd2-dia{height:28px}
+  .vfd2-cal .vfd2-sem.vfd2-sem{min-height:28px}
+  .vfd2-cal .vfd2-dia.vfd2-dia{height:28px}
 }
 #feed-board.d3m-a-v2 .vfd-x .vfd-x-data{-webkit-line-clamp:3}
 
@@ -82,5 +84,5 @@
   .vv-gestao.vv-setor-visao.vst-casa.vst-casa.vst-casa .vst-lin .g2-btn{height:34px}
   #pv2-demandas.pv2.d3m-a-dm .pv2-btn.d3p-novo.d3p-novo{height:34px}
   body.mundo #pv2-agenda .pv2a-cab-meses .capt-meses.capt-meses button{height:34px;border-radius:var(--d3-r-botao)}
-  :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#vv-hoje,.vv-setor-visao) :is(button,summary,a[href],[role="button"],input:not([type="checkbox"]):not([type="radio"]),select):not(.capt-mes *,.d3m-a-dia-pcs *,.agv2-ev,.pv2-av){min-width:32px;min-height:32px}
+  :is(#pv2-painel,#pv2-semana,#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6,#pv2-demandas,#pv2-agenda,#pv2-agenda-topo,#vv-hoje,.vv-setor-visao) :is(button,summary,a[href],[role="button"],input:not([type="checkbox"]):not([type="radio"]),select):not(.capt-mes *,.d3m-a-dia-pcs *,.agv2-ev,.pv2-av){min-width:34px;min-height:34px}
 }

@@ -686,8 +686,8 @@ body.mundo #mundo-hud > #vv-hoje.vv-hoje.d3h-tela:has(> .d3q){padding:16px;borde
   #vv-hoje .d3q-main > .d3q-meio > :not(.d3q-acao){order:4}
   #vv-hoje .d3q-main > .d3q-pe{order:5}
   #vv-hoje .d3q .d3h-ola > h2{font-size:22px}
-  #vv-hoje .d3q .d3h-topo .vv-seg{display:flex;width:100%;height:40px}
-  #vv-hoje .d3q .d3h-topo .vv-seg > button{flex:1 1 auto;height:34px;padding:0 6px;font-size:var(--d3-fs-texto)}
+  #vv-hoje .d3q .d3h-topo .vv-seg,#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b){display:flex;width:100%;height:40px}
+  #vv-hoje .d3q .d3h-topo .vv-seg > button,#vv-hoje .d3q .d3h-topo .vv-seg.vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{flex:1 1 auto;height:34px;padding:0 6px;font-size:var(--d3-fs-texto)}
   #vv-hoje .d3q .d3h-topo-dir{flex:1 1 100%;flex-wrap:wrap}
   #vv-hoje .d3q .d3h-nums{gap:8px}
   #vv-hoje .d3q .d3h-num{height:auto;min-height:96px;padding:12px;border-radius:14px}
@@ -1100,7 +1100,9 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel{display:block;margin:2px -14px 16px -14px;padding:0;background:none;box-shadow:none}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel > .d3m-topo{display:flex;align-items:center;gap:8px;min-height:48px;margin:0;padding:0 104px 0 0;color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-lado{position:absolute;right:16px;top:72px;bottom:-4px;width:316px;overflow-y:auto;scrollbar-width:none}
-#pv2-painel .d3m-tit{display:flex;flex-direction:column;gap:3px;min-width:0;margin-right:auto;box-sizing:border-box}
+#pv2-painel .d3m-tit{display:flex;flex-direction:column;gap:3px;min-width:0;max-width:100%;margin-right:auto;box-sizing:border-box}
+#pv2-painel .d3m-tit > *{min-width:0;max-width:100%}
+#pv2-painel .d3m-tit > .d3p-data{overflow:hidden;text-overflow:ellipsis}
 #pv2-painel .d3m-troca{position:relative}
 #pv2-painel .d3m-troca > summary{display:inline-flex;align-items:center;gap:6px;list-style:none;cursor:pointer;border-radius:var(--d3-r-botao)}
 #pv2-painel .d3m-troca > summary::-webkit-details-marker{display:none}
