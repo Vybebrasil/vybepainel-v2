@@ -113,6 +113,57 @@ function openWorkflowModal(html) { document.getElementById('workflow-backdrop')?
 // Portão da peça (o cartão da peça de workflowItemHtml no topo): a janela é toda escrita com os tokens V2
 // (padrao-v2/zm-h-1-janelas.css), então leva d3-tema e escurece junto no tema Escuro. As outras janelas ficam folha clara.
 function janelaV2DoPortao(html) { return /class="workflow-item"/.test(String(html||'')); }
+// ── PEÇAS COMUNS DAS JANELAS V2-S (pranchas V2-S-Datas-da-Peca, V2-S-Conferir-Status, V2-S-Pergunta e
+// V2-S-Previa-Grande, 19/11/2026) ─────────────────────────────────────────────────────────────────────────
+// Uma janela só: vidro fumê de canto 20, título de 20 com a frase embaixo (e o avatar do cliente quando a janela é
+// de uma peça), o fechar de 34 à direita e o pé com a nota à esquerda e os botões de 34 à direita. O desenho mora em
+// padrao-v2/s-b.css (classes vbj-*), só com tokens: os três temas saem de lá.
+const VBJ_ICONES = {
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  dir: '<path d="M9 6l6 6-6 6"/>',
+  esq: '<path d="M15 6l-6 6 6 6"/>',
+  certo: '<path d="M5 12l5 5 9-10"/>',
+  olho: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>',
+  baixar: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  lixo: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+};
+function vbjIcone(nome, tamanho = 14) {
+  return `<svg width="${tamanho}" height="${tamanho}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${VBJ_ICONES[nome] || ''}</svg>`;
+}
+// Sigla do cliente no avatar: as iniciais das duas primeiras palavras (Academia Lions → AL) ou as duas primeiras
+// letras quando o nome é uma palavra só (Hebravet → HE). A cor é a da carteira (corDoClienteV2), sob um véu escuro.
+function vbjSiglaDoCliente(nome) {
+  const partes = String(nome || '').trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return '?';
+  return (partes.length > 1 ? partes[0][0] + partes[1][0] : partes[0].slice(0, 2)).toUpperCase();
+}
+function vbjAvatarHtml(nome, classe = 'vbj-av') {
+  const cor = typeof corDoClienteV2 === 'function' ? corDoClienteV2(nome) : '#6B665E';
+  return `<span class="${classe}" style="--c:${safeText(cor)}" aria-hidden="true">${safeText(vbjSiglaDoCliente(nome))}</span>`;
+}
+// Status com o ponto na cor do quadro (a mesma cor do menu de status).
+function vbjStatusHtml(rotulo, cor = '') {
+  if (!rotulo) return '';
+  const c = cor || (typeof corDeStatus === 'function' ? corDeStatus(rotulo)?.cor : '') || '';
+  return `<span class="vbj-st"${c ? ` style="--st:${safeText(c)}"` : ''}><i></i>${safeText(rotulo)}</span>`;
+}
+function vbjTopoHtml({ titulo = '', sub = '', av = '', fechar = 'closeWorkflowModal()', idTitulo = 'vbj-titulo' } = {}) {
+  return `<div class="vbj-topo"><div class="vbj-cab">${av}<div class="vbj-tit"><h2 class="vbj-titulo" id="${idTitulo}">${safeText(titulo)}</h2>${sub ? `<span class="vbj-sub">${safeText(sub)}</span>` : ''}</div></div>
+    <button type="button" class="vbj-x" aria-label="Fechar" title="Fechar" onclick="${fechar}">${vbjIcone('x', 16)}</button></div>`;
+}
+// Abre a janela V2 no #workflow-modal de sempre (o tutorial já espera ele fechar, PR #729) com a casca vbj.
+function abrirJanelaV2(html, classes = '') {
+  openWorkflowModal(html);
+  const janela = document.getElementById('workflow-modal');
+  if (!janela) return null;
+  janela.classList.add('vbj', 'd3-tema', ...String(classes).split(/\s+/).filter(Boolean));
+  janela.setAttribute('role', 'dialog');
+  janela.setAttribute('aria-modal', 'true');
+  if (janela.querySelector('#vbj-titulo')) janela.setAttribute('aria-labelledby', 'vbj-titulo');
+  return janela;
+}
 // Todo registro de histórico do painel passa por aqui — checklist de qualidade,
 // troca de responsáveis, ajuste de prazo. Ligando esta função, o histórico
 // inteiro passa a nascer no banco da Vybe em vez de nascer no Monday.
@@ -143,154 +194,145 @@ async function postItemUpdate(itemId, body) {
   }
 }
 function qualityChecklistFor(item) { const fmt = String(item.formato || item.tipo || '').toLowerCase(); const common=['Arquivo final correto e sem versão provisória','Copy, legenda e CTA revisados','Cliente e responsável pela publicação confirmados']; if (/reels|vídeo|video|motion|fotografia/.test(fmt)) return [...common,'Capa, áudio e proporção validados','Link de entrega ou arquivo final disponível']; if (/carrossel/.test(fmt)) return [...common,'Sequência das páginas revisada','Capa e última página com CTA confirmadas']; return [...common,'Dimensões e identidade visual conferidas','Link ou arquivo final disponível']; }
-// A barra "x de N conferidos" em cima da lista de conferência (direção de arte).
+// A conta "x de N" das caixas da conferência. Na janela V2-S (.vbc) ela mora no cabeçalho da lista, com a barrinha;
+// nas outras (direção de arte) segue a barra "x de N conferidos" em cima da lista.
 function pintarConferidos(form) {
   if (!form) return;
   const caixas = [...form.querySelectorAll('input[type=checkbox]')], feitas = caixas.filter((c) => c.checked).length;
-  let barra = form.previousElementSibling?.classList?.contains('workflow-conferidos') ? form.previousElementSibling : null;
-  if (!barra) { barra = document.createElement('div'); barra.className = 'workflow-conferidos'; form.before(barra); }
-  barra.innerHTML = `<span><b>${feitas} de ${caixas.length}</b> conferidos</span><i style="--p:${caixas.length ? Math.round(feitas / caixas.length * 100) : 0}%"></i>`;
+  const pct = caixas.length ? Math.round(feitas / caixas.length * 100) : 0;
+  const conta = form.closest('.vbc')?.querySelector('.vbc-conta');
+  if (conta) {
+    const n = conta.querySelector('b'); if (n) n.textContent = `${feitas} de ${caixas.length}`;
+    conta.style.setProperty('--p', `${pct}%`);
+  } else {
+    let barra = form.previousElementSibling?.classList?.contains('workflow-conferidos') ? form.previousElementSibling : null;
+    if (!barra) { barra = document.createElement('div'); barra.className = 'workflow-conferidos'; form.before(barra); }
+    barra.innerHTML = `<span><b>${feitas} de ${caixas.length}</b> conferidos</span><i style="--p:${pct}%"></i>`;
+  }
   caixas.forEach((c) => c.closest('label')?.classList.toggle('feito', c.checked));
 }
 function updateQualityGateState() { pintarConferidos(document.getElementById('quality-checklist-form')); const form=document.getElementById('quality-checklist-form'); const button=document.getElementById('quality-submit'); if (!form || !button) return; button.disabled=[...form.querySelectorAll('input[type=checkbox]')].some(input => !input.checked); }
-function openQualityGate(item, option) { if(precisaDeConferenciaFinal(item,option)) return openMaterialReviewGate(item,option); pendingWorkflowChange={item,option,manual:false}; const checks=qualityChecklistFor(item); openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Qualidade antes da publicação</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">Checklist de qualidade</h2><p class="workflow-copy">Antes de enviar este conteúdo para ${safeText(option.label)}, confira a prévia e confirme os pontos essenciais. O registro fica no histórico da peça.</p>${workflowItemHtml(item,option.label)}${etapasDoPortao(option.label)}<div class="status-context-layout material-review-layout"><div class="status-context-main"><form id="quality-checklist-form" class="workflow-checks" onchange="updateQualityGateState()">${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" name="check-${index}"><span>${safeText(check)}</span></label>`).join('')}</form><p class="workflow-hint">Este controle vale para mudanças feitas dentro da Vybe OS. Alterações diretas no Monday não passam por este fluxo.</p></div><aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia para conferência</b><small>arquivo vinculado</small></div><div id="material-review-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside></div><div class="workflow-actions pt-pe"><small>1 de 2 · a conferência fica no histórico</small><button type="button" class="pt-btn" onclick="closeWorkflowModal()">Cancelar</button><button id="quality-submit" type="button" class="pt-btn k" disabled onclick="submitQualityChecklist()">Continuar</button></div>`); document.getElementById('workflow-modal')?.classList.add('status-context-split','material-review-modal'); loadMaterialReviewPreview(item.id); updateQualityGateState(); }
+
+// ── CONFERIR ANTES DE TROCAR O STATUS (prancha V2-S-Conferir-Status) ──────────────────────────────────────────
+// As três conferências (qualidade, material e a visual de "Para aprovação") são a mesma janela: a peça com o de → para
+// no alto, as caixas reais com a conta "x de N" e a prévia ao lado com Ver grande, Abrir e Trocar. "Confirmar" fica
+// apagado até tudo estar marcado (a conferência visual não tem caixa e já nasce liberada). O que cada uma grava no
+// histórico e a ordem do bastão não mudam: só a janela.
+function janelaDeConferenciaHtml({ item, option, titulo, sub, cab, idForm = '', mudar = '', checks = [], marca = '', nota, idBotao, onclick, acao, desligado = true }) {
+  const formato = String(item.formato || item.tipo || '').trim();
+  const veic = /^\d{4}-\d{2}-\d{2}/.test(String(item.veiculacao_iso || '')) ? ` · veiculação ${item.veiculacao_iso.slice(8, 10)}/${item.veiculacao_iso.slice(5, 7)}` : '';
+  const destino = option?.label || '';
+  const caixas = checks.length
+    ? `<div class="vbc-lista-cab"><b>${safeText(cab)}</b><span class="vbc-conta" style="--p:0%"><b>0 de ${checks.length}</b><span class="vbc-barra" aria-hidden="true"><i></i></span></span></div>
+      <form id="${idForm}" class="vbc-checks" onchange="${mudar}">${checks.map((check, i) => `<label class="vbc-check"><input type="checkbox" ${marca} name="${idForm}-${i}"><span class="vbc-caixa" aria-hidden="true">${vbjIcone('certo', 12)}</span><span class="vbc-check-txt">${safeText(check)}</span></label>`).join('')}</form>`
+    : `<div class="vbc-lista-cab"><b>${safeText(cab)}</b></div>`;
+  return `${vbjTopoHtml({ titulo, sub })}
+    <div class="vbc-grade">
+      <div class="vbc-esq">
+        <div class="vbc-peca">${vbjAvatarHtml(item.cliente)}<span class="vbc-peca-txt"><b>${safeText(item.nome || 'Sem título')}</b><span>${safeText([item.cliente || 'Cliente não informado', formato].filter(Boolean).join(' · '))}${safeText(veic)}</span></span>
+          <span class="vbc-de-para">${vbjStatusHtml(item.status, item.status_color)}${item.status && destino ? vbjIcone('dir', 14) : ''}${vbjStatusHtml(destino !== item.status ? destino : '', option?.color)}</span></div>
+        ${caixas}
+        <p class="vbc-nota">${safeText(nota)}</p>
+      </div>
+      <div class="vbc-dir">
+        <div class="vbc-prev-cab"><b>Prévia para conferir</b><span id="vbc-prev-info">arquivo vinculado</span></div>
+        <div id="material-review-preview" class="vbc-palco"><div class="vbc-vazio">Carregando a prévia…</div></div>
+        <div id="vbc-prev-acoes" class="vbc-prev-acoes"></div>
+      </div>
+    </div>
+    <div class="vbj-pe"><span class="vbj-passos"><span class="vbj-tracos" aria-hidden="true"><i class="on"></i><i></i></span>1 de 2 · conferir, depois mudar para ${safeText(destino || 'o status novo')}</span>
+      <button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button>
+      <button id="${idBotao}" type="button" class="vbj-btn k"${desligado ? ' disabled' : ''} onclick="${onclick}">${safeText(acao)}</button></div>`;
+}
+function openQualityGate(item, option) {
+  if (precisaDeConferenciaFinal(item, option)) return openMaterialReviewGate(item, option);
+  pendingWorkflowChange = { item, option, manual: false };
+  abrirJanelaV2(janelaDeConferenciaHtml({ item, option, titulo: 'Checklist de qualidade', sub: 'confira a prévia e os pontos essenciais antes da publicação',
+    cab: `Antes de mandar para ${option.label}`, idForm: 'quality-checklist-form', mudar: 'updateQualityGateState()', checks: qualityChecklistFor(item),
+    nota: 'O registro fica no histórico da peça. Alterações diretas no Monday não passam por esta conferência.',
+    idBotao: 'quality-submit', onclick: 'submitQualityChecklist()', acao: 'Continuar' }), 'vbc');
+  loadMaterialReviewPreview(item.id);
+  updateQualityGateState();
+}
 async function submitQualityChecklist() { const flow=pendingWorkflowChange; const form=document.getElementById('quality-checklist-form'); if (!flow || !form) return; const checks=[...form.querySelectorAll('label')].map(label=>label.textContent.trim()).filter(Boolean); const button=document.getElementById('quality-submit'); if (button) button.disabled=true; try { await postItemUpdate(flow.item.id, `[Vybe OS · Checklist de qualidade]\nDestino: ${flow.option.label}\nFormato: ${flow.item.formato || flow.item.tipo || 'Conteúdo'}\nValidado: ${checks.join(' | ')}`); const {item,option}=flow; closeWorkflowModal(); if(statusNeedsMaterialReview(option)) return openMaterialReviewGate(item,option); if (statusNeedsHandoff(item,option)) openHandoffGate(item,option); else await commitStatusChange(item,option); } catch(e) { if(button) button.disabled=false; showToast(`Não foi possível registrar o checklist: ${e.message}`,'err',7000); } }
 function materialReviewChecklistFor(item, option) { const target=normalizedWorkflowStatus(option?.label); const scheduled=target==='agendado'; const format=String(item?.formato||item?.tipo||'conteúdo'); return scheduled ? [`Conferi a prévia final de ${format} antes do agendamento`,`Confirmei que legenda, CTA, canal e data de publicação estão corretos`,`O arquivo ou link aberto corresponde a esta demanda`] : [`Conferi a prévia do material entregue ou publicado`,`Confirmei que o destino final corresponde a esta demanda`,`Não há pendência de publicação ou material incorreto antes de finalizar`]; }
 function updateMaterialReviewState(){ pintarConferidos(document.getElementById('material-review-form')); const checks=[...document.querySelectorAll('input[data-material-review-check]')]; const button=document.getElementById('material-review-submit'); if(button) button.disabled=!checks.length||checks.some(check=>!check.checked); }
-function materialReviewPreviewFailed(image){ const fallback=String(image?.dataset?.fallbackSrc||''); if(fallback&&image.dataset.fallbackTried!=='true'){ image.dataset.fallbackTried='true'; image.src=fallback; return; } const holder=image.closest('.status-context-preview-media'); if(holder) holder.innerHTML='<div class="status-context-preview-empty"><b>Prévia indisponível</b>Abra o material vinculado para conferir o arquivo final.</div>'; }
+function materialReviewPreviewFailed(image){ const fallback=String(image?.dataset?.fallbackSrc||''); if(fallback&&image.dataset.fallbackTried!=='true'){ image.dataset.fallbackTried='true'; image.src=fallback; return; } const holder=image.closest('.vbc-palco'); if(holder) holder.innerHTML='<div class="vbc-vazio"><b>Prévia indisponível</b>Abra o material vinculado para conferir o arquivo final.</div>'; }
+// A prévia ao lado das caixas. Com mais de uma arte, as setas do palco passam entre elas e o cabeçalho diz "1 de 3":
+// conferir só a primeira e aprovar seria aprovar no escuro o resto do carrossel. Embaixo, Ver grande (a Prévia grande
+// com todas), Abrir (o link de entrega ou o próprio arquivo) e Trocar (fecha e abre a peça para anexar outro).
+function acoesDaPreviaDaConferencia({ temArte = false, abrir = '' } = {}) {
+  const acoes = document.getElementById('vbc-prev-acoes');
+  if (!acoes) return;
+  acoes.innerHTML = `${temArte ? `<button type="button" class="vbj-btn" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)">${vbjIcone('olho', 14)}Ver grande</button>` : ''}${abrir ? `<a class="vbj-btn" href="${safeText(abrir)}" target="_blank" rel="noopener">${vbjIcone('link', 14)}Abrir</a>` : ''}<button type="button" class="vbj-btn vbj-txt" onclick="const f=pendingWorkflowChange;closeWorkflowModal();if(f?.item)openItemWorkspace(f.item.id)">${temArte || abrir ? 'Trocar' : 'Anexar material'}</button>`;
+}
 async function loadMaterialReviewPreview(itemId){
   const holder=document.getElementById('material-review-preview');
   if(!holder) return;
+  const info=document.getElementById('vbc-prev-info');
   try {
     const detail=await fetchWorkspaceItem(itemId);
     const assets=statusContextPreviewAssets(detail);
     const delivery=workspaceDeliveryInfo(detail);
-    const open=delivery?.url?`<a class="material-review-open" href="${safeText(delivery.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a>`:'';
     PREVIA_MATERIAL=assets; PREVIA_DA_PECA='';
     PREVIA_GRANDE_INDICE=0;
+    if(!document.body.contains(holder)) return;
     if(!assets.length){
-      holder.innerHTML=`<div class="status-context-preview-empty"><span class="status-context-preview-ic" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="14" height="12" rx="2.5"/><path d="M3 8h14"/></svg></span><b>Sem prévia visual</b>${delivery?.url?'Há um material vinculado. Abra-o antes de confirmar a conferência.':'Nenhum arquivo ou link final foi localizado nesta peça.'}${open || `<button type="button" class="workflow-secondary status-context-anexar" onclick="const f=pendingWorkflowChange;closeWorkflowModal();if(f?.item)openItemWorkspace(f.item.id)">Anexar material</button>`}</div>`;
+      holder.innerHTML=`<div class="vbc-vazio"><b>Sem prévia visual</b>${delivery?.url?'Há um material vinculado. Abra-o antes de confirmar a conferência.':'Nenhum arquivo ou link final foi localizado nesta peça.'}</div>`;
+      if(info) info.textContent=delivery?.url?'link de entrega':'sem arquivo';
+      acoesDaPreviaDaConferencia({ abrir: delivery?.url || '' });
       return;
     }
     const primeira=assets[0];
     const fonte=primeira.url_thumbnail||primeira.public_url||primeira.url||'';
     if(!fonte){
-      holder.innerHTML=`<div class="status-context-preview-empty"><b>Arquivo sem prévia</b>${delivery?.url?'Abra o material vinculado para conferir o arquivo final.':'O item não disponibiliza imagem de visualização.'}${open}</div>`;
+      holder.innerHTML=`<div class="vbc-vazio"><b>Arquivo sem prévia</b>${delivery?.url?'Abra o material vinculado para conferir o arquivo final.':'O item não disponibiliza imagem de visualização.'}</div>`;
+      acoesDaPreviaDaConferencia({ abrir: delivery?.url || primeira.public_url || primeira.url || '' });
       return;
     }
-    // Com mais de uma arte, as demais viram miniaturas clicáveis — conferir só a
-    // primeira e aprovar seria aprovar no escuro o resto do carrossel.
-    const tira=assets.length>1
-      ? `<div id="material-review-strip" class="material-review-strip">${assets.map((a,i)=>`<button type="button" class="${i===0?'ativa':''}" title="${safeText(a.name||'')}" onclick="trocarPreviaMaterial(${i})"><img src="${safeText(a.url_thumbnail||a.public_url||a.url||'')}" alt=""></button>`).join('')}</div>`
+    const setas=assets.length>1
+      ? `<button type="button" class="vbj-ic vbc-seta antes" aria-label="Arquivo anterior" title="Arquivo anterior" onclick="passarPreviaDaConferencia(-1)">${vbjIcone('esq',16)}</button><button type="button" class="vbj-ic vbc-seta depois" aria-label="Próximo arquivo" title="Próximo arquivo" onclick="passarPreviaDaConferencia(1)">${vbjIcone('dir',16)}</button>`
       : '';
-    holder.innerHTML=`<img id="material-review-img" src="${safeText(fonte)}" alt="Prévia de ${safeText(primeira.name||'material')}" loading="eager" title="Clique para ver em tamanho grande" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)" onerror="materialReviewPreviewFailed(this)"><small id="material-review-caption" class="status-context-preview-caption">${assets.length>1?`(1/${assets.length}) `:''}${safeText(primeira.name||'Prévia vinculada ao item')}</small><button type="button" class="previa-grande-abrir" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)">CONFERIR EM TAMANHO GRANDE ⤢</button>${tira}${open}`;
+    holder.innerHTML=`<img id="material-review-img" src="${safeText(fonte)}" alt="Prévia de ${safeText(primeira.name||'material')}" loading="eager" title="Clique para ver em tamanho grande" onclick="abrirPreviaGrande(PREVIA_GRANDE_INDICE)" onerror="materialReviewPreviewFailed(this)">${setas}<small id="material-review-caption" class="vbc-legenda">${safeText(primeira.name||'Prévia vinculada ao item')}</small>`;
+    if(info) info.textContent=`arquivo vinculado · 1 de ${assets.length}`;
+    acoesDaPreviaDaConferencia({ temArte: true, abrir: delivery?.url || primeira.public_url || primeira.url || '' });
   } catch(error){
-    holder.innerHTML='<div class="status-context-preview-empty"><b>Prévia indisponível</b>Não foi possível carregar os arquivos da demanda agora. Feche e tente novamente antes de confirmar.</div>';
+    holder.innerHTML='<div class="vbc-vazio"><b>Prévia indisponível</b>Não foi possível carregar os arquivos da demanda agora. Feche e tente novamente antes de confirmar.</div>';
+    acoesDaPreviaDaConferencia({});
   }
 }
-function openMaterialReviewGate(item,option){ const target=normalizedWorkflowStatus(option?.label); const scheduled=target==='agendado'; const checks=materialReviewChecklistFor(item,option); pendingWorkflowChange={item,option,manual:false}; const title=scheduled?'Conferir antes de agendar':'Conferir antes de finalizar'; const copy=scheduled?'Antes de liberar o agendamento, confira a prévia e valide que o material, a publicação e o canal correspondem a esta demanda.':'Antes de marcar como finalizado, confira a prévia do material postado ou entregue. Não é necessário explicar o motivo do encerramento.'; const action=scheduled?'Confirmar e agendar':'Confirmar e finalizar'; openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Conferência final</span><button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div><h2 class="workflow-title">${title}</h2><p class="workflow-copy">${copy}</p>${workflowItemHtml(item,option.label)}${etapasDoPortao(option.label)}<div class="status-context-layout material-review-layout"><div class="status-context-main"><form id="material-review-form" class="workflow-checks" onchange="updateMaterialReviewState()">${checks.map((check,index)=>`<label class="workflow-check"><input type="checkbox" data-material-review-check name="material-review-${index}"><span>${safeText(check)}</span></label>`).join('')}</form><p class="workflow-hint">Esta conferência é registrada no histórico da peça junto com a mudança de status. Nenhuma justificativa é exigida para finalizar.</p></div><aside class="status-context-preview"><div class="status-context-preview-head"><b>Prévia para conferência</b><small>arquivo vinculado</small></div><div id="material-review-preview" class="status-context-preview-media"><div class="status-context-preview-loading">Carregando prévia...</div></div></aside></div><div class="workflow-actions pt-pe"><small>1 de 2 · a conferência fica no histórico</small><button type="button" class="pt-btn" onclick="closeWorkflowModal()">Cancelar</button><button id="material-review-submit" type="button" class="pt-btn k" disabled onclick="submitMaterialReview()">${action}</button></div>`); document.getElementById('workflow-modal')?.classList.add('status-context-split','material-review-modal'); loadMaterialReviewPreview(item.id); updateMaterialReviewState(); }
+function passarPreviaDaConferencia(passo) {
+  const total = PREVIA_MATERIAL.length;
+  if (total < 2) return;
+  trocarPreviaMaterial((PREVIA_GRANDE_INDICE + passo + total) % total);
+}
+function openMaterialReviewGate(item, option) {
+  const scheduled = normalizedWorkflowStatus(option?.label) === 'agendado';
+  pendingWorkflowChange = { item, option, manual: false };
+  abrirJanelaV2(janelaDeConferenciaHtml({ item, option,
+    titulo: scheduled ? 'Conferir antes de agendar' : 'Conferir antes de finalizar',
+    sub: scheduled ? 'a peça só muda para Agendado depois da conferência' : 'confira o material postado ou entregue antes de encerrar',
+    cab: scheduled ? 'Antes de liberar o agendamento' : 'Antes de marcar como finalizado',
+    idForm: 'material-review-form', mudar: 'updateMaterialReviewState()', checks: materialReviewChecklistFor(item, option), marca: 'data-material-review-check',
+    nota: scheduled ? 'A conferência fica no histórico da peça junto com a troca de status. Não é preciso justificar.'
+      : 'A conferência fica no histórico da peça junto com a troca de status. Nenhuma justificativa é exigida para finalizar.',
+    idBotao: 'material-review-submit', onclick: 'submitMaterialReview()', acao: scheduled ? 'Confirmar e agendar' : 'Confirmar e finalizar' }), 'vbc');
+  loadMaterialReviewPreview(item.id);
+  updateMaterialReviewState();
+}
 async function submitMaterialReview(){ const flow=pendingWorkflowChange; const checks=[...document.querySelectorAll('input[data-material-review-check]')]; if(!flow||!checks.length) return; if(checks.some(check=>!check.checked)) return showToast('Confirme a conferência visual antes de continuar.','info'); const button=document.getElementById('material-review-submit'); if(button){button.disabled=true;button.textContent='Registrando...';} try { const checked=checks.map(check=>check.parentElement.textContent.trim()).filter(Boolean); await postItemUpdate(flow.item.id,`[Vybe OS · Conferência final]\nEtapa: ${flow.item.status} → ${flow.option.label}\nMaterial conferido: ${checked.join(' | ')}`); const {item,option}=flow; closeWorkflowModal(); await commitStatusChange(item,option); } catch(error){ if(button){button.disabled=false;button.textContent=normalizedWorkflowStatus(flow?.option?.label)==='agendado'?'Confirmar e agendar':'Confirmar e finalizar';} showToast(`Não foi possível registrar a conferência: ${error.message}`,'err',7000); } }
 // ── conferencia visual ────────────────────────────────────────────────────────
-// A arte no centro, e duas saidas: voltar ou mandar. Sem campo obrigatorio, sem
-// checklist, sem trava. Se a peca tiver mais de um arquivo, da para passar entre
-// eles — quem confere quer ver o que vai ser aprovado, nao so o primeiro.
-let CONFERENCIA_INDICE = 0;
+// A arte ao lado, e duas saidas: voltar ou mandar. Sem campo obrigatorio, sem
+// checklist, sem trava. Se a peca tiver mais de um arquivo, as setas do palco
+// passam entre eles e o cabecalho diz "1 de N" — quem confere quer ver o que
+// vai ser aprovado, nao so o primeiro. Mesma janela das outras conferencias
+// (prancha V2-S-Conferir-Status), so que sem caixas: Confirmar ja nasce ligado.
 function abrirConferenciaVisual(item, option) {
   pendingWorkflowChange = { item, option, manual: false };
-  CONFERENCIA_INDICE = 0;
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Confira antes de mandar</span>
-      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">${safeText(item.nome || 'Esta peça')}</h2>
-    <p class="workflow-copy">${safeText(item.cliente || 'Cliente não informado')} · vai para
-      <b>${safeText(option.label)}</b>.</p>
-    ${etapasDoPortao(option.label)}
-    <div class="conferencia-palco" id="conferencia-palco">
-      <div class="status-context-preview-loading">Buscando a arte…</div>
-    </div>
-    <div class="workflow-actions pt-pe"><small>1 de 2 · a arte que vai para aprovação</small>
-      <button type="button" class="pt-btn" onclick="closeWorkflowModal()">Voltar</button>
-      <button type="button" id="conferencia-confirmar" class="pt-btn k" onclick="confirmarConferenciaVisual()">Confirmar</button>
-    </div>`);
-  document.getElementById('workflow-modal')?.classList.add('conferencia-visual');
-  carregarArteDaConferencia(item.id);
-}
-
-async function carregarArteDaConferencia(itemId) {
-  const palco = document.getElementById('conferencia-palco');
-  if (!palco) return;
-  try {
-    const detail = await fetchWorkspaceItem(itemId);
-    const artes = statusContextPreviewAssets(detail) || [];
-    const entrega = workspaceDeliveryInfo(detail);
-    PREVIA_MATERIAL = artes; PREVIA_DA_PECA = '';
-    const abrir = entrega?.url
-      ? `<a class="material-review-open" href="${safeText(entrega.url)}" target="_blank" rel="noopener">ABRIR MATERIAL ↗</a>`
-      : '';
-    if (!artes.length) {
-      palco.innerHTML = `<div class="status-context-preview-empty"><b>Nenhuma arte anexada</b>
-        ${entrega?.url ? 'Há um material vinculado — abra antes de confirmar.'
-          : 'Esta peça não tem arquivo para conferir. Você ainda pode mandar para aprovação.'}${abrir}</div>`;
-      return;
-    }
-    // Quantos arquivos existem, dito em voz alta.
-    //
-    // Um carrossel tem varias paginas, e a tela mostrava a primeira sem dizer
-    // que era a primeira DE UMA. Quem conferia nao sabia distinguir "so tem
-    // esta" de "o resto nao aparece" — e as duas coisas se resolvem de jeitos
-    // opostos: uma e anexar o que falta, a outra e um defeito. Agora a conta
-    // aparece sempre, e com um so arquivo ela diz isso com todas as letras.
-    const varias = artes.length > 1;
-    const conta = varias
-      ? `<span class="conferencia-conta"><b id="conferencia-n">1</b> de ${artes.length} arquivos</span>`
-      : '<span class="conferencia-conta unica">1 arquivo anexado nesta peça</span>';
-    const setas = varias ? `
-      <button type="button" class="conferencia-seta" onclick="passarArteDaConferencia(-1)" aria-label="Arte anterior">‹</button>
-      <button type="button" class="conferencia-seta" onclick="passarArteDaConferencia(1)" aria-label="Próxima arte">›</button>` : '';
-    palco.innerHTML = `<figure class="conferencia-arte ${varias ? 'tem-setas' : ''}">
-        ${setas}
-        <img id="conferencia-img" src="" alt="" title="Clique para ver em tamanho grande"
-          onclick="abrirPreviaGrande(CONFERENCIA_INDICE)">
-        <figcaption id="conferencia-legenda"></figcaption>
-      </figure>
-      ${conta}${abrir}`;
-    // A fileira numerada saiu. Com as setas e o "N de M" sempre a vista, ela era
-    // uma terceira forma de fazer a mesma coisa — e, numa janela mais baixa,
-    // ficava fora do campo de visao, empurrando a conta para a rolagem. Duas
-    // navegacoes, uma delas escondida, e pior que uma que sempre aparece.
-    trocarArteDaConferencia(0);
-  } catch (erro) {
-    palco.innerHTML = `<div class="status-context-preview-empty"><b>Não deu para carregar a arte</b>
-      ${safeText(erro.message || '')} — você ainda pode confirmar.</div>`;
-  }
-}
-
-// Setas alem dos numeros: numero e preciso, seta e obvio. Quem esta conferindo
-// cinco paginas de um carrossel nao quer mirar em quadradinhos de 26px.
-function passarArteDaConferencia(passo) {
-  if (!PREVIA_MATERIAL.length) return;
-  const total = PREVIA_MATERIAL.length;
-  trocarArteDaConferencia((CONFERENCIA_INDICE + passo + total) % total);
-}
-
-function trocarArteDaConferencia(indice) {
-  const arte = PREVIA_MATERIAL[indice];
-  if (!arte) return;
-  CONFERENCIA_INDICE = indice;
-  const img = document.getElementById('conferencia-img');
-  const legenda = document.getElementById('conferencia-legenda');
-  if (img) {
-    img.src = arte.public_url || arte.url_thumbnail || arte.url || '';
-    img.alt = `Prévia de ${arte.name || 'material'}`;
-  }
-  if (legenda) {
-    legenda.textContent = PREVIA_MATERIAL.length > 1
-      ? `(${indice + 1}/${PREVIA_MATERIAL.length}) ${arte.name || ''}`
-      : (arte.name || '');
-  }
-  document.querySelectorAll('#conferencia-tiras button')
-    .forEach((b, i) => b.classList.toggle('ativa', i === indice));
-  const n = document.getElementById('conferencia-n');
-  if (n) n.textContent = String(indice + 1);
+  abrirJanelaV2(janelaDeConferenciaHtml({ item, option, titulo: 'Confira antes de mandar', sub: `a arte vai para ${option.label}`,
+    cab: 'A arte que vai para aprovação', nota: 'Sem campo obrigatório: olhe a arte e confirme. A troca fica no histórico da peça.',
+    idBotao: 'conferencia-confirmar', onclick: 'confirmarConferenciaVisual()', acao: 'Confirmar', desligado: false }), 'vbc conferencia-visual');
+  loadMaterialReviewPreview(item.id);
 }
 
 async function confirmarConferenciaVisual() {

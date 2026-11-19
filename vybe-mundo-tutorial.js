@@ -859,7 +859,8 @@
   // ganha o roteiro por cima. O fundo do passeio é transparente e segura os cliques: o roteiro abria 700 ms depois do
   // clique que abriu o menu e a escolha seguinte caía no fundo, sem efeito (Reriston, 16/11/2026: "não conseguiu nem
   // mudar o responsável nem o status"). O roteiro espera a janela fechar e entra depois.
-  const EM_ACAO = ['#status-editor', '#dono-editor', '.status-editor', '#workflow-modal', '#workspace-drawer', '#cartao-rapido', 'dialog[open]'];
+  // V2-S (19/11/2026): a pergunta do painel (#cli-pergunta) e a prévia grande (#previa-grande) também são ação em curso.
+  const EM_ACAO = ['#status-editor', '#dono-editor', '.status-editor', '#workflow-modal', '#workspace-drawer', '#cartao-rapido', 'dialog[open]', '#cli-pergunta', '#previa-grande'];
   const pessoaEmAcao = () => Boolean(acharAlvo(EM_ACAO));
   // Chamado depois de cada clique (a tela pode ter mudado) e quando o painel abre. Barato: só procura os seletores `se`.
   function conferirTela() {

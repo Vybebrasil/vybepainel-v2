@@ -94,19 +94,18 @@ function rotOpcoesClientes(atual = "") {
   return `<option value="">Sem cliente</option>${ROT.clientes.map((c) => `<option value="${safeText(c.id)}"${c.id === atual ? " selected" : ""}>${safeText(c.nome)}</option>`).join("")}`;
 }
 function rotAbrirIncluir() {
-  openWorkflowModal(`<div class="workflow-kicker"><span>Roteiros</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">Incluir roteiro</h2>
-    <p class="workflow-copy">Cole o link do roteiro no Google Docs. Se o doc estiver na pasta da Vybe no Drive, o painel lê as peças sozinho.</p>
-    <form class="capt-form" onsubmit="event.preventDefault();rotIncluir(this)">
+  abrirJanelaV2(`${vbjTopoHtml({ titulo: "Incluir roteiro", sub: "Agenda · biblioteca de roteiros" })}
+    <form class="vbp-form" onsubmit="event.preventDefault();rotIncluir(this)">
+      <p class="vbp-dica">Cole o link do roteiro no Google Docs. Se o doc estiver na pasta da Vybe no Drive, o painel lê as peças sozinho.</p>
       <label>Link do Google Docs<input name="link" required inputmode="url" placeholder="https://docs.google.com/document/d/…"></label>
       <label>Nome<input name="titulo" required maxlength="300" placeholder="Ex.: Roteiros Hellen Rocha – novembro"></label>
       <label>Cliente<select name="cliente_id">${rotOpcoesClientes(ROT.cliente && ROT.cliente !== "sem" ? ROT.cliente : "")}</select></label>
-      <p class="capt-erro" role="alert" hidden></p>
-      <div class="workflow-actions"><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Incluir</button></div>
-    </form>`);
+      <p class="vbp-erro" role="alert" hidden></p>
+      <div class="vbj-pe"><span class="vbj-esp"></span><button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="vbj-btn k">Incluir</button></div>
+    </form>`, "vbp");
 }
 async function rotIncluir(form) {
-  const f = new FormData(form), erro = form.querySelector(".capt-erro"), botao = form.querySelector("[type=submit]");
+  const f = new FormData(form), erro = form.querySelector(".vbp-erro"), botao = form.querySelector("[type=submit]");
   botao.disabled = true; botao.textContent = "Incluindo…";
   try {
     const r = await rotPedir("", { acao: "incluir", link: f.get("link"), titulo: f.get("titulo"), cliente_id: f.get("cliente_id") });
@@ -118,18 +117,17 @@ async function rotIncluir(form) {
 function rotAbrirEditar(id) {
   const r = (ROT.lista || []).find((x) => x.id === id);
   if (!r) return;
-  openWorkflowModal(`<div class="workflow-kicker"><span>Roteiros</span><button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">Editar roteiro</h2>
-    <form class="capt-form" onsubmit="event.preventDefault();rotEditar(this,'${id}')">
+  abrirJanelaV2(`${vbjTopoHtml({ titulo: "Editar roteiro", sub: "Agenda · biblioteca de roteiros" })}
+    <form class="vbp-form" onsubmit="event.preventDefault();rotEditar(this,'${id}')">
       <label>Nome<input name="titulo" required maxlength="300" value="${safeText(r.titulo)}"></label>
       <label>Cliente<select name="cliente_id">${rotOpcoesClientes(r.cliente_id || "")}</select></label>
-      <p class="capt-erro" role="alert" hidden></p>
-      <div class="workflow-actions"><button type="button" class="vb-link perigo" onclick="rotEditar(this.form,'${id}',true)">Tirar da biblioteca</button><button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="workflow-primary">Salvar</button></div>
-    </form>`);
+      <p class="vbp-erro" role="alert" hidden></p>
+      <div class="vbj-pe"><button type="button" class="vbj-btn vbj-txt vbj-perigo" onclick="rotEditar(this.form,'${id}',true)">${vbjIcone("lixo", 14)}Tirar da biblioteca</button><span class="vbj-esp"></span><button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button><button type="submit" class="vbj-btn k">Salvar</button></div>
+    </form>`, "vbp");
 }
 async function rotEditar(form, id, remover = false) {
   if (remover && !await confirmarNoPainel("Tirar este roteiro da biblioteca? O doc continua no Google Docs.")) return;
-  const f = new FormData(form), erro = form.querySelector(".capt-erro");
+  const f = new FormData(form), erro = form.querySelector(".vbp-erro");
   try {
     await rotPedir("", remover ? { acao: "editar", id, remover: true } : { acao: "editar", id, titulo: f.get("titulo"), cliente_id: f.get("cliente_id") });
     closeWorkflowModal(); showToast(remover ? "Roteiro tirado da biblioteca." : "Roteiro salvo.", "ok"); rotRecarregar();

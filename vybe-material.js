@@ -114,6 +114,8 @@ function passarPecaDaPrevia(passo) {
   mostrarPecaDaPrevia(destino);
 }
 
+// Os ícones da janela V2 moram em vybe-portoes.js; sem ele (teste solto), a prévia fica só com o texto.
+function iconeDaPrevia(nome) { return typeof vbjIcone === 'function' ? vbjIcone(nome, 14) : ''; }
 function abrirPreviaGrande(indice = 0) {
   if (!PREVIA_MATERIAL.length && !PREVIA_PECA) return;
   PREVIA_GRANDE_INDICE = Math.max(0, Math.min(indice, PREVIA_MATERIAL.length - 1));
@@ -121,33 +123,39 @@ function abrirPreviaGrande(indice = 0) {
   if (!caixa) {
     caixa = document.createElement('div');
     caixa.id = 'previa-grande';
-    caixa.className = 'previa-grande';
+    // V2-S-Previa-Grande (prancha de 19/11/2026): a janela de vidro fumê com "Prévia" em cima, a barra das peças
+    // (Peça anterior · nome · Próxima peça), a arte no meio com as setas de 34 ao lado e a legenda "arquivo i de N",
+    // e a ficha de 300 à direita. Os ids e as funções são os de sempre; só o esqueleto é novo.
+    caixa.className = 'previa-grande vbg';
     caixa.innerHTML = `
-      <div class="previa-grande-vidro">
-        <div class="previa-grande-midia">
-        <div class="previa-grande-topo">
-          <span id="previa-grande-nome"></span>
-          <button type="button" id="previa-baixar" class="previa-grande-baixar"
-            onclick="baixarDaPrevia(event)">↓ Baixar</button>
-          <button type="button" id="previa-trocar" class="previa-grande-trocar"
-            onclick="trocarMaterialDaPrevia(event)">⤓ Trocar material</button>
-          <button class="x-fechar" type="button" onclick="fecharPreviaGrande()" aria-label="Fechar">✕</button>
+      <div class="vbg-janela d3-tema" role="dialog" aria-modal="true" aria-labelledby="previa-grande-titulo">
+        <div class="vbj-topo">
+          <div class="vbj-cab"><div class="vbj-tit"><h2 class="vbj-titulo" id="previa-grande-titulo">Prévia</h2>
+            <span class="vbj-sub" id="previa-grande-sub">← → passam o arquivo · Esc fecha</span></div></div>
+          <div class="vbg-topo-acoes">
+            <button type="button" id="previa-baixar" class="vbj-btn" onclick="baixarDaPrevia(event)">${iconeDaPrevia('baixar')}Baixar</button>
+            <button type="button" id="previa-trocar" class="vbj-btn" onclick="trocarMaterialDaPrevia(event)">Trocar material</button>
+          </div>
+          <button class="vbj-x" type="button" onclick="fecharPreviaGrande()" aria-label="Fechar" title="Fechar">${iconeDaPrevia('x')}</button>
         </div>
-        <div class="previa-grande-pecas" id="previa-grande-pecas" role="group" aria-label="Peças da sequência">
-          <button type="button" class="previa-peca-passo" id="previa-peca-antes" onclick="passarPecaDaPrevia(-1)"
-            title="Peça anterior (↑)" aria-label="Peça anterior">‹<span> Peça anterior</span></button>
-          <div class="previa-peca-info" aria-live="polite"><b id="previa-peca-nome"></b><small id="previa-peca-onde"></small></div>
-          <button type="button" class="previa-peca-passo" id="previa-peca-depois" onclick="passarPecaDaPrevia(1)"
-            title="Próxima peça (↓)" aria-label="Próxima peça"><span>Próxima peça </span>›</button>
+        <div class="vbg-corpo">
+          <div class="vbg-midia">
+            <div class="vbg-pecas" id="previa-grande-pecas" role="group" aria-label="Peças da sequência">
+              <button type="button" class="vbj-btn" id="previa-peca-antes" onclick="passarPecaDaPrevia(-1)"
+                title="Peça anterior (↑)">${iconeDaPrevia('esq')}Peça anterior</button>
+              <span class="vbg-peca-info" aria-live="polite"><b id="previa-peca-nome"></b><span id="previa-peca-onde"></span></span>
+              <button type="button" class="vbj-btn" id="previa-peca-depois" onclick="passarPecaDaPrevia(1)"
+                title="Próxima peça (↓)">Próxima peça${iconeDaPrevia('dir')}</button>
+            </div>
+            <div class="vbg-palco">
+              <button type="button" class="vbj-ic vbg-seta" onclick="passarPreviaGrande(-1)" aria-label="Arquivo anterior" title="Arquivo anterior">${iconeDaPrevia('esq')}</button>
+              <div id="previa-grande-media" class="vbg-media"></div>
+              <button type="button" class="vbj-ic vbg-seta" onclick="passarPreviaGrande(1)" aria-label="Próximo arquivo" title="Próximo arquivo">${iconeDaPrevia('dir')}</button>
+            </div>
+            <span id="previa-grande-nome" class="vbg-legenda" aria-live="polite"></span>
+          </div>
+          <aside id="previa-ficha" class="previa-ficha" aria-label="Sobre a peça" hidden></aside>
         </div>
-        <div class="previa-grande-palco">
-          <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(-1)" aria-label="Anterior">❮</button>
-          <div id="previa-grande-media" class="previa-grande-media"></div>
-          <button type="button" class="previa-grande-seta" onclick="passarPreviaGrande(1)" aria-label="Próxima">❯</button>
-          <span id="previa-grande-conta" class="previa-grande-conta" aria-live="polite" hidden></span>
-        </div>
-        </div>
-        <aside id="previa-ficha" class="previa-ficha" aria-label="Sobre a peça" hidden></aside>
       </div>`;
     document.body.appendChild(caixa);
     // Clicar fora fecha; dentro, não — senão fecha ao tentar arrastar a imagem.
@@ -293,8 +301,10 @@ function pintarPecasDaPrevia() {
   const nome = document.getElementById('previa-peca-nome');
   const onde = document.getElementById('previa-peca-onde');
   if (nome) nome.textContent = PREVIA_PECA.nome || 'Peça sem título';
-  if (onde) onde.textContent = [PREVIA_PECA.cliente, rotulo,
-    ids.length > 1 ? `peça ${indice + 1} de ${ids.length}` : ''].filter(Boolean).join(' · ');
+  // "2 de 3 em Feitas · ↑ ↓ passam a peça"; uma peça só diz de quem é.
+  if (onde) onde.textContent = ids.length > 1
+    ? `${indice + 1} de ${ids.length}${rotulo ? ` em ${rotulo}` : ''} · ↑ ↓ passam a peça`
+    : [PREVIA_PECA.cliente, rotulo].filter(Boolean).join(' · ');
   const antes = document.getElementById('previa-peca-antes');
   const depois = document.getElementById('previa-peca-depois');
   if (antes) { antes.hidden = ids.length < 2; antes.disabled = indice <= 0; }
@@ -351,19 +361,29 @@ function fichaDaPreviaHtml() {
   const legenda = p.estado === 'pronta' ? legendaDaPrevia(p.detalhe) : '';
   const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
   const id = safeText(String(p.id));
-  return `${nomesCli.length ? `<div class="previa-ficha-clientes">${nomesCli.map(cliCor).join('')}</div>` : ''}
-    <h2 class="previa-ficha-nome">${safeText(local.nome || p.nome || 'Peça sem título')}</h2>
+  // A ficha da prancha V2-S-Previa-Grande: avatar do cliente com o nome da peça, as linhas de 32 (Status, Prazo,
+  // Veiculação ou Conclusão, Quem fez, Formato), Baixar e Trocar material, e "Abrir a peça" em branco embaixo.
+  const cliente = nomesCli[0] || '';
+  const formato = String(local.formato || local.tipo_conteudo || '').trim();
+  const arquivos = PREVIA_MATERIAL.length;
+  const vazio = (t) => `<span class="previa-ficha-vazio">${t}</span>`;
+  const dia = (d) => safeText(d.replace(' ', ', '));
+  const status = local.status ? (typeof vbjStatusHtml === 'function' ? vbjStatusHtml(local.status, local.status_color || '') : statusCor(local)) : vazio('sem status');
+  return `<div class="vbg-ficha-cab">${cliente && typeof vbjAvatarHtml === 'function' ? vbjAvatarHtml(cliente, 'vbj-av g') : ''}
+      <span class="vbg-ficha-tit"><b class="previa-ficha-nome">${safeText(local.nome || p.nome || 'Peça sem título')}</b>
+        <span>${safeText([nomesCli.join(', '), formato].filter(Boolean).join(' · '))}</span></span></div>
+    ${nomesCli.length > 1 ? `<div class="previa-ficha-clientes">${nomesCli.map(cliCor).join('')}</div>` : ''}
     <dl class="previa-ficha-dados">
-      ${linha('Status', statusCor(local))}
-      ${linha('Prazo', prazo ? safeText(prazo) : '<span class="previa-ficha-vazio">sem prazo</span>')}
-      ${linha(pedido ? 'Conclusão' : 'Veicula', ar ? safeText(ar) : '<span class="previa-ficha-vazio">sem data</span>')}
-      ${linha('Quem fez', quem.length ? quem.map((u) => `<span class="previa-ficha-pessoa">${ownerAvatarHtml(u)}${safeText(firstName(u.name))}</span>`).join('') : '<span class="previa-ficha-vazio">sem responsável</span>')}
+      ${linha('Status', status)}
+      ${linha('Prazo', prazo ? dia(prazo) : vazio('sem prazo'))}
+      ${linha(pedido ? 'Conclusão' : 'Veiculação', ar ? dia(ar) : vazio('sem data'))}
+      ${linha('Quem fez', quem.length ? safeText(quem.map((u) => firstName(u.name)).join(', ')) : vazio('sem responsável'))}
+      ${linha('Formato', safeText([formato || 'Peça', arquivos === 1 ? '1 arquivo' : arquivos ? `${arquivos} arquivos` : 'sem arquivo'].join(' · ')))}
     </dl>
+    ${a ? `<div class="vbg-ficha-acoes">${a.local_id ? `<button type="button" class="vbj-btn" onclick="baixarDaPrevia(event)">${iconeDaPrevia('baixar')}Baixar</button>` : ''}<button type="button" class="vbj-btn" onclick="trocarMaterialDaPrevia(event)">Trocar material</button></div>` : ''}
     ${legenda ? `<div class="previa-ficha-legenda"><span class="previa-ficha-rotulo">Legenda</span><p>${safeText(legenda)}</p></div>` : ''}
-    <div class="previa-ficha-acoes">
-      <button type="button" class="vc-acao" onclick="fecharPreviaGrande();openItemWorkspace('${id}')">Abrir a demanda</button>
-      ${a?.local_id ? '<button type="button" class="vc-sec" onclick="baixarDaPrevia(event)">Baixar o arquivo</button>' : ''}
-      ${a ? '<button type="button" class="vc-sec" onclick="trocarMaterialDaPrevia(event)">Trocar material</button>' : ''}
+    <div class="vbg-ficha-pe">
+      <button type="button" class="vbj-btn k" onclick="fecharPreviaGrande();openItemWorkspace('${id}')">Abrir a peça</button>
     </div>`;
 }
 function pintarFichaDaPrevia() {
@@ -380,9 +400,6 @@ function pintarPreviaGrande() {
   const a = PREVIA_MATERIAL[PREVIA_GRANDE_INDICE];
   const palco = document.getElementById('previa-grande-media');
   const nome = document.getElementById('previa-grande-nome');
-  // A galeria diz onde está: "2 de 5" sobre a mídia, só quando há mais de uma lâmina.
-  const conta = document.getElementById('previa-grande-conta');
-  if (conta) { conta.hidden = PREVIA_MATERIAL.length < 2; conta.textContent = `${PREVIA_GRANDE_INDICE + 1} de ${PREVIA_MATERIAL.length}`; }
   if (!a) {
     if (!PREVIA_PECA) return;
     if (palco) palco.innerHTML = `<div class="previa-grande-estado">${estadoDaPecaNaPrevia()}</div>`;
@@ -391,7 +408,7 @@ function pintarPreviaGrande() {
       const b = document.getElementById(idBotao);
       if (b) b.style.display = 'none';
     });
-    document.querySelectorAll('.previa-grande-seta').forEach((b) => { b.style.visibility = 'hidden'; });
+    document.querySelectorAll('.vbg-seta').forEach((b) => { b.style.visibility = 'hidden'; });
     return;
   }
   // Video tinha caixa propria antes. Agora e a mesma caixa: quem abre um .mp4
@@ -402,7 +419,8 @@ function pintarPreviaGrande() {
       : a.capa ? capaDaPrevia(a)
       : `<img id="previa-grande-img" src="${fonte}" alt="${safeText(a.name || '')}">`;
   }
-  if (nome) nome.textContent = `${PREVIA_MATERIAL.length > 1 && !document.body.classList.contains('mundo') ? `${PREVIA_GRANDE_INDICE + 1} de ${PREVIA_MATERIAL.length} · ` : ''}${a.tipo === 'video' || a.tipo === 'link' || a.tipo === 'pasta' ? '▶ ' : a.capa ? 'Capa · ' : ''}${a.name || ''}`;
+  // A legenda embaixo da arte: "arquivo 1 de 2 · card-feriado-final.png".
+  if (nome) nome.textContent = `arquivo ${PREVIA_GRANDE_INDICE + 1} de ${PREVIA_MATERIAL.length} · ${a.tipo === 'video' || a.tipo === 'link' || a.tipo === 'pasta' ? '▶ ' : a.capa ? 'Capa · ' : ''}${a.name || ''}`;
   // Baixar precisa do id do arquivo no banco: e por ele que o servidor acha os
   // bytes. Previa de coisa que nao esta na peca (um link colado, por exemplo)
   // nao tem esse id, e o botao nao aparece em vez de aparecer quebrado.
@@ -412,7 +430,7 @@ function pintarPreviaGrande() {
   // tambem abre de dentro de portoes, onde trocar o arquivo nao faz sentido.
   const trocar = document.getElementById('previa-trocar');
   if (trocar) trocar.style.display = PREVIA_DA_PECA ? '' : 'none';
-  document.querySelectorAll('.previa-grande-seta').forEach((b) => {
+  document.querySelectorAll('.vbg-seta').forEach((b) => {
     b.style.visibility = PREVIA_MATERIAL.length > 1 ? 'visible' : 'hidden';
   });
 }
@@ -479,7 +497,7 @@ function teclaPreviaGrande(e) {
   if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); passarPecaDaPrevia(1); }
 }
 
-function trocarPreviaMaterial(indice){ const asset=PREVIA_MATERIAL[indice]; if(!asset) return; PREVIA_GRANDE_INDICE=indice; const img=document.getElementById('material-review-img'); const legenda=document.getElementById('material-review-caption'); if(img){ img.src=asset.url_thumbnail||asset.public_url||asset.url||''; img.alt=`Prévia de ${asset.name||'material'}`; } if(legenda) legenda.textContent=`(${indice+1}/${PREVIA_MATERIAL.length}) ${asset.name||''}`; document.querySelectorAll('#material-review-strip button').forEach((b,i)=>b.classList.toggle('ativa',i===indice)); }
+function trocarPreviaMaterial(indice){ const asset=PREVIA_MATERIAL[indice]; if(!asset) return; PREVIA_GRANDE_INDICE=indice; const img=document.getElementById('material-review-img'); const legenda=document.getElementById('material-review-caption'); if(img){ img.src=asset.url_thumbnail||asset.public_url||asset.url||''; img.alt=`Prévia de ${asset.name||'material'}`; } if(legenda) legenda.textContent=asset.name||''; const info=document.getElementById('vbc-prev-info'); if(info) info.textContent=`arquivo vinculado · ${indice+1} de ${PREVIA_MATERIAL.length}`; document.querySelectorAll('#material-review-strip button').forEach((b,i)=>b.classList.toggle('ativa',i===indice)); }
 
 // ── O MATERIAL BRUTO: O CAMINHO DE ENTRADA ───────────────────────────────────
 //

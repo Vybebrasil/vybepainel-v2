@@ -1163,30 +1163,36 @@ function nomearNoPainel(rotulo, valor = '') {
   const { titulo, texto } = partirPergunta(rotulo);
   return perguntarNoPainel({ titulo: titulo.replace(/:\s*$/, ''), texto, confirmar: 'Salvar', campo: { valor: valor ?? '', dica: '' } });
 }
-function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo = false, campo = null, imagem = null, larga = false }) {
+// A janela da pergunta é a peça V2-S-Pergunta (prancha de 19/11/2026): vidro fumê, título de 20 com a frase embaixo,
+// o fechar de 34, o campo com rótulo em cima (curto ou longo) e o pé com a nota à esquerda e Cancelar e o verbo à
+// direita. As três formas (confirmação, campo curto e texto longo) são a mesma janela; o que cada chamada devolve não
+// mudou. `campo.rotulo` e `nota` são opcionais.
+function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo = false, campo = null, imagem = null, larga = false, nota = '' }) {
   const focoAnterior = document.activeElement;
   return new Promise((resolve) => {
     document.getElementById('cli-pergunta')?.remove();
     const fundo = document.createElement('div');
     fundo.id = 'cli-pergunta';
-    fundo.className = 'cli-pergunta';
-    fundo.innerHTML = `<div class="cli-pergunta-caixa${larga ? ' larga' : ''}" role="dialog" aria-modal="true" aria-labelledby="cli-pergunta-titulo">
-        <h3 id="cli-pergunta-titulo">${safeText(titulo)}</h3>
-        ${imagem ? `<figure class="cli-pergunta-previa"><img src="${safeText(imagem.url)}"
+    fundo.className = 'vbp-fundo';
+    const longo = Boolean(campo?.linhas);
+    const entradaHtml = !campo ? '' : longo
+      // Corrigir uma atualizacao de tres linhas dentro de um campo de uma
+      // linha e datilografar as cegas. Mesma caixa de pergunta, so que alta.
+      ? `<textarea id="cli-pergunta-campo" rows="${Number(campo.linhas) || 5}"
+          placeholder="${safeText(String(campo.dica || ''))}">${safeText(String(campo.valor || ''))}</textarea>`
+      : `<input id="cli-pergunta-campo" type="text" value="${safeText(String(campo.valor || ''))}"
+          placeholder="${safeText(String(campo.dica || ''))}">`;
+    fundo.innerHTML = `<div class="vbj vbp d3-tema${larga ? ' larga' : ''}${longo ? ' longa' : ''}" role="dialog" aria-modal="true" aria-labelledby="cli-pergunta-titulo">
+        ${vbjTopoHtml({ titulo, sub: texto, fechar: '', idTitulo: 'cli-pergunta-titulo' }).replace('class="vbj-x"', 'class="vbj-x" data-nao')}
+        ${imagem ? `<figure class="vbp-previa"><img src="${safeText(imagem.url)}"
             alt="${safeText(imagem.nome || '')}"
             onerror="this.closest('figure')?.classList.add('sem-previa')">
           <figcaption>${safeText(imagem.nome || '')}</figcaption></figure>` : ''}
-        ${texto ? `<p>${safeText(texto)}</p>` : ''}
-        ${campo ? (campo.linhas
-          // Corrigir uma atualizacao de tres linhas dentro de um campo de uma
-          // linha e datilografar as cegas. Mesma caixa de pergunta, so que alta.
-          ? `<textarea id="cli-pergunta-campo" rows="${Number(campo.linhas) || 5}"
-              placeholder="${safeText(String(campo.dica || ''))}">${safeText(String(campo.valor || ''))}</textarea>`
-          : `<input id="cli-pergunta-campo" type="text" value="${safeText(String(campo.valor || ''))}"
-              placeholder="${safeText(String(campo.dica || ''))}">`) : ''}
-        <div class="cli-pergunta-acoes">
-          <button type="button" class="workflow-secondary" data-nao>Cancelar</button>
-          <button type="button" class="workflow-primary${perigo ? ' perigo' : ''}" data-sim>${safeText(confirmar)}</button>
+        ${campo ? (campo.rotulo ? `<label class="vbp-campo"><span>${safeText(campo.rotulo)}</span>${entradaHtml}</label>` : `<div class="vbp-campo">${entradaHtml}</div>`) : ''}
+        ${nota ? `<p class="vbp-nota">${safeText(nota)}</p>` : ''}
+        <div class="vbj-pe"><span class="vbj-esp"></span>
+          <button type="button" class="vbj-btn" data-nao>Cancelar</button>
+          <button type="button" class="vbj-btn k${perigo ? ' perigo' : ''}" data-sim>${safeText(confirmar)}</button>
         </div>
       </div>`;
     const entrada = () => document.getElementById('cli-pergunta-campo');
@@ -1208,12 +1214,12 @@ function perguntarNoPainel({ titulo, texto = '', confirmar = 'Confirmar', perigo
         else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro?.focus(); }
       }
     };
-    fundo.querySelector('[data-nao]').onclick = () => fechar(campo ? null : false);
+    fundo.querySelectorAll('[data-nao]').forEach((b) => { b.onclick = () => fechar(campo ? null : false); });
     fundo.querySelector('[data-sim]').onclick = dizerSim;
     fundo.onclick = (e) => { if (e.target === fundo) fechar(campo ? null : false); };
     document.addEventListener('keydown', tecla, true);
     document.body.append(fundo);
-    setTimeout(() => { const alvo = entrada() || fundo.querySelector(perigo ? '[data-nao]' : '[data-sim]'); alvo?.focus(); entrada()?.select(); }, 30);
+    setTimeout(() => { const alvo = entrada() || fundo.querySelector(perigo ? '.vbj-pe [data-nao]' : '[data-sim]'); alvo?.focus(); entrada()?.select(); }, 30);
   });
 }
 

@@ -17,45 +17,41 @@ function goldenDeadlineIso(veiculacao='') { if(!/^\d{4}-\d{2}-\d{2}$/.test(Strin
 function goldenDeadlineGap(prazo='',veiculacao='') { if(!prazo || !veiculacao) return null; const from=new Date(`${prazo}T12:00:00`); const to=new Date(`${veiculacao}T12:00:00`); return Math.round((to-from)/86400000); }
 function quickDateTrigger(item, className='') { const gap=goldenDeadlineGap(item?.prazo_iso,item?.veiculacao_iso); const risk=gap!==null&&gap<PRAZO_OURO_DIAS; const title=`Editar prazo e veiculação · Prazo de Ouro: ${PRAZO_OURO_DIAS} dias antes da veiculação${gap===null?'':` · atual: ${gap === 1 ? '1 dia' : `${gap} dias`}`}`; return `<button type="button" class="quick-date-trigger ${risk?'gold-risk':''} ${className}" onclick="openPlanningEditor('${item.id}')" title="${safeText(title)}" aria-label="${safeText(title)}">◷</button>`; }
 function quickDateDaTrigger(item) { const gap=goldenDeadlineGap(item?.prazo_iso,item?.veiculacao_iso); const risk=gap!==null&&gap<PRAZO_OURO_DIAS; const title=`Editar datas · Prazo de Ouro: ${PRAZO_OURO_DIAS} dias antes da veiculação`; return `<span class="quick-date-da ${risk?'gold-risk':''}" role="button" tabindex="0" onclick="event.preventDefault();event.stopPropagation();openPlanningEditor('${item.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openPlanningEditor('${item.id}')}" title="${safeText(title)}">◷</span>`; }
-// ── Datas rápidas ────────────────────────────────────────────────────────────
+// ── Datas rápidas (prancha V2-S-Datas-da-Peca, 19/11/2026) ────────────────────
 //
-// A caixa dizia tudo o tempo todo: um paragrafo de explicacao no topo, dois
-// campos com titulo e legenda cada, uma faixa laranja com a conta da margem
-// espremida numa linha, um campo de motivo SEMPRE aberto — mesmo quando o prazo
-// estava no padrao e nao havia excecao nenhuma para justificar — e um rodape
-// explicando que o sistema guarda historico.
-//
-// Aqui a tela responde a uma pergunta so: as duas datas estao certas? Entao ela
-// mostra as duas datas, o que a regra acha delas, e some com o resto. O motivo
-// da excecao nasce fechado e SO APARECE quando o prazo sai do padrao — que e
-// exatamente quando ele passa a ser obrigatorio.
+// A caixa responde a uma pergunta só: as duas datas estão certas? Prazo à
+// esquerda, veiculação (a data do cliente) à direita, sempre com o nome — nunca
+// uma data solta. Embaixo, o que a regra acha delas, e no pé a regra em uma
+// linha: Prazo de Ouro, 7 dias antes do ar. O motivo da exceção nasce fechado e
+// SÓ APARECE quando o prazo sai do padrão — que é exatamente quando ele passa a
+// ser obrigatório. A conta e a gravação (savePlanningDates) não mudaram.
+function planningDiaMes(iso = '') { return /^\d{4}-\d{2}-\d{2}$/.test(String(iso)) ? `${iso.slice(8,10)}/${iso.slice(5,7)}` : ''; }
 function leituraDoPrazoDeOuro(prazo, veic) {
   const alvo = goldenDeadlineIso(veic);
   const gap = goldenDeadlineGap(prazo, veic);
   if (!veic) return { estado: 'pendente', titulo: 'Falta a veiculação',
-    texto: 'Sem a data de publicação não dá para medir a antecedência.', alvo: '' };
-  if (!prazo) return { estado: 'pendente', titulo: `Sugerido: ${planningDateBr(alvo)}`,
-    texto: `${PRAZO_OURO_DIAS} dias antes do ar.`, alvo };
+    texto: 'Sem a data do cliente não dá para medir a antecedência', alvo: '' };
+  if (!prazo) return { estado: 'pendente', titulo: `Sugerido: ${planningDiaMes(alvo)}`,
+    texto: `${PRAZO_OURO_DIAS} dias antes do ar`, alvo };
   if (prazo === alvo) return { estado: 'ok', titulo: 'No padrão',
-    texto: `${PRAZO_OURO_DIAS} dias completos de antecedência.`, alvo };
+    texto: `${PRAZO_OURO_DIAS} dias completos de antecedência`, alvo };
   if (gap > PRAZO_OURO_DIAS) return { estado: 'folga', titulo: `${gap} dias de antecedência`,
-    texto: `${gap - PRAZO_OURO_DIAS} a mais que o padrão.`, alvo };
+    texto: `${gap - PRAZO_OURO_DIAS} a mais que o padrão · o ideal é ${planningDiaMes(alvo)}`, alvo };
   return { estado: 'risco', titulo: `${Math.max(0, gap)} dia${gap === 1 ? '' : 's'} de antecedência`,
-    texto: `${PRAZO_OURO_DIAS - gap} abaixo do padrão · ideal ${planningDateBr(alvo)}.`, alvo };
+    texto: `${PRAZO_OURO_DIAS - gap} abaixo do padrão · o ideal é ${planningDiaMes(alvo)}`, alvo };
 }
 
 function painelDoPrazoDeOuro(prazo, veic) {
   const l = leituraDoPrazoDeOuro(prazo, veic);
   const forade = l.estado === 'risco' || l.estado === 'folga';
-  return `<div class="dr-regra dr-${l.estado}">
-      <span class="dr-regra-marca" aria-hidden="true"></span>
-      <span class="dr-regra-copy"><b>${safeText(l.titulo)}</b><small>${safeText(l.texto)}</small></span>
+  return `<div class="vbd-regra vbd-${l.estado}" role="status">
+      <span class="vbd-regra-txt"><b>${safeText(l.titulo)}</b><span>${safeText(l.texto)}</span></span>
       ${l.alvo && l.estado !== 'ok'
-        ? `<button type="button" class="dr-aplicar" onclick="applyGoldenDeadline()">Usar ${planningDateBr(l.alvo)}</button>`
+        ? `<button type="button" class="vbj-btn" onclick="applyGoldenDeadline()">Usar ${planningDiaMes(l.alvo)}</button>`
         : ''}
     </div>
-    <label class="dr-motivo ${forade ? 'aberto' : ''}">
-      <span>Por que fora do padrão? <em>fica no histórico da peça</em></span>
+    <label class="vbd-motivo"${forade ? '' : ' hidden'}>
+      <span>Por que fora do padrão? · fica no histórico da peça</span>
       <textarea id="planning-reason" rows="2"
         placeholder="Ex.: urgência aprovada; o cliente mudou a campanha."></textarea>
     </label>`;
@@ -87,27 +83,24 @@ function openPlanningEditor(itemId) {
   if (!item) return showToast('Demanda não encontrada.', 'err');
   const prazo = item.prazo_iso || '';
   const veiculacao = item.veiculacao_iso || '';
-  openWorkflowModal(`<div class="dr-topo">
-      <div><span class="dr-kicker">${safeText(item.cliente || 'Sem cliente')}</span>
-        <h2 class="dr-titulo">${safeText(item.nome || 'Sem título')}</h2></div>
-      <button class="dr-fechar" type="button" onclick="closeWorkflowModal()" aria-label="Fechar">×</button>
-    </div>
-    <div class="dr-datas">
-      <label class="dr-campo">
+  const cliente = item.cliente || 'Sem cliente';
+  abrirJanelaV2(`${vbjTopoHtml({ titulo: item.nome || 'Sem título', sub: [cliente, item.status].filter(Boolean).join(' · '), av: vbjAvatarHtml(cliente, 'vbj-av g') })}
+    <div class="vbd-datas">
+      <label class="vbd-campo">
         <span>Prazo de produção</span>
         <input id="planning-prazo" type="date" value="${prazo}" onchange="updateGoldenDeadlineState()">
       </label>
-      <span class="dr-seta" aria-hidden="true">→</span>
-      <label class="dr-campo">
-        <span>Veiculação</span>
+      <span class="vbd-seta" aria-hidden="true">${vbjIcone('dir', 14)}</span>
+      <label class="vbd-campo">
+        <span>Veiculação · data do cliente</span>
         <input id="planning-veiculacao" type="date" value="${veiculacao}" onchange="updateGoldenDeadlineState()">
       </label>
     </div>
-    <div id="planning-golden-state">${painelDoPrazoDeOuro(prazo, veiculacao)}</div>
-    <div class="workflow-actions">
-      <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Cancelar</button>
-      <button id="planning-save" type="button" class="workflow-primary" onclick="savePlanningDates('${item.id}')">Salvar</button>
-    </div>`);
+    <div id="planning-golden-state" class="vbd-estado">${painelDoPrazoDeOuro(prazo, veiculacao)}</div>
+    <div class="vbj-pe"><span class="vbj-nota">Prazo de Ouro · ${PRAZO_OURO_DIAS} dias antes do ar</span>
+      <button type="button" class="vbj-btn" onclick="closeWorkflowModal()">Cancelar</button>
+      <button id="planning-save" type="button" class="vbj-btn k" onclick="savePlanningDates('${item.id}')">Salvar</button>
+    </div>`, 'vbd');
 }
 
 async function savePlanningDates(itemId) {
