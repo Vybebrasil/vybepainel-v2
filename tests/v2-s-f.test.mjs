@@ -92,7 +92,7 @@ test('Ordem: o cabeçalho da V2 marca aria-sort e a seta, a escolha é guardada 
   const ordenar = trecho(agenda, 'function ordenarPor(', 'function cabecalhoOrdenavel(');
   assert.match(ordenar, /pv2GruposGuardar\(\)/, 'a ordem de Produção fica guardada como a das Demandas');
   assert.match(ordenar, /\.focus\(\)/, 'quem ordena pelo teclado não perde o lugar');
-  assert.match(trecho(agenda, 'function renderVisaoDeGrupos(', 'const peca = (n)'), /pv2GruposFiltroCliente\(semCliente\)/);
+  assert.match(trecho(agenda, 'function renderVisaoDeGrupos(', 'const peca = (n)'), /pv2GruposAplicarFiltros\(semCliente\)/, 'o cliente entra com os outros filtros da folha');
 });
 
 test('Contraste: o select branco da cabeça saiu; filtros viram botões com menu e o selecionado é cheio de tinta', () => {
@@ -180,8 +180,8 @@ test('Captação: coluna própria ao lado do Status, à mostra por padrão, com 
   assert.ok(menu.includes("const daTabela = Boolean(event.currentTarget?.closest?.('#grupos-board.d3m-a-v2 .d3m-a-g-tab'));"));
   assert.ok(menu.includes("const captacao = !daTabela && typeof blocoDeCaptacaoHtml === 'function'"));
   const css = ler('padrao-v2/s-f.css');
-  assert.ok(css.includes('.s-f-com-cap:not(.larga) th:nth-last-child(3){width:62px}'), 'Prazo inteiro');
-  assert.ok(css.includes('.s-f-com-cap:not(.larga) th:nth-last-child(2){width:94px}'), 'Veiculação inteira');
+  assert.ok(css.includes('.s-f-cols:not(.larga) th.s-f-c-prazo_iso{width:62px}'), 'Prazo inteiro');
+  assert.ok(css.includes('.s-f-cols:not(.larga) th.s-f-c-veiculacao_iso{width:94px}'), 'Veiculação inteira');
   assert.match(css, /\.d3m-a-th > i\.s-f-seta\{[^}]*color:var\(--d3-rotulo\)\}/);
   assert.match(css, /\.d3m-a-th\.on > i\.s-f-seta\{[^}]*color:var\(--d3-tinta\)\}/);
 });

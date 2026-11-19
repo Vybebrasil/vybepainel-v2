@@ -2512,8 +2512,8 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   if (gruposV2 && typeof pv2GruposRestaurar === 'function') pv2GruposRestaurar();
   const semCliente=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(termoDaBusca)) || (gruposV2 && (String(i.nome || '').toLocaleLowerCase('pt-BR').includes(termoDaBusca) || String(i.id).toLocaleLowerCase('pt-BR').includes(termoDaBusca))))
     .filter(i=>!pessoaDoDa || assignedIds(i).includes(pessoaDoDa));
-  // O filtro de cliente da V2 (um ou mais clientes) vale junto com a busca e com a pessoa (itensPorGrupo).
-  const fonte = gruposV2 && typeof pv2GruposFiltroCliente === 'function' ? pv2GruposFiltroCliente(semCliente) : semCliente;
+  // Os filtros da V2 (cliente, formato, captação e data) valem junto com a busca, a pessoa e a carteira (itensPorGrupo).
+  const fonte = gruposV2 && typeof pv2GruposAplicarFiltros === 'function' ? pv2GruposAplicarFiltros(semCliente) : semCliente;
   if (typeof garantirGruposDoPainel === 'function') garantirGruposDoPainel();
   const grupos = itensPorGrupo(fonte, cfg.ordem());
   if (botao) {
@@ -2528,7 +2528,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   wrap.classList.toggle('d3m-a-v2', gruposV2);
   // Com a V2 de Grupos, a pessoa aparece nos chips da folha: a faixa antiga de cima sai (s-f.css).
   if (quadro === 'producao') document.getElementById('ops-selection-summary')?.toggleAttribute('data-s-f-chips', gruposV2);
-  if (gruposV2) { wrap.innerHTML = pv2GruposHtml({ grupos, quadro, base: semCliente }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
+  if (gruposV2) { wrap.innerHTML = pv2GruposHtml({ grupos, quadro, base: semCliente, semFiltro: cfg.fonte() }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
 
   const peca = (n) => quadro === 'demandas'
     ? (n === 1 ? 'solicitação' : 'solicitações')
