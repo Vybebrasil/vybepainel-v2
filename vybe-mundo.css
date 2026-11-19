@@ -4352,9 +4352,11 @@ html body.mundo.mundo-modulo .vv-canto-modulo{z-index:720!important}
 /* Botão das salas de voz com nome, maior que os ícones (Paulo, 08/11/2026). */
 /* Voz clara (Paulo, 09/11/2026: "tão reclamando de dificuldade de achar onde entra na chamada"): fora da chamada o botão
    da sala é o laranja de ação, com "Entrar na chamada" escrito; conectando fica cinza; o microfone diz Mudo ou Ligado. */
-/* WhatsApp, Agenda e Boletim com nome, como as Salas (Paulo, 08/11/2026; Boletim em 09/11/2026). */
+/* WhatsApp, Agenda e Boletim com nome, como as Salas (Paulo, 08/11/2026; Boletim em 09/11/2026). Direto na barra de
+   ferramentas o nome fica escondido (V2): sem o :not() o botão de ícone ficava com 38 de largura e o ícone torto
+   (confere da-8, 19/11/2026). No menu "Mais", com nome, continua igual. */
 .vv-ferr-nome{display:none}
-html body.mundo:not(.mundo-centro) .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"],.vv-ferr-boletim){width:auto!important;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
+html body.mundo:not(.mundo-centro) .vv-barra-topo :is([data-ferr="whatsapp"],[data-ferr="agenda"],.vv-ferr-boletim):not(.vv-ferramentas > *){width:auto!important;padding:0 12px 0 10px!important;gap:7px;border-radius:9px}
 html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:inline;font:650 12.5px var(--vv-texto)}
 /* Celular: só os ícones no topo (Agenda e WhatsApp com o nome não cabem junto dos outros sem se espremer); o nome segue no title. */
 @media (max-width:560px){html body.mundo:not(.mundo-centro) .vv-barra-topo .vv-ferr-nome{display:none}}

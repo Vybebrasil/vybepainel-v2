@@ -81,32 +81,48 @@ function syncHealthClock(timestamp) {
   try { return new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(timestamp)); }
   catch(e) { return 'hora indisponível'; }
 }
+// Troca o texto sem trocar o nó. `textContent =` tira e põe um nó de texto, e
+// isso faz o navegador reconferir todos os `:has()` dos pais (header, body,
+// html): cerca de 39 ms de estilo a cada 15 s com a tela parada. Mudar só o
+// `data` do nó que já existe não mexe na árvore e sai de graça. Igual: não escreve.
+function escreverTextoSemTrocarNo(el, texto) {
+  if (!el) return;
+  const valor = String(texto);
+  const no = el.firstChild;
+  if (no && no.nodeType === 3 && !no.nextSibling) { if (no.data !== valor) no.data = valor; return; }
+  if (el.textContent !== valor) el.textContent = valor;
+}
 function setSyncHealth(state='checking', detail='') {
   syncHealthState = state;
   const el = ensureSyncHealthIndicator();
   const title = el.querySelector('b'), message = el.querySelector('.sync-health-copy span'), action = el.querySelector('.sync-health-action');
-  el.className = `sync-health-indicator ${state}`;
+  const classe = `sync-health-indicator ${state}`;
+  if (el.className !== classe) el.className = classe;
   posicionarIndicadorDeSincronia(el, state);
+  let t, m, a;
   if (state === 'healthy') {
     syncHealthLastConfirmedAt = Date.now();
     localStorage.setItem(SYNC_HEALTH_STORAGE_KEY, String(syncHealthLastConfirmedAt));
-    title.textContent = syncHealthClock(syncHealthLastConfirmedAt);
-    message.textContent = detail || 'Dados confirmados · clique para atualizar';
-    action.textContent = '↻ Atualizar';
+    t = syncHealthClock(syncHealthLastConfirmedAt);
+    m = detail || 'Dados confirmados · clique para atualizar';
+    a = '↻ Atualizar';
   } else if (state === 'stale') {
-    title.textContent = 'Atenção · Dados desatualizados';
-    message.textContent = detail || `Sem confirmação desde ${syncHealthClock(syncHealthLastConfirmedAt)}. Não tome decisões sem atualizar.`;
-    action.textContent = '↻ Atualizar agora';
+    t = 'Atenção · Dados desatualizados';
+    m = detail || `Sem confirmação desde ${syncHealthClock(syncHealthLastConfirmedAt)}. Não tome decisões sem atualizar.`;
+    a = '↻ Atualizar agora';
   } else if (state === 'error') {
-    title.textContent = 'Erro de sincronização';
-    message.textContent = detail || `Última confirmação: ${syncHealthClock(syncHealthLastConfirmedAt)}. A operação pode estar desatualizada.`;
-    action.textContent = '↻ Tentar agora';
+    t = 'Erro de sincronização';
+    m = detail || `Última confirmação: ${syncHealthClock(syncHealthLastConfirmedAt)}. A operação pode estar desatualizada.`;
+    a = '↻ Tentar agora';
   } else {
-    title.textContent = 'Conferindo dados';
-    message.textContent = detail || `Última confirmação: ${syncHealthClock(syncHealthLastConfirmedAt)}`;
-    action.textContent = '↻ Atualizar';
+    t = 'Conferindo dados';
+    m = detail || `Última confirmação: ${syncHealthClock(syncHealthLastConfirmedAt)}`;
+    a = '↻ Atualizar';
   }
-  el.title = message.textContent;
+  escreverTextoSemTrocarNo(title, t);
+  escreverTextoSemTrocarNo(message, m);
+  escreverTextoSemTrocarNo(action, a);
+  if (el.title !== m) el.title = m;
 }
 function refreshSyncHealthAge() {
   if (syncHealthState === 'error' || syncHealthState === 'checking') return;
@@ -115,7 +131,7 @@ function refreshSyncHealthAge() {
 setInterval(refreshSyncHealthAge, 30000);
 function cacheSyncLabel(text) {
   const footer = document.getElementById('footer-update');
-  if (footer && text) footer.textContent = text;
+  if (footer && text) escreverTextoSemTrocarNo(footer, text);
 }
 function cacheClock(iso) {
   try { return new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(new Date(iso)); }

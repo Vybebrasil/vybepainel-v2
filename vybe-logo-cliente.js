@@ -68,8 +68,9 @@ function logoDoClienteHtml(nome, { classe = 'd3v-foto', iniciais = iniciaisDaLog
   if (!fontes.length) return classe ? `<i${cls}${st} aria-hidden="true">${logoEsc(iniciais)}</i>` : logoEsc(iniciais);
   // Tamanho de partida (confere 19/11/2026: centenas de logos sem tamanho pulavam o layout ao chegar). Toda classe de
   // quadro (d3v-foto, vfa-av, vle-av…) fixa largura e altura no CSS, que vence o atributo; ele só vale até o CSS e dá
-  // a proporção quadrada. Sem classe, o quadro é de quem chama e a imagem fica como era.
-  const tam = classe ? ' width="28" height="28"' : '';
+  // a proporção quadrada. Sem classe, o quadro é de quem chama (o "como fica no Instagram" do Conteúdo, que estica a
+  // imagem a 100%): 64, o mesmo tamanho que a foto do Feed já levava ali, só para a reserva quadrada antes do CSS.
+  const tam = classe ? ' width="28" height="28"' : ' width="64" height="64"';
   return `<img${cls}${st} src="${logoEsc(fontes[0])}" data-logo-mais="${logoEsc(fontes.slice(1).join(' '))}" data-logo-ini="${logoEsc(iniciais)}" alt="" loading="lazy" decoding="async" onerror="logoProximaFonte(this)"${tam}>`;
 }
 // A fonte de agora falhou (404, sem perfil, imagem quebrada): a próxima; sem nenhuma, as iniciais no lugar.

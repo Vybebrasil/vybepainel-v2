@@ -53,5 +53,5 @@ test('o dock do Escritório liga uma classe no body em vez de :has([hidden])', (
 });
 
 test('logo do cliente nasce com tamanho (não pula o layout)', () => {
-  assert.match(ler('vybe-logo-cliente.js'), /const tam = classe \? ' width="28" height="28"' : '';/);
+  assert.match(ler('vybe-logo-cliente.js'), /const tam = classe \? ' width="28" height="28"' : ' width="64" height="64"';/);
 });

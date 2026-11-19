@@ -1,0 +1,27 @@
+/* ===================================================================================================================
+   Confere de diretor de arte, frente da-8 (19/11/2026): as últimas sobras.
+   =================================================================================================================== */
+
+/* Trocar de tela: o que é da tela antiga sai junto. Fora de uma tela antiga (sem .mundo-modulo), o cabeçalho e o painel
+   antigos já ficam invisíveis (d3-auditoria.css), mas
+   - na Gestão a regra de lá não vale, e o "De olho" do Clientes ficava montado embaixo dela a 1024;
+   - invisível ainda ocupa lugar: vindo de Demandas, o cabeçalho antigo (379 de largura a 375) fazia o Projetos e as
+     outras janelas do palco rolarem de lado no celular.
+   Agora o painel antigo some também na Gestão, e o cabeçalho e o painel antigos são cortados na própria caixa
+   (overflow:clip), sem entrar na rolagem. */
+body.mundo.mundo-gestao:not(.mundo-modulo) > :is(.container,[id^="painel-"]:not(#painel-escritorio)){visibility:hidden}
+body.mundo:not(.mundo-modulo) > :is(header.app-header,.container,[id^="painel-"]:not(#painel-escritorio)){overflow:clip}
+
+/* Conta: a folha de quem você é fica estreita na coluna da esquerda (1024 a 1366 com a Equipe ao lado). Quando ela tem
+   menos de 460 de largura, cada linha vira rótulo em cima e o resto embaixo, como já era abaixo de 900 (o texto
+   desce inteiro para a sua linha quando não cabe ao lado da situação e do botão), e os campos
+   de senha (Atual, Nova) ganham largura para o texto de dentro caber; o Salvar desce quando não cabe. */
+#conta-root .d3m-e-ct-perfil{container:conta-perfil / inline-size}
+#conta-root .d3m-e-ct-senha .d3m-e-ct-senha-campos{flex-wrap:wrap}
+#conta-root .d3m-e-ct-senha .d3m-e-ct-senha-campos > input{flex:1 1 96px}
+@container conta-perfil (max-width:460px){
+  #conta-root .d3m-e-ct-perfil .d3m-e-ct-lin{flex-wrap:wrap;gap:4px 10px;padding:10px 16px}
+  #conta-root .d3m-e-ct-perfil .d3m-e-ct-rot{width:100%}
+  #conta-root .d3m-e-ct-perfil .d3m-e-ct-txt{flex:1 1 140px}
+  #conta-root .d3m-e-ct-perfil :is(.d3m-e-ct-senha-campos,.d3m-e-ct-codigo,.d3m-e-ct-aviso){padding-left:16px}
+}
