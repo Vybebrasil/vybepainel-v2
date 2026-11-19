@@ -11739,10 +11739,11 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
 #vv-hoje .d3m-a-mt .d3m-a-mt-busca{appearance:none;flex:0 1 132px;min-width:72px;height:26px;margin:0;padding:0 9px;box-sizing:border-box;border:0;border-radius:7px;background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 #vv-hoje .d3m-a-mt .d3m-a-mt-busca::placeholder{color:var(--d3-rotulo);opacity:1}
 #vv-hoje .d3m-a-mt .d3m-a-mt-busca:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
-/* A linha: grupo (60), foto (28), cliente e peça, a trilha (104), o status (128) e a data (104), como na prancha. */
-#vv-hoje .d3m-a-mt-cols,#vv-hoje .d3m-a-mt-lin{display:grid;grid-template-columns:60px 28px minmax(0,1fr) 112px 128px 104px;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
+/* A linha: grupo (60), foto (28), cliente e peça, a trilha (112), o status (120), prazo e veiculação (148) e quem faz
+   (84; Bia, 18/11/2026). */
+#vv-hoje .d3m-a-mt-cols,#vv-hoje .d3m-a-mt-lin{display:grid;grid-template-columns:60px 28px minmax(0,1fr) 112px 120px 148px 84px;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
 #vv-hoje .d3m-a-mt-cols{flex:none;height:24px;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
-#vv-hoje .d3m-a-mt-cols > span:last-child{text-align:right}
+#vv-hoje .d3m-a-mt-cols > span:nth-last-child(2){text-align:right}
 #vv-hoje .d3m-a-mt .v2-lista.d3m-a-mt-lista{flex:1 1 0;display:flex;flex-direction:column;min-height:0;padding:0;border-radius:0;background:none;box-shadow:none;overflow-y:auto;scrollbar-width:thin}
 #vv-hoje .d3m-a-mt .d3m-a-mt-lista > *{flex:none}
 #vv-hoje .d3m-a-mt .d3m-a-mt-lista > .d3v-estado{flex:1 1 auto;border-top:1px solid var(--d3-divisa)}
@@ -11846,7 +11847,7 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
   #vv-hoje .d3m-a-mt .d3m-a-div{display:none}
   #vv-hoje .d3m-a-mt .d3m-a-filtro{height:34px}
   #vv-hoje .d3m-a-mt-cols{display:none}
-  #vv-hoje .d3m-a-mt-lin{grid-template-columns:28px auto minmax(0,1fr) auto;grid-template-areas:"f n n n" "f t s d";gap:2px 8px;height:auto;min-height:60px;padding:8px 14px}
+  #vv-hoje .d3m-a-mt-lin{grid-template-columns:28px auto minmax(0,1fr) auto;grid-template-areas:"f n n w" "f t s d";gap:2px 8px;height:auto;min-height:60px;padding:8px 14px}
   #vv-hoje .d3m-a-mt-lin > .d3m-a-mt-q{display:none}
   #vv-hoje .d3m-a-mt-lin > .d3v-foto{grid-area:f;align-self:start;margin-top:2px}
   #vv-hoje .d3m-a-mt .d3m-a-mt-nome{grid-area:n;height:24px}
@@ -11855,10 +11856,40 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
   #vv-hoje .d3m-a-mt .d3m-a-mt-st .vv-demanda-status{margin-left:0;padding:0}
   #vv-hoje .d3m-a-mt-st{grid-area:s}
   #vv-hoje .d3m-a-mt-dt{grid-area:d}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-quem{grid-area:w}
   #vv-hoje .d3m-a-mt .v2t-det.d3m-a-mt-det{margin-left:14px;margin-right:14px}
   #vv-hoje .d3m-a-mt-pe{flex-wrap:wrap;gap:4px 0;padding:8px 14px}
   #vv-hoje .d3m-a-mt-pe > span:first-child{flex:1 1 100%}
   #vv-hoje .d3m-a-mt-lado .d3m-vlin{height:44px}
+}
+
+/* Quem faz e as duas datas na linha (Bia, Coordenação, 18/11/2026: "quero que apareça quem tá atribuído e que eu possa
+   alterar o responsável", "ver prazo e veiculação"). Vale para a aba Minhas tarefas do Hoje e para o módulo do dock.
+   Quem faz é um botão que abre o editor de responsável de sempre; cada data toca e muda; vencida em vermelho. */
+#vv-hoje .v2t-data{display:inline-flex;align-items:baseline;gap:3px;min-width:0;border-radius:4px;font:500 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;font-variant-numeric:tabular-nums}
+#vv-hoje .v2t-data > small{font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-hoje .v2t-data.a{color:var(--d3-ambar)}
+#vv-hoje .v2t-data.r,#vv-hoje .v2t-data.r > small{color:var(--d3-perigo)}
+#vv-hoje .v2t-data[data-editar-data]{cursor:pointer}
+#vv-hoje .v2t-data[data-editar-data]:hover{text-decoration:underline;text-underline-offset:3px}
+#vv-hoje .v2t-data[data-editar-data]:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+#vv-hoje .v2t-dono{appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%;height:28px;margin:0;padding:0 6px 0 2px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-hoje .v2t-dono:hover{background:var(--d3-veu)}
+#vv-hoje .v2t-dono:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+#vv-hoje .v2t-dono > .d3h-av{flex:none}
+#vv-hoje .v2t-dono-nome{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Aba do Hoje (cartão estreito): as datas uma sobre a outra, o olho ao lado (fora de .v2t-datas); quem faz só com as iniciais (o nome inteiro
+   vai no nome acessível e na dica). */
+#vv-hoje .d3h-tarefas .v2t-datas{display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:0}
+#vv-hoje .d3h-tarefas .v2t-dono{padding:0 2px}
+#vv-hoje .d3h-tarefas .v2t-dono-nome{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Módulo do dock: as duas datas lado a lado na coluna "Prazo · no ar" e quem faz com as iniciais e o primeiro nome. */
+#vv-hoje .d3m-a-mt-dt.d3m-a-mt-datas{gap:10px}
+#vv-hoje .d3m-a-mt-datas > .v2t-data{flex:none}
+#vv-hoje .d3m-a-mt .d3m-a-mt-quem{justify-self:start}
+@media (min-width:901px) and (max-width:1320px){
+  #vv-hoje .d3m-a-mt-cols,#vv-hoje .d3m-a-mt-lin{grid-template-columns:60px 28px minmax(0,1fr) 112px 112px 144px 40px}
+  #vv-hoje .d3m-a-mt .d3m-a-mt-quem > .v2t-dono-nome{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
 
 /* ===== padrao-v2/zm-a-6-demandas.css ===== */

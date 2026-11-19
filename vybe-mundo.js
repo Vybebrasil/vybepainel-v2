@@ -2106,6 +2106,20 @@
       if (v === somar(hoje, 1)) return '<span class="v2t-q">amanhã</span>';
       return `<span class="v2t-q">${v <= somar(hoje, 6) && v > hoje ? NOME_DIA[new Date(v + 'T12:00:00Z').getUTCDay()] : dmD3(v)}</span>`; };
     const qDa = (x) => { const p = pesoNoGuia(x, hoje); return p <= 2 ? QUANDO_D3[0] : p <= 4 ? QUANDO_D3[1] : QUANDO_D3[2]; };
+    // Bia (Coordenação, 18/11/2026): "quero que apareça quem tá atribuído e que eu possa alterar o responsável" e "ver
+    // prazo e veiculação". Quem faz vira um botão que abre o editor de responsável de sempre (openOwnerEditor); prazo e
+    // veiculação ficam os dois na linha, cada um toca e muda (data-editar-data, vybe-core.js), o vencido em vermelho.
+    const donosDe = (d) => { const us = typeof ownerUsersFor === 'function' ? ownerUsersFor(d) : [];
+      return us.length ? us.map((u) => String(u.name || u.nome || '').trim()).filter(Boolean) : String(d.responsavel || '').split(',').map((n) => n.trim()).filter((n) => n && n !== '—'); };
+    const donoRot = (x) => { const n = donosDe(x.d), r = n.length ? `Responsável: ${n.join(', ')}. Trocar` : 'Sem responsável. Escolher'; return `title="${esc(r)}" aria-label="${esc(r)}"`; };
+    const donoCurto = (x) => { const n = donosDe(x.d); return n.length ? esc(n[0].split(/\s+/)[0]) + (n.length > 1 ? ` +${n.length - 1}` : '') : 'ninguém'; };
+    // Cada data: o texto (hoje, amanhã ou dd/mm), o tom (vencida em vermelho, a de hoje em âmbar) e o nome para o leitor.
+    const dataIso = (x, campo) => String((campo === 'prazo' ? x.d.prazo_iso : x.d.veiculacao_iso) || '').slice(0, 10);
+    const dataTom = (x, campo) => { const iso = dataIso(x, campo); return x.sit === 'concluida' || !iso ? '' : iso < hoje ? ' r' : iso === hoje ? ' a' : ''; };
+    const dataTxt = (x, campo) => { const iso = dataIso(x, campo); return `<small>${campo === 'prazo' ? 'prazo' : 'no ar'}</small>${!iso ? '—' : iso === hoje ? 'hoje' : iso === somar(hoje, 1) ? 'amanhã' : dmD3(iso)}`; };
+    const dataAttrs = (x, campo) => { const iso = dataIso(x, campo), nome = campo === 'prazo' ? 'Prazo' : 'Veiculação', d = `${nome} ${iso ? dmD3(iso) : 'sem data'}${dataTom(x, campo) === ' r' ? ', vencido' : ''}`;
+      return `role="button" tabindex="0" title="${esc(d)} · tocar para mudar" aria-label="${esc(d)}. Mudar" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"`; };
+    const datasFeitas = (x) => ['prazo', 'veiculacao'].map((c) => `<span class="v2t-data">${dataTxt(x, c)}</span>`).join('');
     // Etapas da peça, lidas do status (o painel não guarda etapa por etapa): o que já passou fica marcado, em barras.
     const etapaDe = (d) => { const st = String(d.status || '').toLowerCase(), fim = typeof isFinishedItem === 'function' && isFinishedItem(d);
       return fim ? 5 : /agend|aprovad|pronta/.test(st) ? 4 : /aprova/.test(st) ? 3 : /andamento|produ|altera|ajuste|corre/.test(st) ? 2 : d.tem_briefing === false || /briefing|info/.test(st) ? 0 : 1; };
@@ -2121,8 +2135,8 @@
           <button type="button" class="v2t-cx${feita ? ' ok' : ''}" data-hoje-acao="concluir" data-valor="${id}" aria-label="${feita ? 'Concluída' : 'Concluir'}: ${esc(titulo(x))}"${feita ? ' disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></button>
           ${fotoCliD3(cli)}<button type="button" class="v2t-nome" data-hoje-acao="linha" data-valor="${id}" title="${esc(titulo(x) + (cli ? ' · ' + cli : ''))}"><span class="v2-risca${feita ? ' feita' : ''}">${cli ? `${cliCor(cli)} · ` : ''}${esc(semGrito(titulo(x)))}</span></button>
           <span class="v2t-st">${x.d.status ? (feita ? stD3(x.d) : `<button type="button" class="vv-demanda-status" onclick="openStatusEditor(event,'${id}')" title="Trocar o status" aria-label="Trocar o status: ${esc(x.d.status)}">${stD3(x.d)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`) : ''}</span>
-          <span class="v2t-quando">${feita ? quandoHtml(x) : `<span data-editar-data="veiculacao" data-peca="${id}" title="Tocar para mudar a data">${quandoHtml(x)}</span>`}${olho}</span>
-          ${avD3(quem)}
+          <span class="v2t-quando"><span class="v2t-datas">${feita ? datasFeitas(x) : `<span class="v2t-data${dataTom(x, 'prazo')}" data-editar-data="prazo" data-peca="${id}" ${dataAttrs(x, 'prazo')}>${dataTxt(x, 'prazo')}</span><span class="v2t-data${dataTom(x, 'veiculacao')}" data-editar-data="veiculacao" data-peca="${id}" ${dataAttrs(x, 'veiculacao')}>${dataTxt(x, 'veiculacao')}</span>`}</span>${olho}</span>
+          <button type="button" class="v2t-dono" onclick="openOwnerEditor(event,'${id}')" ${donoRot(x)}>${avD3(quem)}<span class="v2t-dono-nome">${donoCurto(x)}</span></button>
           <button type="button" class="v2-linha-seta" data-hoje-acao="linha" data-valor="${id}" aria-expanded="false" aria-label="Abrir a linha de ${esc(titulo(x))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
         <div class="v2-mais"><div><div class="v2t-det">${etapasHtml(x.d)}
           <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${extras}
@@ -2196,7 +2210,8 @@
           <button type="button" class="d3m-a-mt-nome" data-hoje-acao="linha" data-valor="${id}" title="${esc(titulo(x) + (cli ? ' · ' + cli : ''))}"><span class="v2-risca${feita ? ' feita' : ''}">${cli ? `<b>${esc(String(cli).split(',')[0].trim())}</b> <span>· ${peca}${quem}</span>` : `<b>${peca}</b>${quem ? `<span>${quem}</span>` : ''}`}</span></button>
           <span class="d3m-a-mt-tr">${trilhaV2(x.d)}</span>
           <span class="d3m-a-mt-st">${x.d.status ? (feita ? stD3(x.d) : `<button type="button" class="vv-demanda-status" onclick="openStatusEditor(event,'${id}')" title="Trocar o status" aria-label="Trocar o status: ${esc(x.d.status)}">${stD3(x.d)}</button>`) : ''}</span>
-          <span class="d3m-a-mt-dt${dt[1] ? ' ' + dt[1] : ''}">${feita ? esc(dt[0]) : `<span data-editar-data="veiculacao" data-peca="${id}" title="Tocar para mudar a data">${esc(dt[0])}</span>`}${olho}</span></div>
+          <span class="d3m-a-mt-dt d3m-a-mt-datas" title="${esc(dt[0])}">${feita ? datasFeitas(x) : `<span class="v2t-data${dataTom(x, 'prazo')}" data-editar-data="prazo" data-peca="${id}" ${dataAttrs(x, 'prazo')}>${dataTxt(x, 'prazo')}</span><span class="v2t-data${dataTom(x, 'veiculacao')}" data-editar-data="veiculacao" data-peca="${id}" ${dataAttrs(x, 'veiculacao')}>${dataTxt(x, 'veiculacao')}</span>`}${olho}</span>
+          <button type="button" class="v2t-dono d3m-a-mt-quem" onclick="openOwnerEditor(event,'${id}')" ${donoRot(x)}>${avD3(donosDe(x.d)[0] || '')}<span class="v2t-dono-nome">${donoCurto(x)}</span></button></div>
         <div class="v2-mais"><div><div class="v2t-det d3m-a-mt-det">${etapasHtml(x.d)}
           <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${extras}
             ${feita ? '' : `<button type="button" class="d3h-btn s" data-hoje-acao="concluir" data-valor="${id}" aria-label="Marcar pronta: ${esc(titulo(x))}">Marcar pronta</button><button type="button" class="d3h-btn s" onclick="openStatusEditor(event,'${id}')">Passar bastão</button>`}<button type="button" class="d3h-btn s k" data-hoje-acao="peca" data-valor="${id}">Abrir a peça</button></div></div></div></div></div>`; };
@@ -2214,7 +2229,7 @@
       const folhaV2 = `<section class="d3m-a-folha d3m-a-mt-folha" aria-label="${varios ? 'Tarefas do dia' : 'Minhas tarefas'}"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Na ordem do dia</span> <span>· ${varios ? `de ${n0(fila.users.length)} pessoas, ` : ''}pela data do cliente</span></h3>
           <input type="search" class="d3m-a-mt-busca" data-busca-tarefas placeholder="Buscar" aria-label="Buscar nas minhas tarefas" value="${esc(buscaTarefas)}">${filtrosV2}<i class="d3m-a-div" aria-hidden="true"></i>
           <button type="button" class="d3m-a-filtro" role="switch" aria-checked="${hojeVerTodas}" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}" title="Agrupar a lista por status">Por status</button></div>
-        <div class="d3m-a-mt-cols" aria-hidden="true"><span></span><span></span><span>Cliente e peça</span><span>Briefing até publicar</span><span>Status</span><span>Data</span></div>
+        <div class="d3m-a-mt-cols" aria-hidden="true"><span></span><span></span><span>Cliente e peça</span><span>Briefing até publicar</span><span>Status</span><span>Prazo · no ar</span><span>Quem</span></div>
         <div class="v2-lista d3m-a-mt-lista" aria-label="Minha fila">${corpoV2}</div>
         <div class="d3m-a-pe d3m-a-mt-pe"><span>De olho</span>${olhoV2(n0(hojeP.length), 'para hoje', 'data-hoje-acao="filtro" data-valor="hoje"')}${olhoV2(n0(atrasadasP.length), atrasadasP.length === 1 ? 'atrasada' : 'atrasadas', 'data-hoje-acao="filtro" data-valor="atrasadas"', atrasadasP.length ? 'r' : '')}${olhoV2(n0(feitas.length), feitas.length === 1 ? 'feita na semana' : 'feitas na semana', 'data-hoje-acao="filtro" data-valor="feitas"', feitas.length ? 'g' : '')}${cargaV2 ? olhoV2(`${n0(cargaV2[0])} de ${n0(cargaV2[1])}`, 'do seu limite', 'data-hoje-acao="filtro" data-valor="todas" title="Os pontos das peças abertas contra o limite de carga"', cargaV2[0] > cargaV2[1] ? 'r' : '') : olhoV2(n0(naFila.length), naFila.length === 1 ? 'aberta' : 'abertas', 'data-hoje-acao="filtro" data-valor="todas"')}<button type="button" class="d3m-a-filtro d3m-a-mt-todas" data-hoje-acao="demandas" title="Abrir as Demandas, fora da sua fila">todas as demandas</button></div></section>`;
       // O laranja: a primeira da fila, com o porquê e a etapa em que está; sem nada aberto, a fila limpa.
