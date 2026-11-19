@@ -76,14 +76,15 @@ test('Notas: cabeçalho, fichas dos cadernos, linhas e pé montados pelo quadro'
     NOTAS = [{ id: 7, titulo: 'Reunião', corpo: 'x', caderno: 'Notas do dia', atualizado_em: '2026-11-12' }, { id: 8, titulo: 'Outra', corpo: '', caderno: 'Clientes' }];
     NOTAS_CADERNO = 'Notas do dia'; pintarNotasNoTopo();`, c);
   const h = pintado.innerHTML;
-  assert.match(h, /<h2 id="v2nt-titulo">Notas<\/h2>\s*<span class="v2nt-pill">3 notas<\/span>/);
+  // Prancha V2-R-Notas (19/11/2026): a contagem vira a frase embaixo do título.
+  assert.match(h, /<span class="v2nt-nome"><h2 id="v2nt-titulo">Notas<\/h2><small class="v2nt-pill">3 notas · 2 cadernos<\/small><\/span>/);
   assert.match(h, /aria-label="Fechar as notas"/);
   assert.match(h, /class="v2nt-busca" type="search" placeholder="Buscar nas notas"/);
   assert.match(h, /class="v2nt-chip" aria-pressed="true"[\s\S]*?>Notas do dia<i>2<\/i>/);
   assert.match(h, /<p class="v2nt-g">Notas do dia<\/p>/);
   assert.equal((h.match(/class="v2nt-r"/g) || []).length, 1, 'só as notas do caderno escolhido');
   assert.match(h, /<b>Reunião<\/b>[\s\S]*?<span class="v2nt-sub">12\/11 às 10:14<\/span>/);
-  assert.match(h, /<div class="v2nt-pe"><span class="v2nt-dica">salva sozinha enquanto você escreve<\/span><button type="button" class="v2nt-btn p" onclick="novaNota\(\)">Nova nota<\/button>/);
+  assert.match(h, /<div class="v2nt-pe"><span class="v2nt-dica">Salva sozinha enquanto você escreve\.<\/span><button type="button" class="v2nt-btn p" onclick="novaNota\(\)">Nova nota<\/button>/);
   // a nota abre no lugar da lista, com a volta e a escrita por linhas
   vm.runInContext("abrirNota(7)", c);
   assert.match(pintado.innerHTML, /aria-label="Voltar para as notas"/);

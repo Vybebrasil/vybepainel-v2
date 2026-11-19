@@ -68,3 +68,30 @@ test('Cartão rápido: data curta com o dia da semana', async () => {
   assert.equal(dataCurta('2026-11-20T10:00:00Z'), 'sex, 20/11');
   assert.equal(dataCurta(''), '—');
 });
+
+test('Notas grande: três colunas (cadernos, lista, nota aberta) no vidro, com as variáveis no lugar dos valores fixos', () => {
+  const notas = ler('vybe-notas.js');
+  assert.match(notas, /function notasGrandeHtml\(\)/);
+  assert.match(notas, /<div class="notas-conteudo notas-3\$\{aberta \? ' com-nota' : ''\}">/);
+  assert.match(notas, /\$\{aberta \? notaGrandeHtml\(\) : '<div class="notas-editor notas-editor-vazio">/);
+  assert.match(notas, /<span class="notas-caderno-rot">Caderno escolhido<\/span>/);
+  assert.match(notas, /arraste pelo topo, mude o tamanho pelo canto/);
+  assert.match(notas, /Number\(g\.largura\) \|\| 880/);
+  for (const t of ['onclick="renomearCadernoAtual()"', 'onclick="apagarCadernoAtual()"', 'onclick="mandarNotaParaPeca()"', 'onclick="voltarParaAsNotas()"', 'onclick="apagarNotaAberta()"', 'onclick="salvarNotaAgora()"', 'onpointerdown="notasArrastar(event)"', 'onpointerdown="notasRedimensionar(event)"']) assert.ok(notas.includes(t), t);
+  const css = ler('padrao-v2/zm-r-a-3-notas.css');
+  assert.match(css, /\.notas-conteudo\.notas-3\{display:grid;grid-template-columns:176px minmax\(0,256px\) minmax\(0,1fr\)/);
+  assert.match(css, /@container \(max-width:759px\)/);
+  const mundo = ler('vybe-mundo.css');
+  assert.match(mundo, /:is\(section\.notas-janela,#notas-janela\):not\(#ds-a\):not\(#ds-b\)\{background:var\(--d3-fume-forte\)!important/);
+  assert.match(mundo, /background:var\(--nt-fundo,transparent\)!important;color:var\(--nt-cor,inherit\)!important/);
+});
+
+test('Notas pequena: vidro fumê, contagem de notas e cadernos embaixo do título', () => {
+  const css = ler('padrao-v2/zm-r-a-3-notas.css');
+  assert.match(css, /#v2-notas\.v2nt\{width:372px;[^}]*background:var\(--d3-fume-forte\)/);
+  assert.match(css, /#v2-notas\.v2nt \.v2nt-chip\[aria-pressed="true"\]\{background:var\(--d3-fume-texto\);color:var\(--d3-fume-contra\)\}/);
+  const notas = ler('vybe-notas.js');
+  assert.match(notas, /janela\.className = 'v2nt d3-tema'/);
+  assert.match(notas, /janela\.className = 'notas-janela d3-tema'/);
+});
+

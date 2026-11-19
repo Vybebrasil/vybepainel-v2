@@ -1,0 +1,180 @@
+/* ===================================================================================================================
+   V2 · R · NOTAS (prancha V2-R-Notas, 19/11/2026), pequena e grande.
+   Grande (#notas-janela, "Abrir grande"): vidro fumê de canto 20, título de 20 com a frase dos cadernos, os três botões
+   de 34 e três colunas: os cadernos no vidro (o escolhido em branco, "Caderno escolhido" com Renomear e Apagar no pé),
+   a lista numa folha de trilho (busca com lupa, "+ Nova nota" e as notas) e a nota aberta numa folha (título de 18,
+   "sobre a peça" com Abrir a peça e Desligar, as fichas de escrita, as linhas e o pé com o menu, Mandar para a peça e
+   Pronto). Janela estreita (menos de 760): com a nota aberta, a lista sai da frente e o voltar aparece.
+   Pequena (#v2-notas, embaixo do ícone do topo): o mesmo vidro, a contagem embaixo do título, a busca e as fichas no
+   vidro, as notas em linhas de véu e "Nova nota" no botão claro.
+   As regras antigas com !important (vybe-mundo.css) agora leem variáveis (--nt-fundo, --nt-cor, --nt-borda, --nt-forte,
+   --nt-apoio) que este fragmento põe em cada peça; sem !important novo.
+   =================================================================================================================== */
+
+/* ---------- Grande ---------- */
+#notas-janela.notas-janela.d3-tema{container-type:inline-size;padding:16px;box-sizing:border-box;gap:12px;-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema.barra{padding:8px 8px 8px 14px}
+#notas-janela.notas-janela.d3-tema .notas-topo{flex:none;gap:8px;min-height:40px;padding:0;border:0;background:none}
+#notas-janela.notas-janela.d3-tema .notas-topo-nome{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+#notas-janela.notas-janela.d3-tema .notas-topo-nome > b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 20px/1.15 var(--vv-texto,Inter,sans-serif);letter-spacing:-.01em}
+#notas-janela.notas-janela.d3-tema.barra .notas-topo-nome > b{font-size:var(--d3-fs-destaque)}
+#notas-janela.notas-janela.d3-tema .notas-topo-nome > small{--nt-apoio:var(--d3-fume-apagado);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-topo-acoes{gap:8px}
+#notas-janela.notas-janela.d3-tema :is(.notas-icone,.notas-voltar){--nt-fundo:var(--d3-fume-veu-forte);--nt-cor:var(--d3-fume-texto);width:34px;height:34px;border-radius:var(--d3-r-botao);color:var(--d3-fume-texto)}
+#notas-janela.notas-janela.d3-tema .notas-topo :is(.notas-icone,.notas-voltar):hover{--nt-fundo:var(--d3-fume-borda);--nt-cor:var(--d3-fume-texto)}
+#notas-janela.notas-janela.d3-tema .notas-topo :is(.notas-icone,.notas-voltar):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+#notas-janela.notas-janela.d3-tema .notas-conteudo.notas-3{display:grid;grid-template-columns:176px minmax(0,256px) minmax(0,1fr);gap:12px;padding:0;min-height:0;overflow:visible}
+
+/* Cadernos, direto no vidro. */
+#notas-janela.notas-janela.d3-tema .notas-cadernos{display:flex;flex-direction:column;gap:4px;min-height:0;padding:0;border:0;overflow-y:auto;scrollbar-width:thin}
+#notas-janela.notas-janela.d3-tema .notas-caderno{--nt-cor:var(--d3-fume-texto);display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#notas-janela.notas-janela.d3-tema .notas-caderno:hover{--nt-fundo:var(--d3-fume-veu)}
+#notas-janela.notas-janela.d3-tema .notas-caderno i{color:inherit;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);opacity:.86}
+#notas-janela.notas-janela.d3-tema .notas-caderno.ativo{--nt-fundo:var(--d3-fume-texto);--nt-cor:var(--d3-fume-contra)}
+#notas-janela.notas-janela.d3-tema .notas-caderno.novo{justify-content:center;font-weight:600}
+#notas-janela.notas-janela.d3-tema .notas-caderno:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+#notas-janela.notas-janela.d3-tema .notas-caderno-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:auto;padding-top:12px}
+#notas-janela.notas-janela.d3-tema .notas-caderno-rot{flex:1 0 100%;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-caderno-acoes .notas-discreto{min-height:30px;padding:0 10px;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:none}
+#notas-janela.notas-janela.d3-tema .notas-caderno-acoes .notas-discreto:hover{background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+#notas-janela.notas-janela.d3-tema .notas-caderno-acoes .notas-discreto.perigo:hover{background:var(--d3-fume-veu);color:var(--d3-perigo-claro)}
+#notas-janela.notas-janela.d3-tema .notas-caderno-acoes .notas-discreto:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+
+/* A lista, numa folha de trilho. */
+#notas-janela.notas-janela.d3-tema .notas-lista{display:flex;flex-direction:column;min-height:0;border-radius:12px;background:var(--d3-trilho);color:var(--d3-tinta);overflow:hidden}
+#notas-janela.notas-janela.d3-tema .notas-barra{display:flex;flex-direction:column;gap:8px;padding:12px;border:0}
+#notas-janela.notas-janela.d3-tema .notas-barra input{--nt-fundo:var(--d3-cartao);--nt-borda:var(--d3-borda);flex:none;width:100%;height:34px;padding:0 12px 0 34px;box-sizing:border-box;border-radius:var(--d3-r-botao);background-image:none;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-barra{position:relative}
+#notas-janela.notas-janela.d3-tema .notas-barra::before{content:"";position:absolute;left:24px;top:23px;width:13px;height:13px;background:var(--d3-rotulo);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;pointer-events:none}
+#notas-janela.notas-janela.d3-tema .notas-barra input::placeholder{color:var(--d3-rotulo);opacity:1}
+#notas-janela.notas-janela.d3-tema .notas-barra input:focus{--nt-borda:var(--d3-tinta);outline:0}
+#notas-janela.notas-janela.d3-tema .notas-rolagem{flex:1;min-height:0;padding:0 0 8px;overflow-y:auto;scrollbar-width:thin}
+#notas-janela.notas-janela.d3-tema .notas-item{--nt-cor:var(--d3-tinta);display:grid;gap:4px;width:100%;margin:0;padding:12px 14px;box-sizing:border-box;border-radius:0;text-align:left;cursor:pointer}
+#notas-janela.notas-janela.d3-tema .notas-item:hover,#notas-janela.notas-janela.d3-tema .notas-item.ativa{--nt-fundo:var(--d3-veu)}
+#notas-janela.notas-janela.d3-tema .notas-item:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:-2px}
+#notas-janela.notas-janela.d3-tema .notas-item b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-item small{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-item-pe{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-lista .workspace-empty{padding:16px 14px;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif)}
+
+/* Botões da janela: contorno (Nova nota, Mandar para a peça) e cheio em tinta (Pronto). */
+#notas-janela.notas-janela.d3-tema .notas-acao{--nt-fundo:transparent;--nt-cor:var(--d3-tinta);--nt-borda:var(--d3-meta);display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 14px;box-sizing:border-box;border-radius:var(--d3-r-botao);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#notas-janela.notas-janela.d3-tema .notas-acao:hover{--nt-fundo:var(--d3-veu)}
+#notas-janela.notas-janela.d3-tema .notas-acao.primaria{--nt-fundo:var(--d3-tinta);--nt-cor:var(--d3-contra);--nt-borda:var(--d3-tinta);font-weight:600}
+#notas-janela.notas-janela.d3-tema .notas-acao.primaria:hover{--nt-fundo:var(--d3-texto2);--nt-borda:var(--d3-texto2)}
+#notas-janela.notas-janela.d3-tema .notas-barra .notas-acao.primaria{--nt-fundo:transparent;--nt-cor:var(--d3-tinta);--nt-borda:var(--d3-meta);width:100%;font-weight:500}
+#notas-janela.notas-janela.d3-tema .notas-barra .notas-acao.primaria:hover{--nt-fundo:var(--d3-veu);--nt-borda:var(--d3-meta)}
+#notas-janela.notas-janela.d3-tema :is(.notas-acao,.notas-icone):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+
+/* A nota aberta, numa folha. */
+#notas-janela.notas-janela.d3-tema .notas-editor{display:flex;flex-direction:column;min-width:0;min-height:0;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta);overflow:hidden}
+#notas-janela.notas-janela.d3-tema .notas-editor-vazio{align-items:center;justify-content:center;padding:24px}
+#notas-janela.notas-janela.d3-tema .notas-editor-vazio p{margin:0;color:var(--d3-rotulo);font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);text-align:center}
+#notas-janela.notas-janela.d3-tema .notas-editor-cab{flex:none;display:flex;flex-direction:column;gap:6px;padding:16px 18px 14px;border-bottom:1px solid var(--d3-divisa)}
+#notas-janela.notas-janela.d3-tema .notas-titulo{--nt-fundo:transparent;--nt-borda:transparent;width:100%;height:30px;padding:0;box-sizing:border-box;border-radius:6px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-titulo:focus{--nt-borda:var(--d3-borda);outline:0}
+#notas-janela.notas-janela.d3-tema .notas-sobre{display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-sobre > span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#notas-janela.notas-janela.d3-tema .notas-sobre b{font-weight:600}
+#notas-janela.notas-janela.d3-tema .notas-sobre button{--nt-fundo:transparent;--nt-cor:var(--d3-tinta);--nt-borda:transparent;height:24px;padding:0 2px;border-radius:4px;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#notas-janela.notas-janela.d3-tema .notas-sobre button:hover{text-decoration:underline}
+#notas-janela.notas-janela.d3-tema .notas-ferramentas{gap:6px;margin-top:6px}
+#notas-janela.notas-janela.d3-tema .notas-ferramentas > button{--nt-fundo:transparent;--nt-cor:var(--d3-tinta);--nt-borda:var(--d3-borda);height:30px;padding:0 11px;border-radius:var(--d3-r-botao);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#notas-janela.notas-janela.d3-tema .notas-ferramentas > button:hover{--nt-fundo:var(--d3-veu)}
+#notas-janela.notas-janela.d3-tema .notas-ferramentas > button:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#notas-janela.notas-janela.d3-tema .notas-emojis{border-color:var(--d3-borda);background:var(--d3-cartao)}
+#notas-janela.notas-janela.d3-tema .notas-emoji-grupo > span{color:var(--d3-rotulo)}
+#notas-janela.notas-janela.d3-tema .notas-emoji-grupo button:hover{--nt-fundo:var(--d3-veu)}
+#notas-janela.notas-janela.d3-tema .nota-folha{flex:1;min-height:0;padding:10px 10px 16px;border:0;border-radius:0;background:transparent;overflow-y:auto;scrollbar-width:thin}
+#notas-janela.notas-janela.d3-tema .nota-linha{gap:10px;padding:4px 8px;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.6 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .nota-linha:hover{background:var(--d3-veu)}
+#notas-janela.notas-janela.d3-tema .nota-linha.editando{background:var(--d3-veu)}
+#notas-janela.notas-janela.d3-tema .nota-linha.m-titulo{margin-top:10px;font:600 var(--d3-fs-destaque)/1.4 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .nota-linha.m-titulo2{font:600 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .nota-linha input[type=checkbox]{--nt-borda:var(--d3-meta);width:18px;height:18px;margin:2px 0 0;accent-color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema :is(.nota-texto,.nota-linha-vazia){color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema :is(.nota-ponto,.nota-texto.feito){color:var(--d3-rotulo)}
+#notas-janela.notas-janela.d3-tema .nota-texto code{background:var(--d3-veu)}
+#notas-janela.notas-janela.d3-tema .nota-entrada{--nt-fundo:transparent;--nt-borda:transparent;padding:0;color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema .notas-editor-pe{flex:none;display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--d3-divisa)}
+#notas-janela.notas-janela.d3-tema .notas-editor-pe .notas-pe{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#notas-janela.notas-janela.d3-tema .notas-editor-pe .notas-icone{--nt-fundo:transparent;--nt-cor:var(--d3-tinta);--nt-borda:var(--d3-meta);display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--d3-meta);border-radius:var(--d3-r-botao);color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema .notas-editor-pe .notas-icone:hover{background:var(--d3-veu);color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema .notas-editor-pe .notas-menu-lista{top:auto;bottom:calc(100% + 6px);right:auto;left:0;border-color:var(--d3-borda);background:var(--d3-cartao)}
+#notas-janela.notas-janela.d3-tema .notas-menu-lista .notas-discreto{color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema .notas-menu-lista .notas-discreto:hover{background:var(--d3-veu);color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema .notas-menu-lista .notas-discreto.perigo{color:var(--d3-perigo)}
+#notas-janela.notas-janela.d3-tema .notas-menu-lista .notas-discreto.perigo:hover{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
+#notas-janela.notas-janela.d3-tema :is(.nota-busca,.nota-busca-campo input,.nota-busca-campo button){border-color:var(--d3-borda);background:var(--d3-cartao);color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema .nota-busca-item b{color:var(--d3-tinta)}
+#notas-janela.notas-janela.d3-tema .notas-canto{background:linear-gradient(135deg,transparent 50%,var(--d3-fume-borda) 50%);border-bottom-right-radius:var(--d3-r-janela)}
+
+/* Janela estreita: com a nota aberta, só os cadernos e a nota; sem nota, cadernos e lista. */
+@container (max-width:759px){
+  #notas-janela.notas-janela.d3-tema .notas-conteudo.notas-3{grid-template-columns:150px minmax(0,1fr)}
+  #notas-janela.notas-janela.d3-tema .notas-conteudo.notas-3:not(.com-nota) .notas-editor{display:none}
+  #notas-janela.notas-janela.d3-tema .notas-conteudo.notas-3.com-nota .notas-lista{display:none}
+}
+@container (min-width:760px){
+  #notas-janela.notas-janela.d3-tema .notas-topo .notas-voltar{display:none}
+}
+@container (max-width:520px){
+  #notas-janela.notas-janela.d3-tema .notas-conteudo.notas-3{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  #notas-janela.notas-janela.d3-tema .notas-cadernos{flex-direction:row;flex-wrap:wrap;max-height:120px}
+  #notas-janela.notas-janela.d3-tema .notas-caderno{flex:none}
+  #notas-janela.notas-janela.d3-tema .notas-caderno-acoes{margin:0;padding:0}
+  #notas-janela.notas-janela.d3-tema .notas-caderno-rot{flex:none}
+}
+
+/* ---------- Pequena ---------- */
+#v2-notas.v2nt{width:372px;padding:16px;gap:12px;border-radius:var(--d3-r-janela);background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);color:var(--d3-fume-texto)}
+#v2-notas.v2nt .v2nt-cab{gap:8px;padding:0}
+#v2-notas.v2nt .v2nt-nome{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+#v2-notas.v2nt .v2nt-cab h2{font:600 var(--d3-fs-titulo)/1.15 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+#v2-notas.v2nt .v2nt-pill{display:block;height:auto;padding:0;border-radius:0;background:none;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden;text-overflow:ellipsis}
+#v2-notas.v2nt .v2nt-ib{width:30px;height:30px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto)}
+#v2-notas.v2nt .v2nt-ib svg{width:15px;height:15px}
+#v2-notas.v2nt .v2nt-ib:hover{background:var(--d3-fume-borda)}
+#v2-notas.v2nt .v2nt-btn{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:transparent;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#v2-notas.v2nt .v2nt-btn:hover{background:var(--d3-fume-veu)}
+#v2-notas.v2nt .v2nt-btn.p{height:34px;padding:0 14px;background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra)}
+#v2-notas.v2nt .v2nt-btn.p:hover{background:var(--d3-fume-texto2)}
+#v2-notas.v2nt :is(.v2nt-ib,.v2nt-btn,.v2nt-chip,.v2nt-r):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+#v2-notas.v2nt .v2nt-corpo{gap:10px;padding:0}
+#v2-notas.v2nt .v2nt-campo{position:relative;padding:0}
+#v2-notas.v2nt .v2nt-campo::before{content:"";position:absolute;left:13px;top:12px;width:13px;height:13px;background:var(--d3-fume-apagado);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center/contain no-repeat;pointer-events:none}
+#v2-notas.v2nt .v2nt-busca{height:36px;padding:0 12px 0 34px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
+#v2-notas.v2nt .v2nt-busca::placeholder{color:var(--d3-fume-apagado);opacity:1}
+#v2-notas.v2nt .v2nt-busca:focus{box-shadow:inset 0 0 0 1.5px var(--d3-fume-texto);outline:0}
+#v2-notas.v2nt .v2nt-fichas{gap:6px;padding:0}
+#v2-notas.v2nt .v2nt-chip{height:30px;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#v2-notas.v2nt .v2nt-chip:hover{background:var(--d3-fume-borda)}
+#v2-notas.v2nt .v2nt-chip i{background:none;color:inherit;opacity:.86;font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+#v2-notas.v2nt .v2nt-chip[aria-pressed="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+#v2-notas.v2nt .v2nt-chip[aria-pressed="true"] i{background:none;color:inherit}
+#v2-notas.v2nt .v2nt-chip-novo{background:transparent;color:var(--d3-fume-texto);font-weight:600}
+#v2-notas.v2nt .v2nt-g{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#v2-notas.v2nt .v2nt-r{gap:10px;min-height:50px;margin:0;padding:8px 10px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+#v2-notas.v2nt .v2nt-r + .v2nt-r{margin-top:8px}
+#v2-notas.v2nt .v2nt-r:hover{background:var(--d3-fume-veu-forte)}
+#v2-notas.v2nt .v2nt-r-txt b{color:var(--d3-fume-texto);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+#v2-notas.v2nt .v2nt-r-txt small{color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+#v2-notas.v2nt .v2nt-sub{color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#v2-notas.v2nt .v2nt-vazio{color:var(--d3-fume-apagado)}
+#v2-notas.v2nt .v2nt-pe{gap:10px;padding:0;border:0}
+#v2-notas.v2nt .v2nt-dica{color:var(--d3-fume-apagado);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+
+/* A nota aberta na pequena: a escrita numa folha, o resto no vidro. */
+#v2-notas.v2nt .v2nt-titulo{color:var(--d3-fume-texto);background:transparent;box-shadow:none;font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif)}
+#v2-notas.v2nt .v2nt-de{color:var(--d3-fume-apagado)}
+#v2-notas.v2nt .v2nt-nota .nota-folha{border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta)}
+#v2-notas.v2nt .v2nt-nota .nota-linha{color:var(--d3-tinta)}
+#v2-notas.v2nt .v2nt-nota .nota-linha:is(:hover,.editando){background:var(--d3-veu)}
+#v2-notas.v2nt .v2nt-nota :is(.nota-ponto,.nota-texto.feito){color:var(--d3-rotulo)}
+#v2-notas.v2nt .v2nt-nota .nota-entrada{color:var(--d3-tinta)}
+#v2-notas.v2nt .v2nt-nota .notas-emojis{background:var(--d3-cartao);border-color:var(--d3-borda)}
+
+@media (max-width:599px){
+  #v2-notas.v2nt{width:auto}
+}

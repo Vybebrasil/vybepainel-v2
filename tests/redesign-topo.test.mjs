@@ -84,9 +84,10 @@ test('Sino (41): "Marcar como lidos" sempre que houver avisos; sem nada novo, o 
   assert.match(core, /globalThis\.ULTIMO_AVISO_CURTO = \{ titulo: String\(titulo\)/);
 });
 
-test('Notas (42): Renomear e Apagar no menu de três pontos do caderno e da nota', () => {
-  assert.match(notas, /<details class="notas-menu notas-caderno-acoes">/);
-  assert.match(notas, /aria-label="Mais ações do caderno/);
+test('Notas (42): Renomear e Apagar do caderno escolhido no pé dos cadernos; a nota no menu de três pontos', () => {
+  // Prancha V2-R-Notas (19/11/2026): "Caderno escolhido" com Renomear e Apagar à vista, no pé da coluna dos cadernos.
+  assert.match(notas, /<div class="notas-caderno-acoes" role="group" aria-label="Caderno escolhido: /);
+  assert.match(notas, /<span class="notas-caderno-rot">Caderno escolhido<\/span>/);
   assert.match(notas, /aria-label="Mais ações da nota"/);
   assert.doesNotMatch(notas, /<button type="button" class="notas-acao perigo" onclick="apagarNotaAberta\(\)">Apagar<\/button>/);
   assert.match(notas, /onclick="renomearCadernoAtual\(\)"/);
