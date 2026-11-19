@@ -70,6 +70,66 @@ export async function salvarMetas(sql, quem, b) {
   return { meses, metas };
 }
 
+// ---------- Meta por pessoa (prancha V2-R-Comercial-Metas, 19/11/2026) ----------
+// Tabela própria (migrations/2026-11-19-comercial-metas-pessoa.sql): uma linha por pessoa por mês. Sem a tabela
+// (42P01), a leitura devolve disponivel:false e a tela mostra só a meta da agência; salvar responde 503 explicado.
+export const TABELA_METAS_PESSOA = 'vybe_comercial_metas_pessoa';
+export const AVISO_METAS_PESSOA = 'A meta por pessoa ainda está sendo ligada: por enquanto vale a meta da agência.';
+const avisarSemMetasPessoa = (e) => console.warn('[comercial] meta por pessoa: falta a migração 2026-11-19-comercial-metas-pessoa.sql:', e?.message || e);
+// As metas do período (o anual soma os meses) e, para quem edita, as do mês aberto por pessoa.
+export async function metasPorPessoa(sql, p) {
+  const de = String(p?.inicio || '').slice(0, 7), ate = String(p?.fim || '').slice(0, 7);
+  try {
+    const linhas = await sql`SELECT m.pessoa_id::text AS pessoa_id, p.nome, m.mes, m.mrr::float8 AS mrr, m.avulso::float8 AS avulso, m.negocios, m.leads
+      FROM vybe_comercial_metas_pessoa m JOIN vybe_pessoas p ON p.id = m.pessoa_id WHERE m.mes >= ${de} AND m.mes <= ${ate} ORDER BY p.nome, m.mes`;
+    const soma = new Map(), doMes = {};
+    for (const l of linhas) {
+      const x = soma.get(l.pessoa_id) || { pessoa_id: l.pessoa_id, nome: l.nome, mrr: 0, avulso: 0, negocios: 0, leads: 0 };
+      x.mrr = Math.round((x.mrr + (Number(l.mrr) || 0)) * 100) / 100; x.avulso = Math.round((x.avulso + (Number(l.avulso) || 0)) * 100) / 100;
+      x.negocios += Number(l.negocios) || 0; x.leads += Number(l.leads) || 0; soma.set(l.pessoa_id, x);
+      if (l.mes === p.mes) doMes[l.pessoa_id] = { mrr: Number(l.mrr) || 0, avulso: Number(l.avulso) || 0, negocios: Number(l.negocios) || 0, leads: Number(l.leads) || 0 };
+    }
+    return { disponivel: true, linhas: [...soma.values()], doMes };
+  } catch (e) {
+    if (!semTabela(e)) throw e;
+    avisarSemMetasPessoa(e);
+    return { disponivel: false, linhas: [], doMes: {} };
+  }
+}
+// Quem pode ter meta: a equipe que entra no painel (a mesma regra única de ativo e pode_entrar).
+export async function pessoasParaMeta(sql) {
+  return sql`SELECT id::text, nome FROM vybe_pessoas WHERE ativo AND pode_entrar ORDER BY nome`;
+}
+// b = { mes: 'AAAA-MM', aplicar: 'mes' | 'resto_do_ano', pessoas: [{ pessoa_id, metas: { mrr, avulso, negocios, leads } }] }.
+// Meta zero em tudo apaga a linha da pessoa naquele mês (sem meta). Só donos chegam aqui (ACOES_SO_DONOS).
+export async function salvarMetasPessoa(sql, quem, b) {
+  const mes = String(b?.mes || '');
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) falhar('Mês inválido (use AAAA-MM).');
+  if (!Array.isArray(b?.pessoas) || !b.pessoas.length || b.pessoas.length > 60) falhar('Escolha as pessoas e as metas.');
+  const pessoas = b.pessoas.map((x) => {
+    const id = String(x?.pessoa_id ?? '');
+    if (!/^\d{1,18}$/.test(id)) falhar('Pessoa inválida.');
+    return { id, metas: calc.validarMetas(x.metas || {}) };
+  });
+  const aplicar = b.aplicar === 'resto_do_ano' ? 'resto_do_ano' : 'mes';
+  const meses = aplicar === 'mes' ? [mes] : Array.from({ length: 13 - Number(mes.slice(5)) }, (_, i) => mes.slice(0, 5) + String(Number(mes.slice(5)) + i).padStart(2, '0'));
+  try {
+    for (const m of meses) for (const x of pessoas) {
+      const t = x.metas, vazia = !t.mrr && !t.avulso && !t.negocios && !t.leads;
+      if (vazia) await sql`DELETE FROM vybe_comercial_metas_pessoa WHERE mes = ${m} AND pessoa_id = ${x.id}::bigint`;
+      else await sql`INSERT INTO vybe_comercial_metas_pessoa (mes, pessoa_id, mrr, avulso, negocios, leads, atualizado_por, atualizado_em)
+        VALUES (${m}, ${x.id}::bigint, ${t.mrr}, ${t.avulso}, ${t.negocios}, ${t.leads}, ${quem.id}, now())
+        ON CONFLICT (mes, pessoa_id) DO UPDATE SET mrr = EXCLUDED.mrr, avulso = EXCLUDED.avulso, negocios = EXCLUDED.negocios, leads = EXCLUDED.leads,
+          atualizado_por = EXCLUDED.atualizado_por, atualizado_em = now()`;
+    }
+  } catch (e) {
+    if (semTabela(e)) { avisarSemMetasPessoa(e); falhar(AVISO_METAS_PESSOA, 503); }
+    if (e?.code === '23503') falhar('Pessoa não encontrada.', 404);
+    throw e;
+  }
+  return { meses, pessoas: pessoas.length };
+}
+
 // Gera (ou troca) o token do link: o antigo deixa de valer na hora.
 export async function gerarFormulario(sql, quem) {
   const token = randomBytes(24).toString('base64url');

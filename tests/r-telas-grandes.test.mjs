@@ -89,3 +89,19 @@ test('Toolkit: QR, WhatsApp e ROI nas pranchas V2-R, calculando enquanto digita,
   assert.equal(calc.empate, 24); assert.equal(calc.roi, 68);
   guardaCss(cssR('zm-r-b-5-toolkit.css'), 'zm-r-b-5-toolkit.css');
 });
+
+test('Comercial: Metas é a terceira visão do funil (Quadro, Lista, Metas), com a meta da agência e a corrida com a meta de cada pessoa', () => {
+  const js = ler('vybe-mundo-comercial.js');
+  assert.match(js, /if \(v\.visao === 'metas'\) return metasM\(x\);/);
+  assert.match(js, /\[\['quadro', 'Quadro'\], \['lista', 'Lista'\], \['metas', 'Metas'\]\]/);
+  assert.match(js, /v\.visao = id === 'lista' \|\| id === 'metas' \? id : 'quadro';/);
+  const tela = js.slice(js.indexOf('  function metasM(x) {'), js.indexOf('  function formMetasPessoa() {'));
+  naOrdem(tela, ['data-vc-periodo=', 'da agência inteira', 'data-vc="metas">Editar metas', 'Últimos 6 meses', 'Corrida comercial', 'data-vc="metas-pessoa"', 'mp.aviso', "larM('d3m-d-cm-pesa'", '<b>Editar metas</b><span>só os donos</span>', 'Formulário de leads', 'a meta é da agência, a corrida é por pessoa']);
+  // Editar é só para donos (editar_pacotes, a mesma regra das metas da agência) e o dinheiro só com val.
+  assert.match(tela, /const editaMetas = Boolean\(p\.editar_pacotes && m\?\.config_disponivel !== false\);/);
+  assert.match(tela, /const progresso = \(m\?\.progresso \|\| \[\]\)\.filter\(\(y\) => val \|\| y\.tipo !== 'dinheiro'\);/);
+  const form = js.slice(js.indexOf('  function formMetasPessoa() {'), js.indexOf('  const d3Tem = (...listas)'));
+  assert.match(form, /comercial\(\{ acao: 'metas_pessoa_salvar', mes, aplicar: v\.aplicar,/);
+  assert.match(js, /'metas-pessoa': formMetasPessoa,/);
+  guardaCss(cssR('zm-r-b-6-metas.css'), 'zm-r-b-6-metas.css');
+});

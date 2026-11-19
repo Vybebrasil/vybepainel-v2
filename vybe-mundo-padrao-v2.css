@@ -17921,6 +17921,74 @@ button.d3m-r-lj-tl:focus-visible{outline:2px solid var(--d3-acao);outline-offset
   #vv-ferramentas .d3m-r-tk{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}
 }
 
+/* ===== padrao-v2/zm-r-b-6-metas.css ===== */
+/* ===================================================================================================================
+   V2 · R · METAS DO COMERCIAL (prancha V2-R-Comercial-Metas, aprovada pelo Paulo). A terceira visão do funil (Quadro,
+   Lista, Metas) na janela de vidro do Comercial (zm-d-comercial.css): a folha das metas da agência, os últimos 6 meses
+   e a corrida com a meta de cada pessoa. Só tokens --d3-*.
+   =================================================================================================================== */
+/* No vidro, o botão cheio e a visão escolhida (peças .d3m-d-* do grupo D) são preenchidos com fume-texto: a letra por
+   cima é fume-contra. No Claro a letra era da cor do fundo; no Fumê e no Escuro nada muda. */
+.d3m-d-seg > button:is([aria-pressed="true"],[aria-selected="true"],[aria-checked="true"]),.d3m-d-vbtn.p{color:var(--d3-fume-contra)}
+.d3m-r-mt .d3m-d-cm-main{display:flex;flex-direction:column;gap:12px;min-height:0}
+.d3m-r-mt-folha{flex:none}
+.d3m-r-mt-folha > .d3m-d-cab{gap:12px}
+.d3m-r-mt-folha > .d3m-d-cab > .d3m-d-pk-seg{margin-left:auto}
+.d3m-r-mt-lista{margin:0;padding:0;list-style:none;border-top:1px solid var(--d3-divisa)}
+.d3m-r-mt-li{display:grid;grid-template-columns:minmax(150px,240px) minmax(0,1fr);align-items:end;gap:20px;padding:10px 16px;border-bottom:1px solid var(--d3-divisa)}
+.d3m-r-mt-li[role="button"]{cursor:pointer}
+.d3m-r-mt-li[role="button"]:hover{background:var(--d3-veu)}
+.d3m-r-mt-li[role="button"]:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.d3m-r-mt-q{display:flex;flex-direction:column;gap:4px;min-width:0}
+.d3m-r-mt-q > b{font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif)}
+.d3m-r-mt-v > b{font:600 var(--d3-fs-titulo)/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-r-mt-v > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.d3m-r-mt-li.sem .d3m-r-mt-v > b{color:var(--d3-rotulo)}
+.d3m-r-mt-b{display:grid;grid-template-columns:minmax(0,1fr) 44px;grid-template-rows:auto 6px;align-items:center;gap:6px 12px}
+.d3m-r-mt-b > small{grid-column:1 / -1;justify-self:end;font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+.d3m-r-mt-b > b{text-align:right;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums}
+.d3m-r-mt-barra{position:relative;display:block;height:4px;border-radius:2px;background:var(--d3-veu-forte);overflow:hidden}
+.d3m-r-mt-barra > i{position:absolute;inset:0 auto 0 0;width:var(--v,0%);border-radius:2px;background:var(--d3-tinta)}
+.d3m-r-mt-barra.g > i{background:var(--d3-pronto)}
+.d3m-r-mt-pe{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;min-height:40px;padding:6px 16px;box-sizing:border-box;font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+.d3m-r-mt-pe b{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.d3m-r-mt-nada{margin:0;padding:14px 16px;font-size:var(--d3-fs-texto);color:var(--d3-rotulo)}
+.d3m-r-mt-duas{flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}
+.d3m-r-mt-duas > .d3m-d-folha{min-height:0}
+.d3m-r-mt-barras{flex:1 1 auto;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;min-height:80px;margin:0;padding:10px 20px 12px;list-style:none;border-top:1px solid var(--d3-divisa)}
+.d3m-r-mt-barras > li{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-height:0}
+.d3m-r-mt-barras > li > i{display:block;width:26px;height:var(--v,2%);max-height:calc(100% - 36px);border-radius:4px 4px 0 0;background:var(--d3-veu-forte)}
+.d3m-r-mt-barras > li.agora > i{background:var(--d3-tinta)}
+.d3m-r-mt-barras > li > small{font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.d3m-r-mt-barras > li > span{font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+.d3m-r-mt-corrida > .d3m-d-cab{gap:10px}
+.d3m-r-mt-corrida > .d3m-d-cab > h3{flex:none}
+.d3m-r-mt-corrida > .d3m-d-cab > small{flex:1 1 auto;min-width:0;margin-left:auto;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3m-r-mt-cors{flex:1 1 auto;margin:0;padding:0;list-style:none;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+.d3m-r-mt-cor{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 16px;box-sizing:border-box;border-bottom:1px solid var(--d3-divisa);font-size:var(--d3-fs-apoio)}
+.d3m-r-mt-pos{flex:none;width:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.d3m-r-mt-nome{flex:1 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;min-width:0}
+.d3m-r-mt-nome > span:not(.d3m-r-mt-alvo){color:var(--d3-rotulo)}
+.d3m-r-mt-alvo{flex:1 1 100%;display:flex;align-items:center;gap:8px}
+.d3m-r-mt-alvo > .d3m-r-mt-barra{flex:0 1 120px}
+.d3m-r-mt-alvo > small{font-size:var(--d3-fs-mini);color:var(--d3-rotulo);white-space:nowrap}
+.d3m-r-mt-val{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
+.d3m-r-mt-aviso{flex:none;margin:0;padding:8px 16px;background:var(--d3-ajuste-veu);color:var(--d3-ajuste);font-size:var(--d3-fs-apoio)}
+/* A consulta: as metas que valem, num bloco que abre o editor. */
+.d3m-r-mt-resumo{appearance:none;display:flex;flex-direction:column;gap:4px;width:100%;margin:0;padding:10px 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.d3m-r-mt-resumo:hover{background:var(--d3-fume-veu-forte)}
+.d3m-r-mt-resumo:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+.d3m-r-mt-resumo > span{display:flex;justify-content:space-between;gap:8px}
+.d3m-r-mt-resumo > span > b{font-variant-numeric:tabular-nums}
+.d3m-r-mt-resumo > small{margin-top:4px;color:var(--d3-fume-texto);font-size:var(--d3-fs-mini)}
+@media (max-height:820px){
+  .d3m-r-mt-li{padding:7px 16px}
+  .d3m-r-mt-v > b{font-size:var(--d3-fs-destaque)}
+}
+@media (max-width:1100px){
+  .d3m-r-mt-duas{grid-template-columns:minmax(0,1fr)}
+}
+
 /* ===== padrao-v2/zt-temas.css ===== */
 /* TEMAS E TUTORIAL DO VYBES (Paulo, 16/11/2026: "criar um tema white e um dark"; o VYBES recebe quem chega, mostra os três
    temas e explica cada tela na primeira vez). Última folha da junção (zt- vem depois de z-direcao e dos zm-*).
