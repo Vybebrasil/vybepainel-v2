@@ -58,13 +58,13 @@ test('guardar por pessoa, com try/catch; duplo clique volta ao canto; tela muda,
   assert.match(fonte, /try \{ localStorage\.setItem\(palcoLido, JSON\.stringify\(palcoPedido\)\); \} catch/);
   assert.match(fonte, /try \{ const g = JSON\.parse\(localStorage\.getItem\(chave\) \|\| 'null'\);[^\n]*\} catch/);
   assert.match(fonte, /try \{ localStorage\.removeItem\(chavePalco\(\)\); \} catch/);
-  assert.match(fonte, /palcoTopo\.addEventListener\('dblclick', \(ev\) => \{ if \(!ev\.target\.closest\('button'\)\) palcoVoltarAoCanto\(\); \}\);/);
+  assert.match(fonte, /palcoTopo\?\.addEventListener\('dblclick', \(ev\) => \{ if \(!ev\.target\.closest\('button'\)\) palcoVoltarAoCanto\(\); \}\);/);
   assert.match(fonte, /addEventListener\('resize', \(\) => \{ cancelAnimationFrame\(quadroPalco\); quadroPalco = requestAnimationFrame\(\(\) => palcoReencaixar\(true\)\); \}\)/);
   assert.match(fonte, /palco\.classList\.toggle\('com-video', originais\.length > 0\);\r?\n    palcoReencaixar\(\);/);
 });
 
 test('arrastar não dispara os botões; pointer events com captura; alça e tela cheia', () => {
-  assert.match(fonte, /palcoTopo\.addEventListener\('pointerdown', \(ev\) => \{\r?\n    if \(ev\.button !== 0 \|\| ev\.target\.closest\('button'\) \|\| document\.fullscreenElement === palco\) return;/);
+  assert.match(fonte, /palcoTopo\?\.addEventListener\('pointerdown', \(ev\) => \{\r?\n    if \(ev\.button !== 0 \|\| ev\.target\.closest\('button'\) \|\| document\.fullscreenElement === palco\) return;/);
   assert.match(fonte, /alvo\.setPointerCapture\?\.\(ev\.pointerId\)/);
   assert.match(fonte, /palcoAlca\.className = 'vv-palco-alca'/);
   assert.match(fonte, /'fullscreenchange'/);

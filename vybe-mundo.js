@@ -5578,10 +5578,10 @@
   }
   const chavePalco = () => 'vybe.mundo.palco.' + (String((typeof operadorDoTopo === 'function' ? operadorDoTopo()?.id : '') || '') || 'anon');
   const palcoTopo = palco.querySelector('.vv-palco-topo');
-  palcoTopo.title = 'Arraste para mover · duplo clique volta ao canto';
+  if (palcoTopo) palcoTopo.title = 'Arraste para mover · duplo clique volta ao canto';
   const palcoAlca = document.createElement('span');
-  palcoAlca.className = 'vv-palco-alca'; palcoAlca.title = 'Arraste para mudar o tamanho'; palcoAlca.setAttribute('aria-hidden', 'true');
-  palco.append(palcoAlca);
+  palcoAlca.className = 'vv-palco-alca'; palcoAlca.title = 'Arraste para mudar o tamanho'; palcoAlca.setAttribute?.('aria-hidden', 'true');
+  palco.append?.(palcoAlca);
   let palcoPedido = null, palcoLido = '', palcoAssinatura = '';
   function palcoArea() {
     const m = parseFloat(getComputedStyle(body).getPropertyValue('--vv-m')) || 14;
@@ -5598,7 +5598,7 @@
     const cs = getComputedStyle(palco), n = (v) => parseFloat(v) || 0;
     const videos = palco.classList.contains('recolhido') ? [] : [...palco.querySelectorAll('.vv-palco-video video')];
     return {
-      extra: n(cs.paddingTop) + n(cs.paddingBottom) + (palcoTopo.offsetHeight || 0) + n(cs.rowGap) * videos.length,
+      extra: n(cs.paddingTop) + n(cs.paddingBottom) + (palcoTopo?.offsetHeight || 0) + n(cs.rowGap) * videos.length,
       folga: n(cs.paddingLeft) + n(cs.paddingRight),
       razoes: videos.map((v) => (v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 16 / 9)),
     };
@@ -5650,14 +5650,14 @@
     };
     alvo.addEventListener('pointermove', mover); alvo.addEventListener('pointerup', soltar); alvo.addEventListener('pointercancel', soltar);
   }
-  palcoTopo.addEventListener('pointerdown', (ev) => {
+  palcoTopo?.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0 || ev.target.closest('button') || document.fullscreenElement === palco) return;
     const dx = ev.clientX - palco.getBoundingClientRect().left, dy = ev.clientY - palco.getBoundingClientRect().top;
     palcoSeguir(ev, palcoTopo, (e, r) => ({ x: e.clientX - dx, y: e.clientY - dy, w: r.width }));
   });
-  palcoTopo.addEventListener('dblclick', (ev) => { if (!ev.target.closest('button')) palcoVoltarAoCanto(); });
+  palcoTopo?.addEventListener('dblclick', (ev) => { if (!ev.target.closest('button')) palcoVoltarAoCanto(); });
   // A alça puxa no canto: a largura sai do que cobre o ponteiro (na horizontal ou, pela proporção, na vertical).
-  palcoAlca.addEventListener('pointerdown', (ev) => {
+  palcoAlca.addEventListener?.('pointerdown', (ev) => {
     if (ev.button !== 0 || document.fullscreenElement === palco) return;
     palcoSeguir(ev, palcoAlca, (e, r, c) => {
       const soma = c.razoes.reduce((s, x) => s + 1 / x, 0);
