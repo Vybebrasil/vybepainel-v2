@@ -2569,6 +2569,138 @@ const pv2GruposRedesenha = () => renderVisaoDeGrupos('producao');
 function pv2GruposEscolher(id) { pv2GruposSel = String(id); pv2GruposRedesenha(); }
 function pv2GruposFiltrar(f) { pv2GruposFiltro = f; pv2GruposRedesenha(); }
 function pv2GruposFiltrarStatus(st) { pv2GruposStatus = String(st || ''); pv2GruposRedesenha(); }
+// FILTRO DE CLIENTE (Paulo, 19/11/2026: "no painel de trabalho (em grupos) também quero poder filtrar por cliente"). Um ou
+// mais clientes, com o nome como aparece no painel (clientesDoItem) e só os que estão na lista de clientes
+// (clienteApareceNaLista, o mesmo critério do filtro de Cliente das Demandas). Vale junto com a busca e com a pessoa
+// (itensPorGrupo), e fica guardado no navegador de quem escolheu, com a ordem da tabela.
+const pv2GruposClientes = new Set();
+let pv2GruposPrefsDe = '';
+const pv2ChaveCliente = (n) => String(n ?? '').trim().toLocaleLowerCase('pt-BR');
+function pv2GruposFiltroCliente(itens, escolhidos = pv2GruposClientes) {
+  if (!escolhidos.size) return itens;
+  const alvo = new Set([...escolhidos].map(pv2ChaveCliente));
+  return itens.filter((i) => clientesDoItem(i).some((n) => alvo.has(pv2ChaveCliente(n))));
+}
+// Os clientes que dá para escolher, com quantas peças cada um tem nos outros filtros (carteira, pessoa e busca); quem
+// está escolhido aparece mesmo com zero, para poder sair.
+function pv2GruposOpcoesDeCliente(base) {
+  const aparece = (n) => typeof clienteApareceNaLista !== 'function' || clienteApareceNaLista(n);
+  const daPessoa = (i) => (typeof itemNaCarteira !== 'function' || itemNaCarteira(i)) && (typeof selectedPersonIds === 'undefined' || !selectedPersonIds.size || itemMatchesSelectedPeople(i));
+  // Um cliente por nome, sem diferença de maiúscula (fica a grafia que aparece primeiro, a do painel).
+  const conta = new Map();
+  for (const i of base || []) {
+    if (!daPessoa(i)) continue;
+    for (const n of new Set(clientesDoItem(i).map((x) => String(x || '').trim()).filter((x) => x && aparece(x)))) {
+      const k = pv2ChaveCliente(n), atual = conta.get(k) || [n, 0, ''];
+      if (atual[2] !== i.id) conta.set(k, [atual[0], atual[1] + 1, i.id]);
+    }
+  }
+  for (const n of pv2GruposClientes) if (!conta.has(pv2ChaveCliente(n))) conta.set(pv2ChaveCliente(n), [n, 0, '']);
+  return [...conta.values()].map(([n, q]) => [n, q]).sort((a, b) => (b[1] > 0) - (a[1] > 0) || a[0].localeCompare(b[0], 'pt-BR'));
+}
+function pv2GruposChavePrefs() {
+  const eu = typeof pessoaLogada === 'function' ? pessoaLogada() : null;
+  return `vybe_grupos_producao:${eu?.id || 'todos'}`;
+}
+function pv2GruposRestaurar() {
+  const chave = pv2GruposChavePrefs(); if (pv2GruposPrefsDe === chave) return;
+  pv2GruposPrefsDe = chave;
+  let salvo = {}; try { salvo = JSON.parse(localStorage.getItem(chave) || '{}') || {}; } catch { /* preferência inválida */ }
+  pv2GruposClientes.clear();
+  if (Array.isArray(salvo.clientes)) salvo.clientes.filter((n) => typeof n === 'string' && n.trim()).forEach((n) => pv2GruposClientes.add(n));
+  if (salvo.ordem && typeof CAMPOS_ORDENAVEIS !== 'undefined' && Object.hasOwn(CAMPOS_ORDENAVEIS, salvo.ordem.campo)) ORDEM = { campo: salvo.ordem.campo, desc: salvo.ordem.desc === true };
+}
+function pv2GruposGuardar() {
+  if (!pv2GruposPrefsDe) return;
+  try { localStorage.setItem(pv2GruposPrefsDe, JSON.stringify({ clientes: [...pv2GruposClientes], ordem: ORDEM })); } catch { /* sem armazenamento, o filtro vale até fechar */ }
+}
+const pv2GruposTemCliente = (n) => [...pv2GruposClientes].some((x) => pv2ChaveCliente(x) === pv2ChaveCliente(n));
+function pv2GruposAlternarCliente(nome) {
+  const atual = [...pv2GruposClientes].find((x) => pv2ChaveCliente(x) === pv2ChaveCliente(nome));
+  if (atual) pv2GruposClientes.delete(atual); else if (String(nome || '').trim()) pv2GruposClientes.add(String(nome).trim());
+  pv2GruposGuardar(); pv2GruposRedesenha();
+  if (document.getElementById('s-f-menu')) { pv2GruposPintarMenu(); [...document.querySelectorAll('#s-f-menu [data-cliente]')].find((b) => b.dataset.cliente === nome)?.focus(); }
+}
+function pv2GruposTirarCliente(nome) {
+  const atual = [...pv2GruposClientes].find((x) => pv2ChaveCliente(x) === pv2ChaveCliente(nome));
+  if (atual) pv2GruposClientes.delete(atual);
+  pv2GruposGuardar(); pv2GruposRedesenha(); pv2GruposFocoNosFiltros();
+}
+function pv2GruposLimparClientes() { pv2GruposClientes.clear(); pv2GruposGuardar(); pv2GruposFecharMenu(false); pv2GruposRedesenha(); pv2GruposFocoNosFiltros('cliente'); }
+function pv2GruposEscolherStatus(st) { pv2GruposFecharMenu(false); pv2GruposFiltrarStatus(st); pv2GruposFocoNosFiltros('status'); }
+function pv2GruposTirarPessoa(id) {
+  if (typeof filterByPerson === 'function') filterByPerson(String(id), document.querySelector(`#person-filter-bar .person-wrap[data-person-id="${CSS.escape(String(id))}"]`) || document.getElementById('person-all'));
+  pv2GruposRedesenha(); pv2GruposFocoNosFiltros();
+}
+function pv2GruposTirarBusca() {
+  if (typeof buscarClienteConteudos === 'function') buscarClienteConteudos(''); else { buscaClienteConteudos = ''; pv2GruposRedesenha(); }
+  pv2GruposFocoNosFiltros();
+}
+function pv2GruposLimparTudo() {
+  pv2GruposFecharMenu(false);
+  pv2GruposClientes.clear(); pv2GruposStatus = ''; pv2GruposGuardar();
+  if (typeof selectedPersonIds !== 'undefined' && selectedPersonIds.size && typeof filterByPerson === 'function') filterByPerson('all', document.getElementById('person-all'));
+  buscaClienteConteudos = '';
+  pv2GruposRedesenha(); pv2GruposFocoNosFiltros('cliente');
+}
+// Depois de tirar um filtro, o foco fica no próximo chip (ou no botão do filtro), não cai no body.
+function pv2GruposFocoNosFiltros(qual = '') {
+  const folha = document.querySelector('#grupos-board .d3m-a-gr'); if (!folha) return;
+  (qual ? folha.querySelector(`.s-f-filtro[data-s-f="${qual}"]`) : folha.querySelector('.s-f-chip') || folha.querySelector('.s-f-filtro[data-s-f="cliente"]'))?.focus();
+}
+// Os menus de Cliente e Status da cabeça: soltos no body, como o menu de status da linha, porque a folha corta o que sai
+// dela. O de Status troca o select nativo, que a folha antiga pintava de branco à força (o "selecionar branco").
+let pv2GruposMenuQual = '', pv2GruposMenuBusca = '';
+function pv2GruposFecharMenu(devolverFoco = true) {
+  const qual = pv2GruposMenuQual;
+  document.getElementById('s-f-menu')?.remove(); document.getElementById('s-f-menu-fundo')?.remove();
+  pv2GruposMenuQual = ''; pv2GruposMenuBusca = '';
+  document.removeEventListener('keydown', pv2GruposEscDoMenu, true);
+  document.querySelectorAll('.s-f-filtro[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+  if (devolverFoco && qual) pv2GruposFocoNosFiltros(qual);
+}
+function pv2GruposAbrirMenu(ev, qual) {
+  ev?.stopPropagation?.();
+  if (pv2GruposMenuQual === qual) return pv2GruposFecharMenu();
+  pv2GruposFecharMenu(false);
+  const botao = ev?.currentTarget || document.querySelector(`#grupos-board .s-f-filtro[data-s-f="${qual}"]`); if (!botao) return;
+  if (typeof closeStatusEditor === 'function') closeStatusEditor();
+  pv2GruposMenuQual = qual;
+  const fundo = document.createElement('div'); fundo.id = 's-f-menu-fundo'; fundo.className = 'status-editor-backdrop'; fundo.onclick = () => pv2GruposFecharMenu();
+  const menu = document.createElement('div'); menu.id = 's-f-menu'; menu.className = 'status-editor s-f-menu';
+  menu.setAttribute('role', 'dialog'); menu.setAttribute('aria-label', qual === 'cliente' ? 'Filtrar por cliente' : 'Filtrar por status');
+  // Esc fecha o menu e devolve o foco ao botão. Na captura: o mundo também escuta o Esc (fecha a janela) e chegava antes.
+  document.addEventListener('keydown', pv2GruposEscDoMenu, true);
+  document.body.append(fundo, menu);
+  botao.setAttribute('aria-expanded', 'true');
+  pv2GruposPintarMenu();
+  if (typeof ancorarPopover === 'function') ancorarPopover(menu, botao.getBoundingClientRect());
+  (menu.querySelector('input') || menu.querySelector('[aria-pressed="true"]') || menu.querySelector('button'))?.focus();
+}
+function pv2GruposEscDoMenu(e) {
+  if (e.key !== 'Escape' || !document.getElementById('s-f-menu')) return;
+  e.preventDefault(); e.stopPropagation(); pv2GruposFecharMenu();
+}
+function pv2GruposPintarMenu({ soLista = false } = {}) {
+  const menu = document.getElementById('s-f-menu'); if (!menu) return;
+  const f = pv2Vista.grupos?.filtros || { clientes: [], status: [], total: 0 };
+  const visto = `<i class="s-f-visto" aria-hidden="true">${PV2_IC.ok}</i>`;
+  if (pv2GruposMenuQual === 'status') {
+    menu.innerHTML = '<div class="status-editor-head">Status</div>' + [['', 'Todos os status', f.total], ...f.status.map(([s, n]) => [s, s, n])]
+      .map(([v, r, n]) => { const on = (pv2GruposStatus || '') === v; return `<button type="button" class="s-f-op" aria-pressed="${on}" data-valor="${safeText(v)}" onclick="pv2GruposEscolherStatus(this.dataset.valor)"><span>${safeText(r)}</span><b>${n}</b>${on ? visto : ''}</button>`; }).join('');
+    return;
+  }
+  const termo = pv2ChaveCliente(pv2GruposMenuBusca);
+  const lista = f.clientes.filter(([n]) => !termo || pv2ChaveCliente(n).includes(termo));
+  const linhas = lista.map(([n, q]) => { const on = pv2GruposTemCliente(n); return `<button type="button" class="s-f-op${q ? '' : ' vazio'}" aria-pressed="${on}" data-cliente="${safeText(n)}" onclick="pv2GruposAlternarCliente(this.dataset.cliente)" title="${on ? 'Tirar' : 'Mostrar'} ${safeText(n)}">${pv2Foto(n)}<span>${safeText(n)}</span><b>${q}</b>${on ? visto : ''}</button>`; }).join('')
+    || `<p class="s-f-nada">${termo ? `Nenhum cliente com “${safeText(pv2GruposMenuBusca)}”.` : 'Nenhum cliente nas peças deste recorte.'}</p>`;
+  if (soLista && menu.querySelector('.s-f-lista')) { menu.querySelector('.s-f-lista').innerHTML = linhas; return; }
+  const n = pv2GruposClientes.size;
+  menu.innerHTML = `<div class="status-editor-head v2-st-cab"><span>Cliente</span><small>${n ? `${n} ${pv2Pl(n, 'escolhido', 'escolhidos')}` : 'escolha um ou mais'}</small></div>`
+    + `<input type="search" class="s-f-busca" autocomplete="off" placeholder="Buscar cliente" aria-label="Buscar cliente" value="${safeText(pv2GruposMenuBusca)}" oninput="pv2GruposMenuBusca=this.value;pv2GruposPintarMenu({soLista:true})">`
+    + `<div class="s-f-lista" role="group" aria-label="Clientes">${linhas}</div>`
+    + (n ? '<button type="button" class="s-f-op s-f-tirar" onclick="pv2GruposLimparClientes()"><span>Tirar o filtro de cliente</span></button>' : '');
+}
 // Marca (ou desmarca) tudo o que está no recorte da folha (grupo, filtro e status), não só as linhas à mostra.
 function pv2GruposMarcarRecorte(marcar) {
   const itens = pv2Vista.grupos?.exporta?.itens || [];
@@ -2612,7 +2744,7 @@ function pv2GrupoLinha(item, { lote, extras, hoje }) {
     + (extras ? PV2_GRUPOS_EXTRAS.map(escolha).join('') + `<td class="grupo-cadastro">${safeText(cad.quem)}</td><td class="grupo-cadastro grupo-cadastro-data">${safeText(cad.quando)}</td>` : '')
     + '</tr>';
 }
-function pv2GruposHtml({ grupos, quadro }) {
+function pv2GruposHtml({ grupos, quadro, base = null }) {
   const hoje = pv2HojeIso(), comPecas = grupos.filter((g) => g.itens.length);
   if (!grupos.some((g) => g.id === pv2GruposSel)) pv2GruposSel = (comPecas[0] || grupos[0])?.id || '';
   const grupo = grupos.find((g) => g.id === pv2GruposSel) || { id: '', nome: 'Sem grupo', itens: [] };
@@ -2635,7 +2767,7 @@ function pv2GruposHtml({ grupos, quadro }) {
     + (extras ? th('captacao', 'Captação') + th('tipo_conteudo', 'Tipo') + th('off_audio', 'OFF') + th('prioridade', 'Prioridade') + th('cadastrado_por', 'Cadastrou') + th('criado_em', 'Quando') : '');
   const fil = (id, rotulo, n, tom) => `<button type="button" role="radio" aria-checked="${pv2GruposFiltro === id}" onclick="pv2GruposFiltrar('${id}')">${rotulo} <b${tom && n ? ` class="${tom}"` : ''}>${n}</b></button>`;
   const editavel = typeof grupoEditavelNaTela === 'function' && grupoEditavelNaTela(quadro, grupo.id);
-  const corpo = !grupo.itens.length ? `<p class="d3v-estado"><b>Nenhuma peça neste grupo.</b>${buscaClienteConteudos ? 'A busca não encontrou nada aqui.' : 'Use o + para cadastrar a primeira.'}</p>`
+  const corpo = !grupo.itens.length ? `<p class="d3v-estado"><b>Nenhuma peça neste grupo.</b>${buscaClienteConteudos || pv2GruposClientes.size ? 'A busca não encontrou nada aqui.' : 'Use o + para cadastrar a primeira.'}</p>`
     : !recorte.length ? `<p class="d3v-estado"><b>${pv2GruposStatus && doFiltro.length ? `Nenhuma peça em ${safeText(pv2GruposStatus)} neste recorte.` : pv2GruposFiltro === 'semdono' ? 'Todas as peças deste grupo têm responsável.' : 'Nenhuma peça vencida neste grupo.'}</b></p>`
     : `<div class="d3m-a-g-rola"><table class="d3m-a-g-tab grupo-tabela${extras ? ' larga' : ''}"><thead><tr>${cabeca}</tr></thead><tbody>${visiveis.map((i) => pv2GrupoLinha(i, { lote, extras, hoje })).join('')}</tbody></table></div>`;
   // A coluna de consulta: os grupos, a busca, o que esta aba é e o trabalho em lote.
@@ -2650,15 +2782,30 @@ function pv2GruposHtml({ grupos, quadro }) {
       + pv2Vlin('<b>Exportar a tabela</b>', 'pv2GruposExportar()', 'Baixar a lista deste grupo em planilha (CSV)'));
   pv2Vista.grupos = { linha, lado, exporta: { nome: grupo.nome, itens: recorte } };
   const opSt = [...contaSt.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
-  const filtroSt = `<label class="d3m-a-g-st${pv2GruposStatus ? ' tem' : ''}" title="Filtrar a folha por status"><select aria-label="Filtrar ${safeText(grupo.nome)} por status" onchange="pv2GruposFiltrarStatus(this.value)"><option value="">Status</option>${opSt.map(([st, n]) => `<option value="${safeText(st)}"${st === pv2GruposStatus ? ' selected' : ''}>${safeText(st)} · ${n}</option>`).join('')}</select></label>`;
+  // Os filtros da cabeça (prancha V2-S-Filtros-Demandas): "Status · todos" e "Cliente · todos" abrem o menu; com escolha, o
+  // botão fica cheio (tinta) e a escolha aparece num chip que sai no ×, junto da pessoa e da busca.
+  const clientesOp = pv2GruposOpcoesDeCliente(base || grupos.flatMap((g) => g.itens));
+  pv2Vista.grupos.filtros = { clientes: clientesOp, status: opSt, total: grupo.itens.length };
+  const escolhidos = [...pv2GruposClientes];
+  const filtroBt = (qual, rotulo, escolha) => `<button type="button" class="s-f-filtro${escolha ? ' tem' : ''}" data-s-f="${qual}" aria-haspopup="dialog" aria-expanded="${pv2GruposMenuQual === qual}" onclick="pv2GruposAbrirMenu(event,'${qual}')" title="Filtrar por ${rotulo.toLowerCase()}${escolha ? ` (agora: ${safeText(escolha)})` : ''}">${rotulo} · <b>${safeText(escolha || 'todos')}</b>${PV2_IC.baixo}</button>`;
+  const filtroSt = filtroBt('status', 'Status', pv2GruposStatus) + filtroBt('cliente', 'Cliente', escolhidos.length > 1 ? `${escolhidos.length} clientes` : escolhidos[0] || '');
+  const xis = '<i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg></i>';
+  const chip = (rotulo, acao, valor = '') => `<button type="button" class="s-f-chip" data-v="${safeText(valor)}" onclick="${acao}" title="Tirar este filtro" aria-label="Tirar o filtro ${safeText(rotulo)}">${safeText(rotulo)}${xis}</button>`;
+  const pessoas = typeof selectedPersonIds === 'undefined' ? [] : [...selectedPersonIds];
+  const nomeDe = (id) => { const u = (typeof TEAM_USERS === 'undefined' ? [] : TEAM_USERS).find((x) => String(x.id) === String(id)); return u ? firstName(u.name) : 'uma pessoa'; };
+  const chips = escolhidos.map((n) => chip(`Cliente: ${n}`, 'pv2GruposTirarCliente(this.dataset.v)', n))
+    .concat(pv2GruposStatus ? [chip(`Status: ${pv2GruposStatus}`, "pv2GruposEscolherStatus('')")] : [])
+    .concat(pessoas.map((id) => chip(`Pessoa: ${nomeDe(id)}`, 'pv2GruposTirarPessoa(this.dataset.v)', id)))
+    .concat(String(buscaClienteConteudos || '').trim() ? [chip(`Busca: ${String(buscaClienteConteudos).trim()}`, 'pv2GruposTirarBusca()')] : []);
+  // A linha dos filtros fica embaixo da cabeça, como na prancha: os dois botões e, com filtro ligado, quantas sobram e os chips.
+  const ativos = `<div class="s-f-ativos" role="group" aria-label="Filtros da folha">${filtroSt}${chips.length ? `<span class="s-f-conta"><b>${recorte.length}</b> de ${grupo.itens.length} · filtrando por</span>${chips.join('')}${chips.length > 1 ? '<button type="button" class="s-f-limpar" onclick="pv2GruposLimparTudo()">Limpar tudo</button>' : ''}` : ''}</div>`;
   return `<section class="d3m-a-folha d3m-a-gr${SELECIONADAS.size ? ' tem-lote' : ''}" data-grupo="${safeText(grupo.id)}" data-quadro="${quadro}" data-previa-sequencia="${safeText(grupo.nome)}" aria-label="Grupo ${safeText(grupo.nome)}">
       <div class="d3m-a-cab"><h3><span${editavel ? ` ondblclick="renomearGrupoPeloNome(event,'${quadro}','${jsArg(grupo.id)}')" title="Clique duplo para renomear"` : ''}>${safeText(grupo.nome)}</span> <span>· ${grupo.itens.length} ${pv2Pl(grupo.itens.length, 'peça', 'peças')}</span></h3>
         <span class="d3m-a-setas">${typeof botaoDoMenuDoGrupo === 'function' ? botaoDoMenuDoGrupo(quadro, grupo.id, grupo.nome) : ''}<button type="button" class="d3v-btn txt ico s grupo-adicionar" onclick="cadastrarNoGrupo('${quadro}','${jsArg(grupo.id)}')" aria-label="Adicionar conteúdo em ${safeText(grupo.nome)}" title="Novo conteúdo neste grupo">${D3P_MAIS}</button></span>
         <span class="d3m-a-seg" role="radiogroup" aria-label="Recorte do grupo">${fil('todos', 'Todos', grupo.itens.length, '')}${fil('semdono', 'Sem responsável', semDono.length, 'a')}${fil('vencidas', 'Vencidas', vencidas.length, 'r')}</span>
-        ${filtroSt}
         <i class="d3m-a-div" aria-hidden="true"></i>
         <span class="d3m-a-seg"><button type="button" role="switch" aria-checked="${extras}" onclick="pv2GruposAlternar('colunas')" title="${extras ? 'Esconder as seis colunas a mais' : 'Mostrar captação, tipo, OFF, prioridade, quem cadastrou e quando'}">Colunas</button><button type="button" role="switch" aria-checked="${ORDEM.campo === 'status'}" onclick="ordenarPor('status')" title="Ordenar a lista pelo status">Por status</button></span></div>
-      ${corpo}
+      ${ativos}${corpo}
       <div class="d3m-a-pe"><span>Tabela</span><span><b>${visiveis.length}</b>de ${recorte.length} na lista</span>${restam > 0 ? `<span><button type="button" class="d3v-btn txt s grupo-ver-mais" onclick="verGrupoInteiro('${jsArg(grupo.id)}')">Mostrar ${pv2Pl(restam, 'a outra', `as outras ${restam}`)}</button></span>` : ''}<span>${extras ? 'todas as colunas à mostra' : '<b>6</b>colunas escondidas: captação, tipo, off, prioridade, quem cadastrou e quando'}</span></div></section>`;
 }
 
@@ -2974,7 +3121,7 @@ function pv2StatusBotao(d) {
 // ou a gravação terminou sem redesenhar (recusada, ou o mesmo status), ela volta a ser a pílula de antes.
 function pv2StatusIndo(ev) {
   const op = ev.target?.closest?.('#status-editor button.status-editor-option');
-  if (!op || op.hasAttribute('data-status-todos')) return;
+  if (!op || op.hasAttribute('data-status-todos') || op.hasAttribute('data-captacao')) return;
   const id = typeof statusEditorItemId === 'undefined' ? '' : String(statusEditorItemId || '');
   if (!id) return;
   const pilulas = [...document.querySelectorAll('.pv2-st[data-v2-st]')].filter((b) => b.dataset.v2St === id);

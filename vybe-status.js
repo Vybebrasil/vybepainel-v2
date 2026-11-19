@@ -152,7 +152,13 @@ function openStatusEditor(event, itemId) {
   // do redesign, vybe-grupos.js); aqui ficam as escolhas e as ferramentas de cada etiqueta.
   const colunaDoStatus = `status:${isRequestItem(item) ? BOARD_DEMANDAS_ID : BOARD_ID}`;
   const comFerramentas = typeof ferramentasDaEtiquetaHtml === 'function';
-  const cabeca = `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>`;
+  // Paulo, 19/11/2026: o menu separa Status (produção) e Status de captação, como as duas colunas da tabela de Grupos.
+  // Peça com captação mostra os dois blocos, cada um gravando no próprio campo pelas mesmas funções da tabela
+  // (updateFocusStatus e escolherValor). Peça sem captação (ou solicitação) mostra só Status, como antes.
+  const captacao = typeof blocoDeCaptacaoHtml === 'function' ? blocoDeCaptacaoHtml(item) : '';
+  const cabeca = captacao
+    ? `<div class="status-editor-head v2-st-cab"><span>Status</span><small>agora: ${safeText(item.status || 'sem status')}</small></div>`
+    : `<div class="status-editor-head">${isRequestItem(item)?'Solicitação':'Status'}</div>`;
   // Direção 3 (quadro D3-StatusMenu): a lista inteira abre com "Todos · N" e o quadro; cada status em pílula clara com a
   // bolinha do catálogo (cheia só em Alteração, Atrasada e Finalizado) e o atual marcado com o visto.
   const tomDe = (t) => (typeof pv2Tom === 'function' ? pv2Tom(t) : '');
@@ -164,7 +170,7 @@ function openStatusEditor(event, itemId) {
     if (!comFerramentas || !o.chave) return linha;
     const etiqueta = { chave: o.chave, rotulo: o.label, cor: o.color, ativa: o.ativa !== false };
     return `<div class="etiqueta-linha ${o.ativa === false ? 'desligada' : ''}">${linha}${ferramentasDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}${chaveDaEtiquetaHtml(colunaDoStatus, 'status', etiqueta)}</div>`;
-  }).join('')}${juntarAprovacaoNoSeletorHtml(item)}${fluxoBtn}`;
+  }).join('')}${juntarAprovacaoNoSeletorHtml(item)}${fluxoBtn}${captacao}`;
   // Padrão v2 (quadro Status do moodboard, 12/11/2026): o menu abre só com o que cabe agora, o próximo passo, o seguinte
   // e a volta, na ordem do catálogo; "Todos os N status" mostra a lista inteira, com as ferramentas de etiqueta.
   // O "próximo" é o mesmo do botão principal da gaveta (o fluxo do quadro, vybe-gaveta.js); quem administra muda esse
@@ -181,11 +187,33 @@ function openStatusEditor(event, itemId) {
     ? `<button type="button" class="status-editor-option v2-st-fluxo" onclick="abrirFluxoDoStatus('${item.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Ordem e próximo passo</span></button>` : '';
   const opcaoCurta = ([o, dica]) => `<button type="button" class="status-editor-option v2-st-op" onclick="updateFocusStatus('${item.id}','${paraAtributo(o.label)}')"><span class="v2-st-pilula ${typeof pv2Tom === 'function' ? pv2Tom(o.label) : ''}" style="--c:${o.color}">${safeText(o.label)}</span>${dica ? `<small class="v2-st-dica">${dica}</small>` : ''}</button>`;
   menu.innerHTML = curto.length && statusOptions.length > 4
-    ? `${cabeca}${curto.map(opcaoCurta).join('')}<button type="button" class="status-editor-option v2-st-todos" data-status-todos><span class="v2-st-todos-txt">Todos os ${statusOptions.length} status</span></button>${fluxoBtn}`
+    ? `${cabeca}${curto.map(opcaoCurta).join('')}<button type="button" class="status-editor-option v2-st-todos" data-status-todos><span class="v2-st-todos-txt">Todos os ${statusOptions.length} status</span></button>${fluxoBtn}${captacao}`
     : listaInteira();
   menu.querySelector('[data-status-todos]')?.addEventListener('click', (e) => { e.stopPropagation(); menu.innerHTML = listaInteira(); ancorarPopover(menu, rect); });
   document.body.append(backdrop, menu);
   ancorarPopover(menu, rect);
+}
+// O bloco Captação do menu de status: só para peça da Produção que tem status de captação. As opções são as do catálogo
+// da coluna (as mesmas do seletor da tabela) e a escolha grava por escolherValor, o caminho da coluna Captação.
+function pecaTemCaptacao(item) {
+  if (!item || (typeof isRequestItem === 'function' && isRequestItem(item))) return false;
+  if (typeof campoExisteNoQuadro === 'function' && !campoExisteNoQuadro('captacao', item)) return false;
+  const v = String(item.captacao ?? '').trim();
+  return Boolean(v) && v !== '—';
+}
+function blocoDeCaptacaoHtml(item) {
+  if (!pecaTemCaptacao(item) || typeof catalogoDoCampo !== 'function') return '';
+  const atual = String(item.captacao).trim();
+  const opcoes = catalogoDoCampo('captacao', item).filter((o) => o.ativa || o.rotulo === atual);
+  if (!opcoes.length) return '';
+  const visto = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const id = typeof jsArg === 'function' ? jsArg(item.id) : String(item.id);
+  return `<div class="status-editor-head v2-st-cab s-f-cap-cab" role="presentation"><span>Captação</span><small>agora: ${safeText(atual)}</small></div>`
+    + opcoes.map((o) => {
+      const eAtual = o.rotulo === atual;
+      const chave = typeof jsArg === 'function' ? jsArg(o.chave) : String(o.chave);
+      return `<button type="button" class="status-editor-option v2-st-op s-f-cap-op${eAtual ? ' s-f-cap-on' : ''}" data-captacao${eAtual ? ` aria-label="${safeText(o.rotulo)}, status de captação atual"` : ''} onclick="closeStatusEditor();escolherValor('${id}','captacao','${chave}')" title="Status de captação: ${safeText(o.rotulo)}"><span class="v2-st-pilula" style="--c:${safeText(o.cor || '#8A847A')}">${safeText(o.rotulo)}${o.ativa ? '' : ' (desligada)'}</span>${eAtual ? `<span class="status-editor-check">${visto}</span>` : ''}</button>`;
+    }).join('');
 }
 function updateLocalStatus(itemId, option) {
   const logs = window.ACTIVITY_LOGS || (window.ACTIVITY_LOGS = {moveEvents:{}, prazoEvents:{}, statusEvents:{}});

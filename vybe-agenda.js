@@ -1558,6 +1558,17 @@ const COLUNAS_DA_TABELA = {
              'prioridade','prazo_iso','veiculacao_iso','cadastrado_por','criado_em'],
 };
 
+// Data ordena como data, não como texto (Paulo, 19/11/2026): o ISO, o "dd/mm/aaaa" e o carimbo com hora viram o mesmo
+// número; o que não é data fica vazio e vai para o fim, como a peça sem prazo.
+function valorDeData(v) {
+  const s = String(v ?? '').trim();
+  if (!s || s === '—') return '';
+  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  const iso = br ? `${br[3]}-${br[2].padStart(2, '0')}-${br[1].padStart(2, '0')}` : s;
+  const t = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00Z` : iso);
+  return Number.isNaN(t) ? '' : t;
+}
+
 const CAMPOS_ORDENAVEIS = {
   id:            { rotulo: 'ID',          valor: (i) => Number(i.id) || 0 },
   nome:          { rotulo: 'Conteúdo',    rotuloDemandas: 'Demanda', valor: (i) => String(i.nome || '') },
@@ -1572,16 +1583,16 @@ const CAMPOS_ORDENAVEIS = {
   tipo_conteudo: { rotulo: 'Tipo',        valor: (i) => String(i.tipo_conteudo || '') },
   off_audio:     { rotulo: 'OFF',         valor: (i) => String(i.off_audio || '') },
   prioridade:    { rotulo: 'Prioridade',  valor: (i) => String(i.prioridade || '') },
-  prazo_iso:     { rotulo: 'Prazo',       valor: (i) => String(i.prazo_iso || '') },
+  prazo_iso:     { rotulo: 'Prazo',       valor: (i) => valorDeData(i.prazo_iso) },
   // A mesma data tinha dois nomes: "Conclusao" no botao que a escolhe e no
   // cartao da esteira, "Veiculacao" no cabecalho da tabela. Em Solicitacoes ela
   // e a data de CONCLUSAO — veiculacao e coisa de conteudo, que vai ao ar.
   // Dois nomes para o mesmo campo fazem a pessoa procurar a diferenca que nao
   // existe.
   veiculacao_iso:{ rotulo: 'Veiculação',  rotuloDemandas: 'Conclusão',
-                   valor: (i) => String(i.veiculacao_iso || '') },
+                   valor: (i) => valorDeData(i.veiculacao_iso) },
   cadastrado_por:{ rotulo: 'Cadastrado por', valor: (i) => cadastroDaPeca(i).quem },
-  criado_em:     { rotulo: 'Criado em',   valor: (i) => cadastroDaPeca(i).ordem },
+  criado_em:     { rotulo: 'Criado em',   valor: (i) => valorDeData(cadastroDaPeca(i).ordem) },
 };
 
 function ordenarItens(itens) {
@@ -1604,7 +1615,11 @@ function ordenarPor(campo) {
   if (!CAMPOS_ORDENAVEIS[campo]) return;
   ORDEM = ORDEM.campo === campo ? { campo, desc: !ORDEM.desc } : { campo, desc: false };
   if (typeof activeBoard !== 'undefined' && activeBoard === 'demandas') guardarPreferenciasDemandas();
+  else if (typeof pv2GruposGuardar === 'function') pv2GruposGuardar();
+  // Quem ordenou pelo teclado continua no mesmo cabeçalho depois do redesenho (antes o foco caía no body).
+  const peloCabecalho = typeof document !== 'undefined' && Boolean(document.activeElement?.closest?.('th'));
   renderVisaoDeGrupos();
+  if (peloCabecalho) [...document.querySelectorAll(`th > [onclick="ordenarPor('${campo}')"]`)].find((b) => b.getClientRects().length)?.focus();
   // A ficha do cliente usa a mesma tabela; sem isto, clicar no cabecalho la
   // reordenava a tabela de grupos escondida e deixava a da frente parada.
   if (typeof redesenharListasDoCliente === 'function') redesenharListasDoCliente();
@@ -2475,8 +2490,11 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   // da coluna de consulta acha também pelo nome do conteúdo e pelo ID.
   const gruposV2 = quadro === 'producao' && !forcar && !emprestadaAoDa(cfg.alvo) && typeof pv2GruposHtml === 'function' && typeof pv2Ligado === 'function' && pv2Ligado();
   const termoDaBusca = String(buscaClienteConteudos || '').toLocaleLowerCase('pt-BR');
-  const fonte=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(termoDaBusca)) || (gruposV2 && (String(i.nome || '').toLocaleLowerCase('pt-BR').includes(termoDaBusca) || String(i.id).toLocaleLowerCase('pt-BR').includes(termoDaBusca))))
+  if (gruposV2 && typeof pv2GruposRestaurar === 'function') pv2GruposRestaurar();
+  const semCliente=cfg.fonte().filter(i=>quadro!=='producao' || !buscaClienteConteudos || clientesDoItem(i).some(n=>n.toLocaleLowerCase('pt-BR').includes(termoDaBusca)) || (gruposV2 && (String(i.nome || '').toLocaleLowerCase('pt-BR').includes(termoDaBusca) || String(i.id).toLocaleLowerCase('pt-BR').includes(termoDaBusca))))
     .filter(i=>!pessoaDoDa || assignedIds(i).includes(pessoaDoDa));
+  // O filtro de cliente da V2 (um ou mais clientes) vale junto com a busca e com a pessoa (itensPorGrupo).
+  const fonte = gruposV2 && typeof pv2GruposFiltroCliente === 'function' ? pv2GruposFiltroCliente(semCliente) : semCliente;
   if (typeof garantirGruposDoPainel === 'function') garantirGruposDoPainel();
   const grupos = itensPorGrupo(fonte, cfg.ordem());
   if (botao) {
@@ -2489,7 +2507,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
   wrap.classList.remove('focus-hidden');
   wrap.classList.toggle('d3m-a-v2', gruposV2);
-  if (gruposV2) { wrap.innerHTML = pv2GruposHtml({ grupos, quadro }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
+  if (gruposV2) { wrap.innerHTML = pv2GruposHtml({ grupos, quadro, base: semCliente }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
 
   const peca = (n) => quadro === 'demandas'
     ? (n === 1 ? 'solicitação' : 'solicitações')
