@@ -82,7 +82,8 @@ test('hoje: a veiculação diz o que está previsto; feitas no dia, faltam, atra
   assert.equal(r.semana.inicio, '2026-11-02');
   assert.equal(r.semana.fim, '2026-11-08');
   assert.deepEqual(r.semana.porDia.map((d) => d.dia), ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08']);
-  assert.deepEqual(r.semana.porDia.find((d) => d.dia === HOJE), { dia: HOJE, previstas: 3, entregues: 1 });
+  // prontas/finalizadas/paraAgendar/agendadas: as previstas do dia com a produção pronta (frente S-g, 19/11/2026).
+  assert.deepEqual(r.semana.porDia.find((d) => d.dia === HOJE), { dia: HOJE, previstas: 3, entregues: 1, prontas: 1, finalizadas: 1, paraAgendar: 0, agendadas: 0 });
   assert.equal(r.semana.entregues, 1); // só o Card pronto: Agendado e Para agendar não são entrega
   assert.deepEqual(r.semana.entreguesPorStatus, { Finalizado: 1 });
 

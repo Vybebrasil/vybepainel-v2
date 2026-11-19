@@ -1,0 +1,43 @@
+/* Rodada S, frente g (19/11/2026). Prontas da semana com a produção pronta (Paulo: "olhando pra semana, exemplo sexta
+   dia 20, tá 1 de 17, mas tem 6 para agendar; não devia contar como um pronto na contagem e no gráfico?").
+   Nos contadores e gráficos da semana, pronta = Finalizado + Para agendar + Agendado (VybeDono.util.faseDaPronta). A
+   barra de cada dia empilha: Finalizado na cor cheia (--d3-pronto), Para agendar e Agendado no tom claro da mesma cor
+   (--vsg-clara: ≥ 3:1 contra a folha nos três temas). Atraso, risco e alertas seguem só com Finalizado.
+   Só tokens --d3-*; nada de !important; nada de :has. */
+
+/* O tom claro: na folha (cartão claro ou grafite do escuro), a cor de pronto misturada com a folha; no vidro da régua,
+   o verde do vidro misturado com o painel. */
+.vst,#vv-hoje,.vs-agencia,.d3m-regua{--vsg-clara:color-mix(in srgb,var(--d3-pronto) 75%,var(--d3-cartao))}
+.d3m-regua .d3m-dia:not(.d3m-on){--vsg-clara:color-mix(in srgb,var(--d3-mod-vybe-claro) 70%,var(--d3-fume-painel))}
+/* No escuro, a cor cheia já é clara: o tom de apoio desce mais para a folha (3,5:1 contra ela) e fica distinto do cheio. */
+[data-d3-tema="escuro"] :is(.vst,#vv-hoje,.vs-agencia,.d3m-regua .d3m-dia.d3m-on){--vsg-clara:color-mix(in srgb,var(--d3-pronto) 55%,var(--d3-cartao))}
+
+/* ---------- Barra empilhada (Prontas por dia da Visão do setor e a régua da semana do Painel) ---------- */
+.vst .vst-dia-barra.vsg-pilha{display:flex}
+.vst .vst-dia-barra.vsg-pilha > i{flex:none;border-radius:0}
+.vst .vst-dia-barra.vsg-pilha > i:first-child{border-radius:2px 0 0 2px}
+.vst .vst-dia-barra.vsg-pilha > i.vsg-clara{width:var(--c);background:var(--vsg-clara);border-radius:0 2px 2px 0}
+.d3m-dia .d3m-dia-b.vsg-pilha{display:flex}
+.d3m-dia .d3m-dia-b.vsg-pilha > i{flex:none;border-radius:2px 0 0 2px}
+.d3m-dia .d3m-dia-b.vsg-pilha > i.vsg-clara{width:var(--c,0%);background:var(--vsg-clara);border-radius:0 2px 2px 0}
+.d3m-dia.d3m-on .d3m-dia-b.vsg-pilha > i.vsg-clara{background:var(--vsg-clara)}
+
+/* A legenda curta do topo de "Prontas por dia": cheio = finalizado, claro = para agendar ou agendado. */
+.vst .vst-topo > small.vsg-topo{display:inline-flex;align-items:center;gap:10px;min-width:0;white-space:nowrap}
+.vst .vst-topo > small.vsg-topo > b{font-weight:500;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.vsg-leg{display:inline-flex;align-items:center;gap:5px}
+.vsg-leg > i{flex:none;width:12px;height:4px;border-radius:2px;background:var(--d3-pronto)}
+.vsg-leg.c > i{background:var(--vsg-clara)}
+
+/* ---------- Semana do Hoje (linha): a fina em Finalizado, a larga com Para agendar e Agendado ---------- */
+#vv-hoje .d3q .d3h-semana .d3h-sem-graf polyline.vsg-pronta:not(.meta){stroke:var(--vsg-clara);stroke-width:3.5}
+#vv-hoje .d3q .d3h-semana .d3h-sem-graf polyline.vsg-fin:not(.meta){stroke:var(--d3-pronto);stroke-width:2}
+#vv-hoje .d3h-semana .d3h-sem-graf polyline.vsg-pronta:not(.meta){stroke:var(--vsg-clara);stroke-width:3.5}
+#vv-hoje .d3h-semana .d3h-sem-graf polyline.vsg-fin:not(.meta){stroke:var(--d3-pronto);stroke-width:2}
+#vv-hoje .d3h-leg.vsg-leg-fin > i{background:var(--d3-pronto)}
+#vv-hoje .d3h-leg.vsg-leg-pronta > i{height:3.5px;background:var(--vsg-clara)}
+
+/* ---------- Gestão · Agência, "Esta semana" no vidro: a linha fina é o Finalizado, a cheia é a produção pronta ---------- */
+.vs-agencia .d3m-d-g-sem-graf > .fio.vsg-fin{stroke:var(--d3-pronto-claro);stroke-width:1.6}
+/* No celular, a legenda da Semana com três itens cabe na linha do título: o traço encurta. */
+@media (max-width:600px){#vv-hoje .d3h-semana .d3h-leg > i{width:8px}}
