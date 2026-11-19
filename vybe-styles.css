@@ -11541,7 +11541,7 @@ body.no-escritorio .workspace-drawer {z-index:701}
 
   .office-dock-team>div {right:auto;left:0}
 
-  body:has(#office-dock:not([hidden])) .container {padding-bottom:84px!important}
+  body.com-office-dock:not(#sem-office-dock) .container {padding-bottom:84px!important}
 
 }
 
@@ -15578,9 +15578,9 @@ body:has(#workspace-drawer) .plj-aviso {display:none}
 
    cobria o outro: com a barra à vista, o aviso fica logo acima dela. */
 
-body:has(#office-dock:not([hidden])) .plj-aviso {bottom:76px}
+body.com-office-dock:not(#sem-office-dock) .plj-aviso {bottom:76px}
 
-@media(max-width:760px){body:has(#office-dock:not([hidden])) .plj-aviso {bottom:96px}}
+@media(max-width:760px){body.com-office-dock:not(#sem-office-dock) .plj-aviso {bottom:96px}}
 
 /* Cobranças no padrão do painel (Paulo, 19/10/2026: "melhora tudo aqui"):
 

@@ -26,6 +26,19 @@ const SOB_DEMANDA_PORTAS = {
   ],
   automacoes: ['carregarAutomacoes', 'diagnosticarAutomacao'],
   sazonal: ['abrirCalendarioSazonal'],
+  // Comercial e Pessoas entram pelo objeto da janela (SOB_DEMANDA_JANELAS), não por função solta.
+  comercial: [],
+  pessoas: [],
+};
+// Janelas de módulo que só carregam quando abrem (confere 19/11/2026: o Comercial e o Pessoas eram 470 KB que a
+// abertura executava e só 9 a 10% rodava). O resto do painel conhece estas janelas por window.<Nome> (o dock testa
+// abrir, o Hoje chama abrir/novoPedido, a visão do setor chama carga): até a primeira chamada, window.<Nome> é este
+// substituto, com os mesmos métodos. Os de "portas" baixam o grupo e repassam a chamada ao objeto de verdade, que
+// toma o lugar do substituto; os de "quietos" respondem como a janela fechada responderia (aberto() = false).
+// "cliques": o grupo também abre por um [data-modulo] da planta (sala do Prédio), como o arquivo dele trata na captura.
+const SOB_DEMANDA_JANELAS = {
+  comercial: { nome: 'VybeComercial', portas: ['abrir'], quietos: { fechar: undefined, aberto: false }, cliques: 'comercial', abaPadrao: 'funil' },
+  pessoas: { nome: 'VybePessoas', portas: ['abrir', 'carga', 'novoPedido'], quietos: { fechar: undefined, aberto: false } },
 };
 const SOB_DEMANDA_CARGAS = {};
 const SOB_DEMANDA_PRONTOS = new Set();
@@ -63,4 +76,28 @@ for (const [grupo, nomes] of Object.entries(SOB_DEMANDA_PORTAS)) {
     };
     window[nome] = porta;
   }
+}
+
+for (const [grupo, j] of Object.entries(SOB_DEMANDA_JANELAS)) {
+  const substituto = { sobDemanda: grupo };
+  for (const metodo of j.portas) {
+    substituto[metodo] = function (...args) {
+      return carregarSobDemanda(grupo).then(() => {
+        const real = window[j.nome];
+        if (!real || real === substituto || typeof real[metodo] !== 'function') throw new Error(`${j.nome}.${metodo} não veio com o grupo ${grupo}.`);
+        return real[metodo](...args);
+      });
+    };
+  }
+  for (const [metodo, valor] of Object.entries(j.quietos || {})) substituto[metodo] = () => valor;
+  window[j.nome] = substituto;
+  // A sala da planta que abre a janela ({ tipo: 'janela', alvo }) é tratada pelo próprio arquivo, na captura, antes do
+  // HUD (que a trataria como quadro). Até o arquivo chegar, quem trata é o substituto, do mesmo jeito.
+  if (j.cliques) document.addEventListener?.('click', (e) => {
+    if (window[j.nome] !== substituto) return;
+    const b = e.target.closest?.('[data-modulo]'); if (!b) return;
+    let m; try { m = JSON.parse(b.dataset.modulo); } catch { return; }
+    if (m?.tipo !== 'janela' || m.alvo !== j.cliques) return;
+    e.preventDefault(); e.stopPropagation(); substituto.abrir(m.aba || j.abaPadrao).catch(() => {});
+  }, true);
 }
