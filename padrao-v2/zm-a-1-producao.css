@@ -351,3 +351,15 @@ body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-
 .d3p-fase.feito{color:var(--d3-texto2)}
 .d3p-fase.agendar,.d3p-fase.agendar > b{color:var(--d3-pronto)}
 .d3p-fase.fim,.d3p-fase.fim > b{color:var(--d3-apagado)}
+
+/* Filtro de status na cabeça da folha de Grupos (Bia, 18/11/2026: "filtrar pro status"): um seletor do tamanho dos botões
+   da cabeça, com a seta desenhada na cor do texto; com um status escolhido, fica marcado como os botões ligados. */
+#grupos-board.d3m-a-v2 .d3m-a-g-st{position:relative;flex:0 1 auto;display:inline-flex;align-items:center;min-width:0;color:var(--d3-tinta)}
+#grupos-board.d3m-a-v2 .d3m-a-g-st::after{content:"";position:absolute;right:10px;top:50%;width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+#grupos-board.d3m-a-v2 .d3m-a-g-st > select{appearance:none;width:84px;max-width:150px;min-width:0;height:26px;margin:0;padding:0 24px 0 9px;border:0;border-radius:7px;background:none;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;text-overflow:ellipsis;cursor:pointer}
+#grupos-board.d3m-a-v2 .d3m-a-g-st > select:hover{background:var(--d3-veu)}
+#grupos-board.d3m-a-v2 .d3m-a-g-st.tem > select{width:auto;background:var(--d3-veu-forte);font-weight:600}
+#grupos-board.d3m-a-v2 .d3m-a-g-st > select:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+/* Com peças marcadas, a barra de lote (#lote-deck, fixa acima da barra de baixo) fica numa faixa reservada no pé da
+   folha: o rodapé e a última linha sobem e nada fica coberto. */
+#grupos-board.d3m-a-v2 .d3m-a-gr.tem-lote{box-sizing:border-box;padding-bottom:58px}

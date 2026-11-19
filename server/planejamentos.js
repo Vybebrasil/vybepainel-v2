@@ -127,7 +127,9 @@ export async function listarPlanejamentos(sql, pessoa, { clienteId = null } = {}
  if (!await planejamentosProntos(sql)) return { disponivel: false, planejamentos: [] };
  const linhas = clienteId
   ? await sql`SELECT p.*,c.nome AS cliente FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.cliente_id=${clienteId} AND p.estado<>'arquivado' ORDER BY p.mes DESC LIMIT 24`
-  : await sql`SELECT p.*,c.nome AS cliente FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.estado<>'arquivado' ORDER BY p.mes DESC, c.nome LIMIT 200`;
+  // A lista geral só mostra cliente ativo de verdade (mesma regra de ativo_de_verdade em api/painel.js): o planejamento
+  // de quem deixou de ser cliente continua guardado e abre pela ficha dele, só sai da tela (Bia, 18/11).
+  : await sql`SELECT p.*,c.nome AS cliente FROM vybe_planejamentos p JOIN vybe_clientes c ON c.id=p.cliente_id WHERE p.estado<>'arquivado' AND (COALESCE(c.ativo,true) AND NOT COALESCE(c.nao_e_cliente,false)) ORDER BY p.mes DESC, c.nome LIMIT 200`;
  const editaveis = new Set();
  for (const l of linhas) if (!editaveis.has(String(l.cliente_id)) && await podeEditarCliente(sql, pessoa, l.cliente_id)) editaveis.add(String(l.cliente_id));
  return { disponivel: true, planejamentos: linhas.map((l) => ({ ...publico(l), conteudo: undefined, revisao: resumoDaRevisao(pecasComRevisao(l.conteudo || {})), pode_editar: editaveis.has(String(l.cliente_id)) })) };
@@ -159,7 +161,9 @@ export async function pendentesDoHead(sql, pessoa) {
 // da equipe; o que cada um pode fazer continua conferido ao abrir.
 export async function postosDaOperacao(sql, pessoa) {
  const pronto = await planejamentosProntos(sql);
- const clientes = await sql`SELECT id,nome,segmento,identidade->'personagem' AS personagem FROM vybe_clientes WHERE ativo IS NOT FALSE ORDER BY nome`;
+ // Só cliente ativo de verdade (ativo_de_verdade em api/painel.js): quem tem nao_e_cliente (Alpha1, Mangaba AI) não
+ // entra na lista nem em "sem planejamento"; o planejamento antigo dele fica guardado.
+ const clientes = await sql`SELECT id,nome,segmento,identidade->'personagem' AS personagem FROM vybe_clientes WHERE (COALESCE(ativo,true) AND NOT COALESCE(nao_e_cliente,false)) ORDER BY nome`;
  const planos = pronto ? (await sql`SELECT DISTINCT ON (cliente_id) id,cliente_id,mes,estado,versao,conteudo FROM vybe_planejamentos WHERE estado<>'arquivado' ORDER BY cliente_id, mes DESC`)
   .map(({ conteudo, ...p }) => ({ ...p, revisao: resumoDaRevisao(pecasComRevisao(conteudo || {})) })) : [];
  const heads = await sql`SELECT cliente_id FROM vybe_cliente_pessoas WHERE pessoa_id=${pessoa?.id ?? null}`;

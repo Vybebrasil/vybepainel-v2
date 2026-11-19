@@ -299,13 +299,22 @@
     if (foco) { const b = janela.querySelector('#plj-busca'); b?.focus(); try { b?.setSelectionRange(b.value.length, b.value.length); } catch { /* campo sem seleção */ } }
   }
 
+  // Só cliente ativo de verdade (Bia, 18/11): o servidor já corta quem tem nao_e_cliente; aqui a mesma regra
+  // (clienteAtivo, vybe-core.js) vale pelo cadastro carregado, para um servidor antigo não trazer ex-cliente de volta.
+  function soAtivos(postos) {
+    const cad = typeof CADASTRO_CLIENTES !== 'undefined' && Array.isArray(CADASTRO_CLIENTES) ? CADASTRO_CLIENTES : [];
+    if (!cad.length || typeof clienteAtivo !== 'function') return postos;
+    const porId = new Map(cad.filter((c) => c?.id != null).map((c) => [String(c.id), c]));
+    return postos.filter((p) => { const c = porId.get(String(p.cliente_id)); return !c || clienteAtivo(c); });
+  }
+
   async function carregar() {
     estado.carregando = true; estado.erro = ''; pintar();
     try {
       const r = await fetch('/api/painel?area=planejamentos&acao=operacao', { credentials: 'same-origin', cache: 'no-store' });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d?.error || 'o painel não respondeu');
-      estado.postos = Array.isArray(d.postos) ? d.postos : [];
+      estado.postos = soAtivos(Array.isArray(d.postos) ? d.postos : []);
     } catch (e) { estado.erro = e.message; }
     estado.carregando = false; pintar();
   }
