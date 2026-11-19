@@ -168,14 +168,14 @@ test('Feed V2: as semanas em calendário marcam o X, abrem a peça e deixam arra
   assert.match(lado, /onclick="feedCriarNoDia\('Lions',''\)"/, 'o Novo post continua');
 });
 
-test('Feed V2: a grade do meio usa as mesmas peças da camada (o X com o +, a peça que abre e arrasta) e separa o que vai sair do que está no ar', () => {
+test('Feed V2: a grade do meio usa as mesmas peças da camada (o X com o +, a peça que abre e arrasta) e marca com o selo no ar o primeiro que já saiu, na mesma grade', () => {
   const c = ambienteFeed([
     { id: '1', cliente: 'Lions', formato: 'Reels', veiculacao_iso: '2026-11-17', status: 'A Fazer' },
     { id: '4', cliente: 'Lions', formato: 'Card', veiculacao_iso: '2026-11-10', status: 'Finalizado' },
   ]);
   const html = vm.runInContext("(() => { const cli = { nome: 'Lions', usuario: '', heads: [], bio: '', site: '' }; return feedV2GradeHtml(cli, feedMontar(cli)); })()", c);
   assert.match(html, /a sair, o mais novo em cima/);
-  assert.match(html, /<span>no ar<\/span>/);
+  assert.match(html, /class="vfd-selo-ar"[^>]*>no ar<\/span>/);
   assert.match(html, /class="vfd-x-criar"[^>]*onclick="feedCriarNoDia\('Lions','2026-11-/);
   assert.match(html, /data-vfd-item="1" data-vfd-alvo="2026-11-17"/);
   assert.match(html, /vfd-passado/);

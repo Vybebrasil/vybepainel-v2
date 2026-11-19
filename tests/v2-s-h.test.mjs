@@ -39,8 +39,8 @@ test('todos os itens do calendário entram no feed: o que vem depois da janela e
   assert.equal(g.noAr[0].item.id, 'p1', 'a mais recente encosta no hoje');
   const html = vm.runInContext("feedV2GradeHtml({ nome: 'Lions', usuario: '', heads: [], bio: '' }, feedMontar({ nome: 'Lions', usuario: '' }))", c);
   for (let i = 0; i < 40; i += 1) assert.ok(html.includes(`data-vfd-item="f${i}"`), `f${i} desenhada`);
-  assert.match(html, /data-vfd2-hoje/, 'a divisa do hoje');
-  assert.ok(html.indexOf('data-vfd2-hoje') > html.indexOf('data-vfd-item="f0"'), 'a divisa vem depois do que vai sair');
+  assert.match(html, /vfd-selo-ar/, 'o selo do hoje');
+  assert.ok(html.indexOf('vfd-selo-ar') > html.indexOf('data-vfd-item="f0"'), 'o selo vem depois do que vai sair');
 });
 
 test('os buracos continuam só dentro da janela, nas 4 semanas e no mês', () => {
