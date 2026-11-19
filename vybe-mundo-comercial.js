@@ -137,6 +137,8 @@
       const k = obj(m, 'kpis'); for (const c of ['atual', 'anterior', 'variacao']) obj(k, c);
       for (const c of ['progresso', 'series', 'propostas']) arr(m, c);
       arr(obj(m, 'ranking'), 'linhas'); obj(m.ranking, 'sem_atribuicao'); obj(m, 'metas'); obj(m, 'formulario'); obj(m, 'metas_por_mes');
+      // Meta por pessoa (prancha V2-R-Comercial-Metas): sem a tabela nova, disponivel:false e só a meta da agência.
+      const mp = obj(m, 'metas_pessoa'); arr(mp, 'linhas'); arr(mp, 'pessoas'); obj(mp, 'do_mes'); mp.disponivel = mp.disponivel === true;
       if (!Array.isArray(m.leads_formulario)) m.leads_formulario = null;
       if (!m.periodo || !/^\d{4}-\d{2}-\d{2}$/.test(m.periodo.inicio || '') || !m.periodo.anterior) { try { m.periodo = C().periodo(x.hoje.slice(0, 7)); } catch { m.periodo = null; } }
     } else x.mes = null;
@@ -455,7 +457,7 @@
       const c = st.dados.creators?.creators.find((x) => String(x.id) === alvo); if (!c) return;
       return concluir(t, () => comercial({ acao: 'creator_salvar', id: c.id, nome: c.nome, arroba: c.arroba ? '@' + c.arroba : '', seguidores: c.seguidores ?? '', engajamento: c.engajamento ?? '', nicho: c.nicho || '', cidade: c.cidade || '', contato: valor, observacoes: c.observacoes || '' }), t.dataset.feito || 'Salvo');
     }
-    if (a === 'visao') { v.visao = id === 'lista' ? 'lista' : 'quadro'; v.fase = ''; v.mes = false; }
+    if (a === 'visao') { v.visao = id === 'lista' || id === 'metas' ? id : 'quadro'; v.fase = ''; v.mes = false; }
     else if (a === 'fase') { v.fase = v.fase === id ? '' : id; v.mes = false; }
     else if (a === 'mostra') v.mostra[id] = true;
     else if (['mes', 'cap', 'roi', 'colunas', 'fin'].includes(a)) { v[a] = !v[a]; if (v[a] && st.ajuda && M.has(st.aba)) st.ajuda = false; }
@@ -690,6 +692,7 @@
   // Dinheiro só com val (dono e migração aplicada): sem ele, o cartão mostra quem cuida e os números viram contagem.
   function funilM(x) {
     const { p, v, r, m, val, neg, etapaNome, opsDa, parada, paradas, seloDe, detalhe, comMotivo, motivoSel, maiorMotivo, emAberto, abertas, meta, editaMeta, falta, tecnico, campeao, podeLead, donoSel, todas, ligado } = x;
+    if (v.visao === 'metas') return metasM(x); // a terceira visão (prancha V2-R-Comercial-Metas)
     const d = d3Dados(), hoje = d?.hoje || hojeIso(), mesIso = m?.periodo?.mes || st.periodo.mes || hoje.slice(0, 7), mesNome = MESES[Number(String(mesIso).slice(5, 7)) - 1] || 'mês';
     const somaMes = (ops) => ops.reduce((s, o) => s + (Number(o.valor_mensal) || 0), 0);
     // Há quanto tempo, na cor do que diz: vermelho no que passou do prazo, verde no que está marcado.
@@ -772,7 +775,7 @@
     const donos = [...new Set(todas.map((o) => o.responsavel_nome).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR')), semDono = todas.some((o) => !o.responsavel_nome);
     const taxa = r.taxa_ganho == null ? '' : ` · taxa de ganho de ${num(Math.round(Number(r.taxa_ganho) || 0))}%`;
     topoDaVez = { sub: `CRM e funil · ${esc(nomeMes(mesIso))} · ${plural(abertas, 'aberta', 'abertas')}${taxa}`,
-      ferr: `<span class="d3m-d-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${v.visao === k && !emFoco}">${n}</button>`).join('')}</span>
+      ferr: `<span class="d3m-d-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista'], ['metas', 'Metas']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${v.visao === k && !emFoco}">${n}</button>`).join('')}</span>
         <select class="d3m-d-sel" data-vc-filtro="dono" aria-label="Dono das oportunidades"><option value="">Dono: todos</option>${donos.map((n) => `<option value="${esc(n)}"${donoSel === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}${semDono ? `<option value="-"${donoSel === '-' ? ' selected' : ''}>sem responsável</option>` : ''}</select>
         ${v.busca ? `<input type="search" class="d3m-d-cm-busca" data-vc-busca="funil" placeholder="Buscar empresa" aria-label="Buscar empresa" value="${esc(st.filtro.funil || '')}">` : ''}<button type="button" class="d3m-d-ico" data-v2="busca" aria-expanded="${Boolean(v.busca)}" aria-label="Buscar" title="Buscar">${ICM.busca}</button>`,
       mais: [m?.periodo ? `<button type="button" role="menuitem" data-v2="mes" aria-expanded="${Boolean(v.mes)}">Metas, corrida e formulário</button>` : '', p.editar_pacotes ? '<button type="button" role="menuitem" data-vc="etapas">Configurar etapas</button>' : ''].filter(Boolean),
@@ -780,6 +783,89 @@
     const aviso = !ligado || falta ? `<p class="d3m-d-cm-aviso" role="note">${ligado ? '' : '<span>O valor da negociação ainda não está disponível. O funil já funciona; valor e follow-up aparecem aqui assim que estiverem disponíveis.</span>'}${falta}${st.verFalta && falta ? `<span class="d3m-d-cm-tec">${tecnico}</span>` : ''}</p>` : '';
     return `<div class="d3m-d-cm" data-tela="cm-funil"><div class="d3m-d-cm-main">${numeros}${aviso}${meio}${fim}</div>
       <aside class="d3m-lado d3m-d-cm-lado" aria-label="Consulta">${laranja}${conversas}${perde}${abrirHtml}</aside></div>`;
+  }
+  // Metas na prancha V2-R-Comercial-Metas (19/11/2026): vira a terceira visão do funil (Quadro, Lista, Metas). A folha das
+  // metas da agência (mês ou ano, cada meta com a barra, o que falta e o mês anterior no pé), os últimos 6 meses e a
+  // corrida comercial com a meta de cada pessoa (com a tabela vybe_comercial_metas_pessoa; sem ela, só a da agência).
+  // Ao lado: o laranja do que falta para a meta de MRR, o resumo das metas e quem edita (só os donos), o formulário de
+  // leads e o "Abrir". Dinheiro só com val (dono): sem ele, as metas e a corrida mostram só as quantidades.
+  function metasM(x) {
+    const { p, m, val, abertas, campeao, podeLead } = x, d = d3Dados(), hoje = d?.hoje || hojeIso();
+    const mesIso = m?.periodo?.mes || st.periodo.mes || hoje.slice(0, 7), mesNome = MESES[Number(String(mesIso).slice(5, 7)) - 1] || 'mês';
+    const anual = m?.periodo?.tipo === 'anual', ondeTxt = anual ? `de ${m.periodo.rotulo}` : `de ${mesNome}`;
+    const fimMes = (() => { const [a, b] = String(mesIso).split('-').map(Number); return new Date(Date.UTC(a, b, 0)).toISOString().slice(0, 10); })();
+    const faltamDias = !anual && mesIso === hoje.slice(0, 7) ? Math.max(0, diasEntre(hoje, fimMes)) : null;
+    const editaMetas = Boolean(p.editar_pacotes && m?.config_disponivel !== false);
+    const fmt = (y, v) => (y.tipo === 'dinheiro' ? milhar(v) : num(v));
+    const NOME = { mrr: 'MRR novo, o recorrente', avulso: 'Avulso', negocios: 'Negócios fechados', leads: 'Leads novos' };
+    const seg = `<span class="d3m-d-pk-seg" role="group" aria-label="Período das metas">${[['mensal', 'Mês'], ['anual', 'Ano']].map(([k, n]) => `<button type="button" data-vc-periodo="${k}" aria-pressed="${st.periodo.tipo === k}">${n}</button>`).join('')}</span>`;
+    const progresso = (m?.progresso || []).filter((y) => val || y.tipo !== 'dinheiro');
+    const linhaMeta = (y) => `<li class="d3m-r-mt-li${y.meta > 0 ? '' : ' sem'}"${y.meta > 0 && (y.id === 'leads' || y.id === 'negocios') ? ` data-espiar="comercial:funil:${y.id === 'leads' ? 'leads' : 'fechados'}" role="button" tabindex="0"` : ''}>
+        <span class="d3m-r-mt-q"><b>${esc(NOME[y.id] || y.nome)}</b><span class="d3m-r-mt-v"><b>${fmt(y, y.realizado)}</b>${y.meta > 0 ? `<small> de ${fmt(y, y.meta)}</small>` : ''}</span></span>
+        <span class="d3m-r-mt-b"><small>${y.meta > 0 ? (y.batida ? 'meta batida' : `faltam ${fmt(y, y.falta)}`) : 'sem meta'}</small><i class="d3m-r-mt-barra${y.batida ? ' g' : ''}"><i style="--v:${Math.round(y.barra || 0)}%"></i></i><b>${y.meta > 0 ? `${num(Math.round(y.percentual || 0))}%` : '—'}</b></span></li>`;
+    const ant = m?.kpis?.anterior || {}, at = m?.kpis?.atual || {}, dif = (k) => { const n = (Number(at[k]) || 0) - (Number(ant[k]) || 0); return n === 0 ? 'igual' : `${n > 0 ? '+' : '−'}${num(Math.abs(n))}`; };
+    const mesAnt = anual ? 'o ano anterior' : MESES[(Number(String(mesIso).slice(5, 7)) + 10) % 12];
+    const peMetas = m?.kpis ? `<div class="d3m-r-mt-pe"><span>Contra ${esc(mesAnt)}</span><span><b>${num(at.leads)}</b> leads, ${dif('leads')}</span><span><b>${num(at.propostas)}</b> propostas, ${dif('propostas')}</span><span><b>${num(at.negocios)}</b> negócios, ${dif('negocios')}</span>${val && at.mrr != null ? `<span><b>${esc(milhar(at.mrr))}</b> MRR, ${(Number(at.mrr) || 0) - (Number(ant.mrr) || 0) >= 0 ? '+' : '−'}${esc(milhar(Math.abs((Number(at.mrr) || 0) - (Number(ant.mrr) || 0))))}</span>` : ''}</div>` : '';
+    const folhaMetas = `<section class="d3m-d-folha d3m-r-mt-folha" aria-label="Metas ${esc(ondeTxt)}"><div class="d3m-d-cab"><h3>Metas ${esc(ondeTxt)} <small>· da agência inteira</small></h3>${seg}${editaMetas ? '<button type="button" class="d3m-d-elo" data-vc="metas">Editar metas</button>' : ''}</div>
+      ${m?.config_disponivel === false ? `<p class="d3m-r-mt-nada">${esc(m.aviso_config || 'As metas ainda não estão disponíveis.')}</p>`
+        : progresso.some((y) => y.meta > 0) ? `<ul class="d3m-r-mt-lista">${progresso.map(linhaMeta).join('')}</ul>`
+        : `<p class="d3m-r-mt-nada">${editaMetas ? 'Nenhuma meta para este período. Em "Editar metas" você define MRR, avulso, negócios e leads.' : 'Os donos ainda não definiram as metas deste período.'}</p>`}${peMetas}</section>`;
+    // Os últimos 6 meses: o MRR novo (dono) ou os negócios fechados, em barras; o mês aberto em destaque.
+    const serie = (m?.series || []).slice(-6), campo = val && serie.some((s) => s.mrr != null) ? 'mrr' : 'negocios', vals = serie.map((s) => Number(s[campo]) || 0), topo = Math.max(1, ...vals);
+    const MC = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const barras = `<section class="d3m-d-folha d3m-r-mt-meses" aria-label="Últimos 6 meses"><div class="d3m-d-cab"><h3>Últimos 6 meses <small>· ${campo === 'mrr' ? 'MRR novo, em mil' : 'negócios fechados'}</small></h3></div>
+      ${serie.length ? `<ol class="d3m-r-mt-barras">${serie.map((s, i) => `<li${s.mes === mesIso ? ' class="agora"' : ''} title="${esc(MC[Number(s.mes.slice(5)) - 1])}: ${campo === 'mrr' ? esc(milhar(vals[i])) : num(vals[i])}"><small>${campo === 'mrr' ? esc((vals[i] / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })) : num(vals[i])}</small><i style="--v:${Math.max(2, Math.round((vals[i] / topo) * 100))}%"></i><span>${esc(MC[Number(s.mes.slice(5)) - 1])}</span></li>`).join('')}</ol>` : '<p class="d3m-r-mt-nada">Sem meses para mostrar ainda.</p>'}</section>`;
+    // A corrida: quem fechou (a mesma regra do ranking) e, com a meta por pessoa ligada, quanto da meta cada um já fez.
+    const mp = m?.metas_pessoa || { disponivel: false, linhas: [] }, porNome = new Map((mp.linhas || []).map((l) => [norm(l.nome), l]));
+    const nomes = [...(m?.ranking?.linhas || []).map((l) => l.nome), ...(mp.linhas || []).map((l) => l.nome).filter((n) => !(m?.ranking?.linhas || []).some((l) => norm(l.nome) === norm(n)))];
+    const corridaLin = (nome, i) => {
+      const r = (m?.ranking?.linhas || []).find((l) => norm(l.nome) === norm(nome)), meta = porNome.get(norm(nome));
+      const alvo = meta ? meta.progresso.find((y) => y.id === 'negocios' && y.meta > 0) || meta.progresso.find((y) => y.meta > 0) : null;
+      return `<li class="d3m-r-mt-cor"><b class="d3m-r-mt-pos">${i + 1}</b><i class="d3m-d-cm-av" aria-hidden="true">${esc(iniciais(nome))}</i><span class="d3m-r-mt-nome"><b>${esc(nome)}</b> <span>· ${plural(r?.quantidade || 0, 'negócio', 'negócios')}</span>${alvo ? `<span class="d3m-r-mt-alvo"><i class="d3m-r-mt-barra${alvo.batida ? ' g' : ''}"><i style="--v:${Math.round(alvo.barra || 0)}%"></i></i><small>${fmt(alvo, alvo.realizado)} de ${fmt(alvo, alvo.meta)}${alvo.id === 'negocios' ? '' : ` · ${esc(alvo.nome.toLowerCase())}`}</small></span>` : ''}</span>${val ? `<b class="d3m-r-mt-val">${esc(milhar(r?.total || 0))}</b>` : ''}</li>`;
+    };
+    const corrida = `<section class="d3m-d-folha d3m-r-mt-corrida" aria-label="Corrida comercial"><div class="d3m-d-cab"><h3>Corrida comercial <small>· ${esc(anual ? m.periodo.rotulo : mesNome)}</small></h3><small>${mp.disponivel ? 'com a meta de cada pessoa' : 'conta quem é dono da oportunidade'}</small>${editaMetas && mp.disponivel ? '<button type="button" class="d3m-d-elo" data-vc="metas-pessoa">Metas por pessoa</button>' : ''}</div>
+      ${nomes.length ? `<ol class="d3m-r-mt-cors">${nomes.map(corridaLin).join('')}</ol>` : '<p class="d3m-r-mt-nada">Ninguém fechou negócio neste período ainda.</p>'}
+      ${mp.disponivel ? '' : `<p class="d3m-r-mt-aviso">${esc(mp.aviso || 'A meta por pessoa ainda está sendo ligada: por enquanto vale a meta da agência.')}</p>`}</section>`;
+    // O laranja: quanto falta para a meta de MRR (dono) ou de negócios; sem meta, o convite para definir.
+    const alvoLar = progresso.find((y) => y.id === 'mrr' && y.meta > 0) || progresso.find((y) => y.meta > 0 && !y.batida) || null;
+    const prox = (d?.oportunidades || []).filter((o) => !['ganho', 'perdido'].includes(o.etapa) && ehDia(o.proxima_acao_data) && o.proxima_acao_data >= hoje).sort((a, b) => a.proxima_acao_data.localeCompare(b.proxima_acao_data))[0];
+    const laranja = alvoLar && !alvoLar.batida ? larM('d3m-d-cm-pesa', `meta ${ondeTxt}`, fmt(alvoLar, alvoLar.falta), `${alvoLar.id === 'mrr' ? 'faltam para a meta de MRR' : `para a meta de ${esc(alvoLar.nome.toLowerCase())}`}`,
+        prox ? `${esc(prox.proxima_acao || 'O próximo passo')} com ${esc(prox.nome)} é ${prox.proxima_acao_data === hoje ? 'hoje' : `em ${esc(dm(prox.proxima_acao_data))}`}.` : faltamDias != null ? `Faltam ${plural(faltamDias, 'dia', 'dias')} para fechar o mês.` : '',
+        `<button type="button" class="d3m-btn l" data-v2="visao" data-id="quadro">Ver o funil</button>${prox ? `<button type="button" class="d3m-btn l s" data-v2="paradas" data-id="${esc(prox.id)}">Ver a oportunidade</button>` : ''}`)
+      : alvoLar ? larM('d3m-d-cm-pesa', `meta ${ondeTxt}`, '', 'Meta batida', 'Bom trabalho. A próxima é a do mês que vem.', '')
+      : larM('d3m-d-cm-pesa', 'metas', '', 'Sem meta para este período', editaMetas ? 'Defina MRR, avulso, negócios e leads: a tela mostra quanto falta.' : 'Os donos definem as metas da agência e de cada pessoa.', editaMetas ? '<button type="button" class="d3m-btn l" data-vc="metas">Definir metas</button>' : '');
+    const resumo = editaMetas ? `<section class="d3m-cons" aria-label="Editar metas"><div class="d3m-cons-cab"><b>Editar metas</b><span>só os donos</span></div>
+      <button type="button" class="d3m-r-mt-resumo" data-vc="metas">${progresso.map((y) => `<span><span>${esc(y.nome.replace(' (recorrente)', ' novo'))}</span><b>${y.meta > 0 ? fmt(y, y.meta) : '—'}</b></span>`).join('')}<small>Vale para ${esc(anual ? m.periodo.rotulo : mesNome)}; dá para repetir até dezembro.</small></button>
+      ${mp.disponivel ? `<button type="button" class="d3m-vlin" data-vc="metas-pessoa"><span><b>Metas por pessoa</b> · ${plural((mp.linhas || []).length, 'pessoa com meta', 'pessoas com meta')}</span>${ICM.seta}</button>` : ''}</section>` : '';
+    const form = m?.formulario || {}, link = form.ativo && form.token ? `${typeof location !== 'undefined' ? location.origin : ''}/lead/${form.token}` : '';
+    const semana = (d?.oportunidades || []).filter((o) => o.origem === 'formulario' && ehDia(o.criado_dia) && diasEntre(o.criado_dia, hoje) <= 6).length;
+    const formHtml = p.editar_comercial ? `<section class="d3m-cons" aria-label="Formulário de leads"><div class="d3m-cons-cab"><b>Formulário de leads</b><span>${form.ativo ? `${num(semana)} nesta semana` : 'desligado'}</span></div>
+      ${link ? `<input type="hidden" value="${esc(link)}" data-vc-link-form><button type="button" class="d3m-vlin" data-vc="form-copiar"><span><b>Link do formulário</b> · cai em Novo</span>${ICM.seta}</button>`
+        : p.editar_pacotes && m?.config_disponivel !== false ? `<button type="button" class="d3m-vlin" data-vc="form-gerar"><span><b>Gerar o link</b> · para a bio e o site</span>${ICM.seta}</button>` : '<p class="d3m-vvazio">Os donos geram o link do formulário.</p>'}</section>` : '';
+    const abrirHtml = `<nav class="d3m-cons d3m-d-cm-abrir" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div><button type="button" class="d3m-vlin" data-v2="visao" data-id="quadro"><span><b>Funil</b> · ${plural(abertas, 'aberta', 'abertas')}</span>${ICM.seta}</button><button type="button" class="d3m-vlin" data-v2="ir" data-id="pacotes"><span><b>Produtos e pacotes</b></span>${ICM.seta}</button></nav>`;
+    topoDaVez = { sub: `metas ${esc(ondeTxt)}${faltamDias != null ? ` · faltam ${plural(faltamDias, 'dia', 'dias')}` : ''} · a meta é da agência, a corrida é por pessoa`,
+      ferr: `<span class="d3m-d-seg" role="group" aria-label="Visão do funil">${[['quadro', 'Quadro'], ['lista', 'Lista'], ['metas', 'Metas']].map(([k, n]) => `<button type="button" data-v2="visao" data-id="${k}" aria-pressed="${k === 'metas'}">${n}</button>`).join('')}</span>`,
+      mais: [m?.periodo ? '<button type="button" role="menuitem" data-v2="mes" aria-expanded="false">Corrida, gráficos e formulário completos</button>' : ''].filter(Boolean),
+      acao: podeLead ? `<button type="button" class="d3m-d-vbtn p" data-vc="lead">${IC.mais}Novo lead</button>` : '' };
+    void campeao;
+    return `<div class="d3m-d-cm d3m-r-mt" data-tela="cm-metas"><div class="d3m-d-cm-main">${folhaMetas}<div class="d3m-r-mt-duas">${barras}${corrida}</div></div>
+      <aside class="d3m-lado d3m-d-cm-lado" aria-label="Consulta">${laranja}${resumo}${formHtml}${abrirHtml}</aside></div>`;
+  }
+  // Metas de cada pessoa do mês aberto (só donos; a tabela vybe_comercial_metas_pessoa precisa existir).
+  function formMetasPessoa() {
+    const m = st.dados.funil.mes, mp = m?.metas_pessoa || {}, mes = st.periodo.mes || hojeIso().slice(0, 7), doMes = mp.do_mes || {};
+    const pessoas = mp.pessoas || [];
+    if (!mp.disponivel || !pessoas.length) { st.msg = mp.disponivel ? '⚠️ Nenhuma pessoa da equipe para dar meta.' : `⚠️ ${mp.aviso || 'A meta por pessoa ainda está sendo ligada.'}`; pintar(); return; }
+    const campos = pessoas.flatMap((x) => { const v = doMes[x.id] || {}, primeiro = String(x.nome).split(' ')[0];
+      return [{ nome: `p${x.id}_negocios`, rotulo: `${primeiro} · negócios`, tipo: 'number', passo: '1', valor: v.negocios || '', meio: true },
+        { nome: `p${x.id}_leads`, rotulo: `${primeiro} · leads`, tipo: 'number', passo: '1', valor: v.leads || '', meio: true },
+        { nome: `p${x.id}_mrr`, rotulo: `${primeiro} · MRR novo (R$)`, tipo: 'number', passo: '0.01', valor: v.mrr || '', meio: true },
+        { nome: `p${x.id}_avulso`, rotulo: `${primeiro} · avulso (R$)`, tipo: 'number', passo: '0.01', valor: v.avulso || '', meio: true }]; });
+    abrirFolha({ titulo: 'Metas por pessoa · ' + nomeMes(mes), botao: 'Salvar metas',
+      antes: '<p class="vc-dica">Só os donos editam. A meta da agência continua a mesma; esta é a de cada um na corrida. Deixe em branco a meta que não quiser acompanhar.</p>',
+      campos: [...campos, { nome: 'aplicar', rotulo: 'Valer para', tipo: 'select', opcoes: [['mes', 'Só ' + nomeMes(mes)], ['resto_do_ano', 'De ' + nomeMes(mes) + ' até dezembro']], valor: 'mes' }],
+      enviar: (v) => comercial({ acao: 'metas_pessoa_salvar', mes, aplicar: v.aplicar,
+        pessoas: pessoas.map((x) => ({ pessoa_id: x.id, metas: { negocios: v[`p${x.id}_negocios`], leads: v[`p${x.id}_leads`], mrr: v[`p${x.id}_mrr`], avulso: v[`p${x.id}_avulso`] } })) }) });
   }
   const d3Tem = (...listas) => listas.some((l) => l.length);
   const d3Dados = () => st.dados.funil;
@@ -2131,6 +2217,7 @@
       'ir-projecao': () => abrir('projecao'),
       'ir-pacotes': () => abrir('pacotes', st.soAbas?.has('pacotes') ? { abas: [...st.soAbas], rotulo: st.rotulo } : {}),
       metas: formMetas,
+      'metas-pessoa': formMetasPessoa,
       'form-copiar': copiarLinkFormulario,
       'form-gerar': () => (!st.dados.funil?.mes?.formulario?.ativo || confirm('Trocar o link? O link antigo para de funcionar na hora (troque também na bio e no site).'))
         && executar(() => comercial({ acao: 'formulario_gerar' }), 'Link do formulário pronto. Copie e ponha na bio e no site.'),

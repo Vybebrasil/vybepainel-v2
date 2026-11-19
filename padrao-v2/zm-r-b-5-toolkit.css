@@ -1,0 +1,75 @@
+/* ===================================================================================================================
+   V2 · R · TOOLKIT: QR CODE, LINK DO WHATSAPP E CALCULADORA DE ROI (pranchas V2-R-Toolkit-QR, -WhatsApp e -ROI,
+   aprovadas pelo Paulo). A janela, o topo, a consulta e a Visão geral são os da prancha V2-M-Toolkit (zm-e-toolkit.css).
+   Cada ferramenta: a folha dos campos (400) e a folha do resultado, que muda enquanto a pessoa escreve. Só tokens.
+   =================================================================================================================== */
+/* A aba escolhida no vidro (as pílulas .d3m-e-per do grupo E): preenchimento fume-texto, letra fume-contra; no Claro
+   a letra era da cor do fundo. No Fumê e no Escuro o resultado é o mesmo de antes. */
+.d3m-e-per > button:is([aria-pressed="true"],[aria-checked="true"]){color:var(--d3-fume-contra)}
+#vv-ferramentas .d3m-r-tk{flex:1 1 0;display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:16px;min-height:0}
+#vv-ferramentas .d3m-r-tk > .d3m-e-folha{min-height:0}
+#vv-ferramentas .d3m-r-tk-form{display:flex;flex-direction:column;gap:12px;margin:0;padding:0 16px 16px;overflow-y:auto;scrollbar-width:thin}
+#vv-ferramentas .d3m-r-tk-cab{flex:none;display:flex;align-items:center;gap:10px;margin:0 -16px;padding:12px 16px;border-bottom:1px solid var(--d3-divisa)}
+#vv-ferramentas .d3m-r-tk-campo{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
+#vv-ferramentas .d3m-r-tk-campo > span:first-child{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-ferramentas .d3m-r-tk-in{position:relative;display:flex;align-items:center}
+#vv-ferramentas .d3m-r-tk-in > :is(input,textarea){flex:1 1 auto;width:100%;min-width:0;min-height:36px;margin:0;padding:8px 10px;box-sizing:border-box;border:1px solid var(--d3-veu-forte);border-radius:var(--d3-r-botao);background:var(--d3-cartao);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif);resize:vertical}
+#vv-ferramentas .d3m-r-tk-in > input + small{position:absolute;right:10px;font-size:var(--d3-fs-mini);color:var(--d3-rotulo);pointer-events:none}
+#vv-ferramentas .d3m-r-tk-in > input:has(+ small){padding-right:56px}
+#vv-ferramentas .d3m-r-tk-in > :is(input,textarea):focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+#vv-ferramentas .d3m-r-tk-in > input[aria-invalid="true"]{border-color:var(--d3-perigo)}
+#vv-ferramentas .d3m-r-tk-dica{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+#vv-ferramentas .d3m-r-tk-form > .vf-erro{margin:-6px 0 0;color:var(--d3-perigo);font-size:var(--d3-fs-apoio)}
+#vv-ferramentas .d3m-r-tk-par{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#vv-ferramentas .d3m-r-tk-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:3px;border-radius:var(--d3-r-caixa);background:var(--d3-veu)}
+#vv-ferramentas .d3m-r-tk-seg > button{appearance:none;height:28px;margin:0;padding:0 8px;border:0;border-radius:7px;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-ferramentas .d3m-r-tk-seg > button[aria-checked="true"]{background:var(--d3-cartao);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+#vv-ferramentas .d3m-r-tk-seg > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+#vv-ferramentas .d3m-r-tk-cores{display:flex;flex-wrap:wrap;gap:6px}
+#vv-ferramentas .d3m-r-tk-chip{appearance:none;position:relative;display:inline-flex;align-items:center;gap:6px;height:28px;margin:0;padding:0 8px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-ferramentas .d3m-r-tk-chip > i{width:14px;height:14px;border-radius:4px}
+#vv-ferramentas .d3m-r-tk-chip[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--d3-tinta);font-weight:600}
+#vv-ferramentas .d3m-r-tk-chip.outra > input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;cursor:pointer}
+#vv-ferramentas .d3m-r-tk-chip:focus-visible,#vv-ferramentas .d3m-r-tk-chip.outra:focus-within{outline:2px solid var(--d3-acao);outline-offset:1px}
+/* A folha do resultado: a prévia centrada no meio da folha. */
+#vv-ferramentas .d3m-r-tk-res{display:flex;flex-direction:column}
+#vv-ferramentas .d3m-r-tk-previa{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:0;padding:16px 32px;overflow-y:auto;scrollbar-width:thin;border-top:1px solid var(--d3-divisa)}
+#vv-ferramentas .d3m-r-tk-qr{display:grid;place-items:center;width:min(100%,260px,40vh);aspect-ratio:1;padding:18px;box-sizing:border-box;border-radius:16px;background:var(--d3-cartao);box-shadow:0 10px 26px -18px rgba(0,0,0,.5)}
+#vv-ferramentas .d3m-r-tk-qr > svg{display:block;width:100%;height:auto}
+#vv-ferramentas .d3m-r-tk-url{max-width:100%;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-ferramentas .d3m-r-tk-bts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+#vv-ferramentas .d3m-r-tk-bts > .d3m-r-tk-fio{background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);text-decoration:none}
+#vv-ferramentas .d3m-r-tk-bts > .d3m-r-tk-fio:hover{background:var(--d3-veu)}
+#vv-ferramentas .d3m-r-tk-bts > :focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+#vv-ferramentas .d3m-r-tk-vazio{margin:0;max-width:340px;text-align:center;font-size:var(--d3-fs-texto);color:var(--d3-rotulo)}
+#vv-ferramentas .d3m-r-tk-vazio.ruim{color:var(--d3-perigo)}
+#vv-ferramentas .d3m-r-tk-link{display:flex;align-items:center;gap:10px;width:100%;max-width:480px;margin:0;padding:14px 16px;box-sizing:border-box;border-radius:12px;background:var(--d3-veu)}
+#vv-ferramentas .d3m-r-tk-link > svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+#vv-ferramentas .d3m-r-tk-link > code{min-width:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vv-ferramentas .d3m-r-tk-chat{display:flex;flex-direction:column;gap:8px;width:100%;max-width:480px;padding:14px 16px;box-sizing:border-box;border-radius:12px;background:var(--d3-veu)}
+#vv-ferramentas .d3m-r-tk-chat > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+#vv-ferramentas .d3m-r-tk-chat > p{align-self:flex-end;max-width:80%;margin:0;padding:10px 12px;border-radius:10px;background:var(--d3-pronto-veu);color:var(--d3-tinta);font-size:var(--d3-fs-texto);line-height:1.45;white-space:pre-wrap}
+/* O retorno: o número grande, a barra das vendas e os quatro números; os botões no pé da folha. */
+#vv-ferramentas .d3m-r-tk-roi{align-items:stretch;justify-content:flex-start;padding:24px}
+#vv-ferramentas .d3m-r-tk-grande{font:600 52px/1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.03em;color:var(--d3-tinta)}
+#vv-ferramentas .d3m-r-tk-frase{margin-top:-4px;font:400 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+#vv-ferramentas .d3m-r-tk-barra{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#vv-ferramentas .d3m-r-tk-barra > span{display:flex;justify-content:space-between;gap:8px;font-size:var(--d3-fs-apoio)}
+#vv-ferramentas .d3m-r-tk-barra > span > span:last-child{color:var(--d3-rotulo)}
+#vv-ferramentas .d3m-r-tk-barra > i{position:relative;display:block;height:10px;border-radius:5px;background:var(--d3-pronto)}
+#vv-ferramentas .d3m-r-tk-barra > i::after{content:"";position:absolute;left:var(--v,0%);top:-3px;width:2px;height:16px;background:var(--d3-tinta)}
+#vv-ferramentas .d3m-r-tk-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+#vv-ferramentas .d3m-r-tk-tile{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:12px;background:var(--d3-veu)}
+#vv-ferramentas .d3m-r-tk-tile > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+#vv-ferramentas .d3m-r-tk-tile > b{font:600 var(--d3-fs-titulo)/1.15 var(--vv-titulo,"Inter Tight",Inter,sans-serif);font-variant-numeric:tabular-nums}
+#vv-ferramentas .d3m-r-tk-tile > b.g{color:var(--d3-pronto)}
+#vv-ferramentas .d3m-r-tk-tile > b.r{color:var(--d3-perigo)}
+#vv-ferramentas .d3m-r-tk-pe{justify-content:flex-start;margin-top:auto}
+@media (max-height:820px){
+  #vv-ferramentas .d3m-r-tk-grande{font-size:40px}
+  #vv-ferramentas .d3m-r-tk-roi{padding:16px 20px}
+  #vv-ferramentas .d3m-r-tk-qr{width:min(100%,220px,36vh)}
+}
+@media (max-width:1100px){
+  #vv-ferramentas .d3m-r-tk{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}
+}

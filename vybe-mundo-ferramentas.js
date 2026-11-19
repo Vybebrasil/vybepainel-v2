@@ -110,15 +110,15 @@
         ${campo('vf2-qr-texto', 'Link ou texto', 'data-vf-campo="qr.texto" maxlength="300"', st.qr.texto, 'https://')}
         <div class="d3m-e-tk-par"><div class="d3m-e-tk-campo"><span class="d3m-e-tk-rot" id="vf2-formato">Formato</span><span class="d3m-e-seg d3m-e-tk-seg" role="radiogroup" aria-labelledby="vf2-formato">${[['png', 'PNG'], ['svg', 'SVG']].map(([k, n]) => `<button type="button" role="radio" aria-checked="${st.formato === k}" data-vf-formato="${k}">${n}</button>`).join('')}</span></div>
           <div class="d3m-e-tk-campo"><span class="d3m-e-tk-rot">Cor</span><button type="button" class="d3m-e-tk-in d3m-e-tk-cor" data-vf-aba="qr" title="Escolher a cor nas opções do QR"><i style="background:${esc(st.qr.cor)}"></i>${esc(COR_NOME[st.qr.cor.toUpperCase()] || 'outra')}</button></div></div>
-        <div><button type="button" class="d3m-e-tk-btn" data-vf-gerar="qr">Gerar QR</button></div>${res('qr')}</section>`,
+        ${res('qr')}</section>`,
       whatsapp: (f) => `<section class="d3m-e-folha d3m-e-tk-fer" aria-label="${esc(f.nome)}">${cabeca(f)}
         ${campo('vf2-wa-numero', 'Número com DDD', 'data-vf-campo="wa.numero" inputmode="tel" maxlength="20"', st.wa.numero, '(74) 90000-0000', 'tel')}
         ${campo('vf2-wa-msg', 'Mensagem pronta, se quiser', 'data-vf-campo="wa.mensagem" maxlength="500"', st.wa.mensagem, 'Olá! Quero saber mais.')}
-        <div><button type="button" class="d3m-e-tk-btn" data-vf-gerar="wa">Criar link</button></div>${res('wa')}</section>`,
+        ${res('wa')}</section>`,
       roi: (f) => `<section class="d3m-e-folha d3m-e-tk-fer" aria-label="${esc(f.nome)}">${cabeca(f)}
         ${campo('vf2-roi-inv', 'Investimento por mês', 'data-vf-campo="roi.investimento" inputmode="decimal"', st.roi.investimento, 'R$ 1.500')}
         <div class="d3m-e-tk-par">${campo('vf2-roi-ticket', 'Ticket médio', 'data-vf-campo="roi.ticket" inputmode="decimal"', st.roi.ticket, 'R$ 180')}${campo('vf2-roi-margem', 'Margem por venda', 'data-vf-campo="roi.margem" inputmode="decimal"', st.roi.margem, '35%')}</div>
-        <div><button type="button" class="d3m-e-tk-btn" data-vf-gerar="roi">Calcular</button></div>${res('roi')}</section>`,
+        ${res('roi')}</section>`,
     };
     const visiveis = FERRAMENTAS.filter((f) => !q || norm(`${f.nome} ${f.frase}`).includes(q));
     return visiveis.length ? `<div class="d3m-e-tk-tres" style="--n:${visiveis.length}">${visiveis.map((f) => cartoes[f.aba](f)).join('')}</div>`
@@ -131,7 +131,8 @@
       return `<button type="button" class="d3m-vlin" data-vf="refazer" data-vf-uso="${i}" title="Refazer: ${esc(n.sub)}"><span><b>${esc(n.titulo)}</b> · ${esc(quandoFoi(r.quando))}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`; }).join('')
       : '<p class="d3m-e-lado-txt">Nada usado ainda neste computador. O que você gerar fica guardado aqui para baixar de novo.</p>';
     return `<aside class="d3m-lado" aria-label="Consulta"><div class="d3m-cons"><div class="d3m-cons-cab"><b id="vf-recentes-titulo">Usados por último</b><span>neste computador</span></div>${usados}</div>
-      <div class="d3m-cons"><div class="d3m-cons-cab"><b>Para a reunião</b></div><p class="d3m-e-lado-txt">A calculadora serve para a conversa de venda: quantas vendas pagam a Vybe e o retorno esperado.</p></div>
+      ${(() => { const [t, p] = { qr: ['Para a gráfica', 'O SVG não perde qualidade em nenhum tamanho. Para banner e fachada, mande sempre ele.'], whatsapp: ['Onde usar', 'Bio do Instagram, botão do anúncio e o QR do cardápio. O texto pronto diz de onde a pessoa veio.'] }[st.aba]
+        || ['Para a reunião', 'Mostre primeiro as vendas que pagam o mês: é o número que o cliente entende de cara.']; return `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${t}</b></div><p class="d3m-e-lado-txt">${p}</p></div>`; })()}
       <div class="d3m-cons"><div class="d3m-cons-cab"><b>Abrir</b></div><button type="button" class="d3m-vlin" data-vf="comercial"><span><b>Comercial</b> · produtos e orçamentos</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div></aside>`;
   }
   // Número brasileiro → só dígitos com 55 na frente. Aceita (74) 99999-9999, 74999999999, +55 74 9…
@@ -157,66 +158,57 @@
     if (typeof window.vbEscolhaHtml === 'function') return window.vbEscolhaHtml({ rotulo: 'Resistência', valor: st.qr.ecc, campo: 'data-vf-campo="qr.ecc"', opcoes: NIVEIS.map(([k, n]) => ({ valor: k, nome: n })) });
     return `<input type="hidden" data-vf-campo="qr.ecc" value="${esc(st.qr.ecc)}">`;
   }
+  // V2 · R (pranchas V2-R-Toolkit-QR, -WhatsApp e -ROI, aprovadas pelo Paulo): cada ferramenta numa folha de campos e
+  // numa folha de resultado, que muda enquanto a pessoa escreve (sem botão de gerar nem de calcular). Os data-vf-* de
+  // antes continuam (png, svg, copiar, qr-do-link, copiar-roi) e a prévia é a mesma .vf-previa trocada a cada letra.
+  const NIVEL_TXT = { M: ['Padrão', 'Lê bem em tela e em peça limpa.'], Q: ['Reforçado', 'Reforçado lê mesmo com a peça amassada.'], H: ['Máximo', 'Máximo aguenta logo por cima, no meio do QR.'] };
+  const cabFolha = (ic, cls, t, sub) => `<div class="d3m-r-tk-cab"><span class="d3m-e-tk-ico ${cls}" aria-hidden="true">${icone(ic, 14)}</span><span class="d3m-e-tk-cab-t"><b>${esc(t)}</b><small class="d3m-e-tk-sub">${esc(sub)}</small></span></div>`;
+  const ferr = (aba) => FERRAMENTAS.find((f) => f.aba === aba) || FERRAMENTAS[0];
+  const corChips = () => `${CORES.map(([c, n]) => `<button type="button" class="d3m-r-tk-chip" data-vf-cor="${c}" aria-pressed="${st.qr.cor.toUpperCase() === c}"><i style="background:${c}" aria-hidden="true"></i>${n}</button>`).join('')}<label class="d3m-r-tk-chip outra" aria-pressed="${!CORES.some(([c]) => c === st.qr.cor.toUpperCase())}" title="Outra cor (a da marca do cliente)"><input type="color" data-vf-campo="qr.cor" value="${esc(st.qr.cor)}">Outra</label>`;
   function abaQR() {
     const t = st.qr.texto.trim(), r = t ? svgQR(t) : { svg: '', erro: '' };
-    return `<div class="vf-grade">
-      <form class="vf-campos" data-vf-form="qr" onsubmit="return false">
-        <label><span>Link ou texto</span><textarea rows="3" data-vf-campo="qr.texto" placeholder="https://… ou o texto que o QR deve abrir" maxlength="300">${esc(st.qr.texto)}</textarea></label>
-        <div class="vf-campo-escolha"><span>Resistência</span>${escolhaNivel()}</div>
-        <fieldset class="vf-cor"><legend>Cor</legend><div class="vf-paleta">${CORES.map(([c, n]) => `<label class="vf-amostra" title="${n}"><input type="radio" name="vf-cor" data-vf-campo="qr.cor" value="${c}"${st.qr.cor.toUpperCase() === c ? ' checked' : ''}><i style="background:${c}" aria-hidden="true"></i><span class="vf-oculto">${n}</span></label>`).join('')}
-          <label class="vf-amostra outra${CORES.some(([c]) => c === st.qr.cor.toUpperCase()) ? '' : ' on'}" title="Outra cor (a da marca do cliente)"><input type="color" data-vf-campo="qr.cor" value="${esc(st.qr.cor)}"><span>Outra</span></label></div>
-          <small>Escura sobre fundo claro: cor clara demais o celular não lê.</small></fieldset>
-        <p class="vf-dica">Para impressão, use "Máximo" se for colocar a logo do cliente no meio. Teste sempre com a câmera do celular antes de mandar para a gráfica.</p>
-      </form>
-      <div class="vf-previa">
-        <div class="vf-qr${r.svg ? '' : ' vazio'}">${r.svg || `<p>${esc(r.erro || 'Escreva um link para ver o QR aqui.')}</p>`}</div>
-        <div class="vf-acoes">
-          <button type="button" class="vf-botao principal" data-vf="png"${r.svg ? '' : ' disabled'}>Baixar PNG</button>
-          <button type="button" class="vf-botao" data-vf="svg"${r.svg ? '' : ' disabled'}>Baixar SVG (gráfica)</button>
-        </div>
-      </div>
-    </div>`;
+    return `<div class="d3m-r-tk">
+      <form class="d3m-e-folha d3m-r-tk-form" data-vf-form="qr" onsubmit="return false">${cabFolha(ferr('qr').ic, 'qr', 'QR Code', 'para peça impressa, cardápio e evento')}
+        <label class="d3m-r-tk-campo"><span>Link ou texto</span><span class="d3m-r-tk-in"><input type="text" data-vf-campo="qr.texto" value="${esc(st.qr.texto)}" placeholder="https://… ou o texto que o QR deve abrir" maxlength="300"><small data-vf-conta="qr.texto">${st.qr.texto.length}/300</small></span></label>
+        <div class="d3m-r-tk-campo"><span id="vf-res-rot">Resistência</span><span class="d3m-r-tk-seg" role="radiogroup" aria-labelledby="vf-res-rot">${NIVEIS.map(([k]) => `<button type="button" role="radio" aria-checked="${st.qr.ecc === k}" data-vf-ecc="${k}">${NIVEL_TXT[k][0]}</button>`).join('')}</span><small class="d3m-r-tk-dica" data-vf-ecc-txt>${esc(NIVEL_TXT[st.qr.ecc]?.[1] || '')} Teste com a câmera do celular antes da gráfica.</small></div>
+        <div class="d3m-r-tk-campo"><span>Cor</span><span class="d3m-r-tk-cores">${corChips()}</span><small class="d3m-r-tk-dica">Escura sobre fundo claro: cor clara demais o celular não lê.</small></div></form>
+      <section class="d3m-e-folha d3m-r-tk-res" aria-label="QR pronto"><div class="d3m-e-cab"><b>Pronto para baixar</b><span class="d3m-e-cab-dir">1200 px · lê a 1 metro</span></div>
+        <div class="vf-previa d3m-r-tk-previa">${r.svg ? `<div class="d3m-r-tk-qr">${r.svg}</div><small class="d3m-r-tk-url">${esc(t.replace(/^https?:\/\//, ''))}</small>
+          <div class="d3m-r-tk-bts"><button type="button" class="d3v-btn" data-vf="png">Baixar PNG</button><button type="button" class="d3v-btn sec d3m-r-tk-fio" data-vf="svg">Baixar SVG para a gráfica</button></div>`
+          : `<p class="d3m-r-tk-vazio${r.erro ? ' ruim' : ''}">${esc(r.erro || 'Escreva um link e o QR aparece aqui, pronto para baixar.')}</p>`}</div></section></div>`;
   }
   function abaWhatsapp() {
-    const link = linkWhatsapp(st.wa.numero, st.wa.mensagem), numeroOk = !st.wa.numero || numeroWhatsapp(st.wa.numero);
-    return `<div class="vf-grade">
-      <form class="vf-campos" data-vf-form="wa" onsubmit="return false">
-        <label><span>WhatsApp (com DDD)</span><input type="tel" inputmode="tel" data-vf-campo="wa.numero" value="${esc(st.wa.numero)}" placeholder="(74) 99999-9999" maxlength="20" aria-invalid="${!numeroOk}"></label>
-        ${numeroOk ? '' : '<p class="vf-erro">Número inválido: use DDD + número (10 ou 11 dígitos).</p>'}
-        <label><span>Mensagem pronta (opcional)</span><textarea rows="4" data-vf-campo="wa.mensagem" maxlength="500" placeholder="Olá! Vi o anúncio e quero saber mais.">${esc(st.wa.mensagem)}</textarea></label>
-        <p class="vf-dica">Quem toca no link abre a conversa com essa mensagem já escrita. Bom para bio do Instagram, anúncio e cardápio.</p>
-      </form>
-      <div class="vf-previa">
-        <div class="vf-link${link ? '' : ' vazio'}">${link ? `<code>${esc(link)}</code>` : '<p>Preencha o número para gerar o link.</p>'}</div>
-        <div class="vf-acoes">
-          <button type="button" class="vf-botao principal" data-vf="copiar"${link ? '' : ' disabled'}>Copiar link</button>
-          <a class="vf-botao${link ? '' : ' desligado'}" ${link ? `href="${esc(link)}"` : 'aria-disabled="true"'} target="_blank" rel="noopener noreferrer">Testar</a>
-          <button type="button" class="vf-botao" data-vf="qr-do-link"${link ? '' : ' disabled'}>Gerar QR deste link</button>
-        </div>
-      </div>
-    </div>`;
+    const link = linkWhatsapp(st.wa.numero, st.wa.mensagem), numeroOk = !st.wa.numero || numeroWhatsapp(st.wa.numero), msg = st.wa.mensagem.trim();
+    return `<div class="d3m-r-tk">
+      <form class="d3m-e-folha d3m-r-tk-form" data-vf-form="wa" onsubmit="return false">${cabFolha(ferr('whatsapp').ic, 'whatsapp', 'Link do WhatsApp', 'com mensagem pronta, para bio e anúncio')}
+        <label class="d3m-r-tk-campo"><span>Número com DDD</span><span class="d3m-r-tk-in"><input type="tel" inputmode="tel" data-vf-campo="wa.numero" value="${esc(st.wa.numero)}" placeholder="(74) 99999-9999" maxlength="20" aria-invalid="${!numeroOk}"></span></label>
+        ${numeroOk ? '' : '<p class="vf-erro">Número inválido: use DDD + número (10 ou 11 dígitos).</p>'}<small class="d3m-r-tk-dica">Só números do Brasil; o 55 entra sozinho.</small>
+        <label class="d3m-r-tk-campo"><span>Mensagem pronta · opcional</span><span class="d3m-r-tk-in"><textarea rows="4" data-vf-campo="wa.mensagem" maxlength="500" placeholder="Olá! Vi o anúncio e quero saber mais.">${esc(st.wa.mensagem)}</textarea></span></label>
+        <small class="d3m-r-tk-dica" data-vf-conta="wa.mensagem">${st.wa.mensagem.length} de 500 letras</small></form>
+      <section class="d3m-e-folha d3m-r-tk-res" aria-label="Link pronto"><div class="d3m-e-cab"><b>Pronto para copiar</b><span class="d3m-e-cab-dir">abre a conversa já com o texto</span></div>
+        <div class="vf-previa d3m-r-tk-previa">${link ? `<p class="d3m-r-tk-link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><code>${esc(link.replace(/^https:\/\//, ''))}</code></p>
+          <div class="d3m-r-tk-bts"><button type="button" class="d3v-btn v2-estado" data-vf="copiar">Copiar link</button><a class="d3v-btn sec d3m-r-tk-fio" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Testar</a><button type="button" class="d3v-btn sec d3m-r-tk-fio" data-vf="qr-do-link">Gerar QR deste link</button></div>
+          ${msg ? `<div class="d3m-r-tk-chat"><small>Assim chega no WhatsApp</small><p>${esc(msg)}</p></div>` : ''}`
+          : `<p class="d3m-r-tk-vazio${numeroOk ? '' : ' ruim'}">${numeroOk ? 'Escreva o número e o link aparece aqui, pronto para copiar.' : 'Número inválido: use DDD + número (10 ou 11 dígitos).'}</p>`}</div></section></div>`;
   }
   const din = (v) => (v == null ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 }));
+  const dinCurto = (v) => (v == null ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }));
   function abaRoi() {
-    const r = st.roi, calc = window.VybeComercialCalculos?.roiCampanha, c = calc ? calc(r) : null;
-    const campo = (k, rot, ph, dica = '') => `<label><span>${rot}</span><input type="text" inputmode="decimal" data-vf-campo="roi.${k}" value="${esc(r[k])}" placeholder="${ph}">${dica ? `<small>${dica}</small>` : ''}</label>`;
-    return `<div class="vf-grade">
-      <form class="vf-campos" data-vf-form="roi" onsubmit="return false">
-        ${campo('investimento', 'Investimento por mês (R$)', '2.500', 'quanto o cliente paga à Vybe por mês')}
-        ${campo('ticket', 'Ticket médio do cliente (R$)', '180', 'o valor de uma venda dele')}
-        ${campo('margem', 'Margem por venda (%)', '35', 'o lucro dele em cada venda')}
-        ${campo('vendas', 'Vendas a mais por mês (opcional)', '40', 'o que a campanha deve trazer')}
-        <p class="vf-dica">Serve para a conversa de venda: quantas vendas a mais pagam a Vybe e o retorno esperado. A mesma conta está na proposta, em Comercial › Orçamentos.</p>
-      </form>
-      <div class="vf-previa">
-        ${c ? `<div class="vf-roi">
-          <div><span>Lucro por venda</span><b>${din(c.lucroPorVenda)}</b></div>
-          <div><span>Vendas para pagar a Vybe</span><b>${c.empate == null ? '—' : c.empate.toLocaleString('pt-BR')}</b></div>
-          ${c.roi == null ? '' : `<div><span>Faturamento a mais</span><b>${din(c.faturamento)}</b></div><div><span>Lucro a mais</span><b>${din(c.lucro)}</b></div>
-          <div class="g ${c.roi >= 0 ? 'ok' : 'ruim'}"><span>ROI estimado</span><b>${c.roi > 0 ? '+' : ''}${c.roi.toLocaleString('pt-BR')}%</b></div>`}
-        </div>` : `<div class="vf-link vazio"><p>${calc ? 'Preencha investimento, ticket e margem para ver a conta.' : 'A calculadora ainda está carregando.'}</p></div>`}
-      </div>
-    </div>`;
+    const r = st.roi, calc = window.VybeComercialCalculos?.roiCampanha, c = calc ? calc(r) : contaRoi(r), vd = numero(r.vendas);
+    const campo = (k, rot, ph) => `<label class="d3m-r-tk-campo"><span>${rot}</span><span class="d3m-r-tk-in"><input type="text" inputmode="decimal" data-vf-campo="roi.${k}" value="${esc(r[k])}" placeholder="${ph}"></span></label>`;
+    const tile = (rot, v, sub, tom = '') => `<span class="d3m-r-tk-tile"><small>${rot}</small><b class="${tom}">${v}</b><small>${sub}</small></span>`;
+    const pct = c && c.empate != null && vd ? Math.max(0, Math.min(100, Math.round((c.empate / Math.max(vd, c.empate)) * 100))) : 0;
+    return `<div class="d3m-r-tk">
+      <form class="d3m-e-folha d3m-r-tk-form" data-vf-form="roi" onsubmit="return false">${cabFolha(ferr('roi').ic, 'roi', 'Calculadora de ROI', 'quantas vendas pagam a Vybe')}
+        ${campo('investimento', 'Investimento por mês', 'R$ 1.500')}<div class="d3m-r-tk-par">${campo('ticket', 'Ticket médio', 'R$ 180')}${campo('margem', 'Margem por venda', '35%')}</div>
+        ${campo('vendas', 'Vendas a mais esperadas no mês · opcional', '40')}<small class="d3m-r-tk-dica">Com este número, a conta mostra o retorno. A mesma conta está na proposta, em Comercial › Orçamentos.</small></form>
+      <section class="d3m-e-folha d3m-r-tk-res" aria-label="O retorno"><div class="d3m-e-cab"><b>O retorno</b><span class="d3m-e-cab-dir">a conta para a reunião de venda</span></div>
+        <div class="vf-previa d3m-r-tk-previa d3m-r-tk-roi">${c ? `<b class="d3m-r-tk-grande">${c.empate == null ? 'Nenhuma venda' : `${c.empate.toLocaleString('pt-BR')} ${c.empate === 1 ? 'venda' : 'vendas'}`}</b>
+          <span class="d3m-r-tk-frase">${c.empate === 1 ? 'paga' : 'pagam'} a Vybe no mês</span><small class="d3m-r-tk-dica">${dinCurto(c.investimento)} ÷ ${din(c.lucroPorVenda)} de lucro por venda, arredondado para cima</small>
+          ${vd ? `<div class="d3m-r-tk-barra"><span><span>${vd.toLocaleString('pt-BR')} vendas esperadas</span><span>${c.empate == null ? 'nenhuma paga' : `${c.empate.toLocaleString('pt-BR')} pagam o mês`}</span></span><i style="--v:${pct}%"></i></div>` : ''}
+          <div class="d3m-r-tk-tiles">${tile('Lucro por venda', din(c.lucroPorVenda), `${dinCurto(numero(r.ticket))} × ${numero(r.margem)}%`)}${c.roi == null ? '' : `${tile('Faturamento', dinCurto(c.faturamento), `${vd} × ${dinCurto(numero(r.ticket))}`)}${tile('Lucro do mês', dinCurto(c.lucro), `${vd} × ${din(c.lucroPorVenda)}`)}${tile('Retorno', `${c.roi > 0 ? '' : ''}${c.roi.toLocaleString('pt-BR')}%`, `sobre ${dinCurto(c.investimento)}`, c.roi >= 0 ? 'g' : 'r')}`}</div>
+          <div class="d3m-r-tk-bts d3m-r-tk-pe"><button type="button" class="d3v-btn v2-estado" data-vf="copiar-roi">Copiar o resumo</button><button type="button" class="d3v-btn sec d3m-r-tk-fio" data-vf="orcamento">Levar para o orçamento</button></div>`
+          : `<p class="d3m-r-tk-vazio">${calc || window.VybeComercialCalculos ? 'Escreva o investimento, o ticket e a margem: a conta aparece aqui enquanto você digita.' : 'A calculadora ainda está carregando.'}</p>`}</div></section></div>`;
   }
   function corpoDaAba() { return st.aba === 'inicio' ? abaInicio() : st.aba === 'whatsapp' ? abaWhatsapp() : st.aba === 'roi' ? abaRoi() : abaQR(); }
   function html() {
@@ -227,9 +219,11 @@
     const h = '<span class="d3m-e-h" id="vf-titulo" role="heading" aria-level="2">Toolkit</span>';
     const tit = `<details class="d3m-e-troca" ontoggle="if(this.open&&typeof d3mETroca==='function')d3mETroca(this,'toolkit','toolkit')"><summary title="Trocar de tela">${h}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="d3m-e-pop" role="group" aria-label="Outras telas"></div></details>`;
     const nome = (ABAS.find(([k]) => k === st.aba) || ABAS[0])[1];
-    const main = st.aba === 'inicio' ? `<div class="d3m-e-main">${abaInicio()}</div>`
-      : `<div class="d3m-e-main"><section class="d3m-e-folha cresce" aria-label="${esc(nome)}"><div class="d3m-e-cab"><b>${esc(nome)}</b><span class="d3m-e-cab-dir"><button type="button" class="d3m-e-elo" data-vf-aba="inicio">Voltar à visão geral</button></span></div><div class="d3m-e-rola d3m-e-tk-aba">${corpoDaAba()}</div></section></div>`;
-    return `<div class="d3m-e-tela d3m-e-tk"><div class="d3m-e-topo"><div class="d3m-e-tit">${tit}<span class="d3m-e-sub">ferramentas rápidas da Vybe · QR Code, link do WhatsApp e calculadora de ROI</span></div><div class="d3m-e-acoes">${seg}${busca}${fechar}</div></div>
+    // Cada ferramenta (pranchas V2-R-Toolkit-*): a folha de campos e a do resultado, direto no corpo; o título diz que muda sozinho.
+    const main = `<div class="d3m-e-main">${st.aba === 'inicio' ? abaInicio() : corpoDaAba()}</div>`;
+    const sub = { qr: `${nome} · o código muda enquanto você escreve, sem botão de gerar`, whatsapp: `${nome} · o link aparece enquanto você escreve`, roi: `${nome} · a conta muda enquanto você digita` }[st.aba]
+      || 'ferramentas rápidas da Vybe · QR Code, link do WhatsApp e calculadora de ROI';
+    return `<div class="d3m-e-tela d3m-e-tk" data-tk-aba="${esc(st.aba)}"><div class="d3m-e-topo"><div class="d3m-e-tit">${tit}<span class="d3m-e-sub">${esc(sub)}</span></div><div class="d3m-e-acoes">${seg}${busca}${fechar}</div></div>
       <p class="vf-aviso d3m-e-tk-aviso" role="status" aria-live="polite">${esc(st.aviso)}</p>
       <div class="vf-corpo d3m-e-corpo">${main}${ladoHtml()}</div></div>`;
   }
@@ -272,6 +266,11 @@
     if (e.target === st.raiz) { fechar(); return; }
     const aba = e.target.closest('[data-vf-aba]'); if (aba) { st.aba = aba.dataset.vfAba; st.aviso = ''; pintar(false); return; }
     const fmt = e.target.closest('[data-vf-formato]'); if (fmt) { st.formato = fmt.dataset.vfFormato; st.janela.querySelectorAll('[data-vf-formato]').forEach((x) => x.setAttribute('aria-checked', String(x === fmt))); pintarResultado('qr'); return; }
+    // Resistência e cor do QR (prancha V2-R-Toolkit-QR): marca a escolha e troca só a prévia.
+    const ecc = e.target.closest('[data-vf-ecc]');
+    if (ecc) { st.qr.ecc = ecc.dataset.vfEcc; st.janela.querySelectorAll('[data-vf-ecc]').forEach((x) => x.setAttribute('aria-checked', String(x === ecc))); const tx = st.janela.querySelector('[data-vf-ecc-txt]'); if (tx) tx.textContent = `${NIVEL_TXT[st.qr.ecc][1]} Teste com a câmera do celular antes da gráfica.`; pintarPrevia(); return; }
+    const cor = e.target.closest('[data-vf-cor]');
+    if (cor) { st.qr.cor = cor.dataset.vfCor; marcarCor(); pintarPrevia(); return; }
     const gerar = e.target.closest('[data-vf-gerar]');
     if (gerar) {
       const t = gerar.dataset.vfGerar; st.feito[t] = true; pintarResultado(t);
@@ -286,6 +285,8 @@
     if (a === 'copiar-roi') { const c = contaRoi(st.roi); if (c) (navigator.clipboard?.writeText(fraseVendas(c)) || Promise.reject()).then(() => { feito('Copiado'); avisar('Conta copiada.'); }, () => avisar(fraseVendas(c))); return; }
     // O atalho da consulta: o Comercial pelo próprio menu lateral (Produtos e Orçamentos ficam lá).
     if (a === 'comercial') { const item = document.querySelector?.('.vv-trilho [data-trilho="setor:comercial"]'); if (item) { fechar(); item.click(); } return; }
+    // "Levar para o orçamento": a mesma conta mora na proposta (Comercial › Orçamentos); o resumo vai copiado junto.
+    if (a === 'orcamento') { const c = contaRoi(st.roi); if (c) navigator.clipboard?.writeText(fraseVendas(c)).catch(() => {}); const item = document.querySelector?.('.vv-trilho [data-submodulo="orcamentos"]'); fechar(); if (item) item.click(); else window.VybeComercial?.abrir?.('orcamentos', { abas: ['orcamentos'] }); return; }
     if (a === 'fechar') fechar();
     else if (a === 'svg') { const s = svgQR(st.qr.texto.trim()).svg; if (s) { guardarUso('qr', { texto: st.qr.texto.trim(), ecc: st.qr.ecc, cor: st.qr.cor }); baixar(nomeArquivo() + '.svg', new Blob([s], { type: 'image/svg+xml' })); avisar('SVG baixado: é o melhor para a gráfica (não perde qualidade).'); } }
     else if (a === 'png') baixarPNG();
@@ -311,16 +312,27 @@
     const c = e.target.closest('[data-vf-campo]'); if (!c) return;
     const [g, k] = c.dataset.vfCampo.split('.'); ({ qr: st.qr, wa: st.wa, roi: st.roi, simples: st.simples })[g][k] = c.value;
     // Na Visão geral, mexer no campo desfaz o resultado: ele volta com o botão.
-    if (st.aba === 'inicio') { const t = g === 'simples' ? 'roi' : g; if (st.feito[t]) { st.feito[t] = false; pintarResultado(t); } return; }
-    // A cor: a amostra escolhida fica marcada e "Outra" acende quando a cor não é da paleta.
-    if (c.dataset.vfCampo === 'qr.cor') {
-      const daPaleta = CORES.some(([cor]) => cor === c.value.toUpperCase());
-      st.janela?.querySelectorAll('[data-vf-campo="qr.cor"]').forEach((x) => { if (x.type === 'radio') x.checked = x.value === c.value.toUpperCase(); else if (x !== c) x.value = c.value; });
-      st.janela?.querySelector('.vf-amostra.outra')?.classList.toggle('on', !daPaleta);
+    // Na Visão geral, o resultado muda enquanto digita (sem botão de gerar, decisão do Paulo nas pranchas V2-R-Toolkit).
+    if (st.aba === 'inicio') {
+      const t = g === 'simples' ? 'roi' : g;
+      st.feito[t] = t === 'qr' ? Boolean(st.qr.texto.trim()) : t === 'wa' ? Boolean(st.wa.numero.trim()) : Boolean(contaRoi(st.roi));
+      pintarResultado(t);
+      if (t === 'roi' && e.type === 'change' && contaRoi(st.roi)) guardarUso('roi', { ...st.roi });
+      return;
     }
+    // O contador de letras do campo, quando tem.
+    st.janela?.querySelectorAll(`[data-vf-conta="${g}.${k}"]`).forEach((x) => { x.textContent = g === 'wa' ? `${c.value.length} de 500 letras` : `${c.value.length}/300`; });
+    // A cor: a ficha escolhida fica marcada e "Outra" acende quando a cor não é da paleta.
+    if (c.dataset.vfCampo === 'qr.cor') marcarCor();
     // Conta de ROI feita (ao sair do campo) entra nos usados por último.
     if (g === 'roi' && e.type === 'change' && window.VybeComercialCalculos?.roiCampanha?.(st.roi)) guardarUso('roi', { ...st.roi });
     pintarPrevia();
+  }
+  function marcarCor() {
+    const daPaleta = CORES.some(([cor]) => cor === st.qr.cor.toUpperCase());
+    st.janela?.querySelectorAll('[data-vf-cor]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.vfCor === st.qr.cor.toUpperCase())));
+    st.janela?.querySelector('.d3m-r-tk-chip.outra')?.setAttribute('aria-pressed', String(!daPaleta));
+    const outra = st.janela?.querySelector('.d3m-r-tk-chip.outra > input'); if (outra && daPaleta) outra.value = st.qr.cor;
   }
   function aoTeclar(e) {
     if (!st.raiz || e.key !== 'Escape' || e.defaultPrevented) return;

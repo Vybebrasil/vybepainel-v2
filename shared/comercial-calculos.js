@@ -500,6 +500,18 @@
       .map((x, i) => ({ posicao: i + 1, nome: x.nome, quantidade: x.quantidade, mrr: reais(x.mrr), avulso: reais(x.avulso), total: reais(x.mrr + x.avulso), pelo_cadastro: x.pelo_cadastro }));
     return { linhas, sem_atribuicao: { quantidade: sem.quantidade, mrr: reais(sem.mrr), avulso: reais(sem.avulso) } };
   }
+  // Meta por pessoa (prancha V2-R-Comercial-Metas, 19/11/2026): para cada linha { pessoa_id, nome, mrr, avulso, negocios,
+  // leads } (a meta do período), o que a pessoa fez com a mesma regra da corrida: negócios e valores de quem fechou
+  // (quemFechou) e leads que ela cadastrou (o formulário não conta para ninguém). Devolve o progresso de cada meta.
+  function progressoPorPessoa(linhas, oportunidades, p) {
+    const fechados = fechadosDoPeriodo(oportunidades, p), leads = leadsDoPeriodo(oportunidades, p);
+    return (Array.isArray(linhas) ? linhas : []).filter((l) => l && l.pessoa_id != null && String(l.nome || '').trim()).map((l) => {
+      const k = semAcento(l.nome), meus = fechados.filter((o) => semAcento(quemFechou(o)?.nome) === k);
+      const realizado = { negocios: meus.length, mrr: reais(meus.reduce((t, o) => t + Math.max(0, centavos(o.valor_mensal)), 0)), avulso: reais(meus.reduce((t, o) => t + Math.max(0, centavos(o.valor_avulso)), 0)),
+        leads: leads.filter((o) => o.origem !== 'formulario' && semAcento(o.criado_por_nome) === k).length };
+      return { pessoa_id: String(l.pessoa_id), nome: String(l.nome).trim(), realizado, progresso: progressoMetas(l, realizado) };
+    });
+  }
   // Últimos n meses terminando em mesFinal (AAAA-MM), do mais antigo para o mais novo.
   function seriesMensais(dados, mesFinal, n = 6) {
     if (!ehMes(mesFinal)) throw erro400('Mês inválido (use AAAA-MM).');
@@ -571,7 +583,7 @@
     CICLOS, GRUPOS_CONTAS, CATEGORIAS_FORNECEDOR, ehData, somarDias, somarMeses, periodo, proximoVencimento, statusRecebivel,
     resumoRecebimentos, resumoContas, inadimplencia, severidade, variacao, filtrarFornecedores,
     LIMITE_CONCENTRACAO, previsaoCaixa, CARGOS, NIVEIS_CAPACIDADE, cargaDosItens, capacidadeTime,
-    METAS, validarMetas, metasDoPeriodo, leadsDoPeriodo, fechadosDoPeriodo, propostasDoPeriodo, realizadoDoPeriodo, progressoMetas,
+    METAS, validarMetas, metasDoPeriodo, progressoPorPessoa, leadsDoPeriodo, fechadosDoPeriodo, propostasDoPeriodo, realizadoDoPeriodo, progressoMetas,
     roiCampanha, kpisComerciais, quemFechou, rankingFechamentos, seriesMensais, INTERESSES_LEAD, LIMITES_LEAD, CAMPO_ISCA, validarLead, formatarWhatsapp,
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

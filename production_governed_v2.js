@@ -14,8 +14,10 @@
       if (v === 'roteiros') { window.setProdV2View('roteiros'); return; }
       window.productionV2View = 'captacoes';
       const atual = typeof CAPT !== 'undefined' ? CAPT.vista : '';
-      const igual = v === 'mes' ? atual === 'mes' : atual === 'semana' || atual === 'lista';
-      if (!igual && typeof captVista === 'function') captVista(v);
+      const igual = v === 'mes' || v === 'dia' ? atual === v : atual === 'semana' || atual === 'lista';
+      // Dia (prancha V2-R-Agenda-Dia): abre hoje, ou a segunda da semana aberta quando ela não é a de hoje.
+      if (!igual && v === 'dia' && typeof captVerDia === 'function' && typeof captHoje === 'function') { const h = captHoje(); captVerDia(atual === 'mes' || CAPT.semana === agSegunda(h) ? h : CAPT.semana); }
+      else if (!igual && typeof captVista === 'function') captVista(v);
       else if (typeof renderProductionCommand === 'function') renderProductionCommand();
   };
 

@@ -1320,6 +1320,38 @@ function cerebroMontarLados(lista, todos) {
       ${linha('Rede de clientes', 'quem divide conteúdo', `onclick="CEREBRO_STATE.abaInterna='mapa';focarClienteNoCerebro('todos')"`)}
       ${linha('Atividade', 'o que entrou por último', `onclick="alternarAbaCerebro('atividade')"`)}
       ${linha('Origem', origem, `aria-haspopup="listbox" onclick="cerebroEscolherOrigem(this)"`)}</section>`;
+  // Pranchas V2-R-Cerebro-Cliente, -Atividade e -Sinapses: a consulta muda com a aba do cliente aberto.
+  if (!todos && ['ficha', 'atividade', 'sinapses'].includes(CEREBRO_STATE.abaInterna)) {
+    const cc = cerebroDoCliente(CEREBRO_STATE.clienteFoco), nomeC = cc.nomeNoCadastro || cc.nome, curto = String(nomeC).split(/\s+/).slice(0, 2).join(' ');
+    const central = `<section class="d3m-cons" aria-label="Central"><div class="d3m-cons-cab"><b>Central</b><span>${d ? `última leitura às ${cerebroEsc(cerebroHora(d.lidoEm))}` : ''}</span></div>
+      <p class="cv2c-central"${CEREBRO_ATIVIDADE.erro ? ` title="${cerebroEsc(CEREBRO_ATIVIDADE.erro)}"` : ''}><i class="d3m-pt ${estado[0]}" aria-hidden="true"></i><span><b>${estado[1]}</b> · ${estado[2]}</span></p></section>`;
+    const ficha = typeof abrirClienteDetalhe === 'function' ? linha(`Ficha ${/^(a|o) /i.test(curto) ? 'de' : 'da'} ${cerebroEsc(curto)}`, 'cadastro, reuniões e peças', `onclick="abrirClienteDetalhe('${cerebroAspas(nomeC)}')"`) : '';
+    if (CEREBRO_STATE.abaInterna === 'ficha') {
+      const ORIGENS = [['todas', 'Todas'], ['central', 'Central'], ['operacao', 'Operação'], ['referencia', 'Referências'], ['navegador', 'Notas do navegador']];
+      CEREBRO_LADOS.consulta = `<section class="d3m-cons" aria-label="Origem"><div class="d3m-cons-cab"><b>Origem</b><span>de onde vem cada registro</span></div>
+        <div class="cb-r-origens" role="radiogroup" aria-label="Origem do conhecimento">${ORIGENS.map(([v, r]) => `<button type="button" role="radio" aria-checked="${CEREBRO_STATE.fonteFiltro === v}" onclick="filtrarOrigemCerebro('${v}')">${r}</button>`).join('')}</div></section>
+        ${central}<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+        ${linha('Rede de clientes', 'quem divide conteúdo', `onclick="CEREBRO_STATE.abaInterna='mapa';focarClienteNoCerebro('todos')"`)}${ficha}</section>`;
+    } else if (CEREBRO_STATE.abaInterna === 'atividade') {
+      const o = cc.origens || {};
+      CEREBRO_LADOS.consulta = `<section class="d3m-cons" aria-label="No cérebro"><div class="d3m-cons-cab"><b>No cérebro</b><span>${cerebroEsc(curto)}</span></div>
+        <div class="cb-r-tres">${[[o.operacao, 'da operação', 'operacao'], [o.central, 'da central', 'central'], [o.referencia, o.referencia === 1 ? 'referência' : 'referências', 'referencia']].map(([n, r, v]) => `<button type="button" aria-pressed="${CEREBRO_STATE.fonteFiltro === v}" onclick="filtrarOrigemCerebro(CEREBRO_STATE.fonteFiltro==='${v}'?'todas':'${v}')"><b>${n || 0}</b><span>${r}</span></button>`).join('')}</div></section>
+        ${central}<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
+        ${linha('Atividade de todos', 'o que entrou por último', `onclick="focarClienteNoCerebro('todos');alternarAbaCerebro('atividade')"`)}${ficha}</section>`;
+    } else {
+      const est = CEREBRO_SINAPSES.estudos[nomeC]?.dados?.ultimo || null, conf = est?.confirmar || [], f = est?.fontes || {};
+      if (conf.length) CEREBRO_LADOS.laranja = `<section class="d3-acao d3m-laranja cv2-laranja" aria-label="Itens do estudo sem prova firme"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">A</span>Alex · para confirmar</span>
+        <span class="d3m-lar-txt"><b class="d3m-lar-num">${conf.length}</b><span class="d3-acao-frase">${conf.length === 1 ? 'achado espera o seu sim' : 'achados esperam o seu sim'}</span><small class="cb-r-s">Sem prova firme, ${conf.length === 1 ? 'ele só entra' : 'eles só entram'} no cérebro com o ok de alguém.</small>
+        <span class="d3m-lar-bts"><button type="button" class="d3m-btn l" onclick="document.getElementById('cb-r-sin-conf')?.scrollIntoView({block:'nearest',behavior:'smooth'})">${conf.length === 1 ? 'Ver o achado' : `Ver os ${conf.length}`}</button></span></span></section>`;
+      const fontes = [[f.ficha, 'Ficha do cliente', 'o dossiê da conta'], [f.instagram, 'Instagram', 'o perfil'], [f.noticiasCliente, 'Notícias do cliente', `${f.noticiasCliente || 0} ${Number(f.noticiasCliente) === 1 ? 'matéria' : 'matérias'}`],
+        [f.noticiasSetor, 'Notícias do setor', `${f.noticiasSetor || 0} ${Number(f.noticiasSetor) === 1 ? 'matéria' : 'matérias'}`], [f.licoes, 'Lições da equipe', `${f.licoes || 0} ${Number(f.licoes) === 1 ? 'lição' : 'lições'}`]].filter(([x]) => x);
+      const pode = cerebroPodeVerDiagnostico() && typeof window.VybeAgentes?.abrirCerebro === 'function';
+      CEREBRO_LADOS.consulta = `<section class="d3m-cons" aria-label="De onde vem cada coisa"><div class="d3m-cons-cab"><b>De onde vem cada coisa</b><span>${fontes.length ? `${fontes.length} ${fontes.length === 1 ? 'fonte' : 'fontes'}` : ''}</span></div>
+        ${fontes.map(([, n, a]) => `<p class="d3m-vlin cb-r-fonte"><span><b>${n}</b> · ${cerebroEsc(a)}</span></p>`).join('') || `<p class="d3m-vvazio">${est ? 'O estudo não registrou fonte.' : 'O estudo ainda não chegou.'}</p>`}</section>
+        <section class="d3m-cons" aria-label="Como o Alex estuda"><div class="d3m-cons-cab"><b>Como o Alex estuda</b><span></span></div><p class="cv2-nota">Dois clientes por noite, de domingo a quinta, às 22h, com as fontes acima. Quando falha, o motivo aparece em Agentes.</p></section>
+        ${pode ? `<section class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>${linha('Diagnóstico em Agentes', 'só donos', 'onclick="abrirDiagnosticoDosAgentes()"')}</section>` : ''}`;
+    }
+  }
 }
 // Põe as duas colunas de fora da folha (a lista e a consulta) na janela de Clientes, quando ela está no Cérebro.
 function cerebroPintarLados() {
@@ -1445,31 +1477,27 @@ function renderInspetorNoCerebroHtml(sel, c = null) {
     <div class="cb-insp-acoes">${cerebroBotoesHtml(it)}</div></div>`;
 }
 
-// Ficha completa: as nove categorias em blocos, com tudo listado.
+// Ficha completa (prancha V2-R-Cerebro-Cliente, aprovada pelo Paulo): as nove categorias numa grade de três por três.
+// Cada cartão mostra o nome, quantos registros, as três primeiras linhas (a paleta em amostras) e o pé com "por quê · de
+// onde vem" e a ação da área. A lista inteira e o detalhe de cada registro abrem no inspetor, como antes.
+const CEREBRO_NOVO_DA_AREA = { regras: ['regras', '+ regra'], ideias: ['ideias', '+ ideia'], aprendizados: ['memoria', '+ lembrança'] };
 function renderDossieNeuralClienteHtml(cOuNome) {
   const c = typeof cOuNome === 'string' ? cerebroDoCliente(cOuNome) : cOuNome;
   c.categorias && Object.values(c.categorias).flat().forEach(it => CEREBRO_STATE.itens.set(it.id, it));
-  return `<div class="cb-ficha">${CEREBRO_ORDEM_MAPA.map(gid => {
-    const g = cerebroGrupo(gid);
-    const itens = c.categorias[gid];
-    const linhas = itens.map(it => `<div class="cb-linha${it.tom ? ' ' + it.tom : ''}">
-        <button type="button" class="cb-linha-corpo" onclick="cerebroSelecionar('item','${cerebroEsc(it.id)}')">
-          ${it.hex ? `<span class="cb-amostra" style="background:${cerebroEsc(it.hex)}"></span>` : ''}
-          <span><b>${cerebroEsc(it.titulo)}</b>${it.sub ? `<small>${cerebroEsc(it.sub)}</small>` : ''}
-          ${it.detalhe && it.detalhe !== it.titulo && gid !== 'atrasados' && gid !== 'producao' && gid !== 'solicitacoes' ? `<em>${cerebroEsc(it.detalhe.split('\n')[0])}</em>` : ''}</span>
-        </button>
-        <div class="cb-linha-acoes">${cerebroBotoesHtml({ ...it, acoes: (it.acoes || []).filter(a => !a.perigo).slice(0, 1).map(a => ({ ...a, principal: false })) })}</div>
-      </div>`).join('');
-    return `<section class="cb-bloco" id="cb-bloco-${gid}" style="--cb-cor:${g.cor}">
-      <header class="cb-bloco-topo">
-        <span class="cb-bloco-ico">${cerebroIcone(g.icone)}</span>
-        <div><h3>${cerebroEsc(g.nome)} <small>${itens.length}</small></h3>
-          <p><b>Por quê:</b> ${cerebroEsc(g.porque)}</p>
-          <p class="cb-fonte"><b>De onde vem:</b> ${cerebroEsc(g.fonte)}</p></div>
-        ${cerebroNovoBotaoHtml(gid)}
-      </header>
-      <div class="cb-bloco-corpo">${linhas || `<p class="cb-vazio-mini">${gid === 'atrasados' ? 'Nada atrasado nem parado. Bom sinal.' : 'Nada aqui ainda.'}</p>`}</div>
-    </section>`;
+  return `<div class="cb-r-grade">${CEREBRO_ORDEM_MAPA.map(gid => {
+    const g = cerebroGrupo(gid), itens = c.categorias[gid] || [];
+    const cores = gid === 'identidade' ? itens.filter((it) => it.hex) : [], textos = itens.filter((it) => !cores.includes(it));
+    const mostra = textos.slice(0, cores.length ? 2 : 3), resto = textos.length - mostra.length;
+    const linha = (it) => `<button type="button" class="cb-r-lin${it.tom === 'alerta' ? ' r' : ''}" onclick="cerebroSelecionar('item','${cerebroAspas(it.id)}')" title="${cerebroEsc(it.titulo)}">${cerebroEsc(it.titulo)}${it.sub && gid !== 'identidade' ? `<span> · ${cerebroEsc(String(it.sub).split(' · ')[0])}</span>` : ''}</button>`;
+    const novo = CEREBRO_NOVO_DA_AREA[gid];
+    const acao = novo ? `<button type="button" class="cb-r-acao" onclick="cerebroAbrirNovo('${novo[0]}')">${novo[1]}</button>`
+      : itens.length > 3 ? `<button type="button" class="cb-r-acao" onclick="cerebroSelecionar('grupo','${gid}')">ver os ${itens.length}</button>` : '';
+    return `<section class="cb-r-area" id="cb-bloco-${gid}" aria-label="${cerebroEsc(g.nome)}, ${itens.length} ${itens.length === 1 ? 'registro' : 'registros'}">
+      <div class="cb-r-cab"><button type="button" onclick="cerebroSelecionar('grupo','${gid}')"><b>${cerebroEsc(g.nome)}</b></button><span>${itens.length || 'nada'}</span></div>
+      <div class="cb-r-corpo">${cores.length ? `<span class="cb-r-cores">${cores.slice(0, 6).map((it) => `<button type="button" class="cb-r-cor" style="--cor:${cerebroEsc(it.hex)}" onclick="cerebroSelecionar('item','${cerebroAspas(it.id)}')" title="${cerebroEsc(it.titulo)}" aria-label="${cerebroEsc(it.titulo)}"></button>`).join('')}</span>` : ''}
+        ${mostra.map(linha).join('')}${resto > 0 ? `<button type="button" class="cb-r-mais" onclick="cerebroSelecionar('grupo','${gid}')">mais ${resto}</button>` : ''}
+        ${itens.length ? '' : `<p class="cb-r-nada">${gid === 'atrasados' ? 'Nada atrasado nem parado.' : 'Nada aqui ainda.'}</p>`}</div>
+      <div class="cb-r-pe"><button type="button" class="cb-r-porque" onclick="cerebroSelecionar('grupo','${gid}')" title="${cerebroEsc(`Por quê: ${g.porque} De onde vem: ${g.fonte}`)}">por quê · de onde vem</button>${acao}</div></section>`;
   }).join('')}</div>`;
 }
 
@@ -1685,29 +1713,23 @@ function consultarEstudoCerebroDeNovo(cliente) {
   void carregarEstudoCerebro(cliente);
   cerebroRepintar();
 }
+// O estudo do cliente na prancha V2-R-Cerebro-Sinapses: a cabeça com quando e com o quê, setor e posicionamento lado a
+// lado, as quatro áreas em dois por dois (cada item com a prova embaixo) e o que ainda espera prova firme.
 function renderEstudoClienteCerebroHtml(cliente) {
   const e = CEREBRO_SINAPSES.estudos[cliente] || {}; if (!e.dados && !e.erro) void carregarEstudoCerebro(cliente);
   const u = e.dados?.ultimo;
-  if (!u) return `<section class="cb-sin-bloco"><h3>Estudo do cliente</h3><p class="cb-sin-nota">${cerebroEsc(e.erro || (e.carregando || !e.dados ? 'Consultando a central…' : 'Ainda não estudado. O Alex estuda 2 clientes por noite, de domingo a quinta, às 22h.'))}</p></section>`;
-  const itens = (xs) => (xs || []).map((x) => `<li><b>${cerebroEsc(x.texto || x.nome)}</b>${x.observacao ? `<span>${cerebroEsc(x.observacao)}</span>` : ''}<small>${x.prova ? cerebroProvaHtml(x.prova) : cerebroEsc(x.porque || '')}</small></li>`).join('');
+  if (!u) return `<section class="cb-r-sin-cab"><span><b>Estudo de ${cerebroEsc(cliente)}</b><small class="cb-r-s">${cerebroEsc(e.erro || (e.carregando || !e.dados ? 'Consultando a central…' : 'Ainda não estudado. O Alex estuda 2 clientes por noite, de domingo a quinta, às 22h.'))}</small></span>${e.erro ? `<button type="button" class="cb-r-btn" onclick="consultarEstudoCerebroDeNovo('${cerebroAspas(cliente)}')">Consultar de novo</button>` : ''}</section>`;
   const f = u.fontes || {};
-  const plural = (n, um, varios) => `${n} ${Number(n) === 1 ? um : varios}`;
-  const fontes = [f.ficha ? 'a ficha do cliente' : '', f.instagram ? 'o Instagram' : '', f.noticiasCliente ? plural(f.noticiasCliente, 'notícia do cliente', 'notícias do cliente') : '',
-    f.noticiasSetor ? plural(f.noticiasSetor, 'notícia do setor', 'notícias do setor') : '', f.licoes ? plural(f.licoes, 'lição da equipe', 'lições da equipe') : ''].filter(Boolean);
-  const comFontes = fontes.length > 1 ? `${fontes.slice(0, -1).join(', ')} e ${fontes[fontes.length - 1]}` : fontes[0] || '';
-  // Refazer o estudo (quadro 54) não existe na central: o estudo roda à noite (o Alex). "Consultar de novo" só relê o último.
-  return `<section class="cb-sin-bloco cb-sin-estudo"><div class="cb-sin-estudo-topo"><div><h3>Estudo de ${cerebroEsc(cliente)}</h3>
-      <p class="cb-sin-quando">Feito em ${cerebroEsc(cerebroDataHora(u.em))}${comFontes ? ` com ${cerebroEsc(comFontes)}` : ', sem fonte registrada'} · ${cerebroMotorHtml('qwen')}</p></div>
-      <button type="button" class="vb-botao" onclick="consultarEstudoCerebroDeNovo('${cerebroAspas(cliente)}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.3"/><path d="M20 4v5h-5"/></svg>Consultar de novo</button></div>
-    ${u.setor ? `<p><b>Setor:</b> ${cerebroEsc(u.setor)}</p>` : ''}${u.posicionamento ? `<p><b>Posicionamento:</b> ${cerebroEsc(u.posicionamento)}</p>` : ''}
-    <div class="cb-sin-grade">
-      <div><h4>Oportunidades</h4>${(u.oportunidades || []).length ? `<ul>${itens(u.oportunidades)}</ul>` : '<p class="cb-sin-nota">Nenhuma com prova.</p>'}</div>
-      <div><h4>Ameaças</h4>${(u.ameacas || []).length ? `<ul>${itens(u.ameacas)}</ul>` : '<p class="cb-sin-nota">Nenhuma com prova.</p>'}</div>
-      <div><h4>Concorrentes</h4>${(u.concorrentes || []).length ? `<ul>${itens(u.concorrentes)}</ul>` : '<p class="cb-sin-nota">Nenhum citado nas fontes.</p>'}</div>
-      <div><h4>Ideias</h4>${(u.ideias || []).length ? `<ul>${(u.ideias || []).map((i) => `<li><b>${cerebroEsc(i.formato)} · ${cerebroEsc(i.titulo)}</b><small>${cerebroEsc(i.porque)}</small></li>`).join('')}</ul>` : '<p class="cb-sin-nota">Nenhuma.</p>'}</div>
-    </div>
-    ${(u.confirmar || []).length ? `<details class="cb-sin-confirmar"><summary>Para confirmar (${u.confirmar.length}): o modelo não achou prova</summary><ul>${u.confirmar.map((t) => `<li>${cerebroEsc(t)}</li>`).join('')}</ul></details>` : ''}
-  </section>`;
+  const nFontes = [f.ficha, f.instagram, f.noticiasCliente, f.noticiasSetor, f.licoes].filter(Boolean).length;
+  const quando = cerebroIso(u.em) ? cerebroDataBr(cerebroIso(u.em)) : cerebroDataHora(u.em);
+  const itens = (xs) => (xs || []).slice(0, 3).map((x) => `<li><span>${cerebroEsc(x.texto || x.nome)}${x.observacao ? ` · ${cerebroEsc(x.observacao)}` : ''}</span><small class="cb-r-s">${x.prova ? `prova: ${cerebroProvaHtml(x.prova)}` : cerebroEsc(x.porque || 'sem prova registrada')}</small></li>`).join('');
+  const area = (rot, tom, xs, vazio, html = null) => `<section class="cb-r-sin-area"><b class="cb-r-sin-rot"><i class="${tom}" aria-hidden="true"></i>${rot} <span>${(xs || []).length}</span></b>${(xs || []).length ? `<ul>${html || itens(xs)}</ul>` : `<p class="cb-r-nada">${vazio}</p>`}</section>`;
+  const conf = u.confirmar || [];
+  return `<section class="cb-r-sin-cab"><span><b>Estudo de ${cerebroEsc(cliente)}</b><small class="cb-r-s">${cerebroEsc(quando)} · ${nFontes} ${nFontes === 1 ? 'fonte' : 'fontes'} · feito pelo Alex com o ${cerebroMotorHtml('qwen')}</small></span><button type="button" class="cb-r-btn" onclick="consultarEstudoCerebroDeNovo('${cerebroAspas(cliente)}')">Consultar de novo</button></section>
+    <div class="cb-r-sin-rola">${u.setor || u.posicionamento ? `<div class="cb-r-sin-duas"><span><small class="cb-r-s">Setor</small><b>${cerebroEsc(u.setor || 'não registrado')}</b></span><span><small class="cb-r-s">Posicionamento</small><b>${cerebroEsc(u.posicionamento || 'não registrado')}</b></span></div>` : ''}
+    <div class="cb-r-sin-grade">${area('Oportunidades', 'g', u.oportunidades, 'Nenhuma com prova.')}${area('Ameaças', 'r', u.ameacas, 'Nenhuma com prova.')}${area('Concorrentes', 'i', u.concorrentes, 'Nenhum citado nas fontes.')}
+      ${area('Ideias', 'l', u.ideias, 'Nenhuma.', (u.ideias || []).slice(0, 3).map((i) => `<li><span>${cerebroEsc(i.formato)} · ${cerebroEsc(i.titulo)}</span><small class="cb-r-s">${cerebroEsc(i.porque || '')}</small></li>`).join(''))}</div>
+    ${conf.length ? `<section class="cb-r-sin-conf" id="cb-r-sin-conf"><b>Para confirmar <span>${conf.length} · sem prova firme</span></b><ul>${conf.map((t) => `<li>${cerebroEsc(t)}</li>`).join('')}</ul></section>` : ''}</div>`;
 }
 // Redesign (quadro 54, 2ª rodada, 10/11/2026): a Sinapses do cliente fica com o estudo (em destaque, com o selo Qwen) e
 // "de onde vem cada coisa". O diagnóstico de como o VYBES pensa (Qwen, lógica fixa, módulos parados, fila do Qwen e as
@@ -1723,12 +1745,11 @@ function cerebroAvisarMapa() { try { document.dispatchEvent(new CustomEvent('vyb
 function renderSinapsesCerebroHtml(cliente = null) {
   const s = CEREBRO_SINAPSES, d = s.dados;
   if (!d && !s.erro && !s.carregando) void carregarMapaCerebro();
-  const estudo = cliente ? renderEstudoClienteCerebroHtml(cliente) : '';
+  if (cliente) return `<div class="cb-r-sin">${renderEstudoClienteCerebroHtml(cliente)}<p class="cb-r-sin-pe">Cada item traz a prova; o que não tem prova espera o sim de alguém.</p></div>`;
   const nomes = d ? d.nos.filter((n) => ['fonte', 'memoria'].includes(n.tipo)).map((n) => n.nome).filter(Boolean) : [];
   const pode = cerebroPodeVerDiagnostico() && typeof window.VybeAgentes?.abrirCerebro === 'function';
   const texto = d ? (nomes.length ? `${nomes.join(' · ')}.` : 'A central não registrou fonte ainda.') : (s.erro || 'Consultando a central do VYBES…');
   return `<div class="cb-ficha cb-sinapses">
-    ${estudo}
     <section class="cb-sin-bloco cb-sin-onde"><h3>De onde vem cada coisa</h3>
       <p class="cb-sin-nota">${cerebroEsc(texto)} O diagnóstico dos agentes (quem pensa cada coisa e por onde passa) fica na página Agentes${pode ? '' : ', que é dos donos'}.</p>
       <div class="cb-sin-onde-acoes">${!d && s.erro ? '<button type="button" class="vb-botao" onclick="carregarMapaCerebro(true)">Tentar de novo</button>' : ''}${pode ? '<button type="button" class="vb-botao" onclick="abrirDiagnosticoDosAgentes()">Ver o diagnóstico em Agentes</button>' : ''}</div>
@@ -2097,18 +2118,34 @@ function chaveClienteAtividadeCerebro(nome) {
   const cadastro = typeof clientMasterCanonicalName === 'function' ? clientMasterCanonicalName(nome) : nome;
   return normalizarChaveCerebro(encontrarBaseCerebro(cadastro)?.nome || cadastro);
 }
+// Atividade de um cliente (prancha V2-R-Cerebro-Atividade): o estado da leitura numa linha e a tabela do que entrou,
+// com origem, estado, o registro e quando; o mais novo em cima, dez por vez. A rede de todos segue no formato de antes.
+const CEREBRO_ORIGEM_CURTA = { central: 'Central', operacao: 'Operação', referencia: 'Referências', navegador: 'Notas' };
+function cerebroQuandoDoItem(it) { return cerebroIso(it.prazo) || cerebroIso(it.veiculacao) || cerebroIso(it.atualizadoEm) || (it.extra ? cerebroIso(String(it.fonte || '').match(/\d{4}-\d{2}-\d{2}/)?.[0]) : '') || ''; }
 function renderAtividadeCerebroHtml() {
   const s=CEREBRO_ATIVIDADE,d=s.dados,foco=CEREBRO_STATE.clienteFoco;
-  const nomes=foco==='todos'?[...new Set((d?.clientes || []).map(c=>typeof clientMasterCanonicalName==='function'?clientMasterCanonicalName(c.cliente):c.cliente))]:[foco];
+  if (foco!=='todos') {
+    const c=cerebroDoCliente(foco), nome=c.nomeNoCadastro || c.nome;
+    const registros=Object.values(c.categorias).flat().map(it=>({ it, quando:cerebroQuandoDoItem(it) })).sort((a,b)=>String(b.quando).localeCompare(String(a.quando)));
+    const limite=CEREBRO_STATE.limiteAtividade || 10, lista=registros.slice(0,limite);
+    const estado=d?`estudo de ${d.geradoEm?cerebroDataBr(cerebroIso(d.geradoEm)):'data não informada'} · consulta às ${cerebroEsc(cerebroHora(d.lidoEm))}`:s.carregando?'consultando a central':'central sem resposta agora';
+    const ficha=c.estudo?.ficha?' · ficha local ligada':'', fontes=[c.origens.operacao?'peças':'',c.origens.navegador?'notas':'',c.origens.referencia?'referências':''].filter(Boolean).join(', ');
+    return `<div class="cb-r-ativ"><div class="cb-r-ativ-cab"><span><b>${d?'Estudo e operação no mesmo contexto':'Operação e referências da conta'}</b><small class="cb-r-s">${estado}${ficha}${fontes?` · ${cerebroEsc(fontes)}`:''}</small></span><button type="button" class="cb-r-btn" onclick="abrirRedeClienteCerebro('${cerebroAspas(foco)}')">Explorar</button></div>
+      ${s.erro?`<p class="cb-r-aviso" role="status">${cerebroEsc(s.erro)}</p>`:''}
+      ${(()=>{ const vivos=registros.filter(({ it })=>it.origem==='central'||it.origem==='operacao').length, outros=(d?.clientes || []).filter(cl=>chaveClienteAtividadeCerebro(cl.cliente)!==chaveClienteAtividadeCerebro(foco));
+        return d&&!vivos&&outros.length?`<p class="cb-r-aviso cb-r-outros" role="note">A consulta funcionou, mas a central e a operação não trouxeram nada de ${cerebroEsc(nome)}. Na central agora: ${outros.slice(0,3).map(cl=>`${cerebroEsc(cl.cliente)} · ${(cl.ideias || []).length} sugestões`).join(', ')}.</p>`:''; })()}
+      ${registros.length?`<div class="cb-r-tab" role="table" aria-label="O que entrou no cérebro de ${cerebroEsc(nome)}"><div class="cb-r-tl cb-r-tc" role="row"><span role="columnheader">Origem</span><span role="columnheader">Estado</span><span role="columnheader">O que entrou</span><span role="columnheader">Quando</span></div>
+        <div class="cb-r-rola">${lista.map(({ it, quando })=>`<button type="button" class="cb-r-tl" role="row" onclick="abrirRegistroCerebro('${cerebroAspas(foco)}','${cerebroAspas(it.id)}')"><span role="cell"><i class="cb-r-o ${cerebroEsc(it.origem)}" aria-hidden="true"></i>${cerebroEsc(CEREBRO_ORIGEM_CURTA[it.origem] || 'Outra')}</span><span role="cell">${cerebroEsc(it.estado || it.status || (it.origem==='referencia'?'guardada':it.origem==='navegador'?'nota':cerebroGrupo(it.grupo).nome))}</span><span role="cell">${cerebroEsc(it.titulo)}</span><span role="cell">${quando?cerebroDataBr(quando):'sem data'}</span></button>`).join('')}</div></div>`
+        :`<p class="cb-r-nada cb-r-ativ-nada">Nada entrou no cérebro de ${cerebroEsc(nome)} neste recorte. Isso não significa ausência de conhecimento: mude a origem ou explore a ficha.</p>`}
+      <div class="cb-r-ativ-pe"><button type="button" class="cb-r-btn" onclick="abrirFichaClienteCerebro('${cerebroAspas(foco)}')">Ver os ${registros.length} registros na ficha</button><button type="button" class="cb-r-elo" onclick="focarClienteNoCerebro('todos');alternarAbaCerebro('atividade')">Ver toda a atividade</button>
+        ${registros.length>limite?`<button type="button" class="cb-r-elo" onclick="CEREBRO_STATE.limiteAtividade=${limite+10};cerebroRepintar()">mais 10</button>`:''}<span>mostrando ${lista.length} de ${registros.length}</span></div></div>`;
+  }
+  const nomes=[...new Set((d?.clientes || []).map(c=>typeof clientMasterCanonicalName==='function'?clientMasterCanonicalName(c.cliente):c.cliente))];
   return `<div class="cb-ficha cb-fluxo"><section class="cb-estudo-status"><div><h3>${d?'Estudo e operação no mesmo contexto':'Conectando o conhecimento'}</h3><p>${d?`Estudo: ${d.geradoEm?cerebroDataHora(d.geradoEm):'sem estudo vigente'} · Consultado: ${cerebroDataHora(d.lidoEm)}`:'Aguardando consulta da central. Referências e operação continuam identificadas por origem.'}</p></div>${s.erro?`<p role="alert">${cerebroEsc(s.erro)}</p>`:''}</section>
     ${!nomes.length?'<p>Nenhum cliente retornado pela central neste momento. Isso não significa ausência de conhecimento.</p>':''}
     ${nomes.map(nome=>{const c=cerebroDoCliente(nome);const registros=Object.values(c.categorias).flat().filter(it=>it.origem==='central'||it.origem==='operacao');
-    const outrosClientes = (d?.clientes || []).filter(cl => chaveClienteAtividadeCerebro(cl.cliente) !== chaveClienteAtividadeCerebro(nome));
-    const outrosHtml = (!registros.length && outrosClientes.length)
-      ? `<div class="cb-atividade-outros"><button type="button" class="vb-link" onclick="focarClienteNoCerebro('todos');alternarAbaCerebro('atividade')">Ver toda a atividade</button><span>· ${outrosClientes.map(cl => `${cerebroEsc(cl.cliente)} · ${(cl.ideias || []).length} sugestões`).join(', ')}</span></div>` : '';
     return `<section class="cb-atividade-cliente"><header><div><h3>${cerebroEsc(c.nomeNoCadastro || c.nome)}</h3><p>${c.estudo?.ficha?'Ficha local encontrada pela central.':'Sem ficha local associada neste retorno.'} ${cerebroEsc((c.estudo?.motivos || []).join(' · '))}</p></div><button type="button" class="vb-link" onclick="abrirRedeClienteCerebro('${cerebroAspas(nome)}')">Explorar rede</button></header>
-      <div class="cb-atividade-grade">${registros.slice(0,12).map(it=>`<button type="button" class="cb-atividade-registro" onclick="abrirRegistroCerebro('${cerebroAspas(nome)}','${cerebroAspas(it.id)}')"><small>${cerebroEsc(cerebroNomeOrigem(it.origem))} · ${cerebroEsc(it.estado || it.status || cerebroGrupo(it.grupo).nome)}</small><b>${cerebroEsc(it.titulo)}</b><span>${cerebroEsc(String(it.detalhe || it.sub || '').slice(0,200))}</span>${it.prova?`<em>Trecho de origem: ${cerebroEsc(it.prova)}</em>`:''}</button>`).join('') || `<p>A consulta funcionou, mas não há atividade neste recorte para ${cerebroEsc(nome)}. Isso não significa ausência de conhecimento. Mude a origem ou explore a ficha.</p>`}</div>
-      ${outrosHtml}
+      <div class="cb-atividade-grade">${registros.slice(0,12).map(it=>`<button type="button" class="cb-atividade-registro" onclick="abrirRegistroCerebro('${cerebroAspas(nome)}','${cerebroAspas(it.id)}')"><small class="cb-r-s">${cerebroEsc(cerebroNomeOrigem(it.origem))} · ${cerebroEsc(it.estado || it.status || cerebroGrupo(it.grupo).nome)}</small><b>${cerebroEsc(it.titulo)}</b><span>${cerebroEsc(String(it.detalhe || it.sub || '').slice(0,200))}</span>${it.prova?`<em>Trecho de origem: ${cerebroEsc(it.prova)}</em>`:''}</button>`).join('') || `<p>A consulta funcionou, mas não há atividade neste recorte para ${cerebroEsc(nome)}.</p>`}</div>
       ${registros.length>12?`<button type="button" class="vb-link" onclick="abrirFichaClienteCerebro('${cerebroAspas(nome)}')">Ver os ${registros.length} registros na ficha</button>`:''}</section>`;}).join('')}
   </div>`;
 }

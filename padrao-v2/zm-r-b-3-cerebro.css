@@ -1,0 +1,123 @@
+/* ===================================================================================================================
+   V2 · R · CÉREBRO DO CLIENTE (pranchas V2-R-Cerebro-Cliente, -Atividade e -Sinapses, aprovadas pelo Paulo). A janela, a
+   lista de clientes, a folha com as abas e a consulta são as da prancha V2-M-Clientes-Cerebro (zm-b-clientes.css). Aqui:
+   o corpo da folha sem o véu cinza quando mostra uma destas três telas, a grade 3 × 3 da ficha, a tabela da atividade,
+   o estudo em dois por dois e as peças novas da consulta. Só tokens --d3-*.
+   =================================================================================================================== */
+#painel-clientes .cv2c-corpo:has(> :is(.cb-r-grade,.cb-r-ativ,.cb-r-sin)){margin:0;border-radius:0;border-top:1px solid var(--d3-divisa);background:none;overflow:hidden}
+#painel-clientes .cv2c-corpo > :is(.cb-r-grade,.cb-r-ativ,.cb-r-sin){flex:1 1 0;min-height:0}
+/* A visão escolhida no topo (Lista, Fichas, Cérebro): preenchimento fume-texto, letra fume-contra (no Claro sumia). */
+#painel-clientes .clientes-visao.cv2-seg > button[aria-checked="true"]{color:var(--d3-fume-contra)}
+.cb-r-s{font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+
+/* CLIENTE: a grade das nove áreas. */
+.cb-r-grade{flex:1 1 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));min-height:0}
+.cb-r-area{display:flex;flex-direction:column;min-width:0;min-height:0;padding:12px 12px 10px;box-sizing:border-box;border-right:1px solid var(--d3-divisa);border-bottom:1px solid var(--d3-divisa);overflow:hidden}
+.cb-r-area:nth-child(3n){border-right:0}
+.cb-r-area:nth-child(n+7){border-bottom:0}
+.cb-r-cab{flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+.cb-r-cab > button{appearance:none;min-width:0;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cb-r-cab > button:hover > b{text-decoration:underline;text-underline-offset:2px}
+.cb-r-cab > span{flex:none;font-size:var(--d3-fs-mini);color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.cb-r-corpo{flex:1 1 auto;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:0;overflow:hidden}
+.cb-r-cores{display:flex;gap:4px;margin-bottom:3px}
+.cb-r-cor{appearance:none;width:18px;height:18px;margin:0;padding:0;border:0;border-radius:4px;background:var(--cor);box-shadow:inset 0 0 0 1px var(--d3-veu-forte);cursor:pointer}
+.cb-r-lin,.cb-r-mais{appearance:none;max-width:100%;margin:0;padding:0;border:0;background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cb-r-lin > span{color:var(--d3-rotulo)}
+.cb-r-lin.r{color:var(--d3-perigo)}
+.cb-r-lin:hover{text-decoration:underline;text-underline-offset:2px}
+.cb-r-mais{color:var(--d3-rotulo)}
+.cb-r-nada{margin:0;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.cb-r-pe{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.cb-r-porque,.cb-r-acao{appearance:none;margin:0;padding:0;border:0;background:none;font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.cb-r-porque{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--d3-rotulo)}
+.cb-r-acao{flex:none}
+.cb-r-acao{color:var(--d3-tinta);font-weight:600}
+.cb-r-porque:hover,.cb-r-acao:hover{text-decoration:underline;text-underline-offset:2px}
+.cb-r-area :is(button):focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px;border-radius:4px}
+
+/* ATIVIDADE: a linha do estado, a tabela que rola por dentro e o pé. */
+.cb-r-ativ{flex:1 1 0;display:flex;flex-direction:column;min-height:0}
+.cb-r-ativ-cab{flex:none;display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border-bottom:1px solid var(--d3-divisa)}
+.cb-r-ativ-cab > span{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cb-r-ativ-cab > span > b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.cb-r-ativ-cab > span > small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb-r-btn{appearance:none;flex:none;display:inline-flex;align-items:center;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-veu-forte);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.cb-r-btn:hover{background:var(--d3-veu)}
+.cb-r-elo{appearance:none;flex:none;margin:0;padding:0 4px;border:0;background:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.cb-r-elo:hover{text-decoration:underline;text-underline-offset:2px}
+.cb-r-aviso{flex:none;margin:0;padding:6px 16px;background:var(--d3-ajuste-veu);color:var(--d3-ajuste);font-size:var(--d3-fs-apoio)}
+.cb-r-tab{flex:1 1 0;display:flex;flex-direction:column;min-height:0}
+.cb-r-tl{appearance:none;display:grid;grid-template-columns:110px 120px minmax(0,1fr) 56px;align-items:center;gap:10px;width:100%;min-height:40px;margin:0;padding:0 16px;box-sizing:border-box;border:0;border-bottom:1px solid var(--d3-divisa);background:none;color:var(--d3-tinta);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+button.cb-r-tl:hover{background:var(--d3-veu)}
+button.cb-r-tl:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
+.cb-r-tl > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb-r-tl > span:nth-child(2){color:var(--d3-rotulo)}
+.cb-r-tl > span:nth-child(3){font-size:var(--d3-fs-texto)}
+.cb-r-tl > span:last-child{text-align:right;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.cb-r-tc{flex:none;min-height:28px;cursor:default;font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+.cb-r-tc > span:nth-child(3){font-size:var(--d3-fs-mini)}
+.cb-r-rola{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.cb-r-o{display:inline-block;width:6px;height:6px;margin-right:8px;border-radius:50%;background:var(--d3-rotulo);vertical-align:middle}
+.cb-r-o.operacao{background:var(--d3-info)}
+.cb-r-o.central{background:var(--d3-agente)}
+.cb-r-o.referencia{background:var(--d3-acao)}
+.cb-r-o.navegador{background:var(--d3-tinta)}
+.cb-r-ativ-nada{flex:1 1 auto;padding:16px}
+.cb-r-ativ-pe{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 16px;border-top:1px solid var(--d3-divisa)}
+.cb-r-ativ-pe > span{margin-left:auto;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);white-space:nowrap}
+.cb-r-ativ :is(.cb-r-btn,.cb-r-elo):focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+
+/* SINAPSES: a cabeça do estudo, setor e posicionamento, as quatro áreas e o "Para confirmar". */
+.cb-r-sin{flex:1 1 0;display:flex;flex-direction:column;min-height:0}
+.cb-r-sin-cab{flex:none;display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;border-bottom:1px solid var(--d3-divisa)}
+.cb-r-sin-cab > span{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cb-r-sin-cab > span > b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.cb-r-sin-cab .cb-motor{font-style:normal}
+.cb-r-sin-rola{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.cb-r-sin-duas,.cb-r-sin-grade{display:grid;grid-template-columns:1fr 1fr}
+.cb-r-sin-duas > span{display:flex;flex-direction:column;gap:3px;min-width:0;padding:12px 16px;border-bottom:1px solid var(--d3-divisa)}
+.cb-r-sin-duas > span + span,.cb-r-sin-area:nth-child(2n){border-left:1px solid var(--d3-divisa)}
+.cb-r-sin-duas small{font-size:var(--d3-fs-mini);color:var(--d3-rotulo)}
+.cb-r-sin-duas b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.cb-r-sin-area{min-width:0;padding:12px 16px;border-bottom:1px solid var(--d3-divisa)}
+.cb-r-sin-rot{display:flex;align-items:center;gap:7px;margin-bottom:6px;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.cb-r-sin-rot > span{font-weight:400;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.cb-r-sin-rot > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-rotulo)}
+.cb-r-sin-rot > i.g{background:var(--d3-pronto)}
+.cb-r-sin-rot > i.r{background:var(--d3-perigo)}
+.cb-r-sin-rot > i.i{background:var(--d3-info)}
+.cb-r-sin-rot > i.l{background:var(--d3-agente)}
+.cb-r-sin-area ul,.cb-r-sin-conf ul{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.cb-r-sin-area li{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:var(--d3-fs-texto)}
+.cb-r-sin-area li > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.cb-r-sin-area .cb-sin-fonte{font-weight:500}
+.cb-r-sin-conf{padding:12px 16px}
+.cb-r-sin-conf > b{display:block;margin-bottom:8px;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.cb-r-sin-conf > b > span{margin-left:6px;font-weight:400;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.cb-r-sin-conf li{padding-top:8px;border-top:1px solid var(--d3-divisa);font-size:var(--d3-fs-texto)}
+.cb-r-sin-pe{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.cb-r-sin :is(.cb-r-btn):focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+
+/* A consulta: as origens em fichas, os três números da atividade e as fontes do estudo. */
+.cb-r-origens{display:flex;flex-wrap:wrap;gap:6px}
+.cb-r-origens > button{appearance:none;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
+.cb-r-origens > button:hover{background:var(--d3-fume-veu-forte)}
+.cb-r-origens > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
+.cb-r-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cb-r-tres > button{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:0;padding:10px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.cb-r-tres > button > b{font:600 var(--d3-fs-destaque)/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);font-variant-numeric:tabular-nums}
+.cb-r-tres > button:hover{background:var(--d3-fume-veu-forte)}
+.cb-r-tres > button[aria-pressed="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+.cb-r-fonte{cursor:default}
+.cb-r-fonte:hover{background:var(--d3-fume-veu)}
+:is(.cb-r-origens,.cb-r-tres) > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+
+@media (max-height:820px){
+  .cb-r-area{padding:8px 10px 6px}
+  .cb-r-ativ-cab,.cb-r-sin-cab{min-height:48px}
+  .cb-r-tl{min-height:34px}
+}
+@media (max-width:1100px){
+  .cb-r-grade{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none}
+}

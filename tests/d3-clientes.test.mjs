@@ -57,7 +57,7 @@ test('Conversas: bloco de ação pela menção não lida ou pela conversa com ma
 test('Contratos e Churn: saíram do quadro da Direção 3 para as pranchas V2-M (laranja, folhas e coluna de consulta); o envio não muda', () => {
   const ct = carteira.slice(carteira.indexOf('  function abaContratos() {'), carteira.indexOf('  // ---------- janela ----------'));
   const ch = carteira.slice(carteira.indexOf('  function abaChurn() {'), carteira.indexOf('  // Como o churn é contado'));
-  assert.match(carteira, /const TELAS_M = new Set\(\['contratos', 'churn'\]\);/);
+  assert.match(carteira, /const TELAS_M = new Set\(\['contratos', 'churn', 'saude'\]\);/);
   assert.match(carteira, /if \(TELAS_M\.has\(estado\.aba\)\) return htmlDaJanelaM\(\);/);
   for (const r of ['larMq(AGENTE_CONTRATOS', '<small>De olho</small>', 'em contratos, por mês', 'tempo de casa', 'sem contrato</button>']) assert.ok(ct.includes(r), r);
   for (const r of ['larMq(AGENTE_CHURN', "rotulo: 'Receita perdida'", "rotulo: 'Tempo até sair'", '<b>Em risco agora</b>']) assert.ok(ch.includes(r), r);

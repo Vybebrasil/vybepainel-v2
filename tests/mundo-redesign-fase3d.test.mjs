@@ -102,7 +102,7 @@ test('Toolkit: o dock abre a Visão geral com os cartões das ferramentas e os u
   assert.deepEqual({ ...F._rotuloDoUso({ tipo: 'qr', dados: { texto: 'https://brussolo.com.br/cardapio' } }) }, { titulo: 'brussolo.com.br/cardapio', sub: 'QR Code' });
   assert.equal(F._rotuloDoUso({ tipo: 'whatsapp', dados: { numero: '(74) 99999-1234', mensagem: 'Oi' } }).sub, 'Link do WhatsApp · "Oi"');
   assert.ok(fonte.includes("const ABAS = [['inicio', 'Visão geral'],"));
-  assert.ok(fonte.includes('class="vf-amostra outra'), 'a cor do QR pela paleta do sistema, com "Outra" para a marca do cliente');
+  assert.ok(fonte.includes('class="d3m-r-tk-chip outra"'), 'a cor do QR pela paleta do sistema, com "Outra" para a marca do cliente');
   assert.ok(!fonte.includes('<label class="vf-cor"><span>Cor</span><input type="color"'), 'sem a cor nativa solta');
 });
 

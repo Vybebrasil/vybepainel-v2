@@ -1538,11 +1538,11 @@ function agv2TopoHtml() {
     const ligados = new Set(ROT.lista.flatMap((r) => r.conteudos.map((c) => c.id))).size;
     sub = `${captPlural(ROT.lista.length, "roteiro", "roteiros")} · ${ligados === 1 ? "1 conteúdo saiu deles" : `${ligados} conteúdos saíram deles`}`;
   } else if (vista === "feed") sub = "Feed dos clientes"; else if (vista === "calendar") sub = "Calendário das peças";
-  const sel = (v) => v === "roteiros" ? noRot : naCapt && (v === "mes" ? CAPT.vista === "mes" : CAPT.vista !== "mes");
-  const seg = [["semana", "Semana"], ["mes", "Mês"], ["roteiros", "Roteiros"]].map(([v, n]) => `<button type="button" role="radio" aria-checked="${sel(v)}" onclick="prodAgendaVista('${v}')">${n}</button>`).join("");
+  // A aba Dia (prancha V2-R-Agenda-Dia, aprovada) entra ao lado de Semana, Mês e Roteiros; saiu da seta do título.
+  const sel = (v) => v === "roteiros" ? noRot : naCapt && (v === "mes" || v === "dia" ? CAPT.vista === v : CAPT.vista !== "mes" && CAPT.vista !== "dia");
+  const seg = [["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"], ["roteiros", "Roteiros"]].map(([v, n]) => `<button type="button" role="radio" aria-checked="${sel(v)}" onclick="prodAgendaVista('${v}')">${n}</button>`).join("");
   const fecha = "this.closest('details').open=false;";
-  const outras = `${naCapt ? `<button type="button" role="menuitemradio" aria-checked="${CAPT.vista === "dia"}" onclick="${fecha}captVista('dia')" title="Dia (D)">Dia</button>` : ""}
-    <button type="button" role="menuitemradio" aria-checked="${vista === "feed"}" onclick="${fecha}window.setProdV2View('feed')">Feed</button><button type="button" role="menuitemradio" aria-checked="${vista === "calendar"}" onclick="${fecha}window.setProdV2View('calendar')">Calendário</button>
+  const outras = `<button type="button" role="menuitemradio" aria-checked="${vista === "feed"}" onclick="${fecha}window.setProdV2View('feed')">Feed</button><button type="button" role="menuitemradio" aria-checked="${vista === "calendar"}" onclick="${fecha}window.setProdV2View('calendar')">Calendário</button>
     ${naCapt ? `<button type="button" role="menuitemcheckbox" aria-checked="${CAPT.inspetor}" onclick="${fecha}captAlternarInspetor()" title="O que precisa de você (P)">O que precisa de você</button><span class="d3m-c-pop-rot">T hoje · ← → navega · D S M visão · N marca · P pendências</span>` : ""}`;
   const passo = CAPT.vista === "dia" ? "dia" : CAPT.vista === "mes" ? "mês" : "semana";
   const acoes = naCapt ? `<button type="button" class="d3m-c-ico" onclick="captNavegar(-1)" aria-label="${passo === "semana" ? "Semana anterior" : passo === "mês" ? "Mês anterior" : "Dia anterior"}" title="Anterior (←)">${AGV2_IC.antes}</button>
@@ -1594,8 +1594,8 @@ function agv2BlocoHtml(e, estilo, curto, baixo = "") {
     aria-label="${safeText(rotulo)}">${curto ? `<span class="agv2-ev-h">${safeText(e.inicio || "dia todo")} · <b>${safeText(p.nome)}</b></span>`
       : `<span class="agv2-ev-h">${safeText(e.inicio || "")}</span><b>${safeText(p.nome)}</b>${linha2 ? `<small class="agv2-ev-s">${safeText(linha2)}</small>` : ""}`}${selo ? `<i class="agv2-selo">${safeText(selo)}</i>` : ""}</button>`;
 }
-function agv2GradeHtml(eventos) {
-  const hoje = captHoje(), dias = Array.from({ length: 7 }, (_, i) => agSomar(CAPT.semana, i));
+function agv2GradeHtml(eventos, soDias = null) {
+  const hoje = captHoje(), dias = soDias || Array.from({ length: 7 }, (_, i) => agSomar(CAPT.semana, i));
   const comHora = eventos.filter((e) => agMin(e.inicio) !== null), diaTodo = eventos.filter((e) => agMin(e.inicio) === null);
   const ini = Math.min(7 * 60, ...comHora.map((e) => Math.floor(agMin(e.inicio) / 60) * 60));
   const fim = Math.max(18 * 60, ...comHora.map((e) => Math.ceil((agMin(e.fim) ?? agMin(e.inicio) + 60) / 60) * 60));
@@ -1663,6 +1663,109 @@ function agv2LadoHtml(pend, todos) {
     <button type="button" class="d3m-vlin" onclick="window.setProdV2View('feed')"><span class="d3m-vnome"><b>Feed</b></span>${AGV2_IC.depois}</button></div>`;
   return `<aside class="d3m-lado agv2-lado" aria-label="Consulta">${agv2LaranjaHtml(pend)}${antes}${hojeHtml}${abrir}</aside>`;
 }
+// MÊS e DIA nas pranchas V2-R-Agenda-Mes e V2-R-Agenda-Dia (aprovadas pelo Paulo, 19/11/2026). Mês: a grade do mês numa
+// folha (o dia com as datas comemorativas e até dois compromissos, o resto num "+N"), e ao lado o laranja, o mês em três
+// números, as datas que pedem peça e o "Abrir". Dia: a folha das horas, a folha do roteiro do dia (cada captação com as
+// peças e o "Marcar gravado") e ao lado o laranja do dia, o que ficou de ontem, amanhã e o "Abrir". As funções de antes
+// (captSelecionar, captVerDia, captGravado, captAbrirFechar, captAbrirMontar, captAbrirPeca) seguem sendo as que agem.
+const AGV2_DIAS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
+const agv2Av = (nome) => { let h = 0; for (const ch of String(nome || "")) h = (h * 31 + ch.charCodeAt(0)) % 997; return `<i class="agv2-av c${h % 6}" aria-hidden="true">${safeText(String(nome || "?").trim().slice(0, 2).toUpperCase())}</i>`; };
+const agv2Ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+function agv2MesHtml(eventos) {
+  const hoje = captHoje(), d = CAPT.dia || hoje, mes = d.slice(0, 7), ini = agSegunda(captPrimeiroDoMes(d));
+  const ultimo = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
+  const semanas = Math.ceil((Math.round((Date.parse(`${ultimo}T12:00:00Z`) - Date.parse(`${ini}T12:00:00Z`)) / 864e5) + 1) / 7);
+  const dias = Array.from({ length: semanas * 7 }, (_, i) => agSomar(ini, i)), MAX = 2;
+  const pilula = (e) => { const p = agPartesDoTitulo(e), passou = e.dia < hoje;
+    return `<button type="button" class="agv2m-ev t-${safeText(e.tipo || "outro")}${e.estado?.chave === "fechar" ? " fechar" : ""}${passou ? " passou" : ""}${e.id === CAPT.sel ? " sel" : ""}" data-ev="${safeText(e.id)}"
+      onclick="event.stopPropagation();agPreviaSair(true);captSelecionar('${jsArg(e.id)}')" onmouseenter="agPreviaEntrar(this,'captPreviaHtml')" onmouseleave="agPreviaSair()" onfocus="agPreviaEntrar(this,'captPreviaHtml')" onblur="agPreviaSair()"
+      aria-label="${safeText(`${AG_TIPOS[e.tipo] || "Compromisso"}: ${e.titulo}, ${agHorario(e)}${e.estado ? `, ${e.estado.texto}` : ""}`)}">${passou ? '<i aria-hidden="true"></i>' : ""}<span>${!passou && e.inicio ? `<b>${safeText(e.inicio)}</b> ` : ""}${safeText(p.nome)}</span></button>`; };
+  const data = (x) => `<button type="button" class="agv2m-data${x.feriado ? " feriado" : ""}" data-comemorativa="${safeText(x.iso)}|${safeText(x.nome)}" title="${safeText(x.nome)}">${safeText(x.nome.split(/ \u2014 | - /)[0])}</button>`;
+  const celula = (dia) => {
+    const lista = eventos.filter((e) => e.dia === dia).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
+    const datas = window.VybeDatas?.doDia?.(dia) || [], resto = lista.length - MAX;
+    return `<div class="agv2m-dia${dia.slice(0, 7) !== mes ? " fora" : ""}${dia === hoje ? " hoje" : ""}" role="gridcell"><span class="agv2m-topo"><button type="button" class="agv2m-num" onclick="captVerDia('${dia}')" aria-label="Ver ${safeText(captDiaLongo(dia))}"${dia === hoje ? ' aria-current="date"' : ""}>${Number(dia.slice(8))}</button>${resto > 0 ? `<button type="button" class="agv2m-mais" onclick="captVerDia('${dia}')" aria-label="Mais ${resto} em ${safeText(captDiaLongo(dia))}">+${resto}</button>` : ""}</span>
+      ${datas.slice(0, 1).map(data).join("")}${lista.slice(0, MAX).map(pilula).join("")}</div>`;
+  };
+  return `<div class="agv2m" role="grid" aria-label="Mês" style="--agv2m-semanas:${semanas}"><div class="agv2m-cab" role="row">${AGV2_DIAS.map((n) => `<span role="columnheader">${n}</span>`).join("")}</div>
+    <div class="agv2m-grade">${dias.map(celula).join("")}</div></div>`;
+}
+function agv2LadoMesHtml(pend, todos) {
+  const hoje = captHoje(), d = CAPT.dia || hoje, mes = d.slice(0, 7), doMes = todos.filter((e) => e.dia.slice(0, 7) === mes);
+  const n = (t) => doMes.filter((e) => e.tipo === t).length;
+  const nums = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${safeText(agv2Mes(`${mes}-01`).replace(/^./, (l) => l.toUpperCase()))}</b><span>na agenda</span></div>
+    <div class="agv2-tres">${[["captacao", "captação", "captações"], ["reuniao", "reunião", "reuniões"], ["outro", "compromisso", "compromissos"]].map(([t, um, varios]) => `<button type="button" class="t-${t}" role="switch" aria-checked="${CAPT.tipos.has(t)}" onclick="captTipo('${t}')" title="${CAPT.tipos.has(t) ? "Esconder" : "Mostrar"} na grade"><b>${n(t)}</b><span>${n(t) === 1 ? um : varios}</span></button>`).join("")}</div></div>`;
+  const desde = mes === hoje.slice(0, 7) ? hoje : `${mes}-01`;
+  const datas = (window.VybeDatas?.proximas?.(desde, 40) || []).filter((x) => x.iso.slice(0, 7) === mes).slice(0, 3);
+  const datasHtml = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Datas que pedem peça</b><span>${mes === hoje.slice(0, 7) ? "até o fim do mês" : "o mês todo"}</span></div>
+    ${datas.map((x) => { const s = window.VybeDatas?.sugestoes?.(x)?.filter((y) => y.cliente !== "Todos os clientes").length || 0;
+      return `<button type="button" class="d3m-vlin" data-comemorativa="${safeText(x.iso)}|${safeText(x.nome)}"><span class="d3m-vnome"><b class="agv2-dd">${agv2Ddmm(x.iso)}</b> <b>${safeText(x.nome.split(/ \u2014 | - /)[0])}</b>${x.feriado ? " · feriado" : s ? ` · ${captPlural(s, "cliente combina", "clientes combinam")}` : ""}</span></button>`; }).join("") || '<p class="d3m-vvazio">Nenhuma data forte no resto do mês.</p>'}</div>`;
+  const abrir = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Abrir</b></div>
+    <button type="button" class="d3m-vlin" onclick="prodAgendaVista('roteiros')"><span class="d3m-vnome"><b>Roteiros</b>${pend.roteiro.length ? ` · ${pend.roteiro.length} para escrever` : ""}</span>${AGV2_IC.depois}</button>
+    <button type="button" class="d3m-vlin" onclick="captVerDia('${hoje}')"><span class="d3m-vnome"><b>Hoje, hora a hora</b></span>${AGV2_IC.depois}</button></div>`;
+  return `<aside class="d3m-lado agv2-lado" aria-label="Consulta">${agv2LaranjaHtml(pend)}${nums}${datasHtml}${abrir}</aside>`;
+}
+// As peças de uma captação do dia: as ligadas a ela ou, sem ligação, as que o cliente tem esperando.
+function agv2PecasDa(e) { const k = e.nossa; return k ? k.pecas || [] : e.cliente_id ? captPendentesDo(e.cliente_id, e) : []; }
+const agv2SemRoteiro = (x) => !String(x.briefing || "").trim() && !x.roteiro_doc && x.tipo !== "foto";
+function agv2RoteiroDoDiaHtml(dia, eventos) {
+  const caps = eventos.filter((e) => e.tipo === "captacao" && e.dia === dia).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
+  if (!caps.length) return `<div class="agv2d-nada">${vbEstadoHtml({ titulo: `Nenhuma captação ${dia === captHoje() ? "hoje" : "neste dia"}`, texto: "Marque uma pelo botão do topo, ou clique num horário vazio.",
+    acao: `<button type="button" class="d3v-btn" onclick="captAbrirMontar('',{dia:'${dia}'})">Marcar captação</button>` })}</div>`;
+  return `<ol class="agv2d-lista">${caps.map((e) => {
+    const k = e.nossa, p = agPartesDoTitulo(e), fechada = Boolean(k?.fechada_em), pecas = agv2PecasDa(e);
+    const acao = e.tipo === "captacao" && !fechada && captFechavel(e) && e.dia <= captHoje() ? `<button type="button" class="d3v-btn" onclick="captAbrirFechar('${jsArg(e.id)}')">Fechar gravação</button>`
+      : !k && e.cliente_id ? `<button type="button" class="d3v-btn" onclick="captAbrirMontar('${jsArg(e.cliente_id)}',{evento:'${safeText(e.id)}'})">Escolher peças</button>`
+      : `<button type="button" class="d3v-btn" onclick="captSelecionar('${jsArg(e.id)}')">Abrir a captação</button>`;
+    const peca = (x) => { const [tipo, ...resto] = String(x.titulo || "").split(/ - | \u2014 /), sem = agv2SemRoteiro(x);
+      const marca = k && !fechada ? `<input type="checkbox" class="agv2d-chk" ${x.gravado ? "checked" : ""} aria-label="${safeText(x.titulo)}: gravado" onchange="captGravado('${k.id}','${x.id}',${x.gravado ? "true" : "false"})">` : `<input type="checkbox" class="agv2d-chk" ${x.gravado ? "checked" : ""} disabled aria-label="${safeText(x.titulo)}${k ? ": gravação fechada" : ": ainda não ligada"}">`;
+      const sub = x.roteiro_doc ? `<a href="${safeText(x.roteiro_doc.link)}" target="_blank" rel="noopener">roteiro no Docs</a>` : sem ? '<span class="a">sem roteiro</span>' : x.tipo === "foto" && !String(x.briefing || "").trim() ? "foto, sem roteiro" : "roteiro escrito";
+      const bt = sem ? `<button type="button" class="d3v-btn sec" onclick="captAbrirPeca('${jsArg(x.id)}')">Escrever roteiro</button>`
+        : k && !fechada ? `<button type="button" class="d3v-btn sec" aria-pressed="${Boolean(x.gravado)}" onclick="captGravado('${k.id}','${x.id}',${x.gravado ? "true" : "false"})">${x.gravado ? "Gravado" : "Marcar gravado"}</button>`
+        : `<button type="button" class="d3v-btn sec" onclick="captAbrirPeca('${jsArg(x.id)}')">Abrir a peça</button>`;
+      return `<li class="agv2d-peca${x.gravado ? " gravada" : ""}">${marca}<span class="agv2d-pt"><button type="button" class="agv2d-pn" onclick="captAbrirPeca('${jsArg(x.id)}')"><b>${safeText(tipo)}</b>${resto.length ? ` · ${safeText(resto.join(" - "))}` : ""}</button><small class="agv2d-s">${sub}</small></span>${bt}</li>`; };
+    return `<li class="agv2d-cap${e.id === CAPT.sel ? " sel" : ""}" data-ev="${safeText(e.id)}"><div class="agv2d-cab"><b class="agv2d-h">${safeText(e.inicio || "dia")}</b>${agv2Av(p.nome)}<span class="agv2d-quem"><b>${safeText(p.nome)}</b><small class="agv2d-s">${safeText([p.resto, e.local].filter(Boolean).join(" · ") || AG_TIPOS[e.tipo] || "")}</small></span>
+        ${e.estado ? `<span class="agv2d-est tom-${safeText(e.estado.tom)}"><i aria-hidden="true"></i>${safeText(e.estado.texto.charAt(0).toLowerCase() + e.estado.texto.slice(1))}</span>` : ""}${acao}</div>
+      ${fechada ? `<div class="agv2d-gerado">${captGeradoHtml(k)}</div>` : pecas.length ? `${k ? "" : '<p class="agv2d-nota">Ainda não ligadas a esta captação:</p>'}<ul class="agv2d-pecas">${pecas.map(peca).join("")}</ul>` : '<p class="agv2d-nota">Nenhuma peça para esta captação.</p>'}</li>`;
+  }).join("")}</ol>`;
+}
+function agv2DiaHtml(eventos) {
+  const dia = CAPT.dia || captHoje(), hoje = captHoje(), doDia = eventos.filter((e) => e.dia === dia), caps = doDia.filter((e) => e.tipo === "captacao");
+  const pecas = caps.flatMap(agv2PecasDa), semRot = pecas.filter(agv2SemRoteiro).length, gravadas = pecas.filter((x) => x.gravado).length;
+  const { titulo } = captTituloDaVista();
+  const horas = `<section class="d3m-c-folha agv2-folha agv2d-horas${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Hora a hora" aria-busy="${CAPT.carregandoSemana}">
+      <div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${safeText(titulo)} <span>· hora a hora</span></b>${dia === hoje ? "" : `<button type="button" class="d3v-btn sec s" onclick="captNavegar(0)" title="Hoje (T)">Hoje</button>`}</div>
+      ${CAPT.avisoAgenda ? `<p class="agv2-aviso" role="status">${safeText(CAPT.avisoAgenda)}</p>` : ""}${agv2GradeHtml(eventos, [dia])}</section>`;
+  const roteiro = `<section class="d3m-c-folha agv2d-roteiro" aria-label="Roteiro do dia"><div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">Roteiro do dia <span>· ${captPlural(caps.length, "captação", "captações")} · ${captPlural(pecas.length, "peça", "peças")}</span></b></div>
+      <div class="agv2d-rola">${agv2RoteiroDoDiaHtml(dia, eventos)}</div>
+      <div class="agv2d-pe"><span>${dia === hoje ? "Hoje" : "No dia"}</span><span><b class="${semRot ? "a" : ""}">${semRot}</b><small class="agv2d-s">${semRot === 1 ? "peça sem roteiro" : "peças sem roteiro"}</small></span><span><b>${gravadas}</b><small class="agv2d-s">${gravadas === 1 ? "gravada" : "gravadas"}${dia === hoje ? " hoje" : ""}</small></span></div></section>`;
+  return `<div class="agv2d-duas">${horas}${roteiro}</div>`;
+}
+function agv2LadoDiaHtml(pend, todos) {
+  const hoje = captHoje(), dia = CAPT.dia || hoje, eventos = todos.filter((e) => CAPT.tipos.has(e.tipo));
+  const caps = eventos.filter((e) => e.tipo === "captacao" && e.dia === dia).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
+  const semRot = caps.flatMap((e) => agv2PecasDa(e).filter(agv2SemRoteiro).map((x) => ({ e, x })));
+  const bt = (txt, attrs, sec) => `<button type="button" class="d3m-btn l${sec ? " s" : ""}" ${attrs}>${txt}</button>`;
+  let laranja;
+  if (semRot.length && !pend.fechar.length) {
+    const { e, x } = semRot[0], p = agPartesDoTitulo(e), quando = dia === hoje ? "grava hoje" : `grava ${safeText(d3agQuando(dia).toLowerCase())}`;
+    laranja = `<section class="d3m-laranja agv2-laranja" aria-label="O que pede você agora"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">L</span>Lucas · ${quando}</span>
+      <div class="d3m-lar-txt"><b class="d3m-lar-num">${semRot.length}</b><b class="d3-acao-frase">${semRot.length === 1 ? "peça sem roteiro grava" : "peças sem roteiro gravam"}${e.inicio ? ` às ${safeText(e.inicio)}` : ""}</b><small class="d3m-c-s">${safeText(String(x.titulo || "").replace(/ - | \u2014 /, " "))}, da ${safeText(p.nome)}.</small></div>
+      <div class="d3m-lar-bts">${bt("Escrever roteiro", `onclick="captAbrirPeca('${jsArg(x.id)}')"`)}${bt("Ver a captação", `onclick="captSelecionar('${jsArg(e.id)}')"`, true)}</div></section>`;
+  } else laranja = agv2LaranjaHtml(pend);
+  const ontem = pend.fechar.filter((e) => e.dia < dia).slice(0, 2);
+  const ontemHtml = ontem.length ? `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${ontem.every((e) => e.dia === agSomar(dia, -1)) ? "Ainda de ontem" : "Ainda de antes"}</b><span>${pend.fechar.length > 2 ? `+${pend.fechar.length - 2}` : ""}</span></div>
+    ${ontem.map((e) => `<button type="button" class="d3m-vlin" onclick="captAbrirFechar('${jsArg(e.id)}')"><i class="d3m-pt r" aria-hidden="true"></i><span class="d3m-vnome"><b>${safeText(agPartesDoTitulo(e).nome)}</b> · gravação sem fechar</span>${AGV2_IC.depois}</button>`).join("")}</div>` : "";
+  const amanha = agSomar(dia, 1), deAmanha = eventos.filter((e) => e.dia === amanha).sort((a, b) => (agMin(a.inicio) ?? -1) - (agMin(b.inicio) ?? -1));
+  const amanhaHtml = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>${amanha === agSomar(hoje, 1) ? "Amanhã" : "No dia seguinte"}</b><span>${safeText(agDiaSemana(amanha))}, ${Number(amanha.slice(8))}</span></div>
+    ${deAmanha.slice(0, 2).map((e) => { const p = agPartesDoTitulo(e), n = agv2PecasDa(e).length; return `<button type="button" class="d3m-vlin agv2-hoje-lin t-${safeText(e.tipo || "outro")}" onclick="captVerDia('${amanha}')"><i aria-hidden="true"></i><b class="agv2-hoje-h">${safeText(e.inicio || "dia")}</b><span class="d3m-vnome"><b>${safeText(p.nome)}</b>${e.tipo === "captacao" && n ? ` · ${captPlural(n, "peça", "peças")}` : ` · ${safeText((AG_TIPOS[e.tipo] || "").toLowerCase())}`}</span></button>`; }).join("") || '<p class="d3m-vvazio">Nada marcado.</p>'}
+    ${deAmanha.length > 2 ? `<button type="button" class="d3m-vlin" onclick="captVerDia('${amanha}')"><span class="d3m-vnome">Mais ${deAmanha.length - 2}</span>${AGV2_IC.depois}</button>` : ""}</div>`;
+  const nSemana = eventos.filter((e) => e.tipo === "captacao" && e.dia >= agSegunda(dia) && e.dia <= agSomar(agSegunda(dia), 6)).length;
+  const abrir = `<div class="d3m-cons"><div class="d3m-cons-cab"><b>Abrir</b></div>
+    <button type="button" class="d3m-vlin" onclick="prodAgendaVista('semana')"><span class="d3m-vnome"><b>Semana</b> · ${captPlural(nSemana, "captação", "captações")}</span>${AGV2_IC.depois}</button>
+    <button type="button" class="d3m-vlin" onclick="prodAgendaVista('roteiros')"><span class="d3m-vnome"><b>Roteiros</b>${pend.roteiro.length ? ` · ${pend.roteiro.length} para escrever` : ""}</span>${AGV2_IC.depois}</button></div>`;
+  return `<aside class="d3m-lado agv2-lado" aria-label="Consulta">${laranja}${ontemHtml}${amanhaHtml}${abrir}</aside>`;
+}
 function agv2Html({ todos, pend }) {
   const hoje = captHoje(), eventos = todos.filter((e) => CAPT.tipos.has(e.tipo)), fim = agSomar(CAPT.semana, 6);
   const nCapt = eventos.filter((e) => e.tipo === "captacao").length, nHoje = eventos.filter((e) => e.tipo === "captacao" && e.dia === hoje).length;
@@ -1672,10 +1775,12 @@ function agv2Html({ todos, pend }) {
   const nome = CAPT.vista === "mes" || CAPT.vista === "dia" ? safeText(titulo)
     : `Semana de ${Number(CAPT.semana.slice(8))}${CAPT.semana.slice(5, 7) !== fim.slice(5, 7) ? ` de ${safeText(agv2Mes(CAPT.semana))}` : ""} a ${Number(fim.slice(8))} de ${safeText(agv2Mes(fim))}`;
   const conta = CAPT.vista === "dia" ? "" : ` <span>· ${nCapt ? `${captPlural(nCapt, "captação", "captações")}${nHoje && naAtual ? `, ${nHoje} hoje` : ""}` : "nenhuma captação"}</span>`;
-  const corpo = CAPT.vista === "mes" || CAPT.vista === "dia" ? `<div class="capt capt-cal vista-${CAPT.vista} agv2-antiga"><div class="capt-colunas"><section class="capt-agenda">${CAPT.vista === "mes" ? captMesHtml(eventos) : captDiaHtml(eventos)}</section></div></div>` : agv2GradeHtml(eventos);
-  return `<div id="agv2" class="d3m-c-corpo agv2 agv2-v-${CAPT.vista === "mes" ? "mes" : CAPT.vista === "dia" ? "dia" : "semana"}"><span class="capt-cal" hidden></span>
+  // Dia: as duas folhas da prancha V2-R-Agenda-Dia (horas e roteiro do dia) e a consulta do dia.
+  if (CAPT.vista === "dia") return `<div id="agv2" class="d3m-c-corpo agv2 agv2-v-dia"><span class="capt-cal" hidden></span>${agv2DiaHtml(eventos)}${CAPT.inspetor ? agv2LadoHtml(pend, todos) : agv2LadoDiaHtml(pend, todos)}</div>`;
+  const corpo = CAPT.vista === "mes" ? agv2MesHtml(eventos) : agv2GradeHtml(eventos);
+  return `<div id="agv2" class="d3m-c-corpo agv2 agv2-v-${CAPT.vista === "mes" ? "mes" : "semana"}"><span class="capt-cal" hidden></span>
     <section class="d3m-c-folha agv2-folha${CAPT.carregandoSemana ? " carregando" : ""}" aria-label="Agenda" aria-busy="${CAPT.carregandoSemana}">
       <div class="d3m-c-folha-cab"><b class="d3m-c-h3" role="heading" aria-level="3">${nome}${conta}</b>${naAtual ? "" : `<button type="button" class="d3v-btn sec s" onclick="captNavegar(0)" title="Hoje (T)">Hoje</button>`}<span class="agv2-legenda" role="group" aria-label="Na agenda">${legenda}</span></div>
       ${CAPT.avisoAgenda ? `<p class="agv2-aviso" role="status">${safeText(CAPT.avisoAgenda)}</p>` : ""}${corpo}</section>
-    ${agv2LadoHtml(pend, todos)}</div>`;
+    ${CAPT.vista === "mes" && !CAPT.inspetor ? agv2LadoMesHtml(pend, todos) : agv2LadoHtml(pend, todos)}</div>`;
 }

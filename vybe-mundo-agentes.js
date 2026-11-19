@@ -568,7 +568,7 @@
   // cartaDe) ao lado da folha "Para você decidir"; embaixo, a folha "Quem é quem" (cada agente com o estado, o que tem
   // para você e o acerto); na coluna de consulta, o acerto em 7 dias, o que os agentes viram, a central e o "Abrir".
   // A fila em lista, o perfil do agente e "Como o VYBES pensa" seguem na janela de antes, a um clique.
-  const emM = () => st.vista === 'fila' && !st.lista;
+  const emM = () => st.vista === 'fila'; // os cartões e a lista (prancha V2-R-Agentes-Fila) no vidro
   const svgA = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const ICA = { seta: svgA('<path d="M9 6l6 6-6 6"/>'), busca: svgA('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'), pontos: svgA('<path d="M5 12h.01M12 12h.01M19 12h.01"/>'),
     ajuda: svgA('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/>') };
@@ -594,10 +594,10 @@
     const sub = [dia, todos.length ? `${conta('ativo')} ${conta('ativo') === 1 ? 'ativo' : 'ativos'}, ${conta('sombra')} em sombra` : '', n ? `${n === 1 ? '1 pedido depende' : `${n} pedidos dependem`} de você` : 'nada depende de você agora'].filter(Boolean).join(' · ');
     const f = fonte(), semSinal = f.erro && !f.dados;
     return `<div class="d3m-d-topo d3m-d-ag-topo"><div class="d3m-d-tit"><h2>Agentes</h2><span class="d3m-d-sub">${esc(sub)}</span></div>
-      <div class="d3m-d-ferr">${semSinal ? '<span class="d3m-d-ag-sinal" role="status">Central sem sinal<button type="button" class="d3m-d-vbtn" data-vga-recarregar>Tentar de novo</button></span>' : ''}
+      <div class="d3m-d-ferr"><span class="d3m-d-seg" role="group" aria-label="Como ver a fila"><button type="button" data-vga-cartoes aria-pressed="${!st.lista}">Cartões</button><button type="button" data-vga-lista="1" aria-pressed="${Boolean(st.lista)}">Lista</button></span>${semSinal ? '<span class="d3m-d-ag-sinal" role="status">Central sem sinal<button type="button" class="d3m-d-vbtn" data-vga-recarregar>Tentar de novo</button></span>' : ''}
         ${st.buscaAberta || st.busca ? `<input type="search" class="d3m-d-ag-busca" data-vga-busca placeholder="Buscar agente" aria-label="Buscar agente" value="${esc(st.busca || '')}">` : ''}<button type="button" class="d3m-d-ico" data-vga-busca-abre aria-expanded="${Boolean(st.buscaAberta || st.busca)}" aria-label="Buscar agente" title="Buscar agente">${ICA.busca}</button>
         ${temDiagnostico() ? `<button type="button" class="d3m-d-ico" data-vga-cerebro aria-label="Como o VYBES pensa" title="Como o VYBES pensa">${ICA.ajuda}</button>` : ''}
-        <details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais opções" title="Mais opções">${ICA.pontos}</summary><div class="d3m-d-pop" role="menu"><button type="button" role="menuitem" data-vga-lista="1">Ver a fila em lista</button><button type="button" role="menuitem" data-vga-recarregar>Ler a central de novo</button><button type="button" role="menuitem" data-vga-fechar>Fechar</button></div></details>
+        <details class="d3m-d-mais"><summary class="d3m-d-ico" aria-label="Mais opções" title="Mais opções">${ICA.pontos}</summary><div class="d3m-d-pop" role="menu">${st.lista ? '<button type="button" role="menuitem" data-vga-cartoes>Ver em cartões</button>' : '<button type="button" role="menuitem" data-vga-lista="1">Ver a fila em lista</button>'}<button type="button" role="menuitem" data-vga-recarregar>Ler a central de novo</button><button type="button" role="menuitem" data-vga-fechar>Fechar</button></div></details>
         ${varios > 1 ? `<button type="button" class="d3m-d-vbtn p" data-vga-aprovar-todos${st.enviando ? ' disabled' : ''}>Aprovar os ${varios}</button>` : ''}</div></div>`;
   }
   // A célula do agente em "Quem é quem": a bolinha, o nome e a área, o estado, o que ele tem para você e o acerto.
@@ -611,17 +611,62 @@
       <span class="d3m-d-ag-quem"><span><b>${esc(s.agente)}</b> · ${esc(s.funcao || s.nome)}</span><span class="d3m-d-ag-est"><i${tom ? ` class="${tom}"` : ''}></i>${esc(texto)}</span><small${aperta ? ' class="r"' : ''}>${esc(oQue)}</small></span>
       <span class="d3m-d-ag-nota"><b${nota != null && nota < 60 ? ' class="r"' : ''}>${nota == null ? '—' : `${nota}%`}</b><span class="d3m-d-ag-barra${tomDaNota(nota) ? ' ' + tomDaNota(nota) : ''}"><i style="--v:${nota ?? 0}%"></i></span></span></button>`;
   }
-  function filaMHtml({ F, dono, lendo }) {
+  // O pedido da frente no laranja (as mesmas respostas do baralho): usado nos cartões e na lista.
+  function laranjaFilaHtml(F, dono, lendo) {
     const n = F.decidir.length, trava = st.enviando ? ' disabled' : '';
     st.frente = n ? ((st.frente % n) + n) % n : 0;
     const it = n ? F.decidir[st.frente] : null, c = it ? cartaDe(it) : null;
-    // O laranja: o pedido da frente, com as duas respostas de sempre (as mesmas rotas do baralho) e o agente a um clique.
-    const laranja = c ? `<section class="d3m-laranja d3m-d-ag-pesa" aria-label="O pedido da frente"${st.frente === 0 ? ' id="d3t-primeiro" tabindex="-1"' : ''}><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${esc(String(it.agente || 'V').charAt(0).toUpperCase())}</span>${esc(c.quem)} · ${esc(minusc(c.tipo))}${c.selos[0] ? `, ${esc(minusc(c.selos[0][1]))}` : ''}${it.em ? `, ${esc(idade(it.em))}` : ''}</span>
+    return c ? `<section class="d3m-laranja d3m-d-ag-pesa" aria-label="O pedido da frente"${st.frente === 0 ? ' id="d3t-primeiro" tabindex="-1"' : ''}><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">${esc(String(it.agente || 'V').charAt(0).toUpperCase())}</span>${esc(c.quem)} · ${esc(minusc(c.tipo))}${c.selos[0] ? `, ${esc(minusc(c.selos[0][1]))}` : ''}${it.em ? `, ${esc(idade(it.em))}` : ''}</span>
         <div class="d3m-lar-txt"><span class="d3-acao-frase">${esc(c.tit)}</span><small>${esc(c.prova)}${c.sub ? ` ${esc(c.sub)}` : ''}</small>
           <div class="d3m-lar-bts">${dono ? `<button type="button" class="d3m-btn l v2-estado" ${c.sim[1]}${trava}>${esc(c.sim[0])}</button><button type="button" class="d3m-btn l s" ${c.nao[1]}${trava}>${esc(c.nao[0])}</button>` : '<span class="d3m-d-ag-so">Só um dono decide.</span>'}
             <button type="button" class="d3m-d-ag-elo" data-vga-setor="${esc(it.setor)}">Abrir ${esc(it.agente)}</button></div></div></section>`
       : `<section class="d3m-laranja d3m-d-ag-pesa" aria-label="O pedido da frente"><span class="d3m-lar-rot"><span class="d3-acao-av" aria-hidden="true">V</span>VYBES · ${lendo ? 'lendo' : 'tudo em dia'}</span>
         <div class="d3m-lar-txt"><span class="d3-acao-frase">${lendo ? 'Lendo o que cada agente deixou para você' : 'Nada depende de você agora'}</span><small>Quando um agente pedir o seu OK, achar algo urgente, falhar ou quiser guardar uma lição, aparece aqui.</small></div></section>`;
+  }
+  // A central do VYBES na coluna de consulta (cartões e lista).
+  function centralMHtml() {
+    const f = fonte(), leitura = f.atualizadoEm ? new Date(f.atualizadoEm).toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }) : '';
+    return `<section class="d3m-cons" aria-label="Central do VYBES"><div class="d3m-cons-cab"><b>Central</b><span>${leitura ? `última leitura às ${esc(leitura)}` : ''}</span></div>
+      ${f.dados ? '<div class="d3m-vlin d3m-d-ag-central" role="status"><i class="d3m-pt g"></i><span><b>Ligada</b> · no ar, lendo os agentes</span></div>'
+        : f.erro ? `<button type="button" class="d3m-vlin d3m-d-ag-central" data-vga-recarregar><i class="d3m-pt a"></i><span><b>Sem sinal</b> · tentar de novo</span>${ICA.seta}</button>` : '<div class="d3m-vlin d3m-d-ag-central" role="status"><i class="d3m-pt"></i><span><b>Consultando</b> · a central do VYBES</span></div>'}</section>`;
+  }
+  // Prancha V2-R-Agentes-Fila (aprovada): a fila em lista no vidro, com os filtros por tipo (Todos, Para decidir,
+  // Esperando e Achados). As linhas são as de sempre (itemFilaHtml: as mesmas rotas de aprovar, resolver, ignorar e
+  // abrir o agente); ao lado, o pedido da frente no laranja, quem mais pede e a central.
+  const TIPOS_FILA = [['todos', 'Todos'], ['decidir', 'Para decidir'], ['esperando', 'Esperando'], ['achados', 'Achados']];
+  function listaMHtml({ F, dono, lendo }) {
+    const nAch = F.acompanhar.reduce((s, x) => s + x.n, 0), urgentes = F.decidir.filter((it) => it.tipo === 'achado' || it.tipo === 'grupo');
+    const conta = { todos: F.decidir.length + F.esperando.length + nAch, decidir: F.decidir.length, esperando: F.esperando.length, achados: urgentes.length + nAch };
+    if (!TIPOS_FILA.some(([k]) => k === st.tipoFila)) st.tipoFila = 'todos';
+    const f = st.tipoFila, nada = (frase) => `<p class="d3m-r-ag-nada">${esc(frase)}</p>`;
+    const secao = (tit, n, lado, corpo, acao = '') => `<section class="d3m-r-ag-sec" aria-label="${esc(tit)}"><div class="d3m-r-ag-sec-cab"><b>${esc(tit)} <span>${n}</span></b><small>${lado}</small>${acao}</div>${corpo}</section>`;
+    const linhas = (itens) => `<ul class="vga-fila d3m-r-ag-fila">${itens.map((it) => itemFilaHtml(it, dono)).join('')}</ul>`;
+    const olho = (x) => { const s0 = setores().find((s) => s.id === x.setor) || { agente: x.agente, andar: null };
+      return `<li class="vga-item">${retratoHtml(s0)}<span class="vga-fila-meio"><span class="vga-fila-cab"><span class="vga-selo espera">${x.n === 1 ? 'Achado' : 'Achados'}</span><small><b>${esc(x.agente)}</b> · ${esc(x.nome)}</small></span><b>${x.n} ${x.n === 1 ? 'achado' : 'achados'} em aberto</b><small>O mais antigo: ${esc(x.mais.fato)}</small></span><span class="vga-acoes"><button type="button" data-vga-setor="${esc(x.setor)}">${x.n === 1 ? 'Ver o achado' : `Ver os ${x.n}`}</button></span></li>`; };
+    const partes = [];
+    if (f === 'todos' || f === 'decidir') partes.push(secao('Para decidir', F.decidir.length, 'só um dono decide', F.decidir.length ? linhas(F.decidir) : nada(lendo ? 'Procurando…' : 'Nada esperando você agora.')));
+    if (f === 'achados') partes.push(secao('Achados urgentes', urgentes.length, 'só um dono decide', urgentes.length ? linhas(urgentes) : nada('Nenhum achado urgente agora.')));
+    if (f === 'todos' || f === 'esperando') partes.push(secao('Esperando confirmação', F.esperando.length, 'só quem pediu confirma', F.esperando.length ? linhas(F.esperando) : nada('Nada esperando confirmação.')));
+    if (f === 'todos' || f === 'achados') partes.push(secao('Achados para acompanhar', nAch, 'sem urgência: o agente segue vigiando', F.acompanhar.length ? `<ul class="vga-fila d3m-r-ag-fila">${F.acompanhar.map(olho).join('')}</ul>` : nada(lendo ? 'Lendo os agentes…' : 'Nenhum achado em aberto.')));
+    const folha = `<section class="d3m-d-folha d3m-r-ag-folha" aria-label="Depende de você"><div class="d3m-d-cab"><h3>Depende de você <small>· ${conta.todos} ${conta.todos === 1 ? 'item' : 'itens'}</small></h3>
+        <span class="d3m-d-pk-seg" role="group" aria-label="Filtrar a fila por tipo">${TIPOS_FILA.map(([k, rot]) => `<button type="button" data-vga-tipo-fila="${k}" aria-pressed="${f === k}">${rot} <b>${conta[k]}</b></button>`).join('')}</span></div>
+      <div class="d3m-r-ag-rola">${partes.join('')}</div></section>`;
+    // Quem mais pede: o que cada agente tem na fila (decidir, esperando e achados de olho).
+    const porAgente = new Map(), soma = (setor, agente, n) => { const x = porAgente.get(setor) || { setor, agente, n: 0 }; x.n += n; porAgente.set(setor, x); };
+    for (const it of [...F.decidir, ...F.esperando]) for (const v of it.vistos || [it]) soma(v.setor, v.agente, 1);
+    for (const x of F.acompanhar) soma(x.setor, x.agente, x.n);
+    const ranking = [...porAgente.values()].sort((a, b) => b.n - a.n || String(a.agente).localeCompare(String(b.agente), 'pt-BR')).slice(0, 6);
+    const porAgenteM = `<section class="d3m-cons" aria-label="Por agente"><div class="d3m-cons-cab"><b>Por agente</b><span>quem mais pede</span></div>
+      ${ranking.map((x) => `<button type="button" class="d3m-vlin" data-vga-setor="${esc(x.setor)}"><i class="d3m-d-ag-av v" aria-hidden="true">${esc(String(x.agente || '?').charAt(0).toUpperCase())}</i><span class="d3m-vnome"><b>${esc(x.agente)}</b></span><b class="d3m-vn">${x.n}</b></button>`).join('') || `<p class="d3m-vvazio">${lendo ? 'Lendo os agentes…' : 'Nenhum agente pedindo nada.'}</p>`}</section>`;
+    const avisos = [dono && st.estados.erro ? `<p class="d3m-d-ag-aviso" title="${esc(st.estados.erro)}">Pedidos de aprovação sem leitura agora.</p>` : '',
+      lendo ? `<p class="d3m-d-ag-aviso vga-lendo" role="status">Lendo ${F.lidos} de ${F.de} agentes na central do VYBES…</p>` : '', st.msg ? `<p class="d3m-d-ag-aviso vga-msg" role="status">${esc(st.msg)}</p>` : ''].join('');
+    return `<div class="d3m-d-ag d3m-r-ag" data-tela="ag-lista"><div class="d3m-d-ag-main">${avisos}${folha}</div>
+      <aside class="d3m-lado d3m-d-ag-lado" aria-label="Consulta">${laranjaFilaHtml(F, dono, lendo)}${porAgenteM}${centralMHtml()}</aside></div>`;
+  }
+  function filaMHtml({ F, dono, lendo }) {
+    const n = F.decidir.length;
+    // O laranja: o pedido da frente, com as duas respostas de sempre (as mesmas rotas do baralho) e o agente a um clique.
+    const laranja = laranjaFilaHtml(F, dono, lendo);
     // "Para você decidir": a fila em linhas (a da frente marcada); tocar na linha traz o pedido para o laranja.
     const acompanhar = F.acompanhar.reduce((t, x) => t + x.n, 0);
     const linhas = F.decidir.map((x, i) => { const k = cartaDe(x), urgente = x.tipo === 'falha' || x.tipo === 'achado' || x.tipo === 'grupo' || (x.tipo === 'aprovacao' && horasAte(x.p.expiraEm) <= 6);
@@ -652,10 +697,7 @@
     const viram = F.acompanhar.slice(0, 4);
     const viramM = `<section class="d3m-cons" aria-label="Hoje os agentes viram"><div class="d3m-cons-cab"><b>Os agentes viram</b>${acompanhar ? '<button type="button" class="d3m-d-ag-elo v" data-vga-lista="1">abrir</button>' : '<span>nada de olho</span>'}</div>
       ${viram.map((x) => `<button type="button" class="d3m-vlin" data-vga-setor="${esc(x.setor)}" title="${esc(`${x.n} ${x.n === 1 ? 'achado' : 'achados'} em aberto`)}"><i class="d3m-d-ag-av v" aria-hidden="true">${esc(String(x.agente || '?').charAt(0).toUpperCase())}</i><span class="d3m-vnome"><b>${esc(x.agente)}</b>: ${esc(x.mais.fato)}</span><i class="d3m-pt${x.n > 2 ? ' a' : ''}"></i></button>`).join('') || `<p class="d3m-vvazio">${lendo ? 'Lendo os agentes…' : 'Nenhum achado em aberto.'}</p>`}</section>`;
-    const f = fonte(), leitura = f.atualizadoEm ? new Date(f.atualizadoEm).toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit' }) : '';
-    const centralM = `<section class="d3m-cons" aria-label="Central do VYBES"><div class="d3m-cons-cab"><b>Central</b><span>${leitura ? `última leitura às ${esc(leitura)}` : ''}</span></div>
-      ${f.dados ? '<div class="d3m-vlin d3m-d-ag-central" role="status"><i class="d3m-pt g"></i><span><b>Ligada</b> · no ar, lendo os agentes</span></div>'
-        : f.erro ? `<button type="button" class="d3m-vlin d3m-d-ag-central" data-vga-recarregar><i class="d3m-pt a"></i><span><b>Sem sinal</b> · tentar de novo</span>${ICA.seta}</button>` : '<div class="d3m-vlin d3m-d-ag-central" role="status"><i class="d3m-pt"></i><span><b>Consultando</b> · a central do VYBES</span></div>'}</section>`;
+    const centralM = centralMHtml();
     const abrirM = `<nav class="d3m-cons" aria-label="Abrir"><div class="d3m-cons-cab"><b>Abrir</b><span></span></div>
       ${temDiagnostico() ? `<button type="button" class="d3m-vlin" data-vga-cerebro><span><b>Como o VYBES pensa</b> · rotina por rotina</span>${ICA.seta}</button>` : ''}
       <button type="button" class="d3m-vlin" data-vga-lista="1"><span><b>A fila em lista</b> · decidir linha a linha</span>${ICA.seta}</button></nav>`;
@@ -672,6 +714,7 @@
     if (!F.de) return '<p class="vga-vazio">Carregando a planta do prédio…</p>';
     // A tela principal é a prancha V2-M-Agentes; daqui para baixo, a fila em lista (a um clique), na janela de antes.
     if (!st.lista) return filaMHtml({ F, dono, lendo });
+    if (emM()) return listaMHtml({ F, dono, lendo });
     const n = F.decidir.length, h = venceEm(F.decidir), antigo = maisAntigo(F.decidir);
     const prazo = h == null ? '' : `vence em ${h} h`;
     // Direção 3: o bloco de ação laranja diz quantos pedidos esperam e há quanto tempo; "Ver o 1º" leva ao primeiro.
@@ -1003,6 +1046,8 @@
     if (b.dataset.vgaLado) { st.lado = b.dataset.vgaLado; pintar(); return; }
     // Prancha V2-M-Agentes: a ficha de "Quem é quem", a busca e a linha que traz o pedido para o laranja.
     if (b.dataset.vgaQuem) { st.quem = b.dataset.vgaQuem; pintar(); return; }
+    if (b.dataset.vgaTipoFila) { st.tipoFila = b.dataset.vgaTipoFila; pintar(); return; }
+    if (b.hasAttribute('data-vga-cartoes')) { st.lista = false; pintar(); return; }
     if (b.hasAttribute('data-vga-busca-abre')) { st.buscaAberta = !(st.buscaAberta || st.busca); if (!st.buscaAberta) st.busca = ''; pintar(); if (st.buscaAberta) raiz?.querySelector('[data-vga-busca]')?.focus?.(); return; }
     if (b.dataset.vgaFrente != null) { st.frente = Number(b.dataset.vgaFrente) || 0; pintar(); return; }
     if (b.dataset.vgaAbre != null) { st.achado = st.achado === b.dataset.vgaAbre ? '' : b.dataset.vgaAbre; raiz.querySelectorAll('.v2a-achado').forEach((l) => { const a = l.firstElementChild?.dataset.vgaAbre === st.achado; l.setAttribute('aria-expanded', String(a)); l.firstElementChild?.setAttribute('aria-expanded', String(a)); }); return; }

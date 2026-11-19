@@ -7,11 +7,12 @@ import fs from 'node:fs';
 const ler = (f) => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
 const js = ler('vybe-mundo-agentes.js'), css = ler('padrao-v2/zm-d-agentes.css');
 const naOrdem = (texto, partes) => { let p = -1; for (const parte of partes) { const i = texto.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; } };
-const tela = js.slice(js.indexOf('  function filaMHtml('), js.indexOf('  function filaHtml() {'));
+// O laranja e a central viraram funções (laranjaFilaHtml e centralMHtml) para servir também à lista da prancha V2-R-Agentes-Fila.
+const tela = js.slice(js.indexOf('  function laranjaFilaHtml('), js.indexOf('  function filaHtml() {'));
 
 test('a tela segue a prancha: o laranja, "Para você decidir", "Quem é quem" e a coluna de consulta', () => {
-  naOrdem(tela, ['class="d3m-laranja d3m-d-ag-pesa"', 'class="d3m-d-ag-elo" data-vga-setor=', 'class="d3m-d-ag-ped" data-vga-frente="${i}"', '<h3>Para você decidir</h3>', '<small>Vigiando</small>', '<h3>Quem é quem <small>',
-    'data-vga-quem="${k}"', 'celulaAgenteHtml(s, F)', 'ver o mapa das rotinas', '<b>Acerto em 7 dias</b>', '${metaHtml()}', '<b>Os agentes viram</b>', '<b>Central</b>', '<b>Como o VYBES pensa</b>', '<b>A fila em lista</b>',
+  naOrdem(tela, ['class="d3m-laranja d3m-d-ag-pesa"', 'class="d3m-d-ag-elo" data-vga-setor=', '<b>Central</b>', 'class="d3m-d-ag-ped" data-vga-frente="${i}"', '<h3>Para você decidir</h3>', '<small>Vigiando</small>', '<h3>Quem é quem <small>',
+    'data-vga-quem="${k}"', 'celulaAgenteHtml(s, F)', 'ver o mapa das rotinas', '<b>Acerto em 7 dias</b>', '${metaHtml()}', '<b>Os agentes viram</b>', 'const centralM = centralMHtml();', '<b>Como o VYBES pensa</b>', '<b>A fila em lista</b>',
     '<div class="d3m-d-ag" data-tela="ag-fila"><div class="d3m-d-ag-main">${avisos}<div class="d3m-d-ag-alto">${laranja}${decidir}</div>${quem}</div>', '${acertoM}${viramM}${centralM}${abrirM}</aside>']);
   // O topo no vidro: o dia, quantos ativos e em sombra e quantos pedidos dependem do dono.
   const topo = js.slice(js.indexOf('  function topoMHtml() {'), js.indexOf('  // A célula do agente'));
@@ -19,8 +20,8 @@ test('a tela segue a prancha: o laranja, "Para você decidir", "Quem é quem" e 
   assert.match(js, /function topoHtml\(\) \{\n    if \(emM\(\)\) return topoMHtml\(\);/);
 });
 
-test('a janela vira vidro só na tela principal; a lista, o perfil e "Como o VYBES pensa" seguem na janela de antes', () => {
-  assert.match(js, /const emM = \(\) => st\.vista === 'fila' && !st\.lista;/);
+test('a janela vira vidro nos cartões e na lista (prancha V2-R-Agentes-Fila); o perfil e "Como o VYBES pensa" seguem na janela de antes', () => {
+  assert.match(js, /const emM = \(\) => st\.vista === 'fila';/);
   assert.match(js, /raiz\.className = m \? 'vv-ag d3m-d-m' : 'vv-ag v2a';/);
   assert.match(js, /if \(st\.vista === 'fila'\) return filaHtml\(\);/);
   assert.match(js, /const esq = listaDaFilaHtml\(F, dono, lendo\);/);

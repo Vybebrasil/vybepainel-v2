@@ -294,7 +294,7 @@ test('Sinapses: "Como o VYBES pensa" e o detalhe por agente moram na página Age
   assert.match(sinapses, /renderEstudoClienteCerebroHtml\(cliente\)/, 'o estudo (com o selo Qwen) fica');
   assert.match(sinapses, /De onde vem cada coisa/);
   assert.match(sinapses, /onclick="abrirDiagnosticoDosAgentes\(\)">Ver o diagnóstico em Agentes/);
-  assert.match(cerebro, /cb-sin-quando">Feito em [\s\S]{0,200}cerebroMotorHtml\('qwen'\)/,'o selo Qwen do estudo continua à vista (decisão do Paulo)');
+  assert.match(cerebro, /feito pelo Alex com o \$\{cerebroMotorHtml\('qwen'\)\}/,'o selo Qwen do estudo continua à vista (decisão do Paulo)');
   const diag = cerebro.slice(cerebro.indexOf('function renderDiagnosticoCerebroHtml'), cerebro.indexOf('function focarClienteNoCerebro'));
   for (const pedaco of ["'Qwen', k.qwen", "'Lógica fixa', k.logica", 'Fila do Qwen agora', 'porAgente.map', 'De onde vem']) assert.ok(diag.includes(pedaco), pedaco);
   const agentes = ler('vybe-mundo-agentes.js');
@@ -347,10 +347,11 @@ test('Churn (prancha V2-M-Churn): o laranja, três números em folha, as saídas
   assert.match(js, /const estadoVazio = \(titulo, texto = '', botao = ''\) => \(typeof vbEstadoHtml === 'function' \? vbEstadoHtml\(\{ titulo, texto, acao: botao \}\)/, 'o vazio é a peça do padrão');
 });
 
-test('Saúde da carteira: título igual ao do dock (a tela é o quadro do padrão v2); o Churn é a janela em vidro', async () => {
+test('Saúde da carteira: título igual ao do dock (prancha V2-R-Saude-Carteira, vidro como o Churn); o Churn é a janela em vidro', async () => {
   const { ctx, janela } = carteira({ resposta: semTabelas });
   await ctx.VybeCarteira.abrir('saude', { abas: ['saude'], rotulo: 'Clientes' }); await esperar();
-  assert.match(janela().innerHTML, /<div class="v2c" data-tela="saude"><div class="v2c-topo"><h2 id="vc-titulo">Saúde da carteira<\/h2>/);
+  assert.match(janela().innerHTML, /<div class="d3m-d-topo d3m-d-ct-topo"><div class="d3m-d-tit"><h2 id="vc-titulo">Saúde da carteira<\/h2>/);
+  assert.match(janela().innerHTML, /data-tela="saude-v2"/);
   assert.doesNotMatch(janela().innerHTML, /class="vc-frase"|class="vc-resumo"/, 'o quadro não tem a frase nem a linha de números antiga');
   await ctx.VybeCarteira.abrir('churn', { abas: ['churn'], rotulo: 'Comercial' }); await esperar();
   assert.match(janela().innerHTML, /<div class="d3m-d-topo d3m-d-ct-topo">[\s\S]*<h2 id="vc-titulo">Churn<\/h2>/, 'o Churn é a janela em vidro da prancha V2-M-Churn');

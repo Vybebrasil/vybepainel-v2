@@ -10,7 +10,7 @@
 //    inadimplência, fornecedores com BV) e editar pacotes: só os donos (Paulo, Vinícius, Ewerton, Deivid) e administração.
 import calc from '../shared/comercial-calculos.js';
 import { ehDono, podeEditarCrm, etapasCrm } from './crm.js';
-import { configComercial, salvarMetas, gerarFormulario, desligarFormulario, ultimosLeads } from './comercial-leads.js';
+import { configComercial, salvarMetas, gerarFormulario, desligarFormulario, ultimosLeads, metasPorPessoa, pessoasParaMeta, salvarMetasPessoa, AVISO_METAS_PESSOA } from './comercial-leads.js';
 // O dinheiro destas abas vem do extrato do banco (Paulo, 14/11/2026), não do Vybe Finanças: server/financeiro.js.
 import { lancamentosDoExtrato } from './financeiro.js';
 import { ehDonoPessoa, ehAmploPessoa } from './donos.js';
@@ -26,7 +26,7 @@ export const ABAS_AMPLO = new Set(['fornecedores']);
 // Metas (MRR e avulso), capacidade, etapas e formulário do funil ficam com os donos: a tela só mostra a eles, e salvar
 // metas sem os valores do mês (que a coordenação não recebe) zerava as metas de dinheiro (confere de 13/11/2026).
 const ACOES_SO_DONOS = new Set(['recebivel_forma', 'inadimplencia_avisar', 'pacote_salvar', 'financas_salvar', 'recebivel_salvar', 'recebivel_receber', 'recebivel_proximo', 'recebivel_cancelar',
-  'conta_salvar', 'conta_pagar', 'conta_cancelar', 'capacidade_salvar', 'etapas_salvar', 'metas_salvar', 'formulario_gerar', 'formulario_desligar']);
+  'conta_salvar', 'conta_pagar', 'conta_cancelar', 'capacidade_salvar', 'etapas_salvar', 'metas_salvar', 'metas_pessoa_salvar', 'formulario_gerar', 'formulario_desligar']);
 const ACOES_AMPLO = new Set(['fornecedor_salvar', 'fornecedor_arquivar']);
 const ACOES_COMERCIAL = new Set(['orcamento_criar', 'orcamento_status', 'creator_salvar', 'creator_arquivar', 'creator_campanha_salvar', 'creator_campanha_status']);
 // O financeiro (Paulo, 11/11/2026): com a fonte no banco do Vybe OS (VYBE_FINANCAS_FONTE=local), estas abas e ações são
@@ -147,6 +147,11 @@ async function mesComercial(sql, r, linhas, query, hoje) {
     progresso: calc.progressoMetas(metas, kpis.atual), ranking: calc.rankingFechamentos(linhas, p), series: calc.seriesMensais(dados, mesFinal, 6),
     config_disponivel: config.disponivel, aviso_config: config.aviso || '', formulario: config.formulario, leads_formulario: leads, valores: r.dono,
     metas_por_mes: config.metas };
+  // Meta por pessoa (prancha V2-R-Comercial-Metas): com a tabela, cada pessoa com meta e o que já fez; sem ela, só a
+  // meta da agência (disponivel:false e o aviso curto). A lista da equipe e as metas do mês aberto só vão para dono.
+  const mp = await metasPorPessoa(sql, p);
+  saida.metas_pessoa = { disponivel: mp.disponivel, aviso: mp.disponivel ? '' : AVISO_METAS_PESSOA, linhas: calc.progressoPorPessoa(mp.linhas, linhas, p) };
+  if (r.dono && mp.disponivel) { saida.metas_pessoa.do_mes = mp.doMes; saida.metas_pessoa.pessoas = await pessoasParaMeta(sql); }
   return r.dono ? saida : semDinheiro(saida);
 }
 // Quem não é dono vê as quantidades (leads, propostas, negócios) e a posição na corrida, sem os valores em reais.
@@ -155,7 +160,9 @@ function semDinheiro(m) {
   return { ...m, metas_por_mes: undefined, kpis: { atual: tira(m.kpis.atual), anterior: tira(m.kpis.anterior), variacao: tira(m.kpis.variacao) },
     metas: { negocios: m.metas.negocios, leads: m.metas.leads, meses_com_meta: m.metas.meses_com_meta, definida: m.metas.definida },
     progresso: m.progresso.filter((x) => x.tipo !== 'dinheiro'), series: m.series.map(tira),
-    ranking: { linhas: m.ranking.linhas.map(tira), sem_atribuicao: { quantidade: m.ranking.sem_atribuicao.quantidade } } };
+    ranking: { linhas: m.ranking.linhas.map(tira), sem_atribuicao: { quantidade: m.ranking.sem_atribuicao.quantidade } },
+    metas_pessoa: m.metas_pessoa ? { disponivel: m.metas_pessoa.disponivel, aviso: m.metas_pessoa.aviso,
+      linhas: m.metas_pessoa.linhas.map((x) => ({ pessoa_id: x.pessoa_id, nome: x.nome, realizado: tira(x.realizado), progresso: x.progresso.filter((y) => y.tipo !== 'dinheiro') })) } : undefined };
 }
 async function lerFunil(sql, r, query = {}, hoje = hojeNaBahia()) {
   const { linhas, comValor } = await oportunidadesDoFunil(sql);
@@ -583,6 +590,7 @@ export async function escreverComercial(sql, pessoa, b = {}, { hoje = hojeNaBahi
     case 'etapas_salvar': return salvarEtapas(sql, pessoa, b);
     case 'capacidade_salvar': return salvarCapacidade(sql, pessoa, b);
     case 'metas_salvar': return salvarMetas(sql, pessoa, b);
+    case 'metas_pessoa_salvar': return salvarMetasPessoa(sql, pessoa, b);
     case 'formulario_gerar': return gerarFormulario(sql, pessoa);
     case 'formulario_desligar': return desligarFormulario(sql, pessoa);
     case 'fornecedor_salvar': return salvarFornecedor(sql, pessoa, b);
