@@ -155,7 +155,11 @@ function pintarPlanejamento(aba) {
   m.classList.toggle('plj-modo-doc', aba === 'documento');
   // Editar também em tela cheia, com a mesma barra do documento (Paulo, 20/10/2026:
   // "quando coloca pra editar o mês não devia ser tela cheia também?").
-  m.classList.toggle('plj-modo-editar', aba === 'editar');
+  // Na tela V2 (mundo) o Editar é a janela da prancha V2-S-Editor-Mes (pljEdJanelaV2); fora dela, a tela cheia de antes.
+  const v2 = aba === 'editar' && typeof pv2Ligado === 'function' && pv2Ligado();
+  m.classList.toggle('plj-modo-editar', aba === 'editar' && !v2);
+  m.classList.toggle('s-ed', v2);
+  m.classList.toggle('d3-tema', v2);
   const barra = `<div class="plj-flut plj-flut-topo">
       <button class="plj-flut-x" type="button" aria-label="Fechar" onclick="pljFecharModal()">×</button>
       <div class="plj-flut-nome"><b>${pljEsc(p.cliente)}</b><small>${pljEsc(pljMes(p.mes))} · versão ${pljEsc(p.versao)}</small></div>
@@ -164,6 +168,11 @@ function pintarPlanejamento(aba) {
         ? `<button type="button" class="cli-porta plj-flut-editar" onclick="pljTrocarAba('editar')"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M11.2 2.3a1.6 1.6 0 0 1 2.3 2.3l-7.9 7.9-3.1.8.8-3.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Editar o mês</button>`
         : `<button type="button" class="cli-porta" onclick="pljTrocarAba('${k}')">${k === 'documento' ? '← Ver o documento' : r}</button>`).join('')}${drive}</div>
     </div>`;
+  if (v2) {
+    m.innerHTML = pljEdJanelaV2(p, abas, drive);
+    m.dataset.aba = aba;
+    return;
+  }
   if (aba === 'editar') {
     m.innerHTML = `${barra}${resposta}${pljDemandasCriadasHtml(p)}
     <div class="plj-corpo">${pljEditorHtml()}</div>
@@ -400,9 +409,13 @@ let PLJ_SUJO = false;
 let PLJ_FILTRO = 'todas';
 const PLJ_COM_TELAS = ['Card', 'Carrossel', 'Stories', 'Outro'];
 const pljSemNumero = (t) => String(t || '').replace(/^\s*\d{1,2}\s*[·.\-–:)]\s*/, '');
-function pljEditorHtml() {
+function pljEditorHtml(v2 = false) {
   const c = PLJ_RASCUNHO || {};
   if (PLJ_SEL.startsWith('peca:') && !c.pecas?.[Number(PLJ_SEL.slice(5))]) PLJ_SEL = 'mes';
+  // V2: a folha leva o detalhe e o pé (Duplicar, Tirar e as ações de salvar); o id #plj-ed-detalhe segue no miolo.
+  if (v2) return `<div class="plj-ed plj-ed-v2"><aside class="plj-ed-lista" id="plj-ed-lista" aria-label="Partes do planejamento">${pljEdListaHtml()}</aside>
+    <section class="plj-ed-folha" aria-label="Item escolhido"><div class="plj-ed-detalhe" id="plj-ed-detalhe">${pljEdDetalheHtml()}</div>
+      <div class="plj-ed-pe"><span class="plj-ed-pe-peca" id="plj-ed-pe-peca">${pljEdPePecaHtml()}</span><div class="workflow-actions plj-acoes">${pljAcoesHtml('editar')}</div></div></section></div>`;
   return `<div class="plj-ed"><aside class="plj-ed-lista" id="plj-ed-lista" aria-label="Partes do planejamento">${pljEdListaHtml()}</aside>
     <section class="plj-ed-detalhe" id="plj-ed-detalhe">${pljEdDetalheHtml()}</section></div>`;
 }
@@ -413,15 +426,16 @@ function pljEdListaHtml() {
   const c = PLJ_RASCUNHO || {}, pecas = c.pecas || [];
   const item = (sel, icone, nome, extra = '') => `<button type="button" class="plj-ed-item${PLJ_SEL === sel ? ' sel' : ''}" onclick="pljEdSelecionar('${sel}')" aria-current="${PLJ_SEL === sel}"><i aria-hidden="true">${icone}</i><span>${nome}</span>${extra}</button>`;
   const situacao = (x) => x.revisao_cliente?.estado === 'ajuste' || x.revisao_head?.estado === 'ajustar' ? 'ruim' : x.revisao_cliente?.estado === 'aprovada' || x.revisao_head?.estado === 'ok' ? 'bom' : '';
-  const passa = (x) => PLJ_FILTRO === 'todas' || (PLJ_FILTRO === 'pedido' && situacao(x) === 'ruim') || (PLJ_FILTRO === 'sem-ok' && !x.revisao_head);
-  const filtro = (k, r) => `<button type="button" class="${PLJ_FILTRO === k ? 'sel' : ''}" onclick="PLJ_FILTRO='${k}';pljEdRepintarLista()">${r}</button>`;
+  const passa = (x) => PLJ_FILTRO === 'todas' || (PLJ_FILTRO === 'pedido' && (situacao(x) === 'ruim' || Boolean(pljPedidoDaPeca(x)))) || (PLJ_FILTRO === 'sem-ok' && !x.revisao_head);
+  const filtro = (k, r) => `<button type="button" class="${PLJ_FILTRO === k ? 'sel' : ''}" aria-pressed="${PLJ_FILTRO === k}" onclick="PLJ_FILTRO='${k}';pljEdRepintarLista()">${r}</button>`;
+  const nPedido = pecas.filter((x) => situacao(x) === 'ruim' || Boolean(pljPedidoDaPeca(x))).length, nSemOk = pecas.filter((x) => !x.revisao_head).length;
   return `<p class="plj-ed-sec">Planejamento</p>
     ${item('mes', '◎', 'Visão do mês')}
     ${item('linhas', '≡', 'Linhas de conteúdo', `<em>${(c.linhas || []).length}</em>`)}
     ${item('datas', '▦', 'Datas do mês', `<em>${(c.datas || []).length}</em>`)}
     ${item('obs', '✎', 'Para combinar')}
     <div class="plj-ed-sec plj-ed-sec-pecas"><span>Peças <em>${pecas.length}</em></span><button type="button" class="plj-ed-mais" onclick="pljEdNovaPeca()" aria-label="Nova peça" title="Nova peça">+</button></div>
-    <div class="plj-ed-filtros" role="group" aria-label="Filtrar peças">${filtro('todas', 'Todas')}${filtro('pedido', 'Com pedido')}${filtro('sem-ok', 'Sem OK')}</div>
+    <div class="plj-ed-filtros" role="group" aria-label="Filtrar peças">${filtro('todas', 'Todas')}${filtro('pedido', `Pedido <em>${nPedido}</em>`)}${filtro('sem-ok', `Sem OK <em>${nSemOk}</em>`)}</div>
     <div class="plj-ed-pecas">${pecas.map((x, i) => passa(x) ? `<button type="button" class="plj-ed-peca${PLJ_SEL === 'peca:' + i ? ' sel' : ''}" onclick="pljEdSelecionar('peca:${i}')" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}">
       <span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t"><b>${pljEsc(pljSemNumero(x.tema) || 'Sem tema')}</b><small>${pljEsc(x.formato || 'Card')} · ${pljEsc(x.data ? `${x.data.slice(8, 10)}/${x.data.slice(5, 7)}` : 'sem dia')}</small></span>${pljPedidoDaPeca(x) ? `<em class="plj-ed-pedido" title="${pljEsc(pljPedidoDaPeca(x))}">pedido</em>` : ''}${situacao(x) ? `<i class="s ${situacao(x)}" aria-label="${situacao(x) === 'ruim' ? 'Tem pedido de ajuste' : 'Aprovada'}"></i>` : ''}</button>` : '').join('') || '<p class="plj-ed-vazio">Nenhuma peça neste filtro.</p>'}</div>`;
 }
@@ -454,18 +468,21 @@ function pljEdDetalheHtml() {
   const telas = Array.isArray(x.telas) ? x.telas : String(x.telas || '').split('\n').filter(Boolean);
   const comTelas = PLJ_COM_TELAS.includes(x.formato) || telas.length;
   const n = String(i + 1).padStart(2, '0');
-  return `<div class="plj-ed-cab plj-ed-cab-peca" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}"><span class="n">${n}</span><div><h3>${pljEsc(pljSemNumero(x.tema) || 'Peça sem tema')}</h3><p><b class="pill">${pljEsc(x.formato || 'Card')}</b> ${pljEsc(x.data ? new Date(x.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'sem dia')}</p></div>
+  return `<div class="plj-ed-cab plj-ed-cab-peca" style="--f:${PLJ_COR_FORMATO[x.formato] || '#6b7280'}"><span class="n">${n}</span><div><h3>${pljEsc(pljSemNumero(x.tema) || 'Peça sem tema')}</h3><p><b class="${typeof pv2Ligado === 'function' && pv2Ligado() ? 'plj-ed-formato' : 'pill'}">${pljEsc(x.formato || 'Card')}</b> ${pljEsc(x.data ? new Date(x.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : 'sem dia')}</p></div>
       <div class="plj-ed-nav"><button type="button" onclick="pljEdSelecionar('peca:${i - 1}')" ${i === 0 ? 'disabled' : ''} aria-label="Peça anterior">↑</button><button type="button" onclick="pljEdSelecionar('peca:${i + 1}')" ${i >= c.pecas.length - 1 ? 'disabled' : ''} aria-label="Próxima peça">↓</button></div></div>
     ${pljRevisaoPecaHtml(x)}
+    <div class="plj-ed-colunas"><div class="plj-ed-col">
     ${pljGrupo('Quando e formato', `<div class="plj-ed-lado">${pljCampo(`pecas.${i}.data`, x.data, { rotulo: 'Veiculação', tipo: 'date' })}${pljCampo(`pecas.${i}.prazo`, x.prazo, { rotulo: 'Prazo de produção', tipo: 'date', dica: 'Vazio: automático, 7 dias antes da veiculação' })}<label class="plj-ed-campo"><span>Formato</span><select data-campo="pecas.${i}.formato" onchange="pljEdRepintarTudo()">${PLJ_FORMATOS.map((f) => `<option${f === x.formato ? ' selected' : ''}>${f}</option>`).join('')}</select></label></div>`)}
     ${pljGrupo('Conteúdo', pljCampo(`pecas.${i}.tema`, x.tema, { rotulo: 'Tema', max: 200 })
       + `<label class="plj-ed-campo"><span>Linha de conteúdo</span><select data-campo="pecas.${i}.linha"><option value="">Sem linha</option>${[...new Set([...linhas, x.linha].filter(Boolean))].map((l) => `<option${l === x.linha ? ' selected' : ''}>${pljEsc(l)}</option>`).join('')}</select></label>`
       + pljCampo(`pecas.${i}.objetivo`, x.objetivo, { rotulo: 'Objetivo', linhas: 2, max: 800, dica: 'Uma frase com o que a peça quer causar.' }))}
+    </div><div class="plj-ed-col">
     ${comTelas ? pljGrupo(`Texto das telas · ${telas.length}`, `<ol class="plj-ed-telas">${telas.map((t, k) => `<li><span class="nt">${k + 1}</span><textarea data-campo="pecas.${i}.telas.${k}" rows="2" maxlength="600">${pljEsc(t)}</textarea>
         <div class="acoes"><button type="button" onclick="pljEdTela(${i}, ${k}, -1)" ${k === 0 ? 'disabled' : ''} aria-label="Subir a tela">↑</button><button type="button" onclick="pljEdTela(${i}, ${k}, 1)" ${k === telas.length - 1 ? 'disabled' : ''} aria-label="Descer a tela">↓</button><button type="button" onclick="pljEdTela(${i}, ${k}, 0)" aria-label="Tirar a tela">×</button></div></li>`).join('')}</ol>
         <button type="button" class="plj-ed-acrescentar dentro" onclick="pljEdTela(${i}, ${telas.length}, 'nova')">+ Tela</button>`) : ''}
-    ${pljGrupo(video ? 'Roteiro' : 'Legenda', pljCampo(`pecas.${i}.legenda`, x.legenda, { rotulo: video ? 'Roteiro do vídeo' : 'Legenda pronta', linhas: 8, max: 5000, extra: ' data-contar="1"' }), `<span id="plj-conta">${String(x.legenda || '').length} caracteres</span>`)}
+    ${pljGrupo(video ? 'Roteiro' : 'Legenda', pljCampo(`pecas.${i}.legenda`, x.legenda, { rotulo: video ? 'Roteiro do vídeo' : 'Legenda pronta', linhas: 8, max: 5000, extra: ' data-contar="1"' }), `<span id="plj-conta">${String(x.legenda || '').length} caracteres</span>${String(x.legenda || '').length > PLJ_LEGENDA_CURTA ? '<button type="button" class="plj-ed-link plj-ed-vertudo" aria-expanded="false" onclick="pljEdVerTudo(this)">ver tudo</button>' : ''}`)}
     ${pljGrupo('Apoio', pljCampo(`pecas.${i}.referencia`, x.referencia, { rotulo: 'Referência', linhas: 2, max: 6000, dica: 'Link ou descrição visual.' }) + pljCampo(`pecas.${i}.observacao`, x.observacao, { rotulo: 'Para o cliente decidir', linhas: 2, max: 1500 }))}
+    </div></div>
     <div class="plj-ed-fim"><button type="button" class="plj-ed-link" onclick="pljEdDuplicar(${i})">Duplicar peça</button><button type="button" class="plj-ed-link perigo" onclick="pljEdTirar('pecas', ${i})">Tirar esta peça</button></div>`;
 }
 function pljEdSelecionar(sel) {
@@ -481,6 +498,52 @@ function pljEdRepintarTudo() {
   pljEdRepintarLista();
   const d = document.getElementById('plj-ed-detalhe');
   if (d) d.innerHTML = pljEdDetalheHtml();
+  const pe = document.getElementById('plj-ed-pe-peca');
+  if (pe) pe.innerHTML = pljEdPePecaHtml();
+}
+// ── Editor do mês no padrão V2 (prancha V2-S-Editor-Mes) ─────────────────────
+// A janela de vidro com o cliente e o mês em cima; as etapas e os três botões (Ver o documento, Histórico, Marca do
+// cliente) numa linha; a faixa do pedido do cliente com "Ir para a peça"; a lista à esquerda e a peça em duas colunas
+// na folha clara, com Duplicar, Tirar e ⌘S/Descartar/Salvar no pé. Os campos, o rascunho e o que se salva são os
+// mesmos de sempre (pljEditorHtml, pljAcoesHtml, salvarPlanejamento).
+const PLJ_LEGENDA_CURTA = 280;
+function pljEdVerTudo(botao) {
+  const bloco = botao.closest('.plj-ed-bloco'); if (!bloco) return;
+  const aberto = bloco.classList.toggle('aberto');
+  botao.setAttribute('aria-expanded', String(aberto));
+  botao.textContent = aberto ? 'ver menos' : 'ver tudo';
+}
+// A primeira peça com pedido do cliente (a mesma regra da lista e do documento); -1 quando não há.
+function pljEdPrimeiraComPedido(pecas) { return (pecas || []).findIndex((x) => pljPedidoDaPeca(x)); }
+function pljEdPePecaHtml() {
+  if (!PLJ_SEL.startsWith('peca:')) return '';
+  const i = Number(PLJ_SEL.slice(5));
+  return `<button type="button" class="plj-ed-pe-link" onclick="pljEdDuplicar(${i})">Duplicar peça</button><button type="button" class="plj-ed-pe-link tirar" onclick="pljEdTirar('pecas', ${i})">Tirar esta peça</button>`;
+}
+function pljEdEtapasV2(p) {
+  const ordem = ['revisar', 'enviado', 'aprovado', 'cadastrado'];
+  const atual = p.estado === 'ajustes' ? 0 : Math.max(0, ordem.indexOf(p.estado));
+  const nomes = [p.estado === 'ajustes' ? 'Ajustar' : 'Revisar', 'Com o cliente', 'Aprovado', 'Cadastrado'];
+  const proximo = { revisar: 'Revise e mande para o cliente.', ajustes: 'O cliente pediu ajustes: corrija e mande de novo.', enviado: 'Esperando a resposta do cliente pelo link.', aprovado: 'Aprovado: cadastre as peças.', cadastrado: 'Peças cadastradas no painel.' }[p.estado] || '';
+  const r = p.revisao || {};
+  const conta = r.total ? (['revisar', 'ajustes'].includes(p.estado) ? ` · sua revisão: ${r.head_ok} de ${r.total} OK${r.head_ajustar ? `, ${r.head_ajustar} para ajustar` : ''}` : (r.cliente_aprovadas || r.cliente_ajustes) ? ` · cliente: ${r.cliente_aprovadas} aprovadas${r.cliente_ajustes ? `, ${r.cliente_ajustes} com ajuste` : ''}` : '') : '';
+  return `<div class="plj-ed-etapas" role="group" aria-label="Etapas do planejamento" title="${pljEsc(proximo + conta)}"><span class="plj-ed-tracos" aria-hidden="true">${nomes.map((_, k) => `<i class="${k <= atual ? 'on' : ''}"></i>`).join('')}</span><span class="plj-ed-passos">${nomes.map((n, k) => `<span class="${k === atual ? 'agora' : ''}"${k === atual ? ' aria-current="step"' : ''}>${k + 1} ${pljEsc(n)}</span>`).join('<span class="sep" aria-hidden="true">·</span>')}</span></div>`;
+}
+function pljEdJanelaV2(p, abas, drive) {
+  const pecas = PLJ_RASCUNHO?.pecas || [];
+  const iniciais = String(p.cliente || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase();
+  const foto = typeof pv2Foto === 'function' ? pv2Foto(p.cliente || '') : `<i>${pljEsc(iniciais)}</i>`;
+  const portas = abas.filter(([k]) => k !== 'editar').map(([k, r]) => `<button type="button" class="plj-ed-porta" onclick="pljTrocarAba('${k}')">${k === 'documento' ? 'Ver o documento' : pljEsc(r)}</button>`).join('');
+  const comPedido = pljEdPrimeiraComPedido(pecas);
+  const textoPedido = p.estado === 'ajustes' && p.resposta_texto ? p.resposta_texto : (comPedido >= 0 ? pljPedidoDaPeca(pecas[comPedido]) : '');
+  const quem = p.estado === 'ajustes' && p.resposta_texto ? (p.resposta_nome || 'O cliente') : 'O cliente';
+  const pedido = textoPedido ? `<div class="plj-ed-pedido-faixa" role="note"><p><b>${pljEsc(quem)} pediu ajustes</b> <q>${pljEsc(textoPedido)}</q> · a peça com pedido aparece marcada na lista</p>${comPedido >= 0 ? `<button type="button" class="plj-ed-porta" onclick="PLJ_FILTRO='todas';pljEdSelecionar('peca:${comPedido}')">Ir para a peça ${String(comPedido + 1).padStart(2, '0')}</button>` : ''}</div>` : '';
+  return `<div class="plj-ed-janela">
+    <div class="plj-ed-topo" role="group" aria-label="Planejamento"><span class="plj-ed-av" aria-hidden="true">${foto}</span><div class="plj-ed-nome"><h2 class="workflow-title">${pljEsc(p.cliente)} · ${pljEsc(pljMes(p.mes))}</h2><small>versão ${pljEsc(p.versao)} · ${p.origem === 'agente' ? 'publicado pelo agente' : 'feito no painel'}</small></div>
+      <button class="workflow-close" type="button" aria-label="Fechar" onclick="pljFecharModal()">×</button></div>
+    <div class="plj-ed-linha">${pljEdEtapasV2(p)}<div class="plj-ed-portas">${portas}${String(drive).replace(/cli-porta/g, 'plj-ed-porta')}</div></div>
+    ${pedido}${pljDemandasCriadasHtml(p)}
+    <div class="plj-corpo">${pljEditorHtml(true)}</div></div>`;
 }
 function pljEdMarcarSujo() {
   PLJ_SUJO = true;

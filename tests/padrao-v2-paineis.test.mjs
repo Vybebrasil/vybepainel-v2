@@ -66,20 +66,20 @@ test('a semana em colunas: quatro dias à vista, cartão compacto que abre no lu
 
 // Prancha V2-M-Demandas (16/11/2026): o esqueleto mudou (uma folha por urgência e a consulta ao lado); os ids são os de antes.
 test('Demandas na ordem da prancha V2: título, Lista ou Calendário, a busca, o ⋯ (ordenar, colunas e filtros), Nova demanda, a folha com as fichas e a lista, e a consulta', () => {
-  naOrdem(dem, ['<h2>Demandas</h2>', 'class="d3p-data"', '>Lista</button>', '>Calendário</button>', 'placeholder="Buscar cliente ou demanda"', 'id="pv2d-colunas"', 'id="pv2d-ordenar"', '>Colunas</span>', 'Mostrar ID</label>', 'id="pv2d-filtros-rot">Filtros</summary>', 'Nova demanda</button>', 'id="pv2d-chips"', 'id="pv2d-lista"', 'id="pv2d-pe"', 'id="pv2d-alto"', 'id="pv2d-tipos"', 'id="pv2d-abrir"']);
-  assert.match(dem, /const PV2D_VISOES = \[\['abertas', 'Todas'\], \['minha', 'Minha fila'\], \['atrasadas', 'Atrasadas'\], \['sem', 'Sem responsável'\], \['semana', 'Na semana'\]\];/);
-  // Os quatro números viraram o pé "De olho" e a linha do dia no topo.
-  naOrdem(dem, ['<span>De olho</span>', "pl(atrasadas.length, 'atrasada', 'atrasadas')", "'sem responsável'", "pl(venceHoje.length, 'vence hoje', 'vencem hoje')", "'grupo vazio, recolhido', 'grupos vazios, recolhidos'"]);
-  assert.match(dem, /Distribuir \$\{sem\.length === 1 \? 'a 1' : 'as ' \+ sem\.length\}/);
-  const linha = bloco(dem, 'function pv2dLinhaHtml(', 'function pv2dPintar(');
-  naOrdem(linha, ['class="d3m-a-dm-q', 'class="pv2-nome"', 'class="d3d-tipo"', 'class="d3d-cli"', 'class="pv2-cs"', 'class="pv2-cp"', 'class="d3d-tar', 'class="pv2-cr"', 'class="v2-mais"', 'pv2EtapasHtml(d)', "'Trocar responsável'", '>Abrir a peça</button>']);
-  naOrdem(dem, ['<span>Demanda</span>', '<span>Cliente</span>', '<span>Status</span>', '<span>Prazo</span>', '<span>Tarefas</span>']);
+  // Prancha V2-S-Filtros-Demandas (19/11/2026): os filtros saem do ⋯ e ficam à vista na folha; Ordenar, Colunas e Mostrar
+  // também vão para a coluna; o ⋯ só arruma a lista (urgência, status, grupos).
+  naOrdem(dem, ['<h2>Demandas</h2>', 'class="d3p-data"', '>Lista</button>', '>Calendário</button>', 'placeholder="Buscar cliente ou demanda"', 'id="pv2d-colunas"', 'id="pv2d-arrumar"', 'Nova demanda</button>', 'id="pv2d-tit"', 'id="pv2d-ativos"', 'id="pv2d-filtros"', '<span>Demanda</span><span>Status</span><span>Prazo</span><span>Tarefas</span>', 'id="pv2d-lista"', 'id="pv2d-pe"', 'id="pv2d-lado"']);
+  // O que o laranja e os números de antes pediam virou número do Resumo (cada um filtra) e a linha do dia no topo.
+  naOrdem(dem, ["rot: ['atrasada', 'atrasadas']", "['em execução', 'em execução']", "['pode fazer', 'podem fazer']", "visao('minha'", "visao('sem'", "visao('semana'", "['sem tipo', 'sem tipo']"]);
+  assert.match(dem, /pl\(venceHoje\.length, 'vence hoje', 'vencem hoje'\)/);
+  const linha = bloco(dem, 'function pv2dLinhaHtml(', 'function pv2dLadoListaHtml(');
+  naOrdem(linha, ['class="pv2-nome s-dm-nome"', 'class="s-dm-sub"', 'class="pv2-cs"', 'class="pv2-cp"', 'class="d3d-tar s-dm-tar', 'class="v2-mais"', 'pv2EtapasHtml(d)', "'Trocar responsável'", '>Abrir a peça</button>']);
   assert.match(dem, />\+ Nova aqui<\/button>/);
   assert.match(dem, /class="d3p-mais" onclick="pv2dGrupoInteiro\(/);
   assert.match(dem, /ficam recolhidos/);
-  // O que saiu da frente continua: filtros, resumo do recorte, visões e ordenação dentro de Filtros; o resto na reserva.
-  assert.match(dem, /pop\.append\(controles\);/);
-  assert.match(dem, /\[\['concluidas', 'Concluídas'\], \['todas', 'Tudo, com as concluídas'\]\]/);
+  // Os filtros (a fila de sempre, com os mesmos botões dentro) moram na folha; o resto na reserva.
+  assert.match(dem, /raiz\.querySelector\('#pv2d-filtros'\)\.append\(controles\);/);
+  assert.match(dem, /\[\['abertas', 'Em aberto'\], \['concluidas', `Concluídas · \$\{nConcluidas\}`\], \['todas', 'Tudo'\]\]/);
   assert.match(dem, /onclick="pv2dOrdenar\('\$\{c\}'\)"/);
   assert.equal((dem.match(/class="pv2-btn p"/g) || []).length, 0, 'o laranja cheio é o bloco de ação');
 });

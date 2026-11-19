@@ -29,10 +29,13 @@ test('Painel e Demandas: bloco de ação laranja, números com linha ou barra (n
   assert.match(gestor, /d3LinhaSvg\(serie, \{ largura: 90, altura: 28, rotulo: serieRotulo \}\)/);
   assert.match(gestor, /class="pv2-btn d3p-novo"/);
   assert.match(demandas, /class="pv2-btn d3p-novo"/);
-  assert.match(demandas, /pv2Laranja\(\{ agente: 'H', \.\.\.cartao \}\)/);
-  assert.match(demandas, /cartao = \{ quem: 'Heitor · Coordenação'/);
-  assert.match(demandas, /<div class="d3m-a-pe d3m-a-dm-pe" id="pv2d-pe">/);
-  assert.match(demandas, /<span>De olho<\/span>/);
+  // Prancha V2-S-Filtros-Demandas (19/11/2026): sem o laranja; o que ele pedia (atrasadas, sem responsável) virou número
+  // do Resumo que filtra, e o pé diz quantas os filtros esconderam.
+  assert.doesNotMatch(demandas, /pv2Laranja\(\{ agente: 'H'/);
+  assert.match(demandas, /rot: \['atrasada', 'atrasadas'\], aceso: currentDemandaAtrasadas, acao: 'focarAtrasadas\(\)'/);
+  assert.match(demandas, /visao\('sem', \['sem responsável', 'sem responsável'\]/);
+  assert.match(demandas, /<div class="s-dm-pe" id="pv2d-pe"><\/div>/);
+  assert.match(demandas, /escondidas'\)\} pelos filtros · cada filtro sai no próprio ×/);
 });
 
 test('o status de cada peça continua controlável nas quatro telas', () => {

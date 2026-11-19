@@ -1337,23 +1337,29 @@ function abrirSegmentoDoCliente(event, nome) {
   if (!id) return showToast('Este cliente ainda não tem cadastro próprio.', 'warning', 5000);
   const f = cadastroDoCliente(nome) || {};
   SEGMENTO_DO_CLIENTE = { id, nome, atual: String(f.segmento || '').trim() };
-  openWorkflowModal(`<div class="workflow-kicker"><span>Vybe OS · Etiquetas de segmento</span>
-      <button class="workflow-close" type="button" onclick="closeWorkflowModal()">×</button></div>
-    <h2 class="workflow-title">Segmento de ${safeText(nome)}</h2>
-    <p class="workflow-copy">Escolha uma etiqueta que já existe, ou crie a próxima. Renomear e apagar
-      valem para todos os clientes que usam a etiqueta — é um vocabulário só.</p>
-    <div id="cli-seg-lista" class="cli-tags"></div>
-    <div class="cli-form"><label class="cli-campo largo"><span>Criar etiqueta nova</span>
-      <input id="cli-seg-nova" type="text" placeholder="Ex.: Odontologia"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();criarSegmento();}"></label></div>
-    <div class="workflow-actions">
-      <button type="button" class="workflow-secondary quieto" onclick="aplicarSegmento('')">Deixar sem segmento</button>
+  // Prancha V2-S-Etiquetas-Cliente (19/11/2026): vidro fumê com a logo do cliente, "Segmento" e "uma etiqueta por
+  // cliente"; cada etiqueta numa linha com o rádio (tocar aplica), renomear e apagar; criar nova, a regra do vocabulário
+  // e, no pé, Deixar sem segmento, Fechar e Criar e aplicar. A pele é padrao-v2/s-c.css (#workflow-modal.seg-v2).
+  const foto = typeof pv2Foto === 'function' ? pv2Foto(nome) : `<i class="d3v-foto" aria-hidden="true">${safeText(String(nome).trim().slice(0, 2).toUpperCase())}</i>`;
+  openWorkflowModal(`<div class="seg-cab"><span class="seg-av" aria-hidden="true">${foto}</span>
+      <div class="seg-cab-txt"><h2 class="workflow-title">Segmento</h2><p class="workflow-copy">${safeText(nome)} · uma etiqueta por cliente</p></div>
+      <button class="workflow-close" type="button" aria-label="Fechar" onclick="closeWorkflowModal()">×</button></div>
+    <div id="cli-seg-lista" class="seg-lista" role="radiogroup" aria-label="Segmento de ${safeText(nome)}"></div>
+    <label class="seg-campo" for="cli-seg-nova"><span>Criar etiqueta nova</span>
+      <input id="cli-seg-nova" type="text" placeholder="Ex.: Odontologia" autocomplete="off"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();criarSegmento();}"></label>
+    <p class="seg-nota">Renomear e apagar valem para todos os clientes com esta etiqueta. Apagar pede confirmação.</p>
+    <div class="workflow-actions seg-pe">
+      <button type="button" class="workflow-secondary quieto seg-sem" onclick="aplicarSegmento('')">Deixar sem segmento</button>
       <span class="cli-espaco"></span>
       <button type="button" class="workflow-secondary" onclick="closeWorkflowModal()">Fechar</button>
-      <button type="button" class="workflow-primary" onclick="criarSegmento()">Criar e aplicar →</button>
+      <button type="button" class="workflow-primary" onclick="criarSegmento()">Criar e aplicar</button>
     </div>`);
+  document.getElementById('workflow-modal')?.classList.add('seg-v2', 'd3-tema');
   pintarSegmentos();
 }
+const SEG_LAPIS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>';
+const SEG_LIXO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
 function pintarSegmentos() {
   const caixa = document.getElementById('cli-seg-lista');
   if (!caixa) return;
@@ -1361,14 +1367,16 @@ function pintarSegmentos() {
   const lista = segmentosExistentes();
   caixa.innerHTML = !lista.length
     ? '<div class="auto-carregando">Nenhuma etiqueta ainda. Crie a primeira abaixo.</div>'
-    : lista.map(({ rotulo, quantos }) => `<div class="cli-tag ${rotulo.toLowerCase() === atual ? 'ativa' : ''}">
-        <button type="button" class="cli-tag-nome" title="Aplicar em ${safeText(SEGMENTO_DO_CLIENTE.nome)}"
-          onclick="aplicarSegmento('${jsArg(rotulo)}')">${safeText(rotulo)}<small>${quantos}</small></button>
-        <button type="button" class="cli-tag-acao" title="Renomear em todos os clientes"
-          onclick="renomearSegmento('${jsArg(rotulo)}')">renomear</button>
-        <button type="button" class="cli-tag-acao apagar" title="Apagar de todos os clientes"
-          onclick="apagarSegmento('${jsArg(rotulo)}')">apagar</button>
-      </div>`).join('');
+    : lista.map(({ rotulo, quantos }) => { const on = rotulo.toLowerCase() === atual;
+      return `<div class="seg-linha${on ? ' ativa' : ''}">
+        <button type="button" class="seg-escolher" role="radio" aria-checked="${on}"
+          title="${on ? 'É o segmento de agora' : `Aplicar em ${safeText(SEGMENTO_DO_CLIENTE.nome)}`} · ${quantos} ${quantos === 1 ? 'cliente usa' : 'clientes usam'}"
+          onclick="aplicarSegmento('${jsArg(rotulo)}')"><i class="seg-radio" aria-hidden="true"></i><span>${safeText(rotulo)}</span></button>
+        <button type="button" class="seg-ic" title="Renomear em todos os clientes" aria-label="Renomear ${safeText(rotulo)}"
+          onclick="renomearSegmento('${jsArg(rotulo)}')">${SEG_LAPIS}</button>
+        <button type="button" class="seg-ic seg-apagar" title="Apagar de todos os clientes" aria-label="Apagar ${safeText(rotulo)}"
+          onclick="apagarSegmento('${jsArg(rotulo)}')">${SEG_LIXO}</button>
+      </div>`; }).join('');
 }
 async function aplicarSegmento(rotulo) {
   if (!SEGMENTO_DO_CLIENTE) return;
