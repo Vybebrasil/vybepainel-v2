@@ -1,5 +1,3 @@
-/* Frente S-h (19/11/2026): o Feed do cliente rola com tudo o que está no calendário. Só a grade rola; a divisa marca
-   hoje (em cima, o que vem; embaixo, o que já saiu) e o marcador do fim pede a próxima parte do que já saiu. */
-#feed-board.d3m-a-v2 .vfd2-rola > .vfd2-hoje{position:relative;margin-top:10px;padding-top:10px;border-top:1px solid var(--d3-veu-forte);color:var(--d3-tinta)}
-#feed-board.d3m-a-v2 .vfd2-rola > .vfd2-hoje > span:first-child{font-weight:500}
+/* Frente S-h (19/11/2026): o Feed do cliente rola com tudo o que está no calendário; o marcador do fim pede a próxima
+   parte do que já saiu. */
 .vfd-grade > .vfd-mais{grid-column:1/-1;display:block;height:1px;pointer-events:none}

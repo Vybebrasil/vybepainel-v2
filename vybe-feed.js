@@ -264,7 +264,9 @@ const FEED_NO_AR_LOTE = 36;
 function feedNoArLimite(nome) { return FEED.noArMax.get(nome) || FEED_NO_AR_LOTE; }
 function feedNoArHtml(cli, g) {
   const lim = feedNoArLimite(cli.nome);
-  const html = g.noAr.slice(0, lim).map((t) => feedTileHtml(t, cli)).join('');
+  const p = g.perfil && !g.perfil.erro ? g.perfil : null;
+  const lido = p?.fonte === 'captura' ? `feed lido em ${feedDm(String(p.capturado_em || '').slice(0, 10))}` : p?.fonte === 'meta' ? 'pela conta da Meta' : p?.posts?.length ? 'do perfil público' : 'as últimas veiculadas';
+  const html = g.noAr.slice(0, lim).map((t, i) => feedTileHtml(i === 0 ? { ...t, primeiroNoAr: true, lido } : t, cli)).join('');
   return g.noAr.length > lim ? `${html}<span class="vfd-mais" data-vfd-mais="${feedEsc(cli.nome)}" aria-hidden="true"></span>` : html;
 }
 const FEED_MAIS_OBS = new WeakMap();
@@ -293,12 +295,19 @@ function feedLigarMais(raiz) {
   });
 }
 
+// A marca de hoje mora no próprio quadro (Paulo, 19/11/2026: "no feed não fica buraco assim"): o primeiro que já saiu
+// ganha o selo "no ar"; a grade segue contínua, sem linha que quebre as três colunas.
+function feedSeloNoAr(t) {
+  if (!t.primeiroNoAr) return '';
+  return `<span class="vfd-selo-ar" title="Daqui para trás, o que já saiu (até hoje, ${feedEsc(feedQuando(feedHoje()))}${t.lido ? ` · ${feedEsc(t.lido)}` : ''})">no ar</span>`;
+}
+
 function feedTileHtml(t, cli) {
   if (t.buraco) {
     const quando = feedQuando(t.iso);
     const rotulo = t.livre ? 'data livre' : 'sem post';
     // Tocar no quadro marca a data para o lote; o + cadastra só ela.
-    return `<div class="vfd-t vfd-x${t.livre ? ' vfd-livre' : ''}${t.marcado ? ' vfd-marcado' : ''}" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}">
+    return `<div class="vfd-t vfd-x${t.livre ? ' vfd-livre' : ''}${t.marcado ? ' vfd-marcado' : ''}" data-vfd-chave="x:${feedEsc(t.iso)}" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}">
       <button type="button" class="vfd-x-marcar" aria-pressed="${t.marcado}" onclick="feedMarcar('${jsArg(cli.nome)}','${jsArg(t.iso)}')"
         title="${t.marcado ? 'Desmarcar' : 'Marcar'} ${quando}${t.sazonal ? ` (${feedEsc(t.sazonal)})` : ''} para cadastrar em lote; arraste uma peça para cá para trocar o dia"
         aria-label="${t.marcado ? 'Desmarcar' : 'Marcar'} ${quando} para o lote">
@@ -308,8 +317,8 @@ function feedTileHtml(t, cli) {
   }
   if (t.ig) {
     const p = t.ig, icone = p.tipo === 'carrossel' ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Carrossel"></i>' : p.tipo === 'video' ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo"></i>' : '';
-    return `<a class="vfd-t vfd-ig" href="${feedEsc(p.link)}" target="_blank" rel="noopener noreferrer" title="${p.data ? `No ar desde ${feedEsc(feedDm(String(p.data).slice(0, 10)))}` : 'No ar'}${p.fixado ? ' (fixado)' : ''}: abrir no Instagram">
-      <img src="${feedEsc(feedFotoIg(p.imagem))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${icone}</a>`;
+    return `<a class="vfd-t vfd-ig${t.primeiroNoAr ? ' vfd-hoje' : ''}" data-vfd-chave="ig:${feedEsc(p.codigo || p.link || '')}" href="${feedEsc(p.link)}" target="_blank" rel="noopener noreferrer" title="${p.data ? `No ar desde ${feedEsc(feedDm(String(p.data).slice(0, 10)))}` : 'No ar'}${p.fixado ? ' (fixado)' : ''}: abrir no Instagram">
+      <img src="${feedEsc(feedFotoIg(p.imagem))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${icone}${feedSeloNoAr(t)}</a>`;
   }
   const it = t.item, id = String(it.id), arte = t.request ? null : FEED.artes.get(id);
   const nome = String(it.nome || it.titulo || 'Peça');
@@ -318,11 +327,11 @@ function feedTileHtml(t, cli) {
   const corpo = arte?.thumb
     ? `<img src="${feedEsc(String(arte.thumb).replace(/sz=\d+/, 'sz=480'))}" alt="" loading="lazy" onerror="this.closest('.vfd-t').classList.add('vfd-sem-img');this.remove()">${/^(mp4|mov|m4v|webm|avi)$/i.test(String(arte.extensao || '')) ? '<i class="vfd-tipo vfd-tipo-video" aria-label="Vídeo: frame do Drive"></i>' : arte.total > 1 ? '<i class="vfd-tipo vfd-tipo-carrossel" aria-label="Mais de um arquivo"></i>' : ''}`
     : `<span class="vfd-prov vfd-prov-${feedEsc(t.fmt.chave)}"><b>${feedEsc(t.fmt.nome)}</b><small>${feedEsc(nome)}</small></span>`;
-  if (t.passado) return `<div class="vfd-t vfd-passado" title="${feedEsc(nome)} · veiculada em ${feedEsc(feedDm(t.iso))}">${corpo}</div>`;
+  if (t.passado) return `<div class="vfd-t vfd-passado${t.primeiroNoAr ? ' vfd-hoje' : ''}" data-vfd-chave="i:${feedEsc(id)}" title="${feedEsc(nome)} · veiculada em ${feedEsc(feedDm(t.iso))}">${corpo}${feedSeloNoAr(t)}</div>`;
   const atrasada = feedAtrasada(t);
   // A etapa da peça em cima (o status do calendário) e, com o prazo de ouro vencido, o contorno vermelho.
   const etapa = status ? `<span class="vfd-etapa" aria-hidden="true">${feedEsc(status)}</span>` : '';
-  return `<button type="button" class="vfd-t vfd-peca${arte?.thumb ? '' : ' vfd-sem-arte'}${atrasada ? ' vfd-atrasada' : ''}${t.trocada ? ' vfd-trocada' : ''}" draggable="true" data-vfd-item="${feedEsc(id)}" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}"
+  return `<button type="button" class="vfd-t vfd-peca${arte?.thumb ? '' : ' vfd-sem-arte'}${atrasada ? ' vfd-atrasada' : ''}${t.trocada ? ' vfd-trocada' : ''}" draggable="true" data-vfd-chave="i:${feedEsc(id)}" data-vfd-item="${feedEsc(id)}" data-vfd-alvo="${feedEsc(t.iso)}" data-vfd-cliente="${feedEsc(cli.nome)}"
       title="${feedEsc(nome)} · ${feedEsc(t.fmt.nome)} · ${feedEsc(quando)}${status ? ' · ' + feedEsc(status) : ''}${atrasada ? ' · prazo de ouro vencido' : ''}${arte?.thumb || t.request ? '' : ' · arte ainda não enviada'}. Arraste para trocar o dia; clique para abrir."
       onclick="feedAbrirPeca('${jsArg(id)}',event,${t.request ? 'true' : 'false'})">${corpo}${etapa}<span class="vfd-data vfd-futuro">${feedEsc(quando)}</span></button>`;
 }
@@ -1015,13 +1024,10 @@ function feedV2GradeHtml(cli, g) {
   const nums = p ? `${feedNumeroIg(p.total_posts)} posts · ${feedNumeroIg(p.seguidores)} seguidores` : cli.usuario ? 'lendo o Instagram…' : 'sem Instagram no cadastro';
   const bio = String(p?.bio || cli.bio || '').trim();
   const noAr = feedNoArHtml(cli, g);
-  const lido = p?.fonte === 'captura' ? `feed lido em ${feedDm(String(p.capturado_em || '').slice(0, 10))}` : p?.fonte === 'meta' ? 'pela conta da Meta' : p ? 'do perfil público' : noAr ? 'as últimas veiculadas' : '';
   return `<div class="vfd2-perfil">${feedV2Foto(cli, 'vfd2-avatar')}<div><p class="vfd2-user">${usuario}</p><p class="vfd2-nums">${feedEsc(nums)}</p>${bio ? `<p class="vfd2-bio" title="${feedEsc(bio)}">${feedEsc(bio.split('\n')[0])}</p>` : ''}</div></div>
     <div class="vfd2-rola" data-vfd2-rola="${feedEsc(cli.nome)}">
       <p class="vfd2-rot"><span>a sair, o mais novo em cima</span><span>${aSair ? `${feedPlural(aSair, 'post', 'posts')} até ${feedDm(futuro[0].iso)}` : ''}</span></p>
-      <div class="vfd-grade" data-vfd-grade="${feedEsc(cli.nome)}">${futuro.map((t) => feedTileHtml(t, cli)).join('') || `<p class="vfd-vazio">Nada programado ${feedEsc(g.jan.rotulo)}.</p>`}</div>
-      <p class="vfd2-rot vfd2-hoje" data-vfd2-hoje><span>no ar</span><span>até hoje, ${feedEsc(feedQuando(g.jan.hoje))}${lido ? ` · ${feedEsc(lido)}` : ''}</span></p>
-      <div class="vfd-grade">${noAr || '<p class="vfd-vazio">Nada no ar ainda por aqui.</p>'}</div>
+      <div class="vfd-grade" data-vfd-grade="${feedEsc(cli.nome)}">${futuro.map((t) => feedTileHtml(t, cli)).join('')}${noAr}${!futuro.length && !noAr ? `<p class="vfd-vazio">Nada programado ${feedEsc(g.jan.rotulo)} nem no ar.</p>` : ''}</div>
     </div>`;
 }
 // As semanas em calendário: uma linha por semana, sete dias; a peça com o formato (a cor embaixo é o status), o X onde
@@ -1087,6 +1093,7 @@ function feedV2LadoHtml(cli, g) {
   return `${laranja}${feedV2SemanasHtml(cli, g)}${marcadas}${painel ? `<div class="d3m-a-folha vfd2-painel">${painel}</div>` : ''}<div class="vfd2-atalhos">${atalhos}</div>`;
 }
 function feedV2Pintar(wrap) {
+  feedOuvirMudancas();
   if (typeof garantirClientesAtivos === 'function') { try { garantirClientesAtivos(); } catch { /* segue */ } }
   if (typeof ensureClientMasterSources === 'function' && !feedClientes.pedido) {
     feedClientes.pedido = true;
@@ -1112,9 +1119,11 @@ function feedV2Pintar(wrap) {
     const g = montados.get(cli.nome), rola = cel.querySelector('.vfd2-rola'), chave = `${cli.nome}|${FEED.vista}|${FEED.mes}`;
     const topo = rola && rola.dataset.vfd2Rola === cli.nome && cel.vfdChave === chave ? rola.scrollTop : null;
     cel.setAttribute('aria-label', `Feed de ${cli.nome}`);
+    const antes = topo != null ? feedPosicoes(cel) : null;
     if (feedV2Troca(cel, feedV2GradeHtml(cli, g))) {
       const novo = cel.querySelector('.vfd2-rola');
       if (novo && topo != null) novo.scrollTop = topo; else if (novo) feedV2Ancorar(novo, g.jan);
+      if (antes) feedAnimarTroca(cel, antes);
     }
     cel.vfdChave = chave;
     feedLigarMais(cel);
@@ -1135,6 +1144,37 @@ function feedV2Pintar(wrap) {
   // As fotos da lista são as do perfil de cada cliente; as artes, só do cliente à mostra.
   feedPedirPerfis(ordenada);
   if (cli) feedPedirArtes([cli]);
+}
+// FLIP: a posição de cada quadro (pela chave) antes de repintar; depois, quem mudou de lugar desliza do lugar antigo
+// para o novo em até 200 ms. Com "reduzir movimento", troca direto.
+function feedPosicoes(raiz) {
+  const m = new Map();
+  raiz?.querySelectorAll?.('[data-vfd-chave]').forEach((el) => { const r = el.getBoundingClientRect(); m.set(el.dataset.vfdChave, [r.left, r.top]); });
+  return m;
+}
+function feedAnimarTroca(raiz, antes) {
+  if (!antes?.size || typeof matchMedia !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  raiz.querySelectorAll('[data-vfd-chave]').forEach((el) => {
+    const de = antes.get(el.dataset.vfdChave); if (!de) return;
+    const r = el.getBoundingClientRect(), dx = de[0] - r.left, dy = de[1] - r.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    el.animate?.([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.22,1,.36,1)' });
+  });
+}
+// Mudou algo fora do Feed (a conclusão de uma solicitação, a data no calendário): a grade se reordena na hora. Os
+// caminhos de status, cadastro, exclusão e veiculação já repintam pelo renderOperationalTools; estes dois, não.
+function feedOuvirMudancas() {
+  if (feedOuvirMudancas.ligado || typeof window === 'undefined') return;
+  feedOuvirMudancas.ligado = true;
+  const repintar = () => { if (!feedAberto || feedOuvirMudancas.marcado) return; feedOuvirMudancas.marcado = true;
+    (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : setTimeout)(() => { feedOuvirMudancas.marcado = false; if (feedAberto) renderFeedDoCliente(); }); };
+  for (const nome of ['renderIntegratedOperationalViews', 'renderManagerCalendar']) {
+    const original = window[nome];
+    if (typeof original !== 'function' || original.vfdOuvido) continue;
+    const embrulho = function (...a) { const r = original.apply(this, a); repintar(); return r; };
+    embrulho.vfdOuvido = true;
+    window[nome] = embrulho;
+  }
 }
 // A posição de abrir: a peça mais nova dentro da janela (as próximas semanas ou o mês) no alto da grade; o que vem
 // depois fica acima, a um rolar de distância.

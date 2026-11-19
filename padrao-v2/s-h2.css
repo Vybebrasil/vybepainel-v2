@@ -1,0 +1,9 @@
+/* Frente S-h2 (Paulo, 19/11/2026: "no feed não fica buraco assim"): uma grade só, contínua. Hoje é um selo no primeiro
+   quadro que já saiu; os publicados ganham um fio por dentro; a etapa e o dia da peça ficam numa faixa cheia (a arte
+   por baixo não aparece através do texto). */
+.vfd-grade > .vfd-t > .vfd-selo-ar{position:absolute;top:6px;left:6px;z-index:2;padding:2px 8px;border-radius:999px;background:var(--d3-tinta);color:var(--d3-contra);font:500 12px/1.3 var(--vv-texto,Inter,sans-serif);white-space:nowrap;pointer-events:none}
+.vfd-grade > .vfd-t.vfd-hoje{box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd-grade > :is(.vfd-passado,.vfd-ig):not(.vfd-hoje){box-shadow:inset 0 0 0 1px var(--d3-veu-forte)}
+#feed-board.d3m-a-v2 .vfd-grade > .vfd-peca:not(.vfd-sem-arte)::after{height:44px;background:var(--d3-fume-forte);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#feed-board.d3m-a-v2 .vfd-grade > .vfd-peca > .vfd-etapa{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+@media (prefers-reduced-motion:reduce){.vfd-grade > .vfd-t{animation:none;transition:none}}
