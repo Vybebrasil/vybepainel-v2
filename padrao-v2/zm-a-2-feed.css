@@ -105,7 +105,7 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
 .vfd2-peca{background:var(--d3-veu);box-shadow:inset 0 -2px 0 var(--st,var(--d3-meta))}
 .vfd2-peca:hover{background:var(--d3-veu-forte)}
 .vfd2-peca > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vfd2-peca > small{flex:none;font-size:9px;color:var(--d3-rotulo)}
+.vfd2-peca > small{flex:none;font-size:9px;color:var(--d3-texto2)}
 .vfd2-peca.passou{color:var(--d3-rotulo)}
 .vfd2-x{background:var(--d3-perigo-veu)}
 .vfd2-x:hover{box-shadow:inset 0 0 0 1px var(--d3-perigo)}

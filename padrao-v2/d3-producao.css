@@ -26,7 +26,7 @@ body.mundo.mundo-modulo:is([data-modo="gestor"],[data-modo="demandas"],[data-mod
 :is(#pv2-painel,#pv2-demandas).pv2 .d3p-acao{padding:14px 20px;border-radius:22px}
 .d3p-acao > .d3-acao-av{width:36px;height:36px;font-size:var(--d3-fs-destaque)}
 .d3p-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px}
-.d3p-acao .d3p-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.82}
+.d3p-acao .d3p-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 .d3p-acao .d3p-frase{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em}
 .d3p-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:var(--d3-fs-destaque)}
 
@@ -206,7 +206,7 @@ button.d3-num.d3p-num:active{transform:scale(.98)}
 .d3s > .d3s-acao{padding:14px 20px;border-radius:22px}
 .d3s-acao > .d3-acao-av{width:36px;height:36px;font-size:var(--d3-fs-destaque)}
 .d3s-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px}
-.d3s-acao .d3s-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.82}
+.d3s-acao .d3s-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 .d3s-acao .d3s-frase{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em}
 .d3s-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:var(--d3-fs-destaque)}
 .d3s-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -319,7 +319,7 @@ button.d3s-lin-txt{cursor:pointer}
 #vv-conteudo.vc.vc .d3a-acao{padding:14px 20px;border-radius:22px}
 #vv-conteudo.vc.vc .d3a-acao > .d3-acao-av{width:36px;height:36px;font-size:var(--d3-fs-destaque)}
 #vv-conteudo.vc.vc .d3a-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px}
-#vv-conteudo.vc.vc .d3a-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.82}
+#vv-conteudo.vc.vc .d3a-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 #vv-conteudo.vc.vc .d3a-frase{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em}
 #vv-conteudo.vc.vc .d3a-acao > .d3-acao-btn{height:40px;padding:0 20px;border:0;border-radius:999px;background:#FFFFFF;color:var(--d3-acao-texto);font:700 var(--d3-fs-destaque) var(--vv-texto,Inter),sans-serif;box-shadow:none}
 #vv-conteudo.vc.vc .d3a-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -445,7 +445,7 @@ button.d3s-lin-txt{cursor:pointer}
 .vv-gestao .d3g > .d3-acao{padding:14px 20px;border-radius:22px}
 .vv-gestao .d3g > .d3-acao > .d3-acao-av{width:36px;height:36px;font-size:var(--d3-fs-destaque)}
 .vv-gestao .d3g > .d3-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;letter-spacing:-.01em;white-space:normal}
-.vv-gestao .d3g > .d3-acao .d3s-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;letter-spacing:0;opacity:.82}
+.vv-gestao .d3g > .d3-acao .d3s-quem{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;letter-spacing:0}
 .vv-gestao .d3g > .d3-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:var(--d3-fs-destaque)}
 .vv-gestao .d3g-sub{min-width:0;font-size:var(--d3-fs-texto);color:var(--d3-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vv-gestao .d3g-sub.r{color:var(--d3-perigo)}

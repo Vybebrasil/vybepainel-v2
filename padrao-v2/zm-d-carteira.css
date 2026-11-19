@@ -113,7 +113,7 @@ b.d3m-d-ct-v{font-weight:500}
 /* Vazio dentro da folha e a tira do que ainda não está ligado. */
 .d3m-d-ct-nada{flex:1 1 auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;min-height:64px;padding:16px;color:var(--d3-rotulo)}
 .d3m-d-ct-nada > p{margin:0;font-size:var(--d3-fs-texto);color:var(--d3-rotulo)}
-.d3m-d-ct-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-apagado);font-size:var(--d3-fs-apoio);line-height:1.4}
+.d3m-d-ct-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-escuro);color:var(--d3-fume-apagado);font-size:var(--d3-fs-apoio);line-height:1.4}
 .d3m-d-ct-aviso > span{flex:1 1 320px;min-width:0}
 .d3m-d-ct-aviso > span > b{font-weight:600;color:var(--d3-fume-texto)}
 .d3m-d-ct-aviso > small{flex-basis:100%;font-size:var(--d3-fs-apoio);color:var(--d3-fume-apagado)}

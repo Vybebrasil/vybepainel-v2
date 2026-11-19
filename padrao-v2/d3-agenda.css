@@ -142,7 +142,7 @@
 /* ===================== Planejamentos (#vv-planejamentos) ===================== */
 #vv-planejamentos.vv-plj.vv-plj{background:var(--d3-areia)}
 #vv-planejamentos .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-planejamentos .d3-acao .d3pl-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.85}
+#vv-planejamentos .d3-acao .d3pl-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 #vv-planejamentos .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:var(--d3-fs-titulo)}
 #vv-planejamentos .p2-menu > .p2-btn.d3pl-novo{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
 #vv-planejamentos .p2-menu > .p2-btn.d3pl-novo:hover{background:var(--d3-trilho)}
@@ -218,7 +218,7 @@
 /* ===================== Impressões (#vv-impressoes) ===================== */
 #vv-impressoes.vc-janela.vc-janela{background:var(--d3-areia)}
 #vv-impressoes .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-impressoes .d3-acao .d3im-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.85}
+#vv-impressoes .d3-acao .d3im-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 #vv-impressoes .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:var(--d3-fs-titulo)}
 #vv-impressoes .p2-btn.d3im-nova{background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:none}
 #vv-impressoes .p2-btn.d3im-nova:hover{background:var(--d3-trilho)}
@@ -284,7 +284,7 @@
 
 /* ===================== Projetos (#vv-pessoas, aba Projetos: .v2p-proj) ===================== */
 #vv-pessoas .v2p-proj .d3-acao .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-pessoas .v2p-proj .d3-acao .d3pj-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;opacity:.85}
+#vv-pessoas .v2p-proj .d3-acao .d3pj-quem{overflow:hidden;text-overflow:ellipsis;font:600 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif}
 #vv-pessoas .v2p-proj .d3-acao .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis;font-size:var(--d3-fs-titulo)}
 #vv-pessoas .v2p-proj .d3pj-nums{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;min-width:0}
 #vv-pessoas .v2p-proj .d3pj-nums > .d3-num{appearance:none;border:0;margin:0;text-align:left;color:var(--d3-tinta);font-family:inherit}

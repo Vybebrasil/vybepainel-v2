@@ -33,7 +33,7 @@
 #vv-comercial.v2c.d3c .d3-acao{gap:14px;padding:16px 20px;border-radius:22px}
 #vv-comercial.v2c.d3c .d3-acao > .d3-acao-av{width:36px;height:36px;font-size:var(--d3-fs-destaque)}
 #vv-comercial.v2c.d3c .d3-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:2px;white-space:normal}
-#vv-comercial.v2c.d3c .d3c-quem{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);opacity:.82}
+#vv-comercial.v2c.d3c .d3c-quem{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 #vv-comercial.v2c.d3c .d3c-frase{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif);overflow:hidden;text-overflow:ellipsis}
 #vv-comercial.v2c.d3c .d3-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:var(--d3-fs-destaque)}
 
@@ -150,7 +150,7 @@
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala{gap:14px;padding:16px 20px;border-radius:22px;background:var(--d3-acao);color:#FFFFFF}
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala > p{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF}
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala b{font-weight:600}
-#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-quem{display:block;margin-bottom:2px;font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:#FFFFFF;opacity:.82}
+#vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-quem{display:block;margin-bottom:2px;font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-escuro-texto)}
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);isolation:isolate}
 /* o pulso branco no compositor (como o do bloco de ação em 0-d3-base.css): um ::after branco por baixo, que cresce 8 px e some */
 #vv-carteira .v2c:is([data-tela="contratos"],[data-tela="churn"]) .v2c-fala .v2c-ag::after{display:block;content:"";inset:0;z-index:-1;border:0;border-radius:50%;background:inherit;pointer-events:none;animation:d3PulsaBrancoAnel 2.4s ease-in-out infinite}
@@ -186,7 +186,7 @@
 .vv-gestao.vv-gestao .g2-fala{padding:16px 20px;border-radius:22px;background:var(--d3-acao);color:#FFFFFF}
 .vv-gestao.vv-gestao .g2-fala-lin > p{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight"),Inter,sans-serif;color:#FFFFFF}
 .vv-gestao.vv-gestao .g2-fala b{font-weight:600}
-.vv-gestao.vv-gestao .g2-fala .g2-quem{display:block;margin-bottom:2px;font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:#FFFFFF;opacity:.82}
+.vv-gestao.vv-gestao .g2-fala .g2-quem{display:block;margin-bottom:2px;font:700 var(--d3-fs-apoio) var(--vv-texto,Inter),sans-serif;color:var(--d3-escuro-texto)}
 .vv-gestao.vv-gestao .g2-fala .g2-ag{width:36px;height:36px;background:#FFFFFF;color:var(--d3-agente);isolation:isolate}
 .vv-gestao.vv-gestao .g2-fala .g2-ag::after{display:block;content:"";inset:0;z-index:-1;border:0;border-radius:50%;background:inherit;pointer-events:none;animation:d3PulsaBrancoAnel 2.4s ease-in-out infinite}
 /* a fala quieta (cartão branco, avatar roxo): o pulso branco de antes não aparecia no branco; continua sem pulso */

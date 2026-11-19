@@ -28,7 +28,7 @@
   --d3-fume-texto:#FFFFFF; --d3-fume-apagado:rgba(255,255,255,.84); --d3-fume-escuro:rgba(18,15,13,.5); --d3-fume-painel:#2B2520; --d3-rotulo-fixo:rgba(31,29,26,.68);
   --d3-folha:rgba(255,255,255,.9); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.55); --d3-rotulo:rgba(31,29,26,.68); --d3-divisa:rgba(31,29,26,.07); --d3-veu:rgba(31,29,26,.07); --d3-veu-forte:rgba(31,29,26,.12);
   --d3-tinta-fixa:#1F1D1A; --d3-ambar:#8F5600; --d3-perigo-vidro:#FFC4BC;
-  --d3-laranja:radial-gradient(52% 52% at 100% 0%,#EDA676 0%,rgba(237,166,118,0) 70%),linear-gradient(170deg,#C2490C 0%,#A83D08 100%);
+  --d3-laranja:radial-gradient(36% 44% at 100% 0%,rgba(237,166,118,.62) 0%,rgba(237,166,118,0) 70%),linear-gradient(170deg,#C2490C 0%,#A83D08 100%);
   --d3-mod-operacao-claro:#FFB38A; --d3-mod-negocio-claro:#C9B8FF; --d3-mod-time-claro:#7FD6E6; --d3-mod-vybe-claro:#8FE0AE;
   /* Escala de fonte (acabamento premium, 15/11/2026): seis tamanhos inteiros no lugar dos 14 a 19 por tela e dos meios
      pixels (10,5 / 11,5 / 12,5 / 13,5 / 14,5). mini: selo, contador, legenda miúda · apoio: rótulo, chip, sublinha ·

@@ -27,7 +27,7 @@
 #vv-hoje .d3h-acao{padding:16px 20px;border-radius:22px;gap:14px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
 #vv-hoje .d3h-acao > .d3-acao-av{width:36px;height:36px;font-size:var(--d3-fs-destaque)}
 #vv-hoje .d3h-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
-#vv-hoje .d3h-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);opacity:.85;overflow:hidden;text-overflow:ellipsis}
+#vv-hoje .d3h-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);overflow:hidden;text-overflow:ellipsis}
 #vv-hoje .d3h-acao > .d3-acao-btn{height:40px;padding:0 20px;font-size:var(--d3-fs-destaque);transition:transform .15s}
 #vv-hoje .d3h-acao > .d3-acao-btn:active{transform:scale(.96)}
 #vv-hoje .d3h-acao-passos{flex:0 1 auto;display:flex;gap:6px;min-width:0;overflow:hidden}
@@ -353,7 +353,7 @@
    laranja logo abaixo da barra (com "Ir à <loja mais apertada>"), e o cartão da loja ganha o desenho do quadro. */
 body.mundo.mundo-centro:not(.mundo-modulo):not(.v2m-dia) #mundo-hud > .v2m-fala.d3h-acao{top:calc(var(--vv-m,14px) + 132px);bottom:auto;left:calc(var(--vv-livre-esq,250px) + 6px);right:var(--vv-m,14px);width:auto;max-width:none;box-sizing:border-box;margin:0;padding:14px 18px;border:0;border-radius:22px;background:var(--d3-acao);color:#FFFFFF;box-shadow:0 18px 36px -22px rgba(31,29,26,.55);font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
 #mundo-hud > .v2m-fala.d3h-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#mundo-hud > .v2m-fala.d3h-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);opacity:.85}
+#mundo-hud > .v2m-fala.d3h-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 #mundo-hud > .v2m-fala.d3h-acao > .d3-acao-frase > span{overflow:hidden;text-overflow:ellipsis}
 #mundo-hud > .v2m-fala.d3h-acao b{font-weight:700;color:#FFFFFF}
 #mundo-hud > .v2m-fala.d3h-acao > .d3-acao-btn{height:40px;padding:0 18px}
@@ -434,7 +434,7 @@ body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loj
 #ofc-ranking .v2r{background:var(--d3-areia)}
 #ofc-ranking .d3r-acao{padding:14px 18px;border-radius:22px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
 #ofc-ranking .d3r-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:1px}
-#ofc-ranking .d3r-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);opacity:.85}
+#ofc-ranking .d3r-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 #ofc-ranking .d3r-acao > .d3-acao-btn{height:40px;padding:0 18px}
 #ofc-ranking .d3r-nums{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px}
 #ofc-ranking .d3r-num{border-radius:18px;min-height:96px}
@@ -502,7 +502,7 @@ body.mundo.mundo-centro:not(.mundo-modulo) #mundo-hud > #vv-placa:has(> .d3m-loj
 #vv-hoje .d3h-danilo .vcr-fila .vcr-pill{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-trilho);color:var(--d3-texto2);font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);font-style:normal}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-pill.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-quem{flex:none;display:inline-flex;align-items:center;gap:6px;font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
-#vv-hoje .d3h-danilo .vcr-fila .vcr-quem > i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#EFEBE4;font:700 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
+#vv-hoje .d3h-danilo .vcr-fila .vcr-quem > i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--d3-linha);font:700 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-sug-acoes{flex:none;display:inline-flex;align-items:center;gap:4px}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-sug-acoes .vc-acao{height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--d3-tinta);color:var(--d3-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none;cursor:pointer}
 #vv-hoje .d3h-danilo .vcr-fila .vcr-sug[data-vcr-tipo] .vcr-sug-acoes > button.vc-acao.para{background:#FFFFFF;color:var(--d3-tinta);box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
@@ -564,7 +564,7 @@ body.mundo.mundo-centro.d3c-cheio #mundo-hud > .v2m-barra .d3c-voltar{display:in
 /* A faixa laranja do VYBES no lugar da faixa do quadro. */
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .d3c-faixa > .v2m-fala.d3h-acao{position:static;display:flex;margin:0;padding:14px 18px;border:0;border-radius:22px;background:var(--d3-acao);color:#FFFFFF;box-shadow:none;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-fala.d3h-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:1px;min-width:0}
-body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-fala.d3h-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);opacity:.85}
+body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-fala.d3h-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-fala.d3h-acao > .d3-acao-frase > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-fala.d3h-acao b{color:#FFFFFF}
 body.mundo.mundo-centro.d3c-painel #mundo-hud #d3-centro .v2m-fala.d3h-acao > .d3-acao-btn{height:40px;padding:0 18px}
@@ -637,7 +637,7 @@ body.mundo.mundo-quarto.d3s-painel #mundo-andar.quarto #d3-sala .quarto-cab{posi
 #d3-sala .quarto-cab .quarto-acoes{margin-left:auto}
 #d3-sala .d3s-acao{padding:14px 18px;border-radius:22px;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif)}
 #d3-sala .d3s-acao > .d3-acao-frase{display:flex;flex-direction:column;gap:1px;min-width:0}
-#d3-sala .d3s-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);opacity:.85}
+#d3-sala .d3s-acao > .d3-acao-frase > small{font:700 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
 #d3-sala .d3s-acao > .d3-acao-frase > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #d3-sala .d3s-acao > .d3-acao-btn{height:40px;padding:0 20px}
 #d3-sala .d3s-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
