@@ -46,7 +46,8 @@ test('Agenda V2: grade de horas no computador, com as mesmas funções; no celul
   const lado = capt.slice(capt.indexOf('function agv2LaranjaHtml('), capt.indexOf('function agv2Html('));
   for (const t of ['captAbrirFechar(', 'captAbrirMontar(', 'captCadastrar(', "captGrupo('roteiro')", "captGrupo('pecas')", 'captPendenciasHtml(pend)', "prodAgendaVista('roteiros')", '<b>Antes de gravar</b>', '<b>Hoje</b>', '<b>Abrir</b>']) assert.ok(lado.includes(t), t);
   // A janela é o vidro fumê e a grade só rola por dentro.
-  assert.match(css, /body\.mundo\.mundo-modulo\[data-modo="producao"\]\[data-agv2\] #mundo-moldura\{border-radius:20px;background:var\(--d3-fume\)/);
+  // (a regra da janela fumê é a agrupada de z-direcao.css desde a limpeza de 16/11/2026)
+  assert.match(ler('padrao-v2/z-direcao.css'), /body\.mundo\.mundo-modulo\[data-modo="producao"\]\[data-agv2\] #mundo-moldura,[^{]*\{border-radius:20px;background:var\(--d3-fume\)/);
   assert.match(css, /\.agv2-rola\{flex:1 1 0;min-height:0;overflow-x:hidden;overflow-y:auto;[^}]*container-type:size\}/);
   assert.match(css, /--agv2-hora:max\(36px,calc\(100cqh \/ var\(--agv2-n,11\)\)\)/);
   // O cartão aberto não fecha quando o clique é em outro bloco da grade nova.

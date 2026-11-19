@@ -10587,7 +10587,7 @@ body.mundo #v2j-busca :is(.v2j-cab,.v2j-pe,.spotlight-lista){border-color:var(--
 /* 12 · PRODUÇÃO (Painel de trabalho) NA PRANCHA V2-M-Producao. Vale na vista Semana (as outras vistas seguem como estavam
    até a prancha de cada uma). A janela é vidro fumê; a casa vira uma coluna da altura da janela, com a coluna de consulta
    presa à direita; o cartão do dia é a cabeça (#pv2-semana), a lista (a semana ativa) e o pé "De olho" (#pv2-pe). */
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #mundo-moldura,body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #mundo-moldura,body.mundo.mundo-modulo[data-modo="producao"][data-agv2] #mundo-moldura,body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"],[data-quadro="automacoes"],[data-quadro="conta"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.pv2-casa{position:relative;display:flex;flex-direction:column;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:540px;margin:0;padding:16px 348px 16px 16px;color:var(--d3-tinta)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .container.pv2-casa > *{flex:none;min-width:0;margin-left:-14px;margin-right:318px}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel{display:block;margin:2px -14px 16px -14px;padding:0;background:none;box-shadow:none}
@@ -10606,15 +10606,15 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-lado{p
 #pv2-painel .d3m-modos > .pv2-pop{left:0;right:0;top:auto;bottom:calc(100% + 6px)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3m-troca > summary > h2{color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-data{font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas{flex:none;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas{flex:none;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button,#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel #pv2-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel :is(#pv2-vistas > button,.pv2-busca,.d3p-novo):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca{flex:0 0 34px;width:34px;max-width:34px;min-width:0;height:34px;padding:0 0 0 32px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background-color:var(--d3-fume-veu-forte);background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2711%27 cy=%2711%27 r=%276%27/%3E%3Cpath d=%27m20 20-4.5-4.5%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:9px center;background-size:16px;box-shadow:none;color:var(--d3-fume-texto);cursor:pointer;transition:max-width .2s,flex-basis .2s}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca::placeholder{color:transparent}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca:focus{flex-basis:200px;width:200px;max-width:200px;padding-right:10px;cursor:text}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .pv2-busca:focus::placeholder{color:var(--d3-fume-apagado)}
-body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo{flex:none;height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo,body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .pv2-btn.d3p-novo{flex:none;height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel .d3p-novo > svg{stroke:var(--d3-tinta)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-alto{display:block;margin:0;padding:0}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-alto > .d3m-laranja{min-height:244px;margin:0}
@@ -10773,10 +10773,10 @@ body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel
 .pv2.pv2-dias.d3m-um-dia:is(#pv2-dias-s1,#pv2-dias-s2,#pv2-dias-s3,#pv2-dias-s4,#pv2-dias-s5,#pv2-dias-s6) .d3m-colunas > span:nth-child(6){flex:0 0 112px;text-align:right}
 
 /* terceira leva da Produção */
-.d3m-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
+.d3m-ico,.d3m-c-ico,.d3m-e-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
 .d3m-ico:hover{background:var(--d3-fume-veu)}
-.d3m-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-.d3m-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d3m-ico:focus-visible,.d3m-d-ico:focus-visible,.d3m-e-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+.d3m-ico > svg,.d3m-d-ico > svg,.d3m-e-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 /* A folha antiga prende a cor de títulos e de letras miúdas dentro de módulo; o preenchimento do texto resolve sem brigar. */
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] #pv2-painel.pv2 .d3m-troca > summary > h2{-webkit-text-fill-color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="semana"] .d3m-regua .d3m-dia:not(.d3m-on) small{-webkit-text-fill-color:var(--d3-fume-apagado)}
@@ -10807,6 +10807,36 @@ body.mundo #v2j-busca.spotlight-dialog,body.mundo dialog#v2j-busca{background:va
 body.mundo #v2j-busca #spotlight-input{border:0;background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
 /* A folha da aparência pinta todo diálogo com var(--glass) (com !important): a busca troca a variável, não a regra. */
 body.mundo #v2j-busca{--glass:var(--d3-fume-painel)}
+
+/* 13 · PEÇAS REPETIDAS DOS GRUPOS, PROMOVIDAS (limpeza de 16/11/2026). Cada grupo de telas tinha escrito a mesma regra
+   com a própria classe; aqui fica uma regra só com os seletores agrupados (o HTML de cada tela continua igual). Novas
+   telas usam as peças d3m-* acima em vez de copiar. */
+/* botão de ícone no vidro · sob o mouse (C e E) */
+.d3m-c-ico:hover,.d3m-e-ico:hover{background:var(--d3-fume-borda)}
+/* seletor de vista no vidro */
+.d3m-a-vseg,.d3m-c-seg,.d3m-e-per{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+/* seletor de vista no vidro · sob o mouse */
+.d3m-a-vseg > button:hover,.d3m-c-seg > button:hover,.d3m-d-seg > button:hover,.d3m-e-per > button:hover{background:var(--d3-fume-veu)}
+/* seletor de vista no vidro · foco */
+.d3m-a-vseg > button:focus-visible,.d3m-d-seg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
+/* coluna de consulta de 316 (Agentes, Carteira, Comercial) */
+.d3m-d-ag,.d3m-d-ct,.d3m-d-cm{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* busca no vidro do topo (Agentes, Carteira, Comercial) */
+.d3m-d-ag-topo .d3m-d-ag-busca,.d3m-d-ct-topo .d3m-d-ct-busca,.d3m-d-cm-topo .d3m-d-cm-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+/* aviso no vidro (Agentes, Comercial) */
+.d3m-d-ag-aviso,.d3m-d-cm-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.4}
+/* folha clara de Clientes e da ficha */
+#painel-clientes .cv2-folha,#painel-clientes .fv2-folha{display:flex;flex-direction:column;min-width:0;min-height:0;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* pé "De olho" da folha (Impressões, Planejamentos, Projetos) */
+.imp2-pe,.plj2-pe,.pj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
+/* pé "De olho" · número */
+.m2-pe b,.imp2-pe b,.plj2-pe > span > b,.pj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+/* pé "De olho" · item com divisória */
+.m2-pe > :is(span,button):not(.m2-pe-rot),.imp2-pe > :is(span,button):not(.imp2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
+/* pastilha branca do topo (Pessoas, Toolkit) */
+#vv-pessoas .d3m-e-pes > .d3m-e-pes-aviso,#vv-ferramentas .d3m-e-tk > .d3m-e-tk-aviso{position:absolute;z-index:6;top:22px;left:50%;translate:-50% 0;margin:0;padding:6px 12px;border-radius:999px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* avatar redondo de iniciais (Jogos, Equipe) */
+.d3m-f-jav,.d3m-g-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
 
 /* ===== padrao-v2/zm-a-1-producao.css ===== */
 /* MÓDULOS V2 · GRUPO A · PRODUÇÃO (pranchas V2-M-Producao-Mes, -Grupos, -Equipe, V2-M-Feed e V2-M-Producao-Celular, aprovadas
@@ -10868,7 +10898,6 @@ body.mundo #v2j-busca{--glass:var(--d3-fume-painel)}
 .d3m-a-cart-b.c-ewerton > i{background:var(--d3-info-claro)}
 
 /* 2 · A JANELA DAS OUTRAS VISTAS (Mês, Grupos e Equipe): a mesma da Semana. */
-body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) .container.pv2-casa{position:relative;display:flex;flex-direction:column;box-sizing:border-box;width:auto;max-width:none;height:calc(100% - 8px);min-height:532px;margin:0;padding:16px 348px 16px 16px;color:var(--d3-tinta)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) .container.pv2-casa > *{flex:none;min-width:0;margin-left:-14px;margin-right:318px}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel{display:block;margin:2px -14px 16px -14px;padding:0;background:none;box-shadow:none}
@@ -10880,11 +10909,8 @@ body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3m-troca > summary{color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3m-troca > summary > h2{font:600 24px/1.1 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3p-data{flex:none;margin:0;font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap}
-body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas{flex:none;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
-body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 #pv2-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel :is(#pv2-vistas > button,.d3p-novo):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .pv2-btn.d3p-novo{flex:none;height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 body.mundo.mundo-modulo[data-modo="gestor"]:is([data-pv2-vista="mes"],[data-pv2-vista="grupos"],[data-pv2-vista="equipe"],[data-pv2-vista="feed"]) #pv2-painel.pv2 .d3p-novo > svg{stroke:var(--d3-tinta)}
 /* A folha da vista ocupa a altura que sobra. A caixa de antes (#manager-calendar, #grupos-board, #panel-team) some do desenho
    (display:contents: a folha antiga pinta o fundo dela com força) e a folha vira filha direta da casa. O que abrir por cima
@@ -11183,12 +11209,9 @@ body.mundo.mundo-modulo[data-modo="gestor"]:not([data-pv2-vista="feed"]) #pv2-fe
 .d3m-a-feed-ctl:empty{display:none}
 .d3m-a-feed-ctl > .d3m-ico:disabled{opacity:.4;cursor:default}
 /* O seletor no vidro (o mesmo desenho das vistas do topo): caixa de véu, o escolhido branco. */
-.d3m-a-vseg{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
 #pv2-painel.pv2 .d3m-a-vseg,#feed-board.d3m-a-v2 .d3m-a-vseg{background:var(--d3-fume-veu);box-shadow:none}
 .d3m-a-vseg > button,#pv2-painel.pv2 .d3m-a-vseg > button{appearance:none;flex:0 1 auto;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-a-vseg > button:hover{background:var(--d3-fume-veu)}
 .d3m-a-vseg > button[aria-checked="true"],#pv2-painel.pv2 .d3m-a-vseg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
-.d3m-a-vseg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > #feed-board.d3m-a-v2{flex:1 1 0;display:grid;grid-template-columns:248px 374px minmax(0,1fr);gap:16px;min-height:0;margin-top:0;margin-bottom:-48px;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta)}
 
 /* 2 · A lista dos clientes, no vidro. */
@@ -11843,7 +11866,6 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
    pinta h2, h3 e summary com força: onde a letra é clara sobre o vidro, a cor vai também em -webkit-text-fill-color. */
 
 /* 1 · A JANELA E O ESQUELETO */
-body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #painel-demandas > .container.d3m-a-dm-casa{position:relative;display:block;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:540px;margin:0}
 #pv2-demandas.pv2.d3m-a-dm{position:absolute;inset:8px -12px -4px -2px;display:grid;grid-template-columns:minmax(0,1fr) 316px;grid-template-rows:48px minmax(0,1fr);gap:16px;margin:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 /* A folha antiga dá fundo, respiro e uma seta a todo summary do painel de Demandas; aqui cada um se desenha. */
@@ -11864,8 +11886,6 @@ body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #painel-demandas > .containe
 #pv2-demandas.pv2.d3m-a-dm .d3m-troca > .pv2-pop{left:0;right:auto;min-width:220px;-webkit-text-fill-color:currentColor}
 #pv2-demandas.pv2.d3m-a-dm .d3m-troca > .pv2-pop > [aria-current]{font-weight:600}
 #pv2-demandas.pv2.d3m-a-dm .d3p-data{flex:none;max-width:100%;margin:0;font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas{flex:none;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);box-shadow:none}
-#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button{height:30px;padding:0 12px;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta-fixa);font-weight:600}
 #pv2-demandas.pv2.d3m-a-dm .pv2-busca{display:none;flex:0 1 220px;min-width:120px;width:auto;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #pv2-demandas.pv2.d3m-a-dm .pv2-busca::placeholder{color:var(--d3-fume-apagado);opacity:1}
@@ -12076,7 +12096,6 @@ body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #agenda-board-demandas .mana
 
 /* 1 · A janela e o esqueleto. O corpo da página é quem rola nos módulos; aqui a casa ocupa a altura da janela e só a
    lista rola por dentro. data-cv2 diz o que está na tela (lista ou ficha), posto por numerosDaListaDeClientes. */
-body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes{box-sizing:border-box;height:calc(100% + 4px);margin:0 -16px 0 -2px;background:none;box-shadow:none}
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes > .container{display:flex;flex-direction:column;gap:16px;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:480px;margin:0;color:var(--d3-tinta)}
 /* A folha de antes prende o espaçamento da casa (22px 30px 36px, forçado): as duas peças voltam para a borda de 16 px da janela por margem. */
@@ -12111,7 +12130,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
 #painel-clientes .cv2-novo:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 
 #painel-clientes .cv2-corpo{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px}
-#painel-clientes .cv2-folha{display:flex;flex-direction:column;min-width:0;min-height:0;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 #painel-clientes .cv2-cab{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 16px;box-sizing:border-box}
 #painel-clientes .cv2-cab > h3{margin:0;min-width:0;font:600 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #painel-clientes .cv2-cab > h3 > span{font-weight:400;color:var(--d3-rotulo)}
@@ -12371,7 +12389,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="lista"] #painel-clientes
    z-direcao.css (d3m-*, d3v-*) e de zm-b-clientes.css (cv2-cab, cv2-chip, cv2-seg, cv2-novo, cv2-foto, cv2-laranja). */
 
 /* 1 · A janela e o esqueleto (data-cv2="ficha" é posto por marcarTelaDeClientes). */
-body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes{box-sizing:border-box;height:calc(100% + 4px);margin:0 -16px 0 -2px;background:none;box-shadow:none}
 body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes > .container{display:flex;flex-direction:column;box-sizing:border-box;width:auto;max-width:none;height:100%;min-height:480px;margin:0;color:var(--d3-tinta)}
 /* A folha de antes prende o espaçamento da casa (22px 30px 36px, forçado): a ficha volta para a borda de 16 px por margem. */
@@ -12407,7 +12424,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"] #painel-clientes
 /* 3 · O Resumo: três colunas da altura da janela; só as listas rolam por dentro. */
 #painel-clientes .fv2-resumo{display:grid;grid-template-columns:minmax(0,1fr) 340px 300px;gap:16px;height:100%;min-height:0;margin:0;padding:0}
 #painel-clientes .fv2-col{display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0}
-#painel-clientes .fv2-folha{display:flex;flex-direction:column;min-width:0;min-height:0;box-sizing:border-box;border-radius:var(--d3-r-ilha);overflow:hidden;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 #painel-clientes .fv2-cab-lado{flex:none;display:inline-flex;align-items:center;gap:8px;margin-left:auto;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap}
 #painel-clientes .fv2-cab-lado > .cv2-chip{color:var(--d3-tinta);font-weight:500}
 #painel-clientes .fv2-entregas{flex:none}
@@ -13149,7 +13165,6 @@ body.mundo.mundo-modulo[data-modo="clientes"][data-cv2="ficha"]:is([data-fv2-aba
 /* DIREÇÃO V2 · AGENDA E CAPTAÇÕES (pranchas V2-M-Agenda e V2-M-Agenda-Roteiros, 16/11/2026). A janela é vidro fumê; a
    semana é uma grade de horas numa folha clara e a consulta fica direto no vidro. Vale no computador (data-agv2 no body,
    posto por renderProductionCommand); no celular a Agenda segue como estava. */
-body.mundo.mundo-modulo[data-modo="producao"][data-agv2] #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 /* A tela ocupa a janela inteira (o corpo da página, que é a janela, é o bloco de referência), sem depender dos respiros
    que o tema antigo força na casa (.container). A casa acompanha a janela para a animação de abrir não dar salto. */
 body.mundo.mundo-modulo[data-modo="producao"][data-agv2] .container.pv2-casa{box-sizing:border-box;height:100%;min-height:0;margin:0 -18px}
@@ -13289,14 +13304,10 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 .d3m-c-pop > button[aria-checked="true"]{background:var(--d3-fume-veu);font-weight:600}
 .d3m-c-pop > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:-2px}
 .d3m-c-pop-rot{padding:6px 10px 4px;font:400 var(--d3-fs-mini)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
-.d3m-c-seg{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
 .d3m-c-seg > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-c-seg > button:hover{background:var(--d3-fume-veu)}
 .d3m-c-seg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta-fixa);font-weight:600}
 .d3m-c-seg > button > b{font-weight:400;color:var(--d3-fume-apagado);font-variant-numeric:tabular-nums}
 .d3m-c-seg > button[aria-checked="true"] > b{color:var(--d3-rotulo-fixo)}
-.d3m-c-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
-.d3m-c-ico:hover{background:var(--d3-fume-borda)}
 .d3m-c-ico > svg,.d3m-c-btn > svg,.d3m-c-busca > svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .d3m-c-btn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta-fixa);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
 .d3m-c-btn:hover{background:var(--d3-folha)}
@@ -13384,13 +13395,11 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 /* O pé "De olho" da folha: os números que filtram a lista. */
 .m2-pe{flex:none;display:flex;align-items:center;min-height:44px;margin-top:auto;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .m2-pe-rot{margin-right:14px}
-.m2-pe > :is(span,button):not(.m2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
 .m2-pe > .m2-pe-rot + :is(span,button){padding-left:0;border-left:0}
 .m2-pe > button{cursor:pointer}
 .m2-pe > button:hover,.m2-pe > button[aria-checked="true"]{color:var(--d3-tinta)}
 .m2-pe > button[aria-checked="true"]{text-decoration:underline;text-underline-offset:3px}
 .m2-pe > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
-.m2-pe b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .m2-pe .g b{color:var(--d3-pronto)}
 .m2-pe .a b{color:var(--d3-ambar)}
 /* O campo que completa o cadastro no lugar (BV ou contato) e os botões da linha aberta. */
@@ -13670,14 +13679,11 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 /* A ficha de sempre, aberta no lugar. */
 .imp2-det{padding:4px 16px 14px 120px;background:var(--d3-veu)}
 .imp2-det > .vi-ficha,.imp2-painel > .vi-ficha{position:static;width:auto;max-width:none;margin:0;border:0;border-radius:12px;box-shadow:none}
-.imp2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .imp2-pe-rot{margin-right:14px}
-.imp2-pe > :is(span,button):not(.imp2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
 .imp2-pe > .imp2-pe-rot + :is(span,button){padding-left:0;border-left:0}
 .imp2-pe > button{cursor:pointer}
 .imp2-pe > button:hover,.imp2-pe > button[aria-checked="true"]{color:var(--d3-tinta)}
 .imp2-pe > button[aria-checked="true"]{text-decoration:underline;text-underline-offset:3px}
-.imp2-pe b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .imp2-pe .r > b,.imp2-pe .r b{color:var(--d3-perigo)}
 .imp2-pe .a b{color:var(--d3-ambar)}
 .imp2-pe .g b{color:var(--d3-pronto)}
@@ -13792,11 +13798,9 @@ button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{
 .plj2-det > .d3pl-av.r{background:var(--d3-perigo-veu);color:var(--d3-perigo)}
 .plj2-vao{flex:1 1 auto}
 /* O pé "De olho", da mesma folha. */
-.plj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .plj2-pe-rot{margin-right:14px}
 .plj2-pe > span + span{padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
 .plj2-pe > .plj2-pe-rot + span{padding-left:0;border-left:0}
-.plj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .plj2-pe > span.r > b{color:var(--d3-perigo)}
 .plj2-pe > span.a > b{color:var(--d3-ambar)}
 /* A consulta. */
@@ -13861,11 +13865,9 @@ button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{
 .pj2-barra.b{background:var(--d3-info)}
 .pj2-barra.r{background:var(--d3-perigo)}
 .pj2-sem{margin:0;padding:4px 0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
-.pj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .pj2-pe-rot{margin-right:14px}
 .pj2-pe > span + span{padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
 .pj2-pe > .pj2-pe-rot + span{padding-left:0;border-left:0}
-.pj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .pj2-pe > span.r > b{color:var(--d3-perigo)}
 /* A consulta. */
 .pj2-laranja{flex:none;min-height:216px}
@@ -13915,8 +13917,6 @@ button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{
 /* Botão só de ícone, no vidro. */
 .d3m-d-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);list-style:none;cursor:pointer}
 .d3m-d-ico:hover{background:rgba(255,255,255,.26)}
-.d3m-d-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.d3m-d-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 /* Botão com nome, no vidro (o secundário do topo). */
 .d3m-d-vbtn{appearance:none;flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;margin:0;padding:0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-decoration:none;white-space:nowrap;cursor:pointer}
 .d3m-d-vbtn:hover{background:var(--d3-fume-veu-forte)}
@@ -13927,9 +13927,7 @@ button.plj2-nome:focus-visible,.plj2-criar:focus-visible,.plj2-dl:focus-visible{
 /* Escolha de uma entre poucas, no vidro: trilho de 36, a escolhida branca. */
 .d3m-d-seg{flex:none;display:inline-flex;gap:2px;height:36px;margin:0;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
 .d3m-d-seg > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-d-seg > button:hover{background:var(--d3-fume-veu)}
 .d3m-d-seg > button:is([aria-pressed="true"],[aria-selected="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
-.d3m-d-seg > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 /* Campo de escolha, no vidro. */
 .d3m-d-topo select.d3m-d-sel{appearance:none;flex:none;height:34px;max-width:100%;margin:0;padding:0 32px 0 14px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background-color:var(--d3-fume-veu);background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:13px;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);cursor:pointer}
 .d3m-d-topo select.d3m-d-sel > option{background:var(--d3-cartao);color:var(--d3-tinta)}
@@ -14049,19 +14047,16 @@ body.mundo #vv-agentes.vv-ag.d3m-d-m{display:flex;flex-direction:column;gap:16px
 #vv-agentes.d3m-d-m .d3m-d-cab > h3 > small{font:400 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
 #vv-agentes.d3m-d-m .vga-vazio{margin:0;padding:16px;border-radius:16px;background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-texto)}
 /* Topo: a busca abre ao lado da lupa; a central sem sinal avisa ali. */
-.d3m-d-ag-topo .d3m-d-ag-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 .d3m-d-ag-topo .d3m-d-ag-busca::placeholder{color:var(--d3-fume-apagado)}
 .d3m-d-ag-topo .d3m-d-ag-busca:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 .d3m-d-ag-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
 .d3m-d-ag-sinal{display:inline-flex;align-items:center;gap:8px;font-size:var(--d3-fs-apoio);color:var(--d3-perigo-vidro);white-space:nowrap}
 
-/* A tela: a coluna principal e a coluna de consulta de 316. */
-.d3m-d-ag{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* A tela: a coluna principal e a coluna de consulta de 316 (a grade, igual à da Carteira e do Comercial, mora em z-direcao.css, seção 13). */
 .d3m-d-ag-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
 .d3m-d-ag-alto{flex:none;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;height:232px}
 .d3m-d-ag-lado{min-height:0}
 .d3m-d-ag-lado > .d3m-cons{flex:none}
-.d3m-d-ag-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.4}
 .d3m-d-ag-aviso > .d3m-d-vbtn{height:28px;padding:0 10px;font-size:var(--d3-fs-apoio)}
 /* O laranja com o pedido da frente: a frase, a prova em até três linhas e as respostas. */
 .d3m-d-ag-pesa{min-height:0;height:100%}
@@ -14210,12 +14205,10 @@ body.mundo .vc-camada > #vv-carteira.vc-janela.d3m-d-m{display:flex;flex-directi
 #vv-carteira.d3m-d-m > .d3m-d-ct-fin{flex:none;padding:12px 16px}
 
 /* Topo: a busca abre ao lado da lupa. */
-.d3m-d-ct-topo .d3m-d-ct-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 .d3m-d-ct-topo .d3m-d-ct-busca::placeholder{color:var(--d3-fume-apagado)}
 .d3m-d-ct-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
 
-/* A tela: a coluna principal e a coluna de consulta de 316. */
-.d3m-d-ct{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* A tela: a coluna principal e a coluna de consulta de 316 (a grade mora em z-direcao.css, seção 13). */
 .d3m-d-ct-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
 .d3m-d-ct-lado{min-height:0}
 .d3m-d-ct-pesa{flex:none;min-height:252px}
@@ -14464,10 +14457,8 @@ b.d3m-d-ct-v{font-weight:500}
    O HTML vem de vybe-mundo-comercial.js (topoM e funilM); as peças .d3m-d-* são de zm-d-0-pecas.css e as .d3m-* de
    z-direcao.css.
    =================================================================================================================== */
-.d3m-d-cm{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 .d3m-d-cm-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
 /* Topo: a busca abre ao lado da lupa. */
-.d3m-d-cm-topo .d3m-d-cm-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 .d3m-d-cm-topo .d3m-d-cm-busca::placeholder{color:var(--d3-fume-apagado)}
 .d3m-d-cm-topo .d3m-d-cm-busca:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 .d3m-d-cm-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
@@ -14542,8 +14533,7 @@ b.d3m-d-ct-v{font-weight:500}
 .d3m-d-cm-chips > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
 .d3m-d-cm-nada{margin:0;padding:16px;font-size:var(--d3-fs-texto);color:var(--d3-rotulo)}
 .d3m-d-cm-resto{padding:16px}
-/* O aviso do que ainda não está ligado: uma tira no vidro. */
-.d3m-d-cm-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.4}
+/* O aviso do que ainda não está ligado: uma tira no vidro (a tira mora em z-direcao.css, seção 13). */
 .d3m-d-cm-aviso > span{flex:1 1 320px;min-width:0}
 .d3m-d-cm-aviso > .d3m-d-cm-tec{flex-basis:100%;color:var(--d3-fume-apagado)}
 .d3m-d-cm-aviso .v2c-btn{appearance:none;flex:none;height:28px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
@@ -15414,7 +15404,6 @@ body.mundo :is(#painel-automacoes,#automacoes-root){background:none}
    =================================================================================================================== */
 
 /* A janela dos quadros deste grupo é vidro fumê. O quadro aberto fica no body (data-quadro, de switchBoard). */
-body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"],[data-quadro="automacoes"],[data-quadro="conta"]) #mundo-moldura{border-radius:20px;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6)}
 
 /* A tela: uma coluna da altura da janela. Fora do Irecity (?legado=1) ela mesma faz o fundo escuro. */
 .d3m-e-tela{display:flex;flex-direction:column;min-width:0;height:100%;box-sizing:border-box;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
@@ -15438,12 +15427,7 @@ body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"],[data
 .d3m-e-pop > button.on{font-weight:600;background:var(--d3-veu)}
 .d3m-e-pop > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:-2px}
 .d3m-e-pop > span{padding:6px 10px;color:var(--d3-rotulo);font-size:var(--d3-fs-apoio)}
-/* Botão de ícone no vidro (34 px, canto 8). */
-.d3m-e-ico{appearance:none;flex:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
-.d3m-e-ico:hover{background:var(--d3-fume-borda)}
-.d3m-e-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.d3m-e-ico:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-
+/* Botão de ícone no vidro (34 px, canto 8): mora em z-direcao.css, junto do .d3m-ico. */
 /* Corpo: trabalho à esquerda, consulta de 316 à direita. Só as listas rolam, por dentro. */
 .d3m-e-corpo{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px}
 .d3m-e-corpo.um{grid-template-columns:minmax(0,1fr)}
@@ -15481,9 +15465,7 @@ body.mundo.mundo-modulo:is([data-quadro="diario"],[data-quadro="ai-usage"],[data
 .d3m-e-nums small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Período no vidro (36 px, canto 10; a escolhida numa pastilha branca). */
-.d3m-e-per{flex:none;display:inline-flex;gap:2px;height:36px;padding:3px;box-sizing:border-box;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
 .d3m-e-per > button{appearance:none;display:inline-flex;align-items:center;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-e-per > button:hover{background:var(--d3-fume-veu)}
 .d3m-e-per > button:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
 .d3m-e-per > button:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
 /* "Como funciona": o botão de ícone que abre uma nota (a mesma caixa da seta do título, presa à direita). */
@@ -16052,7 +16034,6 @@ body.mundo .vp-camada > #vv-pessoas.vp-janela.d3m-e-pes-janela{padding:16px;bord
 #vv-pessoas .d3m-e-pes > .vp-corpo.d3m-e-corpo.um{display:grid}
 #vv-pessoas .d3m-e-pes .d3m-e-h{font-size:24px}
 /* O aviso de "Salvando…" e "Pedido atualizado.": uma pastilha no alto, só quando tem texto. */
-#vv-pessoas .d3m-e-pes > .d3m-e-pes-aviso{position:absolute;z-index:6;top:22px;left:50%;translate:-50% 0;margin:0;padding:6px 12px;border-radius:999px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 #vv-pessoas .d3m-e-pes > .d3m-e-pes-aviso:empty{display:none}
 #vv-pessoas .d3m-e-pes-erro{flex:none;margin:0 0 12px;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-perigo-veu);color:var(--d3-perigo);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
 /* A busca no vidro (34 de altura, como os ícones do topo). */
@@ -16243,7 +16224,6 @@ body.mundo .vc-camada > #vv-ferramentas.vc-janela.d3m-e-tk-janela{display:flex;f
 #vv-ferramentas .d3m-e-acoes > input.d3m-e-tk-busca[type=search]::placeholder{color:var(--d3-fume-apagado)}
 #vv-ferramentas .d3m-e-acoes > input.d3m-e-tk-busca[type=search]:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
 /* O aviso ("Link copiado."): uma pastilha no alto, só quando tem texto. */
-#vv-ferramentas .d3m-e-tk > .d3m-e-tk-aviso{position:absolute;z-index:6;top:22px;left:50%;translate:-50% 0;margin:0;padding:6px 12px;border-radius:999px;background:var(--d3-folha);box-shadow:var(--d3-folha-sombra);color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
 #vv-ferramentas .d3m-e-tk > .d3m-e-tk-aviso:empty{display:none}
 
 /* Visão geral: três folhas da altura da janela. */
@@ -16571,7 +16551,6 @@ body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:var(--vv-m,14px)
 /* Quem pode jogar agora: uma linha por pessoa, com Chamar. */
 .d3m-f-jlin{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;border-bottom:1px solid var(--d3-divisa);color:var(--d3-tinta)}
 .d3m-f-jlin > .d3m-vnome{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.d3m-f-jav{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
 .d3m-f-japoio{color:var(--d3-rotulo)}
 #vv-placa > .d3m-f-jogos .d3m-e-rola > .d3m-e-estado{margin:auto}
 
@@ -17004,7 +16983,6 @@ button.d3m-g-sala:focus-visible{outline:2px solid var(--d3-acao);outline-offset:
 .d3m-g-selo{flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:7px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);white-space:nowrap}
 .d3m-g-selo.g{background:var(--d3-pronto-veu)}
 .d3m-g-selo > svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.d3m-g-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
 .d3m-g-av.on{box-shadow:0 0 0 2px var(--d3-pronto)}
 .d3m-g-avs{flex:none;display:inline-flex}
 .d3m-g-avs > .d3m-g-av + .d3m-g-av{margin-left:-6px}

@@ -18,13 +18,11 @@
 /* O pé "De olho" da folha: os números que filtram a lista. */
 .m2-pe{flex:none;display:flex;align-items:center;min-height:44px;margin-top:auto;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .m2-pe-rot{margin-right:14px}
-.m2-pe > :is(span,button):not(.m2-pe-rot){appearance:none;height:20px;margin:0;padding:0 12px;border:0;border-left:1px solid var(--d3-veu-forte);border-radius:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:inherit;line-height:20px}
 .m2-pe > .m2-pe-rot + :is(span,button){padding-left:0;border-left:0}
 .m2-pe > button{cursor:pointer}
 .m2-pe > button:hover,.m2-pe > button[aria-checked="true"]{color:var(--d3-tinta)}
 .m2-pe > button[aria-checked="true"]{text-decoration:underline;text-underline-offset:3px}
 .m2-pe > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
-.m2-pe b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .m2-pe .g b{color:var(--d3-pronto)}
 .m2-pe .a b{color:var(--d3-ambar)}
 /* O campo que completa o cadastro no lugar (BV ou contato) e os botões da linha aberta. */

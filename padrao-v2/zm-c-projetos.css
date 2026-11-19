@@ -39,11 +39,9 @@
 .pj2-barra.b{background:var(--d3-info)}
 .pj2-barra.r{background:var(--d3-perigo)}
 .pj2-sem{margin:0;padding:4px 0;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
-.pj2-pe{flex:none;display:flex;align-items:center;min-height:44px;padding:0 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);white-space:nowrap;overflow:hidden}
 .pj2-pe-rot{margin-right:14px}
 .pj2-pe > span + span{padding:0 12px;border-left:1px solid var(--d3-veu-forte)}
 .pj2-pe > .pj2-pe-rot + span{padding-left:0;border-left:0}
-.pj2-pe > span > b{margin-right:3px;font:600 14px var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
 .pj2-pe > span.r > b{color:var(--d3-perigo)}
 /* A consulta. */
 .pj2-laranja{flex:none;min-height:216px}

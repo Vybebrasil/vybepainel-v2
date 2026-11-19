@@ -31,7 +31,6 @@ body.mundo:not(.mundo-centro) #vv-placa:has(> .d3m-f-jogos){top:var(--vv-m,14px)
 /* Quem pode jogar agora: uma linha por pessoa, com Chamar. */
 .d3m-f-jlin{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;border-bottom:1px solid var(--d3-divisa);color:var(--d3-tinta)}
 .d3m-f-jlin > .d3m-vnome{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.d3m-f-jav{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
 .d3m-f-japoio{color:var(--d3-rotulo)}
 #vv-placa > .d3m-f-jogos .d3m-e-rola > .d3m-e-estado{margin:auto}
 

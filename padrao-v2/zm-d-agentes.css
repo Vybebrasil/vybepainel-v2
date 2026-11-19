@@ -12,19 +12,16 @@ body.mundo #vv-agentes.vv-ag.d3m-d-m{display:flex;flex-direction:column;gap:16px
 #vv-agentes.d3m-d-m .d3m-d-cab > h3 > small{font:400 14px/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
 #vv-agentes.d3m-d-m .vga-vazio{margin:0;padding:16px;border-radius:16px;background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-texto)}
 /* Topo: a busca abre ao lado da lupa; a central sem sinal avisa ali. */
-.d3m-d-ag-topo .d3m-d-ag-busca{appearance:none;flex:0 1 180px;width:180px;min-width:0;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 .d3m-d-ag-topo .d3m-d-ag-busca::placeholder{color:var(--d3-fume-apagado)}
 .d3m-d-ag-topo .d3m-d-ag-busca:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 .d3m-d-ag-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
 .d3m-d-ag-sinal{display:inline-flex;align-items:center;gap:8px;font-size:var(--d3-fs-apoio);color:var(--d3-perigo-vidro);white-space:nowrap}
 
-/* A tela: a coluna principal e a coluna de consulta de 316. */
-.d3m-d-ag{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:16px;height:100%;min-height:0;margin:0;padding:0;color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+/* A tela: a coluna principal e a coluna de consulta de 316 (a grade, igual à da Carteira e do Comercial, mora em z-direcao.css, seção 13). */
 .d3m-d-ag-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
 .d3m-d-ag-alto{flex:none;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;height:232px}
 .d3m-d-ag-lado{min-height:0}
 .d3m-d-ag-lado > .d3m-cons{flex:none}
-.d3m-d-ag-aviso{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;padding:8px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto);font-size:var(--d3-fs-apoio);line-height:1.4}
 .d3m-d-ag-aviso > .d3m-d-vbtn{height:28px;padding:0 10px;font-size:var(--d3-fs-apoio)}
 /* O laranja com o pedido da frente: a frase, a prova em até três linhas e as respostas. */
 .d3m-d-ag-pesa{min-height:0;height:100%}

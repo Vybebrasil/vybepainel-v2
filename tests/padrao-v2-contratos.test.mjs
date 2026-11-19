@@ -62,7 +62,8 @@ test('CSS das pranchas (zm-d-carteira.css): só tokens --d3-*, sem !important, s
     for (const s of r.slice(0, -1).split(/,(?![^(]*\))/)) assert.match(s.trim(), /^(body\.mundo \.vc-camada > #vv-carteira\.vc-janela\.d3m-d-m|#vv-carteira\.d3m-d-m|b?\.d3m-d-(ct|ch|pk-seg)|button\.d3m-d-ct|\[aria-expanded="true"\] > \.d3m-d-ct-mais)/, s);
   }
   assert.match(regras, /body\.mundo \.vc-camada > #vv-carteira\.vc-janela\.d3m-d-m\{[^}]*background:var\(--d3-fume\)/, 'a janela é vidro fumê só nessas telas');
-  assert.match(regras, /\.d3m-d-ct\{display:grid;grid-template-columns:minmax\(0,1fr\) 316px;gap:16px/);
+  // a grade de 316 é a regra agrupada de z-direcao.css (seção 13), a mesma de Agentes e do Comercial
+  assert.match(fs.readFileSync('padrao-v2/z-direcao.css', 'utf8'), /\.d3m-d-ag,\.d3m-d-ct,\.d3m-d-cm\{display:grid;grid-template-columns:minmax\(0,1fr\) 316px;gap:16px/);
   assert.match(regras, /\.d3m-d-ct-lin\{[^}]*grid-template-columns:60px 28px minmax\(0,1fr\) 96px 72px 228px 96px;[^}]*height:38px/);
   assert.match(regras, /\.d3m-d-ct-regua > i\{[^}]*width:16px;height:18px;border-radius:4px/);
   assert.match(regras, /\.d3m-d-ch-lin\{[^}]*height:48px/);
