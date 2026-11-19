@@ -184,7 +184,7 @@ export async function areaConvite(req, res, sql, env = process.env) {
       const { vozes } = zonasDe(salas.find((s) => s.pessoa_id === host.id)?.id || "");
       const sala = String(req.body?.sala || "");
       if (!vozes.includes(sala)) throw erro("Convidados conversam por voz nas salas do convite (no Foco não há voz).", 403);
-      return res.status(200).json({ ok: true, ...(await prepararChamadaEscritorio(sql, { id: c.id, nome: c.nome + " (convidado)" }, sala, env)) });
+      return res.status(200).json({ ok: true, ...(await prepararChamadaEscritorio(sql, { id: c.id, nome: c.nome + " (convidado)" }, sala, env, { aparelho: req.body?.aparelho })) });
     }
     throw erro("Ação de convidado inválida.");
   } catch (e) {

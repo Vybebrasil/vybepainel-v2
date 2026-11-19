@@ -4822,7 +4822,7 @@ function escritorioMotorVoz() {
 function escritorioTokenDaZona(zona) {
   const t = escritorio.tokenPrevio;
   if (t && t.zona === zona && Date.now() - t.em < 60000) return t.promessa;
-  const promessa = escritorioApi("chamada", { sala: zona });
+  const promessa = escritorioApi("chamada", { sala: zona, aparelho: escritorioAparelho() });
   promessa.catch(() => { if (escritorio.tokenPrevio?.promessa === promessa) escritorio.tokenPrevio = null; });
   escritorio.tokenPrevio = { zona, em: Date.now(), promessa };
   return promessa;
@@ -6173,6 +6173,20 @@ function escritorioChaveTrecho(a, i) {
 // (localStorage, renovado a cada 4 s, e BroadcastChannel); as outras não
 // entram sozinhas. "Trazer para esta aba" pede para a outra sair e entra aqui.
 const ESCRITORIO_ABA_ID = Math.random().toString(36).slice(2), ESCRITORIO_ABA_CHAVE = "vybe-escritorio-aba";
+// O id deste aparelho (navegador) na chamada (Paulo, 18/11/2026: no Windows e no Mac ao mesmo tempo, um derrubava o
+// outro). Fica no localStorage: recarregar ou trocar de aba reaproveita o mesmo participante (server/escritorio-chamadas.js).
+// Sem localStorage, vale o desta aba.
+let escritorioAparelhoId = "";
+function escritorioAparelho() {
+  if (escritorioAparelhoId) return escritorioAparelhoId;
+  const novo = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("");
+  try {
+    let id = localStorage.getItem("vybe-escritorio-aparelho") || "";
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) { id = novo(); localStorage.setItem("vybe-escritorio-aparelho", id); }
+    escritorioAparelhoId = id;
+  } catch { escritorioAparelhoId = novo(); }
+  return escritorioAparelhoId;
+}
 const escritorioCanalAba = typeof BroadcastChannel === "function" ? new BroadcastChannel("vybe-escritorio-aba") : null;
 function escritorioAbaDona() { try { return JSON.parse(localStorage.getItem(ESCRITORIO_ABA_CHAVE) || "null"); } catch { return null; } }
 function escritorioOutraAbaConectada() {
