@@ -11,6 +11,14 @@ function clienteAtivo(c) {
   if (typeof c.ativo_de_verdade === 'boolean') return c.ativo_de_verdade;
   return c.ativo !== false && !c.nao_e_cliente && !/inativ/i.test(String(c.status || ''));
 }
+// Status da captação (Paulo, 19/11/2026: "juntou status e status de captação... são coisas diferentes"): a captação
+// tem etiqueta própria e com o nome, separada da pílula do status. Sem captação (vazio ou travessão), nada aparece.
+function capRotuloHtml(d) {
+  const v = String(d?.captacao || '').trim();
+  if (!v || /^[—–-]+$/.test(v)) return '';
+  const e = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  return `<span class="cap-rotulo" title="Status da captação: ${e(v)}"><i>Captação</i> ${e(v)}</span>`;
+}
 function itemTemCliente(item, nome) { return clientesDoItem(item).includes(normalizarCliente(nome)); }
 
 function carteiraDoCliente(nome) {
@@ -53,7 +61,7 @@ function cliCor(nome) { return nome ? tagClienteHtml(String(nome), { dentroDeBot
 function pecaDatasHtml(d) {
   const dm = (v) => { const s = String(v || "").slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : ""; };
   const prazo = dm(d?.prazo_iso ?? d?.prazo), ar = dm(d?.veiculacao_iso ?? d?.veiculacao);
-  return (prazo ? `<span class="peca-data"><i>Prazo</i> ${prazo}</span>` : "") + (ar ? `<span class="peca-data"><i>No ar</i> ${ar}</span>` : "");
+  return (prazo ? `<span class="peca-data"><i>Prazo</i> ${prazo}</span>` : "") + (ar ? `<span class="peca-data"><i>Veic.</i> ${ar}</span>` : "");
 }
 // Linha de peça nas listas curtas (espiar, Gestão): cliente com a cor da carteira, status com a cor do quadro e quem faz.
 function pecaMetaHtml(d) {

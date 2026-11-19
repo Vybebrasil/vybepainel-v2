@@ -20,7 +20,7 @@ test('as duas linhas (aba do Hoje e módulo do dock) têm quem faz, que abre o e
     assert.ok(l.includes("onclick=\"openStatusEditor(event,'${id}')\""), `${nome}: o status continua trocando na linha`);
   }
   assert.ok(hoje.includes('${avD3(quem)}'), 'Hoje: a mesma bolinha de iniciais, agora dentro do botão');
-  assert.match(mundo, /<span>Status<\/span><span>Prazo · no ar<\/span><span>Quem<\/span><\/div>/, 'dock: cabeçalho das colunas novas');
+  assert.match(mundo, /<span>Status<\/span><span>Prazo · veic\.<\/span><span>Quem<\/span><\/div>/, 'dock: cabeçalho das colunas novas');
 });
 
 test('as datas: hoje e amanhã por extenso, vencida em vermelho, a de hoje em âmbar, feita sem cor; quem faz pelo time', () => {
@@ -32,10 +32,10 @@ test('as datas: hoje e amanhã por extenso, vencida em vermelho, a de hoje em â
   const { donoRot, donoCurto, dataTom, dataTxt, dataAttrs, datasFeitas } = ctx.f;
   const aberta = { sit: 'atrasada', d: { id: 'vybe:1', prazo_iso: '2026-11-15', veiculacao_iso: '2026-11-18', responsavel_ids: ['2', '3'] } };
   assert.equal(dataTom(aberta, 'prazo'), ' r'); assert.equal(dataTom(aberta, 'veiculacao'), ' a');
-  assert.equal(dataTxt(aberta, 'prazo'), '<small>prazo</small>15/11'); assert.equal(dataTxt(aberta, 'veiculacao'), '<small>no ar</small>hoje');
+  assert.equal(dataTxt(aberta, 'prazo'), '<small>prazo</small>15/11'); assert.equal(dataTxt(aberta, 'veiculacao'), '<small>veic.</small>hoje');
   assert.match(dataAttrs(aberta, 'prazo'), /aria-label="Prazo 15\/11, vencido\. Mudar"/);
   assert.match(dataAttrs(aberta, 'prazo'), /onkeydown="if\(event\.key==='Enter'\|\|event\.key===' '\)\{event\.preventDefault\(\);this\.click\(\)\}"/, 'Enter e espaço abrem a data');
-  assert.equal(dataTxt({ sit: 'aberta', d: { veiculacao_iso: '2026-11-19' } }, 'veiculacao'), '<small>no ar</small>amanhã');
+  assert.equal(dataTxt({ sit: 'aberta', d: { veiculacao_iso: '2026-11-19' } }, 'veiculacao'), '<small>veic.</small>amanhã');
   assert.equal(dataTxt({ sit: 'aberta', d: {} }, 'prazo'), '<small>prazo</small>—');
   const feita = { sit: 'concluida', d: { prazo_iso: '2026-11-10', veiculacao_iso: '2026-11-11' } };
   assert.equal(dataTom(feita, 'prazo'), '', 'feita não fica vermelha'); assert.doesNotMatch(datasFeitas(feita), /data-editar-data/);

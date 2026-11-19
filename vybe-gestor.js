@@ -602,8 +602,8 @@ function renderClientCard(cliente, items, dias, filter, dayFilter) {
       ${vybeChipId(d)}
       ${fmtHtml(d.formato)}
       <span class="item-name">${vybeNome(d)}</span>
-      ${d.captacao ? pillHtml(d.captacao) : ''}
       ${managerStatusControl(d)}
+      ${capRotuloHtml(d)}
       ${quickDateTrigger(d,'manager-date-trigger')}
       ${vybeDono(d,'manager-owner-trigger')}
     </div>`;
@@ -2277,7 +2277,7 @@ function pv2GrupoLinha(item, { lote, extras, hoje }) {
     + escolha('formato')
     + `<td data-label="Status" onclick="${parar}">${pv2StatusBotao(item)}</td>`
     + `<td data-label="Prazo" onclick="${parar}">${data('prazo', item.prazo_iso, item.prazo_atrasado)}</td>`
-    + `<td data-label="No ar" onclick="${parar}">${data('veiculacao', item.veiculacao_iso, pv2GrupoVencida(item, hoje))}</td>`
+    + `<td data-label="Veiculação" onclick="${parar}">${data('veiculacao', item.veiculacao_iso, pv2GrupoVencida(item, hoje))}</td>`
     + `<td class="d3m-a-g-quem" onclick="${parar}">${pv2Av(item)}</td>`
     + (extras ? PV2_GRUPOS_EXTRAS.map(escolha).join('') + `<td class="grupo-cadastro">${safeText(cad.quem)}</td><td class="grupo-cadastro grupo-cadastro-data">${safeText(cad.quando)}</td>` : '')
     + '</tr>';
@@ -2301,7 +2301,7 @@ function pv2GruposHtml({ grupos, quadro }) {
   const th = (campo, rotulo) => { const on = ORDEM.campo === campo; return `<th${on ? ` aria-sort="${ORDEM.desc ? 'descending' : 'ascending'}"` : ''}><button type="button" class="d3m-a-th${on ? ' on' : ''}" onclick="ordenarPor('${campo}')" title="Ordenar por ${rotulo}${on ? (ORDEM.desc ? ' (maior para menor)' : ' (menor para maior)') : ''}">${rotulo}${on ? `<i aria-hidden="true">${ORDEM.desc ? '↓' : '↑'}</i>` : ''}</button></th>`; };
   const todasMarcadas = recorte.length > 0 && recorte.every((i) => SELECIONADAS.has(String(i.id)));
   const cabeca = (lote ? `<th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''} aria-label="Selecionar ${recorte.length === grupo.itens.length ? 'tudo' : `as ${recorte.length} do filtro`} em ${safeText(grupo.nome)}" title="${todasMarcadas ? 'Desmarcar' : 'Marcar'} ${recorte.length === 1 ? 'a peça' : `as ${recorte.length} peças`}${recorte.length === grupo.itens.length ? ' do grupo' : ' deste filtro'}" onchange="${recorte.length === grupo.itens.length ? `selecionarGrupo('${jsArg(grupo.id)}',this.checked,'${quadro}')` : 'pv2GruposMarcarRecorte(this.checked)'}"></th>` : '')
-    + th('id', 'ID') + th('nome', 'Conteúdo') + th('cliente', 'Cliente') + th('formato', 'Formato') + th('status', 'Status') + th('prazo_iso', 'Prazo') + th('veiculacao_iso', 'No ar') + th('responsavel', 'Quem')
+    + th('id', 'ID') + th('nome', 'Conteúdo') + th('cliente', 'Cliente') + th('formato', 'Formato') + th('status', 'Status') + th('prazo_iso', 'Prazo') + th('veiculacao_iso', 'Veiculação') + th('responsavel', 'Quem')
     + (extras ? th('captacao', 'Captação') + th('tipo_conteudo', 'Tipo') + th('off_audio', 'OFF') + th('prioridade', 'Prioridade') + th('cadastrado_por', 'Cadastrou') + th('criado_em', 'Quando') : '');
   const fil = (id, rotulo, n, tom) => `<button type="button" role="radio" aria-checked="${pv2GruposFiltro === id}" onclick="pv2GruposFiltrar('${id}')">${rotulo} <b${tom && n ? ` class="${tom}"` : ''}>${n}</b></button>`;
   const editavel = typeof grupoEditavelNaTela === 'function' && grupoEditavelNaTela(quadro, grupo.id);
@@ -2447,7 +2447,7 @@ function d3pQuando(d, data) {
   if (atividadeDoDiaConcluida(d)) return { texto: '', tom: '' };
   const hoje = (typeof HOJE_ISO !== 'undefined' && HOJE_ISO) || new Date().toISOString().slice(0, 10);
   const dias = (iso) => Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(iso + 'T12:00:00Z')) / 864e5);
-  if (data && data < hoje) { const n = dias(data); return { texto: n === 1 ? 'ontem' : `há ${n} dias`, tom: 'r' }; }
+  if (data && data < hoje) { const n = dias(data); return { texto: `${data === d.prazo_iso && data !== d.veiculacao_iso ? 'prazo' : 'veic.'} ${pv2DiaMes(data)}`, dica: n === 1 ? 'venceu ontem' : `venceu há ${n} dias`, tom: 'r' }; }
   if (d.prazo_iso && d.prazo_iso !== data) return { texto: `prazo ${pv2DiaMes(d.prazo_iso)}`, tom: d.prazo_iso < hoje ? 'r' : d.prazo_iso === hoje ? 'a' : '' };
   return { texto: '', tom: '' };
 }
@@ -2487,7 +2487,7 @@ function pv2CartaoHtml(d, aba) {
   const clientes = clientesDoItem(d), data = dataDoCartaoDia(d), titulo = pv2Titulo(d);
   const feita = atividadeDoDiaConcluida(d);
   const previa = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d) : '';
-  const datas = [d.prazo_iso ? `prazo ${pv2DiaMes(d.prazo_iso)}` : '', d.veiculacao_iso ? `no ar ${pv2DiaMes(d.veiculacao_iso)}` : !isRequestItem(d) ? '' : d.conclusao_iso ? `conclusão ${pv2DiaMes(d.conclusao_iso)}` : ''].filter(Boolean).join(' · ');
+  const datas = [d.prazo_iso ? `prazo ${pv2DiaMes(d.prazo_iso)}` : '', d.veiculacao_iso ? `veic. ${pv2DiaMes(d.veiculacao_iso)}` : !isRequestItem(d) ? '' : d.conclusao_iso ? `conclusão ${pv2DiaMes(d.conclusao_iso)}` : ''].filter(Boolean).join(' · ');
   // Direção 3: a linha do dia é "• Cliente · peça", e embaixo a pílula do status (o menu de sempre) e o quando, em
   // vermelho só no que já venceu. O dono fica na bolinha da direita.
   const q = d3pQuando(d, data);
@@ -2498,11 +2498,11 @@ function pv2CartaoHtml(d, aba) {
       <span class="d3m-hora">${comHora ? `<span class="d3p-hora" data-hora-de="${id}"${hora ? '' : ' hidden'} title="Hora de publicação">${safeText(hora ? pv2HoraCurta(hora) : '')}</span>` : ''}</span>${pv2Foto(clientes[0])}
       <p class="pv2-t">${pv2Cli(clientes[0]) || '<span class="pv2-sub">Sem cliente</span>'}${clientes.length > 1 ? `<span class="pv2-sub" title="${safeText(clientes.join(', '))}"> +${clientes.length - 1}</span>` : ''}<span class="d3p-peca"><i class="d3m-a-sep"> · </i>${safeText(titulo)}</span></p>
       ${(() => { const et = pv2Etapas(d), vez = et.find((e) => e.daVez); return `<span class="d3m-trilha" title="${vez ? 'Etapa: ' + vez.nome : 'Publicada'}" aria-hidden="true">${et.map((e) => `<i class="${e.feita ? 'ok' : e.daVez ? 'vez' : ''}"></i>`).join('')}</span>`; })()}
-      <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}">${safeText(q.texto)}</span>` : ''}</div>
+      <div class="pv2-r">${pv2StatusBotao(d)}${q.texto ? `<span class="d3p-quando ${q.tom}"${q.dica ? ` title="${safeText(q.dica)}"` : ''}>${safeText(q.texto)}</span>` : ''}</div>
       <span class="pv2-avs">${pv2Av(d)}</span>
     </div>
     <div class="v2-mais"><div><div class="pv2-det">${pv2EtapasHtml(d)}
-      ${datas || aba === 'pendencias' ? `<p class="pv2-sub">${aba === 'pendencias' ? (data ? `Entrega ${pv2DiaMes(data)}` : 'Sem data') + (datas ? ' · ' : '') : ''}${datas}</p>` : ''}
+      ${datas || aba === 'pendencias' ? `<p class="pv2-sub">${aba === 'pendencias' ? (data ? `Entrega ${pv2DiaMes(data)}` : 'Sem data') + (datas ? ' · ' : '') : ''}${datas}</p>` : ''}${capRotuloHtml(d)}
       ${comHora ? `<label class="d3p-hora-campo" onclick="event.stopPropagation()">Publica às <input type="time" step="900" value="${safeText(hora)}" data-hora-campo="${id}" aria-label="Hora de publicação (opcional)" onchange="pv2SalvarHora('${id}',this)"></label>` : ''}
       <div class="pv2-det-acoes"><button type="button" class="pv2-btn s k" onclick="openItemWorkspace('${id}')">Abrir a peça</button>${previa}
         <label class="pv2-lote" title="Marcar para ação em lote"><input type="checkbox" ${marcada ? 'checked' : ''} data-day-item="${id}" aria-label="Marcar ${safeText(d.nome || '')}" onclick="alternarSelecao('${id}',this.checked,event,ORDEM_VISIVEL_DO_DIA)">Marcar</label></div>

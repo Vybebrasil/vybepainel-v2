@@ -603,7 +603,7 @@
     const tagCli = cli ? (typeof tagClienteHtml === 'function' ? tagClienteHtml(cli, { dentroDeBotao: true }) : `<span class="cliente-carteira">${esc(cli)}</span>`) : '';
     const quando = ref === hoje ? 'Hoje' : ref ? ref.slice(8) + '/' + ref.slice(5, 7) : '';
     // A data diz o que é (Paulo, 09/11/2026: "essa data é veiculação ou prazo?"): prazo é a entrega da equipe, No ar é a veiculação.
-    const qual = !ref ? '' : ref === String(d.prazo_iso || '').slice(0, 10) ? 'Prazo' : ref === String(d.veiculacao_iso || '').slice(0, 10) ? 'No ar' : '';
+    const qual = !ref ? '' : ref === String(d.prazo_iso || '').slice(0, 10) ? 'Prazo' : ref === String(d.veiculacao_iso || '').slice(0, 10) ? 'Veic.' : '';
     const olho = typeof botaoDePreviaNaLinha === 'function' ? botaoDePreviaNaLinha(d, 'linha-previa vv-olho') : '';
     return `<div class="vv-demanda${sit === 'atrasada' ? ' atrasada' : ''}" style="--st:${esc(cor)}">
       <button type="button" class="vv-demanda-abrir" data-hoje-acao="peca" data-valor="${esc(d.id)}" title="${esc(String(d.nome || '') + (cli ? ' · ' + cli : '') + (d.status ? ' · ' + d.status : ''))}">
@@ -2116,7 +2116,7 @@
     // Cada data: o texto (hoje, amanhã ou dd/mm), o tom (vencida em vermelho, a de hoje em âmbar) e o nome para o leitor.
     const dataIso = (x, campo) => String((campo === 'prazo' ? x.d.prazo_iso : x.d.veiculacao_iso) || '').slice(0, 10);
     const dataTom = (x, campo) => { const iso = dataIso(x, campo); return x.sit === 'concluida' || !iso ? '' : iso < hoje ? ' r' : iso === hoje ? ' a' : ''; };
-    const dataTxt = (x, campo) => { const iso = dataIso(x, campo); return `<small>${campo === 'prazo' ? 'prazo' : 'no ar'}</small>${!iso ? '—' : iso === hoje ? 'hoje' : iso === somar(hoje, 1) ? 'amanhã' : dmD3(iso)}`; };
+    const dataTxt = (x, campo) => { const iso = dataIso(x, campo); return `<small>${campo === 'prazo' ? 'prazo' : 'veic.'}</small>${!iso ? '—' : iso === hoje ? 'hoje' : iso === somar(hoje, 1) ? 'amanhã' : dmD3(iso)}`; };
     const dataAttrs = (x, campo) => { const iso = dataIso(x, campo), nome = campo === 'prazo' ? 'Prazo' : 'Veiculação', d = `${nome} ${iso ? dmD3(iso) : 'sem data'}${dataTom(x, campo) === ' r' ? ', vencido' : ''}`;
       return `role="button" tabindex="0" title="${esc(d)} · tocar para mudar" aria-label="${esc(d)}. Mudar" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"`; };
     const datasFeitas = (x) => ['prazo', 'veiculacao'].map((c) => `<span class="v2t-data">${dataTxt(x, c)}</span>`).join('');
@@ -2139,7 +2139,7 @@
           <button type="button" class="v2t-dono" onclick="openOwnerEditor(event,'${id}')" ${donoRot(x)}>${avD3(quem)}<span class="v2t-dono-nome">${donoCurto(x)}</span></button>
           <button type="button" class="v2-linha-seta" data-hoje-acao="linha" data-valor="${id}" aria-expanded="false" aria-label="Abrir a linha de ${esc(titulo(x))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
         <div class="v2-mais"><div><div class="v2t-det">${etapasHtml(x.d)}
-          <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${extras}
+          <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${typeof capRotuloHtml === 'function' ? capRotuloHtml(x.d) : ''}${extras}
             ${feita ? '' : `<button type="button" class="d3h-btn s" onclick="openStatusEditor(event,'${id}')">Passar bastão</button>`}<button type="button" class="d3h-btn s k" data-hoje-acao="peca" data-valor="${id}">Abrir</button></div></div></div></div></div>`; };
     function listaHtml() {
       const [, base, , vazio] = GRUPOS[filtroTarefas], lista = base.filter(bate), MAX = POR_GRUPO * 3 + 2;
@@ -2213,7 +2213,7 @@
           <span class="d3m-a-mt-dt d3m-a-mt-datas" title="${esc(dt[0])}">${feita ? datasFeitas(x) : `<span class="v2t-data${dataTom(x, 'prazo')}" data-editar-data="prazo" data-peca="${id}" ${dataAttrs(x, 'prazo')}>${dataTxt(x, 'prazo')}</span><span class="v2t-data${dataTom(x, 'veiculacao')}" data-editar-data="veiculacao" data-peca="${id}" ${dataAttrs(x, 'veiculacao')}>${dataTxt(x, 'veiculacao')}</span>`}${olho}</span>
           <button type="button" class="v2t-dono d3m-a-mt-quem" onclick="openOwnerEditor(event,'${id}')" ${donoRot(x)}>${avD3(donosDe(x.d)[0] || '')}<span class="v2t-dono-nome">${donoCurto(x)}</span></button></div>
         <div class="v2-mais"><div><div class="v2t-det d3m-a-mt-det">${etapasHtml(x.d)}
-          <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${extras}
+          <div class="v2t-det-linha"><p>${esc(feita ? 'Concluída' : motivoNoGuia(x, hoje))}${desatualizada(x) ? ' · prazo desatualizado' : ''}</p>${typeof capRotuloHtml === 'function' ? capRotuloHtml(x.d) : ''}${extras}
             ${feita ? '' : `<button type="button" class="d3h-btn s" data-hoje-acao="concluir" data-valor="${id}" aria-label="Marcar pronta: ${esc(titulo(x))}">Marcar pronta</button><button type="button" class="d3h-btn s" onclick="openStatusEditor(event,'${id}')">Passar bastão</button>`}<button type="button" class="d3h-btn s k" data-hoje-acao="peca" data-valor="${id}">Abrir a peça</button></div></div></div></div></div>`; };
       const [, baseV2, , vazioV2] = GRUPOS[filtroTarefas], listaV2 = (filtroTarefas === 'feitas' ? baseV2 : naOrdem(baseV2)).filter(bate);
       let corpoV2;
@@ -2229,7 +2229,7 @@
       const folhaV2 = `<section class="d3m-a-folha d3m-a-mt-folha" aria-label="${varios ? 'Tarefas do dia' : 'Minhas tarefas'}"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Na ordem do dia</span> <span>· ${varios ? `de ${n0(fila.users.length)} pessoas, ` : ''}pela data do cliente</span></h3>
           <input type="search" class="d3m-a-mt-busca" data-busca-tarefas placeholder="Buscar" aria-label="Buscar nas minhas tarefas" value="${esc(buscaTarefas)}">${filtrosV2}<i class="d3m-a-div" aria-hidden="true"></i>
           <button type="button" class="d3m-a-filtro" role="switch" aria-checked="${hojeVerTodas}" data-hoje-acao="${hojeVerTodas ? 'prioridades' : 'todas'}" title="Agrupar a lista por status">Por status</button></div>
-        <div class="d3m-a-mt-cols" aria-hidden="true"><span></span><span></span><span>Cliente e peça</span><span>Briefing até publicar</span><span>Status</span><span>Prazo · no ar</span><span>Quem</span></div>
+        <div class="d3m-a-mt-cols" aria-hidden="true"><span></span><span></span><span>Cliente e peça</span><span>Briefing até publicar</span><span>Status</span><span>Prazo · veic.</span><span>Quem</span></div>
         <div class="v2-lista d3m-a-mt-lista" aria-label="Minha fila">${corpoV2}</div>
         <div class="d3m-a-pe d3m-a-mt-pe"><span>De olho</span>${olhoV2(n0(hojeP.length), 'para hoje', 'data-hoje-acao="filtro" data-valor="hoje"')}${olhoV2(n0(atrasadasP.length), atrasadasP.length === 1 ? 'atrasada' : 'atrasadas', 'data-hoje-acao="filtro" data-valor="atrasadas"', atrasadasP.length ? 'r' : '')}${olhoV2(n0(feitas.length), feitas.length === 1 ? 'feita na semana' : 'feitas na semana', 'data-hoje-acao="filtro" data-valor="feitas"', feitas.length ? 'g' : '')}${cargaV2 ? olhoV2(`${n0(cargaV2[0])} de ${n0(cargaV2[1])}`, 'do seu limite', 'data-hoje-acao="filtro" data-valor="todas" title="Os pontos das peças abertas contra o limite de carga"', cargaV2[0] > cargaV2[1] ? 'r' : '') : olhoV2(n0(naFila.length), naFila.length === 1 ? 'aberta' : 'abertas', 'data-hoje-acao="filtro" data-valor="todas"')}<button type="button" class="d3m-a-filtro d3m-a-mt-todas" data-hoje-acao="demandas" title="Abrir as Demandas, fora da sua fila">todas as demandas</button></div></section>`;
       // O laranja: a primeira da fila, com o porquê e a etapa em que está; sem nada aberto, a fila limpa.

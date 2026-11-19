@@ -10818,6 +10818,14 @@ body.mundo #v2j-busca{--glass:var(--d3-fume-painel)}
 /* avatar redondo de iniciais (Jogos, Equipe) */
 .d3m-f-jav,.d3m-g-av{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--d3-veu-forte);color:var(--d3-tinta);font:600 10px var(--vv-texto,Inter,sans-serif);font-style:normal}
 
+/* ===== padrao-v2/zm-a-0-rotulos.css ===== */
+/* Status da peça e status da captação separados, e toda data com o nome (Paulo, 19/11/2026: "juntou status e status de
+   captação... são coisas diferentes"; "quando aparecer uma data, precisa tá claro se é prazo ou veiculação"). A captação
+   vira etiqueta própria, "Captação · Agendada", fora da pílula do status (capRotuloHtml, vybe-core.js). Datas soltas usam
+   "prazo 13/11" e "veic. 13/11"; cabeçalhos dizem Prazo e Veiculação. */
+.cap-rotulo{display:inline-flex;flex:none;align-self:flex-start;justify-self:start;width:max-content;align-items:baseline;gap:4px;max-width:100%;height:auto;margin:0;padding:2px 8px;box-sizing:border-box;border-radius:999px;background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.cap-rotulo > i{font-style:normal;font-weight:400;color:var(--d3-rotulo)}
+
 /* ===== padrao-v2/zm-a-1-producao.css ===== */
 /* MÓDULOS V2 · GRUPO A · PRODUÇÃO (pranchas V2-M-Producao-Mes, -Grupos, -Equipe, V2-M-Feed e V2-M-Producao-Celular, aprovadas
    pelo Paulo em 16/11/2026). A vista Semana mora em z-direcao.css (seção 12); aqui ficam as outras vistas, no mesmo esqueleto:
