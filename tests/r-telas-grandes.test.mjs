@@ -74,3 +74,18 @@ test('Loja: Inventário e Carteira nas pranchas V2-R, com as funções de compra
   assert.match(ed, /item\("todos", "Todos", /);
   guardaCss(cssR('zm-r-b-4-loja.css'), 'zm-r-b-4-loja.css');
 });
+
+test('Toolkit: QR, WhatsApp e ROI nas pranchas V2-R, calculando enquanto digita, sem botão de gerar nem calcular', async () => {
+  const js = ler('vybe-mundo-ferramentas.js');
+  for (const t of ['>Gerar QR</button>', '>Criar link</button>', '>Calcular</button>']) assert.ok(!js.includes(t), `sem ${t}`);
+  const abas = js.slice(js.indexOf('  function abaQR() {'), js.indexOf('  function corpoDaAba()'));
+  naOrdem(abas, ['Pronto para baixar', 'data-vf="png"', 'data-vf="svg"', 'Pronto para copiar', 'data-vf="copiar"', 'data-vf="qr-do-link"', 'Assim chega no WhatsApp', 'O retorno', ' a Vybe no mês</span>', "tile('Retorno'", 'data-vf="copiar-roi"', 'data-vf="orcamento"']);
+  assert.ok(js.includes('data-vf-cor="${c}"'), 'a cor em fichas com o nome');
+  for (const t of ['data-vf-ecc=', 'data-vf-conta="qr.texto"', 'data-vf-conta="wa.mensagem"', 'class="vf-previa d3m-r-tk-previa']) assert.ok(abas.includes(t), t);
+  assert.match(js, /if \(a === 'orcamento'\)/);
+  assert.match(js, /qr: `\$\{nome\} · o código muda enquanto você escreve, sem botão de gerar`/);
+  // A conta do ROI é a mesma da proposta (VybeComercialCalculos.roiCampanha): 1.500 ÷ (180 × 35%) = 24 vendas; 40 vendas dão 68%.
+  const calc = (await import('node:module')).createRequire(import.meta.url)('../shared/comercial-calculos.js').roiCampanha({ investimento: '1500', ticket: '180', margem: '35', vendas: '40' });
+  assert.equal(calc.empate, 24); assert.equal(calc.roi, 68);
+  guardaCss(cssR('zm-r-b-5-toolkit.css'), 'zm-r-b-5-toolkit.css');
+});

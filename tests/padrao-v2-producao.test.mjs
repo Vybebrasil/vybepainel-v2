@@ -78,7 +78,9 @@ test('Toolkit: visão em pílulas com a busca, usados por último em cartões e 
   assert.match(fer, /<span class="d3m-e-per d3m-e-tk-abas" role="group" aria-label="Ferramentas do Toolkit">/);
   assert.match(fer, /placeholder="Buscar ferramenta" data-vf-busca/);
   assert.match(fer, /<b id="vf-recentes-titulo">Usados por último<\/b><span>neste computador<\/span>/);
-  for (const t of ['data-vf-gerar="qr">Gerar QR<', 'data-vf-gerar="wa">Criar link<', 'data-vf-gerar="roi">Calcular<']) assert.ok(fer.includes(t), t);
+  // Pranchas V2-R-Toolkit (aprovadas): o resultado muda enquanto digita, sem botão de gerar, criar ou calcular.
+  for (const t of ['>Gerar QR</button>', '>Criar link</button>', '>Calcular</button>']) assert.ok(!fer.includes(t), `sem ${t}`);
+  assert.match(fer, /st\.feito\[t\] = t === 'qr' \? Boolean\(st\.qr\.texto\.trim\(\)\) : t === 'wa' \? Boolean\(st\.wa\.numero\.trim\(\)\) : Boolean\(contaRoi\(st\.roi\)\);/);
   for (const t of ['data-vf="refazer" data-vf-uso=', 'Nada usado ainda neste computador.', 'data-vf="comercial"', 'vendas pagam']) assert.ok(fer.includes(t), t);
   const guardado = {};
   const ctx = { window: {}, localStorage: { getItem: (k) => guardado[k] ?? null, setItem: (k, v) => { guardado[k] = v; } }, console };
