@@ -300,6 +300,9 @@ async function areaPessoas(req, res, quem) {
       }
     }
     if (!email || !acao) return res.status(400).json({ error: 'Informe o e-mail e a ação.' });
+    // A conta do VYBES (server/conta-vybes.js) é de serviço: não tem senha nem entra no painel.
+    const [servico] = await sql()`SELECT 1 AS s FROM vybe_pessoas p WHERE LOWER(email) = LOWER(${String(email)}) AND (to_jsonb(p) ->> 'servico') = 'true'`;
+    if (servico) return res.status(400).json({ error: 'O VYBES é uma conta de serviço: não tem senha nem entra no painel.' });
     // A marca de admin não dá mais acesso (Paulo, 13/11/2026): administra quem é dono ou coordenação.
     if (acao === 'tornar_admin' || acao === 'tirar_admin') return res.status(400).json({ error: 'A marca de admin não é mais usada: administra quem é dono ou da coordenação.' });
 

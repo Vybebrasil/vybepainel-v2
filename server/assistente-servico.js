@@ -21,6 +21,7 @@ export function autenticarAssistente(req, tokenConfigurado) {
 
 import { consumirCodigo } from './assistente-vinculacao-fluxo.js';
 import { ehDonoPessoa, mondayDaPessoa } from './donos.js';
+import { idDoVybes, pessoaDaAcao } from './conta-vybes.js';
 import { minhasDemandas } from './assistente-consultas.js';
 import { rotinaDoDia, diasPessoais, riscos } from './assistente-rotinas.js';
 import { prepararAcao, confirmarAcao, opcoesDeCriacao } from './assistente-acoes.js';
@@ -75,7 +76,8 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
     // normal com o motivo, porque o bot não lê corpo de erro.
     if (consulta === 'acao_preparar' || consulta === 'acao_confirmar') {
       const banco = criarBanco();
-      const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
+      // Agente do VYBES agindo sozinho (o bot manda `como: 'vybes'`): a ação sai com o autor VYBES (server/conta-vybes.js).
+      const pessoaId = pessoaDaAcao(await autorizarConversa(banco, jid, contexto, segredo, config), req.body, contexto, config);
       try {
         if (consulta === 'acao_preparar') return res.status(200).json({ ok: true, ...(await prepararAcao(banco, pessoaId, req.body?.pedido, segredo)) });
         return res.status(200).json({ ok: true, ...(await confirmarAcao(banco, pessoaId, req.body?.codigo, segredo)) });
@@ -127,6 +129,9 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       const pessoaId = await autorizarConversa(banco, jid, contexto, segredo, config);
       const [adm] = await banco`SELECT 1 AS ok FROM vybe_pessoas WHERE id=${pessoaId} AND admin IS TRUE AND ativo IS TRUE`;
       if (!adm) return res.status(403).json({ error: 'Consulta restrita à administração.', motivo: 'nao_admin' });
+      // O que o bot grava sozinho daqui (Nestor em Impressões, opinião do Danilo na peça) sai com o autor VYBES quando
+      // VYBE_VYBES_PESSOA_ID existe; sem ela, com a conta administradora, como antes (server/conta-vybes.js).
+      const autorId = idDoVybes(config) ?? pessoaId;
       // VYBES: o estado que a central do PC do Paulo mostra, publicado para o módulo VYBES do painel (server/vybes.js).
       if (consulta === 'vybes_publicar') return res.status(200).json({ ok: true, ...(await guardarEstadoVybes(banco, req.body?.estado)) });
       // Ação pedida na central do VYBES por quem entrou pelo Vybe OS: com a permissão DELA (não a do Paulo).
@@ -151,7 +156,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (consulta === 'impressoes') return res.status(200).json({ ok: true, ...(await impressoesParaAgente(banco)) });
       // Nestor registra em Impressões o que leu na conversa com o fornecedor (server/impressoes.js registrarPeloAgente).
       if (consulta === 'impressao_registrar') {
-        try { return res.status(200).json({ ok: true, ...(await registrarPeloAgente(banco, pessoaId, req.body?.impressao || {})) }); }
+        try { return res.status(200).json({ ok: true, ...(await registrarPeloAgente(banco, autorId, req.body?.impressao || {})) }); }
         catch (erro) { if (erro.status && erro.status < 500) return res.status(200).json({ ok: true, recusa: erro.message }); throw erro; }
       }
       // Augusto (Copy): demanda aberta que veio de planejamento e está sem parte da peça, ou em "Falta Info". Só leitura.
@@ -173,7 +178,7 @@ export async function atenderBotAssistente(req, res, criarBanco, config = proces
       if (consulta === 'cobranca_resultado') return res.status(200).json({ ok: true, ...(await registrarResultado(banco, req.body?.cobranca || {})) });
       if (consulta === 'previa_da_peca') return res.status(200).json({ ok: true, ...(await previaDaPeca(banco, req.body?.item)) });
       if (consulta === 'arte_da_peca') return res.status(200).json({ ok: true, ...(await arteDaPeca(banco, req.body?.item)) });
-      if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto)) });
+      if (consulta === 'comentar_revisao') return res.status(200).json({ ok: true, ...(await comentarRevisao(banco, req.body?.item, req.body?.texto, { autorId: idDoVybes(config) })) });
       if (consulta === 'resumos_semana') return res.status(200).json({ ok: true, ...(await resumosDaSemana(banco, req.body?.dia)) });
       if (consulta === 'riscos') return res.status(200).json({ ok: true, ...(await riscos(banco, req.body?.dia)) });
       if (consulta === 'dias_pessoais') return res.status(200).json({ ok: true, dias: await diasPessoais(banco, req.body?.pessoas, req.body?.dia) });

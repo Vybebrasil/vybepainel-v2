@@ -194,6 +194,11 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   agir"). Os pedidos feitos na central chegam pelo bot (`vybes_acao`) e passam pelo MESMO executor das ações do
   assistente (`prepararAcao`/`confirmarAcao`) com a permissão da pessoa. A tabela `vybe_vybes_operadores` ficou guardada,
   sem decidir mais. Migração `2026-11-02-vybes.sql`.
+- Conta própria do VYBES (Paulo, 18/11/2026): pessoa "VYBES" (`vybes@vybe.local`, `servico = TRUE`, sem acesso, sem senha,
+  sem id do Monday; migração `2026-11-18-usuario-vybes.sql`, aplicada à mão no Neon). Com `VYBE_VYBES_PESSOA_ID`, o que o
+  bot grava sozinho sai com esse autor e a conta é dona pelo id (`server/conta-vybes.js`, `server/donos.js`); sem a
+  variável, segue a conta administradora. A marca `servico` só tira das listas e nunca dá permissão. Lista nova de
+  "pessoas da equipe" usa a regra única (`ativo AND pode_entrar`) ou filtra `servico`.
 
 ## Mundo voxel (decisão do Paulo, 06/11/2026; branch codex/mundo-voxel, ainda local)
 

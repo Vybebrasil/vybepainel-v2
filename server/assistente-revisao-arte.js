@@ -133,11 +133,14 @@ export async function previaDaPeca(sql, ref, { buscar = fetch, pegarToken = toke
 }
 
 // Opinião como comentário da Vybe AI (autor "Vybe IA"), pela mesma função de comentar do painel.
-export async function comentarRevisao(sql, ref, texto, { executar } = {}) {
+export async function comentarRevisao(sql, ref, texto, { executar, autorId = null } = {}) {
   const c = await pecaDaReferencia(sql, ref);
   const corpo = String(texto || '').trim().slice(0, 3000);
   if (!corpo) throw new TypeError('Revisão vazia.');
   const fazer = executar || await import('../api/conteudo.js');
-  await fazer.comentar(sql, { tipo: 'sistema', pessoa: { nome: 'Vybe IA' } }, { item: referencia(c), texto: '🤖 Revisão da Vybe IA (opinião; o status não muda)\n\n' + corpo });
+  // Com a conta do VYBES (server/conta-vybes.js), o comentário sai com o autor VYBES; sem ela, "Vybe IA", como antes.
+  const [vybes] = autorId ? await sql`SELECT nome, email FROM vybe_pessoas p WHERE id = ${Number(autorId)} AND ativo IS TRUE AND (to_jsonb(p) ->> 'servico') = 'true'` : [];
+  const quem = vybes?.email ? { tipo: 'sessao', pessoa: { id: Number(autorId), nome: vybes.nome, email: vybes.email } } : { tipo: 'sistema', pessoa: { nome: 'Vybe IA' } };
+  await fazer.comentar(sql, quem,{ item: referencia(c), texto: '🤖 Revisão da Vybe IA (opinião; o status não muda)\n\n' + corpo });
   return { ok: true, link: linkDaAtividade(referencia(c)) };
 }

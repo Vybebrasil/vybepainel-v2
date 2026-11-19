@@ -35,7 +35,8 @@ export const nivelDoAtraso = (dias) => (Number(dias) >= 30 ? 30 : Number(dias) >
 // Os quatro donos ativos (pelo id do Monday, a regra de server/donos.js) e os de VYBE_DONOS_IDS.
 async function donosAtivos(sql, env = process.env) {
   const extras = String(env?.VYBE_DONOS_IDS || '').split(',').map((x) => x.trim()).filter((x) => /^[1-9]\d{0,15}$/.test(x));
-  const linhas = await sql`SELECT p.id::text, p.nome, to_jsonb(p) ->> 'monday_user_id' AS monday FROM vybe_pessoas p WHERE COALESCE(p.ativo, true)`;
+  const linhas = await sql`SELECT p.id::text, p.nome, to_jsonb(p) ->> 'monday_user_id' AS monday FROM vybe_pessoas p WHERE COALESCE(p.ativo, true)
+    AND (to_jsonb(p) ->> 'servico') IS DISTINCT FROM 'true'`; // o VYBES não recebe aviso de sócio (server/conta-vybes.js)
   return linhas.filter((p) => Object.prototype.hasOwnProperty.call(DONOS_MONDAY, String(p.monday || '')) || extras.includes(p.id)
     || String(env?.VYBE_AI_ADMIN_PESSOA_ID || '').trim() === p.id).map((p) => ({ id: p.id, nome: p.nome }));
 }
