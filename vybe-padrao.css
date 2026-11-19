@@ -18,7 +18,7 @@
 /* ---- Janelas (workflow-modal): troca de status, bloqueio, direção, bastão, resumo e outras ---- */
 .workflow-backdrop:not(:has(+ .rk2-janela)){background:rgba(5,6,10,.62)!important;backdrop-filter:blur(3px)!important}
 .workflow-modal:where(:not(.ofc-snc-jogo):not(.ofc-snc-menu)){border-radius:14px!important;border:1px solid var(--pv-borda)!important;background:var(--pv-vidro)!important;box-shadow:var(--pv-brilho),0 40px 90px -20px rgba(0,0,0,.95)!important}
-.workflow-kicker,.workflow-kicker>span{font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none!important;color:#ff9a5c!important}
+.workflow-kicker,.workflow-kicker>span{font:400 var(--d3-fs-apoio,12px) var(--vv-texto,var(--mac-ui))!important;letter-spacing:0!important;text-transform:none!important;color:#ff9a5c!important}
 .workflow-title,.context-title{font-family:var(--pv-titulo)!important;font-weight:700!important;letter-spacing:-.015em!important}
 .workflow-copy,.context-field-help,.workflow-hint{color:#a8a39c!important}
 .workflow-close{width:30px!important;height:30px!important;border-radius:6px!important;border:1px solid var(--pv-borda)!important;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))!important;box-shadow:var(--pv-brilho)!important}
@@ -694,7 +694,7 @@
 .workflow-item-ic{width:40px;height:40px;flex:none;border-radius:8px;display:grid;place-items:center;color:#ee83b7;background:linear-gradient(180deg,rgba(238,131,183,.26),rgba(238,131,183,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(238,131,183,.4)}
 .workflow-item-ic svg{width:19px;height:19px}
 .workflow-item-texto{display:grid;gap:2px;min-width:0;flex:1}
-.workflow-modal .workflow-item-client{color:#ee83b7!important;font:700 10.5px var(--mac-ui)!important;letter-spacing:0!important;text-transform:none}
+.workflow-modal .workflow-item-client{color:#ee83b7!important;font:400 var(--d3-fs-apoio,12px) var(--vv-texto,var(--mac-ui))!important;letter-spacing:0!important;text-transform:none}
 .workflow-modal .workflow-item-name{color:#fff!important;font:700 14px/1.3 var(--mac-ui)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .workflow-item-fluxo{display:flex;align-items:center;gap:6px;flex:none}
 .workflow-item-fluxo > i{font-style:normal;color:#7d7870}

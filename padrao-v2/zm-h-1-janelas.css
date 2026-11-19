@@ -1,0 +1,97 @@
+/* ===================================================================================================================
+   V2 · GRUPO H · JANELAS POR CIMA (confere das telas antigas, 18/11/2026). O #workflow-modal guarda os portões da peça
+   (passagem de bastão, qualidade, conferência final e visual, motivo da troca de status, bloqueio, direção de arte) e
+   várias janelas dos módulos. Abriam na Direção 3 (areia, título de 26 em 800, botão preto de 38 e etapas em pílula
+   preta) e algumas com sobra do tema escuro antigo (texto branco no claro, passo laranja, fio invisível). Agora são a
+   folha V2: cartão de canto 20, rótulo de 12 sem caixa-alta, título de 18, campos no véu com canto 10, botões de 34 com
+   canto 8 e um laranja só para a ação principal. A casca (fundo, título, rótulo, campos e pé) vem das regras antigas de
+   vybe-mundo.css, que têm !important e agora usam os tokens; aqui fica o resto, sem !important.
+   Tema Escuro: os portões levam a classe d3-tema (janelaV2DoPortao, vybe-portoes.js) e a folha escurece junto; as
+   outras janelas continuam folha clara até a vez delas.
+   =================================================================================================================== */
+body.mundo #workflow-modal.workflow-modal{font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif)}
+
+/* Rótulo em cima, com o fechar de 34 à direita. */
+body.mundo #workflow-modal.workflow-modal .workflow-kicker{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:34px;padding:0;border:0;text-transform:none;letter-spacing:0}
+body.mundo #workflow-modal.workflow-modal .workflow-kicker > span:first-child{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none}
+body.mundo #workflow-modal.workflow-modal .workflow-close{display:grid;place-items:center;flex:none;padding:0}
+body.mundo #workflow-modal.workflow-modal .workflow-close:hover{background:var(--d3-veu-forte)}
+body.mundo #workflow-modal.workflow-modal .workflow-close:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+body.mundo #workflow-modal.workflow-modal .context-title{font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .context-progress{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .context-field-help{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif)}
+
+/* A peça em questão: uma faixa no véu (sem cartão branco dentro da folha), o ícone de 32 e o caminho do status. */
+body.mundo #workflow-modal.workflow-modal .workflow-item{gap:12px;padding:10px 12px}
+body.mundo #workflow-modal.workflow-modal .workflow-item-ic{width:32px;height:32px;border-radius:var(--d3-r-botao);background:var(--d3-veu-forte);color:var(--d3-tinta)}
+body.mundo #workflow-modal.workflow-modal .workflow-item-ic svg{width:16px;height:16px;color:currentColor;stroke:currentColor}
+body.mundo #workflow-modal.workflow-modal .workflow-item-client{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);letter-spacing:0;text-transform:none}
+body.mundo #workflow-modal.workflow-modal .workflow-item-name{font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .workflow-item-fluxo{gap:6px;color:var(--d3-rotulo)}
+body.mundo #workflow-modal.workflow-modal .workflow-item-fluxo > i{color:var(--d3-rotulo)}
+body.mundo #workflow-modal.workflow-modal .pill.vv-st-ponto{height:22px;padding:0 8px;border-radius:var(--d3-r-botao);background:var(--d3-cartao);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .workflow-item-destino{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:0;border-radius:999px;box-shadow:none;outline:0;font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .workflow-item-destino .pill-dot{display:none}
+
+/* Etapas: texto com o fio entre elas; a atual em tinta e 600 (sem pílula preta), a feita em verde. */
+body.mundo #workflow-modal.workflow-modal .pt-etp{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .pt-etp > span.atual{padding:0;border-radius:0;background:none;color:var(--d3-tinta);font-weight:600}
+body.mundo #workflow-modal.workflow-modal .pt-etp > span.feito{color:var(--d3-pronto)}
+body.mundo #workflow-modal.workflow-modal .pt-etp > i{height:1px;background:var(--d3-divisa)}
+body.mundo #workflow-modal.workflow-modal .pv-passos span{font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .pv-passos span i{width:20px;height:20px;border:0;background:var(--d3-veu);color:var(--d3-rotulo);box-shadow:none;font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .pv-passos span.on i{background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #workflow-modal.workflow-modal .pv-passos span.feito i{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+body.mundo #workflow-modal.workflow-modal .pv-passos em{height:1px;background:var(--d3-divisa)}
+body.mundo #workflow-modal.workflow-modal .context-passos li{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .context-passos li > span{color:inherit}
+body.mundo #workflow-modal.workflow-modal .context-passos li i{display:inline-grid;place-items:center;width:20px;height:20px;border:0;border-radius:50%;background:var(--d3-veu);color:var(--d3-rotulo);box-shadow:none;font:600 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);font-style:normal}
+body.mundo #workflow-modal.workflow-modal .context-passos li:is(.atual,.on){color:var(--d3-tinta);font-weight:600}
+body.mundo #workflow-modal.workflow-modal .context-passos li:is(.atual,.on) i{background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #workflow-modal.workflow-modal .context-passos li.feito i{background:var(--d3-pronto-veu);color:var(--d3-pronto)}
+body.mundo #workflow-modal.workflow-modal .context-passos li::before,body.mundo #workflow-modal.workflow-modal .context-passos li::after{background:var(--d3-divisa)}
+
+/* Campos: 36 de altura (o texto livre cresce), 13 px; o foco é um contorno de tinta. */
+body.mundo #workflow-modal.workflow-modal :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select){min-height:36px;height:36px;padding:0 12px;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal textarea{padding:10px 12px;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal :is(input,select,textarea)::placeholder{color:var(--d3-rotulo);opacity:1}
+body.mundo #workflow-modal.workflow-modal :is(input,select,textarea):focus-visible{outline:2px solid var(--d3-tinta);outline-offset:0}
+body.mundo #workflow-modal.workflow-modal .workflow-field > span{margin-bottom:6px;letter-spacing:0;text-transform:none}
+
+/* Sugestões de toque (o que ficou pronto, ajustes, de quem depende): fichas de 28 no véu; a marcada em tinta. */
+body.mundo #workflow-modal.workflow-modal .pv-sugestoes{gap:6px}
+body.mundo #workflow-modal.workflow-modal .pv-sugestoes > button{height:28px;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);box-shadow:none;cursor:pointer}
+body.mundo #workflow-modal.workflow-modal .pv-sugestoes > button:hover{background:var(--d3-veu-forte)}
+body.mundo #workflow-modal.workflow-modal .pv-sugestoes > button:is(.on,[aria-pressed="true"]){background:var(--d3-tinta);color:var(--d3-contra)}
+body.mundo #workflow-modal.workflow-modal .pv-sugestoes > button:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+
+/* Opções grandes (por que a peça parou): linha de 56 no véu, ícone de 32 no véu forte. O fundo vem de vybe-mundo.css. */
+body.mundo #workflow-modal.workflow-modal .pv-opcao{min-height:56px;padding:10px 14px;border-radius:var(--d3-r-ilha);transform:none}
+body.mundo #workflow-modal.workflow-modal .pv-opcao b{font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .pv-opcao small{font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .pv-opcao-ic{width:32px;height:32px;background:var(--d3-veu-forte);color:var(--d3-tinta);filter:none}
+body.mundo #workflow-modal.workflow-modal .pv-opcao > i{color:var(--d3-rotulo);opacity:1}
+
+/* Caixas de marcar (qualidade, conferência): linha no véu; marcada, um fio de tinta. */
+body.mundo #workflow-modal.workflow-modal .workflow-check{min-height:40px;padding:8px 12px;gap:10px;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .workflow-check:has(input:checked){box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+body.mundo #workflow-modal.workflow-modal .workflow-check input{accent-color:var(--d3-tinta)}
+
+/* Prévia ao lado (qualidade, conferência): o mesmo véu, canto 12. */
+body.mundo #workflow-modal.workflow-modal .status-context-preview{border:0;border-radius:12px;background:var(--d3-veu)}
+body.mundo #workflow-modal.workflow-modal .status-context-preview-head b{color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .status-context-preview-head small,body.mundo #workflow-modal.workflow-modal .status-context-preview-loading{color:var(--d3-rotulo)}
+
+/* Direção de arte: o resumo "quem age" era texto branco (sobra do tema escuro) sobre o claro. */
+body.mundo #workflow-modal.workflow-modal .direcao-resumo{gap:12px;padding:10px 12px;border:0;border-radius:var(--d3-r-caixa);background:var(--d3-veu)}
+body.mundo #workflow-modal.workflow-modal .direcao-resumo b{color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .direcao-resumo small{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif)}
+
+/* Pé: a etapa à esquerda em 12, os botões de 34 (canto 8): Cancelar no véu, a ação principal em laranja. */
+body.mundo #workflow-modal.workflow-modal :is(.pt-pe,.context-actions) small{color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif)}
+body.mundo #workflow-modal.workflow-modal .pt-btn{height:34px;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);box-shadow:none}
+body.mundo #workflow-modal.workflow-modal .pt-btn:hover{background:var(--d3-veu-forte);box-shadow:none}
+body.mundo #workflow-modal.workflow-modal .pt-btn.k{background:var(--d3-acao);color:var(--d3-escuro-texto);font-weight:600}
+body.mundo #workflow-modal.workflow-modal .pt-btn.k:hover{background:var(--d3-acao-texto-fixa)}
+body.mundo #workflow-modal.workflow-modal .pt-btn.pt-btn[disabled],body.mundo #workflow-modal.workflow-modal .pt-btn.k[disabled]:hover{opacity:1;background:var(--d3-veu);color:var(--d3-meta);cursor:default}
+body.mundo #workflow-modal.workflow-modal .pt-btn:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
