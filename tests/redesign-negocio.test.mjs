@@ -294,7 +294,7 @@ test('Sinapses: "Como o VYBES pensa" e o detalhe por agente moram na página Age
   assert.match(sinapses, /renderEstudoClienteCerebroHtml\(cliente\)/, 'o estudo (com o selo Qwen) fica');
   assert.match(sinapses, /De onde vem cada coisa/);
   assert.match(sinapses, /onclick="abrirDiagnosticoDosAgentes\(\)">Ver o diagnóstico em Agentes/);
-  assert.match(cerebro, /cb-sin-quando">Feito em [\s\S]{0,200}cerebroMotorHtml\('qwen'\)/,'o selo Qwen do estudo continua à vista (decisão do Paulo)');
+  assert.match(cerebro, /feito pelo Alex com o \$\{cerebroMotorHtml\('qwen'\)\}/,'o selo Qwen do estudo continua à vista (decisão do Paulo)');
   const diag = cerebro.slice(cerebro.indexOf('function renderDiagnosticoCerebroHtml'), cerebro.indexOf('function focarClienteNoCerebro'));
   for (const pedaco of ["'Qwen', k.qwen", "'Lógica fixa', k.logica", 'Fila do Qwen agora', 'porAgente.map', 'De onde vem']) assert.ok(diag.includes(pedaco), pedaco);
   const agentes = ler('vybe-mundo-agentes.js');

@@ -45,3 +45,19 @@ test('Agenda: a aba Dia ao lado de Semana, Mês e Roteiros; Mês e Dia nas pranc
   assert.match(js, /const corpo = CAPT\.vista === "mes" \? agv2MesHtml\(eventos\) : agv2GradeHtml\(eventos\);/);
   guardaCss(cssR('zm-r-b-2-agenda.css'), 'zm-r-b-2-agenda.css');
 });
+
+test('Cérebro do cliente nas pranchas V2-R: a ficha em 3 × 3, a atividade em tabela, o estudo em dois por dois e a consulta de cada aba', () => {
+  const js = ler('vybe-clientes-cerebro.js');
+  const ficha = js.slice(js.indexOf('function renderDossieNeuralClienteHtml('), js.indexOf('// Cartão dentro da ficha do cliente'));
+  naOrdem(ficha, ['class="cb-r-grade"', 'id="cb-bloco-${gid}"', 'class="cb-r-cab"', "cerebroSelecionar('grupo','${gid}')", 'class="cb-r-cor"', "cerebroSelecionar('item'", 'mais ${resto}', 'por quê · de onde vem', '${acao}']);
+  assert.match(js, /const CEREBRO_NOVO_DA_AREA = \{ regras: \['regras', '\+ regra'\], ideias: \['ideias', '\+ ideia'\], aprendizados: \['memoria', '\+ lembrança'\] \};/);
+  const ativ = js.slice(js.indexOf('function renderAtividadeCerebroHtml('), js.indexOf('// A mesma regra governa pintura'));
+  naOrdem(ativ, ['class="cb-r-ativ"', 'role="table"', '<span role="columnheader">Origem</span>', '<span role="columnheader">Quando</span>', 'abrirRegistroCerebro(', 'Ver os ${registros.length} registros na ficha', 'Ver toda a atividade', 'mostrando ${lista.length} de ${registros.length}']);
+  const sin = js.slice(js.indexOf('function renderEstudoClienteCerebroHtml('), js.indexOf('function renderDiagnosticoCerebroHtml('));
+  naOrdem(sin, ['Estudo de ', "cerebroMotorHtml('qwen')", 'Consultar de novo', 'Setor', 'Posicionamento', "area('Oportunidades'", "area('Ameaças'", "area('Concorrentes'", "area('Ideias'", 'Para confirmar']);
+  const lado = js.slice(js.indexOf('  // Pranchas V2-R-Cerebro-Cliente, -Atividade e -Sinapses'), js.indexOf('// Põe as duas colunas de fora da folha'));
+  naOrdem(lado, ['filtrarOrigemCerebro(', 'Rede de clientes', '<b>No cérebro</b>', 'Atividade de todos', 'Alex · para confirmar', 'De onde vem cada coisa', 'Como o Alex estuda', 'Diagnóstico em Agentes']);
+  // Nenhum small sem classe nestes trechos: a regra antiga de small sem classe dentro de #painel-* pintaria por cima.
+  for (const t of [ficha, ativ, sin, lado]) assert.doesNotMatch(t, /<small>/);
+  guardaCss(cssR('zm-r-b-3-cerebro.css'), 'zm-r-b-3-cerebro.css');
+});

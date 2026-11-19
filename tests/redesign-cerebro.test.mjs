@@ -123,7 +123,7 @@ test('54: fontes da prova em português, contadores sem borda colorida e o selo 
   const html = c.renderEstudoClienteCerebroHtml('Alpha1');
   assert.doesNotMatch(html, /\[FICHA\]|\[NOTICIA_SETOR\]|ficha \.md/);
   assert.match(html, /Estudo de Alpha1/);
-  assert.match(html, /com a ficha do cliente e o Instagram · <em class="cb-motor"[^>]*><i aria-hidden="true"><\/i>Qwen<\/em>/);
+  assert.match(html, /2 fontes · feito pelo Alex com o <em class="cb-motor"[^>]*><i aria-hidden="true"><\/i>Qwen<\/em>/);
   const css = ler('vybe-styles.css');
   assert.doesNotMatch(css, /border-top:3px solid var\(--c\)/);
   assert.match(css, /\.cb-motor \{[^}]*background:#FFF;/);
