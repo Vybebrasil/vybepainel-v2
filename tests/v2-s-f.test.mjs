@@ -108,7 +108,7 @@ test('Contraste: o select branco da cabeça saiu; filtros viram botões com menu
   assert.match(css, /\.s-f-filtro\.tem\{background:var\(--d3-tinta\);box-shadow:none;color:var\(--d3-contra\)\}/);
   const tokens = [...css.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]).filter((t) => !t.startsWith('--d3-') && t !== '--vv-texto');
   // A única variável fora do --d3- é a --ds-linha, redefinida (não lida) para apagar a borda que a regra antiga dá ao input.
-  assert.deepEqual([...css.matchAll(/(--[a-z0-9-]+):/g)].map((m) => m[1]).filter((t) => !t.startsWith('--d3-')), ['--ds-linha']);
+  assert.deepEqual([...css.matchAll(/(--[a-z0-9-]+):/g)].map((m) => m[1]).filter((t) => !t.startsWith('--d3-')), ['--ds-linha', '--ds-foco-borda', '--ds-foco']);
   assert.deepEqual(tokens, [], 'só tokens --d3-*');
   assert.ok(ler('vybe-mundo-padrao-v2.css').includes('.s-f-filtro.tem{'), 'o juntado traz o fragmento');
 });

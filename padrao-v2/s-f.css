@@ -89,6 +89,8 @@ body.mundo .status-editor:is(.status-editor,#vv-h) .s-f-cap-op .status-editor-ch
 #pv2-lado-v .d3m-a-busca{box-shadow:inset 0 0 0 1px var(--d3-fume-apagado)}
 #pv2-lado-v .d3m-a-busca:focus-within{box-shadow:inset 0 0 0 2px var(--d3-fume-texto)}
 #pv2-lado-v .d3m-a-busca > input#busca-cliente-conteudos{--d3-cartao:transparent;--ds-linha:transparent;--d3-tinta:var(--d3-fume-texto)}
+/* O foco: a regra antiga dá ao input uma borda e um anel laranja (lê --ds-foco-borda e --ds-foco); o anel fica no campo inteiro. */
+#pv2-lado-v .d3m-a-busca > input#busca-cliente-conteudos:focus-visible{--ds-foco-borda:transparent;--ds-foco:none}
 
 /* 9 */
 body.mundo[data-pv2-vista="grupos"] #ops-selection-summary[data-s-f-chips]{display:none}
