@@ -20,7 +20,7 @@ body.mundo #office-catalogo.d3m-f-lojaj[open]{position:fixed;top:var(--vv-m,14px
 #office-catalogo.d3m-f-lojaj .d3m-f-loja .d3m-e-sub{color:var(--d3-fume-apagado)}
 /* As partes no vidro: a escolhida clara (a regra antiga pinta button[aria-pressed] de branco; aqui volta ao vidro). */
 #office-catalogo.d3m-f-lojaj .d3m-f-partes > button{color:var(--d3-fume-texto);box-shadow:none}
-#office-catalogo.d3m-f-lojaj .d3m-f-partes > button[aria-pressed="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+#office-catalogo.d3m-f-lojaj .d3m-f-partes > button[aria-pressed="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
 #office-catalogo.d3m-f-lojaj .d3m-f-partes .v2l-conta{margin-left:4px;background:var(--d3-perigo);color:var(--d3-escuro-texto)}
 /* A busca mora no menu da lupa (Loja e Inventário); em Conquistas o topo mostra o saldo. */
 #office-catalogo.d3m-f-lojaj .d3m-f-loja-busca > .d3m-e-pop{padding:8px}

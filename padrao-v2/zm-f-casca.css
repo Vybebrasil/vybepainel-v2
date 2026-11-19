@@ -30,14 +30,14 @@ button.d3m-f-tira[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--d3-acao)
 .d3m-f-chip{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-forte);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;pointer-events:auto}
 button.d3m-f-chip{cursor:pointer}
 button.d3m-f-chip:hover{background:var(--d3-fume-painel)}
-button.d3m-f-chip:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+button.d3m-f-chip:is([aria-pressed="true"],[aria-checked="true"]){background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 button.d3m-f-chip:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 .d3m-f-chip > i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--d3-fume-apagado)}
 .d3m-f-chip > i.r{background:var(--d3-perigo-claro)}
 .d3m-f-chip > i.a{background:var(--d3-ajuste-claro)}
 .d3m-f-chip > i.g{background:var(--d3-pronto-claro)}
 .d3m-f-chip > b{font-weight:600}
-.d3v-btn.d3m-f-claro{background:var(--d3-fume-texto);color:var(--d3-tinta);box-shadow:0 8px 18px -12px rgba(0,0,0,.7)}
+.d3v-btn.d3m-f-claro{background:var(--d3-fume-texto);color:var(--d3-fume-contra);box-shadow:0 8px 18px -12px rgba(0,0,0,.7)}
 .d3v-btn.d3m-f-claro:hover{background:var(--d3-folha)}
 .d3v-btn.d3m-f-claro:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
 

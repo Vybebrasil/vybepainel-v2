@@ -24,7 +24,7 @@ body.mundo .vc-camada > #vv-carteira.vc-janela.d3m-d-m{display:flex;flex-directi
 
 /* Topo: a busca abre ao lado da lupa. */
 .d3m-d-ct-topo .d3m-d-ct-busca::placeholder{color:var(--d3-fume-apagado)}
-.d3m-d-ct-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+.d3m-d-ct-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
 
 /* A tela: a coluna principal e a coluna de consulta de 316 (a grade mora em z-direcao.css, seção 13). */
 .d3m-d-ct-main{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}

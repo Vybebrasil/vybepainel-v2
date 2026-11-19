@@ -27,7 +27,7 @@ body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #painel-demandas > .containe
 #pv2-demandas.pv2.d3m-a-dm .d3m-troca > .pv2-pop{left:0;right:auto;min-width:220px;-webkit-text-fill-color:currentColor}
 #pv2-demandas.pv2.d3m-a-dm .d3m-troca > .pv2-pop > [aria-current]{font-weight:600}
 #pv2-demandas.pv2.d3m-a-dm .d3p-data{flex:none;max-width:100%;margin:0;font:400 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta-fixa);font-weight:600}
+#pv2-demandas.pv2.d3m-a-dm #pv2d-vistas > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 #pv2-demandas.pv2.d3m-a-dm .pv2-busca{display:none;flex:0 1 220px;min-width:120px;width:auto;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #pv2-demandas.pv2.d3m-a-dm .pv2-busca::placeholder{color:var(--d3-fume-apagado);opacity:1}
 #pv2-demandas.pv2.d3m-a-dm > .d3m-topo.buscando .pv2-busca{display:block}
@@ -40,8 +40,8 @@ body.mundo.mundo-modulo[data-pv2-quadro="demandas"] #painel-demandas > .containe
 #pv2-demandas.pv2.d3m-a-dm #pv2d-colunas > summary > svg{fill:var(--d3-fume-texto);stroke:none}
 #pv2-demandas.pv2.d3m-a-dm #pv2d-colunas.tem > summary{box-shadow:inset 0 0 0 2px var(--d3-acao-claro)}
 #pv2-demandas.pv2.d3m-a-dm :is(#pv2d-vistas > button,.pv2-busca,.d3p-novo):focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-#pv2-demandas.pv2.d3m-a-dm .pv2-btn.d3p-novo{flex:none;height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-tinta-fixa);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
-#pv2-demandas.pv2.d3m-a-dm .pv2-btn.d3p-novo > svg{stroke:var(--d3-tinta-fixa)}
+#pv2-demandas.pv2.d3m-a-dm .pv2-btn.d3p-novo{flex:none;height:34px;padding:0 14px;border-radius:var(--d3-r-botao);background:var(--d3-fume-texto);box-shadow:none;color:var(--d3-fume-contra);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#pv2-demandas.pv2.d3m-a-dm .pv2-btn.d3p-novo > svg{stroke:var(--d3-fume-contra)}
 /* O ⋯: ordenar, colunas e os filtros de sempre, numa caixa só (rola por dentro quando os filtros abrem). */
 #pv2-demandas.pv2.d3m-a-dm #pv2d-colunas > .pv2-pop.d3m-a-dm-pop{gap:10px;width:min(600px,86vw);max-height:min(72vh,580px);padding:14px;overflow-y:auto;color:var(--d3-tinta)}
 #pv2-demandas.pv2.d3m-a-dm .d3m-a-dm-pop .pv2-pop-rot > b{font-weight:400}

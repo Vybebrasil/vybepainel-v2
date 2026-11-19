@@ -11,7 +11,7 @@
 /* Topo: a busca abre ao lado da lupa. */
 .d3m-d-cm-topo .d3m-d-cm-busca::placeholder{color:var(--d3-fume-apagado)}
 .d3m-d-cm-topo .d3m-d-cm-busca:focus-visible{outline:2px solid var(--d3-fume-texto);outline-offset:2px}
-.d3m-d-cm-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
+.d3m-d-cm-topo .d3m-d-ico[aria-expanded="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
 .d3m-d-cm-topo .d3m-d-ico > svg,.d3m-d-cm-topo .d3m-d-troca > summary > svg{width:16px;height:16px}
 .d3m-d-cm-topo .d3m-d-vbtn > svg{width:14px;height:14px}
 .d3m-d-cm-topo .d3m-d-tit h2{padding:0;border:0;background:none}

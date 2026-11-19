@@ -15,7 +15,7 @@ body.mundo.mundo-modulo[data-modo="gestor"]:not([data-pv2-vista="feed"]) #pv2-fe
 /* O seletor no vidro (o mesmo desenho das vistas do topo): caixa de véu, o escolhido branco. */
 #pv2-painel.pv2 .d3m-a-vseg,#feed-board.d3m-a-v2 .d3m-a-vseg{background:var(--d3-fume-veu);box-shadow:none}
 .d3m-a-vseg > button,#pv2-painel.pv2 .d3m-a-vseg > button{appearance:none;flex:0 1 auto;height:30px;margin:0;padding:0 12px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-fume-texto);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer}
-.d3m-a-vseg > button[aria-checked="true"],#pv2-painel.pv2 .d3m-a-vseg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-tinta);font-weight:600}
+.d3m-a-vseg > button[aria-checked="true"],#pv2-painel.pv2 .d3m-a-vseg > button[aria-checked="true"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra);font-weight:600}
 body.mundo.mundo-modulo[data-modo="gestor"][data-pv2-vista="feed"] .container.pv2-casa > #feed-board.d3m-a-v2{flex:1 1 0;display:grid;grid-template-columns:248px 374px minmax(0,1fr);gap:16px;min-height:0;margin-top:0;margin-bottom:-48px;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta)}
 
 /* 2 · A lista dos clientes, no vidro. */
@@ -124,7 +124,7 @@ button.vfd2-nada:hover{background:var(--d3-veu)}
 .vfd2-marcadas-txt > b{font-weight:600;color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto)}
 #feed-board.d3m-a-v2 .vfd2-fmt{flex:none;width:auto;height:34px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto);-webkit-text-fill-color:var(--d3-fume-texto);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
 #feed-board.d3m-a-v2 .vfd2-fmt > option{color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
-#feed-board.d3m-a-v2 .vfd2-cadastrar{flex:none;background:var(--d3-fume-texto);color:var(--d3-tinta);-webkit-text-fill-color:var(--d3-tinta)}
+#feed-board.d3m-a-v2 .vfd2-cadastrar{flex:none;background:var(--d3-fume-texto);color:var(--d3-fume-contra);-webkit-text-fill-color:var(--d3-fume-contra)}
 .vfd2-painel{padding:4px}
 #feed-board.d3m-a-v2 .vfd2-painel > .vfd-ajuste{border:0;background:none}
 .vfd2-atalhos{display:flex;flex-direction:column;gap:8px}

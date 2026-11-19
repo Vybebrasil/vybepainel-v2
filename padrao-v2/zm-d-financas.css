@@ -17,8 +17,8 @@
 .d3m-d-fm .d3m-d-fm-nav{flex:none}
 .d3m-d-fm .d3m-d-fm-nav .d3m-vlin{flex:none;height:30px}
 .d3m-d-fm .d3m-d-fm-nav .d3m-vlin > .d3m-vn{min-width:0;color:var(--d3-fume-texto)}
-.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"]{background:var(--d3-fume-texto);color:var(--d3-tinta)}
-.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"] > .d3m-vn{color:var(--d3-tinta)}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"]{background:var(--d3-fume-texto);color:var(--d3-fume-contra)}
+.d3m-d-fm .d3m-d-fm-nav .d3m-vlin[aria-current="page"] > .d3m-vn{color:var(--d3-fume-contra)}
 /* As setas do mês no topo. */
 .d3m-d-fm-setas{flex:none;display:inline-flex;gap:4px}
 .d3m-d-fm-setas > .d3m-d-ico > svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
