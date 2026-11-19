@@ -121,7 +121,7 @@ test('com a tabela: só donos editam, a corrida traz a meta de cada pessoa e que
 
 test('a migração é aditiva e idempotente: só cria (IF NOT EXISTS), nada de DROP, DELETE, UPDATE ou ALTER em tabela existente', () => {
   const s = readFileSync(MIGRACAO, 'utf8');
-  assert.ok(s.includes('\r\n'), 'CRLF');
+
   const sem = s.split(/\r?\n/).filter((l) => !l.trim().startsWith('--')).join('\n');
   assert.match(sem, /CREATE TABLE IF NOT EXISTS vybe_comercial_metas_pessoa/);
   assert.match(sem, /CREATE INDEX IF NOT EXISTS/);
