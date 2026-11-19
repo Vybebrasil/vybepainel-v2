@@ -301,16 +301,43 @@ function mostrarAvisoCurto({ chave = '', icone = 'info', titulo = '', frase = ''
   while (caixa.children.length > 3) mandarAvisoAoSino(caixa.firstElementChild);
   contar();
   ajustarAvisosCurtos();
-  if (!AVISO_CURTO_VIGIA) AVISO_CURTO_VIGIA = setInterval(ajustarAvisosCurtos, 500);
+  if (!AVISO_CURTO_VIGIA) AVISO_CURTO_VIGIA = setInterval(vigiarAvisosCurtos, 500);
   return el;
 }
 // De onde veio o último gesto: só o foco que chega pelo teclado segura o aviso na tela, e por no máximo ~8 s.
 let AVISO_CURTO_PELO_TECLADO = false;
 let AVISO_CURTO_VIGIA = null;
 const AVISO_CURTO_TETO_FOCO = 8000;
+// Vigia leve (confere de diretor de arte, 19/11/2026: "a 2ª abertura é mais lenta que a 1ª"). Com um aviso na tela, o
+// vigia de 500 ms refazia a conta inteira a cada vez: media todos os botões da página (getBoundingClientRect e até três
+// elementsFromPoint por botão), apagava e regravava o lugar da caixa. Com a página cheia (os módulos já abertos ficam
+// montados), cada volta virava uma tarefa longa, e as regravações (style e class da caixa, ~30 por segundo) não
+// deixavam a tela assentar: Minhas tarefas, Agenda, Clientes e Produtividade passavam de 1 s para 6 a 10 s na segunda
+// abertura. Agora o vigia só refaz a conta quando algo mudou: tamanho da janela, classes do body (troca de tela), a
+// própria caixa, quantos controles há na página, ou um gesto há menos de 2 s (clique, tecla, rolagem). Quem chama
+// ajustarAvisosCurtos direto (aviso novo, aviso que sai, pílula que fecha) continua refazendo na hora.
+let AVISO_CURTO_MARCA = '';
+let AVISO_CURTO_GESTO = 0;
+function marcaDosAvisosCurtos() {
+  const caixa = document.getElementById('vv-wa-avisos');
+  if (!caixa) return '';
+  const filhos = [...caixa.children].map((x) => (x.hidden ? 0 : 1)).join('');
+  return [window.innerWidth, window.innerHeight, document.body?.className, caixa.className, caixa.getAttribute('style') || '', filhos,
+    document.querySelectorAll(AVISO_CURTO_CONTROLES).length].join('|');
+}
+function vigiarAvisosCurtos() {
+  const caixa = document.getElementById('vv-wa-avisos');
+  const marca = caixa && caixa.children.length ? marcaDosAvisosCurtos() : '';
+  if (marca && marca === AVISO_CURTO_MARCA && Date.now() - AVISO_CURTO_GESTO > 2000) return;
+  ajustarAvisosCurtos();
+  AVISO_CURTO_MARCA = marcaDosAvisosCurtos();
+}
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-  document.addEventListener('keydown', () => { AVISO_CURTO_PELO_TECLADO = true; }, true);
-  document.addEventListener('pointerdown', () => { AVISO_CURTO_PELO_TECLADO = false; }, true);
+  const gesto = () => { AVISO_CURTO_GESTO = Date.now(); };
+  document.addEventListener('keydown', () => { AVISO_CURTO_PELO_TECLADO = true; gesto(); }, true);
+  document.addEventListener('pointerdown', () => { AVISO_CURTO_PELO_TECLADO = false; gesto(); }, true);
+  document.addEventListener('scroll', gesto, { capture: true, passive: true });
+  if (typeof window !== 'undefined') window.addEventListener?.('resize', gesto);
 }
 // O aviso nunca fica sobre um controle clicável: botão de janela, campo, botão da tela, dock lateral, barra de baixo
 // (quadro 29, regra 6; re-auditorias de 10/11/2026). O lugar continua o canto de cima à direita (decisão do Paulo) e vale

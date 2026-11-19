@@ -1,0 +1,79 @@
+/* ======================================================================================
+   PADRÃO V2 · CASCA E MOLDURA (correções do confere de diretor de arte, frente da-1, 19/11/2026)
+   ====================================================================================== */
+
+/* UMA TELA POR VEZ, DE VERDADE (achados 005, 006, 007). A troca de submódulo esconde a janela anterior com o atributo
+   hidden (limparTela, vybe-mundo.js), mas três peças do padrão V2 punham display:flex com mais força que o
+   [hidden]{display:none} da folha antiga: a Visão geral do setor (.vv-gestao.vv-setor-visao.vst-casa), o Comercial
+   (#vv-comercial.d3m-d-m) e os Agentes (#vv-agentes.d3m-d-m). Escondidas no papel, continuavam desenhadas por baixo da
+   tela nova (CRM e funil por baixo das Conversas, Agentes por baixo do Prédio, a Visão geral por baixo da Produção, com
+   o canto de tela cheia em cima dos botões dela) e, pesadas, deixavam a próxima abertura mais lenta. Regra da família:
+   janela da casca (filha do body ou da camada) com hidden some. O :is() leva a força da regra mais forte da lista. */
+:is(body.mundo > [hidden],body.mundo .vc-camada > [hidden],.vv-gestao.vv-setor-visao.vst-casa.vst-casa[hidden],body.mundo #vv-comercial.vc.d3m-d-m[hidden],body.mundo #vv-agentes.vv-ag.d3m-d-m[hidden],body.mundo .vc-camada > #vv-carteira.vc-janela.d3m-d-m[hidden]){display:none}
+
+/* PORTÃO "SÓ DONOS" NOS TRÊS TEMAS (achado 009). A janelinha do cadeado (mostrarSemAcesso, #workflow-modal com
+   .vb-sem-acesso-janela) saía como folha branca no Escuro e no Fumê, com o Voltar de anel laranja claro (o foco global
+   --ds-foco: o Voltar recebe o foco ao abrir). Fica como o outro portão da casca (o de motivo, zm-r-a-8): vidro do tema
+   por fora, letra do vidro, Voltar na pílula do vidro e anel neutro. Só redefine as variáveis que as peças já leem. */
+body.mundo #workflow-modal.vb-sem-acesso-janela{
+  --wm-fundo:var(--d3-fume-forte);--wm-cor:var(--d3-fume-texto);--wm-pad:8px 16px 12px;
+  --wm-sombra:inset 0 0 0 1px var(--d3-fume-borda),0 40px 80px -30px rgba(0,0,0,.85);
+  --d3-tinta:var(--d3-fume-texto);--d3-apagado:var(--d3-fume-apagado);--d3-trilho:var(--d3-fume-veu-forte);--d3-areia:var(--d3-fume-borda);
+  --ds-foco:0 0 0 2px var(--d3-fume-forte),0 0 0 4px var(--d3-fume-texto);
+  -webkit-backdrop-filter:blur(36px) saturate(1.2);backdrop-filter:blur(36px) saturate(1.2)}
+
+/* DOCK GLOBAL (achados 033 a 037, 150, 191, 034 e 672). Os nomes embaixo dos ícones estavam em 11 (--d3-fs-mini) e
+   passam ao rótulo do padrão, 12; o botão da voz (Sem voz, Entrar, Dentro) tinha 30 e passa à altura do padrão, 34, que
+   também é alvo de toque bom no celular. O dock continua decidindo sozinho quando não cabe (pintarDock, vybe-mundo.js:
+   vira só ícones). A classe repetida só passa a regra do dock.css, que vem depois na junção. */
+#vv-dock-salas-faixa .vq-dock .vq-item .vq-rotulo.vq-rotulo{font-size:var(--d3-fs-apoio)}
+#vv-dock-salas-faixa .vq-dock.vv-dock-salas .vq-voz button{height:34px;padding:0 14px}
+
+/* CONTROLES DO MAPA DENTRO DO CARTÃO (achado 010). No Prédio a 1024 o cartão do 3D fica com ~127 px (a folha do
+   elevador divide o trabalho) e a ilha dos controles (+, −, girar, cidade, camadas, hora; 208 px) passava da borda
+   esquerda do cartão e ficava por cima do menu lateral. A ilha cabe no cartão (medido em --d3c-mw, medirMapaD3 em
+   vybe-mundo.js) e quebra em mais linhas quando não cabe numa. */
+body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.vv-ilha.vv-ilha{box-sizing:border-box;max-width:calc(var(--d3c-mw,100vw) - 24px);flex-wrap:wrap;justify-content:flex-end}
+/* Com o cartão estreito (até 1180) a ilha quebrada vira um bloco que desce até o Tela cheia, no canto de baixo do
+   cartão, e a última linha (camadas, hora) ficava embaixo dele. A ilha sobe uma linha de botão (34 + 8). */
+@media (max-width:1180px){
+  body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.vv-ilha.vv-ilha{bottom:calc(var(--d3c-cb,100px) + 42px)}
+}
+
+@media (max-width:900px){
+  /* UM LARANJA NO CELULAR (achados 001, 016, 018 a 020). Na barra de baixo o Criar era laranja cheio e quase toda tela
+     já tem o seu bloco laranja: ficavam dois. O Criar vira o botão claro do vidro (o mesmo do portão e das abas
+     escolhidas), forte, mas neutro, nos três temas. */
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar.criar{background:var(--d3-fume-texto);color:var(--d3-fume-contra);box-shadow:0 8px 16px -10px rgba(0,0,0,.6)}
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar.criar:hover{background:var(--d3-fume-texto);opacity:.9}
+  body.mundo #mundo-hud .vv-trilho > .vv-trilho-btn.criar.criar > svg{color:var(--d3-fume-contra);stroke:var(--d3-fume-contra)}
+
+  /* A PÁGINA NÃO ROLA DE LADO (achado 002). A tela antiga fica montada atrás do palco (escondida, mas com largura) e o
+     título dela (Produção, Agenda) passava da tela: 395 px em 375, 784 em 768. O que for mais largo que a tela fica
+     cortado nela; quem precisa rolar de lado rola dentro do próprio cartão. overflow-x:clip não cria rolagem nova (o
+     sticky das telas antigas continua valendo). */
+  body.mundo > .container{max-width:100%;overflow-x:clip}
+}
+
+/* CELULAR DENTRO DA SALA (achados 628 e 717). Na Minha sala o dock toma o lugar da barra de baixo (vybe-mundo.css:
+   body.mundo.cel-na-sala .vv-trilho{display:none}), mas a barra do celular (#mundo-hud .vv-ilha.vv-trilho, display:flex)
+   vencia e ficava por baixo do dock: o Sem voz cobria o Voz e o Mais cobria o Criar. Sai a barra; Voltar no dock leva de
+   volta ao Hoje, onde ela está. */
+@media (max-width:600px){
+  body.mundo.cel-na-sala #mundo-hud > .vv-ilha.vv-trilho{display:none}
+}
+
+/* CANTO DAS TELAS ANTIGAS NO TABLET (achado 209 e o mesmo caso no Painel de trabalho a 768). Até 900 a moldura já ocupa
+   a tela inteira (vybe-mundo.css), mas o canto continuava com Tela cheia + Fechar (88 px) e o topo das telas (.d3m-topo)
+   reserva 52 px, a vaga de um botão só: o Tela cheia caía em cima do "Novo cliente" e do "Filtros e modos". Como no
+   celular (casca.css), fica só o Fechar; a tecla F continua alternando a tela cheia. */
+@media (min-width:601px) and (max-width:900px){
+  .vv-canto-modulo .vv-botao[data-modulo-acao="cheia"]:not(#v2-canto-a):not(#v2-canto-b):not(#v2-canto-c){display:none}
+}
+
+/* CANTO NO PAINEL DE TRABALHO ENTRE 901 E 1180 (achados 006 e 007, Produção). Nessa faixa o topo da Produção zera o vão
+   da direita (z-direcao.css, para quebrar em linhas) e a lupa ficava embaixo do Tela cheia. O topo das telas com
+   .d3m-topo volta a reservar o lugar do canto (88 px + 16), como acima de 1180. */
+@media (min-width:901px) and (max-width:1180px){
+  body.mundo.mundo-modulo:not(.palco-modulo) :is(#pv2-painel,#pv2-demandas) > .d3m-topo:not(#v2-canto-a){padding-right:104px}
+}
