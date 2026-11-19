@@ -1,0 +1,74 @@
+/* ===================================================================================================================
+   CORREÇÕES DO CONFERE DE DIRETOR DE ARTE · FRENTE DA-3 · TELAS COM LEGADO DE TEMA (Paulo, 19/11/2026: "dá um confere geral
+   como diretor de arte… muita coisinha mal diagramada e mal feita"). Achados em mods/confere-da/achados.json.
+   Sem !important, sem html body.mundo e sem :has com [style]. Só tokens --d3-*.
+   1. Conversas e a janela "só donos" no Escuro (achados 009, 015, 025 a 028). A folha escura do Escuro vale só dentro das
+      raízes listadas em 0-d3-base.css; o painel de Conversas (#vv-whatsapp: a folha .cv2-folha no computador e o painel
+      .v2w inteiro no celular) e a janela de área trancada (#workflow-modal.vb-sem-acesso-janela) não estavam na lista e
+      ficavam em folha clara. As duas já são V2 (só tokens), então entram com os mesmos valores. Mantenha em dia com a
+      regra de 0-d3-base.css se ela mudar.
+   2. Conversas: a busca do painel no celular (188, 189) com canto 8 e contorno de 3:1 ou mais nos três temas; as fichas
+      da lista quebram em vez de estourar a coluna (171).
+   3. Conta e equipe (013, 014, 130, 159, 160). A regra antiga de campos dos módulos (vybe-mundo.css, "Pele clara") pinta
+      todo input de branco com borda #E6E0D6 e vence o campo V2 da Conta por especificidade: no Escuro o campo de senha
+      ficava branco e, no Fumê e no Claro, o contorno ficava em 1,15:1. Aqui o campo da Conta (senha, código e qualquer
+      outro que a tela abrir) volta para os tokens, com mais força que a regra antiga e sem important. Só visual: nenhuma
+      regra de senha ou permissão muda. O rótulo do WhatsApp volta para 12 px.
+   4. Agenda (012): a gravação sem fechar pintava o bloco inteiro no laranja da ação; com duas ou mais, a tela tinha
+      vários laranjas além do "Criar" e do bloco de ação (que já avisa das gravações sem fechar). Ela continua sendo uma
+      captação: fica no verde da captação, com listras (o estado) e o selo "falta fechar" que já existia.
+   5. Barras do "Equilíbrio do mês" (170), da Equipe (179) e da carga no Hoje: o segmento "atração"/"em produção" usava
+      um laranja local (#E07B00). Passa para o âmbar do sistema, que não é laranja e dá 3:1 ou mais sobre a folha nos
+      três temas.
+   6. Contraste no Fumê sobre o vidro (167, 199 a 202, 213 a 226). Na medição de novo, em 1920, 1440 e 1366, com a janela
+      aberta sozinha, nenhum desses textos fica abaixo de 4,5:1: o vidro cinza das capturas era a janela anterior por baixo
+      (achado 005) ou a troca de vista no meio da animação. O vidro e o véu não mudam. Só a risca da tarefa feita, que é
+      cor escrita (#8A847A, 3,12:1 sobre a folha), vira o token apagado da folha, que já é o da família.
+   =================================================================================================================== */
+
+/* 1 */
+[data-d3-tema="escuro"] :is(#vv-whatsapp,#workflow-modal.vb-sem-acesso-janela):not(.d3-previa *){
+  --d3-folha:rgba(44,42,40,.94); --d3-folha-sombra:0 14px 30px -22px rgba(0,0,0,.85); --d3-cartao:#2C2A28; --d3-folha-leve:#262523; --d3-areia:#1B1A19; --d3-trilho:#232220; --d3-linha:rgba(255,255,255,.08); --d3-borda:rgba(255,255,255,.12);
+  --d3-tinta:#F4F2ED; --d3-texto2:#D8D4CD; --d3-apagado:#ABA69E; --d3-meta:#75706A; --d3-rotulo:rgba(244,242,237,.7); --d3-divisa:rgba(255,255,255,.08); --d3-veu:rgba(255,255,255,.07); --d3-veu-forte:rgba(255,255,255,.13); --d3-contra:#1F1D1A;
+  --d3-cart-vinicius:#F2A678; --d3-cart-ewerton:#9DBBFF; --d3-acao-texto:#F2A678; --d3-perigo:#FF9C8F; --d3-ajuste:#F2C46D; --d3-pronto:#7FD8A4; --d3-info:#9DBBFF; --d3-ambar:#F2C46D; --d3-agente-texto:#B9A8FF;
+  --d3-perigo-veu:rgba(255,156,143,.15); --d3-ajuste-veu:rgba(242,196,109,.15); --d3-pronto-veu:rgba(127,216,164,.15); --d3-info-veu:rgba(157,187,255,.15); --d3-agente-veu:rgba(185,168,255,.17);
+  --vv-tinta:var(--d3-tinta); --vv-apagado:var(--d3-apagado); --vv-linha:var(--d3-borda); --vv-papel:var(--d3-trilho);
+  color-scheme:dark;
+}
+
+/* 2 */
+#vv-whatsapp .d3w .v2w-busca{border:1px solid var(--d3-apagado);border-radius:var(--d3-r-botao)}
+/* As fichas da lista (Todos, Internos, Clientes, Não lidas N) somam 257 px ou mais e a coluna tem 264 px abaixo de 1400 e
+   240 px abaixo de 1100: "Não lidas" passava 14 a 25 px da caixa (achado 171). Quebram em duas linhas em vez de estourar. */
+#vv-whatsapp .cv2-fichas{flex-wrap:wrap;height:auto}
+/* Dentro do painel, o que tinha branco escrito sobre a tinta (a minha mensagem, a troca Conversas/Menções que desliza)
+   passa a ler o contrário da tinta: igual no Fumê e no Claro, escuro sobre a tinta clara do Escuro. */
+#vv-whatsapp .d3w .v2w-seg.vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"]{color:var(--d3-contra)}
+#vv-whatsapp .d3w .v2w-bl.eu > small,#vv-whatsapp .d3w .v2w-bl.eu > small > i,#vv-whatsapp .d3w .v2w-bl.eu > :is(.v2w-apagada,.v2w-midia){color:color-mix(in srgb,var(--d3-contra) 82%,transparent)}
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl.eu > .v2w-citada{background:color-mix(in srgb,var(--d3-contra) 14%,transparent);color:var(--d3-contra)}
+#vv-whatsapp .d3w .v2w-msgs > .v2w-bl > .v2w-citada{background:var(--d3-veu)}
+#vv-whatsapp .d3w :is(.v2w-nl,.v2w-q){color:var(--d3-contra)}
+#vv-whatsapp .d3w .v2w-seg.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"] .v2w-q{background:color-mix(in srgb,var(--d3-contra) 18%,transparent);color:var(--d3-contra)}
+/* A sigla do cliente vem na cor da carteira (--c, escrita pelo JS). Puxada para a tinta, fica legível nos três temas: no
+   Escuro a cor pura dava 2,2:1 sobre o círculo escuro. */
+#vv-whatsapp .d3w .v2w-av.cliente{color:color-mix(in srgb,var(--c,var(--d3-acao)) 55%,var(--d3-tinta))}
+
+/* 3 · dois ids vencem a regra antiga (um id) sem important; o foco antigo (important) continua valendo. */
+#painel-conta #conta-root :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),select,textarea){
+  border:1px solid var(--d3-apagado);border-radius:var(--d3-r-botao);background:var(--d3-cartao);box-shadow:none;color:var(--d3-tinta)}
+#painel-conta #conta-root :is(input,textarea)::placeholder{color:var(--d3-apagado);opacity:1}
+/* No Escuro, a borda do campo em foco (regra antiga com important, lê --ds-foco-borda) usa o laranja do vidro: o da folha
+   dava 2,4:1 contra o campo escuro. */
+[data-d3-tema="escuro"] #painel-conta{--ds-foco-borda:var(--d3-acao-claro)}
+body.mundo .d3m-e-ct-rot.conta-ai-rotulo{font-size:var(--d3-fs-apoio)}
+
+/* 4 */
+/* .fechar dobrado: zm-c-agenda.css vem depois na junção e tem a mesma força. */
+.agv2 .fechar.fechar{--agv2-cor:var(--d3-mod-vybe);--agv2-clara:var(--d3-mod-vybe-claro)}
+.agv2 .agv2-ev.fechar{background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--d3-mod-vybe) 72%,var(--d3-tinta-fixa)) 6px 12px),var(--agv2-cor)}
+
+/* 5 */
+:is(.d3m-a-eq-leg,.d3m-a-eq-b,.d3m-a-mx-leg,.d3m-a-mx-barra,.d3m-a-da-b){--d3m-a-producao:var(--d3-ambar)}
+
+/* 6 */
+.v2-risca.feita{color:var(--d3-apagado)}
