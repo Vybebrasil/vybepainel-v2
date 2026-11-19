@@ -9448,6 +9448,8 @@ body.vfa-aberta #lote-deck{display:none}
 @media (max-width:1100px){
   .vv-gestao.vv-setor-visao.vst-casa.vst-casa > .vs-corpo > .g2.vst{grid-template-columns:minmax(0,1fr)}
   .vv-gestao.vv-setor-visao.vst-casa.vst-casa{overflow:auto}
+  .vv-gestao.vv-setor-visao.vst-casa.vst-casa > .vs-corpo,.vv-gestao.vv-setor-visao.vst-casa.vst-casa > .vs-corpo > .g2.vst{flex:none}
+  .vst .vst-esq{min-height:auto}
   .vst .vst-cols{min-height:520px}
   .vst .vst-dir{overflow:visible}
 }
