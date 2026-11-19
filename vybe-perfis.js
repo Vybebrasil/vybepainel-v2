@@ -1639,6 +1639,11 @@ const CADASTROS_ROUTES=[{id:'producao',label:'Produção de Conteúdo',copy:'Flu
 function cadastrosIsoOffset(base,delta){const d=new Date(`${base}T12:00:00`);d.setDate(d.getDate()+delta);return d.toISOString().slice(0,10);}
 function cadastrosDestiny(format, briefingReady, materialReady = false, extraAssignees = []) {
     const baseAssignees = (arr) => [...new Set([...arr, ...extraAssignees])];
+    // IMPRESSO E DO NESTOR (Paulo, 19/11/2026: "impresso: quem vai ditar as regras é o Nestor"). Antes caía na regra
+    // geral do fim desta função (Design & Edição com Deivid, Bia e Jady). Agora nasce sem dono da regra: só quem a
+    // pessoa somou à mão. Sem ninguém, a peça fica "aguardando o Nestor", que propõe responsável, prazo e gráfica pelas
+    // regras de Impressos (server/impressoes.js). Vale com ou sem briefing pronto.
+    if(/impresso/i.test(String(format||''))) return {group:'group_mm187437',groupLabel:'Novas Demandas/Ideias',status:'Nova Demanda',assignees:baseAssignees([]),capture:false,aguardando:'Nestor',why:'Impresso: quem define responsável, prazo e gráfica é o Nestor (Compras), pelas regras de Impressos. Sem responsável escolhido aqui, a peça fica aguardando o Nestor.'};
     if(!briefingReady) return {group:'group_title',groupLabel:'Redação',status:'A Fazer',assignees:baseAssignees([]),capture:false,why:'Sem briefing confirmado: entra em Redação para construir a base do conteúdo.'};
     // FOTOGRAFIA E CAPTADA COMO VIDEO, MAS EDITADA COMO DESIGN.
     //

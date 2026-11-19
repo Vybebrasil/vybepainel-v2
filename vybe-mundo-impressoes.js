@@ -38,13 +38,44 @@
     try {
       const r = await pedir('POST', corpo);
       st.aviso = r.arte_id ? `${sucesso} A arte foi para Solicitações como demanda.` : sucesso;
-      st.form = null; st.cancelar = false; st.cotar = false;
+      st.form = null; st.cancelar = false; st.cotar = false; st.regra = false;
       if (r.id && corpo.acao === 'impressao_salvar') st.sel = String(r.id);
       await carregar();
     } catch (e) { st.aviso = e.message; pintarAviso(true); }
   }
 
   // ---------- desenho ----------
+  // IMPRESSO SEM DONO ESPERA O NESTOR (Paulo, 19/11/2026: "impresso: quem vai ditar as regras é o Nestor"). O servidor
+  // manda os impressos sem responsável (aguardando) com a proposta da regra que casou, e as regras de Impressos. Quem
+  // aplica é o Nestor, pelo caminho dos agentes (no bot, em sombra: só com o "sim" de um dono). As regras são dos donos.
+  function propostaTxt(p) {
+    if (!p) return 'sem regra que sirva: cadastre uma abaixo';
+    return [p.responsavel && `com ${p.responsavel}`, p.prazo ? `prazo ${br(p.prazo)}` : p.prazo_dias != null ? 'prazo da peça mantido' : '', p.fornecedor && `gráfica ${p.fornecedor}`]
+      .filter(Boolean).join(' · ') + ` (regra “${p.regra}”)`;
+  }
+  function nestorHtml() {
+    const d = st.dados || {}, ag = d.aguardando || [], regras = d.regras || [];
+    if (!ag.length && !regras.length && d.regras_ligadas !== false && !d.gestao) return '';
+    const itens = ag.slice(0, 5).map((p) => `<li><button type="button" class="d3m-vlin" data-vi-arte="${esc(p.conteudo_id)}" title="Abrir a peça na esteira"><span class="d3m-vnome"><b>${esc(p.titulo)}</b><small class="d3m-c-s">${esc([p.cliente, propostaTxt(p.proposta)].filter(Boolean).join(' · '))}</small></span></button></li>`).join('');
+    const pessoa = (id) => (d.pessoas || []).find((x) => String(x.id) === String(id))?.nome || '';
+    const lista = regras.map((x) => `<li class="vi-regra"><span><b>${esc(x.nome)}</b><small class="d3m-c-s">${esc([(x.palavras || []).length ? 'quando tem ' + x.palavras.join(', ') : 'padrão (quando nenhuma outra serve)',
+        x.responsavel_nome || pessoa(x.responsavel), x.prazo_dias != null ? `${x.prazo_dias} ${x.prazo_dias === 1 ? 'dia' : 'dias'}` : '', x.fornecedor_nome, x.ativa === false ? 'desligada' : ''].filter(Boolean).join(' · '))}</small></span>${d.gestao ? `<button type="button" class="d3m-btn l s" data-vi-regra-tirar="${esc(x.id)}" aria-label="Tirar a regra ${esc(x.nome)}">Tirar</button>` : ''}</li>`).join('');
+    const opc = (l, rot) => `<option value="">${rot}</option>` + l.map((x) => `<option value="${esc(x.id)}">${esc(x.nome)}</option>`).join('');
+    const form = d.gestao && st.regra ? `<form class="vi-regra-form" data-vi-form="regra">
+        <label>Nome<input name="nome" required maxlength="120" placeholder="Impresso de arte simples"></label>
+        <label>Quando o título, o material ou o briefing tem<input name="palavras" maxlength="600" placeholder="adesivo, tag, cartão (vazio: regra padrão)"></label>
+        <label>Quem faz a arte<select name="responsavel">${opc(d.pessoas || [], '—')}</select></label>
+        <label>Prazo da arte (dias)<input name="prazo_dias" type="number" min="0" max="120" inputmode="numeric"></label>
+        <label>Gráfica<select name="fornecedor_id">${opc(d.fornecedores || [], '—')}</select></label>
+        <label>Ordem<input name="ordem" type="number" min="0" max="10000" value="100" inputmode="numeric"></label>
+        <span class="vi-regra-bts"><button type="submit" class="d3m-btn l">Guardar regra</button><button type="button" class="d3m-btn l s" data-vi="nao-regra">Cancelar</button></span></form>` : '';
+    const semBanco = d.regras_ligadas === false ? '<p class="d3m-vvazio">As regras do Nestor ainda não estão no banco (falta aplicar a migração).</p>' : '';
+    return `<div class="d3m-cons vi-nestor" aria-label="Impressos do Nestor"><div class="d3m-cons-cab"><b>Nestor · impressos sem dono</b><span>${plural(ag.length, 'aguardando', 'aguardando')}</span></div>
+      ${ag.length ? `<ul class="vi-nestor-lista">${itens}</ul>${ag.length > 5 ? `<p class="d3m-vvazio">e mais ${ag.length - 5}</p>` : ''}` : '<p class="d3m-vvazio">Nenhum impresso esperando o Nestor.</p>'}
+      <div class="d3m-cons-cab"><b>Regras de Impressos</b><span>quem faz, prazo e gráfica</span></div>${semBanco}
+      ${lista ? `<ul class="vi-regras">${lista}</ul>` : d.regras_ligadas === false ? '' : '<p class="d3m-vvazio">Nenhuma regra ainda: o Nestor só avisa que o impresso está sem dono.</p>'}
+      ${form || (d.gestao && d.regras_ligadas !== false ? '<button type="button" class="d3m-vlin" data-vi="nova-regra"><span class="d3m-vnome"><b>Nova regra</b></span></button>' : '')}</div>`;
+  }
   const visiveis = () => (st.dados?.impressoes || []).filter((i) => (!st.fornecedor || String(i.fornecedor_id) === st.fornecedor)
     && (st.filtro === 'atrasadas' ? i.atrasada : st.filtro === 'semfornecedor' ? !i.fornecedor_id && ABERTAS(i) : st.filtro.startsWith('etapa:') ? i.etapa === st.filtro.slice(6) : true));
   // Dias de atraso pela previsão (datas sem hora, sem fuso: só ano/mês/dia).
@@ -306,7 +337,7 @@
       ${num({ rotulo: 'Entregues no mês', valor: String(doMes.length), serie: entregues.length ? semanas : null }, doMes.length ? `no prazo · ${noPrazo}` : 'nenhuma ainda')}</div>`;
     const dec = decisoes();
     const filtrosMais = st.filtros ? `<div class="vi2-filtros-mais"><div class="p2-filtros"><span class="p2-sub">Ver como</span><span class="p2-seg vi-vista" role="group" aria-label="Ver como">${vista('linhas', 'Linhas')}${vista('etapas', 'Etapas')}${vista('lista', 'Tabela')}</span></div>${porFornecedor()}</div>` : '';
-    return `${fala}${kpis}${st.form ? `<div class="p2-card">${formulario()}</div>` : ''}
+    return `${fala}${kpis}${nestorHtml() ? `<div class="p2-card">${nestorHtml()}</div>` : ''}${st.form ? `<div class="p2-card">${formulario()}</div>` : ''}
       <div class="vi2-duas d3im-duas">${baralhoHtml(dec)}
         <div class="p2-card vi2-lista">
           <div class="p2-filtros vi-filtros d3im-filtros" role="group" aria-label="Filtrar"><label class="p2-oculto" for="vi-busca">Buscar peça, cliente ou gráfica</label><input id="vi-busca" class="p2-busca" type="search" placeholder="Buscar peça, cliente ou gráfica" data-vi-busca value="${esc(st.busca)}">
@@ -413,7 +444,7 @@
     const abrir = `<div class="d3m-cons imp2-abrir"><div class="d3m-cons-cab"><b>Abrir</b></div>
       <button type="button" class="d3m-vlin" data-vi="cadastrar-fornecedor" title="Gráficas, estúdios e parceiros"><span class="d3m-vnome"><b>Fornecedores</b></span>${IC2.seta}</button>
       <button type="button" class="d3m-vlin" role="switch" aria-checked="${st.todas}" data-vi="todas" title="Sem marcar, as entregues e canceladas aparecem só dos últimos 90 dias"><span class="d3m-vnome"><b>Histórico inteiro</b></span>${IC2.seta}</button></div>`;
-    return `<aside class="d3m-lado" aria-label="Consulta">${laranja2(abertas)}${graficas}${noMes}${abrir}</aside>`;
+    return `<aside class="d3m-lado" aria-label="Consulta">${laranja2(abertas)}${nestorHtml()}${graficas}${noMes}${abrir}</aside>`;
   }
   function vistaLinhas2(abertas, doMes) {
     const { todas, aba } = daAba2(), semG = abertas.filter((i) => !i.fornecedor_id).length, atras = abertas.filter((i) => i.atrasada).length, prontas = abertas.filter((i) => i.etapa === 'pronto').length;
@@ -551,6 +582,7 @@
     if (b.dataset.viFornecedor !== undefined) { st.fornecedor = st.fornecedor === b.dataset.viFornecedor ? '' : b.dataset.viFornecedor; pintar(); return; }
     if (b.dataset.viArte) { const id = String(b.dataset.viArte); window.openItemWorkspace?.(id.startsWith('vybe:') ? id : 'vybe:' + id); return; }
     if (b.dataset.viUsar) { const i = st.dados.impressoes.find((x) => String(x.id) === st.sel); st.form = { ...i, fornecedor_id: b.dataset.viUsar }; pintar(); st.janela.querySelector('[name=fornecedor_id]')?.focus(); return; }
+    if (b.dataset.viRegraTirar) { if (typeof window.confirm === 'function' && !window.confirm('Tirar esta regra de Impressos? O Nestor deixa de usá-la.')) return; gravar({ acao: 'regra_remover', id: b.dataset.viRegraTirar }, 'Regra tirada.'); return; }
     if (b.dataset.viEscolher) { gravar({ acao: 'cotacao_escolher', id: b.dataset.viEscolher }, 'Cotação escolhida: fornecedor, valor e previsão foram para a impressão.'); return; }
     if (b.dataset.viEtapa) { if (b.dataset.viId) st.sel = b.dataset.viId; if (b.classList.contains('v2-estado')) b.dataset.estado = 'indo'; gravar({ acao: 'impressao_etapa', id: st.sel, etapa: b.dataset.viEtapa }, `Foi para ${etapaNome(b.dataset.viEtapa)}.`); return; }
     const a = b.dataset.vi;
@@ -563,6 +595,8 @@
     else if (a === 'cancelar') { st.cancelar = true; pintar(); st.janela.querySelector('[data-vi-form=cancelar] textarea')?.focus(); }
     else if (a === 'nao-cancelar') { st.cancelar = false; pintar(); }
     else if (a === 'cadastrar-fornecedor') cadastrarFornecedor();
+    else if (a === 'nova-regra') { st.regra = true; pintar(); st.janela.querySelector('[data-vi-form=regra] [name=nome]')?.focus(); }
+    else if (a === 'nao-regra') { st.regra = false; pintar(); }
     else if (a === 'todas') { st.todas = !st.todas; carregar(); }
     else if (a === 'cotar') { st.cotar = true; pintar(); st.janela.querySelector('[data-vi-form=cotacao] select')?.focus(); }
     else if (a === 'nao-cotar') { st.cotar = false; pintar(); }
@@ -584,6 +618,7 @@
       gravar({ acao: 'cotacao_salvar', impressao_id: st.sel, fornecedor_id: o.fornecedor_id, valor: Number(o.valor), prazo_dias: o.prazo_dias === '' ? null : Number(o.prazo_dias), observacao: o.observacao || '' }, 'Cotação guardada.');
       return;
     }
+    if (form.dataset.viForm === 'regra') { const o = Object.fromEntries(new FormData(form).entries()); gravar({ acao: 'regra_salvar', ...o }, 'Regra guardada: o Nestor passa a usá-la.'); return; }
     if (form.dataset.viForm === 'cancelar') { const nota = String(new FormData(form).get('nota') || '').trim(); if (!nota) return; gravar({ acao: 'impressao_etapa', id: st.sel, etapa: 'cancelado', nota }, 'Impressão cancelada.'); return; }
     const o = formParaObjeto(form), id = st.form?.id;
     gravar({ acao: 'impressao_salvar', ...(id ? { id } : {}), ...o }, id ? 'Impressão salva.' : 'Impressão criada.');

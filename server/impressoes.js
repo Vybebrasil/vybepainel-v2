@@ -1,7 +1,9 @@
 // server/impressoes.js — Impressões com módulo próprio (Paulo, 09/11/2026).
 //
-//   GET  /api/painel?area=impressoes            lista, etapas, clientes, fornecedores, equipe, resumo e por fornecedor
+//   GET  /api/painel?area=impressoes            lista, etapas, clientes, fornecedores, equipe, resumo e por fornecedor,
+//                                               regras do Nestor e os impressos que aguardam o Nestor
 //   POST /api/painel?area=impressoes  { acao }  impressao_salvar | impressao_etapa | cotacao_salvar | cotacao_escolher (gestão)
+//                                               | regra_salvar | regra_remover (donos)
 //
 // Antes, impresso era só uma demanda em Solicitações com o status "Em impressão": sem fornecedor, sem dia do pedido e
 // sem saber em que ponto estava. Agora cada impressão tem cliente (cadastro ativo), projeto ou campanha, a arte na
@@ -122,8 +124,12 @@ async function ler(sql, pessoa, query = {}) {
     if (gestao) i.cotacoes = cotacoesDe.get(i.id) || [];
     if (['arte', 'orcamento', 'aprovado'].includes(i.etapa) && !i.fornecedor_id) i.sugestao = ranking.slice(0, 3);
   }
+  // Regras do Nestor e os impressos que esperam por ele (Paulo, 19/11/2026). regras = null: a tabela ainda não existe.
+  const regras = await lerRegras(sql);
+  const aguardando = (await impressosAguardando(sql)).map((p) => ({ ...p, proposta: propostaDoImpresso(p, regraDoImpresso(regras || [], p), hoje) }));
   return { hoje, gestao, todas, etapas: ETAPAS.map(([id, nome]) => ({ id, nome })), impressoes, clientes, fornecedores, pessoas, projetos,
-    resumo: resumir(impressoes), porFornecedor: porFornecedor(impressoes, fornecedores), ranking };
+    resumo: resumir(impressoes), porFornecedor: porFornecedor(impressoes, fornecedores), ranking,
+    regras: regras || [], regras_ligadas: regras !== null, aguardando };
 }
 
 // Fornecedor com cidade, UF e telefone (bloco 9 da migração); sem as colunas ainda, segue sem elas.
@@ -183,7 +189,156 @@ export async function impressoesParaAgente(sql) {
       pedido: !i.fornecedor_id && ['orcamento', 'aprovado'].includes(i.etapa) ? pedidoDeCotacao(i, i.sugestao?.[0]) : '' })),
     fornecedores: r.fornecedores.map((f) => ({ id: f.id, nome: f.nome, categoria: f.categoria, cidade: f.cidade, uf: f.uf, telefone: f.telefone,
       falta: [!f.cidade && 'cidade', !f.telefone && 'telefone'].filter(Boolean) })),
+    // Impressos sem responsável que esperam o Nestor, cada um com a proposta da regra que casou (null: falta regra).
+    regras_ligadas: r.regras_ligadas,
+    regras: r.regras.filter((x) => x.ativa).map((x) => ({ id: x.id, nome: x.nome, palavras: x.palavras || [], responsavel: x.responsavel_nome || '',
+      prazo_dias: x.prazo_dias, fornecedor: x.fornecedor_nome || '' })),
+    aguardando: r.aguardando.map((p) => ({ conteudo_id: p.conteudo_id, titulo: p.titulo, cliente: p.cliente || '', status: p.status || '', prazo: p.prazo,
+      veiculacao: p.veiculacao, impressao_id: p.impressao_id, proposta: p.proposta })),
   };
+}
+
+// ── Regras de Impressos do Nestor (Paulo, 19/11/2026: "impresso: quem vai ditar as regras é o Nestor") ──────────────
+// Impresso que nasce sem responsável NÃO cai na regra geral de Design & Edição (vybe-perfis.js cadastrosDestiny): fica
+// "aguardando o Nestor". Aguardando = formato Impresso, aberto (status não final), sem ninguém em vybe_conteudo_responsaveis
+// e sem a impressão cancelada. Não há coluna nova: sai do próprio estado da peça, então vale também para as antigas.
+// As regras (vybe_impressao_regras, migrations/2026-11-19-impressao-regras.sql) são dos donos; o Nestor consulta, propõe
+// e, pelo caminho dos agentes no bot (porta; em sombra, só com o "sim" de um dono), aplica com definirPeloAgente.
+export const ehImpresso = (formato) => /impresso/i.test(String(formato || ''));
+
+async function lerRegras(sql) {
+  try {
+    return await sql`SELECT r.id::text AS id, r.nome, r.palavras, r.responsavel::text AS responsavel, p.nome AS responsavel_nome, r.prazo_dias,
+        r.fornecedor_id::text AS fornecedor_id, f.nome AS fornecedor_nome, r.observacao, r.ordem, r.ativa, r.alterado_em
+      FROM vybe_impressao_regras r LEFT JOIN vybe_pessoas p ON p.id = r.responsavel LEFT JOIN vybe_comercial_fornecedores f ON f.id = r.fornecedor_id
+      ORDER BY r.ordem, r.id`;
+  } catch (e) { if (semTabela(e)) return null; throw e; }
+}
+
+async function impressosAguardando(sql) {
+  return sql`SELECT c.id::text AS conteudo_id, c.titulo, c.formato, c.briefing, c.prazo::text AS prazo, c.veiculacao::text AS veiculacao, s.rotulo AS status,
+      (SELECT cl.nome FROM vybe_conteudo_clientes v JOIN vybe_clientes cl ON cl.id = v.cliente_id WHERE v.conteudo_id = c.id ORDER BY cl.nome LIMIT 1) AS cliente,
+      i.id::text AS impressao_id, i.material
+    FROM vybe_conteudos c LEFT JOIN vybe_status s ON s.board_id = c.board_id AND s.chave = c.status_chave
+      LEFT JOIN vybe_impressoes i ON i.conteudo_id = c.id
+    WHERE c.removido_em IS NULL AND c.formato ILIKE '%impresso%' AND NOT COALESCE(s.final, false) AND COALESCE(i.etapa, '') <> 'cancelado'
+      AND NOT EXISTS (SELECT 1 FROM vybe_conteudo_responsaveis r WHERE r.conteudo_id = c.id)
+    ORDER BY c.prazo NULLS LAST, c.id LIMIT 200`;
+}
+
+// Qual regra vale para a peça: a primeira ativa (pela ordem) com uma palavra que aparece no título, material ou briefing;
+// sem nenhuma, a regra padrão (sem palavras). Nenhuma: null (o Nestor avisa que falta regra, não inventa).
+export function regraDoImpresso(regras = [], peca = {}) {
+  const texto = ` ${normal([peca.titulo, peca.material, peca.briefing].filter(Boolean).join(' '))} `;
+  const ativas = (regras || []).filter((r) => r && r.ativa !== false);
+  const palavrasDe = (r) => (r.palavras || []).map(normal).filter(Boolean);
+  return ativas.find((r) => palavrasDe(r).some((p) => texto.includes(` ${p} `))) || ativas.find((r) => !palavrasDe(r).length) || null;
+}
+
+// O que o Nestor propõe pela regra. O prazo conta a partir de hoje e nunca passa da veiculação; peça que já tem prazo
+// fica com o dela (quem pôs manda).
+export function propostaDoImpresso(peca = {}, regra = null, hoje = hojeBahia()) {
+  if (!regra) return null;
+  let prazo = null;
+  if (!peca.prazo && regra.prazo_dias != null) {
+    prazo = somarDias(hoje, Number(regra.prazo_dias));
+    if (peca.veiculacao && prazo > peca.veiculacao) prazo = peca.veiculacao;
+  }
+  return { regra_id: regra.id, regra: regra.nome, responsavel: regra.responsavel_nome || '', prazo, prazo_dias: regra.prazo_dias ?? null,
+    fornecedor: regra.fornecedor_nome || '', observacao: regra.observacao || '' };
+}
+
+async function salvarRegra(sql, pessoa, b) {
+  if (!ehGestao(pessoa)) falhar('As regras de Impressos são dos donos; quem aplica é o Nestor.', 403);
+  const id = idOuNulo(b.id, 'Regra');
+  const nome = texto(b.nome, 120, 'Nome da regra', true), observacao = texto(b.observacao, 500, 'Observação');
+  const palavras = [...new Set((Array.isArray(b.palavras) ? b.palavras : String(b.palavras || '').split(','))
+    .map((p) => String(p ?? '').trim()).filter(Boolean))];
+  if (palavras.length > 20 || palavras.some((p) => p.length > 60)) falhar('Palavras: até 20, com até 60 letras cada.');
+  const responsavel = idOuNulo(b.responsavel, 'Responsável'), fornecedor = idOuNulo(b.fornecedor_id, 'Gráfica');
+  const prazo = b.prazo_dias == null || b.prazo_dias === '' ? null : Number(b.prazo_dias);
+  if (prazo != null && (!Number.isInteger(prazo) || prazo < 0 || prazo > 120)) falhar('Prazo em dias, de 0 a 120.');
+  const ordem = b.ordem == null || b.ordem === '' ? 100 : Number(b.ordem);
+  if (!Number.isInteger(ordem) || ordem < 0 || ordem > 10000) falhar('Ordem: um número de 0 a 10000.');
+  const ativa = b.ativa !== false && b.ativa !== 'false';
+  if (!responsavel && prazo == null && !fornecedor) falhar('A regra precisa dizer quem faz, o prazo ou a gráfica.');
+  return semRegras(sql.comTransacao(async (tx) => {
+    if (responsavel && !(await tx`SELECT 1 FROM vybe_pessoas WHERE id = ${responsavel} AND ativo AND pode_entrar`).length) falhar('Responsável indisponível.');
+    if (fornecedor && !(await tx`SELECT 1 FROM vybe_comercial_fornecedores WHERE id = ${fornecedor} AND ativo`).length) falhar('Escolha uma gráfica ativa.');
+    if (id) {
+      const [r] = await tx`UPDATE vybe_impressao_regras SET nome = ${nome}, palavras = ${palavras}::text[], responsavel = ${responsavel}, prazo_dias = ${prazo},
+          fornecedor_id = ${fornecedor}, observacao = ${observacao}, ordem = ${ordem}, ativa = ${ativa}, alterado_em = now() WHERE id = ${id} RETURNING id::text AS id`;
+      if (!r) falhar('Regra não encontrada.', 404);
+      return { id: r.id };
+    }
+    const [r] = await tx`INSERT INTO vybe_impressao_regras (nome, palavras, responsavel, prazo_dias, fornecedor_id, observacao, ordem, ativa, criado_por)
+      VALUES (${nome}, ${palavras}::text[], ${responsavel}, ${prazo}, ${fornecedor}, ${observacao}, ${ordem}, ${ativa}, ${String(pessoa.id)}) RETURNING id::text AS id`;
+    return { id: r.id };
+  }));
+}
+
+async function removerRegra(sql, pessoa, b) {
+  if (!ehGestao(pessoa)) falhar('As regras de Impressos são dos donos; quem aplica é o Nestor.', 403);
+  const id = idValido(b.id, 'Regra');
+  const [r] = await semRegras(sql`DELETE FROM vybe_impressao_regras WHERE id = ${id} RETURNING id::text AS id`);
+  if (!r) falhar('Regra não encontrada.', 404);
+  return { id: r.id };
+}
+// Sem a migração aplicada, gravar regra diz isso (e não o aviso genérico de Impressões).
+const semRegras = (p) => Promise.resolve(p).catch((e) => {
+  if (semTabela(e)) falhar('As regras do Nestor ainda não estão no banco (migrations/2026-11-19-impressao-regras.sql).', 503);
+  throw e;
+});
+
+// O Nestor aplica a regra num impresso que espera por ele (consulta 'impressao_definir' do assistente; no bot, sai pela
+// porta dos agentes: em sombra, só depois do "sim" de um dono). Nunca passa por cima de gente:
+// - a peça precisa ser Impresso e estar SEM responsável (alguém já pôs: recusa, quem definiu manda);
+// - o prazo só entra se a peça ainda não tem; a gráfica só entra na impressão ligada que ainda não tem.
+// Cada mudança fica no histórico da peça (e da impressão) com a assinatura "Nestor, pela regra …".
+export async function definirPeloAgente(sql, pessoaId, b = {}) {
+  const autor = idValido(pessoaId, 'Pessoa'), conteudo = idValido(b.conteudo_id, 'Peça');
+  const nomeResp = texto(b.responsavel, 120, 'Responsável', true), nomeForn = texto(b.fornecedor, 120, 'Gráfica');
+  const prazo = dataOuNula(b.prazo, 'Prazo'), regra = texto(b.regra, 120, 'Regra');
+  const assina = `Nestor, ${regra ? `pela regra “${regra}”` : 'pelas regras de Impressos'}`.slice(0, 200);
+  const rodar = (f) => (sql.comTransacao ? sql.comTransacao(f) : f(sql));
+  return rodar(async (tx) => {
+    const [c] = await tx`SELECT id::text AS id, titulo, formato, prazo::text AS prazo FROM vybe_conteudos WHERE id = ${conteudo} AND removido_em IS NULL FOR UPDATE`;
+    if (!c) falhar('Peça não encontrada.', 404);
+    if (!ehImpresso(c.formato)) falhar('Essa peça não é Impresso: a regra do Nestor vale só para Impressos.', 409);
+    const ja = await tx`SELECT p.nome FROM vybe_conteudo_responsaveis r JOIN vybe_pessoas p ON p.id = r.pessoa_id WHERE r.conteudo_id = ${conteudo}`;
+    if (ja.length) falhar(`A peça já tem responsável (${ja.map((x) => x.nome).join(', ')}): quem definiu manda.`, 409);
+    const pessoas = await tx`SELECT id::text AS id, nome FROM vybe_pessoas WHERE ativo AND pode_entrar`;
+    const inteiro = pessoas.filter((p) => normal(p.nome) === normal(nomeResp));
+    const candidatos = inteiro.length ? inteiro : pessoas.filter((p) => normal(p.nome).split(' ')[0] === normal(nomeResp).split(' ')[0]);
+    if (candidatos.length !== 1) falhar(candidatos.length ? `Mais de uma pessoa chamada ${nomeResp}: a regra precisa do nome inteiro.` : `${nomeResp} não está ativo na equipe.`);
+    const resp = candidatos[0];
+    let forn = null;
+    if (nomeForn) {
+      forn = (await tx`SELECT id::text AS id, nome FROM vybe_comercial_fornecedores WHERE ativo`).find((f) => normal(f.nome) === normal(nomeForn)) || null;
+      if (!forn) falhar('Gráfica não está cadastrada (ativa) em Fornecedores.');
+    }
+    const mudou = ['responsavel'];
+    await tx`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem) VALUES (${conteudo}, ${resp.id}, 0)`;
+    await tx`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id, texto) VALUES (${conteudo}, 'responsavel', 'aguardando o Nestor', ${resp.nome}, ${autor}, ${assina})`;
+    if (prazo && !c.prazo) {
+      await tx`UPDATE vybe_conteudos SET prazo = ${prazo}::date WHERE id = ${conteudo}`;
+      await tx`INSERT INTO vybe_conteudo_eventos (conteudo_id, tipo, de, para, autor_id, texto) VALUES (${conteudo}, 'prazo', NULL, ${prazo}, ${autor}, ${assina})`;
+      mudou.push('prazo');
+    }
+    await tx`UPDATE vybe_conteudos SET atualizado_em = now() WHERE id = ${conteudo}`;
+    const [imp] = await tx`SELECT id::text AS id, etapa, fornecedor_id::text AS fornecedor_id, responsavel::text AS responsavel FROM vybe_impressoes WHERE conteudo_id = ${conteudo} FOR UPDATE`;
+    if (imp) {
+      const partes = [];
+      if (!imp.responsavel) { await tx`UPDATE vybe_impressoes SET responsavel = ${resp.id} WHERE id = ${imp.id}`; partes.push(`arte com ${resp.nome}`); }
+      if (forn && !imp.fornecedor_id) { await tx`UPDATE vybe_impressoes SET fornecedor_id = ${forn.id} WHERE id = ${imp.id}`; partes.push(`gráfica ${forn.nome}`); mudou.push('fornecedor'); }
+      if (partes.length) {
+        await tx`UPDATE vybe_impressoes SET atualizado_em = now() WHERE id = ${imp.id}`;
+        await evento(tx, imp.id, imp.etapa, imp.etapa, `${assina}: ${partes.join(', ')}`.slice(0, 500), autor);
+      }
+    }
+    return { conteudo_id: conteudo, titulo: c.titulo, responsavel: resp.nome, prazo: mudou.includes('prazo') ? prazo : c.prazo, fornecedor: forn?.nome || null,
+      impressao_id: imp?.id || null, mudou };
+  });
 }
 
 export function resumir(impressoes) {
@@ -254,7 +409,7 @@ async function salvar(sql, pessoa, b) {
       const criar = criarPeca || (await import('../api/conteudo.js')).criarConteudoNaTransacao;
       const briefing = [d.material && `Material: ${d.material}`, q && `Quantidade: ${q}`, d.especificacao, d.observacao].filter(Boolean).join('\n');
       const r = await criar(tx, { tipo: 'sessao', pessoa }, { board: BOARD_SOLICITACOES, status: 'nova_demanda', formato: 'Impresso',
-        titulo: `Impresso - ${d.titulo}`.slice(0, 240), cliente: cliente.nome, prazo: d.previsao, briefing, responsaveis: [] });
+        titulo: `Impresso - ${d.titulo}`.slice(0, 240), cliente: cliente.nome, prazo: d.previsao, briefing, responsaveis: [], aguarda_nestor: !d.responsavel });
       conteudoId = String(r.conteudo_id); arte = conteudoId;
       if (d.responsavel) await tx`INSERT INTO vybe_conteudo_responsaveis (conteudo_id, pessoa_id, ordem) VALUES (${conteudoId}, ${d.responsavel}, 0) ON CONFLICT DO NOTHING`;
     }
@@ -413,7 +568,9 @@ export async function areaImpressoes(req, res, quem, sql) {
       : acao === 'impressao_etapa' ? await mudarEtapa(sql, pessoa, b)
       : acao === 'cotacao_salvar' ? await salvarCotacao(sql, pessoa, b)
       : acao === 'cotacao_escolher' ? await escolherCotacao(sql, pessoa, b)
-      : falhar('Ação desconhecida. Use impressao_salvar, impressao_etapa, cotacao_salvar ou cotacao_escolher.');
+      : acao === 'regra_salvar' ? await salvarRegra(sql, pessoa, b)
+      : acao === 'regra_remover' ? await removerRegra(sql, pessoa, b)
+      : falhar('Ação desconhecida. Use impressao_salvar, impressao_etapa, cotacao_salvar, cotacao_escolher, regra_salvar ou regra_remover.');
     return res.status(200).json({ ok: true, ...r });
   } catch (e) {
     if (semTabela(e)) return res.status(503).json({ error: 'Impressões ainda está sendo ligado no banco. Tente de novo em alguns minutos.' });

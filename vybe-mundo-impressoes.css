@@ -104,3 +104,12 @@
 #vv-impressoes .vi-tabela tr:last-child td{border-bottom:0}
 #vv-impressoes .vi-tabela tr.sel td{background:#FFF4E8}
 #vv-impressoes .vi-linha .vi-mudo{white-space:nowrap}
+/* Nestor: impressos sem dono e regras de Impressos (Paulo, 19/11/2026). */
+#vv-impressoes .vi-nestor ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+#vv-impressoes .vi-nestor .vi-regra{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #F1ECE4}
+#vv-impressoes .vi-nestor .vi-regra:last-child{border-bottom:0}
+#vv-impressoes .vi-nestor .vi-regra span{display:grid;gap:2px;min-width:0}
+#vv-impressoes .vi-regra-form{display:grid;gap:8px;padding:8px 0}
+#vv-impressoes .vi-regra-form label{display:grid;gap:4px;font:500 12px Inter,system-ui,sans-serif;color:#6B665E}
+#vv-impressoes .vi-regra-form input,#vv-impressoes .vi-regra-form select{min-width:0;width:100%;padding:6px 8px;border:1px solid #E6E0D6;border-radius:6px;font:inherit;color:#1F1D1A;background:#fff}
+#vv-impressoes .vi-regra-bts{display:flex;gap:8px;flex-wrap:wrap}

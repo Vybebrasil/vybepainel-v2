@@ -733,7 +733,7 @@ window.fcPreviaDoCriar = function(board) {
      
      usersEl.textContent = assignedUsers.length
        ? assignedUsers.map((u) => String(u.name).split(' ')[0]).join(', ')
-       : 'triagem';
+       : (dest?.aguardando ? 'aguardando o ' + dest.aguardando : 'triagem');
   }
 
   window.fcHandleInput = function(key, val) {
@@ -1149,7 +1149,7 @@ window.fcPreviaDoCriar = function(board) {
               title="${aceita ? 'Clique para tirar da demanda' : 'Clique para pôr na demanda'}">${aceita ? `${FC_ICONE.visto}${esc(nomes.join(', '))}` : 'Aceitar'}</button>
           </div>
         </div>
-      </div>` : `<p class="nd-sub">${state.format ? 'sem sugestão' : 'escolha o formato'}</p>`;
+      </div>` : dest.aguardando ? `<p class="nd-sub" title="${esc(dest.why || '')}"><span class="nd-quem">Impresso · quem decide</span> <b>o ${esc(dest.aguardando)}</b>, pelas regras de Impressos</p>` : `<p class="nd-sub">${state.format ? 'sem sugestão' : 'escolha o formato'}</p>`;
     return `
       <label class="nd-fora" for="fc-busca-cliente">Buscar cliente</label>
       <input type="search" class="nd-busca" id="fc-busca-cliente" placeholder="Buscar cliente" autocomplete="off"
@@ -1167,7 +1167,7 @@ window.fcPreviaDoCriar = function(board) {
       <div class="nd-ou">${sugeridos.length ? '<span class="nd-sub">ou</span>' : ''}<span class="nd-avs">${outros.map((u) => `<span class="nd-av" title="${esc(u.name)}">${esc(fcIniciais(u.name))}</span>`).join('')}</span>
         <button type="button" class="nd-lk escuro" aria-expanded="${Boolean(state.pessoasAbertas)}" aria-controls="fc-persons-container" onclick="fcAbrirPessoas()">escolher outra pessoa</button></div>
       <div class="nd-fileira nd-pessoas" id="fc-persons-container"${state.pessoasAbertas ? '' : ' hidden'}></div>
-      <p class="nd-sub nd-fim nd-triagem" title="Sem responsável, a demanda entra na triagem"><span class="nd-pill">sem dono</span><span aria-hidden="true">→</span><span class="nd-pill">triagem</span></p>`;
+      ${dest.aguardando ? `<p class="nd-sub nd-fim nd-triagem" title="Sem responsável, o impresso fica aguardando o ${esc(dest.aguardando)}"><span class="nd-pill">sem dono</span><span aria-hidden="true">→</span><span class="nd-pill">aguardando o ${esc(dest.aguardando)}</span></p>` : '<p class="nd-sub nd-fim nd-triagem" title="Sem responsável, a demanda entra na triagem"><span class="nd-pill">sem dono</span><span aria-hidden="true">→</span><span class="nd-pill">triagem</span></p>'}`;
   }
 
   function fcCartaoQuandoHtml(n, it) {
