@@ -2048,9 +2048,6 @@ async function escolherValor(itemId, campo, chave) {
   if (!deuCerto) return;
   espelharEscolhaNaDemanda(itemId, campo, rotulo);
   applyOutboundItemPatch(itemId, { [campo]: rotulo }, campo);
-  // Escolhido pela gaveta aberta (o formato no cartão da atividade): a gaveta mostra o valor novo sem perder o rascunho.
-  const gaveta = document.getElementById('workspace-drawer');
-  if (gaveta && typeof activeWorkspaceItemId !== 'undefined' && String(activeWorkspaceItemId) === String(itemId)) atualizarGavetaPreservandoRascunhos(findOperationalItem(itemId) || { id: itemId }, gaveta);
 }
 
 function linhaDeGrupoHtml(item, compacta = false) {

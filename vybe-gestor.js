@@ -2232,7 +2232,7 @@ function pv2MesHtml({ meta, grouped, clients, semCarteira, escolhido }) {
 // Bia (Coordenação, 18/11/2026): "selecionar mais de um pra fazer alterações", "filtrar pro status" e "editar tudo dentro
 // do cartão da atividade". As caixas de marcar ficam sempre à vista (a de cima marca o que está no recorte), a barra de
 // lote é a de sempre (#lote-deck, montarDeckDeLote em vybe-agenda.js, que grava pelo /api/conteudo), o status filtra na
-// cabeça da folha e a linha abre a gaveta, onde título, status, datas, responsável e formato se editam ali mesmo.
+// cabeça da folha e a linha abre o cartão da atividade, onde título, status, datas, responsável e formato se editam.
 let pv2GruposSel = '', pv2GruposFiltro = 'todos', pv2GruposColunas = false, pv2GruposLote = false, pv2GruposStatus = '';
 const PV2_GRUPOS_EXTRAS = ['captacao', 'tipo_conteudo', 'off_audio', 'prioridade'];
 const pv2GruposRedesenha = () => renderVisaoDeGrupos('producao');
@@ -2300,7 +2300,7 @@ function pv2GruposHtml({ grupos, quadro }) {
   const marcadasAqui = recorte.filter((i) => SELECIONADAS.has(String(i.id))).length;
   const th = (campo, rotulo) => { const on = ORDEM.campo === campo; return `<th${on ? ` aria-sort="${ORDEM.desc ? 'descending' : 'ascending'}"` : ''}><button type="button" class="d3m-a-th${on ? ' on' : ''}" onclick="ordenarPor('${campo}')" title="Ordenar por ${rotulo}${on ? (ORDEM.desc ? ' (maior para menor)' : ' (menor para maior)') : ''}">${rotulo}${on ? `<i aria-hidden="true">${ORDEM.desc ? '↓' : '↑'}</i>` : ''}</button></th>`; };
   const todasMarcadas = recorte.length > 0 && recorte.every((i) => SELECIONADAS.has(String(i.id)));
-  const cabeca = (lote ? `<th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''} aria-label="Selecionar ${recorte.length === grupo.itens.length ? 'tudo' : `as ${recorte.length} do filtro`} em ${safeText(grupo.nome)}" title="${todasMarcadas ? 'Desmarcar' : 'Marcar'} ${recorte.length === 1 ? 'a peça' : `as ${recorte.length} peças`}${recorte.length === grupo.itens.length ? ' do grupo' : ' deste filtro'}" onchange="pv2GruposMarcarRecorte(this.checked)"></th>` : '')
+  const cabeca = (lote ? `<th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''} aria-label="Selecionar ${recorte.length === grupo.itens.length ? 'tudo' : `as ${recorte.length} do filtro`} em ${safeText(grupo.nome)}" title="${todasMarcadas ? 'Desmarcar' : 'Marcar'} ${recorte.length === 1 ? 'a peça' : `as ${recorte.length} peças`}${recorte.length === grupo.itens.length ? ' do grupo' : ' deste filtro'}" onchange="${recorte.length === grupo.itens.length ? `selecionarGrupo('${jsArg(grupo.id)}',this.checked,'${quadro}')` : 'pv2GruposMarcarRecorte(this.checked)'}"></th>` : '')
     + th('id', 'ID') + th('nome', 'Conteúdo') + th('cliente', 'Cliente') + th('formato', 'Formato') + th('status', 'Status') + th('prazo_iso', 'Prazo') + th('veiculacao_iso', 'No ar') + th('responsavel', 'Quem')
     + (extras ? th('captacao', 'Captação') + th('tipo_conteudo', 'Tipo') + th('off_audio', 'OFF') + th('prioridade', 'Prioridade') + th('cadastrado_por', 'Cadastrou') + th('criado_em', 'Quando') : '');
   const fil = (id, rotulo, n, tom) => `<button type="button" role="radio" aria-checked="${pv2GruposFiltro === id}" onclick="pv2GruposFiltrar('${id}')">${rotulo} <b${tom && n ? ` class="${tom}"` : ''}>${n}</b></button>`;

@@ -1,7 +1,7 @@
 // Produção › Grupos para a Coordenação (Bia, 18/11/2026): "selecionar mais de um pra fazer alterações", "filtrar pro
 // status" e "editar tudo dentro do cartão da atividade". As caixas ficam sempre à vista e a de cima marca o recorte; a
 // barra de lote é a de sempre (#lote-deck, que grava pelo /api/conteudo); o status filtra na cabeça da folha; a linha abre
-// o cartão rápido com título, status, responsável, prazo, veiculação e formato à mão, e a gaveta também edita o formato.
+// o cartão rápido com título, status, responsável, prazo, veiculação e formato à mão (a gaveta da peça não muda aqui).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -9,7 +9,6 @@ import vm from 'node:vm';
 
 const gestor = readFileSync('vybe-gestor.js', 'utf8');
 const agenda = readFileSync('vybe-agenda.js', 'utf8');
-const gaveta = readFileSync('vybe-gaveta.js', 'utf8');
 const fatia = (src, ini) => { const i = src.indexOf(ini); assert.ok(i >= 0, ini); const m = /\r?\n\}\r?\n/.exec(src.slice(i)); return src.slice(i, i + m.index + m[0].length); };
 const linhaDe = (src, ini) => { const i = src.indexOf(ini); assert.ok(i >= 0, ini); return src.slice(i, src.indexOf('\n', i)); };
 
@@ -43,11 +42,12 @@ test('Grupos: caixas de marcar sempre à vista, a de cima e "Marcar" marcam o re
   const { ctx, SELECIONADAS, grupos } = montar();
   let html = ctx.html(grupos);
   assert.equal((html.match(/<td class="grupo-marcar"/g) || []).length, 3, 'uma caixa por linha, sem ligar "Marcar várias"');
-  assert.match(html, /<th class="grupo-marcar"><input type="checkbox"[^>]*onchange="pv2GruposMarcarRecorte\(this\.checked\)"/);
+  assert.match(html, /<th class="grupo-marcar"><input type="checkbox"[^>]*onchange="selecionarGrupo\('g1',this\.checked,'producao'\)"/, 'sem filtro, a de cima marca o grupo inteiro, como antes');
   assert.match(html, /alternarSelecao\('vybe:1',this\.checked,event\)/, 'a caixa da linha é a de sempre (shift marca o intervalo)');
   assert.match(ctx.vista().grupos.lado, /pv2GruposMarcarRecorte\(true\)/, 'na coluna de consulta, marcar as do recorte');
   assert.doesNotMatch(html, /tem-lote/);
   ctx.filtrar('Pode Fazer'); html = ctx.html(grupos);
+  assert.match(html, /<th class="grupo-marcar"><input type="checkbox"[^>]*onchange="pv2GruposMarcarRecorte\(this\.checked\)"/, 'com filtro, a de cima marca só o recorte');
   ctx.marcar(true);
   assert.deepEqual([...SELECIONADAS].sort(), ['vybe:1', 'vybe:3'], 'marca só o que está no filtro de status');
   assert.equal(ctx.repintou, 2, 'repinta a folha (e com ela o #lote-deck)');
@@ -72,24 +72,23 @@ test('Grupos: o status filtra a folha pela cabeça, com a contagem de cada um', 
   assert.equal((html.match(/<tr /g) || []).length, 3, 'status que não existe no grupo volta a todos');
 });
 
-test('Cartão da atividade e gaveta: título, status, responsável, prazo, veiculação e formato editáveis ali mesmo', () => {
+test('Cartão da atividade: título, status, responsável, prazo, veiculação e formato editáveis ali mesmo', () => {
   const ini = agenda.indexOf('cartao.innerHTML = `'), ess = agenda.slice(agenda.indexOf('cr-campos cr-essenciais', ini), agenda.indexOf('<details class="cr-mais"', ini));
   for (const r of ["linha('Status'", "linha('Responsável'", "linha('Prazo'", "'Conclusão' : 'Veiculação'", "'Tipo de demanda' : 'Formato', pillEditavel(item, 'formato')"]) assert.ok(ess.includes(r), r);
   const mais = agenda.slice(agenda.indexOf('<details class="cr-mais"', ini), agenda.indexOf('</details>', ini));
   assert.ok(!mais.includes("pillEditavel(item, 'formato')"), 'o formato não fica repetido em Mais campos');
   assert.match(agenda, /class="cr-titulo" role="button" tabindex="0"\s+onclick="event\.stopPropagation\(\);renomearPeca/);
-  // A gaveta (Abrir a peça) ganha o formato com o mesmo editor e se repinta depois da escolha.
-  assert.match(gaveta, /<div class="gv2-cmp gv2-formato"><small>\$\{ehPedido \? 'Tipo' : 'Formato'\}<\/small>\$\{pillEditavel\(item, 'formato'\)\}<\/div>/);
-  assert.match(fatia(agenda, 'async function escolherValor('), /atualizarGavetaPreservandoRascunhos\(findOperationalItem\(itemId\) \|\| \{ id: itemId \}, gaveta\)/);
+  // A gaveta da peça não muda aqui (outro agente cuida dela): "Abrir a peça" segue levando a ela.
+  assert.match(agenda, /ehDemanda \? `openDemandaWorkspace\('\$\{jsArg\(item\.id\)\}'\)` : `openItemWorkspace\('\$\{jsArg\(item\.id\)\}'\)`/);
   // A linha continua abrindo pelo mesmo caminho (a interceptação vira o cartão rápido).
   assert.match(fatia(gestor, 'function pv2GrupoLinha('), /onclick="openItemWorkspace\('\$\{id\}'\)"/);
 });
 
-test('CSS de Grupos e da gaveta: só tokens --d3-*, sem !important nem html body.mundo', () => {
-  const css = readFileSync('padrao-v2/zm-a-1-producao.css', 'utf8') + readFileSync('padrao-v2/peca.css', 'utf8');
-  const novos = css.split(/\r?\n/).filter((l) => /d3m-a-g-st|tem-lote|gv2-com-formato|gv2-formato/.test(l));
-  assert.ok(novos.length >= 8);
+test('CSS de Grupos: só tokens --d3-*, sem !important nem html body.mundo', () => {
+  const css = readFileSync('padrao-v2/zm-a-1-producao.css', 'utf8');
+  const novos = css.split(/\r?\n/).filter((l) => /d3m-a-g-st|tem-lote/.test(l));
+  assert.ok(novos.length >= 6);
   for (const l of novos) { assert.doesNotMatch(l, /!important|html body\.mundo|:has\(/, l); assert.doesNotMatch(l, /#[0-9a-f]{3,8}\b(?![-\w])|rgba?\(/i, l); }
   const juntado = readFileSync('vybe-mundo-padrao-v2.css', 'utf8');
-  assert.ok(juntado.includes('.d3m-a-g-st > select') && juntado.includes('.gv2-bloco.gv2-com-formato'), 'rodou padrao-v2-juntar');
+  assert.ok(juntado.includes('.d3m-a-g-st > select') && !juntado.includes('gv2-com-formato'), 'rodou padrao-v2-juntar');
 });
