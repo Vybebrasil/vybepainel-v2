@@ -17,8 +17,8 @@ test('Criar (08/64): "Etapa N de 5" na trilha, calendário sazonal junto das op�
   assert.match(cad, /onclick="fcIrPara\(\$\{i\}\)"/, 'as etapas continuam clicáveis');
   assert.doesNotMatch(cad, /aria-label="Cadastro rápido"|>Cadastro rápido</);
   assert.doesNotMatch(cad, /class="fc-kicker"/);
-  assert.match(cad, /onclick="abrirCalendarioSazonal\(\)">Começar pelo calendário sazonal<\/button><\/p>`;/, 'o atalho mora no cartão da primeira etapa');
-  assert.ok(cad.indexOf('function fcCartaoOQueHtml(') < cad.indexOf('Começar pelo calendário sazonal'));
+  // Prancha V2-R-Nova-Demanda (19/11/2026): o atalho do calendário sazonal desce para o pé da janela, à esquerda.
+  assert.match(cad, /<div class="nd-pe">\s*<button type="button" class="nd-lk nd-sazonal" onclick="abrirCalendarioSazonal\(\)">Começar pelo calendário sazonal<\/button>/, 'o atalho mora no pé da janela');
   assert.match(css, /body\.mundo #fc-overlay\{[^}]*backdrop-filter:none!important\}/);
   assert.doesNotMatch(css, /#fc-overlay[^{]*\{[^}]*backdrop-filter:blur/);
   assert.match(css, /body\.mundo #fc-overlay \.fc-side-col\{[^}]*background:#F3F1EC\}/);
@@ -101,7 +101,7 @@ test('TV (44): em cima do dock, sem fundo desfocado, fonte num alternador e sem 
   assert.ok(esc.includes('const idPassando = '), 'o clipe que está passando continua no alto');
   // Limpeza de 14/11/2026: a regra de .ofc-tv-janela saiu na poda das regras mortas (nenhum JS/HTML monta mais .ofc-tv-janela).
   assert.match(css, /body\.mundo \.ofc-tv-tela span\{[^}]*background:rgba\(255,255,255,\.14\)/);
-  assert.match(ler('vybe-styles.css'), /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\):not\(body\.mundo \.ofc-menu-jogo\):not\(\.vb-sem-acesso-janela\)\)\{width:min\(940px,94vw\)!important/);
+  assert.match(ler('vybe-styles.css'), /\.workflow-modal:where\(:not\(\.ofc-snc-jogo\):not\(\.ofc-snc-menu\):not\(\.ofc-tv-janela\):not\(body\.mundo \.ofc-menu-jogo\):not\(\.vb-sem-acesso-janela\)\)\{width:var\(--wm-largura,min\(940px,94vw\)\)!important/);
 });
 
 test('Música (44/45): fora de uma sala com som, o aviso curto de sempre com "Entrar no Lounge", também fora do escritório', () => {

@@ -3136,7 +3136,7 @@ html body.mundo .cb-palco-acoes .vb-botao:not(#vv-x){background:rgba(255,255,255
 html body.mundo .cb-palco-acoes .vb-botao:hover:not(#vv-x){border-color:#C2490C!important;color:#C2490C!important}
 
 /* ===== Cadastro rápido e botão principal das janelas ===== */
-html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:#6B665E!important}
+html body.mundo #fc-overlay :is(.fc-sub,.fc-side-title,small):not(#vv-x){color:var(--fc-apoio,var(--d3-rotulo))!important}
 html body.mundo #fc-overlay .fc-modal:not(#vv-x){color-scheme:light}
 html body.mundo .workflow-primary:not(#vv-x),html body.mundo .fc-modal :is(.fc-primary,.fc-continuar,button.principal):not(#vv-x){background:var(--wm-pri-fundo,var(--d3-acao))!important;color:var(--wm-pri-cor,var(--d3-escuro-texto))!important;box-shadow:none!important;border-radius:var(--d3-r-botao)!important}
 html body.mundo .workflow-primary:hover:not(#vv-x){background:var(--wm-pri-hover,var(--d3-acao-texto-fixa))!important}

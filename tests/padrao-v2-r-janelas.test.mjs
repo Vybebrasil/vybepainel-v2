@@ -163,3 +163,50 @@ test('Cadastro do cliente: marca o opcional, cada etapa diz o que falta e o erro
   assert.match(ler('vybe-styles.css'), /\{width:var\(--wm-largura,min\(940px,94vw\)\)!important\}/);
 });
 
+test('Nova demanda: casca no vidro, rádio no O quê, responsável em caixa, "A data do cliente é" e a semana por pessoa', () => {
+  const cad = ler('cadastros_governed_v2.js');
+  assert.match(cad, /<span class="nd-radio" aria-hidden="true"><\/span>/);
+  assert.match(cad, /<p class="nd-rot">A data do cliente é<\/p>/);
+  assert.match(cad, /Demanda usa a conclusão; conteúdo usa a veiculação\./);
+  assert.match(cad, /<span>Prazo interno <span class="nd-sub">· 7 dias antes<\/span><\/span>/);
+  assert.match(cad, /<div class="nd-resp">/);
+  assert.match(cad, /sem dono vai para a triagem/);
+  assert.match(cad, /<p class="nd-sub nd-previa-rot">Como chega na equipe<\/p>/);
+  assert.match(cad, />Criar em escala<\/button>/);
+  assert.match(cad, /<button type="button" class="nd-lk nd-sazonal" onclick="abrirCalendarioSazonal\(\)">Começar pelo calendário sazonal<\/button>/);
+  assert.match(cad, /texto\.textContent = `etapa \$\{fcEtapa \+ 1\} de \$\{FC_ETAPAS\.length\} · \$\{FC_ETAPAS\[fcEtapa\]\.toLowerCase\(\)\} · Ctrl\+Enter cria, Esc fecha`/);
+  assert.match(cad, /<div class="nd-etapas d3-tema">/);
+  // ids e gatilhos de sempre
+  for (const t of ['id="fc-prazo"', 'id="fc-no-ar"', 'id="fc-semana"', 'id="fc-mais-chip"', 'id="fc-submit-btn"', 'id="fc-voltar-btn"', 'id="fc-busca-cliente"', 'onclick="fcAceitarRegra(', 'onclick="fcAbrirPessoas()"']) assert.ok(cad.includes(t), t);
+  const css = ler('padrao-v2/zm-r-a-7-nova-demanda.css');
+  assert.match(css, /#fc-overlay#fc-overlay \.nd\{width:min\(1300px,calc\(100vw - 32px\)\);[^}]*background:var\(--d3-fume-forte\)/);
+  assert.match(css, /\.nd-pe \.nd-btn\.k\{background:var\(--d3-fume-texto\);box-shadow:none;color:var\(--d3-fume-contra\)/);
+});
+
+test('Nova demanda: a pré-validação do Cadastros antigo (datas) e o atalho antigo abre o fluxo novo', () => {
+  const cad = ler('cadastros_governed_v2.js');
+  const ini = cad.indexOf('  function fcConferirDatas('), fim = cad.indexOf('  window.fcConferirDatas');
+  const conferir = new Function('todayIso', 'state', `${cad.slice(ini, fim)}; return fcConferirDatas;`)(() => '2026-11-19', { itens: [] });
+  assert.equal(conferir([{ veic: '2026-11-18', prazo: '2026-11-11' }], '2026-11-19'), 'A data do cliente não pode ficar antes de hoje.');
+  assert.equal(conferir([{ veic: '2026-11-25', prazo: '2026-11-26' }], '2026-11-19'), 'O prazo interno precisa ser até a data do cliente.');
+  assert.equal(conferir([{ veic: '2026-11-25', prazo: '2026-11-18' }], '2026-11-19'), '');
+  assert.match(cad, /const datas = FC_PASSOS\.every\(\(q\) => fcRespondido\(q\)\) \? fcConferirDatas\(\) : '';/);
+  const perfis = ler('vybe-perfis.js');
+  assert.match(perfis, /function openCadastrosGovernedLegacy\(\)\{if\(typeof window\.openCadastrosGoverned==='function'\)\{document\.getElementById\('cadastros-preview-overlay'\)\?\.remove\(\);return window\.openCadastrosGoverned\(\);\}/);
+});
+
+test('Nova demanda: a semana por pessoa conta quem faz e quem tem peça no dia, contra a régua', () => {
+  const cad = ler('cadastros_governed_v2.js');
+  const ini = cad.indexOf('  function fcSemanaPessoas('), fim = cad.indexOf('  function fcSemanaHtml(');
+  const getOffsetDate = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const fn = new Function('FC_REGUA', 'state', 'getOffsetDate', 'fcEquipeFinal', 'fcRegraDoFormato', `${cad.slice(ini, fim)}; return fcSemanaPessoas;`)(
+    { pecas: 6, videos: 4 }, { format: 'Card', itens: [] }, getOffsetDate, () => [], () => ({ dest: {} }));
+  const p = (id, veic, rid, extra = {}) => ({ id, veiculacao_iso: veic, responsavel_ids: [rid], formato: 'Card', status: 'A Fazer', ...extra });
+  const itens = [p(1, '2026-11-25', 'a'), p(2, '2026-11-25', 'a'), p(3, '2026-11-25', 'b'), p(4, '2026-11-25', 'b', { status: 'Finalizado' }), p(5, '2026-11-24', 'c')];
+  const users = [{ id: 'a', name: 'Ana Souza' }, { id: 'b', name: 'Beto' }, { id: 'c', name: 'Caio' }, { id: 'd', name: 'Duda' }];
+  const s = fn({ veic: '2026-11-25' }, { itens, equipe: ['d'], formato: 'Card', novos: [{ veic: '2026-11-25' }], users });
+  assert.equal(s.regua, 6); assert.equal(s.seg, '2026-11-23');
+  assert.deepEqual(s.linhas.map((l) => [l.nome, l.valor]), [['Duda', 1], ['Ana', 2], ['Beto', 1]], 'quem faz primeiro (com a peça nova), depois quem tem peça no dia; finalizada não conta');
+  assert.equal(fn({ veic: '' }, { itens, users }), null);
+});
+

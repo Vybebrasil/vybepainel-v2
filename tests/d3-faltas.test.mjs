@@ -71,9 +71,10 @@ test('Nova demanda: "Semana de dd/mm" conta as peças abertas de quem vai fazer 
   assert.equal(semana({ veic: '2026-11-29' }, { itens, equipe: [], novos: [] }).dias.length, 7, 'domingo escolhido: a semana vai até ele');
   const cad = ler('cadastros_governed_v2.js');
   assert.match(cad, /<div class="nd-semana" id="fc-semana">\$\{fcSemanaHtml\(it\)\}<\/div>/);
-  assert.match(cad, /d3LinhaSvg\(s\.valores, \{ meta: s\.regua, largura: 300, altura: 70, rotulo: rot, ponto: s\.ponto, desdeZero: true \}\)/);
+  // Prancha V2-R-Nova-Demanda (19/11/2026): a semana vira barras por pessoa contra a mesma régua (fcSemanaPessoas).
+  assert.match(cad, /const s = fcSemanaPessoas\(it\);/);
   assert.match(cad, /if \(semana && it\) semana\.innerHTML = fcSemanaHtml\(it\);/, 'trocar a data redesenha a linha');
-  assert.match(cad, /`<p class="nd-rot">Semana de \$\{dm\}<\/p>`/);
+  assert.match(cad, /<p class="nd-semana-topo"><b class="nd-rot">Semana de \$\{dm\}<\/b><span class="nd-sub">limite de \$\{s\.regua\}/);
 });
 
 test('Agenda: topo com Semana, Mês e Roteiros; Feed e Calendário no menu Mais; o Dia fica na barra', () => {
