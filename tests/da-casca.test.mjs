@@ -42,6 +42,7 @@ test('celular: o Criar não é laranja (um laranja por tela) e a página não ro
 test('controles do mapa cabem no cartão do 3D', () => {
   assert.match(css, /\.vv-controles\.vv-ilha\.vv-ilha\{box-sizing:border-box;max-width:calc\(var\(--d3c-mw,100vw\) - 24px\);flex-wrap:wrap/);
   assert.match(ler('vybe-mundo.js'), /set\('--d3c-mw', r\.width\)/);
+  assert.match(css, /@media \(max-width:1180px\)\{\s*body\.mundo\.mundo-centro\.d3c-painel[^{]*\.vv-controles\.vv-ilha\.vv-ilha\{bottom:calc\(var\(--d3c-cb,100px\) \+ 42px\)\}/);
 });
 
 test('canto do módulo não cobre os botões: Tela cheia some no tablet e o topo da Produção guarda o vão até 1180', () => {

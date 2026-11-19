@@ -34,6 +34,11 @@ body.mundo #workflow-modal.vb-sem-acesso-janela{
    esquerda do cartão e ficava por cima do menu lateral. A ilha cabe no cartão (medido em --d3c-mw, medirMapaD3 em
    vybe-mundo.js) e quebra em mais linhas quando não cabe numa. */
 body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.vv-ilha.vv-ilha{box-sizing:border-box;max-width:calc(var(--d3c-mw,100vw) - 24px);flex-wrap:wrap;justify-content:flex-end}
+/* Com o cartão estreito (até 1180) a ilha quebrada vira um bloco que desce até o Tela cheia, no canto de baixo do
+   cartão, e a última linha (camadas, hora) ficava embaixo dele. A ilha sobe uma linha de botão (34 + 8). */
+@media (max-width:1180px){
+  body.mundo.mundo-centro.d3c-painel:not(.mundo-andar) #mundo-hud > .vv-controles.vv-ilha.vv-ilha{bottom:calc(var(--d3c-cb,100px) + 42px)}
+}
 
 @media (max-width:900px){
   /* UM LARANJA NO CELULAR (achados 001, 016, 018 a 020). Na barra de baixo o Criar era laranja cheio e quase toda tela
