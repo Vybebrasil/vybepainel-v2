@@ -2154,14 +2154,6 @@ function linhaDeGrupoHtml(item, compacta = false) {
 // pressionada, então não há como saber que o shift estava segurado.
 let ULTIMA_MARCADA = null;
 
-// O trecho do shift na ordem da tela: da última caixa clicada até a de agora, nas duas direções. Sem a âncora na lista
-// (outro filtro, outra ordem, a linha saiu da vista) não há intervalo, e o clique vale só para a própria caixa.
-function intervaloDaSelecao(lista, ancora, alvo) {
-  const ordem = (lista || []).map(String), de = ordem.indexOf(String(ancora ?? '')), ate = ordem.indexOf(String(alvo ?? ''));
-  if (de < 0 || ate < 0 || de === ate) return null;
-  return de < ate ? ordem.slice(de, ate + 1) : ordem.slice(ate, de + 1);
-}
-
 // O SHIFT PRECISA SABER A ORDEM DA TELA EM QUE SE CLICOU.
 //
 // A lista para o intervalo saia sempre da visao de Grupos. Trazendo a selecao
@@ -2196,6 +2188,14 @@ function alternarSelecao(id, marcada, event, ordemVisivel) {
   if (marcada) SELECIONADAS.add(alvo); else SELECIONADAS.delete(alvo);
   ULTIMA_MARCADA = alvo;
   repintarOndeHaSelecao();
+}
+
+// O trecho do shift na ordem da tela: da última caixa clicada até a de agora, nas duas direções. Sem a âncora na lista
+// (outro filtro, outra ordem, a linha saiu da vista) não há intervalo, e o clique vale só para a própria caixa.
+function intervaloDaSelecao(lista, ancora, alvo) {
+  const ordem = (lista || []).map(String), de = ordem.indexOf(String(ancora ?? '')), ate = ordem.indexOf(String(alvo ?? ''));
+  if (de < 0 || ate < 0 || de === ate) return null;
+  return de < ate ? ordem.slice(de, ate + 1) : ordem.slice(ate, de + 1);
 }
 
 // Marcar uma linha muda o deck, e o deck existe em duas telas: a tabela de

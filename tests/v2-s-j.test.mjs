@@ -19,7 +19,7 @@ function selecao() {
   const ctx = vm.createContext({ SELECIONADAS: new Set(), toasts: [], repintou: 0, gruposExpandidos: new Set(), LINHAS_POR_GRUPO: 50, itensPorGrupo: () => [] });
   ctx.repintarOndeHaSelecao = () => { ctx.repintou += 1; };
   ctx.showToast = (t) => ctx.toasts.push(t);
-  vm.runInContext([entre(agenda, 'let ULTIMA_MARCADA = null;', '// O SHIFT PRECISA'), fatia(agenda, 'function alternarSelecao(')].join('\n')
+  vm.runInContext(['let ULTIMA_MARCADA = null;', fatia(agenda, 'function alternarSelecao('), fatia(agenda, 'function intervaloDaSelecao(')].join('\n')
     + '\nthis.clicar = (id, marcada, ev, ordem) => alternarSelecao(id, marcada, ev, ordem); this.intervalo = intervaloDaSelecao;', ctx);
   return ctx;
 }
