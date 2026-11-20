@@ -11,10 +11,11 @@ const spot = ler('vybe-spotlight.js'), core = ler('vybe-core.js'), esc = ler('vy
 
 test('Criar (08/64): "Etapa N de 5" na trilha, calendário sazonal junto das opções, sem "Cadastro rápido" nem fundo desfocado', () => {
   // Padrão v2 (quadro "Nova demanda em etapas"): três etapas na tela, as cinco conferências continuam por baixo.
-  assert.match(cad, /<span class="nd-sub fc-trilha-texto">Etapa \$\{fcEtapa \+ 1\} de \$\{FC_ETAPAS\.length\}<\/span>/);
-  assert.match(cad, /const FC_ETAPAS = \['O quê', 'Para quem', 'Quando'\];/);
+  // Cadastro em etapas (Paulo, 20/11/2026): uma etapa por vez, "1 de 4 · Cliente e formato" no topo.
+  assert.match(cad, /<span class="nd-sub fc-trilha-texto">1 de \$\{FC_ETAPAS\.length\} · \$\{FC_ETAPAS\[0\]\}<\/span>/);
+  assert.match(cad, /const FC_ETAPAS = \['Cliente e formato', 'O que é', 'Datas e responsável', 'Confere'\];/);
   assert.match(cad, /const FC_PASSOS = \['board', 'client', 'format', 'itens', 'destino'\];/, 'o que é conferido antes de criar não mudou');
-  assert.match(cad, /onclick="fcIrPara\(\$\{i\}\)"/, 'as etapas continuam clicáveis');
+  assert.match(cad, /onclick="fcIrPara\(\$\{etapa\}\)"/, 'cada linha do resumo volta à etapa dela');
   assert.doesNotMatch(cad, /aria-label="Cadastro rápido"|>Cadastro rápido</);
   assert.doesNotMatch(cad, /class="fc-kicker"/);
   // Prancha V2-R-Nova-Demanda (19/11/2026): o atalho do calendário sazonal desce para o pé da janela, à esquerda.
