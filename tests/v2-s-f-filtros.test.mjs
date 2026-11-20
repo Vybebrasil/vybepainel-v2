@@ -54,7 +54,7 @@ const ids = (l) => js(l.map((i) => i.id));
 const grupos = (c, l) => js(c.itensPorGrupo(l).map((g) => g.itens.map((i) => i.id)));
 
 test('ID: fora da vista por padrão, volta pelo menu "Colunas", fica guardado; o title da linha e a busca ainda têm o ID', () => {
-  assert.ok(gestor.includes('let pv2GruposComId = false;'), 'desligado por padrão');
+  assert.ok(/let pv2GruposComId = false[,;]/.test(gestor), 'desligado por padrão');
   const pv2 = trecho(gestor, 'function pv2GruposHtml(', '\n}\n'), linha = trecho(gestor, 'function pv2GrupoLinha(', '\n}\n');
   assert.ok(pv2.includes("+ (comId ? th('id', 'ID') : '') + th('nome', 'Conteúdo')"), 'a cabeça só com o ID ligado');
   assert.ok(linha.includes("(comId ? `<td class=\"grupo-id\" onclick=\"${parar};copiarId('${id}')\""), 'a célula também, e com a cópia de sempre');

@@ -2573,7 +2573,9 @@ let pv2GruposSel = '', pv2GruposFiltro = 'todos', pv2GruposColunas = false, pv2G
 let pv2GruposCaptacao = true;
 // O ID é coisa do sistema (Paulo, 19/11/2026: "coluna com ID não precisa aparecer... coisa de backend"): sai da vista por
 // padrão e volta pelo menu "Colunas". Nada se perde: ele fica no title da linha, na gaveta (copiar), na busca e no CSV.
-let pv2GruposComId = false;
+// O Formato também sai por padrão (Paulo, 20/11/2026: "se tem o formato do conteúdo antes do nome sempre, não precisa da
+// tabela de formato"): o tipo já abre o nome ("Reels · Black Friday"). Volta por "Colunas"; o filtro Formato continua.
+let pv2GruposComId = false, pv2GruposComFormato = false;
 const PV2_GRUPOS_EXTRAS = ['captacao', 'tipo_conteudo', 'off_audio', 'prioridade'];
 // OS OUTROS FILTROS DA LINHA (Paulo, 19/11/2026: "não seria ideal ter mais filtros?"). Pessoa e carteira são as do painel
 // inteiro (selectedPersonIds e filtroCarteira, as mesmas das abas do Feed), para não nascer um segundo filtro de pessoa;
@@ -2696,6 +2698,7 @@ function pv2GruposRestaurar() {
   if (Array.isArray(salvo.clientes)) salvo.clientes.filter((n) => typeof n === 'string' && n.trim()).forEach((n) => pv2GruposClientes.add(n));
   pv2GruposCaptacao = salvo.semCaptacao !== true;
   pv2GruposComId = salvo.comId === true;
+  pv2GruposComFormato = salvo.comFormato === true;
   const lista = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
   pv2GruposFormatos.clear(); lista(salvo.formatos).forEach((v) => pv2GruposFormatos.add(v));
   pv2GruposCaptacoes.clear(); lista(salvo.captacoes).forEach((v) => pv2GruposCaptacoes.add(v));
@@ -2720,7 +2723,7 @@ function pv2GruposPrefsAtuais() {
   const pessoas = typeof selectedPersonIds === 'undefined' ? [] : [...selectedPersonIds].map(String);
   const carteira = typeof filtroCarteira === 'undefined' || filtroCarteira === 'all' ? '' : filtroCarteira;
   const d = pv2GruposData;
-  return { clientes: [...pv2GruposClientes], ordem: ORDEM, ...(pv2GruposCaptacao ? {} : { semCaptacao: true }), ...(pv2GruposComId ? { comId: true } : {}),
+  return { clientes: [...pv2GruposClientes], ordem: ORDEM, ...(pv2GruposCaptacao ? {} : { semCaptacao: true }), ...(pv2GruposComId ? { comId: true } : {}), ...(pv2GruposComFormato ? { comFormato: true } : {}),
     ...(pv2GruposFormatos.size ? { formatos: [...pv2GruposFormatos] } : {}), ...(pv2GruposCaptacoes.size ? { captacoes: [...pv2GruposCaptacoes] } : {}),
     ...(d.recorte || d.campo !== 'veiculacao_iso' ? { data: { campo: d.campo, recorte: d.recorte, de: d.de, ate: d.ate } } : {}),
     ...(pessoas.length ? { pessoas } : {}), ...(carteira ? { carteira } : {}) };
@@ -2844,7 +2847,7 @@ function pv2GruposPintarMenu({ soLista = false } = {}) {
   const visto = `<i class="s-f-visto" aria-hidden="true">${PV2_IC.ok}</i>`;
   if (pv2GruposMenuQual === 'colunas') {
     const op = (v, r, on) => `<button type="button" class="s-f-op" role="checkbox" aria-checked="${on}" data-coluna="${v}" onclick="pv2GruposAlternarColuna('${v}')"><span>${r}</span>${on ? visto : ''}</button>`;
-    menu.innerHTML = '<div class="status-editor-head">Colunas</div>' + op('captacao', 'Captação', pv2GruposCaptacao) + op('id', 'ID', pv2GruposComId) + op('colunas', 'Tipo, OFF, prioridade, quem cadastrou e quando', pv2GruposColunas);
+    menu.innerHTML = '<div class="status-editor-head">Colunas</div>' + op('captacao', 'Captação', pv2GruposCaptacao) + op('formato', 'Formato', pv2GruposComFormato) + op('id', 'ID', pv2GruposComId) + op('colunas', 'Tipo, OFF, prioridade, quem cadastrou e quando', pv2GruposColunas);
     return;
   }
   if (pv2GruposMenuQual === 'pessoa') {
@@ -2895,7 +2898,7 @@ function pv2GruposPintarMenu({ soLista = false } = {}) {
 }
 // Uma coluna do menu "Colunas": a tabela redesenha e o menu continua aberto na mesma opção.
 function pv2GruposAlternarColuna(qual) {
-  pv2GruposAlternar(qual === 'captacao' || qual === 'id' ? qual : 'colunas');
+  pv2GruposAlternar(['captacao', 'id', 'formato'].includes(qual) ? qual : 'colunas');
   pv2GruposPintarMenu();
   document.querySelector(`#s-f-menu [data-coluna="${qual}"]`)?.focus();
 }
@@ -2909,6 +2912,7 @@ function pv2GruposAlternar(qual) {
   if (qual === 'colunas') pv2GruposColunas = !pv2GruposColunas;
   if (qual === 'captacao') { pv2GruposCaptacao = !pv2GruposCaptacao; pv2GruposGuardar(); }
   if (qual === 'id') { pv2GruposComId = !pv2GruposComId; pv2GruposGuardar(); }
+  if (qual === 'formato') { pv2GruposComFormato = !pv2GruposComFormato; pv2GruposGuardar(); }
   if (qual === 'lote') { pv2GruposLote = !pv2GruposLote; if (!pv2GruposLote && SELECIONADAS.size && typeof limparSelecao === 'function') limparSelecao(); }
   pv2GruposRedesenha();
 }
@@ -2924,7 +2928,7 @@ function pv2GruposExportar() {
   a.download = `${String(d.nome || 'grupo').toLowerCase().replace(/[^a-z0-9à-ú]+/gi, '-')}.csv`;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
-function pv2GrupoLinha(item, { lote, extras, hoje, cap = false, comId = false }) {
+function pv2GrupoLinha(item, { lote, extras, hoje, cap = false, comId = false, comFormato = false }) {
   const parar = 'event.stopPropagation()', id = jsArg(item.id), marcada = SELECIONADAS.has(String(item.id));
   const nome = String(item.nome || 'Sem título'), corte = nome.indexOf(' - ');
   const titulo = corte > 0 ? `<b>${safeText(nome.slice(0, corte))}</b> · ${safeText(nome.slice(corte + 3))}` : `<b>${safeText(nome)}</b>`;
@@ -2932,12 +2936,13 @@ function pv2GrupoLinha(item, { lote, extras, hoje, cap = false, comId = false })
   const escolha = (campo) => `<td class="s-f-td-${campo}" onclick="${parar}">${pillEditavel(item, campo)}</td>`;
   const cad = extras ? cadastroDaPeca(item) : null;
   return `<tr class="${marcada ? 'marcada' : ''}${typeof pv2Chegou === 'function' ? pv2Chegou(item) : ''}" onclick="openItemWorkspace('${id}')" title="Abrir ${safeText(nome)} · ${safeText(item.id)}">`
-    + (lote ? `<td class="grupo-marcar" onclick="${parar}"><input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(nome)}" onclick="${parar};alternarSelecao('${id}',this.checked,event)"></td>` : '')
+    // A célula inteira marca (com shift, o intervalo); o shift no mousedown não seleciona o texto das linhas no caminho.
+    + (lote ? `<td class="grupo-marcar" onmousedown="if(event.shiftKey)event.preventDefault()" onclick="${parar};if(event.target===this)alternarSelecao('${id}',${!marcada},event)"><input type="checkbox" ${marcada ? 'checked' : ''} data-item-id="${safeText(item.id)}" aria-label="Selecionar ${safeText(nome)}" onclick="${parar};alternarSelecao('${id}',this.checked,event)"></td>` : '')
     // O ID só com "Colunas → ID" ligado, e só o número (o "vybe:" é igual em todas); o ID inteiro fica no title e na cópia.
     + (comId ? `<td class="grupo-id" onclick="${parar};copiarId('${id}')" title="${safeText(item.id)} · clique para copiar o ID">${safeText(String(item.id).replace(/^vybe:/, ''))}</td>` : '')
     + `<td class="d3m-a-g-nome"><span>${titulo}</span>${botaoDePreviaNaLinha(item)}</td>`
     + `<td class="d3m-a-g-cli" onclick="${parar}">${pv2Foto(clientesDoItem(item)[0] || '')}${botaoClientesDoItem(item)}</td>`
-    + escolha('formato')
+    + (comFormato ? escolha('formato') : '')
     + `<td data-label="Status" onclick="${parar}">${pv2StatusBotao(item)}</td>`
     // A Captação ao lado do Status, com a pílula e o menu dela (Paulo, 19/11/2026: "a tabela do status... e separada também").
     + (cap ? `<td class="s-f-cap" data-label="Captação" onclick="${parar}">${pillEditavel(item, 'captacao')}</td>` : '')
@@ -2962,8 +2967,8 @@ function pv2GruposHtml({ grupos, quadro, base = null, semFiltro = null }) {
   const todos = gruposExpandidos.has(grupo.id), visiveis = todos ? recorte : recorte.slice(0, LINHAS_POR_GRUPO), restam = recorte.length - visiveis.length;
   // As caixas de marcar ficam sempre à vista (Bia, 18/11): marcar várias não depende mais de achar o "Marcar várias".
   const lote = true, extras = pv2GruposColunas, cap = pv2GruposCaptacao && quadro === 'producao';
-  const comId = pv2GruposComId;
-  const escondidas = (comId ? [] : ['ID']).concat(cap ? [] : ['captação']).concat(extras ? [] : ['tipo', 'off', 'prioridade', 'quem cadastrou', 'quando']);
+  const comId = pv2GruposComId, comFormato = pv2GruposComFormato;
+  const escondidas = (comId ? [] : ['ID']).concat(comFormato ? [] : ['formato']).concat(cap ? [] : ['captação']).concat(extras ? [] : ['tipo', 'off', 'prioridade', 'quem cadastrou', 'quando']);
   const marcadasAqui = recorte.filter((i) => SELECIONADAS.has(String(i.id))).length;
   // O ↕ vai em desenho: o caractere vira emoji colorido no Windows.
   const pv2SetaDupla = typeof ICONE !== 'undefined' && ICONE.ordenar ? ICONE.ordenar : '↕';
@@ -2971,7 +2976,7 @@ function pv2GruposHtml({ grupos, quadro, base = null, semFiltro = null }) {
   const th = (campo, rotulo) => { const on = ORDEM.campo === campo; return `<th class="s-f-c-${campo}"${on ? ` aria-sort="${ORDEM.desc ? 'descending' : 'ascending'}"` : ''}><button type="button" class="d3m-a-th${on ? ' on' : ''}" onclick="ordenarPor('${campo}')" title="Ordenar por ${rotulo}${on ? (ORDEM.desc ? ' (maior para menor)' : ' (menor para maior)') : ''}">${rotulo}<i class="s-f-seta" aria-hidden="true">${on ? (ORDEM.desc ? '↓' : '↑') : pv2SetaDupla}</i></button></th>`; };
   const todasMarcadas = recorte.length > 0 && recorte.every((i) => SELECIONADAS.has(String(i.id)));
   const cabeca = (lote ? `<th class="grupo-marcar"><input type="checkbox" ${todasMarcadas ? 'checked' : ''} aria-label="Selecionar ${recorte.length === grupo.itens.length ? 'tudo' : `as ${recorte.length} do filtro`} em ${safeText(grupo.nome)}" title="${todasMarcadas ? 'Desmarcar' : 'Marcar'} ${recorte.length === 1 ? 'a peça' : `as ${recorte.length} peças`}${recorte.length === grupo.itens.length ? ' do grupo' : ' deste filtro'}" onchange="${recorte.length === grupo.itens.length ? `selecionarGrupo('${jsArg(grupo.id)}',this.checked,'${quadro}')` : 'pv2GruposMarcarRecorte(this.checked)'}"></th>` : '')
-    + (comId ? th('id', 'ID') : '') + th('nome', 'Conteúdo') + th('cliente', 'Cliente') + th('formato', 'Formato') + th('status', 'Status') + (cap ? th('captacao', 'Captação') : '') + th('prazo_iso', 'Prazo') + th('veiculacao_iso', 'Veiculação') + th('responsavel', 'Quem')
+    + (comId ? th('id', 'ID') : '') + th('nome', 'Conteúdo') + th('cliente', 'Cliente') + (comFormato ? th('formato', 'Formato') : '') + th('status', 'Status') + (cap ? th('captacao', 'Captação') : '') + th('prazo_iso', 'Prazo') + th('veiculacao_iso', 'Veiculação') + th('responsavel', 'Quem')
     + (extras ? th('tipo_conteudo', 'Tipo') + th('off_audio', 'OFF') + th('prioridade', 'Prioridade') + th('cadastrado_por', 'Cadastrou') + th('criado_em', 'Quando') : '');
   const fil = (id, rotulo, n, tom) => `<button type="button" role="radio" aria-checked="${pv2GruposFiltro === id}" onclick="pv2GruposFiltrar('${id}')">${rotulo} <b${tom && n ? ` class="${tom}"` : ''}>${n}</b></button>`;
   const editavel = typeof grupoEditavelNaTela === 'function' && grupoEditavelNaTela(quadro, grupo.id);
@@ -2979,7 +2984,7 @@ function pv2GruposHtml({ grupos, quadro, base = null, semFiltro = null }) {
     || pv2GruposDataLigada() || (typeof selectedPersonIds !== 'undefined' && selectedPersonIds.size > 0) || (typeof filtroCarteira !== 'undefined' && filtroCarteira !== 'all');
   const corpo = !grupo.itens.length ? `<p class="d3v-estado"><b>Nenhuma peça neste grupo.</b>${algumFiltro ? (String(buscaClienteConteudos || '').trim() ? 'A busca não encontrou nada aqui.' : 'Os filtros não acharam nada aqui.') : 'Use o + para cadastrar a primeira.'}</p>`
     : !recorte.length ? `<p class="d3v-estado"><b>${pv2GruposStatus && doFiltro.length ? `Nenhuma peça em ${safeText(pv2GruposStatus)} neste recorte.` : pv2GruposFiltro === 'semdono' ? 'Todas as peças deste grupo têm responsável.' : 'Nenhuma peça vencida neste grupo.'}</b></p>`
-    : `<div class="d3m-a-g-rola"><table class="d3m-a-g-tab grupo-tabela s-f-cols${extras ? ' larga' : ''}${cap ? ' s-f-com-cap' : ''}${comId ? ' s-f-com-id' : ''}"><thead><tr>${cabeca}</tr></thead><tbody>${visiveis.map((i) => pv2GrupoLinha(i, { lote, extras, hoje, cap, comId })).join('')}</tbody></table></div>`;
+    : `<div class="d3m-a-g-rola"><table class="d3m-a-g-tab grupo-tabela s-f-cols${extras ? ' larga' : ''}${cap ? ' s-f-com-cap' : ''}${comId ? ' s-f-com-id' : ''}"><thead><tr>${cabeca}</tr></thead><tbody>${visiveis.map((i) => pv2GrupoLinha(i, { lote, extras, hoje, cap, comId, comFormato })).join('')}</tbody></table></div>`;
   // A coluna de consulta: os grupos, a busca, o que esta aba é e o trabalho em lote.
   const mesTxt = (() => { try { return new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(managerCalendarMonthMeta().first); } catch { return ''; } })();
   const linha = `conteúdos por grupo · ${total} ${pv2Pl(total, 'peça', 'peças')}${mesTxt ? ` em ${mesTxt}` : ''} · ${comPecas.length} ${pv2Pl(comPecas.length, 'grupo com peças', 'grupos com peças')}`;

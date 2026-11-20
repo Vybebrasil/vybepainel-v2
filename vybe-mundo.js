@@ -5902,7 +5902,8 @@
   window.addEventListener?.('keydown', (e) => { if (e.key === 'Escape') janelaNoEsc = janelaPorCima(); }, true);
   document.addEventListener?.('keydown', (e) => {
     if (!ligado || body.classList.contains('auth-pending')) return;
-    const campo = e.target?.closest?.('input, textarea, select, [contenteditable="true"]');
+    // Caixa de marcar não é campo de digitar: com o foco nela, o Esc segue a fila (a seleção sai antes, em vybe-agenda.js).
+    const campo = e.target?.closest?.('input:not([type="checkbox"]):not([type="radio"]), textarea, select, [contenteditable="true"]');
     if (e.key === 'f' && !campo && !e.metaKey && !e.ctrlKey && !e.altKey && body.classList.contains('mundo-modulo')) { alternarTelaCheia(); return; }
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     if (campo) { campo.blur(); return; }
