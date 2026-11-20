@@ -379,6 +379,14 @@ Confirme os símbolos no código: este mapa orienta a busca, não substitui a le
   e a fonte troca pela chave `VYBE_FINANCAS_FONTE` (`ponte` é o padrão). O leitor do próprio banco entrega a mesma base
   da ponte às mesmas contas (`shared/financas-calculos.js`): não crie outra conta nem outro formato. Linha importada é
   só leitura e fica fora das listas do que é lançado à mão; cliente do Finanças sem par nunca vira cliente sozinho.
+- Mídia e o Ícaro (decisão do Vinícius, 20/11/2026): o agente de Mídia Paga chama **Ícaro** (antes Breno, que é o nome do
+  gestor de tráfego da agência; a pessoa Breno do time não muda) e cuida da mídia de todos os clientes. O setor Mídia do dock
+  (`vybe-mundo-midia.js`, `VybeMidia`; `server/midia.js`, `area=midia`) é só dos quatro donos (`SO_DINHEIRO` e `ehDonoPessoa`):
+  uma linha por cliente com Meta Ads (do VybeHub pela mesma ponte do bot, `metricasDoHub` módulo `resumo`), Google Ads e o
+  site. Canal sem fonte (`CANAIS`, `fonte: null`) aparece como não conectado, nunca com zero. O sinal do Ícaro é
+  `sinalDoMeta` (frequência acima de 3, custo por resultado subindo, verba sem resultado, verba que parou). Só lê: mexer
+  em campanha continua fora do painel, com o SIM de um dono. Não crie outra visão de tráfego; o detalhe por cliente é o
+  painel do VybeHub.
 - Cadeado e "ver como" (decisão do Paulo, 09/11/2026): para quem não é dono, Comercial, Finanças, Gestão, Agentes, a
   Visão geral do RH, Recrutamento e Documentos aparecem apagados com cadeado (`TRANCADOS` em `vybe-mundo.js`); os itens
   do Time que são de todos ficam abertos. Os donos (e quem administra) podem "ver como" qualquer pessoa pelo menu da
