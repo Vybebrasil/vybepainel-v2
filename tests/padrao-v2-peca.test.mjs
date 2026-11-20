@@ -61,21 +61,30 @@ test('gaveta: a pílula de status usa a cor do quadro e o carregando tem a forma
   assert.match(gaveta, /drawer\.className = 'gv2-gaveta gv2-folha'; drawer\.innerHTML = gavetaEsqueletoHtml\('Carregando a peça'\);/);
 });
 
-test('cadastro: três etapas na tela e as mesmas conferências antes de criar', () => {
-  assert.match(cad, /const FC_ETAPAS = \['O quê', 'Para quem', 'Quando'\];/);
+test('cadastro em etapas: quatro etapas, uma por vez, e as mesmas conferências antes de criar', () => {
+  // Paulo (20/11/2026): "não gosto que apareça tudo de vez.. gosto de etapa a etapa pra não ficar confuso".
+  assert.match(cad, /const FC_ETAPAS = \['Cliente e formato', 'O que é', 'Datas e responsável', 'Confere'\];/);
   assert.match(cad, /const FC_PASSOS = \['board', 'client', 'format', 'itens', 'destino'\];/);
   assert.match(cad, /if \(p === 'itens'\)  return state\.itens\.length > 0 && state\.itens\.every\(\s*\(i\) => String\(i\.titulo \|\| ''\)\.trim\(\) && i\.veic && i\.prazo && String\(i\.brief \|\| ''\)\.trim\(\)\);/, 'título, data, prazo e briefing continuam obrigatórios');
   const c = vm.createContext({ state: { format: '', client: '', itens: [{ titulo: '', veic: '', prazo: '' }] } });
-  vm.runInContext(trecho(cad, '  const fcTemTexto', '  function fcRespondido(p) {'), c);
+  vm.runInContext(`${trecho(cad, '  const FC_PASSOS = ', '  let fcPasso = 0;')}${trecho(cad, '  const fcTemTexto', '  // Objetivo da peça')}
+    function fcItemAtivo() { return state.itemAtivo || 0; }`, c);
   assert.deepEqual([0, 1, 2].map((n) => c.fcEtapaFeita(n)), [false, false, false]);
   Object.assign(c.state, { format: 'Card', client: 'Cliente A', itens: [{ titulo: 'Promoção', veic: '2026-11-14', prazo: '2026-11-07' }] });
-  assert.deepEqual([0, 1, 2].map((n) => c.fcEtapaFeita(n)), [false, true, true], 'sem briefing o O quê não fecha');
-  assert.equal(c.fcEtapaDoPasso('itens'), 0, 'o briefing que falta mora no O quê');
+  assert.deepEqual([0, 1, 2].map((n) => c.fcEtapaFeita(n)), [true, false, true], 'sem briefing o O que é não fecha');
+  assert.equal(c.fcEtapaFeita(3), false, 'o Confere só fecha com tudo respondido');
+  assert.equal(c.fcEtapaDoPasso('itens'), 1, 'o briefing que falta mora no O que é');
   c.state.itens[0].brief = 'Foto do produto com o preço';
-  assert.deepEqual([0, 1, 2].map((n) => c.fcEtapaFeita(n)), [true, true, true]);
-  assert.deepEqual(['board', 'format', 'client', 'itens', 'destino'].map((p) => c.fcEtapaDoPasso(p)), [0, 0, 1, 2, 2]);
+  assert.deepEqual([0, 1, 2, 3].map((n) => c.fcEtapaFeita(n)), [true, true, true, true]);
+  assert.deepEqual(['board', 'format', 'client', 'itens', 'destino'].map((p) => c.fcEtapaDoPasso(p)), [0, 0, 0, 3, 3]);
+  c.state.itens[0].veic = '';
+  assert.equal(c.fcEtapaDoPasso('itens'), 2, 'sem data, a resposta mora nas Datas');
   c.state.itens[0].titulo = ' ';
-  assert.equal(c.fcEtapaDoPasso('itens'), 0, 'sem título, a resposta que falta mora na primeira etapa');
+  assert.equal(c.fcEtapaDoPasso('itens'), 1, 'sem título, a resposta mora no O que é');
+  // No lote, cada etapa deixa seguir pelo conteúdo aberto; o visto do trilho e o Confere olham todos.
+  Object.assign(c.state, { itemAtivo: 1, itens: [{ titulo: '', brief: '', veic: '2026-11-14', prazo: '2026-11-07' }, { titulo: 'B', brief: 'b', veic: '2026-11-21', prazo: '2026-11-14' }] });
+  assert.equal(c.fcEtapaFeitaNoAberto(1), true);
+  assert.equal(c.fcEtapaFeita(1), false);
 });
 
 test('cadastro: o que vai para o servidor é o de antes, campo por campo', () => {
@@ -86,15 +95,19 @@ test('cadastro: o que vai para o servidor é o de antes, campo por campo', () =>
     "objetivo: state.board === 'demandas' ? null : (state.objetivo || null),", 'responsaveis: fcEquipeFinal(dest),', '_devolve: true,']) assert.ok(envio.includes(campo), campo);
 });
 
-test('cadastro: o briefing obrigatório fica à vista no O quê; Mais campos guarda objetivo, arquivo, grupo e status', () => {
+test('cadastro em etapas: título, briefing, objetivo e referências no O que é; Mais campos (no Confere) guarda grupo, status e lote', () => {
   const mais = trecho(cad, '  function fcMaisCamposHtml(n, it) {', '  window.fcEscolherFormato =');
-  for (const p of ['fcObjetivoHtml()', 'fcArquivosHtml(n, it)', 'id="fc-auto-group-container"', "fcHandleInput('briefReady', this.checked)", "fcHandleInput('materialReady', this.checked)",
+  assert.ok(!mais.includes('fcObjetivoHtml()') && !mais.includes('fcArquivosHtml(n, it)'), 'objetivo e referências saíram de Mais campos');
+  const corpo = trecho(cad, '    const passo = (i, corpo, depois', '    renderPersons();');
+  assert.match(corpo, /passo\(1, `\$\{fcTituloBriefHtml\(n, it\)\}\$\{state\.board === 'demandas' \? '' : fcObjetivoHtml\(\)\}\$\{fcReferenciasHtml\(n, it\)\}`\)/, 'O que é: título, briefing, objetivo (só conteúdo) e referências');
+  assert.ok(trecho(cad, '  function fcReferenciasHtml(n, it) {', '  // Etapa 1 (clientes)').includes('fcArquivosHtml(n, it)'));
+  for (const p of ['id="fc-auto-group-container"', "fcHandleInput('briefReady', this.checked)", "fcHandleInput('materialReady', this.checked)",
     'fcAdicionarItem()', 'fcAbrirEscala()', 'fcColarTitulos()', 'fcEscalonarDatas()', 'fcTirarItem(']) assert.ok(mais.includes(p), p);
   assert.ok(!mais.includes('data-campo="brief"'), 'o briefing saiu de Mais campos');
-  const oQue = trecho(cad, '  function fcCartaoOQueHtml(n, it) {', '  function fcCartaoParaQuemHtml() {');
-  assert.ok(oQue.includes('data-campo="brief"') && oQue.includes('obrigatório'), 'o briefing está no O quê, marcado obrigatório');
+  const oQue = trecho(cad, '  function fcTituloBriefHtml(n, it) {', '  // Etapa 2 · as referências');
+  assert.ok(oQue.includes('data-campo="brief"') && oQue.includes('obrigatório'), 'o briefing está no O que é, marcado obrigatório');
   assert.match(cad, /if \(fcTemTexto\(it\.titulo\) && !fcTemTexto\(it\.brief\)\) focar = 'brief';/, 'faltando o briefing, a tela vai ao campo');
-  assert.match(cad, /if \(n === 0\) return Boolean\(state\.format\) && state\.itens\.every\(\(i\) => fcTemTexto\(i\.titulo\) && fcTemTexto\(i\.brief\)\);/, 'sem briefing a primeira etapa não fecha');
+  assert.match(cad, /if \(n === 1\) return itens\.every\(\(i\) => fcTemTexto\(i\?\.titulo\) && fcTemTexto\(i\?\.brief\)\);/, 'sem briefing o O que é não fecha');
   for (const id of ['fc-erro-formato', 'fc-erro-titulo', 'fc-erro-cliente', 'fc-erro-data', 'fc-erro-brief']) assert.ok(cad.includes(`fcErroHtml('${id}'`), id);
   assert.match(cad, /role="alert" hidden>/);
   // Cada campo do conteúdo aparece uma vez só na tela: a leitura da tela (fcSincronizarDaTela) não pode achar dois.
@@ -102,7 +115,7 @@ test('cadastro: o briefing obrigatório fica à vista no O quê; Mais campos gua
 });
 
 test('cadastro: escolhido é ficha preta, sem os estados que o tema antigo pinta de laranja', () => {
-  const cartoes = trecho(cad, '  function fcCartaoOQueHtml(n, it) {', '  function fcMaisCamposHtml(n, it) {');
+  const cartoes = trecho(cad, '  function fcQuadroFormatoHtml() {', '  function fcMaisCamposHtml(n, it) {');
   assert.doesNotMatch(cartoes, /aria-pressed|aria-selected/);
   assert.match(cartoes, /role="radio" aria-checked="\$\{state\.format === f\}" class="nd-chip\$\{state\.format === f \? ' on' : ''\}"/);
   assert.match(css, /body\.mundo #fc-overlay \.nd \.nd-chip\.on\{background:(?:#1F1D1A|var\(--d3-(?:tinta|fume-contra|tinta-fixa)(?:,[^)]*\))?\));color:(?:#FFFFFF|var\(--d3-(?:cartao|contra|escuro-texto)(?:,[^)]*\))?\));box-shadow:none\}/);

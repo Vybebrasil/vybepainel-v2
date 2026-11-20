@@ -177,8 +177,9 @@ test('Nova demanda: casca no vidro, rádio no O quê, responsável em caixa, "A 
   assert.match(cad, /<p class="nd-sub nd-previa-rot">Como chega na equipe<\/p>/);
   assert.match(cad, />Criar em escala<\/button>/);
   assert.match(cad, /<button type="button" class="nd-lk nd-sazonal" onclick="abrirCalendarioSazonal\(\)">Começar pelo calendário sazonal<\/button>/);
-  assert.match(cad, /texto\.textContent = `etapa \$\{fcEtapa \+ 1\} de \$\{FC_ETAPAS\.length\} · \$\{FC_ETAPAS\[fcEtapa\]\.toLowerCase\(\)\} · Ctrl\+Enter cria, Esc fecha`/);
-  assert.match(cad, /<div class="nd-etapas d3-tema">/);
+  // Cadastro em etapas (Paulo, 20/11/2026): "N de 4 · etapa" no topo e uma folha por vez.
+  assert.match(cad, /texto\.textContent = `\$\{fcEtapa \+ 1\} de \$\{FC_ETAPAS\.length\} · \$\{FC_ETAPAS\[fcEtapa\]\}`/);
+  assert.match(cad, /<div class="nd-card nd-passo-folha d3-tema">/);
   // ids e gatilhos de sempre
   for (const t of ['id="fc-prazo"', 'id="fc-no-ar"', 'id="fc-semana"', 'id="fc-mais-chip"', 'id="fc-submit-btn"', 'id="fc-voltar-btn"', 'id="fc-busca-cliente"', 'onclick="fcAceitarRegra(', 'onclick="fcAbrirPessoas()"']) assert.ok(cad.includes(t), t);
   const css = ler('padrao-v2/zm-r-a-7-nova-demanda.css');
@@ -193,7 +194,9 @@ test('Nova demanda: a pré-validação do Cadastros antigo (datas) e o atalho an
   assert.equal(conferir([{ veic: '2026-11-18', prazo: '2026-11-11' }], '2026-11-19'), 'A data do cliente não pode ficar antes de hoje.');
   assert.equal(conferir([{ veic: '2026-11-25', prazo: '2026-11-26' }], '2026-11-19'), 'O prazo interno precisa ser até a data do cliente.');
   assert.equal(conferir([{ veic: '2026-11-25', prazo: '2026-11-18' }], '2026-11-19'), '');
-  assert.match(cad, /const datas = FC_PASSOS\.every\(\(q\) => fcRespondido\(q\)\) \? fcConferirDatas\(\) : '';/);
+  // A conferência das datas roda ao sair das Datas (no conteúdo aberto) e de novo antes de cadastrar (em todos).
+  assert.match(cad, /if \(fcEtapa === 2\) \{ const datas = fcConferirDatas\(\[state\.itens\[fcItemAtivo\(\)\]\]\); if \(datas\) return fcAvisarDatas\(datas\); \}/);
+  assert.match(cad, /const datas = fcConferirDatas\(\);\s+if \(datas\) return fcAvisarDatas\(datas\);\s+return fcSubmit\(\);/);
   const perfis = ler('vybe-perfis.js');
   assert.match(perfis, /function openCadastrosGovernedLegacy\(\)\{if\(typeof window\.openCadastrosGoverned==='function'\)\{document\.getElementById\('cadastros-preview-overlay'\)\?\.remove\(\);return window\.openCadastrosGoverned\(\);\}/);
 });

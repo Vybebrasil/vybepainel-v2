@@ -1011,29 +1011,39 @@ window.fcPreviaDoCriar = function(board) {
   const FC_PASSOS = ['board', 'client', 'format', 'itens', 'destino'];
   let fcPasso = 0;
 
-  // TRÊS ETAPAS NA TELA, AS MESMAS CINCO CONFERÊNCIAS POR BAIXO (padrão v2, quadro "Nova demanda em etapas").
-  //
-  // A tela mostra três cartões lado a lado: O quê (quadro, formato e título), Para quem (clientes e responsável)
-  // e Quando (a data do cliente; o prazo interno sai dela). O briefing é obrigatório e fica à vista no O quê, logo
-  // abaixo do título (Paulo, 13/11/2026: "o briefing é obrigatório nas demandas pra evitar erro"). Objetivo, arquivo,
-  // grupo e status de entrada ficam em "Mais campos". O que é conferido antes de criar não mudou: FC_PASSOS e fcRespondido são os de sempre,
-  // e quando falta algo a tela leva para o cartão (ou para Mais campos) onde a resposta mora.
-  const FC_ETAPAS = ['O quê', 'Para quem', 'Quando'];
-  const FC_ETAPA_SUB = ['formato e título', '1 ou mais', 'data do cliente'];
-  const FC_FALTA_ETAPA = ['Escolha o formato e escreva o título e o briefing.', 'Escolha o cliente.', 'Escolha a data.'];
+  // CADASTRO EM ETAPAS (Paulo, 20/11/2026: "em relação ao cadastrar de conteúdo ou demanda... não gosto que apareça
+  // tudo de vez.. gosto de etapa a etapa pra não ficar confuso"). Uma pergunta-grupo por vez, a mesma janela para
+  // conteúdo e para demanda:
+  //   1 · Cliente e formato    onde entra (Produção de conteúdo ou Solicitação de demanda), o formato e o cliente
+  //   2 · O que é              título, briefing (obrigatório, Paulo 13/11), objetivo do conteúdo e referências
+  //   3 · Datas e responsável  a data do cliente manda (veiculação no conteúdo, conclusão na demanda), o prazo interno
+  //                            sai dela, a semana de quem faz e o responsável pela regra do formato
+  //   4 · Confere              o resumo (cada linha volta à etapa dela), "Como chega na equipe", Mais campos e escala
+  // Só a apresentação mudou: os campos, as regras e a gravação são os de antes (FC_PASSOS, fcRespondido, fcSubmit).
+  // Cada etapa só deixa seguir com os obrigatórios dela, conferidos no conteúdo aberto (fcEtapaFeitaNoAberto), e o erro
+  // aparece embaixo do campo. Antes de cadastrar a conferência inteira roda de novo e leva à etapa onde a resposta falta.
+  const FC_ETAPAS = ['Cliente e formato', 'O que é', 'Datas e responsável', 'Confere'];
+  const FC_ETAPA_PERGUNTA = ['Para quem é e de que tipo?', 'O que é?', 'Para quando e com quem?', 'Confere e cadastra'];
+  const FC_ETAPA_SUB = ['onde entra, o formato e o cliente', 'título, briefing e referências', 'a data do cliente manda; o prazo interno sai dela', 'clique numa linha para voltar à etapa dela'];
+  const FC_FALTA_ETAPA = ['Escolha o formato e o cliente.', 'Escreva o título e o briefing.', 'Escolha a data.', ''];
   let fcEtapa = 0;
   const fcTemTexto = (v) => Boolean(String(v || '').trim());
-  function fcEtapaFeita(n) {
-    if (n === 0) return Boolean(state.format) && state.itens.every((i) => fcTemTexto(i.titulo) && fcTemTexto(i.brief));
-    if (n === 1) return Boolean(state.client);
-    return state.itens.every((i) => i.veic && i.prazo);
+  // itens: por padrão todos os conteúdos do lote; para deixar seguir, só o conteúdo aberto (fcEtapaFeitaNoAberto).
+  function fcEtapaFeita(n, itens = state.itens) {
+    if (n === 0) return Boolean(state.format) && Boolean(state.client);
+    if (n === 1) return itens.every((i) => fcTemTexto(i?.titulo) && fcTemTexto(i?.brief));
+    if (n === 2) return itens.every((i) => i?.veic && i?.prazo);
+    return FC_PASSOS.every((q) => fcRespondido(q));
   }
-  // Em qual cartão mora a resposta que falta para a conferência p.
+  function fcEtapaFeitaNoAberto(n) { return fcEtapaFeita(n, [state.itens[fcItemAtivo()] || {}]); }
+  // Em qual etapa mora a resposta que falta para a conferência p.
   function fcEtapaDoPasso(p) {
-    if (p === 'board' || p === 'format') return 0;
-    if (p === 'client') return 1;
-    if (p === 'itens') return state.itens.some((i) => !fcTemTexto(i.titulo) || !fcTemTexto(i.brief)) ? 0 : 2;
-    return 2;
+    if (p === 'board' || p === 'format' || p === 'client') return 0;
+    if (p === 'itens') {
+      if (state.itens.some((i) => !fcTemTexto(i.titulo) || !fcTemTexto(i.brief))) return 1;
+      return state.itens.some((i) => !i.veic || !i.prazo) ? 2 : 3;
+    }
+    return 3;
   }
 
   function fcRespondido(p) {
@@ -1099,18 +1109,24 @@ window.fcPreviaDoCriar = function(board) {
     return { dest, daRegra };
   }
 
-  function fcCartaoOQueHtml(n, it) {
+  // Etapa 1 · onde entra e o formato (o cliente vem logo abaixo, de fcParaQuemHtml).
+  function fcQuadroFormatoHtml() {
     const lista = fcListaCatalogo('format');
     return `
-      ${['producao', 'demandas'].map((q) => `
+      <div class="nd-tipos" role="radiogroup" aria-label="Onde entra">${['producao', 'demandas'].map((q) => `
         <button type="button" role="radio" aria-checked="${state.board === q}" class="nd-tipo${state.board === q ? ' on' : ''}" onclick="fcEscolherQuadro('${q}')">
           <span class="nd-radio" aria-hidden="true"></span>
-          <span class="nd-tipo-txt"><b>${esc(FC_QUADROS[q].nome)}</b><small>${q === 'producao' ? 'o que a Vybe produz e publica' : 'pedido que chega e passa por triagem'}</small></span></button>`).join('')}
+          <span class="nd-tipo-txt"><b>${esc(FC_QUADROS[q].nome)}</b><small>${q === 'producao' ? 'o que a Vybe produz e publica' : 'pedido que chega e passa por triagem'}</small></span></button>`).join('')}</div>
       <p class="nd-rot" id="fc-label-formato">${esc(fcQuadro().rotuloFormato)}</p>
-      <div class="nd-fileira" role="radiogroup" aria-labelledby="fc-label-formato">${lista.map((f) => `
+      <div class="nd-fileira nd-formatos" role="radiogroup" aria-labelledby="fc-label-formato">${lista.map((f) => `
         <button type="button" role="radio" aria-checked="${state.format === f}" class="nd-chip${state.format === f ? ' on' : ''}"
           data-valor="${esc(f)}" onclick="fcEscolherFormato(this.dataset.valor)">${esc(f)}</button>`).join('')}${fcAdicionarOpcaoHtml('format')}</div>
-      ${fcErroHtml('fc-erro-formato', 'Escolha o formato.')}
+      ${fcErroHtml('fc-erro-formato', 'Escolha o formato.')}`;
+  }
+
+  // Etapa 2 · título e briefing do conteúdo aberto (no lote, "N de M" no rótulo).
+  function fcTituloBriefHtml(n, it) {
+    return `
       <label class="nd-rot" for="fc-titulo">Título${state.itens.length > 1 ? ` <span>${n + 1} de ${state.itens.length}</span>` : ''}</label>
       <input type="text" id="fc-titulo" class="nd-campo" data-item="${n}" data-campo="titulo" autocomplete="off"
         placeholder="Ex.: Promoção de sábado" value="${esc(it.titulo)}" aria-describedby="fc-erro-titulo" oninput="fcItemCampo(${n},'titulo',this.value)">
@@ -1122,7 +1138,16 @@ window.fcPreviaDoCriar = function(board) {
       ${fcErroHtml('fc-erro-brief', 'Falta o briefing.')}`;
   }
 
-  function fcCartaoParaQuemHtml() {
+  // Etapa 2 · as referências do conteúdo aberto (antes em Mais campos). A caixa aceita arquivo solto.
+  function fcReferenciasHtml(n, it) {
+    return `<div class="nd-mais-col nd-refs" ondragover="fcArrastando(event,this,true)" ondragleave="fcArrastando(event,this,false)" ondrop="fcSoltarArquivos(event,${n},this)">
+          <p class="nd-rot">Arquivos de referência <span class="nd-neutro">opcional</span></p>
+          ${fcArquivosHtml(n, it)}
+        </div>`;
+  }
+
+  // Etapa 1 (clientes) e etapa 3 (responsável): as duas partes saem da mesma conta da regra do formato.
+  function fcParaQuemHtml() {
     const clientes = typeof cadastrosClientOptions === 'function' ? cadastrosClientOptions() : [];
     const escolhidos = state.clients?.length ? state.clients : (state.client ? [state.client] : []);
     // Seis à vista (os escolhidos primeiro); o resto abre no "+ N" ou aparece ao buscar.
@@ -1152,7 +1177,8 @@ window.fcPreviaDoCriar = function(board) {
           </div>
         </div>
       </div>` : dest.aguardando ? `<p class="nd-sub" title="${esc(dest.why || '')}"><span class="nd-quem">Impresso · quem decide</span> <b>o ${esc(dest.aguardando)}</b>, pelas regras de Impressos</p>` : `<p class="nd-sub">${state.format ? 'sem sugestão' : 'escolha o formato'}</p>`;
-    return `
+    return { clientes: `
+      <p class="nd-rot" aria-hidden="true">Cliente</p>
       <label class="nd-fora" for="fc-busca-cliente">Buscar cliente</label>
       <input type="search" class="nd-busca" id="fc-busca-cliente" placeholder="Buscar cliente" autocomplete="off"
           oninput="fcFiltrar('fc-lista-cliente', this.value)">
@@ -1163,15 +1189,15 @@ window.fcPreviaDoCriar = function(board) {
             aria-checked="${marcado}" aria-label="${esc(c)}" data-busca="${esc(String(c).toLowerCase())}"
             data-valor="${esc(c)}" onclick="fcAlternarCliente(this.dataset.valor)"><span class="nd-cli-av" aria-hidden="true">${esc(fcSiglaCliente(c))}</span>${fcClienteHtml(c)}</button>`;
         }).join('')}${resto ? `<button type="button" class="nd-chip nd-mais-clientes" onclick="fcMostrarClientes()">+ ${resto}</button>` : ''}${fcAdicionarOpcaoHtml('client')}</div>
-      ${fcErroHtml('fc-erro-cliente', 'Escolha o cliente.')}
-      <div class="nd-resp">
+      ${fcErroHtml('fc-erro-cliente', 'Escolha o cliente.')}`,
+      responsavel: `<div class="nd-resp">
         <p class="nd-rot">Responsável</p>
         ${fala}
         <div class="nd-ou"><span class="nd-avs">${outros.map((u) => `<span class="nd-av" title="${esc(u.name)}">${esc(fcIniciais(u.name))}</span>`).join('')}</span>
           <button type="button" class="nd-lk escuro" aria-expanded="${Boolean(state.pessoasAbertas)}" aria-controls="fc-persons-container" onclick="fcAbrirPessoas()">escolher outra pessoa</button>
           ${dest.aguardando ? `<span class="nd-sub nd-triagem" title="Sem responsável, o impresso fica aguardando o ${esc(dest.aguardando)}">sem dono fica aguardando o ${esc(dest.aguardando)}</span>` : `<span class="nd-sub nd-triagem" title="Sem responsável, a demanda entra na triagem">sem dono vai para a triagem</span>`}</div>
         <div class="nd-fileira nd-pessoas" id="fc-persons-container"${state.pessoasAbertas ? '' : ' hidden'}></div>
-      </div>`;
+      </div>` };
   }
 
   function fcCartaoQuandoHtml(n, it) {
@@ -1258,7 +1284,8 @@ window.fcPreviaDoCriar = function(board) {
     return `<p class="nd-semana-topo"><b class="nd-rot">Semana de ${dm}</b><span class="nd-sub">limite de ${s.regua} ${s.video ? 'vídeos' : 'peças'} por pessoa</span></p>${linhas}`;
   }
 
-  // Mais campos: objetivo, arquivo, grupo e status de entrada, e as ferramentas de lote (o briefing fica no O quê).
+  // Mais campos (etapa Confere): grupo, status de entrada, captação ou prioridade, os atalhos e as ferramentas de lote.
+  // Objetivo e referências foram para a etapa O que é; o briefing também.
   function fcMaisCamposHtml(n, it) {
     const esc2 = (t) => esc(String(t == null ? '' : t));
     const demanda = state.board === 'demandas';
@@ -1266,12 +1293,7 @@ window.fcPreviaDoCriar = function(board) {
     const prontos = state.itens.filter(fcItemPronto).length;
     const faltam = fcFaltamTexto();
     return `
-      ${demanda ? '' : fcObjetivoHtml()}
-      <div class="nd-mais-grade">
-        <div class="nd-mais-col" ondragover="fcArrastando(event,this,true)" ondragleave="fcArrastando(event,this,false)" ondrop="fcSoltarArquivos(event,${n},this)">
-          <p class="nd-rot">Arquivos de referência</p>
-          ${fcArquivosHtml(n, it)}
-        </div>
+      <div class="nd-mais-grade nd-mais-uma">
         <div class="nd-mais-col">
           <div class="fc-auto-group nd-destino" id="fc-auto-group-container"></div>
           <div class="nd-atalhos">
@@ -1535,7 +1557,7 @@ window.fcPreviaDoCriar = function(board) {
     state.itemAtivo = state.itens.length - 1;
     state.outraData = false;
     fcEspelharPrimeiro();
-    fcEtapa = 0;
+    fcEtapa = 1;
     fcDesenharPasso();
     // O titulo do novo conteudo e onde a pessoa vai escrever agora.
     document.getElementById('fc-titulo')?.focus();
@@ -1595,6 +1617,8 @@ window.fcPreviaDoCriar = function(board) {
     fcSincronizarDaTela();
     state.itemAtivo = Math.min(Math.max(Number(n) || 0, 0), state.itens.length - 1);
     state.outraData = false;
+    // O título e o briefing do conteúdo escolhido moram na etapa O que é.
+    fcEtapa = 1;
     fcDesenharPasso();
     const alvo = String(state.itens[state.itemAtivo]?.titulo || '').trim()
       ? document.getElementById('fc-brief') : document.getElementById('fc-titulo');
@@ -1712,6 +1736,7 @@ window.fcPreviaDoCriar = function(board) {
     state.escalaAberta = false;
     state.itemAtivo = 0;
     fcEspelharPrimeiro();
+    fcEtapa = 1;
     fcDesenharPasso();
     document.querySelector('[data-campo="titulo"]')?.focus();
     if (typeof showToast === 'function') showToast(`✓ ${datas.length} cartões com as datas. Agora é colar título e briefing.`, 'ok', 5000);
@@ -1801,50 +1826,72 @@ window.fcPreviaDoCriar = function(board) {
     document.querySelector('#fc-guia .nd-tipo.on')?.focus({ preventScroll: true });
   };
 
-  // Os três cartões ficam sempre na tela: ir para uma etapa só muda qual está em destaque.
+  // As quatro etapas ficam desenhadas e só a da vez aparece: ir para uma etapa só troca qual está à vista (os campos
+  // continuam no lugar, e a leitura da tela, fcSincronizarDaTela, acha todos). Voltar e o resumo não conferem nada.
   window.fcIrPara = function(n) {
     if (fcEnviando) return;
-    if (n < 0 || n >= FC_ETAPAS.length || n === fcEtapa) return;
-    fcEtapa = n;
-    fcPintarProgresso();
-  };
-
-  window.fcAvancar = function() {
-    if (fcEnviando) return;
+    if (!(n >= 0 && n < FC_ETAPAS.length)) return;
     fcSincronizarDaTela();
-    if (fcEtapa >= FC_ETAPAS.length - 1 || FC_PASSOS.every((q) => fcRespondido(q))) {
-      const datas = FC_PASSOS.every((q) => fcRespondido(q)) ? fcConferirDatas() : '';
-      if (datas) {
-        fcEtapa = 2; fcPintarProgresso();
-        const aviso = document.getElementById('fc-erro-prazo');
-        if (aviso) { aviso.querySelector('span').textContent = datas; aviso.hidden = false; }
-        fcFocarEtapa();
-        return typeof showToast === 'function' ? showToast(datas, 'info') : null;
-      }
-      return fcSubmit();
-    }
-    if (!fcEtapaFeita(fcEtapa)) {
-      fcMostrarFaltas();
-      return typeof showToast === 'function' ? showToast(FC_FALTA_ETAPA[fcEtapa], 'info') : null;
-    }
-    fcEtapa++;
+    fcEtapa = n;
     fcPintarProgresso();
     fcFocarEtapa();
   };
 
+  // Continuar: só passa com os obrigatórios da etapa; na última, cadastra (a mesma fcSubmit de sempre).
+  window.fcAvancar = function() {
+    if (fcEnviando) return;
+    fcSincronizarDaTela();
+    if (fcEtapa >= FC_ETAPAS.length - 1) {
+      const faltando = FC_PASSOS.find((q) => !fcRespondido(q));
+      if (faltando) { fcPasso = FC_PASSOS.indexOf(faltando); fcDesenharPasso(); return; }
+      const datas = fcConferirDatas();
+      if (datas) return fcAvisarDatas(datas);
+      return fcSubmit();
+    }
+    if (!fcEtapaFeitaNoAberto(fcEtapa)) { fcMostrarFaltas(); fcFocarFalta(); return; }
+    if (fcEtapa === 2) { const datas = fcConferirDatas([state.itens[fcItemAtivo()]]); if (datas) return fcAvisarDatas(datas); }
+    fcEtapa += 1;
+    fcPintarProgresso();
+    fcFocarEtapa();
+  };
+  window.fcEtapaFeita = fcEtapaFeita;
+
+  // Data fora da regra (antes de hoje, ou prazo depois da data do cliente): leva às Datas do conteúdo que errou.
+  function fcAvisarDatas(texto) {
+    const ruim = state.itens.findIndex((i) => fcConferirDatas([i]));
+    fcEtapa = 2;
+    if (ruim >= 0 && ruim !== fcItemAtivo()) { state.itemAtivo = ruim; fcDesenharPasso(); } else fcPintarProgresso();
+    const aviso = document.getElementById('fc-erro-prazo');
+    if (aviso) { aviso.querySelector('span').textContent = texto; aviso.hidden = false; }
+    fcFocarEtapa();
+  }
+
   window.fcVoltar = function() {
     if (fcEnviando) return;
-    if (fcEtapa > 0) { fcEtapa--; fcPintarProgresso(); fcFocarEtapa(); } else fcCloseModal();
+    if (fcEtapa > 0) { fcSincronizarDaTela(); fcEtapa -= 1; fcPintarProgresso(); fcFocarEtapa(); } else fcPedirFechar();
   };
 
   function fcFocarEtapa() {
-    const alvo = fcEtapa === 0 ? (state.format ? '#fc-titulo' : '[data-etapa="0"] .nd-chip')
-      : fcEtapa === 1 ? '#fc-busca-cliente' : '[data-etapa="2"] .nd-dia.on, [data-etapa="2"] .nd-dia';
+    const it = state.itens[fcItemAtivo()] || {};
+    const alvo = fcEtapa === 0 ? (!state.format ? '[data-etapa="0"] .nd-formatos .nd-chip' : !state.client ? '#fc-busca-cliente' : '[data-etapa="0"] .nd-tipo.on')
+      : fcEtapa === 1 ? (fcTemTexto(it.titulo) && !fcTemTexto(it.brief) ? '#fc-brief' : '#fc-titulo')
+      : fcEtapa === 2 ? '[data-etapa="2"] .nd-dia.on, [data-etapa="2"] .nd-dia'
+      : '';
+    const el = alvo ? document.querySelector(`#fc-guia ${alvo}`) : document.getElementById('fc-submit-btn');
+    el?.focus({ preventScroll: true });
+    document.getElementById('fc-guia')?.scrollTo?.({ top: 0 });
+  }
+  function fcFocarFalta() {
+    const it = state.itens[fcItemAtivo()] || {};
+    const alvo = fcEtapa === 0 ? (!state.format ? '[data-etapa="0"] .nd-formatos .nd-chip' : '#fc-busca-cliente')
+      : fcEtapa === 1 ? (!fcTemTexto(it.titulo) ? '#fc-titulo' : '#fc-brief')
+      : '[data-etapa="2"] .nd-dia';
     document.querySelector(`#fc-guia ${alvo}`)?.focus({ preventScroll: true });
   }
 
-  // O erro fica embaixo do campo que falta (famílias de subtela, formulário).
-  function fcMostrarFaltas() {
+  // O erro fica embaixo do campo que falta, só na etapa da vez (famílias de subtela, formulário).
+  const FC_ERRO_ETAPA = { 'fc-erro-formato': 0, 'fc-erro-cliente': 0, 'fc-erro-titulo': 1, 'fc-erro-brief': 1, 'fc-erro-data': 2 };
+  function fcMostrarFaltas(etapa = fcEtapa) {
     const it = state.itens[fcItemAtivo()] || {};
     const faltas = {
       'fc-erro-formato': !state.format,
@@ -1854,7 +1901,8 @@ window.fcPreviaDoCriar = function(board) {
       'fc-erro-brief': !fcTemTexto(it.brief),
     };
     const campos = { 'fc-erro-titulo': 'fc-titulo', 'fc-erro-cliente': 'fc-busca-cliente', 'fc-erro-brief': 'fc-brief' };
-    Object.entries(faltas).forEach(([id, falta]) => {
+    Object.entries(faltas).forEach(([id, faltaAqui]) => {
+      const falta = faltaAqui && FC_ERRO_ETAPA[id] === etapa;
       const aviso = document.getElementById(id);
       if (aviso) aviso.hidden = !falta;
       const campo = campos[id] && document.getElementById(campos[id]);
@@ -1862,39 +1910,88 @@ window.fcPreviaDoCriar = function(board) {
     });
   }
 
-  // O que muda sem redesenhar: a etapa em destaque, o visto das feitas, a barra e o botão.
+  // Etapa 4 · o resumo: o que vai ser cadastrado, linha por linha; cada linha volta à etapa onde aquilo se responde.
+  function fcResumoHtml() {
+    const q = fcQuadro(), demanda = state.board === 'demandas';
+    const clientes = state.clients?.length ? state.clients : (state.client ? [state.client] : []);
+    const itens = state.itens || [];
+    const { dest } = fcRegraDoFormato();
+    const users = typeof TEAM_USERS !== 'undefined' ? TEAM_USERS : [];
+    const equipe = fcEquipeFinal(dest).map((id) => users.find((u) => String(u.id) === String(id))).filter(Boolean).map((u) => String(u.name || '').split(' ')[0]);
+    const falta = (t) => `<em class="nd-res-falta">${esc(t)}</em>`;
+    const curto = (s, max) => { const x = String(s || '').replace(/\s+/g, ' ').trim(); return x.length > max ? `${x.slice(0, max - 1)}…` : x; };
+    const todos = (f) => itens.length > 0 && itens.every(f);
+    const linha = (etapa, rot, valor) => `<button type="button" class="nd-res-linha" onclick="fcIrPara(${etapa})" aria-label="${esc(rot)}: voltar para ${esc(FC_ETAPAS[etapa])}"><small>${esc(rot)}</small><span>${valor}</span><i aria-hidden="true">alterar</i></button>`;
+    const grupo = (etapa, corpo) => `<div class="nd-res-grupo"><p class="nd-res-tit">${etapa + 1} · ${esc(FC_ETAPAS[etapa])}</p>${corpo}</div>`;
+    const varios = itens.length > 1;
+    const titulos = varios ? `${itens.length} · ${esc(itens.map((i) => curto(i.titulo, 40) || 'sem título').join(', '))}` : esc(curto(itens[0]?.titulo, 90));
+    const arquivos = itens.reduce((s, i) => s + (i.arquivos || []).length, 0);
+    const obj = FC_OBJETIVOS.find(([v]) => v === state.objetivo);
+    const datas = (campo) => (varios ? itens.map((i) => fcDataCurta(i[campo])).join(' · ') : fcDataCurta(itens[0]?.[campo]));
+    return grupo(0, linha(0, 'Onde entra', esc(q.nome))
+        + linha(0, q.rotuloFormato, state.format ? esc(state.format) : falta('falta escolher'))
+        + linha(0, clientes.length > 1 ? 'Clientes' : 'Cliente', clientes.length ? clientes.map((c) => fcClienteHtml(c)).join(' ') : falta('falta escolher')))
+      + grupo(1, linha(1, varios ? 'Títulos' : 'Título', todos((i) => fcTemTexto(i.titulo)) ? titulos : falta(varios ? 'falta título em algum' : 'falta o título'))
+        + linha(1, 'Briefing', todos((i) => fcTemTexto(i.brief)) ? esc(curto(itens[0]?.brief, 120)) : falta(varios ? 'falta briefing em algum' : 'falta o briefing'))
+        + (demanda ? '' : linha(1, 'Objetivo', obj ? esc(obj[1]) : 'nenhum'))
+        + linha(1, 'Referências', arquivos ? `${arquivos} arquivo${arquivos === 1 ? '' : 's'}` : 'nenhuma'))
+      + grupo(2, linha(2, demanda ? 'Conclusão' : 'Veiculação', todos((i) => i.veic) ? esc(datas('veic')) : falta('falta a data'))
+        + linha(2, 'Prazo interno', todos((i) => i.prazo) ? esc(datas('prazo')) : falta('falta o prazo'))
+        + linha(2, 'Responsável', equipe.length ? esc(equipe.join(', ')) : dest?.aguardando ? `aguardando o ${esc(dest.aguardando)}` : 'sem dono, vai para a triagem'));
+  }
+
+  // O que mudou desde que a janela abriu (o que veio do contexto não conta): é o que pede confirmação para fechar.
+  function fcAssinatura(s = state) {
+    const itens = (s.itens || []).map((i) => [i.titulo || '', i.veic || '', i.prazo || '', i.brief || '', (i.arquivos || []).length]);
+    return JSON.stringify([s.board, s.client || '', s.clients || [], s.format || '', itens, (s.assignees || []).map(String), (s.removidos || []).map(String),
+      Boolean(s.materialReady), s.materialBruto || '', Boolean(s.briefReady), s.manualGroup ?? null, s.manualStatus ?? null, s.manualCap ?? null, s.prioridade || '', s.objetivo || '']);
+  }
+  function fcAlgoPreenchido() { fcSincronizarDaTela(); return fcAssinatura() !== state.assinaturaInicial; }
+  // Esc, o X e o clique fora fecham; com algo preenchido, perguntam antes (a janela de pergunta do padrão, sem alert).
+  let fcPerguntandoFechar = false;
+  window.fcPedirFechar = async function() {
+    if (fcEnviando || fcPerguntandoFechar || !document.getElementById('fc-overlay')) return;
+    if (!fcAlgoPreenchido() || typeof perguntarNoPainel !== 'function') return fcCloseModal();
+    fcPerguntandoFechar = true;
+    try {
+      const sim = await perguntarNoPainel({ titulo: 'Fechar sem cadastrar?', texto: 'O que você preencheu neste cadastro vai ser descartado.', confirmar: 'Descartar', perigo: true });
+      if (sim) fcCloseModal();
+    } finally { fcPerguntandoFechar = false; }
+  };
+
+  // O que muda sem redesenhar: a etapa à vista, o trilho, o "N de 4", o título da janela e os botões.
   window.fcPintarProgresso = function() {
     const janela = document.querySelector('#fc-overlay .nd');
     if (!janela) return;
-    janela.querySelectorAll('[data-etapa]').forEach((cartao) => {
-      const n = Number(cartao.dataset.etapa), agora = n === fcEtapa, feita = fcEtapaFeita(n);
-      cartao.classList.toggle('agora', agora);
-      if (agora) cartao.setAttribute('aria-current', 'step'); else cartao.removeAttribute('aria-current');
-      const num = cartao.querySelector('.nd-num');
-      if (num) { num.className = `nd-num${agora ? ' on' : feita ? ' ok' : ''}`; num.innerHTML = feita && !agora ? FC_ICONE.visto : String(n + 1); }
-      const sub = cartao.querySelector('.nd-cab .nd-sub');
-      if (sub) sub.textContent = feita && !agora ? 'feito' : FC_ETAPA_SUB[n];
+    const ultima = FC_ETAPAS.length - 1;
+    if (fcEtapa === ultima) {
+      const resumo = document.getElementById('fc-resumo');
+      if (resumo) resumo.innerHTML = fcResumoHtml();
+    }
+    janela.querySelectorAll('.nd-passo[data-etapa]').forEach((passo) => {
+      const agora = Number(passo.dataset.etapa) === fcEtapa;
+      passo.hidden = !agora;
+      if (agora) passo.setAttribute('aria-current', 'step'); else passo.removeAttribute('aria-current');
     });
+    const demanda = state.board === 'demandas';
+    const titulo = document.getElementById('fc-nd-titulo');
+    if (titulo) titulo.textContent = demanda ? 'Nova demanda' : 'Novo conteúdo';
     const texto = janela.querySelector('.fc-trilha-texto');
-    if (texto) texto.textContent = `etapa ${fcEtapa + 1} de ${FC_ETAPAS.length} · ${FC_ETAPAS[fcEtapa].toLowerCase()} · Ctrl+Enter cria, Esc fecha`;
-    janela.querySelectorAll('.nd-tracos > i').forEach((t, i) => t.classList.toggle('on', i <= fcEtapa));
-    const barra = janela.querySelector('.nd-barra > i');
-    if (barra) barra.style.setProperty('--v', `${Math.round(((fcEtapa + 1) / FC_ETAPAS.length) * 100)}%`);
-    const pronto = FC_PASSOS.every((q) => fcRespondido(q));
+    if (texto) texto.textContent = `${fcEtapa + 1} de ${FC_ETAPAS.length} · ${FC_ETAPAS[fcEtapa]}`;
+    janela.querySelectorAll('.nd-tracos > i').forEach((t, i) => { t.classList.toggle('on', i <= fcEtapa); t.classList.toggle('ok', i < fcEtapa); });
+    const barra = janela.querySelector('.nd-barra');
+    if (barra) {
+      barra.setAttribute('aria-valuenow', String(fcEtapa + 1));
+      barra.setAttribute('aria-valuetext', `${fcEtapa + 1} de ${FC_ETAPAS.length}: ${FC_ETAPAS[fcEtapa]}`);
+      barra.firstElementChild?.style.setProperty('--v', `${Math.round(((fcEtapa + 1) / FC_ETAPAS.length) * 100)}%`);
+    }
     const botao = document.getElementById('fc-submit-btn');
-    const varios = state.itens.length > 1;
-    if (botao && !fcEnviando) botao.textContent = fcEtapa >= FC_ETAPAS.length - 1 || pronto
-      ? (varios ? `Criar ${state.itens.length} demandas` : 'Criar demanda') : 'Continuar';
+    const n = state.itens.length;
+    if (botao && !fcEnviando) botao.textContent = fcEtapa >= ultima ? (n > 1 ? `Cadastrar ${n} ${demanda ? 'demandas' : 'conteúdos'}` : 'Cadastrar') : 'Continuar';
     const voltar = document.getElementById('fc-voltar-btn');
     if (voltar) voltar.textContent = fcEtapa > 0 ? 'Voltar' : 'Cancelar';
-    const semBriefing = state.itens.some((i) => !fcTemTexto(i.brief));
     const nota = document.getElementById('fc-nota');
-    if (nota) {
-      const soFaltaBriefing = semBriefing && [0, 1, 2].every((n) => fcEtapaFeita(n));
-      nota.classList.toggle('falta', soFaltaBriefing);
-      nota.textContent = soFaltaBriefing ? 'Falta o briefing.'
-        : '';
-    }
+    if (nota) nota.textContent = fcEtapa >= ultima ? 'Enter cadastra · Esc fecha' : 'Enter continua · Esc fecha';
   };
 
   window.fcDesenharPasso = function() {
@@ -1926,24 +2023,32 @@ window.fcPreviaDoCriar = function(board) {
     const busca = document.getElementById('fc-busca-cliente')?.value || '';
     const n = fcItemAtivo();
     const it = state.itens[n];
-    const cartao = (i, corpo) => `
-      <section class="nd-card nd-etapa" data-etapa="${i}" onpointerdown="fcIrPara(${i})" onfocusin="fcIrPara(${i})">
-        <div class="nd-cab" onclick="fcIrPara(${i})" title="Etapa ${i + 1}: ${esc(FC_ETAPAS[i])}"><span class="nd-num">${i + 1}</span><h2>${esc(FC_ETAPAS[i])}</h2><span class="nd-sub">${esc(FC_ETAPA_SUB[i])}</span></div>
-        ${corpo}
+    const passo = (i, corpo, depois = '') => `
+      <section class="nd-passo" data-etapa="${i}" aria-labelledby="fc-passo-${i}"${i === fcEtapa ? ' aria-current="step"' : ' hidden'}>
+        <div class="nd-card nd-passo-folha d3-tema">
+          <div class="nd-cab"><h2 id="fc-passo-${i}">${esc(FC_ETAPA_PERGUNTA[i])}</h2><span class="nd-sub">${esc(FC_ETAPA_SUB[i])}</span></div>
+          ${corpo}
+        </div>${depois}
       </section>`;
+    const pq = fcParaQuemHtml();
     caixa.innerHTML = `
-      <div class="nd-etapas d3-tema">${cartao(0, fcCartaoOQueHtml(n, it))}${cartao(1, fcCartaoParaQuemHtml())}${cartao(2, fcCartaoQuandoHtml(n, it))}</div>
-      <div class="fc-resposta nd-vaga"></div>
-      <div class="nd-card nd-previa d3-tema">
-        <div class="nd-previa-txt">
-          <p class="nd-sub nd-previa-rot">Como chega na equipe</p>
-          <p class="nd-previa-linha"><b id="fc-prev-title"></b><span id="fc-prev-client"></span><span id="fc-prev-status"></span>
-            <span class="nd-sub">grupo <span id="fc-prev-group"></span> · <span id="fc-prev-users"></span> · <span id="fc-prev-dates"></span></span></p>
+      <div class="nd-passos">
+      ${passo(0, `${fcQuadroFormatoHtml()}${pq.clientes}`)}
+      ${passo(1, `${fcTituloBriefHtml(n, it)}${state.board === 'demandas' ? '' : fcObjetivoHtml()}${fcReferenciasHtml(n, it)}`)}
+      ${passo(2, `<div class="nd-passo-duas"><div class="nd-passo-col">${fcCartaoQuandoHtml(n, it)}</div><div class="nd-passo-col">${pq.responsavel}</div></div>`)}
+      ${passo(3, `<div class="nd-resumo" id="fc-resumo">${fcResumoHtml()}</div>`, `
+        <div class="nd-card nd-previa d3-tema">
+          <div class="nd-previa-txt">
+            <p class="nd-sub nd-previa-rot">Como chega na equipe</p>
+            <p class="nd-previa-linha"><b id="fc-prev-title"></b><span id="fc-prev-client"></span><span id="fc-prev-status"></span>
+              <span class="nd-sub">grupo <span id="fc-prev-group"></span> · <span id="fc-prev-users"></span> · <span id="fc-prev-dates"></span></span></p>
+          </div>
+          <button type="button" class="nd-lk nd-escala" onclick="fcAlternarMais(true);setTimeout(()=>document.querySelector('#fc-mais .nd-lote, #fc-mais [onclick*=fcAdicionarItem]')?.scrollIntoView({block:'nearest'}),320)" title="Vários conteúdos de uma vez, com as datas em sequência">Criar em escala</button>
+          <button type="button" class="nd-chip" id="fc-mais-chip" aria-expanded="${Boolean(state.maisAberto)}" aria-controls="fc-mais" onclick="fcAlternarMais()">Mais campos${FC_ICONE.seta}</button>
         </div>
-        <button type="button" class="nd-lk nd-escala" onclick="fcAlternarMais(true);setTimeout(()=>document.querySelector('#fc-mais .nd-lote, #fc-mais [onclick*=fcAdicionarItem]')?.scrollIntoView({block:'nearest'}),320)" title="Vários conteúdos de uma vez, com as datas em sequência">Criar em escala</button>
-        <button type="button" class="nd-chip" id="fc-mais-chip" aria-expanded="${Boolean(state.maisAberto)}" aria-controls="fc-mais" onclick="fcAlternarMais()">Mais campos · 4${FC_ICONE.seta}</button>
+        <div class="v2-abre nd-mais" id="fc-mais" aria-expanded="${Boolean(state.maisAberto)}"><div class="v2-mais"${state.maisAberto ? '' : ' inert'}><div><div class="nd-card nd-mais-dentro">${fcMaisCamposHtml(n, it)}</div></div></div></div>`)}
       </div>
-      <div class="v2-abre nd-mais" id="fc-mais" aria-expanded="${Boolean(state.maisAberto)}"><div class="v2-mais"${state.maisAberto ? '' : ' inert'}><div><div class="nd-card nd-mais-dentro">${fcMaisCamposHtml(n, it)}</div></div></div></div>`;
+      <div class="fc-resposta nd-vaga"></div>`;
 
     renderPersons();
     renderCustomDropdownsGlobal();
@@ -2117,7 +2222,7 @@ window.fcPreviaDoCriar = function(board) {
     const overlay = document.createElement('div');
     overlay.id = 'fc-overlay';
     overlay.className = 'fc-overlay';
-    overlay.onclick = e => { if(e.target === overlay) fcCloseModal(); };
+    overlay.onclick = e => { if(e.target === overlay) fcPedirFechar(); };
 
     // Errar o alvo por dois centimetros nao pode custar o cadastro inteiro: sem
     // isto o navegador abre o arquivo solto e a janela vai embora com tudo que
@@ -2131,24 +2236,24 @@ window.fcPreviaDoCriar = function(board) {
       if (!temArquivo) return;
       // O arquivo solto em qualquer ponto da janela vai para o conteúdo que está aberto.
       fcSoltarArquivos(e, fcItemAtivo(), null);
-      fcAlternarMais(true);
+      fcIrPara(1);
     };
 
     overlay.innerHTML = `
-      <div class="nd" role="dialog" aria-modal="true" aria-labelledby="fc-nd-titulo">
+      <div class="nd nd-em-passos" role="dialog" aria-modal="true" aria-labelledby="fc-nd-titulo">
         <div class="nd-topo">
-          <span class="nd-titulos"><h1 id="fc-nd-titulo">Nova demanda</h1>
-          <span class="nd-sub fc-trilha-texto">Etapa ${fcEtapa + 1} de ${FC_ETAPAS.length}</span></span>
-          <span class="nd-tracos" aria-hidden="true"><i class="on"></i><i></i><i></i></span>
-          <button type="button" aria-label="Fechar cadastro" class="nd-btn s nd-x" onclick="fcCloseModal()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <span class="nd-titulos"><h1 id="fc-nd-titulo">${state.board === 'demandas' ? 'Nova demanda' : 'Novo conteúdo'}</h1>
+          <span class="nd-sub fc-trilha-texto">1 de ${FC_ETAPAS.length} · ${FC_ETAPAS[0]}</span></span>
+          <button type="button" aria-label="Fechar cadastro" class="nd-btn s nd-x" onclick="fcPedirFechar()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
-        <div class="v2-barra nd-barra" role="progressbar" aria-label="Etapas do cadastro" aria-valuemin="1" aria-valuemax="3"><i style="--v:33%;--c:#FF7A2F"></i></div>
+        <span class="nd-tracos" aria-hidden="true">${FC_ETAPAS.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</span>
+        <div class="v2-barra nd-barra" role="progressbar" aria-label="Etapas do cadastro" aria-valuemin="1" aria-valuemax="${FC_ETAPAS.length}" aria-valuenow="1"><i style="--v:25%"></i></div>
         <div class="nd-corpo" id="fc-guia"></div>
         <div class="nd-pe">
           <button type="button" class="nd-lk nd-sazonal" onclick="abrirCalendarioSazonal()">Começar pelo calendário sazonal</button>
           <p class="nd-sub" id="fc-nota"></p>
           <button type="button" class="nd-btn" id="fc-voltar-btn" onclick="fcVoltar()">Voltar</button>
-          <button type="button" class="nd-btn k principal" id="fc-submit-btn" onclick="fcAvancar()">Criar demanda</button>
+          <button type="button" class="nd-btn k principal" id="fc-submit-btn" onclick="fcAvancar()">Continuar</button>
         </div>
       </div>
     `;
@@ -2167,6 +2272,8 @@ window.fcPreviaDoCriar = function(board) {
       fcPasso = pendente < 0 ? FC_PASSOS.length - 1 : pendente;
     }
     fcDesenharPasso();
+    // O que veio do contexto (cliente aberto, dia do calendário, data sazonal) não conta como preenchido.
+    state.assinaturaInicial = fcAssinatura();
     if (typeof ensureClientMasterSources === 'function') void ensureClientMasterSources().then(() => {
       if (document.getElementById('fc-overlay') === overlay && !fcEnviando && !overlay.contains(document.activeElement)
           && !document.getElementById('fc-nova-opcao') && !document.getElementById('fc-busca-cliente')?.value) fcDesenharPasso();
@@ -2185,7 +2292,7 @@ window.fcPreviaDoCriar = function(board) {
        // Enter avanca; dentro do briefing ele quebra linha, como se espera.
        overlay.addEventListener('keydown', function(e) {
            if (e.defaultPrevented || e.ctrlKey || e.metaKey) return;
-           if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fcCloseModal(); return; }
+           if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fcPedirFechar(); return; }
            if (e.key === 'Enter' && !e.shiftKey && !['TEXTAREA','BUTTON','SELECT','A'].includes(e.target.tagName)) {
                e.preventDefault();
                fcAvancar();
