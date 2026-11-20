@@ -40,14 +40,14 @@
    o tema antigo obriga os campos da janela a ser. */
 .d3m-c-busca{flex:none;display:flex;align-items:center;height:34px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
 .d3m-c-busca > svg{margin:0 9px;pointer-events:none}
-:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca > input{flex:none;width:0;min-width:0;height:28px;margin:0;padding:0;box-sizing:border-box;opacity:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);transition:width .2s}
-:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca > input:is(:focus,:not(:placeholder-shown)){width:210px;margin-right:3px;padding:0 10px;opacity:1;outline:0}
-:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca{display:flex;flex-direction:row;align-items:center;gap:0;margin:0}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia) .d3m-c-busca.d3m-c-busca > input{flex:none;width:0;min-width:0;height:28px;margin:0;padding:0;box-sizing:border-box;opacity:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);transition:width .2s}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia) .d3m-c-busca.d3m-c-busca > input:is(:focus,:not(:placeholder-shown)){width:210px;margin-right:3px;padding:0 10px;opacity:1;outline:0}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia) .d3m-c-busca.d3m-c-busca{display:flex;flex-direction:row;align-items:center;gap:0;margin:0}
 .d3m-c-busca:focus-within{box-shadow:inset 0 0 0 2px var(--d3-fume-texto)}
-/* A janela de módulo (as que abrem por cima do mundo: Planejamentos, Impressões, Projetos, Fornecedores, Creators e
+/* A janela de módulo (as que abrem por cima do mundo: Planejamentos, Impressões, Projetos, Fornecedores, Creators, Mídia e
    Conversas) vira vidro fumê quando a tela V2 está nela (.d3m-c-janela, posta pelo módulo). A posição continua a do tema. */
-:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp).d3m-c-janela.d3m-c-janela{display:flex;flex-direction:column;gap:16px;padding:16px;box-sizing:border-box;border:0;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden}
-:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp).d3m-c-janela[hidden]{display:none}
+:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia).d3m-c-janela.d3m-c-janela{display:flex;flex-direction:column;gap:16px;padding:16px;box-sizing:border-box;border:0;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden}
+:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia).d3m-c-janela[hidden]{display:none}
 /* Menus do topo (details): o botão é o summary; a lista abre embaixo, alinhada à direita com .dir. */
 .d3m-c-menu{flex:none;position:relative}
 .d3m-c-menu > summary{list-style:none}
@@ -62,7 +62,7 @@
 .d3m-c-abas > button[aria-checked="true"]{background:var(--d3-veu-forte);font-weight:600}
 .d3m-c-abas > button > b{font-weight:400;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
 .d3m-c-abas > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
-@media (max-width:1100px){:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp).d3m-c-janela.d3m-c-janela{overflow-y:auto}}
+@media (max-width:1100px){:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia).d3m-c-janela.d3m-c-janela{overflow-y:auto}}
 /* O texto miúdo dos cartões (com classe, para o cinza do tema antigo não pegar). */
 .d3m-c-s{color:inherit}
 /* O corpo: o trabalho à esquerda, a consulta de 316 px à direita. Nada rola na janela; só as listas, por dentro. */

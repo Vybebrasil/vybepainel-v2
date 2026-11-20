@@ -74,7 +74,7 @@ test('Planejamentos V2: o mês numa folha, uma linha por cliente, com os botões
   // A ordem da prancha: Agora, Andando e Falta; a trilha do escrito ao aprovado; o pé "De olho"; a consulta.
   for (const t of ["['Agora', 'r', lista.filter(pedeAcao)]", "['Andando', ''", "['Falta', 'a'", '<span>Escrito até aprovado</span>', '<span class="plj2-pe-rot">De olho</span>', 'Augusto · o que trava', '<b>De uma vez</b>', '<b>Onde o cliente aprova</b>', "window.d3mcTrocaHtml('Planejamentos', 'producao', 'planejamentos')"]) assert.ok(tela.includes(t), t);
   assert.match(css, /\.plj2-lista\{flex:1 1 0;min-height:0;overflow-y:auto/);
-  assert.match(base, /:is\(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp\)\.d3m-c-janela\.d3m-c-janela\{[^}]*background:var\(--d3-fume\)/);
+  assert.match(base, /:is\(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia\)\.d3m-c-janela\.d3m-c-janela\{[^}]*background:var\(--d3-fume\)/);
   // A seta do título troca de tela pelo submenu do menu lateral.
   assert.match(ler('vybe-captacoes.js'), /function d3mcPintarTroca\(det, setor, atual\) \{/);
 });
