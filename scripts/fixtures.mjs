@@ -62,6 +62,11 @@ function clientesDemo(req,res,url,body,reply){
       if(d.acao==='feed_regra'){const c=CLIENTES_DEMO.find(x=>String(x.id)===String(d.id));if(!c)return reply(404,{error:'Cliente não encontrado.'});
         const feed=d.regra==null?null:limparRegraDoFeed(d.regra);c.cadastro={...(c.cadastro||{})};if(feed)c.cadastro.feed=feed;else delete c.cadastro.feed;
         return reply(200,{ok:true,cliente:{id:c.id,nome:c.nome},feed});}
+      // "Não é cliente" e a volta, e o ciclo ativo/inativo: só na memória do demo, para o caminho de ida e volta ser conferido.
+      if(['ignorar','reconhecer','desativar','reativar','ativar'].includes(d.acao)){const c=CLIENTES_DEMO.find(x=>String(x.id)===String(d.id));if(!c)return reply(404,{error:'Cliente não encontrado.'});
+        if(d.acao==='ignorar'||d.acao==='reconhecer')c.nao_e_cliente=d.acao==='ignorar';
+        else{const volta=d.acao!=='desativar';c.ativo=volta;c.status=volta?'Ativo':'Inativo';}
+        return reply(200,{ok:true,cliente:{id:c.id,nome:c.nome,ativo:c.ativo}});}
     }catch(e){return reply(e.status||400,{error:e.message});}
     if(d.acao==='atas')return reply(200,{ok:true,atas:[],eventos:[]});
     return reply(200,{ok:true});}

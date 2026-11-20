@@ -1,0 +1,11 @@
+/* Frente s-l (20/11/2026): desfazer "não é cliente". Na lista "Não são clientes" (chip da barra) a coluna Saúde vira
+   Situação e leva o botão "Voltar a ser cliente"; misturado com os outros, quem não é cliente leva só a etiqueta.
+   Botão secundário do padrão V2: 34 de altura, canto 8, rótulo 12; o laranja da tela continua sendo o de sempre. */
+#painel-clientes .cli-voltar{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:34px;margin:0;padding:0 12px;box-sizing:border-box;border:1px solid var(--d3-linha);border-radius:var(--d3-r-botao);background:var(--d3-veu);color:var(--d3-tinta);font:500 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap;cursor:pointer;transition:background-color .2s}
+#painel-clientes .cli-voltar:hover{background:var(--d3-veu-forte)}
+#painel-clientes .cli-voltar:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+#painel-clientes .cv2-volta .cli-situacao.ignorado{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--d3-veu);color:var(--d3-texto2);font:500 var(--d3-fs-apoio)/1 var(--vv-texto,Inter),sans-serif;white-space:nowrap}
+#painel-clientes .so-nao-clientes :is(.cv2-tr > .cv2-volta,.cv2-h-saude){flex:0 0 136px}
+@media (max-width:1180px){
+  #painel-clientes .cv2-tr > .cv2-volta{align-self:center}
+}
