@@ -2171,27 +2171,31 @@ function alternarSelecao(id, marcada, event, ordemVisivel) {
         return visiveis.map((i) => String(i.id));
       });
 
-  if (event?.shiftKey && ULTIMA_MARCADA && ULTIMA_MARCADA !== alvo) {
-    const de = lista.indexOf(ULTIMA_MARCADA);
-    const ate = lista.indexOf(alvo);
-    if (de >= 0 && ate >= 0) {
-      const [ini, fim] = de < ate ? [de, ate] : [ate, de];
-      // O intervalo assume o estado do clique: shift-clicando numa marcada,
-      // desmarca o trecho inteiro. É o que o Finder faz.
-      for (let k = ini; k <= fim; k++) {
-        if (marcada) SELECIONADAS.add(lista[k]); else SELECIONADAS.delete(lista[k]);
-      }
-      ULTIMA_MARCADA = alvo;
-      repintarOndeHaSelecao();
-      const n = fim - ini + 1;
-      showToast(n === 1 ? `${marcada ? 'Marcada' : 'Desmarcada'} 1 peça` : `${marcada ? 'Marcadas' : 'Desmarcadas'} ${n} peças`, 'info', 2500);
-      return;
+  const trecho = event?.shiftKey && ULTIMA_MARCADA ? intervaloDaSelecao(lista, ULTIMA_MARCADA, alvo) : null;
+  if (trecho) {
+    // O intervalo assume o estado do clique: shift-clicando numa marcada,
+    // desmarca o trecho inteiro. É o que o Finder faz.
+    for (const k of trecho) {
+      if (marcada) SELECIONADAS.add(k); else SELECIONADAS.delete(k);
     }
+    ULTIMA_MARCADA = alvo;
+    repintarOndeHaSelecao();
+    const n = trecho.length;
+    showToast(n === 1 ? `${marcada ? 'Marcada' : 'Desmarcada'} 1 peça` : `${marcada ? 'Marcadas' : 'Desmarcadas'} ${n} peças`, 'info', 2500);
+    return;
   }
 
   if (marcada) SELECIONADAS.add(alvo); else SELECIONADAS.delete(alvo);
   ULTIMA_MARCADA = alvo;
   repintarOndeHaSelecao();
+}
+
+// O trecho do shift na ordem da tela: da última caixa clicada até a de agora, nas duas direções. Sem a âncora na lista
+// (outro filtro, outra ordem, a linha saiu da vista) não há intervalo, e o clique vale só para a própria caixa.
+function intervaloDaSelecao(lista, ancora, alvo) {
+  const ordem = (lista || []).map(String), de = ordem.indexOf(String(ancora ?? '')), ate = ordem.indexOf(String(alvo ?? ''));
+  if (de < 0 || ate < 0 || de === ate) return null;
+  return de < ate ? ordem.slice(de, ate + 1) : ordem.slice(ate, de + 1);
 }
 
 // Marcar uma linha muda o deck, e o deck existe em duas telas: a tabela de
@@ -2234,7 +2238,10 @@ function limparSelecao() { SELECIONADAS.clear(); repintarOndeHaSelecao(); }
 // no HTML o tempo todo e so fica escondida (a gaveta, a previa grande, que
 // fecha com display:none e nao sai do documento). Procurar so pelo seletor
 // bloquearia o Esc para sempre depois da primeira vez que a previa abrisse.
+// Os menus que abrem por cima (status, captação, filtros da folha, responsável, lote, grupo) também: com um deles
+// aberto, o Esc fecha só o menu, e a seleção fica (Paulo, 20/11/2026).
 const NA_FRENTE_DA_SELECAO = [
+  '.status-editor', '#dono-editor', '#grupo-menu', 'details.vb-escolha[open]',
   '#cli-pergunta', '#vybe-cal', '#previa-grande', '#cartao-rapido',
   '#workspace-drawer', '#fc-overlay', '#sz-overlay', '#mode-gate',
   '#production-sheet-overlay', '.da-planning-overlay', '.workflow-modal-overlay',
@@ -2258,8 +2265,10 @@ document.addEventListener('keydown', (evento) => {
   if (evento.key !== 'Escape') return;
   // Digitando num campo, Esc e do campo: cancelar o que se escreve nao pode
   // custar nem o cartao aberto nem a selecao inteira.
+  // A caixa de marcar não é campo de digitar: com o foco nela, o Esc também desmarca.
   const alvo = evento.target;
-  if (alvo && (/^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName) || alvo.isContentEditable)) return;
+  const deMarcar = alvo?.tagName === 'INPUT' && /^(checkbox|radio)$/i.test(alvo.type || '');
+  if (alvo && !deMarcar && (/^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName) || alvo.isContentEditable)) return;
 
   // 1º: o resumo aberto. E o que esta na frente dos olhos.
   const cartao = document.getElementById('cartao-rapido');
@@ -2282,6 +2291,10 @@ document.addEventListener('keydown', (evento) => {
   if (!SELECIONADAS.size) return;
   if (haAlgoNaFrenteDaSelecao()) return;
   const quantas = SELECIONADAS.size;
+  // Com a barra "N marcadas" à vista, este Esc é só da seleção: o preventDefault segura o Esc do mundo (vybe-mundo.js), que
+  // fecharia o módulo junto. O próximo Esc, já sem seleção, fecha. Seleção que não está à vista segue como antes.
+  const deck = document.getElementById('lote-deck');
+  if (deck && deck.getClientRects().length) evento.preventDefault();
   limparSelecao();
   if (typeof showToast === 'function') {
     showToast(`Seleção limpa · ${quantas} ${quantas === 1 ? 'peça desmarcada' : 'peças desmarcadas'}`, 'info', 3000);
@@ -2494,6 +2507,18 @@ const emprestadaAoDa = (alvo) => typeof DA_SECAO_EMPRESTADA !== 'undefined'
 // inteiro no fim da página do DA, com "Mapa" marcado na barra.
 const abertaPeloGestor = (aberta) => aberta && panelMode !== 'controler';
 
+function guardarRolagemDaFolha(wrap) {
+  const rola = wrap.querySelector('.d3m-a-g-rola'), ativo = document.activeElement;
+  return { grupo: wrap.querySelector('[data-grupo]')?.dataset.grupo ?? null, topo: rola?.scrollTop || 0, lado: rola?.scrollLeft || 0,
+    foco: ativo && wrap.contains(ativo) ? ativo.dataset?.itemId || '' : '' };
+}
+function devolverRolagemDaFolha(wrap, antes) {
+  if (!antes || antes.grupo === null || wrap.querySelector('[data-grupo]')?.dataset.grupo !== antes.grupo) return;
+  const rola = wrap.querySelector('.d3m-a-g-rola');
+  if (rola) { rola.scrollTop = antes.topo; rola.scrollLeft = antes.lado; }
+  if (antes.foco) [...wrap.querySelectorAll('input[data-item-id]')].find((el) => el.dataset.itemId === antes.foco)?.focus({ preventScroll: true });
+}
+
 function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   if (!quadro) { renderVisaoDeGrupos('producao', { forcar }); renderVisaoDeGrupos('demandas', { forcar }); return; }
   const cfg = VISAO_DE_GRUPOS[quadro] || VISAO_DE_GRUPOS.producao;
@@ -2528,7 +2553,15 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   wrap.classList.toggle('d3m-a-v2', gruposV2);
   // Com a V2 de Grupos, a pessoa aparece nos chips da folha: a faixa antiga de cima sai (s-f.css).
   if (quadro === 'producao') document.getElementById('ops-selection-summary')?.toggleAttribute('data-s-f-chips', gruposV2);
-  if (gruposV2) { wrap.innerHTML = pv2GruposHtml({ grupos, quadro, base: semCliente, semFiltro: cfg.fonte() }); if (typeof pv2PintarVista === 'function') pv2PintarVista(); return; }
+  if (gruposV2) {
+    // Redesenhar a folha (marcar, trocar status ou captação) não pode levar a tabela de volta ao topo nem tirar o foco da
+    // caixa clicada (Paulo, 20/11/2026: "não continua de onde eu to"): guarda a rolagem e o foco e devolve no mesmo grupo.
+    const antes = guardarRolagemDaFolha(wrap);
+    wrap.innerHTML = pv2GruposHtml({ grupos, quadro, base: semCliente, semFiltro: cfg.fonte() });
+    devolverRolagemDaFolha(wrap, antes);
+    if (typeof pv2PintarVista === 'function') pv2PintarVista();
+    return;
+  }
 
   const peca = (n) => quadro === 'demandas'
     ? (n === 1 ? 'solicitação' : 'solicitações')

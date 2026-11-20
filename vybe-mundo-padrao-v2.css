@@ -11536,6 +11536,19 @@ body.mundo #workflow-modal.vbj.vfr{--wm-largura:min(420px,calc(100vw - 32px))}
 #workflow-modal.vfr .vfr-corpo > .vbj-pe{margin-top:2px}
 @media (prefers-reduced-motion: reduce){#workflow-modal.vfr .vfr-sem > i,#workflow-modal.vfr .vfr-sem > i::after{transition:none}}
 
+/* ===== padrao-v2/s-j.css ===== */
+/* s-j · Grupos: ajustes do Paulo (20/11/2026). */
+/* A Captação na cor do status dela, a mesma do menu de status (CATALOGO_CAPTACAO): a pílula leva a bolinha e um fundo
+   tingido da cor; o texto fica na tinta do tema, para ler em qualquer cor do catálogo. */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn{padding:0;border-radius:11px;background:none}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn:hover{background:none}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn > .pill.vv-st-ponto{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:22px;box-sizing:border-box;padding:3px 9px 3px 8px;border-radius:11px;background:color-mix(in srgb,var(--st,var(--d3-trilho)) 20%,var(--d3-trilho));color:var(--d3-tinta);font-weight:600}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn > .pill.vv-st-ponto > i{display:inline-block;flex:none;width:7px;height:7px;border-radius:50%;background:var(--st,var(--d3-texto2))}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn:hover > .pill.vv-st-ponto{box-shadow:inset 0 0 0 1px var(--st,currentColor)}
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.s-f-cap .grupo-pill-btn:focus-visible{outline:2px solid var(--d3-tinta);outline-offset:2px}
+/* A caixa de marcar: a célula inteira é o alvo do clique (e do shift). */
+#grupos-board.d3m-a-v2 .d3m-a-g-tab td.grupo-marcar{cursor:pointer;user-select:none}
+
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
    DIREÇÃO 3 (quadro D3-StatusMenu, 13/11/2026): menu branco de 260, cada status em pílula clara com a bolinha do catálogo
