@@ -196,6 +196,11 @@
       { id: 'automacoes', nome: 'Automações', dica: 'Regras que movem as demandas sozinhas', board: 'automacoes' },
       { id: 'conta', nome: 'Conta e equipe', dica: 'Sua conta, acessos e a equipe', board: 'conta' },
     ] },
+    // Mídia (Vinícius, 20/11/2026: "um controle geral do que é relacionado à mídia desse cliente"): Meta, Google Ads e site
+    // de cada cliente, com o sinal do Ícaro (Mídia Paga). Só os quatro donos (SO_DINHEIRO), decidido de novo no servidor.
+    { id: 'setor:midia', grupo: 'Negócio', nome: 'Mídia', dica: 'Mídia dos clientes: Meta, Google Ads e site, com o Ícaro', ic: svg('<path d="M4 10v4h3l5 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6M19 6.5a8 8 0 0 1 0 11"/>'), sub: [
+      { id: 'midia', nome: 'Carteira de mídia', dica: 'Cada cliente canal por canal e o que pede atenção', mod: ['VybeMidia'] },
+    ] },
     { id: 'setor:pessoas', grupo: 'Time', nome: 'Recursos Humanos', dica: 'Recursos Humanos: produtividade, pedidos, recrutamento e documentos', ic: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/>'), sub: [
       { id: 'produtividade', nome: 'Produtividade', dica: 'Score, ranking, metas e conquistas do time', mod: ['VybePessoas', 'produtividade'] },
       { id: 'rh', nome: 'Pedidos e calendário', dica: 'Pedidos ao RH, aniversários, férias e clima', mod: ['VybePessoas', 'rh'] },
@@ -269,10 +274,10 @@
     if (dockLargo() && String(alvo).startsWith('setor:')) expandirSetor(alvo);
   }
   // Visão geral do setor (vybe-mundo-setor.js): o painelzão com o resumo de cada aba. Gestão já é a visão geral dela.
-  const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas', 'VybeImpressoes', 'VybeReunioes'];
+  const JANELAS_DE_MODULO = ['VybeCarteira', 'VybeComercial', 'VybePessoas', 'VybeConteudo', 'VybePlanejamentos', 'VybeFerramentas', 'VybeImpressoes', 'VybeReunioes', 'VybeMidia'];
   // Dock aceso só no que está na tela (auditoria 09/11, D10): ao fechar a janela de um módulo (X, Esc ou o próprio
   // módulo), o item dela apaga e volta a acender o que ficou à vista. As janelas somem do body ou ganham hidden.
-  const IDS_DE_JANELA = new Set(['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas', 'vv-agentes', 'vv-impressoes']);
+  const IDS_DE_JANELA = new Set(['vv-carteira', 'vv-comercial', 'vv-pessoas', 'vv-conteudo', 'vv-ferramentas', 'vv-agentes', 'vv-impressoes', 'vv-midia']);
   const SEL_JANELAS = [...IDS_DE_JANELA].map((i) => '#' + i).join(',');
   let remarcando = 0;
   function remarcarAoFechar() {
@@ -301,6 +306,8 @@
   function abrirVisaoSetor(id) {
     if (id === 'setor:gestao') { usarTrilho('gestao'); return; }
     if (id === 'setor:toolkit') { usarTrilho('toolkit'); return; }
+    // A Mídia não tem visão geral à parte: a Carteira de mídia já é a visão de todos os clientes.
+    if (id === 'setor:midia') { usarTrilho('midia'); return; }
     const t = TRILHO.find((x) => x && x.id === id);
     if (!t || !window.VybeSetor) { abrirSetor(id, hud.querySelector(`[data-trilho="${id}"]`)); return; }
     if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
@@ -318,7 +325,7 @@
     if (aberto?.dataset.setor === id) { fecharSetor(); return; }
     fecharSetor();
     const t = TRILHO.find((x) => x.id === id); if (!t) return;
-    const itens = (id === 'setor:gestao' || id === 'setor:toolkit' ? [] : [{ id: '__visao', nome: 'Visão geral', dica: 'O resumo de todas as abas do setor' }]).concat(t.sub.filter(subVisivel));
+    const itens = (id === 'setor:gestao' || id === 'setor:toolkit' || id === 'setor:midia' ? [] : [{ id: '__visao', nome: 'Visão geral', dica: 'O resumo de todas as abas do setor' }]).concat(t.sub.filter(subVisivel));
     const el = document.createElement('div');
     el.className = 'vv-setor'; el.dataset.setor = id; el.setAttribute?.('role', 'menu'); el.setAttribute?.('aria-label', t.nome);
     el.innerHTML = `<div class="vv-setor-topo">${t.ic}<b>${esc(t.nome)}</b></div>` + itens.map((x) => x.url ? `<a role="menuitem" href="${esc(x.url)}" target="_blank" rel="noopener" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small><i aria-hidden="true">↗</i></a>` : `<button type="button" role="menuitem" data-submodulo="${esc(x.id)}"><b>${esc(x.nome)}</b><small>${esc(x.dica)}</small></button>`).join('');
@@ -670,8 +677,9 @@
   // O item some do dock (CSS, classe trancado) e o título do grupo que ficou vazio some junto. Ficam para todos os
   // itens do Time que são de todos: Produtividade (o próprio mês), Pedidos e calendário, Equipe online e Academy.
   const TRANCADOS = new Set(['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas']);
-  // Só dos donos de verdade (a coordenação não vê): o setor Finanças, as abas dele e IA e custos.
-  const SO_DINHEIRO = new Set(['setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'ai-usage']);
+  // Só dos donos de verdade (a coordenação não vê): o setor Finanças, as abas dele, IA e custos e a Mídia (Vinícius, 20/11/2026:
+  // "para mim, Ewerton, Paulo e Deivid").
+  const SO_DINHEIRO = new Set(['setor:midia', 'midia', 'setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'ai-usage']);
   const trancadoPara = (id) => (TRANCADOS.has(id) && !souDono()) || (SO_DINHEIRO.has(id) && !souDonoDoDinheiro());
   function aplicarCadeados() {
     hud.querySelectorAll?.('.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor]').forEach((b) => {
@@ -750,7 +758,7 @@
   }
   // Área trancada (quadro D3-Fam-Estados, "Sem acesso"): a tela de agora fica onde está e uma janela pequena diz de quem é
   // a área, com o cadeado. Não muda quem vê o quê (TRANCADOS e SO_DINHEIRO acima); só o que aparece ao tentar abrir.
-  const NOME_TRANCADO = { 'setor:comercial': 'Comercial', 'setor:financas': 'Finanças', 'setor:gestao': 'Gestão', agentes: 'Agentes', recrutamento: 'Recrutamento', documentos: 'Documentos', 'visao:setor:pessoas': 'Recursos Humanos', 'ai-usage': 'IA e custos' };
+  const NOME_TRANCADO = { 'setor:comercial': 'Comercial', 'setor:financas': 'Finanças', 'setor:gestao': 'Gestão', agentes: 'Agentes', recrutamento: 'Recrutamento', documentos: 'Documentos', 'visao:setor:pessoas': 'Recursos Humanos', 'ai-usage': 'IA e custos', 'setor:midia': 'Mídia', midia: 'Mídia' };
   function mostrarSemAcesso(id, b = null) {
     const botao = b || hud.querySelector(`.vv-trilho [data-trilho="${CSS.escape(id)}"], .vv-trilho [data-submodulo="${CSS.escape(id)}"]`);
     const nome = NOME_TRANCADO[id] || botao?.querySelector('span')?.textContent.trim() || botao?.dataset.rotuloAberto || (SO_DINHEIRO.has(id) ? 'Finanças' : 'Esta área');
@@ -2808,7 +2816,7 @@
         // Sistema irmão (VybeHub, ↗): link de verdade, aberto pelo navegador; o window.open no clique travava a tela.
         const tag = t.url ? `a href="${t.url}" target="_blank" rel="noopener"` : 'button type="button"';
         const botao = `<${tag} class="vv-trilho-btn${t.acao ? ' criar' : ''}${resto ? ' vv-trilho-resto' : ''}" data-trilho="${t.id}" data-grupo="${t.grupo ? grupo : ''}" title="${t.dica}" aria-label="${t.dica}"${t.id === 'hoje' ? ' aria-current="page"' : ''}${setor ? ` aria-expanded="false" aria-controls="vv-sub-${t.id.slice(6)}"` : ''}>${t.ic}<span>${t.nome}</span>${setor ? '<i class="vv-trilho-seta" aria-hidden="true"></i>' : ''}${t.url ? '<i class="vv-trilho-fora" aria-hidden="true">↗</i>' : ''}${favoritavel(t) ? estrela(t.id) : ''}</${t.url ? 'a' : 'button'}>`;
-        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => x.url ? `<a href="${x.url}" target="_blank" rel="noopener" data-submodulo="${x.id}" title="${x.dica}">${x.nome} <i aria-hidden="true">↗</i>${estrela(x.id)}</a>` : `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${estrela(x.id)}</button>`).join('')}</div>` : '';
+        const subs = setor ? `<div class="vv-trilho-sub" id="vv-sub-${t.id.slice(6)}" data-sub-de="${t.id}" data-grupo="${grupo}" hidden>${t.id === 'setor:gestao' || t.id === 'setor:toolkit' || t.id === 'setor:midia' ? '' : `<button type="button" data-visao-setor="${t.id}">Visão geral</button>`}${t.sub.map((x) => x.url ? `<a href="${x.url}" target="_blank" rel="noopener" data-submodulo="${x.id}" title="${x.dica}">${x.nome} <i aria-hidden="true">↗</i>${estrela(x.id)}</a>` : `<button type="button" data-submodulo="${x.id}" title="${x.dica}">${x.nome}${estrela(x.id)}</button>`).join('')}</div>` : '';
         return cab + abreResto + botao + subs + (t.id === 'hoje' ? '<div class="vv-trilho-fav" hidden></div>' : '');
       }).join('') + `<button type="button" class="vv-trilho-btn vv-so-cel" data-cel="conversas" title="Conversas: o WhatsApp da Vybe" aria-label="Conversas">${svg('<path d="M4 5h16v11H8l-4 4z"/>')}<span>Conversas</span></button>`
         // Celular (quadro 28): um dock só. A voz vira um lugar da barra de baixo; fora de uma chamada, o cartão das salas

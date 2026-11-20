@@ -77,8 +77,9 @@ export const PLANTA = [
     id: 'estrategia', nivel: 5, nome: 'Estratégia e Performance', resumo: 'Centro de comando: anúncios e números.',
     cor: '#F76808',
     setores: [
-      { id: 'midia', nome: 'Mídia Paga', agente: 'Breno', funcao: 'Growth e Ads', papel: 'Analisa e protege o dinheiro investido em anúncios.',
-        skills: ['Criativos rodando (Hub)', 'ROAS', 'Alerta de campanha'], estado: 'sombra', modulo: { tipo: 'link', alvo: 'vybehub', url: 'https://vybehub.vercel.app/admin' } },
+      // Ícaro (Vinícius, 20/11/2026): antes Breno, nome do gestor de tráfego da agência; trocado para não confundir agente e pessoa.
+      { id: 'midia', nome: 'Mídia Paga', agente: 'Ícaro', funcao: 'Growth e Ads', papel: 'Cuida da mídia de todos os clientes: Meta, Google Ads e site. Propõe; um dono aprova.',
+        skills: ['Carteira de mídia', 'Criativos rodando (Hub)', 'Resumo da semana', 'Alerta de campanha'], estado: 'sombra', modulo: { tipo: 'setor', alvo: 'setor:midia' } },
       { id: 'bi', nome: 'Business Intelligence', agente: 'Alex', funcao: 'Analista de Dados', papel: 'Visão global unindo operação e tráfego.',
         skills: ['Cruzar andares', 'Painéis operacionais', 'Resumo semanal da diretoria'], estado: 'sombra', modulo: { tipo: 'quadro', alvo: 'performance' } },
     ],

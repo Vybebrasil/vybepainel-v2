@@ -364,6 +364,22 @@ export async function demoApi(req,res,url,body) {
         {tipo:'criacao',para:'Card fictício',em:h(6,9),autor:'Operador de teste'},
       ]});
     }
+    // Mídia fictícia (vybe-mundo-midia.js): carteira, e o Meta de cada cliente pelas mesmas contas do servidor.
+    if(area==='midia'){
+      const {CANAIS,sinalDoMeta}=await import('../server/midia.js');
+      const clientes=[{id:'1',nome:'Academia Lions',tem_site:true},{id:'2',nome:'Cliente demonstração',tem_site:false},{id:'3',nome:'Padaria demonstração',tem_site:true},{id:'4',nome:'Clínica demonstração',tem_site:false}];
+      if(url.searchParams.get('acao')!=='cliente')return reply(200,{ok:true,canais:CANAIS,dias:[7,30],hub_ativo:true,clientes});
+      const id=url.searchParams.get('cliente_id'),dias=Number(url.searchParams.get('dias'))||7,k=dias/7;
+      if(id==='4')return reply(200,{ok:true,meta:{estado:'sem_conta',motivo:'Sem conta de anúncios vinculada no VybeHub.'},registros:[]});
+      const base={'1':{investido:420*k,investido_anterior:400*k,resultados:Math.round(48*k),tipo_resultado:'messages',custo_resultado:8.75,custo_anterior:8.1,frequencia:3.4},
+        '2':{investido:150*k,investido_anterior:150*k,resultados:Math.round(12*k),tipo_resultado:'messages',custo_resultado:12.5,custo_anterior:8.2,frequencia:1.6},
+        '3':{investido:90*k,investido_anterior:110*k,resultados:Math.round(5200*k),tipo_resultado:'reach',custo_resultado:0.017,custo_anterior:0.019,frequencia:1.2}}[id];
+      const r={...base,alcance:9000,ctr:1.4,cpm:6.2,conversas:base.tipo_resultado==='messages'?base.resultados:0,
+        campanhas:[{nome:'[MENSAGENS][IRECE] Delivery',objetivo:'OUTCOME_ENGAGEMENT',investido:base.investido*0.7,resultados:Math.round(base.resultados*0.7),tipo_resultado:base.tipo_resultado,custo_resultado:base.custo_resultado,frequencia:base.frequencia,ctr:1.5},
+          {nome:'[ALCANCE][MARCA] Institucional',objetivo:'OUTCOME_AWARENESS',investido:base.investido*0.3,resultados:3100,tipo_resultado:'reach',custo_resultado:0.02,frequencia:1.4,ctr:0.4}],
+        melhor_anuncio:{nome:'AD01 · Combo da semana',campanha:'[MENSAGENS][IRECE] Delivery',resultados:Math.round(base.resultados*0.4),tipo_resultado:base.tipo_resultado,custo_resultado:base.custo_resultado*0.9}};
+      return reply(200,{ok:true,meta:{estado:'ok',...r,sinal:sinalDoMeta(r)},registros:id==='1'?[{tipo:'aprendizado',titulo:'Auditoria Meta Ads (demonstração)',resumo:'',criado_em:new Date().toISOString()}]:[]});
+    }
     // Planejamento fictício, só leitura: a demonstração não grava.
     if(area==='planejamentos'){
       const proximo=new Date();proximo.setUTCDate(1);proximo.setUTCMonth(proximo.getUTCMonth()+1);
