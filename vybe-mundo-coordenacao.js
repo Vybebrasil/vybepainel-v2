@@ -93,6 +93,13 @@
   // lote: "Confirmar N" (Direção 3) — pergunta (o OK do lote), rodando (i de n), resultado ({ ok, falhas, n }).
   const st = { periodo: 'semana', aberta: '', confirmando: '', gravando: '', msg: '', lote: { pergunta: false, rodando: false, chaves: [], i: 0, n: 0, resultado: null } };
   try { st.periodo = localStorage.getItem('vybe.coordenacao.periodo') || 'semana'; } catch { /* padrão */ }
+  // A aba do quadro (Paulo, 23/11/2026: "dá mais espaço pro (semana).. tira os balões de cima.... o sugestões do Heitor
+  // vira uma aba lá dentro (e quero mais uma aba igual tem no painel de trabalho quando mostra por grupos também pra Bia
+  // gerir por aqui)"): Semana (a grade pessoa × dia), Grupos (a tabela de Grupos da Produção, a mesma do Painel de
+  // trabalho) e Heitor (o que era a barra "Sugestões do Heitor" e o cartão laranja). Fica lembrada no navegador.
+  const ABAS = ['semana', 'grupos', 'heitor'];
+  st.aba = 'semana';
+  try { const a = localStorage.getItem('vybe.coordenacao.aba'); if (ABAS.includes(a)) st.aba = a; } catch { /* padrão */ }
   let ultima = null;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const n0 = (v) => Number(v || 0).toLocaleString('pt-BR');
@@ -100,6 +107,7 @@
   const primeiro = (s) => String(s || '').split(' ')[0];
   const diaBr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : 'sem data');
   const ROT = { dia: 'Hoje', semana: 'Semana', mes: 'Mês' };
+  const ROT_ABA = { dia: 'Dia', semana: 'Semana', mes: 'Mês' };
   const COR = { sobrecarregada: '#B42318', cheia: '#C2490C', ok: '#11613A', leve: '#6B665E' };
   const NIVEL = { sobrecarregada: 'acima do limite', cheia: 'cheia', ok: 'no ritmo', leve: 'com folga' };
   const repintar = () => document.dispatchEvent(new CustomEvent('vybe:coordenacao'));
@@ -169,8 +177,6 @@
     const s1 = r.semDono.find((x) => x.sugerido), t1 = r.trocas[0];
     const botao = s1 ? `<button type="button" class="d3-acao-btn" data-coord-atribuir="${esc(s1.d.id)}" data-para="${esc(s1.sugerido)}">Atribuir a 1ª</button>`
       : t1 ? `<button type="button" class="d3-acao-btn" data-coord-trocar="${esc(t1.d.id)}" data-de="${esc(t1.de)}" data-para="${esc(t1.para)}">Passar a 1ª</button>` : '';
-    // Direção V2 (16/11/2026): o laranja com a composição fixa (rótulo de quem fala, a frase e o botão), ao lado dos indicadores.
-    const faixa = `<section class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa" aria-label="Heitor, coordenação de produção"><span class="d3v-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span>Heitor · coordenação</span><span class="d3v-lar-txt"><span class="d3-acao-frase" title="${esc(frasesDoHeitor(r, nome).replace(/<[^>]+>/g, ''))}">${partes.join(' · ')}.</span></span>${botao ? `<span class="d3v-lar-bts">${botao}</span>` : ''}</section>`;
     const periodos = `<div class="v2o-periodo" role="tablist" aria-label="Período">${['dia', 'semana', 'mes'].map((p) => `<button type="button" role="tab" aria-selected="${st.periodo === p}" data-coord-periodo="${p}">${ROT[p]}</button>`).join('')}</div>`;
     const porDisc = (l) => { const m = {}; for (const x of l) m[x.disciplina] = (m[x.disciplina] || 0) + 1; return Object.entries(m).map(([k, n]) => `${n} ${k === 'audiovisual' ? 'motion' : k}`).join(' · '); };
     const totPontos = r.pessoas.reduce((s, p) => s + p.pontos, 0), totLimite = r.pessoas.reduce((s, p) => s + p.limite, 0), pctTime = totLimite ? Math.round(totPontos / totLimite * 100) : 0;
@@ -209,18 +215,32 @@
                 return `<li>${linhaPeca(d, `${esc(d.status || 'Sem status')} · `)}${outros.map((o) => confirmarHtml(`trocar:${d.id}:${p.id}:${o.id}`, `Passar para ${quem(o.id)}?`)).join('') || `<span class="v2o-quem">${outros.map((o) => `<button type="button" class="v2o-chip" data-coord-trocar="${esc(d.id)}" data-de="${esc(p.id)}" data-para="${esc(o.id)}">${quem(o.id)} <small>${n0(o.pct)}%</small></button>`).join('') || '<small>ninguém mais da disciplina</small>'}</span>`}</li>`; }).join('') || '<li class="v2o-nota">Nada neste período.</li>' : ''}</ul></div></div></div>`; }).join('')}</div>
         <div class="d3h-pe"><span class="d3h-leg"><i></i>pontos</span><span class="d3h-leg t"><i></i>limite</span></div></section>`;
     const aviso = st.msg ? `<p class="v2o-msg" role="status">${esc(st.msg)}</p>` : '';
-    // Direção 3 com o controle manual da Beatriz: os indicadores e a grade vêm primeiro; o que o Heitor sugere fica
-    // recolhido embaixo ("Sugestões do Heitor"), com tudo o que tinha, e só grava com o clique e o OK.
+    // Direção 3 com o controle manual da Beatriz: a grade vem primeiro; o que o Heitor sugere fica na aba Heitor, com tudo o
+    // que tinha (e o que era o cartão laranja do topo), e só grava com o clique e o OK.
     const man = manualHtml({ itens, time, hoje, nome, cliente });
-    // Direção V2 (pranchas V2, 16/11/2026): a mesma janela de vidro das outras abas, em uma coluna larga (a grade pessoa × dia
-    // pede a largura toda). Em cima a saudação, o período e as abas; depois os seis indicadores com o único cartão laranja
-    // ao lado; a grade ocupa o resto e rola por dentro; as sugestões do Heitor ficam recolhidas no pé.
-    return `<div class="d3h d3h-co v2o d3q d3q-larga"><div class="d3q-main"><div class="d3h-topo"><div class="d3h-ola"><h2>${esc(titulo)}</h2><small>${esc(faixaDe(r))}</small></div><div class="d3h-topo-dir">${periodos}${abas}</div></div>
-      <div class="d3q-co-topo">${man.nums}${man.faixa || faixa}</div>${aviso}
-      ${man.html}
-      <section class="d3h-cartao v2o-heitor v2-abre" aria-expanded="${sg.heitor}" aria-label="Sugestões do Heitor"><button type="button" class="v2o-heitor-cab" data-coord-heitor aria-expanded="${sg.heitor}"><span class="d3-agente-av v2o-heitor-av" aria-hidden="true">H</span><b>Sugestões do Heitor</b><small>${esc([r.semDono.length ? plural(r.semDono.length, 'sem ninguém', 'sem ninguém') : '', r.trocas.length ? plural(r.trocas.length, 'troca', 'trocas') : '', acima.length ? `${n0(acima.length)} acima do limite` : ''].filter(Boolean).join(' · ') || 'nada a sugerir')}</small><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="v2-mais"><div>${numeros}
-      <div class="d3h-grade"><div class="d3h-col">${semDono}${trocas}</div><div class="d3h-col">${carga}</div><div class="d3h-col">${pessoas}</div></div></div></div></section></div></div>`;
+    const aba = ABAS.includes(st.aba) ? st.aba : 'semana';
+    const resumoHeitor = [r.semDono.length ? plural(r.semDono.length, 'sem ninguém', 'sem ninguém') : '', r.trocas.length ? plural(r.trocas.length, 'troca', 'trocas') : '', acima.length ? `${n0(acima.length)} acima do limite` : ''].filter(Boolean).join(' · ') || 'nada a sugerir';
+    // O único laranja da tela (aba Heitor): o que pede ação agora (atrasadas, no ar hoje, para aprovar, que era o cartão do
+    // topo) e o que o Heitor sugere (acima do limite, sem ninguém), com os mesmos botões: abrir a lista e "Atribuir a 1ª".
+    const laranja = `<section class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa s-m-laranja" aria-label="Heitor, coordenação de produção"><span class="d3v-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span>Heitor · coordenação</span><span class="d3v-lar-txt"><span class="d3-acao-frase" title="${esc(frasesDoHeitor(r, nome).replace(/<[^>]+>/g, ''))}">${man.prio.length ? `${man.prio.map((x) => x[0]).join(' · ')}.` : `${partes.join(' · ')}.`}</span>${man.prio.length ? `<small>${partes.join(' · ')}.</small>` : ''}</span>${man.prio.length || botao ? `<span class="d3v-lar-bts">${man.prio.length ? `<button type="button" class="d3-acao-btn" data-coord-ind="${man.prio[0][1]}">${man.prio[0][2]}</button>` : ''}${botao}</span>` : ''}</section>`;
+    // As abas do quadro (segmentado do padrão V2). Grupos não pinta nada aqui: a tabela é a #grupos-board do Painel de
+    // trabalho, emprestada para este lugar depois de pintar (acomodarGrupos), com a coluna de grupos ao lado.
+    const nSug = r.semDono.length + r.trocas.length;
+    const abaBt = (k, rot, extra = '') => `<button type="button" role="tab" aria-selected="${aba === k}" data-coord-aba="${k}" aria-controls="s-m-painel">${rot}${extra}</button>`;
+    const abasQuadro = `<div class="s-m-abas" role="tablist" aria-label="O que ver no quadro">${abaBt('semana', ROT_ABA[st.periodo] || 'Semana')}${abaBt('grupos', 'Grupos')}${abaBt('heitor', 'Heitor', nSug ? `<small>${n0(nSug)}</small>` : '')}</div>`;
+    const painel = aba === 'grupos'
+      ? `<div class="s-m-grupos" id="s-m-painel" role="tabpanel" aria-label="Grupos da Produção"><div class="s-m-grupos-lado d3m-a-lado-v" id="s-m-grupos-lado"></div><div class="s-m-grupos-host" id="s-m-grupos-host"></div></div>`
+      : aba === 'heitor'
+        ? `<div class="s-m-heitor" id="s-m-painel" role="tabpanel" aria-label="Sugestões do Heitor"><div class="s-m-heitor-topo">${laranja}${numeros}</div><p class="s-m-heitor-nota">${esc(resumoHeitor)} · o Heitor só sugere: nada grava sem o seu OK.</p>
+          <div class="d3h-grade"><div class="d3h-col">${semDono}${trocas}</div><div class="d3h-col">${carga}</div><div class="d3h-col">${pessoas}</div></div></div>`
+        : man.semana;
+    // Direção V2 (pranchas V2, 16/11/2026, e o pedido de 23/11): a mesma janela de vidro das outras abas, em uma coluna larga.
+    // Em cima só a saudação, o período e as abas do Hoje; o quadro ocupa o resto da altura, com as abas e os números
+    // discretos (atrasadas, para aprovação, aguardando você…) no cabeçalho; dentro dele cada parte rola por si.
+    return `<div class="d3h d3h-co v2o d3q d3q-larga"><div class="d3q-main"><div class="d3h-topo"><div class="d3h-ola"><h2>${esc(titulo)}</h2><small>${esc(faixaDe(r))}</small></div><div class="d3h-topo-dir">${periodos}${abas}</div></div>${aviso}
+      <div class="v2o-man"><section class="d3h-cartao v2o-sem s-m-quadro" data-aba="${aba}" aria-label="Quadro da coordenação">
+        <div class="d3h-cab s-m-cab">${abasQuadro}${man.contas}</div>
+        ${man.aberta}${painel}</section></div></div></div>`;
   }
 
   // ---------- controle manual (Beatriz, 14/11/2026: "gosto de fazer essas coisas manualmente, pra ter um controle
@@ -248,9 +268,9 @@
   const LIMITE_DIA = 5, REPETE_PESSOA = 2, REPETE_AGENCIA = 3, FORMATO_DIA = 3;
   const DOW = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
   const NO_DIA = ['no domingo', 'na segunda', 'na terça', 'na quarta', 'na quinta', 'na sexta', 'no sábado'];
-  const sg = { pessoa: '', desloca: 0, ref: 'prazo', filtro: { cliente: '', formato: '', setor: '' }, busca: '', ind: '', heitor: false, passando: '', pedido: null, gravando: false, msg: '', periodoVisto: '' };
-  try { const g = JSON.parse(localStorage.getItem('vybe.coordenacao.grade') || '{}'); if (['prazo', 'veiculacao'].includes(g.ref)) sg.ref = g.ref; if (g.pessoa) sg.pessoa = String(g.pessoa); sg.heitor = g.heitor === true; } catch { /* padrão */ }
-  const guardarGrade = () => { try { localStorage.setItem('vybe.coordenacao.grade', JSON.stringify({ ref: sg.ref, pessoa: sg.pessoa, heitor: sg.heitor })); } catch { /* fica nesta tela */ } };
+  const sg = { pessoa: '', desloca: 0, ref: 'prazo', filtro: { cliente: '', formato: '', setor: '' }, busca: '', ind: '', passando: '', pedido: null, gravando: false, msg: '', periodoVisto: '' };
+  try { const g = JSON.parse(localStorage.getItem('vybe.coordenacao.grade') || '{}'); if (['prazo', 'veiculacao'].includes(g.ref)) sg.ref = g.ref; if (g.pessoa) sg.pessoa = String(g.pessoa); } catch { /* padrão */ }
+  const guardarGrade = () => { try { localStorage.setItem('vybe.coordenacao.grade', JSON.stringify({ ref: sg.ref, pessoa: sg.pessoa })); } catch { /* fica nesta tela */ } };
   let ultimaGrade = null;
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   const formatoChave = (d) => { const f = Array.isArray(d.formatos) && d.formatos.length ? d.formatos[0] : (d.formato || d.tipo || ''); return String(f || '').trim(); };
@@ -343,6 +363,10 @@
     };
   }
   const IND = [['hoje', 'No ar hoje'], ['ar', 'Vão ao ar'], ['semana', 'Da semana'], ['aguardando', 'Aguardando você'], ['aprovar', 'Para aprovação'], ['atrasadas', 'Atrasadas']];
+  // Os números do cabeçalho do quadro: o que pede ação primeiro. O rótulo vem no singular quando é 1.
+  const ORDEM_CONTAS = ['atrasadas', 'aprovar', 'aguardando', 'hoje', 'ar', 'semana'];
+  const CONTA = { atrasadas: ['atrasada', 'atrasadas'], aprovar: ['para aprovação', 'para aprovação'], aguardando: ['aguardando você', 'aguardando você'],
+    hoje: ['no ar hoje', 'no ar hoje'], ar: ['vai ao ar', 'vão ao ar'], semana: ['da semana', 'da semana'] };
 
   // "3 dias passam do limite · 2 clientes repetidos · 4 carrosséis na quinta"
   function resumoTexto(g) {
@@ -431,7 +455,7 @@
     // Semana e Hoje: pessoa × dia. Mês: o calendário (seg a dom), cada dia com as peças da ficha aberta.
     let corpo;
     if (g.periodo !== 'mes') {
-      const cols = `${temAntes ? 'minmax(118px,.7fr) ' : ''}repeat(${g.cols.length}, minmax(0,1fr))`;
+      const cols = `${temAntes ? 'minmax(112px,.8fr) ' : ''}repeat(${g.cols.length}, minmax(0,1fr))`;
       corpo = `<div class="v2o-sem-grade" style="--cols:${cols}" role="grid" aria-label="Peças por pessoa e dia">
         <div class="v2o-sem-linha cab" role="row"><div class="v2o-sem-quem"></div>${temAntes ? '<div class="v2o-sem-dia antes"><b>Antes</b><small>vencidas</small></div>' : ''}${g.cols.map(cabCol).join('')}</div>
         ${linhasTodas.map((l) => `<div class="v2o-sem-linha${l.id ? '' : ' ninguem'}" role="row">${pessoaCab(l)}${temAntes ? celHtml(l, l.antes, -1) : ''}${l.celulas.map((c, ci) => celHtml(l, c, ci)).join('')}</div>`).join('')}</div>`;
@@ -472,28 +496,28 @@
     const ficha = (id, rot, n, tom = '') => `<button type="button" aria-pressed="${pessoa === id}" data-coord-sem-pessoa="${esc(id)}">${rot}<small class="${tom}">${n0(n)}</small></button>`;
     const fichas = `<div class="v2o-fichas" role="group" aria-label="De quem">${ordemFichas.map((l) => ficha(l.id, quem(l.id), I.porPessoa[l.id] || 0)).join('')}${ficha('ninguem', 'Sem ninguém', I.ninguem, I.ninguem ? 'a' : '')}${ficha('todos', 'Todos', I.total)}</div>`;
     const fora = g.semData ? `${n0(g.semData)} sem ${sg.ref === 'prazo' ? 'prazo' : 'veiculação'}` : '';
-    const grade = `<section class="d3h-cartao v2o-sem" aria-label="Grade ${esc(ROT[st.periodo])}">
-        <div class="d3h-cab v2o-sem-cab"><h3>${esc(ROT[st.periodo])}</h3><span class="v2o-sem-faixa">${esc(faixa)}</span>${anda}${refs}</div>
-        ${fichas}
-        <p class="v2o-sem-resumo" role="status">${resumo.length ? resumo.map((t, i) => `<span class="v2o-aviso${i === 0 && g.resumo.diasAcima ? ' r' : ''}"><i aria-hidden="true"></i>${esc(t)}</span>`).join('') : '<span class="v2o-aviso g"><i aria-hidden="true"></i>Tudo equilibrado</span>'}${fora ? `<small>${esc(fora)} fora da grade</small>` : ''}</p>
+    // A aba Semana (23/11/2026): duas linhas finas em cima da grade. Na 1ª, de quem (as fichas) e, à direita, o período
+    // (‹ › e Prazo/Veiculação); na 2ª, o resumo dos avisos e os filtros. A grade fica com todo o resto e rola por dentro.
+    const semana = `<div class="s-m-semana" id="s-m-painel" role="tabpanel" aria-label="Grade ${esc(ROT[st.periodo])}">
+        <div class="s-m-linha">${fichas}<span class="v2o-sem-cab s-m-anda"><span class="v2o-sem-faixa">${esc(faixa)}</span>${anda}${refs}</span></div>
+        <div class="s-m-linha s-m-linha2"><p class="v2o-sem-resumo" role="status">${resumo.length ? resumo.map((t, i) => `<span class="v2o-aviso${i === 0 && g.resumo.diasAcima ? ' r' : ''}"><i aria-hidden="true"></i>${esc(t)}</span>`).join('') : '<span class="v2o-aviso g"><i aria-hidden="true"></i>Tudo equilibrado</span>'}${fora ? `<small>${esc(fora)} fora da grade</small>` : ''}</p>${filtros}</div>
         ${sg.msg ? `<p class="v2o-msg" role="status">${esc(sg.msg)}</p>` : ''}
-        ${filtros}${corpo}${lista}</section>`;
-    // Indicadores: o número abre a lista no lugar; Para aprovação tem Aprovar e Atrasadas tem quem é e Mudar prazo.
+        ${corpo}${lista}</div>`;
+    // Indicadores (23/11/2026: os seis balões do topo saíram): números discretos no cabeçalho do quadro, na ordem do que
+    // pede ação (atrasadas, para aprovação, aguardando você) e depois o que vai ao ar. O número abre a lista no lugar;
+    // Para aprovação tem Aprovar, Atrasadas tem quem é e Mudar prazo, Aguardando você tem Atribuir.
     const L = I.listas;
-    const SELO_IND = { r: '<path d="M12 7v6M12 17h.01"/>', roxo: '<path d="M9 12l2 2 4-4"/><rect x="4" y="4" width="16" height="16" rx="3"/>', info: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>' };
-    const num = ([k, rot]) => { const n = L[k].length, tom = k === 'atrasadas' && n ? 'r' : k === 'hoje' && n ? 'k' : k === 'aguardando' && n ? 'a' : '';
-      const kk = k === 'atrasadas' ? 'r' : k === 'aprovar' || k === 'aguardando' ? 'roxo' : 'info';
-      return `<button type="button" class="d3-num d3h-num v2o-ind${tom ? ' ' + tom : ''}" data-k="${kk}" data-coord-ind="${k}" aria-expanded="${sg.ind === k}"><span class="d3-num-rot">${rot}</span><i class="d3h-num-selo" data-k="${kk}" aria-hidden="true"><svg viewBox="0 0 24 24">${SELO_IND[kk]}</svg></i><span class="d3h-num-linha"><span class="d3h-num-txt"><b class="d3-num-v">${n0(n)}</b></span></span></button>`; };
+    const conta = ([k, rot]) => { const n = L[k].length;
+      return `<button type="button" class="s-m-conta${k === 'atrasadas' && n ? ' r' : ''}" data-coord-ind="${k}" aria-expanded="${sg.ind === k}" title="${esc(rot)}: ver a lista"><b>${n0(n)}</b> ${esc(CONTA[k][n === 1 ? 0 : 1])}</button>`; };
     const linhaInd = (d, k) => { const ids = idsDe(d);
       return `<li class="v2o-il"><span class="v2o-il-cli">${cli(d)}</span><span class="v2o-il-nome" title="${esc(String(d.nome || 'Peça'))}">${esc(String(d.nome || 'Peça').trim())}</span>${formatoChave(d) ? `<span class="v2o-gp-f">${esc(formatoChave(d))}</span>` : ''}${pilulaSt(d)}<span class="v2o-il-q">${ids.length ? ids.map((i) => esc(primeiro(nome(i)))).join(', ') : '<em>sem ninguém</em>'}</span><span class="v2o-gp-datas">${dataBt(d, 'prazo', 'Prazo')}${dataBt(d, 'veiculacao', 'Veic.')}</span>
         <span class="v2o-il-ac">${k === 'aprovar' ? `<button type="button" class="v2o-btn k" data-coord-aprovar="${esc(d.id)}">Aprovar</button>` : ''}${k === 'atrasadas' ? `<button type="button" class="v2o-btn" data-coord-mudar-prazo="${esc(d.id)}">Mudar prazo</button>` : ''}${k === 'aguardando' ? `<button type="button" class="v2o-btn" data-coord-menu="passar" data-peca="${esc(d.id)}" data-de="">Atribuir</button>` : ''}<button type="button" class="v2o-btn" data-hoje-acao="peca" data-valor="${esc(d.id)}">Abrir</button></span>
         ${k === 'aguardando' && sg.passando === `${d.id}|` ? `<span class="v2o-gp-para">${g.todas.map((l) => `<button type="button" class="v2o-chip${l.disciplina === disciplinaDe(d) ? '' : ' fora'}" data-coord-sem-para="${esc(l.id)}" data-peca="${esc(d.id)}" data-de="" data-col="-2">${quem(l.id)}</button>`).join('')}<button type="button" class="v2o-btn" data-coord-sem-cancelar>Cancelar</button></span>${P && P.id === String(d.id) && P.col === -2 ? confirmar() : ''}` : (P && P.id === String(d.id) && P.col === -2 ? confirmar() : '')}</li>`; };
     const aberta = sg.ind && L[sg.ind] ? `<section class="d3h-cartao v2o-ind-lista" aria-label="${esc(IND.find((x) => x[0] === sg.ind)[1])}"><div class="d3h-cab"><h3>${esc(IND.find((x) => x[0] === sg.ind)[1])}</h3><button type="button" class="v2o-btn" data-coord-ind="${sg.ind}">Fechar</button></div><ul class="v2o-il-ul">${L[sg.ind].slice(0, 40).map((d) => linhaInd(d, sg.ind)).join('') || '<li class="v2o-nota">Nada aqui.</li>'}</ul>${L[sg.ind].length > 40 ? `<p class="v2o-nota">+ ${n0(L[sg.ind].length - 40)} na grade</p>` : ''}</section>` : '';
-    const nums = `<div class="v2o-inds" role="group" aria-label="Indicadores da produção">${IND.map(num).join('')}</div>`;
-    // A faixa laranja: o que pede ação agora, na ordem atrasadas → no ar hoje → para aprovação.
+    const contas = `<div class="s-m-contas" role="group" aria-label="Indicadores da produção">${ORDEM_CONTAS.map((k) => conta(IND.find((x) => x[0] === k))).join('')}</div>`;
+    // O que pede ação agora, na ordem atrasadas → no ar hoje → para aprovação: a frase do laranja da aba Heitor.
     const prio = [L.atrasadas.length ? [plural(L.atrasadas.length, 'atrasada', 'atrasadas'), 'atrasadas', 'Ver atrasadas'] : null, L.hoje.length ? [`${n0(L.hoje.length)} no ar hoje`, 'hoje', 'Ver hoje'] : null, L.aprovar.length ? [`${n0(L.aprovar.length)} para aprovar`, 'aprovar', 'Aprovar'] : null].filter(Boolean);
-    const faixaAcao = prio.length ? `<section class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa" aria-label="O que pede ação agora"><span class="d3v-lar-rot"><span class="d3-acao-av" aria-hidden="true">H</span>Heitor · coordenação</span><span class="d3v-lar-txt"><span class="d3-acao-frase">${prio.map((x) => x[0]).join(' · ')}.</span></span><span class="d3v-lar-bts"><button type="button" class="d3-acao-btn" data-coord-ind="${prio[0][1]}">${prio[0][2]}</button></span></section>` : '';
-    return { faixa: faixaAcao, nums, html: `<div class="v2o-man">${aberta}${grade}</div>` };
+    return { prio, contas, aberta, semana };
   }
 
   // O pedido do arrastar ou do "Passar para…": quem recebe, a data nova (na referência ativa) e os avisos da regra.
@@ -579,7 +603,55 @@
     return true;
   }
 
-  const ALVOS = ['data-coord-sem-ref', 'data-coord-sem-anda', 'data-coord-sem-pessoa', 'data-coord-menu', 'data-coord-sem-para', 'data-coord-sem-ok', 'data-coord-sem-cancelar', 'data-coord-sem-limpar', 'data-coord-data', 'data-coord-ind', 'data-coord-aprovar', 'data-coord-mudar-prazo', 'data-coord-heitor'];
+  // ---------- aba Grupos (23/11/2026) ----------
+  // A tabela é a de Grupos da Produção do Painel de trabalho (pv2GruposHtml em vybe-gestor.js, desenhada por
+  // renderVisaoDeGrupos em vybe-agenda.js), não uma cópia: a seção #grupos-board é EMPRESTADA para o quadro e devolvida
+  // ao lugar exato depois, como o DA Controler já faz (vybe-perfis.js). Seleção, Shift, Esc, filtros, status e captação
+  // coloridos, ações em lote e o CSS (#grupos-board.d3m-a-v2) seguem os mesmos. A coluna de consulta do Painel (os grupos,
+  // a busca e o "Em lote") vai para o lado da tabela.
+  const gr = { secao: null, lugar: null };
+  const hostDeGrupos = () => { const h = typeof document !== 'undefined' ? document.getElementById?.('s-m-grupos-host') : null; return h && h.isConnected && h.getClientRects?.().length ? h : null; };
+  function devolverGrupos() {
+    const { secao, lugar } = gr; if (!secao) return false;
+    gr.secao = null; gr.lugar = null;
+    if (lugar?.parentNode) { lugar.parentNode.insertBefore(secao, lugar); lugar.remove?.(); }
+    secao.classList?.add('focus-hidden'); secao.innerHTML = '';
+    return true;
+  }
+  // renderVisaoDeGrupos pergunta antes de desenhar: true = desenhar aqui; emprestada mas fora da vista (a pessoa saiu
+  // da aba ou do Hoje) = devolve ao Painel e responde false, e a tabela volta a ser a do Painel.
+  function gruposNaCoordenacao() {
+    if (!gr.secao) return false;
+    const h = hostDeGrupos();
+    if (h && gr.secao.parentNode === h) return true;
+    devolverGrupos(); return false;
+  }
+  function soltarGrupos() { if (devolverGrupos()) G.renderVisaoDeGrupos?.('producao'); }
+  // Depois de pintar a Coordenação: na aba Grupos, a seção entra no lugar dela no quadro e é redesenhada lá.
+  function acomodarGrupos() {
+    if (st.aba !== 'grupos') { soltarGrupos(); return false; }
+    const h = hostDeGrupos(); if (!h) return false;
+    const daDa = typeof DA_SECAO_EMPRESTADA !== 'undefined' && DA_SECAO_EMPRESTADA.id === 'grupos-board'; // eslint-disable-line no-undef
+    const secao = gr.secao || (!daDa ? document.getElementById('grupos-board') : null);
+    if (!secao || typeof G.renderVisaoDeGrupos !== 'function') { h.innerHTML = '<p class="v2o-nota">A tabela de grupos ainda não carregou. Abra o Painel de trabalho uma vez e volte.</p>'; return false; }
+    if (!gr.secao) { const lugar = document.createComment('grupos-board-lugar'); secao.parentNode?.insertBefore(lugar, secao); Object.assign(gr, { secao, lugar }); }
+    if (secao.parentNode !== h) h.appendChild(secao);
+    G.renderVisaoDeGrupos('producao');
+    return true;
+  }
+  // A coluna ao lado da tabela: a mesma coluna de consulta do Painel (pv2Vista.grupos.lado). O campo de busca ganha outro id
+  // (o do Painel continua lá) e o foco volta ao campo enquanto se digita.
+  function pintarLadoDeGrupos() {
+    const lado = document.getElementById?.('s-m-grupos-lado'); if (!lado) return;
+    const V = typeof pv2Vista !== 'undefined' ? pv2Vista : null; // eslint-disable-line no-undef
+    const html = String(V?.grupos?.lado || '').replace('id="busca-cliente-conteudos"', 'id="s-m-grupos-busca"');
+    if (lado.vvHtml === html) return;
+    const ativo = document.activeElement, digitando = ativo?.id === 's-m-grupos-busca', pos = digitando ? ativo.selectionStart : null;
+    lado.innerHTML = html; lado.vvHtml = html;
+    if (digitando) { const c = document.getElementById('s-m-grupos-busca'); c?.focus(); try { if (pos != null) c.setSelectionRange(pos, pos); } catch { /* campo sem seleção */ } }
+  }
+
+  const ALVOS = ['data-coord-sem-ref', 'data-coord-sem-anda', 'data-coord-sem-pessoa', 'data-coord-menu', 'data-coord-sem-para', 'data-coord-sem-ok', 'data-coord-sem-cancelar', 'data-coord-sem-limpar', 'data-coord-data', 'data-coord-ind', 'data-coord-aprovar', 'data-coord-mudar-prazo', 'data-coord-aba'];
   const SEL_GRADE = ALVOS.map((a) => `#vv-hoje .v2o [${a}]`).join(',');
   function aoClicarGrade(ev) {
     const b = ev.target.closest?.(SEL_GRADE);
@@ -594,7 +666,7 @@
     }
     if (ds.coordMudarPrazo) { editarData(b.closest('.v2o-il')?.querySelector('[data-coord-data="prazo"]'), ds.coordMudarPrazo, 'prazo'); return; }
     if (ds.coordAprovar) { sg.msg = ''; if (!aprovar(ds.coordAprovar)) repintar(); return; }
-    if (b.hasAttribute('data-coord-heitor')) { sg.heitor = !sg.heitor; guardarGrade(); }
+    if (ds.coordAba) { st.aba = ABAS.includes(ds.coordAba) ? ds.coordAba : 'semana'; try { localStorage.setItem('vybe.coordenacao.aba', st.aba); } catch { /* fica nesta tela */ } sg.passando = ''; sg.pedido = null; }
     else if (ds.coordInd) { sg.ind = sg.ind === ds.coordInd ? '' : ds.coordInd; sg.passando = ''; sg.pedido = null; }
     else if (ds.coordSemPessoa) { sg.pessoa = ds.coordSemPessoa; sg.passando = ''; sg.pedido = null; guardarGrade(); }
     else if (ds.coordSemRef) { sg.ref = ds.coordSemRef; sg.pedido = null; guardarGrade(); }
@@ -723,5 +795,6 @@
     document.addEventListener('change', aoMudarFiltro, true); document.addEventListener('input', aoMudarFiltro, true);
   }
 
-  G.VybeCoordenacao = { calcular, html, janelaDe, disciplinaDe, ultima: () => ultima, gradeCalcular, colunasDe, resumoTexto, indicadores, ultimaGrade: () => ultimaGrade, estadoGrade: () => sg };
+  G.VybeCoordenacao = { calcular, html, janelaDe, disciplinaDe, ultima: () => ultima, gradeCalcular, colunasDe, resumoTexto, indicadores, ultimaGrade: () => ultimaGrade, estadoGrade: () => sg,
+    aba: () => st.aba, depoisDePintar: acomodarGrupos, gruposNaCoordenacao, soltarGrupos, pintarLadoDeGrupos };
 })(typeof window !== 'undefined' ? window : globalThis);

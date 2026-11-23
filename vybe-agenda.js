@@ -2289,7 +2289,9 @@ document.addEventListener('keydown', (evento) => {
     return showToast(`Seleção limpa · ${quantas} ${quantas === 1 ? 'demanda desmarcada' : 'demandas desmarcadas'}`, 'info', 3000);
   }
   if (!SELECIONADAS.size) return;
-  if (haAlgoNaFrenteDaSelecao()) return;
+  // Na aba Grupos da Coordenação a tabela mora dentro do Hoje, que é o próprio #mode-gate do mundo: ali ele não está na frente.
+  const naCoordenacao = typeof window !== 'undefined' && Boolean(window.VybeCoordenacao?.gruposNaCoordenacao?.());
+  if (haAlgoNaFrenteDaSelecao(naCoordenacao ? ['#mode-gate'] : [])) return;
   const quantas = SELECIONADAS.size;
   // Com a barra "N marcadas" à vista, este Esc é só da seleção: o preventDefault segura o Esc do mundo (vybe-mundo.js), que
   // fecharia o módulo junto. O próximo Esc, já sem seleção, fecha. Seleção que não está à vista segue como antes.
@@ -2522,6 +2524,9 @@ function devolverRolagemDaFolha(wrap, antes) {
 function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
   if (!quadro) { renderVisaoDeGrupos('producao', { forcar }); renderVisaoDeGrupos('demandas', { forcar }); return; }
   const cfg = VISAO_DE_GRUPOS[quadro] || VISAO_DE_GRUPOS.producao;
+  // Aba Grupos da Coordenação (Hoje): a seção #grupos-board está emprestada ao quadro da Beatriz e se desenha lá, aberta e
+  // na V2. Fora da vista, a pergunta já a devolve ao lugar dela aqui (vybe-mundo-coordenacao.js).
+  const naCoordenacao = quadro === 'producao' && Boolean(typeof window !== 'undefined' && window.VybeCoordenacao?.gruposNaCoordenacao?.());
   const wrap = document.getElementById(cfg.alvo);
   const botao = document.getElementById(cfg.botao);
   if (!wrap) return;
@@ -2545,7 +2550,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     const contador = document.getElementById(cfg.contador);
     if (contador) contador.textContent = grupos.length;
   }
-  const aberta = forcar || emprestadaAoDa(cfg.alvo)
+  const aberta = forcar || emprestadaAoDa(cfg.alvo) || naCoordenacao
     || (quadro === 'demandas' ? gruposDeDemandasAberto : abertaPeloGestor(visaoDeGruposAberta));
   if (botao) botao.setAttribute('aria-expanded', String(aberta));
   if (!aberta) { wrap.innerHTML = ''; wrap.classList.add('focus-hidden'); return; }
@@ -2560,6 +2565,7 @@ function renderVisaoDeGrupos(quadro, { forcar = false } = {}) {
     wrap.innerHTML = pv2GruposHtml({ grupos, quadro, base: semCliente, semFiltro: cfg.fonte() });
     devolverRolagemDaFolha(wrap, antes);
     if (typeof pv2PintarVista === 'function') pv2PintarVista();
+    if (naCoordenacao) window.VybeCoordenacao.pintarLadoDeGrupos?.();
     return;
   }
 
