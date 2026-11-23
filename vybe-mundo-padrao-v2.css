@@ -15918,14 +15918,14 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
    o tema antigo obriga os campos da janela a ser. */
 .d3m-c-busca{flex:none;display:flex;align-items:center;height:34px;border-radius:var(--d3-r-botao);background:var(--d3-fume-veu-forte);color:var(--d3-fume-texto);cursor:pointer}
 .d3m-c-busca > svg{margin:0 9px;pointer-events:none}
-:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca > input{flex:none;width:0;min-width:0;height:28px;margin:0;padding:0;box-sizing:border-box;opacity:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);transition:width .2s}
-:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca > input:is(:focus,:not(:placeholder-shown)){width:210px;margin-right:3px;padding:0 10px;opacity:1;outline:0}
-:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp) .d3m-c-busca.d3m-c-busca{display:flex;flex-direction:row;align-items:center;gap:0;margin:0}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia) .d3m-c-busca.d3m-c-busca > input{flex:none;width:0;min-width:0;height:28px;margin:0;padding:0;box-sizing:border-box;opacity:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);transition:width .2s}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia) .d3m-c-busca.d3m-c-busca > input:is(:focus,:not(:placeholder-shown)){width:210px;margin-right:3px;padding:0 10px;opacity:1;outline:0}
+:is(#agv2-topo,#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia) .d3m-c-busca.d3m-c-busca{display:flex;flex-direction:row;align-items:center;gap:0;margin:0}
 .d3m-c-busca:focus-within{box-shadow:inset 0 0 0 2px var(--d3-fume-texto)}
-/* A janela de módulo (as que abrem por cima do mundo: Planejamentos, Impressões, Projetos, Fornecedores, Creators e
+/* A janela de módulo (as que abrem por cima do mundo: Planejamentos, Impressões, Projetos, Fornecedores, Creators, Mídia e
    Conversas) vira vidro fumê quando a tela V2 está nela (.d3m-c-janela, posta pelo módulo). A posição continua a do tema. */
-:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp).d3m-c-janela.d3m-c-janela{display:flex;flex-direction:column;gap:16px;padding:16px;box-sizing:border-box;border:0;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden}
-:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp).d3m-c-janela[hidden]{display:none}
+:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia).d3m-c-janela.d3m-c-janela{display:flex;flex-direction:column;gap:16px;padding:16px;box-sizing:border-box;border:0;background:var(--d3-fume);box-shadow:inset 0 0 0 1px var(--d3-fume-borda),0 30px 60px -40px rgba(0,0,0,.6);color:var(--d3-fume-texto);font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);overflow:hidden}
+:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia).d3m-c-janela[hidden]{display:none}
 /* Menus do topo (details): o botão é o summary; a lista abre embaixo, alinhada à direita com .dir. */
 .d3m-c-menu{flex:none;position:relative}
 .d3m-c-menu > summary{list-style:none}
@@ -15940,7 +15940,7 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
 .d3m-c-abas > button[aria-checked="true"]{background:var(--d3-veu-forte);font-weight:600}
 .d3m-c-abas > button > b{font-weight:400;color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
 .d3m-c-abas > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
-@media (max-width:1100px){:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp).d3m-c-janela.d3m-c-janela{overflow-y:auto}}
+@media (max-width:1100px){:is(#vv-planejamentos,#vv-impressoes,#vv-pessoas,#vv-comercial,#vv-whatsapp,#vv-midia).d3m-c-janela.d3m-c-janela{overflow-y:auto}}
 /* O texto miúdo dos cartões (com classe, para o cinza do tema antigo não pegar). */
 .d3m-c-s{color:inherit}
 /* O corpo: o trabalho à esquerda, a consulta de 316 px à direita. Nada rola na janela; só as listas, por dentro. */
@@ -16343,6 +16343,69 @@ body.mundo.mundo-modulo[data-modo="producao"] :is(#pv2-regua,#pv2-pe){display:no
   .imp2-e:not(.um),.imp2-t:not(.um){grid-template-columns:minmax(0,1fr)}
   .imp2-cab,.imp2-lin{grid-template-columns:56px 28px minmax(0,1fr) 112px minmax(0,96px) 80px}
   .imp2-cab > :is(:nth-child(4),:nth-child(6)),.imp2-lin > :is(.imp2-trilha,.imp2-trilha + .d3v-st + .imp2-c){display:none}
+}
+
+/* ===== padrao-v2/zm-c-midia.css ===== */
+/* DIREÇÃO V2 · MÍDIA (vybe-mundo-midia.js, 20/11/2026). A janela (#vv-midia) é uma janela de módulo do grupo C: vidro fumê
+   e topo de zm-c-base.css, folha à esquerda com uma linha por cliente e a consulta do Ícaro à direita. Leva .d3-tema
+   (folha escura no tema escuro). Canal sem conexão fica apagado com o ícone de tomada, nunca com zero. */
+#vv-midia{position:fixed;z-index:650;inset:calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 96px);border-radius:16px}
+.md-folha{min-height:0}
+.md-cab,.md-lin{display:grid;grid-template-columns:28px minmax(0,1.1fr) 132px minmax(0,1.3fr) 128px 128px 20px;align-items:center;gap:0 12px;padding:0 16px;box-sizing:border-box}
+.md-cab{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.md-lista{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.md-lin{min-height:42px;border-top:1px solid var(--d3-divisa);cursor:pointer}
+.md-lin:hover,.md-lin.aberta{background:var(--d3-veu)}
+.md-nome{appearance:none;justify-self:start;max-width:100%;margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.md-nome:focus-visible,.md-link:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.md-cel{min-width:0;font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-num{font-variant-numeric:tabular-nums}
+.md-delta{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+.md-apagado{color:var(--d3-rotulo)}
+.md-tomada{display:inline-flex;align-items:center;gap:6px}
+.md-tomada > svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.md-chev{display:grid;place-items:center;color:var(--d3-rotulo)}
+.md-chev > svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s var(--curva,ease)}
+.md-lin.aberta .md-chev > svg{transform:rotate(90deg)}
+/* O sinal do Ícaro: a cor é o estado e o nome vai junto para quem não enxerga a cor (title e texto escondido). */
+.md-sinal{display:grid;place-items:center}
+.md-sinal > i{width:10px;height:10px;border-radius:50%;background:var(--d3-meta)}
+.md-sinal.r > i{background:var(--d3-perigo)}
+.md-sinal.a > i{background:var(--d3-ambar)}
+.md-sinal.g > i{background:var(--d3-pronto)}
+.md-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* O Meta ainda chegando: o brilho do esqueleto (vb-sk) na forma do número. */
+.md-brilho > i{display:block;width:72%;height:10px;border-radius:5px;background:var(--d3-veu-forte)}
+@media (prefers-reduced-motion:no-preference){.md-brilho > i{animation:md-brilho 1.4s var(--curva,ease) infinite alternate}}
+@keyframes md-brilho{from{opacity:1}to{opacity:.45}}
+.md-link{appearance:none;margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.md-vazio{margin:0;padding:24px 16px;color:var(--d3-rotulo)}
+/* A linha aberta: duas colunas, o Meta e o que falta conectar com o cérebro do cliente. */
+.md-det{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;padding:10px 16px 16px 56px;background:var(--d3-veu)}
+.md-det-col{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+.md-det-h{font:600 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.md-det-txt{margin:0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.md-det-lista{margin:0;padding:0 0 0 16px;font:400 var(--d3-fs-texto)/1.5 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.md-tab{width:100%;border-collapse:collapse;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);table-layout:fixed}
+.md-tab th{padding:4px 6px;text-align:left;font-weight:400;color:var(--d3-rotulo)}
+.md-tab td{padding:5px 6px;border-top:1px solid var(--d3-divisa);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-tab th:first-child{width:30%}
+.md-tab .n{text-align:right;font-variant-numeric:tabular-nums}
+.md-tab td.a{color:var(--d3-ambar)}
+/* A consulta. */
+.md-laranja{flex:none;min-height:180px}
+.md-canais{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.md-canal{display:grid;grid-template-columns:minmax(0,1fr) 96px 56px;align-items:center;gap:12px;height:24px;padding:0 12px;color:var(--d3-fume-apagado);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+.md-canal > b{text-align:right;font-weight:600;color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+.md-canal > .d3m-vbarra.n > i{background:var(--d3-fume-apagado)}
+.md-nota{margin:8px 0 0;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+@media (max-height:820px){.md-laranja{min-height:0}}
+@media (max-width:1100px){.md-folha{height:560px}}
+@media (max-width:900px){
+  #vv-midia{inset:8px 8px calc(64px + 2*var(--vv-m,16px)) 8px}
+  .md-cab,.md-lin{grid-template-columns:24px minmax(0,1fr) 110px 20px}
+  .md-cab > :is(:nth-child(4),:nth-child(5),:nth-child(6)),.md-lin > .md-cel ~ .md-cel{display:none}
+  .md-det{grid-template-columns:minmax(0,1fr);padding-left:16px}
 }
 
 /* ===== padrao-v2/zm-c-planejamentos.css ===== */

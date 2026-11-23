@@ -335,6 +335,22 @@
           texto: 'E no pé, as peças para aprovar e as atrasadas.' },
       ],
     },
+    {
+      id: 'midia', nome: 'Mídia', resumo: 'A mídia de cada cliente, canal por canal, com o Ícaro apontando o que pede atenção.',
+      se: '#vv-midia .md-folha',
+      passos: [
+        { alvo: '#vv-midia .d3m-c-tit', lado: 'baixo', titulo: 'Mídia',
+          texto: 'Aqui fica a mídia de todos os clientes, {nome}: Meta Ads, Google Ads e o site, lado a lado.' },
+        { alvo: '#vv-midia .d3m-c-seg', lado: 'baixo', titulo: 'O período',
+          texto: 'Escolha 7 ou 30 dias. A conta fecha ontem e compara com o período anterior do mesmo tamanho.' },
+        { alvo: '#md-lista', lado: 'direita', titulo: 'Os clientes',
+          texto: 'Cada linha é um cliente com a bolinha do Ícaro: vermelho pede ação, amarelo pede olho. Clique para ver as campanhas.' },
+        { alvo: '#vv-midia .md-laranja', lado: 'esquerda', titulo: 'O Ícaro',
+          texto: 'No laranja o Ícaro, da Mídia Paga, diz qual cliente mais pede atenção agora.' },
+        { alvo: '#vv-midia .md-canais', lado: 'esquerda', titulo: 'Canais',
+          texto: 'E aqui, quanto de cada canal já está conectado. O que falta aparece apagado até a conexão.' },
+      ],
+    },
     // ============================================================ AGENTES, CARTEIRA E COMERCIAL (padrão V2)
     // Cada janela tem o seu id (#vv-agentes, #vv-carteira, #vv-comercial) e a tela tem o data-tela; os seletores ficam
     // presos à janela, porque uma janela de antes pode continuar no DOM por baixo da nova.
