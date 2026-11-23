@@ -107,7 +107,8 @@ test('arrastar: soltar em outra pessoa e outro dia pede o OK; Mover grava respon
   let html = C.html(args);
   const id = itens[0].id, nomeP = itens[0].nome;
   assert.match(html, /class="v2o-man"/); assert.match(html, new RegExp(`data-coord-arrasta="${id}"[^>]*data-de="jady"`));
-  assert.ok(html.indexOf('v2o-man') < html.indexOf('Sugestões do Heitor'), 'o controle manual vem antes das sugestões');
+  // 23/11/2026: as sugestões do Heitor viraram a aba Heitor do quadro; a grade (aba Semana) é a que abre.
+  assert.match(html, /data-coord-aba="semana"[^>]*>|aria-selected="true" data-coord-aba="semana"/); assert.match(html, /data-coord-aba="heitor"/);
   const [arrastar] = de('dragstart'), solta = de('drop')[0], clique = de('click')[1];
   const cols = C.ultimaGrade().g.cols, sexta = cols.findIndex((c) => c.inicio === '2026-11-13');
   arrastar(ev('dragstart', el({ 'data-coord-arrasta': '' }, { coordArrasta: id, de: 'jady' })));
@@ -167,5 +168,9 @@ test('fichas por pessoa, Mês arrastando entre dias (mantém quem faz), Aprovar 
   assert.doesNotMatch(css, /!important|html body\.mundo/);
   assert.match(ler('vybe-mundo-padrao-v2.css'), /padrao-v2\/d3-coordenacao\.css/);
   html = C.html(args);
-  assert.match(html, /class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa"/); // direção V2: a faixa virou o cartão laranja ao lado dos indicadores assert.equal((html.match(/class="d3-acao /g) || []).length, 1, 'um só bloco laranja');
+  // 23/11/2026: o cartão laranja saiu do topo e mora na aba Heitor do quadro, o único laranja da tela.
+  assert.doesNotMatch(html, /d3v-laranja/);
+  clique(ev('click', el({ 'data-coord-aba': '' }, { coordAba: 'heitor' }))); html = C.html(args);
+  assert.equal((html.match(/class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa s-m-laranja"/g) || []).length, 1);
+  clique(ev('click', el({ 'data-coord-aba': '' }, { coordAba: 'semana' }))); assert.equal((html.match(/class="d3-acao /g) || []).length, 1, 'um só bloco laranja');
 });

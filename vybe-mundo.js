@@ -863,6 +863,8 @@
     const html = C.html({ itens, time, hoje: hojeIso(), data, nome, cliente, titulo: saudacaoD3(), abas: segHoje('coordenacao'),
       peso: (d, u) => (typeof daEffortWeight === 'function' ? daEffortWeight(d, u) : 1) });
     if (el.vvHtml !== html) { el.innerHTML = html; el.vvHtml = html; }
+    // Aba Grupos: a tabela do Painel de trabalho entra no quadro depois de pintar (vybe-mundo-coordenacao.js).
+    C.depoisDePintar?.(el);
     return true;
   }
   // O guia: o agente, uma frase e os passos numerados (Agora, Depois, Em seguida), cada um abre o que precisa ser feito.
@@ -2072,6 +2074,8 @@
     const h = agora.getHours(), saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
     const nome = String(fila?.user?.name || fila?.user?.nome || (typeof operadorDoTopo === 'function' ? (operadorDoTopo()?.name || operadorDoTopo()?.nome) : '') || '').split(' ')[0];
     const dono = souDono(); body.classList.toggle('eh-dono', dono);
+    // Fora da Coordenação, a tabela de Grupos emprestada ao quadro volta ao Painel de trabalho.
+    if (visaoHoje !== 'coordenacao' || !podeCoordenar()) window.VybeCoordenacao?.soltarGrupos?.();
     if (dono && !verComo && visaoHoje === 'agencia') { pintarAgencia(el, { data, saud, nome }); return; }
     if (visaoHoje === 'criacao' && ((dono && !verComo) || criacaoPeloDock)) { pintarCriacao(el, { data }); return; }
     if (visaoHoje === 'coordenacao' && podeCoordenar() && pintarCoordenacao(el, { data })) return;

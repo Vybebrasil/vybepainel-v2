@@ -108,7 +108,7 @@ function criacao({ gravarFalha = false } = {}) {
   const resposta = (corpo, ok = true) => ({ ok, json: async () => corpo });
   let soltar = null;
   const ctx = { console, Date, JSON, Promise, Math, Number, String, Array, Object, Set, Map, Error, Intl, CustomEvent: class {},
-    setTimeout: () => 0, clearTimeout() {}, localStorage: { getItem: () => null, setItem() {} },
+    setTimeout: () => 0, clearTimeout() {}, localStorage: { getItem: (k) => (k === 'vybe.coordenacao.aba' ? 'heitor' : null), setItem() {} } /* o lote mora na aba Heitor */,
     document: { addEventListener: (tipo, f) => { (ouvintes[tipo] ||= []).push(f); }, dispatchEvent() {} },
     PESSOAS: { DEIVID }, souDonoDaSessao: () => true, hojeDeVerdade: () => HOJE, showToast() {}, renderIntegratedOperationalViews() {},
     findOperationalItem: (id) => ({ id, nome: 'Peça ' + id, responsavel_ids: id === '10' ? [DEIVID] : [BIA] }),
@@ -178,7 +178,7 @@ test('Fila do Danilo: falha numa confirmação do lote aparece na linha e no pé
 // ---------- Coordenação: Confirmar N grava pelas mesmas confirmações da linha ----------
 function coordenacao() {
   const log = []; let soltar = [];
-  const ctx = vm.createContext({ localStorage: { getItem: () => null, setItem() {} }, CustomEvent: class {}, document: { addEventListener() {}, dispatchEvent() {} }, console, Promise,
+  const ctx = vm.createContext({ localStorage: { getItem: (k) => (k === 'vybe.coordenacao.aba' ? 'heitor' : null), setItem() {} } /* o lote mora na aba Heitor */, CustomEvent: class {}, document: { addEventListener() {}, dispatchEvent() {} }, console, Promise,
     findOperationalItem: (id) => ({ id, nome: 'P' + id, responsavel_ids: id === '2' || id === '3' ? ['jady'] : [] }),
     gravarResponsaveisDaPeca: (item, novos) => { log.push([String(item.id), [...novos]]); return new Promise((ok) => soltar.push(ok)); }, showToast() {}, TEAM_USERS: [] });
   vm.runInContext(ler('vybe-mundo-coordenacao.js'), ctx);
@@ -204,7 +204,7 @@ test('Coordenação: Confirmar N no pé de Para equilibrar pergunta, depois grav
   assert.match(ler('vybe-mundo-coordenacao.js'), /for \(const chave of chaves\) \{ L\.i \+= 1; if \(await gravar\(chave\)\) ok \+= 1; \}/, 'a mesma gravação da linha, em sequência');
   // Roda de verdade pelo ouvinte exposto ao documento.
   const ouvintes = [];
-  const ctx2 = vm.createContext({ localStorage: { getItem: () => null, setItem() {} }, CustomEvent: class {}, console, Promise,
+  const ctx2 = vm.createContext({ localStorage: { getItem: (k) => (k === 'vybe.coordenacao.aba' ? 'heitor' : null), setItem() {} } /* o lote mora na aba Heitor */, CustomEvent: class {}, console, Promise,
     document: { addEventListener: (_t, f) => ouvintes.push(f), dispatchEvent() {} },
     findOperationalItem: (id) => ({ id, nome: 'P' + id, responsavel_ids: id === '1' ? [] : ['jady'] }),
     gravarResponsaveisDaPeca: (item, novos) => { log.push([String(item.id), [...novos]]); return new Promise((ok) => { ctx2.solta = ok; }); }, showToast() {}, TEAM_USERS: [] });
@@ -224,7 +224,7 @@ test('Coordenação: Confirmar N no pé de Para equilibrar pergunta, depois grav
 
 test('Coordenação: peça do Vybe OS (id "vybe:N") grava pela linha e pelo lote', async () => {
   const ouvintes = [], log = [], itens = [pecaC('vybe:7', ''), pecaC('vybe:8', '')];
-  const ctx = vm.createContext({ localStorage: { getItem: () => null, setItem() {} }, CustomEvent: class {}, console, Promise,
+  const ctx = vm.createContext({ localStorage: { getItem: (k) => (k === 'vybe.coordenacao.aba' ? 'heitor' : null), setItem() {} } /* o lote mora na aba Heitor */, CustomEvent: class {}, console, Promise,
     document: { addEventListener: (_t, f) => ouvintes.push(f), dispatchEvent() {} },
     findOperationalItem: (id) => itens.find((d) => d.id === String(id)) || null,
     gravarResponsaveisDaPeca: async (item, novos) => { log.push([String(item.id), [...novos]]); item.responsavel_ids = [...novos]; }, showToast() {}, TEAM_USERS: [] });

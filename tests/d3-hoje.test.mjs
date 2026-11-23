@@ -57,7 +57,7 @@ test('Coordenação: período no título, faixa do Heitor que pede o OK, sem nin
   const h = trecho('  function html({ itens, time', '  async function gravar(', coord);
   // Direção V2 (16/11/2026): a faixa do Heitor na composição do cartão laranja; a tela no esqueleto de vidro, em coluna larga.
   assert.match(h, /class="d3h d3h-co v2o d3q d3q-larga"/);
-  naOrdem(h, ['class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa"', 'data-coord-periodo=', 'Sem ninguém atribuído', 'Para equilibrar', 'Carga do time', 'agora → depois']);
+  naOrdem(h, ['data-coord-periodo=', 'Sem ninguém atribuído', 'Para equilibrar', 'Carga do time', 'agora → depois', 'class="d3-acao d3h-acao d3v-laranja d3v-lar-faixa s-m-laranja"']);
   assert.match(h, /data-coord-atribuir="\$\{esc\(s1\.d\.id\)\}" data-para="\$\{esc\(s1\.sugerido\)\}">Atribuir a 1ª/, 'a faixa só abre a confirmação na linha');
   assert.match(h, /confirmarHtml\(chave \+ id, `Atribuir a/, 'nada grava sem o OK');
   assert.match(coord, /function linhaCarga\(/);

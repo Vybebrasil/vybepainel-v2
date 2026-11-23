@@ -11657,6 +11657,122 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
   #painel-clientes .cv2-tr > .cv2-volta{align-self:center}
 }
 
+/* ===== padrao-v2/s-m.css ===== */
+/* PADRÃO V2 · HOJE · COORDENAÇÃO · FRENTE S-M (Paulo, 23/11/2026: "dá mais espaço pro (semana).. tira os balões de
+   cima.... o sugestões do Heitor vira uma aba lá dentro (e quero mais uma aba igual tem no painel de trabalho quando
+   mostra por grupos também pra Bia gerir por aqui)"). Em cima fica só a saudação, o período e as abas do Hoje; os seis
+   balões e o cartão laranja saem do topo. O quadro ocupa toda a altura e largura que sobram: no cabeçalho as abas
+   (Semana, Grupos, Heitor) e os números discretos que eram os balões; cada aba rola por dentro, a página não. */
+
+/* O quadro com toda a altura que sobra embaixo do topo. */
+#vv-hoje .d3q.d3h-co > .d3q-main > .v2o-man{flex:1 1 0;min-height:0;gap:0}
+#vv-hoje .d3q.d3h-co .v2o-man > .v2o-sem.s-m-quadro{flex:1 1 0;min-height:0;gap:8px;padding:0;overflow:hidden}
+
+/* Cabeçalho do quadro: as abas à esquerda, os números à direita. */
+#vv-hoje .d3q.d3h-co .s-m-quadro > .s-m-cab{flex:none;flex-wrap:wrap;height:auto;min-height:0;gap:6px 16px;padding:10px 12px 0 12px}
+#vv-hoje .d3q.d3h-co .s-m-abas{display:inline-flex;flex:none;gap:2px;padding:0;border-radius:var(--d3-r-botao);background:var(--d3-veu)}
+#vv-hoje .d3q.d3h-co .s-m-abas > button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:34px;margin:0;padding:0 14px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-rotulo);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,sans-serif);cursor:pointer;transition:background .15s ease,color .15s ease}
+#vv-hoje .d3q.d3h-co .s-m-abas > button:hover{color:var(--d3-tinta)}
+#vv-hoje .d3q.d3h-co .s-m-abas > button[aria-selected="true"]{background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
+#vv-hoje .d3q.d3h-co .s-m-abas > button > small{font:600 var(--d3-fs-apoio)/1 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+#vv-hoje .d3q.d3h-co .s-m-abas > button:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+/* O mesmo segmentado quando o vybe-core.js o liga como abas deslizantes (vb-abas): a pílula que desliza é o véu forte, não a
+   tinta, e o texto da aba escolhida fica na tinta (contraste nos três temas). */
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas:not(#vb-a):not(#vb-b){gap:2px;height:34px;padding:0;border-radius:var(--d3-r-botao);background:var(--d3-veu)}
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas:not(#vb-a):not(#vb-b) [role="tab"]{height:34px;padding:0 14px;border-radius:var(--d3-r-botao);color:var(--d3-rotulo);font:500 var(--d3-fs-texto)/1 var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas:not(#vb-a):not(#vb-b) [role="tab"]:hover{color:var(--d3-tinta)}
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"]{background:var(--d3-veu-forte);color:var(--d3-tinta);font-weight:600}
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"]{background:transparent;color:var(--d3-tinta)}
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas.vb-abas-desliza:not(#vb-a):not(#vb-b)::before{top:0;bottom:0;border-radius:var(--d3-r-botao);background:var(--d3-veu-forte)}
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas:not(#vb-a):not(#vb-b) [role="tab"] > small{color:var(--d3-rotulo)}
+#vv-hoje .d3q.d3h-co .s-m-abas.vb-abas:not(#vb-a):not(#vb-b) [role="tab"][aria-selected="true"] > small,#vv-hoje .d3q.d3h-co .s-m-abas > button[aria-selected="true"] > small{color:var(--d3-tinta)}
+
+/* Os números que eram balões: discretos, clicáveis (abrem a lista no lugar), vermelho só nas atrasadas. */
+#vv-hoje .d3q.d3h-co .s-m-contas{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px;min-width:0}
+#vv-hoje .d3q.d3h-co .s-m-conta{appearance:none;display:inline-flex;align-items:center;gap:5px;height:34px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:none;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1 var(--vv-texto,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:background .15s ease}
+#vv-hoje .d3q.d3h-co .s-m-conta > b{font:600 var(--d3-fs-texto)/1 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+#vv-hoje .d3q.d3h-co .s-m-conta.r > b{color:var(--d3-perigo)}
+#vv-hoje .d3q.d3h-co .s-m-conta:hover{background:var(--d3-veu)}
+#vv-hoje .d3q.d3h-co .s-m-conta[aria-expanded="true"]{background:var(--d3-veu-forte);color:var(--d3-tinta)}
+#vv-hoje .d3q.d3h-co .s-m-conta:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+
+/* A lista do número aberto fica em cima da aba e divide a altura com ela. */
+#vv-hoje .d3q.d3h-co .s-m-quadro > .v2o-ind-lista{flex:0 1 auto;max-height:42%;margin:0 12px;border-radius:var(--d3-r-caixa);background:var(--d3-veu);box-shadow:none}
+
+/* ABA SEMANA: duas linhas finas (de quem + período; avisos + filtros) e a grade com o resto. */
+#vv-hoje .d3q.d3h-co .s-m-semana{display:flex;flex:1 1 0;flex-direction:column;gap:8px;min-height:0;min-width:0}
+#vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha{display:flex;flex:none;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;min-width:0;padding:0 16px}
+#vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha > .v2o-fichas{margin:0;max-width:100%}
+#vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha > .s-m-anda{display:flex;flex:none;flex-wrap:nowrap;align-items:center;gap:8px;min-height:0;margin-left:auto;padding:0}
+#vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha > .s-m-anda > .v2o-sem-faixa{margin:0;white-space:nowrap}
+#vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha2 > .v2o-sem-resumo{flex:1 1 280px;min-width:0;padding:0}
+#vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha2 > .v2o-sem-filtros{flex:0 1 auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0;padding:0}
+#vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha2 > .v2o-sem-filtros > .v2o-sem-busca{flex:0 1 180px;width:180px;min-width:110px}
+#vv-hoje .d3q.d3h-co .s-m-semana > .v2o-msg{margin:0 16px}
+#vv-hoje .d3q.d3h-co .s-m-semana > :is(.v2o-sem-grade,.v2o-cal){flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin;padding:0 12px 12px}
+/* Colunas mais largas: a coluna de quem fica estreita; o "Antes" é mais estreito que um dia. */
+#vv-hoje .d3q.d3h-co .s-m-semana .v2o-sem-linha{grid-template-columns:112px var(--cols);gap:6px}
+#vv-hoje .d3q.d3h-co .s-m-semana .v2o-sem-quem{padding:6px 4px 0}
+/* A peça mais baixa: formato e status numa linha, as duas datas na outra. */
+#vv-hoje .d3q.d3h-co .s-m-semana .v2o-gp{gap:3px;padding:6px 8px}
+#vv-hoje .d3q.d3h-co .s-m-semana .v2o-gp-meio{flex-wrap:nowrap;overflow:hidden}
+#vv-hoje .d3q.d3h-co .s-m-semana .v2o-gp-meio > .v2o-st{min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* ABA GRUPOS: a coluna de consulta do Painel (grupos, busca, em lote) e a tabela de Grupos da Produção emprestada. */
+#vv-hoje .d3q.d3h-co .s-m-grupos{display:grid;flex:1 1 0;grid-template-columns:232px minmax(0,1fr);gap:12px;min-height:0;min-width:0;padding:0 12px 12px}
+/* A coluna de consulta foi desenhada para o vidro (tokens --d3-fume-*); aqui ela fica dentro do quadro claro, então os
+   tokens do vidro passam a valer os do quadro e as mesmas peças (grupos, busca, em lote) leem com o contraste certo. */
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado{--d3-fume-texto:var(--d3-tinta);--d3-fume-apagado:var(--d3-rotulo);--d3-fume-veu:var(--d3-veu);--d3-fume-veu-forte:var(--d3-veu-forte);--d3-fume-meta:var(--d3-meta);display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0;overflow-y:auto;scrollbar-width:thin}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-vlin{flex:none;height:34px;border-radius:var(--d3-r-botao)}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-vlin:hover{background:var(--d3-veu-forte)}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-a-grupo.on{background:var(--d3-veu-forte);box-shadow:inset 0 0 0 1px var(--d3-tinta)}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-a-nota-v > p{font-size:var(--d3-fs-apoio);line-height:1.4}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .pv2-oculto{position:absolute;left:-9999px}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-a-busca{height:34px;padding:0 10px;border-radius:var(--d3-r-botao);box-shadow:inset 0 0 0 1px var(--d3-rotulo)}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-a-busca:focus-within{box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-a-busca > input{flex:1 1 auto;min-width:0;height:32px;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif);outline:0}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-a-busca > input::placeholder{color:var(--d3-rotulo)}
+#vv-hoje .d3q.d3h-co .s-m-grupos-lado .d3m-a-busca > .s-f-busca-x{appearance:none;flex:none;display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:6px;background:none;color:var(--d3-tinta);cursor:pointer}
+#vv-hoje .d3q.d3h-co .s-m-grupos-host{display:flex;flex-direction:column;min-height:0;min-width:0}
+#vv-hoje .d3q.d3h-co .s-m-grupos-host > #grupos-board{display:flex;flex:1 1 0;flex-direction:column;min-height:0;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+#vv-hoje .d3q.d3h-co .s-m-grupos-host > #grupos-board > .d3m-a-folha{flex:1 1 0;min-height:0;margin:0;box-shadow:inset 0 0 0 1px var(--d3-divisa)}
+
+/* ABA HEITOR: o único laranja da tela com os quatro números ao lado; embaixo, as sugestões, a carga e por pessoa. */
+#vv-hoje .d3q.d3h-co .s-m-heitor{display:flex;flex:1 1 0;flex-direction:column;gap:12px;min-height:0;min-width:0;overflow-y:auto;scrollbar-width:thin;padding:0 12px 12px}
+#vv-hoje .d3q.d3h-co .s-m-heitor-topo{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:12px;align-items:stretch}
+#vv-hoje .d3q.d3h-co .s-m-heitor :is(.d3h-cartao,.d3h-num){background:var(--d3-veu);box-shadow:none}
+#vv-hoje .d3q.d3h-co .s-m-heitor .d3h-num{height:auto;min-height:84px}
+#vv-hoje .d3q.d3h-co .s-m-heitor-nota{margin:0;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif)}
+#vv-hoje .d3q.d3h-co .d3v-lar-faixa.s-m-laranja{min-height:0}
+#vv-hoje .d3q.d3h-co .d3v-lar-faixa.s-m-laranja > .d3v-lar-txt{display:flex;flex-direction:column;gap:4px;margin-top:6px;padding-right:0}
+#vv-hoje .d3q.d3h-co .d3v-lar-faixa.s-m-laranja > .d3v-lar-txt > small{font:400 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);color:inherit}
+#vv-hoje .d3q.d3h-co .d3v-lar-faixa.s-m-laranja > .d3v-lar-bts{position:static;display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#vv-hoje .d3q.d3h-co .d3v-lar-faixa.s-m-laranja .d3-acao-btn{height:34px;border-radius:var(--d3-r-botao)}
+
+/* Telas estreitas: a janela do Hoje rola (como antes), então cada aba deixa de rolar por dentro. */
+@media (max-width:1180px){
+  #vv-hoje .d3q.d3h-co > .d3q-main > .v2o-man,#vv-hoje .d3q.d3h-co .v2o-man > .v2o-sem.s-m-quadro{flex:none;overflow:visible}
+  #vv-hoje .d3q.d3h-co :is(.s-m-semana,.s-m-heitor){flex:none;overflow:visible}
+  #vv-hoje .d3q.d3h-co .s-m-semana > :is(.v2o-sem-grade,.v2o-cal){flex:none;overflow:visible}
+  #vv-hoje .d3q.d3h-co .s-m-grupos{flex:none;grid-template-columns:minmax(0,1fr);height:auto}
+  #vv-hoje .d3q.d3h-co .s-m-grupos-lado{overflow:visible}
+  #vv-hoje .d3q.d3h-co .s-m-grupos-host > #grupos-board > .d3m-a-folha{flex:none;max-height:75vh}
+  #vv-hoje .d3q.d3h-co .s-m-heitor-topo{grid-template-columns:minmax(0,1fr)}
+  #vv-hoje .d3q.d3h-co .s-m-contas{justify-content:flex-start}
+}
+@media (max-width:900px){
+  #vv-hoje .d3q.d3h-co .s-m-quadro > .s-m-cab{padding:10px 10px 0}
+  #vv-hoje .d3q.d3h-co .s-m-abas{display:flex;width:100%}
+  #vv-hoje .d3q.d3h-co .s-m-abas > button{flex:1 1 0;justify-content:center;padding:0 8px}
+  #vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha{padding:0 10px}
+  #vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha > .s-m-anda{flex:1 1 100%;flex-wrap:wrap;min-width:0;margin-left:0}
+  #vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha2 > .v2o-sem-filtros{flex:1 1 100%;flex-wrap:wrap;justify-content:flex-start}
+  #vv-hoje .d3q.d3h-co .s-m-semana > .s-m-linha2 > .v2o-sem-filtros > .v2o-sem-busca{flex:1 1 100%;width:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  #vv-hoje .d3q.d3h-co :is(.s-m-abas > button,.s-m-conta){transition:none}
+}
+
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
    DIREÇÃO 3 (quadro D3-StatusMenu, 13/11/2026): menu branco de 260, cada status em pílula clara com a bolinha do catálogo
