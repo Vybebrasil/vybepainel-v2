@@ -11773,6 +11773,156 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
   #vv-hoje .d3q.d3h-co :is(.s-m-abas > button,.s-m-conta){transition:none}
 }
 
+/* ===== padrao-v2/s-n.css ===== */
+/* S-N · MÍDIA: CONFERE E COMPLETA (vybe-mundo-midia.js, 23/11/2026). Paulo: "não mostra quase nada de info.. não consigo
+   add o site? o google ads? olhar históricos? relatórios? resumo da semana do cliente?".
+   A janela continua a do grupo C (zm-c-base.css e zm-c-midia.css): vidro fumê, topo, folha à esquerda e consulta à
+   direita. Entram: os quatro números da carteira no vidro (.mdn-nums), a lista sem reticências (cada célula em duas
+   linhas, .mdn-cel), a ficha do cliente na folha com abas (.mdn-abas, .mdn-ficha-corpo) e os canais do cliente na
+   consulta, com os campos de conectar (.mdn-canal, .mdn-form). Um laranja por tela (o do Ícaro); botões de 34 px com
+   canto 8; rótulos de 12 px. Só tokens --d3-*; sem !important. */
+
+/* A janela termina acima do dock das salas, como as outras janelas de módulo (nada cobre nada). */
+@media (min-width:901px){body.com-dock-salas #vv-midia{bottom:calc(var(--vv-m,16px) + var(--vv-dock-alto,74px) + 6px + var(--vv-pe-barra,0px))}}
+
+/* Os quatro números da carteira, direto no vidro. */
+.mdn-nums{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;min-width:0}
+.mdn-num{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 14px;box-sizing:border-box;border-radius:12px;background:var(--d3-fume-veu);box-shadow:inset 0 0 0 1px var(--d3-fume-borda);color:var(--d3-fume-texto)}
+.mdn-num-rot{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.mdn-num > b{font:600 24px/1.15 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.mdn-num > small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+
+/* A lista: sete colunas que cabem a 1366 sem cortar nada; nome e células quebram em duas linhas. */
+.mdn-cab,.mdn-lin{display:grid;grid-template-columns:12px minmax(0,1.25fr) 120px minmax(0,1fr) 128px minmax(0,1fr) 16px;align-items:center;gap:0 12px;padding:0 16px;box-sizing:border-box}
+.mdn-cab{flex:none;height:26px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdn-lista{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.mdn-lin{min-height:54px;padding-top:8px;padding-bottom:8px;border-top:1px solid var(--d3-divisa);cursor:pointer}
+.mdn-lin:hover{background:var(--d3-veu)}
+.mdn-nome{appearance:none;justify-self:start;max-width:100%;margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-tinta);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-align:left;white-space:normal;overflow-wrap:anywhere;cursor:pointer}
+.mdn-nome:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.mdn-cel{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mdn-cel > b{font:500 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);overflow-wrap:anywhere}
+.mdn-cel > small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);overflow-wrap:anywhere}
+.mdn-cel.num > b{font-variant-numeric:tabular-nums}
+.mdn-cel.apagado > b,.mdn-cel.apagado{color:var(--d3-rotulo);font-weight:400}
+.mdn-cel.md-tomada{flex-direction:row;align-items:center;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.mdn-cel.md-brilho > i{display:block;width:72%;height:10px;border-radius:5px;background:var(--d3-veu-forte)}
+/* O Hub fora ou a ponte desligada: um aviso só, em cima da lista. */
+.mdn-aviso{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:8px 16px 12px;padding:12px 14px;border-radius:var(--d3-r-caixa);background:var(--d3-veu);color:var(--d3-tinta);font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+.mdn-aviso > span{color:var(--d3-rotulo)}
+.mdn-aviso > button{margin-top:6px}
+
+/* Botões e abas da folha nesta janela: 34 px, canto 8. */
+#vv-midia .d3m-c-btn.c{height:34px;padding:0 12px}
+#vv-midia .d3m-c-btn > svg{width:14px;height:14px}
+#vv-midia .d3m-c-abas > button{height:34px}
+
+/* A ficha do cliente na folha. */
+.mdn-ficha-cab{gap:12px;min-height:58px;padding-top:12px;padding-bottom:4px}
+.mdn-volta{flex:none}
+.mdn-ficha-nome{min-width:0;font:600 var(--d3-fs-titulo)/1.25 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta);white-space:normal;overflow-wrap:anywhere}
+.mdn-abas{flex:none;display:flex;flex-wrap:wrap;gap:2px;padding:0 12px 8px;border-bottom:1px solid var(--d3-divisa)}
+.mdn-ficha-corpo{flex:1 1 0;display:flex;flex-direction:column;gap:16px;min-height:0;padding:16px;overflow-y:auto;scrollbar-width:thin;color:var(--d3-tinta)}
+.mdn-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mdn-tile{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 14px;border-radius:12px;background:var(--d3-veu)}
+.mdn-tile > span{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdn-tile > b{font:600 22px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--d3-tinta)}
+.mdn-tile > small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdn-tile.pior > small{color:var(--d3-perigo);font-weight:600}
+.mdn-tile.melhor > small{color:var(--d3-pronto);font-weight:600}
+.mdn-icaro{display:flex;align-items:flex-start;gap:10px;margin:0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif)}
+.mdn-icaro > .md-sinal{flex:none;height:19px}
+.mdn-duas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px}
+.mdn-bloco{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mdn-bloco-h{font:600 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.mdn-bloco-h > span{font-weight:400;color:var(--d3-rotulo)}
+.mdn-txt{margin:0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);overflow-wrap:anywhere}
+.mdn-txt.apagado,.mdn-ficha-corpo .apagado{color:var(--d3-rotulo)}
+.mdn-cerebro{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+.mdn-cerebro small{color:var(--d3-rotulo);font-size:var(--d3-fs-apoio)}
+.mdn-cerebro span{display:block;color:var(--d3-rotulo);font-size:var(--d3-fs-apoio)}
+.mdn-vazio{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px 0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdn-vazio > b{font:600 var(--d3-fs-destaque)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.mdn-vazio > :is(a,button){margin-top:6px}
+
+/* Histórico: uma série (o investido), um tom, base reta e topo de 4 px; o valor em cima, a semana embaixo. */
+.mdn-grafico{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;height:140px;padding-top:4px}
+.mdn-barra{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;cursor:default}
+.mdn-barra > small{font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mdn-barra > span{flex:1 1 0;display:flex;align-items:flex-end;justify-content:center;width:100%;min-height:0;box-shadow:0 1px 0 var(--d3-divisa)}
+.mdn-barra > span > i{display:block;width:100%;max-width:44px;height:var(--h,0%);border-radius:4px 4px 0 0;background:var(--d3-texto2)}
+.mdn-barra:last-child > span > i{background:var(--d3-tinta)}
+.mdn-barra:hover > span > i{opacity:.75}
+.mdn-barra > em{padding-top:3px;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-rotulo)}
+.mdn-tab{width:100%;border-collapse:collapse;font:400 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.mdn-tab th{padding:6px 8px;text-align:left;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdn-tab td{padding:7px 8px;border-top:1px solid var(--d3-divisa);vertical-align:top}
+.mdn-tab :is(th,td).n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mdn-tab td.nome{overflow-wrap:anywhere}
+.mdn-tab th.st{width:104px}
+.mdn-tab small{color:var(--d3-rotulo);font-size:var(--d3-fs-apoio)}
+.mdn-tab td.alta{color:var(--d3-ambar);font-weight:600}
+.mdn-st{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.mdn-st > i{width:8px;height:8px;border-radius:50%;background:var(--d3-meta)}
+.mdn-st.g > i{background:var(--d3-pronto)}
+.mdn-st.a > i{background:var(--d3-ambar)}
+.mdn-st.r > i{background:var(--d3-perigo)}
+/* Resumo da semana: o texto do WhatsApp como ele sai. */
+.mdn-semana-cab{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.mdn-zap{max-width:640px;padding:14px 16px;border-radius:12px;background:var(--d3-veu);white-space:pre-wrap;overflow-wrap:anywhere;font:400 var(--d3-fs-texto)/1.55 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+/* Relatórios. */
+.mdn-meses{display:flex;flex-direction:column;margin:4px 0 8px;padding:0;list-style:none}
+.mdn-meses > li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;border-top:1px solid var(--d3-divisa)}
+.mdn-meses > li > span{display:flex;flex-direction:column;gap:2px;min-width:0;font:400 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.mdn-meses small{font-size:var(--d3-fs-apoio)}
+
+/* Os canais do cliente na consulta (vidro): Meta, Google Ads e site, com os campos de conectar. */
+.mdn-canais{gap:8px}
+.mdn-canal{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px 12px;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu);color:var(--d3-fume-texto)}
+.mdn-canal-h{display:flex;align-items:center;gap:8px;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif)}
+.mdn-canal .md-nota{margin:0}
+.mdn-form{display:flex;align-items:center;gap:8px;width:100%}
+#vv-midia .mdn-form input{flex:1 1 auto;width:auto;min-width:0;height:34px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:var(--d3-r-botao);background:var(--d3-folha);box-shadow:none;color:var(--d3-tinta);font:400 var(--d3-fs-texto) var(--vv-texto,Inter,sans-serif)}
+#vv-midia .mdn-form input:focus{outline:2px solid var(--d3-fume-texto);outline-offset:1px}
+.mdn-form-bts{display:flex;flex-wrap:wrap;gap:8px}
+.mdn-valor{display:flex;flex-direction:column;gap:2px;margin:0;font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-apagado)}
+.mdn-valor > b{font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+.mdn-valor > a{display:inline-flex;align-items:center;gap:6px;color:var(--d3-fume-texto);font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.mdn-valor > a > svg{flex:none;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mdn-msg{margin:0;font:600 var(--d3-fs-apoio)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-fume-texto)}
+.mdn-msg.erro{color:var(--d3-perigo-vidro)}
+
+@media (max-height:820px){
+  /* Telas baixas (1366×768): o rótulo e o número na mesma linha; a ficha e o gráfico mais curtos. */
+  .mdn-num{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0 8px;padding:8px 12px}
+  .mdn-num > b{grid-column:2;grid-row:1;font-size:20px}
+  .mdn-num > small{grid-column:1 / -1}
+  .mdn-canal{padding:8px 10px;gap:5px}
+  .mdn-ficha-cab{min-height:50px;padding-top:8px}
+  .mdn-ficha-corpo{gap:12px;padding:12px 16px}
+  .mdn-grafico{height:100px}
+  .mdn-tab td{padding:4px 8px}
+  .mdn-tab th{padding:4px 8px}
+  .mdn-tile{padding:10px 12px}
+}
+@media (max-width:1100px){
+  .mdn-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .mdn-nums{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .mdn-num{display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:8px 10px}
+  .mdn-num > b{font-size:18px}
+  #vv-midia .md-folha > .d3m-c-folha-cab{flex-wrap:wrap;gap:6px 10px;padding-top:8px;padding-bottom:8px}
+  #vv-midia .md-folha > .d3m-c-folha-cab > .d3m-c-abas{flex:1 1 100%;flex-wrap:wrap;min-width:0}
+  .mdn-cab,.mdn-lin{grid-template-columns:12px minmax(0,1fr) minmax(0,1fr) 16px}
+  .mdn-cab > :is(:nth-child(4),:nth-child(5),:nth-child(6)),.mdn-lin > :is(:nth-child(4),:nth-child(5),:nth-child(6)){display:none}
+  .mdn-duas{grid-template-columns:minmax(0,1fr)}
+  .mdn-grafico{gap:4px}
+  .mdn-barra > small{font-size:var(--d3-fs-mini)}
+  .mdn-tab :is(th,td):nth-child(6){display:none}
+  .mdn-semana-cab{flex-direction:column;align-items:flex-start}
+}
+
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
    DIREÇÃO 3 (quadro D3-StatusMenu, 13/11/2026): menu branco de 260, cada status em pílula clara com a bolinha do catálogo

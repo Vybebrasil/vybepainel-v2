@@ -337,18 +337,21 @@
     },
     {
       id: 'midia', nome: 'Mídia', resumo: 'A mídia de cada cliente, canal por canal, com o Ícaro apontando o que pede atenção.',
-      se: '#vv-midia .md-folha',
+      // Só depois que a carteira chegou (.mdn-pronto): antes disso o passeio apontava para o esqueleto de carregamento.
+      se: '#vv-midia .md-folha.mdn-pronto',
       passos: [
         { alvo: '#vv-midia .d3m-c-tit', lado: 'baixo', titulo: 'Mídia',
           texto: 'Aqui fica a mídia de todos os clientes, {nome}: Meta Ads, Google Ads e o site, lado a lado.' },
         { alvo: '#vv-midia .d3m-c-seg', lado: 'baixo', titulo: 'O período',
           texto: 'Escolha 7 ou 30 dias. A conta fecha ontem e compara com o período anterior do mesmo tamanho.' },
+        { alvo: '#vv-midia .mdn-nums', lado: 'baixo', titulo: 'A carteira',
+          texto: 'Quanto foi investido no Meta, as conversas, quantos clientes pedem atenção e quantos ainda não têm conta vinculada.' },
         { alvo: '#md-lista', lado: 'direita', titulo: 'Os clientes',
-          texto: 'Cada linha é um cliente com a bolinha do Ícaro: vermelho pede ação, amarelo pede olho. Clique para ver as campanhas.' },
+          texto: 'Cada linha é um cliente com a bolinha do Ícaro: vermelho pede ação, amarelo pede olho. Clique para abrir a ficha: resumo, histórico, campanhas, resumo da semana e relatórios.' },
         { alvo: '#vv-midia .md-laranja', lado: 'esquerda', titulo: 'O Ícaro',
           texto: 'No laranja o Ícaro, da Mídia Paga, diz qual cliente mais pede atenção agora.' },
         { alvo: '#vv-midia .md-canais', lado: 'esquerda', titulo: 'Canais',
-          texto: 'E aqui, quanto de cada canal já está conectado. O que falta aparece apagado até a conexão.' },
+          texto: 'E aqui, quanto de cada canal já está conectado. O site e o ID do Google Ads se adicionam na ficha de cada cliente.' },
       ],
     },
     // ============================================================ AGENTES, CARTEIRA E COMERCIAL (padrão V2)
