@@ -6373,7 +6373,8 @@
 
   // Módulo aberto no palco (Carteira, Comercial, Conteúdo, Pessoas, Planejamentos, Missões, WhatsApp): o trilho
   // sobe por cima dele e o resto do HUD some. Os módulos não avisam quando abrem, então olhamos o body.
-  const PALCO = '.vc-camada,.vp-camada,.vv-missoes-camada,#vv-comercial,#vv-conteudo,.vv-plj,.vv-wa,#vv-agentes';
+  // #vv-midia (S-N, 23/11/2026): sem ela aqui, o Hoje ficava aceso atrás do vidro da Mídia e aparecia através dele.
+  const PALCO = '.vc-camada,.vp-camada,.vv-missoes-camada,#vv-comercial,#vv-conteudo,.vv-plj,.vv-wa,#vv-agentes,#vv-midia';
   function marcarPalco() {
     const aberto = [...document.querySelectorAll(PALCO)].some((e) => !e.hidden && e.getClientRects().length > 0);
     if (body.classList.contains('palco-modulo') !== aberto) body.classList.toggle('palco-modulo', aberto);
@@ -6394,7 +6395,7 @@
   // parecidos no CSS. Um :has no body faz cada mudança de hidden em qualquer canto da página reconferir o body inteiro
   // (64 ms por vez no Centro parado); a classe só muda quando a janela abre ou fecha. Roda no mesmo observador que já
   // vigia o hidden do body, antes do próximo quadro: o CSS vê a mudança na mesma pintura em que o :has via.
-  const JANELAS_DO_LADO = ['vv-pessoas', 'vv-ferramentas', 'vv-comercial', 'vv-carteira', 'vv-conteudo', 'vv-impressoes'];
+  const JANELAS_DO_LADO = ['vv-pessoas', 'vv-ferramentas', 'vv-comercial', 'vv-carteira', 'vv-conteudo', 'vv-impressoes', 'vv-midia'];
   function marcarAbertos() {
     const ver = (el) => Boolean(el && !el.hidden), p = document.getElementById('vv-placa');
     const marcas = { 'com-placa': ver(p), 'com-placa-camada': ver(p) && Boolean(p.querySelector('.vv-camada')),
