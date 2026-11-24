@@ -206,6 +206,8 @@
     if (!rotina.dados) return carregandoHtml('Buscando a rotina de hoje');
     const q = norm(estado.busca);
     const todos = itensDaRotina().filter((it) => !q || norm(it.cliente).includes(q) || norm(it.titulo).includes(q));
+    // O que falta fazer vem antes do que já foi feito, dentro de cada grupo (a ordem de chegada fica entre os iguais).
+    todos.sort((x, y) => Boolean(x.check) - Boolean(y.check));
     const grupo = (id, t, itens, extra = '') => (itens.length ? `<section class="mdq-grupo" aria-label="${t}"><h4 class="mdq-gh"><span>${t}</span><b>${itens.filter((x) => x.check).length} de ${itens.length}</b>${extra}</h4>${itens.map((x) => itemHtml(x)).join('')}</section>` : '');
     const r = todos.filter((x) => x.tom === 'r'), a = todos.filter((x) => x.tom === 'a'), n = todos.filter((x) => x.tom === 'n'), fixos = todos.filter((x) => x.tom === 'rotina');
     const porCad = ['dia', 'semana', 'mes'].map((cad) => { const l = fixos.filter((x) => x.cadencia === cad); return l.length ? `<p class="mdq-sub">${CADENCIA[cad]}</p>${l.map((x) => itemHtml(x)).join('')}` : ''; }).join('');

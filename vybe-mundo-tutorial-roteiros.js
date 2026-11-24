@@ -349,7 +349,7 @@
         { alvo: '#vv-midia .mdn-nums', lado: 'baixo', titulo: 'A carteira',
           texto: 'Quanto foi investido no Meta, as conversas, quantos clientes pedem atenção e quanto da rotina de hoje já foi feito.' },
         { alvo: '#md-rotina', lado: 'direita', titulo: 'A rotina de hoje',
-          texto: 'O que os números de cada cliente acenderam e a rotina do dia, da semana e do mês. Cada item diz por quê e o que fazer; o check guarda quem fez e quando.' },
+          texto: 'O que os números de cada cliente acenderam e a rotina do dia, da semana e do mês. Cada item diz por quê e o que fazer, e o check guarda quem fez e quando.' },
         { alvo: '#vv-midia .md-laranja', lado: 'esquerda', titulo: 'O Ícaro',
           texto: 'No laranja o Ícaro, da Mídia Paga, diz o que mais pede você agora. Clique num cliente para abrir a ficha: resumo, histórico, campanhas, resumo da semana e relatórios.' },
       ],
