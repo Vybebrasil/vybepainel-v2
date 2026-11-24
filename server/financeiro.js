@@ -88,24 +88,24 @@ export async function clientesComMensalidade(sql) {
   let linhas;
   try {
     linhas = await sql`SELECT c.id::text AS cliente_id, c.nome AS cliente_nome,
-      COALESCE(k.valor_mensal, f.valor_mensal)::float8 AS valor_mensal, k.inicio, k.renovacao AS fim, COALESCE(c.ativo,true) AS ativo
+      COALESCE(k.valor_mensal, f.valor_mensal)::float8 AS valor_mensal, k.inicio, k.renovacao AS fim, k.observacao, (k.cliente_id IS NOT NULL) AS tem_contrato, COALESCE(c.ativo,true) AS ativo
     FROM vybe_clientes c
-    LEFT JOIN LATERAL (SELECT valor_mensal, inicio, renovacao FROM vybe_cliente_contratos k WHERE k.cliente_id=c.id ORDER BY (to_jsonb(k)->>'origem_financas_id') IS NULL DESC, k.atualizado_em DESC NULLS LAST LIMIT 1) k ON true
+    LEFT JOIN LATERAL (SELECT cliente_id, valor_mensal, inicio, renovacao, to_jsonb(k) ->> 'observacao' AS observacao FROM vybe_cliente_contratos k WHERE k.cliente_id=c.id ORDER BY (to_jsonb(k)->>'origem_financas_id') IS NULL DESC, k.atualizado_em DESC NULLS LAST LIMIT 1) k ON true
     LEFT JOIN vybe_comercial_financas_cliente f ON f.cliente_id=c.id
     WHERE NOT COALESCE(c.nao_e_cliente,false) ORDER BY c.nome`;
   } catch (e) {
     // Banco sem os contratos da Carteira: a mensalidade de Finanças por cliente; sem ela também, os clientes sem mensalidade.
     if (e.code !== '42P01' && e.code !== '42703') throw e;
     try {
-      linhas = await sql`SELECT c.id::text AS cliente_id, c.nome AS cliente_nome, f.valor_mensal::float8 AS valor_mensal, NULL AS inicio, NULL AS fim, COALESCE(c.ativo,true) AS ativo
+      linhas = await sql`SELECT c.id::text AS cliente_id, c.nome AS cliente_nome, f.valor_mensal::float8 AS valor_mensal, NULL AS inicio, NULL AS fim, NULL AS observacao, false AS tem_contrato, COALESCE(c.ativo,true) AS ativo
         FROM vybe_clientes c LEFT JOIN vybe_comercial_financas_cliente f ON f.cliente_id=c.id ORDER BY c.nome`;
     } catch (e2) {
       if (e2.code !== '42P01' && e2.code !== '42703') throw e2;
-      linhas = await sql`SELECT id::text AS cliente_id, nome AS cliente_nome, NULL::float8 AS valor_mensal, NULL AS inicio, NULL AS fim, true AS ativo FROM vybe_clientes ORDER BY nome`;
+      linhas = await sql`SELECT id::text AS cliente_id, nome AS cliente_nome, NULL::float8 AS valor_mensal, NULL AS inicio, NULL AS fim, NULL AS observacao, false AS tem_contrato, true AS ativo FROM vybe_clientes ORDER BY nome`;
     }
   }
   const dia = (v) => (v ? (v instanceof Date ? v.toISOString() : String(v)).slice(0, 10) : '');
-  return linhas.map((l) => ({ ...l, valor_mensal: Number(l.valor_mensal) || 0, inicio: dia(l.inicio), fim: '', renovacao: dia(l.fim) }));
+  return linhas.map((l) => ({ ...l, valor_mensal: Number(l.valor_mensal) || 0, inicio: dia(l.inicio), fim: '', renovacao: dia(l.fim), observacao: l.observacao || '', tem_contrato: Boolean(l.tem_contrato) }));
 }
 
 // O time (sócios incluídos) para o "Para quem" do extrato e a conta de cada pessoa. Sem a tabela: ninguém.
@@ -117,8 +117,9 @@ export async function pessoasDoTime(sql) {
 // A conta de cada pessoa (combinado × pago × vale), para quem tem salário combinado ou lançamento atribuído.
 export function contasDasPessoas(base, pessoas = [], { hoje }) {
   const lista = base.extrato.transacoes, ate = hoje.slice(0, 7);
-  const ids = new Set(Object.keys(base.salarios || {}));
-  for (const t of lista) for (const p of X.pedacos(t)) if (p.pessoa_id) ids.add(String(p.pessoa_id));
+  const fora = new Set(Object.entries(base.salarios || {}).filter(([, s]) => s?.fora).map(([id]) => id));
+  const ids = new Set(Object.keys(base.salarios || {}).filter((id) => !fora.has(id)));
+  for (const t of lista) for (const p of X.pedacos(t)) if (p.pessoa_id && !fora.has(String(p.pessoa_id))) ids.add(String(p.pessoa_id));
   const nome = new Map(pessoas.map((p) => [String(p.id), p.nome]));
   for (const t of lista) for (const p of X.pedacos(t)) if (p.pessoa_id && !nome.has(String(p.pessoa_id))) nome.set(String(p.pessoa_id), p.pessoa_nome || 'Pessoa');
   return [...ids].map((id) => ({ nome: nome.get(id) || 'Pessoa', ...X.contaPessoa(lista, id, { salario: base.salarios?.[id] || null, ajustes: (base.vales || []).filter((a) => String(a.pessoa_id) === id), ate }) }))
@@ -143,7 +144,7 @@ export function montar(base, clientes, { mes, hoje, pessoas = [] }) {
     resumo: X.resumo(lista, { mes: mesAtual }),
     serie: meses.map((m) => { const r = X.resumo(lista, { mes: m }); return { mes: m, entradas: r.entradas, saidas: r.saidas, cartao: r.cartao_e_transferencias, resultado: r.resultado, saldo_final: r.saldo_final, a_revisar: r.a_revisar }; }),
     a_revisar: lista.filter((t) => !t.real.conferido).length,
-    clientes: clientes.map((c) => ({ id: c.cliente_id, nome: c.cliente_nome, mensalidade: c.valor_mensal, ativo: c.ativo })),
+    clientes: clientes.map((c) => ({ id: c.cliente_id, nome: c.cliente_nome, mensalidade: c.valor_mensal, ativo: c.ativo, inicio: c.inicio || '', renovacao: c.renovacao || '', observacao: c.observacao || '', tem_contrato: Boolean(c.tem_contrato) })),
     por_cliente: { meses: mesesCliente, desde: meses[0] || '', linhas: X.porCliente(lista, contratos, mesesCliente, { desde: meses[0] || '9999-12', mesAtual: hoje.slice(0, 7) }) },
     fixos: base.fixos, fixos_analise: X.analisarFixos(base.fixos, lista, mesAtual, base.cartao),
     cartao: (() => {
@@ -370,6 +371,17 @@ export async function escreverFinanceiro(sql, quem, b = {}) {
         const v = atual && typeof atual === 'object' && !Array.isArray(atual) ? { ...atual } : {};
         if (tirar) delete v[pessoaId]; else v[pessoaId] = { ...r.salario, por: nomeDe(pessoa), em: new Date().toISOString() };
         return { valor: v, resposta: { pessoa_id: pessoaId, salario: v[pessoaId] || null } };
+      });
+    }
+    case 'pessoa_fora': {
+      // Tirar alguém de Pessoas (Paulo, 24/11/2026: "não consigo apagar alguém"): some da lista, do combinado e do
+      // "Falta pagar"; os Pix atribuídos continuam no extrato. fora: false traz de volta (sem combinado).
+      const pessoaId = String(b.pessoa_id || '').trim();
+      if (!/^[A-Za-z0-9_-]{1,40}$/.test(pessoaId)) throw erro(400, 'Qual pessoa?');
+      return mudar(sql, 'salarios', pid, (atual) => {
+        const v = atual && typeof atual === 'object' && !Array.isArray(atual) ? { ...atual } : {};
+        if (b.fora === false) delete v[pessoaId]; else v[pessoaId] = { fora: true, por: nomeDe(pessoa), em: new Date().toISOString() };
+        return { valor: v, resposta: { pessoa_id: pessoaId, fora: b.fora !== false } };
       });
     }
     case 'vale_ajuste_salvar': {
