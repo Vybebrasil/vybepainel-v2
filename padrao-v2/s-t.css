@@ -1,0 +1,22 @@
+/* Frente s-t (24/11/2026): prévia da peça sem arquivo, pelo link de entrega. Paulo: "ao inves da previa preta, se o
+   video nao tiver capa não deveria aparecer uma tumb do primeiro frame?". Sem miniatura: o primeiro quadro no <video>
+   (mudo, sem tocar) ou um quadro neutro com ▶ e o nome do arquivo; sem nada, o quadro neutro sob o rótulo. Nunca a
+   caixa preta vazia. */
+
+/* O <video> do primeiro quadro ocupa a arte como a imagem ocupa. */
+:is(#vv-hoje, #vv-conteudo) video.vc-previa-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:var(--d3-escuro);pointer-events:none}
+
+/* O quadro: o ▶ num círculo e o nome do arquivo, sobre o escuro fixo da arte com um toque do laranja embaixo. Cores fixas
+   (--d3-escuro, --d3-escuro-texto, --d3-tinta-fixa): o cartão laranja redefine as do tema, e o par tem de valer nos três. */
+#vv-hoje .d3q .d3h-arte > span.vc-previa-quadro,
+#vv-hoje .d3h-arte > span.vc-previa-quadro,
+#vv-hoje .d3m-a-da-img > span.vc-previa-quadro{position:absolute;inset:0;left:0;top:0;bottom:0;width:auto;height:auto;max-width:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:36px 12px;box-sizing:border-box;border-radius:0;background:linear-gradient(170deg,var(--d3-escuro) 30%,var(--d3-acao-texto-fixa) 170%);color:var(--d3-escuro-texto);white-space:normal;text-align:center;font:400 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif)}
+#vv-hoje :is(.d3h-arte, .d3m-a-da-img) > span.vc-previa-quadro > b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;max-width:100%;overflow:hidden;white-space:normal;overflow-wrap:anywhere;font:500 var(--d3-fs-mini) var(--vv-texto,Inter,sans-serif);color:var(--d3-escuro-texto)}
+#vv-hoje :is(.d3h-arte, .d3m-a-da-img) > span.vc-previa-quadro > .vc-previa-play{position:static;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:var(--d3-escuro-texto);color:var(--d3-tinta-fixa);font-style:normal;font-size:var(--d3-fs-texto);padding-left:3px;box-sizing:border-box}
+
+/* Os selos sobre a imagem (▶ do vídeo, 1/N do carrossel) com o mesmo par fixo: dentro do cartão laranja as cores do tema
+   são redefinidas, e o selo ficava branco sobre branco (o ▶ some). */
+#vv-hoje :is(.d3h-arte, .d3m-a-da-img) > i.vc-previa-selo:is(.vc-previa-play, .vc-previa-n){background:var(--d3-escuro-texto);color:var(--d3-tinta-fixa)}
+
+/* No Conteúdo, o ▶ do quadro (vídeo sem miniatura) com o mesmo par fixo: o texto herdado deixava o ▶ branco sobre branco. */
+#vv-conteudo .vc-previa-quadro > i.vc-previa-play{background:var(--d3-escuro-texto);color:var(--d3-tinta-fixa)}

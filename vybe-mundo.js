@@ -951,9 +951,13 @@
     return vc.previaDe(String(ref));
   }
   const previaJaVeio = (ref) => VC()?.previaDe ? pedidasDecidir.has(String(ref)) && VC().previaDe(String(ref)) !== undefined : true;
+  // O rótulo de onde veio a prévia: "sem arquivo" só quando não há nem arquivo nem link de entrega (Paulo, 24/11/2026).
+  const origemDaPrevia = (t) => (t === null ? 'sem arquivo' : t === undefined ? 'buscando' : t?.fonte === 'entrega' ? 'link de entrega' : '');
   function arteDecidir(i, t) {
-    const visual = t && VC()?.arteHtml ? VC().arteHtml(String(i.ref), t, `Prévia de ${i.titulo || 'peça'}`) : '';
-    return `${visual}<span>${esc(i.formato || 'Peça')}${t === null ? ' · sem arquivo' : t === undefined ? ' · buscando' : ''}</span>`;
+    // Sem nada (nem arquivo nem link de entrega): um quadro neutro sob o rótulo, nunca a caixa preta vazia.
+    const visual = t && VC()?.arteHtml ? VC().arteHtml(String(i.ref), t, `Prévia de ${i.titulo || 'peça'}`) : t === null ? '<span class="vc-previa-quadro vc-previa-nada" aria-hidden="true"></span>' : '';
+    const origem = origemDaPrevia(t);
+    return `${visual}<span>${esc(i.formato || 'Peça')}${origem ? ` · ${origem}` : ''}</span>`;
   }
   const posDecidir = (k) => (k < decidirEm ? 'fora' : k - decidirEm <= 2 ? String(k - decidirEm) : '');
   function quandoVeiculaTxt(i) {
@@ -2058,8 +2062,8 @@
       const semFormato = (i) => { const t = String(i.titulo || 'Peça').trim(), f = String(i.formato || '').trim(); const r = f && t.toLowerCase().startsWith(f.toLowerCase()) ? t.slice(f.length).replace(/^[\s\-–:·|]+/, '') : ''; return r || t; };
       const abrirArte = (i) => (i.quadro === 'demandas' || !i.item ? 'data-hoje-acao="decidir-lista"' : `data-hoje-acao="peca" data-valor="${esc(i.ref)}"`);
       const arteV2 = (i) => { const t = previaDecidir(String(i.ref));
-        return `<button type="button" class="d3m-a-da-arte" ${abrirArte(i)} title="Abrir a peça: ${esc(i.titulo || '')}"><span class="d3m-a-da-img${t?.thumb ? '' : ' vazia'}">${i.formato ? `<span class="d3m-a-da-selo">${esc(i.formato)}</span>` : ''}${t?.thumb && VC()?.arteHtml ? VC().arteHtml(String(i.ref), t, '') : ''}</span>`
-          + `<span class="d3m-a-da-txt"><b>${esc(semFormato(i))}</b>${i.cliente ? `<span class="d3m-a-da-cli">${fotoCliD3(i.cliente)}<span>${esc(String(i.cliente).split(',')[0].trim())}</span></span>` : ''}${i.heads?.length ? `<small>head ${esc(i.heads.map((h) => String(h.nome).split(' ')[0]).join(', '))}</small>` : ''}${i.horas == null ? '' : `<small class="${i.horas >= 24 ? 'r' : 't'}">${esc(esperaTxt(i.horas))}</small>`}<small class="d3m-a-da-arq">${t === null ? 'sem arquivo anexado' : t === undefined ? 'buscando a prévia' : esc(quandoVeiculaTxt(i))}</small></span></button>`; };
+        return `<button type="button" class="d3m-a-da-arte" ${abrirArte(i)} title="Abrir a peça: ${esc(i.titulo || '')}"><span class="d3m-a-da-img${t ? '' : ' vazia'}">${i.formato ? `<span class="d3m-a-da-selo">${esc(i.formato)}</span>` : ''}${t && VC()?.arteHtml ? VC().arteHtml(String(i.ref), t, '') : ''}</span>`
+          + `<span class="d3m-a-da-txt"><b>${esc(semFormato(i))}</b>${i.cliente ? `<span class="d3m-a-da-cli">${fotoCliD3(i.cliente)}<span>${esc(String(i.cliente).split(',')[0].trim())}</span></span>` : ''}${i.heads?.length ? `<small>head ${esc(i.heads.map((h) => String(h.nome).split(' ')[0]).join(', '))}</small>` : ''}${i.horas == null ? '' : `<small class="${i.horas >= 24 ? 'r' : 't'}">${esc(esperaTxt(i.horas))}</small>`}<small class="d3m-a-da-arq">${t === null ? 'sem arquivo anexado' : t === undefined ? 'buscando a prévia' : `${t?.fonte === 'entrega' ? 'link de entrega · ' : ''}${esc(quandoVeiculaTxt(i))}`}</small></span></button>`; };
       const lendo = !verComo && filaDecidir() === null;
       const parecer = `<section class="d3m-a-folha d3m-a-da-parecer" aria-label="Esperam o seu parecer"><div class="d3m-a-cab"><h3 class="d3m-a-so"><span>Esperam o seu parecer</span> <span>· ${n0(artes.length)}</span></h3><span class="d3v-rot">${artes.length > 1 ? 'pela data do cliente' : ''}</span><button type="button" class="d3m-a-filtro" data-hoje-acao="decidir-lista" title="Abrir a Aprovação com a fila inteira">ver em lista</button></div>
           <div class="d3m-a-da-linha"><div class="d3m-a-da-artes">${artes.slice(0, 2).map(arteV2).join('') || `<p class="d3v-estado"><b>${lendo ? 'Lendo as aprovações' : 'Nada esperando o seu parecer'}</b>${lendo ? '' : 'Quando uma arte pedir a sua decisão, ela aparece aqui.'}</p>`}${artes.length > 2 ? `<button type="button" class="d3m-a-da-mais" data-hoje-acao="decidir-lista" title="Ver as outras na Aprovação">+ ${n0(artes.length - 2)}</button>` : ''}</div>

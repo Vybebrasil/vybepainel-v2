@@ -53,7 +53,8 @@ import { lerFluxoStatus, gravarFluxoDoQuadro, normalizarFluxoDoQuadro, conferirF
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { areaDriveVideos } from '../server/drive-videos.js';
-import { pastaDoConteudo, pastaSimples, subpasta, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive, baixarTrechoDoDrive, miniaturaDoDrive } from '../vybe_drive.js';
+import { areaPreviaEntrega, miniaturaAssinada } from '../server/previa-entrega.js';
+import { pastaDoConteudo, pastaSimples, subpasta, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive, baixarTrechoDoDrive, miniaturaDoDrive, listarMidiasNoDrive, arquivoNoDrive } from '../vybe_drive.js';
 import { faixaPedida, tipoDeVideo, TRECHO_MAX } from '../server/conteudo-aprovacao-pagina.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
   recalcularPrioridades, execucoes } from '../vybe_automacoes.js';
@@ -1650,11 +1651,13 @@ const TETO_DO_DOWNLOAD = 60 * 1024 * 1024;
 // Prévia de um arquivo da peça pelo proxy autenticado (sem deixar o arquivo público no Drive).
 export const miniaturaUrl = (driveId, sz) => `/api/painel?area=miniatura&id=${encodeURIComponent(String(driveId))}&sz=${Number(sz) || 400}`;
 // GET area=miniatura&id=<drive_file_id>&sz=: só com sessão, só arquivo de peça do Vybe OS; cache curto no navegador.
+// Arquivo do link de entrega (server/previa-entrega.js) não está na tabela: vale a assinatura e= que só o servidor emite.
 export async function areaMiniatura(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
   const id = String(req.query?.id || '');
   if (!/^[\w-]{10,200}$/.test(id)) return res.status(400).json({ error: 'Informe o arquivo.' });
-  const [a] = await sql()`SELECT 1 AS ok FROM vybe_conteudo_arquivos WHERE drive_file_id = ${id} AND ausente_em IS NULL LIMIT 1`;
+  const [a] = miniaturaAssinada(id, req.query?.e) ? [{ ok: 1 }]
+    : await sql()`SELECT 1 AS ok FROM vybe_conteudo_arquivos WHERE drive_file_id = ${id} AND ausente_em IS NULL LIMIT 1`;
   if (!a) return res.status(404).json({ error: 'Arquivo não encontrado.' });
   let m;
   try { m = await abrirBaixa.miniatura(id, Number(req.query?.sz) || 400); }
@@ -1668,7 +1671,8 @@ export async function areaMiniatura(req, res) {
 }
 
 // O Drive do download (os testes trocam por um dublê).
-const abrirBaixa = { inteiro: (id) => baixarDoDrive(id), trecho: (id, ini, fim) => baixarTrechoDoDrive(id, ini, fim), miniatura: (id, sz) => miniaturaDoDrive(id, sz) };
+const abrirBaixa = { inteiro: (id) => baixarDoDrive(id), trecho: (id, ini, fim) => baixarTrechoDoDrive(id, ini, fim), miniatura: (id, sz) => miniaturaDoDrive(id, sz),
+  listar: (id) => listarMidiasNoDrive(id), arquivo: (id) => arquivoNoDrive(id) };
 export function usarDriveDeTeste(d) { Object.assign(abrirBaixa, d || {}); }
 export async function areaBaixar(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
@@ -2053,6 +2057,8 @@ async function areaAprovacoes(req, res, quem) {
 
 const AREAS = { feed_instagram: (req,res,quem) => areaFeedInstagram(req,res,quem,{ db: sql() }), reunioes: areaReunioes, aprovacoes: areaAprovacoes, crm: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCrm(req,res,quem,sql); }, carteira: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaCarteira(req,res,quem,sql); }, comercial: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaComercial(req,res,quem,sql); }, conteudo_modulo: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaConteudoModulo(req,res,quem); }, setor_pessoas: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaSetorPessoas(req,res,quem,db); }, impressoes: async (req,res,quem) => { const db = sql(); await garantirMigracoesIrecity(db); return areaImpressoes(req,res,quem,db); }, cobrancas: (req,res,quem) => areaCobrancas(req,res,quem,sql()), vybe_financas: (req,res,quem) => areaVybeFinancas(req,res,quem,sql), financeiro: async (req,res,quem) => { await garantirMigracoesIrecity(sql()); return areaFinanceiro(req,res,quem,sql); }, assistente: areaAssistente, escritorio:(req,res,quem)=>areaEscritorio(req,res,quem,sql()), agenda_producao:areaAgendaProducao, captacoes:areaCaptacoes, roteiros:areaRoteiros, grupos: areaGrupos, notas: areaNotas, historico: areaHistorico, automacoes: areaAutomacoes, acessos: areaAcessos, clientes: areaClientes, subsolo: areaSubsolo, diario: areaDiario, opcoes: areaOpcoes, notificacoes: areaNotificacoes,
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, miniatura: areaMiniatura, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
+                // A prévia da peça sem arquivo, pelo link de entrega (server/previa-entrega.js): o baralho das aprovações.
+                previa_entrega: (req, res, quem) => areaPreviaEntrega(req, res, quem, { db: sql(), listar: (id) => abrirBaixa.listar(id), arquivo: (id) => abrirBaixa.arquivo(id) }),
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
                 midia: (req, res, quem) => areaMidia(req, res, quem, sql),
                 vybes: (req, res, quem) => areaVybes(req, res, quem, sql()),
