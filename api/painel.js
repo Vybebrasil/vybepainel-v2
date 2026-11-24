@@ -958,8 +958,9 @@ export async function areaClientes(req, res, quem) {
     // Quem não vê dinheiro não grava dinheiro: os campos de dinheiro que vierem são ignorados.
     const podeDinheiro = quem.tipo === 'servico' || ehDonoPessoa(quem.pessoa);
     // Entrar, sair, voltar e apagar: o mesmo ciclo de vida da pessoa, num lugar
-    // so (server/ciclo-de-vida.js). 'ativar' segue valendo como 'reativar'.
-    if (['criar', 'ativar', 'reativar', 'desativar', 'apagar'].includes(acao)) {
+    // so (server/ciclo-de-vida.js). 'ativar' segue valendo como 'reativar'; 'ignorar' ("não é cliente") é desativar e
+    // 'reconhecer' é reativar (Paulo, 23/11/2026: inativo e não é cliente viraram a mesma coisa).
+    if (['criar', 'ativar', 'reativar', 'desativar', 'apagar', 'ignorar', 'reconhecer'].includes(acao)) {
       try {
         if (acao === 'criar') {
           // Cadastro completo já na criação (Paulo, 09/11/2026): o nome sozinho deixava o cliente pela metade no ecossistema.
@@ -971,7 +972,7 @@ export async function areaClientes(req, res, quem) {
           // O cadastro não vai mais ao Vybe Finanças (14/11/2026); levarAoFinancas fica sem uso, para remover depois.
           return res.status(200).json({ ...criado, financas: { estado: 'desligado' } });
         }
-        return res.status(200).json(await cicloCliente(db, { ...req.body, acao: acao === 'ativar' ? 'reativar' : acao, autor }));
+        return res.status(200).json(await cicloCliente(db, { ...req.body, acao, autor }));
       } catch (erro) {
         if (erro.status) return res.status(erro.status).json({ error: erro.message });
         throw erro;
@@ -1024,15 +1025,7 @@ export async function areaClientes(req, res, quem) {
     // ── atas de reuniao ────────────────────────────────────────────────────
     // Listar e de quem opera; escrever e apagar sao de quem administra, pela
     // mesma razao do resto do cadastro: sao o registro que o time inteiro le.
-    // "Este nome nao e cliente." Um dedo de conversa com a lista do que falta
-    // cadastrar: ela precisa poder chegar a zero, senao ninguem a le.
-    if (acao === 'ignorar' || acao === 'reconhecer') {
-      if (!id) return res.status(400).json({ error: 'Informe o cliente.' });
-      const r = await db`UPDATE vybe_clientes SET nao_e_cliente=${acao === 'ignorar'}
-        WHERE id=${Number(id)} RETURNING id, nome`;
-      if (!r.length) return res.status(404).json({ error: 'Cliente não encontrado.' });
-      return res.status(200).json({ ok: true, cliente: r[0] });
-    }
+    // ("Este nome nao e cliente", 'ignorar'/'reconhecer', virou o ciclo de vida acima: desativar e reativar.)
 
     if (acao === 'ata-criar') {
       const { data, resumo } = req.body || {};

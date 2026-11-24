@@ -101,11 +101,13 @@ export function textoDoPacote(p) {
     + `\n\n👉 Um dos donos responde *ok pacote ${p.id}* e eu cadastro tudo em Produção (Agendar Captação, com o documento no briefing e ligado ao roteiro)${cap ? ' e marco a captação sugerida na agenda' : ''}. *recusa pacote ${p.id}* descarta.\n\n_— VYBES_`;
 }
 
-// Os pacotes que o VYBES ainda não levou ao grupo (os mais velhos primeiro).
+// Os pacotes que o VYBES ainda não levou ao grupo (os mais velhos primeiro). Só de cliente ativo de verdade: o
+// pacote de quem foi desativado (ou apagado) depois de proposto fica guardado e não vai ao grupo Produção.
 export async function pacotesParaAvisar(db) {
   await garantirTabelaPacotes(db);
   const rows = await db`SELECT p.*, c.nome AS cliente FROM vybe_pacotes_producao p JOIN vybe_clientes c ON c.id = p.cliente_id
-    WHERE p.estado = 'proposto' ORDER BY p.criado_em LIMIT 5`;
+    WHERE p.estado = 'proposto' AND c.apagado_em IS NULL AND (COALESCE(c.ativo,true) AND NOT COALESCE(c.nao_e_cliente,false))
+    ORDER BY p.criado_em LIMIT 5`;
   return rows.map(linha).map((p) => ({ ...p, texto: textoDoPacote(p) }));
 }
 export async function marcarAvisado(db, id) {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { conexao } from './postgres.mjs';
-import { criarCliente, cicloCliente, criarPessoa, cicloPessoa, listarSubsolo, esquecerCicloDeVidaPronto } from '../server/ciclo-de-vida.js';
+import { criarCliente, cicloCliente, acaoDoCicloCliente, criarPessoa, cicloPessoa, listarSubsolo, esquecerCicloDeVidaPronto } from '../server/ciclo-de-vida.js';
 
 async function banco() {
   esquecerCicloDeVidaPronto();
@@ -55,6 +55,38 @@ test('cliente desce ao subsolo, volta, e só se apaga depois de desativado e com
     await assert.rejects(criarCliente(sql, { nome: 'PADARIA SOL' }), /apagado para sempre/);
     const eventos = await sql`SELECT tipo, para FROM vybe_cliente_eventos ORDER BY id`;
     assert.deepEqual(eventos.map((e) => e.para), ['Inativo', 'Ativo', 'Inativo', 'Apagado']);
+  } finally { await db.close(); }
+});
+
+// Inativo e "não é cliente" viraram a mesma coisa (Paulo, 23/11/2026): 'ignorar' desativa e 'reconhecer' reativa,
+// com a mesma história, e a marca antiga nao_e_cliente não é mais gravada (quem a tinha sai limpo ao voltar).
+test('ignorar é desativar e reconhecer é reativar, sem gravar nao_e_cliente', async () => {
+  const { db, sql } = await banco();
+  try {
+    assert.equal(acaoDoCicloCliente('ignorar'), 'desativar');
+    assert.equal(acaoDoCicloCliente('reconhecer'), 'reativar');
+    assert.equal(acaoDoCicloCliente('ativar'), 'reativar');
+    assert.equal(acaoDoCicloCliente('apagar'), 'apagar');
+    const r = await cicloCliente(sql, { id: 1, acao: 'ignorar', autor: 'Paulo' });
+    assert.deepEqual([r.ok, r.cliente.ativo], [true, false]);
+    let [c] = await sql`SELECT ativo, status, nao_e_cliente, desativado_em FROM vybe_clientes WHERE id=1`;
+    assert.deepEqual([c.ativo, c.status, c.nao_e_cliente], [false, 'Inativo', false]);
+    assert.ok(c.desativado_em);
+    assert.deepEqual((await listarSubsolo(sql)).clientes.map((x) => x.motivo), ['Marcado como não é cliente']);
+
+    // Resto antigo: marcado como "não é cliente" antes da mudança. Reconhecer reativa e limpa a marca.
+    await sql`UPDATE vybe_clientes SET nao_e_cliente=TRUE WHERE id=1`;
+    await cicloCliente(sql, { id: 1, acao: 'reconhecer', motivo: 'Voltou' });
+    [c] = await sql`SELECT ativo, status, nao_e_cliente FROM vybe_clientes WHERE id=1`;
+    assert.deepEqual([c.ativo, c.status, c.nao_e_cliente], [true, 'Ativo', false]);
+    const eventos = await sql`SELECT tipo, de, para, motivo, autor FROM vybe_cliente_eventos ORDER BY id`;
+    assert.deepEqual(eventos.map((e) => [e.tipo, e.de, e.para, e.motivo, e.autor]),
+      [['status', 'Ativo', 'Inativo', 'Marcado como não é cliente', 'Paulo'], ['status', 'Inativo', 'Ativo', 'Voltou', 'Vybe OS']]);
+
+    // Depois de "ignorar", o cliente pode ser apagado para sempre como qualquer inativo.
+    await cicloCliente(sql, { id: 1, acao: 'ignorar' });
+    await cicloCliente(sql, { id: 1, acao: 'apagar', confirmacao: 'Padaria Sol' });
+    assert.equal((await sql`SELECT status FROM vybe_clientes WHERE id=1`)[0].status, 'Apagado');
   } finally { await db.close(); }
 });
 

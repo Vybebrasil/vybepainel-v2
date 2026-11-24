@@ -124,3 +124,16 @@ test('recusa descarta sem criar; peça com erro não derruba as outras; pacote i
     assert.equal(r.agenda, null);
   } finally { await db.close(); }
 });
+
+test('pacote de cliente desativado ou apagado não vai ao grupo Produção; reativado, volta a ir', async () => {
+  const { db, sql } = await banco();
+  try {
+    await sql`INSERT INTO vybe_clientes(id,nome,ativo) VALUES(10,'Saiu',false),(11,'Apagado',false),(12,'Marca antiga',true)`;
+    await sql`UPDATE vybe_clientes SET apagado_em=NOW() WHERE id=11`;
+    await sql`UPDATE vybe_clientes SET nao_e_cliente=TRUE WHERE id=12`;
+    for (const id of [8, 10, 11, 12]) await proporPacote(sql, id, pacote, { agora });
+    assert.deepEqual((await pacotesParaAvisar(sql)).map((p) => p.cliente), ['Antonov']);
+    await sql`UPDATE vybe_clientes SET ativo=TRUE WHERE id=10`;
+    assert.deepEqual((await pacotesParaAvisar(sql)).map((p) => p.cliente), ['Antonov', 'Saiu']);
+  } finally { await db.close(); }
+});
