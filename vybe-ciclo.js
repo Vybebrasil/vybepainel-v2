@@ -108,7 +108,7 @@ function abrirApagarNoCiclo(tipo, id, nome, { depois } = {}) {
     <h2 class="workflow-title">${safeText(nome)}</h2>
     <p>${pessoa
       ? 'Some o cadastro (e-mail, senha, foto), o vínculo do WhatsApp e o boneco. As peças e demandas em que trabalhou ficam, com o nome congelado.'
-      : 'Some o cadastro (contato, CNPJ, contrato, identidade), os acessos das redes, os heads e o portal do Hub. Peças, demandas, atas e planejamentos ficam, com o nome congelado.'}
+      : 'Some o cadastro (contato, CNPJ, contrato, identidade), as senhas e acessos das redes, as pessoas ligadas (heads) e o portal do Hub. Peças, demandas, atas e planejamentos ficam, com o nome congelado.'}
       <b>Não tem volta.</b></p>
     <div class="conta-form"><label><span>Digite <b>${safeText(nome)}</b> para confirmar</span><input id="ciclo-confirmacao" autocomplete="off" oninput="cicloConferirNome(this)"></label></div>
     <p class="ciclo-erro" id="ciclo-erro" role="alert"></p>

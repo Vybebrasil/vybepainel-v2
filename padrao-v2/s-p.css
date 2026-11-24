@@ -1,0 +1,8 @@
+/* FRENTE S-P · inativo único (Paulo, 23/11/2026: "inativo e não é cliente vira a mesma coisa").
+   O bloco Situação na coluna de consulta da ficha do cliente (situacaoDoCicloNaFichaHtml, vybe-clientes.js):
+   Desativar/Reativar e "Apagar para sempre", que só se acende para quem já está inativo.
+   Só tokens --d3-*; sem !important, sem html body.mundo e sem :has com [style]. */
+#painel-clientes #client-master-detail .fv2-lado .fv2-ciclo .d3m-vlin + .d3m-vlin{margin-top:6px}
+#painel-clientes #client-master-detail .fv2-lado .fv2-ciclo .fv2-apagar:disabled{cursor:not-allowed;background:transparent;box-shadow:inset 0 0 0 1px var(--d3-fume-veu-forte)}
+#painel-clientes #client-master-detail .fv2-lado .fv2-ciclo .fv2-apagar:disabled > span > b{color:var(--d3-fume-apagado)}
+#painel-clientes #client-master-detail .fv2-lado .fv2-ciclo .fv2-apagar + .d3m-vvazio{margin:6px 0 0;font-size:var(--d3-fs-apoio)}

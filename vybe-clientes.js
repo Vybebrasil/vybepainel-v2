@@ -140,15 +140,15 @@ function clientMasterRecords() {
 // Uma conta so, com a mesma regra que separa os blocos da tabela: quem tem
 // status escrito e cliente do cadastro; quem nao tem, so aparece na operacao.
 function contagemDeClientes(nomes) {
-  const conta = { ativos:0, inativos:0, sem:0, ignorados:0, conteudos:0, conteudosAbertos:0, demandas:0, demandasAbertas:0 };
+  const conta = { ativos:0, inativos:0, sem:0, conteudos:0, conteudosAbertos:0, demandas:0, demandasAbertas:0 };
   const CONCLUIDO = ['Feito', 'Finalizado', 'feito', 'finalizado', 'Concluídas', 'concluída'];
   const registros = clientMasterRecords();
   const vistosConteudos = new Set(), vistasDemandas = new Set();
   (nomes || []).forEach((nome) => {
     const f = cadastroDoCliente(nome);
     const texto = String(f?.status || '').trim();
-    // Quem foi marcado como "não é cliente" não conta como ativo no título (a lista também não o mostra).
-    if (f?.nao_e_cliente) conta.ignorados += 1;
+    // Inativo e "não é cliente" são a mesma coisa (Paulo, 23/11/2026): a marca antiga, se sobrar, conta como inativo.
+    if (f?.nao_e_cliente) conta.inativos += 1;
     else if (!f || (!texto && f.ativo !== false)) conta.sem += 1;
     else if (texto ? /inativ/i.test(texto) : f.ativo === false) conta.inativos += 1;
     else conta.ativos += 1;
@@ -364,7 +364,7 @@ function renderClientMasterDetail(cli) {
   const vai = CV2_IC.vai;
 
   const situacao = String(f.status || '').trim();
-  const estado = !situacao ? (f.ativo === false ? 'inativos' : 'sem')
+  const estado = f.nao_e_cliente ? 'inativos' : !situacao ? (f.ativo === false ? 'inativos' : 'sem')
     : /inativ/i.test(situacao) ? 'inativos' : 'ativos';
   const cabeca = document.getElementById('cliente-detalhe-cabeca');
   if (cabeca) cabeca.innerHTML = cabecaDaFichaHtml(nome, { f, meta, estado, podeMexer, aspas });
@@ -518,9 +518,32 @@ function renderClientMasterDetail(cli) {
   const onboarding = sit ? bloco('Onboarding', sit.concluido ? 'concluído' : 'em andamento',
     `<button type="button" class="d3m-vlin" onclick="trocarAbaDaFicha('onboarding')"><span><b>${feitosItens} de ${totalItens}</b>${sit.atual?.nome ? ` · ${safeText(sit.atual.nome)}` : ''}</span><span class="d3m-vbarra"><i style="--v:${totalItens ? Math.round((feitosItens / totalItens) * 100) : 0}%"></i></span>${vai}</button>`, ' aria-label="Onboarding"') : '';
   const semDado = id && !temClima && !sit ? bloco('Ainda sem dado', '', `<p class="cv2-nota fv2-semdado">${!sv ? 'Lendo o clima do grupo e o onboarding…' : 'Clima do grupo e onboarding aparecem aqui quando houver leitura. Hoje não há nada a mostrar.'}</p>`) : '';
+  const situacaoDoCiclo = situacaoDoCicloNaFichaHtml(nome, { id, estado, podeMexer, aspas });
 
   node.innerHTML = `<div class="v2f-corpo fv2-resumo"><div class="fv2-col">${cartaoEntregas}${cartaoPede}</div><div class="fv2-col fv2-meio"><div class="v2f-alto fv2-alto">${alto}</div>${cartaoVencidas}</div>
-    <aside class="d3m-lado fv2-lado" aria-label="Consulta">${saude}${cartaoReuniao}${cartaoDados}${planejamentos}${clima}${onboarding}${semDado}</aside></div>`;
+    <aside class="d3m-lado fv2-lado" aria-label="Consulta">${saude}${cartaoReuniao}${cartaoDados}${planejamentos}${clima}${onboarding}${semDado}${situacaoDoCiclo}</aside></div>`;
+}
+// Situação e "Apagar para sempre" na ficha (Paulo, 23/11/2026: "inativo e não é cliente vira a mesma coisa... pode ter
+// um botão no cliente de apagar ele 100% que vai pedir confirmação"). Desativar e reativar usam a mesma pergunta da
+// etiqueta de situação (trocarSituacaoDoCliente); apagar abre a janela do ciclo de vida (vybe-ciclo.js), que pede o
+// nome digitado, e o servidor só apaga quem já está inativo. Só para quem administra o cadastro.
+function situacaoDoCicloNaFichaHtml(nome, { id, estado, podeMexer, aspas }) {
+  if (!id || !podeMexer || estado === 'sem') return '';
+  const inativo = estado === 'inativos';
+  const vai = CV2_IC.vai;
+  const trocar = `<button type="button" class="d3m-vlin" onclick="trocarSituacaoDoCliente('${aspas}', ${inativo})"><span><b>${inativo ? 'Reativar' : 'Desativar'}</b> · ${
+    inativo ? 'volta para os ativos' : 'vai para Inativos; o histórico fica'}</span>${vai}</button>`;
+  const apagar = inativo
+    ? `<button type="button" class="d3m-vlin fv2-apagar" title="Apaga o cadastro, as senhas e acessos e as pessoas ligadas. Não tem volta." onclick="apagarClienteDaFicha('${jsArg(String(id))}', '${aspas}')"><i class="d3m-pt r" aria-hidden="true"></i><span><b>Apagar para sempre</b> · não tem volta</span>${vai}</button>`
+    : '<button type="button" class="d3m-vlin fv2-apagar" disabled aria-disabled="true" aria-describedby="fv2-apagar-nota"><span><b>Apagar para sempre</b></span></button><p class="d3m-vvazio" id="fv2-apagar-nota">Desative antes de apagar.</p>';
+  return `<section class="d3m-cons fv2-ciclo" aria-label="Situação do cliente"><div class="d3m-cons-cab"><b>Situação</b><span>${inativo ? 'Inativo' : 'Ativo'}</span></div>${trocar}${apagar}</section>`;
+}
+function apagarClienteDaFicha(id, nome) {
+  if (typeof abrirApagarNoCiclo !== 'function') return showToast('A janela de apagar não carregou. Recarregue a página.', 'error', 5000);
+  abrirApagarNoCiclo('cliente', id, nome, { depois: async () => {
+    if (typeof voltarClientesLista === 'function') voltarClientesLista();
+    await ensureClientMasterSources(true);
+  } });
 }
 // Linha que abre no lugar (peça .v2-abre do padrão): o botão e o bloco contam o estado.
 function alternarLinhaV2(botao) {
@@ -836,7 +859,7 @@ function renderClientesBoard() {
     abertos: ['mais vencidas primeiro', 'menos vencidas primeiro'], reuniao: ['reunião mais próxima primeiro', 'reunião mais distante primeiro'], cadastro: ['cadastro mais vazio primeiro', 'cadastro mais cheio primeiro'] };
   const ordemTxt = (ROT_ORDEM[ORDEM_DE_CLIENTES.coluna] || ROT_ORDEM.saude)[ORDEM_DE_CLIENTES.sentido > 0 ? 0 : 1];
   const mostrados = todosClientes.filter((n) => passaNosFiltrosDeClientes(n) && clientePassaNoFoco(n, FOCO_DE_CLIENTES, saudeDe)).length;
-  const oQue = sit === 'ativos' ? ['cliente ativo', 'clientes ativos'] : sit === 'inativos' ? ['cliente inativo', 'clientes inativos'] : sit === 'sem' ? ['só na operação', 'só na operação'] : sit === 'ignorados' ? ['que não é cliente', 'que não são clientes'] : ['cliente', 'clientes'];
+  const oQue = sit === 'ativos' ? ['cliente ativo', 'clientes ativos'] : sit === 'inativos' ? ['cliente inativo', 'clientes inativos'] : sit === 'sem' ? ['só na operação', 'só na operação'] : ['cliente', 'clientes'];
   if (titulo) titulo.innerHTML = `${plural(mostrados, oQue[0], oQue[1])} <span>· ${visao === 'fichas' ? 'pior nota primeiro' : ordemTxt}</span>`;
   const pe = document.getElementById('clientes-pe');
   if (pe) {
@@ -994,7 +1017,7 @@ function alternarSituacaoDeClientes(qual) {
   renderClientesBoard();
 }
 // "Filtros": o que não cabe na barra do quadro fica a um clique (segmento, os recortes que eram chips, quem está só
-// na operação, quem foi marcado como não cliente e Limpar filtros).
+// na operação e Limpar filtros).
 function abrirFiltrosDeClientes(gatilho) {
   const nomes = clientMasterRecords().map((r) => r.name);
   const quantos = (sit) => nomes.filter((n) => situacaoDaLinhaDeCliente(n) === sit).length;
@@ -1004,7 +1027,6 @@ function abrirFiltrosDeClientes(gatilho) {
     { valor: 'segmento', rotulo: seg ? `Segmento: ${String(seg.rotulo).replace(/ \(\d+\)$/, '')}` : 'Segmento…' },
     ...RECORTES_DE_CLIENTES.map((k) => ({ valor: `foco:${k.foco}`, rotulo: `${k.label} (${k.value})${marca(k.aceso)}` })),
     { valor: 'sit:sem', rotulo: `Só na operação, sem ficha (${quantos('sem')})${marca(FILTRO_CLIENTES.situacao === 'sem')}` },
-    { valor: 'sit:ignorados', rotulo: `Não são clientes (${quantos('ignorados')})${marca(FILTRO_CLIENTES.situacao === 'ignorados')}` },
     { valor: 'limpar', rotulo: 'Limpar filtros' },
   ];
   abrirListaDoPainel(gatilho, { titulo: 'Filtros', opcoes, atual: '',
@@ -1035,13 +1057,11 @@ function pintarFiltrosDeClientes(recortes = []) {
   const outros = Boolean(FILTRO_CLIENTES.segmento) || FOCO_DE_CLIENTES !== 'todos' || FILTRO_CLIENTES.situacao === 'sem';
   const ligados = [FILTRO_CLIENTES.segmento ? rotuloDe('segmento') : '', ...recortes.filter((k) => k.aceso).map((k) => safeText(k.label)),
     FILTRO_CLIENTES.situacao === 'sem' ? 'Só na operação' : ''].filter(Boolean);
-  // Quem foi marcado como "não é cliente" some de tudo; o chip é o caminho de volta e só aparece quando há alguém.
-  const naoSao = quantos('ignorados') || FILTRO_CLIENTES.situacao === 'ignorados' ? situacao('ignorados', 'Não são clientes') : '';
   const filtros = outros ? `<button type="button" class="cv2-chip" data-v2f-filtros aria-haspopup="listbox" data-ligado="true" title="Segmento, sem contato, detratores, painel a atualizar e quem está só na operação"
       onclick="abrirFiltrosDeClientes(this)">${ligados.join(', ')}</button>` : '';
   const colunas = `<button type="button" class="cv2-chip" aria-haspopup="listbox" title="Escolher as colunas da lista"
       onclick="escolherColunasDeClientes(this)">Colunas</button>`;
-  alvo.innerHTML = `<span class="cv2-chips">${situacao('ativos', 'Ativos')}${situacao('inativos', 'Inativos')}${naoSao}</span><i class="cv2-risco" aria-hidden="true"></i><span class="cv2-chips">${menu('carteira')}${menu('head')}${filtros}${
+  alvo.innerHTML = `<span class="cv2-chips">${situacao('ativos', 'Ativos')}${situacao('inativos', 'Inativos')}</span><i class="cv2-risco" aria-hidden="true"></i><span class="cv2-chips">${menu('carteira')}${menu('head')}${filtros}${
     visaoDeClientes() === 'tabela' ? colunas : ''}</span>`;
 }
 
@@ -1292,12 +1312,6 @@ async function salvarHeadsDoCliente() {
 // Estava so dentro do "Editar", num botao chamado "Tirar do painel". Era a
 // pergunta mais frequente da lista e a resposta mais escondida dela.
 function situacaoDoClienteHtml(nome, estado) {
-  // Quem foi marcado como "não é cliente": quem administra vê o botão de volta; o resto, só a etiqueta.
-  if (estado === 'ignorados') {
-    if (!podeEditarClientes()) return '<span class="cli-situacao ignorado">Não é cliente</span>';
-    return `<button type="button" class="cli-voltar" title="Volta às listas, às metas e à saúde da carteira"
-      onclick="event.stopPropagation();voltarASerCliente('${jsArg(nome)}')">Voltar a ser cliente</button>`;
-  }
   const rotulo = estado === 'inativos' ? 'Inativo' : estado === 'sem' ? 'Sem cadastro' : 'Ativo';
   const classe = estado === 'inativos' ? 'inativo' : estado === 'sem' ? 'nenhum' : 'ativo';
   if (!podeEditarClientes()) return `<span class="cli-situacao ${classe}">${rotulo}</span>`;
@@ -1320,7 +1334,8 @@ async function trocarSituacaoDoCliente(nome, estaInativo) {
     texto: 'O histórico continua guardado; ele só deixa de aparecer nas telas e não recebe conteúdo novo.',
     confirmar: 'Tirar do painel', perigo: true })) return;
   try {
-    await gravarCadastroDeCliente({ acao: estaInativo ? 'ativar' : 'desativar', id },
+    // Quem ainda tiver a marca antiga de "não é cliente" volta por 'reconhecer', que reativa e limpa a marca.
+    await gravarCadastroDeCliente({ acao: estaInativo ? (cadastroDoCliente(nome)?.nao_e_cliente ? 'reconhecer' : 'ativar') : 'desativar', id },
       estaInativo ? 'Cliente de volta ao painel.' : 'Cliente fora do painel.');
   } catch (e) { showToast(e.message, 'error', 5000); }
 }
@@ -1609,7 +1624,8 @@ function pintarDeckDeClientes() {
   const nomes = [...CLIENTES_MARCADOS];
   const semFicha = nomes.filter((n) => { const f = cadastroDoCliente(n);
     return !f || !String(f.status || '').trim(); }).length;
-  const naoSao = nomes.filter((n) => situacaoDaLinhaDeCliente(n) === 'ignorados').length;
+  const ativos = nomes.filter((n) => situacaoDaLinhaDeCliente(n) === 'ativos').length;
+  const inativos = nomes.filter((n) => situacaoDaLinhaDeCliente(n) === 'inativos').length;
   const deck = document.createElement('div');
   deck.id = 'cli-deck';
   deck.className = 'grupos-lote';
@@ -1619,8 +1635,8 @@ function pintarDeckDeClientes() {
     ${semFicha ? `<button type="button" class="lote-acao" onclick="loteCadastrarClientes()">Cadastrar ${semFicha}</button>` : ''}
     <button type="button" class="lote-acao" onclick="lotePainelDoCliente('Atualizado')">Painel atualizado</button>
     <button type="button" class="lote-acao" onclick="lotePainelDoCliente('Desatualizado')">Painel desatualizado</button>
-    ${naoSao < nomes.length ? '<button type="button" class="lote-acao" onclick="loteNaoEhCliente()">Não é cliente</button>' : ''}
-    ${naoSao ? `<button type="button" class="lote-acao" onclick="loteVoltarASerCliente()">Voltar a ser cliente${naoSao < nomes.length ? ` (${naoSao})` : ''}</button>` : ''}
+    ${ativos ? `<button type="button" class="lote-acao" onclick="loteDesativarClientes()">Desativar${ativos < nomes.length ? ` (${ativos})` : ''}</button>` : ''}
+    ${inativos ? `<button type="button" class="lote-acao" onclick="loteReativarClientes()">Reativar${inativos < nomes.length ? ` (${inativos})` : ''}</button>` : ''}
     <span class="lote-risco" aria-hidden="true"></span>
     <button type="button" class="lote-limpar" onclick="limparMarcadosDeClientes()"
       title="Desmarcar todos" aria-label="Desmarcar todos">✕</button>`;
@@ -1629,11 +1645,11 @@ function pintarDeckDeClientes() {
 
 // Cada cliente e uma gravacao, como no resto do painel: se uma falhar, as outras
 // seguem, e a conta no fim diz quantas passaram.
-async function emLoteDeClientes(rotulo, fazer, { texto = 'A alteração vale para todos os marcados.', confirmar = 'Aplicar' } = {}) {
+async function emLoteDeClientes(rotulo, fazer, { texto = 'A alteração vale para todos os marcados.', confirmar = 'Aplicar', perigo = false } = {}) {
   const nomes = [...CLIENTES_MARCADOS];
   if (!nomes.length) return;
   const ok = await perguntarNoPainel({ titulo: `${rotulo} em ${nomes.length} cliente${nomes.length === 1 ? '' : 's'}?`,
-    texto, confirmar });
+    texto, confirmar, ...(perigo ? { perigo: true } : {}) });
   if (!ok) return;
   let feitas = 0; const falhas = [];
   for (const nome of nomes) {
@@ -1662,86 +1678,32 @@ function lotePainelDoCliente(valor) {
     if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || 'falhou');
   });
 }
-// "Não é cliente" tira o nome de todas as listas, das metas e da saúde da carteira (o servidor só conta quem é
-// ativo de verdade). Já sumiu cliente de verdade assim, sem caminho de volta (a Vybe, 20/11/2026): a pergunta diz o
-// que acontece e onde desfazer, e a volta mora no chip "Não são clientes" da barra (e em Mais > Filtros).
-const TEXTO_NAO_EH_CLIENTE = 'Some de todas as listas, metas e da saúde da carteira; dá para desfazer em Não são clientes.';
-function loteNaoEhCliente() {
-  [...CLIENTES_MARCADOS].filter((n) => situacaoDaLinhaDeCliente(n) === 'ignorados').forEach((n) => CLIENTES_MARCADOS.delete(n));
-  return emLoteDeClientes('Marcar como "não é cliente"', async (nome) => {
+// Inativo e "não é cliente" viraram a mesma coisa (Paulo, 23/11/2026): o "Não é cliente" do lote virou Desativar, e o
+// "Voltar a ser cliente" virou Reativar. Os dois passam pelo ciclo de vida do servidor (server/ciclo-de-vida.js), com
+// uma linha na história do cliente; quem foi desativado fica em Inativos, de onde se reativa ou se apaga para sempre.
+const TEXTO_DESATIVAR_LOTE = 'Vão para Inativos: o histórico continua guardado; eles só deixam de aparecer nas telas, nas metas e na saúde da carteira. Dá para reativar em Inativos.';
+function loteDesativarClientes() {
+  [...CLIENTES_MARCADOS].filter((n) => situacaoDaLinhaDeCliente(n) !== 'ativos').forEach((n) => CLIENTES_MARCADOS.delete(n));
+  return emLoteDeClientes('Desativar', async (nome) => {
     const id = idDoCliente(nome);
     if (!id) throw new Error('sem cadastro');
-    const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
-      headers:{'Content-Type':'application/json'}, body: JSON.stringify({ acao:'ignorar', id }) });
-    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || 'falhou');
-  }, { texto: TEXTO_NAO_EH_CLIENTE, confirmar: 'Marcar' });
+    await postarNoCadastroDeClientes({ acao: 'desativar', id });
+  }, { texto: TEXTO_DESATIVAR_LOTE, confirmar: 'Desativar', perigo: true });
 }
-
-// ── Voltar a ser cliente ──────────────────────────────────────────────────────
-// A volta do "não é cliente" (ação 'reconhecer' do servidor, que já existia sem tela). Quem também está Inativo
-// volta para "Inativos"; a janela seguinte oferece reativar junto, com o motivo (vai para a história do cliente).
-function clienteTambemInativo(nome) {
-  const f = cadastroDoCliente(nome);
-  if (!f) return false;
-  const texto = String(f.status || '').trim();
-  return texto ? /inativ/i.test(texto) : f.ativo === false;
+function loteReativarClientes() {
+  [...CLIENTES_MARCADOS].filter((n) => situacaoDaLinhaDeCliente(n) !== 'inativos').forEach((n) => CLIENTES_MARCADOS.delete(n));
+  return emLoteDeClientes('Reativar', async (nome) => {
+    const id = idDoCliente(nome);
+    if (!id) throw new Error('sem cadastro');
+    // A marca antiga de "não é cliente", se sobrar, sai junto: 'reconhecer' reativa e limpa.
+    await postarNoCadastroDeClientes({ acao: cadastroDoCliente(nome)?.nao_e_cliente ? 'reconhecer' : 'reativar', id });
+  }, { texto: 'Voltam para os ativos: listas, metas e saúde da carteira.', confirmar: 'Reativar' });
 }
 async function postarNoCadastroDeClientes(corpo) {
   const r = await fetch('/api/painel?area=clientes', { method:'POST', credentials:'same-origin',
     headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || 'falhou');
   return r.json().catch(() => ({}));
-}
-// Pergunta uma vez (e, se algum estiver Inativo, mais uma: reativar junto?), grava cada um e devolve a conta.
-// Uma falha não para as outras. Cancelar a primeira pergunta devolve null.
-async function voltarASerClientes(nomes) {
-  const lista = nomes.filter((n) => situacaoDaLinhaDeCliente(n) === 'ignorados' && idDoCliente(n));
-  if (!lista.length) return { feitas: 0, reativados: 0, falhas: [] };
-  const ok = await perguntarNoPainel({
-    titulo: lista.length === 1 ? `"${lista[0]}" volta a ser cliente?` : `${lista.length} nomes voltam a ser clientes?`,
-    texto: 'Volta às listas, às metas e à saúde da carteira, na situação em que estava (ativo ou inativo).',
-    confirmar: 'Voltar a ser cliente' });
-  if (!ok) return null;
-  const inativos = lista.filter(clienteTambemInativo);
-  let motivo = null;
-  if (inativos.length) {
-    motivo = await perguntarNoPainel({
-      titulo: inativos.length === 1 ? `"${inativos[0]}" também está Inativo. Reativar junto?` : `${inativos.length} deles também estão Inativos. Reativar junto?`,
-      texto: 'Reativar põe de volta nos ativos. Cancelar deixa como Inativo.',
-      confirmar: 'Reativar', campo: { rotulo: 'Motivo', valor: 'Voltou a ser cliente', dica: 'Por que volta a ser ativo' } });
-    if (motivo !== null && !String(motivo).trim()) motivo = 'Voltou a ser cliente';
-  }
-  let feitas = 0, reativados = 0; const falhas = [];
-  for (const nome of lista) {
-    const id = idDoCliente(nome);
-    try {
-      await postarNoCadastroDeClientes({ acao: 'reconhecer', id });
-      feitas += 1;
-      if (motivo !== null && inativos.includes(nome)) {
-        await postarNoCadastroDeClientes({ acao: 'reativar', id, motivo });
-        reativados += 1;
-      }
-    } catch (e) { falhas.push(nome); console.warn('voltar a ser cliente falhou em', nome, e); }
-  }
-  return { feitas, reativados, falhas };
-}
-async function avisarVoltaDeClientes(conta) {
-  if (!conta) return;
-  const { feitas, reativados, falhas } = conta;
-  const extra = reativados ? ` · ${reativados} reativado${reativados === 1 ? '' : 's'}` : '';
-  showToast(falhas.length ? `${feitas} voltou(aram)${extra} · ${falhas.length} falhou(ram)` : `✓ ${feitas} de volta como cliente${feitas === 1 ? '' : 's'}${extra}`,
-    falhas.length ? 'info' : 'ok', 6000);
-  await ensureClientMasterSources(true);
-}
-async function voltarASerCliente(nome) {
-  if (!podeEditarClientes()) return showToast('Só quem administra muda isso.', 'warning', 3500);
-  return avisarVoltaDeClientes(await voltarASerClientes([nome]));
-}
-async function loteVoltarASerCliente() {
-  const conta = await voltarASerClientes([...CLIENTES_MARCADOS]);
-  if (!conta) return;
-  CLIENTES_MARCADOS.clear();
-  return avisarVoltaDeClientes(conta);
 }
 
 // Redesign, quadro 50 (10/11/2026): saem as colunas que quase sempre ficavam vazias (Dashboard, Última reunião,
@@ -1863,13 +1825,7 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
   const caixa = mostrar.marcar && podeEditarClientes()
     ? `<input type="checkbox" class="v2f-marcar" ${marcado ? 'checked' : ''} aria-label="Marcar ${safeText(nome)}"
         onclick="event.stopPropagation();this.closest('.v2f-linha').classList.toggle('marcada',this.checked);alternarClienteMarcado('${aspas}',this.checked)">` : '';
-  // Quem não é cliente não tem nota de saúde: a coluna Saúde vira a da situação. Na lista "Não são clientes" ela leva o
-  // botão de volta (a coluna alarga para caber); misturado com os outros, só a etiqueta, na largura de sempre.
-  const naoEhCliente = estado === 'ignorados';
-  const soNaoClientes = FILTRO_CLIENTES.situacao === 'ignorados';
-  const situacaoHtml = estado !== 'ativos' && !naoEhCliente && !mostrar.status ? `<span onclick="event.stopPropagation()">${situacaoDoClienteHtml(nome, estado)}</span>` : '';
-  const voltaHtml = `<span class="cv2-sa cv2-volta" onclick="event.stopPropagation()">${soNaoClientes ? situacaoDoClienteHtml(nome, estado)
-    : '<span class="cli-situacao ignorado" title="Para desfazer, abra Não são clientes">Não é cliente</span>'}</span>`;
+  const situacaoHtml = estado !== 'ativos' && !mostrar.status ? `<span onclick="event.stopPropagation()">${situacaoDoClienteHtml(nome, estado)}</span>` : '';
   // O cadastro: o anel do quanto já está preenchido e "5/12"; completo fica verde; só na operação, "sem ficha".
   const C = 2 * Math.PI * 6;
   const anel = (feitos, total) => `<svg class="cv2-anel${feitos >= total ? ' cheio' : ''}" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><circle class="v" cx="8" cy="8" r="6" stroke-dasharray="${(feitos / Math.max(1, total) * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 8 8)"/></svg>`;
@@ -1899,12 +1855,12 @@ function linhaDeClienteHtml(nome, semCadastro, estado, mostrar = {}, saudeDe = s
         <p class="v2f-cad"><b>Cadastro${c ? ` ${c.feitos} de ${c.total}` : ''}</b>${c ? itens : ' · sem ficha no cadastro'}</p>
       </div>${botoes}<button type="button" class="d3v-btn s cv2-abrir-ficha" onclick="abrirClienteDetalhe('${aspas}')">Abrir a ficha</button></div>`;
 
-  return `<div class="v2-abre v2f-linha cv2-linha${marcado ? ' marcada' : ''}${naoEhCliente ? ' cv2-nao-cliente' : ''}" data-cliente="${safeText(nome)}" aria-expanded="${aberto}">
+  return `<div class="v2-abre v2f-linha cv2-linha${marcado ? ' marcada' : ''}" data-cliente="${safeText(nome)}" aria-expanded="${aberto}">
     <div class="cv2-tr" onclick="alternarLinhaDeCliente(this.querySelector('.v2f-vai'))">
       <span class="cv2-grupo${grupo === 'Agora' ? ' r' : ''}">${grupo}</span>${caixa}${fotoDoClienteCv2(nome)}
       <p class="cv2-nome cli-nome"><b>${safeText(nome)}</b>${segmento ? ` <span>· ${safeText(segmento)}</span>` : ''}${situacaoHtml}</p>
       <span class="cv2-hd" title="${safeText(heads.join(', '))}">${heads.length ? `<i class="cv2-pes" aria-hidden="true">${safeText(iniciaisV2(heads[0]))}</i><span>${safeText(heads.map(primeiroNomeV2).join(', '))}</span>` : '<span class="cv2-apagado">sem head</span>'}</span>
-      ${naoEhCliente ? voltaHtml : tom ? `<span class="cv2-sa ${tom}" title="Nota ${Number(s.score)} de 100"><b>${Number(s.score)}</b><span class="cv2-barra"><i style="--v:${Math.max(0, Math.min(100, Number(s.score)))}%"></i></span></span>` : `<span class="cv2-sa">${vazio}</span>`}
+      ${tom ? `<span class="cv2-sa ${tom}" title="Nota ${Number(s.score)} de 100"><b>${Number(s.score)}</b><span class="cv2-barra"><i style="--v:${Math.max(0, Math.min(100, Number(s.score)))}%"></i></span></span>` : `<span class="cv2-sa">${vazio}</span>`}
       <span class="cv2-ab">${emAberto}</span>
       ${reuniaoHtml}
       ${cadastro}
@@ -1970,7 +1926,8 @@ function editarAcessoDoCliente(event, nome, campo) {
 function situacaoDaLinhaDeCliente(nome) {
   const f = cadastroDoCliente(nome);
   if (!f) return 'sem';
-  if (f.nao_e_cliente) return 'ignorados';
+  // Inativo e "não é cliente" são a mesma coisa (Paulo, 23/11/2026): a marca antiga, se sobrar, cai em Inativos.
+  if (f.nao_e_cliente) return 'inativos';
   const texto = String(f.status || '').trim();
   if (texto) return /inativ/i.test(texto) ? 'inativos' : 'ativos';
   // Sem status: linha criada pela importacao. So conta como inativo se alguem
@@ -2018,9 +1975,8 @@ function tabelaDeClientesHtml(clientes) {
   const grupoDe = (n) => { if (!ordemPadrao) return '';
     const s = saudeDe(n), g = !s || !Number.isFinite(Number(s.score)) ? '' : clientePrecisaDeVoce(s) ? 'Agora' : 'Depois';
     if (!g || g === ultimo) return ''; ultimo = g; return g; };
-  const soNaoClientes = FILTRO_CLIENTES.situacao === 'ignorados';
-  return `<section class="cv2-tabela${cols.marcar && podeEditarClientes() ? ' com-marcar' : ''}${soNaoClientes ? ' so-nao-clientes' : ''}" aria-label="Clientes" style="--cv2-extras:${extras.length}">
-      <div class="cv2-th"><span class="cv2-grupo"></span>${marcarTodos}<span class="cv2-th-foto"></span>${titulo('cliente', 'Cliente')}${titulo('head', 'Head')}${soNaoClientes ? '<span class="cv2-th-b cv2-h-saude">Situação</span>' : titulo('saude', 'Saúde', 'Nota de 0 a 100 da Saúde da carteira')}${titulo('abertos', 'Em aberto')}${titulo('reuniao', 'Reunião', 'Próxima reunião marcada')}${titulo('cadastro', 'Cadastro', 'Itens essenciais do cadastro preenchidos')}${
+  return `<section class="cv2-tabela${cols.marcar && podeEditarClientes() ? ' com-marcar' : ''}" aria-label="Clientes" style="--cv2-extras:${extras.length}">
+      <div class="cv2-th"><span class="cv2-grupo"></span>${marcarTodos}<span class="cv2-th-foto"></span>${titulo('cliente', 'Cliente')}${titulo('head', 'Head')}${titulo('saude', 'Saúde', 'Nota de 0 a 100 da Saúde da carteira')}${titulo('abertos', 'Em aberto')}${titulo('reuniao', 'Reunião', 'Próxima reunião marcada')}${titulo('cadastro', 'Cadastro', 'Itens essenciais do cadastro preenchidos')}${
         extras.map((k) => `<span class="cv2-extra">${ROTULO_EXTRA[k]}</span>`).join('')}<span class="cv2-th-vai"></span></div>
       <div class="cv2-linhas">${ordenada.map((n) => { const estado = situacaoDaLinhaDeCliente(n); return linhaDeClienteHtml(n, estado === 'sem', estado, cols, saudeDe, grupoDe(n)); }).join('')}</div>
     </section>`;

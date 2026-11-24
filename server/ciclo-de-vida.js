@@ -129,10 +129,24 @@ async function mudarCliente(tx, id, acao, { autor, motivo, confirmacao } = {}) {
   return { id: antes.id, nome: antes.nome, ativo: acao === 'reativar' };
 }
 
+// "Inativo e não é cliente vira a mesma coisa" (Paulo, 23/11/2026): 'ignorar' é desativar e 'reconhecer' é reativar.
+// Os dois nomes seguem aceitos para quem ainda os chama; 'ativar' é o nome antigo de reativar.
+const ACAO_DO_CICLO = { ativar: 'reativar', ignorar: 'desativar', reconhecer: 'reativar' };
+export const acaoDoCicloCliente = (acao) => ACAO_DO_CICLO[acao] || acao;
+
 export async function cicloCliente(db, { id, acao, autor, motivo, confirmacao }) {
   if (!idValido(id)) throw invalido('Informe o cliente.');
   await garantirCicloDeVida(db);
-  return db.comTransacao(async (tx) => ({ ok: true, cliente: await mudarCliente(tx, Number(id), acao, { autor, motivo, confirmacao }) }));
+  const final = acaoDoCicloCliente(acao);
+  const porque = acao === 'ignorar' ? limpo(motivo) || 'Marcado como não é cliente' : motivo;
+  return db.comTransacao(async (tx) => {
+    const cliente = await mudarCliente(tx, Number(id), final, { autor, motivo: porque, confirmacao });
+    // A marca antiga não volta a ser gravada; quem a tinha e volta a ser cliente sai limpo dela.
+    if (acao === 'reconhecer' && (await tx`SELECT 1 FROM information_schema.columns WHERE table_name='vybe_clientes' AND column_name='nao_e_cliente'`).length) {
+      await tx`UPDATE vybe_clientes SET nao_e_cliente=FALSE WHERE id=${Number(id)}`;
+    }
+    return { ok: true, cliente };
+  });
 }
 
 // ── colaborador ──────────────────────────────────────────────────────────────
