@@ -937,19 +937,32 @@
     avisarPrevia(ref);
     if (video) setTimeout(() => { if (!QUADRO_ABRIU.has(video)) desistirDoQuadro(ref); }, QUADRO_PRAZO);
   }
+  // A proporção real da mídia (Paulo, 24/11/2026: "não era pra ser responsivo? Ficar do tamanho do card ou vídeo?"): lida
+  // quando a imagem ou o quadro carrega, vai para a arte do cartão (--arte-prop) e fica na prévia (prop), para a próxima
+  // pintura já nascer na proporção certa (1:1, 4:5, 9:16, 16:9). Quem desenha a arte decide se usa (o laranja do Hoje usa).
+  function guardarProporcao(ref, w, h, el) {
+    if (!(w > 0 && h > 0)) return;
+    const prop = Math.round((w / h) * 1000) / 1000, arte = el?.closest?.('.d3h-arte');
+    if (arte) { arte.style.setProperty('--arte-prop', String(prop)); arte.classList.add('d3h-arte-prop'); }
+    const p = previas[ref];
+    if (p && p.prop !== prop) previas[ref] = { ...p, prop };
+  }
   document.addEventListener('load', (e) => {
     const img = e.target;
     if (img?.tagName !== 'IMG' || !img.dataset?.vcPrevia) return;
     const ref = img.dataset.vcPrevia, p = previas[ref];
-    if (!p?.quadro || p.tipo !== 'video' || p.thumb !== img.getAttribute('src')) return;
-    if (!PRETAS.has(p.thumb)) PRETAS.set(p.thumb, medirMiniatura(img));
-    if (PRETAS.get(p.thumb)) trocarPeloQuadro(ref);
+    if (p?.quadro && p.tipo === 'video' && p.thumb === img.getAttribute('src')) {
+      if (!PRETAS.has(p.thumb)) PRETAS.set(p.thumb, medirMiniatura(img));
+      if (PRETAS.get(p.thumb)) return trocarPeloQuadro(ref);
+    }
+    if (p?.thumb === img.getAttribute('src')) guardarProporcao(ref, img.naturalWidth, img.naturalHeight, img);
   }, true);
   // O quadro abriu de verdade só com imagem (o HEVC no Chrome pode abrir o som e não a imagem: largura 0).
   document.addEventListener('loadeddata', (e) => {
     const v = e.target;
     if (v?.tagName !== 'VIDEO' || !v.dataset?.vcPreviaVideo) return;
     const ref = v.dataset.vcPreviaVideo;
+    if (v.videoWidth > 0 && previas[ref]?.video) guardarProporcao(ref, v.videoWidth, v.videoHeight, v);
     if (!previas[ref]?.quadroDe) return;
     if (v.videoWidth > 0) QUADRO_ABRIU.add(previas[ref].video); else desistirDoQuadro(ref);
   }, true);

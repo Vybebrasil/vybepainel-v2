@@ -987,7 +987,7 @@
     const pilulas = (i) => { const grupo = String(i.item?.grupo || i.grupo || '').trim(), st = String(i.item?.status || i.status || '').trim();
       return grupo || st ? `<span class="d3h-pills">${st ? (i.item && typeof statusCor === 'function' ? stD3(i.item) : `<span class="d3h-pill"><i></i>${esc(st)}</span>`) : ''}${grupo ? `<span class="d3h-pill so">${esc(grupo)}</span>` : ''}</span>` : ''; };
     const carta = (i, k) => { const pos = posDecidir(k), t = pos && pos !== 'fora' ? previaDecidir(String(i.ref)) : pedidasDecidir.has(String(i.ref)) ? previaDecidir(String(i.ref)) : undefined;
-      return `<article class="v2-carta d3h-carta"${pos ? ` data-pos="${pos}"` : ''} data-carta="${k}" aria-hidden="${pos !== '0'}"><div class="d3h-arte">${arteDecidir(i, t)}</div>
+      return `<article class="v2-carta d3h-carta"${pos ? ` data-pos="${pos}"` : ''} data-carta="${k}" aria-hidden="${pos !== '0'}"><div class="d3h-arte${t?.prop > 0 ? ` d3h-arte-prop" style="--arte-prop:${Number(t.prop)}` : ''}">${arteDecidir(i, t)}</div>
         <div class="d3h-carta-txt">${i.cliente ? `<span class="d3h-carta-cli">${fotoCliD3(i.cliente)}${cliCor(i.cliente)}</span>` : ''}<b>${esc(i.titulo)}</b>${pilulas(i)}<small>${esc(quandoVeiculaTxt(i))}${i.heads?.length ? ' · head ' + esc(i.heads.map((h) => h.nome).join(', ')) : ''}${i.horas != null && i.horas >= 1 ? ` · parada há ${i.horas < 48 ? i.horas + ' h' : Math.round(i.horas / 24) + ' d'}` : ''}</small></div></article>`; };
     return `<section class="${cls}" data-decidir aria-label="${esc(titulo)}">${cab(`<span data-decidir-conta>${decidirEm + 1} de ${fila.length}</span> ${lista}`)}
       <div class="v2-baralho d3h-baralho" tabindex="0" aria-label="${artes ? 'Artes' : 'Peças'} para decidir: as setas do teclado passam">${fila.map(carta).join('')}</div>
@@ -1358,14 +1358,25 @@
     return cartaoD3({ titulo, aux: `${doDia.length ? `${n0(doDia.filter((e) => e.dia === hoje).length)} hoje · ` : ''}<button type="button" class="d3h-link" data-hoje-acao="agenda">abrir</button>`, corpo, cls: 'd3h-agenda', rotulo: 'Agenda de hoje' });
   }
   // Os agentes viram: o começo da fila Depende de você, com o rosto do agente (lilás, pulsando).
-  function agentesD3Html({ pe = '' } = {}) {
+  // linha: a linha compacta da coluna de Minhas tarefas (embaixo da Semana), com a mesma contagem, os mesmos achados ao
+  // abrir, o mesmo "abrir" e o mesmo pé.
+  function agentesD3Html({ pe = '', linha = false } = {}) {
     const r = window.VybeAgentes?.resumoParaHoje?.(3);
     const corpo = !r || (!r.itens.length && r.lendo) ? '<p class="d3h-vazio">Lendo os agentes</p>'
       : !r.pode ? '<p class="d3h-vazio">Os achados vão para os donos</p>'
       : !r.itens.length ? '<p class="d3h-vazio">Nada esperando você</p>'
       : r.itens.map((it) => `<button type="button" class="d3h-agl" data-hoje-acao="agente" data-valor="${esc(it.setor)}|${esc(it.chave || '')}" title="${esc(it.agente + ' · ' + it.titulo)}"><i class="d3-agente-av d3h-av ag" aria-hidden="true">${esc(String(it.agente || '?').slice(0, 1).toUpperCase())}</i><span>${esc(it.titulo)}</span><small>${esc(it.rotulo)}</small></button>`).join('')
         + (r.total > r.itens.length ? `<button type="button" class="d3h-link d3h-mais" data-hoje-acao="agentes">+ ${n0(r.total - r.itens.length)}</button>` : '');
+    if (linha) return `<div class="v2-abre d3h-apr d3h-ag-linha" ${abreD3('agentes')}><div class="d3h-ag-lin"><button type="button" class="d3h-apr-lin" data-hoje-acao="abre" data-valor="agentes"><span>Agentes viram</span><b>${r?.total ? n0(r.total) : ''}</b></button><button type="button" class="d3h-link" data-hoje-acao="agentes">abrir</button></div>`
+      + `<div class="v2-mais"><div><div class="d3h-ag-itens">${corpo}</div>${pe ? `<div class="d3h-pe">${pe}</div>` : ''}</div></div></div>`;
     return cartaoD3({ titulo: 'Agentes viram', aux: `${r?.total ? n0(r.total) + ' · ' : ''}<button type="button" class="d3h-link" data-hoje-acao="agentes">abrir</button>`, corpo, pe, cls: 'd3h-agentes', rotulo: 'Os agentes viram' });
+  }
+  // Minhas tarefas (Paulo, 24/11/2026: "leva o gráfico ali pra direita... no lugar de aprovações e agentes viram"): a
+  // Semana sobe para a coluna da direita e, embaixo dela, Aprovações e Agentes viram em linhas que abrem no lugar, com as
+  // mesmas contagens, os mesmos cliques e o mesmo "abrir"/"todos". Sem aprovação para mostrar, fica só a linha dos agentes.
+  function consultaD3Html({ aprovacoes = true, pe = '' } = {}) {
+    const apr = aprovacoes ? aprovacoesD3Html({ linhas: true }) : null;
+    return `<section class="d3h-cartao d3h-consulta" aria-label="Aprovações e agentes">${apr ? `<div class="d3h-cab"><h3>Aprovações</h3><span class="d3h-aux">${apr.aux}</span></div>` : ''}<div class="d3h-corpo">${apr ? apr.corpo : ''}${agentesD3Html({ pe, linha: true })}</div></section>`;
   }
   // WhatsApp: na Agência, os clientes esperando resposta; em Minhas tarefas, o que espera a pessoa. Clicar abre a conversa.
   function whatsappD3Html(modo = 'agencia') {
@@ -1390,13 +1401,13 @@
   }
   // Aprovações (vybe-mundo-aprovacoes.js) em linhas que abrem no lugar: Arte para você aprovar, No head, No cliente e
   // Falta cadastrar, com quantas e há quanto tempo a mais antiga espera; aberta, cada item abre o planejamento ou a peça.
-  function aprovacoesD3Html() {
-    const A = window.VybeAprovacoes, st = A?.estado?.(), d = st?.dados; if (!d) { A?.atualizar?.(); return ''; }
+  function aprovacoesD3Html({ linhas = false } = {}) {
+    const A = window.VybeAprovacoes, st = A?.estado?.(), d = st?.dados; if (!d) { A?.atualizar?.(); return linhas ? null : ''; }
     const LIM = { interna: 24, cliente: 48, cadastrar: 24 }, eu = d.eu || {}, temCarteira = (eu.clientes || []).length > 0;
     const todos = st.todos ?? !temCarteira;
     const filtra = (l) => l.filter((i) => todos || i.meu || (eu.diretor_arte && i.tipo === 'peca' && i.etapa === 'interna'));
     const itens = [...filtra(d.planejamentos || []), ...filtra(d.pecas || [])].sort((a, b) => (b.horas ?? -1) - (a.horas ?? -1));
-    if (!itens.length) return '';
+    if (!itens.length) return linhas ? null : '';
     const arte = eu.diretor_arte ? itens.filter((i) => i.tipo === 'peca' && i.etapa === 'interna') : [];
     const secoes = [['arte', 'Arte para aprovar', arte], ['interna', 'No head', itens.filter((i) => i.etapa === 'interna' && !arte.includes(i))], ['cliente', 'No cliente', itens.filter((i) => i.etapa === 'cliente')], ['cadastrar', 'Falta cadastrar', itens.filter((i) => i.etapa === 'cadastrar')]].filter(([, , l]) => l.length);
     const tempo = (h) => (h == null ? '' : h < 1 ? 'agora' : h < 48 ? `${h} h` : `${Math.round(h / 24)} d`);
@@ -1406,6 +1417,7 @@
       return `<div class="v2-abre d3h-apr" ${abreD3(ch)}><button type="button" class="d3h-apr-lin" data-hoje-acao="abre" data-valor="${ch}"><span>${rot}</span><b>${n0(l.length)}</b><small class="${l.some(passou) ? 'r' : ''}">${esc(tempo(mais))}</small></button>
         <div class="v2-mais"><div>${l.slice(0, 6).map(item).join('')}${l.length > 6 ? '<button type="button" class="d3h-link d3h-mais" data-aprov-mais>+ ' + n0(l.length - 6) + '</button>' : ''}</div></div></div>`; }).join('');
     const alternar = temCarteira ? `<button type="button" class="d3h-link" data-aprov-todos aria-pressed="${todos}">${todos ? 'só meus' : 'todos'}</button>` : '';
+    if (linhas) return { aux: `${todos ? 'todas' : 'suas peças'}${alternar ? ' · ' + alternar : ''}`, corpo };
     return `<section class="d3h-cartao d3h-aprs" aria-label="Aprovações"><div class="d3h-cab"><h3>Aprovações</h3><span class="d3h-aux">${todos ? 'todas' : 'suas peças'}${alternar ? ' · ' + alternar : ''}</span></div><div class="d3h-corpo">${corpo}</div></section>`;
   }
   // Prontas da semana (Paulo, 19/11/2026): a produção pronta (Finalizado, Para agendar e Agendado), pela regra única de
@@ -2432,9 +2444,8 @@
     const html = `<div class="d3h d3h-tf d3q"><div class="d3q-main">${topoD3({ sub: diaD3(), dir: `${diaDe}${segDono}` })}
       ${numeros}
       <section class="d3h-cartao d3h-cel-resumo" aria-label="Feitas e atrasadas"><button type="button" data-hoje-acao="filtro" data-valor="feitas"><small>Feitas</small><b>${n0(feitasHoje)}<small> / ${n0(deHojeP.length + feitasHoje)}</small></b><span class="d3-barra" style="--v:${deHojeP.length + feitasHoje ? Math.round(feitasHoje / (deHojeP.length + feitasHoje) * 100) : 0}%"><i></i></span></button><button type="button" class="${atrasadasP.length ? 'r' : ''}" data-hoje-acao="filtro" data-valor="atrasadas"><small>Atrasadas</small><b>${n0(atrasadasP.length)}</b></button></section>
-      <div class="d3q-meio">${tarefas}<div class="d3q-acao">${laranja}</div></div>
-      <div class="d3q-pe">${olhoCli}${semanaPessoa}</div></div>
-      <aside class="d3h-lado d3q-lado" aria-label="Consulta">${ladoD3({ mini })}${compromissosD3Html()}${!verComo ? whatsappD3Html('tarefas') : ''}${!verComo ? aprovacoesD3Html() : ''}${agentesD3Html({ pe: '<button type="button" class="d3h-link" data-hoje-acao="agentes">Como o VYBES montou esta ordem</button>' })}</aside></div>`;
+      <div class="d3q-meio d3h-tf-meio"><div class="d3h-tf-esq">${tarefas}${olhoCli}</div><div class="d3q-acao">${laranja}</div></div></div>
+      <aside class="d3h-lado d3q-lado" aria-label="Consulta">${ladoD3({ mini })}${semanaPessoa}${consultaD3Html({ aprovacoes: !verComo, pe: '<button type="button" class="d3h-link" data-hoje-acao="agentes">Como o VYBES montou esta ordem</button>' })}${compromissosD3Html()}${!verComo ? whatsappD3Html('tarefas') : ''}</aside></div>`;
     if (el.vvHtml !== html) {
       const atual = soListaAgora ? el.querySelector('.v2-lista') : null;
       if (atual) { const t = document.createElement('template'); t.innerHTML = html; const nova = t.content.querySelector('.v2-lista'); if (nova) atual.replaceWith(nova); else el.innerHTML = html; }

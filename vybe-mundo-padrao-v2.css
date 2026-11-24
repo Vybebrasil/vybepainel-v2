@@ -12227,6 +12227,40 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
 /* No Conteúdo, o ▶ do quadro (vídeo sem miniatura) com o mesmo par fixo: o texto herdado deixava o ▶ branco sobre branco. */
 #vv-conteudo .vc-previa-quadro > i.vc-previa-play{background:var(--d3-escuro-texto);color:var(--d3-tinta-fixa)}
 
+/* ===== padrao-v2/s-u.css ===== */
+/* Frente s-u (24/11/2026), Hoje · Minhas tarefas. Paulo: "não era pra ser responsivo? Ficar do tamanho do card ou
+   vídeo?" e "leva o gráfico ali pra direita... no lugar de aprovações e agentes viram". */
+
+/* O laranja com a altura toda: Minhas tarefas (e os clientes de olho) à esquerda, o laranja à direita, sem o pé. */
+#vv-hoje .d3q.d3h-tf .d3h-tf-esq{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+#vv-hoje .d3q.d3h-tf .d3h-tf-esq > *{flex:none;min-height:0}
+#vv-hoje .d3q.d3h-tf .d3h-tf-esq > .d3h-tarefas{flex:1 1 auto}
+
+/* A arte do laranja inteira, na proporção dela (1:1, 4:5, 9:16, 16:9): a caixa segue a proporção lida da mídia
+   (--arte-prop, quando a imagem ou o quadro carrega) até a altura e a largura que o cartão tem; o que sobra é o fundo
+   neutro do próprio cartão, nunca a peça cortada. Vale para a imagem, o vídeo e o quadro de 1 s. */
+#vv-hoje .d3q .d3h-decidir.d3v-laranja .d3h-arte{background:var(--d3-escuro-linha);box-shadow:none}
+#vv-hoje .d3q .d3h-decidir.d3v-laranja .d3h-arte.d3h-arte-prop{align-self:center;width:auto;max-width:100%;aspect-ratio:var(--arte-prop)}
+#vv-hoje .d3q .d3h-decidir.d3v-laranja .d3h-arte > :is(img,video){object-fit:contain;background:transparent}
+
+/* A Semana na coluna da direita: o mesmo cartão, no vidro da consulta, sem rolar para o lado. */
+#vv-hoje .d3q > .d3h-lado > .d3h-semana{min-width:0;overflow:hidden}
+#vv-hoje .d3q > .d3h-lado > .d3h-semana > .d3h-cab{flex-wrap:wrap;gap:6px 8px;height:auto}
+#vv-hoje .d3q > .d3h-lado > .d3h-semana > .d3h-cab > .d3h-aux{flex-wrap:wrap;justify-content:flex-start;gap:6px 10px}
+#vv-hoje .d3q > .d3h-lado > .d3h-semana > .d3h-corpo{padding:0}
+#vv-hoje .d3q > .d3h-lado > .d3h-semana .d3h-prv{min-height:112px}
+#vv-hoje .d3q > .d3h-lado > .d3h-semana .d3h-prv-d{padding:4px 0 3px}
+#vv-hoje .d3q > .d3h-lado > .d3h-semana > .d3h-pe{flex-wrap:wrap;gap:6px}
+
+/* Aprovações e Agentes viram em linhas, embaixo da Semana: as mesmas contagens e os mesmos cliques. */
+#vv-hoje .d3q > .d3h-lado .d3h-consulta .d3h-corpo{gap:6px}
+#vv-hoje .d3q > .d3h-lado .d3h-consulta .d3h-apr-lin{min-height:36px;padding:6px 0}
+#vv-hoje .d3q > .d3h-lado .d3h-ag-lin{display:flex;align-items:center;gap:8px}
+#vv-hoje .d3q > .d3h-lado .d3h-ag-lin > .d3h-apr-lin{flex:1 1 auto;min-width:0}
+#vv-hoje .d3q > .d3h-lado .d3h-ag-lin > .d3h-link{flex:none}
+#vv-hoje .d3q > .d3h-lado .d3h-ag-itens{display:flex;flex-direction:column;gap:6px;padding:0 0 8px}
+#vv-hoje .d3q > .d3h-lado .d3h-ag-linha .d3h-pe{padding:0 0 8px}
+
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
    DIREÇÃO 3 (quadro D3-StatusMenu, 13/11/2026): menu branco de 260, cada status em pílula clara com a bolinha do catálogo

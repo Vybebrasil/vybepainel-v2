@@ -43,7 +43,9 @@ test('Minhas tarefas: filtros, busca e Filtros no cartão; bolinha que risca; st
   for (const k of ["hoje: ['Hoje'", "semana: ['Semana'", "todas: ['Todas'", "atrasadas: ['Atrasadas'", "feitas: ['Feitas'"]) assert.ok(t.includes(k), k);
   naOrdem(t, ['class="d3h-q', 'class="v2t-cx', 'class="v2-risca', "onclick=\"openStatusEditor(event,'${id}')\"", 'data-editar-data="veiculacao"', '${avD3(quem)}']);
   assert.match(t, /data-hoje-acao="foco"/, 'prazo desatualizado continua com o atalho do Modo Foco');
-  assert.match(t, /compromissosD3Html\(\)\}\$\{!verComo \? whatsappD3Html\('tarefas'\) : ''\}\$\{!verComo \? aprovacoesD3Html\(\) : ''\}/);
+  // 24/11/2026: a Semana sai do pé para a coluna, no lugar de Aprovações e Agentes viram, que viram linhas embaixo dela.
+  assert.match(t, /\$\{ladoD3\(\{ mini \}\)\}\$\{semanaPessoa\}\$\{consultaD3Html\(\{ aprovacoes: !verComo, pe: '<button type="button" class="d3h-link" data-hoje-acao="agentes">Como o VYBES montou esta ordem<\/button>' \}\)\}\$\{compromissosD3Html\(\)\}\$\{!verComo \? whatsappD3Html\('tarefas'\) : ''\}<\/aside>/);
+  assert.doesNotMatch(t, /<div class="d3q-pe">\$\{olhoCli\}\$\{semanaPessoa\}<\/div>/, 'a Semana não fica mais embaixo do laranja');
 });
 
 test('Criação: laranja com a arte do parecer (ou o que o Danilo pede), quatro números, Fila do Danilo, Pediram ajuste, o time com o limite e as ideias dos clientes', () => {
