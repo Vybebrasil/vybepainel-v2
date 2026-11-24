@@ -228,6 +228,31 @@
     Number(c.paraAgendar) ? `${c.paraAgendar} para agendar` : '',
     Number(c.agendadas) ? `${c.agendadas} ${Number(c.agendadas) === 1 ? 'agendada' : 'agendadas'}` : '',
   ].filter(Boolean).join(' · '));
+  // Prévia da semana, dia a dia (Paulo, 24/11/2026: "olha o tanto de demanda já pra agendar ou agendada nos dias ai na
+  // semana... o gráfico não devia mostrar essa prévia?"). A conta ÚNICA do cartão Semana do Hoje e da régua da semana da
+  // Produção: para cada dia, as peças com a data naquele dia (total), quantas já estão prontas por fase (Finalizado, Para
+  // agendar, Agendado), as em produção e as atrasadas (a data já passou e a peça não está pronta). Quem chama diz a data
+  // (dataDe), o que é Finalizado (concluida; sem ela, faseDaPronta) e a fase das outras (faseDe; sem ela, faseDaPronta).
+  // Assim a régua mantém a regra dela (solicitação conclui em Feito/Aprovado e não tem Para agendar) e o cartão usa a mesma.
+  // previaDaSemana({ itens, dias, dataDe, hoje, concluida?, faseDe? }) → { porDia: [{ dia, total, prontas, finalizadas,
+  //   paraAgendar, agendadas, emProducao, atrasadas, itens }], e as mesmas somas da semana (sem itens) }.
+  const FASE_DA_PREVIA = Object.freeze({ paraAgendar: 'paraAgendar', agendado: 'agendadas' });
+  const previaDaSemana = ({ itens = [], dias = [], dataDe = (x) => x?.veiculacao_iso, hoje = '', concluida = null, faseDe = null } = {}) => {
+    const fim = typeof concluida === 'function' ? concluida : (x) => faseDaPronta(x) === 'finalizado';
+    const fase = typeof faseDe === 'function' ? faseDe : faseDaPronta;
+    const novo = (dia) => ({ dia, total: 0, prontas: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0, emProducao: 0, atrasadas: 0, itens: [] });
+    const porDia = (Array.isArray(dias) ? dias : []).map((d) => novo(String(d || '').slice(0, 10)));
+    const doDia = new Map(porDia.map((c) => [c.dia, c]));
+    for (const x of Array.isArray(itens) ? itens : []) {
+      const c = doDia.get(String(dataDe(x) || '').slice(0, 10)); if (!c) continue;
+      c.total++; c.itens.push(x);
+      const campo = fim(x) ? 'finalizadas' : FASE_DA_PREVIA[fase(x)] || '';
+      if (campo) { c.prontas++; c[campo]++; } else if (hoje && c.dia < hoje) c.atrasadas++; else c.emProducao++;
+    }
+    const soma = { total: 0, prontas: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0, emProducao: 0, atrasadas: 0 };
+    for (const c of porDia) for (const k of Object.keys(soma)) soma[k] += c[k];
+    return { porDia, ...soma };
+  };
   const PAUSADA = new Set(['segurar post']);
   const NAO_COMECOU = new Set(['a fazer', 'pode fazer']);
   const TRAVADA = new Set(['alteracao', 'falta info', 'falta d a', 'falta off', 'aguardo', 'aguardo redacao', 'ag interno']);
@@ -892,7 +917,7 @@
       // finalizado: a função única de "pronta" para as telas (a mesma de entregue).
       entregue: finalizado, finalizado, headsDe,
       // Só para os contadores e gráficos da SEMANA: a produção pronta (Finalizado, Para agendar, Agendado). Ver faseDaPronta.
-      faseDaPronta, prontaDaProducao, contarProntas, prontasDaSemana, resumoProntas, SEM_HEAD, situacaoDaPeca,
+      faseDaPronta, prontaDaProducao, contarProntas, prontasDaSemana, resumoProntas, previaDaSemana, SEM_HEAD, situacaoDaPeca,
       // semDono(d): a regra única de "peça sem dono" (o Painel e a Performance devem usar esta, não a própria).
       semDono, SEM_CADASTRO }),
   });

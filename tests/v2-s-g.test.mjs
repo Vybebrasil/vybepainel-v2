@@ -109,7 +109,9 @@ test('as telas da semana usam a regra única (sem copiar a lista de status)', ()
   assert.equal((semFallback.match(/S\.previstasEntregues \?\? S\.entregues/g) || []).length, 0, 'nenhum contador da semana lê só o Finalizado');
   // Painel de trabalho: a régua da semana
   const regua = gestor.slice(gestor.indexOf('function pv2PintarSemana'), gestor.indexOf('// No celular, Redes/Demandas/Pendências'));
-  assert.match(regua, /VybeDono\?\.util\?\.faseDaPronta/);
+  // 24/11/2026: a conta do dia é a prévia única (previaDaSemanaGestor → VybeDono.util.previaDaSemana, com faseDaPronta).
+  assert.match(regua, /previaDaSemanaGestor\(/);
+  assert.match(gestor, /util\.faseDaPronta\(d\)/);
   assert.match(regua, /d3m-dia-b vsg-pilha/);
   // o "concluída" do resto do Painel segue só Finalizado
   assert.match(gestor, /function atividadeDoDiaConcluida\(item\) \{\s*return isRequestItem\(item\) \? DEMANDA_CONCLUIDA\.includes\(item\.status\)\s*: item\.status === 'Finalizado';/);

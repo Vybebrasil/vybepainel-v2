@@ -1,0 +1,75 @@
+/* Frente s-r (24/11/2026). Prévia da semana dia a dia no cartão Semana do Hoje (Agência e Minhas tarefas). Paulo: "esse
+   gráfico não faz jus... olha o tanto de demanda já pra agendar ou agendada nos dias aí na semana... o gráfico não devia
+   mostrar essa prévia?". Uma coluna por dia: embaixo as prontas por fase (Finalizado cheio, Agendado no tom claro, Para
+   agendar listrado), depois as em produção (vazadas) e em cima as atrasadas; o vão completa até o dia mais cheio. Em
+   cima, "prontas / total"; hoje com o véu; o dia escolhido com o contorno. A conta é a mesma da régua da Produção.
+   Só tokens --d3-* (e o --vsg-clara da frente g); nada de !important; nada de :has; sem caixa-alta. */
+
+/* O corpo do cartão vira a faixa das sete colunas (vence o "overflow:hidden;padding:0 16px" do z-direcao). */
+#vv-hoje .d3h-semana.d3h-prv-cartao > .d3h-corpo{display:flex;flex-direction:column;padding:4px 10px;overflow:hidden}
+#vv-hoje .d3q .d3h-semana.d3h-prv-cartao > .d3h-corpo{padding:4px 10px;overflow:hidden}
+#vv-hoje .d3h-prv{flex:1 1 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;min-height:60px}
+#vv-hoje .d3h-prv-d{appearance:none;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;min-height:0;margin:0;padding:4px 2px 3px;border:0;border-radius:8px;background:none;color:var(--d3-tinta);font:inherit;text-align:center;cursor:pointer}
+#vv-hoje span.d3h-prv-d{cursor:default}
+#vv-hoje .d3h-prv-d:hover{background:var(--d3-veu)}
+#vv-hoje .d3h-prv-d.hoje{background:var(--d3-veu-forte)}
+#vv-hoje .d3h-prv-d[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
+#vv-hoje .d3h-prv-d:focus-visible{outline:2px solid var(--d3-info);outline-offset:-2px}
+#vv-hoje .d3h-prv-n{flex:none;font:600 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--d3-tinta)}
+#vv-hoje .d3h-prv-n > small{font-size:inherit;font-weight:400;color:var(--d3-rotulo)}
+#vv-hoje .d3h-prv-dia{flex:none;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);white-space:nowrap;color:var(--d3-rotulo)}
+#vv-hoje .d3h-prv-d.hoje .d3h-prv-dia{font-weight:600;color:var(--d3-tinta)}
+
+/* A coluna: de baixo para cima, cada pedaço com a altura proporcional às peças (flex-grow = --n). */
+#vv-hoje .d3h-prv-col{flex:1 1 auto;display:flex;flex-direction:column-reverse;gap:1px;width:min(100%,40px);min-height:24px;border-bottom:1px solid var(--d3-rotulo)}
+#vv-hoje .d3h-prv-col > i{flex:var(--n,1) 1 0;min-height:2px;border-radius:2px}
+#vv-hoje .d3h-prv-col > i.vz{border-radius:0;background:none}
+
+/* As cores de cada fase, nas colunas e na legenda. */
+#vv-hoje .d3h-prv-cartao i.fin{background:var(--d3-pronto)}
+#vv-hoje .d3h-prv-cartao i.agd{background:var(--vsg-clara)}
+#vv-hoje .d3h-prv-cartao i.pag{background:repeating-linear-gradient(135deg,var(--d3-pronto) 0 2px,var(--vsg-clara) 2px 5px)}
+#vv-hoje .d3h-prv-cartao i.pro{background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-rotulo)}
+#vv-hoje .d3h-prv-cartao i.atr{background:var(--d3-perigo)}
+
+/* O cabeçalho: o alternador (só dono, em Minhas tarefas), de que data é e a legenda. */
+#vv-hoje .d3h-prv-cartao > .d3h-cab > .d3h-aux{gap:10px}
+#vv-hoje .d3h-prv-campo{color:var(--d3-rotulo)}
+#vv-hoje .d3h-prv-leg{display:inline-flex;align-items:center;gap:10px;min-width:0}
+#vv-hoje .d3h-prv-leg > span{display:inline-flex;align-items:center;gap:4px;color:var(--d3-rotulo)}
+#vv-hoje .d3h-prv-leg > span > i{flex:none;width:10px;height:10px;border-radius:2px}
+#vv-hoje .d3h-prv-alt{display:inline-flex;flex:none;gap:2px;box-sizing:border-box;height:34px;padding:2px;border-radius:8px;background:var(--d3-veu)}
+#vv-hoje .d3h-prv-alt > button{appearance:none;height:30px;padding:0 10px;border:0;border-radius:6px;background:none;color:var(--d3-rotulo);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
+#vv-hoje .d3h-prv-alt > button[aria-checked="true"]{background:var(--d3-cartao);color:var(--d3-tinta);font-weight:600}
+#vv-hoje .d3h-prv-alt > button:focus-visible{outline:2px solid var(--d3-info);outline-offset:-2px}
+
+/* O pé: Prontas com as fases ao lado. Em cartão estreito (o cartão é o contêiner): sai "de que data" (fica no title das
+   colunas e dos números), depois a legenda e o "Semana toda · N" do pé, que vira "N peças" no cabeçalho; nada some sem lugar. */
+#vv-hoje .d3h-prv-fases{font-size:inherit;font-weight:400}
+#vv-hoje .d3h-prv-tot{display:none;color:var(--d3-tinta);font-weight:600}
+#vv-hoje .d3h-prv-cartao{container-type:inline-size}
+@container (max-width:700px){
+  #vv-hoje .d3h-prv-campo{display:none}
+}
+@container (max-width:560px){
+  #vv-hoje .d3h-prv-fases,#vv-hoje .d3h-prv-com-alt .d3h-prv-leg{display:none}
+  #vv-hoje .d3h-prv-cartao > .d3h-pe{gap:6px 8px}
+  #vv-hoje .d3h-prv-cartao > .d3h-pe > .d3h-pill{gap:0;padding:0 7px}
+  #vv-hoje .d3h-prv-cartao > .d3h-pe > .d3h-pill > i{display:none}
+  #vv-hoje .d3h-prv{gap:2px}
+  #vv-hoje .d3h-prv-leg{gap:8px}
+  #vv-hoje .d3h-prv-leg > span{gap:3px}
+}
+@container (max-width:440px){
+  #vv-hoje .d3h-prv-leg,#vv-hoje .d3h-pe > .d3h-prv-semtoda{display:none}
+  #vv-hoje .d3h-prv-tot{display:inline}
+}
+/* Bem estreito (celular, com o alternador): o total volta para o pé, que já quebra em duas linhas. */
+@container (max-width:360px){
+  #vv-hoje .d3h-prv-com-alt .d3h-prv-tot{display:none}
+  #vv-hoje .d3h-prv-com-alt > .d3h-pe > .d3h-prv-semtoda{display:inline}
+}
+/* No celular a tela rola inteira: as colunas ganham altura para ler as fases. */
+@media (max-width:700px){
+  #vv-hoje .d3h-prv{min-height:132px}
+}

@@ -736,6 +736,37 @@ function atividadeDoDiaConcluida(item) {
   return isRequestItem(item) ? DEMANDA_CONCLUIDA.includes(item.status)
     : item.status === 'Finalizado';
 }
+// Prévia da semana (Paulo, 24/11/2026): a mesma conta para a régua da semana da Produção e o cartão Semana do Hoje
+// (VybeDono.util.previaDaSemana). A data é a do cartão do dia: veiculação (a data do cliente) ou prazo, conforme `campo`;
+// solicitação usa a conclusão. Finalizado é atividadeDoDiaConcluida (solicitação: Feito, Aprovado, Concluído); Para agendar
+// e Agendado só nas peças de conteúdo. Sem `itens`, junta as peças da agência nesses dias do mesmo jeito que a régua
+// (itensDaSemanaGestor): conteúdos e, no painel de gestão, solicitações, cada uma uma vez; `carteira: false` ignora o
+// filtro de carteira da Produção (a semana da agência toda, no Hoje).
+function dataDaPrevia(item, campo = dateMode) {
+  if (isRequestItem(item) && campo !== 'prazo') return String(item.conclusao_iso || item.prazo_iso || '').slice(0, 10);
+  return String((campo === 'prazo' ? item.prazo_iso : item.veiculacao_iso) || '').slice(0, 10);
+}
+function itensDaPrevia(diasIso, { campo = dateMode, carteira = true } = {}) {
+  const dias = new Set(diasIso), naCarteira = (d) => !carteira || itemNaCarteira(d);
+  const semanas = (typeof META !== 'undefined' && META?.weeks) || [];
+  const cobre = diasIso.every((iso) => semanas.some((w) => iso >= w.startIso && iso <= w.endIso));
+  const base = cobre && typeof DADOS !== 'undefined' && DADOS.length ? DADOS : (typeof DADOS_ALL !== 'undefined' ? DADOS_ALL : []);
+  const conteudos = (base || []).filter((d) => naCarteira(d) && dias.has(dataDaPrevia(d, campo)));
+  const demandas = panelMode !== 'gestor' ? [] : (typeof DADOS_DEMANDAS !== 'undefined' ? DADOS_DEMANDAS || [] : []).filter(naCarteira)
+    .map(normalizeRequestForOperational).filter((d) => dias.has(dataDaPrevia(d, campo)));
+  const vistos = new Set();
+  return [...conteudos, ...demandas].filter((d) => { const chave = `${d.board_id || BOARD_ID}:${d.id}`; if (vistos.has(chave)) return false; vistos.add(chave); return true; });
+}
+function previaDaSemanaGestor(diasIso, { itens = null, campo = dateMode, carteira = true, hoje = '' } = {}) {
+  const util = globalThis.VybeDono?.util, lista = Array.isArray(itens) ? itens : itensDaPrevia(diasIso, { campo, carteira });
+  const faseDe = (d) => (isRequestItem(d) || typeof util?.faseDaPronta !== 'function' ? '' : util.faseDaPronta(d));
+  const dataDe = (d) => dataDaPrevia(d, campo);
+  if (typeof util?.previaDaSemana === 'function') return util.previaDaSemana({ itens: lista, dias: diasIso, dataDe, hoje, concluida: atividadeDoDiaConcluida, faseDe });
+  // Sem o motor (não deve acontecer): só o total e as Finalizado, para a régua não quebrar.
+  const porDia = diasIso.map((dia) => { const l = lista.filter((d) => dataDe(d) === dia), f = l.filter(atividadeDoDiaConcluida).length;
+    return { dia, total: l.length, prontas: f, finalizadas: f, paraAgendar: 0, agendadas: 0, emProducao: l.length - f, atrasadas: 0, itens: l }; });
+  return { porDia, total: porDia.reduce((t, c) => t + c.total, 0) };
+}
 function adicionarDemandaNoDia(dateIso, aba) {
   const veic = dateMode === 'prazo' ? cadastrosIsoOffset(dateIso, PRAZO_OURO_DIAS) : dateIso;
   const prazo = dateMode === 'prazo' ? dateIso : goldenDeadlineIso(dateIso);
@@ -2385,11 +2416,10 @@ function pv2PintarSemana() {
   const escolhido = dias.some((d) => d.iso === pv2Dia) ? pv2Dia : dias.some((d) => d.iso === hojeIso) ? hojeIso : dias[0]?.iso || '';
   // Na régua da semana, pronta é a produção pronta (Paulo, 19/11/2026): Finalizado (feitas) e, das peças de conteúdo,
   // Para agendar e Agendado (VybeDono.util.faseDaPronta). A barra empilha: Finalizado cheio, os outros no tom claro.
-  const faseDaPronta = globalThis.VybeDono?.util?.faseDaPronta;
-  const doDia = (iso) => { const l = (typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira) : []).filter((d) => dataDoCartaoDia(d) === iso);
-    const feitas = l.filter(atividadeDoDiaConcluida), resto = l.filter((d) => !feitas.includes(d) && !isRequestItem(d) && typeof faseDaPronta === 'function');
-    const paraAgendar = resto.filter((d) => faseDaPronta(d) === 'paraAgendar').length, agendadas = resto.filter((d) => faseDaPronta(d) === 'agendado').length;
-    return { total: l.length, feitas: feitas.length, finalizadas: feitas.length, paraAgendar, agendadas, prontas: feitas.length + paraAgendar + agendadas }; };
+  // A conta de cada dia é a prévia única (previaDaSemanaGestor), a mesma do cartão Semana do Hoje (24/11/2026).
+  const previa = previaDaSemanaGestor(dias.map((d) => d.iso), { itens: typeof DADOS !== 'undefined' && DADOS.length ? itensDaSemanaGestor(currentWeek).filter(itemNaCarteira) : [], hoje: hojeIso });
+  const porIso = new Map(previa.porDia.map((c) => [c.dia, c]));
+  const doDia = (iso) => { const c = porIso.get(iso) || { total: 0, prontas: 0, finalizadas: 0, paraAgendar: 0, agendadas: 0 }; return { ...c, feitas: c.finalizadas }; };
   const detalheDia = (t) => (typeof globalThis.VybeDono?.util?.resumoProntas === 'function' ? globalThis.VybeDono.util.resumoProntas(t) : `${t.feitas} ${t.feitas === 1 ? 'finalizada' : 'finalizadas'}`);
   const nomeDia = (iso) => `${new Date(iso + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '')} ${Number(iso.slice(8, 10))}`;
   if (rot && dias.length) {
