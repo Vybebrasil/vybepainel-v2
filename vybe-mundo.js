@@ -1473,7 +1473,7 @@
     const total = `<span class="d3h-prv-tot">${plural(G.total || 0, 'peça', 'peças')}</span>`;
     const legenda = `<span class="d3h-prv-leg" aria-hidden="true">${SEG_PREVIA_D3.map(([, c, rot]) => `<span><i class="${c}"></i>${rot}</span>`).join('')}</span>`;
     const quando = `<span class="d3h-prv-campo">pela ${campo === 'prazo' ? 'data do prazo' : 'veiculação'}</span>`;
-    return cartaoD3({ titulo, aux: `${alternar}${total}${quando}${legenda}`, corpo, pe, cls: 'd3h-semana d3h-prv-cartao', rotulo: escopo === 'fila' ? 'Semana da minha fila' : 'Semana da agência' });
+    return cartaoD3({ titulo, aux: `${alternar}${total}${quando}${legenda}`, corpo, pe, cls: `d3h-semana d3h-prv-cartao${alternar ? ' d3h-prv-com-alt' : ''}`, rotulo: escopo === 'fila' ? 'Semana da minha fila' : 'Semana da agência' });
   }
   function pintarAgencia(el, { data, saud, nome }) {
     const N = numerosDoDono();

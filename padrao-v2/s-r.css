@@ -52,10 +52,24 @@
   #vv-hoje .d3h-prv-campo{display:none}
 }
 @container (max-width:560px){
-  #vv-hoje .d3h-prv-leg,#vv-hoje .d3h-prv-fases,#vv-hoje .d3h-pe > .d3h-prv-semtoda{display:none}
-  #vv-hoje .d3h-prv-tot{display:inline}
+  #vv-hoje .d3h-prv-fases,#vv-hoje .d3h-prv-com-alt .d3h-prv-leg{display:none}
   #vv-hoje .d3h-prv-cartao > .d3h-pe{gap:6px 8px}
   #vv-hoje .d3h-prv-cartao > .d3h-pe > .d3h-pill{gap:0;padding:0 7px}
   #vv-hoje .d3h-prv-cartao > .d3h-pe > .d3h-pill > i{display:none}
   #vv-hoje .d3h-prv{gap:2px}
+  #vv-hoje .d3h-prv-leg{gap:8px}
+  #vv-hoje .d3h-prv-leg > span{gap:3px}
+}
+@container (max-width:440px){
+  #vv-hoje .d3h-prv-leg,#vv-hoje .d3h-pe > .d3h-prv-semtoda{display:none}
+  #vv-hoje .d3h-prv-tot{display:inline}
+}
+/* Bem estreito (celular, com o alternador): o total volta para o pé, que já quebra em duas linhas. */
+@container (max-width:360px){
+  #vv-hoje .d3h-prv-com-alt .d3h-prv-tot{display:none}
+  #vv-hoje .d3h-prv-com-alt > .d3h-pe > .d3h-prv-semtoda{display:inline}
+}
+/* No celular a tela rola inteira: as colunas ganham altura para ler as fases. */
+@media (max-width:700px){
+  #vv-hoje .d3h-prv{min-height:132px}
 }
