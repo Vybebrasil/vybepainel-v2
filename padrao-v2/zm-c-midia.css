@@ -1,7 +1,7 @@
 /* DIREÇÃO V2 · MÍDIA (vybe-mundo-midia.js, 20/11/2026). A janela (#vv-midia) é uma janela de módulo do grupo C: vidro fumê
    e topo de zm-c-base.css, folha à esquerda com uma linha por cliente e a consulta do Ícaro à direita. Leva .d3-tema
    (folha escura no tema escuro). Canal sem conexão fica apagado com o ícone de tomada, nunca com zero. */
-#vv-midia{position:fixed;z-index:650;inset:calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 96px);border-radius:16px}
+#vv-midia{position:fixed;z-index:650;inset:calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) + 8px) calc(var(--vv-m,16px) * 2 + var(--vv-trilho-w,76px));border-radius:16px}
 .md-folha{min-height:0}
 .md-cab,.md-lin{display:grid;grid-template-columns:28px minmax(0,1.1fr) 132px minmax(0,1.3fr) 128px 128px 20px;align-items:center;gap:0 12px;padding:0 16px;box-sizing:border-box}
 .md-cab{flex:none;height:24px;font:400 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
