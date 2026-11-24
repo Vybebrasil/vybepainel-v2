@@ -11935,6 +11935,187 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
 #painel-clientes #client-master-detail .fv2-lado .fv2-ciclo .fv2-apagar:disabled > span > b{color:var(--d3-fume-apagado)}
 #painel-clientes #client-master-detail .fv2-lado .fv2-ciclo .fv2-apagar + .d3m-vvazio{margin:6px 0 0;font-size:var(--d3-fs-apoio)}
 
+/* ===== padrao-v2/s-q.css ===== */
+/* S-Q · MÍDIA: MELHORIA GERAL E ROTINA DO GESTOR (vybe-mundo-midia.js, 24/11/2026). Paulo: "algo fácil de usar mas sem
+   perder o nível de complexidade e análise que uma aba de mídia requer... sem contar a rotina do gestor... o que fazer
+   no dia a dia com os checks".
+   A janela continua a do grupo C (zm-c-base.css, zm-c-midia.css e s-n.css): vidro fumê, topo, folha à esquerda e
+   consulta à direita. Entram: a troca Hoje | Carteira no topo (.mdq-visoes), a rotina com os checks na folha (.mdq-*),
+   a lista da carteira com custo por resultado, frequência e o alerta principal (cabeçalho que ordena, .mdq-th), os
+   indicadores e os anúncios na ficha (.mdq-mets, .mdq-ad), os três gráficos pequenos do histórico (.mdq-mini) e o vazio
+   de "sem conta" com o caminho (.mdq-semconta). Um laranja por tela (o do Ícaro); botões de 34 px com canto 8; rótulos
+   de 12 px; cor só com função (vermelho pede ação, âmbar de olho, verde ligado). Só tokens --d3-*; sem !important. */
+
+/* O topo: a troca de visão ao lado do período. */
+.mdq-visoes > button > b:empty{display:none}
+#vv-midia .mdq-visoes > button[aria-checked="true"] > b{color:inherit}
+/* Os canais da carteira: o número inteiro ("13 de 18") numa linha. */
+#vv-midia .md-canal{grid-template-columns:minmax(0,1fr) 80px auto}
+#vv-midia .md-canal > b{white-space:nowrap}
+
+/* ── A rotina (Hoje) ─────────────────────────────────────────────────────────────────────────────────────────────── */
+.mdq-cab{gap:16px;min-height:52px;border-bottom:1px solid var(--d3-divisa)}
+.mdq-prog{flex:none;display:inline-flex;align-items:center;gap:8px;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-prog > b{font:600 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.mdq-prog-barra{display:block;width:120px;height:6px;border-radius:3px;background:var(--d3-veu-forte);overflow:hidden}
+.mdq-prog-barra > i{display:block;width:var(--v,0%);height:100%;border-radius:3px;background:var(--d3-pronto);transition:width .3s var(--curva,ease)}
+.mdq-lista{flex:1 1 0;min-height:0;overflow-y:auto;scrollbar-width:thin;padding:0 0 12px}
+.mdq-grupo{display:flex;flex-direction:column}
+.mdq-gh{display:flex;align-items:baseline;gap:8px;margin:0;padding:14px 16px 6px;font:600 var(--d3-fs-texto)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.mdq-gh > b{font-weight:400;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);font-variant-numeric:tabular-nums}
+.mdq-gh > .md-link{margin-left:auto}
+.mdq-sub{margin:0;padding:8px 16px 2px 58px;font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-item{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:4px 12px;min-height:56px;padding:8px 16px;box-sizing:border-box;border-top:1px solid var(--d3-divisa)}
+.mdq-item:hover{background:var(--d3-veu)}
+.mdq-check{appearance:none;display:grid;place-items:center;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:var(--d3-r-botao);background:none;box-shadow:none;color:var(--d3-tinta);cursor:pointer}
+.mdq-check > svg{width:20px;height:20px;padding:2px;box-sizing:border-box;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-meta);fill:none;stroke:transparent;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:background .15s,box-shadow .15s}
+.mdq-check:hover > svg{box-shadow:inset 0 0 0 1.5px var(--d3-tinta);stroke:var(--d3-meta)}
+.mdq-check[aria-checked="true"] > svg{background:var(--d3-pronto);box-shadow:none;stroke:var(--d3-contra)}
+.mdq-check:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.mdq-check:disabled{opacity:.6;cursor:progress}
+.mdq-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mdq-txt > b{display:flex;align-items:baseline;gap:8px;font:600 var(--d3-fs-texto)/1.35 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);overflow-wrap:anywhere}
+.mdq-txt > span{font:400 var(--d3-fs-apoio)/1.4 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo);overflow-wrap:anywhere}
+.mdq-ponto{flex:none;width:8px;height:8px;border-radius:50%;background:var(--d3-meta);transform:translateY(-1px)}
+.mdq-ponto.r{background:var(--d3-perigo)}
+.mdq-ponto.a{background:var(--d3-ambar)}
+.mdq-quem{font:500 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta)}
+.mdq-item.feito .mdq-txt > b{color:var(--d3-rotulo);text-decoration:line-through;text-decoration-thickness:1px}
+.mdq-item.feito .mdq-ponto{opacity:.5}
+.mdq-fim{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;min-width:0}
+#vv-midia .mdq-fim > .d3m-c-btn.c{height:34px}
+.mdq-cli{appearance:none;max-width:220px;height:34px;margin:0;padding:0 10px;border:0;border-radius:var(--d3-r-botao);background:var(--d3-veu);box-shadow:none;color:var(--d3-tinta);font:500 var(--d3-fs-texto)/1.2 var(--vv-texto,Inter,sans-serif);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.mdq-cli:hover{background:var(--d3-veu-forte)}
+.mdq-cli:focus-visible{outline:2px solid var(--d3-acao);outline-offset:1px}
+.mdq-lendo,.mdq-calmo,.mdq-resumo,.mdq-dica{margin:0;padding:10px 16px;font:400 var(--d3-fs-apoio)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-resumo{padding-top:2px;padding-left:16px;border-top:1px solid var(--d3-divisa);padding-block:12px}
+.mdq-erro{margin:10px 16px 0;color:var(--d3-perigo)}
+.mdq-dica{border-bottom:1px solid var(--d3-divisa)}
+
+/* ── A carteira: a lista com o que o gestor compara ──────────────────────────────────────────────────────────────── */
+#vv-midia .mdq-lin{grid-template-columns:12px minmax(0,1.3fr) 112px minmax(0,1fr) 116px 62px minmax(0,1.15fr) 16px}
+.mdq-cab-lista{height:30px}
+.mdq-th{appearance:none;display:inline-flex;align-items:center;gap:4px;justify-self:start;max-width:100%;height:26px;margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--d3-rotulo);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);text-align:left;cursor:pointer}
+.mdq-th > svg{flex:none;width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mdq-th:hover,.mdq-th[aria-pressed="true"]{color:var(--d3-tinta)}
+.mdq-th[aria-pressed="true"]{font-weight:600}
+.mdq-th:focus-visible{outline:2px solid var(--d3-acao);outline-offset:2px}
+.mdq-th.sinal{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--d3-meta)}
+.mdq-th.sinal[aria-pressed="true"]{background:var(--d3-tinta);box-shadow:none}
+.mdq-th.sinal > svg{display:none}
+.mdq-nome{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.mdq-canais{display:flex;flex-wrap:wrap;gap:2px 10px;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-canal{display:inline-flex;align-items:center;gap:4px}
+.mdq-canal > i{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--d3-meta)}
+.mdq-canal.on{color:var(--d3-tinta)}
+.mdq-canal.on > i{background:var(--d3-pronto);box-shadow:none}
+.mdn-cel.mdq-r > b{color:var(--d3-perigo);font-weight:600}
+.mdn-cel.pior > small{color:var(--d3-perigo);font-weight:600}
+.mdn-cel.melhor > small{color:var(--d3-pronto);font-weight:600}
+.mdn-cel.alta > b{font-weight:700}
+.mdn-cel.alta > small{color:var(--d3-tinta);font-weight:600}
+.mdq-c-alerta > b{font-weight:500}
+.mdq-vazio-lista{padding:20px 16px}
+
+/* ── A ficha: indicadores, alertas, anúncios e o vazio de "sem conta" ──────────────────────────────────────────── */
+.mdn-ficha-cab > .md-sinal{flex:none}
+.mdq-mets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border-top:1px solid var(--d3-divisa);border-bottom:1px solid var(--d3-divisa)}
+.mdq-met{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px}
+.mdq-met + .mdq-met{box-shadow:inset 1px 0 0 var(--d3-divisa)}
+.mdq-met > span{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-met > b{font:600 var(--d3-fs-destaque)/1.25 var(--vv-texto,Inter,sans-serif);color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.mdq-met > small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-met.alta > small{color:var(--d3-tinta);font-weight:600}
+.mdq-alertas{gap:0}
+.mdq-alertas > .mdn-bloco-h{padding-bottom:6px}
+.mdq-alertas > .mdq-item{padding-left:0;padding-right:0}
+.mdq-alertas > .mdq-item:hover{background:none}
+.mdq-ad{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;gap:12px;min-width:0}
+.mdq-ad.grande{grid-template-columns:96px minmax(0,1fr);align-items:start}
+.mdq-ad-img{position:relative;display:grid;place-items:center;width:56px;height:56px;border-radius:8px;overflow:hidden;background:var(--d3-veu-forte);color:var(--d3-rotulo)}
+.mdq-ad.grande > .mdq-ad-img{width:96px;height:96px;border-radius:12px}
+.mdq-ad-img > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mdq-ad-img > svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mdq-ad-txt{display:flex;flex-direction:column;gap:3px;min-width:0;font:400 var(--d3-fs-texto)/1.4 var(--vv-texto,Inter,sans-serif)}
+.mdq-ad-txt > b{font-weight:600;overflow-wrap:anywhere}
+.mdq-ad-txt > small{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo);overflow-wrap:anywhere}
+.mdq-ad-txt > span{font-size:var(--d3-fs-apoio);color:var(--d3-tinta);overflow-wrap:anywhere}
+.mdq-ads{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:10px;border-top:1px solid var(--d3-divisa)}
+.mdq-semconta{display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;max-width:720px;padding:20px;border-radius:16px;background:var(--d3-veu)}
+.mdq-semconta-ic{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:var(--d3-folha);color:var(--d3-tinta)}
+.mdq-semconta-ic > svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mdq-semconta.r .mdq-semconta-ic{color:var(--d3-perigo)}
+.mdq-semconta > div{display:flex;flex-direction:column;gap:6px;min-width:0;font:400 var(--d3-fs-texto)/1.45 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-semconta > div > b{font:600 var(--d3-fs-destaque)/1.3 var(--vv-titulo,"Inter Tight",Inter,sans-serif);color:var(--d3-tinta)}
+.mdq-passos{display:flex;flex-direction:column;gap:6px;margin:6px 0 4px;padding:0 0 0 20px;color:var(--d3-tinta)}
+.mdq-semconta-bts{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:6px}
+#vv-midia .mdq-semconta-bts > .d3m-c-btn.c{height:34px}
+.mdq-nota{font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+
+/* Histórico: três gráficos pequenos lado a lado, uma série cada, a semana mais nova escura. */
+.mdq-minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.mdq-mini{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 14px;border-radius:12px;background:var(--d3-veu)}
+.mdq-mini-rot{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-mini > b{font:600 20px/1.2 var(--vv-titulo,"Inter Tight",Inter,sans-serif);letter-spacing:-.01em;color:var(--d3-tinta);font-variant-numeric:tabular-nums}
+.mdq-mini > small{font:400 var(--d3-fs-apoio)/1.3 var(--vv-texto,Inter,sans-serif);color:var(--d3-rotulo)}
+.mdq-mini-g{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));align-items:end;gap:4px;height:64px;margin-top:8px;box-shadow:0 1px 0 var(--d3-divisa)}
+.mdq-b{display:flex;align-items:flex-end;height:100%}
+.mdq-b > i{display:block;width:100%;height:var(--h,0%);border-radius:3px 3px 0 0;background:var(--d3-texto2)}
+.mdq-b:last-child > i{background:var(--d3-tinta)}
+.mdq-mini-eixo{display:flex;justify-content:space-between;padding-top:4px}
+.mdq-mini-eixo > em{font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);font-style:normal;color:var(--d3-rotulo)}
+.mdq-desde{display:block;font-size:var(--d3-fs-apoio);color:var(--d3-rotulo)}
+
+/* ── A consulta: os últimos 7 dias da rotina ─────────────────────────────────────────────────────────────────────── */
+.mdq-hists{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-radius:var(--d3-r-caixa);background:var(--d3-fume-veu)}
+.mdq-hist{display:grid;grid-template-columns:72px minmax(0,1fr) 24px minmax(0,1fr);align-items:center;gap:10px;min-height:26px;padding:0 12px;color:var(--d3-fume-apagado);font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif)}
+.mdq-hist > span:first-child{color:var(--d3-fume-texto)}
+.mdq-hist > b{text-align:right;font-weight:600;color:var(--d3-fume-texto);font-variant-numeric:tabular-nums}
+.mdq-hist > small{font-size:var(--d3-fs-apoio);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mdq-hist > .d3m-vbarra.n > i{background:var(--d3-fume-texto2)}
+
+@media (max-height:820px){
+  /* Telas baixas: a explicação da rotina sai da consulta (o passeio do tutorial diz o mesmo) e nada rola no lado. */
+  .mdq-como{display:none}
+  .mdq-item{min-height:50px;padding-top:6px;padding-bottom:6px}
+  .mdq-gh{padding-top:10px}
+  .mdq-met{padding:8px 10px}
+  .mdq-mini-g{height:48px}
+  .mdq-semconta{padding:16px}
+}
+@media (max-width:1280px){
+  #vv-midia .mdq-lin{grid-template-columns:12px minmax(0,1.3fr) 108px minmax(0,1fr) 112px 56px minmax(0,1fr) 16px;gap:0 10px}
+  .mdq-mets{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mdq-met:nth-child(4){box-shadow:none}
+  .mdq-met:nth-child(n+4){border-top:1px solid var(--d3-divisa)}
+}
+@media (max-width:1100px){
+  #vv-midia .mdn-num{display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:8px 12px}
+  #vv-midia .mdn-num > b{font-size:20px}
+  .mdq-como{display:block}
+  #vv-midia .mdq-lin{grid-template-columns:12px minmax(0,1.2fr) 108px minmax(0,1fr) 112px 16px}
+  #vv-midia .mdq-lin > :is(.mdq-c-freq,.mdq-c-alerta){display:none}
+  .mdq-minis{grid-template-columns:minmax(0,1fr)}
+  .mdq-mini-g{height:48px}
+}
+@media (max-width:900px){
+  #vv-midia .mdq-lin{grid-template-columns:12px minmax(0,1fr) minmax(0,1fr) 16px}
+  #vv-midia .mdq-lin > :is(:nth-child(4),:nth-child(5),.mdq-c-custo,.mdq-c-freq,.mdq-c-alerta){display:none}
+  #vv-midia .mdq-visoes{order:5}
+  .mdq-cab{flex-wrap:wrap;gap:6px 12px;padding-top:10px;padding-bottom:10px}
+  .mdq-cab > .d3m-c-h3{flex:1 1 100%;white-space:normal}
+  .mdq-item{grid-template-columns:34px minmax(0,1fr)}
+  .mdq-fim{grid-column:2;justify-content:flex-start}
+  .mdq-sub{padding-left:16px}
+  .mdq-mets{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mdq-met:nth-child(n){box-shadow:none;border-top:1px solid var(--d3-divisa)}
+  .mdq-met:nth-child(-n+2){border-top:0}
+  .mdq-semconta{grid-template-columns:minmax(0,1fr);padding:16px}
+  .mdq-ad.grande{grid-template-columns:72px minmax(0,1fr)}
+  .mdq-ad.grande > .mdq-ad-img{width:72px;height:72px}
+  .mdq-tab-camp :is(th,td).mdq-c-orc{display:none}
+}
+
 /* ===== padrao-v2/status.css ===== */
 /* PADRÃO V2 · TROCA DE STATUS (quadro Status do moodboard): menu curto com próximo, seguinte e volta; "Todos os N status".
    DIREÇÃO 3 (quadro D3-StatusMenu, 13/11/2026): menu branco de 260, cada status em pílula clara com a bolinha do catálogo
