@@ -523,10 +523,11 @@
     // ============================================================ FINANÇAS EM 5 TELAS (23/11/2026)
     // Hoje, Movimento, Clientes, Pessoas e Análise (vybe-mundo-financeiro.js, peças .fe-*). O topo é o mesmo nas cinco.
     ...[
-      { id: 'fin-hoje', aba: 'fin_hoje', nome: 'Finanças · Hoje', resumo: 'O Vorcaro, o saldo, o que entrou e saiu e o que pede atenção.', passos: [
+      { id: 'fin-hoje', aba: 'fin_hoje', nome: 'Finanças · Hoje', resumo: 'O que entrou, o que falta entrar, o que já pagou e o que falta pagar.', passos: [
         ['.fe-lar', 'baixo', 'O Vorcaro', 'No laranja fica o Vorcaro, {nome}: o que está esperando você conferir ou o que pede uma decisão agora.'],
-        ['.fe-nums', 'baixo', 'Os quatro números', 'Saldo, o que entrou, o que saiu e o resultado do mês. Tocou num deles, abre a lista que explica.'],
-        ['.fe-caixa', 'direita', 'O caixa', 'A linha cheia é o que aconteceu, e a tracejada é para onde o caixa vai se nada mudar.'],
+        ['.fe-nums', 'baixo', 'O mês em quatro números', 'Saldo, o que já entrou, o que já pagou e com quanto o mês fecha se entrar e sair o que falta. Tocou num deles, abre a lista que explica.'],
+        ['.fe-entrar', 'direita', 'Falta entrar', 'Cada cliente que ainda não pagou o mês. Toque para abrir a ficha dele.'],
+        ['.fe-pagar', 'esquerda', 'Falta pagar', 'Salários, programas e contas fixas que ainda não saíram, {nome}.'],
       ] },
       { id: 'fin-movimento', aba: 'fin_movimento', nome: 'Finanças · Movimento', resumo: 'Extrato, cartão, fixos e previsto, com a fila de conferir.', passos: [
         ['.fe-chips', 'baixo', 'Um filtro só', 'Tudo que entrou e saiu está aqui, {nome}: extrato, cartão, fixos e o que ainda vai cair.'],
@@ -542,6 +543,11 @@
         ['.fe-nums', 'baixo', 'O mês do time', 'O combinado do mês, o que já foi pago e quanto o time está devendo de vale.'],
         ['.fe-lista', 'direita', 'Cada pessoa', 'A marca preta é o combinado. Se passou dele, a ponta roxa é vale.'],
         ['.fe-lado', 'esquerda', 'Descontar no salário', 'Na ficha você joga o vale para o salário do mês ou do seguinte, {nome}, e já vê quanto a pessoa vai receber.'],
+      ] },
+      { id: 'fin-assinaturas', aba: 'fin_assinaturas', nome: 'Finanças · Assinaturas', resumo: 'Programas e softwares: quanto custam e se já foram pagos.', passos: [
+        ['.fe-nums', 'baixo', 'Quanto custa', 'Por mês, por ano, quantas já foram pagas e se alguma cobrou diferente do combinado.'],
+        ['.fe-lista', 'direita', 'Cada assinatura', 'Toque numa para mudar valor, dia, forma de pagar ou parar, {nome}.'],
+        ['.fe-lado', 'esquerda', 'Parece assinatura', 'O que saiu em Ferramentas e assinaturas e ainda não está cadastrado. Um toque e vira assinatura.'],
       ] },
       { id: 'fin-analise', aba: 'fin_analise', nome: 'Finanças · Análise', resumo: 'Fôlego, concentração, resultado por grupo e cenários.', passos: [
         ['.fe-nums', 'baixo', 'Os indicadores', 'Fôlego é quantos dias o saldo aguenta sem entrar nada. Do lado, quanto do que entra já está comprometido e o peso dos maiores clientes.'],

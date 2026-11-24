@@ -636,7 +636,9 @@
       // No mês aberto, o desconto planejado sai do que falta pagar; fechado o mês, a regra de sempre abate o vale.
       const desc = aberto ? Math.min(descontar.get(m) || 0, vale, comb) : 0;
       let valeMes = 0, abatido = 0, aPagar = 0, faltaPagar = 0;
-      if (pg > comb) { valeMes = pg - comb; vale += valeMes; }
+      // Sem combinado não existe vale (Paulo, 24/11/2026: o Vinícius e o Deivid apareciam com tudo que receberam como vale):
+      // o que a pessoa recebeu fica só como recebido até alguém informar o combinado.
+      if (comb && pg > comb) { valeMes = pg - comb; vale += valeMes; }
       else if (pg < comb) {
         const falta = comb - pg;
         if (aberto) faltaPagar = Math.max(0, falta - desc);
