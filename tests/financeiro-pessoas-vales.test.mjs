@@ -178,3 +178,67 @@ test('telas: Extrato com "Para quem" e "Gasto fixo", a pergunta do Pix ao Viníc
   V._teste.ui.vales.combinado = false;
   assert.doesNotMatch(html, /—/);
 });
+
+// Finanças em 5 telas (Paulo, 23/11/2026): "jogar o que passou do salário da pessoa pro mês seguinte pra já abater e
+// mostrar descontado quanto ela vai receber". O desconto é um plano: não mexe no vale até o mês fechar.
+test('descontar no salário: o vale sai do combinado do mês escolhido e a conta mostra quanto a pessoa vai receber', () => {
+  const t = (id, data, valor) => ({ id, banco: { data, historico: id, valor, saldo: null }, real: { categoria: 'salario', status: 'pago', competencia: data.slice(0, 7), partes: [], conferido: true, pessoa_id: '7' } });
+  const lista = [t('a', '2026-10-05', -2400), t('b', '2026-11-05', -500)];
+  const sal = { valor: 2000, desde: '2026-10' };
+  const sem = X.contaPessoa(lista, '7', { salario: sal, ate: '2026-11' });
+  assert.equal(sem.vale, 400, 'outubro passou 400');
+  assert.deepEqual({ ...sem.proximo }, { mes: '2026-12', combinado: 2000, desconto: 0, a_receber: 2000, vale_depois: 400 });
+  // No mês aberto: o desconto sai do que falta pagar.
+  const nov = X.contaPessoa(lista, '7', { salario: sal, ate: '2026-11', ajustes: [{ pessoa_id: '7', mes: '2026-11', tipo: 'descontar', valor: 300 }] });
+  const m = nov.meses.find((x) => x.mes === '2026-11');
+  assert.deepEqual([m.desconto, m.a_receber, m.falta_pagar], [300, 1700, 1200]);
+  assert.equal(nov.vale, 400, 'plano não é dinheiro: o vale só cai quando o mês fecha');
+  // No mês seguinte: a conta do próximo salário, nunca mais que o vale.
+  const dez = X.contaPessoa(lista, '7', { salario: sal, ate: '2026-11', ajustes: [{ pessoa_id: '7', mes: '2026-12', tipo: 'descontar', valor: 900 }] });
+  assert.deepEqual({ ...dez.proximo }, { mes: '2026-12', combinado: 2000, desconto: 400, a_receber: 1600, vale_depois: 0 });
+  // Fechado o mês, a regra de sempre: recebeu menos que o combinado, abate o vale.
+  const fechado = X.contaPessoa([t('a', '2026-10-05', -2400), t('b', '2026-11-05', -2000), t('c', '2026-12-05', -1600)], '7', { salario: sal, ate: '2027-01', ajustes: [{ pessoa_id: '7', mes: '2026-12', tipo: 'descontar', valor: 400 }] });
+  assert.equal(fechado.meses.find((x) => x.mes === '2026-12').abatido, 400);
+  assert.equal(X.normalizarAjusteVale({ pessoa_id: '7', mes: '2026-12', tipo: 'descontar', valor: 400 }).ajuste.tipo, 'descontar');
+});
+
+test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam; as telas de antes abrem nelas', () => {
+  const CORE = readFileSync('vybe-core.js', 'utf8');
+  const D3 = CORE.slice(CORE.indexOf('const d3Esc'), CORE.indexOf('if (typeof globalThis !== \'undefined\') Object.assign(globalThis, { d3AcaoHtml'));
+  const ctx = vm.createContext({ console, Intl, Date, Map, Set, Promise, setTimeout, clearTimeout, CSS: { escape: (s) => s } }); ctx.window = ctx;
+  vm.runInContext(D3 + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
+  vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
+  const V = ctx.VybeFinanceiro;
+  const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);
+  for (const x of transacoes) if (/Ana Ficticia/.test(x.banco.historico)) x.real = X.aplicarEdicao(x, { categoria: 'salario', pessoa_id: '7', pessoa_nome: 'Ana Ficticia', conferido: true }, 'Paulo').real;
+  const base = { extrato: { transacoes, importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], salarios: { 7: { valor: 3000, desde: '2026-08' } },
+    vales: [{ id: 'vl-1', pessoa_id: '7', mes: '2026-12', tipo: 'descontar', valor: 300, nota: 'desconto do vale no salário' }] };
+  const d = montar(base, [], { hoje: HOJE, pessoas: [{ id: '7', nome: 'Ana Ficticia' }] });
+  const ctxTela = { d, filtro: {} };
+  const abas = ['fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_analise'];
+  for (const aba of abas) {
+    const html = V.telas[aba](ctxTela);
+    assert.match(html, new RegExp(`class="fx fv2 d3f fe d3-tema" data-tela="fe-${aba}"`), aba);
+    assert.match(html, new RegExp(`data-valor="${aba}" aria-current="page"`), `${aba}: a aba de agora marcada`);
+    for (const a of abas) assert.ok(html.includes(`data-fx="ir-aba" data-valor="${a}"`), `${aba} leva a ${a}`);
+    assert.match(html, /data-fx="fe-mes"/, `${aba}: o mês do topo`);
+    assert.doesNotMatch(html, /undefined|NaN/, aba);
+  }
+  // Um laranja só por tela, e é o do Vorcaro no Hoje.
+  assert.equal((V.telas.fin_hoje(ctxTela).match(/class="fe-lar"/g) || []).length, 1);
+  for (const aba of abas.slice(1)) assert.doesNotMatch(V.telas[aba](ctxTela), /class="fe-lar"/, aba);
+  // Pessoas: a ficha mostra o salário seguinte já descontado.
+  V._teste.ui.fe.pes.sel = '7';
+  const pes = V.telas.fin_pessoas(ctxTela);
+  assert.match(pes, /Salário de dezembro[\s\S]*Desconto do vale<\/span><b class="v">−R\$ 300,00[\s\S]*Vai receber<\/span><b>R\$ 2\.700,00/);
+  assert.match(pes, /Desconto em dezembro<\/span><b>−R\$ 300,00/);
+  V._teste.ui.fe.pes.desconto = '7';
+  assert.match(V.telas.fin_pessoas(ctxTela), /data-fx-form="ajuste"><input type="hidden" name="tipo" value="descontar">[\s\S]*data-fx="pessoa-ajuste" data-valor="7"/);
+  // As telas de antes viram um lugar das cinco, com o filtro.
+  const { FE_DE, feDe } = V._teste;
+  for (const [antes, nova] of Object.entries({ vorcaro: 'fin_hoje', extrato: 'fin_movimento', cartao: 'fin_movimento', fixos: 'fin_movimento', clientes_mes: 'fin_clientes', vales: 'fin_pessoas', projecao: 'fin_analise', financas: 'fin_clientes', recebimentos: 'fin_movimento', contas: 'fin_movimento', inadimplencia: 'fin_clientes' })) assert.equal(FE_DE[antes], nova, antes);
+  assert.equal(feDe('cartao'), 'fin_movimento'); assert.equal(V._teste.ui.fe.chip, 'cartao');
+  assert.equal(feDe('extrato', { chip: 'conferir' }), 'fin_movimento'); assert.equal(V._teste.ui.fe.chip, 'conferir');
+  assert.equal(feDe('funil'), '', 'o que não é de Finanças segue o caminho de sempre');
+});

@@ -72,8 +72,11 @@ test('dock no modelo do AgencyFlow: cada coisa no seu setor, sem perder módulo,
   assert.ok(js.includes("item('perfil', 'Meu perfil'"), 'Meu perfil no menu da conta');
   // Nenhum módulo sumiu.
   for (const id of ['gestor', 'tarefas', 'demandas', 'agenda', 'direcao', 'planejamentos', 'clientes', 'carteira', 'onboarding', 'churn', 'contratos',
-    'funil', 'pacotes', 'orcamentos', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'gestao', 'diario', 'performance', 'ai-usage', 'automacoes',
+    'funil', 'pacotes', 'orcamentos', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_analise', 'gestao', 'diario', 'performance', 'ai-usage', 'automacoes',
     'conta', 'rh', 'recrutamento', 'documentos', 'qr', 'whatsapp-link', 'roi']) assert.ok(SUBMODULOS.some((x) => x.id === id), id);
+  // Finanças em 5 telas (23/11/2026): Por cliente, Recebimentos, Contas a pagar e Inadimplência viraram lugar das cinco;
+  // o id de antes abre a tela nova pelo VybeFinanceiro.telaNova.
+  assert.ok(js.includes('const nova = window.VybeFinanceiro.telaNova(id); if (nova) id = nova;'), 'id antigo de Finanças abre a tela nova');
   assert.match(js, /abrir\?\.\(sub\.mod\[1\], \{ abas: irmaos, rotulo: setorNome \}\)/);
   assert.match(js, /const irmaos = \[sub\.mod\[1\]\];/); // cada item da lateral abre só a sua parte, sem abas repetidas
   assert.ok(SUBMODULOS.some((x) => x.id === 'reunioes' && x.mod?.[0] === 'VybeReunioes'), 'Reuniões na lateral de Clientes');

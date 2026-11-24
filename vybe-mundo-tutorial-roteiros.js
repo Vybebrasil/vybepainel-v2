@@ -520,6 +520,41 @@
       ferr: ['Horizonte', 'Aqui você escolhe projetar três, seis ou doze meses.'],
       lar: 'No laranja o Vorcaro diz onde o caixa chega no ritmo de hoje.',
       folha: ['Caixa mês a mês', 'O gráfico mostra o realizado e o projetado. Ao lado, o E se, para testar uma mudança antes de fazer.'] }),
+    // ============================================================ FINANÇAS EM 5 TELAS (23/11/2026)
+    // Hoje, Movimento, Clientes, Pessoas e Análise (vybe-mundo-financeiro.js, peças .fe-*). O topo é o mesmo nas cinco.
+    ...[
+      { id: 'fin-hoje', aba: 'fin_hoje', nome: 'Finanças · Hoje', resumo: 'O Vorcaro, o saldo, o que entrou e saiu e o que pede atenção.', passos: [
+        ['.fe-lar', 'baixo', 'O Vorcaro', 'No laranja fica o Vorcaro, {nome}: o que está esperando você conferir ou o que pede uma decisão agora.'],
+        ['.fe-nums', 'baixo', 'Os quatro números', 'Saldo, o que entrou, o que saiu e o resultado do mês. Tocou num deles, abre a lista que explica.'],
+        ['.fe-caixa', 'direita', 'O caixa', 'A linha cheia é o que aconteceu, e a tracejada é para onde o caixa vai se nada mudar.'],
+      ] },
+      { id: 'fin-movimento', aba: 'fin_movimento', nome: 'Finanças · Movimento', resumo: 'Extrato, cartão, fixos e previsto, com a fila de conferir.', passos: [
+        ['.fe-chips', 'baixo', 'Um filtro só', 'Tudo que entrou e saiu está aqui, {nome}: extrato, cartão, fixos e o que ainda vai cair.'],
+        ['.fe-lista', 'direita', 'Os lançamentos', 'À esquerda o nome no banco, no meio o que foi de verdade. Tocou, a ficha abre do lado.'],
+        ['.fe-lado', 'esquerda', 'Conferir', 'Em A conferir é um por vez: confirma o que o Vorcaro acha, diz o que foi ou divide. Marcando "sempre assim", ele aprende.'],
+      ] },
+      { id: 'fin-clientes', aba: 'fin_clientes', nome: 'Finanças · Clientes', resumo: 'Cada cliente mês a mês, com a margem real.', passos: [
+        ['.fe-chips', 'baixo', 'Quem olhar primeiro', 'Dá para ver só quem está em aberto, quem passou de 30 dias ou quem tem margem baixa.'],
+        ['.fe-grade', 'direita', 'A grade', 'Cada linha é um cliente e cada casa um mês. A margem é o que entrou dele menos o que saiu ligado a ele.'],
+        ['.fe-lado', 'esquerda', 'A ficha', 'Tocou no nome, a ficha abre aqui: o que está em aberto, o dia em que costuma pagar e os lançamentos.'],
+      ] },
+      { id: 'fin-pessoas', aba: 'fin_pessoas', nome: 'Finanças · Pessoas', resumo: 'Combinado, o que cada pessoa recebeu e o vale.', passos: [
+        ['.fe-nums', 'baixo', 'O mês do time', 'O combinado do mês, o que já foi pago e quanto o time está devendo de vale.'],
+        ['.fe-lista', 'direita', 'Cada pessoa', 'A marca preta é o combinado. Se passou dele, a ponta roxa é vale.'],
+        ['.fe-lado', 'esquerda', 'Descontar no salário', 'Na ficha você joga o vale para o salário do mês ou do seguinte, {nome}, e já vê quanto a pessoa vai receber.'],
+      ] },
+      { id: 'fin-analise', aba: 'fin_analise', nome: 'Finanças · Análise', resumo: 'Fôlego, concentração, resultado por grupo e cenários.', passos: [
+        ['.fe-nums', 'baixo', 'Os indicadores', 'Fôlego é quantos dias o saldo aguenta sem entrar nada. Do lado, quanto do que entra já está comprometido e o peso dos maiores clientes.'],
+        ['.fe-dre', 'direita', 'Resultado por grupo', 'Os últimos quatro meses, grupo por grupo. Tocou num grupo, o Movimento abre só com ele.'],
+        ['.fe-ese', 'cima', 'E se…', 'Aqui você testa um corte ou um cliente novo antes de fazer, {nome}. É só simulação, não lança nada.'],
+      ] },
+    ].map(({ id, aba, nome, resumo, passos }) => {
+      const s = `#vv-comercial .fe[data-tela="fe-${aba}"]`;
+      return { id, nome, resumo, se: s, passos: [
+        { alvo: s + ' .fe-abas', lado: 'baixo', titulo: 'As cinco telas', texto: 'Finanças agora são cinco telas, e o mês aqui do lado vale para todas elas.' },
+        ...passos.map(([alvo, lado, titulo, texto]) => ({ alvo: s + ' ' + alvo, lado, titulo, texto })),
+      ] };
+    }),
     // ============================================================ CARTEIRA, ATENDIMENTO E COMPRAS (padrão V2)
     {
       id: 'onboarding', nome: 'Onboarding', resumo: 'A entrada de cliente novo, etapa por etapa.',

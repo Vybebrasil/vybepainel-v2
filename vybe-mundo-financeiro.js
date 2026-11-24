@@ -918,7 +918,7 @@
       <div class="fx-pm-rolo">${tabela}</div>
       <p class="fv2-sub fx-legenda">Vale = o que passou do combinado (a pessoa deve à Vybe). Quando recebe menos que o combinado, a diferença abate o vale; sem vale, fica a pagar à pessoa.</p>
       <h3 class="fx-h3">Pix que compõem</h3>${pix}
-      <h3 class="fx-h3">Devolveu ou abateu à mão</h3>${ajustes.map((a) => `<div class="fx-mini"><span>${esc(mesCurto(a.mes))} · ${a.tipo === 'abater' ? 'abatido' : 'devolveu'}${a.nota ? ' · ' + esc(a.nota) : ''}</span><b>${esc(rs(a.valor))}</b><button type="button" class="fv2-link" data-fx="pessoa-ajuste-tirar" data-valor="${esc(a.id)}">desfazer</button></div>`).join('') || '<p class="fv2-sub">Nenhum.</p>'}
+      <h3 class="fx-h3">Devolveu ou abateu à mão</h3>${ajustes.map((a) => `<div class="fx-mini"><span>${esc(mesCurto(a.mes))} · ${a.tipo === 'abater' ? 'abatido' : a.tipo === 'descontar' ? 'desconto no salário (planejado)' : 'devolveu'}${a.nota ? ' · ' + esc(a.nota) : ''}</span><b>${esc(rs(a.valor))}</b><button type="button" class="fv2-link" data-fx="pessoa-ajuste-tirar" data-valor="${esc(a.id)}">desfazer</button></div>`).join('') || '<p class="fv2-sub">Nenhum.</p>'}
       <div class="fx-linha-acoes"><button type="button" class="fv2-btn s" data-fx="pessoa-ajuste-abrir" data-valor="${esc(c.pessoa_id)}" aria-expanded="${ui.vales.ajuste === c.pessoa_id}">Devolveu / abater</button></div>${formAjuste}</div>`;
   }
   function vales(ctx) {
@@ -961,7 +961,7 @@
       acao: M().acao('Informar combinado', `data-fx="vales-combinado" aria-expanded="${Boolean(u.combinado)}"`), laranja, nums, corpo: combinado + principal });
   }
   // Abrir a conta de uma pessoa de outra tela (RH › Folha).
-  function abrirPessoa(id) { ui.vales.aberta = String(id || ''); window.VybeComercial?.abrir?.('vales', { abas: ['vales'], rotulo: 'Finanças' }); }
+  function abrirPessoa(id) { ui.vales.aberta = String(id || ''); ui.fe.pes.sel = ui.vales.aberta; window.VybeComercial?.abrir?.('fin_pessoas', { abas: ['fin_pessoas'], rotulo: 'Finanças' }); }
   function casca(partes, tela) { return `<div class="fv2 fx d3f" data-tela="fx-${tela}"><div class="fv2-in">${partes.join('')}</div></div>`; }
 
   // =====================================================================================================
@@ -1118,8 +1118,8 @@
       case 'pessoa-ajuste': {
         const f = b.closest('[data-fx-form="ajuste"]'); if (!f) return;
         const v = valoresDe(f); indo(b);
-        const r = await gravar({ acao: 'vale_ajuste_salvar', ajuste: { pessoa_id: valor, mes: v.mes, tipo: v.tipo, valor: numero(v.valor), nota: v.nota } }, 'Lançado no vale.');
-        if (r) { ui.vales.ajuste = ''; repintar(); } else voltou(b); return;
+        const r = await gravar({ acao: 'vale_ajuste_salvar', ajuste: { pessoa_id: valor, mes: v.mes, tipo: v.tipo, valor: numero(v.valor), nota: v.nota } }, v.tipo === 'descontar' ? `Desconto guardado para o salário de ${soMes(v.mes)}.` : 'Lançado no vale.');
+        if (r) { ui.vales.ajuste = ''; ui.fe.pes.desconto = ''; repintar(); } else voltou(b); return;
       }
       case 'pessoa-ajuste-tirar': await gravar({ acao: 'vale_ajuste_remover', id: valor }, 'Ajuste desfeito.'); return;
       case 'regra-salvar': {
@@ -1229,6 +1229,9 @@
       case 'cenario-tirar': await gravar({ acao: 'cenario_remover', id: valor }); return;
       // Vorcaro
       case 'ir-aba': {
+        // As telas de antes viram um lugar das cinco (FE_DE): o chip, a categoria e o mês vêm junto.
+        const nova = feDe(valor, b.dataset);
+        if (nova) return feAbrir(nova);
         if (valor === 'extrato') { ue.chip = b.dataset.chip || (b.dataset.cat ? 'todos' : ue.chip); ue.cat = b.dataset.cat || ''; if (b.dataset.mes) ue.mes = b.dataset.mes; ue.aberta = ''; }
         if (valor === 'clientes_mes' && b.dataset.chip) ui.clientes_mes.chip = b.dataset.chip;
         if (valor === 'vorcaro' && b.dataset.mao) abrirLancarMao({ status: b.dataset.mao });
@@ -1309,8 +1312,541 @@
     document.addEventListener('change', aoMudar);
   }
 
-  const telas = Object.freeze({ vorcaro, extrato, clientes_mes: clientesMes, cartao, fixos, projecao, vales });
+  // =====================================================================================================
+  // FINANÇAS EM 5 TELAS (Paulo, 23/11/2026: "muita ABA com muita coisa espalhada"; quadro aprovado "Finanças enxuto",
+  // claude.ai/artifact/PHtvV6fLj1ToPDqRaH9Ber). Hoje, Movimento, Clientes, Pessoas e Análise no lugar das 11 de antes:
+  // um mês só no topo vale para as cinco, todo número leva à lista que explica ele e o que se clica abre a ficha na
+  // lateral. Os editores, as contas e as ações (data-fx) são os das telas de antes; só o esqueleto é novo.
+  //   Hoje       o Vorcaro no topo, saldo/entrou/saiu/resultado, o caixa e os 3 meses, o que pede atenção, para onde foi
+  //   Movimento  extrato, cartão, fixos, previsto e o baralho de conferir (o que chegou do grupo entra na mesma fila)
+  //   Clientes   cliente × mês com a margem real e a ficha (dia em que pagou, lançamentos dele)
+  //   Pessoas    combinado × recebeu × vale, e o desconto do vale no salário seguinte (quanto a pessoa vai receber)
+  //   Análise    fôlego, fixo ÷ entrada, concentração, resultado por grupo e o "E se…" com o caixa projetado
+  // O desenho mora em padrao-v2/zz-financas-5telas.css (peças .fe-*).
+  // =====================================================================================================
+  const FE_ABAS = [['fin_hoje', 'Hoje'], ['fin_movimento', 'Movimento'], ['fin_clientes', 'Clientes'], ['fin_pessoas', 'Pessoas'], ['fin_analise', 'Análise']];
+  // As telas de antes viram um lugar das cinco (links do Vorcaro, do RH, da Gestão e as abas antigas guardadas no dock).
+  const FE_DE = { vorcaro: 'fin_hoje', extrato: 'fin_movimento', cartao: 'fin_movimento', fixos: 'fin_movimento', recebimentos: 'fin_movimento', contas: 'fin_movimento',
+    clientes_mes: 'fin_clientes', financas: 'fin_clientes', inadimplencia: 'fin_clientes', vales: 'fin_pessoas', projecao: 'fin_analise' };
+  const FE_CHIP = { cartao: 'cartao', fixos: 'fixos', recebimentos: 'entradas', contas: 'previsto' };
+  ui.fe = { mes: '', chip: 'conferir', grupo: '', pular: [], lado: '', cli: { chip: 'todos', sel: '' }, pes: { sel: '', desconto: '' } };
+  const feMeses = (d) => [...new Set([...(d.meses || []), (d.hoje || '').slice(0, 7)].filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort();
+  function feIniciar(ctx) {
+    anfitriao = ctx;
+    const d = ctx.d, meses = feMeses(d);
+    if (!meses.includes(ui.fe.mes)) ui.fe.mes = d.mes && meses.includes(d.mes) ? d.mes : meses[meses.length - 1] || '';
+    // As telas de antes leem o mês delas: o mês do topo vale para todas.
+    ui.extrato.mes = ui.fe.mes; ui.cartao.fatura = ui.fe.mes; ui.fixos.mes = ui.fe.mes;
+    contarFin(d);
+    return d;
+  }
+  const feBtn = (texto, attrs, cls = '') => `<button type="button" class="fe-btn${cls ? ' ' + cls : ''}" ${attrs}>${texto}</button>`;
+  const feCard = (titulo, corpo, { dir = '', cls = '', rotulo = '' } = {}) => `<section class="fe-card${cls ? ' ' + cls : ''}"${rotulo ? ` data-fx-card="${rotulo}"` : ''}>${titulo || dir ? `<div class="fe-card-cab">${titulo ? `<h2 class="fe-rot">${esc(titulo)}</h2>` : ''}${dir ? `<span class="fe-dir">${dir}</span>` : ''}</div>` : ''}${corpo}</section>`;
+  const feChips = (lista, rotulo) => `<div class="fe-chips" role="group" aria-label="${esc(rotulo)}">${lista.map(([k, nome, n, attrs, on]) => `<button type="button" class="fe-chip" ${attrs} aria-pressed="${Boolean(on)}">${esc(nome)}${n != null ? `<b>${n0(n)}</b>` : ''}</button>`).join('')}</div>`;
+  const feTag = (t, tom = '') => `<span class="fe-tag${tom ? ' ' + tom : ''}">${esc(t)}</span>`;
+  const feNum = ({ rot, valor, sub = '', attrs = '', tom = '' }) => `<${attrs ? `button type="button" ${attrs}` : 'div'} class="fe-num"><span class="fe-rot">${esc(rot)}</span><b class="fe-v${tom ? ' ' + tom : ''}">${valor}</b><span class="fe-sub">${sub}</span></${attrs ? 'button' : 'div'}>`;
+  const feIr = (aba, extra = '') => `data-fx="ir-aba" data-valor="${aba}"${extra ? ' ' + extra : ''}`;
+  const feArquivo = (cls = 'fe-btn s') => `<label class="${cls} fx-arquivo">Importar extrato<input type="file" accept=".csv,text/csv" data-fx-arquivo hidden></label>`;
+  // O laranja (o único cartão cheio da tela): o Vorcaro, a frase e um botão.
+  const feLaranja = (frase, botao = '') => `<section class="fe-lar" aria-label="Vorcaro · Tesouraria"><span class="fe-lar-av" aria-hidden="true">V</span><div class="fe-lar-txt"><small>Vorcaro · Tesouraria</small><p>${frase}</p></div>${botao}</section>`;
+  // A linha do caixa: o realizado cheio e o que vem tracejado, com a linha do zero quando passa dela.
+  function feLinha(real, proj, { rotulo = '', alto = 190, tom = '' } = {}) {
+    const pts = [...real.map((p) => ({ ...p, r: 1 })), ...proj];
+    if (!pts.length) return '<p class="fe-vazio">Sem mês no extrato ainda.</p>';
+    const W = alto < 150 ? 360 : 600, H = alto, pad = 22, vals = pts.flatMap((p) => [p.v, p.c]).filter((v) => v != null);
+    const min = Math.min(0, ...vals), max = Math.max(0, ...vals);
+    const x = (i) => pad + (pts.length === 1 ? (W - 2 * pad) / 2 : i * (W - 2 * pad) / (pts.length - 1));
+    const y = (v) => H - 30 - ((v - min) / ((max - min) || 1)) * (H - 56);
+    const linha = (l) => l.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(' ');
+    const nR = real.length;
+    const cheio = real.map((p, i) => [x(i), y(p.v)]);
+    const trac = pts.map((p, i) => (i >= nR - 1 && i >= 0 ? [x(i), y(p.v)] : null)).filter(Boolean);
+    const cen = pts.some((p) => p.c != null) ? pts.map((p, i) => (i === nR - 1 ? [x(i), y(p.v)] : i >= nR ? [x(i), y(p.c)] : null)).filter(Boolean) : [];
+    const ult = cheio[cheio.length - 1], fimP = pts[pts.length - 1];
+    return `<svg class="fe-graf d3-graf${tom ? ' ' + tom : ''}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(rotulo)}">
+      ${min < 0 ? `<line class="fe-zero" x1="${pad}" x2="${W - pad}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/><text class="fe-zero-t" x="${W - pad}" y="${(y(0) - 6).toFixed(1)}" text-anchor="end">zero</text>` : ''}
+      ${trac.length > 1 ? `<polyline class="fe-trac" points="${linha(trac)}"/>` : ''}${cen.length > 1 ? `<polyline class="fe-cen" points="${linha(cen)}"/>` : ''}
+      ${cheio.length > 1 ? `<polyline class="fe-cheia" points="${linha(cheio)}"/>` : ''}
+      ${ult ? `<circle class="fe-pt" cx="${ult[0].toFixed(1)}" cy="${ult[1].toFixed(1)}" r="5"/><text class="fe-pt-t" x="${ult[0].toFixed(1)}" y="${(ult[1] - 12).toFixed(1)}" text-anchor="middle">${esc(mil(real[nR - 1].v))}</text>` : ''}
+      ${proj.length ? `<circle class="fe-fim" cx="${x(pts.length - 1).toFixed(1)}" cy="${y(fimP.c ?? fimP.v).toFixed(1)}" r="5"/>` : ''}
+      ${proj.length ? `<text class="fe-fim-t${(fimP.c ?? fimP.v) < 0 ? ' r' : ''}" x="${x(pts.length - 1).toFixed(1)}" y="${(y(fimP.c ?? fimP.v) + ((fimP.c ?? fimP.v) < 0 ? 18 : -12)).toFixed(1)}" text-anchor="end">${esc(mes3(fimP.mes))}: ${esc(mil(fimP.c ?? fimP.v))}</text>` : ''}
+      ${pts.map((p, i) => `<text class="fe-eixo" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(mes3(p.mes))}</text>`).join('')}
+    </svg>`;
+  }
+  // A casca das cinco: marca, as abas, o mês (vale para todas) e o "Como funciona"; dentro, a tela.
+  function feCasca(aba, d, corpo) {
+    const meses = feMeses(d), i = meses.indexOf(ui.fe.mes), antes = meses[i - 1] || '', depois = meses[i + 1] || '';
+    const abas = FE_ABAS.map(([a, n]) => `<button type="button" class="fe-aba" ${feIr(a)}${a === aba ? ' aria-current="page"' : ''}>${esc(n)}</button>`).join('');
+    return `<div class="fx fv2 d3f fe d3-tema" data-tela="fe-${aba}"><header class="fe-topo">
+      <div class="fe-marca"><span class="fe-ic" aria-hidden="true">${ICV.cifrao}</span><h1>Finanças</h1>${SELO}</div>
+      <nav class="fe-abas" aria-label="Telas de Finanças">${abas}</nav>
+      <div class="fe-mes" role="group" aria-label="Mês"><button type="button" class="fe-ico" data-fx="fe-mes" data-valor="${antes}" aria-label="Mês anterior"${antes ? '' : ' disabled'}>${SETA.esq}</button><b aria-live="polite">${esc(nomeMes(ui.fe.mes) || 'sem extrato')}</b><button type="button" class="fe-ico" data-fx="fe-mes" data-valor="${depois}" aria-label="Próximo mês"${depois ? '' : ' disabled'}>${SETA.dir}</button></div>
+      <button type="button" class="fe-ico" data-v2="ajuda" aria-label="Como funciona" title="Como funciona">${ICV.ajuda}</button><button type="button" class="fe-ico" data-vc="fechar" aria-label="Fechar" title="Fechar (Esc)">${IC_FECHAR}</button></header>${corpo}</div>`;
+  }
+  const grupoDe = (d, cat) => (categorias(d).find((c) => c.id === cat) || {}).grupo || 'Outros';
+  // As saídas do mês por grupo (Pessoas, Sócios, Estrutura…), do maior para o menor.
+  function saidasPorGrupo(d, r) {
+    const g = new Map();
+    for (const c of r.categorias || []) if (c.total < 0) g.set(grupoDe(d, c.categoria), (g.get(grupoDe(d, c.categoria)) || 0) - c.total);
+    return [...g].map(([grupo, total]) => ({ grupo, total })).sort((a, b) => b.total - a.total);
+  }
+  const ultimoSaldo = (lista) => lista.filter((t) => t.banco.saldo != null).sort((a, b) => a.banco.data.localeCompare(b.banco.data)).slice(-1)[0] || null;
+
+  // ---------- HOJE ----------
+  function feHoje(ctx) {
+    const d = feIniciar(ctx), lista = d.transacoes || [], mes = ui.fe.mes;
+    const r = X().resumo(lista, { mes }), serie = d.serie || [], iS = serie.findIndex((s) => s.mes === mes), ant = iS > 0 ? serie[iS - 1] : null;
+    const pend = lista.filter((t) => !t.real.conferido), sabe = pend.filter((t) => t.real.categoria !== 'a_classificar').length;
+    const whats = (d.vorcaro?.propostas || []).filter((p) => p.estado === 'pendente').length;
+    const achados = analise(d).filter((a) => a.rot !== 'Banco sem conferir' && a.rot !== 'WhatsApp');
+    let laranja;
+    if (!lista.length) laranja = feLaranja('Ainda sem extrato. Importe o CSV da conta PJ e eu digo para onde foi cada lançamento.', feArquivo('fe-lar-btn'));
+    else if (pend.length || whats) {
+      const frases = [pend.length ? `${quantos(pend.length, 'lançamento esperando', 'lançamentos esperando')} o lado real.${sabe ? ` Em ${n0(sabe)} eu já sei para onde foi, é só confirmar.` : ''}` : '',
+        whats ? `${pend.length ? 'E ' : ''}${quantos(whats, 'chegou', 'chegaram')} pelo grupo Vybe Financeiro.` : ''].filter(Boolean).join(' ');
+      laranja = feLaranja(esc(frases), feBtn('Conferir agora', feIr('fin_movimento', 'data-chip="conferir"'), 'fe-lar-btn'));
+    } else if (achados[0]) laranja = feLaranja(esc(achados[0].texto), achados[0].aba ? feBtn('Ver', feAchadoIr(achados[0]), 'fe-lar-btn') : '');
+    else laranja = feLaranja('Tudo conferido. Nada pedindo decisão agora.');
+    // Os quatro números: cada um abre o Movimento filtrado por ele.
+    const pc2 = d.por_cliente || { meses: [], linhas: [] };
+    const doMes = pc2.meses.includes(mes) ? pc2.linhas.map((l) => l.meses.find((m) => m.mes === mes)).filter((m) => m && m.situacao !== 'sem' && m.situacao !== 'fora') : [];
+    const previsto = doMes.reduce((s, m) => s + (m.previsto || 0), 0), recebidoCli = doMes.reduce((s, m) => s + (m.recebido || 0), 0), pagos = doMes.filter((m) => m.situacao === 'pago').length;
+    const saiu = r.saidas + r.cartao_e_transferencias, saiuAnt = ant ? ant.saidas + ant.cartao : 0;
+    let vermelho = 0; for (let i = iS; i >= 0 && serie[i]?.resultado < 0; i--) vermelho++;
+    const us = ultimoSaldo(lista), saldo = r.saldo_final ?? us?.banco.saldo ?? null;
+    const nums = `<div class="fe-nums">${[
+      feNum({ rot: 'Saldo no banco', valor: saldo == null ? '—' : esc(rs(saldo)), tom: saldo < 0 ? 'r' : '', sub: us ? `pelo extrato de ${esc(dataCurta(us.banco.data))}` : 'sem extrato', attrs: feIr('fin_movimento', 'data-chip="todos"') }),
+      feNum({ rot: 'Entrou no mês', valor: esc(mil(r.entradas)), sub: previsto ? `${pc(recebidoCli, previsto)}% do previsto · ${n0(pagos)} de ${n0(doMes.length)} clientes` : quantos((r.categorias || []).filter((c) => c.total > 0).reduce((s, c) => s + c.quantidade, 0), 'entrada', 'entradas'), attrs: feIr('fin_movimento', 'data-chip="entradas"') }),
+      feNum({ rot: 'Saiu no mês', valor: esc(mil(saiu)), sub: saiuAnt ? `${saiu >= saiuAnt ? '+' : '−'}${Math.abs(Math.round((saiu / saiuAnt - 1) * 100))}% sobre ${esc(soMes(ant.mes))}` : 'cartão incluído', attrs: feIr('fin_movimento', 'data-chip="saidas"') }),
+      feNum({ rot: 'Resultado', valor: esc(comSinal(r.resultado)), tom: r.resultado < 0 ? 'r' : r.resultado > 0 ? 'g' : '', sub: vermelho > 1 ? `${n0(vermelho)}º mês seguido no vermelho` : vermelho === 1 ? 'no vermelho' : 'entrou mais do que saiu', attrs: feIr('fin_analise') }),
+    ].join('')}</div>`;
+    // O caixa: o realizado até o mês e os 3 seguintes se nada mudar.
+    const base = d.projecao?.base, real = serie.filter((s) => s.mes <= mes && s.saldo_final != null).slice(-4).map((s) => ({ mes: s.mes, v: s.saldo_final }));
+    const proj = base?.meses_usados?.length && mes === serie[serie.length - 1]?.mes ? X().projetar(base, {}, 3).meses.map((m) => ({ mes: m.mes, v: m.saldo })) : [];
+    const caixa = feCard('Caixa: o que foi e os próximos 3 meses', feLinha(real, proj, { rotulo: `Saldo de ${soMes(real[0]?.mes || mes)} a ${soMes(mes)}${proj.length ? ` e o que vem até ${soMes(proj[proj.length - 1].mes)}, se nada mudar` : ''}` })
+      + `<button type="button" class="fe-elo" ${feIr('fin_analise')}>Abrir os cenários na Análise</button>`,
+    { dir: '<span class="fe-leg"><i class="real"></i>real</span><span class="fe-leg"><i class="trac"></i>se nada mudar</span>', cls: 'fe-caixa' });
+    // O que pede atenção: os achados do Vorcaro e o que vence nos próximos 7 dias.
+    const hoje = d.hoje || '', em7 = X().somarDias ? X().somarDias(hoje, 7) : new Date(Date.parse(hoje + 'T12:00:00Z') + 7 * 864e5).toISOString().slice(0, 10);
+    const fxH = d.fixos?.length ? X().analisarFixos(d.fixos, lista, hoje.slice(0, 7), d.cartao?.itens || []).fixos.filter((f) => !f.achado && f.vence > hoje && f.vence <= em7) : [];
+    const vale = (d.contas_pessoas || []).filter((c) => c.vale > 0);
+    // O valor do achado vai para a direita (como no quadro); o resto fica embaixo do título. Tudo texto puro, escapado aqui.
+    const MONEY = /[−-]?R\$\s?[\d.]+,\d{2}/;
+    const partir = (det) => { const t = String(det ?? ''), m = MONEY.exec(t); if (!m) return { det: t, val: '' };
+      const v = numero(m[0].replace(/R\$\s?/, '').replace('−', '-')); return { det: t.replace(m[0], '').replace(/^\s*·\s*|\s*·\s*$/g, '').trim(), val: mil(Math.abs(v)) }; };
+    const itens = [...achados.map((a) => ({ g: a.g, rot: a.rot, ...partir(a.det), attrs: feAchadoIr(a) })),
+      fxH.length ? { g: 2, rot: `${quantos(fxH.length, 'fixo vence', 'fixos vencem')} em 7 dias`, det: fxH.slice(0, 2).map((f) => f.nome).join(', '), val: mil(fxH.reduce((s, f) => s + f.valor, 0)), attrs: feIr('fin_movimento', 'data-chip="previsto"') } : null,
+      vale.length ? { g: 0, rot: 'Vale acumulado', det: quantos(vale.length, 'pessoa', 'pessoas'), val: mil(vale.reduce((s, c) => s + c.vale, 0)), attrs: feIr('fin_pessoas'), roxo: true } : null].filter(Boolean).slice(0, 6);
+    const atencao = feCard('Pede atenção', itens.map((a) => `<button type="button" class="fe-al" ${a.attrs}><i class="fe-dot ${a.roxo ? 'v' : a.g >= 2 ? 'r' : 'a'}" aria-hidden="true"></i><span><b>${esc(a.rot)}</b>${a.det ? `<small>${esc(a.det)}</small>` : ''}</span>${a.val ? `<b class="fe-al-v">${esc(a.val)}</b>` : ICV.seta}</button>`).join('') || '<p class="fe-vazio">Nada pedindo atenção.</p>');
+    // Para onde foi: as saídas do mês por grupo; o grupo abre o Movimento só com ele.
+    const grupos = saidasPorGrupo(d, r), maxG = Math.max(1, ...grupos.map((g) => g.total));
+    const onde = feCard('Para onde foi o dinheiro', grupos.map((g) => `<button type="button" class="fe-gl" data-fx="fe-grupo" data-valor="${esc(g.grupo)}"><span>${esc(g.grupo)}</span><span class="fe-barra"><i style="--v:${pc(g.total, maxG)}%"></i></span><b>${esc(mil(g.total))}</b></button>`).join('') || '<p class="fe-vazio">Nenhuma saída neste mês.</p>',
+      { dir: grupos.length ? 'toque num grupo para ver os lançamentos' : '' });
+    // Quem pagou o mês.
+    const SIT = { pago: ['g', ''], parcial: ['a', ' parcial'], aberto: ['r', ' em aberto'], a_receber: ['n', ' a receber'] };
+    const quem = doMes.length ? pc2.linhas.map((l) => ({ l, m: l.meses.find((x) => x.mes === mes) })).filter((x) => x.m && SIT[x.m.situacao])
+      .sort((a, b) => ['pago', 'aberto', 'parcial', 'a_receber'].indexOf(a.m.situacao) - ['pago', 'aberto', 'parcial', 'a_receber'].indexOf(b.m.situacao)) : [];
+    const pagou = feCard(`Quem pagou ${soMes(mes)}`, doMes.length ? `<p class="fe-grande"><b>${n0(pagos)}</b> <span>de ${quantos(doMes.length, 'cliente com mensalidade', 'clientes com mensalidade')}</span></p><span class="fe-barra g"><i style="--v:${pc(pagos, doMes.length)}%"></i></span>
+      <div class="fe-pilulas">${quem.slice(0, 7).map(({ l, m }) => `<button type="button" class="fe-tag ${SIT[m.situacao][0]}" data-fx="fe-cli" data-valor="${esc(l.cliente_id)}">${esc(l.cliente_nome)}${SIT[m.situacao][1]}</button>`).join('')}${quem.length > 7 ? `<span class="fe-tag">+ ${n0(quem.length - 7)}</span>` : ''}</div>
+      <button type="button" class="fe-elo" ${feIr('fin_clientes')}>Ver a grade de clientes</button>` : '<p class="fe-vazio">Sem mensalidade prevista neste mês.</p>');
+    return feCasca('fin_hoje', d, `${laranja}${nums}<div class="fe-par">${caixa}${atencao}</div><div class="fe-par">${onde}${pagou}</div>`);
+  }
+  // O achado do Vorcaro leva à tela nova certa, com o filtro dele.
+  function feAchadoIr(a) {
+    if (a.ancora === 'whats') return feIr('fin_movimento', 'data-chip="conferir" data-lado="whats"');
+    const nova = FE_DE[a.aba] || a.aba || 'fin_hoje';
+    const chip = a.chip || FE_CHIP[a.aba] || '';
+    return feIr(nova, `${chip ? `data-chip="${esc(chip)}"` : ''}${a.cat ? ` data-cat="${esc(a.cat)}"` : ''}${a.mes ? ` data-mes="${esc(a.mes)}"` : ''}`);
+  }
+
+  // ---------- MOVIMENTO ----------
+  function feMovimento(ctx) {
+    const d = feIniciar(ctx), u = ui.fe, ue = ui.extrato, lista = d.transacoes || [], mes = u.mes, hoje = d.hoje || '';
+    const doMes = lista.filter((t) => t.banco.data.startsWith(mes));
+    const busca = semAcento(ctx.filtro?.fx_extrato || '');
+    const casa = (t) => !busca || semAcento([t.banco.historico, t.real.quem, t.real.descricao, t.real.cliente_nome, t.real.pessoa_nome, nomeCat(d, t.real.categoria), String(Math.abs(t.banco.valor)).replace('.', ','), ...(t.real.partes || []).map((p) => p.cliente_nome)].join(' ')).includes(busca);
+    const fa = X().analisarFixos(d.fixos || [], lista, mes, d.cartao?.itens || []);
+    const faturas = (d.cartao?.faturas || []).filter((f) => f.fatura === mes);
+    const itensCartao = faturas.flatMap((f) => f.itens.map((i) => ({ ...i, _cartao: f.cartao }))).sort((a, b) => String(b.data).localeCompare(String(a.data)));
+    const pc2 = d.por_cliente || { meses: [], linhas: [] };
+    const aReceber = pc2.meses.includes(mes) ? pc2.linhas.map((l) => ({ l, m: l.meses.find((x) => x.mes === mes) })).filter((x) => x.m && (x.m.em_aberto || x.m.a_receber)) : [];
+    const fixosVem = fa.fixos.filter((f) => !f.achado);
+    const nPrev = fixosVem.length + aReceber.length + faturas.filter((f) => f.falta > 0).length;
+    const filtroT = { todos: () => true, conferir: (t) => !t.real.conferido, entradas: (t) => t.banco.valor > 0, saidas: (t) => t.banco.valor < 0 };
+    const conta = (k) => doMes.filter(filtroT[k]).length;
+    const chips = feChips([['todos', 'Tudo', conta('todos')], ['conferir', 'A conferir', lista.filter((t) => !t.real.conferido).length], ['entradas', 'Entradas', conta('entradas')], ['saidas', 'Saídas', conta('saidas')],
+      ['cartao', 'Cartão', itensCartao.length], ['fixos', 'Fixos', fa.quantidade], ['previsto', 'Previsto', nPrev]]
+      .map(([k, n, c]) => [k, n, c, `data-fx="fe-chip" data-valor="${k}"`, u.chip === k && !u.grupo && !ue.cat]), 'Filtrar o movimento');
+    const filtrosExtra = [u.grupo ? `<button type="button" class="fe-chip on" data-fx="fe-grupo" data-valor="" aria-pressed="true">${esc(u.grupo)} ×</button>` : '',
+      ue.cat ? `<button type="button" class="fe-chip on" data-fx="cat" data-valor="${esc(ue.cat)}" aria-pressed="true">${esc(nomeCat(d, ue.cat))} ×</button>` : ''].join('');
+    const barra = `<div class="fe-barra-ferr">${chips}${filtrosExtra}<label class="fe-busca"><span class="fv2-sr">Buscar no movimento</span>${ICV.busca}<input role="searchbox" enterkeyhint="search" autocomplete="off" data-vc-busca="fx_extrato" placeholder="Buscar: nome, valor, cliente" value="${esc(ctx.filtro?.fx_extrato || '')}"></label>
+      ${feBtn('Lançar à mão', `data-fx="mao-abrir" aria-expanded="${Boolean(ui.vorcaro.mao)}"`, 's')}${feArquivo('fe-btn s')}</div>`;
+    // A lista da esquerda, pelo filtro.
+    let corpo = '', cab = ['No banco', 'De verdade', 'Valor'];
+    const chip = u.chip;
+    if (['todos', 'conferir', 'entradas', 'saidas'].includes(chip) || u.grupo || ue.cat) {
+      const base = chip === 'conferir' && !u.grupo && !ue.cat ? lista : doMes;
+      const vis = base.filter((t) => (u.grupo ? X().pedacos(t).some((p) => grupoDe(d, p.categoria) === u.grupo && p.valor < 0) : true)
+        && (ue.cat ? X().pedacos(t).some((p) => p.categoria === ue.cat) : true) && (u.grupo || ue.cat ? true : filtroT[chip](t)) && casa(t))
+        .slice().sort((a, b) => b.banco.data.localeCompare(a.banco.data));
+      const cabem = vis.slice(0, ue.mostrar);
+      let dia = '';
+      corpo = cabem.map((t) => { const h = t.banco.data !== dia ? `<p class="fe-dia">${esc(diaLongo(t.banco.data))}</p>` : ''; dia = t.banco.data; return h + feLinhaLanc(d, t); }).join('')
+        + (vis.length > cabem.length ? `<button type="button" class="fe-elo" data-fx="mais" data-alvo="extrato">Mais ${n0(vis.length - cabem.length)}</button>` : '');
+      if (!lista.length) corpo = `<div class="fe-vazio"><p>Sem extrato ainda. Importe o CSV da conta PJ.</p>${feArquivo('fe-btn k')}</div>`;
+      else if (!vis.length) corpo = `<p class="fe-vazio">${chip === 'conferir' ? 'Tudo conferido.' : 'Nada com esse filtro.'}</p>`;
+    } else if (chip === 'cartao') {
+      cab = ['Item', 'Situação', 'Valor'];
+      const vis = itensCartao.filter((i) => !busca || semAcento([i.descricao, i.quem, i.cliente_nome, nomeCat(d, i.categoria)].join(' ')).includes(busca));
+      corpo = vis.map((i) => `<button type="button" class="fe-lin" data-fx="fe-sel-item" data-valor="${esc(i.id)}" aria-pressed="${ui.cartao.editando === i.id}"><span class="fe-bk">${esc(dataCurta(i.data))} · ${esc(i.descricao)}${i.parcela ? ` · ${esc(i.parcela)}` : ''}</span>
+        <span class="fe-real">${i.categoria === 'a_classificar' ? feTag('sem categoria', 'r') : feTag(nomeCat(d, i.categoria), 'i')}<span>${esc([i.quem, i.cliente_nome].filter(Boolean).join(' · ') || STATUS_NOME[i.status] || '')}</span></span><span class="fe-val">${esc(rs(-Math.abs(i.valor)))}</span></button>`).join('')
+        || `<div class="fe-vazio"><p>Nenhum item na fatura de ${esc(soMes(mes))}.</p>${feBtn('Colar os itens da fatura', 'data-fx="cartao-colar"', 'k')}</div>`;
+    } else if (chip === 'fixos') {
+      cab = ['Gasto', 'No extrato', 'Valor'];
+      corpo = fa.fixos.map((f) => { const naoVeio = !f.achado && f.vence <= hoje;
+        return `<button type="button" class="fe-lin" data-fx="fixo-editar" data-valor="${esc(f.id)}" aria-pressed="${ui.fixos.editando === f.id}"><span class="fe-bk">dia ${String(f.dia).padStart(2, '0')} · ${esc(f.nome)}</span>
+        <span class="fe-real">${f.achado ? feTag(`saiu ${dataCurta(f.achado.data)}`, 'g') : naoVeio ? feTag('não apareceu', 'r') : feTag(`vence ${dataCurta(f.vence)}`)}<span>${esc(nomeCat(d, f.categoria))} · ${esc(FORMA_NOME[f.forma] || f.forma || '')}</span></span><span class="fe-val">${esc(rs(-f.valor))}</span></button>`; }).join('')
+        || `<div class="fe-vazio"><p>Nenhum gasto fixo cadastrado.</p>${feBtn('Novo gasto fixo', 'data-fx="fixo-novo"', 'k')}</div>`;
+      const prov = fixosProvaveis(lista, d.fixos || []);
+      if (prov.length) corpo += `<p class="fe-dia">Parecem fixos pelo extrato</p>${prov.slice(0, 6).map((p, i) => `<div class="fe-lin fe-prev"><span class="fe-bk">perto do dia ${n0(p.dia)} · ${esc(p.nome)}</span><span class="fe-real">${feTag(`${n0(p.meses)} meses`)}<button type="button" class="fe-elo" data-fx="fixo-provavel" data-valor="${i}">cadastrar</button></span><span class="fe-val">${esc(rs(-p.valor))}</span></div>`).join('')}`;
+    } else if (chip === 'previsto') {
+      cab = ['Quando', 'O quê', 'Valor'];
+      const l = [...fixosVem.map((f) => ({ k: f.vence, h: `<button type="button" class="fe-lin fe-prev" data-fx="fe-chip-fixo" data-valor="${esc(f.id)}"><span class="fe-bk">fixo · dia ${String(f.dia).padStart(2, '0')}</span><span class="fe-real">${f.vence <= hoje ? feTag('não apareceu', 'r') : feTag('fixo')}<span>${esc(f.nome)}</span></span><span class="fe-val">${esc(rs(-f.valor))}</span></button>` })),
+        ...faturas.filter((f) => f.falta > 0).map((f) => ({ k: f.vence || `${mes}-28`, h: `<button type="button" class="fe-lin fe-prev" data-fx="fe-chip" data-valor="cartao"><span class="fe-bk">cartão${f.vence ? ` · vence ${esc(dataCurta(f.vence))}` : ''}</span><span class="fe-real">${feTag('cartão', 'i')}<span>Falta na fatura · ${esc(f.cartao)}</span></span><span class="fe-val">${esc(rs(-f.falta))}</span></button>` })),
+        ...aReceber.map(({ l: c, m }) => ({ k: `${mes}-00`, h: `<button type="button" class="fe-lin fe-prev" data-fx="fe-cli" data-valor="${esc(c.cliente_id)}"><span class="fe-bk">a receber · ${esc(soMes(mes))}</span><span class="fe-real">${m.em_aberto ? feTag('em aberto', 'r') : feTag('a receber')}<span>${esc(c.cliente_nome)}</span></span><span class="fe-val g">${esc(comSinal(m.em_aberto || m.a_receber))}</span></button>` }))]
+        .sort((a, b) => a.k.localeCompare(b.k));
+      corpo = l.map((x) => x.h).join('') || '<p class="fe-vazio">Nada previsto até o fim do mês.</p>';
+    }
+    const lado = feLadoMovimento(d, doMes);
+    const listaCard = feCard('', `<div class="fe-cab" aria-hidden="true">${cab.map((c, i) => `<span${i === 2 ? ' class="rt"' : ''}>${esc(c)}</span>`).join('')}</div>${corpo}`, { cls: 'fe-lista', rotulo: 'lancamentos' });
+    return feCasca('fin_movimento', d, `${barra}<div class="fe-duas">${listaCard}<aside class="fe-lado" aria-label="Ficha">${lado}</aside></div>`);
+  }
+  const DIAS_SEM = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  const diaLongo = (iso, semana = false) => { const dt = new Date(`${iso}T12:00:00Z`); return Number.isNaN(dt.getTime()) ? iso : `${Number(iso.slice(8, 10))} de ${MESES[Number(iso.slice(5, 7)) - 1]}${semana ? ` · ${DIAS_SEM[dt.getUTCDay()]}` : ''}`; };
+  // A linha do Movimento: o banco à esquerda, o de verdade no meio (com o selo de quem decidiu) e o valor.
+  function feLinhaLanc(d, t) {
+    const entrada = t.banco.valor > 0, sel = ui.extrato.aberta === t.id;
+    const quem = t.real.partes?.length ? [...new Set(t.real.partes.map((p) => p.cliente_nome || p.pessoa_nome || p.quem).filter(Boolean))].join(', ') : (t.real.cliente_nome || t.real.pessoa_nome || t.real.quem || '');
+    const boleto = t.real.categoria === 'receita_boleto' && !t.real.partes?.length;
+    const tag = t.real.categoria === 'a_classificar' ? feTag('a classificar', 'r') : boleto ? feTag('dividir', 'a') : !t.real.conferido ? feTag('Vorcaro sugere', 'a')
+      : t.real.categoria === 'cartao_agencia' ? feTag('cartão', 'i') : t.real.partes?.length ? feTag(`dividido em ${t.real.partes.length}`) : t.real.cliente_id ? feTag('cliente', 'g') : t.real.pessoa_id ? feTag('pessoa', 'v') : t.real.fixo_id ? feTag('fixo') : feTag('conferido');
+    const real = boleto ? 'entre clientes' : `${esc(nomeCat(d, t.real.categoria))}${quem ? ` · ${esc(quem)}` : ''}`;
+    return `<button type="button" class="fe-lin${t.real.conferido ? ' ok' : ''}" data-fx="abrir" data-alvo="extrato" data-valor="${esc(t.id)}" aria-pressed="${sel}"><span class="fe-bk">${esc(t.banco.historico)}</span><span class="fe-real">${tag}<span>${real}</span></span><span class="fe-val${entrada ? ' g' : ''}">${esc(comSinal(t.banco.valor))}</span></button>`;
+  }
+  // A lateral do Movimento: o formulário aberto, a ficha do lançamento, o baralho de conferir ou o resumo do filtro.
+  function feLadoMovimento(d, doMes) {
+    const u = ui.fe, ue = ui.extrato, lista = d.transacoes || [];
+    const fechar = (attrs) => `<button type="button" class="fe-ico" ${attrs} aria-label="Fechar">${IC_FECHAR}</button>`;
+    if (ue.previa) return previaHtml(d);
+    if (ui.vorcaro.mao) return maoForm(d);
+    if (u.lado === 'whats') {
+      const ps = (d.vorcaro?.propostas || []).filter((p) => p.estado === 'pendente');
+      return `<div class="fe-lado-cab"><span class="fe-rot">Do grupo Vybe Financeiro · ${n0(ps.length)}</span>${fechar('data-fx="fe-lado" data-valor=""')}</div>${ps.slice(0, 3).map((p, i) => propostaHtml(d, p, i + 1, ps.length)).join('') || '<p class="fe-vazio">Nada esperando do grupo.</p>'}`;
+    }
+    if (u.chip === 'cartao') {
+      if (ui.cartao.colar) return colarHtml(d);
+      const item = (d.cartao?.itens || []).find((i) => i.id === ui.cartao.editando);
+      if (ui.cartao.novo || item) return feCard(item ? 'Item da fatura' : 'Novo item da fatura', `<div class="fx-form-caixa">${itemCampos(d, item || { fatura: u.mes, data: `${u.mes}-01`, status: 'em_aberto' })}</div>`, { dir: fechar('data-fx="item-fechar"'), cls: 'fe-ficha' });
+      const fs = (d.cartao?.faturas || []).filter((f) => f.fatura === u.mes), total = fs.reduce((s, f) => s + f.total, 0), pago = fs.reduce((s, f) => s + f.pago_no_extrato, 0), falta = fs.reduce((s, f) => s + f.falta, 0);
+      const vence = fs.map((f) => f.vence).filter(Boolean).sort()[0] || '';
+      const venc = d.cartao?.vencimentos || {}, nomes = [...new Set([...fs.map((f) => f.cartao), ...Object.keys(venc), 'Cartão da agência'])];
+      return feCard(`Fatura de ${soMes(u.mes)}`, `<div class="fe-mini3"><div><small>Total</small><b>${esc(mil(total))}</b></div><div><small>Pago</small><b class="g">${esc(mil(pago))}</b></div><div><small>Falta</small><b class="${falta ? 'r' : ''}">${esc(mil(falta))}</b></div></div>
+        ${vence ? `<p class="fe-sub">Vence em ${esc(dataCurta(vence))}.</p>` : ''}
+        <div class="fe-bts">${feBtn('Colar os itens da fatura', 'data-fx="cartao-colar"', 'k')}${feBtn('Novo item', 'data-fx="cartao-novo"')}</div>
+        <details class="fe-det"><summary>Dia do vencimento</summary>${nomes.map((n) => `<div class="fx-mini fx-venc"><span>${esc(n)}</span><label class="fx-venc-dia">dia <input class="fx-in" type="number" min="1" max="31" step="1" inputmode="numeric" value="${esc(venc[n] ?? '')}" aria-label="Dia do vencimento da fatura do ${esc(n)}"></label><button type="button" class="fv2-btn s v2-estado" data-fx="venc-salvar" data-valor="${esc(n)}">Salvar</button></div>`).join('')}</details>
+        ${(d.cartao?.pagamentos_sem_fatura || []).length ? `<p class="fe-sub">${quantos(d.cartao.pagamentos_sem_fatura.length, 'pagamento do cartão', 'pagamentos do cartão')} no extrato sem os itens da fatura.</p>` : ''}`, { cls: 'fe-ficha' });
+    }
+    if (u.chip === 'fixos' || u.chip === 'previsto') {
+      const f = (d.fixos || []).find((x) => x.id === ui.fixos.editando);
+      if (ui.fixos.novo || f) return feCard(f ? f.nome : 'Novo gasto fixo', `<div class="fx-form-caixa">${fixoCampos(d, f || ui.fixos.rascunho || {})}</div>`, { dir: fechar('data-fx="fixo-fechar"'), cls: 'fe-ficha' });
+      const a = X().analisarFixos(d.fixos || [], lista, u.mes, d.cartao?.itens || []), max = Math.max(1, a.por_categoria[0]?.total || 1);
+      return feCard('Gastos fixos', `<div class="fe-mini3"><div><small>Por mês</small><b>${esc(mil(a.total))}</b></div><div><small>No ano</small><b>${esc(mil(a.anual))}</b></div><div><small>Já saíram</small><b>${n0(a.achados)} de ${n0(a.quantidade)}</b></div></div>
+        ${a.por_categoria.map((c) => `<div class="fe-gl"><span>${esc(c.nome)}</span><span class="fe-barra"><i style="--v:${pc(c.total, max)}%"></i></span><b>${esc(mil(c.total))}</b></div>`).join('')}
+        <div class="fe-bts">${feBtn('Novo gasto fixo', 'data-fx="fixo-novo"', 'k')}</div>`, { cls: 'fe-ficha' });
+    }
+    const t = lista.find((x) => x.id === ue.aberta);
+    if (t) return feCard('', `<div class="fe-lado-cab"><span class="fe-bk">${esc(t.banco.historico)}</span>${fechar(`data-fx="abrir" data-alvo="extrato" data-valor="${esc(t.id)}"`)}</div>
+      <p class="fe-valor-grande${t.banco.valor > 0 ? ' g' : ''}">${esc(comSinal(t.banco.valor))}</p><p class="fe-sub">${esc(diaLongo(t.banco.data, true))} · ${esc(origemDe(t))}</p>${editorExtrato(d, t)}`, { cls: 'fe-ficha' });
+    if (u.chip === 'conferir') return feBaralho(d);
+    // Sem nada aberto: para onde foi o mês, as regras e o que foi importado e apagado.
+    const r = X().resumo(lista, { mes: u.mes });
+    return feCard('Para onde foi', porCategoriaHtml(d, r) || '<p class="fe-vazio">Nada neste mês.</p>', { cls: 'fe-ficha' })
+      + `<details class="fe-det fe-card"><summary>Regras, importações e apagados</summary>${regrasHtml(d)}${importacoesHtml(d)}${lixeiraHtml(d)}</details>`;
+  }
+  const IC_FECHAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  // O baralho de conferir: um cartão por vez, com a sugestão do Vorcaro e o "sempre assim" já marcado.
+  function feBaralho(d) {
+    const lista = d.transacoes || [], fila = lista.filter((t) => !t.real.conferido && !ui.fe.pular.includes(t.id)).sort((a, b) => b.banco.data.localeCompare(a.banco.data));
+    const total = lista.filter((t) => !t.real.conferido).length;
+    const semCat = (d.cartao?.itens || []).filter((i) => i.categoria === 'a_classificar').length, whats = (d.vorcaro?.propostas || []).filter((p) => p.estado === 'pendente').length;
+    const fila2 = `<section class="fe-card"><h2 class="fe-rot">Também na fila</h2>
+      <div class="fe-kv"><span>Do extrato</span><b>${n0(total)}</b></div>
+      <button type="button" class="fe-kv" data-fx="fe-chip" data-valor="cartao"><span>Itens do cartão sem categoria</span><b>${n0(semCat)}</b></button>
+      <button type="button" class="fe-kv" data-fx="fe-lado" data-valor="whats"><span>Do grupo Vybe Financeiro</span><b>${n0(whats)}</b></button>
+      <p class="fe-sub">Print, áudio e mensagem do grupo entram aqui, com o lançamento do banco já casado quando der.</p></section>`;
+    const t = fila[0];
+    if (!t) return `<section class="fe-card fe-ficha"><p class="fe-vazio">${total ? `Você pulou os ${n0(total)} que faltam.` : 'Tudo conferido.'}</p>${ui.fe.pular.length ? feBtn('Voltar os pulados', 'data-fx="fe-pular" data-valor=""') : ''}</section>${fila2}`;
+    const contra = t.banco.contraparte ? t.banco.contraparte.split(' ').slice(0, 2).join(' ') : '';
+    const sabe = t.real.categoria !== 'a_classificar';
+    const quem = t.real.cliente_nome || t.real.pessoa_nome || t.real.quem || '';
+    const pos = total - fila.length + 1;
+    return `<div class="fe-lado-cab"><span class="fe-rot">Conferir · ${n0(pos)} de ${n0(total)}</span></div>
+      <div class="fe-baralho"><span class="fe-carta-atras" aria-hidden="true"></span><span class="fe-carta-atras b" aria-hidden="true"></span>
+      <section class="fe-card fe-carta" data-fx-editor="${esc(t.id)}">
+        <div class="fe-lado-cab"><span class="fe-bk">${esc(t.banco.historico)}</span><span class="fe-sub">${esc(dataCurta(t.banco.data))}</span></div>
+        <p class="fe-valor-grande${t.banco.valor > 0 ? ' g' : ''}">${esc(comSinal(t.banco.valor))}</p>
+        <div class="fe-acha"><small>${sabe ? 'O Vorcaro acha que é' : 'O Vorcaro ainda não sabe'}</small><b>${sabe ? esc(nomeCat(d, t.real.categoria)) + (quem ? ` · ${esc(quem)}` : '') : 'Diga para onde foi'}</b>${t.sugestao?.nota ? `<span class="fe-sub">${esc(t.sugestao.nota)}</span>` : ''}</div>
+        ${sabe && contra && !t.sugestao?.regra ? `<label class="fe-check"><input type="checkbox" data-fe-regra checked> Sempre que for ${esc(contra)}, lançar assim</label>` : ''}
+        <div class="fe-bts">${sabe ? feBtn('Confirmar', `data-fx="fe-confirmar" data-valor="${esc(t.id)}"`, 'k v2-estado') : ''}${feBtn(sabe ? 'Outra coisa' : 'Dizer o que foi', `data-fx="abrir" data-alvo="extrato" data-valor="${esc(t.id)}"`, sabe ? '' : 'k')}
+          ${feBtn('Dividir', `data-fx="fe-dividir" data-valor="${esc(t.id)}"`)}${feBtn('Pular', `data-fx="fe-pular" data-valor="${esc(t.id)}"`, 'q')}</div>
+      </section></div>${fila2}`;
+  }
+
+  // ---------- CLIENTES ----------
+  // A margem real de cada cliente: o que entrou ligado a ele menos as saídas ligadas a ele (todo o extrato).
+  function margensDosClientes(d) {
+    const m = new Map();
+    for (const t of d.transacoes || []) for (const p of X().pedacos(t)) {
+      if (!p.cliente_id) continue;
+      const k = String(p.cliente_id), x = m.get(k) || { entrou: 0, saiu: 0, dias: [] };
+      if (p.valor > 0) { x.entrou += p.valor; if (p.status === 'pago') x.dias.push({ mes: p.competencia || p.data.slice(0, 7), dia: Number(p.data.slice(8, 10)), data: p.data }); } else x.saiu -= p.valor;
+      m.set(k, x);
+    }
+    for (const x of m.values()) x.margem = x.entrou > 0 ? Math.round((x.entrou - x.saiu) / x.entrou * 100) : null;
+    return m;
+  }
+  function feClientes(ctx) {
+    const d = feIniciar(ctx), u = ui.fe.cli, pc2 = d.por_cliente || { meses: [], linhas: [] }, hoje = d.hoje || '';
+    const margens = margensDosClientes(d);
+    const linhas = pc2.linhas.filter((l) => l.meses.some((m) => m.situacao !== 'sem' && m.situacao !== 'fora'));
+    const desde = (l) => l.meses.find((m) => m.em_aberto > 0)?.mes || '';
+    const dias = (mes) => (mes ? Math.max(0, Math.round((Date.parse(`${hoje}T12:00:00Z`) - Date.parse(`${mes}-01T12:00:00Z`)) / 864e5)) : 0);
+    const mais30 = (l) => l.total_aberto > 0 && dias(desde(l)) > 30, baixa = (l) => (margens.get(String(l.cliente_id))?.margem ?? 100) < 20;
+    const busca = semAcento(ctx.filtro?.fx_clientes || '');
+    const vis = linhas.filter((l) => (u.chip === 'aberto' ? l.total_aberto > 0 : u.chip === '30' ? mais30(l) : u.chip === 'margem' ? baixa(l) : true) && (!busca || semAcento(l.cliente_nome).includes(busca)))
+      .sort((a, b) => b.total_aberto - a.total_aberto || a.cliente_nome.localeCompare(b.cliente_nome, 'pt-BR'));
+    const chips = feChips([['todos', 'Todos', linhas.length], ['aberto', 'Em aberto', linhas.filter((l) => l.total_aberto > 0).length], ['30', 'Mais de 30 dias', linhas.filter(mais30).length], ['margem', 'Margem abaixo de 20%', linhas.filter(baixa).length]]
+      .map(([k, n, c]) => [k, n, c, `data-fx="fe-cli-chip" data-valor="${k}"`, u.chip === k]), 'Filtrar os clientes');
+    const quatro = pc2.meses.filter((m) => m <= ui.fe.mes).slice(-4);
+    const CEL = { pago: ['ok', 'Pago'], parcial: ['pa', 'Parcial'], aberto: ['ab', 'Aberto'], a_receber: ['ar', 'A receber'], sem: ['no', '—'], fora: ['no', '·'] };
+    const grade = vis.map((l) => { const mg = margens.get(String(l.cliente_id))?.margem;
+      return `<div class="fe-g fe-g-lin${u.sel === String(l.cliente_id) ? ' sel' : ''}"><button type="button" class="fe-g-nome" data-fx="fe-cli" data-valor="${esc(l.cliente_id)}" aria-pressed="${u.sel === String(l.cliente_id)}">${esc(l.cliente_nome)}</button>
+        ${quatro.map((mes) => { const m = l.meses.find((x) => x.mes === mes) || { situacao: 'sem' }; const [c, t] = CEL[m.situacao] || CEL.sem; return `<span class="fe-cel ${c}" title="${esc(`${nomeMes(mes)}: previsto ${rs(m.previsto || 0)}, recebido ${rs(m.recebido || 0)}`)}">${t}</span>`; }).join('')}
+        <span class="rt">${l.mensalidade ? `R$ ${n0(l.mensalidade)}` : '—'}</span><span class="rt${mg != null && mg < 20 ? ' rr' : ''}">${mg == null ? '—' : `${mg}%`}</span></div>`; }).join('');
+    const cab = `<div class="fe-g fe-g-cab" aria-hidden="true"><span>Cliente</span>${quatro.map((m) => `<span class="c">${esc(mes3(m))}</span>`).join('')}<span class="rt">Mensal</span><span class="rt">Margem</span></div>`;
+    const corpo = !linhas.length ? `<div class="fe-vazio"><p>${pc2.desde ? 'Nenhuma entrada ligada a cliente ainda.' : 'Sem extrato, não dá para saber quem pagou.'}</p>${feBtn('Ligar no Movimento', feIr('fin_movimento', 'data-chip="entradas"'), 'k')}</div>`
+      : cab + (grade || '<p class="fe-vazio">Ninguém com esse filtro.</p>') + '<p class="fe-sub fe-pe">Margem real = o que entrou do cliente − as saídas ligadas a ele, em todo o extrato.</p>';
+    const l = linhas.find((x) => String(x.cliente_id) === u.sel);
+    let lado;
+    if (l) {
+      const mg = margens.get(String(l.cliente_id)) || { dias: [], margem: null };
+      const seis = pc2.meses.slice(-6), pago = seis.map((mes) => ({ mes, dia: (mg.dias.filter((x) => x.mes === mes).sort((a, b) => a.data.localeCompare(b.data))[0] || null) }));
+      const W = 360, H = 96, x = (i) => 18 + i * (W - 36) / Math.max(1, seis.length - 1), y = (dia) => 10 + (Math.min(31, dia) - 1) / 30 * (H - 34);
+      const comDia = pago.map((p, i) => (p.dia ? [x(i), y(p.dia.dia)] : null));
+      const traco = comDia.filter(Boolean).map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(' ');
+      const graf = `<svg class="fe-graf d3-graf" viewBox="0 0 ${W} ${H}" role="img" aria-label="Dia do mês em que ${esc(l.cliente_nome)} pagou, de ${esc(soMes(seis[0]))} a ${esc(soMes(seis[seis.length - 1]))}">
+        ${traco ? `<polyline class="fe-cheia" points="${traco}"/>` : ''}${pago.map((p, i) => (p.dia ? `<circle class="fe-pt" cx="${x(i).toFixed(1)}" cy="${y(p.dia.dia).toFixed(1)}" r="4"/><text class="fe-eixo" x="${x(i).toFixed(1)}" y="${(y(p.dia.dia) - 8).toFixed(1)}" text-anchor="middle">dia ${n0(p.dia.dia)}</text>` : (l.meses.find((m) => m.mes === p.mes)?.em_aberto ? `<circle class="fe-pt-aberto" cx="${x(i).toFixed(1)}" cy="${H - 26}" r="4"/>` : ''))).join('')}
+        ${seis.map((m, i) => `<text class="fe-eixo" x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(mes3(m))}</text>`).join('')}</svg>`;
+      lado = feCard('', `<div class="fe-lado-cab"><div><span class="fe-rot">Ficha do cliente</span><h3 class="fe-nome">${esc(l.cliente_nome)}</h3><span class="fe-sub">${l.mensalidade ? `Contrato mensal ${esc(rs(l.mensalidade))}` : 'Sem mensalidade cadastrada'}</span></div><button type="button" class="fe-ico" data-fx="fe-cli" data-valor="${esc(l.cliente_id)}" aria-label="Fechar ficha">${IC_FECHAR}</button></div>
+        <div class="fe-mini3"><div class="${l.total_aberto ? 'rv' : ''}"><small>Em aberto</small><b>${esc(mil(l.total_aberto))}</b></div><div><small>Atraso</small><b>${desde(l) ? quantos(dias(desde(l)), 'dia', 'dias') : 'em dia'}</b></div><div><small>Margem real</small><b>${mg.margem == null ? '—' : `${mg.margem}%`}</b></div></div>
+        <span class="fe-rot">Dia em que pagou, mês a mês</span>${graf}
+        <span class="fe-rot">Lançamentos dele</span>${detalheCliente(d, l)}
+        <div class="fe-bts">${feBtn('Ver no Movimento', `data-fx="fe-cli-mov" data-valor="${esc(l.cliente_nome)}"`, 'k')}</div>`, { cls: 'fe-ficha' });
+    } else {
+      const aberto = linhas.reduce((s, x) => s + x.total_aberto, 0), maior = linhas.slice().sort((a, b) => b.total_aberto - a.total_aberto)[0];
+      const semCob = (d.clientes || []).filter((c) => c.ativo !== false && !c.mensalidade).length;
+      lado = feCard('Carteira', `<div class="fe-mini3"><div class="${aberto ? 'rv' : ''}"><small>Em aberto</small><b>${esc(mil(aberto))}</b></div><div><small>Clientes</small><b>${n0(linhas.length)}</b></div><div><small>Sem cobrança</small><b>${n0(semCob)}</b></div></div>
+        ${maior?.total_aberto ? `<p class="fe-sub">O maior em aberto é ${esc(maior.cliente_nome)}, com ${esc(rs(maior.total_aberto))}.</p>${feBtn(`Abrir ${esc(maior.cliente_nome)}`, `data-fx="fe-cli" data-valor="${esc(maior.cliente_id)}"`, 'k')}` : '<p class="fe-sub">Todos em dia.</p>'}
+        <p class="fe-sub">Toque num cliente para abrir a ficha.</p>`, { cls: 'fe-ficha' });
+    }
+    const barra = `<div class="fe-barra-ferr">${chips}<label class="fe-busca"><span class="fv2-sr">Buscar cliente</span>${ICV.busca}<input role="searchbox" enterkeyhint="search" autocomplete="off" data-vc-busca="fx_clientes" placeholder="Buscar cliente" value="${esc(ctx.filtro?.fx_clientes || '')}"></label></div>`;
+    return feCasca('fin_clientes', d, `${barra}<div class="fe-duas">${feCard('', corpo, { cls: 'fe-lista fe-grade' })}<aside class="fe-lado" aria-label="Ficha">${lado}</aside></div>`);
+  }
+
+  // ---------- PESSOAS ----------
+  const SOCIO_CATS = ['pro_labore', 'retirada_socio'];
+  function fePessoas(ctx) {
+    const d = feIniciar(ctx), u = ui.fe.pes, contas = d.contas_pessoas || [], mes = ui.fe.mes;
+    const doMes = (c) => c.meses.find((m) => m.mes === mes) || { pago: 0, combinado: c.salario?.valor || 0 };
+    const socio = (c) => !c.salario?.valor && c.itens.length && c.itens.every((i) => SOCIO_CATS.includes(i.categoria));
+    const equipe = contas.filter((c) => !socio(c)), socios = contas.filter(socio);
+    const combinado = equipe.reduce((s, c) => s + (doMes(c).combinado || 0), 0), pago = equipe.reduce((s, c) => s + (doMes(c).pago || 0), 0), vale = contas.reduce((s, c) => s + c.vale, 0);
+    const nums = `<div class="fe-nums tres">${[feNum({ rot: 'Combinado no mês', valor: esc(mil(combinado)), sub: 'equipe, sem os sócios' }), feNum({ rot: 'Já pago', valor: esc(mil(pago)), sub: combinado ? `${pc(pago, combinado)}% do combinado` : 'sem combinado informado' }),
+      feNum({ rot: 'Vale acumulado', valor: esc(mil(vale)), tom: vale ? 'v' : '', sub: 'o que as pessoas devem à Vybe' })].join('')}</div>`;
+    const linha = (c, ehSocio) => {
+      const m = doMes(c), comb = m.combinado || 0, pg = m.pago || 0, sel = u.sel === c.pessoa_id;
+      const topo = Math.max(comb, pg, 1) * 1.15, w = pc(Math.min(pg, comb || pg), topo), over = comb && pg > comb ? pc(pg - comb, topo) : 0;
+      const prox = c.proximo && c.proximo.desconto ? `<small class="v">${esc(soMes(c.proximo.mes))}: recebe ${esc(rs(c.proximo.a_receber))}</small>` : m.desconto ? `<small class="v">recebe ${esc(rs(m.a_receber))} este mês</small>` : '';
+      return `<div class="fe-p${sel ? ' sel' : ''}"><button type="button" class="fe-p-nome" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-pressed="${sel}"><span class="fe-av ${ehSocio ? 's' : 'c' + ([...String(c.nome)].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 4)}" aria-hidden="true">${esc(iniciais(c.nome))}</span><span><b>${esc(c.nome)}</b>${prox}</span></button>
+        ${ehSocio ? `<span class="fe-sub">${quantos(c.itens.filter((i) => i.mes === mes).length, 'retirada', 'retiradas')} em ${esc(soMes(mes))}</span>` : `<span class="fe-trilho" aria-hidden="true"><i style="--v:${w}%"></i>${over ? `<i class="v" style="--l:${w}%;--v:${over}%"></i>` : ''}${comb ? `<em style="--l:${pc(comb, topo)}%"></em>` : ''}</span>`}
+        <span class="rt">${comb ? esc(rs(comb)) : '—'}</span><span class="rt">${esc(rs(pg))}</span><span class="rt${c.vale ? ' v' : ''}">${c.vale ? esc(rs(c.vale)) : '—'}</span></div>`;
+    };
+    const cab = '<div class="fe-p fe-p-cab" aria-hidden="true"><span>Pessoa</span><span>Recebeu × combinado</span><span class="rt">Combinado</span><span class="rt">Recebeu</span><span class="rt">Vale</span></div>';
+    const corpo = contas.length ? cab + equipe.map((c) => linha(c, false)).join('') + (socios.length ? `<p class="fe-dia">Sócios · pró-labore e retiradas</p>${socios.map((c) => linha(c, true)).join('')}` : '')
+      + '<p class="fe-sub fe-pe">A marca preta é o combinado. O que passa dele, em roxo, vira vale e pode ser descontado no salário seguinte.</p>'
+      : '<div class="fe-vazio"><p>Nenhum Pix atribuído ao time ainda. No Movimento, diga para quem foi cada um.</p></div>';
+    const c = contas.find((x) => x.pessoa_id === u.sel);
+    let lado;
+    if (c) lado = feFichaPessoa(d, c);
+    else {
+      const semConta = (d.pessoas || []).filter((p) => !contas.some((x) => x.pessoa_id === String(p.id)));
+      lado = feCard('Informar o combinado', semConta.length ? semConta.map((p) => `<div class="fx-mini fe-comb" data-fx-form="salario"><span>${esc(p.nome)}</span><input name="valor" class="fx-in fx-num" inputmode="decimal" placeholder="combinado" aria-label="Combinado de ${esc(p.nome)}"><input name="desde" type="month" class="fx-in" aria-label="Desde quando, ${esc(p.nome)}"><button type="button" class="fe-btn s v2-estado" data-fx="pessoa-salario" data-valor="${esc(p.id)}">Salvar</button></div>`).join('')
+        : '<p class="fe-sub">Todo mundo do time já tem conta aqui. Toque numa pessoa para abrir a ficha.</p>', { cls: 'fe-ficha' });
+    }
+    return feCasca('fin_pessoas', d, `${nums}<div class="fe-duas">${feCard('', corpo, { cls: 'fe-lista' })}<aside class="fe-lado" aria-label="Ficha">${lado}</aside></div>`);
+  }
+  // A ficha da pessoa: o vale mês a mês, o próximo salário já descontado e o "Descontar no salário" (Paulo, 23/11/2026).
+  function feFichaPessoa(d, c) {
+    const u = ui.fe.pes, aberto = c.meses.find((m) => m.aberto), prox = c.proximo;
+    const serie = c.meses.slice(-6).map((m) => ({ mes: m.mes, v: m.vale_acumulado }));
+    const planos = (d.vales || []).filter((a) => String(a.pessoa_id) === c.pessoa_id && a.tipo === 'descontar');
+    // Em que mês descontar: o mês aberto se o salário dele ainda não saiu inteiro, senão o seguinte.
+    const alvo = aberto && aberto.pago < aberto.combinado ? aberto : prox;
+    const sugerido = Math.min(c.vale, alvo?.combinado || c.vale);
+    const contaMes = (m, rot) => (m && m.combinado ? `<div class="fe-conta"><span class="fe-rot">${esc(rot)}</span><div class="fe-kv"><span>Combinado</span><b>${esc(rs(m.combinado))}</b></div>
+      ${m.desconto ? `<div class="fe-kv"><span>Desconto do vale</span><b class="v">−${esc(rs(m.desconto))}</b></div>` : ''}<div class="fe-kv fe-tot"><span>Vai receber</span><b>${esc(rs(m.a_receber))}</b></div>
+      ${m.pago ? `<div class="fe-kv"><span>Já recebeu</span><b>${esc(rs(m.pago))}</b></div><div class="fe-kv"><span>Falta pagar</span><b>${esc(rs(m.falta_pagar || 0))}</b></div>` : ''}</div>` : '');
+    const form = c.vale > 0 && alvo ? (u.desconto === c.pessoa_id
+      ? `<div class="fe-desc" data-fx-form="ajuste"><input type="hidden" name="tipo" value="descontar"><label class="fx-campo"><span>Descontar</span><input name="valor" class="fx-in fx-num" inputmode="decimal" value="${esc(String(sugerido).replace('.', ','))}"></label>
+          <label class="fx-campo"><span>No salário de</span><input name="mes" type="month" class="fx-in" value="${esc(alvo.mes)}"></label><input type="hidden" name="nota" value="desconto do vale no salário">
+          <div class="fe-bts">${feBtn('Descontar', `data-fx="pessoa-ajuste" data-valor="${esc(c.pessoa_id)}"`, 'k v2-estado')}${feBtn('Cancelar', 'data-fx="fe-desconto" data-valor=""', 'q')}</div></div>`
+      : feBtn(`Jogar o vale para ${soMes(alvo.mes)}`, `data-fx="fe-desconto" data-valor="${esc(c.pessoa_id)}"`, 'k')) : '';
+    return feCard('', `<div class="fe-lado-cab"><div><span class="fe-rot">Ficha da pessoa</span><h3 class="fe-nome">${esc(c.nome)}</h3><span class="fe-sub">${c.salario?.valor ? `Combinado ${esc(rs(c.salario.valor))} por mês` : 'Sem combinado informado'}</span></div><button type="button" class="fe-ico" data-fx="fe-pes" data-valor="${esc(c.pessoa_id)}" aria-label="Fechar ficha">${IC_FECHAR}</button></div>
+      <div class="fe-mini3"><div class="${c.vale ? 'vv' : ''}"><small>Vale agora</small><b>${esc(rs(c.vale))}</b></div><div><small>A pagar</small><b>${esc(rs(c.a_pagar))}</b></div><div><small>Depois do desconto</small><b>${esc(rs(prox ? prox.vale_depois : c.vale))}</b></div></div>
+      ${serie.length > 1 ? `<span class="fe-rot">Vale, mês a mês</span>${feLinha(serie, [], { rotulo: `Vale de ${c.nome} de ${soMes(serie[0].mes)} a ${soMes(serie[serie.length - 1].mes)}`, alto: 120, tom: 'v' })}` : ''}
+      ${contaMes(aberto, `Salário de ${soMes(aberto?.mes)}`)}${prox?.desconto ? contaMes(prox, `Salário de ${soMes(prox.mes)}`) : ''}
+      ${form}${planos.length ? `<div class="fe-planos">${planos.map((a) => `<div class="fe-kv"><span>Desconto em ${esc(soMes(a.mes))}</span><b>−${esc(rs(a.valor))} <button type="button" class="fv2-link" data-fx="pessoa-ajuste-tirar" data-valor="${esc(a.id)}">tirar</button></b></div>`).join('')}</div>` : ''}
+      <details class="fe-det"><summary>Mês a mês, Pix e o combinado</summary>${cartaoPessoa(d, c)}</details>`, { cls: 'fe-ficha' });
+  }
+
+  // ---------- ANÁLISE ----------
+  function feAnalise(ctx) {
+    const d = feIniciar(ctx), lista = d.transacoes || [], base = d.projecao?.base, up = ui.projecao;
+    const meses = (d.meses || []).filter((m) => m <= ui.fe.mes).slice(-4);
+    const resumos = meses.map((m) => ({ mes: m, r: X().resumo(lista, { mes: m }) }));
+    const entraMedia = sumObj(base?.entradas_por_categoria), saiMedia = sumObj(base?.saidas_por_categoria);
+    const saldo = base?.saldo_hoje ?? ultimoSaldo(lista)?.banco.saldo ?? null;
+    const folego = saldo != null && saiMedia > 0 ? Math.max(0, Math.round(saldo / (saiMedia / 30))) : null;
+    const fa = X().analisarFixos(d.fixos || [], lista, (d.hoje || '').slice(0, 7), d.cartao?.itens || []);
+    const comb = Object.values(d.salarios || {}).reduce((s, x) => s + (Number(x?.valor) || 0), 0);
+    const fixoPct = entraMedia ? Math.round((fa.total + comb) / entraMedia * 100) : null;
+    // Concentração e dia do pagamento: as entradas ligadas a cliente nos meses da tela.
+    const porCli = new Map(), diaPorMes = new Map();
+    for (const t of lista) if (meses.includes(t.banco.data.slice(0, 7))) for (const p of X().pedacos(t)) if (p.cliente_id && p.valor > 0) {
+      porCli.set(p.cliente_nome || nomeCliente(d, p.cliente_id) || 'Cliente', (porCli.get(p.cliente_nome || nomeCliente(d, p.cliente_id) || 'Cliente') || 0) + p.valor);
+      const mm = p.data.slice(0, 7); diaPorMes.set(mm, [...(diaPorMes.get(mm) || []), Number(p.data.slice(8, 10))]);
+    }
+    const cli = [...porCli].sort((a, b) => b[1] - a[1]), totCli = cli.reduce((s, [, v]) => s + v, 0);
+    const top3 = totCli ? Math.round(cli.slice(0, 3).reduce((s, [, v]) => s + v, 0) / totCli * 100) : null;
+    const mens = (d.clientes || []).filter((c) => c.ativo !== false && c.mensalidade > 0);
+    const ticket = mens.length ? mens.reduce((s, c) => s + c.mensalidade, 0) / mens.length : null;
+    const media = (l) => (l?.length ? Math.round(l.reduce((s, v) => s + v, 0) / l.length) : null);
+    const diaFim = media(diaPorMes.get(meses[meses.length - 1])), diaIni = media(diaPorMes.get(meses[0]));
+    const nums = `<div class="fe-nums cinco">${[
+      feNum({ rot: 'Fôlego do caixa', valor: folego == null ? '—' : quantos(folego, 'dia', 'dias'), tom: folego != null && folego < 30 ? 'r' : '', sub: 'quanto o saldo aguenta sem entrar nada' }),
+      feNum({ rot: 'Fixo ÷ o que entra', valor: fixoPct == null ? '—' : `${fixoPct}%`, sub: 'fixos cadastrados + combinados ÷ média que entra' }),
+      feNum({ rot: '3 maiores clientes', valor: top3 == null ? '—' : `${top3}%`, sub: cli.length ? `da receita · o maior é ${esc(cli[0][0])}` : 'sem entrada ligada a cliente' }),
+      feNum({ rot: 'Ticket médio', valor: ticket == null ? '—' : esc(mil(ticket)), sub: `por cliente com mensalidade (${n0(mens.length)})` }),
+      feNum({ rot: 'Dia médio do pagamento', valor: diaFim == null ? '—' : `dia ${n0(diaFim)}`, sub: diaIni != null && meses.length > 1 ? `era dia ${n0(diaIni)} em ${esc(soMes(meses[0]))}` : 'quando os clientes pagam' }),
+    ].join('')}</div>`;
+    // Resultado por grupo (DRE de caixa), em mil, com a tendência.
+    const grupos = [...new Set(resumos.flatMap(({ r }) => saidasPorGrupo(d, r).map((g) => g.grupo)))];
+    const valorG = (r, g) => saidasPorGrupo(d, r).find((x) => x.grupo === g)?.total || 0;
+    const mediaEntra = resumos.reduce((s, { r }) => s + r.entradas, 0) / Math.max(1, resumos.length);
+    const spark = (vals, tom = '') => { const mx = Math.max(...vals), mn = Math.min(...vals), h = (v) => 17 - ((v - mn) / ((mx - mn) || 1)) * 14; return `<svg class="d3-graf fe-spark${tom ? ' ' + tom : ''}" viewBox="0 0 60 20" aria-hidden="true"><polyline points="${vals.map((v, i) => `${(2 + i * 56 / Math.max(1, vals.length - 1)).toFixed(1)},${h(v).toFixed(1)}`).join(' ')}"/></svg>`; };
+    const linhaD = (rot, vals, { attrs = '', tot = false, sinal = 1 } = {}) => {
+      const pct = mediaEntra ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length / mediaEntra * 100) : 0;
+      const sobe = vals[vals.length - 1] > vals[0];
+      return `<tr${tot ? ' class="tot"' : ''}><th scope="row">${attrs ? `<button type="button" class="fe-elo" ${attrs}>${esc(rot)}</button>` : esc(rot)}</th>${vals.map((v) => `<td class="${tot ? (v < 0 ? 'r' : 'g') : ''}">${esc(emMil(sinal * v))}</td>`).join('')}<td>${tot ? '' : `${pct}%`}</td><td>${vals.length > 1 ? spark(vals, tot ? (sobe ? 'g' : 'r') : sinal > 0 ? (sobe ? 'g' : 'r') : (sobe ? 'a' : '')) : ''}</td></tr>`;
+    };
+    const dre = resumos.length ? `<div class="fe-rolo"><table class="fe-dre"><thead><tr><th scope="col">Grupo</th>${meses.map((m) => `<th scope="col">${esc(mes3(m))}</th>`).join('')}<th scope="col">% do que entra</th><th scope="col">Tendência</th></tr></thead><tbody>
+      ${linhaD('Entrou', resumos.map(({ r }) => r.entradas), { attrs: feIr('fin_movimento', 'data-chip="entradas"') })}
+      ${grupos.map((g) => linhaD(g, resumos.map(({ r }) => valorG(r, g)), { attrs: `data-fx="fe-grupo" data-valor="${esc(g)}"`, sinal: -1 })).join('')}
+      ${linhaD('Resultado', resumos.map(({ r }) => r.resultado), { tot: true })}</tbody></table></div><p class="fe-sub">Em mil reais. O cartão entra pelo pagamento da fatura.</p>` : '<p class="fe-vazio">Sem extrato ainda.</p>';
+    const maxC = cli[0]?.[1] || 1, outros = cli.slice(6).reduce((s, [, v]) => s + v, 0);
+    const conc = cli.slice(0, 6).map(([n, v]) => `<div class="fe-gl"><span>${esc(n)}</span><span class="fe-barra"><i style="--v:${pc(v, maxC)}%"></i></span><b>${totCli ? Math.round(v / totCli * 100) : 0}%</b></div>`).join('')
+      + (outros ? `<div class="fe-gl q"><span>Outros ${n0(cli.length - 6)}</span><span class="fe-barra q"><i style="--v:${pc(outros, Math.max(maxC, outros))}%"></i></span><b>${Math.round(outros / totCli * 100)}%</b></div>` : '');
+    // E se…: os controles de sempre (cortes, clientes novos e perdidos, gastos novos, reajuste) e o caixa com e sem.
+    let ese = feCard('E se…', '<p class="fe-vazio">Sem mês fechado e conferido para projetar.</p>');
+    if (base?.meses_usados?.length) {
+      const cen = cenarioAtual(d), sem = X().projetar(base, {}, up.horizonte), com = X().projetar(base, cen, up.horizonte);
+      const mexeu = Boolean(cen.cortes.length || cen.economias.length || cen.clientes_novos.length || cen.clientes_perdidos.length || cen.gastos_novos.length || cen.ajuste_entradas_pct);
+      const real = (d.serie || []).filter((s) => s.saldo_final != null).slice(-1).map((s) => ({ mes: s.mes, v: s.saldo_final }));
+      const proj = sem.meses.map((m, i) => ({ mes: m.mes, v: m.saldo, c: mexeu ? com.meses[i].saldo : null }));
+      const fim = sem.meses[sem.meses.length - 1]?.mes || '', resMes = mexeu ? com.meses[0]?.resultado : sem.meses[0]?.resultado;
+      const horiz = feChips([3, 6, 12].map((n) => [String(n), `${n} meses`, null, `data-fx="horizonte" data-valor="${n}"`, up.horizonte === n]), 'Horizonte');
+      ese = `<div class="fe-par fe-ese">${cenarioHtml(d, base)}${feCard(`Caixa nos próximos ${up.horizonte} meses`, `<div class="fe-tres"><div><small>Em ${esc(soMes(fim))}, se nada mudar</small><b class="${sem.saldo_final < 0 ? 'r' : ''}">${esc(mil(sem.saldo_final))}</b></div>
+        ${mexeu ? `<div><small>Em ${esc(soMes(fim))}, com o cenário</small><b class="${com.saldo_final < 0 ? 'r' : 'g'}">${esc(mil(com.saldo_final))}</b></div>` : ''}<div><small>Resultado por mês</small><b>${esc(comSinal(resMes || 0))}</b></div></div>
+        ${feLinha(real, proj, { rotulo: `Caixa até ${soMes(fim)}: ${mil(sem.saldo_final)} se nada mudar${mexeu ? ` e ${mil(com.saldo_final)} com o cenário` : ''}` })}
+        <p class="fe-sub">Base: a média dos meses fechados do extrato (${esc(base.meses_usados.map((m) => soMes(m)).join(', '))}). O cenário é só simulação, não lança nada.</p>`, { dir: horiz })}</div>`;
+    }
+    return feCasca('fin_analise', d, `${nums}<div class="fe-duas">${feCard('Resultado por grupo · DRE de caixa', dre, { cls: 'fe-lista', dir: 'cada grupo abre os lançamentos dele' })}<aside class="fe-lado">${feCard('De quem vem a receita', conc || '<p class="fe-vazio">Nenhuma entrada ligada a cliente.</p>', { cls: 'fe-ficha', dir: meses.length ? `${esc(soMes(meses[0]))} a ${esc(soMes(meses[meses.length - 1]))}` : '' })}</aside></div>${ese}`);
+  }
+
+  // Ações das cinco telas (as de antes continuam em aoClicar).
+  async function aoClicarFe(ev) {
+    const b = ev.target.closest?.('[data-fx]'); if (!b || !b.closest('.fe')) return;
+    const a = b.dataset.fx, valor = b.dataset.valor ?? '', d = dadosAtuais(), u = ui.fe;
+    const limparLado = () => { ui.extrato.aberta = ''; ui.cartao.editando = ''; ui.cartao.novo = false; ui.cartao.colar = false; ui.fixos.editando = ''; ui.fixos.novo = false; ui.vorcaro.mao = false; u.lado = ''; };
+    switch (a) {
+      case 'fe-mes': if (valor) { u.mes = valor; ui.extrato.mes = valor; ui.cartao.fatura = valor; ui.fixos.mes = valor; ui.extrato.aberta = ''; } return repintar();
+      case 'fe-chip': limparLado(); u.chip = valor; u.grupo = ''; ui.extrato.cat = ''; ui.extrato.mostrar = 60; return feAbrir('fin_movimento');
+      case 'fe-chip-fixo': limparLado(); u.chip = 'fixos'; ui.fixos.editando = valor; return repintar();
+      case 'fe-grupo': limparLado(); u.grupo = valor; ui.extrato.cat = ''; u.chip = valor ? 'todos' : u.chip; return feAbrir('fin_movimento');
+      case 'fe-lado': u.lado = u.lado === valor ? '' : valor; return repintar();
+      case 'fe-sel-item': ui.cartao.editando = ui.cartao.editando === valor ? '' : valor; ui.cartao.novo = false; ui.cartao.colar = false; return repintar();
+      case 'fe-pular': if (valor) u.pular.push(valor); else u.pular = []; return repintar();
+      case 'fe-dividir': { // abre a ficha já com as duas metades (o mesmo "Dividir" do editor)
+        const t = (d.transacoes || []).find((x) => x.id === valor); if (!t) return;
+        const metade = Math.round(Math.abs(t.banco.valor) * 50) / 100;
+        ui.extrato.aberta = valor;
+        ui.extrato.partes[valor] = [{ valor: metade, cliente_id: t.real.cliente_id, cliente_nome: t.real.cliente_nome, categoria: t.real.categoria, competencia: t.real.competencia },
+          { valor: Math.round((Math.abs(t.banco.valor) - metade) * 100) / 100, cliente_id: '', cliente_nome: '', categoria: t.real.categoria, competencia: t.real.competencia }];
+        return repintar();
+      }
+      case 'fe-confirmar': {
+        const t = (d.transacoes || []).find((x) => x.id === valor); if (!t) return;
+        const carta = b.closest('.fe-carta'), regra = carta?.querySelector('[data-fe-regra]')?.checked;
+        indo(b); carta?.classList.add('fe-sai');
+        if (regra && t.banco.contraparte) await post({ acao: 'regra_salvar', regra: { contem: t.banco.contraparte.split(' ').slice(0, 2).join(' '), sinal: t.banco.valor < 0 ? 'saida' : 'entrada', revisar: false, categoria: t.real.categoria, quem: t.real.quem || '',
+          cliente_id: t.real.cliente_id || '', cliente_nome: t.real.cliente_nome || '', pessoa_id: t.real.pessoa_id || '', pessoa_nome: t.real.pessoa_nome || '', fixo_id: t.real.fixo_id || '' } }).catch((e) => avisar(e.message));
+        const r = await gravar({ acao: 'editar', id: valor, mudanca: { conferido: true } });
+        if (!r) { voltou(b); carta?.classList.remove('fe-sai'); }
+        return;
+      }
+      case 'fe-cli': u.cli.sel = u.cli.sel === String(valor) ? '' : String(valor); return feAbrir('fin_clientes');
+      case 'fe-cli-chip': u.cli.chip = valor; return repintar();
+      case 'fe-cli-mov': limparLado(); u.chip = 'entradas'; u.grupo = ''; if (anfitriao.filtro) anfitriao.filtro.fx_extrato = valor; return feAbrir('fin_movimento');
+      case 'fe-pes': u.pes.sel = u.pes.sel === valor ? '' : valor; u.pes.desconto = ''; return repintar();
+      case 'fe-desconto': u.pes.desconto = valor; return repintar();
+      default:
+    }
+  }
+  // Leva um id de antes (ou das cinco) para a tela nova, já com o filtro: { chip, cat, mes, lado, mao }. Devolve o id novo.
+  function feDe(aba, o = {}) {
+    const nova = String(aba || '').startsWith('fin_') ? aba : FE_DE[aba];
+    if (!nova) return '';
+    const u = ui.fe;
+    if (o.mes) { u.mes = o.mes; ui.extrato.mes = o.mes; ui.cartao.fatura = o.mes; ui.fixos.mes = o.mes; }
+    if (nova === 'fin_movimento' && (o.chip || o.cat || o.lado || FE_CHIP[aba] || aba === 'extrato')) {
+      ui.extrato.aberta = ''; ui.cartao.editando = ''; ui.fixos.editando = ''; u.grupo = '';
+      u.chip = o.chip || FE_CHIP[aba] || 'todos'; ui.extrato.cat = o.cat || ''; u.lado = o.lado || '';
+    }
+    if (o.mao) { abrirLancarMao({ status: o.mao }); u.chip = 'todos'; }
+    return nova;
+  }
+  // Abre uma das cinco (a mesma janela; o dock marca o item).
+  function feAbrir(aba) {
+    const el = document.querySelector(`.vv-trilho [data-submodulo="${aba}"]`);
+    if (el && el.getClientRects().length && !el.closest('[aria-current="page"]') && anfitriao?.aba !== aba) { el.click(); return; }
+    if (window.VybeComercial?.aberto?.() && document.querySelector(`.fe[data-tela="fe-${aba}"]`)) return repintar();
+    window.VybeComercial?.abrir?.(aba, { abas: [aba], rotulo: 'Finanças' });
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('click', aoClicarFe);
+
+  const telas = Object.freeze({ vorcaro, extrato, clientes_mes: clientesMes, cartao, fixos, projecao, vales,
+    fin_hoje: feHoje, fin_movimento: feMovimento, fin_clientes: feClientes, fin_pessoas: fePessoas, fin_analise: feAnalise });
   // Contas a pagar › "Lançar à mão" abre o formulário já aberto, como saída ainda não paga.
   function abrirLancarMao({ status = '' } = {}) { ui.vorcaro.mao = true; ui.vorcaro.status = status; }
-  window.VybeFinanceiro = Object.freeze({ telas, abrirPessoa, abrirLancarMao, molde: pecasFin, _teste: { cartaoPessoa, ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise } });
+  window.VybeFinanceiro = Object.freeze({ telas, abrirPessoa, abrirLancarMao, telaNova: feDe, molde: pecasFin, _teste: { cartaoPessoa, ui, lerFaturaColada, fixosProvaveis, cenarioAtual, analise, FE_DE, feDe } });
 })();
