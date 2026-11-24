@@ -325,6 +325,26 @@ test('Hoje: falta entrar e falta pagar; Assinaturas; combinado editável e gente
   assert.match(cli, /Cliente Devendo[\s\S]*(não pagou|a receber)/);
   assert.match(cli, /data-fx="fe-contrato-salvar" data-valor="40"/);
   assert.doesNotMatch(cli, /undefined|NaN/);
+  // Período dos gráficos (Paulo, 24/11/2026: "o ano todo? 6 meses? personalizado"): 6 meses de padrão, ano, escolher.
+  const ui = V._teste.ui.fe;
+  assert.match(hoje, /class="fe-periodo"[\s\S]*data-fx="fe-per" data-valor="6" aria-pressed="true"/);
+  assert.match(hoje, /class="fe-per-tot"[\s\S]*Entrou[\s\S]*Saiu[\s\S]*Resultado/);
+  ui.per = { k: 'ano', de: '', ate: '' };
+  assert.match(V.telas.fin_hoje({ d, filtro: {} }), /janeiro a novembro de 2026/);
+  ui.per = { k: 'custom', de: '2026-11', ate: '2026-09' };
+  const custom = V.telas.fin_hoje({ d, filtro: {} });
+  assert.match(custom, /data-fx-campo="fe-per-de"[\s\S]*data-fx-campo="fe-per-ate"/);
+  assert.match(custom, /setembro a novembro de 2026/, 'de/até invertidos se acertam');
+  // HUD da rosca: o pedaço abre de onde vem cada valor (por categoria e cada lançamento, com "abrir").
+  assert.match(hoje, /class="fe-rl" data-fx="fe-hud" data-valor="[^"]+" aria-haspopup="dialog"/);
+  assert.match(hoje, /class="fe-fatia [^"]*"[^>]*data-fx="fe-hud"/);
+  ui.per = { k: '6', de: '', ate: '' };
+  const grupo = /class="fe-rl" data-fx="fe-hud" data-valor="([^"]+)"/.exec(hoje)[1];
+  ui.hud = grupo;
+  const hud = V.telas.fin_hoje({ d, filtro: {} });
+  assert.match(hud, /class="fe-hud" role="dialog"[\s\S]*Por categoria[\s\S]*Cada lançamento[\s\S]*data-fx="ir-lanc"/);
+  assert.doesNotMatch(hud, /undefined|NaN/);
+  ui.hud = '';
 });
 
 // Tirar alguém de Pessoas some da lista e da conta; os Pix continuam no extrato.

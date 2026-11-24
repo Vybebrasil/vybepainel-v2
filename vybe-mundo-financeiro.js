@@ -1292,6 +1292,8 @@
     const c = t.dataset?.fxCampo; if (!c || !t.closest('.fx')) return;
     const cen = ui.projecao.cenario, i = Number(t.dataset.valor);
     switch (c) {
+      case 'fe-per-de': ui.fe.per.de = t.value; return repintar();
+      case 'fe-per-ate': ui.fe.per.ate = t.value; return repintar();
       case 'filtro-cat': ui.extrato.cat = t.value; ui.extrato.chip = 'todos'; return repintar();
       case 'corte': cen.cortes[t.dataset.valor] = Number(t.value); return repintar();
       case 'economia': cen.economias[t.dataset.valor] = t.checked; return repintar();
@@ -1329,7 +1331,7 @@
   const FE_DE = { vorcaro: 'fin_hoje', extrato: 'fin_movimento', cartao: 'fin_movimento', fixos: 'fin_movimento', recebimentos: 'fin_movimento', contas: 'fin_movimento',
     clientes_mes: 'fin_clientes', financas: 'fin_clientes', inadimplencia: 'fin_clientes', vales: 'fin_pessoas', projecao: 'fin_analise' };
   const FE_CHIP = { cartao: 'cartao', fixos: 'fixos', recebimentos: 'entradas', contas: 'previsto' };
-  ui.fe = { mes: '', chip: 'conferir', grupo: '', pular: [], lado: '', cli: { chip: 'todos', sel: '' }, pes: { sel: '', desconto: '' } };
+  ui.fe = { mes: '', per: { k: '6', de: '', ate: '' }, hud: '', chip: 'conferir', grupo: '', pular: [], lado: '', cli: { chip: 'todos', sel: '' }, pes: { sel: '', desconto: '' } };
   const feMeses = (d) => [...new Set([...(d.meses || []), (d.hoje || '').slice(0, 7)].filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort();
   function feIniciar(ctx) {
     anfitriao = ctx;
@@ -1435,11 +1437,12 @@
   // Rosca dos gastos: até 6 grupos com cor própria e o resto em "Outros" (cinza). A legenda ao lado traz nome, valor e %
   // e abre o Movimento daquele grupo. As cores seguem o grupo, não a posição: o mesmo grupo tem a mesma cor todo mês.
   const FE_COR_GRUPO = ['Pessoas', 'Sócios', 'Estrutura', 'Operação', 'Cartão', 'Empréstimos', 'Impostos', 'Banco', 'Outros'];
-  function feRosca(grupos, { rotulo = '' } = {}) {
+  function feRosca(grupos, { rotulo = '', sub = 'saiu no mês' } = {}) {
     const tot = grupos.reduce((s, g) => s + g.total, 0);
     if (!tot) return '<p class="fe-vazio">Nenhuma saída neste mês.</p>';
     const top = grupos.slice(0, 6), resto = grupos.slice(6).reduce((s, g) => s + g.total, 0);
-    const fatias = [...top.map((g) => ({ ...g, cor: 'c' + ((Math.max(0, FE_COR_GRUPO.indexOf(g.grupo)) % 6) + 1) })), ...(resto ? [{ grupo: 'Outros', total: resto, cor: 'c0', outros: true }] : [])];
+    const fatias = [...top.map((g) => ({ ...g, cor: 'c' + ((Math.max(0, FE_COR_GRUPO.indexOf(g.grupo)) % 6) + 1) })), ...(resto ? [{ grupo: 'Demais grupos', total: resto, cor: 'c0', outros: true }] : [])];
+    const hud = (f) => `data-fx="fe-hud" data-valor="${esc(f.outros ? '__resto' : f.grupo)}"`;
     // Cores únicas dentro da rosca: se dois grupos caírem na mesma, o segundo pega a primeira livre.
     const usadas = new Set(); for (const f of fatias) { if (f.cor === 'c0') continue; if (usadas.has(f.cor)) f.cor = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'].find((c) => !usadas.has(c)) || 'c0'; usadas.add(f.cor); }
     const R = 70, r = 46, C = 90; let ang = -Math.PI / 2;
@@ -1447,10 +1450,10 @@
       return `M${p(R, a0)} A${R},${R} 0 ${g} 1 ${p(R, a1)} L${p(r, a1)} A${r},${r} 0 ${g} 0 ${p(r, a0)} Z`; };
     const fatia = fatias.map((f) => { const a0 = ang, a1 = ang + (f.total / tot) * Math.PI * 2; ang = a1;
       const d = fatias.length === 1 ? `M${C},${C - R} A${R},${R} 0 1 1 ${C - 0.01},${C - R} L${C - 0.01},${C - r} A${r},${r} 0 1 0 ${C},${C - r} Z` : arco(a0, a1);
-      return `<path class="fe-fatia ${f.cor}" d="${d}" data-tip="${esc(`${f.grupo}\n${rs(f.total)} · ${Math.round(f.total / tot * 100)}%`)}"/>`; }).join('');
+      return `<path class="fe-fatia ${f.cor}" d="${d}" ${hud(f)} data-tip="${esc(`${f.grupo}\n${rs(f.total)} · ${Math.round(f.total / tot * 100)}%`)}"/>`; }).join('');
     const svg = `<div class="fe-hv fe-rosca-g"><svg class="fe-graf d3-graf fe-rosca" viewBox="0 0 180 180" role="img" aria-label="${esc(rotulo)}">${fatia}
-      <text class="fe-rosca-v" x="${C}" y="${C + 2}" text-anchor="middle">${esc(mil(tot))}</text><text class="fe-rosca-s" x="${C}" y="${C + 18}" text-anchor="middle">saiu no mês</text></svg><div class="fe-tip" hidden></div></div>`;
-    const leg = `<div class="fe-rosca-leg">${fatias.map((f) => `<button type="button" class="fe-rl" ${f.outros ? feIr('fin_movimento', 'data-chip="saidas"') : `data-fx="fe-grupo" data-valor="${esc(f.grupo)}"`}><i class="${f.cor}" aria-hidden="true"></i><span>${esc(f.grupo)}</span><b>${esc(mil(f.total))}</b><small>${Math.round(f.total / tot * 100)}%</small></button>`).join('')}</div>`;
+      <text class="fe-rosca-v" x="${C}" y="${C + 2}" text-anchor="middle">${esc(mil(tot))}</text><text class="fe-rosca-s" x="${C}" y="${C + 18}" text-anchor="middle">${esc(sub)}</text></svg><div class="fe-tip" hidden></div></div>`;
+    const leg = `<div class="fe-rosca-leg">${fatias.map((f) => `<button type="button" class="fe-rl" ${hud(f)} aria-haspopup="dialog"><i class="${f.cor}" aria-hidden="true"></i><span>${esc(f.grupo)}</span><b>${esc(mil(f.total))}</b><small>${Math.round(f.total / tot * 100)}%</small></button>`).join('')}</div>`;
     return `<div class="fe-rosca-caixa">${svg}${leg}</div>`;
   }
   // A dica dos gráficos: segue o mouse (ou o dedo) dentro do gráfico e mostra a linha vertical no mês/dia.
@@ -1475,6 +1478,51 @@
     const dias = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).getUTCDate(), por = new Array(dias).fill(0);
     for (const t of lista) if (t.banco.data.startsWith(mes) && (tipo === 'saida' ? t.banco.valor < 0 : t.banco.valor > 0)) por[Number(t.banco.data.slice(8, 10)) - 1] += Math.abs(t.banco.valor);
     let s = 0; return por.map((v) => (s += v));
+  }
+  // Período dos gráficos do Hoje (Paulo, 24/11/2026: "deixa o período personalizado… o ano todo? 6 meses?"). Vale para
+  // "Entrou × saiu" e para a rosca; "Falta entrar", "Falta pagar" e os pontos de atenção continuam sendo do mês.
+  const FE_PER = [['3', '3 meses'], ['6', '6 meses'], ['12', '12 meses'], ['ano', 'Este ano'], ['tudo', 'Tudo'], ['custom', 'Escolher']];
+  function mesesDoPeriodo(d, mes) {
+    const p = ui.fe.per, todos = (d.serie || []).map((s) => s.mes);
+    let de, ate = mes;
+    if (p.k === 'custom' && p.de && p.ate) { [de, ate] = p.de <= p.ate ? [p.de, p.ate] : [p.ate, p.de]; }
+    else if (p.k === 'ano') de = `${mes.slice(0, 4)}-01`;
+    else if (p.k === 'tudo') de = todos[0] || mes;
+    else de = X().somarMeses(mes, -(Number(p.k === 'custom' ? 6 : p.k) - 1));
+    const out = []; for (let m = de; m <= ate && out.length < 120; m = X().somarMeses(m, 1)) out.push(m);
+    return out;
+  }
+  const curtoMes = (m, anos) => (anos ? `${mes3(m)}/${m.slice(2, 4)}` : mes3(m));
+  function fePeriodo(d, meses) {
+    const p = ui.fe.per;
+    const chips = FE_PER.map(([k, nome]) => `<button type="button" class="fe-chip" data-fx="fe-per" data-valor="${k}" aria-pressed="${p.k === k}">${esc(nome)}</button>`).join('');
+    const custom = p.k === 'custom' ? `<span class="fe-per-de">${selMes('de', p.de || meses[0], d, { rotulo: 'De', attrs: 'data-fx-campo="fe-per-de"' })}<span>até</span>${selMes('ate', p.ate || meses[meses.length - 1], d, { rotulo: 'Até', attrs: 'data-fx-campo="fe-per-ate"' })}</span>` : '';
+    const rot = meses.length > 1 ? `${soMes(meses[0])}${meses[0].slice(0, 4) !== meses[meses.length - 1].slice(0, 4) ? ` de ${meses[0].slice(0, 4)}` : ''} a ${soMes(meses[meses.length - 1])} de ${meses[meses.length - 1].slice(0, 4)}` : nomeMes(meses[0]);
+    return { html: `<div class="fe-periodo" role="group" aria-label="Período dos gráficos"><span class="fe-rot">Período</span><div class="fe-chips">${chips}</div>${custom}<span class="fe-sub">${esc(rot)}</span></div>`, rot };
+  }
+  // HUD da rosca (Paulo, 24/11/2026: "quando clico em Outros devia abrir um HUD mostrando de onde tá puxando cada valor e
+  // o que é cada um"): o total do pedaço, aberto por grupo e categoria, e cada lançamento do período com "abrir".
+  function feHud(d, lista, mesesP, rotPer, grupos) {
+    const k = ui.fe.hud; if (!k) return '';
+    const resto = k === '__resto', alvo = new Set(resto ? grupos.slice(6).map((g) => g.grupo) : [k]);
+    const set = new Set(mesesP), itens = [];
+    for (const t of lista) {
+      if (!set.has(t.banco.data.slice(0, 7))) continue;
+      for (const p of X().pedacos(t)) if (p.valor < 0 && alvo.has(grupoDe(d, p.categoria))) itens.push({ t, p, g: grupoDe(d, p.categoria) });
+    }
+    itens.sort((a, b) => a.p.valor - b.p.valor);
+    const tot = itens.reduce((s, i) => s - i.p.valor, 0);
+    const porCat = new Map(); for (const i of itens) { const c = `${i.g}|${i.p.categoria}`; const x = porCat.get(c) || { g: i.g, cat: i.p.categoria, v: 0, n: 0 }; x.v -= i.p.valor; x.n++; porCat.set(c, x); }
+    const cats = [...porCat.values()].sort((a, b) => b.v - a.v);
+    const nome = (t) => t.real.descricao || t.banco.contraparte || t.banco.historico;
+    const lin = itens.slice(0, 80).map(({ t, p, g }) => `<div class="fe-kv fe-orig"><span>${esc(dataCurta(t.banco.data))} · ${esc(nome(t))}<small>${esc(nomeCat(d, p.categoria))}${resto ? ` · ${esc(g)}` : ''}${t.banco.contraparte && nome(t) !== t.banco.contraparte ? ` · ${esc(t.banco.contraparte)}` : ''}${t.real.conferido ? '' : ' · sem conferir'}</small></span><b>${esc(rs(-p.valor))} <button type="button" class="fv2-link" data-fx="ir-lanc" data-valor="${esc(t.id)}" data-mes="${esc(t.banco.data.slice(0, 7))}">abrir</button></b></div>`).join('');
+    const titulo = resto ? 'Demais grupos' : k;
+    return `<div class="fe-hud-veu" data-fx="fe-hud" data-valor="" aria-hidden="true"></div><section class="fe-hud" role="dialog" aria-modal="true" aria-label="${esc(`De onde vem ${titulo}`)}">
+      <div class="fe-lado-cab"><div><span class="fe-rot">De onde vem · ${esc(rotPer)}</span><h3 class="fe-nome">${esc(titulo)}</h3><span class="fe-sub">${esc(rs(tot))} em ${esc(quantos(itens.length, 'lançamento', 'lançamentos'))}${resto ? ` · junta ${esc([...alvo].join(', '))}` : ''}</span></div><button type="button" class="fe-ico" data-fx="fe-hud" data-valor="" aria-label="Fechar">${IC_FECHAR}</button></div>
+      <div class="fe-conta"><span class="fe-rot">Por categoria</span>${cats.map((c) => `<div class="fe-kv"><span>${esc(nomeCat(d, c.cat))}<small>${resto ? `${esc(c.g)} · ` : ''}${esc(quantos(c.n, 'lançamento', 'lançamentos'))}</small></span><b>${esc(rs(c.v))} <small>${tot ? Math.round(c.v / tot * 100) : 0}%</small></b></div>`).join('') || '<p class="fe-vazio">Nada neste período.</p>'}</div>
+      <div class="fe-conta"><span class="fe-rot">Cada lançamento, do maior para o menor</span>${lin}${itens.length > 80 ? `<p class="fe-sub">e mais ${n0(itens.length - 80)} no Movimento.</p>` : ''}</div>
+      ${resto ? '' : `<div class="fe-bts">${feBtn(`Ver ${titulo} no Movimento`, `data-fx="fe-grupo" data-valor="${esc(k)}"`, 'q')}</div>`}
+    </section>`;
   }
   function feHoje(ctx) {
     const d = feIniciar(ctx), lista = d.transacoes || [], mes = ui.fe.mes, hoje = d.hoje || '', mesHoje = hoje.slice(0, 7);
@@ -1541,13 +1589,22 @@
       ...achados.map((a) => ({ g: a.g, rot: a.rot, ...partir(a.det), attrs: feAchadoIr(a) })),
       vale.length ? { g: 0, rot: 'Vale acumulado', det: quantos(vale.length, 'pessoa', 'pessoas'), val: mil(vale.reduce((s, c) => s + c.vale, 0)), attrs: feIr('fin_pessoas'), roxo: true } : null].filter(Boolean).slice(0, 6);
     const atencao = feCard('Pontos de atenção', itens.map((a) => `<button type="button" class="fe-al" ${a.attrs}><i class="fe-dot ${a.roxo ? 'v' : a.g >= 2 ? 'r' : 'a'}" aria-hidden="true"></i><span><b>${esc(a.rot)}</b>${a.det ? `<small>${esc(a.det)}</small>` : ''}</span>${a.val ? `<b class="fe-al-v">${esc(a.val)}</b>` : ICV.seta}</button>`).join('') || '<p class="fe-vazio">Nada pedindo atenção.</p>');
-    const grupos = saidasPorGrupo(d, r);
-    const onde = feCard('Para onde foi o dinheiro', feRosca(grupos, { rotulo: `Saídas de ${soMes(mes)} por grupo` }), { dir: grupos.length ? 'toque num grupo para ver os lançamentos' : '', cls: 'fe-onde' });
+    const mesesP = mesesDoPeriodo(d, mes), per = fePeriodo(d, mesesP);
+    const porMes = new Map((d.serie || []).map((s) => [s.mes, s]));
+    const umMes = mesesP.length === 1 && mesesP[0] === mes;
+    // Rosca: soma as saídas por grupo em todos os meses do período.
+    const gMap = new Map();
+    for (const m of mesesP) for (const g of saidasPorGrupo(d, m === mes ? r : X().resumo(lista, { mes: m }))) gMap.set(g.grupo, (gMap.get(g.grupo) || 0) + g.total);
+    const grupos = [...gMap].map(([grupo, total]) => ({ grupo, total })).sort((a, b) => b.total - a.total);
+    const onde = feCard(`Para onde foi o dinheiro${umMes ? '' : ` · ${per.rot}`}`, feRosca(grupos, { rotulo: `Saídas de ${per.rot} por grupo`, sub: umMes ? 'saiu no mês' : 'saiu no período' }), { dir: grupos.length ? 'toque num pedaço para ver de onde vem' : '', cls: 'fe-onde' });
     // Entrou × saiu nos últimos 6 meses, até o mês escolhido (o resultado é a distância entre as duas linhas).
-    const seis = (d.serie || []).filter((s) => s.mes <= mes).slice(-6);
-    const linhas6 = feCard('Entrou × saiu, mês a mês', feLinhas(seis.map((s) => ({ curto: mes3(s.mes), longo: nomeMes(s.mes) })), [
-      { nome: 'Entrou', cls: 's1', vals: seis.map((s) => s.entradas) }, { nome: 'Saiu', cls: 's0', vals: seis.map((s) => s.saidas + s.cartao) }],
-    { rotulo: `Entrou e saiu de ${soMes(seis[0]?.mes || mes)} a ${soMes(mes)}` }), { cls: 'fe-6m', dir: `<button type="button" class="fe-elo" ${feIr('fin_analise')}>mais na Análise</button>` });
+    const anos = mesesP[0].slice(0, 4) !== mesesP[mesesP.length - 1].slice(0, 4);
+    const ent = mesesP.map((m) => (porMes.has(m) ? porMes.get(m).entradas : null)), sai = mesesP.map((m) => (porMes.has(m) ? porMes.get(m).saidas + porMes.get(m).cartao : null));
+    const somar = (a) => a.reduce((s, v) => s + (v || 0), 0), tE = somar(ent), tS = somar(sai), comDado = ent.filter((v) => v != null).length || 1;
+    const totais = `<div class="fe-per-tot"><div><small>Entrou</small><b>${esc(mil(tE))}</b></div><div><small>Saiu</small><b>${esc(mil(tS))}</b></div><div><small>Resultado</small><b class="${tE - tS < 0 ? 'r' : 'g'}">${esc((tE - tS < 0 ? '−' : '') + mil(Math.abs(tE - tS)))}</b></div><div><small>Saída média/mês</small><b>${esc(mil(tS / comDado))}</b></div></div>`;
+    const linhas6 = feCard('Entrou × saiu', totais + feLinhas(mesesP.map((m) => ({ curto: curtoMes(m, anos), longo: nomeMes(m) })), [
+      { nome: 'Entrou', cls: 's1', vals: ent }, { nome: 'Saiu', cls: 's0', vals: sai }],
+    { rotulo: `Entrou e saiu de ${per.rot}` }), { cls: 'fe-6m', dir: `<button type="button" class="fe-elo" ${feIr('fin_analise')}>mais na Análise</button>` });
     // O gasto do mês dia a dia, contra o mês anterior no mesmo dia.
     const mAnt = X().somarMeses(mes, -1), acA = acumuladoDoMes(lista, mes), acB = acumuladoDoMes(lista, mAnt);
     const diaHoje = mes === mesHoje ? Number(hoje.slice(8, 10)) : acA.length, nD = Math.max(acA.length, acB.length);
@@ -1558,7 +1615,7 @@
         { nome: soMes(mes), cls: 's0', vals: Array.from({ length: nD }, (_, i) => (i < diaHoje && i < acA.length ? acA[i] : null)) },
         { nome: soMes(mAnt), cls: 'sq', trac: true, vals: Array.from({ length: nD }, (_, i) => (i < acB.length ? acB[i] : null)) }],
       { rotulo: `Gasto acumulado por dia em ${soMes(mes)} e ${soMes(mAnt)}`, alto: 190, marcarX: mes === mesHoje ? diaHoje - 1 : -1 }), { cls: 'fe-dia-a-dia' });
-    return feCasca('fin_hoje', d, `${laranja}${nums}<div class="fe-par">${linhas6}${onde}</div><div class="fe-par">${entrar}${pagar}</div><div class="fe-par">${diaADia}${atencao}</div>`);
+    return feCasca('fin_hoje', d, `${feHud(d, lista, mesesP, per.rot, grupos)}${laranja}${nums}${per.html}<div class="fe-par">${linhas6}${onde}</div><div class="fe-par">${entrar}${pagar}</div><div class="fe-par">${diaADia}${atencao}</div>`);
   }
   // O achado do Vorcaro leva à tela nova certa, com o filtro dele.
   function feAchadoIr(a) {
@@ -1883,12 +1940,12 @@
   }
   // Mês num <select> (Paulo, 24/11/2026: "não consigo mudar a data"): o <input type="month"> não abre seletor no Safari do
   // Mac. Os 18 meses de trás até 3 à frente, e o valor de agora mesmo se estiver fora disso.
-  function selMes(nome, valor, d, { vazio = '', rotulo = '' } = {}) {
+  function selMes(nome, valor, d, { vazio = '', rotulo = '', attrs = '' } = {}) {
     const base = (d.hoje || '').slice(0, 7) || ui.fe.mes, lista = [];
     for (let i = -18; i <= 3; i++) lista.push(X().somarMeses(base, i));
     if (valor && !lista.includes(valor)) lista.push(valor);
     lista.sort().reverse();
-    return `<select name="${nome}" class="fx-sel"${rotulo ? ` aria-label="${esc(rotulo)}"` : ''}>${vazio ? `<option value="">${esc(vazio)}</option>` : ''}${lista.map((m) => `<option value="${m}"${m === valor ? ' selected' : ''}>${esc(nomeMes(m))}</option>`).join('')}</select>`;
+    return `<select name="${nome}" class="fx-sel"${attrs ? ` ${attrs}` : ''}${rotulo ? ` aria-label="${esc(rotulo)}"` : ''}>${vazio ? `<option value="">${esc(vazio)}</option>` : ''}${lista.map((m) => `<option value="${m}"${m === valor ? ' selected' : ''}>${esc(nomeMes(m))}</option>`).join('')}</select>`;
   }
   // A ficha da pessoa, em seções na ordem em que se usa (Paulo, 24/11/2026: "mal diagramado"): o combinado (mudar, tirar),
   // os números, o que recebeu no mês, o salário do mês e o próximo, o vale (de onde vem e jogar para o salário) e, no fim,
@@ -2041,7 +2098,7 @@
     const a = b.dataset.fx, valor = b.dataset.valor ?? '', d = dadosAtuais(), u = ui.fe;
     const limparLado = () => { ui.extrato.aberta = ''; ui.cartao.editando = ''; ui.cartao.novo = false; ui.cartao.colar = false; ui.fixos.editando = ''; ui.fixos.novo = false; ui.vorcaro.mao = false; u.lado = ''; };
     switch (a) {
-      case 'fe-mes': if (valor) { u.mes = valor; ui.extrato.mes = valor; ui.cartao.fatura = valor; ui.fixos.mes = valor; ui.extrato.aberta = ''; } return repintar();
+      case 'fe-mes': u.hud = ''; if (valor) { u.mes = valor; ui.extrato.mes = valor; ui.cartao.fatura = valor; ui.fixos.mes = valor; ui.extrato.aberta = ''; } return repintar();
       case 'fe-chip': limparLado(); u.chip = valor; u.grupo = ''; ui.extrato.cat = ''; ui.extrato.mostrar = 60; return feAbrir('fin_movimento');
       case 'fe-chip-fixo': limparLado(); u.chip = 'fixos'; ui.fixos.editando = valor; return feAbrir('fin_movimento');
       case 'fe-ass-nova': ui.fixos.novo = true; ui.fixos.editando = ''; ui.fixos.rascunho = { categoria: 'ferramentas', forma: 'cartao' }; return repintar();
@@ -2068,7 +2125,7 @@
         return; }
       case 'fe-pes-volta': return gravar({ acao: 'pessoa_fora', pessoa_id: valor, fora: false }, 'Voltou para Pessoas.');
       case 'fe-var-novo': abrirLancarMao(); ui.vorcaro.cat = 'freela'; u.pes.variavel = true; u.pes.sel = ''; return repintar();
-      case 'fe-grupo': limparLado(); u.grupo = valor; ui.extrato.cat = ''; u.chip = valor ? 'todos' : u.chip; return feAbrir('fin_movimento');
+      case 'fe-grupo': u.hud = ''; limparLado(); u.grupo = valor; ui.extrato.cat = ''; u.chip = valor ? 'todos' : u.chip; return feAbrir('fin_movimento');
       case 'fe-lado': u.lado = u.lado === valor ? '' : valor; return repintar();
       case 'fe-sel-item': ui.cartao.editando = ui.cartao.editando === valor ? '' : valor; ui.cartao.novo = false; ui.cartao.colar = false; return repintar();
       case 'fe-pular': if (valor) u.pular.push(valor); else u.pular = []; return repintar();
@@ -2091,6 +2148,8 @@
         return;
       }
       case 'fe-cli': u.cli.sel = u.cli.sel === String(valor) ? '' : String(valor); return feAbrir('fin_clientes');
+      case 'fe-hud': u.hud = valor; return repintar();
+      case 'fe-per': { const p = ui.fe.per; p.k = valor; if (valor === 'custom' && !p.de) { p.de = X().somarMeses(ui.fe.mes, -5); p.ate = ui.fe.mes; } return repintar(); }
       case 'fe-cli-chip': u.cli.chip = valor; return repintar();
       case 'fe-cli-mov': limparLado(); u.chip = 'entradas'; u.grupo = ''; if (anfitriao.filtro) anfitriao.filtro.fx_extrato = valor; return feAbrir('fin_movimento');
       case 'fe-pes': u.pes.sel = u.pes.sel === valor ? '' : valor; u.pes.desconto = ''; u.pes.variavel = false; ui.vorcaro.mao = false; return repintar();
@@ -2121,7 +2180,9 @@
     if (window.VybeComercial?.aberto?.() && document.querySelector(`.fe[data-tela="fe-${aba}"]`)) return repintar();
     window.VybeComercial?.abrir?.(aba, { abas: [aba], rotulo: 'Finanças' });
   }
-  if (typeof document !== 'undefined' && document.addEventListener) { document.addEventListener('click', aoClicarFe); document.addEventListener('pointermove', aoPassarFe); document.addEventListener('pointerout', saiuDoGrafico); }
+  if (typeof document !== 'undefined' && document.addEventListener) { document.addEventListener('click', aoClicarFe); document.addEventListener('pointermove', aoPassarFe); document.addEventListener('pointerout', saiuDoGrafico);
+    // Esc fecha só o HUD da rosca (antes de chegar ao Esc que fecha a janela).
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && ui.fe.hud && document.querySelector('.fe .fe-hud')) { ev.preventDefault(); ev.stopImmediatePropagation(); ui.fe.hud = ''; document.querySelectorAll('.fe .fe-hud, .fe .fe-hud-veu').forEach((e) => e.remove()); } }, true); }
 
   const telas = Object.freeze({ vorcaro, extrato, clientes_mes: clientesMes, cartao, fixos, projecao, vales,
     fin_hoje: feHoje, fin_movimento: feMovimento, fin_clientes: feClientes, fin_pessoas: fePessoas, fin_assinaturas: feAssinaturas, fin_analise: feAnalise });
