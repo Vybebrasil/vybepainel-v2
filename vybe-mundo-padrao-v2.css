@@ -22606,3 +22606,24 @@ button.fe-gl:hover > span:first-child{text-decoration:underline}
 .fe-fim-ficha .fe-sub{font-size:12px}
 .fe-comb .fe-ico{width:30px;height:30px}
 @media (max-width:760px){ .fe-comb{grid-template-columns:minmax(0,1fr) 90px;} .fe-comb > span{grid-column:1/-1} }
+
+/* Período dos gráficos do Hoje (24/11/2026) */
+.fe-periodo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.fe-periodo>.fe-sub{margin-left:auto}
+.fe-per-de{display:inline-flex;align-items:center;gap:6px}
+.fe-per-de .fx-sel{min-width:150px}
+.fe-per-tot{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 10px}
+.fe-per-tot>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fe-per-tot small{font-size:11px;color:var(--d3-texto2)}
+.fe-per-tot b{font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fe-per-tot b.g{color:var(--d3-pronto)}
+.fe-per-tot b.r{color:var(--d3-perigo)}
+@media (max-width:760px){.fe-per-tot{grid-template-columns:repeat(2,minmax(0,1fr))}.fe-periodo>.fe-sub{margin-left:0;width:100%}}
+
+/* HUD da rosca: de onde vem cada valor (24/11/2026) */
+.fe .fe-fatia{cursor:pointer}
+.fe-hud-veu{position:fixed;inset:0;z-index:60;background:var(--d3-veu-forte)}
+.fe-hud{position:fixed;z-index:61;top:72px;right:24px;bottom:96px;width:min(480px,calc(100vw - 32px));overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:var(--d3-r-cartao);background:var(--d3-cartao);border:1px solid var(--d3-borda)}
+.fe-hud .fe-conta small{display:block}
+.fe-hud .fe-kv b small{display:inline;margin-left:6px;font-weight:400;color:var(--d3-texto2)}
+@media (max-width:760px){.fe-hud{top:12px;right:16px;bottom:88px}}
