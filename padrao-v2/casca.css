@@ -58,3 +58,5 @@ body.mundo.mundo-visivel{overflow:hidden}
   /* Tela cheia não serve no celular (a janela já ocupa a tela): só o Fechar fica no canto (itens 13 e 38). */
   :is(.vv-canto-modulo .vv-botao[data-modulo-acao="cheia"],.vv-g-acoes .vv-botao[data-gestao-cheia]):not(#v2-canto-a):not(#v2-canto-b):not(#v2-canto-c){display:none}
 }
+/* Menu lateral largo: a ilha mede 232px (vybe-mundo.css), não 216. Quem se posiciona ao lado dela pela variável fica com o respiro certo. */
+body.mundo.trilho-largo{--vv-trilho-w:232px}
