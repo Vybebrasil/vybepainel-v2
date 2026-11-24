@@ -22232,6 +22232,11 @@ button.fe-gl:hover > span:first-child{text-decoration:underline}
 .fe-p.sel{background:var(--d3-folha-leve);box-shadow:inset 0 0 0 2px var(--d3-tinta)}
 .fe-p > .rt{font-variant-numeric:tabular-nums}
 .fe-p > .rt.v{font-weight:500}
+.fe-p-num{appearance:none;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:right}
+.fe-p-num:hover{text-decoration:underline}
+.fe-orig > span{min-width:0}
+.fe-orig small{display:block;font-size:12px;color:var(--d3-texto2)}
+.fe-orig > b{white-space:nowrap}
 .fe-p-nome{appearance:none;border:0;background:none;padding:0;text-align:left;display:flex;align-items:center;gap:10px;cursor:pointer;min-width:0}
 .fe-p-nome > span{display:flex;flex-direction:column;min-width:0}
 .fe-p-nome b{font-weight:500}
@@ -22307,3 +22312,30 @@ button.fe-gl:hover > span:first-child{text-decoration:underline}
 .fe-graf .fe-fim-t{fill:var(--d3-acao-texto)}
 /* O detalhe do cliente de antes (fx-mm-det) tem largura fixa de 560: na ficha ele ocupa a largura dela. */
 #vv-comercial .fe .fe-ficha .fx-mm-det{width:auto;max-width:100%;min-width:0}
+/* Hoje refeito (24/11/2026): falta entrar e falta pagar, por grupo. */
+.fe-dot.a{background:var(--d3-ajuste)}
+.fe-dot.n{background:var(--d3-trilho)}
+.fe-gr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 0 4px}
+.fe-gr > b{font-weight:500;font-variant-numeric:tabular-nums}
+.fe-gr.fe-tot{border-top:1px solid var(--d3-linha);padding-top:10px;margin-top:2px}
+.fe-al-v{font-variant-numeric:tabular-nums;white-space:nowrap}
+/* Assinaturas */
+.fe-as{appearance:none;border:0;background:none;width:100%;text-align:left;display:grid;grid-template-columns:minmax(150px,1.6fr) minmax(120px,1fr) repeat(2,minmax(80px,.7fr));gap:14px;align-items:center;font-size:14px;padding:10px;margin:0 -10px;border-top:1px solid var(--d3-linha);border-radius:10px;cursor:pointer}
+.fe-as-cab{cursor:default;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--d3-meta);font-weight:500;border-top:0}
+.fe-as.sel{background:var(--d3-folha-leve);box-shadow:inset 0 0 0 2px var(--d3-tinta)}
+.fe-as.q{color:var(--d3-texto2)}
+.fe-as-nome{display:flex;flex-direction:column;min-width:0}
+.fe-as-nome b{font-weight:500}
+.fe-as-nome small,.fe-as .rt small{font-size:12px;color:var(--d3-texto2)}
+.fe-as .rt{display:flex;flex-direction:column;align-items:flex-end;font-variant-numeric:tabular-nums}
+.fe-as .rt small.a{color:var(--d3-ajuste)}
+.fe-as > .fe-tag{justify-self:start}
+.fe-as:not(.fe-as-cab):hover .fe-as-nome b{text-decoration:underline}
+/* Pessoas: combinado editável e gente que não é fixa */
+.fe-comb-ed{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.fe-comb-ed .fx-campo{flex:1 1 120px;min-width:0}
+.fe-var{margin-top:14px}
+@media (max-width:760px){
+  .fe-as{grid-template-columns:minmax(0,1fr) auto}
+  .fe-as > :nth-child(2),.fe-as > :nth-child(4){display:none}
+}

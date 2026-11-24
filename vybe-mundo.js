@@ -177,10 +177,11 @@
     { id: 'setor:financas', grupo: 'Negócio', nome: 'Finanças', dica: 'Finanças: o dinheiro da Vybe em 5 telas', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
       // Finanças em 5 telas (Paulo, 23/11/2026: "muita ABA com muita coisa espalhada"). As 11 de antes viraram um lugar
       // destas (FE_DE em vybe-mundo-financeiro.js); os ids antigos continuam abrindo, na tela nova.
-      { id: 'fin_hoje', nome: 'Hoje', dica: 'O Vorcaro, o saldo, o que entrou e saiu, o caixa e o que pede atenção', mod: ['VybeComercial', 'fin_hoje'] },
+      { id: 'fin_hoje', nome: 'Hoje', dica: 'O que entrou, o que falta entrar, o que já pagou e o que falta pagar', mod: ['VybeComercial', 'fin_hoje'] },
       { id: 'fin_movimento', nome: 'Movimento', dica: 'Extrato, cartão, fixos e previsto, com a fila de conferir', mod: ['VybeComercial', 'fin_movimento'] },
       { id: 'fin_clientes', nome: 'Clientes', dica: 'Cada cliente mês a mês, com a margem real e a ficha', mod: ['VybeComercial', 'fin_clientes'] },
       { id: 'fin_pessoas', nome: 'Pessoas', dica: 'Combinado × o que cada pessoa recebeu, o vale e o desconto no salário', mod: ['VybeComercial', 'fin_pessoas'] },
+      { id: 'fin_assinaturas', nome: 'Assinaturas', dica: 'Programas e softwares: quanto custam e se já foram pagos', mod: ['VybeComercial', 'fin_assinaturas'] },
       { id: 'fin_analise', nome: 'Análise', dica: 'Fôlego, concentração, resultado por grupo e cenários', mod: ['VybeComercial', 'fin_analise'] },
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
@@ -678,7 +679,7 @@
   const TRANCADOS = new Set(['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas']);
   // Só dos donos de verdade (a coordenação não vê): o setor Finanças, as abas dele, IA e custos e a Mídia (Vinícius, 20/11/2026:
   // "para mim, Ewerton, Paulo e Deivid").
-  const SO_DINHEIRO = new Set(['setor:midia', 'midia', 'setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_analise', 'ai-usage']);
+  const SO_DINHEIRO = new Set(['setor:midia', 'midia', 'setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise', 'ai-usage']);
   const trancadoPara = (id) => (TRANCADOS.has(id) && !souDono()) || (SO_DINHEIRO.has(id) && !souDonoDoDinheiro());
   function aplicarCadeados() {
     hud.querySelectorAll?.('.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor]').forEach((b) => {

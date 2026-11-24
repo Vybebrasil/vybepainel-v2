@@ -216,7 +216,7 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
     vales: [{ id: 'vl-1', pessoa_id: '7', mes: '2026-12', tipo: 'descontar', valor: 300, nota: 'desconto do vale no salário' }] };
   const d = montar(base, [], { hoje: HOJE, pessoas: [{ id: '7', nome: 'Ana Ficticia' }] });
   const ctxTela = { d, filtro: {} };
-  const abas = ['fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_analise'];
+  const abas = ['fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_assinaturas', 'fin_analise'];
   for (const aba of abas) {
     const html = V.telas[aba](ctxTela);
     assert.match(html, new RegExp(`class="fx fv2 d3f fe d3-tema" data-tela="fe-${aba}"`), aba);
@@ -241,4 +241,73 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
   assert.equal(feDe('cartao'), 'fin_movimento'); assert.equal(V._teste.ui.fe.chip, 'cartao');
   assert.equal(feDe('extrato', { chip: 'conferir' }), 'fin_movimento'); assert.equal(V._teste.ui.fe.chip, 'conferir');
   assert.equal(feDe('funil'), '', 'o que não é de Finanças segue o caminho de sempre');
+});
+
+// Paulo, 24/11/2026: "vinicius recebeu 6800? deivid 8000?" — sem combinado, tudo que a pessoa recebia virava vale e a
+// coluna Vale parecia somar ao Recebeu. Sem combinado não existe vale.
+test('sem combinado: o que a pessoa recebeu não vira vale', () => {
+  const t = (id, data, valor) => ({ id, banco: { data, historico: id, valor, saldo: null }, real: { categoria: 'pro_labore', status: 'pago', competencia: data.slice(0, 7), partes: [], conferido: true, pessoa_id: '9' } });
+  const c = X.contaPessoa([t('a', '2026-10-05', -800), t('b', '2026-11-05', -3000)], '9', { ate: '2026-11' });
+  assert.equal(c.vale, 0);
+  assert.equal(c.meses.find((m) => m.mes === '2026-11').pago, 3000);
+});
+
+// Paulo, 24/11/2026: "o Eai Primos tá como cliente ativo... por que não entrou em Finanças?" (Diacenter e Dialab também).
+// Cliente ativo sem mensalidade e sem entrada ligada aparece na tela Clientes, e o filtro "Sem mensalidade" acha ele.
+test('Clientes: todo cliente ativo aparece, mesmo sem mensalidade nem entrada ligada', () => {
+  const CORE = readFileSync('vybe-core.js', 'utf8');
+  const D3 = CORE.slice(CORE.indexOf('const d3Esc'), CORE.indexOf('if (typeof globalThis !== \'undefined\') Object.assign(globalThis, { d3AcaoHtml'));
+  const ctx = vm.createContext({ console, Intl, Date, Map, Set, Promise, setTimeout, clearTimeout, CSS: { escape: (s) => s } }); ctx.window = ctx;
+  vm.runInContext(D3 + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
+  vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
+  const V = ctx.VybeFinanceiro;
+  const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);
+  const base = { extrato: { transacoes, importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], salarios: {}, vales: [] };
+  const clientes = [{ cliente_id: '40', cliente_nome: 'Cliente Sem Mensal', valor_mensal: 0, ativo: true }, { cliente_id: '41', cliente_nome: 'Cliente Inativo', valor_mensal: 0, ativo: false }];
+  const d = montar(base, clientes, { hoje: HOJE, pessoas: [] });
+  const html = V.telas.fin_clientes({ d, filtro: {} });
+  assert.match(html, /Cliente Sem Mensal/);
+  assert.doesNotMatch(html, /Cliente Inativo/);
+  assert.match(html, /data-valor="sem"[^>]*>Sem mensalidade/);
+  assert.doesNotMatch(html, /undefined|NaN/);
+  V._teste.ui.fe.cli.sel = '40';
+  assert.match(V.telas.fin_clientes({ d, filtro: {} }), /Cliente Sem Mensal/);
+  V._teste.ui.fe.cli.sel = '';
+});
+
+// Paulo, 24/11/2026: o Hoje responde o que já entrou, o que falta entrar, o que já pagou e o que falta pagar (salários,
+// programas, contas fixas); a aba Assinaturas controla os programas; o combinado muda na própria ficha; freela tem lugar.
+test('Hoje: falta entrar e falta pagar; Assinaturas; combinado editável e gente que não é fixa em Pessoas', () => {
+  const CORE = readFileSync('vybe-core.js', 'utf8');
+  const D3 = CORE.slice(CORE.indexOf('const d3Esc'), CORE.indexOf('if (typeof globalThis !== \'undefined\') Object.assign(globalThis, { d3AcaoHtml'));
+  const ctx = vm.createContext({ console, Intl, Date, Map, Set, Promise, setTimeout, clearTimeout, CSS: { escape: (s) => s } }); ctx.window = ctx;
+  vm.runInContext(D3 + ';globalThis.d3AcaoHtml=d3AcaoHtml;globalThis.d3NumHtml=d3NumHtml;globalThis.d3LinhaSvg=d3LinhaSvg;', ctx);
+  vm.runInContext(readFileSync('shared/financeiro-extrato.js', 'utf8'), ctx);
+  vm.runInContext(readFileSync('vybe-mundo-financeiro.js', 'utf8'), ctx);
+  const V = ctx.VybeFinanceiro;
+  const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);
+  for (const x of transacoes) if (/Ana Ficticia/.test(x.banco.historico)) x.real = X.aplicarEdicao(x, { categoria: 'salario', pessoa_id: '7', pessoa_nome: 'Ana Ficticia', conferido: true }, 'Paulo').real;
+  const fixos = [X.normalizarFixo({ id: 'fx-adobe', nome: 'Adobe', valor: 290, dia: 20, categoria: 'ferramentas', forma: 'cartao' }).fixo,
+    X.normalizarFixo({ id: 'fx-aluguel', nome: 'Aluguel', valor: 1800, dia: 10, categoria: 'estrutura', forma: 'boleto' }).fixo];
+  const base = { extrato: { transacoes, importacoes: [] }, regras: [], fixos, cartao: [], cenarios: [], salarios: { 7: { valor: 3000, desde: '2026-08' }, 9: { valor: 2000, desde: '2026-11' } }, vales: [] };
+  const clientes = [{ cliente_id: '40', cliente_nome: 'Cliente Devendo', valor_mensal: 1500, ativo: true }];
+  const d = montar(base, clientes, { hoje: HOJE, pessoas: [{ id: '7', nome: 'Ana Ficticia' }, { id: '9', nome: 'Pessoa Nova' }] });
+  const hoje = V.telas.fin_hoje({ d, filtro: {} });
+  assert.match(hoje, /Já entrou[\s\S]*Já pagou[\s\S]*Fecha o mês com/);
+  assert.match(hoje, /Falta entrar[\s\S]*Cliente Devendo/);
+  assert.match(hoje, /Falta pagar[\s\S]*Salários[\s\S]*Ana Ficticia[\s\S]*Pessoa Nova[\s\S]*Programas e assinaturas[\s\S]*Adobe[\s\S]*Contas fixas[\s\S]*Aluguel/);
+  assert.match(hoje, /data-valor="fin_pessoas" data-pes="9"/, 'o salário abre a ficha da pessoa');
+  assert.doesNotMatch(hoje, /undefined|NaN/);
+  const ass = V.telas.fin_assinaturas({ d, filtro: {} });
+  assert.match(ass, /data-tela="fe-fin_assinaturas"/);
+  assert.match(ass, /Adobe/); assert.doesNotMatch(ass, /Aluguel/, 'só programas e assinaturas');
+  assert.match(ass, /R\$\s?290,00/); assert.match(ass, /data-fx="fe-ass-nova"/);
+  assert.doesNotMatch(ass, /undefined|NaN/);
+  V._teste.ui.fe.pes.sel = '9';
+  const pes = V.telas.fin_pessoas({ d, filtro: {} });
+  assert.match(pes, /class="fe-comb-ed" data-fx-form="salario"[\s\S]*name="valor"[^>]*value="2000"[\s\S]*data-fx="pessoa-salario" data-valor="9"/);
+  assert.match(pes, /Gente que não é fixa[\s\S]*data-fx="fe-var-novo"/);
+  V._teste.ui.fe.pes.sel = '';
+  assert.equal(V.telaNova('fin_assinaturas'), 'fin_assinaturas');
 });
