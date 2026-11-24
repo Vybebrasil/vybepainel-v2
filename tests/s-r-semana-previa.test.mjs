@@ -128,6 +128,8 @@ test('cartão Semana: linha por dia (não acumulada), hoje destacado, dia escolh
 
 test('Agência e Minhas tarefas usam a prévia; o dono vê a agência por padrão com "Agência | Minha fila" guardado', () => {
   assert.match(mundo, /decidirHtml\(\) : semanaD3Html\(previaD3\(\)\)/);
+  // Minhas tarefas (24/11/2026, Paulo: "leva o gráfico ali pra direita"): a Semana na coluna da direita, logo depois do mês.
+  assert.match(mundo, /<aside class="d3h-lado d3q-lado" aria-label="Consulta">\$\{ladoD3\(\{ mini \}\)\}\$\{semanaPessoa\}/);
   assert.match(mundo, /const escolheSemana = dono && !verComo, escopoSem = escolheSemana && escopoSemanaTarefas !== 'fila' \? 'agencia' : 'fila';/);
   assert.match(mundo, /data-semana-escopo="\$\{k\}"/);
   assert.match(mundo, /try \{ localStorage\.setItem\('vybe\.mundo\.semanaTarefas', escopoSemanaTarefas\); \} catch/);

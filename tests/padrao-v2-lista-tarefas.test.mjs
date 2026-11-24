@@ -11,7 +11,10 @@ const tela = js.slice(js.indexOf('// ===== Minhas tarefas pelo quadro D3-Tarefas
 // ou o guia do dia) e a coluna de consulta direto no vidro.
 test('a tela segue a ordem da prancha V2: topo, números, lista com o laranja ao lado e a coluna de consulta', () => {
   assert.ok(tela.length > 2000);
-  const ordem = ["decidirHtml({ titulo: 'Para aprovar agora', laranja: true }) : faixa", '<div class="d3h d3h-tf d3q">', 'dir: `${diaDe}${segDono}`', '${numeros}', '<div class="d3q-meio">${tarefas}<div class="d3q-acao">${laranja}</div></div>', 'compromissosD3Html()', "whatsappD3Html('tarefas')", 'aprovacoesD3Html()', 'agentesD3Html('];
+  const ordem = ["decidirHtml({ titulo: 'Para aprovar agora', laranja: true }) : faixa", '<div class="d3h d3h-tf d3q">', 'dir: `${diaDe}${segDono}`', '${numeros}', '<div class="d3q-meio d3h-tf-meio"><div class="d3h-tf-esq">${tarefas}${olhoCli}</div><div class="d3q-acao">${laranja}</div></div></div>',
+    // 24/11/2026 (Paulo: "leva o gráfico ali pra direita... no lugar de aprovações e agentes viram"): a Semana na coluna,
+    // com Aprovações e Agentes viram em linhas embaixo dela; o laranja fica com a altura toda.
+    '<aside class="d3h-lado d3q-lado" aria-label="Consulta">${ladoD3({ mini })}${semanaPessoa}${consultaD3Html({ aprovacoes: !verComo,', 'compromissosD3Html()', "whatsappD3Html('tarefas')"];
   let p = -1; for (const parte of ordem) { const i = tela.indexOf(parte, p + 1); assert.ok(i > p, parte); p = i; }
   // O que o quadro não tem saiu da tela.
   for (const velho of ['vv-hoje-dias', 'vv-anel', 'data-pergunta', 'vv-chips', 'vv-blocos-prio', 'guiaHtml(']) assert.ok(!tela.includes(velho), `saiu ${velho}`);

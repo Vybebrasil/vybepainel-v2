@@ -13,6 +13,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { textoDoHistorico } from './texto-historico.js';
 import { notaDoVideo } from './drive-videos.js';
+import { faixaPedida } from './conteudo-aprovacao-pagina.js';
 
 const ID = /^[\w-]{10,200}$/;
 const PASTA = 'application/vnd.google-apps.folder';
@@ -41,13 +42,20 @@ export function idsDoLink(url) {
 // A assinatura da miniatura: o segredo da sessão do painel (o mesmo de server/upload-contexto.js). Sem segredo
 // configurado não há assinatura, e a prévia vem sem miniatura (o quadro com ▶ e o nome) em vez de abrir o proxy.
 function segredo() { return process.env.SESSAO_SECRET || process.env.MIRROR_ADMIN_KEY || ''; }
-export function assinarMiniatura(id) {
+const assinar = (proposito, id) => {
   const s = segredo();
-  return s && ID.test(String(id || '')) ? createHmac('sha256', s).update('vybe-previa-entrega:v1:' + id).digest('base64url').slice(0, 32) : '';
-}
-export function miniaturaAssinada(id, assinatura) {
-  const esperada = assinarMiniatura(id), dada = String(assinatura || '');
-  return Boolean(esperada) && dada.length === esperada.length && timingSafeEqual(Buffer.from(dada), Buffer.from(esperada));
+  return s && ID.test(String(id || '')) ? createHmac('sha256', s).update(proposito + id).digest('base64url').slice(0, 32) : '';
+};
+const confere = (esperada, assinatura) => { const dada = String(assinatura || '');
+  return Boolean(esperada) && dada.length === esperada.length && timingSafeEqual(Buffer.from(dada), Buffer.from(esperada)); };
+export function assinarMiniatura(id) { return assinar('vybe-previa-entrega:v1:', id); }
+export function miniaturaAssinada(id, assinatura) { return confere(assinarMiniatura(id), assinatura); }
+// O vídeo da entrega tem assinatura própria: a da miniatura (que só abre a imagem) não abre o arquivo.
+export function assinarVideo(id) { return assinar('vybe-previa-entrega:video:v1:', id); }
+export function videoAssinado(id, assinatura) { return confere(assinarVideo(id), assinatura); }
+export function videoDaEntrega(id) {
+  const e = assinarVideo(id);
+  return e ? `/api/painel?area=video_entrega&id=${encodeURIComponent(id)}&e=${e}` : null;
 }
 export function miniaturaDaEntrega(id, sz = 480) {
   const e = assinarMiniatura(id);
@@ -94,6 +102,8 @@ export function escolherDaPasta(arquivos = [], peca = {}) {
 const previaDoArquivo = (a, url) => ({
   tipo: a.tipo, thumb: a.miniatura ? miniaturaDaEntrega(a.id) : null, abrir: `https://drive.google.com/file/d/${a.id}/view`,
   nome: String(a.nome || ''), n: a.n || 0, fonte: 'entrega', link: url,
+  // Vídeo: o endereço do quadro de ~1 s (area=video_entrega), que a carta usa quando a miniatura do Drive vem preta.
+  ...(a.tipo === 'video' ? { quadro: videoDaEntrega(a.id) } : {}),
 });
 // Quando não dá para ler o Drive (sem acesso, fora do Drive): a prévia diz que há link de entrega, com ▶ quando é vídeo.
 const soOLink = (url, video) => ({ tipo: video ? 'video' : 'link', thumb: null, abrir: url, nome: video ? 'Vídeo · link de entrega' : 'Link de entrega', n: 0, fonte: 'entrega', link: url });
@@ -156,4 +166,45 @@ export async function areaPreviaEntrega(req, res, quem, { db, listar, arquivo, a
   }
   res.setHeader('Cache-Control', 'private, max-age=300');
   return res.status(200).json({ ok: true, previa });
+}
+
+// O quadro de ~1 s do vídeo da entrega (Paulo, 24/11/2026, "Sim, faz"): o Reels que abre com fade do preto ganha do
+// Drive uma miniatura toda preta, e a carta mede isso no navegador e pede o quadro a este endereço. Transmite o arquivo
+// do Drive por partes (Range), para o <video preload=metadata> só baixar o começo (e o índice, se ele estiver no fim).
+// Abre só com sessão (como area=miniatura) e só o arquivo que a prévia da entrega assinou (videoDaEntrega, emitida
+// para um vídeo da pasta do link de entrega daquele item); o arquivo continua privado no Drive.
+export const VIDEO_TRECHO_MAX = 2 * 1024 * 1024;
+const FICHAS = new Map(), FICHA_VALIDADE = 10 * 60e3, FICHA_TETO = 200;
+export function esquecerFichasDoVideo() { FICHAS.clear(); }
+export async function areaVideoEntrega(req, res, quem, { arquivo, trecho, agora = Date.now } = {}) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido.' });
+  if (!quem) return res.status(401).json({ error: 'Entre no painel.' });
+  const id = String(req.query?.id || '');
+  if (!ID.test(id)) return res.status(400).json({ error: 'Informe o arquivo.' });
+  if (!videoAssinado(id, req.query?.e)) return res.status(404).json({ error: 'Arquivo não encontrado.' });
+  // O tamanho e o tipo do arquivo, guardados por 10 minutos: o player pede várias partes do mesmo vídeo.
+  let ficha = FICHAS.get(id);
+  if (!ficha || agora() - ficha.em >= FICHA_VALIDADE) {
+    let f;
+    try { f = await arquivo(id); } catch (erro) { console.error('area=video_entrega', erro?.message || erro); return res.status(502).json({ error: 'Vídeo indisponível agora.' }); }
+    ficha = { em: agora(), tipo: String(f?.mimeType || ''), total: Number(f?.size || 0) };
+    if (FICHAS.size >= FICHA_TETO) FICHAS.delete(FICHAS.keys().next().value);
+    FICHAS.set(id, ficha);
+  }
+  if (!/^video\//.test(ficha.tipo) || !(ficha.total > 0)) return res.status(404).json({ error: 'Este arquivo não é um vídeo.' });
+  const { total } = ficha;
+  res.setHeader('Accept-Ranges', 'bytes');
+  // Sem Range (ou um Range que não se entende) vale o começo do arquivo: nunca o arquivo inteiro de uma vez.
+  const parte = req.headers?.range ? faixaPedida(req.headers.range, total) || faixaPedida('bytes=0-', total) : faixaPedida('bytes=0-', total);
+  if (parte.invalida) { res.setHeader('Content-Range', `bytes */${total}`); return res.status(416).end(); }
+  const fim = Math.min(parte.fim, parte.ini + VIDEO_TRECHO_MAX - 1);
+  let bytes;
+  try { bytes = await trecho(id, parte.ini, fim); } catch (erro) { console.error('area=video_entrega', erro?.message || erro); return res.status(502).json({ error: 'Vídeo indisponível agora.' }); }
+  res.setHeader('Content-Type', ficha.tipo);
+  res.setHeader('Content-Range', `bytes ${parte.ini}-${parte.ini + bytes.length - 1}/${total}`);
+  res.setHeader('Content-Length', String(bytes.length));
+  res.setHeader('Content-Disposition', 'inline');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  return res.status(206).end(bytes);
 }

@@ -883,7 +883,7 @@
     if (!p) return '<span class="vc-previa-msg">Sem arquivo anexado</span>';
     const selo = p.tipo === 'video' ? '<i class="vc-previa-selo vc-previa-play" aria-label="Vídeo">▶</i>' : p.n > 1 ? `<i class="vc-previa-selo vc-previa-n" aria-label="Carrossel com ${p.n} imagens">1/${p.n}</i>` : '';
     if (p.thumb) return `<img src="${esc(p.thumb)}" alt="${esc(alt)}" width="480" height="600" loading="lazy" data-vc-previa="${esc(ref)}">${selo}`;
-    if (p.tipo === 'video' && p.video) return `<video class="vc-previa-video" src="${esc(String(p.video).split('#')[0])}#t=0.1" preload="metadata" muted playsinline disablepictureinpicture tabindex="-1" aria-label="${esc(alt || p.nome || 'Vídeo')}" data-vc-previa-video="${esc(ref)}"></video>${selo}`;
+    if (p.tipo === 'video' && p.video) return `<video class="vc-previa-video" src="${esc(String(p.video).split('#')[0])}#t=${Number(p.t) > 0 ? Number(p.t) : 0.1}" preload="metadata" muted playsinline disablepictureinpicture tabindex="-1" aria-label="${esc(alt || p.nome || 'Vídeo')}" data-vc-previa-video="${esc(ref)}"></video>${selo}`;
     return `<span class="vc-previa-quadro">${p.tipo === 'video' ? '<i class="vc-previa-play" aria-hidden="true">▶</i>' : ''}<b>${esc(p.nome || 'Arquivo anexado')}</b></span>${p.tipo === 'video' ? '' : selo}`;
   }
   // A miniatura não abriu (o Drive ainda não liberou a prévia do arquivo): o detalhe da peça libera e traz de novo;
@@ -891,12 +891,80 @@
   document.addEventListener('error', (e) => {
     const img = e.target;
     // O <video> do primeiro quadro não carregou: fica o quadro com ▶ e o nome.
-    if (img?.tagName === 'VIDEO' && img.dataset?.vcPreviaVideo) { const r = img.dataset.vcPreviaVideo; if (previas[r]?.video) { previas[r] = { ...previas[r], video: null }; avisarPrevia(r); } return; }
+    if (img?.tagName === 'VIDEO' && img.dataset?.vcPreviaVideo) { const r = img.dataset.vcPreviaVideo; if (previas[r]?.quadroDe) return desistirDoQuadro(r); if (previas[r]?.video) { previas[r] = { ...previas[r], video: null }; avisarPrevia(r); } return; }
     if (img?.tagName !== 'IMG' || !img.dataset?.vcPrevia) return;
     const ref = img.dataset.vcPrevia, p = previas[ref];
     if (!p || buscandoPrevia.has(ref)) return;
     if (!p.detalhe) return buscarPrevia(ref, (r) => lerDetalhe(r, { ...p, thumb: null, detalhe: true }).then((x) => (x && x.thumb === p.thumb ? { ...x, thumb: null } : x)));
     previas[ref] = { ...p, thumb: null }; avisarPrevia(ref);
+  }, true);
+
+  // A miniatura PRETA do Drive (Paulo, 24/11/2026, "Sim, faz"): o Reels que abre com fade do preto ganha do Drive uma
+  // miniatura toda zero, e a carta virava um retângulo escuro. A miniatura da entrega sai do nosso domínio
+  // (area=miniatura), então o canvas não fica contaminado: reduzida a 24x24, luminância média abaixo de 10 (de 255) e
+  // quase sem variação é preta. Preta e com o endereço do quadro (area=video_entrega, por partes), a carta troca pelo
+  // <video> parado em 1 s. Se o vídeo não abrir (HEVC .mov no Chrome, erro, demora ou sem imagem), fica o quadro com ▶ e o
+  // nome do arquivo. Cada miniatura é medida uma vez por sessão; o vídeo que falhou não é pedido de novo.
+  const PRETAS = new Map(), QUADRO_FALHOU = new Set(), QUADRO_ABRIU = new Set(), QUADRO_PRAZO = 12e3, QUADRO_SEGUNDO = 1;
+  function quasePreta(px) {
+    let soma = 0, soma2 = 0, n = 0;
+    for (let i = 0; i + 3 < (px?.length || 0); i += 4) {
+      if (px[i + 3] < 8) continue;
+      const y = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+      soma += y; soma2 += y * y; n++;
+    }
+    if (!n) return false;
+    const media = soma / n, desvio = Math.sqrt(Math.max(0, soma2 / n - media * media));
+    return media < 10 && desvio < 6;
+  }
+  function medirMiniatura(img) {
+    try {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 24;
+      const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, 24, 24);
+      return quasePreta(g.getImageData(0, 0, 24, 24).data);
+    } catch { return false; }
+  }
+  function desistirDoQuadro(ref) {
+    const p = previas[ref];
+    if (!p?.quadroDe || !p.video) return;
+    QUADRO_FALHOU.add(p.video); previas[ref] = { ...p, video: null }; avisarPrevia(ref);
+  }
+  function trocarPeloQuadro(ref) {
+    const p = previas[ref];
+    if (!p?.thumb || !p.quadro || p.tipo !== 'video') return;
+    const video = QUADRO_FALHOU.has(p.quadro) ? null : p.quadro;
+    previas[ref] = { ...p, thumb: null, video, t: QUADRO_SEGUNDO, quadroDe: p.thumb };
+    avisarPrevia(ref);
+    if (video) setTimeout(() => { if (!QUADRO_ABRIU.has(video)) desistirDoQuadro(ref); }, QUADRO_PRAZO);
+  }
+  // A proporção real da mídia (Paulo, 24/11/2026: "não era pra ser responsivo? Ficar do tamanho do card ou vídeo?"): lida
+  // quando a imagem ou o quadro carrega, vai para a arte do cartão (--arte-prop) e fica na prévia (prop), para a próxima
+  // pintura já nascer na proporção certa (1:1, 4:5, 9:16, 16:9). Quem desenha a arte decide se usa (o laranja do Hoje usa).
+  function guardarProporcao(ref, w, h, el) {
+    if (!(w > 0 && h > 0)) return;
+    const prop = Math.round((w / h) * 1000) / 1000, arte = el?.closest?.('.d3h-arte');
+    if (arte) { arte.style.setProperty('--arte-prop', String(prop)); arte.classList.add('d3h-arte-prop'); }
+    const p = previas[ref];
+    if (p && p.prop !== prop) previas[ref] = { ...p, prop };
+  }
+  document.addEventListener('load', (e) => {
+    const img = e.target;
+    if (img?.tagName !== 'IMG' || !img.dataset?.vcPrevia) return;
+    const ref = img.dataset.vcPrevia, p = previas[ref];
+    if (p?.quadro && p.tipo === 'video' && p.thumb === img.getAttribute('src')) {
+      if (!PRETAS.has(p.thumb)) PRETAS.set(p.thumb, medirMiniatura(img));
+      if (PRETAS.get(p.thumb)) return trocarPeloQuadro(ref);
+    }
+    if (p?.thumb === img.getAttribute('src')) guardarProporcao(ref, img.naturalWidth, img.naturalHeight, img);
+  }, true);
+  // O quadro abriu de verdade só com imagem (o HEVC no Chrome pode abrir o som e não a imagem: largura 0).
+  document.addEventListener('loadeddata', (e) => {
+    const v = e.target;
+    if (v?.tagName !== 'VIDEO' || !v.dataset?.vcPreviaVideo) return;
+    const ref = v.dataset.vcPreviaVideo;
+    if (v.videoWidth > 0 && previas[ref]?.video) guardarProporcao(ref, v.videoWidth, v.videoHeight, v);
+    if (!previas[ref]?.quadroDe) return;
+    if (v.videoWidth > 0) QUADRO_ABRIU.add(previas[ref].video); else desistirDoQuadro(ref);
   }, true);
 
   // ---------- Links de aprovação ----------

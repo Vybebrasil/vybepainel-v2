@@ -44,7 +44,8 @@ test('ordem do guia: atrasada furando a data do cliente, atrasada, vai ao ar hoj
   // Direção V2 (16/11/2026): o guia do dia com os três primeiros passos fica no único cartão laranja, ao lado da lista
   // (com peça para aprovar, o laranja mostra a arte).
   assert.ok(js.includes("const laranja = !verComo && decidir.length ? decidirHtml({ titulo: 'Para aprovar agora', laranja: true }) : faixa;"), 'o laranja é a peça para aprovar ou o guia do dia');
-  assert.ok(js.includes('<div class="d3q-meio">${tarefas}<div class="d3q-acao">${laranja}</div></div>'), 'o guia do dia fica no cartão laranja, ao lado da lista');
+  // s-u (24/11/2026): a Semana foi para a coluna da direita; o laranja fica com a altura toda ao lado da lista.
+  assert.ok(js.includes('<div class="d3q-meio d3h-tf-meio"><div class="d3h-tf-esq">${tarefas}${olhoCli}</div><div class="d3q-acao">${laranja}</div></div>'), 'o guia do dia fica no cartão laranja, ao lado da lista');
 });
 
 test('Agência: o VYBES guia (alerta mais grave, cliente esperando no WhatsApp, os outros alertas) antes dos números', () => {

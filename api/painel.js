@@ -53,7 +53,7 @@ import { lerFluxoStatus, gravarFluxoDoQuadro, normalizarFluxoDoQuadro, conferirF
 import { bancoComTransacoes } from '../server/transacao-automacoes.js';
 
 import { areaDriveVideos } from '../server/drive-videos.js';
-import { areaPreviaEntrega, miniaturaAssinada } from '../server/previa-entrega.js';
+import { areaPreviaEntrega, miniaturaAssinada, areaVideoEntrega } from '../server/previa-entrega.js';
 import { pastaDoConteudo, pastaSimples, subpasta, enviarParaDrive, tornarPublico, arquivarNoDrive, iniciarUploadNoDrive, enviarParteNoDrive, consultarUploadNoDrive, baixarDoDrive, baixarTrechoDoDrive, miniaturaDoDrive, listarMidiasNoDrive, arquivoNoDrive } from '../vybe_drive.js';
 import { faixaPedida, tipoDeVideo, TRECHO_MAX } from '../server/conteudo-aprovacao-pagina.js';
 import { listar, salvar, remover, semear, criarSchemaAutomacoes, simular, ensaio, varrerAgenda,
@@ -2059,6 +2059,8 @@ const AREAS = { feed_instagram: (req,res,quem) => areaFeedInstagram(req,res,quem
                 conta: areaConta, pessoas: areaPessoas, peca: areaPeca, arquivos: areaArquivos, baixar: areaBaixar, miniatura: areaMiniatura, drive_videos: (req, res, quem) => areaDriveVideos(req, res, quem),
                 // A prévia da peça sem arquivo, pelo link de entrega (server/previa-entrega.js): o baralho das aprovações.
                 previa_entrega: (req, res, quem) => areaPreviaEntrega(req, res, quem, { db: sql(), listar: (id) => abrirBaixa.listar(id), arquivo: (id) => abrirBaixa.arquivo(id) }),
+                // O quadro de ~1 s do vídeo da entrega quando a miniatura do Drive vem preta: por partes, só com a assinatura dela.
+                video_entrega: (req, res, quem) => areaVideoEntrega(req, res, quem, { arquivo: (id) => abrirBaixa.arquivo(id), trecho: (id, ini, fim) => abrirBaixa.trecho(id, ini, fim) }),
                 planejamentos: (req, res, quem) => areaPlanejamentos(req, res, quem, sql()),
                 midia: (req, res, quem) => areaMidia(req, res, quem, sql),
                 vybes: (req, res, quem) => areaVybes(req, res, quem, sql()),

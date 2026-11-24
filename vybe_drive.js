@@ -462,9 +462,10 @@ export async function listarMidiasNoDrive(pastaId) {
   const d = await drive(`files?q=${q}&fields=files(id,name,mimeType,createdTime,hasThumbnail)&orderBy=name&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`);
   return d.files || [];
 }
-// Um arquivo só (link de entrega que aponta para o arquivo, não para a pasta).
+// Um arquivo só (link de entrega que aponta para o arquivo, não para a pasta). O size é o que o quadro do vídeo da
+// entrega (area=video_entrega) precisa para responder por partes.
 export async function arquivoNoDrive(fileId) {
-  return drive(`files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,createdTime,hasThumbnail&supportsAllDrives=true`);
+  return drive(`files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,createdTime,hasThumbnail,size&supportsAllDrives=true`);
 }
 
 export async function roteirosNoDrive({ desde = '' } = {}) {
