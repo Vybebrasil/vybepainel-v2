@@ -232,7 +232,7 @@ test('Finanças em 5 telas: Hoje, Movimento, Clientes, Pessoas e Análise pintam
   V._teste.ui.fe.pes.sel = '7';
   const pes = V.telas.fin_pessoas(ctxTela);
   assert.match(pes, /Salário de dezembro[\s\S]*Desconto do vale<\/span><b class="v">−R\$ 300,00[\s\S]*Vai receber<\/span><b>R\$ 2\.700,00/);
-  assert.match(pes, /Desconto em dezembro<\/span><b>−R\$ 300,00/);
+  assert.match(pes, /Desconto planejado em dezembro<\/span><b>−R\$ 300,00/);
   V._teste.ui.fe.pes.desconto = '7';
   assert.match(V.telas.fin_pessoas(ctxTela), /data-fx-form="ajuste"><input type="hidden" name="tipo" value="descontar">[\s\S]*data-fx="pessoa-ajuste" data-valor="7"/);
   // As telas de antes viram um lugar das cinco, com o filtro.
@@ -306,8 +306,32 @@ test('Hoje: falta entrar e falta pagar; Assinaturas; combinado editável e gente
   assert.doesNotMatch(ass, /undefined|NaN/);
   V._teste.ui.fe.pes.sel = '9';
   const pes = V.telas.fin_pessoas({ d, filtro: {} });
-  assert.match(pes, /class="fe-comb-ed" data-fx-form="salario"[\s\S]*name="valor"[^>]*value="2000"[\s\S]*data-fx="pessoa-salario" data-valor="9"/);
+  assert.match(pes, /class="fe-conta fe-combinado" data-fx-form="salario"[\s\S]*name="valor"[^>]*value="2000"[\s\S]*<select name="desde"[\s\S]*value="2026-11" selected[\s\S]*data-fx="pessoa-salario" data-valor="9"/);
+  assert.match(pes, /data-fx="fe-comb-tirar" data-valor="9"/, 'dá para tirar o combinado');
+  assert.match(pes, /data-fx="fe-pes-fora" data-valor="9"/, 'dá para tirar a pessoa');
+  assert.doesNotMatch(pes, /type="month"/, 'mês num select (Safari não abre o seletor de mês)');
   assert.match(pes, /Gente que não é fixa[\s\S]*data-fx="fe-var-novo"/);
   V._teste.ui.fe.pes.sel = '';
   assert.equal(V.telaNova('fin_assinaturas'), 'fin_assinaturas');
+  // Gráficos no Hoje (Paulo, 24/11/2026: "sinto falta de gráficos"): linhas com comparação, rosca dos gastos, dia a dia.
+  assert.match(hoje, /fe-6m[\s\S]*<svg[^>]*role="img"[^>]*aria-label="Entrou e saiu/);
+  assert.match(hoje, /fe-onde[\s\S]*class="fe-graf d3-graf fe-rosca"/);
+  assert.match(hoje, /fe-dia-a-dia[\s\S]*Até o dia/);
+  assert.match(hoje, /<table class="[^"]*"[\s\S]*<\/table>/, 'tabela para leitor de tela');
+  // Clientes: contrato, quanto pagou e como pagou (integral, metade…), e onde cadastrar o contrato.
+  V._teste.ui.fe.cli = { ...(V._teste.ui.fe.cli || {}), sel: '40' };
+  const cli = V.telas.fin_clientes({ d, filtro: {} });
+  assert.match(cli, /Contratado[\s\S]*Recebido[\s\S]*Falta receber/);
+  assert.match(cli, /Cliente Devendo[\s\S]*(não pagou|a receber)/);
+  assert.match(cli, /data-fx="fe-contrato-salvar" data-valor="40"/);
+  assert.doesNotMatch(cli, /undefined|NaN/);
+});
+
+// Tirar alguém de Pessoas some da lista e da conta; os Pix continuam no extrato.
+test('Pessoas: quem foi tirado não aparece nas contas', () => {
+  const transacoes = X.transacoesDoCsv(X.lerCsvBB(csv(LINHAS)), []);
+  const base = { extrato: { transacoes, importacoes: [] }, regras: [], fixos: [], cartao: [], cenarios: [], salarios: { 7: { valor: 3000, desde: '2026-08' }, 9: { fora: true, por: 'Paulo', em: '2026-11-24' } }, vales: [] };
+  const d = montar(base, [], { hoje: HOJE, pessoas: [{ id: '7', nome: 'Ana Ficticia' }, { id: '9', nome: 'Pessoa Nova' }] });
+  const ids = (d.contas_pessoas || []).map((c) => c.pessoa_id);
+  assert.ok(ids.includes('7')); assert.ok(!ids.includes('9'));
 });

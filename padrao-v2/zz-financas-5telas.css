@@ -166,7 +166,7 @@ button.fe-num:hover{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
 .fe-dot{width:9px;height:9px;flex:none;border-radius:999px;background:var(--d3-ajuste-claro)}
 .fe-dot.r{background:var(--d3-perigo)}
 .fe-dot.v{background:var(--d3-agente)}
-.fe-gl{appearance:none;border:0;background:none;width:100%;text-align:left;display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,2fr) 76px;gap:12px;align-items:center;padding:7px 0;font-size:14px}
+.fe-gl{appearance:none;border:0;background:none;width:100%;text-align:left;display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,2fr) minmax(76px,auto);gap:12px;align-items:center;padding:7px 0;font-size:14px}
 button.fe-gl{cursor:pointer}
 button.fe-gl:hover > span:first-child{text-decoration:underline}
 .fe-gl > b{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
@@ -181,7 +181,7 @@ button.fe-gl:hover > span:first-child{text-decoration:underline}
 .fe-pilulas{display:flex;flex-wrap:wrap;gap:6px}
 
 /* Clientes */
-.fe-g{display:grid;grid-template-columns:minmax(140px,1.6fr) repeat(4,minmax(64px,.8fr)) minmax(80px,.8fr) minmax(64px,.6fr);gap:10px;align-items:center;font-size:14px}
+.fe-g{display:grid;grid-template-columns:minmax(130px,1.4fr) minmax(86px,.8fr) minmax(86px,.8fr) minmax(150px,1.2fr) minmax(150px,1.1fr) minmax(56px,.5fr);gap:12px;align-items:center;font-size:14px}
 .fe-g-cab{padding-bottom:6px}
 .fe-g-cab > span{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--d3-meta);font-weight:500}
 .fe-g-cab > .c{text-align:center}
@@ -226,7 +226,7 @@ button.fe-gl:hover > span:first-child{text-decoration:underline}
 .fe-desc > .fe-bts{grid-column:1 / -1}
 .fe-desc .fx-campo{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--d3-meta)}
 .fe-planos{display:flex;flex-direction:column}
-.fe-comb{display:grid;grid-template-columns:minmax(0,1fr) 110px 130px auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--d3-linha)}
+.fe-comb{display:grid;grid-template-columns:minmax(0,1fr) 100px minmax(120px,140px) auto auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--d3-linha)}
 .fe .fx-in{box-sizing:border-box;width:100%;min-width:0;height:36px;padding:0 12px;border:0;border-radius:10px;background:var(--d3-folha-leve);box-shadow:inset 0 0 0 1px var(--d3-borda);font:inherit;color:var(--d3-tinta)}
 
 /* Análise */
@@ -312,3 +312,89 @@ button.fe-gl:hover > span:first-child{text-decoration:underline}
   .fe-as{grid-template-columns:minmax(0,1fr) auto}
   .fe-as > :nth-child(2),.fe-as > :nth-child(4){display:none}
 }
+/* Gráficos do Hoje (24/11/2026). Cores categóricas validadas (dataviz/validate_palette, claro em #FFFFFF e escuro em
+   #2B2926): azul, água, violeta, amarelo, magenta, verde. Laranja fica de fora (é do Vorcaro); verde e vermelho de
+   status também. "Outros" e o mês anterior em cinza. */
+.fe{--fe-c1:#2a78d6;--fe-c2:#1baf7a;--fe-c3:#6250d6;--fe-c4:#eda100;--fe-c5:#e87ba4;--fe-c6:#008300}
+:where([data-d3-tema="escuro"]) .fe{--fe-c1:#3987e5;--fe-c2:#199e70;--fe-c3:#9085e9;--fe-c4:#c98500;--fe-c5:#d55181;--fe-c6:#0ca30c}
+.fe-hv{position:relative}
+.fe-tip{position:absolute;z-index:3;pointer-events:none;display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;background:var(--d3-cartao);color:var(--d3-tinta);box-shadow:0 8px 24px -10px rgba(0,0,0,.45),0 0 0 1px var(--d3-borda);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fe-tip > b{font-weight:600}
+.fe-graf .fe-grade{stroke:var(--d3-linha);stroke-width:1}
+.fe-graf .fe-ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.fe-graf .fe-ln.trac{stroke-dasharray:5 5}
+.fe-graf .fe-ln.s0{stroke:var(--d3-tinta)}
+.fe-graf .fe-ln.s1{stroke:var(--fe-c1)}
+.fe-graf .fe-ln.sq{stroke:var(--d3-meta)}
+.fe-graf .fe-ln-pt{stroke:var(--d3-cartao);stroke-width:2}
+.fe-graf .fe-ln-pt.s0{fill:var(--d3-tinta)}
+.fe-graf .fe-ln-pt.s1{fill:var(--fe-c1)}
+.fe-graf .fe-ln-pt.sq{fill:var(--d3-meta)}
+.fe-graf .fe-ln-t{font-size:11px;font-weight:600;fill:var(--d3-tinta)}
+.fe-graf .fe-cruz,.fe-graf .fe-hoje-x{stroke:var(--d3-meta);stroke-width:1;stroke-dasharray:2 3}
+.fe-graf .fe-hv-alvo{fill:transparent;cursor:crosshair}
+.fe-leg-ln{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--d3-texto2);margin:2px 0 8px}
+.fe-leg-ln > span{display:inline-flex;align-items:center;gap:6px}
+.fe-leg-ln i{width:16px;height:0;border-top:2px solid var(--d3-tinta);border-radius:2px}
+.fe-leg-ln i.s1{border-color:var(--fe-c1)}
+.fe-leg-ln i.sq{border-color:var(--d3-meta)}
+.fe-leg-ln i.trac{border-top-style:dashed}
+.fe-comp{margin:0 0 6px}
+.fe-comp b{font-weight:600;color:var(--d3-tinta)}
+/* Rosca */
+.fe-rosca-caixa{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.fe-rosca-g{flex:0 0 180px;width:180px}
+#vv-comercial .fe svg.fe-rosca{width:180px;height:180px}
+.fe-graf .fe-fatia{stroke:var(--d3-cartao);stroke-width:2;cursor:pointer;transition:opacity .15s}
+.fe-rosca-g:has(.fe-fatia.on) .fe-fatia:not(.on){opacity:.45}
+.fe-fatia.c0,.fe-rl i.c0{fill:var(--d3-meta);background:var(--d3-meta)}
+.fe-fatia.c1,.fe-rl i.c1{fill:var(--fe-c1);background:var(--fe-c1)}
+.fe-fatia.c2,.fe-rl i.c2{fill:var(--fe-c2);background:var(--fe-c2)}
+.fe-fatia.c3,.fe-rl i.c3{fill:var(--fe-c3);background:var(--fe-c3)}
+.fe-fatia.c4,.fe-rl i.c4{fill:var(--fe-c4);background:var(--fe-c4)}
+.fe-fatia.c5,.fe-rl i.c5{fill:var(--fe-c5);background:var(--fe-c5)}
+.fe-fatia.c6,.fe-rl i.c6{fill:var(--fe-c6);background:var(--fe-c6)}
+.fe-graf .fe-rosca-v{font-size:17px;font-weight:600;fill:var(--d3-tinta)}
+.fe-graf .fe-rosca-s{font-size:10px;fill:var(--d3-texto2)}
+.fe-rosca-leg{flex:1 1 200px;min-width:0;display:flex;flex-direction:column}
+.fe-rl{appearance:none;border:0;background:none;width:100%;text-align:left;display:grid;grid-template-columns:10px minmax(0,1fr) auto 38px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--d3-linha);font-size:14px;cursor:pointer}
+.fe-rl:first-child{border-top:0}
+.fe-rl i{width:10px;height:10px;border-radius:3px}
+.fe-rl b{font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fe-rl small{font-size:12px;color:var(--d3-texto2);text-align:right;font-variant-numeric:tabular-nums}
+.fe-rl:hover span{text-decoration:underline}
+.fe-gl > b{white-space:nowrap}
+.fe-tip[hidden]{display:none}
+.fe-graf .fe-ln-t{paint-order:stroke;stroke:var(--d3-cartao);stroke-width:4px;stroke-linejoin:round}
+/* Clientes (24/11/2026): contrato, quanto pagou no mês e como (integral, metade, parte). */
+.fe-g > .rt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.fe-cels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.fe-cels .fe-cel{font-size:11px;padding:4px 0}
+.fe-g-cab .fe-cels > span{text-align:center}
+.fe-pg{display:flex;align-items:center;gap:8px;min-width:0}
+.fe-pg-b{flex:0 0 44px;height:6px;border-radius:3px;background:var(--d3-trilho);overflow:hidden}
+.fe-pg-b > i{display:block;height:100%;width:var(--v);background:var(--d3-tinta);border-radius:3px}
+.fe-pg-b.g > i{background:var(--d3-pronto)}
+.fe-pg-b.a > i{background:var(--d3-ajuste)}
+.fe-contrato-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fe-contrato-g > :first-child{grid-column:1/-1}
+.fe-contrato-g .fe-largo{grid-column:1/-1}
+.fe-contrato .fe-bts{margin-top:8px}
+@media (max-width:1180px){
+  .fe-g{grid-template-columns:minmax(120px,1.4fr) minmax(86px,.8fr) minmax(86px,.8fr) minmax(140px,1.2fr)}
+  .fe-g > .fe-cels,.fe-g > :last-child{display:none}
+}
+@media (max-width:760px){
+  .fe-g{grid-template-columns:minmax(0,1fr) auto}
+  .fe-g > :nth-child(2),.fe-g > :nth-child(3){display:none}
+  .fe-contrato-g{grid-template-columns:minmax(0,1fr)}
+}
+/* Ficha da pessoa reorganizada (24/11/2026) */
+.fe-dois{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fe-combinado .fe-bts,.fe-desc .fe-bts{margin-top:8px}
+.fe-ficha > .fe-conta + .fe-conta,.fe-ficha .fe-conta{margin-top:10px}
+.fe-sub-rot{margin-top:10px}
+.fe-fim-ficha{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--d3-linha)}
+.fe-fim-ficha .fe-sub{font-size:12px}
+.fe-comb .fe-ico{width:30px;height:30px}
+@media (max-width:760px){ .fe-comb{grid-template-columns:minmax(0,1fr) 90px;} .fe-comb > span{grid-column:1/-1} }
