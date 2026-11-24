@@ -27,7 +27,7 @@ test('Agência: laranja com o alerta mais grave, Pede ação em Agora/Depois, De
   const sem = trecho('  function semanaD3Html(', '  function pintarAgencia(');
   assert.match(sem, /data-semana-dia="\$\{x\.dia\}" aria-pressed=/, 'tocar num dia escolhe o dia');
   assert.match(sem, /data-espiar="semdia:/, 'a lista do dia escolhido');
-  assert.match(sem, /class="d3h-prv-col"/, 'prévia dia a dia em colunas (24/11/2026), não mais a linha acumulada');
+  assert.match(sem, /linhaPreviaD3\(porDia, max\)/, 'prévia dia a dia em linha (25/11/2026), não a linha acumulada');
 });
 
 test('Para você decidir: baralho com Aprovar, Pedir alteração e as setas, status com ponto e grupo em etiqueta; passar não repinta', () => {

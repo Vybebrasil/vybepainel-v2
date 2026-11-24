@@ -108,11 +108,14 @@ test('pelo prazo, a régua e o cartão usam o prazo (solicitação também)', ()
 const mundo = fs.readFileSync('vybe-mundo.js', 'utf8');
 const trecho = (a, b) => { const i = mundo.indexOf(a); assert.ok(i >= 0, a); const j = mundo.indexOf(b, i + a.length); return mundo.slice(i, j < 0 ? undefined : j); };
 
-test('cartão Semana: colunas por dia com as fases, hoje destacado, dia escolhido, lista do dia e pé igual às colunas', () => {
+test('cartão Semana: linha por dia (não acumulada), hoje destacado, dia escolhido, lista do dia e pé igual aos pontos', () => {
   const s = trecho('  function semanaD3Html(', '  function pintarAgencia(');
-  assert.doesNotMatch(s, /polyline/, 'sem a linha acumulada');
-  assert.match(s, /SEG_PREVIA_D3\.filter\(\(\[k\]\) => x\[k\]\)/);
-  assert.match(mundo, /\['finalizadas', 'fin', 'finalizada'\], \['agendadas', 'agd', 'agendada'\], \['paraAgendar', 'pag', 'para agendar'\], \['emProducao', 'pro', 'em produção'\], \['atrasadas', 'atr', 'atrasada'\]/);
+  // 25/11/2026 (Paulo: "prefiro gráfico de linha"): linha, mas cada ponto é o dia (a acumulada foi a queixa de 24/11).
+  assert.match(s, /linhaPreviaD3\(porDia, max\)/);
+  assert.match(s, /<i class="pt tot" style="--y:\$\{\(\(x\.total \|\| 0\) \/ max\)/);
+  assert.match(s, /<i class="pt prt" style="--y:\$\{\(\(x\.prontas \|\| 0\) \/ max\)/);
+  assert.match(s, /x\.atrasadas \? '<i class="d3h-prv-atr"><\/i>'/, 'atrasada marcada no dia');
+  assert.match(mundo, /\['tot', 'com a data'\], \['prt', 'prontas'\], \['fin', 'finalizadas'\], \['atr', 'atrasada'\]/);
   assert.match(s, /x\.dia === hoje \? ' hoje'/);
   assert.match(s, /data-semana-dia="\$\{x\.dia\}" aria-pressed=/, 'tocar num dia escolhe o dia');
   assert.match(s, /data-espiar="semdia:\$\{sel\}\|/, 'a lista do dia escolhido');
@@ -144,6 +147,19 @@ test('s-r.css: só tokens, sem !important, sem :has, sem caixa-alta e no arquivo
   assert.doesNotMatch(regras, /text-transform\s*:\s*uppercase/);
   assert.doesNotMatch(regras, /:\s*#[0-9a-fA-F]{3,8}\b/);
   assert.doesNotMatch(regras, /rgba?\(/);
-  for (const v of regras.match(/var\(--[\w-]+/g) || []) assert.match(v, /var\(--(d3-|vsg-clara|n$|vv-texto)/, v);
+  for (const v of regras.match(/var\(--[\w-]+/g) || []) assert.match(v, /var\(--(d3-|vsg-clara|y$|vv-texto)/, v); // --y: a altura do ponto, que vem do style
   assert.match(fs.readFileSync('vybe-mundo-padrao-v2.css', 'utf8'), /padrao-v2\/s-r\.css/);
+});
+
+test('linha da semana (25/11/2026): cada ponto é o dia, não a soma dos dias anteriores', () => {
+  const fonte = trecho('  function linhaPreviaD3(', '  function semanaD3Html(');
+  const linhaPreviaD3 = vm.runInNewContext(`(${fonte.trim()})`);
+  const porDia = [{ total: 15, prontas: 14, finalizadas: 4 }, { total: 19, prontas: 7, finalizadas: 2 }, { total: 0, prontas: 0, finalizadas: 0 }, { total: 10, prontas: 10, finalizadas: 10 }];
+  const svg = linhaPreviaD3(porDia, 20);
+  const pontos = (cls) => svg.match(new RegExp(`class="${cls}" points="([^"]+)"`))[1];
+  // y = 100 - 100 * v / max: 15 -> 25, 19 -> 5, 0 -> 100, 10 -> 50 (acumulado daria 15, 34, 34, 44)
+  assert.equal(pontos('tot'), '50,25 150,5 250,100 350,50');
+  assert.equal(pontos('prt'), '50,30 150,65 250,100 350,50');
+  assert.equal(pontos('fin'), '50,100 50,80 150,90 250,100 350,50 350,100', 'a área do Finalizado fecha no chão');
+  assert.match(svg, /viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true"/);
 });
