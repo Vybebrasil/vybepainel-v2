@@ -12117,53 +12117,64 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
 }
 
 /* ===== padrao-v2/s-r.css ===== */
-/* Frente s-r (24/11/2026). Prévia da semana dia a dia no cartão Semana do Hoje (Agência e Minhas tarefas). Paulo: "esse
-   gráfico não faz jus... olha o tanto de demanda já pra agendar ou agendada nos dias aí na semana... o gráfico não devia
-   mostrar essa prévia?". Uma coluna por dia: embaixo as prontas por fase (Finalizado cheio, Agendado no tom claro, Para
-   agendar listrado), depois as em produção (vazadas) e em cima as atrasadas; o vão completa até o dia mais cheio. Em
-   cima, "prontas / total"; hoje com o véu; o dia escolhido com o contorno. A conta é a mesma da régua da Produção.
+/* Frente s-r (24/11/2026) e s-r2 (25/11/2026). Prévia da semana dia a dia no cartão Semana do Hoje (Agência e Minhas
+   tarefas). 24/11, Paulo: "esse gráfico não faz jus... o gráfico não devia mostrar essa prévia?". 25/11, Paulo: "prefiro
+   gráfico de linha". Linha por dia, NÃO acumulada: tracejada = peças com a data do dia; cheia = prontas do dia (Finalizado,
+   Para agendar e Agendado); área clara = só o Finalizado; ponto vermelho no "x/y" = tem atrasada. Em cima, "prontas / total";
+   hoje com o véu e o ponto maior; o dia escolhido com o contorno e a guia. A conta é a mesma da régua da Produção.
    Só tokens --d3-* (e o --vsg-clara da frente g); nada de !important; nada de :has; sem caixa-alta. */
 
-/* O corpo do cartão vira a faixa das sete colunas (vence o "overflow:hidden;padding:0 16px" do z-direcao). */
+/* O corpo do cartão vira a faixa dos sete dias (vence o "overflow:hidden;padding:0 16px" do z-direcao). */
 #vv-hoje .d3h-semana.d3h-prv-cartao > .d3h-corpo{display:flex;flex-direction:column;padding:4px 10px;overflow:hidden}
 #vv-hoje .d3q .d3h-semana.d3h-prv-cartao > .d3h-corpo{padding:4px 10px;overflow:hidden}
-#vv-hoje .d3h-prv{flex:1 1 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;min-height:60px}
-#vv-hoje .d3h-prv-d{appearance:none;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;min-height:0;margin:0;padding:4px 2px 3px;border:0;border-radius:8px;background:none;color:var(--d3-tinta);font:inherit;text-align:center;cursor:pointer}
+/* Sem vão entre os dias: o meio de cada dia é (i + 0,5) / 7 da largura, o mesmo x dos pontos da linha. */
+#vv-hoje .d3h-prv{position:relative;isolation:isolate;flex:1 1 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;min-height:72px}
+#vv-hoje .d3h-prv-d{appearance:none;display:flex;flex-direction:column;align-items:stretch;gap:3px;min-width:0;min-height:0;margin:0;padding:4px 2px 3px;border:0;border-radius:8px;background:none;color:var(--d3-tinta);font:inherit;text-align:center;cursor:pointer}
 #vv-hoje span.d3h-prv-d{cursor:default}
 #vv-hoje .d3h-prv-d:hover{background:var(--d3-veu)}
 #vv-hoje .d3h-prv-d.hoje{background:var(--d3-veu-forte)}
 #vv-hoje .d3h-prv-d[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--d3-tinta)}
 #vv-hoje .d3h-prv-d:focus-visible{outline:2px solid var(--d3-info);outline-offset:-2px}
-#vv-hoje .d3h-prv-n{flex:none;font:600 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--d3-tinta)}
+/* As duas linhas de texto têm altura fixa: a faixa da linha começa 23px abaixo do topo e acaba 22px acima do pé. */
+#vv-hoje .d3h-prv-n{flex:none;display:flex;align-items:center;justify-content:center;gap:0;height:16px;font:600 var(--d3-fs-apoio)/16px var(--vv-texto,Inter,sans-serif);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--d3-tinta)}
 #vv-hoje .d3h-prv-n > small{font-size:inherit;font-weight:400;color:var(--d3-rotulo)}
-#vv-hoje .d3h-prv-dia{flex:none;font:400 var(--d3-fs-apoio)/1.2 var(--vv-texto,Inter,sans-serif);white-space:nowrap;color:var(--d3-rotulo)}
+#vv-hoje .d3h-prv-dia{flex:none;height:16px;font:400 var(--d3-fs-apoio)/16px var(--vv-texto,Inter,sans-serif);white-space:nowrap;color:var(--d3-rotulo)}
 #vv-hoje .d3h-prv-d.hoje .d3h-prv-dia{font-weight:600;color:var(--d3-tinta)}
+#vv-hoje .d3h-prv-cartao i.d3h-prv-atr{flex:none;margin-left:3px;width:7px;height:7px;border-radius:50%;background:var(--d3-perigo)}
 
-/* A coluna: de baixo para cima, cada pedaço com a altura proporcional às peças (flex-grow = --n). */
-#vv-hoje .d3h-prv-col{flex:1 1 auto;display:flex;flex-direction:column-reverse;gap:1px;width:min(100%,40px);min-height:24px;border-bottom:1px solid var(--d3-rotulo)}
-#vv-hoje .d3h-prv-col > i{flex:var(--n,1) 1 0;min-height:2px;border-radius:2px}
-#vv-hoje .d3h-prv-col > i.vz{border-radius:0;background:none}
+/* A faixa do dia: os pontos sobem pela fração do dia mais cheio (--y), com 5px de folga em cima e embaixo. */
+#vv-hoje .d3h-prv-pl{position:relative;flex:1 1 auto;min-height:24px}
+#vv-hoje .d3h-prv-pl::after{content:"";position:absolute;left:0;right:0;bottom:5px;border-top:1px solid var(--d3-rotulo);opacity:.35}
+#vv-hoje .d3h-prv-d[aria-pressed="true"] .d3h-prv-pl::before{content:"";position:absolute;top:0;bottom:5px;left:50%;border-left:1px dashed var(--d3-tinta)}
+#vv-hoje .d3h-prv-pl > i.pt{position:absolute;z-index:2;left:50%;bottom:calc(5px + var(--y,0) * (100% - 10px));width:7px;height:7px;margin:0 0 -3.5px -3.5px;box-sizing:border-box;border-radius:50%}
+#vv-hoje .d3h-prv-pl > i.tot{background:var(--d3-cartao);border:1.5px solid var(--d3-rotulo)}
+#vv-hoje .d3h-prv-pl > i.prt{background:var(--d3-pronto);box-shadow:0 0 0 1.5px var(--d3-cartao)}
+#vv-hoje .d3h-prv-d.hoje .d3h-prv-pl > i.pt{width:10px;height:10px;margin:0 0 -5px -5px}
 
-/* As cores de cada fase, nas colunas e na legenda. */
-#vv-hoje .d3h-prv-cartao i.fin{background:var(--d3-pronto)}
-#vv-hoje .d3h-prv-cartao i.agd{background:var(--vsg-clara)}
-#vv-hoje .d3h-prv-cartao i.pag{background:repeating-linear-gradient(135deg,var(--d3-pronto) 0 2px,var(--vsg-clara) 2px 5px)}
-#vv-hoje .d3h-prv-cartao i.pro{background:var(--d3-cartao);box-shadow:inset 0 0 0 1.5px var(--d3-rotulo)}
-#vv-hoje .d3h-prv-cartao i.atr{background:var(--d3-perigo)}
+/* As linhas: o SVG cobre a mesma faixa dos pontos (23px + 5px em cima, 22px + 5px embaixo) e não pega o toque. */
+#vv-hoje .d3h-prv-lin{position:absolute;z-index:1;left:0;right:0;top:28px;bottom:27px;width:100%;height:calc(100% - 55px);overflow:visible;pointer-events:none}
+#vv-hoje .d3h-prv-lin polyline{fill:none;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+#vv-hoje .d3h-prv-lin .tot{stroke:var(--d3-rotulo);stroke-width:1.5;stroke-dasharray:4 3}
+#vv-hoje .d3h-prv-lin .prt{stroke:var(--d3-pronto);stroke-width:2}
+#vv-hoje .d3h-prv-lin .fin{fill:var(--vsg-clara);stroke:none;opacity:.6}
 
 /* O cabeçalho: o alternador (só dono, em Minhas tarefas), de que data é e a legenda. */
 #vv-hoje .d3h-prv-cartao > .d3h-cab > .d3h-aux{gap:10px}
 #vv-hoje .d3h-prv-campo{color:var(--d3-rotulo)}
 #vv-hoje .d3h-prv-leg{display:inline-flex;align-items:center;gap:10px;min-width:0}
 #vv-hoje .d3h-prv-leg > span{display:inline-flex;align-items:center;gap:4px;color:var(--d3-rotulo)}
-#vv-hoje .d3h-prv-leg > span > i{flex:none;width:10px;height:10px;border-radius:2px}
+#vv-hoje .d3h-prv-leg > span > i{flex:none;box-sizing:border-box;width:14px;height:0}
+#vv-hoje .d3h-prv-leg > span > i.tot{border-top:2px dashed var(--d3-rotulo)}
+#vv-hoje .d3h-prv-leg > span > i.prt{border-top:2px solid var(--d3-pronto)}
+#vv-hoje .d3h-prv-leg > span > i.fin{height:8px;border-radius:2px;background:var(--vsg-clara)}
+#vv-hoje .d3h-prv-leg > span > i.atr{width:7px;height:7px;border-radius:50%;background:var(--d3-perigo)}
 #vv-hoje .d3h-prv-alt{display:inline-flex;flex:none;gap:2px;box-sizing:border-box;height:34px;padding:2px;border-radius:8px;background:var(--d3-veu)}
 #vv-hoje .d3h-prv-alt > button{appearance:none;height:30px;padding:0 10px;border:0;border-radius:6px;background:none;color:var(--d3-rotulo);font:500 var(--d3-fs-apoio) var(--vv-texto,Inter,sans-serif);cursor:pointer}
 #vv-hoje .d3h-prv-alt > button[aria-checked="true"]{background:var(--d3-cartao);color:var(--d3-tinta);font-weight:600}
 #vv-hoje .d3h-prv-alt > button:focus-visible{outline:2px solid var(--d3-info);outline-offset:-2px}
 
-/* O pé: Prontas com as fases ao lado. Em cartão estreito (o cartão é o contêiner): sai "de que data" (fica no title das
-   colunas e dos números), depois a legenda e o "Semana toda · N" do pé, que vira "N peças" no cabeçalho; nada some sem lugar. */
+/* O pé: Prontas com as fases ao lado. Em cartão estreito (o cartão é o contêiner): sai "de que data" (fica no title dos
+   dias e dos números), depois a legenda e o "Semana toda · N" do pé, que vira "N peças" no cabeçalho; nada some sem lugar. */
 #vv-hoje .d3h-prv-fases{font-size:inherit;font-weight:400}
 #vv-hoje .d3h-prv-tot{display:none;color:var(--d3-tinta);font-weight:600}
 #vv-hoje .d3h-prv-cartao{container-type:inline-size}
@@ -12175,7 +12186,6 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
   #vv-hoje .d3h-prv-cartao > .d3h-pe{gap:6px 8px}
   #vv-hoje .d3h-prv-cartao > .d3h-pe > .d3h-pill{gap:0;padding:0 7px}
   #vv-hoje .d3h-prv-cartao > .d3h-pe > .d3h-pill > i{display:none}
-  #vv-hoje .d3h-prv{gap:2px}
   #vv-hoje .d3h-prv-leg{gap:8px}
   #vv-hoje .d3h-prv-leg > span{gap:3px}
 }
@@ -12184,11 +12194,11 @@ body.mundo #fc-overlay#fc-overlay .nd.nd-em-passos .nd-pe > #fc-nota{text-align:
   #vv-hoje .d3h-prv-tot{display:inline}
 }
 /* Bem estreito (celular, com o alternador): o total volta para o pé, que já quebra em duas linhas. */
-@container (max-width:360px){
+@container (max-width:320px){
   #vv-hoje .d3h-prv-com-alt .d3h-prv-tot{display:none}
   #vv-hoje .d3h-prv-com-alt > .d3h-pe > .d3h-prv-semtoda{display:inline}
 }
-/* No celular a tela rola inteira: as colunas ganham altura para ler as fases. */
+/* No celular a tela rola inteira: a faixa ganha altura para ler a linha. */
 @media (max-width:700px){
   #vv-hoje .d3h-prv{min-height:132px}
 }

@@ -1437,7 +1437,20 @@
   // neste navegador); quem não é dono vê a própria fila no mesmo desenho.
   let escopoSemanaTarefas = '';
   try { escopoSemanaTarefas = localStorage.getItem('vybe.mundo.semanaTarefas') || ''; } catch { escopoSemanaTarefas = ''; }
-  const SEG_PREVIA_D3 = [['finalizadas', 'fin', 'finalizada'], ['agendadas', 'agd', 'agendada'], ['paraAgendar', 'pag', 'para agendar'], ['emProducao', 'pro', 'em produção'], ['atrasadas', 'atr', 'atrasada']];
+  // 25/11/2026 (Paulo: "prefiro gráfico de linha"): a mesma prévia dia a dia, desenhada em linha. NÃO é acumulada (a linha
+  // acumulada foi a queixa de 24/11): cada ponto é o próprio dia. Tracejada = peças com a data do dia; cheia = prontas do
+  // dia (Finalizado, Para agendar e Agendado); a área clara embaixo = só o Finalizado; atrasada = o ponto vermelho no "x/y".
+  const LEG_PREVIA_D3 = [['tot', 'com a data'], ['prt', 'prontas'], ['fin', 'finalizadas'], ['atr', 'atrasada']];
+  // As linhas: um ponto por dia, no meio da coluna do dia (as colunas têm a mesma largura e não têm vão). A altura vem do
+  // dia mais cheio; o SVG estica (preserveAspectRatio="none") e o traço fica fino (vector-effect no CSS).
+  function linhaPreviaD3(porDia, max) {
+    const y = (v) => Number((100 - (100 * (Number(v) || 0)) / max).toFixed(2)), x = (i) => i * 100 + 50;
+    const pts = (k) => porDia.map((d, i) => `${x(i)},${y(d[k])}`).join(' ');
+    const fim = (porDia.length - 1) * 100 + 50;
+    return `<svg class="d3h-prv-lin" viewBox="0 0 ${porDia.length * 100} 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">`
+      + `<polygon class="fin" points="50,100 ${pts('finalizadas')} ${fim},100"></polygon>`
+      + `<polyline class="tot" points="${pts('total')}"></polyline><polyline class="prt" points="${pts('prontas')}"></polyline></svg>`;
+  }
   function semanaD3Html(G, { titulo = 'Semana', abrir = true, selecionavel = true, alternar = '' } = {}) {
     const porDia = G?.porDia || [], dias = porDia.map((x) => x.dia);
     if (!dias.length) return cartaoD3({ titulo, aux: alternar, corpo: '<p class="d3h-vazio">Sem a semana agora</p>', cls: 'd3h-semana', rotulo: 'Semana' });
@@ -1448,17 +1461,16 @@
     const nomeLongo = (iso) => DIAS_D3[new Date(iso + 'T12:00:00Z').getUTCDay()];
     const resumo = (x) => [`${n0(x.prontas)} de ${n0(x.total)} ${x.total === 1 ? 'pronta' : 'prontas'}${x.prontas ? ` (${resumoProntasD3(x)})` : ''}`,
       x.emProducao ? `${n0(x.emProducao)} em produção` : '', x.atrasadas ? plural(x.atrasadas, 'atrasada', 'atrasadas') : ''].filter(Boolean).join(' · ');
-    // A coluna empilha de baixo para cima (column-reverse) e o vão de cima completa até o dia mais cheio: a altura de cada
-    // pedaço é proporcional às peças, sem medir nada na tela.
-    const coluna = (x) => `<span class="d3h-prv-col">${SEG_PREVIA_D3.filter(([k]) => x[k]).map(([k, c]) => `<i class="${c}" style="--n:${x[k]}"></i>`).join('')}${max > x.total ? `<i class="vz" style="--n:${max - x.total}"></i>` : ''}</span>`;
+    // Os pontos do dia ficam no próprio botão (na altura da linha); a linha passa por eles.
+    const pontos = (x) => `<span class="d3h-prv-pl"><i class="pt tot" style="--y:${((x.total || 0) / max).toFixed(3)}"></i><i class="pt prt" style="--y:${((x.prontas || 0) / max).toFixed(3)}"></i></span>`;
     const colunas = porDia.map((x) => {
       const cls = `d3h-prv-d${x.dia === hoje ? ' hoje' : x.dia < hoje ? ' passou' : ''}`, dica = esc(`${nomeLongo(x.dia)} ${dmD3(x.dia)}${x.dia === hoje ? ' (hoje)' : ''}: ${x.total ? resumo(x) : 'nada com esta data'}`);
-      const dentro = `<span class="d3h-prv-n"><b>${n0(x.prontas)}</b><small>/${n0(x.total)}</small></span>${coluna(x)}<span class="d3h-prv-dia">${nomeLongo(x.dia).slice(0, 3)} ${Number(x.dia.slice(8, 10))}</span>`;
+      const dentro = `<span class="d3h-prv-n"><b>${n0(x.prontas)}</b><small>/${n0(x.total)}</small>${x.atrasadas ? '<i class="d3h-prv-atr"></i>' : ''}</span>${pontos(x)}<span class="d3h-prv-dia">${nomeLongo(x.dia).slice(0, 3)} ${Number(x.dia.slice(8, 10))}</span>`;
       const dados = `data-previa-dia="${x.dia}" data-n="${x.prontas}/${x.total}" title="${dica}"`;
       return selecionavel ? `<button type="button" class="${cls}" data-semana-dia="${x.dia}" aria-pressed="${x.dia === sel}" ${dados} aria-label="${dica}">${dentro}</button>` : `<span class="${cls}" ${dados}>${dentro}</span>`;
     }).join('');
-    const corpo = `<div class="d3h-prv" ${selecionavel ? 'role="group" aria-label="Escolher um dia"' : `role="img" aria-label="${esc(`Semana: ${resumo(G)}`)}"`}>${colunas}</div>`;
-    // O pé conta o mesmo que as colunas: a semana toda ou o dia escolhido.
+    const corpo = `<div class="d3h-prv" ${selecionavel ? 'role="group" aria-label="Escolher um dia"' : `role="img" aria-label="${esc(`Semana: ${resumo(G)}`)}"`}>${colunas}${linhaPreviaD3(porDia, max)}</div>`;
+    // O pé conta o mesmo que os pontos: a semana toda ou o dia escolhido.
     const alvo = sel ? porDia.filter((x) => x.dia === sel) : porDia, T = {};
     for (const x of alvo) for (const k of ['total', 'prontas', 'finalizadas', 'paraAgendar', 'agendadas', 'emProducao', 'atrasadas']) T[k] = (T[k] || 0) + (x[k] || 0);
     const fases = T.prontas ? resumoProntasD3(T, { curto: true }) : '';
@@ -1471,7 +1483,7 @@
       + (abrir ? `<button type="button" class="d3h-link" data-abrir-gestao="semana">abrir</button>` : '');
     // Em cartão estreito o pé perde o "Semana toda · N" (CSS) e o total vem aqui no cabeçalho.
     const total = `<span class="d3h-prv-tot">${plural(G.total || 0, 'peça', 'peças')}</span>`;
-    const legenda = `<span class="d3h-prv-leg" aria-hidden="true">${SEG_PREVIA_D3.map(([, c, rot]) => `<span><i class="${c}"></i>${rot}</span>`).join('')}</span>`;
+    const legenda = `<span class="d3h-prv-leg" aria-hidden="true">${LEG_PREVIA_D3.map(([c, rot]) => `<span><i class="${c}"></i>${rot}</span>`).join('')}</span>`;
     const quando = `<span class="d3h-prv-campo">pela ${campo === 'prazo' ? 'data do prazo' : 'veiculação'}</span>`;
     return cartaoD3({ titulo, aux: `${alternar}${total}${quando}${legenda}`, corpo, pe, cls: `d3h-semana d3h-prv-cartao${alternar ? ' d3h-prv-com-alt' : ''}`, rotulo: escopo === 'fila' ? 'Semana da minha fila' : 'Semana da agência' });
   }
