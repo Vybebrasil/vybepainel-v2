@@ -534,7 +534,7 @@ function situacaoDoCicloNaFichaHtml(nome, { id, estado, podeMexer, aspas }) {
   const trocar = `<button type="button" class="d3m-vlin" onclick="trocarSituacaoDoCliente('${aspas}', ${inativo})"><span><b>${inativo ? 'Reativar' : 'Desativar'}</b> · ${
     inativo ? 'volta para os ativos' : 'vai para Inativos; o histórico fica'}</span>${vai}</button>`;
   const apagar = inativo
-    ? `<button type="button" class="d3m-vlin fv2-apagar" title="Apaga o cadastro, as senhas e acessos e as pessoas ligadas. Não tem volta." onclick="apagarClienteDaFicha('${jsArg(String(id))}', '${aspas}')"><span><b>Apagar para sempre</b> · cadastro, senhas e pessoas</span>${vai}</button>`
+    ? `<button type="button" class="d3m-vlin fv2-apagar" title="Apaga o cadastro, as senhas e acessos e as pessoas ligadas. Não tem volta." onclick="apagarClienteDaFicha('${jsArg(String(id))}', '${aspas}')"><i class="d3m-pt r" aria-hidden="true"></i><span><b>Apagar para sempre</b> · não tem volta</span>${vai}</button>`
     : '<button type="button" class="d3m-vlin fv2-apagar" disabled aria-disabled="true" aria-describedby="fv2-apagar-nota"><span><b>Apagar para sempre</b></span></button><p class="d3m-vvazio" id="fv2-apagar-nota">Desative antes de apagar.</p>';
   return `<section class="d3m-cons fv2-ciclo" aria-label="Situação do cliente"><div class="d3m-cons-cab"><b>Situação</b><span>${inativo ? 'Inativo' : 'Ativo'}</span></div>${trocar}${apagar}</section>`;
 }

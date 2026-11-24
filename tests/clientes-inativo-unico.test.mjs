@@ -101,7 +101,7 @@ test('a ficha: inativo ganha "Apagar para sempre" que abre a janela do ciclo; at
   const inativo = ctx.situacaoDoCicloNaFichaHtml('Padaria', { id: '3', estado: 'inativos', podeMexer: true, aspas: 'Padaria' });
   assert.match(inativo, /<b>Situação<\/b><span>Inativo<\/span>/);
   assert.match(inativo, /trocarSituacaoDoCliente\('Padaria', true\)"><span><b>Reativar<\/b>/);
-  assert.match(inativo, /class="d3m-vlin fv2-apagar"[^>]*onclick="apagarClienteDaFicha\('3', 'Padaria'\)"><span><b>Apagar para sempre<\/b>/);
+  assert.match(inativo, /class="d3m-vlin fv2-apagar"[^>]*onclick="apagarClienteDaFicha\('3', 'Padaria'\)"><i class="d3m-pt r" aria-hidden="true"><\/i><span><b>Apagar para sempre<\/b> · não tem volta/);
   assert.doesNotMatch(inativo, /disabled/);
 
   const ativo = ctx.situacaoDoCicloNaFichaHtml('Academia Lions', { id: '1', estado: 'ativos', podeMexer: true, aspas: 'Academia Lions' });
