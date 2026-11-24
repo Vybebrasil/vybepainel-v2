@@ -616,8 +616,12 @@
       else continue;
       itens.push({ id: t.id, data: t.banco.data, historico: t.banco.historico, mes: m, categoria: p.categoria, nome: CAT.get(p.categoria)?.nome || p.categoria, valor: reais(p.valor < 0 ? -v : v) });
     }
+    // "Descontar no salário" (Paulo, 23/11/2026: jogar o que passou do salário para o mês seguinte e mostrar quanto a pessoa
+    // vai receber): é um plano, não dinheiro. Não entra no devolvido; diz quanto do vale sai do combinado daquele mês.
+    const descontar = new Map();
     for (const a of ajustes || []) {
       if (String(a.pessoa_id) !== pid || !ehMes(a.mes)) continue;
+      if (a.tipo === 'descontar') { descontar.set(a.mes, (descontar.get(a.mes) || 0) + Math.abs(centavos(a.valor))); continue; }
       devolvido.set(a.mes, (devolvido.get(a.mes) || 0) + Math.abs(centavos(a.valor)));
     }
     const combinadoEm = (m) => (salario && Number(salario.valor) > 0 && (!salario.desde || salario.desde <= m) ? Math.abs(centavos(salario.valor)) : 0);
@@ -629,18 +633,25 @@
     let vale = 0;
     for (let m = inicio; m && fim && m <= fim && meses.length < 120; m = somarMeses(m, 1)) {
       const comb = combinadoEm(m), pg = pago.get(m) || 0, dev = devolvido.get(m) || 0, aberto = m === fim && Boolean(ate);
+      // No mês aberto, o desconto planejado sai do que falta pagar; fechado o mês, a regra de sempre abate o vale.
+      const desc = aberto ? Math.min(descontar.get(m) || 0, vale, comb) : 0;
       let valeMes = 0, abatido = 0, aPagar = 0, faltaPagar = 0;
       if (pg > comb) { valeMes = pg - comb; vale += valeMes; }
       else if (pg < comb) {
         const falta = comb - pg;
-        if (aberto) faltaPagar = falta;
+        if (aberto) faltaPagar = Math.max(0, falta - desc);
         else { abatido = Math.min(falta, vale); vale -= abatido; aPagar = falta - abatido; }
       }
       const devolveu = Math.min(dev, vale); vale -= devolveu;
       meses.push({ mes: m, combinado: reais(comb), pago: reais(pg), vale_do_mes: reais(valeMes), abatido: reais(abatido), devolvido: reais(devolveu),
-        a_pagar: reais(aPagar), falta_pagar: reais(faltaPagar), vale_acumulado: reais(vale), aberto });
+        a_pagar: reais(aPagar), falta_pagar: reais(faltaPagar), vale_acumulado: reais(vale), aberto,
+        desconto: reais(desc), a_receber: reais(Math.max(0, comb - desc)) });
     }
-    return { pessoa_id: pid, salario: salario ? { valor: Number(salario.valor) || 0, desde: salario.desde || '' } : null, meses, vale: reais(vale),
+    // O próximo salário: o mês seguinte ao último, com o desconto planejado para ele (limitado ao vale e ao combinado).
+    const prox = fim ? somarMeses(fim, 1) : '';
+    const combProx = prox ? combinadoEm(prox) : 0, descProx = Math.min(descontar.get(prox) || 0, vale, combProx);
+    const proximo = prox ? { mes: prox, combinado: reais(combProx), desconto: reais(descProx), a_receber: reais(Math.max(0, combProx - descProx)), vale_depois: reais(vale - descProx) } : null;
+    return { pessoa_id: pid, salario: salario ? { valor: Number(salario.valor) || 0, desde: salario.desde || '' } : null, meses, vale: reais(vale), proximo,
       a_pagar: reais(meses.reduce((t, x) => t + centavos(x.a_pagar), 0)), itens: itens.sort((a, b) => b.data.localeCompare(a.data)) };
   }
   function normalizarSalario(s = {}) {
@@ -655,7 +666,7 @@
     if (!ehMes(a.mes)) return { erro: 'Mês no formato AAAA-MM.' };
     const valor = Math.abs(reais(centavos(a.valor)));
     if (!(valor > 0)) return { erro: 'Informe o valor.' };
-    const tipo = a.tipo === 'abater' ? 'abater' : 'devolveu';
+    const tipo = a.tipo === 'abater' || a.tipo === 'descontar' ? a.tipo : 'devolveu';
     const id = /^[a-z0-9-]{3,60}$/.test(String(a.id || '')) ? a.id : 'vl-' + hash(pessoa_id + '|' + a.mes + '|' + Date.now() + '|' + Math.random());
     return { ajuste: { id, pessoa_id, mes: a.mes, tipo, valor, nota: String(a.nota || '').slice(0, 160) } };
   }

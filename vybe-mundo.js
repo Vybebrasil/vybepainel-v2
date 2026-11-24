@@ -174,19 +174,14 @@
       { id: 'contratos', nome: 'Contratos', dica: 'Valor, início e renovações em breve', mod: ['VybeCarteira', 'contratos'] },
       { id: 'churn', nome: 'Churn', dica: 'Quem saiu, por quê, receita perdida e retenção', mod: ['VybeCarteira', 'churn'] },
     ] },
-    { id: 'setor:financas', grupo: 'Negócio', nome: 'Finanças', dica: 'Finanças: margem e pagamento por cliente', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
-      { id: 'financas', nome: 'Por cliente', dica: 'Contrato, custo, margem e pagamento', mod: ['VybeComercial', 'financas'] },
-      { id: 'recebimentos', nome: 'Recebimentos', dica: 'Recorrentes e pontuais: a receber, recebido e pendente', mod: ['VybeComercial', 'recebimentos'] },
-      { id: 'contas', nome: 'Contas a pagar', dica: 'Fixas, variáveis, folha, impostos, com % do faturamento', mod: ['VybeComercial', 'contas'] },
-      { id: 'inadimplencia', nome: 'Inadimplência', dica: 'Quem está em atraso e há quanto tempo', mod: ['VybeComercial', 'inadimplencia'] },
-      // Financeiro do próprio Vybe OS (Paulo, 13/11/2026): extrato do banco, cliente mês a mês, cartão, fixos e projeção.
-      { id: 'vorcaro', nome: 'Vorcaro · Tesouraria', dica: 'O que pede atenção no financeiro e o que chegou pelo WhatsApp', mod: ['VybeComercial', 'vorcaro'] },
-      { id: 'extrato', nome: 'Extrato e conciliação', dica: 'O extrato do banco e para onde foi cada lançamento', mod: ['VybeComercial', 'extrato'] },
-      { id: 'clientes_mes', nome: 'Clientes mês a mês', dica: 'Quem pagou e quem está em aberto, mês a mês', mod: ['VybeComercial', 'clientes_mes'] },
-      { id: 'cartao', nome: 'Cartão de crédito', dica: 'Cada item da fatura, pago ou não', mod: ['VybeComercial', 'cartao'] },
-      { id: 'fixos', nome: 'Gastos fixos', dica: 'Programas, assinaturas, aluguel e o que sai todo mês', mod: ['VybeComercial', 'fixos'] },
-      { id: 'vales', nome: 'Pessoas e vales', dica: 'Salário combinado × o que cada pessoa recebeu; o que passou vira vale', mod: ['VybeComercial', 'vales'] },
-      { id: 'projecao', nome: 'Relatórios e projeção', dica: 'Caixa realizado e projetado em 3, 6 e 12 meses, com cenários', mod: ['VybeComercial', 'projecao'] },
+    { id: 'setor:financas', grupo: 'Negócio', nome: 'Finanças', dica: 'Finanças: o dinheiro da Vybe em 5 telas', ic: svg('<path d="M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'), sub: [
+      // Finanças em 5 telas (Paulo, 23/11/2026: "muita ABA com muita coisa espalhada"). As 11 de antes viraram um lugar
+      // destas (FE_DE em vybe-mundo-financeiro.js); os ids antigos continuam abrindo, na tela nova.
+      { id: 'fin_hoje', nome: 'Hoje', dica: 'O Vorcaro, o saldo, o que entrou e saiu, o caixa e o que pede atenção', mod: ['VybeComercial', 'fin_hoje'] },
+      { id: 'fin_movimento', nome: 'Movimento', dica: 'Extrato, cartão, fixos e previsto, com a fila de conferir', mod: ['VybeComercial', 'fin_movimento'] },
+      { id: 'fin_clientes', nome: 'Clientes', dica: 'Cada cliente mês a mês, com a margem real e a ficha', mod: ['VybeComercial', 'fin_clientes'] },
+      { id: 'fin_pessoas', nome: 'Pessoas', dica: 'Combinado × o que cada pessoa recebeu, o vale e o desconto no salário', mod: ['VybeComercial', 'fin_pessoas'] },
+      { id: 'fin_analise', nome: 'Análise', dica: 'Fôlego, concentração, resultado por grupo e cenários', mod: ['VybeComercial', 'fin_analise'] },
     ] },
     { id: 'setor:gestao', grupo: 'Negócio', nome: 'Gestão', dica: 'Gestão da Vybe', ic: svg('<path d="M4 19h16"/><path d="M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="1.6"/>'), sub: [
       { id: 'gestao', nome: 'Visão geral', dica: 'Agora, semana, clientes, time e bots, histórico e projeção' },
@@ -308,6 +303,8 @@
     if (id === 'setor:toolkit') { usarTrilho('toolkit'); return; }
     // A Mídia não tem visão geral à parte: a Carteira de mídia já é a visão de todos os clientes.
     if (id === 'setor:midia') { usarTrilho('midia'); return; }
+    // Finanças abre no Hoje (o Vorcaro e os números do mês), a primeira das 5 telas.
+    if (id === 'setor:financas') { usarTrilho('fin_hoje'); return; }
     const t = TRILHO.find((x) => x && x.id === id);
     if (!t || !window.VybeSetor) { abrirSetor(id, hud.querySelector(`[data-trilho="${id}"]`)); return; }
     if (body.classList.contains('mundo-modulo')) sairDaTelaAntiga();
@@ -464,6 +461,8 @@
     });
   }
   function usarTrilho(id, botao, saiuDaAntiga = false) {
+    // Finanças em 5 telas (23/11/2026): o id de uma tela de antes (vorcaro, extrato, vales…) abre a tela nova que a recebeu.
+    if (!SUBMODULOS.some((x) => x.id === id) && window.VybeFinanceiro?.telaNova) { const nova = window.VybeFinanceiro.telaNova(id); if (nova) id = nova; }
     // Setor: no dock largo, abre para baixo e mostra o painelzão dele; recolhido ou no celular, a lista ao lado.
     // Item com cadeado chamado por outro caminho (busca, atalho): o mesmo aviso do dock.
     // Direção de arte (Paulo, 09/11/2026: "reformular o painel de direção de arte no padrão novo"): abre a Criação do Hoje.
@@ -679,7 +678,7 @@
   const TRANCADOS = new Set(['setor:comercial', 'setor:financas', 'setor:gestao', 'agentes', 'recrutamento', 'documentos', 'visao:setor:pessoas']);
   // Só dos donos de verdade (a coordenação não vê): o setor Finanças, as abas dele, IA e custos e a Mídia (Vinícius, 20/11/2026:
   // "para mim, Ewerton, Paulo e Deivid").
-  const SO_DINHEIRO = new Set(['setor:midia', 'midia', 'setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'ai-usage']);
+  const SO_DINHEIRO = new Set(['setor:midia', 'midia', 'setor:financas', 'financas', 'recebimentos', 'contas', 'inadimplencia', 'vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_analise', 'ai-usage']);
   const trancadoPara = (id) => (TRANCADOS.has(id) && !souDono()) || (SO_DINHEIRO.has(id) && !souDonoDoDinheiro());
   function aplicarCadeados() {
     hud.querySelectorAll?.('.vv-trilho [data-trilho], .vv-trilho [data-submodulo], .vv-trilho [data-visao-setor]').forEach((b) => {

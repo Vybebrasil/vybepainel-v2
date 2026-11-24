@@ -18,8 +18,10 @@
     ['contas', 'Contas a pagar', 1], ['inadimplencia', 'Inadimplência', 1], ['caixa', 'Caixa', 1], ['fornecedores', 'Fornecedores'], ['creators', 'Creators'],
     // Financeiro do próprio Vybe OS (13/11/2026, vybe-mundo-financeiro.js → area=financeiro, só os quatro donos).
     ['vorcaro', 'Vorcaro', 1], ['extrato', 'Extrato', 1], ['clientes_mes', 'Clientes mês a mês', 1], ['cartao', 'Cartão', 1], ['fixos', 'Gastos fixos', 1], ['projecao', 'Projeção', 1], ['vales', 'Pessoas e vales', 1],
+    // Finanças em 5 telas (Paulo, 23/11/2026): Hoje, Movimento, Clientes, Pessoas e Análise; as de cima abrem nelas.
+    ['fin_hoje', 'Hoje', 1], ['fin_movimento', 'Movimento', 1], ['fin_clientes', 'Clientes', 1], ['fin_pessoas', 'Pessoas', 1], ['fin_analise', 'Análise', 1],
   ];
-  const ABAS_FINANCEIRO = new Set(['vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales']);
+  const ABAS_FINANCEIRO = new Set(['vorcaro', 'extrato', 'clientes_mes', 'cartao', 'fixos', 'projecao', 'vales', 'fin_hoje', 'fin_movimento', 'fin_clientes', 'fin_pessoas', 'fin_analise']);
   // Frase do cabeçalho quando a janela abre num item só do dock (auditoria 09/11: Fornecedores e Creators mostravam o texto do Comercial).
   const FRASE = {
     funil: 'Oportunidades por etapa, metas do mês e a corrida comercial', pacotes: 'Os produtos da Vybe, com preço, entregas e carga do time',
@@ -29,6 +31,8 @@
     fornecedores: 'Gráficas, estúdios e parceiros, com BV e contato', creators: 'Influenciadores de Irecê e região para as campanhas',
     vorcaro: 'A Tesouraria: o que pede atenção no financeiro e o que chegou pelo WhatsApp', extrato: 'O extrato do banco e para onde foi cada lançamento de verdade', clientes_mes: 'Cada cliente, mês a mês: pago ou em aberto',
     cartao: 'As faturas do cartão da agência, item por item', fixos: 'Programas, assinaturas, aluguel e o que sai todo mês', projecao: 'Fluxo de caixa realizado e projetado, com cenários', vales: 'O combinado de cada pessoa, o que ela recebeu e o vale',
+    fin_hoje: 'O Vorcaro, o saldo, o que entrou e saiu e o que pede atenção', fin_movimento: 'Extrato, cartão, fixos e previsto, com a fila de conferir',
+    fin_clientes: 'Cada cliente mês a mês, com a margem real', fin_pessoas: 'Combinado, o que cada pessoa recebeu, o vale e o desconto no salário', fin_analise: 'Fôlego, concentração, resultado por grupo e cenários',
   };
   // Título da janela aberta por um item do dock: o nome do item (quadros 19 e 58: "CRM e funil", não "Funil").
   const TITULO = { funil: 'CRM e funil', pacotes: 'Produtos e pacotes', financas: 'Finanças por cliente' };
@@ -49,6 +53,11 @@
     cartao: 'Só os quatro donos. Os itens de cada fatura, com categoria e situação; o pagamento da fatura vem do Extrato.',
     fixos: 'Só os quatro donos. O que sai todo mês, com o dia e a forma de pagar; mostra se já saiu no extrato ou na fatura do mês.',
     projecao: 'Só os quatro donos. Média dos meses fechados do Extrato, projetada para 3, 6 ou 12 meses, com cenários.',
+    fin_hoje: 'Só os quatro donos. O mês do topo vale para as cinco telas. O laranja é o Vorcaro: o que espera conferir ou o que pede decisão. Cada número abre o Movimento filtrado por ele; o caixa tracejado é a projeção se nada mudar.',
+    fin_movimento: 'Só os quatro donos. Tudo que entrou e saiu: extrato, cartão, fixos e o previsto. Em A conferir, um lançamento por vez: confirme a sugestão do Vorcaro (com "sempre assim" vira regra), diga o que foi, divida ou pule. O que chega do grupo Vybe Financeiro entra na mesma fila.',
+    fin_clientes: 'Só os quatro donos. Mensalidade do contrato contra o que entrou de cada cliente, mês a mês. Margem real = o que entrou do cliente menos as saídas ligadas a ele. Toque num cliente para a ficha.',
+    fin_pessoas: 'Só os quatro donos. Combinado × o que cada pessoa recebeu. O que passa do combinado vira vale; na ficha, "Jogar o vale" desconta no salário do mês (ou do seguinte) e mostra quanto a pessoa vai receber.',
+    fin_analise: 'Só os quatro donos. Fôlego = quantos dias o saldo aguenta sem entrar nada (saldo ÷ a média que sai por dia). Resultado por grupo dos últimos 4 meses e, no E se…, o caixa projetado com os cortes e clientes que você simular.',
   };
   const st = { aberto: false, aba: 'funil', dados: {}, erro: {}, carregando: {}, folha: null, ajuda: false, periodo: { tipo: 'mensal', mes: '' }, verFalta: false,
     fase: '', filtro: {}, msg: '', ocupado: false, etapasEdit: null };
